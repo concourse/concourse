@@ -9,3 +9,8 @@ golang_1.2/go1.2.linux-amd64.tar.gz:
   sha: !binary |-
     NjY0ZTUwMjVlYWU5MTQxMmE5NmExMGY0ZWQxYThhZjZmMGYzMmI3ZA==
   size: 55966325
+aufs/aufs-tools_20110410-1_amd64.deb:
+  object_id: 79ed3b90-6be7-48fb-9d86-6d22a336d946
+  sha: !binary |-
+    NmYyMDIzMDhmNTc4ZGU3ZWE1NGZjMmRkMGI0NGI2NjY4MDRmOWJhNg==
+  size: 98338
