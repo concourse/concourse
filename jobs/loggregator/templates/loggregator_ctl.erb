@@ -1,0 +1,50 @@
+#!/bin/bash -e
+
+RUN_DIR=/var/vcap/sys/run/loggregator
+LOG_DIR=/var/vcap/sys/log/loggregator
+PIDFILE=$RUN_DIR/loggregator.pid
+
+source /var/vcap/packages/pid_utils/pid_utils.sh
+
+case $1 in
+
+  start)
+    pid_guard $PIDFILE "Loggregator"
+
+    mkdir -p $RUN_DIR
+    mkdir -p $LOG_DIR
+
+    chown vcap:vcap $LOG_DIR
+
+    echo $$ > $PIDFILE
+
+    ulimit -l unlimited
+    ulimit -n 65536
+
+    <% if properties.syslog_aggregator && properties.syslog_aggregator.address %>
+        /var/vcap/packages/syslog_aggregator/setup_syslog_forwarder.sh /var/vcap/jobs/loggregator/config
+    <% end %>
+
+    <% p("loggregator.debug") == true ? debug_string = "--debug " : debug_string = "" %>
+
+    exec chpst -u vcap:vcap /var/vcap/packages/loggregator/loggregator <%= debug_string %> \
+         --config /var/vcap/jobs/loggregator/config/loggregator.json \
+         >>$LOG_DIR/loggregator.stdout.log \
+         2>>$LOG_DIR/loggregator.stderr.log
+    ;;
+
+  stop)
+    kill_and_wait $PIDFILE 40
+
+    ;;
+
+  *)
+    echo "Usage: loggregator {start|stop}"
+
+    ;;
+
+esac
+<% if_p('loggregator.servers') do |servers| %>
+<%= "# The property below is unused, but emitting it changes this file,\n# which causes BOSH to restart the loggregator servers." %>
+<%= "#   loggregator.servers: #{servers}" %>
+<% end %>

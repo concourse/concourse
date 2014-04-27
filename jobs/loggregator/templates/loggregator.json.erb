@@ -1,0 +1,8 @@
+{
+  "IncomingPort": <%= p("loggregator.incoming_port") %>,
+  "OutgoingPort": <%= p("loggregator.outgoing_port") %>,
+  "SkipCertVerify": <%= p("ssl.skip_cert_verify") %>,
+  "Index": <%= spec.index %>,
+  "MaxRetainedLogMessages": <%= p("loggregator.max_retained_log_messages") %>,
+  "SharedSecret": "<%= p("loggregator_endpoint.shared_secret") %>"
+}

@@ -21,14 +21,14 @@ properties:
     description: "Warden server listening address."
     default: /var/vcap/data/warden/warden.sock
 
-  loggregator_endpoint.host:
+  prole.loggregator.host:
     description: "The host used to emit messages to the Loggregator"
 
-  loggregator_endpoint.port:
+  prole.loggregator.port:
     description: "The port used to emit messages to the Loggregator"
     default: 3456
 
-  loggregator_endpoint.shared_secret:
+  prole.loggregator.shared_secret:
     description: "The key used to sign log messages"
 
   network_name:

@@ -46,6 +46,19 @@ jobs:
           network: tcp
           address: 127.0.0.1:7777
 
+        loggregator:
+          host: (( jobs.loggregator.networks.room101.static_ips.[0] ))
+          shared_secret: (( jobs.loggregator.properties.loggregator_endpoint.shared_secret ))
+
+  - name: loggregator
+    instances: 1
+    networks:
+      - name: room101
+        static_ips: (( static_ips(8) ))
+    properties:
+      loggregator_endpoint:
+        shared_secret: loggregator-secret
+
 networks:
 - name: room101
   subnets:

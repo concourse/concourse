@@ -1,0 +1,36 @@
+---
+name: loggregator
+templates:
+  loggregator_ctl.erb: bin/loggregator_ctl
+  loggregator.json.erb: config/loggregator.json
+
+packages:
+- pid_utils
+- loggregator
+
+properties:
+  loggregator.debug:
+    description: boolean value to turn on verbose logging for loggregator system (dea agent & loggregator server)
+    default: false
+
+  loggregator.max_retained_log_messages:
+    description: number of log messages to retain per application
+    default: 10
+
+  loggregator.incoming_port:
+    description: Port for incoming log messages
+    default: 3456
+
+  loggregator.outgoing_port:
+    description: Port for outgoing log messages
+    default: 8080
+
+  loggregator.servers:
+    description: "This property is not used by the job itself, but has the desired effect of restarting the loggregator jobs when the property changes on bosh deployment. See loggregator_trafficcontroller job spec for a description."
+
+  loggregator_endpoint.shared_secret:
+    description: "Shared secret used to verify cryptographically signed loggregator messages"
+
+  ssl.skip_cert_verify:
+    description: "when connecting over TLS, don't verify certificates"
+    default: false

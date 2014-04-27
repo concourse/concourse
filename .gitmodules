@@ -7,3 +7,6 @@
 [submodule "src/redgreen"]
 	path = src/redgreen
 	url = https://github.com/winston-ci/redgreen.git
+[submodule "src/loggregator"]
+	path = src/loggregator
+	url = https://github.com/cloudfoundry/loggregator.git

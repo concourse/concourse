@@ -23,7 +23,7 @@ case $1 in
       -listenAddr=<%= p("prole.listen_address") %> \
       -wardenNetwork=<%= p("prole.warden.network") %> \
       -wardenAddr=<%= p("prole.warden.address") %> \
-<% if_p("loggregator_endpoint.host", "loggregator_endpoint.port", "loggregator_endpoint.shared_secret") do |host, port, secret| %> \
+<% if_p("prole.loggregator.host", "prole.loggregator.port", "prole.loggregator.shared_secret") do |host, port, secret| %> \
       -loggregatorServer=<%= host %>:<%= port %> \
       -loggregatorSecret=<%= secret %> \
 <% end %> \

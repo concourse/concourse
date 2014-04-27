@@ -30,3 +30,17 @@ jobs:
       network_name: room101
       warden: ~
       prole: ~
+
+  - name: loggregator
+    templates:
+      - name: loggregator
+        release: room101
+    instances: 1
+    resource_pool: proles
+    networks:
+      - name: room101
+        static_ips: ~
+    properties:
+      network_name: room101
+      loggregator_endpoint:
+        shared_secret: (( merge ))
