@@ -9,8 +9,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
+	"github.com/fraenkel/candiedyaml"
 	"github.com/mgutz/ansi"
 	"github.com/pivotal-golang/archiver/compressor"
 )
@@ -25,8 +27,25 @@ type BuildResult struct {
 	Status string `json:"status"`
 }
 
+type BuildConfig struct {
+	Image  string `yaml:"image"`
+	Script string `yaml:"script"`
+}
+
+var buildConfig = flag.String(
+	"c",
+	"build.yml",
+	"build configuration file",
+)
+
+var buildDir = flag.String(
+	"d",
+	".",
+	"source directory to build",
+)
+
 var redgreenURL = flag.String(
-	"redgreenAddr",
+	"redgreenURL",
 	"http://127.0.0.1:5637",
 	"address denoting the redgreen service",
 )
@@ -34,35 +53,38 @@ var redgreenURL = flag.String(
 func main() {
 	flag.Parse()
 
-	compressor := compressor.NewTgz()
+	build := create(loadConfig())
 
-	src, err := os.Getwd()
+	upload(build)
+
+	poll(build)
+}
+
+func loadConfig() BuildConfig {
+	configFile, err := os.Open(*buildConfig)
 	if err != nil {
-		fmt.Println("Couldn't get current directory...")
-		os.Exit(1)
+		log.Fatalln("could not open config file:", err)
 	}
 
-	dest, err := ioutil.TempFile("", "smith")
+	var config BuildConfig
+
+	err = candiedyaml.NewDecoder(configFile).Decode(&config)
 	if err != nil {
-		fmt.Println("Couldn't create temporary file...")
-		os.Exit(1)
-	}
-	dest.Close()
-
-	err = compressor.Compress(src, dest.Name())
-	if err != nil {
-		fmt.Printf("Couldn't create archive: %s\n", err.Error())
-		os.Exit(1)
+		log.Fatalln("could not parse config file:", err)
 	}
 
-	build := Build{
-		Image:  "mischief/docker-golang",
-		Script: "find .",
-	}
+	return config
+}
 
+func create(config BuildConfig) Build {
 	buffer := &bytes.Buffer{}
 
-	err = json.NewEncoder(buffer).Encode(build)
+	build := Build{
+		Image:  config.Image,
+		Script: config.Script,
+	}
+
+	err := json.NewEncoder(buffer).Encode(build)
 	if err != nil {
 		log.Fatalln("encoding build failed:", err)
 	}
@@ -77,7 +99,9 @@ func main() {
 	}
 
 	if response.StatusCode != http.StatusCreated {
-		log.Fatalln("bad response:", response)
+		log.Println("bad response when creating build:", response)
+		response.Write(os.Stderr)
+		os.Exit(1)
 	}
 
 	err = json.NewDecoder(response.Body).Decode(&build)
@@ -85,12 +109,37 @@ func main() {
 		log.Fatalln("response decoding failed:", err)
 	}
 
-	archive, err := os.Open(dest.Name())
+	return build
+}
+
+func upload(build Build) {
+	src, err := filepath.Abs(*buildDir)
 	if err != nil {
-		log.Fatalln("could not open archive")
+		log.Fatalln("could not locate build config:", err)
 	}
 
-	response, err = http.Post(
+	compressor := compressor.NewTgz()
+
+	tmpfile, err := ioutil.TempFile("", "smith")
+	if err != nil {
+		log.Fatalln("creating tempfile failed:", err)
+	}
+
+	tmpfile.Close()
+
+	defer os.Remove(tmpfile.Name())
+
+	err = compressor.Compress(src, tmpfile.Name())
+	if err != nil {
+		log.Fatalln("creating archive failed:", err)
+	}
+
+	archive, err := os.Open(tmpfile.Name())
+	if err != nil {
+		log.Fatalln("could not open archive:", err)
+	}
+
+	response, err := http.Post(
 		*redgreenURL+"/builds/"+build.Guid+"/bits",
 		"application/octet-stream",
 		archive,
@@ -100,9 +149,13 @@ func main() {
 	}
 
 	if response.StatusCode != http.StatusCreated {
-		log.Fatalln("bad response:", response)
+		log.Println("bad response when uploading bits:", response)
+		response.Write(os.Stderr)
+		os.Exit(1)
 	}
+}
 
+func poll(build Build) {
 	for {
 		var result BuildResult
 
@@ -116,21 +169,25 @@ func main() {
 			log.Fatalln("error decoding result:", err)
 		}
 
-		if result.Status != "" {
-			exitCode := 1
-			if result.Status == "succeeded" {
-				exitCode = 0
-			}
+		var color string
+		var exitCode int
 
-			if exitCode == 0 {
-				fmt.Println(ansi.Color(result.Status, "green"))
-			} else {
-				fmt.Println(ansi.Color(result.Status, "red"))
-			}
-
-			os.Exit(exitCode)
+		switch result.Status {
+		case "succeeded":
+			color = "green"
+			exitCode = 0
+		case "failed":
+			color = "red"
+			exitCode = 1
+		case "errored":
+			color = "magenta"
+			exitCode = 2
+		default:
+			time.Sleep(time.Second)
+			continue
 		}
 
-		time.Sleep(time.Second)
+		fmt.Println(ansi.Color(result.Status, color))
+		os.Exit(exitCode)
 	}
 }
