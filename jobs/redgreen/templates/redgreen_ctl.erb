@@ -1,0 +1,40 @@
+#!/bin/bash -e
+
+RUN_DIR=/var/vcap/sys/run/redgreen
+LOG_DIR=/var/vcap/sys/log/redgreen
+PIDFILE=$RUN_DIR/redgreen.pid
+
+source /var/vcap/packages/pid_utils/pid_utils.sh
+
+case $1 in
+
+  start)
+    pid_guard $PIDFILE "redgreen"
+
+    mkdir -p $RUN_DIR
+    mkdir -p $LOG_DIR
+
+    echo $$ > /var/vcap/sys/run/redgreen/redgreen.pid
+
+    <% my_ip = spec.networks.send(p("network_name")).ip %>
+
+    exec /var/vcap/packages/redgreen/bin/redgreen \
+      -listenAddr=<%= p("redgreen.listen_address") %> \
+      -peerAddr=<%= my_ip %>:<%= p("redgreen.listen_address").split(":").last %> \
+      -proleURL=http://<%= p("redgreen.prole.address") %> \
+      1>>$LOG_DIR/redgreen.stdout.log \
+      2>>$LOG_DIR/redgreen.stderr.log
+
+    ;;
+
+  stop)
+    kill_and_wait $PIDFILE
+
+    ;;
+
+  *)
+    echo "Usage: redgreen_ctl {start|stop}"
+
+    ;;
+
+esac

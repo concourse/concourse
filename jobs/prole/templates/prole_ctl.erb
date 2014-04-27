@@ -1,0 +1,45 @@
+#!/bin/bash -e
+
+RUN_DIR=/var/vcap/sys/run/prole
+LOG_DIR=/var/vcap/sys/log/prole
+TMP_DIR=/var/vcap/data/tmp/prole
+PIDFILE=$RUN_DIR/prole.pid
+
+source /var/vcap/packages/pid_utils/pid_utils.sh
+
+case $1 in
+
+  start)
+    pid_guard $PIDFILE "prole"
+
+    mkdir -p $RUN_DIR
+    mkdir -p $LOG_DIR
+    mkdir -p $TMP_DIR
+
+    echo $$ > /var/vcap/sys/run/prole/prole.pid
+
+    exec /var/vcap/packages/prole/bin/prole \
+      -tmpdir=${TMP_DIR} \
+      -listenAddr=<%= p("prole.listen_address") %> \
+      -wardenNetwork=<%= p("prole.warden.network") %> \
+      -wardenAddr=<%= p("prole.warden.address") %> \
+<% if_p("loggregator_endpoint.host", "loggregator_endpoint.port", "loggregator_endpoint.shared_secret") do |host, port, secret| %> \
+      -loggregatorServer=<%= host %>:<%= port %> \
+      -loggregatorSecret=<%= secret %> \
+<% end %> \
+      1>>$LOG_DIR/prole.stdout.log \
+      2>>$LOG_DIR/prole.stderr.log
+
+    ;;
+
+  stop)
+    kill_and_wait $PIDFILE
+
+    ;;
+
+  *)
+    echo "Usage: prole_ctl {start|stop}"
+
+    ;;
+
+esac

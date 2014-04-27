@@ -1,0 +1,14 @@
+check process warden
+  with pidfile /var/vcap/sys/run/warden/warden.pid
+  start program "/var/vcap/jobs/warden/bin/warden_ctl start"
+  stop program "/var/vcap/jobs/warden/bin/warden_ctl stop"
+<% if p("warden.listen_network") == "unix" %>
+  if failed unixsocket <%= p("warden.listen_address") %>
+    with timeout 5 seconds for 5 cycles
+    then restart
+<% elsif p("warden.listen_network") == "tcp" %>
+  if failed host 127.0.0.1 port <%= p("warden.listen_address").split(":").last %>
+    with timeout 5 seconds for 5 cycles
+    then restart
+<% end %>
+  group vcap

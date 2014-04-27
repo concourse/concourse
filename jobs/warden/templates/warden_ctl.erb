@@ -1,0 +1,64 @@
+#!/bin/bash -e
+
+RUN_DIR=/var/vcap/sys/run/warden
+LOG_DIR=/var/vcap/sys/log/warden
+PIDFILE=$RUN_DIR/warden.pid
+DATA_DIR=/var/vcap/data/warden
+
+source /var/vcap/packages/pid_utils/pid_utils.sh
+
+case $1 in
+
+  start)
+    pid_guard $PIDFILE "Warden"
+
+    mkdir -p $RUN_DIR
+    mkdir -p $DATA_DIR
+    mkdir -p $LOG_DIR
+
+    <% if p("warden.kernel_network_tuning_enabled") == true %>
+    # Use default local port range (higher ports are used for pooling)
+    echo 32768 61000 > /proc/sys/net/ipv4/ip_local_port_range
+    <% end %>
+
+    mkdir -p $DATA_DIR/depot
+
+    echo $$ > /var/vcap/sys/run/warden/warden.pid
+
+    # aufs setup
+    dpkg -i /var/vcap/packages/aufs/aufs-tools_20110410-1_amd64.deb
+    if ! mountpoint -q /dev/shm; then
+      mkdir -p /dev/shm
+      mount -t tmpfs -o size=64m tmpfs /dev/shm
+    fi
+
+    # TODO fix rootfs
+
+    exec /var/vcap/packages/warden-docker/bin/warden-docker \
+      -disableQuotas=<%= !p("warden.disk_quota_enabled") %> \
+      -listenNetwork=<%= p("warden.listen_network") %> \
+      -listenAddr=<%= p("warden.listen_address") %> \
+      -denyNetworks=<%= p("warden.deny_networks").join(",") %> \
+      -allowNetworks=<%= p("warden.allow_networks").join(",") %> \
+      -depot=${DATA_DIR}/depot \
+      -graph=${DATA_DIR}/graph \
+      -rootfs=/var/vcap/data \
+      -bin=/var/vcap/packages/warden-docker/src/github.com/vito/warden-docker/bin \
+      -debug \
+      -containerGraceTime=5m \
+      1>>$LOG_DIR/warden.stdout.log \
+      2>>$LOG_DIR/warden.stderr.log
+
+    ;;
+
+  stop)
+    kill_and_wait $PIDFILE
+
+    ;;
+
+  *)
+    echo "Usage: warden_ctl {start|stop}"
+
+    ;;
+
+esac

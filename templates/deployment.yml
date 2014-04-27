@@ -1,0 +1,44 @@
+name: room101
+
+director_uuid: (( merge ))
+
+releases:
+  - name: room101
+    version: latest
+
+networks: (( merge ))
+
+jobs: (( merge ))
+
+meta:
+  environment: ~
+
+  stemcell:
+    name: (( merge ))
+    version: latest
+
+compilation:
+  workers: 6
+  network: room101
+  reuse_compilation_vms: true
+  cloud_properties: (( merge ))
+
+update:
+  canaries: 1
+  max_in_flight: 3
+  serial: false
+  canary_watch_time: 30000-600000
+  update_watch_time: 5000-600000
+
+resource_pools:
+  - name: room101
+    network: room101
+    size: (( auto ))
+    stemcell: (( meta.stemcell ))
+    cloud_properties: (( merge ))
+
+  - name: proles
+    network: room101
+    size: (( auto ))
+    stemcell: (( meta.stemcell ))
+    cloud_properties: (( merge ))

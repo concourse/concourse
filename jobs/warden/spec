@@ -1,0 +1,35 @@
+---
+name: warden
+
+templates:
+  warden_ctl.erb: bin/warden_ctl
+
+packages:
+  - pid_utils
+  - warden-docker
+  - aufs
+
+properties:
+  warden.kernel_network_tuning_enabled:
+    description: "enable or disable kernel network tuning; disable for Warden CPI"
+    default: true
+
+  warden.listen_network:
+    description: "Warden server connection mode (tcp or unix)."
+    default: unix
+
+  warden.listen_address:
+    description: "Warden server listening address."
+    default: /var/vcap/data/warden/warden.sock
+
+  warden.disk_quota_enabled:
+    description: "Enforce disk quotas."
+    default: true
+
+  warden.deny_networks:
+    description: "List of CIDR blocks to which containers will be denied access."
+    default: []
+
+  warden.allow_networks:
+    description: "List of CIDR blocks to which containers will be allowed access (applied after deny)."
+    default: []

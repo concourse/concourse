@@ -1,0 +1,10 @@
+---
+name: warden-docker
+
+dependencies:
+  - golang_1.2
+
+files:
+  - warden-docker/**/*.go
+  - warden-docker/{bin,skeleton,src}/**/*
+  - warden-docker/Makefile

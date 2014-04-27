@@ -1,0 +1,11 @@
+---
+git/git-1.7.11.2.tar.gz:
+  object_id: ca8a411f-8858-4989-8891-d7efe7805e86
+  sha: !binary |-
+    ZjY3YjRmNmMwMjc3MjUwNDExYzY4NzJhZTdiOGE4NzJhZTExZDMxMw==
+  size: 4015780
+golang_1.2/go1.2.linux-amd64.tar.gz:
+  object_id: 58ea167d-6e09-4fee-ab01-1629f8039e46
+  sha: !binary |-
+    NjY0ZTUwMjVlYWU5MTQxMmE5NmExMGY0ZWQxYThhZjZmMGYzMmI3ZA==
+  size: 55966325

@@ -1,0 +1,3 @@
+set -e -x
+
+cp aufs/* ${BOSH_INSTALL_TARGET}

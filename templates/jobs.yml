@@ -1,0 +1,32 @@
+networks: (( merge ))
+
+jobs:
+  - name: redgreen
+    templates:
+      - name: redgreen
+        release: room101
+    instances: 1
+    resource_pool: room101
+    networks:
+      - name: room101
+    properties:
+      network_name: room101
+      redgreen:
+        prole:
+          address: (( merge ))
+
+  - name: prole
+    templates:
+      - name: prole
+        release: room101
+      - name: warden
+        release: room101
+    instances: 1
+    resource_pool: proles
+    networks:
+      - name: room101
+        static_ips: ~
+    properties:
+      network_name: room101
+      warden: ~
+      prole: ~

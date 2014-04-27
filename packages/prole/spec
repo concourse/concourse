@@ -1,0 +1,8 @@
+---
+name: prole
+
+dependencies:
+  - golang_1.2
+
+files:
+  - prole/**/*.go

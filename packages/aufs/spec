@@ -1,0 +1,8 @@
+---
+name: aufs
+
+dependencies: []
+
+files:
+- aufs/**/*
+

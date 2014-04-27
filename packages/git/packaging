@@ -1,0 +1,8 @@
+set -e -x
+
+tar xzf git/git-1.7.11.2.tar.gz
+
+cd git-1.7.11.2
+./configure --prefix=${BOSH_INSTALL_TARGET}
+make NO_TCLTK=Yes
+make NO_TCLTK=Yes install

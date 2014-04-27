@@ -1,0 +1,9 @@
+[submodule "src/warden-docker"]
+	path = src/warden-docker
+	url = https://github.com/vito/warden-docker.git
+[submodule "src/prole"]
+	path = src/prole
+	url = https://github.com/winston-ci/prole.git
+[submodule "src/redgreen"]
+	path = src/redgreen
+	url = https://github.com/winston-ci/redgreen.git

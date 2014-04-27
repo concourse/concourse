@@ -1,0 +1,8 @@
+---
+name: redgreen
+
+dependencies:
+  - golang_1.2
+
+files:
+  - redgreen/**/*.go
