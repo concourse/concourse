@@ -55,8 +55,8 @@ script: find .
 		redgreenServer.AppendHandlers(
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/builds"),
-				ghttp.VerifyJSON(`{"guid": "", "image": "ubuntu", "script": "find ."}`),
-				ghttp.RespondWith(201, `{"guid":"abc","image":"ubuntu","script":"find ."}`),
+				ghttp.VerifyJSON(`{"image": "ubuntu", "script": "find .", "path": "."}`),
+				ghttp.RespondWith(201, `{"guid":"abc","image":"ubuntu","script":"find .","path":"."}`),
 			),
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/builds/abc/bits"),

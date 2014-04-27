@@ -18,8 +18,9 @@ import (
 )
 
 type Build struct {
-	Guid   string `json:"guid"`
+	Guid   string `json:"guid,omitempty"`
 	Image  string `json:"image"`
+	Path   string `json:"path"`
 	Script string `json:"script"`
 }
 
@@ -29,6 +30,7 @@ type BuildResult struct {
 
 type BuildConfig struct {
 	Image  string `yaml:"image"`
+	Path   string `yaml:"path"`
 	Script string `yaml:"script"`
 }
 
@@ -81,7 +83,12 @@ func create(config BuildConfig) Build {
 
 	build := Build{
 		Image:  config.Image,
+		Path:   config.Path,
 		Script: config.Script,
+	}
+
+	if build.Path == "" {
+		build.Path = "."
 	}
 
 	err := json.NewEncoder(buffer).Encode(build)
