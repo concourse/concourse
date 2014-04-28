@@ -176,6 +176,8 @@ func poll(build Build) {
 			log.Fatalln("error decoding result:", err)
 		}
 
+		response.Body.Close()
+
 		var color string
 		var exitCode int
 
