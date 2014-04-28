@@ -12,7 +12,10 @@ import (
 	"path/filepath"
 	"time"
 
+	"code.google.com/p/goprotobuf/proto"
+	"github.com/cloudfoundry/loggregatorlib/logmessage"
 	"github.com/fraenkel/candiedyaml"
+	"github.com/gorilla/websocket"
 	"github.com/mgutz/ansi"
 	"github.com/pivotal-golang/archiver/compressor"
 )
@@ -56,6 +59,8 @@ func main() {
 	flag.Parse()
 
 	build := create(loadConfig())
+
+	go stream(build)
 
 	upload(build)
 
@@ -117,6 +122,70 @@ func create(config BuildConfig) Build {
 	}
 
 	return build
+}
+
+func stream(build Build) {
+	stop := make(chan bool, 1)
+
+	var ws *websocket.Conn
+	i := 0
+	for {
+		var err error
+		ws, _, err = websocket.DefaultDialer.Dial(
+			fmt.Sprintf("ws://10.244.8.34:%d%s", 8080, fmt.Sprintf("/tail/?app=%s", build.Guid)),
+			http.Header{},
+		)
+		if err != nil {
+			i++
+			if i > 10 {
+				fmt.Printf("Unable to connect to Server in 100ms, giving up.\n")
+				return
+			}
+
+			time.Sleep(10 * time.Millisecond)
+			continue
+		} else {
+			break
+		}
+	}
+
+	go func() {
+		for {
+			err := ws.WriteMessage(websocket.BinaryMessage, []byte{42})
+			if err != nil {
+				break
+			}
+
+			select {
+			case <-stop:
+				ws.Close()
+				return
+
+			case <-time.After(1 * time.Second):
+				// keep-alive
+			}
+		}
+	}()
+
+	defer close(stop)
+
+	for {
+		_, data, err := ws.ReadMessage()
+		if err != nil {
+			log.Println("error reading loggregator message:", err)
+			return
+		}
+
+		var receivedMessage logmessage.LogMessage
+
+		err = proto.Unmarshal(data, &receivedMessage)
+		if err != nil {
+			log.Println("error unmarshaling loggregator message:", err)
+			return
+		}
+
+		fmt.Println(string(receivedMessage.GetMessage()))
+	}
 }
 
 func upload(build Build) {
