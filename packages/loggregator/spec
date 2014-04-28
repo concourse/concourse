@@ -1,8 +1,0 @@
----
-name: loggregator
-
-dependencies:
-  - golang_1.2
-
-files:
-  - loggregator/**/*
