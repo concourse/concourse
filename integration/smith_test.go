@@ -8,8 +8,10 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/gorilla/websocket"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 )
@@ -26,7 +28,9 @@ var _ = Describe("Smith CLI", func() {
 	var buildDir string
 
 	var redgreenServer *ghttp.Server
+	var redgreenAddr string
 	var polling chan struct{}
+	var streaming chan *websocket.Conn
 
 	BeforeEach(func() {
 		var err error
@@ -47,16 +51,36 @@ script: find .
 		Ω(err).ShouldNot(HaveOccurred())
 
 		redgreenServer = ghttp.NewServer()
+		redgreenAddr = redgreenServer.HTTPTestServer.Listener.Addr().String()
 	})
 
 	BeforeEach(func() {
 		polling = make(chan struct{})
+		streaming = make(chan *websocket.Conn, 1)
 
 		redgreenServer.AppendHandlers(
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/builds"),
 				ghttp.VerifyJSON(`{"image": "ubuntu", "script": "find .", "path": "."}`),
 				ghttp.RespondWith(201, `{"guid":"abc","image":"ubuntu","script":"find .","path":"."}`),
+			),
+			ghttp.CombineHandlers(
+				ghttp.VerifyRequest("GET", "/builds/abc/log/output"),
+				func(w http.ResponseWriter, r *http.Request) {
+					upgrader := websocket.Upgrader{
+						ReadBufferSize:  1024,
+						WriteBufferSize: 1024,
+						CheckOrigin: func(r *http.Request) bool {
+							// allow all connections
+							return true
+						},
+					}
+
+					conn, err := upgrader.Upgrade(w, r, nil)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					streaming <- conn
+				},
 			),
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/builds/abc/bits"),
@@ -88,14 +112,21 @@ script: find .
 		)
 	})
 
-	It("creates a build, uploads the bits, and polls until completion", func() {
+	It("creates a build, streams output, uploads the bits, and polls until completion", func() {
 		redgreenServer.AllowUnhandledRequests = true
 
-		smithCmd := exec.Command(smithPath, "-redgreenURL", redgreenServer.URL())
+		smithCmd := exec.Command(smithPath, "-redgreenAddr", redgreenAddr)
+
 		smithCmd.Dir = buildDir
 
-		_, err := gexec.Start(smithCmd, GinkgoWriter, GinkgoWriter)
+		sess, err := gexec.Start(smithCmd, GinkgoWriter, GinkgoWriter)
 		Ω(err).ShouldNot(HaveOccurred())
+
+		stream := <-streaming
+		err = stream.WriteMessage(websocket.BinaryMessage, []byte("sup"))
+		Ω(err).ShouldNot(HaveOccurred())
+
+		Eventually(sess.Out).Should(gbytes.Say("sup"))
 
 		Eventually(polling, 5.0).Should(BeClosed())
 	})
@@ -111,7 +142,7 @@ script: find .
 		})
 
 		It("exits 0", func() {
-			smithCmd := exec.Command(smithPath, "-redgreenURL", redgreenServer.URL())
+			smithCmd := exec.Command(smithPath, "-redgreenAddr", redgreenAddr)
 			smithCmd.Dir = buildDir
 
 			smithSession, err := gexec.Start(smithCmd, GinkgoWriter, GinkgoWriter)
@@ -132,7 +163,7 @@ script: find .
 		})
 
 		It("exits 1", func() {
-			smithCmd := exec.Command(smithPath, "-redgreenURL", redgreenServer.URL())
+			smithCmd := exec.Command(smithPath, "-redgreenAddr", redgreenAddr)
 			smithCmd.Dir = buildDir
 
 			smithSession, err := gexec.Start(smithCmd, GinkgoWriter, GinkgoWriter)
@@ -153,7 +184,7 @@ script: find .
 		})
 
 		It("exits 2", func() {
-			smithCmd := exec.Command(smithPath, "-redgreenURL", redgreenServer.URL())
+			smithCmd := exec.Command(smithPath, "-redgreenAddr", redgreenAddr)
 			smithCmd.Dir = buildDir
 
 			smithSession, err := gexec.Start(smithCmd, GinkgoWriter, GinkgoWriter)
