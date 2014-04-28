@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/fraenkel/candiedyaml"
@@ -66,11 +67,21 @@ func main() {
 		return
 	}
 
-	go stream(conn)
+	streaming := new(sync.WaitGroup)
+	streaming.Add(1)
+
+	go stream(conn, streaming)
 
 	upload(build)
 
-	poll(build)
+	exitCode := poll(build)
+
+	res.Body.Close()
+	conn.Close()
+
+	streaming.Wait()
+
+	os.Exit(exitCode)
 }
 
 func loadConfig() BuildConfig {
@@ -116,6 +127,8 @@ func create(config BuildConfig) Build {
 		log.Fatalln("request failed:", err)
 	}
 
+	defer response.Body.Close()
+
 	if response.StatusCode != http.StatusCreated {
 		log.Println("bad response when creating build:", response)
 		response.Write(os.Stderr)
@@ -130,12 +143,13 @@ func create(config BuildConfig) Build {
 	return build
 }
 
-func stream(conn *websocket.Conn) {
+func stream(conn *websocket.Conn, streaming *sync.WaitGroup) {
+	defer streaming.Done()
+
 	for {
 		_, data, err := conn.ReadMessage()
 		if err != nil {
-			log.Println("error reading loggregator message:", err)
-			return
+			break
 		}
 
 		fmt.Print(string(data))
@@ -178,6 +192,8 @@ func upload(build Build) {
 		log.Fatalln("request failed:", err)
 	}
 
+	defer response.Body.Close()
+
 	if response.StatusCode != http.StatusCreated {
 		log.Println("bad response when uploading bits:", response)
 		response.Write(os.Stderr)
@@ -185,7 +201,7 @@ func upload(build Build) {
 	}
 }
 
-func poll(build Build) {
+func poll(build Build) int {
 	for {
 		var result BuildResult
 
@@ -196,6 +212,7 @@ func poll(build Build) {
 
 		err = json.NewDecoder(response.Body).Decode(&result)
 		if err != nil {
+			response.Body.Close()
 			log.Fatalln("error decoding result:", err)
 		}
 
@@ -220,6 +237,6 @@ func poll(build Build) {
 		}
 
 		fmt.Println(ansi.Color(result.Status, color))
-		os.Exit(exitCode)
+		return exitCode
 	}
 }
