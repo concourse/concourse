@@ -117,8 +117,6 @@ func create(config BuildConfig) Build {
 		env = append(env, [2]string{segs[0], segs[1]})
 	}
 
-	log.Println("ENV:", env)
-
 	build := Build{
 		Image:  config.Image,
 		Path:   config.Path,
