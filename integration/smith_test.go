@@ -44,6 +44,10 @@ var _ = Describe("Smith CLI", func() {
 			filepath.Join(buildDir, "build.yml"),
 			[]byte(`---
 image: ubuntu
+path: some-path/
+env:
+  - FOO=bar
+  - BAZ=buzz
 script: find .
 `),
 			0644,
@@ -61,8 +65,25 @@ script: find .
 		redgreenServer.AppendHandlers(
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/builds"),
-				ghttp.VerifyJSON(`{"image": "ubuntu", "script": "find .", "path": "."}`),
-				ghttp.RespondWith(201, `{"guid":"abc","image":"ubuntu","script":"find .","path":"."}`),
+				ghttp.VerifyJSON(`{
+					"image": "ubuntu",
+					"script": "find .",
+					"path": "some-path/",
+					"env": [
+						["FOO", "bar"],
+						["BAZ", "buzz"]
+					]
+				}`),
+				ghttp.RespondWith(201, `{
+					"guid": "abc",
+					"image": "ubuntu",
+					"script": "find .",
+					"path": "some-path/",
+					"env": [
+						["FOO", "bar"],
+						["BAZ", "buzz"]
+					]
+				}`),
 			),
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", "/builds/abc/log/output"),

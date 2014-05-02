@@ -3,20 +3,18 @@ image: mischief/docker-golang
 
 path: go/src/github.com/winston-ci/smith
 
+env:
+  - GOROOT=/usr/local/go
+  - PATH=$GOROOT/bin:$PATH
+  - GOPATH=${HOME}/go
+  - PATH=${HOME}/go/bin:$PATH
+
 script: |
-  set -e -x
-
   cd go/src/github.com/winston-ci/smith
-
-  export GOROOT=/usr/local/go
-  export PATH=$GOROOT/bin:$PATH
-
-  export GOPATH=${HOME}/go
-  export PATH=${HOME}/go/bin:$PATH
 
   export GOPATH=${PWD}/Godeps/_workspace:$GOPATH
   export PATH=${PWD}/Godeps/_workspace/bin:$PATH
-  
+
   go install github.com/onsi/ginkgo/ginkgo
 
   ginkgo -r -nodes=4

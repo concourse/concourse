@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,10 +22,11 @@ import (
 )
 
 type Build struct {
-	Guid   string `json:"guid,omitempty"`
-	Image  string `json:"image"`
-	Path   string `json:"path"`
-	Script string `json:"script"`
+	Guid   string      `json:"guid,omitempty"`
+	Image  string      `json:"image"`
+	Path   string      `json:"path"`
+	Script string      `json:"script"`
+	Env    [][2]string `json:"env"`
 }
 
 type BuildResult struct {
@@ -32,9 +34,10 @@ type BuildResult struct {
 }
 
 type BuildConfig struct {
-	Image  string `yaml:"image"`
-	Path   string `yaml:"path"`
-	Script string `yaml:"script"`
+	Image  string   `yaml:"image"`
+	Path   string   `yaml:"path"`
+	Script string   `yaml:"script"`
+	Env    []string `yaml:"env"`
 }
 
 var buildConfig = flag.String(
@@ -104,10 +107,23 @@ func loadConfig() BuildConfig {
 func create(config BuildConfig) Build {
 	buffer := &bytes.Buffer{}
 
+	env := [][2]string{}
+	for _, e := range config.Env {
+		segs := strings.SplitN(e, "=", 2)
+		if len(segs) != 2 {
+			log.Fatalln("invalid environment configuration:", e)
+		}
+
+		env = append(env, [2]string{segs[0], segs[1]})
+	}
+
+	log.Println("ENV:", env)
+
 	build := Build{
 		Image:  config.Image,
 		Path:   config.Path,
 		Script: config.Script,
+		Env:    env,
 	}
 
 	if build.Path == "" {
