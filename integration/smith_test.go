@@ -48,7 +48,7 @@ path: some-path/
 env:
   - FOO=bar
   - BAZ=buzz
-script: find .
+script: find . {{ .Args }}
 `),
 			0644,
 		)
@@ -137,19 +137,61 @@ script: find .
 		redgreenServer.AllowUnhandledRequests = true
 
 		smithCmd := exec.Command(smithPath, "-redgreenAddr", redgreenAddr)
-
 		smithCmd.Dir = buildDir
 
 		sess, err := gexec.Start(smithCmd, GinkgoWriter, GinkgoWriter)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		stream := <-streaming
+		var stream *websocket.Conn
+		Eventually(streaming).Should(Receive(&stream))
 		err = stream.WriteMessage(websocket.BinaryMessage, []byte("sup"))
 		Ω(err).ShouldNot(HaveOccurred())
 
 		Eventually(sess.Out).Should(gbytes.Say("sup"))
 
 		Eventually(polling, 5.0).Should(BeClosed())
+	})
+
+	Context("when arguments are passed through", func() {
+		BeforeEach(func() {
+			redgreenServer.SetHandler(
+				0,
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/builds"),
+					ghttp.VerifyJSON(`{
+					"image": "ubuntu",
+					"script": "find . \"-name\" \"foo \\\"bar\\\" baz\"",
+					"path": "some-path/",
+					"env": [
+						["FOO", "bar"],
+						["BAZ", "buzz"]
+					]
+				}`),
+					ghttp.RespondWith(201, `{
+					"guid": "abc",
+					"image": "ubuntu",
+					"script": "find .",
+					"path": "some-path/",
+					"env": [
+						["FOO", "bar"],
+						["BAZ", "buzz"]
+					]
+				}`),
+				),
+			)
+		})
+
+		It("inserts them into the config template", func() {
+			redgreenServer.AllowUnhandledRequests = true
+
+			smithCmd := exec.Command(smithPath, "-redgreenAddr", redgreenAddr, "--", "-name", "foo \"bar\" baz")
+			smithCmd.Dir = buildDir
+
+			_, err := gexec.Start(smithCmd, GinkgoWriter, GinkgoWriter)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Eventually(polling, 5.0).Should(BeClosed())
+		})
 	})
 
 	Context("when the build succeeds", func() {

@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"text/template"
 	"time"
 
 	"github.com/cheggaaa/pb"
@@ -88,15 +89,43 @@ func main() {
 	os.Exit(exitCode)
 }
 
+type ConfigContext struct {
+	Args string
+}
+
 func loadConfig() BuildConfig {
-	configFile, err := os.Open(*buildConfig)
+	passArgs := false
+	args := []string{}
+	for _, arg := range os.Args {
+		if arg == "--" {
+			passArgs = true
+			continue
+		}
+
+		if passArgs {
+			args = append(args, "\""+strings.Replace(arg, `"`, `\"`, -1)+"\"")
+		}
+	}
+
+	context := ConfigContext{
+		Args: strings.Join(args, " "),
+	}
+
+	template, err := template.ParseFiles(*buildConfig)
 	if err != nil {
 		log.Fatalln("could not open config file:", err)
 	}
 
+	rendered := new(bytes.Buffer)
+
+	err = template.Execute(rendered, context)
+	if err != nil {
+		log.Fatalln("could not render config file:", err)
+	}
+
 	var config BuildConfig
 
-	err = candiedyaml.NewDecoder(configFile).Decode(&config)
+	err = candiedyaml.NewDecoder(rendered).Decode(&config)
 	if err != nil {
 		log.Fatalln("could not parse config file:", err)
 	}
