@@ -20,6 +20,9 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/mgutz/ansi"
 	"github.com/pivotal-golang/archiver/compressor"
+	"github.com/tedsuo/router"
+
+	"github.com/winston-ci/redgreen/routes"
 )
 
 type Build struct {
@@ -62,9 +65,23 @@ var redgreenAddr = flag.String(
 func main() {
 	flag.Parse()
 
-	build := create(loadConfig())
+	endpoint := &EndpointRoutes{
+		Scheme: "http",
+		Host:   *redgreenAddr,
+		Routes: routes.Routes,
+	}
 
-	buildLog := fmt.Sprintf("ws://%s/builds/%s/log/output", *redgreenAddr, build.Guid)
+	build := create(endpoint, loadConfig())
+
+	logOutputPath, err := endpoint.PathForHandler(
+		routes.LogOutput,
+		router.Params{"guid": build.Guid},
+	)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	buildLog := "ws://" + *redgreenAddr + logOutputPath
 
 	conn, res, err := websocket.DefaultDialer.Dial(buildLog, nil)
 	if err != nil {
@@ -77,9 +94,9 @@ func main() {
 
 	go stream(conn, streaming)
 
-	upload(build)
+	upload(endpoint, build)
 
-	exitCode := poll(build)
+	exitCode := poll(endpoint, build)
 
 	res.Body.Close()
 	conn.Close()
@@ -133,7 +150,7 @@ func loadConfig() BuildConfig {
 	return config
 }
 
-func create(config BuildConfig) Build {
+func create(endpoint *EndpointRoutes, config BuildConfig) Build {
 	buffer := &bytes.Buffer{}
 
 	env := [][2]string{}
@@ -162,11 +179,14 @@ func create(config BuildConfig) Build {
 		log.Fatalln("encoding build failed:", err)
 	}
 
-	response, err := http.Post(
-		"http://"+*redgreenAddr+"/builds",
-		"application/json",
-		buffer,
-	)
+	createBuild, err := endpoint.RequestForHandler(routes.CreateBuild, nil, buffer)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	createBuild.Header.Set("Content-Type", "application/json")
+
+	response, err := http.DefaultClient.Do(createBuild)
 	if err != nil {
 		log.Fatalln("request failed:", err)
 	}
@@ -200,7 +220,7 @@ func stream(conn *websocket.Conn, streaming *sync.WaitGroup) {
 	}
 }
 
-func upload(build Build) {
+func upload(endpoint *EndpointRoutes, build Build) {
 	src, err := filepath.Abs(*buildDir)
 	if err != nil {
 		log.Fatalln("could not locate build config:", err)
@@ -238,11 +258,16 @@ func upload(build Build) {
 	progress.Start()
 	defer progress.Finish()
 
-	response, err := http.Post(
-		"http://"+*redgreenAddr+"/builds/"+build.Guid+"/bits",
-		"application/octet-stream",
+	uploadBits, err := endpoint.RequestForHandler(
+		routes.UploadBits,
+		router.Params{"guid": build.Guid},
 		progress.NewProxyReader(archive),
 	)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	response, err := http.DefaultClient.Do(uploadBits)
 	if err != nil {
 		log.Fatalln("request failed:", err)
 	}
@@ -256,11 +281,20 @@ func upload(build Build) {
 	}
 }
 
-func poll(build Build) int {
+func poll(endpoint *EndpointRoutes, build Build) int {
 	for {
 		var result BuildResult
 
-		response, err := http.Get("http://" + *redgreenAddr + "/builds/" + build.Guid + "/result")
+		getResult, err := endpoint.RequestForHandler(
+			routes.GetResult,
+			router.Params{"guid": build.Guid},
+			nil,
+		)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		response, err := http.DefaultClient.Do(getResult)
 		if err != nil {
 			log.Fatalln("error polling for result:", err)
 		}
