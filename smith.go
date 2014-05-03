@@ -73,17 +73,18 @@ func main() {
 
 	build := create(endpoint, loadConfig())
 
-	logOutputPath, err := endpoint.PathForHandler(
+	logOutput, err := endpoint.RequestForHandler(
 		routes.LogOutput,
 		router.Params{"guid": build.Guid},
+		nil,
 	)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	buildLog := "ws://" + *redgreenAddr + logOutputPath
+	logOutput.URL.Scheme = "ws"
 
-	conn, res, err := websocket.DefaultDialer.Dial(buildLog, nil)
+	conn, res, err := websocket.DefaultDialer.Dial(logOutput.URL.String(), nil)
 	if err != nil {
 		log.Println("failed to stream output:", err, res)
 		return
