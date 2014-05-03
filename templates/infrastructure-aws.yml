@@ -18,11 +18,18 @@ compilation:
     availability_zone: (( meta.zones.z1 ))
 
 jobs:
-  - name: consul_server
+  - name: redgreen
+    properties:
+      redgreen:
+        listen_address: 0.0.0.0:8153
+        prole:
+          address: (( jobs.prole.networks.room101.static_ips.[0] ":4637" ))
+
+  - name: prole
     instances: 1
     networks:
       - name: room101
-        static_ips: (( static_ips(0) ))
+        static_ips: (( static_ips(16) ))
 
 networks: (( merge ))
 
@@ -37,4 +44,3 @@ resource_pools:
     cloud_properties:
       instance_type: c3.large
       availability_zone: (( meta.zones.z1 ))
-      elbs: (( merge ))

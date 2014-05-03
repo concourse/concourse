@@ -12,6 +12,7 @@ jobs:
     properties:
       network_name: room101
       redgreen:
+        listen_address: ~
         prole:
           address: (( merge ))
 
