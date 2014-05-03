@@ -3,14 +3,13 @@ package main
 import (
 	"io"
 	"net/http"
+	"net/url"
 
 	"github.com/tedsuo/router"
 )
 
 type EndpointRoutes struct {
-	Scheme string
-	Host   string
-
+	*url.URL
 	router.Routes
 }
 
@@ -20,8 +19,8 @@ func (endpoint *EndpointRoutes) RequestForHandler(handler string, params router.
 		return nil, err
 	}
 
-	req.URL.Scheme = endpoint.Scheme
-	req.URL.Host = endpoint.Host
+	req.URL.Scheme = endpoint.URL.Scheme
+	req.URL.Host = endpoint.URL.Host
 
 	return req, nil
 }

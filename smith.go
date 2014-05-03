@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -56,18 +57,29 @@ var buildDir = flag.String(
 	"source directory to build",
 )
 
-var redgreenAddr = flag.String(
-	"redgreenAddr",
-	"127.0.0.1:5637",
+var redgreenURL = flag.String(
+	"redgreenURL",
+	os.Getenv("REDGREEN_URL"),
 	"address denoting the redgreen service",
 )
 
 func main() {
 	flag.Parse()
 
+	if *redgreenURL == "" {
+		println("must specify $REDGREEN_URL. for example:")
+		println()
+		println("export REDGREEN_URL=http://10.244.8.66:5637")
+		os.Exit(1)
+	}
+
+	redgreenURL, err := url.Parse(*redgreenURL)
+	if err != nil {
+		log.Fatalln("could not parse redgreen URL:", err)
+	}
+
 	endpoint := &EndpointRoutes{
-		Scheme: "http",
-		Host:   *redgreenAddr,
+		URL:    redgreenURL,
 		Routes: routes.Routes,
 	}
 

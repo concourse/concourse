@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"os/exec"
 	"path/filepath"
 
@@ -28,7 +29,6 @@ var _ = Describe("Smith CLI", func() {
 	var buildDir string
 
 	var redgreenServer *ghttp.Server
-	var redgreenAddr string
 	var polling chan struct{}
 	var streaming chan *websocket.Conn
 
@@ -55,7 +55,8 @@ script: find . {{ .Args }}
 		Ω(err).ShouldNot(HaveOccurred())
 
 		redgreenServer = ghttp.NewServer()
-		redgreenAddr = redgreenServer.HTTPTestServer.Listener.Addr().String()
+
+		os.Setenv("REDGREEN_URL", redgreenServer.URL())
 	})
 
 	BeforeEach(func() {
@@ -136,7 +137,7 @@ script: find . {{ .Args }}
 	It("creates a build, streams output, uploads the bits, and polls until completion", func() {
 		redgreenServer.AllowUnhandledRequests = true
 
-		smithCmd := exec.Command(smithPath, "-redgreenAddr", redgreenAddr)
+		smithCmd := exec.Command(smithPath)
 		smithCmd.Dir = buildDir
 
 		sess, err := gexec.Start(smithCmd, GinkgoWriter, GinkgoWriter)
@@ -184,7 +185,7 @@ script: find . {{ .Args }}
 		It("inserts them into the config template", func() {
 			redgreenServer.AllowUnhandledRequests = true
 
-			smithCmd := exec.Command(smithPath, "-redgreenAddr", redgreenAddr, "--", "-name", "foo \"bar\" baz")
+			smithCmd := exec.Command(smithPath, "--", "-name", "foo \"bar\" baz")
 			smithCmd.Dir = buildDir
 
 			_, err := gexec.Start(smithCmd, GinkgoWriter, GinkgoWriter)
@@ -205,7 +206,7 @@ script: find . {{ .Args }}
 		})
 
 		It("exits 0", func() {
-			smithCmd := exec.Command(smithPath, "-redgreenAddr", redgreenAddr)
+			smithCmd := exec.Command(smithPath)
 			smithCmd.Dir = buildDir
 
 			smithSession, err := gexec.Start(smithCmd, GinkgoWriter, GinkgoWriter)
@@ -226,7 +227,7 @@ script: find . {{ .Args }}
 		})
 
 		It("exits 1", func() {
-			smithCmd := exec.Command(smithPath, "-redgreenAddr", redgreenAddr)
+			smithCmd := exec.Command(smithPath)
 			smithCmd.Dir = buildDir
 
 			smithSession, err := gexec.Start(smithCmd, GinkgoWriter, GinkgoWriter)
@@ -247,7 +248,7 @@ script: find . {{ .Args }}
 		})
 
 		It("exits 2", func() {
-			smithCmd := exec.Command(smithPath, "-redgreenAddr", redgreenAddr)
+			smithCmd := exec.Command(smithPath)
 			smithCmd.Dir = buildDir
 
 			smithSession, err := gexec.Start(smithCmd, GinkgoWriter, GinkgoWriter)
