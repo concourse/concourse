@@ -15,6 +15,8 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
+
+	"github.com/winston-ci/redgreen/api/builds"
 )
 
 func tarFiles(path string) string {
@@ -66,15 +68,15 @@ script: find . {{ .Args }}
 		redgreenServer.AppendHandlers(
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/builds"),
-				ghttp.VerifyJSON(`{
-					"image": "ubuntu",
-					"script": "find .",
-					"path": "some-path/",
-					"env": [
-						["FOO", "bar"],
-						["BAZ", "buzz"]
-					]
-				}`),
+				ghttp.VerifyJSONRepresenting(builds.Build{
+					Image:  "ubuntu",
+					Script: "find .",
+					Path:   "some-path/",
+					Env: [][2]string{
+						{"FOO", "bar"},
+						{"BAZ", "buzz"},
+					},
+				}),
 				ghttp.RespondWith(201, `{
 					"guid": "abc",
 					"image": "ubuntu",
@@ -159,15 +161,15 @@ script: find . {{ .Args }}
 				0,
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/builds"),
-					ghttp.VerifyJSON(`{
-					"image": "ubuntu",
-					"script": "find . \"-name\" \"foo \\\"bar\\\" baz\"",
-					"path": "some-path/",
-					"env": [
-						["FOO", "bar"],
-						["BAZ", "buzz"]
-					]
-				}`),
+					ghttp.VerifyJSONRepresenting(builds.Build{
+						Image:  "ubuntu",
+						Script: `find . "-name" "foo \"bar\" baz"`,
+						Path:   "some-path/",
+						Env: [][2]string{
+							{"FOO", "bar"},
+							{"BAZ", "buzz"},
+						},
+					}),
 					ghttp.RespondWith(201, `{
 					"guid": "abc",
 					"image": "ubuntu",

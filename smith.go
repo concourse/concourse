@@ -23,20 +23,9 @@ import (
 	"github.com/pivotal-golang/archiver/compressor"
 	"github.com/tedsuo/router"
 
+	"github.com/winston-ci/redgreen/api/builds"
 	"github.com/winston-ci/redgreen/routes"
 )
-
-type Build struct {
-	Guid   string      `json:"guid,omitempty"`
-	Image  string      `json:"image"`
-	Path   string      `json:"path"`
-	Script string      `json:"script"`
-	Env    [][2]string `json:"env"`
-}
-
-type BuildResult struct {
-	Status string `json:"status"`
-}
 
 type BuildConfig struct {
 	Image  string   `yaml:"image"`
@@ -163,7 +152,7 @@ func loadConfig() BuildConfig {
 	return config
 }
 
-func create(endpoint *EndpointRoutes, config BuildConfig) Build {
+func create(endpoint *EndpointRoutes, config BuildConfig) builds.Build {
 	buffer := &bytes.Buffer{}
 
 	env := [][2]string{}
@@ -176,7 +165,7 @@ func create(endpoint *EndpointRoutes, config BuildConfig) Build {
 		env = append(env, [2]string{segs[0], segs[1]})
 	}
 
-	build := Build{
+	build := builds.Build{
 		Image:  config.Image,
 		Path:   config.Path,
 		Script: config.Script,
@@ -233,7 +222,7 @@ func stream(conn *websocket.Conn, streaming *sync.WaitGroup) {
 	}
 }
 
-func upload(endpoint *EndpointRoutes, build Build) {
+func upload(endpoint *EndpointRoutes, build builds.Build) {
 	src, err := filepath.Abs(*buildDir)
 	if err != nil {
 		log.Fatalln("could not locate build config:", err)
@@ -294,9 +283,9 @@ func upload(endpoint *EndpointRoutes, build Build) {
 	}
 }
 
-func poll(endpoint *EndpointRoutes, build Build) int {
+func poll(endpoint *EndpointRoutes, build builds.Build) int {
 	for {
-		var result BuildResult
+		var result builds.BuildResult
 
 		getResult, err := endpoint.RequestForHandler(
 			routes.GetResult,
