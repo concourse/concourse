@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/tedsuo/router"
+
 	"github.com/winston-ci/winston/builder"
 	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/db"
@@ -20,7 +21,8 @@ func New(config config.Config, db db.DB, builder builder.Builder) (http.Handler,
 	js := make(map[string]jobs.Job)
 	for name, config := range config.Jobs {
 		js[name] = jobs.Job{
-			Name:            name,
+			Name: name,
+
 			BuildConfigPath: config.BuildConfigPath,
 		}
 	}

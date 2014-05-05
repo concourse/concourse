@@ -7,5 +7,5 @@ type Job struct {
 
 	BuildConfigPath string
 
-	Inputs []*resources.Resource
+	Inputs []resources.Resource
 }

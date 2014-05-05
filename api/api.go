@@ -16,7 +16,8 @@ func New(db db.DB) (http.Handler, error) {
 	handlers := map[string]http.Handler{
 		routes.SetResult: http.HandlerFunc(builds.SetResult),
 
-		routes.LogInput: http.HandlerFunc(builds.LogInput),
+		routes.LogInput:  http.HandlerFunc(builds.LogInput),
+		routes.LogOutput: http.HandlerFunc(builds.LogOutput),
 	}
 
 	return router.NewRouter(routes.Routes, handlers)

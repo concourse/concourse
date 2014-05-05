@@ -3,9 +3,6 @@ package routes
 import "github.com/tedsuo/router"
 
 const (
-	SetResult = "SetResult"
-	LogInput  = "LogInput"
-
 	TriggerBuild = "TriggerBuild"
 )
 

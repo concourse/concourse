@@ -90,7 +90,8 @@ func (builder *builder) Build(job jobs.Job) (builds.Build, error) {
 
 	proleBuild := ProleBuilds.Build{
 		ConfigPath: job.BuildConfigPath,
-		Source:     source,
+
+		Source: source,
 
 		Callback: complete.URL.String(),
 		LogsURL:  logs.URL.String(),

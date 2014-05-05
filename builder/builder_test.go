@@ -49,7 +49,7 @@ var _ = Describe("Builder", func() {
 
 			BuildConfigPath: "some-build/build.yml",
 
-			Inputs: []*resources.Resource{
+			Inputs: []resources.Resource{
 				{
 					Name: "some-resource",
 

@@ -2,11 +2,14 @@ package api_test
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/gorilla/websocket"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 
 	"github.com/winston-ci/winston/api"
 	"github.com/winston-ci/winston/builds"
@@ -76,6 +79,101 @@ var _ = Describe("API", func() {
 		})
 	})
 
-	Describe("/builds/:guid/log/input", func() {
+	Describe("/builds/:job/:build/log/input", func() {
+		var build builds.Build
+
+		var endpoint string
+
+		var conn *websocket.Conn
+		var response *http.Response
+
+		BeforeEach(func() {
+			var err error
+
+			build, err = redis.CreateBuild("some-job")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			endpoint = fmt.Sprintf(
+				"ws://%s/builds/%s/%d/log/input",
+				server.Listener.Addr().String(),
+				"some-job",
+				build.ID,
+			)
+		})
+
+		It("returns 101", func() {
+			conn, response, err := websocket.DefaultDialer.Dial(endpoint, nil)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			defer conn.Close()
+
+			Ω(response.StatusCode).Should(Equal(http.StatusSwitchingProtocols))
+		})
+
+		Context("when messages are written", func() {
+			BeforeEach(func() {
+				var err error
+
+				conn, response, err = websocket.DefaultDialer.Dial(endpoint, nil)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = conn.WriteMessage(websocket.BinaryMessage, []byte("hello1"))
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = conn.WriteMessage(websocket.BinaryMessage, []byte("hello2\n"))
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = conn.WriteMessage(websocket.BinaryMessage, []byte("hello3"))
+				Ω(err).ShouldNot(HaveOccurred())
+			})
+
+			AfterEach(func() {
+				conn.Close()
+			})
+
+			outputSink := func() *gbytes.Buffer {
+				outEndpoint := fmt.Sprintf(
+					"ws://%s/builds/%s/%d/log/output",
+					server.Listener.Addr().String(),
+					"some-job",
+					build.ID,
+				)
+
+				outConn, outResponse, err := websocket.DefaultDialer.Dial(outEndpoint, nil)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(outResponse.StatusCode).Should(Equal(http.StatusSwitchingProtocols))
+
+				buf := gbytes.NewBuffer()
+
+				go func() {
+					for {
+						_, msg, err := outConn.ReadMessage()
+						if err != nil {
+							break
+						}
+
+						buf.Write(msg)
+					}
+				}()
+
+				return buf
+			}
+
+			It("presents them to /builds/{job}/{id}/logs/output", func() {
+				Eventually(outputSink()).Should(gbytes.Say("hello1hello2\nhello3"))
+			})
+
+			It("streams them to all open connections to /build/{job}/{id}/logs/output", func() {
+				sink1 := outputSink()
+				sink2 := outputSink()
+
+				err := conn.WriteMessage(websocket.BinaryMessage, []byte("some message"))
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Eventually(sink1).Should(gbytes.Say("some message"))
+				Eventually(sink2).Should(gbytes.Say("some message"))
+			})
+		})
 	})
 })
