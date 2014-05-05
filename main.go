@@ -34,6 +34,12 @@ var proleURL = flag.String(
 	"address denoting the prole service",
 )
 
+var redisAddr = flag.String(
+	"redisAddr",
+	"127.0.0.1:6379",
+	"redis server address",
+)
+
 var peerURL = flag.String(
 	"peerURL",
 	"http://127.0.0.1:8081",
@@ -73,7 +79,7 @@ func main() {
 	configFile.Close()
 
 	redisDB := db.NewRedis(redis.NewPool(func() (redis.Conn, error) {
-		return redis.DialTimeout("tcp", "127.0.0.1:6379", 5*time.Second, 0, 0)
+		return redis.DialTimeout("tcp", *redisAddr, 5*time.Second, 0, 0)
 	}, 20))
 
 	winstonApiURL, err := url.Parse(*peerURL)
