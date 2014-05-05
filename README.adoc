@@ -1,0 +1,4 @@
+= Winston
+:imagesdir: media
+
+image::winston.jpg[scaledwidth="75%",alt="Winston Smith"]
