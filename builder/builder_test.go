@@ -152,9 +152,21 @@ var _ = Describe("Builder", func() {
 						proleServer.HTTPTestServer.CloseClientConnections()
 					},
 				),
+			)
+		})
+
+		It("returns an error", func() {
+			_, err := builder.Build(job)
+			Ω(err).Should(HaveOccurred())
+		})
+	})
+
+	Context("when the prole server returns non-201", func() {
+		BeforeEach(func() {
+			proleServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/builds"),
-					ghttp.RespondWith(201, ""),
+					ghttp.RespondWith(400, ""),
 				),
 			)
 		})

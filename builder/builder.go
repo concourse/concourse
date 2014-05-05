@@ -3,7 +3,9 @@ package builder
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/tedsuo/router"
@@ -16,6 +18,8 @@ import (
 	"github.com/winston-ci/winston/endpoint"
 	"github.com/winston-ci/winston/jobs"
 )
+
+var ErrBadResponse = errors.New("bad response from prole")
 
 type Builder interface {
 	Build(jobs.Job) (builds.Build, error)
@@ -42,6 +46,8 @@ func NewBuilder(
 }
 
 func (builder *builder) Build(job jobs.Job) (builds.Build, error) {
+	log.Println("creating build")
+
 	build, err := builder.db.CreateBuild(job.Name)
 	if err != nil {
 		return builds.Build{}, err
@@ -64,6 +70,8 @@ func (builder *builder) Build(job jobs.Job) (builds.Build, error) {
 		panic(err)
 	}
 
+	log.Println("completion callback:", complete.URL)
+
 	logs, err := builder.winston.RequestForHandler(
 		WinstonRoutes.LogInput,
 		router.Params{
@@ -76,6 +84,8 @@ func (builder *builder) Build(job jobs.Job) (builds.Build, error) {
 		panic(err)
 	}
 
+	log.Println("logs callback:", logs.URL)
+
 	logs.URL.Scheme = "ws"
 
 	proleBuild := ProleBuilds.Build{
@@ -85,6 +95,8 @@ func (builder *builder) Build(job jobs.Job) (builds.Build, error) {
 		Callback: complete.URL.String(),
 		LogsURL:  logs.URL.String(),
 	}
+
+	log.Printf("creating build: %#v\n", proleBuild)
 
 	req := new(bytes.Buffer)
 
@@ -106,12 +118,19 @@ func (builder *builder) Build(job jobs.Job) (builds.Build, error) {
 
 	resp, err := http.DefaultClient.Do(execute)
 	if err != nil {
+		log.Println("prole request failed:", err)
 		return builds.Build{}, err
 	}
 
 	// TODO test bad response code
+	if resp.StatusCode != http.StatusCreated {
+		log.Println("bad prole response:", resp)
+		return builds.Build{}, ErrBadResponse
+	}
 
 	resp.Body.Close()
+
+	log.Println("build running")
 
 	return builder.db.SaveBuildState(job.Name, build.ID, builds.BuildStateRunning)
 }

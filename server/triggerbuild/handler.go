@@ -1,6 +1,7 @@
 package triggerbuild
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/winston-ci/winston/builder"
@@ -25,6 +26,8 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+
+	log.Println("triggering", job)
 
 	_, err := handler.builder.Build(job)
 	if err != nil {
