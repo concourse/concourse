@@ -28,10 +28,16 @@ var configPath = flag.String(
 	"path to winston server config .yml",
 )
 
-var proleAddr = flag.String(
-	"proleAddr",
-	"127.0.0.1:4637",
+var proleURL = flag.String(
+	"proleURL",
+	"http://127.0.0.1:4637",
 	"address denoting the prole service",
+)
+
+var peerURL = flag.String(
+	"peerURL",
+	"http://127.0.0.1:8081",
+	"external URL of the api server",
 )
 
 var listenAddr = flag.String(
@@ -44,12 +50,6 @@ var apiListenAddr = flag.String(
 	"apiListenAddr",
 	":8081",
 	"port for the api to listen on",
-)
-
-var peerAddr = flag.String(
-	"peerAddr",
-	"127.0.0.1:8081",
-	"external address of the api server",
 )
 
 func main() {
@@ -76,23 +76,23 @@ func main() {
 		return redis.DialTimeout("tcp", "127.0.0.1:6379", 5*time.Second, 0, 0)
 	}, 20))
 
-	winstonApiUrl := &url.URL{
-		Scheme: "http",
-		Host:   *peerAddr,
+	winstonApiURL, err := url.Parse(*peerURL)
+	if err != nil {
+		fatal(err)
 	}
 
 	winstonEndpoint := endpoint.EndpointRoutes{
-		URL:    winstonApiUrl,
+		URL:    winstonApiURL,
 		Routes: apiroutes.Routes,
 	}
 
-	proleURL := &url.URL{
-		Scheme: "http",
-		Host:   *proleAddr,
+	proleEarl, err := url.Parse(*proleURL)
+	if err != nil {
+		fatal(err)
 	}
 
 	proleEndpoint := endpoint.EndpointRoutes{
-		URL:    proleURL,
+		URL:    proleEarl,
 		Routes: proleroutes.Routes,
 	}
 
