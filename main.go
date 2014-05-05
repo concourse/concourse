@@ -34,16 +34,22 @@ var proleAddr = flag.String(
 	"address denoting the prole service",
 )
 
-var winstonHost = flag.String(
-	"winstonHost",
-	"127.0.0.1",
-	"external address of this winston server",
+var listenAddr = flag.String(
+	"listenAddr",
+	":8080",
+	"port for the web server to listen on",
 )
 
-var apiPort = flag.String(
-	"apiPort",
-	"8081",
+var apiListenAddr = flag.String(
+	"apiListenAddr",
+	":8081",
 	"port for the api to listen on",
+)
+
+var peerAddr = flag.String(
+	"peerAddr",
+	"127.0.0.1:8081",
+	"external address of the api server",
 )
 
 func main() {
@@ -72,8 +78,9 @@ func main() {
 
 	winstonApiUrl := &url.URL{
 		Scheme: "http",
-		Host:   *winstonHost + ":" + *apiPort,
+		Host:   *peerAddr,
 	}
+
 	winstonEndpoint := endpoint.EndpointRoutes{
 		URL:    winstonApiUrl,
 		Routes: apiroutes.Routes,
@@ -83,6 +90,7 @@ func main() {
 		Scheme: "http",
 		Host:   *proleAddr,
 	}
+
 	proleEndpoint := endpoint.EndpointRoutes{
 		URL:    proleURL,
 		Routes: proleroutes.Routes,
@@ -103,11 +111,11 @@ func main() {
 	errs := make(chan error, 2)
 
 	go func() {
-		errs <- http.ListenAndServe(":8080", serverHandler)
+		errs <- http.ListenAndServe(*listenAddr, serverHandler)
 	}()
 
 	go func() {
-		errs <- http.ListenAndServe(":8081", apiHandler)
+		errs <- http.ListenAndServe(*apiListenAddr, apiHandler)
 	}()
 
 	fatal(<-errs)
