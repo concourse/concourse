@@ -1,0 +1,33 @@
+---
+name: winston
+
+templates:
+  winston_ctl.erb: bin/winston_ctl
+  config.yml.erb: config/winston.yml
+
+packages:
+  - pid_utils
+  - winston
+
+properties:
+  winston.listen_address:
+    description: "listening address"
+    default: 0.0.0.0:8080
+
+  winston.api_listen_address:
+    description: "api listening address"
+    default: 0.0.0.0:8081
+
+  winston.prole.address:
+    description: "Address of prole server to use to run builds."
+
+  winston.config:
+    description: "Winston server configuration."
+    default: {}
+
+  winston.redis.address:
+    description: "Address of the Redis server."
+
+  network_name:
+    description: "Name of the network that the job lives in; used to figure out our IP."
+

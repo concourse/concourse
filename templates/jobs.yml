@@ -1,6 +1,23 @@
 networks: (( merge ))
 
 jobs:
+  - name: winston
+    templates:
+      - name: winston
+        release: room101
+    instances: 1
+    resource_pool: room101
+    networks:
+      - name: room101
+    properties:
+      network_name: room101
+      winston:
+        listen_address: ~
+        prole:
+          address: (( merge ))
+        redis: (( merge ))
+        config: (( merge ))
+
   - name: redgreen
     templates:
       - name: redgreen

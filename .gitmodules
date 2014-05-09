@@ -10,3 +10,6 @@
 [submodule "src/loggregator"]
 	path = src/loggregator
 	url = https://github.com/cloudfoundry/loggregator.git
+[submodule "src/winston"]
+	path = src/winston
+	url = https://github.com/winston-ci/winston.git

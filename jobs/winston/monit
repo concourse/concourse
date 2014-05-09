@@ -1,0 +1,5 @@
+check process winston
+  with pidfile /var/vcap/sys/run/winston/winston.pid
+  start program "/var/vcap/jobs/winston/bin/winston_ctl start"
+  stop program "/var/vcap/jobs/winston/bin/winston_ctl stop"
+  group vcap

@@ -23,6 +23,12 @@ resource_pools:
       name: random
 
 jobs:
+  - name: winston
+    properties:
+      winston:
+        prole:
+          address: (( jobs.prole.networks.room101.static_ips.[0] ":4637" ))
+
   - name: redgreen
     properties:
       redgreen:
