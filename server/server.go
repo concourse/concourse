@@ -9,6 +9,7 @@ import (
 	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/db"
 	"github.com/winston-ci/winston/jobs"
+	"github.com/winston-ci/winston/resources"
 	"github.com/winston-ci/winston/server/routes"
 	"github.com/winston-ci/winston/server/triggerbuild"
 )
@@ -19,6 +20,17 @@ type Server struct {
 
 func New(config config.Config, db db.DB, builder builder.Builder) (http.Handler, error) {
 	js := make(map[string]jobs.Job)
+	rs := make(map[string]resources.Resource)
+
+	for name, config := range config.Resources {
+		rs[name] = resources.Resource{
+			Name: name,
+
+			Type: config.Type,
+			URI:  config.URI,
+		}
+	}
+
 	for name, config := range config.Jobs {
 		js[name] = jobs.Job{
 			Name: name,

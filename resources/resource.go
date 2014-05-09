@@ -9,7 +9,7 @@ type Resource struct {
 	URI  string
 }
 
-func (resource *Resource) BuildSource() builds.BuildSource {
+func (resource Resource) BuildSource() builds.BuildSource {
 	return builds.BuildSource{
 		Type:   resource.Type,
 		URI:    resource.URI,
