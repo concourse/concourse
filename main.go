@@ -34,6 +34,12 @@ var templatesDir = flag.String(
 	"path to directory containing the html templates",
 )
 
+var publicDir = flag.String(
+	"public",
+	"",
+	"path to directory containing public resources (javascript, css, etc.)",
+)
+
 var proleURL = flag.String(
 	"proleURL",
 	"http://127.0.0.1:4637",
@@ -46,10 +52,10 @@ var redisAddr = flag.String(
 	"redis server address",
 )
 
-var peerURL = flag.String(
-	"peerURL",
-	"http://127.0.0.1:8081",
-	"external URL of the api server, used for callbacks",
+var peerAddr = flag.String(
+	"peerAddr",
+	"127.0.0.1:8081",
+	"external address of the api server, used for callbacks",
 )
 
 var listenAddr = flag.String(
@@ -71,6 +77,14 @@ func main() {
 		fatal(errors.New("must specify -config"))
 	}
 
+	if *templatesDir == "" {
+		fatal(errors.New("must specify -templates"))
+	}
+
+	if *publicDir == "" {
+		fatal(errors.New("must specify -public"))
+	}
+
 	configFile, err := os.Open(*configPath)
 	if err != nil {
 		fatal(err)
@@ -88,11 +102,11 @@ func main() {
 		return redis.DialTimeout("tcp", *redisAddr, 5*time.Second, 0, 0)
 	}, 20))
 
-	winstonEndpoint := router.NewRequestGenerator(*peerURL, apiroutes.Routes)
+	winstonEndpoint := router.NewRequestGenerator("http://"+*peerAddr, apiroutes.Routes)
 	proleEndpoint := router.NewRequestGenerator(*proleURL, proleroutes.Routes)
 	builder := builder.NewBuilder(redisDB, proleEndpoint, winstonEndpoint)
 
-	serverHandler, err := server.New(config, redisDB, *templatesDir, builder)
+	serverHandler, err := server.New(config, redisDB, *templatesDir, *publicDir, *peerAddr, builder)
 	if err != nil {
 		fatal(err)
 	}

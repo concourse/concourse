@@ -7,6 +7,7 @@ const (
 	GetJob       = "GetJob"
 	TriggerBuild = "TriggerBuild"
 	GetBuild     = "GetBuild"
+	Public       = "Public"
 )
 
 var Routes = router.Routes{
@@ -14,4 +15,5 @@ var Routes = router.Routes{
 	{Path: "/jobs/:job", Method: "GET", Handler: GetJob},
 	{Path: "/jobs/:job/builds", Method: "POST", Handler: TriggerBuild},
 	{Path: "/jobs/:job/builds/:build", Method: "GET", Handler: GetBuild},
+	{Path: "/public/:filename", Method: "GET", Handler: Public},
 }

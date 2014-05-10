@@ -4,4 +4,19 @@
 <h1>{{.Job.Name}} #{{.Build.ID}}</h1>
 
 {{.Build.State}}
+
+<h2>build output</h2>
+
+<pre id="build-log">
+</pre>
+
+<script src="{{url "Public" "ansi_up.js" | html}}" type="text/javascript"></script>
+
+<script type="text/javascript">
+var ws = new WebSocket({{url "LogOutput" .Job .Build | js}});
+
+ws.onmessage = function(event) {
+  document.getElementById("build-log").innerHTML += ansi_up.ansi_to_html(event.data);
+};
+</script>
 {{end}}

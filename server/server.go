@@ -7,9 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/tedsuo/router"
-
 	"github.com/winston-ci/winston/builder"
-	"github.com/winston-ci/winston/builds"
 	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/db"
 	"github.com/winston-ci/winston/jobs"
@@ -25,7 +23,13 @@ type Server struct {
 	config config.Config
 }
 
-func New(config config.Config, db db.DB, templatesDir string, builder builder.Builder) (http.Handler, error) {
+func New(
+	config config.Config,
+	db db.DB,
+	templatesDir, publicDir string,
+	peerAddr string,
+	builder builder.Builder,
+) (http.Handler, error) {
 	js := make(map[string]jobs.Job)
 	rs := make(map[string]resources.Resource)
 
@@ -59,17 +63,26 @@ func New(config config.Config, db db.DB, templatesDir string, builder builder.Bu
 		}
 	}
 
-	indexTemplate, err := loadTemplate(templatesDir, "index.html")
+	funcs := template.FuncMap{
+		"url": templateFuncs{peerAddr}.url,
+	}
+
+	indexTemplate, err := loadTemplate(templatesDir, "index.html", funcs)
 	if err != nil {
 		return nil, err
 	}
 
-	jobTemplate, err := loadTemplate(templatesDir, "job.html")
+	jobTemplate, err := loadTemplate(templatesDir, "job.html", funcs)
 	if err != nil {
 		return nil, err
 	}
 
-	buildTemplate, err := loadTemplate(templatesDir, "build.html")
+	buildTemplate, err := loadTemplate(templatesDir, "build.html", funcs)
+	if err != nil {
+		return nil, err
+	}
+
+	absPublicDir, err := filepath.Abs(publicDir)
 	if err != nil {
 		return nil, err
 	}
@@ -79,31 +92,14 @@ func New(config config.Config, db db.DB, templatesDir string, builder builder.Bu
 		routes.GetJob:       getjob.NewHandler(js, db, jobTemplate),
 		routes.GetBuild:     getbuild.NewHandler(js, db, buildTemplate),
 		routes.TriggerBuild: triggerbuild.NewHandler(js, builder),
+		routes.Public:       http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
 	}
 
 	return router.NewRouter(routes.Routes, handlers)
 }
 
-func urlFor(handler string, args ...interface{}) (string, error) {
-	switch handler {
-	case routes.TriggerBuild, routes.GetJob:
-		return routes.Routes.PathForHandler(handler, router.Params{
-			"job": args[0].(jobs.Job).Name,
-		})
-	case routes.GetBuild:
-		return routes.Routes.PathForHandler(handler, router.Params{
-			"job":   args[0].(jobs.Job).Name,
-			"build": fmt.Sprintf("%d", args[1].(builds.Build).ID),
-		})
-	default:
-		return "", fmt.Errorf("unknown route: %s", handler)
-	}
-}
-
-func loadTemplate(templatesDir, name string) (*template.Template, error) {
-	return template.New("layout.html").Funcs(template.FuncMap{
-		"url": urlFor,
-	}).ParseFiles(
+func loadTemplate(templatesDir, name string, funcs template.FuncMap) (*template.Template, error) {
+	return template.New("layout.html").Funcs(funcs).ParseFiles(
 		filepath.Join(templatesDir, "layout.html"),
 		filepath.Join(templatesDir, name),
 	)
