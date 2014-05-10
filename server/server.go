@@ -39,10 +39,23 @@ func New(config config.Config, db db.DB, templatesDir string, builder builder.Bu
 	}
 
 	for name, config := range config.Jobs {
+		inputs := []resources.Resource{}
+
+		for rname, _ := range config.Inputs {
+			resource, found := rs[rname]
+			if !found {
+				return nil, fmt.Errorf("unknown input in %s: %s", name, rname)
+			}
+
+			inputs = append(inputs, resource)
+		}
+
 		js[name] = jobs.Job{
 			Name: name,
 
 			BuildConfigPath: config.BuildConfigPath,
+
+			Inputs: inputs,
 		}
 	}
 
