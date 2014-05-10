@@ -73,11 +73,14 @@ var _ = Describe("Builder", func() {
 					Callback: "http://winston-server/builds/foo/1/result",
 					LogsURL:  "ws://winston-server/builds/foo/1/log/input",
 
-					Source: ProleBuilds.BuildSource{
-						Type:   "git",
-						URI:    "git://example.com/foo/repo.git",
-						Branch: "master",
-						Ref:    "HEAD",
+					Sources: []ProleBuilds.BuildSource{
+						{
+							Path:   "some-resource",
+							Type:   "git",
+							URI:    "git://example.com/foo/repo.git",
+							Branch: "master",
+							Ref:    "HEAD",
+						},
 					},
 				}),
 				ghttp.RespondWith(201, ""),

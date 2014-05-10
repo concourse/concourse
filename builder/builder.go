@@ -52,9 +52,9 @@ func (builder *builder) Build(job jobs.Job) (builds.Build, error) {
 		return builds.Build{}, err
 	}
 
-	var source ProleBuilds.BuildSource
-	for _, resource := range job.Inputs {
-		source = resource.BuildSource()
+	sources := make([]ProleBuilds.BuildSource, len(job.Inputs))
+	for i, resource := range job.Inputs {
+		sources[i] = resource.BuildSource()
 	}
 
 	complete, err := builder.winston.RequestForHandler(
@@ -90,7 +90,7 @@ func (builder *builder) Build(job jobs.Job) (builds.Build, error) {
 	proleBuild := ProleBuilds.Build{
 		ConfigPath: job.BuildConfigPath,
 
-		Source: source,
+		Sources: sources,
 
 		Callback: complete.URL.String(),
 		LogsURL:  logs.URL.String(),
