@@ -11,6 +11,7 @@ type Resource struct {
 
 func (resource Resource) BuildSource() builds.BuildSource {
 	return builds.BuildSource{
+		Path:   resource.Name,
 		Type:   resource.Type,
 		URI:    resource.URI,
 		Branch: "master",
