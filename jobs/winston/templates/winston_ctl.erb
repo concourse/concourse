@@ -25,6 +25,7 @@ case $1 in
       -proleURL=http://<%= p("winston.prole.address") %> \
       -redisAddr=<%= p("winston.redis.address") %> \
       -config=/var/vcap/jobs/winston/config/winston.yml \
+      -templates=/var/vcap/packages/winston/templates \
       1>>$LOG_DIR/winston.stdout.log \
       2>>$LOG_DIR/winston.stderr.log
 
