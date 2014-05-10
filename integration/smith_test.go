@@ -46,7 +46,6 @@ var _ = Describe("Smith CLI", func() {
 			filepath.Join(buildDir, "build.yml"),
 			[]byte(`---
 image: ubuntu
-path: some-path/
 env:
   - FOO=bar
   - BAZ=buzz
@@ -71,7 +70,7 @@ script: find . {{ .Args }}
 				ghttp.VerifyJSONRepresenting(builds.Build{
 					Image:  "ubuntu",
 					Script: "find .",
-					Path:   "some-path/",
+					Path:   filepath.Base(buildDir),
 					Env: [][2]string{
 						{"FOO", "bar"},
 						{"BAZ", "buzz"},
@@ -164,7 +163,7 @@ script: find . {{ .Args }}
 					ghttp.VerifyJSONRepresenting(builds.Build{
 						Image:  "ubuntu",
 						Script: `find . "-name" "foo \"bar\" baz"`,
-						Path:   "some-path/",
+						Path:   filepath.Base(buildDir),
 						Env: [][2]string{
 							{"FOO", "bar"},
 							{"BAZ", "buzz"},

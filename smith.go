@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,7 +28,6 @@ import (
 
 type BuildConfig struct {
 	Image  string   `yaml:"image"`
-	Path   string   `yaml:"path"`
 	Script string   `yaml:"script"`
 	Env    []string `yaml:"env"`
 }
@@ -62,19 +60,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	redgreenURL, err := url.Parse(*redgreenURL)
+	reqGenerator := router.NewRequestGenerator(*redgreenURL, routes.Routes)
+
+	absConfig, err := filepath.Abs(*buildConfig)
 	if err != nil {
-		log.Fatalln("could not parse redgreen URL:", err)
+		log.Fatalln("could not locate config file:", err)
 	}
 
-	endpoint := &EndpointRoutes{
-		URL:    redgreenURL,
-		Routes: routes.Routes,
-	}
+	build := create(reqGenerator, loadConfig(absConfig), filepath.Base(filepath.Dir(absConfig)))
 
-	build := create(endpoint, loadConfig())
-
-	logOutput, err := endpoint.RequestForHandler(
+	logOutput, err := reqGenerator.RequestForHandler(
 		routes.LogOutput,
 		router.Params{"guid": build.Guid},
 		nil,
@@ -96,9 +91,9 @@ func main() {
 
 	go stream(conn, streaming)
 
-	upload(endpoint, build)
+	upload(reqGenerator, build)
 
-	exitCode := poll(endpoint, build)
+	exitCode := poll(reqGenerator, build)
 
 	res.Body.Close()
 	conn.Close()
@@ -112,7 +107,7 @@ type ConfigContext struct {
 	Args string
 }
 
-func loadConfig() BuildConfig {
+func loadConfig(configPath string) BuildConfig {
 	passArgs := false
 	args := []string{}
 	for _, arg := range os.Args {
@@ -130,7 +125,7 @@ func loadConfig() BuildConfig {
 		Args: strings.Join(args, " "),
 	}
 
-	template, err := template.ParseFiles(*buildConfig)
+	template, err := template.ParseFiles(configPath)
 	if err != nil {
 		log.Fatalln("could not open config file:", err)
 	}
@@ -152,7 +147,7 @@ func loadConfig() BuildConfig {
 	return config
 }
 
-func create(endpoint *EndpointRoutes, config BuildConfig) builds.Build {
+func create(reqGenerator *router.RequestGenerator, config BuildConfig, path string) builds.Build {
 	buffer := &bytes.Buffer{}
 
 	env := [][2]string{}
@@ -167,13 +162,9 @@ func create(endpoint *EndpointRoutes, config BuildConfig) builds.Build {
 
 	build := builds.Build{
 		Image:  config.Image,
-		Path:   config.Path,
+		Path:   path,
 		Script: config.Script,
 		Env:    env,
-	}
-
-	if build.Path == "" {
-		build.Path = "."
 	}
 
 	err := json.NewEncoder(buffer).Encode(build)
@@ -181,7 +172,7 @@ func create(endpoint *EndpointRoutes, config BuildConfig) builds.Build {
 		log.Fatalln("encoding build failed:", err)
 	}
 
-	createBuild, err := endpoint.RequestForHandler(routes.CreateBuild, nil, buffer)
+	createBuild, err := reqGenerator.RequestForHandler(routes.CreateBuild, nil, buffer)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -222,7 +213,7 @@ func stream(conn *websocket.Conn, streaming *sync.WaitGroup) {
 	}
 }
 
-func upload(endpoint *EndpointRoutes, build builds.Build) {
+func upload(reqGenerator *router.RequestGenerator, build builds.Build) {
 	src, err := filepath.Abs(*buildDir)
 	if err != nil {
 		log.Fatalln("could not locate build config:", err)
@@ -239,7 +230,7 @@ func upload(endpoint *EndpointRoutes, build builds.Build) {
 
 	defer os.Remove(tmpfile.Name())
 
-	err = compressor.Compress(src, tmpfile.Name())
+	err = compressor.Compress(src+"/", tmpfile.Name())
 	if err != nil {
 		log.Fatalln("creating archive failed:", err)
 	}
@@ -260,7 +251,7 @@ func upload(endpoint *EndpointRoutes, build builds.Build) {
 	progress.Start()
 	defer progress.Finish()
 
-	uploadBits, err := endpoint.RequestForHandler(
+	uploadBits, err := reqGenerator.RequestForHandler(
 		routes.UploadBits,
 		router.Params{"guid": build.Guid},
 		progress.NewProxyReader(archive),
@@ -283,11 +274,11 @@ func upload(endpoint *EndpointRoutes, build builds.Build) {
 	}
 }
 
-func poll(endpoint *EndpointRoutes, build builds.Build) int {
+func poll(reqGenerator *router.RequestGenerator, build builds.Build) int {
 	for {
 		var result builds.BuildResult
 
-		getResult, err := endpoint.RequestForHandler(
+		getResult, err := reqGenerator.RequestForHandler(
 			routes.GetResult,
 			router.Params{"guid": build.Guid},
 			nil,
