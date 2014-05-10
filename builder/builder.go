@@ -15,7 +15,6 @@ import (
 	WinstonRoutes "github.com/winston-ci/winston/api/routes"
 	"github.com/winston-ci/winston/builds"
 	"github.com/winston-ci/winston/db"
-	"github.com/winston-ci/winston/endpoint"
 	"github.com/winston-ci/winston/jobs"
 )
 
@@ -28,14 +27,14 @@ type Builder interface {
 type builder struct {
 	db db.DB
 
-	prole   endpoint.EndpointRoutes
-	winston endpoint.EndpointRoutes
+	prole   *router.RequestGenerator
+	winston *router.RequestGenerator
 }
 
 func NewBuilder(
 	db db.DB,
-	prole endpoint.EndpointRoutes,
-	winston endpoint.EndpointRoutes,
+	prole *router.RequestGenerator,
+	winston *router.RequestGenerator,
 ) Builder {
 	return &builder{
 		db: db,

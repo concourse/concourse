@@ -2,10 +2,10 @@ package builder_test
 
 import (
 	"net/http"
-	"net/url"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
+	"github.com/tedsuo/router"
 
 	ProleBuilds "github.com/winston-ci/prole/api/builds"
 	ProleRoutes "github.com/winston-ci/prole/routes"
@@ -14,7 +14,6 @@ import (
 	. "github.com/winston-ci/winston/builder"
 	"github.com/winston-ci/winston/builds"
 	"github.com/winston-ci/winston/db"
-	"github.com/winston-ci/winston/endpoint"
 	"github.com/winston-ci/winston/jobs"
 	"github.com/winston-ci/winston/redisrunner"
 	"github.com/winston-ci/winston/resources"
@@ -38,12 +37,6 @@ var _ = Describe("Builder", func() {
 
 		proleServer = ghttp.NewServer()
 
-		proleURL, err := url.Parse(proleServer.URL())
-		Ω(err).ShouldNot(HaveOccurred())
-
-		winstonURL, err := url.Parse("http://winston-server")
-		Ω(err).ShouldNot(HaveOccurred())
-
 		job = jobs.Job{
 			Name: "foo",
 
@@ -61,14 +54,8 @@ var _ = Describe("Builder", func() {
 
 		builder = NewBuilder(
 			redis,
-			endpoint.EndpointRoutes{
-				URL:    proleURL,
-				Routes: ProleRoutes.Routes,
-			},
-			endpoint.EndpointRoutes{
-				URL:    winstonURL,
-				Routes: WinstonRoutes.Routes,
-			},
+			router.NewRequestGenerator(proleServer.URL(), ProleRoutes.Routes),
+			router.NewRequestGenerator("http://winston-server", WinstonRoutes.Routes),
 		)
 	})
 

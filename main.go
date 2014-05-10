@@ -4,12 +4,12 @@ import (
 	"errors"
 	"flag"
 	"net/http"
-	"net/url"
 	"os"
 	"time"
 
 	"github.com/fraenkel/candiedyaml"
 	"github.com/garyburd/redigo/redis"
+	"github.com/tedsuo/router"
 
 	proleroutes "github.com/winston-ci/prole/routes"
 
@@ -18,7 +18,6 @@ import (
 	"github.com/winston-ci/winston/builder"
 	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/db"
-	"github.com/winston-ci/winston/endpoint"
 	"github.com/winston-ci/winston/server"
 )
 
@@ -82,26 +81,8 @@ func main() {
 		return redis.DialTimeout("tcp", *redisAddr, 5*time.Second, 0, 0)
 	}, 20))
 
-	winstonApiURL, err := url.Parse(*peerURL)
-	if err != nil {
-		fatal(err)
-	}
-
-	winstonEndpoint := endpoint.EndpointRoutes{
-		URL:    winstonApiURL,
-		Routes: apiroutes.Routes,
-	}
-
-	proleEarl, err := url.Parse(*proleURL)
-	if err != nil {
-		fatal(err)
-	}
-
-	proleEndpoint := endpoint.EndpointRoutes{
-		URL:    proleEarl,
-		Routes: proleroutes.Routes,
-	}
-
+	winstonEndpoint := router.NewRequestGenerator(*peerURL, apiroutes.Routes)
+	proleEndpoint := router.NewRequestGenerator(*proleURL, proleroutes.Routes)
 	builder := builder.NewBuilder(redisDB, proleEndpoint, winstonEndpoint)
 
 	serverHandler, err := server.New(config, redisDB, builder)
