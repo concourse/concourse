@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"flag"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -25,6 +26,12 @@ var configPath = flag.String(
 	"config",
 	"",
 	"path to winston server config .yml",
+)
+
+var templatesDir = flag.String(
+	"templates",
+	"",
+	"path to directory containing the html templates",
 )
 
 var proleURL = flag.String(
@@ -85,7 +92,7 @@ func main() {
 	proleEndpoint := router.NewRequestGenerator(*proleURL, proleroutes.Routes)
 	builder := builder.NewBuilder(redisDB, proleEndpoint, winstonEndpoint)
 
-	serverHandler, err := server.New(config, redisDB, builder)
+	serverHandler, err := server.New(config, redisDB, *templatesDir, builder)
 	if err != nil {
 		fatal(err)
 	}
@@ -98,10 +105,12 @@ func main() {
 	errs := make(chan error, 2)
 
 	go func() {
+		log.Println("serving web on", *listenAddr)
 		errs <- http.ListenAndServe(*listenAddr, serverHandler)
 	}()
 
 	go func() {
+		log.Println("serving api on", *apiListenAddr)
 		errs <- http.ListenAndServe(*apiListenAddr, apiHandler)
 	}()
 

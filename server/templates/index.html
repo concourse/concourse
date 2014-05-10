@@ -1,0 +1,9 @@
+{{define "title"}}Winston{{end}}
+
+{{define "body"}}
+<ul>
+  {{range .Jobs}}
+  <li><a href="{{url "GetJob" .}}">{{.Name}}</a></li>
+  {{end}}
+</ul>
+{{end}}

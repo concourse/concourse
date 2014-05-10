@@ -1,0 +1,16 @@
+{{define "title"}}{{.Job.Name}} - Winston{{end}}
+
+{{define "body"}}
+<h1>{{.Job.Name}}</h1>
+
+<form method="post" action="{{url "TriggerBuild" .Job}}">
+  <input type="submit" value="trigger build" />
+</form>
+
+<ul>
+  {{$job := .Job}}
+  {{range .Builds}}
+  <li><a href="{{url "GetBuild" $job .}}">{{.ID}}</a></li>
+  {{end}}
+</ul>
+{{end}}
