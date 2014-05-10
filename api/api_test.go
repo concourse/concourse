@@ -189,12 +189,14 @@ var _ = Describe("API", func() {
 					defer GinkgoRecover()
 
 					for {
-						_, msg, err := outConn.ReadMessage()
+						typ, msg, err := outConn.ReadMessage()
 						if err == io.EOF {
 							break
 						}
 
 						Ω(err).ShouldNot(HaveOccurred())
+
+						Ω(typ).Should(Equal(websocket.TextMessage))
 
 						buf.Write(msg)
 					}

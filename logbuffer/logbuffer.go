@@ -29,7 +29,7 @@ func (buffer *LogBuffer) Write(data []byte) (int, error) {
 
 	newSinks := []*websocket.Conn{}
 	for _, sink := range buffer.sinks {
-		err := sink.WriteMessage(websocket.BinaryMessage, data)
+		err := sink.WriteMessage(websocket.TextMessage, data)
 		if err != nil {
 			continue
 		}
@@ -47,7 +47,7 @@ func (buffer *LogBuffer) Write(data []byte) (int, error) {
 func (buffer *LogBuffer) Attach(conn *websocket.Conn) {
 	buffer.contentMutex.Lock()
 
-	conn.WriteMessage(websocket.BinaryMessage, buffer.content)
+	conn.WriteMessage(websocket.TextMessage, buffer.content)
 
 	if buffer.closed {
 		closeSink(conn)

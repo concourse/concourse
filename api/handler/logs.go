@@ -89,7 +89,7 @@ func (handler *Handler) LogOutput(w http.ResponseWriter, r *http.Request) {
 
 	logs, err := handler.db.BuildLog(job, id)
 	if err == nil {
-		conn.WriteMessage(websocket.BinaryMessage, logs)
+		conn.WriteMessage(websocket.TextMessage, logs)
 		conn.WriteControl(websocket.CloseMessage, nil, time.Time{})
 		conn.Close()
 		return
