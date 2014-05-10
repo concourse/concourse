@@ -2,6 +2,7 @@ package logbuffer
 
 import (
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -48,7 +49,9 @@ func (buffer *LogBuffer) Attach(conn *websocket.Conn) {
 
 	conn.WriteMessage(websocket.BinaryMessage, buffer.content)
 
-	if !buffer.closed {
+	if buffer.closed {
+		closeSink(conn)
+	} else {
 		buffer.sinks = append(buffer.sinks, conn)
 	}
 
@@ -59,11 +62,20 @@ func (buffer *LogBuffer) Close() {
 	buffer.contentMutex.Lock()
 
 	for _, sink := range buffer.sinks {
-		sink.Close()
+		closeSink(sink)
 	}
 
 	buffer.closed = true
 	buffer.sinks = nil
 
 	buffer.contentMutex.Unlock()
+}
+
+func closeSink(sink *websocket.Conn) error {
+	err := sink.WriteControl(websocket.CloseMessage, nil, time.Time{})
+	if err != nil {
+		return err
+	}
+
+	return sink.Close()
 }

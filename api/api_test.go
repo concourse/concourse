@@ -3,8 +3,10 @@ package api_test
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"time"
 
 	"github.com/gorilla/websocket"
 	. "github.com/onsi/ginkgo"
@@ -184,14 +186,20 @@ var _ = Describe("API", func() {
 				buf := gbytes.NewBuffer()
 
 				go func() {
+					defer GinkgoRecover()
+
 					for {
 						_, msg, err := outConn.ReadMessage()
-						if err != nil {
+						if err == io.EOF {
 							break
 						}
 
+						Ω(err).ShouldNot(HaveOccurred())
+
 						buf.Write(msg)
 					}
+
+					buf.Close()
 				}()
 
 				return buf
@@ -210,6 +218,35 @@ var _ = Describe("API", func() {
 
 				Eventually(sink1).Should(gbytes.Say("some message"))
 				Eventually(sink2).Should(gbytes.Say("some message"))
+			})
+
+			Context("and the input stream closes", func() {
+				It("closes the log buffer", func() {
+					err := conn.WriteMessage(websocket.BinaryMessage, []byte("some message"))
+					Ω(err).ShouldNot(HaveOccurred())
+
+					sink := outputSink()
+
+					err = conn.WriteControl(websocket.CloseMessage, nil, time.Time{})
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Eventually(sink).Should(gbytes.Say("some message"))
+					Eventually(sink.Closed).Should(BeTrue())
+				})
+			})
+
+			Context("and a second sink attaches", func() {
+				It("flushes the buffer and immediately closes", func() {
+					err := conn.WriteMessage(websocket.BinaryMessage, []byte("some message"))
+					Ω(err).ShouldNot(HaveOccurred())
+
+					err = conn.WriteControl(websocket.CloseMessage, nil, time.Time{})
+					Ω(err).ShouldNot(HaveOccurred())
+
+					sink := outputSink()
+					Eventually(sink).Should(gbytes.Say("some message"))
+					Eventually(sink.Closed).Should(BeTrue())
+				})
 			})
 		})
 	})

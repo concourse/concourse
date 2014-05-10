@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"io"
 	"log"
 	"net/http"
 
@@ -30,11 +31,6 @@ func (handler *Handler) LogInput(w http.ResponseWriter, r *http.Request) {
 	}
 	handler.logsMutex.Unlock()
 
-	//if !found {
-	//w.WriteHeader(http.StatusNotFound)
-	//return
-	//}
-
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
@@ -43,6 +39,10 @@ func (handler *Handler) LogInput(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		_, msg, err := conn.ReadMessage()
+		if err == io.EOF {
+			break
+		}
+
 		if err != nil {
 			log.Println("error reading message:", err)
 			break
@@ -52,6 +52,7 @@ func (handler *Handler) LogInput(w http.ResponseWriter, r *http.Request) {
 	}
 
 	conn.Close()
+	logBuffer.Close()
 }
 
 func (handler *Handler) LogOutput(w http.ResponseWriter, r *http.Request) {
@@ -65,11 +66,6 @@ func (handler *Handler) LogOutput(w http.ResponseWriter, r *http.Request) {
 		handler.logs[job+"-"+id] = logBuffer
 	}
 	handler.logsMutex.Unlock()
-
-	//if !found {
-	//w.WriteHeader(http.StatusNotFound)
-	//return
-	//}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
