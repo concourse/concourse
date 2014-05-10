@@ -49,7 +49,7 @@ var redisAddr = flag.String(
 var peerURL = flag.String(
 	"peerURL",
 	"http://127.0.0.1:8081",
-	"external URL of the api server",
+	"external URL of the api server, used for callbacks",
 )
 
 var listenAddr = flag.String(
