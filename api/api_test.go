@@ -47,6 +47,7 @@ var _ = Describe("API", func() {
 
 	Describe("PUT /builds/:job/:build/result", func() {
 		var build builds.Build
+		var status string
 
 		var response *http.Response
 
@@ -58,7 +59,7 @@ var _ = Describe("API", func() {
 		})
 
 		JustBeforeEach(func() {
-			reqPayload := bytes.NewBufferString(`{"status":"succeeded"}`)
+			reqPayload := bytes.NewBufferString(fmt.Sprintf(`{"status":%q}`, status))
 
 			req, err := http.NewRequest("PUT", server.URL+"/builds/some-job/1/result", reqPayload)
 			Ω(err).ShouldNot(HaveOccurred())
@@ -69,13 +70,49 @@ var _ = Describe("API", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("updates the build's state", func() {
-			Ω(response.StatusCode).Should(Equal(http.StatusOK))
+		Context("with status 'succeeded'", func() {
+			BeforeEach(func() {
+				status = "succeeded"
+			})
 
-			updatedBuild, err := redis.GetBuild("some-job", build.ID)
-			Ω(err).ShouldNot(HaveOccurred())
+			It("updates the build's state", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusOK))
 
-			Ω(updatedBuild.State).Should(Equal(builds.BuildStateSucceeded))
+				updatedBuild, err := redis.GetBuild("some-job", build.ID)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(updatedBuild.State).Should(Equal(builds.BuildStateSucceeded))
+			})
+		})
+
+		Context("with status 'failed'", func() {
+			BeforeEach(func() {
+				status = "failed"
+			})
+
+			It("updates the build's state", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+
+				updatedBuild, err := redis.GetBuild("some-job", build.ID)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(updatedBuild.State).Should(Equal(builds.BuildStateFailed))
+			})
+		})
+
+		Context("with status 'errored'", func() {
+			BeforeEach(func() {
+				status = "errored"
+			})
+
+			It("updates the build's state", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+
+				updatedBuild, err := redis.GetBuild("some-job", build.ID)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(updatedBuild.State).Should(Equal(builds.BuildStateErrored))
+			})
 		})
 	})
 

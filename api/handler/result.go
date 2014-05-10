@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -26,6 +27,8 @@ func (handler *Handler) SetResult(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("handling result: %#v\n", build)
+
 	var state builds.BuildState
 
 	switch build.Status {
@@ -33,7 +36,15 @@ func (handler *Handler) SetResult(w http.ResponseWriter, r *http.Request) {
 		state = builds.BuildStateFailed
 	case "succeeded":
 		state = builds.BuildStateSucceeded
+	case "errored":
+		state = builds.BuildStateErrored
+	default:
+		log.Println("unknown status:", build.Status)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
+
+	log.Printf("saving state: %#v\n", state)
 
 	_, err = handler.db.SaveBuildState(job, id, state)
 	if err != nil {
