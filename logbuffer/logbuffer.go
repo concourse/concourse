@@ -71,6 +71,15 @@ func (buffer *LogBuffer) Close() {
 	buffer.contentMutex.Unlock()
 }
 
+func (buffer *LogBuffer) Content() []byte {
+	buffer.contentMutex.Lock()
+	content := make([]byte, len(buffer.content))
+	copy(content, buffer.content)
+	buffer.contentMutex.Unlock()
+
+	return content
+}
+
 func closeSink(sink *websocket.Conn) error {
 	err := sink.WriteControl(websocket.CloseMessage, nil, time.Time{})
 	if err != nil {

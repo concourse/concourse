@@ -233,19 +233,36 @@ var _ = Describe("API", func() {
 					Eventually(sink).Should(gbytes.Say("some message"))
 					Eventually(sink.Closed).Should(BeTrue())
 				})
-			})
 
-			Context("and a second sink attaches", func() {
-				It("flushes the buffer and immediately closes", func() {
+				It("saves the logs to the database", func() {
 					err := conn.WriteMessage(websocket.BinaryMessage, []byte("some message"))
 					Ω(err).ShouldNot(HaveOccurred())
 
 					err = conn.WriteControl(websocket.CloseMessage, nil, time.Time{})
 					Ω(err).ShouldNot(HaveOccurred())
 
-					sink := outputSink()
-					Eventually(sink).Should(gbytes.Say("some message"))
-					Eventually(sink.Closed).Should(BeTrue())
+					Eventually(func() string {
+						log, err := redis.BuildLog("some-job", build.ID)
+						if err != nil {
+							return ""
+						}
+
+						return string(log)
+					}).Should(Equal("hello1hello2\nhello3some message"))
+				})
+
+				Context("and a second sink attaches", func() {
+					It("flushes the buffer and immediately closes", func() {
+						err := conn.WriteMessage(websocket.BinaryMessage, []byte("some message"))
+						Ω(err).ShouldNot(HaveOccurred())
+
+						err = conn.WriteControl(websocket.CloseMessage, nil, time.Time{})
+						Ω(err).ShouldNot(HaveOccurred())
+
+						sink := outputSink()
+						Eventually(sink).Should(gbytes.Say("some message"))
+						Eventually(sink.Closed).Should(BeTrue())
+					})
 				})
 			})
 		})

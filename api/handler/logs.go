@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/websocket"
 
@@ -21,13 +22,20 @@ var upgrader = websocket.Upgrader{
 
 func (handler *Handler) LogInput(w http.ResponseWriter, r *http.Request) {
 	job := r.FormValue(":job")
-	id := r.FormValue(":build")
+	idStr := r.FormValue(":build")
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		log.Println("error parsing build id:", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 	handler.logsMutex.Lock()
-	logBuffer, found := handler.logs[job+"-"+id]
+	logBuffer, found := handler.logs[job+"-"+idStr]
 	if !found {
 		logBuffer = logbuffer.NewLogBuffer()
-		handler.logs[job+"-"+id] = logBuffer
+		handler.logs[job+"-"+idStr] = logBuffer
 	}
 	handler.logsMutex.Unlock()
 
@@ -53,6 +61,12 @@ func (handler *Handler) LogInput(w http.ResponseWriter, r *http.Request) {
 
 	conn.Close()
 	logBuffer.Close()
+
+	err = handler.db.SaveBuildLog(job, id, logBuffer.Content())
+	if err != nil {
+		log.Println("failed saving build log:", err)
+		return
+	}
 }
 
 func (handler *Handler) LogOutput(w http.ResponseWriter, r *http.Request) {
