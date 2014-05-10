@@ -4,8 +4,8 @@ image: mischief/docker-golang
 env:
   - GOROOT=/usr/local/go
   - PATH=$GOROOT/bin:$PATH
-  - GOPATH=/var/build/src
-  - PATH=/var/build/bin:$PATH
+  - GOPATH=/tmp/build/src
+  - PATH=/tmp/build/bin:$PATH
   - REPO_DIR=$GOPATH/src/github.com/winston-ci/smith
 
 script: |
