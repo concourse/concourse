@@ -1,11 +1,15 @@
 package triggerbuild
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
+	"github.com/tedsuo/router"
+
 	"github.com/winston-ci/winston/builder"
 	"github.com/winston-ci/winston/jobs"
+	"github.com/winston-ci/winston/server/routes"
 )
 
 type handler struct {
@@ -29,11 +33,19 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("triggering", job)
 
-	_, err := handler.builder.Build(job)
+	build, err := handler.builder.Build(job)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	redirectPath, err := routes.Routes.PathForHandler(routes.GetBuild, router.Params{
+		"job":   job.Name,
+		"build": fmt.Sprintf("%d", build.ID),
+	})
+	if err != nil {
+		log.Fatalln("failed to construct redirect uri:", err)
+	}
+
+	http.Redirect(w, r, redirectPath, 302)
 }
