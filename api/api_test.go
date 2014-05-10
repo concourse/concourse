@@ -220,6 +220,19 @@ var _ = Describe("API", func() {
 				Eventually(sink2).Should(gbytes.Say("some message"))
 			})
 
+			Context("when there is a build log saved", func() {
+				BeforeEach(func() {
+					err := redis.SaveBuildLog("some-job", build.ID, []byte("some saved log"))
+					Ω(err).ShouldNot(HaveOccurred())
+				})
+
+				It("immediately returns it and closes the sink", func() {
+					sink := outputSink()
+					Eventually(sink).Should(gbytes.Say("some saved log"))
+					Eventually(sink.Closed).Should(BeTrue())
+				})
+			})
+
 			Context("and the input stream closes", func() {
 				It("closes the log buffer", func() {
 					err := conn.WriteMessage(websocket.BinaryMessage, []byte("some message"))

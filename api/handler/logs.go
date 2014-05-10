@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/websocket"
 
@@ -71,21 +72,36 @@ func (handler *Handler) LogInput(w http.ResponseWriter, r *http.Request) {
 
 func (handler *Handler) LogOutput(w http.ResponseWriter, r *http.Request) {
 	job := r.FormValue(":job")
-	id := r.FormValue(":build")
+	idStr := r.FormValue(":build")
 
-	handler.logsMutex.Lock()
-	logBuffer, found := handler.logs[job+"-"+id]
-	if !found {
-		logBuffer = logbuffer.NewLogBuffer()
-		handler.logs[job+"-"+id] = logBuffer
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		log.Println("error parsing build id:", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
-	handler.logsMutex.Unlock()
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println(err)
+		log.Println("failed to upgrade connection:", err)
 		return
 	}
+
+	logs, err := handler.db.BuildLog(job, id)
+	if err == nil {
+		conn.WriteMessage(websocket.BinaryMessage, logs)
+		conn.WriteControl(websocket.CloseMessage, nil, time.Time{})
+		conn.Close()
+		return
+	}
+
+	handler.logsMutex.Lock()
+	logBuffer, found := handler.logs[job+"-"+idStr]
+	if !found {
+		logBuffer = logbuffer.NewLogBuffer()
+		handler.logs[job+"-"+idStr] = logBuffer
+	}
+	handler.logsMutex.Unlock()
 
 	logBuffer.Attach(conn)
 }
