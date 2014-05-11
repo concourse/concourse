@@ -21,11 +21,12 @@ case $1 in
     exec /var/vcap/packages/winston/bin/winston \
       -listenAddr=<%= p("winston.listen_address") %> \
       -apiListenAddr=<%= p("winston.api_listen_address") %> \
-      -peerURL=http://<%= my_ip %>:<%= p("winston.api_listen_address").split(":").last %> \
+      -peerAddr=<%= my_ip %>:<%= p("winston.api_listen_address").split(":").last %> \
       -proleURL=http://<%= p("winston.prole.address") %> \
       -redisAddr=<%= p("winston.redis.address") %> \
       -config=/var/vcap/jobs/winston/config/winston.yml \
       -templates=/var/vcap/packages/winston/templates \
+      -public=/var/vcap/packages/winston/public \
       1>>$LOG_DIR/winston.stdout.log \
       2>>$LOG_DIR/winston.stderr.log
 
