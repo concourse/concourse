@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 
+	"code.google.com/p/go.net/websocket"
 	"github.com/tedsuo/router"
 
 	"github.com/winston-ci/winston/api/handler"
@@ -16,8 +17,8 @@ func New(db db.DB) (http.Handler, error) {
 	handlers := map[string]http.Handler{
 		routes.SetResult: http.HandlerFunc(builds.SetResult),
 
-		routes.LogInput:  http.HandlerFunc(builds.LogInput),
-		routes.LogOutput: http.HandlerFunc(builds.LogOutput),
+		routes.LogInput:  websocket.Server{Handler: builds.LogInput},
+		routes.LogOutput: websocket.Server{Handler: builds.LogOutput},
 	}
 
 	return router.NewRouter(routes.Routes, handlers)

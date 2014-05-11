@@ -222,6 +222,15 @@ var _ = Describe("API", func() {
 				Eventually(sink2).Should(gbytes.Say("some message"))
 			})
 
+			It("transmits ansi escape characters as html", func() {
+				sink := outputSink()
+
+				err := conn.WriteMessage(websocket.BinaryMessage, []byte("some \x1b[1mmessage"))
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Eventually(sink).Should(gbytes.Say(`some <span class="ansi-bold">message`))
+			})
+
 			Context("when there is a build log saved", func() {
 				BeforeEach(func() {
 					err := redis.SaveBuildLog("some-job", build.ID, []byte("some saved log"))

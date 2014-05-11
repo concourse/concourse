@@ -3,32 +3,22 @@ package handler
 import (
 	"io"
 	"log"
-	"net/http"
 	"strconv"
-	"time"
 
-	"github.com/gorilla/websocket"
+	"code.google.com/p/go.net/websocket"
 
+	"github.com/winston-ci/winston/ansistream"
 	"github.com/winston-ci/winston/logbuffer"
 )
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		// allow all connections
-		return true
-	},
-}
-
-func (handler *Handler) LogInput(w http.ResponseWriter, r *http.Request) {
-	job := r.FormValue(":job")
-	idStr := r.FormValue(":build")
+func (handler *Handler) LogInput(conn *websocket.Conn) {
+	job := conn.Request().FormValue(":job")
+	idStr := conn.Request().FormValue(":build")
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		log.Println("error parsing build id:", err)
-		w.WriteHeader(http.StatusBadRequest)
+		conn.Close()
 		return
 	}
 
@@ -40,28 +30,14 @@ func (handler *Handler) LogInput(w http.ResponseWriter, r *http.Request) {
 	}
 	handler.logsMutex.Unlock()
 
-	conn, err := upgrader.Upgrade(w, r, nil)
+	defer conn.Close()
+	defer logBuffer.Close()
+
+	_, err = io.Copy(logBuffer, conn)
 	if err != nil {
-		log.Println(err)
+		log.Println("error reading message:", err)
 		return
 	}
-
-	for {
-		_, msg, err := conn.ReadMessage()
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			log.Println("error reading message:", err)
-			break
-		}
-
-		logBuffer.Write(msg)
-	}
-
-	conn.Close()
-	logBuffer.Close()
 
 	err = handler.db.SaveBuildLog(job, id, logBuffer.Content())
 	if err != nil {
@@ -70,28 +46,22 @@ func (handler *Handler) LogInput(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (handler *Handler) LogOutput(w http.ResponseWriter, r *http.Request) {
-	job := r.FormValue(":job")
-	idStr := r.FormValue(":build")
+func (handler *Handler) LogOutput(conn *websocket.Conn) {
+	job := conn.Request().FormValue(":job")
+	idStr := conn.Request().FormValue(":build")
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		log.Println("error parsing build id:", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println("failed to upgrade connection:", err)
+		conn.Close()
 		return
 	}
 
 	logs, err := handler.db.BuildLog(job, id)
 	if err == nil {
-		conn.WriteMessage(websocket.TextMessage, logs)
-		conn.WriteControl(websocket.CloseMessage, nil, time.Time{})
-		conn.Close()
+		ansiWriter := ansistream.NewWriter(conn)
+		ansiWriter.Write(logs)
+		ansiWriter.Close()
 		return
 	}
 
