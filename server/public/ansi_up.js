@@ -25,20 +25,21 @@
             { color: "255,255,255",    class: "ansi-white"   }
           ],
           [
-            { color: "85, 85, 85",     class: "ansi-bright-black"   },
-            { color: "255, 85, 85",    class: "ansi-bright-red"     },
-            { color: "0, 255, 0",      class: "ansi-bright-green"   },
-            { color: "255, 255, 85",   class: "ansi-bright-yellow"  },
-            { color: "85, 85, 255",    class: "ansi-bright-blue"    },
-            { color: "255, 85, 255",   class: "ansi-bright-magenta" },
-            { color: "85, 255, 255",   class: "ansi-bright-cyan"    },
-            { color: "255, 255, 255",  class: "ansi-bright-white"   }
+            { color: "85, 85, 85",     class: "ansi-black"   },
+            { color: "255, 85, 85",    class: "ansi-red"     },
+            { color: "0, 255, 0",      class: "ansi-green"   },
+            { color: "255, 255, 85",   class: "ansi-yellow"  },
+            { color: "85, 85, 255",    class: "ansi-blue"    },
+            { color: "255, 85, 255",   class: "ansi-magenta" },
+            { color: "85, 255, 255",   class: "ansi-cyan"    },
+            { color: "255, 255, 255",  class: "ansi-white"   }
           ]
         ];
 
     function Ansi_Up() {
       this.fg = this.bg = null;
       this.bright = 0;
+      this.bold = 0;
     }
 
     Ansi_Up.prototype.escape_for_html = function (txt) {
@@ -105,12 +106,16 @@
         if (isNaN(num) || num === 0) {
           self.fg = self.bg = null;
           self.bright = 0;
+          self.bold = 0;
         } else if (num === 1) {
-          self.bright = 1;
+          self.bold = 1;
         } else if ((num >= 30) && (num < 38)) {
-          self.fg = ANSI_COLORS[self.bright][(num % 10)][key];
+          self.fg = ANSI_COLORS[0][(num % 10)][key];
         } else if ((num >= 40) && (num < 48)) {
           self.bg = ANSI_COLORS[0][(num % 10)][key];
+        } else if ((num >= 90) && (num < 98)) {
+          self.bright = 1;
+          self.fg = ANSI_COLORS[1][(num % 10)][key];
         }
       });
 
@@ -131,6 +136,12 @@
           } else {
             styles.push("background-color:rgb(" + self.bg + ")");
           }
+        }
+        if(self.bold) {
+          classes.push("ansi-bold");
+        }
+        if(self.bright) {
+          classes.push("ansi-bright");
         }
         if (use_classes) {
           return ["<span class=\"" + classes.join(' ') + "\">", orig_txt, "</span>"];
