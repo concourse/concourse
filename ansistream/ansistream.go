@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"strings"
+	"text/template"
 	"unicode/utf8"
 )
 
@@ -90,7 +91,7 @@ func (streamer *Writer) Write(data []byte) (int, error) {
 			prevbright = bright
 			prevcolor = color
 
-			writeBuf.Write(text)
+			template.HTMLEscape(writeBuf, text)
 		}
 
 		if eof {

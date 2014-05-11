@@ -97,6 +97,9 @@ var _ = Describe("AnsiStream", func() {
 
 		// non-ansi escape sequence
 		{[]string{"\x1bsomebogusdata"}, "\x1bsomebogusdata"},
+
+		// escape html characters
+		{[]string{"\x1b[1m<foo> & bar\x1b[0m"}, `<span class="ansi-bold">&lt;foo&gt; &amp; bar</span>`},
 	}
 
 	for _, example := range examples {
