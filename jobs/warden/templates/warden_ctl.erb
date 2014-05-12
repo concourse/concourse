@@ -40,6 +40,7 @@ case $1 in
       -listenAddr=<%= p("warden.listen_address") %> \
       -denyNetworks=<%= p("warden.deny_networks").join(",") %> \
       -allowNetworks=<%= p("warden.allow_networks").join(",") %> \
+      -networkPool=10.234.0.0/22 \
       -depot=${DATA_DIR}/depot \
       -graph=${DATA_DIR}/graph \
       -rootfs=/var/vcap/data \
