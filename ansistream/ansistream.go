@@ -32,12 +32,16 @@ func (streamer *Writer) Write(data []byte) (int, error) {
 	styled := false
 
 	prevbold := false
-	prevbright := false
 	prevcolor := ""
+	prevbright := false
+	prevbgcolor := ""
+	prevbgbright := false
 
 	bold := prevbold
 	bright := prevbright
 	color := prevcolor
+	bgcolor := prevbgcolor
+	bgbright := prevbgbright
 
 	var lastSequence []byte
 
@@ -64,12 +68,22 @@ func (streamer *Writer) Write(data []byte) (int, error) {
 			classes = append(classes, "ansi-bold")
 		}
 
-		if bright {
-			classes = append(classes, "ansi-bright")
+		if color != "" {
+			prefix := "ansi-"
+			if bright {
+				prefix += "bright-"
+			}
+
+			classes = append(classes, prefix+color+"-fg")
 		}
 
-		if color != "" {
-			classes = append(classes, "ansi-"+color)
+		if bgcolor != "" {
+			prefix := "ansi-"
+			if bgbright {
+				prefix += "bright-"
+			}
+
+			classes = append(classes, prefix+bgcolor+"-bg")
 		}
 
 		if len(text) > 0 {
@@ -125,38 +139,29 @@ func (streamer *Writer) Write(data []byte) (int, error) {
 			switch len(code) {
 			case 1:
 				switch code[0] {
-				case '0':
-					bold = false
-					bright = false
-					color = ""
 				case '1':
 					bold = true
-				}
-
-			case 2:
-				if code[0] == '9' {
-					bright = true
-				} else {
-					bright = false
-				}
-
-				switch code[1] {
 				case '0':
-					color = "black"
-				case '1':
-					color = "red"
-				case '2':
-					color = "green"
+					bold = false
+					color = ""
+					bright = false
+					bgcolor = ""
+					bgbright = false
+				}
+			case 2:
+				switch code[0] {
 				case '3':
-					color = "yellow"
+					color = colorFor(code[1])
+				case '9':
+					color = colorFor(code[1])
+					bright = true
 				case '4':
-					color = "blue"
-				case '5':
-					color = "magenta"
-				case '6':
-					color = "cyan"
-				case '7':
-					color = "white"
+					bgcolor = colorFor(code[1])
+				}
+			case 3:
+				if code[0] == '1' && code[1] == '0' {
+					bgcolor = colorFor(code[2])
+					bgbright = true
 				}
 			}
 		}
@@ -179,4 +184,29 @@ func (streamer *Writer) Write(data []byte) (int, error) {
 
 func (streamer *Writer) Close() error {
 	return streamer.destination.Close()
+}
+
+func colorFor(c byte) string {
+	var color string
+
+	switch c {
+	case '0':
+		color = "black"
+	case '1':
+		color = "red"
+	case '2':
+		color = "green"
+	case '3':
+		color = "yellow"
+	case '4':
+		color = "blue"
+	case '5':
+		color = "magenta"
+	case '6':
+		color = "cyan"
+	case '7':
+		color = "white"
+	}
+
+	return color
 }
