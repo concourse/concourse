@@ -40,6 +40,8 @@ var _ = Describe("Builder", func() {
 		job = jobs.Job{
 			Name: "foo",
 
+			Privileged: true,
+
 			BuildConfigPath: "some-build/build.yml",
 
 			Inputs: []resources.Resource{
@@ -68,6 +70,8 @@ var _ = Describe("Builder", func() {
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/builds"),
 				ghttp.VerifyJSONRepresenting(ProleBuilds.Build{
+					Privileged: true,
+
 					ConfigPath: "some-build/build.yml",
 
 					Callback: "http://winston-server/builds/foo/1/result",

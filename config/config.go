@@ -6,6 +6,8 @@ type Config struct {
 }
 
 type Job struct {
+	Privileged bool `yaml:"privileged"`
+
 	BuildConfigPath string `yaml:"build"`
 
 	Inputs  map[string]ResourceVersion `yaml:"inputs"`

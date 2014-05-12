@@ -57,6 +57,8 @@ func New(
 		js[name] = jobs.Job{
 			Name: name,
 
+			Privileged: config.Privileged,
+
 			BuildConfigPath: config.BuildConfigPath,
 
 			Inputs: inputs,
