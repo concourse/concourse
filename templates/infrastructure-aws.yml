@@ -19,6 +19,7 @@ compilation:
 
 jobs:
   - name: redgreen
+    instances: 0
     properties:
       redgreen:
         listen_address: 0.0.0.0:8153
