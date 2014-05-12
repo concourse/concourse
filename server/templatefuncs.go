@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"net"
 
 	"github.com/tedsuo/router"
 	apiroutes "github.com/winston-ci/winston/api/routes"
@@ -41,7 +42,12 @@ func (funcs templateFuncs) url(handler string, args ...interface{}) (string, err
 			return "", err
 		}
 
-		return "ws://" + funcs.peerAddr + path, nil
+		_, port, err := net.SplitHostPort(funcs.peerAddr)
+		if err != nil {
+			port = "80"
+		}
+
+		return ":" + port + path, nil
 
 	default:
 		return "", fmt.Errorf("unknown route: %s", handler)

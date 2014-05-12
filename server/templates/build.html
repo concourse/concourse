@@ -11,7 +11,7 @@
 </pre>
 
 <script type="text/javascript">
-var ws = new WebSocket({{url "LogOutput" .Job .Build | js}});
+var ws = new WebSocket("ws://" + window.location.hostname + {{url "LogOutput" .Job .Build | js}});
 
 ws.onmessage = function(event) {
   document.getElementById("build-log").innerHTML += event.data
