@@ -31,7 +31,13 @@ update:
   update_watch_time: 5000-600000
 
 resource_pools:
-  - name: room101
+  - name: winston
+    network: room101
+    size: (( auto ))
+    stemcell: (( meta.stemcell ))
+    cloud_properties: (( merge ))
+
+  - name: redgreen
     network: room101
     size: (( auto ))
     stemcell: (( meta.stemcell ))

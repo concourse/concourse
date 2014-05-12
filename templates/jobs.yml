@@ -6,7 +6,7 @@ jobs:
       - name: redgreen
         release: room101
     instances: 1
-    resource_pool: room101
+    resource_pool: redgreen
     networks:
       - name: room101
         static_ips: ~
@@ -22,7 +22,7 @@ jobs:
       - name: winston
         release: room101
     instances: 1
-    resource_pool: room101
+    resource_pool: winston
     networks:
       - name: room101
     properties:
