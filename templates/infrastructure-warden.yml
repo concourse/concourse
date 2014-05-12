@@ -14,11 +14,19 @@ compilation:
     name: random
 
 resource_pools:
-  - name: room101
+  - name: redgreen
     cloud_properties:
       name: random
 
   - name: proles
+    cloud_properties:
+      name: random
+
+  - name: redis
+    cloud_properties:
+      name: random
+
+  - name: winston
     cloud_properties:
       name: random
 
@@ -33,11 +41,19 @@ jobs:
         prole:
           address: (( jobs.prole.networks.room101.static_ips.[0] ":4637" ))
 
+  - name: redis
+    instances: 1
+    networks:
+      - name: room101
+        static_ips: (( static_ips(1) ))
+
   - name: winston
     properties:
       winston:
         prole:
           address: (( jobs.prole.networks.room101.static_ips.[0] ":4637" ))
+        redis:
+          address: (( jobs.redis.networks.room101.static_ips.[0] ":6379" ))
 
   - name: prole
     instances: 1

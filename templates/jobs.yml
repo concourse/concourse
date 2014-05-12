@@ -17,6 +17,16 @@ jobs:
         prole:
           address: (( merge ))
 
+  - name: redis
+    templates:
+      - name: redis
+        release: room101
+    instances: 1
+    resource_pool: redis
+    networks:
+      - name: room101
+        static_ips: ~
+
   - name: winston
     templates:
       - name: winston

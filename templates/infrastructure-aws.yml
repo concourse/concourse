@@ -26,13 +26,19 @@ jobs:
         prole:
           address: (( jobs.prole.networks.room101.static_ips.[0] ":4637" ))
 
+  - name: redis
+    instances: 1
+    networks:
+      - name: room101
+        static_ips: (( static_ips(1) ))
+
   - name: winston
     properties:
       winston:
         prole:
           address: (( jobs.prole.networks.room101.static_ips.[0] ":4637" ))
         redis:
-          address: 127.0.0.1:6379
+          address: (( jobs.redis.networks.room101.static_ips.[0] ":6379" ))
 
   - name: prole
     instances: 1
@@ -47,6 +53,12 @@ networks: (( merge ))
 
 resource_pools:
   - name: winston
+    cloud_properties:
+      instance_type: m1.medium
+      availability_zone: (( meta.zones.z1 ))
+      elbs: (( merge ))
+
+  - name: redis
     cloud_properties:
       instance_type: m1.medium
       availability_zone: (( meta.zones.z1 ))

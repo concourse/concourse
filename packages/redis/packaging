@@ -1,0 +1,8 @@
+set -e
+set -x
+set -u
+
+(
+	cd redis
+	make PREFIX=${BOSH_INSTALL_TARGET} install
+)

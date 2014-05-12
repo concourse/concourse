@@ -13,3 +13,6 @@
 [submodule "src/winston"]
 	path = src/winston
 	url = https://github.com/winston-ci/winston.git
+[submodule "src/redis"]
+	path = src/redis
+	url = https://github.com/antirez/redis

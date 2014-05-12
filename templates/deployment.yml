@@ -37,6 +37,12 @@ resource_pools:
     stemcell: (( meta.stemcell ))
     cloud_properties: (( merge ))
 
+  - name: redis
+    network: room101
+    size: (( auto ))
+    stemcell: (( meta.stemcell ))
+    cloud_properties: (( merge ))
+
   - name: redgreen
     network: room101
     size: (( auto ))

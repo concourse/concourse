@@ -1,0 +1,16 @@
+port <%= p("redis.port") %>
+tcp-backlog 511
+timeout 0
+tcp-keepalive 0
+loglevel notice
+logfile ""
+databases 16
+
+save 900 1
+save 300 10
+save 60 10000
+
+rdbcompression yes
+rdbchecksum yes
+dbfilename dump.rdb
+dir /var/vcap/store/redis
