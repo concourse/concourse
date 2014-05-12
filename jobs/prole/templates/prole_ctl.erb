@@ -18,6 +18,8 @@ case $1 in
 
     echo $$ > /var/vcap/sys/run/prole/prole.pid
 
+    export PATH=/var/vcap/packages/git/bin:$PATH
+
     exec /var/vcap/packages/prole/bin/prole \
       -tmpdir=${TMP_DIR} \
       -listenAddr=<%= p("prole.listen_address") %> \
