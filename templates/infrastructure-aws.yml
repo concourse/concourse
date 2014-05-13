@@ -58,17 +58,16 @@ resource_pools:
       availability_zone: (( meta.zones.z1 ))
       elbs: (( merge ))
 
-  - name: redis
-    cloud_properties:
-      instance_type: m1.medium
-      availability_zone: (( meta.zones.z1 ))
-      elbs: (( merge ))
-
   - name: redgreen
     cloud_properties:
       instance_type: m1.medium
       availability_zone: (( meta.zones.z1 ))
       elbs: (( merge ))
+
+  - name: redis
+    cloud_properties:
+      instance_type: m1.medium
+      availability_zone: (( meta.zones.z1 ))
 
   - name: proles
     cloud_properties:
