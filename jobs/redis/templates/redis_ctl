@@ -31,6 +31,7 @@ case $1 in
     ;;
 
   stop)
+    kill $(cat $PID_FILE)
     ;;
   *)
     echo "Usage: redis_ctl {start|stop}"
