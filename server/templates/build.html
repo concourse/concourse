@@ -10,11 +10,34 @@
 <pre id="build-log">
 </pre>
 
+<a id="autoscroll-toggle" href="">turn autoscroll on</a>
+
+<script src="{{url "Public" "jquery-2.1.1.min.js"}}"></script>
 <script type="text/javascript">
 var ws = new WebSocket("ws://" + window.location.hostname + {{url "LogOutput" .Job .Build | js}});
 
 ws.onmessage = function(event) {
   document.getElementById("build-log").innerHTML += event.data
 };
+
+$(document).ready(function() {
+	var autoscroll = false;
+
+	$("#autoscroll-toggle").on("click", function() {
+		autoscroll = !autoscroll;
+		console.log("autoscroll is now: " + autoscroll)
+		if (autoscroll) {
+			$("#autoscroll-toggle").text("turn autoscroll off")
+		} else {
+			$("#autoscroll-toggle").text("turn autoscroll on")
+		}
+	});
+
+	setInterval(function() {
+		if (autoscroll) {
+			$(document).scrollTop($(document).height());
+		}
+	}, 10)
+});
 </script>
 {{end}}
