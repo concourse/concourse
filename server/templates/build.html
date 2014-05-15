@@ -10,7 +10,7 @@
 <pre id="build-log">
 </pre>
 
-<a id="autoscroll-toggle" href="">turn autoscroll on</a>
+<a id="autoscroll-toggle" href="#">turn autoscroll on</a>
 
 <script src="{{url "Public" "jquery-2.1.1.min.js"}}"></script>
 <script type="text/javascript">
@@ -31,6 +31,7 @@ $(document).ready(function() {
 		} else {
 			$("#autoscroll-toggle").text("turn autoscroll on")
 		}
+		return false;
 	});
 
 	setInterval(function() {
