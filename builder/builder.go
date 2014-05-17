@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path/filepath"
 
 	"github.com/tedsuo/router"
 	ProleBuilds "github.com/winston-ci/prole/api/builds"
@@ -52,9 +53,15 @@ func (builder *builder) Build(job jobs.Job) (builds.Build, error) {
 		return builds.Build{}, err
 	}
 
-	sources := make([]ProleBuilds.BuildSource, len(job.Inputs))
+	sources := make([]ProleBuilds.Input, len(job.Inputs))
 	for i, resource := range job.Inputs {
-		sources[i] = resource.BuildSource()
+		input := resource.BuildInput()
+
+		if filepath.HasPrefix(job.BuildConfigPath, resource.Name+"/") {
+			input.ConfigPath = job.BuildConfigPath[len(resource.Name)+1:]
+		}
+
+		sources[i] = input
 	}
 
 	complete, err := builder.winston.RequestForHandler(
@@ -88,11 +95,11 @@ func (builder *builder) Build(job jobs.Job) (builds.Build, error) {
 	logs.URL.Scheme = "ws"
 
 	proleBuild := ProleBuilds.Build{
-		Privileged: job.Privileged,
+		Config: ProleBuilds.Config{
+			Privileged: job.Privileged,
+		},
 
-		ConfigPath: job.BuildConfigPath,
-
-		Sources: sources,
+		Inputs: sources,
 
 		Callback: complete.URL.String(),
 		LogsURL:  logs.URL.String(),

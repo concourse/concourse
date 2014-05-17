@@ -1,6 +1,11 @@
 package resources
 
-import "github.com/winston-ci/prole/api/builds"
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/winston-ci/prole/api/builds"
+)
 
 type Resource struct {
 	Name string
@@ -9,12 +14,14 @@ type Resource struct {
 	URI  string
 }
 
-func (resource Resource) BuildSource() builds.BuildSource {
-	return builds.BuildSource{
-		Path:   resource.Name,
-		Type:   resource.Type,
-		URI:    resource.URI,
-		Branch: "master",
-		Ref:    "HEAD",
+func (resource Resource) BuildInput() builds.Input {
+	version := json.RawMessage(fmt.Sprintf(`{"uri":%q}`, resource.URI))
+
+	return builds.Input{
+		Type: resource.Type,
+
+		DestinationPath: resource.Name,
+
+		Version: &version,
 	}
 }

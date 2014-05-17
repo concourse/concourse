@@ -1,6 +1,7 @@
 package builder_test
 
 import (
+	"encoding/json"
 	"net/http"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -42,7 +43,7 @@ var _ = Describe("Builder", func() {
 
 			Privileged: true,
 
-			BuildConfigPath: "some-build/build.yml",
+			BuildConfigPath: "some-resource/build.yml",
 
 			Inputs: []resources.Resource{
 				{
@@ -66,24 +67,27 @@ var _ = Describe("Builder", func() {
 	})
 
 	It("triggers a build on the prole endpoint", func() {
+		version := json.RawMessage(`{"uri":"git://example.com/foo/repo.git"}`)
+
 		proleServer.AppendHandlers(
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/builds"),
 				ghttp.VerifyJSONRepresenting(ProleBuilds.Build{
-					Privileged: true,
-
-					ConfigPath: "some-build/build.yml",
+					Config: ProleBuilds.Config{
+						Privileged: true,
+					},
 
 					Callback: "http://winston-server/builds/foo/1/result",
 					LogsURL:  "ws://winston-server/builds/foo/1/log/input",
 
-					Sources: []ProleBuilds.BuildSource{
+					Inputs: []ProleBuilds.Input{
 						{
-							Path:   "some-resource",
-							Type:   "git",
-							URI:    "git://example.com/foo/repo.git",
-							Branch: "master",
-							Ref:    "HEAD",
+							Type: "git",
+
+							DestinationPath: "some-resource",
+							ConfigPath:      "build.yml",
+
+							Version: &version,
 						},
 					},
 				}),
