@@ -15,13 +15,13 @@ type Resource struct {
 }
 
 func (resource Resource) BuildInput() builds.Input {
-	version := json.RawMessage(fmt.Sprintf(`{"uri":%q}`, resource.URI))
+	source := json.RawMessage(fmt.Sprintf(`{"uri":%q}`, resource.URI))
 
 	return builds.Input{
 		Type: resource.Type,
 
-		DestinationPath: resource.Name,
+		Source: &source,
 
-		Version: &version,
+		DestinationPath: resource.Name,
 	}
 }

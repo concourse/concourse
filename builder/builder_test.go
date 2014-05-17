@@ -67,7 +67,7 @@ var _ = Describe("Builder", func() {
 	})
 
 	It("triggers a build on the prole endpoint", func() {
-		version := json.RawMessage(`{"uri":"git://example.com/foo/repo.git"}`)
+		source := json.RawMessage(`{"uri":"git://example.com/foo/repo.git"}`)
 
 		proleServer.AppendHandlers(
 			ghttp.CombineHandlers(
@@ -82,10 +82,10 @@ var _ = Describe("Builder", func() {
 						{
 							Type: "git",
 
+							Source: &source,
+
 							DestinationPath: "some-resource",
 							ConfigPath:      "build.yml",
-
-							Version: &version,
 						},
 					},
 				}),
