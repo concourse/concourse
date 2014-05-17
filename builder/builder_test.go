@@ -73,9 +73,7 @@ var _ = Describe("Builder", func() {
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/builds"),
 				ghttp.VerifyJSONRepresenting(ProleBuilds.Build{
-					Config: ProleBuilds.Config{
-						Privileged: true,
-					},
+					Privileged: true,
 
 					Callback: "http://winston-server/builds/foo/1/result",
 					LogsURL:  "ws://winston-server/builds/foo/1/log/input",

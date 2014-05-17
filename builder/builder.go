@@ -95,9 +95,7 @@ func (builder *builder) Build(job jobs.Job) (builds.Build, error) {
 	logs.URL.Scheme = "ws"
 
 	proleBuild := ProleBuilds.Build{
-		Config: ProleBuilds.Config{
-			Privileged: job.Privileged,
-		},
+		Privileged: job.Privileged,
 
 		Inputs: sources,
 
