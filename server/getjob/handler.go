@@ -6,17 +6,17 @@ import (
 	"net/http"
 
 	"github.com/winston-ci/winston/builds"
+	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/db"
-	"github.com/winston-ci/winston/jobs"
 )
 
 type handler struct {
-	jobs     map[string]jobs.Job
+	jobs     config.Jobs
 	db       db.DB
 	template *template.Template
 }
 
-func NewHandler(jobs map[string]jobs.Job, db db.DB, template *template.Template) http.Handler {
+func NewHandler(jobs config.Jobs, db db.DB, template *template.Template) http.Handler {
 	return &handler{
 		jobs:     jobs,
 		db:       db,
@@ -25,12 +25,12 @@ func NewHandler(jobs map[string]jobs.Job, db db.DB, template *template.Template)
 }
 
 type TemplateData struct {
-	Job    jobs.Job
+	Job    config.Job
 	Builds []builds.Build
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	job, found := handler.jobs[r.FormValue(":job")]
+	job, found := handler.jobs.Lookup(r.FormValue(":job"))
 	if !found {
 		w.WriteHeader(http.StatusNotFound)
 		return

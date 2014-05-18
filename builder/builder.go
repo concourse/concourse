@@ -15,14 +15,14 @@ import (
 
 	WinstonRoutes "github.com/winston-ci/winston/api/routes"
 	"github.com/winston-ci/winston/builds"
+	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/db"
-	"github.com/winston-ci/winston/jobs"
 )
 
 var ErrBadResponse = errors.New("bad response from prole")
 
 type Builder interface {
-	Build(jobs.Job) (builds.Build, error)
+	Build(config.Job) (builds.Build, error)
 }
 
 type builder struct {
@@ -45,7 +45,7 @@ func NewBuilder(
 	}
 }
 
-func (builder *builder) Build(job jobs.Job) (builds.Build, error) {
+func (builder *builder) Build(job config.Job) (builds.Build, error) {
 	log.Println("creating build")
 
 	build, err := builder.db.CreateBuild(job.Name)
@@ -53,13 +53,20 @@ func (builder *builder) Build(job jobs.Job) (builds.Build, error) {
 		return builds.Build{}, err
 	}
 
-	sources := make([]ProleBuilds.Input, len(job.Inputs))
+	proleInputs := make([]ProleBuilds.Input, len(job.Inputs))
 	for i, input := range job.Inputs {
-		if filepath.HasPrefix(job.BuildConfigPath, input.DestinationPath) {
-			input.ConfigPath = job.BuildConfigPath[len(input.DestinationPath)+1:]
+		proleInput := ProleBuilds.Input{
+			Type:   input.Type,
+			Source: ProleBuilds.Source(input.Source),
+
+			DestinationPath: input.Name,
 		}
 
-		sources[i] = input
+		if filepath.HasPrefix(job.BuildConfigPath, input.Name) {
+			proleInput.ConfigPath = job.BuildConfigPath[len(input.Name)+1:]
+		}
+
+		proleInputs[i] = proleInput
 	}
 
 	complete, err := builder.winston.RequestForHandler(
@@ -95,7 +102,7 @@ func (builder *builder) Build(job jobs.Job) (builds.Build, error) {
 	proleBuild := ProleBuilds.Build{
 		Privileged: job.Privileged,
 
-		Inputs: sources,
+		Inputs: proleInputs,
 
 		Callback: complete.URL.String(),
 		LogsURL:  logs.URL.String(),

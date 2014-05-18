@@ -8,16 +8,16 @@ import (
 	"github.com/tedsuo/router"
 
 	"github.com/winston-ci/winston/builder"
-	"github.com/winston-ci/winston/jobs"
+	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/server/routes"
 )
 
 type handler struct {
-	jobs    map[string]jobs.Job
+	jobs    config.Jobs
 	builder builder.Builder
 }
 
-func NewHandler(jobs map[string]jobs.Job, builder builder.Builder) http.Handler {
+func NewHandler(jobs config.Jobs, builder builder.Builder) http.Handler {
 	return &handler{
 		jobs:    jobs,
 		builder: builder,
@@ -25,7 +25,7 @@ func NewHandler(jobs map[string]jobs.Job, builder builder.Builder) http.Handler 
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	job, found := handler.jobs[r.FormValue(":job")]
+	job, found := handler.jobs.Lookup(r.FormValue(":job"))
 	if !found {
 		w.WriteHeader(http.StatusNotFound)
 		return

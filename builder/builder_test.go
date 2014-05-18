@@ -12,8 +12,8 @@ import (
 
 	WinstonRoutes "github.com/winston-ci/winston/api/routes"
 	. "github.com/winston-ci/winston/builder"
+	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/db"
-	"github.com/winston-ci/winston/jobs"
 	"github.com/winston-ci/winston/redisrunner"
 )
 
@@ -25,7 +25,7 @@ var _ = Describe("Builder", func() {
 
 	var builder Builder
 
-	var job jobs.Job
+	var job config.Job
 
 	BeforeEach(func() {
 		redisRunner = redisrunner.NewRunner()
@@ -35,20 +35,18 @@ var _ = Describe("Builder", func() {
 
 		proleServer = ghttp.NewServer()
 
-		job = jobs.Job{
+		job = config.Job{
 			Name: "foo",
 
 			Privileged: true,
 
 			BuildConfigPath: "some-resource/build.yml",
 
-			Inputs: []ProleBuilds.Input{
+			Inputs: []config.Input{
 				{
-					Type: "git",
-
-					DestinationPath: "some-resource",
-
-					Source: ProleBuilds.Source(`{"uri":"git://example.com/foo/repo.git"}`),
+					Name:   "some-resource",
+					Type:   "git",
+					Source: config.Source(`{"uri":"git://example.com/foo/repo.git"}`),
 				},
 			},
 		}

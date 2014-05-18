@@ -1,19 +1,15 @@
 package server
 
 import (
-	"encoding/json"
-	"fmt"
 	"html/template"
 	"net/http"
 	"path/filepath"
 
 	"github.com/tedsuo/router"
-	ProleBuilds "github.com/winston-ci/prole/api/builds"
 
 	"github.com/winston-ci/winston/builder"
 	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/db"
-	"github.com/winston-ci/winston/jobs"
 	"github.com/winston-ci/winston/server/getbuild"
 	"github.com/winston-ci/winston/server/getjob"
 	"github.com/winston-ci/winston/server/index"
@@ -26,57 +22,12 @@ type Server struct {
 }
 
 func New(
-	config config.Config,
+	jobs config.Jobs,
 	db db.DB,
 	templatesDir, publicDir string,
 	peerAddr string,
 	builder builder.Builder,
 ) (http.Handler, error) {
-	js := make(map[string]jobs.Job)
-
-	for jname, jconfig := range config.Jobs {
-		inputs := []ProleBuilds.Input{}
-
-		for rname, rconfig := range jconfig.Inputs {
-			resource, found := config.Resources[rname]
-			if !found {
-				return nil, fmt.Errorf("unknown input in %s: %s", jname, rname)
-			}
-
-			sourceConfig := map[string]interface{}{}
-			for rk, rv := range resource.Source {
-				sourceConfig[rk] = rv
-			}
-
-			for rk, rv := range rconfig {
-				sourceConfig[rk] = rv
-			}
-
-			source, err := json.Marshal(sourceConfig)
-			if err != nil {
-				return nil, err
-			}
-
-			inputs = append(inputs, ProleBuilds.Input{
-				Type: resource.Type,
-
-				DestinationPath: rname,
-
-				Source: ProleBuilds.Source(source),
-			})
-		}
-
-		js[jname] = jobs.Job{
-			Name: jname,
-
-			Privileged: jconfig.Privileged,
-
-			BuildConfigPath: jconfig.BuildConfigPath,
-
-			Inputs: inputs,
-		}
-	}
-
 	funcs := template.FuncMap{
 		"url": templateFuncs{peerAddr}.url,
 	}
@@ -102,10 +53,10 @@ func New(
 	}
 
 	handlers := map[string]http.Handler{
-		routes.Index:        index.NewHandler(js, indexTemplate),
-		routes.GetJob:       getjob.NewHandler(js, db, jobTemplate),
-		routes.GetBuild:     getbuild.NewHandler(js, db, buildTemplate),
-		routes.TriggerBuild: triggerbuild.NewHandler(js, builder),
+		routes.Index:        index.NewHandler(jobs, indexTemplate),
+		routes.GetJob:       getjob.NewHandler(jobs, db, jobTemplate),
+		routes.GetBuild:     getbuild.NewHandler(jobs, db, buildTemplate),
+		routes.TriggerBuild: triggerbuild.NewHandler(jobs, builder),
 		routes.Public:       http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
 	}
 

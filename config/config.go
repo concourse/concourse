@@ -1,21 +1,55 @@
 package config
 
+import "encoding/json"
+
 type Config struct {
-	Resources map[string]Resource `yaml:"resources"`
-	Jobs      map[string]Job      `yaml:"jobs"`
+	Jobs Jobs `yaml:"jobs"`
 }
 
-type Source map[string]interface{}
+type Jobs []Job
+
+func (jobs Jobs) Lookup(name string) (Job, bool) {
+	for _, job := range jobs {
+		if job.Name == name {
+			return job, true
+		}
+	}
+
+	return Job{}, false
+}
 
 type Job struct {
+	Name string `yaml:"name"`
+
 	Privileged bool `yaml:"privileged"`
 
 	BuildConfigPath string `yaml:"build"`
 
-	Inputs map[string]Source `yaml:"inputs"`
+	Inputs []Input `yaml:"inputs"`
 }
 
-type Resource struct {
+type Input struct {
+	Name string `yaml:"name"`
+
 	Type   string `yaml:"type"`
 	Source Source `yaml:"source"`
+}
+
+type Source []byte
+
+func (source *Source) UnmarshalYAML(tag string, data interface{}) error {
+	sourceConfig := map[string]interface{}{}
+
+	for k, v := range data.(map[interface{}]interface{}) {
+		sourceConfig[k.(string)] = v
+	}
+
+	marshalled, err := json.Marshal(sourceConfig)
+	if err != nil {
+		return err
+	}
+
+	*source = marshalled
+
+	return nil
 }

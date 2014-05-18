@@ -4,16 +4,15 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-
-	"github.com/winston-ci/winston/jobs"
+	"github.com/winston-ci/winston/config"
 )
 
 type handler struct {
-	jobs     map[string]jobs.Job
+	jobs     config.Jobs
 	template *template.Template
 }
 
-func NewHandler(jobs map[string]jobs.Job, template *template.Template) http.Handler {
+func NewHandler(jobs config.Jobs, template *template.Template) http.Handler {
 	return &handler{
 		jobs:     jobs,
 		template: template,
@@ -21,7 +20,7 @@ func NewHandler(jobs map[string]jobs.Job, template *template.Template) http.Hand
 }
 
 type TemplateData struct {
-	Jobs map[string]jobs.Job
+	Jobs config.Jobs
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
