@@ -1,6 +1,6 @@
 package jobs
 
-import "github.com/winston-ci/winston/resources"
+import "github.com/winston-ci/prole/api/builds"
 
 type Job struct {
 	Name string
@@ -9,5 +9,5 @@ type Job struct {
 
 	BuildConfigPath string
 
-	Inputs []resources.Resource
+	Inputs []builds.Input
 }

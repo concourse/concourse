@@ -54,11 +54,9 @@ func (builder *builder) Build(job jobs.Job) (builds.Build, error) {
 	}
 
 	sources := make([]ProleBuilds.Input, len(job.Inputs))
-	for i, resource := range job.Inputs {
-		input := resource.BuildInput()
-
-		if filepath.HasPrefix(job.BuildConfigPath, resource.Name+"/") {
-			input.ConfigPath = job.BuildConfigPath[len(resource.Name)+1:]
+	for i, input := range job.Inputs {
+		if filepath.HasPrefix(job.BuildConfigPath, input.DestinationPath) {
+			input.ConfigPath = job.BuildConfigPath[len(input.DestinationPath)+1:]
 		}
 
 		sources[i] = input

@@ -1,17 +1,19 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
 	"path/filepath"
 
 	"github.com/tedsuo/router"
+	ProleBuilds "github.com/winston-ci/prole/api/builds"
+
 	"github.com/winston-ci/winston/builder"
 	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/db"
 	"github.com/winston-ci/winston/jobs"
-	"github.com/winston-ci/winston/resources"
 	"github.com/winston-ci/winston/server/getbuild"
 	"github.com/winston-ci/winston/server/getjob"
 	"github.com/winston-ci/winston/server/index"
@@ -31,35 +33,45 @@ func New(
 	builder builder.Builder,
 ) (http.Handler, error) {
 	js := make(map[string]jobs.Job)
-	rs := make(map[string]resources.Resource)
 
-	for name, config := range config.Resources {
-		rs[name] = resources.Resource{
-			Name: name,
+	for jname, jconfig := range config.Jobs {
+		inputs := []ProleBuilds.Input{}
 
-			Type: config.Type,
-			URI:  config.URI,
-		}
-	}
-
-	for name, config := range config.Jobs {
-		inputs := []resources.Resource{}
-
-		for rname, _ := range config.Inputs {
-			resource, found := rs[rname]
+		for rname, rconfig := range jconfig.Inputs {
+			resource, found := config.Resources[rname]
 			if !found {
-				return nil, fmt.Errorf("unknown input in %s: %s", name, rname)
+				return nil, fmt.Errorf("unknown input in %s: %s", jname, rname)
 			}
 
-			inputs = append(inputs, resource)
+			sourceConfig := map[string]interface{}{}
+			for rk, rv := range resource.Source {
+				sourceConfig[rk] = rv
+			}
+
+			for rk, rv := range rconfig {
+				sourceConfig[rk] = rv
+			}
+
+			source, err := json.Marshal(sourceConfig)
+			if err != nil {
+				return nil, err
+			}
+
+			inputs = append(inputs, ProleBuilds.Input{
+				Type: resource.Type,
+
+				DestinationPath: rname,
+
+				Source: ProleBuilds.Source(source),
+			})
 		}
 
-		js[name] = jobs.Job{
-			Name: name,
+		js[jname] = jobs.Job{
+			Name: jname,
 
-			Privileged: config.Privileged,
+			Privileged: jconfig.Privileged,
 
-			BuildConfigPath: config.BuildConfigPath,
+			BuildConfigPath: jconfig.BuildConfigPath,
 
 			Inputs: inputs,
 		}

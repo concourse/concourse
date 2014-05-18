@@ -15,7 +15,6 @@ import (
 	"github.com/winston-ci/winston/db"
 	"github.com/winston-ci/winston/jobs"
 	"github.com/winston-ci/winston/redisrunner"
-	"github.com/winston-ci/winston/resources"
 )
 
 var _ = Describe("Builder", func() {
@@ -43,12 +42,13 @@ var _ = Describe("Builder", func() {
 
 			BuildConfigPath: "some-resource/build.yml",
 
-			Inputs: []resources.Resource{
+			Inputs: []ProleBuilds.Input{
 				{
-					Name: "some-resource",
-
 					Type: "git",
-					URI:  "git://example.com/foo/repo.git",
+
+					DestinationPath: "some-resource",
+
+					Source: ProleBuilds.Source(`{"uri":"git://example.com/foo/repo.git"}`),
 				},
 			},
 		}
