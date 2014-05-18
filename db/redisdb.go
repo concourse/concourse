@@ -1,11 +1,11 @@
 package db
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 
 	"github.com/garyburd/redigo/redis"
+	ProleBuilds "github.com/winston-ci/prole/api/builds"
 
 	"github.com/winston-ci/winston/builds"
 )
@@ -151,7 +151,7 @@ func (db *redisDB) SaveBuildLog(job string, build int, log []byte) error {
 	return err
 }
 
-func (db *redisDB) GetCurrentSource(resource string) (*json.RawMessage, error) {
+func (db *redisDB) GetCurrentSource(resource string) (ProleBuilds.Source, error) {
 	conn := db.pool.Get()
 	defer conn.Close()
 
@@ -160,14 +160,13 @@ func (db *redisDB) GetCurrentSource(resource string) (*json.RawMessage, error) {
 		return nil, err
 	}
 
-	msg := json.RawMessage(sourceBytes)
-	return &msg, nil
+	return ProleBuilds.Source(sourceBytes), nil
 }
 
-func (db *redisDB) SaveCurrentSource(resource string, source *json.RawMessage) error {
+func (db *redisDB) SaveCurrentSource(resource string, source ProleBuilds.Source) error {
 	conn := db.pool.Get()
 	defer conn.Close()
 
-	_, err := conn.Do("SET", "current_source:"+resource, []byte(*source))
+	_, err := conn.Do("SET", "current_source:"+resource, []byte(source))
 	return err
 }

@@ -1,7 +1,6 @@
 package builder_test
 
 import (
-	"encoding/json"
 	"net/http"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -66,8 +65,6 @@ var _ = Describe("Builder", func() {
 	})
 
 	It("triggers a build on the prole endpoint", func() {
-		source := json.RawMessage(`{"uri":"git://example.com/foo/repo.git"}`)
-
 		proleServer.AppendHandlers(
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/builds"),
@@ -81,7 +78,7 @@ var _ = Describe("Builder", func() {
 						{
 							Type: "git",
 
-							Source: &source,
+							Source: ProleBuilds.Source(`{"uri":"git://example.com/foo/repo.git"}`),
 
 							DestinationPath: "some-resource",
 							ConfigPath:      "build.yml",

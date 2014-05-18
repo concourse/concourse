@@ -1,9 +1,10 @@
 package db_test
 
 import (
-	"encoding/json"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	ProleBuilds "github.com/winston-ci/prole/api/builds"
 
 	Builds "github.com/winston-ci/winston/builds"
 	. "github.com/winston-ci/winston/db"
@@ -64,12 +65,12 @@ var _ = Describe("RedisDB", func() {
 		_, err = db.GetCurrentSource("some-resource")
 		Ω(err).Should(HaveOccurred())
 
-		source := json.RawMessage("some source")
-		err = db.SaveCurrentSource("some-resource", &source)
+		source := ProleBuilds.Source("some source")
+		err = db.SaveCurrentSource("some-resource", source)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		currentSource, err := db.GetCurrentSource("some-resource")
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(currentSource).Should(Equal(&source))
+		Ω(currentSource).Should(Equal(source))
 	})
 })

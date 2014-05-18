@@ -55,8 +55,8 @@ var _ = Describe("API", func() {
 
 		var response *http.Response
 
-		source1 := json.RawMessage(`"source1"`)
-		source2 := json.RawMessage(`"source2"`)
+		source1 := ProleBuilds.Source(`"source1"`)
+		source2 := ProleBuilds.Source(`"source2"`)
 
 		BeforeEach(func() {
 			var err error
@@ -68,12 +68,12 @@ var _ = Describe("API", func() {
 				Inputs: []ProleBuilds.Input{
 					{
 						Type:            "git",
-						Source:          &source1,
+						Source:          source1,
 						DestinationPath: "some-resource",
 					},
 					{
 						Type:            "git",
-						Source:          &source2,
+						Source:          source2,
 						DestinationPath: "some-other-resource",
 					},
 				},
@@ -111,11 +111,11 @@ var _ = Describe("API", func() {
 				// XXX hack: identifying by destination path...
 				source, err := redis.GetCurrentSource("some-resource")
 				Ω(err).ShouldNot(HaveOccurred())
-				Ω(source).Should(Equal(&source1))
+				Ω(source).Should(Equal(source1))
 
 				source, err = redis.GetCurrentSource("some-other-resource")
 				Ω(err).ShouldNot(HaveOccurred())
-				Ω(source).Should(Equal(&source2))
+				Ω(source).Should(Equal(source2))
 			})
 		})
 

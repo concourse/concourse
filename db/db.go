@@ -1,7 +1,7 @@
 package db
 
 import (
-	"encoding/json"
+	ProleBuilds "github.com/winston-ci/prole/api/builds"
 
 	"github.com/winston-ci/winston/builds"
 )
@@ -16,6 +16,6 @@ type DB interface {
 	BuildLog(job string, build int) ([]byte, error)
 	SaveBuildLog(job string, build int, log []byte) error
 
-	GetCurrentSource(resource string) (*json.RawMessage, error)
-	SaveCurrentSource(resource string, source *json.RawMessage) error
+	GetCurrentSource(resource string) (ProleBuilds.Source, error)
+	SaveCurrentSource(resource string, source ProleBuilds.Source) error
 }
