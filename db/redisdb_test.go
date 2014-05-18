@@ -62,14 +62,14 @@ var _ = Describe("RedisDB", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(string(log)).Should(Equal("some log"))
 
-		_, err = db.GetCurrentSource("some-resource")
+		_, err = db.GetCurrentSource("some-job", "some-input")
 		Ω(err).Should(HaveOccurred())
 
 		source := ProleBuilds.Source("some source")
-		err = db.SaveCurrentSource("some-resource", source)
+		err = db.SaveCurrentSource("some-job", "some-input", source)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		currentSource, err := db.GetCurrentSource("some-resource")
+		currentSource, err := db.GetCurrentSource("some-job", "some-input")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(currentSource).Should(Equal(source))
 	})

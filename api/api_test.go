@@ -69,12 +69,12 @@ var _ = Describe("API", func() {
 					{
 						Type:            "git",
 						Source:          source1,
-						DestinationPath: "some-resource",
+						DestinationPath: "some-input",
 					},
 					{
 						Type:            "git",
 						Source:          source2,
-						DestinationPath: "some-other-resource",
+						DestinationPath: "some-other-input",
 					},
 				},
 			}
@@ -109,11 +109,11 @@ var _ = Describe("API", func() {
 
 			It("saves each input's current source", func() {
 				// XXX hack: identifying by destination path...
-				source, err := redis.GetCurrentSource("some-resource")
+				source, err := redis.GetCurrentSource("some-job", "some-input")
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(source).Should(Equal(source1))
 
-				source, err = redis.GetCurrentSource("some-other-resource")
+				source, err = redis.GetCurrentSource("some-job", "some-other-input")
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(source).Should(Equal(source2))
 			})
@@ -133,11 +133,11 @@ var _ = Describe("API", func() {
 				Ω(updatedBuild.Status).Should(Equal(builds.StatusSucceeded))
 			})
 
-			It("does not save any the input's source", func() {
-				_, err := redis.GetCurrentSource("some-resource")
+			It("does not save any the job's input's sources", func() {
+				_, err := redis.GetCurrentSource("some-job", "some-input")
 				Ω(err).Should(HaveOccurred())
 
-				_, err = redis.GetCurrentSource("some-other-resource")
+				_, err = redis.GetCurrentSource("some-job", "some-other-input")
 				Ω(err).Should(HaveOccurred())
 			})
 		})
@@ -156,11 +156,11 @@ var _ = Describe("API", func() {
 				Ω(updatedBuild.Status).Should(Equal(builds.StatusFailed))
 			})
 
-			It("does not save any the input's source", func() {
-				_, err := redis.GetCurrentSource("some-resource")
+			It("does not save any the job's input's sources", func() {
+				_, err := redis.GetCurrentSource("some-job", "some-input")
 				Ω(err).Should(HaveOccurred())
 
-				_, err = redis.GetCurrentSource("some-other-resource")
+				_, err = redis.GetCurrentSource("some-job", "some-other-input")
 				Ω(err).Should(HaveOccurred())
 			})
 		})
@@ -179,11 +179,11 @@ var _ = Describe("API", func() {
 				Ω(updatedBuild.Status).Should(Equal(builds.StatusErrored))
 			})
 
-			It("does not save any the input's source", func() {
-				_, err := redis.GetCurrentSource("some-resource")
+			It("does not save any the job's input's sources", func() {
+				_, err := redis.GetCurrentSource("some-job", "some-input")
 				Ω(err).Should(HaveOccurred())
 
-				_, err = redis.GetCurrentSource("some-other-resource")
+				_, err = redis.GetCurrentSource("some-job", "some-other-input")
 				Ω(err).Should(HaveOccurred())
 			})
 		})

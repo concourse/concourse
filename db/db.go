@@ -16,6 +16,6 @@ type DB interface {
 	BuildLog(job string, build int) ([]byte, error)
 	SaveBuildLog(job string, build int, log []byte) error
 
-	GetCurrentSource(resource string) (ProleBuilds.Source, error)
-	SaveCurrentSource(resource string, source ProleBuilds.Source) error
+	GetCurrentSource(job, input string) (ProleBuilds.Source, error)
+	SaveCurrentSource(job, input string, source ProleBuilds.Source) error
 }

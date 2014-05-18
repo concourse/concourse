@@ -151,11 +151,11 @@ func (db *redisDB) SaveBuildLog(job string, build int, log []byte) error {
 	return err
 }
 
-func (db *redisDB) GetCurrentSource(resource string) (ProleBuilds.Source, error) {
+func (db *redisDB) GetCurrentSource(job, input string) (ProleBuilds.Source, error) {
 	conn := db.pool.Get()
 	defer conn.Close()
 
-	sourceBytes, err := redis.Bytes(conn.Do("GET", "current_source:"+resource))
+	sourceBytes, err := redis.Bytes(conn.Do("GET", "current_source:"+job+":"+input))
 	if err != nil {
 		return nil, err
 	}
@@ -163,10 +163,10 @@ func (db *redisDB) GetCurrentSource(resource string) (ProleBuilds.Source, error)
 	return ProleBuilds.Source(sourceBytes), nil
 }
 
-func (db *redisDB) SaveCurrentSource(resource string, source ProleBuilds.Source) error {
+func (db *redisDB) SaveCurrentSource(job, input string, source ProleBuilds.Source) error {
 	conn := db.pool.Get()
 	defer conn.Close()
 
-	_, err := conn.Do("SET", "current_source:"+resource, []byte(source))
+	_, err := conn.Do("SET", "current_source:"+job+":"+input, []byte(source))
 	return err
 }
