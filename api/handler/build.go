@@ -27,7 +27,7 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("handling result: %#v\n", build)
+	log.Printf("updating build: %#v\n", build)
 
 	var status builds.Status
 
@@ -52,6 +52,17 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
+	}
+
+	if build.Status == ProleBuilds.StatusStarted {
+		for _, input := range build.Inputs {
+			// XXX hack: identifying by destination path...
+			err := handler.db.SaveCurrentSource(input.DestinationPath, input.Source)
+			if err != nil {
+				log.Println("error saving source:", err)
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+		}
 	}
 
 	w.WriteHeader(http.StatusOK)

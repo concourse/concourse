@@ -1,6 +1,7 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -147,5 +148,26 @@ func (db *redisDB) SaveBuildLog(job string, build int, log []byte) error {
 	idStr := fmt.Sprintf("%d", build)
 
 	_, err := conn.Do("SET", "logs:"+job+":"+idStr, log)
+	return err
+}
+
+func (db *redisDB) GetCurrentSource(resource string) (*json.RawMessage, error) {
+	conn := db.pool.Get()
+	defer conn.Close()
+
+	sourceBytes, err := redis.Bytes(conn.Do("GET", "current_source:"+resource))
+	if err != nil {
+		return nil, err
+	}
+
+	msg := json.RawMessage(sourceBytes)
+	return &msg, nil
+}
+
+func (db *redisDB) SaveCurrentSource(resource string, source *json.RawMessage) error {
+	conn := db.pool.Get()
+	defer conn.Close()
+
+	_, err := conn.Do("SET", "current_source:"+resource, []byte(*source))
 	return err
 }

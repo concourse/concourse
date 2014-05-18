@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	ProleBuilds "github.com/winston-ci/prole/api/builds"
 
 	"github.com/winston-ci/winston/api"
 	"github.com/winston-ci/winston/builds"
@@ -49,21 +51,40 @@ var _ = Describe("API", func() {
 
 	Describe("PUT /builds/:job/:build", func() {
 		var build builds.Build
-		var status string
+		var proleBuild ProleBuilds.Build
 
 		var response *http.Response
+
+		source1 := json.RawMessage(`"source1"`)
+		source2 := json.RawMessage(`"source2"`)
 
 		BeforeEach(func() {
 			var err error
 
 			build, err = redis.CreateBuild("some-job")
 			Ω(err).ShouldNot(HaveOccurred())
+
+			proleBuild = ProleBuilds.Build{
+				Inputs: []ProleBuilds.Input{
+					{
+						Type:            "git",
+						Source:          &source1,
+						DestinationPath: "some-resource",
+					},
+					{
+						Type:            "git",
+						Source:          &source2,
+						DestinationPath: "some-other-resource",
+					},
+				},
+			}
 		})
 
 		JustBeforeEach(func() {
-			reqPayload := bytes.NewBufferString(fmt.Sprintf(`{"status":%q}`, status))
+			reqPayload, err := json.Marshal(proleBuild)
+			Ω(err).ShouldNot(HaveOccurred())
 
-			req, err := http.NewRequest("PUT", server.URL+"/builds/some-job/1", reqPayload)
+			req, err := http.NewRequest("PUT", server.URL+"/builds/some-job/1", bytes.NewBuffer(reqPayload))
 			Ω(err).ShouldNot(HaveOccurred())
 
 			req.Header.Set("Content-Type", "application/json")
@@ -74,7 +95,7 @@ var _ = Describe("API", func() {
 
 		Context("with status 'started'", func() {
 			BeforeEach(func() {
-				status = "started"
+				proleBuild.Status = ProleBuilds.StatusStarted
 			})
 
 			It("updates the build's status", func() {
@@ -85,11 +106,22 @@ var _ = Describe("API", func() {
 
 				Ω(updatedBuild.Status).Should(Equal(builds.StatusStarted))
 			})
+
+			It("saves each input's current source", func() {
+				// XXX hack: identifying by destination path...
+				source, err := redis.GetCurrentSource("some-resource")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(source).Should(Equal(&source1))
+
+				source, err = redis.GetCurrentSource("some-other-resource")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(source).Should(Equal(&source2))
+			})
 		})
 
 		Context("with status 'succeeded'", func() {
 			BeforeEach(func() {
-				status = "succeeded"
+				proleBuild.Status = ProleBuilds.StatusSucceeded
 			})
 
 			It("updates the build's status", func() {
@@ -100,11 +132,19 @@ var _ = Describe("API", func() {
 
 				Ω(updatedBuild.Status).Should(Equal(builds.StatusSucceeded))
 			})
+
+			It("does not save any the input's source", func() {
+				_, err := redis.GetCurrentSource("some-resource")
+				Ω(err).Should(HaveOccurred())
+
+				_, err = redis.GetCurrentSource("some-other-resource")
+				Ω(err).Should(HaveOccurred())
+			})
 		})
 
 		Context("with status 'failed'", func() {
 			BeforeEach(func() {
-				status = "failed"
+				proleBuild.Status = ProleBuilds.StatusFailed
 			})
 
 			It("updates the build's status", func() {
@@ -115,11 +155,19 @@ var _ = Describe("API", func() {
 
 				Ω(updatedBuild.Status).Should(Equal(builds.StatusFailed))
 			})
+
+			It("does not save any the input's source", func() {
+				_, err := redis.GetCurrentSource("some-resource")
+				Ω(err).Should(HaveOccurred())
+
+				_, err = redis.GetCurrentSource("some-other-resource")
+				Ω(err).Should(HaveOccurred())
+			})
 		})
 
 		Context("with status 'errored'", func() {
 			BeforeEach(func() {
-				status = "errored"
+				proleBuild.Status = ProleBuilds.StatusErrored
 			})
 
 			It("updates the build's status", func() {
@@ -129,6 +177,14 @@ var _ = Describe("API", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(updatedBuild.Status).Should(Equal(builds.StatusErrored))
+			})
+
+			It("does not save any the input's source", func() {
+				_, err := redis.GetCurrentSource("some-resource")
+				Ω(err).Should(HaveOccurred())
+
+				_, err = redis.GetCurrentSource("some-other-resource")
+				Ω(err).Should(HaveOccurred())
 			})
 		})
 	})

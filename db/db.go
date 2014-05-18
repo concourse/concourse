@@ -1,6 +1,10 @@
 package db
 
-import "github.com/winston-ci/winston/builds"
+import (
+	"encoding/json"
+
+	"github.com/winston-ci/winston/builds"
+)
 
 type DB interface {
 	Builds(job string) ([]builds.Build, error)
@@ -11,4 +15,7 @@ type DB interface {
 
 	BuildLog(job string, build int) ([]byte, error)
 	SaveBuildLog(job string, build int, log []byte) error
+
+	GetCurrentSource(resource string) (*json.RawMessage, error)
+	SaveCurrentSource(resource string, source *json.RawMessage) error
 }

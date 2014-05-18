@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"encoding/json"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -59,5 +60,16 @@ var _ = Describe("RedisDB", func() {
 		log, err := db.BuildLog("some-job", 1)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(string(log)).Should(Equal("some log"))
+
+		_, err = db.GetCurrentSource("some-resource")
+		Ω(err).Should(HaveOccurred())
+
+		source := json.RawMessage("some source")
+		err = db.SaveCurrentSource("some-resource", &source)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		currentSource, err := db.GetCurrentSource("some-resource")
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(currentSource).Should(Equal(&source))
 	})
 })
