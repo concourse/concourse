@@ -64,7 +64,7 @@ func (db *redisDB) CreateBuild(job string) (builds.Build, error) {
 	conn.Send(
 		"HMSET", "build:"+job+":"+idStr,
 		"ID", idStr,
-		"State", fmt.Sprintf("%d", builds.BuildStatePending),
+		"Status", fmt.Sprintf("%d", builds.BuildStatusPending),
 	)
 
 	if _, err := conn.Do("EXEC"); err != nil {
@@ -72,12 +72,12 @@ func (db *redisDB) CreateBuild(job string) (builds.Build, error) {
 	}
 
 	return builds.Build{
-		ID:    id,
-		State: builds.BuildStatePending,
+		ID:     id,
+		Status: builds.BuildStatusPending,
 	}, nil
 }
 
-func (db *redisDB) SaveBuildState(job string, id int, state builds.BuildState) (builds.Build, error) {
+func (db *redisDB) SaveBuildStatus(job string, id int, state builds.BuildStatus) (builds.Build, error) {
 	conn := db.pool.Get()
 	defer conn.Close()
 
@@ -88,7 +88,7 @@ func (db *redisDB) SaveBuildState(job string, id int, state builds.BuildState) (
 		return builds.Build{}, err
 	}
 
-	err = conn.Send("HSET", "build:"+job+":"+idStr, "State", fmt.Sprintf("%d", state))
+	err = conn.Send("HSET", "build:"+job+":"+idStr, "Status", fmt.Sprintf("%d", state))
 	if err != nil {
 		return builds.Build{}, err
 	}

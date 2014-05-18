@@ -15,7 +15,7 @@ func New(db db.DB) (http.Handler, error) {
 	builds := handler.NewHandler(db)
 
 	handlers := map[string]http.Handler{
-		routes.SetResult: http.HandlerFunc(builds.SetResult),
+		routes.UpdateBuild: http.HandlerFunc(builds.UpdateBuild),
 
 		routes.LogInput:  websocket.Server{Handler: builds.LogInput},
 		routes.LogOutput: websocket.Server{Handler: builds.LogOutput},

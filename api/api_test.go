@@ -47,7 +47,7 @@ var _ = Describe("API", func() {
 		redisRunner.Stop()
 	})
 
-	Describe("PUT /builds/:job/:build/result", func() {
+	Describe("PUT /builds/:job/:build", func() {
 		var build builds.Build
 		var status string
 
@@ -63,7 +63,7 @@ var _ = Describe("API", func() {
 		JustBeforeEach(func() {
 			reqPayload := bytes.NewBufferString(fmt.Sprintf(`{"status":%q}`, status))
 
-			req, err := http.NewRequest("PUT", server.URL+"/builds/some-job/1/result", reqPayload)
+			req, err := http.NewRequest("PUT", server.URL+"/builds/some-job/1", reqPayload)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			req.Header.Set("Content-Type", "application/json")
@@ -83,7 +83,7 @@ var _ = Describe("API", func() {
 				updatedBuild, err := redis.GetBuild("some-job", build.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(updatedBuild.State).Should(Equal(builds.BuildStateSucceeded))
+				Ω(updatedBuild.Status).Should(Equal(builds.BuildStatusSucceeded))
 			})
 		})
 
@@ -98,7 +98,7 @@ var _ = Describe("API", func() {
 				updatedBuild, err := redis.GetBuild("some-job", build.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(updatedBuild.State).Should(Equal(builds.BuildStateFailed))
+				Ω(updatedBuild.Status).Should(Equal(builds.BuildStatusFailed))
 			})
 		})
 
@@ -113,7 +113,7 @@ var _ = Describe("API", func() {
 				updatedBuild, err := redis.GetBuild("some-job", build.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(updatedBuild.State).Should(Equal(builds.BuildStateErrored))
+				Ω(updatedBuild.Status).Should(Equal(builds.BuildStatusErrored))
 			})
 		})
 	})

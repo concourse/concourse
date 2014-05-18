@@ -75,7 +75,7 @@ var _ = Describe("Builder", func() {
 				ghttp.VerifyJSONRepresenting(ProleBuilds.Build{
 					Privileged: true,
 
-					Callback: "http://winston-server/builds/foo/1/result",
+					Callback: "http://winston-server/builds/foo/1",
 					LogsURL:  "ws://winston-server/builds/foo/1/log/input",
 
 					Inputs: []ProleBuilds.Input{
@@ -136,7 +136,7 @@ var _ = Describe("Builder", func() {
 		build, err = redis.GetBuild(job.Name, build.ID)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		Ω(build.State).Should(Equal(builds.BuildStateRunning))
+		Ω(build.Status).Should(Equal(builds.BuildStatusRunning))
 	})
 
 	Context("when the prole server is unreachable", func() {

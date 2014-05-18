@@ -11,7 +11,7 @@ import (
 	"github.com/winston-ci/winston/builds"
 )
 
-func (handler *Handler) SetResult(w http.ResponseWriter, r *http.Request) {
+func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 	job := r.FormValue(":job")
 	idStr := r.FormValue(":build")
 
@@ -29,15 +29,15 @@ func (handler *Handler) SetResult(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("handling result: %#v\n", build)
 
-	var state builds.BuildState
+	var state builds.BuildStatus
 
 	switch build.Status {
-	case "failed":
-		state = builds.BuildStateFailed
-	case "succeeded":
-		state = builds.BuildStateSucceeded
-	case "errored":
-		state = builds.BuildStateErrored
+	case ProleBuilds.StatusFailed:
+		state = builds.BuildStatusFailed
+	case ProleBuilds.StatusSucceeded:
+		state = builds.BuildStatusSucceeded
+	case ProleBuilds.StatusErrored:
+		state = builds.BuildStatusErrored
 	default:
 		log.Println("unknown status:", build.Status)
 		w.WriteHeader(http.StatusBadRequest)
@@ -46,7 +46,7 @@ func (handler *Handler) SetResult(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("saving state: %#v\n", state)
 
-	_, err = handler.db.SaveBuildState(job, id, state)
+	_, err = handler.db.SaveBuildStatus(job, id, state)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

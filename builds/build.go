@@ -1,18 +1,18 @@
 package builds
 
-type BuildState int
+type BuildStatus int
 
 const (
-	BuildStateInvalid BuildState = iota
-	BuildStatePending
-	BuildStateRunning
-	BuildStateSucceeded
-	BuildStateFailed
-	BuildStateErrored
+	BuildStatusInvalid BuildStatus = iota
+	BuildStatusPending
+	BuildStatusRunning
+	BuildStatusSucceeded
+	BuildStatusFailed
+	BuildStatusErrored
 )
 
 type Build struct {
 	ID int
 
-	State BuildState
+	Status BuildStatus
 }

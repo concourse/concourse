@@ -65,7 +65,7 @@ func (builder *builder) Build(job jobs.Job) (builds.Build, error) {
 	}
 
 	complete, err := builder.winston.RequestForHandler(
-		WinstonRoutes.SetResult,
+		WinstonRoutes.UpdateBuild,
 		router.Params{
 			"job":   job.Name,
 			"build": fmt.Sprintf("%d", build.ID),
@@ -139,5 +139,5 @@ func (builder *builder) Build(job jobs.Job) (builds.Build, error) {
 
 	log.Println("build running")
 
-	return builder.db.SaveBuildState(job.Name, build.ID, builds.BuildStateRunning)
+	return builder.db.SaveBuildStatus(job.Name, build.ID, builds.BuildStatusRunning)
 }
