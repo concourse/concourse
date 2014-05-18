@@ -1,18 +1,17 @@
 package builds
 
-type BuildStatus int
+type Status string
 
 const (
-	BuildStatusInvalid BuildStatus = iota
-	BuildStatusPending
-	BuildStatusRunning
-	BuildStatusSucceeded
-	BuildStatusFailed
-	BuildStatusErrored
+	StatusPending   Status = "pending"
+	StatusStarted   Status = "started"
+	StatusSucceeded Status = "succeeded"
+	StatusFailed    Status = "failed"
+	StatusErrored   Status = "errored"
 )
 
 type Build struct {
 	ID int
 
-	Status BuildStatus
+	Status Status
 }

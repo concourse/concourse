@@ -137,7 +137,5 @@ func (builder *builder) Build(job jobs.Job) (builds.Build, error) {
 
 	resp.Body.Close()
 
-	log.Println("build running")
-
-	return builder.db.SaveBuildStatus(job.Name, build.ID, builds.BuildStatusRunning)
+	return build, nil
 }

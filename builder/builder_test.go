@@ -13,7 +13,6 @@ import (
 
 	WinstonRoutes "github.com/winston-ci/winston/api/routes"
 	. "github.com/winston-ci/winston/builder"
-	"github.com/winston-ci/winston/builds"
 	"github.com/winston-ci/winston/db"
 	"github.com/winston-ci/winston/jobs"
 	"github.com/winston-ci/winston/redisrunner"
@@ -120,23 +119,6 @@ var _ = Describe("Builder", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 
 		Ω(build.ID).Should(Equal(2))
-	})
-
-	It("marks the build as running", func() {
-		proleServer.AppendHandlers(
-			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("POST", "/builds"),
-				ghttp.RespondWith(201, ""),
-			),
-		)
-
-		build, err := builder.Build(job)
-		Ω(err).ShouldNot(HaveOccurred())
-
-		build, err = redis.GetBuild(job.Name, build.ID)
-		Ω(err).ShouldNot(HaveOccurred())
-
-		Ω(build.Status).Should(Equal(builds.BuildStatusRunning))
 	})
 
 	Context("when the prole server is unreachable", func() {

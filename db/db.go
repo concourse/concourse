@@ -7,7 +7,7 @@ type DB interface {
 	CreateBuild(job string) (builds.Build, error)
 	GetBuild(job string, id int) (builds.Build, error)
 
-	SaveBuildStatus(job string, build int, state builds.BuildStatus) (builds.Build, error)
+	SaveBuildStatus(job string, build int, status builds.Status) (builds.Build, error)
 
 	BuildLog(job string, build int) ([]byte, error)
 	SaveBuildLog(job string, build int, log []byte) error

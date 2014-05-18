@@ -72,18 +72,33 @@ var _ = Describe("API", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		Context("with status 'succeeded'", func() {
+		Context("with status 'started'", func() {
 			BeforeEach(func() {
-				status = "succeeded"
+				status = "started"
 			})
 
-			It("updates the build's state", func() {
+			It("updates the build's status", func() {
 				Ω(response.StatusCode).Should(Equal(http.StatusOK))
 
 				updatedBuild, err := redis.GetBuild("some-job", build.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(updatedBuild.Status).Should(Equal(builds.BuildStatusSucceeded))
+				Ω(updatedBuild.Status).Should(Equal(builds.StatusStarted))
+			})
+		})
+
+		Context("with status 'succeeded'", func() {
+			BeforeEach(func() {
+				status = "succeeded"
+			})
+
+			It("updates the build's status", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+
+				updatedBuild, err := redis.GetBuild("some-job", build.ID)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(updatedBuild.Status).Should(Equal(builds.StatusSucceeded))
 			})
 		})
 
@@ -92,13 +107,13 @@ var _ = Describe("API", func() {
 				status = "failed"
 			})
 
-			It("updates the build's state", func() {
+			It("updates the build's status", func() {
 				Ω(response.StatusCode).Should(Equal(http.StatusOK))
 
 				updatedBuild, err := redis.GetBuild("some-job", build.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(updatedBuild.Status).Should(Equal(builds.BuildStatusFailed))
+				Ω(updatedBuild.Status).Should(Equal(builds.StatusFailed))
 			})
 		})
 
@@ -107,13 +122,13 @@ var _ = Describe("API", func() {
 				status = "errored"
 			})
 
-			It("updates the build's state", func() {
+			It("updates the build's status", func() {
 				Ω(response.StatusCode).Should(Equal(http.StatusOK))
 
 				updatedBuild, err := redis.GetBuild("some-job", build.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(updatedBuild.Status).Should(Equal(builds.BuildStatusErrored))
+				Ω(updatedBuild.Status).Should(Equal(builds.StatusErrored))
 			})
 		})
 	})

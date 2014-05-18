@@ -33,22 +33,22 @@ var _ = Describe("RedisDB", func() {
 		build, err := db.CreateBuild("some-job")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(build.ID).Should(Equal(1))
-		Ω(build.Status).Should(Equal(Builds.BuildStatusPending))
+		Ω(build.Status).Should(Equal(Builds.StatusPending))
 
 		builds, err = db.Builds("some-job")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(builds).Should(HaveLen(1))
 		Ω(builds[0].ID).Should(Equal(1))
-		Ω(builds[0].Status).Should(Equal(Builds.BuildStatusPending))
+		Ω(builds[0].Status).Should(Equal(Builds.StatusPending))
 
-		build, err = db.SaveBuildStatus("some-job", build.ID, Builds.BuildStatusRunning)
+		build, err = db.SaveBuildStatus("some-job", build.ID, Builds.StatusStarted)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(build.ID).Should(Equal(1))
-		Ω(build.Status).Should(Equal(Builds.BuildStatusRunning))
+		Ω(build.Status).Should(Equal(Builds.StatusStarted))
 
 		build, err = db.GetBuild("some-job", build.ID)
 		Ω(build.ID).Should(Equal(1))
-		Ω(build.Status).Should(Equal(Builds.BuildStatusRunning))
+		Ω(build.Status).Should(Equal(Builds.StatusStarted))
 
 		_, err = db.BuildLog("some-job", 1)
 		Ω(err).Should(HaveOccurred())

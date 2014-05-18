@@ -29,24 +29,26 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("handling result: %#v\n", build)
 
-	var state builds.BuildStatus
+	var status builds.Status
 
 	switch build.Status {
-	case ProleBuilds.StatusFailed:
-		state = builds.BuildStatusFailed
+	case ProleBuilds.StatusStarted:
+		status = builds.StatusStarted
 	case ProleBuilds.StatusSucceeded:
-		state = builds.BuildStatusSucceeded
+		status = builds.StatusSucceeded
+	case ProleBuilds.StatusFailed:
+		status = builds.StatusFailed
 	case ProleBuilds.StatusErrored:
-		state = builds.BuildStatusErrored
+		status = builds.StatusErrored
 	default:
 		log.Println("unknown status:", build.Status)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	log.Printf("saving state: %#v\n", state)
+	log.Printf("saving status: %#v\n", status)
 
-	_, err = handler.db.SaveBuildStatus(job, id, state)
+	_, err = handler.db.SaveBuildStatus(job, id, status)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
