@@ -28,6 +28,22 @@ type Job struct {
 	Inputs []Input `yaml:"inputs"`
 }
 
+func (job Job) UpdateInput(input Input) Job {
+	newInputs := make([]Input, len(job.Inputs))
+
+	for i, jinput := range job.Inputs {
+		if jinput.Name == input.Name {
+			newInputs[i] = input
+		} else {
+			newInputs[i] = jinput
+		}
+	}
+
+	job.Inputs = newInputs
+
+	return job
+}
+
 type Input struct {
 	Name string `yaml:"name"`
 

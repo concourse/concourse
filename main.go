@@ -11,7 +11,6 @@ import (
 	"github.com/fraenkel/candiedyaml"
 	"github.com/garyburd/redigo/redis"
 	"github.com/tedsuo/router"
-
 	proleroutes "github.com/winston-ci/prole/routes"
 
 	"github.com/winston-ci/winston/api"
@@ -20,6 +19,7 @@ import (
 	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/db"
 	"github.com/winston-ci/winston/server"
+	"github.com/winston-ci/winston/watchman"
 )
 
 var configPath = flag.String(
@@ -90,8 +90,8 @@ func main() {
 		fatal(err)
 	}
 
-	var config config.Config
-	err = candiedyaml.NewDecoder(configFile).Decode(&config)
+	var conf config.Config
+	err = candiedyaml.NewDecoder(configFile).Decode(&conf)
 	if err != nil {
 		fatal(err)
 	}
@@ -106,7 +106,7 @@ func main() {
 	proleEndpoint := router.NewRequestGenerator(*proleURL, proleroutes.Routes)
 	builder := builder.NewBuilder(redisDB, proleEndpoint, winstonEndpoint)
 
-	serverHandler, err := server.New(config.Jobs, redisDB, *templatesDir, *publicDir, *peerAddr, builder)
+	serverHandler, err := server.New(conf.Jobs, redisDB, *templatesDir, *publicDir, *peerAddr, builder)
 	if err != nil {
 		fatal(err)
 	}
@@ -127,6 +127,19 @@ func main() {
 		log.Println("serving api on", *apiListenAddr)
 		errs <- http.ListenAndServe(*apiListenAddr, apiHandler)
 	}()
+
+	watcher := watchman.NewWatchman(builder, proleEndpoint)
+
+	for _, job := range conf.Jobs {
+		for _, input := range job.Inputs {
+			current, err := redisDB.GetCurrentSource(job.Name, input.Name)
+			if err == nil {
+				input.Source = config.Source(current)
+			}
+
+			watcher.Watch(job, input, time.Minute)
+		}
+	}
 
 	fatal(<-errs)
 }
