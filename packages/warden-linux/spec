@@ -1,0 +1,10 @@
+---
+name: warden-linux
+
+dependencies:
+  - golang_1.2
+
+files:
+  - warden-linux/**/*.go
+  - warden-linux/linux_backend/**/*
+  - warden-linux/Makefile

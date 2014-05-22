@@ -6,7 +6,7 @@ templates:
 
 packages:
   - pid_utils
-  - warden-docker
+  - warden-linux
   - aufs
 
 properties:

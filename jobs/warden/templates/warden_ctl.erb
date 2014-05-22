@@ -34,7 +34,7 @@ case $1 in
 
     # TODO fix rootfs
 
-    exec /var/vcap/packages/warden-docker/bin/warden-docker \
+    exec /var/vcap/packages/warden-linux/bin/warden-linux \
       -disableQuotas=<%= !p("warden.disk_quota_enabled") %> \
       -listenNetwork=<%= p("warden.listen_network") %> \
       -listenAddr=<%= p("warden.listen_address") %> \
@@ -43,8 +43,9 @@ case $1 in
       -networkPool=10.234.0.0/22 \
       -depot=${DATA_DIR}/depot \
       -graph=${DATA_DIR}/graph \
-      -rootfs=/var/vcap/data \
-      -bin=/var/vcap/packages/warden-docker/src/github.com/vito/warden-docker/bin \
+      -rootfs=/var/vcap/data/some/bogus/path \
+      -bin=/var/vcap/packages/warden-linux/src/github.com/cloudfoundry-incubator/warden-linux/linux_backend/bin \
+      -overlays=${DATA_DIR}/overlays \
       -debug \
       -containerGraceTime=5m \
       1>>$LOG_DIR/warden.stdout.log \

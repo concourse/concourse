@@ -2,7 +2,6 @@
 
 RUN_DIR=/var/vcap/sys/run/prole
 LOG_DIR=/var/vcap/sys/log/prole
-TMP_DIR=/var/vcap/data/tmp/prole
 PIDFILE=$RUN_DIR/prole.pid
 
 source /var/vcap/packages/pid_utils/pid_utils.sh
@@ -14,14 +13,12 @@ case $1 in
 
     mkdir -p $RUN_DIR
     mkdir -p $LOG_DIR
-    mkdir -p $TMP_DIR
 
     echo $$ > /var/vcap/sys/run/prole/prole.pid
 
     export PATH=/var/vcap/packages/git/bin:$PATH
 
     exec /var/vcap/packages/prole/bin/prole \
-      -tmpdir=${TMP_DIR} \
       -listenAddr=<%= p("prole.listen_address") %> \
       -wardenNetwork=<%= p("prole.warden.network") %> \
       -wardenAddr=<%= p("prole.warden.address") %> \

@@ -1,6 +1,6 @@
 set -e
 
-REPO_NAME=github.com/vito/warden-docker
+REPO_NAME=github.com/cloudfoundry-incubator/warden-linux
 
 REPO_DIR=${BOSH_INSTALL_TARGET}/src/${REPO_NAME}
 
@@ -16,4 +16,4 @@ go install ${REPO_NAME}
 
 cd $REPO_DIR
 
-make
+make skeleton
