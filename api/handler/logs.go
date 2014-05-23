@@ -7,8 +7,8 @@ import (
 
 	"code.google.com/p/go.net/websocket"
 
+	"github.com/winston-ci/logbuffer"
 	"github.com/winston-ci/winston/ansistream"
-	"github.com/winston-ci/winston/logbuffer"
 )
 
 func (handler *Handler) LogInput(conn *websocket.Conn) {
@@ -57,9 +57,10 @@ func (handler *Handler) LogOutput(conn *websocket.Conn) {
 		return
 	}
 
+	ansiWriter := ansistream.NewWriter(conn)
+
 	logs, err := handler.db.BuildLog(job, id)
 	if err == nil {
-		ansiWriter := ansistream.NewWriter(conn)
 		ansiWriter.Write(logs)
 		ansiWriter.Close()
 		return
@@ -73,5 +74,5 @@ func (handler *Handler) LogOutput(conn *websocket.Conn) {
 	}
 	handler.logsMutex.Unlock()
 
-	logBuffer.Attach(conn)
+	logBuffer.Attach(ansiWriter)
 }

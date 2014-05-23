@@ -3,8 +3,8 @@ package handler
 import (
 	"sync"
 
+	"github.com/winston-ci/logbuffer"
 	"github.com/winston-ci/winston/db"
-	"github.com/winston-ci/winston/logbuffer"
 )
 
 type Handler struct {
