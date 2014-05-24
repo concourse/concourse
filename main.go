@@ -18,6 +18,7 @@ import (
 	"github.com/winston-ci/winston/builder"
 	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/db"
+	"github.com/winston-ci/winston/resources"
 	"github.com/winston-ci/winston/server"
 	"github.com/winston-ci/winston/watchman"
 )
@@ -128,10 +129,10 @@ func main() {
 		errs <- http.ListenAndServe(*apiListenAddr, apiHandler)
 	}()
 
-	watcher := watchman.NewWatchman(builder, proleEndpoint)
+	watcher := watchman.NewWatchman(builder)
 
 	for _, job := range conf.Jobs {
-		for resourceName, _ := range job.Inputs {
+		for resourceName, outputJobs := range job.Inputs {
 			resource, found := conf.Resources.Lookup(resourceName)
 			if !found {
 				log.Fatalln("unknown resource:", resourceName)
@@ -142,7 +143,14 @@ func main() {
 				resource.Source = config.Source(current)
 			}
 
-			watcher.Watch(job, resource, conf.Resources, time.Minute)
+			var checker resources.Checker
+			if len(outputJobs) == 0 {
+				checker = resources.NewProleChecker(proleEndpoint)
+			} else {
+				checker = resources.NewWinstonChecker(redisDB, outputJobs)
+			}
+
+			watcher.Watch(job, resource, conf.Resources, checker, time.Minute)
 		}
 	}
 

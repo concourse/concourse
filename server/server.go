@@ -52,7 +52,7 @@ func New(
 		routes.Index:        index.NewHandler(config.Jobs, indexTemplate),
 		routes.GetJob:       getjob.NewHandler(config.Jobs, db, jobTemplate),
 		routes.GetBuild:     getbuild.NewHandler(config.Jobs, db, buildTemplate),
-		routes.TriggerBuild: triggerbuild.NewHandler(config.Jobs, config.Resources, builder),
+		routes.TriggerBuild: triggerbuild.NewHandler(config.Jobs, config.Resources, db, builder),
 		routes.Public:       http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
 	}
 

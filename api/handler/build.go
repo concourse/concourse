@@ -9,6 +9,7 @@ import (
 	ProleBuilds "github.com/winston-ci/prole/api/builds"
 
 	"github.com/winston-ci/winston/builds"
+	"github.com/winston-ci/winston/config"
 )
 
 func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
@@ -54,10 +55,20 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if build.Status == ProleBuilds.StatusStarted {
+	switch build.Status {
+	case ProleBuilds.StatusStarted:
 		for _, input := range build.Inputs {
 			// XXX hack: identifying by destination path...
-			err := handler.db.SaveCurrentSource(job, input.DestinationPath, input.Source)
+			err := handler.db.SaveCurrentSource(job, input.DestinationPath, config.Source(input.Source))
+			if err != nil {
+				log.Println("error saving source:", err)
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+		}
+	case ProleBuilds.StatusSucceeded:
+		for _, input := range build.Inputs {
+			// XXX hack: identifying by destination path...
+			err := handler.db.SaveOutputSource(job, id, input.DestinationPath, config.Source(input.Source))
 			if err != nil {
 				log.Println("error saving source:", err)
 				w.WriteHeader(http.StatusInternalServerError)

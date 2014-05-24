@@ -3,11 +3,12 @@ package db
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/garyburd/redigo/redis"
-	ProleBuilds "github.com/winston-ci/prole/api/builds"
 
 	"github.com/winston-ci/winston/builds"
+	"github.com/winston-ci/winston/config"
 )
 
 type redisDB struct {
@@ -151,7 +152,7 @@ func (db *redisDB) SaveBuildLog(job string, build int, log []byte) error {
 	return err
 }
 
-func (db *redisDB) GetCurrentSource(job, input string) (ProleBuilds.Source, error) {
+func (db *redisDB) GetCurrentSource(job, input string) (config.Source, error) {
 	conn := db.pool.Get()
 	defer conn.Close()
 
@@ -160,13 +161,58 @@ func (db *redisDB) GetCurrentSource(job, input string) (ProleBuilds.Source, erro
 		return nil, err
 	}
 
-	return ProleBuilds.Source(sourceBytes), nil
+	return config.Source(sourceBytes), nil
 }
 
-func (db *redisDB) SaveCurrentSource(job, input string, source ProleBuilds.Source) error {
+func (db *redisDB) SaveCurrentSource(job, input string, source config.Source) error {
 	conn := db.pool.Get()
 	defer conn.Close()
 
 	_, err := conn.Do("SET", "current_source:"+job+":"+input, []byte(source))
 	return err
+}
+
+func (db *redisDB) SaveOutputSource(job string, build int, resourceName string, source config.Source) error {
+	conn := db.pool.Get()
+	defer conn.Close()
+
+	_, err := conn.Do("ZADD", "output:"+job+":"+resourceName, strconv.Itoa(build), []byte(source))
+	return err
+}
+
+func (db *redisDB) GetCommonOutputs(jobs []string, resourceName string) ([]config.Source, error) {
+	conn := db.pool.Get()
+	defer conn.Close()
+
+	commonKey := strings.Join(append(append([]string{"common_outputs"}, jobs...), resourceName), ":")
+
+	outputKeys := []interface{}{}
+	for _, job := range jobs {
+		outputKeys = append(outputKeys, "output:"+job+":"+resourceName)
+	}
+
+	_, err := conn.Do(
+		"ZINTERSTORE",
+		append(
+			[]interface{}{commonKey, strconv.Itoa(len(jobs))},
+			outputKeys...,
+		)...,
+	)
+
+	sourcesBytes, err := redis.Values(conn.Do("ZRANGE", commonKey, "0", "-1"))
+	if err != nil {
+		return nil, err
+	}
+
+	sources := make([]config.Source, len(sourcesBytes))
+	for i, iface := range sourcesBytes {
+		bytes, err := redis.Bytes(iface, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		sources[i] = config.Source(bytes)
+	}
+
+	return sources, nil
 }

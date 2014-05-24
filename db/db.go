@@ -1,9 +1,8 @@
 package db
 
 import (
-	ProleBuilds "github.com/winston-ci/prole/api/builds"
-
 	"github.com/winston-ci/winston/builds"
+	"github.com/winston-ci/winston/config"
 )
 
 type DB interface {
@@ -16,6 +15,9 @@ type DB interface {
 	BuildLog(job string, build int) ([]byte, error)
 	SaveBuildLog(job string, build int, log []byte) error
 
-	GetCurrentSource(job, input string) (ProleBuilds.Source, error)
-	SaveCurrentSource(job, input string, source ProleBuilds.Source) error
+	GetCurrentSource(job, input string) (config.Source, error)
+	SaveCurrentSource(job, input string, source config.Source) error
+
+	GetCommonOutputs(jobs []string, resourceName string) ([]config.Source, error)
+	SaveOutputSource(job string, build int, resourceName string, source config.Source) error
 }

@@ -38,5 +38,8 @@ func (builder *Builder) Build(job config.Job, resources config.Resources) (build
 }
 
 func (builder *Builder) Built() []BuiltSpec {
+	builder.builtMutex.Lock()
+	defer builder.builtMutex.Unlock()
+
 	return builder.built
 }

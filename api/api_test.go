@@ -17,6 +17,7 @@ import (
 
 	"github.com/winston-ci/winston/api"
 	"github.com/winston-ci/winston/builds"
+	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/db"
 	"github.com/winston-ci/winston/redisrunner"
 )
@@ -111,11 +112,11 @@ var _ = Describe("API", func() {
 				// XXX hack: identifying by destination path...
 				source, err := redis.GetCurrentSource("some-job", "some-input")
 				Ω(err).ShouldNot(HaveOccurred())
-				Ω(source).Should(Equal(source1))
+				Ω(source).Should(Equal(config.Source(source1)))
 
 				source, err = redis.GetCurrentSource("some-job", "some-other-input")
 				Ω(err).ShouldNot(HaveOccurred())
-				Ω(source).Should(Equal(source2))
+				Ω(source).Should(Equal(config.Source(source2)))
 			})
 		})
 
@@ -139,6 +140,17 @@ var _ = Describe("API", func() {
 
 				_, err = redis.GetCurrentSource("some-job", "some-other-input")
 				Ω(err).Should(HaveOccurred())
+			})
+
+			It("saves each input's output source", func() {
+				// XXX hack: identifying by destination path...
+				sources, err := redis.GetCommonOutputs([]string{"some-job"}, "some-input")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(sources).Should(Equal([]config.Source{config.Source(source1)}))
+
+				sources, err = redis.GetCommonOutputs([]string{"some-job"}, "some-other-input")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(sources).Should(Equal([]config.Source{config.Source(source2)}))
 			})
 		})
 

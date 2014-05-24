@@ -4,9 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	ProleBuilds "github.com/winston-ci/prole/api/builds"
-
 	Builds "github.com/winston-ci/winston/builds"
+	"github.com/winston-ci/winston/config"
 	. "github.com/winston-ci/winston/db"
 	"github.com/winston-ci/winston/redisrunner"
 )
@@ -65,12 +64,39 @@ var _ = Describe("RedisDB", func() {
 		_, err = db.GetCurrentSource("some-job", "some-input")
 		Ω(err).Should(HaveOccurred())
 
-		source := ProleBuilds.Source("some source")
+		source := config.Source("some source")
 		err = db.SaveCurrentSource("some-job", "some-input", source)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		currentSource, err := db.GetCurrentSource("some-job", "some-input")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(currentSource).Should(Equal(source))
+
+		output1 := config.Source("output1")
+		output2 := config.Source("output2")
+		output3 := config.Source("output3")
+
+		err = db.SaveOutputSource("some-job", 1, "some-input", output1)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		err = db.SaveOutputSource("some-job", 2, "some-input", output2)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		err = db.SaveOutputSource("some-other-job", 1, "some-input", output1)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		err = db.SaveOutputSource("some-other-job", 2, "some-input", output2)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		err = db.SaveOutputSource("some-other-job", 3, "some-input", output3)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		outputs, err := db.GetCommonOutputs([]string{"some-job", "some-other-job"}, "some-input")
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(outputs).Should(Equal([]config.Source{output1, output2}))
+
+		outputs, err = db.GetCommonOutputs([]string{"some-other-job"}, "some-input")
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(outputs).Should(Equal([]config.Source{output1, output2, output3}))
 	})
 })
