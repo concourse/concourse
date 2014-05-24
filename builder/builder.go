@@ -22,11 +22,12 @@ import (
 var ErrBadResponse = errors.New("bad response from prole")
 
 type Builder interface {
-	Build(config.Job, config.Resources) (builds.Build, error)
+	Build(config.Job, ...config.Resource) (builds.Build, error)
 }
 
 type builder struct {
-	db db.DB
+	db        db.DB
+	resources config.Resources
 
 	prole   *router.RequestGenerator
 	winston *router.RequestGenerator
@@ -34,44 +35,30 @@ type builder struct {
 
 func NewBuilder(
 	db db.DB,
+	resources config.Resources,
 	prole *router.RequestGenerator,
 	winston *router.RequestGenerator,
 ) Builder {
 	return &builder{
-		db: db,
+		db:        db,
+		resources: resources,
 
 		prole:   prole,
 		winston: winston,
 	}
 }
 
-func (builder *builder) Build(job config.Job, resources config.Resources) (builds.Build, error) {
+func (builder *builder) Build(job config.Job, resourceOverrides ...config.Resource) (builds.Build, error) {
 	log.Println("creating build")
 
-	build, err := builder.db.CreateBuild(job.Name)
+	inputs, err := builder.computeInputs(job, config.Resources(resourceOverrides))
 	if err != nil {
 		return builds.Build{}, err
 	}
 
-	proleInputs := []ProleBuilds.Input{}
-	for name, _ := range job.Inputs {
-		resource, found := resources.Lookup(name)
-		if !found {
-			return builds.Build{}, fmt.Errorf("unknown input: %s", name)
-		}
-
-		proleInput := ProleBuilds.Input{
-			Type:   resource.Type,
-			Source: ProleBuilds.Source(resource.Source),
-
-			DestinationPath: resource.Name,
-		}
-
-		if filepath.HasPrefix(job.BuildConfigPath, resource.Name) {
-			proleInput.ConfigPath = job.BuildConfigPath[len(resource.Name)+1:]
-		}
-
-		proleInputs = append(proleInputs, proleInput)
+	build, err := builder.db.CreateBuild(job.Name)
+	if err != nil {
+		return builds.Build{}, err
 	}
 
 	complete, err := builder.winston.RequestForHandler(
@@ -107,7 +94,7 @@ func (builder *builder) Build(job config.Job, resources config.Resources) (build
 	proleBuild := ProleBuilds.Build{
 		Privileged: job.Privileged,
 
-		Inputs: proleInputs,
+		Inputs: inputs,
 
 		Callback: complete.URL.String(),
 		LogsURL:  logs.URL.String(),
@@ -148,4 +135,45 @@ func (builder *builder) Build(job config.Job, resources config.Resources) (build
 	resp.Body.Close()
 
 	return build, nil
+}
+
+func (builder *builder) computeInputs(job config.Job, resourceOverrides config.Resources) ([]ProleBuilds.Input, error) {
+	proleInputs := []ProleBuilds.Input{}
+	for name, passed := range job.Inputs {
+		resource, found := resourceOverrides.Lookup(name)
+		if !found {
+			resource, found = builder.resources.Lookup(name)
+			if !found {
+				return nil, fmt.Errorf("unknown input: %s", name)
+			}
+
+			if passed != nil {
+				outputs, err := builder.db.GetCommonOutputs(passed, name)
+				if err != nil {
+					return nil, err
+				}
+
+				if len(outputs) == 0 {
+					return nil, fmt.Errorf("unsatisfied input: %s; depends on %v\n", name, passed)
+				}
+
+				resource.Source = outputs[len(outputs)-1]
+			}
+		}
+
+		proleInput := ProleBuilds.Input{
+			Type:   resource.Type,
+			Source: ProleBuilds.Source(resource.Source),
+
+			DestinationPath: resource.Name,
+		}
+
+		if filepath.HasPrefix(job.BuildConfigPath, resource.Name) {
+			proleInput.ConfigPath = job.BuildConfigPath[len(resource.Name)+1:]
+		}
+
+		proleInputs = append(proleInputs, proleInput)
+	}
+
+	return proleInputs, nil
 }

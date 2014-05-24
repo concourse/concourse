@@ -12,7 +12,6 @@ type Watchman interface {
 	Watch(
 		job config.Job,
 		resource config.Resource,
-		resources config.Resources,
 		checker resources.Checker,
 		interval time.Duration,
 	) (stop chan<- struct{})
@@ -31,7 +30,6 @@ func NewWatchman(builder builder.Builder) Watchman {
 func (watchman *watchman) Watch(
 	job config.Job,
 	resource config.Resource,
-	resources config.Resources,
 	checker resources.Checker,
 	interval time.Duration,
 ) chan<- struct{} {
@@ -46,7 +44,7 @@ func (watchman *watchman) Watch(
 				return
 			case <-ticker.C:
 				for _, resource = range checker.CheckResource(resource) {
-					watchman.builder.Build(job, resources.UpdateResource(resource))
+					watchman.builder.Build(job, resource)
 				}
 			}
 		}

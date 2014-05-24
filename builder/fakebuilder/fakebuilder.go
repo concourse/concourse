@@ -15,8 +15,8 @@ type Builder struct {
 }
 
 type BuiltSpec struct {
-	Job       config.Job
-	Resources config.Resources
+	Job               config.Job
+	ResourceOverrides []config.Resource
 }
 
 func New() *Builder {
@@ -25,13 +25,13 @@ func New() *Builder {
 	}
 }
 
-func (builder *Builder) Build(job config.Job, resources config.Resources) (builds.Build, error) {
+func (builder *Builder) Build(job config.Job, resourceOverrides ...config.Resource) (builds.Build, error) {
 	if builder.BuildError != nil {
 		return builds.Build{}, builder.BuildError
 	}
 
 	builder.builtMutex.Lock()
-	builder.built = append(builder.built, BuiltSpec{job, resources})
+	builder.built = append(builder.built, BuiltSpec{job, resourceOverrides})
 	builder.builtMutex.Unlock()
 
 	return builder.BuildResult, nil

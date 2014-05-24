@@ -105,7 +105,7 @@ func main() {
 
 	winstonEndpoint := router.NewRequestGenerator("http://"+*peerAddr, apiroutes.Routes)
 	proleEndpoint := router.NewRequestGenerator(*proleURL, proleroutes.Routes)
-	builder := builder.NewBuilder(redisDB, proleEndpoint, winstonEndpoint)
+	builder := builder.NewBuilder(redisDB, conf.Resources, proleEndpoint, winstonEndpoint)
 
 	serverHandler, err := server.New(conf, redisDB, *templatesDir, *publicDir, *peerAddr, builder)
 	if err != nil {
@@ -150,7 +150,7 @@ func main() {
 				checker = resources.NewWinstonChecker(redisDB, outputJobs)
 			}
 
-			watcher.Watch(job, resource, conf.Resources, checker, time.Minute)
+			watcher.Watch(job, resource, checker, time.Minute)
 		}
 	}
 

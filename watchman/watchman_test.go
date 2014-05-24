@@ -18,7 +18,6 @@ var _ = Describe("Watchman", func() {
 
 	var job config.Job
 	var resource config.Resource
-	var resources config.Resources
 	var checker *fakechecker.FakeChecker
 	var interval time.Duration
 
@@ -34,27 +33,18 @@ var _ = Describe("Watchman", func() {
 			Inputs: config.InputMap{"some-input": nil},
 		}
 
-		resources = config.Resources{
-			{
-				Name:   "some-input",
-				Type:   "git",
-				Source: config.Source("123"),
-			},
-			{
-				Name:   "some-other-input",
-				Type:   "git",
-				Source: config.Source("123"),
-			},
+		resource = config.Resource{
+			Name:   "some-input",
+			Type:   "git",
+			Source: config.Source("123"),
 		}
-
-		resource = resources[0]
 
 		checker = fakechecker.New()
 		interval = 100 * time.Millisecond
 	})
 
 	JustBeforeEach(func() {
-		stop = watchman.Watch(job, resource, resources, checker, interval)
+		stop = watchman.Watch(job, resource, checker, interval)
 	})
 
 	AfterEach(func() {
@@ -120,48 +110,33 @@ var _ = Describe("Watchman", func() {
 
 				Eventually(builder.Built).Should(ContainElement(fakebuilder.BuiltSpec{
 					Job: job,
-					Resources: config.Resources{
+					ResourceOverrides: []config.Resource{
 						{
 							Name:   "some-input",
 							Type:   "git",
 							Source: config.Source(`1`),
 						},
-						{
-							Name:   "some-other-input",
-							Type:   "git",
-							Source: config.Source(`123`),
-						},
 					},
 				}))
 
 				Eventually(builder.Built).Should(ContainElement(fakebuilder.BuiltSpec{
 					Job: job,
-					Resources: config.Resources{
+					ResourceOverrides: []config.Resource{
 						{
 							Name:   "some-input",
 							Type:   "git",
 							Source: config.Source(`2`),
 						},
-						{
-							Name:   "some-other-input",
-							Type:   "git",
-							Source: config.Source(`123`),
-						},
 					},
 				}))
 
 				Eventually(builder.Built).Should(ContainElement(fakebuilder.BuiltSpec{
 					Job: job,
-					Resources: config.Resources{
+					ResourceOverrides: []config.Resource{
 						{
 							Name:   "some-input",
 							Type:   "git",
 							Source: config.Source(`3`),
-						},
-						{
-							Name:   "some-other-input",
-							Type:   "git",
-							Source: config.Source(`123`),
 						},
 					},
 				}))
