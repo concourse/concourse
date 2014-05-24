@@ -106,7 +106,7 @@ func main() {
 	proleEndpoint := router.NewRequestGenerator(*proleURL, proleroutes.Routes)
 	builder := builder.NewBuilder(redisDB, proleEndpoint, winstonEndpoint)
 
-	serverHandler, err := server.New(conf.Jobs, redisDB, *templatesDir, *publicDir, *peerAddr, builder)
+	serverHandler, err := server.New(conf, redisDB, *templatesDir, *publicDir, *peerAddr, builder)
 	if err != nil {
 		fatal(err)
 	}
@@ -131,13 +131,18 @@ func main() {
 	watcher := watchman.NewWatchman(builder, proleEndpoint)
 
 	for _, job := range conf.Jobs {
-		for _, input := range job.Inputs {
-			current, err := redisDB.GetCurrentSource(job.Name, input.Name)
-			if err == nil {
-				input.Source = config.Source(current)
+		for resourceName, _ := range job.Inputs {
+			resource, found := conf.Resources.Lookup(resourceName)
+			if !found {
+				log.Fatalln("unknown resource:", resourceName)
 			}
 
-			watcher.Watch(job, input, time.Minute)
+			current, err := redisDB.GetCurrentSource(job.Name, resourceName)
+			if err == nil {
+				resource.Source = config.Source(current)
+			}
+
+			watcher.Watch(job, resource, conf.Resources, time.Minute)
 		}
 	}
 

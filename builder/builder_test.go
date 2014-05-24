@@ -26,6 +26,7 @@ var _ = Describe("Builder", func() {
 	var builder Builder
 
 	var job config.Job
+	var resources config.Resources
 
 	BeforeEach(func() {
 		redisRunner = redisrunner.NewRunner()
@@ -42,12 +43,19 @@ var _ = Describe("Builder", func() {
 
 			BuildConfigPath: "some-resource/build.yml",
 
-			Inputs: []config.Input{
-				{
-					Name:   "some-resource",
-					Type:   "git",
-					Source: config.Source(`{"uri":"git://example.com/foo/repo.git"}`),
-				},
+			Inputs: config.InputMap{"some-resource": nil},
+		}
+
+		resources = config.Resources{
+			{
+				Name:   "some-resource",
+				Type:   "git",
+				Source: config.Source(`{"uri":"git://example.com/foo/repo.git"}`),
+			},
+			{
+				Name:   "some-other-resource",
+				Type:   "git",
+				Source: config.Source(`{"uri":"git://example.com/bar/repo.git"}`),
 			},
 		}
 
@@ -87,7 +95,7 @@ var _ = Describe("Builder", func() {
 			),
 		)
 
-		build, err := builder.Build(job)
+		build, err := builder.Build(job, resources)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		Ω(build.ID).Should(Equal(1))
@@ -105,15 +113,26 @@ var _ = Describe("Builder", func() {
 			),
 		)
 
-		build, err := builder.Build(job)
+		build, err := builder.Build(job, resources)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		Ω(build.ID).Should(Equal(1))
 
-		build, err = builder.Build(job)
+		build, err = builder.Build(job, resources)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		Ω(build.ID).Should(Equal(2))
+	})
+
+	Context("when the job's input is not found", func() {
+		BeforeEach(func() {
+			job.Inputs["some-bogus-input"] = nil
+		})
+
+		It("returns an error", func() {
+			_, err := builder.Build(job, resources)
+			Ω(err).Should(HaveOccurred())
+		})
 	})
 
 	Context("when the prole server is unreachable", func() {
@@ -129,7 +148,7 @@ var _ = Describe("Builder", func() {
 		})
 
 		It("returns an error", func() {
-			_, err := builder.Build(job)
+			_, err := builder.Build(job, resources)
 			Ω(err).Should(HaveOccurred())
 		})
 	})
@@ -145,7 +164,7 @@ var _ = Describe("Builder", func() {
 		})
 
 		It("returns an error", func() {
-			_, err := builder.Build(job)
+			_, err := builder.Build(job, resources)
 			Ω(err).Should(HaveOccurred())
 		})
 	})

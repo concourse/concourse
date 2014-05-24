@@ -8,10 +8,15 @@ import (
 )
 
 type Builder struct {
-	built       []config.Job
+	built       []BuiltSpec
 	builtMutex  *sync.Mutex
 	BuildResult builds.Build
 	BuildError  error
+}
+
+type BuiltSpec struct {
+	Job       config.Job
+	Resources config.Resources
 }
 
 func New() *Builder {
@@ -20,18 +25,18 @@ func New() *Builder {
 	}
 }
 
-func (builder *Builder) Build(job config.Job) (builds.Build, error) {
+func (builder *Builder) Build(job config.Job, resources config.Resources) (builds.Build, error) {
 	if builder.BuildError != nil {
 		return builds.Build{}, builder.BuildError
 	}
 
 	builder.builtMutex.Lock()
-	builder.built = append(builder.built, job)
+	builder.built = append(builder.built, BuiltSpec{job, resources})
 	builder.builtMutex.Unlock()
 
 	return builder.BuildResult, nil
 }
 
-func (builder *Builder) Built() []config.Job {
+func (builder *Builder) Built() []BuiltSpec {
 	return builder.built
 }

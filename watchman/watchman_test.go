@@ -23,7 +23,8 @@ var _ = Describe("Watchman", func() {
 	var watchman Watchman
 
 	var job config.Job
-	var input config.Input
+	var resource config.Resource
+	var resources config.Resources
 	var interval time.Duration
 
 	var stop chan<- struct{}
@@ -42,21 +43,28 @@ var _ = Describe("Watchman", func() {
 		interval = 100 * time.Millisecond
 
 		job = config.Job{
-			Name: "some-job",
-			Inputs: []config.Input{
-				{
-					Name:   "some-input",
-					Type:   "git",
-					Source: config.Source("123"),
-				},
+			Name:   "some-job",
+			Inputs: config.InputMap{"some-input": nil},
+		}
+
+		resources = config.Resources{
+			{
+				Name:   "some-input",
+				Type:   "git",
+				Source: config.Source("123"),
+			},
+			{
+				Name:   "some-other-input",
+				Type:   "git",
+				Source: config.Source("123"),
 			},
 		}
 
-		input = job.Inputs[0]
+		resource = resources[0]
 	})
 
 	JustBeforeEach(func() {
-		stop = watchman.Watch(job, input, interval)
+		stop = watchman.Watch(job, resource, resources, interval)
 	})
 
 	AfterEach(func() {
@@ -81,7 +89,7 @@ var _ = Describe("Watchman", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/checks"),
 					ghttp.VerifyJSONRepresenting(builds.Input{
-						Type:   input.Type,
+						Type:   resource.Type,
 						Source: builds.Source("123"),
 					}),
 					func(w http.ResponseWriter, r *http.Request) {
@@ -149,7 +157,7 @@ var _ = Describe("Watchman", func() {
 					1,
 					ghttp.CombineHandlers(
 						ghttp.VerifyJSONRepresenting(builds.Input{
-							Type:   input.Type,
+							Type:   resource.Type,
 							Source: builds.Source(`"def"`),
 						}),
 						func(w http.ResponseWriter, r *http.Request) {
@@ -160,35 +168,50 @@ var _ = Describe("Watchman", func() {
 			})
 
 			It("builds the job with the changed source", func() {
-				Eventually(builder.Built).Should(ContainElement(config.Job{
-					Name: "some-job",
-					Inputs: []config.Input{
+				Eventually(builder.Built).Should(ContainElement(fakebuilder.BuiltSpec{
+					Job: job,
+					Resources: config.Resources{
 						{
 							Name:   "some-input",
 							Type:   "git",
 							Source: config.Source(`"abc"`),
 						},
+						{
+							Name:   "some-other-input",
+							Type:   "git",
+							Source: config.Source(`123`),
+						},
 					},
 				}))
 
-				Eventually(builder.Built).Should(ContainElement(config.Job{
-					Name: "some-job",
-					Inputs: []config.Input{
+				Eventually(builder.Built).Should(ContainElement(fakebuilder.BuiltSpec{
+					Job: job,
+					Resources: config.Resources{
 						{
 							Name:   "some-input",
 							Type:   "git",
 							Source: config.Source(`"def"`),
 						},
+						{
+							Name:   "some-other-input",
+							Type:   "git",
+							Source: config.Source(`123`),
+						},
 					},
 				}))
 
-				Eventually(builder.Built).Should(ContainElement(config.Job{
-					Name: "some-job",
-					Inputs: []config.Input{
+				Eventually(builder.Built).Should(ContainElement(fakebuilder.BuiltSpec{
+					Job: job,
+					Resources: config.Resources{
 						{
 							Name:   "some-input",
 							Type:   "git",
 							Source: config.Source(`"ghi"`),
+						},
+						{
+							Name:   "some-other-input",
+							Type:   "git",
+							Source: config.Source(`123`),
 						},
 					},
 				}))

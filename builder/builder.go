@@ -22,7 +22,7 @@ import (
 var ErrBadResponse = errors.New("bad response from prole")
 
 type Builder interface {
-	Build(config.Job) (builds.Build, error)
+	Build(config.Job, config.Resources) (builds.Build, error)
 }
 
 type builder struct {
@@ -45,7 +45,7 @@ func NewBuilder(
 	}
 }
 
-func (builder *builder) Build(job config.Job) (builds.Build, error) {
+func (builder *builder) Build(job config.Job, resources config.Resources) (builds.Build, error) {
 	log.Println("creating build")
 
 	build, err := builder.db.CreateBuild(job.Name)
@@ -53,20 +53,25 @@ func (builder *builder) Build(job config.Job) (builds.Build, error) {
 		return builds.Build{}, err
 	}
 
-	proleInputs := make([]ProleBuilds.Input, len(job.Inputs))
-	for i, input := range job.Inputs {
+	proleInputs := []ProleBuilds.Input{}
+	for name, _ := range job.Inputs {
+		resource, found := resources.Lookup(name)
+		if !found {
+			return builds.Build{}, fmt.Errorf("unknown input: %s", name)
+		}
+
 		proleInput := ProleBuilds.Input{
-			Type:   input.Type,
-			Source: ProleBuilds.Source(input.Source),
+			Type:   resource.Type,
+			Source: ProleBuilds.Source(resource.Source),
 
-			DestinationPath: input.Name,
+			DestinationPath: resource.Name,
 		}
 
-		if filepath.HasPrefix(job.BuildConfigPath, input.Name) {
-			proleInput.ConfigPath = job.BuildConfigPath[len(input.Name)+1:]
+		if filepath.HasPrefix(job.BuildConfigPath, resource.Name) {
+			proleInput.ConfigPath = job.BuildConfigPath[len(resource.Name)+1:]
 		}
 
-		proleInputs[i] = proleInput
+		proleInputs = append(proleInputs, proleInput)
 	}
 
 	complete, err := builder.winston.RequestForHandler(

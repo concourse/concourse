@@ -13,14 +13,16 @@ import (
 )
 
 type handler struct {
-	jobs    config.Jobs
-	builder builder.Builder
+	jobs      config.Jobs
+	resources config.Resources
+	builder   builder.Builder
 }
 
-func NewHandler(jobs config.Jobs, builder builder.Builder) http.Handler {
+func NewHandler(jobs config.Jobs, resources config.Resources, builder builder.Builder) http.Handler {
 	return &handler{
-		jobs:    jobs,
-		builder: builder,
+		jobs:      jobs,
+		resources: resources,
+		builder:   builder,
 	}
 }
 
@@ -33,7 +35,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("triggering", job)
 
-	build, err := handler.builder.Build(job)
+	build, err := handler.builder.Build(job, handler.resources)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

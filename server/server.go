@@ -17,12 +17,8 @@ import (
 	"github.com/winston-ci/winston/server/triggerbuild"
 )
 
-type Server struct {
-	config config.Config
-}
-
 func New(
-	jobs config.Jobs,
+	config config.Config,
 	db db.DB,
 	templatesDir, publicDir string,
 	peerAddr string,
@@ -53,10 +49,10 @@ func New(
 	}
 
 	handlers := map[string]http.Handler{
-		routes.Index:        index.NewHandler(jobs, indexTemplate),
-		routes.GetJob:       getjob.NewHandler(jobs, db, jobTemplate),
-		routes.GetBuild:     getbuild.NewHandler(jobs, db, buildTemplate),
-		routes.TriggerBuild: triggerbuild.NewHandler(jobs, builder),
+		routes.Index:        index.NewHandler(config.Jobs, indexTemplate),
+		routes.GetJob:       getjob.NewHandler(config.Jobs, db, jobTemplate),
+		routes.GetBuild:     getbuild.NewHandler(config.Jobs, db, buildTemplate),
+		routes.TriggerBuild: triggerbuild.NewHandler(config.Jobs, config.Resources, builder),
 		routes.Public:       http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
 	}
 

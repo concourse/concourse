@@ -16,7 +16,7 @@ import (
 )
 
 type Watchman interface {
-	Watch(job config.Job, input config.Input, interval time.Duration) (stop chan<- struct{})
+	Watch(job config.Job, resource config.Resource, resources config.Resources, interval time.Duration) (stop chan<- struct{})
 }
 
 type watchman struct {
@@ -33,7 +33,8 @@ func NewWatchman(builder builder.Builder, prole *router.RequestGenerator) Watchm
 
 func (watchman *watchman) Watch(
 	job config.Job,
-	inputConfig config.Input,
+	resource config.Resource,
+	resources config.Resources,
 	interval time.Duration,
 ) chan<- struct{} {
 	stop := make(chan struct{})
@@ -46,10 +47,10 @@ func (watchman *watchman) Watch(
 			case <-stop:
 				return
 			case <-ticker.C:
-				for _, source := range watchman.check(inputConfig) {
-					inputConfig.Source = config.Source(source)
+				for _, source := range watchman.check(resource) {
+					resource.Source = config.Source(source)
 
-					watchman.builder.Build(job.UpdateInput(inputConfig))
+					watchman.builder.Build(job, resources.UpdateResource(resource))
 				}
 			}
 		}
@@ -58,12 +59,12 @@ func (watchman *watchman) Watch(
 	return stop
 }
 
-func (watchman *watchman) check(inputConfig config.Input) []builds.Source {
+func (watchman *watchman) check(resource config.Resource) []builds.Source {
 	req := new(bytes.Buffer)
 
 	input := builds.Input{
-		Type:   inputConfig.Type,
-		Source: builds.Source(inputConfig.Source),
+		Type:   resource.Type,
+		Source: builds.Source(resource.Source),
 	}
 
 	err := json.NewEncoder(req).Encode(input)
