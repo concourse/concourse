@@ -29,12 +29,16 @@ var _ = Describe("Watchman", func() {
 		watchman = NewWatchman(builder)
 
 		job = config.Job{
-			Name:   "some-job",
-			Inputs: config.InputMap{"some-input": nil},
+			Name: "some-job",
+			Inputs: []config.Input{
+				{
+					Resource: "some-resource",
+				},
+			},
 		}
 
 		resource = config.Resource{
-			Name:   "some-input",
+			Name:   "some-resource",
 			Type:   "git",
 			Source: config.Source("123"),
 		}
@@ -82,9 +86,9 @@ var _ = Describe("Watchman", func() {
 				checkedFrom = make(chan config.Resource)
 
 				nextResources = []config.Resource{
-					{Name: "some-input", Type: "git", Source: config.Source("1")},
-					{Name: "some-input", Type: "git", Source: config.Source("2")},
-					{Name: "some-input", Type: "git", Source: config.Source("3")},
+					{Name: "some-resource", Type: "git", Source: config.Source("1")},
+					{Name: "some-resource", Type: "git", Source: config.Source("2")},
+					{Name: "some-resource", Type: "git", Source: config.Source("3")},
 				}
 
 				checkResults := map[int][]config.Resource{
@@ -112,7 +116,7 @@ var _ = Describe("Watchman", func() {
 					Job: job,
 					ResourceOverrides: []config.Resource{
 						{
-							Name:   "some-input",
+							Name:   "some-resource",
 							Type:   "git",
 							Source: config.Source(`1`),
 						},
@@ -123,7 +127,7 @@ var _ = Describe("Watchman", func() {
 					Job: job,
 					ResourceOverrides: []config.Resource{
 						{
-							Name:   "some-input",
+							Name:   "some-resource",
 							Type:   "git",
 							Source: config.Source(`2`),
 						},
@@ -134,7 +138,7 @@ var _ = Describe("Watchman", func() {
 					Job: job,
 					ResourceOverrides: []config.Resource{
 						{
-							Name:   "some-input",
+							Name:   "some-resource",
 							Type:   "git",
 							Source: config.Source(`3`),
 						},

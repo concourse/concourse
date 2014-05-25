@@ -43,7 +43,12 @@ var _ = Describe("Builder", func() {
 
 			BuildConfigPath: "some-resource/build.yml",
 
-			Inputs: config.InputMap{"some-resource": nil},
+			Inputs: []config.Input{
+				{
+					Resource: "some-resource",
+					Passed:   nil,
+				},
+			},
 		}
 
 		resources = config.Resources{
@@ -167,7 +172,10 @@ var _ = Describe("Builder", func() {
 
 	Context("when the job has a resource that depends on other jobs", func() {
 		BeforeEach(func() {
-			job.Inputs["some-dependant-resource"] = []string{"job1", "job2"}
+			job.Inputs = append(job.Inputs, config.Input{
+				Resource: "some-dependant-resource",
+				Passed:   []string{"job1", "job2"},
+			})
 		})
 
 		Context("and the other jobs satisfy the dependency", func() {
@@ -228,7 +236,9 @@ var _ = Describe("Builder", func() {
 
 	Context("when the job's input is not found", func() {
 		BeforeEach(func() {
-			job.Inputs["some-bogus-resource"] = nil
+			job.Inputs = append(job.Inputs, config.Input{
+				Resource: "some-bogus-resource",
+			})
 		})
 
 		It("returns an error", func() {

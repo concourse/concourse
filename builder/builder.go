@@ -139,22 +139,22 @@ func (builder *builder) Build(job config.Job, resourceOverrides ...config.Resour
 
 func (builder *builder) computeInputs(job config.Job, resourceOverrides config.Resources) ([]ProleBuilds.Input, error) {
 	proleInputs := []ProleBuilds.Input{}
-	for name, passed := range job.Inputs {
-		resource, found := resourceOverrides.Lookup(name)
+	for _, input := range job.Inputs {
+		resource, found := resourceOverrides.Lookup(input.Resource)
 		if !found {
-			resource, found = builder.resources.Lookup(name)
+			resource, found = builder.resources.Lookup(input.Resource)
 			if !found {
-				return nil, fmt.Errorf("unknown input: %s", name)
+				return nil, fmt.Errorf("unknown resource: %s", input.Resource)
 			}
 
-			if passed != nil {
-				outputs, err := builder.db.GetCommonOutputs(passed, name)
+			if input.Passed != nil {
+				outputs, err := builder.db.GetCommonOutputs(input.Passed, input.Resource)
 				if err != nil {
 					return nil, err
 				}
 
 				if len(outputs) == 0 {
-					return nil, fmt.Errorf("unsatisfied input: %s; depends on %v\n", name, passed)
+					return nil, fmt.Errorf("unsatisfied input: %s; depends on %v\n", input.Resource, input.Passed)
 				}
 
 				resource.Source = outputs[len(outputs)-1]

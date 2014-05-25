@@ -19,10 +19,13 @@ type Job struct {
 
 	BuildConfigPath string `yaml:"build"`
 
-	Inputs InputMap `yaml:"inputs"`
+	Inputs []Input `yaml:"inputs"`
 }
 
-type InputMap map[string][]string
+type Input struct {
+	Resource string   `yaml:"resource"`
+	Passed   []string `yaml:"passed"`
+}
 
 type Resources []Resource
 
