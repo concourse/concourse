@@ -1,12 +1,20 @@
 ---
-image: nikhilv/docker-git
+image: winston/room101-ci
 
 script: |
   set -e -x
 
-  export WINSTON_SHA=$(cd winston/ && git rev-parse HEAD)
-  export REDGREEN_SHA=$(cd redgreen/ && git rev-parse HEAD)
-  export PROLE_SHA=$(cd prole/ && git rev-parse HEAD)
+  pushd winston/
+    export WINSTON_SHA=$(git rev-parse HEAD)
+  popd
+
+  pushd redgreen/
+    export REDGREEN_SHA=$(git rev-parse HEAD)
+  popd
+
+  pushd prole/
+    export PROLE_SHA=$(git rev-parse HEAD)
+  popd
 
   cd room101/
 
