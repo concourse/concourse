@@ -4,9 +4,9 @@ image: nikhilv/docker-git
 script: |
   set -e -x
 
-  export WINSTON_SHA=$(cd src/winston/ && git rev-parse HEAD)
-  export REDGREEN_SHA=$(cd src/redgreen/ && git rev-parse HEAD)
-  export PROLE_SHA=$(cd src/prole/ && git rev-parse HEAD)
+  export WINSTON_SHA=$(cd winston/ && git rev-parse HEAD)
+  export REDGREEN_SHA=$(cd redgreen/ && git rev-parse HEAD)
+  export PROLE_SHA=$(cd prole/ && git rev-parse HEAD)
 
   cd room101/
 
