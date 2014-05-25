@@ -132,22 +132,22 @@ func main() {
 	watcher := watchman.NewWatchman(builder)
 
 	for _, job := range conf.Jobs {
-		for resourceName, outputJobs := range job.Inputs {
-			resource, found := conf.Resources.Lookup(resourceName)
+		for _, input := range job.Inputs {
+			resource, found := conf.Resources.Lookup(input.Resource)
 			if !found {
-				log.Fatalln("unknown resource:", resourceName)
+				log.Fatalln("unknown resource:", input.Resource)
 			}
 
-			current, err := redisDB.GetCurrentSource(job.Name, resourceName)
+			current, err := redisDB.GetCurrentSource(job.Name, input.Resource)
 			if err == nil {
 				resource.Source = config.Source(current)
 			}
 
 			var checker resources.Checker
-			if len(outputJobs) == 0 {
+			if len(input.Passed) == 0 {
 				checker = resources.NewProleChecker(proleEndpoint)
 			} else {
-				checker = resources.NewWinstonChecker(redisDB, outputJobs)
+				checker = resources.NewWinstonChecker(redisDB, input.Passed)
 			}
 
 			watcher.Watch(job, resource, checker, time.Minute)
