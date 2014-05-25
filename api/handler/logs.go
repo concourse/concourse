@@ -12,6 +12,9 @@ import (
 )
 
 func (handler *Handler) LogInput(conn *websocket.Conn) {
+	handler.drain.Add(conn)
+	defer handler.drain.Remove(conn)
+
 	job := conn.Request().FormValue(":job")
 	idStr := conn.Request().FormValue(":build")
 
@@ -26,6 +29,7 @@ func (handler *Handler) LogInput(conn *websocket.Conn) {
 	logBuffer, found := handler.logs[job+"-"+idStr]
 	if !found {
 		logBuffer = logbuffer.NewLogBuffer()
+		handler.drain.Add(logBuffer)
 		handler.logs[job+"-"+idStr] = logBuffer
 	}
 	handler.logsMutex.Unlock()
@@ -47,6 +51,9 @@ func (handler *Handler) LogInput(conn *websocket.Conn) {
 }
 
 func (handler *Handler) LogOutput(conn *websocket.Conn) {
+	handler.drain.Add(conn)
+	defer handler.drain.Remove(conn)
+
 	job := conn.Request().FormValue(":job")
 	idStr := conn.Request().FormValue(":build")
 
@@ -70,6 +77,7 @@ func (handler *Handler) LogOutput(conn *websocket.Conn) {
 	logBuffer, found := handler.logs[job+"-"+idStr]
 	if !found {
 		logBuffer = logbuffer.NewLogBuffer()
+		handler.drain.Add(logBuffer)
 		handler.logs[job+"-"+idStr] = logBuffer
 	}
 	handler.logsMutex.Unlock()

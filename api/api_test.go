@@ -16,6 +16,7 @@ import (
 	ProleBuilds "github.com/winston-ci/prole/api/builds"
 
 	"github.com/winston-ci/winston/api"
+	"github.com/winston-ci/winston/api/drainer"
 	"github.com/winston-ci/winston/builds"
 	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/db"
@@ -29,13 +30,17 @@ var _ = Describe("API", func() {
 	var server *httptest.Server
 	var client *http.Client
 
+	var drain *drainer.Drainer
+
 	BeforeEach(func() {
 		redisRunner = redisrunner.NewRunner()
 		redisRunner.Start()
 
 		redis = db.NewRedis(redisRunner.Pool())
 
-		handler, err := api.New(redis)
+		drain = drainer.NewDrainer()
+
+		handler, err := api.New(redis, drain)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		server = httptest.NewServer(handler)
@@ -236,6 +241,43 @@ var _ = Describe("API", func() {
 			)
 		})
 
+		outputSink := func() *gbytes.Buffer {
+			outEndpoint := fmt.Sprintf(
+				"ws://%s/builds/%s/%d/log/output",
+				server.Listener.Addr().String(),
+				"some-job",
+				build.ID,
+			)
+
+			outConn, outResponse, err := websocket.DefaultDialer.Dial(outEndpoint, nil)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(outResponse.StatusCode).Should(Equal(http.StatusSwitchingProtocols))
+
+			buf := gbytes.NewBuffer()
+
+			go func() {
+				defer GinkgoRecover()
+
+				for {
+					typ, msg, err := outConn.ReadMessage()
+					if err == io.EOF {
+						break
+					}
+
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(typ).Should(Equal(websocket.TextMessage))
+
+					buf.Write(msg)
+				}
+
+				buf.Close()
+			}()
+
+			return buf
+		}
+
 		It("returns 101", func() {
 			conn, response, err := websocket.DefaultDialer.Dial(endpoint, nil)
 			Ω(err).ShouldNot(HaveOccurred())
@@ -243,6 +285,43 @@ var _ = Describe("API", func() {
 			defer conn.Close()
 
 			Ω(response.StatusCode).Should(Equal(http.StatusSwitchingProtocols))
+		})
+
+		Context("when draining", func() {
+			Context("and input is being consumed", func() {
+				var conn *websocket.Conn
+
+				BeforeEach(func() {
+					var err error
+					conn, _, err = websocket.DefaultDialer.Dial(endpoint, nil)
+					Ω(err).ShouldNot(HaveOccurred())
+				})
+
+				AfterEach(func() {
+					conn.Close()
+				})
+
+				Context("and draining starts", func() {
+					It("closes the connection", func(done Done) {
+						defer close(done)
+
+						drain.Drain()
+
+						_, _, err := conn.ReadMessage()
+						Ω(err).Should(HaveOccurred())
+					}, 1)
+				})
+			})
+
+			Context("and output is being consumed", func() {
+				It("closes the outgoing connection", func() {
+					output := outputSink()
+
+					drain.Drain()
+
+					Eventually(output.Closed).Should(BeTrue())
+				})
+			})
 		})
 
 		Context("when messages are written", func() {
@@ -265,43 +344,6 @@ var _ = Describe("API", func() {
 			AfterEach(func() {
 				conn.Close()
 			})
-
-			outputSink := func() *gbytes.Buffer {
-				outEndpoint := fmt.Sprintf(
-					"ws://%s/builds/%s/%d/log/output",
-					server.Listener.Addr().String(),
-					"some-job",
-					build.ID,
-				)
-
-				outConn, outResponse, err := websocket.DefaultDialer.Dial(outEndpoint, nil)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(outResponse.StatusCode).Should(Equal(http.StatusSwitchingProtocols))
-
-				buf := gbytes.NewBuffer()
-
-				go func() {
-					defer GinkgoRecover()
-
-					for {
-						typ, msg, err := outConn.ReadMessage()
-						if err == io.EOF {
-							break
-						}
-
-						Ω(err).ShouldNot(HaveOccurred())
-
-						Ω(typ).Should(Equal(websocket.TextMessage))
-
-						buf.Write(msg)
-					}
-
-					buf.Close()
-				}()
-
-				return buf
-			}
 
 			It("presents them to /builds/{job}/{id}/logs/output", func() {
 				Eventually(outputSink()).Should(gbytes.Say("hello1hello2\nhello3"))

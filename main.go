@@ -17,6 +17,7 @@ import (
 	proleroutes "github.com/winston-ci/prole/routes"
 
 	"github.com/winston-ci/winston/api"
+	"github.com/winston-ci/winston/api/drainer"
 	apiroutes "github.com/winston-ci/winston/api/routes"
 	"github.com/winston-ci/winston/builder"
 	"github.com/winston-ci/winston/config"
@@ -115,7 +116,9 @@ func main() {
 		fatal(err)
 	}
 
-	apiHandler, err := api.New(redisDB)
+	drainer := drainer.NewDrainer()
+
+	apiHandler, err := api.New(redisDB, drainer)
 	if err != nil {
 		fatal(err)
 	}
@@ -126,6 +129,12 @@ func main() {
 		"web":     http_server.New(*listenAddr, serverHandler),
 		"api":     http_server.New(*apiListenAddr, apiHandler),
 		"watcher": watcher.NewWatcher(conf.Jobs, conf.Resources, redisDB, proleEndpoint, watchman),
+		"drainer": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+			close(ready)
+			<-signals
+			drainer.Drain()
+			return nil
+		}),
 	})
 
 	running := ifrit.Envoke(sigmon.New(group))

@@ -6,13 +6,14 @@ import (
 	"code.google.com/p/go.net/websocket"
 	"github.com/tedsuo/router"
 
+	"github.com/winston-ci/winston/api/drainer"
 	"github.com/winston-ci/winston/api/handler"
 	"github.com/winston-ci/winston/api/routes"
 	"github.com/winston-ci/winston/db"
 )
 
-func New(db db.DB) (http.Handler, error) {
-	builds := handler.NewHandler(db)
+func New(db db.DB, drain *drainer.Drainer) (http.Handler, error) {
+	builds := handler.NewHandler(db, drain)
 
 	handlers := map[string]http.Handler{
 		routes.UpdateBuild: http.HandlerFunc(builds.UpdateBuild),
