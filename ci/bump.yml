@@ -1,0 +1,8 @@
+---
+image: nikhilv/docker-git
+
+script: |
+  cd room101/
+  git submodule update --remote
+  git add src/
+  ./scripts/commit_with_shortlog
