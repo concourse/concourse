@@ -10,7 +10,7 @@ env:
 
 script: |
   mkdir -p $(dirname $REPO_DIR)
-  ln -s smith $REPO_DIR
+  ln -s $PWD/smith $REPO_DIR
 
   cd $REPO_DIR
 
