@@ -51,7 +51,17 @@ func NewBuilder(
 func (builder *builder) Build(job config.Job, resourceOverrides ...config.Resource) (builds.Build, error) {
 	log.Println("creating build")
 
-	inputs, err := builder.computeInputs(job, config.Resources(resourceOverrides))
+	resources, err := builder.computeResources(job, config.Resources(resourceOverrides))
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	inputs, err := builder.computeInputs(job, resources)
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	outputs, err := builder.computeOutputs(job, resources)
 	if err != nil {
 		return builds.Build{}, err
 	}
@@ -94,7 +104,8 @@ func (builder *builder) Build(job config.Job, resourceOverrides ...config.Resour
 	proleBuild := ProleBuilds.Build{
 		Privileged: job.Privileged,
 
-		Inputs: inputs,
+		Inputs:  inputs,
+		Outputs: outputs,
 
 		Callback: complete.URL.String(),
 		LogsURL:  logs.URL.String(),
@@ -137,43 +148,105 @@ func (builder *builder) Build(job config.Job, resourceOverrides ...config.Resour
 	return build, nil
 }
 
-func (builder *builder) computeInputs(job config.Job, resourceOverrides config.Resources) ([]ProleBuilds.Input, error) {
-	proleInputs := []ProleBuilds.Input{}
+func (builder *builder) computeResources(job config.Job, resourceOverrides config.Resources) (config.Resources, error) {
+	resources := builder.resources
+
 	for _, input := range job.Inputs {
 		resource, found := resourceOverrides.Lookup(input.Resource)
+		if found {
+			resources = resources.UpdateResource(resource)
+			continue
+		}
+
+		resource, found = builder.resources.Lookup(input.Resource)
 		if !found {
-			resource, found = builder.resources.Lookup(input.Resource)
-			if !found {
-				return nil, fmt.Errorf("unknown resource: %s", input.Resource)
-			}
-
-			if input.Passed != nil {
-				outputs, err := builder.db.GetCommonOutputs(input.Passed, input.Resource)
-				if err != nil {
-					return nil, err
-				}
-
-				if len(outputs) == 0 {
-					return nil, fmt.Errorf("unsatisfied input: %s; depends on %v\n", input.Resource, input.Passed)
-				}
-
-				resource.Source = outputs[len(outputs)-1]
-			}
+			return nil, fmt.Errorf("unknown resource: %s", input.Resource)
 		}
 
-		proleInput := ProleBuilds.Input{
-			Type:   resource.Type,
-			Source: ProleBuilds.Source(resource.Source),
-
-			DestinationPath: resource.Name,
+		if input.Passed == nil {
+			continue
 		}
 
-		if filepath.HasPrefix(job.BuildConfigPath, resource.Name) {
-			proleInput.ConfigPath = job.BuildConfigPath[len(resource.Name)+1:]
+		outputs, err := builder.db.GetCommonOutputs(input.Passed, input.Resource)
+		if err != nil {
+			return nil, err
 		}
 
-		proleInputs = append(proleInputs, proleInput)
+		if len(outputs) == 0 {
+			return nil, fmt.Errorf("unsatisfied input: %s; depends on %v\n", input.Resource, input.Passed)
+		}
+
+		resource.Source = outputs[len(outputs)-1]
+
+		resources = resources.UpdateResource(resource)
+	}
+
+	return resources, nil
+}
+
+func (builder *builder) computeInputs(job config.Job, resources config.Resources) ([]ProleBuilds.Input, error) {
+	proleInputs := []ProleBuilds.Input{}
+
+	added := map[string]bool{}
+	for _, input := range job.Inputs {
+		resource, found := resources.Lookup(input.Resource)
+		if !found {
+			return nil, fmt.Errorf("unknown resource: %s", input.Resource)
+		}
+
+		proleInputs = append(proleInputs, builder.inputFor(job, resource))
+
+		added[input.Resource] = true
+	}
+
+	for _, output := range job.Outputs {
+		if added[output.Resource] {
+			continue
+		}
+
+		resource, found := resources.Lookup(output.Resource)
+		if !found {
+			return nil, fmt.Errorf("unknown resource: %s", output.Resource)
+		}
+
+		proleInputs = append(proleInputs, builder.inputFor(job, resource))
 	}
 
 	return proleInputs, nil
+}
+
+func (builder *builder) inputFor(job config.Job, resource config.Resource) ProleBuilds.Input {
+	proleInput := ProleBuilds.Input{
+		Type:   resource.Type,
+		Source: ProleBuilds.Source(resource.Source),
+
+		DestinationPath: resource.Name,
+	}
+
+	if filepath.HasPrefix(job.BuildConfigPath, resource.Name) {
+		proleInput.ConfigPath = job.BuildConfigPath[len(resource.Name)+1:]
+	}
+
+	return proleInput
+}
+
+func (builder *builder) computeOutputs(job config.Job, resources config.Resources) ([]ProleBuilds.Output, error) {
+	proleOutputs := []ProleBuilds.Output{}
+	for _, output := range job.Outputs {
+		resource, found := resources.Lookup(output.Resource)
+		if !found {
+			return nil, fmt.Errorf("unknown resource: %s", output.Resource)
+		}
+
+		proleOutput := ProleBuilds.Output{
+			Type:   resource.Type,
+			Params: ProleBuilds.Params(output.Params),
+
+			SourcePath: resource.Name,
+		}
+
+		proleOutputs = append(proleOutputs, proleOutput)
+	}
+
+	return proleOutputs, nil
 }

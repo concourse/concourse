@@ -46,7 +46,6 @@ var _ = Describe("Builder", func() {
 			Inputs: []config.Input{
 				{
 					Resource: "some-resource",
-					Passed:   nil,
 				},
 			},
 		}
@@ -101,6 +100,8 @@ var _ = Describe("Builder", func() {
 							ConfigPath:      "build.yml",
 						},
 					},
+
+					Outputs: []ProleBuilds.Output{},
 				}),
 				ghttp.RespondWith(201, ""),
 			),
@@ -135,6 +136,118 @@ var _ = Describe("Builder", func() {
 		Ω(build.ID).Should(Equal(2))
 	})
 
+	Context("when the build has outputs", func() {
+		BeforeEach(func() {
+			job.Outputs = []config.Output{
+				{
+					Resource: "some-resource",
+					Params:   config.Params(`{"foo":"bar"}`),
+				},
+			}
+		})
+
+		It("sends them along to the prole", func() {
+			proleServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/builds"),
+					ghttp.VerifyJSONRepresenting(ProleBuilds.Build{
+						Privileged: true,
+
+						Callback: "http://winston-server/builds/foo/1",
+						LogsURL:  "ws://winston-server/builds/foo/1/log/input",
+
+						Inputs: []ProleBuilds.Input{
+							{
+								Type: "git",
+
+								Source: ProleBuilds.Source(`{"uri":"git://example.com/foo/repo.git"}`),
+
+								DestinationPath: "some-resource",
+								ConfigPath:      "build.yml",
+							},
+						},
+
+						Outputs: []ProleBuilds.Output{
+							{
+								Type: "git",
+
+								Params: ProleBuilds.Params(`{"foo":"bar"}`),
+
+								SourcePath: "some-resource",
+							},
+						},
+					}),
+					ghttp.RespondWith(201, ""),
+				),
+			)
+
+			_, err := builder.Build(job)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		Context("and one of the outputs is not specified as an input", func() {
+			BeforeEach(func() {
+				job.Outputs = append(job.Outputs, config.Output{
+					Resource: "some-other-resource",
+					Params:   config.Params(`{"fizz":"buzz"}`),
+				})
+			})
+
+			It("is specified as an input with its default configuration", func() {
+				proleServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("POST", "/builds"),
+						ghttp.VerifyJSONRepresenting(ProleBuilds.Build{
+							Privileged: true,
+
+							Callback: "http://winston-server/builds/foo/1",
+							LogsURL:  "ws://winston-server/builds/foo/1/log/input",
+
+							Inputs: []ProleBuilds.Input{
+								{
+									Type: "git",
+
+									Source: ProleBuilds.Source(`{"uri":"git://example.com/foo/repo.git"}`),
+
+									DestinationPath: "some-resource",
+									ConfigPath:      "build.yml",
+								},
+								{
+									Type: "git",
+
+									Source: ProleBuilds.Source(`{"uri":"git://example.com/bar/repo.git"}`),
+
+									DestinationPath: "some-other-resource",
+								},
+							},
+
+							Outputs: []ProleBuilds.Output{
+								{
+									Type: "git",
+
+									Params: ProleBuilds.Params(`{"foo":"bar"}`),
+
+									SourcePath: "some-resource",
+								},
+								{
+									Type: "git",
+
+									Params: ProleBuilds.Params(`{"fizz":"buzz"}`),
+
+									SourcePath: "some-other-resource",
+								},
+							},
+						}),
+						ghttp.RespondWith(201, ""),
+					),
+				)
+
+				_, err := builder.Build(job)
+				Ω(err).ShouldNot(HaveOccurred())
+			})
+		})
+	})
+
 	Context("when resource overrides are specified", func() {
 		It("uses them for the build's inputs", func() {
 			proleServer.AppendHandlers(
@@ -156,6 +269,8 @@ var _ = Describe("Builder", func() {
 								ConfigPath:      "build.yml",
 							},
 						},
+
+						Outputs: []ProleBuilds.Output{},
 					}),
 					ghttp.RespondWith(201, ""),
 				),
@@ -214,6 +329,8 @@ var _ = Describe("Builder", func() {
 									DestinationPath: "some-dependant-resource",
 								},
 							},
+
+							Outputs: []ProleBuilds.Output{},
 						}),
 						ghttp.RespondWith(201, ""),
 					),
@@ -237,6 +354,19 @@ var _ = Describe("Builder", func() {
 	Context("when the job's input is not found", func() {
 		BeforeEach(func() {
 			job.Inputs = append(job.Inputs, config.Input{
+				Resource: "some-bogus-resource",
+			})
+		})
+
+		It("returns an error", func() {
+			_, err := builder.Build(job)
+			Ω(err).Should(HaveOccurred())
+		})
+	})
+
+	Context("when the job's output is not found", func() {
+		BeforeEach(func() {
+			job.Outputs = append(job.Outputs, config.Output{
 				Resource: "some-bogus-resource",
 			})
 		})
