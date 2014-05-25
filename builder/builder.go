@@ -217,9 +217,9 @@ func (builder *builder) computeInputs(job config.Job, resources config.Resources
 
 func (builder *builder) inputFor(job config.Job, resource config.Resource) ProleBuilds.Input {
 	proleInput := ProleBuilds.Input{
-		Type:   resource.Type,
-		Source: ProleBuilds.Source(resource.Source),
-
+		Name:            resource.Name,
+		Type:            resource.Type,
+		Source:          ProleBuilds.Source(resource.Source),
 		DestinationPath: resource.Name,
 	}
 
@@ -239,9 +239,9 @@ func (builder *builder) computeOutputs(job config.Job, resources config.Resource
 		}
 
 		proleOutput := ProleBuilds.Output{
-			Type:   resource.Type,
-			Params: ProleBuilds.Params(output.Params),
-
+			Name:       resource.Name,
+			Type:       resource.Type,
+			Params:     ProleBuilds.Params(output.Params),
 			SourcePath: resource.Name,
 		}
 

@@ -92,10 +92,9 @@ var _ = Describe("Builder", func() {
 
 					Inputs: []ProleBuilds.Input{
 						{
-							Type: "git",
-
-							Source: ProleBuilds.Source(`{"uri":"git://example.com/foo/repo.git"}`),
-
+							Name:            "some-resource",
+							Type:            "git",
+							Source:          ProleBuilds.Source(`{"uri":"git://example.com/foo/repo.git"}`),
 							DestinationPath: "some-resource",
 							ConfigPath:      "build.yml",
 						},
@@ -158,10 +157,9 @@ var _ = Describe("Builder", func() {
 
 						Inputs: []ProleBuilds.Input{
 							{
-								Type: "git",
-
-								Source: ProleBuilds.Source(`{"uri":"git://example.com/foo/repo.git"}`),
-
+								Name:            "some-resource",
+								Type:            "git",
+								Source:          ProleBuilds.Source(`{"uri":"git://example.com/foo/repo.git"}`),
 								DestinationPath: "some-resource",
 								ConfigPath:      "build.yml",
 							},
@@ -169,10 +167,9 @@ var _ = Describe("Builder", func() {
 
 						Outputs: []ProleBuilds.Output{
 							{
-								Type: "git",
-
-								Params: ProleBuilds.Params(`{"foo":"bar"}`),
-
+								Name:       "some-resource",
+								Type:       "git",
+								Params:     ProleBuilds.Params(`{"foo":"bar"}`),
 								SourcePath: "some-resource",
 							},
 						},
@@ -205,35 +202,31 @@ var _ = Describe("Builder", func() {
 
 							Inputs: []ProleBuilds.Input{
 								{
-									Type: "git",
-
-									Source: ProleBuilds.Source(`{"uri":"git://example.com/foo/repo.git"}`),
-
+									Name:            "some-resource",
+									Type:            "git",
+									Source:          ProleBuilds.Source(`{"uri":"git://example.com/foo/repo.git"}`),
 									DestinationPath: "some-resource",
 									ConfigPath:      "build.yml",
 								},
 								{
-									Type: "git",
-
-									Source: ProleBuilds.Source(`{"uri":"git://example.com/bar/repo.git"}`),
-
+									Name:            "some-other-resource",
+									Type:            "git",
+									Source:          ProleBuilds.Source(`{"uri":"git://example.com/bar/repo.git"}`),
 									DestinationPath: "some-other-resource",
 								},
 							},
 
 							Outputs: []ProleBuilds.Output{
 								{
-									Type: "git",
-
-									Params: ProleBuilds.Params(`{"foo":"bar"}`),
-
+									Name:       "some-resource",
+									Type:       "git",
+									Params:     ProleBuilds.Params(`{"foo":"bar"}`),
 									SourcePath: "some-resource",
 								},
 								{
-									Type: "git",
-
-									Params: ProleBuilds.Params(`{"fizz":"buzz"}`),
-
+									Name:       "some-other-resource",
+									Type:       "git",
+									Params:     ProleBuilds.Params(`{"fizz":"buzz"}`),
 									SourcePath: "some-other-resource",
 								},
 							},
@@ -261,10 +254,9 @@ var _ = Describe("Builder", func() {
 
 						Inputs: []ProleBuilds.Input{
 							{
-								Type: "git",
-
-								Source: ProleBuilds.Source(`{"uri":"some-overridden-uri"}`),
-
+								Name:            "some-resource",
+								Type:            "git",
+								Source:          ProleBuilds.Source(`{"uri":"some-overridden-uri"}`),
 								DestinationPath: "some-resource",
 								ConfigPath:      "build.yml",
 							},
@@ -314,18 +306,16 @@ var _ = Describe("Builder", func() {
 
 							Inputs: []ProleBuilds.Input{
 								{
-									Type: "git",
-
-									Source: ProleBuilds.Source(`{"uri":"git://example.com/foo/repo.git"}`),
-
+									Name:            "some-resource",
+									Type:            "git",
+									Source:          ProleBuilds.Source(`{"uri":"git://example.com/foo/repo.git"}`),
 									DestinationPath: "some-resource",
 									ConfigPath:      "build.yml",
 								},
 								{
-									Type: "git",
-
-									Source: ProleBuilds.Source("1"),
-
+									Name:            "some-dependant-resource",
+									Type:            "git",
+									Source:          ProleBuilds.Source("1"),
 									DestinationPath: "some-dependant-resource",
 								},
 							},

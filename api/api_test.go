@@ -68,14 +68,14 @@ var _ = Describe("API", func() {
 			proleBuild = ProleBuilds.Build{
 				Inputs: []ProleBuilds.Input{
 					{
-						Type:            "git",
-						Source:          source1,
-						DestinationPath: "some-input",
+						Name:   "some-input",
+						Type:   "git",
+						Source: source1,
 					},
 					{
-						Type:            "git",
-						Source:          source2,
-						DestinationPath: "some-other-input",
+						Name:   "some-other-input",
+						Type:   "git",
+						Source: source2,
 					},
 				},
 			}
@@ -109,7 +109,6 @@ var _ = Describe("API", func() {
 			})
 
 			It("saves each input's current source", func() {
-				// XXX hack: identifying by destination path...
 				source, err := redis.GetCurrentSource("some-job", "some-input")
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(source).Should(Equal(config.Source(source1)))
@@ -123,6 +122,21 @@ var _ = Describe("API", func() {
 		Context("with status 'succeeded'", func() {
 			BeforeEach(func() {
 				proleBuild.Status = ProleBuilds.StatusSucceeded
+
+				proleBuild.Outputs = []ProleBuilds.Output{
+					{
+						Name: "some-output",
+
+						Type:   "git",
+						Source: ProleBuilds.Source("123"),
+					},
+					{
+						Name: "some-other-output",
+
+						Type:   "git",
+						Source: ProleBuilds.Source("456"),
+					},
+				}
 			})
 
 			It("updates the build's status", func() {
@@ -142,15 +156,14 @@ var _ = Describe("API", func() {
 				Ω(err).Should(HaveOccurred())
 			})
 
-			It("saves each input's output source", func() {
-				// XXX hack: identifying by destination path...
-				sources, err := redis.GetCommonOutputs([]string{"some-job"}, "some-input")
+			It("saves each output source", func() {
+				sources, err := redis.GetCommonOutputs([]string{"some-job"}, "some-output")
 				Ω(err).ShouldNot(HaveOccurred())
-				Ω(sources).Should(Equal([]config.Source{config.Source(source1)}))
+				Ω(sources).Should(Equal([]config.Source{config.Source("123")}))
 
-				sources, err = redis.GetCommonOutputs([]string{"some-job"}, "some-other-input")
+				sources, err = redis.GetCommonOutputs([]string{"some-job"}, "some-other-output")
 				Ω(err).ShouldNot(HaveOccurred())
-				Ω(sources).Should(Equal([]config.Source{config.Source(source2)}))
+				Ω(sources).Should(Equal([]config.Source{config.Source("456")}))
 			})
 		})
 

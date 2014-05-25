@@ -58,17 +58,15 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 	switch build.Status {
 	case ProleBuilds.StatusStarted:
 		for _, input := range build.Inputs {
-			// XXX hack: identifying by destination path...
-			err := handler.db.SaveCurrentSource(job, input.DestinationPath, config.Source(input.Source))
+			err := handler.db.SaveCurrentSource(job, input.Name, config.Source(input.Source))
 			if err != nil {
 				log.Println("error saving source:", err)
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 		}
 	case ProleBuilds.StatusSucceeded:
-		for _, input := range build.Inputs {
-			// XXX hack: identifying by destination path...
-			err := handler.db.SaveOutputSource(job, id, input.DestinationPath, config.Source(input.Source))
+		for _, output := range build.Outputs {
+			err := handler.db.SaveOutputSource(job, id, output.Name, config.Source(output.Source))
 			if err != nil {
 				log.Println("error saving source:", err)
 				w.WriteHeader(http.StatusInternalServerError)
