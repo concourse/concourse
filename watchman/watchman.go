@@ -1,6 +1,7 @@
 package watchman
 
 import (
+	"sync"
 	"time"
 
 	"github.com/winston-ci/winston/builder"
@@ -14,16 +15,24 @@ type Watchman interface {
 		resource config.Resource,
 		checker resources.Checker,
 		interval time.Duration,
-	) (stop chan<- struct{})
+	)
+
+	Stop()
 }
 
 type watchman struct {
 	builder builder.Builder
+
+	stop     chan struct{}
+	watching *sync.WaitGroup
 }
 
 func NewWatchman(builder builder.Builder) Watchman {
 	return &watchman{
 		builder: builder,
+
+		stop:     make(chan struct{}),
+		watching: new(sync.WaitGroup),
 	}
 }
 
@@ -32,15 +41,17 @@ func (watchman *watchman) Watch(
 	resource config.Resource,
 	checker resources.Checker,
 	interval time.Duration,
-) chan<- struct{} {
-	stop := make(chan struct{})
+) {
+	watchman.watching.Add(1)
 
 	go func() {
+		defer watchman.watching.Done()
+
 		ticker := time.NewTicker(interval)
 
 		for {
 			select {
-			case <-stop:
+			case <-watchman.stop:
 				return
 			case <-ticker.C:
 				for _, resource = range checker.CheckResource(resource) {
@@ -49,6 +60,9 @@ func (watchman *watchman) Watch(
 			}
 		}
 	}()
+}
 
-	return stop
+func (watchman *watchman) Stop() {
+	close(watchman.stop)
+	watchman.watching.Wait()
 }

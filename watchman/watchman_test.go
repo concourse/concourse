@@ -21,8 +21,6 @@ var _ = Describe("Watchman", func() {
 	var checker *fakechecker.FakeChecker
 	var interval time.Duration
 
-	var stop chan<- struct{}
-
 	BeforeEach(func() {
 		builder = fakebuilder.New()
 
@@ -48,18 +46,18 @@ var _ = Describe("Watchman", func() {
 	})
 
 	JustBeforeEach(func() {
-		stop = watchman.Watch(job, resource, checker, interval)
+		watchman.Watch(job, resource, checker, interval)
 	})
 
 	AfterEach(func() {
-		close(stop)
+		watchman.Stop()
 	})
 
 	Context("when watching", func() {
 		var times chan time.Time
 
 		BeforeEach(func() {
-			times = make(chan time.Time)
+			times = make(chan time.Time, 100)
 
 			checker.WhenCheckingResource = func(config.Resource) []config.Resource {
 				times <- time.Now()
@@ -83,7 +81,7 @@ var _ = Describe("Watchman", func() {
 			var nextResources []config.Resource
 
 			BeforeEach(func() {
-				checkedFrom = make(chan config.Resource)
+				checkedFrom = make(chan config.Resource, 100)
 
 				nextResources = []config.Resource{
 					{Name: "some-resource", Type: "git", Source: config.Source("1")},
@@ -110,8 +108,6 @@ var _ = Describe("Watchman", func() {
 			})
 
 			It("builds the job with the changed source", func() {
-				Eventually(checkedFrom).Should(Receive())
-
 				Eventually(builder.Built).Should(ContainElement(fakebuilder.BuiltSpec{
 					Job: job,
 					ResourceOverrides: []config.Resource{

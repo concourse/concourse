@@ -4,12 +4,15 @@ import (
 	"errors"
 	"flag"
 	"log"
-	"net/http"
 	"os"
 	"time"
 
 	"github.com/fraenkel/candiedyaml"
 	"github.com/garyburd/redigo/redis"
+	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/grouper"
+	"github.com/tedsuo/ifrit/http_server"
+	"github.com/tedsuo/ifrit/sigmon"
 	"github.com/tedsuo/router"
 	proleroutes "github.com/winston-ci/prole/routes"
 
@@ -18,8 +21,8 @@ import (
 	"github.com/winston-ci/winston/builder"
 	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/db"
-	"github.com/winston-ci/winston/resources"
 	"github.com/winston-ci/winston/server"
+	"github.com/winston-ci/winston/watcher"
 	"github.com/winston-ci/winston/watchman"
 )
 
@@ -117,44 +120,26 @@ func main() {
 		fatal(err)
 	}
 
-	errs := make(chan error, 2)
+	watchman := watchman.NewWatchman(builder)
 
-	go func() {
-		log.Println("serving web on", *listenAddr)
-		errs <- http.ListenAndServe(*listenAddr, serverHandler)
-	}()
+	group := grouper.EnvokeGroup(grouper.RunGroup{
+		"web":     http_server.New(*listenAddr, serverHandler),
+		"api":     http_server.New(*apiListenAddr, apiHandler),
+		"watcher": watcher.NewWatcher(conf.Jobs, conf.Resources, redisDB, proleEndpoint, watchman),
+	})
 
-	go func() {
-		log.Println("serving api on", *apiListenAddr)
-		errs <- http.ListenAndServe(*apiListenAddr, apiHandler)
-	}()
+	running := ifrit.Envoke(sigmon.New(group))
 
-	watcher := watchman.NewWatchman(builder)
+	log.Println("serving web on", *listenAddr)
+	log.Println("serving api on", *apiListenAddr)
 
-	for _, job := range conf.Jobs {
-		for _, input := range job.Inputs {
-			resource, found := conf.Resources.Lookup(input.Resource)
-			if !found {
-				log.Fatalln("unknown resource:", input.Resource)
-			}
-
-			current, err := redisDB.GetCurrentSource(job.Name, input.Resource)
-			if err == nil {
-				resource.Source = config.Source(current)
-			}
-
-			var checker resources.Checker
-			if len(input.Passed) == 0 {
-				checker = resources.NewProleChecker(proleEndpoint)
-			} else {
-				checker = resources.NewWinstonChecker(redisDB, input.Passed)
-			}
-
-			watcher.Watch(job, resource, checker, time.Minute)
-		}
+	err = <-running.Wait()
+	if err != nil {
+		log.Println("exited with error:", err)
+		os.Exit(1)
 	}
 
-	fatal(<-errs)
+	log.Println("exited")
 }
 
 func fatal(err error) {
