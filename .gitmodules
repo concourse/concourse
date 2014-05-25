@@ -1,18 +1,20 @@
 [submodule "src/prole"]
 	path = src/prole
 	url = https://github.com/winston-ci/prole.git
+  branch = master
 [submodule "src/redgreen"]
 	path = src/redgreen
 	url = https://github.com/winston-ci/redgreen.git
-[submodule "src/loggregator"]
-	path = src/loggregator
-	url = https://github.com/cloudfoundry/loggregator.git
+  branch = master
 [submodule "src/winston"]
 	path = src/winston
 	url = https://github.com/winston-ci/winston.git
+  branch = master
 [submodule "src/redis"]
 	path = src/redis
-	url = https://github.com/antirez/redis
+	url = https://github.com/antirez/redis.git
+  branch = unstable
 [submodule "src/warden-linux"]
 	path = src/warden-linux
 	url = https://github.com/cloudfoundry-incubator/warden-linux.git
+  branch = master
