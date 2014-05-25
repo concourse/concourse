@@ -2,7 +2,28 @@
 image: nikhilv/docker-git
 
 script: |
+  set -e -x
+
+  export WINSTON_SHA=$(cd src/winston/ && git rev-parse HEAD)
+  export REDGREEN_SHA=$(cd src/redgreen/ && git rev-parse HEAD)
+  export PROLE_SHA=$(cd src/prole/ && git rev-parse HEAD)
+
   cd room101/
+
   git submodule update --remote
+
+  pushd src/winston/
+    git checkout $WINSTON_SHA
+  popd
+
+  pushd src/redgreen/
+    git checkout $REDGREEN_SHA
+  popd
+
+  pushd src/prole/
+    git checkout $PROLE_SHA
+  popd
+
   git add src/
+
   ./scripts/commit_with_shortlog
