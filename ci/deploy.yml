@@ -1,0 +1,19 @@
+---
+image: winston/room101-ci
+
+script: |
+  source ./deployments/sandbox/bosh_environment
+
+  set -e -x
+
+  cd room101/
+
+  ./generate_deployment_manifest aws ../deployments/sandbox/stubs/*.yml > aws-deployment.yml
+
+  bosh deployment aws-deployment.yml
+
+  echo room101 | bosh create release
+
+  bosh -n upload release --rebase --skip-if-exists
+
+  yes yes | bosh deploy
