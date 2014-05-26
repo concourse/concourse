@@ -144,8 +144,7 @@ func main() {
 
 	err = <-running.Wait()
 	if err != nil {
-		log.Println("exited with error:", err)
-		os.Exit(1)
+		fatal(err)
 	}
 
 	log.Println("exited")
