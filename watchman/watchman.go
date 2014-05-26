@@ -57,14 +57,14 @@ func (watchman *watchman) Watch(
 			case <-watchman.stop:
 				return
 			case <-ticker.C:
-				log.Println("checking for sources for", resource)
+				log.Printf("checking for sources via %T from %s\n", checker, resource)
 
 				resources := checker.CheckResource(resource)
 				if len(resources) == 0 {
 					break
 				}
 
-				log.Printf("found %d sources via %T", len(resources))
+				log.Printf("found %d sources via %T", len(resources), checker)
 
 				resource = resources[len(resources)-1]
 
