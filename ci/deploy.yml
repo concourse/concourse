@@ -5,13 +5,15 @@ env:
   - PATH=/usr/local/bin:$PATH
 
 script: |
-  source ./deployments/sandbox/bosh_environment
+  set -e
 
-  set -e -x
+  source ./deployments/sandbox/bosh_environment
 
   cd room101/
 
   ./generate_deployment_manifest aws ../deployments/sandbox/stubs/*.yml > aws-deployment.yml
+
+  bosh target ${BOSH_TARGET}
 
   bosh deployment aws-deployment.yml
 
