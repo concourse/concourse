@@ -1,6 +1,7 @@
 package watchman
 
 import (
+	"log"
 	"sync"
 	"time"
 
@@ -56,16 +57,23 @@ func (watchman *watchman) Watch(
 			case <-watchman.stop:
 				return
 			case <-ticker.C:
+				log.Println("checking for sources for", resource)
+
 				resources := checker.CheckResource(resource)
 				if len(resources) == 0 {
 					break
 				}
 
+				log.Printf("found %d sources via %T", len(resources))
+
+				resource = resources[len(resources)-1]
+
 				if latestOnly {
-					resource = resources[len(resources)-1]
+					log.Printf("triggering latest via %T: %s\n", checker, resource)
 					watchman.builder.Build(job, resource)
 				} else {
-					for _, resource = range resources {
+					for i, resource := range resources {
+						log.Printf("triggering %d of %d via %T: %s\n", i+1, len(resources), checker, resource)
 						watchman.builder.Build(job, resource)
 					}
 				}
