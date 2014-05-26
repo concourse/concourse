@@ -1,0 +1,25 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -x
+
+pidfile=/var/vcap/sys/run/prole/prole.pid
+logfile=/var/vcap/sys/log/prole/drain.log
+
+mkdir -p $(dirname $logfile)
+
+if [ ! -f $pidfile ]; then
+  echo "$(date): pidfile does not exist" >> $logfile
+  echo 0
+  exit 0
+fi
+
+pid=$(cat $pidfile)
+
+if kill $pid; then
+  echo "$(date): triggering drain" >> $logfile
+  echo -5
+else
+  echo "$(date): prole exited" >> $logfile
+  echo 0
+fi

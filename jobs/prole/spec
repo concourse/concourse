@@ -2,6 +2,7 @@
 name: prole
 
 templates:
+  drain: bin/drain
   prole_ctl.erb: bin/prole_ctl
 
 packages:
