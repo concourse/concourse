@@ -1,9 +1,10 @@
 ---
 image: winston/room101-ci
 
-script: |
-  find .
+env:
+  - PATH=/usr/local/bin:$PATH
 
+script: |
   source ./deployments/sandbox/bosh_environment
 
   set -e -x
