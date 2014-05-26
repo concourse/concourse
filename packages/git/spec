@@ -1,5 +1,0 @@
----
-name: git
-
-files:
-  - git/git-1.9.3.tar.gz

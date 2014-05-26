@@ -1,24 +1,9 @@
 ---
-git/git-1.7.11.2.tar.gz:
-  object_id: ca8a411f-8858-4989-8891-d7efe7805e86
-  sha: !binary |-
-    ZjY3YjRmNmMwMjc3MjUwNDExYzY4NzJhZTdiOGE4NzJhZTExZDMxMw==
-  size: 4015780
-golang_1.2/go1.2.linux-amd64.tar.gz:
-  object_id: 58ea167d-6e09-4fee-ab01-1629f8039e46
-  sha: !binary |-
-    NjY0ZTUwMjVlYWU5MTQxMmE5NmExMGY0ZWQxYThhZjZmMGYzMmI3ZA==
-  size: 55966325
 aufs/aufs-tools_20110410-1_amd64.deb:
   object_id: 79ed3b90-6be7-48fb-9d86-6d22a336d946
   sha: !binary |-
     NmYyMDIzMDhmNTc4ZGU3ZWE1NGZjMmRkMGI0NGI2NjY4MDRmOWJhNg==
   size: 98338
-git/git-1.9.3.tar.gz:
-  object_id: 587700c0-08f4-4d03-b3f6-19d5d1f53f47
-  sha: !binary |-
-    ODMwNjMwNWM0ZDM5YWM0ZmMwN2M5Y2YzNDMyNDFmMTJmN2I2OWRmMg==
-  size: 4846233
 golang_1.2/go1.2.2.linux-amd64.tar.gz:
   object_id: 6c89860c-bf0e-4e88-bebd-083d88cce2ba
   sha: !binary |-

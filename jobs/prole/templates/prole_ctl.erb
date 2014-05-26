@@ -16,8 +16,6 @@ case $1 in
 
     echo $$ > /var/vcap/sys/run/prole/prole.pid
 
-    export PATH=/var/vcap/packages/git/bin:$PATH
-
     exec /var/vcap/packages/prole/bin/prole \
       -listenAddr=<%= p("prole.listen_address") %> \
       -wardenNetwork=<%= p("prole.warden.network") %> \

@@ -7,7 +7,6 @@ templates:
 
 packages:
   - pid_utils
-  - git
   - prole
 
 properties:
