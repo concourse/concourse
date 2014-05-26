@@ -24,8 +24,9 @@ type Job struct {
 }
 
 type Input struct {
-	Resource string   `yaml:"resource"`
-	Passed   []string `yaml:"passed"`
+	Resource   string   `yaml:"resource"`
+	Passed     []string `yaml:"passed"`
+	LatestOnly bool     `yaml:"latest_only"`
 }
 
 type Output struct {

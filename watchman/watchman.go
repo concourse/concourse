@@ -14,6 +14,7 @@ type Watchman interface {
 		job config.Job,
 		resource config.Resource,
 		checker resources.Checker,
+		latestOnly bool,
 		interval time.Duration,
 	)
 
@@ -40,6 +41,7 @@ func (watchman *watchman) Watch(
 	job config.Job,
 	resource config.Resource,
 	checker resources.Checker,
+	latestOnly bool,
 	interval time.Duration,
 ) {
 	watchman.watching.Add(1)
@@ -54,8 +56,18 @@ func (watchman *watchman) Watch(
 			case <-watchman.stop:
 				return
 			case <-ticker.C:
-				for _, resource = range checker.CheckResource(resource) {
+				resources := checker.CheckResource(resource)
+				if len(resources) == 0 {
+					break
+				}
+
+				if latestOnly {
+					resource = resources[len(resources)-1]
 					watchman.builder.Build(job, resource)
+				} else {
+					for _, resource = range resources {
+						watchman.builder.Build(job, resource)
+					}
 				}
 			}
 		}

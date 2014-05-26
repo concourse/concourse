@@ -56,7 +56,7 @@ func (watcher Watcher) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 				checker = resources.NewWinstonChecker(watcher.db, input.Passed)
 			}
 
-			watcher.watchman.Watch(job, resource, checker, time.Minute)
+			watcher.watchman.Watch(job, resource, checker, input.LatestOnly, time.Minute)
 		}
 	}
 

@@ -19,6 +19,7 @@ var _ = Describe("Watchman", func() {
 	var job config.Job
 	var resource config.Resource
 	var checker *fakechecker.FakeChecker
+	var latestOnly bool
 	var interval time.Duration
 
 	BeforeEach(func() {
@@ -42,11 +43,12 @@ var _ = Describe("Watchman", func() {
 		}
 
 		checker = fakechecker.New()
+		latestOnly = false
 		interval = 100 * time.Millisecond
 	})
 
 	JustBeforeEach(func() {
-		watchman.Watch(job, resource, checker, interval)
+		watchman.Watch(job, resource, checker, latestOnly, interval)
 	})
 
 	AfterEach(func() {
@@ -140,6 +142,27 @@ var _ = Describe("Watchman", func() {
 						},
 					},
 				}))
+			})
+
+			Context("when configured to only build the latest sources", func() {
+				BeforeEach(func() {
+					latestOnly = true
+				})
+
+				It("only builds the latest source", func() {
+					Eventually(builder.Built).Should(ContainElement(fakebuilder.BuiltSpec{
+						Job: job,
+						ResourceOverrides: []config.Resource{
+							{
+								Name:   "some-resource",
+								Type:   "git",
+								Source: config.Source(`3`),
+							},
+						},
+					}))
+
+					Consistently(builder.Built).Should(HaveLen(1))
+				})
 			})
 		})
 
