@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"sort"
 
 	"github.com/winston-ci/winston/builds"
 	"github.com/winston-ci/winston/config"
@@ -36,16 +37,18 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	builds, err := handler.db.Builds(job.Name)
+	bs, err := handler.db.Builds(job.Name)
 	if err != nil {
 		log.Println("failed to get builds:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
+	sort.Sort(sort.Reverse(builds.ByID(bs)))
+
 	err = handler.template.Execute(w, TemplateData{
 		Job:    job,
-		Builds: builds,
+		Builds: bs,
 	})
 	if err != nil {
 		log.Println("failed to execute template:", err)

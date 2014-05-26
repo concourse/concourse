@@ -49,7 +49,7 @@ func New(
 	}
 
 	handlers := map[string]http.Handler{
-		routes.Index:        index.NewHandler(config.Jobs, indexTemplate),
+		routes.Index:        index.NewHandler(config.Jobs, db, indexTemplate),
 		routes.GetJob:       getjob.NewHandler(config.Jobs, db, jobTemplate),
 		routes.GetBuild:     getbuild.NewHandler(config.Jobs, db, buildTemplate),
 		routes.TriggerBuild: triggerbuild.NewHandler(config.Jobs, builder),

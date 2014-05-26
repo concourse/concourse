@@ -3,14 +3,14 @@
 {{define "body"}}
 <h1>{{.Job.Name}}</h1>
 
-<form method="post" action="{{url "TriggerBuild" .Job}}">
+<form class="trigger-build" method="post" action="{{url "TriggerBuild" .Job}}">
   <input type="submit" value="trigger build" />
 </form>
 
-<ul>
+<ul class="builds">
   {{$job := .Job}}
   {{range .Builds}}
-  <li><a href="{{url "GetBuild" $job .}}">{{.ID}}</a></li>
+  <li class="{{.Status}}"><a href="{{url "GetBuild" $job .}}">{{.ID}}</a></li>
   {{end}}
 </ul>
 {{end}}

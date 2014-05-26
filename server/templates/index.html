@@ -1,9 +1,9 @@
 {{define "title"}}Winston{{end}}
 
 {{define "body"}}
-<ul>
+<ul class="jobs">
   {{range .Jobs}}
-  <li><a href="{{url "GetJob" .}}">{{.Name}}</a></li>
+  <li class="{{.CurrentBuild.Status}}"><a href="{{url "GetJob" .Job}}">{{.Job.Name}}</a></li>
   {{end}}
 </ul>
 {{end}}

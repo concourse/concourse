@@ -51,6 +51,10 @@ var _ = Describe("RedisDB", func() {
 		Ω(build.ID).Should(Equal(1))
 		Ω(build.Status).Should(Equal(Builds.StatusStarted))
 
+		build, err = db.GetCurrentBuild("some-job")
+		Ω(build.ID).Should(Equal(1))
+		Ω(build.Status).Should(Equal(Builds.StatusStarted))
+
 		_, err = db.BuildLog("some-job", 1)
 		Ω(err).Should(HaveOccurred())
 

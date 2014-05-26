@@ -52,7 +52,7 @@ func (db *redisDB) CreateBuild(job string) (builds.Build, error) {
 	conn := db.pool.Get()
 	defer conn.Close()
 
-	id, err := redis.Int(conn.Do("INCR", "next_build_id:"+job))
+	id, err := redis.Int(conn.Do("INCR", "current_build_id:"+job))
 	if err != nil {
 		return builds.Build{}, err
 	}
@@ -77,6 +77,18 @@ func (db *redisDB) CreateBuild(job string) (builds.Build, error) {
 		ID:     id,
 		Status: builds.StatusPending,
 	}, nil
+}
+
+func (db *redisDB) GetCurrentBuild(job string) (builds.Build, error) {
+	conn := db.pool.Get()
+	defer conn.Close()
+
+	id, err := redis.Int(conn.Do("GET", "current_build_id:"+job))
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	return db.GetBuild(job, id)
 }
 
 func (db *redisDB) SaveBuildStatus(job string, id int, status builds.Status) (builds.Build, error) {
