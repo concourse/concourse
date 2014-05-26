@@ -2,6 +2,8 @@
 image: winston/room101-ci
 
 script: |
+  find .
+
   source ./deployments/sandbox/bosh_environment
 
   set -e -x
