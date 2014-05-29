@@ -63,6 +63,15 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 				log.Println("error saving source:", err)
 				w.WriteHeader(http.StatusInternalServerError)
 			}
+
+			err = handler.db.SaveBuildInput(job, id, builds.Input{
+				Name:   input.Name,
+				Source: config.Source(input.Source),
+			})
+			if err != nil {
+				log.Println("error saving input:", err)
+				w.WriteHeader(http.StatusInternalServerError)
+			}
 		}
 	case ProleBuilds.StatusSucceeded:
 		for _, output := range build.Outputs {

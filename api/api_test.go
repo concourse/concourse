@@ -113,6 +113,22 @@ var _ = Describe("API", func() {
 				Ω(updatedBuild.Status).Should(Equal(builds.StatusStarted))
 			})
 
+			It("saves the build's inputs", func() {
+				updatedBuild, err := redis.GetBuild("some-job", build.ID)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(updatedBuild.Inputs).Should(Equal([]builds.Input{
+					{
+						Name:   "some-input",
+						Source: config.Source(source1),
+					},
+					{
+						Name:   "some-other-input",
+						Source: config.Source(source2),
+					},
+				}))
+			})
+
 			It("saves each input's current source", func() {
 				source, err := redis.GetCurrentSource("some-job", "some-input")
 				Ω(err).ShouldNot(HaveOccurred())
