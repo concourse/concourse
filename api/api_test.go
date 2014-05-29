@@ -81,6 +81,10 @@ var _ = Describe("API", func() {
 						Name:   "some-other-input",
 						Type:   "git",
 						Source: source2,
+						Metadata: []ProleBuilds.MetadataField{
+							{Name: "meta1", Value: "value1"},
+							{Name: "meta2", Value: "value2"},
+						},
 					},
 				},
 			}
@@ -125,6 +129,10 @@ var _ = Describe("API", func() {
 					{
 						Name:   "some-other-input",
 						Source: config.Source(source2),
+						Metadata: []builds.MetadataField{
+							{Name: "meta1", Value: "value1"},
+							{Name: "meta2", Value: "value2"},
+						},
 					},
 				}))
 			})

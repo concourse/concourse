@@ -64,10 +64,7 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 
-			err = handler.db.SaveBuildInput(job, id, builds.Input{
-				Name:   input.Name,
-				Source: config.Source(input.Source),
-			})
+			err = handler.db.SaveBuildInput(job, id, buildInputFrom(input))
 			if err != nil {
 				log.Println("error saving input:", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -84,4 +81,20 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func buildInputFrom(input ProleBuilds.Input) builds.Input {
+	metadata := make([]builds.MetadataField, len(input.Metadata))
+	for i, md := range input.Metadata {
+		metadata[i] = builds.MetadataField{
+			Name:  md.Name,
+			Value: md.Value,
+		}
+	}
+
+	return builds.Input{
+		Name:     input.Name,
+		Source:   config.Source(input.Source),
+		Metadata: metadata,
+	}
 }
