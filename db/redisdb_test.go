@@ -121,8 +121,16 @@ var _ = Describe("RedisDB", func() {
 		err = db.SaveBuildInput("some-job", build.ID, input1)
 		Ω(err).ShouldNot(HaveOccurred())
 
+		input2 := Builds.Input{
+			Name:   "some-other-input",
+			Source: config.Source(`124`),
+		}
+
+		err = db.SaveBuildInput("some-job", build.ID, input2)
+		Ω(err).ShouldNot(HaveOccurred())
+
 		build, err = db.GetBuild("some-job", build.ID)
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(build.Inputs).Should(Equal([]Builds.Input{input1}))
+		Ω(build.Inputs).Should(Equal([]Builds.Input{input1, input2}))
 	})
 })

@@ -121,7 +121,9 @@ func (db *redisDB) SaveBuildInput(job string, id int, input builds.Input) error 
 
 	conn.Send("SET", fmt.Sprintf(buildInputSourceKey, job, id, input.Name), []byte(input.Source))
 
-	conn.Send("RPUSH", append([]interface{}{fmt.Sprintf(buildInputMetadataKey, job, id, input.Name)}, listVals...)...)
+	if len(listVals) > 0 {
+		conn.Send("RPUSH", append([]interface{}{fmt.Sprintf(buildInputMetadataKey, job, id, input.Name)}, listVals...)...)
+	}
 
 	if _, err := conn.Do("EXEC"); err != nil {
 		return err
