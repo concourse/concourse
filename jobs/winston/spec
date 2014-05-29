@@ -2,6 +2,7 @@
 name: winston
 
 templates:
+  drain: bin/drain
   winston_ctl.erb: bin/winston_ctl
   config.yml.erb: config/winston.yml
 
