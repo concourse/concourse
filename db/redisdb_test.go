@@ -42,10 +42,8 @@ var _ = Describe("RedisDB", func() {
 		Ω(builds[0].ID).Should(Equal(1))
 		Ω(builds[0].Status).Should(Equal(Builds.StatusPending))
 
-		build, err = db.SaveBuildStatus("some-job", build.ID, Builds.StatusStarted)
+		err = db.SaveBuildStatus("some-job", build.ID, Builds.StatusStarted)
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(build.ID).Should(Equal(1))
-		Ω(build.Status).Should(Equal(Builds.StatusStarted))
 
 		build, err = db.GetBuild("some-job", build.ID)
 		Ω(build.ID).Should(Equal(1))
@@ -102,5 +100,29 @@ var _ = Describe("RedisDB", func() {
 		outputs, err = db.GetCommonOutputs([]string{"some-other-job"}, "some-input")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(outputs).Should(Equal([]config.Source{output1, output2, output3}))
+
+		buildMetadata := []Builds.MetadataField{
+			{
+				Name:  "meta1",
+				Value: "value1",
+			},
+			{
+				Name:  "meta2",
+				Value: "value2",
+			},
+		}
+
+		input1 := Builds.Input{
+			Name:     "some-input",
+			Source:   config.Source(`123`),
+			Metadata: buildMetadata,
+		}
+
+		err = db.SaveBuildInput("some-job", build.ID, input1)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		build, err = db.GetBuild("some-job", build.ID)
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(build.Inputs).Should(Equal([]Builds.Input{input1}))
 	})
 })

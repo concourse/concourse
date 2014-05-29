@@ -1,5 +1,7 @@
 package builds
 
+import "github.com/winston-ci/winston/config"
+
 type Status string
 
 const (
@@ -14,6 +16,19 @@ type Build struct {
 	ID int
 
 	Status Status
+
+	Inputs []Input
+}
+
+type Input struct {
+	Name     string
+	Source   config.Source
+	Metadata []MetadataField
+}
+
+type MetadataField struct {
+	Name  string
+	Value string
 }
 
 type ByID []Build

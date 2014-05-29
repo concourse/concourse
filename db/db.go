@@ -11,7 +11,8 @@ type DB interface {
 	GetBuild(job string, id int) (builds.Build, error)
 	GetCurrentBuild(job string) (builds.Build, error)
 
-	SaveBuildStatus(job string, build int, status builds.Status) (builds.Build, error)
+	SaveBuildInput(job string, build int, input builds.Input) error
+	SaveBuildStatus(job string, build int, status builds.Status) error
 
 	BuildLog(job string, build int) ([]byte, error)
 	SaveBuildLog(job string, build int, log []byte) error

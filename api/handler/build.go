@@ -49,7 +49,7 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("saving status: %#v\n", status)
 
-	_, err = handler.db.SaveBuildStatus(job, id, status)
+	err = handler.db.SaveBuildStatus(job, id, status)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
