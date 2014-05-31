@@ -16,6 +16,10 @@ script: |
     export PROLE_SHA=$(git rev-parse HEAD)
   popd
 
+  pushd warden-linux/
+    export WARDEN_LINUX_SHA=$(git rev-parse HEAD)
+  popd
+
   cd room101/
 
   git submodule update --remote
@@ -30,6 +34,10 @@ script: |
 
   pushd src/prole/
     git checkout $PROLE_SHA
+  popd
+
+  pushd src/warden-linux/
+    git checkout $WARDEN_LINUX_SHA
   popd
 
   git add src/
