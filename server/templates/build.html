@@ -1,14 +1,25 @@
 {{define "title"}}{{.Job.Name}} #{{.Build.ID}} - Winston{{end}}
 
 {{define "body"}}
-<h1>{{.Job.Name}} #{{.Build.ID}}</h1>
+<div id="build-title" class="{{.Build.Status}}">
+  <h1>{{.Job.Name}} #{{.Build.ID}}</h1>
+</div>
 
-{{.Build.Status}}
+<div id="metadata">
+  {{range .Build.Inputs}}
+  <div class="build-source">
+    <h3>{{.Name}}</h3>
+    <dl class="build-metadata">
+      {{range .Metadata}}
+      <dt>{{.Name}}</dt>
+        <dd>{{.Value}}</dd>
+      {{end}}
+    </dl>
+  </div>
+  {{ end }}
+</div>
 
-<h2>build output</h2>
-
-<pre id="build-log">
-</pre>
+<pre id="build-log"></pre>
 
 <script src="{{url "Public" "jquery-2.1.1.min.js"}}"></script>
 <script src="{{url "Public" "build.js"}}"></script>
