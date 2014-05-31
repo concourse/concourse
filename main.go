@@ -111,7 +111,14 @@ func main() {
 	proleEndpoint := router.NewRequestGenerator(*proleURL, proleroutes.Routes)
 	builder := builder.NewBuilder(redisDB, conf.Resources, proleEndpoint, winstonEndpoint)
 
-	serverHandler, err := server.New(conf, redisDB, *templatesDir, *publicDir, *peerAddr, builder)
+	serverHandler, err := server.New(
+		conf,
+		redisDB,
+		*templatesDir,
+		*publicDir,
+		*peerAddr,
+		builder,
+	)
 	if err != nil {
 		fatal(err)
 	}
