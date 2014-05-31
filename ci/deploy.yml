@@ -19,6 +19,7 @@ script: |
 
   echo room101 | bosh create release
 
-  bosh -n upload release --rebase --skip-if-exists
+  # remove '|| true' once the rebase crap is fixed
+  bosh -n upload release --rebase --skip-if-exists || true
 
   yes yes | bosh deploy
