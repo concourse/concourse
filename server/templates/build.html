@@ -5,6 +5,13 @@
   <h1>{{.Job.Name}} #{{.Build.ID}}</h1>
 </div>
 
+<ul id="builds">
+  {{$job := .Job}}
+  {{$currentID := .Build.ID}}
+  {{/* don't put whitespace between these; they're display-block */}}
+  {{range .Builds}}<li class="{{.Status}}{{if eq .ID $currentID}} current{{end}}"><a href="{{url "GetBuild" $job .}}">{{.ID}}</a></li>{{end}}
+</ul>
+
 <div id="metadata">
   {{range .Build.Inputs}}
   <div class="build-source">

@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 
 	"github.com/winston-ci/winston/builds"
@@ -26,8 +27,9 @@ func NewHandler(jobs config.Jobs, db db.DB, template *template.Template) http.Ha
 }
 
 type TemplateData struct {
-	Job   config.Job
-	Build builds.Build
+	Job    config.Job
+	Build  builds.Build
+	Builds []builds.Build
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -50,9 +52,19 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	bs, err := handler.db.Builds(job.Name)
+	if err != nil {
+		log.Println("failed to get builds:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	sort.Sort(sort.Reverse(builds.ByID(bs)))
+
 	err = handler.template.Execute(w, TemplateData{
-		Job:   job,
-		Build: build,
+		Job:    job,
+		Build:  build,
+		Builds: bs,
 	})
 	if err != nil {
 		log.Println("failed to execute template:", err)
