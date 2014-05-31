@@ -61,7 +61,7 @@ func (builder *builder) Build(job config.Job, versionOverrides map[string]builds
 		return builds.Build{}, err
 	}
 
-	outputs, err := builder.computeOutputs(job, versions)
+	outputs, err := builder.computeOutputs(job)
 	if err != nil {
 		return builds.Build{}, err
 	}
@@ -223,7 +223,7 @@ func (builder *builder) inputFor(job config.Job, resource config.Resource, versi
 	return proleInput
 }
 
-func (builder *builder) computeOutputs(job config.Job, versions map[string]builds.Version) ([]ProleBuilds.Output, error) {
+func (builder *builder) computeOutputs(job config.Job) ([]ProleBuilds.Output, error) {
 	proleOutputs := []ProleBuilds.Output{}
 	for _, output := range job.Outputs {
 		resource, found := builder.resources.Lookup(output.Resource)

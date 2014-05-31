@@ -111,7 +111,7 @@ var _ = Describe("WinstonChecker", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 
-			It("does not include the starting source or any sources before it", func() {
+			It("does not include the given version or any versions before it", func() {
 				Ω(checker.CheckResource(resource, builds.Version{"version": "current"})).Should(Equal([]builds.Version{
 					builds.Version{"version": "new"},
 				}))

@@ -49,17 +49,17 @@ var _ = Describe("ProleChecker", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/checks"),
 					ghttp.VerifyJSONRepresenting(ProleBuilds.Input{
-						Type:    resource.Type,
-						Source:  ProleBuilds.Source{"uri": "http://example.com"},
-						Version: ProleBuilds.Version{"ver": "1"},
+						Type:   resource.Type,
+						Source: ProleBuilds.Source{"uri": "http://example.com"},
 					}),
 					ghttp.RespondWithJSONEncoded(200, returnedVersions1),
 				),
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/checks"),
 					ghttp.VerifyJSONRepresenting(ProleBuilds.Input{
-						Type:   resource.Type,
-						Source: ProleBuilds.Source{"uri": "http://example.com"},
+						Type:    resource.Type,
+						Source:  ProleBuilds.Source{"uri": "http://example.com"},
+						Version: ProleBuilds.Version{"ver": "def"},
 					}),
 					ghttp.RespondWithJSONEncoded(200, returnedVersions2),
 				),
@@ -67,12 +67,12 @@ var _ = Describe("ProleChecker", func() {
 		})
 
 		It("returns each detected version", func() {
-			Ω(checker.CheckResource(resource, builds.Version{"ver": "1"})).Should(Equal([]builds.Version{
+			Ω(checker.CheckResource(resource, nil)).Should(Equal([]builds.Version{
 				builds.Version{"ver": "abc"},
 				builds.Version{"ver": "def"},
 			}))
 
-			Ω(checker.CheckResource(resource, nil)).Should(Equal([]builds.Version{
+			Ω(checker.CheckResource(resource, builds.Version{"ver": "def"})).Should(Equal([]builds.Version{
 				builds.Version{"ver": "ghi"},
 			}))
 		})

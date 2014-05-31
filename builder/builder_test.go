@@ -55,20 +55,12 @@ var _ = Describe("Builder", func() {
 			{
 				Name:   "some-resource",
 				Type:   "git",
-				Source: config.Source{"uri": "git://example.com/foo/repo.git"},
-			},
-			{
-				Name:   "some-other-resource",
-				Type:   "git",
-				Source: config.Source{"uri": "git://example.com/bar/repo.git"},
-			},
-			{
-				Name:   "some-dependant-resource",
-				Type:   "git",
-				Source: config.Source{"uri": "git://example.com/baz/repo.git"},
+				Source: config.Source{"uri": "git://some-resource"},
 			},
 		}
+	})
 
+	JustBeforeEach(func() {
 		builder = NewBuilder(
 			redis,
 			resources,
@@ -95,7 +87,7 @@ var _ = Describe("Builder", func() {
 						{
 							Name:            "some-resource",
 							Type:            "git",
-							Source:          ProleBuilds.Source{"uri": "git://example.com/foo/repo.git"},
+							Source:          ProleBuilds.Source{"uri": "git://some-resource"},
 							DestinationPath: "some-resource",
 							ConfigPath:      "build.yml",
 						},
@@ -160,7 +152,7 @@ var _ = Describe("Builder", func() {
 							{
 								Name:            "some-resource",
 								Type:            "git",
-								Source:          ProleBuilds.Source{"uri": "git://example.com/foo/repo.git"},
+								Source:          ProleBuilds.Source{"uri": "git://some-resource"},
 								DestinationPath: "some-resource",
 								ConfigPath:      "build.yml",
 							},
@@ -185,13 +177,19 @@ var _ = Describe("Builder", func() {
 
 		Context("and one of the outputs is not specified as an input", func() {
 			BeforeEach(func() {
+				resources = append(resources, config.Resource{
+					Name:   "some-output-resource",
+					Type:   "git",
+					Source: config.Source{"uri": "git://some-output-resource"},
+				})
+
 				job.Outputs = append(job.Outputs, config.Output{
-					Resource: "some-other-resource",
+					Resource: "some-output-resource",
 					Params:   config.Params{"fizz": "buzz"},
 				})
 			})
 
-			It("is specified as an input with its default configuration", func() {
+			It("is specified as an input", func() {
 				proleServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/builds"),
@@ -205,15 +203,15 @@ var _ = Describe("Builder", func() {
 								{
 									Name:            "some-resource",
 									Type:            "git",
-									Source:          ProleBuilds.Source{"uri": "git://example.com/foo/repo.git"},
+									Source:          ProleBuilds.Source{"uri": "git://some-resource"},
 									DestinationPath: "some-resource",
 									ConfigPath:      "build.yml",
 								},
 								{
-									Name:            "some-other-resource",
+									Name:            "some-output-resource",
 									Type:            "git",
-									Source:          ProleBuilds.Source{"uri": "git://example.com/bar/repo.git"},
-									DestinationPath: "some-other-resource",
+									Source:          ProleBuilds.Source{"uri": "git://some-output-resource"},
+									DestinationPath: "some-output-resource",
 								},
 							},
 
@@ -225,10 +223,10 @@ var _ = Describe("Builder", func() {
 									SourcePath: "some-resource",
 								},
 								{
-									Name:       "some-other-resource",
+									Name:       "some-output-resource",
 									Type:       "git",
 									Params:     ProleBuilds.Params{"fizz": "buzz"},
-									SourcePath: "some-other-resource",
+									SourcePath: "some-output-resource",
 								},
 							},
 						}),
@@ -257,7 +255,7 @@ var _ = Describe("Builder", func() {
 							{
 								Name:            "some-resource",
 								Type:            "git",
-								Source:          ProleBuilds.Source{"uri": "git://example.com/foo/repo.git"},
+								Source:          ProleBuilds.Source{"uri": "git://some-resource"},
 								Version:         ProleBuilds.Version{"version": "1"},
 								DestinationPath: "some-resource",
 								ConfigPath:      "build.yml",
@@ -279,6 +277,12 @@ var _ = Describe("Builder", func() {
 
 	Context("when the job has a resource that depends on other jobs", func() {
 		BeforeEach(func() {
+			resources = append(resources, config.Resource{
+				Name:   "some-dependant-resource",
+				Type:   "git",
+				Source: config.Source{"uri": "git://some-dependant-resource"},
+			})
+
 			job.Inputs = append(job.Inputs, config.Input{
 				Resource: "some-dependant-resource",
 				Passed:   []string{"job1", "job2"},
@@ -291,6 +295,9 @@ var _ = Describe("Builder", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 
 				err = redis.SaveOutputVersion("job2", 1, "some-dependant-resource", builds.Version{"version": "1"})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = redis.SaveOutputVersion("job1", 1, "some-dependant-resource", builds.Version{"version": "2"})
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 
@@ -308,14 +315,14 @@ var _ = Describe("Builder", func() {
 								{
 									Name:            "some-resource",
 									Type:            "git",
-									Source:          ProleBuilds.Source{"uri": "git://example.com/foo/repo.git"},
+									Source:          ProleBuilds.Source{"uri": "git://some-resource"},
 									DestinationPath: "some-resource",
 									ConfigPath:      "build.yml",
 								},
 								{
 									Name:            "some-dependant-resource",
 									Type:            "git",
-									Source:          ProleBuilds.Source{"uri": "git://example.com/baz/repo.git"},
+									Source:          ProleBuilds.Source{"uri": "git://some-dependant-resource"},
 									Version:         ProleBuilds.Version{"version": "1"},
 									DestinationPath: "some-dependant-resource",
 								},

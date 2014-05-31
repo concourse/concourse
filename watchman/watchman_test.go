@@ -78,7 +78,7 @@ var _ = Describe("Watchman", func() {
 			Ω(time2.Sub(time1)).Should(BeNumerically("~", interval, interval/4))
 		})
 
-		Context("when the check returns sources", func() {
+		Context("when the check returns versions", func() {
 			var checkedFrom chan builds.Version
 
 			var nextVersions []builds.Version
@@ -109,12 +109,12 @@ var _ = Describe("Watchman", func() {
 				}
 			})
 
-			It("checks again from the previous source", func() {
+			It("checks again from the previous version", func() {
 				Eventually(checkedFrom).Should(Receive(BeNil()))
 				Eventually(checkedFrom).Should(Receive(Equal(builds.Version{"version": "3"})))
 			})
 
-			It("builds the job with the changed source", func() {
+			It("builds the job with the changed version", func() {
 				Eventually(builder.Built).Should(ContainElement(fakebuilder.BuiltSpec{
 					Job: job,
 					VersionOverrides: map[string]builds.Version{
@@ -137,12 +137,12 @@ var _ = Describe("Watchman", func() {
 				}))
 			})
 
-			Context("when configured to only build the latest sources", func() {
+			Context("when configured to only build the latest versions", func() {
 				BeforeEach(func() {
 					latestOnly = true
 				})
 
-				It("only builds the latest source", func() {
+				It("only builds the latest version", func() {
 					Eventually(builder.Built).Should(ContainElement(fakebuilder.BuiltSpec{
 						Job: job,
 						VersionOverrides: map[string]builds.Version{
@@ -153,7 +153,7 @@ var _ = Describe("Watchman", func() {
 					Consistently(builder.Built).Should(HaveLen(1))
 				})
 
-				It("checks again from the latest source", func() {
+				It("checks again from the latest version", func() {
 					Eventually(checkedFrom).Should(Receive(BeNil()))
 					Eventually(checkedFrom).Should(Receive(Equal(builds.Version{"version": "3"})))
 				})
