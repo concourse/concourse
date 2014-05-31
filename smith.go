@@ -15,7 +15,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/cheggaaa/pb"
 	"github.com/fraenkel/candiedyaml"
 	"github.com/gorilla/websocket"
 	"github.com/mgutz/ansi"
@@ -240,21 +239,10 @@ func upload(reqGenerator *router.RequestGenerator, build builds.Build) {
 		log.Fatalln("could not open archive:", err)
 	}
 
-	info, err := archive.Stat()
-	if err != nil {
-		log.Fatalln("could not stat archive:", err)
-	}
-
-	progress := pb.New64(info.Size())
-	progress.SetUnits(pb.U_BYTES)
-
-	progress.Start()
-	defer progress.Finish()
-
 	uploadBits, err := reqGenerator.RequestForHandler(
 		routes.UploadBits,
 		router.Params{"guid": build.Guid},
-		progress.NewProxyReader(archive),
+		archive,
 	)
 	if err != nil {
 		log.Fatalln(err)
