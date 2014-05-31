@@ -12,6 +12,7 @@ import (
 
 	WinstonRoutes "github.com/winston-ci/winston/api/routes"
 	. "github.com/winston-ci/winston/builder"
+	"github.com/winston-ci/winston/builds"
 	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/db"
 	"github.com/winston-ci/winston/redisrunner"
@@ -54,17 +55,17 @@ var _ = Describe("Builder", func() {
 			{
 				Name:   "some-resource",
 				Type:   "git",
-				Source: config.Source(`{"uri":"git://example.com/foo/repo.git"}`),
+				Source: config.Source{"uri": "git://example.com/foo/repo.git"},
 			},
 			{
 				Name:   "some-other-resource",
 				Type:   "git",
-				Source: config.Source(`{"uri":"git://example.com/bar/repo.git"}`),
+				Source: config.Source{"uri": "git://example.com/bar/repo.git"},
 			},
 			{
 				Name:   "some-dependant-resource",
 				Type:   "git",
-				Source: config.Source(`{"uri":"git://example.com/baz/repo.git"}`),
+				Source: config.Source{"uri": "git://example.com/baz/repo.git"},
 			},
 		}
 
@@ -94,7 +95,7 @@ var _ = Describe("Builder", func() {
 						{
 							Name:            "some-resource",
 							Type:            "git",
-							Source:          ProleBuilds.Source(`{"uri":"git://example.com/foo/repo.git"}`),
+							Source:          ProleBuilds.Source{"uri": "git://example.com/foo/repo.git"},
 							DestinationPath: "some-resource",
 							ConfigPath:      "build.yml",
 						},
@@ -106,7 +107,7 @@ var _ = Describe("Builder", func() {
 			),
 		)
 
-		build, err := builder.Build(job)
+		build, err := builder.Build(job, nil)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		Ω(build.ID).Should(Equal(1))
@@ -124,12 +125,12 @@ var _ = Describe("Builder", func() {
 			),
 		)
 
-		build, err := builder.Build(job)
+		build, err := builder.Build(job, nil)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		Ω(build.ID).Should(Equal(1))
 
-		build, err = builder.Build(job)
+		build, err = builder.Build(job, nil)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		Ω(build.ID).Should(Equal(2))
@@ -140,7 +141,7 @@ var _ = Describe("Builder", func() {
 			job.Outputs = []config.Output{
 				{
 					Resource: "some-resource",
-					Params:   config.Params(`{"foo":"bar"}`),
+					Params:   config.Params{"foo": "bar"},
 				},
 			}
 		})
@@ -159,7 +160,7 @@ var _ = Describe("Builder", func() {
 							{
 								Name:            "some-resource",
 								Type:            "git",
-								Source:          ProleBuilds.Source(`{"uri":"git://example.com/foo/repo.git"}`),
+								Source:          ProleBuilds.Source{"uri": "git://example.com/foo/repo.git"},
 								DestinationPath: "some-resource",
 								ConfigPath:      "build.yml",
 							},
@@ -169,7 +170,7 @@ var _ = Describe("Builder", func() {
 							{
 								Name:       "some-resource",
 								Type:       "git",
-								Params:     ProleBuilds.Params(`{"foo":"bar"}`),
+								Params:     ProleBuilds.Params{"foo": "bar"},
 								SourcePath: "some-resource",
 							},
 						},
@@ -178,7 +179,7 @@ var _ = Describe("Builder", func() {
 				),
 			)
 
-			_, err := builder.Build(job)
+			_, err := builder.Build(job, nil)
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
@@ -186,7 +187,7 @@ var _ = Describe("Builder", func() {
 			BeforeEach(func() {
 				job.Outputs = append(job.Outputs, config.Output{
 					Resource: "some-other-resource",
-					Params:   config.Params(`{"fizz":"buzz"}`),
+					Params:   config.Params{"fizz": "buzz"},
 				})
 			})
 
@@ -204,14 +205,14 @@ var _ = Describe("Builder", func() {
 								{
 									Name:            "some-resource",
 									Type:            "git",
-									Source:          ProleBuilds.Source(`{"uri":"git://example.com/foo/repo.git"}`),
+									Source:          ProleBuilds.Source{"uri": "git://example.com/foo/repo.git"},
 									DestinationPath: "some-resource",
 									ConfigPath:      "build.yml",
 								},
 								{
 									Name:            "some-other-resource",
 									Type:            "git",
-									Source:          ProleBuilds.Source(`{"uri":"git://example.com/bar/repo.git"}`),
+									Source:          ProleBuilds.Source{"uri": "git://example.com/bar/repo.git"},
 									DestinationPath: "some-other-resource",
 								},
 							},
@@ -220,13 +221,13 @@ var _ = Describe("Builder", func() {
 								{
 									Name:       "some-resource",
 									Type:       "git",
-									Params:     ProleBuilds.Params(`{"foo":"bar"}`),
+									Params:     ProleBuilds.Params{"foo": "bar"},
 									SourcePath: "some-resource",
 								},
 								{
 									Name:       "some-other-resource",
 									Type:       "git",
-									Params:     ProleBuilds.Params(`{"fizz":"buzz"}`),
+									Params:     ProleBuilds.Params{"fizz": "buzz"},
 									SourcePath: "some-other-resource",
 								},
 							},
@@ -235,13 +236,13 @@ var _ = Describe("Builder", func() {
 					),
 				)
 
-				_, err := builder.Build(job)
+				_, err := builder.Build(job, nil)
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 		})
 	})
 
-	Context("when resource overrides are specified", func() {
+	Context("when resource versions are specified", func() {
 		It("uses them for the build's inputs", func() {
 			proleServer.AppendHandlers(
 				ghttp.CombineHandlers(
@@ -256,7 +257,8 @@ var _ = Describe("Builder", func() {
 							{
 								Name:            "some-resource",
 								Type:            "git",
-								Source:          ProleBuilds.Source(`{"uri":"some-overridden-uri"}`),
+								Source:          ProleBuilds.Source{"uri": "git://example.com/foo/repo.git"},
+								Version:         ProleBuilds.Version{"version": "1"},
 								DestinationPath: "some-resource",
 								ConfigPath:      "build.yml",
 							},
@@ -268,10 +270,8 @@ var _ = Describe("Builder", func() {
 				),
 			)
 
-			_, err := builder.Build(job, config.Resource{
-				Name:   "some-resource",
-				Type:   "git",
-				Source: config.Source(`{"uri":"some-overridden-uri"}`),
+			_, err := builder.Build(job, map[string]builds.Version{
+				"some-resource": builds.Version{"version": "1"},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 		})
@@ -287,10 +287,10 @@ var _ = Describe("Builder", func() {
 
 		Context("and the other jobs satisfy the dependency", func() {
 			BeforeEach(func() {
-				err := redis.SaveOutputSource("job1", 1, "some-dependant-resource", config.Source("1"))
+				err := redis.SaveOutputVersion("job1", 1, "some-dependant-resource", builds.Version{"version": "1"})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				err = redis.SaveOutputSource("job2", 1, "some-dependant-resource", config.Source("1"))
+				err = redis.SaveOutputVersion("job2", 1, "some-dependant-resource", builds.Version{"version": "1"})
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 
@@ -308,14 +308,15 @@ var _ = Describe("Builder", func() {
 								{
 									Name:            "some-resource",
 									Type:            "git",
-									Source:          ProleBuilds.Source(`{"uri":"git://example.com/foo/repo.git"}`),
+									Source:          ProleBuilds.Source{"uri": "git://example.com/foo/repo.git"},
 									DestinationPath: "some-resource",
 									ConfigPath:      "build.yml",
 								},
 								{
 									Name:            "some-dependant-resource",
 									Type:            "git",
-									Source:          ProleBuilds.Source("1"),
+									Source:          ProleBuilds.Source{"uri": "git://example.com/baz/repo.git"},
+									Version:         ProleBuilds.Version{"version": "1"},
 									DestinationPath: "some-dependant-resource",
 								},
 							},
@@ -326,7 +327,7 @@ var _ = Describe("Builder", func() {
 					),
 				)
 
-				build, err := builder.Build(job)
+				build, err := builder.Build(job, nil)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(build.ID).Should(Equal(1))
@@ -335,7 +336,7 @@ var _ = Describe("Builder", func() {
 
 		Context("and the other jobs do not satisfy the dependency", func() {
 			It("returns an error", func() {
-				_, err := builder.Build(job)
+				_, err := builder.Build(job, nil)
 				Ω(err).Should(HaveOccurred())
 			})
 		})
@@ -349,7 +350,7 @@ var _ = Describe("Builder", func() {
 		})
 
 		It("returns an error", func() {
-			_, err := builder.Build(job)
+			_, err := builder.Build(job, nil)
 			Ω(err).Should(HaveOccurred())
 		})
 	})
@@ -362,7 +363,7 @@ var _ = Describe("Builder", func() {
 		})
 
 		It("returns an error", func() {
-			_, err := builder.Build(job)
+			_, err := builder.Build(job, nil)
 			Ω(err).Should(HaveOccurred())
 		})
 	})
@@ -380,7 +381,7 @@ var _ = Describe("Builder", func() {
 		})
 
 		It("returns an error", func() {
-			_, err := builder.Build(job)
+			_, err := builder.Build(job, nil)
 			Ω(err).Should(HaveOccurred())
 		})
 	})
@@ -396,7 +397,7 @@ var _ = Describe("Builder", func() {
 		})
 
 		It("returns an error", func() {
-			_, err := builder.Build(job)
+			_, err := builder.Build(job, nil)
 			Ω(err).Should(HaveOccurred())
 		})
 	})

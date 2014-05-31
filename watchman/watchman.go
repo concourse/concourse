@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/winston-ci/winston/builder"
+	"github.com/winston-ci/winston/builds"
 	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/resources"
 )
@@ -14,6 +15,7 @@ type Watchman interface {
 	Watch(
 		job config.Job,
 		resource config.Resource,
+		from builds.Version,
 		checker resources.Checker,
 		latestOnly bool,
 		interval time.Duration,
@@ -41,6 +43,7 @@ func NewWatchman(builder builder.Builder) Watchman {
 func (watchman *watchman) Watch(
 	job config.Job,
 	resource config.Resource,
+	from builds.Version,
 	checker resources.Checker,
 	latestOnly bool,
 	interval time.Duration,
@@ -57,24 +60,25 @@ func (watchman *watchman) Watch(
 			case <-watchman.stop:
 				return
 			case <-ticker.C:
-				log.Printf("checking for sources via %T from %s\n", checker, resource)
+				log.Printf("checking for sources via %T from %s since %s\n", checker, resource, from)
 
-				resources := checker.CheckResource(resource)
-				if len(resources) == 0 {
+				newVersions := checker.CheckResource(resource, from)
+				if len(newVersions) == 0 {
 					break
 				}
 
-				log.Printf("found %d sources via %T", len(resources), checker)
+				log.Printf("found %d new versions via %T", len(newVersions), checker)
 
-				resource = resources[len(resources)-1]
+				from = newVersions[len(newVersions)-1]
 
 				if latestOnly {
+
 					log.Printf("triggering latest via %T: %s\n", checker, resource)
-					watchman.builder.Build(job, resource)
+					watchman.builder.Build(job, map[string]builds.Version{resource.Name: from})
 				} else {
-					for i, resource := range resources {
-						log.Printf("triggering %d of %d via %T: %s\n", i+1, len(resources), checker, resource)
-						watchman.builder.Build(job, resource)
+					for i, version := range newVersions {
+						log.Printf("triggering %d of %d via %T: %s\n", i+1, len(newVersions), checker, version)
+						watchman.builder.Build(job, map[string]builds.Version{resource.Name: version})
 					}
 				}
 			}

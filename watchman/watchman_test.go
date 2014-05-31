@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/winston-ci/winston/builder/fakebuilder"
+	"github.com/winston-ci/winston/builds"
 	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/resources/fakechecker"
 	. "github.com/winston-ci/winston/watchman"
@@ -39,7 +40,7 @@ var _ = Describe("Watchman", func() {
 		resource = config.Resource{
 			Name:   "some-resource",
 			Type:   "git",
-			Source: config.Source("123"),
+			Source: config.Source{"uri": "http://example.com"},
 		}
 
 		checker = fakechecker.New()
@@ -48,7 +49,7 @@ var _ = Describe("Watchman", func() {
 	})
 
 	JustBeforeEach(func() {
-		watchman.Watch(job, resource, checker, latestOnly, interval)
+		watchman.Watch(job, resource, nil, checker, latestOnly, interval)
 	})
 
 	AfterEach(func() {
@@ -61,7 +62,7 @@ var _ = Describe("Watchman", func() {
 		BeforeEach(func() {
 			times = make(chan time.Time, 100)
 
-			checker.WhenCheckingResource = func(config.Resource) []config.Resource {
+			checker.WhenCheckingResource = func(config.Resource, builds.Version) []builds.Version {
 				times <- time.Now()
 				return nil
 			}
@@ -78,25 +79,29 @@ var _ = Describe("Watchman", func() {
 		})
 
 		Context("when the check returns sources", func() {
-			var checkedFrom chan config.Resource
+			var checkedFrom chan builds.Version
 
-			var nextResources []config.Resource
+			var nextVersions []builds.Version
 
 			BeforeEach(func() {
-				checkedFrom = make(chan config.Resource, 100)
+				checkedFrom = make(chan builds.Version, 100)
 
-				nextResources = []config.Resource{
-					{Name: "some-resource", Type: "git", Source: config.Source("1")},
-					{Name: "some-resource", Type: "git", Source: config.Source("2")},
-					{Name: "some-resource", Type: "git", Source: config.Source("3")},
+				nextVersions = []builds.Version{
+					{"version": "1"},
+					{"version": "2"},
+					{"version": "3"},
 				}
 
-				checkResults := map[int][]config.Resource{
-					0: nextResources,
+				checkResults := map[int][]builds.Version{
+					0: nextVersions,
 				}
 
 				check := 0
-				checker.WhenCheckingResource = func(from config.Resource) []config.Resource {
+				checker.WhenCheckingResource = func(checkedResource config.Resource, from builds.Version) []builds.Version {
+					defer GinkgoRecover()
+
+					Ω(checkedResource).Should(Equal(resource))
+
 					checkedFrom <- from
 					result := checkResults[check]
 					check++
@@ -105,41 +110,29 @@ var _ = Describe("Watchman", func() {
 			})
 
 			It("checks again from the previous source", func() {
-				Eventually(checkedFrom).Should(Receive(Equal(resource)))
-				Eventually(checkedFrom).Should(Receive(Equal(nextResources[len(nextResources)-1])))
+				Eventually(checkedFrom).Should(Receive(BeNil()))
+				Eventually(checkedFrom).Should(Receive(Equal(builds.Version{"version": "3"})))
 			})
 
 			It("builds the job with the changed source", func() {
 				Eventually(builder.Built).Should(ContainElement(fakebuilder.BuiltSpec{
 					Job: job,
-					ResourceOverrides: []config.Resource{
-						{
-							Name:   "some-resource",
-							Type:   "git",
-							Source: config.Source(`1`),
-						},
+					VersionOverrides: map[string]builds.Version{
+						"some-resource": builds.Version{"version": "1"},
 					},
 				}))
 
 				Eventually(builder.Built).Should(ContainElement(fakebuilder.BuiltSpec{
 					Job: job,
-					ResourceOverrides: []config.Resource{
-						{
-							Name:   "some-resource",
-							Type:   "git",
-							Source: config.Source(`2`),
-						},
+					VersionOverrides: map[string]builds.Version{
+						"some-resource": builds.Version{"version": "2"},
 					},
 				}))
 
 				Eventually(builder.Built).Should(ContainElement(fakebuilder.BuiltSpec{
 					Job: job,
-					ResourceOverrides: []config.Resource{
-						{
-							Name:   "some-resource",
-							Type:   "git",
-							Source: config.Source(`3`),
-						},
+					VersionOverrides: map[string]builds.Version{
+						"some-resource": builds.Version{"version": "3"},
 					},
 				}))
 			})
@@ -152,16 +145,17 @@ var _ = Describe("Watchman", func() {
 				It("only builds the latest source", func() {
 					Eventually(builder.Built).Should(ContainElement(fakebuilder.BuiltSpec{
 						Job: job,
-						ResourceOverrides: []config.Resource{
-							{
-								Name:   "some-resource",
-								Type:   "git",
-								Source: config.Source(`3`),
-							},
+						VersionOverrides: map[string]builds.Version{
+							"some-resource": builds.Version{"version": "3"},
 						},
 					}))
 
 					Consistently(builder.Built).Should(HaveLen(1))
+				})
+
+				It("checks again from the latest source", func() {
+					Eventually(checkedFrom).Should(Receive(BeNil()))
+					Eventually(checkedFrom).Should(Receive(Equal(builds.Version{"version": "3"})))
 				})
 			})
 		})
@@ -170,7 +164,7 @@ var _ = Describe("Watchman", func() {
 			BeforeEach(func() {
 				checked := false
 
-				checker.WhenCheckingResource = func(config.Resource) []config.Resource {
+				checker.WhenCheckingResource = func(config.Resource, builds.Version) []builds.Version {
 					times <- time.Now()
 
 					if checked {

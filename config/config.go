@@ -12,6 +12,8 @@ type Resource struct {
 	Source Source `yaml:"source"`
 }
 
+type Source map[string]interface{}
+
 type Job struct {
 	Name string `yaml:"name"`
 
@@ -33,6 +35,8 @@ type Output struct {
 	Resource string `yaml:"resource"`
 	Params   Params `yaml:"params"`
 }
+
+type Params map[string]interface{}
 
 type Resources []Resource
 

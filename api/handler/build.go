@@ -58,7 +58,7 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 	switch build.Status {
 	case ProleBuilds.StatusStarted:
 		for _, input := range build.Inputs {
-			err := handler.db.SaveCurrentSource(job, input.Name, config.Source(input.Source))
+			err := handler.db.SaveCurrentVersion(job, input.Name, builds.Version(input.Version))
 			if err != nil {
 				log.Println("error saving source:", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -72,7 +72,7 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 		}
 	case ProleBuilds.StatusSucceeded:
 		for _, output := range build.Outputs {
-			err := handler.db.SaveOutputSource(job, id, output.Name, config.Source(output.Source))
+			err := handler.db.SaveOutputVersion(job, id, output.Name, builds.Version(output.Version))
 			if err != nil {
 				log.Println("error saving source:", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -95,6 +95,7 @@ func buildInputFrom(input ProleBuilds.Input) builds.Input {
 	return builds.Input{
 		Name:     input.Name,
 		Source:   config.Source(input.Source),
+		Version:  builds.Version(input.Version),
 		Metadata: metadata,
 	}
 }

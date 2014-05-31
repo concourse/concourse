@@ -33,7 +33,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("triggering", job)
 
-	build, err := handler.builder.Build(job)
+	build, err := handler.builder.Build(job, nil)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

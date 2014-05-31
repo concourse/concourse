@@ -22,7 +22,7 @@ import (
 var ErrBadResponse = errors.New("bad response from prole")
 
 type Builder interface {
-	Build(config.Job, ...config.Resource) (builds.Build, error)
+	Build(config.Job, map[string]builds.Version) (builds.Build, error)
 }
 
 type builder struct {
@@ -48,20 +48,20 @@ func NewBuilder(
 	}
 }
 
-func (builder *builder) Build(job config.Job, resourceOverrides ...config.Resource) (builds.Build, error) {
+func (builder *builder) Build(job config.Job, versionOverrides map[string]builds.Version) (builds.Build, error) {
 	log.Println("creating build")
 
-	resources, err := builder.computeResources(job, config.Resources(resourceOverrides))
+	versions, err := builder.computeVersions(job, versionOverrides)
 	if err != nil {
 		return builds.Build{}, err
 	}
 
-	inputs, err := builder.computeInputs(job, resources)
+	inputs, err := builder.computeInputs(job, versions)
 	if err != nil {
 		return builds.Build{}, err
 	}
 
-	outputs, err := builder.computeOutputs(job, resources)
+	outputs, err := builder.computeOutputs(job, versions)
 	if err != nil {
 		return builds.Build{}, err
 	}
@@ -148,53 +148,45 @@ func (builder *builder) Build(job config.Job, resourceOverrides ...config.Resour
 	return build, nil
 }
 
-func (builder *builder) computeResources(job config.Job, resourceOverrides config.Resources) (config.Resources, error) {
-	resources := builder.resources
+func (builder *builder) computeVersions(job config.Job, versionOverrides map[string]builds.Version) (map[string]builds.Version, error) {
+	versions := map[string]builds.Version{}
 
 	for _, input := range job.Inputs {
-		resource, found := resourceOverrides.Lookup(input.Resource)
+		version, found := versionOverrides[input.Resource]
 		if found {
-			resources = resources.UpdateResource(resource)
-			continue
-		}
-
-		resource, found = builder.resources.Lookup(input.Resource)
-		if !found {
-			return nil, fmt.Errorf("unknown resource: %s", input.Resource)
+			versions[input.Resource] = version
 		}
 
 		if input.Passed == nil {
 			continue
 		}
 
-		outputs, err := builder.db.GetCommonOutputs(input.Passed, input.Resource)
+		commonVersions, err := builder.db.GetCommonOutputs(input.Passed, input.Resource)
 		if err != nil {
 			return nil, err
 		}
 
-		if len(outputs) == 0 {
+		if len(commonVersions) == 0 {
 			return nil, fmt.Errorf("unsatisfied input: %s; depends on %v\n", input.Resource, input.Passed)
 		}
 
-		resource.Source = outputs[len(outputs)-1]
-
-		resources = resources.UpdateResource(resource)
+		versions[input.Resource] = commonVersions[len(commonVersions)-1]
 	}
 
-	return resources, nil
+	return versions, nil
 }
 
-func (builder *builder) computeInputs(job config.Job, resources config.Resources) ([]ProleBuilds.Input, error) {
+func (builder *builder) computeInputs(job config.Job, versions map[string]builds.Version) ([]ProleBuilds.Input, error) {
 	proleInputs := []ProleBuilds.Input{}
 
 	added := map[string]bool{}
 	for _, input := range job.Inputs {
-		resource, found := resources.Lookup(input.Resource)
+		resource, found := builder.resources.Lookup(input.Resource)
 		if !found {
 			return nil, fmt.Errorf("unknown resource: %s", input.Resource)
 		}
 
-		proleInputs = append(proleInputs, builder.inputFor(job, resource))
+		proleInputs = append(proleInputs, builder.inputFor(job, resource, versions[input.Resource]))
 
 		added[input.Resource] = true
 	}
@@ -204,22 +196,23 @@ func (builder *builder) computeInputs(job config.Job, resources config.Resources
 			continue
 		}
 
-		resource, found := resources.Lookup(output.Resource)
+		resource, found := builder.resources.Lookup(output.Resource)
 		if !found {
 			return nil, fmt.Errorf("unknown resource: %s", output.Resource)
 		}
 
-		proleInputs = append(proleInputs, builder.inputFor(job, resource))
+		proleInputs = append(proleInputs, builder.inputFor(job, resource, versions[output.Resource]))
 	}
 
 	return proleInputs, nil
 }
 
-func (builder *builder) inputFor(job config.Job, resource config.Resource) ProleBuilds.Input {
+func (builder *builder) inputFor(job config.Job, resource config.Resource, version builds.Version) ProleBuilds.Input {
 	proleInput := ProleBuilds.Input{
 		Name:            resource.Name,
 		Type:            resource.Type,
 		Source:          ProleBuilds.Source(resource.Source),
+		Version:         ProleBuilds.Version(version),
 		DestinationPath: resource.Name,
 	}
 
@@ -230,10 +223,10 @@ func (builder *builder) inputFor(job config.Job, resource config.Resource) Prole
 	return proleInput
 }
 
-func (builder *builder) computeOutputs(job config.Job, resources config.Resources) ([]ProleBuilds.Output, error) {
+func (builder *builder) computeOutputs(job config.Job, versions map[string]builds.Version) ([]ProleBuilds.Output, error) {
 	proleOutputs := []ProleBuilds.Output{}
 	for _, output := range job.Outputs {
-		resource, found := resources.Lookup(output.Resource)
+		resource, found := builder.resources.Lookup(output.Resource)
 		if !found {
 			return nil, fmt.Errorf("unknown resource: %s", output.Resource)
 		}

@@ -44,9 +44,9 @@ func (watcher Watcher) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 				log.Fatalln("unknown resource:", input.Resource)
 			}
 
-			current, err := watcher.db.GetCurrentSource(job.Name, input.Resource)
+			current, err := watcher.db.GetCurrentVersion(job.Name, input.Resource)
 			if err == nil {
-				resource.Source = config.Source(current)
+				current = nil
 			}
 
 			var checker resources.Checker
@@ -56,7 +56,7 @@ func (watcher Watcher) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 				checker = resources.NewWinstonChecker(watcher.db, input.Passed)
 			}
 
-			watcher.watchman.Watch(job, resource, checker, input.LatestOnly, time.Minute)
+			watcher.watchman.Watch(job, resource, current, checker, input.LatestOnly, time.Minute)
 		}
 	}
 

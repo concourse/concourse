@@ -1,6 +1,7 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -8,7 +9,6 @@ import (
 	"github.com/garyburd/redigo/redis"
 
 	"github.com/winston-ci/winston/builds"
-	"github.com/winston-ci/winston/config"
 )
 
 type redisDB struct {
@@ -27,13 +27,14 @@ const (
 	buildKey              = "build:%s:%d"             // job, build id => build
 	buildInputsKey        = "build:%s:%d:inputs"      // job, build id => [resource name]
 	buildInputSourceKey   = "build:%s:%d:%s:source"   // job, build id, resource name => source
+	buildInputVersionKey  = "build:%s:%d:%s:version"  // job, build id, resource name => version
 	buildInputMetadataKey = "build:%s:%d:%s:metadata" // job, build id, resource name => [input metadata]
 
 	logsKey = "logs:%s:%d" // job, build id => build log
 
-	currentSourceKey = "current_source:%s:%s" // job, resource name => source
+	currentVersionKey = "current_version:%s:%s" // job, resource name => version
 
-	outputsKey       = "output:%s:%s"      // job, resource name => [source]
+	outputsKey       = "output:%s:%s"      // job, resource name => [version]
 	commonOutputsKey = "common_outputs:%s" // ephemeral; [unique id for jobs + resource] => [set of common outputs]
 )
 
@@ -119,7 +120,19 @@ func (db *redisDB) SaveBuildInput(job string, id int, input builds.Input) error 
 
 	conn.Send("RPUSH", fmt.Sprintf(buildInputsKey, job, id), input.Name)
 
-	conn.Send("SET", fmt.Sprintf(buildInputSourceKey, job, id, input.Name), []byte(input.Source))
+	sourceJSON, err := json.Marshal(input.Source)
+	if err != nil {
+		return err
+	}
+
+	conn.Send("SET", fmt.Sprintf(buildInputSourceKey, job, id, input.Name), sourceJSON)
+
+	versionJSON, err := json.Marshal(input.Version)
+	if err != nil {
+		return err
+	}
+
+	conn.Send("SET", fmt.Sprintf(buildInputVersionKey, job, id, input.Name), versionJSON)
 
 	if len(listVals) > 0 {
 		conn.Send("RPUSH", append([]interface{}{fmt.Sprintf(buildInputMetadataKey, job, id, input.Name)}, listVals...)...)
@@ -173,7 +186,20 @@ func (db *redisDB) GetBuild(job string, id int) (builds.Build, error) {
 			return builds.Build{}, err
 		}
 
-		input.Source = config.Source(sourceBytes)
+		err = json.Unmarshal(sourceBytes, &input.Source)
+		if err != nil {
+			return builds.Build{}, err
+		}
+
+		versionBytes, err := redis.Bytes(conn.Do("GET", fmt.Sprintf(buildInputVersionKey, job, id, name)))
+		if err != nil {
+			return builds.Build{}, err
+		}
+
+		err = json.Unmarshal(versionBytes, &input.Version)
+		if err != nil {
+			return builds.Build{}, err
+		}
 
 		metadataFields, err := redis.Values(conn.Do("LRANGE", fmt.Sprintf(buildInputMetadataKey, job, id, name), "0", "-1"))
 		if err != nil {
@@ -214,35 +240,48 @@ func (db *redisDB) SaveBuildLog(job string, build int, log []byte) error {
 	return err
 }
 
-func (db *redisDB) GetCurrentSource(job, input string) (config.Source, error) {
+func (db *redisDB) GetCurrentVersion(job, input string) (builds.Version, error) {
 	conn := db.pool.Get()
 	defer conn.Close()
 
-	sourceBytes, err := redis.Bytes(conn.Do("GET", fmt.Sprintf(currentSourceKey, job, input)))
+	versionBytes, err := redis.Bytes(conn.Do("GET", fmt.Sprintf(currentVersionKey, job, input)))
 	if err != nil {
 		return nil, err
 	}
 
-	return config.Source(sourceBytes), nil
+	var version builds.Version
+
+	err = json.Unmarshal(versionBytes, &version)
+	return version, err
 }
 
-func (db *redisDB) SaveCurrentSource(job, input string, source config.Source) error {
+func (db *redisDB) SaveCurrentVersion(job, input string, version builds.Version) error {
 	conn := db.pool.Get()
 	defer conn.Close()
 
-	_, err := conn.Do("SET", fmt.Sprintf(currentSourceKey, job, input), []byte(source))
+	versionBytes, err := json.Marshal(version)
+	if err != nil {
+		return err
+	}
+
+	_, err = conn.Do("SET", fmt.Sprintf(currentVersionKey, job, input), versionBytes)
 	return err
 }
 
-func (db *redisDB) SaveOutputSource(job string, build int, resourceName string, source config.Source) error {
+func (db *redisDB) SaveOutputVersion(job string, build int, resourceName string, version builds.Version) error {
 	conn := db.pool.Get()
 	defer conn.Close()
 
-	_, err := conn.Do("ZADD", fmt.Sprintf(outputsKey, job, resourceName), strconv.Itoa(build), []byte(source))
+	versionBytes, err := json.Marshal(version)
+	if err != nil {
+		return err
+	}
+
+	_, err = conn.Do("ZADD", fmt.Sprintf(outputsKey, job, resourceName), strconv.Itoa(build), versionBytes)
 	return err
 }
 
-func (db *redisDB) GetCommonOutputs(jobs []string, resourceName string) ([]config.Source, error) {
+func (db *redisDB) GetCommonOutputs(jobs []string, resourceName string) ([]builds.Version, error) {
 	conn := db.pool.Get()
 	defer conn.Close()
 
@@ -261,20 +300,23 @@ func (db *redisDB) GetCommonOutputs(jobs []string, resourceName string) ([]confi
 		)...,
 	)
 
-	sourcesBytes, err := redis.Values(conn.Do("ZRANGE", commonKey, "0", "-1"))
+	versionsBytes, err := redis.Values(conn.Do("ZRANGE", commonKey, "0", "-1"))
 	if err != nil {
 		return nil, err
 	}
 
-	sources := make([]config.Source, len(sourcesBytes))
-	for i, iface := range sourcesBytes {
+	versions := make([]builds.Version, len(versionsBytes))
+	for i, iface := range versionsBytes {
 		bytes, err := redis.Bytes(iface, nil)
 		if err != nil {
 			return nil, err
 		}
 
-		sources[i] = config.Source(bytes)
+		err = json.Unmarshal(bytes, &versions[i])
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return sources, nil
+	return versions, nil
 }

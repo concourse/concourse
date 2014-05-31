@@ -7,8 +7,10 @@ import (
 	"net/http"
 
 	"github.com/tedsuo/router"
-	"github.com/winston-ci/prole/api/builds"
+	ProleBuilds "github.com/winston-ci/prole/api/builds"
 	"github.com/winston-ci/prole/routes"
+
+	"github.com/winston-ci/winston/builds"
 	"github.com/winston-ci/winston/config"
 )
 
@@ -20,12 +22,13 @@ func NewProleChecker(prole *router.RequestGenerator) Checker {
 	return &ProleChecker{prole}
 }
 
-func (checker *ProleChecker) CheckResource(resource config.Resource) []config.Resource {
+func (checker *ProleChecker) CheckResource(resource config.Resource, from builds.Version) []builds.Version {
 	req := new(bytes.Buffer)
 
-	buildInput := builds.Input{
-		Type:   resource.Type,
-		Source: builds.Source(resource.Source),
+	buildInput := ProleBuilds.Input{
+		Type:    resource.Type,
+		Source:  ProleBuilds.Source(resource.Source),
+		Version: ProleBuilds.Version(from),
 	}
 
 	err := json.NewEncoder(req).Encode(buildInput)
@@ -54,19 +57,12 @@ func (checker *ProleChecker) CheckResource(resource config.Resource) []config.Re
 
 	defer resp.Body.Close()
 
-	var newSources []builds.Source
-	err = json.NewDecoder(resp.Body).Decode(&newSources)
+	var newVersions []builds.Version
+	err = json.NewDecoder(resp.Body).Decode(&newVersions)
 	if err != nil {
 		log.Println("invalid check response:", err)
 		return nil
 	}
 
-	newResources := make([]config.Resource, len(newSources))
-	for i, source := range newSources {
-		newResource := resource
-		newResource.Source = config.Source(source)
-		newResources[i] = newResource
-	}
-
-	return newResources
+	return newVersions
 }

@@ -2,8 +2,9 @@ package resources_test
 
 import (
 	"github.com/tedsuo/router"
-	"github.com/winston-ci/prole/api/builds"
+	ProleBuilds "github.com/winston-ci/prole/api/builds"
 	"github.com/winston-ci/prole/routes"
+	"github.com/winston-ci/winston/builds"
 	"github.com/winston-ci/winston/config"
 	. "github.com/winston-ci/winston/resources"
 
@@ -29,49 +30,50 @@ var _ = Describe("ProleChecker", func() {
 		resource = config.Resource{
 			Name:   "some-input",
 			Type:   "git",
-			Source: config.Source("123"),
+			Source: config.Source{"uri": "http://example.com"},
 		}
 	})
 
-	Context("when the endpoint returns new sources", func() {
+	Context("when the endpoint returns new versions", func() {
 		BeforeEach(func() {
-			returnedSources1 := []builds.Source{
-				builds.Source(`"abc"`),
-				builds.Source(`"def"`),
+			returnedVersions1 := []ProleBuilds.Version{
+				ProleBuilds.Version{"ver": "abc"},
+				ProleBuilds.Version{"ver": "def"},
 			}
 
-			returnedSources2 := []builds.Source{
-				builds.Source(`"ghi"`),
+			returnedVersions2 := []ProleBuilds.Version{
+				ProleBuilds.Version{"ver": "ghi"},
 			}
 
 			proleServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/checks"),
-					ghttp.VerifyJSONRepresenting(builds.Input{
-						Type:   resource.Type,
-						Source: builds.Source("123"),
+					ghttp.VerifyJSONRepresenting(ProleBuilds.Input{
+						Type:    resource.Type,
+						Source:  ProleBuilds.Source{"uri": "http://example.com"},
+						Version: ProleBuilds.Version{"ver": "1"},
 					}),
-					ghttp.RespondWithJSONEncoded(200, returnedSources1),
+					ghttp.RespondWithJSONEncoded(200, returnedVersions1),
 				),
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/checks"),
-					ghttp.RespondWithJSONEncoded(200, returnedSources2),
+					ghttp.VerifyJSONRepresenting(ProleBuilds.Input{
+						Type:   resource.Type,
+						Source: ProleBuilds.Source{"uri": "http://example.com"},
+					}),
+					ghttp.RespondWithJSONEncoded(200, returnedVersions2),
 				),
 			)
 		})
 
-		It("returns the resource with each detected source", func() {
-			Ω(checker.CheckResource(resource)).Should(Equal([]config.Resource{
-				{
-					Name:   "some-input",
-					Type:   "git",
-					Source: config.Source(`"abc"`),
-				},
-				{
-					Name:   "some-input",
-					Type:   "git",
-					Source: config.Source(`"def"`),
-				},
+		It("returns each detected version", func() {
+			Ω(checker.CheckResource(resource, builds.Version{"ver": "1"})).Should(Equal([]builds.Version{
+				builds.Version{"ver": "abc"},
+				builds.Version{"ver": "def"},
+			}))
+
+			Ω(checker.CheckResource(resource, nil)).Should(Equal([]builds.Version{
+				builds.Version{"ver": "ghi"},
 			}))
 		})
 	})

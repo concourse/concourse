@@ -18,7 +18,6 @@ import (
 	"github.com/winston-ci/winston/api"
 	"github.com/winston-ci/winston/api/drainer"
 	"github.com/winston-ci/winston/builds"
-	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/db"
 	"github.com/winston-ci/winston/redisrunner"
 )
@@ -61,8 +60,8 @@ var _ = Describe("API", func() {
 
 		var response *http.Response
 
-		source1 := ProleBuilds.Source(`"source1"`)
-		source2 := ProleBuilds.Source(`"source2"`)
+		version1 := ProleBuilds.Version{"ver": "1"}
+		version2 := ProleBuilds.Version{"ver": "2"}
 
 		BeforeEach(func() {
 			var err error
@@ -73,14 +72,14 @@ var _ = Describe("API", func() {
 			proleBuild = ProleBuilds.Build{
 				Inputs: []ProleBuilds.Input{
 					{
-						Name:   "some-input",
-						Type:   "git",
-						Source: source1,
+						Name:    "some-input",
+						Type:    "git",
+						Version: version1,
 					},
 					{
-						Name:   "some-other-input",
-						Type:   "git",
-						Source: source2,
+						Name:    "some-other-input",
+						Type:    "git",
+						Version: version2,
 						Metadata: []ProleBuilds.MetadataField{
 							{Name: "meta1", Value: "value1"},
 							{Name: "meta2", Value: "value2"},
@@ -123,12 +122,12 @@ var _ = Describe("API", func() {
 
 				Ω(updatedBuild.Inputs).Should(Equal([]builds.Input{
 					{
-						Name:   "some-input",
-						Source: config.Source(source1),
+						Name:    "some-input",
+						Version: builds.Version(version1),
 					},
 					{
-						Name:   "some-other-input",
-						Source: config.Source(source2),
+						Name:    "some-other-input",
+						Version: builds.Version(version2),
 						Metadata: []builds.MetadataField{
 							{Name: "meta1", Value: "value1"},
 							{Name: "meta2", Value: "value2"},
@@ -137,14 +136,14 @@ var _ = Describe("API", func() {
 				}))
 			})
 
-			It("saves each input's current source", func() {
-				source, err := redis.GetCurrentSource("some-job", "some-input")
+			It("saves each input's current version", func() {
+				version, err := redis.GetCurrentVersion("some-job", "some-input")
 				Ω(err).ShouldNot(HaveOccurred())
-				Ω(source).Should(Equal(config.Source(source1)))
+				Ω(version).Should(Equal(builds.Version(version1)))
 
-				source, err = redis.GetCurrentSource("some-job", "some-other-input")
+				version, err = redis.GetCurrentVersion("some-job", "some-other-input")
 				Ω(err).ShouldNot(HaveOccurred())
-				Ω(source).Should(Equal(config.Source(source2)))
+				Ω(version).Should(Equal(builds.Version(version2)))
 			})
 		})
 
@@ -156,14 +155,14 @@ var _ = Describe("API", func() {
 					{
 						Name: "some-output",
 
-						Type:   "git",
-						Source: ProleBuilds.Source("123"),
+						Type:    "git",
+						Version: ProleBuilds.Version{"ver": "123"},
 					},
 					{
 						Name: "some-other-output",
 
-						Type:   "git",
-						Source: ProleBuilds.Source("456"),
+						Type:    "git",
+						Version: ProleBuilds.Version{"ver": "456"},
 					},
 				}
 			})
@@ -177,22 +176,22 @@ var _ = Describe("API", func() {
 				Ω(updatedBuild.Status).Should(Equal(builds.StatusSucceeded))
 			})
 
-			It("does not save any the job's input's sources", func() {
-				_, err := redis.GetCurrentSource("some-job", "some-input")
+			It("does not save any the job's input's versions", func() {
+				_, err := redis.GetCurrentVersion("some-job", "some-input")
 				Ω(err).Should(HaveOccurred())
 
-				_, err = redis.GetCurrentSource("some-job", "some-other-input")
+				_, err = redis.GetCurrentVersion("some-job", "some-other-input")
 				Ω(err).Should(HaveOccurred())
 			})
 
-			It("saves each output source", func() {
-				sources, err := redis.GetCommonOutputs([]string{"some-job"}, "some-output")
+			It("saves each output version", func() {
+				versions, err := redis.GetCommonOutputs([]string{"some-job"}, "some-output")
 				Ω(err).ShouldNot(HaveOccurred())
-				Ω(sources).Should(Equal([]config.Source{config.Source("123")}))
+				Ω(versions).Should(Equal([]builds.Version{builds.Version{"ver": "123"}}))
 
-				sources, err = redis.GetCommonOutputs([]string{"some-job"}, "some-other-output")
+				versions, err = redis.GetCommonOutputs([]string{"some-job"}, "some-other-output")
 				Ω(err).ShouldNot(HaveOccurred())
-				Ω(sources).Should(Equal([]config.Source{config.Source("456")}))
+				Ω(versions).Should(Equal([]builds.Version{builds.Version{"ver": "456"}}))
 			})
 		})
 
@@ -210,11 +209,11 @@ var _ = Describe("API", func() {
 				Ω(updatedBuild.Status).Should(Equal(builds.StatusFailed))
 			})
 
-			It("does not save any the job's input's sources", func() {
-				_, err := redis.GetCurrentSource("some-job", "some-input")
+			It("does not save any the job's input's versions", func() {
+				_, err := redis.GetCurrentVersion("some-job", "some-input")
 				Ω(err).Should(HaveOccurred())
 
-				_, err = redis.GetCurrentSource("some-job", "some-other-input")
+				_, err = redis.GetCurrentVersion("some-job", "some-other-input")
 				Ω(err).Should(HaveOccurred())
 			})
 		})
@@ -233,11 +232,11 @@ var _ = Describe("API", func() {
 				Ω(updatedBuild.Status).Should(Equal(builds.StatusErrored))
 			})
 
-			It("does not save any the job's input's sources", func() {
-				_, err := redis.GetCurrentSource("some-job", "some-input")
+			It("does not save any the job's input's versions", func() {
+				_, err := redis.GetCurrentVersion("some-job", "some-input")
 				Ω(err).Should(HaveOccurred())
 
-				_, err = redis.GetCurrentSource("some-job", "some-other-input")
+				_, err = redis.GetCurrentVersion("some-job", "some-other-input")
 				Ω(err).Should(HaveOccurred())
 			})
 		})

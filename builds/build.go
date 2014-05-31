@@ -23,8 +23,11 @@ type Build struct {
 type Input struct {
 	Name     string
 	Source   config.Source
+	Version  Version
 	Metadata []MetadataField
 }
+
+type Version map[string]interface{}
 
 type MetadataField struct {
 	Name  string

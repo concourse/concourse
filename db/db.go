@@ -1,9 +1,6 @@
 package db
 
-import (
-	"github.com/winston-ci/winston/builds"
-	"github.com/winston-ci/winston/config"
-)
+import "github.com/winston-ci/winston/builds"
 
 type DB interface {
 	Builds(job string) ([]builds.Build, error)
@@ -17,9 +14,9 @@ type DB interface {
 	BuildLog(job string, build int) ([]byte, error)
 	SaveBuildLog(job string, build int, log []byte) error
 
-	GetCurrentSource(job, input string) (config.Source, error)
-	SaveCurrentSource(job, input string, source config.Source) error
+	GetCurrentVersion(job, input string) (builds.Version, error)
+	SaveCurrentVersion(job, input string, source builds.Version) error
 
-	GetCommonOutputs(jobs []string, resourceName string) ([]config.Source, error)
-	SaveOutputSource(job string, build int, resourceName string, source config.Source) error
+	GetCommonOutputs(jobs []string, resourceName string) ([]builds.Version, error)
+	SaveOutputVersion(job string, build int, resourceName string, version builds.Version) error
 }

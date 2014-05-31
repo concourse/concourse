@@ -63,43 +63,43 @@ var _ = Describe("RedisDB", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(string(log)).Should(Equal("some log"))
 
-		_, err = db.GetCurrentSource("some-job", "some-input")
+		_, err = db.GetCurrentVersion("some-job", "some-input")
 		Ω(err).Should(HaveOccurred())
 
-		source := config.Source("some source")
-		err = db.SaveCurrentSource("some-job", "some-input", source)
+		currentVersion := Builds.Version{"some": "version"}
+		err = db.SaveCurrentVersion("some-job", "some-input", currentVersion)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		currentSource, err := db.GetCurrentSource("some-job", "some-input")
+		gotCurrentVersion, err := db.GetCurrentVersion("some-job", "some-input")
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(currentSource).Should(Equal(source))
+		Ω(gotCurrentVersion).Should(Equal(currentVersion))
 
-		output1 := config.Source("output1")
-		output2 := config.Source("output2")
-		output3 := config.Source("output3")
+		output1 := Builds.Version{"ver": "1"}
+		output2 := Builds.Version{"ver": "2"}
+		output3 := Builds.Version{"ver": "3"}
 
-		err = db.SaveOutputSource("some-job", 1, "some-input", output1)
-		Ω(err).ShouldNot(HaveOccurred())
-
-		err = db.SaveOutputSource("some-job", 2, "some-input", output2)
+		err = db.SaveOutputVersion("some-job", 1, "some-input", output1)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		err = db.SaveOutputSource("some-other-job", 1, "some-input", output1)
+		err = db.SaveOutputVersion("some-job", 2, "some-input", output2)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		err = db.SaveOutputSource("some-other-job", 2, "some-input", output2)
+		err = db.SaveOutputVersion("some-other-job", 1, "some-input", output1)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		err = db.SaveOutputSource("some-other-job", 3, "some-input", output3)
+		err = db.SaveOutputVersion("some-other-job", 2, "some-input", output2)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		err = db.SaveOutputVersion("some-other-job", 3, "some-input", output3)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		outputs, err := db.GetCommonOutputs([]string{"some-job", "some-other-job"}, "some-input")
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(outputs).Should(Equal([]config.Source{output1, output2}))
+		Ω(outputs).Should(Equal([]Builds.Version{output1, output2}))
 
 		outputs, err = db.GetCommonOutputs([]string{"some-other-job"}, "some-input")
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(outputs).Should(Equal([]config.Source{output1, output2, output3}))
+		Ω(outputs).Should(Equal([]Builds.Version{output1, output2, output3}))
 
 		buildMetadata := []Builds.MetadataField{
 			{
@@ -114,7 +114,8 @@ var _ = Describe("RedisDB", func() {
 
 		input1 := Builds.Input{
 			Name:     "some-input",
-			Source:   config.Source(`123`),
+			Source:   config.Source{"some": "source"},
+			Version:  Builds.Version{"ver": "1"},
 			Metadata: buildMetadata,
 		}
 
@@ -122,8 +123,9 @@ var _ = Describe("RedisDB", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 
 		input2 := Builds.Input{
-			Name:   "some-other-input",
-			Source: config.Source(`124`),
+			Name:    "some-other-input",
+			Source:  config.Source{"some": "other-source"},
+			Version: Builds.Version{"ver": "2"},
 		}
 
 		err = db.SaveBuildInput("some-job", build.ID, input2)
