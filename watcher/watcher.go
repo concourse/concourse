@@ -45,7 +45,7 @@ func (watcher Watcher) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 			}
 
 			current, err := watcher.db.GetCurrentVersion(job.Name, input.Resource)
-			if err == nil {
+			if err != nil {
 				current = nil
 			}
 

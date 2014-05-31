@@ -60,7 +60,7 @@ func (watchman *watchman) Watch(
 			case <-watchman.stop:
 				return
 			case <-ticker.C:
-				log.Printf("checking for sources for %s via %T from %s since %s\n", job.Name, checker, resource, from)
+				log.Printf("checking for sources for %s via %T from %s since %v\n", job.Name, checker, resource, from)
 
 				newVersions := checker.CheckResource(resource, from)
 				if len(newVersions) == 0 {
