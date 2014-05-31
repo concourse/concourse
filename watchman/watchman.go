@@ -60,24 +60,23 @@ func (watchman *watchman) Watch(
 			case <-watchman.stop:
 				return
 			case <-ticker.C:
-				log.Printf("checking for sources via %T from %s since %s\n", checker, resource, from)
+				log.Printf("checking for sources for %s via %T from %s since %s\n", job.Name, checker, resource, from)
 
 				newVersions := checker.CheckResource(resource, from)
 				if len(newVersions) == 0 {
 					break
 				}
 
-				log.Printf("found %d new versions via %T", len(newVersions), checker)
+				log.Printf("found %d new versions for %s via %T", len(newVersions), job.Name, checker)
 
 				from = newVersions[len(newVersions)-1]
 
 				if latestOnly {
-
-					log.Printf("triggering latest via %T: %s\n", checker, resource)
+					log.Printf("triggering %s (latest) via %T: %s\n", job.Name, checker, resource)
 					watchman.builder.Build(job, map[string]builds.Version{resource.Name: from})
 				} else {
 					for i, version := range newVersions {
-						log.Printf("triggering %d of %d via %T: %s\n", i+1, len(newVersions), checker, version)
+						log.Printf("triggering %s (%d of %d) via %T: %s\n", job.Name, i+1, len(newVersions), checker, version)
 						watchman.builder.Build(job, map[string]builds.Version{resource.Name: version})
 					}
 				}
