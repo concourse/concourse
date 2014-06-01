@@ -5,7 +5,6 @@ import (
 	"io"
 	"strings"
 	"text/template"
-	"unicode/utf8"
 )
 
 type Writer struct {
@@ -47,15 +46,6 @@ func (streamer *Writer) Write(data []byte) (int, error) {
 
 	for eof := false; !eof; {
 		text, err := fullReader.ReadBytes('\x1b')
-
-		if len(text) > 0 {
-			checkEncoding, _ := utf8.DecodeLastRune(text)
-			if checkEncoding == utf8.RuneError {
-				streamer.dangling = append(lastSequence, text...)
-				break
-			}
-		}
-
 		if err == io.EOF {
 			eof = true
 		} else {

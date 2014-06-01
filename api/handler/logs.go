@@ -9,6 +9,7 @@ import (
 
 	"github.com/winston-ci/logbuffer"
 	"github.com/winston-ci/winston/ansistream"
+	"github.com/winston-ci/winston/utf8stream"
 )
 
 func (handler *Handler) LogInput(conn *websocket.Conn) {
@@ -64,12 +65,12 @@ func (handler *Handler) LogOutput(conn *websocket.Conn) {
 		return
 	}
 
-	ansiWriter := ansistream.NewWriter(conn)
+	logWriter := utf8stream.NewWriter(ansistream.NewWriter(conn))
 
 	logs, err := handler.db.BuildLog(job, id)
 	if err == nil {
-		ansiWriter.Write(logs)
-		ansiWriter.Close()
+		logWriter.Write(logs)
+		logWriter.Close()
 		return
 	}
 
@@ -82,5 +83,5 @@ func (handler *Handler) LogOutput(conn *websocket.Conn) {
 	}
 	handler.logsMutex.Unlock()
 
-	logBuffer.Attach(ansiWriter)
+	logBuffer.Attach(logWriter)
 }

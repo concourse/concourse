@@ -4,13 +4,12 @@ import (
 	"fmt"
 
 	. "github.com/winston-ci/winston/ansistream"
+	"github.com/winston-ci/winston/utf8stream"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 )
-
-const nihongo = "日本語"
 
 type Example struct {
 	Inputs []string
@@ -94,7 +93,6 @@ var _ = Describe("AnsiStream", func() {
 		{[]string{"\x1b[1m", "foo"}, `<span class="ansi-bold">foo</span>`},
 		{[]string{"\x1b[1m\x1b[0m", "foo"}, `foo`},
 		{[]string{"\x1b[1mfoo\x1b[0m", "bar"}, `<span class="ansi-bold">foo</span>bar`},
-		{[]string{"\x1b[1m" + nihongo[:1], nihongo[1:]}, `<span class="ansi-bold">` + nihongo + `</span>`},
 		{[]string{"\x1b[1mfoo", "bar"}, `<span class="ansi-bold">foo</span><span class="ansi-bold">bar</span>`},
 
 		// codeA -> normal -> empty -> codeA (unify; optimization)
@@ -128,7 +126,7 @@ var _ = Describe("AnsiStream", func() {
 			It(fmt.Sprintf("renders %s", output), func() {
 				buf := gbytes.NewBuffer()
 
-				stream := NewWriter(buf)
+				stream := utf8stream.NewWriter(NewWriter(buf))
 
 				for _, chunk := range inputs {
 					stream.Write([]byte(chunk))
@@ -141,19 +139,4 @@ var _ = Describe("AnsiStream", func() {
 			})
 		})
 	}
-
-	It("does not transmit utf8 codepoints that are split in twain", func() {
-		buf := gbytes.NewBuffer()
-
-		stream := NewWriter(buf)
-
-		stream.Write([]byte(nihongo[:7]))
-		Ω(buf.Contents()).Should(BeEmpty())
-
-		stream.Write([]byte(nihongo[7:]))
-		Ω(string(buf.Contents())).Should(Equal(nihongo))
-
-		stream.Close()
-		Ω(buf.Closed()).Should(BeTrue())
-	})
 })
