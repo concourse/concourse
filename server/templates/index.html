@@ -6,4 +6,18 @@
   <li class="{{.CurrentBuild.Status}}"><a href="{{url "GetBuild" .Job .CurrentBuild}}">{{.Job.Name}}</a></li>
   {{end}}
 </ul>
+
+<svg><g transform="translate(20,20)"/></svg>
+
+<script src="{{url "Public" "jquery-2.1.1.min.js"}}"></script>
+<script src="{{url "Public" "d3.v3.min.js"}}"></script>
+<script src="{{url "Public" "dagre-d3.min.js"}}"></script>
+<script src="{{url "Public" "index.js"}}"></script>
+
+<script>
+$(document).ready(function() {
+  $("ul.jobs").remove();
+  draw({{.Nodes}}, {{.Edges}});
+})
+</script>
 {{end}}

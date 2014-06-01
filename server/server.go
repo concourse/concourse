@@ -43,7 +43,7 @@ func New(
 	}
 
 	handlers := map[string]http.Handler{
-		routes.Index:        index.NewHandler(config.Jobs, db, indexTemplate),
+		routes.Index:        index.NewHandler(config.Resources, config.Jobs, db, indexTemplate),
 		routes.GetBuild:     getbuild.NewHandler(config.Jobs, db, buildTemplate),
 		routes.TriggerBuild: triggerbuild.NewHandler(config.Jobs, builder),
 		routes.Public:       http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
