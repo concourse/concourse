@@ -7,9 +7,9 @@ import (
 
 	"github.com/tedsuo/router"
 
-	"github.com/winston-ci/winston/builder"
 	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/db"
+	"github.com/winston-ci/winston/queue"
 	"github.com/winston-ci/winston/server/getbuild"
 	"github.com/winston-ci/winston/server/index"
 	"github.com/winston-ci/winston/server/routes"
@@ -21,7 +21,7 @@ func New(
 	db db.DB,
 	templatesDir, publicDir string,
 	peerAddr string,
-	builder builder.Builder,
+	queuer queue.Queuer,
 ) (http.Handler, error) {
 	funcs := template.FuncMap{
 		"url": templateFuncs{peerAddr}.url,
@@ -45,7 +45,7 @@ func New(
 	handlers := map[string]http.Handler{
 		routes.Index:        index.NewHandler(config.Resources, config.Jobs, db, indexTemplate),
 		routes.GetBuild:     getbuild.NewHandler(config.Jobs, db, buildTemplate),
-		routes.TriggerBuild: triggerbuild.NewHandler(config.Jobs, builder),
+		routes.TriggerBuild: triggerbuild.NewHandler(config.Jobs, queuer),
 		routes.Public:       http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
 	}
 

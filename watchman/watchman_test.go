@@ -5,16 +5,15 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/winston-ci/winston/builder/fakebuilder"
 	"github.com/winston-ci/winston/builds"
 	"github.com/winston-ci/winston/config"
+	"github.com/winston-ci/winston/queue/fakequeuer"
 	"github.com/winston-ci/winston/resources/fakechecker"
 	. "github.com/winston-ci/winston/watchman"
 )
 
 var _ = Describe("Watchman", func() {
-	var builder *fakebuilder.Builder
+	var queuer *fakequeuer.FakeQueuer
 	var watchman Watchman
 
 	var job config.Job
@@ -24,9 +23,9 @@ var _ = Describe("Watchman", func() {
 	var interval time.Duration
 
 	BeforeEach(func() {
-		builder = fakebuilder.New()
+		queuer = new(fakequeuer.FakeQueuer)
 
-		watchman = NewWatchman(builder)
+		watchman = NewWatchman(queuer)
 
 		job = config.Job{
 			Name: "some-job",
@@ -114,27 +113,24 @@ var _ = Describe("Watchman", func() {
 				Eventually(checkedFrom).Should(Receive(Equal(builds.Version{"version": "3"})))
 			})
 
-			It("builds the job with the changed version", func() {
-				Eventually(builder.Built).Should(ContainElement(fakebuilder.BuiltSpec{
-					Job: job,
-					VersionOverrides: map[string]builds.Version{
-						"some-resource": builds.Version{"version": "1"},
-					},
-				}))
+			It("enqueues a build for the job with the changed version", func() {
+				Eventually(queuer.EnqueueCallCount).Should(Equal(3))
 
-				Eventually(builder.Built).Should(ContainElement(fakebuilder.BuiltSpec{
-					Job: job,
-					VersionOverrides: map[string]builds.Version{
-						"some-resource": builds.Version{"version": "2"},
-					},
-				}))
+				job1, resource1, version1 := queuer.EnqueueArgsForCall(0)
+				job2, resource2, version2 := queuer.EnqueueArgsForCall(1)
+				job3, resource3, version3 := queuer.EnqueueArgsForCall(2)
 
-				Eventually(builder.Built).Should(ContainElement(fakebuilder.BuiltSpec{
-					Job: job,
-					VersionOverrides: map[string]builds.Version{
-						"some-resource": builds.Version{"version": "3"},
-					},
-				}))
+				Ω(job1).Should(Equal(job))
+				Ω(resource1).Should(Equal(resource))
+				Ω(version1).Should(Equal(builds.Version{"version": "1"}))
+
+				Ω(job2).Should(Equal(job))
+				Ω(resource2).Should(Equal(resource))
+				Ω(version2).Should(Equal(builds.Version{"version": "2"}))
+
+				Ω(job3).Should(Equal(job))
+				Ω(resource3).Should(Equal(resource))
+				Ω(version3).Should(Equal(builds.Version{"version": "3"}))
 			})
 
 			Context("when configured to only build the latest versions", func() {
@@ -143,14 +139,13 @@ var _ = Describe("Watchman", func() {
 				})
 
 				It("only builds the latest version", func() {
-					Eventually(builder.Built).Should(ContainElement(fakebuilder.BuiltSpec{
-						Job: job,
-						VersionOverrides: map[string]builds.Version{
-							"some-resource": builds.Version{"version": "3"},
-						},
-					}))
+					Eventually(queuer.EnqueueCallCount).Should(Equal(1))
+					Consistently(queuer.EnqueueCallCount).Should(Equal(1))
 
-					Consistently(builder.Built).Should(HaveLen(1))
+					job1, resource1, version1 := queuer.EnqueueArgsForCall(0)
+					Ω(job1).Should(Equal(job))
+					Ω(resource1).Should(Equal(resource))
+					Ω(version1).Should(Equal(builds.Version{"version": "3"}))
 				})
 
 				It("checks again from the latest version", func() {

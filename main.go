@@ -22,6 +22,7 @@ import (
 	"github.com/winston-ci/winston/builder"
 	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/db"
+	"github.com/winston-ci/winston/queue"
 	"github.com/winston-ci/winston/server"
 	"github.com/winston-ci/winston/watcher"
 	"github.com/winston-ci/winston/watchman"
@@ -110,6 +111,7 @@ func main() {
 	winstonEndpoint := router.NewRequestGenerator("http://"+*peerAddr, apiroutes.Routes)
 	proleEndpoint := router.NewRequestGenerator(*proleURL, proleroutes.Routes)
 	builder := builder.NewBuilder(redisDB, conf.Resources, proleEndpoint, winstonEndpoint)
+	queuer := queue.NewQueue(10*time.Second, builder)
 
 	serverHandler, err := server.New(
 		conf,
@@ -117,7 +119,7 @@ func main() {
 		*templatesDir,
 		*publicDir,
 		*peerAddr,
-		builder,
+		queuer,
 	)
 	if err != nil {
 		fatal(err)
@@ -130,11 +132,12 @@ func main() {
 		fatal(err)
 	}
 
-	watchman := watchman.NewWatchman(builder)
+	watchman := watchman.NewWatchman(queuer)
 
 	group := grouper.EnvokeGroup(grouper.RunGroup{
 		"web":     http_server.New(*listenAddr, serverHandler),
 		"api":     http_server.New(*apiListenAddr, apiHandler),
+		"queuer":  queuer,
 		"watcher": watcher.NewWatcher(conf.Jobs, conf.Resources, redisDB, proleEndpoint, watchman),
 		"drainer": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 			close(ready)

@@ -7,11 +7,14 @@ import (
 	"github.com/winston-ci/winston/config"
 )
 
+type BuildFunc func(config.Job, map[string]builds.Version) (builds.Build, error)
+
 type Builder struct {
-	built       []BuiltSpec
-	builtMutex  *sync.Mutex
-	BuildResult builds.Build
-	BuildError  error
+	built        []BuiltSpec
+	builtMutex   *sync.Mutex
+	WhenBuilding BuildFunc
+	BuildResult  builds.Build
+	BuildError   error
 }
 
 type BuiltSpec struct {
@@ -28,6 +31,10 @@ func New() *Builder {
 func (builder *Builder) Build(job config.Job, versionOverrides map[string]builds.Version) (builds.Build, error) {
 	if builder.BuildError != nil {
 		return builds.Build{}, builder.BuildError
+	}
+
+	if builder.WhenBuilding != nil {
+		return builder.WhenBuilding(job, versionOverrides)
 	}
 
 	builder.builtMutex.Lock()

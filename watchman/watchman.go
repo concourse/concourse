@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/winston-ci/winston/builder"
 	"github.com/winston-ci/winston/builds"
 	"github.com/winston-ci/winston/config"
+	"github.com/winston-ci/winston/queue"
 	"github.com/winston-ci/winston/resources"
 )
 
@@ -25,15 +25,15 @@ type Watchman interface {
 }
 
 type watchman struct {
-	builder builder.Builder
+	queuer queue.Queuer
 
 	stop     chan struct{}
 	watching *sync.WaitGroup
 }
 
-func NewWatchman(builder builder.Builder) Watchman {
+func NewWatchman(queuer queue.Queuer) Watchman {
 	return &watchman{
-		builder: builder,
+		queuer: queuer,
 
 		stop:     make(chan struct{}),
 		watching: new(sync.WaitGroup),
@@ -73,11 +73,11 @@ func (watchman *watchman) Watch(
 
 				if latestOnly {
 					log.Printf("triggering %s (latest) via %T: %s\n", job.Name, checker, resource)
-					watchman.builder.Build(job, map[string]builds.Version{resource.Name: from})
+					watchman.queuer.Enqueue(job, resource, from)
 				} else {
 					for i, version := range newVersions {
 						log.Printf("triggering %s (%d of %d) via %T: %s\n", job.Name, i+1, len(newVersions), checker, version)
-						watchman.builder.Build(job, map[string]builds.Version{resource.Name: version})
+						watchman.queuer.Enqueue(job, resource, version)
 					}
 				}
 			}

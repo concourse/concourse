@@ -7,20 +7,21 @@ import (
 
 	"github.com/tedsuo/router"
 
-	"github.com/winston-ci/winston/builder"
+	"github.com/winston-ci/winston/builds"
 	"github.com/winston-ci/winston/config"
+	"github.com/winston-ci/winston/queue"
 	"github.com/winston-ci/winston/server/routes"
 )
 
 type handler struct {
-	jobs    config.Jobs
-	builder builder.Builder
+	jobs   config.Jobs
+	queuer queue.Queuer
 }
 
-func NewHandler(jobs config.Jobs, builder builder.Builder) http.Handler {
+func NewHandler(jobs config.Jobs, queuer queue.Queuer) http.Handler {
 	return &handler{
-		jobs:    jobs,
-		builder: builder,
+		jobs:   jobs,
+		queuer: queuer,
 	}
 }
 
@@ -33,19 +34,26 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("triggering", job)
 
-	build, err := handler.builder.Build(job, nil)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	var build builds.Build
 
-	redirectPath, err := routes.Routes.PathForHandler(routes.GetBuild, router.Params{
-		"job":   job.Name,
-		"build": fmt.Sprintf("%d", build.ID),
-	})
-	if err != nil {
-		log.Fatalln("failed to construct redirect uri:", err)
-	}
+	startedBuild, buildErr := handler.queuer.Trigger(job)
 
-	http.Redirect(w, r, redirectPath, 302)
+	select {
+	case build = <-startedBuild:
+		redirectPath, err := routes.Routes.PathForHandler(routes.GetBuild, router.Params{
+			"job":   job.Name,
+			"build": fmt.Sprintf("%d", build.ID),
+		})
+		if err != nil {
+			log.Fatalln("failed to construct redirect uri:", err)
+		}
+
+		http.Redirect(w, r, redirectPath, 302)
+	case err := <-buildErr:
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "error building: %s", err)
+			return
+		}
+	}
 }
