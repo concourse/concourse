@@ -17,7 +17,7 @@ type templateFuncs struct {
 
 func (funcs templateFuncs) url(handler string, args ...interface{}) (string, error) {
 	switch handler {
-	case routes.TriggerBuild, routes.GetJob:
+	case routes.TriggerBuild:
 		return routes.Routes.PathForHandler(handler, router.Params{
 			"job": args[0].(config.Job).Name,
 		})

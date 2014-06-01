@@ -2,6 +2,10 @@
 
 {{define "body"}}
 <div id="build-title" class="{{.Build.Status}}">
+  <form class="trigger-build" method="post" action="{{url "TriggerBuild" .Job}}">
+    <input type="submit" value="trigger build" />
+  </form>
+
   <h1>{{.Job.Name}} #{{.Build.ID}}</h1>
 </div>
 

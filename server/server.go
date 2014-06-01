@@ -11,7 +11,6 @@ import (
 	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/db"
 	"github.com/winston-ci/winston/server/getbuild"
-	"github.com/winston-ci/winston/server/getjob"
 	"github.com/winston-ci/winston/server/index"
 	"github.com/winston-ci/winston/server/routes"
 	"github.com/winston-ci/winston/server/triggerbuild"
@@ -33,11 +32,6 @@ func New(
 		return nil, err
 	}
 
-	jobTemplate, err := loadTemplate(templatesDir, "job.html", funcs)
-	if err != nil {
-		return nil, err
-	}
-
 	buildTemplate, err := loadTemplate(templatesDir, "build.html", funcs)
 	if err != nil {
 		return nil, err
@@ -50,7 +44,6 @@ func New(
 
 	handlers := map[string]http.Handler{
 		routes.Index:        index.NewHandler(config.Jobs, db, indexTemplate),
-		routes.GetJob:       getjob.NewHandler(config.Jobs, db, jobTemplate),
 		routes.GetBuild:     getbuild.NewHandler(config.Jobs, db, buildTemplate),
 		routes.TriggerBuild: triggerbuild.NewHandler(config.Jobs, builder),
 		routes.Public:       http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
