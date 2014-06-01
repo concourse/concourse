@@ -36,7 +36,7 @@ type TemplateData struct {
 }
 
 type DotNode struct {
-	ID    string            `json:"id":`
+	ID    string            `json:"id"`
 	Value map[string]string `json:"value,omitempty"`
 }
 
