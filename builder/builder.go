@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"time"
 
 	"github.com/tedsuo/router"
 	ProleBuilds "github.com/winston-ci/prole/api/builds"
@@ -31,6 +32,8 @@ type builder struct {
 
 	prole   *router.RequestGenerator
 	winston *router.RequestGenerator
+
+	httpClient *http.Client
 }
 
 func NewBuilder(
@@ -45,6 +48,12 @@ func NewBuilder(
 
 		prole:   prole,
 		winston: winston,
+
+		httpClient: &http.Client{
+			Transport: &http.Transport{
+				ResponseHeaderTimeout: 5 * time.Minute,
+			},
+		},
 	}
 }
 
@@ -131,7 +140,7 @@ func (builder *builder) Build(job config.Job, versionOverrides map[string]builds
 
 	execute.Header.Set("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(execute)
+	resp, err := builder.httpClient.Do(execute)
 	if err != nil {
 		log.Println("prole request failed:", err)
 		return builds.Build{}, err

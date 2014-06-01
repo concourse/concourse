@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/tedsuo/router"
 	ProleBuilds "github.com/winston-ci/prole/api/builds"
@@ -16,10 +17,20 @@ import (
 
 type ProleChecker struct {
 	prole *router.RequestGenerator
+
+	httpClient *http.Client
 }
 
 func NewProleChecker(prole *router.RequestGenerator) Checker {
-	return &ProleChecker{prole}
+	return &ProleChecker{
+		prole: prole,
+
+		httpClient: &http.Client{
+			Transport: &http.Transport{
+				ResponseHeaderTimeout: 5 * time.Minute,
+			},
+		},
+	}
 }
 
 func (checker *ProleChecker) CheckResource(resource config.Resource, from builds.Version) []builds.Version {
@@ -49,7 +60,7 @@ func (checker *ProleChecker) CheckResource(resource config.Resource, from builds
 
 	check.Header.Set("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(check)
+	resp, err := checker.httpClient.Do(check)
 	if err != nil {
 		log.Println("prole request failed:", err)
 		return nil
