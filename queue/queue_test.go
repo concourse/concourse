@@ -27,6 +27,8 @@ var _ = Describe("Queue", func() {
 	var resource config.Resource
 	var version builds.Version
 
+	var createdBuild builds.Build
+
 	BeforeEach(func() {
 		gracePeriod = 100 * time.Millisecond
 		builder = new(fakebuilder.FakeBuilder)
@@ -41,7 +43,9 @@ var _ = Describe("Queue", func() {
 
 		version = builds.Version{"ver": "1"}
 
-		builder.CreateReturns(builds.Build{ID: 42}, nil)
+		createdBuild = builds.Build{ID: 42}
+
+		builder.CreateReturns(createdBuild, nil)
 
 		queue = NewQueue(gracePeriod, builder)
 
@@ -203,10 +207,10 @@ var _ = Describe("Queue", func() {
 
 			Ω(builder.StartCallCount()).Should(Equal(1))
 
-			createdJob, createdBuild, createdVersions := builder.StartArgsForCall(0)
-			Ω(createdJob).Should(Equal(job))
-			Ω(createdBuild).Should(Equal(build))
-			Ω(createdVersions).Should(Equal(map[string]builds.Version{
+			startedJob, startedBuild, startedVersions := builder.StartArgsForCall(0)
+			Ω(startedJob).Should(Equal(job))
+			Ω(startedBuild).Should(Equal(createdBuild))
+			Ω(startedVersions).Should(Equal(map[string]builds.Version{
 				"some-resource": builds.Version{"ver": "1"},
 			}))
 		})
@@ -249,10 +253,10 @@ var _ = Describe("Queue", func() {
 
 				Ω(builder.StartCallCount()).Should(Equal(1))
 
-				createdJob, createdBuild, createdVersions := builder.StartArgsForCall(0)
-				Ω(createdBuild).Should(Equal(build))
-				Ω(createdJob).Should(Equal(job))
-				Ω(createdVersions).Should(Equal(map[string]builds.Version{
+				startedJob, startedBuild, startedVersions := builder.StartArgsForCall(0)
+				Ω(startedJob).Should(Equal(job))
+				Ω(startedBuild).Should(Equal(createdBuild))
+				Ω(startedVersions).Should(Equal(map[string]builds.Version{
 					"some-resource": builds.Version{"ver": "1"},
 				}))
 			})
@@ -287,10 +291,10 @@ var _ = Describe("Queue", func() {
 
 					Eventually(builder.StartCallCount).Should(Equal(1))
 
-					createdJob, createdBuild, createdVersions := builder.StartArgsForCall(0)
-					Ω(createdJob).Should(Equal(job))
-					Ω(createdBuild).Should(Equal(build))
-					Ω(createdVersions).Should(Equal(map[string]builds.Version{
+					startedJob, startedBuild, startedVersions := builder.StartArgsForCall(0)
+					Ω(startedJob).Should(Equal(job))
+					Ω(startedBuild).Should(Equal(createdBuild))
+					Ω(startedVersions).Should(Equal(map[string]builds.Version{
 						"some-resource":   builds.Version{"ver": "1"},
 						"second-resource": builds.Version{"ver": "2"},
 					}))
@@ -309,17 +313,17 @@ var _ = Describe("Queue", func() {
 
 					Eventually(builder.StartCallCount).Should(Equal(2))
 
-					createdJob, createdBuild, createdVersions := builder.StartArgsForCall(0)
-					Ω(createdJob).Should(Equal(job))
-					Ω(createdBuild).Should(Equal(build))
-					Ω(createdVersions).Should(Equal(map[string]builds.Version{
+					startedJob, startedBuild, startedVersions := builder.StartArgsForCall(0)
+					Ω(startedJob).Should(Equal(job))
+					Ω(startedBuild).Should(Equal(createdBuild))
+					Ω(startedVersions).Should(Equal(map[string]builds.Version{
 						"some-resource": builds.Version{"ver": "1"},
 					}))
 
-					createdJob, createdBuild, createdVersions = builder.StartArgsForCall(1)
-					Ω(createdJob).Should(Equal(job))
-					Ω(createdBuild).Should(Equal(build))
-					Ω(createdVersions).Should(Equal(map[string]builds.Version{
+					startedJob, startedBuild, startedVersions = builder.StartArgsForCall(1)
+					Ω(startedJob).Should(Equal(job))
+					Ω(startedBuild).Should(Equal(createdBuild))
+					Ω(startedVersions).Should(Equal(map[string]builds.Version{
 						"second-resource": builds.Version{"ver": "2"},
 					}))
 				})
