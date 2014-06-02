@@ -4,9 +4,10 @@ import "github.com/winston-ci/winston/builds"
 
 type DB interface {
 	Builds(job string) ([]builds.Build, error)
-	CreateBuild(job string) (builds.Build, error)
 	GetBuild(job string, id int) (builds.Build, error)
 	GetCurrentBuild(job string) (builds.Build, error)
+	CreateBuild(job string) (builds.Build, error)
+	StartBuild(job string, id int, serial bool) (builds.Build, error)
 
 	SaveBuildInput(job string, build int, input builds.Input) error
 	SaveBuildStatus(job string, build int, status builds.Status) error

@@ -19,6 +19,8 @@ type Job struct {
 
 	Privileged bool `yaml:"privileged"`
 
+	Serial bool `yaml:"serial"`
+
 	BuildConfigPath string `yaml:"build"`
 
 	Inputs  []Input  `yaml:"inputs"`

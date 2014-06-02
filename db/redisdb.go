@@ -42,7 +42,7 @@ func (db *redisDB) Builds(job string) ([]builds.Build, error) {
 	conn := db.pool.Get()
 	defer conn.Close()
 
-	ids, err := redis.Values(conn.Do("SMEMBERS", fmt.Sprintf(buildIDsKey, job)))
+	ids, err := redis.Values(conn.Do("ZREVRANGE", fmt.Sprintf(buildIDsKey, job), "0", "-1"))
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (db *redisDB) CreateBuild(job string) (builds.Build, error) {
 
 	conn.Send("MULTI")
 
-	conn.Send("SADD", fmt.Sprintf(buildIDsKey, job), id)
+	conn.Send("ZADD", fmt.Sprintf(buildIDsKey, job), -id, id)
 
 	conn.Send(
 		"HMSET", fmt.Sprintf(buildKey, job, id),
@@ -95,11 +95,132 @@ func (db *redisDB) CreateBuild(job string) (builds.Build, error) {
 	}, nil
 }
 
+func (db *redisDB) StartBuild(job string, id int, serial bool) (builds.Build, error) {
+	conn := db.pool.Get()
+	defer conn.Close()
+
+	if serial {
+		err := conn.Send("WATCH", fmt.Sprintf(buildIDsKey, job))
+		if err != nil {
+			return builds.Build{}, err
+		}
+
+		currentIDs, err := redis.Values(conn.Do("ZREVRANGE", fmt.Sprintf(buildIDsKey, job), "0", "0"))
+		if err != nil {
+			return builds.Build{}, err
+		}
+
+		var currentID int
+
+		_, err = redis.Scan(currentIDs, &currentID)
+		if err != nil {
+			return builds.Build{}, err
+		}
+
+		queuedIDs, err := redis.Values(conn.Do("ZREVRANGEBYSCORE", fmt.Sprintf(buildIDsKey, job), "0", "-inf"))
+		if err != nil {
+			return builds.Build{}, err
+		}
+
+		var nextQueueID int
+
+		_, err = redis.Scan(queuedIDs, &nextQueueID)
+		if err != nil {
+			return builds.Build{}, err
+		}
+
+		if nextQueueID != id {
+			err = conn.Send("UNWATCH")
+			if err != nil {
+				return builds.Build{}, err
+			}
+
+			return builds.Build{
+				ID:     id,
+				Status: builds.StatusPending,
+			}, nil
+		}
+
+		if currentID == id {
+			err = conn.Send("UNWATCH")
+			if err != nil {
+				return builds.Build{}, err
+			}
+		} else {
+			vals, err := redis.Values(conn.Do("HGETALL", fmt.Sprintf(buildKey, job, currentID)))
+			if err != nil {
+				return builds.Build{}, err
+			}
+
+			var build builds.Build
+			if err := redis.ScanStruct(vals, &build); err != nil {
+				return builds.Build{}, err
+			}
+
+			switch build.Status {
+			case builds.StatusSucceeded, builds.StatusFailed, builds.StatusErrored:
+			default:
+				err = conn.Send("UNWATCH")
+				if err != nil {
+					return builds.Build{}, err
+				}
+
+				return builds.Build{
+					ID:     id,
+					Status: builds.StatusPending,
+				}, nil
+			}
+		}
+	}
+
+	err := conn.Send("MULTI")
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	err = conn.Send("ZADD", fmt.Sprintf(buildIDsKey, job), id, id)
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	err = conn.Send(
+		"HMSET", fmt.Sprintf(buildKey, job, id),
+		"Status", builds.StatusStarted,
+	)
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	transacted, err := conn.Do("EXEC")
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	if transacted == nil {
+		return builds.Build{
+			ID:     id,
+			Status: builds.StatusPending,
+		}, nil
+	}
+
+	return builds.Build{
+		ID:     id,
+		Status: builds.StatusStarted,
+	}, nil
+}
+
 func (db *redisDB) GetCurrentBuild(job string) (builds.Build, error) {
 	conn := db.pool.Get()
 	defer conn.Close()
 
-	id, err := redis.Int(conn.Do("GET", fmt.Sprintf(currentBuildIDKey, job)))
+	ids, err := redis.Values(conn.Do("ZREVRANGE", fmt.Sprintf(buildIDsKey, job), "0", "0"))
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	var id int
+
+	_, err = redis.Scan(ids, &id)
 	if err != nil {
 		return builds.Build{}, err
 	}
