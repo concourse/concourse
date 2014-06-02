@@ -203,7 +203,7 @@ func (q *Queue) triggerBuild(job config.Job) {
 
 	delete(q.pending, job.Name)
 
-	build, err := q.builder.Create(job, pending.Versions)
+	build, err := q.builder.Create(job)
 
 	if err != nil {
 		for _, errs := range pending.BuildErr {
@@ -215,30 +215,21 @@ func (q *Queue) triggerBuild(job config.Job) {
 		}
 	}
 
-	if build.Status == builds.StatusPending {
-		go q.tryToStart(build, job, pending.Versions)
-	}
+	q.tryToStart(job, build, pending.Versions)
 
 	q.inFlight.Done()
 }
 
-func (q *Queue) tryToStart(build builds.Build, job config.Job, versions map[string]builds.Version) {
-	ticker := time.NewTicker(q.gracePeriod)
+func (q *Queue) tryToStart(job config.Job, build builds.Build, versions map[string]builds.Version) {
+	build, err := q.builder.Start(job, build, versions)
+	if err != nil {
+		log.Println("queue errored starting build:", err)
+		return
+	}
 
-	for {
-		select {
-		case <-ticker.C:
-			build, err := q.builder.Start(build, job, versions)
-			if err != nil {
-				log.Println("queue errored starting build:", err)
-				return
-			}
-
-			if build.Status == builds.StatusPending {
-				continue
-			}
-
-			return
-		}
+	if build.Status == builds.StatusPending {
+		time.AfterFunc(q.gracePeriod, func() {
+			q.tryToStart(job, build, versions)
+		})
 	}
 }

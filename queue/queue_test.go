@@ -70,9 +70,8 @@ var _ = Describe("Queue", func() {
 
 			Ω(builder.CreateCallCount()).Should(Equal(1))
 
-			createdJob, createdVersions := builder.CreateArgsForCall(0)
+			createdJob := builder.CreateArgsForCall(0)
 			Ω(createdJob).Should(Equal(job))
-			Ω(createdVersions).Should(BeEmpty())
 		})
 
 		Context("when the new build's status is pending", func() {
@@ -103,7 +102,7 @@ var _ = Describe("Queue", func() {
 
 				Eventually(builder.StartCallCount, 2*gracePeriod).Should(Equal(1))
 
-				startedBuild, startedJob, startedVersions := builder.StartArgsForCall(0)
+				startedJob, startedBuild, startedVersions := builder.StartArgsForCall(0)
 				Ω(startedBuild).Should(Equal(queuedBuild))
 				Ω(startedJob).Should(Equal(job))
 				Ω(startedVersions).Should(BeEmpty())
@@ -129,14 +128,14 @@ var _ = Describe("Queue", func() {
 
 					Eventually(builder.StartCallCount, 2*gracePeriod).Should(Equal(1))
 
-					startedBuild, startedJob, startedVersions := builder.StartArgsForCall(0)
+					startedJob, startedBuild, startedVersions := builder.StartArgsForCall(0)
 					Ω(startedBuild).Should(Equal(queuedBuild))
 					Ω(startedJob).Should(Equal(job))
 					Ω(startedVersions).Should(BeEmpty())
 
 					Eventually(builder.StartCallCount, 2*gracePeriod).Should(Equal(2))
 
-					startedBuild, startedJob, startedVersions = builder.StartArgsForCall(1)
+					startedJob, startedBuild, startedVersions = builder.StartArgsForCall(1)
 					Ω(startedBuild).Should(Equal(queuedBuild))
 					Ω(startedJob).Should(Equal(job))
 					Ω(startedVersions).Should(BeEmpty())
@@ -164,8 +163,7 @@ var _ = Describe("Queue", func() {
 
 		Context("and the queue is told to stop", func() {
 			BeforeEach(func() {
-				builder.CreateStub = func(config.Job, map[string]builds.Version) (builds.Build, error) {
-					time.Sleep(time.Second)
+				builder.CreateStub = func(job config.Job) (builds.Build, error) {
 					return builds.Build{ID: 42}, nil
 				}
 			})
@@ -181,6 +179,8 @@ var _ = Describe("Queue", func() {
 				case <-process.Wait():
 					Fail("should have gotten the started build before exiting!")
 				}
+
+				Eventually(process.Wait()).Should(Receive(BeNil()))
 			})
 		})
 	})
@@ -201,10 +201,11 @@ var _ = Describe("Queue", func() {
 
 			Ω(time.Since(startedAt)).Should(BeNumerically("~", gracePeriod, gracePeriod/2))
 
-			Ω(builder.CreateCallCount()).Should(Equal(1))
+			Ω(builder.StartCallCount()).Should(Equal(1))
 
-			createdJob, createdVersions := builder.CreateArgsForCall(0)
+			createdJob, createdBuild, createdVersions := builder.StartArgsForCall(0)
 			Ω(createdJob).Should(Equal(job))
+			Ω(createdBuild).Should(Equal(build))
 			Ω(createdVersions).Should(Equal(map[string]builds.Version{
 				"some-resource": builds.Version{"ver": "1"},
 			}))
@@ -246,9 +247,10 @@ var _ = Describe("Queue", func() {
 
 				Ω(time.Since(startedAt)).Should(BeNumerically("<", gracePeriod))
 
-				Ω(builder.CreateCallCount()).Should(Equal(1))
+				Ω(builder.StartCallCount()).Should(Equal(1))
 
-				createdJob, createdVersions := builder.CreateArgsForCall(0)
+				createdJob, createdBuild, createdVersions := builder.StartArgsForCall(0)
+				Ω(createdBuild).Should(Equal(build))
 				Ω(createdJob).Should(Equal(job))
 				Ω(createdVersions).Should(Equal(map[string]builds.Version{
 					"some-resource": builds.Version{"ver": "1"},
@@ -283,10 +285,11 @@ var _ = Describe("Queue", func() {
 				It("starts the build with both specified versions", func() {
 					Eventually(secondQueuedBuild, 2*gracePeriod).Should(Receive())
 
-					Ω(builder.CreateCallCount()).Should(Equal(1))
+					Eventually(builder.StartCallCount).Should(Equal(1))
 
-					createdJob, createdVersions := builder.CreateArgsForCall(0)
+					createdJob, createdBuild, createdVersions := builder.StartArgsForCall(0)
 					Ω(createdJob).Should(Equal(job))
+					Ω(createdBuild).Should(Equal(build))
 					Ω(createdVersions).Should(Equal(map[string]builds.Version{
 						"some-resource":   builds.Version{"ver": "1"},
 						"second-resource": builds.Version{"ver": "2"},
@@ -304,16 +307,18 @@ var _ = Describe("Queue", func() {
 				It("executes a second, separate build with only the new version", func() {
 					Eventually(secondQueuedBuild, 2*gracePeriod).Should(Receive())
 
-					Ω(builder.CreateCallCount()).Should(Equal(2))
+					Eventually(builder.StartCallCount).Should(Equal(2))
 
-					createdJob, createdVersions := builder.CreateArgsForCall(0)
+					createdJob, createdBuild, createdVersions := builder.StartArgsForCall(0)
 					Ω(createdJob).Should(Equal(job))
+					Ω(createdBuild).Should(Equal(build))
 					Ω(createdVersions).Should(Equal(map[string]builds.Version{
 						"some-resource": builds.Version{"ver": "1"},
 					}))
 
-					createdJob, createdVersions = builder.CreateArgsForCall(1)
+					createdJob, createdBuild, createdVersions = builder.StartArgsForCall(1)
 					Ω(createdJob).Should(Equal(job))
+					Ω(createdBuild).Should(Equal(build))
 					Ω(createdVersions).Should(Equal(map[string]builds.Version{
 						"second-resource": builds.Version{"ver": "2"},
 					}))

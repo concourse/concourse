@@ -23,8 +23,8 @@ import (
 var ErrBadResponse = errors.New("bad response from prole")
 
 type Builder interface {
-	Create(config.Job, map[string]builds.Version) (builds.Build, error)
-	Start(builds.Build, config.Job, map[string]builds.Version) (builds.Build, error)
+	Create(config.Job) (builds.Build, error)
+	Start(config.Job, builds.Build, map[string]builds.Version) (builds.Build, error)
 }
 
 type builder struct {
@@ -58,27 +58,12 @@ func NewBuilder(
 	}
 }
 
-func (builder *builder) Create(job config.Job, versionOverrides map[string]builds.Version) (builds.Build, error) {
+func (builder *builder) Create(job config.Job) (builds.Build, error) {
 	log.Println("creating build")
-
-	build, err := builder.db.CreateBuild(job.Name)
-	if err != nil {
-		return builds.Build{}, err
-	}
-
-	return builder.Start(build, job, versionOverrides)
+	return builder.db.CreateBuild(job.Name)
 }
 
-func (builder *builder) Start(build builds.Build, job config.Job, versionOverrides map[string]builds.Version) (builds.Build, error) {
-	build, err := builder.db.StartBuild(job.Name, build.ID, job.Serial)
-	if err != nil {
-		return builds.Build{}, err
-	}
-
-	if build.Status == builds.StatusPending {
-		return build, nil
-	}
-
+func (builder *builder) Start(job config.Job, build builds.Build, versionOverrides map[string]builds.Version) (builds.Build, error) {
 	versions, err := builder.computeVersions(job, versionOverrides)
 	if err != nil {
 		return builds.Build{}, err
@@ -92,6 +77,15 @@ func (builder *builder) Start(build builds.Build, job config.Job, versionOverrid
 	outputs, err := builder.computeOutputs(job)
 	if err != nil {
 		return builds.Build{}, err
+	}
+
+	build, err = builder.db.StartBuild(job.Name, build.ID, job.Serial)
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	if build.Status == builds.StatusPending {
+		return build, nil
 	}
 
 	complete, err := builder.winston.RequestForHandler(

@@ -9,21 +9,20 @@ import (
 )
 
 type FakeBuilder struct {
-	CreateStub        func(config.Job, map[string]builds.Version) (builds.Build, error)
+	CreateStub        func(config.Job) (builds.Build, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
 		arg1 config.Job
-		arg2 map[string]builds.Version
 	}
 	createReturns struct {
 		result1 builds.Build
 		result2 error
 	}
-	StartStub        func(builds.Build, config.Job, map[string]builds.Version) (builds.Build, error)
+	StartStub        func(config.Job, builds.Build, map[string]builds.Version) (builds.Build, error)
 	startMutex       sync.RWMutex
 	startArgsForCall []struct {
-		arg1 builds.Build
-		arg2 config.Job
+		arg1 config.Job
+		arg2 builds.Build
 		arg3 map[string]builds.Version
 	}
 	startReturns struct {
@@ -32,15 +31,14 @@ type FakeBuilder struct {
 	}
 }
 
-func (fake *FakeBuilder) Create(arg1 config.Job, arg2 map[string]builds.Version) (builds.Build, error) {
+func (fake *FakeBuilder) Create(arg1 config.Job) (builds.Build, error) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
 		arg1 config.Job
-		arg2 map[string]builds.Version
-	}{arg1, arg2})
+	}{arg1})
 	if fake.CreateStub != nil {
-		return fake.CreateStub(arg1, arg2)
+		return fake.CreateStub(arg1)
 	} else {
 		return fake.createReturns.result1, fake.createReturns.result2
 	}
@@ -52,10 +50,10 @@ func (fake *FakeBuilder) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
-func (fake *FakeBuilder) CreateArgsForCall(i int) (config.Job, map[string]builds.Version) {
+func (fake *FakeBuilder) CreateArgsForCall(i int) config.Job {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
-	return fake.createArgsForCall[i].arg1, fake.createArgsForCall[i].arg2
+	return fake.createArgsForCall[i].arg1
 }
 
 func (fake *FakeBuilder) CreateReturns(result1 builds.Build, result2 error) {
@@ -65,12 +63,12 @@ func (fake *FakeBuilder) CreateReturns(result1 builds.Build, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeBuilder) Start(arg1 builds.Build, arg2 config.Job, arg3 map[string]builds.Version) (builds.Build, error) {
+func (fake *FakeBuilder) Start(arg1 config.Job, arg2 builds.Build, arg3 map[string]builds.Version) (builds.Build, error) {
 	fake.startMutex.Lock()
 	defer fake.startMutex.Unlock()
 	fake.startArgsForCall = append(fake.startArgsForCall, struct {
-		arg1 builds.Build
-		arg2 config.Job
+		arg1 config.Job
+		arg2 builds.Build
 		arg3 map[string]builds.Version
 	}{arg1, arg2, arg3})
 	if fake.StartStub != nil {
@@ -86,7 +84,7 @@ func (fake *FakeBuilder) StartCallCount() int {
 	return len(fake.startArgsForCall)
 }
 
-func (fake *FakeBuilder) StartArgsForCall(i int) (builds.Build, config.Job, map[string]builds.Version) {
+func (fake *FakeBuilder) StartArgsForCall(i int) (config.Job, builds.Build, map[string]builds.Version) {
 	fake.startMutex.RLock()
 	defer fake.startMutex.RUnlock()
 	return fake.startArgsForCall[i].arg1, fake.startArgsForCall[i].arg2, fake.startArgsForCall[i].arg3

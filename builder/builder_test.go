@@ -57,10 +57,18 @@ var _ = Describe("Builder", func() {
 				Type:   "git",
 				Source: config.Source{"uri": "git://some-resource"},
 			},
+			{
+				Name:   "some-dependant-resource",
+				Type:   "git",
+				Source: config.Source{"uri": "git://some-dependant-resource"},
+			},
+			{
+				Name:   "some-output-resource",
+				Type:   "git",
+				Source: config.Source{"uri": "git://some-output-resource"},
+			},
 		}
-	})
 
-	JustBeforeEach(func() {
 		builder = NewBuilder(
 			redis,
 			resources,
@@ -73,7 +81,36 @@ var _ = Describe("Builder", func() {
 		redisRunner.Stop()
 	})
 
-	Describe("Creating a build", func() {
+	Describe("Create", func() {
+		It("creates a pending build", func() {
+			build, err := builder.Create(job)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(build.ID).Should(Equal(1))
+		})
+
+		It("returns increasing build numbers", func() {
+			build, err := builder.Create(job)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(build.ID).Should(Equal(1))
+
+			build, err = builder.Create(job)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(build.ID).Should(Equal(2))
+		})
+	})
+
+	Describe("Starting a build", func() {
+		var build builds.Build
+
+		BeforeEach(func() {
+			var err error
+
+			build, err = builder.Create(job)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
 		It("triggers a build on the prole endpoint", func() {
 			proleServer.AppendHandlers(
 				ghttp.CombineHandlers(
@@ -100,33 +137,10 @@ var _ = Describe("Builder", func() {
 				),
 			)
 
-			build, err := builder.Create(job, nil)
+			build, err := builder.Start(job, build, nil)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Ω(build.ID).Should(Equal(1))
-		})
-
-		It("returns increasing build numbers", func() {
-			proleServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/builds"),
-					ghttp.RespondWith(201, ""),
-				),
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/builds"),
-					ghttp.RespondWith(201, ""),
-				),
-			)
-
-			build, err := builder.Create(job, nil)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			Ω(build.ID).Should(Equal(1))
-
-			build, err = builder.Create(job, nil)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			Ω(build.ID).Should(Equal(2))
 		})
 
 		Context("when the job is serial", func() {
@@ -143,20 +157,19 @@ var _ = Describe("Builder", func() {
 					existingBuild, err = redis.CreateBuild(job.Name)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					err = redis.SaveBuildStatus(job.Name, existingBuild.ID, builds.StatusStarted)
+					existingBuild, err = redis.StartBuild(job.Name, existingBuild.ID, false)
 					Ω(err).ShouldNot(HaveOccurred())
 				})
 
-				It("returns a pending build", func() {
-					queuedBuild, err := builder.Create(job, nil)
+				It("returns the build, still pending", func() {
+					queuedBuild, err := builder.Start(job, build, nil)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(queuedBuild.ID).Should(Equal(existingBuild.ID + 1))
 					Ω(queuedBuild.Status).Should(Equal(builds.StatusPending))
 				})
 
 				It("does not trigger a build", func() {
-					_, err := builder.Create(job, nil)
+					_, err := builder.Start(job, build, nil)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(proleServer.ReceivedRequests()).Should(BeEmpty())
@@ -182,7 +195,7 @@ var _ = Describe("Builder", func() {
 						Ω(err).ShouldNot(HaveOccurred())
 					})
 
-					It("triggers a build", func() {
+					It("starts the build", func() {
 						proleServer.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("POST", "/builds"),
@@ -190,10 +203,9 @@ var _ = Describe("Builder", func() {
 							),
 						)
 
-						queuedBuild, err := builder.Create(job, nil)
+						queuedBuild, err := builder.Start(job, build, nil)
 						Ω(err).ShouldNot(HaveOccurred())
 
-						Ω(queuedBuild.ID).Should(Equal(existingBuild.ID + 1))
 						Ω(queuedBuild.Status).Should(Equal(builds.StatusStarted))
 					})
 				})
@@ -243,18 +255,12 @@ var _ = Describe("Builder", func() {
 					),
 				)
 
-				_, err := builder.Create(job, nil)
+				_, err := builder.Start(job, build, nil)
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 
 			Context("and one of the outputs is not specified as an input", func() {
 				BeforeEach(func() {
-					resources = append(resources, config.Resource{
-						Name:   "some-output-resource",
-						Type:   "git",
-						Source: config.Source{"uri": "git://some-output-resource"},
-					})
-
 					job.Outputs = append(job.Outputs, config.Output{
 						Resource: "some-output-resource",
 						Params:   config.Params{"fizz": "buzz"},
@@ -306,7 +312,7 @@ var _ = Describe("Builder", func() {
 						),
 					)
 
-					_, err := builder.Create(job, nil)
+					_, err := builder.Start(job, build, nil)
 					Ω(err).ShouldNot(HaveOccurred())
 				})
 			})
@@ -340,7 +346,7 @@ var _ = Describe("Builder", func() {
 					),
 				)
 
-				_, err := builder.Create(job, map[string]builds.Version{
+				_, err := builder.Start(job, build, map[string]builds.Version{
 					"some-resource": builds.Version{"version": "1"},
 				})
 				Ω(err).ShouldNot(HaveOccurred())
@@ -349,12 +355,6 @@ var _ = Describe("Builder", func() {
 
 		Context("when the job has a resource that depends on other jobs", func() {
 			BeforeEach(func() {
-				resources = append(resources, config.Resource{
-					Name:   "some-dependant-resource",
-					Type:   "git",
-					Source: config.Source{"uri": "git://some-dependant-resource"},
-				})
-
 				job.Inputs = append(job.Inputs, config.Input{
 					Resource: "some-dependant-resource",
 					Passed:   []string{"job1", "job2"},
@@ -406,7 +406,7 @@ var _ = Describe("Builder", func() {
 						),
 					)
 
-					build, err := builder.Create(job, nil)
+					build, err := builder.Start(job, build, nil)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(build.ID).Should(Equal(1))
@@ -415,8 +415,14 @@ var _ = Describe("Builder", func() {
 
 			Context("and the other jobs do not satisfy the dependency", func() {
 				It("returns an error", func() {
-					_, err := builder.Create(job, nil)
+					_, err := builder.Start(job, build, nil)
 					Ω(err).Should(HaveOccurred())
+				})
+
+				It("does not start the build", func() {
+					build, err := redis.GetBuild(job.Name, build.ID)
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(build.Status).Should(Equal(builds.StatusPending))
 				})
 			})
 		})
@@ -429,7 +435,7 @@ var _ = Describe("Builder", func() {
 			})
 
 			It("returns an error", func() {
-				_, err := builder.Create(job, nil)
+				_, err := builder.Start(job, build, nil)
 				Ω(err).Should(HaveOccurred())
 			})
 		})
@@ -442,7 +448,7 @@ var _ = Describe("Builder", func() {
 			})
 
 			It("returns an error", func() {
-				_, err := builder.Create(job, nil)
+				_, err := builder.Start(job, build, nil)
 				Ω(err).Should(HaveOccurred())
 			})
 		})
@@ -460,7 +466,7 @@ var _ = Describe("Builder", func() {
 			})
 
 			It("returns an error", func() {
-				_, err := builder.Create(job, nil)
+				_, err := builder.Start(job, build, nil)
 				Ω(err).Should(HaveOccurred())
 
 				Ω(proleServer.ReceivedRequests()).Should(HaveLen(1))
@@ -478,7 +484,7 @@ var _ = Describe("Builder", func() {
 			})
 
 			It("returns an error", func() {
-				_, err := builder.Create(job, nil)
+				_, err := builder.Start(job, build, nil)
 				Ω(err).Should(HaveOccurred())
 			})
 		})
