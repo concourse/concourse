@@ -10,6 +10,7 @@ import (
 	"github.com/winston-ci/winston/config"
 	"github.com/winston-ci/winston/db"
 	"github.com/winston-ci/winston/queue"
+	"github.com/winston-ci/winston/server/abortbuild"
 	"github.com/winston-ci/winston/server/getbuild"
 	"github.com/winston-ci/winston/server/index"
 	"github.com/winston-ci/winston/server/routes"
@@ -46,6 +47,7 @@ func New(
 		routes.Index:        index.NewHandler(config.Resources, config.Jobs, db, indexTemplate),
 		routes.GetBuild:     getbuild.NewHandler(config.Jobs, db, buildTemplate),
 		routes.TriggerBuild: triggerbuild.NewHandler(config.Jobs, queuer),
+		routes.AbortBuild:   abortbuild.NewHandler(config.Jobs, db),
 		routes.Public:       http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
 	}
 

@@ -239,6 +239,22 @@ var _ = Describe("API", func() {
 				_, err = redis.GetCurrentVersion("some-job", "some-other-input")
 				Ω(err).Should(HaveOccurred())
 			})
+
+			Context("when the build has been aborted", func() {
+				BeforeEach(func() {
+					err := redis.AbortBuild("some-job", build.ID)
+					Ω(err).ShouldNot(HaveOccurred())
+				})
+
+				It("does not update the build's status", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+
+					updatedBuild, err := redis.GetBuild("some-job", build.ID)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(updatedBuild.Status).Should(Equal(builds.StatusAborted))
+				})
+			})
 		})
 	})
 

@@ -22,7 +22,7 @@ func (funcs templateFuncs) url(handler string, args ...interface{}) (string, err
 			"job": args[0].(config.Job).Name,
 		})
 
-	case routes.GetBuild:
+	case routes.GetBuild, routes.AbortBuild:
 		return routes.Routes.PathForHandler(handler, router.Params{
 			"job":   args[0].(config.Job).Name,
 			"build": fmt.Sprintf("%d", args[1].(builds.Build).ID),

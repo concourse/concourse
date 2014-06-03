@@ -7,7 +7,14 @@
   </form>
 
   <a class="title" href="/">&lt;</a>
+
   <h1>{{.Job.Name}} #{{.Build.ID}}</h1>
+
+  {{if .Abortable}}
+  <form class="abort-build" method="post" action="{{url "AbortBuild" .Job .Build}}">
+    <input type="submit" value="abort" />
+  </form>
+  {{end}}
 </div>
 
 <ul id="builds">

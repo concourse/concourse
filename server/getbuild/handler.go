@@ -30,6 +30,8 @@ type TemplateData struct {
 	Job    config.Job
 	Build  builds.Build
 	Builds []builds.Build
+
+	Abortable bool
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +49,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	build, err := handler.db.GetBuild(job.Name, buildID)
 	if err != nil {
-		log.Println("failed to get builds:", err)
+		log.Println("failed to get build:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -61,10 +63,19 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	sort.Sort(sort.Reverse(builds.ByID(bs)))
 
+	var abortable bool
+	switch build.Status {
+	case builds.StatusPending, builds.StatusScheduled, builds.StatusStarted:
+		abortable = true
+	default:
+		abortable = false
+	}
+
 	err = handler.template.Execute(w, TemplateData{
-		Job:    job,
-		Build:  build,
-		Builds: bs,
+		Job:       job,
+		Build:     build,
+		Builds:    bs,
+		Abortable: abortable,
 	})
 	if err != nil {
 		log.Println("failed to execute template:", err)

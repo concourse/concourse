@@ -22,17 +22,23 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var build ProleBuilds.Build
-	if err := json.NewDecoder(r.Body).Decode(&build); err != nil {
+	build, err := handler.db.GetBuild(job, id)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	var proleBuild ProleBuilds.Build
+	if err := json.NewDecoder(r.Body).Decode(&proleBuild); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	log.Printf("updating build: %#v\n", build)
+	log.Printf("updating build: %#v\n", proleBuild)
 
 	var status builds.Status
 
-	switch build.Status {
+	switch proleBuild.Status {
 	case ProleBuilds.StatusStarted:
 		status = builds.StatusStarted
 	case ProleBuilds.StatusSucceeded:
@@ -40,9 +46,13 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 	case ProleBuilds.StatusFailed:
 		status = builds.StatusFailed
 	case ProleBuilds.StatusErrored:
-		status = builds.StatusErrored
+		if build.Status == builds.StatusAborted {
+			status = builds.StatusAborted
+		} else {
+			status = builds.StatusErrored
+		}
 	default:
-		log.Println("unknown status:", build.Status)
+		log.Println("unknown status:", proleBuild.Status)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -55,9 +65,9 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	switch build.Status {
+	switch proleBuild.Status {
 	case ProleBuilds.StatusStarted:
-		for _, input := range build.Inputs {
+		for _, input := range proleBuild.Inputs {
 			err := handler.db.SaveCurrentVersion(job, input.Name, builds.Version(input.Version))
 			if err != nil {
 				log.Println("error saving source:", err)
@@ -71,7 +81,7 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	case ProleBuilds.StatusSucceeded:
-		for _, output := range build.Outputs {
+		for _, output := range proleBuild.Outputs {
 			err := handler.db.SaveOutputVersion(job, id, output.Name, builds.Version(output.Version))
 			if err != nil {
 				log.Println("error saving source:", err)
