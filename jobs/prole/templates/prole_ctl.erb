@@ -16,8 +16,11 @@ case $1 in
 
     echo $$ > /var/vcap/sys/run/prole/prole.pid
 
+    <% my_ip = spec.networks.send(p("network_name")).ip %>
+
     exec /var/vcap/packages/prole/bin/prole \
       -listenAddr=<%= p("prole.listen_address") %> \
+      -peerAddr=<%= my_ip %>:<%= p("prole.listen_address").split(":").last %> \
       -wardenNetwork=<%= p("prole.warden.network") %> \
       -wardenAddr=<%= p("prole.warden.address") %> \
       1>>$LOG_DIR/prole.stdout.log \
