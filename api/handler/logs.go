@@ -9,6 +9,7 @@ import (
 
 	"github.com/winston-ci/logbuffer"
 	"github.com/winston-ci/winston/ansistream"
+	"github.com/winston-ci/winston/rediswriter"
 	"github.com/winston-ci/winston/utf8stream"
 )
 
@@ -38,15 +39,11 @@ func (handler *Handler) LogInput(conn *websocket.Conn) {
 	defer conn.Close()
 	defer logBuffer.Close()
 
-	_, err = io.Copy(logBuffer, conn)
+	logWriter := rediswriter.NewWriter(job, id, handler.db)
+
+	_, err = io.Copy(io.MultiWriter(logWriter, logBuffer), conn)
 	if err != nil {
 		log.Println("error reading message:", err)
-		return
-	}
-
-	err = handler.db.SaveBuildLog(job, id, logBuffer.Content())
-	if err != nil {
-		log.Println("failed saving build log:", err)
 		return
 	}
 }
@@ -70,8 +67,6 @@ func (handler *Handler) LogOutput(conn *websocket.Conn) {
 	logs, err := handler.db.BuildLog(job, id)
 	if err == nil {
 		logWriter.Write(logs)
-		logWriter.Close()
-		return
 	}
 
 	handler.logsMutex.Lock()

@@ -399,11 +399,11 @@ func (db *redisDB) BuildLog(job string, build int) ([]byte, error) {
 	return redis.Bytes(conn.Do("GET", fmt.Sprintf(logsKey, job, build)))
 }
 
-func (db *redisDB) SaveBuildLog(job string, build int, log []byte) error {
+func (db *redisDB) AppendBuildLog(job string, build int, log []byte) error {
 	conn := db.pool.Get()
 	defer conn.Close()
 
-	_, err := conn.Do("SET", fmt.Sprintf(logsKey, job, build), log)
+	_, err := conn.Do("APPEND", fmt.Sprintf(logsKey, job, build), log)
 	return err
 }
 

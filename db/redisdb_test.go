@@ -83,7 +83,10 @@ var _ = Describe("RedisDB", func() {
 		_, err = db.BuildLog("some-job", 1)
 		Ω(err).Should(HaveOccurred())
 
-		err = db.SaveBuildLog("some-job", 1, []byte("some log"))
+		err = db.AppendBuildLog("some-job", 1, []byte("some "))
+		Ω(err).ShouldNot(HaveOccurred())
+
+		err = db.AppendBuildLog("some-job", 1, []byte("log"))
 		Ω(err).ShouldNot(HaveOccurred())
 
 		log, err := db.BuildLog("some-job", 1)

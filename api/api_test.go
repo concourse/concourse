@@ -410,14 +410,12 @@ var _ = Describe("API", func() {
 
 			Context("when there is a build log saved", func() {
 				BeforeEach(func() {
-					err := redis.SaveBuildLog("some-job", build.ID, []byte("some saved log"))
+					err := redis.AppendBuildLog("some-job", build.ID, []byte("some saved log"))
 					Ω(err).ShouldNot(HaveOccurred())
 				})
 
-				It("immediately returns it and closes the sink", func() {
-					sink := outputSink()
-					Eventually(sink).Should(gbytes.Say("some saved log"))
-					Eventually(sink.Closed).Should(BeTrue())
+				It("immediately returns it", func() {
+					Eventually(outputSink()).Should(gbytes.Say("some saved log"))
 				})
 			})
 
