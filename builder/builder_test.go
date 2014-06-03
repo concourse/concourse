@@ -81,6 +81,17 @@ var _ = Describe("Builder", func() {
 		redisRunner.Stop()
 	})
 
+	successfulBuildStart := func(build ProleBuilds.Build) http.HandlerFunc {
+		createdBuild := build
+		createdBuild.Guid = "some-prole-guid"
+		createdBuild.AbortURL = proleServer.URL() + "/abort/the/build"
+
+		return ghttp.CombineHandlers(
+			ghttp.VerifyJSONRepresenting(build),
+			ghttp.RespondWithJSONEncoded(201, createdBuild),
+		)
+	}
+
 	Describe("Create", func() {
 		It("creates a pending build", func() {
 			build, err := builder.Create(job)
@@ -115,7 +126,7 @@ var _ = Describe("Builder", func() {
 			proleServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/builds"),
-					ghttp.VerifyJSONRepresenting(ProleBuilds.Build{
+					successfulBuildStart(ProleBuilds.Build{
 						Privileged: true,
 
 						Callback: "http://winston-server/builds/foo/1",
@@ -133,7 +144,6 @@ var _ = Describe("Builder", func() {
 
 						Outputs: []ProleBuilds.Output{},
 					}),
-					ghttp.RespondWith(201, ""),
 				),
 			)
 
@@ -148,7 +158,7 @@ var _ = Describe("Builder", func() {
 				job.Serial = true
 			})
 
-			Context("and the current build is started", func() {
+			Context("and the current build is scheduleed", func() {
 				var existingBuild builds.Build
 
 				BeforeEach(func() {
@@ -157,8 +167,9 @@ var _ = Describe("Builder", func() {
 					existingBuild, err = redis.CreateBuild(job.Name)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					existingBuild, err = redis.StartBuild(job.Name, existingBuild.ID, false)
+					scheduled, err := redis.ScheduleBuild(job.Name, existingBuild.ID, false)
 					Ω(err).ShouldNot(HaveOccurred())
+					Ω(scheduled).Should(BeTrue())
 				})
 
 				It("returns the build, still pending", func() {
@@ -188,8 +199,9 @@ var _ = Describe("Builder", func() {
 						existingBuild, err = redis.CreateBuild(job.Name)
 						Ω(err).ShouldNot(HaveOccurred())
 
-						existingBuild, err = redis.StartBuild(job.Name, existingBuild.ID, true)
+						scheduled, err := redis.ScheduleBuild(job.Name, existingBuild.ID, false)
 						Ω(err).ShouldNot(HaveOccurred())
+						Ω(scheduled).Should(BeTrue())
 
 						err = redis.SaveBuildStatus(job.Name, existingBuild.ID, status)
 						Ω(err).ShouldNot(HaveOccurred())
@@ -199,7 +211,24 @@ var _ = Describe("Builder", func() {
 						proleServer.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("POST", "/builds"),
-								ghttp.RespondWith(201, ""),
+								successfulBuildStart(ProleBuilds.Build{
+									Privileged: true,
+
+									Callback: "http://winston-server/builds/foo/1",
+									LogsURL:  "ws://winston-server/builds/foo/1/log/input",
+
+									Inputs: []ProleBuilds.Input{
+										{
+											Name:            "some-resource",
+											Type:            "git",
+											Source:          ProleBuilds.Source{"uri": "git://some-resource"},
+											DestinationPath: "some-resource",
+											ConfigPath:      "build.yml",
+										},
+									},
+
+									Outputs: []ProleBuilds.Output{},
+								}),
 							),
 						)
 
@@ -226,7 +255,7 @@ var _ = Describe("Builder", func() {
 				proleServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/builds"),
-						ghttp.VerifyJSONRepresenting(ProleBuilds.Build{
+						successfulBuildStart(ProleBuilds.Build{
 							Privileged: true,
 
 							Callback: "http://winston-server/builds/foo/1",
@@ -251,7 +280,6 @@ var _ = Describe("Builder", func() {
 								},
 							},
 						}),
-						ghttp.RespondWith(201, ""),
 					),
 				)
 
@@ -271,7 +299,7 @@ var _ = Describe("Builder", func() {
 					proleServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("POST", "/builds"),
-							ghttp.VerifyJSONRepresenting(ProleBuilds.Build{
+							successfulBuildStart(ProleBuilds.Build{
 								Privileged: true,
 
 								Callback: "http://winston-server/builds/foo/1",
@@ -308,7 +336,6 @@ var _ = Describe("Builder", func() {
 									},
 								},
 							}),
-							ghttp.RespondWith(201, ""),
 						),
 					)
 
@@ -323,7 +350,7 @@ var _ = Describe("Builder", func() {
 				proleServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/builds"),
-						ghttp.VerifyJSONRepresenting(ProleBuilds.Build{
+						successfulBuildStart(ProleBuilds.Build{
 							Privileged: true,
 
 							Callback: "http://winston-server/builds/foo/1",
@@ -342,7 +369,6 @@ var _ = Describe("Builder", func() {
 
 							Outputs: []ProleBuilds.Output{},
 						}),
-						ghttp.RespondWith(201, ""),
 					),
 				)
 
@@ -350,6 +376,44 @@ var _ = Describe("Builder", func() {
 					"some-resource": builds.Version{"version": "1"},
 				})
 				Ω(err).ShouldNot(HaveOccurred())
+			})
+		})
+
+		Context("when the build is aborted while starting", func() {
+			It("aborts the build on the prole", func() {
+				proleServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("POST", "/builds"),
+						func(w http.ResponseWriter, r *http.Request) {
+							err := redis.AbortBuild(job.Name, 1)
+							Ω(err).ShouldNot(HaveOccurred())
+						},
+						successfulBuildStart(ProleBuilds.Build{
+							Privileged: true,
+
+							Callback: "http://winston-server/builds/foo/1",
+							LogsURL:  "ws://winston-server/builds/foo/1/log/input",
+
+							Inputs: []ProleBuilds.Input{
+								{
+									Name:            "some-resource",
+									Type:            "git",
+									Source:          ProleBuilds.Source{"uri": "git://some-resource"},
+									DestinationPath: "some-resource",
+									ConfigPath:      "build.yml",
+								},
+							},
+
+							Outputs: []ProleBuilds.Output{},
+						}),
+					),
+					ghttp.VerifyRequest("POST", "/abort/the/build"),
+				)
+
+				_, err := builder.Start(job, build, nil)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(proleServer.ReceivedRequests()).Should(HaveLen(2))
 			})
 		})
 
@@ -377,7 +441,7 @@ var _ = Describe("Builder", func() {
 					proleServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("POST", "/builds"),
-							ghttp.VerifyJSONRepresenting(ProleBuilds.Build{
+							successfulBuildStart(ProleBuilds.Build{
 								Privileged: true,
 
 								Callback: "http://winston-server/builds/foo/1",
@@ -402,7 +466,6 @@ var _ = Describe("Builder", func() {
 
 								Outputs: []ProleBuilds.Output{},
 							}),
-							ghttp.RespondWith(201, ""),
 						),
 					)
 

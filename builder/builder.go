@@ -79,13 +79,13 @@ func (builder *builder) Start(job config.Job, build builds.Build, versionOverrid
 		return builds.Build{}, err
 	}
 
-	build, err = builder.db.StartBuild(job.Name, build.ID, job.Serial)
+	scheduled, err := builder.db.ScheduleBuild(job.Name, build.ID, job.Serial)
 	if err != nil {
 		return builds.Build{}, err
 	}
 
-	if build.Status == builds.StatusPending {
-		return build, nil
+	if !scheduled {
+		return builder.db.GetBuild(job.Name, build.ID)
 	}
 
 	complete, err := builder.winston.RequestForHandler(
@@ -160,9 +160,21 @@ func (builder *builder) Start(job config.Job, build builds.Build, versionOverrid
 		return builds.Build{}, ErrBadResponse
 	}
 
+	var startedBuild ProleBuilds.Build
+	err = json.NewDecoder(resp.Body).Decode(&startedBuild)
+	if err != nil {
+		log.Println("bad prole response (expecting build):", err)
+		return builds.Build{}, err
+	}
+
 	resp.Body.Close()
 
-	return build, nil
+	started, err := builder.db.StartBuild(job.Name, build.ID, startedBuild.AbortURL)
+	if !started {
+		builder.httpClient.Post(startedBuild.AbortURL, "", nil)
+	}
+
+	return builder.db.GetBuild(job.Name, build.ID)
 }
 
 func (builder *builder) computeVersions(job config.Job, versionOverrides map[string]builds.Version) (map[string]builds.Version, error) {

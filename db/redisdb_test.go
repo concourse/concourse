@@ -46,14 +46,24 @@ var _ = Describe("RedisDB", func() {
 		Ω(build.ID).Should(Equal(1))
 		Ω(build.Status).Should(Equal(Builds.StatusPending))
 
-		build, err = db.StartBuild("some-job", build.ID, false)
+		scheduled, err := db.ScheduleBuild("some-job", build.ID, false)
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(build.Status).Should(Equal(Builds.StatusStarted))
+		Ω(scheduled).Should(BeTrue())
+
+		build, err = db.GetCurrentBuild("some-job")
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(build.ID).Should(Equal(1))
+		Ω(build.Status).Should(Equal(Builds.StatusScheduled))
+
+		started, err := db.StartBuild("some-job", build.ID, "some-abort-url")
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(started).Should(BeTrue())
 
 		build, err = db.GetCurrentBuild("some-job")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(build.ID).Should(Equal(1))
 		Ω(build.Status).Should(Equal(Builds.StatusStarted))
+		Ω(build.AbortURL).Should(Equal("some-abort-url"))
 
 		builds, err = db.Builds("some-job")
 		Ω(err).ShouldNot(HaveOccurred())
@@ -169,20 +179,68 @@ var _ = Describe("RedisDB", func() {
 			Ω(firstBuild.Status).Should(Equal(Builds.StatusPending))
 		})
 
-		Describe("starting the build", func() {
-			It("updates the status", func() {
-				started, err := db.StartBuild(job, firstBuild.ID, false)
+		Context("and then aborted", func() {
+			BeforeEach(func() {
+				err := db.AbortBuild(job, firstBuild.ID)
 				Ω(err).ShouldNot(HaveOccurred())
-				Ω(started.ID).Should(Equal(firstBuild.ID))
-				Ω(started.Status).Should(Equal(Builds.StatusStarted))
+			})
+
+			It("changes the state to aborted", func() {
+				build, err := db.GetBuild(job, firstBuild.ID)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(build.Status).Should(Equal(Builds.StatusAborted))
+			})
+
+			Describe("scheduling the build", func() {
+				It("fails", func() {
+					scheduled, err := db.ScheduleBuild(job, firstBuild.ID, false)
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(scheduled).Should(BeFalse())
+				})
+			})
+		})
+
+		Context("and then scheduled", func() {
+			BeforeEach(func() {
+				scheduled, err := db.ScheduleBuild(job, firstBuild.ID, false)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(scheduled).Should(BeTrue())
+			})
+
+			Context("and then aborted", func() {
+				BeforeEach(func() {
+					err := db.AbortBuild(job, firstBuild.ID)
+					Ω(err).ShouldNot(HaveOccurred())
+				})
+
+				It("changes the state to aborted", func() {
+					build, err := db.GetBuild(job, firstBuild.ID)
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(build.Status).Should(Equal(Builds.StatusAborted))
+				})
+
+				Describe("starting the build", func() {
+					It("fails", func() {
+						started, err := db.StartBuild(job, firstBuild.ID, "abort-url")
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(started).Should(BeFalse())
+					})
+				})
+			})
+		})
+
+		Describe("scheduling the build", func() {
+			It("succeeds", func() {
+				scheduled, err := db.ScheduleBuild(job, firstBuild.ID, false)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(scheduled).Should(BeTrue())
 			})
 
 			Context("serially", func() {
-				It("updates the status", func() {
-					started, err := db.StartBuild(job, firstBuild.ID, true)
+				It("succeeds", func() {
+					scheduled, err := db.ScheduleBuild(job, firstBuild.ID, true)
 					Ω(err).ShouldNot(HaveOccurred())
-					Ω(started.ID).Should(Equal(firstBuild.ID))
-					Ω(started.Status).Should(Equal(Builds.StatusStarted))
+					Ω(scheduled).Should(BeTrue())
 				})
 			})
 		})
@@ -199,38 +257,34 @@ var _ = Describe("RedisDB", func() {
 				Ω(secondBuild.Status).Should(Equal(Builds.StatusPending))
 			})
 
-			Describe("starting the second build", func() {
-				It("updates the status to started", func() {
-					started, err := db.StartBuild(job, secondBuild.ID, false)
+			Describe("scheduling the second build", func() {
+				It("succeeds", func() {
+					scheduled, err := db.ScheduleBuild(job, secondBuild.ID, false)
 					Ω(err).ShouldNot(HaveOccurred())
-					Ω(started.ID).Should(Equal(secondBuild.ID))
-					Ω(started.Status).Should(Equal(Builds.StatusStarted))
+					Ω(scheduled).Should(BeTrue())
 				})
 
 				Context("with serial true", func() {
-					It("does not update the status", func() {
-						started, err := db.StartBuild(job, secondBuild.ID, true)
+					It("fails", func() {
+						scheduled, err := db.ScheduleBuild(job, secondBuild.ID, true)
 						Ω(err).ShouldNot(HaveOccurred())
-						Ω(started.ID).Should(Equal(secondBuild.ID))
-						Ω(started.Status).Should(Equal(Builds.StatusPending))
+						Ω(scheduled).Should(BeFalse())
 					})
 				})
 			})
 
-			Describe("after the first build starts", func() {
+			Describe("after the first build schedules", func() {
 				BeforeEach(func() {
-					var err error
-
-					firstBuild, err = db.StartBuild(job, firstBuild.ID, false)
+					scheduled, err := db.ScheduleBuild(job, firstBuild.ID, false)
 					Ω(err).ShouldNot(HaveOccurred())
+					Ω(scheduled).Should(BeTrue())
 				})
 
-				Context("when the second build is started serially", func() {
-					It("does not update the status", func() {
-						started, err := db.StartBuild(job, secondBuild.ID, true)
+				Context("when the second build is scheduled serially", func() {
+					It("fails", func() {
+						scheduled, err := db.ScheduleBuild(job, secondBuild.ID, true)
 						Ω(err).ShouldNot(HaveOccurred())
-						Ω(started.ID).Should(Equal(secondBuild.ID))
-						Ω(started.Status).Should(Equal(Builds.StatusPending))
+						Ω(scheduled).Should(BeFalse())
 					})
 				})
 
@@ -243,16 +297,30 @@ var _ = Describe("RedisDB", func() {
 							Ω(err).ShouldNot(HaveOccurred())
 						})
 
-						Context("and the second build is started serially", func() {
-							It("updates the status", func() {
-								started, err := db.StartBuild(job, secondBuild.ID, true)
+						Context("and the second build is scheduled serially", func() {
+							It("succeeds", func() {
+								scheduled, err := db.ScheduleBuild(job, secondBuild.ID, true)
 								Ω(err).ShouldNot(HaveOccurred())
-								Ω(started.ID).Should(Equal(secondBuild.ID))
-								Ω(started.Status).Should(Equal(Builds.StatusStarted))
+								Ω(scheduled).Should(BeTrue())
 							})
 						})
 					})
 				}
+			})
+
+			Describe("after the first build is aborted", func() {
+				BeforeEach(func() {
+					err := db.AbortBuild(job, firstBuild.ID)
+					Ω(err).ShouldNot(HaveOccurred())
+				})
+
+				Context("when the second build is scheduled serially", func() {
+					It("succeeds", func() {
+						scheduled, err := db.ScheduleBuild(job, secondBuild.ID, true)
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(scheduled).Should(BeTrue())
+					})
+				})
 			})
 
 			Context("and a third build is created", func() {
@@ -273,29 +341,27 @@ var _ = Describe("RedisDB", func() {
 						Ω(err).ShouldNot(HaveOccurred())
 					})
 
-					Context("and the third build is started serially", func() {
-						It("does not update the status, as it would have jumped the queue", func() {
-							started, err := db.StartBuild(job, thirdBuild.ID, true)
+					Context("and the third build is scheduled serially", func() {
+						It("fails, as it would have jumped the queue", func() {
+							scheduled, err := db.ScheduleBuild(job, thirdBuild.ID, true)
 							Ω(err).ShouldNot(HaveOccurred())
-							Ω(started.ID).Should(Equal(thirdBuild.ID))
-							Ω(started.Status).Should(Equal(Builds.StatusPending))
+							Ω(scheduled).Should(BeFalse())
 						})
 					})
 				})
 
-				Context("and then started", func() {
-					It("updates the status to started", func() {
-						started, err := db.StartBuild(job, thirdBuild.ID, false)
+				Context("and then scheduled", func() {
+					It("succeeds", func() {
+						scheduled, err := db.ScheduleBuild(job, thirdBuild.ID, false)
 						Ω(err).ShouldNot(HaveOccurred())
-						Ω(started.Status).Should(Equal(Builds.StatusStarted))
+						Ω(scheduled).Should(BeTrue())
 					})
 
 					Context("with serial true", func() {
-						It("does not update the status", func() {
-							started, err := db.StartBuild(job, thirdBuild.ID, true)
+						It("fails", func() {
+							scheduled, err := db.ScheduleBuild(job, thirdBuild.ID, true)
 							Ω(err).ShouldNot(HaveOccurred())
-							Ω(started.ID).Should(Equal(thirdBuild.ID))
-							Ω(started.Status).Should(Equal(Builds.StatusPending))
+							Ω(scheduled).Should(BeFalse())
 						})
 					})
 				})
