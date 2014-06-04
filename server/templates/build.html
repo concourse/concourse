@@ -1,44 +1,48 @@
 {{define "title"}}{{.Job.Name}} #{{.Build.ID}} - Winston{{end}}
 
 {{define "body"}}
-<div id="build-title" class="{{.Build.Status}}">
-  <form class="trigger-build" method="post" action="{{url "TriggerBuild" .Job}}">
-    <input type="submit" value="trigger build" />
-  </form>
+<div id="build-header">
+  <div id="build-title" class="{{.Build.Status}}">
+    <form class="trigger-build" method="post" action="{{url "TriggerBuild" .Job}}">
+      <input type="submit" value="trigger build" />
+    </form>
 
-  <a class="title" href="/">&lt;</a>
+    <a class="title" href="/">&lt;</a>
 
-  <h1>{{.Job.Name}} #{{.Build.ID}}</h1>
+    <h1>{{.Job.Name}} #{{.Build.ID}}</h1>
 
-  {{if .Abortable}}
-  <form class="abort-build" method="post" action="{{url "AbortBuild" .Job .Build}}">
-    <input type="submit" value="abort" />
-  </form>
-  {{end}}
-</div>
-
-<ul id="builds">
-  {{$job := .Job}}
-  {{$currentID := .Build.ID}}
-  {{/* don't put whitespace between these; they're display-block */}}
-  {{range .Builds}}<li class="{{.Status}}{{if eq .ID $currentID}} current{{end}}"><a href="{{url "GetBuild" $job .}}">{{.ID}}</a></li>{{end}}
-</ul>
-
-<div id="metadata">
-  {{range .Build.Inputs}}
-  <div class="build-source">
-    <h3>{{.Name}}</h3>
-    <dl class="build-metadata">
-      {{range .Metadata}}
-      <dt>{{.Name}}</dt>
-        <dd>{{.Value}}</dd>
-      {{end}}
-    </dl>
+    {{if .Abortable}}
+    <form class="abort-build" method="post" action="{{url "AbortBuild" .Job .Build}}">
+      <input type="submit" value="abort" />
+    </form>
+    {{end}}
   </div>
-  {{ end }}
+
+  <ul id="builds">
+    {{$job := .Job}}
+    {{$currentID := .Build.ID}}
+    {{/* don't put whitespace between these; they're display-block */}}
+    {{range .Builds}}<li class="{{.Status}}{{if eq .ID $currentID}} current{{end}}"><a href="{{url "GetBuild" $job .}}">{{.ID}}</a></li>{{end}}
+  </ul>
 </div>
 
-<pre id="build-log"></pre>
+<div id="build-body">
+  <div id="metadata">
+    {{range .Build.Inputs}}
+    <div class="build-source">
+      <h3>{{.Name}}</h3>
+      <dl class="build-metadata">
+        {{range .Metadata}}
+        <dt>{{.Name}}</dt>
+          <dd>{{.Value}}</dd>
+        {{end}}
+      </dl>
+    </div>
+    {{ end }}
+  </div>
+
+  <pre id="build-log"></pre>
+</div>
 
 <script src="{{url "Public" "jquery-2.1.1.min.js"}}"></script>
 <script src="{{url "Public" "build.js"}}"></script>
