@@ -61,13 +61,12 @@ func (fanout *LogFanout) Attach(sink io.WriteCloser) error {
 	fanout.lock.Lock()
 
 	log, err := fanout.db.BuildLog(fanout.job, fanout.build)
-	if err != nil {
-		return err
-	}
-
-	_, err = sink.Write(log)
-	if err != nil {
-		return err
+	if err == nil {
+		_, err = sink.Write(log)
+		if err != nil {
+			fanout.lock.Unlock()
+			return err
+		}
 	}
 
 	if fanout.closed {
