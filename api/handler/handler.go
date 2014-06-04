@@ -3,16 +3,16 @@ package handler
 import (
 	"sync"
 
-	"github.com/winston-ci/logbuffer"
 	"github.com/winston-ci/winston/api/drainer"
 	"github.com/winston-ci/winston/db"
+	"github.com/winston-ci/winston/logfanout"
 )
 
 type Handler struct {
 	db    db.DB
 	drain *drainer.Drainer
 
-	logs      map[string]*logbuffer.LogBuffer
+	logs      map[string]*logfanout.LogFanout
 	logsMutex *sync.RWMutex
 }
 
@@ -21,7 +21,7 @@ func NewHandler(db db.DB, drain *drainer.Drainer) *Handler {
 		db:    db,
 		drain: drain,
 
-		logs:      make(map[string]*logbuffer.LogBuffer),
+		logs:      make(map[string]*logfanout.LogFanout),
 		logsMutex: new(sync.RWMutex),
 	}
 }

@@ -7,8 +7,8 @@ import (
 
 	"code.google.com/p/go.net/websocket"
 
-	"github.com/winston-ci/logbuffer"
 	"github.com/winston-ci/winston/ansistream"
+	"github.com/winston-ci/winston/logfanout"
 	"github.com/winston-ci/winston/rediswriter"
 	"github.com/winston-ci/winston/utf8stream"
 )
@@ -28,20 +28,20 @@ func (handler *Handler) LogInput(conn *websocket.Conn) {
 	}
 
 	handler.logsMutex.Lock()
-	logBuffer, found := handler.logs[job+"-"+idStr]
+	logFanout, found := handler.logs[job+"-"+idStr]
 	if !found {
-		logBuffer = logbuffer.NewLogBuffer()
-		handler.drain.Add(logBuffer)
-		handler.logs[job+"-"+idStr] = logBuffer
+		logFanout = logfanout.NewLogFanout()
+		handler.drain.Add(logFanout)
+		handler.logs[job+"-"+idStr] = logFanout
 	}
 	handler.logsMutex.Unlock()
 
 	defer conn.Close()
-	defer logBuffer.Close()
+	defer logFanout.Close()
 
 	logWriter := rediswriter.NewWriter(job, id, handler.db)
 
-	_, err = io.Copy(io.MultiWriter(logWriter, logBuffer), conn)
+	_, err = io.Copy(io.MultiWriter(logWriter, logFanout), conn)
 	if err != nil {
 		log.Println("error reading message:", err)
 		return
@@ -70,13 +70,13 @@ func (handler *Handler) LogOutput(conn *websocket.Conn) {
 	}
 
 	handler.logsMutex.Lock()
-	logBuffer, found := handler.logs[job+"-"+idStr]
+	logFanout, found := handler.logs[job+"-"+idStr]
 	if !found {
-		logBuffer = logbuffer.NewLogBuffer()
-		handler.drain.Add(logBuffer)
-		handler.logs[job+"-"+idStr] = logBuffer
+		logFanout = logfanout.NewLogFanout()
+		handler.drain.Add(logFanout)
+		handler.logs[job+"-"+idStr] = logFanout
 	}
 	handler.logsMutex.Unlock()
 
-	logBuffer.Attach(logWriter)
+	logFanout.Attach(logWriter)
 }
