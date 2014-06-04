@@ -9,7 +9,6 @@ import (
 
 	"github.com/winston-ci/winston/ansistream"
 	"github.com/winston-ci/winston/logfanout"
-	"github.com/winston-ci/winston/rediswriter"
 	"github.com/winston-ci/winston/utf8stream"
 )
 
@@ -30,7 +29,7 @@ func (handler *Handler) LogInput(conn *websocket.Conn) {
 	handler.logsMutex.Lock()
 	logFanout, found := handler.logs[job+"-"+idStr]
 	if !found {
-		logFanout = logfanout.NewLogFanout()
+		logFanout = logfanout.NewLogFanout(job, id, handler.db)
 		handler.drain.Add(logFanout)
 		handler.logs[job+"-"+idStr] = logFanout
 	}
@@ -39,9 +38,7 @@ func (handler *Handler) LogInput(conn *websocket.Conn) {
 	defer conn.Close()
 	defer logFanout.Close()
 
-	logWriter := rediswriter.NewWriter(job, id, handler.db)
-
-	_, err = io.Copy(io.MultiWriter(logWriter, logFanout), conn)
+	_, err = io.Copy(logFanout, conn)
 	if err != nil {
 		log.Println("error reading message:", err)
 		return
@@ -64,19 +61,19 @@ func (handler *Handler) LogOutput(conn *websocket.Conn) {
 
 	logWriter := utf8stream.NewWriter(ansistream.NewWriter(conn))
 
-	logs, err := handler.db.BuildLog(job, id)
-	if err == nil {
-		logWriter.Write(logs)
-	}
-
 	handler.logsMutex.Lock()
 	logFanout, found := handler.logs[job+"-"+idStr]
 	if !found {
-		logFanout = logfanout.NewLogFanout()
+		logFanout = logfanout.NewLogFanout(job, id, handler.db)
 		handler.drain.Add(logFanout)
 		handler.logs[job+"-"+idStr] = logFanout
 	}
 	handler.logsMutex.Unlock()
 
-	logFanout.Attach(logWriter)
+	err = logFanout.Attach(logWriter)
+	if err != nil {
+		log.Println("error attaching to logs:", err)
+		conn.Close()
+		return
+	}
 }

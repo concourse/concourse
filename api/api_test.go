@@ -292,21 +292,17 @@ var _ = Describe("API", func() {
 			buf := gbytes.NewBuffer()
 
 			go func() {
-				io.Copy(buf, outConn)
-				buf.Close()
+				defer GinkgoRecover()
+
+				_, err := io.Copy(buf, outConn)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = buf.Close()
+				Ω(err).ShouldNot(HaveOccurred())
 			}()
 
 			return buf
 		}
-
-		//It("returns 101", func() {
-		//conn, response, err := websocket.DefaultDialer.Dial(endpoint, nil)
-		//Ω(err).ShouldNot(HaveOccurred())
-
-		//defer conn.Close()
-
-		//Ω(response.StatusCode).Should(Equal(http.StatusSwitchingProtocols))
-		//})
 
 		Context("when draining", func() {
 			Context("and input is being consumed", func() {
