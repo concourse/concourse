@@ -6,7 +6,6 @@ type Status string
 
 const (
 	StatusPending   Status = "pending"
-	StatusScheduled Status = "scheduled"
 	StatusStarted   Status = "started"
 	StatusAborted   Status = "aborted"
 	StatusSucceeded Status = "succeeded"

@@ -65,7 +65,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var abortable bool
 	switch build.Status {
-	case builds.StatusPending, builds.StatusScheduled, builds.StatusStarted:
+	case builds.StatusPending, builds.StatusStarted:
 		abortable = true
 	default:
 		abortable = false

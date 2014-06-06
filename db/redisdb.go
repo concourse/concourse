@@ -136,7 +136,7 @@ func (db *redisDB) ScheduleBuild(job string, id int, serial bool) (bool, error) 
 			}
 
 			switch build.Status {
-			case builds.StatusPending, builds.StatusScheduled, builds.StatusStarted:
+			case builds.StatusPending, builds.StatusStarted:
 				return false, nil
 			default:
 			}
@@ -158,14 +158,6 @@ func (db *redisDB) ScheduleBuild(job string, id int, serial bool) (bool, error) 
 	}
 
 	err = conn.Send("ZADD", fmt.Sprintf(buildIDsKey, job), id, id)
-	if err != nil {
-		return false, err
-	}
-
-	err = conn.Send(
-		"HMSET", fmt.Sprintf(buildKey, job, id),
-		"Status", builds.StatusScheduled,
-	)
 	if err != nil {
 		return false, err
 	}
@@ -198,7 +190,7 @@ func (db *redisDB) StartBuild(job string, id int, abortURL string) (bool, error)
 		return false, err
 	}
 
-	if build.Status != builds.StatusScheduled {
+	if build.Status != builds.StatusPending {
 		return false, nil
 	}
 

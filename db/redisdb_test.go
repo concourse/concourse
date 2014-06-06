@@ -53,7 +53,7 @@ var _ = Describe("RedisDB", func() {
 		build, err = db.GetCurrentBuild("some-job")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(build.ID).Should(Equal(1))
-		Ω(build.Status).Should(Equal(Builds.StatusScheduled))
+		Ω(build.Status).Should(Equal(Builds.StatusPending))
 
 		started, err := db.StartBuild("some-job", build.ID, "some-abort-url")
 		Ω(err).ShouldNot(HaveOccurred())

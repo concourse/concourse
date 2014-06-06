@@ -158,7 +158,7 @@ var _ = Describe("Builder", func() {
 				job.Serial = true
 			})
 
-			Context("and the current build is scheduleed", func() {
+			Context("and the current build is scheduled", func() {
 				var existingBuild builds.Build
 
 				BeforeEach(func() {
