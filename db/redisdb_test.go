@@ -375,9 +375,8 @@ var _ = Describe("RedisDB", func() {
 	Describe("attempting to initiate a build", func() {
 		Context("when it is the first build", func() {
 			It("succeeds", func() {
-				build, succeeded, err := db.AttemptBuild("some-job", "some-resource", Builds.Version{}, false)
+				build, err := db.AttemptBuild("some-job", "some-resource", Builds.Version{}, false)
 				Ω(err).ShouldNot(HaveOccurred())
-				Ω(succeeded).Should(BeTrue())
 				Ω(build.ID).Should(Equal(1))
 			})
 		})
@@ -402,13 +401,11 @@ var _ = Describe("RedisDB", func() {
 
 			Context("and its inputs have not been determined", func() {
 				It("fails, regardless of serial", func() {
-					_, succeeded, err := db.AttemptBuild("some-job", "some-resource", Builds.Version{}, false)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(succeeded).Should(BeFalse())
+					_, err := db.AttemptBuild("some-job", "some-resource", Builds.Version{}, false)
+					Ω(err).Should(Equal(ErrInputNotDetermined))
 
-					_, succeeded, err = db.AttemptBuild("some-job", "some-resource", Builds.Version{}, true)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(succeeded).Should(BeFalse())
+					_, err = db.AttemptBuild("some-job", "some-resource", Builds.Version{}, true)
+					Ω(err).Should(Equal(ErrInputNotDetermined))
 				})
 			})
 
@@ -423,41 +420,38 @@ var _ = Describe("RedisDB", func() {
 
 				Context("and its input resource is a different version", func() {
 					It("succeeds", func() {
-						attemptedBuild, succeeded, err := db.AttemptBuild(
+						attemptedBuild, err := db.AttemptBuild(
 							"some-job",
 							"some-resource",
 							Builds.Version{"version": "2"},
 							false,
 						)
 						Ω(err).ShouldNot(HaveOccurred())
-						Ω(succeeded).Should(BeTrue())
 						Ω(attemptedBuild.ID).Should(Equal(2))
 					})
 
 					Context("with serial true", func() {
 						It("fails, in case its eventual output is the same version", func() {
-							_, succeeded, err := db.AttemptBuild(
+							_, err := db.AttemptBuild(
 								"some-job",
 								"some-resource",
 								Builds.Version{"version": "2"},
 								true,
 							)
-							Ω(err).ShouldNot(HaveOccurred())
-							Ω(succeeded).Should(BeFalse())
+							Ω(err).Should(Equal(ErrOutputNotDetermined))
 						})
 					})
 				})
 
 				Context("and its input resource is the same version", func() {
 					It("fails", func() {
-						_, succeeded, err := db.AttemptBuild(
+						_, err := db.AttemptBuild(
 							"some-job",
 							"some-resource",
 							Builds.Version{"version": "1"},
 							true,
 						)
-						Ω(err).ShouldNot(HaveOccurred())
-						Ω(succeeded).Should(BeFalse())
+						Ω(err).Should(Equal(ErrInputRedundant))
 					})
 				})
 
@@ -469,28 +463,26 @@ var _ = Describe("RedisDB", func() {
 
 					Context("and its output resource is a different version", func() {
 						It("succeeds", func() {
-							attemptedBuild, succeeded, err := db.AttemptBuild(
+							attemptedBuild, err := db.AttemptBuild(
 								"some-job",
 								"some-resource",
 								Builds.Version{"version": "3"},
 								false,
 							)
 							Ω(err).ShouldNot(HaveOccurred())
-							Ω(succeeded).Should(BeTrue())
 							Ω(attemptedBuild.ID).Should(Equal(2))
 						})
 					})
 
 					Context("and its output resource is the same version", func() {
 						It("fails", func() {
-							_, succeeded, err := db.AttemptBuild(
+							_, err := db.AttemptBuild(
 								"some-job",
 								"some-resource",
 								Builds.Version{"version": "2"},
 								true,
 							)
-							Ω(err).ShouldNot(HaveOccurred())
-							Ω(succeeded).Should(BeFalse())
+							Ω(err).Should(Equal(ErrOutputRedundant))
 						})
 					})
 				})

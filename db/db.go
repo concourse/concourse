@@ -7,7 +7,7 @@ type DB interface {
 	GetBuild(job string, id int) (builds.Build, error)
 	GetCurrentBuild(job string) (builds.Build, error)
 
-	AttemptBuild(job string, input string, version builds.Version, serial bool) (builds.Build, bool, error)
+	AttemptBuild(job string, input string, version builds.Version, serial bool) (builds.Build, error)
 	CreateBuild(job string) (builds.Build, error)
 	ScheduleBuild(job string, id int, serial bool) (bool, error)
 	StartBuild(job string, id int, abortURL string) (bool, error)

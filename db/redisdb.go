@@ -2,6 +2,7 @@ package db
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -67,10 +68,16 @@ func (db *redisDB) Builds(job string) ([]builds.Build, error) {
 	return bs, nil
 }
 
-func (db *redisDB) AttemptBuild(job string, input string, version builds.Version, serial bool) (builds.Build, bool, error) {
+var ErrInputNotDetermined = errors.New("input not yet determined; cannot know if redundant")
+var ErrInputRedundant = errors.New("resource version already used for input")
+
+var ErrOutputNotDetermined = errors.New("output not yet determined; cannot know if redundant")
+var ErrOutputRedundant = errors.New("resource version came from output")
+
+func (db *redisDB) AttemptBuild(job string, input string, version builds.Version, serial bool) (builds.Build, error) {
 	versionJSON, err := json.Marshal(version)
 	if err != nil {
-		return builds.Build{}, false, err
+		return builds.Build{}, err
 	}
 
 	conn := db.pool.Get()
@@ -79,7 +86,7 @@ func (db *redisDB) AttemptBuild(job string, input string, version builds.Version
 	// watch for new builds to come in
 	err = conn.Send("WATCH", fmt.Sprintf(buildIDsKey, job))
 	if err != nil {
-		return builds.Build{}, false, err
+		return builds.Build{}, err
 	}
 
 	defer conn.Send("UNWATCH")
@@ -88,33 +95,28 @@ func (db *redisDB) AttemptBuild(job string, input string, version builds.Version
 	if err == nil {
 		activeInputVersion, err := redis.Bytes(conn.Do("GET", fmt.Sprintf(buildInputVersionKey, job, activeID, input)))
 		if err != nil {
-			// inputs not determined; skip!
-			return builds.Build{}, false, nil
+			return builds.Build{}, ErrInputNotDetermined
 		}
 
 		if reflect.DeepEqual(activeInputVersion, versionJSON) {
-			// same version in inputs; skip!
-			return builds.Build{}, false, nil
+			return builds.Build{}, ErrInputRedundant
 		}
 
 		activeOutputVersions, err := redis.Values(conn.Do("ZRANGEBYSCORE", fmt.Sprintf(outputsKey, job, input), strconv.Itoa(activeID), strconv.Itoa(activeID)))
 		if err != nil {
 			if serial {
-				// outputs not determined; skip!
-				return builds.Build{}, false, nil
+				return builds.Build{}, ErrOutputNotDetermined
 			}
 		} else {
 			var outputVersion []byte
 			_, err = redis.Scan(activeOutputVersions, &outputVersion)
 			if err != nil {
 				if serial {
-					// outputs not determined; skip!
-					return builds.Build{}, false, nil
+					return builds.Build{}, ErrOutputNotDetermined
 				}
 			} else {
 				if reflect.DeepEqual(outputVersion, versionJSON) {
-					// same version in outputs; skip!
-					return builds.Build{}, false, nil
+					return builds.Build{}, ErrOutputRedundant
 				}
 			}
 		}
@@ -122,10 +124,10 @@ func (db *redisDB) AttemptBuild(job string, input string, version builds.Version
 
 	build, err := db.createBuild(conn, job)
 	if err != nil {
-		return builds.Build{}, false, err
+		return builds.Build{}, err
 	}
 
-	return build, true, nil
+	return build, nil
 }
 
 func (db *redisDB) CreateBuild(job string) (builds.Build, error) {

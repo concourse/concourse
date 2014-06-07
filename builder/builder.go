@@ -74,16 +74,7 @@ func (builder *builder) Attempt(job config.Job, resource config.Resource, versio
 		}
 	}
 
-	build, succeeded, err := builder.db.AttemptBuild(job.Name, resource.Name, version, hasOutput)
-	if err != nil {
-		return builds.Build{}, err
-	}
-
-	if !succeeded {
-		return builds.Build{}, errors.New("conflict scheduling build")
-	}
-
-	return build, err
+	return builder.db.AttemptBuild(job.Name, resource.Name, version, hasOutput)
 }
 
 func (builder *builder) Start(job config.Job, build builds.Build, versionOverrides map[string]builds.Version) (builds.Build, error) {

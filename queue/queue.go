@@ -31,6 +31,7 @@ func NewQueue(gracePeriod time.Duration, builder builder.Builder) *Queue {
 func (q *Queue) Trigger(job config.Job) (builds.Build, error) {
 	build, err := q.builder.Create(job)
 	if err != nil {
+		log.Println("queue errored creating build:", err)
 		return builds.Build{}, err
 	}
 
@@ -42,6 +43,7 @@ func (q *Queue) Trigger(job config.Job) (builds.Build, error) {
 func (q *Queue) Enqueue(job config.Job, resource config.Resource, version builds.Version) (builds.Build, error) {
 	build, err := q.builder.Attempt(job, resource, version)
 	if err != nil {
+		log.Println("queue errored attempting build:", err)
 		return builds.Build{}, err
 	}
 
