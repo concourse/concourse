@@ -137,7 +137,6 @@ func main() {
 	group := grouper.EnvokeGroup(grouper.RunGroup{
 		"web":     http_server.New(*listenAddr, serverHandler),
 		"api":     http_server.New(*apiListenAddr, apiHandler),
-		"queuer":  queuer,
 		"watcher": watcher.NewWatcher(conf.Jobs, conf.Resources, redisDB, proleEndpoint, watchman),
 		"drainer": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 			close(ready)

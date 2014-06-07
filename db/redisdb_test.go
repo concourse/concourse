@@ -371,4 +371,130 @@ var _ = Describe("RedisDB", func() {
 			})
 		})
 	})
+
+	Describe("attempting to initiate a build", func() {
+		Context("when it is the first build", func() {
+			It("succeeds", func() {
+				build, succeeded, err := db.AttemptBuild("some-job", "some-resource", Builds.Version{}, false)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(succeeded).Should(BeTrue())
+				Ω(build.ID).Should(Equal(1))
+			})
+		})
+
+		Context("when a build is already started", func() {
+			var startedBuild Builds.Build
+
+			BeforeEach(func() {
+				var err error
+
+				startedBuild, err = db.CreateBuild("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				scheduled, err := db.ScheduleBuild("some-job", startedBuild.ID, true)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(scheduled).Should(BeTrue())
+
+				started, err := db.StartBuild("some-job", startedBuild.ID, "some-abort-url")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(started).Should(BeTrue())
+			})
+
+			Context("and its inputs have not been determined", func() {
+				It("fails, regardless of serial", func() {
+					_, succeeded, err := db.AttemptBuild("some-job", "some-resource", Builds.Version{}, false)
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(succeeded).Should(BeFalse())
+
+					_, succeeded, err = db.AttemptBuild("some-job", "some-resource", Builds.Version{}, true)
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(succeeded).Should(BeFalse())
+				})
+			})
+
+			Context("and its inputs have been determined", func() {
+				BeforeEach(func() {
+					err := db.SaveBuildInput("some-job", startedBuild.ID, Builds.Input{
+						Name:    "some-resource",
+						Version: Builds.Version{"version": "1"},
+					})
+					Ω(err).ShouldNot(HaveOccurred())
+				})
+
+				Context("and its input resource is a different version", func() {
+					It("succeeds", func() {
+						attemptedBuild, succeeded, err := db.AttemptBuild(
+							"some-job",
+							"some-resource",
+							Builds.Version{"version": "2"},
+							false,
+						)
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(succeeded).Should(BeTrue())
+						Ω(attemptedBuild.ID).Should(Equal(2))
+					})
+
+					Context("with serial true", func() {
+						It("fails, in case its eventual output is the same version", func() {
+							_, succeeded, err := db.AttemptBuild(
+								"some-job",
+								"some-resource",
+								Builds.Version{"version": "2"},
+								true,
+							)
+							Ω(err).ShouldNot(HaveOccurred())
+							Ω(succeeded).Should(BeFalse())
+						})
+					})
+				})
+
+				Context("and its input resource is the same version", func() {
+					It("fails", func() {
+						_, succeeded, err := db.AttemptBuild(
+							"some-job",
+							"some-resource",
+							Builds.Version{"version": "1"},
+							true,
+						)
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(succeeded).Should(BeFalse())
+					})
+				})
+
+				Context("and its outputs have been determined", func() {
+					BeforeEach(func() {
+						err := db.SaveOutputVersion("some-job", startedBuild.ID, "some-resource", Builds.Version{"version": "2"})
+						Ω(err).ShouldNot(HaveOccurred())
+					})
+
+					Context("and its output resource is a different version", func() {
+						It("succeeds", func() {
+							attemptedBuild, succeeded, err := db.AttemptBuild(
+								"some-job",
+								"some-resource",
+								Builds.Version{"version": "3"},
+								false,
+							)
+							Ω(err).ShouldNot(HaveOccurred())
+							Ω(succeeded).Should(BeTrue())
+							Ω(attemptedBuild.ID).Should(Equal(2))
+						})
+					})
+
+					Context("and its output resource is the same version", func() {
+						It("fails", func() {
+							_, succeeded, err := db.AttemptBuild(
+								"some-job",
+								"some-resource",
+								Builds.Version{"version": "2"},
+								true,
+							)
+							Ω(err).ShouldNot(HaveOccurred())
+							Ω(succeeded).Should(BeFalse())
+						})
+					})
+				})
+			})
+		})
+	})
 })

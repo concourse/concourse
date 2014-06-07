@@ -18,6 +18,17 @@ type FakeBuilder struct {
 		result1 builds.Build
 		result2 error
 	}
+	AttemptStub        func(config.Job, config.Resource, builds.Version) (builds.Build, error)
+	attemptMutex       sync.RWMutex
+	attemptArgsForCall []struct {
+		arg1 config.Job
+		arg2 config.Resource
+		arg3 builds.Version
+	}
+	attemptReturns struct {
+		result1 builds.Build
+		result2 error
+	}
 	StartStub        func(config.Job, builds.Build, map[string]builds.Version) (builds.Build, error)
 	startMutex       sync.RWMutex
 	startArgsForCall []struct {
@@ -58,6 +69,40 @@ func (fake *FakeBuilder) CreateArgsForCall(i int) config.Job {
 
 func (fake *FakeBuilder) CreateReturns(result1 builds.Build, result2 error) {
 	fake.createReturns = struct {
+		result1 builds.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBuilder) Attempt(arg1 config.Job, arg2 config.Resource, arg3 builds.Version) (builds.Build, error) {
+	fake.attemptMutex.Lock()
+	defer fake.attemptMutex.Unlock()
+	fake.attemptArgsForCall = append(fake.attemptArgsForCall, struct {
+		arg1 config.Job
+		arg2 config.Resource
+		arg3 builds.Version
+	}{arg1, arg2, arg3})
+	if fake.AttemptStub != nil {
+		return fake.AttemptStub(arg1, arg2, arg3)
+	} else {
+		return fake.attemptReturns.result1, fake.attemptReturns.result2
+	}
+}
+
+func (fake *FakeBuilder) AttemptCallCount() int {
+	fake.attemptMutex.RLock()
+	defer fake.attemptMutex.RUnlock()
+	return len(fake.attemptArgsForCall)
+}
+
+func (fake *FakeBuilder) AttemptArgsForCall(i int) (config.Job, config.Resource, builds.Version) {
+	fake.attemptMutex.RLock()
+	defer fake.attemptMutex.RUnlock()
+	return fake.attemptArgsForCall[i].arg1, fake.attemptArgsForCall[i].arg2, fake.attemptArgsForCall[i].arg3
+}
+
+func (fake *FakeBuilder) AttemptReturns(result1 builds.Build, result2 error) {
+	fake.attemptReturns = struct {
 		result1 builds.Build
 		result2 error
 	}{result1, result2}

@@ -24,6 +24,7 @@ var ErrBadResponse = errors.New("bad response from prole")
 
 type Builder interface {
 	Create(config.Job) (builds.Build, error)
+	Attempt(config.Job, config.Resource, builds.Version) (builds.Build, error)
 	Start(config.Job, builds.Build, map[string]builds.Version) (builds.Build, error)
 }
 
@@ -61,6 +62,21 @@ func NewBuilder(
 func (builder *builder) Create(job config.Job) (builds.Build, error) {
 	log.Println("creating build")
 	return builder.db.CreateBuild(job.Name)
+}
+
+func (builder *builder) Attempt(job config.Job, resource config.Resource, version builds.Version) (builds.Build, error) {
+	log.Println("attempting build of", job.Name, "from", resource.Name, "at", version)
+
+	build, succeeded, err := builder.db.AttemptBuild(job.Name, resource.Name, version, false)
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	if !succeeded {
+		return builds.Build{}, errors.New("conflict scheduling build")
+	}
+
+	return build, err
 }
 
 func (builder *builder) Start(job config.Job, build builds.Build, versionOverrides map[string]builds.Version) (builds.Build, error) {

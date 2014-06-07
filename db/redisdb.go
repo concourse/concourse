@@ -3,6 +3,7 @@ package db
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -66,16 +67,84 @@ func (db *redisDB) Builds(job string) ([]builds.Build, error) {
 	return bs, nil
 }
 
+func (db *redisDB) AttemptBuild(job string, input string, version builds.Version, serial bool) (builds.Build, bool, error) {
+	versionJSON, err := json.Marshal(version)
+	if err != nil {
+		return builds.Build{}, false, err
+	}
+
+	conn := db.pool.Get()
+	defer conn.Close()
+
+	// watch for new builds to come in
+	err = conn.Send("WATCH", fmt.Sprintf(buildIDsKey, job))
+	if err != nil {
+		return builds.Build{}, false, err
+	}
+
+	defer conn.Send("UNWATCH")
+
+	activeID, err := db.currentActiveBuildID(conn, job)
+	if err == nil {
+		activeInputVersion, err := redis.Bytes(conn.Do("GET", fmt.Sprintf(buildInputVersionKey, job, activeID, input)))
+		if err != nil {
+			// inputs not determined; skip!
+			return builds.Build{}, false, nil
+		}
+
+		if reflect.DeepEqual(activeInputVersion, versionJSON) {
+			// same version in inputs; skip!
+			return builds.Build{}, false, nil
+		}
+
+		activeOutputVersions, err := redis.Values(conn.Do("ZRANGEBYSCORE", fmt.Sprintf(outputsKey, job, input), strconv.Itoa(activeID), strconv.Itoa(activeID)))
+		if err != nil {
+			if serial {
+				// outputs not determined; skip!
+				return builds.Build{}, false, nil
+			}
+		} else {
+			var outputVersion []byte
+			_, err = redis.Scan(activeOutputVersions, &outputVersion)
+			if err != nil {
+				if serial {
+					// outputs not determined; skip!
+					return builds.Build{}, false, nil
+				}
+			} else {
+				if reflect.DeepEqual(outputVersion, versionJSON) {
+					// same version in outputs; skip!
+					return builds.Build{}, false, nil
+				}
+			}
+		}
+	}
+
+	build, err := db.createBuild(conn, job)
+	if err != nil {
+		return builds.Build{}, false, err
+	}
+
+	return build, true, nil
+}
+
 func (db *redisDB) CreateBuild(job string) (builds.Build, error) {
 	conn := db.pool.Get()
 	defer conn.Close()
 
+	return db.createBuild(conn, job)
+}
+
+func (db *redisDB) createBuild(conn redis.Conn, job string) (builds.Build, error) {
 	id, err := redis.Int(conn.Do("INCR", fmt.Sprintf(currentBuildIDKey, job)))
 	if err != nil {
 		return builds.Build{}, err
 	}
 
-	conn.Send("MULTI")
+	err = conn.Send("MULTI")
+	if err != nil {
+		return builds.Build{}, err
+	}
 
 	conn.Send("ZADD", fmt.Sprintf(buildIDsKey, job), -id, id)
 

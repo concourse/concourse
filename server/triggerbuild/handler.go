@@ -36,24 +36,20 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var build builds.Build
 
-	startedBuild, buildErr := handler.queuer.Trigger(job)
-
-	select {
-	case build = <-startedBuild:
-		redirectPath, err := routes.Routes.PathForHandler(routes.GetBuild, router.Params{
-			"job":   job.Name,
-			"build": fmt.Sprintf("%d", build.ID),
-		})
-		if err != nil {
-			log.Fatalln("failed to construct redirect uri:", err)
-		}
-
-		http.Redirect(w, r, redirectPath, 302)
-	case err := <-buildErr:
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "error building: %s", err)
-			return
-		}
+	build, err := handler.queuer.Trigger(job)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "error building: %s", err)
+		return
 	}
+
+	redirectPath, err := routes.Routes.PathForHandler(routes.GetBuild, router.Params{
+		"job":   job.Name,
+		"build": fmt.Sprintf("%d", build.ID),
+	})
+	if err != nil {
+		log.Fatalln("failed to construct redirect uri:", err)
+	}
+
+	http.Redirect(w, r, redirectPath, 302)
 }

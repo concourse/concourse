@@ -9,16 +9,16 @@ import (
 )
 
 type FakeQueuer struct {
-	TriggerStub        func(config.Job) (<-chan builds.Build, <-chan error)
+	TriggerStub        func(config.Job) (builds.Build, error)
 	triggerMutex       sync.RWMutex
 	triggerArgsForCall []struct {
 		arg1 config.Job
 	}
 	triggerReturns struct {
-		result1 <-chan builds.Build
-		result2 <-chan error
+		result1 builds.Build
+		result2 error
 	}
-	EnqueueStub        func(config.Job, config.Resource, builds.Version) (<-chan builds.Build, <-chan error)
+	EnqueueStub        func(config.Job, config.Resource, builds.Version) (builds.Build, error)
 	enqueueMutex       sync.RWMutex
 	enqueueArgsForCall []struct {
 		arg1 config.Job
@@ -26,12 +26,12 @@ type FakeQueuer struct {
 		arg3 builds.Version
 	}
 	enqueueReturns struct {
-		result1 <-chan builds.Build
-		result2 <-chan error
+		result1 builds.Build
+		result2 error
 	}
 }
 
-func (fake *FakeQueuer) Trigger(arg1 config.Job) (<-chan builds.Build, <-chan error) {
+func (fake *FakeQueuer) Trigger(arg1 config.Job) (builds.Build, error) {
 	fake.triggerMutex.Lock()
 	defer fake.triggerMutex.Unlock()
 	fake.triggerArgsForCall = append(fake.triggerArgsForCall, struct {
@@ -56,14 +56,14 @@ func (fake *FakeQueuer) TriggerArgsForCall(i int) config.Job {
 	return fake.triggerArgsForCall[i].arg1
 }
 
-func (fake *FakeQueuer) TriggerReturns(result1 <-chan builds.Build, result2 <-chan error) {
+func (fake *FakeQueuer) TriggerReturns(result1 builds.Build, result2 error) {
 	fake.triggerReturns = struct {
-		result1 <-chan builds.Build
-		result2 <-chan error
+		result1 builds.Build
+		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeQueuer) Enqueue(arg1 config.Job, arg2 config.Resource, arg3 builds.Version) (<-chan builds.Build, <-chan error) {
+func (fake *FakeQueuer) Enqueue(arg1 config.Job, arg2 config.Resource, arg3 builds.Version) (builds.Build, error) {
 	fake.enqueueMutex.Lock()
 	defer fake.enqueueMutex.Unlock()
 	fake.enqueueArgsForCall = append(fake.enqueueArgsForCall, struct {
@@ -90,9 +90,9 @@ func (fake *FakeQueuer) EnqueueArgsForCall(i int) (config.Job, config.Resource, 
 	return fake.enqueueArgsForCall[i].arg1, fake.enqueueArgsForCall[i].arg2, fake.enqueueArgsForCall[i].arg3
 }
 
-func (fake *FakeQueuer) EnqueueReturns(result1 <-chan builds.Build, result2 <-chan error) {
+func (fake *FakeQueuer) EnqueueReturns(result1 builds.Build, result2 error) {
 	fake.enqueueReturns = struct {
-		result1 <-chan builds.Build
-		result2 <-chan error
+		result1 builds.Build
+		result2 error
 	}{result1, result2}
 }

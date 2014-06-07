@@ -112,6 +112,30 @@ var _ = Describe("Builder", func() {
 		})
 	})
 
+	Describe("Attempt", func() {
+		// the full behavior of these would be duped in the db tests, so only
+		// a small piece is covered
+
+		resource := config.Resource{Name: "foo"}
+		version := builds.Version{"version": "2"}
+
+		It("attempts to create a pending build", func() {
+			build, err := builder.Attempt(job, resource, version)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(build.ID).Should(Equal(1))
+		})
+
+		It("cannot be done concurrently", func() {
+			build, err := builder.Attempt(job, resource, version)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(build.ID).Should(Equal(1))
+
+			build, err = builder.Attempt(job, resource, version)
+			Ω(err).Should(HaveOccurred())
+		})
+	})
+
 	Describe("Starting a build", func() {
 		var build builds.Build
 
