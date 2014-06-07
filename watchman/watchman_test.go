@@ -7,12 +7,17 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/winston-ci/winston/builds"
 	"github.com/winston-ci/winston/config"
+	"github.com/winston-ci/winston/db"
 	"github.com/winston-ci/winston/queue/fakequeuer"
+	"github.com/winston-ci/winston/redisrunner"
 	"github.com/winston-ci/winston/resources/fakechecker"
 	. "github.com/winston-ci/winston/watchman"
 )
 
 var _ = Describe("Watchman", func() {
+	var redisRunner *redisrunner.Runner
+	var redis db.DB
+
 	var queuer *fakequeuer.FakeQueuer
 	var watchman Watchman
 
@@ -23,9 +28,14 @@ var _ = Describe("Watchman", func() {
 	var interval time.Duration
 
 	BeforeEach(func() {
+		redisRunner = redisrunner.NewRunner()
+		redisRunner.Start()
+
+		redis = db.NewRedis(redisRunner.Pool())
+
 		queuer = new(fakequeuer.FakeQueuer)
 
-		watchman = NewWatchman(queuer)
+		watchman = NewWatchman(redis, queuer)
 
 		job = config.Job{
 			Name: "some-job",
@@ -42,17 +52,18 @@ var _ = Describe("Watchman", func() {
 			Source: config.Source{"uri": "http://example.com"},
 		}
 
-		checker = fakechecker.New()
+		checker = new(fakechecker.FakeChecker)
 		latestOnly = false
 		interval = 100 * time.Millisecond
 	})
 
 	JustBeforeEach(func() {
-		watchman.Watch(job, resource, nil, checker, latestOnly, interval)
+		watchman.Watch(job, resource, checker, latestOnly, interval)
 	})
 
 	AfterEach(func() {
 		watchman.Stop()
+		redisRunner.Stop()
 	})
 
 	Context("when watching", func() {
@@ -61,7 +72,7 @@ var _ = Describe("Watchman", func() {
 		BeforeEach(func() {
 			times = make(chan time.Time, 100)
 
-			checker.WhenCheckingResource = func(config.Resource, builds.Version) []builds.Version {
+			checker.CheckResourceStub = func(config.Resource, builds.Version) []builds.Version {
 				times <- time.Now()
 				return nil
 			}
@@ -75,6 +86,41 @@ var _ = Describe("Watchman", func() {
 			Eventually(times).Should(Receive(&time2))
 
 			Ω(time2.Sub(time1)).Should(BeNumerically("~", interval, interval/4))
+		})
+
+		Context("when there is no current version", func() {
+			It("checks from nil", func() {
+				Eventually(times).Should(Receive())
+
+				resource, version := checker.CheckResourceArgsForCall(0)
+				Ω(resource).Should(Equal(resource))
+				Ω(version).Should(BeNil())
+			})
+		})
+
+		Context("when there is a current version", func() {
+			It("checks from it", func() {
+				v1 := builds.Version{"version": "1"}
+				v2 := builds.Version{"version": "2"}
+
+				err := redis.SaveCurrentVersion(job.Name, resource.Name, v1)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Eventually(times).Should(Receive())
+
+				resource, version := checker.CheckResourceArgsForCall(0)
+				Ω(resource).Should(Equal(resource))
+				Ω(version).Should(Equal(v1))
+
+				err = redis.SaveCurrentVersion(job.Name, resource.Name, v2)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Eventually(times).Should(Receive())
+
+				resource, version = checker.CheckResourceArgsForCall(1)
+				Ω(resource).Should(Equal(resource))
+				Ω(version).Should(Equal(v2))
+			})
 		})
 
 		Context("when the check returns versions", func() {
@@ -96,7 +142,7 @@ var _ = Describe("Watchman", func() {
 				}
 
 				check := 0
-				checker.WhenCheckingResource = func(checkedResource config.Resource, from builds.Version) []builds.Version {
+				checker.CheckResourceStub = func(checkedResource config.Resource, from builds.Version) []builds.Version {
 					defer GinkgoRecover()
 
 					Ω(checkedResource).Should(Equal(resource))
@@ -106,11 +152,6 @@ var _ = Describe("Watchman", func() {
 					check++
 					return result
 				}
-			})
-
-			It("checks again from the previous version", func() {
-				Eventually(checkedFrom).Should(Receive(BeNil()))
-				Eventually(checkedFrom).Should(Receive(Equal(builds.Version{"version": "3"})))
 			})
 
 			It("enqueues a build for the job with the changed version", func() {
@@ -147,11 +188,6 @@ var _ = Describe("Watchman", func() {
 					Ω(resource1).Should(Equal(resource))
 					Ω(version1).Should(Equal(builds.Version{"version": "3"}))
 				})
-
-				It("checks again from the latest version", func() {
-					Eventually(checkedFrom).Should(Receive(BeNil()))
-					Eventually(checkedFrom).Should(Receive(Equal(builds.Version{"version": "3"})))
-				})
 			})
 		})
 
@@ -159,7 +195,7 @@ var _ = Describe("Watchman", func() {
 			BeforeEach(func() {
 				checked := false
 
-				checker.WhenCheckingResource = func(config.Resource, builds.Version) []builds.Version {
+				checker.CheckResourceStub = func(config.Resource, builds.Version) []builds.Version {
 					times <- time.Now()
 
 					if checked {

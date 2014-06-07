@@ -132,7 +132,7 @@ func main() {
 		fatal(err)
 	}
 
-	watchman := watchman.NewWatchman(queuer)
+	watchman := watchman.NewWatchman(redisDB, queuer)
 
 	group := grouper.EnvokeGroup(grouper.RunGroup{
 		"web":     http_server.New(*listenAddr, serverHandler),

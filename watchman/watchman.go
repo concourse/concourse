@@ -5,8 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/winston-ci/winston/builds"
+	"github.com/garyburd/redigo/redis"
 	"github.com/winston-ci/winston/config"
+	"github.com/winston-ci/winston/db"
 	"github.com/winston-ci/winston/queue"
 	"github.com/winston-ci/winston/resources"
 )
@@ -15,7 +16,6 @@ type Watchman interface {
 	Watch(
 		job config.Job,
 		resource config.Resource,
-		from builds.Version,
 		checker resources.Checker,
 		latestOnly bool,
 		interval time.Duration,
@@ -25,14 +25,16 @@ type Watchman interface {
 }
 
 type watchman struct {
+	db     db.DB
 	queuer queue.Queuer
 
 	stop     chan struct{}
 	watching *sync.WaitGroup
 }
 
-func NewWatchman(queuer queue.Queuer) Watchman {
+func NewWatchman(db db.DB, queuer queue.Queuer) Watchman {
 	return &watchman{
+		db:     db,
 		queuer: queuer,
 
 		stop:     make(chan struct{}),
@@ -43,7 +45,6 @@ func NewWatchman(queuer queue.Queuer) Watchman {
 func (watchman *watchman) Watch(
 	job config.Job,
 	resource config.Resource,
-	from builds.Version,
 	checker resources.Checker,
 	latestOnly bool,
 	interval time.Duration,
@@ -60,6 +61,11 @@ func (watchman *watchman) Watch(
 			case <-watchman.stop:
 				return
 			case <-ticker.C:
+				from, err := watchman.db.GetCurrentVersion(job.Name, resource.Name)
+				if err == redis.ErrNil {
+					from = nil
+				}
+
 				log.Printf("checking for sources for %s via %T from %s since %v\n", job.Name, checker, resource, from)
 
 				newVersions := checker.CheckResource(resource, from)
@@ -69,11 +75,9 @@ func (watchman *watchman) Watch(
 
 				log.Printf("found %d new versions for %s via %T", len(newVersions), job.Name, checker)
 
-				from = newVersions[len(newVersions)-1]
-
 				if latestOnly {
 					log.Printf("triggering %s (latest) via %T: %s\n", job.Name, checker, resource)
-					watchman.queuer.Enqueue(job, resource, from)
+					watchman.queuer.Enqueue(job, resource, newVersions[len(newVersions)-1])
 				} else {
 					for i, version := range newVersions {
 						log.Printf("triggering %s (%d of %d) via %T: %s\n", job.Name, i+1, len(newVersions), checker, version)
