@@ -135,7 +135,7 @@ var _ = Describe("API", func() {
 				}))
 			})
 
-			It("saves each input's current version", func() {
+			It("saves each input's version as the new current version", func() {
 				version, err := redis.GetCurrentVersion("some-job", "some-input")
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(version).Should(Equal(builds.Version(version1)))
@@ -191,6 +191,16 @@ var _ = Describe("API", func() {
 				versions, err = redis.GetCommonOutputs([]string{"some-job"}, "some-other-output")
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(versions).Should(Equal([]builds.Version{builds.Version{"ver": "456"}}))
+			})
+
+			It("saves each output's version as the new current version", func() {
+				version, err := redis.GetCurrentVersion("some-job", "some-output")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(version).Should(Equal(builds.Version{"ver": "123"}))
+
+				version, err = redis.GetCurrentVersion("some-job", "some-other-output")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(version).Should(Equal(builds.Version{"ver": "456"}))
 			})
 		})
 
