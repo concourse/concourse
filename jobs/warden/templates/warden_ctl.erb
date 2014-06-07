@@ -34,6 +34,9 @@ case $1 in
 
     export PATH=/var/vcap/packages/iptables/sbin:$PATH
 
+    # deal with way-to-small /dev/shm mountpoint
+    mount -o remount,size=512m tmpfs /dev/shm
+
     # TODO fix rootfs
 
     exec /var/vcap/packages/warden-linux/bin/warden-linux \

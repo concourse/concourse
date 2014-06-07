@@ -1,6 +1,6 @@
 meta:
   stemcell:
-    name: bosh-warden-boshlite-ubuntu-lucid-go_agent
+    name: bosh-warden-boshlite-ubuntu-trusty-go_agent
     version: latest
 
 update:
