@@ -91,7 +91,7 @@ func (db *redisDB) AttemptBuild(job string, input string, version builds.Version
 
 	defer conn.Send("UNWATCH")
 
-	activeID, err := db.currentActiveBuildID(conn, job)
+	activeID, err := db.currentBuildID(conn, job)
 	if err == nil {
 		activeInputVersion, err := redis.Bytes(conn.Do("GET", fmt.Sprintf(buildInputVersionKey, job, activeID, input)))
 		if err != nil {
@@ -122,7 +122,7 @@ func (db *redisDB) AttemptBuild(job string, input string, version builds.Version
 		}
 	}
 
-	build, err := db.createBuild(conn, job)
+	build, err := db.createBuild(conn, job, input, versionJSON)
 	if err != nil {
 		return builds.Build{}, err
 	}
@@ -134,10 +134,10 @@ func (db *redisDB) CreateBuild(job string) (builds.Build, error) {
 	conn := db.pool.Get()
 	defer conn.Close()
 
-	return db.createBuild(conn, job)
+	return db.createBuild(conn, job, "", nil)
 }
 
-func (db *redisDB) createBuild(conn redis.Conn, job string) (builds.Build, error) {
+func (db *redisDB) createBuild(conn redis.Conn, job string, input string, versionJSON []byte) (builds.Build, error) {
 	id, err := redis.Int(conn.Do("INCR", fmt.Sprintf(currentBuildIDKey, job)))
 	if err != nil {
 		return builds.Build{}, err
@@ -149,6 +149,10 @@ func (db *redisDB) createBuild(conn redis.Conn, job string) (builds.Build, error
 	}
 
 	conn.Send("ZADD", fmt.Sprintf(buildIDsKey, job), -id, id)
+
+	if versionJSON != nil {
+		conn.Send("SET", fmt.Sprintf(buildInputVersionKey, job, id, input), versionJSON)
+	}
 
 	conn.Send(
 		"HMSET", fmt.Sprintf(buildKey, job, id),
@@ -549,6 +553,10 @@ func (db *redisDB) GetCommonOutputs(jobs []string, resourceName string) ([]build
 	}
 
 	return versions, nil
+}
+
+func (db *redisDB) currentBuildID(conn redis.Conn, job string) (int, error) {
+	return redis.Int(conn.Do("GET", fmt.Sprintf(currentBuildIDKey, job)))
 }
 
 func (db *redisDB) currentActiveBuildID(conn redis.Conn, job string) (int, error) {
