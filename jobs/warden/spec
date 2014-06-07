@@ -6,6 +6,7 @@ templates:
 
 packages:
   - pid_utils
+  - iptables
   - warden-linux
   - aufs
 

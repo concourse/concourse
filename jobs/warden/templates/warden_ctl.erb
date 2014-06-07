@@ -32,6 +32,8 @@ case $1 in
       mount -t tmpfs -o size=64m tmpfs /dev/shm
     fi
 
+    export PATH=/var/vcap/packages/iptables/sbin:$PATH
+
     # TODO fix rootfs
 
     exec /var/vcap/packages/warden-linux/bin/warden-linux \

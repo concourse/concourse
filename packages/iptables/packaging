@@ -1,0 +1,8 @@
+set -e -x
+
+tar jxf iptables/iptables-1.4.21.tar.bz2
+
+cd iptables-1.4.21/
+./configure --prefix=${BOSH_INSTALL_TARGET}
+make
+make install

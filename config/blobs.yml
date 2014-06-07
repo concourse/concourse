@@ -9,3 +9,8 @@ golang_1.2/go1.2.2.linux-amd64.tar.gz:
   sha: !binary |-
     NmJkMTUxY2E0OWM0MzU0NjJjOGJmMDE5NDc3YTYyNDRiOTU4ZWJiNQ==
   size: 56535343
+iptables/iptables-1.4.21.tar.bz2:
+  object_id: 2bc7b7eb-d543-49f2-a8a7-6ac692ba4b0e
+  sha: !binary |-
+    ODVkNDE2MDUzNzU0NmEyM2E3ZTQyYmMyNmRkN2VlNjJhMGVkZTRjOA==
+  size: 547439
