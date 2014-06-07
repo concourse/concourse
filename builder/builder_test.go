@@ -131,8 +131,42 @@ var _ = Describe("Builder", func() {
 
 			Ω(build.ID).Should(Equal(1))
 
-			build, err = builder.Attempt(job, resource, version)
+			_, err = builder.Attempt(job, resource, version)
 			Ω(err).Should(HaveOccurred())
+		})
+
+		Context("when the resource is in the job's inputs and outputs", func() {
+			BeforeEach(func() {
+				job.Inputs = append(job.Inputs, config.Input{
+					Resource: "foo",
+				})
+
+				job.Outputs = append(job.Outputs, config.Output{
+					Resource: "foo",
+				})
+			})
+
+			Context("and a build is running", func() {
+				BeforeEach(func() {
+					runningBuild, err := redis.CreateBuild(job.Name)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					scheduled, err := redis.ScheduleBuild(job.Name, runningBuild.ID, true)
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(scheduled).Should(BeTrue())
+
+					err = redis.SaveBuildInput(job.Name, runningBuild.ID, builds.Input{
+						Name:    "foo",
+						Version: builds.Version{"version": "1"},
+					})
+					Ω(err).ShouldNot(HaveOccurred())
+				})
+
+				It("fails", func() {
+					_, err := builder.Attempt(job, resource, version)
+					Ω(err).Should(HaveOccurred())
+				})
+			})
 		})
 	})
 

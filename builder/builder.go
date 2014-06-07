@@ -67,7 +67,14 @@ func (builder *builder) Create(job config.Job) (builds.Build, error) {
 func (builder *builder) Attempt(job config.Job, resource config.Resource, version builds.Version) (builds.Build, error) {
 	log.Println("attempting build of", job.Name, "from", resource.Name, "at", version)
 
-	build, succeeded, err := builder.db.AttemptBuild(job.Name, resource.Name, version, false)
+	hasOutput := false
+	for _, out := range job.Outputs {
+		if out.Resource == resource.Name {
+			hasOutput = true
+		}
+	}
+
+	build, succeeded, err := builder.db.AttemptBuild(job.Name, resource.Name, version, hasOutput)
 	if err != nil {
 		return builds.Build{}, err
 	}
