@@ -1,5 +1,10 @@
 package config
 
+import (
+	"fmt"
+	"time"
+)
+
 type Config struct {
 	Resources Resources `yaml:"resources"`
 	Jobs      Jobs      `yaml:"jobs"`
@@ -21,6 +26,8 @@ type Job struct {
 
 	Serial bool `yaml:"serial"`
 
+	TriggerEvery Duration `yaml:"trigger_every"`
+
 	BuildConfigPath string `yaml:"build"`
 
 	Inputs  []Input  `yaml:"inputs"`
@@ -36,6 +43,24 @@ type Input struct {
 type Output struct {
 	Resource string `yaml:"resource"`
 	Params   Params `yaml:"params"`
+}
+
+type Duration time.Duration
+
+func (d *Duration) UnmarshalYAML(tag string, value interface{}) error {
+	str, ok := value.(string)
+	if !ok {
+		return fmt.Errorf("invalid duration: %#v", value)
+	}
+
+	duration, err := time.ParseDuration(str)
+	if err != nil {
+		return err
+	}
+
+	*d = Duration(duration)
+
+	return nil
 }
 
 type Params map[string]interface{}

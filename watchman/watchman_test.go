@@ -66,7 +66,44 @@ var _ = Describe("Watchman", func() {
 		redisRunner.Stop()
 	})
 
-	Context("when watching", func() {
+	Describe("triggering", func() {
+		var times chan time.Time
+		var interval time.Duration
+
+		BeforeEach(func() {
+			times = make(chan time.Time, 100)
+			interval = 100 * time.Millisecond
+
+			queuer.TriggerStub = func(config.Job) (builds.Build, error) {
+				times <- time.Now()
+				return builds.Build{}, nil
+			}
+		})
+
+		Context("when the job has a trigger interval configured", func() {
+			BeforeEach(func() {
+				job.TriggerEvery = config.Duration(interval)
+			})
+
+			It("triggers builds on the job's configured interval", func() {
+				var time1 time.Time
+				var time2 time.Time
+
+				Eventually(times).Should(Receive(&time1))
+				Eventually(times).Should(Receive(&time2))
+
+				Ω(time2.Sub(time1)).Should(BeNumerically("~", interval, interval/4))
+			})
+		})
+
+		Context("when the job does not have a trigger interval configured", func() {
+			It("does not trigger any builds", func() {
+				Consistently(times, interval*2).ShouldNot(Receive())
+			})
+		})
+	})
+
+	Describe("checking", func() {
 		var times chan time.Time
 
 		BeforeEach(func() {

@@ -56,10 +56,21 @@ func (watchman *watchman) Watch(
 
 		ticker := time.NewTicker(interval)
 
+		var triggers <-chan time.Time
+		if job.TriggerEvery != 0 {
+			triggerTicker := time.NewTicker(time.Duration(job.TriggerEvery))
+			triggers = triggerTicker.C
+		}
+
 		for {
 			select {
 			case <-watchman.stop:
 				return
+
+			case <-triggers:
+				log.Printf("triggering %s via %s interval\n", job.Name, time.Duration(job.TriggerEvery))
+				watchman.queuer.Trigger(job)
+
 			case <-ticker.C:
 				from, err := watchman.db.GetCurrentVersion(job.Name, resource.Name)
 				if err == redis.ErrNil {
