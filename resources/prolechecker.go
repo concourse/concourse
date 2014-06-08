@@ -33,8 +33,6 @@ func (checker *ProleChecker) CheckResource(resource config.Resource, from builds
 		return nil
 	}
 
-	defer checker.release(conn)
-
 	buildInput := ProleBuilds.Input{
 		Type:    resource.Type,
 		Source:  ProleBuilds.Source(resource.Source),
@@ -53,6 +51,8 @@ func (checker *ProleChecker) CheckResource(resource config.Resource, from builds
 		log.Println("invalid check response:", err)
 		return nil
 	}
+
+	checker.release(conn)
 
 	return newVersions
 }
