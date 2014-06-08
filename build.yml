@@ -5,7 +5,6 @@ env:
   - GOROOT=/usr/local/go
   - PATH=$GOROOT/bin:$PATH
   - GOPATH=/tmp/build/src
-  - PATH=/usr/local/bin:$PATH
   - PATH=/tmp/build/bin:$PATH
   - REPO_DIR=$GOPATH/src/github.com/winston-ci/winston
 
