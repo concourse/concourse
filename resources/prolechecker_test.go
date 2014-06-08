@@ -1,6 +1,10 @@
 package resources_test
 
 import (
+	"encoding/json"
+
+	"code.google.com/p/go.net/websocket"
+
 	"github.com/tedsuo/router"
 	ProleBuilds "github.com/winston-ci/prole/api/builds"
 	"github.com/winston-ci/prole/routes"
@@ -17,11 +21,40 @@ var _ = Describe("ProleChecker", func() {
 	var proleServer *ghttp.Server
 	var checker Checker
 
+	var checkedInputs chan ProleBuilds.Input
+	var checkVersions chan []ProleBuilds.Version
+
 	var resource config.Resource
 
 	BeforeEach(func() {
+		checkedInputs = make(chan ProleBuilds.Input, 100)
+		checkVersions = make(chan []ProleBuilds.Version, 100)
+
 		proleServer = ghttp.NewServer()
-		proleServer.AllowUnhandledRequests = true
+
+		proleServer.AppendHandlers(
+			ghttp.CombineHandlers(
+				ghttp.VerifyRequest("GET", "/checks/stream"),
+				websocket.Server{
+					Handler: func(conn *websocket.Conn) {
+						decoder := json.NewDecoder(conn)
+						encoder := json.NewEncoder(conn)
+
+						var input ProleBuilds.Input
+
+						for {
+							err := decoder.Decode(&input)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							checkedInputs <- input
+
+							err = encoder.Encode(<-checkVersions)
+							Ω(err).ShouldNot(HaveOccurred())
+						}
+					},
+				}.ServeHTTP,
+			),
+		)
 
 		checker = NewProleChecker(
 			router.NewRequestGenerator(proleServer.URL(), routes.Routes),
@@ -36,34 +69,14 @@ var _ = Describe("ProleChecker", func() {
 
 	Context("when the endpoint returns new versions", func() {
 		BeforeEach(func() {
-			returnedVersions1 := []ProleBuilds.Version{
+			checkVersions <- []ProleBuilds.Version{
 				ProleBuilds.Version{"ver": "abc"},
 				ProleBuilds.Version{"ver": "def"},
 			}
 
-			returnedVersions2 := []ProleBuilds.Version{
+			checkVersions <- []ProleBuilds.Version{
 				ProleBuilds.Version{"ver": "ghi"},
 			}
-
-			proleServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/checks"),
-					ghttp.VerifyJSONRepresenting(ProleBuilds.Input{
-						Type:   resource.Type,
-						Source: ProleBuilds.Source{"uri": "http://example.com"},
-					}),
-					ghttp.RespondWithJSONEncoded(200, returnedVersions1),
-				),
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/checks"),
-					ghttp.VerifyJSONRepresenting(ProleBuilds.Input{
-						Type:    resource.Type,
-						Source:  ProleBuilds.Source{"uri": "http://example.com"},
-						Version: ProleBuilds.Version{"ver": "def"},
-					}),
-					ghttp.RespondWithJSONEncoded(200, returnedVersions2),
-				),
-			)
 		})
 
 		It("returns each detected version", func() {
@@ -72,9 +85,20 @@ var _ = Describe("ProleChecker", func() {
 				builds.Version{"ver": "def"},
 			}))
 
+			Ω(checkedInputs).Should(Receive(Equal(ProleBuilds.Input{
+				Type:   resource.Type,
+				Source: ProleBuilds.Source{"uri": "http://example.com"},
+			})))
+
 			Ω(checker.CheckResource(resource, builds.Version{"ver": "def"})).Should(Equal([]builds.Version{
 				builds.Version{"ver": "ghi"},
 			}))
+
+			Ω(checkedInputs).Should(Receive(Equal(ProleBuilds.Input{
+				Type:    resource.Type,
+				Source:  ProleBuilds.Source{"uri": "http://example.com"},
+				Version: ProleBuilds.Version{"ver": "def"},
+			})))
 		})
 	})
 })

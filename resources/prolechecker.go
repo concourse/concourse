@@ -1,12 +1,10 @@
 package resources
 
 import (
-	"bytes"
 	"encoding/json"
 	"log"
-	"net/http"
-	"time"
 
+	"code.google.com/p/go.net/websocket"
 	"github.com/tedsuo/router"
 	ProleBuilds "github.com/winston-ci/prole/api/builds"
 	"github.com/winston-ci/prole/routes"
@@ -18,23 +16,24 @@ import (
 type ProleChecker struct {
 	prole *router.RequestGenerator
 
-	httpClient *http.Client
+	connections chan *websocket.Conn
 }
 
 func NewProleChecker(prole *router.RequestGenerator) Checker {
 	return &ProleChecker{
 		prole: prole,
 
-		httpClient: &http.Client{
-			Transport: &http.Transport{
-				ResponseHeaderTimeout: 5 * time.Minute,
-			},
-		},
+		connections: make(chan *websocket.Conn, 1),
 	}
 }
 
 func (checker *ProleChecker) CheckResource(resource config.Resource, from builds.Version) []builds.Version {
-	req := new(bytes.Buffer)
+	conn, err := checker.connect()
+	if err != nil {
+		return nil
+	}
+
+	defer checker.release(conn)
 
 	buildInput := ProleBuilds.Input{
 		Type:    resource.Type,
@@ -42,38 +41,46 @@ func (checker *ProleChecker) CheckResource(resource config.Resource, from builds
 		Version: ProleBuilds.Version(from),
 	}
 
-	err := json.NewEncoder(req).Encode(buildInput)
+	err = json.NewEncoder(conn).Encode(buildInput)
 	if err != nil {
 		log.Println("encoding input failed:", err)
 		return nil
 	}
 
-	check, err := checker.prole.RequestForHandler(
-		routes.CheckInput,
-		nil,
-		req,
-	)
-	if err != nil {
-		log.Println("constructing check request failed:", err)
-		return nil
-	}
-
-	check.Header.Set("Content-Type", "application/json")
-
-	resp, err := checker.httpClient.Do(check)
-	if err != nil {
-		log.Println("prole request failed:", err)
-		return nil
-	}
-
-	defer resp.Body.Close()
-
 	var newVersions []builds.Version
-	err = json.NewDecoder(resp.Body).Decode(&newVersions)
+	err = json.NewDecoder(conn).Decode(&newVersions)
 	if err != nil {
 		log.Println("invalid check response:", err)
 		return nil
 	}
 
 	return newVersions
+}
+
+func (checker *ProleChecker) connect() (*websocket.Conn, error) {
+	select {
+	case conn := <-checker.connections:
+		return conn, nil
+	default:
+		req, err := checker.prole.RequestForHandler(
+			routes.CheckInputStream,
+			nil,
+			nil,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		req.URL.Scheme = "ws"
+
+		return websocket.Dial(req.URL.String(), "", "http://0.0.0.0")
+	}
+}
+
+func (checker *ProleChecker) release(conn *websocket.Conn) {
+	select {
+	case checker.connections <- conn:
+	default:
+		conn.Close()
+	}
 }
