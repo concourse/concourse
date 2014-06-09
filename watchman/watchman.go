@@ -19,6 +19,7 @@ type Watchman interface {
 		checker resources.Checker,
 		eachVersion bool,
 		interval time.Duration,
+		autoTrigger <-chan time.Time,
 	)
 
 	Stop()
@@ -48,6 +49,7 @@ func (watchman *watchman) Watch(
 	checker resources.Checker,
 	eachVersion bool,
 	interval time.Duration,
+	autoTrigger <-chan time.Time,
 ) {
 	watchman.watching.Add(1)
 
@@ -56,19 +58,13 @@ func (watchman *watchman) Watch(
 
 		ticker := time.NewTicker(interval)
 
-		var triggers <-chan time.Time
-		if job.TriggerEvery != 0 {
-			triggerTicker := time.NewTicker(time.Duration(job.TriggerEvery))
-			triggers = triggerTicker.C
-		}
-
 		for {
 			select {
 			case <-watchman.stop:
 				return
 
-			case <-triggers:
-				log.Printf("triggering %s via %s interval\n", job.Name, time.Duration(job.TriggerEvery))
+			case <-autoTrigger:
+				log.Printf("auto-triggering %s\n", job.Name)
 				watchman.queuer.Trigger(job)
 
 			case <-ticker.C:

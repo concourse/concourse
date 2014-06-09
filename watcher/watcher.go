@@ -38,6 +38,12 @@ func NewWatcher(
 
 func (watcher Watcher) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	for _, job := range watcher.jobs {
+		var triggers <-chan time.Time
+		if job.TriggerEvery != 0 {
+			triggerTicker := time.NewTicker(time.Duration(job.TriggerEvery))
+			triggers = triggerTicker.C
+		}
+
 		for _, input := range job.Inputs {
 			resource, found := watcher.resources.Lookup(input.Resource)
 			if !found {
@@ -51,7 +57,7 @@ func (watcher Watcher) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 				checker = resources.NewWinstonChecker(watcher.db, input.Passed)
 			}
 
-			watcher.watchman.Watch(job, resource, checker, input.EachVersion, time.Minute)
+			watcher.watchman.Watch(job, resource, checker, input.EachVersion, time.Minute, triggers)
 		}
 	}
 

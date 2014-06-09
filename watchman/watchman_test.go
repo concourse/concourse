@@ -26,6 +26,7 @@ var _ = Describe("Watchman", func() {
 	var checker *fakechecker.FakeChecker
 	var eachVersion bool
 	var interval time.Duration
+	var trigger chan time.Time
 
 	BeforeEach(func() {
 		redisRunner = redisrunner.NewRunner()
@@ -55,10 +56,11 @@ var _ = Describe("Watchman", func() {
 		checker = new(fakechecker.FakeChecker)
 		eachVersion = true
 		interval = 100 * time.Millisecond
+		trigger = make(chan time.Time)
 	})
 
 	JustBeforeEach(func() {
-		watchman.Watch(job, resource, checker, eachVersion, interval)
+		watchman.Watch(job, resource, checker, eachVersion, interval, trigger)
 	})
 
 	AfterEach(func() {
@@ -66,7 +68,7 @@ var _ = Describe("Watchman", func() {
 		redisRunner.Stop()
 	})
 
-	Describe("triggering", func() {
+	Describe("receiving timed triggers", func() {
 		var times chan time.Time
 		var interval time.Duration
 
@@ -80,26 +82,12 @@ var _ = Describe("Watchman", func() {
 			}
 		})
 
-		Context("when the job has a trigger interval configured", func() {
-			BeforeEach(func() {
-				job.TriggerEvery = config.Duration(interval)
-			})
+		It("starts a build of the job", func() {
+			trigger <- time.Now()
+			Eventually(times).Should(Receive())
 
-			It("triggers builds on the job's configured interval", func() {
-				var time1 time.Time
-				var time2 time.Time
-
-				Eventually(times).Should(Receive(&time1))
-				Eventually(times).Should(Receive(&time2))
-
-				Ω(time2.Sub(time1)).Should(BeNumerically("~", interval, interval/4))
-			})
-		})
-
-		Context("when the job does not have a trigger interval configured", func() {
-			It("does not trigger any builds", func() {
-				Consistently(times, interval*2).ShouldNot(Receive())
-			})
+			trigger <- time.Now()
+			Eventually(times).Should(Receive())
 		})
 	})
 
