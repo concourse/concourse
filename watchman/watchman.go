@@ -17,7 +17,7 @@ type Watchman interface {
 		job config.Job,
 		resource config.Resource,
 		checker resources.Checker,
-		latestOnly bool,
+		eachVersion bool,
 		interval time.Duration,
 	)
 
@@ -46,7 +46,7 @@ func (watchman *watchman) Watch(
 	job config.Job,
 	resource config.Resource,
 	checker resources.Checker,
-	latestOnly bool,
+	eachVersion bool,
 	interval time.Duration,
 ) {
 	watchman.watching.Add(1)
@@ -86,14 +86,14 @@ func (watchman *watchman) Watch(
 
 				log.Printf("found %d new versions for %s via %T", len(newVersions), job.Name, checker)
 
-				if latestOnly {
-					log.Printf("triggering %s (latest) via %T: %s\n", job.Name, checker, resource)
-					watchman.queuer.Enqueue(job, resource, newVersions[len(newVersions)-1])
-				} else {
+				if eachVersion {
 					for i, version := range newVersions {
 						log.Printf("triggering %s (%d of %d) via %T: %s\n", job.Name, i+1, len(newVersions), checker, version)
 						watchman.queuer.Enqueue(job, resource, version)
 					}
+				} else {
+					log.Printf("triggering %s (latest) via %T: %s\n", job.Name, checker, resource)
+					watchman.queuer.Enqueue(job, resource, newVersions[len(newVersions)-1])
 				}
 			}
 		}

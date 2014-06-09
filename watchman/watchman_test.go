@@ -24,7 +24,7 @@ var _ = Describe("Watchman", func() {
 	var job config.Job
 	var resource config.Resource
 	var checker *fakechecker.FakeChecker
-	var latestOnly bool
+	var eachVersion bool
 	var interval time.Duration
 
 	BeforeEach(func() {
@@ -53,12 +53,12 @@ var _ = Describe("Watchman", func() {
 		}
 
 		checker = new(fakechecker.FakeChecker)
-		latestOnly = false
+		eachVersion = true
 		interval = 100 * time.Millisecond
 	})
 
 	JustBeforeEach(func() {
-		watchman.Watch(job, resource, checker, latestOnly, interval)
+		watchman.Watch(job, resource, checker, eachVersion, interval)
 	})
 
 	AfterEach(func() {
@@ -213,7 +213,7 @@ var _ = Describe("Watchman", func() {
 
 			Context("when configured to only build the latest versions", func() {
 				BeforeEach(func() {
-					latestOnly = true
+					eachVersion = false
 				})
 
 				It("only builds the latest version", func() {
