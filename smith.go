@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -218,26 +220,47 @@ func upload(reqGenerator *router.RequestGenerator, build builds.Build) {
 		log.Fatalln("could not locate build config:", err)
 	}
 
-	compressor := compressor.NewTgz()
+	var archive io.ReadCloser
 
-	tmpfile, err := ioutil.TempFile("", "smith")
+	tarPath, err := exec.LookPath("tar")
 	if err != nil {
-		log.Fatalln("creating tempfile failed:", err)
+		compressor := compressor.NewTgz()
+
+		tmpfile, err := ioutil.TempFile("", "smith")
+		if err != nil {
+			log.Fatalln("creating tempfile failed:", err)
+		}
+
+		tmpfile.Close()
+
+		defer os.Remove(tmpfile.Name())
+
+		err = compressor.Compress(src+"/", tmpfile.Name())
+		if err != nil {
+			log.Fatalln("creating archive failed:", err)
+		}
+
+		archive, err = os.Open(tmpfile.Name())
+		if err != nil {
+			log.Fatalln("could not open archive:", err)
+		}
+	} else {
+		tarCmd := exec.Command(tarPath, "czf", "-", ".")
+		tarCmd.Dir = src
+		tarCmd.Stderr = os.Stderr
+
+		archive, err = tarCmd.StdoutPipe()
+		if err != nil {
+			log.Fatalln("could not create tar pipe:", err)
+		}
+
+		err = tarCmd.Start()
+		if err != nil {
+			log.Fatalln("could not run tar:", err)
+		}
 	}
 
-	tmpfile.Close()
-
-	defer os.Remove(tmpfile.Name())
-
-	err = compressor.Compress(src+"/", tmpfile.Name())
-	if err != nil {
-		log.Fatalln("creating archive failed:", err)
-	}
-
-	archive, err := os.Open(tmpfile.Name())
-	if err != nil {
-		log.Fatalln("could not open archive:", err)
-	}
+	defer archive.Close()
 
 	uploadBits, err := reqGenerator.RequestForHandler(
 		routes.UploadBits,

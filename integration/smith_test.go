@@ -121,7 +121,7 @@ script: find . {{ .Args }}
 					hdr, err = tr.Next()
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(hdr.Name).Should(Equal("build.yml"))
+					Ω(hdr.Name).Should(MatchRegexp("(./)?build.yml$"))
 				},
 				ghttp.RespondWith(201, `{"guid":"abc","image":"ubuntu","script":"find ."}`),
 			),
