@@ -57,7 +57,7 @@ func main() {
 	if *redgreenURL == "" {
 		println("must specify $REDGREEN_URL. for example:")
 		println()
-		println("export REDGREEN_URL=http://10.244.8.66:5637")
+		println("export REDGREEN_URL=http://10.244.8.2:5637")
 		os.Exit(1)
 	}
 
