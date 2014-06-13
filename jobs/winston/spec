@@ -19,6 +19,14 @@ properties:
     description: "api listening address"
     default: 0.0.0.0:8081
 
+  winston.basic_auth_username:
+    description: "username for http basic auth"
+    default: ""
+
+  winston.basic_auth_encrypted_password:
+    description: "bcrypt encrypted password (cost 10) for http basic auth"
+    default: ""
+
   winston.prole.address:
     description: "Address of prole server to use to run builds."
 
