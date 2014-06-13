@@ -84,7 +84,7 @@ var httpUsername = flag.String(
 )
 
 var httpHashedPassword = flag.String(
-	"httpHashedUsername",
+	"httpHashedPassword",
 	"",
 	"basic auth password for the server",
 )
