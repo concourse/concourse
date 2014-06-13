@@ -24,6 +24,7 @@ import (
 	"github.com/winston-ci/winston/db"
 	"github.com/winston-ci/winston/queue"
 	"github.com/winston-ci/winston/server"
+	"github.com/winston-ci/winston/server/auth"
 	"github.com/winston-ci/winston/watcher"
 	"github.com/winston-ci/winston/watchman"
 )
@@ -76,6 +77,18 @@ var apiListenAddr = flag.String(
 	"port for the api to listen on",
 )
 
+var httpUsername = flag.String(
+	"httpUsername",
+	"",
+	"basic auth username for the server",
+)
+
+var httpHashedPassword = flag.String(
+	"httpHashedUsername",
+	"",
+	"basic auth password for the server",
+)
+
 func main() {
 	flag.Parse()
 
@@ -123,6 +136,14 @@ func main() {
 	)
 	if err != nil {
 		fatal(err)
+	}
+
+	if *httpUsername != "" && *httpHashedPassword != "" {
+		serverHandler = auth.Handler{
+			Handler:        serverHandler,
+			Username:       *httpUsername,
+			HashedPassword: *httpHashedPassword,
+		}
 	}
 
 	drainer := drainer.NewDrainer()
