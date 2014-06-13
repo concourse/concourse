@@ -78,6 +78,7 @@ var _ = Describe("BasicAuthHandler", func() {
 			response, err := client.Do(request)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+			Ω(response.Header.Get("WWW-Authenticate")).Should(Equal(`Basic realm="Restricted"`))
 
 			responseBody, err := ioutil.ReadAll(response.Body)
 			Ω(err).ShouldNot(HaveOccurred())
@@ -94,6 +95,7 @@ var _ = Describe("BasicAuthHandler", func() {
 			response, err := client.Do(request)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+			Ω(response.Header.Get("WWW-Authenticate")).Should(Equal(`Basic realm="Restricted"`))
 
 			responseBody, err := ioutil.ReadAll(response.Body)
 			Ω(err).ShouldNot(HaveOccurred())

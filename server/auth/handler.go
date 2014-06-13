@@ -18,6 +18,7 @@ type Handler struct {
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	username, password, err := ExtractUsernameAndPassword(r.Header.Get("Authorization"))
 	if err != nil {
+		w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -26,6 +27,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if username == h.Username && err == nil {
 		h.Handler.ServeHTTP(w, r)
 	} else {
+		w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 		w.WriteHeader(http.StatusUnauthorized)
 	}
 }
