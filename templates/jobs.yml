@@ -43,6 +43,8 @@ jobs:
           address: (( merge ))
         redis: (( merge ))
         config: (( merge ))
+        basic_auth_username: (( merge ))
+        basic_auth_encrypted_password: (( merge ))
 
   - name: prole
     templates:
