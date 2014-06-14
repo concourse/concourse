@@ -19,7 +19,7 @@ mkdir -p ${TMP_GOPATH}
 
 cp $(dirname $0)/build.yml ${TMP_GOPATH}/build.yml
 
-cp -a ~/workspace/resource-images ${TMP_GOPATH}
+rsync --del --exclude '.*' -a ~/workspace/resource-images ${TMP_GOPATH}
 
 go test -c
 rm testflight.test

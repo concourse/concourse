@@ -2,7 +2,9 @@ package flight_test_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
+	"path/filepath"
 	"syscall"
 	"testing"
 	"time"
@@ -24,23 +26,52 @@ var builtComponents map[string]string
 
 var wardenBinPath string
 
+func findSource(pkg string) string {
+	for _, path := range filepath.SplitList(os.Getenv("GOPATH")) {
+		srcPath := filepath.Join(path, "src", pkg)
+
+		_, err := os.Stat(srcPath)
+		if err != nil {
+			continue
+		}
+
+		return srcPath
+	}
+
+	return ""
+}
+
+func buildWithGodeps(pkg string, args ...string) (string, error) {
+	srcPath := findSource(pkg)
+	Ω(srcPath).ShouldNot(BeEmpty(), "could not find source for "+pkg)
+
+	gopath := fmt.Sprintf(
+		"%s%c%s",
+		os.Getenv("GOPATH"),
+		os.PathListSeparator,
+		filepath.Join(srcPath, "Godeps", "_workspace"),
+	)
+
+	return gexec.BuildIn(gopath, pkg, args...)
+}
+
 var _ = SynchronizedBeforeSuite(func() []byte {
 	wardenBinPath = os.Getenv("WARDEN_BINPATH")
 	Ω(wardenBinPath).ShouldNot(BeEmpty(), "must provide $WARDEN_BINPATH")
 
-	proleBin, err := gexec.Build("github.com/winston-ci/prole", "-race")
+	proleBin, err := buildWithGodeps("github.com/winston-ci/prole", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
-	winstonBin, err := gexec.Build("github.com/winston-ci/winston", "-race")
+	winstonBin, err := buildWithGodeps("github.com/winston-ci/winston", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
-	redgreenBin, err := gexec.Build("github.com/winston-ci/redgreen", "-race")
+	redgreenBin, err := buildWithGodeps("github.com/winston-ci/redgreen", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
-	smithBin, err := gexec.Build("github.com/winston-ci/smith", "-race")
+	smithBin, err := buildWithGodeps("github.com/winston-ci/smith", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
-	wardenLinuxBin, err := gexec.Build("github.com/cloudfoundry-incubator/warden-linux", "-race")
+	wardenLinuxBin, err := buildWithGodeps("github.com/cloudfoundry-incubator/warden-linux", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
 	components, err := json.Marshal(map[string]string{
@@ -59,6 +90,9 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 })
 
 var _ = BeforeEach(func() {
+	externalAddr := os.Getenv("EXTERNAL_ADDRESS")
+	Ω(externalAddr).ShouldNot(BeEmpty(), "must specify $EXTERNAL_ADDRESS")
+
 	wardenRunner := WardenRunner.New(
 		builtComponents["warden-linux"],
 		wardenBinPath,
@@ -73,10 +107,14 @@ var _ = BeforeEach(func() {
 		"-resourceTypes", `{"raw":"raw-resource"}`,
 	)
 
+	redgreenRunner := runner.NewRunner(
+		builtComponents["redgreen"],
+		"-peerAddr", externalAddr+":5637",
+	)
 	processes = grouper.EnvokeGroup(grouper.RunGroup{
-		"prole":        proleRunner,
-		"winston":      runner.NewRunner(builtComponents["winston"]),
-		"redgreen":     runner.NewRunner(builtComponents["redgreen"]),
+		"prole": proleRunner,
+		//"winston":      runner.NewRunner(builtComponents["winston"]),
+		"redgreen":     redgreenRunner,
 		"warden-linux": wardenRunner,
 	})
 

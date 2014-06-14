@@ -4,13 +4,25 @@ image: concourse/testflight
 env:
   - GOROOT=/usr/local/go
   - PATH=$GOROOT/bin:$PATH
-  - GOPATH=/tmp/build/src/testflight
+  - GOPATH=/tmp/build/src/gopath
   - PATH=$GOPATH/bin:$PATH
   - DOCKER_REGISTRY_CONFIG=/docker-registry/config/config_sample.yml
   - EXTERNAL_ADDRESS=$(ip route get 8.8.8.8 | sed 's/.*src\s\(.*\)\s/\1/;tx;d;:x')
 
 script: |
   set -e -x
+
+  function copy_to_gopath {
+    mkdir -p ${GOPATH}/src/${1}
+    rsync --del --exclude '.*' -a $(basename $1)/ ${GOPATH}/src/${1}/
+  }
+
+  copy_to_gopath github.com/concourse/testflight
+  copy_to_gopath github.com/winston-ci/winston
+  copy_to_gopath github.com/winston-ci/prole
+  copy_to_gopath github.com/winston-ci/redgreen
+  copy_to_gopath github.com/winston-ci/smith
+  copy_to_gopath github.com/cloudfoundry-incubator/warden-linux
 
   cd $GOPATH/src/github.com/concourse/testflight/
 
