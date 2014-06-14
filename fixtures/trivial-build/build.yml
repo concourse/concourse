@@ -1,5 +1,5 @@
 ---
-image: some-repo
+image: ubuntu
 
 script: |
   echo hello

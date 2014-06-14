@@ -34,6 +34,10 @@ pushd $GOPATH/resource-images
   docker.io push localhost:5000/raw-resource
 popd
 
+ubuntu_image=$(docker.io images | grep ubuntu | awk '{print $3}')
+docker.io tag ${ubuntu_image} localhost:5000/ubuntu
+docker.io push localhost:5000/ubuntu
+
 # no longer need docker running
 service docker.io stop
 
