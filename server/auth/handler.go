@@ -40,7 +40,7 @@ func (h Handler) unauthorized(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusUnauthorized)
 }
 
-var ErrUnparsableHeader = errors.New("unparseable Authorization header")
+var ErrUnparsableHeader = errors.New("cannot parse 'Authorization' header")
 
 func ExtractUsernameAndPassword(authorizationHeader string) (string, string, error) {
 	if !strings.HasPrefix(authorizationHeader, "Basic ") {
