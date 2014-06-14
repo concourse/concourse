@@ -31,7 +31,7 @@ var _ = Describe("BasicAuthHandler", func() {
 	password := "password"
 
 	BeforeEach(func() {
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		authHandler := auth.Handler{
