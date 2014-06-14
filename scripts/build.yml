@@ -1,0 +1,24 @@
+---
+image: concourse/testflight
+
+env:
+  - GOROOT=/usr/local/go
+  - PATH=$GOROOT/bin:$PATH
+  - GOPATH=/tmp/build/src/testflight
+  - PATH=$GOPATH/bin:$PATH
+  - UBUNTU_IMAGE_TARBALL=/tmp/testflight-images/ubuntu.tar
+  - RAW_RESOURCE_IMAGE_TARBALL=/tmp/testflight-images/raw-resource.tar
+
+script: |
+  set -e -x
+
+  cd $GOPATH/src/github.com/concourse/testflight/
+
+  go install github.com/onsi/ginkgo/ginkgo
+
+  pushd $GOPATH/src/github.com/cloudfoundry-incubator/warden-linux
+    make # compile wshd/etc.
+    export WARDEN_BINPATH=$PWD/linux_backend/bin
+  popd
+
+  ginkgo -r -v

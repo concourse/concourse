@@ -1,0 +1,6 @@
+---
+image: some-repo
+
+script: |
+  echo hello
+  exit 0
