@@ -5,7 +5,7 @@ set -e -x
 
 # set up cgroups
 mkdir -p /sys/fs/cgroup
-cgroupfs-mount
+cgroups-mount
 
 SETTINGS_FLAVOR=dev docker-registry &
 
@@ -42,7 +42,7 @@ docker push localhost:5000/ubuntu
 
 # no longer need docker running
 kill $DOCKER_PID
-wait $DOCKER_PID
+wait $DOCKER_PID || true
 
 # set up a $TMPDIR so warden's graphs go onto tmpfs
 mkdir -p /tmp/testflight

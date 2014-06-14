@@ -19,9 +19,9 @@ RUN \
     make install && \
     rm -rf /tmp/redis-stable*
 
+# Install docker.io for its dependencies
+RUN apt-get -y install docker.io
+
 # Docker
 ADD https://get.docker.io/builds/Linux/x86_64/docker-latest /usr/local/bin/docker
 RUN chmod +x /usr/local/bin/docker
-
-# cgroupfs setup
-ADD scripts/cgroupfs-mount /usr/local/sbin/cgroupfs-mount
