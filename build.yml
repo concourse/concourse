@@ -12,9 +12,10 @@ env:
 script: |
   set -e -x
 
+  first_gopath=$(echo $GOPATH | cut -d':' -f1)
   function copy_to_gopath {
-    mkdir -p ${GOPATH}/src/${1}
-    rsync --del --exclude '.*' -a $(basename $1)/ ${GOPATH}/src/${1}/
+    mkdir -p ${first_gopath}/src/${1}
+    rsync --del --exclude '.*' -a $(basename $1)/ ${first_gopath}/src/${1}/
   }
 
   copy_to_gopath github.com/concourse/testflight
@@ -24,12 +25,12 @@ script: |
   copy_to_gopath github.com/winston-ci/smith
   copy_to_gopath github.com/cloudfoundry-incubator/warden-linux
 
-  pushd $GOPATH/src/github.com/cloudfoundry-incubator/warden-linux
+  pushd warden-linux/
     make # compile wshd/etc.
     export WARDEN_BINPATH=$PWD/linux_backend/bin
   popd
 
-  cd $GOPATH/src/github.com/concourse/testflight/
+  cd testflight/
 
   source ./scripts/preflight
 
