@@ -1,14 +1,14 @@
-FROM ubuntu:14.04
+FROM registry:latest
 
 # The Basics
+RUN apt-get update
 RUN apt-get -y install build-essential curl
 
 # Go 1.2.2
-RUN echo "deb http://mirror.anl.gov/pub/ubuntu trusty main universe" > /etc/apt/sources.list
+RUN echo "deb http://mirror.anl.gov/pub/ubuntu trusty main universe" >> /etc/apt/sources.list
 RUN curl https://storage.googleapis.com/golang/go1.2.2.linux-amd64.tar.gz | tar -C /usr/local -xzf -
 
 # Warden runtime dependencies
-RUN apt-get update
 RUN apt-get -y install iptables quota rsync net-tools
 
 # Redis
@@ -19,5 +19,5 @@ RUN \
     make install && \
     rm -rf /tmp/redis-stable*
 
-# Static docker images for test builds
-ADD images/ /tmp/testflight-images
+# Docker
+RUN apt-get -y install docker.io

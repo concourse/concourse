@@ -17,7 +17,7 @@ var _ = Describe("Running a build with Led", func() {
 		session, err := gexec.Start(smith, GinkgoWriter, GinkgoWriter)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		Eventually(session, 30).Should(gexec.Exit())
+		Eventually(session, 3000000).Should(gexec.Exit())
 
 		Ω(session.ExitCode()).Should(Equal(0))
 	})

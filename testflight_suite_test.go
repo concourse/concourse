@@ -2,9 +2,6 @@ package flight_test_test
 
 import (
 	"encoding/json"
-	"log"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"syscall"
 	"testing"
@@ -18,7 +15,6 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 
 	"github.com/concourse/testflight/runner"
-	"github.com/concourse/testflight/staticregistry"
 )
 
 var processes ifrit.Process
@@ -63,85 +59,18 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 })
 
 var _ = BeforeEach(func() {
-	ubuntuTarball := os.Getenv("UBUNTU_IMAGE_TARBALL")
-	Ω(ubuntuTarball).ShouldNot(BeEmpty(), "must specify $UBUNTU_IMAGE_TARBALL")
-
-	rawResourceTarball := os.Getenv("RAW_RESOURCE_IMAGE_TARBALL")
-	Ω(rawResourceTarball).ShouldNot(BeEmpty(), "must specify $RAW_RESOURCE_IMAGE_TARBALL")
-
-	staticRegistry := staticregistry.Registry{
-		ImageTarball:       ubuntuTarball,
-		RawResourceTarball: rawResourceTarball,
-	}
-
-	mux := http.NewServeMux()
-
-	mux.HandleFunc(
-		"/repositories/ubuntu/images",
-		staticRegistry.UbuntuImages,
-	)
-
-	mux.HandleFunc(
-		"/v1/repositories/library/ubuntu/tags",
-		staticRegistry.UbuntuTags,
-	)
-
-	mux.HandleFunc(
-		"/v1/images/ubuntu-id/ancestry",
-		staticRegistry.UbuntuAncestry,
-	)
-
-	mux.HandleFunc(
-		"/v1/images/ubuntu-layer/json",
-		staticRegistry.UbuntuLayerJSON,
-	)
-
-	mux.HandleFunc(
-		"/v1/images/ubuntu-layer/layer",
-		staticRegistry.UbuntuLayerTarball,
-	)
-
-	mux.HandleFunc(
-		"/repositories/winston/raw-resource/images",
-		staticRegistry.RawResourceImages,
-	)
-
-	mux.HandleFunc(
-		"/v1/repositories/winston/raw-resource/tags",
-		staticRegistry.RawResourceTags,
-	)
-
-	mux.HandleFunc(
-		"/v1/images/raw-resource-id/ancestry",
-		staticRegistry.RawResourceAncestry,
-	)
-
-	mux.HandleFunc(
-		"/v1/images/raw-resource-layer/json",
-		staticRegistry.RawResourceLayerJSON,
-	)
-
-	mux.HandleFunc(
-		"/v1/images/raw-resource-layer/layer",
-		staticRegistry.RawResourceLayerTarball,
-	)
-
-	registry := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Println("GOT REQUEST", r.URL.String())
-		mux.ServeHTTP(w, r)
-	}))
-
 	wardenRunner := WardenRunner.New(
 		builtComponents["warden-linux"],
 		wardenBinPath,
 		"bogus/rootfs",
-		"-registry", registry.URL+"/", // :(
+		"-registry", "http://127.0.0.1:5000/v1/",
 	)
 
 	proleRunner := runner.NewRunner(
 		builtComponents["prole"],
 		"-wardenNetwork", wardenRunner.Network(),
 		"-wardenAddr", wardenRunner.Addr(),
+		"-resourceTypes", `{"raw":"raw-resource"}`,
 	)
 
 	processes = grouper.EnvokeGroup(grouper.RunGroup{

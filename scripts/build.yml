@@ -6,11 +6,41 @@ env:
   - PATH=$GOROOT/bin:$PATH
   - GOPATH=/tmp/build/src/testflight
   - PATH=$GOPATH/bin:$PATH
-  - UBUNTU_IMAGE_TARBALL=/tmp/testflight-images/ubuntu.tar
-  - RAW_RESOURCE_IMAGE_TARBALL=/tmp/testflight-images/raw-resource.tar
+  - DOCKER_REGISTRY_CONFIG=/docker-registry/config/config_sample.yml
+  - SETTINGS_FLAVOR=dev
 
 script: |
   set -e -x
+
+  docker-registry &
+
+  until curl http://127.0.0.1:5000; do
+    echo waiting for registry on port 5000...
+    sleep 1;
+  done
+
+  # bullshit
+  mount -t tmpfs -o remount,size=1G none /dev/shm
+
+  # realshit
+  mkdir -p /var/lib/docker
+  mount -t tmpfs -o size=1G none /var/lib/docker
+
+  # cgroups for docker
+  mkdir -p /sys/fs/cgroup
+  cgroups-mount
+
+  service docker.io start
+
+  until [ -S /var/run/docker.sock ]; do
+    echo fml
+    sleep 0.5
+  done
+
+  pushd $GOPATH/resource-images
+    docker.io build -t localhost:5000/raw-resource git
+    docker.io push localhost:5000/raw-resource
+  popd
 
   cd $GOPATH/src/github.com/concourse/testflight/
 
