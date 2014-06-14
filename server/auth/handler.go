@@ -47,13 +47,13 @@ func ExtractUsernameAndPassword(authorizationHeader string) (string, string, err
 		return "", "", ErrUnparsableHeader
 	}
 
-	substring := authorizationHeader[6:]
-	decodedSubstring, err := base64.StdEncoding.DecodeString(substring)
+	encodedCredentials := authorizationHeader[6:]
+	credentials, err := base64.StdEncoding.DecodeString(encodedCredentials)
 	if err != nil {
 		return "", "", ErrUnparsableHeader
 	}
 
-	parts := strings.Split(string(decodedSubstring), ":")
+	parts := strings.Split(string(credentials), ":")
 	if len(parts) != 2 {
 		return "", "", ErrUnparsableHeader
 	}
