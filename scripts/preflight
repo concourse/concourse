@@ -29,7 +29,7 @@ until [ -S /var/run/docker.sock ]; do
   sleep 0.5
 done
 
-pushd $GOPATH/resource-images
+pushd /tmp/build/src/resource-images
   docker.io build -t localhost:5000/raw-resource raw
   docker.io push localhost:5000/raw-resource
 popd

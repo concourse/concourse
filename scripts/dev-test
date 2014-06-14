@@ -13,13 +13,14 @@ REPOS="
 "
 
 DEV_GOPATH=$(cd ${1:-$HOME/go} && pwd)
-TMP_GOPATH=/tmp/testflight
+TMP_DIR=/tmp/testflight
+TMP_GOPATH=${TMP_DIR}/gopath
 
 mkdir -p ${TMP_GOPATH}
 
-cp $(dirname $0)/build.yml ${TMP_GOPATH}/build.yml
+cp $(dirname $0)/build.yml ${TMP_DIR}/build.yml
 
-rsync --del --exclude '.*' -a ~/workspace/resource-images ${TMP_GOPATH}
+rsync --del --exclude '.*' -a ~/workspace/resource-images/ ${TMP_DIR}/resource-images/
 
 go test -c
 rm testflight.test
@@ -44,5 +45,5 @@ done
 
 wait
 
-cd $TMP_GOPATH
+cd ${TMP_DIR}
 smith
