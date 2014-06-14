@@ -20,4 +20,4 @@ RUN \
     rm -rf /tmp/redis-stable*
 
 # Docker
-RUN apt-get -y install docker.io
+ADD https://get.docker.io/builds/Linux/x86_64/docker-latest /usr/local/bin/docker

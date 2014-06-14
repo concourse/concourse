@@ -22,7 +22,9 @@ mkdir -p /var/lib/docker
 mount -t tmpfs -o size=1G none /var/lib/docker
 
 # start docker for building resource images
-service docker.io start
+docker -d &
+
+DOCKER_PID=$!
 
 until [ -S /var/run/docker.sock ]; do
   echo waiting for docker to come up...
@@ -30,16 +32,17 @@ until [ -S /var/run/docker.sock ]; do
 done
 
 pushd /tmp/build/src/resource-images
-  docker.io build -t localhost:5000/raw-resource raw
-  docker.io push localhost:5000/raw-resource
+  docker build -t localhost:5000/raw-resource raw
+  docker push localhost:5000/raw-resource
 popd
 
-ubuntu_image=$(docker.io images | grep ubuntu | awk '{print $3}')
-docker.io tag ${ubuntu_image} localhost:5000/ubuntu
-docker.io push localhost:5000/ubuntu
+ubuntu_image=$(docker images | grep ubuntu | awk '{print $3}')
+docker tag ${ubuntu_image} localhost:5000/ubuntu
+docker push localhost:5000/ubuntu
 
 # no longer need docker running
-service docker.io stop
+kill $DOCKER_PID
+wait $DOCKER_PID
 
 # set up a $TMPDIR so warden's graphs go onto tmpfs
 mkdir -p /tmp/testflight
