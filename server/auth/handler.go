@@ -16,18 +16,23 @@ type Handler struct {
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	username, password, err := ExtractUsernameAndPassword(r.Header.Get("Authorization"))
+	header := r.Header.Get("Authorization")
+	username, password, err := ExtractUsernameAndPassword(header)
 	if err != nil {
 		h.unauthorized(w)
 		return
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(h.HashedPassword), []byte(password))
-	if username == h.Username && err == nil {
+	if h.correctCredentials(username, password) {
 		h.Handler.ServeHTTP(w, r)
 	} else {
 		h.unauthorized(w)
 	}
+}
+
+func (h Handler) correctCredentials(username string, password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(h.HashedPassword), []byte(password))
+	return h.Username == username && err == nil
 }
 
 func (h Handler) unauthorized(w http.ResponseWriter) {
