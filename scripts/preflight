@@ -5,7 +5,7 @@ set -e -x
 
 # set up cgroups
 mkdir -p /sys/fs/cgroup
-cgroups-mount
+$(dirname $0)/cgroupfs-mount
 
 SETTINGS_FLAVOR=dev docker-registry &
 
