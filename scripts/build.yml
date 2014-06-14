@@ -12,15 +12,15 @@ env:
 script: |
   set -e -x
 
+  pushd $GOPATH/src/github.com/cloudfoundry-incubator/warden-linux
+    make # compile wshd/etc.
+    export WARDEN_BINPATH=$PWD/linux_backend/bin
+  popd
+
   cd $GOPATH/src/github.com/concourse/testflight/
 
   source ./scripts/preflight
 
   go install github.com/onsi/ginkgo/ginkgo
-
-  pushd $GOPATH/src/github.com/cloudfoundry-incubator/warden-linux
-    make # compile wshd/etc.
-    export WARDEN_BINPATH=$PWD/linux_backend/bin
-  popd
 
   ginkgo -r -v

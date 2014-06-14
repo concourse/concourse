@@ -4,7 +4,7 @@ image: concourse/testflight
 env:
   - GOROOT=/usr/local/go
   - PATH=$GOROOT/bin:$PATH
-  - GOPATH=/tmp/build/src/gopath
+  - GOPATH=/tmp/build/src/gopath:/tmp/build/src/testflight/Godeps/_workspace
   - PATH=$GOPATH/bin:$PATH
   - DOCKER_REGISTRY_CONFIG=/docker-registry/config/config_sample.yml
   - EXTERNAL_ADDRESS=$(ip route get 8.8.8.8 | sed 's/.*src\s\(.*\)\s/\1/;tx;d;:x')
@@ -24,15 +24,15 @@ script: |
   copy_to_gopath github.com/winston-ci/smith
   copy_to_gopath github.com/cloudfoundry-incubator/warden-linux
 
+  pushd $GOPATH/src/github.com/cloudfoundry-incubator/warden-linux
+    make # compile wshd/etc.
+    export WARDEN_BINPATH=$PWD/linux_backend/bin
+  popd
+
   cd $GOPATH/src/github.com/concourse/testflight/
 
   source ./scripts/preflight
 
   go install github.com/onsi/ginkgo/ginkgo
-
-  pushd $GOPATH/src/github.com/cloudfoundry-incubator/warden-linux
-    make # compile wshd/etc.
-    export WARDEN_BINPATH=$PWD/linux_backend/bin
-  popd
 
   ginkgo -r -v
