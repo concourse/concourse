@@ -111,6 +111,7 @@ var _ = BeforeEach(func() {
 		builtComponents["redgreen"],
 		"-peerAddr", externalAddr+":5637",
 	)
+
 	processes = grouper.EnvokeGroup(grouper.RunGroup{
 		"prole": proleRunner,
 		//"winston":      runner.NewRunner(builtComponents["winston"]),
@@ -125,7 +126,7 @@ var _ = BeforeEach(func() {
 
 var _ = AfterEach(func() {
 	processes.Signal(syscall.SIGINT)
-	Eventually(processes.Wait()).Should(Receive())
+	Eventually(processes.Wait(), 10).Should(Receive())
 })
 
 func TestFlightTest(t *testing.T) {
