@@ -2,11 +2,11 @@
 image: winston/winston-ci
 
 env:
-  - GOROOT=/usr/local/go
-  - PATH=$GOROOT/bin:$PATH
-  - GOPATH=/tmp/build/src
-  - PATH=/tmp/build/bin:$PATH
-  - REPO_DIR=$GOPATH/src/github.com/winston-ci/winston
+  - GOROOT: /usr/local/go
+  - PATH: $GOROOT/bin:$PATH
+  - GOPATH: /tmp/build/src
+  - PATH: /tmp/build/bin:$PATH
+  - REPO_DIR: $GOPATH/src/github.com/winston-ci/winston
 
 script: |
   mkdir -p $(dirname $REPO_DIR)
