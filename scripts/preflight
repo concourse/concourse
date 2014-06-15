@@ -14,7 +14,7 @@ until curl http://127.0.0.1:5000; do
   sleep 1;
 done
 
-# bullshit
+# make /dev/shm larger
 mount -t tmpfs -o remount,size=1G none /dev/shm
 
 # docker graph dir

@@ -47,9 +47,9 @@ func buildWithGodeps(pkg string, args ...string) (string, error) {
 
 	gopath := fmt.Sprintf(
 		"%s%c%s",
-		os.Getenv("GOPATH"),
-		os.PathListSeparator,
 		filepath.Join(srcPath, "Godeps", "_workspace"),
+		os.PathListSeparator,
+		os.Getenv("GOPATH"),
 	)
 
 	return gexec.BuildIn(gopath, pkg, args...)

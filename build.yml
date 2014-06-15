@@ -4,7 +4,7 @@ image: concourse/testflight
 env:
   - GOROOT=/usr/local/go
   - PATH=$GOROOT/bin:$PATH
-  - GOPATH=/tmp/build/src/gopath:/tmp/build/src/testflight/Godeps/_workspace
+  - GOPATH=/tmp/build/src/testflight/Godeps/_workspace:/tmp/build/src/gopath
   - PATH=$GOPATH/bin:$PATH
   - DOCKER_REGISTRY_CONFIG=/docker-registry/config/config_sample.yml
   - EXTERNAL_ADDRESS=$(ip route get 8.8.8.8 | sed 's/.*src\s\(.*\)\s/\1/;tx;d;:x')
@@ -12,10 +12,9 @@ env:
 script: |
   set -e -x
 
-  first_gopath=$(echo $GOPATH | cut -d':' -f1)
   function copy_to_gopath {
-    mkdir -p ${first_gopath}/src/${1}
-    rsync --del --exclude '.*' -a $(basename $1)/ ${first_gopath}/src/${1}/
+    mkdir -p /tmp/build/src/gopath/src/${1}
+    rsync --del --exclude '.*' -a $(basename $1)/ /tmp/build/src/gopath/src/${1}/
   }
 
   copy_to_gopath github.com/concourse/testflight
