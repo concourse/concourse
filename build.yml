@@ -37,4 +37,9 @@ script: |
 
   go install github.com/onsi/ginkgo/ginkgo
 
+  # set up a $TMPDIR so warden's graphs go onto tmpfs
+  mkdir -p /tmp/testflight
+  export TMPDIR=/tmp/testflight
+  mount -t tmpfs -o size=1G none /tmp/testflight
+
   ginkgo -r -v

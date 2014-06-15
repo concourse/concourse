@@ -99,14 +99,13 @@ var _ = BeforeEach(func() {
 		builtComponents["warden-linux"],
 		wardenBinPath,
 		"bogus/rootfs",
-		"-registry", "http://127.0.0.1:5000/v1/",
 	)
 
 	proleRunner := runner.NewRunner(
 		builtComponents["prole"],
 		"-wardenNetwork", wardenRunner.Network(),
 		"-wardenAddr", wardenRunner.Addr(),
-		"-resourceTypes", `{"raw":"raw-resource"}`,
+		"-resourceTypes", `{"raw":"concourse/raw-resource#dev"}`,
 	)
 
 	redgreenRunner := runner.NewRunner(
