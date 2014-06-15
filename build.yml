@@ -40,4 +40,7 @@ script: |
   export TMPDIR=/tmp/testflight
   mount -t tmpfs -o size=1G none /tmp/testflight
 
+  # make /dev/shm larger
+  mount -t tmpfs -o remount,size=1G none /dev/shm
+
   ginkgo -r -v
