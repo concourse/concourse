@@ -1,6 +1,10 @@
 ---
 image: ubuntu
 
+env:
+  - FOO: 1
+
 script: |
-  echo hello
+  echo some output
+  echo FOO is $FOO
   exit 0

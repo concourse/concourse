@@ -1,4 +1,4 @@
-package flight_test_test
+package testflight_test
 
 import (
 	"encoding/json"
@@ -25,35 +25,6 @@ var fixturesDir = "./fixtures"
 var builtComponents map[string]string
 
 var wardenBinPath string
-
-func findSource(pkg string) string {
-	for _, path := range filepath.SplitList(os.Getenv("GOPATH")) {
-		srcPath := filepath.Join(path, "src", pkg)
-
-		_, err := os.Stat(srcPath)
-		if err != nil {
-			continue
-		}
-
-		return srcPath
-	}
-
-	return ""
-}
-
-func buildWithGodeps(pkg string, args ...string) (string, error) {
-	srcPath := findSource(pkg)
-	Ω(srcPath).ShouldNot(BeEmpty(), "could not find source for "+pkg)
-
-	gopath := fmt.Sprintf(
-		"%s%c%s",
-		filepath.Join(srcPath, "Godeps", "_workspace"),
-		os.PathListSeparator,
-		os.Getenv("BASE_GOPATH"),
-	)
-
-	return gexec.BuildIn(gopath, pkg, args...)
-}
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	wardenBinPath = os.Getenv("WARDEN_BINPATH")
@@ -133,4 +104,33 @@ var _ = AfterEach(func() {
 func TestFlightTest(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "FlightTest Suite")
+}
+
+func findSource(pkg string) string {
+	for _, path := range filepath.SplitList(os.Getenv("GOPATH")) {
+		srcPath := filepath.Join(path, "src", pkg)
+
+		_, err := os.Stat(srcPath)
+		if err != nil {
+			continue
+		}
+
+		return srcPath
+	}
+
+	return ""
+}
+
+func buildWithGodeps(pkg string, args ...string) (string, error) {
+	srcPath := findSource(pkg)
+	Ω(srcPath).ShouldNot(BeEmpty(), "could not find source for "+pkg)
+
+	gopath := fmt.Sprintf(
+		"%s%c%s",
+		filepath.Join(srcPath, "Godeps", "_workspace"),
+		os.PathListSeparator,
+		os.Getenv("BASE_GOPATH"),
+	)
+
+	return gexec.BuildIn(gopath, pkg, args...)
 }
