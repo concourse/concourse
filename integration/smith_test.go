@@ -47,8 +47,9 @@ var _ = Describe("Smith CLI", func() {
 			[]byte(`---
 image: ubuntu
 env:
-  - FOO=bar
-  - BAZ=buzz
+  - FOO: bar
+  - BAZ: buzz
+  - X: 1
 script: find . {{ .Args }}
 `),
 			0644,
@@ -71,9 +72,10 @@ script: find . {{ .Args }}
 					Image:  "ubuntu",
 					Script: "find .",
 					Path:   filepath.Base(buildDir),
-					Env: [][2]string{
-						{"FOO", "bar"},
-						{"BAZ", "buzz"},
+					Env: []map[string]string{
+						{"FOO": "bar"},
+						{"BAZ": "buzz"},
+						{"X": "1"},
 					},
 				}),
 				ghttp.RespondWith(201, `{
@@ -82,8 +84,9 @@ script: find . {{ .Args }}
 					"script": "find .",
 					"path": "some-path/",
 					"env": [
-						["FOO", "bar"],
-						["BAZ", "buzz"]
+						{"FOO": "bar"},
+						{"BAZ": "buzz"},
+						{"X": "1"}
 					]
 				}`),
 			),
@@ -164,9 +167,10 @@ script: find . {{ .Args }}
 						Image:  "ubuntu",
 						Script: `find . "-name" "foo \"bar\" baz"`,
 						Path:   filepath.Base(buildDir),
-						Env: [][2]string{
-							{"FOO", "bar"},
-							{"BAZ", "buzz"},
+						Env: []map[string]string{
+							{"FOO": "bar"},
+							{"BAZ": "buzz"},
+							{"X": "1"},
 						},
 					}),
 					ghttp.RespondWith(201, `{
@@ -175,8 +179,9 @@ script: find . {{ .Args }}
 					"script": "find .",
 					"path": "some-path/",
 					"env": [
-						["FOO", "bar"],
-						["BAZ", "buzz"]
+						{"FOO": "bar"},
+						{"BAZ": "buzz"},
+						{"X": "1"}
 					]
 				}`),
 				),

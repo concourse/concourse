@@ -28,9 +28,9 @@ import (
 )
 
 type BuildConfig struct {
-	Image  string   `yaml:"image"`
-	Script string   `yaml:"script"`
-	Env    []string `yaml:"env"`
+	Image  string              `yaml:"image"`
+	Script string              `yaml:"script"`
+	Env    []map[string]string `yaml:"env"`
 }
 
 var buildConfig = flag.String(
@@ -151,21 +151,11 @@ func loadConfig(configPath string) BuildConfig {
 func create(reqGenerator *router.RequestGenerator, config BuildConfig, path string) builds.Build {
 	buffer := &bytes.Buffer{}
 
-	env := [][2]string{}
-	for _, e := range config.Env {
-		segs := strings.SplitN(e, "=", 2)
-		if len(segs) != 2 {
-			log.Fatalln("invalid environment configuration:", e)
-		}
-
-		env = append(env, [2]string{segs[0], segs[1]})
-	}
-
 	build := builds.Build{
 		Image:  config.Image,
 		Path:   path,
 		Script: config.Script,
-		Env:    env,
+		Env:    config.Env,
 	}
 
 	err := json.NewEncoder(buffer).Encode(build)
