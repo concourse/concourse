@@ -1,9 +1,6 @@
 ---
 image: winston/room101-ci
 
-env:
-  - PATH=/usr/local/bin:$PATH
-
 script: |
   set -e
 
