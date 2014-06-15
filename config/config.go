@@ -22,6 +22,10 @@ type Source map[string]interface{}
 type Job struct {
 	Name string `yaml:"name"`
 
+	Image  string              `yaml:"image"`
+	Env    []map[string]string `yaml:"env"`
+	Script string              `yaml:"script"`
+
 	Privileged bool `yaml:"privileged"`
 
 	Serial bool `yaml:"serial"`

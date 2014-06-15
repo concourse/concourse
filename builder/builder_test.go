@@ -29,6 +29,8 @@ var _ = Describe("Builder", func() {
 	var job config.Job
 	var resources config.Resources
 
+	var expectedProleBuild ProleBuilds.Build
+
 	BeforeEach(func() {
 		redisRunner = redisrunner.NewRunner()
 		redisRunner.Start()
@@ -39,6 +41,13 @@ var _ = Describe("Builder", func() {
 
 		job = config.Job{
 			Name: "foo",
+
+			Image: "some-image",
+			Env: []map[string]string{
+				{"FOO": "1"},
+				{"BAR": "2"},
+			},
+			Script: "some-script",
 
 			Privileged: true,
 
@@ -67,6 +76,34 @@ var _ = Describe("Builder", func() {
 				Type:   "git",
 				Source: config.Source{"uri": "git://some-output-resource"},
 			},
+		}
+
+		expectedProleBuild = ProleBuilds.Build{
+			Config: ProleBuilds.Config{
+				Image: "some-image",
+				Env: []map[string]string{
+					{"FOO": "1"},
+					{"BAR": "2"},
+				},
+				Script: "some-script",
+			},
+
+			Privileged: true,
+
+			Callback: "http://winston-server/builds/foo/1",
+			LogsURL:  "ws://winston-server/builds/foo/1/log/input",
+
+			Inputs: []ProleBuilds.Input{
+				{
+					Name:            "some-resource",
+					Type:            "git",
+					Source:          ProleBuilds.Source{"uri": "git://some-resource"},
+					DestinationPath: "some-resource",
+					ConfigPath:      "build.yml",
+				},
+			},
+
+			Outputs: []ProleBuilds.Output{},
 		}
 
 		builder = NewBuilder(
@@ -184,24 +221,7 @@ var _ = Describe("Builder", func() {
 			proleServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/builds"),
-					successfulBuildStart(ProleBuilds.Build{
-						Privileged: true,
-
-						Callback: "http://winston-server/builds/foo/1",
-						LogsURL:  "ws://winston-server/builds/foo/1/log/input",
-
-						Inputs: []ProleBuilds.Input{
-							{
-								Name:            "some-resource",
-								Type:            "git",
-								Source:          ProleBuilds.Source{"uri": "git://some-resource"},
-								DestinationPath: "some-resource",
-								ConfigPath:      "build.yml",
-							},
-						},
-
-						Outputs: []ProleBuilds.Output{},
-					}),
+					successfulBuildStart(expectedProleBuild),
 				),
 			)
 
@@ -269,24 +289,7 @@ var _ = Describe("Builder", func() {
 						proleServer.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("POST", "/builds"),
-								successfulBuildStart(ProleBuilds.Build{
-									Privileged: true,
-
-									Callback: "http://winston-server/builds/foo/1",
-									LogsURL:  "ws://winston-server/builds/foo/1/log/input",
-
-									Inputs: []ProleBuilds.Input{
-										{
-											Name:            "some-resource",
-											Type:            "git",
-											Source:          ProleBuilds.Source{"uri": "git://some-resource"},
-											DestinationPath: "some-resource",
-											ConfigPath:      "build.yml",
-										},
-									},
-
-									Outputs: []ProleBuilds.Output{},
-								}),
+								successfulBuildStart(expectedProleBuild),
 							),
 						)
 
@@ -307,37 +310,23 @@ var _ = Describe("Builder", func() {
 						Params:   config.Params{"foo": "bar"},
 					},
 				}
+
+				expectedProleBuild.Outputs = []ProleBuilds.Output{
+					{
+						Name:       "some-resource",
+						Type:       "git",
+						Params:     ProleBuilds.Params{"foo": "bar"},
+						SourcePath: "some-resource",
+					},
+				}
 			})
 
 			It("sends them along to the prole", func() {
+
 				proleServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/builds"),
-						successfulBuildStart(ProleBuilds.Build{
-							Privileged: true,
-
-							Callback: "http://winston-server/builds/foo/1",
-							LogsURL:  "ws://winston-server/builds/foo/1/log/input",
-
-							Inputs: []ProleBuilds.Input{
-								{
-									Name:            "some-resource",
-									Type:            "git",
-									Source:          ProleBuilds.Source{"uri": "git://some-resource"},
-									DestinationPath: "some-resource",
-									ConfigPath:      "build.yml",
-								},
-							},
-
-							Outputs: []ProleBuilds.Output{
-								{
-									Name:       "some-resource",
-									Type:       "git",
-									Params:     ProleBuilds.Params{"foo": "bar"},
-									SourcePath: "some-resource",
-								},
-							},
-						}),
+						successfulBuildStart(expectedProleBuild),
 					),
 				)
 
@@ -347,29 +336,24 @@ var _ = Describe("Builder", func() {
 		})
 
 		Context("when resource versions are specified", func() {
+			BeforeEach(func() {
+				expectedProleBuild.Inputs = []ProleBuilds.Input{
+					{
+						Name:            "some-resource",
+						Type:            "git",
+						Source:          ProleBuilds.Source{"uri": "git://some-resource"},
+						Version:         ProleBuilds.Version{"version": "1"},
+						DestinationPath: "some-resource",
+						ConfigPath:      "build.yml",
+					},
+				}
+			})
+
 			It("uses them for the build's inputs", func() {
 				proleServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/builds"),
-						successfulBuildStart(ProleBuilds.Build{
-							Privileged: true,
-
-							Callback: "http://winston-server/builds/foo/1",
-							LogsURL:  "ws://winston-server/builds/foo/1/log/input",
-
-							Inputs: []ProleBuilds.Input{
-								{
-									Name:            "some-resource",
-									Type:            "git",
-									Source:          ProleBuilds.Source{"uri": "git://some-resource"},
-									Version:         ProleBuilds.Version{"version": "1"},
-									DestinationPath: "some-resource",
-									ConfigPath:      "build.yml",
-								},
-							},
-
-							Outputs: []ProleBuilds.Output{},
-						}),
+						successfulBuildStart(expectedProleBuild),
 					),
 				)
 
@@ -389,24 +373,7 @@ var _ = Describe("Builder", func() {
 							err := redis.AbortBuild(job.Name, 1)
 							Ω(err).ShouldNot(HaveOccurred())
 						},
-						successfulBuildStart(ProleBuilds.Build{
-							Privileged: true,
-
-							Callback: "http://winston-server/builds/foo/1",
-							LogsURL:  "ws://winston-server/builds/foo/1/log/input",
-
-							Inputs: []ProleBuilds.Input{
-								{
-									Name:            "some-resource",
-									Type:            "git",
-									Source:          ProleBuilds.Source{"uri": "git://some-resource"},
-									DestinationPath: "some-resource",
-									ConfigPath:      "build.yml",
-								},
-							},
-
-							Outputs: []ProleBuilds.Output{},
-						}),
+						successfulBuildStart(expectedProleBuild),
 					),
 					ghttp.VerifyRequest("POST", "/abort/the/build"),
 				)
@@ -424,6 +391,23 @@ var _ = Describe("Builder", func() {
 					Resource: "some-dependant-resource",
 					Passed:   []string{"job1", "job2"},
 				})
+
+				expectedProleBuild.Inputs = []ProleBuilds.Input{
+					{
+						Name:            "some-resource",
+						Type:            "git",
+						Source:          ProleBuilds.Source{"uri": "git://some-resource"},
+						DestinationPath: "some-resource",
+						ConfigPath:      "build.yml",
+					},
+					{
+						Name:            "some-dependant-resource",
+						Type:            "git",
+						Source:          ProleBuilds.Source{"uri": "git://some-dependant-resource"},
+						Version:         ProleBuilds.Version{"version": "1"},
+						DestinationPath: "some-dependant-resource",
+					},
+				}
 			})
 
 			Context("and the other jobs satisfy the dependency", func() {
@@ -442,31 +426,7 @@ var _ = Describe("Builder", func() {
 					proleServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("POST", "/builds"),
-							successfulBuildStart(ProleBuilds.Build{
-								Privileged: true,
-
-								Callback: "http://winston-server/builds/foo/1",
-								LogsURL:  "ws://winston-server/builds/foo/1/log/input",
-
-								Inputs: []ProleBuilds.Input{
-									{
-										Name:            "some-resource",
-										Type:            "git",
-										Source:          ProleBuilds.Source{"uri": "git://some-resource"},
-										DestinationPath: "some-resource",
-										ConfigPath:      "build.yml",
-									},
-									{
-										Name:            "some-dependant-resource",
-										Type:            "git",
-										Source:          ProleBuilds.Source{"uri": "git://some-dependant-resource"},
-										Version:         ProleBuilds.Version{"version": "1"},
-										DestinationPath: "some-dependant-resource",
-									},
-								},
-
-								Outputs: []ProleBuilds.Output{},
-							}),
+							successfulBuildStart(expectedProleBuild),
 						),
 					)
 

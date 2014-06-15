@@ -133,6 +133,12 @@ func (builder *builder) Start(job config.Job, build builds.Build, versionOverrid
 	logs.URL.Scheme = "ws"
 
 	proleBuild := ProleBuilds.Build{
+		Config: ProleBuilds.Config{
+			Image:  job.Image,
+			Env:    job.Env,
+			Script: job.Script,
+		},
+
 		Privileged: job.Privileged,
 
 		Inputs:  inputs,
