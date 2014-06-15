@@ -7,6 +7,7 @@ env:
   - BASE_GOPATH=/tmp/build/src/gopath
   - GOPATH=${BASE_GOPATH}:/tmp/build/src/testflight/Godeps/_workspace
   - PATH=${BASE_GOPATH}/bin:$PATH
+  - PATH=/tmp/build/src/testflight/Godeps/_workspace/bin:$PATH
   - DOCKER_REGISTRY_CONFIG=/docker-registry/config/config_sample.yml
   - EXTERNAL_ADDRESS=$(ip route get 8.8.8.8 | sed 's/.*src\s\(.*\)\s/\1/;tx;d;:x')
 
