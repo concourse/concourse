@@ -220,31 +220,14 @@ func (builder *builder) computeVersions(job config.Job, versionOverrides map[str
 }
 
 func (builder *builder) computeInputs(job config.Job, versions map[string]builds.Version) ([]ProleBuilds.Input, error) {
-	proleInputs := []ProleBuilds.Input{}
-
-	added := map[string]bool{}
-	for _, input := range job.Inputs {
+	proleInputs := make([]ProleBuilds.Input, len(job.Inputs))
+	for i, input := range job.Inputs {
 		resource, found := builder.resources.Lookup(input.Resource)
 		if !found {
 			return nil, fmt.Errorf("unknown resource: %s", input.Resource)
 		}
 
-		proleInputs = append(proleInputs, builder.inputFor(job, resource, versions[input.Resource]))
-
-		added[input.Resource] = true
-	}
-
-	for _, output := range job.Outputs {
-		if added[output.Resource] {
-			continue
-		}
-
-		resource, found := builder.resources.Lookup(output.Resource)
-		if !found {
-			return nil, fmt.Errorf("unknown resource: %s", output.Resource)
-		}
-
-		proleInputs = append(proleInputs, builder.inputFor(job, resource, versions[output.Resource]))
+		proleInputs[i] = builder.inputFor(job, resource, versions[input.Resource])
 	}
 
 	return proleInputs, nil

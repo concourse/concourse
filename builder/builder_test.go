@@ -344,63 +344,6 @@ var _ = Describe("Builder", func() {
 				_, err := builder.Start(job, build, nil)
 				Ω(err).ShouldNot(HaveOccurred())
 			})
-
-			Context("and one of the outputs is not specified as an input", func() {
-				BeforeEach(func() {
-					job.Outputs = append(job.Outputs, config.Output{
-						Resource: "some-output-resource",
-						Params:   config.Params{"fizz": "buzz"},
-					})
-				})
-
-				It("is specified as an input", func() {
-					proleServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("POST", "/builds"),
-							successfulBuildStart(ProleBuilds.Build{
-								Privileged: true,
-
-								Callback: "http://winston-server/builds/foo/1",
-								LogsURL:  "ws://winston-server/builds/foo/1/log/input",
-
-								Inputs: []ProleBuilds.Input{
-									{
-										Name:            "some-resource",
-										Type:            "git",
-										Source:          ProleBuilds.Source{"uri": "git://some-resource"},
-										DestinationPath: "some-resource",
-										ConfigPath:      "build.yml",
-									},
-									{
-										Name:            "some-output-resource",
-										Type:            "git",
-										Source:          ProleBuilds.Source{"uri": "git://some-output-resource"},
-										DestinationPath: "some-output-resource",
-									},
-								},
-
-								Outputs: []ProleBuilds.Output{
-									{
-										Name:       "some-resource",
-										Type:       "git",
-										Params:     ProleBuilds.Params{"foo": "bar"},
-										SourcePath: "some-resource",
-									},
-									{
-										Name:       "some-output-resource",
-										Type:       "git",
-										Params:     ProleBuilds.Params{"fizz": "buzz"},
-										SourcePath: "some-output-resource",
-									},
-								},
-							}),
-						),
-					)
-
-					_, err := builder.Start(job, build, nil)
-					Ω(err).ShouldNot(HaveOccurred())
-				})
-			})
 		})
 
 		Context("when resource versions are specified", func() {
