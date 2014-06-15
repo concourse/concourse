@@ -38,6 +38,7 @@ type Input struct {
 	Resource    string   `yaml:"resource"`
 	Passed      []string `yaml:"passed"`
 	EachVersion bool     `yaml:"each_version"`
+	DontCheck   bool     `yaml:"dont_check"`
 }
 
 type Output struct {

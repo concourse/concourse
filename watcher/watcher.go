@@ -45,6 +45,10 @@ func (watcher Watcher) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		}
 
 		for _, input := range job.Inputs {
+			if input.DontCheck {
+				continue
+			}
+
 			resource, found := watcher.resources.Lookup(input.Resource)
 			if !found {
 				log.Fatalln("unknown resource:", input.Resource)
