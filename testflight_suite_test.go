@@ -49,7 +49,7 @@ func buildWithGodeps(pkg string, args ...string) (string, error) {
 		"%s%c%s",
 		filepath.Join(srcPath, "Godeps", "_workspace"),
 		os.PathListSeparator,
-		os.Getenv("GOPATH"),
+		os.Getenv("BASE_GOPATH"),
 	)
 
 	return gexec.BuildIn(gopath, pkg, args...)
@@ -58,6 +58,8 @@ func buildWithGodeps(pkg string, args ...string) (string, error) {
 var _ = SynchronizedBeforeSuite(func() []byte {
 	wardenBinPath = os.Getenv("WARDEN_BINPATH")
 	Ω(wardenBinPath).ShouldNot(BeEmpty(), "must provide $WARDEN_BINPATH")
+
+	Ω(os.Getenv("BASE_GOPATH")).ShouldNot(BeEmpty(), "must provide $BASE_GOPATH")
 
 	proleBin, err := buildWithGodeps("github.com/winston-ci/prole", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
