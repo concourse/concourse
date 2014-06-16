@@ -138,27 +138,52 @@ func (db *redisDB) CreateBuild(job string) (builds.Build, error) {
 }
 
 func (db *redisDB) createBuild(conn redis.Conn, job string, input string, versionJSON []byte) (builds.Build, error) {
-	id, err := redis.Int(conn.Do("INCR", fmt.Sprintf(currentBuildIDKey, job)))
+	currentBuild := fmt.Sprintf(currentBuildIDKey, job)
+
+	err := conn.Send("WATCH", currentBuild)
 	if err != nil {
 		return builds.Build{}, err
 	}
+
+	defer conn.Send("UNWATCH")
+
+	currentID, err := redis.Int(conn.Do("GET", currentBuild))
+	if err != nil {
+		currentID = 0
+	}
+
+	id := currentID + 1
 
 	err = conn.Send("MULTI")
 	if err != nil {
 		return builds.Build{}, err
 	}
 
-	conn.Send("ZADD", fmt.Sprintf(buildIDsKey, job), -id, id)
-
-	if versionJSON != nil {
-		conn.Send("SET", fmt.Sprintf(buildInputVersionKey, job, id, input), versionJSON)
+	err = conn.Send("SET", currentBuild, id)
+	if err != nil {
+		return builds.Build{}, err
 	}
 
-	conn.Send(
+	err = conn.Send("ZADD", fmt.Sprintf(buildIDsKey, job), -id, id)
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	if versionJSON != nil {
+		err = conn.Send("SET", fmt.Sprintf(buildInputVersionKey, job, id, input), versionJSON)
+		if err != nil {
+			return builds.Build{}, err
+		}
+	}
+
+	err = conn.Send(
 		"HMSET", fmt.Sprintf(buildKey, job, id),
 		"ID", id,
 		"Status", builds.StatusPending,
 	)
+	if err != nil {
+		return builds.Build{}, err
+	}
 
 	if _, err := conn.Do("EXEC"); err != nil {
 		return builds.Build{}, err
