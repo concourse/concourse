@@ -19,7 +19,6 @@ type Watchman interface {
 		checker resources.Checker,
 		eachVersion bool,
 		interval time.Duration,
-		autoTrigger <-chan time.Time,
 	)
 
 	Stop()
@@ -49,7 +48,6 @@ func (watchman *watchman) Watch(
 	checker resources.Checker,
 	eachVersion bool,
 	interval time.Duration,
-	autoTrigger <-chan time.Time,
 ) {
 	watchman.watching.Add(1)
 
@@ -62,10 +60,6 @@ func (watchman *watchman) Watch(
 			select {
 			case <-watchman.stop:
 				return
-
-			case <-autoTrigger:
-				log.Printf("auto-triggering %s\n", job.Name)
-				watchman.queuer.Trigger(job)
 
 			case <-ticker.C:
 				from, err := watchman.db.GetCurrentVersion(job.Name, resource.Name)

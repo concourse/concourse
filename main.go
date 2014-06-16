@@ -25,6 +25,7 @@ import (
 	"github.com/winston-ci/winston/queue"
 	"github.com/winston-ci/winston/server"
 	"github.com/winston-ci/winston/server/auth"
+	"github.com/winston-ci/winston/timedtrigger"
 	"github.com/winston-ci/winston/watcher"
 	"github.com/winston-ci/winston/watchman"
 )
@@ -156,9 +157,10 @@ func main() {
 	watchman := watchman.NewWatchman(redisDB, queuer)
 
 	group := grouper.EnvokeGroup(grouper.RunGroup{
-		"web":     http_server.New(*listenAddr, serverHandler),
-		"api":     http_server.New(*apiListenAddr, apiHandler),
-		"watcher": watcher.NewWatcher(conf.Jobs, conf.Resources, redisDB, proleEndpoint, watchman),
+		"web":          http_server.New(*listenAddr, serverHandler),
+		"api":          http_server.New(*apiListenAddr, apiHandler),
+		"watcher":      watcher.NewWatcher(conf.Jobs, conf.Resources, redisDB, proleEndpoint, watchman),
+		"timedtrigger": timedtrigger.NewTimer(conf.Jobs, queuer),
 		"drainer": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 			close(ready)
 			<-signals

@@ -26,7 +26,6 @@ var _ = Describe("Watchman", func() {
 	var checker *fakechecker.FakeChecker
 	var eachVersion bool
 	var interval time.Duration
-	var trigger chan time.Time
 
 	BeforeEach(func() {
 		redisRunner = redisrunner.NewRunner()
@@ -56,39 +55,15 @@ var _ = Describe("Watchman", func() {
 		checker = new(fakechecker.FakeChecker)
 		eachVersion = true
 		interval = 100 * time.Millisecond
-		trigger = make(chan time.Time)
 	})
 
 	JustBeforeEach(func() {
-		watchman.Watch(job, resource, checker, eachVersion, interval, trigger)
+		watchman.Watch(job, resource, checker, eachVersion, interval)
 	})
 
 	AfterEach(func() {
 		watchman.Stop()
 		redisRunner.Stop()
-	})
-
-	Describe("receiving timed triggers", func() {
-		var times chan time.Time
-		var interval time.Duration
-
-		BeforeEach(func() {
-			times = make(chan time.Time, 100)
-			interval = 100 * time.Millisecond
-
-			queuer.TriggerStub = func(config.Job) (builds.Build, error) {
-				times <- time.Now()
-				return builds.Build{}, nil
-			}
-		})
-
-		It("starts a build of the job", func() {
-			trigger <- time.Now()
-			Eventually(times).Should(Receive())
-
-			trigger <- time.Now()
-			Eventually(times).Should(Receive())
-		})
 	})
 
 	Describe("checking", func() {
