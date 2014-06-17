@@ -108,12 +108,23 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				for _, passed := range input.Passed {
 					currentBuild := currentBuilds[passed]
 
+					passedJob, found := handler.jobs.Lookup(passed)
+					if !found {
+						panic("unknown job: " + passed)
+					}
+
+					value := map[string]string{
+						"status": string(currentBuild.Status),
+					}
+
+					if len(passedJob.Inputs) > 1 {
+						value["label"] = input.Resource
+					}
+
 					data.Edges = append(data.Edges, DotEdge{
 						Source:      jobNode(passed),
 						Destination: jobID,
-						Value: map[string]string{
-							"status": string(currentBuild.Status),
-						},
+						Value:       value,
 					})
 				}
 			} else {
