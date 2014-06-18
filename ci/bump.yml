@@ -40,6 +40,11 @@ script: |
     git checkout $WARDEN_LINUX_SHA
   popd
 
+  pushd src/redis/
+    git fetch --tags
+    git checkout 2.8.11
+  popd
+
   git add src/
 
   git config --global user.email "ci@localhost"
