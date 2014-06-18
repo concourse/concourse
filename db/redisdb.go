@@ -13,6 +13,8 @@ import (
 	"github.com/winston-ci/winston/builds"
 )
 
+var ErrBuildCreateConflict = errors.New("error creating build atomically")
+
 type redisDB struct {
 	pool *redis.Pool
 }
@@ -83,17 +85,16 @@ func (db *redisDB) AttemptBuild(job string, input string, version builds.Version
 	conn := db.pool.Get()
 	defer conn.Close()
 
-	// watch for new builds to come in
-	err = conn.Send("WATCH", fmt.Sprintf(buildIDsKey, job))
+	err = conn.Send("WATCH", fmt.Sprintf(currentBuildIDKey, job))
 	if err != nil {
 		return builds.Build{}, err
 	}
 
 	defer conn.Send("UNWATCH")
 
-	activeID, err := db.currentBuildID(conn, job)
+	currentID, err := db.currentBuildID(conn, job)
 	if err == nil {
-		activeInputVersion, err := redis.Bytes(conn.Do("GET", fmt.Sprintf(buildInputVersionKey, job, activeID, input)))
+		activeInputVersion, err := redis.Bytes(conn.Do("GET", fmt.Sprintf(buildInputVersionKey, job, currentID, input)))
 		if err != nil {
 			return builds.Build{}, ErrInputNotDetermined
 		}
@@ -102,7 +103,7 @@ func (db *redisDB) AttemptBuild(job string, input string, version builds.Version
 			return builds.Build{}, ErrInputRedundant
 		}
 
-		activeOutputVersions, err := redis.Values(conn.Do("ZRANGEBYSCORE", fmt.Sprintf(outputsKey, job, input), strconv.Itoa(activeID), strconv.Itoa(activeID)))
+		activeOutputVersions, err := redis.Values(conn.Do("ZRANGEBYSCORE", fmt.Sprintf(outputsKey, job, input), strconv.Itoa(currentID), strconv.Itoa(currentID)))
 		if err != nil {
 			if serial {
 				return builds.Build{}, ErrOutputNotDetermined
@@ -122,7 +123,19 @@ func (db *redisDB) AttemptBuild(job string, input string, version builds.Version
 		}
 	}
 
-	build, err := db.createBuild(conn, job, input, versionJSON)
+	id := currentID + 1
+
+	err = conn.Send("MULTI")
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	err = conn.Send("SET", fmt.Sprintf(currentBuildIDKey, job), id)
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	build, err := db.createBuild(conn, job, id, input, versionJSON)
 	if err != nil {
 		return builds.Build{}, err
 	}
@@ -134,37 +147,21 @@ func (db *redisDB) CreateBuild(job string) (builds.Build, error) {
 	conn := db.pool.Get()
 	defer conn.Close()
 
-	return db.createBuild(conn, job, "", nil)
-}
-
-func (db *redisDB) createBuild(conn redis.Conn, job string, input string, versionJSON []byte) (builds.Build, error) {
-	currentBuild := fmt.Sprintf(currentBuildIDKey, job)
-
-	err := conn.Send("WATCH", currentBuild)
+	id, err := redis.Int(conn.Do("INCR", fmt.Sprintf(currentBuildIDKey, job)))
 	if err != nil {
 		return builds.Build{}, err
 	}
-
-	defer conn.Send("UNWATCH")
-
-	currentID, err := redis.Int(conn.Do("GET", currentBuild))
-	if err != nil {
-		currentID = 0
-	}
-
-	id := currentID + 1
 
 	err = conn.Send("MULTI")
 	if err != nil {
 		return builds.Build{}, err
 	}
 
-	err = conn.Send("SET", currentBuild, id)
-	if err != nil {
-		return builds.Build{}, err
-	}
+	return db.createBuild(conn, job, id, "", nil)
+}
 
-	err = conn.Send("ZADD", fmt.Sprintf(buildIDsKey, job), -id, id)
+func (db *redisDB) createBuild(conn redis.Conn, job string, id int, input string, versionJSON []byte) (builds.Build, error) {
+	err := conn.Send("ZADD", fmt.Sprintf(buildIDsKey, job), -id, id)
 	if err != nil {
 		return builds.Build{}, err
 	}
@@ -185,8 +182,13 @@ func (db *redisDB) createBuild(conn redis.Conn, job string, input string, versio
 		return builds.Build{}, err
 	}
 
-	if _, err := conn.Do("EXEC"); err != nil {
+	transacted, err := conn.Do("EXEC")
+	if err != nil {
 		return builds.Build{}, err
+	}
+
+	if transacted == nil {
+		return builds.Build{}, ErrBuildCreateConflict
 	}
 
 	return builds.Build{
