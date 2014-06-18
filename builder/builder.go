@@ -267,6 +267,7 @@ func (builder *builder) computeOutputs(job config.Job) ([]ProleBuilds.Output, er
 			Name:       resource.Name,
 			Type:       resource.Type,
 			Params:     ProleBuilds.Params(output.Params),
+			Source:     ProleBuilds.Source(resource.Source),
 			SourcePath: resource.Name,
 		}
 

@@ -317,6 +317,7 @@ var _ = Describe("Builder", func() {
 						Type:       "git",
 						Params:     ProleBuilds.Params{"foo": "bar"},
 						SourcePath: "some-resource",
+						Source:     ProleBuilds.Source{"uri": "git://some-resource"},
 					},
 				}
 			})
