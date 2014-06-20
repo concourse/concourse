@@ -49,13 +49,13 @@ type DotEdge struct {
 type JobStatus struct {
 	Job          config.Job
 	CurrentBuild builds.Build
-
-	Nodes string
-	Edges string
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	data := TemplateData{}
+	data := TemplateData{
+		Nodes: []DotNode{},
+		Edges: []DotEdge{},
+	}
 
 	currentBuilds := map[string]builds.Build{}
 
