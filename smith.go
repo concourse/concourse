@@ -235,7 +235,7 @@ func upload(reqGenerator *router.RequestGenerator, build builds.Build) {
 			log.Fatalln("could not open archive:", err)
 		}
 	} else {
-		tarCmd := exec.Command(tarPath, "czf", "-", ".")
+		tarCmd := exec.Command(tarPath, "--exclude", ".git", "-czf", "-", ".")
 		tarCmd.Dir = src
 		tarCmd.Stderr = os.Stderr
 
