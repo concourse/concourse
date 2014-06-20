@@ -24,7 +24,7 @@ properties:
     default: ""
 
   winston.basic_auth_encrypted_password:
-    description: "bcrypt encrypted password (cost 10) for http basic auth"
+    description: "bcrypt encrypted password for http basic auth"
     default: ""
 
   winston.prole.address:
