@@ -1,0 +1,70 @@
+---
+name: room101
+
+releases:
+- name: room101
+  version: 0+dev.1
+  url: file:///vagrant/dev_releases/room101-0+dev.1.tgz
+
+networks:
+- name: room101
+  type: dynamic
+
+compilation:
+  network: room101
+
+update:
+  canaries: 0
+  canary_watch_time: 1000-60000
+  update_watch_time: 1000-60000
+  max_in_flight: 10
+
+jobs:
+- name: winston
+  instances: 1
+
+  templates:
+  - name: redis
+    release: room101
+  - name: winston
+    release: room101
+  - name: prole
+    release: room101
+  - name: warden
+    release: room101
+  - name: redgreen
+    release: room101
+
+  networks:
+  - name: room101
+
+  properties:
+    network_name: room101
+    winston:
+      config:
+        jobs:
+          - name: dummy
+            image: ubuntu
+            script: |
+              echo 'Hello, world!'
+
+      prole:
+        address: 127.0.0.1:4637
+
+      redis:
+        address: 127.0.0.1:6379
+
+    redgreen:
+      prole:
+        address: 127.0.0.1:4637
+
+    prole:
+      warden:
+        address: 127.0.0.1:7777
+        network: tcp
+
+    warden:
+      disk_quota_enabled: false
+      kernel_network_tuning_enabled: false
+      listen_address: 0.0.0.0:7777
+      listen_network: tcp

@@ -16,3 +16,5 @@ blobs
 
 /*deployment.yml
 /src_alt
+
+.vagrant/
