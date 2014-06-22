@@ -30,8 +30,6 @@ type Job struct {
 
 	Serial bool `yaml:"serial"`
 
-	TriggerEvery Duration `yaml:"trigger_every"`
-
 	BuildConfigPath string `yaml:"build"`
 
 	Inputs  []Input  `yaml:"inputs"`
