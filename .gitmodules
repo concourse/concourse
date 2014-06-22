@@ -1,20 +1,20 @@
-[submodule "src/prole"]
-	path = src/prole
-	url = https://github.com/winston-ci/prole.git
-  branch = master
-[submodule "src/redgreen"]
-	path = src/redgreen
-	url = https://github.com/winston-ci/redgreen.git
-  branch = master
-[submodule "src/winston"]
-	path = src/winston
-	url = https://github.com/winston-ci/winston.git
-  branch = master
 [submodule "src/redis"]
 	path = src/redis
 	url = https://github.com/antirez/redis.git
-  branch = unstable
+	branch = unstable
 [submodule "src/warden-linux"]
 	path = src/warden-linux
 	url = https://github.com/cloudfoundry-incubator/warden-linux.git
-  branch = master
+	branch = master
+[submodule "src/turbine"]
+	path = src/turbine
+	url = https://github.com/concourse/turbine.git
+	branch = master
+[submodule "src/atc"]
+	path = src/atc
+	url = https://github.com/concourse/atc.git
+	branch = master
+[submodule "src/glider"]
+	path = src/glider
+	url = https://github.com/concourse/glider.git
+	branch = master
