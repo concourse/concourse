@@ -1,35 +1,35 @@
 package builder_test
 
 import (
-	"net/http"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/tedsuo/router"
+	"net/http"
 
-	ProleBuilds "github.com/winston-ci/prole/api/builds"
-	ProleRoutes "github.com/winston-ci/prole/routes"
+	TurbineBuilds "github.com/concourse/turbine/api/builds"
+	TurbineRoutes "github.com/concourse/turbine/routes"
 
-	WinstonRoutes "github.com/winston-ci/winston/api/routes"
-	. "github.com/winston-ci/winston/builder"
-	"github.com/winston-ci/winston/builds"
-	"github.com/winston-ci/winston/config"
-	"github.com/winston-ci/winston/db"
-	"github.com/winston-ci/winston/redisrunner"
+	WinstonRoutes "github.com/concourse/atc/api/routes"
+	. "github.com/concourse/atc/builder"
+	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/redisrunner"
 )
 
 var _ = Describe("Builder", func() {
 	var redisRunner *redisrunner.Runner
 	var redis db.DB
 
-	var proleServer *ghttp.Server
+	var turbineServer *ghttp.Server
 
 	var builder Builder
 
 	var job config.Job
 	var resources config.Resources
 
-	var expectedProleBuild ProleBuilds.Build
+	var expectedTurbineBuild TurbineBuilds.Build
 
 	BeforeEach(func() {
 		redisRunner = redisrunner.NewRunner()
@@ -37,7 +37,7 @@ var _ = Describe("Builder", func() {
 
 		redis = db.NewRedis(redisRunner.Pool())
 
-		proleServer = ghttp.NewServer()
+		turbineServer = ghttp.NewServer()
 
 		job = config.Job{
 			Name: "foo",
@@ -78,8 +78,8 @@ var _ = Describe("Builder", func() {
 			},
 		}
 
-		expectedProleBuild = ProleBuilds.Build{
-			Config: ProleBuilds.Config{
+		expectedTurbineBuild = TurbineBuilds.Build{
+			Config: TurbineBuilds.Config{
 				Image: "some-image",
 				Env: []map[string]string{
 					{"FOO": "1"},
@@ -90,27 +90,27 @@ var _ = Describe("Builder", func() {
 
 			Privileged: true,
 
-			Callback: "http://winston-server/builds/foo/1",
-			LogsURL:  "ws://winston-server/builds/foo/1/log/input",
+			Callback: "http://atc-server/builds/foo/1",
+			LogsURL:  "ws://atc-server/builds/foo/1/log/input",
 
-			Inputs: []ProleBuilds.Input{
+			Inputs: []TurbineBuilds.Input{
 				{
 					Name:            "some-resource",
 					Type:            "git",
-					Source:          ProleBuilds.Source{"uri": "git://some-resource"},
+					Source:          TurbineBuilds.Source{"uri": "git://some-resource"},
 					DestinationPath: "some-resource",
 					ConfigPath:      "build.yml",
 				},
 			},
 
-			Outputs: []ProleBuilds.Output{},
+			Outputs: []TurbineBuilds.Output{},
 		}
 
 		builder = NewBuilder(
 			redis,
 			resources,
-			router.NewRequestGenerator(proleServer.URL(), ProleRoutes.Routes),
-			router.NewRequestGenerator("http://winston-server", WinstonRoutes.Routes),
+			router.NewRequestGenerator(turbineServer.URL(), TurbineRoutes.Routes),
+			router.NewRequestGenerator("http://atc-server", WinstonRoutes.Routes),
 		)
 	})
 
@@ -118,10 +118,10 @@ var _ = Describe("Builder", func() {
 		redisRunner.Stop()
 	})
 
-	successfulBuildStart := func(build ProleBuilds.Build) http.HandlerFunc {
+	successfulBuildStart := func(build TurbineBuilds.Build) http.HandlerFunc {
 		createdBuild := build
-		createdBuild.Guid = "some-prole-guid"
-		createdBuild.AbortURL = proleServer.URL() + "/abort/the/build"
+		createdBuild.Guid = "some-turbine-guid"
+		createdBuild.AbortURL = turbineServer.URL() + "/abort/the/build"
 
 		return ghttp.CombineHandlers(
 			ghttp.VerifyJSONRepresenting(build),
@@ -217,11 +217,11 @@ var _ = Describe("Builder", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("triggers a build on the prole endpoint", func() {
-			proleServer.AppendHandlers(
+		It("triggers a build on the turbine endpoint", func() {
+			turbineServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/builds"),
-					successfulBuildStart(expectedProleBuild),
+					successfulBuildStart(expectedTurbineBuild),
 				),
 			)
 
@@ -261,7 +261,7 @@ var _ = Describe("Builder", func() {
 					_, err := builder.Start(job, build, nil)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(proleServer.ReceivedRequests()).Should(BeEmpty())
+					Ω(turbineServer.ReceivedRequests()).Should(BeEmpty())
 				})
 			})
 
@@ -286,10 +286,10 @@ var _ = Describe("Builder", func() {
 					})
 
 					It("starts the build", func() {
-						proleServer.AppendHandlers(
+						turbineServer.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("POST", "/builds"),
-								successfulBuildStart(expectedProleBuild),
+								successfulBuildStart(expectedTurbineBuild),
 							),
 						)
 
@@ -311,23 +311,23 @@ var _ = Describe("Builder", func() {
 					},
 				}
 
-				expectedProleBuild.Outputs = []ProleBuilds.Output{
+				expectedTurbineBuild.Outputs = []TurbineBuilds.Output{
 					{
 						Name:       "some-resource",
 						Type:       "git",
-						Params:     ProleBuilds.Params{"foo": "bar"},
+						Params:     TurbineBuilds.Params{"foo": "bar"},
 						SourcePath: "some-resource",
-						Source:     ProleBuilds.Source{"uri": "git://some-resource"},
+						Source:     TurbineBuilds.Source{"uri": "git://some-resource"},
 					},
 				}
 			})
 
-			It("sends them along to the prole", func() {
+			It("sends them along to the turbine", func() {
 
-				proleServer.AppendHandlers(
+				turbineServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/builds"),
-						successfulBuildStart(expectedProleBuild),
+						successfulBuildStart(expectedTurbineBuild),
 					),
 				)
 
@@ -338,12 +338,12 @@ var _ = Describe("Builder", func() {
 
 		Context("when resource versions are specified", func() {
 			BeforeEach(func() {
-				expectedProleBuild.Inputs = []ProleBuilds.Input{
+				expectedTurbineBuild.Inputs = []TurbineBuilds.Input{
 					{
 						Name:            "some-resource",
 						Type:            "git",
-						Source:          ProleBuilds.Source{"uri": "git://some-resource"},
-						Version:         ProleBuilds.Version{"version": "1"},
+						Source:          TurbineBuilds.Source{"uri": "git://some-resource"},
+						Version:         TurbineBuilds.Version{"version": "1"},
 						DestinationPath: "some-resource",
 						ConfigPath:      "build.yml",
 					},
@@ -351,10 +351,10 @@ var _ = Describe("Builder", func() {
 			})
 
 			It("uses them for the build's inputs", func() {
-				proleServer.AppendHandlers(
+				turbineServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/builds"),
-						successfulBuildStart(expectedProleBuild),
+						successfulBuildStart(expectedTurbineBuild),
 					),
 				)
 
@@ -366,15 +366,15 @@ var _ = Describe("Builder", func() {
 		})
 
 		Context("when the build is aborted while starting", func() {
-			It("aborts the build on the prole", func() {
-				proleServer.AppendHandlers(
+			It("aborts the build on the turbine", func() {
+				turbineServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/builds"),
 						func(w http.ResponseWriter, r *http.Request) {
 							err := redis.AbortBuild(job.Name, 1)
 							Ω(err).ShouldNot(HaveOccurred())
 						},
-						successfulBuildStart(expectedProleBuild),
+						successfulBuildStart(expectedTurbineBuild),
 					),
 					ghttp.VerifyRequest("POST", "/abort/the/build"),
 				)
@@ -382,7 +382,7 @@ var _ = Describe("Builder", func() {
 				_, err := builder.Start(job, build, nil)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(proleServer.ReceivedRequests()).Should(HaveLen(2))
+				Ω(turbineServer.ReceivedRequests()).Should(HaveLen(2))
 			})
 		})
 
@@ -393,19 +393,19 @@ var _ = Describe("Builder", func() {
 					Passed:   []string{"job1", "job2"},
 				})
 
-				expectedProleBuild.Inputs = []ProleBuilds.Input{
+				expectedTurbineBuild.Inputs = []TurbineBuilds.Input{
 					{
 						Name:            "some-resource",
 						Type:            "git",
-						Source:          ProleBuilds.Source{"uri": "git://some-resource"},
+						Source:          TurbineBuilds.Source{"uri": "git://some-resource"},
 						DestinationPath: "some-resource",
 						ConfigPath:      "build.yml",
 					},
 					{
 						Name:            "some-dependant-resource",
 						Type:            "git",
-						Source:          ProleBuilds.Source{"uri": "git://some-dependant-resource"},
-						Version:         ProleBuilds.Version{"version": "1"},
+						Source:          TurbineBuilds.Source{"uri": "git://some-dependant-resource"},
+						Version:         TurbineBuilds.Version{"version": "1"},
 						DestinationPath: "some-dependant-resource",
 					},
 				}
@@ -424,10 +424,10 @@ var _ = Describe("Builder", func() {
 				})
 
 				It("builds with a source that satisfies the dependency", func() {
-					proleServer.AppendHandlers(
+					turbineServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("POST", "/builds"),
-							successfulBuildStart(expectedProleBuild),
+							successfulBuildStart(expectedTurbineBuild),
 						),
 					)
 
@@ -478,13 +478,13 @@ var _ = Describe("Builder", func() {
 			})
 		})
 
-		Context("when the prole server is unreachable", func() {
+		Context("when the turbine server is unreachable", func() {
 			BeforeEach(func() {
-				proleServer.AppendHandlers(
+				turbineServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/builds"),
 						func(w http.ResponseWriter, r *http.Request) {
-							proleServer.HTTPTestServer.CloseClientConnections()
+							turbineServer.HTTPTestServer.CloseClientConnections()
 						},
 					),
 				)
@@ -494,13 +494,13 @@ var _ = Describe("Builder", func() {
 				_, err := builder.Start(job, build, nil)
 				Ω(err).Should(HaveOccurred())
 
-				Ω(proleServer.ReceivedRequests()).Should(HaveLen(1))
+				Ω(turbineServer.ReceivedRequests()).Should(HaveLen(1))
 			})
 		})
 
-		Context("when the prole server returns non-201", func() {
+		Context("when the turbine server returns non-201", func() {
 			BeforeEach(func() {
-				proleServer.AppendHandlers(
+				turbineServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/builds"),
 						ghttp.RespondWith(400, ""),

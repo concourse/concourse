@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"net"
 
+	apiroutes "github.com/concourse/atc/api/routes"
+	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/server/routes"
 	"github.com/tedsuo/router"
-	apiroutes "github.com/winston-ci/winston/api/routes"
-	"github.com/winston-ci/winston/builds"
-	"github.com/winston-ci/winston/config"
-	"github.com/winston-ci/winston/server/routes"
 )
 
 type templateFuncs struct {

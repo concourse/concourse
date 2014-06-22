@@ -3,9 +3,9 @@ package handler
 import (
 	"sync"
 
-	"github.com/winston-ci/winston/api/drainer"
-	"github.com/winston-ci/winston/db"
-	"github.com/winston-ci/winston/logfanout"
+	"github.com/concourse/atc/api/drainer"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/logfanout"
 )
 
 type Handler struct {

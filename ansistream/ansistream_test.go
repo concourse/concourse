@@ -3,8 +3,8 @@ package ansistream_test
 import (
 	"fmt"
 
-	. "github.com/winston-ci/winston/ansistream"
-	"github.com/winston-ci/winston/utf8stream"
+	. "github.com/concourse/atc/ansistream"
+	"github.com/concourse/atc/utf8stream"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

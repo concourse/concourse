@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	turbineroutes "github.com/concourse/turbine/routes"
 	"github.com/fraenkel/candiedyaml"
 	"github.com/garyburd/redigo/redis"
 	"github.com/tedsuo/ifrit"
@@ -14,25 +15,24 @@ import (
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
 	"github.com/tedsuo/router"
-	proleroutes "github.com/winston-ci/prole/routes"
 
-	"github.com/winston-ci/winston/api"
-	"github.com/winston-ci/winston/api/drainer"
-	apiroutes "github.com/winston-ci/winston/api/routes"
-	"github.com/winston-ci/winston/builder"
-	"github.com/winston-ci/winston/config"
-	"github.com/winston-ci/winston/db"
-	"github.com/winston-ci/winston/queue"
-	"github.com/winston-ci/winston/server"
-	"github.com/winston-ci/winston/server/auth"
-	"github.com/winston-ci/winston/watcher"
-	"github.com/winston-ci/winston/watchman"
+	"github.com/concourse/atc/api"
+	"github.com/concourse/atc/api/drainer"
+	apiroutes "github.com/concourse/atc/api/routes"
+	"github.com/concourse/atc/builder"
+	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/queue"
+	"github.com/concourse/atc/server"
+	"github.com/concourse/atc/server/auth"
+	"github.com/concourse/atc/watcher"
+	"github.com/concourse/atc/watchman"
 )
 
 var configPath = flag.String(
 	"config",
 	"",
-	"path to winston server config .yml",
+	"path to atc server config .yml",
 )
 
 var templatesDir = flag.String(
@@ -47,10 +47,10 @@ var publicDir = flag.String(
 	"path to directory containing public resources (javascript, css, etc.)",
 )
 
-var proleURL = flag.String(
-	"proleURL",
+var turbineURL = flag.String(
+	"turbineURL",
 	"http://127.0.0.1:4637",
-	"address denoting the prole service",
+	"address denoting the turbine service",
 )
 
 var redisAddr = flag.String(
@@ -121,9 +121,9 @@ func main() {
 		return redis.DialTimeout("tcp", *redisAddr, 5*time.Second, 0, 0)
 	}, 20))
 
-	winstonEndpoint := router.NewRequestGenerator("http://"+*peerAddr, apiroutes.Routes)
-	proleEndpoint := router.NewRequestGenerator(*proleURL, proleroutes.Routes)
-	builder := builder.NewBuilder(redisDB, conf.Resources, proleEndpoint, winstonEndpoint)
+	atcEndpoint := router.NewRequestGenerator("http://"+*peerAddr, apiroutes.Routes)
+	turbineEndpoint := router.NewRequestGenerator(*turbineURL, turbineroutes.Routes)
+	builder := builder.NewBuilder(redisDB, conf.Resources, turbineEndpoint, atcEndpoint)
 	queuer := queue.NewQueue(10*time.Second, builder)
 
 	serverHandler, err := server.New(
@@ -158,7 +158,7 @@ func main() {
 	group := grouper.EnvokeGroup(grouper.RunGroup{
 		"web":     http_server.New(*listenAddr, serverHandler),
 		"api":     http_server.New(*apiListenAddr, apiHandler),
-		"watcher": watcher.NewWatcher(conf.Jobs, conf.Resources, redisDB, proleEndpoint, watchman),
+		"watcher": watcher.NewWatcher(conf.Jobs, conf.Resources, redisDB, turbineEndpoint, watchman),
 		"drainer": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 			close(ready)
 			<-signals

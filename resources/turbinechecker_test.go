@@ -5,34 +5,34 @@ import (
 
 	"code.google.com/p/go.net/websocket"
 
+	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/config"
+	. "github.com/concourse/atc/resources"
+	TurbineBuilds "github.com/concourse/turbine/api/builds"
+	"github.com/concourse/turbine/routes"
 	"github.com/tedsuo/router"
-	ProleBuilds "github.com/winston-ci/prole/api/builds"
-	"github.com/winston-ci/prole/routes"
-	"github.com/winston-ci/winston/builds"
-	"github.com/winston-ci/winston/config"
-	. "github.com/winston-ci/winston/resources"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 )
 
-var _ = Describe("ProleChecker", func() {
-	var proleServer *ghttp.Server
+var _ = Describe("TurbineChecker", func() {
+	var turbineServer *ghttp.Server
 	var checker Checker
 
-	var checkedInputs chan ProleBuilds.Input
-	var checkVersions chan []ProleBuilds.Version
+	var checkedInputs chan TurbineBuilds.Input
+	var checkVersions chan []TurbineBuilds.Version
 
 	var resource config.Resource
 
 	BeforeEach(func() {
-		checkedInputs = make(chan ProleBuilds.Input, 100)
-		checkVersions = make(chan []ProleBuilds.Version, 100)
+		checkedInputs = make(chan TurbineBuilds.Input, 100)
+		checkVersions = make(chan []TurbineBuilds.Version, 100)
 
-		proleServer = ghttp.NewServer()
+		turbineServer = ghttp.NewServer()
 
-		proleServer.AppendHandlers(
+		turbineServer.AppendHandlers(
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", "/checks/stream"),
 				websocket.Server{
@@ -40,7 +40,7 @@ var _ = Describe("ProleChecker", func() {
 						decoder := json.NewDecoder(conn)
 						encoder := json.NewEncoder(conn)
 
-						var input ProleBuilds.Input
+						var input TurbineBuilds.Input
 
 						for {
 							err := decoder.Decode(&input)
@@ -56,8 +56,8 @@ var _ = Describe("ProleChecker", func() {
 			),
 		)
 
-		checker = NewProleChecker(
-			router.NewRequestGenerator(proleServer.URL(), routes.Routes),
+		checker = NewTurbineChecker(
+			router.NewRequestGenerator(turbineServer.URL(), routes.Routes),
 		)
 
 		resource = config.Resource{
@@ -69,13 +69,13 @@ var _ = Describe("ProleChecker", func() {
 
 	Context("when the endpoint returns new versions", func() {
 		BeforeEach(func() {
-			checkVersions <- []ProleBuilds.Version{
-				ProleBuilds.Version{"ver": "abc"},
-				ProleBuilds.Version{"ver": "def"},
+			checkVersions <- []TurbineBuilds.Version{
+				TurbineBuilds.Version{"ver": "abc"},
+				TurbineBuilds.Version{"ver": "def"},
 			}
 
-			checkVersions <- []ProleBuilds.Version{
-				ProleBuilds.Version{"ver": "ghi"},
+			checkVersions <- []TurbineBuilds.Version{
+				TurbineBuilds.Version{"ver": "ghi"},
 			}
 		})
 
@@ -85,19 +85,19 @@ var _ = Describe("ProleChecker", func() {
 				builds.Version{"ver": "def"},
 			}))
 
-			Ω(checkedInputs).Should(Receive(Equal(ProleBuilds.Input{
+			Ω(checkedInputs).Should(Receive(Equal(TurbineBuilds.Input{
 				Type:   resource.Type,
-				Source: ProleBuilds.Source{"uri": "http://example.com"},
+				Source: TurbineBuilds.Source{"uri": "http://example.com"},
 			})))
 
 			Ω(checker.CheckResource(resource, builds.Version{"ver": "def"})).Should(Equal([]builds.Version{
 				builds.Version{"ver": "ghi"},
 			}))
 
-			Ω(checkedInputs).Should(Receive(Equal(ProleBuilds.Input{
+			Ω(checkedInputs).Should(Receive(Equal(TurbineBuilds.Input{
 				Type:    resource.Type,
-				Source:  ProleBuilds.Source{"uri": "http://example.com"},
-				Version: ProleBuilds.Version{"ver": "def"},
+				Source:  TurbineBuilds.Source{"uri": "http://example.com"},
+				Version: TurbineBuilds.Version{"ver": "def"},
 			})))
 		})
 	})

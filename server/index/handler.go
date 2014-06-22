@@ -6,11 +6,11 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/server/routes"
 	"github.com/tedsuo/router"
-	"github.com/winston-ci/winston/builds"
-	"github.com/winston-ci/winston/config"
-	"github.com/winston-ci/winston/db"
-	"github.com/winston-ci/winston/server/routes"
 )
 
 type handler struct {

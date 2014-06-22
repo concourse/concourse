@@ -4,10 +4,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	Builds "github.com/winston-ci/winston/builds"
-	"github.com/winston-ci/winston/config"
-	. "github.com/winston-ci/winston/db"
-	"github.com/winston-ci/winston/redisrunner"
+	Builds "github.com/concourse/atc/builds"
+	"github.com/concourse/atc/config"
+	. "github.com/concourse/atc/db"
+	"github.com/concourse/atc/redisrunner"
 )
 
 var _ = Describe("RedisDB", func() {

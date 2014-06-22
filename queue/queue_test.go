@@ -2,11 +2,11 @@ package queue_test
 
 import (
 	"errors"
+	"github.com/concourse/atc/builder/fakebuilder"
+	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/config"
+	. "github.com/concourse/atc/queue"
 	"time"
-	"github.com/winston-ci/winston/builder/fakebuilder"
-	"github.com/winston-ci/winston/builds"
-	"github.com/winston-ci/winston/config"
-	. "github.com/winston-ci/winston/queue"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

@@ -1,6 +1,6 @@
 package db
 
-import "github.com/winston-ci/winston/builds"
+import "github.com/concourse/atc/builds"
 
 type DB interface {
 	Builds(job string) ([]builds.Build, error)

@@ -1,7 +1,7 @@
 package utf8stream_test
 
 import (
-	. "github.com/winston-ci/winston/utf8stream"
+	. "github.com/concourse/atc/utf8stream"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

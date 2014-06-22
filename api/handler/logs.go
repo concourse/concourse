@@ -7,9 +7,9 @@ import (
 
 	"code.google.com/p/go.net/websocket"
 
-	"github.com/winston-ci/winston/ansistream"
-	"github.com/winston-ci/winston/logfanout"
-	"github.com/winston-ci/winston/utf8stream"
+	"github.com/concourse/atc/ansistream"
+	"github.com/concourse/atc/logfanout"
+	"github.com/concourse/atc/utf8stream"
 )
 
 func (handler *Handler) LogInput(conn *websocket.Conn) {

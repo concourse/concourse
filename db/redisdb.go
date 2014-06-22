@@ -10,7 +10,7 @@ import (
 
 	"github.com/garyburd/redigo/redis"
 
-	"github.com/winston-ci/winston/builds"
+	"github.com/concourse/atc/builds"
 )
 
 var ErrBuildCreateConflict = errors.New("error creating build atomically")

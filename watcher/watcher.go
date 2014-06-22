@@ -5,18 +5,18 @@ import (
 	"os"
 	"time"
 
+	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/resources"
+	"github.com/concourse/atc/watchman"
 	"github.com/tedsuo/router"
-	"github.com/winston-ci/winston/config"
-	"github.com/winston-ci/winston/db"
-	"github.com/winston-ci/winston/resources"
-	"github.com/winston-ci/winston/watchman"
 )
 
 type Watcher struct {
 	jobs      config.Jobs
 	resources config.Resources
 	db        db.DB
-	prole     *router.RequestGenerator
+	turbine   *router.RequestGenerator
 	watchman  watchman.Watchman
 }
 
@@ -24,14 +24,14 @@ func NewWatcher(
 	jobs config.Jobs,
 	resources config.Resources,
 	db db.DB,
-	prole *router.RequestGenerator,
+	turbine *router.RequestGenerator,
 	watchman watchman.Watchman,
 ) *Watcher {
 	return &Watcher{
 		jobs:      jobs,
 		resources: resources,
 		db:        db,
-		prole:     prole,
+		turbine:   turbine,
 		watchman:  watchman,
 	}
 }
@@ -50,7 +50,7 @@ func (watcher Watcher) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 
 			var checker resources.Checker
 			if len(input.Passed) == 0 {
-				checker = resources.NewProleChecker(watcher.prole)
+				checker = resources.NewTurbineChecker(watcher.turbine)
 			} else {
 				checker = resources.NewWinstonChecker(watcher.db, input.Passed)
 			}

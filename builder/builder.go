@@ -10,17 +10,17 @@ import (
 	"path/filepath"
 	"time"
 
+	TurbineBuilds "github.com/concourse/turbine/api/builds"
+	TurbineRoutes "github.com/concourse/turbine/routes"
 	"github.com/tedsuo/router"
-	ProleBuilds "github.com/winston-ci/prole/api/builds"
-	ProleRoutes "github.com/winston-ci/prole/routes"
 
-	WinstonRoutes "github.com/winston-ci/winston/api/routes"
-	"github.com/winston-ci/winston/builds"
-	"github.com/winston-ci/winston/config"
-	"github.com/winston-ci/winston/db"
+	WinstonRoutes "github.com/concourse/atc/api/routes"
+	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
 )
 
-var ErrBadResponse = errors.New("bad response from prole")
+var ErrBadResponse = errors.New("bad response from turbine")
 
 type Builder interface {
 	Create(config.Job) (builds.Build, error)
@@ -32,8 +32,8 @@ type builder struct {
 	db        db.DB
 	resources config.Resources
 
-	prole   *router.RequestGenerator
-	winston *router.RequestGenerator
+	turbine *router.RequestGenerator
+	atc     *router.RequestGenerator
 
 	httpClient *http.Client
 }
@@ -41,15 +41,15 @@ type builder struct {
 func NewBuilder(
 	db db.DB,
 	resources config.Resources,
-	prole *router.RequestGenerator,
-	winston *router.RequestGenerator,
+	turbine *router.RequestGenerator,
+	atc *router.RequestGenerator,
 ) Builder {
 	return &builder{
 		db:        db,
 		resources: resources,
 
-		prole:   prole,
-		winston: winston,
+		turbine: turbine,
+		atc:     atc,
 
 		httpClient: &http.Client{
 			Transport: &http.Transport{
@@ -102,7 +102,7 @@ func (builder *builder) Start(job config.Job, build builds.Build, versionOverrid
 		return builder.db.GetBuild(job.Name, build.ID)
 	}
 
-	complete, err := builder.winston.RequestForHandler(
+	complete, err := builder.atc.RequestForHandler(
 		WinstonRoutes.UpdateBuild,
 		router.Params{
 			"job":   job.Name,
@@ -116,7 +116,7 @@ func (builder *builder) Start(job config.Job, build builds.Build, versionOverrid
 
 	log.Println("completion callback:", complete.URL)
 
-	logs, err := builder.winston.RequestForHandler(
+	logs, err := builder.atc.RequestForHandler(
 		WinstonRoutes.LogInput,
 		router.Params{
 			"job":   job.Name,
@@ -132,8 +132,8 @@ func (builder *builder) Start(job config.Job, build builds.Build, versionOverrid
 
 	logs.URL.Scheme = "ws"
 
-	proleBuild := ProleBuilds.Build{
-		Config: ProleBuilds.Config{
+	turbineBuild := TurbineBuilds.Build{
+		Config: TurbineBuilds.Config{
 			Image:  job.Image,
 			Env:    job.Env,
 			Script: job.Script,
@@ -148,17 +148,17 @@ func (builder *builder) Start(job config.Job, build builds.Build, versionOverrid
 		LogsURL:  logs.URL.String(),
 	}
 
-	log.Printf("creating build: %#v\n", proleBuild)
+	log.Printf("creating build: %#v\n", turbineBuild)
 
 	req := new(bytes.Buffer)
 
-	err = json.NewEncoder(req).Encode(proleBuild)
+	err = json.NewEncoder(req).Encode(turbineBuild)
 	if err != nil {
 		return builds.Build{}, err
 	}
 
-	execute, err := builder.prole.RequestForHandler(
-		ProleRoutes.ExecuteBuild,
+	execute, err := builder.turbine.RequestForHandler(
+		TurbineRoutes.ExecuteBuild,
 		nil,
 		req,
 	)
@@ -170,20 +170,20 @@ func (builder *builder) Start(job config.Job, build builds.Build, versionOverrid
 
 	resp, err := builder.httpClient.Do(execute)
 	if err != nil {
-		log.Println("prole request failed:", err)
+		log.Println("turbine request failed:", err)
 		return builds.Build{}, err
 	}
 
 	// TODO test bad response code
 	if resp.StatusCode != http.StatusCreated {
-		log.Println("bad prole response:", resp)
+		log.Println("bad turbine response:", resp)
 		return builds.Build{}, ErrBadResponse
 	}
 
-	var startedBuild ProleBuilds.Build
+	var startedBuild TurbineBuilds.Build
 	err = json.NewDecoder(resp.Body).Decode(&startedBuild)
 	if err != nil {
-		log.Println("bad prole response (expecting build):", err)
+		log.Println("bad turbine response (expecting build):", err)
 		return builds.Build{}, err
 	}
 
@@ -225,54 +225,54 @@ func (builder *builder) computeVersions(job config.Job, versionOverrides map[str
 	return versions, nil
 }
 
-func (builder *builder) computeInputs(job config.Job, versions map[string]builds.Version) ([]ProleBuilds.Input, error) {
-	proleInputs := make([]ProleBuilds.Input, len(job.Inputs))
+func (builder *builder) computeInputs(job config.Job, versions map[string]builds.Version) ([]TurbineBuilds.Input, error) {
+	turbineInputs := make([]TurbineBuilds.Input, len(job.Inputs))
 	for i, input := range job.Inputs {
 		resource, found := builder.resources.Lookup(input.Resource)
 		if !found {
 			return nil, fmt.Errorf("unknown resource: %s", input.Resource)
 		}
 
-		proleInputs[i] = builder.inputFor(job, resource, versions[input.Resource])
+		turbineInputs[i] = builder.inputFor(job, resource, versions[input.Resource])
 	}
 
-	return proleInputs, nil
+	return turbineInputs, nil
 }
 
-func (builder *builder) inputFor(job config.Job, resource config.Resource, version builds.Version) ProleBuilds.Input {
-	proleInput := ProleBuilds.Input{
+func (builder *builder) inputFor(job config.Job, resource config.Resource, version builds.Version) TurbineBuilds.Input {
+	turbineInput := TurbineBuilds.Input{
 		Name:            resource.Name,
 		Type:            resource.Type,
-		Source:          ProleBuilds.Source(resource.Source),
-		Version:         ProleBuilds.Version(version),
+		Source:          TurbineBuilds.Source(resource.Source),
+		Version:         TurbineBuilds.Version(version),
 		DestinationPath: resource.Name,
 	}
 
 	if filepath.HasPrefix(job.BuildConfigPath, resource.Name) {
-		proleInput.ConfigPath = job.BuildConfigPath[len(resource.Name)+1:]
+		turbineInput.ConfigPath = job.BuildConfigPath[len(resource.Name)+1:]
 	}
 
-	return proleInput
+	return turbineInput
 }
 
-func (builder *builder) computeOutputs(job config.Job) ([]ProleBuilds.Output, error) {
-	proleOutputs := []ProleBuilds.Output{}
+func (builder *builder) computeOutputs(job config.Job) ([]TurbineBuilds.Output, error) {
+	turbineOutputs := []TurbineBuilds.Output{}
 	for _, output := range job.Outputs {
 		resource, found := builder.resources.Lookup(output.Resource)
 		if !found {
 			return nil, fmt.Errorf("unknown resource: %s", output.Resource)
 		}
 
-		proleOutput := ProleBuilds.Output{
+		turbineOutput := TurbineBuilds.Output{
 			Name:       resource.Name,
 			Type:       resource.Type,
-			Params:     ProleBuilds.Params(output.Params),
-			Source:     ProleBuilds.Source(resource.Source),
+			Params:     TurbineBuilds.Params(output.Params),
+			Source:     TurbineBuilds.Source(resource.Source),
 			SourcePath: resource.Name,
 		}
 
-		proleOutputs = append(proleOutputs, proleOutput)
+		turbineOutputs = append(turbineOutputs, turbineOutput)
 	}
 
-	return proleOutputs, nil
+	return turbineOutputs, nil
 }

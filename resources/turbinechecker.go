@@ -5,38 +5,38 @@ import (
 	"log"
 
 	"code.google.com/p/go.net/websocket"
+	TurbineBuilds "github.com/concourse/turbine/api/builds"
+	"github.com/concourse/turbine/routes"
 	"github.com/tedsuo/router"
-	ProleBuilds "github.com/winston-ci/prole/api/builds"
-	"github.com/winston-ci/prole/routes"
 
-	"github.com/winston-ci/winston/builds"
-	"github.com/winston-ci/winston/config"
+	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/config"
 )
 
-type ProleChecker struct {
-	prole *router.RequestGenerator
+type TurbineChecker struct {
+	turbine *router.RequestGenerator
 
 	connections chan *websocket.Conn
 }
 
-func NewProleChecker(prole *router.RequestGenerator) Checker {
-	return &ProleChecker{
-		prole: prole,
+func NewTurbineChecker(turbine *router.RequestGenerator) Checker {
+	return &TurbineChecker{
+		turbine: turbine,
 
 		connections: make(chan *websocket.Conn, 1),
 	}
 }
 
-func (checker *ProleChecker) CheckResource(resource config.Resource, from builds.Version) []builds.Version {
+func (checker *TurbineChecker) CheckResource(resource config.Resource, from builds.Version) []builds.Version {
 	conn, err := checker.connect()
 	if err != nil {
 		return nil
 	}
 
-	buildInput := ProleBuilds.Input{
+	buildInput := TurbineBuilds.Input{
 		Type:    resource.Type,
-		Source:  ProleBuilds.Source(resource.Source),
-		Version: ProleBuilds.Version(from),
+		Source:  TurbineBuilds.Source(resource.Source),
+		Version: TurbineBuilds.Version(from),
 	}
 
 	err = json.NewEncoder(conn).Encode(buildInput)
@@ -57,12 +57,12 @@ func (checker *ProleChecker) CheckResource(resource config.Resource, from builds
 	return newVersions
 }
 
-func (checker *ProleChecker) connect() (*websocket.Conn, error) {
+func (checker *TurbineChecker) connect() (*websocket.Conn, error) {
 	select {
 	case conn := <-checker.connections:
 		return conn, nil
 	default:
-		req, err := checker.prole.RequestForHandler(
+		req, err := checker.turbine.RequestForHandler(
 			routes.CheckInputStream,
 			nil,
 			nil,
@@ -77,7 +77,7 @@ func (checker *ProleChecker) connect() (*websocket.Conn, error) {
 	}
 }
 
-func (checker *ProleChecker) release(conn *websocket.Conn) {
+func (checker *TurbineChecker) release(conn *websocket.Conn) {
 	select {
 	case checker.connections <- conn:
 	default:

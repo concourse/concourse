@@ -9,16 +9,16 @@ import (
 	"net/http/httptest"
 
 	"code.google.com/p/go.net/websocket"
+	TurbineBuilds "github.com/concourse/turbine/api/builds"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	ProleBuilds "github.com/winston-ci/prole/api/builds"
 
-	"github.com/winston-ci/winston/api"
-	"github.com/winston-ci/winston/api/drainer"
-	"github.com/winston-ci/winston/builds"
-	"github.com/winston-ci/winston/db"
-	"github.com/winston-ci/winston/redisrunner"
+	"github.com/concourse/atc/api"
+	"github.com/concourse/atc/api/drainer"
+	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/redisrunner"
 )
 
 var _ = Describe("API", func() {
@@ -55,12 +55,12 @@ var _ = Describe("API", func() {
 
 	Describe("PUT /builds/:job/:build", func() {
 		var build builds.Build
-		var proleBuild ProleBuilds.Build
+		var turbineBuild TurbineBuilds.Build
 
 		var response *http.Response
 
-		version1 := ProleBuilds.Version{"ver": "1"}
-		version2 := ProleBuilds.Version{"ver": "2"}
+		version1 := TurbineBuilds.Version{"ver": "1"}
+		version2 := TurbineBuilds.Version{"ver": "2"}
 
 		BeforeEach(func() {
 			var err error
@@ -68,8 +68,8 @@ var _ = Describe("API", func() {
 			build, err = redis.CreateBuild("some-job")
 			Ω(err).ShouldNot(HaveOccurred())
 
-			proleBuild = ProleBuilds.Build{
-				Inputs: []ProleBuilds.Input{
+			turbineBuild = TurbineBuilds.Build{
+				Inputs: []TurbineBuilds.Input{
 					{
 						Name:    "some-input",
 						Type:    "git",
@@ -79,7 +79,7 @@ var _ = Describe("API", func() {
 						Name:    "some-other-input",
 						Type:    "git",
 						Version: version2,
-						Metadata: []ProleBuilds.MetadataField{
+						Metadata: []TurbineBuilds.MetadataField{
 							{Name: "meta1", Value: "value1"},
 							{Name: "meta2", Value: "value2"},
 						},
@@ -89,7 +89,7 @@ var _ = Describe("API", func() {
 		})
 
 		JustBeforeEach(func() {
-			reqPayload, err := json.Marshal(proleBuild)
+			reqPayload, err := json.Marshal(turbineBuild)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			req, err := http.NewRequest("PUT", server.URL+"/builds/some-job/1", bytes.NewBuffer(reqPayload))
@@ -103,7 +103,7 @@ var _ = Describe("API", func() {
 
 		Context("with status 'started'", func() {
 			BeforeEach(func() {
-				proleBuild.Status = ProleBuilds.StatusStarted
+				turbineBuild.Status = TurbineBuilds.StatusStarted
 			})
 
 			It("updates the build's status", func() {
@@ -148,20 +148,20 @@ var _ = Describe("API", func() {
 
 		Context("with status 'succeeded'", func() {
 			BeforeEach(func() {
-				proleBuild.Status = ProleBuilds.StatusSucceeded
+				turbineBuild.Status = TurbineBuilds.StatusSucceeded
 
-				proleBuild.Outputs = []ProleBuilds.Output{
+				turbineBuild.Outputs = []TurbineBuilds.Output{
 					{
 						Name: "some-output",
 
 						Type:    "git",
-						Version: ProleBuilds.Version{"ver": "123"},
+						Version: TurbineBuilds.Version{"ver": "123"},
 					},
 					{
 						Name: "some-other-output",
 
 						Type:    "git",
-						Version: ProleBuilds.Version{"ver": "456"},
+						Version: TurbineBuilds.Version{"ver": "456"},
 					},
 				}
 			})
@@ -206,7 +206,7 @@ var _ = Describe("API", func() {
 
 		Context("with status 'failed'", func() {
 			BeforeEach(func() {
-				proleBuild.Status = ProleBuilds.StatusFailed
+				turbineBuild.Status = TurbineBuilds.StatusFailed
 			})
 
 			It("updates the build's status", func() {
@@ -229,7 +229,7 @@ var _ = Describe("API", func() {
 
 		Context("with status 'errored'", func() {
 			BeforeEach(func() {
-				proleBuild.Status = ProleBuilds.StatusErrored
+				turbineBuild.Status = TurbineBuilds.StatusErrored
 			})
 
 			It("updates the build's status", func() {

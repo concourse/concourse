@@ -7,14 +7,14 @@ import (
 
 	"github.com/tedsuo/router"
 
-	"github.com/winston-ci/winston/config"
-	"github.com/winston-ci/winston/db"
-	"github.com/winston-ci/winston/queue"
-	"github.com/winston-ci/winston/server/abortbuild"
-	"github.com/winston-ci/winston/server/getbuild"
-	"github.com/winston-ci/winston/server/index"
-	"github.com/winston-ci/winston/server/routes"
-	"github.com/winston-ci/winston/server/triggerbuild"
+	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/queue"
+	"github.com/concourse/atc/server/abortbuild"
+	"github.com/concourse/atc/server/getbuild"
+	"github.com/concourse/atc/server/index"
+	"github.com/concourse/atc/server/routes"
+	"github.com/concourse/atc/server/triggerbuild"
 )
 
 func New(

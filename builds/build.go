@@ -1,6 +1,6 @@
 package builds
 
-import "github.com/winston-ci/winston/config"
+import "github.com/concourse/atc/config"
 
 type Status string
 

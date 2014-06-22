@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/queue"
+	"github.com/concourse/atc/resources"
 	"github.com/garyburd/redigo/redis"
-	"github.com/winston-ci/winston/config"
-	"github.com/winston-ci/winston/db"
-	"github.com/winston-ci/winston/queue"
-	"github.com/winston-ci/winston/resources"
 )
 
 type Watchman interface {

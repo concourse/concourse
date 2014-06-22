@@ -4,9 +4,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/winston-ci/winston/builder"
-	"github.com/winston-ci/winston/builds"
-	"github.com/winston-ci/winston/config"
+	"github.com/concourse/atc/builder"
+	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/config"
 )
 
 type Queuer interface {

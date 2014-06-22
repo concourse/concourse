@@ -3,15 +3,15 @@ package watchman_test
 import (
 	"time"
 
+	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/queue/fakequeuer"
+	"github.com/concourse/atc/redisrunner"
+	"github.com/concourse/atc/resources/fakechecker"
+	. "github.com/concourse/atc/watchman"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/winston-ci/winston/builds"
-	"github.com/winston-ci/winston/config"
-	"github.com/winston-ci/winston/db"
-	"github.com/winston-ci/winston/queue/fakequeuer"
-	"github.com/winston-ci/winston/redisrunner"
-	"github.com/winston-ci/winston/resources/fakechecker"
-	. "github.com/winston-ci/winston/watchman"
 )
 
 var _ = Describe("Watchman", func() {

@@ -5,7 +5,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/winston-ci/winston/db"
+	"github.com/concourse/atc/db"
 )
 
 type LogFanout struct {

@@ -6,10 +6,10 @@ import (
 	"code.google.com/p/go.net/websocket"
 	"github.com/tedsuo/router"
 
-	"github.com/winston-ci/winston/api/drainer"
-	"github.com/winston-ci/winston/api/handler"
-	"github.com/winston-ci/winston/api/routes"
-	"github.com/winston-ci/winston/db"
+	"github.com/concourse/atc/api/drainer"
+	"github.com/concourse/atc/api/handler"
+	"github.com/concourse/atc/api/routes"
+	"github.com/concourse/atc/db"
 )
 
 func New(db db.DB, drain *drainer.Drainer) (http.Handler, error) {

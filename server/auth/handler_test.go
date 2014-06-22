@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/winston-ci/winston/server/auth"
+	"github.com/concourse/atc/server/auth"
 )
 
 var _ = Describe("BasicAuthHandler", func() {

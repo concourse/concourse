@@ -1,13 +1,13 @@
 package resources_test
 
 import (
+	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/redisrunner"
+	. "github.com/concourse/atc/resources"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/winston-ci/winston/builds"
-	"github.com/winston-ci/winston/config"
-	"github.com/winston-ci/winston/db"
-	"github.com/winston-ci/winston/redisrunner"
-	. "github.com/winston-ci/winston/resources"
 )
 
 var _ = Describe("WinstonChecker", func() {

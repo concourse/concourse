@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"strconv"
 
-	ProleBuilds "github.com/winston-ci/prole/api/builds"
+	TurbineBuilds "github.com/concourse/turbine/api/builds"
 
-	"github.com/winston-ci/winston/builds"
-	"github.com/winston-ci/winston/config"
+	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/config"
 )
 
 func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
@@ -28,31 +28,31 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var proleBuild ProleBuilds.Build
-	if err := json.NewDecoder(r.Body).Decode(&proleBuild); err != nil {
+	var turbineBuild TurbineBuilds.Build
+	if err := json.NewDecoder(r.Body).Decode(&turbineBuild); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	log.Printf("updating build: %#v\n", proleBuild)
+	log.Printf("updating build: %#v\n", turbineBuild)
 
 	var status builds.Status
 
-	switch proleBuild.Status {
-	case ProleBuilds.StatusStarted:
+	switch turbineBuild.Status {
+	case TurbineBuilds.StatusStarted:
 		status = builds.StatusStarted
-	case ProleBuilds.StatusSucceeded:
+	case TurbineBuilds.StatusSucceeded:
 		status = builds.StatusSucceeded
-	case ProleBuilds.StatusFailed:
+	case TurbineBuilds.StatusFailed:
 		status = builds.StatusFailed
-	case ProleBuilds.StatusErrored:
+	case TurbineBuilds.StatusErrored:
 		if build.Status == builds.StatusAborted {
 			status = builds.StatusAborted
 		} else {
 			status = builds.StatusErrored
 		}
 	default:
-		log.Println("unknown status:", proleBuild.Status)
+		log.Println("unknown status:", turbineBuild.Status)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -65,9 +65,9 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	switch proleBuild.Status {
-	case ProleBuilds.StatusStarted:
-		for _, input := range proleBuild.Inputs {
+	switch turbineBuild.Status {
+	case TurbineBuilds.StatusStarted:
+		for _, input := range turbineBuild.Inputs {
 			err := handler.db.SaveCurrentVersion(job, input.Name, builds.Version(input.Version))
 			if err != nil {
 				log.Println("error saving source:", err)
@@ -80,8 +80,8 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 		}
-	case ProleBuilds.StatusSucceeded:
-		for _, output := range proleBuild.Outputs {
+	case TurbineBuilds.StatusSucceeded:
+		for _, output := range turbineBuild.Outputs {
 			err := handler.db.SaveCurrentVersion(job, output.Name, builds.Version(output.Version))
 			if err != nil {
 				log.Println("error saving source:", err)
@@ -99,7 +99,7 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func buildInputFrom(input ProleBuilds.Input) builds.Input {
+func buildInputFrom(input TurbineBuilds.Input) builds.Input {
 	metadata := make([]builds.MetadataField, len(input.Metadata))
 	for i, md := range input.Metadata {
 		metadata[i] = builds.MetadataField{

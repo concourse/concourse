@@ -4,8 +4,8 @@ package fakechecker
 import (
 	"sync"
 
-	"github.com/winston-ci/winston/builds"
-	"github.com/winston-ci/winston/config"
+	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/config"
 )
 
 type FakeChecker struct {
