@@ -20,10 +20,10 @@ script: |
   }
 
   copy_to_gopath github.com/concourse/testflight
-  copy_to_gopath github.com/winston-ci/winston
-  copy_to_gopath github.com/winston-ci/prole
-  copy_to_gopath github.com/winston-ci/redgreen
-  copy_to_gopath github.com/winston-ci/smith
+  copy_to_gopath github.com/concourse/atc
+  copy_to_gopath github.com/concourse/turbine
+  copy_to_gopath github.com/concourse/glider
+  copy_to_gopath github.com/concourse/fly
   copy_to_gopath github.com/cloudfoundry-incubator/warden-linux
 
   pushd warden-linux/

@@ -32,26 +32,26 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	Ω(os.Getenv("BASE_GOPATH")).ShouldNot(BeEmpty(), "must provide $BASE_GOPATH")
 
-	proleBin, err := buildWithGodeps("github.com/winston-ci/prole", "-race")
+	turbineBin, err := buildWithGodeps("github.com/concourse/turbine", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
-	winstonBin, err := buildWithGodeps("github.com/winston-ci/winston", "-race")
+	atcBin, err := buildWithGodeps("github.com/concourse/atc", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
-	redgreenBin, err := buildWithGodeps("github.com/winston-ci/redgreen", "-race")
+	gliderBin, err := buildWithGodeps("github.com/concourse/glider", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
-	smithBin, err := buildWithGodeps("github.com/winston-ci/smith", "-race")
+	flyBin, err := buildWithGodeps("github.com/concourse/fly", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
 	wardenLinuxBin, err := buildWithGodeps("github.com/cloudfoundry-incubator/warden-linux", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
 	components, err := json.Marshal(map[string]string{
-		"prole":        proleBin,
-		"winston":      winstonBin,
-		"redgreen":     redgreenBin,
-		"smith":        smithBin,
+		"turbine":      turbineBin,
+		"atc":          atcBin,
+		"glider":       gliderBin,
+		"fly":          flyBin,
 		"warden-linux": wardenLinuxBin,
 	})
 	Ω(err).ShouldNot(HaveOccurred())
@@ -72,28 +72,28 @@ var _ = BeforeEach(func() {
 		"bogus/rootfs",
 	)
 
-	proleRunner := runner.NewRunner(
-		builtComponents["prole"],
+	turbineRunner := runner.NewRunner(
+		builtComponents["turbine"],
 		"-wardenNetwork", wardenRunner.Network(),
 		"-wardenAddr", wardenRunner.Addr(),
 		"-resourceTypes", `{"raw":"concourse/raw-resource#dev"}`,
 	)
 
-	redgreenRunner := runner.NewRunner(
-		builtComponents["redgreen"],
+	gliderRunner := runner.NewRunner(
+		builtComponents["glider"],
 		"-peerAddr", externalAddr+":5637",
 	)
 
 	processes = grouper.EnvokeGroup(grouper.RunGroup{
-		"prole": proleRunner,
-		//"winston":      runner.NewRunner(builtComponents["winston"]),
-		"redgreen":     redgreenRunner,
+		"turbine": turbineRunner,
+		//"atc":      runner.NewRunner(builtComponents["atc"]),
+		"glider":       gliderRunner,
 		"warden-linux": wardenRunner,
 	})
 
 	Consistently(processes.Wait(), 5*time.Second).ShouldNot(Receive())
 
-	os.Setenv("REDGREEN_URL", "http://127.0.0.1:5637")
+	os.Setenv("GLIDER_URL", "http://127.0.0.1:5637")
 })
 
 var _ = AfterEach(func() {

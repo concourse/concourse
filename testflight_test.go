@@ -11,12 +11,12 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-var _ = Describe("Running a build with Smith", func() {
+var _ = Describe("Flying", func() {
 	It("works", func() {
-		smith := exec.Command(builtComponents["smith"])
-		smith.Dir = filepath.Join(fixturesDir, "trivial-build")
+		fly := exec.Command(builtComponents["fly"])
+		fly.Dir = filepath.Join(fixturesDir, "trivial-build")
 
-		session, err := gexec.Start(smith, GinkgoWriter, GinkgoWriter)
+		session, err := gexec.Start(fly, GinkgoWriter, GinkgoWriter)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		Eventually(session, 10*time.Minute).Should(gexec.Exit(0))
