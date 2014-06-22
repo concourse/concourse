@@ -1,5 +1,5 @@
 ---
-image: atc/concourse
+image: concourse/atc-ci
 
 env:
   - GOROOT: /usr/local/go
