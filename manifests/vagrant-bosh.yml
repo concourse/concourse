@@ -1,17 +1,17 @@
 ---
-name: room101
+name: concourse
 
 releases:
-- name: room101
+- name: concourse
   version: 0+dev.1
-  url: file:///vagrant/dev_releases/room101-0+dev.1.tgz
+  url: file:///vagrant/dev_releases/concourse-0+dev.1.tgz
 
 networks:
-- name: room101
+- name: concourse
   type: dynamic
 
 compilation:
-  network: room101
+  network: concourse
 
 update:
   canaries: 0
@@ -20,45 +20,45 @@ update:
   max_in_flight: 10
 
 jobs:
-- name: winston
+- name: atc
   instances: 1
 
   templates:
+  - name: atc
+    release: concourse
+  - name: turbine
+    release: concourse
+  - name: glider
+    release: concourse
   - name: redis
-    release: room101
-  - name: winston
-    release: room101
-  - name: prole
-    release: room101
+    release: concourse
   - name: warden
-    release: room101
-  - name: redgreen
-    release: room101
+    release: concourse
 
   networks:
-  - name: room101
+  - name: concourse
 
   properties:
-    network_name: room101
-    winston:
+    network_name: concourse
+    atc:
       config:
         jobs:
-          - name: dummy
-            image: ubuntu
-            script: |
-              echo 'Hello, world!'
+        - name: dummy
+          image: ubuntu
+          script: |
+            echo 'Hello, world!'
 
-      prole:
+      turbine:
         address: 127.0.0.1:4637
 
       redis:
         address: 127.0.0.1:6379
 
-    redgreen:
-      prole:
+    glider:
+      turbine:
         address: 127.0.0.1:4637
 
-    prole:
+    turbine:
       warden:
         address: 127.0.0.1:7777
         network: tcp

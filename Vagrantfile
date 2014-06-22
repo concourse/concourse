@@ -4,7 +4,7 @@ Vagrant.configure("2") do |config|
 
   config.vm.network "forwarded_port", guest: 8080, host: 8080 # http
   config.vm.network "forwarded_port", guest: 8081, host: 8081 # ws
-  config.vm.network "forwarded_port", guest: 5637, host: 5637 # redgreen
+  config.vm.network "forwarded_port", guest: 5637, host: 5637 # glider
 
   config.vm.provider "virtualbox" do |v|
     v.memory = 4096

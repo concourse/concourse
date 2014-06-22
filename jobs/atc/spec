@@ -1,42 +1,41 @@
 ---
-name: winston
+name: atc
 
 templates:
   drain: bin/drain
-  winston_ctl.erb: bin/winston_ctl
-  config.yml.erb: config/winston.yml
+  ctl.erb: bin/ctl
+  config.yml.erb: config/atc.yml
 
 packages:
   - pid_utils
-  - winston
+  - atc
 
 properties:
-  winston.listen_address:
+  atc.listen_address:
     description: "listening address"
     default: 0.0.0.0:8080
 
-  winston.api_listen_address:
+  atc.api_listen_address:
     description: "api listening address"
     default: 0.0.0.0:8081
 
-  winston.basic_auth_username:
+  atc.basic_auth_username:
     description: "username for http basic auth"
     default: ""
 
-  winston.basic_auth_encrypted_password:
+  atc.basic_auth_encrypted_password:
     description: "bcrypt encrypted password for http basic auth"
     default: ""
 
-  winston.prole.address:
-    description: "Address of prole server to use to run builds."
+  atc.turbine.address:
+    description: "Address of turbine server to use to run builds."
 
-  winston.config:
+  atc.config:
     description: "Winston server configuration."
     default: {}
 
-  winston.redis.address:
+  atc.redis.address:
     description: "Address of the Redis server."
 
   network_name:
     description: "Name of the network that the job lives in; used to figure out our IP."
-

@@ -1,5 +1,0 @@
-check process redgreen
-  with pidfile /var/vcap/sys/run/redgreen/redgreen.pid
-  start program "/var/vcap/jobs/redgreen/bin/redgreen_ctl start"
-  stop program "/var/vcap/jobs/redgreen/bin/redgreen_ctl stop"
-  group vcap

@@ -14,11 +14,11 @@ compilation:
     name: random
 
 resource_pools:
-  - name: redgreen
+  - name: glider
     cloud_properties:
       name: random
 
-  - name: proles
+  - name: turbines
     cloud_properties:
       name: random
 
@@ -26,39 +26,39 @@ resource_pools:
     cloud_properties:
       name: random
 
-  - name: winston
+  - name: atc
     cloud_properties:
       name: random
 
 jobs:
-  - name: redgreen
+  - name: glider
     instances: 1
     networks:
-      - name: room101
+      - name: concourse
         static_ips: (( static_ips(0) ))
     properties:
-      redgreen:
-        prole:
-          address: (( jobs.prole.networks.room101.static_ips.[0] ":4637" ))
+      glider:
+        turbine:
+          address: (( jobs.turbine.networks.concourse.static_ips.[0] ":4637" ))
 
   - name: redis
     instances: 1
     networks:
-      - name: room101
+      - name: concourse
         static_ips: (( static_ips(1) ))
 
-  - name: winston
+  - name: atc
     properties:
-      winston:
-        prole:
-          address: (( jobs.prole.networks.room101.static_ips.[0] ":4637" ))
+      atc:
+        turbine:
+          address: (( jobs.turbine.networks.concourse.static_ips.[0] ":4637" ))
         redis:
-          address: (( jobs.redis.networks.room101.static_ips.[0] ":6379" ))
+          address: (( jobs.redis.networks.concourse.static_ips.[0] ":6379" ))
 
-  - name: prole
+  - name: turbine
     instances: 1
     networks:
-      - name: room101
+      - name: concourse
         static_ips: (( static_ips(16) ))
     properties:
       warden:
@@ -67,13 +67,13 @@ jobs:
         listen_network: tcp
         listen_address: 0.0.0.0:7777
 
-      prole:
+      turbine:
         warden:
           network: tcp
           address: 127.0.0.1:7777
 
 networks:
-- name: room101
+- name: concourse
   subnets:
   - cloud_properties:
       name: random

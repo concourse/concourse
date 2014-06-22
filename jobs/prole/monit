@@ -1,5 +1,0 @@
-check process prole
-  with pidfile /var/vcap/sys/run/prole/prole.pid
-  start program "/var/vcap/jobs/prole/bin/prole_ctl start"
-  stop program "/var/vcap/jobs/prole/bin/prole_ctl stop"
-  group vcap

@@ -3,8 +3,8 @@
 
 set -e -x
 
-pidfile=/var/vcap/sys/run/winston/winston.pid
-logfile=/var/vcap/sys/log/winston/drain.log
+pidfile=/var/vcap/sys/run/atc/atc.pid
+logfile=/var/vcap/sys/log/atc/drain.log
 
 mkdir -p $(dirname $logfile)
 
@@ -20,6 +20,6 @@ if kill $pid; then
   echo "$(date): triggering drain" >> $logfile
   echo -5
 else
-  echo "$(date): winston exited" >> $logfile
+  echo "$(date): atc exited" >> $logfile
   echo 0
 fi

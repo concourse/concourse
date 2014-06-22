@@ -1,20 +1,20 @@
 ---
-name: redgreen
+name: glider
 
 templates:
-  redgreen_ctl.erb: bin/redgreen_ctl
+  ctl.erb: bin/ctl
 
 packages:
   - pid_utils
-  - redgreen
+  - glider
 
 properties:
-  redgreen.listen_address:
+  glider.listen_address:
     description: "listening address"
     default: 0.0.0.0:5637
 
-  redgreen.prole.address:
-    description: "Address of prole server to use to run builds."
+  glider.turbine.address:
+    description: "Address of turbine server to use to run builds."
 
   network_name:
     description: "Name of the network that the job lives in; used to figure out our IP."

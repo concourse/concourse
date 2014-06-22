@@ -1,0 +1,41 @@
+#!/bin/bash -e
+
+RUN_DIR=/var/vcap/sys/run/turbine
+LOG_DIR=/var/vcap/sys/log/turbine
+PIDFILE=$RUN_DIR/turbine.pid
+
+source /var/vcap/packages/pid_utils/pid_utils.sh
+
+case $1 in
+
+  start)
+    pid_guard $PIDFILE "turbine"
+
+    mkdir -p $RUN_DIR
+    mkdir -p $LOG_DIR
+
+    echo $$ > /var/vcap/sys/run/turbine/turbine.pid
+
+    <% my_ip = spec.networks.send(p("network_name")).ip %>
+
+    exec /var/vcap/packages/turbine/bin/turbine \
+      -listenAddr=<%= p("turbine.listen_address") %> \
+      -peerAddr=<%= my_ip %>:<%= p("turbine.listen_address").split(":").last %> \
+      -wardenNetwork=<%= p("turbine.warden.network") %> \
+      -wardenAddr=<%= p("turbine.warden.address") %> \
+      1>>$LOG_DIR/turbine.stdout.log \
+      2>>$LOG_DIR/turbine.stderr.log
+
+    ;;
+
+  stop)
+    kill_and_wait $PIDFILE
+
+    ;;
+
+  *)
+    echo "Usage: $0 {start|stop}"
+
+    ;;
+
+esac

@@ -1,9 +1,9 @@
-name: room101
+name: concourse
 
 director_uuid: (( merge ))
 
 releases:
-  - name: room101
+  - name: concourse
     version: latest
 
 networks: (( merge ))
@@ -19,7 +19,7 @@ meta:
 
 compilation:
   workers: 6
-  network: room101
+  network: concourse
   reuse_compilation_vms: true
   cloud_properties: (( merge ))
 
@@ -31,26 +31,26 @@ update:
   update_watch_time: 5000-600000
 
 resource_pools:
-  - name: winston
-    network: room101
+  - name: atc
+    network: concourse
     size: (( auto ))
     stemcell: (( meta.stemcell ))
     cloud_properties: (( merge ))
 
   - name: redis
-    network: room101
+    network: concourse
     size: (( auto ))
     stemcell: (( meta.stemcell ))
     cloud_properties: (( merge ))
 
-  - name: redgreen
-    network: room101
+  - name: glider
+    network: concourse
     size: (( auto ))
     stemcell: (( meta.stemcell ))
     cloud_properties: (( merge ))
 
-  - name: proles
-    network: room101
+  - name: turbines
+    network: concourse
     size: (( auto ))
     stemcell: (( meta.stemcell ))
     cloud_properties: (( merge ))

@@ -1,0 +1,50 @@
+#!/bin/bash
+# vim: set ft=sh
+
+<% require "shellwords" %>
+
+RUN_DIR=/var/vcap/sys/run/atc
+LOG_DIR=/var/vcap/sys/log/atc
+PIDFILE=$RUN_DIR/atc.pid
+
+source /var/vcap/packages/pid_utils/pid_utils.sh
+
+case $1 in
+
+  start)
+    pid_guard $PIDFILE "atc"
+
+    mkdir -p $RUN_DIR
+    mkdir -p $LOG_DIR
+
+    echo $$ > /var/vcap/sys/run/atc/atc.pid
+
+    <% my_ip = spec.networks.send(p("network_name")).ip %>
+
+    exec /var/vcap/packages/atc/bin/atc \
+      -listenAddr=<%= p("atc.listen_address") %> \
+      -apiListenAddr=<%= p("atc.api_listen_address") %> \
+      -peerAddr=<%= my_ip %>:<%= p("atc.api_listen_address").split(":").last %> \
+      -turbineURL=http://<%= p("atc.turbine.address") %> \
+      -redisAddr=<%= p("atc.redis.address") %> \
+      -config=/var/vcap/jobs/atc/config/atc.yml \
+      -templates=/var/vcap/packages/atc/templates \
+      -public=/var/vcap/packages/atc/public \
+      -httpUsername=<%= p("atc.basic_auth_username") %> \
+      -httpHashedPassword=<%= Shellwords.shellescape(p("atc.basic_auth_encrypted_password")) %> \
+      1>>$LOG_DIR/atc.stdout.log \
+      2>>$LOG_DIR/atc.stderr.log
+
+    ;;
+
+  stop)
+    kill_and_wait $PIDFILE
+
+    ;;
+
+  *)
+    echo "Usage: $0 {start|stop}"
+
+    ;;
+
+esac

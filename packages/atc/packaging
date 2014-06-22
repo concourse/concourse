@@ -1,6 +1,6 @@
 set -e
 
-REPO_NAME=github.com/winston-ci/winston
+REPO_NAME=github.com/concourse/atc
 
 REPO_DIR=${BOSH_INSTALL_TARGET}/src/${REPO_NAME}
 

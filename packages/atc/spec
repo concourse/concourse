@@ -1,0 +1,10 @@
+---
+name: atc
+
+dependencies:
+  - golang_1.2
+
+files:
+  - atc/**/*.go
+  - atc/server/templates/**/*
+  - atc/server/public/**/*

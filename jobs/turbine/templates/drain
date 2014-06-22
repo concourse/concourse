@@ -3,8 +3,8 @@
 
 set -e -x
 
-pidfile=/var/vcap/sys/run/prole/prole.pid
-logfile=/var/vcap/sys/log/prole/drain.log
+pidfile=/var/vcap/sys/run/turbine/turbine.pid
+logfile=/var/vcap/sys/log/turbine/drain.log
 
 mkdir -p $(dirname $logfile)
 
@@ -20,6 +20,6 @@ if kill $pid; then
   echo "$(date): triggering drain" >> $logfile
   echo -5
 else
-  echo "$(date): prole exited" >> $logfile
+  echo "$(date): turbine exited" >> $logfile
   echo 0
 fi

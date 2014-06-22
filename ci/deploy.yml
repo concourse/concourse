@@ -1,12 +1,12 @@
 ---
-image: winston/room101-ci
+image: concourse/concourse-ci
 
 script: |
   set -e
 
   source ./deployments/sandbox/bosh_environment
 
-  cd room101/
+  cd concourse/
 
   ./generate_deployment_manifest aws ../deployments/sandbox/stubs/*.yml > aws-deployment.yml
 
@@ -14,7 +14,7 @@ script: |
 
   bosh deployment aws-deployment.yml
 
-  echo room101 | bosh create release
+  bosh -n create release
 
   # remove '|| true' once the rebase crap is fixed
   bosh -n upload release --rebase --skip-if-exists || true

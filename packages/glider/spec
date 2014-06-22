@@ -1,8 +1,8 @@
 ---
-name: redgreen
+name: glider
 
 dependencies:
   - golang_1.2
 
 files:
-  - redgreen/**/*.go
+  - glider/**/*.go

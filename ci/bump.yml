@@ -1,18 +1,18 @@
 ---
-image: winston/room101-ci
+image: concourse/concourse-ci
 
 script: |
   set -e -x
 
-  pushd winston/
+  pushd atc/
     export WINSTON_SHA=$(git rev-parse HEAD)
   popd
 
-  pushd redgreen/
+  pushd glider/
     export REDGREEN_SHA=$(git rev-parse HEAD)
   popd
 
-  pushd prole/
+  pushd turbine/
     export PROLE_SHA=$(git rev-parse HEAD)
   popd
 
@@ -20,19 +20,19 @@ script: |
     export WARDEN_LINUX_SHA=$(git rev-parse HEAD)
   popd
 
-  cd room101/
+  cd concourse/
 
   git submodule update --remote
 
-  pushd src/winston/
+  pushd src/atc/
     git checkout $WINSTON_SHA
   popd
 
-  pushd src/redgreen/
+  pushd src/glider/
     git checkout $REDGREEN_SHA
   popd
 
-  pushd src/prole/
+  pushd src/turbine/
     git checkout $PROLE_SHA
   popd
 

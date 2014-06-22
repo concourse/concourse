@@ -1,8 +1,8 @@
 ---
-name: prole
+name: turbine
 
 dependencies:
   - golang_1.2
 
 files:
-  - prole/**/*.go
+  - turbine/**/*.go

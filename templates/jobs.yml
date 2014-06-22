@@ -1,63 +1,63 @@
 networks: (( merge ))
 
 jobs:
-  - name: redgreen
+  - name: glider
     templates:
-      - name: redgreen
-        release: room101
+      - name: glider
+        release: concourse
     instances: 1
-    resource_pool: redgreen
+    resource_pool: glider
     networks:
-      - name: room101
+      - name: concourse
         static_ips: ~
     properties:
-      network_name: room101
-      redgreen:
+      network_name: concourse
+      glider:
         listen_address: ~
-        prole:
+        turbine:
           address: (( merge ))
 
   - name: redis
     templates:
       - name: redis
-        release: room101
+        release: concourse
     instances: 1
     resource_pool: redis
     networks:
-      - name: room101
+      - name: concourse
         static_ips: ~
 
-  - name: winston
+  - name: atc
     templates:
-      - name: winston
-        release: room101
+      - name: atc
+        release: concourse
     instances: 1
-    resource_pool: winston
+    resource_pool: atc
     networks:
-      - name: room101
+      - name: concourse
     properties:
-      network_name: room101
-      winston:
+      network_name: concourse
+      atc:
         listen_address: ~
-        prole:
+        turbine:
           address: (( merge ))
         redis: (( merge ))
         config: (( merge ))
         basic_auth_username: (( merge ))
         basic_auth_encrypted_password: (( merge ))
 
-  - name: prole
+  - name: turbine
     templates:
-      - name: prole
-        release: room101
+      - name: turbine
+        release: concourse
       - name: warden
-        release: room101
+        release: concourse
     instances: 1
-    resource_pool: proles
+    resource_pool: turbines
     networks:
-      - name: room101
+      - name: concourse
         static_ips: ~
     properties:
-      network_name: room101
+      network_name: concourse
       warden: ~
-      prole: ~
+      turbine: ~

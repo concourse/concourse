@@ -1,24 +1,24 @@
 ---
-name: prole
+name: turbine
 
 templates:
   drain: bin/drain
-  prole_ctl.erb: bin/prole_ctl
+  ctl.erb: bin/ctl
 
 packages:
   - pid_utils
-  - prole
+  - turbine
 
 properties:
-  prole.listen_address:
+  turbine.listen_address:
     description: "Listening TCP address of the server."
     default: 0.0.0.0:4637
 
-  prole.warden.network:
+  turbine.warden.network:
     description: "Network type for the warden server connection (tcp or unix)."
     default: unix
 
-  prole.warden.address:
+  turbine.warden.address:
     description: "Warden server listening address."
     default: /var/vcap/data/warden/warden.sock
 
