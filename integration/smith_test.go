@@ -16,7 +16,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 
-	"github.com/winston-ci/redgreen/api/builds"
+	"github.com/concourse/glider/api/builds"
 )
 
 func tarFiles(path string) string {
@@ -26,20 +26,20 @@ func tarFiles(path string) string {
 	return string(output)
 }
 
-var _ = Describe("Smith CLI", func() {
-	var smithPath string
+var _ = Describe("Fly CLI", func() {
+	var flyPath string
 	var buildDir string
 
-	var redgreenServer *ghttp.Server
+	var gliderServer *ghttp.Server
 	var polling chan struct{}
 	var streaming chan *websocket.Conn
 
 	BeforeEach(func() {
 		var err error
-		smithPath, err = gexec.Build("github.com/winston-ci/smith")
+		flyPath, err = gexec.Build("github.com/concourse/fly")
 		Ω(err).ShouldNot(HaveOccurred())
 
-		buildDir, err = ioutil.TempDir("", "smith-build-dir")
+		buildDir, err = ioutil.TempDir("", "fly-build-dir")
 		Ω(err).ShouldNot(HaveOccurred())
 
 		err = ioutil.WriteFile(
@@ -56,16 +56,16 @@ script: find . {{ .Args }}
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		redgreenServer = ghttp.NewServer()
+		gliderServer = ghttp.NewServer()
 
-		os.Setenv("REDGREEN_URL", redgreenServer.URL())
+		os.Setenv("GLIDER_URL", gliderServer.URL())
 	})
 
 	BeforeEach(func() {
 		polling = make(chan struct{})
 		streaming = make(chan *websocket.Conn, 1)
 
-		redgreenServer.AppendHandlers(
+		gliderServer.AppendHandlers(
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/builds"),
 				ghttp.VerifyJSONRepresenting(builds.Build{
@@ -139,12 +139,12 @@ script: find . {{ .Args }}
 	})
 
 	It("creates a build, streams output, uploads the bits, and polls until completion", func() {
-		redgreenServer.AllowUnhandledRequests = true
+		gliderServer.AllowUnhandledRequests = true
 
-		smithCmd := exec.Command(smithPath)
-		smithCmd.Dir = buildDir
+		flyCmd := exec.Command(flyPath)
+		flyCmd.Dir = buildDir
 
-		sess, err := gexec.Start(smithCmd, GinkgoWriter, GinkgoWriter)
+		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		var stream *websocket.Conn
@@ -159,7 +159,7 @@ script: find . {{ .Args }}
 
 	Context("when arguments are passed through", func() {
 		BeforeEach(func() {
-			redgreenServer.SetHandler(
+			gliderServer.SetHandler(
 				0,
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/builds"),
@@ -189,12 +189,12 @@ script: find . {{ .Args }}
 		})
 
 		It("inserts them into the config template", func() {
-			redgreenServer.AllowUnhandledRequests = true
+			gliderServer.AllowUnhandledRequests = true
 
-			smithCmd := exec.Command(smithPath, "--", "-name", "foo \"bar\" baz")
-			smithCmd.Dir = buildDir
+			flyCmd := exec.Command(flyPath, "--", "-name", "foo \"bar\" baz")
+			flyCmd.Dir = buildDir
 
-			_, err := gexec.Start(smithCmd, GinkgoWriter, GinkgoWriter)
+			_, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Eventually(polling, 5.0).Should(BeClosed())
@@ -203,7 +203,7 @@ script: find . {{ .Args }}
 
 	Context("when the build succeeds", func() {
 		BeforeEach(func() {
-			redgreenServer.AppendHandlers(
+			gliderServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/builds/abc/result"),
 					ghttp.RespondWith(200, `{"status":"succeeded"}`),
@@ -212,19 +212,19 @@ script: find . {{ .Args }}
 		})
 
 		It("exits 0", func() {
-			smithCmd := exec.Command(smithPath)
-			smithCmd.Dir = buildDir
+			flyCmd := exec.Command(flyPath)
+			flyCmd.Dir = buildDir
 
-			smithSession, err := gexec.Start(smithCmd, GinkgoWriter, GinkgoWriter)
+			flySession, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
 
-			Eventually(smithSession, 5.0).Should(gexec.Exit(0))
+			Eventually(flySession, 5.0).Should(gexec.Exit(0))
 		})
 	})
 
 	Context("when the build fails", func() {
 		BeforeEach(func() {
-			redgreenServer.AppendHandlers(
+			gliderServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/builds/abc/result"),
 					ghttp.RespondWith(200, `{"status":"failed"}`),
@@ -233,19 +233,19 @@ script: find . {{ .Args }}
 		})
 
 		It("exits 1", func() {
-			smithCmd := exec.Command(smithPath)
-			smithCmd.Dir = buildDir
+			flyCmd := exec.Command(flyPath)
+			flyCmd.Dir = buildDir
 
-			smithSession, err := gexec.Start(smithCmd, GinkgoWriter, GinkgoWriter)
+			flySession, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
 
-			Eventually(smithSession, 5.0).Should(gexec.Exit(1))
+			Eventually(flySession, 5.0).Should(gexec.Exit(1))
 		})
 	})
 
 	Context("when the build errors", func() {
 		BeforeEach(func() {
-			redgreenServer.AppendHandlers(
+			gliderServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/builds/abc/result"),
 					ghttp.RespondWith(200, `{"status":"errored"}`),
@@ -254,13 +254,13 @@ script: find . {{ .Args }}
 		})
 
 		It("exits 2", func() {
-			smithCmd := exec.Command(smithPath)
-			smithCmd.Dir = buildDir
+			flyCmd := exec.Command(flyPath)
+			flyCmd.Dir = buildDir
 
-			smithSession, err := gexec.Start(smithCmd, GinkgoWriter, GinkgoWriter)
+			flySession, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
 
-			Eventually(smithSession, 5.0).Should(gexec.Exit(2))
+			Eventually(flySession, 5.0).Should(gexec.Exit(2))
 		})
 	})
 })

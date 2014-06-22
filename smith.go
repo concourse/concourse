@@ -23,8 +23,8 @@ import (
 	"github.com/pivotal-golang/archiver/compressor"
 	"github.com/tedsuo/router"
 
-	"github.com/winston-ci/redgreen/api/builds"
-	"github.com/winston-ci/redgreen/routes"
+	"github.com/concourse/glider/api/builds"
+	"github.com/concourse/glider/routes"
 )
 
 type BuildConfig struct {
@@ -45,23 +45,23 @@ var buildDir = flag.String(
 	"source directory to build",
 )
 
-var redgreenURL = flag.String(
-	"redgreenURL",
-	os.Getenv("REDGREEN_URL"),
-	"address denoting the redgreen service",
+var gliderURL = flag.String(
+	"gliderURL",
+	os.Getenv("GLIDER_URL"),
+	"address denoting the glider service",
 )
 
 func main() {
 	flag.Parse()
 
-	if *redgreenURL == "" {
-		println("must specify $REDGREEN_URL. for example:")
+	if *gliderURL == "" {
+		println("must specify $GLIDER_URL. for example:")
 		println()
-		println("export REDGREEN_URL=http://10.244.8.2:5637")
+		println("export GLIDER_URL=http://10.244.8.2:5637")
 		os.Exit(1)
 	}
 
-	reqGenerator := router.NewRequestGenerator(*redgreenURL, routes.Routes)
+	reqGenerator := router.NewRequestGenerator(*gliderURL, routes.Routes)
 
 	absConfig, err := filepath.Abs(*buildConfig)
 	if err != nil {
@@ -216,7 +216,7 @@ func upload(reqGenerator *router.RequestGenerator, build builds.Build) {
 	if err != nil {
 		compressor := compressor.NewTgz()
 
-		tmpfile, err := ioutil.TempFile("", "smith")
+		tmpfile, err := ioutil.TempFile("", "fly")
 		if err != nil {
 			log.Fatalln("creating tempfile failed:", err)
 		}
