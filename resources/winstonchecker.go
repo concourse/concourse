@@ -17,10 +17,10 @@ func NewWinstonChecker(db db.DB, jobs []string) Checker {
 	return &WinstonChecker{db, jobs}
 }
 
-func (checker *WinstonChecker) CheckResource(resource config.Resource, from builds.Version) []builds.Version {
+func (checker *WinstonChecker) CheckResource(resource config.Resource, from builds.Version) ([]builds.Version, error) {
 	commonOutputs, err := checker.db.GetCommonOutputs(checker.jobs, resource.Name)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	startFrom := 0
@@ -30,5 +30,5 @@ func (checker *WinstonChecker) CheckResource(resource config.Resource, from buil
 		}
 	}
 
-	return commonOutputs[startFrom:]
+	return commonOutputs[startFrom:], nil
 }

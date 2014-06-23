@@ -2,11 +2,11 @@ package handler
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
 
 	TurbineBuilds "github.com/concourse/turbine/api/builds"
+	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
@@ -34,8 +34,6 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("updating build: %#v\n", turbineBuild)
-
 	var status builds.Status
 
 	switch turbineBuild.Status {
@@ -52,12 +50,17 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 			status = builds.StatusErrored
 		}
 	default:
-		log.Println("unknown status:", turbineBuild.Status)
+		handler.logger.Info("api", "unknown-status", "", lager.Data{
+			"status": turbineBuild.Status,
+		})
+
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	log.Printf("saving status: %#v\n", status)
+	handler.logger.Info("update-build", "save-status", "", lager.Data{
+		"status": turbineBuild.Status,
+	})
 
 	err = handler.db.SaveBuildStatus(job, id, status)
 	if err != nil {
@@ -70,13 +73,13 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 		for _, input := range turbineBuild.Inputs {
 			err := handler.db.SaveCurrentVersion(job, input.Name, builds.Version(input.Version))
 			if err != nil {
-				log.Println("error saving source:", err)
+				handler.logger.Error("update-build", "save-current-version", "", err)
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 
 			err = handler.db.SaveBuildInput(job, id, buildInputFrom(input))
 			if err != nil {
-				log.Println("error saving input:", err)
+				handler.logger.Error("update-build", "save-input", "", err)
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 		}
@@ -84,13 +87,13 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 		for _, output := range turbineBuild.Outputs {
 			err := handler.db.SaveCurrentVersion(job, output.Name, builds.Version(output.Version))
 			if err != nil {
-				log.Println("error saving source:", err)
+				handler.logger.Error("update-build", "save-current-version", "", err)
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 
 			err = handler.db.SaveOutputVersion(job, id, output.Name, builds.Version(output.Version))
 			if err != nil {
-				log.Println("error saving source:", err)
+				handler.logger.Error("update-build", "save-output-version", "", err)
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 		}

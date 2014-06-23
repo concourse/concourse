@@ -1,7 +1,6 @@
 package watcher
 
 import (
-	"log"
 	"os"
 	"time"
 
@@ -45,7 +44,7 @@ func (watcher Watcher) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 
 			resource, found := watcher.resources.Lookup(input.Resource)
 			if !found {
-				log.Fatalln("unknown resource:", input.Resource)
+				panic("unknown resource: " + input.Resource)
 			}
 
 			var checker resources.Checker

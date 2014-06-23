@@ -2,11 +2,13 @@ package queue_test
 
 import (
 	"errors"
+	"time"
+
 	"github.com/concourse/atc/builder/fakebuilder"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 	. "github.com/concourse/atc/queue"
-	"time"
+	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -43,7 +45,7 @@ var _ = Describe("Queue", func() {
 			Status: builds.StatusPending,
 		}
 
-		queue = NewQueue(gracePeriod, builder)
+		queue = NewQueue(lagertest.NewTestLogger("queue"), gracePeriod, builder)
 	})
 
 	Context("when a build is triggered", func() {

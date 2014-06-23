@@ -1,7 +1,7 @@
 package watchman
 
 import (
-	"log"
+	"fmt"
 	"sync"
 	"time"
 
@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/atc/queue"
 	"github.com/concourse/atc/resources"
 	"github.com/garyburd/redigo/redis"
+	"github.com/pivotal-golang/lager"
 )
 
 type Watchman interface {
@@ -25,6 +26,8 @@ type Watchman interface {
 }
 
 type watchman struct {
+	logger lager.Logger
+
 	db     db.DB
 	queuer queue.Queuer
 
@@ -32,8 +35,10 @@ type watchman struct {
 	watching *sync.WaitGroup
 }
 
-func NewWatchman(db db.DB, queuer queue.Queuer) Watchman {
+func NewWatchman(logger lager.Logger, db db.DB, queuer queue.Queuer) Watchman {
 	return &watchman{
+		logger: logger,
+
 		db:     db,
 		queuer: queuer,
 
@@ -67,23 +72,58 @@ func (watchman *watchman) Watch(
 					from = nil
 				}
 
-				log.Printf("checking for sources for %s via %T from %s since %v\n", job.Name, checker, resource, from)
+				watchman.logger.Info("watchman", "check", "", lager.Data{
+					"job":      job.Name,
+					"resource": resource.Name,
+					"checker":  fmt.Sprintf("%T", checker),
+					"from":     from,
+				})
 
-				newVersions := checker.CheckResource(resource, from)
+				newVersions, err := checker.CheckResource(resource, from)
+				if err != nil {
+					watchman.logger.Error("watchman", "check-failed", "", err)
+					break
+				}
+
 				if len(newVersions) == 0 {
 					break
 				}
 
-				log.Printf("found %d new versions for %s via %T", len(newVersions), job.Name, checker)
+				watchman.logger.Info("watchman", "versions-found", "", lager.Data{
+					"job":      job.Name,
+					"resource": resource.Name,
+					"checker":  fmt.Sprintf("%T", checker),
+					"versions": newVersions,
+					"total":    len(newVersions),
+				})
 
 				if eachVersion {
 					for i, version := range newVersions {
-						log.Printf("triggering %s (%d of %d) via %T: %s\n", job.Name, i+1, len(newVersions), checker, version)
+						watchman.logger.Info(
+							"watchman",
+							"enqueue",
+							fmt.Sprintf("%d of %d", i+1, len(newVersions)),
+							lager.Data{
+								"job":      job.Name,
+								"resource": resource.Name,
+								"version":  version,
+								"checker":  fmt.Sprintf("%T", checker),
+							},
+						)
+
 						watchman.queuer.Enqueue(job, resource, version)
 					}
 				} else {
-					log.Printf("triggering %s (latest) via %T: %s\n", job.Name, checker, resource)
-					watchman.queuer.Enqueue(job, resource, newVersions[len(newVersions)-1])
+					version := newVersions[len(newVersions)-1]
+
+					watchman.logger.Info("watchman", "enqueue-latest", "", lager.Data{
+						"job":      job.Name,
+						"resource": resource.Name,
+						"version":  version,
+						"checker":  fmt.Sprintf("%T", checker),
+					})
+
+					watchman.queuer.Enqueue(job, resource, version)
 				}
 			}
 		}

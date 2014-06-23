@@ -2,7 +2,6 @@ package handler
 
 import (
 	"io"
-	"log"
 	"strconv"
 
 	"code.google.com/p/go.net/websocket"
@@ -21,7 +20,7 @@ func (handler *Handler) LogInput(conn *websocket.Conn) {
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		log.Println("error parsing build id:", err)
+		handler.logger.Error("logs-in", "parse-build-id", "", err)
 		conn.Close()
 		return
 	}
@@ -40,7 +39,7 @@ func (handler *Handler) LogInput(conn *websocket.Conn) {
 
 	_, err = io.Copy(logFanout, conn)
 	if err != nil {
-		log.Println("error reading message:", err)
+		handler.logger.Error("logs-in", "read-message", "", err)
 		return
 	}
 }
@@ -54,7 +53,7 @@ func (handler *Handler) LogOutput(conn *websocket.Conn) {
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		log.Println("error parsing build id:", err)
+		handler.logger.Error("logs-out", "parse-build-id", "", err)
 		conn.Close()
 		return
 	}
@@ -72,7 +71,7 @@ func (handler *Handler) LogOutput(conn *websocket.Conn) {
 
 	err = logFanout.Attach(logWriter)
 	if err != nil {
-		log.Println("error attaching to logs:", err)
+		handler.logger.Error("logs-out", "attach", "", err)
 		conn.Close()
 		return
 	}

@@ -12,6 +12,7 @@ import (
 	. "github.com/concourse/atc/watchman"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-golang/lager/lagertest"
 )
 
 var _ = Describe("Watchman", func() {
@@ -35,7 +36,7 @@ var _ = Describe("Watchman", func() {
 
 		queuer = new(fakequeuer.FakeQueuer)
 
-		watchman = NewWatchman(redis, queuer)
+		watchman = NewWatchman(lagertest.NewTestLogger("watchman"), redis, queuer)
 
 		job = config.Job{
 			Name: "some-job",
@@ -72,9 +73,9 @@ var _ = Describe("Watchman", func() {
 		BeforeEach(func() {
 			times = make(chan time.Time, 100)
 
-			checker.CheckResourceStub = func(config.Resource, builds.Version) []builds.Version {
+			checker.CheckResourceStub = func(config.Resource, builds.Version) ([]builds.Version, error) {
 				times <- time.Now()
-				return nil
+				return nil, nil
 			}
 		})
 
@@ -142,7 +143,7 @@ var _ = Describe("Watchman", func() {
 				}
 
 				check := 0
-				checker.CheckResourceStub = func(checkedResource config.Resource, from builds.Version) []builds.Version {
+				checker.CheckResourceStub = func(checkedResource config.Resource, from builds.Version) ([]builds.Version, error) {
 					defer GinkgoRecover()
 
 					Ω(checkedResource).Should(Equal(resource))
@@ -150,7 +151,8 @@ var _ = Describe("Watchman", func() {
 					checkedFrom <- from
 					result := checkResults[check]
 					check++
-					return result
+
+					return result, nil
 				}
 			})
 
@@ -195,7 +197,7 @@ var _ = Describe("Watchman", func() {
 			BeforeEach(func() {
 				checked := false
 
-				checker.CheckResourceStub = func(config.Resource, builds.Version) []builds.Version {
+				checker.CheckResourceStub = func(config.Resource, builds.Version) ([]builds.Version, error) {
 					times <- time.Now()
 
 					if checked {
@@ -204,7 +206,7 @@ var _ = Describe("Watchman", func() {
 
 					checked = true
 
-					return nil
+					return nil, nil
 				}
 			})
 

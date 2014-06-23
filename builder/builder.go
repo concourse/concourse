@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"path/filepath"
 	"time"
@@ -60,13 +59,10 @@ func NewBuilder(
 }
 
 func (builder *builder) Create(job config.Job) (builds.Build, error) {
-	log.Println("creating build")
 	return builder.db.CreateBuild(job.Name)
 }
 
 func (builder *builder) Attempt(job config.Job, resource config.Resource, version builds.Version) (builds.Build, error) {
-	log.Println("attempting build of", job.Name, "from", resource.Name, "at", version)
-
 	hasOutput := false
 	for _, out := range job.Outputs {
 		if out.Resource == resource.Name {
@@ -114,8 +110,6 @@ func (builder *builder) Start(job config.Job, build builds.Build, versionOverrid
 		panic(err)
 	}
 
-	log.Println("completion callback:", complete.URL)
-
 	logs, err := builder.atc.RequestForHandler(
 		WinstonRoutes.LogInput,
 		router.Params{
@@ -127,8 +121,6 @@ func (builder *builder) Start(job config.Job, build builds.Build, versionOverrid
 	if err != nil {
 		panic(err)
 	}
-
-	log.Println("logs callback:", logs.URL)
 
 	logs.URL.Scheme = "ws"
 
@@ -147,8 +139,6 @@ func (builder *builder) Start(job config.Job, build builds.Build, versionOverrid
 		Callback: complete.URL.String(),
 		LogsURL:  logs.URL.String(),
 	}
-
-	log.Printf("creating build: %#v\n", turbineBuild)
 
 	req := new(bytes.Buffer)
 
@@ -170,20 +160,17 @@ func (builder *builder) Start(job config.Job, build builds.Build, versionOverrid
 
 	resp, err := builder.httpClient.Do(execute)
 	if err != nil {
-		log.Println("turbine request failed:", err)
 		return builds.Build{}, err
 	}
 
 	// TODO test bad response code
 	if resp.StatusCode != http.StatusCreated {
-		log.Println("bad turbine response:", resp)
 		return builds.Build{}, ErrBadResponse
 	}
 
 	var startedBuild TurbineBuilds.Build
 	err = json.NewDecoder(resp.Body).Decode(&startedBuild)
 	if err != nil {
-		log.Println("bad turbine response (expecting build):", err)
 		return builds.Build{}, err
 	}
 

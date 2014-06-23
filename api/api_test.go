@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/api/drainer"
@@ -38,7 +39,7 @@ var _ = Describe("API", func() {
 
 		drain = drainer.NewDrainer()
 
-		handler, err := api.New(redis, drain)
+		handler, err := api.New(lagertest.NewTestLogger("api"), redis, drain)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		server = httptest.NewServer(handler)

@@ -2,25 +2,30 @@ package abortbuild
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/pivotal-golang/lager"
+	"github.com/tedsuo/router"
+
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/server/routes"
-	"github.com/tedsuo/router"
 )
 
 type handler struct {
+	logger lager.Logger
+
 	jobs       config.Jobs
 	db         db.DB
 	httpClient *http.Client
 }
 
-func NewHandler(jobs config.Jobs, db db.DB) http.Handler {
+func NewHandler(logger lager.Logger, jobs config.Jobs, db db.DB) http.Handler {
 	return &handler{
+		logger: logger,
+
 		jobs: jobs,
 		db:   db,
 
@@ -45,18 +50,29 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("aborting", job.Name, buildID)
+	handler.logger.Info("web", "aborting", "", lager.Data{
+		"job":   job.Name,
+		"build": buildID,
+	})
 
 	build, err := handler.db.GetBuild(job.Name, buildID)
 	if err != nil {
-		log.Println("failed to get build:", err)
+		handler.logger.Error("web", "get-build-failed", "", err, lager.Data{
+			"job":   job.Name,
+			"build": buildID,
+		})
+
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	err = handler.db.AbortBuild(job.Name, buildID)
 	if err != nil {
-		log.Println("failed to abort build in db:", err)
+		handler.logger.Error("web", "abort-build-failed", "database", err, lager.Data{
+			"job":   job.Name,
+			"build": build.ID,
+		})
+
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -64,7 +80,11 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if build.AbortURL != "" {
 		resp, err := handler.httpClient.Post(build.AbortURL, "", nil)
 		if err != nil {
-			log.Println("failed to abort build:", err)
+			handler.logger.Error("web", "abort-build-failed", "abort url", err, lager.Data{
+				"job":   job.Name,
+				"build": build.ID,
+			})
+
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -77,7 +97,10 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"build": fmt.Sprintf("%d", build.ID),
 	})
 	if err != nil {
-		log.Fatalln("failed to construct redirect uri:", err)
+		handler.logger.Fatal("web", "create-redirect-uri-failed", "", err, lager.Data{
+			"job":   job.Name,
+			"build": build.ID,
+		})
 	}
 
 	http.Redirect(w, r, redirectPath, 302)

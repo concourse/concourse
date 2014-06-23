@@ -2,9 +2,9 @@ package triggerbuild
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
+	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/router"
 
 	"github.com/concourse/atc/builds"
@@ -14,12 +14,16 @@ import (
 )
 
 type handler struct {
+	logger lager.Logger
+
 	jobs   config.Jobs
 	queuer queue.Queuer
 }
 
-func NewHandler(jobs config.Jobs, queuer queue.Queuer) http.Handler {
+func NewHandler(logger lager.Logger, jobs config.Jobs, queuer queue.Queuer) http.Handler {
 	return &handler{
+		logger: logger,
+
 		jobs:   jobs,
 		queuer: queuer,
 	}
@@ -32,14 +36,19 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("triggering", job)
+	handler.logger.Info("trigger-build", "triggering", "", lager.Data{
+		"job": job.Name,
+	})
 
 	var build builds.Build
 
 	build, err := handler.queuer.Trigger(job)
 	if err != nil {
+		handler.logger.Error("trigger-build", "triggering-failed", "", err, lager.Data{
+			"job": job.Name,
+		})
+
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "error building: %s", err)
 		return
 	}
 
@@ -48,7 +57,10 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"build": fmt.Sprintf("%d", build.ID),
 	})
 	if err != nil {
-		log.Fatalln("failed to construct redirect uri:", err)
+		handler.logger.Fatal("trigger-build", "constructing-redirect-uri-failed", "", err, lager.Data{
+			"job":   job.Name,
+			"build": build.ID,
+		})
 	}
 
 	http.Redirect(w, r, redirectPath, 302)

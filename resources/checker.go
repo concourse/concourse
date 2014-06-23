@@ -6,5 +6,5 @@ import (
 )
 
 type Checker interface {
-	CheckResource(config.Resource, builds.Version) []builds.Version
+	CheckResource(config.Resource, builds.Version) ([]builds.Version, error)
 }

@@ -3,12 +3,16 @@ package handler
 import (
 	"sync"
 
+	"github.com/pivotal-golang/lager"
+
 	"github.com/concourse/atc/api/drainer"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/logfanout"
 )
 
 type Handler struct {
+	logger lager.Logger
+
 	db    db.DB
 	drain *drainer.Drainer
 
@@ -16,8 +20,10 @@ type Handler struct {
 	logsMutex *sync.RWMutex
 }
 
-func NewHandler(db db.DB, drain *drainer.Drainer) *Handler {
+func NewHandler(logger lager.Logger, db db.DB, drain *drainer.Drainer) *Handler {
 	return &Handler{
+		logger: logger,
+
 		db:    db,
 		drain: drain,
 

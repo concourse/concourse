@@ -2,7 +2,6 @@ package resources
 
 import (
 	"encoding/json"
-	"log"
 
 	"code.google.com/p/go.net/websocket"
 	TurbineBuilds "github.com/concourse/turbine/api/builds"
@@ -27,10 +26,10 @@ func NewTurbineChecker(turbine *router.RequestGenerator) Checker {
 	}
 }
 
-func (checker *TurbineChecker) CheckResource(resource config.Resource, from builds.Version) []builds.Version {
+func (checker *TurbineChecker) CheckResource(resource config.Resource, from builds.Version) ([]builds.Version, error) {
 	conn, err := checker.connect()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	buildInput := TurbineBuilds.Input{
@@ -41,20 +40,18 @@ func (checker *TurbineChecker) CheckResource(resource config.Resource, from buil
 
 	err = json.NewEncoder(conn).Encode(buildInput)
 	if err != nil {
-		log.Println("encoding input failed:", err)
-		return nil
+		return nil, err
 	}
 
 	var newVersions []builds.Version
 	err = json.NewDecoder(conn).Decode(&newVersions)
 	if err != nil {
-		log.Println("invalid check response:", err)
-		return nil
+		return nil, err
 	}
 
 	checker.release(conn)
 
-	return newVersions
+	return newVersions, nil
 }
 
 func (checker *TurbineChecker) connect() (*websocket.Conn, error) {

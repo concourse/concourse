@@ -3,25 +3,30 @@ package index
 import (
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
+
+	"github.com/pivotal-golang/lager"
+	"github.com/tedsuo/router"
 
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/server/routes"
-	"github.com/tedsuo/router"
 )
 
 type handler struct {
+	logger lager.Logger
+
 	resources config.Resources
 	jobs      config.Jobs
 	db        db.DB
 	template  *template.Template
 }
 
-func NewHandler(resources config.Resources, jobs config.Jobs, db db.DB, template *template.Template) http.Handler {
+func NewHandler(logger lager.Logger, resources config.Resources, jobs config.Jobs, db db.DB, template *template.Template) http.Handler {
 	return &handler{
+		logger: logger,
+
 		resources: resources,
 		jobs:      jobs,
 		db:        db,
@@ -148,7 +153,9 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	err := handler.template.Execute(w, data)
 	if err != nil {
-		log.Println("failed to execute template:", err)
+		handler.logger.Fatal("index", "execute-template-failed", "", err, lager.Data{
+			"template-data": data,
+		})
 	}
 }
 

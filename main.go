@@ -3,13 +3,13 @@ package main
 import (
 	"errors"
 	"flag"
-	"log"
 	"os"
 	"time"
 
 	turbineroutes "github.com/concourse/turbine/routes"
 	"github.com/fraenkel/candiedyaml"
 	"github.com/garyburd/redigo/redis"
+	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
@@ -124,9 +124,14 @@ func main() {
 	atcEndpoint := router.NewRequestGenerator("http://"+*peerAddr, apiroutes.Routes)
 	turbineEndpoint := router.NewRequestGenerator(*turbineURL, turbineroutes.Routes)
 	builder := builder.NewBuilder(redisDB, conf.Resources, turbineEndpoint, atcEndpoint)
-	queuer := queue.NewQueue(10*time.Second, builder)
+
+	logger := lager.NewLogger("atc")
+	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
+
+	queuer := queue.NewQueue(logger, 10*time.Second, builder)
 
 	serverHandler, err := server.New(
+		logger,
 		conf,
 		redisDB,
 		*templatesDir,
@@ -148,12 +153,12 @@ func main() {
 
 	drainer := drainer.NewDrainer()
 
-	apiHandler, err := api.New(redisDB, drainer)
+	apiHandler, err := api.New(logger, redisDB, drainer)
 	if err != nil {
 		fatal(err)
 	}
 
-	watchman := watchman.NewWatchman(redisDB, queuer)
+	watchman := watchman.NewWatchman(logger, redisDB, queuer)
 
 	group := grouper.EnvokeGroup(grouper.RunGroup{
 		"web":     http_server.New(*listenAddr, serverHandler),
@@ -169,15 +174,18 @@ func main() {
 
 	running := ifrit.Envoke(sigmon.New(group))
 
-	log.Println("serving web on", *listenAddr)
-	log.Println("serving api on", *apiListenAddr)
+	logger.Info("main", "listening", "", lager.Data{
+		"web": *listenAddr,
+		"api": *apiListenAddr,
+	})
 
 	err = <-running.Wait()
 	if err != nil {
-		fatal(err)
+		logger.Error("main", "exited", "failure", err)
+		return
 	}
 
-	log.Println("exited")
+	logger.Info("main", "exited", "")
 }
 
 func fatal(err error) {

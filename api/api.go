@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"code.google.com/p/go.net/websocket"
+	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/router"
 
 	"github.com/concourse/atc/api/drainer"
@@ -12,8 +13,8 @@ import (
 	"github.com/concourse/atc/db"
 )
 
-func New(db db.DB, drain *drainer.Drainer) (http.Handler, error) {
-	builds := handler.NewHandler(db, drain)
+func New(logger lager.Logger, db db.DB, drain *drainer.Drainer) (http.Handler, error) {
+	builds := handler.NewHandler(logger, db, drain)
 
 	handlers := map[string]http.Handler{
 		routes.UpdateBuild: http.HandlerFunc(builds.UpdateBuild),

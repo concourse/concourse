@@ -6,10 +6,11 @@ import (
 
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
+	. "github.com/concourse/atc/resources"
 )
 
 type FakeChecker struct {
-	CheckResourceStub        func(config.Resource, builds.Version) []builds.Version
+	CheckResourceStub        func(config.Resource, builds.Version) ([]builds.Version, error)
 	checkResourceMutex       sync.RWMutex
 	checkResourceArgsForCall []struct {
 		arg1 config.Resource
@@ -17,10 +18,11 @@ type FakeChecker struct {
 	}
 	checkResourceReturns struct {
 		result1 []builds.Version
+		result2 error
 	}
 }
 
-func (fake *FakeChecker) CheckResource(arg1 config.Resource, arg2 builds.Version) []builds.Version {
+func (fake *FakeChecker) CheckResource(arg1 config.Resource, arg2 builds.Version) ([]builds.Version, error) {
 	fake.checkResourceMutex.Lock()
 	defer fake.checkResourceMutex.Unlock()
 	fake.checkResourceArgsForCall = append(fake.checkResourceArgsForCall, struct {
@@ -30,7 +32,7 @@ func (fake *FakeChecker) CheckResource(arg1 config.Resource, arg2 builds.Version
 	if fake.CheckResourceStub != nil {
 		return fake.CheckResourceStub(arg1, arg2)
 	} else {
-		return fake.checkResourceReturns.result1
+		return fake.checkResourceReturns.result1, fake.checkResourceReturns.result2
 	}
 }
 
@@ -46,8 +48,11 @@ func (fake *FakeChecker) CheckResourceArgsForCall(i int) (config.Resource, build
 	return fake.checkResourceArgsForCall[i].arg1, fake.checkResourceArgsForCall[i].arg2
 }
 
-func (fake *FakeChecker) CheckResourceReturns(result1 []builds.Version) {
+func (fake *FakeChecker) CheckResourceReturns(result1 []builds.Version, result2 error) {
 	fake.checkResourceReturns = struct {
 		result1 []builds.Version
-	}{result1}
+		result2 error
+	}{result1, result2}
 }
+
+var _ Checker = new(FakeChecker)
