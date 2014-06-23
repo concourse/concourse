@@ -2,7 +2,7 @@
 name: warden-linux
 
 dependencies:
-  - golang_1.2
+  - golang_1.3
 
 files:
   - warden-linux/**/*.go
