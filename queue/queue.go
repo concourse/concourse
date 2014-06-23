@@ -33,16 +33,15 @@ func NewQueue(logger lager.Logger, gracePeriod time.Duration, builder builder.Bu
 }
 
 func (q *Queue) Trigger(job config.Job) (builds.Build, error) {
-	q.logger.Info("queue", "triggering", "", lager.Data{
+	log := q.logger.Session("trigger", lager.Data{
 		"job": job.Name,
 	})
 
+	log.Debug("create")
+
 	build, err := q.builder.Create(job)
 	if err != nil {
-		q.logger.Error("queue", "trigger-failed", "", err, lager.Data{
-			"job": job.Name,
-		})
-
+		log.Error("create-failed", err)
 		return builds.Build{}, err
 	}
 
@@ -52,7 +51,7 @@ func (q *Queue) Trigger(job config.Job) (builds.Build, error) {
 }
 
 func (q *Queue) Enqueue(job config.Job, resource config.Resource, version builds.Version) (builds.Build, error) {
-	q.logger.Info("queue", "attempting", "", lager.Data{
+	log := q.logger.Session("enqueue", lager.Data{
 		"job":      job.Name,
 		"resource": resource.Name,
 		"version":  version,
@@ -60,12 +59,7 @@ func (q *Queue) Enqueue(job config.Job, resource config.Resource, version builds
 
 	build, err := q.builder.Attempt(job, resource, version)
 	if err != nil {
-		q.logger.Error("queue", "attempt-failed", "", err, lager.Data{
-			"job":      job.Name,
-			"resource": resource.Name,
-			"version":  version,
-		})
-
+		log.Error("attempt-failed", err)
 		return builds.Build{}, err
 	}
 
@@ -77,24 +71,26 @@ func (q *Queue) Enqueue(job config.Job, resource config.Resource, version builds
 }
 
 func (q *Queue) tryToStart(job config.Job, build builds.Build, versions map[string]builds.Version) {
-	q.logger.Info("queue", "starting", "", lager.Data{
+	log := q.logger.Session("try", lager.Data{
 		"job":      job.Name,
 		"versions": versions,
 	})
 
+	log.Debug("start")
+
 	build, err := q.builder.Start(job, build, versions)
 	if err != nil {
-		q.logger.Error("queue", "start-failed", "", err, lager.Data{
-			"job":      job.Name,
-			"versions": versions,
-		})
-
+		log.Error("failed-to-start", err)
 		return
 	}
 
 	if build.Status == builds.StatusPending {
+		log.Info("still-pending")
+
 		time.AfterFunc(q.gracePeriod, func() {
 			q.tryToStart(job, build, versions)
 		})
+	} else {
+		log.Info("started")
 	}
 }

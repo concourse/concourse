@@ -34,6 +34,10 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log := handler.logger.Session("update-build", lager.Data{
+		"status": turbineBuild.Status,
+	})
+
 	var status builds.Status
 
 	switch turbineBuild.Status {
@@ -50,17 +54,12 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 			status = builds.StatusErrored
 		}
 	default:
-		handler.logger.Info("api", "unknown-status", "", lager.Data{
-			"status": turbineBuild.Status,
-		})
-
+		log.Info("unknown-status")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	handler.logger.Info("update-build", "save-status", "", lager.Data{
-		"status": turbineBuild.Status,
-	})
+	log.Info("save-status")
 
 	err = handler.db.SaveBuildStatus(job, id, status)
 	if err != nil {
@@ -73,13 +72,13 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 		for _, input := range turbineBuild.Inputs {
 			err := handler.db.SaveCurrentVersion(job, input.Name, builds.Version(input.Version))
 			if err != nil {
-				handler.logger.Error("update-build", "save-current-version", "", err)
+				log.Error("failed-to-save-current-version", err)
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 
 			err = handler.db.SaveBuildInput(job, id, buildInputFrom(input))
 			if err != nil {
-				handler.logger.Error("update-build", "save-input", "", err)
+				log.Error("failed-to-save-input", err)
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 		}
@@ -87,13 +86,13 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 		for _, output := range turbineBuild.Outputs {
 			err := handler.db.SaveCurrentVersion(job, output.Name, builds.Version(output.Version))
 			if err != nil {
-				handler.logger.Error("update-build", "save-current-version", "", err)
+				log.Error("failed-to-save-current-version", err)
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 
 			err = handler.db.SaveOutputVersion(job, id, output.Name, builds.Version(output.Version))
 			if err != nil {
-				handler.logger.Error("update-build", "save-output-version", "", err)
+				log.Error("failed-to-save-output-version", err)
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 		}

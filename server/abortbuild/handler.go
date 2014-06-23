@@ -50,29 +50,21 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handler.logger.Info("web", "aborting", "", lager.Data{
+	log := handler.logger.Session("abort", lager.Data{
 		"job":   job.Name,
 		"build": buildID,
 	})
 
 	build, err := handler.db.GetBuild(job.Name, buildID)
 	if err != nil {
-		handler.logger.Error("web", "get-build-failed", "", err, lager.Data{
-			"job":   job.Name,
-			"build": buildID,
-		})
-
+		log.Error("failed-to-get-build", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	err = handler.db.AbortBuild(job.Name, buildID)
 	if err != nil {
-		handler.logger.Error("web", "abort-build-failed", "database", err, lager.Data{
-			"job":   job.Name,
-			"build": build.ID,
-		})
-
+		log.Error("failed-to-set-aborted", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -80,11 +72,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if build.AbortURL != "" {
 		resp, err := handler.httpClient.Post(build.AbortURL, "", nil)
 		if err != nil {
-			handler.logger.Error("web", "abort-build-failed", "abort url", err, lager.Data{
-				"job":   job.Name,
-				"build": build.ID,
-			})
-
+			log.Error("failed-to-abort-build", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -97,10 +85,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"build": fmt.Sprintf("%d", build.ID),
 	})
 	if err != nil {
-		handler.logger.Fatal("web", "create-redirect-uri-failed", "", err, lager.Data{
-			"job":   job.Name,
-			"build": build.ID,
-		})
+		log.Fatal("failed-to-create-redirect-uri", err)
 	}
 
 	http.Redirect(w, r, redirectPath, 302)

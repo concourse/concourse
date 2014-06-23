@@ -72,16 +72,18 @@ func (watchman *watchman) Watch(
 					from = nil
 				}
 
-				watchman.logger.Info("watchman", "check", "", lager.Data{
+				log := watchman.logger.Session("watchman", lager.Data{
 					"job":      job.Name,
 					"resource": resource.Name,
 					"checker":  fmt.Sprintf("%T", checker),
 					"from":     from,
 				})
 
+				log.Debug("check")
+
 				newVersions, err := checker.CheckResource(resource, from)
 				if err != nil {
-					watchman.logger.Error("watchman", "check-failed", "", err)
+					log.Error("failed-to-check-failed", err)
 					break
 				}
 
@@ -89,38 +91,25 @@ func (watchman *watchman) Watch(
 					break
 				}
 
-				watchman.logger.Info("watchman", "versions-found", "", lager.Data{
-					"job":      job.Name,
-					"resource": resource.Name,
-					"checker":  fmt.Sprintf("%T", checker),
+				log.Info("versions-found", lager.Data{
 					"versions": newVersions,
 					"total":    len(newVersions),
 				})
 
 				if eachVersion {
 					for i, version := range newVersions {
-						watchman.logger.Info(
-							"watchman",
-							"enqueue",
-							fmt.Sprintf("%d of %d", i+1, len(newVersions)),
-							lager.Data{
-								"job":      job.Name,
-								"resource": resource.Name,
-								"version":  version,
-								"checker":  fmt.Sprintf("%T", checker),
-							},
-						)
+						log.Info("enqueue", lager.Data{
+							"which":   fmt.Sprintf("%d of %d", i+1, len(newVersions)),
+							"version": version,
+						})
 
 						watchman.queuer.Enqueue(job, resource, version)
 					}
 				} else {
 					version := newVersions[len(newVersions)-1]
 
-					watchman.logger.Info("watchman", "enqueue-latest", "", lager.Data{
-						"job":      job.Name,
-						"resource": resource.Name,
-						"version":  version,
-						"checker":  fmt.Sprintf("%T", checker),
+					log.Info("enqueue-latest", lager.Data{
+						"version": version,
 					})
 
 					watchman.queuer.Enqueue(job, resource, version)

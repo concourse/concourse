@@ -151,9 +151,11 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	log := handler.logger.Session("index")
+
 	err := handler.template.Execute(w, data)
 	if err != nil {
-		handler.logger.Fatal("index", "execute-template-failed", "", err, lager.Data{
+		log.Fatal("failed-to-execute-template", err, lager.Data{
 			"template-data": data,
 		})
 	}

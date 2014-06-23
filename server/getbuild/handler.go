@@ -51,23 +51,21 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log := handler.logger.Session("get-build", lager.Data{
+		"job":   job.Name,
+		"build": buildID,
+	})
+
 	build, err := handler.db.GetBuild(job.Name, buildID)
 	if err != nil {
-		handler.logger.Error("get-build", "get-build-failed", "", err, lager.Data{
-			"job":   job.Name,
-			"build": buildID,
-		})
-
+		log.Error("get-build-failed", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	bs, err := handler.db.Builds(job.Name)
 	if err != nil {
-		handler.logger.Error("get-build", "get-all-builds-failed", "", err, lager.Data{
-			"job": job.Name,
-		})
-
+		log.Error("get-all-builds-failed", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -91,7 +89,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	err = handler.template.Execute(w, templateData)
 	if err != nil {
-		handler.logger.Fatal("get-build", "execute-template-failed", "", err, lager.Data{
+		log.Fatal("failed-to-execute-template", err, lager.Data{
 			"template-data": templateData,
 		})
 	}

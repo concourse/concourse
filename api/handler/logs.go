@@ -15,12 +15,14 @@ func (handler *Handler) LogInput(conn *websocket.Conn) {
 	handler.drain.Add(conn)
 	defer handler.drain.Remove(conn)
 
+	log := handler.logger.Session("logs-in")
+
 	job := conn.Request().FormValue(":job")
 	idStr := conn.Request().FormValue(":build")
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		handler.logger.Error("logs-in", "parse-build-id", "", err)
+		log.Error("invalid-build-id", err)
 		conn.Close()
 		return
 	}
@@ -39,7 +41,7 @@ func (handler *Handler) LogInput(conn *websocket.Conn) {
 
 	_, err = io.Copy(logFanout, conn)
 	if err != nil {
-		handler.logger.Error("logs-in", "read-message", "", err)
+		log.Error("message-read-error", err)
 		return
 	}
 }
@@ -51,9 +53,11 @@ func (handler *Handler) LogOutput(conn *websocket.Conn) {
 	job := conn.Request().FormValue(":job")
 	idStr := conn.Request().FormValue(":build")
 
+	log := handler.logger.Session("logs-out")
+
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		handler.logger.Error("logs-out", "parse-build-id", "", err)
+		log.Error("invalid-build-id", err)
 		conn.Close()
 		return
 	}
@@ -71,7 +75,7 @@ func (handler *Handler) LogOutput(conn *websocket.Conn) {
 
 	err = logFanout.Attach(logWriter)
 	if err != nil {
-		handler.logger.Error("logs-out", "attach", "", err)
+		log.Error("attach-failed", err)
 		conn.Close()
 		return
 	}

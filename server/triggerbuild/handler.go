@@ -36,18 +36,17 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handler.logger.Info("trigger-build", "triggering", "", lager.Data{
+	log := handler.logger.Session("trigger-build", lager.Data{
 		"job": job.Name,
 	})
+
+	log.Debug("triggering")
 
 	var build builds.Build
 
 	build, err := handler.queuer.Trigger(job)
 	if err != nil {
-		handler.logger.Error("trigger-build", "triggering-failed", "", err, lager.Data{
-			"job": job.Name,
-		})
-
+		log.Error("triggering-failed", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -57,8 +56,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"build": fmt.Sprintf("%d", build.ID),
 	})
 	if err != nil {
-		handler.logger.Fatal("trigger-build", "constructing-redirect-uri-failed", "", err, lager.Data{
-			"job":   job.Name,
+		log.Fatal("failed-to-construct-redirect-uri", err, lager.Data{
 			"build": build.ID,
 		})
 	}

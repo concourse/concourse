@@ -174,18 +174,18 @@ func main() {
 
 	running := ifrit.Envoke(sigmon.New(group))
 
-	logger.Info("main", "listening", "", lager.Data{
+	logger.Info("listening", lager.Data{
 		"web": *listenAddr,
 		"api": *apiListenAddr,
 	})
 
 	err = <-running.Wait()
 	if err != nil {
-		logger.Error("main", "exited", "failure", err)
+		logger.Error("failed", err)
 		return
 	}
 
-	logger.Info("main", "exited", "")
+	logger.Info("exited")
 }
 
 func fatal(err error) {
