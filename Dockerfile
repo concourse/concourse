@@ -1,12 +1,11 @@
 FROM ubuntu:14.04
 
 # The Basics
-RUN apt-get update
-RUN apt-get -y install build-essential curl
+RUN apt-get update && apt-get -y install build-essential curl
 
-# Go 1.2.2
+# Go 1.3
 RUN echo "deb http://mirror.anl.gov/pub/ubuntu trusty main universe" >> /etc/apt/sources.list
-RUN curl https://storage.googleapis.com/golang/go1.2.2.linux-amd64.tar.gz | tar -C /usr/local -xzf -
+RUN curl https://storage.googleapis.com/golang/go1.3.linux-amd64.tar.gz | tar -C /usr/local -xzf -
 
 # Redis
 RUN \
@@ -17,4 +16,4 @@ RUN \
     rm -rf /tmp/redis-stable*
 
 # Warden runtime dependencies
-RUN apt-get -y install iptables quota rsync net-tools aufs-tools
+RUN apt-get update && apt-get -y install iptables quota rsync net-tools aufs-tools
