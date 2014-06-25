@@ -4,11 +4,6 @@ aufs/aufs-tools_20110410-1_amd64.deb:
   sha: !binary |-
     NmYyMDIzMDhmNTc4ZGU3ZWE1NGZjMmRkMGI0NGI2NjY4MDRmOWJhNg==
   size: 98338
-golang_1.2/go1.2.2.linux-amd64.tar.gz:
-  object_id: 6c89860c-bf0e-4e88-bebd-083d88cce2ba
-  sha: !binary |-
-    NmJkMTUxY2E0OWM0MzU0NjJjOGJmMDE5NDc3YTYyNDRiOTU4ZWJiNQ==
-  size: 56535343
 iptables/iptables-1.4.21.tar.bz2:
   object_id: 2bc7b7eb-d543-49f2-a8a7-6ac692ba4b0e
   sha: !binary |-
