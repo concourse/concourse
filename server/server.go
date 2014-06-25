@@ -10,10 +10,12 @@ import (
 
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/logfanout"
 	"github.com/concourse/atc/queue"
 	"github.com/concourse/atc/server/abortbuild"
 	"github.com/concourse/atc/server/getbuild"
 	"github.com/concourse/atc/server/index"
+	"github.com/concourse/atc/server/logs"
 	"github.com/concourse/atc/server/routes"
 	"github.com/concourse/atc/server/triggerbuild"
 )
@@ -25,6 +27,7 @@ func New(
 	templatesDir, publicDir string,
 	peerAddr string,
 	queuer queue.Queuer,
+	tracker *logfanout.Tracker,
 ) (http.Handler, error) {
 	funcs := template.FuncMap{
 		"url": templateFuncs{peerAddr}.url,
@@ -50,6 +53,8 @@ func New(
 		routes.GetBuild:     getbuild.NewHandler(logger, config.Jobs, db, buildTemplate),
 		routes.TriggerBuild: triggerbuild.NewHandler(logger, config.Jobs, queuer),
 		routes.AbortBuild:   abortbuild.NewHandler(logger, config.Jobs, db),
+
+		routes.LogOutput: logs.NewHandler(logger, tracker),
 
 		routes.Public: http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
 	}

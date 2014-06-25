@@ -1,0 +1,91 @@
+package logfanout
+
+import (
+	"fmt"
+	"io"
+	"sync"
+
+	"github.com/concourse/atc/db"
+)
+
+type Tracker struct {
+	db db.DB
+
+	draining    bool
+	connections map[io.Closer]struct{}
+
+	logs    map[string]*LogFanout
+	parties map[string]int
+
+	lock *sync.RWMutex
+}
+
+func NewTracker(db db.DB) *Tracker {
+	return &Tracker{
+		db: db,
+
+		logs:        make(map[string]*LogFanout),
+		parties:     make(map[string]int),
+		connections: make(map[io.Closer]struct{}),
+
+		lock: new(sync.RWMutex),
+	}
+}
+
+func (tracker *Tracker) Register(job string, id int, conn io.Closer) *LogFanout {
+	key := fmt.Sprintf("%s-%d", job, id)
+
+	tracker.lock.Lock()
+
+	tracker.connections[conn] = struct{}{}
+
+	logFanout, found := tracker.logs[key]
+	if !found {
+		logFanout = NewLogFanout(job, id, tracker.db)
+		tracker.logs[key] = logFanout
+		tracker.parties[key]++
+	}
+
+	draining := tracker.draining
+
+	tracker.lock.Unlock()
+
+	if draining {
+		conn.Close()
+	}
+
+	return logFanout
+}
+
+func (tracker *Tracker) Unregister(job string, id int, conn io.Closer) {
+	key := fmt.Sprintf("%s-%d", job, id)
+
+	tracker.lock.Lock()
+
+	tracker.parties[key]--
+
+	delete(tracker.connections, conn)
+
+	if tracker.parties[key] == 0 {
+		delete(tracker.logs, key)
+		delete(tracker.parties, key)
+	}
+
+	tracker.lock.Unlock()
+}
+
+func (tracker *Tracker) Drain() {
+	tracker.lock.Lock()
+
+	tracker.draining = true
+
+	for _, fanout := range tracker.logs {
+		fanout.Close()
+	}
+
+	for conn, _ := range tracker.connections {
+		conn.Close()
+	}
+
+	tracker.lock.Unlock()
+}

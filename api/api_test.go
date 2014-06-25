@@ -16,9 +16,9 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/concourse/atc/api"
-	"github.com/concourse/atc/api/drainer"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/logfanout"
 	"github.com/concourse/atc/redisrunner"
 )
 
@@ -29,7 +29,7 @@ var _ = Describe("API", func() {
 	var server *httptest.Server
 	var client *http.Client
 
-	var drain *drainer.Drainer
+	var tracker *logfanout.Tracker
 
 	BeforeEach(func() {
 		redisRunner = redisrunner.NewRunner()
@@ -37,9 +37,9 @@ var _ = Describe("API", func() {
 
 		redis = db.NewRedis(redisRunner.Pool())
 
-		drain = drainer.NewDrainer()
+		tracker = logfanout.NewTracker(redis)
 
-		handler, err := api.New(lagertest.NewTestLogger("api"), redis, drain)
+		handler, err := api.New(lagertest.NewTestLogger("api"), redis, tracker)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		server = httptest.NewServer(handler)
@@ -290,26 +290,17 @@ var _ = Describe("API", func() {
 		})
 
 		outputSink := func() *gbytes.Buffer {
-			outEndpoint := fmt.Sprintf(
-				"ws://%s/builds/%s/%d/log/output",
-				server.Listener.Addr().String(),
-				"some-job",
-				build.ID,
-			)
-
-			outConn, err := websocket.Dial(outEndpoint, "", "http://0.0.0.0")
-			Ω(err).ShouldNot(HaveOccurred())
-
 			buf := gbytes.NewBuffer()
+
+			fanout := tracker.Register("some-job", build.ID, buf)
 
 			go func() {
 				defer GinkgoRecover()
 
-				_, err := io.Copy(buf, outConn)
+				err := fanout.Attach(buf)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				err = buf.Close()
-				Ω(err).ShouldNot(HaveOccurred())
+				buf.Close()
 			}()
 
 			return buf
@@ -333,7 +324,7 @@ var _ = Describe("API", func() {
 					It("closes the connection", func(done Done) {
 						defer close(done)
 
-						drain.Drain()
+						tracker.Drain()
 
 						_, err := conn.Read([]byte{})
 						Ω(err).Should(HaveOccurred())
@@ -345,7 +336,7 @@ var _ = Describe("API", func() {
 				It("closes the outgoing connection", func() {
 					output := outputSink()
 
-					drain.Drain()
+					tracker.Drain()
 
 					Eventually(output.Closed).Should(BeTrue())
 				})
@@ -373,11 +364,11 @@ var _ = Describe("API", func() {
 				conn.Close()
 			})
 
-			It("presents them to /builds/{job}/{id}/logs/output", func() {
+			It("presents them to anyone attached", func() {
 				Eventually(outputSink()).Should(gbytes.Say("hello1hello2\nhello3"))
 			})
 
-			It("streams them to all open connections to /build/{job}/{id}/logs/output", func() {
+			It("multiplexes to all attached sinks", func() {
 				sink1 := outputSink()
 				sink2 := outputSink()
 
@@ -386,15 +377,6 @@ var _ = Describe("API", func() {
 
 				Eventually(sink1).Should(gbytes.Say("some message"))
 				Eventually(sink2).Should(gbytes.Say("some message"))
-			})
-
-			It("transmits ansi escape characters as html", func() {
-				sink := outputSink()
-
-				_, err := conn.Write([]byte("some \x1b[1mmessage"))
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Eventually(sink).Should(gbytes.Say(`some <span class="ansi-bold">message`))
 			})
 
 			Context("when there is a build log saved", func() {

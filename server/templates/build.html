@@ -47,6 +47,14 @@
 <script src="{{url "Public" "jquery-2.1.1.min.js"}}"></script>
 <script src="{{url "Public" "build.js"}}"></script>
 <script type="text/javascript">
-streamLog("ws://" + window.location.hostname + {{url "LogOutput" .Job .Build | js}})
+var protocol;
+
+if(window.location.protocol === "https:") {
+  protocol = "wss:";
+} else {
+  protocol = "ws:";
+}
+
+streamLog(protocol + "//" + window.location.host + {{url "LogOutput" .Job .Build | js}})
 </script>
 {{end}}

@@ -2,9 +2,7 @@ package server
 
 import (
 	"fmt"
-	"net"
 
-	apiroutes "github.com/concourse/atc/api/routes"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/server/routes"
@@ -33,21 +31,11 @@ func (funcs templateFuncs) url(handler string, args ...interface{}) (string, err
 			"filename": args[0].(string),
 		})
 
-	case apiroutes.LogOutput:
-		path, err := apiroutes.Routes.PathForHandler(handler, router.Params{
+	case routes.LogOutput:
+		return routes.Routes.PathForHandler(handler, router.Params{
 			"job":   args[0].(config.Job).Name,
 			"build": fmt.Sprintf("%d", args[1].(builds.Build).ID),
 		})
-		if err != nil {
-			return "", err
-		}
-
-		_, port, err := net.SplitHostPort(funcs.peerAddr)
-		if err != nil {
-			port = "80"
-		}
-
-		return ":" + port + path, nil
 
 	default:
 		return "", fmt.Errorf("unknown route: %s", handler)

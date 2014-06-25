@@ -35,6 +35,8 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log := handler.logger.Session("update-build", lager.Data{
+		"job":    job,
+		"id":     id,
 		"status": turbineBuild.Status,
 	})
 

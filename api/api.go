@@ -7,20 +7,19 @@ import (
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/router"
 
-	"github.com/concourse/atc/api/drainer"
 	"github.com/concourse/atc/api/handler"
 	"github.com/concourse/atc/api/routes"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/logfanout"
 )
 
-func New(logger lager.Logger, db db.DB, drain *drainer.Drainer) (http.Handler, error) {
-	builds := handler.NewHandler(logger, db, drain)
+func New(logger lager.Logger, db db.DB, tracker *logfanout.Tracker) (http.Handler, error) {
+	builds := handler.NewHandler(logger, db, tracker)
 
 	handlers := map[string]http.Handler{
 		routes.UpdateBuild: http.HandlerFunc(builds.UpdateBuild),
 
-		routes.LogInput:  websocket.Server{Handler: builds.LogInput},
-		routes.LogOutput: websocket.Server{Handler: builds.LogOutput},
+		routes.LogInput: websocket.Server{Handler: builds.LogInput},
 	}
 
 	return router.NewRouter(routes.Routes, handlers)

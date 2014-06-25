@@ -17,11 +17,11 @@ import (
 	"github.com/tedsuo/router"
 
 	"github.com/concourse/atc/api"
-	"github.com/concourse/atc/api/drainer"
 	apiroutes "github.com/concourse/atc/api/routes"
 	"github.com/concourse/atc/builder"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/logfanout"
 	"github.com/concourse/atc/queue"
 	"github.com/concourse/atc/server"
 	"github.com/concourse/atc/server/auth"
@@ -130,6 +130,8 @@ func main() {
 
 	queuer := queue.NewQueue(logger, 10*time.Second, builder)
 
+	tracker := logfanout.NewTracker(redisDB)
+
 	serverHandler, err := server.New(
 		logger,
 		conf,
@@ -138,6 +140,7 @@ func main() {
 		*publicDir,
 		*peerAddr,
 		queuer,
+		tracker,
 	)
 	if err != nil {
 		fatal(err)
@@ -151,9 +154,7 @@ func main() {
 		}
 	}
 
-	drainer := drainer.NewDrainer()
-
-	apiHandler, err := api.New(logger, redisDB, drainer)
+	apiHandler, err := api.New(logger, redisDB, tracker)
 	if err != nil {
 		fatal(err)
 	}
@@ -167,7 +168,7 @@ func main() {
 		"drainer": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 			close(ready)
 			<-signals
-			drainer.Drain()
+			tracker.Drain()
 			return nil
 		}),
 	})
