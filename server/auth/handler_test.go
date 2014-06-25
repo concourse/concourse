@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"time"
 
 	"code.google.com/p/go.crypto/bcrypt"
 
@@ -16,6 +17,11 @@ import (
 
 	"github.com/concourse/atc/server/auth"
 )
+
+func header(stringList ...string) string {
+	credentials := []byte(strings.Join(stringList, ":"))
+	return "Basic " + base64.StdEncoding.EncodeToString(credentials)
+}
 
 var _ = Describe("BasicAuthHandler", func() {
 	simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -52,19 +58,72 @@ var _ = Describe("BasicAuthHandler", func() {
 	})
 
 	Context("with the correct credentials", func() {
-		It("returns 200", func() {
-			requestBody := bytes.NewBufferString("hello")
-			request, err := http.NewRequest("GET", server.URL, requestBody)
-			Ω(err).ShouldNot(HaveOccurred())
-			request.SetBasicAuth(username, password)
+		var request *http.Request
+		var response *http.Response
 
-			response, err := client.Do(request)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(response.StatusCode).Should(Equal(http.StatusOK))
+		BeforeEach(func() {
+			var err error
 
-			responseBody, err := ioutil.ReadAll(response.Body)
+			request, err = http.NewRequest("GET", server.URL, bytes.NewBufferString("hello"))
 			Ω(err).ShouldNot(HaveOccurred())
-			Ω(string(responseBody)).Should(Equal("simple hello"))
+		})
+
+		JustBeforeEach(func() {
+			var err error
+
+			response, err = client.Do(request)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		itSetsAuthCookie := func() {
+			It("sets a ATC-Authorization cookie with the auth as the value", func() {
+				cookies := response.Cookies()
+				Ω(cookies).Should(HaveLen(1))
+
+				Ω(cookies[0].Name).Should(Equal("ATC-Authorization"))
+				Ω(cookies[0].Value).Should(Equal(header(username, password)))
+				Ω(cookies[0].Path).Should(Equal("/"))
+				Ω(cookies[0].Expires.Unix()).Should(BeNumerically("~", time.Now().Unix()+60, 1))
+			})
+		}
+
+		Context("via standard basic auth", func() {
+			BeforeEach(func() {
+				request.SetBasicAuth(username, password)
+			})
+
+			It("returns 200", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+			})
+
+			It("proxies to the handler", func() {
+				responseBody, err := ioutil.ReadAll(response.Body)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(string(responseBody)).Should(Equal("simple hello"))
+			})
+
+			itSetsAuthCookie()
+		})
+
+		Context("via the ATC-Authorization cookie", func() {
+			BeforeEach(func() {
+				request.AddCookie(&http.Cookie{
+					Name:  auth.CookieName,
+					Value: header(username, password),
+				})
+			})
+
+			It("returns 200", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+			})
+
+			It("proxies to the handler", func() {
+				responseBody, err := ioutil.ReadAll(response.Body)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(string(responseBody)).Should(Equal("simple hello"))
+			})
+
+			itSetsAuthCookie()
 		})
 	})
 
@@ -106,11 +165,6 @@ var _ = Describe("BasicAuthHandler", func() {
 
 var _ = Describe("ExtractUsernameAndPassword", func() {
 	Context("When the string starts with 'Basic '", func() {
-		header := func(stringList ...string) string {
-			credentials := []byte(strings.Join(stringList, ":"))
-			return "Basic " + base64.StdEncoding.EncodeToString(credentials)
-		}
-
 		Context("When the rest of the string is two non-empty strings separated by a colon, base64-encoded", func() {
 			It("returns the username and password", func() {
 				username, password, err := auth.ExtractUsernameAndPassword(header("username", "password"))

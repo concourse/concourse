@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"code.google.com/p/go.crypto/bcrypt"
 )
@@ -15,9 +16,25 @@ type Handler struct {
 	HashedPassword string
 }
 
+const CookieName = "ATC-Authorization"
+
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	header := r.Header.Get("Authorization")
-	username, password, err := ExtractUsernameAndPassword(header)
+	auth := r.Header.Get("Authorization")
+	if auth == "" {
+		cookie, err := r.Cookie(CookieName)
+		if err == nil {
+			auth = cookie.Value
+		}
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:    CookieName,
+		Value:   auth,
+		Path:    "/",
+		Expires: time.Now().Add(1 * time.Minute),
+	})
+
+	username, password, err := ExtractUsernameAndPassword(auth)
 	if err != nil {
 		h.unauthorized(w)
 		return
