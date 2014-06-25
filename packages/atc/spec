@@ -2,7 +2,7 @@
 name: atc
 
 dependencies:
-  - golang_1.2
+  - golang_1.3
 
 files:
   - atc/**/*.go

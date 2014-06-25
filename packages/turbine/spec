@@ -2,7 +2,7 @@
 name: turbine
 
 dependencies:
-  - golang_1.2
+  - golang_1.3
 
 files:
   - turbine/**/*.go
