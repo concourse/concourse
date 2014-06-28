@@ -66,7 +66,10 @@ var _ = BeforeEach(func() {
 	externalAddr := os.Getenv("EXTERNAL_ADDRESS")
 	Ω(externalAddr).ShouldNot(BeEmpty(), "must specify $EXTERNAL_ADDRESS")
 
+	wardenAddr := fmt.Sprintf("127.0.0.1:%d", 4859+GinkgoParallelNode())
+
 	wardenRunner := WardenRunner.New(
+		wardenAddr,
 		builtComponents["warden-linux"],
 		wardenBinPath,
 		"bogus/rootfs",
