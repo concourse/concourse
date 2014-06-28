@@ -77,8 +77,8 @@ var _ = BeforeEach(func() {
 
 	turbineRunner := runner.NewRunner(
 		builtComponents["turbine"],
-		"-wardenNetwork", wardenRunner.Network(),
-		"-wardenAddr", wardenRunner.Addr(),
+		"-wardenNetwork", "tcp",
+		"-wardenAddr", wardenAddr,
 		"-resourceTypes", `{"raw":"concourse/raw-resource#dev"}`,
 	)
 
