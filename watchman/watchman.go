@@ -83,7 +83,7 @@ func (watchman *watchman) Watch(
 
 				newVersions, err := checker.CheckResource(resource, from)
 				if err != nil {
-					log.Error("failed-to-check-failed", err)
+					log.Error("failed-to-check", err)
 					break
 				}
 
