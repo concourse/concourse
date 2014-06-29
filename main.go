@@ -181,12 +181,12 @@ func main() {
 	})
 
 	err = <-running.Wait()
-	if err != nil {
+	if err == nil {
+		logger.Info("exited")
+	} else {
 		logger.Error("failed", err)
-		return
+		os.Exit(1)
 	}
-
-	logger.Info("exited")
 }
 
 func fatal(err error) {
