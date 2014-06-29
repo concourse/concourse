@@ -86,6 +86,7 @@ func Commit() {
 		Script: `
 cd some-repo
 echo '%s' >> guids
+git add guids
 git commit -m "$(date)"
 `,
 	})
