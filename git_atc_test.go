@@ -12,18 +12,24 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
 
+	"github.com/concourse/atc/redisrunner"
 	"github.com/concourse/testflight/gitserver"
 	"github.com/concourse/testflight/guidserver"
 	"github.com/concourse/testflight/runner"
 )
 
 var _ = FDescribe("A job with a git resource", func() {
+	var redisRunner *redisrunner.Runner
+
 	var atcConfigFilePath string
 
 	var atcProcess ifrit.Process
 
 	BeforeEach(func() {
 		var err error
+
+		redisRunner = redisrunner.NewRunner()
+		redisRunner.Start()
 
 		guidserver.Start(wardenClient)
 		gitserver.Start(wardenClient)
@@ -60,6 +66,7 @@ jobs:
 			"-config", atcConfigFilePath,
 			"-templates", filepath.Join(atcDir, "server", "templates"),
 			"-public", filepath.Join(atcDir, "server", "public"),
+			"-redisAddr", fmt.Sprintf("127.0.0.1:%d", redisRunner.Port()),
 		))
 
 		Consistently(atcProcess.Wait(), 1*time.Second).ShouldNot(Receive())
@@ -71,6 +78,8 @@ jobs:
 
 		gitserver.Stop(wardenClient)
 		guidserver.Stop(wardenClient)
+
+		redisRunner.Stop()
 
 		err := os.Remove(atcConfigFilePath)
 		Ω(err).ShouldNot(HaveOccurred())
