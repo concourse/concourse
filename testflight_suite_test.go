@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cloudfoundry-incubator/garden/warden"
 	WardenRunner "github.com/cloudfoundry-incubator/warden-linux/integration/runner"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -19,7 +20,11 @@ import (
 	"github.com/concourse/testflight/runner"
 )
 
+var externalAddr string
+
 var processes ifrit.Process
+var wardenClient warden.Client
+
 var fixturesDir = "./fixtures"
 
 var builtComponents map[string]string
@@ -63,7 +68,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 })
 
 var _ = BeforeEach(func() {
-	externalAddr := os.Getenv("EXTERNAL_ADDRESS")
+	externalAddr = os.Getenv("EXTERNAL_ADDRESS")
 	Ω(externalAddr).ShouldNot(BeEmpty(), "must specify $EXTERNAL_ADDRESS")
 
 	wardenAddr := fmt.Sprintf("127.0.0.1:%d", 4859+GinkgoParallelNode())
@@ -74,6 +79,8 @@ var _ = BeforeEach(func() {
 		wardenBinPath,
 		"bogus/rootfs",
 	)
+
+	wardenClient = wardenRunner.NewClient()
 
 	turbineRunner := runner.NewRunner(
 		builtComponents["turbine"],
@@ -88,20 +95,19 @@ var _ = BeforeEach(func() {
 	)
 
 	processes = grouper.EnvokeGroup(grouper.RunGroup{
-		"turbine": turbineRunner,
-		//"atc":      runner.NewRunner(builtComponents["atc"]),
+		"turbine":      turbineRunner,
 		"glider":       gliderRunner,
 		"warden-linux": wardenRunner,
 	})
 
-	Consistently(processes.Wait(), 5*time.Second).ShouldNot(Receive())
+	Consistently(processes.Wait(), 1*time.Second).ShouldNot(Receive())
 
 	os.Setenv("GLIDER_URL", "http://127.0.0.1:5637")
 })
 
 var _ = AfterEach(func() {
 	processes.Signal(syscall.SIGINT)
-	Eventually(processes.Wait(), 10).Should(Receive())
+	Eventually(processes.Wait(), 10*time.Second).Should(Receive())
 })
 
 func TestFlightTest(t *testing.T) {
