@@ -37,17 +37,17 @@ var _ = FDescribe("A job with a git resource", func() {
 
 		_, err = fmt.Fprintf(atcConfigFile, `---
 resources:
-	- name: some-git-resource
-		type: git
-		params:
-			uri: %s
+  - name: some-git-resource
+    type: git
+    params:
+      uri: %s
 
 jobs:
-	- name: some-job
-		inputs:
-			- resource: some-git-resource
-		image: ubuntu
-		script: tail -1 some-git-resource/guids | %s
+  - name: some-job
+    inputs:
+      - resource: some-git-resource
+    image: ubuntu
+    script: tail -1 some-git-resource/guids | %s
 `, gitserver.URI(), guidserver.CurlCommand())
 		Ω(err).ShouldNot(HaveOccurred())
 
