@@ -20,7 +20,9 @@ var committedGuids []string
 func Start(wardenClient warden.Client) {
 	var err error
 
-	container, err = wardenClient.Create(warden.ContainerSpec{})
+	container, err = wardenClient.Create(warden.ContainerSpec{
+		RootFSPath: "docker:///concourse/git-resource",
+	})
 	Ω(err).ShouldNot(HaveOccurred())
 
 	info, err := container.Info()

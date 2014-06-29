@@ -43,7 +43,9 @@ var ipAddress string
 func Start(wardenClient warden.Client) {
 	var err error
 
-	container, err = wardenClient.Create(warden.ContainerSpec{})
+	container, err = wardenClient.Create(warden.ContainerSpec{
+		RootFSPath: "docker:///ubuntu#14.04",
+	})
 	Ω(err).ShouldNot(HaveOccurred())
 
 	var containerPort uint32
