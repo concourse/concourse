@@ -13,7 +13,7 @@ const amazingRubyServer = `ruby <<END_MAGIC_SERVER
 require 'webrick'
 require 'json'
 
-server = WEBrick::HTTPServer.new :Port => ENV['PORT']
+server = WEBrick::HTTPServer.new :Port => 8080
 
 registered = []
 files = {}
@@ -37,7 +37,6 @@ END_MAGIC_SERVER
 
 var container warden.Container
 
-var hostPort uint32
 var ipAddress string
 
 func Start(wardenClient warden.Client) {
@@ -48,10 +47,6 @@ func Start(wardenClient warden.Client) {
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 
-	var containerPort uint32
-	hostPort, containerPort, err = container.NetIn(0, 0)
-	Ω(err).ShouldNot(HaveOccurred())
-
 	info, err := container.Info()
 	Ω(err).ShouldNot(HaveOccurred())
 
@@ -59,14 +54,11 @@ func Start(wardenClient warden.Client) {
 
 	_, _, err = container.Run(warden.ProcessSpec{
 		Script: amazingRubyServer,
-		EnvironmentVariables: []warden.EnvironmentVariable{
-			warden.EnvironmentVariable{Key: "PORT", Value: fmt.Sprintf("%d", containerPort)},
-		},
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		_, err := http.Get(fmt.Sprintf("http://%s:%d/registrations", ipAddress, hostPort))
+		_, err := http.Get(fmt.Sprintf("http://%s:8080/registrations", ipAddress))
 		return err
 	}, 2).ShouldNot(HaveOccurred())
 }
@@ -75,16 +67,15 @@ func Stop(wardenClient warden.Client) {
 	wardenClient.Destroy(container.Handle())
 
 	container = nil
-	hostPort = 0
 	ipAddress = ""
 }
 
 func CurlCommand() string {
-	return fmt.Sprintf("curl -XPOST http://%s:%d/register -d @-", ipAddress, hostPort)
+	return fmt.Sprintf("curl -XPOST http://%s:8080/register -d @-", ipAddress)
 }
 
 func ReportingGuids() []string {
-	uri := fmt.Sprintf("http://%s:%d/registrations", ipAddress, hostPort)
+	uri := fmt.Sprintf("http://%s:8080/registrations", ipAddress)
 
 	response, err := http.Get(uri)
 	Ω(err).ShouldNot(HaveOccurred())
