@@ -52,7 +52,7 @@ jobs:
   - name: some-job
     inputs:
       - resource: some-git-resource
-    image: ubuntu
+    image: concourse/testflight-helper
     script: tail -1 some-git-resource/guids | %s
 `, gitserver.URI(), guidserver.CurlCommand())
 		Ω(err).ShouldNot(HaveOccurred())

@@ -43,7 +43,7 @@ func Start(wardenClient warden.Client) {
 	var err error
 
 	container, err = wardenClient.Create(warden.ContainerSpec{
-		RootFSPath: "docker:///concourse/testflight-helper-server",
+		RootFSPath: "docker:///concourse/testflight-helper",
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 
