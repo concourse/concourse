@@ -13,7 +13,6 @@ import (
 var container warden.Container
 
 var ipAddress string
-var gitPort uint32
 
 var committedGuids []string
 
@@ -29,9 +28,6 @@ func Start(wardenClient warden.Client) {
 	Ω(err).ShouldNot(HaveOccurred())
 
 	ipAddress = info.ContainerIP
-
-	gitPort, _, err = container.NetIn(0, 9418)
-	Ω(err).ShouldNot(HaveOccurred())
 
 	_, stream, err := container.Run(warden.ProcessSpec{
 		Script: `
@@ -70,12 +66,11 @@ func Stop(wardenClient warden.Client) {
 	wardenClient.Destroy(container.Handle())
 
 	container = nil
-	gitPort = 0
 	ipAddress = ""
 }
 
 func URI() string {
-	return fmt.Sprintf("git://%s:%d/some-repo", ipAddress, gitPort)
+	return fmt.Sprintf("git://%s/some-repo", ipAddress)
 }
 
 func Commit() {
