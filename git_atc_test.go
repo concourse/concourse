@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -57,6 +58,8 @@ jobs:
 			builtComponents["atc"],
 			"-peerAddr", externalAddr+":8081",
 			"-config", atcConfigFilePath,
+			"-templates", filepath.Join(atcDir, "server", "templates"),
+			"-public", filepath.Join(atcDir, "server", "public"),
 		))
 
 		Consistently(atcProcess.Wait(), 1*time.Second).ShouldNot(Receive())

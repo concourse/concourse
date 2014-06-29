@@ -26,6 +26,7 @@ var processes ifrit.Process
 var wardenClient warden.Client
 
 var fixturesDir = "./fixtures"
+var atcDir string
 
 var builtComponents map[string]string
 
@@ -65,6 +66,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 }, func(components []byte) {
 	err := json.Unmarshal(components, &builtComponents)
 	Ω(err).ShouldNot(HaveOccurred())
+
+	atcDir = findSource("github.com/concourse/atc")
 })
 
 var _ = BeforeEach(func() {
