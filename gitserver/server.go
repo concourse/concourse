@@ -35,6 +35,9 @@ func Start(wardenClient warden.Client) {
 
 	_, stream, err := container.Run(warden.ProcessSpec{
 		Script: `
+git config --global user.email dummy@example.com
+git config --global user.name "Dummy User"
+
 mkdir some-repo
 cd some-repo
 git init
