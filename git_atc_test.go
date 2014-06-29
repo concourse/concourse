@@ -39,7 +39,7 @@ var _ = FDescribe("A job with a git resource", func() {
 resources:
   - name: some-git-resource
     type: git
-    params:
+    source:
       uri: %s
 
 jobs:
