@@ -47,19 +47,12 @@ var buildDir = flag.String(
 
 var gliderURL = flag.String(
 	"gliderURL",
-	os.Getenv("GLIDER_URL"),
+	"http://127.0.0.1:5637",
 	"address denoting the glider service",
 )
 
 func main() {
 	flag.Parse()
-
-	if *gliderURL == "" {
-		println("must specify $GLIDER_URL. for example:")
-		println()
-		println("export GLIDER_URL=http://10.244.8.2:5637")
-		os.Exit(1)
-	}
 
 	reqGenerator := router.NewRequestGenerator(*gliderURL, routes.Routes)
 
