@@ -89,7 +89,7 @@ var _ = BeforeEach(func() {
 		builtComponents["turbine"],
 		"-wardenNetwork", "tcp",
 		"-wardenAddr", wardenAddr,
-		"-resourceTypes", `{"raw":"concourse/raw-resource#dev"}`,
+		"-resourceTypes", `{"raw":"concourse/raw-resource#dev","git":"concourse/git-resource"}`,
 	)
 
 	gliderRunner := runner.NewRunner(
