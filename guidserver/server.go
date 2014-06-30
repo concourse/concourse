@@ -24,11 +24,11 @@ server.mount_proc '/register' do |req, res|
 end
 
 server.mount_proc '/registrations' do |req, res|
-    res.body = JSON.generate(registered)
+  res.body = JSON.generate(registered)
 end
 
 trap('INT') {
-    server.shutdown
+  server.shutdown
 }
 
 server.start

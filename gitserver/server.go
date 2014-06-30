@@ -78,12 +78,12 @@ func Commit() {
 	Ω(err).ShouldNot(HaveOccurred())
 
 	_, stream, err := container.Run(warden.ProcessSpec{
-		Script: `
+		Script: fmt.Sprintf(`
 cd some-repo
 echo '%s' >> guids
 git add guids
-git commit -m "$(date)"
-`,
+git commit -m 'commit #%d: %s'
+`, guid, len(committedGuids)+1, guid),
 	})
 
 	for chunk := range stream {
