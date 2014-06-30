@@ -87,6 +87,6 @@ jobs:
 
 	It("builds when the git repo is initialized", func() {
 		Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(HaveLen(1))
-		Ω(guidServer.ReportingGuids()).Should(Equal(gitserver.CommittedGuids()))
+		Ω(guidserver.ReportingGuids()).Should(Equal(gitserver.CommittedGuids()))
 	})
 })
