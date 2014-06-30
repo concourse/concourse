@@ -18,7 +18,7 @@ import (
 	"github.com/concourse/testflight/runner"
 )
 
-var _ = FDescribe("A job with a git resource", func() {
+var _ = Describe("A job with a git resource", func() {
 	var redisRunner *redisrunner.Runner
 
 	var atcConfigFilePath string
@@ -85,8 +85,13 @@ jobs:
 		Ω(err).ShouldNot(HaveOccurred())
 	})
 
-	It("builds when the git repo is initialized", func() {
+	It("builds a repo's initial and later commits", func() {
 		Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(HaveLen(1))
 		Ω(guidserver.ReportingGuids()).Should(Equal(gitserver.CommittedGuids()))
+
+		gitserver.Commit()
+
+		Eventually(guidserver.ReportingGuids, 2*time.Minute, 10*time.Second).Should(HaveLen(2))
+		Ω(guidserver.ReportingGuids()).Should(Equal(committedGuids))
 	})
 })
