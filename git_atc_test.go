@@ -92,6 +92,6 @@ jobs:
 		gitserver.Commit()
 
 		Eventually(guidserver.ReportingGuids, 2*time.Minute, 10*time.Second).Should(HaveLen(2))
-		Ω(guidserver.ReportingGuids()).Should(Equal(committedGuids))
+		Ω(guidserver.ReportingGuids()).Should(Equal(gitserver.CommittedGuids()))
 	})
 })
