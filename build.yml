@@ -1,45 +1,5 @@
 ---
-image: concourse/testflight
+image: docker:///concourse/testflight
 
-env:
-  - GOROOT: /usr/local/go
-  - PATH: $GOROOT/bin:$PATH
-  - BASE_GOPATH: /tmp/build/src/gopath
-  - GOPATH: ${BASE_GOPATH}:/tmp/build/src/testflight/Godeps/_workspace
-  - PATH: ${BASE_GOPATH}/bin:$PATH
-  - PATH: /tmp/build/src/testflight/Godeps/_workspace/bin:$PATH
-  - EXTERNAL_ADDRESS: $(ip route get 8.8.8.8 | sed 's/.*src\s\(.*\)\s/\1/;tx;d;:x')
-
-script: |
-  set -e -x
-
-  function copy_to_gopath {
-    mkdir -p ${BASE_GOPATH}/src/${1}
-    rsync --del --exclude '.*' -a $(basename $1)/ ${BASE_GOPATH}/src/${1}/
-  }
-
-  copy_to_gopath github.com/concourse/testflight
-  copy_to_gopath github.com/concourse/atc
-  copy_to_gopath github.com/concourse/turbine
-  copy_to_gopath github.com/concourse/glider
-  copy_to_gopath github.com/concourse/fly
-  copy_to_gopath github.com/cloudfoundry-incubator/warden-linux
-
-  pushd warden-linux/
-    make # compile wshd/etc.
-    export WARDEN_BINPATH=$PWD/linux_backend/bin
-  popd
-
-  cd testflight/
-
-  go install github.com/onsi/ginkgo/ginkgo
-
-  # set up a $TMPDIR so warden's graphs go onto tmpfs
-  mkdir -p /tmp/testflight
-  export TMPDIR=/tmp/testflight
-  mount -t tmpfs -o size=1G none /tmp/testflight
-
-  # make /dev/shm larger
-  mount -t tmpfs -o remount,size=1G none /dev/shm
-
-  ginkgo -r -v
+run:
+  path: testflight/scripts/test
