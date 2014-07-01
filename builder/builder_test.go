@@ -1,11 +1,12 @@
 package builder_test
 
 import (
+	"net/http"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/tedsuo/router"
-	"net/http"
 
 	TurbineBuilds "github.com/concourse/turbine/api/builds"
 	TurbineRoutes "github.com/concourse/turbine/routes"
@@ -42,12 +43,17 @@ var _ = Describe("Builder", func() {
 		job = config.Job{
 			Name: "foo",
 
-			Image: "some-image",
-			Env: []map[string]string{
-				{"FOO": "1"},
-				{"BAR": "2"},
+			BuildConfig: TurbineBuilds.Config{
+				Image: "some-image",
+				Params: map[string]string{
+					"FOO": "1",
+					"BAR": "2",
+				},
+				Run: TurbineBuilds.RunConfig{
+					Path: "some-script",
+					Args: []string{"arg1", "arg2"},
+				},
 			},
-			Script: "some-script",
 
 			Privileged: true,
 
@@ -81,11 +87,14 @@ var _ = Describe("Builder", func() {
 		expectedTurbineBuild = TurbineBuilds.Build{
 			Config: TurbineBuilds.Config{
 				Image: "some-image",
-				Env: []map[string]string{
-					{"FOO": "1"},
-					{"BAR": "2"},
+				Params: map[string]string{
+					"FOO": "1",
+					"BAR": "2",
 				},
-				Script: "some-script",
+				Run: TurbineBuilds.RunConfig{
+					Path: "some-script",
+					Args: []string{"arg1", "arg2"},
+				},
 			},
 
 			Privileged: true,

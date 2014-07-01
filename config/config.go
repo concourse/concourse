@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"time"
+
+	"github.com/concourse/turbine/api/builds"
 )
 
 type Config struct {
@@ -22,15 +24,12 @@ type Source map[string]interface{}
 type Job struct {
 	Name string `yaml:"name"`
 
-	Image  string              `yaml:"image"`
-	Env    []map[string]string `yaml:"env"`
-	Script string              `yaml:"script"`
+	BuildConfigPath string        `yaml:"build"`
+	BuildConfig     builds.Config `yaml:"config"`
 
 	Privileged bool `yaml:"privileged"`
 
 	Serial bool `yaml:"serial"`
-
-	BuildConfigPath string `yaml:"build"`
 
 	Inputs  []Input  `yaml:"inputs"`
 	Outputs []Output `yaml:"outputs"`

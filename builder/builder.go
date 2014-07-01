@@ -125,11 +125,7 @@ func (builder *builder) Start(job config.Job, build builds.Build, versionOverrid
 	logs.URL.Scheme = "ws"
 
 	turbineBuild := TurbineBuilds.Build{
-		Config: TurbineBuilds.Config{
-			Image:  job.Image,
-			Env:    job.Env,
-			Script: job.Script,
-		},
+		Config: job.BuildConfig,
 
 		Privileged: job.Privileged,
 
