@@ -1,10 +1,14 @@
 ---
-image: ubuntu
+image: docker:///ubuntu#14.04
 
-env:
-  - FOO: 1
+params:
+  FOO: 1
 
-script: |
-  echo some output
-  echo FOO is $FOO
-  exit 0
+run:
+  path: bash
+  args:
+    - -c
+    - |
+      echo some output
+      echo FOO is $FOO
+      exit 0
