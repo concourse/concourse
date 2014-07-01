@@ -52,12 +52,13 @@ jobs:
   - name: some-job
     inputs:
       - resource: some-git-resource
-    image: docker:///concourse/testflight-helper
-    run:
-      path: bash
-      args:
-        - -c
-        - tail -1 some-git-resource/guids | %s
+    config:
+      image: docker:///concourse/testflight-helper
+      run:
+        path: bash
+        args:
+          - -c
+          - tail -1 some-git-resource/guids | %s
 `, gitserver.URI(), guidserver.CurlCommand())
 		Ω(err).ShouldNot(HaveOccurred())
 
