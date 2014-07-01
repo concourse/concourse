@@ -2,4 +2,4 @@
 image: docker:///concourse/concourse-ci
 
 run:
-  path: scripts/deploy
+  path: concourse/scripts/deploy

@@ -2,4 +2,4 @@
 image: docker:///concourse/concourse-ci
 
 run:
-  path: ./scripts/bump
+  path: concourse/scripts/bump
