@@ -3,8 +3,8 @@ name: concourse
 
 releases:
 - name: concourse
-  version: 0+dev.1
-  url: file:///vagrant/dev_releases/concourse-0+dev.1.tgz
+  version: latest
+  url: dir+bosh://.
 
 networks:
 - name: concourse
