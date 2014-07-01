@@ -1,22 +1,5 @@
 ---
-image: concourse/atc-ci
+image: docker:///concourse/atc-ci
 
-env:
-  - GOROOT: /usr/local/go
-  - PATH: $GOROOT/bin:$PATH
-  - GOPATH: /tmp/build/src
-  - PATH: /tmp/build/bin:$PATH
-  - REPO_DIR: $GOPATH/src/github.com/concourse/atc
-
-script: |
-  mkdir -p $(dirname $REPO_DIR)
-  ln -s $PWD/$(basename $REPO_DIR) $REPO_DIR
-
-  cd $REPO_DIR
-
-  export GOPATH=${PWD}/Godeps/_workspace:$GOPATH
-  export PATH=${PWD}/Godeps/_workspace/bin:$PATH
-
-  go install github.com/onsi/ginkgo/ginkgo
-
-  ginkgo -r -nodes=4
+run:
+  path: atc/scripts/test

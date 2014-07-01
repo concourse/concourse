@@ -1,0 +1,21 @@
+#!/bin/bash
+# vim: set ft=sh
+
+export GOROOT=/usr/local/go
+export GOPATH=/tmp/gopath
+
+export PATH=$GOROOT/bin:$PATH
+export PATH=$GOPATH/bin:$PATH
+export REPO_DIR=$GOPATH/src/github.com/concourse/atc
+
+mkdir -p $(dirname $REPO_DIR)
+ln -s $PWD/$(basename $REPO_DIR) $REPO_DIR
+
+cd $REPO_DIR
+
+export GOPATH=${PWD}/Godeps/_workspace:$GOPATH
+export PATH=${PWD}/Godeps/_workspace/bin:$PATH
+
+go install github.com/onsi/ginkgo/ginkgo
+
+ginkgo -r -p "$@"
