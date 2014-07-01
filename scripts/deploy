@@ -1,0 +1,21 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -x
+
+source ./deployments/sandbox/bosh_environment
+
+cd concourse/
+
+./generate_deployment_manifest aws ../deployments/sandbox/stubs/*.yml > aws-deployment.yml
+
+bosh target ${BOSH_TARGET}
+
+bosh deployment aws-deployment.yml
+
+bosh -n create release
+
+# remove '|| true' once the rebase crap is fixed
+bosh -n upload release --rebase --skip-if-exists || true
+
+yes yes | bosh deploy

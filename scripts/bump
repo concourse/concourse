@@ -1,0 +1,52 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -x
+
+pushd atc/
+  export ATC_SHA=$(git rev-parse HEAD)
+popd
+
+pushd glider/
+  export GLIDER_SHA=$(git rev-parse HEAD)
+popd
+
+pushd turbine/
+  export TURBINE_SHA=$(git rev-parse HEAD)
+popd
+
+pushd warden-linux/
+  export WARDEN_LINUX_SHA=$(git rev-parse HEAD)
+popd
+
+cd concourse/
+
+git submodule update --remote
+
+pushd src/atc/
+  git checkout $ATC_SHA
+popd
+
+pushd src/glider/
+  git checkout $GLIDER_SHA
+popd
+
+pushd src/turbine/
+  git checkout $TURBINE_SHA
+popd
+
+pushd src/warden-linux/
+  git checkout $WARDEN_LINUX_SHA
+popd
+
+pushd src/redis/
+  git fetch --tags
+  git checkout 2.8.11
+popd
+
+git add src/
+
+git config --global user.email "ci@localhost"
+git config --global user.name "CI Bot"
+
+git commit -m "auto-bump"
