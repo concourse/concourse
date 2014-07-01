@@ -17,6 +17,7 @@ import (
 	"github.com/onsi/gomega/ghttp"
 
 	"github.com/concourse/glider/api/builds"
+	TurbineBuilds "github.com/concourse/turbine/api/builds"
 )
 
 func tarFiles(path string) string {
@@ -46,11 +47,15 @@ var _ = Describe("Fly CLI", func() {
 			filepath.Join(buildDir, "build.yml"),
 			[]byte(`---
 image: ubuntu
-env:
-  - FOO: bar
-  - BAZ: buzz
-  - X: 1
-script: find . {{ .Args }}
+
+params:
+  FOO: bar
+  BAZ: buzz
+  X: 1
+
+run:
+  path: find
+  args: [.]
 `),
 			0644,
 		)
@@ -69,25 +74,35 @@ script: find . {{ .Args }}
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/builds"),
 				ghttp.VerifyJSONRepresenting(builds.Build{
-					Image:  "ubuntu",
-					Script: "find .",
-					Path:   filepath.Base(buildDir),
-					Env: []map[string]string{
-						{"FOO": "bar"},
-						{"BAZ": "buzz"},
-						{"X": "1"},
+					Path: filepath.Base(buildDir),
+					Config: TurbineBuilds.Config{
+						Image: "ubuntu",
+						Params: map[string]string{
+							"FOO": "bar",
+							"BAZ": "buzz",
+							"X":   "1",
+						},
+						Run: TurbineBuilds.RunConfig{
+							Path: "find",
+							Args: []string{"."},
+						},
 					},
 				}),
 				ghttp.RespondWith(201, `{
 					"guid": "abc",
-					"image": "ubuntu",
-					"script": "find .",
 					"path": "some-path/",
-					"env": [
-						{"FOO": "bar"},
-						{"BAZ": "buzz"},
-						{"X": "1"}
-					]
+					"config": {
+						"image": "ubuntu",
+						"run": {
+							"path": "find",
+							"args": ["."]
+						},
+						"params": {
+							"FOO": "bar",
+							"BAZ": "buzz",
+							"X": "1"
+						}
+					}
 				}`),
 			),
 			ghttp.CombineHandlers(
@@ -164,25 +179,35 @@ script: find . {{ .Args }}
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/builds"),
 					ghttp.VerifyJSONRepresenting(builds.Build{
-						Image:  "ubuntu",
-						Script: `find . "-name" "foo \"bar\" baz"`,
-						Path:   filepath.Base(buildDir),
-						Env: []map[string]string{
-							{"FOO": "bar"},
-							{"BAZ": "buzz"},
-							{"X": "1"},
+						Path: filepath.Base(buildDir),
+						Config: TurbineBuilds.Config{
+							Image: "ubuntu",
+							Params: map[string]string{
+								"FOO": "bar",
+								"BAZ": "buzz",
+								"X":   "1",
+							},
+							Run: TurbineBuilds.RunConfig{
+								Path: "find",
+								Args: []string{".", "-name", `foo "bar" baz`},
+							},
 						},
 					}),
 					ghttp.RespondWith(201, `{
 					"guid": "abc",
-					"image": "ubuntu",
-					"script": "find .",
 					"path": "some-path/",
-					"env": [
-						{"FOO": "bar"},
-						{"BAZ": "buzz"},
-						{"X": "1"}
-					]
+					"config": {
+						"image": "ubuntu",
+						"run": {
+							"path": "find",
+							"args": [".", "-name", "foo \"bar\" baz"]
+						},
+						"params": {
+							"FOO": "bar",
+							"BAZ": "buzz",
+							"X": "1"
+						}
+					}
 				}`),
 				),
 			)

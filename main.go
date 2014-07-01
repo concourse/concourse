@@ -12,9 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"sync"
-	"text/template"
 	"time"
 
 	"github.com/fraenkel/candiedyaml"
@@ -25,13 +23,8 @@ import (
 
 	"github.com/concourse/glider/api/builds"
 	"github.com/concourse/glider/routes"
+	TurbineBuilds "github.com/concourse/turbine/api/builds"
 )
-
-type BuildConfig struct {
-	Image  string              `yaml:"image"`
-	Script string              `yaml:"script"`
-	Env    []map[string]string `yaml:"env"`
-}
 
 var buildConfig = flag.String(
 	"c",
@@ -110,7 +103,7 @@ type ConfigContext struct {
 	Args string
 }
 
-func loadConfig(configPath string) BuildConfig {
+func loadConfig(configPath string) TurbineBuilds.Config {
 	passArgs := false
 	args := []string{}
 	for _, arg := range os.Args {
@@ -120,44 +113,33 @@ func loadConfig(configPath string) BuildConfig {
 		}
 
 		if passArgs {
-			args = append(args, "\""+strings.Replace(arg, `"`, `\"`, -1)+"\"")
+			args = append(args, arg)
 		}
 	}
 
-	context := ConfigContext{
-		Args: strings.Join(args, " "),
-	}
-
-	template, err := template.ParseFiles(configPath)
+	configFile, err := os.Open(configPath)
 	if err != nil {
 		log.Fatalln("could not open config file:", err)
 	}
 
-	rendered := new(bytes.Buffer)
+	var config TurbineBuilds.Config
 
-	err = template.Execute(rendered, context)
-	if err != nil {
-		log.Fatalln("could not render config file:", err)
-	}
-
-	var config BuildConfig
-
-	err = candiedyaml.NewDecoder(rendered).Decode(&config)
+	err = candiedyaml.NewDecoder(configFile).Decode(&config)
 	if err != nil {
 		log.Fatalln("could not parse config file:", err)
 	}
 
+	config.Run.Args = append(config.Run.Args, args...)
+
 	return config
 }
 
-func create(reqGenerator *router.RequestGenerator, config BuildConfig, path string) builds.Build {
+func create(reqGenerator *router.RequestGenerator, config TurbineBuilds.Config, path string) builds.Build {
 	buffer := &bytes.Buffer{}
 
 	build := builds.Build{
-		Image:  config.Image,
 		Path:   path,
-		Script: config.Script,
-		Env:    config.Env,
+		Config: config,
 	}
 
 	err := json.NewEncoder(buffer).Encode(build)
