@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-const amazingRubyServer = `ruby <<END_MAGIC_SERVER
+const amazingRubyServer = `
 require 'webrick'
 require 'json'
 
@@ -32,7 +32,6 @@ trap('INT') {
 }
 
 server.start
-END_MAGIC_SERVER
 `
 
 var container warden.Container
@@ -53,7 +52,8 @@ func Start(wardenClient warden.Client) {
 	ipAddress = info.ContainerIP
 
 	_, _, err = container.Run(warden.ProcessSpec{
-		Script: amazingRubyServer,
+		Path: "ruby",
+		Args: []string{"-e", amazingRubyServer},
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 

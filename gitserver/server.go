@@ -30,7 +30,8 @@ func Start(wardenClient warden.Client) {
 	ipAddress = info.ContainerIP
 
 	_, stream, err := container.Run(warden.ProcessSpec{
-		Script: `
+		Path: "bash",
+		Args: []string{"-c", `
 git config --global user.email dummy@example.com
 git config --global user.name "Dummy User"
 
@@ -38,7 +39,7 @@ mkdir some-repo
 cd some-repo
 git init
 touch .git/git-daemon-export-ok
-`,
+`},
 	})
 
 	for chunk := range stream {
@@ -50,7 +51,8 @@ touch .git/git-daemon-export-ok
 	}
 
 	_, stream, err = container.Run(warden.ProcessSpec{
-		Script: "git daemon --reuseaddr --base-path=$HOME --detach $HOME",
+		Path: "git",
+		Args: []string{"daemon", "--reuseaddr", "--base-path=.", "--detach", "."},
 	})
 
 	for chunk := range stream {
@@ -78,12 +80,21 @@ func Commit() {
 	Ω(err).ShouldNot(HaveOccurred())
 
 	_, stream, err := container.Run(warden.ProcessSpec{
-		Script: fmt.Sprintf(`
-cd some-repo
-echo '%s' >> guids
-git add guids
-git commit -m 'commit #%d: %s'
-`, guid, len(committedGuids)+1, guid),
+		Path: "bash",
+		Args: []string{
+			"-c",
+			fmt.Sprintf(
+				`
+					cd some-repo
+					echo '%s' >> guids
+					git add guids
+					git commit -m 'commit #%d: %s'
+				`,
+				guid,
+				len(committedGuids)+1,
+				guid,
+			),
+		},
 	})
 
 	for chunk := range stream {
