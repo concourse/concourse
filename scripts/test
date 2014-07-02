@@ -11,12 +11,12 @@ export PATH=${BASE_GOPATH}/bin:$PATH
 
 export EXTERNAL_ADDRESS=$(ip route get 8.8.8.8 | sed 's/.*src\s\(.*\)\s/\1/;tx;d;:x')
 
-pushd gopath/src/github.com/cloudfoundry-incubator/warden-linux/
+pushd godeps/src/github.com/cloudfoundry-incubator/warden-linux/
   make # compile wshd/etc.
   export WARDEN_BINPATH=${PWD}/linux_backend/bin
 popd
 
-cd gopath/src/github.com/concourse/testflight
+cd godeps/src/github.com/concourse/testflight
 
 export GOPATH=${BASE_GOPATH}:${PWD}/Godeps/_workspace
 export PATH=${PWD}/Godeps/_workspace/bin:$PATH
