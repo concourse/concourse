@@ -1,9 +1,8 @@
 ---
 image: docker:///mischief/docker-golang
 
-inputs:
-  - name: fly
-    destination_path: gopath/src/github.com/concourse/fly
+paths:
+  fly: gopath/src/github.com/concourse/fly
 
 run:
   path: gopath/src/github.com/concourse/fly/scripts/test
