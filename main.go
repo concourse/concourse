@@ -134,11 +134,11 @@ func loadConfig(configPath string) TurbineBuilds.Config {
 	return config
 }
 
-func create(reqGenerator *router.RequestGenerator, config TurbineBuilds.Config, path string) builds.Build {
+func create(reqGenerator *router.RequestGenerator, config TurbineBuilds.Config, name string) builds.Build {
 	buffer := &bytes.Buffer{}
 
 	build := builds.Build{
-		Path:   path,
+		Name:   name,
 		Config: config,
 	}
 

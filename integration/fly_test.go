@@ -74,7 +74,7 @@ run:
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/builds"),
 				ghttp.VerifyJSONRepresenting(builds.Build{
-					Path: filepath.Base(buildDir),
+					Name: filepath.Base(buildDir),
 					Config: TurbineBuilds.Config{
 						Image: "ubuntu",
 						Params: map[string]string{
@@ -179,7 +179,7 @@ run:
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/builds"),
 					ghttp.VerifyJSONRepresenting(builds.Build{
-						Path: filepath.Base(buildDir),
+						Name: filepath.Base(buildDir),
 						Config: TurbineBuilds.Config{
 							Image: "ubuntu",
 							Params: map[string]string{
