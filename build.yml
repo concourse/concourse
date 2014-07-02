@@ -10,4 +10,4 @@ paths:
   warden-linux: gopath/src/github.com/cloudfoundry-incubator/warden-linux
 
 run:
-  path: testflight/scripts/test
+  path: gopath/src/github.com/concourse/testflight/scripts/test
