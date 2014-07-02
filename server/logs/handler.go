@@ -8,6 +8,7 @@ import (
 
 	"github.com/concourse/atc/ansistream"
 
+	"github.com/concourse/atc/limitedstream"
 	"github.com/concourse/atc/logfanout"
 	"github.com/concourse/atc/utf8stream"
 )
@@ -26,7 +27,10 @@ func NewHandler(logger lager.Logger, tracker *logfanout.Tracker) websocket.Handl
 			return
 		}
 
-		logWriter := utf8stream.NewWriter(ansistream.NewWriter(conn))
+		logWriter := limitedstream.Writer{
+			Limit:       1024,
+			WriteCloser: utf8stream.NewWriter(ansistream.NewWriter(conn)),
+		}
 
 		logFanout := tracker.Register(job, id, conn)
 		defer tracker.Unregister(job, id, conn)
