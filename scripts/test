@@ -2,16 +2,12 @@
 # vim: set ft=sh
 
 export GOROOT=/usr/local/go
-export GOPATH=/tmp/gopath
-
 export PATH=$GOROOT/bin:$PATH
+
+export GOPATH=$PWD/gopath
 export PATH=$GOPATH/bin:$PATH
-export REPO_DIR=$GOPATH/src/github.com/concourse/fly
 
-mkdir -p $(dirname $REPO_DIR)
-ln -s $PWD/$(basename $REPO_DIR) $REPO_DIR
-
-cd $REPO_DIR
+cd $GOPATH/src/github.com/concourse/fly
 
 export GOPATH=${PWD}/Godeps/_workspace:$GOPATH
 export PATH=${PWD}/Godeps/_workspace/bin:$PATH
