@@ -1,5 +1,24 @@
 ---
 image: docker:///concourse/testflight
 
+inputs:
+  - name: testflight
+    destination_path: gopath/src/github.com/concourse/testflight
+
+  - name: atc
+    destination_path: gopath/src/github.com/concourse/atc
+
+  - name: turbine
+    destination_path: gopath/src/github.com/concourse/turbine
+
+  - name: glider
+    destination_path: gopath/src/github.com/concourse/glider
+
+  - name: fly
+    destination_path: gopath/src/github.com/concourse/fly
+
+  - name: warden-linux
+    destination_path: gopath/src/github.com/cloudfoundry-incubator/warden-linux
+
 run:
-  path: testflight/scripts/test
+  path: gopath/src/github.com/concourse/testflight/scripts/test
