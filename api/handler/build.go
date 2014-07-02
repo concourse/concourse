@@ -71,7 +71,7 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 
 	switch turbineBuild.Status {
 	case TurbineBuilds.StatusStarted:
-		for _, input := range turbineBuild.Config.Inputs {
+		for _, input := range turbineBuild.Inputs {
 			err := handler.db.SaveCurrentVersion(job, input.Name, builds.Version(input.Version))
 			if err != nil {
 				log.Error("failed-to-save-current-version", err)
@@ -85,7 +85,7 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	case TurbineBuilds.StatusSucceeded:
-		for _, output := range turbineBuild.Config.Outputs {
+		for _, output := range turbineBuild.Outputs {
 			err := handler.db.SaveCurrentVersion(job, output.Name, builds.Version(output.Version))
 			if err != nil {
 				log.Error("failed-to-save-current-version", err)

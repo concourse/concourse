@@ -124,13 +124,11 @@ func (builder *builder) Start(job config.Job, build builds.Build, versionOverrid
 
 	logs.URL.Scheme = "ws"
 
-	buildConfig := TurbineBuilds.Config{
+	turbineBuild := TurbineBuilds.Build{
+		Config: job.BuildConfig,
+
 		Inputs:  inputs,
 		Outputs: outputs,
-	}.Merge(job.BuildConfig)
-
-	turbineBuild := TurbineBuilds.Build{
-		Config: buildConfig,
 
 		Privileged: job.Privileged,
 
@@ -226,11 +224,10 @@ func (builder *builder) computeInputs(job config.Job, versions map[string]builds
 
 func (builder *builder) inputFor(job config.Job, resource config.Resource, version builds.Version) TurbineBuilds.Input {
 	turbineInput := TurbineBuilds.Input{
-		Name:            resource.Name,
-		Type:            resource.Type,
-		Source:          TurbineBuilds.Source(resource.Source),
-		Version:         TurbineBuilds.Version(version),
-		DestinationPath: resource.Name,
+		Name:    resource.Name,
+		Type:    resource.Type,
+		Source:  TurbineBuilds.Source(resource.Source),
+		Version: TurbineBuilds.Version(version),
 	}
 
 	if filepath.HasPrefix(job.BuildConfigPath, resource.Name) {

@@ -97,19 +97,18 @@ var _ = Describe("Builder", func() {
 					Path: "some-script",
 					Args: []string{"arg1", "arg2"},
 				},
-
-				Inputs: []TurbineBuilds.Input{
-					{
-						Name:            "some-resource",
-						Type:            "git",
-						Source:          TurbineBuilds.Source{"uri": "git://some-resource"},
-						DestinationPath: "some-resource",
-						ConfigPath:      "build.yml",
-					},
-				},
-
-				Outputs: []TurbineBuilds.Output{},
 			},
+
+			Inputs: []TurbineBuilds.Input{
+				{
+					Name:       "some-resource",
+					Type:       "git",
+					Source:     TurbineBuilds.Source{"uri": "git://some-resource"},
+					ConfigPath: "build.yml",
+				},
+			},
+
+			Outputs: []TurbineBuilds.Output{},
 
 			Privileged: true,
 
@@ -322,7 +321,7 @@ var _ = Describe("Builder", func() {
 					},
 				}
 
-				expectedTurbineBuild.Config.Outputs = []TurbineBuilds.Output{
+				expectedTurbineBuild.Outputs = []TurbineBuilds.Output{
 					{
 						Name:       "some-resource",
 						Type:       "git",
@@ -349,14 +348,13 @@ var _ = Describe("Builder", func() {
 
 		Context("when resource versions are specified", func() {
 			BeforeEach(func() {
-				expectedTurbineBuild.Config.Inputs = []TurbineBuilds.Input{
+				expectedTurbineBuild.Inputs = []TurbineBuilds.Input{
 					{
-						Name:            "some-resource",
-						Type:            "git",
-						Source:          TurbineBuilds.Source{"uri": "git://some-resource"},
-						Version:         TurbineBuilds.Version{"version": "1"},
-						DestinationPath: "some-resource",
-						ConfigPath:      "build.yml",
+						Name:       "some-resource",
+						Type:       "git",
+						Source:     TurbineBuilds.Source{"uri": "git://some-resource"},
+						Version:    TurbineBuilds.Version{"version": "1"},
+						ConfigPath: "build.yml",
 					},
 				}
 			})
@@ -404,20 +402,18 @@ var _ = Describe("Builder", func() {
 					Passed:   []string{"job1", "job2"},
 				})
 
-				expectedTurbineBuild.Config.Inputs = []TurbineBuilds.Input{
+				expectedTurbineBuild.Inputs = []TurbineBuilds.Input{
 					{
-						Name:            "some-resource",
-						Type:            "git",
-						Source:          TurbineBuilds.Source{"uri": "git://some-resource"},
-						DestinationPath: "some-resource",
-						ConfigPath:      "build.yml",
+						Name:       "some-resource",
+						Type:       "git",
+						Source:     TurbineBuilds.Source{"uri": "git://some-resource"},
+						ConfigPath: "build.yml",
 					},
 					{
-						Name:            "some-dependant-resource",
-						Type:            "git",
-						Source:          TurbineBuilds.Source{"uri": "git://some-dependant-resource"},
-						Version:         TurbineBuilds.Version{"version": "1"},
-						DestinationPath: "some-dependant-resource",
+						Name:    "some-dependant-resource",
+						Type:    "git",
+						Source:  TurbineBuilds.Source{"uri": "git://some-dependant-resource"},
+						Version: TurbineBuilds.Version{"version": "1"},
 					},
 				}
 			})

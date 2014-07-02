@@ -70,21 +70,19 @@ var _ = Describe("API", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 
 			turbineBuild = TurbineBuilds.Build{
-				Config: TurbineBuilds.Config{
-					Inputs: []TurbineBuilds.Input{
-						{
-							Name:    "some-input",
-							Type:    "git",
-							Version: version1,
-						},
-						{
-							Name:    "some-other-input",
-							Type:    "git",
-							Version: version2,
-							Metadata: []TurbineBuilds.MetadataField{
-								{Name: "meta1", Value: "value1"},
-								{Name: "meta2", Value: "value2"},
-							},
+				Inputs: []TurbineBuilds.Input{
+					{
+						Name:    "some-input",
+						Type:    "git",
+						Version: version1,
+					},
+					{
+						Name:    "some-other-input",
+						Type:    "git",
+						Version: version2,
+						Metadata: []TurbineBuilds.MetadataField{
+							{Name: "meta1", Value: "value1"},
+							{Name: "meta2", Value: "value2"},
 						},
 					},
 				},
@@ -153,7 +151,7 @@ var _ = Describe("API", func() {
 			BeforeEach(func() {
 				turbineBuild.Status = TurbineBuilds.StatusSucceeded
 
-				turbineBuild.Config.Outputs = []TurbineBuilds.Output{
+				turbineBuild.Outputs = []TurbineBuilds.Output{
 					{
 						Name: "some-output",
 
