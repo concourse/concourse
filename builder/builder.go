@@ -124,13 +124,15 @@ func (builder *builder) Start(job config.Job, build builds.Build, versionOverrid
 
 	logs.URL.Scheme = "ws"
 
-	turbineBuild := TurbineBuilds.Build{
-		Config: job.BuildConfig,
-
-		Privileged: job.Privileged,
-
+	buildConfig := TurbineBuilds.Config{
 		Inputs:  inputs,
 		Outputs: outputs,
+	}.Merge(job.BuildConfig)
+
+	turbineBuild := TurbineBuilds.Build{
+		Config: buildConfig,
+
+		Privileged: job.Privileged,
 
 		Callback: complete.URL.String(),
 		LogsURL:  logs.URL.String(),

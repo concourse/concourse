@@ -87,32 +87,34 @@ var _ = Describe("Builder", func() {
 		expectedTurbineBuild = TurbineBuilds.Build{
 			Config: TurbineBuilds.Config{
 				Image: "some-image",
+
 				Params: map[string]string{
 					"FOO": "1",
 					"BAR": "2",
 				},
+
 				Run: TurbineBuilds.RunConfig{
 					Path: "some-script",
 					Args: []string{"arg1", "arg2"},
 				},
+
+				Inputs: []TurbineBuilds.Input{
+					{
+						Name:            "some-resource",
+						Type:            "git",
+						Source:          TurbineBuilds.Source{"uri": "git://some-resource"},
+						DestinationPath: "some-resource",
+						ConfigPath:      "build.yml",
+					},
+				},
+
+				Outputs: []TurbineBuilds.Output{},
 			},
 
 			Privileged: true,
 
 			Callback: "http://atc-server/builds/foo/1",
 			LogsURL:  "ws://atc-server/builds/foo/1/log/input",
-
-			Inputs: []TurbineBuilds.Input{
-				{
-					Name:            "some-resource",
-					Type:            "git",
-					Source:          TurbineBuilds.Source{"uri": "git://some-resource"},
-					DestinationPath: "some-resource",
-					ConfigPath:      "build.yml",
-				},
-			},
-
-			Outputs: []TurbineBuilds.Output{},
 		}
 
 		builder = NewBuilder(
@@ -320,7 +322,7 @@ var _ = Describe("Builder", func() {
 					},
 				}
 
-				expectedTurbineBuild.Outputs = []TurbineBuilds.Output{
+				expectedTurbineBuild.Config.Outputs = []TurbineBuilds.Output{
 					{
 						Name:       "some-resource",
 						Type:       "git",
@@ -347,7 +349,7 @@ var _ = Describe("Builder", func() {
 
 		Context("when resource versions are specified", func() {
 			BeforeEach(func() {
-				expectedTurbineBuild.Inputs = []TurbineBuilds.Input{
+				expectedTurbineBuild.Config.Inputs = []TurbineBuilds.Input{
 					{
 						Name:            "some-resource",
 						Type:            "git",
@@ -402,7 +404,7 @@ var _ = Describe("Builder", func() {
 					Passed:   []string{"job1", "job2"},
 				})
 
-				expectedTurbineBuild.Inputs = []TurbineBuilds.Input{
+				expectedTurbineBuild.Config.Inputs = []TurbineBuilds.Input{
 					{
 						Name:            "some-resource",
 						Type:            "git",
