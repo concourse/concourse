@@ -49,7 +49,7 @@ func (watcher Watcher) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 
 			var checker resources.Checker
 			if len(input.Passed) == 0 {
-				checker = resources.NewTurbineChecker(watcher.turbine)
+				checker = resources.NewTurbineChecker(watcher.turbine, 5*time.Second)
 			} else {
 				checker = resources.NewWinstonChecker(watcher.db, input.Passed)
 			}

@@ -2,10 +2,11 @@ package resources
 
 import (
 	"encoding/json"
+	"time"
 
-	"code.google.com/p/go.net/websocket"
 	TurbineBuilds "github.com/concourse/turbine/api/builds"
 	"github.com/concourse/turbine/routes"
+	"github.com/gorilla/websocket"
 	"github.com/tedsuo/router"
 
 	"github.com/concourse/atc/builds"
@@ -13,16 +14,24 @@ import (
 )
 
 type TurbineChecker struct {
-	turbine *router.RequestGenerator
+	turbine      *router.RequestGenerator
+	pingInterval time.Duration
+
+	dialer *websocket.Dialer
 
 	connections chan *websocket.Conn
 }
 
-func NewTurbineChecker(turbine *router.RequestGenerator) Checker {
+func NewTurbineChecker(turbine *router.RequestGenerator, pingInterval time.Duration) Checker {
 	return &TurbineChecker{
-		turbine: turbine,
+		turbine:      turbine,
+		pingInterval: pingInterval,
 
 		connections: make(chan *websocket.Conn, 1),
+
+		dialer: &websocket.Dialer{
+			HandshakeTimeout: time.Second,
+		},
 	}
 }
 
@@ -38,13 +47,28 @@ func (checker *TurbineChecker) CheckResource(resource config.Resource, from buil
 		Version: TurbineBuilds.Version(from),
 	}
 
-	err = json.NewEncoder(conn).Encode(buildInput)
+	writer, err := conn.NextWriter(websocket.BinaryMessage)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.NewEncoder(writer).Encode(buildInput)
+	if err != nil {
+		return nil, err
+	}
+
+	err = writer.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	_, reader, err := conn.NextReader()
 	if err != nil {
 		return nil, err
 	}
 
 	var newVersions []builds.Version
-	err = json.NewDecoder(conn).Decode(&newVersions)
+	err = json.NewDecoder(reader).Decode(&newVersions)
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +81,11 @@ func (checker *TurbineChecker) CheckResource(resource config.Resource, from buil
 func (checker *TurbineChecker) connect() (*websocket.Conn, error) {
 	select {
 	case conn := <-checker.connections:
+		err := conn.SetReadDeadline(time.Now().Add(2 * checker.pingInterval))
+		if err != nil {
+			return nil, err
+		}
+
 		return conn, nil
 	default:
 		req, err := checker.turbine.RequestForHandler(
@@ -70,7 +99,35 @@ func (checker *TurbineChecker) connect() (*websocket.Conn, error) {
 
 		req.URL.Scheme = "ws"
 
-		return websocket.Dial(req.URL.String(), "", "http://0.0.0.0")
+		conn, _, err := checker.dialer.Dial(req.URL.String(), nil)
+		if err != nil {
+			return nil, err
+		}
+
+		conn.SetPongHandler(func(string) error {
+			return conn.SetReadDeadline(time.Now().Add(2 * checker.pingInterval))
+		})
+
+		go func() {
+			ticker := time.NewTicker(checker.pingInterval)
+
+			for {
+				<-ticker.C
+
+				err := conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(time.Second))
+				if err != nil {
+					break
+				}
+			}
+		}()
+
+		err = conn.SetReadDeadline(time.Now().Add(2 * checker.pingInterval))
+		if err != nil {
+			conn.Close()
+			return nil, err
+		}
+
+		return conn, nil
 	}
 }
 
