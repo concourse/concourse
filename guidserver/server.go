@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/cloudfoundry-incubator/garden/warden"
+	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
@@ -54,7 +55,10 @@ func Start(wardenClient warden.Client) {
 	_, err = container.Run(warden.ProcessSpec{
 		Path: "ruby",
 		Args: []string{"-e", amazingRubyServer},
-	}, warden.ProcessIO{})
+	}, warden.ProcessIO{
+		Stdout: ginkgo.GinkgoWriter,
+		Stderr: ginkgo.GinkgoWriter,
+	})
 	Ω(err).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {

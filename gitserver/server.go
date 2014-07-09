@@ -6,6 +6,7 @@ import (
 	"github.com/cloudfoundry-incubator/garden/warden"
 	"github.com/nu7hatch/gouuid"
 
+	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
@@ -39,14 +40,20 @@ cd some-repo
 git init
 touch .git/git-daemon-export-ok
 `},
-	}, warden.ProcessIO{})
+	}, warden.ProcessIO{
+		Stdout: ginkgo.GinkgoWriter,
+		Stderr: ginkgo.GinkgoWriter,
+	})
 	Ω(err).ShouldNot(HaveOccurred())
 	Ω(process.Wait()).Should(Equal(0))
 
 	process, err = container.Run(warden.ProcessSpec{
 		Path: "git",
 		Args: []string{"daemon", "--reuseaddr", "--base-path=.", "--detach", "."},
-	}, warden.ProcessIO{})
+	}, warden.ProcessIO{
+		Stdout: ginkgo.GinkgoWriter,
+		Stderr: ginkgo.GinkgoWriter,
+	})
 	Ω(err).ShouldNot(HaveOccurred())
 	Ω(process.Wait()).Should(Equal(0))
 }
@@ -82,7 +89,10 @@ func Commit() {
 				guid,
 			),
 		},
-	}, warden.ProcessIO{})
+	}, warden.ProcessIO{
+		Stdout: ginkgo.GinkgoWriter,
+		Stderr: ginkgo.GinkgoWriter,
+	})
 	Ω(err).ShouldNot(HaveOccurred())
 	Ω(process.Wait()).Should(Equal(0))
 
