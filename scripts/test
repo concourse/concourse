@@ -7,6 +7,8 @@ export GOROOT=/usr/local/go
 export PATH=$GOROOT/bin:$PATH
 
 export BASE_GOPATH=${PWD}/gopath
+
+export GOPATH=${BASE_GOPATH}
 export PATH=${BASE_GOPATH}/bin:$PATH
 
 export EXTERNAL_ADDRESS=$(ip route get 8.8.8.8 | sed 's/.*src\s\(.*\)\s/\1/;tx;d;:x')
@@ -18,7 +20,7 @@ popd
 
 cd gopath/src/github.com/concourse/testflight/
 
-export GOPATH=${BASE_GOPATH}:${PWD}/Godeps/_workspace
+export GOPATH=${GOPATH}:${PWD}/Godeps/_workspace
 export PATH=${PWD}/Godeps/_workspace/bin:$PATH
 
 go install github.com/onsi/ginkgo/ginkgo
