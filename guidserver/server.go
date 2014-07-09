@@ -51,10 +51,10 @@ func Start(wardenClient warden.Client) {
 
 	ipAddress = info.ContainerIP
 
-	_, _, err = container.Run(warden.ProcessSpec{
+	_, err = container.Run(warden.ProcessSpec{
 		Path: "ruby",
 		Args: []string{"-e", amazingRubyServer},
-	})
+	}, warden.ProcessIO{})
 	Ω(err).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {

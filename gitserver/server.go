@@ -6,7 +6,6 @@ import (
 	"github.com/cloudfoundry-incubator/garden/warden"
 	"github.com/nu7hatch/gouuid"
 
-	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
@@ -29,7 +28,7 @@ func Start(wardenClient warden.Client) {
 
 	ipAddress = info.ContainerIP
 
-	_, stream, err := container.Run(warden.ProcessSpec{
+	process, err := container.Run(warden.ProcessSpec{
 		Path: "bash",
 		Args: []string{"-c", `
 git config --global user.email dummy@example.com
@@ -40,28 +39,16 @@ cd some-repo
 git init
 touch .git/git-daemon-export-ok
 `},
-	})
+	}, warden.ProcessIO{})
+	Ω(err).ShouldNot(HaveOccurred())
+	Ω(process.Wait()).Should(Equal(0))
 
-	for chunk := range stream {
-		ginkgo.GinkgoWriter.Write(chunk.Data)
-
-		if chunk.ExitStatus != nil {
-			Ω(*chunk.ExitStatus).Should(BeZero())
-		}
-	}
-
-	_, stream, err = container.Run(warden.ProcessSpec{
+	process, err = container.Run(warden.ProcessSpec{
 		Path: "git",
 		Args: []string{"daemon", "--reuseaddr", "--base-path=.", "--detach", "."},
-	})
-
-	for chunk := range stream {
-		ginkgo.GinkgoWriter.Write(chunk.Data)
-
-		if chunk.ExitStatus != nil {
-			Ω(*chunk.ExitStatus).Should(BeZero())
-		}
-	}
+	}, warden.ProcessIO{})
+	Ω(err).ShouldNot(HaveOccurred())
+	Ω(process.Wait()).Should(Equal(0))
 }
 
 func Stop(wardenClient warden.Client) {
@@ -79,7 +66,7 @@ func Commit() {
 	guid, err := uuid.NewV4()
 	Ω(err).ShouldNot(HaveOccurred())
 
-	_, stream, err := container.Run(warden.ProcessSpec{
+	process, err := container.Run(warden.ProcessSpec{
 		Path: "bash",
 		Args: []string{
 			"-c",
@@ -95,15 +82,9 @@ func Commit() {
 				guid,
 			),
 		},
-	})
-
-	for chunk := range stream {
-		ginkgo.GinkgoWriter.Write(chunk.Data)
-
-		if chunk.ExitStatus != nil {
-			Ω(*chunk.ExitStatus).Should(BeZero())
-		}
-	}
+	}, warden.ProcessIO{})
+	Ω(err).ShouldNot(HaveOccurred())
+	Ω(process.Wait()).Should(Equal(0))
 
 	committedGuids = append(committedGuids, guid.String())
 }
