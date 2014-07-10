@@ -1,6 +1,5 @@
 Vagrant.configure("2") do |config|
-  config.vm.box = "precise64"
-  config.vm.box_url = "http://files.vagrantup.com/precise64.box"
+  config.vm.box = "hashicorp/precise64"
 
   config.vm.network "forwarded_port", guest: 8080, host: 8080 # atc
   config.vm.network "forwarded_port", guest: 5637, host: 5637 # glider
@@ -9,6 +8,11 @@ Vagrant.configure("2") do |config|
   config.vm.provider "virtualbox" do |v|
     v.memory = 4096
     v.cpus = 2
+  end
+  
+  config.vm.provider "vmware_fusion" do |v, override|
+    v.vmx["memsize"] = 4096    
+    v.vmx["numvcpus"] = 2
   end
 
   config.vm.provision "bosh" do |c|
