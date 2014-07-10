@@ -1,26 +1,26 @@
 # concourse
 
-TODO: What is it?
+A [BOSH](https://github.com/cloudfoundry/bosh) release for concourse. The easiest way to deploy your own instance of concourse on AWS, vSphere, Openstack or with Vagrant.
 
-### Roadmap
+### Project Roadmap
 
-[Tracker](https://www.pivotaltracker.com/n/projects/1059262)
+[Pivotal Tracker](https://www.pivotaltracker.com/n/projects/1059262)
 
 ### Try it on Vagrant
 
 1. Install dependencies
 
-```
-vagrant plugin install vagrant-bosh
-gem install bosh_cli --no-ri --no-rdoc
-go get github.com/concourse/fly
-```
+    ```
+    vagrant plugin install vagrant-bosh
+    gem install bosh_cli --no-ri --no-rdoc
+    go get github.com/concourse/fly
+    ```
 
 1. Create a new VM
 
-```
-vagrant up
-```
+    ```
+    vagrant up
+    ```
 
 1. Play around with [ATC](https://github.com/concourse/atc)
   - Browse to your [local ATC](http://127.0.0.1:8080) and trigger a build or two.
