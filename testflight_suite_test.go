@@ -122,7 +122,7 @@ func TestFlightTest(t *testing.T) {
 }
 
 func findSource(pkg string) string {
-	for _, path := range filepath.SplitList(os.Getenv("GOPATH")) {
+	for _, path := range filepath.SplitList(os.Getenv("BASE_GOPATH")) {
 		srcPath := filepath.Join(path, "src", pkg)
 
 		_, err := os.Stat(srcPath)
