@@ -59,8 +59,13 @@ func (db *redisDB) Builds(job string) ([]builds.Build, error) {
 			return nil, err
 		}
 
-		build, err := db.GetBuild(job, id)
+		vals, err := redis.Values(conn.Do("HGETALL", fmt.Sprintf(buildKey, job, id)))
 		if err != nil {
+			return nil, err
+		}
+
+		var build builds.Build
+		if err := redis.ScanStruct(vals, &build); err != nil {
 			return nil, err
 		}
 
