@@ -5,7 +5,7 @@
 [submodule "src/warden-linux"]
 	path = src/warden-linux
 	url = https://github.com/cloudfoundry-incubator/warden-linux.git
-	branch = run-ng
+	branch = fix-tty
 [submodule "src/turbine"]
 	path = src/turbine
 	url = https://github.com/concourse/turbine.git
