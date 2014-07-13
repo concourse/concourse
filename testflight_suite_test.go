@@ -74,6 +74,12 @@ var _ = BeforeEach(func() {
 	externalAddr = os.Getenv("EXTERNAL_ADDRESS")
 	Ω(externalAddr).ShouldNot(BeEmpty(), "must specify $EXTERNAL_ADDRESS")
 
+	rawResourceRootfs := os.Getenv("RAW_RESOURCE_ROOTFS")
+	Ω(rawResourceRootfs).ShouldNot(BeEmpty(), "must specify $RAW_RESOURCE_ROOTFS")
+
+	gitResourceRootfs := os.Getenv("GIT_RESOURCE_ROOTFS")
+	Ω(gitResourceRootfs).ShouldNot(BeEmpty(), "must specify $GIT_RESOURCE_ROOTFS")
+
 	wardenAddr := fmt.Sprintf("127.0.0.1:%d", 4859+GinkgoParallelNode())
 
 	wardenRunner := WardenRunner.New(
@@ -89,10 +95,10 @@ var _ = BeforeEach(func() {
 		builtComponents["turbine"],
 		"-wardenNetwork", "tcp",
 		"-wardenAddr", wardenAddr,
-		"-resourceTypes", `{
-			"raw": "docker:///concourse/raw-resource#dev",
-			"git": "docker:///concourse/git-resource"
-		}`,
+		"-resourceTypes", fmt.Sprintf(`{
+			"raw": "%s",
+			"git": "%s"
+		}`, rawResourceRootfs, gitResourceRootfs),
 	)
 
 	gliderRunner := runner.NewRunner(
