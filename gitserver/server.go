@@ -16,11 +16,11 @@ var ipAddress string
 
 var committedGuids []string
 
-func Start(wardenClient warden.Client) {
+func Start(helperRootfs string, wardenClient warden.Client) {
 	var err error
 
 	container, err = wardenClient.Create(warden.ContainerSpec{
-		RootFSPath: "docker:///concourse/testflight-helper",
+		RootFSPath: helperRootfs,
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 

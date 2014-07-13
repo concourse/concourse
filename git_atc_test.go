@@ -31,8 +31,8 @@ var _ = Describe("A job with a git resource", func() {
 		redisRunner = redisrunner.NewRunner()
 		redisRunner.Start()
 
-		guidserver.Start(wardenClient)
-		gitserver.Start(wardenClient)
+		guidserver.Start(helperRootfs, wardenClient)
+		gitserver.Start(helperRootfs, wardenClient)
 
 		gitserver.Commit()
 
@@ -53,13 +53,13 @@ jobs:
     inputs:
       - resource: some-git-resource
     config:
-      image: docker:///concourse/testflight-helper
+      image: %s
       run:
         path: bash
         args:
           - -c
           - tail -1 some-git-resource/guids | %s
-`, gitserver.URI(), guidserver.CurlCommand())
+`, gitserver.URI(), helperRootfs, guidserver.CurlCommand())
 		Ω(err).ShouldNot(HaveOccurred())
 
 		err = atcConfigFile.Close()

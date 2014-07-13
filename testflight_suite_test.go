@@ -32,6 +32,8 @@ var builtComponents map[string]string
 
 var wardenBinPath string
 
+var helperRootfs string
+
 var _ = SynchronizedBeforeSuite(func() []byte {
 	wardenBinPath = os.Getenv("WARDEN_BINPATH")
 	Ω(wardenBinPath).ShouldNot(BeEmpty(), "must provide $WARDEN_BINPATH")
@@ -79,6 +81,9 @@ var _ = BeforeEach(func() {
 
 	gitResourceRootfs := os.Getenv("GIT_RESOURCE_ROOTFS")
 	Ω(gitResourceRootfs).ShouldNot(BeEmpty(), "must specify $GIT_RESOURCE_ROOTFS")
+
+	helperRootfs = os.Getenv("HELPER_ROOTFS")
+	Ω(helperRootfs).ShouldNot(BeEmpty(), "must specify $HELPER_ROOTFS")
 
 	wardenAddr := fmt.Sprintf("127.0.0.1:%d", 4859+GinkgoParallelNode())
 
