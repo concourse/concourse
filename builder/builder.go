@@ -11,7 +11,7 @@ import (
 
 	TurbineBuilds "github.com/concourse/turbine/api/builds"
 	TurbineRoutes "github.com/concourse/turbine/routes"
-	"github.com/tedsuo/router"
+	"github.com/tedsuo/rata"
 
 	WinstonRoutes "github.com/concourse/atc/api/routes"
 	"github.com/concourse/atc/builds"
@@ -31,8 +31,8 @@ type builder struct {
 	db        db.DB
 	resources config.Resources
 
-	turbine *router.RequestGenerator
-	atc     *router.RequestGenerator
+	turbine *rata.RequestGenerator
+	atc     *rata.RequestGenerator
 
 	httpClient *http.Client
 }
@@ -40,8 +40,8 @@ type builder struct {
 func NewBuilder(
 	db db.DB,
 	resources config.Resources,
-	turbine *router.RequestGenerator,
-	atc *router.RequestGenerator,
+	turbine *rata.RequestGenerator,
+	atc *rata.RequestGenerator,
 ) Builder {
 	return &builder{
 		db:        db,
@@ -98,9 +98,9 @@ func (builder *builder) Start(job config.Job, build builds.Build, versionOverrid
 		return builder.db.GetBuild(job.Name, build.ID)
 	}
 
-	complete, err := builder.atc.RequestForHandler(
+	complete, err := builder.atc.CreateRequest(
 		WinstonRoutes.UpdateBuild,
-		router.Params{
+		rata.Params{
 			"job":   job.Name,
 			"build": fmt.Sprintf("%d", build.ID),
 		},
@@ -110,9 +110,9 @@ func (builder *builder) Start(job config.Job, build builds.Build, versionOverrid
 		panic(err)
 	}
 
-	logs, err := builder.atc.RequestForHandler(
+	logs, err := builder.atc.CreateRequest(
 		WinstonRoutes.LogInput,
-		router.Params{
+		rata.Params{
 			"job":   job.Name,
 			"build": fmt.Sprintf("%d", build.ID),
 		},
@@ -143,7 +143,7 @@ func (builder *builder) Start(job config.Job, build builds.Build, versionOverrid
 		return builds.Build{}, err
 	}
 
-	execute, err := builder.turbine.RequestForHandler(
+	execute, err := builder.turbine.CreateRequest(
 		TurbineRoutes.ExecuteBuild,
 		nil,
 		req,

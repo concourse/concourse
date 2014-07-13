@@ -8,14 +8,14 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resources"
 	"github.com/concourse/atc/watchman"
-	"github.com/tedsuo/router"
+	"github.com/tedsuo/rata"
 )
 
 type Watcher struct {
 	jobs      config.Jobs
 	resources config.Resources
 	db        db.DB
-	turbine   *router.RequestGenerator
+	turbine   *rata.RequestGenerator
 	watchman  watchman.Watchman
 }
 
@@ -23,7 +23,7 @@ func NewWatcher(
 	jobs config.Jobs,
 	resources config.Resources,
 	db db.DB,
-	turbine *router.RequestGenerator,
+	turbine *rata.RequestGenerator,
 	watchman watchman.Watchman,
 ) *Watcher {
 	return &Watcher{

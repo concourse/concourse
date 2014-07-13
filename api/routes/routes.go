@@ -1,6 +1,6 @@
 package routes
 
-import "github.com/tedsuo/router"
+import "github.com/tedsuo/rata"
 
 const (
 	UpdateBuild = "UpdateBuild"
@@ -8,8 +8,9 @@ const (
 	LogInput = "LogInput"
 )
 
-var Routes = router.Routes{
-	{Path: "/builds/:job/:build", Method: "PUT", Handler: UpdateBuild},
+var Routes = rata.Routes{
+	{Path: "/builds/:job/:build", Method: "PUT", Name: UpdateBuild},
+	{Path: "/builds/:job/:build/processes", Method: "POST", Name: UpdateBuild},
 
-	{Path: "/builds/:job/:build/log/input", Method: "GET", Handler: LogInput},
+	{Path: "/builds/:job/:build/log/input", Method: "GET", Name: LogInput},
 }

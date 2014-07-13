@@ -7,14 +7,14 @@ import (
 	TurbineBuilds "github.com/concourse/turbine/api/builds"
 	"github.com/concourse/turbine/routes"
 	"github.com/gorilla/websocket"
-	"github.com/tedsuo/router"
+	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 )
 
 type TurbineChecker struct {
-	turbine      *router.RequestGenerator
+	turbine      *rata.RequestGenerator
 	pingInterval time.Duration
 
 	dialer      *websocket.Dialer
@@ -23,7 +23,7 @@ type TurbineChecker struct {
 	responses chan []builds.Version
 }
 
-func NewTurbineChecker(turbine *router.RequestGenerator, pingInterval time.Duration) Checker {
+func NewTurbineChecker(turbine *rata.RequestGenerator, pingInterval time.Duration) Checker {
 	return &TurbineChecker{
 		turbine:      turbine,
 		pingInterval: pingInterval,
@@ -72,7 +72,7 @@ func (checker *TurbineChecker) connect() (*websocket.Conn, error) {
 	case conn := <-checker.connections:
 		return conn, nil
 	default:
-		req, err := checker.turbine.RequestForHandler(
+		req, err := checker.turbine.CreateRequest(
 			routes.CheckInputStream,
 			nil,
 			nil,

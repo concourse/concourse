@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/pivotal-golang/lager"
-	"github.com/tedsuo/router"
+	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
@@ -51,7 +51,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	redirectPath, err := routes.Routes.PathForHandler(routes.GetBuild, router.Params{
+	redirectPath, err := routes.Routes.CreatePathForRoute(routes.GetBuild, rata.Params{
 		"job":   job.Name,
 		"build": fmt.Sprintf("%d", build.ID),
 	})

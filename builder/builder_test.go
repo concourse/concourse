@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/tedsuo/router"
+	"github.com/tedsuo/rata"
 
 	TurbineBuilds "github.com/concourse/turbine/api/builds"
 	TurbineRoutes "github.com/concourse/turbine/routes"
@@ -119,8 +119,8 @@ var _ = Describe("Builder", func() {
 		builder = NewBuilder(
 			redis,
 			resources,
-			router.NewRequestGenerator(turbineServer.URL(), TurbineRoutes.Routes),
-			router.NewRequestGenerator("http://atc-server", WinstonRoutes.Routes),
+			rata.NewRequestGenerator(turbineServer.URL(), TurbineRoutes.Routes),
+			rata.NewRequestGenerator("http://atc-server", WinstonRoutes.Routes),
 		)
 	})
 

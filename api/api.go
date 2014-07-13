@@ -5,7 +5,7 @@ import (
 
 	"code.google.com/p/go.net/websocket"
 	"github.com/pivotal-golang/lager"
-	"github.com/tedsuo/router"
+	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc/api/handler"
 	"github.com/concourse/atc/api/routes"
@@ -22,5 +22,5 @@ func New(logger lager.Logger, db db.DB, tracker *logfanout.Tracker) (http.Handle
 		routes.LogInput: websocket.Server{Handler: builds.LogInput},
 	}
 
-	return router.NewRouter(routes.Routes, handlers)
+	return rata.NewRouter(routes.Routes, handlers)
 }

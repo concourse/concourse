@@ -14,7 +14,7 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
-	"github.com/tedsuo/router"
+	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc/api"
 	apiroutes "github.com/concourse/atc/api/routes"
@@ -121,8 +121,8 @@ func main() {
 		return redis.DialTimeout("tcp", *redisAddr, 5*time.Second, 0, 0)
 	}, 20))
 
-	atcEndpoint := router.NewRequestGenerator("http://"+*peerAddr, apiroutes.Routes)
-	turbineEndpoint := router.NewRequestGenerator(*turbineURL, turbineroutes.Routes)
+	atcEndpoint := rata.NewRequestGenerator("http://"+*peerAddr, apiroutes.Routes)
+	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, turbineroutes.Routes)
 	builder := builder.NewBuilder(redisDB, conf.Resources, turbineEndpoint, atcEndpoint)
 
 	logger := lager.NewLogger("atc")

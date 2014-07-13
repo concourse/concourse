@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/pivotal-golang/lager"
-	"github.com/tedsuo/router"
+	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
@@ -59,7 +59,7 @@ func New(
 		routes.Public: http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
 	}
 
-	return router.NewRouter(routes.Routes, handlers)
+	return rata.NewRouter(routes.Routes, handlers)
 }
 
 func loadTemplate(templatesDir, name string, funcs template.FuncMap) (*template.Template, error) {

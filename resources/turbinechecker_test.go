@@ -10,7 +10,7 @@ import (
 	TurbineBuilds "github.com/concourse/turbine/api/builds"
 	"github.com/concourse/turbine/routes"
 	"github.com/gorilla/websocket"
-	"github.com/tedsuo/router"
+	"github.com/tedsuo/rata"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -78,7 +78,7 @@ var _ = Describe("TurbineChecker", func() {
 		)
 
 		checker = NewTurbineChecker(
-			router.NewRequestGenerator(turbineServer.URL(), routes.Routes),
+			rata.NewRequestGenerator(turbineServer.URL(), routes.Routes),
 			pingInterval,
 		)
 
