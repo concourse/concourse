@@ -35,9 +35,9 @@ export PATH=${PWD}/Godeps/_workspace/bin:$PATH
 go install github.com/onsi/ginkgo/ginkgo
 
 # set up a $TMPDIR so warden's graphs go onto tmpfs
-mkdir -p /tmp/testflight
-mount -t tmpfs -o size=1G none /tmp/testflight
-export TMPDIR=/tmp/testflight
+#mkdir -p /tmp/testflight
+#mount -t tmpfs -o size=1G none /tmp/testflight
+#export TMPDIR=/tmp/testflight
 
 # make /dev/shm larger
 mount -t tmpfs -o remount,size=1G none /dev/shm
