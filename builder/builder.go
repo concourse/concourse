@@ -216,17 +216,18 @@ func (builder *builder) computeInputs(job config.Job, versions map[string]builds
 			return nil, fmt.Errorf("unknown resource: %s", input.Resource)
 		}
 
-		turbineInputs[i] = builder.inputFor(job, resource, versions[input.Resource])
+		turbineInputs[i] = builder.inputFor(job, resource, input.Params, versions[input.Resource])
 	}
 
 	return turbineInputs, nil
 }
 
-func (builder *builder) inputFor(job config.Job, resource config.Resource, version builds.Version) TurbineBuilds.Input {
+func (builder *builder) inputFor(job config.Job, resource config.Resource, params config.Params, version builds.Version) TurbineBuilds.Input {
 	turbineInput := TurbineBuilds.Input{
 		Name:    resource.Name,
 		Type:    resource.Type,
 		Source:  TurbineBuilds.Source(resource.Source),
+		Params:  TurbineBuilds.Params(params),
 		Version: TurbineBuilds.Version(version),
 	}
 

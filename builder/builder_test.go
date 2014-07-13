@@ -62,6 +62,7 @@ var _ = Describe("Builder", func() {
 			Inputs: []config.Input{
 				{
 					Resource: "some-resource",
+					Params:   config.Params{"some": "params"},
 				},
 			},
 		}
@@ -104,6 +105,7 @@ var _ = Describe("Builder", func() {
 					Name:       "some-resource",
 					Type:       "git",
 					Source:     TurbineBuilds.Source{"uri": "git://some-resource"},
+					Params:     TurbineBuilds.Params{"some": "params"},
 					ConfigPath: "build.yml",
 				},
 			},
@@ -353,6 +355,7 @@ var _ = Describe("Builder", func() {
 						Name:       "some-resource",
 						Type:       "git",
 						Source:     TurbineBuilds.Source{"uri": "git://some-resource"},
+						Params:     TurbineBuilds.Params{"some": "params"},
 						Version:    TurbineBuilds.Version{"version": "1"},
 						ConfigPath: "build.yml",
 					},
@@ -407,6 +410,7 @@ var _ = Describe("Builder", func() {
 						Name:       "some-resource",
 						Type:       "git",
 						Source:     TurbineBuilds.Source{"uri": "git://some-resource"},
+						Params:     TurbineBuilds.Params{"some": "params"},
 						ConfigPath: "build.yml",
 					},
 					{
