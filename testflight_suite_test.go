@@ -83,6 +83,7 @@ var _ = BeforeEach(func() {
 	wardenAddr := fmt.Sprintf("127.0.0.1:%d", 4859+GinkgoParallelNode())
 
 	wardenRunner := WardenRunner.New(
+		"tcp",
 		wardenAddr,
 		builtComponents["warden-linux"],
 		wardenBinPath,
