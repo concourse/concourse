@@ -13,8 +13,14 @@ export PATH=${BASE_GOPATH}/bin:$PATH
 
 export EXTERNAL_ADDRESS=$(ip route get 8.8.8.8 | sed 's/.*src\s\(.*\)\s/\1/;tx;d;:x')
 
-export RAW_RESOURCE_ROOTFS=${PWD}/dev-raw-resource/rootfs
-export GIT_RESOURCE_ROOTFS=${PWD}/dev-git-resource/rootfs
+export RAW_RESOURCE_ROOTFS=/tmp/raw-resource-rootfs
+export GIT_RESOURCE_ROOTFS=/tmp/git-resource-rootfs
+
+mkdir -p $RAW_RESOURCE_ROOTFS
+tar -C $RAW_RESOURCE_ROOTFS -xf dev-raw-resource/rootfs.tar
+
+mkdir -p $GIT_RESOURCE_ROOTFS
+tar -C $GIT_RESOURCE_ROOTFS -xf dev-git-resource/rootfs.tar
 
 pushd gopath/src/github.com/cloudfoundry-incubator/warden-linux/
   make # compile wshd/etc.
