@@ -24,7 +24,6 @@ var _ = Describe("Flying", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 
 		err = ioutil.WriteFile(filepath.Join(tmpdir, "build.yml"), []byte(fmt.Sprintf(`---
----
 image: %s
 
 params:
