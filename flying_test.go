@@ -37,7 +37,7 @@ echo FOO is $FOO
 echo ARGS are "$@"
 exit 0
 `),
-			0644,
+			0755,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 
