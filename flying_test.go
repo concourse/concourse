@@ -96,7 +96,7 @@ echo polo > /tmp/fifo
 			flyS, err := gexec.Start(fly, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Eventually(flyS).Should(gbytes.Say("waiting"))
+			Eventually(flyS, 10*time.Second).Should(gbytes.Say("waiting"))
 
 			pty, tty, err := pty.Open()
 			Ω(err).ShouldNot(HaveOccurred())
