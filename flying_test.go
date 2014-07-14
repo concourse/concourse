@@ -98,6 +98,9 @@ echo polo > /tmp/fifo
 
 			Eventually(flyS, 10*time.Second).Should(gbytes.Say("waiting"))
 
+			// TODO there's a gap between start + attach in turbine
+			time.Sleep(5 * time.Second)
+
 			pty, tty, err := pty.Open()
 			Ω(err).ShouldNot(HaveOccurred())
 
