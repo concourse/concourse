@@ -107,7 +107,7 @@ echo polo > /tmp/fifo
 			hijackS, err := gexec.Start(hijack, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Eventually(hijackS).Should(gbytes.Say("# "))
+			Eventually(hijackS, 10*time.Second).Should(gbytes.Say("# "))
 
 			_, err = pty.WriteString("marco\n")
 			Ω(err).ShouldNot(HaveOccurred())
