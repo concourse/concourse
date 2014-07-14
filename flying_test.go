@@ -112,17 +112,17 @@ echo polo > /tmp/fifo
 
 			Eventually(hijackS, 10*time.Second).Should(gbytes.Say("# "))
 
-			_, err = pty.WriteString("echo marco > /tmp/fifo\n")
+			_, err = pty.WriteString("echo marco > /tmp/fifo\r\n")
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Eventually(flyS).Should(gbytes.Say("marco"))
+			Eventually(flyS, 10*time.Second).Should(gbytes.Say("marco"))
 
 			Eventually(hijackS).Should(gbytes.Say("# "))
 
-			_, err = pty.WriteString("cat < /tmp/fifo\n")
+			_, err = pty.WriteString("cat < /tmp/fifo\r\n")
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Eventually(hijackS).Should(gbytes.Say("polo"))
+			Eventually(hijackS, 10*time.Second).Should(gbytes.Say("polo"))
 
 			Eventually(flyS).Should(gexec.Exit(0))
 
