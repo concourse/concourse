@@ -112,7 +112,7 @@ echo polo > /tmp/fifo
 
 			Eventually(hijackS, 10*time.Second).Should(gbytes.Say("# "))
 
-			_, err = pty.WriteString("marco > /tmp/fifo\n")
+			_, err = pty.WriteString("echo marco > /tmp/fifo\n")
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Eventually(flyS).Should(gbytes.Say("marco"))
