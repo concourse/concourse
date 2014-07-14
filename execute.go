@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -66,24 +67,7 @@ func execute(reqGenerator *rata.RequestGenerator) {
 	os.Exit(exitCode)
 }
 
-type ConfigContext struct {
-	Args string
-}
-
 func loadConfig(configPath string) TurbineBuilds.Config {
-	passArgs := false
-	args := []string{}
-	for _, arg := range os.Args {
-		if arg == "--" {
-			passArgs = true
-			continue
-		}
-
-		if passArgs {
-			args = append(args, arg)
-		}
-	}
-
 	configFile, err := os.Open(configPath)
 	if err != nil {
 		log.Fatalln("could not open config file:", err)
@@ -96,7 +80,7 @@ func loadConfig(configPath string) TurbineBuilds.Config {
 		log.Fatalln("could not parse config file:", err)
 	}
 
-	config.Run.Args = append(config.Run.Args, args...)
+	config.Run.Args = append(config.Run.Args, flag.Args()...)
 
 	return config
 }

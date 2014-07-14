@@ -42,11 +42,19 @@ func main() {
 
 	reqGenerator := rata.NewRequestGenerator(glider, routes.Routes)
 
-	switch flag.Arg(0) {
-	case "", "--":
+	if len(os.Args) == 1 {
+		execute(reqGenerator)
+		return
+	}
+
+	switch os.Args[1] {
+	case "--":
 		execute(reqGenerator)
 
 	case "hijack":
 		hijack(reqGenerator)
+
+	default:
+		println("unknown command: " + flag.Arg(0))
 	}
 }
