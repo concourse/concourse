@@ -136,7 +136,7 @@ func hijack(reqGenerator *rata.RequestGenerator) {
 
 	go io.Copy(&stdinWriter{encoder}, term)
 
-	io.Copy(term, cbr)
+	io.Copy(os.Stdout, cbr)
 }
 
 func sendSize(enc *gob.Encoder) {
