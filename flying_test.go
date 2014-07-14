@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/kr/pty"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -84,7 +83,6 @@ run:
 mkfifo /tmp/fifo
 echo waiting
 cat < /tmp/fifo
-echo polo > /tmp/fifo
 `),
 				0755,
 			)
@@ -101,34 +99,16 @@ echo polo > /tmp/fifo
 			// TODO there's a gap between start + attach in turbine
 			time.Sleep(5 * time.Second)
 
-			pty, tty, err := pty.Open()
-			Ω(err).ShouldNot(HaveOccurred())
-
-			hijack := exec.Command(builtComponents["fly"], "hijack")
-			hijack.Stdin = tty
+			hijack := exec.Command(builtComponents["fly"], "hijack", "bash", "-c", "echo marco > /tmp/fifo")
 
 			hijackS, err := gexec.Start(hijack, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Eventually(hijackS, 10*time.Second).Should(gbytes.Say("# "))
-
-			_, err = pty.WriteString("echo marco > /tmp/fifo\r\n")
-			Ω(err).ShouldNot(HaveOccurred())
-
 			Eventually(flyS, 10*time.Second).Should(gbytes.Say("marco"))
 
-			Eventually(hijackS).Should(gbytes.Say("# "))
-
-			_, err = pty.WriteString("cat < /tmp/fifo\r\n")
-			Ω(err).ShouldNot(HaveOccurred())
-
-			Eventually(hijackS, 10*time.Second).Should(gbytes.Say("polo"))
+			Eventually(hijackS, 5*time.Second).Should(gexec.Exit(0))
 
 			Eventually(flyS).Should(gexec.Exit(0))
-
-			pty.Close()
-
-			Eventually(hijackS).Should(gexec.Exit(0))
 		})
 	})
 })
