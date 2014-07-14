@@ -16,6 +16,7 @@ import (
 
 var _ = Describe("Flying", func() {
 	var tmpdir string
+	var fixture string
 
 	BeforeEach(func() {
 		var err error
@@ -23,21 +24,36 @@ var _ = Describe("Flying", func() {
 		tmpdir, err = ioutil.TempDir("", "fly-test")
 		Ω(err).ShouldNot(HaveOccurred())
 
-		err = ioutil.WriteFile(filepath.Join(tmpdir, "build.yml"), []byte(fmt.Sprintf(`---
+		fixture = filepath.Join(tmpdir, "fixture")
+
+		err = os.MkdirAll(fixture, 0755)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		err = ioutil.WriteFile(
+			filepath.Join(fixture, "run"),
+			[]byte(`#!/bin/bash
+echo some output
+echo FOO is $FOO
+echo ARGS are "$@"
+exit 0
+`),
+			0644,
+		)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		err = ioutil.WriteFile(
+			filepath.Join(fixture, "build.yml"),
+			[]byte(fmt.Sprintf(`---
 image: %s
 
 params:
   FOO: 1
 
 run:
-  path: bash
-  args:
-    - -c
-    - |
-      echo some output
-      echo FOO is $FOO
-      exit 0
-`, helperRootfs)), 0644)
+  path: fixture/run
+`, helperRootfs)),
+			0644,
+		)
 		Ω(err).ShouldNot(HaveOccurred())
 	})
 
@@ -46,15 +62,16 @@ run:
 	})
 
 	It("works", func() {
-		fly := exec.Command(builtComponents["fly"])
-		fly.Dir = tmpdir
+		fly := exec.Command(builtComponents["fly"], "--", "SOME", "ARGS")
+		fly.Dir = fixture
 
 		session, err := gexec.Start(fly, GinkgoWriter, GinkgoWriter)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		Eventually(session, 10*time.Minute).Should(gexec.Exit(0))
+		Eventually(session, 1*time.Minute).Should(gexec.Exit(0))
 
 		Ω(session).Should(gbytes.Say("some output"))
 		Ω(session).Should(gbytes.Say("FOO is 1"))
+		Ω(session).Should(gbytes.Say("ARGS are SOME ARGS"))
 	})
 })
