@@ -104,7 +104,7 @@ echo polo > /tmp/fifo
 			hijack := exec.Command(builtComponents["fly"], "hijack")
 			hijack.Stdin = tty
 
-			hijackS, err := gexec.Start(fly, GinkgoWriter, GinkgoWriter)
+			hijackS, err := gexec.Start(hijack, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Eventually(hijackS).Should(gbytes.Say("# "))
