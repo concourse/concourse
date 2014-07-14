@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/kr/pty"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -73,5 +74,58 @@ run:
 		Ω(session).Should(gbytes.Say("some output"))
 		Ω(session).Should(gbytes.Say("FOO is 1"))
 		Ω(session).Should(gbytes.Say("ARGS are SOME ARGS"))
+	})
+
+	Describe("hijacking", func() {
+		It("executes an interactive command in a running build's container", func() {
+			err := ioutil.WriteFile(
+				filepath.Join(fixture, "run"),
+				[]byte(`#!/bin/bash
+mkfifo /tmp/fifo
+echo waiting
+cat < /tmp/fifo
+echo polo > /tmp/fifo
+`),
+				0755,
+			)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			fly := exec.Command(builtComponents["fly"], "--", "SOME", "ARGS")
+			fly.Dir = fixture
+
+			flyS, err := gexec.Start(fly, GinkgoWriter, GinkgoWriter)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Eventually(flyS).Should(gbytes.Say("waiting"))
+
+			pty, tty, err := pty.Open()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			hijack := exec.Command(builtComponents["fly"], "hijack")
+			hijack.Stdin = tty
+
+			hijackS, err := gexec.Start(fly, GinkgoWriter, GinkgoWriter)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Eventually(hijackS).Should(gbytes.Say("# "))
+
+			_, err = pty.WriteString("marco\n")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Eventually(flyS).Should(gbytes.Say("marco"))
+
+			Eventually(hijackS).Should(gbytes.Say("# "))
+
+			_, err = pty.WriteString("cat < /tmp/fifo\n")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Eventually(hijackS).Should(gbytes.Say("polo"))
+
+			Eventually(flyS).Should(gexec.Exit(0))
+
+			pty.Close()
+
+			Eventually(hijackS).Should(gexec.Exit(0))
+		})
 	})
 })
