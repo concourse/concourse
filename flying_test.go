@@ -105,9 +105,6 @@ cat < /tmp/fifo
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Eventually(flyS, 10*time.Second).Should(gbytes.Say("marco"))
-
-			Eventually(hijackS, 5*time.Second).Should(gexec.Exit(0))
-
 			Eventually(flyS).Should(gexec.Exit(0))
 		})
 	})
