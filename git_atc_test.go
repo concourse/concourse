@@ -72,6 +72,7 @@ jobs:
 			"-templates", filepath.Join(atcDir, "server", "templates"),
 			"-public", filepath.Join(atcDir, "server", "public"),
 			"-redisAddr", fmt.Sprintf("127.0.0.1:%d", redisRunner.Port()),
+			"-checkInterval", "10s",
 		))
 
 		Consistently(atcProcess.Wait(), 1*time.Second).ShouldNot(Receive())
