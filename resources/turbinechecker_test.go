@@ -2,7 +2,6 @@ package resources_test
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
@@ -19,13 +18,10 @@ import (
 
 var _ = Describe("TurbineChecker", func() {
 	var turbineServer *ghttp.Server
-	var pingInterval time.Duration
 	var checker Checker
 
 	var checkedInputs chan TurbineBuilds.Input
 	var checkVersions chan []TurbineBuilds.Version
-	var serverPings chan string
-	var respondToPings chan struct{}
 
 	var resource config.Resource
 
@@ -41,11 +37,8 @@ var _ = Describe("TurbineChecker", func() {
 	BeforeEach(func() {
 		checkedInputs = make(chan TurbineBuilds.Input, 100)
 		checkVersions = make(chan []TurbineBuilds.Version, 100)
-		serverPings = make(chan string)
-		respondToPings = make(chan struct{})
 
 		turbineServer = ghttp.NewServer()
-		pingInterval = 100 * time.Millisecond
 
 		turbineServer.AppendHandlers(
 			ghttp.CombineHandlers(
@@ -79,7 +72,6 @@ var _ = Describe("TurbineChecker", func() {
 
 		checker = NewTurbineChecker(
 			rata.NewRequestGenerator(turbineServer.URL(), routes.Routes),
-			pingInterval,
 		)
 
 		resource = config.Resource{
