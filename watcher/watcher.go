@@ -12,11 +12,12 @@ import (
 )
 
 type Watcher struct {
-	jobs      config.Jobs
-	resources config.Resources
-	db        db.DB
-	turbine   *rata.RequestGenerator
-	watchman  watchman.Watchman
+	jobs          config.Jobs
+	resources     config.Resources
+	db            db.DB
+	turbine       *rata.RequestGenerator
+	watchman      watchman.Watchman
+	checkInterval time.Duration
 }
 
 func NewWatcher(
@@ -25,13 +26,15 @@ func NewWatcher(
 	db db.DB,
 	turbine *rata.RequestGenerator,
 	watchman watchman.Watchman,
+	checkInterval time.Duration,
 ) *Watcher {
 	return &Watcher{
-		jobs:      jobs,
-		resources: resources,
-		db:        db,
-		turbine:   turbine,
-		watchman:  watchman,
+		jobs:          jobs,
+		resources:     resources,
+		db:            db,
+		turbine:       turbine,
+		watchman:      watchman,
+		checkInterval: checkInterval,
 	}
 }
 
@@ -49,12 +52,12 @@ func (watcher Watcher) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 
 			var checker resources.Checker
 			if len(input.Passed) == 0 {
-				checker = resources.NewTurbineChecker(watcher.turbine, 5*time.Second)
+				checker = resources.NewTurbineChecker(watcher.turbine)
 			} else {
 				checker = resources.NewWinstonChecker(watcher.db, input.Passed)
 			}
 
-			watcher.watchman.Watch(job, resource, checker, input.EachVersion, time.Minute)
+			watcher.watchman.Watch(job, resource, checker, input.EachVersion, watcher.checkInterval)
 		}
 	}
 

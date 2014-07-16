@@ -14,8 +14,7 @@ import (
 )
 
 type TurbineChecker struct {
-	turbine      *rata.RequestGenerator
-	pingInterval time.Duration
+	turbine *rata.RequestGenerator
 
 	dialer      *websocket.Dialer
 	connections chan *websocket.Conn
@@ -23,10 +22,9 @@ type TurbineChecker struct {
 	responses chan []builds.Version
 }
 
-func NewTurbineChecker(turbine *rata.RequestGenerator, pingInterval time.Duration) Checker {
+func NewTurbineChecker(turbine *rata.RequestGenerator) Checker {
 	return &TurbineChecker{
-		turbine:      turbine,
-		pingInterval: pingInterval,
+		turbine: turbine,
 
 		connections: make(chan *websocket.Conn, 1),
 		dialer: &websocket.Dialer{

@@ -89,6 +89,12 @@ var httpHashedPassword = flag.String(
 	"basic auth password for the server",
 )
 
+var checkInterval = flag.Duration(
+	"checkInterval",
+	1*time.Minute,
+	"interval on which to poll for new versions of resources",
+)
+
 func main() {
 	flag.Parse()
 
@@ -164,7 +170,7 @@ func main() {
 	group := grouper.EnvokeGroup(grouper.RunGroup{
 		"web":     http_server.New(*listenAddr, serverHandler),
 		"api":     http_server.New(*apiListenAddr, apiHandler),
-		"watcher": watcher.NewWatcher(conf.Jobs, conf.Resources, redisDB, turbineEndpoint, watchman),
+		"watcher": watcher.NewWatcher(conf.Jobs, conf.Resources, redisDB, turbineEndpoint, watchman, *checkInterval),
 		"drainer": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 			close(ready)
 			<-signals
