@@ -96,6 +96,15 @@ func (watchman *watchman) Watch(
 					"total":    len(newVersions),
 				})
 
+				latestVersion := newVersions[len(newVersions)-1]
+
+				err = watchman.db.SaveCurrentVersion(job.Name, resource.Name, latestVersion)
+				if err != nil {
+					log.Error("failed-to-save-current-version", err, lager.Data{
+						"version": latestVersion,
+					})
+				}
+
 				if eachVersion {
 					for i, version := range newVersions {
 						log.Info("enqueue", lager.Data{
@@ -106,13 +115,11 @@ func (watchman *watchman) Watch(
 						watchman.queuer.Enqueue(job, resource, version)
 					}
 				} else {
-					version := newVersions[len(newVersions)-1]
-
 					log.Info("enqueue-latest", lager.Data{
-						"version": version,
+						"version": latestVersion,
 					})
 
-					watchman.queuer.Enqueue(job, resource, version)
+					watchman.queuer.Enqueue(job, resource, latestVersion)
 				}
 			}
 		}

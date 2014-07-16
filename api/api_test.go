@@ -135,16 +135,6 @@ var _ = Describe("API", func() {
 					},
 				}))
 			})
-
-			It("saves each input's version as the new current version", func() {
-				version, err := redis.GetCurrentVersion("some-job", "some-input")
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(version).Should(Equal(builds.Version(version1)))
-
-				version, err = redis.GetCurrentVersion("some-job", "some-other-input")
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(version).Should(Equal(builds.Version(version2)))
-			})
 		})
 
 		Context("with status 'succeeded'", func() {
@@ -176,14 +166,6 @@ var _ = Describe("API", func() {
 				Ω(updatedBuild.Status).Should(Equal(builds.StatusSucceeded))
 			})
 
-			It("does not save any the job's input's versions", func() {
-				_, err := redis.GetCurrentVersion("some-job", "some-input")
-				Ω(err).Should(HaveOccurred())
-
-				_, err = redis.GetCurrentVersion("some-job", "some-other-input")
-				Ω(err).Should(HaveOccurred())
-			})
-
 			It("saves each output version", func() {
 				versions, err := redis.GetCommonOutputs([]string{"some-job"}, "some-output")
 				Ω(err).ShouldNot(HaveOccurred())
@@ -192,16 +174,6 @@ var _ = Describe("API", func() {
 				versions, err = redis.GetCommonOutputs([]string{"some-job"}, "some-other-output")
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(versions).Should(Equal([]builds.Version{builds.Version{"ver": "456"}}))
-			})
-
-			It("saves each output's version as the new current version", func() {
-				version, err := redis.GetCurrentVersion("some-job", "some-output")
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(version).Should(Equal(builds.Version{"ver": "123"}))
-
-				version, err = redis.GetCurrentVersion("some-job", "some-other-output")
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(version).Should(Equal(builds.Version{"ver": "456"}))
 			})
 		})
 
@@ -218,14 +190,6 @@ var _ = Describe("API", func() {
 
 				Ω(updatedBuild.Status).Should(Equal(builds.StatusFailed))
 			})
-
-			It("does not save any the job's input's versions", func() {
-				_, err := redis.GetCurrentVersion("some-job", "some-input")
-				Ω(err).Should(HaveOccurred())
-
-				_, err = redis.GetCurrentVersion("some-job", "some-other-input")
-				Ω(err).Should(HaveOccurred())
-			})
 		})
 
 		Context("with status 'errored'", func() {
@@ -240,14 +204,6 @@ var _ = Describe("API", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(updatedBuild.Status).Should(Equal(builds.StatusErrored))
-			})
-
-			It("does not save any the job's input's versions", func() {
-				_, err := redis.GetCurrentVersion("some-job", "some-input")
-				Ω(err).Should(HaveOccurred())
-
-				_, err = redis.GetCurrentVersion("some-job", "some-other-input")
-				Ω(err).Should(HaveOccurred())
 			})
 
 			Context("when the build has been aborted", func() {

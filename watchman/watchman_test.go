@@ -176,6 +176,14 @@ var _ = Describe("Watchman", func() {
 				Ω(version3).Should(Equal(builds.Version{"version": "3"}))
 			})
 
+			It("saves the last version as the new current version", func() {
+				Eventually(queuer.EnqueueCallCount).Should(Equal(3))
+
+				version, err := redis.GetCurrentVersion("some-job", "some-resource")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(version).Should(Equal(builds.Version{"version": "3"}))
+			})
+
 			Context("when configured to only build the latest versions", func() {
 				BeforeEach(func() {
 					eachVersion = false
