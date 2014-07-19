@@ -226,6 +226,61 @@ run:
 		})
 	})
 
+	Context("when paramters are specified in the environment", func() {
+		BeforeEach(func() {
+			gliderServer.SetHandler(
+				0,
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/builds"),
+					ghttp.VerifyJSONRepresenting(builds.Build{
+						Name: filepath.Base(buildDir),
+						Config: TurbineBuilds.Config{
+							Image: "ubuntu",
+							Params: map[string]string{
+								"FOO": "newbar",
+								"BAZ": "buzz",
+								"X":   "",
+							},
+							Run: TurbineBuilds.RunConfig{
+								Path: "find",
+								Args: []string{"."},
+							},
+						},
+					}),
+					ghttp.RespondWith(201, `{
+					"guid": "abc",
+					"path": "some-path/",
+					"config": {
+						"image": "ubuntu",
+						"run": {
+							"path": "find",
+							"args": ["."]
+						},
+						"params": {
+							"FOO": "newbar",
+							"BAZ": "buzz",
+							"X": ""
+						}
+					}
+				}`),
+				),
+			)
+		})
+
+		It("overrides the build's paramter values", func() {
+			gliderServer.AllowUnhandledRequests = true
+
+			flyCmd := exec.Command(flyPath)
+			flyCmd.Dir = buildDir
+			flyCmd.Env = append(os.Environ(), "FOO=newbar", "X=")
+
+			_, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Eventually(polling, 5.0).Should(BeClosed())
+		})
+	})
+
 	Context("when the build succeeds", func() {
 		BeforeEach(func() {
 			gliderServer.AppendHandlers(

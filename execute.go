@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/concourse/glider/api/builds"
@@ -81,6 +82,13 @@ func loadConfig(configPath string) TurbineBuilds.Config {
 	}
 
 	config.Run.Args = append(config.Run.Args, flag.Args()...)
+
+	for k, _ := range config.Params {
+		env, found := syscall.Getenv(k)
+		if found {
+			config.Params[k] = env
+		}
+	}
 
 	return config
 }
