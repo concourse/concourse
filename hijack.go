@@ -39,11 +39,25 @@ func hijack(reqGenerator *rata.RequestGenerator) {
 		args = argv[1:]
 	}
 
+	var ttySpec *warden.TTYSpec
+
+	rows, cols, err := pty.Getsize(os.Stdin)
+	if err == nil {
+		ttySpec = &warden.TTYSpec{
+			WindowSize: &warden.WindowSize{
+				Columns: cols,
+				Rows:    rows,
+			},
+		}
+	}
+
 	spec := warden.ProcessSpec{
-		Path:       path,
-		Args:       args,
-		TTY:        true,
+		Path: path,
+		Args: args,
+		Env:  []string{"TERM=" + os.Getenv("TERM")},
+
 		Privileged: true,
+		TTY:        ttySpec,
 	}
 
 	buildsReq, err := reqGenerator.CreateRequest(
@@ -122,8 +136,6 @@ func hijack(reqGenerator *rata.RequestGenerator) {
 
 	encoder := gob.NewEncoder(cconn)
 
-	sendSize(encoder)
-
 	resized := make(chan os.Signal, 10)
 	signal.Notify(resized, syscall.SIGWINCH)
 
@@ -143,9 +155,11 @@ func sendSize(enc *gob.Encoder) {
 	rows, cols, err := pty.Getsize(os.Stdin)
 	if err == nil {
 		enc.Encode(TurbineHijack.ProcessPayload{
-			WindowSize: &TurbineHijack.WindowSize{
-				Columns: cols,
-				Rows:    rows,
+			TTYSpec: &warden.TTYSpec{
+				WindowSize: &warden.WindowSize{
+					Columns: cols,
+					Rows:    rows,
+				},
 			},
 		})
 	}
