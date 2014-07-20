@@ -42,6 +42,9 @@ const (
 	commonOutputsKey = "common_outputs:%s" // ephemeral; [unique id for jobs + resource] => [set of common outputs]
 )
 
+func (db *redisDB) RegisterJob(name string) error      { return nil }
+func (db *redisDB) RegisterResource(name string) error { return nil }
+
 func (db *redisDB) Builds(job string) ([]builds.Build, error) {
 	conn := db.pool.Get()
 	defer conn.Close()
@@ -495,7 +498,12 @@ func (db *redisDB) BuildLog(job string, build int) ([]byte, error) {
 	conn := db.pool.Get()
 	defer conn.Close()
 
-	return redis.Bytes(conn.Do("GET", fmt.Sprintf(logsKey, job, build)))
+	log, err := redis.Bytes(conn.Do("GET", fmt.Sprintf(logsKey, job, build)))
+	if err == redis.ErrNil {
+		return nil, nil
+	}
+
+	return log, err
 }
 
 func (db *redisDB) AppendBuildLog(job string, build int, log []byte) error {

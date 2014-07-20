@@ -14,3 +14,6 @@ RUN \
     make && \
     make install && \
     rm -rf /tmp/redis-stable*
+
+# PostgreSQL
+RUN apt-get -y install postgresql-9.3

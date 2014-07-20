@@ -3,6 +3,9 @@ package db
 import "github.com/concourse/atc/builds"
 
 type DB interface {
+	RegisterJob(name string) error
+	RegisterResource(name string) error
+
 	Builds(job string) ([]builds.Build, error)
 	GetBuild(job string, id int) (builds.Build, error)
 	GetCurrentBuild(job string) (builds.Build, error)
