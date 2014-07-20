@@ -17,3 +17,4 @@ RUN \
 
 # PostgreSQL
 RUN apt-get -y install postgresql-9.3
+RUN chmod 0777 /var/run/postgresql
