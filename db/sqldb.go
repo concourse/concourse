@@ -56,16 +56,16 @@ func (db *sqldb) Builds(job string) ([]builds.Build, error) {
 	bs := []builds.Build{}
 
 	for rows.Next() {
-		var id int
+		var name int
 		var status string
 		var abortURL sql.NullString
-		err := rows.Scan(&id, &status, &abortURL)
+		err := rows.Scan(&name, &status, &abortURL)
 		if err != nil {
 			return nil, err
 		}
 
 		bs = append(bs, builds.Build{
-			ID:       id,
+			ID:       name,
 			Status:   builds.Status(status),
 			AbortURL: abortURL.String,
 		})
@@ -131,7 +131,7 @@ func (db *sqldb) GetBuild(job string, name int) (builds.Build, error) {
 	}
 
 	return builds.Build{
-		ID:       id,
+		ID:       name,
 		Status:   builds.Status(status),
 		AbortURL: abortURL.String,
 		Inputs:   inputs,
@@ -139,7 +139,7 @@ func (db *sqldb) GetBuild(job string, name int) (builds.Build, error) {
 }
 
 func (db *sqldb) GetCurrentBuild(job string) (builds.Build, error) {
-	var id int
+	var name int
 	var status string
 	var abortURL sql.NullString
 
@@ -175,13 +175,13 @@ func (db *sqldb) GetCurrentBuild(job string) (builds.Build, error) {
 		rows.Next()
 	}
 
-	err = rows.Scan(&id, &status, &abortURL)
+	err = rows.Scan(&name, &status, &abortURL)
 	if err != nil {
 		return builds.Build{}, err
 	}
 
 	return builds.Build{
-		ID:       id,
+		ID:       name,
 		Status:   builds.Status(status),
 		AbortURL: abortURL.String,
 	}, nil
@@ -288,13 +288,13 @@ func (db *sqldb) AttemptBuild(job string, resourceName string, version builds.Ve
 		}
 	}
 
-	var buildID int
+	var name int
 	err = tx.QueryRow(`
 		UPDATE jobs
 		SET build_number_seq = build_number_seq + 1
 		WHERE name = $1
 		RETURNING build_number_seq
-	`, job).Scan(&buildID)
+	`, job).Scan(&name)
 	if err != nil {
 		return builds.Build{}, err
 	}
@@ -302,7 +302,7 @@ func (db *sqldb) AttemptBuild(job string, resourceName string, version builds.Ve
 	_, err = tx.Exec(`
 		INSERT INTO builds(name, job_name, status)
 		VALUES ($1, $2, 'pending')
-	`, buildID, job)
+	`, name, job)
 	if err != nil {
 		return builds.Build{}, err
 	}
@@ -313,7 +313,7 @@ func (db *sqldb) AttemptBuild(job string, resourceName string, version builds.Ve
 	}
 
 	return builds.Build{
-		ID:     buildID,
+		ID:     name,
 		Status: builds.StatusPending,
 	}, nil
 }
@@ -326,13 +326,13 @@ func (db *sqldb) CreateBuild(job string) (builds.Build, error) {
 
 	defer tx.Rollback()
 
-	var buildID int
+	var name int
 	err = tx.QueryRow(`
 		UPDATE jobs
 		SET build_number_seq = build_number_seq + 1
 		WHERE name = $1
 		RETURNING build_number_seq
-	`, job).Scan(&buildID)
+	`, job).Scan(&name)
 	if err != nil {
 		return builds.Build{}, err
 	}
@@ -340,7 +340,7 @@ func (db *sqldb) CreateBuild(job string) (builds.Build, error) {
 	_, err = tx.Exec(`
 		INSERT INTO builds(name, job_name, status)
 		VALUES ($1, $2, 'pending')
-	`, buildID, job)
+	`, name, job)
 	if err != nil {
 		return builds.Build{}, err
 	}
@@ -351,7 +351,7 @@ func (db *sqldb) CreateBuild(job string) (builds.Build, error) {
 	}
 
 	return builds.Build{
-		ID:     buildID,
+		ID:     name,
 		Status: builds.StatusPending,
 	}, nil
 }

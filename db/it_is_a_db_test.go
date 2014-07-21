@@ -84,7 +84,18 @@ func itIsADB() {
 
 		build, err = db.GetBuild("some-job", build.ID)
 		Ω(err).ShouldNot(HaveOccurred())
+		Ω(build.ID).Should(Equal(1))
 		Ω(build.Status).Should(Equal(Builds.StatusSucceeded))
+
+		otherBuild, err := db.CreateBuild("some-other-job")
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(otherBuild.ID).Should(Equal(1))
+		Ω(otherBuild.Status).Should(Equal(Builds.StatusPending))
+
+		build, err = db.GetBuild("some-other-job", otherBuild.ID)
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(build.ID).Should(Equal(1))
+		Ω(build.Status).Should(Equal(Builds.StatusPending))
 
 		log, err := db.BuildLog("some-job", 1)
 		Ω(err).ShouldNot(HaveOccurred())
