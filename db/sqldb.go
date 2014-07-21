@@ -424,7 +424,6 @@ func (db *sqldb) AbortBuild(job string, id int) error {
 	return db.SaveBuildStatus(job, id, builds.StatusAborted)
 }
 
-// TODO test updating existing inputs (for attempt case)
 func (db *sqldb) SaveBuildInput(job string, build int, input builds.Input) error {
 	sourceJSON, err := json.Marshal(input.Source)
 	if err != nil {
