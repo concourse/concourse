@@ -30,7 +30,7 @@ jobs:
     release: concourse
   - name: glider
     release: concourse
-  - name: redis
+  - name: postgresql
     release: concourse
   - name: warden
     release: concourse
@@ -40,6 +40,7 @@ jobs:
 
   properties:
     network_name: concourse
+
     atc:
       config:
         jobs:
@@ -51,8 +52,12 @@ jobs:
       turbine:
         address: 127.0.0.1:4637
 
-      redis:
-        address: 127.0.0.1:6379
+      postgresql:
+        address: 127.0.0.1:5432
+        database: atc
+        role:
+          name: atc
+          password: dummy-password
 
     glider:
       turbine:
@@ -62,6 +67,13 @@ jobs:
       warden:
         address: 127.0.0.1:7777
         network: tcp
+
+    postgresql:
+      databases:
+        - name: atc
+      roles:
+        - name: atc
+          password: dummy-password
 
     warden:
       disk_quota_enabled: false

@@ -14,3 +14,8 @@ golang_1.3/go1.3.linux-amd64.tar.gz:
   sha: !binary |-
     YjZiMTU0OTMzMDM5OTg3MDU2YWMzMDdlMjBjMjVmYTUwOGEwNmJhNg==
   size: 51123994
+postgresql/postgresql-9.3.4.tar.gz:
+  object_id: a62f2cda-80fa-4daf-a59c-5acc9a6a3c2e
+  sha: !binary |-
+    OWY4MGIzY2ZlYmM0MzRjYTA4NjBmYzg0ODk5MjNjZWE3MzQ1NjA4MQ==
+  size: 21865589

@@ -26,7 +26,7 @@ case $1 in
       -apiListenAddr=<%= p("atc.api_listen_address") %> \
       -peerAddr=<%= my_ip %>:<%= p("atc.api_listen_address").split(":").last %> \
       -turbineURL=http://<%= p("atc.turbine.address") %> \
-      -redisAddr=<%= p("atc.redis.address") %> \
+      -sqlDataSource="postgres://<%= p("atc.postgresql.role.name") %>:<%= p("atc.postgresql.role.password") %>@<%= p("atc.postgresql.address") %>/<%= p("atc.postgresql.database") %>?sslmode=disable" \
       -config=/var/vcap/jobs/atc/config/atc.yml \
       -templates=/var/vcap/packages/atc/templates \
       -public=/var/vcap/packages/atc/public \

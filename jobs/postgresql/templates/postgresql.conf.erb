@@ -1,0 +1,23 @@
+listen_addresses = '<%= p("postgresql.listen_host") %>'
+port = <%= p("postgresql.listen_port") %>
+max_connections = <%= p("postgresql.max_connections") %>
+external_pid_file = '/var/vcap/sys/run/postgresql/postgresql.pid'
+authentication_timeout = 1min
+
+shared_buffers = 128MB
+temp_buffers = 8MB
+
+max_files_per_process = 1000
+
+logging_collector = on
+log_directory = '/var/vcap/sys/log/postgresql'
+log_filename = 'postgresql.log'
+
+datestyle = 'iso, mdy'
+
+lc_messages = 'en_US.UTF-8'
+lc_monetary = 'en_US.UTF-8'
+lc_numeric = 'en_US.UTF-8'
+lc_time = 'en_US.UTF-8'
+
+default_text_search_config = 'pg_catalog.english'

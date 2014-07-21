@@ -37,7 +37,7 @@ resource_pools:
     stemcell: (( meta.stemcell ))
     cloud_properties: (( merge ))
 
-  - name: redis
+  - name: postgresql
     network: concourse
     size: (( auto ))
     stemcell: (( meta.stemcell ))

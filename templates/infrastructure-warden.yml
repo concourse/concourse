@@ -22,7 +22,7 @@ resource_pools:
     cloud_properties:
       name: random
 
-  - name: redis
+  - name: postgresql
     cloud_properties:
       name: random
 
@@ -41,19 +41,26 @@ jobs:
         turbine:
           address: (( jobs.turbine.networks.concourse.static_ips.[0] ":4637" ))
 
-  - name: redis
+  - name: postgresql
     instances: 1
+    resource_pool: postgresql
+    persistent_disk: 1024
     networks:
       - name: concourse
         static_ips: (( static_ips(1) ))
+    properties:
+      postgresql:
+        roles:
+          - name: atc
+            password: dummy-password
 
   - name: atc
     properties:
       atc:
         turbine:
           address: (( jobs.turbine.networks.concourse.static_ips.[0] ":4637" ))
-        redis:
-          address: (( jobs.redis.networks.concourse.static_ips.[0] ":6379" ))
+        postgresql:
+          address: (( jobs.postgresql.networks.concourse.static_ips.[0] ":5432" ))
 
   - name: turbine
     instances: 1

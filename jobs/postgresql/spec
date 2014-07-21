@@ -1,0 +1,30 @@
+---
+name: postgresql
+
+templates:
+  postgresql_ctl.erb: bin/postgresql_ctl
+  postgresql.conf.erb: config/postgresql.conf
+  pg_hba.conf.erb: config/pg_hba.conf
+
+packages:
+  - pid_utils
+  - postgresql_9.3
+
+properties:
+  postgresql.listen_host:
+    description: "Listening host of the PostgreSQL service"
+    default: 0.0.0.0
+
+  postgresql.listen_port:
+    description: "Listening port of the PostgreSQL service"
+    default: 5432
+
+  postgresql.databases:
+    description: "A list of databases to create, e.g. [{name:foo}]"
+
+  postgresql.roles:
+    description: "A list of roles to create, e.g. [{name:foo,password:bar}]"
+
+  postgresql.max_connections:
+    description: "Maximum number of open database connections"
+    default: 500

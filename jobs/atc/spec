@@ -34,8 +34,17 @@ properties:
     description: "Winston server configuration."
     default: {}
 
-  atc.redis.address:
-    description: "Address of the Redis server."
+  atc.postgresql.address:
+    description: "Address of the PostgreSQL server."
+
+  atc.postgresql.database:
+    description: "Name of the database to use."
+
+  atc.postgresql.role.name:
+    description: "Name of role to connect with."
+
+  atc.postgresql.role.password:
+    description: "Password to use when connecting."
 
   network_name:
     description: "Name of the network that the job lives in; used to figure out our IP."

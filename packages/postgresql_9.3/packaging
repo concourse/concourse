@@ -1,0 +1,8 @@
+set -e -x -u
+
+tar xzf postgresql/postgresql-9.3.4.tar.gz
+
+cd postgresql-9.3.4
+./configure --prefix=${BOSH_INSTALL_TARGET}
+make world
+make install-world

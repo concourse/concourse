@@ -17,15 +17,23 @@ jobs:
         turbine:
           address: (( merge ))
 
-  - name: redis
+  - name: postgresql
     templates:
-      - name: redis
+      - name: postgresql
         release: concourse
     instances: 1
-    resource_pool: redis
+    resource_pool: postgresql
+    persistent_disk: 1024
     networks:
       - name: concourse
         static_ips: ~
+    properties:
+      postgresql:
+        databases:
+          - name: atc
+        roles:
+          - name: atc
+            password: (( merge ))
 
   - name: atc
     templates:
@@ -41,7 +49,10 @@ jobs:
         listen_address: ~
         turbine:
           address: (( merge ))
-        redis: (( merge ))
+        postgresql:
+          address: (( merge ))
+          database: atc
+          role: (( jobs.postgresql.properties.postgresql.roles.atc ))
         config: (( merge ))
         basic_auth_username: (( merge ))
         basic_auth_encrypted_password: (( merge ))
