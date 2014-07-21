@@ -6,9 +6,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/BurntSushi/migration"
 	turbineroutes "github.com/concourse/turbine/routes"
 	"github.com/fraenkel/candiedyaml"
 	"github.com/garyburd/redigo/redis"
+	_ "github.com/lib/pq"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -20,7 +22,8 @@ import (
 	apiroutes "github.com/concourse/atc/api/routes"
 	"github.com/concourse/atc/builder"
 	"github.com/concourse/atc/config"
-	"github.com/concourse/atc/db"
+	Db "github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/logfanout"
 	"github.com/concourse/atc/queue"
 	"github.com/concourse/atc/server"
@@ -57,6 +60,18 @@ var redisAddr = flag.String(
 	"redisAddr",
 	"127.0.0.1:6379",
 	"redis server address",
+)
+
+var sqlDriver = flag.String(
+	"sqlDriver",
+	"postgres",
+	"database/sql driver name",
+)
+
+var sqlDataSource = flag.String(
+	"sqlDataSource",
+	"",
+	"database/sql data source configuration string",
 )
 
 var peerAddr = flag.String(
@@ -123,25 +138,50 @@ func main() {
 
 	configFile.Close()
 
-	redisDB := db.NewRedis(redis.NewPool(func() (redis.Conn, error) {
-		return redis.DialTimeout("tcp", *redisAddr, 5*time.Second, 0, 0)
-	}, 20))
+	var db Db.DB
+
+	if *sqlDataSource != "" {
+		dbConn, err := migration.Open(*sqlDriver, *sqlDataSource, migrations.Migrations)
+		if err != nil {
+			fatal(err)
+		}
+
+		db = Db.NewSQL(dbConn)
+	} else {
+		db = Db.NewRedis(redis.NewPool(func() (redis.Conn, error) {
+			return redis.DialTimeout("tcp", *redisAddr, 5*time.Second, 0, 0)
+		}, 20))
+	}
+
+	for _, job := range conf.Jobs {
+		err := db.RegisterJob(job.Name)
+		if err != nil {
+			fatal(err)
+		}
+	}
+
+	for _, resource := range conf.Resources {
+		err := db.RegisterResource(resource.Name)
+		if err != nil {
+			fatal(err)
+		}
+	}
 
 	atcEndpoint := rata.NewRequestGenerator("http://"+*peerAddr, apiroutes.Routes)
 	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, turbineroutes.Routes)
-	builder := builder.NewBuilder(redisDB, conf.Resources, turbineEndpoint, atcEndpoint)
+	builder := builder.NewBuilder(db, conf.Resources, turbineEndpoint, atcEndpoint)
 
 	logger := lager.NewLogger("atc")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
 
 	queuer := queue.NewQueue(logger, 10*time.Second, builder)
 
-	tracker := logfanout.NewTracker(redisDB)
+	tracker := logfanout.NewTracker(db)
 
 	serverHandler, err := server.New(
 		logger,
 		conf,
-		redisDB,
+		db,
 		*templatesDir,
 		*publicDir,
 		*peerAddr,
@@ -160,17 +200,17 @@ func main() {
 		}
 	}
 
-	apiHandler, err := api.New(logger, redisDB, tracker)
+	apiHandler, err := api.New(logger, db, tracker)
 	if err != nil {
 		fatal(err)
 	}
 
-	watchman := watchman.NewWatchman(logger, redisDB, queuer)
+	watchman := watchman.NewWatchman(logger, db, queuer)
 
 	group := grouper.EnvokeGroup(grouper.RunGroup{
 		"web":     http_server.New(*listenAddr, serverHandler),
 		"api":     http_server.New(*apiListenAddr, apiHandler),
-		"watcher": watcher.NewWatcher(conf.Jobs, conf.Resources, redisDB, turbineEndpoint, watchman, *checkInterval),
+		"watcher": watcher.NewWatcher(conf.Jobs, conf.Resources, db, turbineEndpoint, watchman, *checkInterval),
 		"drainer": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 			close(ready)
 			<-signals
