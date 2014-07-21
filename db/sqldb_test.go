@@ -38,7 +38,7 @@ var _ = Describe("SQL DB", func() {
 
 	AfterSuite(func() {
 		dbProcess.Signal(os.Interrupt)
-		Eventually(dbProcess.Wait()).Should(Receive())
+		Eventually(dbProcess.Wait(), 10*time.Second).Should(Receive())
 	})
 
 	BeforeEach(func() {
