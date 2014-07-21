@@ -143,7 +143,7 @@ func (db *redisDB) AttemptBuild(job string, input string, version builds.Version
 		return builds.Build{}, err
 	}
 
-	build, err := db.createBuild(conn, job, id, input, versionJSON)
+	build, err := db.createBuild(conn, job, id, input)
 	if err != nil {
 		return builds.Build{}, err
 	}
@@ -165,20 +165,13 @@ func (db *redisDB) CreateBuild(job string) (builds.Build, error) {
 		return builds.Build{}, err
 	}
 
-	return db.createBuild(conn, job, id, "", nil)
+	return db.createBuild(conn, job, id, "")
 }
 
-func (db *redisDB) createBuild(conn redis.Conn, job string, id int, input string, versionJSON []byte) (builds.Build, error) {
+func (db *redisDB) createBuild(conn redis.Conn, job string, id int, input string) (builds.Build, error) {
 	err := conn.Send("ZADD", fmt.Sprintf(buildIDsKey, job), -id, id)
 	if err != nil {
 		return builds.Build{}, err
-	}
-
-	if versionJSON != nil {
-		err = conn.Send("SET", fmt.Sprintf(buildInputVersionKey, job, id, input), versionJSON)
-		if err != nil {
-			return builds.Build{}, err
-		}
 	}
 
 	err = conn.Send(

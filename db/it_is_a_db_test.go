@@ -398,17 +398,16 @@ func itIsADB() {
 			})
 
 			Context("but with a different version", func() {
-				It("succeeds", func() {
-					build, err := db.AttemptBuild("some-job", "some-resource", Builds.Version{"version": "2"}, false)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(build.ID).Should(Equal(2))
+				It("fails", func() {
+					_, err := db.AttemptBuild("some-job", "some-resource", Builds.Version{"version": "2"}, false)
+					Ω(err).Should(Equal(ErrInputNotDetermined))
 				})
 			})
 
 			Context("with the same version", func() {
 				It("fails", func() {
 					_, err := db.AttemptBuild("some-job", "some-resource", Builds.Version{"version": "1"}, false)
-					Ω(err).Should(Equal(ErrInputRedundant))
+					Ω(err).Should(Equal(ErrInputNotDetermined))
 				})
 			})
 		})
@@ -477,16 +476,15 @@ func itIsADB() {
 						Describe("attempting another build", func() {
 							Context("with a different version", func() {
 								It("succeeds", func() {
-									build, err := db.AttemptBuild("some-job", "some-resource", Builds.Version{"version": "3"}, false)
-									Ω(err).ShouldNot(HaveOccurred())
-									Ω(build.ID).Should(Equal(3))
+									_, err := db.AttemptBuild("some-job", "some-resource", Builds.Version{"version": "3"}, false)
+									Ω(err).Should(Equal(ErrInputNotDetermined))
 								})
 							})
 
 							Context("with the same version", func() {
 								It("fails", func() {
 									_, err := db.AttemptBuild("some-job", "some-resource", Builds.Version{"version": "2"}, false)
-									Ω(err).Should(Equal(ErrInputRedundant))
+									Ω(err).Should(Equal(ErrInputNotDetermined))
 								})
 							})
 						})

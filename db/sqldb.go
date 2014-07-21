@@ -307,43 +307,6 @@ func (db *sqldb) AttemptBuild(job string, resourceName string, version builds.Ve
 		return builds.Build{}, err
 	}
 
-	versionJSON, err := json.Marshal(version)
-	if err != nil {
-		return builds.Build{}, err
-	}
-
-	_, err = tx.Exec(`
-		INSERT INTO versioned_resources (resource_name, version)
-		SELECT $1, $2
-		WHERE NOT EXISTS (
-			SELECT 1
-			FROM versioned_resources
-			WHERE resource_name = $1
-			AND version = $2
-		)
-	`, resourceName, string(versionJSON))
-	if err != nil {
-		return builds.Build{}, err
-	}
-
-	var vrID int
-	err = tx.QueryRow(`
-		SELECT id FROM versioned_resources
-		WHERE resource_name = $1
-		AND version = $2
-	`, resourceName, string(versionJSON)).Scan(&vrID)
-	if err != nil {
-		return builds.Build{}, err
-	}
-
-	_, err = tx.Exec(`
-		INSERT INTO build_inputs (build_id, versioned_resource_id, source, metadata)
-		VALUES ($1, $2, $3, $4)
-	`, buildID, vrID, "", "") // TODO
-	if err != nil {
-		return builds.Build{}, err
-	}
-
 	err = tx.Commit()
 	if err != nil {
 		return builds.Build{}, err
