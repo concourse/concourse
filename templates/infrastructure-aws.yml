@@ -22,7 +22,7 @@ jobs:
     instances: 1
     networks:
       - name: concourse
-        static_ips: (( static_ips(1) ))
+        static_ips: (( static_ips(2) ))
 
   - name: atc
     properties:
