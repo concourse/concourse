@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 
 	"code.google.com/p/go.net/websocket"
 	TurbineBuilds "github.com/concourse/turbine/api/builds"
@@ -16,15 +17,16 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/concourse/atc/api"
+	"github.com/concourse/atc/api/handler/fakes"
 	"github.com/concourse/atc/builds"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/logfanout"
-	"github.com/concourse/atc/redisrunner"
+	logfakes "github.com/concourse/atc/logfanout/fakes"
 )
 
 var _ = Describe("API", func() {
-	var redisRunner *redisrunner.Runner
-	var redis db.DB
+	var buildDB *fakes.FakeBuildDB
+	var logDB *logfakes.FakeLogDB
 
 	var server *httptest.Server
 	var client *http.Client
@@ -32,14 +34,12 @@ var _ = Describe("API", func() {
 	var tracker *logfanout.Tracker
 
 	BeforeEach(func() {
-		redisRunner = redisrunner.NewRunner()
-		redisRunner.Start()
+		buildDB = new(fakes.FakeBuildDB)
+		logDB = new(logfakes.FakeLogDB)
 
-		redis = db.NewRedis(redisRunner.Pool())
+		tracker = logfanout.NewTracker(logDB)
 
-		tracker = logfanout.NewTracker(redis)
-
-		handler, err := api.New(lagertest.NewTestLogger("api"), redis, tracker)
+		handler, err := api.New(lagertest.NewTestLogger("api"), buildDB, tracker)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		server = httptest.NewServer(handler)
@@ -51,7 +51,6 @@ var _ = Describe("API", func() {
 
 	AfterEach(func() {
 		server.Close()
-		redisRunner.Stop()
 	})
 
 	Describe("PUT /builds/:job/:build", func() {
@@ -64,10 +63,11 @@ var _ = Describe("API", func() {
 		version2 := TurbineBuilds.Version{"ver": "2"}
 
 		BeforeEach(func() {
-			var err error
+			build = builds.Build{
+				ID: 42,
+			}
 
-			build, err = redis.CreateBuild("some-job")
-			Ω(err).ShouldNot(HaveOccurred())
+			buildDB.GetBuildReturns(build, nil)
 
 			turbineBuild = TurbineBuilds.Build{
 				Inputs: []TurbineBuilds.Input{
@@ -93,7 +93,7 @@ var _ = Describe("API", func() {
 			reqPayload, err := json.Marshal(turbineBuild)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			req, err := http.NewRequest("PUT", server.URL+"/builds/some-job/1", bytes.NewBuffer(reqPayload))
+			req, err := http.NewRequest("PUT", server.URL+"/builds/some-job/42", bytes.NewBuffer(reqPayload))
 			Ω(err).ShouldNot(HaveOccurred())
 
 			req.Header.Set("Content-Type", "application/json")
@@ -110,28 +110,35 @@ var _ = Describe("API", func() {
 			It("updates the build's status", func() {
 				Ω(response.StatusCode).Should(Equal(http.StatusOK))
 
-				updatedBuild, err := redis.GetBuild("some-job", build.ID)
-				Ω(err).ShouldNot(HaveOccurred())
+				Ω(buildDB.SaveBuildStatusCallCount()).Should(Equal(1))
 
-				Ω(updatedBuild.Status).Should(Equal(builds.StatusStarted))
+				job, id, status := buildDB.SaveBuildStatusArgsForCall(0)
+				Ω(job).Should(Equal("some-job"))
+				Ω(id).Should(Equal(42))
+				Ω(status).Should(Equal(builds.StatusStarted))
 			})
 
 			It("saves the build's inputs", func() {
-				updatedBuild, err := redis.GetBuild("some-job", build.ID)
-				Ω(err).ShouldNot(HaveOccurred())
+				Ω(buildDB.SaveBuildInputCallCount()).Should(Equal(2))
 
-				Ω(updatedBuild.Inputs).Should(Equal([]builds.Input{
-					{
-						Name:    "some-input",
-						Version: builds.Version(version1),
-					},
-					{
-						Name:    "some-other-input",
-						Version: builds.Version(version2),
-						Metadata: []builds.MetadataField{
-							{Name: "meta1", Value: "value1"},
-							{Name: "meta2", Value: "value2"},
-						},
+				job, id, input := buildDB.SaveBuildInputArgsForCall(0)
+				Ω(job).Should(Equal("some-job"))
+				Ω(id).Should(Equal(42))
+				Ω(input).Should(Equal(builds.VersionedResource{
+					Name:     "some-input",
+					Version:  builds.Version(version1),
+					Metadata: []builds.MetadataField{},
+				}))
+
+				job, id, input = buildDB.SaveBuildInputArgsForCall(1)
+				Ω(job).Should(Equal("some-job"))
+				Ω(id).Should(Equal(42))
+				Ω(input).Should(Equal(builds.VersionedResource{
+					Name:    "some-other-input",
+					Version: builds.Version(version2),
+					Metadata: []builds.MetadataField{
+						{Name: "meta1", Value: "value1"},
+						{Name: "meta2", Value: "value2"},
 					},
 				}))
 			})
@@ -144,15 +151,23 @@ var _ = Describe("API", func() {
 				turbineBuild.Outputs = []TurbineBuilds.Output{
 					{
 						Name: "some-output",
+						Type: "git",
 
-						Type:    "git",
+						Source:  TurbineBuilds.Source{"source": "1"},
 						Version: TurbineBuilds.Version{"ver": "123"},
+						Metadata: []TurbineBuilds.MetadataField{
+							{Name: "meta1", Value: "value1"},
+						},
 					},
 					{
 						Name: "some-other-output",
+						Type: "git",
 
-						Type:    "git",
+						Source:  TurbineBuilds.Source{"source": "2"},
 						Version: TurbineBuilds.Version{"ver": "456"},
+						Metadata: []TurbineBuilds.MetadataField{
+							{Name: "meta2", Value: "value2"},
+						},
 					},
 				}
 			})
@@ -160,20 +175,40 @@ var _ = Describe("API", func() {
 			It("updates the build's status", func() {
 				Ω(response.StatusCode).Should(Equal(http.StatusOK))
 
-				updatedBuild, err := redis.GetBuild("some-job", build.ID)
-				Ω(err).ShouldNot(HaveOccurred())
+				Ω(buildDB.SaveBuildStatusCallCount()).Should(Equal(1))
 
-				Ω(updatedBuild.Status).Should(Equal(builds.StatusSucceeded))
+				job, id, status := buildDB.SaveBuildStatusArgsForCall(0)
+				Ω(job).Should(Equal("some-job"))
+				Ω(id).Should(Equal(42))
+				Ω(status).Should(Equal(builds.StatusSucceeded))
 			})
 
 			It("saves each output version", func() {
-				versions, err := redis.GetCommonOutputs([]string{"some-job"}, "some-output")
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(versions).Should(Equal([]builds.Version{builds.Version{"ver": "123"}}))
+				Ω(buildDB.SaveBuildOutputCallCount()).Should(Equal(2))
 
-				versions, err = redis.GetCommonOutputs([]string{"some-job"}, "some-other-output")
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(versions).Should(Equal([]builds.Version{builds.Version{"ver": "456"}}))
+				job, id, vr := buildDB.SaveBuildOutputArgsForCall(0)
+				Ω(job).Should(Equal("some-job"))
+				Ω(id).Should(Equal(42))
+				Ω(vr).Should(Equal(builds.VersionedResource{
+					Name:    "some-output",
+					Source:  config.Source{"source": "1"},
+					Version: builds.Version{"ver": "123"},
+					Metadata: []builds.MetadataField{
+						{Name: "meta1", Value: "value1"},
+					},
+				}))
+
+				job, id, vr = buildDB.SaveBuildOutputArgsForCall(1)
+				Ω(job).Should(Equal("some-job"))
+				Ω(id).Should(Equal(42))
+				Ω(vr).Should(Equal(builds.VersionedResource{
+					Name:    "some-other-output",
+					Source:  config.Source{"source": "2"},
+					Version: builds.Version{"ver": "456"},
+					Metadata: []builds.MetadataField{
+						{Name: "meta2", Value: "value2"},
+					},
+				}))
 			})
 		})
 
@@ -185,10 +220,12 @@ var _ = Describe("API", func() {
 			It("updates the build's status", func() {
 				Ω(response.StatusCode).Should(Equal(http.StatusOK))
 
-				updatedBuild, err := redis.GetBuild("some-job", build.ID)
-				Ω(err).ShouldNot(HaveOccurred())
+				Ω(buildDB.SaveBuildStatusCallCount()).Should(Equal(1))
 
-				Ω(updatedBuild.Status).Should(Equal(builds.StatusFailed))
+				job, id, status := buildDB.SaveBuildStatusArgsForCall(0)
+				Ω(job).Should(Equal("some-job"))
+				Ω(id).Should(Equal(42))
+				Ω(status).Should(Equal(builds.StatusFailed))
 			})
 		})
 
@@ -200,42 +237,58 @@ var _ = Describe("API", func() {
 			It("updates the build's status", func() {
 				Ω(response.StatusCode).Should(Equal(http.StatusOK))
 
-				updatedBuild, err := redis.GetBuild("some-job", build.ID)
-				Ω(err).ShouldNot(HaveOccurred())
+				Ω(buildDB.SaveBuildStatusCallCount()).Should(Equal(1))
 
-				Ω(updatedBuild.Status).Should(Equal(builds.StatusErrored))
+				job, id, status := buildDB.SaveBuildStatusArgsForCall(0)
+				Ω(job).Should(Equal("some-job"))
+				Ω(id).Should(Equal(42))
+				Ω(status).Should(Equal(builds.StatusErrored))
 			})
 
 			Context("when the build has been aborted", func() {
 				BeforeEach(func() {
-					err := redis.AbortBuild("some-job", build.ID)
-					Ω(err).ShouldNot(HaveOccurred())
+					build.Status = builds.StatusAborted
+					buildDB.GetBuildReturns(build, nil)
 				})
 
 				It("does not update the build's status", func() {
 					Ω(response.StatusCode).Should(Equal(http.StatusOK))
 
-					updatedBuild, err := redis.GetBuild("some-job", build.ID)
-					Ω(err).ShouldNot(HaveOccurred())
+					Ω(buildDB.SaveBuildStatusCallCount()).Should(Equal(1))
 
-					Ω(updatedBuild.Status).Should(Equal(builds.StatusAborted))
+					job, id, status := buildDB.SaveBuildStatusArgsForCall(0)
+					Ω(job).Should(Equal("some-job"))
+					Ω(id).Should(Equal(42))
+					Ω(status).Should(Equal(builds.StatusAborted))
 				})
 			})
 		})
 	})
 
 	Describe("/builds/:job/:build/log/input", func() {
+		var writtenBuildLogs *gbytes.Buffer
+
 		var build builds.Build
 
 		var endpoint string
 
 		var conn io.ReadWriteCloser
 
-		BeforeEach(func() {
-			var err error
+		var sinks *sync.WaitGroup
 
-			build, err = redis.CreateBuild("some-job")
-			Ω(err).ShouldNot(HaveOccurred())
+		BeforeEach(func() {
+			build = builds.Build{
+				ID: 42,
+			}
+
+			buildDB.GetBuildReturns(build, nil)
+
+			writtenBuildLogs = gbytes.NewBuffer()
+
+			logDB.AppendBuildLogStub = func(job string, build int, d []byte) error {
+				writtenBuildLogs.Write(d)
+				return nil
+			}
 
 			endpoint = fmt.Sprintf(
 				"ws://%s/builds/%s/%d/log/input",
@@ -243,6 +296,12 @@ var _ = Describe("API", func() {
 				"some-job",
 				build.ID,
 			)
+
+			sinks = new(sync.WaitGroup)
+		})
+
+		AfterEach(func() {
+			sinks.Wait()
 		})
 
 		outputSink := func() *gbytes.Buffer {
@@ -250,7 +309,9 @@ var _ = Describe("API", func() {
 
 			fanout := tracker.Register("some-job", build.ID, buf)
 
+			sinks.Add(1)
 			go func() {
+				defer sinks.Done()
 				defer GinkgoRecover()
 
 				err := fanout.Attach(buf)
@@ -291,6 +352,8 @@ var _ = Describe("API", func() {
 			Context("and output is being consumed", func() {
 				It("closes the outgoing connection", func() {
 					output := outputSink()
+
+					Consistently(output.Closed).ShouldNot(BeTrue())
 
 					tracker.Drain()
 
@@ -337,8 +400,7 @@ var _ = Describe("API", func() {
 
 			Context("when there is a build log saved", func() {
 				BeforeEach(func() {
-					err := redis.AppendBuildLog("some-job", build.ID, []byte("some saved log"))
-					Ω(err).ShouldNot(HaveOccurred())
+					logDB.BuildLogReturns([]byte("some saved log"), nil)
 				})
 
 				It("immediately returns it", func() {
@@ -367,14 +429,7 @@ var _ = Describe("API", func() {
 					err = conn.Close()
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Eventually(func() string {
-						log, err := redis.BuildLog("some-job", build.ID)
-						if err != nil {
-							return ""
-						}
-
-						return string(log)
-					}).Should(Equal("hello1hello2\nhello3some message"))
+					Eventually(writtenBuildLogs.Contents).Should(Equal([]byte("hello1hello2\nhello3some message")))
 				})
 
 				Context("and a second sink attaches", func() {

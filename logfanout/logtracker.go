@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"io"
 	"sync"
-
-	"github.com/concourse/atc/db"
 )
 
 type Tracker struct {
-	db db.DB
+	db LogDB
 
 	draining    bool
 	connections map[io.Closer]struct{}
@@ -20,7 +18,7 @@ type Tracker struct {
 	lock *sync.RWMutex
 }
 
-func NewTracker(db db.DB) *Tracker {
+func NewTracker(db LogDB) *Tracker {
 	return &Tracker{
 		db: db,
 

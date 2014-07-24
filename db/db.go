@@ -16,7 +16,6 @@ type DB interface {
 	StartBuild(job string, id int, abortURL string) (bool, error)
 	AbortBuild(job string, id int) error
 
-	SaveBuildInput(job string, build int, input builds.Input) error
 	SaveBuildStatus(job string, build int, status builds.Status) error
 
 	BuildLog(job string, build int) ([]byte, error)
@@ -25,6 +24,11 @@ type DB interface {
 	GetCurrentVersion(job, input string) (builds.Version, error)
 	SaveCurrentVersion(job, input string, source builds.Version) error
 
+	SaveBuildInput(job string, build int, vr builds.VersionedResource) error
+	SaveBuildOutput(job string, build int, vr builds.VersionedResource) error
+
+	SaveVersionedResource(builds.VersionedResource) error
+	GetLatestVersionedResource(name string) (builds.VersionedResource, error)
+
 	GetCommonOutputs(jobs []string, resourceName string) ([]builds.Version, error)
-	SaveOutputVersion(job string, build int, resourceName string, version builds.Version) error
 }

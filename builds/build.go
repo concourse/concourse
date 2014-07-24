@@ -20,10 +20,10 @@ type Build struct {
 
 	Status Status
 
-	Inputs []Input
+	Inputs []VersionedResource
 }
 
-type Input struct {
+type VersionedResource struct {
 	Name     string
 	Source   config.Source
 	Version  Version

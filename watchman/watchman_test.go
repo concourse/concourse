@@ -5,66 +5,44 @@ import (
 
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/queue/fakequeuer"
-	"github.com/concourse/atc/redisrunner"
-	"github.com/concourse/atc/resources/fakechecker"
+
 	. "github.com/concourse/atc/watchman"
+	"github.com/concourse/atc/watchman/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
 )
 
 var _ = Describe("Watchman", func() {
-	var redisRunner *redisrunner.Runner
-	var redis db.DB
-
-	var queuer *fakequeuer.FakeQueuer
-	var watchman Watchman
-
-	var job config.Job
-	var resource config.Resource
-	var checker *fakechecker.FakeChecker
-	var eachVersion bool
+	var checker *fakes.FakeResourceChecker
+	var tracker *fakes.FakeVersionDB
 	var interval time.Duration
 
+	var watchman Watchman
+
+	var resource config.Resource
+
 	BeforeEach(func() {
-		redisRunner = redisrunner.NewRunner()
-		redisRunner.Start()
+		logger := lagertest.NewTestLogger("watchman")
+		checker = new(fakes.FakeResourceChecker)
+		tracker = new(fakes.FakeVersionDB)
+		interval = 100 * time.Millisecond
 
-		redis = db.NewRedis(redisRunner.Pool())
-
-		queuer = new(fakequeuer.FakeQueuer)
-
-		watchman = NewWatchman(lagertest.NewTestLogger("watchman"), redis, queuer)
-
-		job = config.Job{
-			Name: "some-job",
-			Inputs: []config.Input{
-				{
-					Resource: "some-resource",
-				},
-			},
-		}
+		watchman = NewWatchman(logger, checker, tracker, interval)
 
 		resource = config.Resource{
 			Name:   "some-resource",
 			Type:   "git",
 			Source: config.Source{"uri": "http://example.com"},
 		}
-
-		checker = new(fakechecker.FakeChecker)
-		eachVersion = true
-		interval = 100 * time.Millisecond
 	})
 
 	JustBeforeEach(func() {
-		watchman.Watch(job, resource, checker, eachVersion, interval)
+		watchman.Watch(resource)
 	})
 
 	AfterEach(func() {
 		watchman.Stop()
-		redisRunner.Stop()
 	})
 
 	Describe("checking", func() {
@@ -79,7 +57,7 @@ var _ = Describe("Watchman", func() {
 			}
 		})
 
-		It("polls /checks on a specified interval", func() {
+		It("checks on a specified interval", func() {
 			var time1 time.Time
 			var time2 time.Time
 
@@ -100,27 +78,28 @@ var _ = Describe("Watchman", func() {
 		})
 
 		Context("when there is a current version", func() {
+			BeforeEach(func() {
+				tracker.GetLatestVersionedResourceReturns(builds.VersionedResource{
+					Version: builds.Version{"version": "1"},
+				}, nil)
+			})
+
 			It("checks from it", func() {
-				v1 := builds.Version{"version": "1"}
-				v2 := builds.Version{"version": "2"}
-
-				err := redis.SaveCurrentVersion(job.Name, resource.Name, v1)
-				Ω(err).ShouldNot(HaveOccurred())
-
 				Eventually(times).Should(Receive())
 
 				resource, version := checker.CheckResourceArgsForCall(0)
 				Ω(resource).Should(Equal(resource))
-				Ω(version).Should(Equal(v1))
+				Ω(version).Should(Equal(builds.Version{"version": "1"}))
 
-				err = redis.SaveCurrentVersion(job.Name, resource.Name, v2)
-				Ω(err).ShouldNot(HaveOccurred())
+				tracker.GetLatestVersionedResourceReturns(builds.VersionedResource{
+					Version: builds.Version{"version": "2"},
+				}, nil)
 
 				Eventually(times).Should(Receive())
 
 				resource, version = checker.CheckResourceArgsForCall(1)
 				Ω(resource).Should(Equal(resource))
-				Ω(version).Should(Equal(v2))
+				Ω(version).Should(Equal(builds.Version{"version": "2"}))
 			})
 		})
 
@@ -156,48 +135,26 @@ var _ = Describe("Watchman", func() {
 				}
 			})
 
-			It("enqueues a build for the job with the changed version", func() {
-				Eventually(queuer.EnqueueCallCount).Should(Equal(3))
+			It("saves them all, in order", func() {
+				Eventually(tracker.SaveVersionedResourceCallCount).Should(Equal(3))
 
-				job1, resource1, version1 := queuer.EnqueueArgsForCall(0)
-				job2, resource2, version2 := queuer.EnqueueArgsForCall(1)
-				job3, resource3, version3 := queuer.EnqueueArgsForCall(2)
+				Ω(tracker.SaveVersionedResourceArgsForCall(0)).Should(Equal(builds.VersionedResource{
+					Name:    "some-resource",
+					Source:  config.Source{"uri": "http://example.com"},
+					Version: builds.Version{"version": "1"},
+				}))
 
-				Ω(job1).Should(Equal(job))
-				Ω(resource1).Should(Equal(resource))
-				Ω(version1).Should(Equal(builds.Version{"version": "1"}))
+				Ω(tracker.SaveVersionedResourceArgsForCall(1)).Should(Equal(builds.VersionedResource{
+					Name:    "some-resource",
+					Source:  config.Source{"uri": "http://example.com"},
+					Version: builds.Version{"version": "2"},
+				}))
 
-				Ω(job2).Should(Equal(job))
-				Ω(resource2).Should(Equal(resource))
-				Ω(version2).Should(Equal(builds.Version{"version": "2"}))
-
-				Ω(job3).Should(Equal(job))
-				Ω(resource3).Should(Equal(resource))
-				Ω(version3).Should(Equal(builds.Version{"version": "3"}))
-			})
-
-			It("saves the last version as the new current version", func() {
-				Eventually(queuer.EnqueueCallCount).Should(Equal(3))
-
-				version, err := redis.GetCurrentVersion("some-job", "some-resource")
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(version).Should(Equal(builds.Version{"version": "3"}))
-			})
-
-			Context("when configured to only build the latest versions", func() {
-				BeforeEach(func() {
-					eachVersion = false
-				})
-
-				It("only builds the latest version", func() {
-					Eventually(queuer.EnqueueCallCount).Should(Equal(1))
-					Consistently(queuer.EnqueueCallCount).Should(Equal(1))
-
-					job1, resource1, version1 := queuer.EnqueueArgsForCall(0)
-					Ω(job1).Should(Equal(job))
-					Ω(resource1).Should(Equal(resource))
-					Ω(version1).Should(Equal(builds.Version{"version": "3"}))
-				})
+				Ω(tracker.SaveVersionedResourceArgsForCall(2)).Should(Equal(builds.VersionedResource{
+					Name:    "some-resource",
+					Source:  config.Source{"uri": "http://example.com"},
+					Version: builds.Version{"version": "3"},
+				}))
 			})
 		})
 

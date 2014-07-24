@@ -1,65 +1,65 @@
 package watchman
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
+	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/queue"
-	"github.com/concourse/atc/resources"
-	"github.com/garyburd/redigo/redis"
+
 	"github.com/pivotal-golang/lager"
 )
 
 type Watchman interface {
-	Watch(
-		job config.Job,
-		resource config.Resource,
-		checker resources.Checker,
-		eachVersion bool,
-		interval time.Duration,
-	)
-
+	Watch(resource config.Resource)
 	Stop()
+}
+
+type VersionDB interface {
+	SaveVersionedResource(builds.VersionedResource) error
+	GetLatestVersionedResource(string) (builds.VersionedResource, error)
+}
+
+type ResourceChecker interface {
+	CheckResource(config.Resource, builds.Version) ([]builds.Version, error)
 }
 
 type watchman struct {
 	logger lager.Logger
 
-	db     db.DB
-	queuer queue.Queuer
+	checker  ResourceChecker
+	tracker  VersionDB
+	interval time.Duration
 
 	stop     chan struct{}
 	watching *sync.WaitGroup
 }
 
-func NewWatchman(logger lager.Logger, db db.DB, queuer queue.Queuer) Watchman {
+func NewWatchman(
+	logger lager.Logger,
+	checker ResourceChecker,
+	tracker VersionDB,
+	interval time.Duration,
+) Watchman {
 	return &watchman{
 		logger: logger,
 
-		db:     db,
-		queuer: queuer,
+		checker:  checker,
+		tracker:  tracker,
+		interval: interval,
 
 		stop:     make(chan struct{}),
 		watching: new(sync.WaitGroup),
 	}
 }
 
-func (watchman *watchman) Watch(
-	job config.Job,
-	resource config.Resource,
-	checker resources.Checker,
-	eachVersion bool,
-	interval time.Duration,
-) {
+func (watchman *watchman) Watch(resource config.Resource) {
 	watchman.watching.Add(1)
 
 	go func() {
 		defer watchman.watching.Done()
 
-		ticker := time.NewTicker(interval)
+		ticker := time.NewTicker(watchman.interval)
 
 		for {
 			select {
@@ -67,21 +67,20 @@ func (watchman *watchman) Watch(
 				return
 
 			case <-ticker.C:
-				from, err := watchman.db.GetCurrentVersion(job.Name, resource.Name)
-				if err == redis.ErrNil {
-					from = nil
+				var from builds.Version
+
+				if vr, err := watchman.tracker.GetLatestVersionedResource(resource.Name); err == nil {
+					from = vr.Version
 				}
 
 				log := watchman.logger.Session("watchman", lager.Data{
-					"job":      job.Name,
 					"resource": resource.Name,
-					"checker":  fmt.Sprintf("%T", checker),
 					"from":     from,
 				})
 
 				log.Debug("check")
 
-				newVersions, err := checker.CheckResource(resource, from)
+				newVersions, err := watchman.checker.CheckResource(resource, from)
 				if err != nil {
 					log.Error("failed-to-check", err)
 					break
@@ -96,30 +95,17 @@ func (watchman *watchman) Watch(
 					"total":    len(newVersions),
 				})
 
-				latestVersion := newVersions[len(newVersions)-1]
-
-				err = watchman.db.SaveCurrentVersion(job.Name, resource.Name, latestVersion)
-				if err != nil {
-					log.Error("failed-to-save-current-version", err, lager.Data{
-						"version": latestVersion,
+				for _, version := range newVersions {
+					err = watchman.tracker.SaveVersionedResource(builds.VersionedResource{
+						Name:    resource.Name,
+						Source:  resource.Source,
+						Version: version,
 					})
-				}
-
-				if eachVersion {
-					for i, version := range newVersions {
-						log.Info("enqueue", lager.Data{
-							"which":   fmt.Sprintf("%d of %d", i+1, len(newVersions)),
+					if err != nil {
+						log.Error("failed-to-save-current-version", err, lager.Data{
 							"version": version,
 						})
-
-						watchman.queuer.Enqueue(job, resource, version)
 					}
-				} else {
-					log.Info("enqueue-latest", lager.Data{
-						"version": latestVersion,
-					})
-
-					watchman.queuer.Enqueue(job, resource, latestVersion)
 				}
 			}
 		}

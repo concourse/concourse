@@ -9,7 +9,6 @@ import (
 	"github.com/BurntSushi/migration"
 	turbineroutes "github.com/concourse/turbine/routes"
 	"github.com/fraenkel/candiedyaml"
-	"github.com/garyburd/redigo/redis"
 	_ "github.com/lib/pq"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
@@ -26,6 +25,7 @@ import (
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/logfanout"
 	"github.com/concourse/atc/queue"
+	"github.com/concourse/atc/resources"
 	"github.com/concourse/atc/server"
 	"github.com/concourse/atc/server/auth"
 	"github.com/concourse/atc/watcher"
@@ -54,12 +54,6 @@ var turbineURL = flag.String(
 	"turbineURL",
 	"http://127.0.0.1:4637",
 	"address denoting the turbine service",
-)
-
-var redisAddr = flag.String(
-	"redisAddr",
-	"127.0.0.1:6379",
-	"redis server address",
 )
 
 var sqlDriver = flag.String(
@@ -138,20 +132,12 @@ func main() {
 
 	configFile.Close()
 
-	var db Db.DB
-
-	if *sqlDataSource != "" {
-		dbConn, err := migration.Open(*sqlDriver, *sqlDataSource, migrations.Migrations)
-		if err != nil {
-			fatal(err)
-		}
-
-		db = Db.NewSQL(dbConn)
-	} else {
-		db = Db.NewRedis(redis.NewPool(func() (redis.Conn, error) {
-			return redis.DialTimeout("tcp", *redisAddr, 5*time.Second, 0, 0)
-		}, 20))
+	dbConn, err := migration.Open(*sqlDriver, *sqlDataSource, migrations.Migrations)
+	if err != nil {
+		fatal(err)
 	}
+
+	db := Db.NewSQL(dbConn)
 
 	for _, job := range conf.Jobs {
 		err := db.RegisterJob(job.Name)
@@ -205,12 +191,13 @@ func main() {
 		fatal(err)
 	}
 
-	watchman := watchman.NewWatchman(logger, db, queuer)
+	turbineChecker := resources.NewTurbineChecker(turbineEndpoint)
+	watchman := watchman.NewWatchman(logger, turbineChecker, db, *checkInterval)
 
 	group := grouper.EnvokeGroup(grouper.RunGroup{
 		"web":     http_server.New(*listenAddr, serverHandler),
 		"api":     http_server.New(*apiListenAddr, apiHandler),
-		"watcher": watcher.NewWatcher(conf.Jobs, conf.Resources, db, turbineEndpoint, watchman, *checkInterval),
+		"watcher": watcher.NewWatcher(conf.Resources, watchman),
 		"drainer": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 			close(ready)
 			<-signals

@@ -1,11 +1,15 @@
 package builder_test
 
 import (
+	"database/sql"
 	"net/http"
+	"os"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
+	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/rata"
 
 	TurbineBuilds "github.com/concourse/turbine/api/builds"
@@ -15,13 +19,17 @@ import (
 	. "github.com/concourse/atc/builder"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/redisrunner"
+	Db "github.com/concourse/atc/db"
+	"github.com/concourse/atc/postgresrunner"
 )
 
 var _ = Describe("Builder", func() {
-	var redisRunner *redisrunner.Runner
-	var redis db.DB
+	var postgresRunner postgresrunner.Runner
+
+	var dbConn *sql.DB
+	var dbProcess ifrit.Process
+
+	var db Db.DB
 
 	var turbineServer *ghttp.Server
 
@@ -32,16 +40,31 @@ var _ = Describe("Builder", func() {
 
 	var expectedTurbineBuild TurbineBuilds.Build
 
-	BeforeEach(func() {
-		redisRunner = redisrunner.NewRunner()
-		redisRunner.Start()
+	BeforeSuite(func() {
+		postgresRunner = postgresrunner.Runner{
+			Port: 5433 + GinkgoParallelNode(),
+		}
 
-		redis = db.NewRedis(redisRunner.Pool())
+		dbProcess = ifrit.Envoke(postgresRunner)
+	})
+
+	AfterSuite(func() {
+		dbProcess.Signal(os.Interrupt)
+		Eventually(dbProcess.Wait(), 10*time.Second).Should(Receive())
+	})
+
+	BeforeEach(func() {
+		var err error
+
+		postgresRunner.CreateTestDB()
+
+		dbConn = postgresRunner.Open()
+		db = Db.NewSQL(dbConn)
 
 		turbineServer = ghttp.NewServer()
 
 		job = config.Job{
-			Name: "foo",
+			Name: "some-job",
 
 			BuildConfig: TurbineBuilds.Config{
 				Image: "some-image",
@@ -67,6 +90,9 @@ var _ = Describe("Builder", func() {
 			},
 		}
 
+		err = db.RegisterJob("some-job")
+		Ω(err).ShouldNot(HaveOccurred())
+
 		resources = config.Resources{
 			{
 				Name:   "some-resource",
@@ -84,6 +110,15 @@ var _ = Describe("Builder", func() {
 				Source: config.Source{"uri": "git://some-output-resource"},
 			},
 		}
+
+		err = db.RegisterResource("some-resource")
+		Ω(err).ShouldNot(HaveOccurred())
+
+		err = db.RegisterResource("some-dependant-resource")
+		Ω(err).ShouldNot(HaveOccurred())
+
+		err = db.RegisterResource("some-output-resource")
+		Ω(err).ShouldNot(HaveOccurred())
 
 		expectedTurbineBuild = TurbineBuilds.Build{
 			Config: TurbineBuilds.Config{
@@ -114,12 +149,12 @@ var _ = Describe("Builder", func() {
 
 			Privileged: true,
 
-			Callback: "http://atc-server/builds/foo/1",
-			LogsURL:  "ws://atc-server/builds/foo/1/log/input",
+			Callback: "http://atc-server/builds/some-job/1",
+			LogsURL:  "ws://atc-server/builds/some-job/1/log/input",
 		}
 
 		builder = NewBuilder(
-			redis,
+			db,
 			resources,
 			rata.NewRequestGenerator(turbineServer.URL(), TurbineRoutes.Routes),
 			rata.NewRequestGenerator("http://atc-server", WinstonRoutes.Routes),
@@ -127,7 +162,10 @@ var _ = Describe("Builder", func() {
 	})
 
 	AfterEach(func() {
-		redisRunner.Stop()
+		err := dbConn.Close()
+		Ω(err).ShouldNot(HaveOccurred())
+
+		postgresRunner.DropTestDB()
 	})
 
 	successfulBuildStart := func(build TurbineBuilds.Build) http.HandlerFunc {
@@ -165,7 +203,7 @@ var _ = Describe("Builder", func() {
 		// the full behavior of these would be duped in the db tests, so only
 		// a small piece is covered
 
-		resource := config.Resource{Name: "foo"}
+		resource := config.Resource{Name: "some-resource"}
 		version := builds.Version{"version": "2"}
 
 		It("attempts to create a pending build", func() {
@@ -187,25 +225,25 @@ var _ = Describe("Builder", func() {
 		Context("when the resource is in the job's inputs and outputs", func() {
 			BeforeEach(func() {
 				job.Inputs = append(job.Inputs, config.Input{
-					Resource: "foo",
+					Resource: "some-resource",
 				})
 
 				job.Outputs = append(job.Outputs, config.Output{
-					Resource: "foo",
+					Resource: "some-resource",
 				})
 			})
 
 			Context("and a build is running", func() {
 				BeforeEach(func() {
-					runningBuild, err := redis.CreateBuild(job.Name)
+					runningBuild, err := db.CreateBuild(job.Name)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					scheduled, err := redis.ScheduleBuild(job.Name, runningBuild.ID, true)
+					scheduled, err := db.ScheduleBuild(job.Name, runningBuild.ID, true)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(scheduled).Should(BeTrue())
 
-					err = redis.SaveBuildInput(job.Name, runningBuild.ID, builds.Input{
-						Name:    "foo",
+					err = db.SaveBuildInput(job.Name, runningBuild.ID, builds.VersionedResource{
+						Name:    "some-resource",
 						Version: builds.Version{"version": "1"},
 					})
 					Ω(err).ShouldNot(HaveOccurred())
@@ -254,10 +292,10 @@ var _ = Describe("Builder", func() {
 				BeforeEach(func() {
 					var err error
 
-					existingBuild, err = redis.CreateBuild(job.Name)
+					existingBuild, err = db.CreateBuild(job.Name)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					scheduled, err := redis.ScheduleBuild(job.Name, existingBuild.ID, false)
+					scheduled, err := db.ScheduleBuild(job.Name, existingBuild.ID, false)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(scheduled).Should(BeTrue())
 				})
@@ -286,14 +324,14 @@ var _ = Describe("Builder", func() {
 					BeforeEach(func() {
 						var err error
 
-						existingBuild, err = redis.CreateBuild(job.Name)
+						existingBuild, err = db.CreateBuild(job.Name)
 						Ω(err).ShouldNot(HaveOccurred())
 
-						scheduled, err := redis.ScheduleBuild(job.Name, existingBuild.ID, false)
+						scheduled, err := db.ScheduleBuild(job.Name, existingBuild.ID, false)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeTrue())
 
-						err = redis.SaveBuildStatus(job.Name, existingBuild.ID, status)
+						err = db.SaveBuildStatus(job.Name, existingBuild.ID, status)
 						Ω(err).ShouldNot(HaveOccurred())
 					})
 
@@ -383,7 +421,7 @@ var _ = Describe("Builder", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/builds"),
 						func(w http.ResponseWriter, r *http.Request) {
-							err := redis.AbortBuild(job.Name, 1)
+							err := db.AbortBuild(job.Name, 1)
 							Ω(err).ShouldNot(HaveOccurred())
 						},
 						successfulBuildStart(expectedTurbineBuild),
@@ -424,13 +462,37 @@ var _ = Describe("Builder", func() {
 
 			Context("and the other jobs satisfy the dependency", func() {
 				BeforeEach(func() {
-					err := redis.SaveOutputVersion("job1", 1, "some-dependant-resource", builds.Version{"version": "1"})
+					err := db.RegisterJob("job1")
 					Ω(err).ShouldNot(HaveOccurred())
 
-					err = redis.SaveOutputVersion("job2", 1, "some-dependant-resource", builds.Version{"version": "1"})
+					err = db.RegisterJob("job2")
 					Ω(err).ShouldNot(HaveOccurred())
 
-					err = redis.SaveOutputVersion("job1", 1, "some-dependant-resource", builds.Version{"version": "2"})
+					j1b1, err := db.CreateBuild("job1")
+					Ω(err).ShouldNot(HaveOccurred())
+
+					j1b2, err := db.CreateBuild("job1")
+					Ω(err).ShouldNot(HaveOccurred())
+
+					j2b1, err := db.CreateBuild("job2")
+					Ω(err).ShouldNot(HaveOccurred())
+
+					err = db.SaveBuildOutput("job1", j1b1.ID, builds.VersionedResource{
+						Name:    "some-dependant-resource",
+						Version: builds.Version{"version": "1"},
+					})
+					Ω(err).ShouldNot(HaveOccurred())
+
+					err = db.SaveBuildOutput("job2", j2b1.ID, builds.VersionedResource{
+						Name:    "some-dependant-resource",
+						Version: builds.Version{"version": "1"},
+					})
+					Ω(err).ShouldNot(HaveOccurred())
+
+					err = db.SaveBuildOutput("job1", j1b2.ID, builds.VersionedResource{
+						Name:    "some-dependant-resource",
+						Version: builds.Version{"version": "2"},
+					})
 					Ω(err).ShouldNot(HaveOccurred())
 				})
 
@@ -456,7 +518,7 @@ var _ = Describe("Builder", func() {
 				})
 
 				It("does not start the build", func() {
-					build, err := redis.GetBuild(job.Name, build.ID)
+					build, err := db.GetBuild(job.Name, build.ID)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(build.Status).Should(Equal(builds.StatusPending))
 				})

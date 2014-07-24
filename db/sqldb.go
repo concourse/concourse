@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 
+	_ "github.com/lib/pq"
+
 	"github.com/concourse/atc/builds"
 )
 
@@ -89,10 +91,10 @@ func (db *sqldb) GetBuild(job string, name int) (builds.Build, error) {
 		return builds.Build{}, err
 	}
 
-	inputs := []builds.Input{}
+	inputs := []builds.VersionedResource{}
 
 	rows, err := db.conn.Query(`
-		SELECT v.resource_name, i.source, v.version, i.metadata
+		SELECT v.resource_name, v.source, v.version, v.metadata
 		FROM versioned_resources v, build_inputs i
 		WHERE i.build_id = $1
 		AND i.versioned_resource_id = v.id
@@ -104,7 +106,7 @@ func (db *sqldb) GetBuild(job string, name int) (builds.Build, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var input builds.Input
+		var input builds.VersionedResource
 
 		var source, version, metadata string
 		err := rows.Scan(&input.Name, &source, &version, &metadata)
@@ -424,22 +426,7 @@ func (db *sqldb) AbortBuild(job string, id int) error {
 	return db.SaveBuildStatus(job, id, builds.StatusAborted)
 }
 
-func (db *sqldb) SaveBuildInput(job string, build int, input builds.Input) error {
-	sourceJSON, err := json.Marshal(input.Source)
-	if err != nil {
-		return err
-	}
-
-	versionJSON, err := json.Marshal(input.Version)
-	if err != nil {
-		return err
-	}
-
-	metadataJSON, err := json.Marshal(input.Metadata)
-	if err != nil {
-		return err
-	}
-
+func (db *sqldb) SaveBuildInput(job string, build int, vr builds.VersionedResource) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return err
@@ -447,44 +434,45 @@ func (db *sqldb) SaveBuildInput(job string, build int, input builds.Input) error
 
 	defer tx.Rollback()
 
+	vrID, err := db.saveVersionedResource(tx, vr)
+	if err != nil {
+		return err
+	}
+
 	_, err = tx.Exec(`
-		INSERT INTO versioned_resources (resource_name, version)
-		SELECT $1, $2
-		WHERE NOT EXISTS (
-			SELECT 1
-			FROM versioned_resources
-			WHERE resource_name = $1
-			AND version = $2
-		)
-	`, input.Name, string(versionJSON))
-	if err != nil {
-		return err
-	}
-
-	var vrID int
-	err = tx.QueryRow(`
-		SELECT id FROM versioned_resources
-		WHERE resource_name = $1
-		AND version = $2
-	`, input.Name, string(versionJSON)).Scan(&vrID)
-	if err != nil {
-		return err
-	}
-
-	var buildID int
-	err = tx.QueryRow(`
-		SELECT id FROM builds
+		INSERT INTO build_inputs (build_id, versioned_resource_id)
+		SELECT id, $3
+		FROM builds
 		WHERE job_name = $1
 		AND name = $2
-	`, job, build).Scan(&buildID)
+	`, job, build, vrID)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (db *sqldb) SaveBuildOutput(job string, build int, vr builds.VersionedResource) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	vrID, err := db.saveVersionedResource(tx, vr)
 	if err != nil {
 		return err
 	}
 
 	_, err = tx.Exec(`
-		INSERT INTO build_inputs (build_id, versioned_resource_id, source, metadata)
-		VALUES ($1, $2, $3, $4)
-	`, buildID, vrID, string(sourceJSON), string(metadataJSON))
+		INSERT INTO build_outputs (build_id, versioned_resource_id)
+		SELECT id, $3
+		FROM builds
+		WHERE job_name = $1
+		AND name = $2
+	`, job, build, vrID)
 	if err != nil {
 		return err
 	}
@@ -592,6 +580,58 @@ func (db *sqldb) SaveCurrentVersion(job, resource string, version builds.Version
 	return err
 }
 
+func (db *sqldb) SaveVersionedResource(vr builds.VersionedResource) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = db.saveVersionedResource(tx, vr)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (db *sqldb) GetLatestVersionedResource(name string) (builds.VersionedResource, error) {
+	var sourceBytes, versionBytes, metadataBytes string
+
+	err := db.conn.QueryRow(`
+		SELECT source, version, metadata
+		FROM versioned_resources
+		WHERE resource_name = $1
+		ORDER BY id DESC
+		LIMIT 1
+	`, name).Scan(&sourceBytes, &versionBytes, &metadataBytes)
+	if err != nil {
+		return builds.VersionedResource{}, err
+	}
+
+	vr := builds.VersionedResource{
+		Name: name,
+	}
+
+	err = json.Unmarshal([]byte(sourceBytes), &vr.Source)
+	if err != nil {
+		return builds.VersionedResource{}, err
+	}
+
+	err = json.Unmarshal([]byte(versionBytes), &vr.Version)
+	if err != nil {
+		return builds.VersionedResource{}, err
+	}
+
+	err = json.Unmarshal([]byte(metadataBytes), &vr.Metadata)
+	if err != nil {
+		return builds.VersionedResource{}, err
+	}
+
+	return vr, nil
+}
+
 func (db *sqldb) GetCommonOutputs(jobs []string, resourceName string) ([]builds.Version, error) {
 	fromAliases := make([]string, len(jobs))
 	conditions := []string{}
@@ -645,60 +685,46 @@ func (db *sqldb) GetCommonOutputs(jobs []string, resourceName string) ([]builds.
 	return vs, nil
 }
 
-func (db *sqldb) SaveOutputVersion(job string, build int, resourceName string, version builds.Version) error {
-	versionJSON, err := json.Marshal(version)
+func (db *sqldb) saveVersionedResource(tx *sql.Tx, vr builds.VersionedResource) (int, error) {
+	versionJSON, err := json.Marshal(vr.Version)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	tx, err := db.conn.Begin()
+	sourceJSON, err := json.Marshal(vr.Source)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	defer tx.Rollback()
+	metadataJSON, err := json.Marshal(vr.Metadata)
+	if err != nil {
+		return 0, err
+	}
+
+	var id int
 
 	_, err = tx.Exec(`
-		INSERT INTO versioned_resources (resource_name, version)
-		SELECT $1, $2
+		INSERT INTO versioned_resources (resource_name, version, source, metadata)
+		SELECT $1, $2, $3, $4
 		WHERE NOT EXISTS (
 			SELECT 1
 			FROM versioned_resources
 			WHERE resource_name = $1
 			AND version = $2
 		)
-	`, resourceName, string(versionJSON))
+	`, vr.Name, string(versionJSON), string(sourceJSON), string(metadataJSON))
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	var vrID int
 	err = tx.QueryRow(`
 		SELECT id FROM versioned_resources
 		WHERE resource_name = $1
 		AND version = $2
-	`, resourceName, string(versionJSON)).Scan(&vrID)
+	`, vr.Name, string(versionJSON)).Scan(&id)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	var buildID int
-	err = tx.QueryRow(`
-		SELECT id FROM builds
-		WHERE job_name = $1
-		AND name = $2
-	`, job, build).Scan(&buildID)
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(`
-		INSERT INTO build_outputs (build_id, versioned_resource_id, source, metadata)
-		VALUES ($1, $2, $3, $4)
-	`, buildID, vrID, "", "") // TODO
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
+	return id, nil
 }

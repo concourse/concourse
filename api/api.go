@@ -9,12 +9,11 @@ import (
 
 	"github.com/concourse/atc/api/handler"
 	"github.com/concourse/atc/api/routes"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/logfanout"
 )
 
-func New(logger lager.Logger, db db.DB, tracker *logfanout.Tracker) (http.Handler, error) {
-	builds := handler.NewHandler(logger, db, tracker)
+func New(logger lager.Logger, buildDB handler.BuildDB, logTracker *logfanout.Tracker) (http.Handler, error) {
+	builds := handler.NewHandler(logger, buildDB, logTracker)
 
 	handlers := map[string]http.Handler{
 		routes.UpdateBuild: http.HandlerFunc(builds.UpdateBuild),

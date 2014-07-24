@@ -1,10 +1,13 @@
 package logs_test
 
 import (
+	"database/sql"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"time"
 
 	"code.google.com/p/go.net/websocket"
 
@@ -12,36 +15,54 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-golang/lager/lagertest"
+	"github.com/tedsuo/ifrit"
 
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
-	"github.com/concourse/atc/db"
+	Db "github.com/concourse/atc/db"
 	"github.com/concourse/atc/logfanout"
-	"github.com/concourse/atc/redisrunner"
+	"github.com/concourse/atc/postgresrunner"
 	"github.com/concourse/atc/server"
 )
 
 var _ = Describe("API", func() {
-	var redisRunner *redisrunner.Runner
-	var redis db.DB
+	var postgresRunner postgresrunner.Runner
+
+	var dbConn *sql.DB
+	var dbProcess ifrit.Process
+
+	var db Db.DB
 
 	var testServer *httptest.Server
 	var client *http.Client
 
 	var tracker *logfanout.Tracker
 
+	BeforeSuite(func() {
+		postgresRunner = postgresrunner.Runner{
+			Port: 5433 + GinkgoParallelNode(),
+		}
+
+		dbProcess = ifrit.Envoke(postgresRunner)
+	})
+
+	AfterSuite(func() {
+		dbProcess.Signal(os.Interrupt)
+		Eventually(dbProcess.Wait(), 10*time.Second).Should(Receive())
+	})
+
 	BeforeEach(func() {
-		redisRunner = redisrunner.NewRunner()
-		redisRunner.Start()
+		postgresRunner.CreateTestDB()
 
-		redis = db.NewRedis(redisRunner.Pool())
+		dbConn = postgresRunner.Open()
+		db = Db.NewSQL(dbConn)
 
-		tracker = logfanout.NewTracker(redis)
+		tracker = logfanout.NewTracker(db)
 
 		handler, err := server.New(
 			lagertest.NewTestLogger("api"),
 			config.Config{},
-			redis,
+			db,
 			"../templates",
 			"../public",
 			"",
@@ -59,7 +80,11 @@ var _ = Describe("API", func() {
 
 	AfterEach(func() {
 		testServer.Close()
-		redisRunner.Stop()
+
+		err := dbConn.Close()
+		Ω(err).ShouldNot(HaveOccurred())
+
+		postgresRunner.DropTestDB()
 	})
 
 	Describe("GET /jobs/:job/builds/:build/logs", func() {
@@ -70,7 +95,10 @@ var _ = Describe("API", func() {
 		BeforeEach(func() {
 			var err error
 
-			build, err = redis.CreateBuild("some-job")
+			err = db.RegisterJob("some-job")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			build, err = db.CreateBuild("some-job")
 			Ω(err).ShouldNot(HaveOccurred())
 
 			endpoint = fmt.Sprintf(

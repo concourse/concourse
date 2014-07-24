@@ -1,0 +1,34 @@
+package migrations
+
+import "github.com/BurntSushi/migration"
+
+func MoveSourceAndMetadataToVersionedResources(tx migration.LimitedTx) error {
+	_, err := tx.Exec(`
+		ALTER TABLE versioned_resources
+		ADD COLUMN source text NOT NULL,
+		ADD COLUMN metadata text NOT NULL
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		ALTER TABLE build_inputs
+		DROP COLUMN source,
+		DROP COLUMN metadata
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		ALTER TABLE build_outputs
+		DROP COLUMN source,
+		DROP COLUMN metadata
+	`)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -4,14 +4,17 @@ import (
 	"errors"
 	"io"
 	"sync"
-
-	"github.com/concourse/atc/db"
 )
+
+type LogDB interface {
+	BuildLog(job string, build int) ([]byte, error)
+	AppendBuildLog(job string, build int, log []byte) error
+}
 
 type LogFanout struct {
 	job   string
 	build int
-	db    db.DB
+	db    LogDB
 
 	lock *sync.Mutex
 
@@ -21,7 +24,7 @@ type LogFanout struct {
 	waitForClosed chan struct{}
 }
 
-func NewLogFanout(job string, build int, db db.DB) *LogFanout {
+func NewLogFanout(job string, build int, db LogDB) *LogFanout {
 	return &LogFanout{
 		job:   job,
 		build: build,

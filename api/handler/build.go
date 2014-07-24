@@ -22,7 +22,7 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	build, err := handler.db.GetBuild(job, id)
+	build, err := handler.buildDB.GetBuild(job, id)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -63,7 +63,7 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("save-status")
 
-	err = handler.db.SaveBuildStatus(job, id, status)
+	err = handler.buildDB.SaveBuildStatus(job, id, status)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -72,7 +72,7 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 	switch turbineBuild.Status {
 	case TurbineBuilds.StatusStarted:
 		for _, input := range turbineBuild.Inputs {
-			err = handler.db.SaveBuildInput(job, id, buildInputFrom(input))
+			err = handler.buildDB.SaveBuildInput(job, id, buildInputFrom(input))
 			if err != nil {
 				log.Error("failed-to-save-input", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -80,7 +80,7 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 		}
 	case TurbineBuilds.StatusSucceeded:
 		for _, output := range turbineBuild.Outputs {
-			err = handler.db.SaveOutputVersion(job, id, output.Name, builds.Version(output.Version))
+			err = handler.buildDB.SaveBuildOutput(job, id, buildOutputFrom(output))
 			if err != nil {
 				log.Error("failed-to-save-output-version", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -91,7 +91,7 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func buildInputFrom(input TurbineBuilds.Input) builds.Input {
+func buildInputFrom(input TurbineBuilds.Input) builds.VersionedResource {
 	metadata := make([]builds.MetadataField, len(input.Metadata))
 	for i, md := range input.Metadata {
 		metadata[i] = builds.MetadataField{
@@ -100,10 +100,30 @@ func buildInputFrom(input TurbineBuilds.Input) builds.Input {
 		}
 	}
 
-	return builds.Input{
+	return builds.VersionedResource{
 		Name:     input.Name,
 		Source:   config.Source(input.Source),
 		Version:  builds.Version(input.Version),
+		Metadata: metadata,
+	}
+}
+
+// same as input, but type is different.
+//
+// :(
+func buildOutputFrom(output TurbineBuilds.Output) builds.VersionedResource {
+	metadata := make([]builds.MetadataField, len(output.Metadata))
+	for i, md := range output.Metadata {
+		metadata[i] = builds.MetadataField{
+			Name:  md.Name,
+			Value: md.Value,
+		}
+	}
+
+	return builds.VersionedResource{
+		Name:     output.Name,
+		Source:   config.Source(output.Source),
+		Version:  builds.Version(output.Version),
 		Metadata: metadata,
 	}
 }

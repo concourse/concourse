@@ -128,27 +128,47 @@ func itIsADB() {
 
 		b1, err := db.CreateBuild("some-job")
 		Ω(err).ShouldNot(HaveOccurred())
-		err = db.SaveOutputVersion("some-job", b1.ID, "some-resource", output1)
+		err = db.SaveBuildOutput("some-job", b1.ID, Builds.VersionedResource{
+			Name:    "some-resource",
+			Source:  config.Source{"some": "source"},
+			Version: output1,
+		})
 		Ω(err).ShouldNot(HaveOccurred())
 
 		b2, err := db.CreateBuild("some-job")
 		Ω(err).ShouldNot(HaveOccurred())
-		err = db.SaveOutputVersion("some-job", b2.ID, "some-resource", output2)
+		err = db.SaveBuildOutput("some-job", b2.ID, Builds.VersionedResource{
+			Name:    "some-resource",
+			Source:  config.Source{"some": "source"},
+			Version: output2,
+		})
 		Ω(err).ShouldNot(HaveOccurred())
 
 		ob1, err := db.CreateBuild("some-other-job")
 		Ω(err).ShouldNot(HaveOccurred())
-		err = db.SaveOutputVersion("some-other-job", ob1.ID, "some-resource", output1)
+		err = db.SaveBuildOutput("some-other-job", ob1.ID, Builds.VersionedResource{
+			Name:    "some-resource",
+			Source:  config.Source{"some": "source"},
+			Version: output1,
+		})
 		Ω(err).ShouldNot(HaveOccurred())
 
 		ob2, err := db.CreateBuild("some-other-job")
 		Ω(err).ShouldNot(HaveOccurred())
-		err = db.SaveOutputVersion("some-other-job", ob2.ID, "some-resource", output2)
+		err = db.SaveBuildOutput("some-other-job", ob2.ID, Builds.VersionedResource{
+			Name:    "some-resource",
+			Source:  config.Source{"some": "source"},
+			Version: output2,
+		})
 		Ω(err).ShouldNot(HaveOccurred())
 
 		ob3, err := db.CreateBuild("some-other-job")
 		Ω(err).ShouldNot(HaveOccurred())
-		err = db.SaveOutputVersion("some-other-job", ob3.ID, "some-resource", output3)
+		err = db.SaveBuildOutput("some-other-job", ob3.ID, Builds.VersionedResource{
+			Name:    "some-resource",
+			Source:  config.Source{"some": "source"},
+			Version: output3,
+		})
 		Ω(err).ShouldNot(HaveOccurred())
 
 		outputs, err := db.GetCommonOutputs([]string{"some-job", "some-other-job"}, "some-resource")
@@ -158,6 +178,11 @@ func itIsADB() {
 		outputs, err = db.GetCommonOutputs([]string{"some-other-job"}, "some-resource")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(outputs).Should(Equal([]Builds.Version{output1, output2, output3}))
+	})
+
+	It("saves build's inputs as versioned resources", func() {
+		build, err := db.CreateBuild("some-job")
+		Ω(err).ShouldNot(HaveOccurred())
 
 		buildMetadata := []Builds.MetadataField{
 			{
@@ -170,28 +195,73 @@ func itIsADB() {
 			},
 		}
 
-		input1 := Builds.Input{
+		vr1 := Builds.VersionedResource{
 			Name:     "some-resource",
 			Source:   config.Source{"some": "source"},
 			Version:  Builds.Version{"ver": "1"},
 			Metadata: buildMetadata,
 		}
 
-		err = db.SaveBuildInput("some-job", build.ID, input1)
+		err = db.SaveBuildInput("some-job", build.ID, vr1)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		input2 := Builds.Input{
+		vr2 := Builds.VersionedResource{
 			Name:    "some-other-resource",
 			Source:  config.Source{"some": "other-source"},
 			Version: Builds.Version{"ver": "2"},
 		}
 
-		err = db.SaveBuildInput("some-job", build.ID, input2)
+		err = db.SaveBuildInput("some-job", build.ID, vr2)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		build, err = db.GetBuild("some-job", build.ID)
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(build.Inputs).Should(Equal([]Builds.Input{input1, input2}))
+		Ω(build.Inputs).Should(Equal([]Builds.VersionedResource{vr1, vr2}))
+	})
+
+	Describe("saving versioned resources", func() {
+		It("updates the latest versioned resource", func() {
+			vr1 := Builds.VersionedResource{
+				Name:    "some-resource",
+				Source:  config.Source{"some": "source"},
+				Version: Builds.Version{"version": "1"},
+				Metadata: []Builds.MetadataField{
+					{Name: "meta1", Value: "value1"},
+				},
+			}
+
+			vr2 := Builds.VersionedResource{
+				Name:    "some-resource",
+				Source:  config.Source{"some": "source"},
+				Version: Builds.Version{"version": "2"},
+				Metadata: []Builds.MetadataField{
+					{Name: "meta2", Value: "value2"},
+				},
+			}
+
+			vr3 := Builds.VersionedResource{
+				Name:    "some-resource",
+				Source:  config.Source{"some": "source"},
+				Version: Builds.Version{"version": "3"},
+				Metadata: []Builds.MetadataField{
+					{Name: "meta3", Value: "value3"},
+				},
+			}
+			err := db.SaveVersionedResource(vr1)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(db.GetLatestVersionedResource("some-resource")).Should(Equal(vr1))
+
+			err = db.SaveVersionedResource(vr2)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(db.GetLatestVersionedResource("some-resource")).Should(Equal(vr2))
+
+			err = db.SaveVersionedResource(vr3)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(db.GetLatestVersionedResource("some-resource")).Should(Equal(vr3))
+		})
 	})
 
 	Context("when the first build is created", func() {
@@ -453,7 +523,7 @@ func itIsADB() {
 
 			Context("and its inputs have been determined", func() {
 				BeforeEach(func() {
-					err := db.SaveBuildInput("some-job", startedBuild.ID, Builds.Input{
+					err := db.SaveBuildInput("some-job", startedBuild.ID, Builds.VersionedResource{
 						Name:    "some-resource",
 						Version: Builds.Version{"version": "1"},
 					})
@@ -528,7 +598,11 @@ func itIsADB() {
 
 				Context("and its outputs have been determined", func() {
 					BeforeEach(func() {
-						err := db.SaveOutputVersion("some-job", startedBuild.ID, "some-resource", Builds.Version{"version": "2"})
+						err := db.SaveBuildOutput("some-job", startedBuild.ID, Builds.VersionedResource{
+							Name:    "some-resource",
+							Source:  config.Source{"some": "source"},
+							Version: Builds.Version{"version": "2"},
+						})
 						Ω(err).ShouldNot(HaveOccurred())
 					})
 
