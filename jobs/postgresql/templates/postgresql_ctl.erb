@@ -33,12 +33,6 @@ case "$1" in
     
     sysctl -w "kernel.shmmax=284934144"
 
-    if [ ! -d $STORE_DIR ]; then
-      echo "ERROR: storage directory doesn't exist"
-      echo "Please add persistent disk to this job"
-      exit 1
-    fi
-
     if [ ! -d $LOG_DIR ]; then
       mkdir -p $LOG_DIR
       chown vcap:vcap $LOG_DIR
