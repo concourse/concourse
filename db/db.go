@@ -1,6 +1,9 @@
 package db
 
-import "github.com/concourse/atc/builds"
+import (
+	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/config"
+)
 
 type DB interface {
 	RegisterJob(name string) error
@@ -31,4 +34,6 @@ type DB interface {
 	GetLatestVersionedResource(name string) (builds.VersionedResource, error)
 
 	GetCommonOutputs(jobs []string, resourceName string) ([]builds.Version, error)
+
+	GetLatestInputVersions([]config.Input) ([]builds.VersionedResource, error)
 }

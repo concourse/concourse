@@ -1,6 +1,8 @@
 package db_test
 
 import (
+	"fmt"
+
 	Builds "github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 	. "github.com/concourse/atc/db"
@@ -261,6 +263,203 @@ func itIsADB() {
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Ω(db.GetLatestVersionedResource("some-resource")).Should(Equal(vr3))
+		})
+	})
+
+	Describe("determining the inputs for a job", func() {
+		It("ensures that versions from jobs mentioned in two input's 'passed' sections came from the same builds", func() {
+			err := db.RegisterJob("job-1")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = db.RegisterJob("job-2")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = db.RegisterJob("shared-job")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = db.RegisterResource("resource-1")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = db.RegisterResource("resource-2")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			j1b1, err := db.CreateBuild("job-1")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			j2b1, err := db.CreateBuild("job-2")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			sb1, err := db.CreateBuild("shared-job")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = db.SaveBuildOutput("shared-job", sb1.ID, Builds.VersionedResource{
+				Name:    "resource-1",
+				Version: Builds.Version{"v": "r1-common-to-shared-and-j1"},
+			})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = db.SaveBuildOutput("shared-job", sb1.ID, Builds.VersionedResource{
+				Name:    "resource-2",
+				Version: Builds.Version{"v": "r2-common-to-shared-and-j2"},
+			})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = db.SaveBuildOutput("job-1", j1b1.ID, Builds.VersionedResource{
+				Name:    "resource-1",
+				Version: Builds.Version{"v": "r1-common-to-shared-and-j1"},
+			})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = db.SaveBuildOutput("job-2", j2b1.ID, Builds.VersionedResource{
+				Name:    "resource-2",
+				Version: Builds.Version{"v": "r2-common-to-shared-and-j2"},
+			})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(db.GetLatestInputVersions([]config.Input{
+				{
+					Resource: "resource-1",
+					Passed:   []string{"shared-job", "job-1"},
+				},
+				{
+					Resource: "resource-2",
+					Passed:   []string{"shared-job", "job-2"},
+				},
+			})).Should(Equal([]Builds.VersionedResource{
+				{
+					Name:    "resource-1",
+					Version: Builds.Version{"v": "r1-common-to-shared-and-j1"},
+				},
+				{
+					Name:    "resource-2",
+					Version: Builds.Version{"v": "r2-common-to-shared-and-j2"},
+				},
+			}))
+
+			sb2, err := db.CreateBuild("shared-job")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			j1b2, err := db.CreateBuild("job-1")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			j2b2, err := db.CreateBuild("job-2")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = db.SaveBuildOutput("shared-job", sb2.ID, Builds.VersionedResource{
+				Name:    "resource-1",
+				Version: Builds.Version{"v": "new-r1-common-to-shared-and-j1"},
+			})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = db.SaveBuildOutput("shared-job", sb2.ID, Builds.VersionedResource{
+				Name:    "resource-2",
+				Version: Builds.Version{"v": "new-r2-common-to-shared-and-j2"},
+			})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = db.SaveBuildOutput("job-1", j1b2.ID, Builds.VersionedResource{
+				Name:    "resource-1",
+				Version: Builds.Version{"v": "new-r1-common-to-shared-and-j1"},
+			})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			// do NOT save resource-2 as an output of job-2
+
+			Ω(db.GetLatestInputVersions([]config.Input{
+				{
+					Resource: "resource-1",
+					Passed:   []string{"shared-job", "job-1"},
+				},
+				{
+					Resource: "resource-2",
+					Passed:   []string{"shared-job", "job-2"},
+				},
+			})).Should(Equal([]Builds.VersionedResource{
+				{
+					Name:    "resource-1",
+					Version: Builds.Version{"v": "r1-common-to-shared-and-j1"},
+				},
+				{
+					Name:    "resource-2",
+					Version: Builds.Version{"v": "r2-common-to-shared-and-j2"},
+				},
+			}))
+
+			// now save the output of resource-2 job-2
+			err = db.SaveBuildOutput("job-2", j2b2.ID, Builds.VersionedResource{
+				Name:    "resource-2",
+				Version: Builds.Version{"v": "new-r2-common-to-shared-and-j2"},
+			})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(db.GetLatestInputVersions([]config.Input{
+				{
+					Resource: "resource-1",
+					Passed:   []string{"shared-job", "job-1"},
+				},
+				{
+					Resource: "resource-2",
+					Passed:   []string{"shared-job", "job-2"},
+				},
+			})).Should(Equal([]Builds.VersionedResource{
+				{
+					Name:    "resource-1",
+					Version: Builds.Version{"v": "new-r1-common-to-shared-and-j1"},
+				},
+				{
+					Name:    "resource-2",
+					Version: Builds.Version{"v": "new-r2-common-to-shared-and-j2"},
+				},
+			}))
+
+			// save newer versions; should be new latest
+			for i := 0; i < 10; i++ {
+				version := fmt.Sprintf("version-%d", i+1)
+
+				err = db.SaveBuildOutput("shared-job", sb1.ID, Builds.VersionedResource{
+					Name:    "resource-1",
+					Version: Builds.Version{"v": version + "-r1-common-to-shared-and-j1"},
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = db.SaveBuildOutput("shared-job", sb1.ID, Builds.VersionedResource{
+					Name:    "resource-2",
+					Version: Builds.Version{"v": version + "-r2-common-to-shared-and-j2"},
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = db.SaveBuildOutput("job-1", j1b1.ID, Builds.VersionedResource{
+					Name:    "resource-1",
+					Version: Builds.Version{"v": version + "-r1-common-to-shared-and-j1"},
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = db.SaveBuildOutput("job-2", j2b1.ID, Builds.VersionedResource{
+					Name:    "resource-2",
+					Version: Builds.Version{"v": version + "-r2-common-to-shared-and-j2"},
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(db.GetLatestInputVersions([]config.Input{
+					{
+						Resource: "resource-1",
+						Passed:   []string{"shared-job", "job-1"},
+					},
+					{
+						Resource: "resource-2",
+						Passed:   []string{"shared-job", "job-2"},
+					},
+				})).Should(Equal([]Builds.VersionedResource{
+					{
+						Name:    "resource-1",
+						Version: Builds.Version{"v": version + "-r1-common-to-shared-and-j1"},
+					},
+					{
+						Name:    "resource-2",
+						Version: Builds.Version{"v": version + "-r2-common-to-shared-and-j2"},
+					},
+				}))
+			}
 		})
 	})
 

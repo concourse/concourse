@@ -10,6 +10,7 @@ import (
 	_ "github.com/lib/pq"
 
 	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/config"
 )
 
 type sqldb struct {
@@ -683,6 +684,113 @@ func (db *sqldb) GetCommonOutputs(jobs []string, resourceName string) ([]builds.
 	}
 
 	return vs, nil
+}
+
+func (db *sqldb) GetLatestInputVersions(inputs []config.Input) ([]builds.VersionedResource, error) {
+	idColumns := make([]string, len(inputs))
+	orderBy := make([]string, len(inputs))
+	fromAliases := []string{}
+	conditions := []string{}
+	params := []interface{}{}
+
+	passedJobs := map[string]int{}
+
+	for _, j := range inputs {
+		params = append(params, j.Resource)
+	}
+
+	for i, j := range inputs {
+		idColumns[i] = fmt.Sprintf("v%d.id", i+1)
+		orderBy[i] = fmt.Sprintf("v%d.id DESC", i+1)
+
+		fromAliases = append(fromAliases, fmt.Sprintf("versioned_resources v%d", i+1))
+
+		conditions = append(conditions, fmt.Sprintf("v%d.resource_name = $%d", i+1, i+1))
+
+		for _, name := range j.Passed {
+			idx, found := passedJobs[name]
+			if !found {
+				idx = len(passedJobs)
+				passedJobs[name] = idx
+
+				fromAliases = append(fromAliases, fmt.Sprintf("builds b%d", idx+1))
+
+				conditions = append(conditions, fmt.Sprintf("b%d.job_name = $%d", idx+1, idx+len(inputs)+1))
+
+				// add job name to params
+				params = append(params, name)
+			}
+
+			fromAliases = append(fromAliases, fmt.Sprintf("build_outputs v%db%d", i+1, idx+1))
+
+			conditions = append(conditions, fmt.Sprintf("v%db%d.versioned_resource_id = v%d.id", i+1, idx+1, i+1))
+
+			conditions = append(conditions, fmt.Sprintf("v%db%d.build_id = b%d.id", i+1, idx+1, idx+1))
+		}
+	}
+
+	ids := []interface{}{}
+	for _ = range inputs {
+		var id int
+		ids = append(ids, &id)
+	}
+
+	query := fmt.Sprintf(
+		`
+			SELECT DISTINCT %s
+			FROM %s
+			WHERE %s
+			ORDER BY %s
+			LIMIT 1
+		`,
+		strings.Join(idColumns, ", "),
+		strings.Join(fromAliases, ", "),
+		strings.Join(conditions, "\nAND "),
+		strings.Join(orderBy, ", "),
+	)
+
+	err := db.conn.QueryRow(query, params...).Scan(ids...)
+	if err != nil {
+		return nil, err
+	}
+
+	vrs := []builds.VersionedResource{}
+
+	for _, idPtr := range ids {
+		id := *(idPtr.(*int))
+
+		var vr builds.VersionedResource
+
+		var source, version, metadata string
+
+		err := db.conn.QueryRow(`
+			SELECT resource_name, source, version, metadata
+			FROM versioned_resources
+			WHERE id = $1
+		`, id).Scan(&vr.Name, &source, &version, &metadata)
+		if err != nil {
+			return nil, err
+		}
+
+		err = json.Unmarshal([]byte(source), &vr.Source)
+		if err != nil {
+			return nil, err
+		}
+
+		err = json.Unmarshal([]byte(version), &vr.Version)
+		if err != nil {
+			return nil, err
+		}
+
+		err = json.Unmarshal([]byte(metadata), &vr.Metadata)
+		if err != nil {
+			return nil, err
+		}
+
+		vrs = append(vrs, vr)
+	}
+
+	return vrs, nil
 }
 
 func (db *sqldb) saveVersionedResource(tx *sql.Tx, vr builds.VersionedResource) (int, error) {
