@@ -12,14 +12,15 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
 
-	"github.com/concourse/atc/redisrunner"
+	"github.com/concourse/atc/postgresrunner"
 	"github.com/concourse/testflight/gitserver"
 	"github.com/concourse/testflight/guidserver"
 	"github.com/concourse/testflight/runner"
 )
 
 var _ = Describe("A job with a git resource", func() {
-	var redisRunner *redisrunner.Runner
+	var postgresRunner postgresrunner.Runner
+	var dbProcess ifrit.Process
 
 	var atcConfigFilePath string
 
@@ -28,8 +29,12 @@ var _ = Describe("A job with a git resource", func() {
 	BeforeEach(func() {
 		var err error
 
-		redisRunner = redisrunner.NewRunner()
-		redisRunner.Start()
+		postgresRunner = postgresrunner.Runner{
+			Port: 5433 + GinkgoParallelNode(),
+		}
+
+		dbProcess = ifrit.Envoke(postgresRunner)
+		postgresRunner.CreateTestDB()
 
 		guidserver.Start(helperRootfs, wardenClient)
 		gitserver.Start(helperRootfs, wardenClient)
@@ -71,7 +76,7 @@ jobs:
 			"-config", atcConfigFilePath,
 			"-templates", filepath.Join(atcDir, "server", "templates"),
 			"-public", filepath.Join(atcDir, "server", "public"),
-			"-redisAddr", fmt.Sprintf("127.0.0.1:%d", redisRunner.Port()),
+			"-sqlDataSource", postgresRunner.DataSourceName(),
 			"-checkInterval", "10s",
 		))
 
@@ -85,7 +90,10 @@ jobs:
 		gitserver.Stop(wardenClient)
 		guidserver.Stop(wardenClient)
 
-		redisRunner.Stop()
+		postgresRunner.DropTestDB()
+
+		dbProcess.Signal(os.Interrupt)
+		Eventually(dbProcess.Wait(), 10*time.Second).Should(Receive())
 
 		err := os.Remove(atcConfigFilePath)
 		Ω(err).ShouldNot(HaveOccurred())
