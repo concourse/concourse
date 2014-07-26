@@ -5,8 +5,8 @@ import "github.com/BurntSushi/migration"
 func MoveSourceAndMetadataToVersionedResources(tx migration.LimitedTx) error {
 	_, err := tx.Exec(`
 		ALTER TABLE versioned_resources
-		ADD COLUMN source text NOT NULL,
-		ADD COLUMN metadata text NOT NULL
+		ADD COLUMN source text,
+		ADD COLUMN metadata text
 	`)
 	if err != nil {
 		return err
