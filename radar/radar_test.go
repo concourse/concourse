@@ -1,4 +1,4 @@
-package watchman_test
+package radar_test
 
 import (
 	"time"
@@ -6,29 +6,29 @@ import (
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 
-	. "github.com/concourse/atc/watchman"
-	"github.com/concourse/atc/watchman/fakes"
+	. "github.com/concourse/atc/radar"
+	"github.com/concourse/atc/radar/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
 )
 
-var _ = Describe("Watchman", func() {
+var _ = Describe("Radar", func() {
 	var checker *fakes.FakeResourceChecker
 	var tracker *fakes.FakeVersionDB
 	var interval time.Duration
 
-	var watchman Watchman
+	var radar *Radar
 
 	var resource config.Resource
 
 	BeforeEach(func() {
-		logger := lagertest.NewTestLogger("watchman")
+		logger := lagertest.NewTestLogger("radar")
 		checker = new(fakes.FakeResourceChecker)
 		tracker = new(fakes.FakeVersionDB)
 		interval = 100 * time.Millisecond
 
-		watchman = NewWatchman(logger, checker, tracker, interval)
+		radar = NewRadar(logger, checker, tracker, interval)
 
 		resource = config.Resource{
 			Name:   "some-resource",
@@ -38,11 +38,11 @@ var _ = Describe("Watchman", func() {
 	})
 
 	JustBeforeEach(func() {
-		watchman.Watch(resource)
+		radar.Scan(resource)
 	})
 
 	AfterEach(func() {
-		watchman.Stop()
+		radar.Stop()
 	})
 
 	Describe("checking", func() {
@@ -140,18 +140,21 @@ var _ = Describe("Watchman", func() {
 
 				Ω(tracker.SaveVersionedResourceArgsForCall(0)).Should(Equal(builds.VersionedResource{
 					Name:    "some-resource",
+					Type:    "git",
 					Source:  config.Source{"uri": "http://example.com"},
 					Version: builds.Version{"version": "1"},
 				}))
 
 				Ω(tracker.SaveVersionedResourceArgsForCall(1)).Should(Equal(builds.VersionedResource{
 					Name:    "some-resource",
+					Type:    "git",
 					Source:  config.Source{"uri": "http://example.com"},
 					Version: builds.Version{"version": "2"},
 				}))
 
 				Ω(tracker.SaveVersionedResourceArgsForCall(2)).Should(Equal(builds.VersionedResource{
 					Name:    "some-resource",
+					Type:    "git",
 					Source:  config.Source{"uri": "http://example.com"},
 					Version: builds.Version{"version": "3"},
 				}))

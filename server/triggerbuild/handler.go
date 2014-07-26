@@ -4,28 +4,37 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/concourse/atc/builder"
+	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
-	"github.com/concourse/atc/queue"
 	"github.com/concourse/atc/server/routes"
 )
 
 type handler struct {
 	logger lager.Logger
 
-	jobs   config.Jobs
-	queuer queue.Queuer
+	jobs config.Jobs
+
+	db      db.DB
+	builder builder.Builder
 }
 
-func NewHandler(logger lager.Logger, jobs config.Jobs, queuer queue.Queuer) http.Handler {
+func NewHandler(
+	logger lager.Logger,
+	jobs config.Jobs,
+	db db.DB,
+	builder builder.Builder,
+) http.Handler {
 	return &handler{
 		logger: logger,
 
-		jobs:   jobs,
-		queuer: queuer,
+		jobs: jobs,
+
+		db:      db,
+		builder: builder,
 	}
 }
 
@@ -42,9 +51,14 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	log.Debug("triggering")
 
-	var build builds.Build
+	build, err := handler.db.CreateBuild(job.Name)
+	if err != nil {
+		log.Error("failed-to-create-build", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-	build, err := handler.queuer.Trigger(job)
+	err = handler.builder.Build(build, job, nil)
 	if err != nil {
 		log.Error("triggering-failed", err)
 		w.WriteHeader(http.StatusInternalServerError)

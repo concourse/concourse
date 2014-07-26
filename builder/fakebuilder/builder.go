@@ -2,6 +2,7 @@
 package fakebuilder
 
 import (
+	"github.com/concourse/atc/builder"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 
@@ -9,135 +10,50 @@ import (
 )
 
 type FakeBuilder struct {
-	CreateStub        func(config.Job) (builds.Build, error)
-	createMutex       sync.RWMutex
-	createArgsForCall []struct {
-		arg1 config.Job
+	BuildStub        func(builds.Build, config.Job, builds.VersionedResources) error
+	buildMutex       sync.RWMutex
+	buildArgsForCall []struct {
+		arg1 builds.Build
+		arg2 config.Job
+		arg3 builds.VersionedResources
 	}
-	createReturns struct {
-		result1 builds.Build
-		result2 error
-	}
-	AttemptStub        func(config.Job, config.Resource, builds.Version) (builds.Build, error)
-	attemptMutex       sync.RWMutex
-	attemptArgsForCall []struct {
-		arg1 config.Job
-		arg2 config.Resource
-		arg3 builds.Version
-	}
-	attemptReturns struct {
-		result1 builds.Build
-		result2 error
-	}
-	StartStub        func(config.Job, builds.Build, map[string]builds.Version) (builds.Build, error)
-	startMutex       sync.RWMutex
-	startArgsForCall []struct {
-		arg1 config.Job
-		arg2 builds.Build
-		arg3 map[string]builds.Version
-	}
-	startReturns struct {
-		result1 builds.Build
-		result2 error
+	buildReturns struct {
+		result1 error
 	}
 }
 
-func (fake *FakeBuilder) Create(arg1 config.Job) (builds.Build, error) {
-	fake.createMutex.Lock()
-	defer fake.createMutex.Unlock()
-	fake.createArgsForCall = append(fake.createArgsForCall, struct {
-		arg1 config.Job
-	}{arg1})
-	if fake.CreateStub != nil {
-		return fake.CreateStub(arg1)
-	} else {
-		return fake.createReturns.result1, fake.createReturns.result2
-	}
-}
-
-func (fake *FakeBuilder) CreateCallCount() int {
-	fake.createMutex.RLock()
-	defer fake.createMutex.RUnlock()
-	return len(fake.createArgsForCall)
-}
-
-func (fake *FakeBuilder) CreateArgsForCall(i int) config.Job {
-	fake.createMutex.RLock()
-	defer fake.createMutex.RUnlock()
-	return fake.createArgsForCall[i].arg1
-}
-
-func (fake *FakeBuilder) CreateReturns(result1 builds.Build, result2 error) {
-	fake.createReturns = struct {
-		result1 builds.Build
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeBuilder) Attempt(arg1 config.Job, arg2 config.Resource, arg3 builds.Version) (builds.Build, error) {
-	fake.attemptMutex.Lock()
-	defer fake.attemptMutex.Unlock()
-	fake.attemptArgsForCall = append(fake.attemptArgsForCall, struct {
-		arg1 config.Job
-		arg2 config.Resource
-		arg3 builds.Version
+func (fake *FakeBuilder) Build(arg1 builds.Build, arg2 config.Job, arg3 builds.VersionedResources) error {
+	fake.buildMutex.Lock()
+	defer fake.buildMutex.Unlock()
+	fake.buildArgsForCall = append(fake.buildArgsForCall, struct {
+		arg1 builds.Build
+		arg2 config.Job
+		arg3 builds.VersionedResources
 	}{arg1, arg2, arg3})
-	if fake.AttemptStub != nil {
-		return fake.AttemptStub(arg1, arg2, arg3)
+	if fake.BuildStub != nil {
+		return fake.BuildStub(arg1, arg2, arg3)
 	} else {
-		return fake.attemptReturns.result1, fake.attemptReturns.result2
+		return fake.buildReturns.result1
 	}
 }
 
-func (fake *FakeBuilder) AttemptCallCount() int {
-	fake.attemptMutex.RLock()
-	defer fake.attemptMutex.RUnlock()
-	return len(fake.attemptArgsForCall)
+func (fake *FakeBuilder) BuildCallCount() int {
+	fake.buildMutex.RLock()
+	defer fake.buildMutex.RUnlock()
+	return len(fake.buildArgsForCall)
 }
 
-func (fake *FakeBuilder) AttemptArgsForCall(i int) (config.Job, config.Resource, builds.Version) {
-	fake.attemptMutex.RLock()
-	defer fake.attemptMutex.RUnlock()
-	return fake.attemptArgsForCall[i].arg1, fake.attemptArgsForCall[i].arg2, fake.attemptArgsForCall[i].arg3
+func (fake *FakeBuilder) BuildArgsForCall(i int) (builds.Build, config.Job, builds.VersionedResources) {
+	fake.buildMutex.RLock()
+	defer fake.buildMutex.RUnlock()
+	return fake.buildArgsForCall[i].arg1, fake.buildArgsForCall[i].arg2, fake.buildArgsForCall[i].arg3
 }
 
-func (fake *FakeBuilder) AttemptReturns(result1 builds.Build, result2 error) {
-	fake.attemptReturns = struct {
-		result1 builds.Build
-		result2 error
-	}{result1, result2}
+func (fake *FakeBuilder) BuildReturns(result1 error) {
+	fake.BuildStub = nil
+	fake.buildReturns = struct {
+		result1 error
+	}{result1}
 }
 
-func (fake *FakeBuilder) Start(arg1 config.Job, arg2 builds.Build, arg3 map[string]builds.Version) (builds.Build, error) {
-	fake.startMutex.Lock()
-	defer fake.startMutex.Unlock()
-	fake.startArgsForCall = append(fake.startArgsForCall, struct {
-		arg1 config.Job
-		arg2 builds.Build
-		arg3 map[string]builds.Version
-	}{arg1, arg2, arg3})
-	if fake.StartStub != nil {
-		return fake.StartStub(arg1, arg2, arg3)
-	} else {
-		return fake.startReturns.result1, fake.startReturns.result2
-	}
-}
-
-func (fake *FakeBuilder) StartCallCount() int {
-	fake.startMutex.RLock()
-	defer fake.startMutex.RUnlock()
-	return len(fake.startArgsForCall)
-}
-
-func (fake *FakeBuilder) StartArgsForCall(i int) (config.Job, builds.Build, map[string]builds.Version) {
-	fake.startMutex.RLock()
-	defer fake.startMutex.RUnlock()
-	return fake.startArgsForCall[i].arg1, fake.startArgsForCall[i].arg2, fake.startArgsForCall[i].arg3
-}
-
-func (fake *FakeBuilder) StartReturns(result1 builds.Build, result2 error) {
-	fake.startReturns = struct {
-		result1 builds.Build
-		result2 error
-	}{result1, result2}
-}
+var _ builder.Builder = new(FakeBuilder)

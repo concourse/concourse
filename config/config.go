@@ -80,20 +80,6 @@ func (resources Resources) Lookup(name string) (Resource, bool) {
 	return Resource{}, false
 }
 
-func (resources Resources) UpdateResource(resource Resource) Resources {
-	newResources := make(Resources, len(resources))
-
-	for i, oldResource := range resources {
-		if oldResource.Name == resource.Name {
-			newResources[i] = resource
-		} else {
-			newResources[i] = oldResource
-		}
-	}
-
-	return newResources
-}
-
 type Jobs []Job
 
 func (jobs Jobs) Lookup(name string) (Job, bool) {

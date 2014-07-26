@@ -24,12 +24,11 @@ import (
 	Db "github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/logfanout"
-	"github.com/concourse/atc/queue"
+	"github.com/concourse/atc/radar"
 	"github.com/concourse/atc/resources"
+	"github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/server"
 	"github.com/concourse/atc/server/auth"
-	"github.com/concourse/atc/watcher"
-	"github.com/concourse/atc/watchman"
 )
 
 var configPath = flag.String(
@@ -160,18 +159,16 @@ func main() {
 	logger := lager.NewLogger("atc")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
 
-	queuer := queue.NewQueue(logger, 10*time.Second, builder)
-
 	tracker := logfanout.NewTracker(db)
 
 	serverHandler, err := server.New(
 		logger,
 		conf,
+		builder,
 		db,
 		*templatesDir,
 		*publicDir,
 		*peerAddr,
-		queuer,
 		tracker,
 	)
 	if err != nil {
@@ -192,12 +189,52 @@ func main() {
 	}
 
 	turbineChecker := resources.NewTurbineChecker(turbineEndpoint)
-	watchman := watchman.NewWatchman(logger, turbineChecker, db, *checkInterval)
+
+	radar := radar.NewRadar(logger, turbineChecker, db, *checkInterval)
+
+	scheduler := &scheduler.Scheduler{
+		DB:      db,
+		Builder: builder,
+	}
 
 	group := grouper.EnvokeGroup(grouper.RunGroup{
-		"web":     http_server.New(*listenAddr, serverHandler),
-		"api":     http_server.New(*apiListenAddr, apiHandler),
-		"watcher": watcher.NewWatcher(conf.Resources, watchman),
+		"web": http_server.New(*listenAddr, serverHandler),
+
+		"api": http_server.New(*apiListenAddr, apiHandler),
+
+		"radar": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+			for _, resource := range conf.Resources {
+				radar.Scan(resource)
+			}
+
+			close(ready)
+
+			<-signals
+
+			radar.Stop()
+
+			return nil
+		}),
+
+		"scheduler": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+			close(ready)
+
+			for {
+				select {
+				case <-time.After(10 * time.Second):
+					for _, job := range conf.Jobs {
+						scheduler.TryNextPendingBuild(job)
+						scheduler.BuildLatestInputs(job)
+					}
+
+				case <-signals:
+					return nil
+				}
+			}
+
+			return nil
+		}),
+
 		"drainer": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 			close(ready)
 			<-signals

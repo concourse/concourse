@@ -4,7 +4,7 @@ package fakes
 import (
 	"sync"
 	"github.com/concourse/atc/builds"
-	"github.com/concourse/atc/watchman"
+	"github.com/concourse/atc/radar"
 )
 
 type FakeVersionDB struct {
@@ -92,4 +92,4 @@ func (fake *FakeVersionDB) GetLatestVersionedResourceReturns(result1 builds.Vers
 	}{result1, result2}
 }
 
-var _ watchman.VersionDB = new(FakeVersionDB)
+var _ radar.VersionDB = new(FakeVersionDB)

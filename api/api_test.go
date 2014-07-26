@@ -126,6 +126,7 @@ var _ = Describe("API", func() {
 				Ω(id).Should(Equal(42))
 				Ω(input).Should(Equal(builds.VersionedResource{
 					Name:     "some-input",
+					Type:     "git",
 					Version:  builds.Version(version1),
 					Metadata: []builds.MetadataField{},
 				}))
@@ -135,6 +136,7 @@ var _ = Describe("API", func() {
 				Ω(id).Should(Equal(42))
 				Ω(input).Should(Equal(builds.VersionedResource{
 					Name:    "some-other-input",
+					Type:    "git",
 					Version: builds.Version(version2),
 					Metadata: []builds.MetadataField{
 						{Name: "meta1", Value: "value1"},
@@ -191,6 +193,7 @@ var _ = Describe("API", func() {
 				Ω(id).Should(Equal(42))
 				Ω(vr).Should(Equal(builds.VersionedResource{
 					Name:    "some-output",
+					Type:    "git",
 					Source:  config.Source{"source": "1"},
 					Version: builds.Version{"ver": "123"},
 					Metadata: []builds.MetadataField{
@@ -203,6 +206,7 @@ var _ = Describe("API", func() {
 				Ω(id).Should(Equal(42))
 				Ω(vr).Should(Equal(builds.VersionedResource{
 					Name:    "some-other-output",
+					Type:    "git",
 					Source:  config.Source{"source": "2"},
 					Version: builds.Version{"ver": "456"},
 					Metadata: []builds.MetadataField{

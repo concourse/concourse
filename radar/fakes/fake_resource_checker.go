@@ -6,7 +6,7 @@ import (
 
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
-	"github.com/concourse/atc/watchman"
+	"github.com/concourse/atc/radar"
 )
 
 type FakeResourceChecker struct {
@@ -56,4 +56,4 @@ func (fake *FakeResourceChecker) CheckResourceReturns(result1 []builds.Version, 
 	}{result1, result2}
 }
 
-var _ watchman.ResourceChecker = new(FakeResourceChecker)
+var _ radar.ResourceChecker = new(FakeResourceChecker)

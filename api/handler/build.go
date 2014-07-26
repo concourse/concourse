@@ -102,6 +102,7 @@ func buildInputFrom(input TurbineBuilds.Input) builds.VersionedResource {
 
 	return builds.VersionedResource{
 		Name:     input.Name,
+		Type:     input.Type,
 		Source:   config.Source(input.Source),
 		Version:  builds.Version(input.Version),
 		Metadata: metadata,
@@ -122,6 +123,7 @@ func buildOutputFrom(output TurbineBuilds.Output) builds.VersionedResource {
 
 	return builds.VersionedResource{
 		Name:     output.Name,
+		Type:     output.Type,
 		Source:   config.Source(output.Source),
 		Version:  builds.Version(output.Version),
 		Metadata: metadata,

@@ -32,8 +32,11 @@ func NewHandler(logger lager.Logger, jobs config.Jobs, db db.DB, template *templ
 
 type TemplateData struct {
 	Job    config.Job
-	Build  builds.Build
 	Builds []builds.Build
+
+	Build   builds.Build
+	Inputs  builds.VersionedResources
+	Outputs builds.VersionedResources
 
 	Abortable bool
 }
@@ -63,6 +66,13 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	inputs, outputs, err := handler.db.GetBuildResources(job.Name, build.ID)
+	if err != nil {
+		log.Error("failed-to-get-build-resources", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	bs, err := handler.db.Builds(job.Name)
 	if err != nil {
 		log.Error("get-all-builds-failed", err)
@@ -81,9 +91,12 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	templateData := TemplateData{
-		Job:       job,
+		Job:    job,
+		Builds: bs,
+
 		Build:     build,
-		Builds:    bs,
+		Inputs:    inputs,
+		Outputs:   outputs,
 		Abortable: abortable,
 	}
 

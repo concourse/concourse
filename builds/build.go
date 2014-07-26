@@ -14,17 +14,27 @@ const (
 )
 
 type Build struct {
-	ID int
-
-	AbortURL string
-
+	ID     int
 	Status Status
 
-	Inputs []VersionedResource
+	AbortURL string
+}
+
+type VersionedResources []VersionedResource
+
+func (vrs VersionedResources) Lookup(resource string) (VersionedResource, bool) {
+	for _, vr := range vrs {
+		if vr.Name == resource {
+			return vr, true
+		}
+	}
+
+	return VersionedResource{}, false
 }
 
 type VersionedResource struct {
 	Name     string
+	Type     string
 	Source   config.Source
 	Version  Version
 	Metadata []MetadataField

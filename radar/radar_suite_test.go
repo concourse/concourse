@@ -1,13 +1,13 @@
-package queue_test
+package radar_test
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"testing"
 )
 
-func TestQueue(t *testing.T) {
+func TestRadar(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Queue Suite")
+	RunSpecs(t, "Radar Suite")
 }

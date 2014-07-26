@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"github.com/concourse/atc/builder"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/logfanout"
-	"github.com/concourse/atc/queue"
 	"github.com/concourse/atc/server/abortbuild"
 	"github.com/concourse/atc/server/getbuild"
 	"github.com/concourse/atc/server/index"
@@ -23,10 +23,10 @@ import (
 func New(
 	logger lager.Logger,
 	config config.Config,
+	builder builder.Builder,
 	db db.DB,
 	templatesDir, publicDir string,
 	peerAddr string,
-	queuer queue.Queuer,
 	tracker *logfanout.Tracker,
 ) (http.Handler, error) {
 	funcs := template.FuncMap{
@@ -51,7 +51,7 @@ func New(
 	handlers := map[string]http.Handler{
 		routes.Index:        index.NewHandler(logger, config.Resources, config.Jobs, db, indexTemplate),
 		routes.GetBuild:     getbuild.NewHandler(logger, config.Jobs, db, buildTemplate),
-		routes.TriggerBuild: triggerbuild.NewHandler(logger, config.Jobs, queuer),
+		routes.TriggerBuild: triggerbuild.NewHandler(logger, config.Jobs, db, builder),
 		routes.AbortBuild:   abortbuild.NewHandler(logger, config.Jobs, db),
 
 		routes.LogOutput: logs.NewHandler(logger, tracker),

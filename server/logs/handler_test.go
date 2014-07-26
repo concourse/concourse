@@ -17,6 +17,7 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 
+	"github.com/concourse/atc/builder/fakebuilder"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 	Db "github.com/concourse/atc/db"
@@ -62,11 +63,11 @@ var _ = Describe("API", func() {
 		handler, err := server.New(
 			lagertest.NewTestLogger("api"),
 			config.Config{},
+			new(fakebuilder.FakeBuilder),
 			db,
 			"../templates",
 			"../public",
 			"",
-			nil,
 			tracker,
 		)
 		Ω(err).ShouldNot(HaveOccurred())

@@ -22,9 +22,7 @@ import (
 var ErrBadResponse = errors.New("bad response from turbine")
 
 type Builder interface {
-	Create(config.Job) (builds.Build, error)
-	Attempt(config.Job, config.Resource, builds.Version) (builds.Build, error)
-	Start(config.Job, builds.Build, map[string]builds.Version) (builds.Build, error)
+	Build(builds.Build, config.Job, builds.VersionedResources) error
 }
 
 type builder struct {
@@ -37,12 +35,7 @@ type builder struct {
 	httpClient *http.Client
 }
 
-func NewBuilder(
-	db db.DB,
-	resources config.Resources,
-	turbine *rata.RequestGenerator,
-	atc *rata.RequestGenerator,
-) Builder {
+func NewBuilder(db db.DB, resources config.Resources, turbine *rata.RequestGenerator, atc *rata.RequestGenerator) Builder {
 	return &builder{
 		db:        db,
 		resources: resources,
@@ -58,44 +51,24 @@ func NewBuilder(
 	}
 }
 
-func (builder *builder) Create(job config.Job) (builds.Build, error) {
-	return builder.db.CreateBuild(job.Name)
-}
-
-func (builder *builder) Attempt(job config.Job, resource config.Resource, version builds.Version) (builds.Build, error) {
-	hasOutput := false
-	for _, out := range job.Outputs {
-		if out.Resource == resource.Name {
-			hasOutput = true
-		}
+func (builder *builder) Build(build builds.Build, job config.Job, versions builds.VersionedResources) error {
+	scheduled, err := builder.db.ScheduleBuild(job.Name, build.ID, job.Serial)
+	if err != nil {
+		return err
 	}
 
-	return builder.db.AttemptBuild(job.Name, resource.Name, version, hasOutput)
-}
-
-func (builder *builder) Start(job config.Job, build builds.Build, versionOverrides map[string]builds.Version) (builds.Build, error) {
-	versions, err := builder.computeVersions(job, versionOverrides)
-	if err != nil {
-		return builds.Build{}, err
+	if !scheduled {
+		return nil
 	}
 
 	inputs, err := builder.computeInputs(job, versions)
 	if err != nil {
-		return builds.Build{}, err
+		return err
 	}
 
 	outputs, err := builder.computeOutputs(job)
 	if err != nil {
-		return builds.Build{}, err
-	}
-
-	scheduled, err := builder.db.ScheduleBuild(job.Name, build.ID, job.Serial)
-	if err != nil {
-		return builds.Build{}, err
-	}
-
-	if !scheduled {
-		return builder.db.GetBuild(job.Name, build.ID)
+		return err
 	}
 
 	complete, err := builder.atc.CreateRequest(
@@ -140,7 +113,7 @@ func (builder *builder) Start(job config.Job, build builds.Build, versionOverrid
 
 	err = json.NewEncoder(req).Encode(turbineBuild)
 	if err != nil {
-		return builds.Build{}, err
+		return err
 	}
 
 	execute, err := builder.turbine.CreateRequest(
@@ -149,66 +122,42 @@ func (builder *builder) Start(job config.Job, build builds.Build, versionOverrid
 		req,
 	)
 	if err != nil {
-		return builds.Build{}, err
+		return err
 	}
 
 	execute.Header.Set("Content-Type", "application/json")
 
 	resp, err := builder.httpClient.Do(execute)
 	if err != nil {
-		return builds.Build{}, err
+		return err
 	}
 
 	// TODO test bad response code
 	if resp.StatusCode != http.StatusCreated {
-		return builds.Build{}, ErrBadResponse
+		return ErrBadResponse
 	}
 
 	var startedBuild TurbineBuilds.Build
 	err = json.NewDecoder(resp.Body).Decode(&startedBuild)
 	if err != nil {
-		return builds.Build{}, err
+		return err
 	}
 
 	resp.Body.Close()
 
 	started, err := builder.db.StartBuild(job.Name, build.ID, startedBuild.AbortURL)
+	if err != nil {
+		return err
+	}
+
 	if !started {
 		builder.httpClient.Post(startedBuild.AbortURL, "", nil)
 	}
 
-	return builder.db.GetBuild(job.Name, build.ID)
+	return nil
 }
 
-func (builder *builder) computeVersions(job config.Job, versionOverrides map[string]builds.Version) (map[string]builds.Version, error) {
-	versions := map[string]builds.Version{}
-
-	for _, input := range job.Inputs {
-		version, found := versionOverrides[input.Resource]
-		if found {
-			versions[input.Resource] = version
-		}
-
-		if input.Passed == nil {
-			continue
-		}
-
-		commonVersions, err := builder.db.GetCommonOutputs(input.Passed, input.Resource)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(commonVersions) == 0 {
-			return nil, fmt.Errorf("unsatisfied input: %s; depends on %v\n", input.Resource, input.Passed)
-		}
-
-		versions[input.Resource] = commonVersions[len(commonVersions)-1]
-	}
-
-	return versions, nil
-}
-
-func (builder *builder) computeInputs(job config.Job, versions map[string]builds.Version) ([]TurbineBuilds.Input, error) {
+func (builder *builder) computeInputs(job config.Job, inputs builds.VersionedResources) ([]TurbineBuilds.Input, error) {
 	turbineInputs := make([]TurbineBuilds.Input, len(job.Inputs))
 	for i, input := range job.Inputs {
 		resource, found := builder.resources.Lookup(input.Resource)
@@ -216,23 +165,32 @@ func (builder *builder) computeInputs(job config.Job, versions map[string]builds
 			return nil, fmt.Errorf("unknown resource: %s", input.Resource)
 		}
 
-		turbineInputs[i] = builder.inputFor(job, resource, input.Params, versions[input.Resource])
+		vr, found := inputs.Lookup(input.Resource)
+		if !found {
+			vr = builds.VersionedResource{
+				Name:   resource.Name,
+				Type:   resource.Type,
+				Source: resource.Source,
+			}
+		}
+
+		turbineInputs[i] = builder.inputFor(job, vr, input.Params)
 	}
 
 	return turbineInputs, nil
 }
 
-func (builder *builder) inputFor(job config.Job, resource config.Resource, params config.Params, version builds.Version) TurbineBuilds.Input {
+func (builder *builder) inputFor(job config.Job, vr builds.VersionedResource, params config.Params) TurbineBuilds.Input {
 	turbineInput := TurbineBuilds.Input{
-		Name:    resource.Name,
-		Type:    resource.Type,
-		Source:  TurbineBuilds.Source(resource.Source),
+		Name:    vr.Name,
+		Type:    vr.Type,
+		Source:  TurbineBuilds.Source(vr.Source),
+		Version: TurbineBuilds.Version(vr.Version),
 		Params:  TurbineBuilds.Params(params),
-		Version: TurbineBuilds.Version(version),
 	}
 
-	if filepath.HasPrefix(job.BuildConfigPath, resource.Name) {
-		turbineInput.ConfigPath = job.BuildConfigPath[len(resource.Name)+1:]
+	if filepath.HasPrefix(job.BuildConfigPath, vr.Name) {
+		turbineInput.ConfigPath = job.BuildConfigPath[len(vr.Name)+1:]
 	}
 
 	return turbineInput

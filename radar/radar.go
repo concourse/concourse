@@ -1,4 +1,4 @@
-package watchman
+package radar
 
 import (
 	"sync"
@@ -10,11 +10,6 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type Watchman interface {
-	Watch(resource config.Resource)
-	Stop()
-}
-
 type VersionDB interface {
 	SaveVersionedResource(builds.VersionedResource) error
 	GetLatestVersionedResource(string) (builds.VersionedResource, error)
@@ -24,63 +19,63 @@ type ResourceChecker interface {
 	CheckResource(config.Resource, builds.Version) ([]builds.Version, error)
 }
 
-type watchman struct {
+type Radar struct {
 	logger lager.Logger
 
 	checker  ResourceChecker
 	tracker  VersionDB
 	interval time.Duration
 
-	stop     chan struct{}
-	watching *sync.WaitGroup
+	stop    chan struct{}
+	scaning *sync.WaitGroup
 }
 
-func NewWatchman(
+func NewRadar(
 	logger lager.Logger,
 	checker ResourceChecker,
 	tracker VersionDB,
 	interval time.Duration,
-) Watchman {
-	return &watchman{
+) *Radar {
+	return &Radar{
 		logger: logger,
 
 		checker:  checker,
 		tracker:  tracker,
 		interval: interval,
 
-		stop:     make(chan struct{}),
-		watching: new(sync.WaitGroup),
+		stop:    make(chan struct{}),
+		scaning: new(sync.WaitGroup),
 	}
 }
 
-func (watchman *watchman) Watch(resource config.Resource) {
-	watchman.watching.Add(1)
+func (radar *Radar) Scan(resource config.Resource) {
+	radar.scaning.Add(1)
 
 	go func() {
-		defer watchman.watching.Done()
+		defer radar.scaning.Done()
 
-		ticker := time.NewTicker(watchman.interval)
+		ticker := time.NewTicker(radar.interval)
 
 		for {
 			select {
-			case <-watchman.stop:
+			case <-radar.stop:
 				return
 
 			case <-ticker.C:
 				var from builds.Version
 
-				if vr, err := watchman.tracker.GetLatestVersionedResource(resource.Name); err == nil {
+				if vr, err := radar.tracker.GetLatestVersionedResource(resource.Name); err == nil {
 					from = vr.Version
 				}
 
-				log := watchman.logger.Session("watchman", lager.Data{
+				log := radar.logger.Session("radar", lager.Data{
 					"resource": resource.Name,
 					"from":     from,
 				})
 
 				log.Debug("check")
 
-				newVersions, err := watchman.checker.CheckResource(resource, from)
+				newVersions, err := radar.checker.CheckResource(resource, from)
 				if err != nil {
 					log.Error("failed-to-check", err)
 					break
@@ -96,8 +91,9 @@ func (watchman *watchman) Watch(resource config.Resource) {
 				})
 
 				for _, version := range newVersions {
-					err = watchman.tracker.SaveVersionedResource(builds.VersionedResource{
+					err = radar.tracker.SaveVersionedResource(builds.VersionedResource{
 						Name:    resource.Name,
+						Type:    resource.Type,
 						Source:  resource.Source,
 						Version: version,
 					})
@@ -112,7 +108,7 @@ func (watchman *watchman) Watch(resource config.Resource) {
 	}()
 }
 
-func (watchman *watchman) Stop() {
-	close(watchman.stop)
-	watchman.watching.Wait()
+func (radar *Radar) Stop() {
+	close(radar.stop)
+	radar.scaning.Wait()
 }

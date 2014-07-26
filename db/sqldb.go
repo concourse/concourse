@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 
 	_ "github.com/lib/pq"
@@ -92,53 +91,100 @@ func (db *sqldb) GetBuild(job string, name int) (builds.Build, error) {
 		return builds.Build{}, err
 	}
 
+	return builds.Build{
+		ID:       name,
+		Status:   builds.Status(status),
+		AbortURL: abortURL.String,
+	}, nil
+}
+
+func (db *sqldb) GetBuildResources(job string, name int) (builds.VersionedResources, builds.VersionedResources, error) {
 	inputs := []builds.VersionedResource{}
+	outputs := []builds.VersionedResource{}
 
 	rows, err := db.conn.Query(`
-		SELECT v.resource_name, v.source, v.version, v.metadata
-		FROM versioned_resources v, build_inputs i
-		WHERE i.build_id = $1
+		SELECT v.resource_name, v.type, v.source, v.version, v.metadata
+		FROM versioned_resources v, build_inputs i, builds b
+		WHERE b.job_name = $1
+		AND b.name = $2
+		AND i.build_id = b.id
 		AND i.versioned_resource_id = v.id
-	`, id)
+	`, job, name)
 	if err != nil {
-		return builds.Build{}, err
+		return nil, nil, err
 	}
 
 	defer rows.Close()
 
 	for rows.Next() {
-		var input builds.VersionedResource
+		var vr builds.VersionedResource
 
 		var source, version, metadata string
-		err := rows.Scan(&input.Name, &source, &version, &metadata)
+		err := rows.Scan(&vr.Name, &vr.Type, &source, &version, &metadata)
 		if err != nil {
-			return builds.Build{}, err
+			return nil, nil, err
 		}
 
-		err = json.Unmarshal([]byte(source), &input.Source)
+		err = json.Unmarshal([]byte(source), &vr.Source)
 		if err != nil {
-			return builds.Build{}, err
+			return nil, nil, err
 		}
 
-		err = json.Unmarshal([]byte(version), &input.Version)
+		err = json.Unmarshal([]byte(version), &vr.Version)
 		if err != nil {
-			return builds.Build{}, err
+			return nil, nil, err
 		}
 
-		err = json.Unmarshal([]byte(metadata), &input.Metadata)
+		err = json.Unmarshal([]byte(metadata), &vr.Metadata)
 		if err != nil {
-			return builds.Build{}, err
+			return nil, nil, err
 		}
 
-		inputs = append(inputs, input)
+		inputs = append(inputs, vr)
 	}
 
-	return builds.Build{
-		ID:       name,
-		Status:   builds.Status(status),
-		AbortURL: abortURL.String,
-		Inputs:   inputs,
-	}, nil
+	rows, err = db.conn.Query(`
+		SELECT v.resource_name, v.type, v.source, v.version, v.metadata
+		FROM versioned_resources v, build_outputs o, builds b
+		WHERE b.job_name = $1
+		AND b.name = $2
+		AND o.build_id = b.id
+		AND o.versioned_resource_id = v.id
+	`, job, name)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var vr builds.VersionedResource
+
+		var source, version, metadata string
+		err := rows.Scan(&vr.Name, &vr.Type, &source, &version, &metadata)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = json.Unmarshal([]byte(source), &vr.Source)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = json.Unmarshal([]byte(version), &vr.Version)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = json.Unmarshal([]byte(metadata), &vr.Metadata)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		outputs = append(outputs, vr)
+	}
+
+	return inputs, outputs, nil
 }
 
 func (db *sqldb) GetCurrentBuild(job string) (builds.Build, error) {
@@ -187,137 +233,6 @@ func (db *sqldb) GetCurrentBuild(job string) (builds.Build, error) {
 		ID:       name,
 		Status:   builds.Status(status),
 		AbortURL: abortURL.String,
-	}, nil
-}
-
-func (db *sqldb) AttemptBuild(job string, resourceName string, version builds.Version, serial bool) (builds.Build, error) {
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return builds.Build{}, err
-	}
-
-	defer tx.Rollback()
-
-	var totalStarted int
-	err = tx.QueryRow(`
-		SELECT COUNT(id)
-		FROM builds b
-		WHERE status IN ('started', 'pending')
-		AND job_name = $1
-	`, job).Scan(&totalStarted)
-	if err != nil {
-		return builds.Build{}, err
-	}
-
-	if totalStarted > 0 {
-		rows, err := tx.Query(`
-			SELECT v.version
-			FROM versioned_resources v, builds b, build_inputs i
-			WHERE b.status IN ('started', 'pending')
-			AND b.job_name = $1
-			AND i.build_id = b.id
-			AND i.versioned_resource_id = v.id
-			AND v.resource_name = $2
-		`, job, resourceName)
-		if err != nil {
-			return builds.Build{}, err
-		}
-
-		defer rows.Close()
-
-		versionsChecked := 0
-		for rows.Next() {
-			var versionJSON string
-			err := rows.Scan(&versionJSON)
-			if err != nil {
-				return builds.Build{}, err
-			}
-
-			var inputVersion builds.Version
-			err = json.Unmarshal([]byte(versionJSON), &inputVersion)
-			if err != nil {
-				return builds.Build{}, err
-			}
-
-			if reflect.DeepEqual(inputVersion, version) {
-				return builds.Build{}, ErrInputRedundant
-			}
-
-			versionsChecked++
-		}
-
-		if versionsChecked < totalStarted {
-			return builds.Build{}, ErrInputNotDetermined
-		}
-
-		rows, err = tx.Query(`
-			SELECT version
-			FROM versioned_resources v, builds b, build_outputs o
-			WHERE b.status IN ('started', 'pending')
-			AND b.job_name = $1
-			AND o.build_id = b.id
-			AND o.versioned_resource_id = v.id
-			AND v.resource_name = $2
-		`, job, resourceName)
-		if err != nil {
-			return builds.Build{}, err
-		}
-
-		defer rows.Close()
-
-		versionsChecked = 0
-		for rows.Next() {
-			var versionJSON string
-			err := rows.Scan(&versionJSON)
-			if err != nil {
-				return builds.Build{}, err
-			}
-
-			var outputVersion builds.Version
-			err = json.Unmarshal([]byte(versionJSON), &outputVersion)
-			if err != nil {
-				return builds.Build{}, err
-			}
-
-			if reflect.DeepEqual(outputVersion, version) {
-				return builds.Build{}, ErrOutputRedundant
-			}
-
-			versionsChecked++
-		}
-
-		if serial && versionsChecked < totalStarted {
-			return builds.Build{}, ErrOutputNotDetermined
-		}
-	}
-
-	var name int
-	err = tx.QueryRow(`
-		UPDATE jobs
-		SET build_number_seq = build_number_seq + 1
-		WHERE name = $1
-		RETURNING build_number_seq
-	`, job).Scan(&name)
-	if err != nil {
-		return builds.Build{}, err
-	}
-
-	_, err = tx.Exec(`
-		INSERT INTO builds(name, job_name, status)
-		VALUES ($1, $2, 'pending')
-	`, name, job)
-	if err != nil {
-		return builds.Build{}, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return builds.Build{}, err
-	}
-
-	return builds.Build{
-		ID:     name,
-		Status: builds.StatusPending,
 	}, nil
 }
 
@@ -446,6 +361,14 @@ func (db *sqldb) SaveBuildInput(job string, build int, vr builds.VersionedResour
 		FROM builds
 		WHERE job_name = $1
 		AND name = $2
+		AND NOT EXISTS (
+			SELECT 1
+			FROM builds b, build_inputs i
+			WHERE b.job_name = $1
+			AND b.name = $2
+			AND i.build_id = b.id
+			AND i.versioned_resource_id = $3
+		)
 	`, job, build, vrID)
 	if err != nil {
 		return err
@@ -600,19 +523,19 @@ func (db *sqldb) SaveVersionedResource(vr builds.VersionedResource) error {
 func (db *sqldb) GetLatestVersionedResource(name string) (builds.VersionedResource, error) {
 	var sourceBytes, versionBytes, metadataBytes string
 
+	vr := builds.VersionedResource{
+		Name: name,
+	}
+
 	err := db.conn.QueryRow(`
-		SELECT source, version, metadata
+		SELECT type, source, version, metadata
 		FROM versioned_resources
 		WHERE resource_name = $1
 		ORDER BY id DESC
 		LIMIT 1
-	`, name).Scan(&sourceBytes, &versionBytes, &metadataBytes)
+	`, name).Scan(&vr.Type, &sourceBytes, &versionBytes, &metadataBytes)
 	if err != nil {
 		return builds.VersionedResource{}, err
-	}
-
-	vr := builds.VersionedResource{
-		Name: name,
 	}
 
 	err = json.Unmarshal([]byte(sourceBytes), &vr.Source)
@@ -633,60 +556,7 @@ func (db *sqldb) GetLatestVersionedResource(name string) (builds.VersionedResour
 	return vr, nil
 }
 
-func (db *sqldb) GetCommonOutputs(jobs []string, resourceName string) ([]builds.Version, error) {
-	fromAliases := make([]string, len(jobs))
-	conditions := []string{}
-
-	params := []interface{}{resourceName}
-	for i, j := range jobs {
-		params = append(params, j)
-
-		fromAliases[i] = fmt.Sprintf("builds b%d, build_outputs o%d, versioned_resources v%d", i+1, i+1, i+1)
-		conditions = append(conditions, fmt.Sprintf("o%d.build_id = b%d.id", i+1, i+1))
-		conditions = append(conditions, fmt.Sprintf("o%d.versioned_resource_id = v%d.id", i+1, i+1))
-		conditions = append(conditions, fmt.Sprintf("v%d.resource_name = $1", i+1))
-		conditions = append(conditions, fmt.Sprintf("b%d.job_name = $%d", i+1, i+2))
-		conditions = append(conditions, fmt.Sprintf("v1.version = v%d.version", i+1))
-	}
-
-	rows, err := db.conn.Query(fmt.Sprintf(
-		`
-			SELECT v1.version
-			FROM %s
-			WHERE %s
-		`,
-		strings.Join(fromAliases, ", "),
-		strings.Join(conditions, " AND "),
-	), params...)
-	if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-
-	vs := []builds.Version{}
-
-	for rows.Next() {
-		var versionString string
-		err := rows.Scan(&versionString)
-		if err != nil {
-			return nil, err
-		}
-
-		var version builds.Version
-
-		err = json.Unmarshal([]byte(versionString), &version)
-		if err != nil {
-			return nil, err
-		}
-
-		vs = append(vs, version)
-	}
-
-	return vs, nil
-}
-
-func (db *sqldb) GetLatestInputVersions(inputs []config.Input) ([]builds.VersionedResource, error) {
+func (db *sqldb) GetLatestInputVersions(inputs []config.Input) (builds.VersionedResources, error) {
 	idColumns := make([]string, len(inputs))
 	orderBy := make([]string, len(inputs))
 	fromAliases := []string{}
@@ -764,10 +634,10 @@ func (db *sqldb) GetLatestInputVersions(inputs []config.Input) ([]builds.Version
 		var source, version, metadata string
 
 		err := db.conn.QueryRow(`
-			SELECT resource_name, source, version, metadata
+			SELECT resource_name, type, source, version, metadata
 			FROM versioned_resources
 			WHERE id = $1
-		`, id).Scan(&vr.Name, &source, &version, &metadata)
+		`, id).Scan(&vr.Name, &vr.Type, &source, &version, &metadata)
 		if err != nil {
 			return nil, err
 		}
@@ -793,6 +663,131 @@ func (db *sqldb) GetLatestInputVersions(inputs []config.Input) ([]builds.Version
 	return vrs, nil
 }
 
+func (db *sqldb) GetBuildForInputs(job string, inputs builds.VersionedResources) (builds.Build, error) {
+	from := []string{"builds b"}
+	conditions := []string{"b.job_name = $1"}
+	params := []interface{}{job}
+
+	for i, vr := range inputs {
+		from = append(from, fmt.Sprintf("build_inputs i%d", i+1))
+		from = append(from, fmt.Sprintf("versioned_resources v%d", i+1))
+
+		versionBytes, err := json.Marshal(vr.Version)
+		if err != nil {
+			return builds.Build{}, err
+		}
+
+		params = append(params, vr.Name, vr.Type, string(versionBytes))
+
+		conditions = append(conditions,
+			fmt.Sprintf("i%d.build_id = b.id", i+1),
+			fmt.Sprintf("i%d.versioned_resource_id = v%d.id", i+1, i+1),
+			fmt.Sprintf("v%d.resource_name = $%d", i+1, len(params)-2),
+			fmt.Sprintf("v%d.type = $%d", i+1, len(params)-1),
+			fmt.Sprintf("v%d.version = $%d", i+1, len(params)),
+		)
+	}
+
+	var name int
+	err := db.conn.QueryRow(fmt.Sprintf(`
+		SELECT b.name
+		FROM %s
+		WHERE %s
+		`,
+		strings.Join(from, ", "),
+		strings.Join(conditions, "\nAND ")), params...).Scan(&name)
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	return builds.Build{
+		ID:     name,
+		Status: builds.StatusPending,
+	}, nil
+}
+
+func (db *sqldb) CreateBuildWithInputs(job string, inputs builds.VersionedResources) (builds.Build, error) {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	defer tx.Rollback()
+
+	var name int
+	err = tx.QueryRow(`
+		UPDATE jobs
+		SET build_number_seq = build_number_seq + 1
+		WHERE name = $1
+		RETURNING build_number_seq
+	`, job).Scan(&name)
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	var buildID int
+	err = tx.QueryRow(`
+		INSERT INTO builds(name, job_name, status)
+		VALUES ($1, $2, 'pending')
+		RETURNING id
+	`, name, job).Scan(&buildID)
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	for _, vr := range inputs {
+		vrID, err := db.saveVersionedResource(tx, vr)
+		if err != nil {
+			return builds.Build{}, err
+		}
+
+		_, err = tx.Exec(`
+			INSERT INTO build_inputs (build_id, versioned_resource_id)
+			VALUES ($1, $2)
+		`, buildID, vrID)
+		if err != nil {
+			return builds.Build{}, err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	return builds.Build{
+		ID:     name,
+		Status: builds.StatusPending,
+	}, nil
+}
+
+func (db *sqldb) GetNextPendingBuild(job string) (builds.Build, builds.VersionedResources, error) {
+	var name int
+
+	err := db.conn.QueryRow(`
+		SELECT name
+		FROM builds
+		WHERE job_name = $1
+		AND status = 'pending'
+		AND scheduled = false
+		ORDER BY id ASC
+		LIMIT 1
+	`, job).Scan(&name)
+	if err != nil {
+		return builds.Build{}, builds.VersionedResources{}, err
+	}
+
+	inputs, _, err := db.GetBuildResources(job, name)
+	if err != nil {
+		return builds.Build{}, builds.VersionedResources{}, err
+	}
+
+	return builds.Build{
+		ID:     name,
+		Status: builds.StatusPending,
+	}, inputs, nil
+}
+
 func (db *sqldb) saveVersionedResource(tx *sql.Tx, vr builds.VersionedResource) (int, error) {
 	versionJSON, err := json.Marshal(vr.Version)
 	if err != nil {
@@ -812,24 +807,40 @@ func (db *sqldb) saveVersionedResource(tx *sql.Tx, vr builds.VersionedResource) 
 	var id int
 
 	_, err = tx.Exec(`
-		INSERT INTO versioned_resources (resource_name, version, source, metadata)
-		SELECT $1, $2, $3, $4
+		INSERT INTO versioned_resources (resource_name, type, version, source, metadata)
+		SELECT $1, $2, $3, $4, $5
 		WHERE NOT EXISTS (
 			SELECT 1
 			FROM versioned_resources
 			WHERE resource_name = $1
-			AND version = $2
+			AND type = $2
+			AND version = $3
 		)
-	`, vr.Name, string(versionJSON), string(sourceJSON), string(metadataJSON))
+	`, vr.Name, vr.Type, string(versionJSON), string(sourceJSON), string(metadataJSON))
 	if err != nil {
 		return 0, err
 	}
 
-	err = tx.QueryRow(`
-		SELECT id FROM versioned_resources
-		WHERE resource_name = $1
-		AND version = $2
-	`, vr.Name, string(versionJSON)).Scan(&id)
+	// separate from above, as it conditionally inserts (can't use RETURNING)
+	if len(vr.Metadata) == 0 {
+		err = tx.QueryRow(`
+			SELECT id
+			FROM versioned_resources
+			WHERE resource_name = $1
+			AND type = $2
+			AND version = $3
+		`, vr.Name, vr.Type, string(versionJSON)).Scan(&id)
+	} else {
+		err = tx.QueryRow(`
+			UPDATE versioned_resources
+			SET metadata = $4
+			WHERE resource_name = $1
+			AND type = $2
+			AND version = $3
+			RETURNING id
+		`, vr.Name, vr.Type, string(versionJSON), string(metadataJSON)).Scan(&id)
+	}
+
 	if err != nil {
 		return 0, err
 	}
