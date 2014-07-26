@@ -85,12 +85,16 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 func (runner *Runner) Open() *sql.DB {
 	dbConn, err := migration.Open(
 		"postgres",
-		fmt.Sprintf("user=postgres dbname=testdb sslmode=disable port=%d", runner.Port),
+		runner.DataSourceName(),
 		migrations.Migrations,
 	)
 	Ω(err).ShouldNot(HaveOccurred())
 
 	return dbConn
+}
+
+func (runner *Runner) DataSourceName() string {
+	return fmt.Sprintf("user=postgres dbname=testdb sslmode=disable port=%d", runner.Port)
 }
 
 func (runner *Runner) CreateTestDB() {
