@@ -466,44 +466,6 @@ func (db *sqldb) AppendBuildLog(job string, build int, log []byte) error {
 	return nil
 }
 
-func (db *sqldb) GetCurrentVersion(job, resource string) (builds.Version, error) {
-	var versionString string
-
-	err := db.conn.QueryRow(`
-		SELECT version
-		FROM transitional_current_versions
-		WHERE job_name = $1
-		AND resource_name = $2
-		ORDER BY id DESC
-		LIMIT 1
-	`, job, resource).Scan(&versionString)
-	if err != nil {
-		return nil, err
-	}
-
-	var version builds.Version
-
-	err = json.Unmarshal([]byte(versionString), &version)
-	return version, err
-}
-
-func (db *sqldb) SaveCurrentVersion(job, resource string, version builds.Version) error {
-	versionBytes, err := json.Marshal(version)
-	if err != nil {
-		return err
-	}
-
-	_, err = db.conn.Exec(`
-		INSERT INTO transitional_current_versions(job_name, resource_name, version)
-		VALUES ($1, $2, $3)
-	`, job, resource, string(versionBytes))
-	if err != nil {
-		return err
-	}
-
-	return err
-}
-
 func (db *sqldb) SaveVersionedResource(vr builds.VersionedResource) error {
 	tx, err := db.conn.Begin()
 	if err != nil {

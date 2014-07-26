@@ -6,4 +6,5 @@ var Migrations = []migration.Migrator{
 	InitialSchema,
 	MoveSourceAndMetadataToVersionedResources,
 	AddTypeToVersionedResources,
+	RemoveTransitionalCurrentVersions,
 }

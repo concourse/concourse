@@ -119,17 +119,6 @@ func itIsADB() {
 		log, err = db.BuildLog("some-job", 1)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(string(log)).Should(Equal("some log"))
-
-		_, err = db.GetCurrentVersion("some-job", "some-resource")
-		Ω(err).Should(HaveOccurred())
-
-		currentVersion := Builds.Version{"some": "version"}
-		err = db.SaveCurrentVersion("some-job", "some-resource", currentVersion)
-		Ω(err).ShouldNot(HaveOccurred())
-
-		gotCurrentVersion, err := db.GetCurrentVersion("some-job", "some-resource")
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(gotCurrentVersion).Should(Equal(currentVersion))
 	})
 
 	Describe("saving build inputs", func() {

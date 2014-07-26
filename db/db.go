@@ -25,9 +25,6 @@ type DB interface {
 	BuildLog(job string, build int) ([]byte, error)
 	AppendBuildLog(job string, build int, log []byte) error
 
-	GetCurrentVersion(job, input string) (builds.Version, error)
-	SaveCurrentVersion(job, input string, source builds.Version) error
-
 	SaveBuildInput(job string, build int, vr builds.VersionedResource) error
 	SaveBuildOutput(job string, build int, vr builds.VersionedResource) error
 
