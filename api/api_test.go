@@ -415,10 +415,11 @@ var _ = Describe("API", func() {
 
 					sink := outputSink()
 
+					Eventually(sink).Should(gbytes.Say("some message"))
+
 					err = conn.Close()
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Eventually(sink).Should(gbytes.Say("some message"))
 					Eventually(sink.Closed).Should(BeTrue())
 				})
 
