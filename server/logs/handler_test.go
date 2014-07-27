@@ -17,12 +17,12 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 
-	"github.com/concourse/atc/builder/fakebuilder"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 	Db "github.com/concourse/atc/db"
 	"github.com/concourse/atc/logfanout"
 	"github.com/concourse/atc/postgresrunner"
+	"github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/server"
 )
 
@@ -63,7 +63,7 @@ var _ = Describe("API", func() {
 		handler, err := server.New(
 			lagertest.NewTestLogger("api"),
 			config.Config{},
-			new(fakebuilder.FakeBuilder),
+			&scheduler.Scheduler{},
 			db,
 			"../templates",
 			"../public",
