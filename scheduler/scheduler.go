@@ -32,7 +32,6 @@ func (s *Scheduler) BuildLatestInputs(job config.Job) error {
 
 	_, err = s.DB.GetBuildForInputs(job.Name, inputs)
 	if err == nil {
-		buildLog.Info("already-built")
 		return nil
 	}
 
@@ -63,7 +62,6 @@ func (s *Scheduler) TryNextPendingBuild(job config.Job) error {
 
 	build, inputs, err := s.DB.GetNextPendingBuild(job.Name)
 	if err != nil {
-		buildLog.Error("failed-to-get-next-pending-build", err)
 		return err
 	}
 
