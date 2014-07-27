@@ -16,17 +16,21 @@ import (
 	WinstonRoutes "github.com/concourse/atc/api/routes"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
-	"github.com/concourse/atc/db"
 )
 
 var ErrBadResponse = errors.New("bad response from turbine")
+
+type BuilderDB interface {
+	ScheduleBuild(job string, id int, serial bool) (bool, error)
+	StartBuild(job string, id int, abortURL string) (bool, error)
+}
 
 type Builder interface {
 	Build(builds.Build, config.Job, builds.VersionedResources) error
 }
 
 type builder struct {
-	db        db.DB
+	db        BuilderDB
 	resources config.Resources
 
 	turbine *rata.RequestGenerator
@@ -35,7 +39,7 @@ type builder struct {
 	httpClient *http.Client
 }
 
-func NewBuilder(db db.DB, resources config.Resources, turbine *rata.RequestGenerator, atc *rata.RequestGenerator) Builder {
+func NewBuilder(db BuilderDB, resources config.Resources, turbine *rata.RequestGenerator, atc *rata.RequestGenerator) Builder {
 	return &builder{
 		db:        db,
 		resources: resources,
