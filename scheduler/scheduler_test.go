@@ -89,6 +89,36 @@ var _ = Describe("Scheduler", func() {
 				Ω(checkedInputs).Should(Equal(foundInputs))
 			})
 
+			Context("and the job has inputs configured not to check", func() {
+				BeforeEach(func() {
+					job.Inputs = append(job.Inputs, config.Input{
+						Resource:  "some-non-checking-resource",
+						DontCheck: true,
+					})
+
+					foundInputsWithCheck := append(
+						foundInputs,
+						builds.VersionedResource{
+							Name:    "some-non-checking-resource",
+							Version: builds.Version{"version": 3},
+						},
+					)
+
+					db.GetLatestInputVersionsReturns(foundInputsWithCheck, nil)
+				})
+
+				It("excludes them from the inputs when checking for a build", func() {
+					err := scheduler.BuildLatestInputs(job)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(db.GetBuildForInputsCallCount()).Should(Equal(1))
+
+					checkedJob, checkedInputs := db.GetBuildForInputsArgsForCall(0)
+					Ω(checkedJob).Should(Equal("some-job"))
+					Ω(checkedInputs).Should(Equal(foundInputs))
+				})
+			})
+
 			Context("and they are not used for a build", func() {
 				BeforeEach(func() {
 					db.GetBuildForInputsReturns(builds.Build{}, errors.New("no build"))

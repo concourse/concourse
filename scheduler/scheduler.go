@@ -30,7 +30,26 @@ func (s *Scheduler) BuildLatestInputs(job config.Job) error {
 		return err
 	}
 
-	_, err = s.DB.GetBuildForInputs(job.Name, inputs)
+	checkInputs := builds.VersionedResources{}
+	for _, input := range job.Inputs {
+		if input.DontCheck {
+			continue
+		}
+
+		vr, found := inputs.Lookup(input.Resource)
+		if !found {
+			// this really shouldn't happen, but...
+			buildLog.Error("failed-to-find-version", nil, lager.Data{
+				"resource": input.Resource,
+				"inputs":   inputs,
+			})
+			continue
+		}
+
+		checkInputs = append(checkInputs, vr)
+	}
+
+	_, err = s.DB.GetBuildForInputs(job.Name, checkInputs)
 	if err == nil {
 		return nil
 	}
