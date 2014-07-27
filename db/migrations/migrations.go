@@ -7,4 +7,5 @@ var Migrations = []migration.Migrator{
 	MoveSourceAndMetadataToVersionedResources,
 	AddTypeToVersionedResources,
 	RemoveTransitionalCurrentVersions,
+	NonNullableVersionInfo,
 }
