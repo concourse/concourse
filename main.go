@@ -91,7 +91,7 @@ var apiListenAddr = flag.String(
 
 var debugListenAddr = flag.String(
 	"debugListenAddr",
-	":6060",
+	":8079",
 	"port for the pprof debugger to listen on",
 )
 
