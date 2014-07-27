@@ -195,6 +195,7 @@ func main() {
 	scheduler := &scheduler.Scheduler{
 		DB:      db,
 		Builder: builder,
+		Logger:  logger.Session("scheduler"),
 	}
 
 	group := grouper.EnvokeGroup(grouper.RunGroup{

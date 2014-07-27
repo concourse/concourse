@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/atc/config"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/fakes"
+	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,6 +29,7 @@ var _ = Describe("Scheduler", func() {
 		scheduler = &Scheduler{
 			DB:      db,
 			Builder: builder,
+			Logger:  lagertest.NewTestLogger("test"),
 		}
 
 		job = config.Job{
