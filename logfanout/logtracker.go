@@ -77,13 +77,16 @@ func (tracker *Tracker) Drain() {
 
 	tracker.draining = true
 
-	for _, fanout := range tracker.logs {
+	logs := tracker.logs
+	conns := tracker.connections
+
+	tracker.lock.Unlock()
+
+	for _, fanout := range logs {
 		fanout.Close()
 	}
 
-	for conn, _ := range tracker.connections {
+	for conn, _ := range conns {
 		conn.Close()
 	}
-
-	tracker.lock.Unlock()
 }
