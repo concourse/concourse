@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/concourse/atc/builder"
-	"github.com/concourse/atc/builds"
-	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/server/routes"
 )
 
@@ -19,23 +17,20 @@ type handler struct {
 
 	jobs config.Jobs
 
-	db      db.DB
-	builder builder.Builder
+	scheduler *scheduler.Scheduler
 }
 
 func NewHandler(
 	logger lager.Logger,
 	jobs config.Jobs,
-	db db.DB,
-	builder builder.Builder,
+	scheduler *scheduler.Scheduler,
 ) http.Handler {
 	return &handler{
 		logger: logger,
 
 		jobs: jobs,
 
-		db:      db,
-		builder: builder,
+		scheduler: scheduler,
 	}
 }
 
@@ -52,37 +47,11 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	log.Debug("triggering")
 
-	build, err := handler.db.CreateBuild(job.Name)
+	build, err := handler.scheduler.TriggerImmediately(job)
 	if err != nil {
-		log.Error("failed-to-create-build", err)
+		log.Error("failed-to-trigger", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	passedInputs := []config.Input{}
-	for _, input := range job.Inputs {
-		if len(input.Passed) == 0 {
-			continue
-		}
-
-		passedInputs = append(passedInputs, input)
-	}
-
-	var inputs builds.VersionedResources
-
-	if len(passedInputs) > 0 {
-		inputs, err = handler.db.GetLatestInputVersions(passedInputs)
-		if err != nil {
-			log.Error("failed-to-get-build-inputs", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-	}
-
-	err = handler.builder.Build(build, job, inputs)
-	if err != nil {
-		log.Error("triggering-failed", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "failed to trigger: %s", err)
 		return
 	}
 

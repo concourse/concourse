@@ -181,12 +181,18 @@ func main() {
 	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, turbineroutes.Routes)
 	builder := builder.NewBuilder(db, conf.Resources, turbineEndpoint, atcEndpoint)
 
+	scheduler := &scheduler.Scheduler{
+		DB:      db,
+		Builder: builder,
+		Logger:  logger.Session("scheduler"),
+	}
+
 	tracker := logfanout.NewTracker(db)
 
 	serverHandler, err := server.New(
 		logger,
 		conf,
-		builder,
+		scheduler,
 		db,
 		*templatesDir,
 		*publicDir,
@@ -213,12 +219,6 @@ func main() {
 	turbineChecker := resources.NewTurbineChecker(turbineEndpoint)
 
 	radar := radar.NewRadar(logger, turbineChecker, db, *checkInterval)
-
-	scheduler := &scheduler.Scheduler{
-		DB:      db,
-		Builder: builder,
-		Logger:  logger.Session("scheduler"),
-	}
 
 	group := grouper.EnvokeGroup(grouper.RunGroup{
 		"web": http_server.New(*listenAddr, serverHandler),

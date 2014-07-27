@@ -92,3 +92,41 @@ func (s *Scheduler) TryNextPendingBuild(job config.Job) error {
 
 	return nil
 }
+
+func (s *Scheduler) TriggerImmediately(job config.Job) (builds.Build, error) {
+	buildLog := s.Logger.Session("trigger-immediately")
+
+	passedInputs := []config.Input{}
+	for _, input := range job.Inputs {
+		if len(input.Passed) == 0 {
+			continue
+		}
+
+		passedInputs = append(passedInputs, input)
+	}
+
+	var inputs builds.VersionedResources
+	var err error
+
+	if len(passedInputs) > 0 {
+		inputs, err = s.DB.GetLatestInputVersions(passedInputs)
+		if err != nil {
+			buildLog.Error("failed-to-get-build-inputs", err)
+			return builds.Build{}, err
+		}
+	}
+
+	build, err := s.DB.CreateBuildWithInputs(job.Name, inputs)
+	if err != nil {
+		buildLog.Error("failed-to-create-build", err)
+		return builds.Build{}, err
+	}
+
+	err = s.Builder.Build(build, job, inputs)
+	if err != nil {
+		buildLog.Error("failed-to-build", err)
+		return builds.Build{}, err
+	}
+
+	return build, nil
+}

@@ -229,4 +229,154 @@ var _ = Describe("Scheduler", func() {
 			})
 		})
 	})
+
+	Describe("TriggerImmediately", func() {
+		Context("when the job does not have any dependant inputs", func() {
+			It("creates a build without any specific inputs", func() {
+				_, err := scheduler.TriggerImmediately(job)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(db.GetLatestInputVersionsCallCount()).Should(Equal(0))
+
+				Ω(db.CreateBuildWithInputsCallCount()).Should(Equal(1))
+
+				jobName, inputs := db.CreateBuildWithInputsArgsForCall(0)
+				Ω(jobName).Should(Equal("some-job"))
+				Ω(inputs).Should(BeZero())
+			})
+
+			Context("when creating the build succeeds", func() {
+				BeforeEach(func() {
+					db.CreateBuildWithInputsReturns(builds.Build{ID: 42}, nil)
+				})
+
+				It("triggers a build of the job with the found inputs", func() {
+					build, err := scheduler.TriggerImmediately(job)
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(build).Should(Equal(builds.Build{ID: 42}))
+
+					Ω(builder.BuildCallCount()).Should(Equal(1))
+
+					builtBuild, builtJob, builtInputs := builder.BuildArgsForCall(0)
+					Ω(builtBuild).Should(Equal(builds.Build{ID: 42}))
+					Ω(builtJob).Should(Equal(job))
+					Ω(builtInputs).Should(BeZero())
+				})
+			})
+
+			Context("when creating the build fails", func() {
+				disaster := errors.New("oh no!")
+
+				BeforeEach(func() {
+					db.CreateBuildWithInputsReturns(builds.Build{}, disaster)
+				})
+
+				It("returns the error", func() {
+					_, err := scheduler.TriggerImmediately(job)
+					Ω(err).Should(Equal(disaster))
+				})
+
+				It("does not start a build", func() {
+					scheduler.TriggerImmediately(job)
+					Ω(builder.BuildCallCount()).Should(Equal(0))
+				})
+			})
+		})
+
+		Context("when the job has dependant inputs", func() {
+			BeforeEach(func() {
+				job.Inputs = append(job.Inputs, config.Input{
+					Resource: "some-dependant-resource",
+					Passed:   []string{"job-a"},
+				})
+			})
+
+			Context("and they can be satisfied", func() {
+				foundInputs := builds.VersionedResources{
+					{Name: "some-dependant-resource", Version: builds.Version{"version": "2"}},
+				}
+
+				BeforeEach(func() {
+					db.GetLatestInputVersionsReturns(foundInputs, nil)
+				})
+
+				It("creates a build with the found inputs", func() {
+					_, err := scheduler.TriggerImmediately(job)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(db.GetLatestInputVersionsCallCount()).Should(Equal(1))
+					Ω(db.GetLatestInputVersionsArgsForCall(0)).Should(Equal([]config.Input{
+						{
+							Resource: "some-dependant-resource",
+							Passed:   []string{"job-a"},
+						},
+					}))
+
+					Ω(db.CreateBuildWithInputsCallCount()).Should(Equal(1))
+
+					jobName, inputs := db.CreateBuildWithInputsArgsForCall(0)
+					Ω(jobName).Should(Equal("some-job"))
+					Ω(inputs).Should(Equal(foundInputs))
+				})
+
+				Context("when creating the build succeeds", func() {
+					BeforeEach(func() {
+						db.CreateBuildWithInputsReturns(builds.Build{ID: 42}, nil)
+					})
+
+					It("triggers a build of the job with the found inputs", func() {
+						build, err := scheduler.TriggerImmediately(job)
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(build).Should(Equal(builds.Build{ID: 42}))
+
+						Ω(builder.BuildCallCount()).Should(Equal(1))
+
+						builtBuild, builtJob, builtInputs := builder.BuildArgsForCall(0)
+						Ω(builtBuild).Should(Equal(builds.Build{ID: 42}))
+						Ω(builtJob).Should(Equal(job))
+						Ω(builtInputs).Should(Equal(foundInputs))
+					})
+				})
+
+				Context("when creating the build fails", func() {
+					disaster := errors.New("oh no!")
+
+					BeforeEach(func() {
+						db.CreateBuildWithInputsReturns(builds.Build{}, disaster)
+					})
+
+					It("returns the error", func() {
+						_, err := scheduler.TriggerImmediately(job)
+						Ω(err).Should(Equal(disaster))
+					})
+
+					It("does not start a build", func() {
+						scheduler.TriggerImmediately(job)
+						Ω(builder.BuildCallCount()).Should(Equal(0))
+					})
+				})
+			})
+
+			Context("but they cannot be satisfied", func() {
+				disaster := errors.New("oh no!")
+
+				BeforeEach(func() {
+					db.GetLatestInputVersionsReturns(nil, disaster)
+				})
+
+				It("returns the error", func() {
+					_, err := scheduler.TriggerImmediately(job)
+					Ω(err).Should(Equal(disaster))
+				})
+
+				It("does not create or start a build", func() {
+					scheduler.TriggerImmediately(job)
+
+					Ω(db.CreateBuildWithInputsCallCount()).Should(Equal(0))
+
+					Ω(builder.BuildCallCount()).Should(Equal(0))
+				})
+			})
+		})
+	})
 })
