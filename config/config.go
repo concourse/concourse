@@ -36,11 +36,10 @@ type Job struct {
 }
 
 type Input struct {
-	Resource    string   `yaml:"resource"`
-	Params      Params   `yaml:"params"`
-	Passed      []string `yaml:"passed"`
-	EachVersion bool     `yaml:"each_version"`
-	DontCheck   bool     `yaml:"dont_check"`
+	Resource  string   `yaml:"resource"`
+	Params    Params   `yaml:"params"`
+	Passed    []string `yaml:"passed"`
+	DontCheck bool     `yaml:"dont_check"`
 }
 
 type Output struct {
