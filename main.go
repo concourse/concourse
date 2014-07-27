@@ -1,9 +1,11 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"flag"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/BurntSushi/migration"
@@ -131,9 +133,24 @@ func main() {
 
 	configFile.Close()
 
-	dbConn, err := migration.Open(*sqlDriver, *sqlDataSource, migrations.Migrations)
-	if err != nil {
-		fatal(err)
+	logger := lager.NewLogger("atc")
+	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
+
+	var dbConn *sql.DB
+
+	for {
+		dbConn, err = migration.Open(*sqlDriver, *sqlDataSource, migrations.Migrations)
+		if err != nil {
+			if strings.Contains(err.Error(), "connection refused") {
+				logger.Error("failed-to-open-db", err)
+				time.Sleep(5 * time.Second)
+				continue
+			}
+
+			fatal(err)
+		}
+
+		break
 	}
 
 	db := Db.NewSQL(dbConn)
@@ -155,9 +172,6 @@ func main() {
 	atcEndpoint := rata.NewRequestGenerator("http://"+*peerAddr, apiroutes.Routes)
 	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, turbineroutes.Routes)
 	builder := builder.NewBuilder(db, conf.Resources, turbineEndpoint, atcEndpoint)
-
-	logger := lager.NewLogger("atc")
-	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
 
 	tracker := logfanout.NewTracker(db)
 
