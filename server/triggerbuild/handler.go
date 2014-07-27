@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc/builder"
+	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
@@ -58,7 +59,27 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = handler.builder.Build(build, job, nil)
+	passedInputs := []config.Input{}
+	for _, input := range job.Inputs {
+		if len(input.Passed) == 0 {
+			continue
+		}
+
+		passedInputs = append(passedInputs, input)
+	}
+
+	var inputs builds.VersionedResources
+
+	if len(passedInputs) > 0 {
+		inputs, err = handler.db.GetLatestInputVersions(passedInputs)
+		if err != nil {
+			log.Error("failed-to-get-build-inputs", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+
+	err = handler.builder.Build(build, job, inputs)
 	if err != nil {
 		log.Error("triggering-failed", err)
 		w.WriteHeader(http.StatusInternalServerError)
