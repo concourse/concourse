@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"flag"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"strings"
 	"time"
@@ -85,6 +87,12 @@ var apiListenAddr = flag.String(
 	"apiListenAddr",
 	":8081",
 	"port for the api to listen on",
+)
+
+var debugListenAddr = flag.String(
+	"debugListenAddr",
+	":6060",
+	"port for the pprof debugger to listen on",
 )
 
 var httpUsername = flag.String(
@@ -216,6 +224,8 @@ func main() {
 		"web": http_server.New(*listenAddr, serverHandler),
 
 		"api": http_server.New(*apiListenAddr, apiHandler),
+
+		"debug": http_server.New(*debugListenAddr, http.DefaultServeMux),
 
 		"radar": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 			for _, resource := range conf.Resources {
