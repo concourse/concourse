@@ -1,7 +1,3 @@
-[submodule "src/redis"]
-	path = src/redis
-	url = https://github.com/antirez/redis.git
-	branch = unstable
 [submodule "src/warden-linux"]
 	path = src/warden-linux
 	url = https://github.com/cloudfoundry-incubator/warden-linux.git
