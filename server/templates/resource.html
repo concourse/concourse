@@ -28,16 +28,18 @@
             </tr>
           </thead>
           <tbody>
-            {{range .Jobs}}
-            {{$job := .JobName}}
-            <td>
-              <ul class="builds">
-                {{range .Builds}}
-                <li class="{{.Status}}"><a href="{{url "GetBuild" $job .}}">{{.ID}}</a></li>
-                {{end}}
-              </ul>
-            </td>
-            {{end}}
+            <tr>
+              {{range .Jobs}}
+              {{$job := .JobName}}
+              <td>
+                <ul class="builds">
+                  {{range .Builds}}
+                  <li class="{{.Status}}"><a href="{{url "GetBuild" $job .}}">{{.ID}}</a></li>
+                  {{end}}
+                </ul>
+              </td>
+              {{end}}
+            </tr>
           </tbody>
         </table>
       </td>

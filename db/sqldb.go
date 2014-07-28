@@ -769,7 +769,7 @@ func (db *sqldb) GetResourceHistory(resource string) ([]VersionHistory, error) {
 
 	hs := []VersionHistory{}
 	vhs := map[int]*VersionHistory{}
-	jhs := map[string]*JobHistory{}
+	jhs := map[int]map[string]*JobHistory{}
 
 	for rows.Next() {
 		var vrID int
@@ -813,17 +813,19 @@ func (db *sqldb) GetResourceHistory(resource string) ([]VersionHistory, error) {
 			})
 
 			vh = &hs[len(hs)-1]
+
 			vhs[vrID] = vh
+			jhs[vrID] = map[string]*JobHistory{}
 		}
 
-		jh, found := jhs[jobName]
+		jh, found := jhs[vrID][jobName]
 		if !found {
 			vh.Jobs = append(vh.Jobs, JobHistory{
 				JobName: jobName,
 			})
 
 			jh = &vh.Jobs[len(vh.Jobs)-1]
-			jhs[jobName] = jh
+			jhs[vrID][jobName] = jh
 		}
 
 		jh.Builds = append(jh.Builds, builds.Build{
