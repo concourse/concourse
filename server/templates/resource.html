@@ -1,10 +1,16 @@
 {{define "title"}}History - Concourse{{end}}
 
 {{define "body"}}
+<div id="resource-header">
+  <a class="title" href="/">&lt;</a>
+
+  <h1>{{.Resource.Name}} history</h1>
+</div>
+
 <table id="version-history">
   <thead>
     <tr>
-      <th>version</th>
+      <th>metadata</th>
       <th>affected builds</th>
     </tr>
   </thead>
@@ -12,36 +18,27 @@
     {{range .History}}
     <tr>
       <td>
-        <dl class="version">
-          {{range $k, $v := .VersionedResource.Version}}
-          <dt>{{$k}}</dt>
-            <dd>{{$v}}</dd>
+        <dl class="build-metadata">
+          {{range .VersionedResource.Metadata}}
+          <dt>{{.Name}}</dt>
+          <dd>{{.Value}}</dd>
           {{end}}
+        </dl>
       </td>
       <td>
-        <table>
-          <thead>
-            <tr>
-              {{range .Jobs}}
-              <th>{{.JobName}}</th>
-              {{end}}
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              {{range .Jobs}}
-              {{$job := .JobName}}
-              <td>
-                <ul class="builds">
-                  {{range .Builds}}
-                  <li class="{{.Status}}"><a href="{{url "GetBuild" $job .}}">{{.ID}}</a></li>
-                  {{end}}
-                </ul>
-              </td>
-              {{end}}
-            </tr>
-          </tbody>
-        </table>
+        <dl class="jobs">
+          {{range .Jobs}}
+          {{$job := .JobName}}
+          <dt>{{.JobName}}</dt>
+            <dd>
+              <ul class="builds">
+                {{range .Builds}}
+                <li class="{{.Status}}"><a href="{{url "GetBuild" $job .}}">#{{.ID}}</a></li>
+                {{end}}
+              </ul>
+            </dd>
+          {{end}}
+        </dl>
       </td>
     </tr>
     {{end}}

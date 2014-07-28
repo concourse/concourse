@@ -29,7 +29,8 @@ func NewHandler(logger lager.Logger, resources config.Resources, db db.DB, templ
 }
 
 type TemplateData struct {
-	History []db.VersionHistory
+	Resource config.Resource
+	History  []db.VersionHistory
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +46,8 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	templateData := TemplateData{
-		History: history,
+		Resource: resource,
+		History:  history,
 	}
 
 	err = handler.template.Execute(w, templateData)

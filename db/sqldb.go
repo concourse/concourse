@@ -759,7 +759,7 @@ func (db *sqldb) GetResourceHistory(resource string) ([]VersionHistory, error) {
 			EXISTS (SELECT 1 FROM build_inputs WHERE build_id = b.id AND versioned_resource_id = v.id)
 			OR EXISTS (SELECT 1 FROM build_inputs WHERE build_id = b.id AND versioned_resource_id = v.id)
 		)
-		ORDER BY b.id ASC
+		ORDER BY v.id DESC, b.id DESC
 	`, resource)
 	if err != nil {
 		return nil, err
