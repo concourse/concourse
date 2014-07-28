@@ -1,0 +1,48 @@
+{{define "title"}}History - Concourse{{end}}
+
+{{define "body"}}
+<table id="version-history">
+  <thead>
+    <tr>
+      <th>version</th>
+      <th>affected builds</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{range .History}}
+    <tr>
+      <td>
+        <dl class="version">
+          {{range $k, $v := .VersionedResource.Version}}
+          <dt>{{$k}}</dt>
+            <dd>{{$v}}</dd>
+          {{end}}
+      </td>
+      <td>
+        <table>
+          <thead>
+            <tr>
+              {{range .Jobs}}
+              <th>{{.JobName}}</th>
+              {{end}}
+            </tr>
+          </thead>
+          <tbody>
+            {{range .Jobs}}
+            {{$job := .JobName}}
+            <td>
+              <ul class="builds">
+                {{range .Builds}}
+                <li class="{{.Status}}"><a href="{{url "GetBuild" $job .}}">{{.ID}}</a></li>
+                {{end}}
+              </ul>
+            </td>
+            {{end}}
+          </tbody>
+        </table>
+      </td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+{{end}}

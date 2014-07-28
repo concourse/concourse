@@ -750,6 +750,92 @@ func (db *sqldb) GetNextPendingBuild(job string) (builds.Build, builds.Versioned
 	}, inputs, nil
 }
 
+func (db *sqldb) GetResourceHistory(resource string) ([]VersionHistory, error) {
+	rows, err := db.conn.Query(`
+		SELECT v.id, v.resource_name, v.type, v.version, v.source, v.metadata, b.job_name, b.name, b.status, b.abort_url
+		FROM versioned_resources v, builds b
+		WHERE v.resource_name = $1
+		AND (
+			EXISTS (SELECT 1 FROM build_inputs WHERE build_id = b.id AND versioned_resource_id = v.id)
+			OR EXISTS (SELECT 1 FROM build_inputs WHERE build_id = b.id AND versioned_resource_id = v.id)
+		)
+		ORDER BY b.id ASC
+	`, resource)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	hs := []VersionHistory{}
+	vhs := map[int]*VersionHistory{}
+	jhs := map[string]*JobHistory{}
+
+	for rows.Next() {
+		var vrID int
+		var vr builds.VersionedResource
+
+		var jobName string
+
+		var buildName int
+		var buildStatus string
+		var buildAbortURL sql.NullString
+
+		var versionString, sourceString, metadataString string
+
+		err := rows.Scan(
+			&vrID, &vr.Name, &vr.Type, &versionString, &sourceString, &metadataString,
+			&jobName, &buildName, &buildStatus, &buildAbortURL,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		vh, found := vhs[vrID]
+		if !found {
+			err = json.Unmarshal([]byte(sourceString), &vr.Source)
+			if err != nil {
+				return nil, err
+			}
+
+			err = json.Unmarshal([]byte(versionString), &vr.Version)
+			if err != nil {
+				return nil, err
+			}
+
+			err = json.Unmarshal([]byte(metadataString), &vr.Metadata)
+			if err != nil {
+				return nil, err
+			}
+
+			hs = append(hs, VersionHistory{
+				VersionedResource: vr,
+			})
+
+			vh = &hs[len(hs)-1]
+			vhs[vrID] = vh
+		}
+
+		jh, found := jhs[jobName]
+		if !found {
+			vh.Jobs = append(vh.Jobs, JobHistory{
+				JobName: jobName,
+			})
+
+			jh = &vh.Jobs[len(vh.Jobs)-1]
+			jhs[jobName] = jh
+		}
+
+		jh.Builds = append(jh.Builds, builds.Build{
+			ID:       buildName,
+			Status:   builds.Status(buildStatus),
+			AbortURL: buildAbortURL.String,
+		})
+	}
+
+	return hs, nil
+}
+
 func (db *sqldb) saveVersionedResource(tx *sql.Tx, vr builds.VersionedResource) (int, error) {
 	versionJSON, err := json.Marshal(vr.Version)
 	if err != nil {

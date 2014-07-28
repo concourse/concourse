@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/server/abortbuild"
 	"github.com/concourse/atc/server/getbuild"
+	"github.com/concourse/atc/server/getresource"
 	"github.com/concourse/atc/server/index"
 	"github.com/concourse/atc/server/logs"
 	"github.com/concourse/atc/server/routes"
@@ -43,6 +44,11 @@ func New(
 		return nil, err
 	}
 
+	resourceTemplate, err := loadTemplate(templatesDir, "resource.html", funcs)
+	if err != nil {
+		return nil, err
+	}
+
 	absPublicDir, err := filepath.Abs(publicDir)
 	if err != nil {
 		return nil, err
@@ -57,6 +63,8 @@ func New(
 		routes.LogOutput: logs.NewHandler(logger, tracker),
 
 		routes.Public: http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
+
+		routes.GetResource: getresource.NewHandler(logger, config.Resources, db, resourceTemplate),
 	}
 
 	return rata.NewRouter(routes.Routes, handlers)

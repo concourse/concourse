@@ -81,10 +81,14 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, resource := range handler.resources {
 		resourceID := resourceNode(resource.Name)
 
+		resourceURI, _ := routes.Routes.CreatePathForRoute(routes.GetResource, rata.Params{
+			"resource": resource.Name,
+		})
+
 		data.Nodes = append(data.Nodes, DotNode{
 			ID: resourceID,
 			Value: map[string]string{
-				"label": fmt.Sprintf(`<h1 class="resource">%s</a>`, resource.Name),
+				"label": fmt.Sprintf(`<h1 class="resource"><a href="%s">%s</a></h1>`, resourceURI, resource.Name),
 				"type":  "resource",
 			},
 		})

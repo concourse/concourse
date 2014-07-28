@@ -36,4 +36,16 @@ type DB interface {
 	CreateBuildWithInputs(job string, inputs builds.VersionedResources) (builds.Build, error)
 
 	GetNextPendingBuild(job string) (builds.Build, builds.VersionedResources, error)
+
+	GetResourceHistory(resource string) ([]VersionHistory, error)
+}
+
+type VersionHistory struct {
+	VersionedResource builds.VersionedResource
+	Jobs              []JobHistory
+}
+
+type JobHistory struct {
+	JobName string
+	Builds  []builds.Build
 }
