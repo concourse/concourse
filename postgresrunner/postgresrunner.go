@@ -72,7 +72,7 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	ginkgoRunner := &ginkgomon.Runner{
 		Name:          "postgres",
 		Command:       startCmd,
-		AnsiColorCode: "91",
+		AnsiColorCode: "90m",
 		StartCheck:    "database system is ready to accept connections",
 		Cleanup: func() {
 			os.RemoveAll(tmpdir)
