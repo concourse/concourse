@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"syscall"
 	"testing"
@@ -15,9 +16,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/ginkgomon"
 	"github.com/tedsuo/ifrit/grouper"
-
-	"github.com/concourse/testflight/runner"
 )
 
 var externalAddr string
@@ -97,20 +97,31 @@ var _ = BeforeEach(func() {
 
 	wardenClient = wardenRunner.NewClient()
 
-	turbineRunner := runner.NewRunner(
-		builtComponents["turbine"],
-		"-wardenNetwork", "tcp",
-		"-wardenAddr", wardenAddr,
-		"-resourceTypes", fmt.Sprintf(`{
-			"raw": "%s",
-			"git": "%s"
-		}`, rawResourceRootfs, gitResourceRootfs),
-	)
+	turbineRunner := &ginkgomon.Runner{
+		Name:          "turbine",
+		AnsiColorCode: "33m",
+		Command: exec.Command(
+			builtComponents["turbine"],
+			"-wardenNetwork", "tcp",
+			"-wardenAddr", wardenAddr,
+			"-resourceTypes", fmt.Sprintf(`{
+				"raw": "%s",
+				"git": "%s"
+			}`, rawResourceRootfs, gitResourceRootfs),
+		),
+		StartCheck:        "listening",
+		StartCheckTimeout: 30 * time.Second,
+	}
 
-	gliderRunner := runner.NewRunner(
-		builtComponents["glider"],
-		"-peerAddr", externalAddr+":5637",
-	)
+	gliderRunner := &ginkgomon.Runner{
+		Name:          "glider",
+		AnsiColorCode: "32m",
+		Command: exec.Command(
+			builtComponents["glider"],
+			"-peerAddr", externalAddr+":5637",
+		),
+		StartCheck: "listening",
+	}
 
 	processes = grouper.EnvokeGroup(grouper.RunGroup{
 		"turbine":      turbineRunner,

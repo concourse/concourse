@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"syscall"
 	"time"
@@ -11,11 +12,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/ginkgomon"
 
 	"github.com/concourse/atc/postgresrunner"
 	"github.com/concourse/testflight/gitserver"
 	"github.com/concourse/testflight/guidserver"
-	"github.com/concourse/testflight/runner"
 )
 
 var _ = Describe("A job with a git resource", func() {
@@ -70,15 +71,21 @@ jobs:
 		err = atcConfigFile.Close()
 		Ω(err).ShouldNot(HaveOccurred())
 
-		atcProcess = ifrit.Envoke(runner.NewRunner(
-			builtComponents["atc"],
-			"-peerAddr", externalAddr+":8081",
-			"-config", atcConfigFilePath,
-			"-templates", filepath.Join(atcDir, "server", "templates"),
-			"-public", filepath.Join(atcDir, "server", "public"),
-			"-sqlDataSource", postgresRunner.DataSourceName(),
-			"-checkInterval", "10s",
-		))
+		atcProcess = ifrit.Envoke(&ginkgomon.Runner{
+			Name:          "atc",
+			AnsiColorCode: "34m",
+			Command: exec.Command(
+				builtComponents["atc"],
+				"-peerAddr", externalAddr+":8081",
+				"-config", atcConfigFilePath,
+				"-templates", filepath.Join(atcDir, "server", "templates"),
+				"-public", filepath.Join(atcDir, "server", "public"),
+				"-sqlDataSource", postgresRunner.DataSourceName(),
+				"-checkInterval", "10s",
+			),
+			StartCheck:        "listening",
+			StartCheckTimeout: 5 * time.Second,
+		})
 
 		Consistently(atcProcess.Wait(), 1*time.Second).ShouldNot(Receive())
 	})
