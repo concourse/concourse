@@ -62,8 +62,8 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 
 	session, err := gexec.Start(
 		initCmd,
-		gexec.NewPrefixedWriter("[out][initdb] ", ginkgo.GinkgoWriter),
-		gexec.NewPrefixedWriter("[err][initdb] ", ginkgo.GinkgoWriter),
+		gexec.NewPrefixedWriter("[o][initdb] ", ginkgo.GinkgoWriter),
+		gexec.NewPrefixedWriter("[e][initdb] ", ginkgo.GinkgoWriter),
 	)
 	Ω(err).ShouldNot(HaveOccurred())
 
