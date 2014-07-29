@@ -26,8 +26,8 @@ type Radar struct {
 	tracker  VersionDB
 	interval time.Duration
 
-	stop    chan struct{}
-	scaning *sync.WaitGroup
+	stop     chan struct{}
+	scanning *sync.WaitGroup
 }
 
 func NewRadar(
@@ -43,16 +43,16 @@ func NewRadar(
 		tracker:  tracker,
 		interval: interval,
 
-		stop:    make(chan struct{}),
-		scaning: new(sync.WaitGroup),
+		stop:     make(chan struct{}),
+		scanning: new(sync.WaitGroup),
 	}
 }
 
 func (radar *Radar) Scan(resource config.Resource) {
-	radar.scaning.Add(1)
+	radar.scanning.Add(1)
 
 	go func() {
-		defer radar.scaning.Done()
+		defer radar.scanning.Done()
 
 		ticker := time.NewTicker(radar.interval)
 
@@ -110,5 +110,5 @@ func (radar *Radar) Scan(resource config.Resource) {
 
 func (radar *Radar) Stop() {
 	close(radar.stop)
-	radar.scaning.Wait()
+	radar.scanning.Wait()
 }

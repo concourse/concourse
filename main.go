@@ -236,8 +236,6 @@ func main() {
 
 			<-signals
 
-			radar.Stop()
-
 			return nil
 		}),
 
