@@ -23,7 +23,7 @@ jobs:
         release: concourse
     instances: 1
     resource_pool: postgresql
-    persistent_disk: 1024
+    persistent_disk: 10240
     networks:
       - name: concourse
         static_ips: ~
