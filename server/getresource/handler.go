@@ -30,7 +30,7 @@ func NewHandler(logger lager.Logger, resources config.Resources, db db.DB, templ
 
 type TemplateData struct {
 	Resource config.Resource
-	History  []db.VersionHistory
+	History  []*db.VersionHistory
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

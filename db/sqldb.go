@@ -750,7 +750,7 @@ func (db *sqldb) GetNextPendingBuild(job string) (builds.Build, builds.Versioned
 	}, inputs, nil
 }
 
-func (db *sqldb) GetResourceHistory(resource string) ([]VersionHistory, error) {
+func (db *sqldb) GetResourceHistory(resource string) ([]*VersionHistory, error) {
 	rows, err := db.conn.Query(`
 		SELECT v.id, v.resource_name, v.type, v.version, v.source, v.metadata, b.job_name, b.name, b.status, b.abort_url
 		FROM versioned_resources v, builds b
@@ -767,7 +767,7 @@ func (db *sqldb) GetResourceHistory(resource string) ([]VersionHistory, error) {
 
 	defer rows.Close()
 
-	hs := []VersionHistory{}
+	hs := []*VersionHistory{}
 	vhs := map[int]*VersionHistory{}
 	jhs := map[int]map[string]*JobHistory{}
 
@@ -808,11 +808,11 @@ func (db *sqldb) GetResourceHistory(resource string) ([]VersionHistory, error) {
 				return nil, err
 			}
 
-			hs = append(hs, VersionHistory{
+			vh = &VersionHistory{
 				VersionedResource: vr,
-			})
+			}
 
-			vh = &hs[len(hs)-1]
+			hs = append(hs, vh)
 
 			vhs[vrID] = vh
 			jhs[vrID] = map[string]*JobHistory{}
@@ -820,11 +820,12 @@ func (db *sqldb) GetResourceHistory(resource string) ([]VersionHistory, error) {
 
 		jh, found := jhs[vrID][jobName]
 		if !found {
-			vh.Jobs = append(vh.Jobs, JobHistory{
+			jh = &JobHistory{
 				JobName: jobName,
-			})
+			}
 
-			jh = &vh.Jobs[len(vh.Jobs)-1]
+			vh.Jobs = append(vh.Jobs, jh)
+
 			jhs[vrID][jobName] = jh
 		}
 

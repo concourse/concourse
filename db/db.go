@@ -37,12 +37,12 @@ type DB interface {
 
 	GetNextPendingBuild(job string) (builds.Build, builds.VersionedResources, error)
 
-	GetResourceHistory(resource string) ([]VersionHistory, error)
+	GetResourceHistory(resource string) ([]*VersionHistory, error)
 }
 
 type VersionHistory struct {
 	VersionedResource builds.VersionedResource
-	Jobs              []JobHistory
+	Jobs              []*JobHistory
 }
 
 type JobHistory struct {
