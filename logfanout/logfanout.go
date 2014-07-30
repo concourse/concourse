@@ -37,6 +37,7 @@ func NewLogFanout(job string, build int, db LogDB) *LogFanout {
 
 func (fanout *LogFanout) Write(data []byte) (int, error) {
 	fanout.lock.Lock()
+	defer fanout.lock.Unlock()
 
 	err := fanout.db.AppendBuildLog(fanout.job, fanout.build, data)
 	if err != nil {
@@ -54,8 +55,6 @@ func (fanout *LogFanout) Write(data []byte) (int, error) {
 	}
 
 	fanout.sinks = newSinks
-
-	fanout.lock.Unlock()
 
 	return len(data), nil
 }
