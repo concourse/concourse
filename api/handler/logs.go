@@ -4,6 +4,7 @@ import (
 	"io"
 	"strconv"
 
+	"github.com/concourse/atc/utf8stream"
 	"github.com/pivotal-golang/lager"
 
 	"code.google.com/p/go.net/websocket"
@@ -33,7 +34,7 @@ func (handler *Handler) LogInput(conn *websocket.Conn) {
 	defer conn.Close()
 	defer logFanout.Close()
 
-	_, err = io.Copy(logFanout, conn)
+	_, err = io.Copy(utf8stream.NewWriter(logFanout), conn)
 	if err != nil {
 		log.Error("message-read-error", err)
 		return
