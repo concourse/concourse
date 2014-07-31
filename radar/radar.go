@@ -22,7 +22,6 @@ type ResourceChecker interface {
 type Radar struct {
 	logger lager.Logger
 
-	checker  ResourceChecker
 	tracker  VersionDB
 	interval time.Duration
 
@@ -32,14 +31,12 @@ type Radar struct {
 
 func NewRadar(
 	logger lager.Logger,
-	checker ResourceChecker,
 	tracker VersionDB,
 	interval time.Duration,
 ) *Radar {
 	return &Radar{
 		logger: logger,
 
-		checker:  checker,
 		tracker:  tracker,
 		interval: interval,
 
@@ -48,7 +45,7 @@ func NewRadar(
 	}
 }
 
-func (radar *Radar) Scan(resource config.Resource) {
+func (radar *Radar) Scan(checker ResourceChecker, resource config.Resource) {
 	radar.scanning.Add(1)
 
 	go func() {
@@ -76,7 +73,7 @@ func (radar *Radar) Scan(resource config.Resource) {
 
 				log.Debug("check")
 
-				newVersions, err := radar.checker.CheckResource(resource, from)
+				newVersions, err := checker.CheckResource(resource, from)
 				if err != nil {
 					log.Error("failed-to-check", err)
 					break

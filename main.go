@@ -216,9 +216,7 @@ func main() {
 		fatal(err)
 	}
 
-	turbineChecker := resources.NewTurbineChecker(turbineEndpoint)
-
-	radar := radar.NewRadar(logger, turbineChecker, db, *checkInterval)
+	radar := radar.NewRadar(logger, db, *checkInterval)
 
 	group := grouper.EnvokeGroup(grouper.RunGroup{
 		"web": http_server.New(*listenAddr, serverHandler),
@@ -229,7 +227,8 @@ func main() {
 
 		"radar": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 			for _, resource := range conf.Resources {
-				radar.Scan(resource)
+				checker := resources.NewTurbineChecker(turbineEndpoint)
+				radar.Scan(checker, resource)
 			}
 
 			close(ready)

@@ -28,7 +28,7 @@ var _ = Describe("Radar", func() {
 		tracker = new(fakes.FakeVersionDB)
 		interval = 100 * time.Millisecond
 
-		radar = NewRadar(logger, checker, tracker, interval)
+		radar = NewRadar(logger, tracker, interval)
 
 		resource = config.Resource{
 			Name:   "some-resource",
@@ -38,7 +38,7 @@ var _ = Describe("Radar", func() {
 	})
 
 	JustBeforeEach(func() {
-		radar.Scan(resource)
+		radar.Scan(checker, resource)
 	})
 
 	AfterEach(func() {
