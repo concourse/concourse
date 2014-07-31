@@ -69,6 +69,7 @@ func (radar *Radar) Scan(resource config.Resource) {
 				}
 
 				log := radar.logger.Session("radar", lager.Data{
+					"type":     resource.Type,
 					"resource": resource.Name,
 					"from":     from,
 				})
