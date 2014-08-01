@@ -2,11 +2,13 @@ package logs
 
 import (
 	"strconv"
+	"time"
 
 	"code.google.com/p/go.net/websocket"
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc/ansistream"
+	"github.com/concourse/atc/deadlinewriter"
 
 	"github.com/concourse/atc/limitedstream"
 	"github.com/concourse/atc/logfanout"
@@ -27,9 +29,14 @@ func NewHandler(logger lager.Logger, tracker *logfanout.Tracker) websocket.Handl
 			return
 		}
 
+		timeoutWriter := deadlinewriter.TimeoutWriter{
+			DeadlineWriter: conn,
+			Timeout:        5 * time.Second,
+		}
+
 		logWriter := limitedstream.Writer{
 			Limit:       1024,
-			WriteCloser: utf8stream.NewWriter(ansistream.NewWriter(conn)),
+			WriteCloser: utf8stream.NewWriter(ansistream.NewWriter(timeoutWriter)),
 		}
 
 		logFanout := tracker.Register(job, id, conn)
