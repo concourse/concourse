@@ -26,19 +26,21 @@
         </dl>
       </td>
       <td>
-        <dl class="jobs">
+        <table class="jobs">
           {{range .Jobs}}
           {{$job := .JobName}}
-          <dt>{{.JobName}}</dt>
-            <dd>
+          <tr>
+            <td class="name"><h3>{{.JobName}}</h3></td>
+            <td>
               <ul class="builds">
                 {{range .Builds}}
                 <li class="{{.Status}}"><a href="{{url "GetBuild" $job .}}">#{{.ID}}</a></li>
                 {{end}}
               </ul>
-            </dd>
+            </td>
+          </tr>
           {{end}}
-        </dl>
+        </table>
       </td>
     </tr>
     {{end}}
