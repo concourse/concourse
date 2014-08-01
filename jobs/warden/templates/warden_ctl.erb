@@ -49,7 +49,6 @@ case $1 in
       -bin=/var/vcap/packages/warden-linux/src/github.com/cloudfoundry-incubator/warden-linux/linux_backend/bin \
       -overlays=${DATA_DIR}/overlays \
       -snapshots=${DATA_DIR}/snapshots \
-      -debug \
       -containerGraceTime=5m \
       1>>$LOG_DIR/warden.stdout.log \
       2>>$LOG_DIR/warden.stderr.log
