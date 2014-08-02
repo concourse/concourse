@@ -27,18 +27,32 @@
 </div>
 
 <div id="build-body">
-  <div id="metadata">
+  <div id="build-resources">
     {{range .Inputs}}
     <div class="build-source">
-      <h3>{{.Name}}</h3>
+      <div class="resource-header">
+        <h3>{{.Name}}</h3>
+
+        <dl class="version">
+          {{range $name, $val := .Version}}
+          <dt>{{$name}}</dt>
+            <dd>{{$val}}</dd>
+          {{end}}
+        </dl>
+
+        <div style="clear: both"></div>
+      </div>
+
+      {{if not (eq 0 (len .Metadata))}}
       <dl class="build-metadata">
         {{range .Metadata}}
         <dt>{{.Name}}</dt>
           <dd>{{.Value}}</dd>
         {{end}}
       </dl>
+      {{end}}
     </div>
-    {{ end }}
+    {{end}}
   </div>
 
   <pre id="build-log"></pre>
