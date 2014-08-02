@@ -5,6 +5,7 @@ import (
 
 	Builds "github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
+	. "github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -173,8 +174,46 @@ func itIsADB() {
 
 			inputs, outputs, err := db.GetBuildResources("some-job", build.ID)
 			Ω(err).ShouldNot(HaveOccurred())
-			Ω(inputs).Should(ConsistOf([]Builds.VersionedResource{vr1, vr2}))
-			Ω(outputs).Should(ConsistOf([]Builds.VersionedResource{vr1, vr2}))
+			Ω(inputs).Should(ConsistOf([]BuildInput{
+				{VersionedResource: vr1, FirstOccurrence: true},
+				{VersionedResource: vr2, FirstOccurrence: true},
+			}))
+			Ω(outputs).Should(ConsistOf([]BuildOutput{
+				{VersionedResource: vr1},
+				{VersionedResource: vr2},
+			}))
+
+			duplicateBuild, err := db.CreateBuild("some-job")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = db.SaveBuildInput("some-job", duplicateBuild.ID, vr1)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = db.SaveBuildInput("some-job", duplicateBuild.ID, vr2)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			inputs, _, err = db.GetBuildResources("some-job", duplicateBuild.ID)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(inputs).Should(ConsistOf([]BuildInput{
+				{VersionedResource: vr1, FirstOccurrence: false},
+				{VersionedResource: vr2, FirstOccurrence: false},
+			}))
+
+			newBuildInOtherJob, err := db.CreateBuild("some-other-job")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = db.SaveBuildInput("some-other-job", newBuildInOtherJob.ID, vr1)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = db.SaveBuildInput("some-other-job", newBuildInOtherJob.ID, vr2)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			inputs, _, err = db.GetBuildResources("some-other-job", newBuildInOtherJob.ID)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(inputs).Should(ConsistOf([]BuildInput{
+				{VersionedResource: vr1, FirstOccurrence: true},
+				{VersionedResource: vr2, FirstOccurrence: true},
+			}))
 		})
 
 		It("updates metadata of existing inputs resources", func() {
@@ -186,7 +225,9 @@ func itIsADB() {
 
 			inputs, _, err := db.GetBuildResources("some-job", build.ID)
 			Ω(err).ShouldNot(HaveOccurred())
-			Ω(inputs).Should(ConsistOf([]Builds.VersionedResource{vr2}))
+			Ω(inputs).Should(ConsistOf([]BuildInput{
+				{VersionedResource: vr2, FirstOccurrence: true},
+			}))
 
 			withMetadata := vr2
 			withMetadata.Metadata = buildMetadata
@@ -196,7 +237,9 @@ func itIsADB() {
 
 			inputs, _, err = db.GetBuildResources("some-job", build.ID)
 			Ω(err).ShouldNot(HaveOccurred())
-			Ω(inputs).Should(ConsistOf([]Builds.VersionedResource{withMetadata}))
+			Ω(inputs).Should(ConsistOf([]BuildInput{
+				{VersionedResource: withMetadata, FirstOccurrence: true},
+			}))
 		})
 
 		It("can be done on build creation", func() {

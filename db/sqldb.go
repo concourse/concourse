@@ -98,12 +98,20 @@ func (db *sqldb) GetBuild(job string, name int) (builds.Build, error) {
 	}, nil
 }
 
-func (db *sqldb) GetBuildResources(job string, name int) (builds.VersionedResources, builds.VersionedResources, error) {
-	inputs := []builds.VersionedResource{}
-	outputs := []builds.VersionedResource{}
+func (db *sqldb) GetBuildResources(job string, name int) ([]BuildInput, []BuildOutput, error) {
+	inputs := []BuildInput{}
+	outputs := []BuildOutput{}
 
 	rows, err := db.conn.Query(`
-		SELECT v.resource_name, v.type, v.source, v.version, v.metadata
+		SELECT v.resource_name, v.type, v.source, v.version, v.metadata,
+		NOT EXISTS (
+			SELECT 1
+			FROM build_inputs, builds
+			WHERE versioned_resource_id = v.id
+			AND job_name = $1
+			AND build_id = id
+			AND build_id < b.id
+		)
 		FROM versioned_resources v, build_inputs i, builds b
 		WHERE b.job_name = $1
 		AND b.name = $2
@@ -118,9 +126,10 @@ func (db *sqldb) GetBuildResources(job string, name int) (builds.VersionedResour
 
 	for rows.Next() {
 		var vr builds.VersionedResource
+		var firstOccurrence bool
 
 		var source, version, metadata string
-		err := rows.Scan(&vr.Name, &vr.Type, &source, &version, &metadata)
+		err := rows.Scan(&vr.Name, &vr.Type, &source, &version, &metadata, &firstOccurrence)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -140,7 +149,10 @@ func (db *sqldb) GetBuildResources(job string, name int) (builds.VersionedResour
 			return nil, nil, err
 		}
 
-		inputs = append(inputs, vr)
+		inputs = append(inputs, BuildInput{
+			VersionedResource: vr,
+			FirstOccurrence:   firstOccurrence,
+		})
 	}
 
 	rows, err = db.conn.Query(`
@@ -181,7 +193,9 @@ func (db *sqldb) GetBuildResources(job string, name int) (builds.VersionedResour
 			return nil, nil, err
 		}
 
-		outputs = append(outputs, vr)
+		outputs = append(outputs, BuildOutput{
+			VersionedResource: vr,
+		})
 	}
 
 	return inputs, outputs, nil
@@ -744,10 +758,15 @@ func (db *sqldb) GetNextPendingBuild(job string) (builds.Build, builds.Versioned
 		return builds.Build{}, builds.VersionedResources{}, err
 	}
 
+	vrs := make([]builds.VersionedResource, len(inputs))
+	for i, input := range inputs {
+		vrs[i] = input.VersionedResource
+	}
+
 	return builds.Build{
 		ID:     name,
 		Status: builds.StatusPending,
-	}, inputs, nil
+	}, vrs, nil
 }
 
 func (db *sqldb) GetResourceHistory(resource string) ([]*VersionHistory, error) {

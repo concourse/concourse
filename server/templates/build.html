@@ -29,7 +29,7 @@
 <div id="build-body">
   <div id="build-resources">
     {{range .Inputs}}
-    <div class="build-source">
+    <div class="build-source{{if .FirstOccurrence}} first-occurrence{{end}}">
       <div class="resource-header">
         <h3>{{.Name}}</h3>
 

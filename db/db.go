@@ -13,7 +13,7 @@ type DB interface {
 	GetBuild(job string, id int) (builds.Build, error)
 	GetCurrentBuild(job string) (builds.Build, error)
 
-	GetBuildResources(job string, id int) (inputs, outputs builds.VersionedResources, err error)
+	GetBuildResources(job string, id int) ([]BuildInput, []BuildOutput, error)
 
 	CreateBuild(job string) (builds.Build, error)
 	ScheduleBuild(job string, id int, serial bool) (bool, error)
@@ -38,6 +38,16 @@ type DB interface {
 	GetNextPendingBuild(job string) (builds.Build, builds.VersionedResources, error)
 
 	GetResourceHistory(resource string) ([]*VersionHistory, error)
+}
+
+type BuildInput struct {
+	builds.VersionedResource
+
+	FirstOccurrence bool
+}
+
+type BuildOutput struct {
+	builds.VersionedResource
 }
 
 type VersionHistory struct {

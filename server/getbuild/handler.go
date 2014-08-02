@@ -35,8 +35,8 @@ type TemplateData struct {
 	Builds []builds.Build
 
 	Build   builds.Build
-	Inputs  builds.VersionedResources
-	Outputs builds.VersionedResources
+	Inputs  []db.BuildInput
+	Outputs []db.BuildOutput
 
 	Abortable bool
 }
