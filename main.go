@@ -114,6 +114,12 @@ var checkInterval = flag.Duration(
 	"interval on which to poll for new versions of resources",
 )
 
+var noop = flag.Bool(
+	"noop",
+	false,
+	"don't trigger any builds automatically",
+)
+
 func main() {
 	flag.Parse()
 
@@ -227,6 +233,12 @@ func main() {
 		"debug": http_server.New(*debugListenAddr, http.DefaultServeMux),
 
 		"radar": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+			if *noop {
+				close(ready)
+				<-signals
+				return nil
+			}
+
 			for _, resource := range conf.Resources {
 				checker := resources.NewTurbineChecker(turbineEndpoint)
 				radar.Scan(checker, resource)
@@ -241,6 +253,11 @@ func main() {
 
 		"scheduler": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 			close(ready)
+
+			if *noop {
+				<-signals
+				return nil
+			}
 
 			for {
 				select {
