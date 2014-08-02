@@ -8,6 +8,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/BurntSushi/migration"
@@ -272,12 +273,31 @@ func main() {
 		"api": *apiListenAddr,
 	})
 
-	err = <-running.Wait()
-	if err == nil {
-		logger.Info("exited")
-	} else {
-		logger.Error("failed", err)
-		os.Exit(1)
+	workerExited := group.Exits()
+	allExited := running.Wait()
+
+	for {
+		select {
+		case member := <-workerExited:
+			data := lager.Data{
+				"member": member.Name,
+			}
+
+			if member.Error != nil {
+				logger.Error("process-exited-with-failure", member.Error, data)
+			} else {
+				logger.Info("process-exited", data)
+			}
+
+			running.Signal(syscall.SIGTERM)
+		case err := <-allExited:
+			if err != nil {
+				logger.Error("exited-with-failure", err)
+				os.Exit(1)
+			}
+
+			os.Exit(0)
+		}
 	}
 }
 
