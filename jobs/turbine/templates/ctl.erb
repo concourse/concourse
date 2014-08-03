@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+<% require "shellwords" %>
+
 RUN_DIR=/var/vcap/sys/run/turbine
 LOG_DIR=/var/vcap/sys/log/turbine
 PIDFILE=$RUN_DIR/turbine.pid
