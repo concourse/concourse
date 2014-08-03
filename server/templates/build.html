@@ -28,28 +28,61 @@
 
 <div id="build-body">
   <div id="build-resources">
-    {{range .Inputs}}
-    <div class="build-source{{if .FirstOccurrence}} first-occurrence{{end}}">
-      <div class="resource-header">
-        <h3>{{.Name}}</h3>
+    <div class="build-inputs">
+      {{range .Inputs}}
+      <div class="build-source{{if .FirstOccurrence}} first-occurrence{{end}}">
+        <div class="resource-header">
+          <h3>{{.Name}}</h3>
 
-        <dl class="version">
-          {{range $name, $val := .Version}}
-          <dt>{{$name}}</dt>
-            <dd>{{$val}}</dd>
+          <dl class="version">
+            {{range $name, $val := .Version}}
+            <dt>{{$name}}</dt>
+              <dd>{{$val}}</dd>
+            {{end}}
+          </dl>
+
+          <div style="clear: both"></div>
+        </div>
+
+        {{if not (eq 0 (len .Metadata))}}
+        <dl class="build-metadata">
+          {{range .Metadata}}
+          <dt>{{.Name}}</dt>
+            <dd>{{.Value}}</dd>
           {{end}}
         </dl>
-
-        <div style="clear: both"></div>
-      </div>
-
-      {{if not (eq 0 (len .Metadata))}}
-      <dl class="build-metadata">
-        {{range .Metadata}}
-        <dt>{{.Name}}</dt>
-          <dd>{{.Value}}</dd>
         {{end}}
-      </dl>
+      </div>
+      {{end}}
+    </div>
+
+    {{if not (eq 0 (len .Outputs))}}
+    <div class="build-outputs">
+      <h2>outputs</h2>
+      {{range .Outputs}}
+      <div class="build-source">
+        <div class="resource-header">
+          <h3>{{.Name}}</h3>
+
+          <dl class="version">
+            {{range $name, $val := .Version}}
+            <dt>{{$name}}</dt>
+              <dd>{{$val}}</dd>
+            {{end}}
+          </dl>
+
+          <div style="clear: both"></div>
+        </div>
+
+        {{if not (eq 0 (len .Metadata))}}
+        <dl class="build-metadata">
+          {{range .Metadata}}
+          <dt>{{.Name}}</dt>
+            <dd>{{.Value}}</dd>
+          {{end}}
+        </dl>
+        {{end}}
+      </div>
       {{end}}
     </div>
     {{end}}

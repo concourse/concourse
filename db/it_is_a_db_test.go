@@ -149,7 +149,7 @@ func itIsADB() {
 			Version: Builds.Version{"ver": "2"},
 		}
 
-		It("saves build's inputs as versioned resources", func() {
+		It("saves build's inputs and outputs as versioned resources", func() {
 			build, err := db.CreateBuild("some-job")
 			Ω(err).ShouldNot(HaveOccurred())
 
@@ -169,6 +169,12 @@ func itIsADB() {
 			err = db.SaveBuildOutput("some-job", build.ID, vr1)
 			Ω(err).ShouldNot(HaveOccurred())
 
+			modifiedVR2 := vr2
+			modifiedVR2.Version = Builds.Version{"ver": "3"}
+
+			err = db.SaveBuildOutput("some-job", build.ID, modifiedVR2)
+			Ω(err).ShouldNot(HaveOccurred())
+
 			err = db.SaveBuildOutput("some-job", build.ID, vr2)
 			Ω(err).ShouldNot(HaveOccurred())
 
@@ -179,8 +185,7 @@ func itIsADB() {
 				{VersionedResource: vr2, FirstOccurrence: true},
 			}))
 			Ω(outputs).Should(ConsistOf([]BuildOutput{
-				{VersionedResource: vr1},
-				{VersionedResource: vr2},
+				{VersionedResource: modifiedVR2},
 			}))
 
 			duplicateBuild, err := db.CreateBuild("some-job")

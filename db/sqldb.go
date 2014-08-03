@@ -162,6 +162,12 @@ func (db *sqldb) GetBuildResources(job string, name int) ([]BuildInput, []BuildO
 		AND b.name = $2
 		AND o.build_id = b.id
 		AND o.versioned_resource_id = v.id
+		AND NOT EXISTS (
+			SELECT 1
+			FROM build_inputs
+			WHERE versioned_resource_id = v.id
+			AND build_id = b.id
+		)
 	`, job, name)
 	if err != nil {
 		return nil, nil, err
