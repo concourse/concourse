@@ -21,8 +21,8 @@ popd
 
 cd concourse-dev/
 
-git merge release-candidate
-git merge master
+git merge origin/release-candidate
+git merge origin/master
 
 git submodule update --remote
 
