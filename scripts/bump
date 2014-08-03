@@ -19,7 +19,7 @@ pushd warden-linux/
   export WARDEN_LINUX_SHA=$(git rev-parse HEAD)
 popd
 
-cd concourse/
+cd concourse-dev/
 
 git fetch
 git merge release-candidate
