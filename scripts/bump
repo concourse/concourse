@@ -24,8 +24,8 @@ cd concourse-dev/
 git remote -v
 git branch
 
-git merge origin/release-candidate
-git merge origin/master
+git merge release-candidate
+git merge master
 
 git submodule update --remote
 
