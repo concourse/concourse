@@ -11,7 +11,7 @@ if [ -z "$VERSION" ]; then
   exit 1
 fi
 
-cp deployments/sandbox/config/private.yml concourse/config/private.yml
+cp deployments/sandbox/config/private.yml concourse-dev/config/private.yml
 
 cd concourse-dev/
 
