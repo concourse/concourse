@@ -22,5 +22,16 @@ properties:
     description: "Warden server listening address."
     default: /var/vcap/data/warden/warden.sock
 
+  turbine.resource_types:
+    description: "The mapping from known resource types to their container rootfs."
+    default:
+      git: docker:///concourse/git-resource
+      raw: docker:///concourse/raw-resource
+      docker-image: docker:///concourse/docker-image-resource
+      time: docker:///concourse/time-resource
+      s3: docker:///concourse/s3-resource
+      tracker: docker:///concourse/tracker-resource
+      semver: docker:///concourse/semver-resource
+
   network_name:
     description: "Name of the network that the job lives in; used to figure out our IP."
