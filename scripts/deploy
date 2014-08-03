@@ -15,7 +15,6 @@ cp deployments/sandbox/config/private.yml concourse/config/private.yml
 
 cd concourse-dev/
 
-git fetch
 git merge master
 
 ./generate_deployment_manifest aws ../deployments/sandbox/stubs/*.yml > aws-deployment.yml

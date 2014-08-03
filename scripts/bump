@@ -21,7 +21,6 @@ popd
 
 cd concourse-dev/
 
-git fetch
 git merge release-candidate
 git merge master
 
