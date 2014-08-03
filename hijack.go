@@ -124,7 +124,7 @@ func hijack(reqGenerator *rata.RequestGenerator) {
 
 	term, err := term.Open(os.Stdin.Name())
 	if err != nil {
-		log.Fatalln("failed to open terminal:", term)
+		log.Fatalln("failed to open terminal:", err)
 	}
 
 	err = term.SetRaw()
