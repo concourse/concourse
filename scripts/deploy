@@ -5,7 +5,18 @@ set -e -x
 
 source ./deployments/sandbox/bosh_environment
 
-cd concourse/
+VERSION=$(cat ./version/number)
+if [ -z "$VERSION" ]; then
+  echo "missing version number"
+  exit 1
+fi
+
+cp deployments/sandbox/config/private.yml concourse/config/private.yml
+
+cd concourse-dev/
+
+git fetch
+git merge master
 
 ./generate_deployment_manifest aws ../deployments/sandbox/stubs/*.yml > aws-deployment.yml
 
@@ -17,9 +28,11 @@ if [ -f ../bosh-stemcells/*.tgz ]; then
   bosh -n upload stemcell ../bosh-stemcells/*.tgz --skip-if-exists
 fi
 
-bosh -n create release
+bosh -n create release --final --with-tarball --version "$VERSION"
 
-# remove '|| true' once the rebase crap is fixed
-bosh -n upload release --rebase --skip-if-exists || true
+bosh -n upload release --skip-if-exists
 
 yes yes | bosh deploy
+
+git add -A
+git ci -m "release v${VERSION}"

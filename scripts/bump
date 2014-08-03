@@ -21,6 +21,10 @@ popd
 
 cd concourse/
 
+git fetch
+git merge release-candidate
+git merge master
+
 git submodule update --remote
 
 pushd src/atc/
