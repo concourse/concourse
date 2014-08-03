@@ -13,6 +13,10 @@ bosh target ${BOSH_TARGET}
 
 bosh deployment aws-deployment.yml
 
+if [ -f ../bosh-stemcells/*.tgz ]; then
+  bosh -n upload stemcell ../bosh-stemcells/*.tgz --skip-if-exists
+fi
+
 bosh -n create release
 
 # remove '|| true' once the rebase crap is fixed
