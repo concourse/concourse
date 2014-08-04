@@ -68,8 +68,6 @@ function draw(nodes, edges) {
 
   var svg = d3.select("svg")
 
-  svg.attr("width", "100%");
-  svg.attr("height", "100%");
   svg.attr("viewBox", "-20 -20 " + (layout.graph().width + 40) + " " + (layout.graph().height + 40));
 
   svg.call(d3.behavior.zoom().on("zoom", function() {
