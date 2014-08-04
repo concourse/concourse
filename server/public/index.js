@@ -52,7 +52,6 @@ function draw(nodes, edges) {
 
       if(node.type == "job") {
         $("#node-"+u).attr("class", $("#node-"+u).attr("class") + " job " + node.status);
-        //console.log("NODE", graph.node(u).status);
       }
 
       $("#node-"+u+" rect").attr("rx", "0").attr("ry", "0");
@@ -61,17 +60,21 @@ function draw(nodes, edges) {
     return svgNodes;
   });
 
-  var layout = renderer.layout(dagreD3.layout().rankDir("LR")).run(dagreD3.json.decode(nodes, edges), d3.select("svg g"));
+  var layout = renderer.layout(
+    dagreD3.layout().rankDir("LR")).run(
+      dagreD3.json.decode(nodes, edges),
+      d3.select("svg g")
+  );
 
-  //layout.eachNode(function(u, value) {
-    //console.log("Node " + u + ": " + g.node(u));
-  //});
+  var svg = d3.select("svg")
 
-  //layout.eachEdge(function(e, u, v, value) {
-    //console.log("Edge " + u + " -> " + v + ": " + JSON.stringify(value));
-  //});
+  svg.attr("width", "100%");
+  svg.attr("height", "100%");
+  svg.attr("viewBox", "-20 -20 " + (layout.graph().width + 40) + " " + (layout.graph().height + 40));
 
-  d3.select("svg")
-    .attr("width", layout.graph().width + 40)
-    .attr("height", layout.graph().height + 40);
+  svg.call(d3.behavior.zoom().on("zoom", function() {
+    var ev = d3.event;
+    svg.select("g")
+       .attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
+  }));
 }
