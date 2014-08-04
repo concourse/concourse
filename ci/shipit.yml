@@ -1,0 +1,5 @@
+---
+image: docker:///concourse/concourse-ci
+
+run:
+  path: concourse-dev/scripts/shipit

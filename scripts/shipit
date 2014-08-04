@@ -1,0 +1,30 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -x
+
+source ./deployments/sandbox/bosh_environment
+
+VERSION=$(cat ./version/number)
+if [ -z "$VERSION" ]; then
+  echo "missing version number"
+  exit 1
+fi
+
+cp deployments/sandbox/config/private.yml concourse-rc/config/private.yml
+
+cd concourse-rc/
+
+git config --global user.email "ci@localhost"
+git config --global user.name "CI Bot"
+
+git merge --no-edit master
+
+bosh target ${BOSH_TARGET}
+
+bosh -n create release --final --with-tarball --version "$VERSION"
+
+bosh -n upload release --skip-if-exists
+
+git add -A
+git commit -m "release v${VERSION}"
