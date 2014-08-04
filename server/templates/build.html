@@ -28,8 +28,8 @@
 
 <div id="build-body">
   <div id="build-resources">
+    {{if not (eq 0 (len .Inputs))}}
     <div class="build-inputs">
-      {{if not (eq 0 (len .Inputs))}}
       <h2>inputs</h2>
       {{range .Inputs}}
       <div class="build-source{{if .FirstOccurrence}} first-occurrence{{end}}">
