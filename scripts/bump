@@ -21,8 +21,11 @@ popd
 
 cd concourse-dev/
 
-git merge --no-commit release-candidate
-git merge --no-commit master
+git config --global user.email "ci@localhost"
+git config --global user.name "CI Bot"
+
+git merge --no-edit release-candidate
+git merge --no-edit master
 
 git submodule update --remote
 
@@ -44,6 +47,4 @@ popd
 
 git add src/
 
-git config --global user.email "ci@localhost"
-git config --global user.name "CI Bot"
 git commit -m "auto-bump"

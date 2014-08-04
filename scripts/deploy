@@ -15,7 +15,10 @@ cp deployments/sandbox/config/private.yml concourse-dev/config/private.yml
 
 cd concourse-dev/
 
-git merge --no-commit master
+git config --global user.email "ci@localhost"
+git config --global user.name "CI Bot"
+
+git merge --no-edit master
 
 ./generate_deployment_manifest aws ../deployments/sandbox/stubs/*.yml > aws-deployment.yml
 
@@ -34,6 +37,4 @@ bosh -n upload release --skip-if-exists
 yes yes | bosh deploy
 
 git add -A
-git config --global user.email "ci@localhost"
-git config --global user.name "CI Bot"
 git commit -m "release v${VERSION}"
