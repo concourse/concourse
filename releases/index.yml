@@ -2,3 +2,5 @@
 builds:
   2c9d7d2d-7188-42ac-8dd2-505a226a0e7f:
     version: 0.1.0-rc.1
+  50773e2c-cd17-49f6-92b0-e51c505f543c:
+    version: 0.1.0-rc.2
