@@ -18,6 +18,7 @@ cd concourse-dev/
 git config --global user.email "ci@localhost"
 git config --global user.name "CI Bot"
 
+git merge --no-edit release-candidate
 git merge --no-edit master
 
 ./generate_deployment_manifest aws ../deployments/sandbox/stubs/*.yml > aws-deployment.yml
