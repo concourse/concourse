@@ -68,7 +68,7 @@ var _ = Describe("Scheduler", func() {
 			})
 		})
 
-		Context("when inputs new found", func() {
+		Context("when inputs are found", func() {
 			foundInputs := builds.VersionedResources{
 				{Name: "some-resource", Version: builds.Version{"version": "1"}},
 				{Name: "some-other-resource", Version: builds.Version{"version": "2"}},
@@ -116,6 +116,38 @@ var _ = Describe("Scheduler", func() {
 					checkedJob, checkedInputs := db.GetBuildForInputsArgsForCall(0)
 					Ω(checkedJob).Should(Equal("some-job"))
 					Ω(checkedInputs).Should(Equal(foundInputs))
+				})
+			})
+
+			Context("and all inputs are configured not to check", func() {
+				BeforeEach(func() {
+					for i, input := range job.Inputs {
+						noChecking := input
+						noChecking.DontCheck = true
+
+						job.Inputs[i] = noChecking
+					}
+				})
+
+				It("does not check for builds for the inputs", func() {
+					err := scheduler.BuildLatestInputs(job)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(db.GetBuildForInputsCallCount()).Should(Equal(0))
+				})
+
+				It("does not create a build", func() {
+					err := scheduler.BuildLatestInputs(job)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(db.CreateBuildWithInputsCallCount()).Should(Equal(0))
+				})
+
+				It("does not trigger a build", func() {
+					err := scheduler.BuildLatestInputs(job)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(builder.BuildCallCount()).Should(Equal(0))
 				})
 			})
 

@@ -49,6 +49,10 @@ func (s *Scheduler) BuildLatestInputs(job config.Job) error {
 		checkInputs = append(checkInputs, vr)
 	}
 
+	if len(checkInputs) == 0 {
+		return nil
+	}
+
 	_, err = s.DB.GetBuildForInputs(job.Name, checkInputs)
 	if err == nil {
 		return nil
