@@ -557,7 +557,7 @@ func (db *sqldb) GetLatestInputVersions(inputs []config.Input) (builds.Versioned
 
 		fromAliases = append(fromAliases, fmt.Sprintf("versioned_resources v%d", i+1))
 
-		conditions = append(conditions, fmt.Sprintf("v%d.resource_name = $%d", i+1, i+1))
+		conditions = append(conditions, fmt.Sprintf("v%d.id IN (SELECT id FROM versioned_resources WHERE resource_name = $%d)", i+1, i+1))
 
 		for _, name := range j.Passed {
 			idx, found := passedJobs[name]
@@ -589,7 +589,7 @@ func (db *sqldb) GetLatestInputVersions(inputs []config.Input) (builds.Versioned
 
 	query := fmt.Sprintf(
 		`
-			SELECT DISTINCT %s
+			SELECT %s
 			FROM %s
 			WHERE %s
 			ORDER BY %s
