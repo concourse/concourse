@@ -539,8 +539,6 @@ func (db *sqldb) GetLatestVersionedResource(name string) (builds.VersionedResour
 }
 
 func (db *sqldb) GetLatestInputVersions(inputs []config.Input) (builds.VersionedResources, error) {
-	idColumns := make([]string, len(inputs))
-	orderBy := make([]string, len(inputs))
 	fromAliases := []string{}
 	conditions := []string{}
 	params := []interface{}{}
@@ -552,12 +550,9 @@ func (db *sqldb) GetLatestInputVersions(inputs []config.Input) (builds.Versioned
 	}
 
 	for i, j := range inputs {
-		idColumns[i] = fmt.Sprintf("v%d.id", i+1)
-		orderBy[i] = fmt.Sprintf("v%d.id DESC", i+1)
-
 		fromAliases = append(fromAliases, fmt.Sprintf("versioned_resources v%d", i+1))
 
-		conditions = append(conditions, fmt.Sprintf("v%d.id IN (SELECT id FROM versioned_resources WHERE resource_name = $%d)", i+1, i+1))
+		conditions = append(conditions, fmt.Sprintf("v%d.resource_name = $%d", i+1, i+1))
 
 		for _, name := range j.Passed {
 			idx, found := passedJobs[name]
@@ -581,48 +576,29 @@ func (db *sqldb) GetLatestInputVersions(inputs []config.Input) (builds.Versioned
 		}
 	}
 
-	ids := []interface{}{}
-	for _ = range inputs {
-		var id int
-		ids = append(ids, &id)
-	}
-
-	query := fmt.Sprintf(
-		`
-			SELECT %s
-			FROM %s
-			WHERE %s
-			ORDER BY %s
-			LIMIT 1
-		`,
-		strings.Join(idColumns, ", "),
-		strings.Join(fromAliases, ", "),
-		strings.Join(conditions, "\nAND "),
-		strings.Join(orderBy, ", "),
-	)
-
-	err := db.conn.QueryRow(query, params...).Scan(ids...)
-	if err != nil {
-		return nil, err
-	}
-
 	vrs := []builds.VersionedResource{}
 
-	for _, idPtr := range ids {
-		id := *(idPtr.(*int))
-
+	for i, _ := range inputs {
 		var vr builds.VersionedResource
 
+		var id int
 		var source, version, metadata string
 
-		err := db.conn.QueryRow(`
-			SELECT resource_name, type, source, version, metadata
-			FROM versioned_resources
-			WHERE id = $1
-		`, id).Scan(&vr.Name, &vr.Type, &source, &version, &metadata)
-		if err != nil {
-			return nil, err
-		}
+		err := db.conn.QueryRow(fmt.Sprintf(
+			`
+				SELECT v%[1]d.id, v%[1]d.resource_name, v%[1]d.type, v%[1]d.source, v%[1]d.version, v%[1]d.metadata
+				FROM %s
+				WHERE %s
+				ORDER BY v%[1]d.id DESC
+				LIMIT 1
+			`,
+			i+1,
+			strings.Join(fromAliases, ", "),
+			strings.Join(conditions, "\nAND "),
+		), params...).Scan(&id, &vr.Name, &vr.Type, &source, &version, &metadata)
+
+		params = append(params, id)
+		conditions = append(conditions, fmt.Sprintf("v%d.id = $%d", i+1, len(params)))
 
 		err = json.Unmarshal([]byte(source), &vr.Source)
 		if err != nil {
