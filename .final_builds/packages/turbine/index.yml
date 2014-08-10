@@ -6,3 +6,9 @@ builds:
     sha1: !binary |-
       MTRiOGY2MzY2N2U0YTdlNzcwY2MzOWUzOTNlYTA4MzQ5NTRiNWI3YQ==
     blobstore_id: 26d09188-fce8-439b-976f-8ddf6dc72a3e
+  !binary "MzhjODE4NTNjZWEzNTYwNTc5NzhjM2QwZTFjMTQ2NzhkY2U2MzhiMw==":
+    version: !binary |-
+      MzhjODE4NTNjZWEzNTYwNTc5NzhjM2QwZTFjMTQ2NzhkY2U2MzhiMw==
+    sha1: !binary |-
+      YmI5NzFhNzIwNDQ3OGM4OTVhZTg5MzI2MDU0ZTBjOTcxMjdjNTg0Nw==
+    blobstore_id: fe560ef0-90e3-4adb-922a-57c187a1041b
