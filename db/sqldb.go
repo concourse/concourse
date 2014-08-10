@@ -627,22 +627,30 @@ func (db *sqldb) GetBuildForInputs(job string, inputs builds.VersionedResources)
 	params := []interface{}{job}
 
 	for i, vr := range inputs {
-		from = append(from, fmt.Sprintf("build_inputs i%d", i+1))
-		from = append(from, fmt.Sprintf("versioned_resources v%d", i+1))
-
 		versionBytes, err := json.Marshal(vr.Version)
 		if err != nil {
 			return builds.Build{}, err
 		}
 
-		params = append(params, vr.Name, vr.Type, string(versionBytes))
+		var id int
+
+		err = db.conn.QueryRow(`
+			SELECT id
+			FROM versioned_resources
+			WHERE resource_name = $1
+			AND type = $2
+			AND version = $3
+		`, vr.Name, vr.Type, string(versionBytes)).Scan(&id)
+		if err != nil {
+			return builds.Build{}, err
+		}
+
+		from = append(from, fmt.Sprintf("build_inputs i%d", i+1))
+		params = append(params, id)
 
 		conditions = append(conditions,
 			fmt.Sprintf("i%d.build_id = b.id", i+1),
-			fmt.Sprintf("i%d.versioned_resource_id = v%d.id", i+1, i+1),
-			fmt.Sprintf("v%d.resource_name = $%d", i+1, len(params)-2),
-			fmt.Sprintf("v%d.type = $%d", i+1, len(params)-1),
-			fmt.Sprintf("v%d.version = $%d", i+1, len(params)),
+			fmt.Sprintf("i%d.versioned_resource_id = $%d", i+1, len(params)),
 		)
 	}
 
