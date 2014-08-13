@@ -18,4 +18,3 @@ blobs
 /src_alt
 
 .vagrant/
-releases/**/*.tgz
