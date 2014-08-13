@@ -40,3 +40,4 @@ builds:
     version: 0.3.0-rc.7
   b2f553a5-15b8-41ec-b2d2-f0992d5b6cf8:
     version: 0.3.0-rc.8
+format-version: '2'
