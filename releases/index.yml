@@ -40,3 +40,7 @@ builds:
     version: 0.3.0-rc.7
   b2f553a5-15b8-41ec-b2d2-f0992d5b6cf8:
     version: 0.3.0-rc.8
+  0de3d755-9e0a-4f37-b2f6-3b773f88be46:
+    version: 0.3.0-rc.9
+  81cc36b4-f474-42f7-962c-e807c4ace8eb:
+    version: 0.3.0-rc.10
