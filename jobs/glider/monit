@@ -1,5 +1,5 @@
 check process glider
   with pidfile /var/vcap/sys/run/glider/glider.pid
-  start program "/var/vcap/jobs/glider/bin/ctl start"
-  stop program "/var/vcap/jobs/glider/bin/ctl stop"
+  start program "/var/vcap/jobs/glider/bin/glider_ctl start"
+  stop program "/var/vcap/jobs/glider/bin/glider_ctl stop"
   group vcap
