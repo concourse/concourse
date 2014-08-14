@@ -1,6 +1,7 @@
 config/dev.yml
 config/private.yml
 releases/*.tgz
+releases/**/*.tgz
 dev_releases
 .blobs
 blobs
