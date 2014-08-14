@@ -13,6 +13,5 @@ fi
 
 spiff merge \
   $templates/deployment.yml \
-  $templates/jobs.yml \
   $templates/infrastructure-${infrastructure}.yml \
   $*

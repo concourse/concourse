@@ -29,6 +29,7 @@ properties:
 
   atc.turbine.address:
     description: "Address of turbine server to use to run builds."
+    default: turbine.service.dc1.consul:4637
 
   atc.config:
     description: "Winston server configuration."
@@ -36,12 +37,15 @@ properties:
 
   atc.postgresql.address:
     description: "Address of the PostgreSQL server."
+    default: postgresql.service.dc1.consul:5432
 
   atc.postgresql.database:
     description: "Name of the database to use."
+    default: atc
 
   atc.postgresql.role.name:
     description: "Name of role to connect with."
+    default: atc
 
   atc.postgresql.role.password:
     description: "Password to use when connecting."

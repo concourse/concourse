@@ -19,3 +19,8 @@ postgresql/postgresql-9.3.4.tar.gz:
   sha: !binary |-
     OWY4MGIzY2ZlYmM0MzRjYTA4NjBmYzg0ODk5MjNjZWE3MzQ1NjA4MQ==
   size: 21865589
+consul_0.3/consul:
+  object_id: 03a93976-87ff-4d84-92b9-b03e0f979720
+  sha: !binary |-
+    NDhiOWI2NzFmNzU0NzliZWJjZTczOGYzMDY1NGUxODUyMGQ5NGM5Ng==
+  size: 14388499

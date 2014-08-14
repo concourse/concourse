@@ -15,6 +15,7 @@ properties:
 
   glider.turbine.address:
     description: "Address of turbine server to use to run builds."
+    default: turbine.service.dc1.consul:4637
 
   network_name:
     description: "Name of the network that the job lives in; used to figure out our IP."

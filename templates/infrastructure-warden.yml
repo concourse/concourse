@@ -1,83 +1,32 @@
 meta:
   stemcell:
     name: bosh-warden-boshlite-ubuntu-trusty-go_agent
-    version: latest
-
-update:
-  canaries: 0
-  max_in_flight: 10
-  canary_watch_time: 1000-60000
-  update_watch_time: 1000-60000
-
-compilation:
-  cloud_properties:
-    name: random
-
-resource_pools:
-  - name: glider
-    cloud_properties:
-      name: random
-
-  - name: turbines
-    cloud_properties:
-      name: random
-
-  - name: postgresql
-    cloud_properties:
-      name: random
-
-  - name: atc
-    cloud_properties:
-      name: random
 
 jobs:
-  - name: glider
-    instances: 1
-    networks:
-      - name: concourse
-        static_ips: (( static_ips(0) ))
-    properties:
-      glider:
-        turbine:
-          address: (( jobs.turbine.networks.concourse.static_ips.[0] ":4637" ))
-
   - name: postgresql
-    instances: 1
-    resource_pool: postgresql
     persistent_disk: 1024
-    networks:
-      - name: concourse
-        static_ips: (( static_ips(1) ))
     properties:
       postgresql:
         roles:
           - name: atc
             password: dummy-password
 
-  - name: atc
-    properties:
-      atc:
-        turbine:
-          address: (( jobs.turbine.networks.concourse.static_ips.[0] ":4637" ))
-        postgresql:
-          address: (( jobs.postgresql.networks.concourse.static_ips.[0] ":5432" ))
+compilation:
+  cloud_properties:
+    name: random
 
-  - name: turbine
-    instances: 1
-    networks:
-      - name: concourse
-        static_ips: (( static_ips(16) ))
-    properties:
-      warden:
-        kernel_network_tuning_enabled: false
-        disk_quota_enabled: false
-        listen_network: tcp
-        listen_address: 0.0.0.0:7777
+resource_pools:
+  - name: orchestration
+    cloud_properties:
+      name: random
 
-      turbine:
-        warden:
-          network: tcp
-          address: 127.0.0.1:7777
+  - name: databases
+    cloud_properties:
+      name: random
+
+  - name: workers
+    cloud_properties:
+      name: random
 
 networks:
 - name: concourse
