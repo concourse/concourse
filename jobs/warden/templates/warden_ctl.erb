@@ -16,11 +16,6 @@ case $1 in
     mkdir -p $DATA_DIR
     mkdir -p $LOG_DIR
 
-    <% if p("warden.kernel_network_tuning_enabled") == true %>
-    # Use default local port range (higher ports are used for pooling)
-    echo 32768 61000 > /proc/sys/net/ipv4/ip_local_port_range
-    <% end %>
-
     mkdir -p $DATA_DIR/depot
 
     echo $$ > /var/vcap/sys/run/warden/warden.pid
@@ -34,10 +29,8 @@ case $1 in
 
     export PATH=/var/vcap/packages/iptables/sbin:$PATH
 
-    # TODO fix rootfs
-
     exec /var/vcap/packages/warden-linux/bin/warden-linux \
-      -disableQuotas=<%= !p("warden.disk_quota_enabled") %> \
+      -disableQuotas=true \
       -listenNetwork=<%= p("warden.listen_network") %> \
       -listenAddr=<%= p("warden.listen_address") %> \
       -denyNetworks=<%= p("warden.deny_networks").join(",") %> \
@@ -45,7 +38,6 @@ case $1 in
       -networkPool=10.234.0.0/22 \
       -depot=${DATA_DIR}/depot \
       -graph=${DATA_DIR}/graph \
-      -rootfs=/var/vcap/data/some/bogus/path \
       -bin=/var/vcap/packages/warden-linux/src/github.com/cloudfoundry-incubator/warden-linux/linux_backend/bin \
       -overlays=${DATA_DIR}/overlays \
       -snapshots=${DATA_DIR}/snapshots \
