@@ -25,10 +25,6 @@ case $1 in
 
     setcap cap_net_bind_service=+ep $PKG/bin/consul
 
-    if ! grep -q 127.0.0.1 /etc/resolv.conf; then
-      sed -i -e '1i nameserver 127.0.0.1' /etc/resolv.conf
-    fi
-
     echo $$ > ${RUN_DIR}/consul-agent.pid
 
     <% p("consul.agent.services").each do |service| %>
