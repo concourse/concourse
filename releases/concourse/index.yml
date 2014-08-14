@@ -50,4 +50,6 @@ builds:
     version: 0.3.0-rc.12
   377f3cd8-9f86-42a4-bd76-338a0241bfee:
     version: 0.3.0-rc.13
+  185691c8-ed20-4ceb-8756-5a809f1a1766:
+    version: 0.3.0-rc.14
 format-version: '2'
