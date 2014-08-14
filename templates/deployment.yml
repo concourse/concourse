@@ -24,6 +24,8 @@ jobs:
     properties:
       network_name: concourse
       atc:
+        basic_auth_encrypted_password: ~
+        basic_auth_username: ~
         config: (( merge ))
         postgresql:
           database: atc
