@@ -49,6 +49,7 @@ jobs:
     networks:
       - name: concourse
     properties:
+      network_name: concourse
       postgresql:
         databases:
           - name: atc
