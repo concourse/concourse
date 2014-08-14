@@ -13,6 +13,10 @@
     "ports" => {
       "dns" => 53,
     },
+
+    # without this, a single bootstrapped server will be orphaned after
+    # restarting
+    "rejoin_after_leave" => true
   }
 
   if server && (lan_servers.empty? || lan_servers.first == my_ip)
