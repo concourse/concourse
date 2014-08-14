@@ -85,7 +85,7 @@ case "$1" in
   stop)
     echo "Stopping PostgreSQL: "
     su - vcap -c "$PACKAGE_DIR/bin/pg_ctl stop -m fast -w -D $DATA_DIR"
-    wait_pidfile $PIDFILE
+    wait_pidfile $PIDFILE 1
 
     ;;
 
