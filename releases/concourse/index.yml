@@ -54,4 +54,6 @@ builds:
     version: 0.3.0-rc.14
   6f32dc0c-5c11-4249-bf7c-b5324b4c8a2c:
     version: 0.3.0-rc.15
+  5512ae30-c0fd-4407-b8ce-c03e267ad354:
+    version: 0.3.0-rc.16
 format-version: '2'
