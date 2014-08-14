@@ -156,7 +156,7 @@ func main() {
 	for {
 		dbConn, err = migration.Open(*sqlDriver, *sqlDataSource, migrations.Migrations)
 		if err != nil {
-			if strings.Contains(err.Error(), "connection refused") {
+			if strings.Contains(err.Error(), " dial ") {
 				logger.Error("failed-to-open-db", err)
 				time.Sleep(5 * time.Second)
 				continue
