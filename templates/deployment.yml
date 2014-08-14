@@ -41,6 +41,8 @@ jobs:
     templates:
       - name: postgresql
         release: concourse
+      - name: consul-agent
+        release: concourse
     instances: 1
     resource_pool: databases
     persistent_disk: 10240
@@ -65,6 +67,8 @@ jobs:
       - name: turbine
         release: concourse
       - name: warden
+        release: concourse
+      - name: consul-agent
         release: concourse
     instances: 1
     resource_pool: workers
