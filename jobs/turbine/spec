@@ -16,11 +16,11 @@ properties:
 
   turbine.warden.network:
     description: "Network type for the warden server connection (tcp or unix)."
-    default: unix
+    default: tcp
 
   turbine.warden.address:
     description: "Warden server listening address."
-    default: /var/vcap/data/warden/warden.sock
+    default: 127.0.0.1:7777
 
   turbine.resource_types:
     description: "The mapping from known resource types to their container rootfs."
