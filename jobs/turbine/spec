@@ -3,7 +3,7 @@ name: turbine
 
 templates:
   drain: bin/drain
-  ctl.erb: bin/ctl
+  turbine_ctl.erb: bin/turbine_ctl
 
 packages:
   - pid_utils

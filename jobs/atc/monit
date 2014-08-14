@@ -1,5 +1,5 @@
 check process atc
   with pidfile /var/vcap/sys/run/atc/atc.pid
-  start program "/var/vcap/jobs/atc/bin/ctl start"
-  stop program "/var/vcap/jobs/atc/bin/ctl stop"
+  start program "/var/vcap/jobs/atc/bin/atc_ctl start"
+  stop program "/var/vcap/jobs/atc/bin/atc_ctl stop"
   group vcap

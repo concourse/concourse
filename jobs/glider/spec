@@ -2,7 +2,7 @@
 name: glider
 
 templates:
-  ctl.erb: bin/ctl
+  glider_ctl.erb: bin/glider_ctl
 
 packages:
   - pid_utils

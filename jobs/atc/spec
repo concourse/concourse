@@ -3,7 +3,7 @@ name: atc
 
 templates:
   drain: bin/drain
-  ctl.erb: bin/ctl
+  atc_ctl.erb: bin/atc_ctl
   config.yml.erb: config/atc.yml
 
 packages:
