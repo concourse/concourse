@@ -58,4 +58,6 @@ builds:
     version: 0.3.0-rc.16
   cbe955f4-6634-46a1-8ff1-605d85065d69:
     version: 0.3.0-rc.17
+  41922cae-8832-46cb-9131-d33fd02dd727:
+    version: 0.3.0-rc.18
 format-version: '2'
