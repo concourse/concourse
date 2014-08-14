@@ -1,0 +1,38 @@
+---
+name: consul-agent
+
+templates:
+  agent_ctl.sh.erb: bin/agent_ctl
+  join_ctl.sh.erb: bin/join_ctl
+  config.json.erb: config/config.json
+
+packages:
+  - consul_0.3
+
+properties:
+  network_name:
+    description: "Name of the network the job resides in."
+
+  consul.agent.mode:
+    description: "Mode to run the agent in. (client or server)"
+    default: client
+
+  consul.agent.servers.lan:
+    description: "LAN server addresses to join on start."
+    default: []
+
+  consul.agent.servers.wan:
+    description: "WAN server addresses to join."
+    default: []
+
+  consul.agent.log_level:
+    description: "Agent log level."
+    default: info
+
+  consul.agent.datacenter:
+    description: "Name of the agent's datacenter."
+    default: dc1
+
+  consul.agent.services:
+    description: "List of services to configure."
+    default: []

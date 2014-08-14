@@ -1,0 +1,25 @@
+<%=
+  my_ip = spec.networks.send(p("network_name")).ip
+
+  server = p("consul.agent.mode") == "server"
+  lan_servers = p("consul.agent.servers.lan")
+
+  config = {
+    "datacenter" => p("consul.agent.datacenter"),
+    "data_dir" => "/var/vcap/data/consul-agent",
+    "log_level" => p("consul.agent.log_level"),
+    "node_name" => "#{name}-#{spec.index}",
+    "server" => server,
+    "ports" => {
+      "dns" => 53,
+    },
+  }
+
+  if server && (lan_servers.empty? || lan_servers.first == my_ip)
+    config["bootstrap"] = true
+  else
+    config["start_join"] = lan_servers
+  end
+
+  config.to_json
+%>

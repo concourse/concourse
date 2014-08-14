@@ -1,3 +1,4 @@
+---
 name: concourse
 
 director_uuid: (( merge ))
@@ -6,16 +7,82 @@ releases:
   - name: concourse
     version: latest
 
-networks: (( merge ))
+jobs:
+  - name: atc
+    templates:
+      - name: atc
+        release: concourse
+      - name: glider
+        release: concourse
+      - name: consul-agent
+        release: concourse
+    instances: 1
+    resource_pool: orchestration
+    networks:
+      - name: concourse
+        static_ips: (( static_ips(0) ))
+    properties:
+      network_name: concourse
+      atc:
+        config: (( merge ))
+        postgresql:
+          database: atc
+          role: (( jobs.postgresql.properties.postgresql.roles.atc ))
+      consul:
+        agent:
+          mode: server
+          services:
+            - name: atc
+            - name: glider
 
-jobs: (( merge ))
+  - name: postgresql
+    templates:
+      - name: postgresql
+        release: concourse
+    instances: 1
+    resource_pool: databases
+    persistent_disk: 10240
+    networks:
+      - name: concourse
+    properties:
+      postgresql:
+        databases:
+          - name: atc
+        roles:
+          - name: atc
+            password: (( merge ))
+      consul:
+        agent:
+          servers:
+            lan: (( jobs.atc.networks.concourse.static_ips ))
+          services:
+            - name: postgresql
+
+  - name: turbine
+    templates:
+      - name: turbine
+        release: concourse
+      - name: warden
+        release: concourse
+    instances: 1
+    resource_pool: workers
+    networks:
+      - name: concourse
+    properties:
+      network_name: concourse
+      consul:
+        agent:
+          servers:
+            lan: (( jobs.atc.networks.concourse.static_ips ))
+          services:
+            - name: turbine
 
 meta:
-  environment: ~
-
   stemcell:
     name: (( merge ))
     version: latest
+
+networks: (( merge ))
 
 compilation:
   workers: 6
@@ -27,30 +94,21 @@ update:
   canaries: 1
   max_in_flight: 3
   serial: false
-  canary_watch_time: 30000-600000
-  update_watch_time: 5000-600000
+  canary_watch_time: 1000-60000
+  update_watch_time: 1000-60000
 
 resource_pools:
-  - name: atc
+  - name: orchestration
     network: concourse
-    size: (( auto ))
     stemcell: (( meta.stemcell ))
     cloud_properties: (( merge ))
 
-  - name: postgresql
+  - name: databases
     network: concourse
-    size: (( auto ))
     stemcell: (( meta.stemcell ))
     cloud_properties: (( merge ))
 
-  - name: glider
+  - name: workers
     network: concourse
-    size: (( auto ))
-    stemcell: (( meta.stemcell ))
-    cloud_properties: (( merge ))
-
-  - name: turbines
-    network: concourse
-    size: (( auto ))
     stemcell: (( meta.stemcell ))
     cloud_properties: (( merge ))

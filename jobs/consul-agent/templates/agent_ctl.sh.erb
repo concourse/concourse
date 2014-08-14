@@ -1,0 +1,53 @@
+#!/bin/bash -e
+# vim: set ft=sh
+
+LOG_DIR=/var/vcap/sys/log/consul-agent
+RUN_DIR=/var/vcap/sys/run/consul-agent
+DATA_DIR=/var/vcap/data/consul-agent
+CONF_DIR=/var/vcap/jobs/consul-agent/config
+
+PKG=/var/vcap/packages/consul_0.3
+
+mkdir -p /var/vcap/sys/log/monit
+exec 1>> /var/vcap/sys/log/monit/consul-agent.out.log
+exec 2>> /var/vcap/sys/log/monit/consul-agent.err.log
+
+case $1 in
+  start)
+    mkdir -p $LOG_DIR
+    chown -R vcap:vcap $LOG_DIR
+
+    mkdir -p $RUN_DIR
+    chown -R vcap:vcap $RUN_DIR
+
+    mkdir -p $DATA_DIR
+    chown -R vcap:vcap $DATA_DIR
+
+    setcap cap_net_bind_service=+ep $PKG/bin/consul
+
+    if ! grep -q 127.0.0.1 /etc/resolv.conf; then
+      sed -i -e '1i nameserver 127.0.0.1' /etc/resolv.conf
+    fi
+
+    echo $$ > ${RUN_DIR}/consul-agent.pid
+
+    <% p("consul.agent.services").each do |service| %>
+    cat > $CONF_DIR/service-<%= service["name"] %>.json <<EOF
+<%= { "service" => service }.to_json %>
+EOF
+    <% end %>
+
+    exec chpst -u vcap:vcap $PKG/bin/consul agent -config-dir=$CONF_DIR \
+      1>>$LOG_DIR/consul-agent.stdout.log \
+      2>>$LOG_DIR/consul-agent.stderr.log
+
+    ;;
+
+  stop)
+    $PKG/bin/consul leave
+    ;;
+
+  *)
+    echo "Usage: $0 {start|stop}"
+    ;;
+esac

@@ -20,7 +20,7 @@ update:
   max_in_flight: 10
 
 jobs:
-- name: atc
+- name: concourse
   instances: 1
 
   templates:
@@ -34,6 +34,8 @@ jobs:
     release: concourse
   - name: warden
     release: concourse
+  - name: consul-agent
+    release: concourse
 
   networks:
   - name: concourse
@@ -45,28 +47,25 @@ jobs:
       config:
         jobs:
         - name: dummy
-          image: ubuntu
-          script: |
-            echo 'Hello, world!'
-
-      turbine:
-        address: 127.0.0.1:4637
+          config:
+            image: docker:///ubuntu#14.04
+            run:
+              path: echo
+              args: [Hello, world!]
 
       postgresql:
-        address: 127.0.0.1:5432
-        database: atc
         role:
-          name: atc
           password: dummy-password
 
-    glider:
-      turbine:
-        address: 127.0.0.1:4637
-
-    turbine:
-      warden:
-        address: 127.0.0.1:7777
-        network: tcp
+    consul:
+      agent:
+        mode: server
+        services:
+          - name: atc
+          - name: turbine
+          - name: glider
+          - name: postgresql
+          - name: warden
 
     postgresql:
       databases:
@@ -74,9 +73,3 @@ jobs:
       roles:
         - name: atc
           password: dummy-password
-
-    warden:
-      disk_quota_enabled: false
-      kernel_network_tuning_enabled: false
-      listen_address: 0.0.0.0:7777
-      listen_network: tcp
