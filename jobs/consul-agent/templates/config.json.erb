@@ -14,6 +14,11 @@
       "dns" => 53,
     },
 
+    # explicitly listen and advertise this job's IP; otherwise consul will pick
+    # an external IP, and possibly pick the wrong one (e.g. if containers are
+    # running on the VM)
+    "bind_addr" => my_ip,
+
     # without this, a single bootstrapped server will be orphaned after
     # restarting
     "rejoin_after_leave" => true
