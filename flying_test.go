@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -88,7 +89,7 @@ cat < /tmp/fifo
 			)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			fly := exec.Command(builtComponents["fly"], "--", "SOME", "ARGS")
+			fly := exec.Command(builtComponents["fly"])
 			fly.Dir = fixture
 
 			flyS, err := gexec.Start(fly, GinkgoWriter, GinkgoWriter)
@@ -109,6 +110,37 @@ cat < /tmp/fifo
 			Eventually(hijackS, 5*time.Second).Should(gexec.Exit())
 
 			Eventually(flyS).Should(gexec.Exit(0))
+		})
+	})
+
+	Describe("aborting", func() {
+		It("terminates the running build", func() {
+			err := ioutil.WriteFile(
+				filepath.Join(fixture, "run"),
+				[]byte(`#!/bin/bash
+trap "echo build got sigterm; exit 1" SIGTERM
+sleep 1000 &
+echo waiting
+wait
+`),
+				0755,
+			)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			fly := exec.Command(builtComponents["fly"])
+			fly.Dir = fixture
+
+			flyS, err := gexec.Start(fly, GinkgoWriter, GinkgoWriter)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Eventually(flyS, 10*time.Second).Should(gbytes.Say("waiting"))
+
+			flyS.Signal(syscall.SIGTERM)
+
+			Eventually(flyS, 10*time.Second).Should(gbytes.Say("build got sigterm"))
+
+			// build should have errored
+			Eventually(flyS, 5*time.Second).Should(gexec.Exit(2))
 		})
 	})
 })
