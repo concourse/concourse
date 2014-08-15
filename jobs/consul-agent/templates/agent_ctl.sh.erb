@@ -23,15 +23,24 @@ case $1 in
     mkdir -p $DATA_DIR
     chown -R vcap:vcap $DATA_DIR
 
-    setcap cap_net_bind_service=+ep $PKG/bin/consul
-
-    echo $$ > ${RUN_DIR}/consul-agent.pid
-
     <% p("consul.agent.services").each do |service| %>
     cat > $CONF_DIR/service-<%= service["name"] %>.json <<EOF
 <%= { "service" => service }.to_json %>
 EOF
     <% end %>
+
+    # /etc/resolv.conf gets regenerated all the time, so add the local dns
+    # server to /head, which will be prepended when regenerated.
+    #
+    # cannot rely on using bosh deployment manifest to configure 127.0.0.1 as
+    # dns; there seems to be some bug with how the file is generated, as the
+    # file has all entries after 127.0.0.1 ignored.
+    echo 'nameserver 127.0.0.1' > /etc/resolvconf/resolv.conf.d/head
+    resolvconf -u
+
+    setcap cap_net_bind_service=+ep $PKG/bin/consul
+
+    echo $$ > ${RUN_DIR}/consul-agent.pid
 
     exec chpst -u vcap:vcap $PKG/bin/consul agent -config-dir=$CONF_DIR \
       1>>$LOG_DIR/consul-agent.stdout.log \
