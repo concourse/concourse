@@ -70,4 +70,6 @@ builds:
     version: 0.3.0-rc.22
   d0b5649d-82a6-44d2-99ef-c62c28d01d8c:
     version: 0.3.0-rc.23
+  55bacb97-5218-4db8-8fa4-2d1810989635:
+    version: 0.3.0-rc.24
 format-version: '2'
