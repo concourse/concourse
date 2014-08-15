@@ -295,6 +295,10 @@ run:
 						close(aborted)
 					},
 				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/builds/abc/result"),
+					ghttp.RespondWith(200, `{"status":"errored"}`),
+				),
 			)
 		})
 
@@ -312,7 +316,7 @@ run:
 
 				Eventually(aborted, 5.0).Should(BeClosed())
 
-				Eventually(flySession, 5.0).Should(gexec.Exit(130))
+				Eventually(flySession, 5.0).Should(gexec.Exit(2))
 			})
 		})
 
@@ -330,7 +334,7 @@ run:
 
 				Eventually(aborted, 5.0).Should(BeClosed())
 
-				Eventually(flySession, 5.0).Should(gexec.Exit(143))
+				Eventually(flySession, 5.0).Should(gexec.Exit(2))
 			})
 		})
 	})
