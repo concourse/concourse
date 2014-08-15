@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"sync"
 	"syscall"
@@ -33,6 +34,12 @@ func execute(reqGenerator *rata.RequestGenerator) {
 	}
 
 	build := create(reqGenerator, loadConfig(absConfig), filepath.Base(filepath.Dir(absConfig)))
+
+	terminate := make(chan os.Signal, 1)
+
+	go abortOnSignal(reqGenerator, terminate, build)
+
+	signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
 
 	logOutput, err := reqGenerator.CreateRequest(
 		routes.LogOutput,
@@ -132,6 +139,31 @@ func create(reqGenerator *rata.RequestGenerator, config TurbineBuilds.Config, na
 	}
 
 	return build
+}
+
+func abortOnSignal(
+	reqGenerator *rata.RequestGenerator,
+	terminate <-chan os.Signal,
+	build builds.Build,
+) {
+	<-terminate
+
+	println("\naborting...")
+	abortReq, err := reqGenerator.CreateRequest(
+		routes.AbortBuild,
+		rata.Params{"guid": build.Guid},
+		nil,
+	)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	resp, err := http.DefaultClient.Do(abortReq)
+	if err != nil {
+		log.Println("failed to abort:", err)
+	}
+
+	resp.Body.Close()
 }
 
 func stream(conn *websocket.Conn, streaming *sync.WaitGroup) {

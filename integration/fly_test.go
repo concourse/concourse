@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 
 	"github.com/gorilla/websocket"
 	. "github.com/onsi/ginkgo"
@@ -278,6 +279,59 @@ run:
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Eventually(polling, 5.0).Should(BeClosed())
+		})
+	})
+
+	Context("when the build is interrupted", func() {
+		var aborted chan struct{}
+
+		BeforeEach(func() {
+			aborted = make(chan struct{})
+
+			gliderServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/builds/abc/abort"),
+					func(w http.ResponseWriter, r *http.Request) {
+						close(aborted)
+					},
+				),
+			)
+		})
+
+		Describe("with SIGINT", func() {
+			It("aborts the build and exits nonzero", func() {
+				flyCmd := exec.Command(flyPath)
+				flyCmd.Dir = buildDir
+
+				flySession, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).ToNot(HaveOccurred())
+
+				Eventually(polling, 5.0).Should(BeClosed())
+
+				flySession.Signal(syscall.SIGINT)
+
+				Eventually(aborted, 5.0).Should(BeClosed())
+
+				Eventually(flySession, 5.0).Should(gexec.Exit(130))
+			})
+		})
+
+		Describe("with SIGTERM", func() {
+			It("aborts the build and exits nonzero", func() {
+				flyCmd := exec.Command(flyPath)
+				flyCmd.Dir = buildDir
+
+				flySession, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).ToNot(HaveOccurred())
+
+				Eventually(polling, 5.0).Should(BeClosed())
+
+				flySession.Signal(syscall.SIGTERM)
+
+				Eventually(aborted, 5.0).Should(BeClosed())
+
+				Eventually(flySession, 5.0).Should(gexec.Exit(143))
+			})
 		})
 	})
 
