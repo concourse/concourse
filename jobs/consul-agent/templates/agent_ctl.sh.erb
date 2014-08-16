@@ -40,6 +40,13 @@ EOF
 
     setcap cap_net_bind_service=+ep $PKG/bin/consul
 
+    GOMAXPROCS=$(nproc)
+    if [ "$GOMAXPROCS" = "1" ]; then
+      GOMAXPROCS=2
+    fi
+
+    export GOMAXPROCS
+
     exec chpst -u vcap:vcap $PKG/bin/consul agent \
       -pid-file=${RUN_DIR}/consul-agent.pid \
       -config-dir=$CONF_DIR \
