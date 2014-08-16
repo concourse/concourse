@@ -2,16 +2,10 @@
 
 templates=$(dirname $0)/templates
 
-infrastructure=$1
-
+# discard temporary noop infrastructure arg
 shift
-
-if [ "$infrastructure" != "aws" ] && [ "$infrastructure" != "warden" ] && [ "$infrastructure" != "workstation" ]; then
-  echo "usage: ./generate_deployment_manifest <aws|warden> [stubs...]"
-  exit 1
-fi
 
 spiff merge \
   $templates/deployment.yml \
-  $templates/infrastructure-${infrastructure}.yml \
+  $templates/infrastructure-aws.yml \
   $*
