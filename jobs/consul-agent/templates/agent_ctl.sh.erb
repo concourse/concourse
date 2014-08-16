@@ -40,9 +40,9 @@ EOF
 
     setcap cap_net_bind_service=+ep $PKG/bin/consul
 
-    echo $$ > ${RUN_DIR}/consul-agent.pid
-
-    exec chpst -u vcap:vcap $PKG/bin/consul agent -config-dir=$CONF_DIR \
+    exec chpst -u vcap:vcap $PKG/bin/consul agent \
+      -pid-file=${RUN_DIR}/consul-agent.pid \
+      -config-dir=$CONF_DIR \
       1>>$LOG_DIR/consul-agent.stdout.log \
       2>>$LOG_DIR/consul-agent.stderr.log
 
