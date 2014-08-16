@@ -24,8 +24,12 @@
     "rejoin_after_leave" => true
   }
 
-  if server && (lan_servers.empty? || lan_servers.first == my_ip)
-    config["bootstrap"] = true
+  if server
+    if lan_servers.empty?
+      config["bootstrap"] = true
+    else
+      config["bootstrap_expect"] = lan_servers.size
+    end
   else
     config["start_join"] = lan_servers
   end
