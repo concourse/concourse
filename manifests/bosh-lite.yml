@@ -1,0 +1,172 @@
+---
+name: concourse
+
+# replace with bosh status --uuid; below uuid taken from bosh-lite v237
+director_uuid: 9dd8ea1e-36ec-4f00-aa91-05ec4e7d496f
+
+# fill in with jobs and resources
+atc_config: &atc_config
+  resources: []
+
+  jobs:
+    - name: dummy
+      config:
+        image: docker:///ubuntu#14.04
+        run:
+          path: echo
+          args: [Hello, world!]
+
+releases:
+  - name: concourse
+    version: latest
+
+jobs:
+  - name: web
+    instances: 1
+    templates:
+      - name: atc
+        release: concourse
+      - name: glider
+        release: concourse
+      - name: consul-agent
+        release: concourse
+    resource_pool: concourse
+    persistent_disk: 1024 # for consul
+    networks:
+      - name: concourse
+        static_ips: [10.244.8.2]
+    properties:
+      network_name: concourse
+
+      atc:
+        config: *atc_config
+        postgresql:
+          database: atc
+          role:
+            name: atc
+            password: dummy-postgres-password
+
+      postgresql:
+        databases:
+          - name: atc
+        roles:
+          - name: atc
+            password: dummy-postgres-password
+
+      consul:
+        agent:
+          mode: server
+          services:
+            - name: atc
+            - name: glider
+
+  - name: db
+    instances: 1
+    templates:
+      - name: postgresql
+        release: concourse
+      - name: consul-agent
+        release: concourse
+    resource_pool: concourse
+    persistent_disk: 10240
+    networks:
+      - name: concourse
+    properties:
+      network_name: concourse
+
+      postgresql:
+        databases:
+          - name: atc
+
+        roles:
+          - name: atc
+            password: dummy-postgres-password
+
+      consul:
+        agent:
+          servers:
+            lan: [10.244.8.2]
+          services:
+            - name: postgresql
+
+  - name: worker
+    instances: 1
+    templates:
+      - name: turbine
+        release: concourse
+      - name: warden
+        release: concourse
+      - name: consul-agent
+        release: concourse
+    resource_pool: concourse
+    networks:
+      - name: concourse
+    properties:
+      network_name: concourse
+      consul:
+        agent:
+          servers:
+            lan: [10.244.8.2]
+          services:
+            - name: turbine
+
+networks:
+  - name: concourse
+    subnets:
+      # network with static ip used for web
+      - range: 10.244.8.0/30
+        reserved: [10.244.8.1]
+        static: [10.244.8.2]
+        cloud_properties:
+          name: random
+
+      # networks for dynamic ips (db, workers, compilation vms)
+      - range: 10.244.8.4/30
+        reserved: [10.244.8.5]
+        static: []
+        cloud_properties:
+          name: random
+      - range: 10.244.8.8/30
+        reserved: [10.244.8.9]
+        static: []
+        cloud_properties:
+          name: random
+      - range: 10.244.8.12/30
+        reserved: [10.244.8.13]
+        static: []
+        cloud_properties:
+          name: random
+      - range: 10.244.8.16/30
+        reserved: [10.244.8.17]
+        static: []
+        cloud_properties:
+          name: random
+      - range: 10.244.8.20/30
+        reserved: [10.244.8.21]
+        static: []
+        cloud_properties:
+          name: random
+
+resource_pools:
+  # not much point in having more than one resource pool, since it's all
+  # in one VM with the same hardware anyway
+  - name: concourse
+    network: concourse
+    stemcell:
+      name: bosh-warden-boshlite-ubuntu-trusty-go_agent
+      version: latest
+    cloud_properties:
+      name: random
+
+compilation:
+  workers: 3
+  network: concourse
+  cloud_properties:
+    name: random
+
+update:
+  canaries: 1
+  max_in_flight: 3
+  serial: false
+  canary_watch_time: 1000-60000
+  update_watch_time: 1000-60000
