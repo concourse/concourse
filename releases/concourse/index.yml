@@ -94,4 +94,6 @@ builds:
     version: 0.3.0-rc.33
   b414de01-e86f-4cd0-9414-92e41117ad49:
     version: 0.4.0-rc.1
+  a722d998-0709-4a75-8662-9b9cf681afde:
+    version: 0.4.0
 format-version: '2'
