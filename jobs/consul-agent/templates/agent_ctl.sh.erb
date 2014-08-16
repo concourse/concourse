@@ -29,14 +29,31 @@ case $1 in
 EOF
     <% end %>
 
-    # /etc/resolv.conf gets regenerated all the time, so add the local dns
-    # server to /head, which will be prepended when regenerated.
+    # "Consul uses a significant amount of virtual memory, since LMDB uses
+    # mmap() underneath. It uses about 700MB of a 32bit system and 40GB on a
+    # 64bit system."
     #
-    # cannot rely on using bosh deployment manifest to configure 127.0.0.1 as
-    # dns; there seems to be some bug with how the file is generated, as the
-    # file has all entries after 127.0.0.1 ignored.
+    # this mainly applies to bosh-lite
+    ulimit -v unlimited
+
+    # add consul agent's dns to resolv.conf
+    #
+    # /etc/resolv.conf will probably be regenerated all the time, so add the
+    # local dns server to /head, which will be prepended when regenerated.
     echo 'nameserver 127.0.0.1' > /etc/resolvconf/resolv.conf.d/head
-    resolvconf -u
+
+    if resolvconf --updates-are-enabled; then
+      resolvconf -u
+    else
+      # updates are disabled in bosh-lite; in this case just add to
+      # /etc/resolv.conf directly.
+      #
+      # enabling updates and then updating it with resolvconf -u seems to add
+      # dns entries from where the box was generated.
+      if ! grep -q 127.0.0.1 /etc/resolv.conf; then
+        sed -i -e '1i nameserver 127.0.0.1' /etc/resolv.conf
+      fi
+    fi
 
     setcap cap_net_bind_service=+ep $PKG/bin/consul
 
