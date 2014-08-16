@@ -96,4 +96,6 @@ builds:
     version: 0.4.0-rc.1
   a722d998-0709-4a75-8662-9b9cf681afde:
     version: 0.4.0
+  5ca20c83-6307-4ea6-a63e-9273ff715b79:
+    version: 0.5.0-rc.1
 format-version: '2'
