@@ -18,6 +18,7 @@ jobs:
         release: concourse
     instances: 1
     resource_pool: orchestration
+    persistent_disk: 1024 # consul
     networks:
       - name: concourse
         static_ips: (( static_ips(0) ))
