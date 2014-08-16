@@ -24,3 +24,8 @@ consul_0.3/consul:
   sha: !binary |-
     NDhiOWI2NzFmNzU0NzliZWJjZTczOGYzMDY1NGUxODUyMGQ5NGM5Ng==
   size: 14388499
+shadow/shadow-4.2.1.tar.gz:
+  object_id: d20647fd-236c-453f-b43a-7d724c73fc6f
+  sha: !binary |-
+    ZDViODQ4ZmVjYjIwYWExYTBmNDU0NTQ5MmI0YWE5NjUzNWEwODA5MQ==
+  size: 3595255

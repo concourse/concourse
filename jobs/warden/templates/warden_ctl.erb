@@ -28,6 +28,7 @@ case $1 in
     mount -t tmpfs -o remount,size=512m tmpfs /dev/shm
 
     export PATH=/var/vcap/packages/iptables/sbin:$PATH
+    export PATH=/var/vcap/packages/shadow/sbin:$PATH
 
     exec /var/vcap/packages/warden-linux/bin/warden-linux \
       -disableQuotas=true \
