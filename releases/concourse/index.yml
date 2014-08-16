@@ -74,4 +74,14 @@ builds:
     version: 0.3.0-rc.24
   7f5414ca-2758-4d6d-993e-b83e34514232:
     version: 0.3.0-rc.25
+  d8dc243b-9f63-4c80-b9c0-8de117ab9a3c:
+    version: 0.3.0-rc.26
+  6f87ac7b-0c65-4c3d-9878-26a0bdf155ae:
+    version: 0.3.0-rc.27
+  e9dba510-65d7-4f70-bb7e-91c4c3abd93e:
+    version: 0.3.0-rc.28
+  6bc1077b-1d0e-4e9c-a6c3-354e6d067de6:
+    version: 0.3.0-rc.29
+  2cd609e0-1573-4a04-9afe-eef2f48ab385:
+    version: 0.3.0-rc.30
 format-version: '2'
