@@ -80,4 +80,6 @@ builds:
     version: 0.3.0-rc.27
   e9dba510-65d7-4f70-bb7e-91c4c3abd93e:
     version: 0.3.0-rc.28
+  6bc1077b-1d0e-4e9c-a6c3-354e6d067de6:
+    version: 0.3.0-rc.29
 format-version: '2'
