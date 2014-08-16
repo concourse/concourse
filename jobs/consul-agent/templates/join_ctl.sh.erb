@@ -17,18 +17,22 @@ case $1 in
 
     echo $$ > $PIDFILE
 
-    until $PKG/bin/consul join -wan <%= p("consul.agent.servers.wan").join(" ") %>; do
+    while true; do
+      <% if p("consul.agent.mode") != "server" && !p("consul.agent.servers.lan").empty? %>
+        $PKG/bin/consul join <%= p("consul.agent.servers.lan").join(" ") %>
+      <% end %>
+
+      <% if p("consul.agent.mode") == "server" && !p("consul.agent.servers.wan").empty? %>
+        $PKG/bin/consul join -wan <%= p("consul.agent.servers.wan").join(" ") %>
+      <% end %>
+
       sleep 10
     done
-
-    # wait forever
-    kill -STOP $$
 
     ;;
 
   stop)
-    # wake up ctl script so it exits
-    kill -CONT $(cat $PIDFILE)
+    kill $(cat $PIDFILE)
 
     ;;
 
