@@ -6,7 +6,7 @@
 
   config = {
     "datacenter" => p("consul.agent.datacenter"),
-    "data_dir" => "/var/vcap/data/consul-agent",
+    "data_dir" => "/var/vcap/store/consul-agent",
     "log_level" => p("consul.agent.log_level"),
     "node_name" => "#{name}-#{spec.index}",
     "server" => server,
