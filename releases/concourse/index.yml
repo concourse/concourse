@@ -84,4 +84,6 @@ builds:
     version: 0.3.0-rc.29
   2cd609e0-1573-4a04-9afe-eef2f48ab385:
     version: 0.3.0-rc.30
+  a3f1da2f-bb51-4ff3-869a-6dfd5b70441d:
+    version: 0.3.0-rc.31
 format-version: '2'
