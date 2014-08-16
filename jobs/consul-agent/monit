@@ -4,9 +4,11 @@ check process consul-agent
   stop program "/var/vcap/jobs/consul-agent/bin/agent_ctl stop"
   group vcap
 
+<% if p("consul.agent.mode") == "server" && !p("consul.agent.servers.wan").empty? %>
 check process consul-join
   with pidfile /var/vcap/sys/run/consul-agent/consul-join.pid
   start program "/var/vcap/jobs/consul-agent/bin/join_ctl start"
   stop program "/var/vcap/jobs/consul-agent/bin/join_ctl stop"
   group vcap
   depends on consul-agent
+<% end %>
