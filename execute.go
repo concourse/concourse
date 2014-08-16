@@ -149,11 +149,13 @@ func abortOnSignal(
 	<-terminate
 
 	println("\naborting...")
+
 	abortReq, err := reqGenerator.CreateRequest(
 		routes.AbortBuild,
 		rata.Params{"guid": build.Guid},
 		nil,
 	)
+
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -164,6 +166,11 @@ func abortOnSignal(
 	}
 
 	resp.Body.Close()
+
+	// if told to terminate again, exit immediately
+	<-terminate
+	println("exiting immediately")
+	os.Exit(2)
 }
 
 func stream(conn *websocket.Conn, streaming *sync.WaitGroup) {
