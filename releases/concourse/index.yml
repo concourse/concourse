@@ -82,4 +82,6 @@ builds:
     version: 0.3.0-rc.28
   6bc1077b-1d0e-4e9c-a6c3-354e6d067de6:
     version: 0.3.0-rc.29
+  2cd609e0-1573-4a04-9afe-eef2f48ab385:
+    version: 0.3.0-rc.30
 format-version: '2'
