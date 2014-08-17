@@ -100,4 +100,6 @@ builds:
     version: 0.5.0-rc.1
   8ec7b1a9-17c4-4bbe-a648-0768db1967a3:
     version: 0.5.0-rc.2
+  e6504825-c31d-4de0-8a0b-f48ff7dfc0ea:
+    version: 0.5.0-rc.3
 format-version: '2'
