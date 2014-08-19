@@ -10,6 +10,14 @@ Openstack or with Vagrant.
 
 ### Try it on Vagrant
 
+1. Fetch the bosh-release
+
+   ```
+   git clone https://github.com/concourse/concourse
+   cd concourse
+   git submodule update --init --recursive
+   ```
+
 1. Install dependencies
 
     ```
