@@ -109,7 +109,7 @@ cat < /tmp/fifo
 
 			Eventually(hijackS, 5*time.Second).Should(gexec.Exit())
 
-			Eventually(flyS).Should(gexec.Exit(0))
+			Eventually(flyS, 5*time.Second).Should(gexec.Exit(0))
 		})
 	})
 
