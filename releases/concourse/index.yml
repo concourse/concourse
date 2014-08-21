@@ -110,4 +110,6 @@ builds:
     version: 0.5.0-rc.6
   d6f4e7c1-93d9-4c18-b065-6cc3f9e7ffba:
     version: 0.5.0-rc.7
+  da1e5de9-7f28-44fb-8e59-de2f7664153d:
+    version: 0.5.0-rc.8
 format-version: '2'
