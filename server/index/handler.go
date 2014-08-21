@@ -114,6 +114,26 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		for _, input := range job.Inputs {
 			if len(input.Passed) > 0 {
+				var nodeID string
+
+				if len(input.Passed) > 1 {
+					nodeID = jobID + "-input-" + input.Resource
+
+					data.Nodes = append(data.Nodes, DotNode{
+						ID: nodeID,
+						Value: map[string]string{
+							"useDef": "gateway",
+						},
+					})
+
+					data.Edges = append(data.Edges, DotEdge{
+						Source:      nodeID,
+						Destination: jobID,
+					})
+				} else {
+					nodeID = jobID
+				}
+
 				for _, passed := range input.Passed {
 					currentBuild := currentBuilds[passed]
 
@@ -132,7 +152,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 					data.Edges = append(data.Edges, DotEdge{
 						Source:      jobNode(passed),
-						Destination: jobID,
+						Destination: nodeID,
 						Value:       value,
 					})
 				}
