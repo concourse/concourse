@@ -88,8 +88,10 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		data.Nodes = append(data.Nodes, DotNode{
 			ID: resourceID,
 			Value: map[string]string{
-				"label": fmt.Sprintf(`<h1 class="resource"><a href="%s">%s</a></h1>`, resourceURI, resource.Name),
-				"type":  "resource",
+				"label":      resource.Name,
+				"href":       resourceURI,
+				"type":       "resource",
+				"labelStyle": "font-weight: bold; font-size: 1.5em",
 			},
 		})
 	}
@@ -106,9 +108,11 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		data.Nodes = append(data.Nodes, DotNode{
 			ID: jobID,
 			Value: map[string]string{
-				"label":  fmt.Sprintf(`<h1 class="job"><a href="%s">%s</a>`, buildURI, job.Name),
-				"status": string(currentBuild.Status),
-				"type":   "job",
+				"label":      job.Name,
+				"href":       buildURI,
+				"status":     string(currentBuild.Status),
+				"type":       "job",
+				"labelStyle": "font-weight: bold; font-size: 2em",
 			},
 		})
 

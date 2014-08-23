@@ -54,6 +54,10 @@ function draw(nodes, edges) {
         $("#node-"+u).attr("class", $("#node-"+u).attr("class") + " job " + node.status);
       }
 
+      if(node.type == "resource") {
+        $("#node-"+u).attr("class", $("#node-"+u).attr("class") + " resource");
+      }
+
       $("#node-"+u+" rect").attr("rx", "0").attr("ry", "0");
     });
 
