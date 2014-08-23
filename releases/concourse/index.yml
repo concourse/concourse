@@ -112,4 +112,6 @@ builds:
     version: 0.5.0-rc.7
   da1e5de9-7f28-44fb-8e59-de2f7664153d:
     version: 0.5.0-rc.8
+  f18880fe-d662-44bc-a57e-cff0acc0f1e7:
+    version: 0.5.0-rc.9
 format-version: '2'
