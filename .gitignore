@@ -19,3 +19,4 @@ blobs
 /src_alt
 
 .vagrant/
+docs/concourse/
