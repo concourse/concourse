@@ -2,13 +2,18 @@
  
 @title{Concourse: CI that scales with your project}
  
-Concourse is a collection of simple tools that provide a reproducible pipeline,
-and a local development workflow that works the same way your CI does.
+@image[#:suffixes '(".svg" ".png") "images/example-pipeline"]{Example Pipeline}
+
+Concourse is a CI system composed of simple tools and ideas. It can express
+entire pipelines, integrating with arbitrary resources, or it can be used to
+execute one-off builds, either locally or in another CI system.
+
 
 @table-of-contents[]
 
 @include-section{what-and-why.scrbl}
 @include-section{concepts.scrbl}
 @include-section{getting-started.scrbl}
-@include-section{configuring.scrbl}
+@include-section{running-builds.scrbl}
+@include-section{pipelines.scrbl}
 @include-section{implementing-resources.scrbl}

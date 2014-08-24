@@ -1,8 +1,8 @@
 #lang scribble/manual
 
-@title{Jobs}
+@title[#:tag "jobs"]{Jobs}
 
-A job is a specification of a @seclink["Builds"]{build} to run, combined with
+A job is a specification of a @seclink["builds"]{build} to run, combined with
 inputs to pull down, and outputs to push up upon the build's successful
 completion. Common jobs would be configured to run unit tests, or integration
 tests against multiple inputs.
