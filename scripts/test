@@ -40,4 +40,4 @@ export PATH=${PWD}/Godeps/_workspace/bin:$PATH
 
 go install github.com/onsi/ginkgo/ginkgo
 
-ginkgo -r -v
+ginkgo -r -p -race
