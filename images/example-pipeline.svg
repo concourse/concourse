@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" version="1.0" width="100%" height="100%" viewBox="0 0 1333.640625 371.5234375">
+  <defs>
+    <style type="text/css">
+      <![CDATA[
+        svg {
+          background: #222222;
+          color: #dfeee0;
+          font-family: Courier, monospace;
+          font-size: 12px;
+          line-height: 1.4;
+        }
+
+        svg .job text, svg .resource text {
+          fill: #fff;
+        }
+
+        svg .node rect {
+          fill: #111;
+          shape-rendering: crispEdges;
+        }
+
+        @-webkit-keyframes wiggle-build {
+          0% { -webkit-transform: rotate(1deg); }
+          50% { -webkit-transform: rotate(-1deg); }
+          100% { -webkit-transform: rotate(1deg); }
+        }
+
+        svg .node.job.succeeded rect { fill: #8cb287; }
+        svg .node.job.failed rect { fill: #d36764; }
+        svg .node.job.pending rect { fill: #5d4c4c; }
+        svg .node.job.errored rect { fill: #e1bc8e; }
+        svg .node.job.aborted rect { fill: #d25f3a; }
+        svg .node.job.started rect {
+          fill: #ebb263;
+          -webkit-animation: wiggle-build 0.5s infinite;
+          shape-rendering: auto;
+        }
+
+        .edgeLabel rect {
+          fill: none;
+        }
+
+        svg .gateway {
+          fill: #333;
+        }
+
+        .edgeLabel text {
+          font-size: 1em;
+          font-weight: normal;
+          fill: #fff;
+        }
+
+        .edgePath path {
+          stroke: #333;
+          stroke-width: 2px;
+          fill: none;
+        }
+
+        .edgePath.succeeded path { stroke: #8cb287; }
+        .edgePath.failed path { stroke: #d36764; }
+        .edgePath.pending path { stroke: #5d4c4c; }
+        .edgePath.errored path { stroke: #e1bc8e; }
+        .edgePath.aborted path { stroke: #d25f3a; }
+        .edgePath.started path { stroke: #ebb263; }
+
+        #arrowhead-succeeded path { fill: #8cb287; }
+        #arrowhead-failed path { fill: #d36764; }
+        #arrowhead-pending path { fill: #5d4c4c; }
+        #arrowhead-errored path { fill: #e1bc8e; }
+        #arrowhead-aborted path { fill: #d25f3a; }
+        #arrowhead-started path { fill: #ebb263; }
+      ]]>
+    </style>
+  </defs>
+  <g transform="translate(20, 20) scale(1)">
+    <defs>
+      <g id="gateway"><rect y="-15" width="2" height="30" class="gateway"></rect></g>
+    </defs>
+    <g class="edgePaths">
+      <g class="edgePath enter" id="edge-_1"><path marker-end="url(#arrowhead-rgb_51__51__51_)" d="M80.85065731402946,285.26953125L91.10754268799965,272.960791015625C101.36442806196987,260.65205078125,121.87819880991029,236.0345703125,138.3431934242387,223.41022135416665C154.80818803856715,210.78587239583334,167.22440651928355,210.15465494791664,173.43251575964177,209.83904622395832L179.640625,209.5234375" style="opacity: 1;"></path></g>
+      <g class="edgePath enter" id="edge-_2"><path marker-end="url(#arrowhead-rgb_51__51__51_)" d="M128.03125,307.1919662719992L130.53124999999997,307.2458303465493C133.03125,307.29969442109945,138.03125,307.40742257019974,143.03124999999997,307.46266777486653C148.03125,307.5179129795333,153.03125,307.52067523976666,155.53124999999997,307.52205636988333L158.03125,307.5234375" style="opacity: 1;"></path></g>
+      <g class="edgePath enter" id="edge-_3"><path marker-end="url(#arrowhead-rgb_51__51__51_)" d="M347.265625,115.015625L366.93671874999995,115.01562499999999C386.6078125,115.015625,425.95,115.015625,456.45520833333336,115.01562499999999C486.9604166666667,115.015625,508.62864583333334,115.015625,519.4627604166667,115.01562499999999L530.296875,115.015625" style="opacity: 1;"></path></g>
+      <g class="edgePath enter" id="edge-_4"><path marker-end="url(#arrowhead-rgb_51__51__51_)" d="M685.328125,20.5078125L688.089594516805,20.801595052083336C690.8510640336102,21.095377604166668,696.3740030672204,21.682942708333336,711.8327837394256,33.43424479166667C727.2915644116309,45.185546875,752.6861867224311,68.1005859375,765.3834978778311,79.55810546874999L778.0808090332314,91.015625" style="opacity: 1;"></path></g>
+      <g class="edgePath enter" id="edge-_5"><path marker-end="url(#arrowhead-rgb_51__51__51_)" d="M584.5078125,305.77734375L603.7082251252357,305.08250325520834C622.9086377504714,304.3876627604167,661.3094630009427,302.99798177083335,695.7973221770374,275.20436197916666C730.2851813531322,247.4107421875,760.8600744548501,193.21318359375,776.147521005709,166.114404296875L791.434967556568,139.015625" style="opacity: 1;"></path></g>
+      <g class="edgePath enter succeeded" id="edge-_6"><path marker-end="url(#arrowhead-succeeded)" d="M430.078125,209.5234375L436.5097330729167,209.92106232449345C442.94134114583335,210.31868714898695,455.80455729166664,211.1139367979739,481.2095052083333,227.0189297777132C506.61445312499995,242.9239227574525,544.5611328125,273.9386590679441,563.5344726562499,289.44602722318996L582.5078125,304.95339537843574" style="opacity: 1;"></path></g>
+      <g class="edgePath enter succeeded" id="edge-_7"><path marker-end="url(#arrowhead-succeeded)" d="M451.6875,307.5234375L454.60758463541663,307.51622438784756C457.5276692708333,307.5090112756951,463.36783854166663,307.4945850513902,485.17122395833326,307.2060605652921C506.97460937499994,306.91753607919395,544.7412109375,306.35491333130267,563.6245117187499,306.073601957357L582.5078125,305.79229058341133" style="opacity: 1;"></path></g>
+      <g class="edgePath enter succeeded" id="edge-_8"><path marker-end="url(#arrowhead-succeeded)" d="M636.71875,115.015625L647.1177734374999,115.01562499999999C657.516796875,115.015625,678.3148437499999,115.015625,691.4164062499999,115.01562499999999C704.5179687499999,115.015625,709.923046875,115.015625,712.6255859375,115.01562499999999L715.328125,115.015625" style="opacity: 1;"></path></g>
+      <g class="edgePath enter" id="edge-_9"><path marker-end="url(#arrowhead-rgb_51__51__51_)" d="M852.359375,20.5078125L867.7665811383927,20.749609375C883.1737872767856,20.99140625,913.9881995535713,21.475,941.820715922619,31.146875C969.6532322916667,40.81875,994.5038527529762,59.67890625,1006.9291629836308,69.108984375L1019.3544732142857,78.5390625" style="opacity: 1;"></path></g>
+      <g class="edgePath enter succeeded" id="edge-_10"><path marker-end="url(#arrowhead-succeeded)" d="M893.765625,115.015625L902.3502604166666,114.99005490383388C910.9348958333333,114.96448480766779,928.1041666666666,114.91334461533557,945.2734375,113.89054076869155C962.4427083333333,112.86773692204751,979.6119791666665,110.87326942109165,988.1966145833333,109.8760356706137L996.78125,108.87880192013579" style="opacity: 1;"></path></g>
+      <g class="edgePath enter succeeded" id="edge-_11"><path marker-end="url(#arrowhead-succeeded)" d="M893.765625,130.8355710112141L902.3502604166666,132.24300230839353C910.9348958333333,133.6504336055729,928.1041666666666,136.46529619993174,945.2734375,134.9190811581306C962.4427083333333,133.37286611632948,979.6119791666665,127.46557343836841,988.1966145833333,124.51192709938786L996.78125,121.55828076040734" style="opacity: 1;"></path></g>
+      <g class="edgePath enter started" id="edge-_12"><path marker-end="url(#arrowhead-started)" d="M1103.203125,102.5390625L1105.703125,102.5390625C1108.203125,102.5390625,1113.203125,102.5390625,1118.203125,102.5390625C1123.203125,102.5390625,1128.203125,102.5390625,1130.703125,102.5390625L1133.203125,102.5390625" style="opacity: 1;"></path></g>
+      <defs>
+        <marker id="arrowhead-rgb_51__51__51_" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="strokeWidth" markerWidth="8" markerHeight="5" orient="auto" style="fill: rgb(51, 51, 51);"><path d="M 0 0 L 10 5 L 0 10 z"></path></marker>
+        <marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="strokeWidth" markerWidth="8" markerHeight="5" orient="auto" fill="#333"><path d="M 0 0 L 10 5 L 0 10 z"></path></marker>
+      </defs>
+      <defs>
+        <marker id="arrowhead-succeeded" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="strokewidth" markerWidth="8" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z"></path></marker>
+        <marker id="arrowhead-started" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="strokewidth" markerWidth="8" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z"></path></marker>
+        <marker id="arrowhead-succeeded" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="strokewidth" markerWidth="8" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z"></path></marker>
+      </defs>
+    </g>
+    <g class="edgeLabels">
+      <g class="edgeLabel enter" transform="translate(143.03125,209.5234375)" style="opacity: 1;"><rect rx="5" ry="5" x="0" y="0" width="0" height="0" fill="#fff"></rect><g transform="translate(0,0)"><text text-anchor="left"><tspan dy="1em" x="1"></tspan></text></g></g>
+      <g class="edgeLabel enter" transform="translate(143.03125,307.5234375)" style="opacity: 1;"><rect rx="5" ry="5" x="0" y="0" width="0" height="0" fill="#fff"></rect><g transform="translate(0,0)"><text text-anchor="left"><tspan dy="1em" x="1"></tspan></text></g></g>
+      <g class="edgeLabel enter" transform="translate(466.6875,115.015625)" style="opacity: 1;"><rect rx="5" ry="5" x="0" y="0" width="0" height="0" fill="#fff"></rect><g transform="translate(0,0)"><text text-anchor="left"><tspan dy="1em" x="1"></tspan></text></g></g>
+      <g class="edgeLabel enter" transform="translate(700.328125,20.5078125)" style="opacity: 1;"><rect rx="5" ry="5" x="0" y="0" width="0" height="0" fill="#fff"></rect><g transform="translate(0,0)"><text text-anchor="left"><tspan dy="1em" x="1"></tspan></text></g></g>
+      <g class="edgeLabel enter" transform="translate(700.328125,305.77734375)" style="opacity: 1;"><rect rx="5" ry="5" x="0" y="0" width="0" height="0" fill="#fff"></rect><g transform="translate(0,0)"><text text-anchor="left"><tspan dy="1em" x="1"></tspan></text></g></g>
+      <g class="edgeLabel enter" transform="translate(466.6875,209.5234375)" style="opacity: 1;"><rect rx="5" ry="5" x="0" y="0" width="0" height="0" fill="#fff"></rect><g transform="translate(0,0)"><text text-anchor="left"><tspan dy="1em" x="1"></tspan></text></g></g>
+      <g class="edgeLabel enter" transform="translate(466.6875,307.5234375)" style="opacity: 1;"><rect rx="5" ry="5" x="0" y="0" width="0" height="0" fill="#fff"></rect><g transform="translate(0,0)"><text text-anchor="left"><tspan dy="1em" x="1"></tspan></text></g></g>
+      <g class="edgeLabel enter" transform="translate(700.328125,115.015625)" style="opacity: 1;"><rect rx="5" ry="5" x="0" y="0" width="0" height="0" fill="#fff"></rect><g transform="translate(0,0)"><text text-anchor="left"><tspan dy="1em" x="1"></tspan></text></g></g>
+      <g class="edgeLabel enter" transform="translate(945.2734375,20.5078125)" style="opacity: 1;"><rect rx="5" ry="5" x="0" y="0" width="0" height="0" fill="#fff"></rect><g transform="translate(0,0)"><text text-anchor="left"><tspan dy="1em" x="1"></tspan></text></g></g>
+      <g class="edgeLabel enter" transform="translate(945.2734375,115.015625)" style="opacity: 1;"><rect rx="5" ry="5" x="-36.0078125" y="-7" width="72.015625" height="14" fill="#fff"></rect><g transform="translate(-36.0078125,-7)"><text text-anchor="left"><tspan dy="1em" x="1">controller</tspan></text></g></g>
+      <g class="edgeLabel enter" transform="translate(945.2734375,139.96875)" style="opacity: 1;"><rect rx="5" ry="5" x="-21.609375" y="-7" width="43.21875" height="14" fill="#fff"></rect><g transform="translate(-21.609375,-7)"><text text-anchor="left"><tspan dy="1em" x="1">worker</tspan></text></g></g>
+      <g class="edgeLabel enter" transform="translate(1118.203125,102.5390625)" style="opacity: 1;"><rect rx="5" ry="5" x="0" y="0" width="0" height="0" fill="#fff"></rect><g transform="translate(0,0)"><text text-anchor="left"><tspan dy="1em" x="1"></tspan></text></g></g>
+    </g>
+    <g class="nodes">
+      <g class="node enter resource" id="node-resource-controller" transform="translate(64.015625,305.77734375)" style="opacity: 1;"><rect rx="0" ry="0" x="-64.015625" y="-20.5078125" width="128.03125" height="41.015625" fill="#fff"></rect><g transform="translate(-54.015625,-10.5078125)"><text text-anchor="left" style="; font-weight: bold; font-size: 1.5em"><tspan dy="1em" x="1">controller</tspan></text></g></g>
+      <g class="node enter resource" id="node-resource-worker" transform="translate(304.859375,115.015625)" style="opacity: 1;"><rect rx="0" ry="0" x="-42.40625" y="-20.5078125" width="84.8125" height="41.015625" fill="#fff"></rect><g transform="translate(-32.40625,-10.5078125)"><text text-anchor="left" style="; font-weight: bold; font-size: 1.5em"><tspan dy="1em" x="1">worker</tspan></text></g></g>
+      <g class="node enter resource" id="node-resource-integration-suite" transform="translate(583.5078125,20.5078125)" style="opacity: 1;"><rect rx="0" ry="0" x="-101.8203125" y="-20.5078125" width="203.640625" height="41.015625" fill="#fff"></rect><g transform="translate(-91.8203125,-10.5078125)"><text text-anchor="left" style="; font-weight: bold; font-size: 1.5em"><tspan dy="1em" x="1">integration-suite</tspan></text></g></g>
+      <g class="node enter resource" id="node-resource-release" transform="translate(804.546875,20.5078125)" style="opacity: 1;"><rect rx="0" ry="0" x="-47.8125" y="-20.5078125" width="95.625" height="41.015625" fill="#fff"></rect><g transform="translate(-37.8125,-10.5078125)"><text text-anchor="left" style="; font-weight: bold; font-size: 1.5em"><tspan dy="1em" x="1">release</tspan></text></g></g>
+      <g class="node enter resource" id="node-resource-final-release" transform="translate(1213.421875,102.5390625)" style="opacity: 1;"><rect rx="0" ry="0" x="-80.21875" y="-20.5078125" width="160.4375" height="41.015625" fill="#fff"></rect><g transform="translate(-70.21875,-10.5078125)"><text text-anchor="left" style="; font-weight: bold; font-size: 1.5em"><tspan dy="1em" x="1">final-release</tspan></text></g></g>
+      <g class="node enter job succeeded" id="node-job-controller-mysql" transform="translate(304.859375,209.5234375)" style="opacity: 1;"><rect rx="0" ry="0" x="-125.21875" y="-24" width="250.4375" height="48" fill="#fff"></rect><g transform="translate(-115.21875,-14)"><text text-anchor="left" style="; font-weight: bold; font-size: 2em"><tspan dy="1em" x="1">controller-mysql</tspan></text></g></g>
+      <g class="node enter job succeeded" id="node-job-controller-postgres" transform="translate(304.859375,307.5234375)" style="opacity: 1;"><rect rx="0" ry="0" x="-146.828125" y="-24" width="293.65625" height="48" fill="#fff"></rect><g transform="translate(-136.828125,-14)"><text text-anchor="left" style="; font-weight: bold; font-size: 2em"><tspan dy="1em" x="1">controller-postgres</tspan></text></g></g>
+      <g class="node enter job succeeded" id="node-job-worker" transform="translate(583.5078125,115.015625)" style="opacity: 1;"><rect rx="0" ry="0" x="-53.2109375" y="-24" width="106.421875" height="48" fill="#fff" style="rx: 10;; "></rect><g transform="translate(-43.2109375,-14)"><text text-anchor="left" style="; font-weight: bold; font-size: 2em"><tspan dy="1em" x="1">worker</tspan></text></g></g>
+      <g class="node enter job succeeded" id="node-job-integration" transform="translate(804.546875,115.015625)" style="opacity: 1;"><rect rx="0" ry="0" x="-89.21875" y="-24" width="178.4375" height="48" fill="#fff"></rect><g transform="translate(-79.21875,-14)"><text text-anchor="left" style="; font-weight: bold; font-size: 2em"><tspan dy="1em" x="1">integration</tspan></text></g></g>
+      <g class="node enter" id="node-job-integration-input-controller" transform="translate(583.5078125,305.77734375)" style="opacity: 1;"><use xlink:href="#gateway"></use></g>
+      <g class="node enter job started" id="node-job-deploy" transform="translate(1049.9921875,102.5390625)" style="opacity: 1;"><rect rx="0" ry="0" x="-53.2109375" y="-24" width="106.421875" height="48" fill="#fff"></rect><g transform="translate(-43.2109375,-14)"><text text-anchor="left" style="; font-weight: bold; font-size: 2em"><tspan dy="1em" x="1">deploy</tspan></text></g></g>
+    </g>
+  </g>
+</svg>
