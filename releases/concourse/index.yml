@@ -124,4 +124,6 @@ builds:
     version: 0.5.0-rc.13
   3b663a5f-6a5d-4b82-b503-e3941fc387ca:
     version: 0.5.0-rc.14
+  2c8ac128-a94c-4957-ae18-39a401794f5a:
+    version: 0.5.0-rc.15
 format-version: '2'
