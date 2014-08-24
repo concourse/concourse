@@ -93,6 +93,7 @@ var _ = BeforeEach(func() {
 		builtComponents["warden-linux"],
 		wardenBinPath,
 		"bogus/rootfs",
+		"/tmp",
 	)
 
 	wardenClient = wardenRunner.NewClient()
