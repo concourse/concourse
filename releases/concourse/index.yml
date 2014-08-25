@@ -132,4 +132,6 @@ builds:
     version: 0.5.0-rc.17
   6f589150-1039-464f-9408-56548abf3005:
     version: 0.5.0-rc.18
+  9960d652-b7a1-4d9b-9ed4-c5a64e35aaf6:
+    version: 0.5.0-rc.19
 format-version: '2'
