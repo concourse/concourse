@@ -50,9 +50,7 @@ function draw(nodes, edges) {
     graph.eachNode(function(u) {
       var node = graph.node(u);
 
-      if(node.type == "job") {
-        $("#node-"+u).attr("class", $("#node-"+u).attr("class") + " job " + node.status);
-      }
+      $("#node-"+u).attr("class", $("#node-"+u).attr("class") + " " + node.type + " " + node.status);
 
       $("#node-"+u+" rect").attr("rx", "0").attr("ry", "0");
     });

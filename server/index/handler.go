@@ -11,11 +11,15 @@ import (
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/radar"
 	"github.com/concourse/atc/server/routes"
 )
 
 type handler struct {
 	logger lager.Logger
+
+	// used for providing resource state
+	radar *radar.Radar
 
 	resources config.Resources
 	jobs      config.Jobs
@@ -23,9 +27,11 @@ type handler struct {
 	template  *template.Template
 }
 
-func NewHandler(logger lager.Logger, resources config.Resources, jobs config.Jobs, db db.DB, template *template.Template) http.Handler {
+func NewHandler(logger lager.Logger, radar *radar.Radar, resources config.Resources, jobs config.Jobs, db db.DB, template *template.Template) http.Handler {
 	return &handler{
 		logger: logger,
+
+		radar: radar,
 
 		resources: resources,
 		jobs:      jobs,
@@ -85,11 +91,25 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"resource": resource.Name,
 		})
 
+		failing, checking := handler.radar.ResourceStatus(resource.Name)
+
+		var status string
+		if failing {
+			status = "failing"
+		} else {
+			status = "ok"
+		}
+
+		if checking {
+			status += " checking"
+		}
+
 		data.Nodes = append(data.Nodes, DotNode{
 			ID: resourceID,
 			Value: map[string]string{
-				"label": fmt.Sprintf(`<h1 class="resource"><a href="%s">%s</a></h1>`, resourceURI, resource.Name),
-				"type":  "resource",
+				"label":  fmt.Sprintf(`<h1 class="resource"><a href="%s">%s</a></h1>`, resourceURI, resource.Name),
+				"type":   "resource",
+				"status": status,
 			},
 		})
 	}

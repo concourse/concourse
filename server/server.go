@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/logfanout"
+	"github.com/concourse/atc/radar"
 	"github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/server/abortbuild"
 	"github.com/concourse/atc/server/getbuild"
@@ -25,6 +26,7 @@ func New(
 	logger lager.Logger,
 	config config.Config,
 	scheduler *scheduler.Scheduler,
+	radar *radar.Radar,
 	db db.DB,
 	templatesDir, publicDir string,
 	peerAddr string,
@@ -55,7 +57,7 @@ func New(
 	}
 
 	handlers := map[string]http.Handler{
-		routes.Index:        index.NewHandler(logger, config.Resources, config.Jobs, db, indexTemplate),
+		routes.Index:        index.NewHandler(logger, radar, config.Resources, config.Jobs, db, indexTemplate),
 		routes.GetBuild:     getbuild.NewHandler(logger, config.Jobs, db, buildTemplate),
 		routes.TriggerBuild: triggerbuild.NewHandler(logger, config.Jobs, scheduler),
 		routes.AbortBuild:   abortbuild.NewHandler(logger, config.Jobs, db),

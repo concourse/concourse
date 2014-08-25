@@ -8,7 +8,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/BurntSushi/migration"
@@ -196,10 +195,13 @@ func main() {
 
 	tracker := logfanout.NewTracker(db)
 
+	radar := radar.NewRadar(logger, db, *checkInterval)
+
 	serverHandler, err := server.New(
 		logger,
 		conf,
 		scheduler,
+		radar,
 		db,
 		*templatesDir,
 		*publicDir,
@@ -222,8 +224,6 @@ func main() {
 	if err != nil {
 		fatal(err)
 	}
-
-	radar := radar.NewRadar(logger, db, *checkInterval)
 
 	group := grouper.EnvokeGroup(grouper.RunGroup{
 		"web": http_server.New(*listenAddr, serverHandler),

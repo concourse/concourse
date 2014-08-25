@@ -27,6 +27,10 @@ type Radar struct {
 
 	stop     chan struct{}
 	scanning *sync.WaitGroup
+
+	failing  map[string]bool
+	checking map[string]bool
+	statusL  *sync.Mutex
 }
 
 func NewRadar(
@@ -42,6 +46,10 @@ func NewRadar(
 
 		stop:     make(chan struct{}),
 		scanning: new(sync.WaitGroup),
+
+		failing:  make(map[string]bool),
+		checking: make(map[string]bool),
+		statusL:  new(sync.Mutex),
 	}
 }
 
@@ -59,6 +67,8 @@ func (radar *Radar) Scan(checker ResourceChecker, resource config.Resource) {
 				return
 
 			case <-ticker.C:
+				radar.setChecking(resource.Name)
+
 				var from builds.Version
 
 				if vr, err := radar.tracker.GetLatestVersionedResource(resource.Name); err == nil {
@@ -74,6 +84,9 @@ func (radar *Radar) Scan(checker ResourceChecker, resource config.Resource) {
 				log.Debug("check")
 
 				newVersions, err := checker.CheckResource(resource, from)
+
+				radar.setFailing(resource.Name, err != nil)
+
 				if err != nil {
 					log.Error("failed-to-check", err)
 					break
@@ -106,7 +119,33 @@ func (radar *Radar) Scan(checker ResourceChecker, resource config.Resource) {
 	}()
 }
 
+func (radar *Radar) ResourceStatus(resource string) (bool, bool) {
+	radar.statusL.Lock()
+	defer radar.statusL.Unlock()
+	return radar.failing[resource], radar.checking[resource]
+}
+
 func (radar *Radar) Stop() {
 	close(radar.stop)
 	radar.scanning.Wait()
+}
+
+func (radar *Radar) setChecking(resource string) {
+	radar.statusL.Lock()
+	radar.checking[resource] = true
+	radar.statusL.Unlock()
+}
+
+func (radar *Radar) setFailing(resource string, failing bool) {
+	radar.statusL.Lock()
+
+	delete(radar.checking, resource)
+
+	if failing {
+		radar.failing[resource] = true
+	} else {
+		delete(radar.failing, resource)
+	}
+
+	radar.statusL.Unlock()
 }
