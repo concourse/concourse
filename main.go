@@ -8,6 +8,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/BurntSushi/migration"
