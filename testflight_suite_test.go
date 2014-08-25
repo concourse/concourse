@@ -76,8 +76,8 @@ var _ = BeforeEach(func() {
 	externalAddr = os.Getenv("EXTERNAL_ADDRESS")
 	Ω(externalAddr).ShouldNot(BeEmpty(), "must specify $EXTERNAL_ADDRESS")
 
-	rawResourceRootfs := os.Getenv("RAW_RESOURCE_ROOTFS")
-	Ω(rawResourceRootfs).ShouldNot(BeEmpty(), "must specify $RAW_RESOURCE_ROOTFS")
+	archiveResourceRootfs := os.Getenv("ARCHIVE_RESOURCE_ROOTFS")
+	Ω(archiveResourceRootfs).ShouldNot(BeEmpty(), "must specify $ARCHIVE_RESOURCE_ROOTFS")
 
 	gitResourceRootfs := os.Getenv("GIT_RESOURCE_ROOTFS")
 	Ω(gitResourceRootfs).ShouldNot(BeEmpty(), "must specify $GIT_RESOURCE_ROOTFS")
@@ -106,9 +106,9 @@ var _ = BeforeEach(func() {
 			"-wardenNetwork", "tcp",
 			"-wardenAddr", wardenAddr,
 			"-resourceTypes", fmt.Sprintf(`{
-				"raw": "%s",
+				"archive": "%s",
 				"git": "%s"
-			}`, rawResourceRootfs, gitResourceRootfs),
+			}`, archiveResourceRootfs, gitResourceRootfs),
 		),
 		StartCheck:        "listening",
 		StartCheckTimeout: 30 * time.Second,
