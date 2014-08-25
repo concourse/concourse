@@ -22,6 +22,7 @@ import (
 	Db "github.com/concourse/atc/db"
 	"github.com/concourse/atc/logfanout"
 	"github.com/concourse/atc/postgresrunner"
+	"github.com/concourse/atc/radar"
 	"github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/server"
 )
@@ -64,6 +65,7 @@ var _ = Describe("API", func() {
 			lagertest.NewTestLogger("api"),
 			config.Config{},
 			&scheduler.Scheduler{},
+			&radar.Radar{},
 			db,
 			"../templates",
 			"../public",
