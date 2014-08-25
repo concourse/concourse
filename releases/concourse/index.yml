@@ -136,4 +136,6 @@ builds:
     version: 0.5.0-rc.19
   1876d905-87e2-4e04-a9f9-40a554d0e123:
     version: 0.5.0-rc.20
+  a26aea94-cb32-4a1b-ad7f-8b31d56d3a8d:
+    version: 0.5.0
 format-version: '2'
