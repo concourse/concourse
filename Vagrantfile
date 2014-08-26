@@ -8,6 +8,9 @@ Vagrant.configure("2") do |config|
   config.vm.provider "virtualbox" do |v|
     v.memory = 4096
     v.cpus = 2
+
+    # dns resolution appears to be very slow in some environments; this fixes it
+    v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
   end
 
   # provides aufs
