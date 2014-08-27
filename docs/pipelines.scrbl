@@ -100,8 +100,12 @@ level, each with the following values:
 }
 
 @defthing[type string]{
-  @emph{Required.} The type of the resource. This maps to a container image
-  configured by your workers for the given type.
+  @emph{Required.} The type of the resource. Each worker is configured with a
+  static mapping of @code{resource-type -> container-image} on startup;
+  @code{type} corresponds to the key in the map.
+ 
+  For example, declaring @code{git} here will result in the workers using
+  @code{docker:///concourse/git-resource} if configured with that mapping.
 }
 
 @defthing[source object]{
@@ -144,7 +148,7 @@ object has the following attributes:
 
   If both are specified, the value of @code{config} is "merged" into the config
   loaded from the file. This allows build parameters to be specified in the
-  build's config file, and overrided in the pipeline (i.e. for passing in
+  build's config file, and overriden in the pipeline (i.e. for passing in
   secret credentials).
 }
 
@@ -163,12 +167,12 @@ object has the following attributes:
 
     @defthing[passed [string]]{
       @emph{Optional.} When configured, only the versions of the resource that
-      appear as outputs of the given list of jobs will be considered for inputs to
-      this job.
+      appear as outputs of the given list of jobs will be considered for inputs
+      to this job.
 
-      Note that if multiple inputs are configured with @code{passed} constraints,
-      all of the mentioned jobs are correlated. That is, with the following set of
-      inputs:
+      Note that if multiple inputs are configured with @code{passed}
+      constraints, all of the mentioned jobs are correlated. That is, with the
+      following set of inputs:
 
       @codeblock|{
       inputs:
@@ -182,30 +186,31 @@ object has the following attributes:
 
       This means "give me the versions of @code{a}, @code{b}, and @code{x} that
       have passed the @emph{same build} of @code{integration}, with the same
-      version of @code{a} passing @code{a-unit} and the same version of @code{b}
-      passing @code{b-unit}."
+      version of @code{a} passing @code{a-unit} and the same version of
+      @code{b} passing @code{b-unit}."
 
-      This is crucial to being able to implement safe "fan-in" semantics as things
-      progress through a pipeline.
+      This is crucial to being able to implement safe "fan-in" semantics as
+      things progress through a pipeline.
     }
 
-    @defthing[params boolean]{
-      @emph{Optional.} A map of arbitrary configuration to forward to the resource's
-      @code{in} script.
+    @defthing[params object]{
+      @emph{Optional.} A map of arbitrary configuration to forward to the
+      resource's @code{in} script.
     }
 
 
     @defthing[dont_check boolean]{
-      @emph{Optional.} Setting this to @code{true} will ensure that the job is not
-      auto-triggered when this input's resource is the only thing that has changed.
+      @emph{Optional.} Setting this to @code{true} will ensure that the job is
+      not auto-triggered when this input's resource is the only thing that has
+      changed.
     }
   }
 }
 
 @defthing[outputs [object]]{
   @emph{Optional.} Resources that have new versions generated upon successful
-  completion of this job's builds. For example, you may want to push commits to a
-  different branch, or update code coverage reports, or mark tasks finished.
+  completion of this job's builds. For example, you may want to push commits to
+  a different branch, or update code coverage reports, or mark tasks finished.
 
   A job's @code{outputs} each contain the following configuration:
 
@@ -223,8 +228,8 @@ object has the following attributes:
 }
 
 @defthing[serial boolean]{
-  @emph{Optional. Default @code{false}.} If set to @code{true}, builds will queue
-  up and execute one-by-one, rather than executing in parallel.
+  @emph{Optional. Default @code{false}.} If set to @code{true}, builds will
+  queue up and execute one-by-one, rather than executing in parallel.
 }
 
 @defthing[privileged boolean]{

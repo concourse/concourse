@@ -8,10 +8,10 @@ a Docker container with some parameters.
 
 If the script exits @code{0}, the build succeeds. Otherwise, it fails.
 
-A build can either be executed by a @secref{jobs} or executed manually with the
-@seclink["fly"]{Fly} commandline. Both execute the same configuration, giving
-the guarantee that locally-executed builds with Fly are running the same way
-they would in CI.
+A build can either be executed by a @seclink["jobs"]{Job} or executed manually
+with the @seclink["fly"]{Fly} commandline. Both execute the same configuration,
+giving the guarantee that locally-executed builds with Fly are running the same
+way they would in CI.
 
 
 @section{Runtime Environment}
