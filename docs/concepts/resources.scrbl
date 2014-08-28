@@ -1,6 +1,6 @@
 #lang scribble/manual
 
-@title{Resources}
+@title[#:tag "resources"]{Resources}
 
 A resource is any entity that can be checked for new versions, pulled down at a
 specific version, and/or pushed up to generate new versions. A common example
