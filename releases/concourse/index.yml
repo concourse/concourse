@@ -158,4 +158,6 @@ builds:
     version: 0.6.0-rc.9
   33533570-9c90-43a9-b4cd-dd9205bcad6b:
     version: 0.6.0-rc.10
+  6dc50ddb-94c3-4a86-b71f-16e64fb015d8:
+    version: 0.6.0-rc.11
 format-version: '2'
