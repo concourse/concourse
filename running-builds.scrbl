@@ -100,17 +100,20 @@ have Go installed, this is as easy as:
 go get github.com/concourse/fly
 }|
 
-Once @code{fly} is installed, the only thing to configure is the Glider URL.
-Glider is a simple build manager, which just keeps all build state in-memory.
-It is designed for use in local Vagrant-deployed instances. When used this way,
-no configuration is required; @code{fly} defaults to its port-forwarded address.
-
-For running against a remote deployed instance, simply set @code{$GLIDER_URL}
-to its full @code{http://...} address. This pattern is useful for integrating
-@code{fly} with existing CI deployments.
-
 
 @subsection{Using @code{fly}}
+
+@margin-note{
+  Flying with a remote Glider can be done by setting @code{$GLIDER_URL} to its
+  full @code{http://...} address.
+}
+
+Once @code{fly} is installed, the only thing to configure is the Glider URL.
+Glider is a simple build manager, which just keeps all build state in-memory.
+Fly and Glider are optimized for use together with a local
+@seclink["deploying-with-vagrant"]{Vagrant-deployed} instance. When used this
+way, no configuration is required; @code{fly} defaults to its port-forwarded
+address.
 
 The simplest use of @code{fly} is to run it with no arguments in a directory
 containing @code{build.yml}:
@@ -122,26 +125,25 @@ $ fly
 
 This will kick off a build and stream the output back. Fly accepts flags for
 pointing it at a specific build config file, and for running with the contents
-of a different directory.
+of a different directory. Consult @code{fly --help} to see all of the flags.
 
 Fly will automatically capture @code{SIGINT} and @code{SIGTERM} and abort the
-build when received. This makes it easy to use interactively (@code{Ctrl+C}),
-and allows it to be worked into other CI systems like Jenkins or GoCD, so that
-aborting the build through their UI actually results in aborting the
-@code{fly}ing build.
+build when received. Generally Fly tries to be as thin of a proxy as possible;
+this allows it to be transparently composed with other toolchains.
 
 
 @subsection{Hijacking}
 
 When a build is running, it's off in a container in a VM somewhere.
 Traditionally your builds run on your machine, making it easy to see what's
-going on with @code{ps auxf}.
+going on with standard tools like @code{ps auxf}.
 
 Fly preserves this functionality by allowing you to @code{hijack} the build's
 container.
 
 When a build is running, simply execute @code{fly hijack} from any terminal.
-You will be placed in an interactive session running in the build's container.
+You will be placed in a new interactive session running in the most recent
+build's container. This can be done multiple times.
 
 @centered{
   @image["images/fly-demo.png"]{Fly Demo}
