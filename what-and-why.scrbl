@@ -125,7 +125,7 @@ pipeline, visualized on the front page. It forces the issue of having a
 stateless CI system, by externalizing all important artifacts (even version
 numbers) to concrete objects outside of the system.
 
-See @secref{Resources} and @secref{implementing-resources}.
+See @secref{resources} and @secref{implementing-resources}.
 
 
 @section[#:style 'toc-hidden]{Local iteration}

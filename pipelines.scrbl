@@ -8,11 +8,19 @@ Here's an example of a fairly standard unit → integration → deploy pipeline:
 
 @image[#:suffixes '(".svg" ".png") "images/example-pipeline"]{Example Pipeline}
 
-Above, the black boxes are @secref{Resources}, and the colored boxes are
-@secref{jobs}, whose color and wiggliness indicates the status of their current
-@seclink["builds"]{Build}.
+Above, the black boxes are @seclink["resources"]{resources}, and the colored
+boxes are @seclink["jobs"]{jobs}, whose color and wiggliness indicates the
+status of their current @seclink["builds"]{build}.
 
-The full configuration resulting in this pipeline is as follows:
+The component responsible for displaying and scheduling this pipeline is called
+the ATC (air traffic controller). In a @seclink["deploying-with-bosh"]{BOSH
+deployment}, the @code["atc.config"] property specifies the ATC's pipeline
+configuration in full.
+
+A pipeline is configured with two sections:
+@seclink["configuring-resources"]{@code{resources}} and
+@seclink["configuring-jobs"]{@code{jobs}}. For example, the configuration
+resulting in the above pipeline is as follows:
 
 @codeblock|{
 resources:
@@ -91,8 +99,11 @@ To learn what the heck that means, read on.
 
 @section[#:tag "configuring-resources"]{@code{resources}}
 
-Resources are configured as a list of objects under @code{resources} at the top
-level, each with the following values:
+The @code{resources} section lists all of the potential input sources and
+output destinations of the pipeline. For example, the Git repositories for your
+project, and the S3 bucket it ships to.
+
+Each configured resource consists of the following attributes:
 
 @defthing[name string]{
   @emph{Required.} The name of the resource. This should be short and simple,
@@ -122,13 +133,12 @@ level, each with the following values:
 
 @section[#:tag "configuring-jobs"]{@code{jobs}}
 
+The @code{jobs} section is a list of all "connection points" in the pipeline.
 A job configures the superset of a build configuration, describing which
-resources to fetch and trigger the build by, which resources to have as outputs
-of a successful build, and various other knobs.
+resources to fetch and trigger the build by, and which resources to have as
+outputs of a successful build.
 
-Jobs are configured as a list of objects under @code{jobs} at the toplevel. Each
-object has the following attributes:
-
+Each configured job consists of the following attributes:
 
 @defthing[name string]{
   @emph{Required.} The name of the job. This should be short; it will show up
