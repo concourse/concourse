@@ -160,4 +160,6 @@ builds:
     version: 0.6.0-rc.10
   6dc50ddb-94c3-4a86-b71f-16e64fb015d8:
     version: 0.6.0-rc.11
+  aa0d737f-d5c0-4cf2-a814-8ccf47aa5450:
+    version: 0.6.0-rc.12
 format-version: '2'
