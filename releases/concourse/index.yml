@@ -164,4 +164,6 @@ builds:
     version: 0.6.0-rc.12
   61a4bd71-9add-4607-95d8-a5690437bf6b:
     version: 0.6.0-rc.13
+  c2707739-c963-47ea-82dd-cf9a51b2940f:
+    version: 0.6.0-rc.14
 format-version: '2'
