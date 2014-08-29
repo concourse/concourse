@@ -168,4 +168,6 @@ builds:
     version: 0.6.0-rc.14
   83153a38-30e2-41a8-bad6-2f80402c8649:
     version: 0.6.0-rc.15
+  4116894b-3a5d-48df-ae50-d3fd4f99ac75:
+    version: 0.6.0-rc.16
 format-version: '2'
