@@ -21,9 +21,9 @@ The notion of a pipeline is introduced when wanting to restrict the potential
 set of arguments to ones that are more likely to work, as their values progress
 through a sequence of successful builds.
 
-For example, if a component's unit tests fail, it's usually less interesting to
-see if the integration tests pass, or if you can automatically go to prod with
-it anyway.
+For example, if the latest version of a component causes its unit tests to
+fail, you don't want the pipeline to propagate that version to integration tests
+or a deploy to prod.
 
 A job's set of inputs can be configured to apply these constraints via the
 @code{passed} option. This is described below, along with the rest of the

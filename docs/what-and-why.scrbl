@@ -109,13 +109,6 @@ Concourse implements as resources in userland:
     Image} resource. Interestingly, this is what is used for delivering the
     resource images themselves.
   }
-
-  @item{
-    The @hyperlink["https://github.com/concourse/resource-resource"]{Resource}
-    resource (whoa) is used to ensure builds don't run concurrently. It is
-    modeled as a pool of metadata resources in a consistent store. This way you
-    can have, say, 20 AWS accounts used for all of your builds.
-  }
 ]
 
 ...and more are coming.
