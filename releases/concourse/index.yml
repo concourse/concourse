@@ -178,4 +178,6 @@ builds:
     version: 0.6.0-rc.19
   e0fc231f-bb0c-4677-8f3b-1e281e8c2482:
     version: 0.6.0-rc.20
+  e66a0c64-168e-4178-93d3-9937a202dfbf:
+    version: 0.6.0-rc.21
 format-version: '2'
