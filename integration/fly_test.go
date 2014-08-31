@@ -19,6 +19,7 @@ import (
 
 	"github.com/concourse/glider/api/builds"
 	TurbineBuilds "github.com/concourse/turbine/api/builds"
+	"github.com/concourse/turbine/event"
 )
 
 func tarFiles(path string) string {
@@ -33,8 +34,8 @@ var _ = Describe("Fly CLI", func() {
 	var buildDir string
 
 	var gliderServer *ghttp.Server
-	var polling chan struct{}
 	var streaming chan *websocket.Conn
+	var uploadingBits <-chan struct{}
 
 	BeforeEach(func() {
 		var err error
@@ -68,8 +69,10 @@ run:
 	})
 
 	BeforeEach(func() {
-		polling = make(chan struct{})
 		streaming = make(chan *websocket.Conn, 1)
+
+		uploading := make(chan struct{})
+		uploadingBits = uploading
 
 		gliderServer.AppendHandlers(
 			ghttp.CombineHandlers(
@@ -110,8 +113,6 @@ run:
 				ghttp.VerifyRequest("GET", "/builds/abc/log/output"),
 				func(w http.ResponseWriter, r *http.Request) {
 					upgrader := websocket.Upgrader{
-						ReadBufferSize:  1024,
-						WriteBufferSize: 1024,
 						CheckOrigin: func(r *http.Request) bool {
 							// allow all connections
 							return true
@@ -121,12 +122,17 @@ run:
 					conn, err := upgrader.Upgrade(w, r, nil)
 					Ω(err).ShouldNot(HaveOccurred())
 
+					err = conn.WriteJSON(event.VersionMessage{Version: "1.0"})
+					Ω(err).ShouldNot(HaveOccurred())
+
 					streaming <- conn
 				},
 			),
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/builds/abc/bits"),
 				func(w http.ResponseWriter, req *http.Request) {
+					close(uploading)
+
 					gr, err := gzip.NewReader(req.Body)
 					Ω(err).ShouldNot(HaveOccurred())
 
@@ -144,19 +150,10 @@ run:
 				},
 				ghttp.RespondWith(201, `{"guid":"abc","image":"ubuntu","script":"find ."}`),
 			),
-			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("GET", "/builds/abc/result"),
-				ghttp.RespondWith(200, `{"status":""}`),
-				func(w http.ResponseWriter, req *http.Request) {
-					close(polling)
-				},
-			),
 		)
 	})
 
 	It("creates a build, streams output, uploads the bits, and polls until completion", func() {
-		gliderServer.AllowUnhandledRequests = true
-
 		flyCmd := exec.Command(flyPath)
 		flyCmd.Dir = buildDir
 
@@ -165,12 +162,13 @@ run:
 
 		var stream *websocket.Conn
 		Eventually(streaming).Should(Receive(&stream))
-		err = stream.WriteMessage(websocket.BinaryMessage, []byte("sup"))
+
+		err = stream.WriteJSON(event.Message{
+			event.Log{Payload: "sup"},
+		})
 		Ω(err).ShouldNot(HaveOccurred())
 
 		Eventually(sess.Out).Should(gbytes.Say("sup"))
-
-		Eventually(polling, 5.0).Should(BeClosed())
 	})
 
 	Context("when arguments are passed through", func() {
@@ -223,7 +221,8 @@ run:
 			_, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Eventually(polling, 5.0).Should(BeClosed())
+			// sync with after create
+			Eventually(streaming, 5.0).Should(Receive())
 		})
 	})
 
@@ -278,7 +277,8 @@ run:
 			_, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Eventually(polling, 5.0).Should(BeClosed())
+			// sync with after create
+			Eventually(streaming, 5.0).Should(Receive())
 		})
 	})
 
@@ -295,10 +295,6 @@ run:
 						close(aborted)
 					},
 				),
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/builds/abc/result"),
-					ghttp.RespondWith(200, `{"status":"errored"}`),
-				),
 			)
 		})
 
@@ -310,11 +306,19 @@ run:
 				flySession, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).ToNot(HaveOccurred())
 
-				Eventually(polling, 5.0).Should(BeClosed())
+				var stream *websocket.Conn
+				Eventually(streaming, 5).Should(Receive(&stream))
+
+				Eventually(uploadingBits).Should(BeClosed())
 
 				flySession.Signal(syscall.SIGINT)
 
 				Eventually(aborted, 5.0).Should(BeClosed())
+
+				err = stream.WriteJSON(event.Message{
+					event.Status{Status: TurbineBuilds.StatusErrored},
+				})
+				Ω(err).ShouldNot(HaveOccurred())
 
 				Eventually(flySession, 5.0).Should(gexec.Exit(2))
 			})
@@ -328,11 +332,19 @@ run:
 				flySession, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).ToNot(HaveOccurred())
 
-				Eventually(polling, 5.0).Should(BeClosed())
+				var stream *websocket.Conn
+				Eventually(streaming, 5).Should(Receive(&stream))
+
+				Eventually(uploadingBits).Should(BeClosed())
 
 				flySession.Signal(syscall.SIGTERM)
 
 				Eventually(aborted, 5.0).Should(BeClosed())
+
+				err = stream.WriteJSON(event.Message{
+					event.Status{Status: TurbineBuilds.StatusErrored},
+				})
+				Ω(err).ShouldNot(HaveOccurred())
 
 				Eventually(flySession, 5.0).Should(gexec.Exit(2))
 			})
@@ -340,15 +352,6 @@ run:
 	})
 
 	Context("when the build succeeds", func() {
-		BeforeEach(func() {
-			gliderServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/builds/abc/result"),
-					ghttp.RespondWith(200, `{"status":"succeeded"}`),
-				),
-			)
-		})
-
 		It("exits 0", func() {
 			flyCmd := exec.Command(flyPath)
 			flyCmd.Dir = buildDir
@@ -356,20 +359,19 @@ run:
 			flySession, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
 
+			var stream *websocket.Conn
+			Eventually(streaming, 5).Should(Receive(&stream))
+
+			err = stream.WriteJSON(event.Message{
+				event.Status{Status: TurbineBuilds.StatusSucceeded},
+			})
+			Ω(err).ShouldNot(HaveOccurred())
+
 			Eventually(flySession, 5.0).Should(gexec.Exit(0))
 		})
 	})
 
 	Context("when the build fails", func() {
-		BeforeEach(func() {
-			gliderServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/builds/abc/result"),
-					ghttp.RespondWith(200, `{"status":"failed"}`),
-				),
-			)
-		})
-
 		It("exits 1", func() {
 			flyCmd := exec.Command(flyPath)
 			flyCmd.Dir = buildDir
@@ -377,26 +379,33 @@ run:
 			flySession, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
 
+			var stream *websocket.Conn
+			Eventually(streaming, 5).Should(Receive(&stream))
+
+			err = stream.WriteJSON(event.Message{
+				event.Status{Status: TurbineBuilds.StatusFailed},
+			})
+			Ω(err).ShouldNot(HaveOccurred())
+
 			Eventually(flySession, 5.0).Should(gexec.Exit(1))
 		})
 	})
 
 	Context("when the build errors", func() {
-		BeforeEach(func() {
-			gliderServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/builds/abc/result"),
-					ghttp.RespondWith(200, `{"status":"errored"}`),
-				),
-			)
-		})
-
 		It("exits 2", func() {
 			flyCmd := exec.Command(flyPath)
 			flyCmd.Dir = buildDir
 
 			flySession, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
+
+			var stream *websocket.Conn
+			Eventually(streaming, 5).Should(Receive(&stream))
+
+			err = stream.WriteJSON(event.Message{
+				event.Status{Status: TurbineBuilds.StatusErrored},
+			})
+			Ω(err).ShouldNot(HaveOccurred())
 
 			Eventually(flySession, 5.0).Should(gexec.Exit(2))
 		})

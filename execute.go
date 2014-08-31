@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"flag"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -13,16 +12,14 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"sync"
 	"syscall"
-	"time"
 
+	"github.com/concourse/fly/eventstream"
 	"github.com/concourse/glider/api/builds"
 	"github.com/concourse/glider/routes"
 	TurbineBuilds "github.com/concourse/turbine/api/builds"
 	"github.com/fraenkel/candiedyaml"
 	"github.com/gorilla/websocket"
-	"github.com/mgutz/ansi"
 	"github.com/pivotal-golang/archiver/compressor"
 	"github.com/tedsuo/rata"
 )
@@ -30,7 +27,8 @@ import (
 func execute(reqGenerator *rata.RequestGenerator) {
 	absConfig, err := filepath.Abs(*buildConfig)
 	if err != nil {
-		log.Fatalln("could not locate config file:", err)
+		log.Println("could not locate config file:", err)
+		os.Exit(1)
 	}
 
 	build := create(reqGenerator, loadConfig(absConfig), filepath.Base(filepath.Dir(absConfig)))
@@ -55,22 +53,19 @@ func execute(reqGenerator *rata.RequestGenerator) {
 	conn, res, err := websocket.DefaultDialer.Dial(logOutput.URL.String(), nil)
 	if err != nil {
 		log.Println("failed to stream output:", err, res)
-		return
+		os.Exit(1)
 	}
 
-	streaming := new(sync.WaitGroup)
-	streaming.Add(1)
+	go upload(reqGenerator, build)
 
-	go stream(conn, streaming)
-
-	upload(reqGenerator, build)
-
-	exitCode := poll(reqGenerator, build)
+	exitCode, err := eventstream.RenderStream(conn)
+	if err != nil {
+		log.Println("failed to render stream:", err)
+		os.Exit(1)
+	}
 
 	res.Body.Close()
 	conn.Close()
-
-	streaming.Wait()
 
 	os.Exit(exitCode)
 }
@@ -173,19 +168,6 @@ func abortOnSignal(
 	os.Exit(2)
 }
 
-func stream(conn *websocket.Conn, streaming *sync.WaitGroup) {
-	defer streaming.Done()
-
-	for {
-		_, data, err := conn.ReadMessage()
-		if err != nil {
-			break
-		}
-
-		fmt.Print(string(data))
-	}
-}
-
 func upload(reqGenerator *rata.RequestGenerator, build builds.Build) {
 	src, err := filepath.Abs(*buildDir)
 	if err != nil {
@@ -254,54 +236,5 @@ func upload(reqGenerator *rata.RequestGenerator, build builds.Build) {
 		log.Println("bad response when uploading bits:", response)
 		response.Write(os.Stderr)
 		os.Exit(1)
-	}
-}
-
-func poll(reqGenerator *rata.RequestGenerator, build builds.Build) int {
-	for {
-		var result builds.BuildResult
-
-		getResult, err := reqGenerator.CreateRequest(
-			routes.GetResult,
-			rata.Params{"guid": build.Guid},
-			nil,
-		)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		response, err := http.DefaultClient.Do(getResult)
-		if err != nil {
-			log.Fatalln("error polling for result:", err)
-		}
-
-		err = json.NewDecoder(response.Body).Decode(&result)
-		if err != nil {
-			response.Body.Close()
-			log.Fatalln("error decoding result:", err)
-		}
-
-		response.Body.Close()
-
-		var color string
-		var exitCode int
-
-		switch result.Status {
-		case "succeeded":
-			color = "green"
-			exitCode = 0
-		case "failed":
-			color = "red"
-			exitCode = 1
-		case "errored":
-			color = "magenta"
-			exitCode = 2
-		default:
-			time.Sleep(time.Second)
-			continue
-		}
-
-		fmt.Println(ansi.Color(result.Status, color))
-		return exitCode
 	}
 }
