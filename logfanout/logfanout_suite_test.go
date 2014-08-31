@@ -1,4 +1,4 @@
-package ansistream_test
+package logfanout_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestAnsistream(t *testing.T) {
+func TestLogfanout(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Ansistream Suite")
+	RunSpecs(t, "Logfanout Suite")
 }

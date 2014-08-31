@@ -1,22 +1,36 @@
 package handler
 
 import (
-	"io"
+	"encoding/json"
+	"net/http"
 	"strconv"
 
+	"github.com/gorilla/websocket"
 	"github.com/pivotal-golang/lager"
-
-	"code.google.com/p/go.net/websocket"
 )
 
-func (handler *Handler) LogInput(conn *websocket.Conn) {
-	job := conn.Request().FormValue(":job")
-	idStr := conn.Request().FormValue(":build")
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(*http.Request) bool {
+		return true
+	},
+}
+
+func (handler *Handler) LogInput(w http.ResponseWriter, r *http.Request) {
+	job := r.FormValue(":job")
+	idStr := r.FormValue(":build")
 
 	log := handler.logger.Session("logs-in", lager.Data{
 		"job": job,
 		"id":  idStr,
 	})
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Error("upgrade-failed", err)
+		return
+	}
+
+	defer conn.Close()
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -30,12 +44,20 @@ func (handler *Handler) LogInput(conn *websocket.Conn) {
 	logFanout := handler.tracker.Register(job, id, conn)
 	defer handler.tracker.Unregister(job, id, conn)
 
-	defer conn.Close()
 	defer logFanout.Close()
 
-	_, err = io.Copy(logFanout, conn)
-	if err != nil {
-		log.Error("message-read-error", err)
-		return
+	for {
+		var msg *json.RawMessage
+		err := conn.ReadJSON(&msg)
+		if err != nil {
+			log.Error("message-read-error", err)
+			return
+		}
+
+		err = logFanout.WriteMessage(msg)
+		if err != nil {
+			log.Error("message-write-error", err)
+			return
+		}
 	}
 }

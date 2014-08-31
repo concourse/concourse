@@ -1,9 +1,12 @@
 package logfanout
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
-	"io"
 	"sync"
+
+	"github.com/gorilla/websocket"
 )
 
 type LogDB interface {
@@ -18,7 +21,7 @@ type LogFanout struct {
 
 	lock *sync.Mutex
 
-	sinks []io.WriteCloser
+	sinks []*websocket.Conn
 
 	closed        bool
 	waitForClosed chan struct{}
@@ -35,18 +38,18 @@ func NewLogFanout(job string, build int, db LogDB) *LogFanout {
 	}
 }
 
-func (fanout *LogFanout) Write(data []byte) (int, error) {
+func (fanout *LogFanout) WriteMessage(msg *json.RawMessage) error {
 	fanout.lock.Lock()
 	defer fanout.lock.Unlock()
 
-	err := fanout.db.AppendBuildLog(fanout.job, fanout.build, data)
+	err := fanout.db.AppendBuildLog(fanout.job, fanout.build, []byte(*msg))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	newSinks := []io.WriteCloser{}
+	newSinks := []*websocket.Conn{}
 	for _, sink := range fanout.sinks {
-		_, err := sink.Write(data)
+		err := sink.WriteJSON(msg)
 		if err != nil {
 			continue
 		}
@@ -56,18 +59,28 @@ func (fanout *LogFanout) Write(data []byte) (int, error) {
 
 	fanout.sinks = newSinks
 
-	return len(data), nil
+	return nil
 }
 
-func (fanout *LogFanout) Attach(sink io.WriteCloser) error {
+func (fanout *LogFanout) Attach(sink *websocket.Conn) error {
 	fanout.lock.Lock()
 
 	log, err := fanout.db.BuildLog(fanout.job, fanout.build)
 	if err == nil {
-		_, err = sink.Write(log)
-		if err != nil {
-			fanout.lock.Unlock()
-			return err
+		decoder := json.NewDecoder(bytes.NewBuffer(log))
+
+		for {
+			var msg *json.RawMessage
+			err := decoder.Decode(&msg)
+			if err != nil {
+				break
+			}
+
+			err = sink.WriteJSON(msg)
+			if err != nil {
+				fanout.lock.Unlock()
+				return err
+			}
 		}
 	}
 
@@ -78,8 +91,6 @@ func (fanout *LogFanout) Attach(sink io.WriteCloser) error {
 	}
 
 	fanout.lock.Unlock()
-
-	<-fanout.waitForClosed
 
 	return nil
 }
