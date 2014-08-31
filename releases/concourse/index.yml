@@ -190,4 +190,6 @@ builds:
     version: 0.6.0-rc.25
   0835c255-5501-429a-b49c-7f8c1ac0af1e:
     version: 0.6.0-rc.26
+  ec7b836e-82ab-4749-877a-40753a4bd742:
+    version: 0.6.0-rc.27
 format-version: '2'
