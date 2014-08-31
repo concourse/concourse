@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	. "github.com/concourse/atc/ansistream"
-	"github.com/concourse/atc/utf8stream"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -126,7 +125,7 @@ var _ = Describe("AnsiStream", func() {
 			It(fmt.Sprintf("renders %s", output), func() {
 				buf := gbytes.NewBuffer()
 
-				stream := utf8stream.NewWriter(NewWriter(buf))
+				stream := NewWriter(buf)
 
 				for _, chunk := range inputs {
 					stream.Write([]byte(chunk))

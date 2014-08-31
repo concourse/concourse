@@ -402,22 +402,6 @@ var _ = Describe("API", func() {
 				Eventually(sink2).Should(gbytes.Say("some message"))
 			})
 
-			It("only writes valid utf8 sequences", func() {
-				nihongo := "日本語"
-
-				sink1 := outputSink()
-
-				_, err := conn.Write([]byte(nihongo[:7]))
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Consistently(sink1).ShouldNot(gbytes.Say("日本"))
-
-				_, err = conn.Write([]byte(nihongo[7:]))
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Eventually(sink1).Should(gbytes.Say(nihongo))
-			})
-
 			Context("when there is a build log saved", func() {
 				BeforeEach(func() {
 					logDB.BuildLogReturns([]byte("some saved log"), nil)
