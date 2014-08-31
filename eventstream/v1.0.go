@@ -19,6 +19,7 @@ func (V10Renderer) Render(dst io.Writer, src EventStream) int {
 	for {
 		ev, err := src.NextEvent()
 		if err != nil {
+			fmt.Fprintf(dst, "failed to parse next event: %s\n", err)
 			return 255
 		}
 
@@ -33,6 +34,9 @@ func (V10Renderer) Render(dst io.Writer, src EventStream) int {
 		case event.Start:
 			argv := strings.Join(append([]string{buildConfig.Run.Path}, buildConfig.Run.Args...), " ")
 			fmt.Fprintf(dst, "\x1b[1mrunning %s\x1b[0m\n", argv)
+
+		case event.Error:
+			fmt.Fprintf(dst, "%s", ansi.Color(e.Message, "red+b"))
 
 		case event.Status:
 			var exitCode int

@@ -62,6 +62,18 @@ var _ = Describe("V1.0 Renderer", func() {
 		})
 	})
 
+	Context("when an Error event is received", func() {
+		BeforeEach(func() {
+			receivedEvents <- event.Error{
+				Message: "oh no!",
+			}
+		})
+
+		It("prints its message in bold red", func() {
+			Ω(out.Contents()).Should(ContainSubstring(ansi.Color("oh no!", "red+b")))
+		})
+	})
+
 	Context("when an Initialize event is received", func() {
 		BeforeEach(func() {
 			receivedEvents <- event.Initialize{
