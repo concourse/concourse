@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/gorilla/websocket"
 )
@@ -65,14 +67,18 @@ func (fanout *LogFanout) WriteMessage(msg *json.RawMessage) error {
 func (fanout *LogFanout) Attach(sink *websocket.Conn) error {
 	fanout.lock.Lock()
 
-	log, err := fanout.db.BuildLog(fanout.job, fanout.build)
+	buildLog, err := fanout.db.BuildLog(fanout.job, fanout.build)
 	if err == nil {
-		decoder := json.NewDecoder(bytes.NewBuffer(log))
+		decoder := json.NewDecoder(bytes.NewBuffer(buildLog))
 
 		for {
 			var msg *json.RawMessage
 			err := decoder.Decode(&msg)
 			if err != nil {
+				if err != io.EOF {
+					fanout.emitBackwardsCompatible(sink, buildLog)
+				}
+
 				break
 			}
 
@@ -113,4 +119,34 @@ func (fanout *LogFanout) Close() error {
 	close(fanout.waitForClosed)
 
 	return nil
+}
+
+func (fanout *LogFanout) emitBackwardsCompatible(sink *websocket.Conn, log []byte) {
+	err := sink.WriteMessage(websocket.TextMessage, []byte(`{"version":"0.0"}`))
+	if err != nil {
+		return
+	}
+
+	var dangling []byte
+	for i := 0; i < len(log); i += 1024 {
+		end := i + 1024
+		if end > len(log) {
+			end = len(log)
+		}
+
+		text := append(dangling, log[i:end]...)
+
+		checkEncoding, _ := utf8.DecodeLastRune(text)
+		if checkEncoding == utf8.RuneError {
+			dangling = text
+			continue
+		}
+
+		err := sink.WriteMessage(websocket.TextMessage, text)
+		if err != nil {
+			return
+		}
+
+		dangling = nil
+	}
 }

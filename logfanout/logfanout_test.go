@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 
 	. "github.com/concourse/atc/logfanout"
 	"github.com/gorilla/websocket"
@@ -101,7 +102,7 @@ var _ = Describe("Logfanout", func() {
 
 		Context("when there is a build log saved", func() {
 			BeforeEach(func() {
-				logDB.BuildLogReturns([]byte(`{"some":"saved log"}{"another":"message"}`), nil)
+				logDB.BuildLogReturns([]byte(`{"version":"1.0"}{"some":"saved log"}{"another":"message"}`), nil)
 			})
 
 			It("immediately sends its contents", func() {
@@ -110,12 +111,68 @@ var _ = Describe("Logfanout", func() {
 				err := clientConn.ReadJSON(&msg)
 				Ω(err).ShouldNot(HaveOccurred())
 
+				Ω(msg).Should(Equal(rawMSG(`{"version":"1.0"}`)))
+
+				err = clientConn.ReadJSON(&msg)
+				Ω(err).ShouldNot(HaveOccurred())
+
 				Ω(msg).Should(Equal(rawMSG(`{"some":"saved log"}`)))
 
 				err = clientConn.ReadJSON(&msg)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(msg).Should(Equal(rawMSG(`{"another":"message"}`)))
+			})
+
+			Context("but it contains pre-event stream output (backwards compatibility", func() {
+				longLog := strings.Repeat("x", 1025)
+
+				BeforeEach(func() {
+					logDB.BuildLogReturns([]byte(longLog), nil)
+				})
+
+				type versionMessage struct {
+					Version string `json:"version"`
+				}
+
+				It("writes a 0.0 version followed by the contents, chunked", func() {
+					var version versionMessage
+					err := clientConn.ReadJSON(&version)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(version.Version).Should(Equal("0.0"))
+
+					typ, body, err := clientConn.ReadMessage()
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(typ).Should(Equal(websocket.TextMessage))
+					Ω(string(body)).Should(Equal(longLog[0:1024]))
+
+					typ, body, err = clientConn.ReadMessage()
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(typ).Should(Equal(websocket.TextMessage))
+					Ω(string(body)).Should(Equal("x"))
+				})
+
+				Context("when a unicode codepoint falls on the chunk boundary", func() {
+					unicodeLongLog := longLog[0:1023] + "日本語"
+
+					BeforeEach(func() {
+						logDB.BuildLogReturns([]byte(unicodeLongLog), nil)
+					})
+
+					It("does not cut it in half", func() {
+						var version versionMessage
+						err := clientConn.ReadJSON(&version)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Ω(version.Version).Should(Equal("0.0"))
+
+						typ, body, err := clientConn.ReadMessage()
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(typ).Should(Equal(websocket.TextMessage))
+						Ω(string(body)).Should(Equal(unicodeLongLog))
+					})
+				})
 			})
 
 			Describe("closing", func() {
@@ -129,12 +186,14 @@ var _ = Describe("Logfanout", func() {
 
 					err := clientConn.ReadJSON(&msg)
 					Ω(err).ShouldNot(HaveOccurred())
+					Ω(msg).Should(Equal(rawMSG(`{"version":"1.0"}`)))
 
+					err = clientConn.ReadJSON(&msg)
+					Ω(err).ShouldNot(HaveOccurred())
 					Ω(msg).Should(Equal(rawMSG(`{"some":"saved log"}`)))
 
 					err = clientConn.ReadJSON(&msg)
 					Ω(err).ShouldNot(HaveOccurred())
-
 					Ω(msg).Should(Equal(rawMSG(`{"another":"message"}`)))
 
 					err = clientConn.ReadJSON(&msg)
