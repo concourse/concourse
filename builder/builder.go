@@ -75,7 +75,7 @@ func (builder *builder) Build(build builds.Build, job config.Job, versions build
 		return err
 	}
 
-	complete, err := builder.atc.CreateRequest(
+	status, err := builder.atc.CreateRequest(
 		WinstonRoutes.UpdateBuild,
 		rata.Params{
 			"job":   job.Name,
@@ -109,8 +109,8 @@ func (builder *builder) Build(build builds.Build, job config.Job, versions build
 
 		Privileged: job.Privileged,
 
-		Callback: complete.URL.String(),
-		LogsURL:  logs.URL.String(),
+		StatusCallback: status.URL.String(),
+		EventsCallback: logs.URL.String(),
 	}
 
 	req := new(bytes.Buffer)

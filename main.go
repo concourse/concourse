@@ -8,7 +8,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/BurntSushi/migration"
@@ -226,7 +225,7 @@ func main() {
 		fatal(err)
 	}
 
-	group := grouper.EnvokeGroup(grouper.RunGroup{
+	group := grouper.RunGroup{
 		"web": http_server.New(*listenAddr, serverHandler),
 
 		"api": http_server.New(*apiListenAddr, apiHandler),
@@ -282,7 +281,7 @@ func main() {
 			tracker.Drain()
 			return nil
 		}),
-	})
+	}
 
 	running := ifrit.Envoke(sigmon.New(group))
 
@@ -291,31 +290,10 @@ func main() {
 		"api": *apiListenAddr,
 	})
 
-	workerExited := group.Exits()
-	allExited := running.Wait()
-
-	for {
-		select {
-		case member := <-workerExited:
-			data := lager.Data{
-				"member": member.Name,
-			}
-
-			if member.Error != nil {
-				logger.Error("process-exited-with-failure", member.Error, data)
-			} else {
-				logger.Info("process-exited", data)
-			}
-
-			running.Signal(syscall.SIGTERM)
-		case err := <-allExited:
-			if err != nil {
-				logger.Error("exited-with-failure", err)
-				os.Exit(1)
-			}
-
-			os.Exit(0)
-		}
+	err = <-running.Wait()
+	if err != nil {
+		logger.Error("exited-with-failure", err)
+		os.Exit(1)
 	}
 }
 
