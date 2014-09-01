@@ -216,4 +216,6 @@ builds:
     version: 0.6.0-rc.38
   4d9ac724-b5b3-4760-9a8c-2a7fc0bd6fcd:
     version: 0.6.0-rc.39
+  ff7ecd41-db8c-4d53-89d2-ec22bfad516c:
+    version: 0.6.0-rc.40
 format-version: '2'
