@@ -1,12 +1,6 @@
 {{define "title"}}Concourse{{end}}
 
 {{define "body"}}
-<ul class="jobs">
-  {{range .Jobs}}
-  <li class="{{.CurrentBuild.Status}}"><a href="{{url "GetBuild" .Job .CurrentBuild}}">{{.Job.Name}}</a></li>
-  {{end}}
-</ul>
-
 <svg id="pipeline" width="100%" height="100%">
   <g>
     <defs>
@@ -22,7 +16,6 @@
 
 <script>
 $(document).ready(function() {
-  $("ul.jobs").remove();
   draw({{.Nodes}}, {{.Edges}});
 })
 </script>
