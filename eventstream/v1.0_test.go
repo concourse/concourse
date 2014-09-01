@@ -104,6 +104,34 @@ var _ = Describe("V1.0 Renderer", func() {
 		})
 	})
 
+	Context("when a Finish event is received", func() {
+		BeforeEach(func() {
+			receivedEvents <- event.Finish{
+				ExitStatus: 42,
+			}
+		})
+
+		It("returns its exit status", func() {
+			Ω(exitStatus).Should(Equal(42))
+		})
+
+		Context("and a Status event is received", func() {
+			BeforeEach(func() {
+				receivedEvents <- event.Status{
+					Status: builds.StatusSucceeded,
+				}
+			})
+
+			It("still processes it", func() {
+				Ω(out.Contents()).Should(ContainSubstring("succeeded"))
+			})
+
+			It("exits with the status from the Finish event", func() {
+				Ω(exitStatus).Should(Equal(42))
+			})
+		})
+	})
+
 	Describe("receiving a Status event", func() {
 		Context("with status 'succeeded'", func() {
 			BeforeEach(func() {
