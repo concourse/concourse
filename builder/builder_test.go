@@ -195,11 +195,10 @@ var _ = Describe("Builder", func() {
 
 				expectedTurbineBuild.Outputs = []TurbineBuilds.Output{
 					{
-						Name:       "some-resource",
-						Type:       "git",
-						Params:     TurbineBuilds.Params{"foo": "bar"},
-						SourcePath: "some-resource",
-						Source:     TurbineBuilds.Source{"uri": "git://some-resource"},
+						Name:   "some-resource",
+						Type:   "git",
+						Params: TurbineBuilds.Params{"foo": "bar"},
+						Source: TurbineBuilds.Source{"uri": "git://some-resource"},
 					},
 				}
 			})

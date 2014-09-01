@@ -209,11 +209,10 @@ func (builder *builder) computeOutputs(job config.Job) ([]TurbineBuilds.Output, 
 		}
 
 		turbineOutput := TurbineBuilds.Output{
-			Name:       resource.Name,
-			Type:       resource.Type,
-			Params:     TurbineBuilds.Params(output.Params),
-			Source:     TurbineBuilds.Source(resource.Source),
-			SourcePath: resource.Name,
+			Name:   resource.Name,
+			Type:   resource.Type,
+			Params: TurbineBuilds.Params(output.Params),
+			Source: TurbineBuilds.Source(resource.Source),
 		}
 
 		turbineOutputs = append(turbineOutputs, turbineOutput)
