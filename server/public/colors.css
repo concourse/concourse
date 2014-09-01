@@ -1,0 +1,133 @@
+/* background */
+body { background: #222; }
+
+/* foreground */
+body { color: #dfeee0; }
+
+/* regular links */
+a { color: #6a9eef; }
+
+/* emphasis */
+#build-title h1 { color: #fff; }
+#resource-header h1 { color: #fff; }
+svg .edgeLabel text { fill: #fff; }
+svg h1 a { color: #fff; }
+#build-title .abort-build input:hover { color: #fff; }
+#build-title .abort-build input:active { color: #fff; }
+#version-history .builds li a { color: #fff; }
+#builds li a { color: #fff; }
+
+/* dark */
+svg .node rect { fill: #111; }
+#builds { background: #111; }
+#version-history .builds { background: #111; }
+.build-resources .resource-header { background: #111; }
+
+/* highlight background */
+svg .edgePath path { stroke: #333; }
+svg .gateway { fill: #333; }
+.build-source.first-occurrence .resource-header { background: #333; }
+
+/* highlight foreground */
+.resource-header .version { color: #c0afa0; }
+
+/* dim */
+svg .edgePath.pending path { stroke: #5d4c4c; }
+svg #arrowhead-pending path { fill: #5d4c4c; }
+svg .node.job.pending rect { fill: #5d4c4c; }
+#build-title.pending { background: #5d4c4c; }
+li.pending { background: #5d4c4c; }
+
+/* green */
+svg .edgePath.succeeded path { stroke: #8cb287; }
+svg #arrowhead-succeeded path { fill: #8cb287; }
+svg .node.job.succeeded rect { fill: #8cb287; }
+#build-title.succeeded { background: #8cb287; }
+li.succeeded { background: #8cb287; }
+
+/* red */
+svg .edgePath.failed path { stroke: #d36764; }
+svg #arrowhead-failed path { fill: #d36764; }
+svg .node.job.failed rect { fill: #d36764; }
+#build-title.failed { background: #d36764; }
+li.failed { background: #d36764; }
+#build-title .abort-build input { color: #d36764; }
+#build-title .abort-build input:hover { background: #d36764; }
+#build-log .error { color: #d36764; }
+
+/* bright red */
+svg .edgePath.errored path { stroke: #e1bc8e; }
+svg #arrowhead-errored path { fill: #e1bc8e; }
+svg .node.job.errored rect { fill: #e1bc8e; }
+#build-title.errored { background: #e1bc8e; }
+li.errored { background: #e1bc8e; }
+svg .node.resource.failing rect { fill: #e1bc8e; }
+
+/* dim red */
+svg .edgePath.aborted path { stroke: #d25f3a; }
+svg #arrowhead-aborted path { fill: #d25f3a; }
+svg .node.job.aborted rect { fill: #d25f3a; }
+#build-title.aborted { background: #d25f3a; }
+li.aborted { background: #d25f3a; }
+#build-title .abort-build input:active { background: #d25f3a; }
+
+/* active */
+svg .edgePath.started path { stroke: #ebb263; }
+svg #arrowhead-started path { fill: #ebb263; }
+svg .node.job.started rect { fill: #ebb263; }
+#build-title.started { background: #ebb263; }
+li.started { background: #ebb263; }
+
+
+/* ansi text */
+::selection { background: #555555; color: #ffffff; }
+
+.ansi-bold { font-weight: bold; }
+
+.black, .ansi-black-fg { color: #453c31; }
+.black.bright, .ansi-bright-black-fg, .ansi-black-fg.ansi-bold { color: #5d4c4c; }
+
+.red, .ansi-red-fg { color: #d36764; }
+.red.bright, .ansi-bright-red-fg, .ansi-red-fg.ansi-bold { color: #d25f3a; }
+
+.green, .ansi-green-fg { color: #8cb287; }
+.green.bright, .ansi-bright-green-fg, .ansi-green-fg.ansi-bold { color: #8eac27; }
+
+.yellow, .ansi-yellow-fg { color: #ebb263; }
+.yellow.bright, .ansi-bright-yellow-fg, .ansi-yellow-fg.ansi-bold { color: #ffad65; }
+
+.blue, .ansi-blue-fg { color: #6a9eef; }
+.blue.bright, .ansi-bright-blue-fg, .ansi-blue-fg.ansi-bold { color: #8cd2ed; }
+
+.magenta, .ansi-magenta-fg { color: #e1bc8e; }
+.magenta.bright, .ansi-bright-magenta-fg, .ansi-magenta-fg.ansi-bold { color: #a16d00; }
+
+.cyan, .ansi-cyan-fg { color: #b5c9e1; }
+.cyan.bright, .ansi-bright-cyan-fg, .ansi-cyan-fg.ansi-bold { color: #b5c9e1; }
+
+.white, .ansi-white-fg { color: #c0afa0; }
+.white.bright, .ansi-bright-white-fg, .ansi-white-fg.ansi-bold { color: #e0cfc0; }
+
+.ansi-black-bg { background-color: #453c31; }
+.ansi-bright-black-bg { background-color: #5d4c4c; }
+
+.ansi-red-bg { background-color: #d36764; }
+.ansi-bright-red-bg { background-color: #d25f3a; }
+
+.ansi-green-bg { background-color: #8cb287; }
+.ansi-bright-green-bg { background-color: #8eac27; }
+
+.ansi-yellow-bg { background-color: #ebb263; }
+.ansi-bright-yellow-bg { background-color: #ffad65; }
+
+.ansi-blue-bg { background-color: #6a9eef; }
+.ansi-bright-blue-bg { background-color: #8cd2ed; }
+
+.ansi-magenta-bg { background-color: #e1bc8e; }
+.ansi-bright-magenta-bg { background-color: #a16d00; }
+
+.ansi-cyan-bg { background-color: #b5c9e1; }
+.ansi-bright-cyan-bg { background-color: #b5c9e1; }
+
+.ansi-white-bg { background-color: #c0afa0; }
+.ansi-bright-white-bg { background-color: #e0cfc0; }
