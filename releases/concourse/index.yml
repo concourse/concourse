@@ -198,4 +198,6 @@ builds:
     version: 0.6.0-rc.29
   5d298a26-bdb0-4bb7-a7cb-aba47685c051:
     version: 0.6.0-rc.30
+  04f7140c-34b9-4360-a1b4-ac3bb1e0c5a9:
+    version: 0.6.0-rc.31
 format-version: '2'
