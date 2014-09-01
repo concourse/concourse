@@ -200,4 +200,6 @@ builds:
     version: 0.6.0-rc.30
   04f7140c-34b9-4360-a1b4-ac3bb1e0c5a9:
     version: 0.6.0-rc.31
+  2374c021-a0de-442d-95fa-6215a69e0a35:
+    version: 0.6.0-rc.32
 format-version: '2'
