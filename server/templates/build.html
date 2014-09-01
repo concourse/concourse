@@ -27,9 +27,7 @@
 </div>
 
 <div id="build-body">
-  {{if not (eq 0 (len .Inputs))}}
   <div class="build-resources build-inputs">
-    <h2>inputs</h2>
     {{range .Inputs}}
     <div data-resource="{{.Name}}" class="build-source{{if .FirstOccurrence}} first-occurrence{{end}}">
       <div class="resource-header">
@@ -60,16 +58,13 @@
     </div>
     {{end}}
   </div>
-  {{end}}
 
   <div class="build-run">
     <h2>build</h2>
     <pre id="build-log"></pre>
   </div>
 
-  {{if not (eq 0 (len .Outputs))}}
   <div class="build-resources build-outputs">
-    <h2>outputs</h2>
     {{range .Outputs}}
     <div data-resource="{{.Name}}" class="build-source">
       <div class="resource-header">
@@ -100,7 +95,26 @@
     </div>
     {{end}}
   </div>
-  {{end}}
+</div>
+
+{{/* used for constructing elements via JS */}}
+<div style="display: none" id="resource-template">
+  <div class="build-source">
+    <div class="resource-header">
+      <h3></h3>
+
+      <dl class="version"></dl>
+
+      <div style="clear: both"></div>
+    </div>
+
+    <div class="resource-body">
+      <dl class="build-metadata">
+      </dl>
+
+      <pre class="log"></pre>
+    </div>
+  </div>
 </div>
 
 <script src="{{url "Public" "jquery-2.1.1.min.js"}}"></script>
