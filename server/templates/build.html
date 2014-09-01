@@ -21,14 +21,14 @@
   <ul id="builds">
     {{$job := .Job}}
     {{$currentID := .Build.ID}}
-    {{/* don't put whitespace between these; they're display-block */}}
+    {{/* omitting whitespace for display-block style */}}
     {{range .Builds}}<li class="{{.Status}}{{if eq .ID $currentID}} current{{end}}"><a href="{{url "GetBuild" $job .}}">{{.ID}}</a></li>{{end}}
   </ul>
 </div>
 
 <div id="build-body">
-  <div class="build-resources build-inputs">
-    {{range .Inputs}}
+  {{/* omitting whitespace for :empty style */}}
+  <div class="build-resources build-inputs">{{range .Inputs}}
     <div data-resource="{{.Name}}" class="build-source{{if .FirstOccurrence}} first-occurrence{{end}}">
       <div class="resource-header">
         <h3>{{.Name}}</h3>
@@ -54,18 +54,15 @@
         {{end}}
 
         <pre class="log"></pre>
+        <div style="clear: both"></div>
       </div>
     </div>
-    {{end}}
-  </div>
+    {{end}}</div>
 
-  <div class="build-run">
-    <h2>build</h2>
-    <pre id="build-log"></pre>
-  </div>
+  <pre id="build-log"></pre>
 
-  <div class="build-resources build-outputs">
-    {{range .Outputs}}
+  {{/* omitting whitespace for :empty style */}}
+  <div class="build-resources build-outputs">{{range .Outputs}}
     <div data-resource="{{.Name}}" class="build-source">
       <div class="resource-header">
         <h3>{{.Name}}</h3>
@@ -91,10 +88,10 @@
         {{end}}
 
         <pre class="log"></pre>
+        <div style="clear: both"></div>
       </div>
     </div>
-    {{end}}
-  </div>
+    {{end}}</div>
 </div>
 
 {{/* used for constructing elements via JS */}}
@@ -113,6 +110,7 @@
       </dl>
 
       <pre class="log"></pre>
+      <div style="clear: both"></div>
     </div>
   </div>
 </div>
