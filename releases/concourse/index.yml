@@ -206,4 +206,6 @@ builds:
     version: 0.6.0-rc.33
   cd48137a-1e54-4397-8bc0-fc635f7821a1:
     version: 0.6.0-rc.34
+  d7a6c762-2055-416b-a9bc-52503dc6155b:
+    version: 0.6.0-rc.35
 format-version: '2'
