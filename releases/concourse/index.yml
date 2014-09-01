@@ -192,4 +192,6 @@ builds:
     version: 0.6.0-rc.26
   ec7b836e-82ab-4749-877a-40753a4bd742:
     version: 0.6.0-rc.27
+  b46d3cf3-a7f9-490e-9dab-81cbd3e5f30f:
+    version: 0.6.0-rc.28
 format-version: '2'
