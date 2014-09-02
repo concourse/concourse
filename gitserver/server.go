@@ -11,24 +11,23 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var container warden.Container
+type Server struct {
+	wardenClient warden.Client
+	container    warden.Container
 
-var ipAddress string
+	ipAddress string
 
-var committedGuids []string
+	committedGuids []string
+}
 
-func Start(helperRootfs string, wardenClient warden.Client) {
-	var err error
-
-	container, err = wardenClient.Create(warden.ContainerSpec{
+func Start(helperRootfs string, wardenClient warden.Client) *Server {
+	container, err := wardenClient.Create(warden.ContainerSpec{
 		RootFSPath: helperRootfs,
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 
 	info, err := container.Info()
 	Ω(err).ShouldNot(HaveOccurred())
-
-	ipAddress = info.ContainerIP
 
 	process, err := container.Run(warden.ProcessSpec{
 		Path: "bash",
@@ -57,24 +56,27 @@ touch .git/git-daemon-export-ok
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 	Ω(process.Wait()).Should(Equal(0))
+
+	return &Server{
+		wardenClient: wardenClient,
+		container:    container,
+		ipAddress:    info.ContainerIP,
+	}
 }
 
-func Stop(wardenClient warden.Client) {
-	wardenClient.Destroy(container.Handle())
-
-	container = nil
-	ipAddress = ""
+func (server *Server) Stop() {
+	server.wardenClient.Destroy(server.container.Handle())
 }
 
-func URI() string {
-	return fmt.Sprintf("git://%s/some-repo", ipAddress)
+func (server *Server) URI() string {
+	return fmt.Sprintf("git://%s/some-repo", server.ipAddress)
 }
 
-func Commit() {
+func (server *Server) Commit() {
 	guid, err := uuid.NewV4()
 	Ω(err).ShouldNot(HaveOccurred())
 
-	process, err := container.Run(warden.ProcessSpec{
+	process, err := server.container.Run(warden.ProcessSpec{
 		Path: "bash",
 		Args: []string{
 			"-c",
@@ -86,7 +88,7 @@ func Commit() {
 					git commit -m 'commit #%d: %s'
 				`,
 				guid,
-				len(committedGuids)+1,
+				len(server.committedGuids)+1,
 				guid,
 			),
 		},
@@ -97,13 +99,13 @@ func Commit() {
 	Ω(err).ShouldNot(HaveOccurred())
 	Ω(process.Wait()).Should(Equal(0))
 
-	committedGuids = append(committedGuids, guid.String())
+	server.committedGuids = append(server.committedGuids, guid.String())
 }
 
-func RevParse(ref string) string {
+func (server *Server) RevParse(ref string) string {
 	buf := new(bytes.Buffer)
 
-	process, err := container.Run(warden.ProcessSpec{
+	process, err := server.container.Run(warden.ProcessSpec{
 		Path: "git",
 		Args: []string{"rev-parse", ref},
 		Dir:  "some-repo",
@@ -125,6 +127,6 @@ func RevParse(ref string) string {
 	}
 }
 
-func CommittedGuids() []string {
-	return committedGuids
+func (server *Server) CommittedGuids() []string {
+	return server.committedGuids
 }

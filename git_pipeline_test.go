@@ -27,6 +27,14 @@ var _ = Describe("A job with a git resource", func() {
 
 	var atcProcess ifrit.Process
 
+	var (
+		gitServer *gitserver.Server
+
+		successGitServer  *gitserver.Server
+		failureGitServer  *gitserver.Server
+		noUpdateGitServer *gitserver.Server
+	)
+
 	BeforeEach(func() {
 		var err error
 
@@ -38,16 +46,22 @@ var _ = Describe("A job with a git resource", func() {
 		postgresRunner.CreateTestDB()
 
 		guidserver.Start(helperRootfs, wardenClient)
-		gitserver.Start(helperRootfs, wardenClient)
 
-		gitserver.Commit()
+		gitServer = gitserver.Start(helperRootfs, wardenClient)
+		gitServer.Commit()
+
+		successGitServer = gitserver.Start(helperRootfs, wardenClient)
+		failureGitServer = gitserver.Start(helperRootfs, wardenClient)
+		noUpdateGitServer = gitserver.Start(helperRootfs, wardenClient)
 
 		atcConfigFile, err := ioutil.TempFile("", "atc-config")
 		Ω(err).ShouldNot(HaveOccurred())
 
 		atcConfigFilePath = atcConfigFile.Name()
 
-		_, err = fmt.Fprintf(atcConfigFile, `---
+		_, err = fmt.Fprintf(
+			atcConfigFile,
+			`---
 resources:
   - name: some-git-resource
     type: git
@@ -57,20 +71,17 @@ resources:
   - name: some-git-resource-success
     type: git
     source:
-      uri: %[1]s
-      branch: success
-
-  - name: some-git-resource-no-update
-    type: git
-    source:
-      uri: %[1]s
-      branch: no-update
+      uri: %[2]s
 
   - name: some-git-resource-failure
     type: git
     source:
-      uri: %[1]s
-      branch: failure
+      uri: %[4]s
+
+  - name: some-git-resource-no-update
+    type: git
+    source:
+      uri: %[3]s
 
 jobs:
   - name: some-job
@@ -81,10 +92,10 @@ jobs:
         params:
           repository: some-git-resource
     config:
-      image: %[2]s
+      image: %[5]s
       run:
         path: bash
-        args: ["-c", "tail -1 some-git-resource/guids | %[3]s"]
+        args: ["-c", "tail -1 some-git-resource/guids | %[6]s"]
 
   - name: some-failing-job
     inputs:
@@ -98,11 +109,18 @@ jobs:
         params:
           repository: some-git-resource
     config:
-      image: %[2]s
+      image: %[5]s
       run:
         path: bash
         args: ["-c", "exit 1"]
-`, gitserver.URI(), helperRootfs, guidserver.CurlCommand())
+`,
+			gitServer.URI(),
+			successGitServer.URI(),
+			failureGitServer.URI(),
+			noUpdateGitServer.URI(),
+			helperRootfs,
+			guidserver.CurlCommand(),
+		)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		err = atcConfigFile.Close()
@@ -131,7 +149,11 @@ jobs:
 		atcProcess.Signal(syscall.SIGINT)
 		Eventually(atcProcess.Wait(), 10*time.Second).Should(Receive())
 
-		gitserver.Stop(wardenClient)
+		gitServer.Stop()
+		successGitServer.Stop()
+		failureGitServer.Stop()
+		noUpdateGitServer.Stop()
+
 		guidserver.Stop(wardenClient)
 
 		postgresRunner.DropTestDB()
@@ -145,16 +167,16 @@ jobs:
 
 	It("builds a repo's initial and later commits", func() {
 		Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(HaveLen(1))
-		Ω(guidserver.ReportingGuids()).Should(Equal(gitserver.CommittedGuids()))
+		Ω(guidserver.ReportingGuids()).Should(Equal(gitServer.CommittedGuids()))
 
-		gitserver.Commit()
+		gitServer.Commit()
 
 		Eventually(guidserver.ReportingGuids, 2*time.Minute, 10*time.Second).Should(HaveLen(2))
-		Ω(guidserver.ReportingGuids()).Should(Equal(gitserver.CommittedGuids()))
+		Ω(guidserver.ReportingGuids()).Should(Equal(gitServer.CommittedGuids()))
 	})
 
 	It("performs success outputs when the build succeeds, and failure outputs when the build fails", func() {
-		masterSHA := gitserver.RevParse("master")
+		masterSHA := gitServer.RevParse("master")
 		Ω(masterSHA).ShouldNot(BeEmpty())
 
 		// synchronize on the build triggering
@@ -162,17 +184,17 @@ jobs:
 
 		// should have eventually promoted
 		Eventually(func() string {
-			return gitserver.RevParse("success")
+			return successGitServer.RevParse("master")
 		}, 10*time.Second, 1*time.Second).Should(Equal(masterSHA))
 
 		// should have promoted to failure branch because of on: [falure]
 		Eventually(func() string {
-			return gitserver.RevParse("failure")
+			return failureGitServer.RevParse("master")
 		}, 10*time.Second, 1*time.Second).Should(Equal(masterSHA))
 
 		// should *not* have promoted to no-update branch
 		Consistently(func() string {
-			return gitserver.RevParse("no-update")
+			return noUpdateGitServer.RevParse("master")
 		}, 10*time.Second, 1*time.Second).Should(BeEmpty())
 	})
 })
