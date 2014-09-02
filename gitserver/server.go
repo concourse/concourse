@@ -50,7 +50,7 @@ touch .git/git-daemon-export-ok
 
 	process, err = container.Run(warden.ProcessSpec{
 		Path: "git",
-		Args: []string{"daemon", "--reuseaddr", "--base-path=.", "--detach", "."},
+		Args: []string{"daemon", "--export-all", "--enable=receive-pack", "--reuseaddr", "--base-path=.", "--detach", "."},
 	}, warden.ProcessIO{
 		Stdout: ginkgo.GinkgoWriter,
 		Stderr: ginkgo.GinkgoWriter,
