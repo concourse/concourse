@@ -73,19 +73,19 @@ resources:
     type: git
     source:
       uri: %[2]s
-      branch: master
+      branch: success
 
   - name: some-git-resource-failure
     type: git
     source:
       uri: %[4]s
-      branch: master
+      branch: failure
 
   - name: some-git-resource-no-update
     type: git
     source:
       uri: %[3]s
-      branch: master
+      branch: no-update
 
 jobs:
   - name: some-job
@@ -188,17 +188,17 @@ jobs:
 
 		// should have eventually promoted
 		Eventually(func() string {
-			return successGitServer.RevParse("master")
+			return successGitServer.RevParse("success")
 		}, 10*time.Second, 1*time.Second).Should(Equal(masterSHA))
 
-		// should have promoted to failure branch because of on: [falure]
+		// should have promoted to failure branch because of on: [failure]
 		Eventually(func() string {
-			return failureGitServer.RevParse("master")
+			return failureGitServer.RevParse("failure")
 		}, 10*time.Second, 1*time.Second).Should(Equal(masterSHA))
 
 		// should *not* have promoted to no-update branch
 		Consistently(func() string {
-			return noUpdateGitServer.RevParse("master")
+			return noUpdateGitServer.RevParse("no-update")
 		}, 10*time.Second, 1*time.Second).Should(BeEmpty())
 	})
 })
