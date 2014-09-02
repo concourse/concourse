@@ -168,7 +168,7 @@ jobs:
 		// should have promoted to failure branch because of on: [falure]
 		Eventually(func() string {
 			return gitserver.RevParse("failure")
-		}, 10*time.Second, 1*time.Second).Should(BeEmpty())
+		}, 10*time.Second, 1*time.Second).Should(Equal(masterSHA))
 
 		// should *not* have promoted to no-update branch
 		Consistently(func() string {
