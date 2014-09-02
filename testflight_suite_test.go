@@ -137,7 +137,17 @@ var _ = BeforeEach(func() {
 
 var _ = AfterEach(func() {
 	processes.Signal(syscall.SIGINT)
-	Eventually(processes.Wait(), 10*time.Second).Should(Receive())
+
+	select {
+	case <-process.Wait():
+	case <-time.After(10 * time.Second):
+		println("!!!!!!!!!!!!!!!!!!!!!!!!!!!! EXIT TIMEOUT")
+
+		processes.Signal(syscall.SIGQUIT)
+		Eventually(processes.Wait(), 10*time.Second).Should(Receive())
+
+		Fail("processes did not exit within 10s; SIGQUIT sent")
+	}
 })
 
 func TestTestFlight(t *testing.T) {
