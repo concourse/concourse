@@ -73,7 +73,7 @@ jobs:
     outputs:
       - resource: some-git-resource-success
         params:
-          repo: some-git-resource
+          repository: some-git-resource
     config:
       image: %[2]s
       run:
@@ -86,7 +86,7 @@ jobs:
     outputs:
       - resource: some-git-resource-failure
         params:
-          repo: some-git-resource
+          repository: some-git-resource
     config:
       image: %[2]s
       run:
