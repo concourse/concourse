@@ -44,14 +44,12 @@
       </div>
 
       <div class="resource-body">
-        {{if not (eq 0 (len .Metadata))}}
         <dl class="build-metadata">
           {{range .Metadata}}
           <dt>{{.Name}}</dt>
             <dd>{{.Value}}</dd>
           {{end}}
         </dl>
-        {{end}}
 
         <pre class="log"></pre>
         <div style="clear: both"></div>
@@ -78,14 +76,12 @@
       </div>
 
       <div class="resource-body">
-        {{if not (eq 0 (len .Metadata))}}
         <dl class="build-metadata">
           {{range .Metadata}}
           <dt>{{.Name}}</dt>
             <dd>{{.Value}}</dd>
           {{end}}
         </dl>
-        {{end}}
 
         <pre class="log"></pre>
         <div style="clear: both"></div>
