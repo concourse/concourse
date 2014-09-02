@@ -60,6 +60,12 @@ resources:
       uri: %[1]s
       branch: success
 
+  - name: some-git-resource-no-update
+    type: git
+    source:
+      uri: %[1]s
+      branch: no-update
+
   - name: some-git-resource-failure
     type: git
     source:
@@ -84,7 +90,11 @@ jobs:
     inputs:
       - resource: some-git-resource
     outputs:
+      - resource: some-git-resource-no-update
+        params:
+          repository: some-git-resource
       - resource: some-git-resource-failure
+        on: [failure]
         params:
           repository: some-git-resource
     config:
@@ -155,9 +165,14 @@ jobs:
 			return gitserver.RevParse("success")
 		}, 10*time.Second, 1*time.Second).Should(Equal(masterSHA))
 
-		// should *not* have promoted to failing branch
-		Consistently(func() string {
+		// should have promoted to failure branch because of on: [falure]
+		Eventually(func() string {
 			return gitserver.RevParse("failure")
+		}, 10*time.Second, 1*time.Second).Should(BeEmpty())
+
+		// should *not* have promoted to no-update branch
+		Consistently(func() string {
+			return gitserver.RevParse("no-update")
 		}, 10*time.Second, 1*time.Second).Should(BeEmpty())
 	})
 })
