@@ -78,13 +78,13 @@ resources:
   - name: some-git-resource-failure
     type: git
     source:
-      uri: %[4]s
+      uri: %[3]s
       branch: failure
 
   - name: some-git-resource-no-update
     type: git
     source:
-      uri: %[3]s
+      uri: %[4]s
       branch: no-update
 
 jobs:
