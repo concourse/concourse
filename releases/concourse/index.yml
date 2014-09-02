@@ -220,4 +220,6 @@ builds:
     version: 0.6.0-rc.40
   a26b2ba9-b018-4deb-b20c-4b2b8effd0f3:
     version: 0.6.0-rc.41
+  9ead6a14-e631-44ba-8be3-419e78eef087:
+    version: 0.6.0-rc.42
 format-version: '2'
