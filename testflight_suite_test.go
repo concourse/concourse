@@ -139,7 +139,7 @@ var _ = AfterEach(func() {
 	processes.Signal(syscall.SIGINT)
 
 	select {
-	case <-process.Wait():
+	case <-processes.Wait():
 	case <-time.After(10 * time.Second):
 		println("!!!!!!!!!!!!!!!!!!!!!!!!!!!! EXIT TIMEOUT")
 
