@@ -78,7 +78,7 @@ jobs:
       image: %[2]s
       run:
         path: bash
-        args: [-c, tail -1 some-git-resource/guids | %[3]s]
+        args: ["-c", "tail -1 some-git-resource/guids | %[3]s"]
 
   - name: some-failing-job
     inputs:
@@ -91,7 +91,7 @@ jobs:
       image: %[2]s
       run:
         path: bash
-        args: [-c, exit 1]
+        args: ["-c", "exit 1"]
 `, gitserver.URI(), helperRootfs, guidserver.CurlCommand())
 		Ω(err).ShouldNot(HaveOccurred())
 
