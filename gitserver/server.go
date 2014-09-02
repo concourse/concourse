@@ -113,10 +113,16 @@ func RevParse(ref string) string {
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 
-	_, err = process.Wait()
+	status, err := process.Wait()
 	Ω(err).ShouldNot(HaveOccurred())
 
-	return buf.String()
+	if status == 0 {
+		return buf.String()
+	} else {
+		// git rev-parse prints the input string if it cannot resolve it;
+		// return an empty string instead
+		return ""
+	}
 }
 
 func CommittedGuids() []string {
