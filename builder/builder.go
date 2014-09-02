@@ -208,10 +208,23 @@ func (builder *builder) computeOutputs(job config.Job) ([]TurbineBuilds.Output, 
 			return nil, fmt.Errorf("unknown resource: %s", output.Resource)
 		}
 
+		conditions := []TurbineBuilds.OutputCondition{}
+
+		// if not specified, assume [success]
+		//
+		// note that this check is for nil, not len(output.On) == 0
+		if output.On == nil {
+			conditions = append(conditions, TurbineBuilds.OutputConditionSuccess)
+		} else {
+			for _, cond := range output.On {
+				conditions = append(conditions, TurbineBuilds.OutputCondition(cond))
+			}
+		}
+
 		turbineOutput := TurbineBuilds.Output{
 			Name:   resource.Name,
 			Type:   resource.Type,
-			On:     []TurbineBuilds.OutputCondition{TurbineBuilds.OutputConditionSuccess},
+			On:     conditions,
 			Params: TurbineBuilds.Params(output.Params),
 			Source: TurbineBuilds.Source(resource.Source),
 		}

@@ -45,6 +45,27 @@ type Input struct {
 type Output struct {
 	Resource string `yaml:"resource"`
 	Params   Params `yaml:"params"`
+
+	// e.g. [success, failure]; default [success]
+	On []OutputCondition `yaml:"on"`
+}
+
+type OutputCondition string
+
+func (c *OutputCondition) UnmarshalYAML(tag string, value interface{}) error {
+	str, ok := value.(string)
+	if !ok {
+		return fmt.Errorf("invalid output condition: %#v (must be success/failure)", value)
+	}
+
+	switch builds.OutputCondition(str) {
+	case builds.OutputConditionSuccess, builds.OutputConditionFailure:
+		*c = OutputCondition(str)
+	default:
+		return fmt.Errorf("unknown output condition: %s (must be success/failure)", str)
+	}
+
+	return nil
 }
 
 type Duration time.Duration

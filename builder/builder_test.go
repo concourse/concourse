@@ -191,6 +191,16 @@ var _ = Describe("Builder", func() {
 						Resource: "some-resource",
 						Params:   config.Params{"foo": "bar"},
 					},
+					{
+						Resource: "some-resource",
+						Params:   config.Params{"foo": "bar"},
+						On:       []config.OutputCondition{"failure"},
+					},
+					{
+						Resource: "some-resource",
+						Params:   config.Params{"foo": "bar"},
+						On:       []config.OutputCondition{},
+					},
 				}
 
 				expectedTurbineBuild.Outputs = []TurbineBuilds.Output{
@@ -198,6 +208,20 @@ var _ = Describe("Builder", func() {
 						Name:   "some-resource",
 						Type:   "git",
 						On:     []TurbineBuilds.OutputCondition{TurbineBuilds.OutputConditionSuccess},
+						Params: TurbineBuilds.Params{"foo": "bar"},
+						Source: TurbineBuilds.Source{"uri": "git://some-resource"},
+					},
+					{
+						Name:   "some-resource",
+						Type:   "git",
+						On:     []TurbineBuilds.OutputCondition{TurbineBuilds.OutputConditionFailure},
+						Params: TurbineBuilds.Params{"foo": "bar"},
+						Source: TurbineBuilds.Source{"uri": "git://some-resource"},
+					},
+					{
+						Name:   "some-resource",
+						Type:   "git",
+						On:     []TurbineBuilds.OutputCondition{},
 						Params: TurbineBuilds.Params{"foo": "bar"},
 						Source: TurbineBuilds.Source{"uri": "git://some-resource"},
 					},
