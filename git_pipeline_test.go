@@ -153,7 +153,7 @@ jobs:
 		Ω(guidserver.ReportingGuids()).Should(Equal(gitserver.CommittedGuids()))
 	})
 
-	It("performs outputs only if the build succeeds", func() {
+	It("performs success outputs when the build succeeds, and failure outputs when the build fails", func() {
 		masterSHA := gitserver.RevParse("master")
 		Ω(masterSHA).ShouldNot(BeEmpty())
 
