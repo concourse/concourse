@@ -197,6 +197,7 @@ var _ = Describe("Builder", func() {
 					{
 						Name:   "some-resource",
 						Type:   "git",
+						On:     []TurbineBuilds.OutputCondition{TurbineBuilds.OutputConditionSuccess},
 						Params: TurbineBuilds.Params{"foo": "bar"},
 						Source: TurbineBuilds.Source{"uri": "git://some-resource"},
 					},

@@ -211,6 +211,7 @@ func (builder *builder) computeOutputs(job config.Job) ([]TurbineBuilds.Output, 
 		turbineOutput := TurbineBuilds.Output{
 			Name:   resource.Name,
 			Type:   resource.Type,
+			On:     []TurbineBuilds.OutputCondition{TurbineBuilds.OutputConditionSuccess},
 			Params: TurbineBuilds.Params(output.Params),
 			Source: TurbineBuilds.Source(resource.Source),
 		}
