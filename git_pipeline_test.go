@@ -67,21 +67,25 @@ resources:
     type: git
     source:
       uri: %[1]s
+      branch: master
 
   - name: some-git-resource-success
     type: git
     source:
       uri: %[2]s
+      branch: master
 
   - name: some-git-resource-failure
     type: git
     source:
       uri: %[4]s
+      branch: master
 
   - name: some-git-resource-no-update
     type: git
     source:
       uri: %[3]s
+      branch: master
 
 jobs:
   - name: some-job
