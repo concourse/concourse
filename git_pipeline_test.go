@@ -108,7 +108,7 @@ jobs:
 				"-templates", filepath.Join(atcDir, "server", "templates"),
 				"-public", filepath.Join(atcDir, "server", "public"),
 				"-sqlDataSource", postgresRunner.DataSourceName(),
-				"-checkInterval", "1s",
+				"-checkInterval", "5s",
 			),
 			StartCheck:        "listening",
 			StartCheckTimeout: 5 * time.Second,
