@@ -52,19 +52,46 @@ resources:
   - name: some-git-resource
     type: git
     source:
-      uri: %s
+      uri: %[1]s
+
+  - name: some-git-resource-success
+    type: git
+    source:
+      uri: %[1]s
+      branch: success
+
+  - name: some-git-resource-failure
+    type: git
+    source:
+      uri: %[1]s
+      branch: failure
 
 jobs:
   - name: some-job
     inputs:
       - resource: some-git-resource
+    outputs:
+      - resource: some-git-resource-success
+        params:
+          repo: some-git-resource
     config:
-      image: %s
+      image: %[2]s
       run:
         path: bash
-        args:
-          - -c
-          - tail -1 some-git-resource/guids | %s
+        args: [-c, tail -1 some-git-resource/guids | %[3]s]
+
+  - name: some-failing-job
+    inputs:
+      - resource: some-git-resource
+    outputs:
+      - resource: some-git-resource-failure
+        params:
+          repo: some-git-resource
+    config:
+      image: %[2]s
+      run:
+        path: bash
+        args: [-c, exit 1]
 `, gitserver.URI(), helperRootfs, guidserver.CurlCommand())
 		Ω(err).ShouldNot(HaveOccurred())
 
@@ -81,7 +108,7 @@ jobs:
 				"-templates", filepath.Join(atcDir, "server", "templates"),
 				"-public", filepath.Join(atcDir, "server", "public"),
 				"-sqlDataSource", postgresRunner.DataSourceName(),
-				"-checkInterval", "10s",
+				"-checkInterval", "1s",
 			),
 			StartCheck:        "listening",
 			StartCheckTimeout: 5 * time.Second,
@@ -114,5 +141,23 @@ jobs:
 
 		Eventually(guidserver.ReportingGuids, 2*time.Minute, 10*time.Second).Should(HaveLen(2))
 		Ω(guidserver.ReportingGuids()).Should(Equal(gitserver.CommittedGuids()))
+	})
+
+	It("performs outputs only if the build succeeds", func() {
+		masterSHA := gitserver.RevParse("master")
+		Ω(masterSHA).ShouldNot(BeEmpty())
+
+		// synchronize on the build triggering
+		Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(HaveLen(1))
+
+		// should have eventually promoted
+		Eventually(func() string {
+			return gitserver.RevParse("success")
+		}, 10*time.Second, 1*time.Second).Should(Equal(masterSHA))
+
+		// should *not* have promoted to failing branch
+		Consistently(func() string {
+			return gitserver.RevParse("failure")
+		}, 10*time.Second, 1*time.Second).Should(BeEmpty())
 	})
 })

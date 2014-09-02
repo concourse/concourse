@@ -1,6 +1,7 @@
 package gitserver
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/cloudfoundry-incubator/garden/warden"
@@ -97,6 +98,25 @@ func Commit() {
 	Ω(process.Wait()).Should(Equal(0))
 
 	committedGuids = append(committedGuids, guid.String())
+}
+
+func RevParse(ref string) string {
+	buf := new(bytes.Buffer)
+
+	process, err := container.Run(warden.ProcessSpec{
+		Path: "git",
+		Args: []string{"rev-parse", ref},
+		Dir:  "some-repo",
+	}, warden.ProcessIO{
+		Stdout: buf,
+		Stderr: ginkgo.GinkgoWriter,
+	})
+	Ω(err).ShouldNot(HaveOccurred())
+
+	_, err = process.Wait()
+	Ω(err).ShouldNot(HaveOccurred())
+
+	return buf.String()
 }
 
 func CommittedGuids() []string {
