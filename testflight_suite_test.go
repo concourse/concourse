@@ -140,9 +140,9 @@ var _ = AfterEach(func() {
 	Eventually(processes.Wait(), 10*time.Second).Should(Receive())
 })
 
-func TestFlightTest(t *testing.T) {
+func TestTestFlight(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "FlightTest Suite")
+	RunSpecs(t, "TestFlight Suite")
 }
 
 func findSource(pkg string) string {
