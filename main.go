@@ -167,7 +167,7 @@ func main() {
 		break
 	}
 
-	db := Db.NewSQL(dbConn)
+	db := Db.NewSQL(logger.Session("db"), dbConn)
 
 	for _, job := range conf.Jobs {
 		err := db.RegisterJob(job.Name)

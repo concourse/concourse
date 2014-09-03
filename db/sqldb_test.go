@@ -7,6 +7,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 
 	. "github.com/concourse/atc/db"
@@ -36,7 +37,7 @@ var _ = Describe("SQL DB", func() {
 		postgresRunner.CreateTestDB()
 
 		dbConn = postgresRunner.Open()
-		db = NewSQL(dbConn)
+		db = NewSQL(lagertest.NewTestLogger("test"), dbConn)
 	})
 
 	AfterEach(func() {

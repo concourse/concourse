@@ -5,19 +5,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	_ "github.com/lib/pq"
+	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 )
 
 type sqldb struct {
-	conn *sql.DB
+	logger lager.Logger
+	conn   *sql.DB
 }
 
-func NewSQL(sqldbConnection *sql.DB) DB {
-	return &sqldb{sqldbConnection}
+func NewSQL(logger lager.Logger, sqldbConnection *sql.DB) DB {
+	return &sqldb{
+		logger: logger,
+		conn:   sqldbConnection,
+	}
 }
 
 func (db *sqldb) RegisterJob(name string) error {
@@ -539,6 +545,20 @@ func (db *sqldb) GetLatestVersionedResource(name string) (builds.VersionedResour
 }
 
 func (db *sqldb) GetLatestInputVersions(inputs []config.Input) (builds.VersionedResources, error) {
+	startedAt := time.Now()
+
+	getLog := db.logger.Session("get-latest-input-versions", lager.Data{
+		"inputs": inputs,
+	})
+
+	getLog.Debug("start")
+
+	defer func() {
+		getLog.Info("finished", lager.Data{
+			"took": time.Now().Sub(startedAt).String(),
+		})
+	}()
+
 	fromAliases := []string{}
 	conditions := []string{}
 	params := []interface{}{}
