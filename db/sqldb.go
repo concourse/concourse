@@ -902,24 +902,14 @@ func (db *sqldb) saveVersionedResource(tx *sql.Tx, vr builds.VersionedResource) 
 	}
 
 	// separate from above, as it conditionally inserts (can't use RETURNING)
-	if len(vr.Metadata) == 0 {
-		err = tx.QueryRow(`
-			SELECT id
-			FROM versioned_resources
-			WHERE resource_name = $1
-			AND type = $2
-			AND version = $3
-		`, vr.Name, vr.Type, string(versionJSON)).Scan(&id)
-	} else {
-		err = tx.QueryRow(`
+	err = tx.QueryRow(`
 			UPDATE versioned_resources
-			SET metadata = $4
+			SET source = $4, metadata = $5
 			WHERE resource_name = $1
 			AND type = $2
 			AND version = $3
 			RETURNING id
-		`, vr.Name, vr.Type, string(versionJSON), string(metadataJSON)).Scan(&id)
-	}
+		`, vr.Name, vr.Type, string(versionJSON), string(sourceJSON), string(metadataJSON)).Scan(&id)
 
 	if err != nil {
 		return 0, err

@@ -311,6 +311,32 @@ func itIsADB() {
 
 			Ω(db.GetLatestVersionedResource("some-resource")).Should(Equal(vr3))
 		})
+
+		It("overwrites the existing source and metadata for the same version", func() {
+			vr := Builds.VersionedResource{
+				Name:    "some-resource",
+				Type:    "some-type",
+				Source:  config.Source{"some": "source"},
+				Version: Builds.Version{"version": "1"},
+				Metadata: []Builds.MetadataField{
+					{Name: "meta1", Value: "value1"},
+				},
+			}
+
+			err := db.SaveVersionedResource(vr)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(db.GetLatestVersionedResource("some-resource")).Should(Equal(vr))
+
+			modified := vr
+			modified.Source["additional"] = "data"
+			modified.Metadata[0].Value = "modified-value1"
+
+			err = db.SaveVersionedResource(modified)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(db.GetLatestVersionedResource("some-resource")).Should(Equal(modified))
+		})
 	})
 
 	Describe("determining the inputs for a job", func() {
