@@ -242,4 +242,6 @@ builds:
     version: 0.7.0-rc.8
   37b1393a-379d-4f0b-9056-b75d0ad1c0c3:
     version: 0.7.0-rc.9
+  c1b3c39e-6eac-41e3-81e3-9de137d05a5e:
+    version: 0.7.0-rc.10
 format-version: '2'
