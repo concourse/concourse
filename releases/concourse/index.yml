@@ -234,4 +234,6 @@ builds:
     version: 0.7.0-rc.4
   7ec82e6f-b20f-45bb-b144-5be88ebddfc3:
     version: 0.7.0-rc.5
+  fa53b45f-fa92-493a-bbef-8007a143ebbb:
+    version: 0.7.0-rc.6
 format-version: '2'
