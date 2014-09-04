@@ -240,4 +240,6 @@ builds:
     version: 0.7.0-rc.7
   92403d89-adc1-43f3-8df8-be4c2771d94d:
     version: 0.7.0-rc.8
+  37b1393a-379d-4f0b-9056-b75d0ad1c0c3:
+    version: 0.7.0-rc.9
 format-version: '2'
