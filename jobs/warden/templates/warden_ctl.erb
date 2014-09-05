@@ -18,17 +18,13 @@ case $1 in
 
     mkdir -p $DATA_DIR/depot
 
-    echo $$ > /var/vcap/sys/run/warden/warden.pid
-
     # aufs setup
     dpkg -i /var/vcap/packages/aufs/aufs-tools_20110410-1_amd64.deb
 
-    # make sure /dev/shm is large enough; bosh-lite has insane defaults
-    mkdir -p /dev/shm
-    mount -t tmpfs -o remount,size=512m tmpfs /dev/shm
-
     export PATH=/var/vcap/packages/iptables/sbin:$PATH
     export PATH=/var/vcap/packages/shadow/sbin:$PATH
+
+    echo $$ > /var/vcap/sys/run/warden/warden.pid
 
     exec /var/vcap/packages/warden-linux/bin/warden-linux \
       -disableQuotas=true \
@@ -49,12 +45,32 @@ case $1 in
     ;;
 
   stop)
-    kill_and_wait $PIDFILE
+    pid=$(cat $PIDFILE)
+
+    for i in $(seq 30); do
+      echo "sending TERM to ${pid}..."
+      if kill $pid; do
+        sleep 1
+      else
+        echo "exited"
+        exit 0
+      fi
+    done
+
+    echo "timed out; sending SIGQUIT followed by SIGKILL to ${pid}..."
+    if kill -QUIT $pid; do
+      sleep 5
+
+      echo "killing ${pid}..."
+      kill -9 $pid
+    done
+
+    echo "killed"
 
     ;;
 
   *)
-    echo "Usage: warden_ctl {start|stop}"
+    echo "Usage: ${0} {start|stop}"
 
     ;;
 
