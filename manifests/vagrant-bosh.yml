@@ -67,6 +67,10 @@ jobs:
           - name: postgresql
           - name: warden
 
+    warden:
+      # make warden listen on all addresses for debugging
+      listen_address: 0.0.0.0:7777
+
     postgresql:
       databases:
         - name: atc
