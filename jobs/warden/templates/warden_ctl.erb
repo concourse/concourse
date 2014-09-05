@@ -58,12 +58,12 @@ case $1 in
     done
 
     echo "timed out; sending SIGQUIT followed by SIGKILL to ${pid}..."
-    if kill -QUIT $pid; do
+    if kill -QUIT $pid; then
       sleep 5
 
       echo "killing ${pid}..."
       kill -9 $pid
-    done
+    fi
 
     echo "killed"
 
