@@ -5,7 +5,17 @@
 There are countless CI options out there. Transitioning from one CI system to
 another can be a huge investment depending on the size of your project.
 
-Concourse holds the following principles to heart.
+Part of this risk stems from projects being coupled to the intricacies of their
+existing CI software, and learning the intricacies of the next one. Or it's
+simply the number of potential variables to accidentally change when switching
+so many builds over, manually clicking around in the new system's wizard-like
+UI.
+
+Concourse holds the following principles to heart. Collectively they reduce the
+risk of switching to and from Concourse, by encouraging practices that decouple
+your project from your CI infrastructure's little details.
+
+If these principles align with yours, it's worth a shot.
 
 
 @section[#:style 'toc-hidden]{Simple}
@@ -26,11 +36,11 @@ To learn them, see @secref{Concepts}.
 @section[#:style 'toc-hidden]{Usable}
 
 Concourse is optimized for quickly navigating to the pages you most care about.
-From the main page, the shortest path from a pipeline view to the console
-output of a job's latest failing build is a single click.
+From the main page, a single click takes you from a pipeline view to the log of
+a job's latest failing build.
 
 From there, the job's entire build history is displayed, and every input for
-the job is listed out, with any new inputs highlighted.
+the job is listed with any new inputs highlighted.
 
 The build log is colorized and supports unicode. It emulates your terminal and
 gets out of your way.
@@ -66,12 +76,13 @@ See @secref{deploying-with-bosh}.
 
 @section[#:style 'toc-hidden]{Flexible}
 
-Concourse provides the abstractions for you to be able to integrate with
-anything you need, and implements most interesting features in terms of this
-same primitive.
+Features that other systems implement in the core of the product, Concourse
+implements in "userland", as @seclink["resources"]{resources}. This keeps the
+core of Concourse small and simple, and proves out the exensibility introduced
+by this simple interface.
 
-Most features that other systems implement in the core of the product,
-Concourse implements as resources in userland:
+The following are features implemented entirely as resources, in the same way
+that any user can extend Concourse's functionality:
 
 @itemlist[
   @item{
@@ -116,7 +127,8 @@ Concourse implements as resources in userland:
 By using resources for this, all integration points are explicit parts of the
 pipeline, visualized on the front page. It forces the issue of having a
 stateless CI system, by externalizing all important artifacts (even version
-numbers) to concrete objects outside of the system.
+numbers) to concrete objects outside of the system. This further decouples you
+from your CI.
 
 See @secref{resources} and @secref{implementing-resources}.
 
