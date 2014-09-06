@@ -1,0 +1,49 @@
+{{define "title"}}History - Concourse{{end}}
+
+{{define "body"}}
+<div id="resource-header">
+  <a class="title" href="/">&lt;</a>
+
+  <h1>{{.Resource.Name}} history</h1>
+</div>
+
+<table id="version-history">
+  <thead>
+    <tr>
+      <th>metadata</th>
+      <th>affected builds</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{range .History}}
+    <tr>
+      <td>
+        <dl class="build-metadata">
+          {{range .VersionedResource.Metadata}}
+          <dt>{{.Name}}</dt>
+          <dd>{{.Value}}</dd>
+          {{end}}
+        </dl>
+      </td>
+      <td>
+        <table class="jobs">
+          {{range .Jobs}}
+          {{$job := .JobName}}
+          <tr>
+            <td class="name"><h3>{{.JobName}}</h3></td>
+            <td>
+              <ul class="builds">
+                {{range .Builds}}
+                <li class="{{.Status}}"><a href="{{url "GetBuild" $job .}}">#{{.ID}}</a></li>
+                {{end}}
+              </ul>
+            </td>
+          </tr>
+          {{end}}
+        </table>
+      </td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+{{end}}
