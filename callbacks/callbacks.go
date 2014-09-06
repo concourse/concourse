@@ -1,4 +1,4 @@
-package api
+package callbacks
 
 import (
 	"net/http"
@@ -6,12 +6,12 @@ import (
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 
-	"github.com/concourse/atc/api/handler"
-	"github.com/concourse/atc/api/routes"
+	"github.com/concourse/atc/callbacks/handler"
+	"github.com/concourse/atc/callbacks/routes"
 	"github.com/concourse/atc/logfanout"
 )
 
-func New(logger lager.Logger, buildDB handler.BuildDB, logTracker *logfanout.Tracker) (http.Handler, error) {
+func NewHandler(logger lager.Logger, buildDB handler.BuildDB, logTracker *logfanout.Tracker) (http.Handler, error) {
 	builds := handler.NewHandler(logger, buildDB, logTracker)
 
 	handlers := map[string]http.Handler{

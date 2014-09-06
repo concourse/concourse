@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/BurntSushi/migration"
-	turbineroutes "github.com/concourse/turbine/routes"
 	"github.com/fraenkel/candiedyaml"
 	_ "github.com/lib/pq"
 	"github.com/pivotal-golang/lager"
@@ -21,9 +20,11 @@ import (
 	"github.com/tedsuo/ifrit/sigmon"
 	"github.com/tedsuo/rata"
 
-	"github.com/concourse/atc/api"
-	apiroutes "github.com/concourse/atc/api/routes"
+	troutes "github.com/concourse/turbine/routes"
+
 	"github.com/concourse/atc/builder"
+	"github.com/concourse/atc/callbacks"
+	croutes "github.com/concourse/atc/callbacks/routes"
 	"github.com/concourse/atc/config"
 	Db "github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migrations"
@@ -31,8 +32,8 @@ import (
 	"github.com/concourse/atc/radar"
 	"github.com/concourse/atc/resources"
 	"github.com/concourse/atc/scheduler"
-	"github.com/concourse/atc/server"
-	"github.com/concourse/atc/server/auth"
+	"github.com/concourse/atc/web"
+	"github.com/concourse/atc/web/auth"
 )
 
 var pipelinePath = flag.String(
@@ -74,25 +75,25 @@ var sqlDataSource = flag.String(
 var peerAddr = flag.String(
 	"peerAddr",
 	"127.0.0.1:8081",
-	"external address of the api server, used for callbacks",
+	"external address of the callbacks server",
 )
 
-var listenAddr = flag.String(
-	"listenAddr",
+var webListenAddr = flag.String(
+	"webListenAddr",
 	":8080",
-	"port for the web server to listen on",
+	"address for the web server to listen on",
 )
 
-var apiListenAddr = flag.String(
-	"apiListenAddr",
+var callbacksListenAddr = flag.String(
+	"callbacksListenAddr",
 	":8081",
-	"port for the api to listen on",
+	"address for the internal callbacks server to listen on",
 )
 
 var debugListenAddr = flag.String(
 	"debugListenAddr",
 	":8079",
-	"port for the pprof debugger to listen on",
+	"address for the pprof debugger to listen on",
 )
 
 var httpUsername = flag.String(
@@ -183,8 +184,8 @@ func main() {
 		}
 	}
 
-	atcEndpoint := rata.NewRequestGenerator("http://"+*peerAddr, apiroutes.Routes)
-	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, turbineroutes.Routes)
+	atcEndpoint := rata.NewRequestGenerator("http://"+*peerAddr, croutes.Routes)
+	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, troutes.Routes)
 	builder := builder.NewBuilder(db, conf.Resources, turbineEndpoint, atcEndpoint)
 
 	scheduler := &scheduler.Scheduler{
@@ -197,7 +198,7 @@ func main() {
 
 	radar := radar.NewRadar(logger, db, *checkInterval)
 
-	serverHandler, err := server.New(
+	webHandler, err := web.NewHandler(
 		logger,
 		conf,
 		scheduler,
@@ -213,24 +214,22 @@ func main() {
 	}
 
 	if *httpUsername != "" && *httpHashedPassword != "" {
-		serverHandler = auth.Handler{
-			Handler:        serverHandler,
+		webHandler = auth.Handler{
+			Handler:        webHandler,
 			Username:       *httpUsername,
 			HashedPassword: *httpHashedPassword,
 		}
 	}
 
-	apiHandler, err := api.New(logger, db, tracker)
+	callbacksHandler, err := callbacks.NewHandler(logger, db, tracker)
 	if err != nil {
 		fatal(err)
 	}
 
 	group := grouper.RunGroup{
-		"web": http_server.New(*listenAddr, serverHandler),
-
-		"api": http_server.New(*apiListenAddr, apiHandler),
-
-		"debug": http_server.New(*debugListenAddr, http.DefaultServeMux),
+		"web":       http_server.New(*webListenAddr, webHandler),
+		"callbacks": http_server.New(*callbacksListenAddr, callbacksHandler),
+		"debug":     http_server.New(*debugListenAddr, http.DefaultServeMux),
 
 		"radar": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 			if *noop {
@@ -286,8 +285,8 @@ func main() {
 	running := ifrit.Envoke(sigmon.New(group))
 
 	logger.Info("listening", lager.Data{
-		"web": *listenAddr,
-		"api": *apiListenAddr,
+		"web":       *webListenAddr,
+		"callbacks": *callbacksListenAddr,
 	})
 
 	err = <-running.Wait()

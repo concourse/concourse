@@ -1,4 +1,4 @@
-package server
+package web
 
 import (
 	"html/template"
@@ -13,16 +13,16 @@ import (
 	"github.com/concourse/atc/logfanout"
 	"github.com/concourse/atc/radar"
 	"github.com/concourse/atc/scheduler"
-	"github.com/concourse/atc/server/abortbuild"
-	"github.com/concourse/atc/server/getbuild"
-	"github.com/concourse/atc/server/getresource"
-	"github.com/concourse/atc/server/index"
-	"github.com/concourse/atc/server/logs"
-	"github.com/concourse/atc/server/routes"
-	"github.com/concourse/atc/server/triggerbuild"
+	"github.com/concourse/atc/web/abortbuild"
+	"github.com/concourse/atc/web/getbuild"
+	"github.com/concourse/atc/web/getresource"
+	"github.com/concourse/atc/web/index"
+	"github.com/concourse/atc/web/logs"
+	"github.com/concourse/atc/web/routes"
+	"github.com/concourse/atc/web/triggerbuild"
 )
 
-func New(
+func NewHandler(
 	logger lager.Logger,
 	config config.Config,
 	scheduler *scheduler.Scheduler,

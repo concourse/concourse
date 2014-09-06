@@ -11,10 +11,10 @@ import (
 	TurbineBuilds "github.com/concourse/turbine/api/builds"
 	TurbineRoutes "github.com/concourse/turbine/routes"
 
-	WinstonRoutes "github.com/concourse/atc/api/routes"
 	. "github.com/concourse/atc/builder"
 	"github.com/concourse/atc/builder/fakes"
 	"github.com/concourse/atc/builds"
+	CallbacksRoutes "github.com/concourse/atc/callbacks/routes"
 	"github.com/concourse/atc/config"
 )
 
@@ -119,7 +119,7 @@ var _ = Describe("Builder", func() {
 			db,
 			resources,
 			rata.NewRequestGenerator(turbineServer.URL(), TurbineRoutes.Routes),
-			rata.NewRequestGenerator("http://atc-server", WinstonRoutes.Routes),
+			rata.NewRequestGenerator("http://atc-server", CallbacksRoutes.Routes),
 		)
 
 		build = builds.Build{

@@ -9,7 +9,7 @@ import (
 
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/scheduler"
-	"github.com/concourse/atc/server/routes"
+	"github.com/concourse/atc/web/routes"
 )
 
 type handler struct {

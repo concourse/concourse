@@ -1,4 +1,4 @@
-package api_test
+package callbacks_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestApi(t *testing.T) {
+func TestCallbacks(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Api Suite")
+	RunSpecs(t, "Callbacks Suite")
 }

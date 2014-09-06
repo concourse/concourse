@@ -1,4 +1,4 @@
-package api_test
+package callbacks_test
 
 import (
 	"bytes"
@@ -11,15 +11,15 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
 
-	"github.com/concourse/atc/api"
-	"github.com/concourse/atc/api/handler/fakes"
 	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/callbacks"
+	"github.com/concourse/atc/callbacks/handler/fakes"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/logfanout"
 	logfakes "github.com/concourse/atc/logfanout/fakes"
 )
 
-var _ = Describe("API", func() {
+var _ = Describe("Callbacks", func() {
 	var buildDB *fakes.FakeBuildDB
 	var logDB *logfakes.FakeLogDB
 
@@ -34,7 +34,7 @@ var _ = Describe("API", func() {
 
 		tracker = logfanout.NewTracker(logDB)
 
-		handler, err := api.New(lagertest.NewTestLogger("api"), buildDB, tracker)
+		handler, err := callbacks.NewHandler(lagertest.NewTestLogger("callbacks"), buildDB, tracker)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		server = httptest.NewServer(handler)

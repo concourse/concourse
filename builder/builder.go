@@ -13,8 +13,8 @@ import (
 	TurbineRoutes "github.com/concourse/turbine/routes"
 	"github.com/tedsuo/rata"
 
-	WinstonRoutes "github.com/concourse/atc/api/routes"
 	"github.com/concourse/atc/builds"
+	CallbacksRoutes "github.com/concourse/atc/callbacks/routes"
 	"github.com/concourse/atc/config"
 )
 
@@ -76,7 +76,7 @@ func (builder *builder) Build(build builds.Build, job config.Job, versions build
 	}
 
 	status, err := builder.atc.CreateRequest(
-		WinstonRoutes.UpdateBuild,
+		CallbacksRoutes.UpdateBuild,
 		rata.Params{
 			"job":   job.Name,
 			"build": fmt.Sprintf("%d", build.ID),
@@ -88,7 +88,7 @@ func (builder *builder) Build(build builds.Build, job config.Job, versions build
 	}
 
 	logs, err := builder.atc.CreateRequest(
-		WinstonRoutes.LogInput,
+		CallbacksRoutes.LogInput,
 		rata.Params{
 			"job":   job.Name,
 			"build": fmt.Sprintf("%d", build.ID),

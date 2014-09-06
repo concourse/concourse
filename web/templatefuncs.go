@@ -1,11 +1,11 @@
-package server
+package web
 
 import (
 	"fmt"
 
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
-	"github.com/concourse/atc/server/routes"
+	"github.com/concourse/atc/web/routes"
 	"github.com/tedsuo/rata"
 )
 
