@@ -1,7 +1,7 @@
 #!/bin/bash
 # vim: set ft=sh
 
-set -e -x
+set -e
 
 export PATH=/usr/lib/postgresql/9.3/bin:$PATH
 
@@ -29,7 +29,7 @@ mkdir -p $HELPER_ROOTFS
 tar -C $HELPER_ROOTFS -xf testflight-helper/rootfs.tar
 
 pushd gopath/src/github.com/cloudfoundry-incubator/warden-linux/
-  make # compile wshd/etc.
+  make >/dev/null # compile wshd/etc.
   export WARDEN_BINPATH=$PWD/linux_backend/bin
 popd
 
@@ -40,4 +40,4 @@ export PATH=${PWD}/Godeps/_workspace/bin:$PATH
 
 go install github.com/onsi/ginkgo/ginkgo
 
-ginkgo -r -race
+ginkgo -r -race -p
