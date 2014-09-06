@@ -19,20 +19,25 @@ export ARCHIVE_RESOURCE_ROOTFS=/tmp/archive-resource-rootfs
 export GIT_RESOURCE_ROOTFS=/tmp/git-resource-rootfs
 export HELPER_ROOTFS=/tmp/helper-rootfs
 
+echo "setting up archive resource..."
 mkdir -p $ARCHIVE_RESOURCE_ROOTFS
 tar -C $ARCHIVE_RESOURCE_ROOTFS -xf dev-archive-resource-image/rootfs.tar
 
+echo "setting up git resource..."
 mkdir -p $GIT_RESOURCE_ROOTFS
 tar -C $GIT_RESOURCE_ROOTFS -xf dev-git-resource/rootfs.tar
 
+echo "setting up helper rootfs..."
 mkdir -p $HELPER_ROOTFS
 tar -C $HELPER_ROOTFS -xf testflight-helper/rootfs.tar
 
-pushd gopath/src/github.com/cloudfoundry-incubator/warden-linux/
+echo "building warden-linux..."
+pushd gopath/src/github.com/cloudfoundry-incubator/warden-linux/ >/dev/null
   make >/dev/null # compile wshd/etc.
   export WARDEN_BINPATH=$PWD/linux_backend/bin
-popd
+popd >/dev/null
 
+echo "running"
 cd gopath/src/github.com/concourse/testflight/
 
 export GOPATH=${PWD}/Godeps/_workspace:${GOPATH}
@@ -40,4 +45,4 @@ export PATH=${PWD}/Godeps/_workspace/bin:$PATH
 
 go install github.com/onsi/ginkgo/ginkgo
 
-ginkgo -r -race -p
+ginkgo -r -race
