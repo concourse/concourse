@@ -5,7 +5,7 @@ name: concourse
 director_uuid: 9dd8ea1e-36ec-4f00-aa91-05ec4e7d496f
 
 # fill in with jobs and resources
-atc_config: &atc_config
+pipeline: &pipeline
   resources: []
 
   jobs:
@@ -39,7 +39,7 @@ jobs:
       network_name: concourse
 
       atc:
-        config: *atc_config
+        pipeline: *pipeline
         postgresql:
           database: atc
           role:

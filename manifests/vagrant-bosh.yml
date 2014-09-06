@@ -1,6 +1,18 @@
 ---
 name: concourse
 
+# fill in with jobs and resources
+pipeline: &pipeline
+  resources: []
+
+  jobs:
+  - name: dummy
+    config:
+      image: docker:///ubuntu#14.04
+      run:
+        path: echo
+        args: [Hello, world!]
+
 releases:
 - name: concourse
   version: latest
@@ -44,15 +56,7 @@ jobs:
     network_name: concourse
 
     atc:
-      config:
-        jobs:
-        - name: dummy
-          config:
-            image: docker:///ubuntu#14.04
-            run:
-              path: echo
-              args: [Hello, world!]
-
+      pipeline: *pipeline
       postgresql:
         role:
           password: dummy-password

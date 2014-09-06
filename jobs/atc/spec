@@ -4,7 +4,7 @@ name: atc
 templates:
   drain: bin/drain
   atc_ctl.erb: bin/atc_ctl
-  config.yml.erb: config/atc.yml
+  pipeline.yml.erb: config/pipeline.yml
 
 packages:
   - pid_utils
@@ -28,27 +28,27 @@ properties:
     default: ""
 
   atc.turbine.address:
-    description: "Address of turbine server to use to run builds."
+    description: "address of turbine server to use to run builds"
     default: turbine.service.dc1.consul:4637
 
-  atc.config:
-    description: "Winston server configuration."
+  atc.pipeline:
+    description: "pipeline configuration containing jobs and resources"
     default: {}
 
   atc.postgresql.address:
-    description: "Address of the PostgreSQL server."
+    description: "address of the PostgreSQL server"
     default: postgresql.service.dc1.consul:5432
 
   atc.postgresql.database:
-    description: "Name of the database to use."
+    description: "name of the database to use"
     default: atc
 
   atc.postgresql.role.name:
-    description: "Name of role to connect with."
+    description: "name of role to connect with"
     default: atc
 
   atc.postgresql.role.password:
-    description: "Password to use when connecting."
+    description: "password to use when connecting"
 
   network_name:
-    description: "Name of the network that the job lives in; used to figure out our IP."
+    description: "name of the network that the job lives in; used to figure out our IP"

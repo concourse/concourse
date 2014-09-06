@@ -22,12 +22,12 @@ case $1 in
     <% my_ip = spec.networks.send(p("network_name")).ip %>
 
     exec /var/vcap/packages/atc/bin/atc \
-      -listenAddr=<%= p("atc.listen_address") %> \
-      -apiListenAddr=<%= p("atc.api_listen_address") %> \
+      -webListenAddr=<%= p("atc.listen_address") %> \
+      -callbacksListenAddr=<%= p("atc.api_listen_address") %> \
       -peerAddr=<%= my_ip %>:<%= p("atc.api_listen_address").split(":").last %> \
       -turbineURL=http://<%= p("atc.turbine.address") %> \
       -sqlDataSource="postgres://<%= p("atc.postgresql.role.name") %>:<%= p("atc.postgresql.role.password") %>@<%= p("atc.postgresql.address") %>/<%= p("atc.postgresql.database") %>?sslmode=disable" \
-      -config=/var/vcap/jobs/atc/config/atc.yml \
+      -pipeline=/var/vcap/jobs/atc/config/pipeline.yml \
       -templates=/var/vcap/packages/atc/templates \
       -public=/var/vcap/packages/atc/public \
       -httpUsername=<%= p("atc.basic_auth_username") %> \

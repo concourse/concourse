@@ -14,5 +14,5 @@ export PATH=${GOROOT}/bin:$PATH
 
 go install ${REPO_NAME}
 
-cp -a ${REPO_DIR}/server/templates ${BOSH_INSTALL_TARGET}/templates
-cp -a ${REPO_DIR}/server/public ${BOSH_INSTALL_TARGET}/public
+cp -a ${REPO_DIR}/web/templates ${BOSH_INSTALL_TARGET}/templates
+cp -a ${REPO_DIR}/web/public ${BOSH_INSTALL_TARGET}/public

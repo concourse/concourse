@@ -27,7 +27,7 @@ jobs:
       atc:
         basic_auth_encrypted_password: ~
         basic_auth_username: ~
-        config: (( merge ))
+        pipeline: (( merge ))
         postgresql:
           database: atc
           role: (( jobs.postgresql.properties.postgresql.roles.atc ))
