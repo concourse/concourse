@@ -23,7 +23,7 @@ var _ = Describe("A job with a git resource", func() {
 	var postgresRunner postgresrunner.Runner
 	var dbProcess ifrit.Process
 
-	var atcConfigFilePath string
+	var atcPipelineFilePath string
 
 	var atcProcess ifrit.Process
 
@@ -54,13 +54,13 @@ var _ = Describe("A job with a git resource", func() {
 		failureGitServer = gitserver.Start(helperRootfs, wardenClient)
 		noUpdateGitServer = gitserver.Start(helperRootfs, wardenClient)
 
-		atcConfigFile, err := ioutil.TempFile("", "atc-config")
+		atcPipelineFile, err := ioutil.TempFile("", "atc-pipeline")
 		Ω(err).ShouldNot(HaveOccurred())
 
-		atcConfigFilePath = atcConfigFile.Name()
+		atcPipelineFilePath = atcPipelineFile.Name()
 
 		_, err = fmt.Fprintf(
-			atcConfigFile,
+			atcPipelineFile,
 			`---
 resources:
   - name: some-git-resource
@@ -127,7 +127,7 @@ jobs:
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		err = atcConfigFile.Close()
+		err = atcPipelineFile.Close()
 		Ω(err).ShouldNot(HaveOccurred())
 
 		atcProcess = ifrit.Envoke(&ginkgomon.Runner{
@@ -136,7 +136,7 @@ jobs:
 			Command: exec.Command(
 				builtComponents["atc"],
 				"-peerAddr", externalAddr+":8081",
-				"-config", atcConfigFilePath,
+				"-pipeline", atcPipelineFilePath,
 				"-templates", filepath.Join(atcDir, "server", "templates"),
 				"-public", filepath.Join(atcDir, "server", "public"),
 				"-sqlDataSource", postgresRunner.DataSourceName(),
@@ -165,7 +165,7 @@ jobs:
 		dbProcess.Signal(os.Interrupt)
 		Eventually(dbProcess.Wait(), 10*time.Second).Should(Receive())
 
-		err := os.Remove(atcConfigFilePath)
+		err := os.Remove(atcPipelineFilePath)
 		Ω(err).ShouldNot(HaveOccurred())
 	})
 
