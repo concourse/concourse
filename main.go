@@ -35,10 +35,10 @@ import (
 	"github.com/concourse/atc/server/auth"
 )
 
-var configPath = flag.String(
-	"config",
+var pipelinePath = flag.String(
+	"pipeline",
 	"",
-	"path to atc server config .yml",
+	"path to atc pipeline config .yml",
 )
 
 var templatesDir = flag.String(
@@ -122,8 +122,8 @@ var noop = flag.Bool(
 func main() {
 	flag.Parse()
 
-	if *configPath == "" {
-		fatal(errors.New("must specify -config"))
+	if *pipelinePath == "" {
+		fatal(errors.New("must specify -pipeline"))
 	}
 
 	if *templatesDir == "" {
@@ -134,18 +134,18 @@ func main() {
 		fatal(errors.New("must specify -public"))
 	}
 
-	configFile, err := os.Open(*configPath)
+	pipelineFile, err := os.Open(*pipelinePath)
 	if err != nil {
 		fatal(err)
 	}
 
 	var conf config.Config
-	err = candiedyaml.NewDecoder(configFile).Decode(&conf)
+	err = candiedyaml.NewDecoder(pipelineFile).Decode(&conf)
 	if err != nil {
 		fatal(err)
 	}
 
-	configFile.Close()
+	pipelineFile.Close()
 
 	logger := lager.NewLogger("atc")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
