@@ -2,10 +2,10 @@
 package fakes
 
 import (
-	"github.com/concourse/atc/api/handler"
-	"github.com/concourse/atc/builds"
-
 	"sync"
+
+	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/callbacks/handler"
 )
 
 type FakeBuildDB struct {
@@ -53,11 +53,11 @@ type FakeBuildDB struct {
 
 func (fake *FakeBuildDB) GetBuild(job string, build int) (builds.Build, error) {
 	fake.getBuildMutex.Lock()
-	defer fake.getBuildMutex.Unlock()
 	fake.getBuildArgsForCall = append(fake.getBuildArgsForCall, struct {
 		job   string
 		build int
 	}{job, build})
+	fake.getBuildMutex.Unlock()
 	if fake.GetBuildStub != nil {
 		return fake.GetBuildStub(job, build)
 	} else {
@@ -87,12 +87,12 @@ func (fake *FakeBuildDB) GetBuildReturns(result1 builds.Build, result2 error) {
 
 func (fake *FakeBuildDB) SaveBuildStatus(job string, build int, status builds.Status) error {
 	fake.saveBuildStatusMutex.Lock()
-	defer fake.saveBuildStatusMutex.Unlock()
 	fake.saveBuildStatusArgsForCall = append(fake.saveBuildStatusArgsForCall, struct {
 		job    string
 		build  int
 		status builds.Status
 	}{job, build, status})
+	fake.saveBuildStatusMutex.Unlock()
 	if fake.SaveBuildStatusStub != nil {
 		return fake.SaveBuildStatusStub(job, build, status)
 	} else {
@@ -121,12 +121,12 @@ func (fake *FakeBuildDB) SaveBuildStatusReturns(result1 error) {
 
 func (fake *FakeBuildDB) SaveBuildInput(job string, build int, input builds.VersionedResource) error {
 	fake.saveBuildInputMutex.Lock()
-	defer fake.saveBuildInputMutex.Unlock()
 	fake.saveBuildInputArgsForCall = append(fake.saveBuildInputArgsForCall, struct {
 		job   string
 		build int
 		input builds.VersionedResource
 	}{job, build, input})
+	fake.saveBuildInputMutex.Unlock()
 	if fake.SaveBuildInputStub != nil {
 		return fake.SaveBuildInputStub(job, build, input)
 	} else {
@@ -155,12 +155,12 @@ func (fake *FakeBuildDB) SaveBuildInputReturns(result1 error) {
 
 func (fake *FakeBuildDB) SaveBuildOutput(job string, build int, output builds.VersionedResource) error {
 	fake.saveBuildOutputMutex.Lock()
-	defer fake.saveBuildOutputMutex.Unlock()
 	fake.saveBuildOutputArgsForCall = append(fake.saveBuildOutputArgsForCall, struct {
 		job    string
 		build  int
 		output builds.VersionedResource
 	}{job, build, output})
+	fake.saveBuildOutputMutex.Unlock()
 	if fake.SaveBuildOutputStub != nil {
 		return fake.SaveBuildOutputStub(job, build, output)
 	} else {

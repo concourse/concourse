@@ -15,7 +15,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/atc/server/auth"
+	"github.com/concourse/atc/web/auth"
 )
 
 func header(stringList ...string) string {
