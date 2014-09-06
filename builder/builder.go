@@ -75,7 +75,7 @@ func (builder *builder) Build(build builds.Build, job config.Job, versions build
 		return err
 	}
 
-	status, err := builder.atc.CreateRequest(
+	updateBuild, err := builder.atc.CreateRequest(
 		CallbacksRoutes.UpdateBuild,
 		rata.Params{
 			"job":   job.Name,
@@ -87,8 +87,8 @@ func (builder *builder) Build(build builds.Build, job config.Job, versions build
 		panic(err)
 	}
 
-	logs, err := builder.atc.CreateRequest(
-		CallbacksRoutes.LogInput,
+	recordEvents, err := builder.atc.CreateRequest(
+		CallbacksRoutes.RecordEvents,
 		rata.Params{
 			"job":   job.Name,
 			"build": fmt.Sprintf("%d", build.ID),
@@ -99,7 +99,7 @@ func (builder *builder) Build(build builds.Build, job config.Job, versions build
 		panic(err)
 	}
 
-	logs.URL.Scheme = "ws"
+	recordEvents.URL.Scheme = "ws"
 
 	turbineBuild := TurbineBuilds.Build{
 		Config: job.BuildConfig,
@@ -109,8 +109,8 @@ func (builder *builder) Build(build builds.Build, job config.Job, versions build
 
 		Privileged: job.Privileged,
 
-		StatusCallback: status.URL.String(),
-		EventsCallback: logs.URL.String(),
+		StatusCallback: updateBuild.URL.String(),
+		EventsCallback: recordEvents.URL.String(),
 	}
 
 	req := new(bytes.Buffer)

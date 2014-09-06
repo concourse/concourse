@@ -15,7 +15,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func (handler *Handler) LogInput(w http.ResponseWriter, r *http.Request) {
+func (handler *Handler) RecordEvents(w http.ResponseWriter, r *http.Request) {
 	job := r.FormValue(":job")
 	idStr := r.FormValue(":build")
 

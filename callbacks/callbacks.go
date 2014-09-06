@@ -15,9 +15,8 @@ func NewHandler(logger lager.Logger, buildDB handler.BuildDB, logTracker *logfan
 	builds := handler.NewHandler(logger, buildDB, logTracker)
 
 	handlers := map[string]http.Handler{
-		routes.UpdateBuild: http.HandlerFunc(builds.UpdateBuild),
-
-		routes.LogInput: http.HandlerFunc(builds.LogInput),
+		routes.UpdateBuild:  http.HandlerFunc(builds.UpdateBuild),
+		routes.RecordEvents: http.HandlerFunc(builds.RecordEvents),
 	}
 
 	return rata.NewRouter(routes.Routes, handlers)

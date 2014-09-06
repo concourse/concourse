@@ -112,7 +112,7 @@ var _ = Describe("Builder", func() {
 			Privileged: true,
 
 			StatusCallback: "http://atc-server/builds/some-job/128",
-			EventsCallback: "ws://atc-server/builds/some-job/128/log/input",
+			EventsCallback: "ws://atc-server/builds/some-job/128/events",
 		}
 
 		builder = NewBuilder(
