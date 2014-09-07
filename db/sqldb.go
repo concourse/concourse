@@ -48,7 +48,7 @@ func (db *sqldb) RegisterResource(name string) error {
 	return err
 }
 
-func (db *sqldb) Builds(job string) ([]builds.Build, error) {
+func (db *sqldb) GetAllJobBuilds(job string) ([]builds.Build, error) {
 	rows, err := db.conn.Query(`
 		SELECT id, name, status, abort_url
 		FROM builds
@@ -84,7 +84,29 @@ func (db *sqldb) Builds(job string) ([]builds.Build, error) {
 	return bs, nil
 }
 
-func (db *sqldb) GetBuild(job string, name string) (builds.Build, error) {
+func (db *sqldb) GetBuild(buildID int) (builds.Build, error) {
+	var name string
+	var status string
+	var abortURL sql.NullString
+
+	err := db.conn.QueryRow(`
+		SELECT name, status, abort_url
+		FROM builds
+		WHERE id = $1
+	`, buildID).Scan(&name, &status, &abortURL)
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	return builds.Build{
+		ID:       buildID,
+		Name:     name,
+		Status:   builds.Status(status),
+		AbortURL: abortURL.String,
+	}, nil
+}
+
+func (db *sqldb) GetJobBuild(job string, name string) (builds.Build, error) {
 	var id int
 	var status string
 	var abortURL sql.NullString
@@ -372,8 +394,19 @@ func (db *sqldb) StartBuild(job string, name string, abortURL string) (bool, err
 	return rows == 1, nil
 }
 
-func (db *sqldb) AbortBuild(buildID int) error {
-	return db.SaveBuildStatus(buildID, builds.StatusAborted)
+func (db *sqldb) AbortBuild(buildID int) (string, error) {
+	var abortURL sql.NullString
+	err := db.conn.QueryRow(`
+		UPDATE builds
+		SET status = $2
+		WHERE id = $1
+		RETURNING abort_url
+	`, buildID, string(builds.StatusAborted)).Scan(&abortURL)
+	if err != nil {
+		return "", err
+	}
+
+	return abortURL.String, nil
 }
 
 func (db *sqldb) SaveBuildInput(buildID int, vr builds.VersionedResource) error {
@@ -638,7 +671,7 @@ func (db *sqldb) GetLatestInputVersions(inputs []config.Input) (builds.Versioned
 	return vrs, nil
 }
 
-func (db *sqldb) GetBuildForInputs(job string, inputs builds.VersionedResources) (builds.Build, error) {
+func (db *sqldb) GetJobBuildForInputs(job string, inputs builds.VersionedResources) (builds.Build, error) {
 	from := []string{"builds b"}
 	conditions := []string{"b.job_name = $1"}
 	params := []interface{}{job}

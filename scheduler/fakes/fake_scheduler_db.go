@@ -29,13 +29,13 @@ type FakeSchedulerDB struct {
 		result1 builds.VersionedResources
 		result2 error
 	}
-	GetBuildForInputsStub        func(job string, inputs builds.VersionedResources) (builds.Build, error)
-	getBuildForInputsMutex       sync.RWMutex
-	getBuildForInputsArgsForCall []struct {
+	GetJobBuildForInputsStub        func(job string, inputs builds.VersionedResources) (builds.Build, error)
+	getJobBuildForInputsMutex       sync.RWMutex
+	getJobBuildForInputsArgsForCall []struct {
 		job    string
 		inputs builds.VersionedResources
 	}
-	getBuildForInputsReturns struct {
+	getJobBuildForInputsReturns struct {
 		result1 builds.Build
 		result2 error
 	}
@@ -53,11 +53,11 @@ type FakeSchedulerDB struct {
 
 func (fake *FakeSchedulerDB) CreateBuildWithInputs(job string, inputs builds.VersionedResources) (builds.Build, error) {
 	fake.createBuildWithInputsMutex.Lock()
-	defer fake.createBuildWithInputsMutex.Unlock()
 	fake.createBuildWithInputsArgsForCall = append(fake.createBuildWithInputsArgsForCall, struct {
 		job    string
 		inputs builds.VersionedResources
 	}{job, inputs})
+	fake.createBuildWithInputsMutex.Unlock()
 	if fake.CreateBuildWithInputsStub != nil {
 		return fake.CreateBuildWithInputsStub(job, inputs)
 	} else {
@@ -87,10 +87,10 @@ func (fake *FakeSchedulerDB) CreateBuildWithInputsReturns(result1 builds.Build, 
 
 func (fake *FakeSchedulerDB) GetLatestInputVersions(arg1 []config.Input) (builds.VersionedResources, error) {
 	fake.getLatestInputVersionsMutex.Lock()
-	defer fake.getLatestInputVersionsMutex.Unlock()
 	fake.getLatestInputVersionsArgsForCall = append(fake.getLatestInputVersionsArgsForCall, struct {
 		arg1 []config.Input
 	}{arg1})
+	fake.getLatestInputVersionsMutex.Unlock()
 	if fake.GetLatestInputVersionsStub != nil {
 		return fake.GetLatestInputVersionsStub(arg1)
 	} else {
@@ -118,35 +118,35 @@ func (fake *FakeSchedulerDB) GetLatestInputVersionsReturns(result1 builds.Versio
 	}{result1, result2}
 }
 
-func (fake *FakeSchedulerDB) GetBuildForInputs(job string, inputs builds.VersionedResources) (builds.Build, error) {
-	fake.getBuildForInputsMutex.Lock()
-	defer fake.getBuildForInputsMutex.Unlock()
-	fake.getBuildForInputsArgsForCall = append(fake.getBuildForInputsArgsForCall, struct {
+func (fake *FakeSchedulerDB) GetJobBuildForInputs(job string, inputs builds.VersionedResources) (builds.Build, error) {
+	fake.getJobBuildForInputsMutex.Lock()
+	fake.getJobBuildForInputsArgsForCall = append(fake.getJobBuildForInputsArgsForCall, struct {
 		job    string
 		inputs builds.VersionedResources
 	}{job, inputs})
-	if fake.GetBuildForInputsStub != nil {
-		return fake.GetBuildForInputsStub(job, inputs)
+	fake.getJobBuildForInputsMutex.Unlock()
+	if fake.GetJobBuildForInputsStub != nil {
+		return fake.GetJobBuildForInputsStub(job, inputs)
 	} else {
-		return fake.getBuildForInputsReturns.result1, fake.getBuildForInputsReturns.result2
+		return fake.getJobBuildForInputsReturns.result1, fake.getJobBuildForInputsReturns.result2
 	}
 }
 
-func (fake *FakeSchedulerDB) GetBuildForInputsCallCount() int {
-	fake.getBuildForInputsMutex.RLock()
-	defer fake.getBuildForInputsMutex.RUnlock()
-	return len(fake.getBuildForInputsArgsForCall)
+func (fake *FakeSchedulerDB) GetJobBuildForInputsCallCount() int {
+	fake.getJobBuildForInputsMutex.RLock()
+	defer fake.getJobBuildForInputsMutex.RUnlock()
+	return len(fake.getJobBuildForInputsArgsForCall)
 }
 
-func (fake *FakeSchedulerDB) GetBuildForInputsArgsForCall(i int) (string, builds.VersionedResources) {
-	fake.getBuildForInputsMutex.RLock()
-	defer fake.getBuildForInputsMutex.RUnlock()
-	return fake.getBuildForInputsArgsForCall[i].job, fake.getBuildForInputsArgsForCall[i].inputs
+func (fake *FakeSchedulerDB) GetJobBuildForInputsArgsForCall(i int) (string, builds.VersionedResources) {
+	fake.getJobBuildForInputsMutex.RLock()
+	defer fake.getJobBuildForInputsMutex.RUnlock()
+	return fake.getJobBuildForInputsArgsForCall[i].job, fake.getJobBuildForInputsArgsForCall[i].inputs
 }
 
-func (fake *FakeSchedulerDB) GetBuildForInputsReturns(result1 builds.Build, result2 error) {
-	fake.GetBuildForInputsStub = nil
-	fake.getBuildForInputsReturns = struct {
+func (fake *FakeSchedulerDB) GetJobBuildForInputsReturns(result1 builds.Build, result2 error) {
+	fake.GetJobBuildForInputsStub = nil
+	fake.getJobBuildForInputsReturns = struct {
 		result1 builds.Build
 		result2 error
 	}{result1, result2}
@@ -154,10 +154,10 @@ func (fake *FakeSchedulerDB) GetBuildForInputsReturns(result1 builds.Build, resu
 
 func (fake *FakeSchedulerDB) GetNextPendingBuild(job string) (builds.Build, builds.VersionedResources, error) {
 	fake.getNextPendingBuildMutex.Lock()
-	defer fake.getNextPendingBuildMutex.Unlock()
 	fake.getNextPendingBuildArgsForCall = append(fake.getNextPendingBuildArgsForCall, struct {
 		job string
 	}{job})
+	fake.getNextPendingBuildMutex.Unlock()
 	if fake.GetNextPendingBuildStub != nil {
 		return fake.GetNextPendingBuildStub(job)
 	} else {

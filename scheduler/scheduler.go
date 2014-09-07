@@ -10,7 +10,7 @@ import (
 type SchedulerDB interface {
 	CreateBuildWithInputs(job string, inputs builds.VersionedResources) (builds.Build, error)
 	GetLatestInputVersions([]config.Input) (builds.VersionedResources, error)
-	GetBuildForInputs(job string, inputs builds.VersionedResources) (builds.Build, error)
+	GetJobBuildForInputs(job string, inputs builds.VersionedResources) (builds.Build, error)
 
 	GetNextPendingBuild(job string) (builds.Build, builds.VersionedResources, error)
 }
@@ -53,7 +53,7 @@ func (s *Scheduler) BuildLatestInputs(job config.Job) error {
 		return nil
 	}
 
-	_, err = s.DB.GetBuildForInputs(job.Name, checkInputs)
+	_, err = s.DB.GetJobBuildForInputs(job.Name, checkInputs)
 	if err == nil {
 		return nil
 	}

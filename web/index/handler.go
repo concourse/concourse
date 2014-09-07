@@ -68,6 +68,8 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Edges: []DotEdge{},
 	}
 
+	log := handler.logger.Session("index")
+
 	currentBuilds := map[string]builds.Build{}
 
 	for _, job := range handler.jobs {
@@ -118,10 +120,13 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		jobID := jobNode(job.Name)
 		currentBuild := currentBuilds[job.Name]
 
-		buildURI, _ := routes.Routes.CreatePathForRoute(routes.GetBuild, rata.Params{
+		buildURI, err := routes.Routes.CreatePathForRoute(routes.GetBuild, rata.Params{
 			"job":   job.Name,
 			"build": currentBuild.Name,
 		})
+		if err != nil {
+			log.Error("failed-to-create-route", err)
+		}
 
 		data.Nodes = append(data.Nodes, DotNode{
 			ID: jobID,
@@ -194,8 +199,6 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 	}
-
-	log := handler.logger.Session("index")
 
 	err := handler.template.Execute(w, data)
 	if err != nil {

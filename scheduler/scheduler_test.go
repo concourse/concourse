@@ -82,9 +82,9 @@ var _ = Describe("Scheduler", func() {
 				err := scheduler.BuildLatestInputs(job)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(db.GetBuildForInputsCallCount()).Should(Equal(1))
+				Ω(db.GetJobBuildForInputsCallCount()).Should(Equal(1))
 
-				checkedJob, checkedInputs := db.GetBuildForInputsArgsForCall(0)
+				checkedJob, checkedInputs := db.GetJobBuildForInputsArgsForCall(0)
 				Ω(checkedJob).Should(Equal("some-job"))
 				Ω(checkedInputs).Should(Equal(foundInputs))
 			})
@@ -111,9 +111,9 @@ var _ = Describe("Scheduler", func() {
 					err := scheduler.BuildLatestInputs(job)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(db.GetBuildForInputsCallCount()).Should(Equal(1))
+					Ω(db.GetJobBuildForInputsCallCount()).Should(Equal(1))
 
-					checkedJob, checkedInputs := db.GetBuildForInputsArgsForCall(0)
+					checkedJob, checkedInputs := db.GetJobBuildForInputsArgsForCall(0)
 					Ω(checkedJob).Should(Equal("some-job"))
 					Ω(checkedInputs).Should(Equal(foundInputs))
 				})
@@ -133,7 +133,7 @@ var _ = Describe("Scheduler", func() {
 					err := scheduler.BuildLatestInputs(job)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(db.GetBuildForInputsCallCount()).Should(Equal(0))
+					Ω(db.GetJobBuildForInputsCallCount()).Should(Equal(0))
 				})
 
 				It("does not create a build", func() {
@@ -153,7 +153,7 @@ var _ = Describe("Scheduler", func() {
 
 			Context("and they are not used for a build", func() {
 				BeforeEach(func() {
-					db.GetBuildForInputsReturns(builds.Build{}, errors.New("no build"))
+					db.GetJobBuildForInputsReturns(builds.Build{}, errors.New("no build"))
 				})
 
 				It("creates a build with the found inputs", func() {
@@ -206,7 +206,7 @@ var _ = Describe("Scheduler", func() {
 
 			Context("but they are already used for a build", func() {
 				BeforeEach(func() {
-					db.GetBuildForInputsReturns(builds.Build{Name: "42"}, nil)
+					db.GetJobBuildForInputsReturns(builds.Build{Name: "42"}, nil)
 				})
 
 				It("does not trigger a build", func() {

@@ -32,7 +32,7 @@ func itIsADB() {
 	})
 
 	It("works", func() {
-		builds, err := db.Builds("some-job")
+		builds, err := db.GetAllJobBuilds("some-job")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(builds).Should(BeEmpty())
 
@@ -44,6 +44,10 @@ func itIsADB() {
 		Ω(build.ID).ShouldNot(BeZero())
 		Ω(build.Name).Should(Equal("1"))
 		Ω(build.Status).Should(Equal(Builds.StatusPending))
+
+		gotBuild, err := db.GetBuild(build.ID)
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(gotBuild).Should(Equal(build))
 
 		pending, err := db.CreateBuild("some-job")
 		Ω(err).ShouldNot(HaveOccurred())
@@ -83,7 +87,7 @@ func itIsADB() {
 		Ω(build.Status).Should(Equal(Builds.StatusStarted))
 		Ω(build.AbortURL).Should(Equal("some-abort-url"))
 
-		builds, err = db.Builds("some-job")
+		builds, err = db.GetAllJobBuilds("some-job")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(builds).Should(HaveLen(2))
 		Ω(builds[0].Name).Should(Equal(pending.Name))
@@ -94,7 +98,7 @@ func itIsADB() {
 		err = db.SaveBuildStatus(build.ID, Builds.StatusSucceeded)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		build, err = db.GetBuild("some-job", build.Name)
+		build, err = db.GetJobBuild("some-job", build.Name)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(build.ID).ShouldNot(BeZero())
 		Ω(build.Name).Should(Equal("1"))
@@ -106,10 +110,18 @@ func itIsADB() {
 		Ω(otherBuild.Name).Should(Equal("1"))
 		Ω(otherBuild.Status).Should(Equal(Builds.StatusPending))
 
-		build, err = db.GetBuild("some-other-job", otherBuild.Name)
+		build, err = db.GetJobBuild("some-other-job", otherBuild.Name)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(build.Name).Should(Equal("1"))
 		Ω(build.Status).Should(Equal(Builds.StatusPending))
+
+		started, err = db.StartBuild("some-other-job", build.Name, "some-other-abort-url")
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(started).Should(BeTrue())
+
+		abortURL, err := db.AbortBuild(build.ID)
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(abortURL).Should(Equal("some-other-abort-url"))
 
 		log, err := db.BuildLog(build.ID)
 		Ω(err).ShouldNot(HaveOccurred())
@@ -160,13 +172,13 @@ func itIsADB() {
 			err = db.SaveBuildInput(build.ID, vr1)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			_, err = db.GetBuildForInputs("some-job", Builds.VersionedResources{vr1, vr2})
+			_, err = db.GetJobBuildForInputs("some-job", Builds.VersionedResources{vr1, vr2})
 			Ω(err).Should(HaveOccurred())
 
 			err = db.SaveBuildInput(build.ID, vr2)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			foundBuild, err := db.GetBuildForInputs("some-job", Builds.VersionedResources{vr1, vr2})
+			foundBuild, err := db.GetJobBuildForInputs("some-job", Builds.VersionedResources{vr1, vr2})
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(foundBuild).Should(Equal(build))
 
@@ -257,7 +269,7 @@ func itIsADB() {
 			pending, err := db.CreateBuildWithInputs("some-job", inputs)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			foundBuild, err := db.GetBuildForInputs("some-job", inputs)
+			foundBuild, err := db.GetJobBuildForInputs("some-job", inputs)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(foundBuild).Should(Equal(pending))
 
@@ -578,12 +590,12 @@ func itIsADB() {
 
 		Context("and then aborted", func() {
 			BeforeEach(func() {
-				err := db.AbortBuild(firstBuild.ID)
+				_, err := db.AbortBuild(firstBuild.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 
 			It("changes the state to aborted", func() {
-				build, err := db.GetBuild(job, firstBuild.Name)
+				build, err := db.GetJobBuild(job, firstBuild.Name)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(build.Status).Should(Equal(Builds.StatusAborted))
 			})
@@ -606,12 +618,12 @@ func itIsADB() {
 
 			Context("and then aborted", func() {
 				BeforeEach(func() {
-					err := db.AbortBuild(firstBuild.ID)
+					_, err := db.AbortBuild(firstBuild.ID)
 					Ω(err).ShouldNot(HaveOccurred())
 				})
 
 				It("changes the state to aborted", func() {
-					build, err := db.GetBuild(job, firstBuild.Name)
+					build, err := db.GetJobBuild(job, firstBuild.Name)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(build.Status).Should(Equal(Builds.StatusAborted))
 				})
@@ -707,7 +719,7 @@ func itIsADB() {
 
 			Describe("after the first build is aborted", func() {
 				BeforeEach(func() {
-					err := db.AbortBuild(firstBuild.ID)
+					_, err := db.AbortBuild(firstBuild.ID)
 					Ω(err).ShouldNot(HaveOccurred())
 				})
 
