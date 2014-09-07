@@ -292,7 +292,7 @@ func (db *sqldb) GetCurrentBuild(job string) (builds.Build, error) {
 	}, nil
 }
 
-func (db *sqldb) CreateBuild(job string) (builds.Build, error) {
+func (db *sqldb) CreateJobBuild(job string) (builds.Build, error) {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return builds.Build{}, err
@@ -334,38 +334,37 @@ func (db *sqldb) CreateBuild(job string) (builds.Build, error) {
 	}, nil
 }
 
-func (db *sqldb) ScheduleBuild(job string, name string, serial bool) (bool, error) {
+func (db *sqldb) ScheduleBuild(buildID int, serial bool) (bool, error) {
 	result, err := db.conn.Exec(`
 		UPDATE builds
 		SET scheduled = true
 
 		-- only the given build
-		WHERE job_name = $1
-		AND name = $2
+		WHERE id = $1
 		AND status = 'pending'
 
 		-- if serial, only if it's the nextmost pending
 		AND (
-			NOT $3 OR id IN (
-				SELECT id
-				FROM builds
-				WHERE job_name = $1
-				AND status = 'pending'
-				ORDER BY id ASC
+			NOT $2 OR id IN (
+				SELECT p.id
+				FROM builds p
+				WHERE p.job_name = job_name
+				AND p.status = 'pending'
+				ORDER BY p.id ASC
 				LIMIT 1
 			)
 		)
 
 		-- if serial, not if another build is started or scheduled
 		AND NOT (
-			$3 AND EXISTS (
+			$2 AND EXISTS (
 				SELECT 1
-				FROM builds
-				WHERE job_name = $1
-				AND (status = 'started' OR (status = 'pending' AND scheduled = true))
+				FROM builds s
+				WHERE s.job_name = job_name
+				AND (s.status = 'started' OR (s.status = 'pending' AND s.scheduled = true))
 			)
 		)
-	`, job, name, serial)
+	`, buildID, serial)
 	if err != nil {
 		return false, err
 	}
@@ -728,7 +727,7 @@ func (db *sqldb) GetJobBuildForInputs(job string, inputs builds.VersionedResourc
 	}, nil
 }
 
-func (db *sqldb) CreateBuildWithInputs(job string, inputs builds.VersionedResources) (builds.Build, error) {
+func (db *sqldb) CreateJobBuildWithInputs(job string, inputs builds.VersionedResources) (builds.Build, error) {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return builds.Build{}, err

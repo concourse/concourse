@@ -39,7 +39,7 @@ func itIsADB() {
 		_, err = db.GetCurrentBuild("some-job")
 		Ω(err).Should(HaveOccurred())
 
-		build, err := db.CreateBuild("some-job")
+		build, err := db.CreateJobBuild("some-job")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(build.ID).ShouldNot(BeZero())
 		Ω(build.JobName).Should(Equal("some-job"))
@@ -50,7 +50,7 @@ func itIsADB() {
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(gotBuild).Should(Equal(build))
 
-		pending, err := db.CreateBuild("some-job")
+		pending, err := db.CreateJobBuild("some-job")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(pending.ID).ShouldNot(BeZero())
 		Ω(pending.ID).ShouldNot(Equal(build.ID))
@@ -65,7 +65,7 @@ func itIsADB() {
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(currentBuild).Should(Equal(build))
 
-		scheduled, err := db.ScheduleBuild("some-job", build.Name, false)
+		scheduled, err := db.ScheduleBuild(build.ID, false)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(scheduled).Should(BeTrue())
 
@@ -108,7 +108,7 @@ func itIsADB() {
 		Ω(build.JobName).Should(Equal("some-job"))
 		Ω(build.Status).Should(Equal(Builds.StatusSucceeded))
 
-		otherBuild, err := db.CreateBuild("some-other-job")
+		otherBuild, err := db.CreateJobBuild("some-other-job")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(otherBuild.ID).ShouldNot(BeZero())
 		Ω(otherBuild.Name).Should(Equal("1"))
@@ -170,7 +170,7 @@ func itIsADB() {
 		}
 
 		It("saves build's inputs and outputs as versioned resources", func() {
-			build, err := db.CreateBuild("some-job")
+			build, err := db.CreateJobBuild("some-job")
 			Ω(err).ShouldNot(HaveOccurred())
 
 			err = db.SaveBuildInput(build.ID, vr1)
@@ -208,7 +208,7 @@ func itIsADB() {
 				{VersionedResource: modifiedVR2},
 			}))
 
-			duplicateBuild, err := db.CreateBuild("some-job")
+			duplicateBuild, err := db.CreateJobBuild("some-job")
 			Ω(err).ShouldNot(HaveOccurred())
 
 			err = db.SaveBuildInput(duplicateBuild.ID, vr1)
@@ -224,7 +224,7 @@ func itIsADB() {
 				{VersionedResource: vr2, FirstOccurrence: false},
 			}))
 
-			newBuildInOtherJob, err := db.CreateBuild("some-other-job")
+			newBuildInOtherJob, err := db.CreateJobBuild("some-other-job")
 			Ω(err).ShouldNot(HaveOccurred())
 
 			err = db.SaveBuildInput(newBuildInOtherJob.ID, vr1)
@@ -242,7 +242,7 @@ func itIsADB() {
 		})
 
 		It("updates metadata of existing inputs resources", func() {
-			build, err := db.CreateBuild("some-job")
+			build, err := db.CreateJobBuild("some-job")
 			Ω(err).ShouldNot(HaveOccurred())
 
 			err = db.SaveBuildInput(build.ID, vr2)
@@ -270,7 +270,7 @@ func itIsADB() {
 		It("can be done on build creation", func() {
 			inputs := Builds.VersionedResources{vr1, vr2}
 
-			pending, err := db.CreateBuildWithInputs("some-job", inputs)
+			pending, err := db.CreateJobBuildWithInputs("some-job", inputs)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			foundBuild, err := db.GetJobBuildForInputs("some-job", inputs)
@@ -376,13 +376,13 @@ func itIsADB() {
 			err = db.RegisterResource("resource-2")
 			Ω(err).ShouldNot(HaveOccurred())
 
-			j1b1, err := db.CreateBuild("job-1")
+			j1b1, err := db.CreateJobBuild("job-1")
 			Ω(err).ShouldNot(HaveOccurred())
 
-			j2b1, err := db.CreateBuild("job-2")
+			j2b1, err := db.CreateJobBuild("job-2")
 			Ω(err).ShouldNot(HaveOccurred())
 
-			sb1, err := db.CreateBuild("shared-job")
+			sb1, err := db.CreateJobBuild("shared-job")
 			Ω(err).ShouldNot(HaveOccurred())
 
 			err = db.SaveBuildOutput(sb1.ID, Builds.VersionedResource{
@@ -435,13 +435,13 @@ func itIsADB() {
 				},
 			}))
 
-			sb2, err := db.CreateBuild("shared-job")
+			sb2, err := db.CreateJobBuild("shared-job")
 			Ω(err).ShouldNot(HaveOccurred())
 
-			j1b2, err := db.CreateBuild("job-1")
+			j1b2, err := db.CreateJobBuild("job-1")
 			Ω(err).ShouldNot(HaveOccurred())
 
-			j2b2, err := db.CreateBuild("job-2")
+			j2b2, err := db.CreateJobBuild("job-2")
 			Ω(err).ShouldNot(HaveOccurred())
 
 			err = db.SaveBuildOutput(sb2.ID, Builds.VersionedResource{
@@ -586,7 +586,7 @@ func itIsADB() {
 
 			job = "some-job"
 
-			firstBuild, err = db.CreateBuild(job)
+			firstBuild, err = db.CreateJobBuild(job)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(firstBuild.Name).Should(Equal("1"))
 			Ω(firstBuild.Status).Should(Equal(Builds.StatusPending))
@@ -606,7 +606,7 @@ func itIsADB() {
 
 			Describe("scheduling the build", func() {
 				It("fails", func() {
-					scheduled, err := db.ScheduleBuild(job, firstBuild.Name, false)
+					scheduled, err := db.ScheduleBuild(firstBuild.ID, false)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(scheduled).Should(BeFalse())
 				})
@@ -615,7 +615,7 @@ func itIsADB() {
 
 		Context("and then scheduled", func() {
 			BeforeEach(func() {
-				scheduled, err := db.ScheduleBuild(job, firstBuild.Name, false)
+				scheduled, err := db.ScheduleBuild(firstBuild.ID, false)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(scheduled).Should(BeTrue())
 			})
@@ -644,14 +644,14 @@ func itIsADB() {
 
 		Describe("scheduling the build", func() {
 			It("succeeds", func() {
-				scheduled, err := db.ScheduleBuild(job, firstBuild.Name, false)
+				scheduled, err := db.ScheduleBuild(firstBuild.ID, false)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(scheduled).Should(BeTrue())
 			})
 
 			Context("serially", func() {
 				It("succeeds", func() {
-					scheduled, err := db.ScheduleBuild(job, firstBuild.Name, true)
+					scheduled, err := db.ScheduleBuild(firstBuild.ID, true)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(scheduled).Should(BeTrue())
 				})
@@ -664,7 +664,7 @@ func itIsADB() {
 			BeforeEach(func() {
 				var err error
 
-				secondBuild, err = db.CreateBuild(job)
+				secondBuild, err = db.CreateJobBuild(job)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(secondBuild.Name).Should(Equal("2"))
 				Ω(secondBuild.Status).Should(Equal(Builds.StatusPending))
@@ -672,14 +672,14 @@ func itIsADB() {
 
 			Describe("scheduling the second build", func() {
 				It("succeeds", func() {
-					scheduled, err := db.ScheduleBuild(job, secondBuild.Name, false)
+					scheduled, err := db.ScheduleBuild(secondBuild.ID, false)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(scheduled).Should(BeTrue())
 				})
 
 				Context("with serial true", func() {
 					It("fails", func() {
-						scheduled, err := db.ScheduleBuild(job, secondBuild.Name, true)
+						scheduled, err := db.ScheduleBuild(secondBuild.ID, true)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeFalse())
 					})
@@ -688,14 +688,14 @@ func itIsADB() {
 
 			Describe("after the first build schedules", func() {
 				BeforeEach(func() {
-					scheduled, err := db.ScheduleBuild(job, firstBuild.Name, false)
+					scheduled, err := db.ScheduleBuild(firstBuild.ID, false)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(scheduled).Should(BeTrue())
 				})
 
 				Context("when the second build is scheduled serially", func() {
 					It("fails", func() {
-						scheduled, err := db.ScheduleBuild(job, secondBuild.Name, true)
+						scheduled, err := db.ScheduleBuild(secondBuild.ID, true)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeFalse())
 					})
@@ -712,7 +712,7 @@ func itIsADB() {
 
 						Context("and the second build is scheduled serially", func() {
 							It("succeeds", func() {
-								scheduled, err := db.ScheduleBuild(job, secondBuild.Name, true)
+								scheduled, err := db.ScheduleBuild(secondBuild.ID, true)
 								Ω(err).ShouldNot(HaveOccurred())
 								Ω(scheduled).Should(BeTrue())
 							})
@@ -729,7 +729,7 @@ func itIsADB() {
 
 				Context("when the second build is scheduled serially", func() {
 					It("succeeds", func() {
-						scheduled, err := db.ScheduleBuild(job, secondBuild.Name, true)
+						scheduled, err := db.ScheduleBuild(secondBuild.ID, true)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeTrue())
 					})
@@ -742,7 +742,7 @@ func itIsADB() {
 				BeforeEach(func() {
 					var err error
 
-					thirdBuild, err = db.CreateBuild(job)
+					thirdBuild, err = db.CreateJobBuild(job)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(thirdBuild.Name).Should(Equal("3"))
 					Ω(thirdBuild.Status).Should(Equal(Builds.StatusPending))
@@ -756,7 +756,7 @@ func itIsADB() {
 
 					Context("and the third build is scheduled serially", func() {
 						It("fails, as it would have jumped the queue", func() {
-							scheduled, err := db.ScheduleBuild(job, thirdBuild.Name, true)
+							scheduled, err := db.ScheduleBuild(thirdBuild.ID, true)
 							Ω(err).ShouldNot(HaveOccurred())
 							Ω(scheduled).Should(BeFalse())
 						})
@@ -765,14 +765,14 @@ func itIsADB() {
 
 				Context("and then scheduled", func() {
 					It("succeeds", func() {
-						scheduled, err := db.ScheduleBuild(job, thirdBuild.Name, false)
+						scheduled, err := db.ScheduleBuild(thirdBuild.ID, false)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeTrue())
 					})
 
 					Context("with serial true", func() {
 						It("fails", func() {
-							scheduled, err := db.ScheduleBuild(job, thirdBuild.Name, true)
+							scheduled, err := db.ScheduleBuild(thirdBuild.ID, true)
 							Ω(err).ShouldNot(HaveOccurred())
 							Ω(scheduled).Should(BeFalse())
 						})

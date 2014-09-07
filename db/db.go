@@ -17,9 +17,10 @@ type DB interface {
 
 	GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error)
 
-	CreateBuild(job string) (builds.Build, error)
-	ScheduleBuild(job string, build string, serial bool) (bool, error)
+	CreateJobBuild(job string) (builds.Build, error)
+	CreateJobBuildWithInputs(job string, inputs builds.VersionedResources) (builds.Build, error)
 
+	ScheduleBuild(buildID int, serial bool) (bool, error)
 	StartBuild(buildID int, abortURL string) (bool, error)
 
 	BuildLog(buildID int) ([]byte, error)
@@ -32,11 +33,10 @@ type DB interface {
 	SaveBuildStatus(buildID int, status builds.Status) error
 
 	SaveVersionedResource(builds.VersionedResource) error
-	GetLatestVersionedResource(build string) (builds.VersionedResource, error)
+	GetLatestVersionedResource(resource string) (builds.VersionedResource, error)
 
 	GetLatestInputVersions([]config.Input) (builds.VersionedResources, error)
 	GetJobBuildForInputs(job string, inputs builds.VersionedResources) (builds.Build, error)
-	CreateBuildWithInputs(job string, inputs builds.VersionedResources) (builds.Build, error)
 
 	GetNextPendingBuild(job string) (builds.Build, builds.VersionedResources, error)
 
