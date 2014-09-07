@@ -264,4 +264,6 @@ builds:
     version: 0.7.0-rc.19
   9b481c99-1528-449a-9774-c7ff109b7ba1:
     version: 0.7.0-rc.20
+  ba8321ae-75e3-4bf3-bbdc-fe60b905dffa:
+    version: 0.7.0-rc.21
 format-version: '2'
