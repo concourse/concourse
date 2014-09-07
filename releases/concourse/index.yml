@@ -268,4 +268,6 @@ builds:
     version: 0.7.0-rc.21
   66fe91bb-8d49-4403-b397-16c6ce1f707c:
     version: 0.7.0-rc.22
+  23d464c0-ff0a-4758-b09d-eec8269975f3:
+    version: 0.7.0-rc.23
 format-version: '2'
