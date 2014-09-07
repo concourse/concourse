@@ -22,6 +22,7 @@ import (
 
 	troutes "github.com/concourse/turbine/routes"
 
+	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/builder"
 	"github.com/concourse/atc/callbacks"
 	croutes "github.com/concourse/atc/callbacks/routes"
@@ -200,6 +201,17 @@ func main() {
 
 	radar := radar.NewRadar(logger, db, *checkInterval)
 
+	apiHandler, err := api.NewHandler(
+		logger,
+		db,
+		builder,
+		tracker,
+		5*time.Second,
+	)
+	if err != nil {
+		fatal(err)
+	}
+
 	webHandler, err := web.NewHandler(
 		logger,
 		conf,
@@ -215,21 +227,29 @@ func main() {
 		fatal(err)
 	}
 
-	if *httpUsername != "" && *httpHashedPassword != "" {
-		webHandler = auth.Handler{
-			Handler:        webHandler,
-			Username:       *httpUsername,
-			HashedPassword: *httpHashedPassword,
-		}
-	}
-
 	callbacksHandler, err := callbacks.NewHandler(logger, db, tracker)
 	if err != nil {
 		fatal(err)
 	}
 
+	webMux := http.NewServeMux()
+	webMux.Handle("/api/v1/", apiHandler)
+	webMux.Handle("/", webHandler)
+
+	var publicHandler http.Handler
+
+	publicHandler = webMux
+
+	if *httpUsername != "" && *httpHashedPassword != "" {
+		publicHandler = auth.Handler{
+			Handler:        publicHandler,
+			Username:       *httpUsername,
+			HashedPassword: *httpHashedPassword,
+		}
+	}
+
 	group := grouper.RunGroup{
-		"web":       http_server.New(*webListenAddr, webHandler),
+		"web":       http_server.New(*webListenAddr, publicHandler),
 		"callbacks": http_server.New(*callbacksListenAddr, callbacksHandler),
 		"debug":     http_server.New(*debugListenAddr, http.DefaultServeMux),
 
