@@ -60,7 +60,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = handler.db.AbortBuild(job.Name, buildName)
+	err = handler.db.AbortBuild(build.ID)
 	if err != nil {
 		log.Error("failed-to-set-aborted", err)
 		w.WriteHeader(http.StatusInternalServerError)

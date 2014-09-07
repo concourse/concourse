@@ -2,12 +2,14 @@ package logs
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc/logfanout"
+	"github.com/coreos/etcd/third_party/github.com/coreos/go-log/log"
 )
 
 var upgrader = websocket.Upgrader{
@@ -18,8 +20,13 @@ var upgrader = websocket.Upgrader{
 
 func NewHandler(logger lager.Logger, tracker *logfanout.Tracker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		job := r.FormValue(":job")
-		build := r.FormValue(":build")
+		buildIDStr := r.FormValue(":build_id")
+
+		buildID, err := strconv.Atoi(buildIDStr)
+		if err != nil {
+			log.Error("invalid-build-id", err)
+			return
+		}
 
 		log := logger.Session("logs-out")
 
@@ -31,8 +38,8 @@ func NewHandler(logger lager.Logger, tracker *logfanout.Tracker) http.Handler {
 
 		defer conn.Close()
 
-		logFanout := tracker.Register(job, build, conn)
-		defer tracker.Unregister(job, build, conn)
+		logFanout := tracker.Register(buildID, conn)
+		defer tracker.Unregister(buildID, conn)
 
 		err = logFanout.Attach(conn)
 		if err != nil {
