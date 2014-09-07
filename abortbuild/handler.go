@@ -1,7 +1,6 @@
 package abortbuild
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -48,6 +47,13 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"build": buildID,
 	})
 
+	build, err := handler.db.GetBuild(buildID)
+	if err != nil {
+		log.Error("failed-to-get-build", err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	abortURL, err := handler.db.AbortBuild(buildID)
 	if err != nil {
 		log.Error("failed-to-set-aborted", err)
@@ -67,7 +73,8 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	redirectPath, err := routes.Routes.CreatePathForRoute(routes.GetBuild, rata.Params{
-		"build_id": fmt.Sprintf("%d", buildID),
+		"job":   build.JobName,
+		"build": build.Name,
 	})
 	if err != nil {
 		log.Fatal("failed-to-create-redirect-uri", err)
