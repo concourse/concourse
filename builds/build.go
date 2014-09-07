@@ -18,6 +18,8 @@ type Build struct {
 	Name   string
 	Status Status
 
+	JobName string
+
 	AbortURL string
 }
 

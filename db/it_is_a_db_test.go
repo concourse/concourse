@@ -42,6 +42,7 @@ func itIsADB() {
 		build, err := db.CreateBuild("some-job")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(build.ID).ShouldNot(BeZero())
+		Ω(build.JobName).Should(Equal("some-job"))
 		Ω(build.Name).Should(Equal("1"))
 		Ω(build.Status).Should(Equal(Builds.StatusPending))
 
@@ -91,8 +92,10 @@ func itIsADB() {
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(builds).Should(HaveLen(2))
 		Ω(builds[0].Name).Should(Equal(pending.Name))
+		Ω(builds[0].JobName).Should(Equal("some-job"))
 		Ω(builds[0].Status).Should(Equal(Builds.StatusPending))
 		Ω(builds[1].Name).Should(Equal(build.Name))
+		Ω(builds[1].JobName).Should(Equal("some-job"))
 		Ω(builds[1].Status).Should(Equal(Builds.StatusStarted))
 
 		err = db.SaveBuildStatus(build.ID, Builds.StatusSucceeded)
@@ -102,6 +105,7 @@ func itIsADB() {
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(build.ID).ShouldNot(BeZero())
 		Ω(build.Name).Should(Equal("1"))
+		Ω(build.JobName).Should(Equal("some-job"))
 		Ω(build.Status).Should(Equal(Builds.StatusSucceeded))
 
 		otherBuild, err := db.CreateBuild("some-other-job")

@@ -77,6 +77,7 @@ func (db *sqldb) GetAllJobBuilds(job string) ([]builds.Build, error) {
 			ID:       id,
 			Name:     name,
 			Status:   builds.Status(status),
+			JobName:  job,
 			AbortURL: abortURL.String,
 		})
 	}
@@ -86,14 +87,15 @@ func (db *sqldb) GetAllJobBuilds(job string) ([]builds.Build, error) {
 
 func (db *sqldb) GetBuild(buildID int) (builds.Build, error) {
 	var name string
+	var jobName string
 	var status string
 	var abortURL sql.NullString
 
 	err := db.conn.QueryRow(`
-		SELECT name, status, abort_url
+		SELECT name, job_name, status, abort_url
 		FROM builds
 		WHERE id = $1
-	`, buildID).Scan(&name, &status, &abortURL)
+	`, buildID).Scan(&name, &jobName, &status, &abortURL)
 	if err != nil {
 		return builds.Build{}, err
 	}
@@ -101,6 +103,7 @@ func (db *sqldb) GetBuild(buildID int) (builds.Build, error) {
 	return builds.Build{
 		ID:       buildID,
 		Name:     name,
+		JobName:  jobName,
 		Status:   builds.Status(status),
 		AbortURL: abortURL.String,
 	}, nil
@@ -124,6 +127,7 @@ func (db *sqldb) GetJobBuild(job string, name string) (builds.Build, error) {
 	return builds.Build{
 		ID:       id,
 		Name:     name,
+		JobName:  job,
 		Status:   builds.Status(status),
 		AbortURL: abortURL.String,
 	}, nil
@@ -284,6 +288,7 @@ func (db *sqldb) GetCurrentBuild(job string) (builds.Build, error) {
 	return builds.Build{
 		ID:       id,
 		Name:     name,
+		JobName:  job,
 		Status:   builds.Status(status),
 		AbortURL: abortURL.String,
 	}, nil
@@ -324,9 +329,10 @@ func (db *sqldb) CreateBuild(job string) (builds.Build, error) {
 	}
 
 	return builds.Build{
-		ID:     id,
-		Name:   name,
-		Status: builds.StatusPending,
+		ID:      id,
+		Name:    name,
+		JobName: job,
+		Status:  builds.StatusPending,
 	}, nil
 }
 
@@ -718,9 +724,10 @@ func (db *sqldb) GetJobBuildForInputs(job string, inputs builds.VersionedResourc
 	}
 
 	return builds.Build{
-		ID:     buildID,
-		Name:   buildName,
-		Status: builds.StatusPending,
+		ID:      buildID,
+		Name:    buildName,
+		JobName: job,
+		Status:  builds.StatusPending,
 	}, nil
 }
 
@@ -774,9 +781,10 @@ func (db *sqldb) CreateBuildWithInputs(job string, inputs builds.VersionedResour
 	}
 
 	return builds.Build{
-		ID:     buildID,
-		Name:   name,
-		Status: builds.StatusPending,
+		ID:      buildID,
+		Name:    name,
+		JobName: job,
+		Status:  builds.StatusPending,
 	}, nil
 }
 
@@ -808,9 +816,10 @@ func (db *sqldb) GetNextPendingBuild(job string) (builds.Build, builds.Versioned
 	}
 
 	return builds.Build{
-		ID:     id,
-		Name:   name,
-		Status: builds.StatusPending,
+		ID:      id,
+		Name:    name,
+		JobName: job,
+		Status:  builds.StatusPending,
 	}, vrs, nil
 }
 
@@ -897,6 +906,7 @@ func (db *sqldb) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 		jh.Builds = append(jh.Builds, builds.Build{
 			ID:       buildID,
 			Name:     buildName,
+			JobName:  jobName,
 			Status:   builds.Status(buildStatus),
 			AbortURL: buildAbortURL.String,
 		})
