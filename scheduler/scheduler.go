@@ -8,6 +8,8 @@ import (
 )
 
 type SchedulerDB interface {
+	ScheduleBuild(job string, build string, serial bool) (bool, error)
+
 	CreateBuildWithInputs(job string, inputs builds.VersionedResources) (builds.Build, error)
 	GetLatestInputVersions([]config.Input) (builds.VersionedResources, error)
 	GetJobBuildForInputs(job string, inputs builds.VersionedResources) (builds.Build, error)
@@ -66,6 +68,15 @@ func (s *Scheduler) BuildLatestInputs(job config.Job) error {
 		return err
 	}
 
+	scheduled, err := s.DB.ScheduleBuild(job.Name, build.Name, job.Serial)
+	if err != nil {
+		return err
+	}
+
+	if !scheduled {
+		return nil
+	}
+
 	buildLog.Info("building", lager.Data{
 		"build":  build,
 		"inputs": inputs,
@@ -86,6 +97,15 @@ func (s *Scheduler) TryNextPendingBuild(job config.Job) error {
 	build, inputs, err := s.DB.GetNextPendingBuild(job.Name)
 	if err != nil {
 		return err
+	}
+
+	scheduled, err := s.DB.ScheduleBuild(job.Name, build.Name, job.Serial)
+	if err != nil {
+		return err
+	}
+
+	if !scheduled {
+		return nil
 	}
 
 	err = s.Builder.Build(build, job, inputs)
@@ -124,6 +144,15 @@ func (s *Scheduler) TriggerImmediately(job config.Job) (builds.Build, error) {
 	if err != nil {
 		buildLog.Error("failed-to-create-build", err)
 		return builds.Build{}, err
+	}
+
+	scheduled, err := s.DB.ScheduleBuild(job.Name, build.Name, job.Serial)
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	if !scheduled {
+		return build, nil
 	}
 
 	err = s.Builder.Build(build, job, inputs)

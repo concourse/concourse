@@ -126,6 +126,8 @@ var _ = Describe("Builder", func() {
 			ID:   128,
 			Name: "some-build",
 		}
+
+		db.StartBuildReturns(true, nil)
 	})
 
 	successfulBuildStart := func(build TurbineBuilds.Build) http.HandlerFunc {
@@ -139,13 +141,91 @@ var _ = Describe("Builder", func() {
 		)
 	}
 
-	Context("when the build can be scheduled", func() {
+	It("starts the build and saves its abort url", func() {
+		turbineServer.AppendHandlers(
+			ghttp.CombineHandlers(
+				ghttp.VerifyRequest("POST", "/builds"),
+				successfulBuildStart(expectedTurbineBuild),
+			),
+		)
+
+		err := builder.Build(build, job, nil)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		Ω(db.StartBuildCallCount()).Should(Equal(1))
+
+		job, id, abortURL := db.StartBuildArgsForCall(0)
+		Ω(job).Should(Equal("some-job"))
+		Ω(id).Should(Equal("some-build"))
+		Ω(abortURL).Should(ContainSubstring("/abort/the/build"))
+	})
+
+	Context("when the build fails to transition to started", func() {
 		BeforeEach(func() {
-			db.ScheduleBuildReturns(true, nil)
-			db.StartBuildReturns(true, nil)
+			db.StartBuildReturns(false, nil)
 		})
 
-		It("starts the build and saves its abort url", func() {
+		It("aborts the build on the turbine", func() {
+			turbineServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/builds"),
+					successfulBuildStart(expectedTurbineBuild),
+				),
+				ghttp.VerifyRequest("POST", "/abort/the/build"),
+			)
+
+			err := builder.Build(build, job, nil)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(turbineServer.ReceivedRequests()).Should(HaveLen(2))
+		})
+	})
+
+	Context("when the build has outputs", func() {
+		BeforeEach(func() {
+			job.Outputs = []config.Output{
+				{
+					Resource: "some-resource",
+					Params:   config.Params{"foo": "bar"},
+				},
+				{
+					Resource: "some-resource",
+					Params:   config.Params{"foo": "bar"},
+					On:       []config.OutputCondition{"failure"},
+				},
+				{
+					Resource: "some-resource",
+					Params:   config.Params{"foo": "bar"},
+					On:       []config.OutputCondition{},
+				},
+			}
+
+			expectedTurbineBuild.Outputs = []TurbineBuilds.Output{
+				{
+					Name:   "some-resource",
+					Type:   "git",
+					On:     []TurbineBuilds.OutputCondition{TurbineBuilds.OutputConditionSuccess},
+					Params: TurbineBuilds.Params{"foo": "bar"},
+					Source: TurbineBuilds.Source{"uri": "git://some-resource"},
+				},
+				{
+					Name:   "some-resource",
+					Type:   "git",
+					On:     []TurbineBuilds.OutputCondition{TurbineBuilds.OutputConditionFailure},
+					Params: TurbineBuilds.Params{"foo": "bar"},
+					Source: TurbineBuilds.Source{"uri": "git://some-resource"},
+				},
+				{
+					Name:   "some-resource",
+					Type:   "git",
+					On:     []TurbineBuilds.OutputCondition{},
+					Params: TurbineBuilds.Params{"foo": "bar"},
+					Source: TurbineBuilds.Source{"uri": "git://some-resource"},
+				},
+			}
+		})
+
+		It("sends them along to the turbine", func() {
 			turbineServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/builds"),
@@ -155,209 +235,102 @@ var _ = Describe("Builder", func() {
 
 			err := builder.Build(build, job, nil)
 			Ω(err).ShouldNot(HaveOccurred())
-
-			Ω(db.StartBuildCallCount()).Should(Equal(1))
-
-			job, id, abortURL := db.StartBuildArgsForCall(0)
-			Ω(job).Should(Equal("some-job"))
-			Ω(id).Should(Equal("some-build"))
-			Ω(abortURL).Should(ContainSubstring("/abort/the/build"))
-		})
-
-		Context("when the build fails to transition to started", func() {
-			BeforeEach(func() {
-				db.StartBuildReturns(false, nil)
-			})
-
-			It("aborts the build on the turbine", func() {
-				turbineServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("POST", "/builds"),
-						successfulBuildStart(expectedTurbineBuild),
-					),
-					ghttp.VerifyRequest("POST", "/abort/the/build"),
-				)
-
-				err := builder.Build(build, job, nil)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(turbineServer.ReceivedRequests()).Should(HaveLen(2))
-			})
-		})
-
-		Context("when the build has outputs", func() {
-			BeforeEach(func() {
-				job.Outputs = []config.Output{
-					{
-						Resource: "some-resource",
-						Params:   config.Params{"foo": "bar"},
-					},
-					{
-						Resource: "some-resource",
-						Params:   config.Params{"foo": "bar"},
-						On:       []config.OutputCondition{"failure"},
-					},
-					{
-						Resource: "some-resource",
-						Params:   config.Params{"foo": "bar"},
-						On:       []config.OutputCondition{},
-					},
-				}
-
-				expectedTurbineBuild.Outputs = []TurbineBuilds.Output{
-					{
-						Name:   "some-resource",
-						Type:   "git",
-						On:     []TurbineBuilds.OutputCondition{TurbineBuilds.OutputConditionSuccess},
-						Params: TurbineBuilds.Params{"foo": "bar"},
-						Source: TurbineBuilds.Source{"uri": "git://some-resource"},
-					},
-					{
-						Name:   "some-resource",
-						Type:   "git",
-						On:     []TurbineBuilds.OutputCondition{TurbineBuilds.OutputConditionFailure},
-						Params: TurbineBuilds.Params{"foo": "bar"},
-						Source: TurbineBuilds.Source{"uri": "git://some-resource"},
-					},
-					{
-						Name:   "some-resource",
-						Type:   "git",
-						On:     []TurbineBuilds.OutputCondition{},
-						Params: TurbineBuilds.Params{"foo": "bar"},
-						Source: TurbineBuilds.Source{"uri": "git://some-resource"},
-					},
-				}
-			})
-
-			It("sends them along to the turbine", func() {
-				turbineServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("POST", "/builds"),
-						successfulBuildStart(expectedTurbineBuild),
-					),
-				)
-
-				err := builder.Build(build, job, nil)
-				Ω(err).ShouldNot(HaveOccurred())
-			})
-		})
-
-		Context("when versioned resources are specified", func() {
-			BeforeEach(func() {
-				expectedTurbineBuild.Inputs = []TurbineBuilds.Input{
-					{
-						Name:       "some-resource",
-						Type:       "git-ng",
-						Source:     TurbineBuilds.Source{"uri": "git://some-provided-uri"},
-						Params:     TurbineBuilds.Params{"some": "params"},
-						Version:    TurbineBuilds.Version{"version": "1"},
-						ConfigPath: "build.yml",
-					},
-				}
-			})
-
-			It("uses them for the build's inputs", func() {
-				turbineServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("POST", "/builds"),
-						successfulBuildStart(expectedTurbineBuild),
-					),
-				)
-
-				err := builder.Build(build, job, builds.VersionedResources{
-					{
-						Name:    "some-resource",
-						Type:    "git-ng",
-						Version: builds.Version{"version": "1"},
-						Source:  config.Source{"uri": "git://some-provided-uri"},
-					},
-				})
-				Ω(err).ShouldNot(HaveOccurred())
-			})
-		})
-
-		Context("when the job's input is not found", func() {
-			BeforeEach(func() {
-				job.Inputs = append(job.Inputs, config.Input{
-					Resource: "some-bogus-resource",
-				})
-			})
-
-			It("returns an error", func() {
-				err := builder.Build(build, job, nil)
-				Ω(err).Should(HaveOccurred())
-			})
-		})
-
-		Context("when the job's output is not found", func() {
-			BeforeEach(func() {
-				job.Outputs = append(job.Outputs, config.Output{
-					Resource: "some-bogus-resource",
-				})
-			})
-
-			It("returns an error", func() {
-				err := builder.Build(build, job, nil)
-				Ω(err).Should(HaveOccurred())
-			})
-		})
-
-		Context("when the turbine server is unreachable", func() {
-			BeforeEach(func() {
-				turbineServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("POST", "/builds"),
-						func(w http.ResponseWriter, r *http.Request) {
-							turbineServer.HTTPTestServer.CloseClientConnections()
-						},
-					),
-				)
-			})
-
-			It("returns an error", func() {
-				err := builder.Build(build, job, nil)
-				Ω(err).Should(HaveOccurred())
-
-				Ω(turbineServer.ReceivedRequests()).Should(HaveLen(1))
-			})
-		})
-
-		Context("when the turbine server returns non-201", func() {
-			BeforeEach(func() {
-				turbineServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("POST", "/builds"),
-						ghttp.RespondWith(400, ""),
-					),
-				)
-			})
-
-			It("returns an error", func() {
-				err := builder.Build(build, job, nil)
-				Ω(err).Should(HaveOccurred())
-			})
 		})
 	})
 
-	Context("when the build cannot be scheduled", func() {
+	Context("when versioned resources are specified", func() {
 		BeforeEach(func() {
-			db.ScheduleBuildReturns(false, nil)
+			expectedTurbineBuild.Inputs = []TurbineBuilds.Input{
+				{
+					Name:       "some-resource",
+					Type:       "git-ng",
+					Source:     TurbineBuilds.Source{"uri": "git://some-provided-uri"},
+					Params:     TurbineBuilds.Params{"some": "params"},
+					Version:    TurbineBuilds.Version{"version": "1"},
+					ConfigPath: "build.yml",
+				},
+			}
 		})
 
-		Context("and the current build is scheduled", func() {
-			It("leaves the build pending", func() {
-				err := builder.Build(build, job, nil)
-				Ω(err).ShouldNot(HaveOccurred())
+		It("uses them for the build's inputs", func() {
+			turbineServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/builds"),
+					successfulBuildStart(expectedTurbineBuild),
+				),
+			)
 
-				Ω(db.StartBuildCallCount()).Should(Equal(0))
+			err := builder.Build(build, job, builds.VersionedResources{
+				{
+					Name:    "some-resource",
+					Type:    "git-ng",
+					Version: builds.Version{"version": "1"},
+					Source:  config.Source{"uri": "git://some-provided-uri"},
+				},
 			})
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+	})
 
-			It("does not trigger a build", func() {
-				err := builder.Build(build, job, nil)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(turbineServer.ReceivedRequests()).Should(BeEmpty())
+	Context("when the job's input is not found", func() {
+		BeforeEach(func() {
+			job.Inputs = append(job.Inputs, config.Input{
+				Resource: "some-bogus-resource",
 			})
+		})
+
+		It("returns an error", func() {
+			err := builder.Build(build, job, nil)
+			Ω(err).Should(HaveOccurred())
+		})
+	})
+
+	Context("when the job's output is not found", func() {
+		BeforeEach(func() {
+			job.Outputs = append(job.Outputs, config.Output{
+				Resource: "some-bogus-resource",
+			})
+		})
+
+		It("returns an error", func() {
+			err := builder.Build(build, job, nil)
+			Ω(err).Should(HaveOccurred())
+		})
+	})
+
+	Context("when the turbine server is unreachable", func() {
+		BeforeEach(func() {
+			turbineServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/builds"),
+					func(w http.ResponseWriter, r *http.Request) {
+						turbineServer.HTTPTestServer.CloseClientConnections()
+					},
+				),
+			)
+		})
+
+		It("returns an error", func() {
+			err := builder.Build(build, job, nil)
+			Ω(err).Should(HaveOccurred())
+
+			Ω(turbineServer.ReceivedRequests()).Should(HaveLen(1))
+		})
+	})
+
+	Context("when the turbine server returns non-201", func() {
+		BeforeEach(func() {
+			turbineServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/builds"),
+					ghttp.RespondWith(400, ""),
+				),
+			)
+		})
+
+		It("returns an error", func() {
+			err := builder.Build(build, job, nil)
+			Ω(err).Should(HaveOccurred())
 		})
 	})
 })

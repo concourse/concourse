@@ -10,6 +10,17 @@ import (
 )
 
 type FakeSchedulerDB struct {
+	ScheduleBuildStub        func(job string, build string, serial bool) (bool, error)
+	scheduleBuildMutex       sync.RWMutex
+	scheduleBuildArgsForCall []struct {
+		job    string
+		build  string
+		serial bool
+	}
+	scheduleBuildReturns struct {
+		result1 bool
+		result2 error
+	}
 	CreateBuildWithInputsStub        func(job string, inputs builds.VersionedResources) (builds.Build, error)
 	createBuildWithInputsMutex       sync.RWMutex
 	createBuildWithInputsArgsForCall []struct {
@@ -49,6 +60,41 @@ type FakeSchedulerDB struct {
 		result2 builds.VersionedResources
 		result3 error
 	}
+}
+
+func (fake *FakeSchedulerDB) ScheduleBuild(job string, build string, serial bool) (bool, error) {
+	fake.scheduleBuildMutex.Lock()
+	fake.scheduleBuildArgsForCall = append(fake.scheduleBuildArgsForCall, struct {
+		job    string
+		build  string
+		serial bool
+	}{job, build, serial})
+	fake.scheduleBuildMutex.Unlock()
+	if fake.ScheduleBuildStub != nil {
+		return fake.ScheduleBuildStub(job, build, serial)
+	} else {
+		return fake.scheduleBuildReturns.result1, fake.scheduleBuildReturns.result2
+	}
+}
+
+func (fake *FakeSchedulerDB) ScheduleBuildCallCount() int {
+	fake.scheduleBuildMutex.RLock()
+	defer fake.scheduleBuildMutex.RUnlock()
+	return len(fake.scheduleBuildArgsForCall)
+}
+
+func (fake *FakeSchedulerDB) ScheduleBuildArgsForCall(i int) (string, string, bool) {
+	fake.scheduleBuildMutex.RLock()
+	defer fake.scheduleBuildMutex.RUnlock()
+	return fake.scheduleBuildArgsForCall[i].job, fake.scheduleBuildArgsForCall[i].build, fake.scheduleBuildArgsForCall[i].serial
+}
+
+func (fake *FakeSchedulerDB) ScheduleBuildReturns(result1 bool, result2 error) {
+	fake.ScheduleBuildStub = nil
+	fake.scheduleBuildReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeSchedulerDB) CreateBuildWithInputs(job string, inputs builds.VersionedResources) (builds.Build, error) {

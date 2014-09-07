@@ -35,6 +35,8 @@ var _ = Describe("Scheduler", func() {
 		job = config.Job{
 			Name: "some-job",
 
+			Serial: true,
+
 			Inputs: []config.Input{
 				{
 					Resource: "some-resource",
@@ -172,16 +174,41 @@ var _ = Describe("Scheduler", func() {
 						db.CreateBuildWithInputsReturns(builds.Build{Name: "42"}, nil)
 					})
 
-					It("triggers a build of the job with the found inputs", func() {
-						err := scheduler.BuildLatestInputs(job)
-						Ω(err).ShouldNot(HaveOccurred())
+					Context("and it can be scheduled", func() {
+						BeforeEach(func() {
+							db.ScheduleBuildReturns(true, nil)
+						})
 
-						Ω(builder.BuildCallCount()).Should(Equal(1))
+						It("triggers a build of the job with the found inputs", func() {
+							err := scheduler.BuildLatestInputs(job)
+							Ω(err).ShouldNot(HaveOccurred())
 
-						builtBuild, builtJob, builtInputs := builder.BuildArgsForCall(0)
-						Ω(builtBuild).Should(Equal(builds.Build{Name: "42"}))
-						Ω(builtJob).Should(Equal(job))
-						Ω(builtInputs).Should(Equal(foundInputs))
+							Ω(db.ScheduleBuildCallCount()).Should(Equal(1))
+							scheduledJob, scheduledBuild, serial := db.ScheduleBuildArgsForCall(0)
+							Ω(scheduledJob).Should(Equal("some-job"))
+							Ω(scheduledBuild).Should(Equal("42"))
+							Ω(serial).Should(Equal(job.Serial))
+
+							Ω(builder.BuildCallCount()).Should(Equal(1))
+
+							builtBuild, builtJob, builtInputs := builder.BuildArgsForCall(0)
+							Ω(builtBuild).Should(Equal(builds.Build{Name: "42"}))
+							Ω(builtJob).Should(Equal(job))
+							Ω(builtInputs).Should(Equal(foundInputs))
+						})
+					})
+
+					Context("when the build cannot be scheduled", func() {
+						BeforeEach(func() {
+							db.ScheduleBuildReturns(false, nil)
+						})
+
+						It("does not start a build", func() {
+							err := scheduler.BuildLatestInputs(job)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							Ω(builder.BuildCallCount()).Should(Equal(0))
+						})
 					})
 				})
 
@@ -230,16 +257,41 @@ var _ = Describe("Scheduler", func() {
 				db.GetNextPendingBuildReturns(builds.Build{Name: "42"}, pendingInputs, nil)
 			})
 
-			It("builds it", func() {
-				err := scheduler.TryNextPendingBuild(job)
-				Ω(err).ShouldNot(HaveOccurred())
+			Context("and it can be scheduled", func() {
+				BeforeEach(func() {
+					db.ScheduleBuildReturns(true, nil)
+				})
 
-				Ω(builder.BuildCallCount()).Should(Equal(1))
+				It("builds it", func() {
+					err := scheduler.TryNextPendingBuild(job)
+					Ω(err).ShouldNot(HaveOccurred())
 
-				builtBuild, builtJob, builtInputs := builder.BuildArgsForCall(0)
-				Ω(builtBuild).Should(Equal(builds.Build{Name: "42"}))
-				Ω(builtJob).Should(Equal(job))
-				Ω(builtInputs).Should(Equal(pendingInputs))
+					Ω(db.ScheduleBuildCallCount()).Should(Equal(1))
+					scheduledJob, scheduledBuild, serial := db.ScheduleBuildArgsForCall(0)
+					Ω(scheduledJob).Should(Equal("some-job"))
+					Ω(scheduledBuild).Should(Equal("42"))
+					Ω(serial).Should(Equal(job.Serial))
+
+					Ω(builder.BuildCallCount()).Should(Equal(1))
+
+					builtBuild, builtJob, builtInputs := builder.BuildArgsForCall(0)
+					Ω(builtBuild.Name).Should(Equal("42"))
+					Ω(builtJob).Should(Equal(job))
+					Ω(builtInputs).Should(Equal(pendingInputs))
+				})
+			})
+
+			Context("when the build cannot be scheduled", func() {
+				BeforeEach(func() {
+					db.ScheduleBuildReturns(false, nil)
+				})
+
+				It("does not start a build", func() {
+					err := scheduler.TryNextPendingBuild(job)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(builder.BuildCallCount()).Should(Equal(0))
+				})
 			})
 		})
 
@@ -282,17 +334,42 @@ var _ = Describe("Scheduler", func() {
 					db.CreateBuildWithInputsReturns(builds.Build{Name: "42"}, nil)
 				})
 
-				It("triggers a build of the job with the found inputs", func() {
-					build, err := scheduler.TriggerImmediately(job)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(build).Should(Equal(builds.Build{Name: "42"}))
+				Context("and it can be scheduled", func() {
+					BeforeEach(func() {
+						db.ScheduleBuildReturns(true, nil)
+					})
 
-					Ω(builder.BuildCallCount()).Should(Equal(1))
+					It("triggers a build of the job with the found inputs", func() {
+						build, err := scheduler.TriggerImmediately(job)
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(build).Should(Equal(builds.Build{Name: "42"}))
 
-					builtBuild, builtJob, builtInputs := builder.BuildArgsForCall(0)
-					Ω(builtBuild).Should(Equal(builds.Build{Name: "42"}))
-					Ω(builtJob).Should(Equal(job))
-					Ω(builtInputs).Should(BeZero())
+						Ω(db.ScheduleBuildCallCount()).Should(Equal(1))
+						scheduledJob, scheduledBuild, serial := db.ScheduleBuildArgsForCall(0)
+						Ω(scheduledJob).Should(Equal("some-job"))
+						Ω(scheduledBuild).Should(Equal("42"))
+						Ω(serial).Should(Equal(job.Serial))
+
+						Ω(builder.BuildCallCount()).Should(Equal(1))
+
+						builtBuild, builtJob, builtInputs := builder.BuildArgsForCall(0)
+						Ω(builtBuild).Should(Equal(builds.Build{Name: "42"}))
+						Ω(builtJob).Should(Equal(job))
+						Ω(builtInputs).Should(BeZero())
+					})
+				})
+
+				Context("when the build cannot be scheduled", func() {
+					BeforeEach(func() {
+						db.ScheduleBuildReturns(false, nil)
+					})
+
+					It("does not start a build", func() {
+						_, err := scheduler.TriggerImmediately(job)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Ω(builder.BuildCallCount()).Should(Equal(0))
+					})
 				})
 			})
 
@@ -356,17 +433,40 @@ var _ = Describe("Scheduler", func() {
 						db.CreateBuildWithInputsReturns(builds.Build{Name: "42"}, nil)
 					})
 
-					It("triggers a build of the job with the found inputs", func() {
-						build, err := scheduler.TriggerImmediately(job)
-						Ω(err).ShouldNot(HaveOccurred())
-						Ω(build).Should(Equal(builds.Build{Name: "42"}))
+					Context("and it can be scheduled", func() {
+						BeforeEach(func() {
+							db.ScheduleBuildReturns(true, nil)
+						})
 
-						Ω(builder.BuildCallCount()).Should(Equal(1))
+						It("triggers a build of the job with the found inputs", func() {
+							build, err := scheduler.TriggerImmediately(job)
+							Ω(err).ShouldNot(HaveOccurred())
+							Ω(build).Should(Equal(builds.Build{Name: "42"}))
 
-						builtBuild, builtJob, builtInputs := builder.BuildArgsForCall(0)
-						Ω(builtBuild).Should(Equal(builds.Build{Name: "42"}))
-						Ω(builtJob).Should(Equal(job))
-						Ω(builtInputs).Should(Equal(foundInputs))
+							Ω(db.ScheduleBuildCallCount()).Should(Equal(1))
+							scheduledJob, scheduledBuild, serial := db.ScheduleBuildArgsForCall(0)
+							Ω(scheduledJob).Should(Equal("some-job"))
+							Ω(scheduledBuild).Should(Equal("42"))
+							Ω(serial).Should(Equal(job.Serial))
+
+							Ω(builder.BuildCallCount()).Should(Equal(1))
+
+							builtBuild, builtJob, builtInputs := builder.BuildArgsForCall(0)
+							Ω(builtBuild).Should(Equal(builds.Build{Name: "42"}))
+							Ω(builtJob).Should(Equal(job))
+							Ω(builtInputs).Should(Equal(foundInputs))
+						})
+					})
+				})
+
+				Context("when the build cannot be scheduled", func() {
+					BeforeEach(func() {
+						db.ScheduleBuildReturns(false, nil)
+					})
+
+					It("does not start a build", func() {
+						scheduler.TriggerImmediately(job)
+						Ω(builder.BuildCallCount()).Should(Equal(0))
 					})
 				})
 

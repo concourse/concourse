@@ -21,7 +21,6 @@ import (
 var ErrBadResponse = errors.New("bad response from turbine")
 
 type BuilderDB interface {
-	ScheduleBuild(job string, build string, serial bool) (bool, error)
 	StartBuild(job string, build string, abortURL string) (bool, error)
 }
 
@@ -56,15 +55,6 @@ func NewBuilder(db BuilderDB, resources config.Resources, turbine *rata.RequestG
 }
 
 func (builder *builder) Build(build builds.Build, job config.Job, versions builds.VersionedResources) error {
-	scheduled, err := builder.db.ScheduleBuild(job.Name, build.Name, job.Serial)
-	if err != nil {
-		return err
-	}
-
-	if !scheduled {
-		return nil
-	}
-
 	inputs, err := builder.computeInputs(job, versions)
 	if err != nil {
 		return err
