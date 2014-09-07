@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/ghttp"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/concourse/atc/api"
@@ -186,6 +187,77 @@ var _ = Describe("Builds API", func() {
 
 			Ω(gotPing).Should(Receive())
 			Ω(gotPing).Should(Receive())
+		})
+	})
+
+	Describe("POST /api/v1/builds/:build_id/abort", func() {
+		var (
+			abortTarget *ghttp.Server
+
+			response *http.Response
+		)
+
+		BeforeEach(func() {
+			abortTarget = ghttp.NewServer()
+			abortTarget.AppendHandlers(ghttp.VerifyRequest("POST", "/"))
+		})
+
+		JustBeforeEach(func() {
+			var err error
+
+			req, err := http.NewRequest("POST", server.URL+"/api/v1/builds/128/abort", nil)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			response, err = client.Do(req)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			abortTarget.Close()
+		})
+
+		Context("when the build can be aborted", func() {
+			BeforeEach(func() {
+				buildsDB.AbortBuildReturns(abortTarget.URL(), nil)
+			})
+
+			It("aborts the build via its abort callback", func() {
+				Ω(abortTarget.ReceivedRequests()).Should(HaveLen(1))
+			})
+
+			Context("and the abort callback returns a status code", func() {
+				BeforeEach(func() {
+					abortTarget.SetHandler(0, func(w http.ResponseWriter, r *http.Request) {
+						w.WriteHeader(http.StatusTeapot)
+					})
+				})
+
+				It("forwards it", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusTeapot))
+				})
+			})
+
+			Context("and the abort callback fails", func() {
+				BeforeEach(func() {
+					abortTarget.SetHandler(0, func(w http.ResponseWriter, r *http.Request) {
+						abortTarget.HTTPTestServer.CloseClientConnections()
+					})
+				})
+
+				It("returns 500 Internal Server Error", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				})
+			})
+		})
+
+		Context("when the build cannot be aborted", func() {
+			BeforeEach(func() {
+				buildsDB.AbortBuildReturns("", errors.New("oh no!"))
+			})
+
+			It("returns 500 Internal Server Error", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+			})
 		})
 	})
 })

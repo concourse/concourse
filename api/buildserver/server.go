@@ -1,6 +1,7 @@
 package buildserver
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/concourse/atc/builder"
@@ -16,10 +17,13 @@ type Server struct {
 	builder      builder.Builder
 	tracker      *logfanout.Tracker
 	pingInterval time.Duration
+
+	httpClient *http.Client
 }
 
 type BuildsDB interface {
 	CreateOneOffBuild() (builds.Build, error)
+	AbortBuild(buildID int) (string, error)
 }
 
 func NewServer(
@@ -35,5 +39,11 @@ func NewServer(
 		builder:      builder,
 		tracker:      tracker,
 		pingInterval: pingInterval,
+
+		httpClient: &http.Client{
+			Transport: &http.Transport{
+				ResponseHeaderTimeout: 5 * time.Minute,
+			},
+		},
 	}
 }

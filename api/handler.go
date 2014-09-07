@@ -24,6 +24,7 @@ func NewHandler(
 	handlers := map[string]http.Handler{
 		CreateBuild: http.HandlerFunc(buildsServer.CreateBuild),
 		BuildEvents: http.HandlerFunc(buildsServer.BuildEvents),
+		AbortBuild:  http.HandlerFunc(buildsServer.AbortBuild),
 	}
 
 	return rata.NewRouter(Routes, handlers)

@@ -16,6 +16,15 @@ type FakeBuildsDB struct {
 		result1 builds.Build
 		result2 error
 	}
+	AbortBuildStub        func(buildID int) (string, error)
+	abortBuildMutex       sync.RWMutex
+	abortBuildArgsForCall []struct {
+		buildID int
+	}
+	abortBuildReturns struct {
+		result1 string
+		result2 error
+	}
 }
 
 func (fake *FakeBuildsDB) CreateOneOffBuild() (builds.Build, error) {
@@ -39,6 +48,39 @@ func (fake *FakeBuildsDB) CreateOneOffBuildReturns(result1 builds.Build, result2
 	fake.CreateOneOffBuildStub = nil
 	fake.createOneOffBuildReturns = struct {
 		result1 builds.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBuildsDB) AbortBuild(buildID int) (string, error) {
+	fake.abortBuildMutex.Lock()
+	fake.abortBuildArgsForCall = append(fake.abortBuildArgsForCall, struct {
+		buildID int
+	}{buildID})
+	fake.abortBuildMutex.Unlock()
+	if fake.AbortBuildStub != nil {
+		return fake.AbortBuildStub(buildID)
+	} else {
+		return fake.abortBuildReturns.result1, fake.abortBuildReturns.result2
+	}
+}
+
+func (fake *FakeBuildsDB) AbortBuildCallCount() int {
+	fake.abortBuildMutex.RLock()
+	defer fake.abortBuildMutex.RUnlock()
+	return len(fake.abortBuildArgsForCall)
+}
+
+func (fake *FakeBuildsDB) AbortBuildArgsForCall(i int) int {
+	fake.abortBuildMutex.RLock()
+	defer fake.abortBuildMutex.RUnlock()
+	return fake.abortBuildArgsForCall[i].buildID
+}
+
+func (fake *FakeBuildsDB) AbortBuildReturns(result1 string, result2 error) {
+	fake.AbortBuildStub = nil
+	fake.abortBuildReturns = struct {
+		result1 string
 		result2 error
 	}{result1, result2}
 }
