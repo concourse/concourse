@@ -256,4 +256,6 @@ builds:
     version: 0.7.0-rc.15
   5dad0f59-b04a-40c6-bb61-888082aff7ee:
     version: 0.7.0-rc.16
+  d6d6bc0b-8513-4577-902c-eb08aa39bd32:
+    version: 0.7.0-rc.17
 format-version: '2'
