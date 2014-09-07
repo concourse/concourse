@@ -70,7 +70,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	inputs, outputs, err := handler.db.GetBuildResources(jobName, buildName)
+	inputs, outputs, err := handler.db.GetBuildResources(build.ID)
 	if err != nil {
 		log.Error("failed-to-get-build-resources", err)
 		w.WriteHeader(http.StatusInternalServerError)
