@@ -1,10 +1,12 @@
 package scheduler
 
 import (
+	tbuilds "github.com/concourse/turbine/api/builds"
+	"github.com/pivotal-golang/lager"
+
 	"github.com/concourse/atc/builder"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
-	"github.com/pivotal-golang/lager"
 )
 
 type SchedulerDB interface {
@@ -17,10 +19,15 @@ type SchedulerDB interface {
 	GetNextPendingBuild(job string) (builds.Build, builds.VersionedResources, error)
 }
 
+type BuildFactory interface {
+	Create(config.Job, builds.VersionedResources) (tbuilds.Build, error)
+}
+
 type Scheduler struct {
-	DB      SchedulerDB
-	Builder builder.Builder
 	Logger  lager.Logger
+	DB      SchedulerDB
+	Factory BuildFactory
+	Builder builder.Builder
 }
 
 func (s *Scheduler) BuildLatestInputs(job config.Job) error {
@@ -82,7 +89,13 @@ func (s *Scheduler) BuildLatestInputs(job config.Job) error {
 		"inputs": inputs,
 	})
 
-	err = s.Builder.Build(build, job, inputs)
+	turbineBuild, err := s.Factory.Create(job, inputs)
+	if err != nil {
+		buildLog.Error("failed-to-create", err)
+		return err
+	}
+
+	err = s.Builder.Build(build, turbineBuild)
 	if err != nil {
 		buildLog.Error("failed-to-build", err)
 		return err
@@ -108,7 +121,13 @@ func (s *Scheduler) TryNextPendingBuild(job config.Job) error {
 		return nil
 	}
 
-	err = s.Builder.Build(build, job, inputs)
+	turbineBuild, err := s.Factory.Create(job, inputs)
+	if err != nil {
+		buildLog.Error("failed-to-create", err)
+		return err
+	}
+
+	err = s.Builder.Build(build, turbineBuild)
 	if err != nil {
 		buildLog.Error("failed-to-build", err)
 		return err
@@ -155,7 +174,13 @@ func (s *Scheduler) TriggerImmediately(job config.Job) (builds.Build, error) {
 		return build, nil
 	}
 
-	err = s.Builder.Build(build, job, inputs)
+	turbineBuild, err := s.Factory.Create(job, inputs)
+	if err != nil {
+		buildLog.Error("failed-to-create", err)
+		return builds.Build{}, err
+	}
+
+	err = s.Builder.Build(build, turbineBuild)
 	if err != nil {
 		buildLog.Error("failed-to-build", err)
 		return builds.Build{}, err

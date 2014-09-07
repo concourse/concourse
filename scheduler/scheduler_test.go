@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/atc/config"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/fakes"
+	tbuilds "github.com/concourse/turbine/api/builds"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
@@ -16,7 +17,10 @@ import (
 
 var _ = Describe("Scheduler", func() {
 	var db *fakes.FakeSchedulerDB
+	var factory *fakes.FakeBuildFactory
 	var builder *fakebuilder.FakeBuilder
+
+	var createdTurbineBuild tbuilds.Build
 
 	var job config.Job
 
@@ -24,12 +28,22 @@ var _ = Describe("Scheduler", func() {
 
 	BeforeEach(func() {
 		db = new(fakes.FakeSchedulerDB)
+		factory = new(fakes.FakeBuildFactory)
 		builder = new(fakebuilder.FakeBuilder)
 
+		createdTurbineBuild = tbuilds.Build{
+			Config: tbuilds.Config{
+				Run: tbuilds.RunConfig{Path: "some-build"},
+			},
+		}
+
+		factory.CreateReturns(createdTurbineBuild, nil)
+
 		scheduler = &Scheduler{
-			DB:      db,
-			Builder: builder,
 			Logger:  lagertest.NewTestLogger("test"),
+			DB:      db,
+			Factory: factory,
+			Builder: builder,
 		}
 
 		job = config.Job{
@@ -163,7 +177,6 @@ var _ = Describe("Scheduler", func() {
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(db.CreateBuildWithInputsCallCount()).Should(Equal(1))
-
 					buildJob, buildInputs := db.CreateBuildWithInputsArgsForCall(0)
 					Ω(buildJob).Should(Equal("some-job"))
 					Ω(buildInputs).Should(Equal(foundInputs))
@@ -189,12 +202,15 @@ var _ = Describe("Scheduler", func() {
 							Ω(scheduledBuild).Should(Equal("42"))
 							Ω(serial).Should(Equal(job.Serial))
 
-							Ω(builder.BuildCallCount()).Should(Equal(1))
+							Ω(factory.CreateCallCount()).Should(Equal(1))
+							createJob, createInputs := factory.CreateArgsForCall(0)
+							Ω(createJob).Should(Equal(job))
+							Ω(createInputs).Should(Equal(foundInputs))
 
-							builtBuild, builtJob, builtInputs := builder.BuildArgsForCall(0)
+							Ω(builder.BuildCallCount()).Should(Equal(1))
+							builtBuild, builtTurbineBuild := builder.BuildArgsForCall(0)
 							Ω(builtBuild).Should(Equal(builds.Build{Name: "42"}))
-							Ω(builtJob).Should(Equal(job))
-							Ω(builtInputs).Should(Equal(foundInputs))
+							Ω(builtTurbineBuild).Should(Equal(createdTurbineBuild))
 						})
 					})
 
@@ -272,12 +288,15 @@ var _ = Describe("Scheduler", func() {
 					Ω(scheduledBuild).Should(Equal("42"))
 					Ω(serial).Should(Equal(job.Serial))
 
-					Ω(builder.BuildCallCount()).Should(Equal(1))
+					Ω(factory.CreateCallCount()).Should(Equal(1))
+					createJob, createInputs := factory.CreateArgsForCall(0)
+					Ω(createJob).Should(Equal(job))
+					Ω(createInputs).Should(Equal(pendingInputs))
 
-					builtBuild, builtJob, builtInputs := builder.BuildArgsForCall(0)
-					Ω(builtBuild.Name).Should(Equal("42"))
-					Ω(builtJob).Should(Equal(job))
-					Ω(builtInputs).Should(Equal(pendingInputs))
+					Ω(builder.BuildCallCount()).Should(Equal(1))
+					builtBuild, builtTurbineBuild := builder.BuildArgsForCall(0)
+					Ω(builtBuild).Should(Equal(builds.Build{Name: "42"}))
+					Ω(builtTurbineBuild).Should(Equal(createdTurbineBuild))
 				})
 			})
 
@@ -350,12 +369,15 @@ var _ = Describe("Scheduler", func() {
 						Ω(scheduledBuild).Should(Equal("42"))
 						Ω(serial).Should(Equal(job.Serial))
 
-						Ω(builder.BuildCallCount()).Should(Equal(1))
+						Ω(factory.CreateCallCount()).Should(Equal(1))
+						createJob, createInputs := factory.CreateArgsForCall(0)
+						Ω(createJob).Should(Equal(job))
+						Ω(createInputs).Should(BeZero())
 
-						builtBuild, builtJob, builtInputs := builder.BuildArgsForCall(0)
+						Ω(builder.BuildCallCount()).Should(Equal(1))
+						builtBuild, builtTurbineBuild := builder.BuildArgsForCall(0)
 						Ω(builtBuild).Should(Equal(builds.Build{Name: "42"}))
-						Ω(builtJob).Should(Equal(job))
-						Ω(builtInputs).Should(BeZero())
+						Ω(builtTurbineBuild).Should(Equal(createdTurbineBuild))
 					})
 				})
 
@@ -449,12 +471,15 @@ var _ = Describe("Scheduler", func() {
 							Ω(scheduledBuild).Should(Equal("42"))
 							Ω(serial).Should(Equal(job.Serial))
 
-							Ω(builder.BuildCallCount()).Should(Equal(1))
+							Ω(factory.CreateCallCount()).Should(Equal(1))
+							createJob, createInputs := factory.CreateArgsForCall(0)
+							Ω(createJob).Should(Equal(job))
+							Ω(createInputs).Should(Equal(foundInputs))
 
-							builtBuild, builtJob, builtInputs := builder.BuildArgsForCall(0)
+							Ω(builder.BuildCallCount()).Should(Equal(1))
+							builtBuild, builtTurbineBuild := builder.BuildArgsForCall(0)
 							Ω(builtBuild).Should(Equal(builds.Build{Name: "42"}))
-							Ω(builtJob).Should(Equal(job))
-							Ω(builtInputs).Should(Equal(foundInputs))
+							Ω(builtTurbineBuild).Should(Equal(createdTurbineBuild))
 						})
 					})
 				})

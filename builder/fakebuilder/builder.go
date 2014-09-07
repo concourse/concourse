@@ -2,36 +2,34 @@
 package fakebuilder
 
 import (
+	"sync"
+
 	"github.com/concourse/atc/builder"
 	"github.com/concourse/atc/builds"
-	"github.com/concourse/atc/config"
-
-	"sync"
+	tbuilds "github.com/concourse/turbine/api/builds"
 )
 
 type FakeBuilder struct {
-	BuildStub        func(builds.Build, config.Job, builds.VersionedResources) error
+	BuildStub        func(builds.Build, tbuilds.Build) error
 	buildMutex       sync.RWMutex
 	buildArgsForCall []struct {
 		arg1 builds.Build
-		arg2 config.Job
-		arg3 builds.VersionedResources
+		arg2 tbuilds.Build
 	}
 	buildReturns struct {
 		result1 error
 	}
 }
 
-func (fake *FakeBuilder) Build(arg1 builds.Build, arg2 config.Job, arg3 builds.VersionedResources) error {
+func (fake *FakeBuilder) Build(arg1 builds.Build, arg2 tbuilds.Build) error {
 	fake.buildMutex.Lock()
-	defer fake.buildMutex.Unlock()
 	fake.buildArgsForCall = append(fake.buildArgsForCall, struct {
 		arg1 builds.Build
-		arg2 config.Job
-		arg3 builds.VersionedResources
-	}{arg1, arg2, arg3})
+		arg2 tbuilds.Build
+	}{arg1, arg2})
+	fake.buildMutex.Unlock()
 	if fake.BuildStub != nil {
-		return fake.BuildStub(arg1, arg2, arg3)
+		return fake.BuildStub(arg1, arg2)
 	} else {
 		return fake.buildReturns.result1
 	}
@@ -43,10 +41,10 @@ func (fake *FakeBuilder) BuildCallCount() int {
 	return len(fake.buildArgsForCall)
 }
 
-func (fake *FakeBuilder) BuildArgsForCall(i int) (builds.Build, config.Job, builds.VersionedResources) {
+func (fake *FakeBuilder) BuildArgsForCall(i int) (builds.Build, tbuilds.Build) {
 	fake.buildMutex.RLock()
 	defer fake.buildMutex.RUnlock()
-	return fake.buildArgsForCall[i].arg1, fake.buildArgsForCall[i].arg2, fake.buildArgsForCall[i].arg3
+	return fake.buildArgsForCall[i].arg1, fake.buildArgsForCall[i].arg2
 }
 
 func (fake *FakeBuilder) BuildReturns(result1 error) {

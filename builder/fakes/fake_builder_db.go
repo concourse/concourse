@@ -5,9 +5,17 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/builder"
+	"github.com/concourse/atc/builds"
 )
 
 type FakeBuilderDB struct {
+	CreateOneOffBuildStub        func() (builds.Build, error)
+	createOneOffBuildMutex       sync.RWMutex
+	createOneOffBuildArgsForCall []struct{}
+	createOneOffBuildReturns struct {
+		result1 builds.Build
+		result2 error
+	}
 	StartBuildStub        func(buildID int, abortURL string) (bool, error)
 	startBuildMutex       sync.RWMutex
 	startBuildArgsForCall []struct {
@@ -18,6 +26,31 @@ type FakeBuilderDB struct {
 		result1 bool
 		result2 error
 	}
+}
+
+func (fake *FakeBuilderDB) CreateOneOffBuild() (builds.Build, error) {
+	fake.createOneOffBuildMutex.Lock()
+	fake.createOneOffBuildArgsForCall = append(fake.createOneOffBuildArgsForCall, struct{}{})
+	fake.createOneOffBuildMutex.Unlock()
+	if fake.CreateOneOffBuildStub != nil {
+		return fake.CreateOneOffBuildStub()
+	} else {
+		return fake.createOneOffBuildReturns.result1, fake.createOneOffBuildReturns.result2
+	}
+}
+
+func (fake *FakeBuilderDB) CreateOneOffBuildCallCount() int {
+	fake.createOneOffBuildMutex.RLock()
+	defer fake.createOneOffBuildMutex.RUnlock()
+	return len(fake.createOneOffBuildArgsForCall)
+}
+
+func (fake *FakeBuilderDB) CreateOneOffBuildReturns(result1 builds.Build, result2 error) {
+	fake.CreateOneOffBuildStub = nil
+	fake.createOneOffBuildReturns = struct {
+		result1 builds.Build
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeBuilderDB) StartBuild(buildID int, abortURL string) (bool, error) {

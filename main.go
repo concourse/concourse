@@ -32,6 +32,7 @@ import (
 	"github.com/concourse/atc/radar"
 	"github.com/concourse/atc/resources"
 	"github.com/concourse/atc/scheduler"
+	"github.com/concourse/atc/scheduler/factory"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/auth"
 )
@@ -186,10 +187,11 @@ func main() {
 
 	atcEndpoint := rata.NewRequestGenerator("http://"+*peerAddr, croutes.Routes)
 	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, troutes.Routes)
-	builder := builder.NewBuilder(db, conf.Resources, turbineEndpoint, atcEndpoint)
+	builder := builder.NewBuilder(db, turbineEndpoint, atcEndpoint)
 
 	scheduler := &scheduler.Scheduler{
 		DB:      db,
+		Factory: &factory.BuildFactory{Resources: conf.Resources},
 		Builder: builder,
 		Logger:  logger.Session("scheduler"),
 	}
