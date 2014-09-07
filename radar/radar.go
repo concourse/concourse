@@ -105,7 +105,7 @@ func (radar *Radar) Scan(checker ResourceChecker, resource config.Resource) {
 					err = radar.tracker.SaveVersionedResource(builds.VersionedResource{
 						Name:    resource.Name,
 						Type:    resource.Type,
-						Source:  resource.Source,
+						Source:  builds.Source(resource.Source),
 						Version: version,
 					})
 					if err != nil {

@@ -157,7 +157,7 @@ func itIsADB() {
 		vr1 := Builds.VersionedResource{
 			Name:     "some-resource",
 			Type:     "some-type",
-			Source:   config.Source{"some": "source"},
+			Source:   Builds.Source{"some": "source"},
 			Version:  Builds.Version{"ver": "1"},
 			Metadata: buildMetadata,
 		}
@@ -165,7 +165,7 @@ func itIsADB() {
 		vr2 := Builds.VersionedResource{
 			Name:    "some-other-resource",
 			Type:    "some-type",
-			Source:  config.Source{"some": "other-source"},
+			Source:  Builds.Source{"some": "other-source"},
 			Version: Builds.Version{"ver": "2"},
 		}
 
@@ -289,7 +289,7 @@ func itIsADB() {
 			vr1 := Builds.VersionedResource{
 				Name:    "some-resource",
 				Type:    "some-type",
-				Source:  config.Source{"some": "source"},
+				Source:  Builds.Source{"some": "source"},
 				Version: Builds.Version{"version": "1"},
 				Metadata: []Builds.MetadataField{
 					{Name: "meta1", Value: "value1"},
@@ -299,7 +299,7 @@ func itIsADB() {
 			vr2 := Builds.VersionedResource{
 				Name:    "some-resource",
 				Type:    "some-type",
-				Source:  config.Source{"some": "source"},
+				Source:  Builds.Source{"some": "source"},
 				Version: Builds.Version{"version": "2"},
 				Metadata: []Builds.MetadataField{
 					{Name: "meta2", Value: "value2"},
@@ -309,7 +309,7 @@ func itIsADB() {
 			vr3 := Builds.VersionedResource{
 				Name:    "some-resource",
 				Type:    "some-type",
-				Source:  config.Source{"some": "source"},
+				Source:  Builds.Source{"some": "source"},
 				Version: Builds.Version{"version": "3"},
 				Metadata: []Builds.MetadataField{
 					{Name: "meta3", Value: "value3"},
@@ -336,7 +336,7 @@ func itIsADB() {
 			vr := Builds.VersionedResource{
 				Name:    "some-resource",
 				Type:    "some-type",
-				Source:  config.Source{"some": "source"},
+				Source:  Builds.Source{"some": "source"},
 				Version: Builds.Version{"version": "1"},
 				Metadata: []Builds.MetadataField{
 					{Name: "meta1", Value: "value1"},

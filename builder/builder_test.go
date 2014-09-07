@@ -264,7 +264,7 @@ var _ = Describe("Builder", func() {
 					Name:    "some-resource",
 					Type:    "git-ng",
 					Version: builds.Version{"version": "1"},
-					Source:  config.Source{"uri": "git://some-provided-uri"},
+					Source:  builds.Source{"uri": "git://some-provided-uri"},
 				},
 			})
 			Ω(err).ShouldNot(HaveOccurred())

@@ -9,7 +9,6 @@ import (
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc/builds"
-	"github.com/concourse/atc/config"
 )
 
 func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
@@ -108,7 +107,7 @@ func vrFromInput(input TurbineBuilds.Input) builds.VersionedResource {
 	return builds.VersionedResource{
 		Name:     input.Name,
 		Type:     input.Type,
-		Source:   config.Source(input.Source),
+		Source:   builds.Source(input.Source),
 		Version:  builds.Version(input.Version),
 		Metadata: metadata,
 	}
@@ -129,7 +128,7 @@ func vrFromOutput(output TurbineBuilds.Output) builds.VersionedResource {
 	return builds.VersionedResource{
 		Name:     output.Name,
 		Type:     output.Type,
-		Source:   config.Source(output.Source),
+		Source:   builds.Source(output.Source),
 		Version:  builds.Version(output.Version),
 		Metadata: metadata,
 	}

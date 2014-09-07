@@ -162,7 +162,7 @@ func (builder *builder) computeInputs(job config.Job, inputs builds.VersionedRes
 			vr = builds.VersionedResource{
 				Name:   resource.Name,
 				Type:   resource.Type,
-				Source: resource.Source,
+				Source: builds.Source(resource.Source),
 			}
 		}
 

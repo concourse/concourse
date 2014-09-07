@@ -1,6 +1,6 @@
 package builds
 
-import "github.com/concourse/atc/config"
+import tbuilds "github.com/concourse/turbine/api/builds"
 
 type Status string
 
@@ -38,12 +38,14 @@ func (vrs VersionedResources) Lookup(name string) (VersionedResource, bool) {
 type VersionedResource struct {
 	Name     string
 	Type     string
-	Source   config.Source
+	Source   Source
 	Version  Version
 	Metadata []MetadataField
 }
 
-type Version map[string]interface{}
+type Source tbuilds.Source
+
+type Version tbuilds.Version
 
 type MetadataField struct {
 	Name  string

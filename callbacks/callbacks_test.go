@@ -14,7 +14,6 @@ import (
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/callbacks"
 	"github.com/concourse/atc/callbacks/handler/fakes"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/logfanout"
 	logfakes "github.com/concourse/atc/logfanout/fakes"
 )
@@ -119,7 +118,7 @@ var _ = Describe("Callbacks", func() {
 				Ω(input).Should(Equal(builds.VersionedResource{
 					Name:    "input-only-resource",
 					Type:    "git",
-					Source:  config.Source{"input-source": "some-source"},
+					Source:  builds.Source{"input-source": "some-source"},
 					Version: builds.Version{"version": "input-version"},
 					Metadata: []builds.MetadataField{
 						{Name: "input-meta", Value: "some-value"},
@@ -131,7 +130,7 @@ var _ = Describe("Callbacks", func() {
 				Ω(input).Should(Equal(builds.VersionedResource{
 					Name:    "input-and-output-resource",
 					Type:    "git",
-					Source:  config.Source{"input-and-output-source": "some-source"},
+					Source:  builds.Source{"input-and-output-source": "some-source"},
 					Version: builds.Version{"version": "input-and-output-version"},
 					Metadata: []builds.MetadataField{
 						{Name: "input-and-output-meta", Value: "some-value"},
@@ -196,7 +195,7 @@ var _ = Describe("Callbacks", func() {
 				Ω(savedOutputs).Should(ContainElement(builds.VersionedResource{
 					Name:    "input-only-resource",
 					Type:    "git",
-					Source:  config.Source{"input-source": "some-source"},
+					Source:  builds.Source{"input-source": "some-source"},
 					Version: builds.Version{"version": "input-version"},
 					Metadata: []builds.MetadataField{
 						{Name: "input-meta", Value: "some-value"},
@@ -206,7 +205,7 @@ var _ = Describe("Callbacks", func() {
 				Ω(savedOutputs).Should(ContainElement(builds.VersionedResource{
 					Name:    "input-and-output-resource",
 					Type:    "git",
-					Source:  config.Source{"input-and-output-source": "some-source"},
+					Source:  builds.Source{"input-and-output-source": "some-source"},
 					Version: builds.Version{"version": "new-input-and-output-version"},
 					Metadata: []builds.MetadataField{
 						{Name: "input-and-output-meta", Value: "some-value"},
@@ -216,7 +215,7 @@ var _ = Describe("Callbacks", func() {
 				Ω(savedOutputs).Should(ContainElement(builds.VersionedResource{
 					Name:    "output-only-resource",
 					Type:    "git",
-					Source:  config.Source{"output-source": "some-source"},
+					Source:  builds.Source{"output-source": "some-source"},
 					Version: builds.Version{"version": "output-version"},
 					Metadata: []builds.MetadataField{
 						{Name: "output-meta", Value: "some-value"},

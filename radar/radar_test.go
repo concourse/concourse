@@ -141,21 +141,21 @@ var _ = Describe("Radar", func() {
 				Ω(tracker.SaveVersionedResourceArgsForCall(0)).Should(Equal(builds.VersionedResource{
 					Name:    "some-resource",
 					Type:    "git",
-					Source:  config.Source{"uri": "http://example.com"},
+					Source:  builds.Source{"uri": "http://example.com"},
 					Version: builds.Version{"version": "1"},
 				}))
 
 				Ω(tracker.SaveVersionedResourceArgsForCall(1)).Should(Equal(builds.VersionedResource{
 					Name:    "some-resource",
 					Type:    "git",
-					Source:  config.Source{"uri": "http://example.com"},
+					Source:  builds.Source{"uri": "http://example.com"},
 					Version: builds.Version{"version": "2"},
 				}))
 
 				Ω(tracker.SaveVersionedResourceArgsForCall(2)).Should(Equal(builds.VersionedResource{
 					Name:    "some-resource",
 					Type:    "git",
-					Source:  config.Source{"uri": "http://example.com"},
+					Source:  builds.Source{"uri": "http://example.com"},
 					Version: builds.Version{"version": "3"},
 				}))
 			})
