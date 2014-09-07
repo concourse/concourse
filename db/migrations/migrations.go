@@ -8,4 +8,5 @@ var Migrations = []migration.Migrator{
 	AddTypeToVersionedResources,
 	RemoveTransitionalCurrentVersions,
 	NonNullableVersionInfo,
+	AddOneOffNameSequence,
 }

@@ -334,6 +334,25 @@ func (db *sqldb) CreateJobBuild(job string) (builds.Build, error) {
 	}, nil
 }
 
+func (db *sqldb) CreateOneOffBuild() (builds.Build, error) {
+	var id int
+	var name string
+	err := db.conn.QueryRow(`
+		INSERT INTO builds(name, status)
+		VALUES (nextval('one_off_name'), 'pending')
+		RETURNING id, name
+	`).Scan(&id, &name)
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	return builds.Build{
+		ID:     id,
+		Name:   name,
+		Status: builds.StatusPending,
+	}, nil
+}
+
 func (db *sqldb) ScheduleBuild(buildID int, serial bool) (bool, error) {
 	result, err := db.conn.Exec(`
 		UPDATE builds

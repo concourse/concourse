@@ -20,6 +20,8 @@ type DB interface {
 	CreateJobBuild(job string) (builds.Build, error)
 	CreateJobBuildWithInputs(job string, inputs builds.VersionedResources) (builds.Build, error)
 
+	CreateOneOffBuild() (builds.Build, error)
+
 	ScheduleBuild(buildID int, serial bool) (bool, error)
 	StartBuild(buildID int, abortURL string) (bool, error)
 

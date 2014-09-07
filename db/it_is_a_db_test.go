@@ -142,6 +142,27 @@ func itIsADB() {
 		Ω(string(log)).Should(Equal("some log"))
 	})
 
+	It("can create one-off builds with increasing names", func() {
+		oneOff, err := db.CreateOneOffBuild()
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(oneOff.ID).ShouldNot(BeZero())
+		Ω(oneOff.JobName).Should(BeZero())
+		Ω(oneOff.Name).Should(Equal("1"))
+		Ω(oneOff.Status).Should(Equal(Builds.StatusPending))
+
+		jobBuild, err := db.CreateJobBuild("some-other-job")
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(jobBuild.Name).Should(Equal("1"))
+
+		nextOneOff, err := db.CreateOneOffBuild()
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(nextOneOff.ID).ShouldNot(BeZero())
+		Ω(nextOneOff.ID).ShouldNot(Equal(oneOff.ID))
+		Ω(nextOneOff.JobName).Should(BeZero())
+		Ω(nextOneOff.Name).Should(Equal("2"))
+		Ω(nextOneOff.Status).Should(Equal(Builds.StatusPending))
+	})
+
 	Describe("saving build inputs", func() {
 		buildMetadata := []Builds.MetadataField{
 			{
