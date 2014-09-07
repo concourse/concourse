@@ -8,11 +8,10 @@ import (
 )
 
 type FakeBuilderDB struct {
-	StartBuildStub        func(job string, build string, abortURL string) (bool, error)
+	StartBuildStub        func(buildID int, abortURL string) (bool, error)
 	startBuildMutex       sync.RWMutex
 	startBuildArgsForCall []struct {
-		job      string
-		build    string
+		buildID  int
 		abortURL string
 	}
 	startBuildReturns struct {
@@ -21,16 +20,15 @@ type FakeBuilderDB struct {
 	}
 }
 
-func (fake *FakeBuilderDB) StartBuild(job string, build string, abortURL string) (bool, error) {
+func (fake *FakeBuilderDB) StartBuild(buildID int, abortURL string) (bool, error) {
 	fake.startBuildMutex.Lock()
 	fake.startBuildArgsForCall = append(fake.startBuildArgsForCall, struct {
-		job      string
-		build    string
+		buildID  int
 		abortURL string
-	}{job, build, abortURL})
+	}{buildID, abortURL})
 	fake.startBuildMutex.Unlock()
 	if fake.StartBuildStub != nil {
-		return fake.StartBuildStub(job, build, abortURL)
+		return fake.StartBuildStub(buildID, abortURL)
 	} else {
 		return fake.startBuildReturns.result1, fake.startBuildReturns.result2
 	}
@@ -42,10 +40,10 @@ func (fake *FakeBuilderDB) StartBuildCallCount() int {
 	return len(fake.startBuildArgsForCall)
 }
 
-func (fake *FakeBuilderDB) StartBuildArgsForCall(i int) (string, string, string) {
+func (fake *FakeBuilderDB) StartBuildArgsForCall(i int) (int, string) {
 	fake.startBuildMutex.RLock()
 	defer fake.startBuildMutex.RUnlock()
-	return fake.startBuildArgsForCall[i].job, fake.startBuildArgsForCall[i].build, fake.startBuildArgsForCall[i].abortURL
+	return fake.startBuildArgsForCall[i].buildID, fake.startBuildArgsForCall[i].abortURL
 }
 
 func (fake *FakeBuilderDB) StartBuildReturns(result1 bool, result2 error) {

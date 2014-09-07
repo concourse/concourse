@@ -19,7 +19,8 @@ type DB interface {
 
 	CreateBuild(job string) (builds.Build, error)
 	ScheduleBuild(job string, build string, serial bool) (bool, error)
-	StartBuild(job string, build string, abortURL string) (bool, error)
+
+	StartBuild(buildID int, abortURL string) (bool, error)
 
 	BuildLog(buildID int) ([]byte, error)
 	AppendBuildLog(buildID int, log []byte) error

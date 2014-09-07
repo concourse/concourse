@@ -154,9 +154,8 @@ var _ = Describe("Builder", func() {
 
 		Ω(db.StartBuildCallCount()).Should(Equal(1))
 
-		job, id, abortURL := db.StartBuildArgsForCall(0)
-		Ω(job).Should(Equal("some-job"))
-		Ω(id).Should(Equal("some-build"))
+		buildID, abortURL := db.StartBuildArgsForCall(0)
+		Ω(buildID).Should(Equal(128))
 		Ω(abortURL).Should(ContainSubstring("/abort/the/build"))
 	})
 

@@ -378,14 +378,13 @@ func (db *sqldb) ScheduleBuild(job string, name string, serial bool) (bool, erro
 	return rows == 1, nil
 }
 
-func (db *sqldb) StartBuild(job string, name string, abortURL string) (bool, error) {
+func (db *sqldb) StartBuild(buildID int, abortURL string) (bool, error) {
 	result, err := db.conn.Exec(`
 		UPDATE builds
-		SET status = 'started', abort_url = $3
-		WHERE job_name = $1
-		AND name = $2
+		SET status = 'started', abort_url = $2
+		WHERE id = $1
 		AND status = 'pending'
-	`, job, name, abortURL)
+	`, buildID, abortURL)
 	if err != nil {
 		return false, err
 	}

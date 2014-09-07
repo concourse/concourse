@@ -78,7 +78,7 @@ func itIsADB() {
 		Ω(build.Name).Should(Equal("1"))
 		Ω(build.Status).Should(Equal(Builds.StatusPending))
 
-		started, err := db.StartBuild("some-job", build.Name, "some-abort-url")
+		started, err := db.StartBuild(build.ID, "some-abort-url")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(started).Should(BeTrue())
 
@@ -119,7 +119,7 @@ func itIsADB() {
 		Ω(build.Name).Should(Equal("1"))
 		Ω(build.Status).Should(Equal(Builds.StatusPending))
 
-		started, err = db.StartBuild("some-other-job", build.Name, "some-other-abort-url")
+		started, err = db.StartBuild(build.ID, "some-other-abort-url")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(started).Should(BeTrue())
 
@@ -634,7 +634,7 @@ func itIsADB() {
 
 				Describe("starting the build", func() {
 					It("fails", func() {
-						started, err := db.StartBuild(job, firstBuild.Name, "abort-url")
+						started, err := db.StartBuild(firstBuild.ID, "abort-url")
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(started).Should(BeFalse())
 					})
