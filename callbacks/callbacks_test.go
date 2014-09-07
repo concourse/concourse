@@ -54,9 +54,6 @@ var _ = Describe("Callbacks", func() {
 
 		var response *http.Response
 
-		version1 := TurbineBuilds.Version{"ver": "1"}
-		version2 := TurbineBuilds.Version{"ver": "2"}
-
 		BeforeEach(func() {
 			build = builds.Build{
 				ID: 42,
@@ -67,17 +64,21 @@ var _ = Describe("Callbacks", func() {
 			turbineBuild = TurbineBuilds.Build{
 				Inputs: []TurbineBuilds.Input{
 					{
-						Name:    "some-input",
+						Name:    "input-only-resource",
 						Type:    "git",
-						Version: version1,
+						Source:  TurbineBuilds.Source{"input-source": "some-source"},
+						Version: TurbineBuilds.Version{"version": "input-version"},
+						Metadata: []TurbineBuilds.MetadataField{
+							{Name: "input-meta", Value: "some-value"},
+						},
 					},
 					{
-						Name:    "some-other-input",
+						Name:    "input-and-output-resource",
 						Type:    "git",
-						Version: version2,
+						Source:  TurbineBuilds.Source{"input-and-output-source": "some-source"},
+						Version: TurbineBuilds.Version{"version": "input-and-output-version"},
 						Metadata: []TurbineBuilds.MetadataField{
-							{Name: "meta1", Value: "value1"},
-							{Name: "meta2", Value: "value2"},
+							{Name: "input-and-output-meta", Value: "some-value"},
 						},
 					},
 				},
@@ -120,22 +121,25 @@ var _ = Describe("Callbacks", func() {
 				Ω(job).Should(Equal("some-job"))
 				Ω(id).Should(Equal(42))
 				Ω(input).Should(Equal(builds.VersionedResource{
-					Name:     "some-input",
-					Type:     "git",
-					Version:  builds.Version(version1),
-					Metadata: []builds.MetadataField{},
+					Name:    "input-only-resource",
+					Type:    "git",
+					Source:  config.Source{"input-source": "some-source"},
+					Version: builds.Version{"version": "input-version"},
+					Metadata: []builds.MetadataField{
+						{Name: "input-meta", Value: "some-value"},
+					},
 				}))
 
 				job, id, input = buildDB.SaveBuildInputArgsForCall(1)
 				Ω(job).Should(Equal("some-job"))
 				Ω(id).Should(Equal(42))
 				Ω(input).Should(Equal(builds.VersionedResource{
-					Name:    "some-other-input",
+					Name:    "input-and-output-resource",
 					Type:    "git",
-					Version: builds.Version(version2),
+					Source:  config.Source{"input-and-output-source": "some-source"},
+					Version: builds.Version{"version": "input-and-output-version"},
 					Metadata: []builds.MetadataField{
-						{Name: "meta1", Value: "value1"},
-						{Name: "meta2", Value: "value2"},
+						{Name: "input-and-output-meta", Value: "some-value"},
 					},
 				}))
 			})
@@ -147,23 +151,21 @@ var _ = Describe("Callbacks", func() {
 
 				turbineBuild.Outputs = []TurbineBuilds.Output{
 					{
-						Name: "some-output",
-						Type: "git",
-
-						Source:  TurbineBuilds.Source{"source": "1"},
-						Version: TurbineBuilds.Version{"ver": "123"},
+						Name:    "input-and-output-resource",
+						Type:    "git",
+						Source:  TurbineBuilds.Source{"input-and-output-source": "some-source"},
+						Version: TurbineBuilds.Version{"version": "new-input-and-output-version"},
 						Metadata: []TurbineBuilds.MetadataField{
-							{Name: "meta1", Value: "value1"},
+							{Name: "input-and-output-meta", Value: "some-value"},
 						},
 					},
 					{
-						Name: "some-other-output",
-						Type: "git",
-
-						Source:  TurbineBuilds.Source{"source": "2"},
-						Version: TurbineBuilds.Version{"ver": "456"},
+						Name:    "output-only-resource",
+						Type:    "git",
+						Source:  TurbineBuilds.Source{"output-source": "some-source"},
+						Version: TurbineBuilds.Version{"version": "output-version"},
 						Metadata: []TurbineBuilds.MetadataField{
-							{Name: "meta2", Value: "value2"},
+							{Name: "output-meta", Value: "some-value"},
 						},
 					},
 				}
@@ -180,32 +182,53 @@ var _ = Describe("Callbacks", func() {
 				Ω(status).Should(Equal(builds.StatusSucceeded))
 			})
 
-			It("saves each output version", func() {
-				Ω(buildDB.SaveBuildOutputCallCount()).Should(Equal(2))
+			It("saves each input and output version", func() {
+				Ω(buildDB.SaveBuildOutputCallCount()).Should(Equal(3))
+
+				savedOutputs := []builds.VersionedResource{}
 
 				job, id, vr := buildDB.SaveBuildOutputArgsForCall(0)
 				Ω(job).Should(Equal("some-job"))
 				Ω(id).Should(Equal(42))
-				Ω(vr).Should(Equal(builds.VersionedResource{
-					Name:    "some-output",
-					Type:    "git",
-					Source:  config.Source{"source": "1"},
-					Version: builds.Version{"ver": "123"},
-					Metadata: []builds.MetadataField{
-						{Name: "meta1", Value: "value1"},
-					},
-				}))
+				savedOutputs = append(savedOutputs, vr)
 
 				job, id, vr = buildDB.SaveBuildOutputArgsForCall(1)
 				Ω(job).Should(Equal("some-job"))
 				Ω(id).Should(Equal(42))
-				Ω(vr).Should(Equal(builds.VersionedResource{
-					Name:    "some-other-output",
+				savedOutputs = append(savedOutputs, vr)
+
+				job, id, vr = buildDB.SaveBuildOutputArgsForCall(2)
+				Ω(job).Should(Equal("some-job"))
+				Ω(id).Should(Equal(42))
+				savedOutputs = append(savedOutputs, vr)
+
+				Ω(savedOutputs).Should(ContainElement(builds.VersionedResource{
+					Name:    "input-only-resource",
 					Type:    "git",
-					Source:  config.Source{"source": "2"},
-					Version: builds.Version{"ver": "456"},
+					Source:  config.Source{"input-source": "some-source"},
+					Version: builds.Version{"version": "input-version"},
 					Metadata: []builds.MetadataField{
-						{Name: "meta2", Value: "value2"},
+						{Name: "input-meta", Value: "some-value"},
+					},
+				}))
+
+				Ω(savedOutputs).Should(ContainElement(builds.VersionedResource{
+					Name:    "input-and-output-resource",
+					Type:    "git",
+					Source:  config.Source{"input-and-output-source": "some-source"},
+					Version: builds.Version{"version": "new-input-and-output-version"},
+					Metadata: []builds.MetadataField{
+						{Name: "input-and-output-meta", Value: "some-value"},
+					},
+				}))
+
+				Ω(savedOutputs).Should(ContainElement(builds.VersionedResource{
+					Name:    "output-only-resource",
+					Type:    "git",
+					Source:  config.Source{"output-source": "some-source"},
+					Version: builds.Version{"version": "output-version"},
+					Metadata: []builds.MetadataField{
+						{Name: "output-meta", Value: "some-value"},
 					},
 				}))
 			})

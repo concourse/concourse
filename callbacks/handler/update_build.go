@@ -74,15 +74,29 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 	switch turbineBuild.Status {
 	case TurbineBuilds.StatusStarted:
 		for _, input := range turbineBuild.Inputs {
-			err = handler.buildDB.SaveBuildInput(job, id, buildInputFrom(input))
+			err = handler.buildDB.SaveBuildInput(job, id, vrFromInput(input))
 			if err != nil {
 				log.Error("failed-to-save-input", err)
-				w.WriteHeader(http.StatusInternalServerError)
 			}
 		}
 	case TurbineBuilds.StatusSucceeded:
+		explicitOutput := make(map[string]bool)
+
 		for _, output := range turbineBuild.Outputs {
-			err = handler.buildDB.SaveBuildOutput(job, id, buildOutputFrom(output))
+			err = handler.buildDB.SaveBuildOutput(job, id, vrFromOutput(output))
+			if err != nil {
+				log.Error("failed-to-save-output-version", err)
+			}
+
+			explicitOutput[output.Name] = true
+		}
+
+		for _, input := range turbineBuild.Inputs {
+			if explicitOutput[input.Name] {
+				continue
+			}
+
+			err = handler.buildDB.SaveBuildOutput(job, id, vrFromInput(input))
 			if err != nil {
 				log.Error("failed-to-save-output-version", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -93,7 +107,7 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func buildInputFrom(input TurbineBuilds.Input) builds.VersionedResource {
+func vrFromInput(input TurbineBuilds.Input) builds.VersionedResource {
 	metadata := make([]builds.MetadataField, len(input.Metadata))
 	for i, md := range input.Metadata {
 		metadata[i] = builds.MetadataField{
@@ -114,7 +128,7 @@ func buildInputFrom(input TurbineBuilds.Input) builds.VersionedResource {
 // same as input, but type is different.
 //
 // :(
-func buildOutputFrom(output TurbineBuilds.Output) builds.VersionedResource {
+func vrFromOutput(output TurbineBuilds.Output) builds.VersionedResource {
 	metadata := make([]builds.MetadataField, len(output.Metadata))
 	for i, md := range output.Metadata {
 		metadata[i] = builds.MetadataField{
