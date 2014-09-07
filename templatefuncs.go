@@ -23,7 +23,7 @@ func (funcs templateFuncs) url(handler string, args ...interface{}) (string, err
 	case routes.GetBuild, routes.AbortBuild:
 		return routes.Routes.CreatePathForRoute(handler, rata.Params{
 			"job":   jobName(args[0]),
-			"build": fmt.Sprintf("%d", args[1].(builds.Build).ID),
+			"build": args[1].(builds.Build).Name,
 		})
 
 	case routes.Public:
@@ -34,7 +34,7 @@ func (funcs templateFuncs) url(handler string, args ...interface{}) (string, err
 	case routes.LogOutput:
 		return routes.Routes.CreatePathForRoute(handler, rata.Params{
 			"job":   jobName(args[0]),
-			"build": fmt.Sprintf("%d", args[1].(builds.Build).ID),
+			"build": args[1].(builds.Build).Name,
 		})
 
 	default:

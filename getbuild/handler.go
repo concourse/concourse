@@ -3,8 +3,6 @@ package getbuild
 import (
 	"html/template"
 	"net/http"
-	"sort"
-	"strconv"
 
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
@@ -48,25 +46,25 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	buildID, err := strconv.Atoi(r.FormValue(":build"))
-	if err != nil {
+	buildName := r.FormValue(":build")
+	if len(buildName) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	log := handler.logger.Session("get-build", lager.Data{
 		"job":   job.Name,
-		"build": buildID,
+		"build": buildName,
 	})
 
-	build, err := handler.db.GetBuild(job.Name, buildID)
+	build, err := handler.db.GetBuild(job.Name, buildName)
 	if err != nil {
 		log.Error("get-build-failed", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	inputs, outputs, err := handler.db.GetBuildResources(job.Name, build.ID)
+	inputs, outputs, err := handler.db.GetBuildResources(job.Name, build.Name)
 	if err != nil {
 		log.Error("failed-to-get-build-resources", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -79,8 +77,6 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	sort.Sort(sort.Reverse(builds.ByID(bs)))
 
 	var abortable bool
 	switch build.Status {

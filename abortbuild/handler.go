@@ -1,9 +1,7 @@
 package abortbuild
 
 import (
-	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/pivotal-golang/lager"
@@ -44,25 +42,25 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	buildID, err := strconv.Atoi(r.FormValue(":build"))
-	if err != nil {
+	buildName := r.FormValue(":build")
+	if len(buildName) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	log := handler.logger.Session("abort", lager.Data{
 		"job":   job.Name,
-		"build": buildID,
+		"build": buildName,
 	})
 
-	build, err := handler.db.GetBuild(job.Name, buildID)
+	build, err := handler.db.GetBuild(job.Name, buildName)
 	if err != nil {
 		log.Error("failed-to-get-build", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	err = handler.db.AbortBuild(job.Name, buildID)
+	err = handler.db.AbortBuild(job.Name, buildName)
 	if err != nil {
 		log.Error("failed-to-set-aborted", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -82,7 +80,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	redirectPath, err := routes.Routes.CreatePathForRoute(routes.GetBuild, rata.Params{
 		"job":   job.Name,
-		"build": fmt.Sprintf("%d", build.ID),
+		"build": build.Name,
 	})
 	if err != nil {
 		log.Fatal("failed-to-create-redirect-uri", err)

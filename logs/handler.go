@@ -2,7 +2,6 @@ package logs
 
 import (
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -20,7 +19,7 @@ var upgrader = websocket.Upgrader{
 func NewHandler(logger lager.Logger, tracker *logfanout.Tracker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		job := r.FormValue(":job")
-		idStr := r.FormValue(":build")
+		build := r.FormValue(":build")
 
 		log := logger.Session("logs-out")
 
@@ -32,14 +31,8 @@ func NewHandler(logger lager.Logger, tracker *logfanout.Tracker) http.Handler {
 
 		defer conn.Close()
 
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			log.Error("invalid-build-id", err)
-			return
-		}
-
-		logFanout := tracker.Register(job, id, conn)
-		defer tracker.Unregister(job, id, conn)
+		logFanout := tracker.Register(job, build, conn)
+		defer tracker.Unregister(job, build, conn)
 
 		err = logFanout.Attach(conn)
 		if err != nil {
