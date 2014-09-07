@@ -272,4 +272,6 @@ builds:
     version: 0.7.0-rc.23
   09da9914-9308-4525-9734-491181d3f7a7:
     version: 0.7.0-rc.24
+  16969470-9242-4ee6-bf13-2dfadb276e7a:
+    version: 0.7.0-rc.25
 format-version: '2'
