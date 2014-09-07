@@ -262,4 +262,6 @@ builds:
     version: 0.7.0-rc.18
   55e9f449-3743-4d67-8865-b1d700fe8de8:
     version: 0.7.0-rc.19
+  9b481c99-1528-449a-9774-c7ff109b7ba1:
+    version: 0.7.0-rc.20
 format-version: '2'
