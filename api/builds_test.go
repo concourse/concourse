@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"net/http/httptest"
 	"time"
 
 	tbuilds "github.com/concourse/turbine/api/builds"
@@ -14,53 +13,11 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/pivotal-golang/lager/lagertest"
 
-	"github.com/concourse/atc/api"
-	"github.com/concourse/atc/api/buildserver/fakes"
-	"github.com/concourse/atc/builder/fakebuilder"
 	"github.com/concourse/atc/builds"
-	"github.com/concourse/atc/logfanout"
-	logfakes "github.com/concourse/atc/logfanout/fakes"
 )
 
 var _ = Describe("Builds API", func() {
-	var buildsDB *fakes.FakeBuildsDB
-	var logDB *logfakes.FakeLogDB
-	var builder *fakebuilder.FakeBuilder
-	var tracker *logfanout.Tracker
-	var pingInterval time.Duration
-
-	var server *httptest.Server
-	var client *http.Client
-
-	BeforeEach(func() {
-		buildsDB = new(fakes.FakeBuildsDB)
-		logDB = new(logfakes.FakeLogDB)
-		builder = new(fakebuilder.FakeBuilder)
-		tracker = logfanout.NewTracker(logDB)
-		pingInterval = 100 * time.Millisecond
-
-		handler, err := api.NewHandler(
-			lagertest.NewTestLogger("callbacks"),
-			buildsDB,
-			builder,
-			tracker,
-			pingInterval,
-		)
-		Ω(err).ShouldNot(HaveOccurred())
-
-		server = httptest.NewServer(handler)
-
-		client = &http.Client{
-			Transport: &http.Transport{},
-		}
-	})
-
-	AfterEach(func() {
-		server.Close()
-	})
-
 	Describe("POST /api/v1/builds", func() {
 		var turbineBuild tbuilds.Build
 

@@ -19,7 +19,7 @@ var Routes = rata.Routes{
 	{Path: "/api/v1/builds/:build_id/events", Method: "GET", Name: BuildEvents},
 	{Path: "/api/v1/builds/:build_id/abort", Method: "POST", Name: AbortBuild},
 
-	// {Path: "/api/v1/pipes", Method: "POST", Name: CreatePipe},
-	// {Path: "/api/v1/pipes/:pipe", Method: "PUT", Name: WritePipe},
-	// {Path: "/api/v1/pipes/:pipe", Method: "GET", Name: ReadPipe},
+	{Path: "/api/v1/pipes", Method: "POST", Name: CreatePipe},
+	{Path: "/api/v1/pipes/:pipe_id", Method: "PUT", Name: WritePipe},
+	{Path: "/api/v1/pipes/:pipe_id", Method: "GET", Name: ReadPipe},
 }

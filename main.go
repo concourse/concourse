@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"flag"
+	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -74,28 +75,40 @@ var sqlDataSource = flag.String(
 	"database/sql data source configuration string",
 )
 
-var peerAddr = flag.String(
-	"peerAddr",
-	"127.0.0.1:8081",
-	"external address of the callbacks server",
+var externalIP = flag.String(
+	"externalIP",
+	"127.0.0.1",
+	"external IP of the ATC",
 )
 
-var webListenAddr = flag.String(
-	"webListenAddr",
-	":8080",
-	"address for the web server to listen on",
+var webListenAddress = flag.String(
+	"webListenAddress",
+	"0.0.0.0",
+	"address to listen on",
 )
 
-var callbacksListenAddr = flag.String(
-	"callbacksListenAddr",
-	":8081",
-	"address for the internal callbacks server to listen on",
+var webListenPort = flag.Int(
+	"webListenPort",
+	8080,
+	"port for the web server to listen on",
 )
 
-var debugListenAddr = flag.String(
-	"debugListenAddr",
-	":8079",
-	"address for the pprof debugger to listen on",
+var callbacksListenPort = flag.Int(
+	"callbacksListenPort",
+	8081,
+	"port for the internal callbacks server to listen on",
+)
+
+var debugListenAddress = flag.String(
+	"debugListenAddress",
+	"127.0.0.1",
+	"address for the pprof debugger listen on",
+)
+
+var debugListenPort = flag.Int(
+	"debugListenPort",
+	8079,
+	"port for the pprof debugger to listen on",
 )
 
 var httpUsername = flag.String(
@@ -186,9 +199,12 @@ func main() {
 		}
 	}
 
-	atcEndpoint := rata.NewRequestGenerator("http://"+*peerAddr, croutes.Routes)
+	callbacksAddr := fmt.Sprintf("%s:%d", *externalIP, *callbacksListenPort)
+	webAddr := fmt.Sprintf("%s:%d", *externalIP, *webListenPort)
+
+	callbackEndpoint := rata.NewRequestGenerator("http://"+callbacksAddr, croutes.Routes)
 	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, troutes.Routes)
-	builder := builder.NewBuilder(db, turbineEndpoint, atcEndpoint)
+	builder := builder.NewBuilder(db, turbineEndpoint, callbackEndpoint)
 
 	scheduler := &scheduler.Scheduler{
 		DB:      db,
@@ -207,6 +223,7 @@ func main() {
 		builder,
 		tracker,
 		5*time.Second,
+		webAddr,
 	)
 	if err != nil {
 		fatal(err)
@@ -220,7 +237,6 @@ func main() {
 		db,
 		*templatesDir,
 		*publicDir,
-		*peerAddr,
 		tracker,
 	)
 	if err != nil {
@@ -248,10 +264,14 @@ func main() {
 		}
 	}
 
+	webListenAddr := fmt.Sprintf("%s:%d", *webListenAddress, *webListenPort)
+	callbacksListenAddr := fmt.Sprintf("%s:%d", *externalIP, *callbacksListenPort)
+	debugListenAddr := fmt.Sprintf("%s:%d", *debugListenAddress, *debugListenPort)
+
 	group := grouper.RunGroup{
-		"web":       http_server.New(*webListenAddr, publicHandler),
-		"callbacks": http_server.New(*callbacksListenAddr, callbacksHandler),
-		"debug":     http_server.New(*debugListenAddr, http.DefaultServeMux),
+		"web":       http_server.New(webListenAddr, publicHandler),
+		"callbacks": http_server.New(callbacksListenAddr, callbacksHandler),
+		"debug":     http_server.New(debugListenAddr, http.DefaultServeMux),
 
 		"radar": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 			if *noop {
@@ -307,8 +327,9 @@ func main() {
 	running := ifrit.Envoke(sigmon.New(group))
 
 	logger.Info("listening", lager.Data{
-		"web":       *webListenAddr,
-		"callbacks": *callbacksListenAddr,
+		"web":       webListenAddr,
+		"callbacks": callbacksListenAddr,
+		"debug":     debugListenAddr,
 	})
 
 	err = <-running.Wait()

@@ -9,9 +9,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-type templateFuncs struct {
-	peerAddr string
-}
+type templateFuncs struct{}
 
 func (funcs templateFuncs) url(handler string, args ...interface{}) (string, error) {
 	switch handler {

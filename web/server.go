@@ -29,11 +29,10 @@ func NewHandler(
 	radar *radar.Radar,
 	db db.DB,
 	templatesDir, publicDir string,
-	peerAddr string,
 	tracker *logfanout.Tracker,
 ) (http.Handler, error) {
 	funcs := template.FuncMap{
-		"url": templateFuncs{peerAddr}.url,
+		"url": templateFuncs{}.url,
 	}
 
 	indexTemplate, err := loadTemplate(templatesDir, "index.html", funcs)
