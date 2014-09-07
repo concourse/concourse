@@ -40,9 +40,9 @@ type TemplateData struct {
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	job, found := handler.jobs.Lookup(r.FormValue(":job"))
-	if !found {
-		w.WriteHeader(http.StatusNotFound)
+	jobName := r.FormValue(":job")
+	if len(jobName) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -52,26 +52,32 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	job, found := handler.jobs.Lookup(jobName)
+	if !found {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	log := handler.logger.Session("get-build", lager.Data{
 		"job":   job.Name,
 		"build": buildName,
 	})
 
-	build, err := handler.db.GetBuild(job.Name, buildName)
+	build, err := handler.db.GetJobBuild(jobName, buildName)
 	if err != nil {
 		log.Error("get-build-failed", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	inputs, outputs, err := handler.db.GetBuildResources(job.Name, build.Name)
+	inputs, outputs, err := handler.db.GetBuildResources(jobName, buildName)
 	if err != nil {
 		log.Error("failed-to-get-build-resources", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	bs, err := handler.db.Builds(job.Name)
+	bs, err := handler.db.GetAllJobBuilds(jobName)
 	if err != nil {
 		log.Error("get-all-builds-failed", err)
 		w.WriteHeader(http.StatusInternalServerError)

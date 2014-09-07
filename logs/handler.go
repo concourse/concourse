@@ -9,7 +9,6 @@ import (
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc/logfanout"
-	"github.com/coreos/etcd/third_party/github.com/coreos/go-log/log"
 )
 
 var upgrader = websocket.Upgrader{
@@ -22,13 +21,15 @@ func NewHandler(logger lager.Logger, tracker *logfanout.Tracker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		buildIDStr := r.FormValue(":build_id")
 
+		log := logger.Session("logs-out", lager.Data{
+			"build_id": buildIDStr,
+		})
+
 		buildID, err := strconv.Atoi(buildIDStr)
 		if err != nil {
 			log.Error("invalid-build-id", err)
 			return
 		}
-
-		log := logger.Session("logs-out")
 
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
