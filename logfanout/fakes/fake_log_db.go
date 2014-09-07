@@ -8,21 +8,19 @@ import (
 )
 
 type FakeLogDB struct {
-	BuildLogStub        func(job string, build string) ([]byte, error)
+	BuildLogStub        func(build int) ([]byte, error)
 	buildLogMutex       sync.RWMutex
 	buildLogArgsForCall []struct {
-		job   string
-		build string
+		build int
 	}
 	buildLogReturns struct {
 		result1 []byte
 		result2 error
 	}
-	AppendBuildLogStub        func(job string, build string, log []byte) error
+	AppendBuildLogStub        func(build int, log []byte) error
 	appendBuildLogMutex       sync.RWMutex
 	appendBuildLogArgsForCall []struct {
-		job   string
-		build string
+		build int
 		log   []byte
 	}
 	appendBuildLogReturns struct {
@@ -30,15 +28,14 @@ type FakeLogDB struct {
 	}
 }
 
-func (fake *FakeLogDB) BuildLog(job string, build string) ([]byte, error) {
+func (fake *FakeLogDB) BuildLog(build int) ([]byte, error) {
 	fake.buildLogMutex.Lock()
 	fake.buildLogArgsForCall = append(fake.buildLogArgsForCall, struct {
-		job   string
-		build string
-	}{job, build})
+		build int
+	}{build})
 	fake.buildLogMutex.Unlock()
 	if fake.BuildLogStub != nil {
-		return fake.BuildLogStub(job, build)
+		return fake.BuildLogStub(build)
 	} else {
 		return fake.buildLogReturns.result1, fake.buildLogReturns.result2
 	}
@@ -50,10 +47,10 @@ func (fake *FakeLogDB) BuildLogCallCount() int {
 	return len(fake.buildLogArgsForCall)
 }
 
-func (fake *FakeLogDB) BuildLogArgsForCall(i int) (string, string) {
+func (fake *FakeLogDB) BuildLogArgsForCall(i int) int {
 	fake.buildLogMutex.RLock()
 	defer fake.buildLogMutex.RUnlock()
-	return fake.buildLogArgsForCall[i].job, fake.buildLogArgsForCall[i].build
+	return fake.buildLogArgsForCall[i].build
 }
 
 func (fake *FakeLogDB) BuildLogReturns(result1 []byte, result2 error) {
@@ -64,16 +61,15 @@ func (fake *FakeLogDB) BuildLogReturns(result1 []byte, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeLogDB) AppendBuildLog(job string, build string, log []byte) error {
+func (fake *FakeLogDB) AppendBuildLog(build int, log []byte) error {
 	fake.appendBuildLogMutex.Lock()
 	fake.appendBuildLogArgsForCall = append(fake.appendBuildLogArgsForCall, struct {
-		job   string
-		build string
+		build int
 		log   []byte
-	}{job, build, log})
+	}{build, log})
 	fake.appendBuildLogMutex.Unlock()
 	if fake.AppendBuildLogStub != nil {
-		return fake.AppendBuildLogStub(job, build, log)
+		return fake.AppendBuildLogStub(build, log)
 	} else {
 		return fake.appendBuildLogReturns.result1
 	}
@@ -85,10 +81,10 @@ func (fake *FakeLogDB) AppendBuildLogCallCount() int {
 	return len(fake.appendBuildLogArgsForCall)
 }
 
-func (fake *FakeLogDB) AppendBuildLogArgsForCall(i int) (string, string, []byte) {
+func (fake *FakeLogDB) AppendBuildLogArgsForCall(i int) (int, []byte) {
 	fake.appendBuildLogMutex.RLock()
 	defer fake.appendBuildLogMutex.RUnlock()
-	return fake.appendBuildLogArgsForCall[i].job, fake.appendBuildLogArgsForCall[i].build, fake.appendBuildLogArgsForCall[i].log
+	return fake.appendBuildLogArgsForCall[i].build, fake.appendBuildLogArgsForCall[i].log
 }
 
 func (fake *FakeLogDB) AppendBuildLogReturns(result1 error) {

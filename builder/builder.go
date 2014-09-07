@@ -78,8 +78,7 @@ func (builder *builder) Build(build builds.Build, job config.Job, versions build
 	updateBuild, err := builder.atc.CreateRequest(
 		CallbacksRoutes.UpdateBuild,
 		rata.Params{
-			"job":   job.Name,
-			"build": build.Name,
+			"build": fmt.Sprintf("%d", build.ID),
 		},
 		nil,
 	)
@@ -90,8 +89,7 @@ func (builder *builder) Build(build builds.Build, job config.Job, versions build
 	recordEvents, err := builder.atc.CreateRequest(
 		CallbacksRoutes.RecordEvents,
 		rata.Params{
-			"job":   job.Name,
-			"build": build.Name,
+			"build": fmt.Sprintf("%d", build.ID),
 		},
 		nil,
 	)

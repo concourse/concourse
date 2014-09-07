@@ -24,7 +24,7 @@ var _ = Describe("Logfanout", func() {
 	BeforeEach(func() {
 		logDB = new(fakes.FakeLogDB)
 
-		fanout = NewLogFanout("some-job", "1", logDB)
+		fanout = NewLogFanout(42, logDB)
 	})
 
 	rawMSG := func(msg string) *json.RawMessage {

@@ -50,7 +50,7 @@ func (db *sqldb) RegisterResource(name string) error {
 
 func (db *sqldb) Builds(job string) ([]builds.Build, error) {
 	rows, err := db.conn.Query(`
-		SELECT name, status, abort_url
+		SELECT id, name, status, abort_url
 		FROM builds
 		WHERE job_name = $1
 		ORDER BY id DESC
@@ -64,15 +64,17 @@ func (db *sqldb) Builds(job string) ([]builds.Build, error) {
 	bs := []builds.Build{}
 
 	for rows.Next() {
+		var id int
 		var name string
 		var status string
 		var abortURL sql.NullString
-		err := rows.Scan(&name, &status, &abortURL)
+		err := rows.Scan(&id, &name, &status, &abortURL)
 		if err != nil {
 			return nil, err
 		}
 
 		bs = append(bs, builds.Build{
+			ID:       id,
 			Name:     name,
 			Status:   builds.Status(status),
 			AbortURL: abortURL.String,
@@ -83,20 +85,22 @@ func (db *sqldb) Builds(job string) ([]builds.Build, error) {
 }
 
 func (db *sqldb) GetBuild(job string, name string) (builds.Build, error) {
+	var id int
 	var status string
 	var abortURL sql.NullString
 
 	err := db.conn.QueryRow(`
-		SELECT status, abort_url
+		SELECT id, status, abort_url
 		FROM builds
 		WHERE job_name = $1
 		AND name = $2
-	`, job, name).Scan(&status, &abortURL)
+	`, job, name).Scan(&id, &status, &abortURL)
 	if err != nil {
 		return builds.Build{}, err
 	}
 
 	return builds.Build{
+		ID:       id,
 		Name:     name,
 		Status:   builds.Status(status),
 		AbortURL: abortURL.String,
@@ -213,12 +217,13 @@ func (db *sqldb) GetBuildResources(job string, name string) ([]BuildInput, []Bui
 }
 
 func (db *sqldb) GetCurrentBuild(job string) (builds.Build, error) {
+	var id int
 	var name string
 	var status string
 	var abortURL sql.NullString
 
 	rows, err := db.conn.Query(`
-		SELECT name, status, abort_url
+		SELECT id, name, status, abort_url
 		FROM builds
 		WHERE job_name = $1
 		AND status != 'pending'
@@ -233,7 +238,7 @@ func (db *sqldb) GetCurrentBuild(job string) (builds.Build, error) {
 
 	if !rows.Next() {
 		rows, err = db.conn.Query(`
-			SELECT name, status, abort_url
+			SELECT id, name, status, abort_url
 			FROM builds
 			WHERE job_name = $1
 			AND status = 'pending'
@@ -249,12 +254,13 @@ func (db *sqldb) GetCurrentBuild(job string) (builds.Build, error) {
 		rows.Next()
 	}
 
-	err = rows.Scan(&name, &status, &abortURL)
+	err = rows.Scan(&id, &name, &status, &abortURL)
 	if err != nil {
 		return builds.Build{}, err
 	}
 
 	return builds.Build{
+		ID:       id,
 		Name:     name,
 		Status:   builds.Status(status),
 		AbortURL: abortURL.String,
@@ -280,10 +286,12 @@ func (db *sqldb) CreateBuild(job string) (builds.Build, error) {
 		return builds.Build{}, err
 	}
 
-	_, err = tx.Exec(`
+	var id int
+	err = tx.QueryRow(`
 		INSERT INTO builds(name, job_name, status)
 		VALUES ($1, $2, 'pending')
-	`, name, job)
+		RETURNING id
+	`, name, job).Scan(&id)
 	if err != nil {
 		return builds.Build{}, err
 	}
@@ -294,6 +302,7 @@ func (db *sqldb) CreateBuild(job string) (builds.Build, error) {
 	}
 
 	return builds.Build{
+		ID:     id,
 		Name:   name,
 		Status: builds.StatusPending,
 	}, nil
@@ -363,11 +372,11 @@ func (db *sqldb) StartBuild(job string, name string, abortURL string) (bool, err
 	return rows == 1, nil
 }
 
-func (db *sqldb) AbortBuild(job string, name string) error {
-	return db.SaveBuildStatus(job, name, builds.StatusAborted)
+func (db *sqldb) AbortBuild(buildID int) error {
+	return db.SaveBuildStatus(buildID, builds.StatusAborted)
 }
 
-func (db *sqldb) SaveBuildInput(job string, build string, vr builds.VersionedResource) error {
+func (db *sqldb) SaveBuildInput(buildID int, vr builds.VersionedResource) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return err
@@ -382,19 +391,14 @@ func (db *sqldb) SaveBuildInput(job string, build string, vr builds.VersionedRes
 
 	_, err = tx.Exec(`
 		INSERT INTO build_inputs (build_id, versioned_resource_id)
-		SELECT id, $3
-		FROM builds
-		WHERE job_name = $1
-		AND name = $2
-		AND NOT EXISTS (
+		SELECT $1, $2
+		WHERE NOT EXISTS (
 			SELECT 1
-			FROM builds b, build_inputs i
-			WHERE b.job_name = $1
-			AND b.name = $2
-			AND i.build_id = b.id
-			AND i.versioned_resource_id = $3
+			FROM build_inputs
+			WHERE build_id = $1
+			AND versioned_resource_id = $2
 		)
-	`, job, build, vrID)
+	`, buildID, vrID)
 	if err != nil {
 		return err
 	}
@@ -402,7 +406,7 @@ func (db *sqldb) SaveBuildInput(job string, build string, vr builds.VersionedRes
 	return tx.Commit()
 }
 
-func (db *sqldb) SaveBuildOutput(job string, build string, vr builds.VersionedResource) error {
+func (db *sqldb) SaveBuildOutput(buildID int, vr builds.VersionedResource) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return err
@@ -417,11 +421,8 @@ func (db *sqldb) SaveBuildOutput(job string, build string, vr builds.VersionedRe
 
 	_, err = tx.Exec(`
 		INSERT INTO build_outputs (build_id, versioned_resource_id)
-		SELECT id, $3
-		FROM builds
-		WHERE job_name = $1
-		AND name = $2
-	`, job, build, vrID)
+		VALUES ($1, $2)
+	`, buildID, vrID)
 	if err != nil {
 		return err
 	}
@@ -429,13 +430,12 @@ func (db *sqldb) SaveBuildOutput(job string, build string, vr builds.VersionedRe
 	return tx.Commit()
 }
 
-func (db *sqldb) SaveBuildStatus(job string, build string, status builds.Status) error {
+func (db *sqldb) SaveBuildStatus(buildID int, status builds.Status) error {
 	result, err := db.conn.Exec(`
 		UPDATE builds
-		SET status = $3
-		WHERE job_name = $1
-		AND name = $2
-	`, job, build, string(status))
+		SET status = $2
+		WHERE id = $1
+	`, buildID, string(status))
 	if err != nil {
 		return err
 	}
@@ -452,15 +452,14 @@ func (db *sqldb) SaveBuildStatus(job string, build string, status builds.Status)
 	return nil
 }
 
-func (db *sqldb) BuildLog(job string, build string) ([]byte, error) {
+func (db *sqldb) BuildLog(buildID int) ([]byte, error) {
 	var log string
 
 	err := db.conn.QueryRow(`
 		SELECT log
 		FROM builds
-		WHERE job_name = $1
-		AND name = $2
-	`, job, build).Scan(&log)
+		WHERE id = $1
+	`, buildID).Scan(&log)
 	if err != nil {
 		return nil, err
 	}
@@ -468,13 +467,12 @@ func (db *sqldb) BuildLog(job string, build string) ([]byte, error) {
 	return []byte(log), nil
 }
 
-func (db *sqldb) AppendBuildLog(job string, build string, log []byte) error {
+func (db *sqldb) AppendBuildLog(buildID int, log []byte) error {
 	result, err := db.conn.Exec(`
 		UPDATE builds
-		SET log = log || $3
-		WHERE job_name = $1
-		AND name = $2
-	`, job, build, string(log))
+		SET log = log || $2
+		WHERE id = $1
+	`, buildID, string(log))
 	if err != nil {
 		return err
 	}
@@ -673,20 +671,22 @@ func (db *sqldb) GetBuildForInputs(job string, inputs builds.VersionedResources)
 		)
 	}
 
-	var name string
+	var buildID int
+	var buildName string
 	err := db.conn.QueryRow(fmt.Sprintf(`
-		SELECT b.name
+		SELECT b.id, b.name
 		FROM %s
 		WHERE %s
 		`,
 		strings.Join(from, ", "),
-		strings.Join(conditions, "\nAND ")), params...).Scan(&name)
+		strings.Join(conditions, "\nAND ")), params...).Scan(&buildID, &buildName)
 	if err != nil {
 		return builds.Build{}, err
 	}
 
 	return builds.Build{
-		Name:   name,
+		ID:     buildID,
+		Name:   buildName,
 		Status: builds.StatusPending,
 	}, nil
 }
@@ -741,23 +741,25 @@ func (db *sqldb) CreateBuildWithInputs(job string, inputs builds.VersionedResour
 	}
 
 	return builds.Build{
+		ID:     buildID,
 		Name:   name,
 		Status: builds.StatusPending,
 	}, nil
 }
 
 func (db *sqldb) GetNextPendingBuild(job string) (builds.Build, builds.VersionedResources, error) {
+	var id int
 	var name string
 
 	err := db.conn.QueryRow(`
-		SELECT name
+		SELECT id, name
 		FROM builds
 		WHERE job_name = $1
 		AND status = 'pending'
 		AND scheduled = false
 		ORDER BY id ASC
 		LIMIT 1
-	`, job).Scan(&name)
+	`, job).Scan(&id, &name)
 	if err != nil {
 		return builds.Build{}, builds.VersionedResources{}, err
 	}
@@ -773,6 +775,7 @@ func (db *sqldb) GetNextPendingBuild(job string) (builds.Build, builds.Versioned
 	}
 
 	return builds.Build{
+		ID:     id,
 		Name:   name,
 		Status: builds.StatusPending,
 	}, vrs, nil
@@ -780,7 +783,7 @@ func (db *sqldb) GetNextPendingBuild(job string) (builds.Build, builds.Versioned
 
 func (db *sqldb) GetResourceHistory(resource string) ([]*VersionHistory, error) {
 	rows, err := db.conn.Query(`
-		SELECT v.id, v.resource_name, v.type, v.version, v.source, v.metadata, b.job_name, b.name, b.status, b.abort_url
+		SELECT v.id, v.resource_name, v.type, v.version, v.source, v.metadata, b.id, b.job_name, b.name, b.status, b.abort_url
 		FROM versioned_resources v, builds b
 		WHERE v.resource_name = $1
 		AND (
@@ -805,6 +808,7 @@ func (db *sqldb) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 
 		var jobName string
 
+		var buildID int
 		var buildName string
 		var buildStatus string
 		var buildAbortURL sql.NullString
@@ -813,7 +817,7 @@ func (db *sqldb) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 
 		err := rows.Scan(
 			&vrID, &vr.Name, &vr.Type, &versionString, &sourceString, &metadataString,
-			&jobName, &buildName, &buildStatus, &buildAbortURL,
+			&buildID, &jobName, &buildName, &buildStatus, &buildAbortURL,
 		)
 		if err != nil {
 			return nil, err
@@ -858,6 +862,7 @@ func (db *sqldb) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 		}
 
 		jh.Builds = append(jh.Builds, builds.Build{
+			ID:       buildID,
 			Name:     buildName,
 			Status:   builds.Status(buildStatus),
 			AbortURL: buildAbortURL.String,

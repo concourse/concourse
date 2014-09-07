@@ -8,6 +8,6 @@ const (
 )
 
 var Routes = rata.Routes{
-	{Path: "/builds/:job/:build", Method: "PUT", Name: UpdateBuild},
-	{Path: "/builds/:job/:build/events", Method: "GET", Name: RecordEvents},
+	{Path: "/builds/:build", Method: "PUT", Name: UpdateBuild},
+	{Path: "/builds/:build/events", Method: "GET", Name: RecordEvents},
 }

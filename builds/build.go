@@ -14,6 +14,7 @@ const (
 )
 
 type Build struct {
+	ID     int
 	Name   string
 	Status Status
 

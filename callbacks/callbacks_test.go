@@ -48,7 +48,7 @@ var _ = Describe("Callbacks", func() {
 		server.Close()
 	})
 
-	Describe("PUT /builds/:job/:build", func() {
+	Describe("PUT /builds/:build", func() {
 		var build builds.Build
 		var turbineBuild TurbineBuilds.Build
 
@@ -58,8 +58,6 @@ var _ = Describe("Callbacks", func() {
 			build = builds.Build{
 				Name: "42",
 			}
-
-			buildDB.GetBuildReturns(build, nil)
 
 			turbineBuild = TurbineBuilds.Build{
 				Inputs: []TurbineBuilds.Input{
@@ -89,7 +87,7 @@ var _ = Describe("Callbacks", func() {
 			reqPayload, err := json.Marshal(turbineBuild)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			req, err := http.NewRequest("PUT", server.URL+"/builds/some-job/42", bytes.NewBuffer(reqPayload))
+			req, err := http.NewRequest("PUT", server.URL+"/builds/42", bytes.NewBuffer(reqPayload))
 			Ω(err).ShouldNot(HaveOccurred())
 
 			req.Header.Set("Content-Type", "application/json")
@@ -108,18 +106,16 @@ var _ = Describe("Callbacks", func() {
 
 				Ω(buildDB.SaveBuildStatusCallCount()).Should(Equal(1))
 
-				job, id, status := buildDB.SaveBuildStatusArgsForCall(0)
-				Ω(job).Should(Equal("some-job"))
-				Ω(id).Should(Equal("42"))
+				id, status := buildDB.SaveBuildStatusArgsForCall(0)
+				Ω(id).Should(Equal(42))
 				Ω(status).Should(Equal(builds.StatusStarted))
 			})
 
 			It("saves the build's inputs", func() {
 				Ω(buildDB.SaveBuildInputCallCount()).Should(Equal(2))
 
-				job, id, input := buildDB.SaveBuildInputArgsForCall(0)
-				Ω(job).Should(Equal("some-job"))
-				Ω(id).Should(Equal("42"))
+				id, input := buildDB.SaveBuildInputArgsForCall(0)
+				Ω(id).Should(Equal(42))
 				Ω(input).Should(Equal(builds.VersionedResource{
 					Name:    "input-only-resource",
 					Type:    "git",
@@ -130,9 +126,8 @@ var _ = Describe("Callbacks", func() {
 					},
 				}))
 
-				job, id, input = buildDB.SaveBuildInputArgsForCall(1)
-				Ω(job).Should(Equal("some-job"))
-				Ω(id).Should(Equal("42"))
+				id, input = buildDB.SaveBuildInputArgsForCall(1)
+				Ω(id).Should(Equal(42))
 				Ω(input).Should(Equal(builds.VersionedResource{
 					Name:    "input-and-output-resource",
 					Type:    "git",
@@ -176,9 +171,8 @@ var _ = Describe("Callbacks", func() {
 
 				Ω(buildDB.SaveBuildStatusCallCount()).Should(Equal(1))
 
-				job, id, status := buildDB.SaveBuildStatusArgsForCall(0)
-				Ω(job).Should(Equal("some-job"))
-				Ω(id).Should(Equal("42"))
+				id, status := buildDB.SaveBuildStatusArgsForCall(0)
+				Ω(id).Should(Equal(42))
 				Ω(status).Should(Equal(builds.StatusSucceeded))
 			})
 
@@ -187,19 +181,16 @@ var _ = Describe("Callbacks", func() {
 
 				savedOutputs := []builds.VersionedResource{}
 
-				job, id, vr := buildDB.SaveBuildOutputArgsForCall(0)
-				Ω(job).Should(Equal("some-job"))
-				Ω(id).Should(Equal("42"))
+				id, vr := buildDB.SaveBuildOutputArgsForCall(0)
+				Ω(id).Should(Equal(42))
 				savedOutputs = append(savedOutputs, vr)
 
-				job, id, vr = buildDB.SaveBuildOutputArgsForCall(1)
-				Ω(job).Should(Equal("some-job"))
-				Ω(id).Should(Equal("42"))
+				id, vr = buildDB.SaveBuildOutputArgsForCall(1)
+				Ω(id).Should(Equal(42))
 				savedOutputs = append(savedOutputs, vr)
 
-				job, id, vr = buildDB.SaveBuildOutputArgsForCall(2)
-				Ω(job).Should(Equal("some-job"))
-				Ω(id).Should(Equal("42"))
+				id, vr = buildDB.SaveBuildOutputArgsForCall(2)
+				Ω(id).Should(Equal(42))
 				savedOutputs = append(savedOutputs, vr)
 
 				Ω(savedOutputs).Should(ContainElement(builds.VersionedResource{
@@ -244,9 +235,8 @@ var _ = Describe("Callbacks", func() {
 
 				Ω(buildDB.SaveBuildStatusCallCount()).Should(Equal(1))
 
-				job, id, status := buildDB.SaveBuildStatusArgsForCall(0)
-				Ω(job).Should(Equal("some-job"))
-				Ω(id).Should(Equal("42"))
+				id, status := buildDB.SaveBuildStatusArgsForCall(0)
+				Ω(id).Should(Equal(42))
 				Ω(status).Should(Equal(builds.StatusFailed))
 			})
 		})
@@ -261,28 +251,9 @@ var _ = Describe("Callbacks", func() {
 
 				Ω(buildDB.SaveBuildStatusCallCount()).Should(Equal(1))
 
-				job, id, status := buildDB.SaveBuildStatusArgsForCall(0)
-				Ω(job).Should(Equal("some-job"))
-				Ω(id).Should(Equal("42"))
+				id, status := buildDB.SaveBuildStatusArgsForCall(0)
+				Ω(id).Should(Equal(42))
 				Ω(status).Should(Equal(builds.StatusErrored))
-			})
-
-			Context("when the build has been aborted", func() {
-				BeforeEach(func() {
-					build.Status = builds.StatusAborted
-					buildDB.GetBuildReturns(build, nil)
-				})
-
-				It("does not update the build's status", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
-
-					Ω(buildDB.SaveBuildStatusCallCount()).Should(Equal(1))
-
-					job, id, status := buildDB.SaveBuildStatusArgsForCall(0)
-					Ω(job).Should(Equal("some-job"))
-					Ω(id).Should(Equal("42"))
-					Ω(status).Should(Equal(builds.StatusAborted))
-				})
 			})
 		})
 	})

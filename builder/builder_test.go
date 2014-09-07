@@ -111,8 +111,8 @@ var _ = Describe("Builder", func() {
 
 			Privileged: true,
 
-			StatusCallback: "http://atc-server/builds/some-job/128",
-			EventsCallback: "ws://atc-server/builds/some-job/128/events",
+			StatusCallback: "http://atc-server/builds/128",
+			EventsCallback: "ws://atc-server/builds/128/events",
 		}
 
 		builder = NewBuilder(
@@ -123,7 +123,8 @@ var _ = Describe("Builder", func() {
 		)
 
 		build = builds.Build{
-			Name: "128",
+			ID:   128,
+			Name: "some-build",
 		}
 	})
 
@@ -159,7 +160,7 @@ var _ = Describe("Builder", func() {
 
 			job, id, abortURL := db.StartBuildArgsForCall(0)
 			Ω(job).Should(Equal("some-job"))
-			Ω(id).Should(Equal("128"))
+			Ω(id).Should(Equal("some-build"))
 			Ω(abortURL).Should(ContainSubstring("/abort/the/build"))
 		})
 

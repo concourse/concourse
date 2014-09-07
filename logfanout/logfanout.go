@@ -12,14 +12,14 @@ import (
 )
 
 type LogDB interface {
-	BuildLog(job string, build string) ([]byte, error)
-	AppendBuildLog(job string, build string, log []byte) error
+	BuildLog(build int) ([]byte, error)
+	AppendBuildLog(build int, log []byte) error
 }
 
 type LogFanout struct {
-	job   string
-	build string
-	db    LogDB
+	build int
+
+	db LogDB
 
 	lock *sync.Mutex
 
@@ -29,9 +29,8 @@ type LogFanout struct {
 	waitForClosed chan struct{}
 }
 
-func NewLogFanout(job string, build string, db LogDB) *LogFanout {
+func NewLogFanout(build int, db LogDB) *LogFanout {
 	return &LogFanout{
-		job:   job,
 		build: build,
 		db:    db,
 
@@ -44,7 +43,7 @@ func (fanout *LogFanout) WriteMessage(msg *json.RawMessage) error {
 	fanout.lock.Lock()
 	defer fanout.lock.Unlock()
 
-	err := fanout.db.AppendBuildLog(fanout.job, fanout.build, []byte(*msg))
+	err := fanout.db.AppendBuildLog(fanout.build, []byte(*msg))
 	if err != nil {
 		return err
 	}
@@ -67,7 +66,7 @@ func (fanout *LogFanout) WriteMessage(msg *json.RawMessage) error {
 func (fanout *LogFanout) Attach(sink *websocket.Conn) error {
 	fanout.lock.Lock()
 
-	buildLog, err := fanout.db.BuildLog(fanout.job, fanout.build)
+	buildLog, err := fanout.db.BuildLog(fanout.build)
 	if err == nil {
 		decoder := json.NewDecoder(bytes.NewBuffer(buildLog))
 

@@ -18,15 +18,15 @@ type DB interface {
 	CreateBuild(job string) (builds.Build, error)
 	ScheduleBuild(job string, build string, serial bool) (bool, error)
 	StartBuild(job string, build string, abortURL string) (bool, error)
-	AbortBuild(job string, build string) error
 
-	SaveBuildStatus(job string, build string, status builds.Status) error
+	BuildLog(buildID int) ([]byte, error)
+	AppendBuildLog(buildID int, log []byte) error
 
-	BuildLog(job string, build string) ([]byte, error)
-	AppendBuildLog(job string, build string, log []byte) error
+	SaveBuildInput(buildID int, vr builds.VersionedResource) error
+	SaveBuildOutput(buildID int, vr builds.VersionedResource) error
 
-	SaveBuildInput(job string, build string, vr builds.VersionedResource) error
-	SaveBuildOutput(job string, build string, vr builds.VersionedResource) error
+	AbortBuild(buildID int) error
+	SaveBuildStatus(buildID int, status builds.Status) error
 
 	SaveVersionedResource(builds.VersionedResource) error
 	GetLatestVersionedResource(build string) (builds.VersionedResource, error)
