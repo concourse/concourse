@@ -12,7 +12,7 @@
     <h1>{{.Job.Name}} #{{.Build.Name}}</h1>
 
     {{if .Abortable}}
-    <form class="abort-build" method="post" action="{{url "AbortBuild" .Job .Build}}">
+    <form class="abort-build" method="post" action="{{url "AbortBuild" .Build}}">
       <input type="submit" value="abort" />
     </form>
     {{end}}
@@ -123,6 +123,6 @@ if(window.location.protocol === "https:") {
   protocol = "ws:";
 }
 
-streamLog(protocol + "//" + window.location.host + {{url "LogOutput" .Job .Build | js}})
+streamLog(protocol + "//" + window.location.host + {{url "LogOutput" .Build | js}})
 </script>
 {{end}}
