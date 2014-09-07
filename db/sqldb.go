@@ -87,7 +87,7 @@ func (db *sqldb) GetAllJobBuilds(job string) ([]builds.Build, error) {
 
 func (db *sqldb) GetBuild(buildID int) (builds.Build, error) {
 	var name string
-	var jobName string
+	var jobName sql.NullString
 	var status string
 	var abortURL sql.NullString
 
@@ -103,7 +103,7 @@ func (db *sqldb) GetBuild(buildID int) (builds.Build, error) {
 	return builds.Build{
 		ID:       buildID,
 		Name:     name,
-		JobName:  jobName,
+		JobName:  jobName.String,
 		Status:   builds.Status(status),
 		AbortURL: abortURL.String,
 	}, nil

@@ -150,6 +150,10 @@ func itIsADB() {
 		Ω(oneOff.Name).Should(Equal("1"))
 		Ω(oneOff.Status).Should(Equal(Builds.StatusPending))
 
+		oneOffGot, err := db.GetBuild(oneOff.ID)
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(oneOffGot).Should(Equal(oneOff))
+
 		jobBuild, err := db.CreateJobBuild("some-other-job")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(jobBuild.Name).Should(Equal("1"))
