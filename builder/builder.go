@@ -21,8 +21,8 @@ import (
 var ErrBadResponse = errors.New("bad response from turbine")
 
 type BuilderDB interface {
-	ScheduleBuild(job string, id int, serial bool) (bool, error)
-	StartBuild(job string, id int, abortURL string) (bool, error)
+	ScheduleBuild(job string, build string, serial bool) (bool, error)
+	StartBuild(job string, build string, abortURL string) (bool, error)
 }
 
 type Builder interface {
@@ -56,7 +56,7 @@ func NewBuilder(db BuilderDB, resources config.Resources, turbine *rata.RequestG
 }
 
 func (builder *builder) Build(build builds.Build, job config.Job, versions builds.VersionedResources) error {
-	scheduled, err := builder.db.ScheduleBuild(job.Name, build.ID, job.Serial)
+	scheduled, err := builder.db.ScheduleBuild(job.Name, build.Name, job.Serial)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (builder *builder) Build(build builds.Build, job config.Job, versions build
 		CallbacksRoutes.UpdateBuild,
 		rata.Params{
 			"job":   job.Name,
-			"build": fmt.Sprintf("%d", build.ID),
+			"build": build.Name,
 		},
 		nil,
 	)
@@ -91,7 +91,7 @@ func (builder *builder) Build(build builds.Build, job config.Job, versions build
 		CallbacksRoutes.RecordEvents,
 		rata.Params{
 			"job":   job.Name,
-			"build": fmt.Sprintf("%d", build.ID),
+			"build": build.Name,
 		},
 		nil,
 	)
@@ -149,7 +149,7 @@ func (builder *builder) Build(build builds.Build, job config.Job, versions build
 
 	resp.Body.Close()
 
-	started, err := builder.db.StartBuild(job.Name, build.ID, startedBuild.AbortURL)
+	started, err := builder.db.StartBuild(job.Name, build.Name, startedBuild.AbortURL)
 	if err != nil {
 		return err
 	}

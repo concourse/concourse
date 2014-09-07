@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/websocket"
 	"github.com/pivotal-golang/lager"
@@ -17,11 +16,11 @@ var upgrader = websocket.Upgrader{
 
 func (handler *Handler) RecordEvents(w http.ResponseWriter, r *http.Request) {
 	job := r.FormValue(":job")
-	idStr := r.FormValue(":build")
+	build := r.FormValue(":build")
 
 	log := handler.logger.Session("logs-in", lager.Data{
-		"job": job,
-		"id":  idStr,
+		"job":   job,
+		"build": build,
 	})
 
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -32,17 +31,10 @@ func (handler *Handler) RecordEvents(w http.ResponseWriter, r *http.Request) {
 
 	defer conn.Close()
 
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		log.Error("invalid-build-id", err)
-		conn.Close()
-		return
-	}
-
 	log.Debug("streaming")
 
-	logFanout := handler.tracker.Register(job, id, conn)
-	defer handler.tracker.Unregister(job, id, conn)
+	logFanout := handler.tracker.Register(job, build, conn)
+	defer handler.tracker.Unregister(job, build, conn)
 
 	defer logFanout.Close()
 

@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	TurbineBuilds "github.com/concourse/turbine/api/builds"
 	"github.com/pivotal-golang/lager"
@@ -14,15 +13,9 @@ import (
 
 func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 	job := r.FormValue(":job")
-	idStr := r.FormValue(":build")
+	buildName := r.FormValue(":build")
 
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	build, err := handler.buildDB.GetBuild(job, id)
+	build, err := handler.buildDB.GetBuild(job, buildName)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -36,7 +29,7 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 
 	log := handler.logger.Session("update-build", lager.Data{
 		"job":     job,
-		"id":      id,
+		"build":   build,
 		"status":  turbineBuild.Status,
 		"inputs":  turbineBuild.Inputs,
 		"outputs": turbineBuild.Outputs,
@@ -65,7 +58,7 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("save-status")
 
-	err = handler.buildDB.SaveBuildStatus(job, id, status)
+	err = handler.buildDB.SaveBuildStatus(job, buildName, status)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -74,7 +67,7 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 	switch turbineBuild.Status {
 	case TurbineBuilds.StatusStarted:
 		for _, input := range turbineBuild.Inputs {
-			err = handler.buildDB.SaveBuildInput(job, id, vrFromInput(input))
+			err = handler.buildDB.SaveBuildInput(job, buildName, vrFromInput(input))
 			if err != nil {
 				log.Error("failed-to-save-input", err)
 			}
@@ -83,7 +76,7 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 		explicitOutput := make(map[string]bool)
 
 		for _, output := range turbineBuild.Outputs {
-			err = handler.buildDB.SaveBuildOutput(job, id, vrFromOutput(output))
+			err = handler.buildDB.SaveBuildOutput(job, buildName, vrFromOutput(output))
 			if err != nil {
 				log.Error("failed-to-save-output-version", err)
 			}
@@ -96,7 +89,7 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
-			err = handler.buildDB.SaveBuildOutput(job, id, vrFromInput(input))
+			err = handler.buildDB.SaveBuildOutput(job, buildName, vrFromInput(input))
 			if err != nil {
 				log.Error("failed-to-save-output-version", err)
 				w.WriteHeader(http.StatusInternalServerError)

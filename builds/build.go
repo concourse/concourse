@@ -14,7 +14,7 @@ const (
 )
 
 type Build struct {
-	ID     int
+	Name   string
 	Status Status
 
 	AbortURL string
@@ -22,9 +22,9 @@ type Build struct {
 
 type VersionedResources []VersionedResource
 
-func (vrs VersionedResources) Lookup(resource string) (VersionedResource, bool) {
+func (vrs VersionedResources) Lookup(name string) (VersionedResource, bool) {
 	for _, vr := range vrs {
-		if vr.Name == resource {
+		if vr.Name == name {
 			return vr, true
 		}
 	}
@@ -46,9 +46,3 @@ type MetadataField struct {
 	Name  string
 	Value string
 }
-
-type ByID []Build
-
-func (bs ByID) Len() int           { return len(bs) }
-func (bs ByID) Less(i, j int) bool { return bs[i].ID < bs[j].ID }
-func (bs ByID) Swap(i, j int)      { bs[i], bs[j] = bs[j], bs[i] }

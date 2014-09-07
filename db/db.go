@@ -10,26 +10,26 @@ type DB interface {
 	RegisterResource(name string) error
 
 	Builds(job string) ([]builds.Build, error)
-	GetBuild(job string, id int) (builds.Build, error)
+	GetBuild(job string, build string) (builds.Build, error)
 	GetCurrentBuild(job string) (builds.Build, error)
 
-	GetBuildResources(job string, id int) ([]BuildInput, []BuildOutput, error)
+	GetBuildResources(job string, build string) ([]BuildInput, []BuildOutput, error)
 
 	CreateBuild(job string) (builds.Build, error)
-	ScheduleBuild(job string, id int, serial bool) (bool, error)
-	StartBuild(job string, id int, abortURL string) (bool, error)
-	AbortBuild(job string, id int) error
+	ScheduleBuild(job string, build string, serial bool) (bool, error)
+	StartBuild(job string, build string, abortURL string) (bool, error)
+	AbortBuild(job string, build string) error
 
-	SaveBuildStatus(job string, build int, status builds.Status) error
+	SaveBuildStatus(job string, build string, status builds.Status) error
 
-	BuildLog(job string, build int) ([]byte, error)
-	AppendBuildLog(job string, build int, log []byte) error
+	BuildLog(job string, build string) ([]byte, error)
+	AppendBuildLog(job string, build string, log []byte) error
 
-	SaveBuildInput(job string, build int, vr builds.VersionedResource) error
-	SaveBuildOutput(job string, build int, vr builds.VersionedResource) error
+	SaveBuildInput(job string, build string, vr builds.VersionedResource) error
+	SaveBuildOutput(job string, build string, vr builds.VersionedResource) error
 
 	SaveVersionedResource(builds.VersionedResource) error
-	GetLatestVersionedResource(name string) (builds.VersionedResource, error)
+	GetLatestVersionedResource(build string) (builds.VersionedResource, error)
 
 	GetLatestInputVersions([]config.Input) (builds.VersionedResources, error)
 	GetBuildForInputs(job string, inputs builds.VersionedResources) (builds.Build, error)

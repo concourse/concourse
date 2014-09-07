@@ -12,13 +12,13 @@ import (
 )
 
 type LogDB interface {
-	BuildLog(job string, build int) ([]byte, error)
-	AppendBuildLog(job string, build int, log []byte) error
+	BuildLog(job string, build string) ([]byte, error)
+	AppendBuildLog(job string, build string, log []byte) error
 }
 
 type LogFanout struct {
 	job   string
-	build int
+	build string
 	db    LogDB
 
 	lock *sync.Mutex
@@ -29,7 +29,7 @@ type LogFanout struct {
 	waitForClosed chan struct{}
 }
 
-func NewLogFanout(job string, build int, db LogDB) *LogFanout {
+func NewLogFanout(job string, build string, db LogDB) *LogFanout {
 	return &LogFanout{
 		job:   job,
 		build: build,

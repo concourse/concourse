@@ -120,7 +120,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		buildURI, _ := routes.Routes.CreatePathForRoute(routes.GetBuild, rata.Params{
 			"job":   job.Name,
-			"build": fmt.Sprintf("%d", currentBuild.ID),
+			"build": currentBuild.Name,
 		})
 
 		data.Nodes = append(data.Nodes, DotNode{

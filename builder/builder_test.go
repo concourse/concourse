@@ -123,7 +123,7 @@ var _ = Describe("Builder", func() {
 		)
 
 		build = builds.Build{
-			ID: 128,
+			Name: "128",
 		}
 	})
 
@@ -159,7 +159,7 @@ var _ = Describe("Builder", func() {
 
 			job, id, abortURL := db.StartBuildArgsForCall(0)
 			Ω(job).Should(Equal("some-job"))
-			Ω(id).Should(Equal(128))
+			Ω(id).Should(Equal("128"))
 			Ω(abortURL).Should(ContainSubstring("/abort/the/build"))
 		})
 

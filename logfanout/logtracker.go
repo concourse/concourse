@@ -30,8 +30,8 @@ func NewTracker(db LogDB) *Tracker {
 	}
 }
 
-func (tracker *Tracker) Register(job string, id int, conn io.Closer) *LogFanout {
-	key := fmt.Sprintf("%s-%d", job, id)
+func (tracker *Tracker) Register(job string, build string, conn io.Closer) *LogFanout {
+	key := fmt.Sprintf("%s-%s", job, build)
 
 	tracker.lock.Lock()
 
@@ -39,7 +39,7 @@ func (tracker *Tracker) Register(job string, id int, conn io.Closer) *LogFanout 
 
 	logFanout, found := tracker.logs[key]
 	if !found {
-		logFanout = NewLogFanout(job, id, tracker.db)
+		logFanout = NewLogFanout(job, build, tracker.db)
 		tracker.logs[key] = logFanout
 		tracker.parties[key]++
 	}
@@ -55,8 +55,8 @@ func (tracker *Tracker) Register(job string, id int, conn io.Closer) *LogFanout 
 	return logFanout
 }
 
-func (tracker *Tracker) Unregister(job string, id int, conn io.Closer) {
-	key := fmt.Sprintf("%s-%d", job, id)
+func (tracker *Tracker) Unregister(job string, build string, conn io.Closer) {
+	key := fmt.Sprintf("%s-%s", job, build)
 
 	tracker.lock.Lock()
 

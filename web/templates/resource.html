@@ -34,7 +34,7 @@
             <td>
               <ul class="builds">
                 {{range .Builds}}
-                <li class="{{.Status}}"><a href="{{url "GetBuild" $job .}}">#{{.ID}}</a></li>
+                <li class="{{.Status}}"><a href="{{url "GetBuild" $job .}}">#{{.Name}}</a></li>
                 {{end}}
               </ul>
             </td>

@@ -8,11 +8,11 @@ import (
 )
 
 type BuildDB interface {
-	GetBuild(job string, build int) (builds.Build, error)
-	SaveBuildStatus(job string, build int, status builds.Status) error
+	GetBuild(job string, build string) (builds.Build, error)
+	SaveBuildStatus(job string, build string, status builds.Status) error
 
-	SaveBuildInput(job string, build int, input builds.VersionedResource) error
-	SaveBuildOutput(job string, build int, output builds.VersionedResource) error
+	SaveBuildInput(job string, build string, input builds.VersionedResource) error
+	SaveBuildOutput(job string, build string, output builds.VersionedResource) error
 }
 
 type Handler struct {

@@ -2,28 +2,28 @@
 package fakes
 
 import (
-	"github.com/concourse/atc/builder"
-
 	"sync"
+
+	"github.com/concourse/atc/builder"
 )
 
 type FakeBuilderDB struct {
-	ScheduleBuildStub        func(job string, id int, serial bool) (bool, error)
+	ScheduleBuildStub        func(job string, build string, serial bool) (bool, error)
 	scheduleBuildMutex       sync.RWMutex
 	scheduleBuildArgsForCall []struct {
 		job    string
-		id     int
+		build  string
 		serial bool
 	}
 	scheduleBuildReturns struct {
 		result1 bool
 		result2 error
 	}
-	StartBuildStub        func(job string, id int, abortURL string) (bool, error)
+	StartBuildStub        func(job string, build string, abortURL string) (bool, error)
 	startBuildMutex       sync.RWMutex
 	startBuildArgsForCall []struct {
 		job      string
-		id       int
+		build    string
 		abortURL string
 	}
 	startBuildReturns struct {
@@ -32,16 +32,16 @@ type FakeBuilderDB struct {
 	}
 }
 
-func (fake *FakeBuilderDB) ScheduleBuild(job string, id int, serial bool) (bool, error) {
+func (fake *FakeBuilderDB) ScheduleBuild(job string, build string, serial bool) (bool, error) {
 	fake.scheduleBuildMutex.Lock()
-	defer fake.scheduleBuildMutex.Unlock()
 	fake.scheduleBuildArgsForCall = append(fake.scheduleBuildArgsForCall, struct {
 		job    string
-		id     int
+		build  string
 		serial bool
-	}{job, id, serial})
+	}{job, build, serial})
+	fake.scheduleBuildMutex.Unlock()
 	if fake.ScheduleBuildStub != nil {
-		return fake.ScheduleBuildStub(job, id, serial)
+		return fake.ScheduleBuildStub(job, build, serial)
 	} else {
 		return fake.scheduleBuildReturns.result1, fake.scheduleBuildReturns.result2
 	}
@@ -53,10 +53,10 @@ func (fake *FakeBuilderDB) ScheduleBuildCallCount() int {
 	return len(fake.scheduleBuildArgsForCall)
 }
 
-func (fake *FakeBuilderDB) ScheduleBuildArgsForCall(i int) (string, int, bool) {
+func (fake *FakeBuilderDB) ScheduleBuildArgsForCall(i int) (string, string, bool) {
 	fake.scheduleBuildMutex.RLock()
 	defer fake.scheduleBuildMutex.RUnlock()
-	return fake.scheduleBuildArgsForCall[i].job, fake.scheduleBuildArgsForCall[i].id, fake.scheduleBuildArgsForCall[i].serial
+	return fake.scheduleBuildArgsForCall[i].job, fake.scheduleBuildArgsForCall[i].build, fake.scheduleBuildArgsForCall[i].serial
 }
 
 func (fake *FakeBuilderDB) ScheduleBuildReturns(result1 bool, result2 error) {
@@ -67,16 +67,16 @@ func (fake *FakeBuilderDB) ScheduleBuildReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeBuilderDB) StartBuild(job string, id int, abortURL string) (bool, error) {
+func (fake *FakeBuilderDB) StartBuild(job string, build string, abortURL string) (bool, error) {
 	fake.startBuildMutex.Lock()
-	defer fake.startBuildMutex.Unlock()
 	fake.startBuildArgsForCall = append(fake.startBuildArgsForCall, struct {
 		job      string
-		id       int
+		build    string
 		abortURL string
-	}{job, id, abortURL})
+	}{job, build, abortURL})
+	fake.startBuildMutex.Unlock()
 	if fake.StartBuildStub != nil {
-		return fake.StartBuildStub(job, id, abortURL)
+		return fake.StartBuildStub(job, build, abortURL)
 	} else {
 		return fake.startBuildReturns.result1, fake.startBuildReturns.result2
 	}
@@ -88,10 +88,10 @@ func (fake *FakeBuilderDB) StartBuildCallCount() int {
 	return len(fake.startBuildArgsForCall)
 }
 
-func (fake *FakeBuilderDB) StartBuildArgsForCall(i int) (string, int, string) {
+func (fake *FakeBuilderDB) StartBuildArgsForCall(i int) (string, string, string) {
 	fake.startBuildMutex.RLock()
 	defer fake.startBuildMutex.RUnlock()
-	return fake.startBuildArgsForCall[i].job, fake.startBuildArgsForCall[i].id, fake.startBuildArgsForCall[i].abortURL
+	return fake.startBuildArgsForCall[i].job, fake.startBuildArgsForCall[i].build, fake.startBuildArgsForCall[i].abortURL
 }
 
 func (fake *FakeBuilderDB) StartBuildReturns(result1 bool, result2 error) {

@@ -57,11 +57,11 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	redirectPath, err := routes.Routes.CreatePathForRoute(routes.GetBuild, rata.Params{
 		"job":   job.Name,
-		"build": fmt.Sprintf("%d", build.ID),
+		"build": build.Name,
 	})
 	if err != nil {
 		log.Fatal("failed-to-construct-redirect-uri", err, lager.Data{
-			"build": build.ID,
+			"build": build.Name,
 		})
 	}
 
