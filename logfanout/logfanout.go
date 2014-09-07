@@ -25,8 +25,7 @@ type LogFanout struct {
 
 	sinks []*websocket.Conn
 
-	closed        bool
-	waitForClosed chan struct{}
+	closed bool
 }
 
 func NewLogFanout(build int, db LogDB) *LogFanout {
@@ -34,8 +33,7 @@ func NewLogFanout(build int, db LogDB) *LogFanout {
 		build: build,
 		db:    db,
 
-		lock:          new(sync.Mutex),
-		waitForClosed: make(chan struct{}),
+		lock: new(sync.Mutex),
 	}
 }
 
@@ -114,8 +112,6 @@ func (fanout *LogFanout) Close() error {
 
 	fanout.closed = true
 	fanout.sinks = nil
-
-	close(fanout.waitForClosed)
 
 	return nil
 }
