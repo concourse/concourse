@@ -198,7 +198,7 @@ func itIsADB() {
 			err = db.SaveBuildOutput(build.ID, vr2)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			inputs, outputs, err := db.GetBuildResources("some-job", build.Name)
+			inputs, outputs, err := db.GetBuildResources(build.ID)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(inputs).Should(ConsistOf([]BuildInput{
 				{VersionedResource: vr1, FirstOccurrence: true},
@@ -217,7 +217,7 @@ func itIsADB() {
 			err = db.SaveBuildInput(duplicateBuild.ID, vr2)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			inputs, _, err = db.GetBuildResources("some-job", duplicateBuild.Name)
+			inputs, _, err = db.GetBuildResources(duplicateBuild.ID)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(inputs).Should(ConsistOf([]BuildInput{
 				{VersionedResource: vr1, FirstOccurrence: false},
@@ -233,7 +233,7 @@ func itIsADB() {
 			err = db.SaveBuildInput(newBuildInOtherJob.ID, vr2)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			inputs, _, err = db.GetBuildResources("some-other-job", newBuildInOtherJob.Name)
+			inputs, _, err = db.GetBuildResources(newBuildInOtherJob.ID)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(inputs).Should(ConsistOf([]BuildInput{
 				{VersionedResource: vr1, FirstOccurrence: true},
@@ -248,7 +248,7 @@ func itIsADB() {
 			err = db.SaveBuildInput(build.ID, vr2)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			inputs, _, err := db.GetBuildResources("some-job", build.Name)
+			inputs, _, err := db.GetBuildResources(build.ID)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(inputs).Should(ConsistOf([]BuildInput{
 				{VersionedResource: vr2, FirstOccurrence: true},
@@ -260,7 +260,7 @@ func itIsADB() {
 			err = db.SaveBuildInput(build.ID, withMetadata)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			inputs, _, err = db.GetBuildResources("some-job", build.Name)
+			inputs, _, err = db.GetBuildResources(build.ID)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(inputs).Should(ConsistOf([]BuildInput{
 				{VersionedResource: withMetadata, FirstOccurrence: true},

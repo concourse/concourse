@@ -133,7 +133,7 @@ func (db *sqldb) GetJobBuild(job string, name string) (builds.Build, error) {
 	}, nil
 }
 
-func (db *sqldb) GetBuildResources(job string, name string) ([]BuildInput, []BuildOutput, error) {
+func (db *sqldb) GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error) {
 	inputs := []BuildInput{}
 	outputs := []BuildOutput{}
 
@@ -143,16 +143,15 @@ func (db *sqldb) GetBuildResources(job string, name string) ([]BuildInput, []Bui
 			SELECT 1
 			FROM build_inputs, builds
 			WHERE versioned_resource_id = v.id
-			AND job_name = $1
+			AND job_name = b.job_name
 			AND build_id = id
 			AND build_id < b.id
 		)
 		FROM versioned_resources v, build_inputs i, builds b
-		WHERE b.job_name = $1
-		AND b.name = $2
+		WHERE b.id = $1
 		AND i.build_id = b.id
 		AND i.versioned_resource_id = v.id
-	`, job, name)
+	`, buildID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -193,8 +192,7 @@ func (db *sqldb) GetBuildResources(job string, name string) ([]BuildInput, []Bui
 	rows, err = db.conn.Query(`
 		SELECT v.resource_name, v.type, v.source, v.version, v.metadata
 		FROM versioned_resources v, build_outputs o, builds b
-		WHERE b.job_name = $1
-		AND b.name = $2
+		WHERE b.id = $1
 		AND o.build_id = b.id
 		AND o.versioned_resource_id = v.id
 		AND NOT EXISTS (
@@ -203,7 +201,7 @@ func (db *sqldb) GetBuildResources(job string, name string) ([]BuildInput, []Bui
 			WHERE versioned_resource_id = v.id
 			AND build_id = b.id
 		)
-	`, job, name)
+	`, buildID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -789,8 +787,8 @@ func (db *sqldb) CreateBuildWithInputs(job string, inputs builds.VersionedResour
 }
 
 func (db *sqldb) GetNextPendingBuild(job string) (builds.Build, builds.VersionedResources, error) {
-	var id int
-	var name string
+	var buildID int
+	var buildName string
 
 	err := db.conn.QueryRow(`
 		SELECT id, name
@@ -800,12 +798,12 @@ func (db *sqldb) GetNextPendingBuild(job string) (builds.Build, builds.Versioned
 		AND scheduled = false
 		ORDER BY id ASC
 		LIMIT 1
-	`, job).Scan(&id, &name)
+	`, job).Scan(&buildID, &buildName)
 	if err != nil {
 		return builds.Build{}, builds.VersionedResources{}, err
 	}
 
-	inputs, _, err := db.GetBuildResources(job, name)
+	inputs, _, err := db.GetBuildResources(buildID)
 	if err != nil {
 		return builds.Build{}, builds.VersionedResources{}, err
 	}
@@ -816,8 +814,8 @@ func (db *sqldb) GetNextPendingBuild(job string) (builds.Build, builds.Versioned
 	}
 
 	return builds.Build{
-		ID:      id,
-		Name:    name,
+		ID:      buildID,
+		Name:    buildName,
 		JobName: job,
 		Status:  builds.StatusPending,
 	}, vrs, nil

@@ -15,7 +15,7 @@ type DB interface {
 	GetAllJobBuilds(job string) ([]builds.Build, error)
 	GetCurrentBuild(job string) (builds.Build, error)
 
-	GetBuildResources(job string, build string) ([]BuildInput, []BuildOutput, error)
+	GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error)
 
 	CreateBuild(job string) (builds.Build, error)
 	ScheduleBuild(job string, build string, serial bool) (bool, error)
