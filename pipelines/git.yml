@@ -3,25 +3,25 @@ resources:
 - name: some-git-resource
   type: git
   source:
-    uri: {{.GitServer.Origin}}
+    uri: {{.GitServers.Origin}}
     branch: master
 
 - name: some-git-resource-success
   type: git
   source:
-    uri: {{.GitServer.Success}}
+    uri: {{.GitServers.Success}}
     branch: success
 
 - name: some-git-resource-failure
   type: git
   source:
-    uri: {{.GitServer.Failure}}
+    uri: {{.GitServers.Failure}}
     branch: failure
 
 - name: some-git-resource-no-update
   type: git
   source:
-    uri: {{.GitServer.NoUpdate}}
+    uri: {{.GitServers.NoUpdate}}
     branch: no-update
 
 jobs:
