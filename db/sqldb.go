@@ -87,6 +87,45 @@ func (db *sqldb) GetAllJobBuilds(job string) ([]builds.Build, error) {
 	return bs, nil
 }
 
+func (db *sqldb) GetAllBuilds() ([]builds.Build, error) {
+	rows, err := db.conn.Query(`
+		SELECT id, name, job_name, status, abort_url, hijack_url
+		FROM builds
+		ORDER BY id DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	bs := []builds.Build{}
+
+	for rows.Next() {
+		var id int
+		var name string
+		var jobName sql.NullString
+		var status string
+		var abortURL sql.NullString
+		var hijackURL sql.NullString
+		err := rows.Scan(&id, &name, &jobName, &status, &abortURL, &hijackURL)
+		if err != nil {
+			return nil, err
+		}
+
+		bs = append(bs, builds.Build{
+			ID:        id,
+			Name:      name,
+			Status:    builds.Status(status),
+			JobName:   jobName.String,
+			AbortURL:  abortURL.String,
+			HijackURL: hijackURL.String,
+		})
+	}
+
+	return bs, nil
+}
+
 func (db *sqldb) GetBuild(buildID int) (builds.Build, error) {
 	var name string
 	var jobName sql.NullString

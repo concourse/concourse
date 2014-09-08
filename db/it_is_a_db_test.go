@@ -89,15 +89,19 @@ func itIsADB() {
 		Ω(build.AbortURL).Should(Equal("some-abort-url"))
 		Ω(build.HijackURL).Should(Equal("some-hijack-url"))
 
-		builds, err = db.GetAllJobBuilds("some-job")
+		allJobBuilds, err := db.GetAllJobBuilds("some-job")
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(builds).Should(HaveLen(2))
-		Ω(builds[0].Name).Should(Equal(pending.Name))
-		Ω(builds[0].JobName).Should(Equal("some-job"))
-		Ω(builds[0].Status).Should(Equal(Builds.StatusPending))
-		Ω(builds[1].Name).Should(Equal(build.Name))
-		Ω(builds[1].JobName).Should(Equal("some-job"))
-		Ω(builds[1].Status).Should(Equal(Builds.StatusStarted))
+		Ω(allJobBuilds).Should(HaveLen(2))
+		Ω(allJobBuilds[0].Name).Should(Equal(pending.Name))
+		Ω(allJobBuilds[0].JobName).Should(Equal("some-job"))
+		Ω(allJobBuilds[0].Status).Should(Equal(Builds.StatusPending))
+		Ω(allJobBuilds[1].Name).Should(Equal(build.Name))
+		Ω(allJobBuilds[1].JobName).Should(Equal("some-job"))
+		Ω(allJobBuilds[1].Status).Should(Equal(Builds.StatusStarted))
+
+		allBuilds, err := db.GetAllBuilds()
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(allBuilds).Should(Equal(allJobBuilds))
 
 		err = db.SaveBuildStatus(build.ID, Builds.StatusSucceeded)
 		Ω(err).ShouldNot(HaveOccurred())
@@ -166,6 +170,10 @@ func itIsADB() {
 		Ω(nextOneOff.JobName).Should(BeZero())
 		Ω(nextOneOff.Name).Should(Equal("2"))
 		Ω(nextOneOff.Status).Should(Equal(Builds.StatusPending))
+
+		allBuilds, err := db.GetAllBuilds()
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(allBuilds).Should(Equal([]Builds.Build{nextOneOff, jobBuild, oneOff}))
 	})
 
 	Describe("saving build inputs", func() {

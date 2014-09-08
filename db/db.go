@@ -10,6 +10,7 @@ type DB interface {
 	RegisterResource(name string) error
 
 	GetBuild(buildID int) (builds.Build, error)
+	GetAllBuilds() ([]builds.Build, error)
 
 	GetJobBuild(job string, build string) (builds.Build, error)
 	GetAllJobBuilds(job string) ([]builds.Build, error)

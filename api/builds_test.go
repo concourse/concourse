@@ -100,6 +100,43 @@ var _ = Describe("Builds API", func() {
 		})
 	})
 
+	Describe("GET /api/v1/builds", func() {
+		var response *http.Response
+
+		JustBeforeEach(func() {
+			var err error
+
+			response, err = client.Get(server.URL + "/api/v1/builds")
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		Context("when getting all builds succeeds", func() {
+			BeforeEach(func() {
+				buildsDB.GetAllBuildsReturns([]builds.Build{
+					{ID: 2, Status: builds.StatusStarted},
+					{ID: 1, Status: builds.StatusSucceeded},
+				}, nil)
+			})
+
+			It("returns 200 OK", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+			})
+
+			It("returns all builds", func() {
+			})
+		})
+
+		Context("when getting all builds fails", func() {
+			BeforeEach(func() {
+				buildsDB.GetAllBuildsReturns(nil, errors.New("oh no!"))
+			})
+
+			It("returns 500 Internal Server Error", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+			})
+		})
+	})
+
 	Describe("GET /api/v1/builds/:build_id/events", func() {
 		var conn *websocket.Conn
 
