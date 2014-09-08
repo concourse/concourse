@@ -111,11 +111,15 @@ var _ = Describe("Builds API", func() {
 		})
 
 		Context("when getting all builds succeeds", func() {
+			var returnedBuilds []builds.Build
+
 			BeforeEach(func() {
-				buildsDB.GetAllBuildsReturns([]builds.Build{
+				returnedBuilds = []builds.Build{
 					{ID: 2, Status: builds.StatusStarted},
 					{ID: 1, Status: builds.StatusSucceeded},
-				}, nil)
+				}
+
+				buildsDB.GetAllBuildsReturns(returnedBuilds, nil)
 			})
 
 			It("returns 200 OK", func() {
@@ -123,6 +127,11 @@ var _ = Describe("Builds API", func() {
 			})
 
 			It("returns all builds", func() {
+				var builds []builds.Build
+				err := json.NewDecoder(response.Body).Decode(&builds)
+                Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(builds).Should(Equal(returnedBuilds))
 			})
 		})
 

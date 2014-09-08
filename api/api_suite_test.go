@@ -11,14 +11,16 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/concourse/atc/api"
-	"github.com/concourse/atc/api/buildserver/fakes"
+	buildfakes "github.com/concourse/atc/api/buildserver/fakes"
+	jobfakes "github.com/concourse/atc/api/jobserver/fakes"
 	"github.com/concourse/atc/builder/fakebuilder"
 	"github.com/concourse/atc/logfanout"
 	logfakes "github.com/concourse/atc/logfanout/fakes"
 )
 
 var (
-	buildsDB     *fakes.FakeBuildsDB
+	buildsDB     *buildfakes.FakeBuildsDB
+	jobsDB       *jobfakes.FakeJobsDB
 	logDB        *logfakes.FakeLogDB
 	builder      *fakebuilder.FakeBuilder
 	tracker      *logfanout.Tracker
@@ -30,7 +32,8 @@ var (
 )
 
 var _ = BeforeEach(func() {
-	buildsDB = new(fakes.FakeBuildsDB)
+	buildsDB = new(buildfakes.FakeBuildsDB)
+	jobsDB = new(jobfakes.FakeJobsDB)
 	logDB = new(logfakes.FakeLogDB)
 	builder = new(fakebuilder.FakeBuilder)
 	tracker = logfanout.NewTracker(logDB)
@@ -40,6 +43,7 @@ var _ = BeforeEach(func() {
 	handler, err := api.NewHandler(
 		lagertest.NewTestLogger("callbacks"),
 		buildsDB,
+		jobsDB,
 		builder,
 		tracker,
 		pingInterval,
