@@ -110,32 +110,49 @@ var _ = Describe("Callbacks", func() {
 				Ω(status).Should(Equal(builds.StatusStarted))
 			})
 
-			It("saves the build's inputs", func() {
-				Ω(buildDB.SaveBuildInputCallCount()).Should(Equal(2))
+			Context("when the build is for a job ", func() {
+				BeforeEach(func() {
+					buildDB.GetBuildReturns(builds.Build{ID: 42, JobName: "some-job"}, nil)
+				})
 
-				id, input := buildDB.SaveBuildInputArgsForCall(0)
-				Ω(id).Should(Equal(42))
-				Ω(input).Should(Equal(builds.VersionedResource{
-					Name:    "input-only-resource",
-					Type:    "git",
-					Source:  builds.Source{"input-source": "some-source"},
-					Version: builds.Version{"version": "input-version"},
-					Metadata: []builds.MetadataField{
-						{Name: "input-meta", Value: "some-value"},
-					},
-				}))
+				It("saves the build's inputs", func() {
+					Ω(buildDB.SaveBuildInputCallCount()).Should(Equal(2))
 
-				id, input = buildDB.SaveBuildInputArgsForCall(1)
-				Ω(id).Should(Equal(42))
-				Ω(input).Should(Equal(builds.VersionedResource{
-					Name:    "input-and-output-resource",
-					Type:    "git",
-					Source:  builds.Source{"input-and-output-source": "some-source"},
-					Version: builds.Version{"version": "input-and-output-version"},
-					Metadata: []builds.MetadataField{
-						{Name: "input-and-output-meta", Value: "some-value"},
-					},
-				}))
+					id, input := buildDB.SaveBuildInputArgsForCall(0)
+					Ω(id).Should(Equal(42))
+					Ω(input).Should(Equal(builds.VersionedResource{
+						Name:    "input-only-resource",
+						Type:    "git",
+						Source:  builds.Source{"input-source": "some-source"},
+						Version: builds.Version{"version": "input-version"},
+						Metadata: []builds.MetadataField{
+							{Name: "input-meta", Value: "some-value"},
+						},
+					}))
+
+					id, input = buildDB.SaveBuildInputArgsForCall(1)
+					Ω(id).Should(Equal(42))
+					Ω(input).Should(Equal(builds.VersionedResource{
+						Name:    "input-and-output-resource",
+						Type:    "git",
+						Source:  builds.Source{"input-and-output-source": "some-source"},
+						Version: builds.Version{"version": "input-and-output-version"},
+						Metadata: []builds.MetadataField{
+							{Name: "input-and-output-meta", Value: "some-value"},
+						},
+					}))
+				})
+			})
+
+			Context("when the build is not for a job (i.e. one-off)", func() {
+				BeforeEach(func() {
+					buildDB.GetBuildReturns(builds.Build{ID: 42}, nil)
+				})
+
+				It("does not save any output versions", func() {
+					Ω(buildDB.SaveBuildInputCallCount()).Should(BeZero())
+					Ω(buildDB.SaveBuildOutputCallCount()).Should(BeZero())
+				})
 			})
 		})
 
@@ -175,52 +192,69 @@ var _ = Describe("Callbacks", func() {
 				Ω(status).Should(Equal(builds.StatusSucceeded))
 			})
 
-			It("saves each input and output version", func() {
-				Ω(buildDB.SaveBuildOutputCallCount()).Should(Equal(3))
+			Context("when the build is for a job", func() {
+				BeforeEach(func() {
+					buildDB.GetBuildReturns(builds.Build{ID: 42, JobName: "some-job"}, nil)
+				})
 
-				savedOutputs := []builds.VersionedResource{}
+				It("saves each output version", func() {
+					Ω(buildDB.SaveBuildOutputCallCount()).Should(Equal(3))
 
-				id, vr := buildDB.SaveBuildOutputArgsForCall(0)
-				Ω(id).Should(Equal(42))
-				savedOutputs = append(savedOutputs, vr)
+					savedOutputs := []builds.VersionedResource{}
 
-				id, vr = buildDB.SaveBuildOutputArgsForCall(1)
-				Ω(id).Should(Equal(42))
-				savedOutputs = append(savedOutputs, vr)
+					id, vr := buildDB.SaveBuildOutputArgsForCall(0)
+					Ω(id).Should(Equal(42))
+					savedOutputs = append(savedOutputs, vr)
 
-				id, vr = buildDB.SaveBuildOutputArgsForCall(2)
-				Ω(id).Should(Equal(42))
-				savedOutputs = append(savedOutputs, vr)
+					id, vr = buildDB.SaveBuildOutputArgsForCall(1)
+					Ω(id).Should(Equal(42))
+					savedOutputs = append(savedOutputs, vr)
 
-				Ω(savedOutputs).Should(ContainElement(builds.VersionedResource{
-					Name:    "input-only-resource",
-					Type:    "git",
-					Source:  builds.Source{"input-source": "some-source"},
-					Version: builds.Version{"version": "input-version"},
-					Metadata: []builds.MetadataField{
-						{Name: "input-meta", Value: "some-value"},
-					},
-				}))
+					id, vr = buildDB.SaveBuildOutputArgsForCall(2)
+					Ω(id).Should(Equal(42))
+					savedOutputs = append(savedOutputs, vr)
 
-				Ω(savedOutputs).Should(ContainElement(builds.VersionedResource{
-					Name:    "input-and-output-resource",
-					Type:    "git",
-					Source:  builds.Source{"input-and-output-source": "some-source"},
-					Version: builds.Version{"version": "new-input-and-output-version"},
-					Metadata: []builds.MetadataField{
-						{Name: "input-and-output-meta", Value: "some-value"},
-					},
-				}))
+					Ω(savedOutputs).Should(ContainElement(builds.VersionedResource{
+						Name:    "input-only-resource",
+						Type:    "git",
+						Source:  builds.Source{"input-source": "some-source"},
+						Version: builds.Version{"version": "input-version"},
+						Metadata: []builds.MetadataField{
+							{Name: "input-meta", Value: "some-value"},
+						},
+					}))
 
-				Ω(savedOutputs).Should(ContainElement(builds.VersionedResource{
-					Name:    "output-only-resource",
-					Type:    "git",
-					Source:  builds.Source{"output-source": "some-source"},
-					Version: builds.Version{"version": "output-version"},
-					Metadata: []builds.MetadataField{
-						{Name: "output-meta", Value: "some-value"},
-					},
-				}))
+					Ω(savedOutputs).Should(ContainElement(builds.VersionedResource{
+						Name:    "input-and-output-resource",
+						Type:    "git",
+						Source:  builds.Source{"input-and-output-source": "some-source"},
+						Version: builds.Version{"version": "new-input-and-output-version"},
+						Metadata: []builds.MetadataField{
+							{Name: "input-and-output-meta", Value: "some-value"},
+						},
+					}))
+
+					Ω(savedOutputs).Should(ContainElement(builds.VersionedResource{
+						Name:    "output-only-resource",
+						Type:    "git",
+						Source:  builds.Source{"output-source": "some-source"},
+						Version: builds.Version{"version": "output-version"},
+						Metadata: []builds.MetadataField{
+							{Name: "output-meta", Value: "some-value"},
+						},
+					}))
+				})
+			})
+
+			Context("when the build is not for a job (i.e. one-off)", func() {
+				BeforeEach(func() {
+					buildDB.GetBuildReturns(builds.Build{ID: 42}, nil)
+				})
+
+				It("does not save any output versions", func() {
+					Ω(buildDB.SaveBuildInputCallCount()).Should(BeZero())
+					Ω(buildDB.SaveBuildOutputCallCount()).Should(BeZero())
+				})
 			})
 		})
 

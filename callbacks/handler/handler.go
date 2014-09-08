@@ -8,6 +8,7 @@ import (
 )
 
 type BuildDB interface {
+	GetBuild(build int) (builds.Build, error)
 	SaveBuildStatus(build int, status builds.Status) error
 	SaveBuildInput(build int, input builds.VersionedResource) error
 	SaveBuildOutput(build int, output builds.VersionedResource) error

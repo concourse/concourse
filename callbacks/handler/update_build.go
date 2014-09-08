@@ -55,7 +55,18 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 
 	err = handler.buildDB.SaveBuildStatus(buildID, status)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		log.Error("failed-to-save-build-status", err)
+		return
+	}
+
+	build, err := handler.buildDB.GetBuild(buildID)
+	if err != nil {
+		log.Error("failed-to-get-build", err)
+		return
+	}
+
+	if build.JobName == "" {
+		// one-off build; don't care about its inputs or outputs
 		return
 	}
 
@@ -90,8 +101,6 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func vrFromInput(input TurbineBuilds.Input) builds.VersionedResource {

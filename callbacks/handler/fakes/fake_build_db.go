@@ -9,6 +9,15 @@ import (
 )
 
 type FakeBuildDB struct {
+	GetBuildStub        func(build int) (builds.Build, error)
+	getBuildMutex       sync.RWMutex
+	getBuildArgsForCall []struct {
+		build int
+	}
+	getBuildReturns struct {
+		result1 builds.Build
+		result2 error
+	}
 	SaveBuildStatusStub        func(build int, status builds.Status) error
 	saveBuildStatusMutex       sync.RWMutex
 	saveBuildStatusArgsForCall []struct {
@@ -36,6 +45,39 @@ type FakeBuildDB struct {
 	saveBuildOutputReturns struct {
 		result1 error
 	}
+}
+
+func (fake *FakeBuildDB) GetBuild(build int) (builds.Build, error) {
+	fake.getBuildMutex.Lock()
+	fake.getBuildArgsForCall = append(fake.getBuildArgsForCall, struct {
+		build int
+	}{build})
+	fake.getBuildMutex.Unlock()
+	if fake.GetBuildStub != nil {
+		return fake.GetBuildStub(build)
+	} else {
+		return fake.getBuildReturns.result1, fake.getBuildReturns.result2
+	}
+}
+
+func (fake *FakeBuildDB) GetBuildCallCount() int {
+	fake.getBuildMutex.RLock()
+	defer fake.getBuildMutex.RUnlock()
+	return len(fake.getBuildArgsForCall)
+}
+
+func (fake *FakeBuildDB) GetBuildArgsForCall(i int) int {
+	fake.getBuildMutex.RLock()
+	defer fake.getBuildMutex.RUnlock()
+	return fake.getBuildArgsForCall[i].build
+}
+
+func (fake *FakeBuildDB) GetBuildReturns(result1 builds.Build, result2 error) {
+	fake.GetBuildStub = nil
+	fake.getBuildReturns = struct {
+		result1 builds.Build
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeBuildDB) SaveBuildStatus(build int, status builds.Status) error {
