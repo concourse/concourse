@@ -402,19 +402,19 @@ func (db *sqldb) CreateOneOffBuild() (builds.Build, error) {
 
 func (db *sqldb) ScheduleBuild(buildID int, serial bool) (bool, error) {
 	result, err := db.conn.Exec(`
-		UPDATE builds
+		UPDATE builds AS b
 		SET scheduled = true
 
 		-- only the given build
-		WHERE id = $1
-		AND status = 'pending'
+		WHERE b.id = $1
+		AND b.status = 'pending'
 
 		-- if serial, only if it's the nextmost pending
 		AND (
 			NOT $2 OR id IN (
 				SELECT p.id
 				FROM builds p
-				WHERE p.job_name = job_name
+				WHERE p.job_name = b.job_name
 				AND p.status = 'pending'
 				ORDER BY p.id ASC
 				LIMIT 1
@@ -426,7 +426,7 @@ func (db *sqldb) ScheduleBuild(buildID int, serial bool) (bool, error) {
 			$2 AND EXISTS (
 				SELECT 1
 				FROM builds s
-				WHERE s.job_name = job_name
+				WHERE s.job_name = b.job_name
 				AND (s.status = 'started' OR (s.status = 'pending' AND s.scheduled = true))
 			)
 		)

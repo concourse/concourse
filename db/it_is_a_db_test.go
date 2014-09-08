@@ -692,123 +692,152 @@ func itIsADB() {
 			})
 		})
 
-		Context("and second build is created", func() {
+		Context("and a second build is created", func() {
 			var secondBuild Builds.Build
 
-			BeforeEach(func() {
-				var err error
-
-				secondBuild, err = db.CreateJobBuild(job)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(secondBuild.Name).Should(Equal("2"))
-				Ω(secondBuild.Status).Should(Equal(Builds.StatusPending))
-			})
-
-			Describe("scheduling the second build", func() {
-				It("succeeds", func() {
-					scheduled, err := db.ScheduleBuild(secondBuild.ID, false)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(scheduled).Should(BeTrue())
-				})
-
-				Context("with serial true", func() {
-					It("fails", func() {
-						scheduled, err := db.ScheduleBuild(secondBuild.ID, true)
-						Ω(err).ShouldNot(HaveOccurred())
-						Ω(scheduled).Should(BeFalse())
-					})
-				})
-			})
-
-			Describe("after the first build schedules", func() {
-				BeforeEach(func() {
-					scheduled, err := db.ScheduleBuild(firstBuild.ID, false)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(scheduled).Should(BeTrue())
-				})
-
-				Context("when the second build is scheduled serially", func() {
-					It("fails", func() {
-						scheduled, err := db.ScheduleBuild(secondBuild.ID, true)
-						Ω(err).ShouldNot(HaveOccurred())
-						Ω(scheduled).Should(BeFalse())
-					})
-				})
-
-				for _, s := range []Builds.Status{Builds.StatusSucceeded, Builds.StatusFailed, Builds.StatusErrored} {
-					status := s
-
-					Context("and the first build's status changes to "+string(status), func() {
-						BeforeEach(func() {
-							err := db.SaveBuildStatus(firstBuild.ID, status)
-							Ω(err).ShouldNot(HaveOccurred())
-						})
-
-						Context("and the second build is scheduled serially", func() {
-							It("succeeds", func() {
-								scheduled, err := db.ScheduleBuild(secondBuild.ID, true)
-								Ω(err).ShouldNot(HaveOccurred())
-								Ω(scheduled).Should(BeTrue())
-							})
-						})
-					})
-				}
-			})
-
-			Describe("after the first build is aborted", func() {
-				BeforeEach(func() {
-					_, err := db.AbortBuild(firstBuild.ID)
-					Ω(err).ShouldNot(HaveOccurred())
-				})
-
-				Context("when the second build is scheduled serially", func() {
-					It("succeeds", func() {
-						scheduled, err := db.ScheduleBuild(secondBuild.ID, true)
-						Ω(err).ShouldNot(HaveOccurred())
-						Ω(scheduled).Should(BeTrue())
-					})
-				})
-			})
-
-			Context("and a third build is created", func() {
-				var thirdBuild Builds.Build
-
+			Context("for a different job", func() {
 				BeforeEach(func() {
 					var err error
 
-					thirdBuild, err = db.CreateJobBuild(job)
+					secondBuild, err = db.CreateJobBuild("some-other-job")
 					Ω(err).ShouldNot(HaveOccurred())
-					Ω(thirdBuild.Name).Should(Equal("3"))
-					Ω(thirdBuild.Status).Should(Equal(Builds.StatusPending))
+					Ω(secondBuild.Name).Should(Equal("1"))
+					Ω(secondBuild.Status).Should(Equal(Builds.StatusPending))
 				})
 
-				Context("and the first build finishes", func() {
-					BeforeEach(func() {
-						err := db.SaveBuildStatus(firstBuild.ID, Builds.StatusSucceeded)
+				Describe("scheduling the second build", func() {
+					It("succeeds", func() {
+						scheduled, err := db.ScheduleBuild(secondBuild.ID, false)
 						Ω(err).ShouldNot(HaveOccurred())
+						Ω(scheduled).Should(BeTrue())
 					})
 
-					Context("and the third build is scheduled serially", func() {
-						It("fails, as it would have jumped the queue", func() {
-							scheduled, err := db.ScheduleBuild(thirdBuild.ID, true)
+					Describe("serially", func() {
+						It("succeeds", func() {
+							scheduled, err := db.ScheduleBuild(secondBuild.ID, true)
+							Ω(err).ShouldNot(HaveOccurred())
+							Ω(scheduled).Should(BeTrue())
+						})
+					})
+				})
+			})
+
+			Context("for the same job", func() {
+				BeforeEach(func() {
+					var err error
+
+					secondBuild, err = db.CreateJobBuild(job)
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(secondBuild.Name).Should(Equal("2"))
+					Ω(secondBuild.Status).Should(Equal(Builds.StatusPending))
+				})
+
+				Describe("scheduling the second build", func() {
+					It("succeeds", func() {
+						scheduled, err := db.ScheduleBuild(secondBuild.ID, false)
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(scheduled).Should(BeTrue())
+					})
+
+					Describe("serially", func() {
+						It("fails", func() {
+							scheduled, err := db.ScheduleBuild(secondBuild.ID, true)
 							Ω(err).ShouldNot(HaveOccurred())
 							Ω(scheduled).Should(BeFalse())
 						})
 					})
 				})
 
-				Context("and then scheduled", func() {
-					It("succeeds", func() {
-						scheduled, err := db.ScheduleBuild(thirdBuild.ID, false)
+				Describe("after the first build schedules", func() {
+					BeforeEach(func() {
+						scheduled, err := db.ScheduleBuild(firstBuild.ID, false)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeTrue())
 					})
 
-					Context("with serial true", func() {
+					Context("when the second build is scheduled serially", func() {
 						It("fails", func() {
-							scheduled, err := db.ScheduleBuild(thirdBuild.ID, true)
+							scheduled, err := db.ScheduleBuild(secondBuild.ID, true)
 							Ω(err).ShouldNot(HaveOccurred())
 							Ω(scheduled).Should(BeFalse())
+						})
+					})
+
+					for _, s := range []Builds.Status{Builds.StatusSucceeded, Builds.StatusFailed, Builds.StatusErrored} {
+						status := s
+
+						Context("and the first build's status changes to "+string(status), func() {
+							BeforeEach(func() {
+								err := db.SaveBuildStatus(firstBuild.ID, status)
+								Ω(err).ShouldNot(HaveOccurred())
+							})
+
+							Context("and the second build is scheduled serially", func() {
+								It("succeeds", func() {
+									scheduled, err := db.ScheduleBuild(secondBuild.ID, true)
+									Ω(err).ShouldNot(HaveOccurred())
+									Ω(scheduled).Should(BeTrue())
+								})
+							})
+						})
+					}
+				})
+
+				Describe("after the first build is aborted", func() {
+					BeforeEach(func() {
+						_, err := db.AbortBuild(firstBuild.ID)
+						Ω(err).ShouldNot(HaveOccurred())
+					})
+
+					Context("when the second build is scheduled serially", func() {
+						It("succeeds", func() {
+							scheduled, err := db.ScheduleBuild(secondBuild.ID, true)
+							Ω(err).ShouldNot(HaveOccurred())
+							Ω(scheduled).Should(BeTrue())
+						})
+					})
+				})
+
+				Context("and a third build is created", func() {
+					var thirdBuild Builds.Build
+
+					BeforeEach(func() {
+						var err error
+
+						thirdBuild, err = db.CreateJobBuild(job)
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(thirdBuild.Name).Should(Equal("3"))
+						Ω(thirdBuild.Status).Should(Equal(Builds.StatusPending))
+					})
+
+					Context("and the first build finishes", func() {
+						BeforeEach(func() {
+							err := db.SaveBuildStatus(firstBuild.ID, Builds.StatusSucceeded)
+							Ω(err).ShouldNot(HaveOccurred())
+						})
+
+						Context("and the third build is scheduled serially", func() {
+							It("fails, as it would have jumped the queue", func() {
+								scheduled, err := db.ScheduleBuild(thirdBuild.ID, true)
+								Ω(err).ShouldNot(HaveOccurred())
+								Ω(scheduled).Should(BeFalse())
+							})
+						})
+					})
+
+					Context("and then scheduled", func() {
+						It("succeeds", func() {
+							scheduled, err := db.ScheduleBuild(thirdBuild.ID, false)
+							Ω(err).ShouldNot(HaveOccurred())
+							Ω(scheduled).Should(BeTrue())
+						})
+
+						Describe("serially", func() {
+							It("fails", func() {
+								scheduled, err := db.ScheduleBuild(thirdBuild.ID, true)
+								Ω(err).ShouldNot(HaveOccurred())
+								Ω(scheduled).Should(BeFalse())
+							})
 						})
 					})
 				})
