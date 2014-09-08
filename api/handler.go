@@ -34,7 +34,8 @@ func NewHandler(
 		AbortBuild:  http.HandlerFunc(buildServer.AbortBuild),
 		HijackBuild: http.HandlerFunc(buildServer.HijackBuild),
 
-		GetJobBuild: http.HandlerFunc(jobServer.GetJobBuild),
+		ListJobBuilds: http.HandlerFunc(jobServer.ListJobBuilds),
+		GetJobBuild:   http.HandlerFunc(jobServer.GetJobBuild),
 
 		CreatePipe: http.HandlerFunc(pipeServer.CreatePipe),
 		WritePipe:  http.HandlerFunc(pipeServer.WritePipe),

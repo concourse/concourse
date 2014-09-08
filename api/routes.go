@@ -9,7 +9,8 @@ const (
 	AbortBuild  = "AbortBuild"
 	HijackBuild = "HijackBuild"
 
-	GetJobBuild = "GetJobBuild"
+	ListJobBuilds = "ListJobBuilds"
+	GetJobBuild   = "GetJobBuild"
 
 	CreatePipe = "CreatePipe"
 	WritePipe  = "WritePipe"
@@ -25,6 +26,7 @@ var Routes = rata.Routes{
 	{Path: "/api/v1/builds/:build_id/abort", Method: "POST", Name: AbortBuild},
 	{Path: "/api/v1/builds/:build_id/hijack", Method: "POST", Name: HijackBuild},
 
+	{Path: "/api/v1/jobs/:job_name/builds", Method: "GET", Name: ListJobBuilds},
 	{Path: "/api/v1/jobs/:job_name/builds/:build_name", Method: "GET", Name: GetJobBuild},
 
 	{Path: "/api/v1/pipes", Method: "POST", Name: CreatePipe},

@@ -14,6 +14,7 @@ type Server struct {
 
 type JobsDB interface {
 	GetJobBuild(job string, build string) (builds.Build, error)
+	GetAllJobBuilds(job string) ([]builds.Build, error)
 }
 
 func NewServer(
