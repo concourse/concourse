@@ -23,9 +23,9 @@ import (
 )
 
 var (
-	externalAddr  string
-	wardenBinPath string
-	helperRootfs  string
+	externalAddress string
+	wardenBinPath   string
+	helperRootfs    string
 
 	builtComponents map[string]string
 
@@ -76,8 +76,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 })
 
 var _ = BeforeEach(func() {
-	externalAddr = os.Getenv("EXTERNAL_ADDRESS")
-	Ω(externalAddr).ShouldNot(BeEmpty(), "must specify $EXTERNAL_ADDRESS")
+	externalAddress = os.Getenv("EXTERNAL_ADDRESS")
+	Ω(externalAddress).ShouldNot(BeEmpty(), "must specify $EXTERNAL_ADDRESS")
 
 	archiveResourceRootfs := os.Getenv("ARCHIVE_RESOURCE_ROOTFS")
 	Ω(archiveResourceRootfs).ShouldNot(BeEmpty(), "must specify $ARCHIVE_RESOURCE_ROOTFS")
@@ -128,7 +128,7 @@ var _ = BeforeEach(func() {
 		AnsiColorCode: "34m",
 		Command: exec.Command(
 			builtComponents["atc"],
-			"-externalIP", externalAddr,
+			"-externalAddress", externalAddress,
 			"-pipeline", atcPipelineFilePath,
 			"-templates", filepath.Join(atcDir, "web", "templates"),
 			"-public", filepath.Join(atcDir, "web", "public"),
