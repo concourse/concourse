@@ -284,4 +284,6 @@ builds:
     version: 0.7.0-rc.29
   2c2fafca-08b9-41aa-a5df-a7608d0633f2:
     version: 0.7.0-rc.30
+  8bc9087b-98f4-4b09-8106-88d11dcc82fc:
+    version: 0.7.0-rc.31
 format-version: '2'
