@@ -12,12 +12,13 @@ import (
 	"net/http/httputil"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"github.com/cloudfoundry-incubator/garden/warden"
-	"github.com/concourse/glider/api/builds"
-	"github.com/concourse/glider/routes"
-	TurbineHijack "github.com/concourse/turbine/api/hijack"
+	"github.com/concourse/atc/api"
+	"github.com/concourse/atc/builds"
+	thijack "github.com/concourse/turbine/api/hijack"
 	"github.com/kr/pty"
 	"github.com/pkg/term"
 	"github.com/tedsuo/rata"
@@ -61,7 +62,7 @@ func hijack(reqGenerator *rata.RequestGenerator) {
 	}
 
 	buildsReq, err := reqGenerator.CreateRequest(
-		routes.GetBuilds,
+		api.ListBuilds,
 		nil,
 		nil,
 	)
@@ -93,8 +94,8 @@ func hijack(reqGenerator *rata.RequestGenerator) {
 	}
 
 	hijackReq, err := reqGenerator.CreateRequest(
-		routes.HijackBuild,
-		rata.Params{"guid": build.Guid},
+		api.HijackBuild,
+		rata.Params{"build_id": strconv.Itoa(build.ID)},
 		bytes.NewBuffer(payload),
 	)
 	if err != nil {
@@ -103,7 +104,7 @@ func hijack(reqGenerator *rata.RequestGenerator) {
 
 	conn, err := net.Dial("tcp", hijackReq.URL.Host)
 	if err != nil {
-		log.Fatalln("failed to dial glider:", err)
+		log.Fatalln("failed to dial hijack endpoint:", err)
 	}
 
 	client := httputil.NewClientConn(conn, nil)
@@ -154,7 +155,7 @@ func hijack(reqGenerator *rata.RequestGenerator) {
 func sendSize(enc *gob.Encoder) {
 	rows, cols, err := pty.Getsize(os.Stdin)
 	if err == nil {
-		enc.Encode(TurbineHijack.ProcessPayload{
+		enc.Encode(thijack.ProcessPayload{
 			TTYSpec: &warden.TTYSpec{
 				WindowSize: &warden.WindowSize{
 					Columns: cols,
@@ -170,7 +171,7 @@ type stdinWriter struct {
 }
 
 func (w *stdinWriter) Write(d []byte) (int, error) {
-	err := w.enc.Encode(TurbineHijack.ProcessPayload{
+	err := w.enc.Encode(thijack.ProcessPayload{
 		Stdin: d,
 	})
 	if err != nil {
