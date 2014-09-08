@@ -12,8 +12,6 @@ jobs:
     templates:
       - name: atc
         release: concourse
-      - name: glider
-        release: concourse
       - name: consul-agent
         release: concourse
     instances: 1
@@ -36,7 +34,6 @@ jobs:
           mode: server
           services:
             - name: atc
-            - name: glider
 
   - name: postgresql
     templates:

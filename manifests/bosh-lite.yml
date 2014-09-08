@@ -26,8 +26,6 @@ jobs:
     templates:
       - name: atc
         release: concourse
-      - name: glider
-        release: concourse
       - name: consul-agent
         release: concourse
     resource_pool: concourse
@@ -58,7 +56,6 @@ jobs:
           mode: server
           services:
             - name: atc
-            - name: glider
 
   - name: db
     instances: 1

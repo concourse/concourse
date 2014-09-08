@@ -1,8 +1,0 @@
----
-name: glider
-
-dependencies:
-  - golang_1.3
-
-files:
-  - glider/**/*.go

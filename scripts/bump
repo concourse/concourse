@@ -7,10 +7,6 @@ pushd atc/
   export ATC_SHA=$(git rev-parse HEAD)
 popd
 
-pushd glider/
-  export GLIDER_SHA=$(git rev-parse HEAD)
-popd
-
 pushd turbine/
   export TURBINE_SHA=$(git rev-parse HEAD)
 popd
@@ -31,10 +27,6 @@ git submodule update --remote
 
 pushd src/atc/
   git checkout $ATC_SHA
-popd
-
-pushd src/glider/
-  git checkout $GLIDER_SHA
 popd
 
 pushd src/turbine/

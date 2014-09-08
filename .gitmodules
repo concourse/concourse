@@ -10,7 +10,3 @@
 	path = src/atc
 	url = https://github.com/concourse/atc.git
 	branch = master
-[submodule "src/glider"]
-	path = src/glider
-	url = https://github.com/concourse/glider.git
-	branch = master

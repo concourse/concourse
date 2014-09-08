@@ -40,8 +40,6 @@ jobs:
     release: concourse
   - name: turbine
     release: concourse
-  - name: glider
-    release: concourse
   - name: postgresql
     release: concourse
   - name: warden
@@ -67,7 +65,6 @@ jobs:
         services:
           - name: atc
           - name: turbine
-          - name: glider
           - name: postgresql
           - name: warden
 
