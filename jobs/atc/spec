@@ -11,13 +11,13 @@ packages:
   - atc
 
 properties:
-  atc.listen_address:
-    description: "listening address"
-    default: 0.0.0.0:8080
+  atc.web_listen_port:
+    description: "port for the web server to listen on"
+    default: 8080
 
-  atc.api_listen_address:
-    description: "api listening address"
-    default: 0.0.0.0:8081
+  atc.web_listen_address:
+    description: "address for the web server to listen on"
+    default: 0.0.0.0
 
   atc.basic_auth_username:
     description: "username for http basic auth"
