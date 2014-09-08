@@ -280,4 +280,6 @@ builds:
     version: 0.7.0-rc.27
   8bf60b8d-be05-4dbd-823f-36a467c152d5:
     version: 0.7.0-rc.28
+  0e06e459-ba39-4ae2-a1d8-a4aee6c66618:
+    version: 0.7.0-rc.29
 format-version: '2'
