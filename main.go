@@ -2,12 +2,11 @@ package main
 
 import (
 	"flag"
-
 	"os"
 
 	"github.com/tedsuo/rata"
 
-	"github.com/concourse/glider/routes"
+	"github.com/concourse/atc/api"
 )
 
 var buildConfig = flag.String(
@@ -22,25 +21,25 @@ var buildDir = flag.String(
 	"source directory to build",
 )
 
-var gliderURL = flag.String(
-	"gliderURL",
-	"http://127.0.0.1:5637",
-	"address denoting the glider service (can also set $GLIDER_URL)",
+var atcURL = flag.String(
+	"atcURL",
+	"http://127.0.0.1:8080",
+	"address of the ATC to use",
 )
 
-var glider string
+var atc string
 
 func main() {
 	flag.Parse()
 
-	envGlider := os.Getenv("GLIDER_URL")
-	if envGlider != "" {
-		glider = envGlider
+	envATC := os.Getenv("ATC_URL")
+	if envATC != "" {
+		atc = envATC
 	} else {
-		glider = *gliderURL
+		atc = *atcURL
 	}
 
-	reqGenerator := rata.NewRequestGenerator(glider, routes.Routes)
+	reqGenerator := rata.NewRequestGenerator(atc, api.Routes)
 
 	if len(os.Args) == 1 {
 		execute(reqGenerator)

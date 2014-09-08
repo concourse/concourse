@@ -17,8 +17,8 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 
-	"github.com/concourse/glider/api/builds"
-	TurbineBuilds "github.com/concourse/turbine/api/builds"
+	"github.com/concourse/atc/api/pipes"
+	tbuilds "github.com/concourse/turbine/api/builds"
 	"github.com/concourse/turbine/event"
 )
 
@@ -33,7 +33,7 @@ var _ = Describe("Fly CLI", func() {
 	var flyPath string
 	var buildDir string
 
-	var gliderServer *ghttp.Server
+	var atcServer *ghttp.Server
 	var streaming chan *websocket.Conn
 	var uploadingBits <-chan struct{}
 
@@ -63,9 +63,9 @@ run:
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		gliderServer = ghttp.NewServer()
+		atcServer = ghttp.NewServer()
 
-		os.Setenv("GLIDER_URL", gliderServer.URL())
+		os.Setenv("ATC_URL", atcServer.URL())
 	})
 
 	BeforeEach(func() {
@@ -74,43 +74,44 @@ run:
 		uploading := make(chan struct{})
 		uploadingBits = uploading
 
-		gliderServer.AppendHandlers(
+		atcServer.AppendHandlers(
 			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("POST", "/builds"),
-				ghttp.VerifyJSONRepresenting(builds.Build{
-					Name: filepath.Base(buildDir),
-					Config: TurbineBuilds.Config{
+				ghttp.VerifyRequest("POST", "/api/v1/pipes"),
+				ghttp.RespondWithJSONEncoded(http.StatusCreated, pipes.Pipe{
+					ID:       "some-pipe-id",
+					PeerAddr: "127.0.0.1:1234",
+				}),
+			),
+			ghttp.CombineHandlers(
+				ghttp.VerifyRequest("POST", "/api/v1/builds"),
+				ghttp.VerifyJSONRepresenting(tbuilds.Build{
+					Config: tbuilds.Config{
 						Image: "ubuntu",
 						Params: map[string]string{
 							"FOO": "bar",
 							"BAZ": "buzz",
 							"X":   "1",
 						},
-						Run: TurbineBuilds.RunConfig{
+						Run: tbuilds.RunConfig{
 							Path: "find",
 							Args: []string{"."},
 						},
 					},
-				}),
-				ghttp.RespondWith(201, `{
-					"guid": "abc",
-					"path": "some-path/",
-					"config": {
-						"image": "ubuntu",
-						"run": {
-							"path": "find",
-							"args": ["."]
+
+					Inputs: []tbuilds.Input{
+						{
+							Name: filepath.Base(buildDir),
+							Type: "archive",
+							Source: tbuilds.Source{
+								"uri": "http://127.0.0.1:1234/api/v1/pipes/some-pipe-id",
+							},
 						},
-						"params": {
-							"FOO": "bar",
-							"BAZ": "buzz",
-							"X": "1"
-						}
-					}
-				}`),
+					},
+				}),
+				ghttp.RespondWith(201, `{"id":128}`),
 			),
 			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("GET", "/builds/abc/log/output"),
+				ghttp.VerifyRequest("GET", "/api/v1/builds/128/events"),
 				func(w http.ResponseWriter, r *http.Request) {
 					upgrader := websocket.Upgrader{
 						CheckOrigin: func(r *http.Request) bool {
@@ -129,7 +130,7 @@ run:
 				},
 			),
 			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("POST", "/builds/abc/bits"),
+				ghttp.VerifyRequest("PUT", "/api/v1/pipes/some-pipe-id"),
 				func(w http.ResponseWriter, req *http.Request) {
 					close(uploading)
 
@@ -148,7 +149,7 @@ run:
 
 					Ω(hdr.Name).Should(MatchRegexp("(./)?build.yml$"))
 				},
-				ghttp.RespondWith(201, `{"guid":"abc","image":"ubuntu","script":"find ."}`),
+				ghttp.RespondWith(200, ""),
 			),
 		)
 	})
@@ -173,47 +174,41 @@ run:
 
 	Context("when arguments are passed through", func() {
 		BeforeEach(func() {
-			gliderServer.SetHandler(
-				0,
+			atcServer.SetHandler(
+				1,
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/builds"),
-					ghttp.VerifyJSONRepresenting(builds.Build{
-						Name: filepath.Base(buildDir),
-						Config: TurbineBuilds.Config{
+					ghttp.VerifyRequest("POST", "/api/v1/builds"),
+					ghttp.VerifyJSONRepresenting(tbuilds.Build{
+						Config: tbuilds.Config{
 							Image: "ubuntu",
 							Params: map[string]string{
 								"FOO": "bar",
 								"BAZ": "buzz",
 								"X":   "1",
 							},
-							Run: TurbineBuilds.RunConfig{
+							Run: tbuilds.RunConfig{
 								Path: "find",
 								Args: []string{".", "-name", `foo "bar" baz`},
 							},
 						},
-					}),
-					ghttp.RespondWith(201, `{
-					"guid": "abc",
-					"path": "some-path/",
-					"config": {
-						"image": "ubuntu",
-						"run": {
-							"path": "find",
-							"args": [".", "-name", "foo \"bar\" baz"]
+
+						Inputs: []tbuilds.Input{
+							{
+								Name: filepath.Base(buildDir),
+								Type: "archive",
+								Source: tbuilds.Source{
+									"uri": "http://127.0.0.1:1234/api/v1/pipes/some-pipe-id",
+								},
+							},
 						},
-						"params": {
-							"FOO": "bar",
-							"BAZ": "buzz",
-							"X": "1"
-						}
-					}
-				}`),
+					}),
+					ghttp.RespondWith(201, `{"id":128}`),
 				),
 			)
 		})
 
 		It("inserts them into the config template", func() {
-			gliderServer.AllowUnhandledRequests = true
+			atcServer.AllowUnhandledRequests = true
 
 			flyCmd := exec.Command(flyPath, "--", "-name", "foo \"bar\" baz")
 			flyCmd.Dir = buildDir
@@ -228,47 +223,41 @@ run:
 
 	Context("when paramters are specified in the environment", func() {
 		BeforeEach(func() {
-			gliderServer.SetHandler(
-				0,
+			atcServer.SetHandler(
+				1,
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/builds"),
-					ghttp.VerifyJSONRepresenting(builds.Build{
-						Name: filepath.Base(buildDir),
-						Config: TurbineBuilds.Config{
+					ghttp.VerifyRequest("POST", "/api/v1/builds"),
+					ghttp.VerifyJSONRepresenting(tbuilds.Build{
+						Config: tbuilds.Config{
 							Image: "ubuntu",
 							Params: map[string]string{
 								"FOO": "newbar",
 								"BAZ": "buzz",
 								"X":   "",
 							},
-							Run: TurbineBuilds.RunConfig{
+							Run: tbuilds.RunConfig{
 								Path: "find",
 								Args: []string{"."},
 							},
 						},
-					}),
-					ghttp.RespondWith(201, `{
-					"guid": "abc",
-					"path": "some-path/",
-					"config": {
-						"image": "ubuntu",
-						"run": {
-							"path": "find",
-							"args": ["."]
+
+						Inputs: []tbuilds.Input{
+							{
+								Name: filepath.Base(buildDir),
+								Type: "archive",
+								Source: tbuilds.Source{
+									"uri": "http://127.0.0.1:1234/api/v1/pipes/some-pipe-id",
+								},
+							},
 						},
-						"params": {
-							"FOO": "newbar",
-							"BAZ": "buzz",
-							"X": ""
-						}
-					}
-				}`),
+					}),
+					ghttp.RespondWith(201, `{"id":128}`),
 				),
 			)
 		})
 
 		It("overrides the build's paramter values", func() {
-			gliderServer.AllowUnhandledRequests = true
+			atcServer.AllowUnhandledRequests = true
 
 			flyCmd := exec.Command(flyPath)
 			flyCmd.Dir = buildDir
@@ -288,9 +277,9 @@ run:
 		BeforeEach(func() {
 			aborted = make(chan struct{})
 
-			gliderServer.AppendHandlers(
+			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/builds/abc/abort"),
+					ghttp.VerifyRequest("POST", "/api/v1/builds/128/abort"),
 					func(w http.ResponseWriter, r *http.Request) {
 						close(aborted)
 					},
@@ -316,7 +305,7 @@ run:
 				Eventually(aborted, 5.0).Should(BeClosed())
 
 				err = stream.WriteJSON(event.Message{
-					event.Status{Status: TurbineBuilds.StatusErrored},
+					event.Status{Status: tbuilds.StatusErrored},
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
@@ -342,7 +331,7 @@ run:
 				Eventually(aborted, 5.0).Should(BeClosed())
 
 				err = stream.WriteJSON(event.Message{
-					event.Status{Status: TurbineBuilds.StatusErrored},
+					event.Status{Status: tbuilds.StatusErrored},
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
@@ -363,7 +352,7 @@ run:
 			Eventually(streaming, 5).Should(Receive(&stream))
 
 			err = stream.WriteJSON(event.Message{
-				event.Status{Status: TurbineBuilds.StatusSucceeded},
+				event.Status{Status: tbuilds.StatusSucceeded},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
@@ -383,7 +372,7 @@ run:
 			Eventually(streaming, 5).Should(Receive(&stream))
 
 			err = stream.WriteJSON(event.Message{
-				event.Status{Status: TurbineBuilds.StatusFailed},
+				event.Status{Status: tbuilds.StatusFailed},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
@@ -403,7 +392,7 @@ run:
 			Eventually(streaming, 5).Should(Receive(&stream))
 
 			err = stream.WriteJSON(event.Message{
-				event.Status{Status: TurbineBuilds.StatusErrored},
+				event.Status{Status: tbuilds.StatusErrored},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
