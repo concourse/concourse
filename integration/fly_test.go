@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/gorilla/websocket"
 	. "github.com/onsi/ginkgo"
@@ -37,8 +38,11 @@ var _ = Describe("Fly CLI", func() {
 	var streaming chan *websocket.Conn
 	var uploadingBits <-chan struct{}
 
+	var expectedTurbineBuild tbuilds.Build
+
 	BeforeEach(func() {
 		var err error
+
 		flyPath, err = gexec.Build("github.com/concourse/fly")
 		Ω(err).ShouldNot(HaveOccurred())
 
@@ -66,11 +70,36 @@ run:
 		atcServer = ghttp.NewServer()
 
 		os.Setenv("ATC_URL", atcServer.URL())
-	})
 
-	BeforeEach(func() {
 		streaming = make(chan *websocket.Conn, 1)
 
+		expectedTurbineBuild = tbuilds.Build{
+			Config: tbuilds.Config{
+				Image: "ubuntu",
+				Params: map[string]string{
+					"FOO": "bar",
+					"BAZ": "buzz",
+					"X":   "1",
+				},
+				Run: tbuilds.RunConfig{
+					Path: "find",
+					Args: []string{"."},
+				},
+			},
+
+			Inputs: []tbuilds.Input{
+				{
+					Name: filepath.Base(buildDir),
+					Type: "archive",
+					Source: tbuilds.Source{
+						"uri": "http://127.0.0.1:1234/api/v1/pipes/some-pipe-id",
+					},
+				},
+			},
+		}
+	})
+
+	JustBeforeEach(func() {
 		uploading := make(chan struct{})
 		uploadingBits = uploading
 
@@ -84,30 +113,15 @@ run:
 			),
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/builds"),
-				ghttp.VerifyJSONRepresenting(tbuilds.Build{
-					Config: tbuilds.Config{
-						Image: "ubuntu",
-						Params: map[string]string{
-							"FOO": "bar",
-							"BAZ": "buzz",
-							"X":   "1",
-						},
-						Run: tbuilds.RunConfig{
-							Path: "find",
-							Args: []string{"."},
-						},
-					},
-
-					Inputs: []tbuilds.Input{
-						{
-							Name: filepath.Base(buildDir),
-							Type: "archive",
-							Source: tbuilds.Source{
-								"uri": "http://127.0.0.1:1234/api/v1/pipes/some-pipe-id",
-							},
-						},
-					},
-				}),
+				ghttp.VerifyJSONRepresenting(expectedTurbineBuild),
+				func(w http.ResponseWriter, r *http.Request) {
+					http.SetCookie(w, &http.Cookie{
+						Name:    "Some-Cookie",
+						Value:   "some-cookie-data",
+						Path:    "/",
+						Expires: time.Now().Add(1 * time.Minute),
+					})
+				},
 				ghttp.RespondWith(201, `{"id":128}`),
 			),
 			ghttp.CombineHandlers(
@@ -119,6 +133,10 @@ run:
 							return true
 						},
 					}
+
+					cookie, err := r.Cookie("Some-Cookie")
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(cookie.Value).Should(Equal("some-cookie-data"))
 
 					conn, err := upgrader.Upgrade(w, r, nil)
 					Ω(err).ShouldNot(HaveOccurred())
@@ -174,37 +192,7 @@ run:
 
 	Context("when arguments are passed through", func() {
 		BeforeEach(func() {
-			atcServer.SetHandler(
-				1,
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/api/v1/builds"),
-					ghttp.VerifyJSONRepresenting(tbuilds.Build{
-						Config: tbuilds.Config{
-							Image: "ubuntu",
-							Params: map[string]string{
-								"FOO": "bar",
-								"BAZ": "buzz",
-								"X":   "1",
-							},
-							Run: tbuilds.RunConfig{
-								Path: "find",
-								Args: []string{".", "-name", `foo "bar" baz`},
-							},
-						},
-
-						Inputs: []tbuilds.Input{
-							{
-								Name: filepath.Base(buildDir),
-								Type: "archive",
-								Source: tbuilds.Source{
-									"uri": "http://127.0.0.1:1234/api/v1/pipes/some-pipe-id",
-								},
-							},
-						},
-					}),
-					ghttp.RespondWith(201, `{"id":128}`),
-				),
-			)
+			expectedTurbineBuild.Config.Run.Args = []string{".", "-name", `foo "bar" baz`}
 		})
 
 		It("inserts them into the config template", func() {
@@ -223,37 +211,11 @@ run:
 
 	Context("when paramters are specified in the environment", func() {
 		BeforeEach(func() {
-			atcServer.SetHandler(
-				1,
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/api/v1/builds"),
-					ghttp.VerifyJSONRepresenting(tbuilds.Build{
-						Config: tbuilds.Config{
-							Image: "ubuntu",
-							Params: map[string]string{
-								"FOO": "newbar",
-								"BAZ": "buzz",
-								"X":   "",
-							},
-							Run: tbuilds.RunConfig{
-								Path: "find",
-								Args: []string{"."},
-							},
-						},
-
-						Inputs: []tbuilds.Input{
-							{
-								Name: filepath.Base(buildDir),
-								Type: "archive",
-								Source: tbuilds.Source{
-									"uri": "http://127.0.0.1:1234/api/v1/pipes/some-pipe-id",
-								},
-							},
-						},
-					}),
-					ghttp.RespondWith(201, `{"id":128}`),
-				),
-			)
+			expectedTurbineBuild.Config.Params = map[string]string{
+				"FOO": "newbar",
+				"BAZ": "buzz",
+				"X":   "",
+			}
 		})
 
 		It("overrides the build's paramter values", func() {
@@ -274,7 +236,7 @@ run:
 	Context("when the build is interrupted", func() {
 		var aborted chan struct{}
 
-		BeforeEach(func() {
+		JustBeforeEach(func() {
 			aborted = make(chan struct{})
 
 			atcServer.AppendHandlers(

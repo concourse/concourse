@@ -36,7 +36,7 @@ func execute(reqGenerator *rata.RequestGenerator) {
 
 	pipe := createPipe(reqGenerator)
 
-	build := createBuild(
+	build, cookies := createBuild(
 		reqGenerator,
 		pipe,
 		loadConfig(absConfig),
@@ -59,8 +59,17 @@ func execute(reqGenerator *rata.RequestGenerator) {
 	}
 
 	logOutput.URL.Scheme = "ws"
+	logOutput.URL.User = nil
 
-	conn, res, err := websocket.DefaultDialer.Dial(logOutput.URL.String(), nil)
+	cookieHeaders := []string{}
+	for _, cookie := range cookies {
+		cookieHeaders = append(cookieHeaders, cookie.String())
+	}
+
+	conn, res, err := websocket.DefaultDialer.Dial(
+		logOutput.URL.String(),
+		http.Header{"Cookie": cookieHeaders},
+	)
 	if err != nil {
 		log.Println("failed to stream output:", err, res)
 		os.Exit(1)
@@ -139,7 +148,7 @@ func createBuild(
 	pipe pipes.Pipe,
 	config tbuilds.Config,
 	name string,
-) builds.Build {
+) (builds.Build, []*http.Cookie) {
 	readPipe, err := reqGenerator.CreateRequest(
 		api.ReadPipe,
 		rata.Params{"pipe_id": pipe.ID},
@@ -197,7 +206,7 @@ func createBuild(
 		log.Fatalln("response decoding failed:", err)
 	}
 
-	return build
+	return build, response.Cookies()
 }
 
 func abortOnSignal(
