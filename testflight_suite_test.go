@@ -3,7 +3,6 @@ package testflight_test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -118,16 +117,11 @@ var _ = BeforeEach(func() {
 		StartCheckTimeout: 30 * time.Second,
 	}
 
-	postgresRunner := postgresrunner.Runner{
+	postgresRunner = postgresrunner.Runner{
 		Port: 5433 + GinkgoParallelNode(),
 	}
 
-	atcPipelineFile, err := ioutil.TempFile("", "atc-pipeline")
-	Ω(err).ShouldNot(HaveOccurred())
-
-	atcPipelineFilePath = atcPipelineFile.Name()
-
-	atcPipelineFile.Close()
+	atcPipelineFilePath = fmt.Sprintf("/tmp/atc-pipeline-%d", GinkgoParallelNode())
 
 	atcRunner = &ginkgomon.Runner{
 		Name:          "atc",
