@@ -87,7 +87,6 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 			err = handler.buildDB.SaveBuildOutput(buildID, vrFromInput(input))
 			if err != nil {
 				log.Error("failed-to-save-output-version", err)
-				w.WriteHeader(http.StatusInternalServerError)
 			}
 		}
 	}
