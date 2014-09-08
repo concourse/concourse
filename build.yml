@@ -5,7 +5,6 @@ paths:
   testflight: gopath/src/github.com/concourse/testflight
   atc: gopath/src/github.com/concourse/atc
   turbine: gopath/src/github.com/concourse/turbine
-  glider: gopath/src/github.com/concourse/glider
   fly: gopath/src/github.com/concourse/fly
   warden-linux: gopath/src/github.com/cloudfoundry-incubator/warden-linux
 

@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"github.com/tedsuo/ifrit"
 )
 
 var _ = Describe("Flying", func() {
@@ -21,6 +22,11 @@ var _ = Describe("Flying", func() {
 
 	BeforeEach(func() {
 		var err error
+
+		writeATCPipeline("noop.yml", nil)
+
+		atcProcess = ifrit.Envoke(atcRunner)
+		Consistently(atcProcess.Wait(), 1*time.Second).ShouldNot(Receive())
 
 		tmpdir, err = ioutil.TempDir("", "fly-test")
 		Ω(err).ShouldNot(HaveOccurred())

@@ -3,15 +3,18 @@ package testflight_test
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"syscall"
 	"testing"
+	"text/template"
 	"time"
 
 	"github.com/cloudfoundry-incubator/garden/warden"
 	WardenRunner "github.com/cloudfoundry-incubator/warden-linux/integration/runner"
+	"github.com/concourse/atc/postgresrunner"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -20,19 +23,24 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 )
 
-var externalAddr string
+var (
+	externalAddr  string
+	wardenBinPath string
+	helperRootfs  string
 
-var processes ifrit.Process
-var wardenClient warden.Client
+	builtComponents map[string]string
 
-var fixturesDir = "./fixtures"
-var atcDir string
+	atcDir              string
+	atcPipelineFilePath string
+	atcRunner           ifrit.Runner
 
-var builtComponents map[string]string
+	postgresRunner postgresrunner.Runner
 
-var wardenBinPath string
+	plumbing     ifrit.Process
+	wardenClient warden.Client
 
-var helperRootfs string
+	atcProcess ifrit.Process
+)
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	wardenBinPath = os.Getenv("WARDEN_BINPATH")
@@ -46,9 +54,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	atcBin, err := buildWithGodeps("github.com/concourse/atc", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
-	gliderBin, err := buildWithGodeps("github.com/concourse/glider", "-race")
-	Ω(err).ShouldNot(HaveOccurred())
-
 	flyBin, err := buildWithGodeps("github.com/concourse/fly", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
@@ -58,7 +63,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	components, err := json.Marshal(map[string]string{
 		"turbine":      turbineBin,
 		"atc":          atcBin,
-		"glider":       gliderBin,
 		"fly":          flyBin,
 		"warden-linux": wardenLinuxBin,
 	})
@@ -114,45 +118,89 @@ var _ = BeforeEach(func() {
 		StartCheckTimeout: 30 * time.Second,
 	}
 
-	gliderRunner := &ginkgomon.Runner{
-		Name:          "glider",
-		AnsiColorCode: "32m",
-		Command: exec.Command(
-			builtComponents["glider"],
-			"-peerAddr", externalAddr+":5637",
-		),
-		StartCheck: "listening",
+	postgresRunner := postgresrunner.Runner{
+		Port: 5433 + GinkgoParallelNode(),
 	}
 
-	processes = grouper.EnvokeGroup(grouper.RunGroup{
+	atcPipelineFile, err := ioutil.TempFile("", "atc-pipeline")
+	Ω(err).ShouldNot(HaveOccurred())
+
+	atcPipelineFilePath = atcPipelineFile.Name()
+
+	atcPipelineFile.Close()
+
+	atcRunner = &ginkgomon.Runner{
+		Name:          "atc",
+		AnsiColorCode: "34m",
+		Command: exec.Command(
+			builtComponents["atc"],
+			"-externalIP", externalAddr,
+			"-pipeline", atcPipelineFilePath,
+			"-templates", filepath.Join(atcDir, "web", "templates"),
+			"-public", filepath.Join(atcDir, "web", "public"),
+			"-sqlDataSource", postgresRunner.DataSourceName(),
+			"-checkInterval", "5s",
+		),
+		StartCheck:        "listening",
+		StartCheckTimeout: 5 * time.Second,
+	}
+
+	os.Setenv("ATC_URL", "http://127.0.0.1:8080")
+
+	plumbing = grouper.EnvokeGroup(grouper.RunGroup{
 		"turbine":      turbineRunner,
-		"glider":       gliderRunner,
 		"warden-linux": wardenRunner,
+		"postgres":     postgresRunner,
 	})
 
-	Consistently(processes.Wait(), 1*time.Second).ShouldNot(Receive())
+	Consistently(plumbing.Wait(), 1*time.Second).ShouldNot(Receive())
 
-	os.Setenv("GLIDER_URL", "http://127.0.0.1:5637")
+	postgresRunner.CreateTestDB()
 })
 
 var _ = AfterEach(func() {
-	processes.Signal(syscall.SIGINT)
+	stopProcess(atcProcess)
 
-	select {
-	case <-processes.Wait():
-	case <-time.After(10 * time.Second):
-		println("!!!!!!!!!!!!!!!!!!!!!!!!!!!! EXIT TIMEOUT")
+	postgresRunner.DropTestDB()
 
-		processes.Signal(syscall.SIGQUIT)
-		Eventually(processes.Wait(), 10*time.Second).Should(Receive())
+	stopProcess(plumbing)
 
-		Fail("processes did not exit within 10s; SIGQUIT sent")
-	}
+	err := os.Remove(atcPipelineFilePath)
+	Ω(err).ShouldNot(HaveOccurred())
 })
 
 func TestTestFlight(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "TestFlight Suite")
+}
+
+func stopProcess(process ifrit.Process) {
+	process.Signal(syscall.SIGINT)
+
+	select {
+	case <-process.Wait():
+	case <-time.After(10 * time.Second):
+		println("!!!!!!!!!!!!!!!!!!!!!!!!!!!! EXIT TIMEOUT")
+
+		process.Signal(syscall.SIGQUIT)
+		Eventually(process.Wait(), 10*time.Second).Should(Receive())
+
+		Fail("processes did not exit within 10s; SIGQUIT sent")
+	}
+}
+
+func writeATCPipeline(templateName string, templateData interface{}) {
+	gitPipelineTemplate, err := template.ParseFiles("pipelines/" + templateName)
+	Ω(err).ShouldNot(HaveOccurred())
+
+	atcPipelineFile, err := os.Create(atcPipelineFilePath)
+	Ω(err).ShouldNot(HaveOccurred())
+
+	err = gitPipelineTemplate.Execute(atcPipelineFile, templateData)
+	Ω(err).ShouldNot(HaveOccurred())
+
+	err = atcPipelineFile.Close()
+	Ω(err).ShouldNot(HaveOccurred())
 }
 
 func findSource(pkg string) string {
