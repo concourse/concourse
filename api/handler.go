@@ -28,6 +28,7 @@ func NewHandler(
 		CreateBuild: http.HandlerFunc(buildsServer.CreateBuild),
 		BuildEvents: http.HandlerFunc(buildsServer.BuildEvents),
 		AbortBuild:  http.HandlerFunc(buildsServer.AbortBuild),
+		HijackBuild: http.HandlerFunc(buildsServer.HijackBuild),
 
 		CreatePipe: http.HandlerFunc(pipeServer.CreatePipe),
 		WritePipe:  http.HandlerFunc(pipeServer.WritePipe),

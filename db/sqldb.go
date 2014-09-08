@@ -50,7 +50,7 @@ func (db *sqldb) RegisterResource(name string) error {
 
 func (db *sqldb) GetAllJobBuilds(job string) ([]builds.Build, error) {
 	rows, err := db.conn.Query(`
-		SELECT id, name, status, abort_url
+		SELECT id, name, status, abort_url, hijack_url
 		FROM builds
 		WHERE job_name = $1
 		ORDER BY id DESC
@@ -68,17 +68,19 @@ func (db *sqldb) GetAllJobBuilds(job string) ([]builds.Build, error) {
 		var name string
 		var status string
 		var abortURL sql.NullString
-		err := rows.Scan(&id, &name, &status, &abortURL)
+		var hijackURL sql.NullString
+		err := rows.Scan(&id, &name, &status, &abortURL, &hijackURL)
 		if err != nil {
 			return nil, err
 		}
 
 		bs = append(bs, builds.Build{
-			ID:       id,
-			Name:     name,
-			Status:   builds.Status(status),
-			JobName:  job,
-			AbortURL: abortURL.String,
+			ID:        id,
+			Name:      name,
+			Status:    builds.Status(status),
+			JobName:   job,
+			AbortURL:  abortURL.String,
+			HijackURL: hijackURL.String,
 		})
 	}
 
@@ -90,22 +92,24 @@ func (db *sqldb) GetBuild(buildID int) (builds.Build, error) {
 	var jobName sql.NullString
 	var status string
 	var abortURL sql.NullString
+	var hijackURL sql.NullString
 
 	err := db.conn.QueryRow(`
-		SELECT name, job_name, status, abort_url
+		SELECT name, job_name, status, abort_url, hijack_url
 		FROM builds
 		WHERE id = $1
-	`, buildID).Scan(&name, &jobName, &status, &abortURL)
+	`, buildID).Scan(&name, &jobName, &status, &abortURL, &hijackURL)
 	if err != nil {
 		return builds.Build{}, err
 	}
 
 	return builds.Build{
-		ID:       buildID,
-		Name:     name,
-		JobName:  jobName.String,
-		Status:   builds.Status(status),
-		AbortURL: abortURL.String,
+		ID:        buildID,
+		Name:      name,
+		JobName:   jobName.String,
+		Status:    builds.Status(status),
+		AbortURL:  abortURL.String,
+		HijackURL: hijackURL.String,
 	}, nil
 }
 
@@ -113,23 +117,25 @@ func (db *sqldb) GetJobBuild(job string, name string) (builds.Build, error) {
 	var id int
 	var status string
 	var abortURL sql.NullString
+	var hijackURL sql.NullString
 
 	err := db.conn.QueryRow(`
-		SELECT id, status, abort_url
+		SELECT id, status, abort_url, hijack_url
 		FROM builds
 		WHERE job_name = $1
 		AND name = $2
-	`, job, name).Scan(&id, &status, &abortURL)
+	`, job, name).Scan(&id, &status, &abortURL, &hijackURL)
 	if err != nil {
 		return builds.Build{}, err
 	}
 
 	return builds.Build{
-		ID:       id,
-		Name:     name,
-		JobName:  job,
-		Status:   builds.Status(status),
-		AbortURL: abortURL.String,
+		ID:        id,
+		Name:      name,
+		JobName:   job,
+		Status:    builds.Status(status),
+		AbortURL:  abortURL.String,
+		HijackURL: hijackURL.String,
 	}, nil
 }
 
@@ -245,9 +251,10 @@ func (db *sqldb) GetCurrentBuild(job string) (builds.Build, error) {
 	var name string
 	var status string
 	var abortURL sql.NullString
+	var hijackURL sql.NullString
 
 	rows, err := db.conn.Query(`
-		SELECT id, name, status, abort_url
+		SELECT id, name, status, abort_url, hijack_url
 		FROM builds
 		WHERE job_name = $1
 		AND status != 'pending'
@@ -262,7 +269,7 @@ func (db *sqldb) GetCurrentBuild(job string) (builds.Build, error) {
 
 	if !rows.Next() {
 		rows, err = db.conn.Query(`
-			SELECT id, name, status, abort_url
+			SELECT id, name, status, abort_url, hijack_url
 			FROM builds
 			WHERE job_name = $1
 			AND status = 'pending'
@@ -278,17 +285,18 @@ func (db *sqldb) GetCurrentBuild(job string) (builds.Build, error) {
 		rows.Next()
 	}
 
-	err = rows.Scan(&id, &name, &status, &abortURL)
+	err = rows.Scan(&id, &name, &status, &abortURL, &hijackURL)
 	if err != nil {
 		return builds.Build{}, err
 	}
 
 	return builds.Build{
-		ID:       id,
-		Name:     name,
-		JobName:  job,
-		Status:   builds.Status(status),
-		AbortURL: abortURL.String,
+		ID:        id,
+		Name:      name,
+		JobName:   job,
+		Status:    builds.Status(status),
+		AbortURL:  abortURL.String,
+		HijackURL: hijackURL.String,
 	}, nil
 }
 
@@ -396,13 +404,13 @@ func (db *sqldb) ScheduleBuild(buildID int, serial bool) (bool, error) {
 	return rows == 1, nil
 }
 
-func (db *sqldb) StartBuild(buildID int, abortURL string) (bool, error) {
+func (db *sqldb) StartBuild(buildID int, abortURL, hijackURL string) (bool, error) {
 	result, err := db.conn.Exec(`
 		UPDATE builds
-		SET status = 'started', abort_url = $2
+		SET status = 'started', abort_url = $2, hijack_url = $3
 		WHERE id = $1
 		AND status = 'pending'
-	`, buildID, abortURL)
+	`, buildID, abortURL, hijackURL)
 	if err != nil {
 		return false, err
 	}
@@ -840,7 +848,8 @@ func (db *sqldb) GetNextPendingBuild(job string) (builds.Build, builds.Versioned
 
 func (db *sqldb) GetResourceHistory(resource string) ([]*VersionHistory, error) {
 	rows, err := db.conn.Query(`
-		SELECT v.id, v.resource_name, v.type, v.version, v.source, v.metadata, b.id, b.job_name, b.name, b.status, b.abort_url
+		SELECT v.id, v.resource_name, v.type, v.version, v.source, v.metadata,
+					 b.id, b.job_name, b.name, b.status, b.abort_url, b.hijack_url
 		FROM versioned_resources v, builds b
 		WHERE v.resource_name = $1
 		AND (
@@ -869,12 +878,13 @@ func (db *sqldb) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 		var buildName string
 		var buildStatus string
 		var buildAbortURL sql.NullString
+		var buildHijackURL sql.NullString
 
 		var versionString, sourceString, metadataString string
 
 		err := rows.Scan(
 			&vrID, &vr.Name, &vr.Type, &versionString, &sourceString, &metadataString,
-			&buildID, &jobName, &buildName, &buildStatus, &buildAbortURL,
+			&buildID, &jobName, &buildName, &buildStatus, &buildAbortURL, &buildHijackURL,
 		)
 		if err != nil {
 			return nil, err
@@ -919,11 +929,12 @@ func (db *sqldb) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 		}
 
 		jh.Builds = append(jh.Builds, builds.Build{
-			ID:       buildID,
-			Name:     buildName,
-			JobName:  jobName,
-			Status:   builds.Status(buildStatus),
-			AbortURL: buildAbortURL.String,
+			ID:        buildID,
+			Name:      buildName,
+			JobName:   jobName,
+			Status:    builds.Status(buildStatus),
+			AbortURL:  buildAbortURL.String,
+			HijackURL: buildHijackURL.String,
 		})
 	}
 

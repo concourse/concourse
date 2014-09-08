@@ -9,4 +9,5 @@ var Migrations = []migration.Migrator{
 	RemoveTransitionalCurrentVersions,
 	NonNullableVersionInfo,
 	AddOneOffNameSequence,
+	AddHijackURLToBuilds,
 }

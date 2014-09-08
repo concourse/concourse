@@ -4,7 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
+	"net"
 	"net/http"
+	"net/http/httputil"
+	"sync"
 	"time"
 
 	tbuilds "github.com/concourse/turbine/api/builds"
@@ -214,6 +218,133 @@ var _ = Describe("Builds API", func() {
 
 			It("returns 500 Internal Server Error", func() {
 				Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+			})
+		})
+	})
+
+	Describe("POST /api/v1/builds/:build_id/hijack", func() {
+		var (
+			hijackTarget *ghttp.Server
+
+			response *http.Response
+
+			buildHijackConns   <-chan net.Conn
+			buildHijackReaders <-chan *gbytes.Buffer
+
+			clientConn   net.Conn
+			clientReader io.Reader
+		)
+
+		BeforeEach(func() {
+			hijackedConns := make(chan net.Conn, 1)
+			buildHijackConns = hijackedConns
+
+			hijackedReaders := make(chan *gbytes.Buffer, 1)
+			buildHijackReaders = hijackedReaders
+
+			hijackTarget = ghttp.NewServer()
+			hijackTarget.AppendHandlers(ghttp.CombineHandlers(
+				ghttp.VerifyRequest("POST", "/"),
+				func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(http.StatusOK)
+
+					conn, br, err := w.(http.Hijacker).Hijack()
+					Ω(err).ShouldNot(HaveOccurred())
+
+					defer conn.Close()
+
+					buf := gbytes.NewBuffer()
+
+					hijackedConns <- conn
+					hijackedReaders <- buf
+
+					io.Copy(buf, br)
+				},
+			))
+		})
+
+		JustBeforeEach(func() {
+			var err error
+
+			hijackReq, err := http.NewRequest("POST", server.URL+"/api/v1/builds/128/hijack", nil)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			conn, err := net.Dial("tcp", server.Listener.Addr().String())
+			Ω(err).ShouldNot(HaveOccurred())
+
+			client := httputil.NewClientConn(conn, nil)
+
+			response, err = client.Do(hijackReq)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			clientConn, clientReader = client.Hijack()
+		})
+
+		AfterEach(func() {
+			clientConn.Close()
+			hijackTarget.Close()
+		})
+
+		Context("when the build can be found", func() {
+			Context("and it has a hijack URL", func() {
+				BeforeEach(func() {
+					buildsDB.GetBuildReturns(builds.Build{
+						ID:        128,
+						HijackURL: hijackTarget.URL(),
+					}, nil)
+				})
+
+				It("proxies all traffic via a hijacked connection", func() {
+					var serverReceivedBuf *gbytes.Buffer
+					Eventually(buildHijackReaders).Should(Receive(&serverReceivedBuf))
+
+					var serverConnectedConn net.Conn
+					Eventually(buildHijackConns).Should(Receive(&serverConnectedConn))
+
+					clientReceivedBuf := gbytes.NewBuffer()
+
+					readingFromServer := new(sync.WaitGroup)
+					readingFromServer.Add(1)
+					go func() {
+						io.Copy(clientReceivedBuf, clientReader)
+						readingFromServer.Done()
+					}()
+
+					_, err := clientConn.Write([]byte("hello from client"))
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Eventually(serverReceivedBuf).Should(gbytes.Say("hello from client"))
+
+					_, err = serverConnectedConn.Write([]byte("hello from server"))
+					Ω(err).ShouldNot(HaveOccurred())
+
+					err = serverConnectedConn.Close()
+					Ω(err).ShouldNot(HaveOccurred())
+
+					readingFromServer.Wait()
+
+					Eventually(clientReceivedBuf).Should(gbytes.Say("hello from server"))
+				})
+			})
+
+			Context("but it does not have a hijack URL", func() {
+				BeforeEach(func() {
+					buildsDB.GetBuildReturns(builds.Build{ID: 128}, nil)
+				})
+
+				It("returns 400 Bad Request", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+				})
+			})
+		})
+
+		Context("when the build cannot be found", func() {
+			BeforeEach(func() {
+				buildsDB.GetBuildReturns(builds.Build{}, errors.New("oh no!"))
+			})
+
+			It("returns 404 Not Found", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
 			})
 		})
 	})

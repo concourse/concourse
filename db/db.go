@@ -23,7 +23,7 @@ type DB interface {
 	CreateOneOffBuild() (builds.Build, error)
 
 	ScheduleBuild(buildID int, serial bool) (bool, error)
-	StartBuild(buildID int, abortURL string) (bool, error)
+	StartBuild(buildID int, abortURL, hijackURL string) (bool, error)
 
 	BuildLog(buildID int) ([]byte, error)
 	AppendBuildLog(buildID int, log []byte) error

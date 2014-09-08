@@ -19,7 +19,7 @@ import (
 var ErrBadResponse = errors.New("bad response from turbine")
 
 type BuilderDB interface {
-	StartBuild(buildID int, abortURL string) (bool, error)
+	StartBuild(buildID int, abortURL, hijackURL string) (bool, error)
 }
 
 type Builder interface {
@@ -115,7 +115,7 @@ func (builder *builder) Build(build builds.Build, turbineBuild tbuilds.Build) er
 
 	resp.Body.Close()
 
-	started, err := builder.db.StartBuild(build.ID, startedBuild.AbortURL)
+	started, err := builder.db.StartBuild(build.ID, startedBuild.AbortURL, startedBuild.HijackURL)
 	if err != nil {
 		return err
 	}

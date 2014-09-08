@@ -20,7 +20,8 @@ type Build struct {
 
 	JobName string
 
-	AbortURL string
+	AbortURL  string
+	HijackURL string
 }
 
 type VersionedResources []VersionedResource

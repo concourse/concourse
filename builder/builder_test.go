@@ -70,6 +70,7 @@ var _ = Describe("Builder", func() {
 		createdBuild := build
 		createdBuild.Guid = "some-turbine-guid"
 		createdBuild.AbortURL = turbineServer.URL() + "/abort/the/build"
+		createdBuild.HijackURL = turbineServer.URL() + "/hijack/the/build"
 
 		return ghttp.CombineHandlers(
 			ghttp.VerifyJSONRepresenting(build),
@@ -77,7 +78,7 @@ var _ = Describe("Builder", func() {
 		)
 	}
 
-	It("starts the build and saves its abort url", func() {
+	It("starts the build and saves its abort and hijack urls", func() {
 		turbineServer.AppendHandlers(
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/builds"),
@@ -90,9 +91,10 @@ var _ = Describe("Builder", func() {
 
 		Ω(db.StartBuildCallCount()).Should(Equal(1))
 
-		buildID, abortURL := db.StartBuildArgsForCall(0)
+		buildID, abortURL, hijackURL := db.StartBuildArgsForCall(0)
 		Ω(buildID).Should(Equal(128))
 		Ω(abortURL).Should(ContainSubstring("/abort/the/build"))
+		Ω(hijackURL).Should(ContainSubstring("/hijack/the/build"))
 	})
 
 	Context("when the build fails to transition to started", func() {
