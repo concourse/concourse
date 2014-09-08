@@ -75,8 +75,8 @@ var sqlDataSource = flag.String(
 	"database/sql data source configuration string",
 )
 
-var externalIP = flag.String(
-	"externalIP",
+var externalAddress = flag.String(
+	"externalAddress",
 	"127.0.0.1",
 	"external IP of the ATC",
 )
@@ -199,8 +199,8 @@ func main() {
 		}
 	}
 
-	callbacksAddr := fmt.Sprintf("%s:%d", *externalIP, *callbacksListenPort)
-	webAddr := fmt.Sprintf("%s:%d", *externalIP, *webListenPort)
+	callbacksAddr := fmt.Sprintf("%s:%d", *externalAddress, *callbacksListenPort)
+	webAddr := fmt.Sprintf("%s:%d", *externalAddress, *webListenPort)
 
 	callbackEndpoint := rata.NewRequestGenerator("http://"+callbacksAddr, croutes.Routes)
 	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, troutes.Routes)
@@ -265,7 +265,7 @@ func main() {
 	}
 
 	webListenAddr := fmt.Sprintf("%s:%d", *webListenAddress, *webListenPort)
-	callbacksListenAddr := fmt.Sprintf("%s:%d", *externalIP, *callbacksListenPort)
+	callbacksListenAddr := fmt.Sprintf("%s:%d", *externalAddress, *callbacksListenPort)
 	debugListenAddr := fmt.Sprintf("%s:%d", *debugListenAddress, *debugListenPort)
 
 	group := grouper.RunGroup{
