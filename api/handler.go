@@ -11,20 +11,20 @@ import (
 	"github.com/concourse/atc/api/jobserver"
 	"github.com/concourse/atc/api/pipes"
 	"github.com/concourse/atc/builder"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/logfanout"
 )
 
 func NewHandler(
 	logger lager.Logger,
-	buildsDB buildserver.BuildsDB,
-	jobsDB jobserver.JobsDB,
+	db db.DB,
 	builder builder.Builder,
 	tracker *logfanout.Tracker,
 	pingInterval time.Duration,
 	peerAddr string,
 ) (http.Handler, error) {
-	buildServer := buildserver.NewServer(logger, buildsDB, builder, tracker, pingInterval)
-	jobServer := jobserver.NewServer(logger, jobsDB)
+	buildServer := buildserver.NewServer(logger, db, builder, tracker, pingInterval)
+	jobServer := jobserver.NewServer(logger, db)
 	pipeServer := pipes.NewServer(logger, peerAddr)
 
 	handlers := map[string]http.Handler{
