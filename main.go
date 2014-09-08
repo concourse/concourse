@@ -220,6 +220,7 @@ func main() {
 	apiHandler, err := api.NewHandler(
 		logger,
 		db,
+		db,
 		builder,
 		tracker,
 		5*time.Second,
