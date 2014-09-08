@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/gob"
 	"encoding/json"
 	"flag"
@@ -10,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"os"
 	"os/signal"
 	"strconv"
@@ -102,6 +104,11 @@ func hijack(reqGenerator *rata.RequestGenerator) {
 		log.Fatalln(err)
 	}
 
+	if hijackReq.URL.User != nil {
+		hijackReq.Header.Add("Authorization", basicAuth(hijackReq.URL.User))
+		hijackReq.URL.User = nil
+	}
+
 	conn, err := net.Dial("tcp", hijackReq.URL.Host)
 	if err != nil {
 		log.Fatalln("failed to dial hijack endpoint:", err)
@@ -179,4 +186,10 @@ func (w *stdinWriter) Write(d []byte) (int, error) {
 	}
 
 	return len(d), nil
+}
+
+func basicAuth(user *url.Userinfo) string {
+	username := user.Username()
+	password, _ := user.Password()
+	return "Basic " + base64.StdEncoding.EncodeToString([]byte(username+":"+password))
 }
