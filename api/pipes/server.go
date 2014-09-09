@@ -11,7 +11,7 @@ type Server struct {
 
 	peerAddr string
 
-	pipes  map[string]Pipe
+	pipes  map[string]pipe
 	pipesL *sync.RWMutex
 }
 
@@ -21,7 +21,7 @@ func NewServer(logger lager.Logger, peerAddr string) *Server {
 
 		peerAddr: peerAddr,
 
-		pipes:  make(map[string]Pipe),
+		pipes:  make(map[string]pipe),
 		pipesL: new(sync.RWMutex),
 	}
 }

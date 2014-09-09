@@ -6,6 +6,8 @@ import (
 	"net/http"
 
 	"github.com/nu7hatch/gouuid"
+
+	"github.com/concourse/atc/api/resources"
 )
 
 func (s *Server) CreatePipe(w http.ResponseWriter, r *http.Request) {
@@ -17,20 +19,23 @@ func (s *Server) CreatePipe(w http.ResponseWriter, r *http.Request) {
 
 	pr, pw := io.Pipe()
 
-	pipe := Pipe{
-		ID: guid.String(),
-
+	pipeResource := resources.Pipe{
+		ID:       guid.String(),
 		PeerAddr: s.peerAddr,
+	}
+
+	pipe := pipe{
+		resource: pipeResource,
 
 		read:  pr,
 		write: pw,
 	}
 
 	s.pipesL.Lock()
-	s.pipes[pipe.ID] = pipe
+	s.pipes[pipeResource.ID] = pipe
 	s.pipesL.Unlock()
 
 	w.WriteHeader(http.StatusCreated)
 
-	json.NewEncoder(w).Encode(pipe)
+	json.NewEncoder(w).Encode(pipeResource)
 }

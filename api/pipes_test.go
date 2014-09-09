@@ -10,11 +10,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/atc/api/pipes"
+	"github.com/concourse/atc/api/resources"
 )
 
 var _ = Describe("Pipes API", func() {
-	createPipe := func() pipes.Pipe {
+	createPipe := func() resources.Pipe {
 		req, err := http.NewRequest("POST", server.URL+"/api/v1/pipes", nil)
 		Ω(err).ShouldNot(HaveOccurred())
 
@@ -23,7 +23,7 @@ var _ = Describe("Pipes API", func() {
 
 		Ω(response.StatusCode).Should(Equal(http.StatusCreated))
 
-		var pipe pipes.Pipe
+		var pipe resources.Pipe
 		err = json.NewDecoder(response.Body).Decode(&pipe)
 		Ω(err).ShouldNot(HaveOccurred())
 
@@ -48,7 +48,7 @@ var _ = Describe("Pipes API", func() {
 	}
 
 	Describe("POST /api/v1/pipes", func() {
-		var pipe pipes.Pipe
+		var pipe resources.Pipe
 
 		JustBeforeEach(func() {
 			pipe = createPipe()

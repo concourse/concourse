@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/api/jobserver"
 	"github.com/concourse/atc/api/pipes"
+	"github.com/concourse/atc/api/routes"
 	"github.com/concourse/atc/builder"
 	"github.com/concourse/atc/logfanout"
 )
@@ -28,20 +29,20 @@ func NewHandler(
 	pipeServer := pipes.NewServer(logger, peerAddr)
 
 	handlers := map[string]http.Handler{
-		CreateBuild: http.HandlerFunc(buildServer.CreateBuild),
-		ListBuilds:  http.HandlerFunc(buildServer.ListBuilds),
-		BuildEvents: http.HandlerFunc(buildServer.BuildEvents),
-		AbortBuild:  http.HandlerFunc(buildServer.AbortBuild),
-		HijackBuild: http.HandlerFunc(buildServer.HijackBuild),
+		routes.CreateBuild: http.HandlerFunc(buildServer.CreateBuild),
+		routes.ListBuilds:  http.HandlerFunc(buildServer.ListBuilds),
+		routes.BuildEvents: http.HandlerFunc(buildServer.BuildEvents),
+		routes.AbortBuild:  http.HandlerFunc(buildServer.AbortBuild),
+		routes.HijackBuild: http.HandlerFunc(buildServer.HijackBuild),
 
-		ListJobBuilds:      http.HandlerFunc(jobServer.ListJobBuilds),
-		GetJobCurrentBuild: http.HandlerFunc(jobServer.GetJobCurrentBuild),
-		GetJobBuild:        http.HandlerFunc(jobServer.GetJobBuild),
+		routes.ListJobBuilds:      http.HandlerFunc(jobServer.ListJobBuilds),
+		routes.GetJobCurrentBuild: http.HandlerFunc(jobServer.GetJobCurrentBuild),
+		routes.GetJobBuild:        http.HandlerFunc(jobServer.GetJobBuild),
 
-		CreatePipe: http.HandlerFunc(pipeServer.CreatePipe),
-		WritePipe:  http.HandlerFunc(pipeServer.WritePipe),
-		ReadPipe:   http.HandlerFunc(pipeServer.ReadPipe),
+		routes.CreatePipe: http.HandlerFunc(pipeServer.CreatePipe),
+		routes.WritePipe:  http.HandlerFunc(pipeServer.WritePipe),
+		routes.ReadPipe:   http.HandlerFunc(pipeServer.ReadPipe),
 	}
 
-	return rata.NewRouter(Routes, handlers)
+	return rata.NewRouter(routes.Routes, handlers)
 }

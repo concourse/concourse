@@ -1,12 +1,14 @@
 package pipes
 
-import "io"
+import (
+	"io"
 
-type Pipe struct {
-	ID string `json:"id"`
+	"github.com/concourse/atc/api/resources"
+)
 
-	PeerAddr string `json:"peer_addr"`
+type pipe struct {
+	resource resources.Pipe
 
-	read  io.ReadCloser  `json:"-"`
-	write io.WriteCloser `json:"-"`
+	read  io.ReadCloser
+	write io.WriteCloser
 }
