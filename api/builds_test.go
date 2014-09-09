@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -52,7 +53,12 @@ var _ = Describe("Builds API", func() {
 
 		Context("when creating a one-off build succeeds", func() {
 			BeforeEach(func() {
-				buildsDB.CreateOneOffBuildReturns(builds.Build{ID: 42}, nil)
+				buildsDB.CreateOneOffBuildReturns(builds.Build{
+					ID:      42,
+					Name:    "1",
+					JobName: "job1",
+					Status:  builds.StatusStarted,
+				}, nil)
 			})
 
 			Context("and building succeeds", func() {
@@ -60,12 +66,11 @@ var _ = Describe("Builds API", func() {
 					Ω(response.StatusCode).Should(Equal(http.StatusCreated))
 				})
 
-				It("returns the build ID", func() {
-					var build builds.Build
-					err := json.NewDecoder(response.Body).Decode(&build)
+				It("returns the build", func() {
+					body, err := ioutil.ReadAll(response.Body)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(build.ID).ShouldNot(BeZero())
+					Ω(body).Should(MatchJSON(`{"id": 42, "name": "1", "job_name": "job1", "status": "started"}`))
 				})
 
 				It("executes a one-off build", func() {
@@ -73,7 +78,12 @@ var _ = Describe("Builds API", func() {
 
 					Ω(builder.BuildCallCount()).Should(Equal(1))
 					oneOff, tBuild := builder.BuildArgsForCall(0)
-					Ω(oneOff).Should(Equal(builds.Build{ID: 42}))
+					Ω(oneOff).Should(Equal(builds.Build{
+						ID:      42,
+						Name:    "1",
+						JobName: "job1",
+						Status:  builds.StatusStarted,
+					}))
 					Ω(tBuild).Should(Equal(turbineBuild))
 				})
 			})
@@ -111,15 +121,21 @@ var _ = Describe("Builds API", func() {
 		})
 
 		Context("when getting all builds succeeds", func() {
-			var returnedBuilds []builds.Build
-
 			BeforeEach(func() {
-				returnedBuilds = []builds.Build{
-					{ID: 2, Status: builds.StatusStarted},
-					{ID: 1, Status: builds.StatusSucceeded},
-				}
-
-				buildsDB.GetAllBuildsReturns(returnedBuilds, nil)
+				buildsDB.GetAllBuildsReturns([]builds.Build{
+					{
+						ID:      3,
+						Name:    "2",
+						JobName: "job2",
+						Status:  builds.StatusStarted,
+					},
+					{
+						ID:      1,
+						Name:    "1",
+						JobName: "job1",
+						Status:  builds.StatusSucceeded,
+					},
+				}, nil)
 			})
 
 			It("returns 200 OK", func() {
@@ -127,11 +143,13 @@ var _ = Describe("Builds API", func() {
 			})
 
 			It("returns all builds", func() {
-				var builds []builds.Build
-				err := json.NewDecoder(response.Body).Decode(&builds)
-                Ω(err).ShouldNot(HaveOccurred())
+				body, err := ioutil.ReadAll(response.Body)
+				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(builds).Should(Equal(returnedBuilds))
+				Ω(body).Should(MatchJSON(`[
+					{"id": 3, "name": "2", "job_name": "job2", "status": "started"},
+					{"id": 1, "name": "1", "job_name": "job1", "status": "succeeded"}
+				]`))
 			})
 		})
 

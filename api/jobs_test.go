@@ -1,14 +1,13 @@
 package api_test
 
 import (
-	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"net/http"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/atc/api/resources"
 	"github.com/concourse/atc/builds"
 )
 
@@ -26,8 +25,18 @@ var _ = Describe("Jobs API", func() {
 		Context("when getting the build succeeds", func() {
 			BeforeEach(func() {
 				jobsDB.GetAllJobBuildsReturns([]builds.Build{
-					{ID: 2, Status: builds.StatusStarted},
-					{ID: 1, Status: builds.StatusSucceeded},
+					{
+						ID:      3,
+						Name:    "2",
+						JobName: "job2",
+						Status:  builds.StatusStarted,
+					},
+					{
+						ID:      1,
+						Name:    "1",
+						JobName: "job1",
+						Status:  builds.StatusSucceeded,
+					},
 				}, nil)
 			})
 
@@ -43,14 +52,13 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("returns the builds", func() {
-				var build []resources.Build
-				err := json.NewDecoder(response.Body).Decode(&build)
+				body, err := ioutil.ReadAll(response.Body)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(build).Should(Equal([]resources.Build{
-					{ID: 2, Status: "started"},
-					{ID: 1, Status: "succeeded"},
-				}))
+				Ω(body).Should(MatchJSON(`[
+					{"id": 3, "name": "2", "job_name": "job2", "status": "started"},
+					{"id": 1, "name": "1", "job_name": "job1", "status": "succeeded"}
+				]`))
 			})
 		})
 
@@ -77,7 +85,12 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when getting the build succeeds", func() {
 			BeforeEach(func() {
-				jobsDB.GetJobBuildReturns(builds.Build{ID: 2}, nil)
+				jobsDB.GetJobBuildReturns(builds.Build{
+					ID:      1,
+					Name:    "1",
+					JobName: "job1",
+					Status:  builds.StatusSucceeded,
+				}, nil)
 			})
 
 			It("fetches by job and build name", func() {
@@ -93,11 +106,10 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("returns the build", func() {
-				var build resources.Build
-				err := json.NewDecoder(response.Body).Decode(&build)
+				body, err := ioutil.ReadAll(response.Body)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(build).Should(Equal(resources.Build{ID: 2}))
+				Ω(body).Should(MatchJSON(`{"id": 1, "name": "1", "job_name": "job1", "status": "succeeded"}`))
 			})
 		})
 
@@ -124,7 +136,12 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when getting the build succeeds", func() {
 			BeforeEach(func() {
-				jobsDB.GetCurrentBuildReturns(builds.Build{ID: 2}, nil)
+				jobsDB.GetCurrentBuildReturns(builds.Build{
+					ID:      1,
+					Name:    "1",
+					JobName: "job1",
+					Status:  builds.StatusSucceeded,
+				}, nil)
 			})
 
 			It("fetches by job and build name", func() {
@@ -139,11 +156,10 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("returns the build", func() {
-				var build resources.Build
-				err := json.NewDecoder(response.Body).Decode(&build)
+				body, err := ioutil.ReadAll(response.Body)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(build).Should(Equal(resources.Build{ID: 2}))
+				Ω(body).Should(MatchJSON(`{"id": 1, "name": "1", "job_name": "job1", "status": "succeeded"}`))
 			})
 		})
 

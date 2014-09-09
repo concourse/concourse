@@ -3,6 +3,8 @@ package jobserver
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/concourse/atc/api/present"
 )
 
 func (s *Server) GetJobBuild(w http.ResponseWriter, r *http.Request) {
@@ -17,5 +19,5 @@ func (s *Server) GetJobBuild(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 
-	json.NewEncoder(w).Encode(build)
+	json.NewEncoder(w).Encode(present.Build(build))
 }

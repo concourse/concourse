@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	tbuilds "github.com/concourse/turbine/api/builds"
+
+	"github.com/concourse/atc/api/present"
 )
 
 func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
@@ -29,5 +31,5 @@ func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 
-	json.NewEncoder(w).Encode(build)
+	json.NewEncoder(w).Encode(present.Build(build))
 }
