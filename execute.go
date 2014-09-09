@@ -162,7 +162,8 @@ func createBuild(
 	buffer := &bytes.Buffer{}
 
 	turbineBuild := tbuilds.Build{
-		Config: config,
+		Privileged: true,
+		Config:     config,
 		Inputs: []tbuilds.Input{
 			{
 				Name: name,
