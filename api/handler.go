@@ -35,9 +35,9 @@ func NewHandler(
 		routes.AbortBuild:  http.HandlerFunc(buildServer.AbortBuild),
 		routes.HijackBuild: http.HandlerFunc(buildServer.HijackBuild),
 
-		routes.ListJobBuilds:      http.HandlerFunc(jobServer.ListJobBuilds),
-		routes.GetJobCurrentBuild: http.HandlerFunc(jobServer.GetJobCurrentBuild),
-		routes.GetJobBuild:        http.HandlerFunc(jobServer.GetJobBuild),
+		routes.GetJob:        http.HandlerFunc(jobServer.GetJob),
+		routes.ListJobBuilds: http.HandlerFunc(jobServer.ListJobBuilds),
+		routes.GetJobBuild:   http.HandlerFunc(jobServer.GetJobBuild),
 
 		routes.CreatePipe: http.HandlerFunc(pipeServer.CreatePipe),
 		routes.WritePipe:  http.HandlerFunc(pipeServer.WritePipe),

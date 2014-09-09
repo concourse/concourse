@@ -176,6 +176,67 @@ func itIsADB() {
 		Ω(allBuilds).Should(Equal([]Builds.Build{nextOneOff, jobBuild, oneOff}))
 	})
 
+	It("can report a job's latest running and finished builds", func() {
+		finished, next, err := db.GetJobFinishedAndNextBuild("some-job")
+		Ω(err).ShouldNot(HaveOccurred())
+
+		Ω(next).Should(BeNil())
+		Ω(finished).Should(BeNil())
+
+		finishedBuild, err := db.CreateJobBuild("some-job")
+		Ω(err).ShouldNot(HaveOccurred())
+
+		err = db.SaveBuildStatus(finishedBuild.ID, Builds.StatusSucceeded)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		finished, next, err = db.GetJobFinishedAndNextBuild("some-job")
+		Ω(err).ShouldNot(HaveOccurred())
+
+		Ω(next).Should(BeNil())
+		Ω(finished.ID).Should(Equal(finishedBuild.ID))
+
+		nextBuild, err := db.CreateJobBuild("some-job")
+		Ω(err).ShouldNot(HaveOccurred())
+
+		started, err := db.StartBuild(nextBuild.ID, "abort-url", "hijack-url")
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(started).Should(BeTrue())
+
+		finished, next, err = db.GetJobFinishedAndNextBuild("some-job")
+		Ω(err).ShouldNot(HaveOccurred())
+
+		Ω(next.ID).Should(Equal(nextBuild.ID))
+		Ω(finished.ID).Should(Equal(finishedBuild.ID))
+
+		anotherRunningBuild, err := db.CreateJobBuild("some-job")
+		Ω(err).ShouldNot(HaveOccurred())
+
+		finished, next, err = db.GetJobFinishedAndNextBuild("some-job")
+		Ω(err).ShouldNot(HaveOccurred())
+
+		Ω(next.ID).Should(Equal(nextBuild.ID)) // not anotherRunningBuild
+		Ω(finished.ID).Should(Equal(finishedBuild.ID))
+
+		started, err = db.StartBuild(anotherRunningBuild.ID, "abort-url", "hijack-url")
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(started).Should(BeTrue())
+
+		finished, next, err = db.GetJobFinishedAndNextBuild("some-job")
+		Ω(err).ShouldNot(HaveOccurred())
+
+		Ω(next.ID).Should(Equal(nextBuild.ID)) // not anotherRunningBuild
+		Ω(finished.ID).Should(Equal(finishedBuild.ID))
+
+		err = db.SaveBuildStatus(nextBuild.ID, Builds.StatusSucceeded)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		finished, next, err = db.GetJobFinishedAndNextBuild("some-job")
+		Ω(err).ShouldNot(HaveOccurred())
+
+		Ω(next.ID).Should(Equal(anotherRunningBuild.ID))
+		Ω(finished.ID).Should(Equal(nextBuild.ID))
+	})
+
 	Describe("saving build inputs", func() {
 		buildMetadata := []Builds.MetadataField{
 			{

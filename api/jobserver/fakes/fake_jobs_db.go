@@ -37,6 +37,16 @@ type FakeJobsDB struct {
 		result1 builds.Build
 		result2 error
 	}
+	GetJobFinishedAndNextBuildStub        func(job string) (*builds.Build, *builds.Build, error)
+	getJobFinishedAndNextBuildMutex       sync.RWMutex
+	getJobFinishedAndNextBuildArgsForCall []struct {
+		job string
+	}
+	getJobFinishedAndNextBuildReturns struct {
+		result1 *builds.Build
+		result2 *builds.Build
+		result3 error
+	}
 }
 
 func (fake *FakeJobsDB) GetAllJobBuilds(job string) ([]builds.Build, error) {
@@ -137,6 +147,40 @@ func (fake *FakeJobsDB) GetJobBuildReturns(result1 builds.Build, result2 error) 
 		result1 builds.Build
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeJobsDB) GetJobFinishedAndNextBuild(job string) (*builds.Build, *builds.Build, error) {
+	fake.getJobFinishedAndNextBuildMutex.Lock()
+	fake.getJobFinishedAndNextBuildArgsForCall = append(fake.getJobFinishedAndNextBuildArgsForCall, struct {
+		job string
+	}{job})
+	fake.getJobFinishedAndNextBuildMutex.Unlock()
+	if fake.GetJobFinishedAndNextBuildStub != nil {
+		return fake.GetJobFinishedAndNextBuildStub(job)
+	} else {
+		return fake.getJobFinishedAndNextBuildReturns.result1, fake.getJobFinishedAndNextBuildReturns.result2, fake.getJobFinishedAndNextBuildReturns.result3
+	}
+}
+
+func (fake *FakeJobsDB) GetJobFinishedAndNextBuildCallCount() int {
+	fake.getJobFinishedAndNextBuildMutex.RLock()
+	defer fake.getJobFinishedAndNextBuildMutex.RUnlock()
+	return len(fake.getJobFinishedAndNextBuildArgsForCall)
+}
+
+func (fake *FakeJobsDB) GetJobFinishedAndNextBuildArgsForCall(i int) string {
+	fake.getJobFinishedAndNextBuildMutex.RLock()
+	defer fake.getJobFinishedAndNextBuildMutex.RUnlock()
+	return fake.getJobFinishedAndNextBuildArgsForCall[i].job
+}
+
+func (fake *FakeJobsDB) GetJobFinishedAndNextBuildReturns(result1 *builds.Build, result2 *builds.Build, result3 error) {
+	fake.GetJobFinishedAndNextBuildStub = nil
+	fake.getJobFinishedAndNextBuildReturns = struct {
+		result1 *builds.Build
+		result2 *builds.Build
+		result3 error
+	}{result1, result2, result3}
 }
 
 var _ jobserver.JobsDB = new(FakeJobsDB)

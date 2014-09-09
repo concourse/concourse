@@ -339,6 +339,73 @@ func (db *sqldb) GetCurrentBuild(job string) (builds.Build, error) {
 	}, nil
 }
 
+func (db *sqldb) GetJobFinishedAndNextBuild(job string) (*builds.Build, *builds.Build, error) {
+	var finished *builds.Build
+	var next *builds.Build
+
+	var finishedBuild builds.Build
+	var finishedStatus string
+	var finishedJobName sql.NullString
+	var finishedAbortURL sql.NullString
+	var finishedHijackURL sql.NullString
+	err := db.conn.QueryRow(`
+		SELECT id, name, job_name, status, abort_url, hijack_url
+		FROM builds
+		WHERE job_name = $1
+		AND status NOT IN ('pending', 'started')
+		ORDER BY id DESC
+		LIMIT 1
+	`, job).Scan(
+		&finishedBuild.ID,
+		&finishedBuild.Name,
+		&finishedJobName,
+		&finishedStatus,
+		&finishedAbortURL,
+		&finishedHijackURL,
+	)
+	if err == nil {
+		finished = &finishedBuild
+		finished.JobName = finishedJobName.String
+		finished.Status = builds.Status(finishedStatus)
+		finished.HijackURL = finishedHijackURL.String
+		finished.AbortURL = finishedAbortURL.String
+	} else if err != nil && err != sql.ErrNoRows {
+		return nil, nil, err
+	}
+
+	var nextBuild builds.Build
+	var nextStatus string
+	var nextJobName sql.NullString
+	var nextAbortURL sql.NullString
+	var nextHijackURL sql.NullString
+	err = db.conn.QueryRow(`
+		SELECT id, name, job_name, status, abort_url, hijack_url
+		FROM builds
+		WHERE job_name = $1
+		AND status IN ('pending', 'started')
+		ORDER BY id ASC
+		LIMIT 1
+	`, job).Scan(
+		&nextBuild.ID,
+		&nextBuild.Name,
+		&nextJobName,
+		&nextStatus,
+		&nextAbortURL,
+		&nextHijackURL,
+	)
+	if err == nil {
+		next = &nextBuild
+		next.JobName = nextJobName.String
+		next.Status = builds.Status(nextStatus)
+		next.HijackURL = nextHijackURL.String
+		next.AbortURL = nextAbortURL.String
+	} else if err != nil && err != sql.ErrNoRows {
+		return nil, nil, err
+	}
+
+	return finished, next, nil
+}
+
 func (db *sqldb) CreateJobBuild(job string) (builds.Build, error) {
 	tx, err := db.conn.Begin()
 	if err != nil {
