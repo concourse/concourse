@@ -18,8 +18,8 @@ import (
 	"syscall"
 
 	"github.com/cloudfoundry-incubator/garden/warden"
-	"github.com/concourse/atc/api"
-	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/api/resources"
+	"github.com/concourse/atc/api/routes"
 	thijack "github.com/concourse/turbine/api/hijack"
 	"github.com/kr/pty"
 	"github.com/pkg/term"
@@ -64,7 +64,7 @@ func hijack(reqGenerator *rata.RequestGenerator) {
 	}
 
 	buildsReq, err := reqGenerator.CreateRequest(
-		api.ListBuilds,
+		routes.ListBuilds,
 		nil,
 		nil,
 	)
@@ -77,7 +77,7 @@ func hijack(reqGenerator *rata.RequestGenerator) {
 		log.Fatalln(err)
 	}
 
-	var builds []builds.Build
+	var builds []resources.Build
 	err = json.NewDecoder(buildsResp.Body).Decode(&builds)
 	if err != nil {
 		log.Fatalln(err)
@@ -96,7 +96,7 @@ func hijack(reqGenerator *rata.RequestGenerator) {
 	}
 
 	hijackReq, err := reqGenerator.CreateRequest(
-		api.HijackBuild,
+		routes.HijackBuild,
 		rata.Params{"build_id": strconv.Itoa(build.ID)},
 		bytes.NewBuffer(payload),
 	)

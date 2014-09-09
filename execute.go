@@ -16,9 +16,8 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/concourse/atc/api"
-	"github.com/concourse/atc/api/pipes"
-	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/api/resources"
+	"github.com/concourse/atc/api/routes"
 	"github.com/concourse/fly/eventstream"
 	tbuilds "github.com/concourse/turbine/api/builds"
 	"github.com/fraenkel/candiedyaml"
@@ -50,7 +49,7 @@ func execute(reqGenerator *rata.RequestGenerator) {
 	signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
 
 	logOutput, err := reqGenerator.CreateRequest(
-		api.BuildEvents,
+		routes.BuildEvents,
 		rata.Params{"build_id": strconv.Itoa(build.ID)},
 		nil,
 	)
@@ -89,8 +88,8 @@ func execute(reqGenerator *rata.RequestGenerator) {
 	os.Exit(exitCode)
 }
 
-func createPipe(reqGenerator *rata.RequestGenerator) pipes.Pipe {
-	cPipe, err := reqGenerator.CreateRequest(api.CreatePipe, nil, nil)
+func createPipe(reqGenerator *rata.RequestGenerator) resources.Pipe {
+	cPipe, err := reqGenerator.CreateRequest(routes.CreatePipe, nil, nil)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -108,7 +107,7 @@ func createPipe(reqGenerator *rata.RequestGenerator) pipes.Pipe {
 		os.Exit(1)
 	}
 
-	var pipe pipes.Pipe
+	var pipe resources.Pipe
 	err = json.NewDecoder(response.Body).Decode(&pipe)
 	if err != nil {
 		log.Println("malformed response when creating pipe:", err)
@@ -145,12 +144,12 @@ func loadConfig(configPath string) tbuilds.Config {
 
 func createBuild(
 	reqGenerator *rata.RequestGenerator,
-	pipe pipes.Pipe,
+	pipe resources.Pipe,
 	config tbuilds.Config,
 	name string,
-) (builds.Build, []*http.Cookie) {
+) (resources.Build, []*http.Cookie) {
 	readPipe, err := reqGenerator.CreateRequest(
-		api.ReadPipe,
+		routes.ReadPipe,
 		rata.Params{"pipe_id": pipe.ID},
 		nil,
 	)
@@ -180,7 +179,7 @@ func createBuild(
 		log.Fatalln("encoding build failed:", err)
 	}
 
-	createBuild, err := reqGenerator.CreateRequest(api.CreateBuild, nil, buffer)
+	createBuild, err := reqGenerator.CreateRequest(routes.CreateBuild, nil, buffer)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -200,7 +199,7 @@ func createBuild(
 		os.Exit(1)
 	}
 
-	var build builds.Build
+	var build resources.Build
 	err = json.NewDecoder(response.Body).Decode(&build)
 	if err != nil {
 		log.Fatalln("response decoding failed:", err)
@@ -212,14 +211,14 @@ func createBuild(
 func abortOnSignal(
 	reqGenerator *rata.RequestGenerator,
 	terminate <-chan os.Signal,
-	build builds.Build,
+	build resources.Build,
 ) {
 	<-terminate
 
 	println("\naborting...")
 
 	abortReq, err := reqGenerator.CreateRequest(
-		api.AbortBuild,
+		routes.AbortBuild,
 		rata.Params{"build_id": strconv.Itoa(build.ID)},
 		nil,
 	)
@@ -241,7 +240,7 @@ func abortOnSignal(
 	os.Exit(2)
 }
 
-func upload(reqGenerator *rata.RequestGenerator, pipe pipes.Pipe) {
+func upload(reqGenerator *rata.RequestGenerator, pipe resources.Pipe) {
 	src, err := filepath.Abs(*buildDir)
 	if err != nil {
 		log.Fatalln("could not locate build config:", err)
@@ -290,7 +289,7 @@ func upload(reqGenerator *rata.RequestGenerator, pipe pipes.Pipe) {
 	defer archive.Close()
 
 	uploadBits, err := reqGenerator.CreateRequest(
-		api.WritePipe,
+		routes.WritePipe,
 		rata.Params{"pipe_id": pipe.ID},
 		archive,
 	)

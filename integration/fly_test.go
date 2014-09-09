@@ -18,7 +18,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 
-	"github.com/concourse/atc/api/pipes"
+	"github.com/concourse/atc/api/resources"
 	tbuilds "github.com/concourse/turbine/api/builds"
 	"github.com/concourse/turbine/event"
 )
@@ -106,7 +106,7 @@ run:
 		atcServer.AppendHandlers(
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/pipes"),
-				ghttp.RespondWithJSONEncoded(http.StatusCreated, pipes.Pipe{
+				ghttp.RespondWithJSONEncoded(http.StatusCreated, resources.Pipe{
 					ID:       "some-pipe-id",
 					PeerAddr: "127.0.0.1:1234",
 				}),

@@ -6,7 +6,7 @@ import (
 
 	"github.com/tedsuo/rata"
 
-	"github.com/concourse/atc/api"
+	"github.com/concourse/atc/api/routes"
 )
 
 var buildConfig = flag.String(
@@ -39,7 +39,7 @@ func main() {
 		atc = *atcURL
 	}
 
-	reqGenerator := rata.NewRequestGenerator(atc, api.Routes)
+	reqGenerator := rata.NewRequestGenerator(atc, routes.Routes)
 
 	if len(os.Args) == 1 {
 		execute(reqGenerator)
