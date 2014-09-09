@@ -292,4 +292,6 @@ builds:
     version: 0.7.0-rc.33
   b5297e20-2d8a-4ed7-9ace-31299227927d:
     version: 0.7.0-rc.34
+  a603fb55-7fd5-4b09-8fd6-d90c97ebf2a3:
+    version: 0.7.0-rc.35
 format-version: '2'
