@@ -23,13 +23,6 @@ import (
 	"github.com/concourse/turbine/event"
 )
 
-func tarFiles(path string) string {
-	output, err := exec.Command("tar", "tvf", path).Output()
-	Expect(err).ToNot(HaveOccurred())
-
-	return string(output)
-}
-
 var _ = Describe("Fly CLI", func() {
 	var flyPath string
 	var buildDir string

@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/codegangsta/cli"
@@ -26,12 +27,52 @@ import (
 	"github.com/tedsuo/rata"
 )
 
+type Input struct {
+	Name string
+	Path string
+	Pipe resources.Pipe
+}
+
 func execute(c *cli.Context) {
 	atc := c.GlobalString("atcURL")
 	buildConfig := c.String("config")
-	buildDir := c.String("dir")
 
 	reqGenerator := rata.NewRequestGenerator(atc, routes.Routes)
+
+	inputMappings := c.StringSlice("input")
+	if len(inputMappings) == 0 {
+		wd, err := os.Getwd()
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		inputMappings = append(inputMappings, filepath.Base(wd)+"="+wd)
+	}
+
+	inputs := []Input{}
+	for _, i := range inputMappings {
+		segs := strings.SplitN(i, "=", 2)
+		if len(segs) < 2 {
+			log.Println("malformed input:", i)
+			os.Exit(1)
+		}
+
+		inputName := segs[0]
+
+		absPath, err := filepath.Abs(segs[1])
+		if err != nil {
+			log.Printf("could not locate input %s: %s\n", inputName, err)
+			os.Exit(1)
+		}
+
+		pipe := createPipe(reqGenerator)
+
+		inputs = append(inputs, Input{
+			Name: inputName,
+			Path: absPath,
+			Pipe: pipe,
+		})
+	}
 
 	absConfig, err := filepath.Abs(buildConfig)
 	if err != nil {
@@ -39,13 +80,10 @@ func execute(c *cli.Context) {
 		os.Exit(1)
 	}
 
-	pipe := createPipe(reqGenerator)
-
 	build, cookies := createBuild(
 		reqGenerator,
-		pipe,
+		inputs,
 		loadConfig(absConfig, c.Args()),
-		filepath.Base(filepath.Dir(absConfig)),
 	)
 
 	terminate := make(chan os.Signal, 1)
@@ -80,7 +118,9 @@ func execute(c *cli.Context) {
 		os.Exit(1)
 	}
 
-	go upload(buildDir, reqGenerator, pipe)
+	for _, i := range inputs {
+		go upload(i, reqGenerator)
+	}
 
 	exitCode, err := eventstream.RenderStream(conn)
 	if err != nil {
@@ -150,38 +190,40 @@ func loadConfig(configPath string, args []string) tbuilds.Config {
 
 func createBuild(
 	reqGenerator *rata.RequestGenerator,
-	pipe resources.Pipe,
+	inputs []Input,
 	config tbuilds.Config,
-	name string,
 ) (resources.Build, []*http.Cookie) {
-	readPipe, err := reqGenerator.CreateRequest(
-		routes.ReadPipe,
-		rata.Params{"pipe_id": pipe.ID},
-		nil,
-	)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	readPipe.URL.Host = pipe.PeerAddr
-
 	buffer := &bytes.Buffer{}
+
+	buildInputs := make([]tbuilds.Input, len(inputs))
+	for idx, i := range inputs {
+		readPipe, err := reqGenerator.CreateRequest(
+			routes.ReadPipe,
+			rata.Params{"pipe_id": i.Pipe.ID},
+			nil,
+		)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		readPipe.URL.Host = i.Pipe.PeerAddr
+
+		buildInputs[idx] = tbuilds.Input{
+			Name: i.Name,
+			Type: "archive",
+			Source: tbuilds.Source{
+				"uri": readPipe.URL.String(),
+			},
+		}
+	}
 
 	turbineBuild := tbuilds.Build{
 		Privileged: true,
 		Config:     config,
-		Inputs: []tbuilds.Input{
-			{
-				Name: name,
-				Type: "archive",
-				Source: tbuilds.Source{
-					"uri": readPipe.URL.String(),
-				},
-			},
-		},
+		Inputs:     buildInputs,
 	}
 
-	err = json.NewEncoder(buffer).Encode(turbineBuild)
+	err := json.NewEncoder(buffer).Encode(turbineBuild)
 	if err != nil {
 		log.Fatalln("encoding build failed:", err)
 	}
@@ -247,16 +289,12 @@ func abortOnSignal(
 	os.Exit(2)
 }
 
-func upload(buildDir string, reqGenerator *rata.RequestGenerator, pipe resources.Pipe) {
-	src, err := filepath.Abs(buildDir)
-	if err != nil {
-		log.Fatalln("could not locate build config:", err)
-	}
+func upload(input Input, reqGenerator *rata.RequestGenerator) {
+	path := input.Path
+	pipe := input.Pipe
 
 	var archive io.ReadCloser
-
-	tarPath, err := exec.LookPath("tar")
-	if err != nil {
+	if tarPath, err := exec.LookPath("tar"); err != nil {
 		compressor := compressor.NewTgz()
 
 		tmpfile, err := ioutil.TempFile("", "fly")
@@ -268,7 +306,7 @@ func upload(buildDir string, reqGenerator *rata.RequestGenerator, pipe resources
 
 		defer os.Remove(tmpfile.Name())
 
-		err = compressor.Compress(src+"/", tmpfile.Name())
+		err = compressor.Compress(path+"/", tmpfile.Name())
 		if err != nil {
 			log.Fatalln("creating archive failed:", err)
 		}
@@ -279,7 +317,7 @@ func upload(buildDir string, reqGenerator *rata.RequestGenerator, pipe resources
 		}
 	} else {
 		tarCmd := exec.Command(tarPath, "--exclude", ".git", "-czf", "-", ".")
-		tarCmd.Dir = src
+		tarCmd.Dir = path
 		tarCmd.Stderr = os.Stderr
 
 		archive, err = tarCmd.StdoutPipe()

@@ -8,14 +8,13 @@ import (
 
 var executeFlags = []cli.Flag{
 	cli.StringFlag{
-		Name:  "config",
+		Name:  "config, c",
 		Value: "build.yml",
 		Usage: "build configuration file",
 	},
-	cli.StringFlag{
-		Name:  "dir, d",
-		Value: ".",
-		Usage: "source directory to build",
+	cli.StringSliceFlag{
+		Name:  "input, i",
+		Value: &cli.StringSlice{},
 	},
 }
 
