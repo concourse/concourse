@@ -118,9 +118,11 @@ func execute(c *cli.Context) {
 		os.Exit(1)
 	}
 
-	for _, i := range inputs {
-		go upload(i, reqGenerator)
-	}
+	go func() {
+		for _, i := range inputs {
+			upload(i, reqGenerator)
+		}
+	}()
 
 	exitCode, err := eventstream.RenderStream(conn)
 	if err != nil {
