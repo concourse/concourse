@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"flag"
 	"io"
 	"io/ioutil"
 
@@ -16,6 +15,7 @@ import (
 	"strconv"
 	"syscall"
 
+	"github.com/codegangsta/cli"
 	"github.com/concourse/atc/api/resources"
 	"github.com/concourse/atc/api/routes"
 	"github.com/concourse/fly/eventstream"
@@ -26,8 +26,14 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func execute(reqGenerator *rata.RequestGenerator) {
-	absConfig, err := filepath.Abs(*buildConfig)
+func execute(c *cli.Context) {
+	atc := c.GlobalString("atcURL")
+	buildConfig := c.String("config")
+	buildDir := c.String("dir")
+
+	reqGenerator := rata.NewRequestGenerator(atc, routes.Routes)
+
+	absConfig, err := filepath.Abs(buildConfig)
 	if err != nil {
 		log.Println("could not locate config file:", err)
 		os.Exit(1)
@@ -38,7 +44,7 @@ func execute(reqGenerator *rata.RequestGenerator) {
 	build, cookies := createBuild(
 		reqGenerator,
 		pipe,
-		loadConfig(absConfig),
+		loadConfig(absConfig, c.Args()),
 		filepath.Base(filepath.Dir(absConfig)),
 	)
 
@@ -74,7 +80,7 @@ func execute(reqGenerator *rata.RequestGenerator) {
 		os.Exit(1)
 	}
 
-	go upload(reqGenerator, pipe)
+	go upload(buildDir, reqGenerator, pipe)
 
 	exitCode, err := eventstream.RenderStream(conn)
 	if err != nil {
@@ -117,7 +123,7 @@ func createPipe(reqGenerator *rata.RequestGenerator) resources.Pipe {
 	return pipe
 }
 
-func loadConfig(configPath string) tbuilds.Config {
+func loadConfig(configPath string, args []string) tbuilds.Config {
 	configFile, err := os.Open(configPath)
 	if err != nil {
 		log.Fatalln("could not open config file:", err)
@@ -130,7 +136,7 @@ func loadConfig(configPath string) tbuilds.Config {
 		log.Fatalln("could not parse config file:", err)
 	}
 
-	config.Run.Args = append(config.Run.Args, flag.Args()...)
+	config.Run.Args = append(config.Run.Args, args...)
 
 	for k, _ := range config.Params {
 		env, found := syscall.Getenv(k)
@@ -241,8 +247,8 @@ func abortOnSignal(
 	os.Exit(2)
 }
 
-func upload(reqGenerator *rata.RequestGenerator, pipe resources.Pipe) {
-	src, err := filepath.Abs(*buildDir)
+func upload(buildDir string, reqGenerator *rata.RequestGenerator, pipe resources.Pipe) {
+	src, err := filepath.Abs(buildDir)
 	if err != nil {
 		log.Fatalln("could not locate build config:", err)
 	}

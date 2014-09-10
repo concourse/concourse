@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/gob"
 	"encoding/json"
-	"flag"
 	"io"
 	"log"
 	"net"
@@ -18,6 +17,7 @@ import (
 	"syscall"
 
 	"github.com/cloudfoundry-incubator/garden/warden"
+	"github.com/codegangsta/cli"
 	"github.com/concourse/atc/api/resources"
 	"github.com/concourse/atc/api/routes"
 	thijack "github.com/concourse/turbine/api/hijack"
@@ -26,8 +26,12 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func hijack(reqGenerator *rata.RequestGenerator) {
-	argv := flag.Args()[1:]
+func hijack(c *cli.Context) {
+	atc := c.GlobalString("atcURL")
+
+	reqGenerator := rata.NewRequestGenerator(atc, routes.Routes)
+
+	argv := c.Args()
 
 	var path string
 	var args []string

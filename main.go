@@ -1,59 +1,53 @@
 package main
 
 import (
-	"flag"
 	"os"
 
-	"github.com/tedsuo/rata"
-
-	"github.com/concourse/atc/api/routes"
+	"github.com/codegangsta/cli"
 )
 
-var buildConfig = flag.String(
-	"c",
-	"build.yml",
-	"build configuration file",
-)
-
-var buildDir = flag.String(
-	"d",
-	".",
-	"source directory to build",
-)
-
-var atcURL = flag.String(
-	"atcURL",
-	"http://127.0.0.1:8080",
-	"address of the ATC to use",
-)
-
-var atc string
+var executeFlags = []cli.Flag{
+	cli.StringFlag{
+		Name:  "config",
+		Value: "build.yml",
+		Usage: "build configuration file",
+	},
+	cli.StringFlag{
+		Name:  "dir, d",
+		Value: ".",
+		Usage: "source directory to build",
+	},
+}
 
 func main() {
-	flag.Parse()
+	app := cli.NewApp()
+	app.Name = "fly"
+	app.Usage = "Concourse CLI"
+	app.Version = "0.0.1"
+	app.Action = execute
 
-	envATC := os.Getenv("ATC_URL")
-	if envATC != "" {
-		atc = envATC
-	} else {
-		atc = *atcURL
+	app.Flags = append(executeFlags, cli.StringFlag{
+		Name:   "atcURL",
+		Value:  "http://127.0.0.1:8080",
+		Usage:  "address of the ATC to use",
+		EnvVar: "ATC_URL",
+	})
+
+	app.Commands = []cli.Command{
+		{
+			Name:      "execute",
+			ShortName: "e",
+			Usage:     "Execute a build",
+			Flags:     executeFlags,
+			Action:    execute,
+		},
+		{
+			Name:      "hijack",
+			ShortName: "h",
+			Usage:     "Execute an interactive command in a build's container",
+			Action:    hijack,
+		},
 	}
 
-	reqGenerator := rata.NewRequestGenerator(atc, routes.Routes)
-
-	if len(os.Args) == 1 {
-		execute(reqGenerator)
-		return
-	}
-
-	switch os.Args[1] {
-	case "--":
-		execute(reqGenerator)
-
-	case "hijack":
-		hijack(reqGenerator)
-
-	default:
-		println("unknown command: " + flag.Arg(0))
-	}
+	app.Run(os.Args)
 }
