@@ -106,7 +106,7 @@ cat < /tmp/fifo
 			// TODO there's a gap between start + attach in turbine
 			time.Sleep(5 * time.Second)
 
-			hijack := exec.Command(builtComponents["fly"], "hijack", "bash", "-c", "echo marco > /tmp/fifo")
+			hijack := exec.Command(builtComponents["fly"], "hijack", "--", "bash", "-c", "echo marco > /tmp/fifo")
 
 			hijackS, err := gexec.Start(hijack, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
