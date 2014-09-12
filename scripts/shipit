@@ -11,9 +11,9 @@ if [ -z "$VERSION" ]; then
   exit 1
 fi
 
-cp deployments/sandbox/config/private.yml concourse-rc/config/private.yml
+cp deployments/sandbox/config/private.yml concourse-dev/config/private.yml
 
-cd concourse-rc/
+cd concourse-dev/
 
 git config --global user.email "ci@localhost"
 git config --global user.name "CI Bot"
@@ -23,7 +23,6 @@ git merge --no-edit master
 bosh target ${BOSH_TARGET}
 
 bosh -n create release --final --with-tarball --version "$VERSION"
-
 bosh -n upload release --skip-if-exists
 
 git add -A

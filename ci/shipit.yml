@@ -2,4 +2,4 @@
 image: docker:///concourse/concourse-ci
 
 run:
-  path: concourse-rc/scripts/shipit
+  path: concourse-dev/scripts/shipit
