@@ -302,4 +302,6 @@ builds:
     version: 0.7.0
   20e3c46e-a9d4-453a-a8d5-b0943ad9072d:
     version: 0.8.0-rc.1
+  f0e04b5b-16ca-49d3-9dc6-ab00704c0960:
+    version: 0.8.0
 format-version: '2'
