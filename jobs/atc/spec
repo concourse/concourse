@@ -27,6 +27,10 @@ properties:
     description: "bcrypt encrypted password for http basic auth"
     default: ""
 
+  atc.publicly_viewable:
+    description: "allow public viewing; destructive operations still require auth"
+    default: false
+
   atc.turbine.address:
     description: "address of turbine server to use to run builds"
     default: turbine.service.dc1.consul:4637

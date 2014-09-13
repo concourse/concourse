@@ -22,16 +22,17 @@ case $1 in
     <% my_ip = spec.networks.send(p("network_name")).ip %>
 
     exec /var/vcap/packages/atc/bin/atc \
-      -webListenPort=<%= p("atc.web_listen_port") %> \
-      -webListenAddress=<%= p("atc.web_listen_address") %> \
-      -externalAddress=<%= my_ip %> \
-      -turbineURL=http://<%= p("atc.turbine.address") %> \
-      -sqlDataSource="postgres://<%= p("atc.postgresql.role.name") %>:<%= p("atc.postgresql.role.password") %>@<%= p("atc.postgresql.address") %>/<%= p("atc.postgresql.database") %>?sslmode=disable" \
       -pipeline=/var/vcap/jobs/atc/config/pipeline.yml \
       -templates=/var/vcap/packages/atc/templates \
       -public=/var/vcap/packages/atc/public \
+      -externalAddress=<%= my_ip %> \
+      -webListenPort=<%= p("atc.web_listen_port") %> \
+      -webListenAddress=<%= p("atc.web_listen_address") %> \
+      -turbineURL=http://<%= p("atc.turbine.address") %> \
+      -sqlDataSource="postgres://<%= p("atc.postgresql.role.name") %>:<%= p("atc.postgresql.role.password") %>@<%= p("atc.postgresql.address") %>/<%= p("atc.postgresql.database") %>?sslmode=disable" \
       -httpUsername=<%= p("atc.basic_auth_username") %> \
       -httpHashedPassword=<%= Shellwords.shellescape(p("atc.basic_auth_encrypted_password")) %> \
+      -publiclyViewable=<%= p("atc.publicly_viewable").inspect %> \
       1>>$LOG_DIR/atc.stdout.log \
       2>>$LOG_DIR/atc.stderr.log
 
