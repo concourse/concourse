@@ -1,8 +1,7 @@
 ---
 name: concourse
 
-# replace with bosh status --uuid; below uuid taken from bosh-lite v237
-director_uuid: 9dd8ea1e-36ec-4f00-aa91-05ec4e7d496f
+director_uuid: <%= `bosh status --uuid` %>
 
 # fill in with jobs and resources
 pipeline: &pipeline
@@ -109,52 +108,39 @@ networks:
       - range: 10.244.8.0/30
         reserved: [10.244.8.1]
         static: [10.244.8.2]
-        cloud_properties:
-          name: random
+        cloud_properties: {}
 
       # networks for dynamic ips (db, workers, compilation vms)
       - range: 10.244.8.4/30
         reserved: [10.244.8.5]
-        static: []
-        cloud_properties:
-          name: random
+        cloud_properties: {}
       - range: 10.244.8.8/30
         reserved: [10.244.8.9]
-        static: []
-        cloud_properties:
-          name: random
+        cloud_properties: {}
       - range: 10.244.8.12/30
         reserved: [10.244.8.13]
-        static: []
-        cloud_properties:
-          name: random
+        cloud_properties: {}
       - range: 10.244.8.16/30
         reserved: [10.244.8.17]
-        static: []
-        cloud_properties:
-          name: random
+        cloud_properties: {}
       - range: 10.244.8.20/30
         reserved: [10.244.8.21]
-        static: []
-        cloud_properties:
-          name: random
+        cloud_properties: {}
 
 resource_pools:
   # not much point in having more than one resource pool, since it's all
   # in one VM with the same hardware anyway
   - name: concourse
     network: concourse
+    cloud_properties: {}
     stemcell:
       name: bosh-warden-boshlite-ubuntu-trusty-go_agent
       version: latest
-    cloud_properties:
-      name: random
 
 compilation:
   workers: 3
   network: concourse
-  cloud_properties:
-    name: random
+  cloud_properties: {}
 
 update:
   canaries: 1
