@@ -6,21 +6,58 @@ pipeline: &pipeline
   resources: []
 
   jobs:
-  - name: dummy
-    config:
-      image: docker:///ubuntu#14.04
-      run:
-        path: echo
-        args: [Hello, world!]
+    - name: dummy
+      config:
+        image: docker:///ubuntu#14.04
+        run:
+          path: echo
+          args: [Hello, world!]
 
 releases:
-- name: concourse
-  version: latest
-  url: dir+bosh://.
+  - name: concourse
+    version: latest
+    url: dir+bosh://.
 
 networks:
-- name: concourse
-  type: dynamic
+  - name: concourse
+    type: dynamic
+
+jobs:
+  - name: concourse
+    instances: 1
+    networks: [{name: concourse}]
+    templates:
+      - {release: concourse, name: atc}
+      - {release: concourse, name: turbine}
+      - {release: concourse, name: postgresql}
+      - {release: concourse, name: warden}
+      - {release: concourse, name: consul-agent}
+    properties:
+      atc:
+        pipeline: *pipeline
+        postgresql:
+          role: &atc-role
+            name: atc
+            password: dummy-password
+
+      consul:
+        agent:
+          mode: server
+          services:
+            - name: atc
+            - name: turbine
+            - name: postgresql
+            - name: warden
+
+      warden:
+        # make warden listen on all addresses for debugging
+        listen_network: tcp
+        listen_address: 0.0.0.0:7777
+
+      postgresql:
+        databases: [{name: atc}]
+        roles:
+          - *atc-role
 
 compilation:
   network: concourse
@@ -30,49 +67,3 @@ update:
   canary_watch_time: 1000-60000
   update_watch_time: 1000-60000
   max_in_flight: 10
-
-jobs:
-- name: concourse
-  instances: 1
-
-  templates:
-  - name: atc
-    release: concourse
-  - name: turbine
-    release: concourse
-  - name: postgresql
-    release: concourse
-  - name: warden
-    release: concourse
-  - name: consul-agent
-    release: concourse
-
-  networks:
-  - name: concourse
-
-  properties:
-    atc:
-      pipeline: *pipeline
-      postgresql:
-        role:
-          password: dummy-password
-
-    consul:
-      agent:
-        mode: server
-        services:
-          - name: atc
-          - name: turbine
-          - name: postgresql
-          - name: warden
-
-    warden:
-      # make warden listen on all addresses for debugging
-      listen_address: 0.0.0.0:7777
-
-    postgresql:
-      databases:
-        - name: atc
-      roles:
-        - name: atc
-          password: dummy-password
