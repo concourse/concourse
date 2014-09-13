@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/http"
 	"strings"
-	"time"
 
 	"code.google.com/p/go.crypto/bcrypt"
 )
@@ -13,35 +12,20 @@ import (
 var ErrUnparsableHeader = errors.New("cannot parse 'Authorization' header")
 
 type Validator interface {
-	IsAuthenticated(http.ResponseWriter, *http.Request) bool
+	IsAuthenticated(*http.Request) bool
 }
 
 type NoopValidator struct{}
 
-func (NoopValidator) IsAuthenticated(http.ResponseWriter, *http.Request) bool {
-	return true
-}
+func (NoopValidator) IsAuthenticated(*http.Request) bool { return true }
 
 type BasicAuthValidator struct {
 	Username       string
 	HashedPassword string
 }
 
-func (validator BasicAuthValidator) IsAuthenticated(w http.ResponseWriter, r *http.Request) bool {
+func (validator BasicAuthValidator) IsAuthenticated(r *http.Request) bool {
 	auth := r.Header.Get("Authorization")
-	if auth == "" {
-		cookie, err := r.Cookie(CookieName)
-		if err == nil {
-			auth = cookie.Value
-		}
-	}
-
-	http.SetCookie(w, &http.Cookie{
-		Name:    CookieName,
-		Value:   auth,
-		Path:    "/",
-		Expires: time.Now().Add(1 * time.Minute),
-	})
 
 	username, password, err := ExtractUsernameAndPassword(auth)
 	if err != nil {

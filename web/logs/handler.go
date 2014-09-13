@@ -40,7 +40,7 @@ func NewHandler(
 			return
 		}
 
-		if !validator.IsAuthenticated(w, r) {
+		if !validator.IsAuthenticated(r) {
 			build, err := db.GetBuild(buildID)
 			if err != nil {
 				log.Error("invalid-build-id", err)

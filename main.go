@@ -281,6 +281,11 @@ func main() {
 		}
 	}
 
+	// copy Authorization header as ATC-Authorization cookie for websocket auth
+	publicHandler = auth.CookieSetHandler{
+		Handler: publicHandler,
+	}
+
 	webListenAddr := fmt.Sprintf("%s:%d", *webListenAddress, *webListenPort)
 	callbacksListenAddr := fmt.Sprintf("%s:%d", *externalAddress, *callbacksListenPort)
 	debugListenAddr := fmt.Sprintf("%s:%d", *debugListenAddress, *debugListenPort)

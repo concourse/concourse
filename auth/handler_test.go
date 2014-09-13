@@ -7,8 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"strings"
-	"time"
 
 	"code.google.com/p/go.crypto/bcrypt"
 	. "github.com/onsi/ginkgo"
@@ -16,11 +14,6 @@ import (
 
 	"github.com/concourse/atc/auth"
 )
-
-func header(stringList ...string) string {
-	credentials := []byte(strings.Join(stringList, ":"))
-	return "Basic " + base64.StdEncoding.EncodeToString(credentials)
-}
 
 var _ = Describe("BasicAuthHandler", func() {
 	simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -76,18 +69,6 @@ var _ = Describe("BasicAuthHandler", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		itSetsAuthCookie := func() {
-			It("sets a ATC-Authorization cookie with the auth as the value", func() {
-				cookies := response.Cookies()
-				Ω(cookies).Should(HaveLen(1))
-
-				Ω(cookies[0].Name).Should(Equal("ATC-Authorization"))
-				Ω(cookies[0].Value).Should(Equal(header(username, password)))
-				Ω(cookies[0].Path).Should(Equal("/"))
-				Ω(cookies[0].Expires.Unix()).Should(BeNumerically("~", time.Now().Unix()+60, 1))
-			})
-		}
-
 		Context("via standard basic auth", func() {
 			BeforeEach(func() {
 				request.SetBasicAuth(username, password)
@@ -102,29 +83,6 @@ var _ = Describe("BasicAuthHandler", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(string(responseBody)).Should(Equal("simple hello"))
 			})
-
-			itSetsAuthCookie()
-		})
-
-		Context("via the ATC-Authorization cookie", func() {
-			BeforeEach(func() {
-				request.AddCookie(&http.Cookie{
-					Name:  auth.CookieName,
-					Value: header(username, password),
-				})
-			})
-
-			It("returns 200", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusOK))
-			})
-
-			It("proxies to the handler", func() {
-				responseBody, err := ioutil.ReadAll(response.Body)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(string(responseBody)).Should(Equal("simple hello"))
-			})
-
-			itSetsAuthCookie()
 		})
 	})
 
