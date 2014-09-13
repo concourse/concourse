@@ -47,13 +47,13 @@ var pipelinePath = flag.String(
 
 var templatesDir = flag.String(
 	"templates",
-	"",
+	"./web/templates",
 	"path to directory containing the html templates",
 )
 
 var publicDir = flag.String(
 	"public",
-	"",
+	"./web/public",
 	"path to directory containing public resources (javascript, css, etc.)",
 )
 
@@ -142,12 +142,12 @@ func main() {
 		fatal(errors.New("must specify -pipeline"))
 	}
 
-	if *templatesDir == "" {
-		fatal(errors.New("must specify -templates"))
+	if _, err := os.Stat(*templatesDir); err != nil {
+		fatal(errors.New("directory specified via -templates does not exist"))
 	}
 
-	if *publicDir == "" {
-		fatal(errors.New("must specify -public"))
+	if _, err := os.Stat(*publicDir); err != nil {
+		fatal(errors.New("directory specified via -public does not exist"))
 	}
 
 	pipelineFile, err := os.Open(*pipelinePath)
