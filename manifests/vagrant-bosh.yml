@@ -51,8 +51,6 @@ jobs:
   - name: concourse
 
   properties:
-    network_name: concourse
-
     atc:
       pipeline: *pipeline
       postgresql:

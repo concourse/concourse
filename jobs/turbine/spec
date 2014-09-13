@@ -32,6 +32,3 @@ properties:
       s3: docker:///concourse/s3-resource
       tracker: docker:///concourse/tracker-resource
       semver: docker:///concourse/semver-resource
-
-  network_name:
-    description: "Name of the network that the job lives in; used to figure out our IP."

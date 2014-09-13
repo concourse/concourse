@@ -10,9 +10,6 @@ packages:
   - consul_0.3
 
 properties:
-  network_name:
-    description: "Name of the network the job resides in."
-
   consul.agent.mode:
     description: "Mode to run the agent in. (client or server)"
     default: client

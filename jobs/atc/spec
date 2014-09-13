@@ -53,6 +53,3 @@ properties:
 
   atc.postgresql.role.password:
     description: "password to use when connecting"
-
-  network_name:
-    description: "name of the network that the job lives in; used to figure out our IP"

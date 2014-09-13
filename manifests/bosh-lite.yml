@@ -34,8 +34,6 @@ jobs:
       - name: concourse
         static_ips: [10.244.8.2]
     properties:
-      network_name: concourse
-
       atc:
         pipeline: *pipeline
         postgresql:
@@ -69,8 +67,6 @@ jobs:
     networks:
       - name: concourse
     properties:
-      network_name: concourse
-
       postgresql:
         databases:
           - name: atc
@@ -99,7 +95,6 @@ jobs:
     networks:
       - name: concourse
     properties:
-      network_name: concourse
       consul:
         agent:
           servers:
