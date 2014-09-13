@@ -129,6 +129,12 @@ var checkInterval = flag.Duration(
 	"interval on which to poll for new versions of resources",
 )
 
+var publicViewable = flag.Bool(
+	"publicViewable",
+	false,
+	"allow viewability without authentication (destructive operations still require auth)",
+)
+
 var noop = flag.Bool(
 	"noop",
 	false,
@@ -265,12 +271,22 @@ func main() {
 	webMux.Handle("/api/v1/", auth.Handler{Handler: apiHandler, Validator: validator})
 	webMux.Handle("/", webHandler)
 
+	var publicHandler http.Handler
+	if *publicViewable {
+		publicHandler = webMux
+	} else {
+		publicHandler = auth.Handler{
+			Handler:   webMux,
+			Validator: validator,
+		}
+	}
+
 	webListenAddr := fmt.Sprintf("%s:%d", *webListenAddress, *webListenPort)
 	callbacksListenAddr := fmt.Sprintf("%s:%d", *externalAddress, *callbacksListenPort)
 	debugListenAddr := fmt.Sprintf("%s:%d", *debugListenAddress, *debugListenPort)
 
 	group := grouper.RunGroup{
-		"web":       http_server.New(webListenAddr, webMux),
+		"web":       http_server.New(webListenAddr, publicHandler),
 		"callbacks": http_server.New(callbacksListenAddr, callbacksHandler),
 		"debug":     http_server.New(debugListenAddr, http.DefaultServeMux),
 
