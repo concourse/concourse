@@ -25,6 +25,7 @@ jobs:
       atc:
         basic_auth_encrypted_password: ~
         basic_auth_username: ~
+        publicly_viewable: false
         pipeline: (( merge ))
         postgresql:
           database: atc
