@@ -129,8 +129,8 @@ var checkInterval = flag.Duration(
 	"interval on which to poll for new versions of resources",
 )
 
-var publicViewable = flag.Bool(
-	"publicViewable",
+var publiclyViewable = flag.Bool(
+	"publiclyViewable",
 	false,
 	"allow viewability without authentication (destructive operations still require auth)",
 )
@@ -272,7 +272,7 @@ func main() {
 	webMux.Handle("/", webHandler)
 
 	var publicHandler http.Handler
-	if *publicViewable {
+	if *publiclyViewable {
 		publicHandler = webMux
 	} else {
 		publicHandler = auth.Handler{
