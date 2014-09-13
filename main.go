@@ -24,6 +24,7 @@ import (
 	troutes "github.com/concourse/turbine/routes"
 
 	"github.com/concourse/atc/api"
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/builder"
 	"github.com/concourse/atc/callbacks"
 	croutes "github.com/concourse/atc/callbacks/routes"
@@ -36,7 +37,6 @@ import (
 	"github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/factory"
 	"github.com/concourse/atc/web"
-	"github.com/concourse/atc/web/auth"
 )
 
 var pipelinePath = flag.String(
@@ -217,6 +217,17 @@ func main() {
 
 	radar := radar.NewRadar(logger, db, *checkInterval)
 
+	var validator auth.Validator
+
+	if *httpUsername != "" && *httpHashedPassword != "" {
+		validator = auth.BasicAuthValidator{
+			Username:       *httpUsername,
+			HashedPassword: *httpHashedPassword,
+		}
+	} else {
+		validator = auth.NoopValidator{}
+	}
+
 	apiHandler, err := api.NewHandler(
 		logger,
 		db,
@@ -232,6 +243,7 @@ func main() {
 
 	webHandler, err := web.NewHandler(
 		logger,
+		validator,
 		conf,
 		scheduler,
 		radar,
@@ -250,27 +262,15 @@ func main() {
 	}
 
 	webMux := http.NewServeMux()
-	webMux.Handle("/api/v1/", apiHandler)
+	webMux.Handle("/api/v1/", auth.Handler{Handler: apiHandler, Validator: validator})
 	webMux.Handle("/", webHandler)
-
-	var publicHandler http.Handler
-
-	publicHandler = webMux
-
-	if *httpUsername != "" && *httpHashedPassword != "" {
-		publicHandler = auth.Handler{
-			Handler:        publicHandler,
-			Username:       *httpUsername,
-			HashedPassword: *httpHashedPassword,
-		}
-	}
 
 	webListenAddr := fmt.Sprintf("%s:%d", *webListenAddress, *webListenPort)
 	callbacksListenAddr := fmt.Sprintf("%s:%d", *externalAddress, *callbacksListenPort)
 	debugListenAddr := fmt.Sprintf("%s:%d", *debugListenAddress, *debugListenPort)
 
 	group := grouper.RunGroup{
-		"web":       http_server.New(webListenAddr, publicHandler),
+		"web":       http_server.New(webListenAddr, webMux),
 		"callbacks": http_server.New(callbacksListenAddr, callbacksHandler),
 		"debug":     http_server.New(debugListenAddr, http.DefaultServeMux),
 

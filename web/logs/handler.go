@@ -8,6 +8,9 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/pivotal-golang/lager"
 
+	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/logfanout"
 )
 
@@ -17,7 +20,13 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func NewHandler(logger lager.Logger, tracker *logfanout.Tracker) http.Handler {
+func NewHandler(
+	logger lager.Logger,
+	validator auth.Validator,
+	jobs config.Jobs,
+	tracker *logfanout.Tracker,
+	db db.DB,
+) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		buildIDStr := r.FormValue(":build_id")
 
@@ -29,6 +38,21 @@ func NewHandler(logger lager.Logger, tracker *logfanout.Tracker) http.Handler {
 		if err != nil {
 			log.Error("invalid-build-id", err)
 			return
+		}
+
+		if !validator.IsAuthenticated(w, r) {
+			build, err := db.GetBuild(buildID)
+			if err != nil {
+				log.Error("invalid-build-id", err)
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+
+			job, found := jobs.Lookup(build.JobName)
+			if !found || !job.Public {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
 		}
 
 		conn, err := upgrader.Upgrade(w, r, nil)

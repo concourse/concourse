@@ -11,11 +11,10 @@ import (
 	"time"
 
 	"code.google.com/p/go.crypto/bcrypt"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/atc/web/auth"
+	"github.com/concourse/atc/auth"
 )
 
 func header(stringList ...string) string {
@@ -41,9 +40,11 @@ var _ = Describe("BasicAuthHandler", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 
 		authHandler := auth.Handler{
-			Handler:        simpleHandler,
-			Username:       username,
-			HashedPassword: string(hashedPassword),
+			Handler: simpleHandler,
+			Validator: auth.BasicAuthValidator{
+				Username:       username,
+				HashedPassword: string(hashedPassword),
+			},
 		}
 
 		server = httptest.NewServer(authHandler)

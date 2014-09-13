@@ -24,6 +24,8 @@ type Source map[string]interface{}
 type Job struct {
 	Name string `yaml:"name"`
 
+	Public bool `yaml:"public"`
+
 	BuildConfigPath string        `yaml:"build"`
 	BuildConfig     builds.Config `yaml:"config"`
 

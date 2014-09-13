@@ -10,15 +10,24 @@ import (
 	"code.google.com/p/go.crypto/bcrypt"
 )
 
-type Handler struct {
-	Handler        http.Handler
+var ErrUnparsableHeader = errors.New("cannot parse 'Authorization' header")
+
+type Validator interface {
+	IsAuthenticated(http.ResponseWriter, *http.Request) bool
+}
+
+type NoopValidator struct{}
+
+func (NoopValidator) IsAuthenticated(http.ResponseWriter, *http.Request) bool {
+	return true
+}
+
+type BasicAuthValidator struct {
 	Username       string
 	HashedPassword string
 }
 
-const CookieName = "ATC-Authorization"
-
-func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (validator BasicAuthValidator) IsAuthenticated(w http.ResponseWriter, r *http.Request) bool {
 	auth := r.Header.Get("Authorization")
 	if auth == "" {
 		cookie, err := r.Cookie(CookieName)
@@ -36,28 +45,16 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	username, password, err := ExtractUsernameAndPassword(auth)
 	if err != nil {
-		h.unauthorized(w)
-		return
+		return false
 	}
 
-	if h.correctCredentials(username, password) {
-		h.Handler.ServeHTTP(w, r)
-	} else {
-		h.unauthorized(w)
-	}
+	return validator.correctCredentials(username, password)
 }
 
-func (h Handler) correctCredentials(username string, password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(h.HashedPassword), []byte(password))
-	return h.Username == username && err == nil
+func (validator BasicAuthValidator) correctCredentials(username string, password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(validator.HashedPassword), []byte(password))
+	return validator.Username == username && err == nil
 }
-
-func (h Handler) unauthorized(w http.ResponseWriter) {
-	w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
-	w.WriteHeader(http.StatusUnauthorized)
-}
-
-var ErrUnparsableHeader = errors.New("cannot parse 'Authorization' header")
 
 func ExtractUsernameAndPassword(authorizationHeader string) (string, string, error) {
 	if !strings.HasPrefix(authorizationHeader, "Basic ") {
