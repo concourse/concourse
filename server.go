@@ -8,6 +8,7 @@ import (
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/logfanout"
@@ -24,6 +25,7 @@ import (
 
 func NewHandler(
 	logger lager.Logger,
+	validator auth.Validator,
 	config config.Config,
 	scheduler *scheduler.Scheduler,
 	radar *radar.Radar,
@@ -56,16 +58,25 @@ func NewHandler(
 	}
 
 	handlers := map[string]http.Handler{
-		routes.Index:        index.NewHandler(logger, radar, config.Resources, config.Jobs, db, indexTemplate),
-		routes.GetBuild:     getbuild.NewHandler(logger, config.Jobs, db, buildTemplate),
-		routes.TriggerBuild: triggerbuild.NewHandler(logger, config.Jobs, scheduler),
-		routes.AbortBuild:   abortbuild.NewHandler(logger, config.Jobs, db),
-
-		routes.LogOutput: logs.NewHandler(logger, tracker),
-
-		routes.Public: http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
-
+		// public
+		routes.Index:       index.NewHandler(logger, radar, config.Resources, config.Jobs, db, indexTemplate),
+		routes.Public:      http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
 		routes.GetResource: getresource.NewHandler(logger, config.Resources, db, resourceTemplate),
+		routes.GetBuild:    getbuild.NewHandler(logger, config.Jobs, db, buildTemplate),
+
+		// public jobs, or authed
+		routes.LogOutput: logs.NewHandler(logger, validator, config.Jobs, tracker, db),
+
+		// private
+		routes.TriggerBuild: auth.Handler{
+			Handler:   triggerbuild.NewHandler(logger, config.Jobs, scheduler),
+			Validator: validator,
+		},
+
+		routes.AbortBuild: auth.Handler{
+			Handler:   abortbuild.NewHandler(logger, config.Jobs, db),
+			Validator: validator,
+		},
 	}
 
 	return rata.NewRouter(routes.Routes, handlers)
