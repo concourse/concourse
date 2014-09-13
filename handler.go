@@ -7,10 +7,8 @@ type Handler struct {
 	Handler   http.Handler
 }
 
-const CookieName = "ATC-Authorization"
-
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if h.Validator.IsAuthenticated(w, r) {
+	if h.Validator.IsAuthenticated(r) {
 		h.Handler.ServeHTTP(w, r)
 	} else {
 		h.Unauthorized(w)
