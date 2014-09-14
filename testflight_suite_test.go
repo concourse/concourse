@@ -69,11 +69,12 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 }, func(components []byte) {
 	err := json.Unmarshal(components, &builtComponents)
 	Ω(err).ShouldNot(HaveOccurred())
-
-	atcDir = findSource("github.com/concourse/atc")
 })
 
 var _ = BeforeEach(func() {
+	atcDir = os.Getenv("ATC_DIR")
+	Ω(atcDir).ShouldNot(BeEmpty(), "must specify $ATC_DIR")
+
 	externalAddress = os.Getenv("EXTERNAL_ADDRESS")
 	Ω(externalAddress).ShouldNot(BeEmpty(), "must specify $EXTERNAL_ADDRESS")
 
