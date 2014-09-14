@@ -36,6 +36,9 @@ pushd src/garden-linux/
   git checkout $GARDEN_LINUX_SHA
 popd
 
-git add src/
-
-git commit -m "auto-bump"
+if [ -n "$(git status --porcelain)" ]; then
+  git add src/
+  git commit -m "auto-bump"
+else
+  echo "nothing to bump; continuing on..."
+fi
