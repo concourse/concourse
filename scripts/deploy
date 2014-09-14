@@ -13,6 +13,8 @@ fi
 
 cp deployments/ci/config/private.yml concourse-dev/config/private.yml
 
+DEPLOYMENT=$(readlink -f deployments/ci/deployments/concourse.yml)
+
 cd concourse-dev/
 
 git config --global user.email "ci@localhost"
@@ -22,7 +24,17 @@ git merge --no-edit master
 
 bosh target ${BOSH_TARGET}
 
-bosh deployment ../deployments/ci/deployments/concourse.yml
+bosh deployment ${DEPLOYMENT}
+
+spiff diff --separator $'\f' manifests/aws-vpc.yml ${DEPLOYMENT} | \
+  awk -v RS='\f' '!/pipeline|REPLACE|basic_auth|publicly_viewable/' |
+  tee /tmp/manifest-diff
+
+if [ -s /tmp/manifest-diff ]; then
+  echo '\x1b[31m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\x1b[0m'
+  echo '\x1b[31m!! WARNING: VPC EXEMPLARY MANIFEST CHANGES DETECTED !!\x1b[0m'
+  echo '\x1b[31m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\x1b[0m'
+fi
 
 if [ -f ../bosh-stemcells/*.tgz ]; then
   bosh -n upload stemcell ../bosh-stemcells/*.tgz --skip-if-exists
