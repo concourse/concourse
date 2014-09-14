@@ -122,51 +122,65 @@ values:
 
 @itemlist[
   @item{
-    @code{director_uuid}: The UUID of your deployment's BOSH director. Obtain this with
-    @code{bosh status --uuid}. This is a safeguard against deploying to the wrong
-    environments (the risk of making deploys so automated.)
+    @code{director_uuid}: The UUID of your deployment's BOSH director. Obtain
+    this with @code{bosh status --uuid}. This is a safeguard against deploying
+    to the wrong environments (the risk of making deploys so automated.)
   }
 
   @item{
     @code{networks}: Your infrastructure's IP ranges and such will probably be
-    different, but may end up being the same if you're using AWS with a VPC that's
-    the same CIDR block.
+    different, but may end up being the same if you're using AWS with a VPC
+    that's the same CIDR block.
   }
 
   @item{
     @code{jobs.web.networks.X.static_ips} and
-    @code{jobs.X.properties.consul.agent.servers.lan}: Pick an internal private IP to
-    assign here; this controls how Concourse auto-discovers its internal
+    @code{jobs.X.properties.consul.agent.servers.lan}: Pick an internal private
+    IP to assign here; this controls how Concourse auto-discovers its internal
     services/workers.
   }
 
   @item{
-    @code{jobs.web.properties.atc.config}: The configuration for your entire CI
-    pipeline. Most manifests pull this up top for convenience, and YAML-alias this
-    property.
+    @code{jobs.web.properties.atc.pipeline}: The configuration for your entire
+    CI pipeline.
+  }
+
+  @item{
+    @code{jobs.web.properties.atc.basic_auth_username}
+    @code{jobs.web.properties.atc.basic_auth_encrypted_password}: Basic auth
+    credentials for the public web server.
+
+    The password must be a BCrypt-encrypted string. Note that higher encryption
+    costs may make the site less responsive.
+  }
+
+  @item{
+    @code{jobs.web.properties.atc.publicly_viewable}: Set to @code{true} to
+    make the webserver open (read-only) to the public. Destructive operations
+    are not permitted sensitive data is hidden when unauthenticated.
   }
 
   @item{
     @code{jobs.db.properties.postgresql.roles} and
-    @code{jobs.web.properties.atc.postgresql.role}: The credentials to the PostgreSQL
-    instance.
+    @code{jobs.web.properties.atc.postgresql.role}: The credentials to the
+    PostgreSQL instance.
   }
 
   @item{
-    @code{jobs.db.persistent_disk}: How much space to give PostgreSQL. You can change
-    this at any time; BOSH will safely migrate your persistent data to a new disk
-    when scaling up.
+    @code{jobs.db.persistent_disk}: How much space to give PostgreSQL. You can
+    change this at any time; BOSH will safely migrate your persistent data to a
+    new disk when scaling up.
   }
 
   @item{
-    @code{jobs.worker.instances}: Change this number to scale up or down the number of
-    worker VMs. Concourse will randomly pick a VM out of this pool every time it
-    starts a build.
+    @code{jobs.worker.instances}: Change this number to scale up or down the
+    number of worker VMs. Concourse will randomly pick a VM out of this pool
+    every time it starts a build.
   }
 
   @item{
-    @code{resource_pools}: This is where you configure things like your EC2 instance
-    type, the ELB to register your instances in, etc.
+    @code{resource_pools}: This is where you configure things like your EC2
+    instance type, the ELB to register your instances in, etc.
   }
 ]
 
