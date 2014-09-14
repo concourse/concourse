@@ -2,4 +2,4 @@
 image: docker:///concourse/atc-ci
 
 run:
-  path: concourse/ci/scripts/atc
+  path: concourse/ci/scripts/fly
