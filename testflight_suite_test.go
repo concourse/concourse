@@ -11,8 +11,8 @@ import (
 	"text/template"
 	"time"
 
+	GardenRunner "github.com/cloudfoundry-incubator/garden-linux/integration/runner"
 	"github.com/cloudfoundry-incubator/garden/warden"
-	WardenRunner "github.com/cloudfoundry-incubator/warden-linux/integration/runner"
 	"github.com/concourse/atc/postgresrunner"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -24,7 +24,7 @@ import (
 
 var (
 	externalAddress string
-	wardenBinPath   string
+	gardenBinPath   string
 	helperRootfs    string
 
 	builtComponents map[string]string
@@ -36,14 +36,14 @@ var (
 	postgresRunner postgresrunner.Runner
 
 	plumbing     ifrit.Process
-	wardenClient warden.Client
+	gardenClient warden.Client
 
 	atcProcess ifrit.Process
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	wardenBinPath = os.Getenv("WARDEN_BINPATH")
-	Ω(wardenBinPath).ShouldNot(BeEmpty(), "must provide $WARDEN_BINPATH")
+	gardenBinPath = os.Getenv("GARDEN_BINPATH")
+	Ω(gardenBinPath).ShouldNot(BeEmpty(), "must provide $GARDEN_BINPATH")
 
 	Ω(os.Getenv("BASE_GOPATH")).ShouldNot(BeEmpty(), "must provide $BASE_GOPATH")
 
@@ -56,14 +56,14 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	flyBin, err := buildWithGodeps("github.com/concourse/fly", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
-	wardenLinuxBin, err := buildWithGodeps("github.com/cloudfoundry-incubator/warden-linux", "-race")
+	gardenLinuxBin, err := buildWithGodeps("github.com/cloudfoundry-incubator/garden-linux", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
 	components, err := json.Marshal(map[string]string{
 		"turbine":      turbineBin,
 		"atc":          atcBin,
 		"fly":          flyBin,
-		"warden-linux": wardenLinuxBin,
+		"garden-linux": gardenLinuxBin,
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 
@@ -88,26 +88,26 @@ var _ = BeforeEach(func() {
 	helperRootfs = os.Getenv("HELPER_ROOTFS")
 	Ω(helperRootfs).ShouldNot(BeEmpty(), "must specify $HELPER_ROOTFS")
 
-	wardenAddr := fmt.Sprintf("127.0.0.1:%d", 4859+GinkgoParallelNode())
+	gardenAddr := fmt.Sprintf("127.0.0.1:%d", 4859+GinkgoParallelNode())
 
-	wardenRunner := WardenRunner.New(
+	gardenRunner := GardenRunner.New(
 		"tcp",
-		wardenAddr,
-		builtComponents["warden-linux"],
-		wardenBinPath,
+		gardenAddr,
+		builtComponents["garden-linux"],
+		gardenBinPath,
 		"bogus/rootfs",
 		"/tmp",
 	)
 
-	wardenClient = wardenRunner.NewClient()
+	gardenClient = gardenRunner.NewClient()
 
 	turbineRunner := &ginkgomon.Runner{
 		Name:          "turbine",
 		AnsiColorCode: "33m",
 		Command: exec.Command(
 			builtComponents["turbine"],
-			"-wardenNetwork", "tcp",
-			"-wardenAddr", wardenAddr,
+			"-gardenNetwork", "tcp",
+			"-gardenAddr", gardenAddr,
 			"-resourceTypes", fmt.Sprintf(`{
 				"archive": "%s",
 				"git": "%s"
@@ -143,7 +143,7 @@ var _ = BeforeEach(func() {
 
 	plumbing = grouper.EnvokeGroup(grouper.RunGroup{
 		"turbine":      turbineRunner,
-		"warden-linux": wardenRunner,
+		"garden-linux": gardenRunner,
 		"postgres":     postgresRunner,
 	})
 

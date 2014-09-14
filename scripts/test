@@ -31,10 +31,10 @@ echo "setting up helper rootfs..."
 mkdir -p $HELPER_ROOTFS
 tar -C $HELPER_ROOTFS -xf testflight-helper/rootfs.tar
 
-echo "building warden-linux..."
-pushd gopath/src/github.com/cloudfoundry-incubator/warden-linux/ >/dev/null
+echo "building garden-linux..."
+pushd gopath/src/github.com/cloudfoundry-incubator/garden-linux/ >/dev/null
   make >/dev/null # compile wshd/etc.
-  export WARDEN_BINPATH=$PWD/linux_backend/bin
+  export GARDEN_BINPATH=$PWD/linux_backend/bin
 popd >/dev/null
 
 echo "running"

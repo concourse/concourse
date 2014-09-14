@@ -12,7 +12,7 @@ import (
 )
 
 type Server struct {
-	wardenClient warden.Client
+	gardenClient warden.Client
 	container    warden.Container
 
 	ipAddress string
@@ -20,8 +20,8 @@ type Server struct {
 	committedGuids []string
 }
 
-func Start(helperRootfs string, wardenClient warden.Client) *Server {
-	container, err := wardenClient.Create(warden.ContainerSpec{
+func Start(helperRootfs string, gardenClient warden.Client) *Server {
+	container, err := gardenClient.Create(warden.ContainerSpec{
 		RootFSPath: helperRootfs,
 	})
 	Ω(err).ShouldNot(HaveOccurred())
@@ -58,14 +58,14 @@ touch .git/git-daemon-export-ok
 	Ω(process.Wait()).Should(Equal(0))
 
 	return &Server{
-		wardenClient: wardenClient,
+		gardenClient: gardenClient,
 		container:    container,
 		ipAddress:    info.ContainerIP,
 	}
 }
 
 func (server *Server) Stop() {
-	server.wardenClient.Destroy(server.container.Handle())
+	server.gardenClient.Destroy(server.container.Handle())
 }
 
 func (server *Server) URI() string {

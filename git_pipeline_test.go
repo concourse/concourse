@@ -34,14 +34,14 @@ var _ = Describe("A job with a git resource", func() {
 	)
 
 	BeforeEach(func() {
-		guidserver.Start(helperRootfs, wardenClient)
+		guidserver.Start(helperRootfs, gardenClient)
 
-		gitServer = gitserver.Start(helperRootfs, wardenClient)
+		gitServer = gitserver.Start(helperRootfs, gardenClient)
 		gitServer.Commit()
 
-		successGitServer = gitserver.Start(helperRootfs, wardenClient)
-		failureGitServer = gitserver.Start(helperRootfs, wardenClient)
-		noUpdateGitServer = gitserver.Start(helperRootfs, wardenClient)
+		successGitServer = gitserver.Start(helperRootfs, gardenClient)
+		failureGitServer = gitserver.Start(helperRootfs, gardenClient)
+		noUpdateGitServer = gitserver.Start(helperRootfs, gardenClient)
 
 		templateData := GitPipelineTemplate{
 			TestflightHelperImage: helperRootfs,
@@ -65,7 +65,7 @@ var _ = Describe("A job with a git resource", func() {
 		failureGitServer.Stop()
 		noUpdateGitServer.Stop()
 
-		guidserver.Stop(wardenClient)
+		guidserver.Stop(gardenClient)
 	})
 
 	It("builds a repo's initial and later commits", func() {

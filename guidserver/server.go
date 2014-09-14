@@ -39,10 +39,10 @@ var container warden.Container
 
 var ipAddress string
 
-func Start(helperRootfs string, wardenClient warden.Client) {
+func Start(helperRootfs string, gardenClient warden.Client) {
 	var err error
 
-	container, err = wardenClient.Create(warden.ContainerSpec{
+	container, err = gardenClient.Create(warden.ContainerSpec{
 		RootFSPath: helperRootfs,
 	})
 	Ω(err).ShouldNot(HaveOccurred())
@@ -67,8 +67,8 @@ func Start(helperRootfs string, wardenClient warden.Client) {
 	}, 2).ShouldNot(HaveOccurred())
 }
 
-func Stop(wardenClient warden.Client) {
-	wardenClient.Destroy(container.Handle())
+func Stop(gardenClient warden.Client) {
+	gardenClient.Destroy(container.Handle())
 
 	container = nil
 	ipAddress = ""
