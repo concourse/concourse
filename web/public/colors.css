@@ -14,13 +14,13 @@ svg .edgeLabel text { fill: #f5f5f5; }
 svg h1 a { color: #f5f5f5; }
 #build-title .abort-build input:hover { color: #f5f5f5; }
 #build-title .abort-build input:active { color: #f5f5f5; }
-#version-history .builds li a { color: #f5f5f5; }
+.builds-list li a { color: #f5f5f5; }
 #builds li a { color: #f5f5f5; }
 
 /* dark */
 svg .node rect { fill: #151515; }
 #builds { background: #151515; }
-#version-history .builds { background: #151515; }
+.builds-list { background: #151515; }
 .build-resources .resource-header { background: #151515; }
 
 /* highlight background */

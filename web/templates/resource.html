@@ -8,6 +8,10 @@
 </div>
 
 <table id="version-history">
+  <colgroup>
+     <col span="1" style="width: 15%;">
+     <col span="1" style="width: 70%;">
+  </colgroup>
   <thead>
     <tr>
       <th>metadata</th>
@@ -32,7 +36,7 @@
           <tr>
             <td class="name"><h3>{{.JobName}}</h3></td>
             <td>
-              <ul class="builds">
+              <ul class="builds-list">
                 {{range .Builds}}
                 <li class="{{.Status}}"><a href="{{url "GetBuild" $job .}}">#{{.Name}}</a></li>
                 {{end}}
