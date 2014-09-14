@@ -1,0 +1,5 @@
+---
+image: docker:///mischief/docker-golang
+
+run:
+  path: concourse/ci/scripts/turbine
