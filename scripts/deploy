@@ -3,7 +3,7 @@
 
 set -e -x
 
-source ./deployments/sandbox/bosh_environment
+source ./deployments/ci/bosh_environment
 
 VERSION=$(cat ./version/number)
 if [ -z "$VERSION" ]; then
@@ -11,7 +11,7 @@ if [ -z "$VERSION" ]; then
   exit 1
 fi
 
-cp deployments/sandbox/config/private.yml concourse-dev/config/private.yml
+cp deployments/ci/config/private.yml concourse-dev/config/private.yml
 
 cd concourse-dev/
 
@@ -20,11 +20,9 @@ git config --global user.name "CI Bot"
 
 git merge --no-edit master
 
-./generate_deployment_manifest aws ../deployments/sandbox/stubs/*.yml > aws-deployment.yml
-
 bosh target ${BOSH_TARGET}
 
-bosh deployment aws-deployment.yml
+bosh deployment ../deployments/ci/deployments/concourse.yml
 
 if [ -f ../bosh-stemcells/*.tgz ]; then
   bosh -n upload stemcell ../bosh-stemcells/*.tgz --skip-if-exists
