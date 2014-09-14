@@ -20,3 +20,8 @@ blobs
 
 .vagrant/
 docs/concourse/
+
+/bin
+/pkg
+
+.hg

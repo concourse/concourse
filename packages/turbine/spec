@@ -5,4 +5,4 @@ dependencies:
   - golang_1.3
 
 files:
-  - turbine/**/*.go
+  - '**/*.go'

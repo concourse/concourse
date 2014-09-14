@@ -17,6 +17,9 @@ releases:
   - name: concourse
     version: latest
     url: dir+bosh://.
+  - name: garden-linux
+    version: 0.10.0
+    url: http://s3.amazonaws.com/garden-linux-release/releases/garden-linux-0.10.0.tgz
 
 networks:
   - name: concourse
@@ -30,7 +33,7 @@ jobs:
       - {release: concourse, name: atc}
       - {release: concourse, name: turbine}
       - {release: concourse, name: postgresql}
-      - {release: concourse, name: garden}
+      - {release: garden-linux, name: garden}
       - {release: concourse, name: consul-agent}
     properties:
       atc:

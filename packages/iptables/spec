@@ -1,5 +1,0 @@
----
-name: iptables
-
-files:
-  - iptables/iptables-1.4.21.tar.bz2

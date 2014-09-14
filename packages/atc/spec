@@ -5,6 +5,6 @@ dependencies:
   - golang_1.3
 
 files:
-  - atc/**/*.go
-  - atc/web/templates/**/*
-  - atc/web/public/**/*
+  - '**/*.go'
+  - github.com/concourse/atc/web/templates/**/*
+  - github.com/concourse/atc/web/public/**/*

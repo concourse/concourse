@@ -1,0 +1,5 @@
+#!/bin/bash
+# vim: set ft=sh
+
+scripts=$(cd $(dirname $0) && pwd)
+git submodule foreach ${scripts}'/register-submodule $path'

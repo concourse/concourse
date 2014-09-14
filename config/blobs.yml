@@ -1,14 +1,4 @@
 ---
-aufs/aufs-tools_20110410-1_amd64.deb:
-  object_id: 79ed3b90-6be7-48fb-9d86-6d22a336d946
-  sha: !binary |-
-    NmYyMDIzMDhmNTc4ZGU3ZWE1NGZjMmRkMGI0NGI2NjY4MDRmOWJhNg==
-  size: 98338
-iptables/iptables-1.4.21.tar.bz2:
-  object_id: 2bc7b7eb-d543-49f2-a8a7-6ac692ba4b0e
-  sha: !binary |-
-    ODVkNDE2MDUzNzU0NmEyM2E3ZTQyYmMyNmRkN2VlNjJhMGVkZTRjOA==
-  size: 547439
 golang_1.3/go1.3.linux-amd64.tar.gz:
   object_id: a0efd822-3cc4-4acf-af26-702cae02ff7a
   sha: !binary |-
@@ -24,8 +14,3 @@ consul_0.3/consul:
   sha: !binary |-
     NDhiOWI2NzFmNzU0NzliZWJjZTczOGYzMDY1NGUxODUyMGQ5NGM5Ng==
   size: 14388499
-shadow/shadow-4.2.1.tar.gz:
-  object_id: d20647fd-236c-453f-b43a-7d724c73fc6f
-  sha: !binary |-
-    ZDViODQ4ZmVjYjIwYWExYTBmNDU0NTQ5MmI0YWE5NjUzNWEwODA5MQ==
-  size: 3595255

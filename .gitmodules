@@ -1,11 +1,60 @@
-[submodule "src/turbine"]
-	path = src/turbine
-	url = https://github.com/concourse/turbine.git
+[submodule "src/github.com/BurntSushi/migration"]
+	path = src/github.com/BurntSushi/migration
+	url = https://github.com/BurntSushi/migration
 	branch = master
-[submodule "src/atc"]
-	path = src/atc
-	url = https://github.com/concourse/atc.git
+[submodule "src/github.com/bmizerany/pat"]
+	path = src/github.com/bmizerany/pat
+	url = https://github.com/bmizerany/pat
 	branch = master
-[submodule "src/garden-linux"]
-	path = src/garden-linux
-	url = https://github.com/cloudfoundry-incubator/garden-linux.git
+[submodule "src/github.com/concourse/atc"]
+	path = src/github.com/concourse/atc
+	url = https://github.com/concourse/atc
+	branch = master
+[submodule "src/github.com/concourse/turbine"]
+	path = src/github.com/concourse/turbine
+	url = https://github.com/concourse/turbine
+	branch = master
+[submodule "src/github.com/fraenkel/candiedyaml"]
+	path = src/github.com/fraenkel/candiedyaml
+	url = https://github.com/fraenkel/candiedyaml
+	branch = master
+[submodule "src/github.com/gorilla/websocket"]
+	path = src/github.com/gorilla/websocket
+	url = https://github.com/gorilla/websocket
+	branch = master
+[submodule "src/github.com/lib/pq"]
+	path = src/github.com/lib/pq
+	url = https://github.com/lib/pq
+	branch = master
+[submodule "src/github.com/nu7hatch/gouuid"]
+	path = src/github.com/nu7hatch/gouuid
+	url = https://github.com/nu7hatch/gouuid
+	branch = master
+[submodule "src/github.com/pivotal-golang/lager"]
+	path = src/github.com/pivotal-golang/lager
+	url = https://github.com/pivotal-golang/lager
+	branch = master
+[submodule "src/github.com/tedsuo/ifrit"]
+	path = src/github.com/tedsuo/ifrit
+	url = https://github.com/tedsuo/ifrit
+	branch = master
+[submodule "src/github.com/tedsuo/rata"]
+	path = src/github.com/tedsuo/rata
+	url = https://github.com/tedsuo/rata
+	branch = master
+[submodule "src/github.com/cloudfoundry-incubator/garden"]
+	path = src/github.com/cloudfoundry-incubator/garden
+	url = https://github.com/cloudfoundry-incubator/garden
+	branch = master
+[submodule "src/code.google.com/p/gogoprotobuf"]
+	path = src/code.google.com/p/gogoprotobuf
+	url = https://code.google.com/p/gogoprotobuf
+	branch = master
+[submodule "src/github.com/onsi/ginkgo"]
+	path = src/github.com/onsi/ginkgo
+	url = https://github.com/onsi/ginkgo
+	branch = master
+[submodule "src/github.com/onsi/gomega"]
+	path = src/github.com/onsi/gomega
+	url = https://github.com/onsi/gomega
+	branch = master
