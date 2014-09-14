@@ -14,12 +14,12 @@ properties:
     description: "Listening TCP address of the server."
     default: 0.0.0.0:4637
 
-  turbine.warden.network:
-    description: "Network type for the warden server connection (tcp or unix)."
+  turbine.garden.network:
+    description: "Network type for the garden server connection (tcp or unix)."
     default: tcp
 
-  turbine.warden.address:
-    description: "Warden server listening address."
+  turbine.garden.address:
+    description: "garden server connection address"
     default: 127.0.0.1:7777
 
   turbine.resource_types:

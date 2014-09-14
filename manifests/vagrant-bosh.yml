@@ -30,7 +30,7 @@ jobs:
       - {release: concourse, name: atc}
       - {release: concourse, name: turbine}
       - {release: concourse, name: postgresql}
-      - {release: concourse, name: warden}
+      - {release: concourse, name: garden}
       - {release: concourse, name: consul-agent}
     properties:
       atc:
@@ -47,10 +47,10 @@ jobs:
             - name: atc
             - name: turbine
             - name: postgresql
-            - name: warden
+            - name: garden
 
-      warden:
-        # make warden listen on all addresses for debugging
+      garden:
+        # make garden listen on all addresses for debugging
         listen_network: tcp
         listen_address: 0.0.0.0:7777
 

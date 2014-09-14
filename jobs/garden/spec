@@ -1,29 +1,29 @@
 ---
-name: warden
+name: garden
 
 templates:
-  warden_ctl.erb: bin/warden_ctl
+  garden_ctl.erb: bin/garden_ctl
 
 packages:
   - pid_utils
   - iptables
   - shadow
-  - warden-linux
+  - garden-linux
   - aufs
 
 properties:
-  warden.listen_network:
-    description: "Warden server connection mode (tcp or unix)."
+  garden.listen_network:
+    description: "garden server connection mode (tcp or unix)."
     default: tcp
 
-  warden.listen_address:
-    description: "Warden server listening address."
+  garden.listen_address:
+    description: "garden server listening address."
     default: 127.0.0.1:7777
 
-  warden.deny_networks:
+  garden.deny_networks:
     description: "List of CIDR blocks to which containers will be denied access."
     default: []
 
-  warden.allow_networks:
+  garden.allow_networks:
     description: "List of CIDR blocks to which containers will be allowed access (applied after deny)."
     default: []

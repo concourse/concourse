@@ -1,0 +1,14 @@
+check process garden
+  with pidfile /var/vcap/sys/run/garden/garden.pid
+  start program "/var/vcap/jobs/garden/bin/garden_ctl start"
+  stop program "/var/vcap/jobs/garden/bin/garden_ctl stop"
+<% if p("garden.listen_network") == "unix" %>
+  if failed unixsocket <%= p("garden.listen_address") %>
+    with timeout 5 seconds for 5 cycles
+    then restart
+<% elsif p("garden.listen_network") == "tcp" %>
+  if failed host 127.0.0.1 port <%= p("garden.listen_address").split(":").last %>
+    with timeout 5 seconds for 5 cycles
+    then restart
+<% end %>
+  group vcap

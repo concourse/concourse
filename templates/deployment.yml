@@ -64,7 +64,7 @@ jobs:
     templates:
       - name: turbine
         release: concourse
-      - name: warden
+      - name: garden
         release: concourse
       - name: consul-agent
         release: concourse

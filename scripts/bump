@@ -11,8 +11,8 @@ pushd turbine/
   export TURBINE_SHA=$(git rev-parse HEAD)
 popd
 
-pushd warden-linux/
-  export WARDEN_LINUX_SHA=$(git rev-parse HEAD)
+pushd garden-linux/
+  export GARDEN_LINUX_SHA=$(git rev-parse HEAD)
 popd
 
 cd concourse-dev/
@@ -32,8 +32,8 @@ pushd src/turbine/
   git checkout $TURBINE_SHA
 popd
 
-pushd src/warden-linux/
-  git checkout $WARDEN_LINUX_SHA
+pushd src/garden-linux/
+  git checkout $GARDEN_LINUX_SHA
 popd
 
 git add src/

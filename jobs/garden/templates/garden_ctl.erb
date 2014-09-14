@@ -1,16 +1,16 @@
 #!/bin/bash -e
 
-RUN_DIR=/var/vcap/sys/run/warden
-LOG_DIR=/var/vcap/sys/log/warden
-PIDFILE=$RUN_DIR/warden.pid
-DATA_DIR=/var/vcap/data/warden
+RUN_DIR=/var/vcap/sys/run/garden
+LOG_DIR=/var/vcap/sys/log/garden
+PIDFILE=$RUN_DIR/garden.pid
+DATA_DIR=/var/vcap/data/garden
 
 source /var/vcap/packages/pid_utils/pid_utils.sh
 
 case $1 in
 
   start)
-    pid_guard $PIDFILE "Warden"
+    pid_guard $PIDFILE "Garden"
 
     mkdir -p $RUN_DIR
     mkdir -p $DATA_DIR
@@ -24,23 +24,23 @@ case $1 in
     export PATH=/var/vcap/packages/iptables/sbin:$PATH
     export PATH=/var/vcap/packages/shadow/sbin:$PATH
 
-    echo $$ > /var/vcap/sys/run/warden/warden.pid
+    echo $$ > /var/vcap/sys/run/garden/garden.pid
 
-    exec /var/vcap/packages/warden-linux/bin/warden-linux \
+    exec /var/vcap/packages/garden-linux/bin/garden-linux \
       -disableQuotas=true \
-      -listenNetwork=<%= p("warden.listen_network") %> \
-      -listenAddr=<%= p("warden.listen_address") %> \
-      -denyNetworks=<%= p("warden.deny_networks").join(",") %> \
-      -allowNetworks=<%= p("warden.allow_networks").join(",") %> \
+      -listenNetwork=<%= p("garden.listen_network") %> \
+      -listenAddr=<%= p("garden.listen_address") %> \
+      -denyNetworks=<%= p("garden.deny_networks").join(",") %> \
+      -allowNetworks=<%= p("garden.allow_networks").join(",") %> \
       -networkPool=10.234.0.0/22 \
       -depot=${DATA_DIR}/depot \
       -graph=${DATA_DIR}/graph \
-      -bin=/var/vcap/packages/warden-linux/src/github.com/cloudfoundry-incubator/warden-linux/linux_backend/bin \
+      -bin=/var/vcap/packages/garden-linux/src/github.com/cloudfoundry-incubator/garden-linux/linux_backend/bin \
       -overlays=${DATA_DIR}/overlays \
       -snapshots=${DATA_DIR}/snapshots \
       -containerGraceTime=5m \
-      1>>$LOG_DIR/warden.stdout.log \
-      2>>$LOG_DIR/warden.stderr.log
+      1>>$LOG_DIR/garden.stdout.log \
+      2>>$LOG_DIR/garden.stderr.log
 
     ;;
 

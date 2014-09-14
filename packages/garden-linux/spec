@@ -1,0 +1,10 @@
+---
+name: garden-linux
+
+dependencies:
+  - golang_1.3
+
+files:
+  - garden-linux/**/*.go
+  - garden-linux/linux_backend/**/*
+  - garden-linux/Makefile

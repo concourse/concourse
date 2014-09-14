@@ -43,8 +43,8 @@ case $1 in
     exec /var/vcap/packages/turbine/bin/turbine \
       -listenAddr=<%= p("turbine.listen_address") %> \
       -peerAddr=<%= my_ip %>:<%= p("turbine.listen_address").split(":").last %> \
-      -wardenNetwork=<%= p("turbine.warden.network") %> \
-      -wardenAddr=<%= p("turbine.warden.address") %> \
+      -gardenNetwork=<%= p("turbine.garden.network") %> \
+      -gardenAddr=<%= p("turbine.garden.address") %> \
       -resourceTypes=<%= Shellwords.shellescape(p("turbine.resource_types").to_json) %> \
       1>>$LOG_DIR/turbine.stdout.log \
       2>>$LOG_DIR/turbine.stderr.log

@@ -1,6 +1,6 @@
 set -e
 
-REPO_NAME=github.com/cloudfoundry-incubator/warden-linux
+REPO_NAME=github.com/cloudfoundry-incubator/garden-linux
 
 REPO_DIR=${BOSH_INSTALL_TARGET}/src/${REPO_NAME}
 

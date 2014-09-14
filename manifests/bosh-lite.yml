@@ -67,7 +67,7 @@ jobs:
     networks: [{name: concourse}]
     templates:
       - {release: concourse, name: turbine}
-      - {release: concourse, name: warden}
+      - {release: concourse, name: garden}
       - {release: concourse, name: consul-agent}
     properties:
       consul:

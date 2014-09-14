@@ -1,7 +1,3 @@
-[submodule "src/warden-linux"]
-	path = src/warden-linux
-	url = https://github.com/cloudfoundry-incubator/warden-linux.git
-	branch = master
 [submodule "src/turbine"]
 	path = src/turbine
 	url = https://github.com/concourse/turbine.git
@@ -10,3 +6,6 @@
 	path = src/atc
 	url = https://github.com/concourse/atc.git
 	branch = master
+[submodule "src/garden-linux"]
+	path = src/garden-linux
+	url = https://github.com/cloudfoundry-incubator/garden-linux.git
