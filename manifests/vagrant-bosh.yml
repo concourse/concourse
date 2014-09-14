@@ -18,8 +18,8 @@ releases:
     version: latest
     url: dir+bosh://.
   - name: garden-linux
-    version: 0.10.0
-    url: http://s3.amazonaws.com/garden-linux-release/releases/garden-linux-0.10.0.tgz
+    version: latest
+    url: dir+bosh://garden-linux-release
 
 networks:
   - name: concourse
