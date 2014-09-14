@@ -1,0 +1,5 @@
+---
+image: docker:///concourse/testflight
+
+run:
+  path: concourse/ci/scripts/testflight
