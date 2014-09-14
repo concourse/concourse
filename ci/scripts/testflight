@@ -15,6 +15,8 @@ export PATH=${BASE_GOPATH}/bin:$PATH
 
 export EXTERNAL_ADDRESS=$(ip route get 8.8.8.8 | sed 's/.*src\s\(.*\)\s/\1/;tx;d;:x')
 
+export ATC_DIR=$PWD/concourse/src/github.com/concourse/atc
+
 export ARCHIVE_RESOURCE_ROOTFS=/tmp/archive-resource-rootfs
 export GIT_RESOURCE_ROOTFS=/tmp/git-resource-rootfs
 export HELPER_ROOTFS=/tmp/helper-rootfs
