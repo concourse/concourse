@@ -40,7 +40,9 @@ func NewHandler(
 			return
 		}
 
-		if !validator.IsAuthenticated(r) {
+		authenticated := validator.IsAuthenticated(r)
+
+		if !authenticated {
 			build, err := db.GetBuild(buildID)
 			if err != nil {
 				log.Error("invalid-build-id", err)
@@ -66,7 +68,14 @@ func NewHandler(
 		logFanout := tracker.Register(buildID, conn)
 		defer tracker.Unregister(buildID, conn)
 
-		err = logFanout.Attach(conn)
+		var sink logfanout.Sink
+		if authenticated {
+			sink = logfanout.NewRawSink(conn)
+		} else {
+			sink = logfanout.NewCensoredSink(conn)
+		}
+
+		err = logFanout.Attach(sink)
 		if err != nil {
 			log.Error("attach-failed", err)
 			conn.Close()
