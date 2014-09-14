@@ -1,0 +1,28 @@
+{{define "title"}}{{.Job.Name}} - Concourse{{end}}
+
+{{define "body"}}
+<div id="build-header">
+  <div id="build-title" class="{{.CurrentBuild.Status}}">
+    <form class="trigger-build" method="post" action="{{url "TriggerBuild" .Job}}">
+      <input type="submit" value="trigger build" />
+    </form>
+
+    <a class="title" href="/">&lt;</a>
+
+    <h1>{{.Job.Name}}</h1>
+  </div>
+</div>
+
+<div id="build-body">
+  <div class="section">
+    <h2>builds</h2>
+    <ul class="builds-list">
+      {{$job := .Job}}
+      {{$currentName := .CurrentBuild.Name}}
+      {{range .Builds}}
+      <li class="{{.Status}}{{if eq .Name $currentName}} current{{end}}"><a href="{{url "GetBuild" $job .}}">{{.Name}}</a></li>
+      {{end}}
+    </ul>
+  </div>
+</div>
+{{end}}

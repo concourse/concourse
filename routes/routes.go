@@ -10,11 +10,13 @@ const (
 	Public       = "Public"
 	LogOutput    = "LogOutput"
 	GetResource  = "GetResource"
+	GetJob       = "GetJob"
 )
 
 var Routes = rata.Routes{
 	// public
 	{Path: "/", Method: "GET", Name: Index},
+	{Path: "/jobs/:job", Method: "GET", Name: GetJob},
 	{Path: "/resources/:resource", Method: "GET", Name: GetResource},
 	{Path: "/public/:filename", Method: "GET", Name: Public},
 

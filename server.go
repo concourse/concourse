@@ -16,6 +16,7 @@ import (
 	"github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/web/abortbuild"
 	"github.com/concourse/atc/web/getbuild"
+	"github.com/concourse/atc/web/getjob"
 	"github.com/concourse/atc/web/getresource"
 	"github.com/concourse/atc/web/index"
 	"github.com/concourse/atc/web/logs"
@@ -52,6 +53,11 @@ func NewHandler(
 		return nil, err
 	}
 
+	jobTemplate, err := loadTemplate(templatesDir, "job.html", funcs)
+	if err != nil {
+		return nil, err
+	}
+
 	absPublicDir, err := filepath.Abs(publicDir)
 	if err != nil {
 		return nil, err
@@ -61,6 +67,7 @@ func NewHandler(
 		// public
 		routes.Index:       index.NewHandler(logger, radar, config.Resources, config.Jobs, db, indexTemplate),
 		routes.Public:      http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
+		routes.GetJob:      getjob.NewHandler(logger, config.Jobs, db, jobTemplate),
 		routes.GetResource: getresource.NewHandler(logger, config.Resources, db, resourceTemplate),
 		routes.GetBuild:    getbuild.NewHandler(logger, config.Jobs, db, buildTemplate),
 

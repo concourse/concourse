@@ -120,10 +120,20 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		jobID := jobNode(job.Name)
 		currentBuild := currentBuilds[job.Name]
 
-		buildURI, err := routes.Routes.CreatePathForRoute(routes.GetBuild, rata.Params{
-			"job":   job.Name,
-			"build": currentBuild.Name,
-		})
+		var buildURI string
+		var err error
+
+		if currentBuild.Name != "" {
+			buildURI, err = routes.Routes.CreatePathForRoute(routes.GetBuild, rata.Params{
+				"job":   job.Name,
+				"build": currentBuild.Name,
+			})
+		} else {
+			buildURI, err = routes.Routes.CreatePathForRoute(routes.GetJob, rata.Params{
+				"job": job.Name,
+			})
+		}
+
 		if err != nil {
 			log.Error("failed-to-create-route", err)
 		}
