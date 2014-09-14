@@ -45,18 +45,16 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	gardenBinPath = os.Getenv("GARDEN_BINPATH")
 	Ω(gardenBinPath).ShouldNot(BeEmpty(), "must provide $GARDEN_BINPATH")
 
-	Ω(os.Getenv("BASE_GOPATH")).ShouldNot(BeEmpty(), "must provide $BASE_GOPATH")
-
-	turbineBin, err := buildWithGodeps("github.com/concourse/turbine", "-race")
+	turbineBin, err := gexec.Build("github.com/concourse/turbine", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
-	atcBin, err := buildWithGodeps("github.com/concourse/atc", "-race")
+	atcBin, err := gexec.Build("github.com/concourse/atc", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
-	flyBin, err := buildWithGodeps("github.com/concourse/fly", "-race")
+	flyBin, err := gexec.Build("github.com/concourse/fly", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
-	gardenLinuxBin, err := buildWithGodeps("github.com/cloudfoundry-incubator/garden-linux", "-race")
+	gardenLinuxBin, err := gexec.Build("github.com/cloudfoundry-incubator/garden-linux", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
 	components, err := json.Marshal(map[string]string{
@@ -195,33 +193,4 @@ func writeATCPipeline(templateName string, templateData interface{}) {
 
 	err = atcPipelineFile.Close()
 	Ω(err).ShouldNot(HaveOccurred())
-}
-
-func findSource(pkg string) string {
-	for _, path := range filepath.SplitList(os.Getenv("BASE_GOPATH")) {
-		srcPath := filepath.Join(path, "src", pkg)
-
-		_, err := os.Stat(srcPath)
-		if err != nil {
-			continue
-		}
-
-		return srcPath
-	}
-
-	return ""
-}
-
-func buildWithGodeps(pkg string, args ...string) (string, error) {
-	srcPath := findSource(pkg)
-	Ω(srcPath).ShouldNot(BeEmpty(), "could not find source for "+pkg)
-
-	gopath := fmt.Sprintf(
-		"%s%c%s",
-		filepath.Join(srcPath, "Godeps", "_workspace"),
-		os.PathListSeparator,
-		os.Getenv("BASE_GOPATH"),
-	)
-
-	return gexec.BuildIn(gopath, pkg, args...)
 }
