@@ -12,7 +12,7 @@ type FakeEventStream struct {
 	NextEventStub        func() (event.Event, error)
 	nextEventMutex       sync.RWMutex
 	nextEventArgsForCall []struct{}
-	nextEventReturns struct {
+	nextEventReturns     struct {
 		result1 event.Event
 		result2 error
 	}
