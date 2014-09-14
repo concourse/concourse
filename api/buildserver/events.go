@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/concourse/atc/logfanout"
 	"github.com/gorilla/websocket"
 	"github.com/pivotal-golang/lager"
 )
@@ -35,7 +36,9 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 	logFanout := s.tracker.Register(buildID, conn)
 	defer s.tracker.Unregister(buildID, conn)
 
-	err = logFanout.Attach(conn)
+	sink := logfanout.NewRawSink(conn)
+
+	err = logFanout.Attach(sink)
 	if err != nil {
 		eLog.Error("attach-failed", err)
 		conn.Close()

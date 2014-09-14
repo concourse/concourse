@@ -7,13 +7,16 @@ import (
 	"io"
 	"sync"
 	"unicode/utf8"
-
-	"github.com/gorilla/websocket"
 )
 
 type LogDB interface {
 	BuildLog(build int) ([]byte, error)
 	AppendBuildLog(build int, log []byte) error
+}
+
+type Sink interface {
+	WriteMessage(*json.RawMessage) error
+	Close() error
 }
 
 type LogFanout struct {
@@ -23,7 +26,7 @@ type LogFanout struct {
 
 	lock *sync.Mutex
 
-	sinks []*websocket.Conn
+	sinks []Sink
 
 	closed bool
 }
@@ -46,9 +49,9 @@ func (fanout *LogFanout) WriteMessage(msg *json.RawMessage) error {
 		return err
 	}
 
-	newSinks := []*websocket.Conn{}
+	newSinks := []Sink{}
 	for _, sink := range fanout.sinks {
-		err := sink.WriteJSON(msg)
+		err := sink.WriteMessage(msg)
 		if err != nil {
 			continue
 		}
@@ -61,7 +64,7 @@ func (fanout *LogFanout) WriteMessage(msg *json.RawMessage) error {
 	return nil
 }
 
-func (fanout *LogFanout) Attach(sink *websocket.Conn) error {
+func (fanout *LogFanout) Attach(sink Sink) error {
 	fanout.lock.Lock()
 
 	buildLog, err := fanout.db.BuildLog(fanout.build)
@@ -79,7 +82,7 @@ func (fanout *LogFanout) Attach(sink *websocket.Conn) error {
 				break
 			}
 
-			err = sink.WriteJSON(msg)
+			err = sink.WriteMessage(msg)
 			if err != nil {
 				fanout.lock.Unlock()
 				return err
@@ -116,8 +119,14 @@ func (fanout *LogFanout) Close() error {
 	return nil
 }
 
-func (fanout *LogFanout) emitBackwardsCompatible(sink *websocket.Conn, log []byte) {
-	err := sink.WriteMessage(websocket.TextMessage, []byte(`{"version":"0.0"}`))
+type backwardsCompatibleLogMessage struct {
+	Log string `json:"log"`
+}
+
+func (fanout *LogFanout) emitBackwardsCompatible(sink Sink, log []byte) {
+	versionMsg := json.RawMessage(`{"version":"0.0"}`)
+
+	err := sink.WriteMessage(&versionMsg)
 	if err != nil {
 		return
 	}
@@ -137,7 +146,16 @@ func (fanout *LogFanout) emitBackwardsCompatible(sink *websocket.Conn, log []byt
 			continue
 		}
 
-		err := sink.WriteMessage(websocket.TextMessage, text)
+		msg := backwardsCompatibleLogMessage{Log: string(text)}
+
+		payload, err := json.Marshal(msg)
+		if err != nil {
+			return
+		}
+
+		rawMsg := json.RawMessage(payload)
+
+		err = sink.WriteMessage(&rawMsg)
 		if err != nil {
 			return
 		}
