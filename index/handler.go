@@ -147,6 +147,8 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			},
 		})
 
+		edges := map[string]DotEdge{}
+
 		for _, input := range job.Inputs {
 			if len(input.Passed) > 0 {
 				var nodeID string
@@ -177,19 +179,26 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						panic("unknown job: " + passed)
 					}
 
-					value := map[string]string{
-						"status": string(currentBuild.Status),
-					}
+					existingEdge, found := edges[passed]
+					if found {
+						if len(passedJob.Inputs) > 1 {
+							existingEdge.Value["label"] += "\n" + input.Resource
+						}
+					} else {
+						value := map[string]string{
+							"status": string(currentBuild.Status),
+						}
 
-					if len(passedJob.Inputs) > 1 {
-						value["label"] = input.Resource
-					}
+						if len(passedJob.Inputs) > 1 {
+							value["label"] = input.Resource
+						}
 
-					data.Edges = append(data.Edges, DotEdge{
-						Source:      jobNode(passed),
-						Destination: nodeID,
-						Value:       value,
-					})
+						edges[passed] = DotEdge{
+							Source:      jobNode(passed),
+							Destination: nodeID,
+							Value:       value,
+						}
+					}
 				}
 			} else {
 				data.Edges = append(data.Edges, DotEdge{
@@ -197,6 +206,10 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					Destination: jobID,
 				})
 			}
+		}
+
+		for _, edge := range edges {
+			data.Edges = append(data.Edges, edge)
 		}
 
 		for _, output := range job.Outputs {
