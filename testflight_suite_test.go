@@ -54,7 +54,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	flyBin, err := gexec.Build("github.com/concourse/fly", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
-	gardenLinuxBin, err := gexec.Build("github.com/cloudfoundry-incubator/garden-linux", "-race")
+	gardenLinuxBin, err := buildWithGodeps("github.com/cloudfoundry-incubator/garden-linux", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
 	components, err := json.Marshal(map[string]string{
@@ -194,4 +194,15 @@ func writeATCPipeline(templateName string, templateData interface{}) {
 
 	err = atcPipelineFile.Close()
 	Ω(err).ShouldNot(HaveOccurred())
+}
+
+func buildWithGodeps(pkg string, args ...string) (string, error) {
+	gopath := fmt.Sprintf(
+		"%s%c%s",
+		filepath.Join(os.Getenv("BASE_GOPATH"), "src", pkg, "Godeps", "_workspace"),
+		os.PathListSeparator,
+		os.Getenv("BASE_GOPATH"),
+	)
+
+	return gexec.BuildIn(gopath, pkg, args...)
 }
