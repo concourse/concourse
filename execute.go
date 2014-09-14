@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 
+	"crypto/tls"
 	"log"
 	"net/http"
 	"os"
@@ -36,8 +37,9 @@ type Input struct {
 func execute(c *cli.Context) {
 	atc := c.GlobalString("atcURL")
 	buildConfig := c.String("config")
+	insecure := c.GlobalBool("insecure")
 
-	reqGenerator := rata.NewRequestGenerator(atc, routes.Routes)
+	atcRequester := newAtcRequester(atc, insecure)
 
 	inputMappings := c.StringSlice("input")
 	if len(inputMappings) == 0 {
@@ -65,7 +67,7 @@ func execute(c *cli.Context) {
 			os.Exit(1)
 		}
 
-		pipe := createPipe(reqGenerator)
+		pipe := createPipe(atcRequester)
 
 		inputs = append(inputs, Input{
 			Name: inputName,
@@ -81,18 +83,18 @@ func execute(c *cli.Context) {
 	}
 
 	build, cookies := createBuild(
-		reqGenerator,
+		atcRequester,
 		inputs,
 		loadConfig(absConfig, c.Args()),
 	)
 
 	terminate := make(chan os.Signal, 1)
 
-	go abortOnSignal(reqGenerator, terminate, build)
+	go abortOnSignal(atcRequester, terminate, build)
 
 	signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
 
-	logOutput, err := reqGenerator.CreateRequest(
+	logOutput, err := atcRequester.CreateRequest(
 		routes.BuildEvents,
 		rata.Params{"build_id": strconv.Itoa(build.ID)},
 		nil,
@@ -109,7 +111,7 @@ func execute(c *cli.Context) {
 		cookieHeaders = append(cookieHeaders, cookie.String())
 	}
 
-	conn, res, err := websocket.DefaultDialer.Dial(
+	conn, res, err := atcRequester.websocketDialer.Dial(
 		logOutput.URL.String(),
 		http.Header{"Cookie": cookieHeaders},
 	)
@@ -120,7 +122,7 @@ func execute(c *cli.Context) {
 
 	go func() {
 		for _, i := range inputs {
-			upload(i, reqGenerator)
+			upload(i, atcRequester)
 		}
 	}()
 
@@ -136,13 +138,13 @@ func execute(c *cli.Context) {
 	os.Exit(exitCode)
 }
 
-func createPipe(reqGenerator *rata.RequestGenerator) resources.Pipe {
-	cPipe, err := reqGenerator.CreateRequest(routes.CreatePipe, nil, nil)
+func createPipe(atcRequester *atcRequester) resources.Pipe {
+	cPipe, err := atcRequester.CreateRequest(routes.CreatePipe, nil, nil)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	response, err := http.DefaultClient.Do(cPipe)
+	response, err := atcRequester.httpClient.Do(cPipe)
 	if err != nil {
 		log.Fatalln("request failed:", err)
 	}
@@ -191,7 +193,7 @@ func loadConfig(configPath string, args []string) tbuilds.Config {
 }
 
 func createBuild(
-	reqGenerator *rata.RequestGenerator,
+	atcRequester *atcRequester,
 	inputs []Input,
 	config tbuilds.Config,
 ) (resources.Build, []*http.Cookie) {
@@ -199,7 +201,7 @@ func createBuild(
 
 	buildInputs := make([]tbuilds.Input, len(inputs))
 	for idx, i := range inputs {
-		readPipe, err := reqGenerator.CreateRequest(
+		readPipe, err := atcRequester.CreateHTTPRequest(
 			routes.ReadPipe,
 			rata.Params{"pipe_id": i.Pipe.ID},
 			nil,
@@ -230,14 +232,14 @@ func createBuild(
 		log.Fatalln("encoding build failed:", err)
 	}
 
-	createBuild, err := reqGenerator.CreateRequest(routes.CreateBuild, nil, buffer)
+	createBuild, err := atcRequester.CreateRequest(routes.CreateBuild, nil, buffer)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	createBuild.Header.Set("Content-Type", "application/json")
 
-	response, err := http.DefaultClient.Do(createBuild)
+	response, err := atcRequester.httpClient.Do(createBuild)
 	if err != nil {
 		log.Fatalln("request failed:", err)
 	}
@@ -260,7 +262,7 @@ func createBuild(
 }
 
 func abortOnSignal(
-	reqGenerator *rata.RequestGenerator,
+	atcRequester *atcRequester,
 	terminate <-chan os.Signal,
 	build resources.Build,
 ) {
@@ -268,7 +270,7 @@ func abortOnSignal(
 
 	println("\naborting...")
 
-	abortReq, err := reqGenerator.CreateRequest(
+	abortReq, err := atcRequester.CreateRequest(
 		routes.AbortBuild,
 		rata.Params{"build_id": strconv.Itoa(build.ID)},
 		nil,
@@ -278,7 +280,7 @@ func abortOnSignal(
 		log.Fatalln(err)
 	}
 
-	resp, err := http.DefaultClient.Do(abortReq)
+	resp, err := atcRequester.httpClient.Do(abortReq)
 	if err != nil {
 		log.Println("failed to abort:", err)
 	}
@@ -291,7 +293,7 @@ func abortOnSignal(
 	os.Exit(2)
 }
 
-func upload(input Input, reqGenerator *rata.RequestGenerator) {
+func upload(input Input, atcRequester *atcRequester) {
 	path := input.Path
 	pipe := input.Pipe
 
@@ -335,7 +337,7 @@ func upload(input Input, reqGenerator *rata.RequestGenerator) {
 
 	defer archive.Close()
 
-	uploadBits, err := reqGenerator.CreateRequest(
+	uploadBits, err := atcRequester.CreateRequest(
 		routes.WritePipe,
 		rata.Params{"pipe_id": pipe.ID},
 		archive,
@@ -344,7 +346,7 @@ func upload(input Input, reqGenerator *rata.RequestGenerator) {
 		log.Fatalln(err)
 	}
 
-	response, err := http.DefaultClient.Do(uploadBits)
+	response, err := atcRequester.httpClient.Do(uploadBits)
 	if err != nil {
 		log.Fatalln("request failed:", err)
 	}
@@ -356,4 +358,36 @@ func upload(input Input, reqGenerator *rata.RequestGenerator) {
 		response.Write(os.Stderr)
 		os.Exit(1)
 	}
+}
+
+type atcRequester struct {
+	*rata.RequestGenerator
+	httpClient      *http.Client
+	websocketDialer *websocket.Dialer
+}
+
+func newAtcRequester(atcUrl string, insecure bool) *atcRequester {
+	tlsClientConfig := &tls.Config{InsecureSkipVerify: insecure}
+
+	return &atcRequester{
+		rata.NewRequestGenerator(atcUrl, routes.Routes),
+		&http.Client{Transport: &http.Transport{TLSClientConfig: tlsClientConfig}},
+		&websocket.Dialer{TLSClientConfig: tlsClientConfig},
+	}
+}
+
+func (ar *atcRequester) CreateHTTPRequest(
+	name string,
+	params rata.Params,
+	body io.Reader,
+) (*http.Request, error) {
+	request, err := ar.CreateRequest(name, params, body)
+	if err != nil {
+		return nil, err
+	}
+
+	url := request.URL
+	url.Scheme = "http"
+	request.URL = url
+	return request, nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/gob"
 	"encoding/json"
@@ -28,6 +29,7 @@ import (
 
 func hijack(c *cli.Context) {
 	atc := c.GlobalString("atcURL")
+	insecure := c.GlobalBool("insecure")
 
 	reqGenerator := rata.NewRequestGenerator(atc, routes.Routes)
 
@@ -76,7 +78,11 @@ func hijack(c *cli.Context) {
 		log.Fatalln(err)
 	}
 
-	buildsResp, err := http.DefaultClient.Do(buildsReq)
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
+	}
+	client := &http.Client{Transport: transport}
+	buildsResp, err := client.Do(buildsReq)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -118,9 +124,9 @@ func hijack(c *cli.Context) {
 		log.Fatalln("failed to dial hijack endpoint:", err)
 	}
 
-	client := httputil.NewClientConn(conn, nil)
+	clientConn := httputil.NewClientConn(conn, nil)
 
-	resp, err := client.Do(hijackReq)
+	resp, err := clientConn.Do(hijackReq)
 	if err != nil {
 		log.Fatalln("failed to hijack:", err)
 	}
@@ -132,7 +138,7 @@ func hijack(c *cli.Context) {
 		os.Exit(1)
 	}
 
-	cconn, cbr := client.Hijack()
+	cconn, cbr := clientConn.Hijack()
 
 	term, err := term.Open(os.Stdin.Name())
 	if err != nil {

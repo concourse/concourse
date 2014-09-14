@@ -16,6 +16,10 @@ var executeFlags = []cli.Flag{
 		Name:  "input, i",
 		Value: &cli.StringSlice{},
 	},
+	cli.BoolFlag{
+		Name:  "insecure, k",
+		Usage: "allow insecure SSL connections and transfers",
+	},
 }
 
 func main() {
