@@ -62,3 +62,31 @@
 	path = garden-linux-release
 	url = https://github.com/cloudfoundry-incubator/garden-linux-release
 	branch = master
+[submodule "src/github.com/codegangsta/cli"]
+	path = src/github.com/codegangsta/cli
+	url = https://github.com/codegangsta/cli
+	branch = master
+[submodule "src/github.com/concourse/fly"]
+	path = src/github.com/concourse/fly
+	url = https://github.com/concourse/fly
+	branch = master
+[submodule "src/github.com/kr/pty"]
+	path = src/github.com/kr/pty
+	url = https://github.com/kr/pty
+	branch = master
+[submodule "src/github.com/mgutz/ansi"]
+	path = src/github.com/mgutz/ansi
+	url = https://github.com/mgutz/ansi
+	branch = master
+[submodule "src/github.com/pivotal-golang/archiver"]
+	path = src/github.com/pivotal-golang/archiver
+	url = https://github.com/pivotal-golang/archiver
+	branch = master
+[submodule "src/github.com/pkg/term"]
+	path = src/github.com/pkg/term
+	url = https://github.com/pkg/term
+	branch = master
+[submodule "src/github.com/concourse/testflight"]
+	path = src/github.com/concourse/testflight
+	url = https://github.com/concourse/testflight
+	branch = master
