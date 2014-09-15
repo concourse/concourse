@@ -16,11 +16,11 @@ properties:
 
   turbine.garden.network:
     description: "Network type for the garden server connection (tcp or unix)."
-    default: tcp
+    default: unix
 
   turbine.garden.address:
     description: "garden server connection address"
-    default: 127.0.0.1:7777
+    default: /var/vcap/data/garden/garden.sock
 
   turbine.resource_types:
     description: "The mapping from known resource types to their container rootfs."

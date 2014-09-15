@@ -43,6 +43,11 @@ jobs:
             name: atc
             password: dummy-password
 
+      postgresql:
+        databases: [{name: atc}]
+        roles:
+          - *atc-role
+
       consul:
         agent:
           mode: server
@@ -51,16 +56,6 @@ jobs:
             - name: turbine
             - name: postgresql
             - name: garden
-
-      garden:
-        # make garden listen on all addresses for debugging
-        listen_network: tcp
-        listen_address: 0.0.0.0:7777
-
-      postgresql:
-        databases: [{name: atc}]
-        roles:
-          - *atc-role
 
 compilation:
   network: concourse
