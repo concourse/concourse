@@ -18,6 +18,8 @@ pipeline: &pipeline
 releases:
   - name: concourse
     version: latest
+  - name: garden-linux
+    version: latest
 
 jobs:
   - name: web
@@ -67,7 +69,7 @@ jobs:
     networks: [{name: concourse}]
     templates:
       - {release: concourse, name: turbine}
-      - {release: concourse, name: garden}
+      - {release: garden-linux, name: garden}
       - {release: concourse, name: consul-agent}
     properties:
       consul:
