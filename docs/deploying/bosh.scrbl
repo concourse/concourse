@@ -91,12 +91,31 @@ infrastructure, and upload it to your BOSH director with `bosh upload stemcell
 <full url>`.
 
 
-@subsection{Upload the Concourse release}
+@subsection{Upload the Concourse & Garden releases}
 
-Now that you've got a stemcell, the only other thing to upload is Concourse
-itself. This can be done from the Concourse repo with @code{bosh upload release
-releases/concourse/concourse-X.X.X.yml}. Replace @code{X.X.X} with the highest
-non-release-candidate version number.
+A release is a curated distribution of all of the source bits and configuration
+necessary to deploy and scale a product.
+
+A Concourse deployment currently requires two releases:
+@hyperlink["http://github.com/concourse/concourse"]{Concourse}'s release
+itself, and
+@hyperlink["http://github.com/cloudfoundry-incubator/garden-linux-release"]{Garden
+Linux}, which it uses for container management.
+
+To upload the releases, simply execute @code{bosh upload release}, with either
+a release tarball or a @code{.yml} file from the release repo. Concourse's
+release repo includes the correct Garden release as a submodule, guaranteeing
+that they're in sync.
+
+To upload the two releases from the Concourse release repo, execute:
+
+@codeblock|{
+$ cd concourse/
+$ bosh upload release releases/concourse/concourse-X.X.X.yml
+$ bosh upload release garden-linux-release/releases/garden-linux/garden-linux-Y.Y.Y.yml
+}|
+
+(Replacing the X's and Y's with the highest version number available.)
 
 
 @subsection{Configure & Deploy}
@@ -195,12 +214,6 @@ $ bosh deployment path/to/manifest.yml
 $ bosh deploy
 }|
 
-When new Concourse versions come out, upgrading should simply be:
-
-@codeblock|{
-$ bosh upload release releases/concourse/concourse-X.X.X.yml
-$ bosh deploy
-}|
-
-BOSH will then kick off a rolling deploy of your cluster.
-
+When new Concourse versions come out, upgrading should simply be a matter of
+uploading the new releases and deploying again. BOSH will then kick off a
+rolling deploy of your cluster.
