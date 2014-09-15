@@ -11,11 +11,11 @@ if [ -z "$VERSION" ]; then
   exit 1
 fi
 
-cp deployments/ci/config/private.yml concourse-dev/config/private.yml
+cp deployments/ci/config/private.yml concourse/config/private.yml
 
 DEPLOYMENT=$(readlink -f deployments/ci/deployments/concourse.yml)
 
-cd concourse-dev/
+cd concourse/
 
 git config --global user.email "ci@localhost"
 git config --global user.name "CI Bot"
@@ -39,6 +39,11 @@ fi
 if [ -f ../bosh-stemcells/*.tgz ]; then
   bosh -n upload stemcell ../bosh-stemcells/*.tgz --skip-if-exists
 fi
+
+pushd garden-linux-release/
+  latest_release=$(ls releases/garden-linux/garden-linux-*.yml | sort -r --version-sort | head -n 1)
+  bosh -n upload release ${latest_release}
+popd
 
 bosh -n create release --final --version "$VERSION"
 bosh -n upload release --skip-if-exists

@@ -11,9 +11,9 @@ if [ -z "$VERSION" ]; then
   exit 1
 fi
 
-cp deployments/ci/config/private.yml concourse-dev/config/private.yml
+cp deployments/ci/config/private.yml concourse/config/private.yml
 
-cd concourse-dev/
+cd concourse/
 
 git config --global user.email "ci@localhost"
 git config --global user.name "CI Bot"
