@@ -25,3 +25,6 @@ docs/concourse/
 /pkg
 
 .hg
+
+# direnv
+.envrc
