@@ -42,7 +42,7 @@ fi
 
 pushd garden-linux-release/
   latest_release=$(ls releases/garden-linux/garden-linux-*.yml | sort -r --version-sort | head -n 1)
-  bosh -n upload release ${latest_release}
+  bosh -n upload release ${latest_release} --skip-if-exists
 popd
 
 bosh -n create release --final --version "$VERSION"
