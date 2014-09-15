@@ -31,9 +31,11 @@ spiff diff --separator $'\f' manifests/aws-vpc.yml ${DEPLOYMENT} | \
   tee /tmp/manifest-diff
 
 if [ -s /tmp/manifest-diff ]; then
-  echo '\x1b[31m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\x1b[0m'
-  echo '\x1b[31m!! WARNING: VPC EXEMPLARY MANIFEST CHANGES DETECTED !!\x1b[0m'
-  echo '\x1b[31m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\x1b[0m'
+  set +x
+  echo $'\x1b[31m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\x1b[0m'
+  echo $'\x1b[31m!! WARNING: VPC EXEMPLARY MANIFEST CHANGES DETECTED !!\x1b[0m'
+  echo $'\x1b[31m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\x1b[0m'
+  set -x
 fi
 
 if [ -f ../bosh-stemcells/*.tgz ]; then
