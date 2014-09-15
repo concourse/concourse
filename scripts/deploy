@@ -26,17 +26,17 @@ bosh target ${BOSH_TARGET}
 
 bosh deployment ${DEPLOYMENT}
 
-spiff diff --separator $'\f' manifests/aws-vpc.yml ${DEPLOYMENT} | \
-  awk -v RS='\f' '!/pipeline|REPLACE|basic_auth|publicly_viewable/' |
-  tee /tmp/manifest-diff
+set +x
+  spiff diff --separator $'\f' manifests/aws-vpc.yml ${DEPLOYMENT} | \
+    awk -v RS='\f' '!/pipeline|REPLACE|basic_auth|publicly_viewable/' |
+    tee /tmp/manifest-diff
 
-if [ -s /tmp/manifest-diff ]; then
-  set +x
-  echo $'\x1b[31m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\x1b[0m'
-  echo $'\x1b[31m!! WARNING: VPC EXEMPLARY MANIFEST CHANGES DETECTED !!\x1b[0m'
-  echo $'\x1b[31m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\x1b[0m'
-  set -x
-fi
+  if [ -s /tmp/manifest-diff ]; then
+    echo $'\x1b[31m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\x1b[0m'
+    echo $'\x1b[31m!! WARNING: VPC EXEMPLARY MANIFEST CHANGES DETECTED !!\x1b[0m'
+    echo $'\x1b[31m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\x1b[0m'
+  fi
+set -x
 
 if [ -f ../bosh-stemcells/*.tgz ]; then
   bosh -n upload stemcell ../bosh-stemcells/*.tgz --skip-if-exists

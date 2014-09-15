@@ -37,6 +37,8 @@ availability_zone: &az REPLACE_WITH_AVAILABILITY_ZONE
 releases:
   - name: concourse
     version: latest
+  - name: garden-linux
+    version: latest
 
 jobs:
   - name: atc
@@ -85,7 +87,7 @@ jobs:
     resource_pool: workers
     templates:
       - {release: concourse, name: turbine}
-      - {release: concourse, name: garden}
+      - {release: garden-linux, name: garden}
       - {release: concourse, name: consul-agent}
     networks: [{name: concourse}]
     properties:
