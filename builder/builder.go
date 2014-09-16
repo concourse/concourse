@@ -45,6 +45,9 @@ func NewBuilder(db BuilderDB, turbine *rata.RequestGenerator, atc *rata.RequestG
 		httpClient: &http.Client{
 			Transport: &http.Transport{
 				ResponseHeaderTimeout: 5 * time.Minute,
+
+				// allow DNS to resolve differently every time
+				DisableKeepAlives: true,
 			},
 		},
 	}
