@@ -24,12 +24,27 @@
     {{range .History}}
     <tr>
       <td>
-        <dl class="build-metadata">
-          {{range .VersionedResource.Metadata}}
-          <dt>{{.Name}}</dt>
-          <dd>{{.Value}}</dd>
-          {{end}}
-        </dl>
+        <div class="build-source">
+          <div class="resource-header">
+            <h3>version</h3>
+
+            <dl class="version">
+              {{range $name, $val := .VersionedResource.Version}}
+              <dt>{{$name}}</dt>
+                <dd>{{$val}}</dd>
+              {{end}}
+            </dl>
+
+            <div style="clear: both"></div>
+          </div>
+
+          <dl class="build-metadata">
+            {{range .VersionedResource.Metadata}}
+            <dt>{{.Name}}</dt>
+              <dd>{{.Value}}</dd>
+            {{end}}
+          </dl>
+        </div>
       </td>
       <td>
         <table class="jobs">
