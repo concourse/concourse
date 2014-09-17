@@ -10,12 +10,14 @@
 <table id="version-history">
   <colgroup>
      <col span="1" style="width: 15%;">
-     <col span="1" style="width: 70%;">
+     <col span="1" style="width: 35%;">
+     <col span="1" style="width: 35%;">
   </colgroup>
   <thead>
     <tr>
       <th>metadata</th>
-      <th>affected builds</th>
+      <th>inputs to</th>
+      <th>outputs of</th>
     </tr>
   </thead>
   <tbody>
@@ -31,7 +33,24 @@
       </td>
       <td>
         <table class="jobs">
-          {{range .Jobs}}
+          {{range .InputsTo}}
+          {{$job := .JobName}}
+          <tr>
+            <td class="name"><h3>{{.JobName}}</h3></td>
+            <td>
+              <ul class="builds-list">
+                {{range .Builds}}
+                <li class="{{.Status}}"><a href="{{url "GetBuild" $job .}}">#{{.Name}}</a></li>
+                {{end}}
+              </ul>
+            </td>
+          </tr>
+          {{end}}
+        </table>
+      </td>
+      <td>
+        <table class="jobs">
+          {{range .OutputsOf}}
           {{$job := .JobName}}
           <tr>
             <td class="name"><h3>{{.JobName}}</h3></td>
