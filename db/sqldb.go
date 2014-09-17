@@ -953,95 +953,163 @@ func (db *sqldb) GetNextPendingBuild(job string) (builds.Build, builds.Versioned
 }
 
 func (db *sqldb) GetResourceHistory(resource string) ([]*VersionHistory, error) {
-	rows, err := db.conn.Query(`
-		SELECT v.id, v.resource_name, v.type, v.version, v.source, v.metadata,
-					 b.id, b.job_name, b.name, b.status, b.abort_url, b.hijack_url
-		FROM versioned_resources v, builds b
+	hs := []*VersionHistory{}
+	vhs := map[int]*VersionHistory{}
+
+	inputHs := map[int]map[string]*JobHistory{}
+	outputHs := map[int]map[string]*JobHistory{}
+	seenInputs := map[int]map[int]bool{}
+
+	vrRows, err := db.conn.Query(`
+		SELECT v.id, v.resource_name, v.type, v.version, v.source, v.metadata
+		FROM versioned_resources v
 		WHERE v.resource_name = $1
-		AND (
-			EXISTS (SELECT 1 FROM build_inputs WHERE build_id = b.id AND versioned_resource_id = v.id)
-			OR EXISTS (SELECT 1 FROM build_outputs WHERE build_id = b.id AND versioned_resource_id = v.id)
-		)
-		ORDER BY v.id DESC, b.id ASC
+		ORDER BY v.id DESC
 	`, resource)
 	if err != nil {
 		return nil, err
 	}
 
-	defer rows.Close()
+	defer vrRows.Close()
 
-	hs := []*VersionHistory{}
-	vhs := map[int]*VersionHistory{}
-	jhs := map[int]map[string]*JobHistory{}
-
-	for rows.Next() {
+	for vrRows.Next() {
 		var vrID int
 		var vr builds.VersionedResource
 
-		var jobName string
-
-		var buildID int
-		var buildName string
-		var buildStatus string
-		var buildAbortURL sql.NullString
-		var buildHijackURL sql.NullString
-
 		var versionString, sourceString, metadataString string
 
-		err := rows.Scan(
-			&vrID, &vr.Name, &vr.Type, &versionString, &sourceString, &metadataString,
-			&buildID, &jobName, &buildName, &buildStatus, &buildAbortURL, &buildHijackURL,
-		)
+		err := vrRows.Scan(&vrID, &vr.Name, &vr.Type, &versionString, &sourceString, &metadataString)
 		if err != nil {
 			return nil, err
 		}
 
-		vh, found := vhs[vrID]
-		if !found {
-			err = json.Unmarshal([]byte(sourceString), &vr.Source)
-			if err != nil {
-				return nil, err
-			}
-
-			err = json.Unmarshal([]byte(versionString), &vr.Version)
-			if err != nil {
-				return nil, err
-			}
-
-			err = json.Unmarshal([]byte(metadataString), &vr.Metadata)
-			if err != nil {
-				return nil, err
-			}
-
-			vh = &VersionHistory{
-				VersionedResource: vr,
-			}
-
-			hs = append(hs, vh)
-
-			vhs[vrID] = vh
-			jhs[vrID] = map[string]*JobHistory{}
+		err = json.Unmarshal([]byte(sourceString), &vr.Source)
+		if err != nil {
+			return nil, err
 		}
 
-		jh, found := jhs[vrID][jobName]
-		if !found {
-			jh = &JobHistory{
-				JobName: jobName,
-			}
-
-			vh.Jobs = append(vh.Jobs, jh)
-
-			jhs[vrID][jobName] = jh
+		err = json.Unmarshal([]byte(versionString), &vr.Version)
+		if err != nil {
+			return nil, err
 		}
 
-		jh.Builds = append(jh.Builds, builds.Build{
-			ID:        buildID,
-			Name:      buildName,
-			JobName:   jobName,
-			Status:    builds.Status(buildStatus),
-			AbortURL:  buildAbortURL.String,
-			HijackURL: buildHijackURL.String,
-		})
+		err = json.Unmarshal([]byte(metadataString), &vr.Metadata)
+		if err != nil {
+			return nil, err
+		}
+
+		vhs[vrID] = &VersionHistory{
+			VersionedResource: vr,
+		}
+
+		hs = append(hs, vhs[vrID])
+
+		inputHs[vrID] = map[string]*JobHistory{}
+		outputHs[vrID] = map[string]*JobHistory{}
+		seenInputs[vrID] = map[int]bool{}
+	}
+
+	for id, vh := range vhs {
+		inRows, err := db.conn.Query(`
+			SELECT b.id, b.job_name, b.name, b.status, b.abort_url, b.hijack_url
+			FROM build_inputs i, builds b
+			WHERE i.versioned_resource_id = $1
+			AND i.build_id = b.id
+			ORDER BY b.id ASC
+		`, id)
+		if err != nil {
+			return nil, err
+		}
+
+		defer inRows.Close()
+
+		outRows, err := db.conn.Query(`
+			SELECT b.id, b.job_name, b.name, b.status, b.abort_url, b.hijack_url
+			FROM build_outputs o, builds b
+			WHERE o.versioned_resource_id = $1
+			AND o.build_id = b.id
+			ORDER BY b.id ASC
+		`, id)
+		if err != nil {
+			return nil, err
+		}
+
+		defer outRows.Close()
+
+		for inRows.Next() {
+			var buildID int
+			var buildJobName string
+			var buildName string
+			var buildStatus string
+			var buildAbortURL sql.NullString
+			var buildHijackURL sql.NullString
+
+			err := inRows.Scan(&buildID, &buildJobName, &buildName, &buildStatus, &buildAbortURL, &buildHijackURL)
+			if err != nil {
+				return nil, err
+			}
+
+			seenInputs[id][buildID] = true
+
+			inputH, found := inputHs[id][buildJobName]
+			if !found {
+				inputH = &JobHistory{
+					JobName: buildJobName,
+				}
+
+				vh.InputsTo = append(vh.InputsTo, inputH)
+
+				inputHs[id][buildJobName] = inputH
+			}
+
+			inputH.Builds = append(inputH.Builds, builds.Build{
+				ID:        buildID,
+				Name:      buildName,
+				JobName:   buildJobName,
+				Status:    builds.Status(buildStatus),
+				AbortURL:  buildAbortURL.String,
+				HijackURL: buildHijackURL.String,
+			})
+		}
+
+		for outRows.Next() {
+			var buildID int
+			var buildJobName string
+			var buildName string
+			var buildStatus string
+			var buildAbortURL sql.NullString
+			var buildHijackURL sql.NullString
+
+			err := outRows.Scan(&buildID, &buildJobName, &buildName, &buildStatus, &buildAbortURL, &buildHijackURL)
+			if err != nil {
+				return nil, err
+			}
+
+			if seenInputs[id][buildID] {
+				// don't show implicit outputs
+				continue
+			}
+
+			outputH, found := outputHs[id][buildJobName]
+			if !found {
+				outputH = &JobHistory{
+					JobName: buildJobName,
+				}
+
+				vh.OutputsOf = append(vh.OutputsOf, outputH)
+
+				outputHs[id][buildJobName] = outputH
+			}
+
+			outputH.Builds = append(outputH.Builds, builds.Build{
+				ID:        buildID,
+				Name:      buildName,
+				JobName:   buildJobName,
+				Status:    builds.Status(buildStatus),
+				AbortURL:  buildAbortURL.String,
+				HijackURL: buildHijackURL.String,
+			})
+		}
 	}
 
 	return hs, nil

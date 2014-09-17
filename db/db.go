@@ -59,7 +59,8 @@ type BuildOutput struct {
 
 type VersionHistory struct {
 	VersionedResource builds.VersionedResource
-	Jobs              []*JobHistory
+	InputsTo          []*JobHistory
+	OutputsOf         []*JobHistory
 }
 
 type JobHistory struct {
