@@ -413,7 +413,7 @@ func getGitFiles(dir string) ([]string, error) {
 	outScan.Split(scanNull)
 
 	err = gitLS.Start()
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 
