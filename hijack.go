@@ -75,22 +75,31 @@ func hijack(c *cli.Context) {
 		nil,
 	)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("failed to create requiest", err)
 	}
 
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
 	}
+
 	client := &http.Client{Transport: transport}
+
 	buildsResp, err := client.Do(buildsReq)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("failed to get builds:", err)
+	}
+
+	if buildsResp.StatusCode != http.StatusOK {
+		log.Println("bad response when getting builds:")
+		buildsResp.Body.Close()
+		buildsResp.Write(os.Stderr)
+		os.Exit(1)
 	}
 
 	var builds []resources.Build
 	err = json.NewDecoder(buildsResp.Body).Decode(&builds)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("failed to decode builds:", err)
 	}
 
 	if len(builds) == 0 {
@@ -102,7 +111,7 @@ func hijack(c *cli.Context) {
 
 	payload, err := json.Marshal(spec)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("failed to marshal build spec:", err)
 	}
 
 	hijackReq, err := reqGenerator.CreateRequest(
@@ -111,7 +120,7 @@ func hijack(c *cli.Context) {
 		bytes.NewBuffer(payload),
 	)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("failed to create hijack request:", err)
 	}
 
 	if hijackReq.URL.User != nil {
@@ -132,7 +141,7 @@ func hijack(c *cli.Context) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		log.Println("bad response:", resp.Status)
+		log.Println("bad response when hijacking:")
 		resp.Body.Close()
 		resp.Write(os.Stderr)
 		os.Exit(1)
