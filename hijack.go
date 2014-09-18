@@ -75,7 +75,7 @@ func hijack(c *cli.Context) {
 		nil,
 	)
 	if err != nil {
-		log.Fatalln("failed to create requiest", err)
+		log.Fatalln("failed to create request", err)
 	}
 
 	transport := &http.Transport{
