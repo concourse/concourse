@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"io"
@@ -320,7 +321,12 @@ func upload(input Input, atcRequester *atcRequester) {
 			log.Fatalln("could not open archive:", err)
 		}
 	} else {
-		tarCmd := exec.Command(tarPath, "--exclude", ".git", "-czf", "-", ".")
+		files, err := getGitFiles(path)
+		if err != nil {
+			files = []string{"."}
+		}
+
+		tarCmd := exec.Command(tarPath, append([]string{"-czf", "-"}, files...)...)
 		tarCmd.Dir = path
 		tarCmd.Stderr = os.Stderr
 
@@ -390,4 +396,55 @@ func (ar *atcRequester) CreateHTTPRequest(
 	url.Scheme = "http"
 	request.URL = url
 	return request, nil
+}
+
+func getGitFiles(dir string) ([]string, error) {
+	files := []string{}
+
+	gitLS := exec.Command("git", "ls-files", "-z")
+	gitLS.Dir = dir
+
+	gitOut, err := gitLS.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	outScan := bufio.NewScanner(gitOut)
+	outScan.Split(scanNull)
+
+	err = gitLS.Start()
+	if err == nil {
+		return nil, err
+	}
+
+	for outScan.Scan() {
+		files = append(files, outScan.Text())
+	}
+
+	err = gitLS.Wait()
+	if err != nil {
+		return nil, err
+	}
+
+	return files, nil
+}
+
+func scanNull(data []byte, atEOF bool) (int, []byte, error) {
+	// eof, no more data; terminate
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+
+	// look for terminating null byte
+	if i := bytes.IndexByte(data, 0); i >= 0 {
+		return i + 1, data[0:i], nil
+	}
+
+	// no final terminator; return what's left
+	if atEOF {
+		return len(data), data, nil
+	}
+
+	// request more data
+	return 0, nil, nil
 }
