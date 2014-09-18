@@ -20,6 +20,10 @@ var executeFlags = []cli.Flag{
 		Name:  "insecure, k",
 		Usage: "allow insecure SSL connections and transfers",
 	},
+	cli.BoolFlag{
+		Name:  "exclude-ignored, x",
+		Usage: "exclude vcs-ignored files from the build's inputs",
+	},
 }
 
 func main() {

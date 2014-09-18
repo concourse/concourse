@@ -39,6 +39,7 @@ func execute(c *cli.Context) {
 	atc := c.GlobalString("atcURL")
 	buildConfig := c.String("config")
 	insecure := c.GlobalBool("insecure")
+	excludeIgnored := c.GlobalBool("exclude-ignored")
 
 	atcRequester := newAtcRequester(atc, insecure)
 
@@ -123,7 +124,7 @@ func execute(c *cli.Context) {
 
 	go func() {
 		for _, i := range inputs {
-			upload(i, atcRequester)
+			upload(i, excludeIgnored, atcRequester)
 		}
 	}()
 
@@ -294,7 +295,7 @@ func abortOnSignal(
 	os.Exit(2)
 }
 
-func upload(input Input, atcRequester *atcRequester) {
+func upload(input Input, excludeIgnored bool, atcRequester *atcRequester) {
 	path := input.Path
 	pipe := input.Pipe
 
@@ -321,8 +322,14 @@ func upload(input Input, atcRequester *atcRequester) {
 			log.Fatalln("could not open archive:", err)
 		}
 	} else {
-		files, err := getGitFiles(path)
-		if err != nil {
+		var files []string
+
+		if excludeIgnored {
+			files, err = getGitFiles(path)
+			if err != nil {
+				log.Fatalln("could not determine ignored files:", err)
+			}
+		} else {
 			files = []string{"."}
 		}
 
@@ -399,9 +406,23 @@ func (ar *atcRequester) CreateHTTPRequest(
 }
 
 func getGitFiles(dir string) ([]string, error) {
+	tracked, err := gitLS(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	untracked, err := gitLS(dir, "--others", "--exclude-standard")
+	if err != nil {
+		return nil, err
+	}
+
+	return append(tracked, untracked...), nil
+}
+
+func gitLS(dir string, flags ...string) ([]string, error) {
 	files := []string{}
 
-	gitLS := exec.Command("git", "ls-files", "-z")
+	gitLS := exec.Command("git", append([]string{"ls-files", "-z"}, flags...)...)
 	gitLS.Dir = dir
 
 	gitOut, err := gitLS.StdoutPipe()
