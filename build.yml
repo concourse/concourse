@@ -1,5 +1,0 @@
----
-image: docker:///concourse/atc-ci
-
-run:
-  path: atc/scripts/test
