@@ -14,10 +14,6 @@
 	path = src/github.com/concourse/turbine
 	url = https://github.com/concourse/turbine
 	branch = master
-[submodule "src/github.com/fraenkel/candiedyaml"]
-	path = src/github.com/fraenkel/candiedyaml
-	url = https://github.com/fraenkel/candiedyaml
-	branch = master
 [submodule "src/github.com/gorilla/websocket"]
 	path = src/github.com/gorilla/websocket
 	url = https://github.com/gorilla/websocket
@@ -89,4 +85,8 @@
 [submodule "src/github.com/concourse/testflight"]
 	path = src/github.com/concourse/testflight
 	url = https://github.com/concourse/testflight
+	branch = master
+[submodule "src/github.com/cloudfoundry-incubator/candiedyaml"]
+	path = src/github.com/cloudfoundry-incubator/candiedyaml
+	url = https://github.com/cloudfoundry-incubator/candiedyaml
 	branch = master
