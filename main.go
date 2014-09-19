@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/migration"
-	"github.com/fraenkel/candiedyaml"
+	"github.com/cloudfoundry-incubator/candiedyaml"
 	_ "github.com/lib/pq"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
