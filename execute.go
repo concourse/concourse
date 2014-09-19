@@ -18,12 +18,12 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/cloudfoundry-incubator/candiedyaml"
 	"github.com/codegangsta/cli"
 	"github.com/concourse/atc/api/resources"
 	"github.com/concourse/atc/api/routes"
 	"github.com/concourse/fly/eventstream"
 	tbuilds "github.com/concourse/turbine/api/builds"
-	"github.com/fraenkel/candiedyaml"
 	"github.com/gorilla/websocket"
 	"github.com/pivotal-golang/archiver/compressor"
 	"github.com/tedsuo/rata"
