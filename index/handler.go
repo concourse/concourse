@@ -63,6 +63,9 @@ type JobStatus struct {
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	_, hideResources := r.URL.Query()["hide-resources"]
+	showResources := !hideResources
+
 	data := TemplateData{
 		Nodes: []DotNode{},
 		Edges: []DotEdge{},
@@ -86,34 +89,36 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	for _, resource := range handler.resources {
-		resourceID := resourceNode(resource.Name)
+	if showResources {
+		for _, resource := range handler.resources {
+			resourceID := resourceNode(resource.Name)
 
-		resourceURI, _ := routes.Routes.CreatePathForRoute(routes.GetResource, rata.Params{
-			"resource": resource.Name,
-		})
+			resourceURI, _ := routes.Routes.CreatePathForRoute(routes.GetResource, rata.Params{
+				"resource": resource.Name,
+			})
 
-		failing, checking := handler.radar.ResourceStatus(resource.Name)
+			failing, checking := handler.radar.ResourceStatus(resource.Name)
 
-		var status string
-		if failing {
-			status = "failing"
-		} else {
-			status = "ok"
+			var status string
+			if failing {
+				status = "failing"
+			} else {
+				status = "ok"
+			}
+
+			if checking {
+				status += " checking"
+			}
+
+			data.Nodes = append(data.Nodes, DotNode{
+				ID: resourceID,
+				Value: map[string]string{
+					"label":  fmt.Sprintf(`<h1 class="resource"><a href="%s">%s</a></h1>`, resourceURI, resource.Name),
+					"type":   "resource",
+					"status": status,
+				},
+			})
 		}
-
-		if checking {
-			status += " checking"
-		}
-
-		data.Nodes = append(data.Nodes, DotNode{
-			ID: resourceID,
-			Value: map[string]string{
-				"label":  fmt.Sprintf(`<h1 class="resource"><a href="%s">%s</a></h1>`, resourceURI, resource.Name),
-				"type":   "resource",
-				"status": status,
-			},
-		})
 	}
 
 	for _, job := range handler.jobs {
@@ -200,7 +205,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						}
 					}
 				}
-			} else {
+			} else if showResources {
 				data.Edges = append(data.Edges, DotEdge{
 					Source:      resourceNode(input.Resource),
 					Destination: jobID,
@@ -212,14 +217,16 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			data.Edges = append(data.Edges, edge)
 		}
 
-		for _, output := range job.Outputs {
-			data.Edges = append(data.Edges, DotEdge{
-				Source:      jobID,
-				Destination: resourceNode(output.Resource),
-				Value: map[string]string{
-					"status": string(currentBuild.Status),
-				},
-			})
+		if showResources {
+			for _, output := range job.Outputs {
+				data.Edges = append(data.Edges, DotEdge{
+					Source:      jobID,
+					Destination: resourceNode(output.Resource),
+					Value: map[string]string{
+						"status": string(currentBuild.Status),
+					},
+				})
+			}
 		}
 	}
 
