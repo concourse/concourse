@@ -11,9 +11,9 @@ import (
 	"text/template"
 	"time"
 
-	GardenRunner "github.com/cloudfoundry-incubator/garden-linux/integration/runner"
 	"github.com/cloudfoundry-incubator/garden/warden"
 	"github.com/concourse/atc/postgresrunner"
+	"github.com/concourse/testflight/gardenrunner"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -89,7 +89,7 @@ var _ = BeforeEach(func() {
 
 	gardenAddr := fmt.Sprintf("127.0.0.1:%d", 4859+GinkgoParallelNode())
 
-	gardenRunner := GardenRunner.New(
+	gardenRunner := gardenrunner.New(
 		"tcp",
 		gardenAddr,
 		builtComponents["garden-linux"],
