@@ -1,5 +1,10 @@
 #!/bin/bash
 # vim: set ft=sh
 
-scripts=$(cd $(dirname $0) && pwd)
-git submodule foreach ${scripts}'/register-submodule $path'
+gosub list \
+  -a github.com/concourse/fly \
+  -a github.com/concourse/turbine \
+  -a github.com/concourse/atc \
+  -t github.com/concourse/testflight \
+  -a github.com/vito/gosub \
+  | xargs gosub sync

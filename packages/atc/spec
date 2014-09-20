@@ -5,6 +5,54 @@ dependencies:
   - golang_1.3
 
 files:
-  - '**/*.go'
   - github.com/concourse/atc/web/templates/**/*
   - github.com/concourse/atc/web/public/**/*
+  - github.com/concourse/atc/*.go # gosub
+  - code.google.com/p/go.crypto/bcrypt/*.go # gosub
+  - code.google.com/p/go.crypto/blowfish/*.go # gosub
+  - github.com/BurntSushi/migration/*.go # gosub
+  - github.com/bmizerany/pat/*.go # gosub
+  - github.com/concourse/atc/api/*.go # gosub
+  - github.com/concourse/atc/api/buildserver/*.go # gosub
+  - github.com/concourse/atc/api/jobserver/*.go # gosub
+  - github.com/concourse/atc/api/pipes/*.go # gosub
+  - github.com/concourse/atc/api/present/*.go # gosub
+  - github.com/concourse/atc/api/resources/*.go # gosub
+  - github.com/concourse/atc/api/routes/*.go # gosub
+  - github.com/concourse/atc/auth/*.go # gosub
+  - github.com/concourse/atc/builder/*.go # gosub
+  - github.com/concourse/atc/builds/*.go # gosub
+  - github.com/concourse/atc/callbacks/*.go # gosub
+  - github.com/concourse/atc/callbacks/handler/*.go # gosub
+  - github.com/concourse/atc/callbacks/routes/*.go # gosub
+  - github.com/concourse/atc/config/*.go # gosub
+  - github.com/concourse/atc/db/*.go # gosub
+  - github.com/concourse/atc/db/migrations/*.go # gosub
+  - github.com/concourse/atc/logfanout/*.go # gosub
+  - github.com/concourse/atc/radar/*.go # gosub
+  - github.com/concourse/atc/resources/*.go # gosub
+  - github.com/concourse/atc/scheduler/*.go # gosub
+  - github.com/concourse/atc/scheduler/factory/*.go # gosub
+  - github.com/concourse/atc/web/*.go # gosub
+  - github.com/concourse/atc/web/abortbuild/*.go # gosub
+  - github.com/concourse/atc/web/getbuild/*.go # gosub
+  - github.com/concourse/atc/web/getjob/*.go # gosub
+  - github.com/concourse/atc/web/getresource/*.go # gosub
+  - github.com/concourse/atc/web/index/*.go # gosub
+  - github.com/concourse/atc/web/logs/*.go # gosub
+  - github.com/concourse/atc/web/routes/*.go # gosub
+  - github.com/concourse/atc/web/triggerbuild/*.go # gosub
+  - github.com/concourse/turbine/api/builds/*.go # gosub
+  - github.com/concourse/turbine/event/*.go # gosub
+  - github.com/concourse/turbine/routes/*.go # gosub
+  - github.com/fraenkel/candiedyaml/*.go # gosub
+  - github.com/gorilla/websocket/*.go # gosub
+  - github.com/lib/pq/*.go # gosub
+  - github.com/lib/pq/oid/*.go # gosub
+  - github.com/nu7hatch/gouuid/*.go # gosub
+  - github.com/pivotal-golang/lager/*.go # gosub
+  - github.com/tedsuo/ifrit/*.go # gosub
+  - github.com/tedsuo/ifrit/grouper/*.go # gosub
+  - github.com/tedsuo/ifrit/http_server/*.go # gosub
+  - github.com/tedsuo/ifrit/sigmon/*.go # gosub
+  - github.com/tedsuo/rata/*.go # gosub
