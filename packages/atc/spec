@@ -12,6 +12,7 @@ files:
   - code.google.com/p/go.crypto/blowfish/*.go # gosub
   - github.com/BurntSushi/migration/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
+  - github.com/cloudfoundry-incubator/candiedyaml/*.go # gosub
   - github.com/concourse/atc/api/*.go # gosub
   - github.com/concourse/atc/api/buildserver/*.go # gosub
   - github.com/concourse/atc/api/jobserver/*.go # gosub
@@ -45,7 +46,6 @@ files:
   - github.com/concourse/turbine/api/builds/*.go # gosub
   - github.com/concourse/turbine/event/*.go # gosub
   - github.com/concourse/turbine/routes/*.go # gosub
-  - github.com/fraenkel/candiedyaml/*.go # gosub
   - github.com/gorilla/websocket/*.go # gosub
   - github.com/lib/pq/*.go # gosub
   - github.com/lib/pq/oid/*.go # gosub
