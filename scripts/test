@@ -25,7 +25,7 @@ tar -C $ARCHIVE_RESOURCE_ROOTFS -xf dev-archive-resource-image/rootfs.tar
 
 echo "setting up git resource..."
 mkdir -p $GIT_RESOURCE_ROOTFS
-tar -C $GIT_RESOURCE_ROOTFS -xf dev-git-resource/rootfs.tar
+tar -C $GIT_RESOURCE_ROOTFS -xf dev-git-resource-image/rootfs.tar
 
 echo "setting up helper rootfs..."
 mkdir -p $HELPER_ROOTFS
