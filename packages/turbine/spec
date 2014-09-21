@@ -22,6 +22,7 @@ files:
   - github.com/concourse/turbine/api/execute/*.go # gosub
   - github.com/concourse/turbine/api/hijack/*.go # gosub
   - github.com/concourse/turbine/builder/*.go # gosub
+  - github.com/concourse/turbine/builder/inputs/*.go # gosub
   - github.com/concourse/turbine/builder/outputs/*.go # gosub
   - github.com/concourse/turbine/config/*.go # gosub
   - github.com/concourse/turbine/event/*.go # gosub
