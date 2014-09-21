@@ -21,18 +21,20 @@ type handler struct {
 	// used for providing resource state
 	radar *radar.Radar
 
+	groups    config.Groups
 	resources config.Resources
 	jobs      config.Jobs
 	db        db.DB
 	template  *template.Template
 }
 
-func NewHandler(logger lager.Logger, radar *radar.Radar, resources config.Resources, jobs config.Jobs, db db.DB, template *template.Template) http.Handler {
+func NewHandler(logger lager.Logger, radar *radar.Radar, groups config.Groups, resources config.Resources, jobs config.Jobs, db db.DB, template *template.Template) http.Handler {
 	return &handler{
 		logger: logger,
 
 		radar: radar,
 
+		groups:    groups,
 		resources: resources,
 		jobs:      jobs,
 		db:        db,
@@ -41,21 +43,24 @@ func NewHandler(logger lager.Logger, radar *radar.Radar, resources config.Resour
 }
 
 type TemplateData struct {
-	Jobs  []JobStatus
-	Nodes []DotNode
-	Edges []DotEdge
+	Jobs   []JobStatus
+	Groups map[string]bool
+	Nodes  []DotNode
+	Edges  []DotEdge
 }
 
 type DotNode struct {
-	ID    string            `json:"id"`
-	Value map[string]string `json:"value,omitempty"`
+	ID    string   `json:"id"`
+	Value DotValue `json:"value,omitempty"`
 }
 
 type DotEdge struct {
-	Source      string            `json:"u"`
-	Destination string            `json:"v"`
-	Value       map[string]string `json:"value,omitempty"`
+	Source      string   `json:"u"`
+	Destination string   `json:"v"`
+	Value       DotValue `json:"value,omitempty"`
 }
+
+type DotValue map[string]interface{}
 
 type JobStatus struct {
 	Job          config.Job
@@ -63,12 +68,24 @@ type JobStatus struct {
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	_, hideResources := r.URL.Query()["hide-resources"]
-	showResources := !hideResources
+	groups := map[string]bool{}
+	for _, group := range handler.groups {
+		groups[group.Name] = false
+	}
+
+	enabledGroups, found := r.URL.Query()["groups"]
+	if !found && len(handler.groups) > 0 {
+		enabledGroups = []string{handler.groups[0].Name}
+	}
+
+	for _, name := range enabledGroups {
+		groups[name] = true
+	}
 
 	data := TemplateData{
-		Nodes: []DotNode{},
-		Edges: []DotEdge{},
+		Groups: groups,
+		Nodes:  []DotNode{},
+		Edges:  []DotEdge{},
 	}
 
 	log := handler.logger.Session("index")
@@ -89,36 +106,48 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	if showResources {
-		for _, resource := range handler.resources {
-			resourceID := resourceNode(resource.Name)
+	jobGroups := map[string][]string{}
+	resourceGroups := map[string][]string{}
 
-			resourceURI, _ := routes.Routes.CreatePathForRoute(routes.GetResource, rata.Params{
-				"resource": resource.Name,
-			})
-
-			failing, checking := handler.radar.ResourceStatus(resource.Name)
-
-			var status string
-			if failing {
-				status = "failing"
-			} else {
-				status = "ok"
-			}
-
-			if checking {
-				status += " checking"
-			}
-
-			data.Nodes = append(data.Nodes, DotNode{
-				ID: resourceID,
-				Value: map[string]string{
-					"label":  fmt.Sprintf(`<h1 class="resource"><a href="%s">%s</a></h1>`, resourceURI, resource.Name),
-					"type":   "resource",
-					"status": status,
-				},
-			})
+	for _, group := range handler.groups {
+		for _, name := range group.Jobs {
+			jobGroups[name] = append(jobGroups[name], group.Name)
 		}
+
+		for _, name := range group.Resources {
+			resourceGroups[name] = append(resourceGroups[name], group.Name)
+		}
+	}
+
+	for _, resource := range handler.resources {
+		resourceID := resourceNode(resource.Name)
+
+		resourceURI, _ := routes.Routes.CreatePathForRoute(routes.GetResource, rata.Params{
+			"resource": resource.Name,
+		})
+
+		failing, checking := handler.radar.ResourceStatus(resource.Name)
+
+		var status string
+		if failing {
+			status = "failing"
+		} else {
+			status = "ok"
+		}
+
+		if checking {
+			status += " checking"
+		}
+
+		data.Nodes = append(data.Nodes, DotNode{
+			ID: resourceID,
+			Value: DotValue{
+				"label":  fmt.Sprintf(`<h1 class="resource"><a href="%s">%s</a></h1>`, resourceURI, resource.Name),
+				"type":   "resource",
+				"status": status,
+				"groups": resourceGroups[resource.Name],
+			},
+		})
 	}
 
 	for _, job := range handler.jobs {
@@ -145,10 +174,11 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		data.Nodes = append(data.Nodes, DotNode{
 			ID: jobID,
-			Value: map[string]string{
+			Value: DotValue{
 				"label":  fmt.Sprintf(`<h1 class="job"><a href="%s">%s</a>`, buildURI, job.Name),
 				"status": string(currentBuild.Status),
 				"type":   "job",
+				"groups": jobGroups[job.Name],
 			},
 		})
 
@@ -163,7 +193,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 					data.Nodes = append(data.Nodes, DotNode{
 						ID: nodeID,
-						Value: map[string]string{
+						Value: DotValue{
 							"useDef": "gateway",
 						},
 					})
@@ -187,10 +217,10 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					existingEdge, found := edges[passed]
 					if found {
 						if len(passedJob.Inputs) > 1 {
-							existingEdge.Value["label"] += "\n" + input.Resource
+							existingEdge.Value["label"] = existingEdge.Value["label"].(string) + "\n" + input.Resource
 						}
 					} else {
-						value := map[string]string{
+						value := DotValue{
 							"status": string(currentBuild.Status),
 						}
 
@@ -205,7 +235,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						}
 					}
 				}
-			} else if showResources {
+			} else {
 				data.Edges = append(data.Edges, DotEdge{
 					Source:      resourceNode(input.Resource),
 					Destination: jobID,
@@ -217,16 +247,14 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			data.Edges = append(data.Edges, edge)
 		}
 
-		if showResources {
-			for _, output := range job.Outputs {
-				data.Edges = append(data.Edges, DotEdge{
-					Source:      jobID,
-					Destination: resourceNode(output.Resource),
-					Value: map[string]string{
-						"status": string(currentBuild.Status),
-					},
-				})
-			}
+		for _, output := range job.Outputs {
+			data.Edges = append(data.Edges, DotEdge{
+				Source:      jobID,
+				Destination: resourceNode(output.Resource),
+				Value: DotValue{
+					"status": string(currentBuild.Status),
+				},
+			})
 		}
 	}
 

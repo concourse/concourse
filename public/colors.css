@@ -16,17 +16,20 @@ svg h1 a { color: #f5f5f5; }
 #build-title .abort-build input:active { color: #f5f5f5; }
 .builds-list li a { color: #f5f5f5; }
 #builds li a { color: #f5f5f5; }
+.groups li a { color: #f5f5f5; }
 
 /* dark */
 svg .node rect { fill: #151515; }
 #builds { background: #151515; }
 .builds-list { background: #151515; }
 .build-resources .resource-header { background: #151515; }
+.groups { background: #151515; }
 
 /* highlight background */
 svg .edgePath path { stroke: #303030; }
 svg .gateway { fill: #303030; }
 .build-resources { background: #303030; }
+.groups li.active a { background: #303030; }
 
 /* even more highlight background */
 .build-source.first-occurrence .resource-header { background: #505050; }
