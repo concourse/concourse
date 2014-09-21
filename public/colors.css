@@ -56,7 +56,7 @@ svg .node.job.failed rect { fill: #ac4142; }
 li.failed { background: #ac4142; }
 #build-title .abort-build input { color: #ac4142; }
 #build-title .abort-build input:hover { background: #ac4142; }
-#build-log .error { color: #ac4142; }
+span.error { color: #ac4142; }
 
 /* like, really bad */
 svg .edgePath.errored path { stroke: #d28445; }
@@ -65,6 +65,7 @@ svg .node.job.errored rect { fill: #d28445; }
 #build-title.errored { background: #d28445; }
 li.errored { background: #d28445; }
 svg .node.resource.failing rect { fill: #d28445; }
+.build-source.errored .resource-header { background: #d28445; }
 
 /* not so bad */
 svg .edgePath.aborted path { stroke: #8f5536; }
