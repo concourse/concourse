@@ -36,21 +36,10 @@ times.
 
 Learning BOSH and your infrastructure at the same time will probably be hard.
 If you're getting started with BOSH, you may want to check out
-@hyperlink["https://github.com/cloudfoundry/bosh-lite"]{BOSH-Lite}, which gives
-you a fairly BOSHy experience, in a single VM on your machine. This is a good
-way to learn the BOSH tooling without having to pay hourly for AWS instances.
-
-To spin up a BOSH-Lite director, just clone the repo and run:
-
-@codeblock|{
-$ cd bosh-lite/
-$ vagrant up
-$ ./scripts/add-route
-$ bosh target 192.168.50.4
-}|
-
-Once you've targeted it, everything should work exactly the same way it works on
-any other infrastructure.
+@hyperlink["https://github.com/cloudfoundry/bosh-lite"]{BOSH-Lite} first, which
+gives you a fairly BOSHy experience, in a single VM on your machine. This is a
+good way to learn the BOSH tooling without having to pay hourly for AWS
+instances.
 
 
 @subsection{AWS}
