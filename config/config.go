@@ -8,9 +8,18 @@ import (
 )
 
 type Config struct {
+	Groups    Groups    `yaml:"groups"`
 	Resources Resources `yaml:"resources"`
 	Jobs      Jobs      `yaml:"jobs"`
 }
+
+type Group struct {
+	Name      string   `yaml:"name"`
+	Jobs      []string `yaml:"jobs"`
+	Resources []string `yaml:"resources"`
+}
+
+type Groups []Group
 
 type Resource struct {
 	Name string `yaml:"name"`
