@@ -11,6 +11,7 @@ const (
 	LogOutput    = "LogOutput"
 	GetResource  = "GetResource"
 	GetJob       = "GetJob"
+	LogIn        = "LogIn"
 )
 
 var Routes = rata.Routes{
@@ -25,6 +26,7 @@ var Routes = rata.Routes{
 	{Path: "/builds/:build_id/log", Method: "GET", Name: LogOutput},
 
 	// private
+	{Path: "/login", Method: "GET", Name: LogIn},
 	{Path: "/jobs/:job/builds", Method: "POST", Name: TriggerBuild},
 	{Path: "/builds/:build_id/abort", Method: "POST", Name: AbortBuild},
 }

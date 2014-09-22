@@ -39,6 +39,9 @@ func (funcs templateFuncs) url(handler string, args ...interface{}) (string, err
 			"build_id": fmt.Sprintf("%d", args[0].(builds.Build).ID),
 		})
 
+	case routes.LogIn:
+		return routes.Routes.CreatePathForRoute(handler, rata.Params{})
+
 	default:
 		return "", fmt.Errorf("unknown route: %s", handler)
 	}

@@ -27,6 +27,13 @@
 </div>
 
 <div id="build-body">
+  <div id="build-requires-auth">
+    <form method="get" action="{{url "LogIn"}}">
+      <input type="submit" value="log in to view" />
+      <input type="hidden" name="redirect-to" value="{{url "GetBuild" .Job .Build}}" />
+    </form>
+  </div>
+
   {{/* omitting whitespace for :empty style */}}
   <div class="build-resources build-inputs">{{range .Inputs}}
     <div data-resource="{{.Name}}" class="build-source{{if .FirstOccurrence}} first-occurrence{{end}}">
