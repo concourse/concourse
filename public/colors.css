@@ -1,5 +1,6 @@
 /* background */
 body { background: #202020; }
+#build-requires-auth input { background: #202020; }
 
 /* foreground */
 body { color: #d0d0d0; }
@@ -23,7 +24,7 @@ svg .node rect { fill: #151515; }
 #builds { background: #151515; }
 .builds-list { background: #151515; }
 .build-resources .resource-header { background: #151515; }
-.groups { background: #151515; }
+#page-header { background: #151515; }
 
 /* highlight background */
 svg .edgePath path { stroke: #303030; }
@@ -36,6 +37,7 @@ svg .gateway { fill: #303030; }
 
 /* highlight foreground */
 .resource-header .version { color: #e0e0e0; }
+#build-requires-auth input { color: #e0e0e0; }
 
 /* dim */
 svg .edgePath.pending path { stroke: #505050; }
@@ -43,6 +45,7 @@ svg #arrowhead-pending path { fill: #505050; }
 svg .node.job.pending rect { fill: #505050; }
 #build-title.pending { background: #505050; }
 li.pending { background: #505050; }
+#build-requires-auth input:hover { background: #505050; }
 
 /* good */
 svg .edgePath.succeeded path { stroke: #90a959; }
