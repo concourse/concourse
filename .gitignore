@@ -29,3 +29,6 @@ docs/concourse/
 
 # direnv
 .envrc
+
+# development dependencies
+src/github.com/nsf/gocode/
