@@ -145,8 +145,8 @@ wait
 
 			Eventually(flyS, 10*time.Second).Should(gbytes.Say("build got sigterm"))
 
-			// build should have errored
-			Eventually(flyS, 5*time.Second).Should(gexec.Exit(2))
+			// build should have been aborted
+			Eventually(flyS, 5*time.Second).Should(gexec.Exit(3))
 		})
 	})
 })
