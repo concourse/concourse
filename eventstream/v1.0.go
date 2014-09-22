@@ -67,6 +67,12 @@ func (V10Renderer) Render(dst io.Writer, src EventStream) int {
 				if exitStatus == 0 {
 					exitStatus = 2
 				}
+			case "aborted":
+				color = "yellow"
+
+				if exitStatus == 0 {
+					exitStatus = 3
+				}
 			default:
 				fmt.Fprintf(dst, "unknown status: %s", e.Status)
 				return 255

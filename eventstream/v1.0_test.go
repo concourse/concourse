@@ -180,5 +180,21 @@ var _ = Describe("V1.0 Renderer", func() {
 				Ω(exitStatus).Should(Equal(2))
 			})
 		})
+
+		Context("with status 'aborted'", func() {
+			BeforeEach(func() {
+				receivedEvents <- event.Status{
+					Status: builds.StatusAborted,
+				}
+			})
+
+			It("prints it in yellow", func() {
+				Ω(out.Contents()).Should(ContainSubstring(ansi.Color("aborted", "yellow") + "\n"))
+			})
+
+			It("exits 3", func() {
+				Ω(exitStatus).Should(Equal(3))
+			})
+		})
 	})
 })
