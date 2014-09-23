@@ -27,3 +27,5 @@ bosh -n upload release --skip-if-exists
 
 git add -A
 git commit -m "release v${VERSION}"
+
+git tag "v${VERSION}"
