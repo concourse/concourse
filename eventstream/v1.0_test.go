@@ -69,8 +69,8 @@ var _ = Describe("V1.0 Renderer", func() {
 			}
 		})
 
-		It("prints its message in bold red", func() {
-			Ω(out.Contents()).Should(ContainSubstring(ansi.Color("oh no!", "red+b")))
+		It("prints its message in bold red, followed by a linebreak", func() {
+			Ω(out.Contents()).Should(ContainSubstring(ansi.Color("oh no!", "red+b") + "\n"))
 		})
 	})
 

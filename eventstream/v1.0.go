@@ -45,7 +45,7 @@ func (V10Renderer) Render(dst io.Writer, src EventStream) int {
 			exitStatus = e.ExitStatus
 
 		case event.Error:
-			fmt.Fprintf(dst, "%s", ansi.Color(e.Message, "red+b"))
+			fmt.Fprintf(dst, "%s\n", ansi.Color(e.Message, "red+b"))
 
 		case event.Status:
 			var color string
