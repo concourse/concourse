@@ -64,7 +64,7 @@
 	branch = master
 [submodule "src/github.com/concourse/fly"]
 	path = src/github.com/concourse/fly
-	url = https://github.com/concourse/fly
+	url = git@github.com:concourse/fly.git
 	branch = master
 [submodule "src/github.com/kr/pty"]
 	path = src/github.com/kr/pty
