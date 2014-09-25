@@ -140,11 +140,11 @@ var _ = BeforeEach(func() {
 
 	os.Setenv("ATC_URL", "http://127.0.0.1:8080")
 
-	plumbing = grouper.EnvokeGroup(grouper.RunGroup{
-		"turbine":      turbineRunner,
-		"garden-linux": gardenRunner,
-		"postgres":     postgresRunner,
-	})
+	plumbing = ifrit.Invoke(grouper.NewParallel(os.Interrupt, []grouper.Member{
+		{"turbine", turbineRunner},
+		{"garden-linux", gardenRunner},
+		{"postgres", postgresRunner},
+	}))
 
 	Consistently(plumbing.Wait(), 1*time.Second).ShouldNot(Receive())
 
