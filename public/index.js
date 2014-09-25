@@ -59,42 +59,43 @@ function draw(groups, nodes, edges) {
   });
 
   var digraph = dagreD3.json.decode(nodes, edges);
+  var filtered = digraph;
 
-  // filter all non-matching groups
-  filtered = digraph.filterNodes(function(u) {
-    var value = digraph.node(u);
-    console.log(value.groups);
+  if(groups.length === 0) {
+    // filter all non-matching groups
+    filtered = filtered.filterNodes(function(u) {
+      var value = digraph.node(u);
 
-    if(!value.groups) {
-      return true;
-    }
-
-    for(var i in value.groups) {
-      if(groups[value.groups[i]]) {
+      if(!value.groups) {
         return true;
       }
-    }
 
-    return false;
-  });
-
-  // filter orphaned nodes
-  filtered = filtered.filterNodes(function(u) {
-    var value = digraph.node(u);
-    console.log(value.groups);
-
-    for(var i in value.groups) {
-      if(groups[value.groups[i]]) {
-        return true;
+      for(var i in value.groups) {
+        if(groups[value.groups[i]]) {
+          return true;
+        }
       }
-    }
 
-    if(filtered.incidentEdges(u).length == 0) {
       return false;
-    }
+    });
 
-    return true;
-  });
+    // filter orphaned nodes
+    filtered = filtered.filterNodes(function(u) {
+      var value = digraph.node(u);
+
+      for(var i in value.groups) {
+        if(groups[value.groups[i]]) {
+          return true;
+        }
+      }
+
+      if(filtered.incidentEdges(u).length == 0) {
+        return false;
+      }
+
+      return true;
+    });
+  }
 
   var layout = renderer.layout(
     dagreD3.layout().rankDir("LR")).run(
