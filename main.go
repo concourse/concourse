@@ -92,6 +92,12 @@ var webListenPort = flag.Int(
 	"port for the web server to listen on",
 )
 
+var callbacksListenAddress = flag.String(
+	"callbacksListenAddress",
+	"0.0.0.0",
+	"address to listen on for callbacks",
+)
+
 var callbacksListenPort = flag.Int(
 	"callbacksListenPort",
 	8081,
@@ -286,7 +292,7 @@ func main() {
 	}
 
 	webListenAddr := fmt.Sprintf("%s:%d", *webListenAddress, *webListenPort)
-	callbacksListenAddr := fmt.Sprintf("%s:%d", *externalAddress, *callbacksListenPort)
+	callbacksListenAddr := fmt.Sprintf("%s:%d", *callbacksListenAddress, *callbacksListenPort)
 	debugListenAddr := fmt.Sprintf("%s:%d", *debugListenAddress, *debugListenPort)
 
 	group := grouper.NewParallel(os.Interrupt, []grouper.Member{
