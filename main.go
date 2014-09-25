@@ -32,9 +32,8 @@ import (
 	Db "github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/logfanout"
-	"github.com/concourse/atc/radar"
-	"github.com/concourse/atc/resources"
-	"github.com/concourse/atc/scheduler"
+	rdr "github.com/concourse/atc/radar"
+	sched "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/factory"
 	"github.com/concourse/atc/web"
 )
@@ -212,7 +211,7 @@ func main() {
 	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, troutes.Routes)
 	builder := builder.NewBuilder(db, turbineEndpoint, callbackEndpoint)
 
-	scheduler := &scheduler.Scheduler{
+	scheduler := &sched.Scheduler{
 		DB:      db,
 		Factory: &factory.BuildFactory{Resources: conf.Resources},
 		Builder: builder,
@@ -221,7 +220,7 @@ func main() {
 
 	tracker := logfanout.NewTracker(db)
 
-	radar := radar.NewRadar(logger, db, *checkInterval)
+	radar := rdr.NewRadar(logger, db, *checkInterval)
 
 	var validator auth.Validator
 
@@ -290,61 +289,29 @@ func main() {
 	callbacksListenAddr := fmt.Sprintf("%s:%d", *externalAddress, *callbacksListenPort)
 	debugListenAddr := fmt.Sprintf("%s:%d", *debugListenAddress, *debugListenPort)
 
-	group := grouper.RunGroup{
-		"web":       http_server.New(webListenAddr, publicHandler),
-		"callbacks": http_server.New(callbacksListenAddr, callbacksHandler),
-		"debug":     http_server.New(debugListenAddr, http.DefaultServeMux),
+	group := grouper.NewParallel(os.Interrupt, []grouper.Member{
+		{"web", http_server.New(webListenAddr, publicHandler)},
+		{"callbacks", http_server.New(callbacksListenAddr, callbacksHandler)},
+		{"debug", http_server.New(debugListenAddr, http.DefaultServeMux)},
 
-		"radar": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
-			if *noop {
-				close(ready)
-				<-signals
-				return nil
-			}
+		{"drainer", &logfanout.Drainer{
+			Tracker: tracker,
+		}},
 
-			for _, resource := range conf.Resources {
-				checker := resources.NewTurbineChecker(turbineEndpoint)
-				radar.Scan(checker, resource)
-			}
+		{"radar", &rdr.Runner{
+			Noop: *noop,
 
-			close(ready)
+			Radar:     radar,
+			Resources: conf.Resources,
 
-			<-signals
+			TurbineEndpoint: turbineEndpoint,
+		}},
 
-			return nil
-		}),
-
-		"scheduler": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
-			close(ready)
-
-			if *noop {
-				<-signals
-				return nil
-			}
-
-			for {
-				select {
-				case <-time.After(10 * time.Second):
-					for _, job := range conf.Jobs {
-						scheduler.TryNextPendingBuild(job)
-						scheduler.BuildLatestInputs(job)
-					}
-
-				case <-signals:
-					return nil
-				}
-			}
-
-			return nil
-		}),
-
-		"drainer": ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
-			close(ready)
-			<-signals
-			tracker.Drain()
-			return nil
-		}),
-	}
+		{"scheduler", &sched.Runner{
+			Scheduler: scheduler,
+			Jobs:      conf.Jobs,
+		}},
+	})
 
 	running := ifrit.Envoke(sigmon.New(group))
 
