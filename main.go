@@ -314,6 +314,8 @@ func main() {
 		}},
 
 		{"scheduler", &sched.Runner{
+			Noop: *noop,
+
 			Scheduler: scheduler,
 			Jobs:      conf.Jobs,
 		}},
