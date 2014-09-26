@@ -38,6 +38,10 @@ jobs:
     properties:
       atc:
         pipeline: *pipeline
+
+        # turn off and provide auth for a real vagrant instance
+        development_mode: true
+
         postgresql:
           role: &atc-role
             name: atc

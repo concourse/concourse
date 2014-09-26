@@ -35,6 +35,7 @@ jobs:
     properties:
       atc:
         pipeline: *pipeline
+        development_mode: true
         postgresql:
           database: &atc-db atc
           role: &atc-role

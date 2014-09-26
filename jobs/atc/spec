@@ -19,6 +19,10 @@ properties:
     description: "address for the web server to listen on"
     default: 0.0.0.0
 
+  atc.callbacks_shared_secret:
+    description: "password for workers to use to authenticate callbacks"
+    default: ""
+
   atc.basic_auth_username:
     description: "username for http basic auth"
     default: ""
@@ -26,6 +30,10 @@ properties:
   atc.basic_auth_encrypted_password:
     description: "bcrypt encrypted password for http basic auth"
     default: ""
+
+  atc.development_mode:
+    description: "loosen up security for development purposes"
+    default: false
 
   atc.publicly_viewable:
     description: "allow public viewing; destructive operations still require auth"

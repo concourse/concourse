@@ -56,6 +56,7 @@ jobs:
         pipeline: *pipeline
         basic_auth_username: ~
         basic_auth_encrypted_password: ~
+        callbacks_shared_secret: ~
         postgresql:
           database: &atc-db-name atc
           role: *atc-db-role

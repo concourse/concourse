@@ -1,7 +1,13 @@
 #!/bin/bash
 # vim: set ft=sh
 
-<% require "shellwords" %>
+<%
+  require "shellwords"
+
+  def esc(x)
+    Shellwords.shellescape(x)
+  end
+%>
 
 RUN_DIR=/var/vcap/sys/run/atc
 LOG_DIR=/var/vcap/sys/log/atc
@@ -45,14 +51,16 @@ case $1 in
       -pipeline=/var/vcap/jobs/atc/config/pipeline.yml \
       -templates=/var/vcap/packages/atc/templates \
       -public=/var/vcap/packages/atc/public \
-      -externalAddress=<%= my_ip %> \
+      -callbacksURL=http://<%= my_ip %> \
+      -callbacksPassword=<%= esc(p("atc.callbacks_shared_secret")) %> \
       -webListenPort=<%= p("atc.web_listen_port") %> \
       -webListenAddress=<%= p("atc.web_listen_address") %> \
       -turbineURL=http://<%= p("atc.turbine.address") %> \
-      -sqlDataSource="postgres://<%= p("atc.postgresql.role.name") %>:<%= p("atc.postgresql.role.password") %>@<%= p("atc.postgresql.address") %>/<%= p("atc.postgresql.database") %>?sslmode=disable" \
-      -httpUsername=<%= p("atc.basic_auth_username") %> \
-      -httpHashedPassword=<%= Shellwords.shellescape(p("atc.basic_auth_encrypted_password")) %> \
+      -sqlDataSource=<%= esc("postgres://#{p("atc.postgresql.role.name")}:#{p("atc.postgresql.role.password")}@#{p("atc.postgresql.address")}/#{p("atc.postgresql.database")}?sslmode=disable") %> \
+      -httpUsername=<%= esc(p("atc.basic_auth_username")) %> \
+      -httpHashedPassword=<%= esc(p("atc.basic_auth_encrypted_password")) %> \
       -publiclyViewable=<%= p("atc.publicly_viewable").inspect %> \
+      -dev=<%= p("atc.development_mode").inspect %> \
       1>>$LOG_DIR/atc.stdout.log \
       2>>$LOG_DIR/atc.stderr.log
 
