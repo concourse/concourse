@@ -127,7 +127,7 @@ var _ = BeforeEach(func() {
 		AnsiColorCode: "34m",
 		Command: exec.Command(
 			builtComponents["atc"],
-			"-callbacksURL", "http://"+externalAddress,
+			"-callbacksURL", "http://"+externalAddress+":8080",
 			"-pipeline", atcPipelineFilePath,
 			"-templates", filepath.Join(atcDir, "web", "templates"),
 			"-public", filepath.Join(atcDir, "web", "public"),
