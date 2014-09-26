@@ -33,12 +33,6 @@ var _ = Describe("Builder", func() {
 
 		turbineServer = ghttp.NewServer()
 
-		builder = NewBuilder(
-			db,
-			rata.NewRequestGenerator(turbineServer.URL(), TurbineRoutes.Routes),
-			rata.NewRequestGenerator("http://atc-server", CallbacksRoutes.Routes),
-		)
-
 		build = builds.Build{
 			ID:   128,
 			Name: "some-build",
@@ -59,11 +53,17 @@ var _ = Describe("Builder", func() {
 				},
 			},
 
-			StatusCallback: "http://atc-server/builds/128",
-			EventsCallback: "ws://atc-server/builds/128/events",
+			StatusCallback: "http://atc-server/api/callbacks/builds/128",
+			EventsCallback: "ws://atc-server/api/callbacks/builds/128/events",
 		}
 
 		db.StartBuildReturns(true, nil)
+
+		builder = NewBuilder(
+			db,
+			rata.NewRequestGenerator(turbineServer.URL(), TurbineRoutes.Routes),
+			rata.NewRequestGenerator("http://atc-server", CallbacksRoutes.Routes),
+		)
 	})
 
 	successfulBuildStart := func(build tbuilds.Build) http.HandlerFunc {
@@ -95,6 +95,33 @@ var _ = Describe("Builder", func() {
 		Ω(buildID).Should(Equal(128))
 		Ω(abortURL).Should(ContainSubstring("/abort/the/build"))
 		Ω(hijackURL).Should(ContainSubstring("/hijack/the/build"))
+	})
+
+	Context("when the callback url uses SSL", func() {
+		BeforeEach(func() {
+			turbineBuild.StatusCallback = "https://atc-server/api/callbacks/builds/128"
+			turbineBuild.EventsCallback = "wss://atc-server/api/callbacks/builds/128/events"
+
+			builder = NewBuilder(
+				db,
+				rata.NewRequestGenerator(turbineServer.URL(), TurbineRoutes.Routes),
+				rata.NewRequestGenerator("https://atc-server", CallbacksRoutes.Routes),
+			)
+		})
+
+		It("uses SSL for the status and events callbacks", func() {
+			turbineServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/builds"),
+					successfulBuildStart(turbineBuild),
+				),
+			)
+
+			err := builder.Build(build, turbineBuild)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(db.StartBuildCallCount()).Should(Equal(1))
+		})
 	})
 
 	Context("when the build fails to transition to started", func() {

@@ -78,7 +78,11 @@ func (builder *builder) Build(build builds.Build, turbineBuild tbuilds.Build) er
 		panic(err)
 	}
 
-	recordEvents.URL.Scheme = "ws"
+	if recordEvents.URL.Scheme == "https" {
+		recordEvents.URL.Scheme = "wss"
+	} else {
+		recordEvents.URL.Scheme = "ws"
+	}
 
 	turbineBuild.EventsCallback = recordEvents.URL.String()
 

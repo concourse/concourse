@@ -79,7 +79,11 @@ func (checker *TurbineChecker) connect() (*websocket.Conn, error) {
 			return nil, err
 		}
 
-		req.URL.Scheme = "ws"
+		if req.URL.Scheme == "https" {
+			req.URL.Scheme = "wss"
+		} else {
+			req.URL.Scheme = "ws"
+		}
 
 		conn, _, err := checker.dialer.Dial(req.URL.String(), nil)
 		if err != nil {

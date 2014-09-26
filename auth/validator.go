@@ -19,9 +19,30 @@ type NoopValidator struct{}
 
 func (NoopValidator) IsAuthenticated(*http.Request) bool { return true }
 
-type BasicAuthValidator struct {
+type BasicAuthHashedValidator struct {
 	Username       string
 	HashedPassword string
+}
+
+func (validator BasicAuthHashedValidator) IsAuthenticated(r *http.Request) bool {
+	auth := r.Header.Get("Authorization")
+
+	username, password, err := ExtractUsernameAndPassword(auth)
+	if err != nil {
+		return false
+	}
+
+	return validator.correctCredentials(username, password)
+}
+
+func (validator BasicAuthHashedValidator) correctCredentials(username string, password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(validator.HashedPassword), []byte(password))
+	return validator.Username == username && err == nil
+}
+
+type BasicAuthValidator struct {
+	Username string
+	Password string
 }
 
 func (validator BasicAuthValidator) IsAuthenticated(r *http.Request) bool {
@@ -36,8 +57,7 @@ func (validator BasicAuthValidator) IsAuthenticated(r *http.Request) bool {
 }
 
 func (validator BasicAuthValidator) correctCredentials(username string, password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(validator.HashedPassword), []byte(password))
-	return validator.Username == username && err == nil
+	return validator.Username == username && validator.Password == password
 }
 
 func ExtractUsernameAndPassword(authorizationHeader string) (string, string, error) {

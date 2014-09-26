@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -74,12 +75,6 @@ var sqlDataSource = flag.String(
 	"database/sql data source configuration string",
 )
 
-var externalAddress = flag.String(
-	"externalAddress",
-	"127.0.0.1",
-	"external IP of the ATC",
-)
-
 var webListenAddress = flag.String(
 	"webListenAddress",
 	"0.0.0.0",
@@ -92,16 +87,22 @@ var webListenPort = flag.Int(
 	"port for the web server to listen on",
 )
 
-var callbacksListenAddress = flag.String(
-	"callbacksListenAddress",
-	"0.0.0.0",
-	"address to listen on for callbacks",
+var callbacksURLString = flag.String(
+	"callbacksURL",
+	"http://127.0.0.1:8080",
+	"URL used for callbacks to reach the ATC (excluding basic auth)",
 )
 
-var callbacksListenPort = flag.Int(
-	"callbacksListenPort",
-	8081,
-	"port for the internal callbacks server to listen on",
+var callbacksUsername = flag.String(
+	"callbacksUsername",
+	"callbacks",
+	"basic auth username for callbacks endpoints, given to workers",
+)
+
+var callbacksPassword = flag.String(
+	"callbacksPassword",
+	"",
+	"basic auth password for callbacks endpoints, given to workers",
 )
 
 var debugListenAddress = flag.String(
@@ -210,10 +211,25 @@ func main() {
 		}
 	}
 
-	callbacksAddr := fmt.Sprintf("%s:%d", *externalAddress, *callbacksListenPort)
-	webAddr := fmt.Sprintf("%s:%d", *externalAddress, *webListenPort)
+	callbacksURL, err := url.Parse(*callbacksURLString)
+	if err != nil {
+		fatal(err)
+	}
 
-	callbackEndpoint := rata.NewRequestGenerator("http://"+callbacksAddr, croutes.Routes)
+	var callbacksValidator auth.Validator
+
+	if *callbacksUsername != "" && *callbacksPassword != "" {
+		callbacksValidator = auth.BasicAuthValidator{
+			Username: *callbacksUsername,
+			Password: *callbacksPassword,
+		}
+
+		callbacksURL.User = url.UserPassword(*callbacksUsername, *callbacksPassword)
+	} else {
+		callbacksValidator = auth.NoopValidator{}
+	}
+
+	callbackEndpoint := rata.NewRequestGenerator(callbacksURL.String(), croutes.Routes)
 	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, troutes.Routes)
 	builder := builder.NewBuilder(db, turbineEndpoint, callbackEndpoint)
 
@@ -228,15 +244,15 @@ func main() {
 
 	radar := rdr.NewRadar(logger, db, *checkInterval)
 
-	var validator auth.Validator
+	var webValidator auth.Validator
 
 	if *httpUsername != "" && *httpHashedPassword != "" {
-		validator = auth.BasicAuthValidator{
+		webValidator = auth.BasicAuthHashedValidator{
 			Username:       *httpUsername,
 			HashedPassword: *httpHashedPassword,
 		}
 	} else {
-		validator = auth.NoopValidator{}
+		webValidator = auth.NoopValidator{}
 	}
 
 	apiHandler, err := api.NewHandler(
@@ -246,7 +262,7 @@ func main() {
 		builder,
 		tracker,
 		5*time.Second,
-		webAddr,
+		callbacksURL.Host,
 	)
 	if err != nil {
 		fatal(err)
@@ -254,7 +270,7 @@ func main() {
 
 	webHandler, err := web.NewHandler(
 		logger,
-		validator,
+		webValidator,
 		conf,
 		scheduler,
 		radar,
@@ -273,7 +289,8 @@ func main() {
 	}
 
 	webMux := http.NewServeMux()
-	webMux.Handle("/api/v1/", auth.Handler{Handler: apiHandler, Validator: validator})
+	webMux.Handle("/api/v1/", auth.Handler{Handler: apiHandler, Validator: webValidator})
+	webMux.Handle("/api/callbacks/", auth.Handler{Handler: callbacksHandler, Validator: callbacksValidator})
 	webMux.Handle("/", webHandler)
 
 	var publicHandler http.Handler
@@ -282,7 +299,7 @@ func main() {
 	} else {
 		publicHandler = auth.Handler{
 			Handler:   webMux,
-			Validator: validator,
+			Validator: webValidator,
 		}
 	}
 
@@ -292,12 +309,10 @@ func main() {
 	}
 
 	webListenAddr := fmt.Sprintf("%s:%d", *webListenAddress, *webListenPort)
-	callbacksListenAddr := fmt.Sprintf("%s:%d", *callbacksListenAddress, *callbacksListenPort)
 	debugListenAddr := fmt.Sprintf("%s:%d", *debugListenAddress, *debugListenPort)
 
 	group := grouper.NewParallel(os.Interrupt, []grouper.Member{
 		{"web", http_server.New(webListenAddr, publicHandler)},
-		{"callbacks", http_server.New(callbacksListenAddr, callbacksHandler)},
 		{"debug", http_server.New(debugListenAddr, http.DefaultServeMux)},
 
 		{"drainer", &logfanout.Drainer{
@@ -324,9 +339,8 @@ func main() {
 	running := ifrit.Envoke(sigmon.New(group))
 
 	logger.Info("listening", lager.Data{
-		"web":       webListenAddr,
-		"callbacks": callbacksListenAddr,
-		"debug":     debugListenAddr,
+		"web":   webListenAddr,
+		"debug": debugListenAddr,
 	})
 
 	err = <-running.Wait()

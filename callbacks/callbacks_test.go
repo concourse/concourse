@@ -33,7 +33,11 @@ var _ = Describe("Callbacks", func() {
 
 		tracker = logfanout.NewTracker(logDB)
 
-		handler, err := callbacks.NewHandler(lagertest.NewTestLogger("callbacks"), buildDB, tracker)
+		handler, err := callbacks.NewHandler(
+			lagertest.NewTestLogger("callbacks"),
+			buildDB,
+			tracker,
+		)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		server = httptest.NewServer(handler)
@@ -47,7 +51,7 @@ var _ = Describe("Callbacks", func() {
 		server.Close()
 	})
 
-	Describe("PUT /builds/:build", func() {
+	Describe("PUT /api/callbacks/builds/:build", func() {
 		var build builds.Build
 		var turbineBuild TurbineBuilds.Build
 
@@ -86,7 +90,7 @@ var _ = Describe("Callbacks", func() {
 			reqPayload, err := json.Marshal(turbineBuild)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			req, err := http.NewRequest("PUT", server.URL+"/builds/42", bytes.NewBuffer(reqPayload))
+			req, err := http.NewRequest("PUT", server.URL+"/api/callbacks/builds/42", bytes.NewBuffer(reqPayload))
 			Ω(err).ShouldNot(HaveOccurred())
 
 			req.Header.Set("Content-Type", "application/json")

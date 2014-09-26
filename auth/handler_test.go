@@ -34,7 +34,7 @@ var _ = Describe("BasicAuthHandler", func() {
 
 		authHandler := auth.Handler{
 			Handler: simpleHandler,
-			Validator: auth.BasicAuthValidator{
+			Validator: auth.BasicAuthHashedValidator{
 				Username:       username,
 				HashedPassword: string(hashedPassword),
 			},
