@@ -141,6 +141,12 @@ var publiclyViewable = flag.Bool(
 	"allow viewability without authentication (destructive operations still require auth)",
 )
 
+var dev = flag.Bool(
+	"dev",
+	false,
+	"dev mode; lax security",
+)
+
 var noop = flag.Bool(
 	"noop",
 	false,
@@ -152,6 +158,14 @@ func main() {
 
 	if *pipelinePath == "" {
 		fatal(errors.New("must specify -pipeline"))
+	}
+
+	if !*dev && (*callbacksUsername == "" || *callbacksPassword == "") {
+		fatal(errors.New("must specify -callbacksUsername and -callbacksPassword or turn on dev mode"))
+	}
+
+	if !*dev && (*httpUsername == "" || *httpHashedPassword == "") {
+		fatal(errors.New("must specify -httpUsername and -httpHashedPassword or turn on dev mode"))
 	}
 
 	if _, err := os.Stat(*templatesDir); err != nil {
