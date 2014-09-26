@@ -51,7 +51,7 @@ case $1 in
       -pipeline=/var/vcap/jobs/atc/config/pipeline.yml \
       -templates=/var/vcap/packages/atc/templates \
       -public=/var/vcap/packages/atc/public \
-      -callbacksURL=http://<%= my_ip %> \
+      -callbacksURL=<%= "http://#{my_ip}:#{p("atc.web_listen_port")}" %> \
       -callbacksPassword=<%= esc(p("atc.callbacks_shared_secret")) %> \
       -webListenPort=<%= p("atc.web_listen_port") %> \
       -webListenAddress=<%= p("atc.web_listen_address") %> \
