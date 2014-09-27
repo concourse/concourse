@@ -15,7 +15,17 @@ consul_0.3/consul:
     NDhiOWI2NzFmNzU0NzliZWJjZTczOGYzMDY1NGUxODUyMGQ5NGM5Ng==
   size: 14388499
 resources/archive-resource.tar.gz:
-  object_id: 425ee43d-4c57-406b-bc31-02551f616fc8
+  object_id: d0af336c-9c75-4dff-8a23-46082a0ba17d
   sha: !binary |-
-    MGUwYzVhYTZjNGFjODZjMzBjZjJjMGViOGZiMjhlMzAwMWUzYWRhZA==
-  size: 2549734
+    M2Q5M2NiMWI1MmVkZmQ1ZWQ0YWRkODdjNDFkZDgxNWI2NmU5OTI1MA==
+  size: 2549739
+resources/time-resource.tar.gz:
+  object_id: 2fc13b3f-98be-4124-bc61-320220471b1a
+  sha: !binary |-
+    ZTI5ZmRhYWQ1ZWFhY2VjZDM3NDI4Zjk0MGM1YTk4NjU0MTcwZjBlMQ==
+  size: 2518590
+resources/semver-resource.tar.gz:
+  object_id: 7052d2d7-c678-40a6-83f7-b9019f630ba4
+  sha: !binary |-
+    NWU3MWYyMDlkNDJhZGQ2ZTcwZDgwN2QwMWExNmExYjc1ZmY4MWIyZQ==
+  size: 8606963
