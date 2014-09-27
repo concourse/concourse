@@ -1,5 +1,0 @@
----
-image: docker:///concourse/concourse-ci
-
-run:
-  path: concourse/ci/scripts/bump-resource-packages
