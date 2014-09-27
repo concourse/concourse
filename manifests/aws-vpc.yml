@@ -14,6 +14,12 @@ atc_db_role: &atc-db-role
   name: atc
   password: REPLACE_WITH_DB_PASSWORD
 
+# replace with a random string; you'll never have to enter this anywhere
+atc_callbacks_shared_secret: &atc-callbacks-shared-secret REPLACE_WITH_RANDOM_SECRET
+
+# replace with an AZ from your account
+availability_zone: &az REPLACE_WITH_AVAILABILITY_ZONE
+
 # replace all addresses with your VPC range
 #
 # e.g. X.X.0.2 -> 10.0.0.2
@@ -30,9 +36,6 @@ networks:
         cloud_properties:
           security_groups: [REPLACE_WITH_INTERNAL_SECURITY_GROUP_NAME]
           subnet: REPLACE_WITH_INTERNAL_SUBNET
-
-# replace with an AZ from your account
-availability_zone: &az REPLACE_WITH_AVAILABILITY_ZONE
 
 releases:
   - name: concourse
@@ -56,7 +59,7 @@ jobs:
         pipeline: *pipeline
         basic_auth_username: ~
         basic_auth_encrypted_password: ~
-        callbacks_shared_secret: ~
+        callbacks_shared_secret: *atc-callbacks-shared-secret
         postgresql:
           database: &atc-db-name atc
           role: *atc-db-role
