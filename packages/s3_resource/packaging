@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -e -x
+
+tar zxf resources/s3-resource.tar.gz -C ${BOSH_INSTALL_TARGET}
