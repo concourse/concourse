@@ -12,6 +12,7 @@ packages:
   - s3_resource
   - semver_resource
   - time_resource
+  - tracker_resource
 
 properties:
   turbine.listen_address:
@@ -30,9 +31,9 @@ properties:
     description: "The mapping from known resource types to their container rootfs."
     default:
       archive: /var/vcap/packages/archive_resource
-      semver: /var/vcap/packages/semver_resource
       s3: /var/vcap/packages/s3_resource
+      semver: /var/vcap/packages/semver_resource
       time: /var/vcap/packages/time_resource
+      tracker: /var/vcap/packages/tracker_resource
       git: docker:///concourse/git-resource
       docker-image: docker:///concourse/docker-image-resource
-      tracker: docker:///concourse/tracker-resource
