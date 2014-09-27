@@ -29,3 +29,8 @@ resources/semver-resource.tar.gz:
   sha: !binary |-
     NWU3MWYyMDlkNDJhZGQ2ZTcwZDgwN2QwMWExNmExYjc1ZmY4MWIyZQ==
   size: 8606963
+resources/s3-resource.tar.gz:
+  object_id: a862ec64-9dcd-4c17-a833-31ca7c45dbc4
+  sha: !binary |-
+    M2FjZWFjODFiOTE1ZmM1NDc4MWExZTE0NGRhZjg1ZGZiODkxMDE2Yw==
+  size: 8807415
