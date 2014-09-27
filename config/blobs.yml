@@ -14,3 +14,8 @@ consul_0.3/consul:
   sha: !binary |-
     NDhiOWI2NzFmNzU0NzliZWJjZTczOGYzMDY1NGUxODUyMGQ5NGM5Ng==
   size: 14388499
+resources/archive-resource.tar.gz:
+  object_id: 4c5f92b7-eb1f-47ef-b1f4-5a99b44a89e6
+  sha: !binary |-
+    N2VjYjU1ZTZhNzg2ZjkyZDVkY2JmYzMwNTg4NmU5MDVjMTA2NGExMg==
+  size: 2549658
