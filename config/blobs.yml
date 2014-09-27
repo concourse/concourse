@@ -34,3 +34,8 @@ resources/s3-resource.tar.gz:
   sha: !binary |-
     M2FjZWFjODFiOTE1ZmM1NDc4MWExZTE0NGRhZjg1ZGZiODkxMDE2Yw==
   size: 8807415
+resources/tracker-resource.tar.gz:
+  object_id: 144133a1-3eed-4a48-8915-406b180bf44c
+  sha: !binary |-
+    ZWEyMDMzOTNhNTVmNjQ0MGMyZmQyYWZlMDkxYmE5NGY5Mjk1ZWNkMQ==
+  size: 5085070
