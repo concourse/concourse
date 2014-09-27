@@ -11,12 +11,14 @@ source ./deployments/ci/bosh_environment
 cp deployments/ci/config/private.yml concourse/config/private.yml
 
 gzip -c archive-resource-image/rootfs.tar > archive-resource.tar.gz
+gzip -c semver-resource-image/rootfs.tar > semver-resource.tar.gz
 
 bosh target ${BOSH_TARGET}
 
 cd concourse/
 
 bosh -n add blob ../archive-resource.tar.gz resources
+bosh -n add blob ../semver-resource.tar.gz resources
 bosh -n upload blobs
 
 git add -A
