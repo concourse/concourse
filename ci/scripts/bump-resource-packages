@@ -1,0 +1,23 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -x
+
+git config --global user.email "ci@localhost"
+git config --global user.name "CI Bot"
+
+source ./deployments/ci/bosh_environment
+
+cp deployments/ci/config/private.yml concourse/config/private.yml
+
+gzip -c archive-resource-image/rootfs.tar > archive-resource.tar.gz
+
+bosh target ${BOSH_TARGET}
+
+cd concourse/
+
+bosh -n add blob ../archive-resource.tar.gz resources
+bosh -n upload blobs
+
+git add -A
+git commit -m "update resource blobs"
