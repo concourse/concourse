@@ -8,6 +8,7 @@ templates:
 packages:
   - pid_utils
   - turbine
+  - archive_resource
 
 properties:
   turbine.listen_address:
@@ -26,7 +27,7 @@ properties:
     description: "The mapping from known resource types to their container rootfs."
     default:
       git: docker:///concourse/git-resource
-      archive: docker:///concourse/archive-resource
+      archive: /var/vcap/packages/archive_resource
       docker-image: docker:///concourse/docker-image-resource
       time: docker:///concourse/time-resource
       s3: docker:///concourse/s3-resource

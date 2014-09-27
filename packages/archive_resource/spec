@@ -1,0 +1,5 @@
+---
+name: archive_resource
+
+files:
+  - resources/archive-resource.tar.gz
