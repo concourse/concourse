@@ -2,4 +2,4 @@
 
 set -e -x
 
-tar zxf resources/semver-resource.tar.gz -C ${BOSH_INSTALL_TARGET}
+tar zxf resources/time-resource.tar.gz -C ${BOSH_INSTALL_TARGET}

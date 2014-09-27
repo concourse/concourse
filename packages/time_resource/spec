@@ -1,5 +1,5 @@
 ---
-name: semver_resource
+name: time_resource
 
 files:
-  - resources/semver-resource.tar.gz
+  - resources/time-resource.tar.gz
