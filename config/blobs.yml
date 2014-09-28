@@ -44,3 +44,8 @@ resources/git-resource.tar.gz:
   sha: !binary |-
     MWVhZTg3ZTgzN2EyZmJiMzJlMjIyNGExYmQ3ODFmNWM4MTAxYWU1Yg==
   size: 9155177
+resources/docker-image-resource.tar.gz:
+  object_id: 676689e7-1684-4fc1-afa6-4ab23530abf2
+  sha: !binary |-
+    OTVjZGUxZmFhNmQ0MjE3MjFhOGYwZGYzODU5NjQ1YzdiMTNkMTViYQ==
+  size: 7761600
