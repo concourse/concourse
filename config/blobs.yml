@@ -39,3 +39,8 @@ resources/tracker-resource.tar.gz:
   sha: !binary |-
     ZWEyMDMzOTNhNTVmNjQ0MGMyZmQyYWZlMDkxYmE5NGY5Mjk1ZWNkMQ==
   size: 5085070
+resources/git-resource.tar.gz:
+  object_id: a782155e-936f-47b7-87ea-ffa06f1c99b6
+  sha: !binary |-
+    OTlkYzlmMGY4ZjEzMTY0ZGE0MjZiMzJmNGYxNDJjOGYzZTYzNjMxZA==
+  size: 7819513
