@@ -141,7 +141,7 @@ var _ = BeforeEach(func() {
 
 	os.Setenv("ATC_URL", "http://127.0.0.1:8080")
 
-	plumbing = ifrit.Invoke(grouper.NewOrdered(os.Interrupt, []grouper.Member{
+	plumbing = ifrit.Invoke(grouper.NewParallel(os.Interrupt, []grouper.Member{
 		{"garden-linux", gardenRunner},
 		{"turbine", turbineRunner},
 		{"postgres", postgresRunner},
