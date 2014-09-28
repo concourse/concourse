@@ -66,7 +66,7 @@ func (factory *BuildFactory) inputFor(job config.Job, vr builds.VersionedResourc
 		Params:  tbuilds.Params(params),
 	}
 
-	if filepath.HasPrefix(job.BuildConfigPath, vr.Name) {
+	if filepath.HasPrefix(job.BuildConfigPath, vr.Name+"/") {
 		turbineInput.ConfigPath = job.BuildConfigPath[len(vr.Name)+1:]
 	}
 

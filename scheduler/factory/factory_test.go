@@ -38,6 +38,11 @@ var _ = Describe("Factory", func() {
 					Type:   "git",
 					Source: config.Source{"uri": "git://some-output-resource"},
 				},
+				{
+					Name:   "some-resource-with-longer-name",
+					Type:   "git",
+					Source: config.Source{"uri": "git://some-resource-with-longer-name"},
+				},
 			},
 		}
 
@@ -143,6 +148,32 @@ var _ = Describe("Factory", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 
 		Ω(turbineBuild).Should(Equal(expectedTurbineBuild))
+	})
+
+	Context("when two inputs have overlappying names for the config path", func() {
+		BeforeEach(func() {
+			job.Inputs = append(job.Inputs, config.Input{
+				Resource: "some-resource-with-longer-name",
+			})
+
+			job.BuildConfigPath = "some-resource-with-longer-name/build.yml"
+
+			expectedTurbineBuild.Inputs[0].ConfigPath = ""
+
+			expectedTurbineBuild.Inputs = append(expectedTurbineBuild.Inputs, tbuilds.Input{
+				Name:       "some-resource-with-longer-name",
+				Type:       "git",
+				Source:     tbuilds.Source{"uri": "git://some-resource-with-longer-name"},
+				ConfigPath: "build.yml",
+			})
+		})
+
+		It("chooses the correct input path", func() {
+			turbineBuild, err := factory.Create(job, nil)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(turbineBuild.Inputs).Should(Equal(expectedTurbineBuild.Inputs))
+		})
 	})
 
 	Context("when versioned resources are specified", func() {
