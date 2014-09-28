@@ -185,10 +185,6 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		edges := map[string]DotEdge{}
 
 		for _, input := range job.Inputs {
-			if input.DontCheck {
-				continue
-			}
-
 			if len(input.Passed) > 0 {
 				var nodeID string
 
