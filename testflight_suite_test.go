@@ -155,12 +155,20 @@ var _ = BeforeEach(func() {
 var _ = AfterEach(func() {
 	stopProcess(atcProcess)
 
-	postgresRunner.DropTestDB()
-
-	stopProcess(plumbing)
-
 	err := os.Remove(atcPipelineFilePath)
 	Ω(err).ShouldNot(HaveOccurred())
+
+	postgresRunner.DropTestDB()
+
+	containers, err := gardenClient.Containers(nil)
+	Ω(err).ShouldNot(HaveOccurred())
+
+	for _, container := range containers {
+		err := gardenClient.Destroy(container.Handle())
+		Ω(err).ShouldNot(HaveOccurred())
+	}
+
+	stopProcess(plumbing)
 })
 
 func TestTestFlight(t *testing.T) {
