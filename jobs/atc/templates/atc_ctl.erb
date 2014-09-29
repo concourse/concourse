@@ -61,6 +61,7 @@ case $1 in
       -httpHashedPassword=<%= esc(p("atc.basic_auth_encrypted_password")) %> \
       -publiclyViewable=<%= p("atc.publicly_viewable").inspect %> \
       -dev=<%= p("atc.development_mode").inspect %> \
+      -checkInterval=<%= p("atc.default_check_interval") %> \
       1>>$LOG_DIR/atc.stdout.log \
       2>>$LOG_DIR/atc.stderr.log
 

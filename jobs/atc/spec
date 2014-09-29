@@ -47,6 +47,10 @@ properties:
     description: "pipeline configuration containing jobs and resources"
     default: {}
 
+  atc.default_check_interval:
+    description: "how often to check for new versions of resources. keep rate limiting in mind."
+    default: 1m
+
   atc.postgresql.address:
     description: "address of the PostgreSQL server"
     default: postgresql.service.dc1.consul:5432
