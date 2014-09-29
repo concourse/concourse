@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"testing"
+	"time"
 )
 
 const helperRootfs = "docker:///concourse/testflight-helper"
@@ -47,8 +48,7 @@ var _ = BeforeEach(func() {
 
 	gardenClient = client.New(connection.New("tcp", os.Getenv("BOSH_LITE_IP")+":7777"))
 
-	err := gardenClient.Ping()
-	Ω(err).ShouldNot(HaveOccurred())
+	Eventually(gardenClient.Ping, 10*time.Second).ShouldNot(HaveOccurred())
 
 	guidserver.Start(helperRootfs, gardenClient)
 
@@ -70,6 +70,8 @@ var _ = BeforeEach(func() {
 	templateData.GitServers.NoUpdate = noUpdateGitServer.URI()
 
 	bosh.DeployConcourse("deployment.yml.tmpl", templateData)
+
+	Eventually(gardenClient.Ping, 10*time.Second).ShouldNot(HaveOccurred())
 })
 
 var _ = AfterEach(func() {
