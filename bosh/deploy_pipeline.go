@@ -20,7 +20,7 @@ func DeployConcourse(deploymentName string, templateData ...interface{}) Deploym
 		deploymentFile, err := ioutil.TempFile("", "deployment")
 		Ω(err).ShouldNot(HaveOccurred())
 
-		err = deploymentTemplate.Execute(deploymentFile, templateData)
+		err = deploymentTemplate.Execute(deploymentFile, templateData[0])
 		Ω(err).ShouldNot(HaveOccurred())
 
 		err = deploymentFile.Close()
