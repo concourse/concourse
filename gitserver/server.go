@@ -28,9 +28,6 @@ func Start(helperRootfs string, gardenClient warden.Client) *Server {
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 
-	info, err := container.Info()
-	Ω(err).ShouldNot(HaveOccurred())
-
 	process, err := container.Run(warden.ProcessSpec{
 		Path: "bash",
 		Args: []string{"-c", `
