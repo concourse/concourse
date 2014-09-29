@@ -54,10 +54,6 @@
 	path = src/github.com/onsi/gomega
 	url = https://github.com/onsi/gomega
 	branch = master
-[submodule "garden-linux-release"]
-	path = garden-linux-release
-	url = https://github.com/cloudfoundry-incubator/garden-linux-release
-	branch = master
 [submodule "src/github.com/codegangsta/cli"]
 	path = src/github.com/codegangsta/cli
 	url = https://github.com/codegangsta/cli
