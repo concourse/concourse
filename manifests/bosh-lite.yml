@@ -73,6 +73,10 @@ jobs:
       - {release: garden-linux, name: garden}
       - {release: concourse, name: consul-agent}
     properties:
+      garden:
+        # cannot enforce quotas in bosh-lite
+        disk_quota_enabled: false
+
       consul:
         agent:
           services: [{name: turbine}]
