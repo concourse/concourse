@@ -21,6 +21,8 @@ var _ = BeforeSuite(func() {
 	flyBin, err = gexec.Build("github.com/concourse/fly", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
+	bosh.DeleteDeployment("concourse")
+
 	bosh.Deploy("noop.yml")
 
 	os.Setenv("ATC_URL", "http://"+os.Getenv("BOSH_LITE_IP")+":8080")

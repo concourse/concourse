@@ -41,20 +41,20 @@ type GitPipelineTemplate struct {
 	TestflightHelperImage string
 }
 
-var _ = BeforeEach(func() {
+var _ = BeforeSuite(func() {
+	bosh.DeleteDeployment("garden")
+	bosh.DeleteDeployment("concourse")
+
 	Ω(os.Getenv("BOSH_LITE_IP")).ShouldNot(BeEmpty(), "must specify $BOSH_LITE_IP")
 
 	bosh.Deploy("garden.yml")
 
 	gardenClient = client.New(connection.New("tcp", os.Getenv("BOSH_LITE_IP")+":7777"))
-
 	Eventually(gardenClient.Ping, 10*time.Second).ShouldNot(HaveOccurred())
 
 	guidserver.Start(helperRootfs, gardenClient)
 
 	gitServer = gitserver.Start(helperRootfs, gardenClient)
-	gitServer.Commit()
-
 	successGitServer = gitserver.Start(helperRootfs, gardenClient)
 	failureGitServer = gitserver.Start(helperRootfs, gardenClient)
 	noUpdateGitServer = gitserver.Start(helperRootfs, gardenClient)
@@ -70,11 +70,9 @@ var _ = BeforeEach(func() {
 	templateData.GitServers.NoUpdate = noUpdateGitServer.URI()
 
 	bosh.Deploy("deployment.yml.tmpl", templateData)
-
-	Eventually(gardenClient.Ping, 10*time.Second).ShouldNot(HaveOccurred())
 })
 
-var _ = AfterEach(func() {
+var _ = AfterSuite(func() {
 	gitServer.Stop()
 	successGitServer.Stop()
 	failureGitServer.Stop()

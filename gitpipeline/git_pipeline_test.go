@@ -10,21 +10,21 @@ import (
 
 var _ = Describe("A job with a git resource", func() {
 	It("builds a repo's initial and later commits", func() {
-		Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(HaveLen(1))
-		Ω(guidserver.ReportingGuids()).Should(Equal(gitServer.CommittedGuids()))
+		guid1 := gitServer.Commit()
+		Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement(guid1))
 
-		gitServer.Commit()
-
-		Eventually(guidserver.ReportingGuids, 2*time.Minute, 10*time.Second).Should(HaveLen(2))
-		Ω(guidserver.ReportingGuids()).Should(Equal(gitServer.CommittedGuids()))
+		guid2 := gitServer.Commit()
+		Eventually(guidserver.ReportingGuids, 2*time.Minute, 10*time.Second).Should(ContainElement(guid2))
 	})
 
 	It("performs success outputs when the build succeeds, and failure outputs when the build fails", func() {
+		committedGuid := gitServer.Commit()
+
 		masterSHA := gitServer.RevParse("master")
 		Ω(masterSHA).ShouldNot(BeEmpty())
 
 		// synchronize on the build triggering
-		Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(HaveLen(1))
+		Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement(committedGuid))
 
 		// should have eventually promoted
 		Eventually(func() string {

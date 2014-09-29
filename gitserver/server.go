@@ -82,7 +82,7 @@ func (server *Server) URI() string {
 	return fmt.Sprintf("git://%s/some-repo", server.addr)
 }
 
-func (server *Server) Commit() {
+func (server *Server) Commit() string {
 	guid, err := uuid.NewV4()
 	Ω(err).ShouldNot(HaveOccurred())
 
@@ -110,6 +110,8 @@ func (server *Server) Commit() {
 	Ω(process.Wait()).Should(Equal(0))
 
 	server.committedGuids = append(server.committedGuids, guid.String())
+
+	return guid.String()
 }
 
 func (server *Server) RevParse(ref string) string {
