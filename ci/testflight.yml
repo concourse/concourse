@@ -1,5 +1,8 @@
 ---
 image: docker:///concourse/testflight
 
+params:
+  BOSH_LITE_IP:
+
 run:
   path: concourse/ci/scripts/testflight
