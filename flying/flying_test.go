@@ -1,7 +1,6 @@
-package testflight_test
+package flying_test
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -13,7 +12,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
-	"github.com/tedsuo/ifrit"
 )
 
 var _ = Describe("Flying", func() {
@@ -22,11 +20,6 @@ var _ = Describe("Flying", func() {
 
 	BeforeEach(func() {
 		var err error
-
-		writeATCPipeline("noop.yml", nil)
-
-		atcProcess = ifrit.Envoke(atcRunner)
-		Consistently(atcProcess.Wait(), 1*time.Second).ShouldNot(Receive())
 
 		tmpdir, err = ioutil.TempDir("", "fly-test")
 		Ω(err).ShouldNot(HaveOccurred())
@@ -50,15 +43,15 @@ exit 0
 
 		err = ioutil.WriteFile(
 			filepath.Join(fixture, "build.yml"),
-			[]byte(fmt.Sprintf(`---
-image: %s
+			[]byte(`---
+image: docker:///concourse/testflight-helper
 
 params:
   FOO: 1
 
 run:
   path: fixture/run
-`, helperRootfs)),
+`),
 			0644,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
@@ -69,7 +62,7 @@ run:
 	})
 
 	It("works", func() {
-		fly := exec.Command(builtComponents["fly"], "--", "SOME", "ARGS")
+		fly := exec.Command(flyBin, "--", "SOME", "ARGS")
 		fly.Dir = fixture
 
 		session, err := gexec.Start(fly, GinkgoWriter, GinkgoWriter)
@@ -95,7 +88,7 @@ cat < /tmp/fifo
 			)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			fly := exec.Command(builtComponents["fly"])
+			fly := exec.Command(flyBin)
 			fly.Dir = fixture
 
 			flyS, err := gexec.Start(fly, GinkgoWriter, GinkgoWriter)
@@ -106,7 +99,7 @@ cat < /tmp/fifo
 			// TODO there's a gap between start + attach in turbine
 			time.Sleep(5 * time.Second)
 
-			hijack := exec.Command(builtComponents["fly"], "hijack", "--", "bash", "-c", "echo marco > /tmp/fifo")
+			hijack := exec.Command(flyBin, "hijack", "--", "bash", "-c", "echo marco > /tmp/fifo")
 
 			hijackS, err := gexec.Start(hijack, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
@@ -133,7 +126,7 @@ wait
 			)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			fly := exec.Command(builtComponents["fly"])
+			fly := exec.Command(flyBin)
 			fly.Dir = fixture
 
 			flyS, err := gexec.Start(fly, GinkgoWriter, GinkgoWriter)

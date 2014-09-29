@@ -1,9 +1,9 @@
 package guidserver
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/cloudfoundry-incubator/garden/warden"
 	"github.com/onsi/ginkgo"
@@ -61,10 +61,18 @@ func Start(helperRootfs string, gardenClient warden.Client) {
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 
-	Eventually(func() error {
-		_, err := http.Get(fmt.Sprintf("http://%s:8080/registrations", ipAddress))
-		return err
-	}, 2).ShouldNot(HaveOccurred())
+	Eventually(func() (int, error) {
+		curl, err := container.Run(warden.ProcessSpec{
+			Path: "curl",
+			Args: []string{"http://127.0.0.1:8080/registrations"},
+		}, warden.ProcessIO{
+			Stdout: ginkgo.GinkgoWriter,
+			Stderr: ginkgo.GinkgoWriter,
+		})
+		Ω(err).ShouldNot(HaveOccurred())
+
+		return curl.Wait()
+	}, 2).Should(Equal(0))
 }
 
 func Stop(gardenClient warden.Client) {
@@ -79,15 +87,21 @@ func CurlCommand() string {
 }
 
 func ReportingGuids() []string {
-	uri := fmt.Sprintf("http://%s:8080/registrations", ipAddress)
+	outBuf := new(bytes.Buffer)
 
-	response, err := http.Get(uri)
+	curl, err := container.Run(warden.ProcessSpec{
+		Path: "curl",
+		Args: []string{"http://127.0.0.1:8080/registrations"},
+	}, warden.ProcessIO{
+		Stdout: outBuf,
+		Stderr: ginkgo.GinkgoWriter,
+	})
 	Ω(err).ShouldNot(HaveOccurred())
 
-	defer response.Body.Close()
+	Ω(curl.Wait()).Should(Equal(0))
 
 	var responses []string
-	err = json.NewDecoder(response.Body).Decode(&responses)
+	err = json.NewDecoder(outBuf).Decode(&responses)
 	Ω(err).ShouldNot(HaveOccurred())
 
 	return responses
