@@ -1,14 +1,16 @@
 package guidserver
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/cloudfoundry-incubator/garden/warden"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+const gardenDeploymentIP = "10.244.16.2"
 
 const amazingRubyServer = `
 require 'webrick'
@@ -37,7 +39,7 @@ server.start
 
 var container warden.Container
 
-var ipAddress string
+var addr string
 
 func Start(helperRootfs string, gardenClient warden.Client) {
 	var err error
@@ -46,11 +48,6 @@ func Start(helperRootfs string, gardenClient warden.Client) {
 		RootFSPath: helperRootfs,
 	})
 	Ω(err).ShouldNot(HaveOccurred())
-
-	info, err := container.Info()
-	Ω(err).ShouldNot(HaveOccurred())
-
-	ipAddress = info.ContainerIP
 
 	_, err = container.Run(warden.ProcessSpec{
 		Path: "ruby",
@@ -61,47 +58,38 @@ func Start(helperRootfs string, gardenClient warden.Client) {
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 
-	Eventually(func() (int, error) {
-		curl, err := container.Run(warden.ProcessSpec{
-			Path: "curl",
-			Args: []string{"http://127.0.0.1:8080/registrations"},
-		}, warden.ProcessIO{
-			Stdout: ginkgo.GinkgoWriter,
-			Stderr: ginkgo.GinkgoWriter,
-		})
-		Ω(err).ShouldNot(HaveOccurred())
+	hostPort, _, err := container.NetIn(0, 8080)
+	Ω(err).ShouldNot(HaveOccurred())
 
-		return curl.Wait()
-	}, 2).Should(Equal(0))
+	addr = fmt.Sprintf("%s:%d", gardenDeploymentIP, hostPort)
+
+	Eventually(func() error {
+		_, err := http.Get(fmt.Sprintf("http://%s:8080/registrations", addr))
+		return err
+	}, 2).ShouldNot(HaveOccurred())
 }
 
 func Stop(gardenClient warden.Client) {
 	gardenClient.Destroy(container.Handle())
 
 	container = nil
-	ipAddress = ""
+	addr = ""
 }
 
 func CurlCommand() string {
-	return fmt.Sprintf("curl -XPOST http://%s:8080/register -d @-", ipAddress)
+	return fmt.Sprintf("curl -XPOST http://%s/register -d @-", addr)
 }
 
 func ReportingGuids() []string {
-	outBuf := new(bytes.Buffer)
+	uri := fmt.Sprintf("http://%s/registrations", addr)
 
-	curl, err := container.Run(warden.ProcessSpec{
-		Path: "curl",
-		Args: []string{"http://127.0.0.1:8080/registrations"},
-	}, warden.ProcessIO{
-		Stdout: outBuf,
-		Stderr: ginkgo.GinkgoWriter,
-	})
+	response, err := http.Get(uri)
 	Ω(err).ShouldNot(HaveOccurred())
 
-	Ω(curl.Wait()).Should(Equal(0))
+	defer response.Body.Close()
 
 	var responses []string
-	err = json.NewDecoder(outBuf).Decode(&responses)
+	err = json.NewDecoder(response.Body).Decode(&responses)
 	Ω(err).ShouldNot(HaveOccurred())
 
 	return responses

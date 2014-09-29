@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-const gitDeploymentIP = "10.244.16.2"
+const gardenDeploymentIP = "10.244.16.2"
 
 type Server struct {
 	gardenClient warden.Client
@@ -70,7 +70,7 @@ touch .git/git-daemon-export-ok
 	return &Server{
 		gardenClient: gardenClient,
 		container:    container,
-		addr:         fmt.Sprintf("%s:%d", gitDeploymentIP, hostPort),
+		addr:         fmt.Sprintf("%s:%d", gardenDeploymentIP, hostPort),
 	}
 }
 
