@@ -11,11 +11,13 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+const gitDeploymentIP = "10.244.16.2"
+
 type Server struct {
 	gardenClient warden.Client
 	container    warden.Container
 
-	ipAddress string
+	addr string
 
 	committedGuids []string
 }
@@ -49,7 +51,15 @@ touch .git/git-daemon-export-ok
 
 	process, err = container.Run(warden.ProcessSpec{
 		Path: "git",
-		Args: []string{"daemon", "--export-all", "--enable=receive-pack", "--reuseaddr", "--base-path=.", "--detach", "."},
+		Args: []string{
+			"daemon",
+			"--export-all",
+			"--enable=receive-pack",
+			"--reuseaddr",
+			"--base-path=.",
+			"--detach",
+			".",
+		},
 	}, warden.ProcessIO{
 		Stdout: ginkgo.GinkgoWriter,
 		Stderr: ginkgo.GinkgoWriter,
@@ -57,10 +67,13 @@ touch .git/git-daemon-export-ok
 	Ω(err).ShouldNot(HaveOccurred())
 	Ω(process.Wait()).Should(Equal(0))
 
+	hostPort, _, err := container.NetIn(0, 9418)
+	Ω(err).ShouldNot(HaveOccurred())
+
 	return &Server{
 		gardenClient: gardenClient,
 		container:    container,
-		ipAddress:    info.ContainerIP,
+		addr:         fmt.Sprintf("%s:%d", gitDeploymentIP, hostPort),
 	}
 }
 
@@ -69,7 +82,7 @@ func (server *Server) Stop() {
 }
 
 func (server *Server) URI() string {
-	return fmt.Sprintf("git://%s/some-repo", server.ipAddress)
+	return fmt.Sprintf("git://%s/some-repo", server.addr)
 }
 
 func (server *Server) Commit() {
