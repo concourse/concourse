@@ -16,14 +16,14 @@ var flyBin string
 var _ = BeforeSuite(func() {
 	Ω(os.Getenv("BOSH_LITE_IP")).ShouldNot(BeEmpty(), "must specify $BOSH_LITE_IP")
 
-	deployment := bosh.DeployConcourse("noop.yml")
-
 	var err error
 
 	flyBin, err = gexec.Build("github.com/concourse/fly", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
-	os.Setenv("ATC_URL", deployment.ATCUrl)
+	bosh.Deploy("noop.yml")
+
+	os.Setenv("ATC_URL", "http://"+os.Getenv("BOSH_LITE_IP")+":8080")
 })
 
 func TestFlying(t *testing.T) {

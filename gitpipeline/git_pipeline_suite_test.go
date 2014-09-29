@@ -44,7 +44,7 @@ type GitPipelineTemplate struct {
 var _ = BeforeEach(func() {
 	Ω(os.Getenv("BOSH_LITE_IP")).ShouldNot(BeEmpty(), "must specify $BOSH_LITE_IP")
 
-	bosh.DeployConcourse("noop.yml")
+	bosh.Deploy("garden.yml")
 
 	gardenClient = client.New(connection.New("tcp", os.Getenv("BOSH_LITE_IP")+":7777"))
 
@@ -69,7 +69,7 @@ var _ = BeforeEach(func() {
 	templateData.GitServers.Failure = failureGitServer.URI()
 	templateData.GitServers.NoUpdate = noUpdateGitServer.URI()
 
-	bosh.DeployConcourse("deployment.yml.tmpl", templateData)
+	bosh.Deploy("deployment.yml.tmpl", templateData)
 
 	Eventually(gardenClient.Ping, 10*time.Second).ShouldNot(HaveOccurred())
 })

@@ -2,7 +2,6 @@ package bosh
 
 import (
 	"io/ioutil"
-	"os"
 	"os/exec"
 	"text/template"
 
@@ -10,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func DeployConcourse(deploymentName string, templateData ...interface{}) Deployment {
+func Deploy(deploymentName string, templateData ...interface{}) {
 	var deploymentPath string
 
 	if len(templateData) > 0 {
@@ -33,10 +32,6 @@ func DeployConcourse(deploymentName string, templateData ...interface{}) Deploym
 
 	run(exec.Command("bosh", "deployment", deploymentPath))
 	run(exec.Command("bosh", "-n", "deploy"))
-
-	return Deployment{
-		ATCUrl: "http://" + os.Getenv("BOSH_LITE_IP") + ":8080",
-	}
 }
 
 func run(cmd *exec.Cmd) {
