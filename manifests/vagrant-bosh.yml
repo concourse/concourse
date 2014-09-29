@@ -15,11 +15,11 @@ pipeline: &pipeline
 
 releases:
   - name: concourse
-    version: latest
-    url: dir+bosh://.
+    url: https://s3.amazonaws.com/concourse-releases/concourse-0.15.0.tgz
+    version: 0.15.0
   - name: garden-linux
-    version: latest
-    url: dir+bosh://garden-linux-release
+    url: https://s3.amazonaws.com/garden-linux-release/releases/garden-linux-0.16.0.tgz
+    version: 0.16.0
 
 networks:
   - name: concourse
