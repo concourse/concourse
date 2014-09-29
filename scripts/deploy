@@ -11,23 +11,23 @@ if [ -z "$VERSION" ]; then
   exit 1
 fi
 
-cp deployments/ci/config/private.yml concourse/config/private.yml
-
-DEPLOYMENT=$(readlink -f deployments/ci/deployments/concourse.yml)
-
-cd concourse/
-
 git config --global user.email "ci@localhost"
 git config --global user.name "CI Bot"
 
-git merge --no-edit master
+cp deployments/ci/config/private.yml concourse/config/private.yml
 
 bosh target ${BOSH_TARGET}
 
-bosh deployment ${DEPLOYMENT}
+bosh deployment deployments/ci/deployments/concourse.yml
+
+bosh -n upload stemcell bosh-stemcells/*.tgz --skip-if-exists
+
+bosh -n upload release garden-linux-release/*.tgz --skip-if-exists
 
 set +x
-  spiff diff --separator $'\f' manifests/aws-vpc.yml ${DEPLOYMENT} | \
+  spiff diff --separator $'\f' \
+    concourse/manifests/aws-vpc.yml \
+    deployments/ci/deployments/concourse.yml | \
     awk -v RS='\f' '!/pipeline|REPLACE|basic_auth|publicly_viewable/' |
     tee /tmp/manifest-diff
 
@@ -38,14 +38,9 @@ set +x
   fi
 set -x
 
-if [ -f ../bosh-stemcells/*.tgz ]; then
-  bosh -n upload stemcell ../bosh-stemcells/*.tgz --skip-if-exists
-fi
+cd concourse/
 
-pushd garden-linux-release/
-  latest_release=$(ls releases/garden-linux/garden-linux-*.yml | sort -r --version-sort | head -n 1)
-  bosh -n upload release ${latest_release} --skip-if-exists
-popd
+git merge --no-edit master
 
 bosh -n create release --final --version "$VERSION"
 bosh -n upload release --skip-if-exists
