@@ -74,6 +74,7 @@ jobs:
       - name: concourse
         static_ips: [&web-ip 10.244.8.2]
     persistent_disk: 10240
+    resource_pool: concourse
     templates:
       - {release: concourse, name: atc}
       - {release: concourse, name: turbine}
@@ -96,6 +97,18 @@ jobs:
         databases: [{name: atc}]
         roles:
           - *atc-role
+
+      garden:
+        listen_network: tcp
+        listen_address: 0.0.0.0:7777
+
+        # cannot enforce quotas in bosh-lite
+        disk_quota_enabled: false
+
+      turbine:
+        garden:
+          network: tcp
+          address: 127.0.0.1:7777
 
       consul:
         agent:
