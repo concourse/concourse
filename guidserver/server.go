@@ -64,7 +64,7 @@ func Start(helperRootfs string, gardenClient warden.Client) {
 	addr = fmt.Sprintf("%s:%d", gardenDeploymentIP, hostPort)
 
 	Eventually(func() error {
-		_, err := http.Get(fmt.Sprintf("http://%s:8080/registrations", addr))
+		_, err := http.Get(fmt.Sprintf("http://%s/registrations", addr))
 		return err
 	}, 2).ShouldNot(HaveOccurred())
 }
