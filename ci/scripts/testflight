@@ -17,4 +17,4 @@ export BOSH_PASSWORD=admin
 bosh target ${BOSH_LITE_IP}
 
 cd concourse/src/github.com/concourse/testflight/
-ginkgo -r -race "$@"
+ginkgo -v -r -race "$@"
