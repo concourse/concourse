@@ -1,3 +1,10 @@
+function objectIsEmpty(obj) {
+  for(var x in obj)
+    return true;
+
+  return false;
+}
+
 function draw(groups, nodes, edges) {
   var renderer = new dagreD3.Renderer();
 
@@ -61,7 +68,7 @@ function draw(groups, nodes, edges) {
   var digraph = dagreD3.json.decode(nodes, edges);
   var filtered = digraph;
 
-  if(groups.length != 0) {
+  if(!objectIsEmpty(groups) {
     // filter all non-matching groups
     filtered = filtered.filterNodes(function(u) {
       var value = digraph.node(u);
