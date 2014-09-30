@@ -107,7 +107,7 @@ resource_pools:
       name: bosh-aws-xen-ubuntu-trusty-go_agent
       version: latest
     cloud_properties:
-      instance_type: m1.small
+      instance_type: m3.medium
       availability_zone: *az
       elbs: [REPLACE_WITH_WEB_ELB_NAME]
 
@@ -115,7 +115,7 @@ resource_pools:
     network: concourse
     stemcell: *stemcell
     cloud_properties:
-      instance_type: m1.small
+      instance_type: m3.medium
       availability_zone: *az
 
   - name: workers
@@ -126,11 +126,11 @@ resource_pools:
       availability_zone: *az
 
 compilation:
-  workers: 6
+  workers: 3
   network: concourse
   reuse_compilation_vms: true
   cloud_properties:
-    instance_type: c1.medium
+    instance_type: c3.large
     availability_zone: *az
 
 update:
