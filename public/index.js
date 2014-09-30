@@ -68,7 +68,7 @@ function draw(groups, nodes, edges) {
   var digraph = dagreD3.json.decode(nodes, edges);
   var filtered = digraph;
 
-  if(!objectIsEmpty(groups) {
+  if(!objectIsEmpty(groups)) {
     // filter all non-matching groups
     filtered = filtered.filterNodes(function(u) {
       var value = digraph.node(u);
