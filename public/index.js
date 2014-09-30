@@ -1,8 +1,8 @@
 function objectIsEmpty(obj) {
   for(var x in obj)
-    return true;
+    return false;
 
-  return false;
+  return true;
 }
 
 function draw(groups, nodes, edges) {
