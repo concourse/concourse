@@ -84,6 +84,29 @@ var _ = Describe("Scheduler", func() {
 			})
 		})
 
+		Context("when the job has no inputs", func() {
+			BeforeEach(func() {
+				job.Inputs = []config.Input{}
+			})
+
+			It("succeeds", func() {
+				err := scheduler.BuildLatestInputs(job)
+				Ω(err).ShouldNot(HaveOccurred())
+			})
+
+			It("does not try to fetch inputs from the database", func() {
+				scheduler.BuildLatestInputs(job)
+
+				Ω(db.GetLatestInputVersionsCallCount()).Should(BeZero())
+			})
+
+			It("does not trigger a build", func() {
+				scheduler.BuildLatestInputs(job)
+
+				Ω(builder.BuildCallCount()).Should(Equal(0))
+			})
+		})
+
 		Context("when inputs are found", func() {
 			foundInputs := builds.VersionedResources{
 				{Name: "some-resource", Version: builds.Version{"version": "1"}},

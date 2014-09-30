@@ -31,6 +31,11 @@ type Scheduler struct {
 }
 
 func (s *Scheduler) BuildLatestInputs(job config.Job) error {
+	if len(job.Inputs) == 0 {
+		// no inputs; no-op
+		return nil
+	}
+
 	buildLog := s.Logger.Session("build-latest")
 
 	inputs, err := s.DB.GetLatestInputVersions(job.Inputs)
