@@ -54,8 +54,7 @@ ansiparse = function (str) {
     var index, text;
     if (matchingText.length) {
       matchingText = matchingText.substr(0, matchingText.length - 1);
-    }
-    else if (result.length) {
+    } else if (result.length) {
       index = result.length - 1;
       text = result[index].text;
       if (text.length === 1) {
@@ -63,8 +62,7 @@ ansiparse = function (str) {
         // A result bit was fully deleted, pop it out to simplify the final output
         //
         result.pop();
-      }
-      else {
+      } else {
         result[index].text = text.substr(0, text.length - 1);
       }
     }
@@ -89,8 +87,7 @@ ansiparse = function (str) {
 
         matchingControl = null;
         matchingData = '';
-      }
-      else {
+      } else {
         //
         // We failed to match anything - most likely a bad control code. We
         // go back to matching regular strings.
@@ -98,9 +95,7 @@ ansiparse = function (str) {
         matchingText += matchingControl + str[i];
         matchingControl = null;
       }
-      continue;
-    }
-    else if (matchingData != null) {
+    } else if (matchingData != null) {
       if (str[i] == ';') {
         //
         // `;` separates many formatting codes, for example: `\033[33;43m`
@@ -110,8 +105,7 @@ ansiparse = function (str) {
         //
         ansiState.push(matchingData);
         matchingData = '';
-      }
-      else if (str[i] == 'm') {
+      } else if (str[i] == 'm') {
         //
         // `m` finished whole formatting code. We can proceed to matching
         // formatted text.
@@ -128,48 +122,55 @@ ansiparse = function (str) {
         ansiState.forEach(function (ansiCode) {
           if (ansiparse.foregroundColors[ansiCode]) {
             state.foreground = ansiparse.foregroundColors[ansiCode];
-          }
-          else if (ansiparse.brightForegroundColors[ansiCode]) {
+          } else if (ansiparse.brightForegroundColors[ansiCode]) {
             state.foreground = ansiparse.brightForegroundColors[ansiCode];
-          }
-          else if (ansiparse.backgroundColors[ansiCode]) {
+          } else if (ansiparse.backgroundColors[ansiCode]) {
             state.background = ansiparse.backgroundColors[ansiCode];
-          }
-          else if (ansiCode == 39) {
+          } else if (ansiCode == 39) {
             delete state.foreground;
-          }
-          else if (ansiCode == 49) {
+          } else if (ansiCode == 49) {
             delete state.background;
-          }
-          else if (ansiparse.styles[ansiCode]) {
+          } else if (ansiparse.styles[ansiCode]) {
             state[ansiparse.styles[ansiCode]] = true;
-          }
-          else if (ansiCode == 22) {
+          } else if (ansiCode == 22) {
             state.bold = false;
-          }
-          else if (ansiCode == 23) {
+          } else if (ansiCode == 23) {
             state.italic = false;
-          }
-          else if (ansiCode == 24) {
+          } else if (ansiCode == 24) {
             state.underline = false;
           }
         });
         ansiState = [];
-      }
-      else {
+      } else {
         matchingData += str[i];
       }
-      continue;
+    } else {
+      if (str[i] == '\033') {
+        matchingControl = str[i];
+      } else if (str[i] == '\u0008') {
+        eraseChar();
+      } else {
+        matchingText += str[i];
+      }
     }
 
-    if (str[i] == '\033') {
-      matchingControl = str[i];
-    }
-    else if (str[i] == '\u0008') {
-      eraseChar();
-    }
-    else {
-      matchingText += str[i];
+    if (str[i] == '\n') {
+      state.text = matchingText + (matchingControl ? matchingControl : '');
+      state.linebreak = true;
+      result.push(state);
+
+      result.push({linebreak: true});
+
+      state = {};
+      matchingText = "";
+    } else if (str[i] == '\r') {
+      state.text = matchingText + (matchingControl ? matchingControl : '');
+      result.push(state);
+
+      result.push({cr: true});
+
+      state = {};
+      matchingText = "";
     }
   }
 
@@ -177,6 +178,7 @@ ansiparse = function (str) {
     state.text = matchingText + (matchingControl ? matchingControl : '');
     result.push(state);
   }
+
   return result;
 }
 
