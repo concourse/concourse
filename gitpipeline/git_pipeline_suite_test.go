@@ -3,9 +3,9 @@ package git_pipeline_test
 import (
 	"os"
 
+	gapi "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/cloudfoundry-incubator/garden/client"
 	"github.com/cloudfoundry-incubator/garden/client/connection"
-	"github.com/cloudfoundry-incubator/garden/warden"
 	"github.com/concourse/testflight/bosh"
 	"github.com/concourse/testflight/gitserver"
 	"github.com/concourse/testflight/guidserver"
@@ -19,7 +19,7 @@ import (
 const helperRootfs = "docker:///concourse/testflight-helper"
 
 var (
-	gardenClient warden.Client
+	gardenClient gapi.Client
 
 	gitServer *gitserver.Server
 

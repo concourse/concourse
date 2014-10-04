@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/cloudfoundry-incubator/garden/warden"
+	gapi "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -37,22 +37,22 @@ trap('INT') {
 server.start
 `
 
-var container warden.Container
+var container gapi.Container
 
 var addr string
 
-func Start(helperRootfs string, gardenClient warden.Client) {
+func Start(helperRootfs string, gardenClient gapi.Client) {
 	var err error
 
-	container, err = gardenClient.Create(warden.ContainerSpec{
+	container, err = gardenClient.Create(gapi.ContainerSpec{
 		RootFSPath: helperRootfs,
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 
-	_, err = container.Run(warden.ProcessSpec{
+	_, err = container.Run(gapi.ProcessSpec{
 		Path: "ruby",
 		Args: []string{"-e", amazingRubyServer},
-	}, warden.ProcessIO{
+	}, gapi.ProcessIO{
 		Stdout: ginkgo.GinkgoWriter,
 		Stderr: ginkgo.GinkgoWriter,
 	})
@@ -64,10 +64,10 @@ func Start(helperRootfs string, gardenClient warden.Client) {
 	addr = fmt.Sprintf("%s:%d", gardenDeploymentIP, hostPort)
 
 	Eventually(func() (int, error) {
-		curl, err := container.Run(warden.ProcessSpec{
+		curl, err := container.Run(gapi.ProcessSpec{
 			Path: "curl",
 			Args: []string{"http://127.0.0.1:8080/registrations"},
-		}, warden.ProcessIO{
+		}, gapi.ProcessIO{
 			Stdout: ginkgo.GinkgoWriter,
 			Stderr: ginkgo.GinkgoWriter,
 		})
@@ -77,7 +77,7 @@ func Start(helperRootfs string, gardenClient warden.Client) {
 	}, 2).Should(Equal(0))
 }
 
-func Stop(gardenClient warden.Client) {
+func Stop(gardenClient gapi.Client) {
 	gardenClient.Destroy(container.Handle())
 
 	container = nil
@@ -91,10 +91,10 @@ func CurlCommand() string {
 func ReportingGuids() []string {
 	outBuf := new(bytes.Buffer)
 
-	curl, err := container.Run(warden.ProcessSpec{
+	curl, err := container.Run(gapi.ProcessSpec{
 		Path: "curl",
 		Args: []string{"http://127.0.0.1:8080/registrations"},
-	}, warden.ProcessIO{
+	}, gapi.ProcessIO{
 		Stdout: outBuf,
 		Stderr: ginkgo.GinkgoWriter,
 	})

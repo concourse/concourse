@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/cloudfoundry-incubator/garden/warden"
+	gapi "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/nu7hatch/gouuid"
 
 	"github.com/onsi/ginkgo"
@@ -14,21 +14,21 @@ import (
 const gardenDeploymentIP = "10.244.16.2"
 
 type Server struct {
-	gardenClient warden.Client
-	container    warden.Container
+	gardenClient gapi.Client
+	container    gapi.Container
 
 	addr string
 
 	committedGuids []string
 }
 
-func Start(helperRootfs string, gardenClient warden.Client) *Server {
-	container, err := gardenClient.Create(warden.ContainerSpec{
+func Start(helperRootfs string, gardenClient gapi.Client) *Server {
+	container, err := gardenClient.Create(gapi.ContainerSpec{
 		RootFSPath: helperRootfs,
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 
-	process, err := container.Run(warden.ProcessSpec{
+	process, err := container.Run(gapi.ProcessSpec{
 		Path: "bash",
 		Args: []string{"-c", `
 git config --global user.email dummy@example.com
@@ -39,14 +39,14 @@ cd some-repo
 git init
 touch .git/git-daemon-export-ok
 `},
-	}, warden.ProcessIO{
+	}, gapi.ProcessIO{
 		Stdout: ginkgo.GinkgoWriter,
 		Stderr: ginkgo.GinkgoWriter,
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 	Ω(process.Wait()).Should(Equal(0))
 
-	process, err = container.Run(warden.ProcessSpec{
+	process, err = container.Run(gapi.ProcessSpec{
 		Path: "git",
 		Args: []string{
 			"daemon",
@@ -57,7 +57,7 @@ touch .git/git-daemon-export-ok
 			"--detach",
 			".",
 		},
-	}, warden.ProcessIO{
+	}, gapi.ProcessIO{
 		Stdout: ginkgo.GinkgoWriter,
 		Stderr: ginkgo.GinkgoWriter,
 	})
@@ -86,7 +86,7 @@ func (server *Server) Commit() string {
 	guid, err := uuid.NewV4()
 	Ω(err).ShouldNot(HaveOccurred())
 
-	process, err := server.container.Run(warden.ProcessSpec{
+	process, err := server.container.Run(gapi.ProcessSpec{
 		Path: "bash",
 		Args: []string{
 			"-c",
@@ -102,7 +102,7 @@ func (server *Server) Commit() string {
 				guid,
 			),
 		},
-	}, warden.ProcessIO{
+	}, gapi.ProcessIO{
 		Stdout: ginkgo.GinkgoWriter,
 		Stderr: ginkgo.GinkgoWriter,
 	})
@@ -117,11 +117,11 @@ func (server *Server) Commit() string {
 func (server *Server) RevParse(ref string) string {
 	buf := new(bytes.Buffer)
 
-	process, err := server.container.Run(warden.ProcessSpec{
+	process, err := server.container.Run(gapi.ProcessSpec{
 		Path: "git",
 		Args: []string{"rev-parse", ref},
 		Dir:  "some-repo",
-	}, warden.ProcessIO{
+	}, gapi.ProcessIO{
 		Stdout: buf,
 		Stderr: ginkgo.GinkgoWriter,
 	})
