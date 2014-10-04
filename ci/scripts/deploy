@@ -20,7 +20,7 @@ bosh target ${BOSH_TARGET}
 
 bosh deployment deployments/ci/deployments/concourse.yml
 
-bosh -n upload stemcell bosh-stemcells/*.tgz --skip-if-exists
+bosh -n upload stemcell aws-stemcell/*.tgz --skip-if-exists
 
 bosh -n upload release garden-linux-release/*.tgz --skip-if-exists
 
