@@ -96,9 +96,6 @@ cat < /tmp/fifo
 
 			Eventually(flyS, 10*time.Second).Should(gbytes.Say("waiting"))
 
-			// TODO there's a gap between start + attach in turbine
-			time.Sleep(5 * time.Second)
-
 			hijack := exec.Command(flyBin, "hijack", "--", "bash", "-c", "echo marco > /tmp/fifo")
 
 			hijackS, err := gexec.Start(hijack, GinkgoWriter, GinkgoWriter)
