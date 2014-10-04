@@ -67,7 +67,6 @@ run:
 		streaming = make(chan *websocket.Conn, 1)
 
 		expectedTurbineBuild = tbuilds.Build{
-			Privileged: true,
 			Config: tbuilds.Config{
 				Image: "ubuntu",
 				Params: map[string]string{
@@ -193,6 +192,25 @@ run:
 			atcServer.AllowUnhandledRequests = true
 
 			flyCmd := exec.Command(flyPath, "--", "-name", "foo \"bar\" baz")
+			flyCmd.Dir = buildDir
+
+			_, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			// sync with after create
+			Eventually(streaming, 5.0).Should(Receive())
+		})
+	})
+
+	Context("when running with --privileged", func() {
+		BeforeEach(func() {
+			expectedTurbineBuild.Privileged = true
+		})
+
+		It("inserts them into the config template", func() {
+			atcServer.AllowUnhandledRequests = true
+
+			flyCmd := exec.Command(flyPath, "--privileged")
 			flyCmd.Dir = buildDir
 
 			_, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)

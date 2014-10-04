@@ -24,6 +24,10 @@ var executeFlags = []cli.Flag{
 		Name:  "exclude-ignored, x",
 		Usage: "exclude vcs-ignored files from the build's inputs",
 	},
+	cli.BoolFlag{
+		Name:  "privileged, p",
+		Usage: "run the build with root privileges",
+	},
 }
 
 func main() {

@@ -86,6 +86,7 @@ func execute(c *cli.Context) {
 
 	build, cookies := createBuild(
 		atcRequester,
+		c.Bool("privileged"),
 		inputs,
 		loadConfig(absConfig, c.Args()),
 	)
@@ -196,6 +197,7 @@ func loadConfig(configPath string, args []string) tbuilds.Config {
 
 func createBuild(
 	atcRequester *atcRequester,
+	privileged bool,
 	inputs []Input,
 	config tbuilds.Config,
 ) (resources.Build, []*http.Cookie) {
@@ -224,7 +226,7 @@ func createBuild(
 	}
 
 	turbineBuild := tbuilds.Build{
-		Privileged: true,
+		Privileged: privileged,
 		Config:     config,
 		Inputs:     buildInputs,
 	}

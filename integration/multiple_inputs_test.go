@@ -78,7 +78,6 @@ run:
 		streaming = make(chan *websocket.Conn, 1)
 
 		expectedTurbineBuild = tbuilds.Build{
-			Privileged: true,
 			Config: tbuilds.Config{
 				Image: "ubuntu",
 				Params: map[string]string{
