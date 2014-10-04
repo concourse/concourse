@@ -5,6 +5,20 @@ function objectIsEmpty(obj) {
   return true;
 }
 
+function nodeIsInGroups(groups, value) {
+  if(!value.groups) {
+    return false;
+  }
+
+  for(var i in value.groups) {
+    if(groups[value.groups[i]]) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function draw(groups, nodes, edges) {
   var renderer = new dagreD3.Renderer();
 
@@ -69,38 +83,36 @@ function draw(groups, nodes, edges) {
   var filtered = digraph;
 
   if(!objectIsEmpty(groups)) {
-    // filter all non-matching groups
+    // filter nodes to nodes in the specified groups,
+    // and nodes directly connected to nodes in the specified groups.
     filtered = filtered.filterNodes(function(u) {
       var value = digraph.node(u);
 
-      if(!value.groups) {
+      if(nodeIsInGroups(groups, value)) {
         return true;
       }
 
-      for(var i in value.groups) {
-        if(groups[value.groups[i]]) {
+      var inE = digraph.inEdges(u);
+      var outE = digraph.outEdges(u);
+      for(var o in outE) {
+        var targetNode = digraph.target(outE[o]);
+        var targetValue = digraph.node(targetNode);
+
+        if(nodeIsInGroups(groups, targetValue)) {
+          return true;
+        }
+      }
+
+      for(var i in inE) {
+        var sourceNode = digraph.source(inE[i]);
+        var sourceValue = digraph.node(sourceNode);
+
+        if(nodeIsInGroups(groups, sourceValue)) {
           return true;
         }
       }
 
       return false;
-    });
-
-    // filter orphaned nodes
-    filtered = filtered.filterNodes(function(u) {
-      var value = digraph.node(u);
-
-      for(var i in value.groups) {
-        if(groups[value.groups[i]]) {
-          return true;
-        }
-      }
-
-      if(filtered.incidentEdges(u).length == 0) {
-        return false;
-      }
-
-      return true;
     });
   }
 
