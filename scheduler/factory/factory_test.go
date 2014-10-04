@@ -43,6 +43,11 @@ var _ = Describe("Factory", func() {
 					Type:   "git",
 					Source: config.Source{"uri": "git://some-resource-with-longer-name"},
 				},
+				{
+					Name:   "some-named-resource",
+					Type:   "git",
+					Source: config.Source{"uri": "git://some-named-resource"},
+				},
 			},
 		}
 
@@ -148,6 +153,59 @@ var _ = Describe("Factory", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 
 		Ω(turbineBuild).Should(Equal(expectedTurbineBuild))
+	})
+
+	Context("when an input has an explicit name", func() {
+		BeforeEach(func() {
+			job.Inputs = append(job.Inputs, config.Input{
+				Name:     "some-named-input",
+				Resource: "some-named-resource",
+				Params:   config.Params{"some": "named-params"},
+			})
+
+			expectedTurbineBuild.Inputs = append(expectedTurbineBuild.Inputs, tbuilds.Input{
+				Name:   "some-named-input",
+				Type:   "git",
+				Source: tbuilds.Source{"uri": "git://some-named-resource"},
+				Params: tbuilds.Params{"some": "named-params"},
+			})
+		})
+
+		It("uses it as the name for the input", func() {
+			turbineBuild, err := factory.Create(job, nil)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(turbineBuild.Inputs).Should(Equal(expectedTurbineBuild.Inputs))
+		})
+	})
+
+	Context("when an explicitly named input is the source of the config", func() {
+		BeforeEach(func() {
+			job.Inputs = append(job.Inputs, config.Input{
+				Name:     "some-named-input",
+				Resource: "some-named-resource",
+				Params:   config.Params{"some": "named-params"},
+			})
+
+			job.BuildConfigPath = "some-named-input/build.yml"
+
+			expectedTurbineBuild.Inputs[0].ConfigPath = ""
+
+			expectedTurbineBuild.Inputs = append(expectedTurbineBuild.Inputs, tbuilds.Input{
+				Name:       "some-named-input",
+				Type:       "git",
+				Source:     tbuilds.Source{"uri": "git://some-named-resource"},
+				Params:     tbuilds.Params{"some": "named-params"},
+				ConfigPath: "build.yml",
+			})
+		})
+
+		It("uses the explicit name to match the config path", func() {
+			turbineBuild, err := factory.Create(job, nil)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(turbineBuild.Inputs).Should(Equal(expectedTurbineBuild.Inputs))
+		})
 	})
 
 	Context("when two inputs have overlappying names for the config path", func() {

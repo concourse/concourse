@@ -51,23 +51,32 @@ func (factory *BuildFactory) computeInputs(job config.Job, inputs builds.Version
 			}
 		}
 
-		turbineInputs[i] = factory.inputFor(job, vr, input.Params)
+		turbineInputs[i] = factory.inputFor(job, vr, input.Name, input.Params)
 	}
 
 	return turbineInputs, nil
 }
 
-func (factory *BuildFactory) inputFor(job config.Job, vr builds.VersionedResource, params config.Params) tbuilds.Input {
+func (factory *BuildFactory) inputFor(
+	job config.Job,
+	vr builds.VersionedResource,
+	inputName string,
+	params config.Params,
+) tbuilds.Input {
 	turbineInput := tbuilds.Input{
-		Name:    vr.Name,
+		Name:    inputName,
 		Type:    vr.Type,
 		Source:  tbuilds.Source(vr.Source),
 		Version: tbuilds.Version(vr.Version),
 		Params:  tbuilds.Params(params),
 	}
 
-	if filepath.HasPrefix(job.BuildConfigPath, vr.Name+"/") {
-		turbineInput.ConfigPath = job.BuildConfigPath[len(vr.Name)+1:]
+	if turbineInput.Name == "" {
+		turbineInput.Name = vr.Name
+	}
+
+	if filepath.HasPrefix(job.BuildConfigPath, turbineInput.Name+"/") {
+		turbineInput.ConfigPath = job.BuildConfigPath[len(turbineInput.Name)+1:]
 	}
 
 	return turbineInput
