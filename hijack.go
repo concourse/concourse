@@ -17,7 +17,7 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/cloudfoundry-incubator/garden/warden"
+	garden_api "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/codegangsta/cli"
 	"github.com/concourse/atc/api/resources"
 	"github.com/concourse/atc/api/routes"
@@ -48,19 +48,19 @@ func hijack(c *cli.Context) {
 		args = argv[1:]
 	}
 
-	var ttySpec *warden.TTYSpec
+	var ttySpec *garden_api.TTYSpec
 
 	rows, cols, err := pty.Getsize(os.Stdin)
 	if err == nil {
-		ttySpec = &warden.TTYSpec{
-			WindowSize: &warden.WindowSize{
+		ttySpec = &garden_api.TTYSpec{
+			WindowSize: &garden_api.WindowSize{
 				Columns: cols,
 				Rows:    rows,
 			},
 		}
 	}
 
-	spec := warden.ProcessSpec{
+	spec := garden_api.ProcessSpec{
 		Path: path,
 		Args: args,
 		Env:  []string{"TERM=" + os.Getenv("TERM")},
@@ -182,8 +182,8 @@ func sendSize(enc *gob.Encoder) {
 	rows, cols, err := pty.Getsize(os.Stdin)
 	if err == nil {
 		enc.Encode(thijack.ProcessPayload{
-			TTYSpec: &warden.TTYSpec{
-				WindowSize: &warden.WindowSize{
+			TTYSpec: &garden_api.TTYSpec{
+				WindowSize: &garden_api.WindowSize{
 					Columns: cols,
 					Rows:    rows,
 				},
