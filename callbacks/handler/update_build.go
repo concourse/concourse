@@ -44,7 +44,8 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 		status = builds.StatusFailed
 	case TurbineBuilds.StatusErrored:
 		status = builds.StatusErrored
-	// TODO #78327190
+	case TurbineBuilds.StatusAborted:
+		status = builds.StatusAborted
 	default:
 		log.Info("unknown-status")
 		w.WriteHeader(http.StatusBadRequest)
