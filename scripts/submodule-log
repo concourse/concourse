@@ -1,0 +1,12 @@
+#!/bin/bash
+
+echo -n "bump "
+
+for submodule in $(git diff --cached --submodule | grep '^Submodule' | awk '{print $2}'); do
+  echo -n "$(basename $submodule) "
+done
+
+echo
+echo
+
+git diff --cached --submodule
