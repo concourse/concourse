@@ -1,5 +1,13 @@
 ---
 image: docker:///concourse/concourse-ci
 
+inputs:
+  - name: concourse
+  - name: deployments
+  - name: resource-image
+
+params:
+  RESOURCE_NAME:
+
 run:
   path: concourse/ci/scripts/bump-resource-package

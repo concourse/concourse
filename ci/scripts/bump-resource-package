@@ -15,7 +15,7 @@ source ./deployments/ci/bosh_environment
 
 cp deployments/ci/config/private.yml concourse/config/private.yml
 
-gzip -c ${RESOURCE_NAME}-image/rootfs.tar > ${RESOURCE_NAME}.tar.gz
+gzip -c resource-image/rootfs.tar > ${RESOURCE_NAME}.tar.gz
 
 bosh target ${BOSH_TARGET}
 

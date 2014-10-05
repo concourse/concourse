@@ -4,5 +4,8 @@ image: docker:///concourse/testflight
 params:
   BOSH_LITE_IP:
 
+inputs:
+  - name: concourse
+
 run:
   path: concourse/ci/scripts/testflight
