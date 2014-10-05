@@ -39,6 +39,26 @@ A build's configuration specifies the following:
   on the worker VM.
 }
 
+@defthing[inputs [object]]{
+  @emph{Optional.} The expected set of inputs for the build.
+
+  If present, the build will validate that its set of dependant inputs are
+  present before starting, rather than failing arbitrarily at runtime.
+
+  Each input has the following attributes:
+
+  @nested[#:style 'inset]{
+    @defthing[name string]{
+      @emph{Required.} The logical name of the input.
+    }
+
+    @defthing[path string]{
+      @emph{Optional.} The path in the build where the input will be placed. If
+      not specified, the input's @code{name} is used.
+    }
+  }
+}
+
 @defthing[run object]{
   @emph{Required.} The command to execute in the container.
 
@@ -66,17 +86,9 @@ A build's configuration specifies the following:
 @defthing[params {string: string}]{
   @emph{Optional.} A key-value mapping of values that are exposed to the
   build via environment variables.
-  
+
   Use this to provide things like credentials, not to set up the build's
   Bash environment (they are not interpolated).
-}
-
-@defthing[paths {string: string}]{
-  @emph{Optional.} This can be specified to configure Concourse
-  to place the input resources in custom directories. By default, they are
-  placed in directories named after the resource. Go projects, for example,
-  may configure something like @code{my-repo: src/github.com/my-org/my-repo},
-  as a handy shortcut to put them in a @code{$GOPATH} structure.
 }
 
 
