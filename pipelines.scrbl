@@ -175,6 +175,12 @@ Each configured job consists of the following attributes:
       @secref{configuring-resources}.
     }
 
+    @defthing[name string]{
+      @emph{Optional.} The logical name of this resource, as expected by the
+      job's build configuration. If not specified, it defaults to the
+      @code{resource} name.
+    }
+
     @defthing[passed [string]]{
       @emph{Optional.} When configured, only the versions of the resource that
       appear as outputs of the given list of jobs will be considered for inputs
