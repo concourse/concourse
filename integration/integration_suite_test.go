@@ -6,7 +6,19 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 )
+
+var flyPath string
+
+var _ = BeforeSuite(func() {
+	var err error
+
+	flyPath, err = gexec.Build("github.com/concourse/fly")
+	Ω(err).ShouldNot(HaveOccurred())
+})
+
+var _ = AfterSuite(gexec.CleanupBuildArtifacts)
 
 func TestIntegration(t *testing.T) {
 	RegisterFailHandler(Fail)

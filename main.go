@@ -56,7 +56,17 @@ func main() {
 			Name:      "hijack",
 			ShortName: "h",
 			Usage:     "Execute an interactive command in a build's container",
-			Action:    hijack,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "job, j",
+					Usage: "if specified, hijacks builds of the given job",
+				},
+				cli.StringFlag{
+					Name:  "build, b",
+					Usage: "hijack a specific build of a job",
+				},
+			},
+			Action: hijack,
 		},
 	}
 

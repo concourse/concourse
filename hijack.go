@@ -69,45 +69,13 @@ func hijack(c *cli.Context) {
 		TTY:        ttySpec,
 	}
 
-	buildsReq, err := reqGenerator.CreateRequest(
-		routes.ListBuilds,
-		nil,
-		nil,
-	)
-	if err != nil {
-		log.Fatalln("failed to create request", err)
-	}
-
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
 	}
 
 	client := &http.Client{Transport: transport}
 
-	buildsResp, err := client.Do(buildsReq)
-	if err != nil {
-		log.Fatalln("failed to get builds:", err)
-	}
-
-	if buildsResp.StatusCode != http.StatusOK {
-		log.Println("bad response when getting builds:")
-		buildsResp.Body.Close()
-		buildsResp.Write(os.Stderr)
-		os.Exit(1)
-	}
-
-	var builds []resources.Build
-	err = json.NewDecoder(buildsResp.Body).Decode(&builds)
-	if err != nil {
-		log.Fatalln("failed to decode builds:", err)
-	}
-
-	if len(builds) == 0 {
-		println("no builds to hijack")
-		os.Exit(1)
-	}
-
-	build := builds[0]
+	build := getBuild(c, client, reqGenerator)
 
 	payload, err := json.Marshal(spec)
 	if err != nil {
@@ -176,6 +144,117 @@ func hijack(c *cli.Context) {
 	go io.Copy(&stdinWriter{encoder}, term)
 
 	io.Copy(os.Stdout, cbr)
+}
+
+func getBuild(ctx *cli.Context, client *http.Client, reqGenerator *rata.RequestGenerator) resources.Build {
+	jobName := ctx.String("job")
+	buildName := ctx.String("build")
+
+	if jobName != "" && buildName != "" {
+		buildReq, err := reqGenerator.CreateRequest(
+			routes.GetJobBuild,
+			rata.Params{
+				"job_name":   jobName,
+				"build_name": buildName,
+			},
+			nil,
+		)
+		if err != nil {
+			log.Fatalln("failed to create request", err)
+		}
+
+		buildResp, err := client.Do(buildReq)
+		if err != nil {
+			log.Fatalln("failed to get builds:", err)
+		}
+
+		if buildResp.StatusCode != http.StatusOK {
+			log.Println("bad response when getting build:")
+			buildResp.Body.Close()
+			buildResp.Write(os.Stderr)
+			os.Exit(1)
+		}
+
+		var build resources.Build
+		err = json.NewDecoder(buildResp.Body).Decode(&build)
+		if err != nil {
+			log.Fatalln("failed to decode job:", err)
+		}
+
+		return build
+	} else if jobName != "" {
+		jobReq, err := reqGenerator.CreateRequest(
+			routes.GetJob,
+			rata.Params{"job_name": ctx.String("job")},
+			nil,
+		)
+		if err != nil {
+			log.Fatalln("failed to create request", err)
+		}
+
+		jobResp, err := client.Do(jobReq)
+		if err != nil {
+			log.Fatalln("failed to get builds:", err)
+		}
+
+		if jobResp.StatusCode != http.StatusOK {
+			log.Println("bad response when getting job:")
+			jobResp.Body.Close()
+			jobResp.Write(os.Stderr)
+			os.Exit(1)
+		}
+
+		var job resources.Job
+		err = json.NewDecoder(jobResp.Body).Decode(&job)
+		if err != nil {
+			log.Fatalln("failed to decode job:", err)
+		}
+
+		if job.NextBuild != nil {
+			return *job.NextBuild
+		} else if job.FinishedBuild != nil {
+			return *job.FinishedBuild
+		} else {
+			println("no job builds to hijack")
+			os.Exit(1)
+		}
+	} else {
+		buildsReq, err := reqGenerator.CreateRequest(
+			routes.ListBuilds,
+			nil,
+			nil,
+		)
+		if err != nil {
+			log.Fatalln("failed to create request", err)
+		}
+
+		buildsResp, err := client.Do(buildsReq)
+		if err != nil {
+			log.Fatalln("failed to get builds:", err)
+		}
+
+		if buildsResp.StatusCode != http.StatusOK {
+			log.Println("bad response when getting builds:")
+			buildsResp.Body.Close()
+			buildsResp.Write(os.Stderr)
+			os.Exit(1)
+		}
+
+		var builds []resources.Build
+		err = json.NewDecoder(buildsResp.Body).Decode(&builds)
+		if err != nil {
+			log.Fatalln("failed to decode builds:", err)
+		}
+
+		if len(builds) == 0 {
+			println("no builds to hijack")
+			os.Exit(1)
+		}
+
+		return builds[0]
+	}
+
+	panic("unreachable")
 }
 
 func sendSize(enc *gob.Encoder) {

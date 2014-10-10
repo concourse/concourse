@@ -24,7 +24,6 @@ import (
 )
 
 var _ = Describe("Fly CLI", func() {
-	var flyPath string
 	var buildDir string
 	var s3AssetDir string
 
@@ -36,9 +35,6 @@ var _ = Describe("Fly CLI", func() {
 
 	BeforeEach(func() {
 		var err error
-
-		flyPath, err = gexec.Build("github.com/concourse/fly")
-		Ω(err).ShouldNot(HaveOccurred())
 
 		buildDir, err = ioutil.TempDir("", "fly-build-dir")
 		Ω(err).ShouldNot(HaveOccurred())
