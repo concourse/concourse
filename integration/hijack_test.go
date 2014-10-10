@@ -16,7 +16,7 @@ import (
 	"github.com/onsi/gomega/ghttp"
 )
 
-var _ = FDescribe("Hijacking", func() {
+var _ = Describe("Hijacking", func() {
 	var atcServer *ghttp.Server
 	var hijacked <-chan struct{}
 
