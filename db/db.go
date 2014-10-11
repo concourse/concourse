@@ -1,6 +1,8 @@
 package db
 
 import (
+	"time"
+
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 )
@@ -35,6 +37,9 @@ type DB interface {
 
 	AbortBuild(buildID int) (string, error)
 	SaveBuildStatus(buildID int, status builds.Status) error
+
+	SaveBuildStartTime(buildID int, startTime time.Time) error
+	SaveBuildEndTime(buildID int, endTime time.Time) error
 
 	SaveVersionedResource(builds.VersionedResource) error
 	GetLatestVersionedResource(resource string) (builds.VersionedResource, error)

@@ -1,6 +1,10 @@
 package builds
 
-import tbuilds "github.com/concourse/turbine/api/builds"
+import (
+	"time"
+
+	tbuilds "github.com/concourse/turbine/api/builds"
+)
 
 type Status string
 
@@ -22,6 +26,9 @@ type Build struct {
 
 	AbortURL  string
 	HijackURL string
+
+	StartTime time.Time
+	EndTime   time.Time
 }
 
 type VersionedResources []VersionedResource

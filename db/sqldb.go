@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc/builds"
@@ -18,6 +18,8 @@ type sqldb struct {
 	logger lager.Logger
 	conn   *sql.DB
 }
+
+const buildColumns = "id, name, job_name, status, abort_url, hijack_url, start_time, end_time"
 
 func NewSQL(logger lager.Logger, sqldbConnection *sql.DB) DB {
 	return &sqldb{
@@ -50,7 +52,7 @@ func (db *sqldb) RegisterResource(name string) error {
 
 func (db *sqldb) GetAllJobBuilds(job string) ([]builds.Build, error) {
 	rows, err := db.conn.Query(`
-		SELECT id, name, status, abort_url, hijack_url
+		SELECT `+buildColumns+`
 		FROM builds
 		WHERE job_name = $1
 		ORDER BY id DESC
@@ -64,24 +66,12 @@ func (db *sqldb) GetAllJobBuilds(job string) ([]builds.Build, error) {
 	bs := []builds.Build{}
 
 	for rows.Next() {
-		var id int
-		var name string
-		var status string
-		var abortURL sql.NullString
-		var hijackURL sql.NullString
-		err := rows.Scan(&id, &name, &status, &abortURL, &hijackURL)
+		build, err := scanBuild(rows)
 		if err != nil {
 			return nil, err
 		}
 
-		bs = append(bs, builds.Build{
-			ID:        id,
-			Name:      name,
-			Status:    builds.Status(status),
-			JobName:   job,
-			AbortURL:  abortURL.String,
-			HijackURL: hijackURL.String,
-		})
+		bs = append(bs, build)
 	}
 
 	return bs, nil
@@ -89,7 +79,7 @@ func (db *sqldb) GetAllJobBuilds(job string) ([]builds.Build, error) {
 
 func (db *sqldb) GetAllBuilds() ([]builds.Build, error) {
 	rows, err := db.conn.Query(`
-		SELECT id, name, job_name, status, abort_url, hijack_url
+		SELECT ` + buildColumns + `
 		FROM builds
 		ORDER BY id DESC
 	`)
@@ -102,80 +92,32 @@ func (db *sqldb) GetAllBuilds() ([]builds.Build, error) {
 	bs := []builds.Build{}
 
 	for rows.Next() {
-		var id int
-		var name string
-		var jobName sql.NullString
-		var status string
-		var abortURL sql.NullString
-		var hijackURL sql.NullString
-		err := rows.Scan(&id, &name, &jobName, &status, &abortURL, &hijackURL)
+		build, err := scanBuild(rows)
 		if err != nil {
 			return nil, err
 		}
 
-		bs = append(bs, builds.Build{
-			ID:        id,
-			Name:      name,
-			Status:    builds.Status(status),
-			JobName:   jobName.String,
-			AbortURL:  abortURL.String,
-			HijackURL: hijackURL.String,
-		})
+		bs = append(bs, build)
 	}
 
 	return bs, nil
 }
 
 func (db *sqldb) GetBuild(buildID int) (builds.Build, error) {
-	var name string
-	var jobName sql.NullString
-	var status string
-	var abortURL sql.NullString
-	var hijackURL sql.NullString
-
-	err := db.conn.QueryRow(`
-		SELECT name, job_name, status, abort_url, hijack_url
+	return scanBuild(db.conn.QueryRow(`
+		SELECT `+buildColumns+`
 		FROM builds
 		WHERE id = $1
-	`, buildID).Scan(&name, &jobName, &status, &abortURL, &hijackURL)
-	if err != nil {
-		return builds.Build{}, err
-	}
-
-	return builds.Build{
-		ID:        buildID,
-		Name:      name,
-		JobName:   jobName.String,
-		Status:    builds.Status(status),
-		AbortURL:  abortURL.String,
-		HijackURL: hijackURL.String,
-	}, nil
+	`, buildID))
 }
 
 func (db *sqldb) GetJobBuild(job string, name string) (builds.Build, error) {
-	var id int
-	var status string
-	var abortURL sql.NullString
-	var hijackURL sql.NullString
-
-	err := db.conn.QueryRow(`
-		SELECT id, status, abort_url, hijack_url
+	return scanBuild(db.conn.QueryRow(`
+		SELECT `+buildColumns+`
 		FROM builds
 		WHERE job_name = $1
 		AND name = $2
-	`, job, name).Scan(&id, &status, &abortURL, &hijackURL)
-	if err != nil {
-		return builds.Build{}, err
-	}
-
-	return builds.Build{
-		ID:        id,
-		Name:      name,
-		JobName:   job,
-		Status:    builds.Status(status),
-		AbortURL:  abortURL.String,
-		HijackURL: hijackURL.String,
-	}, nil
+	`, job, name))
 }
 
 func (db *sqldb) GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error) {
@@ -286,14 +228,8 @@ func (db *sqldb) GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, er
 }
 
 func (db *sqldb) GetCurrentBuild(job string) (builds.Build, error) {
-	var id int
-	var name string
-	var status string
-	var abortURL sql.NullString
-	var hijackURL sql.NullString
-
 	rows, err := db.conn.Query(`
-		SELECT id, name, status, abort_url, hijack_url
+		SELECT `+buildColumns+`
 		FROM builds
 		WHERE job_name = $1
 		AND status != 'pending'
@@ -308,7 +244,7 @@ func (db *sqldb) GetCurrentBuild(job string) (builds.Build, error) {
 
 	if !rows.Next() {
 		rows, err = db.conn.Query(`
-			SELECT id, name, status, abort_url, hijack_url
+			SELECT `+buildColumns+`
 			FROM builds
 			WHERE job_name = $1
 			AND status = 'pending'
@@ -324,81 +260,37 @@ func (db *sqldb) GetCurrentBuild(job string) (builds.Build, error) {
 		rows.Next()
 	}
 
-	err = rows.Scan(&id, &name, &status, &abortURL, &hijackURL)
-	if err != nil {
-		return builds.Build{}, err
-	}
-
-	return builds.Build{
-		ID:        id,
-		Name:      name,
-		JobName:   job,
-		Status:    builds.Status(status),
-		AbortURL:  abortURL.String,
-		HijackURL: hijackURL.String,
-	}, nil
+	return scanBuild(rows)
 }
 
 func (db *sqldb) GetJobFinishedAndNextBuild(job string) (*builds.Build, *builds.Build, error) {
 	var finished *builds.Build
 	var next *builds.Build
 
-	var finishedBuild builds.Build
-	var finishedStatus string
-	var finishedJobName sql.NullString
-	var finishedAbortURL sql.NullString
-	var finishedHijackURL sql.NullString
-	err := db.conn.QueryRow(`
-		SELECT id, name, job_name, status, abort_url, hijack_url
+	finishedBuild, err := scanBuild(db.conn.QueryRow(`
+		SELECT `+buildColumns+`
 		FROM builds
 		WHERE job_name = $1
 		AND status NOT IN ('pending', 'started')
 		ORDER BY id DESC
 		LIMIT 1
-	`, job).Scan(
-		&finishedBuild.ID,
-		&finishedBuild.Name,
-		&finishedJobName,
-		&finishedStatus,
-		&finishedAbortURL,
-		&finishedHijackURL,
-	)
+	`, job))
 	if err == nil {
 		finished = &finishedBuild
-		finished.JobName = finishedJobName.String
-		finished.Status = builds.Status(finishedStatus)
-		finished.HijackURL = finishedHijackURL.String
-		finished.AbortURL = finishedAbortURL.String
 	} else if err != nil && err != sql.ErrNoRows {
 		return nil, nil, err
 	}
 
-	var nextBuild builds.Build
-	var nextStatus string
-	var nextJobName sql.NullString
-	var nextAbortURL sql.NullString
-	var nextHijackURL sql.NullString
-	err = db.conn.QueryRow(`
-		SELECT id, name, job_name, status, abort_url, hijack_url
+	nextBuild, err := scanBuild(db.conn.QueryRow(`
+		SELECT `+buildColumns+`
 		FROM builds
 		WHERE job_name = $1
 		AND status IN ('pending', 'started')
 		ORDER BY id ASC
 		LIMIT 1
-	`, job).Scan(
-		&nextBuild.ID,
-		&nextBuild.Name,
-		&nextJobName,
-		&nextStatus,
-		&nextAbortURL,
-		&nextHijackURL,
-	)
+	`, job))
 	if err == nil {
 		next = &nextBuild
-		next.JobName = nextJobName.String
-		next.Status = builds.Status(nextStatus)
-		next.HijackURL = nextHijackURL.String
-		next.AbortURL = nextAbortURL.String
 	} else if err != nil && err != sql.ErrNoRows {
 		return nil, nil, err
 	}
@@ -425,12 +317,11 @@ func (db *sqldb) CreateJobBuild(job string) (builds.Build, error) {
 		return builds.Build{}, err
 	}
 
-	var id int
-	err = tx.QueryRow(`
+	build, err := scanBuild(tx.QueryRow(`
 		INSERT INTO builds(name, job_name, status)
 		VALUES ($1, $2, 'pending')
-		RETURNING id
-	`, name, job).Scan(&id)
+		RETURNING `+buildColumns+`
+	`, name, job))
 	if err != nil {
 		return builds.Build{}, err
 	}
@@ -440,31 +331,15 @@ func (db *sqldb) CreateJobBuild(job string) (builds.Build, error) {
 		return builds.Build{}, err
 	}
 
-	return builds.Build{
-		ID:      id,
-		Name:    name,
-		JobName: job,
-		Status:  builds.StatusPending,
-	}, nil
+	return build, nil
 }
 
 func (db *sqldb) CreateOneOffBuild() (builds.Build, error) {
-	var id int
-	var name string
-	err := db.conn.QueryRow(`
+	return scanBuild(db.conn.QueryRow(`
 		INSERT INTO builds(name, status)
 		VALUES (nextval('one_off_name'), 'pending')
-		RETURNING id, name
-	`).Scan(&id, &name)
-	if err != nil {
-		return builds.Build{}, err
-	}
-
-	return builds.Build{
-		ID:     id,
-		Name:   name,
-		Status: builds.StatusPending,
-	}, nil
+		RETURNING ` + buildColumns + `
+	`))
 }
 
 func (db *sqldb) ScheduleBuild(buildID int, serial bool) (bool, error) {
@@ -527,6 +402,32 @@ func (db *sqldb) StartBuild(buildID int, abortURL, hijackURL string) (bool, erro
 	}
 
 	return rows == 1, nil
+}
+
+func (db *sqldb) SaveBuildStartTime(buildID int, startTime time.Time) error {
+	_, err := db.conn.Exec(`
+		UPDATE builds
+		SET start_time = $2
+		WHERE id = $1
+	`, buildID, startTime)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *sqldb) SaveBuildEndTime(buildID int, endTime time.Time) error {
+	_, err := db.conn.Exec(`
+		UPDATE builds
+		SET end_time = $2
+		WHERE id = $1
+	`, buildID, endTime)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (db *sqldb) AbortBuild(buildID int) (string, error) {
@@ -807,8 +708,8 @@ func (db *sqldb) GetLatestInputVersions(inputs []config.Input) (builds.Versioned
 }
 
 func (db *sqldb) GetJobBuildForInputs(job string, inputs builds.VersionedResources) (builds.Build, error) {
-	from := []string{"builds b"}
-	conditions := []string{"b.job_name = $1"}
+	from := []string{"builds"}
+	conditions := []string{"job_name = $1"}
 	params := []interface{}{job}
 
 	for i, vr := range inputs {
@@ -834,30 +735,20 @@ func (db *sqldb) GetJobBuildForInputs(job string, inputs builds.VersionedResourc
 		params = append(params, id)
 
 		conditions = append(conditions,
-			fmt.Sprintf("i%d.build_id = b.id", i+1),
+			fmt.Sprintf("i%d.build_id = id", i+1),
 			fmt.Sprintf("i%d.versioned_resource_id = $%d", i+1, len(params)),
 		)
 	}
 
-	var buildID int
-	var buildName string
-	err := db.conn.QueryRow(fmt.Sprintf(`
-		SELECT b.id, b.name
+	return scanBuild(db.conn.QueryRow(fmt.Sprintf(`
+		SELECT `+buildColumns+`
 		FROM %s
 		WHERE %s
 		`,
 		strings.Join(from, ", "),
-		strings.Join(conditions, "\nAND ")), params...).Scan(&buildID, &buildName)
-	if err != nil {
-		return builds.Build{}, err
-	}
-
-	return builds.Build{
-		ID:      buildID,
-		Name:    buildName,
-		JobName: job,
-		Status:  builds.StatusPending,
-	}, nil
+		strings.Join(conditions, "\nAND ")),
+		params...,
+	))
 }
 
 func (db *sqldb) CreateJobBuildWithInputs(job string, inputs builds.VersionedResources) (builds.Build, error) {
@@ -879,12 +770,11 @@ func (db *sqldb) CreateJobBuildWithInputs(job string, inputs builds.VersionedRes
 		return builds.Build{}, err
 	}
 
-	var buildID int
-	err = tx.QueryRow(`
+	build, err := scanBuild(tx.QueryRow(`
 		INSERT INTO builds(name, job_name, status)
 		VALUES ($1, $2, 'pending')
-		RETURNING id
-	`, name, job).Scan(&buildID)
+		RETURNING `+buildColumns+`
+	`, name, job))
 	if err != nil {
 		return builds.Build{}, err
 	}
@@ -898,7 +788,7 @@ func (db *sqldb) CreateJobBuildWithInputs(job string, inputs builds.VersionedRes
 		_, err = tx.Exec(`
 			INSERT INTO build_inputs (build_id, versioned_resource_id)
 			VALUES ($1, $2)
-		`, buildID, vrID)
+		`, build.ID, vrID)
 		if err != nil {
 			return builds.Build{}, err
 		}
@@ -909,32 +799,24 @@ func (db *sqldb) CreateJobBuildWithInputs(job string, inputs builds.VersionedRes
 		return builds.Build{}, err
 	}
 
-	return builds.Build{
-		ID:      buildID,
-		Name:    name,
-		JobName: job,
-		Status:  builds.StatusPending,
-	}, nil
+	return build, nil
 }
 
 func (db *sqldb) GetNextPendingBuild(job string) (builds.Build, builds.VersionedResources, error) {
-	var buildID int
-	var buildName string
-
-	err := db.conn.QueryRow(`
-		SELECT id, name
+	build, err := scanBuild(db.conn.QueryRow(`
+		SELECT `+buildColumns+`
 		FROM builds
 		WHERE job_name = $1
 		AND status = 'pending'
 		AND scheduled = false
 		ORDER BY id ASC
 		LIMIT 1
-	`, job).Scan(&buildID, &buildName)
+	`, job))
 	if err != nil {
 		return builds.Build{}, builds.VersionedResources{}, err
 	}
 
-	inputs, _, err := db.GetBuildResources(buildID)
+	inputs, _, err := db.GetBuildResources(build.ID)
 	if err != nil {
 		return builds.Build{}, builds.VersionedResources{}, err
 	}
@@ -944,12 +826,7 @@ func (db *sqldb) GetNextPendingBuild(job string) (builds.Build, builds.Versioned
 		vrs[i] = input.VersionedResource
 	}
 
-	return builds.Build{
-		ID:      buildID,
-		Name:    buildName,
-		JobName: job,
-		Status:  builds.StatusPending,
-	}, vrs, nil
+	return build, vrs, nil
 }
 
 func (db *sqldb) GetResourceHistory(resource string) ([]*VersionHistory, error) {
@@ -1011,11 +888,11 @@ func (db *sqldb) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 
 	for id, vh := range vhs {
 		inRows, err := db.conn.Query(`
-			SELECT b.id, b.job_name, b.name, b.status, b.abort_url, b.hijack_url
-			FROM build_inputs i, builds b
+			SELECT `+buildColumns+`
+			FROM builds, build_inputs i
 			WHERE i.versioned_resource_id = $1
-			AND i.build_id = b.id
-			ORDER BY b.id ASC
+			AND i.build_id = id
+			ORDER BY id ASC
 		`, id)
 		if err != nil {
 			return nil, err
@@ -1024,11 +901,11 @@ func (db *sqldb) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 		defer inRows.Close()
 
 		outRows, err := db.conn.Query(`
-			SELECT b.id, b.job_name, b.name, b.status, b.abort_url, b.hijack_url
-			FROM build_outputs o, builds b
+			SELECT `+buildColumns+`
+			FROM builds, build_outputs o
 			WHERE o.versioned_resource_id = $1
-			AND o.build_id = b.id
-			ORDER BY b.id ASC
+			AND o.build_id = id
+			ORDER BY id ASC
 		`, id)
 		if err != nil {
 			return nil, err
@@ -1037,78 +914,50 @@ func (db *sqldb) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 		defer outRows.Close()
 
 		for inRows.Next() {
-			var buildID int
-			var buildJobName string
-			var buildName string
-			var buildStatus string
-			var buildAbortURL sql.NullString
-			var buildHijackURL sql.NullString
-
-			err := inRows.Scan(&buildID, &buildJobName, &buildName, &buildStatus, &buildAbortURL, &buildHijackURL)
+			inBuild, err := scanBuild(inRows)
 			if err != nil {
 				return nil, err
 			}
 
-			seenInputs[id][buildID] = true
+			seenInputs[id][inBuild.ID] = true
 
-			inputH, found := inputHs[id][buildJobName]
+			inputH, found := inputHs[id][inBuild.JobName]
 			if !found {
 				inputH = &JobHistory{
-					JobName: buildJobName,
+					JobName: inBuild.JobName,
 				}
 
 				vh.InputsTo = append(vh.InputsTo, inputH)
 
-				inputHs[id][buildJobName] = inputH
+				inputHs[id][inBuild.JobName] = inputH
 			}
 
-			inputH.Builds = append(inputH.Builds, builds.Build{
-				ID:        buildID,
-				Name:      buildName,
-				JobName:   buildJobName,
-				Status:    builds.Status(buildStatus),
-				AbortURL:  buildAbortURL.String,
-				HijackURL: buildHijackURL.String,
-			})
+			inputH.Builds = append(inputH.Builds, inBuild)
 		}
 
 		for outRows.Next() {
-			var buildID int
-			var buildJobName string
-			var buildName string
-			var buildStatus string
-			var buildAbortURL sql.NullString
-			var buildHijackURL sql.NullString
-
-			err := outRows.Scan(&buildID, &buildJobName, &buildName, &buildStatus, &buildAbortURL, &buildHijackURL)
+			outBuild, err := scanBuild(outRows)
 			if err != nil {
 				return nil, err
 			}
 
-			if seenInputs[id][buildID] {
+			if seenInputs[id][outBuild.ID] {
 				// don't show implicit outputs
 				continue
 			}
 
-			outputH, found := outputHs[id][buildJobName]
+			outputH, found := outputHs[id][outBuild.JobName]
 			if !found {
 				outputH = &JobHistory{
-					JobName: buildJobName,
+					JobName: outBuild.JobName,
 				}
 
 				vh.OutputsOf = append(vh.OutputsOf, outputH)
 
-				outputHs[id][buildJobName] = outputH
+				outputHs[id][outBuild.JobName] = outputH
 			}
 
-			outputH.Builds = append(outputH.Builds, builds.Build{
-				ID:        buildID,
-				Name:      buildName,
-				JobName:   buildJobName,
-				Status:    builds.Status(buildStatus),
-				AbortURL:  buildAbortURL.String,
-				HijackURL: buildHijackURL.String,
-			})
+			outputH.Builds = append(outputH.Builds, outBuild)
 		}
 	}
 
@@ -1163,4 +1012,37 @@ func (db *sqldb) saveVersionedResource(tx *sql.Tx, vr builds.VersionedResource) 
 	}
 
 	return id, nil
+}
+
+type scannable interface {
+	Scan(destinations ...interface{}) error
+}
+
+func scanBuild(row scannable) (builds.Build, error) {
+	var id int
+	var name string
+	var jobName sql.NullString
+	var status string
+	var abortURL sql.NullString
+	var hijackURL sql.NullString
+	var startTime pq.NullTime
+	var endTime pq.NullTime
+
+	err := row.Scan(&id, &name, &jobName, &status, &abortURL, &hijackURL, &startTime, &endTime)
+	if err != nil {
+		return builds.Build{}, err
+	}
+
+	return builds.Build{
+		ID:      id,
+		Name:    name,
+		JobName: jobName.String,
+		Status:  builds.Status(status),
+
+		AbortURL:  abortURL.String,
+		HijackURL: hijackURL.String,
+
+		StartTime: startTime.Time,
+		EndTime:   endTime.Time,
+	}, nil
 }

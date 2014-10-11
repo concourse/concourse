@@ -10,4 +10,5 @@ var Migrations = []migration.Migrator{
 	NonNullableVersionInfo,
 	AddOneOffNameSequence,
 	AddHijackURLToBuilds,
+	AddTimestampsToBuilds,
 }

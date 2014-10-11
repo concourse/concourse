@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"fmt"
+	"time"
 
 	Builds "github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
@@ -174,6 +175,26 @@ func itIsADB() {
 		allBuilds, err := db.GetAllBuilds()
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(allBuilds).Should(Equal([]Builds.Build{nextOneOff, jobBuild, oneOff}))
+	})
+
+	It("can save a build's start/end timestamps", func() {
+		build, err := db.CreateJobBuild("some-job")
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(build.Name).Should(Equal("1"))
+
+		startTime := time.Now()
+		endTime := startTime.Add(time.Second)
+
+		err = db.SaveBuildStartTime(build.ID, startTime)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		err = db.SaveBuildEndTime(build.ID, endTime)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		build, err = db.GetBuild(build.ID)
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(build.StartTime.Unix()).Should(Equal(startTime.Unix()))
+		Ω(build.EndTime.Unix()).Should(Equal(endTime.Unix()))
 	})
 
 	It("can report a job's latest running and finished builds", func() {
