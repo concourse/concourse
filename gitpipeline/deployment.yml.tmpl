@@ -57,7 +57,7 @@ pipeline: &pipeline
           params:
             repository: some-git-resource
         - resource: some-git-resource-failure
-          "on": [failure]
+          perform_on: [failure]
           params:
             repository: some-git-resource
 
