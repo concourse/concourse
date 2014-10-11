@@ -116,16 +116,19 @@ go get github.com/concourse/fly
 @subsection{Using @code{fly}}
 
 @margin-note{
-  Flying with a remote Glider can be done by setting @code{$GLIDER_URL} to its
+  Flying with a remote Concourse can be done by setting @code{$ATC_URL} to its
   full @code{http://...} address.
 }
 
-Once @code{fly} is installed, the only thing to configure is the Glider URL.
-Glider is a simple build manager, which just keeps all build state in-memory.
-Fly and Glider are optimized for use together with a local
-@seclink["deploying-with-vagrant"]{Vagrant-deployed} instance. When used this
-way, no configuration is required; @code{fly} defaults to its port-forwarded
-address.
+Once @code{fly} is installed, the only thing to configure is the ATC URL.
+
+If you've set up a local @seclink["deploying-with-vagrant"]{Vagrant-deployed}
+instance, no further configuration is necessary: @code{fly} defaults to looking
+at the ports forwarded through this configuration.
+
+Otherwise, to execute @code{fly} against an arbitrary deployment, just set
+@code{$ATC_URL} to the URL of the ATC in your deployment (e.g.
+@code|{https://user:pass@ci.myproject.com:443}|).
 
 The simplest use of @code{fly} is to run it with no arguments in a directory
 containing @code{build.yml}:
