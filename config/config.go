@@ -59,7 +59,7 @@ type Output struct {
 	Params   Params `yaml:"params"`
 
 	// e.g. [success, failure]; default [success]
-	On []OutputCondition `yaml:"on"`
+	PerformOn []OutputCondition `yaml:"perform_on"`
 }
 
 type OutputCondition string

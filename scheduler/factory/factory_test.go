@@ -83,14 +83,14 @@ var _ = Describe("Factory", func() {
 					Params:   config.Params{"foo": "bar"},
 				},
 				{
-					Resource: "some-resource",
-					Params:   config.Params{"foo": "bar"},
-					On:       []config.OutputCondition{"failure"},
+					Resource:  "some-resource",
+					Params:    config.Params{"foo": "bar"},
+					PerformOn: []config.OutputCondition{"failure"},
 				},
 				{
-					Resource: "some-resource",
-					Params:   config.Params{"foo": "bar"},
-					On:       []config.OutputCondition{},
+					Resource:  "some-resource",
+					Params:    config.Params{"foo": "bar"},
+					PerformOn: []config.OutputCondition{},
 				},
 			},
 		}

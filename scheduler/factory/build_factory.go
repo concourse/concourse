@@ -94,11 +94,11 @@ func (factory *BuildFactory) computeOutputs(job config.Job) ([]tbuilds.Output, e
 
 		// if not specified, assume [success]
 		//
-		// note that this check is for nil, not len(output.On) == 0
-		if output.On == nil {
+		// note that this check is for nil, not len(output.PerformOn) == 0
+		if output.PerformOn == nil {
 			conditions = append(conditions, tbuilds.OutputConditionSuccess)
 		} else {
-			for _, cond := range output.On {
+			for _, cond := range output.PerformOn {
 				conditions = append(conditions, tbuilds.OutputCondition(cond))
 			}
 		}
