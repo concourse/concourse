@@ -31,7 +31,7 @@ var _ = Describe("Flying", func() {
 
 		err = ioutil.WriteFile(
 			filepath.Join(fixture, "run"),
-			[]byte(`#!/bin/bash
+			[]byte(`#!/bin/sh
 echo some output
 echo FOO is $FOO
 echo ARGS are "$@"
@@ -44,7 +44,7 @@ exit 0
 		err = ioutil.WriteFile(
 			filepath.Join(fixture, "build.yml"),
 			[]byte(`---
-image: docker:///concourse/testflight-helper
+image: /var/vcap/packages/busybox
 
 params:
   FOO: 1
@@ -79,7 +79,7 @@ run:
 		It("executes an interactive command in a running build's container", func() {
 			err := ioutil.WriteFile(
 				filepath.Join(fixture, "run"),
-				[]byte(`#!/bin/bash
+				[]byte(`#!/bin/sh
 mkfifo /tmp/fifo
 echo waiting
 cat < /tmp/fifo
@@ -96,7 +96,7 @@ cat < /tmp/fifo
 
 			Eventually(flyS, 10*time.Second).Should(gbytes.Say("waiting"))
 
-			hijack := exec.Command(flyBin, "hijack", "--", "bash", "-c", "echo marco > /tmp/fifo")
+			hijack := exec.Command(flyBin, "hijack", "--", "sh", "-c", "echo marco > /tmp/fifo")
 
 			hijackS, err := gexec.Start(hijack, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
@@ -113,7 +113,7 @@ cat < /tmp/fifo
 		It("terminates the running build", func() {
 			err := ioutil.WriteFile(
 				filepath.Join(fixture, "run"),
-				[]byte(`#!/bin/bash
+				[]byte(`#!/bin/sh
 trap "echo build got sigterm; exit 1" SIGTERM
 sleep 1000 &
 echo waiting
