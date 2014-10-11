@@ -3,6 +3,7 @@ package fakes
 
 import (
 	"sync"
+	"time"
 
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/callbacks/handler"
@@ -43,6 +44,24 @@ type FakeBuildDB struct {
 		output builds.VersionedResource
 	}
 	saveBuildOutputReturns struct {
+		result1 error
+	}
+	SaveBuildStartTimeStub        func(build int, startTime time.Time) error
+	saveBuildStartTimeMutex       sync.RWMutex
+	saveBuildStartTimeArgsForCall []struct {
+		build     int
+		startTime time.Time
+	}
+	saveBuildStartTimeReturns struct {
+		result1 error
+	}
+	SaveBuildEndTimeStub        func(build int, startTime time.Time) error
+	saveBuildEndTimeMutex       sync.RWMutex
+	saveBuildEndTimeArgsForCall []struct {
+		build     int
+		startTime time.Time
+	}
+	saveBuildEndTimeReturns struct {
 		result1 error
 	}
 }
@@ -175,6 +194,72 @@ func (fake *FakeBuildDB) SaveBuildOutputArgsForCall(i int) (int, builds.Versione
 func (fake *FakeBuildDB) SaveBuildOutputReturns(result1 error) {
 	fake.SaveBuildOutputStub = nil
 	fake.saveBuildOutputReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuildDB) SaveBuildStartTime(build int, startTime time.Time) error {
+	fake.saveBuildStartTimeMutex.Lock()
+	fake.saveBuildStartTimeArgsForCall = append(fake.saveBuildStartTimeArgsForCall, struct {
+		build     int
+		startTime time.Time
+	}{build, startTime})
+	fake.saveBuildStartTimeMutex.Unlock()
+	if fake.SaveBuildStartTimeStub != nil {
+		return fake.SaveBuildStartTimeStub(build, startTime)
+	} else {
+		return fake.saveBuildStartTimeReturns.result1
+	}
+}
+
+func (fake *FakeBuildDB) SaveBuildStartTimeCallCount() int {
+	fake.saveBuildStartTimeMutex.RLock()
+	defer fake.saveBuildStartTimeMutex.RUnlock()
+	return len(fake.saveBuildStartTimeArgsForCall)
+}
+
+func (fake *FakeBuildDB) SaveBuildStartTimeArgsForCall(i int) (int, time.Time) {
+	fake.saveBuildStartTimeMutex.RLock()
+	defer fake.saveBuildStartTimeMutex.RUnlock()
+	return fake.saveBuildStartTimeArgsForCall[i].build, fake.saveBuildStartTimeArgsForCall[i].startTime
+}
+
+func (fake *FakeBuildDB) SaveBuildStartTimeReturns(result1 error) {
+	fake.SaveBuildStartTimeStub = nil
+	fake.saveBuildStartTimeReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuildDB) SaveBuildEndTime(build int, startTime time.Time) error {
+	fake.saveBuildEndTimeMutex.Lock()
+	fake.saveBuildEndTimeArgsForCall = append(fake.saveBuildEndTimeArgsForCall, struct {
+		build     int
+		startTime time.Time
+	}{build, startTime})
+	fake.saveBuildEndTimeMutex.Unlock()
+	if fake.SaveBuildEndTimeStub != nil {
+		return fake.SaveBuildEndTimeStub(build, startTime)
+	} else {
+		return fake.saveBuildEndTimeReturns.result1
+	}
+}
+
+func (fake *FakeBuildDB) SaveBuildEndTimeCallCount() int {
+	fake.saveBuildEndTimeMutex.RLock()
+	defer fake.saveBuildEndTimeMutex.RUnlock()
+	return len(fake.saveBuildEndTimeArgsForCall)
+}
+
+func (fake *FakeBuildDB) SaveBuildEndTimeArgsForCall(i int) (int, time.Time) {
+	fake.saveBuildEndTimeMutex.RLock()
+	defer fake.saveBuildEndTimeMutex.RUnlock()
+	return fake.saveBuildEndTimeArgsForCall[i].build, fake.saveBuildEndTimeArgsForCall[i].startTime
+}
+
+func (fake *FakeBuildDB) SaveBuildEndTimeReturns(result1 error) {
+	fake.SaveBuildEndTimeStub = nil
+	fake.saveBuildEndTimeReturns = struct {
 		result1 error
 	}{result1}
 }

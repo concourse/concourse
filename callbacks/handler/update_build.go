@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
 	TurbineBuilds "github.com/concourse/turbine/api/builds"
 	"github.com/pivotal-golang/lager"
@@ -58,6 +59,20 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error("failed-to-save-build-status", err)
 		return
+	}
+
+	if status == builds.StatusStarted {
+		err := handler.buildDB.SaveBuildStartTime(buildID, time.Now())
+		if err != nil {
+			log.Error("failed-to-save-build-start-time", err)
+			return
+		}
+	} else {
+		err := handler.buildDB.SaveBuildEndTime(buildID, time.Now())
+		if err != nil {
+			log.Error("failed-to-save-build-end-time", err)
+			return
+		}
 	}
 
 	build, err := handler.buildDB.GetBuild(buildID)

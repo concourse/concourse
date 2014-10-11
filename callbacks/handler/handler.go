@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"time"
+
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc/builds"
@@ -12,6 +14,8 @@ type BuildDB interface {
 	SaveBuildStatus(build int, status builds.Status) error
 	SaveBuildInput(build int, input builds.VersionedResource) error
 	SaveBuildOutput(build int, output builds.VersionedResource) error
+	SaveBuildStartTime(build int, startTime time.Time) error
+	SaveBuildEndTime(build int, startTime time.Time) error
 }
 
 type Handler struct {

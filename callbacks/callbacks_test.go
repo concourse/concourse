@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"time"
 
 	TurbineBuilds "github.com/concourse/turbine/api/builds"
 	. "github.com/onsi/ginkgo"
@@ -114,7 +115,14 @@ var _ = Describe("Callbacks", func() {
 				Ω(status).Should(Equal(builds.StatusStarted))
 			})
 
-			Context("when the build is for a job ", func() {
+			It("sets the build's start time", func() {
+				Ω(buildDB.SaveBuildStartTimeCallCount()).Should(Equal(1))
+				id, startTime := buildDB.SaveBuildStartTimeArgsForCall(0)
+				Ω(id).Should(Equal(42))
+				Ω(startTime.Unix()).Should(BeNumerically("~", time.Now().Unix()))
+			})
+
+			Context("when the build is for a job", func() {
 				BeforeEach(func() {
 					buildDB.GetBuildReturns(builds.Build{ID: 42, JobName: "some-job"}, nil)
 				})
@@ -194,6 +202,13 @@ var _ = Describe("Callbacks", func() {
 				id, status := buildDB.SaveBuildStatusArgsForCall(0)
 				Ω(id).Should(Equal(42))
 				Ω(status).Should(Equal(builds.StatusSucceeded))
+			})
+
+			It("sets the build's end time", func() {
+				Ω(buildDB.SaveBuildEndTimeCallCount()).Should(Equal(1))
+				id, endTime := buildDB.SaveBuildEndTimeArgsForCall(0)
+				Ω(id).Should(Equal(42))
+				Ω(endTime.Unix()).Should(BeNumerically("~", time.Now().Unix()))
 			})
 
 			Context("when the build is for a job", func() {
@@ -276,6 +291,13 @@ var _ = Describe("Callbacks", func() {
 				Ω(id).Should(Equal(42))
 				Ω(status).Should(Equal(builds.StatusFailed))
 			})
+
+			It("sets the build's end time", func() {
+				Ω(buildDB.SaveBuildEndTimeCallCount()).Should(Equal(1))
+				id, endTime := buildDB.SaveBuildEndTimeArgsForCall(0)
+				Ω(id).Should(Equal(42))
+				Ω(endTime.Unix()).Should(BeNumerically("~", time.Now().Unix()))
+			})
 		})
 
 		Context("with status 'errored'", func() {
@@ -291,6 +313,36 @@ var _ = Describe("Callbacks", func() {
 				id, status := buildDB.SaveBuildStatusArgsForCall(0)
 				Ω(id).Should(Equal(42))
 				Ω(status).Should(Equal(builds.StatusErrored))
+			})
+
+			It("sets the build's end time", func() {
+				Ω(buildDB.SaveBuildEndTimeCallCount()).Should(Equal(1))
+				id, endTime := buildDB.SaveBuildEndTimeArgsForCall(0)
+				Ω(id).Should(Equal(42))
+				Ω(endTime.Unix()).Should(BeNumerically("~", time.Now().Unix()))
+			})
+		})
+
+		Context("with status 'aborted'", func() {
+			BeforeEach(func() {
+				turbineBuild.Status = TurbineBuilds.StatusAborted
+			})
+
+			It("updates the build's status", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+
+				Ω(buildDB.SaveBuildStatusCallCount()).Should(Equal(1))
+
+				id, status := buildDB.SaveBuildStatusArgsForCall(0)
+				Ω(id).Should(Equal(42))
+				Ω(status).Should(Equal(builds.StatusAborted))
+			})
+
+			It("sets the build's end time", func() {
+				Ω(buildDB.SaveBuildEndTimeCallCount()).Should(Equal(1))
+				id, endTime := buildDB.SaveBuildEndTimeArgsForCall(0)
+				Ω(id).Should(Equal(42))
+				Ω(endTime.Unix()).Should(BeNumerically("~", time.Now().Unix()))
 			})
 		})
 	})
