@@ -61,14 +61,16 @@ func (handler *Handler) UpdateBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if status == builds.StatusStarted {
-		err := handler.buildDB.SaveBuildStartTime(buildID, time.Now())
+	if turbineBuild.StartTime != 0 {
+		err := handler.buildDB.SaveBuildStartTime(buildID, time.Unix(turbineBuild.StartTime, 0))
 		if err != nil {
 			log.Error("failed-to-save-build-start-time", err)
 			return
 		}
-	} else {
-		err := handler.buildDB.SaveBuildEndTime(buildID, time.Now())
+	}
+
+	if turbineBuild.EndTime != 0 {
+		err := handler.buildDB.SaveBuildEndTime(buildID, time.Unix(turbineBuild.EndTime, 0))
 		if err != nil {
 			log.Error("failed-to-save-build-end-time", err)
 			return

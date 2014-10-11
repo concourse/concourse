@@ -64,6 +64,9 @@ var _ = Describe("Callbacks", func() {
 			}
 
 			turbineBuild = TurbineBuilds.Build{
+				StartTime: time.Now().Unix(),
+				EndTime:   time.Now().Add(time.Second).Unix(),
+
 				Inputs: []TurbineBuilds.Input{
 					{
 						Name:    "input-only-resource",
@@ -113,13 +116,6 @@ var _ = Describe("Callbacks", func() {
 				id, status := buildDB.SaveBuildStatusArgsForCall(0)
 				Ω(id).Should(Equal(42))
 				Ω(status).Should(Equal(builds.StatusStarted))
-			})
-
-			It("sets the build's start time", func() {
-				Ω(buildDB.SaveBuildStartTimeCallCount()).Should(Equal(1))
-				id, startTime := buildDB.SaveBuildStartTimeArgsForCall(0)
-				Ω(id).Should(Equal(42))
-				Ω(startTime.Unix()).Should(BeNumerically("~", time.Now().Unix()))
 			})
 
 			Context("when the build is for a job", func() {
@@ -204,13 +200,6 @@ var _ = Describe("Callbacks", func() {
 				Ω(status).Should(Equal(builds.StatusSucceeded))
 			})
 
-			It("sets the build's end time", func() {
-				Ω(buildDB.SaveBuildEndTimeCallCount()).Should(Equal(1))
-				id, endTime := buildDB.SaveBuildEndTimeArgsForCall(0)
-				Ω(id).Should(Equal(42))
-				Ω(endTime.Unix()).Should(BeNumerically("~", time.Now().Unix()))
-			})
-
 			Context("when the build is for a job", func() {
 				BeforeEach(func() {
 					buildDB.GetBuildReturns(builds.Build{ID: 42, JobName: "some-job"}, nil)
@@ -291,13 +280,6 @@ var _ = Describe("Callbacks", func() {
 				Ω(id).Should(Equal(42))
 				Ω(status).Should(Equal(builds.StatusFailed))
 			})
-
-			It("sets the build's end time", func() {
-				Ω(buildDB.SaveBuildEndTimeCallCount()).Should(Equal(1))
-				id, endTime := buildDB.SaveBuildEndTimeArgsForCall(0)
-				Ω(id).Should(Equal(42))
-				Ω(endTime.Unix()).Should(BeNumerically("~", time.Now().Unix()))
-			})
 		})
 
 		Context("with status 'errored'", func() {
@@ -313,13 +295,6 @@ var _ = Describe("Callbacks", func() {
 				id, status := buildDB.SaveBuildStatusArgsForCall(0)
 				Ω(id).Should(Equal(42))
 				Ω(status).Should(Equal(builds.StatusErrored))
-			})
-
-			It("sets the build's end time", func() {
-				Ω(buildDB.SaveBuildEndTimeCallCount()).Should(Equal(1))
-				id, endTime := buildDB.SaveBuildEndTimeArgsForCall(0)
-				Ω(id).Should(Equal(42))
-				Ω(endTime.Unix()).Should(BeNumerically("~", time.Now().Unix()))
 			})
 		})
 
@@ -337,12 +312,33 @@ var _ = Describe("Callbacks", func() {
 				Ω(id).Should(Equal(42))
 				Ω(status).Should(Equal(builds.StatusAborted))
 			})
+		})
+
+		Context("with start and end timestamps", func() {
+			BeforeEach(func() {
+				turbineBuild.StartTime = time.Now().Unix()
+				turbineBuild.EndTime = time.Now().Add(time.Second).Unix()
+
+				// need a status for the request to be valid
+				turbineBuild.Status = TurbineBuilds.StatusSucceeded
+			})
+
+			It("returns 200", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+			})
+
+			It("sets the build's start time", func() {
+				Ω(buildDB.SaveBuildStartTimeCallCount()).Should(Equal(1))
+				id, startTime := buildDB.SaveBuildStartTimeArgsForCall(0)
+				Ω(id).Should(Equal(42))
+				Ω(startTime.Unix()).Should(Equal(turbineBuild.StartTime))
+			})
 
 			It("sets the build's end time", func() {
 				Ω(buildDB.SaveBuildEndTimeCallCount()).Should(Equal(1))
 				id, endTime := buildDB.SaveBuildEndTimeArgsForCall(0)
 				Ω(id).Should(Equal(42))
-				Ω(endTime.Unix()).Should(BeNumerically("~", time.Now().Unix()))
+				Ω(endTime.Unix()).Should(Equal(turbineBuild.EndTime))
 			})
 		})
 	})
