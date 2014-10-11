@@ -27,9 +27,6 @@ docs/concourse/
 .hg
 .bzr
 
-# direnv
-.envrc
-
 # development dependencies
 src/github.com/nsf/gocode/
 src/code.google.com/p/go.tools/
