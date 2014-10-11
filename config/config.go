@@ -47,11 +47,11 @@ type Job struct {
 }
 
 type Input struct {
-	Name      string   `yaml:"name"`
-	Resource  string   `yaml:"resource"`
-	Params    Params   `yaml:"params"`
-	Passed    []string `yaml:"passed"`
-	DontCheck bool     `yaml:"dont_check"`
+	Name     string   `yaml:"name"`
+	Resource string   `yaml:"resource"`
+	Params   Params   `yaml:"params"`
+	Passed   []string `yaml:"passed"`
+	Trigger  *bool    `yaml:"trigger"`
 }
 
 type Output struct {

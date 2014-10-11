@@ -46,7 +46,7 @@ func (s *Scheduler) BuildLatestInputs(job config.Job) error {
 
 	checkInputs := builds.VersionedResources{}
 	for _, input := range job.Inputs {
-		if input.DontCheck {
+		if input.Trigger != nil && !*input.Trigger {
 			continue
 		}
 

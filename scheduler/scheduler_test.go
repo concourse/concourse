@@ -130,9 +130,11 @@ var _ = Describe("Scheduler", func() {
 
 			Context("and the job has inputs configured not to check", func() {
 				BeforeEach(func() {
+					trigger := false
+
 					job.Inputs = append(job.Inputs, config.Input{
-						Resource:  "some-non-checking-resource",
-						DontCheck: true,
+						Resource: "some-non-checking-resource",
+						Trigger:  &trigger,
 					})
 
 					foundInputsWithCheck := append(
@@ -160,9 +162,11 @@ var _ = Describe("Scheduler", func() {
 
 			Context("and all inputs are configured not to check", func() {
 				BeforeEach(func() {
+					trigger := false
+
 					for i, input := range job.Inputs {
 						noChecking := input
-						noChecking.DontCheck = true
+						noChecking.Trigger = &trigger
 
 						job.Inputs[i] = noChecking
 					}
