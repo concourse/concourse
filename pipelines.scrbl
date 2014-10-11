@@ -215,10 +215,12 @@ Each configured job consists of the following attributes:
     }
 
 
-    @defthing[dont_check boolean]{
-      @emph{Optional.} Setting this to @code{true} will ensure that the job is
-      not auto-triggered when this input's resource is the only thing that has
-      changed.
+    @defthing[trigger boolean]{
+      @emph{Optional.} Default @code{true}. By default, when any of a job's
+      inputs have new versions, a new build of the job is triggered.
+
+      Setting this to @code{false} disables this behavior; the job will only
+      trigger via other inputs or by a user manually triggering.
     }
   }
 }
