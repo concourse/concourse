@@ -11,6 +11,8 @@
 
     <h1>{{.Job.Name}} #{{.Build.Name}}</h1>
 
+    <dl class="build-times"></dl>
+
     {{if .Abortable}}
     <form class="abort-build" method="post" action="{{url "AbortBuild" .Build}}">
       <input type="submit" value="abort" />
@@ -119,6 +121,8 @@
 </div>
 
 <script src="{{url "Public" "jquery-2.1.1.min.js"}}"></script>
+<script src="{{url "Public" "moment.min.js"}}"></script>
+<script src="{{url "Public" "moment-duration-format.js"}}"></script>
 <script src="{{url "Public" "ansiparse.js"}}"></script>
 <script src="{{url "Public" "build.js"}}"></script>
 <script type="text/javascript">
