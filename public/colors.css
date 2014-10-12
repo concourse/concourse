@@ -46,6 +46,7 @@ svg #arrowhead-pending path { fill: #505050; }
 svg .node.job.pending rect { fill: #505050; }
 #build-title.pending { background: #505050; }
 li.pending { background: #505050; }
+.legend dt.pending { background: #505050; }
 #build-requires-auth input:hover { background: #505050; }
 
 /* good */
@@ -54,6 +55,7 @@ svg #arrowhead-succeeded path { fill: #90a959; }
 svg .node.job.succeeded rect { fill: #90a959; }
 #build-title.succeeded { background: #90a959; }
 li.succeeded { background: #90a959; }
+.legend dt.succeeded { background: #90a959; }
 
 /* bad */
 svg .edgePath.failed path { stroke: #ac4142; }
@@ -61,6 +63,7 @@ svg #arrowhead-failed path { fill: #ac4142; }
 svg .node.job.failed rect { fill: #ac4142; }
 #build-title.failed { background: #ac4142; }
 li.failed { background: #ac4142; }
+.legend dt.failed { background: #ac4142; }
 #build-title .abort-build input { color: #ac4142; }
 #build-title .abort-build input:hover { background: #ac4142; }
 span.error { color: #ac4142; }
@@ -71,6 +74,7 @@ svg #arrowhead-errored path { fill: #d28445; }
 svg .node.job.errored rect { fill: #d28445; }
 #build-title.errored { background: #d28445; }
 li.errored { background: #d28445; }
+.legend dt.errored { background: #d28445; }
 svg .node.resource.failing rect { fill: #d28445; }
 .build-source.errored .resource-header { background: #d28445; }
 
@@ -80,6 +84,7 @@ svg #arrowhead-aborted path { fill: #8f5536; }
 svg .node.job.aborted rect { fill: #8f5536; }
 #build-title.aborted { background: #8f5536; }
 li.aborted { background: #8f5536; }
+.legend dt.aborted { background: #8f5536; }
 #build-title .abort-build input:active { background: #8f5536; }
 
 /* active */
@@ -88,6 +93,7 @@ svg #arrowhead-started path { fill: #f4bf75; }
 svg .node.job.started rect { fill: #f4bf75; }
 #build-title.started { background: #f4bf75; }
 li.started { background: #f4bf75; }
+.legend dt.started { background: #f4bf75; }
 
 /* ansi text */
 ::selection { background: #505050; color: #f5f5f5; }
