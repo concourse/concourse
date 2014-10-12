@@ -98,7 +98,7 @@ var _ = Describe("V1.0 Renderer", func() {
 				}
 			})
 
-			It("prints the build's container", func() {
+			It("prints the build's run script", func() {
 				Ω(out.Contents()).Should(ContainSubstring("\x1b[1mrunning /some/script arg1 arg2\x1b[0m\n"))
 			})
 		})

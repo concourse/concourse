@@ -35,7 +35,12 @@ func (V10Renderer) Render(dst io.Writer, src EventStream) int {
 
 		case event.Initialize:
 			buildConfig = e.BuildConfig
-			fmt.Fprintf(dst, "\x1b[1minitializing with %s\x1b[0m\n", buildConfig.Image)
+
+			if buildConfig.Image != "" {
+				fmt.Fprintf(dst, "\x1b[1minitializing with %s\x1b[0m\n", buildConfig.Image)
+			} else {
+				fmt.Fprintf(dst, "\x1b[1minitializing\x1b[0m\n")
+			}
 
 		case event.Start:
 			argv := strings.Join(append([]string{buildConfig.Run.Path}, buildConfig.Run.Args...), " ")
