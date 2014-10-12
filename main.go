@@ -344,10 +344,13 @@ func main() {
 		}},
 
 		{"scheduler", &sched.Runner{
-			Noop: *noop,
-
+			Locker:    db,
 			Scheduler: scheduler,
-			Jobs:      conf.Jobs,
+
+			Noop: *noop,
+			Jobs: conf.Jobs,
+
+			Interval: 10 * time.Second,
 		}},
 	})
 

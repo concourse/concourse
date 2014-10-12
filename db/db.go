@@ -52,6 +52,7 @@ type DB interface {
 	GetResourceHistory(resource string) ([]*VersionHistory, error)
 
 	AcquireResourceCheckingLock() (Lock, error)
+	AcquireBuildSchedulingLock() (Lock, error)
 }
 
 type Lock interface {

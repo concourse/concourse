@@ -285,6 +285,33 @@ func itIsADB() {
 			err = secondLock.Release()
 			Ω(err).ShouldNot(HaveOccurred())
 		})
+
+		It("can be done for build scheduling", func() {
+			lock, err := db.AcquireBuildSchedulingLock()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			secondLockCh := make(chan Lock, 1)
+
+			go func() {
+				defer GinkgoRecover()
+
+				secondLock, err := db.AcquireBuildSchedulingLock()
+				Ω(err).ShouldNot(HaveOccurred())
+
+				secondLockCh <- secondLock
+			}()
+
+			Consistently(secondLockCh).ShouldNot(Receive())
+
+			err = lock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			var secondLock Lock
+			Eventually(secondLockCh).Should(Receive(&secondLock))
+
+			err = secondLock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+		})
 	})
 
 	Describe("saving build inputs", func() {

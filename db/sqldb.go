@@ -978,6 +978,20 @@ func (db *sqldb) AcquireResourceCheckingLock() (Lock, error) {
 	return &txLock{tx}, nil
 }
 
+func (db *sqldb) AcquireBuildSchedulingLock() (Lock, error) {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = tx.Exec("LOCK TABLE build_scheduling_lock")
+	if err != nil {
+		return nil, err
+	}
+
+	return &txLock{tx}, nil
+}
+
 type txLock struct {
 	tx *sql.Tx
 }

@@ -5,13 +5,26 @@ import (
 	"time"
 
 	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
 )
 
-type Runner struct {
-	Noop bool
+type Locker interface {
+	AcquireBuildSchedulingLock() (db.Lock, error)
+}
 
-	Scheduler *Scheduler
-	Jobs      config.Jobs
+type BuildScheduler interface {
+	TryNextPendingBuild(config.Job) error
+	BuildLatestInputs(config.Job) error
+}
+
+type Runner struct {
+	Locker    Locker
+	Scheduler BuildScheduler
+
+	Noop bool
+	Jobs config.Jobs
+
+	Interval time.Duration
 }
 
 func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -22,18 +35,45 @@ func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		return nil
 	}
 
+	if runner.Interval == 0 {
+		panic("unconfigured scheduler interval")
+	}
+
+	lockAcquired := make(chan db.Lock)
+	lockErr := make(chan error)
+
+	go func() {
+		lock, err := runner.Locker.AcquireBuildSchedulingLock()
+		if err != nil {
+			lockErr <- err
+		} else {
+			lockAcquired <- lock
+		}
+	}()
+
+	var lock db.Lock
+
+	select {
+	case lock = <-lockAcquired:
+	case err := <-lockErr:
+		return err
+	case <-signals:
+		return nil
+	}
+
+dance:
 	for {
 		select {
-		case <-time.After(10 * time.Second):
+		case <-time.After(runner.Interval):
 			for _, job := range runner.Jobs {
 				runner.Scheduler.TryNextPendingBuild(job)
 				runner.Scheduler.BuildLatestInputs(job)
 			}
 
 		case <-signals:
-			return nil
+			break dance
 		}
 	}
 
-	return nil
+	return lock.Release()
 }
