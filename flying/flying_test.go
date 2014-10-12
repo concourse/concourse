@@ -68,7 +68,7 @@ run:
 		session, err := gexec.Start(fly, GinkgoWriter, GinkgoWriter)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		Eventually(session, 1*time.Minute).Should(gexec.Exit(0))
+		Eventually(session, 10*time.Second).Should(gexec.Exit(0))
 
 		Ω(session).Should(gbytes.Say("some output"))
 		Ω(session).Should(gbytes.Say("FOO is 1"))
@@ -105,7 +105,7 @@ cat < /tmp/fifo
 
 			Eventually(hijackS, 5*time.Second).Should(gexec.Exit())
 
-			Eventually(flyS, 5*time.Second).Should(gexec.Exit(0))
+			Eventually(flyS, 10*time.Second).Should(gexec.Exit(0))
 		})
 	})
 
@@ -136,7 +136,7 @@ wait
 			Eventually(flyS, 10*time.Second).Should(gbytes.Say("build got sigterm"))
 
 			// build should have been aborted
-			Eventually(flyS, 5*time.Second).Should(gexec.Exit(3))
+			Eventually(flyS, 10*time.Second).Should(gexec.Exit(3))
 		})
 	})
 })
