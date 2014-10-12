@@ -48,6 +48,15 @@ versions for the input should trigger new builds.
 false}.
 
 
+@subsection{@code{on} renamed}
+
+YAML parses @code{on}, @code{off}, @code{yes}, and @code{no} as boolean values.
+This made the @code{on: [success, failure]} output config have to be
+@code{"on": ...}, which is awkward. The new name is @code{perform_on}.
+
+@emph{To transition}: replace @code{on: [...]} with @code{perform_on: [...]}.
+
+
 @subsection{Build logs handle @code{\r}}
 
 Build logs now properly handle the @code{\r} escape sequence, which many
