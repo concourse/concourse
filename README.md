@@ -4,15 +4,9 @@ A [BOSH](https://github.com/cloudfoundry/bosh) release for concourse. The
 easiest way to deploy your own instance of concourse on AWS, vSphere,
 Openstack or with Vagrant.
 
-
-### Documentation
-
-See [Concourse](http://concourse.ci) for up-to-date documentation.
-
-
-### Project Roadmap
-
-[Pivotal Tracker](https://www.pivotaltracker.com/n/projects/1059262)
+* Documentation: [concourse.ci](http://concourse.ci)
+* IRC: `#concourse` on Freenode
+* Roadmap: [Pivotal Tracker](https://www.pivotaltracker.com/n/projects/1059262)
 
 
 ### Try it on Vagrant
