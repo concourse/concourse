@@ -334,9 +334,10 @@ func main() {
 		}},
 
 		{"radar", &rdr.Runner{
-			Noop: *noop,
+			Locker:  db,
+			Scanner: radar,
 
-			Radar:     radar,
+			Noop:      *noop,
 			Resources: conf.Resources,
 
 			TurbineEndpoint: turbineEndpoint,

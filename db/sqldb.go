@@ -964,6 +964,28 @@ func (db *sqldb) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 	return hs, nil
 }
 
+func (db *sqldb) AcquireResourceCheckingLock() (Lock, error) {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = tx.Exec("LOCK TABLE resource_checking_lock")
+	if err != nil {
+		return nil, err
+	}
+
+	return &txLock{tx}, nil
+}
+
+type txLock struct {
+	tx *sql.Tx
+}
+
+func (lock *txLock) Release() error {
+	return lock.tx.Commit()
+}
+
 func (db *sqldb) saveVersionedResource(tx *sql.Tx, vr builds.VersionedResource) (int, error) {
 	versionJSON, err := json.Marshal(vr.Version)
 	if err != nil {

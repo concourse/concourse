@@ -258,6 +258,35 @@ func itIsADB() {
 		Ω(finished.ID).Should(Equal(nextBuild.ID))
 	})
 
+	Describe("locking", func() {
+		It("can be done for resource checking", func() {
+			lock, err := db.AcquireResourceCheckingLock()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			secondLockCh := make(chan Lock, 1)
+
+			go func() {
+				defer GinkgoRecover()
+
+				secondLock, err := db.AcquireResourceCheckingLock()
+				Ω(err).ShouldNot(HaveOccurred())
+
+				secondLockCh <- secondLock
+			}()
+
+			Consistently(secondLockCh).ShouldNot(Receive())
+
+			err = lock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			var secondLock Lock
+			Eventually(secondLockCh).Should(Receive(&secondLock))
+
+			err = secondLock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+	})
+
 	Describe("saving build inputs", func() {
 		buildMetadata := []Builds.MetadataField{
 			{

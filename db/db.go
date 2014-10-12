@@ -50,6 +50,12 @@ type DB interface {
 	GetNextPendingBuild(job string) (builds.Build, builds.VersionedResources, error)
 
 	GetResourceHistory(resource string) ([]*VersionHistory, error)
+
+	AcquireResourceCheckingLock() (Lock, error)
+}
+
+type Lock interface {
+	Release() error
 }
 
 type BuildInput struct {
