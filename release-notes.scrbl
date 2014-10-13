@@ -87,3 +87,16 @@ notice a missing job while configuring groups, rather than be confused about
 a job showing up on every page.
 
 Ultimately an "orphaned" page may be introduced to show these jobs.
+
+
+@subsection{Legendary}
+
+There is now a legend shown on the pipeline view, which says what each color
+means.
+
+
+@subsection{Build timing information}
+
+Viewing a build now shows when it started, when it ended, and the duration of
+the build. The UI here is still in the works, but the information is at least
+being collected.
