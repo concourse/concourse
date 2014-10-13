@@ -1,51 +1,41 @@
 ---
 golang_1.3/go1.3.linux-amd64.tar.gz:
   object_id: a0efd822-3cc4-4acf-af26-702cae02ff7a
-  sha: !binary |-
-    YjZiMTU0OTMzMDM5OTg3MDU2YWMzMDdlMjBjMjVmYTUwOGEwNmJhNg==
+  sha: b6b154933039987056ac307e20c25fa508a06ba6
   size: 51123994
 postgresql/postgresql-9.3.4.tar.gz:
   object_id: a62f2cda-80fa-4daf-a59c-5acc9a6a3c2e
-  sha: !binary |-
-    OWY4MGIzY2ZlYmM0MzRjYTA4NjBmYzg0ODk5MjNjZWE3MzQ1NjA4MQ==
+  sha: 9f80b3cfebc434ca0860fc8489923cea73456081
   size: 21865589
-consul_0.3/consul:
-  object_id: 03a93976-87ff-4d84-92b9-b03e0f979720
-  sha: !binary |-
-    NDhiOWI2NzFmNzU0NzliZWJjZTczOGYzMDY1NGUxODUyMGQ5NGM5Ng==
-  size: 14388499
 resources/archive-resource.tar.gz:
   object_id: 401b3cbf-8391-44e7-b6ac-0c39622c6dd2
-  sha: !binary |-
-    MGQ0NjQzYTgzMzU2MjJhNjQ0N2IxZWIyMDI2ZGE1NDlkN2IxOGNkYQ==
+  sha: 0d4643a8335622a6447b1eb2026da549d7b18cda
   size: 2549733
 resources/time-resource.tar.gz:
   object_id: 0ccb7f9e-cac0-4e6c-9362-cbf13cbd3742
-  sha: !binary |-
-    MjlkNWZmZTA2YzU4ZmEzOGY2NjU0NmExMWRiYjBiMzQ0YzJiNjg5ZA==
+  sha: 29d5ffe06c58fa38f66546a11dbb0b344c2b689d
   size: 2518560
 resources/semver-resource.tar.gz:
   object_id: c655d47c-cdce-4f7e-b002-9d8cd8c88d3f
-  sha: !binary |-
-    Y2ExOTYwMzI3Y2VlYzlhODNmOGQyYWU1MTlmMWM4ZTMyNGI0ODMyZg==
+  sha: ca1960327ceec9a83f8d2ae519f1c8e324b4832f
   size: 8606971
 resources/s3-resource.tar.gz:
   object_id: 0550cdbc-318a-4a6a-a4f4-50b8d297b745
-  sha: !binary |-
-    MTAzNzNlYzNjZDNlYmExZDAzNGQxYWNjODdhZGZkMDlhMGQ4MWI0Ng==
+  sha: 10373ec3cd3eba1d034d1acc87adfd09a0d81b46
   size: 8807547
 resources/tracker-resource.tar.gz:
   object_id: 0af44815-0984-491b-b029-7d63e091fc1e
-  sha: !binary |-
-    MTg3NjU2ZTY2MDViOWRkMzFiM2VhZDliZjc1YTliYjExMTc2MzU5ZA==
+  sha: 187656e6605b9dd31b3ead9bf75a9bb11176359d
   size: 11532802
 resources/git-resource.tar.gz:
   object_id: 39886aac-ad4c-4cf2-9740-6f888fb1c053
-  sha: !binary |-
-    MmFkMTUyM2QzNjBkZGNiZjgyMTc4ZjIxZDA1YTEyNzkxYTlmNjdhNA==
+  sha: 2ad1523d360ddcbf82178f21d05a12791a9f67a4
   size: 9154815
 resources/docker-image-resource.tar.gz:
   object_id: 11d17229-e60a-487f-a9f3-b80e6f5ae2b2
-  sha: !binary |-
-    MmQ3ZWVjYWQxMWM0ZmE2MmZmNTk4NWZmYmUxMjFmYTkzMGE3MzQzNA==
+  sha: 2d7eecad11c4fa62ff5985ffbe121fa930a73434
   size: 7761648
+consul_0.4/consul:
+  object_id: 854e5eba-0de6-4212-af07-c58dab9cfd3a
+  sha: 8be7984e9e1b7aab3d1eee14acdf59bb62207b6c
+  size: 16085929

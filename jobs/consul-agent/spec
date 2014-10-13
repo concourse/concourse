@@ -7,7 +7,7 @@ templates:
   config.json.erb: config/config.json
 
 packages:
-  - consul_0.3
+  - consul_0.4
 
 properties:
   consul.agent.mode:

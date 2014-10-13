@@ -48,7 +48,9 @@
     else
       config["bootstrap_expect"] = lan_servers.size
     end
-  else
+  end
+
+  if lan_servers
     config["start_join"] = lan_servers
   end
 

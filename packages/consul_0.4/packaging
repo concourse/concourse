@@ -1,0 +1,6 @@
+set -e
+
+mkdir -p ${BOSH_INSTALL_TARGET}/bin
+
+mv consul_0.4/consul ${BOSH_INSTALL_TARGET}/bin
+chmod +x ${BOSH_INSTALL_TARGET}/bin/consul
