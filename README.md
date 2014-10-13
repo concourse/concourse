@@ -6,6 +6,7 @@ Openstack or with Vagrant.
 
 * Documentation: [concourse.ci](http://concourse.ci)
 * IRC: `#concourse` on Freenode
+* Google Group: [Concourse Users](https://groups.google.com/forum/#!forum/concourse-ci)
 * Roadmap: [Pivotal Tracker](https://www.pivotaltracker.com/n/projects/1059262)
 
 
