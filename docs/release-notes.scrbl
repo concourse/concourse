@@ -100,3 +100,11 @@ means.
 Viewing a build now shows when it started, when it ended, and the duration of
 the build. The UI here is still in the works, but the information is at least
 being collected.
+
+
+@subsection{Consul bumped to v0.4}
+
+The version of Consul, which Concourse uses for service discovery, has been
+bumped up to v0.4 from v0.3.1. This should be backwards-compatible, but it's
+still early in Consul's lifecycle, so if you have any issues that look like two
+nodes stopped talking to each other, let us know in #concourse on Freenode.
