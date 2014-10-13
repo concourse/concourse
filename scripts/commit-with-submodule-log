@@ -1,3 +1,3 @@
 #!/bin/bash
 
-git ci -m "$($(dirname $0)/submodule-log "$@")"
+$(dirname $0)/submodule-log "$@" | git ci --file -
