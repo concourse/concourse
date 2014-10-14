@@ -334,6 +334,8 @@ func main() {
 		}},
 
 		{"radar", &rdr.Runner{
+			Logger: logger.Session("radar"),
+
 			Locker:  db,
 			Scanner: radar,
 
@@ -344,6 +346,8 @@ func main() {
 		}},
 
 		{"scheduler", &sched.Runner{
+			Logger: logger.Session("scheduler"),
+
 			Locker:    db,
 			Scheduler: scheduler,
 

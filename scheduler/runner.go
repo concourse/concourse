@@ -6,6 +6,7 @@ import (
 
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
+	"github.com/pivotal-golang/lager"
 )
 
 type Locker interface {
@@ -18,6 +19,8 @@ type BuildScheduler interface {
 }
 
 type Runner struct {
+	Logger lager.Logger
+
 	Locker    Locker
 	Scheduler BuildScheduler
 
@@ -59,6 +62,12 @@ func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		return err
 	case <-signals:
 		return nil
+	}
+
+	if runner.Logger != nil {
+		runner.Logger.Info("polling", lager.Data{
+			"inverval": runner.Interval.String(),
+		})
 	}
 
 dance:

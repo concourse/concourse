@@ -6,6 +6,7 @@ import (
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resources"
+	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 )
 
@@ -18,6 +19,8 @@ type Scanner interface {
 }
 
 type Runner struct {
+	Logger lager.Logger
+
 	Locker  Locker
 	Scanner Scanner
 
@@ -55,6 +58,10 @@ func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		return err
 	case <-signals:
 		return nil
+	}
+
+	if runner.Logger != nil {
+		runner.Logger.Info("scanning")
 	}
 
 	for _, resource := range runner.Resources {
