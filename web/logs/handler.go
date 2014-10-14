@@ -14,6 +14,8 @@ import (
 	"github.com/concourse/atc/logfanout"
 )
 
+const pingInterval = 5 * time.Second
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(*http.Request) bool {
 		return true
@@ -65,6 +67,13 @@ func NewHandler(
 
 		defer conn.Close()
 
+		pongTimer := time.NewTimer(pingInterval * 2)
+
+		conn.SetPongHandler(func(string) error {
+			pongTimer.Reset(pingInterval * 2)
+			return nil
+		})
+
 		logFanout := tracker.Register(buildID, conn)
 		defer tracker.Unregister(buildID, conn)
 
@@ -84,13 +93,26 @@ func NewHandler(
 			return
 		}
 
-		for {
-			time.Sleep(5 * time.Second)
+		go func() {
+			for {
+				_, _, err := conn.ReadMessage()
+				if err != nil {
+					return
+				}
+			}
+		}()
 
-			err := conn.WriteControl(websocket.PingMessage, []byte("ping"), time.Time{})
-			if err != nil {
-				log.Error("ping-failed", err)
-				break
+		for {
+			select {
+			case <-pongTimer.C:
+				log.Debug("connection-expired")
+				return
+
+			case <-time.After(pingInterval):
+				err := conn.WriteControl(websocket.PingMessage, []byte("ping"), time.Now().Add(pingInterval))
+				if err != nil {
+					return
+				}
 			}
 		}
 	})
