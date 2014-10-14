@@ -75,6 +75,8 @@ func NewHandler(
 			sink = logfanout.NewCensoredSink(conn)
 		}
 
+		sink = logfanout.NewAsyncSink(sink, 1000)
+
 		err = logFanout.Attach(sink)
 		if err != nil {
 			log.Error("attach-failed", err)
