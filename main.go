@@ -70,5 +70,9 @@ func main() {
 		},
 	}
 
-	app.Run(os.Args)
+	err := app.Run(os.Args)
+	if err != nil {
+		println(err.Error())
+		os.Exit(1)
+	}
 }

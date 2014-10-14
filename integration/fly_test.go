@@ -221,7 +221,21 @@ run:
 		})
 	})
 
-	Context("when paramters are specified in the environment", func() {
+	Context("when running with bogus flags", func() {
+		It("exits 1", func() {
+			flyCmd := exec.Command(flyPath, "--bogus-flag")
+			flyCmd.Dir = buildDir
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Eventually(sess).Should(gbytes.Say("Incorrect Usage."))
+			Eventually(sess.Err).Should(gbytes.Say("bogus-flag"))
+			Eventually(sess).Should(gexec.Exit(1))
+		})
+	})
+
+	Context("when parameters are specified in the environment", func() {
 		BeforeEach(func() {
 			expectedTurbineBuild.Config.Params = map[string]string{
 				"FOO": "newbar",
