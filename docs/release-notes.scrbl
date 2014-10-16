@@ -35,12 +35,12 @@ before 1.0.
   }
 
   @item{
-    @code{dont_check} renamed: the @code{dont_check} property on jobs has been
-    renamed to @code{trigger} property, whose value is now the opposite of what
+    @code{dont_check} renamed: the @code{dont_check} property on job inputs has
+    been renamed to @code{trigger}, and the value is now the opposite of what
     it used to be.
 
     This was done because the previous name was misleading; every resource is
-    *always* checked; this configuration merely configures whether newly
+    @emph{always} checked; this configuration merely configures whether newly
     detected versions for the input should trigger new builds.
 
     @emph{To transition}: replace @code{dont_check: true} with @code{trigger:
@@ -48,13 +48,13 @@ before 1.0.
   }
 
   @item{
-    The @code{on} property of jobs has been renamed.
+    The @code{on} property of job outputs has been renamed.
 
-    YAML parses @code{on}, @code{off}, @code{yes}, and @code{no} as boolean values.
-    This made the @code{on: [success, failure]} output config have to be
-    @code{"on": ...}, which is awkward. The new name is @code{perform_on}.
+    YAML parses @code{on}, @code{off}, @code{yes}, and @code{no} as boolean
+    values.  This made the @code{on: [success, failure]} output config have to
+    be @code{"on": ...}, which is awkward. The new name is @code{perform_on}.
 
-    @emph{To transition}: replace @code{on: [...]} with @code{perform_on: [...]}.
+    @emph{To transition}: replace @code{on: ...} with @code{perform_on: ...}.
   }
 
   @item{
@@ -74,21 +74,21 @@ before 1.0.
   }
 
   @item{
-    Some of the pipeline grouping UI logic has been cleaned up: jobs will always
-    show their immediate upstream/downstream inputs, even if they're jobs in
-    other groups. This is much clearer than omitting them.
+    Some of the pipeline grouping UI logic has been cleaned up: jobs will
+    always show their immediate upstream/downstream inputs, even if they're
+    jobs in other groups. This is much clearer than omitting them.
 
     Also, jobs with no configured group will no longer appear in every group.
     This was a conservative first step, but it seems like it should be easy to
-    notice a missing job while configuring groups, rather than be confused about
-    a job showing up on every page.
+    notice a missing job while configuring groups, rather than be confused
+    about a job showing up on every page.
 
     Ultimately an "orphaned" page may be introduced to show these jobs.
   }
 
   @item{
-    There is now a legend shown on the pipeline view, which says what each color
-    means.
+    There is now a legend shown on the pipeline view, which shows what each
+    color means.
   }
 
   @item{
