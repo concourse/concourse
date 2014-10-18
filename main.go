@@ -302,24 +302,24 @@ func main() {
 		fatal(err)
 	}
 
-	webMux := http.NewServeMux()
-	webMux.Handle("/api/v1/", auth.Handler{Handler: apiHandler, Validator: webValidator})
-	webMux.Handle("/api/callbacks/", auth.Handler{Handler: callbacksHandler, Validator: callbacksValidator})
-	webMux.Handle("/", webHandler)
-
 	var publicHandler http.Handler
 	if *publiclyViewable {
-		publicHandler = webMux
+		publicHandler = webHandler
 	} else {
 		publicHandler = auth.Handler{
-			Handler:   webMux,
+			Handler:   webHandler,
 			Validator: webValidator,
 		}
 	}
 
+	webMux := http.NewServeMux()
+	webMux.Handle("/api/v1/", auth.Handler{Handler: apiHandler, Validator: webValidator})
+	webMux.Handle("/api/callbacks/", auth.Handler{Handler: callbacksHandler, Validator: callbacksValidator})
+	webMux.Handle("/", publicHandler)
+
 	// copy Authorization header as ATC-Authorization cookie for websocket auth
 	publicHandler = auth.CookieSetHandler{
-		Handler: publicHandler,
+		Handler: webMux,
 	}
 
 	webListenAddr := fmt.Sprintf("%s:%d", *webListenAddress, *webListenPort)
