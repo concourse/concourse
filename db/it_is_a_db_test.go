@@ -133,19 +133,34 @@ func itIsADB() {
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(abortURL).Should(Equal("some-other-abort-url"))
 
-		log, err := db.BuildLog(build.ID)
+		events, err := db.BuildEvents(build.ID)
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(string(log)).Should(Equal(""))
+		Ω(events).Should(BeEmpty())
 
-		err = db.AppendBuildLog(build.ID, []byte("some "))
+		err = db.AppendBuildEvent(build.ID, BuildEvent{
+			Type:    "log",
+			Payload: "some ",
+		})
 		Ω(err).ShouldNot(HaveOccurred())
 
-		err = db.AppendBuildLog(build.ID, []byte("log"))
+		err = db.AppendBuildEvent(build.ID, BuildEvent{
+			Type:    "log",
+			Payload: "log",
+		})
 		Ω(err).ShouldNot(HaveOccurred())
 
-		log, err = db.BuildLog(build.ID)
+		events, err = db.BuildEvents(build.ID)
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(string(log)).Should(Equal("some log"))
+		Ω(events).Should(Equal([]BuildEvent{
+			BuildEvent{
+				Type:    "log",
+				Payload: "some ",
+			},
+			BuildEvent{
+				Type:    "log",
+				Payload: "log",
+			},
+		}))
 	})
 
 	It("can create one-off builds with increasing names", func() {

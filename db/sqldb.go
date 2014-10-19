@@ -521,27 +521,37 @@ func (db *sqldb) SaveBuildStatus(buildID int, status builds.Status) error {
 	return nil
 }
 
-func (db *sqldb) BuildLog(buildID int) ([]byte, error) {
-	var log string
+func (db *sqldb) BuildEvents(buildID int) ([]BuildEvent, error) {
+	var events []BuildEvent
 
-	err := db.conn.QueryRow(`
-		SELECT log
-		FROM builds
-		WHERE id = $1
-	`, buildID).Scan(&log)
+	rows, err := db.conn.Query(`
+		SELECT type, payload
+		FROM build_events
+		WHERE build_id = $1
+		ORDER BY id ASC
+	`, buildID)
 	if err != nil {
 		return nil, err
 	}
 
-	return []byte(log), nil
+	for rows.Next() {
+		var event BuildEvent
+		err := rows.Scan(&event.Type, &event.Payload)
+		if err != nil {
+			return nil, err
+		}
+
+		events = append(events, event)
+	}
+
+	return events, nil
 }
 
-func (db *sqldb) AppendBuildLog(buildID int, log []byte) error {
+func (db *sqldb) AppendBuildEvent(buildID int, event BuildEvent) error {
 	result, err := db.conn.Exec(`
-		UPDATE builds
-		SET log = log || $2
-		WHERE id = $1
-	`, buildID, string(log))
+		INSERT INTO build_events (build_id, type, payload)
+		VALUES ($1, $2, $3)
+	`, buildID, event.Type, event.Payload)
 	if err != nil {
 		return err
 	}

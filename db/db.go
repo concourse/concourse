@@ -29,8 +29,8 @@ type DB interface {
 	ScheduleBuild(buildID int, serial bool) (bool, error)
 	StartBuild(buildID int, abortURL, hijackURL string) (bool, error)
 
-	BuildLog(buildID int) ([]byte, error)
-	AppendBuildLog(buildID int, log []byte) error
+	BuildEvents(buildID int) ([]BuildEvent, error)
+	AppendBuildEvent(buildID int, event BuildEvent) error
 
 	SaveBuildInput(buildID int, vr builds.VersionedResource) error
 	SaveBuildOutput(buildID int, vr builds.VersionedResource) error
@@ -57,6 +57,11 @@ type DB interface {
 
 type Lock interface {
 	Release() error
+}
+
+type BuildEvent struct {
+	Type    string
+	Payload string
 }
 
 type BuildInput struct {
