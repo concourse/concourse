@@ -59,6 +59,13 @@ type FakeSchedulerDB struct {
 		result2 builds.VersionedResources
 		result3 error
 	}
+	GetAllStartedBuildsStub        func() ([]builds.Build, error)
+	getAllStartedBuildsMutex       sync.RWMutex
+	getAllStartedBuildsArgsForCall []struct{}
+	getAllStartedBuildsReturns struct {
+		result1 []builds.Build
+		result2 error
+	}
 }
 
 func (fake *FakeSchedulerDB) ScheduleBuild(buildID int, serial bool) (bool, error) {
@@ -228,6 +235,31 @@ func (fake *FakeSchedulerDB) GetNextPendingBuildReturns(result1 builds.Build, re
 		result2 builds.VersionedResources
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeSchedulerDB) GetAllStartedBuilds() ([]builds.Build, error) {
+	fake.getAllStartedBuildsMutex.Lock()
+	fake.getAllStartedBuildsArgsForCall = append(fake.getAllStartedBuildsArgsForCall, struct{}{})
+	fake.getAllStartedBuildsMutex.Unlock()
+	if fake.GetAllStartedBuildsStub != nil {
+		return fake.GetAllStartedBuildsStub()
+	} else {
+		return fake.getAllStartedBuildsReturns.result1, fake.getAllStartedBuildsReturns.result2
+	}
+}
+
+func (fake *FakeSchedulerDB) GetAllStartedBuildsCallCount() int {
+	fake.getAllStartedBuildsMutex.RLock()
+	defer fake.getAllStartedBuildsMutex.RUnlock()
+	return len(fake.getAllStartedBuildsArgsForCall)
+}
+
+func (fake *FakeSchedulerDB) GetAllStartedBuildsReturns(result1 []builds.Build, result2 error) {
+	fake.GetAllStartedBuildsStub = nil
+	fake.getAllStartedBuildsReturns = struct {
+		result1 []builds.Build
+		result2 error
+	}{result1, result2}
 }
 
 var _ scheduler.SchedulerDB = new(FakeSchedulerDB)

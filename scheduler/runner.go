@@ -16,6 +16,8 @@ type Locker interface {
 type BuildScheduler interface {
 	TryNextPendingBuild(config.Job) error
 	BuildLatestInputs(config.Job) error
+
+	TrackInFlightBuilds() error
 }
 
 type Runner struct {
@@ -74,6 +76,8 @@ dance:
 	for {
 		select {
 		case <-time.After(runner.Interval):
+			runner.Scheduler.TrackInFlightBuilds()
+
 			for _, job := range runner.Jobs {
 				runner.Scheduler.TryNextPendingBuild(job)
 				runner.Scheduler.BuildLatestInputs(job)

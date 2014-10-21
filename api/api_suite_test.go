@@ -3,6 +3,7 @@ package api_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -14,40 +15,67 @@ import (
 	buildfakes "github.com/concourse/atc/api/buildserver/fakes"
 	jobfakes "github.com/concourse/atc/api/jobserver/fakes"
 	"github.com/concourse/atc/builder/fakebuilder"
-	"github.com/concourse/atc/logfanout"
-	logfakes "github.com/concourse/atc/logfanout/fakes"
+	"github.com/concourse/atc/event"
 )
 
 var (
 	buildsDB     *buildfakes.FakeBuildsDB
 	jobsDB       *jobfakes.FakeJobsDB
-	logDB        *logfakes.FakeLogDB
 	builder      *fakebuilder.FakeBuilder
-	tracker      *logfanout.Tracker
 	pingInterval time.Duration
 	peerAddr     string
+	drain        chan struct{}
+
+	constructedEventHandler *fakeEventHandlerFactory
 
 	server *httptest.Server
 	client *http.Client
 )
 
+type fakeEventHandlerFactory struct {
+	db      event.BuildsDB
+	buildID int
+	censor  event.Censor
+
+	lock sync.Mutex
+}
+
+func (f *fakeEventHandlerFactory) Construct(
+	db event.BuildsDB,
+	buildID int,
+	censor event.Censor,
+) http.Handler {
+	f.lock.Lock()
+	f.db = db
+	f.buildID = buildID
+	f.censor = censor
+	f.lock.Unlock()
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("fake event handler factory was here"))
+	})
+}
+
 var _ = BeforeEach(func() {
 	buildsDB = new(buildfakes.FakeBuildsDB)
 	jobsDB = new(jobfakes.FakeJobsDB)
-	logDB = new(logfakes.FakeLogDB)
 	builder = new(fakebuilder.FakeBuilder)
-	tracker = logfanout.NewTracker(logDB)
 	pingInterval = 100 * time.Millisecond
 	peerAddr = "127.0.0.1:1234"
+	drain = make(chan struct{})
+
+	constructedEventHandler = &fakeEventHandlerFactory{}
 
 	handler, err := api.NewHandler(
 		lagertest.NewTestLogger("callbacks"),
 		buildsDB,
 		jobsDB,
 		builder,
-		tracker,
 		pingInterval,
 		peerAddr,
+		constructedEventHandler.Construct,
+		drain,
 	)
 	Ω(err).ShouldNot(HaveOccurred())
 

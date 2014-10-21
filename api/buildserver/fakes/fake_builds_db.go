@@ -6,6 +6,7 @@ import (
 
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/db"
 )
 
 type FakeBuildsDB struct {
@@ -32,13 +33,21 @@ type FakeBuildsDB struct {
 		result1 builds.Build
 		result2 error
 	}
-	AbortBuildStub        func(buildID int) (string, error)
+	AbortBuildStub        func(buildID int) error
 	abortBuildMutex       sync.RWMutex
 	abortBuildArgsForCall []struct {
 		buildID int
 	}
 	abortBuildReturns struct {
-		result1 string
+		result1 error
+	}
+	BuildEventsStub        func(buildID int) ([]db.BuildEvent, error)
+	buildEventsMutex       sync.RWMutex
+	buildEventsArgsForCall []struct {
+		buildID int
+	}
+	buildEventsReturns struct {
+		result1 []db.BuildEvent
 		result2 error
 	}
 }
@@ -126,7 +135,7 @@ func (fake *FakeBuildsDB) CreateOneOffBuildReturns(result1 builds.Build, result2
 	}{result1, result2}
 }
 
-func (fake *FakeBuildsDB) AbortBuild(buildID int) (string, error) {
+func (fake *FakeBuildsDB) AbortBuild(buildID int) error {
 	fake.abortBuildMutex.Lock()
 	fake.abortBuildArgsForCall = append(fake.abortBuildArgsForCall, struct {
 		buildID int
@@ -135,7 +144,7 @@ func (fake *FakeBuildsDB) AbortBuild(buildID int) (string, error) {
 	if fake.AbortBuildStub != nil {
 		return fake.AbortBuildStub(buildID)
 	} else {
-		return fake.abortBuildReturns.result1, fake.abortBuildReturns.result2
+		return fake.abortBuildReturns.result1
 	}
 }
 
@@ -151,10 +160,42 @@ func (fake *FakeBuildsDB) AbortBuildArgsForCall(i int) int {
 	return fake.abortBuildArgsForCall[i].buildID
 }
 
-func (fake *FakeBuildsDB) AbortBuildReturns(result1 string, result2 error) {
+func (fake *FakeBuildsDB) AbortBuildReturns(result1 error) {
 	fake.AbortBuildStub = nil
 	fake.abortBuildReturns = struct {
-		result1 string
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuildsDB) BuildEvents(buildID int) ([]db.BuildEvent, error) {
+	fake.buildEventsMutex.Lock()
+	fake.buildEventsArgsForCall = append(fake.buildEventsArgsForCall, struct {
+		buildID int
+	}{buildID})
+	fake.buildEventsMutex.Unlock()
+	if fake.BuildEventsStub != nil {
+		return fake.BuildEventsStub(buildID)
+	} else {
+		return fake.buildEventsReturns.result1, fake.buildEventsReturns.result2
+	}
+}
+
+func (fake *FakeBuildsDB) BuildEventsCallCount() int {
+	fake.buildEventsMutex.RLock()
+	defer fake.buildEventsMutex.RUnlock()
+	return len(fake.buildEventsArgsForCall)
+}
+
+func (fake *FakeBuildsDB) BuildEventsArgsForCall(i int) int {
+	fake.buildEventsMutex.RLock()
+	defer fake.buildEventsMutex.RUnlock()
+	return fake.buildEventsArgsForCall[i].buildID
+}
+
+func (fake *FakeBuildsDB) BuildEventsReturns(result1 []db.BuildEvent, result2 error) {
+	fake.BuildEventsStub = nil
+	fake.buildEventsReturns = struct {
+		result1 []db.BuildEvent
 		result2 error
 	}{result1, result2}
 }

@@ -4,7 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
+	troutes "github.com/concourse/turbine/routes"
 	"github.com/pivotal-golang/lager"
+	"github.com/tedsuo/rata"
 )
 
 func (s *Server) AbortBuild(w http.ResponseWriter, r *http.Request) {
@@ -18,15 +20,35 @@ func (s *Server) AbortBuild(w http.ResponseWriter, r *http.Request) {
 		"build": buildID,
 	})
 
-	abortURL, err := s.db.AbortBuild(buildID)
+	build, err := s.db.GetBuild(buildID)
+	if err != nil {
+		aLog.Error("failed-to-get-build", err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	err = s.db.AbortBuild(buildID)
 	if err != nil {
 		aLog.Error("failed-to-set-aborted", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	if abortURL != "" {
-		resp, err := s.httpClient.Post(abortURL, "", nil)
+	if build.Guid != "" {
+		generator := rata.NewRequestGenerator(build.Endpoint, troutes.Routes)
+
+		abort, err := generator.CreateRequest(
+			troutes.AbortBuild,
+			rata.Params{"guid": build.Guid},
+			nil,
+		)
+		if err != nil {
+			aLog.Error("failed-to-construct-abort-request", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		resp, err := s.httpClient.Do(abort)
 		if err != nil {
 			aLog.Error("failed-to-abort-build", err)
 			w.WriteHeader(http.StatusInternalServerError)

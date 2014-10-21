@@ -14,7 +14,6 @@ import (
 	. "github.com/concourse/atc/builder"
 	"github.com/concourse/atc/builder/fakes"
 	"github.com/concourse/atc/builds"
-	CallbacksRoutes "github.com/concourse/atc/callbacks/routes"
 )
 
 var _ = Describe("Builder", func() {
@@ -52,9 +51,6 @@ var _ = Describe("Builder", func() {
 					Args: []string{"arg1", "arg2"},
 				},
 			},
-
-			StatusCallback: "http://atc-server/api/callbacks/builds/128",
-			EventsCallback: "ws://atc-server/api/callbacks/builds/128/events",
 		}
 
 		db.StartBuildReturns(true, nil)
@@ -62,23 +58,23 @@ var _ = Describe("Builder", func() {
 		builder = NewBuilder(
 			db,
 			rata.NewRequestGenerator(turbineServer.URL(), TurbineRoutes.Routes),
-			rata.NewRequestGenerator("http://atc-server", CallbacksRoutes.Routes),
 		)
 	})
 
 	successfulBuildStart := func(build tbuilds.Build) http.HandlerFunc {
 		createdBuild := build
-		createdBuild.Guid = "some-turbine-guid"
-		createdBuild.AbortURL = turbineServer.URL() + "/abort/the/build"
-		createdBuild.HijackURL = turbineServer.URL() + "/hijack/the/build"
+		createdBuild.Guid = "some-build-guid"
 
 		return ghttp.CombineHandlers(
 			ghttp.VerifyJSONRepresenting(build),
+			func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Add("X-Turbine-Endpoint", turbineServer.URL())
+			},
 			ghttp.RespondWithJSONEncoded(201, createdBuild),
 		)
 	}
 
-	It("starts the build and saves its abort and hijack urls", func() {
+	It("starts the build and saves its guid and endpoint", func() {
 		turbineServer.AppendHandlers(
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/builds"),
@@ -91,37 +87,10 @@ var _ = Describe("Builder", func() {
 
 		Ω(db.StartBuildCallCount()).Should(Equal(1))
 
-		buildID, abortURL, hijackURL := db.StartBuildArgsForCall(0)
+		buildID, guid, endpoint := db.StartBuildArgsForCall(0)
 		Ω(buildID).Should(Equal(128))
-		Ω(abortURL).Should(ContainSubstring("/abort/the/build"))
-		Ω(hijackURL).Should(ContainSubstring("/hijack/the/build"))
-	})
-
-	Context("when the callback url uses SSL", func() {
-		BeforeEach(func() {
-			turbineBuild.StatusCallback = "https://atc-server/api/callbacks/builds/128"
-			turbineBuild.EventsCallback = "wss://atc-server/api/callbacks/builds/128/events"
-
-			builder = NewBuilder(
-				db,
-				rata.NewRequestGenerator(turbineServer.URL(), TurbineRoutes.Routes),
-				rata.NewRequestGenerator("https://atc-server", CallbacksRoutes.Routes),
-			)
-		})
-
-		It("uses SSL for the status and events callbacks", func() {
-			turbineServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/builds"),
-					successfulBuildStart(turbineBuild),
-				),
-			)
-
-			err := builder.Build(build, turbineBuild)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			Ω(db.StartBuildCallCount()).Should(Equal(1))
-		})
+		Ω(guid).Should(ContainSubstring("some-build-guid"))
+		Ω(endpoint).Should(ContainSubstring(turbineServer.URL()))
 	})
 
 	Context("when the build fails to transition to started", func() {
@@ -135,7 +104,7 @@ var _ = Describe("Builder", func() {
 					ghttp.VerifyRequest("POST", "/builds"),
 					successfulBuildStart(turbineBuild),
 				),
-				ghttp.VerifyRequest("POST", "/abort/the/build"),
+				ghttp.VerifyRequest("POST", "/builds/some-build-guid/abort"),
 			)
 
 			err := builder.Build(build, turbineBuild)

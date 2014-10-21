@@ -10,10 +10,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"sync"
-	"time"
 
 	tbuilds "github.com/concourse/turbine/api/builds"
-	"github.com/gorilla/websocket"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -165,53 +163,36 @@ var _ = Describe("Builds API", func() {
 	})
 
 	Describe("GET /api/v1/builds/:build_id/events", func() {
-		var conn *websocket.Conn
+		var (
+			request  *http.Request
+			response *http.Response
+		)
+
+		BeforeEach(func() {
+			var err error
+
+			request, err = http.NewRequest("GET", server.URL+"/api/v1/builds/128/events", nil)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
 
 		JustBeforeEach(func() {
 			var err error
 
-			conn, _, err = websocket.DefaultDialer.Dial("ws://"+server.Listener.Addr().String()+"/api/v1/builds/128/events", nil)
+			response, err = client.Do(request)
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		AfterEach(func() {
-			err := conn.Close()
-			Ω(err).ShouldNot(HaveOccurred())
-		})
+		It("serves the request via the event handler with no censor", func() {
+			Ω(response.StatusCode).Should(Equal(200))
 
-		It("emits events received for the build", func() {
-			fanout := tracker.Register(128, gbytes.NewBuffer())
-
-			sentMsg := json.RawMessage("123")
-			err := fanout.WriteMessage(&sentMsg)
+			body, err := ioutil.ReadAll(response.Body)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			var receivedMsg json.RawMessage
-			err = conn.ReadJSON(&receivedMsg)
-			Ω(err).ShouldNot(HaveOccurred())
+			Ω(string(body)).Should(Equal("fake event handler factory was here"))
 
-			Ω(receivedMsg).Should(Equal(sentMsg))
-		})
-
-		It("continuously pings the connection", func() {
-			gotPing := make(chan struct{}, 10)
-
-			conn.SetPingHandler(func(string) error {
-				gotPing <- struct{}{}
-				return nil
-			})
-
-			// must be reading to see pings; try for 3 * ping interval and give up,
-			// and check that we saw at least 2 pings
-
-			conn.SetReadDeadline(time.Now().Add(3 * pingInterval))
-
-			var receivedMsg json.RawMessage
-			err := conn.ReadJSON(&receivedMsg)
-			Ω(err).Should(HaveOccurred())
-
-			Ω(gotPing).Should(Receive())
-			Ω(gotPing).Should(Receive())
+			Ω(constructedEventHandler.db).Should(Equal(buildsDB))
+			Ω(constructedEventHandler.buildID).Should(Equal(128))
+			Ω(constructedEventHandler.censor).Should(BeNil())
 		})
 	})
 
@@ -224,7 +205,16 @@ var _ = Describe("Builds API", func() {
 
 		BeforeEach(func() {
 			abortTarget = ghttp.NewServer()
-			abortTarget.AppendHandlers(ghttp.VerifyRequest("POST", "/"))
+
+			abortTarget.AppendHandlers(
+				ghttp.VerifyRequest("POST", "/builds/some-guid/abort"),
+			)
+
+			buildsDB.GetBuildReturns(builds.Build{
+				ID:       128,
+				Guid:     "some-guid",
+				Endpoint: abortTarget.URL(),
+			}, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -243,7 +233,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when the build can be aborted", func() {
 			BeforeEach(func() {
-				buildsDB.AbortBuildReturns(abortTarget.URL(), nil)
+				buildsDB.AbortBuildReturns(nil)
 			})
 
 			It("aborts the build via its abort callback", func() {
@@ -277,7 +267,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when the build cannot be aborted", func() {
 			BeforeEach(func() {
-				buildsDB.AbortBuildReturns("", errors.New("oh no!"))
+				buildsDB.AbortBuildReturns(errors.New("oh no!"))
 			})
 
 			It("returns 500 Internal Server Error", func() {
@@ -308,7 +298,7 @@ var _ = Describe("Builds API", func() {
 
 			hijackTarget = ghttp.NewServer()
 			hijackTarget.AppendHandlers(ghttp.CombineHandlers(
-				ghttp.VerifyRequest("POST", "/"),
+				ghttp.VerifyRequest("POST", "/builds/some-guid/hijack"),
 				func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
 
@@ -353,8 +343,9 @@ var _ = Describe("Builds API", func() {
 			Context("and it has a hijack URL", func() {
 				BeforeEach(func() {
 					buildsDB.GetBuildReturns(builds.Build{
-						ID:        128,
-						HijackURL: hijackTarget.URL(),
+						ID:       128,
+						Guid:     "some-guid",
+						Endpoint: hijackTarget.URL(),
 					}, nil)
 				})
 

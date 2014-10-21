@@ -5,10 +5,11 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
 	"strconv"
 
+	"github.com/concourse/turbine/routes"
 	"github.com/pivotal-golang/lager"
+	"github.com/tedsuo/rata"
 )
 
 func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
@@ -29,17 +30,25 @@ func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if build.HijackURL == "" {
+	if build.Guid == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	hijackURL, err := url.Parse(build.HijackURL)
+	generator := rata.NewRequestGenerator(build.Endpoint, routes.Routes)
+
+	hijack, err := generator.CreateRequest(
+		routes.HijackBuild,
+		rata.Params{"guid": build.Guid},
+		nil,
+	)
 	if err != nil {
-		hLog.Error("failed-to-parse-url", err)
+		hLog.Error("failed-to-construct-hijack-request", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	hijackURL := hijack.URL
 
 	conn, err := net.Dial("tcp", hijackURL.Host)
 	if err != nil {
@@ -48,16 +57,9 @@ func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := http.NewRequest(r.Method, build.HijackURL, r.Body)
-	if err != nil {
-		hLog.Error("failed-to-create-request", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
 	client := httputil.NewClientConn(conn, nil)
 
-	resp, err := client.Do(req)
+	resp, err := client.Do(hijack)
 	if err != nil {
 		hLog.Error("failed-to-hijack", err)
 		w.WriteHeader(http.StatusInternalServerError)

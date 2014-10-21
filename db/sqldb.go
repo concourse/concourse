@@ -19,7 +19,7 @@ type sqldb struct {
 	conn   *sql.DB
 }
 
-const buildColumns = "id, name, job_name, status, abort_url, hijack_url, start_time, end_time"
+const buildColumns = "id, name, job_name, status, guid, endpoint, start_time, end_time"
 
 func NewSQL(logger lager.Logger, sqldbConnection *sql.DB) DB {
 	return &sqldb{
@@ -82,6 +82,32 @@ func (db *sqldb) GetAllBuilds() ([]builds.Build, error) {
 		SELECT ` + buildColumns + `
 		FROM builds
 		ORDER BY id DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	bs := []builds.Build{}
+
+	for rows.Next() {
+		build, err := scanBuild(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		bs = append(bs, build)
+	}
+
+	return bs, nil
+}
+
+func (db *sqldb) GetAllStartedBuilds() ([]builds.Build, error) {
+	rows, err := db.conn.Query(`
+		SELECT ` + buildColumns + `
+		FROM builds
+		WHERE status = 'started'
 	`)
 	if err != nil {
 		return nil, err
@@ -385,13 +411,13 @@ func (db *sqldb) ScheduleBuild(buildID int, serial bool) (bool, error) {
 	return rows == 1, nil
 }
 
-func (db *sqldb) StartBuild(buildID int, abortURL, hijackURL string) (bool, error) {
+func (db *sqldb) StartBuild(buildID int, guid, endpoint string) (bool, error) {
 	result, err := db.conn.Exec(`
 		UPDATE builds
-		SET status = 'started', abort_url = $2, hijack_url = $3
+		SET status = 'started', guid = $2, endpoint = $3
 		WHERE id = $1
 		AND status = 'pending'
-	`, buildID, abortURL, hijackURL)
+	`, buildID, guid, endpoint)
 	if err != nil {
 		return false, err
 	}
@@ -430,19 +456,13 @@ func (db *sqldb) SaveBuildEndTime(buildID int, endTime time.Time) error {
 	return nil
 }
 
-func (db *sqldb) AbortBuild(buildID int) (string, error) {
-	var abortURL sql.NullString
-	err := db.conn.QueryRow(`
+func (db *sqldb) AbortBuild(buildID int) error {
+	_, err := db.conn.Exec(`
 		UPDATE builds
 		SET status = $2
 		WHERE id = $1
-		RETURNING abort_url
-	`, buildID, string(builds.StatusAborted)).Scan(&abortURL)
-	if err != nil {
-		return "", err
-	}
-
-	return abortURL.String, nil
+	`, buildID, string(builds.StatusAborted))
+	return err
 }
 
 func (db *sqldb) SaveBuildInput(buildID int, vr builds.VersionedResource) error {
@@ -1069,12 +1089,12 @@ func scanBuild(row scannable) (builds.Build, error) {
 	var name string
 	var jobName sql.NullString
 	var status string
-	var abortURL sql.NullString
-	var hijackURL sql.NullString
+	var guid sql.NullString
+	var endpoint sql.NullString
 	var startTime pq.NullTime
 	var endTime pq.NullTime
 
-	err := row.Scan(&id, &name, &jobName, &status, &abortURL, &hijackURL, &startTime, &endTime)
+	err := row.Scan(&id, &name, &jobName, &status, &guid, &endpoint, &startTime, &endTime)
 	if err != nil {
 		return builds.Build{}, err
 	}
@@ -1085,8 +1105,8 @@ func scanBuild(row scannable) (builds.Build, error) {
 		JobName: jobName.String,
 		Status:  builds.Status(status),
 
-		AbortURL:  abortURL.String,
-		HijackURL: hijackURL.String,
+		Guid:     guid.String,
+		Endpoint: endpoint.String,
 
 		StartTime: startTime.Time,
 		EndTime:   endTime.Time,

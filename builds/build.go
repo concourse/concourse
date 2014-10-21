@@ -24,8 +24,8 @@ type Build struct {
 
 	JobName string
 
-	AbortURL  string
-	HijackURL string
+	Guid     string
+	Endpoint string
 
 	StartTime time.Time
 	EndTime   time.Time

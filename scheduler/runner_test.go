@@ -66,6 +66,10 @@ var _ = Describe("Runner", func() {
 		Eventually(locker.AcquireBuildSchedulingLockCallCount).Should(Equal(1))
 	})
 
+	It("tracks in-flight builds", func() {
+		Eventually(scheduler.TrackInFlightBuildsCallCount).Should(Equal(1))
+	})
+
 	It("schedules pending builds", func() {
 		Eventually(scheduler.TryNextPendingBuildCallCount).Should(Equal(2))
 

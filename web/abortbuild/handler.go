@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web/routes"
+	troutes "github.com/concourse/turbine/routes"
 )
 
 type handler struct {
@@ -54,23 +55,34 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	abortURL, err := handler.db.AbortBuild(buildID)
+	err = handler.db.AbortBuild(buildID)
 	if err != nil {
 		log.Error("failed-to-set-aborted", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	if abortURL != "" {
-		resp, err := handler.httpClient.Post(abortURL, "", nil)
-		if err != nil {
-			log.Error("failed-to-abort-build", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	generator := rata.NewRequestGenerator(build.Endpoint, troutes.Routes)
 
-		resp.Body.Close()
+	abort, err := generator.CreateRequest(
+		troutes.AbortBuild,
+		rata.Params{"guid": build.Guid},
+		nil,
+	)
+	if err != nil {
+		log.Error("failed-to-construct-abort-request", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
+
+	resp, err := handler.httpClient.Do(abort)
+	if err != nil {
+		log.Error("failed-to-abort-build", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	resp.Body.Close()
 
 	redirectPath, err := routes.Routes.CreatePathForRoute(routes.GetBuild, rata.Params{
 		"job":   build.JobName,

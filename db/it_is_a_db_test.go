@@ -79,7 +79,7 @@ func itIsADB() {
 		Ω(build.Name).Should(Equal("1"))
 		Ω(build.Status).Should(Equal(Builds.StatusPending))
 
-		started, err := db.StartBuild(build.ID, "some-abort-url", "some-hijack-url")
+		started, err := db.StartBuild(build.ID, "some-guid", "some-endpoint")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(started).Should(BeTrue())
 
@@ -87,8 +87,10 @@ func itIsADB() {
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(build.Name).Should(Equal("1"))
 		Ω(build.Status).Should(Equal(Builds.StatusStarted))
-		Ω(build.AbortURL).Should(Equal("some-abort-url"))
-		Ω(build.HijackURL).Should(Equal("some-hijack-url"))
+		Ω(build.Guid).Should(Equal("some-guid"))
+		Ω(build.Endpoint).Should(Equal("some-endpoint"))
+
+		Ω(db.GetAllStartedBuilds()).Should(Equal([]Builds.Build{build}))
 
 		allJobBuilds, err := db.GetAllJobBuilds("some-job")
 		Ω(err).ShouldNot(HaveOccurred())
@@ -125,13 +127,12 @@ func itIsADB() {
 		Ω(build.Name).Should(Equal("1"))
 		Ω(build.Status).Should(Equal(Builds.StatusPending))
 
-		started, err = db.StartBuild(build.ID, "some-other-abort-url", "some-other-hijack-url")
+		started, err = db.StartBuild(build.ID, "some-other-guid", "some-other-endpoint")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(started).Should(BeTrue())
 
-		abortURL, err := db.AbortBuild(build.ID)
+		err = db.AbortBuild(build.ID)
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(abortURL).Should(Equal("some-other-abort-url"))
 
 		events, err := db.BuildEvents(build.ID)
 		Ω(err).ShouldNot(HaveOccurred())
@@ -234,7 +235,7 @@ func itIsADB() {
 		nextBuild, err := db.CreateJobBuild("some-job")
 		Ω(err).ShouldNot(HaveOccurred())
 
-		started, err := db.StartBuild(nextBuild.ID, "abort-url", "hijack-url")
+		started, err := db.StartBuild(nextBuild.ID, "some-guid", "some-other-endpoint")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(started).Should(BeTrue())
 
@@ -253,7 +254,7 @@ func itIsADB() {
 		Ω(next.ID).Should(Equal(nextBuild.ID)) // not anotherRunningBuild
 		Ω(finished.ID).Should(Equal(finishedBuild.ID))
 
-		started, err = db.StartBuild(anotherRunningBuild.ID, "abort-url", "hijack-url")
+		started, err = db.StartBuild(anotherRunningBuild.ID, "some-guid", "some-other-endpoint")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(started).Should(BeTrue())
 
@@ -781,7 +782,7 @@ func itIsADB() {
 
 		Context("and then aborted", func() {
 			BeforeEach(func() {
-				_, err := db.AbortBuild(firstBuild.ID)
+				err := db.AbortBuild(firstBuild.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 
@@ -809,7 +810,7 @@ func itIsADB() {
 
 			Context("and then aborted", func() {
 				BeforeEach(func() {
-					_, err := db.AbortBuild(firstBuild.ID)
+					err := db.AbortBuild(firstBuild.ID)
 					Ω(err).ShouldNot(HaveOccurred())
 				})
 
@@ -821,7 +822,7 @@ func itIsADB() {
 
 				Describe("starting the build", func() {
 					It("fails", func() {
-						started, err := db.StartBuild(firstBuild.ID, "abort-url", "hijack-url")
+						started, err := db.StartBuild(firstBuild.ID, "some-guid", "some-endpoint")
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(started).Should(BeFalse())
 					})
@@ -938,7 +939,7 @@ func itIsADB() {
 
 				Describe("after the first build is aborted", func() {
 					BeforeEach(func() {
-						_, err := db.AbortBuild(firstBuild.ID)
+						err := db.AbortBuild(firstBuild.ID)
 						Ω(err).ShouldNot(HaveOccurred())
 					})
 

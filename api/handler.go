@@ -12,7 +12,6 @@ import (
 	"github.com/concourse/atc/api/pipes"
 	"github.com/concourse/atc/api/routes"
 	"github.com/concourse/atc/builder"
-	"github.com/concourse/atc/logfanout"
 )
 
 func NewHandler(
@@ -20,11 +19,20 @@ func NewHandler(
 	buildsDB buildserver.BuildsDB,
 	jobsDB jobserver.JobsDB,
 	builder builder.Builder,
-	tracker *logfanout.Tracker,
 	pingInterval time.Duration,
 	peerAddr string,
+	eventHandlerFactory buildserver.EventHandlerFactory,
+	drain <-chan struct{},
 ) (http.Handler, error) {
-	buildServer := buildserver.NewServer(logger, buildsDB, builder, tracker, pingInterval)
+	buildServer := buildserver.NewServer(
+		logger,
+		buildsDB,
+		builder,
+		pingInterval,
+		eventHandlerFactory,
+		drain,
+	)
+
 	jobServer := jobserver.NewServer(logger, jobsDB)
 	pipeServer := pipes.NewServer(logger, peerAddr)
 

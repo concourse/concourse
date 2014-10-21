@@ -25,6 +25,12 @@ type FakeBuildScheduler struct {
 	buildLatestInputsReturns struct {
 		result1 error
 	}
+	TrackInFlightBuildsStub        func() error
+	trackInFlightBuildsMutex       sync.RWMutex
+	trackInFlightBuildsArgsForCall []struct{}
+	trackInFlightBuildsReturns struct {
+		result1 error
+	}
 }
 
 func (fake *FakeBuildScheduler) TryNextPendingBuild(arg1 config.Job) error {
@@ -87,6 +93,30 @@ func (fake *FakeBuildScheduler) BuildLatestInputsArgsForCall(i int) config.Job {
 func (fake *FakeBuildScheduler) BuildLatestInputsReturns(result1 error) {
 	fake.BuildLatestInputsStub = nil
 	fake.buildLatestInputsReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuildScheduler) TrackInFlightBuilds() error {
+	fake.trackInFlightBuildsMutex.Lock()
+	fake.trackInFlightBuildsArgsForCall = append(fake.trackInFlightBuildsArgsForCall, struct{}{})
+	fake.trackInFlightBuildsMutex.Unlock()
+	if fake.TrackInFlightBuildsStub != nil {
+		return fake.TrackInFlightBuildsStub()
+	} else {
+		return fake.trackInFlightBuildsReturns.result1
+	}
+}
+
+func (fake *FakeBuildScheduler) TrackInFlightBuildsCallCount() int {
+	fake.trackInFlightBuildsMutex.RLock()
+	defer fake.trackInFlightBuildsMutex.RUnlock()
+	return len(fake.trackInFlightBuildsArgsForCall)
+}
+
+func (fake *FakeBuildScheduler) TrackInFlightBuildsReturns(result1 error) {
+	fake.TrackInFlightBuildsStub = nil
+	fake.trackInFlightBuildsReturns = struct {
 		result1 error
 	}{result1}
 }

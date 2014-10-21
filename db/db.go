@@ -13,6 +13,7 @@ type DB interface {
 
 	GetBuild(buildID int) (builds.Build, error)
 	GetAllBuilds() ([]builds.Build, error)
+	GetAllStartedBuilds() ([]builds.Build, error)
 
 	GetJobBuild(job string, build string) (builds.Build, error)
 	GetAllJobBuilds(job string) ([]builds.Build, error)
@@ -27,7 +28,7 @@ type DB interface {
 	CreateOneOffBuild() (builds.Build, error)
 
 	ScheduleBuild(buildID int, serial bool) (bool, error)
-	StartBuild(buildID int, abortURL, hijackURL string) (bool, error)
+	StartBuild(buildID int, buildGuid, turbineEndpoint string) (bool, error)
 
 	BuildEvents(buildID int) ([]BuildEvent, error)
 	AppendBuildEvent(buildID int, event BuildEvent) error
@@ -35,7 +36,7 @@ type DB interface {
 	SaveBuildInput(buildID int, vr builds.VersionedResource) error
 	SaveBuildOutput(buildID int, vr builds.VersionedResource) error
 
-	AbortBuild(buildID int) (string, error)
+	AbortBuild(buildID int) error
 	SaveBuildStatus(buildID int, status builds.Status) error
 
 	SaveBuildStartTime(buildID int, startTime time.Time) error

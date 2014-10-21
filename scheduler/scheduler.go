@@ -17,10 +17,16 @@ type SchedulerDB interface {
 	GetJobBuildForInputs(job string, inputs builds.VersionedResources) (builds.Build, error)
 
 	GetNextPendingBuild(job string) (builds.Build, builds.VersionedResources, error)
+
+	GetAllStartedBuilds() ([]builds.Build, error)
 }
 
 type BuildFactory interface {
 	Create(config.Job, builds.VersionedResources) (tbuilds.Build, error)
+}
+
+type BuildTracker interface {
+	TrackBuild(builds.Build) error
 }
 
 type Scheduler struct {
@@ -28,6 +34,7 @@ type Scheduler struct {
 	DB      SchedulerDB
 	Factory BuildFactory
 	Builder builder.Builder
+	Tracker BuildTracker
 }
 
 func (s *Scheduler) BuildLatestInputs(job config.Job) error {
@@ -192,4 +199,17 @@ func (s *Scheduler) TriggerImmediately(job config.Job) (builds.Build, error) {
 	}
 
 	return build, nil
+}
+
+func (s *Scheduler) TrackInFlightBuilds() error {
+	builds, err := s.DB.GetAllStartedBuilds()
+	if err != nil {
+		return err
+	}
+
+	for _, b := range builds {
+		s.Tracker.TrackBuild(b)
+	}
+
+	return nil
 }

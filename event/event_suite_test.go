@@ -1,4 +1,4 @@
-package callbacks_test
+package event_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestCallbacks(t *testing.T) {
+func TestEvent(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Callbacks Suite")
+	RunSpecs(t, "Event Suite")
 }

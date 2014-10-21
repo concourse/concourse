@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc/builds"
-	croutes "github.com/concourse/atc/callbacks/routes"
 )
 
 var ErrBadResponse = errors.New("bad response from turbine")
@@ -30,17 +28,15 @@ type builder struct {
 	db BuilderDB
 
 	turbine *rata.RequestGenerator
-	atc     *rata.RequestGenerator
 
 	httpClient *http.Client
 }
 
-func NewBuilder(db BuilderDB, turbine *rata.RequestGenerator, atc *rata.RequestGenerator) Builder {
+func NewBuilder(db BuilderDB, turbine *rata.RequestGenerator) Builder {
 	return &builder{
 		db: db,
 
 		turbine: turbine,
-		atc:     atc,
 
 		httpClient: &http.Client{
 			Transport: &http.Transport{
@@ -54,41 +50,9 @@ func NewBuilder(db BuilderDB, turbine *rata.RequestGenerator, atc *rata.RequestG
 }
 
 func (builder *builder) Build(build builds.Build, turbineBuild tbuilds.Build) error {
-	updateBuild, err := builder.atc.CreateRequest(
-		croutes.UpdateBuild,
-		rata.Params{
-			"build": fmt.Sprintf("%d", build.ID),
-		},
-		nil,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	turbineBuild.StatusCallback = updateBuild.URL.String()
-
-	recordEvents, err := builder.atc.CreateRequest(
-		croutes.RecordEvents,
-		rata.Params{
-			"build": fmt.Sprintf("%d", build.ID),
-		},
-		nil,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	if recordEvents.URL.Scheme == "https" {
-		recordEvents.URL.Scheme = "wss"
-	} else {
-		recordEvents.URL.Scheme = "ws"
-	}
-
-	turbineBuild.EventsCallback = recordEvents.URL.String()
-
 	req := new(bytes.Buffer)
 
-	err = json.NewEncoder(req).Encode(turbineBuild)
+	err := json.NewEncoder(req).Encode(turbineBuild)
 	if err != nil {
 		return err
 	}
@@ -109,7 +73,6 @@ func (builder *builder) Build(build builds.Build, turbineBuild tbuilds.Build) er
 		return err
 	}
 
-	// TODO test bad response code
 	if resp.StatusCode != http.StatusCreated {
 		return ErrBadResponse
 	}
@@ -122,14 +85,32 @@ func (builder *builder) Build(build builds.Build, turbineBuild tbuilds.Build) er
 
 	resp.Body.Close()
 
-	started, err := builder.db.StartBuild(build.ID, startedBuild.AbortURL, startedBuild.HijackURL)
+	started, err := builder.db.StartBuild(build.ID, startedBuild.Guid, resp.Header.Get("X-Turbine-Endpoint"))
 	if err != nil {
 		return err
 	}
 
 	if !started {
-		builder.httpClient.Post(startedBuild.AbortURL, "", nil)
+		builder.abort(startedBuild.Guid)
 	}
 
 	return nil
+}
+
+func (builder *builder) abort(guid string) error {
+	abort, err := builder.turbine.CreateRequest(
+		troutes.AbortBuild,
+		rata.Params{"guid": guid},
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	resp, err := builder.httpClient.Do(abort)
+	if err == nil {
+		resp.Body.Close()
+	}
+
+	return err
 }

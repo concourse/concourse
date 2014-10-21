@@ -27,12 +27,10 @@ import (
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/builder"
-	"github.com/concourse/atc/callbacks"
-	croutes "github.com/concourse/atc/callbacks/routes"
 	"github.com/concourse/atc/config"
 	Db "github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migrations"
-	"github.com/concourse/atc/logfanout"
+	"github.com/concourse/atc/event"
 	rdr "github.com/concourse/atc/radar"
 	sched "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/factory"
@@ -93,18 +91,6 @@ var callbacksURLString = flag.String(
 	"URL used for callbacks to reach the ATC (excluding basic auth)",
 )
 
-var callbacksUsername = flag.String(
-	"callbacksUsername",
-	"callbacks",
-	"basic auth username for callbacks endpoints, given to workers",
-)
-
-var callbacksPassword = flag.String(
-	"callbacksPassword",
-	"",
-	"basic auth password for callbacks endpoints, given to workers",
-)
-
 var debugListenAddress = flag.String(
 	"debugListenAddress",
 	"127.0.0.1",
@@ -158,10 +144,6 @@ func main() {
 
 	if *pipelinePath == "" {
 		fatal(errors.New("must specify -pipeline"))
-	}
-
-	if !*dev && (*callbacksUsername == "" || *callbacksPassword == "") {
-		fatal(errors.New("must specify -callbacksUsername and -callbacksPassword or turn on dev mode"))
 	}
 
 	if !*dev && (*httpUsername == "" || *httpHashedPassword == "") {
@@ -225,36 +207,17 @@ func main() {
 		}
 	}
 
-	callbacksURL, err := url.Parse(*callbacksURLString)
-	if err != nil {
-		fatal(err)
-	}
-
-	var callbacksValidator auth.Validator
-
-	if *callbacksUsername != "" && *callbacksPassword != "" {
-		callbacksValidator = auth.BasicAuthValidator{
-			Username: *callbacksUsername,
-			Password: *callbacksPassword,
-		}
-
-		callbacksURL.User = url.UserPassword(*callbacksUsername, *callbacksPassword)
-	} else {
-		callbacksValidator = auth.NoopValidator{}
-	}
-
-	callbackEndpoint := rata.NewRequestGenerator(callbacksURL.String(), croutes.Routes)
 	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, troutes.Routes)
-	builder := builder.NewBuilder(db, turbineEndpoint, callbackEndpoint)
+	builder := builder.NewBuilder(db, turbineEndpoint)
+	tracker := sched.NewTracker(db)
 
 	scheduler := &sched.Scheduler{
 		DB:      db,
 		Factory: &factory.BuildFactory{Resources: conf.Resources},
 		Builder: builder,
+		Tracker: tracker,
 		Logger:  logger.Session("scheduler"),
 	}
-
-	tracker := logfanout.NewTracker(db)
 
 	radar := rdr.NewRadar(logger, db, *checkInterval)
 
@@ -269,14 +232,22 @@ func main() {
 		webValidator = auth.NoopValidator{}
 	}
 
+	callbacksURL, err := url.Parse(*callbacksURLString)
+	if err != nil {
+		fatal(err)
+	}
+
+	drain := make(chan struct{})
+
 	apiHandler, err := api.NewHandler(
 		logger,
 		db,
 		db,
 		builder,
-		tracker,
 		5*time.Second,
 		callbacksURL.Host,
+		event.NewHandler,
+		drain,
 	)
 	if err != nil {
 		fatal(err)
@@ -291,13 +262,8 @@ func main() {
 		db,
 		*templatesDir,
 		*publicDir,
-		tracker,
+		drain,
 	)
-	if err != nil {
-		fatal(err)
-	}
-
-	callbacksHandler, err := callbacks.NewHandler(logger, db, tracker)
 	if err != nil {
 		fatal(err)
 	}
@@ -314,7 +280,6 @@ func main() {
 
 	webMux := http.NewServeMux()
 	webMux.Handle("/api/v1/", auth.Handler{Handler: apiHandler, Validator: webValidator})
-	webMux.Handle("/api/callbacks/", auth.Handler{Handler: callbacksHandler, Validator: callbacksValidator})
 	webMux.Handle("/", publicHandler)
 
 	// copy Authorization header as ATC-Authorization cookie for websocket auth
@@ -327,11 +292,18 @@ func main() {
 
 	group := grouper.NewParallel(os.Interrupt, []grouper.Member{
 		{"web", http_server.New(webListenAddr, publicHandler)},
+
 		{"debug", http_server.New(debugListenAddr, http.DefaultServeMux)},
 
-		{"drainer", &logfanout.Drainer{
-			Tracker: tracker,
-		}},
+		{"drainer", ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+			close(ready)
+
+			<-signals
+
+			close(drain)
+
+			return nil
+		})},
 
 		{"radar", &rdr.Runner{
 			Logger: logger.Session("radar"),

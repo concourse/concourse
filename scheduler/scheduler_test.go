@@ -16,20 +16,24 @@ import (
 )
 
 var _ = Describe("Scheduler", func() {
-	var db *fakes.FakeSchedulerDB
-	var factory *fakes.FakeBuildFactory
-	var builder *fakebuilder.FakeBuilder
+	var (
+		db      *fakes.FakeSchedulerDB
+		factory *fakes.FakeBuildFactory
+		builder *fakebuilder.FakeBuilder
+		tracker *fakes.FakeBuildTracker
 
-	var createdTurbineBuild tbuilds.Build
+		createdTurbineBuild tbuilds.Build
 
-	var job config.Job
+		job config.Job
 
-	var scheduler *Scheduler
+		scheduler *Scheduler
+	)
 
 	BeforeEach(func() {
 		db = new(fakes.FakeSchedulerDB)
 		factory = new(fakes.FakeBuildFactory)
 		builder = new(fakebuilder.FakeBuilder)
+		tracker = new(fakes.FakeBuildTracker)
 
 		createdTurbineBuild = tbuilds.Build{
 			Config: tbuilds.Config{
@@ -44,6 +48,7 @@ var _ = Describe("Scheduler", func() {
 			DB:      db,
 			Factory: factory,
 			Builder: builder,
+			Tracker: tracker,
 		}
 
 		job = config.Job{
@@ -62,6 +67,30 @@ var _ = Describe("Scheduler", func() {
 				},
 			},
 		}
+	})
+
+	Describe("TrackInFlightBuilds", func() {
+		var inFlightBuilds []builds.Build
+
+		BeforeEach(func() {
+			inFlightBuilds = []builds.Build{
+				{ID: 1},
+				{ID: 2},
+				{ID: 3},
+			}
+
+			db.GetAllStartedBuildsReturns(inFlightBuilds, nil)
+		})
+
+		It("invokes the tracker with all currently in-flight builds", func() {
+			err := scheduler.TrackInFlightBuilds()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(tracker.TrackBuildCallCount()).Should(Equal(3))
+			Ω(tracker.TrackBuildArgsForCall(0)).Should(Equal(inFlightBuilds[0]))
+			Ω(tracker.TrackBuildArgsForCall(1)).Should(Equal(inFlightBuilds[1]))
+			Ω(tracker.TrackBuildArgsForCall(2)).Should(Equal(inFlightBuilds[2]))
+		})
 	})
 
 	Describe("BuildLatestInputs", func() {
