@@ -84,6 +84,8 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 		return err
 	}
 
+	defer resp.Body.Close()
+
 	if resp.StatusCode == http.StatusNotFound {
 		tLog.Info("saving-orphaned-build-as-errored")
 
