@@ -117,17 +117,21 @@ func hijack(c *cli.Context) {
 
 	cconn, cbr := clientConn.Hijack()
 
+	var in io.Reader
+
 	term, err := term.Open(os.Stdin.Name())
-	if err != nil {
-		log.Fatalln("failed to open terminal:", err)
-	}
+	if err == nil {
+		err = term.SetRaw()
+		if err != nil {
+			log.Fatalln("failed to set raw:", term)
+		}
 
-	err = term.SetRaw()
-	if err != nil {
-		log.Fatalln("failed to set raw:", term)
-	}
+		defer term.Restore()
 
-	defer term.Restore()
+		in = term
+	} else {
+		in = os.Stdin
+	}
 
 	encoder := gob.NewEncoder(cconn)
 
@@ -141,7 +145,7 @@ func hijack(c *cli.Context) {
 		}
 	}()
 
-	go io.Copy(&stdinWriter{encoder}, term)
+	go io.Copy(&stdinWriter{encoder}, in)
 
 	io.Copy(os.Stdout, cbr)
 }
