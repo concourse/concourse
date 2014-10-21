@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc/scheduler/fakes"
 	tbuilds "github.com/concourse/turbine/api/builds"
 	"github.com/concourse/turbine/event"
+	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/vito/go-sse/sse"
 
 	. "github.com/onsi/ginkgo"
@@ -32,7 +33,7 @@ var _ = Describe("Tracker", func() {
 
 		turbineServer = ghttp.NewServer()
 
-		tracker = NewTracker(trackerDB)
+		tracker = NewTracker(lagertest.NewTestLogger("test"), trackerDB)
 	})
 
 	AfterEach(func() {

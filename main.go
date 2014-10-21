@@ -209,7 +209,7 @@ func main() {
 
 	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, troutes.Routes)
 	builder := builder.NewBuilder(db, turbineEndpoint)
-	tracker := sched.NewTracker(db)
+	tracker := sched.NewTracker(logger.Session("tracker"), db)
 
 	scheduler := &sched.Scheduler{
 		DB:      db,
