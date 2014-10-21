@@ -641,20 +641,6 @@ func (db *sqldb) GetLatestVersionedResource(name string) (builds.VersionedResour
 }
 
 func (db *sqldb) GetLatestInputVersions(inputs []config.Input) (builds.VersionedResources, error) {
-	startedAt := time.Now()
-
-	getLog := db.logger.Session("get-latest-input-versions", lager.Data{
-		"inputs": inputs,
-	})
-
-	getLog.Debug("start")
-
-	defer func() {
-		getLog.Info("finished", lager.Data{
-			"took": time.Now().Sub(startedAt).String(),
-		})
-	}()
-
 	fromAliases := []string{}
 	conditions := []string{}
 	params := []interface{}{}

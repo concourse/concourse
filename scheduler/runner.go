@@ -67,7 +67,7 @@ func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	}
 
 	if runner.Logger != nil {
-		runner.Logger.Info("polling", lager.Data{
+		runner.Logger.Info("starting", lager.Data{
 			"inverval": runner.Interval.String(),
 		})
 	}
@@ -76,6 +76,10 @@ dance:
 	for {
 		select {
 		case <-time.After(runner.Interval):
+			if runner.Logger != nil {
+				runner.Logger.Info("scheduling")
+			}
+
 			runner.Scheduler.TrackInFlightBuilds()
 
 			for _, job := range runner.Jobs {
