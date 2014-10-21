@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io"
 
 	"github.com/BurntSushi/migration"
@@ -48,61 +49,67 @@ func AddBuildEvents(tx migration.LimitedTx) error {
 			continue
 		}
 
-		decoder := json.NewDecoder(bytes.NewBufferString(buildLog.String))
-
-		var version version
-		err = decoder.Decode(&version)
-		if err != nil {
-			_, err = tx.Exec(`
-					INSERT INTO build_events (build_id, type, payload)
-					VALUES ($1, $2, $3)
-				`, id, "version", "0.0")
-			if err != nil {
-				return err
-			}
-
-			_, err = tx.Exec(`
-						INSERT INTO build_events (build_id, type, payload)
-						VALUES ($1, $2, $3)
-					`, id, "log", buildLog.String)
-			if err != nil {
-				return err
-			}
-
-			continue
-		}
-
-		versionEnc, err := json.Marshal(version.Version)
-		if err != nil {
-			return err
-		}
-
-		_, err = tx.Exec(`
-				INSERT INTO build_events (build_id, type, payload)
-				VALUES ($1, $2, $3)
-			`, id, "version", versionEnc)
-		if err != nil {
-			return err
-		}
+		logBuf := bytes.NewBufferString(buildLog.String)
+		decoder := json.NewDecoder(logBuf)
 
 		for {
-			var event eventEnvelope
-			err := decoder.Decode(&event)
+			var entry logEntry
+
+			err := decoder.Decode(&entry)
 			if err != nil {
-				if err == io.EOF {
-					break
+				if err != io.EOF {
+					// non-JSON log; assume v0.0
+
+					_, err = tx.Exec(`
+						INSERT INTO build_events (build_id, type, payload)
+						VALUES ($1, $2, $3)
+					`, id, "version", "0.0")
+					if err != nil {
+						return err
+					}
+
+					_, err = tx.Exec(`
+							INSERT INTO build_events (build_id, type, payload)
+							VALUES ($1, $2, $3)
+						`, id, "log", buildLog.String)
+					if err != nil {
+						return err
+					}
 				}
 
-				return err
+				break
 			}
 
-			_, err = tx.Exec(`
+			if entry.Type != "" && entry.EventPayload != nil {
+				_, err = tx.Exec(`
+						INSERT INTO build_events (build_id, type, payload)
+						VALUES ($1, $2, $3)
+					`, id, entry.Type, []byte(*entry.EventPayload))
+				if err != nil {
+					return err
+				}
+
+				continue
+			}
+
+			if entry.Version != "" {
+				versionEnc, err := json.Marshal(entry.Version)
+				if err != nil {
+					return err
+				}
+
+				_, err = tx.Exec(`
 					INSERT INTO build_events (build_id, type, payload)
 					VALUES ($1, $2, $3)
-				`, id, event.Type, []byte(*event.EventPayload))
-			if err != nil {
-				return err
+				`, id, "version", versionEnc)
+				if err != nil {
+					return err
+				}
+
+				continue
 			}
+
+			return fmt.Errorf("malformed event stream; got stuck at %s", logBuf.String())
 		}
 	}
 
@@ -117,11 +124,11 @@ func AddBuildEvents(tx migration.LimitedTx) error {
 	return nil
 }
 
-type eventEnvelope struct {
+type logEntry struct {
+	// either an event...
 	Type         string           `json:"type"`
 	EventPayload *json.RawMessage `json:"event"`
-}
 
-type version struct {
+	// ...or a version
 	Version string `json:"version"`
 }
