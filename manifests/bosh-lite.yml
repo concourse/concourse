@@ -10,7 +10,7 @@ pipeline: &pipeline
   jobs:
     - name: dummy
       config:
-        image: docker:///ubuntu#14.04
+        image: docker:///busybox
         run:
           path: echo
           args: [Hello, world!]
