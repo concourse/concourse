@@ -44,57 +44,64 @@ func AddBuildEvents(tx migration.LimitedTx) error {
 
 		cursor = id
 
-		if buildLog.Valid {
-			decoder := json.NewDecoder(bytes.NewBufferString(buildLog.String))
+		if !buildLog.Valid {
+			continue
+		}
 
-			var version version
-			err := decoder.Decode(&version)
-			if err != nil {
-				_, err = tx.Exec(`
+		decoder := json.NewDecoder(bytes.NewBufferString(buildLog.String))
+
+		var version version
+		err = decoder.Decode(&version)
+		if err != nil {
+			_, err = tx.Exec(`
 					INSERT INTO build_events (build_id, type, payload)
 					VALUES ($1, $2, $3)
 				`, id, "version", "0.0")
-				if err != nil {
-					return err
-				}
-
-				_, err = tx.Exec(`
-						INSERT INTO build_events (build_id, type, payload)
-						VALUES ($1, $2, $3)
-					`, id, "log", buildLog.String)
-				if err != nil {
-					return err
-				}
-
-				continue
-			}
-
-			_, err = tx.Exec(`
-				INSERT INTO build_events (build_id, type, payload)
-				VALUES ($1, $2, $3)
-			`, id, "version", version.Version)
 			if err != nil {
 				return err
 			}
 
-			for {
-				var event eventEnvelope
-				err := decoder.Decode(&event)
-				if err != nil {
-					if err == io.EOF {
-						break
-					}
+			_, err = tx.Exec(`
+						INSERT INTO build_events (build_id, type, payload)
+						VALUES ($1, $2, $3)
+					`, id, "log", buildLog.String)
+			if err != nil {
+				return err
+			}
 
-					return err
+			continue
+		}
+
+		versionEnc, err := json.Marshal(version.Version)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.Exec(`
+				INSERT INTO build_events (build_id, type, payload)
+				VALUES ($1, $2, $3)
+			`, id, "version", versionEnc)
+		if err != nil {
+			return err
+		}
+
+		for {
+			var event eventEnvelope
+			err := decoder.Decode(&event)
+			if err != nil {
+				if err == io.EOF {
+					break
 				}
 
-				_, err = tx.Exec(`
+				return err
+			}
+
+			_, err = tx.Exec(`
 					INSERT INTO build_events (build_id, type, payload)
 					VALUES ($1, $2, $3)
 				`, id, event.Type, []byte(*event.EventPayload))
-				if err != nil {
-					return err
-				}
+			if err != nil {
+				return err
 			}
 		}
 	}
