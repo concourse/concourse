@@ -27,7 +27,7 @@ jobs:
     resource_pool: concourse
     networks:
       - name: concourse
-        static_ips: [&web-ip 10.244.8.2]
+        static_ips: &web-ips [10.244.8.2]
     persistent_disk: 1024 # for consul
     templates:
       - {release: concourse, name: atc}
@@ -62,7 +62,7 @@ jobs:
       consul:
         agent:
           services: [{name: postgresql}]
-          servers: {lan: [*web-ip]}
+          servers: {lan: *web-ips}
 
   - name: worker
     instances: 1
@@ -80,7 +80,7 @@ jobs:
       consul:
         agent:
           services: [{name: turbine}]
-          servers: {lan: [*web-ip]}
+          servers: {lan: *web-ips}
 
 networks:
   - name: concourse
