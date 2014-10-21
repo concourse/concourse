@@ -26,7 +26,7 @@ var _ = Describe("EventCensor", func() {
 			BeforeEach(func() {
 				_, err := censor.Censor(sse.Event{
 					Name: "version",
-					Data: []byte("0.0"),
+					Data: []byte(`"0.0"`),
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 			})
@@ -41,139 +41,143 @@ var _ = Describe("EventCensor", func() {
 			})
 		})
 
-		Context("with the v1.0 protocol", func() {
-			BeforeEach(func() {
-				_, err := censor.Censor(sse.Event{
-					Name: "version",
-					Data: []byte("1.0"),
+		for _, v1version := range []string{"1.0", "1.1"} {
+			version := v1version
+
+			Context("with the v"+version+" protocol", func() {
+				BeforeEach(func() {
+					_, err := censor.Censor(sse.Event{
+						Name: "version",
+						Data: []byte(`"` + version + `"`),
+					})
+					Ω(err).ShouldNot(HaveOccurred())
 				})
-				Ω(err).ShouldNot(HaveOccurred())
-			})
 
-			for _, e := range []event.Event{
-				event.Log{
-					Origin: event.Origin{
-						Type: event.OriginTypeInput,
-						Name: "some-input",
+				for _, e := range []event.Event{
+					event.Log{
+						Origin: event.Origin{
+							Type: event.OriginTypeInput,
+							Name: "some-input",
+						},
+						Payload: "some log",
 					},
-					Payload: "some log",
-				},
-				event.Status{
-					Status: builds.StatusSucceeded,
-				},
-				event.Start{
-					Time: time.Now().Unix(),
-				},
-				event.Finish{
-					Time:       time.Now().Unix(),
-					ExitStatus: 123,
-				},
-				event.Error{
-					Message: "some error",
-				},
-			} {
-				event := e
+					event.Status{
+						Status: builds.StatusSucceeded,
+					},
+					event.Start{
+						Time: time.Now().Unix(),
+					},
+					event.Finish{
+						Time:       time.Now().Unix(),
+						ExitStatus: 123,
+					},
+					event.Error{
+						Message: "some error",
+					},
+				} {
+					event := e
 
-				Describe(fmt.Sprintf("writing a %T event", event), func() {
-					It("passes it through verbatim", func() {
-						payload, err := json.Marshal(event)
+					Describe(fmt.Sprintf("writing a %T event", event), func() {
+						It("passes it through verbatim", func() {
+							payload, err := json.Marshal(event)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							sseEvent := sse.Event{
+								Name: string(event.EventType()),
+								Data: payload,
+							}
+
+							Ω(censor.Censor(sseEvent)).Should(Equal(sseEvent))
+						})
+					})
+				}
+
+				Describe("censoring an Initialize event", func() {
+					It("censors build parameters", func() {
+						censored, err := censor.Censor(sse.Event{
+							Name: "initialize",
+							Data: []byte(`{
+								"config": {
+									"image": "some-image",
+									"params": {"super":"secret"},
+									"run": {"path": "ls"}
+								}
+							}`),
+						})
 						Ω(err).ShouldNot(HaveOccurred())
 
-						sseEvent := sse.Event{
-							Name: string(event.EventType()),
-							Data: payload,
-						}
-
-						Ω(censor.Censor(sseEvent)).Should(Equal(sseEvent))
+						Ω(censored.Name).Should(Equal("initialize"))
+						Ω(censored.Data).Should(MatchJSON(`{
+							"config": {
+								"image": "some-image",
+								"run": {"path": "ls"}
+							}
+						}`))
 					})
 				})
-			}
 
-			Describe("censoring an Initialize event", func() {
-				It("censors build parameters", func() {
-					censored, err := censor.Censor(sse.Event{
-						Name: "initialize",
-						Data: []byte(`{
-              "config": {
-                "image": "some-image",
-                "params": {"super":"secret"},
-                "run": {"path": "ls"}
-              }
-            }`),
+				Describe("writing an Input event", func() {
+					It("censors source and params", func() {
+						censored, err := censor.Censor(sse.Event{
+							Name: "input",
+							Data: []byte(`{
+								"input": {
+									"name": "some-name",
+									"type": "git",
+									"version": {"ref": "foo"},
+									"source": {"some": "secret"},
+									"params": {"another": "secret"},
+									"metadata": [{"name": "public", "value": "data"}],
+									"config_path": "config/path.yml"
+								}
+							}`),
+						})
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Ω(censored.Name).Should(Equal("input"))
+						Ω(censored.Data).Should(MatchJSON(`{
+							"input": {
+								"name": "some-name",
+								"type": "git",
+								"version": {"ref": "foo"},
+								"metadata": [{"name": "public", "value": "data"}],
+								"config_path": "config/path.yml"
+							}
+						}`))
 					})
-					Ω(err).ShouldNot(HaveOccurred())
+				})
 
-					Ω(censored.Name).Should(Equal("initialize"))
-					Ω(censored.Data).Should(MatchJSON(`{
-            "config": {
-              "image": "some-image",
-              "run": {"path": "ls"}
-            }
-          }`))
+				Describe("writing an Output event", func() {
+					It("censors source and params", func() {
+						censored, err := censor.Censor(sse.Event{
+							Name: "output",
+							Data: []byte(`{
+								"output": {
+									"name": "some-name",
+									"type": "git",
+									"on": ["success"],
+									"version": {"ref": "foo"},
+									"source": {"some": "secret"},
+									"params": {"another": "secret"},
+									"metadata": [{"name": "public", "value": "data"}]
+								}
+							}`),
+						})
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Ω(censored.Name).Should(Equal("output"))
+						Ω(censored.Data).Should(MatchJSON(`{
+							"output": {
+								"name": "some-name",
+								"type": "git",
+								"on": ["success"],
+								"version": {"ref": "foo"},
+								"metadata": [{"name": "public", "value": "data"}]
+							}
+						}`))
+					})
 				})
 			})
-
-			Describe("writing an Input event", func() {
-				It("censors source and params", func() {
-					censored, err := censor.Censor(sse.Event{
-						Name: "input",
-						Data: []byte(`{
-              "input": {
-                "name": "some-name",
-                "type": "git",
-                "version": {"ref": "foo"},
-                "source": {"some": "secret"},
-                "params": {"another": "secret"},
-                "metadata": [{"name": "public", "value": "data"}],
-                "config_path": "config/path.yml"
-              }
-            }`),
-					})
-					Ω(err).ShouldNot(HaveOccurred())
-
-					Ω(censored.Name).Should(Equal("input"))
-					Ω(censored.Data).Should(MatchJSON(`{
-            "input": {
-              "name": "some-name",
-              "type": "git",
-              "version": {"ref": "foo"},
-              "metadata": [{"name": "public", "value": "data"}],
-              "config_path": "config/path.yml"
-            }
-          }`))
-				})
-			})
-
-			Describe("writing an Output event", func() {
-				It("censors source and params", func() {
-					censored, err := censor.Censor(sse.Event{
-						Name: "output",
-						Data: []byte(`{
-              "output": {
-                "name": "some-name",
-                "type": "git",
-                "on": ["success"],
-                "version": {"ref": "foo"},
-                "source": {"some": "secret"},
-                "params": {"another": "secret"},
-                "metadata": [{"name": "public", "value": "data"}]
-              }
-            }`),
-					})
-					Ω(err).ShouldNot(HaveOccurred())
-
-					Ω(censored.Name).Should(Equal("output"))
-					Ω(censored.Data).Should(MatchJSON(`{
-            "output": {
-              "name": "some-name",
-              "type": "git",
-              "on": ["success"],
-              "version": {"ref": "foo"},
-              "metadata": [{"name": "public", "value": "data"}]
-            }
-          }`))
-				})
-			})
-		})
+		}
 	})
 })

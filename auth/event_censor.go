@@ -11,12 +11,18 @@ import (
 var ErrVersionUnknown = errors.New("event stream version unknown")
 
 type EventCensor struct {
-	version string
+	version event.Version
 }
 
 func (c *EventCensor) Censor(e sse.Event) (sse.Event, error) {
 	if e.Name == "version" {
-		c.version = string(e.Data)
+		var version event.Version
+		err := json.Unmarshal(e.Data, &version)
+		if err != nil {
+			return sse.Event{}, err
+		}
+
+		c.version = version
 	}
 
 	switch c.version {
@@ -24,6 +30,8 @@ func (c *EventCensor) Censor(e sse.Event) (sse.Event, error) {
 		return e, nil
 
 	case "1.0":
+		fallthrough
+	case "1.1":
 		switch event.EventType(e.Name) {
 		case event.EventTypeInitialize:
 			var te event.Initialize

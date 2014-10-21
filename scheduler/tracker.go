@@ -123,6 +123,8 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 
 			switch currentVersion {
 			case "1.0":
+				fallthrough
+			case "1.1":
 				switch se.Name {
 				case "status":
 					var status event.Status

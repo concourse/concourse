@@ -121,191 +121,195 @@ var _ = Describe("Tracker", func() {
 				})
 			}
 
-			Context("and they're v1.0", func() {
-				BeforeEach(func() {
-					events = append(events, event.Version("1.0"))
-				})
+			for _, v1version := range []string{"1.0", "1.1"} {
+				version := v1version
 
-				itSavesTheEvent(1)
+				Context("and they're v"+version, func() {
+					BeforeEach(func() {
+						events = append(events, event.Version(version))
+					})
 
-				Context("and a status event appears", func() {
-					Context("and it's started", func() {
+					itSavesTheEvent(1)
+
+					Context("and a status event appears", func() {
+						Context("and it's started", func() {
+							BeforeEach(func() {
+								events = append(events, event.Status{
+									Status: tbuilds.StatusStarted,
+									Time:   1234,
+								})
+							})
+
+							itSavesTheEvent(2)
+
+							It("saves the build's status", func() {
+								Eventually(trackerDB.SaveBuildStatusCallCount).Should(Equal(1))
+
+								buildID, status := trackerDB.SaveBuildStatusArgsForCall(0)
+								Ω(buildID).Should(Equal(1))
+								Ω(status).Should(Equal(builds.StatusStarted))
+							})
+
+							It("saves the build's start time", func() {
+								Eventually(trackerDB.SaveBuildStartTimeCallCount).Should(Equal(1))
+
+								buildID, startTime := trackerDB.SaveBuildStartTimeArgsForCall(0)
+								Ω(buildID).Should(Equal(1))
+								Ω(startTime.Unix()).Should(Equal(int64(1234)))
+							})
+						})
+
+						Context("and it's completed", func() {
+							BeforeEach(func() {
+								events = append(events, event.Status{
+									Status: tbuilds.StatusSucceeded,
+									Time:   1234,
+								})
+							})
+
+							itSavesTheEvent(2)
+
+							It("saves the build's status", func() {
+								Eventually(trackerDB.SaveBuildStatusCallCount).Should(Equal(1))
+
+								buildID, status := trackerDB.SaveBuildStatusArgsForCall(0)
+								Ω(buildID).Should(Equal(1))
+								Ω(status).Should(Equal(builds.StatusSucceeded))
+							})
+
+							It("saves the build's end time", func() {
+								Eventually(trackerDB.SaveBuildEndTimeCallCount).Should(Equal(1))
+
+								buildID, startTime := trackerDB.SaveBuildEndTimeArgsForCall(0)
+								Ω(buildID).Should(Equal(1))
+								Ω(startTime.Unix()).Should(Equal(int64(1234)))
+							})
+						})
+					})
+
+					Context("and an input event appears", func() {
 						BeforeEach(func() {
-							events = append(events, event.Status{
-								Status: tbuilds.StatusStarted,
-								Time:   1234,
+							events = append(events, event.Input{
+								Input: tbuilds.Input{
+									Name:    "some-input-name",
+									Type:    "some-type",
+									Source:  tbuilds.Source{"input-source": "some-source"},
+									Version: tbuilds.Version{"version": "input-version"},
+									Metadata: []tbuilds.MetadataField{
+										{Name: "input-meta", Value: "some-value"},
+									},
+								},
 							})
 						})
 
 						itSavesTheEvent(2)
 
-						It("saves the build's status", func() {
-							Eventually(trackerDB.SaveBuildStatusCallCount).Should(Equal(1))
+						Context("and the build is for a job", func() {
+							BeforeEach(func() {
+								build.JobName = "lol"
+							})
 
-							buildID, status := trackerDB.SaveBuildStatusArgsForCall(0)
-							Ω(buildID).Should(Equal(1))
-							Ω(status).Should(Equal(builds.StatusStarted))
-						})
+							It("saves the build's input", func() {
+								Eventually(trackerDB.SaveBuildInputCallCount).Should(Equal(1))
 
-						It("saves the build's start time", func() {
-							Eventually(trackerDB.SaveBuildStartTimeCallCount).Should(Equal(1))
-
-							buildID, startTime := trackerDB.SaveBuildStartTimeArgsForCall(0)
-							Ω(buildID).Should(Equal(1))
-							Ω(startTime.Unix()).Should(Equal(int64(1234)))
-						})
-					})
-
-					Context("and it's completed", func() {
-						BeforeEach(func() {
-							events = append(events, event.Status{
-								Status: tbuilds.StatusSucceeded,
-								Time:   1234,
+								id, input := trackerDB.SaveBuildInputArgsForCall(0)
+								Ω(id).Should(Equal(1))
+								Ω(input).Should(Equal(builds.VersionedResource{
+									Name:    "some-input-name",
+									Type:    "some-type",
+									Source:  builds.Source{"input-source": "some-source"},
+									Version: builds.Version{"version": "input-version"},
+									Metadata: []builds.MetadataField{
+										{Name: "input-meta", Value: "some-value"},
+									},
+								}))
 							})
 						})
 
-						itSavesTheEvent(2)
+						Context("and the build is not for a job (i.e. one-off)", func() {
+							BeforeEach(func() {
+								build.JobName = ""
+							})
 
-						It("saves the build's status", func() {
-							Eventually(trackerDB.SaveBuildStatusCallCount).Should(Equal(1))
+							It("does not save an input", func() {
+								Consistently(trackerDB.SaveBuildInputCallCount).Should(Equal(0))
+							})
+						})
+					})
 
-							buildID, status := trackerDB.SaveBuildStatusArgsForCall(0)
-							Ω(buildID).Should(Equal(1))
-							Ω(status).Should(Equal(builds.StatusSucceeded))
+					Context("and an output event appears", func() {
+						BeforeEach(func() {
+							events = append(events, event.Output{
+								Output: tbuilds.Output{
+									Name:    "some-output-name",
+									Type:    "some-type",
+									Source:  tbuilds.Source{"output-source": "some-source"},
+									Version: tbuilds.Version{"version": "output-version"},
+									Metadata: []tbuilds.MetadataField{
+										{Name: "output-meta", Value: "some-value"},
+									},
+								},
+							})
 						})
 
-						It("saves the build's end time", func() {
-							Eventually(trackerDB.SaveBuildEndTimeCallCount).Should(Equal(1))
+						Context("and the build is for a job", func() {
+							BeforeEach(func() {
+								build.JobName = "lol"
+							})
 
-							buildID, startTime := trackerDB.SaveBuildEndTimeArgsForCall(0)
-							Ω(buildID).Should(Equal(1))
-							Ω(startTime.Unix()).Should(Equal(int64(1234)))
+							It("saves the build's output", func() {
+								Eventually(trackerDB.SaveBuildOutputCallCount).Should(Equal(1))
+
+								id, output := trackerDB.SaveBuildOutputArgsForCall(0)
+								Ω(id).Should(Equal(1))
+								Ω(output).Should(Equal(builds.VersionedResource{
+									Name:    "some-output-name",
+									Type:    "some-type",
+									Source:  builds.Source{"output-source": "some-source"},
+									Version: builds.Version{"version": "output-version"},
+									Metadata: []builds.MetadataField{
+										{Name: "output-meta", Value: "some-value"},
+									},
+								}))
+							})
+						})
+
+						Context("and the build is not for a job (i.e. one-off)", func() {
+							BeforeEach(func() {
+								build.JobName = ""
+							})
+
+							It("does not save an output", func() {
+								Consistently(trackerDB.SaveBuildOutputCallCount).Should(Equal(0))
+							})
+						})
+					})
+
+					Context("and an end event appears", func() {
+						var buildDeleted <-chan struct{}
+
+						BeforeEach(func() {
+							events = append(events, event.End{})
+
+							deleted := make(chan struct{})
+							buildDeleted = deleted
+
+							turbineServer.AppendHandlers(
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("DELETE", "/builds/some-guid"),
+									func(w http.ResponseWriter, r *http.Request) {
+										close(deleted)
+									},
+								),
+							)
+						})
+
+						It("deletes the build from the turbine", func() {
+							Eventually(buildDeleted).Should(BeClosed())
 						})
 					})
 				})
-
-				Context("and an input event appears", func() {
-					BeforeEach(func() {
-						events = append(events, event.Input{
-							Input: tbuilds.Input{
-								Name:    "some-input-name",
-								Type:    "some-type",
-								Source:  tbuilds.Source{"input-source": "some-source"},
-								Version: tbuilds.Version{"version": "input-version"},
-								Metadata: []tbuilds.MetadataField{
-									{Name: "input-meta", Value: "some-value"},
-								},
-							},
-						})
-					})
-
-					itSavesTheEvent(2)
-
-					Context("and the build is for a job", func() {
-						BeforeEach(func() {
-							build.JobName = "lol"
-						})
-
-						It("saves the build's input", func() {
-							Eventually(trackerDB.SaveBuildInputCallCount).Should(Equal(1))
-
-							id, input := trackerDB.SaveBuildInputArgsForCall(0)
-							Ω(id).Should(Equal(1))
-							Ω(input).Should(Equal(builds.VersionedResource{
-								Name:    "some-input-name",
-								Type:    "some-type",
-								Source:  builds.Source{"input-source": "some-source"},
-								Version: builds.Version{"version": "input-version"},
-								Metadata: []builds.MetadataField{
-									{Name: "input-meta", Value: "some-value"},
-								},
-							}))
-						})
-					})
-
-					Context("and the build is not for a job (i.e. one-off)", func() {
-						BeforeEach(func() {
-							build.JobName = ""
-						})
-
-						It("does not save an input", func() {
-							Consistently(trackerDB.SaveBuildInputCallCount).Should(Equal(0))
-						})
-					})
-				})
-
-				Context("and an output event appears", func() {
-					BeforeEach(func() {
-						events = append(events, event.Output{
-							Output: tbuilds.Output{
-								Name:    "some-output-name",
-								Type:    "some-type",
-								Source:  tbuilds.Source{"output-source": "some-source"},
-								Version: tbuilds.Version{"version": "output-version"},
-								Metadata: []tbuilds.MetadataField{
-									{Name: "output-meta", Value: "some-value"},
-								},
-							},
-						})
-					})
-
-					Context("and the build is for a job", func() {
-						BeforeEach(func() {
-							build.JobName = "lol"
-						})
-
-						It("saves the build's output", func() {
-							Eventually(trackerDB.SaveBuildOutputCallCount).Should(Equal(1))
-
-							id, output := trackerDB.SaveBuildOutputArgsForCall(0)
-							Ω(id).Should(Equal(1))
-							Ω(output).Should(Equal(builds.VersionedResource{
-								Name:    "some-output-name",
-								Type:    "some-type",
-								Source:  builds.Source{"output-source": "some-source"},
-								Version: builds.Version{"version": "output-version"},
-								Metadata: []builds.MetadataField{
-									{Name: "output-meta", Value: "some-value"},
-								},
-							}))
-						})
-					})
-
-					Context("and the build is not for a job (i.e. one-off)", func() {
-						BeforeEach(func() {
-							build.JobName = ""
-						})
-
-						It("does not save an output", func() {
-							Consistently(trackerDB.SaveBuildOutputCallCount).Should(Equal(0))
-						})
-					})
-				})
-
-				Context("and an end event appears", func() {
-					var buildDeleted <-chan struct{}
-
-					BeforeEach(func() {
-						events = append(events, event.End{})
-
-						deleted := make(chan struct{})
-						buildDeleted = deleted
-
-						turbineServer.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("DELETE", "/builds/some-guid"),
-								func(w http.ResponseWriter, r *http.Request) {
-									close(deleted)
-								},
-							),
-						)
-					})
-
-					It("deletes the build from the turbine", func() {
-						Eventually(buildDeleted).Should(BeClosed())
-					})
-				})
-			})
+			}
 
 			Context("and they're some other version", func() {
 				BeforeEach(func() {
