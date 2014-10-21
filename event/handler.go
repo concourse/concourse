@@ -54,6 +54,8 @@ func NewHandler(db BuildsDB, buildID int, censor Censor) http.Handler {
 				return
 			}
 
+			defer resp.Body.Close()
+
 			w.WriteHeader(http.StatusOK)
 
 			flusher.Flush()
