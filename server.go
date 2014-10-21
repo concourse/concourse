@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/logfanout"
 	"github.com/concourse/atc/radar"
 	"github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/web/abortbuild"
@@ -33,7 +32,7 @@ func NewHandler(
 	radar *radar.Radar,
 	db db.DB,
 	templatesDir, publicDir string,
-	tracker *logfanout.Tracker,
+	drain <-chan struct{},
 ) (http.Handler, error) {
 	funcs := template.FuncMap{
 		"url": templateFuncs{}.url,
@@ -73,7 +72,7 @@ func NewHandler(
 		routes.GetBuild:    getbuild.NewHandler(logger, config.Jobs, db, buildTemplate),
 
 		// public jobs, or authed
-		routes.LogOutput: logs.NewHandler(logger, validator, config.Jobs, tracker, db),
+		routes.LogOutput: logs.NewHandler(logger, validator, config.Jobs, db, drain),
 
 		// private
 		routes.LogIn: auth.Handler{

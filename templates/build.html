@@ -126,14 +126,6 @@
 <script src="{{url "Public" "ansiparse.js"}}"></script>
 <script src="{{url "Public" "build.js"}}"></script>
 <script type="text/javascript">
-var protocol;
-
-if(window.location.protocol === "https:") {
-  protocol = "wss:";
-} else {
-  protocol = "ws:";
-}
-
-streamLog(protocol + "//" + window.location.host + {{url "LogOutput" .Build | js}})
+streamLog({{url "LogOutput" .Build | js}})
 </script>
 {{end}}
