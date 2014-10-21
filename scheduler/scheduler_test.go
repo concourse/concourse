@@ -86,7 +86,7 @@ var _ = Describe("Scheduler", func() {
 			err := scheduler.TrackInFlightBuilds()
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(tracker.TrackBuildCallCount()).Should(Equal(3))
+			Eventually(tracker.TrackBuildCallCount).Should(Equal(3))
 			Ω(tracker.TrackBuildArgsForCall(0)).Should(Equal(inFlightBuilds[0]))
 			Ω(tracker.TrackBuildArgsForCall(1)).Should(Equal(inFlightBuilds[1]))
 			Ω(tracker.TrackBuildArgsForCall(2)).Should(Equal(inFlightBuilds[2]))

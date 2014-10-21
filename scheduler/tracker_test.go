@@ -330,7 +330,7 @@ var _ = Describe("Tracker", func() {
 
 			Context("and the build is already being tracked", func() {
 				BeforeEach(func() {
-					tracker.TrackBuild(build)
+					go tracker.TrackBuild(build)
 				})
 
 				It("does not track twice", func() {

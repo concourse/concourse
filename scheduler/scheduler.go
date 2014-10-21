@@ -208,7 +208,7 @@ func (s *Scheduler) TrackInFlightBuilds() error {
 	}
 
 	for _, b := range builds {
-		s.Tracker.TrackBuild(b)
+		go s.Tracker.TrackBuild(b)
 	}
 
 	return nil

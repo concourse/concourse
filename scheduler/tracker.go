@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -49,6 +50,8 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 		return nil
 	}
 
+	defer tracker.unmarkTracking(build.ID)
+
 	generator := rata.NewRequestGenerator(build.Endpoint, routes.Routes)
 
 	events, err := generator.CreateRequest(
@@ -57,7 +60,6 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 		nil,
 	)
 	if err != nil {
-		tracker.unmarkTracking(build.ID)
 		return err
 	}
 
@@ -67,126 +69,123 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
-		tracker.unmarkTracking(build.ID)
 		return tracker.db.SaveBuildStatus(build.ID, builds.StatusErrored)
 	}
 
 	reader := sse.NewReader(resp.Body)
 
-	go func() {
-		defer tracker.unmarkTracking(build.ID)
+	var currentVersion string
 
-		var currentVersion string
+	for {
+		se, err := reader.Next()
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
 
-		for {
-			se, err := reader.Next()
+			return err
+		}
+
+		err = tracker.db.AppendBuildEvent(build.ID, db.BuildEvent{
+			Type:    se.Name,
+			Payload: string(se.Data),
+		})
+
+		if se.Name == "version" {
+			var version event.Version
+			err := json.Unmarshal(se.Data, &version)
 			if err != nil {
-				return
+				return err
 			}
 
-			err = tracker.db.AppendBuildEvent(build.ID, db.BuildEvent{
-				Type:    se.Name,
-				Payload: string(se.Data),
-			})
+			currentVersion = string(version)
+			continue
+		}
 
-			if se.Name == "version" {
-				var version event.Version
-				err := json.Unmarshal(se.Data, &version)
-				if err != nil {
-					return
-				}
-
-				currentVersion = string(version)
-				continue
+		if se.Name == "end" {
+			del, err := generator.CreateRequest(
+				routes.DeleteBuild,
+				rata.Params{"guid": build.Guid},
+				nil,
+			)
+			if err != nil {
+				return err
 			}
 
-			if se.Name == "end" {
-				del, err := generator.CreateRequest(
-					routes.DeleteBuild,
-					rata.Params{"guid": build.Guid},
-					nil,
-				)
-				if err != nil {
-					tracker.unmarkTracking(build.ID)
-					return
-				}
-
-				resp, err := http.DefaultClient.Do(del)
-				if err != nil {
-					tracker.unmarkTracking(build.ID)
-					return
-				}
-
-				resp.Body.Close()
-				continue
+			resp, err := http.DefaultClient.Do(del)
+			if err != nil {
+				return err
 			}
 
-			switch currentVersion {
-			case "1.0":
-				fallthrough
-			case "1.1":
-				switch se.Name {
-				case "status":
-					var status event.Status
-					err := json.Unmarshal(se.Data, &status)
+			resp.Body.Close()
+			continue
+		}
+
+		switch currentVersion {
+		case "1.0":
+			fallthrough
+		case "1.1":
+			switch se.Name {
+			case "status":
+				var status event.Status
+				err := json.Unmarshal(se.Data, &status)
+				if err != nil {
+					return err
+				}
+
+				if status.Status == tbuilds.StatusStarted {
+					err = tracker.db.SaveBuildStartTime(build.ID, time.Unix(status.Time, 0))
 					if err != nil {
-						return
+						return err
 					}
-
-					if status.Status == tbuilds.StatusStarted {
-						err = tracker.db.SaveBuildStartTime(build.ID, time.Unix(status.Time, 0))
-						if err != nil {
-							return
-						}
-					} else {
-						err = tracker.db.SaveBuildEndTime(build.ID, time.Unix(status.Time, 0))
-						if err != nil {
-							return
-						}
-					}
-
-					err = tracker.db.SaveBuildStatus(build.ID, builds.Status(status.Status))
+				} else {
+					err = tracker.db.SaveBuildEndTime(build.ID, time.Unix(status.Time, 0))
 					if err != nil {
-						return
+						return err
 					}
+				}
 
-				case "input":
-					if build.JobName == "" {
-						// one-off build; don't bother saving inputs
-						break
-					}
+				err = tracker.db.SaveBuildStatus(build.ID, builds.Status(status.Status))
+				if err != nil {
+					return err
+				}
 
-					var input event.Input
-					err := json.Unmarshal(se.Data, &input)
-					if err != nil {
-						return
-					}
+			case "input":
+				if build.JobName == "" {
+					// one-off build; don't bother saving inputs
+					break
+				}
 
-					err = tracker.db.SaveBuildInput(build.ID, vrFromInput(input.Input))
-					if err != nil {
-						return
-					}
+				var input event.Input
+				err := json.Unmarshal(se.Data, &input)
+				if err != nil {
+					return err
+				}
 
-				case "output":
-					if build.JobName == "" {
-						// one-off build; don't bother saving outputs
-						break
-					}
+				err = tracker.db.SaveBuildInput(build.ID, vrFromInput(input.Input))
+				if err != nil {
+					return err
+				}
 
-					var output event.Output
-					err := json.Unmarshal(se.Data, &output)
-					if err != nil {
-						return
-					}
+			case "output":
+				if build.JobName == "" {
+					// one-off build; don't bother saving outputs
+					break
+				}
 
-					err = tracker.db.SaveBuildOutput(build.ID, vrFromOutput(output.Output))
-					if err != nil {
-						return
-					}
+				var output event.Output
+				err := json.Unmarshal(se.Data, &output)
+				if err != nil {
+					return err
+				}
+
+				err = tracker.db.SaveBuildOutput(build.ID, vrFromOutput(output.Output))
+				if err != nil {
+					return err
 				}
 			}
 		}
-	}()
+	}
 
 	return nil
 }
