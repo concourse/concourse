@@ -94,7 +94,7 @@ cat < /tmp/fifo
 			flyS, err := gexec.Start(fly, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Eventually(flyS, 10*time.Second).Should(gbytes.Say("waiting"))
+			Eventually(flyS, 30*time.Second).Should(gbytes.Say("waiting"))
 
 			hijack := exec.Command(flyBin, "hijack", "--", "sh", "-c", "echo marco > /tmp/fifo")
 
