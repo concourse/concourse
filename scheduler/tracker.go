@@ -126,7 +126,7 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 				return err
 			}
 
-			tLog.Debug("event-stream-version", lager.Data{
+			tLog.Info("event-stream-version", lager.Data{
 				"version": string(version),
 			})
 
@@ -135,7 +135,7 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 		}
 
 		if se.Name == "end" {
-			tLog.Debug("event-stream-ended")
+			tLog.Info("event-stream-ended")
 
 			del, err := generator.CreateRequest(
 				routes.DeleteBuild,
@@ -163,7 +163,7 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 		case "1.1":
 			switch se.Name {
 			case "status":
-				tLog.Debug("processing-build-status", lager.Data{
+				tLog.Info("processing-build-status", lager.Data{
 					"event": string(se.Data),
 				})
 
@@ -206,11 +206,11 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 
 			case "input":
 				if build.JobName == "" {
-					tLog.Debug("ignoring-build-input-for-one-off")
+					tLog.Info("ignoring-build-input-for-one-off")
 					break
 				}
 
-				tLog.Debug("processing-build-input", lager.Data{
+				tLog.Info("processing-build-input", lager.Data{
 					"event": string(se.Data),
 				})
 
@@ -232,7 +232,7 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 
 			case "output":
 				if build.JobName == "" {
-					tLog.Debug("ignoring-build-output-for-one-off")
+					tLog.Info("ignoring-build-output-for-one-off")
 					break
 				}
 
