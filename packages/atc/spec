@@ -23,13 +23,10 @@ files:
   - github.com/concourse/atc/auth/*.go # gosub
   - github.com/concourse/atc/builder/*.go # gosub
   - github.com/concourse/atc/builds/*.go # gosub
-  - github.com/concourse/atc/callbacks/*.go # gosub
-  - github.com/concourse/atc/callbacks/handler/*.go # gosub
-  - github.com/concourse/atc/callbacks/routes/*.go # gosub
   - github.com/concourse/atc/config/*.go # gosub
   - github.com/concourse/atc/db/*.go # gosub
   - github.com/concourse/atc/db/migrations/*.go # gosub
-  - github.com/concourse/atc/logfanout/*.go # gosub
+  - github.com/concourse/atc/event/*.go # gosub
   - github.com/concourse/atc/radar/*.go # gosub
   - github.com/concourse/atc/resources/*.go # gosub
   - github.com/concourse/atc/scheduler/*.go # gosub
@@ -58,3 +55,4 @@ files:
   - github.com/tedsuo/ifrit/proxy/*.go # gosub
   - github.com/tedsuo/ifrit/sigmon/*.go # gosub
   - github.com/tedsuo/rata/*.go # gosub
+  - github.com/vito/go-sse/sse/*.go # gosub

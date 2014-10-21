@@ -19,6 +19,8 @@ files:
   - github.com/concourse/turbine/api/abort/*.go # gosub
   - github.com/concourse/turbine/api/builds/*.go # gosub
   - github.com/concourse/turbine/api/check/*.go # gosub
+  - github.com/concourse/turbine/api/deletebuild/*.go # gosub
+  - github.com/concourse/turbine/api/events/*.go # gosub
   - github.com/concourse/turbine/api/execute/*.go # gosub
   - github.com/concourse/turbine/api/hijack/*.go # gosub
   - github.com/concourse/turbine/builder/*.go # gosub
@@ -40,3 +42,4 @@ files:
   - github.com/tedsuo/ifrit/proxy/*.go # gosub
   - github.com/tedsuo/ifrit/sigmon/*.go # gosub
   - github.com/tedsuo/rata/*.go # gosub
+  - github.com/vito/go-sse/sse/*.go # gosub

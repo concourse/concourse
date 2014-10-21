@@ -19,10 +19,6 @@ properties:
     description: "address for the web server to listen on"
     default: 0.0.0.0
 
-  atc.callbacks_shared_secret:
-    description: "password for workers to use to authenticate callbacks"
-    default: ""
-
   atc.basic_auth_username:
     description: "username for http basic auth"
     default: ""
