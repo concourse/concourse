@@ -3,6 +3,7 @@ package integration_test
 import (
 	"archive/tar"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -11,12 +12,12 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/gorilla/websocket"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
+	"github.com/vito/go-sse/sse"
 
 	"github.com/concourse/atc/api/resources"
 	tbuilds "github.com/concourse/turbine/api/builds"
@@ -28,7 +29,8 @@ var _ = Describe("Fly CLI", func() {
 	var s3AssetDir string
 
 	var atcServer *ghttp.Server
-	var streaming chan *websocket.Conn
+	var streaming chan struct{}
+	var events chan event.Event
 	var uploadingBits <-chan struct{}
 
 	var expectedTurbineBuild tbuilds.Build
@@ -71,7 +73,8 @@ run:
 
 		os.Setenv("ATC_URL", atcServer.URL())
 
-		streaming = make(chan *websocket.Conn, 1)
+		streaming = make(chan struct{})
+		events = make(chan event.Event)
 
 		expectedTurbineBuild = tbuilds.Build{
 			Config: tbuilds.Config{
@@ -141,24 +144,48 @@ run:
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", "/api/v1/builds/128/events"),
 				func(w http.ResponseWriter, r *http.Request) {
-					upgrader := websocket.Upgrader{
-						CheckOrigin: func(r *http.Request) bool {
-							// allow all connections
-							return true
-						},
+					flusher := w.(http.Flusher)
+
+					w.Header().Add("Content-Type", "text/event-stream; charset=utf-8")
+					w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
+					w.Header().Add("Connection", "keep-alive")
+
+					w.WriteHeader(http.StatusOK)
+
+					flusher.Flush()
+
+					version := sse.Event{
+						ID:   "0",
+						Name: "version",
+						Data: []byte(`"1.1"`),
 					}
 
-					cookie, err := r.Cookie("Some-Cookie")
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(cookie.Value).Should(Equal("some-cookie-data"))
-
-					conn, err := upgrader.Upgrade(w, r, nil)
+					err := version.Write(w)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					err = conn.WriteJSON(event.VersionMessage{Version: "1.0"})
-					Ω(err).ShouldNot(HaveOccurred())
+					flusher.Flush()
 
-					streaming <- conn
+					close(streaming)
+
+					id := 1
+
+					for e := range events {
+						payload, err := json.Marshal(e)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						event := sse.Event{
+							ID:   fmt.Sprintf("%d", id),
+							Name: string(e.EventType()),
+							Data: []byte(payload),
+						}
+
+						err = event.Write(w)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						flusher.Flush()
+
+						id++
+					}
 				},
 			),
 			ghttp.CombineHandlers(
@@ -218,13 +245,9 @@ run:
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		var stream *websocket.Conn
-		Eventually(streaming).Should(Receive(&stream))
+		Eventually(streaming).Should(BeClosed())
 
-		err = stream.WriteJSON(event.Message{
-			event.Log{Payload: "sup"},
-		})
-		Ω(err).ShouldNot(HaveOccurred())
+		events <- event.Log{Payload: "sup"}
 
 		Eventually(sess.Out).Should(gbytes.Say("sup"))
 	})

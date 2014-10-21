@@ -24,7 +24,6 @@ import (
 	"github.com/concourse/atc/api/routes"
 	"github.com/concourse/fly/eventstream"
 	tbuilds "github.com/concourse/turbine/api/builds"
-	"github.com/gorilla/websocket"
 	"github.com/pivotal-golang/archiver/compressor"
 	"github.com/tedsuo/rata"
 )
@@ -84,7 +83,7 @@ func execute(c *cli.Context) {
 		os.Exit(1)
 	}
 
-	build, cookies := createBuild(
+	build := createBuild(
 		atcRequester,
 		c.Bool("privileged"),
 		inputs,
@@ -106,20 +105,9 @@ func execute(c *cli.Context) {
 		log.Fatalln(err)
 	}
 
-	logOutput.URL.Scheme = "ws"
-	logOutput.URL.User = nil
-
-	cookieHeaders := []string{}
-	for _, cookie := range cookies {
-		cookieHeaders = append(cookieHeaders, cookie.String())
-	}
-
-	conn, res, err := atcRequester.websocketDialer.Dial(
-		logOutput.URL.String(),
-		http.Header{"Cookie": cookieHeaders},
-	)
+	resp, err := atcRequester.httpClient.Do(logOutput)
 	if err != nil {
-		log.Println("failed to stream output:", err, res)
+		log.Println("failed to stream output:", err, resp)
 		os.Exit(1)
 	}
 
@@ -129,14 +117,13 @@ func execute(c *cli.Context) {
 		}
 	}()
 
-	exitCode, err := eventstream.RenderStream(conn)
+	exitCode, err := eventstream.RenderStream(resp.Body)
 	if err != nil {
 		log.Println("failed to render stream:", err)
 		os.Exit(1)
 	}
 
-	res.Body.Close()
-	conn.Close()
+	resp.Body.Close()
 
 	os.Exit(exitCode)
 }
@@ -200,7 +187,7 @@ func createBuild(
 	privileged bool,
 	inputs []Input,
 	config tbuilds.Config,
-) (resources.Build, []*http.Cookie) {
+) resources.Build {
 	buffer := &bytes.Buffer{}
 
 	buildInputs := make([]tbuilds.Input, len(inputs))
@@ -262,7 +249,7 @@ func createBuild(
 		log.Fatalln("response decoding failed:", err)
 	}
 
-	return build, response.Cookies()
+	return build
 }
 
 func abortOnSignal(
@@ -377,8 +364,7 @@ func upload(input Input, excludeIgnored bool, atcRequester *atcRequester) {
 
 type atcRequester struct {
 	*rata.RequestGenerator
-	httpClient      *http.Client
-	websocketDialer *websocket.Dialer
+	httpClient *http.Client
 }
 
 func newAtcRequester(atcUrl string, insecure bool) *atcRequester {
@@ -387,7 +373,6 @@ func newAtcRequester(atcUrl string, insecure bool) *atcRequester {
 	return &atcRequester{
 		rata.NewRequestGenerator(atcUrl, routes.Routes),
 		&http.Client{Transport: &http.Transport{TLSClientConfig: tlsClientConfig}},
-		&websocket.Dialer{TLSClientConfig: tlsClientConfig},
 	}
 }
 
