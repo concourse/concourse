@@ -74,6 +74,8 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 
 	reader := sse.NewReader(resp.Body)
 
+	outputs := map[string]builds.VersionedResource{}
+
 	var currentVersion string
 
 	for {
@@ -150,6 +152,15 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 					return err
 				}
 
+				if status.Status == tbuilds.StatusSucceeded {
+					for _, output := range outputs {
+						err := tracker.db.SaveBuildOutput(build.ID, output)
+						if err != nil {
+							return err
+						}
+					}
+				}
+
 			case "input":
 				if build.JobName == "" {
 					// one-off build; don't bother saving inputs
@@ -167,6 +178,9 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 					return err
 				}
 
+				// record implicit output
+				outputs[input.Input.Name] = vrFromInput(input.Input)
+
 			case "output":
 				if build.JobName == "" {
 					// one-off build; don't bother saving outputs
@@ -179,10 +193,7 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 					return err
 				}
 
-				err = tracker.db.SaveBuildOutput(build.ID, vrFromOutput(output.Output))
-				if err != nil {
-					return err
-				}
+				outputs[output.Output.Name] = vrFromOutput(output.Output)
 			}
 		}
 	}

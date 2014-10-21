@@ -224,6 +224,70 @@ var _ = Describe("Tracker", func() {
 									},
 								}))
 							})
+
+							Context("and an output event appears for the same input resource", func() {
+								BeforeEach(func() {
+									events = append(events, event.Output{
+										Output: tbuilds.Output{
+											Name:    "some-input-name",
+											Type:    "some-type",
+											Source:  tbuilds.Source{"input-source": "some-source"},
+											Version: tbuilds.Version{"version": "explicit-input-version"},
+											Metadata: []tbuilds.MetadataField{
+												{Name: "input-meta", Value: "some-value"},
+											},
+										},
+									})
+								})
+
+								Context("and a successful status event appears", func() {
+									BeforeEach(func() {
+										events = append(events, event.Status{
+											Status: tbuilds.StatusSucceeded,
+										})
+									})
+
+									It("saves the explicit output instead of the implicit one", func() {
+										Eventually(trackerDB.SaveBuildOutputCallCount).Should(Equal(1))
+
+										id, output := trackerDB.SaveBuildOutputArgsForCall(0)
+										Ω(id).Should(Equal(1))
+										Ω(output).Should(Equal(builds.VersionedResource{
+											Name:    "some-input-name",
+											Type:    "some-type",
+											Source:  builds.Source{"input-source": "some-source"},
+											Version: builds.Version{"version": "explicit-input-version"},
+											Metadata: []builds.MetadataField{
+												{Name: "input-meta", Value: "some-value"},
+											},
+										}))
+									})
+								})
+							})
+
+							Context("and a successful status event appears", func() {
+								BeforeEach(func() {
+									events = append(events, event.Status{
+										Status: tbuilds.StatusSucceeded,
+									})
+								})
+
+								It("saves the build's input as an implicit output", func() {
+									Eventually(trackerDB.SaveBuildOutputCallCount).Should(Equal(1))
+
+									id, output := trackerDB.SaveBuildOutputArgsForCall(0)
+									Ω(id).Should(Equal(1))
+									Ω(output).Should(Equal(builds.VersionedResource{
+										Name:    "some-input-name",
+										Type:    "some-type",
+										Source:  builds.Source{"input-source": "some-source"},
+										Version: builds.Version{"version": "input-version"},
+										Metadata: []builds.MetadataField{
+											{Name: "input-meta", Value: "some-value"},
+										},
+									}))
+								})
+							})
 						})
 
 						Context("and the build is not for a job (i.e. one-off)", func() {
@@ -257,20 +321,44 @@ var _ = Describe("Tracker", func() {
 								build.JobName = "lol"
 							})
 
-							It("saves the build's output", func() {
-								Eventually(trackerDB.SaveBuildOutputCallCount).Should(Equal(1))
+							It("does not save the output immediately", func() {
+								Consistently(trackerDB.SaveBuildOutputCallCount).Should(BeZero())
+							})
 
-								id, output := trackerDB.SaveBuildOutputArgsForCall(0)
-								Ω(id).Should(Equal(1))
-								Ω(output).Should(Equal(builds.VersionedResource{
-									Name:    "some-output-name",
-									Type:    "some-type",
-									Source:  builds.Source{"output-source": "some-source"},
-									Version: builds.Version{"version": "output-version"},
-									Metadata: []builds.MetadataField{
-										{Name: "output-meta", Value: "some-value"},
-									},
-								}))
+							Context("and a successful status event appears", func() {
+								BeforeEach(func() {
+									events = append(events, event.Status{
+										Status: tbuilds.StatusSucceeded,
+									})
+								})
+
+								It("saves the build's output", func() {
+									Eventually(trackerDB.SaveBuildOutputCallCount).Should(Equal(1))
+
+									id, output := trackerDB.SaveBuildOutputArgsForCall(0)
+									Ω(id).Should(Equal(1))
+									Ω(output).Should(Equal(builds.VersionedResource{
+										Name:    "some-output-name",
+										Type:    "some-type",
+										Source:  builds.Source{"output-source": "some-source"},
+										Version: builds.Version{"version": "output-version"},
+										Metadata: []builds.MetadataField{
+											{Name: "output-meta", Value: "some-value"},
+										},
+									}))
+								})
+							})
+
+							Context("and an errored status event appears", func() {
+								BeforeEach(func() {
+									events = append(events, event.Status{
+										Status: tbuilds.StatusErrored,
+									})
+								})
+
+								It("does not save the build's output", func() {
+									Consistently(trackerDB.SaveBuildOutputCallCount).Should(BeZero())
+								})
 							})
 						})
 
