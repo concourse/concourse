@@ -61,7 +61,10 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 
 	tLog.Info("tracking")
 
-	defer tracker.unmarkTracking(build.ID)
+	defer func() {
+		tLog.Info("done-tracking")
+		tracker.unmarkTracking(build.ID)
+	}()
 
 	generator := rata.NewRequestGenerator(build.Endpoint, routes.Routes)
 
