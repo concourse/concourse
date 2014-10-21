@@ -40,7 +40,7 @@ func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
 	hijack, err := generator.CreateRequest(
 		routes.HijackBuild,
 		rata.Params{"guid": build.Guid},
-		nil,
+		r.Body,
 	)
 	if err != nil {
 		hLog.Error("failed-to-construct-hijack-request", err)

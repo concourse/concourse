@@ -302,6 +302,12 @@ var _ = Describe("Builds API", func() {
 				func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
 
+					var msg json.RawMessage
+					err := json.NewDecoder(r.Body).Decode(&msg)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(string(msg)).Should(Equal(string(`{"some":"hijack-body"}`)))
+
 					conn, br, err := w.(http.Hijacker).Hijack()
 					Ω(err).ShouldNot(HaveOccurred())
 
@@ -320,7 +326,11 @@ var _ = Describe("Builds API", func() {
 		JustBeforeEach(func() {
 			var err error
 
-			hijackReq, err := http.NewRequest("POST", server.URL+"/api/v1/builds/128/hijack", nil)
+			hijackReq, err := http.NewRequest(
+				"POST",
+				server.URL+"/api/v1/builds/128/hijack",
+				bytes.NewBufferString(`{"some":"hijack-body"}`),
+			)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			conn, err := net.Dial("tcp", server.Listener.Addr().String())
