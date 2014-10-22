@@ -3,7 +3,7 @@ package migrations
 import "github.com/BurntSushi/migration"
 
 func ReplaceBuildEventsIDWithEventID(tx migration.LimitedTx) error {
-	_, err := tx.Exec(`ALTER TABLE build_events ADD COLUMN event_id integer NOT NULL`)
+	_, err := tx.Exec(`ALTER TABLE build_events ADD COLUMN event_id integer`)
 	if err != nil {
 		return err
 	}
@@ -23,6 +23,11 @@ func ReplaceBuildEventsIDWithEventID(tx migration.LimitedTx) error {
 	}
 
 	_, err = tx.Exec(`ALTER TABLE build_events DROP COLUMN id`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`ALTER TABLE build_events ALTER COLUMN event_id SET NOT NULL`)
 	if err != nil {
 		return err
 	}
