@@ -33,6 +33,7 @@ func AddBuildEvents(tx migration.LimitedTx) error {
 			SELECT id, log
 			FROM builds
 			WHERE id > $1
+			ORDER BY id ASC
 			LIMIT 1
 		`, cursor).Scan(&id, &buildLog)
 		if err != nil {
