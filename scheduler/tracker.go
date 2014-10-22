@@ -80,11 +80,6 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 		return err
 	}
 
-	lastID, err := tracker.db.GetLastBuildEventID(build.ID)
-	if err == nil {
-		events.Header.Set("Last-Event-ID", strconv.Itoa(lastID))
-	}
-
 	resp, err := http.DefaultClient.Do(events)
 	if err != nil {
 		tLog.Error("failed-to-get-events", err)

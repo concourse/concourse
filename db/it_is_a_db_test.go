@@ -164,6 +164,18 @@ func itIsADB() {
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(lastID).Should(Equal(1))
 
+		// test idempotence
+		err = db.SaveBuildEvent(build.ID, BuildEvent{
+			ID:      1,
+			Type:    "log",
+			Payload: "log",
+		})
+		Ω(err).ShouldNot(HaveOccurred())
+
+		lastID, err = db.GetLastBuildEventID(build.ID)
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(lastID).Should(Equal(1))
+
 		events, err = db.GetBuildEvents(build.ID)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(events).Should(Equal([]BuildEvent{

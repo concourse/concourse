@@ -584,21 +584,18 @@ func (db *sqldb) GetLastBuildEventID(buildID int) (int, error) {
 }
 
 func (db *sqldb) SaveBuildEvent(buildID int, event BuildEvent) error {
-	result, err := db.conn.Exec(`
+	_, err := db.conn.Exec(`
 		INSERT INTO build_events (build_id, event_id, type, payload)
-		VALUES ($1, $2, $3, $4)
+		SELECT $1, $2, $3, $4
+		WHERE NOT EXISTS (
+			SELECT 1
+			FROM build_events
+			WHERE build_id = $1
+			AND event_id = $2
+		)
 	`, buildID, event.ID, event.Type, event.Payload)
 	if err != nil {
 		return err
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rows != 1 {
-		return fmt.Errorf("more than one row affected: %d", rows)
 	}
 
 	return nil
