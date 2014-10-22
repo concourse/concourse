@@ -11,6 +11,15 @@ import (
 )
 
 type FakeTrackerDB struct {
+	GetLastBuildEventIDStub        func(buildID int) (int, error)
+	getLastBuildEventIDMutex       sync.RWMutex
+	getLastBuildEventIDArgsForCall []struct {
+		buildID int
+	}
+	getLastBuildEventIDReturns struct {
+		result1 int
+		result2 error
+	}
 	SaveBuildEventStub        func(buildID int, event db.BuildEvent) error
 	saveBuildEventMutex       sync.RWMutex
 	saveBuildEventArgsForCall []struct {
@@ -65,6 +74,39 @@ type FakeTrackerDB struct {
 	saveBuildStatusReturns struct {
 		result1 error
 	}
+}
+
+func (fake *FakeTrackerDB) GetLastBuildEventID(buildID int) (int, error) {
+	fake.getLastBuildEventIDMutex.Lock()
+	fake.getLastBuildEventIDArgsForCall = append(fake.getLastBuildEventIDArgsForCall, struct {
+		buildID int
+	}{buildID})
+	fake.getLastBuildEventIDMutex.Unlock()
+	if fake.GetLastBuildEventIDStub != nil {
+		return fake.GetLastBuildEventIDStub(buildID)
+	} else {
+		return fake.getLastBuildEventIDReturns.result1, fake.getLastBuildEventIDReturns.result2
+	}
+}
+
+func (fake *FakeTrackerDB) GetLastBuildEventIDCallCount() int {
+	fake.getLastBuildEventIDMutex.RLock()
+	defer fake.getLastBuildEventIDMutex.RUnlock()
+	return len(fake.getLastBuildEventIDArgsForCall)
+}
+
+func (fake *FakeTrackerDB) GetLastBuildEventIDArgsForCall(i int) int {
+	fake.getLastBuildEventIDMutex.RLock()
+	defer fake.getLastBuildEventIDMutex.RUnlock()
+	return fake.getLastBuildEventIDArgsForCall[i].buildID
+}
+
+func (fake *FakeTrackerDB) GetLastBuildEventIDReturns(result1 int, result2 error) {
+	fake.GetLastBuildEventIDStub = nil
+	fake.getLastBuildEventIDReturns = struct {
+		result1 int
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeTrackerDB) SaveBuildEvent(buildID int, event db.BuildEvent) error {

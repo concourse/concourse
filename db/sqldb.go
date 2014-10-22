@@ -567,6 +567,22 @@ func (db *sqldb) GetBuildEvents(buildID int) ([]BuildEvent, error) {
 	return events, nil
 }
 
+func (db *sqldb) GetLastBuildEventID(buildID int) (int, error) {
+	var id int
+	err := db.conn.QueryRow(`
+		SELECT event_id
+		FROM build_events
+		WHERE build_id = $1
+		ORDER BY event_id DESC
+		LIMIT 1
+	`, buildID).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
+}
+
 func (db *sqldb) SaveBuildEvent(buildID int, event BuildEvent) error {
 	result, err := db.conn.Exec(`
 		INSERT INTO build_events (build_id, event_id, type, payload)

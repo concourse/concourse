@@ -2,6 +2,7 @@ package scheduler_test
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -58,6 +59,40 @@ var _ = Describe("Tracker", func() {
 
 		JustBeforeEach(func() {
 			trackErr = tracker.TrackBuild(build)
+		})
+
+		Context("when events are present for the build", func() {
+			BeforeEach(func() {
+				turbineServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/builds/some-guid/events"),
+						ghttp.VerifyHeader(http.Header{"Last-Event-ID": []string{"3"}}),
+					),
+				)
+
+				trackerDB.GetLastBuildEventIDReturns(3, nil)
+			})
+
+			It("requests starting from an ID after the events", func() {
+				Ω(turbineServer.ReceivedRequests()).Should(HaveLen(1))
+			})
+		})
+
+		Context("when getting the last event id fails", func() {
+			BeforeEach(func() {
+				turbineServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/builds/some-guid/events"),
+						ghttp.VerifyHeader(http.Header{"Last-Event-ID": nil}),
+					),
+				)
+
+				trackerDB.GetLastBuildEventIDReturns(0, errors.New("nope"))
+			})
+
+			It("does not send a Last-Event-ID header", func() {
+				Ω(turbineServer.ReceivedRequests()).Should(HaveLen(1))
+			})
 		})
 
 		Context("when the build's turbine returns events", func() {

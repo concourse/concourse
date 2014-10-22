@@ -30,6 +30,7 @@ type DB interface {
 	ScheduleBuild(buildID int, serial bool) (bool, error)
 	StartBuild(buildID int, buildGuid, turbineEndpoint string) (bool, error)
 
+	GetLastBuildEventID(buildID int) (int, error)
 	GetBuildEvents(buildID int) ([]BuildEvent, error)
 	SaveBuildEvent(buildID int, event BuildEvent) error
 

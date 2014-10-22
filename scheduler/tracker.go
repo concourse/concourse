@@ -28,6 +28,7 @@ type tracker struct {
 }
 
 type TrackerDB interface {
+	GetLastBuildEventID(buildID int) (int, error)
 	SaveBuildEvent(buildID int, event db.BuildEvent) error
 
 	SaveBuildStartTime(buildID int, startTime time.Time) error
@@ -77,6 +78,11 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 	if err != nil {
 		tLog.Error("failed-to-create-events-request", err)
 		return err
+	}
+
+	lastID, err := tracker.db.GetLastBuildEventID(build.ID)
+	if err == nil {
+		events.Header.Set("Last-Event-ID", strconv.Itoa(lastID))
 	}
 
 	resp, err := http.DefaultClient.Do(events)
