@@ -123,6 +123,7 @@ var _ = Describe("EventCensor", func() {
 							Data: []byte(`{
 								"input": {
 									"name": "some-name",
+									"resource": "some-resource",
 									"type": "git",
 									"version": {"ref": "foo"},
 									"source": {"some": "secret"},
@@ -138,6 +139,7 @@ var _ = Describe("EventCensor", func() {
 						Ω(censored.Data).Should(MatchJSON(`{
 							"input": {
 								"name": "some-name",
+								"resource": "some-resource",
 								"type": "git",
 								"version": {"ref": "foo"},
 								"metadata": [{"name": "public", "value": "data"}],
