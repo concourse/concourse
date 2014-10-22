@@ -30,8 +30,8 @@ type DB interface {
 	ScheduleBuild(buildID int, serial bool) (bool, error)
 	StartBuild(buildID int, buildGuid, turbineEndpoint string) (bool, error)
 
-	BuildEvents(buildID int) ([]BuildEvent, error)
-	AppendBuildEvent(buildID int, event BuildEvent) error
+	GetBuildEvents(buildID int) ([]BuildEvent, error)
+	SaveBuildEvent(buildID int, event BuildEvent) error
 
 	SaveBuildInput(buildID int, vr builds.VersionedResource) error
 	SaveBuildOutput(buildID int, vr builds.VersionedResource) error
@@ -61,6 +61,7 @@ type Lock interface {
 }
 
 type BuildEvent struct {
+	ID      int
 	Type    string
 	Payload string
 }

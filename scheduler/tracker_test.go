@@ -106,16 +106,17 @@ var _ = Describe("Tracker", func() {
 
 			itSavesTheEvent := func(count int) {
 				It("saves the event", func() {
-					Eventually(trackerDB.AppendBuildEventCallCount).Should(BeNumerically(">=", count))
+					Eventually(trackerDB.SaveBuildEventCallCount).Should(BeNumerically(">=", count))
 
 					event := events[count-1]
 
 					payload, err := json.Marshal(event)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					buildID, buildEvent := trackerDB.AppendBuildEventArgsForCall(count - 1)
+					buildID, buildEvent := trackerDB.SaveBuildEventArgsForCall(count - 1)
 					Ω(buildID).Should(Equal(1))
 					Ω(buildEvent).Should(Equal(db.BuildEvent{
+						ID:      count - 1,
 						Type:    string(event.EventType()),
 						Payload: string(payload),
 					}))

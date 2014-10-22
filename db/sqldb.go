@@ -541,14 +541,14 @@ func (db *sqldb) SaveBuildStatus(buildID int, status builds.Status) error {
 	return nil
 }
 
-func (db *sqldb) BuildEvents(buildID int) ([]BuildEvent, error) {
+func (db *sqldb) GetBuildEvents(buildID int) ([]BuildEvent, error) {
 	var events []BuildEvent
 
 	rows, err := db.conn.Query(`
-		SELECT type, payload
+		SELECT event_id, type, payload
 		FROM build_events
 		WHERE build_id = $1
-		ORDER BY id ASC
+		ORDER BY event_id ASC
 	`, buildID)
 	if err != nil {
 		return nil, err
@@ -556,7 +556,7 @@ func (db *sqldb) BuildEvents(buildID int) ([]BuildEvent, error) {
 
 	for rows.Next() {
 		var event BuildEvent
-		err := rows.Scan(&event.Type, &event.Payload)
+		err := rows.Scan(&event.ID, &event.Type, &event.Payload)
 		if err != nil {
 			return nil, err
 		}
@@ -567,11 +567,11 @@ func (db *sqldb) BuildEvents(buildID int) ([]BuildEvent, error) {
 	return events, nil
 }
 
-func (db *sqldb) AppendBuildEvent(buildID int, event BuildEvent) error {
+func (db *sqldb) SaveBuildEvent(buildID int, event BuildEvent) error {
 	result, err := db.conn.Exec(`
-		INSERT INTO build_events (build_id, type, payload)
-		VALUES ($1, $2, $3)
-	`, buildID, event.Type, event.Payload)
+		INSERT INTO build_events (build_id, event_id, type, payload)
+		VALUES ($1, $2, $3, $4)
+	`, buildID, event.ID, event.Type, event.Payload)
 	if err != nil {
 		return err
 	}

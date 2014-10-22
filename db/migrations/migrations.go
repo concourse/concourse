@@ -14,4 +14,5 @@ var Migrations = []migration.Migrator{
 	CreateLocks,
 	AddBuildEvents,
 	ReplaceBuildsAbortHijackURLsWithGuidAndEndpoint,
+	ReplaceBuildEventsIDWithEventID,
 }

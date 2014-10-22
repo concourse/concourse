@@ -32,7 +32,7 @@ type BuildsDB interface {
 	CreateOneOffBuild() (builds.Build, error)
 	AbortBuild(buildID int) error
 
-	BuildEvents(buildID int) ([]db.BuildEvent, error)
+	GetBuildEvents(buildID int) ([]db.BuildEvent, error)
 }
 
 func NewServer(

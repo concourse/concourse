@@ -14,7 +14,7 @@ import (
 
 type BuildsDB interface {
 	GetBuild(buildID int) (builds.Build, error)
-	BuildEvents(buildID int) ([]db.BuildEvent, error)
+	GetBuildEvents(buildID int) ([]db.BuildEvent, error)
 }
 
 type Censor func(sse.Event) (sse.Event, error)
@@ -83,7 +83,7 @@ func NewHandler(db BuildsDB, buildID int, censor Censor) http.Handler {
 				flusher.Flush()
 			}
 		} else {
-			events, err := db.BuildEvents(buildID)
+			events, err := db.GetBuildEvents(buildID)
 			if err != nil {
 				w.WriteHeader(http.StatusServiceUnavailable)
 				return

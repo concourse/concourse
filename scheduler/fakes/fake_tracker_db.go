@@ -11,13 +11,13 @@ import (
 )
 
 type FakeTrackerDB struct {
-	AppendBuildEventStub        func(buildID int, event db.BuildEvent) error
-	appendBuildEventMutex       sync.RWMutex
-	appendBuildEventArgsForCall []struct {
+	SaveBuildEventStub        func(buildID int, event db.BuildEvent) error
+	saveBuildEventMutex       sync.RWMutex
+	saveBuildEventArgsForCall []struct {
 		buildID int
 		event   db.BuildEvent
 	}
-	appendBuildEventReturns struct {
+	saveBuildEventReturns struct {
 		result1 error
 	}
 	SaveBuildStartTimeStub        func(buildID int, startTime time.Time) error
@@ -67,35 +67,35 @@ type FakeTrackerDB struct {
 	}
 }
 
-func (fake *FakeTrackerDB) AppendBuildEvent(buildID int, event db.BuildEvent) error {
-	fake.appendBuildEventMutex.Lock()
-	fake.appendBuildEventArgsForCall = append(fake.appendBuildEventArgsForCall, struct {
+func (fake *FakeTrackerDB) SaveBuildEvent(buildID int, event db.BuildEvent) error {
+	fake.saveBuildEventMutex.Lock()
+	fake.saveBuildEventArgsForCall = append(fake.saveBuildEventArgsForCall, struct {
 		buildID int
 		event   db.BuildEvent
 	}{buildID, event})
-	fake.appendBuildEventMutex.Unlock()
-	if fake.AppendBuildEventStub != nil {
-		return fake.AppendBuildEventStub(buildID, event)
+	fake.saveBuildEventMutex.Unlock()
+	if fake.SaveBuildEventStub != nil {
+		return fake.SaveBuildEventStub(buildID, event)
 	} else {
-		return fake.appendBuildEventReturns.result1
+		return fake.saveBuildEventReturns.result1
 	}
 }
 
-func (fake *FakeTrackerDB) AppendBuildEventCallCount() int {
-	fake.appendBuildEventMutex.RLock()
-	defer fake.appendBuildEventMutex.RUnlock()
-	return len(fake.appendBuildEventArgsForCall)
+func (fake *FakeTrackerDB) SaveBuildEventCallCount() int {
+	fake.saveBuildEventMutex.RLock()
+	defer fake.saveBuildEventMutex.RUnlock()
+	return len(fake.saveBuildEventArgsForCall)
 }
 
-func (fake *FakeTrackerDB) AppendBuildEventArgsForCall(i int) (int, db.BuildEvent) {
-	fake.appendBuildEventMutex.RLock()
-	defer fake.appendBuildEventMutex.RUnlock()
-	return fake.appendBuildEventArgsForCall[i].buildID, fake.appendBuildEventArgsForCall[i].event
+func (fake *FakeTrackerDB) SaveBuildEventArgsForCall(i int) (int, db.BuildEvent) {
+	fake.saveBuildEventMutex.RLock()
+	defer fake.saveBuildEventMutex.RUnlock()
+	return fake.saveBuildEventArgsForCall[i].buildID, fake.saveBuildEventArgsForCall[i].event
 }
 
-func (fake *FakeTrackerDB) AppendBuildEventReturns(result1 error) {
-	fake.AppendBuildEventStub = nil
-	fake.appendBuildEventReturns = struct {
+func (fake *FakeTrackerDB) SaveBuildEventReturns(result1 error) {
+	fake.SaveBuildEventStub = nil
+	fake.saveBuildEventReturns = struct {
 		result1 error
 	}{result1}
 }

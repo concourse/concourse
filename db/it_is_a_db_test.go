@@ -134,30 +134,34 @@ func itIsADB() {
 		err = db.AbortBuild(build.ID)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		events, err := db.BuildEvents(build.ID)
+		events, err := db.GetBuildEvents(build.ID)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(events).Should(BeEmpty())
 
-		err = db.AppendBuildEvent(build.ID, BuildEvent{
+		err = db.SaveBuildEvent(build.ID, BuildEvent{
+			ID:      0,
 			Type:    "log",
 			Payload: "some ",
 		})
 		Ω(err).ShouldNot(HaveOccurred())
 
-		err = db.AppendBuildEvent(build.ID, BuildEvent{
+		err = db.SaveBuildEvent(build.ID, BuildEvent{
+			ID:      1,
 			Type:    "log",
 			Payload: "log",
 		})
 		Ω(err).ShouldNot(HaveOccurred())
 
-		events, err = db.BuildEvents(build.ID)
+		events, err = db.GetBuildEvents(build.ID)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(events).Should(Equal([]BuildEvent{
 			BuildEvent{
+				ID:      0,
 				Type:    "log",
 				Payload: "some ",
 			},
 			BuildEvent{
+				ID:      1,
 				Type:    "log",
 				Payload: "log",
 			},

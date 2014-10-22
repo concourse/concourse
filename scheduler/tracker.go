@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -27,7 +28,7 @@ type tracker struct {
 }
 
 type TrackerDB interface {
-	AppendBuildEvent(buildID int, event db.BuildEvent) error
+	SaveBuildEvent(buildID int, event db.BuildEvent) error
 
 	SaveBuildStartTime(buildID int, startTime time.Time) error
 	SaveBuildEndTime(buildID int, startTime time.Time) error
@@ -115,7 +116,17 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 			return err
 		}
 
-		err = tracker.db.AppendBuildEvent(build.ID, db.BuildEvent{
+		id, err := strconv.Atoi(se.ID)
+		if err != nil {
+			tLog.Error("non-numerical-event-id", err, lager.Data{
+				"id": se.ID,
+			})
+
+			return err
+		}
+
+		err = tracker.db.SaveBuildEvent(build.ID, db.BuildEvent{
+			ID:      id,
 			Type:    se.Name,
 			Payload: string(se.Data),
 		})

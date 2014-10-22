@@ -239,7 +239,7 @@ var _ = Describe("Handler", func() {
 					Status: builds.StatusSucceeded,
 				}, nil)
 
-				buildsDB.BuildEventsReturns([]db.BuildEvent{
+				buildsDB.GetBuildEventsReturns([]db.BuildEvent{
 					{
 						Type:    "version",
 						Payload: `"1.0"`,
