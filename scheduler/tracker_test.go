@@ -234,6 +234,8 @@ var _ = Describe("Tracker", func() {
 									})
 								})
 
+								itSavesTheEvent(3)
+
 								It("saves the build's input as an implicit output", func() {
 									Eventually(trackerDB.SaveBuildOutputCallCount).Should(Equal(1))
 
@@ -266,12 +268,16 @@ var _ = Describe("Tracker", func() {
 									})
 								})
 
+								itSavesTheEvent(3)
+
 								Context("and a successful status event appears", func() {
 									BeforeEach(func() {
 										events = append(events, event.Status{
 											Status: tbuilds.StatusSucceeded,
 										})
 									})
+
+									itSavesTheEvent(4)
 
 									It("saves the explicit output instead of the implicit one", func() {
 										Eventually(trackerDB.SaveBuildOutputCallCount).Should(Equal(1))
@@ -371,6 +377,46 @@ var _ = Describe("Tracker", func() {
 
 							It("does not save an output", func() {
 								Consistently(trackerDB.SaveBuildOutputCallCount).Should(Equal(0))
+							})
+						})
+					})
+
+					Context("and an input event appears, with no resource present", func() {
+						BeforeEach(func() {
+							events = append(events, event.Input{
+								Input: tbuilds.Input{
+									Name:    "some-input-name",
+									Type:    "some-type",
+									Source:  tbuilds.Source{"input-source": "some-source"},
+									Version: tbuilds.Version{"version": "input-version"},
+									Metadata: []tbuilds.MetadataField{
+										{Name: "input-meta", Value: "some-value"},
+									},
+								},
+							})
+						})
+
+						itSavesTheEvent(2)
+
+						Context("and the build is for a job", func() {
+							BeforeEach(func() {
+								build.JobName = "lol"
+							})
+
+							It("saves the build's input by its name, for backwards-compatibility", func() {
+								Eventually(trackerDB.SaveBuildInputCallCount).Should(Equal(1))
+
+								id, input := trackerDB.SaveBuildInputArgsForCall(0)
+								Ω(id).Should(Equal(1))
+								Ω(input).Should(Equal(builds.VersionedResource{
+									Name:    "some-input-name",
+									Type:    "some-type",
+									Source:  builds.Source{"input-source": "some-source"},
+									Version: builds.Version{"version": "input-version"},
+									Metadata: []builds.MetadataField{
+										{Name: "input-meta", Value: "some-value"},
+									},
+								}))
 							})
 						})
 					})

@@ -223,6 +223,10 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 					return err
 				}
 
+				if input.Input.Resource == "" {
+					input.Input.Resource = input.Input.Name
+				}
+
 				err = tracker.db.SaveBuildInput(build.ID, vrFromInput(input.Input))
 				if err != nil {
 					tLog.Error("failed-to-save-build-input", err)
