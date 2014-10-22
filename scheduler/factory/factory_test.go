@@ -113,6 +113,7 @@ var _ = Describe("Factory", func() {
 			Inputs: []tbuilds.Input{
 				{
 					Name:       "some-resource",
+					Resource:   "some-resource",
 					Type:       "git",
 					Source:     tbuilds.Source{"uri": "git://some-resource"},
 					Params:     tbuilds.Params{"some": "params"},
@@ -164,10 +165,11 @@ var _ = Describe("Factory", func() {
 			})
 
 			expectedTurbineBuild.Inputs = append(expectedTurbineBuild.Inputs, tbuilds.Input{
-				Name:   "some-named-input",
-				Type:   "git",
-				Source: tbuilds.Source{"uri": "git://some-named-resource"},
-				Params: tbuilds.Params{"some": "named-params"},
+				Name:     "some-named-input",
+				Resource: "some-named-resource",
+				Type:     "git",
+				Source:   tbuilds.Source{"uri": "git://some-named-resource"},
+				Params:   tbuilds.Params{"some": "named-params"},
 			})
 		})
 
@@ -193,6 +195,7 @@ var _ = Describe("Factory", func() {
 
 			expectedTurbineBuild.Inputs = append(expectedTurbineBuild.Inputs, tbuilds.Input{
 				Name:       "some-named-input",
+				Resource:   "some-named-resource",
 				Type:       "git",
 				Source:     tbuilds.Source{"uri": "git://some-named-resource"},
 				Params:     tbuilds.Params{"some": "named-params"},
@@ -220,6 +223,7 @@ var _ = Describe("Factory", func() {
 
 			expectedTurbineBuild.Inputs = append(expectedTurbineBuild.Inputs, tbuilds.Input{
 				Name:       "some-resource-with-longer-name",
+				Resource:   "some-resource-with-longer-name",
 				Type:       "git",
 				Source:     tbuilds.Source{"uri": "git://some-resource-with-longer-name"},
 				ConfigPath: "build.yml",
@@ -249,6 +253,7 @@ var _ = Describe("Factory", func() {
 			Ω(turbineBuild.Inputs).Should(Equal([]tbuilds.Input{
 				{
 					Name:       "some-resource",
+					Resource:   "some-resource",
 					Type:       "git-ng",
 					Source:     tbuilds.Source{"uri": "git://some-provided-uri"},
 					Params:     tbuilds.Params{"some": "params"},

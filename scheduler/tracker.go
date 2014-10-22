@@ -230,7 +230,7 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 				}
 
 				// record implicit output
-				outputs[input.Input.Name] = vrFromInput(input.Input)
+				outputs[input.Input.Resource] = vrFromInput(input.Input)
 
 			case "output":
 				if build.JobName == "" {
@@ -280,7 +280,7 @@ func vrFromInput(input tbuilds.Input) builds.VersionedResource {
 	}
 
 	return builds.VersionedResource{
-		Name:     input.Name,
+		Name:     input.Resource,
 		Type:     input.Type,
 		Source:   builds.Source(input.Source),
 		Version:  builds.Version(input.Version),

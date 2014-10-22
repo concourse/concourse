@@ -192,10 +192,11 @@ var _ = Describe("Tracker", func() {
 						BeforeEach(func() {
 							events = append(events, event.Input{
 								Input: tbuilds.Input{
-									Name:    "some-input-name",
-									Type:    "some-type",
-									Source:  tbuilds.Source{"input-source": "some-source"},
-									Version: tbuilds.Version{"version": "input-version"},
+									Name:     "some-input-name",
+									Resource: "some-input-resource",
+									Type:     "some-type",
+									Source:   tbuilds.Source{"input-source": "some-source"},
+									Version:  tbuilds.Version{"version": "input-version"},
 									Metadata: []tbuilds.MetadataField{
 										{Name: "input-meta", Value: "some-value"},
 									},
@@ -216,7 +217,7 @@ var _ = Describe("Tracker", func() {
 								id, input := trackerDB.SaveBuildInputArgsForCall(0)
 								Ω(id).Should(Equal(1))
 								Ω(input).Should(Equal(builds.VersionedResource{
-									Name:    "some-input-name",
+									Name:    "some-input-resource",
 									Type:    "some-type",
 									Source:  builds.Source{"input-source": "some-source"},
 									Version: builds.Version{"version": "input-version"},
@@ -226,11 +227,35 @@ var _ = Describe("Tracker", func() {
 								}))
 							})
 
+							Context("and a successful status event appears", func() {
+								BeforeEach(func() {
+									events = append(events, event.Status{
+										Status: tbuilds.StatusSucceeded,
+									})
+								})
+
+								It("saves the build's input as an implicit output", func() {
+									Eventually(trackerDB.SaveBuildOutputCallCount).Should(Equal(1))
+
+									id, output := trackerDB.SaveBuildOutputArgsForCall(0)
+									Ω(id).Should(Equal(1))
+									Ω(output).Should(Equal(builds.VersionedResource{
+										Name:    "some-input-resource",
+										Type:    "some-type",
+										Source:  builds.Source{"input-source": "some-source"},
+										Version: builds.Version{"version": "input-version"},
+										Metadata: []builds.MetadataField{
+											{Name: "input-meta", Value: "some-value"},
+										},
+									}))
+								})
+							})
+
 							Context("and an output event appears for the same input resource", func() {
 								BeforeEach(func() {
 									events = append(events, event.Output{
 										Output: tbuilds.Output{
-											Name:    "some-input-name",
+											Name:    "some-input-resource", // TODO rename Output.Name to Output.Resource
 											Type:    "some-type",
 											Source:  tbuilds.Source{"input-source": "some-source"},
 											Version: tbuilds.Version{"version": "explicit-input-version"},
@@ -254,7 +279,7 @@ var _ = Describe("Tracker", func() {
 										id, output := trackerDB.SaveBuildOutputArgsForCall(0)
 										Ω(id).Should(Equal(1))
 										Ω(output).Should(Equal(builds.VersionedResource{
-											Name:    "some-input-name",
+											Name:    "some-input-resource",
 											Type:    "some-type",
 											Source:  builds.Source{"input-source": "some-source"},
 											Version: builds.Version{"version": "explicit-input-version"},
@@ -263,30 +288,6 @@ var _ = Describe("Tracker", func() {
 											},
 										}))
 									})
-								})
-							})
-
-							Context("and a successful status event appears", func() {
-								BeforeEach(func() {
-									events = append(events, event.Status{
-										Status: tbuilds.StatusSucceeded,
-									})
-								})
-
-								It("saves the build's input as an implicit output", func() {
-									Eventually(trackerDB.SaveBuildOutputCallCount).Should(Equal(1))
-
-									id, output := trackerDB.SaveBuildOutputArgsForCall(0)
-									Ω(id).Should(Equal(1))
-									Ω(output).Should(Equal(builds.VersionedResource{
-										Name:    "some-input-name",
-										Type:    "some-type",
-										Source:  builds.Source{"input-source": "some-source"},
-										Version: builds.Version{"version": "input-version"},
-										Metadata: []builds.MetadataField{
-											{Name: "input-meta", Value: "some-value"},
-										},
-									}))
 								})
 							})
 						})

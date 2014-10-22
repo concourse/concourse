@@ -64,11 +64,12 @@ func (factory *BuildFactory) inputFor(
 	params config.Params,
 ) tbuilds.Input {
 	turbineInput := tbuilds.Input{
-		Name:    inputName,
-		Type:    vr.Type,
-		Source:  tbuilds.Source(vr.Source),
-		Version: tbuilds.Version(vr.Version),
-		Params:  tbuilds.Params(params),
+		Name:     inputName,
+		Resource: vr.Name,
+		Type:     vr.Type,
+		Source:   tbuilds.Source(vr.Source),
+		Version:  tbuilds.Version(vr.Version),
+		Params:   tbuilds.Params(params),
 	}
 
 	if turbineInput.Name == "" {
