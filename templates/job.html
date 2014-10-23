@@ -1,13 +1,13 @@
 {{define "title"}}{{.Job.Name}} - Concourse{{end}}
 
 {{define "body"}}
-<div id="build-header">
-  <div id="build-title" class="{{.CurrentBuild.Status}}">
+<div id="page-header">
+  <div class="build-header {{.CurrentBuild.Status}}">
     <form class="trigger-build" method="post" action="{{url "TriggerBuild" .Job}}">
       <input type="submit" value="trigger build" />
     </form>
 
-    <a class="title" href="/">&lt;</a>
+    <a class="back" href="/">&larr;</a>
 
     <h1>{{.Job.Name}}</h1>
   </div>

@@ -1,23 +1,23 @@
 {{define "title"}}{{.Job.Name}} #{{.Build.Name}} - Concourse{{end}}
 
 {{define "body"}}
-<div id="build-header">
-  <div id="build-title" class="{{.Build.Status}}">
+<div id="page-header" class="{{.Build.Status}}">
+  <div class="build-header">
     <form class="trigger-build" method="post" action="{{url "TriggerBuild" .Job}}">
       <input type="submit" value="trigger build" />
     </form>
-
-    <a class="title" href="/">&lt;</a>
-
-    <h1>{{.Job.Name}} #{{.Build.Name}}</h1>
-
-    <dl class="build-times"></dl>
 
     {{if .Abortable}}
     <form class="abort-build" method="post" action="{{url "AbortBuild" .Build}}">
       <input type="submit" value="abort" />
     </form>
     {{end}}
+
+    <a class="back" href="/">&larr;</a>
+
+    <h1>{{.Job.Name}} #{{.Build.Name}}</h1>
+
+    <dl class="build-times"></dl>
   </div>
 
   <ul id="builds">
@@ -39,7 +39,7 @@
   {{/* omitting whitespace for :empty style */}}
   <div class="build-resources build-inputs">{{range .Inputs}}
     <div data-resource="{{.Name}}" class="build-source{{if .FirstOccurrence}} first-occurrence{{end}}">
-      <div class="resource-header">
+      <div class="header">
         <h3>{{.Name}}</h3>
 
         <dl class="version">
@@ -71,7 +71,7 @@
   {{/* omitting whitespace for :empty style */}}
   <div class="build-resources build-outputs">{{range .Outputs}}
     <div data-resource="{{.Name}}" class="build-source">
-      <div class="resource-header">
+      <div class="header">
         <h3>{{.Name}}</h3>
 
         <dl class="version">
@@ -102,7 +102,7 @@
 {{/* used for constructing elements via JS */}}
 <div style="display: none" id="resource-template">
   <div class="build-source">
-    <div class="resource-header">
+    <div class="header">
       <h3></h3>
 
       <dl class="version"></dl>
