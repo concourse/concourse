@@ -50,11 +50,6 @@ automated by BOSH; you'll just have to create the ELB itself. This
 configuration is more secure, as your CI system's internal jobs aren't exposed
 to the outside world; only the webserver.
 
-Note that currently the @code{web} job is a singleton. Scaling up will cause
-them both to schedule builds, which you probably don't want. So for now, using
-an ELB is a bit overkill as it will only ever go to one instance, but it at
-least acts as a gateway into the VPC.
-
 
 @subsection{vSphere, OpenStack}
 
