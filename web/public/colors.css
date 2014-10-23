@@ -9,13 +9,13 @@ body { color: #d0d0d0; }
 a { color: #6a9fb5; } /* not really used anywhere... */
 
 /* emphasis */
-#build-title h1 { color: #f5f5f5; }
-#build-title .build-times { color: #f5f5f5; }
-#resource-header h1 { color: #f5f5f5; }
+.build-header h1 { color: #f5f5f5; }
+.build-header .build-times { color: #f5f5f5; }
+.resource-header h1 { color: #f5f5f5; }
 svg .edgeLabel text { fill: #f5f5f5; }
 svg h1 a { color: #f5f5f5; }
-#build-title .abort-build input:hover { color: #f5f5f5; }
-#build-title .abort-build input:active { color: #f5f5f5; }
+.build-header .abort-build input:hover { color: #f5f5f5; }
+.build-header .abort-build input:active { color: #f5f5f5; }
 .builds-list li a { color: #f5f5f5; }
 #builds li a { color: #f5f5f5; }
 .groups li a { color: #f5f5f5; }
@@ -24,7 +24,7 @@ svg h1 a { color: #f5f5f5; }
 svg .node rect { fill: #151515; }
 #builds { background: #151515; }
 .builds-list { background: #151515; }
-.build-resources .resource-header { background: #151515; }
+.build-source .header { background: #151515; }
 #page-header { background: #151515; }
 
 /* highlight background */
@@ -34,17 +34,17 @@ svg .gateway { fill: #303030; }
 .groups li.active a { background: #303030; }
 
 /* even more highlight background */
-.build-source.first-occurrence .resource-header { background: #505050; }
+.build-source.first-occurrence .build-source .header { background: #505050; }
 
 /* highlight foreground */
-.resource-header .version { color: #e0e0e0; }
+.build-source .header .version { color: #e0e0e0; }
 #build-requires-auth input { color: #e0e0e0; }
 
 /* dim */
 svg .edgePath.pending path { stroke: #505050; }
 svg #arrowhead-pending path { fill: #505050; }
 svg .node.job.pending rect { fill: #505050; }
-#build-title.pending { background: #505050; }
+#page-header.pending .build-header { background: #505050; }
 li.pending { background: #505050; }
 .legend dt.pending { background: #505050; }
 #build-requires-auth input:hover { background: #505050; }
@@ -53,7 +53,7 @@ li.pending { background: #505050; }
 svg .edgePath.succeeded path { stroke: #90a959; }
 svg #arrowhead-succeeded path { fill: #90a959; }
 svg .node.job.succeeded rect { fill: #90a959; }
-#build-title.succeeded { background: #90a959; }
+#page-header.succeeded .build-header { background: #90a959; }
 li.succeeded { background: #90a959; }
 .legend dt.succeeded { background: #90a959; }
 
@@ -61,37 +61,37 @@ li.succeeded { background: #90a959; }
 svg .edgePath.failed path { stroke: #ac4142; }
 svg #arrowhead-failed path { fill: #ac4142; }
 svg .node.job.failed rect { fill: #ac4142; }
-#build-title.failed { background: #ac4142; }
+#page-header.failed .build-header { background: #ac4142; }
 li.failed { background: #ac4142; }
 .legend dt.failed { background: #ac4142; }
-#build-title .abort-build input { color: #ac4142; }
-#build-title .abort-build input:hover { background: #ac4142; }
+.build-header .abort-build input { color: #ac4142; }
+.build-header .abort-build input:hover { background: #ac4142; }
 span.error { color: #ac4142; }
 
 /* like, really bad */
 svg .edgePath.errored path { stroke: #d28445; }
 svg #arrowhead-errored path { fill: #d28445; }
 svg .node.job.errored rect { fill: #d28445; }
-#build-title.errored { background: #d28445; }
+#page-header.errored .build-header { background: #d28445; }
 li.errored { background: #d28445; }
 .legend dt.errored { background: #d28445; }
 svg .node.resource.failing rect { fill: #d28445; }
-.build-source.errored .resource-header { background: #d28445; }
+.build-source.errored .build-source .header { background: #d28445; }
 
 /* not so bad */
 svg .edgePath.aborted path { stroke: #8f5536; }
 svg #arrowhead-aborted path { fill: #8f5536; }
 svg .node.job.aborted rect { fill: #8f5536; }
-#build-title.aborted { background: #8f5536; }
+#page-header.aborted .build-header { background: #8f5536; }
 li.aborted { background: #8f5536; }
 .legend dt.aborted { background: #8f5536; }
-#build-title .abort-build input:active { background: #8f5536; }
+.build-header .abort-build input:active { background: #8f5536; }
 
 /* active */
 svg .edgePath.started path { stroke: #f4bf75; }
 svg #arrowhead-started path { fill: #f4bf75; }
 svg .node.job.started rect { fill: #f4bf75; }
-#build-title.started { background: #f4bf75; }
+#page-header.started .build-header { background: #f4bf75; }
 li.started { background: #f4bf75; }
 .legend dt.started { background: #f4bf75; }
 

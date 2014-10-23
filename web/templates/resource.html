@@ -1,17 +1,19 @@
 {{define "title"}}History - Concourse{{end}}
 
 {{define "body"}}
-<div id="resource-header">
-  <a class="title" href="/">&lt;</a>
+<div id="page-header">
+  <div class="resource-header">
+    <a class="back" href="/">&larr;</a>
 
-  <h1>{{.Resource.Name}} history</h1>
+    <h1>{{.Resource.Name}} history</h1>
+  </div>
 </div>
 
 <table id="version-history">
   <colgroup>
-     <col span="1" style="width: 15%;">
-     <col span="1" style="width: 35%;">
-     <col span="1" style="width: 35%;">
+     <col span="1" style="width: 20%;">
+     <col span="1" style="width: 40%;">
+     <col span="1" style="width: 40%;">
   </colgroup>
   <thead>
     <tr>
@@ -25,7 +27,7 @@
     <tr>
       <td>
         <div class="build-source">
-          <div class="resource-header">
+          <div class="header">
             <h3>version</h3>
 
             <dl class="version">
