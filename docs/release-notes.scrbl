@@ -2,6 +2,62 @@
 
 @title[#:tag "release-notes"]{Release Notes}
 
+@section[#:style '(quiet unnumbered)]{v0.17.0}
+
+The ATC server is no longer a singleton, though scaling up doesn't yield much
+of a performance boost yet. (Perhaps it will after
+@hyperlink["https://www.pivotaltracker.com/story/show/81247410"]{#81247410}.)
+
+This release should be fully backwards-compatible. A lot of implementation
+detail changed, and a lot of work was put in to make everything a smooth
+transition - even for builds in-flight while upgrading! Concourse is not 1.0
+yet, but it's better to think about these things before people actually use it.
+
+@itemlist[
+  @item{
+    The communication between the Turbine (workers) and the ATC (web server) is
+    no longer done via callbacks. Instead, the ATC pulls down a build's event
+    stream via
+    @hyperlink["http://en.wikipedia.org/wiki/Server-sent_events"]{Server-Sent
+    Events}.
+
+    This means you can remove the @code{atc.callbacks_shared_secret} property
+    from your deployment.
+  }
+
+  @item{
+    In-flight builds are eventually consistent. When started, the Turbine
+    they're running on is remembered, and the ATC's job is to keep track of
+    this, by pulling down its event stream.
+    
+    Each ATC periodically sweeps the database for running builds and phones
+    home to their Turbine to process and save the event stream.
+    
+    If the Turbine returns a @code{404} for a build, the ATC it marks the build
+    as errored. This can happen if e.g. the build's Turbine VM died and got
+    resurrected.
+  }
+
+  @item{
+    In a cluster, any ATC instance can now serve build logs. Previously,
+    fanning-out build logs to clients was done in-memory, which made the ATC a
+    singleton. With the new SSE model, every ATC either proxies to an in-flight
+    build's Turbine, or reads all events from the database.
+  }
+
+  @item{
+    As a result of the switch to SSE and the necessary architectural changes,
+    streaming logs is no longer prone to locking up due to slow consumers and
+    dead connections.
+  }
+
+  @item{
+    Various minor UI tweaks; the Abort button has moved, and the handling of
+    @code{\r} characters in build logs is improved.
+  }
+]
+
+
 @section[#:style '(quiet unnumbered)]{v0.16.0}
 
 Yet more polish, with a few backwards-incompatible changes that are better made
