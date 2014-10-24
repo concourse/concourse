@@ -54,6 +54,14 @@ yet, but it's better to think about these things before people actually use it.
   }
 
   @item{
+    Build events are stored in a separate table, one row per event, rather than
+    as a single gigantic @code{text} column.
+
+    @emph{This is a very expensive migration.} Expect downtime if you have a
+    ton of builds, as they're all converted into the new format.
+  }
+
+  @item{
     Various minor UI tweaks; the Abort button has moved, and the handling of
     @code{\r} characters in build logs is improved.
   }
