@@ -149,28 +149,21 @@ ansiparse = function (str) {
         matchingControl = str[i];
       } else if (str[i] == '\u0008') {
         eraseChar();
+      } else if (str[i] == '\r' || str[i] == '\n') {
+        state.text = matchingText + (matchingControl ? matchingControl : '');
+        result.push(state);
+
+        if(str[i] == '\r') {
+          result.push({cr: true});
+        } else {
+          result.push({text: "\n", linebreak: true});
+        }
+
+        state = {};
+        matchingText = "";
       } else {
         matchingText += str[i];
       }
-    }
-
-    if (str[i] == '\n') {
-      state.text = matchingText + (matchingControl ? matchingControl : '');
-      state.linebreak = true;
-      result.push(state);
-
-      result.push({linebreak: true});
-
-      state = {};
-      matchingText = "";
-    } else if (str[i] == '\r') {
-      state.text = matchingText + (matchingControl ? matchingControl : '');
-      result.push(state);
-
-      result.push({cr: true});
-
-      state = {};
-      matchingText = "";
     }
   }
 
