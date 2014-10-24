@@ -1,6 +1,8 @@
 #lang scribble/manual
  
-@title{Concourse: CI that scales with your project}
+@(require "common.rkt")
+
+@title[#:version version]{Concourse: CI that scales with your project}
  
 @image[#:suffixes '(".svg" ".png") "images/example-pipeline"]{Example Pipeline}
 

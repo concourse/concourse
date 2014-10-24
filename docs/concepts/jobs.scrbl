@@ -1,6 +1,8 @@
 #lang scribble/manual
 
-@title[#:tag "jobs"]{Jobs}
+@(require "../common.rkt")
+
+@title[#:version version #:tag "jobs"]{Jobs}
 
 A job is a specification of a @seclink["builds"]{build} to run, combined with
 inputs to pull down, and outputs to push up upon the build's successful

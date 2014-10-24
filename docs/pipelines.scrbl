@@ -1,6 +1,8 @@
 #lang scribble/manual
 
-@title[#:tag "pipelines"]{Pipelines}
+@(require "common.rkt")
+
+@title[#:version version #:tag "pipelines"]{Pipelines}
 
 Together, jobs, resources, and builds form a pipeline.
 
