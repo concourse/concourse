@@ -68,7 +68,7 @@ run:
 		session, err := gexec.Start(fly, GinkgoWriter, GinkgoWriter)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		Eventually(session, 10*time.Second).Should(gexec.Exit(0))
+		Eventually(session, 30*time.Second).Should(gexec.Exit(0))
 
 		Ω(session).Should(gbytes.Say("some output"))
 		Ω(session).Should(gbytes.Say("FOO is 1"))
@@ -129,7 +129,7 @@ wait
 			flyS, err := gexec.Start(fly, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Eventually(flyS, 10*time.Second).Should(gbytes.Say("waiting"))
+			Eventually(flyS, 30*time.Second).Should(gbytes.Say("waiting"))
 
 			flyS.Signal(syscall.SIGTERM)
 
