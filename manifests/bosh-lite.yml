@@ -15,6 +15,14 @@ pipeline: &pipeline
           path: echo
           args: [Hello, world!]
 
+web_ips: &web-ips
+  - 10.244.8.2
+
+atc_db: &atc-db atc
+atc_role: &atc-role
+  name: atc
+  password: dummy-postgres-password
+
 releases:
   - name: concourse
     version: latest
@@ -27,7 +35,7 @@ jobs:
     resource_pool: concourse
     networks:
       - name: concourse
-        static_ips: &web-ips [10.244.8.2]
+        static_ips: *web-ips
     persistent_disk: 1024 # for consul
     templates:
       - {release: concourse, name: atc}
@@ -37,14 +45,13 @@ jobs:
         pipeline: *pipeline
         development_mode: true
         postgresql:
-          database: &atc-db atc
-          role: &atc-role
-            name: atc
-            password: dummy-postgres-password
+          database: *atc-db
+          role: *atc-role
 
       consul:
         agent:
           mode: server
+          servers: {lan: *web-ips}
 
   - name: db
     instances: 1
@@ -85,27 +92,35 @@ jobs:
 networks:
   - name: concourse
     subnets:
-      # network with static ip used for web
+      # networks with static ips used for web instances
       - range: 10.244.8.0/30
         reserved: [10.244.8.1]
         static: [10.244.8.2]
         cloud_properties: {}
-
-      # networks for dynamic ips (db, workers, compilation vms)
       - range: 10.244.8.4/30
         reserved: [10.244.8.5]
+        static: [10.244.8.6]
         cloud_properties: {}
       - range: 10.244.8.8/30
         reserved: [10.244.8.9]
+        static: [10.244.8.10]
         cloud_properties: {}
-      - range: 10.244.8.12/30
-        reserved: [10.244.8.13]
+
+      # networks for dynamic ips (db, workers, compilation vms)
+      - range: 10.244.16.4/30
+        reserved: [10.244.16.5]
         cloud_properties: {}
-      - range: 10.244.8.16/30
-        reserved: [10.244.8.17]
+      - range: 10.244.16.8/30
+        reserved: [10.244.16.9]
         cloud_properties: {}
-      - range: 10.244.8.20/30
-        reserved: [10.244.8.21]
+      - range: 10.244.16.12/30
+        reserved: [10.244.16.13]
+        cloud_properties: {}
+      - range: 10.244.16.16/30
+        reserved: [10.244.16.17]
+        cloud_properties: {}
+      - range: 10.244.16.20/30
+        reserved: [10.244.16.21]
         cloud_properties: {}
 
 resource_pools:
