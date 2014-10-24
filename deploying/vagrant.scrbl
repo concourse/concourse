@@ -1,6 +1,8 @@
 #lang scribble/manual
 
-@title[#:tag "deploying-with-vagrant"]{Provisioning with Vagrant}
+@(require "../common.rkt")
+
+@title[#:version version #:tag "deploying-with-vagrant"]{Provisioning with Vagrant}
 
 Before you go and spend money on hardware, you probably want to kick the tires a
 bit.

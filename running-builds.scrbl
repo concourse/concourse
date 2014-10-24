@@ -1,6 +1,8 @@
 #lang scribble/manual
 
-@title[#:tag "running-builds"]{Running Builds}
+@(require "common.rkt")
+
+@title[#:version version #:tag "running-builds"]{Running Builds}
 
 The smallest configurable unit in Concourse is a single build.
 

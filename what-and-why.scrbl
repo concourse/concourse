@@ -1,6 +1,8 @@
 #lang scribble/manual
  
-@title{What & Why}
+@(require "common.rkt")
+
+@title[#:version version]{What & Why}
 
 There are countless CI options out there. Transitioning from one CI system to
 another can be a huge investment depending on the size of your project.

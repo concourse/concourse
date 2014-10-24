@@ -1,6 +1,8 @@
 #lang scribble/manual
 
-@title[#:tag "release-notes"]{Release Notes}
+@(require "common.rkt")
+
+@title[#:version version #:tag "release-notes"]{Release Notes}
 
 @section[#:style '(quiet unnumbered)]{v0.17.0}
 

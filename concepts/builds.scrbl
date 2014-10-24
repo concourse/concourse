@@ -1,6 +1,8 @@
 #lang scribble/manual
 
-@title[#:tag "builds"]{Builds}
+@(require "../common.rkt")
+
+@title[#:version version #:tag "builds"]{Builds}
 
 A build is the execution of a script in a controlled, isolated environment with
 resources available to it. For example, running @code{myrepo/scripts/test} in

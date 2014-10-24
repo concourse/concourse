@@ -1,6 +1,8 @@
 #lang scribble/manual
 
-@title[#:tag "resources"]{Resources}
+@(require "../common.rkt")
+
+@title[#:version version #:tag "resources"]{Resources}
 
 A resource is any entity that can be checked for new versions, pulled down at a
 specific version, and/or pushed up to generate new versions. A common example

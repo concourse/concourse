@@ -1,6 +1,8 @@
 #lang scribble/manual
 
-@title[#:tag "deploying-with-bosh"]{Deploying a cluster with BOSH}
+@(require "../common.rkt")
+
+@title[#:version version #:tag "deploying-with-bosh"]{Deploying a cluster with BOSH}
 
 Once you start needing more workers and @emph{really} caring about your CI
 deployment, though, it's best to manage it with BOSH proper.

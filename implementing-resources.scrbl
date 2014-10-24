@@ -1,6 +1,8 @@
 #lang scribble/manual
  
-@title[#:tag "implementing-resources"]{Implementing a Resource}
+@(require "common.rkt")
+
+@title[#:version version #:tag "implementing-resources"]{Implementing a Resource}
 
 A resource type's container image provides the scripts @code{in},
 @code{out}, and @code{check}, all placed in @code{/opt/resource}.
