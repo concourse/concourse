@@ -34,3 +34,6 @@ src/code.google.com/p/goplan9/
 src/code.google.com/p/rog-go/
 src/github.com/golang/lint/
 src/github.com/jstemmer/gotags/
+
+# ctags
+tags
