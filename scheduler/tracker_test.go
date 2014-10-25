@@ -2,6 +2,7 @@ package scheduler_test
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -120,6 +121,28 @@ var _ = Describe("Tracker", func() {
 						Type:    string(event.EventType()),
 						Payload: string(payload),
 					}))
+				})
+
+				Context("when saving the event fails", func() {
+					disaster := errors.New("oh no!")
+
+					BeforeEach(func() {
+						num := 0
+
+						trackerDB.SaveBuildEventStub = func(int, db.BuildEvent) error {
+							num++
+
+							if num == count {
+								return disaster
+							}
+
+							return nil
+						}
+					})
+
+					It("returns an error", func() {
+						Ω(trackErr).Should(Equal(disaster))
+					})
 				})
 			}
 

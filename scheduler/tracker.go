@@ -131,6 +131,13 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 			Type:    se.Name,
 			Payload: string(se.Data),
 		})
+		if err != nil {
+			tLog.Error("failed-to-save-build-event", err, lager.Data{
+				"event": se,
+			})
+
+			return err
+		}
 
 		if se.Name == "version" {
 			var version event.Version
