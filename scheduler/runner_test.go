@@ -102,6 +102,10 @@ var _ = Describe("Runner", func() {
 			}
 		})
 
+		AfterEach(func() {
+			acquiredLocks <- lock
+		})
+
 		It("starts immediately regardless", func() {})
 
 		Context("when told to stop", func() {
