@@ -133,7 +133,14 @@ func itIsADB() {
 
 		err = db.AbortBuild(build.ID)
 		Ω(err).ShouldNot(HaveOccurred())
+	})
 
+	It("saves events correctly", func() {
+		build, err := db.CreateJobBuild("some-job")
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(build.Name).Should(Equal("1"))
+
+		By("initially returning zero-values for events and last ID")
 		events, err := db.GetBuildEvents(build.ID)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(events).Should(BeEmpty())
@@ -142,6 +149,7 @@ func itIsADB() {
 		Ω(err).Should(HaveOccurred())
 		Ω(lastID).Should(Equal(0))
 
+		By("saving them in order and knowing the last ID")
 		err = db.SaveBuildEvent(build.ID, BuildEvent{
 			ID:      0,
 			Type:    "log",
@@ -164,7 +172,7 @@ func itIsADB() {
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(lastID).Should(Equal(1))
 
-		// test idempotence
+		By("being idempotent")
 		err = db.SaveBuildEvent(build.ID, BuildEvent{
 			ID:      1,
 			Type:    "log",
