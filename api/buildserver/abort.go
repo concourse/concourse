@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/concourse/atc/builds"
 	troutes "github.com/concourse/turbine/routes"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
@@ -27,7 +28,7 @@ func (s *Server) AbortBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.db.AbortBuild(buildID)
+	err = s.db.SaveBuildStatus(buildID, builds.StatusAborted)
 	if err != nil {
 		aLog.Error("failed-to-set-aborted", err)
 		w.WriteHeader(http.StatusInternalServerError)

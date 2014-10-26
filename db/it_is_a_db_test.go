@@ -32,107 +32,220 @@ func itIsADB() {
 		Ω(err).ShouldNot(HaveOccurred())
 	})
 
-	It("works", func() {
+	It("initially reports zero builds for a job", func() {
 		builds, err := db.GetAllJobBuilds("some-job")
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(builds).Should(BeEmpty())
+	})
 
-		_, err = db.GetCurrentBuild("some-job")
+	It("initially has no current build for a job", func() {
+		_, err := db.GetCurrentBuild("some-job")
 		Ω(err).Should(HaveOccurred())
+	})
 
-		build, err := db.CreateJobBuild("some-job")
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(build.ID).ShouldNot(BeZero())
-		Ω(build.JobName).Should(Equal("some-job"))
-		Ω(build.Name).Should(Equal("1"))
-		Ω(build.Status).Should(Equal(Builds.StatusPending))
+	Context("when a build is created for a job", func() {
+		var build1 Builds.Build
 
-		gotBuild, err := db.GetBuild(build.ID)
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(gotBuild).Should(Equal(build))
+		BeforeEach(func() {
+			var err error
 
-		pending, err := db.CreateJobBuild("some-job")
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(pending.ID).ShouldNot(BeZero())
-		Ω(pending.ID).ShouldNot(Equal(build.ID))
-		Ω(pending.Name).Should(Equal("2"))
-		Ω(pending.Status).Should(Equal(Builds.StatusPending))
+			build1, err = db.CreateJobBuild("some-job")
+			Ω(err).ShouldNot(HaveOccurred())
 
-		nextPending, _, err := db.GetNextPendingBuild("some-job")
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(nextPending).Should(Equal(build))
+			Ω(build1.ID).ShouldNot(BeZero())
+			Ω(build1.JobName).Should(Equal("some-job"))
+			Ω(build1.Name).Should(Equal("1"))
+			Ω(build1.Status).Should(Equal(Builds.StatusPending))
+		})
 
-		currentBuild, err := db.GetCurrentBuild("some-job")
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(currentBuild).Should(Equal(build))
+		It("can be read back as the same object", func() {
+			gotBuild, err := db.GetBuild(build1.ID)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(gotBuild).Should(Equal(build1))
+		})
 
-		scheduled, err := db.ScheduleBuild(build.ID, false)
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(scheduled).Should(BeTrue())
+		It("becomes the current build", func() {
+			currentBuild, err := db.GetCurrentBuild("some-job")
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(currentBuild).Should(Equal(build1))
+		})
 
-		nextPending, _, err = db.GetNextPendingBuild("some-job")
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(nextPending).Should(Equal(pending))
+		It("becomes the next pending build", func() {
+			nextPending, _, err := db.GetNextPendingBuild("some-job")
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(nextPending).Should(Equal(build1))
+		})
 
-		build, err = db.GetCurrentBuild("some-job")
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(build.Name).Should(Equal("1"))
-		Ω(build.Status).Should(Equal(Builds.StatusPending))
+		It("is not reported as a started build", func() {
+			Ω(db.GetAllStartedBuilds()).Should(BeEmpty())
+		})
 
-		started, err := db.StartBuild(build.ID, "some-guid", "some-endpoint")
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(started).Should(BeTrue())
+		It("is returned in the job's builds", func() {
+			Ω(db.GetAllJobBuilds("some-job")).Should(ConsistOf([]Builds.Build{build1}))
+		})
 
-		build, err = db.GetCurrentBuild("some-job")
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(build.Name).Should(Equal("1"))
-		Ω(build.Status).Should(Equal(Builds.StatusStarted))
-		Ω(build.Guid).Should(Equal("some-guid"))
-		Ω(build.Endpoint).Should(Equal("some-endpoint"))
+		It("is returned in the set of all builds", func() {
+			Ω(db.GetAllBuilds()).Should(Equal([]Builds.Build{build1}))
+		})
 
-		Ω(db.GetAllStartedBuilds()).Should(Equal([]Builds.Build{build}))
+		Context("when scheduled", func() {
+			BeforeEach(func() {
+				scheduled, err := db.ScheduleBuild(build1.ID, false)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(scheduled).Should(BeTrue())
+			})
 
-		allJobBuilds, err := db.GetAllJobBuilds("some-job")
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(allJobBuilds).Should(HaveLen(2))
-		Ω(allJobBuilds[0].Name).Should(Equal(pending.Name))
-		Ω(allJobBuilds[0].JobName).Should(Equal("some-job"))
-		Ω(allJobBuilds[0].Status).Should(Equal(Builds.StatusPending))
-		Ω(allJobBuilds[1].Name).Should(Equal(build.Name))
-		Ω(allJobBuilds[1].JobName).Should(Equal("some-job"))
-		Ω(allJobBuilds[1].Status).Should(Equal(Builds.StatusStarted))
+			It("remains the current build", func() {
+				currentBuild, err := db.GetCurrentBuild("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(currentBuild).Should(Equal(build1))
+			})
 
-		allBuilds, err := db.GetAllBuilds()
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(allBuilds).Should(Equal(allJobBuilds))
+			It("is no longer the next pending build", func() {
+				_, _, err := db.GetNextPendingBuild("some-job")
+				Ω(err).Should(HaveOccurred())
+			})
+		})
 
-		err = db.SaveBuildStatus(build.ID, Builds.StatusSucceeded)
-		Ω(err).ShouldNot(HaveOccurred())
+		Context("when started", func() {
+			var expectedStartedBuild1 Builds.Build
 
-		build, err = db.GetJobBuild("some-job", build.Name)
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(build.ID).ShouldNot(BeZero())
-		Ω(build.Name).Should(Equal("1"))
-		Ω(build.JobName).Should(Equal("some-job"))
-		Ω(build.Status).Should(Equal(Builds.StatusSucceeded))
+			BeforeEach(func() {
+				started, err := db.StartBuild(build1.ID, "some-guid", "some-endpoint")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(started).Should(BeTrue())
 
-		otherBuild, err := db.CreateJobBuild("some-other-job")
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(otherBuild.ID).ShouldNot(BeZero())
-		Ω(otherBuild.Name).Should(Equal("1"))
-		Ω(otherBuild.Status).Should(Equal(Builds.StatusPending))
+				expectedStartedBuild1 = build1
+				expectedStartedBuild1.Status = Builds.StatusStarted
+				expectedStartedBuild1.Guid = "some-guid"
+				expectedStartedBuild1.Endpoint = "some-endpoint"
+			})
 
-		build, err = db.GetJobBuild("some-other-job", otherBuild.Name)
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(build.Name).Should(Equal("1"))
-		Ω(build.Status).Should(Equal(Builds.StatusPending))
+			It("saves the updated status, and the guid and endpoint", func() {
+				currentBuild, err := db.GetCurrentBuild("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(currentBuild).Should(Equal(expectedStartedBuild1))
+			})
 
-		started, err = db.StartBuild(build.ID, "some-other-guid", "some-other-endpoint")
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(started).Should(BeTrue())
+			It("is not reported as a started build", func() {
+				Ω(db.GetAllStartedBuilds()).Should(ConsistOf([]Builds.Build{expectedStartedBuild1}))
+			})
+		})
 
-		err = db.AbortBuild(build.ID)
-		Ω(err).ShouldNot(HaveOccurred())
+		Context("when the status is updated", func() {
+			var expectedSucceededBuild1 Builds.Build
+
+			BeforeEach(func() {
+				err := db.SaveBuildStatus(build1.ID, Builds.StatusSucceeded)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				expectedSucceededBuild1 = build1
+				expectedSucceededBuild1.Status = Builds.StatusSucceeded
+			})
+
+			It("is reflected through getting the build", func() {
+				currentBuild, err := db.GetCurrentBuild("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(currentBuild).Should(Equal(expectedSucceededBuild1))
+			})
+		})
+
+		Context("and another is created for the same job", func() {
+			var build2 Builds.Build
+
+			BeforeEach(func() {
+				var err error
+				build2, err = db.CreateJobBuild("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(build2.ID).ShouldNot(BeZero())
+				Ω(build2.ID).ShouldNot(Equal(build1.ID))
+				Ω(build2.Name).Should(Equal("2"))
+				Ω(build2.Status).Should(Equal(Builds.StatusPending))
+			})
+
+			It("can also be read back as the same object", func() {
+				gotBuild, err := db.GetBuild(build2.ID)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(gotBuild).Should(Equal(build2))
+			})
+
+			It("is returned in the job's builds, before the rest", func() {
+				Ω(db.GetAllJobBuilds("some-job")).Should(Equal([]Builds.Build{
+					build2,
+					build1,
+				}))
+			})
+
+			It("is returned in the set of all builds, before the rest", func() {
+				Ω(db.GetAllBuilds()).Should(Equal([]Builds.Build{build2, build1}))
+			})
+
+			Describe("the first build", func() {
+				It("remains the next pending build", func() {
+					nextPending, _, err := db.GetNextPendingBuild("some-job")
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(nextPending).Should(Equal(build1))
+				})
+
+				It("remains the current build", func() {
+					currentBuild, err := db.GetCurrentBuild("some-job")
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(currentBuild).Should(Equal(build1))
+				})
+			})
+
+			Context("when the first build is scheduled", func() {
+				BeforeEach(func() {
+					scheduled, err := db.ScheduleBuild(build1.ID, false)
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(scheduled).Should(BeTrue())
+				})
+
+				Describe("the first build", func() {
+					It("remains the current build", func() {
+						currentBuild, err := db.GetCurrentBuild("some-job")
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(currentBuild).Should(Equal(build1))
+					})
+				})
+
+				Describe("the second build", func() {
+					It("becomes the next pending build", func() {
+						nextPending, _, err := db.GetNextPendingBuild("some-job")
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(nextPending).Should(Equal(build2))
+					})
+				})
+			})
+		})
+
+		Context("and another is created for a different job", func() {
+			var otherJobBuild Builds.Build
+
+			BeforeEach(func() {
+				var err error
+
+				otherJobBuild, err = db.CreateJobBuild("some-other-job")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(otherJobBuild.ID).ShouldNot(BeZero())
+				Ω(otherJobBuild.Name).Should(Equal("1"))
+				Ω(otherJobBuild.Status).Should(Equal(Builds.StatusPending))
+			})
+
+			It("shows up in its job's builds", func() {
+				Ω(db.GetAllJobBuilds("some-other-job")).Should(Equal([]Builds.Build{otherJobBuild}))
+			})
+
+			It("does not show up in the first build's job's builds", func() {
+				Ω(db.GetAllJobBuilds("some-job")).Should(Equal([]Builds.Build{build1}))
+			})
+
+			It("is returned in the set of all builds, before the rest", func() {
+				Ω(db.GetAllBuilds()).Should(Equal([]Builds.Build{otherJobBuild, build1}))
+			})
+		})
 	})
 
 	It("saves events correctly", func() {
@@ -818,7 +931,7 @@ func itIsADB() {
 
 		Context("and then aborted", func() {
 			BeforeEach(func() {
-				err := db.AbortBuild(firstBuild.ID)
+				err := db.SaveBuildStatus(firstBuild.ID, Builds.StatusAborted)
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 
@@ -846,7 +959,7 @@ func itIsADB() {
 
 			Context("and then aborted", func() {
 				BeforeEach(func() {
-					err := db.AbortBuild(firstBuild.ID)
+					err := db.SaveBuildStatus(firstBuild.ID, Builds.StatusAborted)
 					Ω(err).ShouldNot(HaveOccurred())
 				})
 
@@ -975,7 +1088,7 @@ func itIsADB() {
 
 				Describe("after the first build is aborted", func() {
 					BeforeEach(func() {
-						err := db.AbortBuild(firstBuild.ID)
+						err := db.SaveBuildStatus(firstBuild.ID, Builds.StatusAborted)
 						Ω(err).ShouldNot(HaveOccurred())
 					})
 

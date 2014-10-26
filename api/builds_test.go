@@ -233,7 +233,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when the build can be aborted", func() {
 			BeforeEach(func() {
-				buildsDB.AbortBuildReturns(nil)
+				buildsDB.SaveBuildStatusReturns(nil)
 			})
 
 			It("aborts the build via its abort callback", func() {
@@ -267,7 +267,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when the build cannot be aborted", func() {
 			BeforeEach(func() {
-				buildsDB.AbortBuildReturns(errors.New("oh no!"))
+				buildsDB.SaveBuildStatusReturns(errors.New("oh no!"))
 			})
 
 			It("returns 500 Internal Server Error", func() {

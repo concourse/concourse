@@ -37,7 +37,6 @@ type DB interface {
 	SaveBuildInput(buildID int, vr builds.VersionedResource) error
 	SaveBuildOutput(buildID int, vr builds.VersionedResource) error
 
-	AbortBuild(buildID int) error
 	SaveBuildStatus(buildID int, status builds.Status) error
 
 	SaveBuildStartTime(buildID int, startTime time.Time) error

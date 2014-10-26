@@ -456,15 +456,6 @@ func (db *sqldb) SaveBuildEndTime(buildID int, endTime time.Time) error {
 	return nil
 }
 
-func (db *sqldb) AbortBuild(buildID int) error {
-	_, err := db.conn.Exec(`
-		UPDATE builds
-		SET status = $2
-		WHERE id = $1
-	`, buildID, string(builds.StatusAborted))
-	return err
-}
-
 func (db *sqldb) SaveBuildInput(buildID int, vr builds.VersionedResource) error {
 	tx, err := db.conn.Begin()
 	if err != nil {

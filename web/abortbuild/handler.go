@@ -8,6 +8,7 @@ import (
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 
+	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web/routes"
@@ -55,7 +56,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = handler.db.AbortBuild(buildID)
+	err = handler.db.SaveBuildStatus(buildID, builds.StatusAborted)
 	if err != nil {
 		log.Error("failed-to-set-aborted", err)
 		w.WriteHeader(http.StatusInternalServerError)

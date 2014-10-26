@@ -30,7 +30,7 @@ type BuildsDB interface {
 	GetAllBuilds() ([]builds.Build, error)
 
 	CreateOneOffBuild() (builds.Build, error)
-	AbortBuild(buildID int) error
+	SaveBuildStatus(buildID int, status builds.Status) error
 
 	GetBuildEvents(buildID int) ([]db.BuildEvent, error)
 }
