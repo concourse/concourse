@@ -29,13 +29,14 @@ resources/tracker-resource.tar.gz:
   size: 11532802
 resources/git-resource.tar.gz:
   object_id: 64fa95d9-5a0c-48b5-8bc8-57e90b75e51a
-  sha: f35a3f540eb41429c81438158c68e52344b10985
+  sha: !binary |-
+    ZjM1YTNmNTQwZWI0MTQyOWM4MTQzODE1OGM2OGU1MjM0NGIxMDk4NQ==
   size: 9154797
 resources/docker-image-resource.tar.gz:
   object_id: 11d17229-e60a-487f-a9f3-b80e6f5ae2b2
   sha: 2d7eecad11c4fa62ff5985ffbe121fa930a73434
   size: 7761648
 consul_0.4/consul:
-  object_id: b1b37f55-fef5-42d9-ab23-54798077d0b1
-  sha: f709c3c64fd8ee2ef61a2d0fc26832fe252bccd5
-  size: 15738724
+  object_id: 854e5eba-0de6-4212-af07-c58dab9cfd3a
+  sha: 8be7984e9e1b7aab3d1eee14acdf59bb62207b6c
+  size: 16085929

@@ -51,7 +51,7 @@
   end
 
   if lan_servers
-    config["retry_join"] = lan_servers
+    config["start_join"] = lan_servers
   end
 
   config.to_json
