@@ -35,7 +35,7 @@ things before people actually use it.
     Each ATC periodically sweeps the database for running builds and phones
     home to their Turbine to process and save the event stream.
 
-    If the Turbine returns a @code{404} for a build, the ATC it marks the build
+    If the Turbine returns a @code{404} for a build, the ATC marks the build
     as errored. This can happen if e.g. the build's Turbine VM died and got
     resurrected.
   }
