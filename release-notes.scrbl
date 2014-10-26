@@ -12,8 +12,8 @@ of a performance boost yet. (Perhaps it will after
 
 This release should be fully backwards-compatible. A lot of implementation
 detail changed, and a lot of work was put in to make everything a smooth
-transition - even for builds in-flight while upgrading! Concourse is not 1.0
-yet, but it's better to think about these things before people actually use it.
+transition. Concourse is not 1.0 yet, but it's better to think about these
+things before people actually use it.
 
 @itemlist[
   @item{
@@ -31,10 +31,10 @@ yet, but it's better to think about these things before people actually use it.
     In-flight builds are eventually consistent. When started, the Turbine
     they're running on is remembered, and the ATC's job is to keep track of
     this, by pulling down its event stream.
-    
+
     Each ATC periodically sweeps the database for running builds and phones
     home to their Turbine to process and save the event stream.
-    
+
     If the Turbine returns a @code{404} for a build, the ATC it marks the build
     as errored. This can happen if e.g. the build's Turbine VM died and got
     resurrected.
@@ -64,6 +64,33 @@ yet, but it's better to think about these things before people actually use it.
   @item{
     Various minor UI tweaks; the Abort button has moved, and the handling of
     @code{\r} characters in build logs is improved.
+  }
+]
+
+@subsection[#:style '(quiet unnumbered)]{Notes on upgrading}
+
+@itemlist[
+  @item{
+   The database migration that transforms the build logs into the new table
+   format can take a @emph{very} long time if you have a lot of builds.
+
+   During the deploy, your web servers will be down for a while as they run the
+   migrations on startup.
+  }
+
+  @item{
+    Unfortunately, logs of in-flight builds will be truncated after the deploy
+    completes. This is because the Turbine comes up and does not have an event
+    ID to start emitting from, so it starts at 0, which already exists for the
+    build, so ATC skips it. Logs saved before the deploy are unaffected.
+
+    The in-flight build's events will still be processed, just not persisted.
+    So, they will still go green or red, and their outputs saved; you just won't
+    see any more logs for the build.
+
+    Don't expect these kinds of things to happen after 1.0; this was a sacrifice
+    made to not grow complexity/baggage early on as Concourse is still in
+    "limited release".
   }
 ]
 
