@@ -6,7 +6,7 @@ import (
 	"time"
 
 	. "github.com/concourse/atc/auth"
-	"github.com/concourse/turbine/api/builds"
+	"github.com/concourse/turbine"
 	"github.com/concourse/turbine/event"
 	"github.com/vito/go-sse/sse"
 
@@ -62,7 +62,7 @@ var _ = Describe("EventCensor", func() {
 						Payload: "some log",
 					},
 					event.Status{
-						Status: builds.StatusSucceeded,
+						Status: turbine.StatusSucceeded,
 					},
 					event.Start{
 						Time: time.Now().Unix(),
