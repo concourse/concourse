@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 
 	garden_api "github.com/cloudfoundry-incubator/garden/api"
@@ -96,7 +97,7 @@ func hijack(c *cli.Context) {
 		hijackReq.URL.User = nil
 	}
 
-	conn, err := net.Dial("tcp", hijackReq.URL.Host)
+	conn, err := net.Dial("tcp", canonicalAddr(hijackReq.URL))
 	if err != nil {
 		log.Fatalln("failed to dial hijack endpoint:", err)
 	}
@@ -294,4 +295,23 @@ func basicAuth(user *url.Userinfo) string {
 	username := user.Username()
 	password, _ := user.Password()
 	return "Basic " + base64.StdEncoding.EncodeToString([]byte(username+":"+password))
+}
+
+var canonicalPortMap = map[string]string{
+	"http":  "80",
+	"https": "443",
+}
+
+func canonicalAddr(url *url.URL) string {
+	host, port, err := net.SplitHostPort(url.Host)
+	if err != nil {
+		if strings.Contains(err.Error(), "missing port in address") {
+			host = url.Host
+			port = canonicalPortMap[url.Scheme]
+		} else {
+			log.Fatalln("invalid host:", err)
+		}
+	}
+
+	return net.JoinHostPort(host, port)
 }
