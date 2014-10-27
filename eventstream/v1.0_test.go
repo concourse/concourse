@@ -6,7 +6,7 @@ import (
 
 	. "github.com/concourse/fly/eventstream"
 	"github.com/concourse/fly/eventstream/fakes"
-	"github.com/concourse/turbine/api/builds"
+	"github.com/concourse/turbine"
 	"github.com/concourse/turbine/event"
 	"github.com/mgutz/ansi"
 
@@ -77,9 +77,9 @@ var _ = Describe("V1.0 Renderer", func() {
 	Context("when an Initialize event is received", func() {
 		BeforeEach(func() {
 			receivedEvents <- event.Initialize{
-				BuildConfig: builds.Config{
+				BuildConfig: turbine.Config{
 					Image: "some-image",
-					Run: builds.RunConfig{
+					Run: turbine.RunConfig{
 						Path: "/some/script",
 						Args: []string{"arg1", "arg2"},
 					},
@@ -118,7 +118,7 @@ var _ = Describe("V1.0 Renderer", func() {
 		Context("and a Status event is received", func() {
 			BeforeEach(func() {
 				receivedEvents <- event.Status{
-					Status: builds.StatusSucceeded,
+					Status: turbine.StatusSucceeded,
 				}
 			})
 
@@ -136,7 +136,7 @@ var _ = Describe("V1.0 Renderer", func() {
 		Context("with status 'succeeded'", func() {
 			BeforeEach(func() {
 				receivedEvents <- event.Status{
-					Status: builds.StatusSucceeded,
+					Status: turbine.StatusSucceeded,
 				}
 			})
 
@@ -152,7 +152,7 @@ var _ = Describe("V1.0 Renderer", func() {
 		Context("with status 'failed'", func() {
 			BeforeEach(func() {
 				receivedEvents <- event.Status{
-					Status: builds.StatusFailed,
+					Status: turbine.StatusFailed,
 				}
 			})
 
@@ -168,7 +168,7 @@ var _ = Describe("V1.0 Renderer", func() {
 		Context("with status 'errored'", func() {
 			BeforeEach(func() {
 				receivedEvents <- event.Status{
-					Status: builds.StatusErrored,
+					Status: turbine.StatusErrored,
 				}
 			})
 
@@ -184,7 +184,7 @@ var _ = Describe("V1.0 Renderer", func() {
 		Context("with status 'aborted'", func() {
 			BeforeEach(func() {
 				receivedEvents <- event.Status{
-					Status: builds.StatusAborted,
+					Status: turbine.StatusAborted,
 				}
 			})
 

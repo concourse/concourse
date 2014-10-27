@@ -23,7 +23,7 @@ import (
 	"github.com/concourse/atc/api/resources"
 	"github.com/concourse/atc/api/routes"
 	"github.com/concourse/fly/eventstream"
-	tbuilds "github.com/concourse/turbine/api/builds"
+	"github.com/concourse/turbine"
 	"github.com/pivotal-golang/archiver/compressor"
 	"github.com/tedsuo/rata"
 )
@@ -157,13 +157,13 @@ func createPipe(atcRequester *atcRequester) resources.Pipe {
 	return pipe
 }
 
-func loadConfig(configPath string, args []string) tbuilds.Config {
+func loadConfig(configPath string, args []string) turbine.Config {
 	configFile, err := os.Open(configPath)
 	if err != nil {
 		log.Fatalln("could not open config file:", err)
 	}
 
-	var config tbuilds.Config
+	var config turbine.Config
 
 	err = candiedyaml.NewDecoder(configFile).Decode(&config)
 	if err != nil {
@@ -186,11 +186,11 @@ func createBuild(
 	atcRequester *atcRequester,
 	privileged bool,
 	inputs []Input,
-	config tbuilds.Config,
+	config turbine.Config,
 ) resources.Build {
 	buffer := &bytes.Buffer{}
 
-	buildInputs := make([]tbuilds.Input, len(inputs))
+	buildInputs := make([]turbine.Input, len(inputs))
 	for idx, i := range inputs {
 		readPipe, err := atcRequester.CreateHTTPRequest(
 			routes.ReadPipe,
@@ -203,16 +203,16 @@ func createBuild(
 
 		readPipe.URL.Host = i.Pipe.PeerAddr
 
-		buildInputs[idx] = tbuilds.Input{
+		buildInputs[idx] = turbine.Input{
 			Name: i.Name,
 			Type: "archive",
-			Source: tbuilds.Source{
+			Source: turbine.Source{
 				"uri": readPipe.URL.String(),
 			},
 		}
 	}
 
-	turbineBuild := tbuilds.Build{
+	turbineBuild := turbine.Build{
 		Privileged: privileged,
 		Config:     config,
 		Inputs:     buildInputs,

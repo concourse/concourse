@@ -18,11 +18,11 @@ import (
 	"strings"
 	"syscall"
 
-	garden_api "github.com/cloudfoundry-incubator/garden/api"
+	garden "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/codegangsta/cli"
 	"github.com/concourse/atc/api/resources"
 	"github.com/concourse/atc/api/routes"
-	thijack "github.com/concourse/turbine/api/hijack"
+	"github.com/concourse/turbine"
 	"github.com/kr/pty"
 	"github.com/pkg/term"
 	"github.com/tedsuo/rata"
@@ -49,19 +49,19 @@ func hijack(c *cli.Context) {
 		args = argv[1:]
 	}
 
-	var ttySpec *garden_api.TTYSpec
+	var ttySpec *garden.TTYSpec
 
 	rows, cols, err := pty.Getsize(os.Stdin)
 	if err == nil {
-		ttySpec = &garden_api.TTYSpec{
-			WindowSize: &garden_api.WindowSize{
+		ttySpec = &garden.TTYSpec{
+			WindowSize: &garden.WindowSize{
 				Columns: cols,
 				Rows:    rows,
 			},
 		}
 	}
 
-	spec := garden_api.ProcessSpec{
+	spec := garden.ProcessSpec{
 		Path: path,
 		Args: args,
 		Env:  []string{"TERM=" + os.Getenv("TERM")},
@@ -267,9 +267,9 @@ func getBuild(ctx *cli.Context, client *http.Client, reqGenerator *rata.RequestG
 func sendSize(enc *gob.Encoder) {
 	rows, cols, err := pty.Getsize(os.Stdin)
 	if err == nil {
-		enc.Encode(thijack.ProcessPayload{
-			TTYSpec: &garden_api.TTYSpec{
-				WindowSize: &garden_api.WindowSize{
+		enc.Encode(turbine.HijackPayload{
+			TTYSpec: &garden.TTYSpec{
+				WindowSize: &garden.WindowSize{
 					Columns: cols,
 					Rows:    rows,
 				},
@@ -283,7 +283,7 @@ type stdinWriter struct {
 }
 
 func (w *stdinWriter) Write(d []byte) (int, error) {
-	err := w.enc.Encode(thijack.ProcessPayload{
+	err := w.enc.Encode(turbine.HijackPayload{
 		Stdin: d,
 	})
 	if err != nil {

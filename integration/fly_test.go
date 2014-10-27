@@ -21,7 +21,7 @@ import (
 	"github.com/vito/go-sse/sse"
 
 	"github.com/concourse/atc/api/resources"
-	tbuilds "github.com/concourse/turbine/api/builds"
+	"github.com/concourse/turbine"
 	"github.com/concourse/turbine/event"
 )
 
@@ -34,7 +34,7 @@ var _ = Describe("Fly CLI", func() {
 	var events chan event.Event
 	var uploadingBits <-chan struct{}
 
-	var expectedTurbineBuild tbuilds.Build
+	var expectedTurbineBuild turbine.Build
 
 	BeforeEach(func() {
 		var err error
@@ -70,25 +70,25 @@ run:
 		streaming = make(chan struct{})
 		events = make(chan event.Event)
 
-		expectedTurbineBuild = tbuilds.Build{
-			Config: tbuilds.Config{
+		expectedTurbineBuild = turbine.Build{
+			Config: turbine.Config{
 				Image: "ubuntu",
 				Params: map[string]string{
 					"FOO": "bar",
 					"BAZ": "buzz",
 					"X":   "1",
 				},
-				Run: tbuilds.RunConfig{
+				Run: turbine.RunConfig{
 					Path: "find",
 					Args: []string{"."},
 				},
 			},
 
-			Inputs: []tbuilds.Input{
+			Inputs: []turbine.Input{
 				{
 					Name: filepath.Base(buildDir),
 					Type: "archive",
-					Source: tbuilds.Source{
+					Source: turbine.Source{
 						"uri": "http://127.0.0.1:1234/api/v1/pipes/some-pipe-id",
 					},
 				},
@@ -315,7 +315,7 @@ run:
 
 				Eventually(aborted, 5.0).Should(BeClosed())
 
-				events <- event.Status{Status: tbuilds.StatusErrored}
+				events <- event.Status{Status: turbine.StatusErrored}
 
 				Eventually(flySession, 5.0).Should(gexec.Exit(2))
 			})
@@ -337,7 +337,7 @@ run:
 
 				Eventually(aborted, 5.0).Should(BeClosed())
 
-				events <- event.Status{Status: tbuilds.StatusErrored}
+				events <- event.Status{Status: turbine.StatusErrored}
 
 				Eventually(flySession, 5.0).Should(gexec.Exit(2))
 			})
@@ -354,7 +354,7 @@ run:
 
 			Eventually(streaming, 5).Should(BeClosed())
 
-			events <- event.Status{Status: tbuilds.StatusSucceeded}
+			events <- event.Status{Status: turbine.StatusSucceeded}
 
 			Eventually(flySession, 5.0).Should(gexec.Exit(0))
 		})
@@ -370,7 +370,7 @@ run:
 
 			Eventually(streaming, 5).Should(BeClosed())
 
-			events <- event.Status{Status: tbuilds.StatusFailed}
+			events <- event.Status{Status: turbine.StatusFailed}
 
 			Eventually(flySession, 5.0).Should(gexec.Exit(1))
 		})
@@ -386,7 +386,7 @@ run:
 
 			Eventually(streaming, 5).Should(BeClosed())
 
-			events <- event.Status{Status: tbuilds.StatusErrored}
+			events <- event.Status{Status: turbine.StatusErrored}
 
 			Eventually(flySession, 5.0).Should(gexec.Exit(2))
 		})

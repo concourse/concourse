@@ -20,7 +20,7 @@ import (
 	"github.com/vito/go-sse/sse"
 
 	"github.com/concourse/atc/api/resources"
-	tbuilds "github.com/concourse/turbine/api/builds"
+	"github.com/concourse/turbine"
 	"github.com/concourse/turbine/event"
 )
 
@@ -33,7 +33,7 @@ var _ = Describe("Fly CLI", func() {
 	var events chan event.Event
 	var uploadingBits <-chan struct{}
 
-	var expectedTurbineBuild tbuilds.Build
+	var expectedTurbineBuild turbine.Build
 
 	BeforeEach(func() {
 		var err error
@@ -76,32 +76,32 @@ run:
 		streaming = make(chan struct{})
 		events = make(chan event.Event)
 
-		expectedTurbineBuild = tbuilds.Build{
-			Config: tbuilds.Config{
+		expectedTurbineBuild = turbine.Build{
+			Config: turbine.Config{
 				Image: "ubuntu",
 				Params: map[string]string{
 					"FOO": "bar",
 					"BAZ": "buzz",
 					"X":   "1",
 				},
-				Run: tbuilds.RunConfig{
+				Run: turbine.RunConfig{
 					Path: "find",
 					Args: []string{"."},
 				},
 			},
 
-			Inputs: []tbuilds.Input{
+			Inputs: []turbine.Input{
 				{
 					Name: "buildDir",
 					Type: "archive",
-					Source: tbuilds.Source{
+					Source: turbine.Source{
 						"uri": "http://127.0.0.1:1234/api/v1/pipes/some-pipe-id",
 					},
 				},
 				{
 					Name: "s3Asset",
 					Type: "archive",
-					Source: tbuilds.Source{
+					Source: turbine.Source{
 						"uri": "http://127.0.0.1:1234/api/v1/pipes/some-other-pipe-id",
 					},
 				},

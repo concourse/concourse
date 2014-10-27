@@ -5,16 +5,17 @@ import (
 	"io"
 	"strings"
 
-	"github.com/concourse/turbine/api/builds"
-	"github.com/concourse/turbine/event"
 	"github.com/mgutz/ansi"
+
+	"github.com/concourse/turbine"
+	"github.com/concourse/turbine/event"
 )
 
 type V10Renderer struct {
 }
 
 func (V10Renderer) Render(dst io.Writer, src EventStream) int {
-	var buildConfig builds.Config
+	var buildConfig turbine.Config
 
 	exitStatus := 0
 

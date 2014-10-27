@@ -7,7 +7,7 @@ import (
 	"os/exec"
 
 	"github.com/concourse/atc/api/resources"
-	thijack "github.com/concourse/turbine/api/hijack"
+	"github.com/concourse/turbine"
 	"github.com/kr/pty"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -42,12 +42,12 @@ var _ = Describe("Hijacking", func() {
 
 				decoder := gob.NewDecoder(sbr)
 
-				var payload thijack.ProcessPayload
+				var payload turbine.HijackPayload
 
 				err = decoder.Decode(&payload)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(payload).Should(Equal(thijack.ProcessPayload{
+				Ω(payload).Should(Equal(turbine.HijackPayload{
 					Stdin: []byte("marco"),
 				}))
 
