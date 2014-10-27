@@ -1,11 +1,10 @@
 package factory_test
 
 import (
-	tbuilds "github.com/concourse/turbine/api/builds"
-
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 	. "github.com/concourse/atc/scheduler/factory"
+	"github.com/concourse/turbine"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,7 +16,7 @@ var _ = Describe("Factory", func() {
 
 		job config.Job
 
-		expectedTurbineBuild tbuilds.Build
+		expectedTurbineBuild turbine.Build
 	)
 
 	BeforeEach(func() {
@@ -54,13 +53,13 @@ var _ = Describe("Factory", func() {
 		job = config.Job{
 			Name: "some-job",
 
-			BuildConfig: tbuilds.Config{
+			BuildConfig: turbine.Config{
 				Image: "some-image",
 				Params: map[string]string{
 					"FOO": "1",
 					"BAR": "2",
 				},
-				Run: tbuilds.RunConfig{
+				Run: turbine.RunConfig{
 					Path: "some-script",
 					Args: []string{"arg1", "arg2"},
 				},
@@ -95,8 +94,8 @@ var _ = Describe("Factory", func() {
 			},
 		}
 
-		expectedTurbineBuild = tbuilds.Build{
-			Config: tbuilds.Config{
+		expectedTurbineBuild = turbine.Build{
+			Config: turbine.Config{
 				Image: "some-image",
 
 				Params: map[string]string{
@@ -104,44 +103,44 @@ var _ = Describe("Factory", func() {
 					"BAR": "2",
 				},
 
-				Run: tbuilds.RunConfig{
+				Run: turbine.RunConfig{
 					Path: "some-script",
 					Args: []string{"arg1", "arg2"},
 				},
 			},
 
-			Inputs: []tbuilds.Input{
+			Inputs: []turbine.Input{
 				{
 					Name:       "some-resource",
 					Resource:   "some-resource",
 					Type:       "git",
-					Source:     tbuilds.Source{"uri": "git://some-resource"},
-					Params:     tbuilds.Params{"some": "params"},
+					Source:     turbine.Source{"uri": "git://some-resource"},
+					Params:     turbine.Params{"some": "params"},
 					ConfigPath: "build.yml",
 				},
 			},
 
-			Outputs: []tbuilds.Output{
+			Outputs: []turbine.Output{
 				{
 					Name:   "some-resource",
 					Type:   "git",
-					On:     []tbuilds.OutputCondition{tbuilds.OutputConditionSuccess},
-					Params: tbuilds.Params{"foo": "bar"},
-					Source: tbuilds.Source{"uri": "git://some-resource"},
+					On:     []turbine.OutputCondition{turbine.OutputConditionSuccess},
+					Params: turbine.Params{"foo": "bar"},
+					Source: turbine.Source{"uri": "git://some-resource"},
 				},
 				{
 					Name:   "some-resource",
 					Type:   "git",
-					On:     []tbuilds.OutputCondition{tbuilds.OutputConditionFailure},
-					Params: tbuilds.Params{"foo": "bar"},
-					Source: tbuilds.Source{"uri": "git://some-resource"},
+					On:     []turbine.OutputCondition{turbine.OutputConditionFailure},
+					Params: turbine.Params{"foo": "bar"},
+					Source: turbine.Source{"uri": "git://some-resource"},
 				},
 				{
 					Name:   "some-resource",
 					Type:   "git",
-					On:     []tbuilds.OutputCondition{},
-					Params: tbuilds.Params{"foo": "bar"},
-					Source: tbuilds.Source{"uri": "git://some-resource"},
+					On:     []turbine.OutputCondition{},
+					Params: turbine.Params{"foo": "bar"},
+					Source: turbine.Source{"uri": "git://some-resource"},
 				},
 			},
 
@@ -164,12 +163,12 @@ var _ = Describe("Factory", func() {
 				Params:   config.Params{"some": "named-params"},
 			})
 
-			expectedTurbineBuild.Inputs = append(expectedTurbineBuild.Inputs, tbuilds.Input{
+			expectedTurbineBuild.Inputs = append(expectedTurbineBuild.Inputs, turbine.Input{
 				Name:     "some-named-input",
 				Resource: "some-named-resource",
 				Type:     "git",
-				Source:   tbuilds.Source{"uri": "git://some-named-resource"},
-				Params:   tbuilds.Params{"some": "named-params"},
+				Source:   turbine.Source{"uri": "git://some-named-resource"},
+				Params:   turbine.Params{"some": "named-params"},
 			})
 		})
 
@@ -193,12 +192,12 @@ var _ = Describe("Factory", func() {
 
 			expectedTurbineBuild.Inputs[0].ConfigPath = ""
 
-			expectedTurbineBuild.Inputs = append(expectedTurbineBuild.Inputs, tbuilds.Input{
+			expectedTurbineBuild.Inputs = append(expectedTurbineBuild.Inputs, turbine.Input{
 				Name:       "some-named-input",
 				Resource:   "some-named-resource",
 				Type:       "git",
-				Source:     tbuilds.Source{"uri": "git://some-named-resource"},
-				Params:     tbuilds.Params{"some": "named-params"},
+				Source:     turbine.Source{"uri": "git://some-named-resource"},
+				Params:     turbine.Params{"some": "named-params"},
 				ConfigPath: "build.yml",
 			})
 		})
@@ -221,11 +220,11 @@ var _ = Describe("Factory", func() {
 
 			expectedTurbineBuild.Inputs[0].ConfigPath = ""
 
-			expectedTurbineBuild.Inputs = append(expectedTurbineBuild.Inputs, tbuilds.Input{
+			expectedTurbineBuild.Inputs = append(expectedTurbineBuild.Inputs, turbine.Input{
 				Name:       "some-resource-with-longer-name",
 				Resource:   "some-resource-with-longer-name",
 				Type:       "git",
-				Source:     tbuilds.Source{"uri": "git://some-resource-with-longer-name"},
+				Source:     turbine.Source{"uri": "git://some-resource-with-longer-name"},
 				ConfigPath: "build.yml",
 			})
 		})
@@ -250,14 +249,14 @@ var _ = Describe("Factory", func() {
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(turbineBuild.Inputs).Should(Equal([]tbuilds.Input{
+			Ω(turbineBuild.Inputs).Should(Equal([]turbine.Input{
 				{
 					Name:       "some-resource",
 					Resource:   "some-resource",
 					Type:       "git-ng",
-					Source:     tbuilds.Source{"uri": "git://some-provided-uri"},
-					Params:     tbuilds.Params{"some": "params"},
-					Version:    tbuilds.Version{"version": "1"},
+					Source:     turbine.Source{"uri": "git://some-provided-uri"},
+					Params:     turbine.Params{"some": "params"},
+					Version:    turbine.Version{"version": "1"},
 					ConfigPath: "build.yml",
 				},
 			}))

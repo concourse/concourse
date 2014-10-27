@@ -6,25 +6,25 @@ import (
 
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
-	tbuilds "github.com/concourse/turbine/api/builds"
+	"github.com/concourse/turbine"
 )
 
 type BuildFactory struct {
 	Resources config.Resources
 }
 
-func (factory *BuildFactory) Create(job config.Job, inputVersions builds.VersionedResources) (tbuilds.Build, error) {
+func (factory *BuildFactory) Create(job config.Job, inputVersions builds.VersionedResources) (turbine.Build, error) {
 	inputs, err := factory.computeInputs(job, inputVersions)
 	if err != nil {
-		return tbuilds.Build{}, err
+		return turbine.Build{}, err
 	}
 
 	outputs, err := factory.computeOutputs(job)
 	if err != nil {
-		return tbuilds.Build{}, err
+		return turbine.Build{}, err
 	}
 
-	return tbuilds.Build{
+	return turbine.Build{
 		Config: job.BuildConfig,
 
 		Inputs:  inputs,
@@ -34,8 +34,8 @@ func (factory *BuildFactory) Create(job config.Job, inputVersions builds.Version
 	}, nil
 }
 
-func (factory *BuildFactory) computeInputs(job config.Job, inputs builds.VersionedResources) ([]tbuilds.Input, error) {
-	turbineInputs := make([]tbuilds.Input, len(job.Inputs))
+func (factory *BuildFactory) computeInputs(job config.Job, inputs builds.VersionedResources) ([]turbine.Input, error) {
+	turbineInputs := make([]turbine.Input, len(job.Inputs))
 	for i, input := range job.Inputs {
 		resource, found := factory.Resources.Lookup(input.Resource)
 		if !found {
@@ -62,14 +62,14 @@ func (factory *BuildFactory) inputFor(
 	vr builds.VersionedResource,
 	inputName string,
 	params config.Params,
-) tbuilds.Input {
-	turbineInput := tbuilds.Input{
+) turbine.Input {
+	turbineInput := turbine.Input{
 		Name:     inputName,
 		Resource: vr.Name,
 		Type:     vr.Type,
-		Source:   tbuilds.Source(vr.Source),
-		Version:  tbuilds.Version(vr.Version),
-		Params:   tbuilds.Params(params),
+		Source:   turbine.Source(vr.Source),
+		Version:  turbine.Version(vr.Version),
+		Params:   turbine.Params(params),
 	}
 
 	if turbineInput.Name == "" {
@@ -83,33 +83,33 @@ func (factory *BuildFactory) inputFor(
 	return turbineInput
 }
 
-func (factory *BuildFactory) computeOutputs(job config.Job) ([]tbuilds.Output, error) {
-	turbineOutputs := []tbuilds.Output{}
+func (factory *BuildFactory) computeOutputs(job config.Job) ([]turbine.Output, error) {
+	turbineOutputs := []turbine.Output{}
 	for _, output := range job.Outputs {
 		resource, found := factory.Resources.Lookup(output.Resource)
 		if !found {
 			return nil, fmt.Errorf("unknown resource: %s", output.Resource)
 		}
 
-		conditions := []tbuilds.OutputCondition{}
+		conditions := []turbine.OutputCondition{}
 
 		// if not specified, assume [success]
 		//
 		// note that this check is for nil, not len(output.PerformOn) == 0
 		if output.PerformOn == nil {
-			conditions = append(conditions, tbuilds.OutputConditionSuccess)
+			conditions = append(conditions, turbine.OutputConditionSuccess)
 		} else {
 			for _, cond := range output.PerformOn {
-				conditions = append(conditions, tbuilds.OutputCondition(cond))
+				conditions = append(conditions, turbine.OutputCondition(cond))
 			}
 		}
 
-		turbineOutput := tbuilds.Output{
+		turbineOutput := turbine.Output{
 			Name:   resource.Name,
 			Type:   resource.Type,
 			On:     conditions,
-			Params: tbuilds.Params(output.Params),
-			Source: tbuilds.Source(resource.Source),
+			Params: turbine.Params(output.Params),
+			Source: turbine.Source(resource.Source),
 		}
 
 		turbineOutputs = append(turbineOutputs, turbineOutput)

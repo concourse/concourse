@@ -7,7 +7,7 @@ import (
 	"net/http/httputil"
 	"strconv"
 
-	"github.com/concourse/turbine/routes"
+	"github.com/concourse/turbine"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 )
@@ -35,10 +35,10 @@ func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	generator := rata.NewRequestGenerator(build.Endpoint, routes.Routes)
+	generator := rata.NewRequestGenerator(build.Endpoint, turbine.Routes)
 
 	hijack, err := generator.CreateRequest(
-		routes.HijackBuild,
+		turbine.HijackBuild,
 		rata.Params{"guid": build.Guid},
 		r.Body,
 	)

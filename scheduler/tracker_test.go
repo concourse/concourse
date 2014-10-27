@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/fakes"
-	tbuilds "github.com/concourse/turbine/api/builds"
+	"github.com/concourse/turbine"
 	"github.com/concourse/turbine/event"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/vito/go-sse/sse"
@@ -160,7 +160,7 @@ var _ = Describe("Tracker", func() {
 						Context("and it's started", func() {
 							BeforeEach(func() {
 								events = append(events, event.Status{
-									Status: tbuilds.StatusStarted,
+									Status: turbine.StatusStarted,
 									Time:   1234,
 								})
 							})
@@ -187,7 +187,7 @@ var _ = Describe("Tracker", func() {
 						Context("and it's completed", func() {
 							BeforeEach(func() {
 								events = append(events, event.Status{
-									Status: tbuilds.StatusSucceeded,
+									Status: turbine.StatusSucceeded,
 									Time:   1234,
 								})
 							})
@@ -215,13 +215,13 @@ var _ = Describe("Tracker", func() {
 					Context("and an input event appears", func() {
 						BeforeEach(func() {
 							events = append(events, event.Input{
-								Input: tbuilds.Input{
+								Input: turbine.Input{
 									Name:     "some-input-name",
 									Resource: "some-input-resource",
 									Type:     "some-type",
-									Source:   tbuilds.Source{"input-source": "some-source"},
-									Version:  tbuilds.Version{"version": "input-version"},
-									Metadata: []tbuilds.MetadataField{
+									Source:   turbine.Source{"input-source": "some-source"},
+									Version:  turbine.Version{"version": "input-version"},
+									Metadata: []turbine.MetadataField{
 										{Name: "input-meta", Value: "some-value"},
 									},
 								},
@@ -254,7 +254,7 @@ var _ = Describe("Tracker", func() {
 							Context("and a successful status event appears", func() {
 								BeforeEach(func() {
 									events = append(events, event.Status{
-										Status: tbuilds.StatusSucceeded,
+										Status: turbine.StatusSucceeded,
 									})
 								})
 
@@ -280,12 +280,12 @@ var _ = Describe("Tracker", func() {
 							Context("and an output event appears for the same input resource", func() {
 								BeforeEach(func() {
 									events = append(events, event.Output{
-										Output: tbuilds.Output{
+										Output: turbine.Output{
 											Name:    "some-input-resource", // TODO rename Output.Name to Output.Resource
 											Type:    "some-type",
-											Source:  tbuilds.Source{"input-source": "some-source"},
-											Version: tbuilds.Version{"version": "explicit-input-version"},
-											Metadata: []tbuilds.MetadataField{
+											Source:  turbine.Source{"input-source": "some-source"},
+											Version: turbine.Version{"version": "explicit-input-version"},
+											Metadata: []turbine.MetadataField{
 												{Name: "input-meta", Value: "some-value"},
 											},
 										},
@@ -297,7 +297,7 @@ var _ = Describe("Tracker", func() {
 								Context("and a successful status event appears", func() {
 									BeforeEach(func() {
 										events = append(events, event.Status{
-											Status: tbuilds.StatusSucceeded,
+											Status: turbine.StatusSucceeded,
 										})
 									})
 
@@ -336,12 +336,12 @@ var _ = Describe("Tracker", func() {
 					Context("and an output event appears", func() {
 						BeforeEach(func() {
 							events = append(events, event.Output{
-								Output: tbuilds.Output{
+								Output: turbine.Output{
 									Name:    "some-output-name",
 									Type:    "some-type",
-									Source:  tbuilds.Source{"output-source": "some-source"},
-									Version: tbuilds.Version{"version": "output-version"},
-									Metadata: []tbuilds.MetadataField{
+									Source:  turbine.Source{"output-source": "some-source"},
+									Version: turbine.Version{"version": "output-version"},
+									Metadata: []turbine.MetadataField{
 										{Name: "output-meta", Value: "some-value"},
 									},
 								},
@@ -360,7 +360,7 @@ var _ = Describe("Tracker", func() {
 							Context("and a successful status event appears", func() {
 								BeforeEach(func() {
 									events = append(events, event.Status{
-										Status: tbuilds.StatusSucceeded,
+										Status: turbine.StatusSucceeded,
 									})
 								})
 
@@ -384,7 +384,7 @@ var _ = Describe("Tracker", func() {
 							Context("and an errored status event appears", func() {
 								BeforeEach(func() {
 									events = append(events, event.Status{
-										Status: tbuilds.StatusErrored,
+										Status: turbine.StatusErrored,
 									})
 								})
 
@@ -408,12 +408,12 @@ var _ = Describe("Tracker", func() {
 					Context("and an input event appears, with no resource present", func() {
 						BeforeEach(func() {
 							events = append(events, event.Input{
-								Input: tbuilds.Input{
+								Input: turbine.Input{
 									Name:    "some-input-name",
 									Type:    "some-type",
-									Source:  tbuilds.Source{"input-source": "some-source"},
-									Version: tbuilds.Version{"version": "input-version"},
-									Metadata: []tbuilds.MetadataField{
+									Source:  turbine.Source{"input-source": "some-source"},
+									Version: turbine.Version{"version": "input-version"},
+									Metadata: []turbine.MetadataField{
 										{Name: "input-meta", Value: "some-value"},
 									},
 								},
@@ -476,7 +476,7 @@ var _ = Describe("Tracker", func() {
 					events = append(
 						events,
 						event.Version("2.0"),
-						event.Status{Status: tbuilds.StatusSucceeded},
+						event.Status{Status: turbine.StatusSucceeded},
 					)
 				})
 

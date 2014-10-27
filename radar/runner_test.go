@@ -9,7 +9,7 @@ import (
 	dbfakes "github.com/concourse/atc/db/fakes"
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/fakes"
-	"github.com/concourse/turbine/routes"
+	"github.com/concourse/turbine"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 	"github.com/tedsuo/rata"
@@ -46,7 +46,7 @@ var _ = Describe("Runner", func() {
 			},
 		}
 
-		turbineEndpoint = rata.NewRequestGenerator("turbine-host", routes.Routes)
+		turbineEndpoint = rata.NewRequestGenerator("turbine-host", turbine.Routes)
 
 		lock = new(dbfakes.FakeLock)
 		locker.AcquireResourceCheckingLockReturns(lock, nil)

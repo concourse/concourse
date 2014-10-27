@@ -6,26 +6,26 @@ import (
 
 	"github.com/concourse/atc/builder"
 	"github.com/concourse/atc/builds"
-	tbuilds "github.com/concourse/turbine/api/builds"
+	"github.com/concourse/turbine"
 )
 
 type FakeBuilder struct {
-	BuildStub        func(builds.Build, tbuilds.Build) error
+	BuildStub        func(builds.Build, turbine.Build) error
 	buildMutex       sync.RWMutex
 	buildArgsForCall []struct {
 		arg1 builds.Build
-		arg2 tbuilds.Build
+		arg2 turbine.Build
 	}
 	buildReturns struct {
 		result1 error
 	}
 }
 
-func (fake *FakeBuilder) Build(arg1 builds.Build, arg2 tbuilds.Build) error {
+func (fake *FakeBuilder) Build(arg1 builds.Build, arg2 turbine.Build) error {
 	fake.buildMutex.Lock()
 	fake.buildArgsForCall = append(fake.buildArgsForCall, struct {
 		arg1 builds.Build
-		arg2 tbuilds.Build
+		arg2 turbine.Build
 	}{arg1, arg2})
 	fake.buildMutex.Unlock()
 	if fake.BuildStub != nil {
@@ -41,7 +41,7 @@ func (fake *FakeBuilder) BuildCallCount() int {
 	return len(fake.buildArgsForCall)
 }
 
-func (fake *FakeBuilder) BuildArgsForCall(i int) (builds.Build, tbuilds.Build) {
+func (fake *FakeBuilder) BuildArgsForCall(i int) (builds.Build, turbine.Build) {
 	fake.buildMutex.RLock()
 	defer fake.buildMutex.RUnlock()
 	return fake.buildArgsForCall[i].arg1, fake.buildArgsForCall[i].arg2

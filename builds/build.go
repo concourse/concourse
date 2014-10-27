@@ -3,7 +3,7 @@ package builds
 import (
 	"time"
 
-	tbuilds "github.com/concourse/turbine/api/builds"
+	"github.com/concourse/turbine"
 )
 
 type Status string
@@ -51,9 +51,9 @@ type VersionedResource struct {
 	Metadata []MetadataField
 }
 
-type Source tbuilds.Source
+type Source turbine.Source
 
-type Version tbuilds.Version
+type Version turbine.Version
 
 type MetadataField struct {
 	Name  string

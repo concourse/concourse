@@ -7,23 +7,23 @@ import (
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/scheduler"
-	tbuilds "github.com/concourse/turbine/api/builds"
+	"github.com/concourse/turbine"
 )
 
 type FakeBuildFactory struct {
-	CreateStub        func(config.Job, builds.VersionedResources) (tbuilds.Build, error)
+	CreateStub        func(config.Job, builds.VersionedResources) (turbine.Build, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
 		arg1 config.Job
 		arg2 builds.VersionedResources
 	}
 	createReturns struct {
-		result1 tbuilds.Build
+		result1 turbine.Build
 		result2 error
 	}
 }
 
-func (fake *FakeBuildFactory) Create(arg1 config.Job, arg2 builds.VersionedResources) (tbuilds.Build, error) {
+func (fake *FakeBuildFactory) Create(arg1 config.Job, arg2 builds.VersionedResources) (turbine.Build, error) {
 	fake.createMutex.Lock()
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
 		arg1 config.Job
@@ -49,10 +49,10 @@ func (fake *FakeBuildFactory) CreateArgsForCall(i int) (config.Job, builds.Versi
 	return fake.createArgsForCall[i].arg1, fake.createArgsForCall[i].arg2
 }
 
-func (fake *FakeBuildFactory) CreateReturns(result1 tbuilds.Build, result2 error) {
+func (fake *FakeBuildFactory) CreateReturns(result1 turbine.Build, result2 error) {
 	fake.CreateStub = nil
 	fake.createReturns = struct {
-		result1 tbuilds.Build
+		result1 turbine.Build
 		result2 error
 	}{result1, result2}
 }

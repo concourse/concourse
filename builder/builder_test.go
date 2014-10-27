@@ -8,12 +8,10 @@ import (
 	"github.com/onsi/gomega/ghttp"
 	"github.com/tedsuo/rata"
 
-	tbuilds "github.com/concourse/turbine/api/builds"
-	TurbineRoutes "github.com/concourse/turbine/routes"
-
 	. "github.com/concourse/atc/builder"
 	"github.com/concourse/atc/builder/fakes"
 	"github.com/concourse/atc/builds"
+	"github.com/concourse/turbine"
 )
 
 var _ = Describe("Builder", func() {
@@ -24,7 +22,7 @@ var _ = Describe("Builder", func() {
 		builder Builder
 
 		build        builds.Build
-		turbineBuild tbuilds.Build
+		turbineBuild turbine.Build
 	)
 
 	BeforeEach(func() {
@@ -37,8 +35,8 @@ var _ = Describe("Builder", func() {
 			Name: "some-build",
 		}
 
-		turbineBuild = tbuilds.Build{
-			Config: tbuilds.Config{
+		turbineBuild = turbine.Build{
+			Config: turbine.Config{
 				Image: "some-image",
 
 				Params: map[string]string{
@@ -46,7 +44,7 @@ var _ = Describe("Builder", func() {
 					"BAR": "2",
 				},
 
-				Run: tbuilds.RunConfig{
+				Run: turbine.RunConfig{
 					Path: "some-script",
 					Args: []string{"arg1", "arg2"},
 				},
@@ -57,11 +55,11 @@ var _ = Describe("Builder", func() {
 
 		builder = NewBuilder(
 			db,
-			rata.NewRequestGenerator(turbineServer.URL(), TurbineRoutes.Routes),
+			rata.NewRequestGenerator(turbineServer.URL(), turbine.Routes),
 		)
 	})
 
-	successfulBuildStart := func(build tbuilds.Build) http.HandlerFunc {
+	successfulBuildStart := func(build turbine.Build) http.HandlerFunc {
 		createdBuild := build
 		createdBuild.Guid = "some-build-guid"
 

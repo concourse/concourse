@@ -22,8 +22,6 @@ import (
 	"github.com/tedsuo/ifrit/sigmon"
 	"github.com/tedsuo/rata"
 
-	troutes "github.com/concourse/turbine/routes"
-
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/builder"
@@ -35,6 +33,7 @@ import (
 	sched "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/factory"
 	"github.com/concourse/atc/web"
+	"github.com/concourse/turbine"
 )
 
 var pipelinePath = flag.String(
@@ -207,7 +206,7 @@ func main() {
 		}
 	}
 
-	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, troutes.Routes)
+	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, turbine.Routes)
 	builder := builder.NewBuilder(db, turbineEndpoint)
 	tracker := sched.NewTracker(logger.Session("tracker"), db)
 

@@ -6,8 +6,7 @@ import (
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 	. "github.com/concourse/atc/resources"
-	TurbineBuilds "github.com/concourse/turbine/api/builds"
-	"github.com/concourse/turbine/routes"
+	"github.com/concourse/turbine"
 	"github.com/gorilla/websocket"
 	"github.com/tedsuo/rata"
 
@@ -20,8 +19,8 @@ var _ = Describe("TurbineChecker", func() {
 	var turbineServer *ghttp.Server
 	var checker Checker
 
-	var checkedInputs chan TurbineBuilds.Input
-	var checkVersions chan []TurbineBuilds.Version
+	var checkedInputs chan turbine.Input
+	var checkVersions chan []turbine.Version
 
 	var resource config.Resource
 
@@ -35,8 +34,8 @@ var _ = Describe("TurbineChecker", func() {
 	}
 
 	BeforeEach(func() {
-		checkedInputs = make(chan TurbineBuilds.Input, 100)
-		checkVersions = make(chan []TurbineBuilds.Version, 100)
+		checkedInputs = make(chan turbine.Input, 100)
+		checkVersions = make(chan []turbine.Version, 100)
 
 		turbineServer = ghttp.NewServer()
 
@@ -50,7 +49,7 @@ var _ = Describe("TurbineChecker", func() {
 					go func() {
 						defer ws.Close()
 
-						var input TurbineBuilds.Input
+						var input turbine.Input
 
 						for {
 							err := ws.ReadJSON(&input)
@@ -71,7 +70,7 @@ var _ = Describe("TurbineChecker", func() {
 		)
 
 		checker = NewTurbineChecker(
-			rata.NewRequestGenerator(turbineServer.URL(), routes.Routes),
+			rata.NewRequestGenerator(turbineServer.URL(), turbine.Routes),
 		)
 
 		resource = config.Resource{
@@ -88,13 +87,13 @@ var _ = Describe("TurbineChecker", func() {
 
 	Context("when the endpoint returns new versions", func() {
 		BeforeEach(func() {
-			checkVersions <- []TurbineBuilds.Version{
-				TurbineBuilds.Version{"ver": "abc"},
-				TurbineBuilds.Version{"ver": "def"},
+			checkVersions <- []turbine.Version{
+				turbine.Version{"ver": "abc"},
+				turbine.Version{"ver": "def"},
 			}
 
-			checkVersions <- []TurbineBuilds.Version{
-				TurbineBuilds.Version{"ver": "ghi"},
+			checkVersions <- []turbine.Version{
+				turbine.Version{"ver": "ghi"},
 			}
 		})
 
@@ -104,19 +103,19 @@ var _ = Describe("TurbineChecker", func() {
 				builds.Version{"ver": "def"},
 			}))
 
-			Ω(checkedInputs).Should(Receive(Equal(TurbineBuilds.Input{
+			Ω(checkedInputs).Should(Receive(Equal(turbine.Input{
 				Type:   resource.Type,
-				Source: TurbineBuilds.Source{"uri": "http://example.com"},
+				Source: turbine.Source{"uri": "http://example.com"},
 			})))
 
 			Ω(checker.CheckResource(resource, builds.Version{"ver": "def"})).Should(Equal([]builds.Version{
 				builds.Version{"ver": "ghi"},
 			}))
 
-			Ω(checkedInputs).Should(Receive(Equal(TurbineBuilds.Input{
+			Ω(checkedInputs).Should(Receive(Equal(turbine.Input{
 				Type:    resource.Type,
-				Source:  TurbineBuilds.Source{"uri": "http://example.com"},
-				Version: TurbineBuilds.Version{"ver": "def"},
+				Source:  turbine.Source{"uri": "http://example.com"},
+				Version: turbine.Version{"ver": "def"},
 			})))
 		})
 	})

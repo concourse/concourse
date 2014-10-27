@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/concourse/turbine/api/builds"
+	"github.com/concourse/turbine"
 )
 
 type Config struct {
@@ -35,8 +35,8 @@ type Job struct {
 
 	Public bool `yaml:"public"`
 
-	BuildConfigPath string        `yaml:"build"`
-	BuildConfig     builds.Config `yaml:"config"`
+	BuildConfigPath string         `yaml:"build"`
+	BuildConfig     turbine.Config `yaml:"config"`
 
 	Privileged bool `yaml:"privileged"`
 
@@ -70,8 +70,8 @@ func (c *OutputCondition) UnmarshalYAML(tag string, value interface{}) error {
 		return fmt.Errorf("invalid output condition: %#v (must be success/failure)", value)
 	}
 
-	switch builds.OutputCondition(str) {
-	case builds.OutputConditionSuccess, builds.OutputConditionFailure:
+	switch turbine.OutputCondition(str) {
+	case turbine.OutputConditionSuccess, turbine.OutputConditionFailure:
 		*c = OutputCondition(str)
 	default:
 		return fmt.Errorf("unknown output condition: %s (must be success/failure)", str)

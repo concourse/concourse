@@ -1,12 +1,12 @@
 package scheduler
 
 import (
-	tbuilds "github.com/concourse/turbine/api/builds"
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc/builder"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
+	"github.com/concourse/turbine"
 )
 
 type SchedulerDB interface {
@@ -22,7 +22,7 @@ type SchedulerDB interface {
 }
 
 type BuildFactory interface {
-	Create(config.Job, builds.VersionedResources) (tbuilds.Build, error)
+	Create(config.Job, builds.VersionedResources) (turbine.Build, error)
 }
 
 type BuildTracker interface {

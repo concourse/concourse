@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/concourse/atc/builds"
-	troutes "github.com/concourse/turbine/routes"
+	"github.com/concourse/turbine"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 )
@@ -36,10 +36,10 @@ func (s *Server) AbortBuild(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if build.Guid != "" {
-		generator := rata.NewRequestGenerator(build.Endpoint, troutes.Routes)
+		generator := rata.NewRequestGenerator(build.Endpoint, turbine.Routes)
 
 		abort, err := generator.CreateRequest(
-			troutes.AbortBuild,
+			turbine.AbortBuild,
 			rata.Params{"guid": build.Guid},
 			nil,
 		)

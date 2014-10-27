@@ -4,13 +4,12 @@ import (
 	"net"
 	"time"
 
-	TurbineBuilds "github.com/concourse/turbine/api/builds"
-	"github.com/concourse/turbine/routes"
 	"github.com/gorilla/websocket"
 	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
+	"github.com/concourse/turbine"
 )
 
 type TurbineChecker struct {
@@ -43,10 +42,10 @@ func (checker *TurbineChecker) CheckResource(resource config.Resource, from buil
 		return nil, err
 	}
 
-	buildInput := TurbineBuilds.Input{
+	buildInput := turbine.Input{
 		Type:    resource.Type,
-		Source:  TurbineBuilds.Source(resource.Source),
-		Version: TurbineBuilds.Version(from),
+		Source:  turbine.Source(resource.Source),
+		Version: turbine.Version(from),
 	}
 
 	err = conn.WriteJSON(buildInput)
@@ -71,7 +70,7 @@ func (checker *TurbineChecker) connect() (*websocket.Conn, error) {
 		return conn, nil
 	default:
 		req, err := checker.turbine.CreateRequest(
-			routes.CheckInputStream,
+			turbine.CheckInputStream,
 			nil,
 			nil,
 		)

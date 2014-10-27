@@ -11,25 +11,25 @@ import (
 	"net/http/httputil"
 	"sync"
 
-	tbuilds "github.com/concourse/turbine/api/builds"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/ghttp"
 
 	"github.com/concourse/atc/builds"
+	"github.com/concourse/turbine"
 )
 
 var _ = Describe("Builds API", func() {
 	Describe("POST /api/v1/builds", func() {
-		var turbineBuild tbuilds.Build
+		var turbineBuild turbine.Build
 
 		var response *http.Response
 
 		BeforeEach(func() {
-			turbineBuild = tbuilds.Build{
-				Config: tbuilds.Config{
-					Run: tbuilds.RunConfig{
+			turbineBuild = turbine.Build{
+				Config: turbine.Config{
+					Run: turbine.RunConfig{
 						Path: "ls",
 					},
 				},

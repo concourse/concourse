@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/atc/config"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/fakes"
-	tbuilds "github.com/concourse/turbine/api/builds"
+	"github.com/concourse/turbine"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
@@ -22,7 +22,7 @@ var _ = Describe("Scheduler", func() {
 		builder *fakebuilder.FakeBuilder
 		tracker *fakes.FakeBuildTracker
 
-		createdTurbineBuild tbuilds.Build
+		createdTurbineBuild turbine.Build
 
 		job config.Job
 
@@ -35,9 +35,9 @@ var _ = Describe("Scheduler", func() {
 		builder = new(fakebuilder.FakeBuilder)
 		tracker = new(fakes.FakeBuildTracker)
 
-		createdTurbineBuild = tbuilds.Build{
-			Config: tbuilds.Config{
-				Run: tbuilds.RunConfig{Path: "some-build"},
+		createdTurbineBuild = turbine.Build{
+			Config: turbine.Config{
+				Run: turbine.RunConfig{Path: "some-build"},
 			},
 		}
 

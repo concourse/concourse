@@ -7,11 +7,10 @@ import (
 	"net/http"
 	"time"
 
-	tbuilds "github.com/concourse/turbine/api/builds"
-	troutes "github.com/concourse/turbine/routes"
 	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc/builds"
+	"github.com/concourse/turbine"
 )
 
 var ErrBadResponse = errors.New("bad response from turbine")
@@ -21,7 +20,7 @@ type BuilderDB interface {
 }
 
 type Builder interface {
-	Build(builds.Build, tbuilds.Build) error
+	Build(builds.Build, turbine.Build) error
 }
 
 type builder struct {
@@ -49,7 +48,7 @@ func NewBuilder(db BuilderDB, turbine *rata.RequestGenerator) Builder {
 	}
 }
 
-func (builder *builder) Build(build builds.Build, turbineBuild tbuilds.Build) error {
+func (builder *builder) Build(build builds.Build, turbineBuild turbine.Build) error {
 	req := new(bytes.Buffer)
 
 	err := json.NewEncoder(req).Encode(turbineBuild)
@@ -58,7 +57,7 @@ func (builder *builder) Build(build builds.Build, turbineBuild tbuilds.Build) er
 	}
 
 	execute, err := builder.turbine.CreateRequest(
-		troutes.ExecuteBuild,
+		turbine.ExecuteBuild,
 		nil,
 		req,
 	)
@@ -77,7 +76,7 @@ func (builder *builder) Build(build builds.Build, turbineBuild tbuilds.Build) er
 		return ErrBadResponse
 	}
 
-	var startedBuild tbuilds.Build
+	var startedBuild turbine.Build
 	err = json.NewDecoder(resp.Body).Decode(&startedBuild)
 	if err != nil {
 		return err
@@ -99,7 +98,7 @@ func (builder *builder) Build(build builds.Build, turbineBuild tbuilds.Build) er
 
 func (builder *builder) abort(guid string) error {
 	abort, err := builder.turbine.CreateRequest(
-		troutes.AbortBuild,
+		turbine.AbortBuild,
 		rata.Params{"guid": guid},
 		nil,
 	)

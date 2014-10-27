@@ -10,9 +10,8 @@ import (
 
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/db"
-	tbuilds "github.com/concourse/turbine/api/builds"
+	"github.com/concourse/turbine"
 	"github.com/concourse/turbine/event"
-	"github.com/concourse/turbine/routes"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 	"github.com/vito/go-sse/sse"
@@ -68,10 +67,10 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 		tracker.unmarkTracking(build.ID)
 	}()
 
-	generator := rata.NewRequestGenerator(build.Endpoint, routes.Routes)
+	generator := rata.NewRequestGenerator(build.Endpoint, turbine.Routes)
 
 	events, err := generator.CreateRequest(
-		routes.GetBuildEvents,
+		turbine.GetBuildEvents,
 		rata.Params{"guid": build.Guid},
 		nil,
 	)
@@ -159,7 +158,7 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 			tLog.Info("event-stream-ended")
 
 			del, err := generator.CreateRequest(
-				routes.DeleteBuild,
+				turbine.DeleteBuild,
 				rata.Params{"guid": build.Guid},
 				nil,
 			)
@@ -195,7 +194,7 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 					return err
 				}
 
-				if status.Status == tbuilds.StatusStarted {
+				if status.Status == turbine.StatusStarted {
 					err = tracker.db.SaveBuildStartTime(build.ID, time.Unix(status.Time, 0))
 					if err != nil {
 						tLog.Error("failed-to-save-build-start-time", err)
@@ -215,7 +214,7 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 					return err
 				}
 
-				if status.Status == tbuilds.StatusSucceeded {
+				if status.Status == turbine.StatusSucceeded {
 					for _, output := range outputs {
 						err := tracker.db.SaveBuildOutput(build.ID, output)
 						if err != nil {
@@ -293,7 +292,7 @@ func (tracker *tracker) unmarkTracking(buildID int) {
 	tracker.lock.Unlock()
 }
 
-func vrFromInput(input tbuilds.Input) builds.VersionedResource {
+func vrFromInput(input turbine.Input) builds.VersionedResource {
 	metadata := make([]builds.MetadataField, len(input.Metadata))
 	for i, md := range input.Metadata {
 		metadata[i] = builds.MetadataField{
@@ -314,7 +313,7 @@ func vrFromInput(input tbuilds.Input) builds.VersionedResource {
 // same as input, but type is different.
 //
 // :(
-func vrFromOutput(output tbuilds.Output) builds.VersionedResource {
+func vrFromOutput(output turbine.Output) builds.VersionedResource {
 	metadata := make([]builds.MetadataField, len(output.Metadata))
 	for i, md := range output.Metadata {
 		metadata[i] = builds.MetadataField{

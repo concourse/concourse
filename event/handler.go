@@ -7,7 +7,7 @@ import (
 
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/db"
-	troutes "github.com/concourse/turbine/routes"
+	"github.com/concourse/turbine"
 	"github.com/tedsuo/rata"
 	"github.com/vito/go-sse/sse"
 )
@@ -34,10 +34,10 @@ func NewHandler(db BuildsDB, buildID int, censor Censor) http.Handler {
 		w.Header().Add("Connection", "keep-alive")
 
 		if build.Status == builds.StatusStarted {
-			generator := rata.NewRequestGenerator(build.Endpoint, troutes.Routes)
+			generator := rata.NewRequestGenerator(build.Endpoint, turbine.Routes)
 
 			events, err := generator.CreateRequest(
-				troutes.GetBuildEvents,
+				turbine.GetBuildEvents,
 				rata.Params{"guid": build.Guid},
 				nil,
 			)

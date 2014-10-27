@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"net/http"
 
-	tbuilds "github.com/concourse/turbine/api/builds"
+	"github.com/concourse/turbine"
 
 	"github.com/concourse/atc/api/present"
 )
 
 func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
-	var turbineBuild tbuilds.Build
+	var turbineBuild turbine.Build
 	err := json.NewDecoder(r.Body).Decode(&turbineBuild)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
