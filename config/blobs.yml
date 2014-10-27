@@ -12,9 +12,10 @@ resources/archive-resource.tar.gz:
   sha: 0d4643a8335622a6447b1eb2026da549d7b18cda
   size: 2549733
 resources/time-resource.tar.gz:
-  object_id: 0ccb7f9e-cac0-4e6c-9362-cbf13cbd3742
-  sha: 29d5ffe06c58fa38f66546a11dbb0b344c2b689d
-  size: 2518560
+  object_id: 73db0c47-0f5f-4a69-8436-ae3c207d5b9f
+  sha: !binary |-
+    ZWE4MGUzODJmZGU5N2YyMTg2ZjcxMDBiZjJlNWJkZTY4ZDY3NzMyMQ==
+  size: 2518572
 resources/semver-resource.tar.gz:
   object_id: 3f1fdf6d-c78e-425f-bf5e-32e080b392bd
   sha: !binary |-
