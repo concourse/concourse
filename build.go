@@ -1,4 +1,4 @@
-package resources
+package atc
 
 type Build struct {
 	ID      int    `json:"id"`

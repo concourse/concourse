@@ -7,7 +7,7 @@ import (
 
 	"github.com/nu7hatch/gouuid"
 
-	"github.com/concourse/atc/api/resources"
+	"github.com/concourse/atc"
 )
 
 func (s *Server) CreatePipe(w http.ResponseWriter, r *http.Request) {
@@ -19,7 +19,7 @@ func (s *Server) CreatePipe(w http.ResponseWriter, r *http.Request) {
 
 	pr, pw := io.Pipe()
 
-	pipeResource := resources.Pipe{
+	pipeResource := atc.Pipe{
 		ID:       guid.String(),
 		PeerAddr: s.peerAddr,
 	}

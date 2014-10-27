@@ -1,4 +1,4 @@
-package resources
+package atc
 
 type Job struct {
 	NextBuild     *Build `json:"next_build"`

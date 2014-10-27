@@ -7,10 +7,10 @@ import (
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/api/jobserver"
 	"github.com/concourse/atc/api/pipes"
-	"github.com/concourse/atc/api/routes"
 	"github.com/concourse/atc/builder"
 )
 
@@ -37,20 +37,20 @@ func NewHandler(
 	pipeServer := pipes.NewServer(logger, peerAddr)
 
 	handlers := map[string]http.Handler{
-		routes.CreateBuild: http.HandlerFunc(buildServer.CreateBuild),
-		routes.ListBuilds:  http.HandlerFunc(buildServer.ListBuilds),
-		routes.BuildEvents: http.HandlerFunc(buildServer.BuildEvents),
-		routes.AbortBuild:  http.HandlerFunc(buildServer.AbortBuild),
-		routes.HijackBuild: http.HandlerFunc(buildServer.HijackBuild),
+		atc.CreateBuild: http.HandlerFunc(buildServer.CreateBuild),
+		atc.ListBuilds:  http.HandlerFunc(buildServer.ListBuilds),
+		atc.BuildEvents: http.HandlerFunc(buildServer.BuildEvents),
+		atc.AbortBuild:  http.HandlerFunc(buildServer.AbortBuild),
+		atc.HijackBuild: http.HandlerFunc(buildServer.HijackBuild),
 
-		routes.GetJob:        http.HandlerFunc(jobServer.GetJob),
-		routes.ListJobBuilds: http.HandlerFunc(jobServer.ListJobBuilds),
-		routes.GetJobBuild:   http.HandlerFunc(jobServer.GetJobBuild),
+		atc.GetJob:        http.HandlerFunc(jobServer.GetJob),
+		atc.ListJobBuilds: http.HandlerFunc(jobServer.ListJobBuilds),
+		atc.GetJobBuild:   http.HandlerFunc(jobServer.GetJobBuild),
 
-		routes.CreatePipe: http.HandlerFunc(pipeServer.CreatePipe),
-		routes.WritePipe:  http.HandlerFunc(pipeServer.WritePipe),
-		routes.ReadPipe:   http.HandlerFunc(pipeServer.ReadPipe),
+		atc.CreatePipe: http.HandlerFunc(pipeServer.CreatePipe),
+		atc.WritePipe:  http.HandlerFunc(pipeServer.WritePipe),
+		atc.ReadPipe:   http.HandlerFunc(pipeServer.ReadPipe),
 	}
 
-	return rata.NewRouter(routes.Routes, handlers)
+	return rata.NewRouter(atc.Routes, handlers)
 }

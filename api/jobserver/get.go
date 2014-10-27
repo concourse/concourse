@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/api/resources"
 )
 
 func (s *Server) GetJob(w http.ResponseWriter, r *http.Request) {
@@ -19,7 +19,7 @@ func (s *Server) GetJob(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 
-	var nextBuild, finishedBuild *resources.Build
+	var nextBuild, finishedBuild *atc.Build
 
 	if next != nil {
 		presented := present.Build(*next)
@@ -31,7 +31,7 @@ func (s *Server) GetJob(w http.ResponseWriter, r *http.Request) {
 		finishedBuild = &presented
 	}
 
-	json.NewEncoder(w).Encode(resources.Job{
+	json.NewEncoder(w).Encode(atc.Job{
 		FinishedBuild: finishedBuild,
 		NextBuild:     nextBuild,
 	})

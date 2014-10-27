@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/api/resources"
 )
 
 func (s *Server) ListJobBuilds(w http.ResponseWriter, r *http.Request) {
@@ -19,7 +19,7 @@ func (s *Server) ListJobBuilds(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 
-	resources := make([]resources.Build, len(builds))
+	resources := make([]atc.Build, len(builds))
 	for i := 0; i < len(builds); i++ {
 		resources[i] = present.Build(builds[i])
 	}
