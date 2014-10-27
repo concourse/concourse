@@ -22,7 +22,6 @@ files:
   - github.com/concourse/atc/api/present/*.go # gosub
   - github.com/concourse/atc/auth/*.go # gosub
   - github.com/concourse/atc/builder/*.go # gosub
-  - github.com/concourse/atc/builds/*.go # gosub
   - github.com/concourse/atc/config/*.go # gosub
   - github.com/concourse/atc/db/*.go # gosub
   - github.com/concourse/atc/db/migrations/*.go # gosub
