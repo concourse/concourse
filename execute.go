@@ -20,8 +20,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/candiedyaml"
 	"github.com/codegangsta/cli"
-	"github.com/concourse/atc/api/resources"
-	"github.com/concourse/atc/api/routes"
+	"github.com/concourse/atc"
 	"github.com/concourse/fly/eventstream"
 	"github.com/concourse/turbine"
 	"github.com/pivotal-golang/archiver/compressor"
@@ -31,16 +30,16 @@ import (
 type Input struct {
 	Name string
 	Path string
-	Pipe resources.Pipe
+	Pipe atc.Pipe
 }
 
 func execute(c *cli.Context) {
-	atc := c.GlobalString("atcURL")
+	atcURL := c.GlobalString("atcURL")
 	buildConfig := c.String("config")
 	insecure := c.GlobalBool("insecure")
 	excludeIgnored := c.GlobalBool("exclude-ignored")
 
-	atcRequester := newAtcRequester(atc, insecure)
+	atcRequester := newAtcRequester(atcURL, insecure)
 
 	inputMappings := c.StringSlice("input")
 	if len(inputMappings) == 0 {
@@ -97,7 +96,7 @@ func execute(c *cli.Context) {
 	signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
 
 	logOutput, err := atcRequester.CreateRequest(
-		routes.BuildEvents,
+		atc.BuildEvents,
 		rata.Params{"build_id": strconv.Itoa(build.ID)},
 		nil,
 	)
@@ -128,8 +127,8 @@ func execute(c *cli.Context) {
 	os.Exit(exitCode)
 }
 
-func createPipe(atcRequester *atcRequester) resources.Pipe {
-	cPipe, err := atcRequester.CreateRequest(routes.CreatePipe, nil, nil)
+func createPipe(atcRequester *atcRequester) atc.Pipe {
+	cPipe, err := atcRequester.CreateRequest(atc.CreatePipe, nil, nil)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -147,7 +146,7 @@ func createPipe(atcRequester *atcRequester) resources.Pipe {
 		os.Exit(1)
 	}
 
-	var pipe resources.Pipe
+	var pipe atc.Pipe
 	err = json.NewDecoder(response.Body).Decode(&pipe)
 	if err != nil {
 		log.Println("malformed response when creating pipe:", err)
@@ -187,13 +186,13 @@ func createBuild(
 	privileged bool,
 	inputs []Input,
 	config turbine.Config,
-) resources.Build {
+) atc.Build {
 	buffer := &bytes.Buffer{}
 
 	buildInputs := make([]turbine.Input, len(inputs))
 	for idx, i := range inputs {
 		readPipe, err := atcRequester.CreateHTTPRequest(
-			routes.ReadPipe,
+			atc.ReadPipe,
 			rata.Params{"pipe_id": i.Pipe.ID},
 			nil,
 		)
@@ -223,7 +222,7 @@ func createBuild(
 		log.Fatalln("encoding build failed:", err)
 	}
 
-	createBuild, err := atcRequester.CreateRequest(routes.CreateBuild, nil, buffer)
+	createBuild, err := atcRequester.CreateRequest(atc.CreateBuild, nil, buffer)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -243,7 +242,7 @@ func createBuild(
 		os.Exit(1)
 	}
 
-	var build resources.Build
+	var build atc.Build
 	err = json.NewDecoder(response.Body).Decode(&build)
 	if err != nil {
 		log.Fatalln("response decoding failed:", err)
@@ -255,14 +254,14 @@ func createBuild(
 func abortOnSignal(
 	atcRequester *atcRequester,
 	terminate <-chan os.Signal,
-	build resources.Build,
+	build atc.Build,
 ) {
 	<-terminate
 
 	println("\naborting...")
 
 	abortReq, err := atcRequester.CreateRequest(
-		routes.AbortBuild,
+		atc.AbortBuild,
 		rata.Params{"build_id": strconv.Itoa(build.ID)},
 		nil,
 	)
@@ -340,7 +339,7 @@ func upload(input Input, excludeIgnored bool, atcRequester *atcRequester) {
 	defer archive.Close()
 
 	uploadBits, err := atcRequester.CreateRequest(
-		routes.WritePipe,
+		atc.WritePipe,
 		rata.Params{"pipe_id": pipe.ID},
 		archive,
 	)
@@ -371,7 +370,7 @@ func newAtcRequester(atcUrl string, insecure bool) *atcRequester {
 	tlsClientConfig := &tls.Config{InsecureSkipVerify: insecure}
 
 	return &atcRequester{
-		rata.NewRequestGenerator(atcUrl, routes.Routes),
+		rata.NewRequestGenerator(atcUrl, atc.Routes),
 		&http.Client{Transport: &http.Transport{TLSClientConfig: tlsClientConfig}},
 	}
 }

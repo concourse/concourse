@@ -20,8 +20,7 @@ import (
 
 	garden "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/codegangsta/cli"
-	"github.com/concourse/atc/api/resources"
-	"github.com/concourse/atc/api/routes"
+	"github.com/concourse/atc"
 	"github.com/concourse/turbine"
 	"github.com/kr/pty"
 	"github.com/pkg/term"
@@ -29,10 +28,10 @@ import (
 )
 
 func hijack(c *cli.Context) {
-	atc := c.GlobalString("atcURL")
+	atcURL := c.GlobalString("atcURL")
 	insecure := c.GlobalBool("insecure")
 
-	reqGenerator := rata.NewRequestGenerator(atc, routes.Routes)
+	reqGenerator := rata.NewRequestGenerator(atcURL, atc.Routes)
 
 	argv := c.Args()
 
@@ -86,7 +85,7 @@ func hijack(c *cli.Context) {
 	}
 
 	hijackReq, err := reqGenerator.CreateRequest(
-		routes.HijackBuild,
+		atc.HijackBuild,
 		rata.Params{"build_id": strconv.Itoa(build.ID)},
 		bytes.NewBuffer(payload),
 	)
@@ -153,13 +152,13 @@ func hijack(c *cli.Context) {
 	io.Copy(os.Stdout, cbr)
 }
 
-func getBuild(ctx *cli.Context, client *http.Client, reqGenerator *rata.RequestGenerator) resources.Build {
+func getBuild(ctx *cli.Context, client *http.Client, reqGenerator *rata.RequestGenerator) atc.Build {
 	jobName := ctx.String("job")
 	buildName := ctx.String("build")
 
 	if jobName != "" && buildName != "" {
 		buildReq, err := reqGenerator.CreateRequest(
-			routes.GetJobBuild,
+			atc.GetJobBuild,
 			rata.Params{
 				"job_name":   jobName,
 				"build_name": buildName,
@@ -182,7 +181,7 @@ func getBuild(ctx *cli.Context, client *http.Client, reqGenerator *rata.RequestG
 			os.Exit(1)
 		}
 
-		var build resources.Build
+		var build atc.Build
 		err = json.NewDecoder(buildResp.Body).Decode(&build)
 		if err != nil {
 			log.Fatalln("failed to decode job:", err)
@@ -191,7 +190,7 @@ func getBuild(ctx *cli.Context, client *http.Client, reqGenerator *rata.RequestG
 		return build
 	} else if jobName != "" {
 		jobReq, err := reqGenerator.CreateRequest(
-			routes.GetJob,
+			atc.GetJob,
 			rata.Params{"job_name": ctx.String("job")},
 			nil,
 		)
@@ -211,7 +210,7 @@ func getBuild(ctx *cli.Context, client *http.Client, reqGenerator *rata.RequestG
 			os.Exit(1)
 		}
 
-		var job resources.Job
+		var job atc.Job
 		err = json.NewDecoder(jobResp.Body).Decode(&job)
 		if err != nil {
 			log.Fatalln("failed to decode job:", err)
@@ -227,7 +226,7 @@ func getBuild(ctx *cli.Context, client *http.Client, reqGenerator *rata.RequestG
 		}
 	} else {
 		buildsReq, err := reqGenerator.CreateRequest(
-			routes.ListBuilds,
+			atc.ListBuilds,
 			nil,
 			nil,
 		)
@@ -247,7 +246,7 @@ func getBuild(ctx *cli.Context, client *http.Client, reqGenerator *rata.RequestG
 			os.Exit(1)
 		}
 
-		var builds []resources.Build
+		var builds []atc.Build
 		err = json.NewDecoder(buildsResp.Body).Decode(&builds)
 		if err != nil {
 			log.Fatalln("failed to decode builds:", err)

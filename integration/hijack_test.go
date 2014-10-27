@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/concourse/atc/api/resources"
+	"github.com/concourse/atc"
 	"github.com/concourse/turbine"
 	"github.com/kr/pty"
 	. "github.com/onsi/ginkgo"
@@ -88,7 +88,7 @@ var _ = Describe("Hijacking", func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/builds"),
-					ghttp.RespondWithJSONEncoded(200, []resources.Build{
+					ghttp.RespondWithJSONEncoded(200, []atc.Build{
 						{ID: 3, Name: "3", Status: "started"},
 						{ID: 2, Name: "2", Status: "started"},
 						{ID: 1, Name: "1", Status: "finished"},
@@ -112,14 +112,14 @@ var _ = Describe("Hijacking", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/jobs/some-job"),
-						ghttp.RespondWithJSONEncoded(200, resources.Job{
-							NextBuild: &resources.Build{
+						ghttp.RespondWithJSONEncoded(200, atc.Job{
+							NextBuild: &atc.Build{
 								ID:      3,
 								Name:    "3",
 								Status:  "started",
 								JobName: "some-job",
 							},
-							FinishedBuild: &resources.Build{
+							FinishedBuild: &atc.Build{
 								ID:      2,
 								Name:    "2",
 								Status:  "failed",
@@ -144,9 +144,9 @@ var _ = Describe("Hijacking", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/jobs/some-job"),
-						ghttp.RespondWithJSONEncoded(200, resources.Job{
+						ghttp.RespondWithJSONEncoded(200, atc.Job{
 							NextBuild: nil,
-							FinishedBuild: &resources.Build{
+							FinishedBuild: &atc.Build{
 								ID:      3,
 								Name:    "3",
 								Status:  "failed",
@@ -171,7 +171,7 @@ var _ = Describe("Hijacking", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/jobs/some-job/builds/3"),
-						ghttp.RespondWithJSONEncoded(200, resources.Build{
+						ghttp.RespondWithJSONEncoded(200, atc.Build{
 							ID:      3,
 							Name:    "3",
 							Status:  "failed",
