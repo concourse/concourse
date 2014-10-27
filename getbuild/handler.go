@@ -4,7 +4,6 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
@@ -30,9 +29,9 @@ func NewHandler(logger lager.Logger, jobs config.Jobs, db db.DB, template *templ
 
 type TemplateData struct {
 	Job    config.Job
-	Builds []builds.Build
+	Builds []db.Build
 
-	Build   builds.Build
+	Build   db.Build
 	Inputs  []db.BuildInput
 	Outputs []db.BuildOutput
 
@@ -86,7 +85,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var abortable bool
 	switch build.Status {
-	case builds.StatusPending, builds.StatusStarted:
+	case db.StatusPending, db.StatusStarted:
 		abortable = true
 	default:
 		abortable = false

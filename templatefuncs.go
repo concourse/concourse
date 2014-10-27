@@ -3,8 +3,8 @@ package web
 import (
 	"fmt"
 
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web/routes"
 	"github.com/tedsuo/rata"
 )
@@ -21,12 +21,12 @@ func (funcs templateFuncs) url(handler string, args ...interface{}) (string, err
 	case routes.GetBuild:
 		return routes.Routes.CreatePathForRoute(handler, rata.Params{
 			"job":   jobName(args[0]),
-			"build": args[1].(builds.Build).Name,
+			"build": args[1].(db.Build).Name,
 		})
 
 	case routes.AbortBuild:
 		return routes.Routes.CreatePathForRoute(handler, rata.Params{
-			"build_id": fmt.Sprintf("%d", args[0].(builds.Build).ID),
+			"build_id": fmt.Sprintf("%d", args[0].(db.Build).ID),
 		})
 
 	case routes.Public:
@@ -36,7 +36,7 @@ func (funcs templateFuncs) url(handler string, args ...interface{}) (string, err
 
 	case routes.LogOutput:
 		return routes.Routes.CreatePathForRoute(handler, rata.Params{
-			"build_id": fmt.Sprintf("%d", args[0].(builds.Build).ID),
+			"build_id": fmt.Sprintf("%d", args[0].(db.Build).ID),
 		})
 
 	case routes.LogIn:
