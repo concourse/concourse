@@ -76,7 +76,7 @@ svg .node.job.errored rect { fill: #d28445; }
 li.errored { background: #d28445; }
 .legend dt.errored { background: #d28445; }
 svg .node.resource.failing rect { fill: #d28445; }
-.build-source.errored .build-source .header { background: #d28445; }
+.build-source.errored .header { background: #d28445; }
 
 /* not so bad */
 svg .edgePath.aborted path { stroke: #8f5536; }
