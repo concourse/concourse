@@ -16,4 +16,4 @@ if [ "$#" != "0" ]; then
   echo
 fi
 
-git diff --cached --submodule
+git submodule status | awk '{print $2}' | xargs git diff --cached --submodule

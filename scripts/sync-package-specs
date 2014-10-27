@@ -6,7 +6,7 @@ for pkg in turbine atc; do
   pushd packages/$pkg
     {
       cat spec | grep -v '# gosub'
-      gosub list -a github.com/concourse/$pkg | \
+      gosub list -a github.com/concourse/$pkg/cmd/... | \
         sed -e 's/\(.*\)/  - \1\/*.go # gosub/g'
     } > spec.new
 

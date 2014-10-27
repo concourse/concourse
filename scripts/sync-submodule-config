@@ -3,8 +3,8 @@
 
 gosub list \
   -a github.com/concourse/fly \
-  -a github.com/concourse/turbine \
-  -a github.com/concourse/atc \
+  -a github.com/concourse/turbine/cmd/... \
+  -a github.com/concourse/atc/cmd/... \
   -t github.com/concourse/testflight/... \
   -a github.com/vito/gosub \
   | xargs gosub sync

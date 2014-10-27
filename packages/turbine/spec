@@ -5,7 +5,7 @@ dependencies:
   - golang_1.3
 
 files:
-  - github.com/concourse/turbine/*.go # gosub
+  - github.com/concourse/turbine/cmd/turbine/*.go # gosub
   - code.google.com/p/gogoprotobuf/proto/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
   - github.com/cloudfoundry-incubator/candiedyaml/*.go # gosub
@@ -15,9 +15,9 @@ files:
   - github.com/cloudfoundry-incubator/garden/protocol/*.go # gosub
   - github.com/cloudfoundry-incubator/garden/routes/*.go # gosub
   - github.com/cloudfoundry-incubator/garden/transport/*.go # gosub
+  - github.com/concourse/turbine/*.go # gosub
   - github.com/concourse/turbine/api/*.go # gosub
   - github.com/concourse/turbine/api/abort/*.go # gosub
-  - github.com/concourse/turbine/api/builds/*.go # gosub
   - github.com/concourse/turbine/api/check/*.go # gosub
   - github.com/concourse/turbine/api/deletebuild/*.go # gosub
   - github.com/concourse/turbine/api/events/*.go # gosub
@@ -28,9 +28,7 @@ files:
   - github.com/concourse/turbine/builder/outputs/*.go # gosub
   - github.com/concourse/turbine/config/*.go # gosub
   - github.com/concourse/turbine/event/*.go # gosub
-  - github.com/concourse/turbine/logwriter/*.go # gosub
   - github.com/concourse/turbine/resource/*.go # gosub
-  - github.com/concourse/turbine/routes/*.go # gosub
   - github.com/concourse/turbine/scheduler/*.go # gosub
   - github.com/concourse/turbine/snapshotter/*.go # gosub
   - github.com/gorilla/websocket/*.go # gosub
