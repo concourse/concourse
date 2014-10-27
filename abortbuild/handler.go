@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web/routes"
-	troutes "github.com/concourse/turbine/routes"
+	"github.com/concourse/turbine"
 )
 
 type handler struct {
@@ -63,10 +63,10 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	generator := rata.NewRequestGenerator(build.Endpoint, troutes.Routes)
+	generator := rata.NewRequestGenerator(build.Endpoint, turbine.Routes)
 
 	abort, err := generator.CreateRequest(
-		troutes.AbortBuild,
+		turbine.AbortBuild,
 		rata.Params{"guid": build.Guid},
 		nil,
 	)
