@@ -34,7 +34,7 @@ svg .gateway { fill: #303030; }
 .groups li.active a { background: #303030; }
 
 /* even more highlight background */
-.build-source.first-occurrence .build-source .header { background: #505050; }
+.build-source.first-occurrence .header { background: #505050; }
 
 /* highlight foreground */
 .build-source .header .version { color: #e0e0e0; }
