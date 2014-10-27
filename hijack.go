@@ -70,8 +70,10 @@ func hijack(c *cli.Context) {
 		TTY:        ttySpec,
 	}
 
+	tlsConfig := &tls.Config{InsecureSkipVerify: insecure}
+
 	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
+		TLSClientConfig: tlsConfig,
 	}
 
 	client := &http.Client{Transport: transport}
@@ -97,7 +99,7 @@ func hijack(c *cli.Context) {
 		hijackReq.URL.User = nil
 	}
 
-	conn, err := net.Dial("tcp", canonicalAddr(hijackReq.URL))
+	conn, err := dialEndpoint(hijackReq.URL, tlsConfig)
 	if err != nil {
 		log.Fatalln("failed to dial hijack endpoint:", err)
 	}
@@ -300,6 +302,16 @@ func basicAuth(user *url.Userinfo) string {
 var canonicalPortMap = map[string]string{
 	"http":  "80",
 	"https": "443",
+}
+
+func dialEndpoint(url *url.URL, tlsConfig *tls.Config) (net.Conn, error) {
+	addr := canonicalAddr(url)
+
+	if url.Scheme == "https" {
+		return tls.Dial("tcp", addr, tlsConfig)
+	} else {
+		return net.Dial("tcp", addr)
+	}
 }
 
 func canonicalAddr(url *url.URL) string {
