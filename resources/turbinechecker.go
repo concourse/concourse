@@ -7,8 +7,8 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/tedsuo/rata"
 
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/turbine"
 )
 
@@ -18,7 +18,7 @@ type TurbineChecker struct {
 	dialer      *websocket.Dialer
 	connections chan *websocket.Conn
 
-	responses chan []builds.Version
+	responses chan []db.Version
 }
 
 func NewTurbineChecker(turbine *rata.RequestGenerator) Checker {
@@ -36,7 +36,7 @@ func NewTurbineChecker(turbine *rata.RequestGenerator) Checker {
 	}
 }
 
-func (checker *TurbineChecker) CheckResource(resource config.Resource, from builds.Version) ([]builds.Version, error) {
+func (checker *TurbineChecker) CheckResource(resource config.Resource, from db.Version) ([]db.Version, error) {
 	conn, err := checker.connect()
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func (checker *TurbineChecker) CheckResource(resource config.Resource, from buil
 		return nil, err
 	}
 
-	var versions []builds.Version
+	var versions []db.Version
 	err = conn.ReadJSON(&versions)
 	if err != nil {
 		return nil, err

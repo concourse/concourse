@@ -1,4 +1,4 @@
-package builds
+package db
 
 import (
 	"time"

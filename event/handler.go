@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/turbine"
 	"github.com/tedsuo/rata"
@@ -13,15 +12,15 @@ import (
 )
 
 type BuildsDB interface {
-	GetBuild(buildID int) (builds.Build, error)
+	GetBuild(buildID int) (db.Build, error)
 	GetBuildEvents(buildID int) ([]db.BuildEvent, error)
 }
 
 type Censor func(sse.Event) (sse.Event, error)
 
-func NewHandler(db BuildsDB, buildID int, censor Censor) http.Handler {
+func NewHandler(buildsDB BuildsDB, buildID int, censor Censor) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		build, err := db.GetBuild(buildID)
+		build, err := buildsDB.GetBuild(buildID)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -33,7 +32,7 @@ func NewHandler(db BuildsDB, buildID int, censor Censor) http.Handler {
 		w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
 		w.Header().Add("Connection", "keep-alive")
 
-		if build.Status == builds.StatusStarted {
+		if build.Status == db.StatusStarted {
 			generator := rata.NewRequestGenerator(build.Endpoint, turbine.Routes)
 
 			events, err := generator.CreateRequest(
@@ -83,7 +82,7 @@ func NewHandler(db BuildsDB, buildID int, censor Censor) http.Handler {
 				flusher.Flush()
 			}
 		} else {
-			events, err := db.GetBuildEvents(buildID)
+			events, err := buildsDB.GetBuildEvents(buildID)
 			if err != nil {
 				w.WriteHeader(http.StatusServiceUnavailable)
 				return

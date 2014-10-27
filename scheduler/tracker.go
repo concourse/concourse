@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/turbine"
 	"github.com/concourse/turbine/event"
@@ -33,10 +32,10 @@ type TrackerDB interface {
 	SaveBuildStartTime(buildID int, startTime time.Time) error
 	SaveBuildEndTime(buildID int, startTime time.Time) error
 
-	SaveBuildInput(buildID int, vr builds.VersionedResource) error
-	SaveBuildOutput(buildID int, vr builds.VersionedResource) error
+	SaveBuildInput(buildID int, vr db.VersionedResource) error
+	SaveBuildOutput(buildID int, vr db.VersionedResource) error
 
-	SaveBuildStatus(buildID int, status builds.Status) error
+	SaveBuildStatus(buildID int, status db.Status) error
 }
 
 func NewTracker(logger lager.Logger, db TrackerDB) BuildTracker {
@@ -49,7 +48,7 @@ func NewTracker(logger lager.Logger, db TrackerDB) BuildTracker {
 	}
 }
 
-func (tracker *tracker) TrackBuild(build builds.Build) error {
+func (tracker *tracker) TrackBuild(build db.Build) error {
 	tLog := tracker.logger.Session("track-build", lager.Data{
 		"buld": build.ID,
 	})
@@ -90,7 +89,7 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 	if resp.StatusCode == http.StatusNotFound {
 		tLog.Info("saving-orphaned-build-as-errored")
 
-		err := tracker.db.SaveBuildStatus(build.ID, builds.StatusErrored)
+		err := tracker.db.SaveBuildStatus(build.ID, db.StatusErrored)
 		if err != nil {
 			tLog.Error("failed-to-save-build-as-errored", err)
 			return err
@@ -101,7 +100,7 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 
 	reader := sse.NewReader(resp.Body)
 
-	outputs := map[string]builds.VersionedResource{}
+	outputs := map[string]db.VersionedResource{}
 
 	var currentVersion string
 
@@ -208,7 +207,7 @@ func (tracker *tracker) TrackBuild(build builds.Build) error {
 					}
 				}
 
-				err = tracker.db.SaveBuildStatus(build.ID, builds.Status(status.Status))
+				err = tracker.db.SaveBuildStatus(build.ID, db.Status(status.Status))
 				if err != nil {
 					tLog.Error("failed-to-save-build-status", err)
 					return err
@@ -292,20 +291,20 @@ func (tracker *tracker) unmarkTracking(buildID int) {
 	tracker.lock.Unlock()
 }
 
-func vrFromInput(input turbine.Input) builds.VersionedResource {
-	metadata := make([]builds.MetadataField, len(input.Metadata))
+func vrFromInput(input turbine.Input) db.VersionedResource {
+	metadata := make([]db.MetadataField, len(input.Metadata))
 	for i, md := range input.Metadata {
-		metadata[i] = builds.MetadataField{
+		metadata[i] = db.MetadataField{
 			Name:  md.Name,
 			Value: md.Value,
 		}
 	}
 
-	return builds.VersionedResource{
+	return db.VersionedResource{
 		Name:     input.Resource,
 		Type:     input.Type,
-		Source:   builds.Source(input.Source),
-		Version:  builds.Version(input.Version),
+		Source:   db.Source(input.Source),
+		Version:  db.Version(input.Version),
 		Metadata: metadata,
 	}
 }
@@ -313,20 +312,20 @@ func vrFromInput(input turbine.Input) builds.VersionedResource {
 // same as input, but type is different.
 //
 // :(
-func vrFromOutput(output turbine.Output) builds.VersionedResource {
-	metadata := make([]builds.MetadataField, len(output.Metadata))
+func vrFromOutput(output turbine.Output) db.VersionedResource {
+	metadata := make([]db.MetadataField, len(output.Metadata))
 	for i, md := range output.Metadata {
-		metadata[i] = builds.MetadataField{
+		metadata[i] = db.MetadataField{
 			Name:  md.Name,
 			Value: md.Value,
 		}
 	}
 
-	return builds.VersionedResource{
+	return db.VersionedResource{
 		Name:     output.Name,
 		Type:     output.Type,
-		Source:   builds.Source(output.Source),
-		Version:  builds.Version(output.Version),
+		Source:   db.Source(output.Source),
+		Version:  db.Version(output.Version),
 		Metadata: metadata,
 	}
 }

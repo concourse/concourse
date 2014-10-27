@@ -16,7 +16,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/ghttp"
 
-	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/turbine"
 )
 
@@ -51,11 +51,11 @@ var _ = Describe("Builds API", func() {
 
 		Context("when creating a one-off build succeeds", func() {
 			BeforeEach(func() {
-				buildsDB.CreateOneOffBuildReturns(builds.Build{
+				buildsDB.CreateOneOffBuildReturns(db.Build{
 					ID:      42,
 					Name:    "1",
 					JobName: "job1",
-					Status:  builds.StatusStarted,
+					Status:  db.StatusStarted,
 				}, nil)
 			})
 
@@ -76,11 +76,11 @@ var _ = Describe("Builds API", func() {
 
 					Ω(builder.BuildCallCount()).Should(Equal(1))
 					oneOff, tBuild := builder.BuildArgsForCall(0)
-					Ω(oneOff).Should(Equal(builds.Build{
+					Ω(oneOff).Should(Equal(db.Build{
 						ID:      42,
 						Name:    "1",
 						JobName: "job1",
-						Status:  builds.StatusStarted,
+						Status:  db.StatusStarted,
 					}))
 					Ω(tBuild).Should(Equal(turbineBuild))
 				})
@@ -99,7 +99,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when creating a one-off build fails", func() {
 			BeforeEach(func() {
-				buildsDB.CreateOneOffBuildReturns(builds.Build{}, errors.New("oh no!"))
+				buildsDB.CreateOneOffBuildReturns(db.Build{}, errors.New("oh no!"))
 			})
 
 			It("returns 500 Internal Server Error", func() {
@@ -120,18 +120,18 @@ var _ = Describe("Builds API", func() {
 
 		Context("when getting all builds succeeds", func() {
 			BeforeEach(func() {
-				buildsDB.GetAllBuildsReturns([]builds.Build{
+				buildsDB.GetAllBuildsReturns([]db.Build{
 					{
 						ID:      3,
 						Name:    "2",
 						JobName: "job2",
-						Status:  builds.StatusStarted,
+						Status:  db.StatusStarted,
 					},
 					{
 						ID:      1,
 						Name:    "1",
 						JobName: "job1",
-						Status:  builds.StatusSucceeded,
+						Status:  db.StatusSucceeded,
 					},
 				}, nil)
 			})
@@ -210,7 +210,7 @@ var _ = Describe("Builds API", func() {
 				ghttp.VerifyRequest("POST", "/builds/some-guid/abort"),
 			)
 
-			buildsDB.GetBuildReturns(builds.Build{
+			buildsDB.GetBuildReturns(db.Build{
 				ID:       128,
 				Guid:     "some-guid",
 				Endpoint: abortTarget.URL(),
@@ -352,7 +352,7 @@ var _ = Describe("Builds API", func() {
 		Context("when the build can be found", func() {
 			Context("and it has a hijack URL", func() {
 				BeforeEach(func() {
-					buildsDB.GetBuildReturns(builds.Build{
+					buildsDB.GetBuildReturns(db.Build{
 						ID:       128,
 						Guid:     "some-guid",
 						Endpoint: hijackTarget.URL(),
@@ -394,7 +394,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("but it does not have a hijack URL", func() {
 				BeforeEach(func() {
-					buildsDB.GetBuildReturns(builds.Build{ID: 128}, nil)
+					buildsDB.GetBuildReturns(db.Build{ID: 128}, nil)
 				})
 
 				It("returns 400 Bad Request", func() {
@@ -405,7 +405,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when the build cannot be found", func() {
 			BeforeEach(func() {
-				buildsDB.GetBuildReturns(builds.Build{}, errors.New("oh no!"))
+				buildsDB.GetBuildReturns(db.Build{}, errors.New("oh no!"))
 			})
 
 			It("returns 404 Not Found", func() {

@@ -1,8 +1,8 @@
 package factory_test
 
 import (
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/scheduler/factory"
 	"github.com/concourse/turbine"
 
@@ -239,12 +239,12 @@ var _ = Describe("Factory", func() {
 
 	Context("when versioned resources are specified", func() {
 		It("uses them for the build's inputs", func() {
-			turbineBuild, err := factory.Create(job, builds.VersionedResources{
+			turbineBuild, err := factory.Create(job, db.VersionedResources{
 				{
 					Name:    "some-resource",
 					Type:    "git-ng",
-					Version: builds.Version{"version": "1"},
-					Source:  builds.Source{"uri": "git://some-provided-uri"},
+					Version: db.Version{"version": "1"},
+					Source:  db.Source{"uri": "git://some-provided-uri"},
 				},
 			})
 			Ω(err).ShouldNot(HaveOccurred())

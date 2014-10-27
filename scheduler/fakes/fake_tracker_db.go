@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/scheduler"
 )
@@ -47,29 +46,29 @@ type FakeTrackerDB struct {
 	saveBuildEndTimeReturns struct {
 		result1 error
 	}
-	SaveBuildInputStub        func(buildID int, vr builds.VersionedResource) error
+	SaveBuildInputStub        func(buildID int, vr db.VersionedResource) error
 	saveBuildInputMutex       sync.RWMutex
 	saveBuildInputArgsForCall []struct {
 		buildID int
-		vr      builds.VersionedResource
+		vr      db.VersionedResource
 	}
 	saveBuildInputReturns struct {
 		result1 error
 	}
-	SaveBuildOutputStub        func(buildID int, vr builds.VersionedResource) error
+	SaveBuildOutputStub        func(buildID int, vr db.VersionedResource) error
 	saveBuildOutputMutex       sync.RWMutex
 	saveBuildOutputArgsForCall []struct {
 		buildID int
-		vr      builds.VersionedResource
+		vr      db.VersionedResource
 	}
 	saveBuildOutputReturns struct {
 		result1 error
 	}
-	SaveBuildStatusStub        func(buildID int, status builds.Status) error
+	SaveBuildStatusStub        func(buildID int, status db.Status) error
 	saveBuildStatusMutex       sync.RWMutex
 	saveBuildStatusArgsForCall []struct {
 		buildID int
-		status  builds.Status
+		status  db.Status
 	}
 	saveBuildStatusReturns struct {
 		result1 error
@@ -208,11 +207,11 @@ func (fake *FakeTrackerDB) SaveBuildEndTimeReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeTrackerDB) SaveBuildInput(buildID int, vr builds.VersionedResource) error {
+func (fake *FakeTrackerDB) SaveBuildInput(buildID int, vr db.VersionedResource) error {
 	fake.saveBuildInputMutex.Lock()
 	fake.saveBuildInputArgsForCall = append(fake.saveBuildInputArgsForCall, struct {
 		buildID int
-		vr      builds.VersionedResource
+		vr      db.VersionedResource
 	}{buildID, vr})
 	fake.saveBuildInputMutex.Unlock()
 	if fake.SaveBuildInputStub != nil {
@@ -228,7 +227,7 @@ func (fake *FakeTrackerDB) SaveBuildInputCallCount() int {
 	return len(fake.saveBuildInputArgsForCall)
 }
 
-func (fake *FakeTrackerDB) SaveBuildInputArgsForCall(i int) (int, builds.VersionedResource) {
+func (fake *FakeTrackerDB) SaveBuildInputArgsForCall(i int) (int, db.VersionedResource) {
 	fake.saveBuildInputMutex.RLock()
 	defer fake.saveBuildInputMutex.RUnlock()
 	return fake.saveBuildInputArgsForCall[i].buildID, fake.saveBuildInputArgsForCall[i].vr
@@ -241,11 +240,11 @@ func (fake *FakeTrackerDB) SaveBuildInputReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeTrackerDB) SaveBuildOutput(buildID int, vr builds.VersionedResource) error {
+func (fake *FakeTrackerDB) SaveBuildOutput(buildID int, vr db.VersionedResource) error {
 	fake.saveBuildOutputMutex.Lock()
 	fake.saveBuildOutputArgsForCall = append(fake.saveBuildOutputArgsForCall, struct {
 		buildID int
-		vr      builds.VersionedResource
+		vr      db.VersionedResource
 	}{buildID, vr})
 	fake.saveBuildOutputMutex.Unlock()
 	if fake.SaveBuildOutputStub != nil {
@@ -261,7 +260,7 @@ func (fake *FakeTrackerDB) SaveBuildOutputCallCount() int {
 	return len(fake.saveBuildOutputArgsForCall)
 }
 
-func (fake *FakeTrackerDB) SaveBuildOutputArgsForCall(i int) (int, builds.VersionedResource) {
+func (fake *FakeTrackerDB) SaveBuildOutputArgsForCall(i int) (int, db.VersionedResource) {
 	fake.saveBuildOutputMutex.RLock()
 	defer fake.saveBuildOutputMutex.RUnlock()
 	return fake.saveBuildOutputArgsForCall[i].buildID, fake.saveBuildOutputArgsForCall[i].vr
@@ -274,11 +273,11 @@ func (fake *FakeTrackerDB) SaveBuildOutputReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeTrackerDB) SaveBuildStatus(buildID int, status builds.Status) error {
+func (fake *FakeTrackerDB) SaveBuildStatus(buildID int, status db.Status) error {
 	fake.saveBuildStatusMutex.Lock()
 	fake.saveBuildStatusArgsForCall = append(fake.saveBuildStatusArgsForCall, struct {
 		buildID int
-		status  builds.Status
+		status  db.Status
 	}{buildID, status})
 	fake.saveBuildStatusMutex.Unlock()
 	if fake.SaveBuildStatusStub != nil {
@@ -294,7 +293,7 @@ func (fake *FakeTrackerDB) SaveBuildStatusCallCount() int {
 	return len(fake.saveBuildStatusArgsForCall)
 }
 
-func (fake *FakeTrackerDB) SaveBuildStatusArgsForCall(i int) (int, builds.Status) {
+func (fake *FakeTrackerDB) SaveBuildStatusArgsForCall(i int) (int, db.Status) {
 	fake.saveBuildStatusMutex.RLock()
 	defer fake.saveBuildStatusMutex.RUnlock()
 	return fake.saveBuildStatusArgsForCall[i].buildID, fake.saveBuildStatusArgsForCall[i].status

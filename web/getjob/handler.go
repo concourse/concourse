@@ -4,7 +4,6 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
@@ -30,9 +29,9 @@ func NewHandler(logger lager.Logger, jobs config.Jobs, db db.DB, template *templ
 
 type TemplateData struct {
 	Job    config.Job
-	Builds []builds.Build
+	Builds []db.Build
 
-	CurrentBuild builds.Build
+	CurrentBuild db.Build
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +60,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	currentBuild, err := handler.db.GetCurrentBuild(job.Name)
 	if err != nil {
-		currentBuild.Status = builds.StatusPending
+		currentBuild.Status = db.StatusPending
 	}
 
 	templateData := TemplateData{

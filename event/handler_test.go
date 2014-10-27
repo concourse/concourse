@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/event"
 	"github.com/concourse/atc/event/fakes"
@@ -122,11 +121,11 @@ var _ = Describe("Handler", func() {
 					),
 				)
 
-				buildsDB.GetBuildReturns(builds.Build{
+				buildsDB.GetBuildReturns(db.Build{
 					ID:       128,
 					Guid:     "some-guid",
 					Endpoint: turbineEndpoint.URL(),
-					Status:   builds.StatusStarted,
+					Status:   db.StatusStarted,
 				}, nil)
 			})
 
@@ -234,9 +233,9 @@ var _ = Describe("Handler", func() {
 
 		Context("when the build is completed", func() {
 			BeforeEach(func() {
-				buildsDB.GetBuildReturns(builds.Build{
+				buildsDB.GetBuildReturns(db.Build{
 					ID:     128,
-					Status: builds.StatusSucceeded,
+					Status: db.StatusSucceeded,
 				}, nil)
 
 				buildsDB.GetBuildEventsReturns([]db.BuildEvent{

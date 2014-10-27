@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/concourse/atc/builder"
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/event"
 	"github.com/pivotal-golang/lager"
@@ -26,11 +25,11 @@ type Server struct {
 }
 
 type BuildsDB interface {
-	GetBuild(buildID int) (builds.Build, error)
-	GetAllBuilds() ([]builds.Build, error)
+	GetBuild(buildID int) (db.Build, error)
+	GetAllBuilds() ([]db.Build, error)
 
-	CreateOneOffBuild() (builds.Build, error)
-	SaveBuildStatus(buildID int, status builds.Status) error
+	CreateOneOffBuild() (db.Build, error)
+	SaveBuildStatus(buildID int, status db.Status) error
 
 	GetBuildEvents(buildID int) ([]db.BuildEvent, error)
 }

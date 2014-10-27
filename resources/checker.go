@@ -1,10 +1,10 @@
 package resources
 
 import (
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
 )
 
 type Checker interface {
-	CheckResource(config.Resource, builds.Version) ([]builds.Version, error)
+	CheckResource(config.Resource, db.Version) ([]db.Version, error)
 }

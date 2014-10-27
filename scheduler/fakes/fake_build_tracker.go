@@ -4,25 +4,25 @@ package fakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/scheduler"
 )
 
 type FakeBuildTracker struct {
-	TrackBuildStub        func(builds.Build) error
+	TrackBuildStub        func(db.Build) error
 	trackBuildMutex       sync.RWMutex
 	trackBuildArgsForCall []struct {
-		arg1 builds.Build
+		arg1 db.Build
 	}
 	trackBuildReturns struct {
 		result1 error
 	}
 }
 
-func (fake *FakeBuildTracker) TrackBuild(arg1 builds.Build) error {
+func (fake *FakeBuildTracker) TrackBuild(arg1 db.Build) error {
 	fake.trackBuildMutex.Lock()
 	fake.trackBuildArgsForCall = append(fake.trackBuildArgsForCall, struct {
-		arg1 builds.Build
+		arg1 db.Build
 	}{arg1})
 	fake.trackBuildMutex.Unlock()
 	if fake.TrackBuildStub != nil {
@@ -38,7 +38,7 @@ func (fake *FakeBuildTracker) TrackBuildCallCount() int {
 	return len(fake.trackBuildArgsForCall)
 }
 
-func (fake *FakeBuildTracker) TrackBuildArgsForCall(i int) builds.Build {
+func (fake *FakeBuildTracker) TrackBuildArgsForCall(i int) db.Build {
 	fake.trackBuildMutex.RLock()
 	defer fake.trackBuildMutex.RUnlock()
 	return fake.trackBuildArgsForCall[i].arg1

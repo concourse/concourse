@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/db"
 )
 
 var _ = Describe("Jobs API", func() {
@@ -25,17 +25,17 @@ var _ = Describe("Jobs API", func() {
 		Context("when getting the build succeeds", func() {
 			BeforeEach(func() {
 				jobsDB.GetJobFinishedAndNextBuildReturns(
-					&builds.Build{
+					&db.Build{
 						ID:      1,
 						Name:    "1",
 						JobName: "some-job",
-						Status:  builds.StatusSucceeded,
+						Status:  db.StatusSucceeded,
 					},
-					&builds.Build{
+					&db.Build{
 						ID:      3,
 						Name:    "2",
 						JobName: "some-job",
-						Status:  builds.StatusStarted,
+						Status:  db.StatusStarted,
 					},
 					nil,
 				)
@@ -85,11 +85,11 @@ var _ = Describe("Jobs API", func() {
 			Context("when there is no running build", func() {
 				BeforeEach(func() {
 					jobsDB.GetJobFinishedAndNextBuildReturns(
-						&builds.Build{
+						&db.Build{
 							ID:      1,
 							Name:    "1",
 							JobName: "some-job",
-							Status:  builds.StatusSucceeded,
+							Status:  db.StatusSucceeded,
 						},
 						nil,
 						nil,
@@ -113,11 +113,11 @@ var _ = Describe("Jobs API", func() {
 				BeforeEach(func() {
 					jobsDB.GetJobFinishedAndNextBuildReturns(
 						nil,
-						&builds.Build{
+						&db.Build{
 							ID:      1,
 							Name:    "1",
 							JobName: "some-job",
-							Status:  builds.StatusStarted,
+							Status:  db.StatusStarted,
 						},
 						nil,
 					)
@@ -160,18 +160,18 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when getting the build succeeds", func() {
 			BeforeEach(func() {
-				jobsDB.GetAllJobBuildsReturns([]builds.Build{
+				jobsDB.GetAllJobBuildsReturns([]db.Build{
 					{
 						ID:      3,
 						Name:    "2",
 						JobName: "some-job",
-						Status:  builds.StatusStarted,
+						Status:  db.StatusStarted,
 					},
 					{
 						ID:      1,
 						Name:    "1",
 						JobName: "some-job",
-						Status:  builds.StatusSucceeded,
+						Status:  db.StatusSucceeded,
 					},
 				}, nil)
 			})
@@ -221,11 +221,11 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when getting the build succeeds", func() {
 			BeforeEach(func() {
-				jobsDB.GetJobBuildReturns(builds.Build{
+				jobsDB.GetJobBuildReturns(db.Build{
 					ID:      1,
 					Name:    "1",
 					JobName: "some-job",
-					Status:  builds.StatusSucceeded,
+					Status:  db.StatusSucceeded,
 				}, nil)
 			})
 
@@ -251,7 +251,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when getting the build fails", func() {
 			BeforeEach(func() {
-				jobsDB.GetJobBuildReturns(builds.Build{}, errors.New("oh no!"))
+				jobsDB.GetJobBuildReturns(db.Build{}, errors.New("oh no!"))
 			})
 
 			It("returns 404 Not Found", func() {

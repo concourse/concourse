@@ -8,7 +8,6 @@ import (
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/radar"
@@ -64,7 +63,7 @@ type DotValue map[string]interface{}
 
 type JobStatus struct {
 	Job          config.Job
-	CurrentBuild builds.Build
+	CurrentBuild db.Build
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -90,12 +89,12 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	log := handler.logger.Session("index")
 
-	currentBuilds := map[string]builds.Build{}
+	currentBuilds := map[string]db.Build{}
 
 	for _, job := range handler.jobs {
 		currentBuild, err := handler.db.GetCurrentBuild(job.Name)
 		if err != nil {
-			currentBuild.Status = builds.StatusPending
+			currentBuild.Status = db.StatusPending
 		}
 
 		currentBuilds[job.Name] = currentBuild

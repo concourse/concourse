@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/turbine"
 )
 
@@ -13,7 +13,7 @@ type BuildFactory struct {
 	Resources config.Resources
 }
 
-func (factory *BuildFactory) Create(job config.Job, inputVersions builds.VersionedResources) (turbine.Build, error) {
+func (factory *BuildFactory) Create(job config.Job, inputVersions db.VersionedResources) (turbine.Build, error) {
 	inputs, err := factory.computeInputs(job, inputVersions)
 	if err != nil {
 		return turbine.Build{}, err
@@ -34,7 +34,7 @@ func (factory *BuildFactory) Create(job config.Job, inputVersions builds.Version
 	}, nil
 }
 
-func (factory *BuildFactory) computeInputs(job config.Job, inputs builds.VersionedResources) ([]turbine.Input, error) {
+func (factory *BuildFactory) computeInputs(job config.Job, inputs db.VersionedResources) ([]turbine.Input, error) {
 	turbineInputs := make([]turbine.Input, len(job.Inputs))
 	for i, input := range job.Inputs {
 		resource, found := factory.Resources.Lookup(input.Resource)
@@ -44,10 +44,10 @@ func (factory *BuildFactory) computeInputs(job config.Job, inputs builds.Version
 
 		vr, found := inputs.Lookup(input.Resource)
 		if !found {
-			vr = builds.VersionedResource{
+			vr = db.VersionedResource{
 				Name:   resource.Name,
 				Type:   resource.Type,
-				Source: builds.Source(resource.Source),
+				Source: db.Source(resource.Source),
 			}
 		}
 
@@ -59,7 +59,7 @@ func (factory *BuildFactory) computeInputs(job config.Job, inputs builds.Version
 
 func (factory *BuildFactory) inputFor(
 	job config.Job,
-	vr builds.VersionedResource,
+	vr db.VersionedResource,
 	inputName string,
 	params config.Params,
 ) turbine.Input {

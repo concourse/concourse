@@ -4,19 +4,18 @@ package fakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/event"
 )
 
 type FakeBuildsDB struct {
-	GetBuildStub        func(buildID int) (builds.Build, error)
+	GetBuildStub        func(buildID int) (db.Build, error)
 	getBuildMutex       sync.RWMutex
 	getBuildArgsForCall []struct {
 		buildID int
 	}
 	getBuildReturns struct {
-		result1 builds.Build
+		result1 db.Build
 		result2 error
 	}
 	GetBuildEventsStub        func(buildID int) ([]db.BuildEvent, error)
@@ -30,7 +29,7 @@ type FakeBuildsDB struct {
 	}
 }
 
-func (fake *FakeBuildsDB) GetBuild(buildID int) (builds.Build, error) {
+func (fake *FakeBuildsDB) GetBuild(buildID int) (db.Build, error) {
 	fake.getBuildMutex.Lock()
 	fake.getBuildArgsForCall = append(fake.getBuildArgsForCall, struct {
 		buildID int
@@ -55,10 +54,10 @@ func (fake *FakeBuildsDB) GetBuildArgsForCall(i int) int {
 	return fake.getBuildArgsForCall[i].buildID
 }
 
-func (fake *FakeBuildsDB) GetBuildReturns(result1 builds.Build, result2 error) {
+func (fake *FakeBuildsDB) GetBuildReturns(result1 db.Build, result2 error) {
 	fake.GetBuildStub = nil
 	fake.getBuildReturns = struct {
-		result1 builds.Build
+		result1 db.Build
 		result2 error
 	}{result1, result2}
 }

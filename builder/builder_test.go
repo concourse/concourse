@@ -10,27 +10,27 @@ import (
 
 	. "github.com/concourse/atc/builder"
 	"github.com/concourse/atc/builder/fakes"
-	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/turbine"
 )
 
 var _ = Describe("Builder", func() {
 	var (
-		db            *fakes.FakeBuilderDB
+		builderDB     *fakes.FakeBuilderDB
 		turbineServer *ghttp.Server
 
 		builder Builder
 
-		build        builds.Build
+		build        db.Build
 		turbineBuild turbine.Build
 	)
 
 	BeforeEach(func() {
-		db = new(fakes.FakeBuilderDB)
+		builderDB = new(fakes.FakeBuilderDB)
 
 		turbineServer = ghttp.NewServer()
 
-		build = builds.Build{
+		build = db.Build{
 			ID:   128,
 			Name: "some-build",
 		}
@@ -51,10 +51,10 @@ var _ = Describe("Builder", func() {
 			},
 		}
 
-		db.StartBuildReturns(true, nil)
+		builderDB.StartBuildReturns(true, nil)
 
 		builder = NewBuilder(
-			db,
+			builderDB,
 			rata.NewRequestGenerator(turbineServer.URL(), turbine.Routes),
 		)
 	})
@@ -83,9 +83,9 @@ var _ = Describe("Builder", func() {
 		err := builder.Build(build, turbineBuild)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		Ω(db.StartBuildCallCount()).Should(Equal(1))
+		Ω(builderDB.StartBuildCallCount()).Should(Equal(1))
 
-		buildID, guid, endpoint := db.StartBuildArgsForCall(0)
+		buildID, guid, endpoint := builderDB.StartBuildArgsForCall(0)
 		Ω(buildID).Should(Equal(128))
 		Ω(guid).Should(ContainSubstring("some-build-guid"))
 		Ω(endpoint).Should(ContainSubstring(turbineServer.URL()))
@@ -93,7 +93,7 @@ var _ = Describe("Builder", func() {
 
 	Context("when the build fails to transition to started", func() {
 		BeforeEach(func() {
-			db.StartBuildReturns(false, nil)
+			builderDB.StartBuildReturns(false, nil)
 		})
 
 		It("aborts the build on the turbine", func() {

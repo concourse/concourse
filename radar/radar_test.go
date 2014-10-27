@@ -3,8 +3,8 @@ package radar_test
 import (
 	"time"
 
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
 
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/fakes"
@@ -51,7 +51,7 @@ var _ = Describe("Radar", func() {
 		BeforeEach(func() {
 			times = make(chan time.Time, 100)
 
-			checker.CheckResourceStub = func(config.Resource, builds.Version) ([]builds.Version, error) {
+			checker.CheckResourceStub = func(config.Resource, db.Version) ([]db.Version, error) {
 				times <- time.Now()
 				return nil, nil
 			}
@@ -79,8 +79,8 @@ var _ = Describe("Radar", func() {
 
 		Context("when there is a current version", func() {
 			BeforeEach(func() {
-				tracker.GetLatestVersionedResourceReturns(builds.VersionedResource{
-					Version: builds.Version{"version": "1"},
+				tracker.GetLatestVersionedResourceReturns(db.VersionedResource{
+					Version: db.Version{"version": "1"},
 				}, nil)
 			})
 
@@ -89,40 +89,40 @@ var _ = Describe("Radar", func() {
 
 				resource, version := checker.CheckResourceArgsForCall(0)
 				Ω(resource).Should(Equal(resource))
-				Ω(version).Should(Equal(builds.Version{"version": "1"}))
+				Ω(version).Should(Equal(db.Version{"version": "1"}))
 
-				tracker.GetLatestVersionedResourceReturns(builds.VersionedResource{
-					Version: builds.Version{"version": "2"},
+				tracker.GetLatestVersionedResourceReturns(db.VersionedResource{
+					Version: db.Version{"version": "2"},
 				}, nil)
 
 				Eventually(times).Should(Receive())
 
 				resource, version = checker.CheckResourceArgsForCall(1)
 				Ω(resource).Should(Equal(resource))
-				Ω(version).Should(Equal(builds.Version{"version": "2"}))
+				Ω(version).Should(Equal(db.Version{"version": "2"}))
 			})
 		})
 
 		Context("when the check returns versions", func() {
-			var checkedFrom chan builds.Version
+			var checkedFrom chan db.Version
 
-			var nextVersions []builds.Version
+			var nextVersions []db.Version
 
 			BeforeEach(func() {
-				checkedFrom = make(chan builds.Version, 100)
+				checkedFrom = make(chan db.Version, 100)
 
-				nextVersions = []builds.Version{
+				nextVersions = []db.Version{
 					{"version": "1"},
 					{"version": "2"},
 					{"version": "3"},
 				}
 
-				checkResults := map[int][]builds.Version{
+				checkResults := map[int][]db.Version{
 					0: nextVersions,
 				}
 
 				check := 0
-				checker.CheckResourceStub = func(checkedResource config.Resource, from builds.Version) ([]builds.Version, error) {
+				checker.CheckResourceStub = func(checkedResource config.Resource, from db.Version) ([]db.Version, error) {
 					defer GinkgoRecover()
 
 					Ω(checkedResource).Should(Equal(resource))
@@ -138,25 +138,25 @@ var _ = Describe("Radar", func() {
 			It("saves them all, in order", func() {
 				Eventually(tracker.SaveVersionedResourceCallCount).Should(Equal(3))
 
-				Ω(tracker.SaveVersionedResourceArgsForCall(0)).Should(Equal(builds.VersionedResource{
+				Ω(tracker.SaveVersionedResourceArgsForCall(0)).Should(Equal(db.VersionedResource{
 					Name:    "some-resource",
 					Type:    "git",
-					Source:  builds.Source{"uri": "http://example.com"},
-					Version: builds.Version{"version": "1"},
+					Source:  db.Source{"uri": "http://example.com"},
+					Version: db.Version{"version": "1"},
 				}))
 
-				Ω(tracker.SaveVersionedResourceArgsForCall(1)).Should(Equal(builds.VersionedResource{
+				Ω(tracker.SaveVersionedResourceArgsForCall(1)).Should(Equal(db.VersionedResource{
 					Name:    "some-resource",
 					Type:    "git",
-					Source:  builds.Source{"uri": "http://example.com"},
-					Version: builds.Version{"version": "2"},
+					Source:  db.Source{"uri": "http://example.com"},
+					Version: db.Version{"version": "2"},
 				}))
 
-				Ω(tracker.SaveVersionedResourceArgsForCall(2)).Should(Equal(builds.VersionedResource{
+				Ω(tracker.SaveVersionedResourceArgsForCall(2)).Should(Equal(db.VersionedResource{
 					Name:    "some-resource",
 					Type:    "git",
-					Source:  builds.Source{"uri": "http://example.com"},
-					Version: builds.Version{"version": "3"},
+					Source:  db.Source{"uri": "http://example.com"},
+					Version: db.Version{"version": "3"},
 				}))
 			})
 		})
@@ -165,7 +165,7 @@ var _ = Describe("Radar", func() {
 			BeforeEach(func() {
 				checked := false
 
-				checker.CheckResourceStub = func(config.Resource, builds.Version) ([]builds.Version, error) {
+				checker.CheckResourceStub = func(config.Resource, db.Version) ([]db.Version, error) {
 					times <- time.Now()
 
 					if checked {

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/fakes"
@@ -44,13 +43,13 @@ var _ = Describe("Tracker", func() {
 
 	Describe("TrackBuild", func() {
 		var (
-			build builds.Build
+			build db.Build
 
 			trackErr error
 		)
 
 		BeforeEach(func() {
-			build = builds.Build{
+			build = db.Build{
 				ID:       1,
 				Guid:     "some-guid",
 				Endpoint: turbineServer.URL(),
@@ -172,7 +171,7 @@ var _ = Describe("Tracker", func() {
 
 								buildID, status := trackerDB.SaveBuildStatusArgsForCall(0)
 								Ω(buildID).Should(Equal(1))
-								Ω(status).Should(Equal(builds.StatusStarted))
+								Ω(status).Should(Equal(db.StatusStarted))
 							})
 
 							It("saves the build's start time", func() {
@@ -199,7 +198,7 @@ var _ = Describe("Tracker", func() {
 
 								buildID, status := trackerDB.SaveBuildStatusArgsForCall(0)
 								Ω(buildID).Should(Equal(1))
-								Ω(status).Should(Equal(builds.StatusSucceeded))
+								Ω(status).Should(Equal(db.StatusSucceeded))
 							})
 
 							It("saves the build's end time", func() {
@@ -240,12 +239,12 @@ var _ = Describe("Tracker", func() {
 
 								id, input := trackerDB.SaveBuildInputArgsForCall(0)
 								Ω(id).Should(Equal(1))
-								Ω(input).Should(Equal(builds.VersionedResource{
+								Ω(input).Should(Equal(db.VersionedResource{
 									Name:    "some-input-resource",
 									Type:    "some-type",
-									Source:  builds.Source{"input-source": "some-source"},
-									Version: builds.Version{"version": "input-version"},
-									Metadata: []builds.MetadataField{
+									Source:  db.Source{"input-source": "some-source"},
+									Version: db.Version{"version": "input-version"},
+									Metadata: []db.MetadataField{
 										{Name: "input-meta", Value: "some-value"},
 									},
 								}))
@@ -265,12 +264,12 @@ var _ = Describe("Tracker", func() {
 
 									id, output := trackerDB.SaveBuildOutputArgsForCall(0)
 									Ω(id).Should(Equal(1))
-									Ω(output).Should(Equal(builds.VersionedResource{
+									Ω(output).Should(Equal(db.VersionedResource{
 										Name:    "some-input-resource",
 										Type:    "some-type",
-										Source:  builds.Source{"input-source": "some-source"},
-										Version: builds.Version{"version": "input-version"},
-										Metadata: []builds.MetadataField{
+										Source:  db.Source{"input-source": "some-source"},
+										Version: db.Version{"version": "input-version"},
+										Metadata: []db.MetadataField{
 											{Name: "input-meta", Value: "some-value"},
 										},
 									}))
@@ -308,12 +307,12 @@ var _ = Describe("Tracker", func() {
 
 										id, output := trackerDB.SaveBuildOutputArgsForCall(0)
 										Ω(id).Should(Equal(1))
-										Ω(output).Should(Equal(builds.VersionedResource{
+										Ω(output).Should(Equal(db.VersionedResource{
 											Name:    "some-input-resource",
 											Type:    "some-type",
-											Source:  builds.Source{"input-source": "some-source"},
-											Version: builds.Version{"version": "explicit-input-version"},
-											Metadata: []builds.MetadataField{
+											Source:  db.Source{"input-source": "some-source"},
+											Version: db.Version{"version": "explicit-input-version"},
+											Metadata: []db.MetadataField{
 												{Name: "input-meta", Value: "some-value"},
 											},
 										}))
@@ -369,12 +368,12 @@ var _ = Describe("Tracker", func() {
 
 									id, output := trackerDB.SaveBuildOutputArgsForCall(0)
 									Ω(id).Should(Equal(1))
-									Ω(output).Should(Equal(builds.VersionedResource{
+									Ω(output).Should(Equal(db.VersionedResource{
 										Name:    "some-output-name",
 										Type:    "some-type",
-										Source:  builds.Source{"output-source": "some-source"},
-										Version: builds.Version{"version": "output-version"},
-										Metadata: []builds.MetadataField{
+										Source:  db.Source{"output-source": "some-source"},
+										Version: db.Version{"version": "output-version"},
+										Metadata: []db.MetadataField{
 											{Name: "output-meta", Value: "some-value"},
 										},
 									}))
@@ -432,12 +431,12 @@ var _ = Describe("Tracker", func() {
 
 								id, input := trackerDB.SaveBuildInputArgsForCall(0)
 								Ω(id).Should(Equal(1))
-								Ω(input).Should(Equal(builds.VersionedResource{
+								Ω(input).Should(Equal(db.VersionedResource{
 									Name:    "some-input-name",
 									Type:    "some-type",
-									Source:  builds.Source{"input-source": "some-source"},
-									Version: builds.Version{"version": "input-version"},
-									Metadata: []builds.MetadataField{
+									Source:  db.Source{"input-source": "some-source"},
+									Version: db.Version{"version": "input-version"},
+									Metadata: []db.MetadataField{
 										{Name: "input-meta", Value: "some-value"},
 									},
 								}))
@@ -517,7 +516,7 @@ var _ = Describe("Tracker", func() {
 
 				buildID, status := trackerDB.SaveBuildStatusArgsForCall(0)
 				Ω(buildID).Should(Equal(1))
-				Ω(status).Should(Equal(builds.StatusErrored))
+				Ω(status).Should(Equal(db.StatusErrored))
 			})
 		})
 

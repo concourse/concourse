@@ -4,29 +4,29 @@ import (
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc/builder"
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/turbine"
 )
 
 type SchedulerDB interface {
 	ScheduleBuild(buildID int, serial bool) (bool, error)
 
-	GetLatestInputVersions([]config.Input) (builds.VersionedResources, error)
-	CreateJobBuildWithInputs(job string, inputs builds.VersionedResources) (builds.Build, error)
-	GetJobBuildForInputs(job string, inputs builds.VersionedResources) (builds.Build, error)
+	GetLatestInputVersions([]config.Input) (db.VersionedResources, error)
+	CreateJobBuildWithInputs(job string, inputs db.VersionedResources) (db.Build, error)
+	GetJobBuildForInputs(job string, inputs db.VersionedResources) (db.Build, error)
 
-	GetNextPendingBuild(job string) (builds.Build, builds.VersionedResources, error)
+	GetNextPendingBuild(job string) (db.Build, db.VersionedResources, error)
 
-	GetAllStartedBuilds() ([]builds.Build, error)
+	GetAllStartedBuilds() ([]db.Build, error)
 }
 
 type BuildFactory interface {
-	Create(config.Job, builds.VersionedResources) (turbine.Build, error)
+	Create(config.Job, db.VersionedResources) (turbine.Build, error)
 }
 
 type BuildTracker interface {
-	TrackBuild(builds.Build) error
+	TrackBuild(db.Build) error
 }
 
 type Scheduler struct {
@@ -51,7 +51,7 @@ func (s *Scheduler) BuildLatestInputs(job config.Job) error {
 		return err
 	}
 
-	checkInputs := builds.VersionedResources{}
+	checkInputs := db.VersionedResources{}
 	for _, input := range job.Inputs {
 		if input.Trigger != nil && !*input.Trigger {
 			continue
@@ -148,7 +148,7 @@ func (s *Scheduler) TryNextPendingBuild(job config.Job) error {
 	return nil
 }
 
-func (s *Scheduler) TriggerImmediately(job config.Job) (builds.Build, error) {
+func (s *Scheduler) TriggerImmediately(job config.Job) (db.Build, error) {
 	buildLog := s.Logger.Session("trigger-immediately")
 
 	passedInputs := []config.Input{}
@@ -160,26 +160,26 @@ func (s *Scheduler) TriggerImmediately(job config.Job) (builds.Build, error) {
 		passedInputs = append(passedInputs, input)
 	}
 
-	var inputs builds.VersionedResources
+	var inputs db.VersionedResources
 	var err error
 
 	if len(passedInputs) > 0 {
 		inputs, err = s.DB.GetLatestInputVersions(passedInputs)
 		if err != nil {
 			buildLog.Error("failed-to-get-build-inputs", err)
-			return builds.Build{}, err
+			return db.Build{}, err
 		}
 	}
 
 	build, err := s.DB.CreateJobBuildWithInputs(job.Name, inputs)
 	if err != nil {
 		buildLog.Error("failed-to-create-build", err)
-		return builds.Build{}, err
+		return db.Build{}, err
 	}
 
 	scheduled, err := s.DB.ScheduleBuild(build.ID, job.Serial)
 	if err != nil {
-		return builds.Build{}, err
+		return db.Build{}, err
 	}
 
 	if !scheduled {
@@ -189,13 +189,13 @@ func (s *Scheduler) TriggerImmediately(job config.Job) (builds.Build, error) {
 	turbineBuild, err := s.Factory.Create(job, inputs)
 	if err != nil {
 		buildLog.Error("failed-to-create", err)
-		return builds.Build{}, err
+		return db.Build{}, err
 	}
 
 	err = s.Builder.Build(build, turbineBuild)
 	if err != nil {
 		buildLog.Error("failed-to-build", err)
-		return builds.Build{}, err
+		return db.Build{}, err
 	}
 
 	return build, nil

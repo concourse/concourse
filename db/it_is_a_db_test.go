@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	Builds "github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 	. "github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
@@ -44,7 +43,7 @@ func itIsADB() {
 	})
 
 	Context("when a build is created for a job", func() {
-		var build1 Builds.Build
+		var build1 Build
 
 		BeforeEach(func() {
 			var err error
@@ -55,7 +54,7 @@ func itIsADB() {
 			Ω(build1.ID).ShouldNot(BeZero())
 			Ω(build1.JobName).Should(Equal("some-job"))
 			Ω(build1.Name).Should(Equal("1"))
-			Ω(build1.Status).Should(Equal(Builds.StatusPending))
+			Ω(build1.Status).Should(Equal(StatusPending))
 		})
 
 		It("can be read back as the same object", func() {
@@ -81,11 +80,11 @@ func itIsADB() {
 		})
 
 		It("is returned in the job's builds", func() {
-			Ω(db.GetAllJobBuilds("some-job")).Should(ConsistOf([]Builds.Build{build1}))
+			Ω(db.GetAllJobBuilds("some-job")).Should(ConsistOf([]Build{build1}))
 		})
 
 		It("is returned in the set of all builds", func() {
-			Ω(db.GetAllBuilds()).Should(Equal([]Builds.Build{build1}))
+			Ω(db.GetAllBuilds()).Should(Equal([]Build{build1}))
 		})
 
 		Context("when scheduled", func() {
@@ -108,7 +107,7 @@ func itIsADB() {
 		})
 
 		Context("when started", func() {
-			var expectedStartedBuild1 Builds.Build
+			var expectedStartedBuild1 Build
 
 			BeforeEach(func() {
 				started, err := db.StartBuild(build1.ID, "some-guid", "some-endpoint")
@@ -116,7 +115,7 @@ func itIsADB() {
 				Ω(started).Should(BeTrue())
 
 				expectedStartedBuild1 = build1
-				expectedStartedBuild1.Status = Builds.StatusStarted
+				expectedStartedBuild1.Status = StatusStarted
 				expectedStartedBuild1.Guid = "some-guid"
 				expectedStartedBuild1.Endpoint = "some-endpoint"
 			})
@@ -128,19 +127,19 @@ func itIsADB() {
 			})
 
 			It("is not reported as a started build", func() {
-				Ω(db.GetAllStartedBuilds()).Should(ConsistOf([]Builds.Build{expectedStartedBuild1}))
+				Ω(db.GetAllStartedBuilds()).Should(ConsistOf([]Build{expectedStartedBuild1}))
 			})
 		})
 
 		Context("when the status is updated", func() {
-			var expectedSucceededBuild1 Builds.Build
+			var expectedSucceededBuild1 Build
 
 			BeforeEach(func() {
-				err := db.SaveBuildStatus(build1.ID, Builds.StatusSucceeded)
+				err := db.SaveBuildStatus(build1.ID, StatusSucceeded)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				expectedSucceededBuild1 = build1
-				expectedSucceededBuild1.Status = Builds.StatusSucceeded
+				expectedSucceededBuild1.Status = StatusSucceeded
 			})
 
 			It("is reflected through getting the build", func() {
@@ -151,7 +150,7 @@ func itIsADB() {
 		})
 
 		Context("and another is created for the same job", func() {
-			var build2 Builds.Build
+			var build2 Build
 
 			BeforeEach(func() {
 				var err error
@@ -161,7 +160,7 @@ func itIsADB() {
 				Ω(build2.ID).ShouldNot(BeZero())
 				Ω(build2.ID).ShouldNot(Equal(build1.ID))
 				Ω(build2.Name).Should(Equal("2"))
-				Ω(build2.Status).Should(Equal(Builds.StatusPending))
+				Ω(build2.Status).Should(Equal(StatusPending))
 			})
 
 			It("can also be read back as the same object", func() {
@@ -171,14 +170,14 @@ func itIsADB() {
 			})
 
 			It("is returned in the job's builds, before the rest", func() {
-				Ω(db.GetAllJobBuilds("some-job")).Should(Equal([]Builds.Build{
+				Ω(db.GetAllJobBuilds("some-job")).Should(Equal([]Build{
 					build2,
 					build1,
 				}))
 			})
 
 			It("is returned in the set of all builds, before the rest", func() {
-				Ω(db.GetAllBuilds()).Should(Equal([]Builds.Build{build2, build1}))
+				Ω(db.GetAllBuilds()).Should(Equal([]Build{build2, build1}))
 			})
 
 			Describe("the first build", func() {
@@ -221,7 +220,7 @@ func itIsADB() {
 		})
 
 		Context("and another is created for a different job", func() {
-			var otherJobBuild Builds.Build
+			var otherJobBuild Build
 
 			BeforeEach(func() {
 				var err error
@@ -231,19 +230,19 @@ func itIsADB() {
 
 				Ω(otherJobBuild.ID).ShouldNot(BeZero())
 				Ω(otherJobBuild.Name).Should(Equal("1"))
-				Ω(otherJobBuild.Status).Should(Equal(Builds.StatusPending))
+				Ω(otherJobBuild.Status).Should(Equal(StatusPending))
 			})
 
 			It("shows up in its job's builds", func() {
-				Ω(db.GetAllJobBuilds("some-other-job")).Should(Equal([]Builds.Build{otherJobBuild}))
+				Ω(db.GetAllJobBuilds("some-other-job")).Should(Equal([]Build{otherJobBuild}))
 			})
 
 			It("does not show up in the first build's job's builds", func() {
-				Ω(db.GetAllJobBuilds("some-job")).Should(Equal([]Builds.Build{build1}))
+				Ω(db.GetAllJobBuilds("some-job")).Should(Equal([]Build{build1}))
 			})
 
 			It("is returned in the set of all builds, before the rest", func() {
-				Ω(db.GetAllBuilds()).Should(Equal([]Builds.Build{otherJobBuild, build1}))
+				Ω(db.GetAllBuilds()).Should(Equal([]Build{otherJobBuild, build1}))
 			})
 		})
 	})
@@ -319,7 +318,7 @@ func itIsADB() {
 		Ω(oneOff.ID).ShouldNot(BeZero())
 		Ω(oneOff.JobName).Should(BeZero())
 		Ω(oneOff.Name).Should(Equal("1"))
-		Ω(oneOff.Status).Should(Equal(Builds.StatusPending))
+		Ω(oneOff.Status).Should(Equal(StatusPending))
 
 		oneOffGot, err := db.GetBuild(oneOff.ID)
 		Ω(err).ShouldNot(HaveOccurred())
@@ -335,11 +334,11 @@ func itIsADB() {
 		Ω(nextOneOff.ID).ShouldNot(Equal(oneOff.ID))
 		Ω(nextOneOff.JobName).Should(BeZero())
 		Ω(nextOneOff.Name).Should(Equal("2"))
-		Ω(nextOneOff.Status).Should(Equal(Builds.StatusPending))
+		Ω(nextOneOff.Status).Should(Equal(StatusPending))
 
 		allBuilds, err := db.GetAllBuilds()
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(allBuilds).Should(Equal([]Builds.Build{nextOneOff, jobBuild, oneOff}))
+		Ω(allBuilds).Should(Equal([]Build{nextOneOff, jobBuild, oneOff}))
 	})
 
 	It("can save a build's start/end timestamps", func() {
@@ -372,7 +371,7 @@ func itIsADB() {
 		finishedBuild, err := db.CreateJobBuild("some-job")
 		Ω(err).ShouldNot(HaveOccurred())
 
-		err = db.SaveBuildStatus(finishedBuild.ID, Builds.StatusSucceeded)
+		err = db.SaveBuildStatus(finishedBuild.ID, StatusSucceeded)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		finished, next, err = db.GetJobFinishedAndNextBuild("some-job")
@@ -413,7 +412,7 @@ func itIsADB() {
 		Ω(next.ID).Should(Equal(nextBuild.ID)) // not anotherRunningBuild
 		Ω(finished.ID).Should(Equal(finishedBuild.ID))
 
-		err = db.SaveBuildStatus(nextBuild.ID, Builds.StatusSucceeded)
+		err = db.SaveBuildStatus(nextBuild.ID, StatusSucceeded)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		finished, next, err = db.GetJobFinishedAndNextBuild("some-job")
@@ -480,7 +479,7 @@ func itIsADB() {
 	})
 
 	Describe("saving build inputs", func() {
-		buildMetadata := []Builds.MetadataField{
+		buildMetadata := []MetadataField{
 			{
 				Name:  "meta1",
 				Value: "value1",
@@ -491,19 +490,19 @@ func itIsADB() {
 			},
 		}
 
-		vr1 := Builds.VersionedResource{
+		vr1 := VersionedResource{
 			Name:     "some-resource",
 			Type:     "some-type",
-			Source:   Builds.Source{"some": "source"},
-			Version:  Builds.Version{"ver": "1"},
+			Source:   Source{"some": "source"},
+			Version:  Version{"ver": "1"},
 			Metadata: buildMetadata,
 		}
 
-		vr2 := Builds.VersionedResource{
+		vr2 := VersionedResource{
 			Name:    "some-other-resource",
 			Type:    "some-type",
-			Source:  Builds.Source{"some": "other-source"},
-			Version: Builds.Version{"ver": "2"},
+			Source:  Source{"some": "other-source"},
+			Version: Version{"ver": "2"},
 		}
 
 		It("saves build's inputs and outputs as versioned resources", func() {
@@ -513,13 +512,13 @@ func itIsADB() {
 			err = db.SaveBuildInput(build.ID, vr1)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			_, err = db.GetJobBuildForInputs("some-job", Builds.VersionedResources{vr1, vr2})
+			_, err = db.GetJobBuildForInputs("some-job", VersionedResources{vr1, vr2})
 			Ω(err).Should(HaveOccurred())
 
 			err = db.SaveBuildInput(build.ID, vr2)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			foundBuild, err := db.GetJobBuildForInputs("some-job", Builds.VersionedResources{vr1, vr2})
+			foundBuild, err := db.GetJobBuildForInputs("some-job", VersionedResources{vr1, vr2})
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(foundBuild).Should(Equal(build))
 
@@ -527,7 +526,7 @@ func itIsADB() {
 			Ω(err).ShouldNot(HaveOccurred())
 
 			modifiedVR2 := vr2
-			modifiedVR2.Version = Builds.Version{"ver": "3"}
+			modifiedVR2.Version = Version{"ver": "3"}
 
 			err = db.SaveBuildOutput(build.ID, modifiedVR2)
 			Ω(err).ShouldNot(HaveOccurred())
@@ -605,7 +604,7 @@ func itIsADB() {
 		})
 
 		It("can be done on build creation", func() {
-			inputs := Builds.VersionedResources{vr1, vr2}
+			inputs := VersionedResources{vr1, vr2}
 
 			pending, err := db.CreateJobBuildWithInputs("some-job", inputs)
 			Ω(err).ShouldNot(HaveOccurred())
@@ -623,32 +622,32 @@ func itIsADB() {
 
 	Describe("saving versioned resources", func() {
 		It("updates the latest versioned resource", func() {
-			vr1 := Builds.VersionedResource{
+			vr1 := VersionedResource{
 				Name:    "some-resource",
 				Type:    "some-type",
-				Source:  Builds.Source{"some": "source"},
-				Version: Builds.Version{"version": "1"},
-				Metadata: []Builds.MetadataField{
+				Source:  Source{"some": "source"},
+				Version: Version{"version": "1"},
+				Metadata: []MetadataField{
 					{Name: "meta1", Value: "value1"},
 				},
 			}
 
-			vr2 := Builds.VersionedResource{
+			vr2 := VersionedResource{
 				Name:    "some-resource",
 				Type:    "some-type",
-				Source:  Builds.Source{"some": "source"},
-				Version: Builds.Version{"version": "2"},
-				Metadata: []Builds.MetadataField{
+				Source:  Source{"some": "source"},
+				Version: Version{"version": "2"},
+				Metadata: []MetadataField{
 					{Name: "meta2", Value: "value2"},
 				},
 			}
 
-			vr3 := Builds.VersionedResource{
+			vr3 := VersionedResource{
 				Name:    "some-resource",
 				Type:    "some-type",
-				Source:  Builds.Source{"some": "source"},
-				Version: Builds.Version{"version": "3"},
-				Metadata: []Builds.MetadataField{
+				Source:  Source{"some": "source"},
+				Version: Version{"version": "3"},
+				Metadata: []MetadataField{
 					{Name: "meta3", Value: "value3"},
 				},
 			}
@@ -670,12 +669,12 @@ func itIsADB() {
 		})
 
 		It("overwrites the existing source and metadata for the same version", func() {
-			vr := Builds.VersionedResource{
+			vr := VersionedResource{
 				Name:    "some-resource",
 				Type:    "some-type",
-				Source:  Builds.Source{"some": "source"},
-				Version: Builds.Version{"version": "1"},
-				Metadata: []Builds.MetadataField{
+				Source:  Source{"some": "source"},
+				Version: Version{"version": "1"},
+				Metadata: []MetadataField{
 					{Name: "meta1", Value: "value1"},
 				},
 			}
@@ -722,31 +721,31 @@ func itIsADB() {
 			sb1, err := db.CreateJobBuild("shared-job")
 			Ω(err).ShouldNot(HaveOccurred())
 
-			err = db.SaveBuildOutput(sb1.ID, Builds.VersionedResource{
+			err = db.SaveBuildOutput(sb1.ID, VersionedResource{
 				Name:    "resource-1",
 				Type:    "some-type",
-				Version: Builds.Version{"v": "r1-common-to-shared-and-j1"},
+				Version: Version{"v": "r1-common-to-shared-and-j1"},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			err = db.SaveBuildOutput(sb1.ID, Builds.VersionedResource{
+			err = db.SaveBuildOutput(sb1.ID, VersionedResource{
 				Name:    "resource-2",
 				Type:    "some-type",
-				Version: Builds.Version{"v": "r2-common-to-shared-and-j2"},
+				Version: Version{"v": "r2-common-to-shared-and-j2"},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			err = db.SaveBuildOutput(j1b1.ID, Builds.VersionedResource{
+			err = db.SaveBuildOutput(j1b1.ID, VersionedResource{
 				Name:    "resource-1",
 				Type:    "some-type",
-				Version: Builds.Version{"v": "r1-common-to-shared-and-j1"},
+				Version: Version{"v": "r1-common-to-shared-and-j1"},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			err = db.SaveBuildOutput(j2b1.ID, Builds.VersionedResource{
+			err = db.SaveBuildOutput(j2b1.ID, VersionedResource{
 				Name:    "resource-2",
 				Type:    "some-type",
-				Version: Builds.Version{"v": "r2-common-to-shared-and-j2"},
+				Version: Version{"v": "r2-common-to-shared-and-j2"},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
@@ -759,16 +758,16 @@ func itIsADB() {
 					Resource: "resource-2",
 					Passed:   []string{"shared-job", "job-2"},
 				},
-			})).Should(Equal(Builds.VersionedResources{
+			})).Should(Equal(VersionedResources{
 				{
 					Name:    "resource-1",
 					Type:    "some-type",
-					Version: Builds.Version{"v": "r1-common-to-shared-and-j1"},
+					Version: Version{"v": "r1-common-to-shared-and-j1"},
 				},
 				{
 					Name:    "resource-2",
 					Type:    "some-type",
-					Version: Builds.Version{"v": "r2-common-to-shared-and-j2"},
+					Version: Version{"v": "r2-common-to-shared-and-j2"},
 				},
 			}))
 
@@ -781,24 +780,24 @@ func itIsADB() {
 			j2b2, err := db.CreateJobBuild("job-2")
 			Ω(err).ShouldNot(HaveOccurred())
 
-			err = db.SaveBuildOutput(sb2.ID, Builds.VersionedResource{
+			err = db.SaveBuildOutput(sb2.ID, VersionedResource{
 				Name:    "resource-1",
 				Type:    "some-type",
-				Version: Builds.Version{"v": "new-r1-common-to-shared-and-j1"},
+				Version: Version{"v": "new-r1-common-to-shared-and-j1"},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			err = db.SaveBuildOutput(sb2.ID, Builds.VersionedResource{
+			err = db.SaveBuildOutput(sb2.ID, VersionedResource{
 				Name:    "resource-2",
 				Type:    "some-type",
-				Version: Builds.Version{"v": "new-r2-common-to-shared-and-j2"},
+				Version: Version{"v": "new-r2-common-to-shared-and-j2"},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			err = db.SaveBuildOutput(j1b2.ID, Builds.VersionedResource{
+			err = db.SaveBuildOutput(j1b2.ID, VersionedResource{
 				Name:    "resource-1",
 				Type:    "some-type",
-				Version: Builds.Version{"v": "new-r1-common-to-shared-and-j1"},
+				Version: Version{"v": "new-r1-common-to-shared-and-j1"},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
@@ -813,24 +812,24 @@ func itIsADB() {
 					Resource: "resource-2",
 					Passed:   []string{"shared-job", "job-2"},
 				},
-			})).Should(Equal(Builds.VersionedResources{
+			})).Should(Equal(VersionedResources{
 				{
 					Name:    "resource-1",
 					Type:    "some-type",
-					Version: Builds.Version{"v": "r1-common-to-shared-and-j1"},
+					Version: Version{"v": "r1-common-to-shared-and-j1"},
 				},
 				{
 					Name:    "resource-2",
 					Type:    "some-type",
-					Version: Builds.Version{"v": "r2-common-to-shared-and-j2"},
+					Version: Version{"v": "r2-common-to-shared-and-j2"},
 				},
 			}))
 
 			// now save the output of resource-2 job-2
-			err = db.SaveBuildOutput(j2b2.ID, Builds.VersionedResource{
+			err = db.SaveBuildOutput(j2b2.ID, VersionedResource{
 				Name:    "resource-2",
 				Type:    "some-type",
-				Version: Builds.Version{"v": "new-r2-common-to-shared-and-j2"},
+				Version: Version{"v": "new-r2-common-to-shared-and-j2"},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
@@ -843,16 +842,16 @@ func itIsADB() {
 					Resource: "resource-2",
 					Passed:   []string{"shared-job", "job-2"},
 				},
-			})).Should(Equal(Builds.VersionedResources{
+			})).Should(Equal(VersionedResources{
 				{
 					Name:    "resource-1",
 					Type:    "some-type",
-					Version: Builds.Version{"v": "new-r1-common-to-shared-and-j1"},
+					Version: Version{"v": "new-r1-common-to-shared-and-j1"},
 				},
 				{
 					Name:    "resource-2",
 					Type:    "some-type",
-					Version: Builds.Version{"v": "new-r2-common-to-shared-and-j2"},
+					Version: Version{"v": "new-r2-common-to-shared-and-j2"},
 				},
 			}))
 
@@ -860,31 +859,31 @@ func itIsADB() {
 			for i := 0; i < 10; i++ {
 				version := fmt.Sprintf("version-%d", i+1)
 
-				err = db.SaveBuildOutput(sb1.ID, Builds.VersionedResource{
+				err = db.SaveBuildOutput(sb1.ID, VersionedResource{
 					Name:    "resource-1",
 					Type:    "some-type",
-					Version: Builds.Version{"v": version + "-r1-common-to-shared-and-j1"},
+					Version: Version{"v": version + "-r1-common-to-shared-and-j1"},
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				err = db.SaveBuildOutput(sb1.ID, Builds.VersionedResource{
+				err = db.SaveBuildOutput(sb1.ID, VersionedResource{
 					Name:    "resource-2",
 					Type:    "some-type",
-					Version: Builds.Version{"v": version + "-r2-common-to-shared-and-j2"},
+					Version: Version{"v": version + "-r2-common-to-shared-and-j2"},
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				err = db.SaveBuildOutput(j1b1.ID, Builds.VersionedResource{
+				err = db.SaveBuildOutput(j1b1.ID, VersionedResource{
 					Name:    "resource-1",
 					Type:    "some-type",
-					Version: Builds.Version{"v": version + "-r1-common-to-shared-and-j1"},
+					Version: Version{"v": version + "-r1-common-to-shared-and-j1"},
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				err = db.SaveBuildOutput(j2b1.ID, Builds.VersionedResource{
+				err = db.SaveBuildOutput(j2b1.ID, VersionedResource{
 					Name:    "resource-2",
 					Type:    "some-type",
-					Version: Builds.Version{"v": version + "-r2-common-to-shared-and-j2"},
+					Version: Version{"v": version + "-r2-common-to-shared-and-j2"},
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
@@ -897,16 +896,16 @@ func itIsADB() {
 						Resource: "resource-2",
 						Passed:   []string{"shared-job", "job-2"},
 					},
-				})).Should(Equal(Builds.VersionedResources{
+				})).Should(Equal(VersionedResources{
 					{
 						Name:    "resource-1",
 						Type:    "some-type",
-						Version: Builds.Version{"v": version + "-r1-common-to-shared-and-j1"},
+						Version: Version{"v": version + "-r1-common-to-shared-and-j1"},
 					},
 					{
 						Name:    "resource-2",
 						Type:    "some-type",
-						Version: Builds.Version{"v": version + "-r2-common-to-shared-and-j2"},
+						Version: Version{"v": version + "-r2-common-to-shared-and-j2"},
 					},
 				}))
 			}
@@ -914,7 +913,7 @@ func itIsADB() {
 	})
 
 	Context("when the first build is created", func() {
-		var firstBuild Builds.Build
+		var firstBuild Build
 
 		var job string
 
@@ -926,19 +925,19 @@ func itIsADB() {
 			firstBuild, err = db.CreateJobBuild(job)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(firstBuild.Name).Should(Equal("1"))
-			Ω(firstBuild.Status).Should(Equal(Builds.StatusPending))
+			Ω(firstBuild.Status).Should(Equal(StatusPending))
 		})
 
 		Context("and then aborted", func() {
 			BeforeEach(func() {
-				err := db.SaveBuildStatus(firstBuild.ID, Builds.StatusAborted)
+				err := db.SaveBuildStatus(firstBuild.ID, StatusAborted)
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 
 			It("changes the state to aborted", func() {
 				build, err := db.GetJobBuild(job, firstBuild.Name)
 				Ω(err).ShouldNot(HaveOccurred())
-				Ω(build.Status).Should(Equal(Builds.StatusAborted))
+				Ω(build.Status).Should(Equal(StatusAborted))
 			})
 
 			Describe("scheduling the build", func() {
@@ -959,14 +958,14 @@ func itIsADB() {
 
 			Context("and then aborted", func() {
 				BeforeEach(func() {
-					err := db.SaveBuildStatus(firstBuild.ID, Builds.StatusAborted)
+					err := db.SaveBuildStatus(firstBuild.ID, StatusAborted)
 					Ω(err).ShouldNot(HaveOccurred())
 				})
 
 				It("changes the state to aborted", func() {
 					build, err := db.GetJobBuild(job, firstBuild.Name)
 					Ω(err).ShouldNot(HaveOccurred())
-					Ω(build.Status).Should(Equal(Builds.StatusAborted))
+					Ω(build.Status).Should(Equal(StatusAborted))
 				})
 
 				Describe("starting the build", func() {
@@ -996,7 +995,7 @@ func itIsADB() {
 		})
 
 		Context("and a second build is created", func() {
-			var secondBuild Builds.Build
+			var secondBuild Build
 
 			Context("for a different job", func() {
 				BeforeEach(func() {
@@ -1005,7 +1004,7 @@ func itIsADB() {
 					secondBuild, err = db.CreateJobBuild("some-other-job")
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(secondBuild.Name).Should(Equal("1"))
-					Ω(secondBuild.Status).Should(Equal(Builds.StatusPending))
+					Ω(secondBuild.Status).Should(Equal(StatusPending))
 				})
 
 				Describe("scheduling the second build", func() {
@@ -1032,7 +1031,7 @@ func itIsADB() {
 					secondBuild, err = db.CreateJobBuild(job)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(secondBuild.Name).Should(Equal("2"))
-					Ω(secondBuild.Status).Should(Equal(Builds.StatusPending))
+					Ω(secondBuild.Status).Should(Equal(StatusPending))
 				})
 
 				Describe("scheduling the second build", func() {
@@ -1066,7 +1065,7 @@ func itIsADB() {
 						})
 					})
 
-					for _, s := range []Builds.Status{Builds.StatusSucceeded, Builds.StatusFailed, Builds.StatusErrored} {
+					for _, s := range []Status{StatusSucceeded, StatusFailed, StatusErrored} {
 						status := s
 
 						Context("and the first build's status changes to "+string(status), func() {
@@ -1088,7 +1087,7 @@ func itIsADB() {
 
 				Describe("after the first build is aborted", func() {
 					BeforeEach(func() {
-						err := db.SaveBuildStatus(firstBuild.ID, Builds.StatusAborted)
+						err := db.SaveBuildStatus(firstBuild.ID, StatusAborted)
 						Ω(err).ShouldNot(HaveOccurred())
 					})
 
@@ -1102,7 +1101,7 @@ func itIsADB() {
 				})
 
 				Context("and a third build is created", func() {
-					var thirdBuild Builds.Build
+					var thirdBuild Build
 
 					BeforeEach(func() {
 						var err error
@@ -1110,12 +1109,12 @@ func itIsADB() {
 						thirdBuild, err = db.CreateJobBuild(job)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(thirdBuild.Name).Should(Equal("3"))
-						Ω(thirdBuild.Status).Should(Equal(Builds.StatusPending))
+						Ω(thirdBuild.Status).Should(Equal(StatusPending))
 					})
 
 					Context("and the first build finishes", func() {
 						BeforeEach(func() {
-							err := db.SaveBuildStatus(firstBuild.ID, Builds.StatusSucceeded)
+							err := db.SaveBuildStatus(firstBuild.ID, StatusSucceeded)
 							Ω(err).ShouldNot(HaveOccurred())
 						})
 

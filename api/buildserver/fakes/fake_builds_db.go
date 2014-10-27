@@ -5,39 +5,38 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/api/buildserver"
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/db"
 )
 
 type FakeBuildsDB struct {
-	GetBuildStub        func(buildID int) (builds.Build, error)
+	GetBuildStub        func(buildID int) (db.Build, error)
 	getBuildMutex       sync.RWMutex
 	getBuildArgsForCall []struct {
 		buildID int
 	}
 	getBuildReturns struct {
-		result1 builds.Build
+		result1 db.Build
 		result2 error
 	}
-	GetAllBuildsStub        func() ([]builds.Build, error)
+	GetAllBuildsStub        func() ([]db.Build, error)
 	getAllBuildsMutex       sync.RWMutex
 	getAllBuildsArgsForCall []struct{}
-	getAllBuildsReturns struct {
-		result1 []builds.Build
+	getAllBuildsReturns     struct {
+		result1 []db.Build
 		result2 error
 	}
-	CreateOneOffBuildStub        func() (builds.Build, error)
+	CreateOneOffBuildStub        func() (db.Build, error)
 	createOneOffBuildMutex       sync.RWMutex
 	createOneOffBuildArgsForCall []struct{}
-	createOneOffBuildReturns struct {
-		result1 builds.Build
+	createOneOffBuildReturns     struct {
+		result1 db.Build
 		result2 error
 	}
-	SaveBuildStatusStub        func(buildID int, status builds.Status) error
+	SaveBuildStatusStub        func(buildID int, status db.Status) error
 	saveBuildStatusMutex       sync.RWMutex
 	saveBuildStatusArgsForCall []struct {
 		buildID int
-		status  builds.Status
+		status  db.Status
 	}
 	saveBuildStatusReturns struct {
 		result1 error
@@ -53,7 +52,7 @@ type FakeBuildsDB struct {
 	}
 }
 
-func (fake *FakeBuildsDB) GetBuild(buildID int) (builds.Build, error) {
+func (fake *FakeBuildsDB) GetBuild(buildID int) (db.Build, error) {
 	fake.getBuildMutex.Lock()
 	fake.getBuildArgsForCall = append(fake.getBuildArgsForCall, struct {
 		buildID int
@@ -78,15 +77,15 @@ func (fake *FakeBuildsDB) GetBuildArgsForCall(i int) int {
 	return fake.getBuildArgsForCall[i].buildID
 }
 
-func (fake *FakeBuildsDB) GetBuildReturns(result1 builds.Build, result2 error) {
+func (fake *FakeBuildsDB) GetBuildReturns(result1 db.Build, result2 error) {
 	fake.GetBuildStub = nil
 	fake.getBuildReturns = struct {
-		result1 builds.Build
+		result1 db.Build
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeBuildsDB) GetAllBuilds() ([]builds.Build, error) {
+func (fake *FakeBuildsDB) GetAllBuilds() ([]db.Build, error) {
 	fake.getAllBuildsMutex.Lock()
 	fake.getAllBuildsArgsForCall = append(fake.getAllBuildsArgsForCall, struct{}{})
 	fake.getAllBuildsMutex.Unlock()
@@ -103,15 +102,15 @@ func (fake *FakeBuildsDB) GetAllBuildsCallCount() int {
 	return len(fake.getAllBuildsArgsForCall)
 }
 
-func (fake *FakeBuildsDB) GetAllBuildsReturns(result1 []builds.Build, result2 error) {
+func (fake *FakeBuildsDB) GetAllBuildsReturns(result1 []db.Build, result2 error) {
 	fake.GetAllBuildsStub = nil
 	fake.getAllBuildsReturns = struct {
-		result1 []builds.Build
+		result1 []db.Build
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeBuildsDB) CreateOneOffBuild() (builds.Build, error) {
+func (fake *FakeBuildsDB) CreateOneOffBuild() (db.Build, error) {
 	fake.createOneOffBuildMutex.Lock()
 	fake.createOneOffBuildArgsForCall = append(fake.createOneOffBuildArgsForCall, struct{}{})
 	fake.createOneOffBuildMutex.Unlock()
@@ -128,19 +127,19 @@ func (fake *FakeBuildsDB) CreateOneOffBuildCallCount() int {
 	return len(fake.createOneOffBuildArgsForCall)
 }
 
-func (fake *FakeBuildsDB) CreateOneOffBuildReturns(result1 builds.Build, result2 error) {
+func (fake *FakeBuildsDB) CreateOneOffBuildReturns(result1 db.Build, result2 error) {
 	fake.CreateOneOffBuildStub = nil
 	fake.createOneOffBuildReturns = struct {
-		result1 builds.Build
+		result1 db.Build
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeBuildsDB) SaveBuildStatus(buildID int, status builds.Status) error {
+func (fake *FakeBuildsDB) SaveBuildStatus(buildID int, status db.Status) error {
 	fake.saveBuildStatusMutex.Lock()
 	fake.saveBuildStatusArgsForCall = append(fake.saveBuildStatusArgsForCall, struct {
 		buildID int
-		status  builds.Status
+		status  db.Status
 	}{buildID, status})
 	fake.saveBuildStatusMutex.Unlock()
 	if fake.SaveBuildStatusStub != nil {
@@ -156,7 +155,7 @@ func (fake *FakeBuildsDB) SaveBuildStatusCallCount() int {
 	return len(fake.saveBuildStatusArgsForCall)
 }
 
-func (fake *FakeBuildsDB) SaveBuildStatusArgsForCall(i int) (int, builds.Status) {
+func (fake *FakeBuildsDB) SaveBuildStatusArgsForCall(i int) (int, db.Status) {
 	fake.saveBuildStatusMutex.RLock()
 	defer fake.saveBuildStatusMutex.RUnlock()
 	return fake.saveBuildStatusArgsForCall[i].buildID, fake.saveBuildStatusArgsForCall[i].status

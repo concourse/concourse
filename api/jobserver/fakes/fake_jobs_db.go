@@ -5,51 +5,51 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/api/jobserver"
-	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/db"
 )
 
 type FakeJobsDB struct {
-	GetAllJobBuildsStub        func(job string) ([]builds.Build, error)
+	GetAllJobBuildsStub        func(job string) ([]db.Build, error)
 	getAllJobBuildsMutex       sync.RWMutex
 	getAllJobBuildsArgsForCall []struct {
 		job string
 	}
 	getAllJobBuildsReturns struct {
-		result1 []builds.Build
+		result1 []db.Build
 		result2 error
 	}
-	GetCurrentBuildStub        func(job string) (builds.Build, error)
+	GetCurrentBuildStub        func(job string) (db.Build, error)
 	getCurrentBuildMutex       sync.RWMutex
 	getCurrentBuildArgsForCall []struct {
 		job string
 	}
 	getCurrentBuildReturns struct {
-		result1 builds.Build
+		result1 db.Build
 		result2 error
 	}
-	GetJobBuildStub        func(job string, build string) (builds.Build, error)
+	GetJobBuildStub        func(job string, build string) (db.Build, error)
 	getJobBuildMutex       sync.RWMutex
 	getJobBuildArgsForCall []struct {
 		job   string
 		build string
 	}
 	getJobBuildReturns struct {
-		result1 builds.Build
+		result1 db.Build
 		result2 error
 	}
-	GetJobFinishedAndNextBuildStub        func(job string) (*builds.Build, *builds.Build, error)
+	GetJobFinishedAndNextBuildStub        func(job string) (*db.Build, *db.Build, error)
 	getJobFinishedAndNextBuildMutex       sync.RWMutex
 	getJobFinishedAndNextBuildArgsForCall []struct {
 		job string
 	}
 	getJobFinishedAndNextBuildReturns struct {
-		result1 *builds.Build
-		result2 *builds.Build
+		result1 *db.Build
+		result2 *db.Build
 		result3 error
 	}
 }
 
-func (fake *FakeJobsDB) GetAllJobBuilds(job string) ([]builds.Build, error) {
+func (fake *FakeJobsDB) GetAllJobBuilds(job string) ([]db.Build, error) {
 	fake.getAllJobBuildsMutex.Lock()
 	fake.getAllJobBuildsArgsForCall = append(fake.getAllJobBuildsArgsForCall, struct {
 		job string
@@ -74,15 +74,15 @@ func (fake *FakeJobsDB) GetAllJobBuildsArgsForCall(i int) string {
 	return fake.getAllJobBuildsArgsForCall[i].job
 }
 
-func (fake *FakeJobsDB) GetAllJobBuildsReturns(result1 []builds.Build, result2 error) {
+func (fake *FakeJobsDB) GetAllJobBuildsReturns(result1 []db.Build, result2 error) {
 	fake.GetAllJobBuildsStub = nil
 	fake.getAllJobBuildsReturns = struct {
-		result1 []builds.Build
+		result1 []db.Build
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeJobsDB) GetCurrentBuild(job string) (builds.Build, error) {
+func (fake *FakeJobsDB) GetCurrentBuild(job string) (db.Build, error) {
 	fake.getCurrentBuildMutex.Lock()
 	fake.getCurrentBuildArgsForCall = append(fake.getCurrentBuildArgsForCall, struct {
 		job string
@@ -107,15 +107,15 @@ func (fake *FakeJobsDB) GetCurrentBuildArgsForCall(i int) string {
 	return fake.getCurrentBuildArgsForCall[i].job
 }
 
-func (fake *FakeJobsDB) GetCurrentBuildReturns(result1 builds.Build, result2 error) {
+func (fake *FakeJobsDB) GetCurrentBuildReturns(result1 db.Build, result2 error) {
 	fake.GetCurrentBuildStub = nil
 	fake.getCurrentBuildReturns = struct {
-		result1 builds.Build
+		result1 db.Build
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeJobsDB) GetJobBuild(job string, build string) (builds.Build, error) {
+func (fake *FakeJobsDB) GetJobBuild(job string, build string) (db.Build, error) {
 	fake.getJobBuildMutex.Lock()
 	fake.getJobBuildArgsForCall = append(fake.getJobBuildArgsForCall, struct {
 		job   string
@@ -141,15 +141,15 @@ func (fake *FakeJobsDB) GetJobBuildArgsForCall(i int) (string, string) {
 	return fake.getJobBuildArgsForCall[i].job, fake.getJobBuildArgsForCall[i].build
 }
 
-func (fake *FakeJobsDB) GetJobBuildReturns(result1 builds.Build, result2 error) {
+func (fake *FakeJobsDB) GetJobBuildReturns(result1 db.Build, result2 error) {
 	fake.GetJobBuildStub = nil
 	fake.getJobBuildReturns = struct {
-		result1 builds.Build
+		result1 db.Build
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeJobsDB) GetJobFinishedAndNextBuild(job string) (*builds.Build, *builds.Build, error) {
+func (fake *FakeJobsDB) GetJobFinishedAndNextBuild(job string) (*db.Build, *db.Build, error) {
 	fake.getJobFinishedAndNextBuildMutex.Lock()
 	fake.getJobFinishedAndNextBuildArgsForCall = append(fake.getJobFinishedAndNextBuildArgsForCall, struct {
 		job string
@@ -174,11 +174,11 @@ func (fake *FakeJobsDB) GetJobFinishedAndNextBuildArgsForCall(i int) string {
 	return fake.getJobFinishedAndNextBuildArgsForCall[i].job
 }
 
-func (fake *FakeJobsDB) GetJobFinishedAndNextBuildReturns(result1 *builds.Build, result2 *builds.Build, result3 error) {
+func (fake *FakeJobsDB) GetJobFinishedAndNextBuildReturns(result1 *db.Build, result2 *db.Build, result3 error) {
 	fake.GetJobFinishedAndNextBuildStub = nil
 	fake.getJobFinishedAndNextBuildReturns = struct {
-		result1 *builds.Build
-		result2 *builds.Build
+		result1 *db.Build
+		result2 *db.Build
 		result3 error
 	}{result1, result2, result3}
 }

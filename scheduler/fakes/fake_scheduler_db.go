@@ -4,8 +4,8 @@ package fakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/scheduler"
 )
 
@@ -20,50 +20,50 @@ type FakeSchedulerDB struct {
 		result1 bool
 		result2 error
 	}
-	GetLatestInputVersionsStub        func([]config.Input) (builds.VersionedResources, error)
+	GetLatestInputVersionsStub        func([]config.Input) (db.VersionedResources, error)
 	getLatestInputVersionsMutex       sync.RWMutex
 	getLatestInputVersionsArgsForCall []struct {
 		arg1 []config.Input
 	}
 	getLatestInputVersionsReturns struct {
-		result1 builds.VersionedResources
+		result1 db.VersionedResources
 		result2 error
 	}
-	CreateJobBuildWithInputsStub        func(job string, inputs builds.VersionedResources) (builds.Build, error)
+	CreateJobBuildWithInputsStub        func(job string, inputs db.VersionedResources) (db.Build, error)
 	createJobBuildWithInputsMutex       sync.RWMutex
 	createJobBuildWithInputsArgsForCall []struct {
 		job    string
-		inputs builds.VersionedResources
+		inputs db.VersionedResources
 	}
 	createJobBuildWithInputsReturns struct {
-		result1 builds.Build
+		result1 db.Build
 		result2 error
 	}
-	GetJobBuildForInputsStub        func(job string, inputs builds.VersionedResources) (builds.Build, error)
+	GetJobBuildForInputsStub        func(job string, inputs db.VersionedResources) (db.Build, error)
 	getJobBuildForInputsMutex       sync.RWMutex
 	getJobBuildForInputsArgsForCall []struct {
 		job    string
-		inputs builds.VersionedResources
+		inputs db.VersionedResources
 	}
 	getJobBuildForInputsReturns struct {
-		result1 builds.Build
+		result1 db.Build
 		result2 error
 	}
-	GetNextPendingBuildStub        func(job string) (builds.Build, builds.VersionedResources, error)
+	GetNextPendingBuildStub        func(job string) (db.Build, db.VersionedResources, error)
 	getNextPendingBuildMutex       sync.RWMutex
 	getNextPendingBuildArgsForCall []struct {
 		job string
 	}
 	getNextPendingBuildReturns struct {
-		result1 builds.Build
-		result2 builds.VersionedResources
+		result1 db.Build
+		result2 db.VersionedResources
 		result3 error
 	}
-	GetAllStartedBuildsStub        func() ([]builds.Build, error)
+	GetAllStartedBuildsStub        func() ([]db.Build, error)
 	getAllStartedBuildsMutex       sync.RWMutex
 	getAllStartedBuildsArgsForCall []struct{}
-	getAllStartedBuildsReturns struct {
-		result1 []builds.Build
+	getAllStartedBuildsReturns     struct {
+		result1 []db.Build
 		result2 error
 	}
 }
@@ -102,7 +102,7 @@ func (fake *FakeSchedulerDB) ScheduleBuildReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeSchedulerDB) GetLatestInputVersions(arg1 []config.Input) (builds.VersionedResources, error) {
+func (fake *FakeSchedulerDB) GetLatestInputVersions(arg1 []config.Input) (db.VersionedResources, error) {
 	fake.getLatestInputVersionsMutex.Lock()
 	fake.getLatestInputVersionsArgsForCall = append(fake.getLatestInputVersionsArgsForCall, struct {
 		arg1 []config.Input
@@ -127,19 +127,19 @@ func (fake *FakeSchedulerDB) GetLatestInputVersionsArgsForCall(i int) []config.I
 	return fake.getLatestInputVersionsArgsForCall[i].arg1
 }
 
-func (fake *FakeSchedulerDB) GetLatestInputVersionsReturns(result1 builds.VersionedResources, result2 error) {
+func (fake *FakeSchedulerDB) GetLatestInputVersionsReturns(result1 db.VersionedResources, result2 error) {
 	fake.GetLatestInputVersionsStub = nil
 	fake.getLatestInputVersionsReturns = struct {
-		result1 builds.VersionedResources
+		result1 db.VersionedResources
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeSchedulerDB) CreateJobBuildWithInputs(job string, inputs builds.VersionedResources) (builds.Build, error) {
+func (fake *FakeSchedulerDB) CreateJobBuildWithInputs(job string, inputs db.VersionedResources) (db.Build, error) {
 	fake.createJobBuildWithInputsMutex.Lock()
 	fake.createJobBuildWithInputsArgsForCall = append(fake.createJobBuildWithInputsArgsForCall, struct {
 		job    string
-		inputs builds.VersionedResources
+		inputs db.VersionedResources
 	}{job, inputs})
 	fake.createJobBuildWithInputsMutex.Unlock()
 	if fake.CreateJobBuildWithInputsStub != nil {
@@ -155,25 +155,25 @@ func (fake *FakeSchedulerDB) CreateJobBuildWithInputsCallCount() int {
 	return len(fake.createJobBuildWithInputsArgsForCall)
 }
 
-func (fake *FakeSchedulerDB) CreateJobBuildWithInputsArgsForCall(i int) (string, builds.VersionedResources) {
+func (fake *FakeSchedulerDB) CreateJobBuildWithInputsArgsForCall(i int) (string, db.VersionedResources) {
 	fake.createJobBuildWithInputsMutex.RLock()
 	defer fake.createJobBuildWithInputsMutex.RUnlock()
 	return fake.createJobBuildWithInputsArgsForCall[i].job, fake.createJobBuildWithInputsArgsForCall[i].inputs
 }
 
-func (fake *FakeSchedulerDB) CreateJobBuildWithInputsReturns(result1 builds.Build, result2 error) {
+func (fake *FakeSchedulerDB) CreateJobBuildWithInputsReturns(result1 db.Build, result2 error) {
 	fake.CreateJobBuildWithInputsStub = nil
 	fake.createJobBuildWithInputsReturns = struct {
-		result1 builds.Build
+		result1 db.Build
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeSchedulerDB) GetJobBuildForInputs(job string, inputs builds.VersionedResources) (builds.Build, error) {
+func (fake *FakeSchedulerDB) GetJobBuildForInputs(job string, inputs db.VersionedResources) (db.Build, error) {
 	fake.getJobBuildForInputsMutex.Lock()
 	fake.getJobBuildForInputsArgsForCall = append(fake.getJobBuildForInputsArgsForCall, struct {
 		job    string
-		inputs builds.VersionedResources
+		inputs db.VersionedResources
 	}{job, inputs})
 	fake.getJobBuildForInputsMutex.Unlock()
 	if fake.GetJobBuildForInputsStub != nil {
@@ -189,21 +189,21 @@ func (fake *FakeSchedulerDB) GetJobBuildForInputsCallCount() int {
 	return len(fake.getJobBuildForInputsArgsForCall)
 }
 
-func (fake *FakeSchedulerDB) GetJobBuildForInputsArgsForCall(i int) (string, builds.VersionedResources) {
+func (fake *FakeSchedulerDB) GetJobBuildForInputsArgsForCall(i int) (string, db.VersionedResources) {
 	fake.getJobBuildForInputsMutex.RLock()
 	defer fake.getJobBuildForInputsMutex.RUnlock()
 	return fake.getJobBuildForInputsArgsForCall[i].job, fake.getJobBuildForInputsArgsForCall[i].inputs
 }
 
-func (fake *FakeSchedulerDB) GetJobBuildForInputsReturns(result1 builds.Build, result2 error) {
+func (fake *FakeSchedulerDB) GetJobBuildForInputsReturns(result1 db.Build, result2 error) {
 	fake.GetJobBuildForInputsStub = nil
 	fake.getJobBuildForInputsReturns = struct {
-		result1 builds.Build
+		result1 db.Build
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeSchedulerDB) GetNextPendingBuild(job string) (builds.Build, builds.VersionedResources, error) {
+func (fake *FakeSchedulerDB) GetNextPendingBuild(job string) (db.Build, db.VersionedResources, error) {
 	fake.getNextPendingBuildMutex.Lock()
 	fake.getNextPendingBuildArgsForCall = append(fake.getNextPendingBuildArgsForCall, struct {
 		job string
@@ -228,16 +228,16 @@ func (fake *FakeSchedulerDB) GetNextPendingBuildArgsForCall(i int) string {
 	return fake.getNextPendingBuildArgsForCall[i].job
 }
 
-func (fake *FakeSchedulerDB) GetNextPendingBuildReturns(result1 builds.Build, result2 builds.VersionedResources, result3 error) {
+func (fake *FakeSchedulerDB) GetNextPendingBuildReturns(result1 db.Build, result2 db.VersionedResources, result3 error) {
 	fake.GetNextPendingBuildStub = nil
 	fake.getNextPendingBuildReturns = struct {
-		result1 builds.Build
-		result2 builds.VersionedResources
+		result1 db.Build
+		result2 db.VersionedResources
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeSchedulerDB) GetAllStartedBuilds() ([]builds.Build, error) {
+func (fake *FakeSchedulerDB) GetAllStartedBuilds() ([]db.Build, error) {
 	fake.getAllStartedBuildsMutex.Lock()
 	fake.getAllStartedBuildsArgsForCall = append(fake.getAllStartedBuildsArgsForCall, struct{}{})
 	fake.getAllStartedBuildsMutex.Unlock()
@@ -254,10 +254,10 @@ func (fake *FakeSchedulerDB) GetAllStartedBuildsCallCount() int {
 	return len(fake.getAllStartedBuildsArgsForCall)
 }
 
-func (fake *FakeSchedulerDB) GetAllStartedBuildsReturns(result1 []builds.Build, result2 error) {
+func (fake *FakeSchedulerDB) GetAllStartedBuildsReturns(result1 []db.Build, result2 error) {
 	fake.GetAllStartedBuildsStub = nil
 	fake.getAllStartedBuildsReturns = struct {
-		result1 []builds.Build
+		result1 []db.Build
 		result2 error
 	}{result1, result2}
 }

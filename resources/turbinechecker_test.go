@@ -3,8 +3,8 @@ package resources_test
 import (
 	"net/http"
 
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/resources"
 	"github.com/concourse/turbine"
 	"github.com/gorilla/websocket"
@@ -98,9 +98,9 @@ var _ = Describe("TurbineChecker", func() {
 		})
 
 		It("returns each detected version", func() {
-			Ω(checker.CheckResource(resource, nil)).Should(Equal([]builds.Version{
-				builds.Version{"ver": "abc"},
-				builds.Version{"ver": "def"},
+			Ω(checker.CheckResource(resource, nil)).Should(Equal([]db.Version{
+				db.Version{"ver": "abc"},
+				db.Version{"ver": "def"},
 			}))
 
 			Ω(checkedInputs).Should(Receive(Equal(turbine.Input{
@@ -108,8 +108,8 @@ var _ = Describe("TurbineChecker", func() {
 				Source: turbine.Source{"uri": "http://example.com"},
 			})))
 
-			Ω(checker.CheckResource(resource, builds.Version{"ver": "def"})).Should(Equal([]builds.Version{
-				builds.Version{"ver": "ghi"},
+			Ω(checker.CheckResource(resource, db.Version{"ver": "def"})).Should(Equal([]db.Version{
+				db.Version{"ver": "ghi"},
 			}))
 
 			Ω(checkedInputs).Should(Receive(Equal(turbine.Input{

@@ -4,19 +4,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
 
 	"github.com/pivotal-golang/lager"
 )
 
 type VersionDB interface {
-	SaveVersionedResource(builds.VersionedResource) error
-	GetLatestVersionedResource(string) (builds.VersionedResource, error)
+	SaveVersionedResource(db.VersionedResource) error
+	GetLatestVersionedResource(string) (db.VersionedResource, error)
 }
 
 type ResourceChecker interface {
-	CheckResource(config.Resource, builds.Version) ([]builds.Version, error)
+	CheckResource(config.Resource, db.Version) ([]db.Version, error)
 }
 
 type Radar struct {
@@ -69,7 +69,7 @@ func (radar *Radar) Scan(checker ResourceChecker, resource config.Resource) {
 			case <-ticker.C:
 				radar.setChecking(resource.Name)
 
-				var from builds.Version
+				var from db.Version
 
 				if vr, err := radar.tracker.GetLatestVersionedResource(resource.Name); err == nil {
 					from = vr.Version
@@ -102,10 +102,10 @@ func (radar *Radar) Scan(checker ResourceChecker, resource config.Resource) {
 				})
 
 				for _, version := range newVersions {
-					err = radar.tracker.SaveVersionedResource(builds.VersionedResource{
+					err = radar.tracker.SaveVersionedResource(db.VersionedResource{
 						Name:    resource.Name,
 						Type:    resource.Type,
-						Source:  builds.Source(resource.Source),
+						Source:  db.Source(resource.Source),
 						Version: version,
 					})
 					if err != nil {

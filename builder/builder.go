@@ -9,7 +9,7 @@ import (
 
 	"github.com/tedsuo/rata"
 
-	"github.com/concourse/atc/builds"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/turbine"
 )
 
@@ -20,7 +20,7 @@ type BuilderDB interface {
 }
 
 type Builder interface {
-	Build(builds.Build, turbine.Build) error
+	Build(db.Build, turbine.Build) error
 }
 
 type builder struct {
@@ -48,7 +48,7 @@ func NewBuilder(db BuilderDB, turbine *rata.RequestGenerator) Builder {
 	}
 }
 
-func (builder *builder) Build(build builds.Build, turbineBuild turbine.Build) error {
+func (builder *builder) Build(build db.Build, turbineBuild turbine.Build) error {
 	req := new(bytes.Buffer)
 
 	err := json.NewEncoder(req).Encode(turbineBuild)
