@@ -5,6 +5,7 @@ import (
 
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
+	dbfakes "github.com/concourse/atc/db/fakes"
 
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/fakes"
@@ -22,19 +23,26 @@ var _ = Describe("Radar", func() {
 
 	var resource config.Resource
 
+	var locker *fakes.FakeLocker
+	var lock *dbfakes.FakeLock
+
 	BeforeEach(func() {
 		logger := lagertest.NewTestLogger("radar")
 		checker = new(fakes.FakeResourceChecker)
 		tracker = new(fakes.FakeVersionDB)
 		interval = 100 * time.Millisecond
+		locker = new(fakes.FakeLocker)
 
-		radar = NewRadar(logger, tracker, interval)
+		radar = NewRadar(logger, tracker, interval, locker)
 
 		resource = config.Resource{
 			Name:   "some-resource",
 			Type:   "git",
 			Source: config.Source{"uri": "http://example.com"},
 		}
+
+		lock = new(dbfakes.FakeLock)
+		locker.AcquireLockReturns(lock, nil)
 	})
 
 	JustBeforeEach(func() {
@@ -65,6 +73,17 @@ var _ = Describe("Radar", func() {
 			Eventually(times).Should(Receive(&time2))
 
 			Ω(time2.Sub(time1)).Should(BeNumerically("~", interval, interval/4))
+		})
+
+		It("grabs a lock before checking, releases after", func() {
+			Eventually(times).Should(Receive())
+
+			Ω(locker.AcquireLockCallCount()).Should(Equal(1))
+
+			lockedInputs := locker.AcquireLockArgsForCall(0)
+			Ω(lockedInputs).Should(Equal([]string{"resource: some-resource"}))
+
+			Ω(lock.ReleaseCallCount()).Should(Equal(1))
 		})
 
 		Context("when there is no current version", func() {

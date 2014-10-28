@@ -12,7 +12,16 @@ type FakeLocker struct {
 	AcquireResourceCheckingLockStub        func() (db.Lock, error)
 	acquireResourceCheckingLockMutex       sync.RWMutex
 	acquireResourceCheckingLockArgsForCall []struct{}
-	acquireResourceCheckingLockReturns struct {
+	acquireResourceCheckingLockReturns     struct {
+		result1 db.Lock
+		result2 error
+	}
+	AcquireLockStub        func(names ...string) (db.Lock, error)
+	acquireLockMutex       sync.RWMutex
+	acquireLockArgsForCall []struct {
+		names []string
+	}
+	acquireLockReturns struct {
 		result1 db.Lock
 		result2 error
 	}
@@ -38,6 +47,39 @@ func (fake *FakeLocker) AcquireResourceCheckingLockCallCount() int {
 func (fake *FakeLocker) AcquireResourceCheckingLockReturns(result1 db.Lock, result2 error) {
 	fake.AcquireResourceCheckingLockStub = nil
 	fake.acquireResourceCheckingLockReturns = struct {
+		result1 db.Lock
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeLocker) AcquireLock(names ...string) (db.Lock, error) {
+	fake.acquireLockMutex.Lock()
+	fake.acquireLockArgsForCall = append(fake.acquireLockArgsForCall, struct {
+		names []string
+	}{names})
+	fake.acquireLockMutex.Unlock()
+	if fake.AcquireLockStub != nil {
+		return fake.AcquireLockStub(names...)
+	} else {
+		return fake.acquireLockReturns.result1, fake.acquireLockReturns.result2
+	}
+}
+
+func (fake *FakeLocker) AcquireLockCallCount() int {
+	fake.acquireLockMutex.RLock()
+	defer fake.acquireLockMutex.RUnlock()
+	return len(fake.acquireLockArgsForCall)
+}
+
+func (fake *FakeLocker) AcquireLockArgsForCall(i int) []string {
+	fake.acquireLockMutex.RLock()
+	defer fake.acquireLockMutex.RUnlock()
+	return fake.acquireLockArgsForCall[i].names
+}
+
+func (fake *FakeLocker) AcquireLockReturns(result1 db.Lock, result2 error) {
+	fake.AcquireLockStub = nil
+	fake.acquireLockReturns = struct {
 		result1 db.Lock
 		result2 error
 	}{result1, result2}

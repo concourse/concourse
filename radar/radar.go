@@ -1,6 +1,7 @@
 package radar
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -25,6 +26,8 @@ type Radar struct {
 	tracker  VersionDB
 	interval time.Duration
 
+	locker Locker
+
 	stop     chan struct{}
 	scanning *sync.WaitGroup
 
@@ -37,12 +40,15 @@ func NewRadar(
 	logger lager.Logger,
 	tracker VersionDB,
 	interval time.Duration,
+	locker Locker,
 ) *Radar {
 	return &Radar{
 		logger: logger,
 
 		tracker:  tracker,
 		interval: interval,
+
+		locker: locker,
 
 		stop:     make(chan struct{}),
 		scanning: new(sync.WaitGroup),
@@ -70,16 +76,23 @@ func (radar *Radar) Scan(checker ResourceChecker, resource config.Resource) {
 				radar.setChecking(resource.Name)
 
 				var from db.Version
-
-				if vr, err := radar.tracker.GetLatestVersionedResource(resource.Name); err == nil {
-					from = vr.Version
-				}
-
 				log := radar.logger.Session("radar", lager.Data{
 					"type":     resource.Type,
 					"resource": resource.Name,
 					"from":     from,
 				})
+
+				lock, err := radar.locker.AcquireLock(fmt.Sprintf("resource: %s", resource.Name))
+				if err != nil {
+					log.Error("failed-to-acquire-inputs-lock", err, lager.Data{
+						"resource_name": resource.Name,
+					})
+					break
+				}
+				if vr, err := radar.tracker.GetLatestVersionedResource(resource.Name); err == nil {
+					from = vr.Version
+				}
+				lock.Release()
 
 				log.Debug("check")
 
@@ -101,6 +114,7 @@ func (radar *Radar) Scan(checker ResourceChecker, resource config.Resource) {
 					"total":    len(newVersions),
 				})
 
+				lock, err := radar.locker.AcquireLock(fmt.Sprintf("resource: %s", resource.Name))
 				for _, version := range newVersions {
 					err = radar.tracker.SaveVersionedResource(db.VersionedResource{
 						Name:    resource.Name,

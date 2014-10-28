@@ -215,10 +215,11 @@ func main() {
 		Factory: &factory.BuildFactory{Resources: conf.Resources},
 		Builder: builder,
 		Tracker: tracker,
+		Locker:  db,
 		Logger:  logger.Session("scheduler"),
 	}
 
-	radar := rdr.NewRadar(logger, db, *checkInterval)
+	radar := rdr.NewRadar(logger, db, *checkInterval, db)
 
 	var webValidator auth.Validator
 
