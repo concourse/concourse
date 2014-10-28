@@ -1,6 +1,8 @@
 package scheduler
 
 import (
+	"fmt"
+
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc/builder"
@@ -8,6 +10,10 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/turbine"
 )
+
+type SchedulerLocker interface {
+	AcquireLock(names ...string) (db.Lock, error)
+}
 
 type SchedulerDB interface {
 	ScheduleBuild(buildID int, serial bool) (bool, error)
@@ -31,6 +37,7 @@ type BuildTracker interface {
 
 type Scheduler struct {
 	Logger  lager.Logger
+	Locker  SchedulerLocker
 	DB      SchedulerDB
 	Factory BuildFactory
 	Builder builder.Builder
@@ -74,7 +81,20 @@ func (s *Scheduler) BuildLatestInputs(job config.Job) error {
 		return nil
 	}
 
+	lockNames := []string{}
+	for _, input := range checkInputs {
+		lockNames = append(lockNames, fmt.Sprintf("resource: %s", input.Name))
+	}
+
+	lock, err := s.Locker.AcquireLock(lockNames...)
+	if err != nil {
+		buildLog.Error("failed-to-acquire-inputs-lock", err, lager.Data{
+			"inputs": inputs,
+		})
+		return err
+	}
 	_, err = s.DB.GetJobBuildForInputs(job.Name, checkInputs)
+	lock.Release()
 	if err == nil {
 		return nil
 	}

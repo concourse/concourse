@@ -983,6 +983,42 @@ func (db *sqldb) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 	return hs, nil
 }
 
+func (db *sqldb) AcquireLock(names ...string) (Lock, error) {
+	params := []interface{}{}
+	refs := []string{}
+	for i, name := range names {
+		params = append(params, name)
+		refs = append(refs, fmt.Sprintf("$%d", i+1))
+		_, err := db.conn.Exec(`
+		INSERT INTO locks (name)
+		SELECT $1
+		WHERE NOT EXISTS (
+			SELECT 1
+			FROM locks
+			WHERE name = $1
+		)
+		`, name)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+	_, err = tx.Exec(`
+	SELECT 1 FROM locks
+	WHERE name IN (`+strings.Join(refs, ",")+`)
+	FOR UPDATE
+	`, params...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &txLock{tx}, nil
+}
+
 func (db *sqldb) AcquireResourceCheckingLock() (Lock, error) {
 	tx, err := db.conn.Begin()
 	if err != nil {
