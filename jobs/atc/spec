@@ -1,6 +1,11 @@
 ---
 name: atc
 
+description: |
+  ATC (Air Traffic Controller) provides UI and API access.
+  It is responsible for scheduling builds. To configure the pipeline specify
+  the `atc.pipeline` property.
+
 templates:
   drain: bin/drain
   atc_ctl.erb: bin/atc_ctl
@@ -42,6 +47,20 @@ properties:
   atc.pipeline:
     description: "pipeline configuration containing jobs and resources"
     default: {}
+    example:
+      resources:
+        - name: concourse
+          type: git
+          source:
+            uri: https://github.com/concource/concourse
+
+      jobs:
+        - name: dummy
+          config:
+            image: docker:///busybox
+            run:
+              path: echo
+              args: [Hello, world!]
 
   atc.default_check_interval:
     description: "how often to check for new versions of resources. keep rate limiting in mind."

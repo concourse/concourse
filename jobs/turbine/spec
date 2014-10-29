@@ -1,6 +1,11 @@
 ---
 name: turbine
 
+description: |
+  Turbine is responsible for accepting builds from the ATC and executing them
+  concurrently. By increasing the number of Turbine instances, more builds can
+  run in parallel.
+
 templates:
   drain: bin/drain
   turbine_ctl.erb: bin/turbine_ctl
