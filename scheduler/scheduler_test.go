@@ -28,7 +28,7 @@ var _ = Describe("Scheduler", func() {
 
 		job config.Job
 
-		lock *dbfakes.FakeLock
+		readLock *dbfakes.FakeLock
 
 		scheduler *Scheduler
 	)
@@ -74,8 +74,8 @@ var _ = Describe("Scheduler", func() {
 			},
 		}
 
-		lock = new(dbfakes.FakeLock)
-		locker.AcquireLockReturns(lock, nil)
+		readLock = new(dbfakes.FakeLock)
+		locker.AcquireReadLockReturns(readLock, nil)
 	})
 
 	Describe("TrackInFlightBuilds", func() {
@@ -159,11 +159,11 @@ var _ = Describe("Scheduler", func() {
 				err := scheduler.BuildLatestInputs(job)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(locker.AcquireLockCallCount()).Should(Equal(1))
+				Ω(locker.AcquireReadLockCallCount()).Should(Equal(1))
 
-				lockedInputs := locker.AcquireLockArgsForCall(0)
+				lockedInputs := locker.AcquireReadLockArgsForCall(0)
 				Ω(lockedInputs).Should(Equal([]string{"resource: some-resource", "resource: some-other-resource"}))
-				Ω(lock.ReleaseCallCount()).Should(Equal(1))
+				Ω(readLock.ReleaseCallCount()).Should(Equal(1))
 			})
 
 			It("checks if they are already used for a build", func() {

@@ -82,7 +82,7 @@ func (radar *Radar) Scan(checker ResourceChecker, resource config.Resource) {
 					"from":     from,
 				})
 
-				lock, err := radar.locker.AcquireLock(fmt.Sprintf("resource: %s", resource.Name))
+				lock, err := radar.locker.AcquireReadLock([]string{fmt.Sprintf("resource: %s", resource.Name)})
 				if err != nil {
 					log.Error("failed-to-acquire-inputs-lock", err, lager.Data{
 						"resource_name": resource.Name,
@@ -114,7 +114,13 @@ func (radar *Radar) Scan(checker ResourceChecker, resource config.Resource) {
 					"total":    len(newVersions),
 				})
 
-				lock, err := radar.locker.AcquireLock(fmt.Sprintf("resource: %s", resource.Name))
+				lock, err = radar.locker.AcquireWriteLock([]string{fmt.Sprintf("resource: %s", resource.Name)})
+				if err != nil {
+					log.Error("failed-to-acquire-inputs-lock", err, lager.Data{
+						"resource_name": resource.Name,
+					})
+					break
+				}
 				for _, version := range newVersions {
 					err = radar.tracker.SaveVersionedResource(db.VersionedResource{
 						Name:    resource.Name,
@@ -128,6 +134,7 @@ func (radar *Radar) Scan(checker ResourceChecker, resource config.Resource) {
 						})
 					}
 				}
+				lock.Release()
 			}
 		}
 	}()

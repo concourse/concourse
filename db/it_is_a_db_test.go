@@ -478,7 +478,7 @@ func itIsADB() {
 		})
 
 		It("can be done generically with a unique name", func() {
-			lock, err := db.AcquireLock("a-name")
+			lock, err := db.AcquireWriteLock([]string{"a-name"})
 			Ω(err).ShouldNot(HaveOccurred())
 
 			secondLockCh := make(chan Lock, 1)
@@ -486,7 +486,7 @@ func itIsADB() {
 			go func() {
 				defer GinkgoRecover()
 
-				secondLock, err := db.AcquireLock("a-name")
+				secondLock, err := db.AcquireWriteLock([]string{"a-name"})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				secondLockCh <- secondLock
@@ -504,8 +504,87 @@ func itIsADB() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("can be done multiple times if used different names", func() {
-			lock, err := db.AcquireLock("name-1")
+		It("does not let anyone write if someone is reading", func() {
+			lock, err := db.AcquireReadLock([]string{"a-name"})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			secondLockCh := make(chan Lock, 1)
+
+			go func() {
+				defer GinkgoRecover()
+
+				secondLock, err := db.AcquireWriteLock([]string{"a-name"})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				secondLockCh <- secondLock
+			}()
+
+			Consistently(secondLockCh).ShouldNot(Receive())
+
+			err = lock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			var secondLock Lock
+			Eventually(secondLockCh).Should(Receive(&secondLock))
+
+			err = secondLock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("does not let anyone read if someone is writing", func() {
+			lock, err := db.AcquireWriteLock([]string{"a-name"})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			secondLockCh := make(chan Lock, 1)
+
+			go func() {
+				defer GinkgoRecover()
+
+				secondLock, err := db.AcquireReadLock([]string{"a-name"})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				secondLockCh <- secondLock
+			}()
+
+			Consistently(secondLockCh).ShouldNot(Receive())
+
+			err = lock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			var secondLock Lock
+			Eventually(secondLockCh).Should(Receive(&secondLock))
+
+			err = secondLock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("lets many reads simultaneously", func() {
+			lock, err := db.AcquireReadLock([]string{"a-name"})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			secondLockCh := make(chan Lock, 1)
+
+			go func() {
+				defer GinkgoRecover()
+
+				secondLock, err := db.AcquireReadLock([]string{"a-name"})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				secondLockCh <- secondLock
+			}()
+
+			var secondLock Lock
+			Eventually(secondLockCh).Should(Receive(&secondLock))
+
+			err = secondLock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = lock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("can be done multiple times if using different names", func() {
+			lock, err := db.AcquireWriteLock([]string{"name-1"})
 			Ω(err).ShouldNot(HaveOccurred())
 
 			var secondLock Lock
@@ -514,7 +593,7 @@ func itIsADB() {
 			go func() {
 				defer GinkgoRecover()
 
-				secondLock, err := db.AcquireLock("name-2")
+				secondLock, err := db.AcquireWriteLock([]string{"name-2"})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				secondLockCh <- secondLock
@@ -530,7 +609,7 @@ func itIsADB() {
 		})
 
 		It("can be done for multiple names at a time", func() {
-			lock, err := db.AcquireLock("name-1", "name-2")
+			lock, err := db.AcquireWriteLock([]string{"name-1", "name-2"})
 			Ω(err).ShouldNot(HaveOccurred())
 
 			secondLockCh := make(chan Lock, 1)
@@ -538,7 +617,7 @@ func itIsADB() {
 			go func() {
 				defer GinkgoRecover()
 
-				secondLock, err := db.AcquireLock("name-1")
+				secondLock, err := db.AcquireWriteLock([]string{"name-1"})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				secondLockCh <- secondLock
@@ -551,7 +630,7 @@ func itIsADB() {
 			go func() {
 				defer GinkgoRecover()
 
-				thirdLock, err := db.AcquireLock("name-2")
+				thirdLock, err := db.AcquireWriteLock([]string{"name-2"})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				thirdLockCh <- thirdLock

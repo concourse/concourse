@@ -11,10 +11,6 @@ import (
 	"github.com/concourse/turbine"
 )
 
-type SchedulerLocker interface {
-	AcquireLock(names ...string) (db.Lock, error)
-}
-
 type SchedulerDB interface {
 	ScheduleBuild(buildID int, serial bool) (bool, error)
 
@@ -37,7 +33,7 @@ type BuildTracker interface {
 
 type Scheduler struct {
 	Logger  lager.Logger
-	Locker  SchedulerLocker
+	Locker  Locker
 	DB      SchedulerDB
 	Factory BuildFactory
 	Builder builder.Builder
@@ -86,7 +82,7 @@ func (s *Scheduler) BuildLatestInputs(job config.Job) error {
 		lockNames = append(lockNames, fmt.Sprintf("resource: %s", input.Name))
 	}
 
-	lock, err := s.Locker.AcquireLock(lockNames...)
+	lock, err := s.Locker.AcquireReadLock(lockNames)
 	if err != nil {
 		buildLog.Error("failed-to-acquire-inputs-lock", err, lager.Data{
 			"inputs": inputs,

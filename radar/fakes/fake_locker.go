@@ -12,16 +12,25 @@ type FakeLocker struct {
 	AcquireResourceCheckingLockStub        func() (db.Lock, error)
 	acquireResourceCheckingLockMutex       sync.RWMutex
 	acquireResourceCheckingLockArgsForCall []struct{}
-	acquireResourceCheckingLockReturns     struct {
+	acquireResourceCheckingLockReturns struct {
 		result1 db.Lock
 		result2 error
 	}
-	AcquireLockStub        func(names ...string) (db.Lock, error)
-	acquireLockMutex       sync.RWMutex
-	acquireLockArgsForCall []struct {
+	AcquireReadLockStub        func(names []string) (db.Lock, error)
+	acquireReadLockMutex       sync.RWMutex
+	acquireReadLockArgsForCall []struct {
 		names []string
 	}
-	acquireLockReturns struct {
+	acquireReadLockReturns struct {
+		result1 db.Lock
+		result2 error
+	}
+	AcquireWriteLockStub        func(names []string) (db.Lock, error)
+	acquireWriteLockMutex       sync.RWMutex
+	acquireWriteLockArgsForCall []struct {
+		names []string
+	}
+	acquireWriteLockReturns struct {
 		result1 db.Lock
 		result2 error
 	}
@@ -52,34 +61,67 @@ func (fake *FakeLocker) AcquireResourceCheckingLockReturns(result1 db.Lock, resu
 	}{result1, result2}
 }
 
-func (fake *FakeLocker) AcquireLock(names ...string) (db.Lock, error) {
-	fake.acquireLockMutex.Lock()
-	fake.acquireLockArgsForCall = append(fake.acquireLockArgsForCall, struct {
+func (fake *FakeLocker) AcquireReadLock(names []string) (db.Lock, error) {
+	fake.acquireReadLockMutex.Lock()
+	fake.acquireReadLockArgsForCall = append(fake.acquireReadLockArgsForCall, struct {
 		names []string
 	}{names})
-	fake.acquireLockMutex.Unlock()
-	if fake.AcquireLockStub != nil {
-		return fake.AcquireLockStub(names...)
+	fake.acquireReadLockMutex.Unlock()
+	if fake.AcquireReadLockStub != nil {
+		return fake.AcquireReadLockStub(names)
 	} else {
-		return fake.acquireLockReturns.result1, fake.acquireLockReturns.result2
+		return fake.acquireReadLockReturns.result1, fake.acquireReadLockReturns.result2
 	}
 }
 
-func (fake *FakeLocker) AcquireLockCallCount() int {
-	fake.acquireLockMutex.RLock()
-	defer fake.acquireLockMutex.RUnlock()
-	return len(fake.acquireLockArgsForCall)
+func (fake *FakeLocker) AcquireReadLockCallCount() int {
+	fake.acquireReadLockMutex.RLock()
+	defer fake.acquireReadLockMutex.RUnlock()
+	return len(fake.acquireReadLockArgsForCall)
 }
 
-func (fake *FakeLocker) AcquireLockArgsForCall(i int) []string {
-	fake.acquireLockMutex.RLock()
-	defer fake.acquireLockMutex.RUnlock()
-	return fake.acquireLockArgsForCall[i].names
+func (fake *FakeLocker) AcquireReadLockArgsForCall(i int) []string {
+	fake.acquireReadLockMutex.RLock()
+	defer fake.acquireReadLockMutex.RUnlock()
+	return fake.acquireReadLockArgsForCall[i].names
 }
 
-func (fake *FakeLocker) AcquireLockReturns(result1 db.Lock, result2 error) {
-	fake.AcquireLockStub = nil
-	fake.acquireLockReturns = struct {
+func (fake *FakeLocker) AcquireReadLockReturns(result1 db.Lock, result2 error) {
+	fake.AcquireReadLockStub = nil
+	fake.acquireReadLockReturns = struct {
+		result1 db.Lock
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeLocker) AcquireWriteLock(names []string) (db.Lock, error) {
+	fake.acquireWriteLockMutex.Lock()
+	fake.acquireWriteLockArgsForCall = append(fake.acquireWriteLockArgsForCall, struct {
+		names []string
+	}{names})
+	fake.acquireWriteLockMutex.Unlock()
+	if fake.AcquireWriteLockStub != nil {
+		return fake.AcquireWriteLockStub(names)
+	} else {
+		return fake.acquireWriteLockReturns.result1, fake.acquireWriteLockReturns.result2
+	}
+}
+
+func (fake *FakeLocker) AcquireWriteLockCallCount() int {
+	fake.acquireWriteLockMutex.RLock()
+	defer fake.acquireWriteLockMutex.RUnlock()
+	return len(fake.acquireWriteLockArgsForCall)
+}
+
+func (fake *FakeLocker) AcquireWriteLockArgsForCall(i int) []string {
+	fake.acquireWriteLockMutex.RLock()
+	defer fake.acquireWriteLockMutex.RUnlock()
+	return fake.acquireWriteLockArgsForCall[i].names
+}
+
+func (fake *FakeLocker) AcquireWriteLockReturns(result1 db.Lock, result2 error) {
+	fake.AcquireWriteLockStub = nil
+	fake.acquireWriteLockReturns = struct {
 		result1 db.Lock
 		result2 error
 	}{result1, result2}
