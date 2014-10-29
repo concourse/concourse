@@ -11,25 +11,25 @@ packages:
 
 properties:
   consul.agent.mode:
-    description: "Mode to run the agent in. (client or server)"
+    description: "mode to run the agent in. (client or server)"
     default: client
 
   consul.agent.servers.lan:
-    description: "LAN server addresses to join on start."
+    description: "LAN server addresses to join on start"
     default: []
 
   consul.agent.servers.wan:
-    description: "WAN server addresses to join."
+    description: "WAN server addresses to join"
     default: []
 
   consul.agent.log_level:
-    description: "Agent log level."
+    description: "agent log level"
     default: info
 
   consul.agent.datacenter:
-    description: "Name of the agent's datacenter."
+    description: "name of the agent's datacenter"
     default: dc1
 
   consul.agent.services:
-    description: "List of services to configure."
+    description: "list of services to configure"
     default: []

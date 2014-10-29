@@ -23,11 +23,11 @@ packages:
 
 properties:
   turbine.listen_address:
-    description: "Listening TCP address of the server."
+    description: "listening TCP address of the server"
     default: 0.0.0.0:4637
 
   turbine.garden.network:
-    description: "Network type for the garden server connection (tcp or unix)."
+    description: "network type for the garden server connection (tcp or unix)"
     default: unix
 
   turbine.garden.address:
@@ -35,7 +35,7 @@ properties:
     default: /var/vcap/data/garden/garden.sock
 
   turbine.resource_types:
-    description: "The mapping from known resource types to their container rootfs."
+    description: "the mapping from known resource types to their container rootfs"
     default:
       archive: /var/vcap/packages/archive_resource
       docker-image: /var/vcap/packages/docker_image_resource

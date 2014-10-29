@@ -12,19 +12,19 @@ packages:
 
 properties:
   postgresql.listen_host:
-    description: "Listening host of the PostgreSQL service"
+    description: "listening host of the PostgreSQL service"
     default: 0.0.0.0
 
   postgresql.listen_port:
-    description: "Listening port of the PostgreSQL service"
+    description: "listening port of the PostgreSQL service"
     default: 5432
 
   postgresql.databases:
-    description: "A list of databases to create, e.g. [{name:foo}]"
+    description: "a list of databases to create, e.g. [{name:foo}]"
 
   postgresql.roles:
-    description: "A list of roles to create, e.g. [{name:foo,password:bar}]"
+    description: "a list of roles to create, e.g. [{name:foo,password:bar}]"
 
   postgresql.max_connections:
-    description: "Maximum number of open database connections"
+    description: "maximum number of open database connections"
     default: 500
