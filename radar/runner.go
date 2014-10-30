@@ -12,8 +12,8 @@ import (
 
 type Locker interface {
 	AcquireResourceCheckingLock() (db.Lock, error)
-	AcquireReadLock(names []string) (db.Lock, error)
-	AcquireWriteLock(names []string) (db.Lock, error)
+	AcquireReadLock(lock []db.NamedLock) (db.Lock, error)
+	AcquireWriteLock(lock []db.NamedLock) (db.Lock, error)
 }
 
 type Scanner interface {

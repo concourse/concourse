@@ -51,8 +51,8 @@ type DB interface {
 
 	GetResourceHistory(resource string) ([]*VersionHistory, error)
 
-	AcquireWriteLock(names []string) (Lock, error)
-	AcquireReadLock(names []string) (Lock, error)
+	AcquireWriteLock(locks []NamedLock) (Lock, error)
+	AcquireReadLock(locks []NamedLock) (Lock, error)
 
 	AcquireResourceCheckingLock() (Lock, error)
 	AcquireBuildSchedulingLock() (Lock, error)

@@ -1,8 +1,6 @@
 package scheduler
 
 import (
-	"fmt"
-
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc/builder"
@@ -77,12 +75,12 @@ func (s *Scheduler) BuildLatestInputs(job config.Job) error {
 		return nil
 	}
 
-	lockNames := []string{}
+	locks := []db.NamedLock{}
 	for _, input := range checkInputs {
-		lockNames = append(lockNames, fmt.Sprintf("resource: %s", input.Name))
+		locks = append(locks, db.ResourceLock(input.Name))
 	}
 
-	lock, err := s.Locker.AcquireReadLock(lockNames)
+	lock, err := s.Locker.AcquireReadLock(locks)
 	if err != nil {
 		buildLog.Error("failed-to-acquire-inputs-lock", err, lager.Data{
 			"inputs": inputs,

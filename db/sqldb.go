@@ -983,11 +983,11 @@ func (db *sqldb) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 	return hs, nil
 }
 
-func (db *sqldb) acquireLock(lockType string, names []string) (Lock, error) {
+func (db *sqldb) acquireLock(lockType string, locks []NamedLock) (Lock, error) {
 	params := []interface{}{}
 	refs := []string{}
-	for i, name := range names {
-		params = append(params, name)
+	for i, lock := range locks {
+		params = append(params, lock.Name())
 		refs = append(refs, fmt.Sprintf("$%d", i+1))
 		_, err := db.conn.Exec(`
 		INSERT INTO locks (name)
@@ -997,7 +997,7 @@ func (db *sqldb) acquireLock(lockType string, names []string) (Lock, error) {
 			FROM locks
 			WHERE name = $1
 		)
-		`, name)
+		`, lock.Name())
 		if err != nil {
 			return nil, err
 		}
@@ -1020,12 +1020,12 @@ func (db *sqldb) acquireLock(lockType string, names []string) (Lock, error) {
 	return &txLock{tx}, nil
 }
 
-func (db *sqldb) AcquireWriteLock(names []string) (Lock, error) {
-	return db.acquireLock("UPDATE", names)
+func (db *sqldb) AcquireWriteLock(lock []NamedLock) (Lock, error) {
+	return db.acquireLock("UPDATE", lock)
 }
 
-func (db *sqldb) AcquireReadLock(names []string) (Lock, error) {
-	return db.acquireLock("SHARE", names)
+func (db *sqldb) AcquireReadLock(lock []NamedLock) (Lock, error) {
+	return db.acquireLock("SHARE", lock)
 }
 
 func (db *sqldb) AcquireResourceCheckingLock() (Lock, error) {

@@ -12,14 +12,14 @@ type FakeLocker struct {
 	AcquireBuildSchedulingLockStub        func() (db.Lock, error)
 	acquireBuildSchedulingLockMutex       sync.RWMutex
 	acquireBuildSchedulingLockArgsForCall []struct{}
-	acquireBuildSchedulingLockReturns struct {
+	acquireBuildSchedulingLockReturns     struct {
 		result1 db.Lock
 		result2 error
 	}
-	AcquireReadLockStub        func(names []string) (db.Lock, error)
+	AcquireReadLockStub        func(lock []db.NamedLock) (db.Lock, error)
 	acquireReadLockMutex       sync.RWMutex
 	acquireReadLockArgsForCall []struct {
-		names []string
+		lock []db.NamedLock
 	}
 	acquireReadLockReturns struct {
 		result1 db.Lock
@@ -52,14 +52,14 @@ func (fake *FakeLocker) AcquireBuildSchedulingLockReturns(result1 db.Lock, resul
 	}{result1, result2}
 }
 
-func (fake *FakeLocker) AcquireReadLock(names []string) (db.Lock, error) {
+func (fake *FakeLocker) AcquireReadLock(lock []db.NamedLock) (db.Lock, error) {
 	fake.acquireReadLockMutex.Lock()
 	fake.acquireReadLockArgsForCall = append(fake.acquireReadLockArgsForCall, struct {
-		names []string
-	}{names})
+		lock []db.NamedLock
+	}{lock})
 	fake.acquireReadLockMutex.Unlock()
 	if fake.AcquireReadLockStub != nil {
-		return fake.AcquireReadLockStub(names)
+		return fake.AcquireReadLockStub(lock)
 	} else {
 		return fake.acquireReadLockReturns.result1, fake.acquireReadLockReturns.result2
 	}
@@ -71,10 +71,10 @@ func (fake *FakeLocker) AcquireReadLockCallCount() int {
 	return len(fake.acquireReadLockArgsForCall)
 }
 
-func (fake *FakeLocker) AcquireReadLockArgsForCall(i int) []string {
+func (fake *FakeLocker) AcquireReadLockArgsForCall(i int) []db.NamedLock {
 	fake.acquireReadLockMutex.RLock()
 	defer fake.acquireReadLockMutex.RUnlock()
-	return fake.acquireReadLockArgsForCall[i].names
+	return fake.acquireReadLockArgsForCall[i].lock
 }
 
 func (fake *FakeLocker) AcquireReadLockReturns(result1 db.Lock, result2 error) {

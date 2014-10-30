@@ -28,7 +28,7 @@ type FakeBuildScheduler struct {
 	TrackInFlightBuildsStub        func() error
 	trackInFlightBuildsMutex       sync.RWMutex
 	trackInFlightBuildsArgsForCall []struct{}
-	trackInFlightBuildsReturns struct {
+	trackInFlightBuildsReturns     struct {
 		result1 error
 	}
 }

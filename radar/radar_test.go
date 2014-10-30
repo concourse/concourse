@@ -84,7 +84,7 @@ var _ = Describe("Radar", func() {
 			Ω(locker.AcquireReadLockCallCount()).Should(Equal(1))
 
 			lockedInputs := locker.AcquireReadLockArgsForCall(0)
-			Ω(lockedInputs).Should(Equal([]string{"resource: some-resource"}))
+			Ω(lockedInputs).Should(Equal([]db.NamedLock{db.ResourceLock("some-resource")}))
 
 			Ω(readLock.ReleaseCallCount()).Should(Equal(1))
 
@@ -190,7 +190,7 @@ var _ = Describe("Radar", func() {
 				Ω(locker.AcquireWriteLockCallCount()).Should(Equal(1))
 
 				lockedInputs := locker.AcquireWriteLockArgsForCall(0)
-				Ω(lockedInputs).Should(Equal([]string{"resource: some-resource"}))
+				Ω(lockedInputs).Should(Equal([]db.NamedLock{db.ResourceLock("some-resource")}))
 
 				Ω(writeLock.ReleaseCallCount()).Should(Equal(1))
 			})
