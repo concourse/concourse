@@ -476,6 +476,183 @@ func itIsADB() {
 			err = secondLock.Release()
 			Ω(err).ShouldNot(HaveOccurred())
 		})
+
+		It("can be done generically with a unique name", func() {
+			lock, err := db.AcquireWriteLock([]string{"a-name"})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			secondLockCh := make(chan Lock, 1)
+
+			go func() {
+				defer GinkgoRecover()
+
+				secondLock, err := db.AcquireWriteLock([]string{"a-name"})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				secondLockCh <- secondLock
+			}()
+
+			Consistently(secondLockCh).ShouldNot(Receive())
+
+			err = lock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			var secondLock Lock
+			Eventually(secondLockCh).Should(Receive(&secondLock))
+
+			err = secondLock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("does not let anyone write if someone is reading", func() {
+			lock, err := db.AcquireReadLock([]string{"a-name"})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			secondLockCh := make(chan Lock, 1)
+
+			go func() {
+				defer GinkgoRecover()
+
+				secondLock, err := db.AcquireWriteLock([]string{"a-name"})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				secondLockCh <- secondLock
+			}()
+
+			Consistently(secondLockCh).ShouldNot(Receive())
+
+			err = lock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			var secondLock Lock
+			Eventually(secondLockCh).Should(Receive(&secondLock))
+
+			err = secondLock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("does not let anyone read if someone is writing", func() {
+			lock, err := db.AcquireWriteLock([]string{"a-name"})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			secondLockCh := make(chan Lock, 1)
+
+			go func() {
+				defer GinkgoRecover()
+
+				secondLock, err := db.AcquireReadLock([]string{"a-name"})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				secondLockCh <- secondLock
+			}()
+
+			Consistently(secondLockCh).ShouldNot(Receive())
+
+			err = lock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			var secondLock Lock
+			Eventually(secondLockCh).Should(Receive(&secondLock))
+
+			err = secondLock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("lets many reads simultaneously", func() {
+			lock, err := db.AcquireReadLock([]string{"a-name"})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			secondLockCh := make(chan Lock, 1)
+
+			go func() {
+				defer GinkgoRecover()
+
+				secondLock, err := db.AcquireReadLock([]string{"a-name"})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				secondLockCh <- secondLock
+			}()
+
+			var secondLock Lock
+			Eventually(secondLockCh).Should(Receive(&secondLock))
+
+			err = secondLock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = lock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("can be done multiple times if using different names", func() {
+			lock, err := db.AcquireWriteLock([]string{"name-1"})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			var secondLock Lock
+			secondLockCh := make(chan Lock, 1)
+
+			go func() {
+				defer GinkgoRecover()
+
+				secondLock, err := db.AcquireWriteLock([]string{"name-2"})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				secondLockCh <- secondLock
+			}()
+
+			Eventually(secondLockCh).Should(Receive(&secondLock))
+
+			err = lock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = secondLock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("can be done for multiple names at a time", func() {
+			lock, err := db.AcquireWriteLock([]string{"name-1", "name-2"})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			secondLockCh := make(chan Lock, 1)
+
+			go func() {
+				defer GinkgoRecover()
+
+				secondLock, err := db.AcquireWriteLock([]string{"name-1"})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				secondLockCh <- secondLock
+			}()
+
+			Consistently(secondLockCh).ShouldNot(Receive())
+
+			thirdLockCh := make(chan Lock, 1)
+
+			go func() {
+				defer GinkgoRecover()
+
+				thirdLock, err := db.AcquireWriteLock([]string{"name-2"})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				thirdLockCh <- thirdLock
+			}()
+
+			Consistently(thirdLockCh).ShouldNot(Receive())
+
+			err = lock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			var secondLock Lock
+			Eventually(secondLockCh).Should(Receive(&secondLock))
+
+			var thirdLock Lock
+			Eventually(thirdLockCh).Should(Receive(&thirdLock))
+
+			err = secondLock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = thirdLock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+		})
 	})
 
 	Describe("saving build inputs", func() {

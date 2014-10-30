@@ -6,6 +6,7 @@ import (
 	"github.com/concourse/atc/builder/fakebuilder"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
+	dbfakes "github.com/concourse/atc/db/fakes"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/fakes"
 	"github.com/concourse/turbine"
@@ -20,11 +21,14 @@ var _ = Describe("Scheduler", func() {
 		schedulerDB *fakes.FakeSchedulerDB
 		factory     *fakes.FakeBuildFactory
 		builder     *fakebuilder.FakeBuilder
+		locker      *fakes.FakeLocker
 		tracker     *fakes.FakeBuildTracker
 
 		createdTurbineBuild turbine.Build
 
 		job config.Job
+
+		readLock *dbfakes.FakeLock
 
 		scheduler *Scheduler
 	)
@@ -33,6 +37,7 @@ var _ = Describe("Scheduler", func() {
 		schedulerDB = new(fakes.FakeSchedulerDB)
 		factory = new(fakes.FakeBuildFactory)
 		builder = new(fakebuilder.FakeBuilder)
+		locker = new(fakes.FakeLocker)
 		tracker = new(fakes.FakeBuildTracker)
 
 		createdTurbineBuild = turbine.Build{
@@ -46,6 +51,7 @@ var _ = Describe("Scheduler", func() {
 		scheduler = &Scheduler{
 			Logger:  lagertest.NewTestLogger("test"),
 			DB:      schedulerDB,
+			Locker:  locker,
 			Factory: factory,
 			Builder: builder,
 			Tracker: tracker,
@@ -67,6 +73,9 @@ var _ = Describe("Scheduler", func() {
 				},
 			},
 		}
+
+		readLock = new(dbfakes.FakeLock)
+		locker.AcquireReadLockReturns(readLock, nil)
 	})
 
 	Describe("TrackInFlightBuilds", func() {
@@ -144,6 +153,17 @@ var _ = Describe("Scheduler", func() {
 
 			BeforeEach(func() {
 				schedulerDB.GetLatestInputVersionsReturns(foundInputs, nil)
+			})
+
+			It("acquires the input's lock before grabbing them from the DB", func() {
+				err := scheduler.BuildLatestInputs(job)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(locker.AcquireReadLockCallCount()).Should(Equal(1))
+
+				lockedInputs := locker.AcquireReadLockArgsForCall(0)
+				Ω(lockedInputs).Should(Equal([]string{"resource: some-resource", "resource: some-other-resource"}))
+				Ω(readLock.ReleaseCallCount()).Should(Equal(1))
 			})
 
 			It("checks if they are already used for a build", func() {

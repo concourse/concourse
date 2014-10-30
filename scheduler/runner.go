@@ -11,6 +11,7 @@ import (
 
 type Locker interface {
 	AcquireBuildSchedulingLock() (db.Lock, error)
+	AcquireReadLock(names []string) (db.Lock, error)
 }
 
 type BuildScheduler interface {

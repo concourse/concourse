@@ -5,6 +5,7 @@ import (
 
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
+	dbfakes "github.com/concourse/atc/db/fakes"
 
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/fakes"
@@ -22,19 +23,29 @@ var _ = Describe("Radar", func() {
 
 	var resource config.Resource
 
+	var locker *fakes.FakeLocker
+	var readLock *dbfakes.FakeLock
+	var writeLock *dbfakes.FakeLock
+
 	BeforeEach(func() {
 		logger := lagertest.NewTestLogger("radar")
 		checker = new(fakes.FakeResourceChecker)
 		tracker = new(fakes.FakeVersionDB)
 		interval = 100 * time.Millisecond
+		locker = new(fakes.FakeLocker)
 
-		radar = NewRadar(logger, tracker, interval)
+		radar = NewRadar(logger, tracker, interval, locker)
 
 		resource = config.Resource{
 			Name:   "some-resource",
 			Type:   "git",
 			Source: config.Source{"uri": "http://example.com"},
 		}
+
+		readLock = new(dbfakes.FakeLock)
+		locker.AcquireReadLockReturns(readLock, nil)
+		writeLock = new(dbfakes.FakeLock)
+		locker.AcquireWriteLockReturns(writeLock, nil)
 	})
 
 	JustBeforeEach(func() {
@@ -65,6 +76,19 @@ var _ = Describe("Radar", func() {
 			Eventually(times).Should(Receive(&time2))
 
 			Ω(time2.Sub(time1)).Should(BeNumerically("~", interval, interval/4))
+		})
+
+		It("grabs a lock before checking, releases after", func() {
+			Eventually(times).Should(Receive())
+
+			Ω(locker.AcquireReadLockCallCount()).Should(Equal(1))
+
+			lockedInputs := locker.AcquireReadLockArgsForCall(0)
+			Ω(lockedInputs).Should(Equal([]string{"resource: some-resource"}))
+
+			Ω(readLock.ReleaseCallCount()).Should(Equal(1))
+
+			Ω(locker.AcquireWriteLockCallCount()).Should(Equal(0))
 		})
 
 		Context("when there is no current version", func() {
@@ -158,6 +182,17 @@ var _ = Describe("Radar", func() {
 					Source:  db.Source{"uri": "http://example.com"},
 					Version: db.Version{"version": "3"},
 				}))
+			})
+
+			It("grabs a write lock around the save", func() {
+				Eventually(tracker.SaveVersionedResourceCallCount).Should(Equal(3))
+
+				Ω(locker.AcquireWriteLockCallCount()).Should(Equal(1))
+
+				lockedInputs := locker.AcquireWriteLockArgsForCall(0)
+				Ω(lockedInputs).Should(Equal([]string{"resource: some-resource"}))
+
+				Ω(writeLock.ReleaseCallCount()).Should(Equal(1))
 			})
 		})
 
