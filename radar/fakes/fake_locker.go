@@ -9,10 +9,12 @@ import (
 )
 
 type FakeLocker struct {
-	AcquireResourceCheckingLockStub        func() (db.Lock, error)
-	acquireResourceCheckingLockMutex       sync.RWMutex
-	acquireResourceCheckingLockArgsForCall []struct{}
-	acquireResourceCheckingLockReturns     struct {
+	AcquireWriteLockImmediatelyStub        func(lock []db.NamedLock) (db.Lock, error)
+	acquireWriteLockImmediatelyMutex       sync.RWMutex
+	acquireWriteLockImmediatelyArgsForCall []struct {
+		lock []db.NamedLock
+	}
+	acquireWriteLockImmediatelyReturns struct {
 		result1 db.Lock
 		result2 error
 	}
@@ -36,26 +38,34 @@ type FakeLocker struct {
 	}
 }
 
-func (fake *FakeLocker) AcquireResourceCheckingLock() (db.Lock, error) {
-	fake.acquireResourceCheckingLockMutex.Lock()
-	fake.acquireResourceCheckingLockArgsForCall = append(fake.acquireResourceCheckingLockArgsForCall, struct{}{})
-	fake.acquireResourceCheckingLockMutex.Unlock()
-	if fake.AcquireResourceCheckingLockStub != nil {
-		return fake.AcquireResourceCheckingLockStub()
+func (fake *FakeLocker) AcquireWriteLockImmediately(lock []db.NamedLock) (db.Lock, error) {
+	fake.acquireWriteLockImmediatelyMutex.Lock()
+	fake.acquireWriteLockImmediatelyArgsForCall = append(fake.acquireWriteLockImmediatelyArgsForCall, struct {
+		lock []db.NamedLock
+	}{lock})
+	fake.acquireWriteLockImmediatelyMutex.Unlock()
+	if fake.AcquireWriteLockImmediatelyStub != nil {
+		return fake.AcquireWriteLockImmediatelyStub(lock)
 	} else {
-		return fake.acquireResourceCheckingLockReturns.result1, fake.acquireResourceCheckingLockReturns.result2
+		return fake.acquireWriteLockImmediatelyReturns.result1, fake.acquireWriteLockImmediatelyReturns.result2
 	}
 }
 
-func (fake *FakeLocker) AcquireResourceCheckingLockCallCount() int {
-	fake.acquireResourceCheckingLockMutex.RLock()
-	defer fake.acquireResourceCheckingLockMutex.RUnlock()
-	return len(fake.acquireResourceCheckingLockArgsForCall)
+func (fake *FakeLocker) AcquireWriteLockImmediatelyCallCount() int {
+	fake.acquireWriteLockImmediatelyMutex.RLock()
+	defer fake.acquireWriteLockImmediatelyMutex.RUnlock()
+	return len(fake.acquireWriteLockImmediatelyArgsForCall)
 }
 
-func (fake *FakeLocker) AcquireResourceCheckingLockReturns(result1 db.Lock, result2 error) {
-	fake.AcquireResourceCheckingLockStub = nil
-	fake.acquireResourceCheckingLockReturns = struct {
+func (fake *FakeLocker) AcquireWriteLockImmediatelyArgsForCall(i int) []db.NamedLock {
+	fake.acquireWriteLockImmediatelyMutex.RLock()
+	defer fake.acquireWriteLockImmediatelyMutex.RUnlock()
+	return fake.acquireWriteLockImmediatelyArgsForCall[i].lock
+}
+
+func (fake *FakeLocker) AcquireWriteLockImmediatelyReturns(result1 db.Lock, result2 error) {
+	fake.AcquireWriteLockImmediatelyStub = nil
+	fake.acquireWriteLockImmediatelyReturns = struct {
 		result1 db.Lock
 		result2 error
 	}{result1, result2}

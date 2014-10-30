@@ -26,6 +26,7 @@ var _ = Describe("Radar", func() {
 	var locker *fakes.FakeLocker
 	var readLock *dbfakes.FakeLock
 	var writeLock *dbfakes.FakeLock
+	var writeImmediatelyLock *dbfakes.FakeLock
 
 	BeforeEach(func() {
 		logger := lagertest.NewTestLogger("radar")
@@ -46,6 +47,8 @@ var _ = Describe("Radar", func() {
 		locker.AcquireReadLockReturns(readLock, nil)
 		writeLock = new(dbfakes.FakeLock)
 		locker.AcquireWriteLockReturns(writeLock, nil)
+		writeImmediatelyLock = new(dbfakes.FakeLock)
+		locker.AcquireWriteLockImmediatelyReturns(writeImmediatelyLock, nil)
 	})
 
 	JustBeforeEach(func() {
@@ -76,6 +79,30 @@ var _ = Describe("Radar", func() {
 			Eventually(times).Should(Receive(&time2))
 
 			Ω(time2.Sub(time1)).Should(BeNumerically("~", interval, interval/4))
+		})
+
+		It("grabs a resource checking lock before checking, releases after done", func() {
+			Eventually(times).Should(Receive())
+
+			Ω(locker.AcquireWriteLockImmediatelyCallCount()).Should(Equal(1))
+
+			lockedInputs := locker.AcquireWriteLockImmediatelyArgsForCall(0)
+			Ω(lockedInputs).Should(Equal([]db.NamedLock{db.ResourceCheckingLock("some-resource")}))
+
+			Ω(writeImmediatelyLock.ReleaseCallCount()).Should(Equal(1))
+		})
+
+		It("grabs a read lock before checking, releases after", func() {
+			Eventually(times).Should(Receive())
+
+			Ω(locker.AcquireReadLockCallCount()).Should(Equal(1))
+
+			lockedInputs := locker.AcquireReadLockArgsForCall(0)
+			Ω(lockedInputs).Should(Equal([]db.NamedLock{db.ResourceLock("some-resource")}))
+
+			Ω(readLock.ReleaseCallCount()).Should(Equal(1))
+
+			Ω(locker.AcquireWriteLockCallCount()).Should(Equal(0))
 		})
 
 		It("grabs a lock before checking, releases after", func() {

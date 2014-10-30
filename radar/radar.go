@@ -67,11 +67,17 @@ func (radar *Radar) Scan(checker ResourceChecker, resource config.Resource) {
 		ticker := time.NewTicker(radar.interval)
 
 		for {
+			var resourceCheckingLock db.Lock
+			var err error
 			select {
 			case <-radar.stop:
 				return
 
 			case <-ticker.C:
+				resourceCheckingLock, err = radar.locker.AcquireWriteLockImmediately([]db.NamedLock{db.ResourceCheckingLock(resource.Name)})
+				if err != nil {
+					break
+				}
 				radar.setChecking(resource.Name)
 
 				var from db.Version
@@ -134,6 +140,9 @@ func (radar *Radar) Scan(checker ResourceChecker, resource config.Resource) {
 					}
 				}
 				lock.Release()
+			}
+			if resourceCheckingLock != nil {
+				resourceCheckingLock.Release()
 			}
 		}
 	}()

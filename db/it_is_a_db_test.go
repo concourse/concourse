@@ -423,33 +423,6 @@ func itIsADB() {
 	})
 
 	Describe("locking", func() {
-		It("can be done for resource checking", func() {
-			lock, err := db.AcquireResourceCheckingLock()
-			Ω(err).ShouldNot(HaveOccurred())
-
-			secondLockCh := make(chan Lock, 1)
-
-			go func() {
-				defer GinkgoRecover()
-
-				secondLock, err := db.AcquireResourceCheckingLock()
-				Ω(err).ShouldNot(HaveOccurred())
-
-				secondLockCh <- secondLock
-			}()
-
-			Consistently(secondLockCh).ShouldNot(Receive())
-
-			err = lock.Release()
-			Ω(err).ShouldNot(HaveOccurred())
-
-			var secondLock Lock
-			Eventually(secondLockCh).Should(Receive(&secondLock))
-
-			err = secondLock.Release()
-			Ω(err).ShouldNot(HaveOccurred())
-		})
-
 		It("can be done generically with a unique name", func() {
 			lock, err := db.AcquireWriteLock([]NamedLock{ResourceLock("a-name")})
 			Ω(err).ShouldNot(HaveOccurred())

@@ -1033,20 +1033,6 @@ func (db *sqldb) AcquireReadLock(lock []NamedLock) (Lock, error) {
 	return db.acquireLock("SHARE", lock)
 }
 
-func (db *sqldb) AcquireResourceCheckingLock() (Lock, error) {
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = tx.Exec("LOCK TABLE resource_checking_lock")
-	if err != nil {
-		return nil, err
-	}
-
-	return &txLock{tx}, nil
-}
-
 type txLock struct {
 	tx *sql.Tx
 }
