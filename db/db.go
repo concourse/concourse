@@ -51,11 +51,11 @@ type DB interface {
 
 	GetResourceHistory(resource string) ([]*VersionHistory, error)
 
+	AcquireWriteLockImmediately(locks []NamedLock) (Lock, error)
 	AcquireWriteLock(locks []NamedLock) (Lock, error)
 	AcquireReadLock(locks []NamedLock) (Lock, error)
 
 	AcquireResourceCheckingLock() (Lock, error)
-	AcquireBuildSchedulingLock() (Lock, error)
 }
 
 type Lock interface {

@@ -1014,10 +1014,15 @@ func (db *sqldb) acquireLock(lockType string, locks []NamedLock) (Lock, error) {
 	FOR `+lockType+`
 	`, params...)
 	if err != nil {
+		tx.Commit()
 		return nil, err
 	}
 
 	return &txLock{tx}, nil
+}
+
+func (db *sqldb) AcquireWriteLockImmediately(lock []NamedLock) (Lock, error) {
+	return db.acquireLock("UPDATE NOWAIT", lock)
 }
 
 func (db *sqldb) AcquireWriteLock(lock []NamedLock) (Lock, error) {
@@ -1035,20 +1040,6 @@ func (db *sqldb) AcquireResourceCheckingLock() (Lock, error) {
 	}
 
 	_, err = tx.Exec("LOCK TABLE resource_checking_lock")
-	if err != nil {
-		return nil, err
-	}
-
-	return &txLock{tx}, nil
-}
-
-func (db *sqldb) AcquireBuildSchedulingLock() (Lock, error) {
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = tx.Exec("LOCK TABLE build_scheduling_lock")
 	if err != nil {
 		return nil, err
 	}

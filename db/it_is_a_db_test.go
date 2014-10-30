@@ -450,33 +450,6 @@ func itIsADB() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("can be done for build scheduling", func() {
-			lock, err := db.AcquireBuildSchedulingLock()
-			Ω(err).ShouldNot(HaveOccurred())
-
-			secondLockCh := make(chan Lock, 1)
-
-			go func() {
-				defer GinkgoRecover()
-
-				secondLock, err := db.AcquireBuildSchedulingLock()
-				Ω(err).ShouldNot(HaveOccurred())
-
-				secondLockCh <- secondLock
-			}()
-
-			Consistently(secondLockCh).ShouldNot(Receive())
-
-			err = lock.Release()
-			Ω(err).ShouldNot(HaveOccurred())
-
-			var secondLock Lock
-			Eventually(secondLockCh).Should(Receive(&secondLock))
-
-			err = secondLock.Release()
-			Ω(err).ShouldNot(HaveOccurred())
-		})
-
 		It("can be done generically with a unique name", func() {
 			lock, err := db.AcquireWriteLock([]NamedLock{ResourceLock("a-name")})
 			Ω(err).ShouldNot(HaveOccurred())
@@ -501,6 +474,18 @@ func itIsADB() {
 			Eventually(secondLockCh).Should(Receive(&secondLock))
 
 			err = secondLock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("can be done without waiting", func() {
+			lock, err := db.AcquireWriteLockImmediately([]NamedLock{ResourceLock("a-name")})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			secondLock, err := db.AcquireWriteLockImmediately([]NamedLock{ResourceLock("a-name")})
+			Ω(err).Should(HaveOccurred())
+			Ω(secondLock).Should(BeNil())
+
+			err = lock.Release()
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
