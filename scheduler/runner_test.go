@@ -1,6 +1,7 @@
 package scheduler_test
 
 import (
+	"errors"
 	"time"
 
 	"github.com/concourse/atc/config"
@@ -68,6 +69,24 @@ var _ = Describe("Runner", func() {
 
 		job = locker.AcquireWriteLockImmediatelyArgsForCall(1)
 		Ω(job).Should(Equal([]db.NamedLock{db.JobSchedulingLock("some-other-job")}))
+	})
+
+	Context("whe it can't get the lock for the first job", func() {
+		BeforeEach(func() {
+			locker.AcquireWriteLockImmediatelyStub = func(locks []db.NamedLock) (db.Lock, error) {
+				if locker.AcquireWriteLockImmediatelyCallCount() == 1 {
+					return nil, errors.New("can't aqcuire lock")
+				}
+				return lock, nil
+			}
+		})
+
+		It("follows on to the next job", func() {
+			Eventually(locker.AcquireWriteLockImmediatelyCallCount).Should(Equal(2))
+
+			job := scheduler.TryNextPendingBuildArgsForCall(0)
+			Ω(job).Should(Equal(config.Job{Name: "some-other-job"}))
+		})
 	})
 
 	It("tracks in-flight builds", func() {
