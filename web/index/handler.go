@@ -49,14 +49,14 @@ type TemplateData struct {
 }
 
 type DotNode struct {
-	ID    string   `json:"id"`
-	Value DotValue `json:"value,omitempty"`
+	ID    string   `json:"v"`
+	Value DotValue `json:"value"`
 }
 
 type DotEdge struct {
-	Source      string   `json:"u"`
-	Destination string   `json:"v"`
-	Value       DotValue `json:"value,omitempty"`
+	Source      string   `json:"v"`
+	Destination string   `json:"w"`
+	Value       DotValue `json:"value"`
 }
 
 type DotValue map[string]interface{}
@@ -141,10 +141,10 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		data.Nodes = append(data.Nodes, DotNode{
 			ID: resourceID,
 			Value: DotValue{
-				"label":  fmt.Sprintf(`<h1 class="resource"><a href="%s">%s</a></h1>`, resourceURI, resource.Name),
-				"type":   "resource",
-				"status": status,
-				"groups": resourceGroups[resource.Name],
+				"labelType": "html",
+				"label":     fmt.Sprintf(`<h1 class="resource"><a href="%s">%s</a></h1>`, resourceURI, resource.Name),
+				"class":     "resource " + status,
+				"groups":    resourceGroups[resource.Name],
 			},
 		})
 	}
@@ -174,10 +174,10 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		data.Nodes = append(data.Nodes, DotNode{
 			ID: jobID,
 			Value: DotValue{
-				"label":  fmt.Sprintf(`<h1 class="job"><a href="%s">%s</a>`, buildURI, job.Name),
-				"status": string(currentBuild.Status),
-				"type":   "job",
-				"groups": jobGroups[job.Name],
+				"labelType": "html",
+				"label":     fmt.Sprintf(`<h1 class="job"><a href="%s">%s</a>`, buildURI, job.Name),
+				"class":     "job " + string(currentBuild.Status),
+				"groups":    jobGroups[job.Name],
 			},
 		})
 
@@ -193,13 +193,19 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					data.Nodes = append(data.Nodes, DotNode{
 						ID: nodeID,
 						Value: DotValue{
-							"useDef": "gateway",
+							"label": "",
+							"class": "gateway",
 						},
 					})
 
 					data.Edges = append(data.Edges, DotEdge{
 						Source:      nodeID,
 						Destination: jobID,
+						Value: DotValue{
+							"id":        "gateway-" + nodeID + "-to-" + jobID,
+							"arrowhead": "status",
+							"status":    "normal",
+						},
 					})
 				} else {
 					nodeID = jobID
@@ -220,7 +226,9 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						}
 					} else {
 						value := DotValue{
-							"status": string(currentBuild.Status),
+							"id":        "job-input-" + jobNode(passed) + "-to-" + nodeID,
+							"status":    string(currentBuild.Status),
+							"arrowhead": "status",
 						}
 
 						if len(passedJob.Inputs) > 1 {
@@ -238,6 +246,11 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				data.Edges = append(data.Edges, DotEdge{
 					Source:      resourceNode(input.Resource),
 					Destination: jobID,
+					Value: DotValue{
+						"id":        "resource-input-" + resourceNode(input.Resource) + "-to-" + jobID,
+						"arrowhead": "status",
+						"status":    "normal",
+					},
 				})
 			}
 		}
@@ -251,7 +264,9 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				Source:      jobID,
 				Destination: resourceNode(output.Resource),
 				Value: DotValue{
-					"status": string(currentBuild.Status),
+					"id":        "job-output-" + jobID + "-to-" + resourceNode(output.Resource),
+					"arrowhead": "status",
+					"status":    string(currentBuild.Status),
 				},
 			})
 		}
