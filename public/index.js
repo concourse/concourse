@@ -6,12 +6,12 @@ function objectIsEmpty(obj) {
 }
 
 function nodeIsInGroups(groups, value) {
-  if(!value.groups) {
+  if (!value.groups) {
     return false;
   }
 
   for(var i in value.groups) {
-    if(groups[value.groups[i]]) {
+    if (groups[value.groups[i]]) {
       return true;
     }
   }
@@ -19,116 +19,188 @@ function nodeIsInGroups(groups, value) {
   return false;
 }
 
-function draw(groups, nodes, edges) {
-  var renderer = new dagreD3.Renderer();
-
-  var oldDrawNodes = renderer.drawNodes();
-  var oldDrawEdgePaths = renderer.drawEdgePaths();
-
-  renderer.drawEdgePaths(function(graph, root) {
-    var svgEdges = oldDrawEdgePaths(graph, root);
-
-    svgEdges.attr("id", function(u) {
-      return "edge-" + u;
-    });
-
-    graph.eachEdge(function(u) {
-      var edge = graph.edge(u);
-
-      if(edge.status) {
-        $("#edge-"+u).attr("class", $("#edge-"+u).attr("class") + " " + edge.status);
-
-        if (graph.isDirected() && root.select('#arrowhead-'+edge.status).empty()) {
-          root
-            .append('svg:defs')
-              .append('svg:marker')
-                .attr('id', 'arrowhead-'+edge.status)
-                .attr('viewBox', '0 0 10 10')
-                .attr('refX', 8)
-                .attr('refY', 5)
-                .attr('markerUnits', 'strokewidth')
-                .attr('markerWidth', 8)
-                .attr('markerHeight', 5)
-                .attr('orient', 'auto')
-                .append('svg:path')
-                  .attr('d', 'M 0 0 L 10 5 L 0 10 z');
-        }
-
-        $("#edge-"+u+" path").attr("marker-end", "url(#arrowhead-"+edge.status+")");
-      }
-    });
-
-    return svgEdges;
+function groupIntoSubgraphs(digraph) {
+  var groupedGraph = new dagreD3.graphlib.Graph({ compound: true }).setGraph({
+    rankDir: "LR"
   });
 
-  renderer.drawNodes(function(graph, root) {
-    var svgNodes = oldDrawNodes(graph, root);
+  digraph.nodes().forEach(function(v) {
+    var node = digraph.node(v);
+    groupedGraph.setNode(v, node);
 
-    svgNodes.attr("id", function(u) {
-      return "node-" + u;
-    });
+    if (!node.groups || node.groups.length != 1) {
+      return;
+    }
 
-    graph.eachNode(function(u) {
-      var node = graph.node(u);
-
-      $("#node-"+u).attr("class", $("#node-"+u).attr("class") + " " + node.type + " " + node.status);
-
-      $("#node-"+u+" rect").attr("rx", "0").attr("ry", "0");
-    });
-
-    return svgNodes;
+    var group = node.groups[0];
+    groupedGraph.setNode(group, {});
+    groupedGraph.setParent(v, group);
   });
 
-  var digraph = dagreD3.json.decode(nodes, edges);
-  var filtered = digraph;
+  digraph.edges().forEach(function(e) {
+    var edge = digraph.edge(e);
+    groupedGraph.setEdge(e.v, e.w, edge);
+  });
 
-  if(!objectIsEmpty(groups)) {
-    // filter nodes to nodes in the specified groups,
-    // and nodes directly connected to nodes in the specified groups.
-    filtered = filtered.filterNodes(function(u) {
-      var value = digraph.node(u);
+  groupedGraph.nodes().forEach(function(v) {
+    var commonGroup;
 
-      if(nodeIsInGroups(groups, value)) {
-        return true;
+    var outE = groupedGraph.outEdges(v);
+    for(var o in outE) {
+      var edge = outE[o];
+      var parent = groupedGraph.parent(edge.w);
+
+      if (!commonGroup) {
+        commonGroup = parent;
       }
 
-      var inE = digraph.inEdges(u);
-      var outE = digraph.outEdges(u);
-      for(var o in outE) {
-        var targetNode = digraph.target(outE[o]);
-        var targetValue = digraph.node(targetNode);
+      if (commonGroup != parent) {
+        return
+      }
+    }
 
-        if(nodeIsInGroups(groups, targetValue)) {
-          return true;
+    var inE = groupedGraph.inEdges(v);
+    for(var i in inE) {
+      var edge = inE[i];
+      var parent = groupedGraph.parent(edge.v);
+
+      if (!commonGroup) {
+        commonGroup = parent;
+      }
+
+      if (commonGroup != parent) {
+        return
+      }
+    }
+
+    if (commonGroup) {
+      groupedGraph.setParent(v, commonGroup);
+    }
+  });
+
+  return groupedGraph;
+}
+
+function removeOrphanedNodes(digraph) {
+  digraph.nodes().forEach(function(v) {
+    if (dagreD3.util.isSubgraph(digraph, v)) {
+      return;
+    }
+
+    if (digraph.parent(v)) {
+      return;
+    }
+
+    if (digraph.nodeEdges(v).length == 0) {
+      digraph.removeNode(v);
+    }
+  });
+}
+
+function removeUnconnectedGroupMembers(groups, digraph) {
+  for (var group in groups) {
+    var enabled = groups[group];
+    if (!enabled) {
+      digraph.children(group).forEach(function(v) {
+        var outE = digraph.outEdges(v);
+        for(var o in outE) {
+          var edge = outE[o];
+
+          var targetValue = digraph.node(edge.w);
+          if (nodeIsInGroups(groups, targetValue)) {
+            return true;
+          }
         }
-      }
 
-      for(var i in inE) {
-        var sourceNode = digraph.source(inE[i]);
-        var sourceValue = digraph.node(sourceNode);
+        var inE = digraph.inEdges(v);
+        for(var i in inE) {
+          var edge = inE[i];
 
-        if(nodeIsInGroups(groups, sourceValue)) {
-          return true;
+          var sourceValue = digraph.node(edge.v);
+          if (nodeIsInGroups(groups, sourceValue)) {
+            return true;
+          }
         }
-      }
 
-      return false;
-    });
+        digraph.removeNode(v);
+      });
+    }
+  }
+}
+
+function computeGraph(groups, nodes, edges) {
+  var digraph = dagreD3.graphlib.json.read({
+    nodes: nodes,
+    edges: edges,
+    value: {
+      rankDir: "LR"
+    }
+  });
+
+  digraph.nodes().forEach(function(v) {
+    var node = digraph.node(v);
+    node.paddingLeft = 0;
+    node.paddingRight = 0;
+    node.paddingTop = 0;
+    node.paddingBottom = 0;
+  });
+
+  if (!objectIsEmpty(groups)) {
+    digraph = groupIntoSubgraphs(digraph);
+    removeUnconnectedGroupMembers(groups, digraph);
+    removeOrphanedNodes(digraph);
   }
 
-  var layout = renderer.layout(
-    dagreD3.layout().rankDir("LR")).run(
-      filtered,
-      d3.select("svg g")
-  );
+  return digraph;
+}
 
-  var svg = d3.select("svg")
+function draw(groups, nodes, edges) {
+  var graph = computeGraph(groups, nodes, edges);
 
-  svg.attr("viewBox", "-20 -20 " + (layout.graph().width + 40) + " " + (layout.graph().height + 40));
+  var render = new dagreD3.render();
+
+  render.arrows().status = function(parent, id, edge, type) {
+    parent.append("svg:marker")
+      .attr("id", id)
+      .attr("class", "arrowhead-"+edge.status)
+      .attr("viewBox", "0 0 10 10")
+      .attr("refX", 8)
+      .attr("refY", 5)
+      .attr("markerWidth", 8)
+      .attr("markerHeight", 5)
+      .attr("orient", "auto")
+      .append("svg:path")
+      .attr("d", "M 0 0 L 10 5 L 0 10 z");
+  };
+
+  var svg = d3.select("svg");
+
+  graph.edges().forEach(function(e) {
+    var edge = graph.edge(e);
+
+    // curvy
+    edge.lineInterpolate = "bundle";
+    edge.lineTension = 1.0;
+  });
+
+  render(svg, graph);
+
+  graph.edges().forEach(function(e) {
+    var edge = graph.edge(e);
+
+    if (edge.status) {
+      var edgeEle = $("#"+edge.id);
+
+      // .addClass() does not work.
+      edgeEle.attr("class", edgeEle.attr("class") + " " + edge.status);
+    }
+  });
+
+  svg.attr("viewBox", "-20 -20 " + (graph.graph().width + 40) + " " + (graph.graph().height + 40));
 
   svg.call(d3.behavior.zoom().on("zoom", function() {
     var ev = d3.event;
-    svg.select("g")
+    svg.select("g.output")
        .attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
   }));
 }
