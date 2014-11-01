@@ -16,5 +16,17 @@ export BOSH_PASSWORD=admin
 
 bosh target ${BOSH_LITE_IP}
 
+# upload bosh stemcell
+bosh -n upload stemcell lite-stemcell/*.tgz --skip-if-exists
+
+# upload garden linux release
+bosh -n upload release garden-linux-release/*.tgz --skip-if-exists
+
+# create and upload concourse release
+pushd concourse/
+  bosh -n create release
+  bosh -n upload release --rebase || true
+popd
+
 cd concourse/src/github.com/concourse/testflight/
 ginkgo -v -r -race "$@"

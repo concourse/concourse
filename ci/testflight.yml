@@ -6,6 +6,8 @@ params:
 
 inputs:
   - name: concourse
+  - name: garden-linux-release
+  - name: lite-stemcell
 
 run:
   path: concourse/ci/scripts/testflight
