@@ -1,8 +1,6 @@
 package git_pipeline_test
 
 import (
-	"os"
-
 	gapi "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/cloudfoundry-incubator/garden/client"
 	"github.com/cloudfoundry-incubator/garden/client/connection"
@@ -45,11 +43,9 @@ var _ = BeforeSuite(func() {
 	bosh.DeleteDeployment("garden")
 	bosh.DeleteDeployment("concourse")
 
-	Ω(os.Getenv("BOSH_LITE_IP")).ShouldNot(BeEmpty(), "must specify $BOSH_LITE_IP")
-
 	bosh.Deploy("garden.yml")
 
-	gardenClient = client.New(connection.New("tcp", os.Getenv("BOSH_LITE_IP")+":7777"))
+	gardenClient = client.New(connection.New("tcp", "10.244.16.2:7777"))
 	Eventually(gardenClient.Ping, 10*time.Second).ShouldNot(HaveOccurred())
 
 	guidserver.Start(helperRootfs, gardenClient)
