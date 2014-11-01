@@ -258,3 +258,11 @@ Each configured job consists of the following attributes:
   privilege escalation via pull requests. This is a gaping security hole; use
   wisely.
 }
+
+@defthing[public boolean]{
+  @emph{Optional. Default @code{false}.} If set to @code{true}, the build log
+  of this job will be viewable by unauthenticated users. Unauthenticated users
+  will always be able to see the inputs, outputs, and build status history of a
+  job. This is useful if you would like to expose your pipeline publicly without
+  showing sensitive information in the build log.
+}
