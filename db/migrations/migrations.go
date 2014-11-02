@@ -17,4 +17,5 @@ var Migrations = []migration.Migrator{
 	ReplaceBuildEventsIDWithEventID,
 	AddLocks,
 	DropOldLocks,
+	AddConfig,
 }

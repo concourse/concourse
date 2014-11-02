@@ -4,23 +4,23 @@ package fakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/config"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/scheduler"
 )
 
 type FakeBuildScheduler struct {
-	TryNextPendingBuildStub        func(config.Job) error
+	TryNextPendingBuildStub        func(atc.JobConfig) error
 	tryNextPendingBuildMutex       sync.RWMutex
 	tryNextPendingBuildArgsForCall []struct {
-		arg1 config.Job
+		arg1 atc.JobConfig
 	}
 	tryNextPendingBuildReturns struct {
 		result1 error
 	}
-	BuildLatestInputsStub        func(config.Job) error
+	BuildLatestInputsStub        func(atc.JobConfig) error
 	buildLatestInputsMutex       sync.RWMutex
 	buildLatestInputsArgsForCall []struct {
-		arg1 config.Job
+		arg1 atc.JobConfig
 	}
 	buildLatestInputsReturns struct {
 		result1 error
@@ -33,10 +33,10 @@ type FakeBuildScheduler struct {
 	}
 }
 
-func (fake *FakeBuildScheduler) TryNextPendingBuild(arg1 config.Job) error {
+func (fake *FakeBuildScheduler) TryNextPendingBuild(arg1 atc.JobConfig) error {
 	fake.tryNextPendingBuildMutex.Lock()
 	fake.tryNextPendingBuildArgsForCall = append(fake.tryNextPendingBuildArgsForCall, struct {
-		arg1 config.Job
+		arg1 atc.JobConfig
 	}{arg1})
 	fake.tryNextPendingBuildMutex.Unlock()
 	if fake.TryNextPendingBuildStub != nil {
@@ -52,7 +52,7 @@ func (fake *FakeBuildScheduler) TryNextPendingBuildCallCount() int {
 	return len(fake.tryNextPendingBuildArgsForCall)
 }
 
-func (fake *FakeBuildScheduler) TryNextPendingBuildArgsForCall(i int) config.Job {
+func (fake *FakeBuildScheduler) TryNextPendingBuildArgsForCall(i int) atc.JobConfig {
 	fake.tryNextPendingBuildMutex.RLock()
 	defer fake.tryNextPendingBuildMutex.RUnlock()
 	return fake.tryNextPendingBuildArgsForCall[i].arg1
@@ -65,10 +65,10 @@ func (fake *FakeBuildScheduler) TryNextPendingBuildReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBuildScheduler) BuildLatestInputs(arg1 config.Job) error {
+func (fake *FakeBuildScheduler) BuildLatestInputs(arg1 atc.JobConfig) error {
 	fake.buildLatestInputsMutex.Lock()
 	fake.buildLatestInputsArgsForCall = append(fake.buildLatestInputsArgsForCall, struct {
-		arg1 config.Job
+		arg1 atc.JobConfig
 	}{arg1})
 	fake.buildLatestInputsMutex.Unlock()
 	if fake.BuildLatestInputsStub != nil {
@@ -84,7 +84,7 @@ func (fake *FakeBuildScheduler) BuildLatestInputsCallCount() int {
 	return len(fake.buildLatestInputsArgsForCall)
 }
 
-func (fake *FakeBuildScheduler) BuildLatestInputsArgsForCall(i int) config.Job {
+func (fake *FakeBuildScheduler) BuildLatestInputsArgsForCall(i int) atc.JobConfig {
 	fake.buildLatestInputsMutex.RLock()
 	defer fake.buildLatestInputsMutex.RUnlock()
 	return fake.buildLatestInputsArgsForCall[i].arg1

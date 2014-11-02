@@ -4,16 +4,16 @@ package fakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/config"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/radar"
 )
 
 type FakeResourceChecker struct {
-	CheckResourceStub        func(config.Resource, db.Version) ([]db.Version, error)
+	CheckResourceStub        func(atc.ResourceConfig, db.Version) ([]db.Version, error)
 	checkResourceMutex       sync.RWMutex
 	checkResourceArgsForCall []struct {
-		arg1 config.Resource
+		arg1 atc.ResourceConfig
 		arg2 db.Version
 	}
 	checkResourceReturns struct {
@@ -22,13 +22,13 @@ type FakeResourceChecker struct {
 	}
 }
 
-func (fake *FakeResourceChecker) CheckResource(arg1 config.Resource, arg2 db.Version) ([]db.Version, error) {
+func (fake *FakeResourceChecker) CheckResource(arg1 atc.ResourceConfig, arg2 db.Version) ([]db.Version, error) {
 	fake.checkResourceMutex.Lock()
-	defer fake.checkResourceMutex.Unlock()
 	fake.checkResourceArgsForCall = append(fake.checkResourceArgsForCall, struct {
-		arg1 config.Resource
+		arg1 atc.ResourceConfig
 		arg2 db.Version
 	}{arg1, arg2})
+	fake.checkResourceMutex.Unlock()
 	if fake.CheckResourceStub != nil {
 		return fake.CheckResourceStub(arg1, arg2)
 	} else {
@@ -42,7 +42,7 @@ func (fake *FakeResourceChecker) CheckResourceCallCount() int {
 	return len(fake.checkResourceArgsForCall)
 }
 
-func (fake *FakeResourceChecker) CheckResourceArgsForCall(i int) (config.Resource, db.Version) {
+func (fake *FakeResourceChecker) CheckResourceArgsForCall(i int) (atc.ResourceConfig, db.Version) {
 	fake.checkResourceMutex.RLock()
 	defer fake.checkResourceMutex.RUnlock()
 	return fake.checkResourceArgsForCall[i].arg1, fake.checkResourceArgsForCall[i].arg2

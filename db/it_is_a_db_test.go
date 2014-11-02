@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/concourse/atc/config"
+	"github.com/concourse/atc"
 	. "github.com/concourse/atc/db"
+	"github.com/concourse/turbine"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -884,7 +885,7 @@ func itIsADB() {
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(db.GetLatestInputVersions([]config.Input{
+			Ω(db.GetLatestInputVersions([]atc.InputConfig{
 				{
 					Resource: "resource-1",
 					Passed:   []string{"shared-job", "job-1"},
@@ -938,7 +939,7 @@ func itIsADB() {
 
 			// do NOT save resource-2 as an output of job-2
 
-			Ω(db.GetLatestInputVersions([]config.Input{
+			Ω(db.GetLatestInputVersions([]atc.InputConfig{
 				{
 					Resource: "resource-1",
 					Passed:   []string{"shared-job", "job-1"},
@@ -968,7 +969,7 @@ func itIsADB() {
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(db.GetLatestInputVersions([]config.Input{
+			Ω(db.GetLatestInputVersions([]atc.InputConfig{
 				{
 					Resource: "resource-1",
 					Passed:   []string{"shared-job", "job-1"},
@@ -1022,7 +1023,7 @@ func itIsADB() {
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(db.GetLatestInputVersions([]config.Input{
+				Ω(db.GetLatestInputVersions([]atc.InputConfig{
 					{
 						Resource: "resource-1",
 						Passed:   []string{"shared-job", "job-1"},
@@ -1279,6 +1280,117 @@ func itIsADB() {
 					})
 				})
 			})
+		})
+	})
+
+	Describe("config", func() {
+		yep := true
+
+		config := atc.Config{
+			Groups: atc.GroupConfigs{
+				{
+					Name:      "some-group",
+					Jobs:      []string{"job-1", "job-2"},
+					Resources: []string{"resource-1", "resource-2"},
+				},
+			},
+
+			Resources: atc.ResourceConfigs{
+				{
+					Name: "some-resource",
+					Type: "some-type",
+					Source: atc.Source{
+						"source-config": "some-value",
+					},
+				},
+			},
+
+			Jobs: atc.JobConfigs{
+				{
+					Name: "some-job",
+
+					Public: true,
+
+					BuildConfigPath: "some/config/path.yml",
+					BuildConfig: turbine.Config{
+						Image: "some-image",
+					},
+
+					Privileged: true,
+
+					Serial: true,
+
+					Inputs: []atc.InputConfig{
+						{
+							Name:     "some-input",
+							Resource: "some-resource",
+							Params: atc.Params{
+								"some-param": "some-value",
+							},
+							Passed:  []string{"job-1", "job-2"},
+							Trigger: &yep,
+						},
+					},
+
+					Outputs: []atc.OutputConfig{
+						{
+							Resource: "some-resource",
+							Params: atc.Params{
+								"some-param": "some-value",
+							},
+							PerformOn: []atc.OutputCondition{"success", "failure"},
+						},
+					},
+				},
+			},
+		}
+
+		It("can manage pipeline configuration", func() {
+			By("initially being empty")
+			Ω(db.GetConfig()).Should(BeZero())
+
+			By("being able to save the config")
+			err := db.SaveConfig(config)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			By("returning the saved config to later gets")
+			Ω(db.GetConfig()).Should(Equal(config))
+
+			updatedConfig := config
+
+			updatedConfig.Groups = append(config.Groups, atc.GroupConfig{
+				Name: "new-group",
+				Jobs: []string{"new-job-1", "new-job-2"},
+			})
+
+			updatedConfig.Resources = append(config.Resources, atc.ResourceConfig{
+				Name: "new-resource",
+				Type: "new-type",
+				Source: atc.Source{
+					"new-source-config": "new-value",
+				},
+			})
+
+			updatedConfig.Jobs = append(config.Jobs, atc.JobConfig{
+				Name:            "some-resource",
+				BuildConfigPath: "new/config/path.yml",
+				Inputs: []atc.InputConfig{
+					{
+						Name:     "new-input",
+						Resource: "new-resource",
+						Params: atc.Params{
+							"new-param": "new-value",
+						},
+					},
+				},
+			})
+
+			By("being able to update the config")
+			err = db.SaveConfig(updatedConfig)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			By("returning the updated config")
+			Ω(db.GetConfig()).Should(Equal(updatedConfig))
 		})
 	})
 }

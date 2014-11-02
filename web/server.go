@@ -9,7 +9,6 @@ import (
 	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/radar"
 	"github.com/concourse/atc/scheduler"
@@ -27,10 +26,10 @@ import (
 func NewHandler(
 	logger lager.Logger,
 	validator auth.Validator,
-	config config.Config,
 	scheduler *scheduler.Scheduler,
 	radar *radar.Radar,
 	db db.DB,
+	configDB db.ConfigDB,
 	templatesDir, publicDir string,
 	drain <-chan struct{},
 ) (http.Handler, error) {
@@ -65,14 +64,14 @@ func NewHandler(
 
 	handlers := map[string]http.Handler{
 		// public
-		routes.Index:       index.NewHandler(logger, radar, config.Groups, config.Resources, config.Jobs, db, indexTemplate),
+		routes.Index:       index.NewHandler(logger, radar, db, configDB, indexTemplate),
 		routes.Public:      http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
-		routes.GetJob:      getjob.NewHandler(logger, config.Jobs, db, jobTemplate),
-		routes.GetResource: getresource.NewHandler(logger, config.Resources, db, resourceTemplate),
-		routes.GetBuild:    getbuild.NewHandler(logger, config.Jobs, db, buildTemplate),
+		routes.GetJob:      getjob.NewHandler(logger, db, configDB, jobTemplate),
+		routes.GetResource: getresource.NewHandler(logger, db, configDB, resourceTemplate),
+		routes.GetBuild:    getbuild.NewHandler(logger, db, configDB, buildTemplate),
 
 		// public jobs, or authed
-		routes.LogOutput: logs.NewHandler(logger, validator, config.Jobs, db, drain),
+		routes.LogOutput: logs.NewHandler(logger, validator, db, configDB, drain),
 
 		// private
 		routes.LogIn: auth.Handler{
@@ -81,12 +80,12 @@ func NewHandler(
 		},
 
 		routes.TriggerBuild: auth.Handler{
-			Handler:   triggerbuild.NewHandler(logger, config.Jobs, scheduler),
+			Handler:   triggerbuild.NewHandler(logger, configDB, scheduler),
 			Validator: validator,
 		},
 
 		routes.AbortBuild: auth.Handler{
-			Handler:   abortbuild.NewHandler(logger, config.Jobs, db),
+			Handler:   abortbuild.NewHandler(logger, db),
 			Validator: validator,
 		},
 	}

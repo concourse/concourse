@@ -1,8 +1,9 @@
 package factory_test
 
 import (
-	"github.com/concourse/atc/config"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/radar/fakes"
 	. "github.com/concourse/atc/scheduler/factory"
 	"github.com/concourse/turbine"
 
@@ -14,43 +15,49 @@ var _ = Describe("Factory", func() {
 	var (
 		factory *BuildFactory
 
-		job config.Job
+		job atc.JobConfig
 
 		expectedTurbineBuild turbine.Build
 	)
 
 	BeforeEach(func() {
 		factory = &BuildFactory{
-			Resources: config.Resources{
-				{
-					Name:   "some-resource",
-					Type:   "git",
-					Source: config.Source{"uri": "git://some-resource"},
-				},
-				{
-					Name:   "some-dependant-resource",
-					Type:   "git",
-					Source: config.Source{"uri": "git://some-dependant-resource"},
-				},
-				{
-					Name:   "some-output-resource",
-					Type:   "git",
-					Source: config.Source{"uri": "git://some-output-resource"},
-				},
-				{
-					Name:   "some-resource-with-longer-name",
-					Type:   "git",
-					Source: config.Source{"uri": "git://some-resource-with-longer-name"},
-				},
-				{
-					Name:   "some-named-resource",
-					Type:   "git",
-					Source: config.Source{"uri": "git://some-named-resource"},
+			ConfigDB: &fakes.FakeConfigDB{
+				GetConfigStub: func() (atc.Config, error) {
+					return atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "git",
+								Source: atc.Source{"uri": "git://some-resource"},
+							},
+							{
+								Name:   "some-dependant-resource",
+								Type:   "git",
+								Source: atc.Source{"uri": "git://some-dependant-resource"},
+							},
+							{
+								Name:   "some-output-resource",
+								Type:   "git",
+								Source: atc.Source{"uri": "git://some-output-resource"},
+							},
+							{
+								Name:   "some-resource-with-longer-name",
+								Type:   "git",
+								Source: atc.Source{"uri": "git://some-resource-with-longer-name"},
+							},
+							{
+								Name:   "some-named-resource",
+								Type:   "git",
+								Source: atc.Source{"uri": "git://some-named-resource"},
+							},
+						},
+					}, nil
 				},
 			},
 		}
 
-		job = config.Job{
+		job = atc.JobConfig{
 			Name: "some-job",
 
 			BuildConfig: turbine.Config{
@@ -69,27 +76,27 @@ var _ = Describe("Factory", func() {
 
 			BuildConfigPath: "some-resource/build.yml",
 
-			Inputs: []config.Input{
+			Inputs: []atc.InputConfig{
 				{
 					Resource: "some-resource",
-					Params:   config.Params{"some": "params"},
+					Params:   atc.Params{"some": "params"},
 				},
 			},
 
-			Outputs: []config.Output{
+			Outputs: []atc.OutputConfig{
 				{
 					Resource: "some-resource",
-					Params:   config.Params{"foo": "bar"},
+					Params:   atc.Params{"foo": "bar"},
 				},
 				{
 					Resource:  "some-resource",
-					Params:    config.Params{"foo": "bar"},
-					PerformOn: []config.OutputCondition{"failure"},
+					Params:    atc.Params{"foo": "bar"},
+					PerformOn: []atc.OutputCondition{"failure"},
 				},
 				{
 					Resource:  "some-resource",
-					Params:    config.Params{"foo": "bar"},
-					PerformOn: []config.OutputCondition{},
+					Params:    atc.Params{"foo": "bar"},
+					PerformOn: []atc.OutputCondition{},
 				},
 			},
 		}
@@ -157,10 +164,10 @@ var _ = Describe("Factory", func() {
 
 	Context("when an input has an explicit name", func() {
 		BeforeEach(func() {
-			job.Inputs = append(job.Inputs, config.Input{
+			job.Inputs = append(job.Inputs, atc.InputConfig{
 				Name:     "some-named-input",
 				Resource: "some-named-resource",
-				Params:   config.Params{"some": "named-params"},
+				Params:   atc.Params{"some": "named-params"},
 			})
 
 			expectedTurbineBuild.Inputs = append(expectedTurbineBuild.Inputs, turbine.Input{
@@ -182,10 +189,10 @@ var _ = Describe("Factory", func() {
 
 	Context("when an explicitly named input is the source of the config", func() {
 		BeforeEach(func() {
-			job.Inputs = append(job.Inputs, config.Input{
+			job.Inputs = append(job.Inputs, atc.InputConfig{
 				Name:     "some-named-input",
 				Resource: "some-named-resource",
-				Params:   config.Params{"some": "named-params"},
+				Params:   atc.Params{"some": "named-params"},
 			})
 
 			job.BuildConfigPath = "some-named-input/build.yml"
@@ -212,7 +219,7 @@ var _ = Describe("Factory", func() {
 
 	Context("when two inputs have overlappying names for the config path", func() {
 		BeforeEach(func() {
-			job.Inputs = append(job.Inputs, config.Input{
+			job.Inputs = append(job.Inputs, atc.InputConfig{
 				Resource: "some-resource-with-longer-name",
 			})
 
@@ -265,7 +272,7 @@ var _ = Describe("Factory", func() {
 
 	Context("when the job's input is not found", func() {
 		BeforeEach(func() {
-			job.Inputs = append(job.Inputs, config.Input{
+			job.Inputs = append(job.Inputs, atc.InputConfig{
 				Resource: "some-bogus-resource",
 			})
 		})
@@ -278,7 +285,7 @@ var _ = Describe("Factory", func() {
 
 	Context("when the job's output is not found", func() {
 		BeforeEach(func() {
-			job.Outputs = append(job.Outputs, config.Output{
+			job.Outputs = append(job.Outputs, atc.OutputConfig{
 				Resource: "some-bogus-resource",
 			})
 		})

@@ -10,7 +10,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/pivotal-golang/lager"
 
-	"github.com/concourse/atc/config"
+	"github.com/concourse/atc"
 )
 
 type sqldb struct {
@@ -47,6 +47,68 @@ func (db *sqldb) RegisterResource(name string) error {
 		)
 	`, name)
 	return err
+}
+
+func (db *sqldb) GetConfig() (atc.Config, error) {
+	var configBlob []byte
+	err := db.conn.QueryRow(`
+		SELECT config
+		FROM config
+	`).Scan(&configBlob)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return atc.Config{}, nil
+		} else {
+			return atc.Config{}, err
+		}
+	}
+
+	var config atc.Config
+	err = json.Unmarshal(configBlob, &config)
+	if err != nil {
+		return atc.Config{}, err
+	}
+
+	return config, nil
+}
+
+func (db *sqldb) SaveConfig(config atc.Config) error {
+	payload, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	result, err := tx.Exec(`
+		UPDATE config
+		SET config = $1
+	`, payload)
+	if err != nil {
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		_, err := tx.Exec(`
+			INSERT INTO config (config)
+			VALUES ($1)
+		`, payload)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (db *sqldb) GetAllJobBuilds(job string) ([]Build, error) {
@@ -643,7 +705,7 @@ func (db *sqldb) GetLatestVersionedResource(name string) (VersionedResource, err
 	return vr, nil
 }
 
-func (db *sqldb) GetLatestInputVersions(inputs []config.Input) (VersionedResources, error) {
+func (db *sqldb) GetLatestInputVersions(inputs []atc.InputConfig) (VersionedResources, error) {
 	fromAliases := []string{}
 	conditions := []string{}
 	params := []interface{}{}

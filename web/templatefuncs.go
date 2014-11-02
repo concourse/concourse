@@ -3,7 +3,7 @@ package web
 import (
 	"fmt"
 
-	"github.com/concourse/atc/config"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web/routes"
 	"github.com/tedsuo/rata"
@@ -52,6 +52,6 @@ func jobName(x interface{}) string {
 	case string:
 		return v
 	default:
-		return x.(config.Job).Name
+		return x.(atc.JobConfig).Name
 	}
 }

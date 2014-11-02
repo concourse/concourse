@@ -1,11 +1,11 @@
-package resources_test
+package radar_test
 
 import (
 	"net/http"
 
-	"github.com/concourse/atc/config"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	. "github.com/concourse/atc/resources"
+	. "github.com/concourse/atc/radar"
 	"github.com/concourse/turbine"
 	"github.com/gorilla/websocket"
 	"github.com/tedsuo/rata"
@@ -17,12 +17,12 @@ import (
 
 var _ = Describe("TurbineChecker", func() {
 	var turbineServer *ghttp.Server
-	var checker Checker
+	var checker ResourceChecker
 
 	var checkedInputs chan turbine.Input
 	var checkVersions chan []turbine.Version
 
-	var resource config.Resource
+	var resource atc.ResourceConfig
 
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -73,10 +73,10 @@ var _ = Describe("TurbineChecker", func() {
 			rata.NewRequestGenerator(turbineServer.URL(), turbine.Routes),
 		)
 
-		resource = config.Resource{
+		resource = atc.ResourceConfig{
 			Name:   "some-input",
 			Type:   "git",
-			Source: config.Source{"uri": "http://example.com"},
+			Source: atc.Source{"uri": "http://example.com"},
 		}
 	})
 

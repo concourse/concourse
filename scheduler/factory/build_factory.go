@@ -4,22 +4,31 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/concourse/atc/config"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/turbine"
 )
 
 type BuildFactory struct {
-	Resources config.Resources
+	ConfigDB ConfigDB
 }
 
-func (factory *BuildFactory) Create(job config.Job, inputVersions db.VersionedResources) (turbine.Build, error) {
-	inputs, err := factory.computeInputs(job, inputVersions)
+type ConfigDB interface {
+	GetConfig() (atc.Config, error)
+}
+
+func (factory *BuildFactory) Create(job atc.JobConfig, inputVersions db.VersionedResources) (turbine.Build, error) {
+	config, err := factory.ConfigDB.GetConfig()
 	if err != nil {
 		return turbine.Build{}, err
 	}
 
-	outputs, err := factory.computeOutputs(job)
+	inputs, err := factory.computeInputs(job, config.Resources, inputVersions)
+	if err != nil {
+		return turbine.Build{}, err
+	}
+
+	outputs, err := factory.computeOutputs(job, config.Resources)
 	if err != nil {
 		return turbine.Build{}, err
 	}
@@ -34,10 +43,14 @@ func (factory *BuildFactory) Create(job config.Job, inputVersions db.VersionedRe
 	}, nil
 }
 
-func (factory *BuildFactory) computeInputs(job config.Job, inputs db.VersionedResources) ([]turbine.Input, error) {
+func (factory *BuildFactory) computeInputs(
+	job atc.JobConfig,
+	resources atc.ResourceConfigs,
+	inputs db.VersionedResources,
+) ([]turbine.Input, error) {
 	turbineInputs := make([]turbine.Input, len(job.Inputs))
 	for i, input := range job.Inputs {
-		resource, found := factory.Resources.Lookup(input.Resource)
+		resource, found := resources.Lookup(input.Resource)
 		if !found {
 			return nil, fmt.Errorf("unknown resource: %s", input.Resource)
 		}
@@ -58,10 +71,10 @@ func (factory *BuildFactory) computeInputs(job config.Job, inputs db.VersionedRe
 }
 
 func (factory *BuildFactory) inputFor(
-	job config.Job,
+	job atc.JobConfig,
 	vr db.VersionedResource,
 	inputName string,
-	params config.Params,
+	params atc.Params,
 ) turbine.Input {
 	turbineInput := turbine.Input{
 		Name:     inputName,
@@ -83,10 +96,13 @@ func (factory *BuildFactory) inputFor(
 	return turbineInput
 }
 
-func (factory *BuildFactory) computeOutputs(job config.Job) ([]turbine.Output, error) {
+func (factory *BuildFactory) computeOutputs(
+	job atc.JobConfig,
+	resources atc.ResourceConfigs,
+) ([]turbine.Output, error) {
 	turbineOutputs := []turbine.Output{}
 	for _, output := range job.Outputs {
-		resource, found := factory.Resources.Lookup(output.Resource)
+		resource, found := resources.Lookup(output.Resource)
 		if !found {
 			return nil, fmt.Errorf("unknown resource: %s", output.Resource)
 		}

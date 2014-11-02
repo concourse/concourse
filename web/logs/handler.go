@@ -7,7 +7,6 @@ import (
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/event"
 )
@@ -15,12 +14,19 @@ import (
 func NewHandler(
 	logger lager.Logger,
 	validator auth.Validator,
-	jobs config.Jobs,
 	db db.DB,
+	configDB db.ConfigDB,
 	drain <-chan struct{},
 ) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		buildIDStr := r.FormValue(":build_id")
+
+		config, err := configDB.GetConfig()
+		if err != nil {
+			logger.Error("failed-to-load-config", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
 		log := logger.Session("logs-out", lager.Data{
 			"build_id": buildIDStr,
@@ -45,7 +51,7 @@ func NewHandler(
 				return
 			}
 
-			job, found := jobs.Lookup(build.JobName)
+			job, found := config.Jobs.Lookup(build.JobName)
 			if !found || !job.Public {
 				w.WriteHeader(http.StatusNotFound)
 				return

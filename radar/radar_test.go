@@ -3,9 +3,10 @@ package radar_test
 import (
 	"time"
 
-	"github.com/concourse/atc/config"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/tedsuo/ifrit"
 
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/fakes"
@@ -15,33 +16,45 @@ import (
 )
 
 var _ = Describe("Radar", func() {
-	var checker *fakes.FakeResourceChecker
-	var tracker *fakes.FakeVersionDB
-	var interval time.Duration
+	var (
+		checker  *fakes.FakeResourceChecker
+		tracker  *fakes.FakeVersionDB
+		configDB *fakes.FakeConfigDB
+		interval time.Duration
 
-	var radar *Radar
+		radar *Radar
 
-	var resource config.Resource
+		resource atc.ResourceConfig
 
-	var locker *fakes.FakeLocker
-	var readLock *dbfakes.FakeLock
-	var writeLock *dbfakes.FakeLock
-	var writeImmediatelyLock *dbfakes.FakeLock
+		locker               *fakes.FakeLocker
+		readLock             *dbfakes.FakeLock
+		writeLock            *dbfakes.FakeLock
+		writeImmediatelyLock *dbfakes.FakeLock
+
+		process ifrit.Process
+	)
 
 	BeforeEach(func() {
 		logger := lagertest.NewTestLogger("radar")
 		checker = new(fakes.FakeResourceChecker)
 		tracker = new(fakes.FakeVersionDB)
-		interval = 100 * time.Millisecond
 		locker = new(fakes.FakeLocker)
+		configDB = new(fakes.FakeConfigDB)
+		interval = 100 * time.Millisecond
 
-		radar = NewRadar(logger, tracker, interval, locker)
+		radar = NewRadar(logger, tracker, interval, locker, configDB)
 
-		resource = config.Resource{
+		resource = atc.ResourceConfig{
 			Name:   "some-resource",
 			Type:   "git",
-			Source: config.Source{"uri": "http://example.com"},
+			Source: atc.Source{"uri": "http://example.com"},
 		}
+
+		configDB.GetConfigReturns(atc.Config{
+			Resources: atc.ResourceConfigs{
+				resource,
+			},
+		}, nil)
 
 		readLock = new(dbfakes.FakeLock)
 		locker.AcquireReadLockReturns(readLock, nil)
@@ -52,7 +65,7 @@ var _ = Describe("Radar", func() {
 	})
 
 	JustBeforeEach(func() {
-		radar.Scan(checker, resource)
+		process = radar.Scan(checker, "some-resource")
 	})
 
 	AfterEach(func() {
@@ -65,7 +78,7 @@ var _ = Describe("Radar", func() {
 		BeforeEach(func() {
 			times = make(chan time.Time, 100)
 
-			checker.CheckResourceStub = func(config.Resource, db.Version) ([]db.Version, error) {
+			checker.CheckResourceStub = func(atc.ResourceConfig, db.Version) ([]db.Version, error) {
 				times <- time.Now()
 				return nil, nil
 			}
@@ -122,8 +135,8 @@ var _ = Describe("Radar", func() {
 			It("checks from nil", func() {
 				Eventually(times).Should(Receive())
 
-				resource, version := checker.CheckResourceArgsForCall(0)
-				Ω(resource).Should(Equal(resource))
+				checkedResource, version := checker.CheckResourceArgsForCall(0)
+				Ω(checkedResource).Should(Equal(resource))
 				Ω(version).Should(BeNil())
 			})
 		})
@@ -138,8 +151,8 @@ var _ = Describe("Radar", func() {
 			It("checks from it", func() {
 				Eventually(times).Should(Receive())
 
-				resource, version := checker.CheckResourceArgsForCall(0)
-				Ω(resource).Should(Equal(resource))
+				checkedResource, version := checker.CheckResourceArgsForCall(0)
+				Ω(checkedResource).Should(Equal(resource))
 				Ω(version).Should(Equal(db.Version{"version": "1"}))
 
 				tracker.GetLatestVersionedResourceReturns(db.VersionedResource{
@@ -148,8 +161,8 @@ var _ = Describe("Radar", func() {
 
 				Eventually(times).Should(Receive())
 
-				resource, version = checker.CheckResourceArgsForCall(1)
-				Ω(resource).Should(Equal(resource))
+				checkedResource, version = checker.CheckResourceArgsForCall(1)
+				Ω(checkedResource).Should(Equal(resource))
 				Ω(version).Should(Equal(db.Version{"version": "2"}))
 			})
 		})
@@ -173,7 +186,7 @@ var _ = Describe("Radar", func() {
 				}
 
 				check := 0
-				checker.CheckResourceStub = func(checkedResource config.Resource, from db.Version) ([]db.Version, error) {
+				checker.CheckResourceStub = func(checkedResource atc.ResourceConfig, from db.Version) ([]db.Version, error) {
 					defer GinkgoRecover()
 
 					Ω(checkedResource).Should(Equal(resource))
@@ -223,11 +236,76 @@ var _ = Describe("Radar", func() {
 			})
 		})
 
+		Context("when the config changes", func() {
+			var newConfig atc.Config
+
+			BeforeEach(func() {
+				configs := make(chan atc.Config, 1)
+				configs <- atc.Config{
+					Resources: atc.ResourceConfigs{resource},
+				}
+
+				configDB.GetConfigStub = func() (atc.Config, error) {
+					select {
+					case c := <-configs:
+						return c, nil
+					default:
+						return newConfig, nil
+					}
+				}
+			})
+
+			Context("with new configuration for the resource", func() {
+				var newResource atc.ResourceConfig
+
+				BeforeEach(func() {
+					newResource = atc.ResourceConfig{
+						Name:   "some-resource",
+						Type:   "git",
+						Source: atc.Source{"uri": "http://example.com/updated-uri"},
+					}
+
+					newConfig = atc.Config{
+						Resources: atc.ResourceConfigs{newResource},
+					}
+				})
+
+				It("checks using the new config", func() {
+					Eventually(times).Should(Receive())
+
+					checkedResource, _ := checker.CheckResourceArgsForCall(0)
+					Ω(checkedResource).Should(Equal(resource))
+
+					Eventually(times).Should(Receive())
+
+					checkedResource, _ = checker.CheckResourceArgsForCall(1)
+					Ω(checkedResource).Should(Equal(newResource))
+				})
+			})
+
+			Context("with the resource removed", func() {
+				BeforeEach(func() {
+					newConfig = atc.Config{
+						Resources: atc.ResourceConfigs{},
+					}
+				})
+
+				It("exits", func() {
+					Eventually(times).Should(Receive())
+
+					checkedResource, _ := checker.CheckResourceArgsForCall(0)
+					Ω(checkedResource).Should(Equal(resource))
+
+					Eventually(process.Wait()).Should(Receive())
+				})
+			})
+		})
+
 		Context("and checking takes a while", func() {
 			BeforeEach(func() {
 				checked := false
 
-				checker.CheckResourceStub = func(config.Resource, db.Version) ([]db.Version, error) {
+				checker.CheckResourceStub = func(atc.ResourceConfig, db.Version) ([]db.Version, error) {
 					times <- time.Now()
 
 					if checked {

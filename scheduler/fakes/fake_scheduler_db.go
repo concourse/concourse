@@ -4,7 +4,7 @@ package fakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/config"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/scheduler"
 )
@@ -20,10 +20,10 @@ type FakeSchedulerDB struct {
 		result1 bool
 		result2 error
 	}
-	GetLatestInputVersionsStub        func([]config.Input) (db.VersionedResources, error)
+	GetLatestInputVersionsStub        func([]atc.InputConfig) (db.VersionedResources, error)
 	getLatestInputVersionsMutex       sync.RWMutex
 	getLatestInputVersionsArgsForCall []struct {
-		arg1 []config.Input
+		arg1 []atc.InputConfig
 	}
 	getLatestInputVersionsReturns struct {
 		result1 db.VersionedResources
@@ -62,7 +62,7 @@ type FakeSchedulerDB struct {
 	GetAllStartedBuildsStub        func() ([]db.Build, error)
 	getAllStartedBuildsMutex       sync.RWMutex
 	getAllStartedBuildsArgsForCall []struct{}
-	getAllStartedBuildsReturns     struct {
+	getAllStartedBuildsReturns struct {
 		result1 []db.Build
 		result2 error
 	}
@@ -102,10 +102,10 @@ func (fake *FakeSchedulerDB) ScheduleBuildReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeSchedulerDB) GetLatestInputVersions(arg1 []config.Input) (db.VersionedResources, error) {
+func (fake *FakeSchedulerDB) GetLatestInputVersions(arg1 []atc.InputConfig) (db.VersionedResources, error) {
 	fake.getLatestInputVersionsMutex.Lock()
 	fake.getLatestInputVersionsArgsForCall = append(fake.getLatestInputVersionsArgsForCall, struct {
-		arg1 []config.Input
+		arg1 []atc.InputConfig
 	}{arg1})
 	fake.getLatestInputVersionsMutex.Unlock()
 	if fake.GetLatestInputVersionsStub != nil {
@@ -121,7 +121,7 @@ func (fake *FakeSchedulerDB) GetLatestInputVersionsCallCount() int {
 	return len(fake.getLatestInputVersionsArgsForCall)
 }
 
-func (fake *FakeSchedulerDB) GetLatestInputVersionsArgsForCall(i int) []config.Input {
+func (fake *FakeSchedulerDB) GetLatestInputVersionsArgsForCall(i int) []atc.InputConfig {
 	fake.getLatestInputVersionsMutex.RLock()
 	defer fake.getLatestInputVersionsMutex.RUnlock()
 	return fake.getLatestInputVersionsArgsForCall[i].arg1

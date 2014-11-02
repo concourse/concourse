@@ -4,28 +4,33 @@ package fakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/radar"
+	"github.com/tedsuo/ifrit"
 )
 
 type FakeScanner struct {
-	ScanStub        func(radar.ResourceChecker, config.Resource)
+	ScanStub        func(radar.ResourceChecker, string) ifrit.Process
 	scanMutex       sync.RWMutex
 	scanArgsForCall []struct {
 		arg1 radar.ResourceChecker
-		arg2 config.Resource
+		arg2 string
+	}
+	scanReturns struct {
+		result1 ifrit.Process
 	}
 }
 
-func (fake *FakeScanner) Scan(arg1 radar.ResourceChecker, arg2 config.Resource) {
+func (fake *FakeScanner) Scan(arg1 radar.ResourceChecker, arg2 string) ifrit.Process {
 	fake.scanMutex.Lock()
 	fake.scanArgsForCall = append(fake.scanArgsForCall, struct {
 		arg1 radar.ResourceChecker
-		arg2 config.Resource
+		arg2 string
 	}{arg1, arg2})
 	fake.scanMutex.Unlock()
 	if fake.ScanStub != nil {
-		fake.ScanStub(arg1, arg2)
+		return fake.ScanStub(arg1, arg2)
+	} else {
+		return fake.scanReturns.result1
 	}
 }
 
@@ -35,10 +40,17 @@ func (fake *FakeScanner) ScanCallCount() int {
 	return len(fake.scanArgsForCall)
 }
 
-func (fake *FakeScanner) ScanArgsForCall(i int) (radar.ResourceChecker, config.Resource) {
+func (fake *FakeScanner) ScanArgsForCall(i int) (radar.ResourceChecker, string) {
 	fake.scanMutex.RLock()
 	defer fake.scanMutex.RUnlock()
 	return fake.scanArgsForCall[i].arg1, fake.scanArgsForCall[i].arg2
+}
+
+func (fake *FakeScanner) ScanReturns(result1 ifrit.Process) {
+	fake.ScanStub = nil
+	fake.scanReturns = struct {
+		result1 ifrit.Process
+	}{result1}
 }
 
 var _ radar.Scanner = new(FakeScanner)

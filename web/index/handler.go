@@ -8,7 +8,7 @@ import (
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 
-	"github.com/concourse/atc/config"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/radar"
 	"github.com/concourse/atc/web/routes"
@@ -20,24 +20,22 @@ type handler struct {
 	// used for providing resource state
 	radar *radar.Radar
 
-	groups    config.Groups
-	resources config.Resources
-	jobs      config.Jobs
-	db        db.DB
-	template  *template.Template
+	db       db.DB
+	configDB db.ConfigDB
+
+	template *template.Template
 }
 
-func NewHandler(logger lager.Logger, radar *radar.Radar, groups config.Groups, resources config.Resources, jobs config.Jobs, db db.DB, template *template.Template) http.Handler {
+func NewHandler(logger lager.Logger, radar *radar.Radar, db db.DB, configDB db.ConfigDB, template *template.Template) http.Handler {
 	return &handler{
 		logger: logger,
 
 		radar: radar,
 
-		groups:    groups,
-		resources: resources,
-		jobs:      jobs,
-		db:        db,
-		template:  template,
+		db:       db,
+		configDB: configDB,
+
+		template: template,
 	}
 }
 
@@ -62,19 +60,26 @@ type DotEdge struct {
 type DotValue map[string]interface{}
 
 type JobStatus struct {
-	Job          config.Job
+	Job          atc.JobConfig
 	CurrentBuild db.Build
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	config, err := handler.configDB.GetConfig()
+	if err != nil {
+		handler.logger.Error("failed-to-load-config", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	groups := map[string]bool{}
-	for _, group := range handler.groups {
+	for _, group := range config.Groups {
 		groups[group.Name] = false
 	}
 
 	enabledGroups, found := r.URL.Query()["groups"]
-	if !found && len(handler.groups) > 0 {
-		enabledGroups = []string{handler.groups[0].Name}
+	if !found && len(config.Groups) > 0 {
+		enabledGroups = []string{config.Groups[0].Name}
 	}
 
 	for _, name := range enabledGroups {
@@ -91,7 +96,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	currentBuilds := map[string]db.Build{}
 
-	for _, job := range handler.jobs {
+	for _, job := range config.Jobs {
 		currentBuild, err := handler.db.GetCurrentBuild(job.Name)
 		if err != nil {
 			currentBuild.Status = db.StatusPending
@@ -108,7 +113,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	jobGroups := map[string][]string{}
 	resourceGroups := map[string][]string{}
 
-	for _, group := range handler.groups {
+	for _, group := range config.Groups {
 		for _, name := range group.Jobs {
 			jobGroups[name] = append(jobGroups[name], group.Name)
 		}
@@ -118,7 +123,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	for _, resource := range handler.resources {
+	for _, resource := range config.Resources {
 		resourceID := resourceNode(resource.Name)
 
 		resourceURI, _ := routes.Routes.CreatePathForRoute(routes.GetResource, rata.Params{
@@ -149,7 +154,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	for _, job := range handler.jobs {
+	for _, job := range config.Jobs {
 		jobID := jobNode(job.Name)
 		currentBuild := currentBuilds[job.Name]
 
@@ -214,7 +219,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				for _, passed := range input.Passed {
 					currentBuild := currentBuilds[passed]
 
-					passedJob, found := handler.jobs.Lookup(passed)
+					passedJob, found := config.Jobs.Lookup(passed)
 					if !found {
 						panic("unknown job: " + passed)
 					}
@@ -272,7 +277,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err := handler.template.Execute(w, data)
+	err = handler.template.Execute(w, data)
 	if err != nil {
 		log.Fatal("failed-to-execute-template", err, lager.Data{
 			"template-data": data,

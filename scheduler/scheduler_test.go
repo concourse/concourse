@@ -3,8 +3,8 @@ package scheduler_test
 import (
 	"errors"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/builder/fakebuilder"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	dbfakes "github.com/concourse/atc/db/fakes"
 	. "github.com/concourse/atc/scheduler"
@@ -26,7 +26,7 @@ var _ = Describe("Scheduler", func() {
 
 		createdTurbineBuild turbine.Build
 
-		job config.Job
+		job atc.JobConfig
 
 		readLock *dbfakes.FakeLock
 
@@ -57,19 +57,19 @@ var _ = Describe("Scheduler", func() {
 			Tracker: tracker,
 		}
 
-		job = config.Job{
+		job = atc.JobConfig{
 			Name: "some-job",
 
 			Serial: true,
 
-			Inputs: []config.Input{
+			Inputs: []atc.InputConfig{
 				{
 					Resource: "some-resource",
-					Params:   config.Params{"some": "params"},
+					Params:   atc.Params{"some": "params"},
 				},
 				{
 					Resource: "some-other-resource",
-					Params:   config.Params{"some": "params"},
+					Params:   atc.Params{"some": "params"},
 				},
 			},
 		}
@@ -124,7 +124,7 @@ var _ = Describe("Scheduler", func() {
 
 		Context("when the job has no inputs", func() {
 			BeforeEach(func() {
-				job.Inputs = []config.Input{}
+				job.Inputs = []atc.InputConfig{}
 			})
 
 			It("succeeds", func() {
@@ -181,7 +181,7 @@ var _ = Describe("Scheduler", func() {
 				BeforeEach(func() {
 					trigger := false
 
-					job.Inputs = append(job.Inputs, config.Input{
+					job.Inputs = append(job.Inputs, atc.InputConfig{
 						Resource: "some-non-checking-resource",
 						Trigger:  &trigger,
 					})
@@ -489,7 +489,7 @@ var _ = Describe("Scheduler", func() {
 
 		Context("when the job has dependant inputs", func() {
 			BeforeEach(func() {
-				job.Inputs = append(job.Inputs, config.Input{
+				job.Inputs = append(job.Inputs, atc.InputConfig{
 					Resource: "some-dependant-resource",
 					Passed:   []string{"job-a"},
 				})
@@ -509,7 +509,7 @@ var _ = Describe("Scheduler", func() {
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(schedulerDB.GetLatestInputVersionsCallCount()).Should(Equal(1))
-					Ω(schedulerDB.GetLatestInputVersionsArgsForCall(0)).Should(Equal([]config.Input{
+					Ω(schedulerDB.GetLatestInputVersionsArgsForCall(0)).Should(Equal([]atc.InputConfig{
 						{
 							Resource: "some-dependant-resource",
 							Passed:   []string{"job-a"},

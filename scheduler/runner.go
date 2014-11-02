@@ -4,7 +4,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/concourse/atc/config"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 )
@@ -15,20 +15,25 @@ type Locker interface {
 }
 
 type BuildScheduler interface {
-	TryNextPendingBuild(config.Job) error
-	BuildLatestInputs(config.Job) error
+	TryNextPendingBuild(atc.JobConfig) error
+	BuildLatestInputs(atc.JobConfig) error
 
 	TrackInFlightBuilds() error
+}
+
+type ConfigDB interface {
+	GetConfig() (atc.Config, error)
 }
 
 type Runner struct {
 	Logger lager.Logger
 
-	Locker    Locker
+	Locker   Locker
+	ConfigDB ConfigDB
+
 	Scheduler BuildScheduler
 
 	Noop bool
-	Jobs config.Jobs
 
 	Interval time.Duration
 }
@@ -59,15 +64,22 @@ dance:
 				runner.Logger.Info("scheduling")
 			}
 
+			config, err := runner.ConfigDB.GetConfig()
+			if err != nil {
+				continue
+			}
+
 			runner.Scheduler.TrackInFlightBuilds()
 
-			for _, job := range runner.Jobs {
+			for _, job := range config.Jobs {
 				lock, err := runner.Locker.AcquireWriteLockImmediately([]db.NamedLock{db.JobSchedulingLock(job.Name)})
 				if err != nil {
 					continue
 				}
+
 				runner.Scheduler.TryNextPendingBuild(job)
 				runner.Scheduler.BuildLatestInputs(job)
+
 				lock.Release()
 			}
 

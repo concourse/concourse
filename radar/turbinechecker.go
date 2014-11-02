@@ -1,4 +1,4 @@
-package resources
+package radar
 
 import (
 	"net"
@@ -7,7 +7,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/tedsuo/rata"
 
-	"github.com/concourse/atc/config"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/turbine"
 )
@@ -21,7 +21,7 @@ type TurbineChecker struct {
 	responses chan []db.Version
 }
 
-func NewTurbineChecker(turbine *rata.RequestGenerator) Checker {
+func NewTurbineChecker(turbine *rata.RequestGenerator) ResourceChecker {
 	return &TurbineChecker{
 		turbine: turbine,
 
@@ -36,7 +36,7 @@ func NewTurbineChecker(turbine *rata.RequestGenerator) Checker {
 	}
 }
 
-func (checker *TurbineChecker) CheckResource(resource config.Resource, from db.Version) ([]db.Version, error) {
+func (checker *TurbineChecker) CheckResource(resource atc.ResourceConfig, from db.Version) ([]db.Version, error) {
 	conn, err := checker.connect()
 	if err != nil {
 		return nil, err

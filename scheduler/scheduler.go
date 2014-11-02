@@ -3,8 +3,8 @@ package scheduler
 import (
 	"github.com/pivotal-golang/lager"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/builder"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/turbine"
 )
@@ -12,7 +12,7 @@ import (
 type SchedulerDB interface {
 	ScheduleBuild(buildID int, serial bool) (bool, error)
 
-	GetLatestInputVersions([]config.Input) (db.VersionedResources, error)
+	GetLatestInputVersions([]atc.InputConfig) (db.VersionedResources, error)
 	CreateJobBuildWithInputs(job string, inputs db.VersionedResources) (db.Build, error)
 	GetJobBuildForInputs(job string, inputs db.VersionedResources) (db.Build, error)
 
@@ -22,7 +22,7 @@ type SchedulerDB interface {
 }
 
 type BuildFactory interface {
-	Create(config.Job, db.VersionedResources) (turbine.Build, error)
+	Create(atc.JobConfig, db.VersionedResources) (turbine.Build, error)
 }
 
 type BuildTracker interface {
@@ -38,7 +38,7 @@ type Scheduler struct {
 	Tracker BuildTracker
 }
 
-func (s *Scheduler) BuildLatestInputs(job config.Job) error {
+func (s *Scheduler) BuildLatestInputs(job atc.JobConfig) error {
 	if len(job.Inputs) == 0 {
 		// no inputs; no-op
 		return nil
@@ -130,7 +130,7 @@ func (s *Scheduler) BuildLatestInputs(job config.Job) error {
 	return nil
 }
 
-func (s *Scheduler) TryNextPendingBuild(job config.Job) error {
+func (s *Scheduler) TryNextPendingBuild(job atc.JobConfig) error {
 	buildLog := s.Logger.Session("trigger-pending")
 
 	build, inputs, err := s.DB.GetNextPendingBuild(job.Name)
@@ -162,10 +162,10 @@ func (s *Scheduler) TryNextPendingBuild(job config.Job) error {
 	return nil
 }
 
-func (s *Scheduler) TriggerImmediately(job config.Job) (db.Build, error) {
+func (s *Scheduler) TriggerImmediately(job atc.JobConfig) (db.Build, error) {
 	buildLog := s.Logger.Session("trigger-immediately")
 
-	passedInputs := []config.Input{}
+	passedInputs := []atc.InputConfig{}
 	for _, input := range job.Inputs {
 		if len(input.Passed) == 0 {
 			continue

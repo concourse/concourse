@@ -3,7 +3,7 @@ package db
 import (
 	"time"
 
-	"github.com/concourse/atc/config"
+	"github.com/concourse/atc"
 )
 
 type DB interface {
@@ -44,7 +44,7 @@ type DB interface {
 	SaveVersionedResource(VersionedResource) error
 	GetLatestVersionedResource(resource string) (VersionedResource, error)
 
-	GetLatestInputVersions([]config.Input) (VersionedResources, error)
+	GetLatestInputVersions([]atc.InputConfig) (VersionedResources, error)
 	GetJobBuildForInputs(job string, inputs VersionedResources) (Build, error)
 
 	GetNextPendingBuild(job string) (Build, VersionedResources, error)
@@ -54,6 +54,13 @@ type DB interface {
 	AcquireWriteLockImmediately(locks []NamedLock) (Lock, error)
 	AcquireWriteLock(locks []NamedLock) (Lock, error)
 	AcquireReadLock(locks []NamedLock) (Lock, error)
+
+	ConfigDB
+}
+
+type ConfigDB interface {
+	GetConfig() (atc.Config, error)
+	SaveConfig(atc.Config) error
 }
 
 type Lock interface {

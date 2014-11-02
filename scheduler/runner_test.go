@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/concourse/atc/config"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	dbfakes "github.com/concourse/atc/db/fakes"
 	. "github.com/concourse/atc/scheduler"
@@ -19,9 +19,9 @@ import (
 var _ = Describe("Runner", func() {
 	var (
 		locker    *fakes.FakeLocker
+		configDB  *fakes.FakeConfigDB
 		scheduler *fakes.FakeBuildScheduler
 		noop      bool
-		jobs      config.Jobs
 
 		lock *dbfakes.FakeLock
 
@@ -30,18 +30,22 @@ var _ = Describe("Runner", func() {
 
 	BeforeEach(func() {
 		locker = new(fakes.FakeLocker)
+		configDB = new(fakes.FakeConfigDB)
 		scheduler = new(fakes.FakeBuildScheduler)
-
 		noop = false
 
-		jobs = config.Jobs{
-			{
-				Name: "some-job",
-			},
-			{
-				Name: "some-other-job",
+		initialConfig := atc.Config{
+			Jobs: atc.JobConfigs{
+				{
+					Name: "some-job",
+				},
+				{
+					Name: "some-other-job",
+				},
 			},
 		}
+
+		configDB.GetConfigReturns(initialConfig, nil)
 
 		lock = new(dbfakes.FakeLock)
 		locker.AcquireWriteLockImmediatelyReturns(lock, nil)
@@ -50,9 +54,9 @@ var _ = Describe("Runner", func() {
 	JustBeforeEach(func() {
 		process = ginkgomon.Invoke(&Runner{
 			Locker:    locker,
+			ConfigDB:  configDB,
 			Scheduler: scheduler,
 			Noop:      noop,
-			Jobs:      jobs,
 			Interval:  100 * time.Millisecond,
 		})
 	})
@@ -85,7 +89,7 @@ var _ = Describe("Runner", func() {
 			Eventually(locker.AcquireWriteLockImmediatelyCallCount).Should(Equal(2))
 
 			job := scheduler.TryNextPendingBuildArgsForCall(0)
-			Ω(job).Should(Equal(config.Job{Name: "some-other-job"}))
+			Ω(job).Should(Equal(atc.JobConfig{Name: "some-other-job"}))
 		})
 	})
 
@@ -97,20 +101,20 @@ var _ = Describe("Runner", func() {
 		Eventually(scheduler.TryNextPendingBuildCallCount).Should(Equal(2))
 
 		job := scheduler.TryNextPendingBuildArgsForCall(0)
-		Ω(job).Should(Equal(config.Job{Name: "some-job"}))
+		Ω(job).Should(Equal(atc.JobConfig{Name: "some-job"}))
 
 		job = scheduler.TryNextPendingBuildArgsForCall(1)
-		Ω(job).Should(Equal(config.Job{Name: "some-other-job"}))
+		Ω(job).Should(Equal(atc.JobConfig{Name: "some-other-job"}))
 	})
 
 	It("schedules builds for new inputs", func() {
 		Eventually(scheduler.BuildLatestInputsCallCount).Should(Equal(2))
 
 		job := scheduler.BuildLatestInputsArgsForCall(0)
-		Ω(job).Should(Equal(config.Job{Name: "some-job"}))
+		Ω(job).Should(Equal(atc.JobConfig{Name: "some-job"}))
 
 		job = scheduler.BuildLatestInputsArgsForCall(1)
-		Ω(job).Should(Equal(config.Job{Name: "some-other-job"}))
+		Ω(job).Should(Equal(atc.JobConfig{Name: "some-other-job"}))
 	})
 
 	Context("when in noop mode", func() {
