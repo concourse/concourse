@@ -19,12 +19,14 @@ func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
 
 	build, err := s.db.CreateOneOffBuild()
 	if err != nil {
+		s.logger.Error("failed-to-create-one-off-build", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	err = s.builder.Build(build, turbineBuild)
 	if err != nil {
+		s.logger.Error("failed-to-start-build", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
