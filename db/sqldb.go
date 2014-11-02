@@ -13,21 +13,21 @@ import (
 	"github.com/concourse/atc"
 )
 
-type sqldb struct {
+type SQLDB struct {
 	logger lager.Logger
 	conn   *sql.DB
 }
 
 const buildColumns = "id, name, job_name, status, guid, endpoint, start_time, end_time"
 
-func NewSQL(logger lager.Logger, sqldbConnection *sql.DB) DB {
-	return &sqldb{
+func NewSQL(logger lager.Logger, sqldbConnection *sql.DB) *SQLDB {
+	return &SQLDB{
 		logger: logger,
 		conn:   sqldbConnection,
 	}
 }
 
-func (db *sqldb) RegisterJob(name string) error {
+func (db *SQLDB) RegisterJob(name string) error {
 	_, err := db.conn.Exec(`
 		INSERT INTO jobs (name)
 		SELECT $1
@@ -38,7 +38,7 @@ func (db *sqldb) RegisterJob(name string) error {
 	return err
 }
 
-func (db *sqldb) RegisterResource(name string) error {
+func (db *SQLDB) RegisterResource(name string) error {
 	_, err := db.conn.Exec(`
 		INSERT INTO resources (name)
 		SELECT $1
@@ -49,7 +49,7 @@ func (db *sqldb) RegisterResource(name string) error {
 	return err
 }
 
-func (db *sqldb) GetConfig() (atc.Config, error) {
+func (db *SQLDB) GetConfig() (atc.Config, error) {
 	var configBlob []byte
 	err := db.conn.QueryRow(`
 		SELECT config
@@ -72,7 +72,7 @@ func (db *sqldb) GetConfig() (atc.Config, error) {
 	return config, nil
 }
 
-func (db *sqldb) SaveConfig(config atc.Config) error {
+func (db *SQLDB) SaveConfig(config atc.Config) error {
 	payload, err := json.Marshal(config)
 	if err != nil {
 		return err
@@ -111,7 +111,7 @@ func (db *sqldb) SaveConfig(config atc.Config) error {
 	return tx.Commit()
 }
 
-func (db *sqldb) GetAllJobBuilds(job string) ([]Build, error) {
+func (db *SQLDB) GetAllJobBuilds(job string) ([]Build, error) {
 	rows, err := db.conn.Query(`
 		SELECT `+buildColumns+`
 		FROM builds
@@ -138,7 +138,7 @@ func (db *sqldb) GetAllJobBuilds(job string) ([]Build, error) {
 	return bs, nil
 }
 
-func (db *sqldb) GetAllBuilds() ([]Build, error) {
+func (db *SQLDB) GetAllBuilds() ([]Build, error) {
 	rows, err := db.conn.Query(`
 		SELECT ` + buildColumns + `
 		FROM builds
@@ -164,7 +164,7 @@ func (db *sqldb) GetAllBuilds() ([]Build, error) {
 	return bs, nil
 }
 
-func (db *sqldb) GetAllStartedBuilds() ([]Build, error) {
+func (db *SQLDB) GetAllStartedBuilds() ([]Build, error) {
 	rows, err := db.conn.Query(`
 		SELECT ` + buildColumns + `
 		FROM builds
@@ -190,7 +190,7 @@ func (db *sqldb) GetAllStartedBuilds() ([]Build, error) {
 	return bs, nil
 }
 
-func (db *sqldb) GetBuild(buildID int) (Build, error) {
+func (db *SQLDB) GetBuild(buildID int) (Build, error) {
 	return scanBuild(db.conn.QueryRow(`
 		SELECT `+buildColumns+`
 		FROM builds
@@ -198,7 +198,7 @@ func (db *sqldb) GetBuild(buildID int) (Build, error) {
 	`, buildID))
 }
 
-func (db *sqldb) GetJobBuild(job string, name string) (Build, error) {
+func (db *SQLDB) GetJobBuild(job string, name string) (Build, error) {
 	return scanBuild(db.conn.QueryRow(`
 		SELECT `+buildColumns+`
 		FROM builds
@@ -207,7 +207,7 @@ func (db *sqldb) GetJobBuild(job string, name string) (Build, error) {
 	`, job, name))
 }
 
-func (db *sqldb) GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error) {
+func (db *SQLDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error) {
 	inputs := []BuildInput{}
 	outputs := []BuildOutput{}
 
@@ -314,7 +314,7 @@ func (db *sqldb) GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, er
 	return inputs, outputs, nil
 }
 
-func (db *sqldb) GetCurrentBuild(job string) (Build, error) {
+func (db *SQLDB) GetCurrentBuild(job string) (Build, error) {
 	rows, err := db.conn.Query(`
 		SELECT `+buildColumns+`
 		FROM builds
@@ -350,7 +350,7 @@ func (db *sqldb) GetCurrentBuild(job string) (Build, error) {
 	return scanBuild(rows)
 }
 
-func (db *sqldb) GetJobFinishedAndNextBuild(job string) (*Build, *Build, error) {
+func (db *SQLDB) GetJobFinishedAndNextBuild(job string) (*Build, *Build, error) {
 	var finished *Build
 	var next *Build
 
@@ -385,7 +385,7 @@ func (db *sqldb) GetJobFinishedAndNextBuild(job string) (*Build, *Build, error) 
 	return finished, next, nil
 }
 
-func (db *sqldb) CreateJobBuild(job string) (Build, error) {
+func (db *SQLDB) CreateJobBuild(job string) (Build, error) {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return Build{}, err
@@ -421,7 +421,7 @@ func (db *sqldb) CreateJobBuild(job string) (Build, error) {
 	return build, nil
 }
 
-func (db *sqldb) CreateOneOffBuild() (Build, error) {
+func (db *SQLDB) CreateOneOffBuild() (Build, error) {
 	return scanBuild(db.conn.QueryRow(`
 		INSERT INTO builds(name, status)
 		VALUES (nextval('one_off_name'), 'pending')
@@ -429,7 +429,7 @@ func (db *sqldb) CreateOneOffBuild() (Build, error) {
 	`))
 }
 
-func (db *sqldb) ScheduleBuild(buildID int, serial bool) (bool, error) {
+func (db *SQLDB) ScheduleBuild(buildID int, serial bool) (bool, error) {
 	result, err := db.conn.Exec(`
 		UPDATE builds AS b
 		SET scheduled = true
@@ -472,7 +472,7 @@ func (db *sqldb) ScheduleBuild(buildID int, serial bool) (bool, error) {
 	return rows == 1, nil
 }
 
-func (db *sqldb) StartBuild(buildID int, guid, endpoint string) (bool, error) {
+func (db *SQLDB) StartBuild(buildID int, guid, endpoint string) (bool, error) {
 	result, err := db.conn.Exec(`
 		UPDATE builds
 		SET status = 'started', guid = $2, endpoint = $3
@@ -491,7 +491,7 @@ func (db *sqldb) StartBuild(buildID int, guid, endpoint string) (bool, error) {
 	return rows == 1, nil
 }
 
-func (db *sqldb) SaveBuildStartTime(buildID int, startTime time.Time) error {
+func (db *SQLDB) SaveBuildStartTime(buildID int, startTime time.Time) error {
 	_, err := db.conn.Exec(`
 		UPDATE builds
 		SET start_time = $2
@@ -504,7 +504,7 @@ func (db *sqldb) SaveBuildStartTime(buildID int, startTime time.Time) error {
 	return nil
 }
 
-func (db *sqldb) SaveBuildEndTime(buildID int, endTime time.Time) error {
+func (db *SQLDB) SaveBuildEndTime(buildID int, endTime time.Time) error {
 	_, err := db.conn.Exec(`
 		UPDATE builds
 		SET end_time = $2
@@ -517,7 +517,7 @@ func (db *sqldb) SaveBuildEndTime(buildID int, endTime time.Time) error {
 	return nil
 }
 
-func (db *sqldb) SaveBuildInput(buildID int, vr VersionedResource) error {
+func (db *SQLDB) SaveBuildInput(buildID int, vr VersionedResource) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return err
@@ -547,7 +547,7 @@ func (db *sqldb) SaveBuildInput(buildID int, vr VersionedResource) error {
 	return tx.Commit()
 }
 
-func (db *sqldb) SaveBuildOutput(buildID int, vr VersionedResource) error {
+func (db *SQLDB) SaveBuildOutput(buildID int, vr VersionedResource) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return err
@@ -571,7 +571,7 @@ func (db *sqldb) SaveBuildOutput(buildID int, vr VersionedResource) error {
 	return tx.Commit()
 }
 
-func (db *sqldb) SaveBuildStatus(buildID int, status Status) error {
+func (db *SQLDB) SaveBuildStatus(buildID int, status Status) error {
 	result, err := db.conn.Exec(`
 		UPDATE builds
 		SET status = $2
@@ -593,7 +593,7 @@ func (db *sqldb) SaveBuildStatus(buildID int, status Status) error {
 	return nil
 }
 
-func (db *sqldb) GetBuildEvents(buildID int) ([]BuildEvent, error) {
+func (db *SQLDB) GetBuildEvents(buildID int) ([]BuildEvent, error) {
 	var events []BuildEvent
 
 	rows, err := db.conn.Query(`
@@ -619,7 +619,7 @@ func (db *sqldb) GetBuildEvents(buildID int) ([]BuildEvent, error) {
 	return events, nil
 }
 
-func (db *sqldb) GetLastBuildEventID(buildID int) (int, error) {
+func (db *SQLDB) GetLastBuildEventID(buildID int) (int, error) {
 	var id int
 	err := db.conn.QueryRow(`
 		SELECT event_id
@@ -635,7 +635,7 @@ func (db *sqldb) GetLastBuildEventID(buildID int) (int, error) {
 	return id, nil
 }
 
-func (db *sqldb) SaveBuildEvent(buildID int, event BuildEvent) error {
+func (db *SQLDB) SaveBuildEvent(buildID int, event BuildEvent) error {
 	_, err := db.conn.Exec(`
 		INSERT INTO build_events (build_id, event_id, type, payload)
 		SELECT $1, $2, $3, $4
@@ -653,7 +653,7 @@ func (db *sqldb) SaveBuildEvent(buildID int, event BuildEvent) error {
 	return nil
 }
 
-func (db *sqldb) SaveVersionedResource(vr VersionedResource) error {
+func (db *SQLDB) SaveVersionedResource(vr VersionedResource) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return err
@@ -669,7 +669,7 @@ func (db *sqldb) SaveVersionedResource(vr VersionedResource) error {
 	return tx.Commit()
 }
 
-func (db *sqldb) GetLatestVersionedResource(name string) (VersionedResource, error) {
+func (db *SQLDB) GetLatestVersionedResource(name string) (VersionedResource, error) {
 	var sourceBytes, versionBytes, metadataBytes string
 
 	vr := VersionedResource{
@@ -705,7 +705,7 @@ func (db *sqldb) GetLatestVersionedResource(name string) (VersionedResource, err
 	return vr, nil
 }
 
-func (db *sqldb) GetLatestInputVersions(inputs []atc.InputConfig) (VersionedResources, error) {
+func (db *SQLDB) GetLatestInputVersions(inputs []atc.InputConfig) (VersionedResources, error) {
 	fromAliases := []string{}
 	conditions := []string{}
 	params := []interface{}{}
@@ -788,7 +788,7 @@ func (db *sqldb) GetLatestInputVersions(inputs []atc.InputConfig) (VersionedReso
 	return vrs, nil
 }
 
-func (db *sqldb) GetJobBuildForInputs(job string, inputs VersionedResources) (Build, error) {
+func (db *SQLDB) GetJobBuildForInputs(job string, inputs VersionedResources) (Build, error) {
 	from := []string{"builds"}
 	conditions := []string{"job_name = $1"}
 	params := []interface{}{job}
@@ -832,7 +832,7 @@ func (db *sqldb) GetJobBuildForInputs(job string, inputs VersionedResources) (Bu
 	))
 }
 
-func (db *sqldb) CreateJobBuildWithInputs(job string, inputs VersionedResources) (Build, error) {
+func (db *SQLDB) CreateJobBuildWithInputs(job string, inputs VersionedResources) (Build, error) {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return Build{}, err
@@ -883,7 +883,7 @@ func (db *sqldb) CreateJobBuildWithInputs(job string, inputs VersionedResources)
 	return build, nil
 }
 
-func (db *sqldb) GetNextPendingBuild(job string) (Build, VersionedResources, error) {
+func (db *SQLDB) GetNextPendingBuild(job string) (Build, VersionedResources, error) {
 	build, err := scanBuild(db.conn.QueryRow(`
 		SELECT `+buildColumns+`
 		FROM builds
@@ -910,7 +910,7 @@ func (db *sqldb) GetNextPendingBuild(job string) (Build, VersionedResources, err
 	return build, vrs, nil
 }
 
-func (db *sqldb) GetResourceHistory(resource string) ([]*VersionHistory, error) {
+func (db *SQLDB) GetResourceHistory(resource string) ([]*VersionHistory, error) {
 	hs := []*VersionHistory{}
 	vhs := map[int]*VersionHistory{}
 
@@ -1045,7 +1045,7 @@ func (db *sqldb) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 	return hs, nil
 }
 
-func (db *sqldb) acquireLock(lockType string, locks []NamedLock) (Lock, error) {
+func (db *SQLDB) acquireLock(lockType string, locks []NamedLock) (Lock, error) {
 	params := []interface{}{}
 	refs := []string{}
 	for i, lock := range locks {
@@ -1083,15 +1083,15 @@ func (db *sqldb) acquireLock(lockType string, locks []NamedLock) (Lock, error) {
 	return &txLock{tx}, nil
 }
 
-func (db *sqldb) AcquireWriteLockImmediately(lock []NamedLock) (Lock, error) {
+func (db *SQLDB) AcquireWriteLockImmediately(lock []NamedLock) (Lock, error) {
 	return db.acquireLock("UPDATE NOWAIT", lock)
 }
 
-func (db *sqldb) AcquireWriteLock(lock []NamedLock) (Lock, error) {
+func (db *SQLDB) AcquireWriteLock(lock []NamedLock) (Lock, error) {
 	return db.acquireLock("UPDATE", lock)
 }
 
-func (db *sqldb) AcquireReadLock(lock []NamedLock) (Lock, error) {
+func (db *SQLDB) AcquireReadLock(lock []NamedLock) (Lock, error) {
 	return db.acquireLock("SHARE", lock)
 }
 
@@ -1103,7 +1103,7 @@ func (lock *txLock) Release() error {
 	return lock.tx.Commit()
 }
 
-func (db *sqldb) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (int, error) {
+func (db *SQLDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (int, error) {
 	versionJSON, err := json.Marshal(vr.Version)
 	if err != nil {
 		return 0, err
