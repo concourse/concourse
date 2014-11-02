@@ -4,6 +4,18 @@
 
 @title[#:version version #:tag "release-notes"]{Release Notes}
 
+@section[#:style '(quiet unnumbered)]{v0.19.0}
+
+The graph library used to render the pipeline has been updated, and along
+the way the visualization of pipeline groups has been improved.
+
+
+@section[#:style '(quiet unnumbered)]{v0.18.0}
+
+The version of Consul was rolled back to @code{0.4.0} from @code{0.4.1}, as
+it was noticed that @code{0.4.1} broke single-server deployments.
+
+
 @section[#:style '(quiet unnumbered)]{v0.17.0}
 
 The ATC server is no longer a singleton, though scaling up doesn't yield much
