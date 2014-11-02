@@ -116,7 +116,7 @@ Each configured resource consists of the following attributes:
   @emph{Required.} The type of the resource. Each worker is configured with a
   static mapping of @code{resource-type -> container-image} on startup;
   @code{type} corresponds to the key in the map.
- 
+
   For example, declaring @code{git} here will result in the workers using
   @code{docker:///concourse/git-resource} if configured with that mapping.
 }
@@ -154,7 +154,7 @@ Each configured job consists of the following attributes:
   @seclink["configuring-builds"]{build config}, which allows this to be tracked
   with your resources. The file is provided by an input resource, so typically
   this value may be @code{resource-name/build.yml}.
-  
+
   @code{config} can be defined to inline the same configuration as
   @code{build.yml}.
 
@@ -243,6 +243,13 @@ Each configured job consists of the following attributes:
     @defthing[params object]{
       @emph{Optional.} A map of arbitrary configuration to forward to the
       resource's @code{out} script.
+    }
+
+    @defthing[perform_on [string]]{
+      @emph{Optional. Default @code{[success]}.} The conditions under which to
+      perform this output. For example, @code{[failure]} causes the output to be
+      performed if the build fails, while @code{[success, failure]} means the
+      output will be performed regardless of the build's result.
     }
   }
 }
