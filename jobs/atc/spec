@@ -45,8 +45,7 @@ properties:
     default: turbine.service.dc1.consul:4637
 
   atc.pipeline:
-    description: "pipeline configuration containing jobs and resources"
-    default: {}
+    description: "static pipeline configuration containing jobs and resources. omit to manage config via the API."
     example:
       resources:
         - name: concourse

@@ -48,7 +48,9 @@ case $1 in
     echo $$ > /var/vcap/sys/run/atc/atc.pid
 
     exec /var/vcap/packages/atc/bin/atc \
+    <% if_p("atc.pipeline") do %> \
       -pipeline=/var/vcap/jobs/atc/config/pipeline.yml \
+    <% end %> \
       -templates=/var/vcap/packages/atc/templates \
       -public=/var/vcap/packages/atc/public \
       -callbacksURL=<%= "http://#{my_ip}:#{p("atc.web_listen_port")}" %> \
