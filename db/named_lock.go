@@ -21,3 +21,9 @@ type JobSchedulingLock string
 func (jobSchedulingLock JobSchedulingLock) Name() string {
 	return "jobScheduling: " + string(jobSchedulingLock)
 }
+
+type BuildTrackingLock string
+
+func (buildTrackingLock BuildTrackingLock) Name() string {
+	return "buildTracking: " + string(buildTrackingLock)
+}

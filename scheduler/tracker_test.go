@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc/db"
+	dbfakes "github.com/concourse/atc/db/fakes"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/fakes"
 	"github.com/concourse/turbine"
@@ -26,6 +27,9 @@ var _ = Describe("Tracker", func() {
 		tracker BuildTracker
 
 		turbineServer *ghttp.Server
+
+		lock   *dbfakes.FakeLock
+		locker *fakes.FakeLocker
 	)
 
 	BeforeEach(func() {
@@ -33,7 +37,12 @@ var _ = Describe("Tracker", func() {
 
 		turbineServer = ghttp.NewServer()
 
-		tracker = NewTracker(lagertest.NewTestLogger("test"), trackerDB)
+		locker = new(fakes.FakeLocker)
+
+		tracker = NewTracker(lagertest.NewTestLogger("test"), trackerDB, locker)
+
+		lock = new(dbfakes.FakeLock)
+		locker.AcquireWriteLockImmediatelyReturns(lock, nil)
 	})
 
 	AfterEach(func() {
@@ -58,6 +67,49 @@ var _ = Describe("Tracker", func() {
 
 		JustBeforeEach(func() {
 			trackErr = tracker.TrackBuild(build)
+		})
+
+		Describe("locking", func() {
+			BeforeEach(func() {
+				turbineServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/builds/some-guid/events"),
+						func(w http.ResponseWriter, r *http.Request) {
+							flusher := w.(http.Flusher)
+
+							w.Header().Add("Content-Type", "text/event-stream; charset=utf-8")
+							w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
+							w.Header().Add("Connection", "keep-alive")
+
+							w.WriteHeader(http.StatusOK)
+
+							flusher.Flush()
+						},
+					),
+				)
+			})
+
+			It("grabs a lock before starting tracking, releases after", func() {
+				Ω(locker.AcquireWriteLockImmediatelyCallCount()).Should(Equal(1))
+
+				lockedBuild := locker.AcquireWriteLockImmediatelyArgsForCall(0)
+				Ω(lockedBuild).Should(Equal([]db.NamedLock{db.BuildTrackingLock(build.Guid)}))
+				Ω(lock.ReleaseCallCount()).Should(Equal(1))
+			})
+
+			Context("when it can't grab the lock", func() {
+				BeforeEach(func() {
+					locker.AcquireWriteLockImmediatelyReturns(nil, errors.New("no lock for you"))
+				})
+
+				It("returns immediately", func() {
+					Ω(locker.AcquireWriteLockImmediatelyCallCount()).Should(Equal(1))
+
+					lockedBuild := locker.AcquireWriteLockImmediatelyArgsForCall(0)
+					Ω(lockedBuild).Should(Equal([]db.NamedLock{db.BuildTrackingLock(build.Guid)}))
+					Ω(lock.ReleaseCallCount()).Should(Equal(0))
+				})
+			})
 		})
 
 		Context("when the build's turbine returns events", func() {
