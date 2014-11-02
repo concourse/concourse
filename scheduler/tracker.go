@@ -19,7 +19,8 @@ import (
 type tracker struct {
 	logger lager.Logger
 
-	db TrackerDB
+	db     TrackerDB
+	locker Locker
 
 	trackingBuilds map[int]bool
 	lock           *sync.Mutex
@@ -38,10 +39,11 @@ type TrackerDB interface {
 	SaveBuildStatus(buildID int, status db.Status) error
 }
 
-func NewTracker(logger lager.Logger, db TrackerDB) BuildTracker {
+func NewTracker(logger lager.Logger, db TrackerDB, locker Locker) BuildTracker {
 	return &tracker{
 		logger: logger,
 		db:     db,
+		locker: locker,
 
 		trackingBuilds: make(map[int]bool),
 		lock:           new(sync.Mutex),
@@ -49,6 +51,12 @@ func NewTracker(logger lager.Logger, db TrackerDB) BuildTracker {
 }
 
 func (tracker *tracker) TrackBuild(build db.Build) error {
+	lock, err := tracker.locker.AcquireWriteLockImmediately([]db.NamedLock{db.BuildTrackingLock(build.Guid)})
+	if err != nil {
+		return nil
+	}
+	defer lock.Release()
+
 	tLog := tracker.logger.Session("track-build", lager.Data{
 		"buld": build.ID,
 	})

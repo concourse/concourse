@@ -2,7 +2,6 @@ package scheduler_test
 
 import (
 	"errors"
-	"os"
 	"time"
 
 	"github.com/concourse/atc/config"
@@ -45,7 +44,7 @@ var _ = Describe("Runner", func() {
 		}
 
 		lock = new(dbfakes.FakeLock)
-		locker.AcquireBuildSchedulingLockReturns(lock, nil)
+		locker.AcquireWriteLockImmediatelyReturns(lock, nil)
 	})
 
 	JustBeforeEach(func() {
@@ -62,8 +61,32 @@ var _ = Describe("Runner", func() {
 		ginkgomon.Interrupt(process)
 	})
 
-	It("acquires the build scheduling lock", func() {
-		Eventually(locker.AcquireBuildSchedulingLockCallCount).Should(Equal(1))
+	It("acquires the build scheduling lock for each job", func() {
+		Eventually(locker.AcquireWriteLockImmediatelyCallCount).Should(Equal(2))
+
+		job := locker.AcquireWriteLockImmediatelyArgsForCall(0)
+		Ω(job).Should(Equal([]db.NamedLock{db.JobSchedulingLock("some-job")}))
+
+		job = locker.AcquireWriteLockImmediatelyArgsForCall(1)
+		Ω(job).Should(Equal([]db.NamedLock{db.JobSchedulingLock("some-other-job")}))
+	})
+
+	Context("whe it can't get the lock for the first job", func() {
+		BeforeEach(func() {
+			locker.AcquireWriteLockImmediatelyStub = func(locks []db.NamedLock) (db.Lock, error) {
+				if locker.AcquireWriteLockImmediatelyCallCount() == 1 {
+					return nil, errors.New("can't aqcuire lock")
+				}
+				return lock, nil
+			}
+		})
+
+		It("follows on to the next job", func() {
+			Eventually(locker.AcquireWriteLockImmediatelyCallCount).Should(Equal(2))
+
+			job := scheduler.TryNextPendingBuildArgsForCall(0)
+			Ω(job).Should(Equal(config.Job{Name: "some-other-job"}))
+		})
 	})
 
 	It("tracks in-flight builds", func() {
@@ -90,67 +113,9 @@ var _ = Describe("Runner", func() {
 		Ω(job).Should(Equal(config.Job{Name: "some-other-job"}))
 	})
 
-	Context("when the lock cannot be acquired immediately", func() {
-		var acquiredLocks chan<- db.Lock
-
-		BeforeEach(func() {
-			locks := make(chan db.Lock)
-			acquiredLocks = locks
-
-			locker.AcquireBuildSchedulingLockStub = func() (db.Lock, error) {
-				return <-locks, nil
-			}
-		})
-
-		AfterEach(func() {
-			acquiredLocks <- lock
-		})
-
-		It("starts immediately regardless", func() {})
-
-		Context("when told to stop", func() {
-			JustBeforeEach(func() {
-				process.Signal(os.Interrupt)
-			})
-
-			It("exits regardless", func() {
-				Eventually(process.Wait()).Should(Receive())
-			})
-		})
-	})
-
-	Context("when told to stop", func() {
-		JustBeforeEach(func() {
-			// ensure that we've acquired the lock
-			Eventually(scheduler.TryNextPendingBuildCallCount).ShouldNot(BeZero())
-
-			process.Signal(os.Interrupt)
-		})
-
-		It("releases the resource checking lock", func() {
-			Eventually(lock.ReleaseCallCount).Should(Equal(1))
-		})
-
-		Context("and releasing the lock fails", func() {
-			disaster := errors.New("oh no!")
-
-			BeforeEach(func() {
-				lock.ReleaseReturns(disaster)
-			})
-
-			It("returns the error", func() {
-				Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-			})
-		})
-	})
-
 	Context("when in noop mode", func() {
 		BeforeEach(func() {
 			noop = true
-		})
-
-		It("does not acquire the lock", func() {
-			Consistently(locker.AcquireBuildSchedulingLockCallCount).Should(Equal(0))
 		})
 
 		It("does not start scheduling builds", func() {

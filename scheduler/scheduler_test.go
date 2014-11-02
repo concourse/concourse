@@ -162,7 +162,7 @@ var _ = Describe("Scheduler", func() {
 				Ω(locker.AcquireReadLockCallCount()).Should(Equal(1))
 
 				lockedInputs := locker.AcquireReadLockArgsForCall(0)
-				Ω(lockedInputs).Should(Equal([]string{"resource: some-resource", "resource: some-other-resource"}))
+				Ω(lockedInputs).Should(Equal([]db.NamedLock{db.ResourceLock("some-resource"), db.ResourceLock("some-other-resource")}))
 				Ω(readLock.ReleaseCallCount()).Should(Equal(1))
 			})
 

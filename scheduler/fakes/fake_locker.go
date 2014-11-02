@@ -9,17 +9,19 @@ import (
 )
 
 type FakeLocker struct {
-	AcquireBuildSchedulingLockStub        func() (db.Lock, error)
-	acquireBuildSchedulingLockMutex       sync.RWMutex
-	acquireBuildSchedulingLockArgsForCall []struct{}
-	acquireBuildSchedulingLockReturns struct {
+	AcquireWriteLockImmediatelyStub        func(lock []db.NamedLock) (db.Lock, error)
+	acquireWriteLockImmediatelyMutex       sync.RWMutex
+	acquireWriteLockImmediatelyArgsForCall []struct {
+		lock []db.NamedLock
+	}
+	acquireWriteLockImmediatelyReturns struct {
 		result1 db.Lock
 		result2 error
 	}
-	AcquireReadLockStub        func(names []string) (db.Lock, error)
+	AcquireReadLockStub        func(lock []db.NamedLock) (db.Lock, error)
 	acquireReadLockMutex       sync.RWMutex
 	acquireReadLockArgsForCall []struct {
-		names []string
+		lock []db.NamedLock
 	}
 	acquireReadLockReturns struct {
 		result1 db.Lock
@@ -27,39 +29,47 @@ type FakeLocker struct {
 	}
 }
 
-func (fake *FakeLocker) AcquireBuildSchedulingLock() (db.Lock, error) {
-	fake.acquireBuildSchedulingLockMutex.Lock()
-	fake.acquireBuildSchedulingLockArgsForCall = append(fake.acquireBuildSchedulingLockArgsForCall, struct{}{})
-	fake.acquireBuildSchedulingLockMutex.Unlock()
-	if fake.AcquireBuildSchedulingLockStub != nil {
-		return fake.AcquireBuildSchedulingLockStub()
+func (fake *FakeLocker) AcquireWriteLockImmediately(lock []db.NamedLock) (db.Lock, error) {
+	fake.acquireWriteLockImmediatelyMutex.Lock()
+	fake.acquireWriteLockImmediatelyArgsForCall = append(fake.acquireWriteLockImmediatelyArgsForCall, struct {
+		lock []db.NamedLock
+	}{lock})
+	fake.acquireWriteLockImmediatelyMutex.Unlock()
+	if fake.AcquireWriteLockImmediatelyStub != nil {
+		return fake.AcquireWriteLockImmediatelyStub(lock)
 	} else {
-		return fake.acquireBuildSchedulingLockReturns.result1, fake.acquireBuildSchedulingLockReturns.result2
+		return fake.acquireWriteLockImmediatelyReturns.result1, fake.acquireWriteLockImmediatelyReturns.result2
 	}
 }
 
-func (fake *FakeLocker) AcquireBuildSchedulingLockCallCount() int {
-	fake.acquireBuildSchedulingLockMutex.RLock()
-	defer fake.acquireBuildSchedulingLockMutex.RUnlock()
-	return len(fake.acquireBuildSchedulingLockArgsForCall)
+func (fake *FakeLocker) AcquireWriteLockImmediatelyCallCount() int {
+	fake.acquireWriteLockImmediatelyMutex.RLock()
+	defer fake.acquireWriteLockImmediatelyMutex.RUnlock()
+	return len(fake.acquireWriteLockImmediatelyArgsForCall)
 }
 
-func (fake *FakeLocker) AcquireBuildSchedulingLockReturns(result1 db.Lock, result2 error) {
-	fake.AcquireBuildSchedulingLockStub = nil
-	fake.acquireBuildSchedulingLockReturns = struct {
+func (fake *FakeLocker) AcquireWriteLockImmediatelyArgsForCall(i int) []db.NamedLock {
+	fake.acquireWriteLockImmediatelyMutex.RLock()
+	defer fake.acquireWriteLockImmediatelyMutex.RUnlock()
+	return fake.acquireWriteLockImmediatelyArgsForCall[i].lock
+}
+
+func (fake *FakeLocker) AcquireWriteLockImmediatelyReturns(result1 db.Lock, result2 error) {
+	fake.AcquireWriteLockImmediatelyStub = nil
+	fake.acquireWriteLockImmediatelyReturns = struct {
 		result1 db.Lock
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeLocker) AcquireReadLock(names []string) (db.Lock, error) {
+func (fake *FakeLocker) AcquireReadLock(lock []db.NamedLock) (db.Lock, error) {
 	fake.acquireReadLockMutex.Lock()
 	fake.acquireReadLockArgsForCall = append(fake.acquireReadLockArgsForCall, struct {
-		names []string
-	}{names})
+		lock []db.NamedLock
+	}{lock})
 	fake.acquireReadLockMutex.Unlock()
 	if fake.AcquireReadLockStub != nil {
-		return fake.AcquireReadLockStub(names)
+		return fake.AcquireReadLockStub(lock)
 	} else {
 		return fake.acquireReadLockReturns.result1, fake.acquireReadLockReturns.result2
 	}
@@ -71,10 +81,10 @@ func (fake *FakeLocker) AcquireReadLockCallCount() int {
 	return len(fake.acquireReadLockArgsForCall)
 }
 
-func (fake *FakeLocker) AcquireReadLockArgsForCall(i int) []string {
+func (fake *FakeLocker) AcquireReadLockArgsForCall(i int) []db.NamedLock {
 	fake.acquireReadLockMutex.RLock()
 	defer fake.acquireReadLockMutex.RUnlock()
-	return fake.acquireReadLockArgsForCall[i].names
+	return fake.acquireReadLockArgsForCall[i].lock
 }
 
 func (fake *FakeLocker) AcquireReadLockReturns(result1 db.Lock, result2 error) {

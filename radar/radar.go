@@ -1,7 +1,6 @@
 package radar
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -68,11 +67,17 @@ func (radar *Radar) Scan(checker ResourceChecker, resource config.Resource) {
 		ticker := time.NewTicker(radar.interval)
 
 		for {
+			var resourceCheckingLock db.Lock
+			var err error
 			select {
 			case <-radar.stop:
 				return
 
 			case <-ticker.C:
+				resourceCheckingLock, err = radar.locker.AcquireWriteLockImmediately([]db.NamedLock{db.ResourceCheckingLock(resource.Name)})
+				if err != nil {
+					break
+				}
 				radar.setChecking(resource.Name)
 
 				var from db.Version
@@ -82,7 +87,7 @@ func (radar *Radar) Scan(checker ResourceChecker, resource config.Resource) {
 					"from":     from,
 				})
 
-				lock, err := radar.locker.AcquireReadLock([]string{fmt.Sprintf("resource: %s", resource.Name)})
+				lock, err := radar.locker.AcquireReadLock([]db.NamedLock{db.ResourceLock(resource.Name)})
 				if err != nil {
 					log.Error("failed-to-acquire-inputs-lock", err, lager.Data{
 						"resource_name": resource.Name,
@@ -114,7 +119,7 @@ func (radar *Radar) Scan(checker ResourceChecker, resource config.Resource) {
 					"total":    len(newVersions),
 				})
 
-				lock, err = radar.locker.AcquireWriteLock([]string{fmt.Sprintf("resource: %s", resource.Name)})
+				lock, err = radar.locker.AcquireWriteLock([]db.NamedLock{db.ResourceLock(resource.Name)})
 				if err != nil {
 					log.Error("failed-to-acquire-inputs-lock", err, lager.Data{
 						"resource_name": resource.Name,
@@ -135,6 +140,9 @@ func (radar *Radar) Scan(checker ResourceChecker, resource config.Resource) {
 					}
 				}
 				lock.Release()
+			}
+			if resourceCheckingLock != nil {
+				resourceCheckingLock.Release()
 			}
 		}
 	}()

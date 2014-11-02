@@ -10,8 +10,8 @@ import (
 )
 
 type Locker interface {
-	AcquireBuildSchedulingLock() (db.Lock, error)
-	AcquireReadLock(names []string) (db.Lock, error)
+	AcquireWriteLockImmediately(lock []db.NamedLock) (db.Lock, error)
+	AcquireReadLock(lock []db.NamedLock) (db.Lock, error)
 }
 
 type BuildScheduler interface {
@@ -45,28 +45,6 @@ func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		panic("unconfigured scheduler interval")
 	}
 
-	lockAcquired := make(chan db.Lock)
-	lockErr := make(chan error)
-
-	go func() {
-		lock, err := runner.Locker.AcquireBuildSchedulingLock()
-		if err != nil {
-			lockErr <- err
-		} else {
-			lockAcquired <- lock
-		}
-	}()
-
-	var lock db.Lock
-
-	select {
-	case lock = <-lockAcquired:
-	case err := <-lockErr:
-		return err
-	case <-signals:
-		return nil
-	}
-
 	if runner.Logger != nil {
 		runner.Logger.Info("starting", lager.Data{
 			"inverval": runner.Interval.String(),
@@ -84,8 +62,13 @@ dance:
 			runner.Scheduler.TrackInFlightBuilds()
 
 			for _, job := range runner.Jobs {
+				lock, err := runner.Locker.AcquireWriteLockImmediately([]db.NamedLock{db.JobSchedulingLock(job.Name)})
+				if err != nil {
+					continue
+				}
 				runner.Scheduler.TryNextPendingBuild(job)
 				runner.Scheduler.BuildLatestInputs(job)
+				lock.Release()
 			}
 
 		case <-signals:
@@ -93,5 +76,5 @@ dance:
 		}
 	}
 
-	return lock.Release()
+	return nil
 }
