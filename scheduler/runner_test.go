@@ -25,6 +25,8 @@ var _ = Describe("Runner", func() {
 
 		lock *dbfakes.FakeLock
 
+		initialConfig atc.Config
+
 		process ifrit.Process
 	)
 
@@ -34,13 +36,26 @@ var _ = Describe("Runner", func() {
 		scheduler = new(fakes.FakeBuildScheduler)
 		noop = false
 
-		initialConfig := atc.Config{
+		initialConfig = atc.Config{
 			Jobs: atc.JobConfigs{
 				{
 					Name: "some-job",
 				},
 				{
 					Name: "some-other-job",
+				},
+			},
+
+			Resources: atc.ResourceConfigs{
+				{
+					Name:   "some-resource",
+					Type:   "git",
+					Source: atc.Source{"uri": "git://some-resource"},
+				},
+				{
+					Name:   "some-dependant-resource",
+					Type:   "git",
+					Source: atc.Source{"uri": "git://some-dependant-resource"},
 				},
 			},
 		}
@@ -88,8 +103,9 @@ var _ = Describe("Runner", func() {
 		It("follows on to the next job", func() {
 			Eventually(locker.AcquireWriteLockImmediatelyCallCount).Should(Equal(2))
 
-			job := scheduler.TryNextPendingBuildArgsForCall(0)
+			job, resources := scheduler.TryNextPendingBuildArgsForCall(0)
 			Ω(job).Should(Equal(atc.JobConfig{Name: "some-other-job"}))
+			Ω(resources).Should(Equal(initialConfig.Resources))
 		})
 	})
 
@@ -100,21 +116,25 @@ var _ = Describe("Runner", func() {
 	It("schedules pending builds", func() {
 		Eventually(scheduler.TryNextPendingBuildCallCount).Should(Equal(2))
 
-		job := scheduler.TryNextPendingBuildArgsForCall(0)
+		job, resources := scheduler.TryNextPendingBuildArgsForCall(0)
 		Ω(job).Should(Equal(atc.JobConfig{Name: "some-job"}))
+		Ω(resources).Should(Equal(initialConfig.Resources))
 
-		job = scheduler.TryNextPendingBuildArgsForCall(1)
+		job, resources = scheduler.TryNextPendingBuildArgsForCall(1)
 		Ω(job).Should(Equal(atc.JobConfig{Name: "some-other-job"}))
+		Ω(resources).Should(Equal(initialConfig.Resources))
 	})
 
 	It("schedules builds for new inputs", func() {
 		Eventually(scheduler.BuildLatestInputsCallCount).Should(Equal(2))
 
-		job := scheduler.BuildLatestInputsArgsForCall(0)
+		job, resources := scheduler.BuildLatestInputsArgsForCall(0)
 		Ω(job).Should(Equal(atc.JobConfig{Name: "some-job"}))
+		Ω(resources).Should(Equal(initialConfig.Resources))
 
-		job = scheduler.BuildLatestInputsArgsForCall(1)
+		job, resources = scheduler.BuildLatestInputsArgsForCall(1)
 		Ω(job).Should(Equal(atc.JobConfig{Name: "some-other-job"}))
+		Ω(resources).Should(Equal(initialConfig.Resources))
 	})
 
 	Context("when in noop mode", func() {

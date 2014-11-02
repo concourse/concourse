@@ -22,7 +22,7 @@ type SchedulerDB interface {
 }
 
 type BuildFactory interface {
-	Create(atc.JobConfig, db.VersionedResources) (turbine.Build, error)
+	Create(atc.JobConfig, atc.ResourceConfigs, db.VersionedResources) (turbine.Build, error)
 }
 
 type BuildTracker interface {
@@ -38,7 +38,7 @@ type Scheduler struct {
 	Tracker BuildTracker
 }
 
-func (s *Scheduler) BuildLatestInputs(job atc.JobConfig) error {
+func (s *Scheduler) BuildLatestInputs(job atc.JobConfig, resources atc.ResourceConfigs) error {
 	if len(job.Inputs) == 0 {
 		// no inputs; no-op
 		return nil
@@ -115,7 +115,7 @@ func (s *Scheduler) BuildLatestInputs(job atc.JobConfig) error {
 		"inputs": inputs,
 	})
 
-	turbineBuild, err := s.Factory.Create(job, inputs)
+	turbineBuild, err := s.Factory.Create(job, resources, inputs)
 	if err != nil {
 		buildLog.Error("failed-to-create", err)
 		return err
@@ -130,7 +130,7 @@ func (s *Scheduler) BuildLatestInputs(job atc.JobConfig) error {
 	return nil
 }
 
-func (s *Scheduler) TryNextPendingBuild(job atc.JobConfig) error {
+func (s *Scheduler) TryNextPendingBuild(job atc.JobConfig, resources atc.ResourceConfigs) error {
 	buildLog := s.Logger.Session("trigger-pending")
 
 	build, inputs, err := s.DB.GetNextPendingBuild(job.Name)
@@ -147,7 +147,7 @@ func (s *Scheduler) TryNextPendingBuild(job atc.JobConfig) error {
 		return nil
 	}
 
-	turbineBuild, err := s.Factory.Create(job, inputs)
+	turbineBuild, err := s.Factory.Create(job, resources, inputs)
 	if err != nil {
 		buildLog.Error("failed-to-create", err)
 		return err
@@ -162,7 +162,7 @@ func (s *Scheduler) TryNextPendingBuild(job atc.JobConfig) error {
 	return nil
 }
 
-func (s *Scheduler) TriggerImmediately(job atc.JobConfig) (db.Build, error) {
+func (s *Scheduler) TriggerImmediately(job atc.JobConfig, resources atc.ResourceConfigs) (db.Build, error) {
 	buildLog := s.Logger.Session("trigger-immediately")
 
 	passedInputs := []atc.InputConfig{}
@@ -200,7 +200,7 @@ func (s *Scheduler) TriggerImmediately(job atc.JobConfig) (db.Build, error) {
 		return build, nil
 	}
 
-	turbineBuild, err := s.Factory.Create(job, inputs)
+	turbineBuild, err := s.Factory.Create(job, resources, inputs)
 	if err != nil {
 		buildLog.Error("failed-to-create", err)
 		return db.Build{}, err

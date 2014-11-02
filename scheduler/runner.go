@@ -15,8 +15,8 @@ type Locker interface {
 }
 
 type BuildScheduler interface {
-	TryNextPendingBuild(atc.JobConfig) error
-	BuildLatestInputs(atc.JobConfig) error
+	TryNextPendingBuild(atc.JobConfig, atc.ResourceConfigs) error
+	BuildLatestInputs(atc.JobConfig, atc.ResourceConfigs) error
 
 	TrackInFlightBuilds() error
 }
@@ -77,8 +77,8 @@ dance:
 					continue
 				}
 
-				runner.Scheduler.TryNextPendingBuild(job)
-				runner.Scheduler.BuildLatestInputs(job)
+				runner.Scheduler.TryNextPendingBuild(job, config.Resources)
+				runner.Scheduler.BuildLatestInputs(job, config.Resources)
 
 				lock.Release()
 			}

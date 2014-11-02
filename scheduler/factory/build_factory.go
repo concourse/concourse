@@ -17,18 +17,17 @@ type ConfigDB interface {
 	GetConfig() (atc.Config, error)
 }
 
-func (factory *BuildFactory) Create(job atc.JobConfig, inputVersions db.VersionedResources) (turbine.Build, error) {
-	config, err := factory.ConfigDB.GetConfig()
+func (factory *BuildFactory) Create(
+	job atc.JobConfig,
+	resources atc.ResourceConfigs,
+	inputVersions db.VersionedResources,
+) (turbine.Build, error) {
+	inputs, err := factory.computeInputs(job, resources, inputVersions)
 	if err != nil {
 		return turbine.Build{}, err
 	}
 
-	inputs, err := factory.computeInputs(job, config.Resources, inputVersions)
-	if err != nil {
-		return turbine.Build{}, err
-	}
-
-	outputs, err := factory.computeOutputs(job, config.Resources)
+	outputs, err := factory.computeOutputs(job, resources)
 	if err != nil {
 		return turbine.Build{}, err
 	}

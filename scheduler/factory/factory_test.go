@@ -3,7 +3,6 @@ package factory_test
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/radar/fakes"
 	. "github.com/concourse/atc/scheduler/factory"
 	"github.com/concourse/turbine"
 
@@ -15,47 +14,14 @@ var _ = Describe("Factory", func() {
 	var (
 		factory *BuildFactory
 
-		job atc.JobConfig
+		job       atc.JobConfig
+		resources atc.ResourceConfigs
 
 		expectedTurbineBuild turbine.Build
 	)
 
 	BeforeEach(func() {
-		factory = &BuildFactory{
-			ConfigDB: &fakes.FakeConfigDB{
-				GetConfigStub: func() (atc.Config, error) {
-					return atc.Config{
-						Resources: atc.ResourceConfigs{
-							{
-								Name:   "some-resource",
-								Type:   "git",
-								Source: atc.Source{"uri": "git://some-resource"},
-							},
-							{
-								Name:   "some-dependant-resource",
-								Type:   "git",
-								Source: atc.Source{"uri": "git://some-dependant-resource"},
-							},
-							{
-								Name:   "some-output-resource",
-								Type:   "git",
-								Source: atc.Source{"uri": "git://some-output-resource"},
-							},
-							{
-								Name:   "some-resource-with-longer-name",
-								Type:   "git",
-								Source: atc.Source{"uri": "git://some-resource-with-longer-name"},
-							},
-							{
-								Name:   "some-named-resource",
-								Type:   "git",
-								Source: atc.Source{"uri": "git://some-named-resource"},
-							},
-						},
-					}, nil
-				},
-			},
-		}
+		factory = &BuildFactory{}
 
 		job = atc.JobConfig{
 			Name: "some-job",
@@ -153,10 +119,38 @@ var _ = Describe("Factory", func() {
 
 			Privileged: true,
 		}
+
+		resources = atc.ResourceConfigs{
+			{
+				Name:   "some-resource",
+				Type:   "git",
+				Source: atc.Source{"uri": "git://some-resource"},
+			},
+			{
+				Name:   "some-dependant-resource",
+				Type:   "git",
+				Source: atc.Source{"uri": "git://some-dependant-resource"},
+			},
+			{
+				Name:   "some-output-resource",
+				Type:   "git",
+				Source: atc.Source{"uri": "git://some-output-resource"},
+			},
+			{
+				Name:   "some-resource-with-longer-name",
+				Type:   "git",
+				Source: atc.Source{"uri": "git://some-resource-with-longer-name"},
+			},
+			{
+				Name:   "some-named-resource",
+				Type:   "git",
+				Source: atc.Source{"uri": "git://some-named-resource"},
+			},
+		}
 	})
 
 	It("creates a turbine build based on the job's configuration", func() {
-		turbineBuild, err := factory.Create(job, nil)
+		turbineBuild, err := factory.Create(job, resources, nil)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		Ω(turbineBuild).Should(Equal(expectedTurbineBuild))
@@ -180,7 +174,7 @@ var _ = Describe("Factory", func() {
 		})
 
 		It("uses it as the name for the input", func() {
-			turbineBuild, err := factory.Create(job, nil)
+			turbineBuild, err := factory.Create(job, resources, nil)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Ω(turbineBuild.Inputs).Should(Equal(expectedTurbineBuild.Inputs))
@@ -210,7 +204,7 @@ var _ = Describe("Factory", func() {
 		})
 
 		It("uses the explicit name to match the config path", func() {
-			turbineBuild, err := factory.Create(job, nil)
+			turbineBuild, err := factory.Create(job, resources, nil)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Ω(turbineBuild.Inputs).Should(Equal(expectedTurbineBuild.Inputs))
@@ -237,7 +231,7 @@ var _ = Describe("Factory", func() {
 		})
 
 		It("chooses the correct input path", func() {
-			turbineBuild, err := factory.Create(job, nil)
+			turbineBuild, err := factory.Create(job, resources, nil)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Ω(turbineBuild.Inputs).Should(Equal(expectedTurbineBuild.Inputs))
@@ -246,7 +240,7 @@ var _ = Describe("Factory", func() {
 
 	Context("when versioned resources are specified", func() {
 		It("uses them for the build's inputs", func() {
-			turbineBuild, err := factory.Create(job, db.VersionedResources{
+			turbineBuild, err := factory.Create(job, resources, db.VersionedResources{
 				{
 					Name:    "some-resource",
 					Type:    "git-ng",
@@ -278,7 +272,7 @@ var _ = Describe("Factory", func() {
 		})
 
 		It("returns an error", func() {
-			_, err := factory.Create(job, nil)
+			_, err := factory.Create(job, resources, nil)
 			Ω(err).Should(HaveOccurred())
 		})
 	})
@@ -291,7 +285,7 @@ var _ = Describe("Factory", func() {
 		})
 
 		It("returns an error", func() {
-			_, err := factory.Create(job, nil)
+			_, err := factory.Create(job, resources, nil)
 			Ω(err).Should(HaveOccurred())
 		})
 	})
