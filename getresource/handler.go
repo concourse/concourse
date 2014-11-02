@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/concourse/atc/config"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 )
@@ -13,28 +13,37 @@ import (
 type handler struct {
 	logger lager.Logger
 
-	resources config.Resources
-	db        db.DB
-	template  *template.Template
+	db       db.DB
+	configDB db.ConfigDB
+
+	template *template.Template
 }
 
-func NewHandler(logger lager.Logger, resources config.Resources, db db.DB, template *template.Template) http.Handler {
+func NewHandler(logger lager.Logger, db db.DB, configDB db.ConfigDB, template *template.Template) http.Handler {
 	return &handler{
 		logger: logger,
 
-		resources: resources,
-		db:        db,
-		template:  template,
+		db:       db,
+		configDB: configDB,
+
+		template: template,
 	}
 }
 
 type TemplateData struct {
-	Resource config.Resource
+	Resource atc.ResourceConfig
 	History  []*db.VersionHistory
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	resource, found := handler.resources.Lookup(r.FormValue(":resource"))
+	config, err := handler.configDB.GetConfig()
+	if err != nil {
+		handler.logger.Error("failed-to-load-config", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	resource, found := config.Resources.Lookup(r.FormValue(":resource"))
 	if !found {
 		w.WriteHeader(http.StatusNotFound)
 		return

@@ -4,7 +4,7 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/concourse/atc/config"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 )
@@ -12,23 +12,25 @@ import (
 type handler struct {
 	logger lager.Logger
 
-	jobs     config.Jobs
 	db       db.DB
+	configDB db.ConfigDB
+
 	template *template.Template
 }
 
-func NewHandler(logger lager.Logger, jobs config.Jobs, db db.DB, template *template.Template) http.Handler {
+func NewHandler(logger lager.Logger, db db.DB, configDB db.ConfigDB, template *template.Template) http.Handler {
 	return &handler{
 		logger: logger,
 
-		jobs:     jobs,
 		db:       db,
+		configDB: configDB,
+
 		template: template,
 	}
 }
 
 type TemplateData struct {
-	Job    config.Job
+	Job    atc.JobConfig
 	Builds []db.Build
 
 	Build   db.Build
@@ -51,7 +53,14 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	job, found := handler.jobs.Lookup(jobName)
+	config, err := handler.configDB.GetConfig()
+	if err != nil {
+		handler.logger.Error("failed-to-load-config", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	job, found := config.Jobs.Lookup(jobName)
 	if !found {
 		w.WriteHeader(http.StatusNotFound)
 		return

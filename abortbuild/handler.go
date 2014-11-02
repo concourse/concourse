@@ -8,7 +8,6 @@ import (
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web/routes"
 	"github.com/concourse/turbine"
@@ -17,17 +16,15 @@ import (
 type handler struct {
 	logger lager.Logger
 
-	jobs       config.Jobs
 	db         db.DB
 	httpClient *http.Client
 }
 
-func NewHandler(logger lager.Logger, jobs config.Jobs, db db.DB) http.Handler {
+func NewHandler(logger lager.Logger, db db.DB) http.Handler {
 	return &handler{
 		logger: logger,
 
-		jobs: jobs,
-		db:   db,
+		db: db,
 
 		httpClient: &http.Client{
 			Transport: &http.Transport{
