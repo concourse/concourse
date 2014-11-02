@@ -17,11 +17,13 @@ files:
   - github.com/concourse/atc/*.go # gosub
   - github.com/concourse/atc/api/*.go # gosub
   - github.com/concourse/atc/api/buildserver/*.go # gosub
+  - github.com/concourse/atc/api/configserver/*.go # gosub
   - github.com/concourse/atc/api/jobserver/*.go # gosub
   - github.com/concourse/atc/api/pipes/*.go # gosub
   - github.com/concourse/atc/api/present/*.go # gosub
   - github.com/concourse/atc/auth/*.go # gosub
   - github.com/concourse/atc/builder/*.go # gosub
+  - github.com/concourse/atc/config/*.go # gosub
   - github.com/concourse/atc/db/*.go # gosub
   - github.com/concourse/atc/db/migrations/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
