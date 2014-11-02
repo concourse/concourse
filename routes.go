@@ -3,6 +3,9 @@ package atc
 import "github.com/tedsuo/rata"
 
 const (
+	SaveConfig = "SaveConfig"
+	GetConfig  = "GetConfig"
+
 	CreateBuild = "CreateBuild"
 	ListBuilds  = "ListBuilds"
 	BuildEvents = "BuildEvents"
@@ -21,6 +24,9 @@ const (
 // pipeline = read-only
 // builds & pipes api = read+write, irrespective of jobs
 var Routes = rata.Routes{
+	{Path: "/api/v1/config", Method: "PUT", Name: SaveConfig},
+	{Path: "/api/v1/config", Method: "GET", Name: GetConfig},
+
 	{Path: "/api/v1/builds", Method: "POST", Name: CreateBuild},
 	{Path: "/api/v1/builds", Method: "GET", Name: ListBuilds},
 	{Path: "/api/v1/builds/:build_id/events", Method: "GET", Name: BuildEvents},

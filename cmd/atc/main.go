@@ -26,6 +26,7 @@ import (
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/builder"
+	"github.com/concourse/atc/config"
 	Db "github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/event"
@@ -193,6 +194,10 @@ func main() {
 
 		pipelineFile.Close()
 
+		if err := config.ValidateConfig(conf); err != nil {
+			fatal(err)
+		}
+
 		configDB = Db.StaticConfigDB{
 			Config: conf,
 		}
@@ -256,6 +261,8 @@ func main() {
 		logger,
 		db,
 		db,
+		db,
+		config.ValidateConfig,
 		builder,
 		5*time.Second,
 		callbacksURL.Host,

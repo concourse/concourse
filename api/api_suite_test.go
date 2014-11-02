@@ -11,20 +11,24 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
 	buildfakes "github.com/concourse/atc/api/buildserver/fakes"
+	configfakes "github.com/concourse/atc/api/configserver/fakes"
 	jobfakes "github.com/concourse/atc/api/jobserver/fakes"
 	"github.com/concourse/atc/builder/fakebuilder"
 	"github.com/concourse/atc/event"
 )
 
 var (
-	buildsDB     *buildfakes.FakeBuildsDB
-	jobsDB       *jobfakes.FakeJobsDB
-	builder      *fakebuilder.FakeBuilder
-	pingInterval time.Duration
-	peerAddr     string
-	drain        chan struct{}
+	buildsDB            *buildfakes.FakeBuildsDB
+	jobsDB              *jobfakes.FakeJobsDB
+	configDB            *configfakes.FakeConfigDB
+	configValidationErr error
+	builder             *fakebuilder.FakeBuilder
+	pingInterval        time.Duration
+	peerAddr            string
+	drain               chan struct{}
 
 	constructedEventHandler *fakeEventHandlerFactory
 
@@ -60,6 +64,8 @@ func (f *fakeEventHandlerFactory) Construct(
 var _ = BeforeEach(func() {
 	buildsDB = new(buildfakes.FakeBuildsDB)
 	jobsDB = new(jobfakes.FakeJobsDB)
+	configDB = new(configfakes.FakeConfigDB)
+	configValidationErr = nil
 	builder = new(fakebuilder.FakeBuilder)
 	pingInterval = 100 * time.Millisecond
 	peerAddr = "127.0.0.1:1234"
@@ -71,6 +77,8 @@ var _ = BeforeEach(func() {
 		lagertest.NewTestLogger("callbacks"),
 		buildsDB,
 		jobsDB,
+		configDB,
+		func(atc.Config) error { return configValidationErr },
 		builder,
 		pingInterval,
 		peerAddr,
