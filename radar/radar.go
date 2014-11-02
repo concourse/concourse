@@ -35,9 +35,6 @@ type Radar struct {
 
 	configDB ConfigDB
 
-	stop     chan struct{}
-	scanning *sync.WaitGroup
-
 	failing  map[string]bool
 	checking map[string]bool
 	statusL  *sync.Mutex
@@ -60,21 +57,14 @@ func NewRadar(
 
 		configDB: configDB,
 
-		stop:     make(chan struct{}),
-		scanning: new(sync.WaitGroup),
-
 		failing:  make(map[string]bool),
 		checking: make(map[string]bool),
 		statusL:  new(sync.Mutex),
 	}
 }
 
-func (radar *Radar) Scan(checker ResourceChecker, resourceName string) ifrit.Process {
-	radar.scanning.Add(1)
-
-	return ifrit.Invoke(ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
-		defer radar.scanning.Done()
-
+func (radar *Radar) Scan(checker ResourceChecker, resourceName string) ifrit.Runner {
+	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 		ticker := time.NewTicker(radar.interval)
 
 		close(ready)
@@ -83,7 +73,7 @@ func (radar *Radar) Scan(checker ResourceChecker, resourceName string) ifrit.Pro
 			var resourceCheckingLock db.Lock
 			var err error
 			select {
-			case <-radar.stop:
+			case <-signals:
 				return nil
 
 			case <-ticker.C:
@@ -172,18 +162,13 @@ func (radar *Radar) Scan(checker ResourceChecker, resourceName string) ifrit.Pro
 				resourceCheckingLock.Release()
 			}
 		}
-	}))
+	})
 }
 
 func (radar *Radar) ResourceStatus(resource string) (bool, bool) {
 	radar.statusL.Lock()
 	defer radar.statusL.Unlock()
 	return radar.failing[resource], radar.checking[resource]
-}
-
-func (radar *Radar) Stop() {
-	close(radar.stop)
-	radar.scanning.Wait()
 }
 
 func (radar *Radar) setChecking(resource string) {

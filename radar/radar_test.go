@@ -1,6 +1,7 @@
 package radar_test
 
 import (
+	"os"
 	"time"
 
 	"github.com/concourse/atc"
@@ -65,11 +66,12 @@ var _ = Describe("Radar", func() {
 	})
 
 	JustBeforeEach(func() {
-		process = radar.Scan(checker, "some-resource")
+		process = ifrit.Invoke(radar.Scan(checker, "some-resource"))
 	})
 
 	AfterEach(func() {
-		radar.Stop()
+		process.Signal(os.Interrupt)
+		Eventually(process.Wait()).Should(Receive())
 	})
 
 	Describe("checking", func() {

@@ -9,18 +9,18 @@ import (
 )
 
 type FakeScanner struct {
-	ScanStub        func(radar.ResourceChecker, string) ifrit.Process
+	ScanStub        func(radar.ResourceChecker, string) ifrit.Runner
 	scanMutex       sync.RWMutex
 	scanArgsForCall []struct {
 		arg1 radar.ResourceChecker
 		arg2 string
 	}
 	scanReturns struct {
-		result1 ifrit.Process
+		result1 ifrit.Runner
 	}
 }
 
-func (fake *FakeScanner) Scan(arg1 radar.ResourceChecker, arg2 string) ifrit.Process {
+func (fake *FakeScanner) Scan(arg1 radar.ResourceChecker, arg2 string) ifrit.Runner {
 	fake.scanMutex.Lock()
 	fake.scanArgsForCall = append(fake.scanArgsForCall, struct {
 		arg1 radar.ResourceChecker
@@ -46,10 +46,10 @@ func (fake *FakeScanner) ScanArgsForCall(i int) (radar.ResourceChecker, string) 
 	return fake.scanArgsForCall[i].arg1, fake.scanArgsForCall[i].arg2
 }
 
-func (fake *FakeScanner) ScanReturns(result1 ifrit.Process) {
+func (fake *FakeScanner) ScanReturns(result1 ifrit.Runner) {
 	fake.ScanStub = nil
 	fake.scanReturns = struct {
-		result1 ifrit.Process
+		result1 ifrit.Runner
 	}{result1}
 }
 

@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/rata"
 )
 
@@ -17,7 +18,7 @@ type Locker interface {
 }
 
 type Scanner interface {
-	Scan(ResourceChecker, string) ifrit.Process
+	Scan(ResourceChecker, string) ifrit.Runner
 }
 
 type Runner struct {
@@ -68,17 +69,28 @@ func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 	ticker := time.NewTicker(runner.syncInterval)
 
-	scanning := make(map[string]ifrit.Process)
+	scannersGroup := grouper.NewDynamic(nil, 0, 0)
+
+	scannersClient := scannersGroup.Client()
+	exits := scannersClient.ExitListener()
+	insertScanner := scannersClient.Inserter()
+
+	scanners := ifrit.Invoke(scannersGroup)
+
+	scanning := make(map[string]bool)
 
 dance:
 	for {
 		select {
 		case <-signals:
-			for _, process := range scanning {
-				process.Signal(os.Interrupt)
-			}
+			scanners.Signal(os.Interrupt)
+
+			// don't bother waiting for scanners on shutdown
 
 			break dance
+
+		case exited := <-exits:
+			delete(scanning, exited.Member.Name)
 
 		case <-ticker.C:
 			config, err := runner.configDB.GetConfig()
@@ -86,25 +98,19 @@ dance:
 				continue
 			}
 
-			// reap dead scanners
-			alreadyScanning := map[string]bool{}
-			for resource, process := range scanning {
-				select {
-				case <-process.Wait():
-					delete(scanning, resource)
-				default:
-					alreadyScanning[resource] = true
-				}
-			}
-
-			// start missing scanners
 			for _, resource := range config.Resources {
-				if alreadyScanning[resource.Name] {
+				if scanning[resource.Name] {
 					continue
 				}
 
 				checker := NewTurbineChecker(runner.turbineEndpoint)
-				scanning[resource.Name] = runner.scanner.Scan(checker, resource.Name)
+
+				scanning[resource.Name] = true
+
+				insertScanner <- grouper.Member{
+					Name:   resource.Name,
+					Runner: runner.scanner.Scan(checker, resource.Name),
+				}
 			}
 		}
 	}

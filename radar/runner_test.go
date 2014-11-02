@@ -51,12 +51,12 @@ var _ = Describe("Runner", func() {
 
 		configDB.GetConfigReturns(initialConfig, nil)
 
-		scanner.ScanStub = func(ResourceChecker, string) ifrit.Process {
-			return ifrit.Envoke(ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+		scanner.ScanStub = func(ResourceChecker, string) ifrit.Runner {
+			return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 				close(ready)
 				<-signals
 				return nil
-			}))
+			})
 		}
 
 		turbineEndpoint = rata.NewRequestGenerator("turbine-host", turbine.Routes)
@@ -129,6 +129,47 @@ var _ = Describe("Runner", func() {
 			Ω(resource).Should(Equal("another-resource"))
 
 			Consistently(scanner.ScanCallCount).Should(Equal(3))
+		})
+	})
+
+	Context("when resources stop being able to check", func() {
+		var scannerExit chan struct{}
+
+		BeforeEach(func() {
+			scannerExit = make(chan struct{})
+
+			scanner.ScanStub = func(ResourceChecker, string) ifrit.Runner {
+				return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+					close(ready)
+
+					select {
+					case <-signals:
+						return nil
+					case <-scannerExit:
+						return nil
+					}
+				})
+			}
+		})
+
+		It("starts scanning again eventually", func() {
+			Eventually(scanner.ScanCallCount).Should(Equal(2))
+
+			_, resource := scanner.ScanArgsForCall(0)
+			Ω(resource).Should(Equal("some-resource"))
+
+			_, resource = scanner.ScanArgsForCall(1)
+			Ω(resource).Should(Equal("some-other-resource"))
+
+			close(scannerExit)
+
+			Eventually(scanner.ScanCallCount, 10*syncInterval).Should(Equal(4))
+
+			_, resource = scanner.ScanArgsForCall(2)
+			Ω(resource).Should(Equal("some-resource"))
+
+			_, resource = scanner.ScanArgsForCall(3)
+			Ω(resource).Should(Equal("some-other-resource"))
 		})
 	})
 
