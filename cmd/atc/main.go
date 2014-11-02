@@ -261,7 +261,7 @@ func main() {
 		logger,
 		db,
 		db,
-		db,
+		configDB,
 		config.ValidateConfig,
 		builder,
 		5*time.Second,
