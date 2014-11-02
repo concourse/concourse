@@ -26,20 +26,26 @@ var _ = BeforeSuite(func() {
 	bosh.Deploy("noop.yml")
 
 	atcURL := "http://10.244.8.2:8080"
+	turbineURL := "http://10.244.8.2:4637"
 
 	os.Setenv("ATC_URL", atcURL)
 
-	Eventually(func() error {
-		resp, err := http.Get(atcURL)
-		if err == nil {
-			resp.Body.Close()
-		}
-
-		return err
-	}, 1*time.Minute).ShouldNot(HaveOccurred())
+	Eventually(errorPolling(atcURL), 1*time.Minute).ShouldNot(HaveOccurred())
+	Eventually(errorPolling(turbineURL), 1*time.Minute).ShouldNot(HaveOccurred())
 })
 
 func TestFlying(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Flying Suite")
+}
+
+func errorPolling(url string) func() error {
+	return func() error {
+		resp, err := http.Get(url)
+		if err == nil {
+			resp.Body.Close()
+		}
+
+		return err
+	}
 }
