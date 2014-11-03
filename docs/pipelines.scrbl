@@ -303,7 +303,7 @@ This would display two tabs at the top of the home page: "tests" and "deploy".
 Each group allows you to set the following attributes:
 
 @defthing[name string]{
-  @emph{Required.} The name of the groups. This should be short and simple as
+  @emph{Required.} The name of the group. This should be short and simple as
   it will be used as the tab name for navigation.
 }
 
