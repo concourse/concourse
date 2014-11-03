@@ -7,9 +7,6 @@ import (
 )
 
 type DB interface {
-	RegisterJob(name string) error
-	RegisterResource(name string) error
-
 	GetBuild(buildID int) (Build, error)
 	GetAllBuilds() ([]Build, error)
 	GetAllStartedBuilds() ([]Build, error)

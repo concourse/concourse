@@ -27,28 +27,6 @@ func NewSQL(logger lager.Logger, sqldbConnection *sql.DB) *SQLDB {
 	}
 }
 
-func (db *SQLDB) RegisterJob(name string) error {
-	_, err := db.conn.Exec(`
-		INSERT INTO jobs (name)
-		SELECT $1
-		WHERE NOT EXISTS (
-			SELECT 1 FROM jobs WHERE name = $1
-		)
-	`, name)
-	return err
-}
-
-func (db *SQLDB) RegisterResource(name string) error {
-	_, err := db.conn.Exec(`
-		INSERT INTO resources (name)
-		SELECT $1
-		WHERE NOT EXISTS (
-			SELECT 1 FROM resources WHERE name = $1
-		)
-	`, name)
-	return err
-}
-
 func (db *SQLDB) GetConfig() (atc.Config, error) {
 	var configBlob []byte
 	err := db.conn.QueryRow(`
@@ -393,6 +371,11 @@ func (db *SQLDB) CreateJobBuild(job string) (Build, error) {
 
 	defer tx.Rollback()
 
+	err = registerJob(tx, job)
+	if err != nil {
+		return Build{}, err
+	}
+
 	var name string
 	err = tx.QueryRow(`
 		UPDATE jobs
@@ -405,7 +388,7 @@ func (db *SQLDB) CreateJobBuild(job string) (Build, error) {
 	}
 
 	build, err := scanBuild(tx.QueryRow(`
-		INSERT INTO builds(name, job_name, status)
+		INSERT INTO builds (name, job_name, status)
 		VALUES ($1, $2, 'pending')
 		RETURNING `+buildColumns+`
 	`, name, job))
@@ -840,6 +823,11 @@ func (db *SQLDB) CreateJobBuildWithInputs(job string, inputs VersionedResources)
 
 	defer tx.Rollback()
 
+	err = registerJob(tx, job)
+	if err != nil {
+		return Build{}, err
+	}
+
 	var name string
 	err = tx.QueryRow(`
 		UPDATE jobs
@@ -852,7 +840,7 @@ func (db *SQLDB) CreateJobBuildWithInputs(job string, inputs VersionedResources)
 	}
 
 	build, err := scanBuild(tx.QueryRow(`
-		INSERT INTO builds(name, job_name, status)
+		INSERT INTO builds (name, job_name, status)
 		VALUES ($1, $2, 'pending')
 		RETURNING `+buildColumns+`
 	`, name, job))
@@ -1104,6 +1092,17 @@ func (lock *txLock) Release() error {
 }
 
 func (db *SQLDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (int, error) {
+	_, err := tx.Exec(`
+			INSERT INTO resources (name)
+			SELECT $1
+			WHERE NOT EXISTS (
+				SELECT 1 FROM resources WHERE name = $1
+			)
+		`, vr.Name)
+	if err != nil {
+		return 0, err
+	}
+
 	versionJSON, err := json.Marshal(vr.Version)
 	if err != nil {
 		return 0, err
@@ -1184,4 +1183,15 @@ func scanBuild(row scannable) (Build, error) {
 		StartTime: startTime.Time,
 		EndTime:   endTime.Time,
 	}, nil
+}
+
+func registerJob(tx *sql.Tx, name string) error {
+	_, err := tx.Exec(`
+		INSERT INTO jobs (name)
+		SELECT $1
+		WHERE NOT EXISTS (
+			SELECT 1 FROM jobs WHERE name = $1
+		)
+	`, name)
+	return err
 }

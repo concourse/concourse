@@ -205,25 +205,6 @@ func main() {
 		configDB = db
 	}
 
-	conf, err := configDB.GetConfig()
-	if err != nil {
-		fatal(err)
-	}
-
-	for _, job := range conf.Jobs {
-		err := db.RegisterJob(job.Name)
-		if err != nil {
-			fatal(err)
-		}
-	}
-
-	for _, resource := range conf.Resources {
-		err := db.RegisterResource(resource.Name)
-		if err != nil {
-			fatal(err)
-		}
-	}
-
 	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, turbine.Routes)
 	builder := builder.NewBuilder(db, turbineEndpoint)
 	tracker := sched.NewTracker(logger.Session("tracker"), db, db)

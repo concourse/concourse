@@ -11,26 +11,6 @@ import (
 )
 
 func itIsADB() {
-	BeforeEach(func() {
-		err := db.RegisterJob("some-job")
-		Ω(err).ShouldNot(HaveOccurred())
-
-		err = db.RegisterJob("some-job")
-		Ω(err).ShouldNot(HaveOccurred())
-
-		err = db.RegisterResource("some-resource")
-		Ω(err).ShouldNot(HaveOccurred())
-
-		err = db.RegisterResource("some-resource")
-		Ω(err).ShouldNot(HaveOccurred())
-
-		err = db.RegisterJob("some-other-job")
-		Ω(err).ShouldNot(HaveOccurred())
-
-		err = db.RegisterResource("some-other-resource")
-		Ω(err).ShouldNot(HaveOccurred())
-	})
-
 	It("initially reports zero builds for a job", func() {
 		builds, err := db.GetAllJobBuilds("some-job")
 		Ω(err).ShouldNot(HaveOccurred())
@@ -832,21 +812,6 @@ func itIsADB() {
 
 	Describe("determining the inputs for a job", func() {
 		It("ensures that versions from jobs mentioned in two input's 'passed' sections came from the same builds", func() {
-			err := db.RegisterJob("job-1")
-			Ω(err).ShouldNot(HaveOccurred())
-
-			err = db.RegisterJob("job-2")
-			Ω(err).ShouldNot(HaveOccurred())
-
-			err = db.RegisterJob("shared-job")
-			Ω(err).ShouldNot(HaveOccurred())
-
-			err = db.RegisterResource("resource-1")
-			Ω(err).ShouldNot(HaveOccurred())
-
-			err = db.RegisterResource("resource-2")
-			Ω(err).ShouldNot(HaveOccurred())
-
 			j1b1, err := db.CreateJobBuild("job-1")
 			Ω(err).ShouldNot(HaveOccurred())
 
