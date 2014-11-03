@@ -94,3 +94,7 @@
 	path = src/github.com/vito/go-sse
 	url = https://github.com/vito/go-sse
 	branch = master
+[submodule "src/gopkg.in/yaml.v2"]
+	path = src/gopkg.in/yaml.v2
+	url = https://gopkg.in/yaml.v2
+	branch = master
