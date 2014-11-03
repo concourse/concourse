@@ -54,7 +54,7 @@ func main() {
 		},
 		{
 			Name:      "hijack",
-			ShortName: "h",
+			ShortName: "i",
 			Usage:     "Execute an interactive command in a build's container",
 			Flags: []cli.Flag{
 				cli.StringFlag{
@@ -67,6 +67,18 @@ func main() {
 				},
 			},
 			Action: hijack,
+		},
+		{
+			Name:      "configure",
+			ShortName: "c",
+			Usage:     "Update configuration",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "config, c",
+					Usage: "pipeline configuration file",
+				},
+			},
+			Action: configure,
 		},
 	}
 

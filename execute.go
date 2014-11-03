@@ -18,13 +18,13 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/cloudfoundry-incubator/candiedyaml"
 	"github.com/codegangsta/cli"
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/eventstream"
 	"github.com/concourse/turbine"
 	"github.com/pivotal-golang/archiver/compressor"
 	"github.com/tedsuo/rata"
+	"gopkg.in/yaml.v2"
 )
 
 type Input struct {
@@ -157,14 +157,14 @@ func createPipe(atcRequester *atcRequester) atc.Pipe {
 }
 
 func loadConfig(configPath string, args []string) turbine.Config {
-	configFile, err := os.Open(configPath)
+	configFile, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		log.Fatalln("could not open config file:", err)
 	}
 
 	var config turbine.Config
 
-	err = candiedyaml.NewDecoder(configFile).Decode(&config)
+	err = yaml.Unmarshal(configFile, &config)
 	if err != nil {
 		log.Fatalln("could not parse config file:", err)
 	}
