@@ -15,8 +15,8 @@ type Config struct {
 
 type GroupConfig struct {
 	Name      string   `yaml:"name" json:"name"`
-	Jobs      []string `yaml:"jobs" json:"jobs"`
-	Resources []string `yaml:"resources" json:"resources"`
+	Jobs      []string `yaml:"jobs,omitempty" json:"jobs,omitempty"`
+	Resources []string `yaml:"resources,omitempty" json:"resources,omitempty"`
 }
 
 type GroupConfigs []GroupConfig
@@ -33,33 +33,33 @@ type Source map[string]interface{}
 type JobConfig struct {
 	Name string `yaml:"name" json:"name"`
 
-	Public bool `yaml:"public" json:"public"`
+	Public bool `yaml:"public,omitempty" json:"public,omitempty"`
 
-	BuildConfigPath string         `yaml:"build" json:"build"`
-	BuildConfig     turbine.Config `yaml:"config" json:"config"`
+	BuildConfigPath string         `yaml:"build,omitempty" json:"build,omitempty"`
+	BuildConfig     turbine.Config `yaml:"config,omitempty" json:"config,omitempty"`
 
-	Privileged bool `yaml:"privileged" json:"privileged"`
+	Privileged bool `yaml:"privileged,omitempty" json:"privileged,omitempty"`
 
-	Serial bool `yaml:"serial" json:"serial"`
+	Serial bool `yaml:"serial,omitempty" json:"serial,omitempty"`
 
-	Inputs  []InputConfig  `yaml:"inputs" json:"inputs"`
-	Outputs []OutputConfig `yaml:"outputs" json:"outputs"`
+	Inputs  []InputConfig  `yaml:"inputs,omitempty" json:"inputs,omitempty"`
+	Outputs []OutputConfig `yaml:"outputs,omitempty" json:"outputs,omitempty"`
 }
 
 type InputConfig struct {
-	Name     string   `yaml:"name" json:"name"`
+	Name     string   `yaml:"name,omitempty" json:"name,omitempty"`
 	Resource string   `yaml:"resource" json:"resource"`
-	Params   Params   `yaml:"params" json:"params"`
-	Passed   []string `yaml:"passed" json:"passed"`
-	Trigger  *bool    `yaml:"trigger" json:"trigger"`
+	Params   Params   `yaml:"params,omitempty" json:"params,omitempty"`
+	Passed   []string `yaml:"passed,omitempty" json:"passed,omitempty"`
+	Trigger  *bool    `yaml:"trigger,omitempty" json:"trigger,omitempty"`
 }
 
 type OutputConfig struct {
 	Resource string `yaml:"resource" json:"resource"`
-	Params   Params `yaml:"params" json:"params"`
+	Params   Params `yaml:"params,omitempty" json:"params,omitempty"`
 
 	// e.g. [success, failure]; default [success]
-	PerformOn []OutputCondition `yaml:"perform_on" json:"perform_on"`
+	PerformOn []OutputCondition `yaml:"perform_on,omitempty" json:"perform_on,omitempty"`
 }
 
 type OutputCondition string
