@@ -300,6 +300,11 @@ groups:
 }|
 
 This would display two tabs at the top of the home page: "tests" and "deploy".
+
+For a real world example of how groups can be used to simplify navigation and
+provide logical grouping, see the groups used at the top of the page in the
+@hyperlink["http://ci.concourse.ci"]{Concourse pipeline}.
+
 Each group allows you to set the following attributes:
 
 @defthing[name string]{
@@ -316,8 +321,6 @@ Each group allows you to set the following attributes:
 
 @defthing[resources [string]]{
   @emph{Optional.} A list of resources that should appear in this group.
+  Resources that are inputs or outputs of jobs in the group are automatically
+  added; they do not have to be explicitly listed here.
 }
-
-For a real world example of how groups can be used to simplify navigation and
-provide logical grouping, see the groups used at the top of the page in the
-@hyperlink["http://ci.concourse.ci"]{Concourse pipeline}.
