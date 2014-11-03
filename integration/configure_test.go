@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -66,8 +67,10 @@ var _ = Describe("Fly CLI", func() {
 
 						BuildConfigPath: "some/config/path.yml",
 						BuildConfig: turbine.Config{
-							Image:  "some-image",
-							Params: map[string]string{},
+							Image: "some-image",
+							Params: map[string]string{
+								"A": "B",
+							},
 						},
 
 						Privileged: true,
@@ -109,7 +112,7 @@ var _ = Describe("Fly CLI", func() {
 				)
 			})
 
-			It("prints the config to stdout", func() {
+			It("prints the config as yaml to stdout", func() {
 				flyCmd := exec.Command(flyPath, "configure")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -122,6 +125,23 @@ var _ = Describe("Fly CLI", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(printedConfig).Should(Equal(config))
+			})
+
+			Context("when -j is given", func() {
+				It("prints the config as json to stdout", func() {
+					flyCmd := exec.Command(flyPath, "configure", "-j")
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Eventually(sess).Should(gexec.Exit(0))
+
+					var printedConfig atc.Config
+					err = json.Unmarshal(sess.Out.Contents(), &printedConfig)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(printedConfig).Should(Equal(config))
+				})
 			})
 		})
 

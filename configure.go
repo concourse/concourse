@@ -19,17 +19,18 @@ func configure(c *cli.Context) {
 	atcURL := c.GlobalString("atcURL")
 	insecure := c.GlobalBool("insecure")
 	configPath := c.String("config")
+	asJSON := c.Bool("json")
 
 	atcRequester := newAtcRequester(atcURL, insecure)
 
 	if configPath == "" {
-		getConfig(atcRequester)
+		getConfig(atcRequester, asJSON)
 	} else {
 		setConfig(atcRequester, configPath)
 	}
 }
 
-func getConfig(atcRequester *atcRequester) {
+func getConfig(atcRequester *atcRequester, asJSON bool) {
 	getConfig, err := atcRequester.CreateRequest(
 		atc.GetConfig,
 		nil,
@@ -57,7 +58,13 @@ func getConfig(atcRequester *atcRequester) {
 		os.Exit(1)
 	}
 
-	payload, err := yaml.Marshal(config)
+	var payload []byte
+	if asJSON {
+		payload, err = json.Marshal(config)
+	} else {
+		payload, err = yaml.Marshal(config)
+	}
+
 	if err != nil {
 		log.Println("failed to marshal config to YAML:", err)
 		os.Exit(1)

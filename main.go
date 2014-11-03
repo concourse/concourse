@@ -77,6 +77,10 @@ func main() {
 					Name:  "config, c",
 					Usage: "pipeline configuration file",
 				},
+				cli.BoolFlag{
+					Name:  "json, j",
+					Usage: "print config as json instead of yaml",
+				},
 			},
 			Action: configure,
 		},
