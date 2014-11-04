@@ -1,0 +1,22 @@
+---
+name: blackbox
+
+templates:
+  blackbox_ctl: bin/blackbox_ctl
+  config.yml.erb: config/config.yml
+
+packages:
+  - pid_utils
+  - blackbox
+
+properties:
+  blackbox.destination.address:
+    description: "address for syslog drain (incuding port)"
+
+  blackbox.destination.transport:
+    description: "transport protocol for syslog drain (udp/tcp)"
+    default: udp
+
+  blackbox.sources:
+    description: "array of hashes containing file path and tag"
+    default: []

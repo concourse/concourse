@@ -1,0 +1,9 @@
+destination:
+  transport: <%= p("blackbox.destination.transport") %>
+  address: <%= p("blackbox.destination.address") %>
+
+sources:
+<% p("blackbox.sources").each do |source| %>
+  - path: <%= source.fetch('path') %>
+    tag: <%= source.fetch('tag') %>
+<% end %>
