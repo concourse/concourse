@@ -10,10 +10,10 @@ type EventStream interface {
 }
 
 type SSEEventStream struct {
-	sseReader *sse.Reader
+	sseReader *sse.EventSource
 }
 
-func NewSSEEventStream(reader *sse.Reader) *SSEEventStream {
+func NewSSEEventStream(reader *sse.EventSource) *SSEEventStream {
 	return &SSEEventStream{sseReader: reader}
 }
 

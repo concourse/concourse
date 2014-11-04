@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
+	"time"
 
 	"crypto/tls"
 	"log"
@@ -24,6 +25,7 @@ import (
 	"github.com/concourse/turbine"
 	"github.com/pivotal-golang/archiver/compressor"
 	"github.com/tedsuo/rata"
+	"github.com/vito/go-sse/sse"
 	"gopkg.in/yaml.v2"
 )
 
@@ -95,19 +97,21 @@ func execute(c *cli.Context) {
 
 	signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
 
-	logOutput, err := atcRequester.CreateRequest(
-		atc.BuildEvents,
-		rata.Params{"build_id": strconv.Itoa(build.ID)},
-		nil,
-	)
-	if err != nil {
-		log.Fatalln(err)
-	}
+	eventSource := &sse.EventSource{
+		Client: atcRequester.httpClient,
+		CreateRequest: func() *http.Request {
+			logOutput, err := atcRequester.CreateRequest(
+				atc.BuildEvents,
+				rata.Params{"build_id": strconv.Itoa(build.ID)},
+				nil,
+			)
+			if err != nil {
+				log.Fatalln(err)
+			}
 
-	resp, err := atcRequester.httpClient.Do(logOutput)
-	if err != nil {
-		log.Println("failed to stream output:", err, resp)
-		os.Exit(1)
+			return logOutput
+		},
+		DefaultRetryInterval: 1 * time.Second,
 	}
 
 	go func() {
@@ -116,13 +120,13 @@ func execute(c *cli.Context) {
 		}
 	}()
 
-	exitCode, err := eventstream.RenderStream(resp.Body)
+	exitCode, err := eventstream.RenderStream(eventSource)
 	if err != nil {
 		log.Println("failed to render stream:", err)
 		os.Exit(1)
 	}
 
-	resp.Body.Close()
+	eventSource.Close()
 
 	os.Exit(exitCode)
 }

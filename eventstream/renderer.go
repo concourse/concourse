@@ -19,10 +19,8 @@ type Renderer interface {
 	Render(io.Writer, EventStream) int
 }
 
-func RenderStream(stream io.Reader) (int, error) {
-	reader := sse.NewReader(stream)
-
-	se, err := reader.Next()
+func RenderStream(eventSource *sse.EventSource) (int, error) {
+	se, err := eventSource.Next()
 	if err != nil {
 		return -1, fmt.Errorf("could not determine version: %s", err)
 	}
@@ -42,5 +40,5 @@ func RenderStream(stream io.Reader) (int, error) {
 		return -1, fmt.Errorf("unknown protocol version: %s", version)
 	}
 
-	return renderer.Render(os.Stdout, NewSSEEventStream(reader)), nil
+	return renderer.Render(os.Stdout, NewSSEEventStream(eventSource)), nil
 }
