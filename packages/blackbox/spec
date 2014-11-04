@@ -1,0 +1,19 @@
+---
+name: blackbox
+
+dependencies:
+  - golang_1.3
+
+files:
+  - github.com/concourse/blackbox/cmd/blackbox/*.go # gosub
+  - github.com/ActiveState/tail/*.go # gosub
+  - github.com/ActiveState/tail/ratelimiter/*.go # gosub
+  - github.com/ActiveState/tail/util/*.go # gosub
+  - github.com/ActiveState/tail/watch/*.go # gosub
+  - github.com/concourse/blackbox/*.go # gosub
+  - github.com/fraenkel/candiedyaml/*.go # gosub
+  - github.com/howeyc/fsnotify/*.go # gosub
+  - github.com/tedsuo/ifrit/*.go # gosub
+  - github.com/tedsuo/ifrit/grouper/*.go # gosub
+  - github.com/tedsuo/ifrit/sigmon/*.go # gosub
+  - gopkg.in/tomb.v1/*.go # gosub
