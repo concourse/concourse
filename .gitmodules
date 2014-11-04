@@ -98,3 +98,23 @@
 	path = src/gopkg.in/yaml.v2
 	url = https://gopkg.in/yaml.v2
 	branch = master
+[submodule "src/github.com/concourse/blackbox"]
+	path = src/github.com/concourse/blackbox
+	url = https://github.com/concourse/blackbox
+	branch = master
+[submodule "src/github.com/fraenkel/candiedyaml"]
+	path = src/github.com/fraenkel/candiedyaml
+	url = https://github.com/fraenkel/candiedyaml
+	branch = master
+[submodule "src/github.com/howeyc/fsnotify"]
+	path = src/github.com/howeyc/fsnotify
+	url = https://github.com/howeyc/fsnotify
+	branch = master
+[submodule "src/github.com/ActiveState/tail"]
+	path = src/github.com/ActiveState/tail
+	url = https://github.com/ActiveState/tail
+	branch = master
+[submodule "src/gopkg.in/tomb.v1"]
+	path = src/gopkg.in/tomb.v1
+	url = https://gopkg.in/tomb.v1
+	branch = master
