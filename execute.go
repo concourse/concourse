@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
-	"time"
 
 	"crypto/tls"
 	"log"
@@ -111,7 +110,6 @@ func execute(c *cli.Context) {
 
 			return logOutput
 		},
-		DefaultRetryInterval: 1 * time.Second,
 	}
 
 	go func() {
