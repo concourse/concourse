@@ -108,7 +108,7 @@ function removeUnconnectedGroupMembers(groups, digraph) {
 
           var targetValue = digraph.node(edge.w);
           if (nodeIsInGroups(groups, targetValue)) {
-            return true;
+            return;
           }
         }
 
@@ -118,7 +118,7 @@ function removeUnconnectedGroupMembers(groups, digraph) {
 
           var sourceValue = digraph.node(edge.v);
           if (nodeIsInGroups(groups, sourceValue)) {
-            return true;
+            return;
           }
         }
 
@@ -139,6 +139,12 @@ function computeGraph(groups, nodes, edges) {
 
   digraph.nodes().forEach(function(v) {
     var node = digraph.node(v);
+
+    if (node.gateway) {
+      node.height = 30;
+      node.width = 2;
+    }
+
     node.paddingLeft = 0;
     node.paddingRight = 0;
     node.paddingTop = 0;
