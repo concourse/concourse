@@ -336,6 +336,8 @@ func upload(input Input, excludeIgnored bool, atcRequester *atcRequester) {
 		if err != nil {
 			log.Fatalln("could not run tar:", err)
 		}
+
+		defer tarCmd.Wait()
 	}
 
 	defer archive.Close()
