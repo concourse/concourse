@@ -248,6 +248,7 @@ run:
 		Eventually(streaming).Should(BeClosed())
 
 		events <- event.Log{Payload: "sup"}
+		close(events)
 
 		Eventually(sess.Out).Should(gbytes.Say("sup"))
 	})

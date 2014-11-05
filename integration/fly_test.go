@@ -205,6 +205,9 @@ run:
 		events <- event.Log{Payload: "sup"}
 
 		Eventually(sess.Out).Should(gbytes.Say("sup"))
+
+		close(events)
+		Eventually(sess).Should(gexec.Exit(0))
 	})
 
 	Context("when arguments are passed through", func() {
@@ -218,11 +221,14 @@ run:
 			flyCmd := exec.Command(flyPath, "--", "-name", "foo \"bar\" baz")
 			flyCmd.Dir = buildDir
 
-			_, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			// sync with after create
 			Eventually(streaming, 5.0).Should(BeClosed())
+
+			close(events)
+			Eventually(sess).Should(gexec.Exit(0))
 		})
 	})
 
@@ -237,11 +243,14 @@ run:
 			flyCmd := exec.Command(flyPath, "--privileged")
 			flyCmd.Dir = buildDir
 
-			_, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			// sync with after create
 			Eventually(streaming, 5.0).Should(BeClosed())
+
+			close(events)
+			Eventually(sess).Should(gexec.Exit(0))
 		})
 	})
 
@@ -275,11 +284,14 @@ run:
 			flyCmd.Dir = buildDir
 			flyCmd.Env = append(os.Environ(), "FOO=newbar", "X=")
 
-			_, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			// sync with after create
 			Eventually(streaming, 5.0).Should(BeClosed())
+
+			close(events)
+			Eventually(sess).Should(gexec.Exit(0))
 		})
 	})
 
@@ -316,6 +328,7 @@ run:
 				Eventually(aborted, 5.0).Should(BeClosed())
 
 				events <- event.Status{Status: turbine.StatusErrored}
+				close(events)
 
 				Eventually(flySession, 5.0).Should(gexec.Exit(2))
 			})
@@ -338,6 +351,7 @@ run:
 				Eventually(aborted, 5.0).Should(BeClosed())
 
 				events <- event.Status{Status: turbine.StatusErrored}
+				close(events)
 
 				Eventually(flySession, 5.0).Should(gexec.Exit(2))
 			})
@@ -355,6 +369,7 @@ run:
 			Eventually(streaming, 5).Should(BeClosed())
 
 			events <- event.Status{Status: turbine.StatusSucceeded}
+			close(events)
 
 			Eventually(flySession, 5.0).Should(gexec.Exit(0))
 		})
@@ -371,6 +386,7 @@ run:
 			Eventually(streaming, 5).Should(BeClosed())
 
 			events <- event.Status{Status: turbine.StatusFailed}
+			close(events)
 
 			Eventually(flySession, 5.0).Should(gexec.Exit(1))
 		})
@@ -387,6 +403,7 @@ run:
 			Eventually(streaming, 5).Should(BeClosed())
 
 			events <- event.Status{Status: turbine.StatusErrored}
+			close(events)
 
 			Eventually(flySession, 5.0).Should(gexec.Exit(2))
 		})
