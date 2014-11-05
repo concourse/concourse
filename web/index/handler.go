@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"sort"
 
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
@@ -154,6 +155,8 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	gateways := map[string]bool{}
+
 	for _, job := range config.Jobs {
 		jobID := jobNode(job.Name)
 		currentBuild := currentBuilds[job.Name]
@@ -193,15 +196,26 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				var nodeID string
 
 				if len(input.Passed) > 1 {
-					nodeID = jobID + "-input-" + input.Resource
+					gatewayID := "gateway"
 
-					data.Nodes = append(data.Nodes, DotNode{
-						ID: nodeID,
-						Value: DotValue{
-							"label": "",
-							"class": "gateway",
-						},
-					})
+					sort.Strings(input.Passed)
+
+					for _, j := range input.Passed {
+						gatewayID += "-" + j
+					}
+
+					nodeID = gatewayID
+
+					if _, found := gateways[gatewayID]; !found {
+						data.Nodes = append(data.Nodes, DotNode{
+							ID: gatewayID,
+							Value: DotValue{
+								"label":   "",
+								"gateway": true,
+								"class":   "gateway",
+							},
+						})
+					}
 
 					data.Edges = append(data.Edges, DotEdge{
 						Source:      nodeID,
@@ -224,7 +238,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						panic("unknown job: " + passed)
 					}
 
-					existingEdge, found := edges[passed]
+					existingEdge, found := edges[input.Resource+"-"+passed]
 					if found {
 						if len(passedJob.Inputs) > 1 {
 							existingEdge.Value["label"] = existingEdge.Value["label"].(string) + "\n" + input.Resource
@@ -240,7 +254,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							value["label"] = input.Resource
 						}
 
-						edges[passed] = DotEdge{
+						edges[input.Resource+"-"+passed] = DotEdge{
 							Source:      jobNode(passed),
 							Destination: nodeID,
 							Value:       value,
