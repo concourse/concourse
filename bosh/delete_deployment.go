@@ -11,7 +11,7 @@ import (
 )
 
 func DeleteDeployment(deploymentName string) {
-	deleteDeployment := exec.Command("bosh", "-n", "delete", "deployment", deploymentName)
+	deleteDeployment := exec.Command("bosh", "-n", "delete", "deployment", deploymentName, "--force")
 
 	session, err := gexec.Start(deleteDeployment, GinkgoWriter, GinkgoWriter)
 	Ω(err).ShouldNot(HaveOccurred())
