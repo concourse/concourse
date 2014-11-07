@@ -184,17 +184,6 @@ var _ = Describe("Scheduler", func() {
 				schedulerDB.GetLatestInputVersionsReturns(foundInputs, nil)
 			})
 
-			It("acquires the input's lock before grabbing them from the DB", func() {
-				err := scheduler.BuildLatestInputs(job, resources)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(locker.AcquireReadLockCallCount()).Should(Equal(1))
-
-				lockedInputs := locker.AcquireReadLockArgsForCall(0)
-				Ω(lockedInputs).Should(Equal([]db.NamedLock{db.ResourceLock("some-resource"), db.ResourceLock("some-other-resource")}))
-				Ω(readLock.ReleaseCallCount()).Should(Equal(1))
-			})
-
 			It("checks if they are already used for a build", func() {
 				err := scheduler.BuildLatestInputs(job, resources)
 				Ω(err).ShouldNot(HaveOccurred())
@@ -204,6 +193,30 @@ var _ = Describe("Scheduler", func() {
 				checkedJob, checkedInputs := schedulerDB.GetJobBuildForInputsArgsForCall(0)
 				Ω(checkedJob).Should(Equal("some-job"))
 				Ω(checkedInputs).Should(Equal(foundInputs))
+			})
+
+			Describe("getting the latest inputs from the database", func() {
+				BeforeEach(func() {
+					schedulerDB.GetLatestInputVersionsStub = func(inputs []atc.InputConfig) (db.VersionedResources, error) {
+						Ω(locker.AcquireReadLockCallCount()).Should(Equal(1))
+						Ω(locker.AcquireReadLockArgsForCall(0)).Should(ConsistOf([]db.NamedLock{
+							db.ResourceLock("some-resource"),
+							db.ResourceLock("some-other-resource"),
+						}))
+
+						return foundInputs, nil
+					}
+				})
+
+				It("is done while holding a read lock for every resource", func() {
+					err := scheduler.BuildLatestInputs(job, resources)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					// assertion is in stub to guarantee order
+					Ω(schedulerDB.GetLatestInputVersionsCallCount()).Should(Equal(1))
+
+					Ω(readLock.ReleaseCallCount()).Should(Equal(1))
+				})
 			})
 
 			Context("and the job has inputs configured not to check", func() {

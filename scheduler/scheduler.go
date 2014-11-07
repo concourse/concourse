@@ -46,7 +46,16 @@ func (s *Scheduler) BuildLatestInputs(job atc.JobConfig, resources atc.ResourceC
 
 	buildLog := s.Logger.Session("build-latest")
 
+	lock, err := s.lockVersionUpdatesFor(job.Inputs)
+	if err != nil {
+		buildLog.Error("failed-to-acquire-inputs-lock", err)
+		return err
+	}
+
 	inputs, err := s.DB.GetLatestInputVersions(job.Inputs)
+
+	lock.Release()
+
 	if err != nil {
 		buildLog.Error("failed-to-get-latest-input-versions", err)
 		return err
@@ -75,20 +84,7 @@ func (s *Scheduler) BuildLatestInputs(job atc.JobConfig, resources atc.ResourceC
 		return nil
 	}
 
-	locks := []db.NamedLock{}
-	for _, input := range checkInputs {
-		locks = append(locks, db.ResourceLock(input.Name))
-	}
-
-	lock, err := s.Locker.AcquireReadLock(locks)
-	if err != nil {
-		buildLog.Error("failed-to-acquire-inputs-lock", err, lager.Data{
-			"inputs": inputs,
-		})
-		return err
-	}
 	_, err = s.DB.GetJobBuildForInputs(job.Name, checkInputs)
-	lock.Release()
 	if err == nil {
 		return nil
 	}
@@ -226,4 +222,13 @@ func (s *Scheduler) TrackInFlightBuilds() error {
 	}
 
 	return nil
+}
+
+func (s *Scheduler) lockVersionUpdatesFor(inputs []atc.InputConfig) (db.Lock, error) {
+	locks := []db.NamedLock{}
+	for _, input := range inputs {
+		locks = append(locks, db.ResourceLock(input.Resource))
+	}
+
+	return s.Locker.AcquireReadLock(locks)
 }
