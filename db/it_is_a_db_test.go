@@ -591,6 +591,37 @@ func itIsADB() {
 			err = thirdLock.Release()
 			Ω(err).ShouldNot(HaveOccurred())
 		})
+
+		It("cleans up after releasing", func() {
+			lock, err := db.AcquireWriteLock([]NamedLock{ResourceLock("a-name")})
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(db.ListLocks()).Should(ContainElement(ResourceLock("a-name").Name()))
+
+			secondLockCh := make(chan Lock, 1)
+
+			go func() {
+				defer GinkgoRecover()
+
+				secondLock, err := db.AcquireWriteLock([]NamedLock{ResourceLock("a-name")})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				secondLockCh <- secondLock
+			}()
+
+			Consistently(secondLockCh).ShouldNot(Receive())
+
+			err = lock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(db.ListLocks()).Should(ContainElement(ResourceLock("a-name").Name()))
+
+			var secondLock Lock
+			Eventually(secondLockCh).Should(Receive(&secondLock))
+
+			err = secondLock.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(db.ListLocks()).Should(BeEmpty())
+		})
 	})
 
 	Describe("saving build inputs", func() {
