@@ -50,26 +50,26 @@ func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		panic("unconfigured scheduler interval")
 	}
 
-	if runner.Logger != nil {
-		runner.Logger.Info("starting", lager.Data{
-			"inverval": runner.Interval.String(),
-		})
-	}
+	runner.Logger.Info("starting", lager.Data{
+		"inverval": runner.Interval.String(),
+	})
 
 dance:
 	for {
 		select {
 		case <-time.After(runner.Interval):
-			if runner.Logger != nil {
-				runner.Logger.Info("scheduling")
-			}
+			sLog := runner.Logger.Session("tick")
 
 			config, err := runner.ConfigDB.GetConfig()
 			if err != nil {
+				sLog.Error("failed-to-get-config", err)
 				continue
 			}
 
-			runner.Scheduler.TrackInFlightBuilds()
+			err = runner.Scheduler.TrackInFlightBuilds()
+			if err != nil {
+				sLog.Error("failed-to-track-in-flight-builds", err)
+			}
 
 			for _, job := range config.Jobs {
 				lock, err := runner.Locker.AcquireWriteLockImmediately([]db.NamedLock{db.JobSchedulingLock(job.Name)})
@@ -77,8 +77,19 @@ dance:
 					continue
 				}
 
-				runner.Scheduler.TryNextPendingBuild(job, config.Resources)
-				runner.Scheduler.BuildLatestInputs(job, config.Resources)
+				sLog.Info("scheduling", lager.Data{
+					"job": job.Name,
+				})
+
+				err = runner.Scheduler.TryNextPendingBuild(job, config.Resources)
+				if err != nil {
+					sLog.Error("failed-to-try-next-pending-build", err)
+				}
+
+				err = runner.Scheduler.BuildLatestInputs(job, config.Resources)
+				if err != nil {
+					sLog.Error("failed-to-build-from-latest-inputs", err)
+				}
 
 				lock.Release()
 			}

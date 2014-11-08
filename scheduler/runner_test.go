@@ -9,6 +9,7 @@ import (
 	dbfakes "github.com/concourse/atc/db/fakes"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/fakes"
+	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 
@@ -68,6 +69,7 @@ var _ = Describe("Runner", func() {
 
 	JustBeforeEach(func() {
 		process = ginkgomon.Invoke(&Runner{
+			Logger:    lagertest.NewTestLogger("test"),
 			Locker:    locker,
 			ConfigDB:  configDB,
 			Scheduler: scheduler,

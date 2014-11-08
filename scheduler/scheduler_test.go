@@ -1,6 +1,7 @@
 package scheduler_test
 
 import (
+	"database/sql"
 	"errors"
 
 	"github.com/concourse/atc"
@@ -433,6 +434,22 @@ var _ = Describe("Scheduler", func() {
 		})
 
 		Context("when a pending build is not found", func() {
+			BeforeEach(func() {
+				schedulerDB.GetNextPendingBuildReturns(db.Build{}, db.VersionedResources{}, sql.ErrNoRows)
+			})
+
+			It("returns no error", func() {
+				err := scheduler.TryNextPendingBuild(job, resources)
+				Ω(err).ShouldNot(HaveOccurred())
+			})
+
+			It("does not start a build", func() {
+				scheduler.TryNextPendingBuild(job, resources)
+				Ω(builder.BuildCallCount()).Should(Equal(0))
+			})
+		})
+
+		Context("when getting the next pending build fails", func() {
 			disaster := errors.New("oh no!")
 
 			BeforeEach(func() {

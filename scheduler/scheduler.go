@@ -1,6 +1,8 @@
 package scheduler
 
 import (
+	"database/sql"
+
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc"
@@ -131,6 +133,10 @@ func (s *Scheduler) TryNextPendingBuild(job atc.JobConfig, resources atc.Resourc
 
 	build, inputs, err := s.DB.GetNextPendingBuild(job.Name)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil
+		}
+
 		return err
 	}
 
