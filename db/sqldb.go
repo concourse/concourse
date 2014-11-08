@@ -1091,7 +1091,7 @@ func (db *SQLDB) acquireLockLoop(lockType string, lock []NamedLock) (Lock, error
 }
 
 func (db *SQLDB) AcquireWriteLockImmediately(lock []NamedLock) (Lock, error) {
-	return db.acquireLock("UPDATE NOWAIT", lock)
+	return db.acquireLockLoop("UPDATE NOWAIT", lock)
 }
 
 func (db *SQLDB) AcquireWriteLock(lock []NamedLock) (Lock, error) {
