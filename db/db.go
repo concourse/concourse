@@ -51,6 +51,7 @@ type DB interface {
 	AcquireWriteLockImmediately(locks []NamedLock) (Lock, error)
 	AcquireWriteLock(locks []NamedLock) (Lock, error)
 	AcquireReadLock(locks []NamedLock) (Lock, error)
+	ListLocks() ([]string, error)
 }
 
 type ConfigDB interface {

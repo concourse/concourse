@@ -1033,7 +1033,7 @@ func (db *SQLDB) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 	return hs, nil
 }
 
-func (db *SQLDB) acquireLock(lockType string, locks []NamedLock) (Lock, error) {
+func (db *SQLDB) acquireLock(lockType string, locks []NamedLock) (*txLock, error) {
 	params := []interface{}{}
 	refs := []string{}
 	for i, lock := range locks {
@@ -1058,7 +1058,7 @@ func (db *SQLDB) acquireLock(lockType string, locks []NamedLock) (Lock, error) {
 		return nil, err
 	}
 
-	_, err = tx.Exec(`
+	result, err := tx.Exec(`
 	SELECT 1 FROM locks
 	WHERE name IN (`+strings.Join(refs, ",")+`)
 	FOR `+lockType+`
@@ -1068,27 +1068,100 @@ func (db *SQLDB) acquireLock(lockType string, locks []NamedLock) (Lock, error) {
 		return nil, err
 	}
 
-	return &txLock{tx}, nil
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		tx.Commit()
+		return nil, err
+	}
+	if rowsAffected == 0 {
+		tx.Commit()
+		return nil, ErrLockRowNotPresentOrAlreadyDeleted
+	}
+
+	return &txLock{tx, db, locks}, nil
+}
+
+func (db *SQLDB) acquireLockLoop(lockType string, lock []NamedLock) (Lock, error) {
+	for {
+		lock, err := db.acquireLock(lockType, lock)
+		if err != ErrLockRowNotPresentOrAlreadyDeleted {
+			return lock, err
+		}
+	}
 }
 
 func (db *SQLDB) AcquireWriteLockImmediately(lock []NamedLock) (Lock, error) {
-	return db.acquireLock("UPDATE NOWAIT", lock)
+	return db.acquireLockLoop("UPDATE NOWAIT", lock)
 }
 
 func (db *SQLDB) AcquireWriteLock(lock []NamedLock) (Lock, error) {
-	return db.acquireLock("UPDATE", lock)
+	return db.acquireLockLoop("UPDATE", lock)
 }
 
 func (db *SQLDB) AcquireReadLock(lock []NamedLock) (Lock, error) {
-	return db.acquireLock("SHARE", lock)
+	return db.acquireLockLoop("SHARE", lock)
+}
+
+func (db *SQLDB) ListLocks() ([]string, error) {
+	rows, err := db.conn.Query("SELECT name FROM locks")
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	locks := []string{}
+
+	for rows.Next() {
+		var name string
+		err := rows.Scan(&name)
+		if err != nil {
+			return nil, err
+		}
+
+		locks = append(locks, name)
+	}
+
+	return locks, nil
 }
 
 type txLock struct {
-	tx *sql.Tx
+	tx         *sql.Tx
+	db         *SQLDB
+	namedLocks []NamedLock
+}
+
+func (lock *txLock) release() error {
+	return lock.tx.Commit()
+}
+
+func (lock *txLock) cleanup() error {
+	lockNames := []interface{}{}
+	refs := []string{}
+	for i, l := range lock.namedLocks {
+		lockNames = append(lockNames, l.Name())
+		refs = append(refs, fmt.Sprintf("$%d", i+1))
+	}
+
+	cleanupLock, err := lock.db.acquireLock("UPDATE NOWAIT", lock.namedLocks)
+	if err != nil {
+		return nil
+	}
+
+	_, err = cleanupLock.tx.Exec(`
+		DELETE FROM locks
+		WHERE name IN (`+strings.Join(refs, ",")+`)
+	`, lockNames...)
+	return cleanupLock.release()
 }
 
 func (lock *txLock) Release() error {
-	return lock.tx.Commit()
+	err := lock.release()
+	if err != nil {
+		return err
+	}
+
+	return lock.cleanup()
 }
 
 func (db *SQLDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (int, error) {
