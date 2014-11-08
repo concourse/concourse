@@ -74,7 +74,7 @@ var _ = Describe("TurbineChecker", func() {
 		)
 
 		resource = atc.ResourceConfig{
-			Name:   "some-input",
+			Name:   "some-resource",
 			Type:   "git",
 			Source: atc.Source{"uri": "http://example.com"},
 		}
@@ -104,8 +104,9 @@ var _ = Describe("TurbineChecker", func() {
 			}))
 
 			Ω(checkedInputs).Should(Receive(Equal(turbine.Input{
-				Type:   resource.Type,
-				Source: turbine.Source{"uri": "http://example.com"},
+				Resource: "some-resource",
+				Type:     resource.Type,
+				Source:   turbine.Source{"uri": "http://example.com"},
 			})))
 
 			Ω(checker.CheckResource(resource, db.Version{"ver": "def"})).Should(Equal([]db.Version{
@@ -113,9 +114,10 @@ var _ = Describe("TurbineChecker", func() {
 			}))
 
 			Ω(checkedInputs).Should(Receive(Equal(turbine.Input{
-				Type:    resource.Type,
-				Source:  turbine.Source{"uri": "http://example.com"},
-				Version: turbine.Version{"ver": "def"},
+				Resource: "some-resource",
+				Type:     resource.Type,
+				Source:   turbine.Source{"uri": "http://example.com"},
+				Version:  turbine.Version{"ver": "def"},
 			})))
 		})
 	})

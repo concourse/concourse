@@ -43,9 +43,10 @@ func (checker *TurbineChecker) CheckResource(resource atc.ResourceConfig, from d
 	}
 
 	buildInput := turbine.Input{
-		Type:    resource.Type,
-		Source:  turbine.Source(resource.Source),
-		Version: turbine.Version(from),
+		Resource: resource.Name,
+		Type:     resource.Type,
+		Source:   turbine.Source(resource.Source),
+		Version:  turbine.Version(from),
 	}
 
 	err = conn.WriteJSON(buildInput)
