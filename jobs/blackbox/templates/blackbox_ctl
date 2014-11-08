@@ -17,7 +17,7 @@ case $1 in
 
     echo $$ > $PIDFILE
 
-    exec /var/vcap/packages/blackbox/bin/blackbox \
+    exec chpst -u vcap:vcap /var/vcap/packages/blackbox/bin/blackbox \
       -config=/var/vcap/jobs/blackbox/config/config.yml \
       1>>$LOG_DIR/blackbox.stdout.log \
       2>>$LOG_DIR/blackbox.stderr.log
