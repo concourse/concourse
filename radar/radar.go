@@ -96,9 +96,8 @@ func (radar *Radar) Scan(checker ResourceChecker, resourceName string) ifrit.Run
 
 				var from db.Version
 				log := radar.logger.Session("radar", lager.Data{
-					"type":     resource.Type,
 					"resource": resource.Name,
-					"from":     from,
+					"type":     resource.Type,
 				})
 
 				lock, err := radar.locker.AcquireReadLock([]db.NamedLock{db.ResourceLock(resource.Name)})
@@ -108,12 +107,16 @@ func (radar *Radar) Scan(checker ResourceChecker, resourceName string) ifrit.Run
 					})
 					break
 				}
+
 				if vr, err := radar.tracker.GetLatestVersionedResource(resource.Name); err == nil {
 					from = vr.Version
 				}
+
 				lock.Release()
 
-				log.Debug("check")
+				log.Debug("check", lager.Data{
+					"from": from,
+				})
 
 				newVersions, err := checker.CheckResource(resource, from)
 
