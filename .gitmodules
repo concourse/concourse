@@ -118,3 +118,11 @@
 	path = src/gopkg.in/tomb.v1
 	url = https://gopkg.in/tomb.v1
 	branch = master
+[submodule "src/github.com/papertrail/remote_syslog2"]
+	path = src/github.com/papertrail/remote_syslog2
+	url = https://github.com/papertrail/remote_syslog2
+	branch = master
+[submodule "src/github.com/ziutek/syslog"]
+	path = src/github.com/ziutek/syslog
+	url = https://github.com/ziutek/syslog
+	branch = master

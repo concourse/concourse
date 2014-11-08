@@ -7,5 +7,6 @@ gosub list \
   -a github.com/concourse/atc/cmd/... \
   -a github.com/concourse/blackbox/cmd/... \
   -t github.com/concourse/testflight/... \
+  -t github.com/concourse/blackbox/integration/... \
   -a github.com/vito/gosub \
   | xargs gosub sync
