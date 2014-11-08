@@ -1081,16 +1081,25 @@ func (db *SQLDB) acquireLock(lockType string, locks []NamedLock) (*txLock, error
 	return &txLock{tx, db, locks}, nil
 }
 
+func (db *SQLDB) acquireLockLoop(lockType string, lock []NamedLock) (Lock, error) {
+	for {
+		lock, err := db.acquireLock(lockType, lock)
+		if err != ErrLockRowNotPresentOrAlreadyDeleted {
+			return lock, err
+		}
+	}
+}
+
 func (db *SQLDB) AcquireWriteLockImmediately(lock []NamedLock) (Lock, error) {
 	return db.acquireLock("UPDATE NOWAIT", lock)
 }
 
 func (db *SQLDB) AcquireWriteLock(lock []NamedLock) (Lock, error) {
-	return db.acquireLock("UPDATE", lock)
+	return db.acquireLockLoop("UPDATE", lock)
 }
 
 func (db *SQLDB) AcquireReadLock(lock []NamedLock) (Lock, error) {
-	return db.acquireLock("SHARE", lock)
+	return db.acquireLockLoop("SHARE", lock)
 }
 
 func (db *SQLDB) ListLocks() ([]string, error) {
