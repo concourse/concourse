@@ -1069,9 +1069,13 @@ func (db *SQLDB) acquireLock(lockType string, locks []NamedLock) (*txLock, error
 	}
 
 	rowsAffected, err := result.RowsAffected()
-	if err != nil || rowsAffected == 0 {
+	if err != nil {
 		tx.Commit()
 		return nil, err
+	}
+	if rowsAffected == 0 {
+		tx.Commit()
+		return nil, ErrLockRowNotPresentOrAlreadyDeleted
 	}
 
 	return &txLock{tx, db, locks}, nil
