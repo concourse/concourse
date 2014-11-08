@@ -112,6 +112,46 @@ var _ = Describe("Tracker", func() {
 			})
 		})
 
+		Context("when the build has no endpoint", func() {
+			BeforeEach(func() {
+				build.Endpoint = ""
+			})
+
+			It("does not return an error", func() {
+				Ω(trackErr).ShouldNot(HaveOccurred())
+			})
+
+			It("sets the build's status to errored", func() {
+				// TODO some way of messaging this?
+
+				Ω(trackerDB.SaveBuildStatusCallCount()).Should(Equal(1))
+
+				buildID, status := trackerDB.SaveBuildStatusArgsForCall(0)
+				Ω(buildID).Should(Equal(1))
+				Ω(status).Should(Equal(db.StatusErrored))
+			})
+		})
+
+		Context("when the build has no guid", func() {
+			BeforeEach(func() {
+				build.Guid = ""
+			})
+
+			It("does not return an error", func() {
+				Ω(trackErr).ShouldNot(HaveOccurred())
+			})
+
+			It("sets the build's status to errored", func() {
+				// TODO some way of messaging this?
+
+				Ω(trackerDB.SaveBuildStatusCallCount()).Should(Equal(1))
+
+				buildID, status := trackerDB.SaveBuildStatusArgsForCall(0)
+				Ω(buildID).Should(Equal(1))
+				Ω(status).Should(Equal(db.StatusErrored))
+			})
+		})
+
 		Context("when the build's turbine returns events", func() {
 			var (
 				events []event.Event

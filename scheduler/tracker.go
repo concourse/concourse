@@ -74,6 +74,18 @@ func (tracker *tracker) TrackBuild(build db.Build) error {
 		tracker.unmarkTracking(build.ID)
 	}()
 
+	if build.Endpoint == "" || build.Guid == "" {
+		tLog.Info("saving-untrackable-build-as-errored")
+
+		err := tracker.db.SaveBuildStatus(build.ID, db.StatusErrored)
+		if err != nil {
+			tLog.Error("failed-to-save-untrackable-build-as-errored", err)
+			return err
+		}
+
+		return nil
+	}
+
 	generator := rata.NewRequestGenerator(build.Endpoint, turbine.Routes)
 
 	events, err := generator.CreateRequest(
@@ -99,7 +111,7 @@ func (tracker *tracker) TrackBuild(build db.Build) error {
 
 		err := tracker.db.SaveBuildStatus(build.ID, db.StatusErrored)
 		if err != nil {
-			tLog.Error("failed-to-save-build-as-errored", err)
+			tLog.Error("failed-to-save-orphaned-build-as-errored", err)
 			return err
 		}
 
