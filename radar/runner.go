@@ -107,10 +107,14 @@ dance:
 
 				scanning[resource.Name] = true
 
-				insertScanner <- grouper.Member{
-					Name:   resource.Name,
-					Runner: runner.scanner.Scan(checker, resource.Name),
-				}
+				// avoid deadlock if exit event is blocked; inserting in this case
+				// will block on the event being consumed (which is in this select)
+				go func(name string) {
+					insertScanner <- grouper.Member{
+						Name:   name,
+						Runner: runner.scanner.Scan(checker, name),
+					}
+				}(resource.Name)
 			}
 		}
 	}
