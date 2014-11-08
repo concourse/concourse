@@ -58,7 +58,7 @@ func (tracker *tracker) TrackBuild(build db.Build) error {
 	defer lock.Release()
 
 	tLog := tracker.logger.Session("track-build", lager.Data{
-		"buld": build.ID,
+		"build": build.ID,
 	})
 
 	alreadyTracking := tracker.markTracking(build.ID)
