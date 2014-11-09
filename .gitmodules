@@ -102,10 +102,6 @@
 	path = src/github.com/concourse/blackbox
 	url = https://github.com/concourse/blackbox
 	branch = master
-[submodule "src/github.com/fraenkel/candiedyaml"]
-	path = src/github.com/fraenkel/candiedyaml
-	url = https://github.com/fraenkel/candiedyaml
-	branch = master
 [submodule "src/github.com/howeyc/fsnotify"]
 	path = src/github.com/howeyc/fsnotify
 	url = https://github.com/howeyc/fsnotify
