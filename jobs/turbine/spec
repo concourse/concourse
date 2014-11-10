@@ -48,11 +48,12 @@ properties:
   blackbox.sources.turbine:
     description: "files whose contents blackbox will emit to its syslog drain"
     default:
-      - path: /var/vcap/sys/log/turbine/turbine.stdout.log
-        tag: turbine
+      - /var/vcap/sys/log/turbine/turbine.stdout.log
+      - /var/vcap/sys/log/turbine/turbine.stderr.log
+      - /var/vcap/sys/log/turbine/drain.log
 
-      - path: /var/vcap/sys/log/turbine/turbine.stderr.log
-        tag: turbine
-
-      - path: /var/vcap/sys/log/turbine/drain.log
-        tag: turbine
+  blackbox.sources.garden:
+    description: "files whose contents blackbox will emit to its syslog drain"
+    default:
+      - /var/vcap/sys/log/garden/garden.stdout.log
+      - /var/vcap/sys/log/garden/garden.stderr.log

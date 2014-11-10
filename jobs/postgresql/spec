@@ -32,8 +32,5 @@ properties:
   blackbox.sources.postgresql:
     description: "files whose contents blackbox will emit to its syslog drain"
     default:
-      - path: /var/vcap/sys/log/postgresql/postgresql.stdout.log
-        tag: postgresql
-
-      - path: /var/vcap/sys/log/postgresql/postgresql.stderr.log
-        tag: postgresql
+      - /var/vcap/sys/log/postgresql/postgresql.stdout.log
+      - /var/vcap/sys/log/postgresql/postgresql.stderr.log
