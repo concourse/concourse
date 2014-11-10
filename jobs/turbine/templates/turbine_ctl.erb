@@ -36,11 +36,14 @@ case $1 in
     pid_guard $PIDFILE "turbine"
 
     mkdir -p $RUN_DIR
+    chown -R vcap:vcap $RUN_DIR
+
     mkdir -p $LOG_DIR
+    chown -R vcap:vcap $LOG_DIR
 
     echo $$ > /var/vcap/sys/run/turbine/turbine.pid
 
-    exec /var/vcap/packages/turbine/bin/turbine \
+    exec chpst -u vcap:vcap /var/vcap/packages/turbine/bin/turbine \
       -listenAddr=<%= p("turbine.listen_address") %> \
       -peerAddr=<%= my_ip %>:<%= p("turbine.listen_address").split(":").last %> \
       -gardenNetwork=<%= p("turbine.garden.network") %> \

@@ -43,11 +43,14 @@ case $1 in
     pid_guard $PIDFILE "atc"
 
     mkdir -p $RUN_DIR
+    chown -R vcap:vcap $RUN_DIR
+
     mkdir -p $LOG_DIR
+    chown -R vcap:vcap $LOG_DIR
 
     echo $$ > /var/vcap/sys/run/atc/atc.pid
 
-    exec /var/vcap/packages/atc/bin/atc \
+    exec chpst -u vcap:vcap /var/vcap/packages/atc/bin/atc \
     <% if_p("atc.pipeline") do %> \
       -pipeline=/var/vcap/jobs/atc/config/pipeline.yml \
     <% end %> \
