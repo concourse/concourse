@@ -33,16 +33,16 @@ var _ = Describe("A job with a git resource", func() {
 		By("performing on: [success] outputs on success")
 		Eventually(func() string {
 			return successGitServer.RevParse("success")
-		}, 10*time.Second, 1*time.Second).Should(Equal(masterSHA))
+		}, 30*time.Second, 1*time.Second).Should(Equal(masterSHA))
 
 		By("performing on: [failure] outputs on failure")
 		Eventually(func() string {
 			return failureGitServer.RevParse("failure")
-		}, 10*time.Second, 1*time.Second).Should(Equal(masterSHA))
+		}, 30*time.Second, 1*time.Second).Should(Equal(masterSHA))
 
 		By("not performing on: [success] outputs on failure")
 		Consistently(func() string {
 			return noUpdateGitServer.RevParse("no-update")
-		}, 10*time.Second, 1*time.Second).Should(BeEmpty())
+		}, 30*time.Second, 1*time.Second).Should(BeEmpty())
 	})
 })
