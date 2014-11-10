@@ -88,3 +88,6 @@ properties:
 
       - path: /var/vcap/sys/log/atc/atc.stderr.log
         tag: atc
+
+      - path: /var/vcap/sys/log/atc/drain.log
+        tag: atc
