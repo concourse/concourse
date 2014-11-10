@@ -18,5 +18,10 @@ properties:
     default: udp
 
   blackbox.sources:
-    description: "array of hashes containing file path and tag"
-    default: []
+    description: >
+      files whose contents will be emitted to the destination.
+      the format is `{ name => [{path: /path/to/log, tag: syslog-tag}]}`, where
+      `name` is an arbitrary value, typically a job template name. this is so
+      that jobs can auto-configure their sources by having a
+      `blackbox.sources.JOB_NAME` property.
+    default: {}

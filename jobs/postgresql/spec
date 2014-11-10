@@ -28,3 +28,12 @@ properties:
   postgresql.max_connections:
     description: "maximum number of open database connections"
     default: 500
+
+  blackbox.sources.postgresql:
+    description: "files whose contents blackbox will emit to its syslog drain"
+    default:
+      - path: /var/vcap/sys/log/postgresql/postgresql.stdout.log
+        tag: postgresql
+
+      - path: /var/vcap/sys/log/postgresql/postgresql.stderr.log
+        tag: postgresql

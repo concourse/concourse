@@ -44,3 +44,12 @@ properties:
       semver: /var/vcap/packages/semver_resource
       time: /var/vcap/packages/time_resource
       tracker: /var/vcap/packages/tracker_resource
+
+  blackbox.sources.turbine:
+    description: "files whose contents blackbox will emit to its syslog drain"
+    default:
+      - path: /var/vcap/sys/log/turbine/turbine.stdout.log
+        tag: turbine
+
+      - path: /var/vcap/sys/log/turbine/turbine.stderr.log
+        tag: turbine

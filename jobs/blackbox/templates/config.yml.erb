@@ -5,7 +5,7 @@ destination:
   address: <%= p("blackbox.destination.address") %>
 
 sources:
-<% p("blackbox.sources").each do |source| %>
+<% p("blackbox.sources").values.flatten.each do |source| %>
   - path: <%= source.fetch('path') %>
     tag: <%= source.fetch('tag') %>
 <% end %>
