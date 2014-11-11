@@ -11,7 +11,7 @@ packages:
 
 properties:
   blackbox.destination.address:
-    description: "address for syslog drain (incuding port)"
+    description: "address for syslog drain (including port)"
 
   blackbox.destination.transport:
     description: "transport protocol for syslog drain (udp/tcp/tls)"
