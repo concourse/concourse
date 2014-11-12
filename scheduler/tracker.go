@@ -57,9 +57,12 @@ func (tracker *tracker) TrackBuild(build db.Build) error {
 	}
 	defer lock.Release()
 
-	tLog := tracker.logger.Session("track-build", lager.Data{
+	tLog := tracker.logger.Session("tracking", lager.Data{
 		"build": build.ID,
 	})
+
+	tLog.Info("start")
+	defer tLog.Info("done")
 
 	alreadyTracking := tracker.markTracking(build.ID)
 	if alreadyTracking {
@@ -67,12 +70,7 @@ func (tracker *tracker) TrackBuild(build db.Build) error {
 		return nil
 	}
 
-	tLog.Info("tracking")
-
-	defer func() {
-		tLog.Info("done-tracking")
-		tracker.unmarkTracking(build.ID)
-	}()
+	defer tracker.unmarkTracking(build.ID)
 
 	if build.Endpoint == "" || build.Guid == "" {
 		tLog.Info("saving-untrackable-build-as-errored")

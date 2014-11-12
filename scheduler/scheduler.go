@@ -129,7 +129,7 @@ func (s *Scheduler) BuildLatestInputs(job atc.JobConfig, resources atc.ResourceC
 }
 
 func (s *Scheduler) TryNextPendingBuild(job atc.JobConfig, resources atc.ResourceConfigs) error {
-	buildLog := s.Logger.Session("trigger-pending")
+	buildLog := s.Logger.Session("try-next-pending")
 
 	build, inputs, err := s.DB.GetNextPendingBuild(job.Name)
 	if err != nil {

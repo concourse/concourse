@@ -50,49 +50,17 @@ func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		panic("unconfigured scheduler interval")
 	}
 
-	runner.Logger.Info("starting", lager.Data{
+	runner.Logger.Info("start", lager.Data{
 		"inverval": runner.Interval.String(),
 	})
+
+	defer runner.Logger.Info("done")
 
 dance:
 	for {
 		select {
 		case <-time.After(runner.Interval):
-			sLog := runner.Logger.Session("tick")
-
-			config, err := runner.ConfigDB.GetConfig()
-			if err != nil {
-				sLog.Error("failed-to-get-config", err)
-				continue
-			}
-
-			err = runner.Scheduler.TrackInFlightBuilds()
-			if err != nil {
-				sLog.Error("failed-to-track-in-flight-builds", err)
-			}
-
-			for _, job := range config.Jobs {
-				lock, err := runner.Locker.AcquireWriteLockImmediately([]db.NamedLock{db.JobSchedulingLock(job.Name)})
-				if err != nil {
-					continue
-				}
-
-				sLog.Info("scheduling", lager.Data{
-					"job": job.Name,
-				})
-
-				err = runner.Scheduler.TryNextPendingBuild(job, config.Resources)
-				if err != nil {
-					sLog.Error("failed-to-try-next-pending-build", err)
-				}
-
-				err = runner.Scheduler.BuildLatestInputs(job, config.Resources)
-				if err != nil {
-					sLog.Error("failed-to-build-from-latest-inputs", err)
-				}
-
-				lock.Release()
-			}
+			runner.tick()
 
 		case <-signals:
 			break dance
@@ -100,4 +68,45 @@ dance:
 	}
 
 	return nil
+}
+
+func (runner *Runner) tick() {
+	sLog := runner.Logger.Session("tick")
+
+	sLog.Info("start")
+	defer sLog.Info("done")
+
+	config, err := runner.ConfigDB.GetConfig()
+	if err != nil {
+		sLog.Error("failed-to-get-config", err)
+		return
+	}
+
+	err = runner.Scheduler.TrackInFlightBuilds()
+	if err != nil {
+		sLog.Error("failed-to-track-in-flight-builds", err)
+	}
+
+	for _, job := range config.Jobs {
+		lock, err := runner.Locker.AcquireWriteLockImmediately([]db.NamedLock{db.JobSchedulingLock(job.Name)})
+		if err != nil {
+			continue
+		}
+
+		sLog.Info("scheduling", lager.Data{
+			"job": job.Name,
+		})
+
+		err = runner.Scheduler.TryNextPendingBuild(job, config.Resources)
+		if err != nil {
+			sLog.Error("failed-to-try-next-pending-build", err)
+		}
+
+		err = runner.Scheduler.BuildLatestInputs(job, config.Resources)
+		if err != nil {
+			sLog.Error("failed-to-build-from-latest-inputs", err)
+		}
+
+		lock.Release()
+	}
 }

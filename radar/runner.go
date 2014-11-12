@@ -63,9 +63,8 @@ func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		return nil
 	}
 
-	if runner.logger != nil {
-		runner.logger.Info("scanning")
-	}
+	runner.logger.Info("start")
+	defer runner.logger.Info("done")
 
 	ticker := time.NewTicker(runner.syncInterval)
 
