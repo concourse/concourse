@@ -877,7 +877,6 @@ func (db *SQLDB) GetNextPendingBuild(job string) (Build, VersionedResources, err
 		FROM builds
 		WHERE job_name = $1
 		AND status = 'pending'
-		AND scheduled = false
 		ORDER BY id ASC
 		LIMIT 1
 	`, job))

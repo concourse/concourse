@@ -80,9 +80,10 @@ func itIsADB() {
 				Ω(currentBuild).Should(Equal(build1))
 			})
 
-			It("is no longer the next pending build", func() {
-				_, _, err := db.GetNextPendingBuild("some-job")
-				Ω(err).Should(HaveOccurred())
+			It("remains the next pending build", func() {
+				nextPending, _, err := db.GetNextPendingBuild("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(nextPending).Should(Equal(build1))
 			})
 		})
 
@@ -171,30 +172,6 @@ func itIsADB() {
 					currentBuild, err := db.GetCurrentBuild("some-job")
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(currentBuild).Should(Equal(build1))
-				})
-			})
-
-			Context("when the first build is scheduled", func() {
-				BeforeEach(func() {
-					scheduled, err := db.ScheduleBuild(build1.ID, false)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(scheduled).Should(BeTrue())
-				})
-
-				Describe("the first build", func() {
-					It("remains the current build", func() {
-						currentBuild, err := db.GetCurrentBuild("some-job")
-						Ω(err).ShouldNot(HaveOccurred())
-						Ω(currentBuild).Should(Equal(build1))
-					})
-				})
-
-				Describe("the second build", func() {
-					It("becomes the next pending build", func() {
-						nextPending, _, err := db.GetNextPendingBuild("some-job")
-						Ω(err).ShouldNot(HaveOccurred())
-						Ω(nextPending).Should(Equal(build2))
-					})
 				})
 			})
 		})
