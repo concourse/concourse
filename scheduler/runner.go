@@ -41,11 +41,6 @@ type Runner struct {
 func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	close(ready)
 
-	if runner.Noop {
-		<-signals
-		return nil
-	}
-
 	if runner.Interval == 0 {
 		panic("unconfigured scheduler interval")
 	}
@@ -85,6 +80,10 @@ func (runner *Runner) tick() {
 	err = runner.Scheduler.TrackInFlightBuilds()
 	if err != nil {
 		sLog.Error("failed-to-track-in-flight-builds", err)
+	}
+
+	if runner.Noop {
+		return
 	}
 
 	for _, job := range config.Jobs {

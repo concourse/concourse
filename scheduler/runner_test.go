@@ -144,6 +144,10 @@ var _ = Describe("Runner", func() {
 			noop = true
 		})
 
+		It("still tracks builds", func() {
+			Eventually(scheduler.TrackInFlightBuildsCallCount).ShouldNot(Equal(0))
+		})
+
 		It("does not start scheduling builds", func() {
 			Consistently(scheduler.TryNextPendingBuildCallCount).Should(Equal(0))
 			Consistently(scheduler.BuildLatestInputsCallCount).Should(Equal(0))
