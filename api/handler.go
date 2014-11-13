@@ -36,7 +36,7 @@ func NewHandler(
 		drain,
 	)
 
-	jobServer := jobserver.NewServer(logger, jobsDB)
+	jobServer := jobserver.NewServer(logger, jobsDB, configDB)
 	pipeServer := pipes.NewServer(logger, peerAddr)
 
 	configServer := configserver.NewServer(logger, configDB, configValidator)
@@ -51,6 +51,7 @@ func NewHandler(
 		atc.AbortBuild:  http.HandlerFunc(buildServer.AbortBuild),
 		atc.HijackBuild: http.HandlerFunc(buildServer.HijackBuild),
 
+		atc.ListJobs:      http.HandlerFunc(jobServer.ListJobs),
 		atc.GetJob:        http.HandlerFunc(jobServer.GetJob),
 		atc.ListJobBuilds: http.HandlerFunc(jobServer.ListJobBuilds),
 		atc.GetJobBuild:   http.HandlerFunc(jobServer.GetJobBuild),

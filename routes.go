@@ -13,16 +13,17 @@ const (
 	HijackBuild = "HijackBuild"
 
 	GetJob        = "GetJob"
+	ListJobs      = "ListJobs"
 	ListJobBuilds = "ListJobBuilds"
 	GetJobBuild   = "GetJobBuild"
+
+	ListResources = "ListResources"
 
 	CreatePipe = "CreatePipe"
 	WritePipe  = "WritePipe"
 	ReadPipe   = "ReadPipe"
 )
 
-// pipeline = read-only
-// builds & pipes api = read+write, irrespective of jobs
 var Routes = rata.Routes{
 	{Path: "/api/v1/config", Method: "PUT", Name: SaveConfig},
 	{Path: "/api/v1/config", Method: "GET", Name: GetConfig},
@@ -33,6 +34,7 @@ var Routes = rata.Routes{
 	{Path: "/api/v1/builds/:build_id/abort", Method: "POST", Name: AbortBuild},
 	{Path: "/api/v1/builds/:build_id/hijack", Method: "POST", Name: HijackBuild},
 
+	{Path: "/api/v1/jobs", Method: "GET", Name: ListJobs},
 	{Path: "/api/v1/jobs/:job_name", Method: "GET", Name: GetJob},
 	{Path: "/api/v1/jobs/:job_name/builds", Method: "GET", Name: ListJobBuilds},
 	{Path: "/api/v1/jobs/:job_name/builds/:build_name", Method: "GET", Name: GetJobBuild},

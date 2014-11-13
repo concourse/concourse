@@ -3,13 +3,15 @@ package jobserver
 import (
 	"github.com/pivotal-golang/lager"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 )
 
 type Server struct {
 	logger lager.Logger
 
-	db JobsDB
+	db       JobsDB
+	configDB ConfigDB
 }
 
 type JobsDB interface {
@@ -19,12 +21,18 @@ type JobsDB interface {
 	GetJobFinishedAndNextBuild(job string) (*db.Build, *db.Build, error)
 }
 
+type ConfigDB interface {
+	GetConfig() (atc.Config, error)
+}
+
 func NewServer(
 	logger lager.Logger,
 	db JobsDB,
+	configDB ConfigDB,
 ) *Server {
 	return &Server{
-		logger: logger,
-		db:     db,
+		logger:   logger,
+		db:       db,
+		configDB: configDB,
 	}
 }
