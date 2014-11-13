@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/atc/api/configserver"
 	"github.com/concourse/atc/api/jobserver"
 	"github.com/concourse/atc/api/pipes"
+	"github.com/concourse/atc/api/resourceserver"
 	"github.com/concourse/atc/builder"
 )
 
@@ -37,6 +38,7 @@ func NewHandler(
 	)
 
 	jobServer := jobserver.NewServer(logger, jobsDB, configDB)
+	resourceServer := resourceserver.NewServer(logger, configDB)
 	pipeServer := pipes.NewServer(logger, peerAddr)
 
 	configServer := configserver.NewServer(logger, configDB, configValidator)
@@ -55,6 +57,8 @@ func NewHandler(
 		atc.GetJob:        http.HandlerFunc(jobServer.GetJob),
 		atc.ListJobBuilds: http.HandlerFunc(jobServer.ListJobBuilds),
 		atc.GetJobBuild:   http.HandlerFunc(jobServer.GetJobBuild),
+
+		atc.ListResources: http.HandlerFunc(resourceServer.ListResources),
 
 		atc.CreatePipe: http.HandlerFunc(pipeServer.CreatePipe),
 		atc.WritePipe:  http.HandlerFunc(pipeServer.WritePipe),
