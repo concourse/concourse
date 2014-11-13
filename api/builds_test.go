@@ -255,7 +255,7 @@ var _ = Describe("Builds API", func() {
 			Context("and the abort callback fails", func() {
 				BeforeEach(func() {
 					abortTarget.SetHandler(0, func(w http.ResponseWriter, r *http.Request) {
-						abortTarget.HTTPTestServer.CloseClientConnections()
+						abortTarget.CloseClientConnections()
 					})
 				})
 
