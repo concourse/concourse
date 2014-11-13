@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -23,71 +24,53 @@ var _ = Describe("Jobs API", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		Context("when getting the build succeeds", func() {
+		Context("when getting the job config succeeds", func() {
 			BeforeEach(func() {
-				jobsDB.GetJobFinishedAndNextBuildReturns(
-					&db.Build{
-						ID:      1,
-						Name:    "1",
-						JobName: "some-job",
-						Status:  db.StatusSucceeded,
+				no := false
+
+				configDB.GetConfigReturns(atc.Config{
+					Groups: []atc.GroupConfig{
+						{
+							Name: "group-1",
+							Jobs: []string{"some-job"},
+						},
+						{
+							Name: "group-2",
+							Jobs: []string{"some-job"},
+						},
 					},
-					&db.Build{
-						ID:      3,
-						Name:    "2",
-						JobName: "some-job",
-						Status:  db.StatusStarted,
+
+					Jobs: []atc.JobConfig{
+						{
+							Name: "some-job",
+							Inputs: []atc.InputConfig{
+								{
+									Resource: "some-input",
+								},
+								{
+									Name:     "some-name",
+									Resource: "some-other-input",
+									Params:   atc.Params{"secret": "params"},
+									Passed:   []string{"a", "b"},
+									Trigger:  &no,
+								},
+							},
+							Outputs: []atc.OutputConfig{
+								{
+									Resource: "some-output",
+								},
+								{
+									Resource:  "some-other-output",
+									Params:    atc.Params{"secret": "params"},
+									PerformOn: []atc.OutputCondition{"failure"},
+								},
+							},
+						},
 					},
-					nil,
-				)
+				}, nil)
 			})
 
-			It("fetches by job", func() {
-				Ω(jobsDB.GetJobFinishedAndNextBuildCallCount()).Should(Equal(1))
-
-				jobName := jobsDB.GetJobFinishedAndNextBuildArgsForCall(0)
-				Ω(jobName).Should(Equal("some-job"))
-			})
-
-			It("returns 200 OK", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusOK))
-			})
-
-			It("returns the job's name, url, and any running and finished builds", func() {
-				body, err := ioutil.ReadAll(response.Body)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(body).Should(MatchJSON(`{
-					"name": "some-job",
-					"url": "/jobs/some-job",
-					"next_build": {
-						"id": 3, "name": "2", "job_name": "some-job", "status": "started"
-					},
-					"finished_build": {
-						"id": 1, "name": "1", "job_name": "some-job", "status": "succeeded"
-					}
-				}`))
-			})
-
-			Context("when there are no running or finished builds", func() {
-				BeforeEach(func() {
-					jobsDB.GetJobFinishedAndNextBuildReturns(nil, nil, nil)
-				})
-
-				It("returns null as their entries", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Ω(err).ShouldNot(HaveOccurred())
-
-					Ω(body).Should(MatchJSON(`{
-						"name": "some-job",
-						"url": "/jobs/some-job",
-						"next_build": null,
-						"finished_build": null
-					}`))
-				})
-			})
-
-			Context("when there is no running build", func() {
+			Context("when getting the build succeeds", func() {
 				BeforeEach(func() {
 					jobsDB.GetJobFinishedAndNextBuildReturns(
 						&db.Build{
@@ -96,33 +79,9 @@ var _ = Describe("Jobs API", func() {
 							JobName: "some-job",
 							Status:  db.StatusSucceeded,
 						},
-						nil,
-						nil,
-					)
-				})
-
-				It("returns null as its entry", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Ω(err).ShouldNot(HaveOccurred())
-
-					Ω(body).Should(MatchJSON(`{
-						"name": "some-job",
-						"url": "/jobs/some-job",
-						"next_build": null,
-						"finished_build": {
-							"id": 1, "name": "1", "job_name": "some-job", "status": "succeeded"
-						}
-					}`))
-				})
-			})
-
-			Context("when there is no finished build", func() {
-				BeforeEach(func() {
-					jobsDB.GetJobFinishedAndNextBuildReturns(
-						nil,
 						&db.Build{
-							ID:      1,
-							Name:    "1",
+							ID:      3,
+							Name:    "2",
 							JobName: "some-job",
 							Status:  db.StatusStarted,
 						},
@@ -130,7 +89,18 @@ var _ = Describe("Jobs API", func() {
 					)
 				})
 
-				It("returns null as their entries", func() {
+				It("fetches by job", func() {
+					Ω(jobsDB.GetJobFinishedAndNextBuildCallCount()).Should(Equal(1))
+
+					jobName := jobsDB.GetJobFinishedAndNextBuildArgsForCall(0)
+					Ω(jobName).Should(Equal("some-job"))
+				})
+
+				It("returns 200 OK", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				})
+
+				It("returns the job's name, url, and any running and finished builds", func() {
 					body, err := ioutil.ReadAll(response.Body)
 					Ω(err).ShouldNot(HaveOccurred())
 
@@ -138,17 +108,81 @@ var _ = Describe("Jobs API", func() {
 						"name": "some-job",
 						"url": "/jobs/some-job",
 						"next_build": {
-							"id": 1, "name": "1", "job_name": "some-job", "status": "started"
+							"id": 3, "name": "2", "job_name": "some-job", "status": "started"
 						},
-						"finished_build": null
+						"finished_build": {
+							"id": 1, "name": "1", "job_name": "some-job", "status": "succeeded"
+						},
+						"inputs": [
+							{
+								"resource": "some-input",
+								"trigger": true
+							},
+							{
+								"name": "some-name",
+								"resource": "some-other-input",
+								"passed": ["a", "b"],
+								"trigger": false
+							}
+						],
+						"outputs": [
+							{
+								"resource": "some-output",
+								"perform_on": ["success"]
+							},
+							{
+								"resource": "some-other-output",
+								"perform_on": ["failure"]
+							}
+						],
+						"groups": ["group-1", "group-2"]
 					}`))
+				})
+
+				Context("when there are no running or finished builds", func() {
+					BeforeEach(func() {
+						jobsDB.GetJobFinishedAndNextBuildReturns(nil, nil, nil)
+					})
+
+					It("returns null as their entries", func() {
+						var job atc.Job
+						err := json.NewDecoder(response.Body).Decode(&job)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Ω(job.NextBuild).Should(BeNil())
+						Ω(job.FinishedBuild).Should(BeNil())
+					})
+				})
+			})
+
+			Context("when getting the job's builds fails", func() {
+				BeforeEach(func() {
+					jobsDB.GetJobFinishedAndNextBuildReturns(nil, nil, errors.New("oh no!"))
+				})
+
+				It("returns 500", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("when the job is not present in the config", func() {
+				BeforeEach(func() {
+					configDB.GetConfigReturns(atc.Config{
+						Jobs: []atc.JobConfig{
+							{Name: "other-job"},
+						},
+					}, nil)
+				})
+
+				It("returns 404", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
 				})
 			})
 		})
 
-		Context("when getting the job's builds fails", func() {
+		Context("when getting the job config fails", func() {
 			BeforeEach(func() {
-				jobsDB.GetJobFinishedAndNextBuildReturns(nil, nil, errors.New("oh no!"))
+				configDB.GetConfigReturns(atc.Config{}, errors.New("oh no!"))
 			})
 
 			It("returns 500", func() {
@@ -170,10 +204,33 @@ var _ = Describe("Jobs API", func() {
 		Context("when getting the job config succeeds", func() {
 			BeforeEach(func() {
 				configDB.GetConfigReturns(atc.Config{
+					Groups: []atc.GroupConfig{
+						{
+							Name: "group-1",
+							Jobs: []string{"job-1"},
+						},
+						{
+							Name: "group-2",
+							Jobs: []string{"job-1", "job-2"},
+						},
+					},
+
 					Jobs: []atc.JobConfig{
-						{Name: "job-1"},
-						{Name: "job-2"},
-						{Name: "job-3"},
+						{
+							Name:    "job-1",
+							Inputs:  []atc.InputConfig{{Resource: "input-1"}},
+							Outputs: []atc.OutputConfig{{Resource: "output-1"}},
+						},
+						{
+							Name:    "job-2",
+							Inputs:  []atc.InputConfig{{Resource: "input-2"}},
+							Outputs: []atc.OutputConfig{{Resource: "output-2"}},
+						},
+						{
+							Name:    "job-3",
+							Inputs:  []atc.InputConfig{{Resource: "input-3"}},
+							Outputs: []atc.OutputConfig{{Resource: "output-3"}},
+						},
 					},
 				}, nil)
 			})
@@ -243,7 +300,10 @@ var _ = Describe("Jobs API", func() {
 							},
 							"finished_build": {
 								"id": 1, "name": "1", "job_name": "job-1", "status": "succeeded"
-							}
+							},
+							"inputs": [{"resource": "input-1", "trigger": true}],
+							"outputs": [{"resource": "output-1", "perform_on": ["success"]}],
+							"groups": ["group-1", "group-2"]
 						},
 						{
 							"name": "job-2",
@@ -251,13 +311,19 @@ var _ = Describe("Jobs API", func() {
 							"next_build": null,
 							"finished_build": {
 								"id": 4, "name": "1", "job_name": "job-2", "status": "succeeded"
-							}
+							},
+							"inputs": [{"resource": "input-2", "trigger": true}],
+							"outputs": [{"resource": "output-2", "perform_on": ["success"]}],
+							"groups": ["group-2"]
 						},
 						{
 							"name": "job-3",
 							"url": "/jobs/job-3",
 							"next_build": null,
-							"finished_build": null
+							"finished_build": null,
+							"inputs": [{"resource": "input-3", "trigger": true}],
+							"outputs": [{"resource": "output-3", "perform_on": ["success"]}],
+							"groups": []
 						}
 					]`))
 				})

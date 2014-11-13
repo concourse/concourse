@@ -7,12 +7,12 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func Job(jobName string, finishedBuild, nextBuild *db.Build) atc.Job {
+func Job(job atc.JobConfig, groups atc.GroupConfigs, finishedBuild, nextBuild *db.Build) atc.Job {
 	generator := rata.NewRequestGenerator("", routes.Routes)
 
 	req, err := generator.CreateRequest(
 		routes.GetJob,
-		rata.Params{"job": jobName},
+		rata.Params{"job": job.Name},
 		nil,
 	)
 	if err != nil {
@@ -31,10 +31,54 @@ func Job(jobName string, finishedBuild, nextBuild *db.Build) atc.Job {
 		presentedFinishedBuild = &presented
 	}
 
+	groupNames := []string{}
+	for _, group := range groups {
+		for _, name := range group.Jobs {
+			if name == job.Name {
+				groupNames = append(groupNames, group.Name)
+			}
+		}
+	}
+
+	inputs := make([]atc.JobInput, len(job.Inputs))
+	for i, input := range job.Inputs {
+		// TODO this duplicates defaults logic
+		trigger := true
+		if input.Trigger != nil {
+			trigger = *input.Trigger
+		}
+
+		inputs[i] = atc.JobInput{
+			Name:     input.Name,
+			Resource: input.Resource,
+			Passed:   input.Passed,
+			Trigger:  trigger,
+		}
+	}
+
+	outputs := make([]atc.JobOutput, len(job.Outputs))
+	for i, output := range job.Outputs {
+		// TODO this duplicates defaults logic
+		performOn := []atc.OutputCondition{"success"}
+		if output.PerformOn != nil {
+			performOn = output.PerformOn
+		}
+
+		outputs[i] = atc.JobOutput{
+			Resource:  output.Resource,
+			PerformOn: performOn,
+		}
+	}
+
 	return atc.Job{
-		Name:          jobName,
+		Name:          job.Name,
 		URL:           req.URL.String(),
 		FinishedBuild: presentedFinishedBuild,
 		NextBuild:     presentedNextBuild,
+
+		Inputs:  inputs,
+		Outputs: outputs,
+
+		Groups: groupNames,
 	}
 }

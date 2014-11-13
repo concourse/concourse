@@ -18,7 +18,7 @@ func (s *Server) ListResources(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, resource := range config.Resources {
-		resources = append(resources, present.Resource(resource))
+		resources = append(resources, present.Resource(resource, config.Groups))
 	}
 
 	w.WriteHeader(http.StatusOK)

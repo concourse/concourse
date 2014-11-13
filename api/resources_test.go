@@ -25,6 +25,17 @@ var _ = Describe("Resources API", func() {
 		Context("when getting the resource config succeeds", func() {
 			BeforeEach(func() {
 				configDB.GetConfigReturns(atc.Config{
+					Groups: []atc.GroupConfig{
+						{
+							Name:      "group-1",
+							Resources: []string{"resource-1"},
+						},
+						{
+							Name:      "group-2",
+							Resources: []string{"resource-1", "resource-2"},
+						},
+					},
+
 					Resources: []atc.ResourceConfig{
 						{Name: "resource-1", Type: "type-1"},
 						{Name: "resource-2", Type: "type-2"},
@@ -44,15 +55,18 @@ var _ = Describe("Resources API", func() {
 				Ω(body).Should(MatchJSON(`[
 					{
 						"name": "resource-1",
-						"type": "type-1"
+						"type": "type-1",
+						"groups": ["group-1", "group-2"]
 					},
 					{
 						"name": "resource-2",
-						"type": "type-2"
+						"type": "type-2",
+						"groups": ["group-2"]
 					},
 					{
 						"name": "resource-3",
-						"type": "type-3"
+						"type": "type-3",
+						"groups": []
 					}
 				]`))
 			})

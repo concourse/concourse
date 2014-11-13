@@ -24,7 +24,7 @@ func (s *Server) ListJobs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		jobs = append(jobs, present.Job(job.Name, finished, next))
+		jobs = append(jobs, present.Job(job, config.Groups, finished, next))
 	}
 
 	w.WriteHeader(http.StatusOK)
