@@ -114,11 +114,7 @@ function populateJobNodesAndEdges(cGraph, jobs) {
       var output = job.outputs[j];
       var destinationNode = resourceNode(output.resource);
 
-      cGraph.setEdge(id, destinationNode, {
-        "id": "job-output-"+id+"-to-"+destinationNode,
-        "status": status,
-        "arrowhead": "status",
-      });
+      edgeFromJob(cGraph, job.name, destinationNode);
     }
   }
 }
@@ -127,7 +123,7 @@ function edgeFromResource(graph, resourceName, destinationNode) {
   var sourceNode = resourceNode(resourceName);
 
   graph.setEdge(sourceNode, destinationNode, {
-    "id": "resource-input-"+sourceNode+"-to-"+destinationNode,
+    "id": "resource-"+sourceNode+"-to-"+destinationNode,
     "status": "normal",
     "arrowhead": "status",
   });
@@ -147,7 +143,7 @@ function edgeFromJob(graph, sourceJobName, destinationNode, resourceName) {
     }
 
     graph.setEdge(sourceNode, destinationNode, {
-      "id": "job-input-"+sourceNode+"-to-"+destinationNode,
+      "id": "job-"+sourceNode+"-to-"+destinationNode,
       "label": label,
       "status": sourceJob.status,
       "arrowhead": "status",
