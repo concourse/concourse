@@ -27,6 +27,7 @@ func NewHandler(buildsDB BuildsDB, buildID int, censor Censor) http.Handler {
 		}
 
 		flusher := w.(http.Flusher)
+		closed := w.(http.CloseNotifier).CloseNotify()
 
 		w.Header().Add("Content-Type", "text/event-stream; charset=utf-8")
 		w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
@@ -61,25 +62,46 @@ func NewHandler(buildsDB BuildsDB, buildID int, censor Censor) http.Handler {
 
 			reader := sse.NewReader(resp.Body)
 
-			for {
-				ev, err := reader.Next()
-				if err != nil {
-					return
-				}
+			es := make(chan sse.Event)
+			errs := make(chan error, 1)
 
-				if censor != nil {
-					ev, err = censor(ev)
+			go func() {
+				for {
+					ev, err := reader.Next()
+					if err != nil {
+						errs <- err
+						return
+					} else {
+						select {
+						case es <- ev:
+						case <-closed:
+							return
+						}
+					}
+				}
+			}()
+
+			for {
+				select {
+				case ev := <-es:
+					if censor != nil {
+						ev, err = censor(ev)
+						if err != nil {
+							return
+						}
+					}
+
+					err = ev.Write(w)
 					if err != nil {
 						return
 					}
-				}
 
-				err = ev.Write(w)
-				if err != nil {
+					flusher.Flush()
+				case <-errs:
+					return
+				case <-closed:
 					return
 				}
-
-				flusher.Flush()
 			}
 		} else {
 			events, err := buildsDB.GetBuildEvents(buildID)
