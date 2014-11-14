@@ -90,54 +90,12 @@ function populateJobNodesAndEdges(cGraph, jobs) {
     for (var j in job.inputs) {
       var input = job.inputs[j];
 
-      if (!input.passed) {
-        var sourceNode = resourceNode(input.resource);
-
-        cGraph.setEdge(sourceNode, id, {
-          "id": "resource-input-"+sourceNode+"-to-"+id,
-          "status": "normal",
-          "arrowhead": "status",
-        });
-
-        continue;
-      }
-
-      if (input.passed.length == 1) {
-        var sourceNode = jobNode(input.passed[0]);
-        var sourceJob = cGraph.node(sourceNode);
-
-        cGraph.setEdge(sourceNode, id, {
-          "id": "job-input-"+sourceNode+"-to-"+id,
-          "status": sourceJob.status,
-          "arrowhead": "status",
-        });
-
-        continue;
-      }
-
-      var gatewayID = gatewayNode(input.passed);
-
-      cGraph.setNode(gatewayID, {
-        label: "",
-        gateway: true,
-        class: "gateway"
-      });
-
-      cGraph.setEdge(gatewayID, id, {
-        "id": "gateway-"+gatewayID+"-to-"+id,
-        "status": "normal",
-        "arrowhead": "status"
-      });
-
-      for (var k in input.passed) {
-        var sourceNode = jobNode(input.passed[k]);
-        var sourceJob = cGraph.node(sourceNode);
-
-        cGraph.setEdge(sourceNode, gatewayID, {
-          "id": "job-"+sourceNode+"-to-gateway-"+gatewayID,
-          "status": sourceJob.status,
-          "arrowhead": "status"
-        });
+      if (!input.passed || input.passed.length == 0) {
+        edgeFromResource(cGraph, input.resource, id);
+      } else if (input.passed.length == 1) {
+        edgeFromJob(cGraph, input.passed[0], id);
+      } else {
+        edgeFromGateway(cGraph, input.passed, id);
       }
     }
 
@@ -152,6 +110,47 @@ function populateJobNodesAndEdges(cGraph, jobs) {
       });
     }
   }
+}
+
+function edgeFromResource(graph, resourceName, destinationNode) {
+  var sourceNode = resourceNode(resourceName);
+
+  graph.setEdge(sourceNode, destinationNode, {
+    "id": "resource-input-"+sourceNode+"-to-"+destinationNode,
+    "status": "normal",
+    "arrowhead": "status",
+  });
+}
+
+function edgeFromJob(graph, sourceJobName, destinationNode) {
+  var sourceNode = jobNode(sourceJobName);
+  var sourceJob = graph.node(sourceNode);
+
+  graph.setEdge(sourceNode, destinationNode, {
+    "id": "job-input-"+sourceNode+"-to-"+destinationNode,
+    "status": sourceJob.status,
+    "arrowhead": "status",
+  });
+}
+
+function edgeFromGateway(graph, gatewayJobNames, destinationNode) {
+  var sourceNode = gatewayNode(gatewayJobNames);
+
+  graph.setNode(sourceNode, {
+    label: "",
+    gateway: true,
+    class: "gateway"
+  });
+
+  for (var i in gatewayJobNames) {
+    edgeFromJob(graph, gatewayJobNames[i], sourceNode);
+  }
+
+  graph.setEdge(sourceNode, destinationNode, {
+    "id": "gateway-"+sourceNode+"-to-"+destinationNode,
+    "status": "normal",
+    "arrowhead": "status"
+  });
 }
 
 function inlineNodesIntoCommonGroup(cGraph) {
