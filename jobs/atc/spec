@@ -7,7 +7,6 @@ description: |
   the `atc.pipeline` property.
 
 templates:
-  drain: bin/drain
   atc_ctl.erb: bin/atc_ctl
   pipeline.yml.erb: config/pipeline.yml
 
@@ -85,4 +84,3 @@ properties:
     default:
       - /var/vcap/sys/log/atc/atc.stdout.log
       - /var/vcap/sys/log/atc/atc.stderr.log
-      - /var/vcap/sys/log/atc/drain.log

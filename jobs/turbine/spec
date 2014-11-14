@@ -7,7 +7,6 @@ description: |
   run in parallel.
 
 templates:
-  drain: bin/drain
   turbine_ctl.erb: bin/turbine_ctl
 
 packages:
@@ -50,7 +49,6 @@ properties:
     default:
       - /var/vcap/sys/log/turbine/turbine.stdout.log
       - /var/vcap/sys/log/turbine/turbine.stderr.log
-      - /var/vcap/sys/log/turbine/drain.log
 
   blackbox.sources.garden:
     description: "files whose contents blackbox will emit to its syslog drain"
