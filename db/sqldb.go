@@ -1045,7 +1045,7 @@ func (db *SQLDB) acquireLock(lockType string, locks []NamedLock) (*txLock, error
 		`, lock.Name())
 		if err != nil {
 			if pqErr, ok := err.(*pq.Error); ok {
-				if pqErr.Code.Class().Name() == "unique_violation" {
+				if pqErr.Code.Class().Name() == "integrity_constraint_violation" {
 					// unique violation is ok; no way to atomically upsert
 					continue
 				}
