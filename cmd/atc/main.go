@@ -240,6 +240,7 @@ func main() {
 
 	apiHandler, err := api.NewHandler(
 		logger,
+		webValidator,
 		db,
 		db,
 		configDB,
@@ -268,30 +269,31 @@ func main() {
 		fatal(err)
 	}
 
-	var publicHandler http.Handler
-	if *publiclyViewable {
-		publicHandler = webHandler
-	} else {
-		publicHandler = auth.Handler{
-			Handler:   webHandler,
+	webMux := http.NewServeMux()
+	webMux.Handle("/api/v1/", apiHandler)
+	webMux.Handle("/", webHandler)
+
+	var httpHandler http.Handler
+
+	httpHandler = webMux
+
+	if !*publiclyViewable {
+		httpHandler = auth.Handler{
+			Handler:   httpHandler,
 			Validator: webValidator,
 		}
 	}
 
-	webMux := http.NewServeMux()
-	webMux.Handle("/api/v1/", auth.Handler{Handler: apiHandler, Validator: webValidator})
-	webMux.Handle("/", publicHandler)
-
 	// copy Authorization header as ATC-Authorization cookie for websocket auth
-	publicHandler = auth.CookieSetHandler{
-		Handler: webMux,
+	httpHandler = auth.CookieSetHandler{
+		Handler: httpHandler,
 	}
 
 	webListenAddr := fmt.Sprintf("%s:%d", *webListenAddress, *webListenPort)
 	debugListenAddr := fmt.Sprintf("%s:%d", *debugListenAddress, *debugListenPort)
 
 	group := grouper.NewParallel(os.Interrupt, []grouper.Member{
-		{"web", http_server.New(webListenAddr, publicHandler)},
+		{"web", http_server.New(webListenAddr, httpHandler)},
 
 		{"debug", http_server.New(debugListenAddr, http.DefaultServeMux)},
 

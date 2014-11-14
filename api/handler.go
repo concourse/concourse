@@ -13,11 +13,13 @@ import (
 	"github.com/concourse/atc/api/jobserver"
 	"github.com/concourse/atc/api/pipes"
 	"github.com/concourse/atc/api/resourceserver"
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/builder"
 )
 
 func NewHandler(
 	logger lager.Logger,
+	validator auth.Validator,
 	buildsDB buildserver.BuildsDB,
 	jobsDB jobserver.JobsDB,
 	configDB configserver.ConfigDB,
@@ -43,26 +45,33 @@ func NewHandler(
 
 	configServer := configserver.NewServer(logger, configDB, configValidator)
 
-	handlers := map[string]http.Handler{
-		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
-		atc.SaveConfig: http.HandlerFunc(configServer.SaveConfig),
+	validate := func(handler http.Handler) http.Handler {
+		return auth.Handler{
+			Handler:   handler,
+			Validator: validator,
+		}
+	}
 
-		atc.CreateBuild: http.HandlerFunc(buildServer.CreateBuild),
-		atc.ListBuilds:  http.HandlerFunc(buildServer.ListBuilds),
-		atc.BuildEvents: http.HandlerFunc(buildServer.BuildEvents),
-		atc.AbortBuild:  http.HandlerFunc(buildServer.AbortBuild),
-		atc.HijackBuild: http.HandlerFunc(buildServer.HijackBuild),
+	handlers := map[string]http.Handler{
+		atc.GetConfig:  validate(http.HandlerFunc(configServer.GetConfig)),
+		atc.SaveConfig: validate(http.HandlerFunc(configServer.SaveConfig)),
+
+		atc.CreateBuild: validate(http.HandlerFunc(buildServer.CreateBuild)),
+		atc.ListBuilds:  validate(http.HandlerFunc(buildServer.ListBuilds)),
+		atc.BuildEvents: validate(http.HandlerFunc(buildServer.BuildEvents)),
+		atc.AbortBuild:  validate(http.HandlerFunc(buildServer.AbortBuild)),
+		atc.HijackBuild: validate(http.HandlerFunc(buildServer.HijackBuild)),
 
 		atc.ListJobs:      http.HandlerFunc(jobServer.ListJobs),
-		atc.GetJob:        http.HandlerFunc(jobServer.GetJob),
-		atc.ListJobBuilds: http.HandlerFunc(jobServer.ListJobBuilds),
-		atc.GetJobBuild:   http.HandlerFunc(jobServer.GetJobBuild),
+		atc.GetJob:        validate(http.HandlerFunc(jobServer.GetJob)),
+		atc.ListJobBuilds: validate(http.HandlerFunc(jobServer.ListJobBuilds)),
+		atc.GetJobBuild:   validate(http.HandlerFunc(jobServer.GetJobBuild)),
 
 		atc.ListResources: http.HandlerFunc(resourceServer.ListResources),
 
-		atc.CreatePipe: http.HandlerFunc(pipeServer.CreatePipe),
-		atc.WritePipe:  http.HandlerFunc(pipeServer.WritePipe),
-		atc.ReadPipe:   http.HandlerFunc(pipeServer.ReadPipe),
+		atc.CreatePipe: validate(http.HandlerFunc(pipeServer.CreatePipe)),
+		atc.WritePipe:  validate(http.HandlerFunc(pipeServer.WritePipe)),
+		atc.ReadPipe:   validate(http.HandlerFunc(pipeServer.ReadPipe)),
 	}
 
 	return rata.NewRouter(atc.Routes, handlers)

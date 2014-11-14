@@ -16,6 +16,7 @@ import (
 	buildfakes "github.com/concourse/atc/api/buildserver/fakes"
 	configfakes "github.com/concourse/atc/api/configserver/fakes"
 	jobfakes "github.com/concourse/atc/api/jobserver/fakes"
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/builder/fakebuilder"
 	"github.com/concourse/atc/event"
 )
@@ -75,6 +76,7 @@ var _ = BeforeEach(func() {
 
 	handler, err := api.NewHandler(
 		lagertest.NewTestLogger("callbacks"),
+		auth.NoopValidator{},
 		buildsDB,
 		jobsDB,
 		configDB,
