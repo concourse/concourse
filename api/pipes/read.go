@@ -17,9 +17,22 @@ func (s *Server) ReadPipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	closed := w.(http.CloseNotifier).CloseNotify()
+
 	w.WriteHeader(http.StatusOK)
 
-	io.Copy(w, pipe.read)
+	w.(http.Flusher).Flush()
+
+	copied := make(chan struct{})
+	go func() {
+		io.Copy(w, pipe.read)
+		close(copied)
+	}()
+
+	select {
+	case <-copied:
+	case <-closed:
+	}
 
 	s.pipesL.Lock()
 	delete(s.pipes, pipeID)

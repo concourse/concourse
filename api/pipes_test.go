@@ -49,7 +49,7 @@ var _ = Describe("Pipes API", func() {
 	Describe("POST /api/v1/pipes", func() {
 		var pipe atc.Pipe
 
-		JustBeforeEach(func() {
+		BeforeEach(func() {
 			pipe = createPipe()
 		})
 
@@ -62,29 +62,57 @@ var _ = Describe("Pipes API", func() {
 			Ω(anotherPipe.ID).ShouldNot(Equal(pipe.ID))
 		})
 
-		Describe("PUT & GET /api/v1/pipes/:pipe", func() {
-			It("pipes the PUTed data to the GET request, and reaps the pipe", func() {
-				writeResCh := make(chan *http.Response)
+		Describe("GET /api/v1/pipes/:pipe", func() {
+			var readRes *http.Response
 
-				go func() {
-					defer GinkgoRecover()
-					writeResCh <- writePipe(pipe.ID, bytes.NewBufferString("some data"))
-				}()
+			BeforeEach(func() {
+				readRes = readPipe(pipe.ID)
+			})
 
-				readRes := readPipe(pipe.ID)
+			AfterEach(func() {
+				readRes.Body.Close()
+			})
+
+			It("responds with 200", func() {
 				Ω(readRes.StatusCode).Should(Equal(http.StatusOK))
+			})
 
-				data, err := ioutil.ReadAll(readRes.Body)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(string(data)).Should(Equal("some data"))
-
+			Describe("PUT /api/v1/pipes/:pipe", func() {
 				var writeRes *http.Response
-				Eventually(writeResCh).Should(Receive(&writeRes))
-				Ω(writeRes.StatusCode).Should(Equal(http.StatusOK))
 
-				secondReadRes := readPipe(pipe.ID)
-				Ω(secondReadRes.StatusCode).Should(Equal(http.StatusNotFound))
+				BeforeEach(func() {
+					writeRes = writePipe(pipe.ID, bytes.NewBufferString("some data"))
+				})
+
+				AfterEach(func() {
+					writeRes.Body.Close()
+				})
+
+				It("responds with 200", func() {
+					Ω(writeRes.StatusCode).Should(Equal(http.StatusOK))
+				})
+
+				It("streams the data to the reader", func() {
+					Ω(ioutil.ReadAll(readRes.Body)).Should(Equal([]byte("some data")))
+				})
+
+				It("reaps the pipe", func() {
+					secondReadRes := readPipe(pipe.ID)
+					Ω(secondReadRes.StatusCode).Should(Equal(http.StatusNotFound))
+					secondReadRes.Body.Close()
+				})
+			})
+
+			Context("when the reader disconnects", func() {
+				BeforeEach(func() {
+					readRes.Body.Close()
+				})
+
+				It("reaps the pipe", func() {
+					secondReadRes := readPipe(pipe.ID)
+					Ω(secondReadRes.StatusCode).Should(Equal(http.StatusNotFound))
+					secondReadRes.Body.Close()
+				})
 			})
 		})
 
