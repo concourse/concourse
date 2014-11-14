@@ -21,6 +21,7 @@ files:
   - github.com/concourse/atc/api/jobserver/*.go # gosub
   - github.com/concourse/atc/api/pipes/*.go # gosub
   - github.com/concourse/atc/api/present/*.go # gosub
+  - github.com/concourse/atc/api/resourceserver/*.go # gosub
   - github.com/concourse/atc/auth/*.go # gosub
   - github.com/concourse/atc/builder/*.go # gosub
   - github.com/concourse/atc/config/*.go # gosub
