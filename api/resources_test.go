@@ -48,7 +48,7 @@ var _ = Describe("Resources API", func() {
 				Ω(response.StatusCode).Should(Equal(http.StatusOK))
 			})
 
-			It("returns each resource's name and type", func() {
+			It("returns each resource", func() {
 				body, err := ioutil.ReadAll(response.Body)
 				Ω(err).ShouldNot(HaveOccurred())
 
@@ -56,17 +56,20 @@ var _ = Describe("Resources API", func() {
 					{
 						"name": "resource-1",
 						"type": "type-1",
-						"groups": ["group-1", "group-2"]
+						"groups": ["group-1", "group-2"],
+						"url": "/resources/resource-1"
 					},
 					{
 						"name": "resource-2",
 						"type": "type-2",
-						"groups": ["group-2"]
+						"groups": ["group-2"],
+						"url": "/resources/resource-2"
 					},
 					{
 						"name": "resource-3",
 						"type": "type-3",
-						"groups": []
+						"groups": [],
+						"url": "/resources/resource-3"
 					}
 				]`))
 			})
