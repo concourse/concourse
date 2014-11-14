@@ -108,10 +108,18 @@ var _ = Describe("Jobs API", func() {
 						"name": "some-job",
 						"url": "/jobs/some-job",
 						"next_build": {
-							"id": 3, "name": "2", "job_name": "some-job", "status": "started"
+							"id": 3,
+							"name": "2",
+							"job_name": "some-job",
+							"status": "started",
+							"url": "/jobs/some-job/builds/2"
 						},
 						"finished_build": {
-							"id": 1, "name": "1", "job_name": "some-job", "status": "succeeded"
+							"id": 1,
+							"name": "1",
+							"job_name": "some-job",
+							"status": "succeeded",
+							"url": "/jobs/some-job/builds/1"
 						},
 						"inputs": [
 							{
@@ -296,10 +304,18 @@ var _ = Describe("Jobs API", func() {
 							"name": "job-1",
 							"url": "/jobs/job-1",
 							"next_build": {
-								"id": 3, "name": "2", "job_name": "job-1", "status": "started"
+								"id": 3,
+								"name": "2",
+								"job_name": "job-1",
+								"status": "started",
+								"url": "/jobs/job-1/builds/2"
 							},
 							"finished_build": {
-								"id": 1, "name": "1", "job_name": "job-1", "status": "succeeded"
+								"id": 1,
+								"name": "1",
+								"job_name": "job-1",
+								"status": "succeeded",
+								"url": "/jobs/job-1/builds/1"
 							},
 							"inputs": [{"resource": "input-1", "trigger": true}],
 							"outputs": [{"resource": "output-1", "perform_on": ["success"]}],
@@ -310,7 +326,11 @@ var _ = Describe("Jobs API", func() {
 							"url": "/jobs/job-2",
 							"next_build": null,
 							"finished_build": {
-								"id": 4, "name": "1", "job_name": "job-2", "status": "succeeded"
+								"id": 4,
+								"name": "1",
+								"job_name": "job-2",
+								"status": "succeeded",
+								"url": "/jobs/job-2/builds/1"
 							},
 							"inputs": [{"resource": "input-2", "trigger": true}],
 							"outputs": [{"resource": "output-2", "perform_on": ["success"]}],
@@ -395,8 +415,20 @@ var _ = Describe("Jobs API", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(body).Should(MatchJSON(`[
-					{"id": 3, "name": "2", "job_name": "some-job", "status": "started"},
-					{"id": 1, "name": "1", "job_name": "some-job", "status": "succeeded"}
+					{
+						"id": 3,
+						"name": "2",
+						"job_name": "some-job",
+						"status": "started",
+						"url": "/jobs/some-job/builds/2"
+					},
+					{
+						"id": 1,
+						"name": "1",
+						"job_name": "some-job",
+						"status": "succeeded",
+						"url": "/jobs/some-job/builds/1"
+					}
 				]`))
 			})
 		})
@@ -448,7 +480,13 @@ var _ = Describe("Jobs API", func() {
 				body, err := ioutil.ReadAll(response.Body)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(body).Should(MatchJSON(`{"id": 1, "name": "1", "job_name": "some-job", "status": "succeeded"}`))
+				Ω(body).Should(MatchJSON(`{
+					"id": 1,
+					"name": "1",
+					"job_name": "some-job",
+					"status": "succeeded",
+					"url": "/jobs/some-job/builds/1"
+				}`))
 			})
 		})
 

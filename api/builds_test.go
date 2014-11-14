@@ -68,7 +68,13 @@ var _ = Describe("Builds API", func() {
 					body, err := ioutil.ReadAll(response.Body)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(body).Should(MatchJSON(`{"id": 42, "name": "1", "job_name": "job1", "status": "started"}`))
+					Ω(body).Should(MatchJSON(`{
+						"id": 42,
+						"name": "1",
+						"job_name": "job1",
+						"status": "started",
+						"url": "/jobs/job1/builds/1"
+					}`))
 				})
 
 				It("executes a one-off build", func() {
@@ -145,8 +151,20 @@ var _ = Describe("Builds API", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(body).Should(MatchJSON(`[
-					{"id": 3, "name": "2", "job_name": "job2", "status": "started"},
-					{"id": 1, "name": "1", "job_name": "job1", "status": "succeeded"}
+					{
+						"id": 3,
+						"name": "2",
+						"job_name": "job2",
+						"status": "started",
+						"url": "/jobs/job2/builds/2"
+					},
+					{
+						"id": 1,
+						"name": "1",
+						"job_name": "job1",
+						"status": "succeeded",
+						"url": "/jobs/job1/builds/1"
+					}
 				]`))
 			})
 		})

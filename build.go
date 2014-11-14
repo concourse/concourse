@@ -5,4 +5,5 @@ type Build struct {
 	Name    string `json:"name"`
 	Status  string `json:"status"`
 	JobName string `json:"job_name"`
+	URL     string `json:"url"`
 }
