@@ -1038,16 +1038,19 @@ func (db *SQLDB) acquireLock(lockType string, locks []NamedLock) (*txLock, error
 	for i, lock := range locks {
 		params = append(params, lock.Name())
 		refs = append(refs, fmt.Sprintf("$%d", i+1))
+
 		_, err := db.conn.Exec(`
-		INSERT INTO locks (name)
-		SELECT $1
-		WHERE NOT EXISTS (
-			SELECT 1
-			FROM locks
-			WHERE name = $1
-		)
+			INSERT INTO locks (name)
+			VALUES ($1)
 		`, lock.Name())
 		if err != nil {
+			if pqErr, ok := err.(*pq.Error); ok {
+				if pqErr.Code.Class().Name() == "unique_violation" {
+					// unique violation is ok; no way to atomically upsert
+					continue
+				}
+			}
+
 			return nil, err
 		}
 	}
