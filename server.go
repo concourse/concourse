@@ -10,7 +10,6 @@ import (
 
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/radar"
 	"github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/web/abortbuild"
 	"github.com/concourse/atc/web/getbuild"
@@ -27,7 +26,6 @@ func NewHandler(
 	logger lager.Logger,
 	validator auth.Validator,
 	scheduler *scheduler.Scheduler,
-	radar *radar.Radar,
 	db db.DB,
 	configDB db.ConfigDB,
 	templatesDir, publicDir string,
@@ -64,7 +62,7 @@ func NewHandler(
 
 	handlers := map[string]http.Handler{
 		// public
-		routes.Index:       index.NewHandler(logger, radar, db, configDB, indexTemplate),
+		routes.Index:       index.NewHandler(logger, db, configDB, indexTemplate),
 		routes.Public:      http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
 		routes.GetJob:      getjob.NewHandler(logger, db, configDB, jobTemplate),
 		routes.GetResource: getresource.NewHandler(logger, db, configDB, resourceTemplate),
