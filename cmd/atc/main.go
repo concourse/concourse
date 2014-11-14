@@ -258,7 +258,6 @@ func main() {
 		logger,
 		webValidator,
 		scheduler,
-		radar,
 		db,
 		configDB,
 		*templatesDir,

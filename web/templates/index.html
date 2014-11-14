@@ -31,11 +31,12 @@
 <script src="{{url "Public" "jquery-2.1.1.min.js"}}"></script>
 <script src="{{url "Public" "d3.v3.min.js"}}"></script>
 <script src="{{url "Public" "dagre-d3.min.js"}}"></script>
+<script src="{{url "Public" "graph.js"}}"></script>
 <script src="{{url "Public" "index.js"}}"></script>
 
 <script>
 $(document).ready(function() {
-  draw({{.Groups}}, {{.Nodes}}, {{.Edges}});
+  draw({{.Groups}});
 })
 </script>
 {{end}}
