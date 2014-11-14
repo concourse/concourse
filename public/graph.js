@@ -68,10 +68,13 @@ function populateJobNodesAndEdges(cGraph, jobs) {
     var classes = ["job"];
 
     var status = "normal";
+    var url = job.url;
     if (job.next_build) {
       status = job.next_build.status;
+      url = job.next_build.url;
     } else if (job.finished_build) {
       status = job.finished_build.status;
+      url = job.finished_build.url;
     }
 
     classes.push(status);
@@ -79,7 +82,7 @@ function populateJobNodesAndEdges(cGraph, jobs) {
     cGraph.setNode(id, {
       class: classes.join(" "),
       status: status,
-      label: "<h1 class=\"job\"><a href=\"" + job.url + "\">" + job.name + "</a></h1>",
+      label: "<h1 class=\"job\"><a href=\"" + url + "\">" + job.name + "</a></h1>",
       labelType: "html",
       groups: job.groups,
       totalInputs: job.inputs.length
