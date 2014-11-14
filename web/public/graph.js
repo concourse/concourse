@@ -60,6 +60,7 @@ function populateResourceNodes(cGraph, resources) {
 }
 
 function populateJobNodesAndEdges(cGraph, jobs) {
+  // populate all job nodes first, so that they can be interconnected
   for (var i in jobs) {
     var job = jobs[i];
     var id = jobNode(job.name);
@@ -80,12 +81,19 @@ function populateJobNodesAndEdges(cGraph, jobs) {
       status: status,
       label: "<h1 class=\"job\"><a href=\"" + job.url + "\">" + job.name + "</a></h1>",
       labelType: "html",
-      groups: job.groups
+      groups: job.groups,
+      totalInputs: job.inputs.length
     });
 
     if (job.groups.length == 1) {
       cGraph.setParent(id, groupNode(job.groups[0]));
     }
+  }
+
+  // populate job input and output edges
+  for (var i in jobs) {
+    var job = jobs[i];
+    var id = jobNode(job.name);
 
     for (var j in job.inputs) {
       var input = job.inputs[j];
@@ -93,9 +101,9 @@ function populateJobNodesAndEdges(cGraph, jobs) {
       if (!input.passed || input.passed.length == 0) {
         edgeFromResource(cGraph, input.resource, id);
       } else if (input.passed.length == 1) {
-        edgeFromJob(cGraph, input.passed[0], id);
+        edgeFromJob(cGraph, input.passed[0], id, input.resource);
       } else {
-        edgeFromGateway(cGraph, input.passed, id);
+        edgeFromGateway(cGraph, input.passed, id, input.resource);
       }
     }
 
@@ -122,18 +130,29 @@ function edgeFromResource(graph, resourceName, destinationNode) {
   });
 }
 
-function edgeFromJob(graph, sourceJobName, destinationNode) {
+function edgeFromJob(graph, sourceJobName, destinationNode, resourceName) {
   var sourceNode = jobNode(sourceJobName);
   var sourceJob = graph.node(sourceNode);
 
-  graph.setEdge(sourceNode, destinationNode, {
-    "id": "job-input-"+sourceNode+"-to-"+destinationNode,
-    "status": sourceJob.status,
-    "arrowhead": "status",
-  });
+  var existingEdge = graph.edge(sourceNode, destinationNode);
+  if (existingEdge && resourceName && sourceJob.totalInputs > 1) {
+    existingEdge.label += "\n" + resourceName
+  } else {
+    var label;
+    if (sourceJob.totalInputs > 1) {
+      label = resourceName;
+    }
+
+    graph.setEdge(sourceNode, destinationNode, {
+      "id": "job-input-"+sourceNode+"-to-"+destinationNode,
+      "label": label,
+      "status": sourceJob.status,
+      "arrowhead": "status",
+    });
+  }
 }
 
-function edgeFromGateway(graph, gatewayJobNames, destinationNode) {
+function edgeFromGateway(graph, gatewayJobNames, destinationNode, label) {
   var sourceNode = gatewayNode(gatewayJobNames);
 
   graph.setNode(sourceNode, {
@@ -143,7 +162,7 @@ function edgeFromGateway(graph, gatewayJobNames, destinationNode) {
   });
 
   for (var i in gatewayJobNames) {
-    edgeFromJob(graph, gatewayJobNames[i], sourceNode);
+    edgeFromJob(graph, gatewayJobNames[i], sourceNode, label);
   }
 
   graph.setEdge(sourceNode, destinationNode, {
