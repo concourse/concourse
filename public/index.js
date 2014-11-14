@@ -80,4 +80,27 @@ function renderPipeline(groups) {
   };
 
   drawContinuously(render, svg, groups);
+
+  $("ul.groups li a").click(function(e) {
+    var group = e.target.text;
+
+    if (e.shiftKey) {
+      groups[group] = !groups[group];
+    } else {
+      for (var name in groups) {
+        groups[name] = name == group;
+      }
+    }
+
+    var groupQueries = [];
+    for (var name in groups) {
+      if (groups[name]) {
+        groupQueries.push("groups="+name);
+      }
+    }
+
+    window.location.search = "?" + groupQueries.join("&");
+
+    return false;
+  });
 }
