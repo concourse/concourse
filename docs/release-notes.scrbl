@@ -4,6 +4,22 @@
 
 @title[#:version version #:tag "release-notes"]{Release Notes}
 
+
+@section[#:style '(quiet unnumbered)]{v0.23.0}
+
+@itemlist[
+  @item{
+    The groups in the pipeline view can be individually toggled with
+    shift+click.
+  }
+
+  @item{
+    Fixed resource links from the pipeline; this was a hole in the API, wherein
+    resource objects did not contain their URL. The API has been fixed.
+  }
+]
+
+
 @section[#:style '(quiet unnumbered)]{v0.22.0}
 
 Fixed a minor regression in the pipeline UI, which caused arrows between jobs
