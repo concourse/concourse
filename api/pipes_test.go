@@ -97,9 +97,12 @@ var _ = Describe("Pipes API", func() {
 				})
 
 				It("reaps the pipe", func() {
-					secondReadRes := readPipe(pipe.ID)
-					Ω(secondReadRes.StatusCode).Should(Equal(http.StatusNotFound))
-					secondReadRes.Body.Close()
+					Eventually(func() int {
+						secondReadRes := readPipe(pipe.ID)
+						defer secondReadRes.Body.Close()
+
+						return secondReadRes.StatusCode
+					}).Should(Equal(http.StatusNotFound))
 				})
 			})
 
@@ -109,9 +112,12 @@ var _ = Describe("Pipes API", func() {
 				})
 
 				It("reaps the pipe", func() {
-					secondReadRes := readPipe(pipe.ID)
-					Ω(secondReadRes.StatusCode).Should(Equal(http.StatusNotFound))
-					secondReadRes.Body.Close()
+					Eventually(func() int {
+						secondReadRes := readPipe(pipe.ID)
+						defer secondReadRes.Body.Close()
+
+						return secondReadRes.StatusCode
+					}).Should(Equal(http.StatusNotFound))
 				})
 			})
 		})
@@ -119,9 +125,13 @@ var _ = Describe("Pipes API", func() {
 		Describe("with an invalid id", func() {
 			It("returns 404", func() {
 				readRes := readPipe("bogus-id")
+				defer readRes.Body.Close()
+
 				Ω(readRes.StatusCode).Should(Equal(http.StatusNotFound))
 
 				writeRes := writePipe("bogus-id", nil)
+				defer writeRes.Body.Close()
+
 				Ω(writeRes.StatusCode).Should(Equal(http.StatusNotFound))
 			})
 		})
