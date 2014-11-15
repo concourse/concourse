@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/codegangsta/cli"
+	"github.com/concourse/fly/commands"
 )
 
 var executeFlags = []cli.Flag{
@@ -35,7 +36,7 @@ func main() {
 	app.Name = "fly"
 	app.Usage = "Concourse CLI"
 	app.Version = "0.0.1"
-	app.Action = execute
+	app.Action = commands.Execute
 
 	app.Flags = append(executeFlags, cli.StringFlag{
 		Name:   "atcURL",
@@ -50,7 +51,7 @@ func main() {
 			ShortName: "e",
 			Usage:     "Execute a build",
 			Flags:     executeFlags,
-			Action:    execute,
+			Action:    commands.Execute,
 		},
 		{
 			Name:      "hijack",
@@ -66,7 +67,7 @@ func main() {
 					Usage: "hijack a specific build of a job",
 				},
 			},
-			Action: hijack,
+			Action: commands.Hijack,
 		},
 		{
 			Name:      "configure",
@@ -82,7 +83,7 @@ func main() {
 					Usage: "print config as json instead of yaml",
 				},
 			},
-			Action: configure,
+			Action: commands.Configure,
 		},
 	}
 

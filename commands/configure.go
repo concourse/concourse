@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func configure(c *cli.Context) {
+func Configure(c *cli.Context) {
 	atcURL := c.GlobalString("atcURL")
 	insecure := c.GlobalBool("insecure")
 	configPath := c.String("config")

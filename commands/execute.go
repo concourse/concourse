@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"bufio"
@@ -20,12 +20,12 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/config"
 	"github.com/concourse/fly/eventstream"
 	"github.com/concourse/turbine"
 	"github.com/pivotal-golang/archiver/compressor"
 	"github.com/tedsuo/rata"
 	"github.com/vito/go-sse/sse"
-	"gopkg.in/yaml.v2"
 )
 
 type Input struct {
@@ -34,7 +34,7 @@ type Input struct {
 	Pipe atc.Pipe
 }
 
-func execute(c *cli.Context) {
+func Execute(c *cli.Context) {
 	atcURL := c.GlobalString("atcURL")
 	buildConfig := c.String("config")
 	insecure := c.GlobalBool("insecure")
@@ -87,7 +87,7 @@ func execute(c *cli.Context) {
 		atcRequester,
 		c.Bool("privileged"),
 		inputs,
-		loadConfig(absConfig, c.Args()),
+		config.LoadConfig(absConfig, c.Args()),
 	)
 
 	terminate := make(chan os.Signal, 1)
@@ -156,31 +156,6 @@ func createPipe(atcRequester *atcRequester) atc.Pipe {
 	}
 
 	return pipe
-}
-
-func loadConfig(configPath string, args []string) turbine.Config {
-	configFile, err := ioutil.ReadFile(configPath)
-	if err != nil {
-		log.Fatalln("could not open config file:", err)
-	}
-
-	var config turbine.Config
-
-	err = yaml.Unmarshal(configFile, &config)
-	if err != nil {
-		log.Fatalln("could not parse config file:", err)
-	}
-
-	config.Run.Args = append(config.Run.Args, args...)
-
-	for k, _ := range config.Params {
-		env, found := syscall.Getenv(k)
-		if found {
-			config.Params[k] = env
-		}
-	}
-
-	return config
 }
 
 func createBuild(

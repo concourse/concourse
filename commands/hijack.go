@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"bytes"
@@ -27,7 +27,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func hijack(c *cli.Context) {
+func Hijack(c *cli.Context) {
 	atcURL := c.GlobalString("atcURL")
 	insecure := c.GlobalBool("insecure")
 
