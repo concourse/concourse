@@ -14,4 +14,4 @@ export PATH=$GOPATH/bin:$PATH
 go install github.com/onsi/ginkgo/ginkgo
 
 cd ${GOPATH}/src/github.com/concourse/atc
-ginkgo -r -p "$@"
+ginkgo -r "$@"
