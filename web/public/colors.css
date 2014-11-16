@@ -82,6 +82,9 @@ li.pending {
 #build-requires-auth input {
   color: #e0e0e0;
 }
+svg .node.resource a {
+  color: #e0e0e0;
+}
 /* emphasis */
 .build-header h1 {
   color: #f5f5f5;
