@@ -10,9 +10,10 @@ function abort() {
 [ -n "$VERSION_FILE" ] || abort "must specify \$VERSION_FILE"
 [ -f "$VERSION_FILE" ] || abort "'$VERSION_FILE' does not exist"
 
+version=$(cat ${VERSION_FILE})
+
 cd docs/
 
-version=$(cat ${VERSION_FILE})
 raco scribble --dest-name notes.md --markdown \
   docs/release-notes/v${version}.scrbl
 
