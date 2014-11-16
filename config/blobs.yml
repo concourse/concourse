@@ -46,7 +46,7 @@ consul_0.4/consul:
   sha: 8be7984e9e1b7aab3d1eee14acdf59bb62207b6c
   size: 16085929
 resources/vagrant-cloud-resource.tar.gz:
-  object_id: 8952f78e-8868-4306-8119-9737597972f9
+  object_id: c69382ca-bfd9-4696-a803-13d0901b0d91
   sha: !binary |-
-    NTkxMTM3ZGQxZGE2M2YyZDVlNDcxNDA5ZGFhMTRmOWJkYmJiZDM3OQ==
-  size: 9154816
+    YjBiNzI1NTZjNTQyOWE5OGQ5ZWZjNWM5NThmODEwMjNmY2UyMzg1NQ==
+  size: 9154847
