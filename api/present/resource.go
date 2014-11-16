@@ -32,6 +32,5 @@ func Resource(resource atc.ResourceConfig, groups atc.GroupConfigs) atc.Resource
 		Type:   resource.Type,
 		Groups: groupNames,
 		URL:    req.URL.String(),
-		Hidden: resource.Hidden,
 	}
 }
