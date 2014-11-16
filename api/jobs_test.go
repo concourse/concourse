@@ -46,6 +46,7 @@ var _ = Describe("Jobs API", func() {
 							Inputs: []atc.InputConfig{
 								{
 									Resource: "some-input",
+									Hidden:   true,
 								},
 								{
 									Name:     "some-name",
@@ -63,6 +64,7 @@ var _ = Describe("Jobs API", func() {
 									Resource:  "some-other-output",
 									Params:    atc.Params{"secret": "params"},
 									PerformOn: []atc.OutputCondition{"failure"},
+									Hidden:    true,
 								},
 							},
 						},
@@ -124,7 +126,8 @@ var _ = Describe("Jobs API", func() {
 						"inputs": [
 							{
 								"resource": "some-input",
-								"trigger": true
+								"trigger": true,
+								"hidden": true
 							},
 							{
 								"name": "some-name",
@@ -140,7 +143,8 @@ var _ = Describe("Jobs API", func() {
 							},
 							{
 								"resource": "some-other-output",
-								"perform_on": ["failure"]
+								"perform_on": ["failure"],
+								"hidden": true
 							}
 						],
 						"groups": ["group-1", "group-2"]
@@ -230,8 +234,13 @@ var _ = Describe("Jobs API", func() {
 							Outputs: []atc.OutputConfig{{Resource: "output-1"}},
 						},
 						{
-							Name:    "job-2",
-							Inputs:  []atc.InputConfig{{Resource: "input-2"}},
+							Name: "job-2",
+							Inputs: []atc.InputConfig{
+								{
+									Resource: "input-2",
+									Hidden:   true,
+								},
+							},
 							Outputs: []atc.OutputConfig{{Resource: "output-2"}},
 						},
 						{
@@ -332,7 +341,7 @@ var _ = Describe("Jobs API", func() {
 								"status": "succeeded",
 								"url": "/jobs/job-2/builds/1"
 							},
-							"inputs": [{"resource": "input-2", "trigger": true}],
+							"inputs": [{"resource": "input-2", "trigger": true, "hidden": true}],
 							"outputs": [{"resource": "output-2", "perform_on": ["success"]}],
 							"groups": ["group-2"]
 						},

@@ -16,10 +16,12 @@ type JobInput struct {
 	Name     string   `json:"name,omitempty"`
 	Resource string   `json:"resource"`
 	Passed   []string `json:"passed,omitempty"`
+	Hidden   bool     `json:"hidden,omitempty"`
 	Trigger  bool     `json:"trigger"`
 }
 
 type JobOutput struct {
 	Resource  string            `json:"resource"`
 	PerformOn []OutputCondition `json:"perform_on"`
+	Hidden    bool              `json:"hidden,omitempty"`
 }

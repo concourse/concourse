@@ -52,6 +52,7 @@ func Job(job atc.JobConfig, groups atc.GroupConfigs, finishedBuild, nextBuild *d
 			Name:     input.Name,
 			Resource: input.Resource,
 			Passed:   input.Passed,
+			Hidden:   input.Hidden,
 			Trigger:  trigger,
 		}
 	}
@@ -67,6 +68,7 @@ func Job(job atc.JobConfig, groups atc.GroupConfigs, finishedBuild, nextBuild *d
 		outputs[i] = atc.JobOutput{
 			Resource:  output.Resource,
 			PerformOn: performOn,
+			Hidden:    output.Hidden,
 		}
 	}
 

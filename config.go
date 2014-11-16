@@ -52,6 +52,7 @@ type InputConfig struct {
 	Params   Params   `yaml:"params,omitempty" json:"params,omitempty"`
 	Passed   []string `yaml:"passed,omitempty" json:"passed,omitempty"`
 	Trigger  *bool    `yaml:"trigger,omitempty" json:"trigger,omitempty"`
+	Hidden   bool     `yaml:"hidden,omitempty" json:"hidden,omitempty"`
 }
 
 type OutputConfig struct {
@@ -60,6 +61,7 @@ type OutputConfig struct {
 
 	// e.g. [success, failure]; default [success]
 	PerformOn []OutputCondition `yaml:"perform_on,omitempty" json:"perform_on,omitempty"`
+	Hidden    bool              `yaml:"hidden,omitempty" json:"hidden,omitempty"`
 }
 
 type OutputCondition string
