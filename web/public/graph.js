@@ -47,6 +47,7 @@ function populateResourceNodes(cGraph, resources) {
     }
 
     cGraph.setNode(id, {
+      resource: resource.name,
       class: classes.join(" "),
       label: "<h1 class=\"resource\"><a href=\"" + resource.url + "\">" + resource.name + "</a></h1>",
       labelType: "html",
@@ -80,6 +81,7 @@ function populateJobNodesAndEdges(cGraph, jobs) {
     classes.push(status);
 
     cGraph.setNode(id, {
+      job: job.name,
       class: classes.join(" "),
       status: status,
       label: "<h1 class=\"job\"><a href=\"" + url + "\">" + job.name + "</a></h1>",
@@ -175,14 +177,43 @@ function edgeFromGateway(graph, gatewayJobNames, destinationNode, label) {
   });
 }
 
+function _nodes(graph, v, edgesFn, edgeAttr) {
+  var nodes = {};
+
+  var edges = graph[edgesFn](v);
+  for (var i in edges) {
+    var edge = edges[i];
+    var edgePoint = edge[edgeAttr];
+
+    var node = graph.node(edgePoint);
+    if (node.gateway) {
+      var gatewayNodes = _nodes(graph, edgePoint, edgesFn, edgeAttr);
+      for (var n in gatewayNodes) {
+        nodes[n] = gatewayNodes[n]
+      }
+    } else {
+      nodes[edgePoint] = node
+    }
+  }
+
+  return nodes;
+}
+
+function upstreamNodes(graph, v) {
+  return _nodes(graph, v, "inEdges", "v");
+}
+
+function downstreamNodes(graph, v) {
+  return _nodes(graph, v, "outEdges", "w");
+}
+
 function inlineNodesIntoCommonGroup(cGraph) {
   cGraph.nodes().forEach(function(v) {
     var commonGroup;
 
-    var outE = cGraph.outEdges(v);
-    for(var o in outE) {
-      var edge = outE[o];
-      var parent = cGraph.parent(edge.w);
+    var outNodes = downstreamNodes(cGraph, v);
+    for(var o in outNodes) {
+      var parent = cGraph.parent(o);
 
       if (!commonGroup) {
         commonGroup = parent;
@@ -193,10 +224,9 @@ function inlineNodesIntoCommonGroup(cGraph) {
       }
     }
 
-    var inE = cGraph.inEdges(v);
-    for(var i in inE) {
-      var edge = inE[i];
-      var parent = cGraph.parent(edge.v);
+    var inNodes = upstreamNodes(cGraph, v);
+    for(var i in inNodes) {
+      var parent = cGraph.parent(i);
 
       if (!commonGroup) {
         commonGroup = parent;
@@ -214,38 +244,66 @@ function inlineNodesIntoCommonGroup(cGraph) {
 }
 
 function removeUnconnectedGroupMembers(groups, digraph) {
-  for (var group in groups) {
-    var enabled = groups[group];
-    if (enabled) {
-      continue;
+  digraph.nodes().forEach(function(v) {
+    if (dagreD3.util.isSubgraph(digraph, v)) {
+      return;
     }
 
-    var id = groupNode(group);
+    var value = digraph.node(v);
+    if (value.gateway && connectedUpstreamAndDownstream(digraph, groups, v)) {
+      return;
+    }
 
-    digraph.children(id).forEach(function(v) {
-      var outE = digraph.outEdges(v);
-      for(var o in outE) {
-        var edge = outE[o];
+    if (connectedUpstreamOrDownstream(digraph, groups, v)) {
+      return;
+    }
 
-        var targetValue = digraph.node(edge.w);
-        if (nodeIsInGroups(groups, targetValue)) {
-          return;
-        }
-      }
-
-      var inE = digraph.inEdges(v);
-      for(var i in inE) {
-        var edge = inE[i];
-
-        var sourceValue = digraph.node(edge.v);
-        if (nodeIsInGroups(groups, sourceValue)) {
-          return;
-        }
-      }
-
+    if (!nodeIsInGroups(groups, value)) {
       digraph.removeNode(v);
-    });
+    }
+  });
+}
+
+function connectedUpstreamAndDownstream(digraph, groups, v) {
+  var hasUpstreamNode, hasDownstreamNode;
+
+  var inNodes = upstreamNodes(digraph, v);
+  for(var i in inNodes) {
+    if (nodeIsInGroups(groups, inNodes[i])) {
+      hasUpstreamNode = true;
+      break;
+    }
   }
+
+  var outNodes = downstreamNodes(digraph, v);
+  for(var o in outNodes) {
+    if (nodeIsInGroups(groups, outNodes[o])) {
+      hasDownstreamNode = true;
+      break;
+    }
+  }
+
+  return hasUpstreamNode && hasDownstreamNode;
+}
+
+function connectedUpstreamOrDownstream(digraph, groups, v) {
+  var value = digraph.node(v);
+
+  var inNodes = upstreamNodes(digraph, v);
+  for(var i in inNodes) {
+    if (nodeIsInGroups(groups, inNodes[i])) {
+      return true;
+    }
+  }
+
+  var outNodes = downstreamNodes(digraph, v);
+  for(var o in outNodes) {
+    if (nodeIsInGroups(groups, outNodes[o])) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function removeOrphanedNodes(digraph) {
@@ -254,7 +312,7 @@ function removeOrphanedNodes(digraph) {
       return;
     }
 
-    if (digraph.parent(v)) {
+    if (!digraph.node(v).gateway && digraph.parent(v)) {
       return;
     }
 
