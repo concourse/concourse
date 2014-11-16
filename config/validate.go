@@ -17,21 +17,21 @@ type InvalidConfigError struct {
 }
 
 func (err InvalidConfigError) Error() string {
-	errorMsg := "invalid configration:\n"
+	errorMsgs := []string{"invalid configration:"}
 
 	if err.GroupsErr != nil {
-		errorMsg += indent(fmt.Sprintf("invalid groups:\n%s\n", indent(err.GroupsErr.Error())))
+		errorMsgs = append(errorMsgs, indent(fmt.Sprintf("invalid groups:\n%s\n", indent(err.GroupsErr.Error()))))
 	}
 
 	if err.ResourcesErr != nil {
-		errorMsg += indent(fmt.Sprintf("invalid resources:\n%s\n", indent(err.ResourcesErr.Error())))
+		errorMsgs = append(errorMsgs, indent(fmt.Sprintf("invalid resources:\n%s\n", indent(err.ResourcesErr.Error()))))
 	}
 
 	if err.JobsErr != nil {
-		errorMsg += indent(fmt.Sprintf("invalid jobs:\n%s\n", indent(err.JobsErr.Error())))
+		errorMsgs = append(errorMsgs, indent(fmt.Sprintf("invalid jobs:\n%s\n", indent(err.JobsErr.Error()))))
 	}
 
-	return errorMsg
+	return strings.Join(errorMsgs, "\n")
 }
 
 func indent(msgs string) string {
