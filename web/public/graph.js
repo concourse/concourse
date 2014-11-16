@@ -101,6 +101,10 @@ function populateJobNodesAndEdges(cGraph, jobs) {
     for (var j in job.inputs) {
       var input = job.inputs[j];
 
+      if (input.hidden) {
+        continue;
+      }
+
       if (!input.passed || input.passed.length == 0) {
         edgeFromResource(cGraph, input.resource, id);
       } else if (input.passed.length == 1) {
