@@ -25,6 +25,7 @@ type ResourceConfig struct {
 	Name string `yaml:"name" json:"name"`
 
 	Type   string `yaml:"type" json:"type"`
+	Hidden bool   `yaml:"hidden" json:"hidden"`
 	Source Source `yaml:"source" json:"source"`
 }
 

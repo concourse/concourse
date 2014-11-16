@@ -37,7 +37,7 @@ var _ = Describe("Resources API", func() {
 					},
 
 					Resources: []atc.ResourceConfig{
-						{Name: "resource-1", Type: "type-1"},
+						{Name: "resource-1", Type: "type-1", Hidden: true},
 						{Name: "resource-2", Type: "type-2"},
 						{Name: "resource-3", Type: "type-3"},
 					},
@@ -57,19 +57,22 @@ var _ = Describe("Resources API", func() {
 						"name": "resource-1",
 						"type": "type-1",
 						"groups": ["group-1", "group-2"],
-						"url": "/resources/resource-1"
+						"url": "/resources/resource-1",
+						"hidden": true
 					},
 					{
 						"name": "resource-2",
 						"type": "type-2",
 						"groups": ["group-2"],
-						"url": "/resources/resource-2"
+						"url": "/resources/resource-2",
+						"hidden": false
 					},
 					{
 						"name": "resource-3",
 						"type": "type-3",
 						"groups": [],
-						"url": "/resources/resource-3"
+						"url": "/resources/resource-3",
+						"hidden": false
 					}
 				]`))
 			})
