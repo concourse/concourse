@@ -1,0 +1,21 @@
+#!/bin/bash
+
+set -e
+
+function abort() {
+  echo "$@" >&2
+  exit 1
+}
+
+[ -n "$VERSION_FILE" ] || abort "must specify \$VERSION_FILE"
+[ -f "$VERSION_FILE" ] || abort "'$VERSION_FILE' does not exist"
+
+cd docs/
+
+version=$(cat ${VERSION_FILE})
+raco scribble --dest-name notes.md --markdown \
+  docs/release-notes/v${version}.scrbl
+
+if [ "$STRIP_HEADER" = "true" ]; then
+  sed -i -e '1,2d' notes.md
+fi

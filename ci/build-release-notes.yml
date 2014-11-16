@@ -1,0 +1,12 @@
+---
+image: docker:///concourse/docs-ci
+
+inputs:
+  - name: docs
+
+params:
+  VERSION_FILE:
+  STRIP_HEADER: false
+
+run:
+  path: docs/ci/scripts/build-release-notes
