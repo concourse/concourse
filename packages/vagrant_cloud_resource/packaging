@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -e -x
+
+tar zxf resources/vagrant-cloud-resource.tar.gz -C ${BOSH_INSTALL_TARGET}

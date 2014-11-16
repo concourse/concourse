@@ -1,0 +1,5 @@
+---
+name: vagrant_cloud_resource
+
+files:
+  - resources/vagrant-cloud-resource.tar.gz
