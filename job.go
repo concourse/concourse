@@ -23,5 +23,4 @@ type JobInput struct {
 type JobOutput struct {
 	Resource  string            `json:"resource"`
 	PerformOn []OutputCondition `json:"perform_on"`
-	Hidden    bool              `json:"hidden,omitempty"`
 }

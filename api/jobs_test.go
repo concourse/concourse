@@ -64,7 +64,6 @@ var _ = Describe("Jobs API", func() {
 									Resource:  "some-other-output",
 									Params:    atc.Params{"secret": "params"},
 									PerformOn: []atc.OutputCondition{"failure"},
-									Hidden:    true,
 								},
 							},
 						},
@@ -143,8 +142,7 @@ var _ = Describe("Jobs API", func() {
 							},
 							{
 								"resource": "some-other-output",
-								"perform_on": ["failure"],
-								"hidden": true
+								"perform_on": ["failure"]
 							}
 						],
 						"groups": ["group-1", "group-2"]

@@ -61,7 +61,6 @@ type OutputConfig struct {
 
 	// e.g. [success, failure]; default [success]
 	PerformOn []OutputCondition `yaml:"perform_on,omitempty" json:"perform_on,omitempty"`
-	Hidden    bool              `yaml:"hidden,omitempty" json:"hidden,omitempty"`
 }
 
 type OutputCondition string
