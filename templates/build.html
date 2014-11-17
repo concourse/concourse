@@ -70,9 +70,9 @@
 
   {{/* omitting whitespace for :empty style */}}
   <div class="build-resources build-outputs">{{range .Outputs}}
-    <div data-resource="{{.Name}}" class="build-source">
+    <div data-resource="{{.Resource}}" class="build-source">
       <div class="header">
-        <h3>{{.Name}}</h3>
+        <h3>{{.Resource}}</h3>
 
         <dl class="version">
           {{range $name, $val := .Version}}
