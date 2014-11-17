@@ -52,8 +52,9 @@ var _ = Describe("Factory", func() {
 
 			Outputs: []atc.OutputConfig{
 				{
-					Resource: "some-resource",
-					Params:   atc.Params{"foo": "bar"},
+					Resource:  "some-resource",
+					Params:    atc.Params{"foo": "bar"},
+					PerformOn: []atc.OutputCondition{"success"},
 				},
 				{
 					Resource:  "some-resource",

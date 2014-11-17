@@ -110,16 +110,8 @@ func (factory *BuildFactory) computeOutputs(
 		}
 
 		conditions := []turbine.OutputCondition{}
-
-		// if not specified, assume [success]
-		//
-		// note that this check is for nil, not len(output.PerformOn) == 0
-		if output.PerformOn == nil {
-			conditions = append(conditions, turbine.OutputConditionSuccess)
-		} else {
-			for _, cond := range output.PerformOn {
-				conditions = append(conditions, turbine.OutputCondition(cond))
-			}
+		for _, cond := range output.PerformOn {
+			conditions = append(conditions, turbine.OutputCondition(cond))
 		}
 
 		turbineOutput := turbine.Output{

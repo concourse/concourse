@@ -66,7 +66,7 @@ func (s *Scheduler) BuildLatestInputs(job atc.JobConfig, resources atc.ResourceC
 
 	inputs := []db.BuildInput{}
 	for _, input := range job.Inputs {
-		if input.Trigger != nil && !*input.Trigger {
+		if !*input.Trigger {
 			continue
 		}
 

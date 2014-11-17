@@ -124,6 +124,7 @@ var _ = Describe("Jobs API", func() {
 						},
 						"inputs": [
 							{
+								"name": "some-input",
 								"resource": "some-input",
 								"trigger": true,
 								"hidden": true
@@ -324,7 +325,7 @@ var _ = Describe("Jobs API", func() {
 								"status": "succeeded",
 								"url": "/jobs/job-1/builds/1"
 							},
-							"inputs": [{"resource": "input-1", "trigger": true}],
+							"inputs": [{"name": "input-1", "resource": "input-1", "trigger": true}],
 							"outputs": [{"resource": "output-1", "perform_on": ["success"]}],
 							"groups": ["group-1", "group-2"]
 						},
@@ -339,7 +340,7 @@ var _ = Describe("Jobs API", func() {
 								"status": "succeeded",
 								"url": "/jobs/job-2/builds/1"
 							},
-							"inputs": [{"resource": "input-2", "trigger": true, "hidden": true}],
+							"inputs": [{"name": "input-2", "resource": "input-2", "trigger": true, "hidden": true}],
 							"outputs": [{"resource": "output-2", "perform_on": ["success"]}],
 							"groups": ["group-2"]
 						},
@@ -348,7 +349,7 @@ var _ = Describe("Jobs API", func() {
 							"url": "/jobs/job-3",
 							"next_build": null,
 							"finished_build": null,
-							"inputs": [{"resource": "input-3", "trigger": true}],
+							"inputs": [{"name": "input-3", "resource": "input-3", "trigger": true}],
 							"outputs": [{"resource": "output-3", "perform_on": ["success"]}],
 							"groups": []
 						}

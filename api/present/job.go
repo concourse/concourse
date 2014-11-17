@@ -42,32 +42,20 @@ func Job(job atc.JobConfig, groups atc.GroupConfigs, finishedBuild, nextBuild *d
 
 	inputs := make([]atc.JobInput, len(job.Inputs))
 	for i, input := range job.Inputs {
-		// TODO this duplicates defaults logic
-		trigger := true
-		if input.Trigger != nil {
-			trigger = *input.Trigger
-		}
-
 		inputs[i] = atc.JobInput{
 			Name:     input.Name,
 			Resource: input.Resource,
 			Passed:   input.Passed,
 			Hidden:   input.Hidden,
-			Trigger:  trigger,
+			Trigger:  *input.Trigger,
 		}
 	}
 
 	outputs := make([]atc.JobOutput, len(job.Outputs))
 	for i, output := range job.Outputs {
-		// TODO this duplicates defaults logic
-		performOn := []atc.OutputCondition{"success"}
-		if output.PerformOn != nil {
-			performOn = output.PerformOn
-		}
-
 		outputs[i] = atc.JobOutput{
 			Resource:  output.Resource,
-			PerformOn: performOn,
+			PerformOn: output.PerformOn,
 		}
 	}
 

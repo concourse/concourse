@@ -59,6 +59,7 @@ var _ = Describe("Scheduler", func() {
 			Tracker: tracker,
 		}
 
+		yes := true
 		job = atc.JobConfig{
 			Name: "some-job",
 
@@ -69,11 +70,13 @@ var _ = Describe("Scheduler", func() {
 					Name:     "some-input",
 					Resource: "some-resource",
 					Params:   atc.Params{"some": "params"},
+					Trigger:  &yes,
 				},
 				{
 					Name:     "some-other-input",
 					Resource: "some-other-resource",
 					Params:   atc.Params{"some": "params"},
+					Trigger:  &yes,
 				},
 			},
 		}
