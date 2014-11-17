@@ -614,7 +614,7 @@ func itIsADB() {
 		}
 
 		vr1 := VersionedResource{
-			Name:     "some-resource",
+			Resource: "some-resource",
 			Type:     "some-type",
 			Source:   Source{"some": "source"},
 			Version:  Version{"ver": "1"},
@@ -622,26 +622,56 @@ func itIsADB() {
 		}
 
 		vr2 := VersionedResource{
-			Name:    "some-other-resource",
-			Type:    "some-type",
-			Source:  Source{"some": "other-source"},
-			Version: Version{"ver": "2"},
+			Resource: "some-other-resource",
+			Type:     "some-type",
+			Source:   Source{"some": "other-source"},
+			Version:  Version{"ver": "2"},
 		}
 
 		It("saves build's inputs and outputs as versioned resources", func() {
 			build, err := db.CreateJobBuild("some-job")
 			Ω(err).ShouldNot(HaveOccurred())
 
-			err = db.SaveBuildInput(build.ID, vr1)
+			input1 := BuildInput{
+				Name:              "some-input",
+				VersionedResource: vr1,
+			}
+
+			input2 := BuildInput{
+				Name:              "some-other-input",
+				VersionedResource: vr2,
+			}
+
+			otherInput := BuildInput{
+				Name:              "some-random-input",
+				VersionedResource: vr2,
+			}
+
+			err = db.SaveBuildInput(build.ID, input1)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			_, err = db.GetJobBuildForInputs("some-job", VersionedResources{vr1, vr2})
+			_, err = db.GetJobBuildForInputs("some-job", []BuildInput{
+				input1,
+				input2,
+			})
 			Ω(err).Should(HaveOccurred())
 
-			err = db.SaveBuildInput(build.ID, vr2)
+			err = db.SaveBuildInput(build.ID, otherInput)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			foundBuild, err := db.GetJobBuildForInputs("some-job", VersionedResources{vr1, vr2})
+			_, err = db.GetJobBuildForInputs("some-job", []BuildInput{
+				input1,
+				input2,
+			})
+			Ω(err).Should(HaveOccurred())
+
+			err = db.SaveBuildInput(build.ID, input2)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			foundBuild, err := db.GetJobBuildForInputs("some-job", []BuildInput{
+				input1,
+				input2,
+			})
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(foundBuild).Should(Equal(build))
 
@@ -660,8 +690,9 @@ func itIsADB() {
 			inputs, outputs, err := db.GetBuildResources(build.ID)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(inputs).Should(ConsistOf([]BuildInput{
-				{VersionedResource: vr1, FirstOccurrence: true},
-				{VersionedResource: vr2, FirstOccurrence: true},
+				{Name: "some-input", VersionedResource: vr1, FirstOccurrence: true},
+				{Name: "some-other-input", VersionedResource: vr2, FirstOccurrence: true},
+				{Name: "some-random-input", VersionedResource: vr2, FirstOccurrence: true},
 			}))
 			Ω(outputs).Should(ConsistOf([]BuildOutput{
 				{VersionedResource: modifiedVR2},
@@ -670,33 +701,45 @@ func itIsADB() {
 			duplicateBuild, err := db.CreateJobBuild("some-job")
 			Ω(err).ShouldNot(HaveOccurred())
 
-			err = db.SaveBuildInput(duplicateBuild.ID, vr1)
+			err = db.SaveBuildInput(duplicateBuild.ID, BuildInput{
+				Name:              "other-build-input",
+				VersionedResource: vr1,
+			})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			err = db.SaveBuildInput(duplicateBuild.ID, vr2)
+			err = db.SaveBuildInput(duplicateBuild.ID, BuildInput{
+				Name:              "other-build-other-input",
+				VersionedResource: vr2,
+			})
 			Ω(err).ShouldNot(HaveOccurred())
 
 			inputs, _, err = db.GetBuildResources(duplicateBuild.ID)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(inputs).Should(ConsistOf([]BuildInput{
-				{VersionedResource: vr1, FirstOccurrence: false},
-				{VersionedResource: vr2, FirstOccurrence: false},
+				{Name: "other-build-input", VersionedResource: vr1, FirstOccurrence: false},
+				{Name: "other-build-other-input", VersionedResource: vr2, FirstOccurrence: false},
 			}))
 
 			newBuildInOtherJob, err := db.CreateJobBuild("some-other-job")
 			Ω(err).ShouldNot(HaveOccurred())
 
-			err = db.SaveBuildInput(newBuildInOtherJob.ID, vr1)
+			err = db.SaveBuildInput(newBuildInOtherJob.ID, BuildInput{
+				Name:              "other-job-input",
+				VersionedResource: vr1,
+			})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			err = db.SaveBuildInput(newBuildInOtherJob.ID, vr2)
+			err = db.SaveBuildInput(newBuildInOtherJob.ID, BuildInput{
+				Name:              "other-job-other-input",
+				VersionedResource: vr2,
+			})
 			Ω(err).ShouldNot(HaveOccurred())
 
 			inputs, _, err = db.GetBuildResources(newBuildInOtherJob.ID)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(inputs).Should(ConsistOf([]BuildInput{
-				{VersionedResource: vr1, FirstOccurrence: true},
-				{VersionedResource: vr2, FirstOccurrence: true},
+				{Name: "other-job-input", VersionedResource: vr1, FirstOccurrence: true},
+				{Name: "other-job-other-input", VersionedResource: vr2, FirstOccurrence: true},
 			}))
 		})
 
@@ -704,30 +747,53 @@ func itIsADB() {
 			build, err := db.CreateJobBuild("some-job")
 			Ω(err).ShouldNot(HaveOccurred())
 
-			err = db.SaveBuildInput(build.ID, vr2)
+			err = db.SaveBuildInput(build.ID, BuildInput{
+				Name:              "some-input",
+				VersionedResource: vr2,
+			})
 			Ω(err).ShouldNot(HaveOccurred())
 
 			inputs, _, err := db.GetBuildResources(build.ID)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(inputs).Should(ConsistOf([]BuildInput{
-				{VersionedResource: vr2, FirstOccurrence: true},
+				{Name: "some-input", VersionedResource: vr2, FirstOccurrence: true},
 			}))
 
 			withMetadata := vr2
 			withMetadata.Metadata = buildMetadata
 
-			err = db.SaveBuildInput(build.ID, withMetadata)
+			err = db.SaveBuildInput(build.ID, BuildInput{
+				Name:              "some-other-input",
+				VersionedResource: withMetadata,
+			})
 			Ω(err).ShouldNot(HaveOccurred())
 
 			inputs, _, err = db.GetBuildResources(build.ID)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(inputs).Should(ConsistOf([]BuildInput{
-				{VersionedResource: withMetadata, FirstOccurrence: true},
+				{Name: "some-input", VersionedResource: withMetadata, FirstOccurrence: true},
+				{Name: "some-other-input", VersionedResource: withMetadata, FirstOccurrence: true},
+			}))
+
+			err = db.SaveBuildInput(build.ID, BuildInput{
+				Name:              "some-input",
+				VersionedResource: withMetadata,
+			})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			inputs, _, err = db.GetBuildResources(build.ID)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(inputs).Should(ConsistOf([]BuildInput{
+				{Name: "some-input", VersionedResource: withMetadata, FirstOccurrence: true},
+				{Name: "some-other-input", VersionedResource: withMetadata, FirstOccurrence: true},
 			}))
 		})
 
 		It("can be done on build creation", func() {
-			inputs := VersionedResources{vr1, vr2}
+			inputs := []BuildInput{
+				{Name: "first-input", VersionedResource: vr1},
+				{Name: "second-input", VersionedResource: vr2},
+			}
 
 			pending, err := db.CreateJobBuildWithInputs("some-job", inputs)
 			Ω(err).ShouldNot(HaveOccurred())
@@ -739,37 +805,40 @@ func itIsADB() {
 			nextPending, pendingInputs, err := db.GetNextPendingBuild("some-job")
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(nextPending).Should(Equal(pending))
-			Ω(pendingInputs).Should(Equal(inputs))
+			Ω(pendingInputs).Should(ConsistOf([]BuildInput{
+				{Name: "first-input", VersionedResource: vr1, FirstOccurrence: true},
+				{Name: "second-input", VersionedResource: vr2, FirstOccurrence: true},
+			}))
 		})
 	})
 
 	Describe("saving versioned resources", func() {
 		It("updates the latest versioned resource", func() {
 			vr1 := VersionedResource{
-				Name:    "some-resource",
-				Type:    "some-type",
-				Source:  Source{"some": "source"},
-				Version: Version{"version": "1"},
+				Resource: "some-resource",
+				Type:     "some-type",
+				Source:   Source{"some": "source"},
+				Version:  Version{"version": "1"},
 				Metadata: []MetadataField{
 					{Name: "meta1", Value: "value1"},
 				},
 			}
 
 			vr2 := VersionedResource{
-				Name:    "some-resource",
-				Type:    "some-type",
-				Source:  Source{"some": "source"},
-				Version: Version{"version": "2"},
+				Resource: "some-resource",
+				Type:     "some-type",
+				Source:   Source{"some": "source"},
+				Version:  Version{"version": "2"},
 				Metadata: []MetadataField{
 					{Name: "meta2", Value: "value2"},
 				},
 			}
 
 			vr3 := VersionedResource{
-				Name:    "some-resource",
-				Type:    "some-type",
-				Source:  Source{"some": "source"},
-				Version: Version{"version": "3"},
+				Resource: "some-resource",
+				Type:     "some-type",
+				Source:   Source{"some": "source"},
+				Version:  Version{"version": "3"},
 				Metadata: []MetadataField{
 					{Name: "meta3", Value: "value3"},
 				},
@@ -793,10 +862,10 @@ func itIsADB() {
 
 		It("overwrites the existing source and metadata for the same version", func() {
 			vr := VersionedResource{
-				Name:    "some-resource",
-				Type:    "some-type",
-				Source:  Source{"some": "source"},
-				Version: Version{"version": "1"},
+				Resource: "some-resource",
+				Type:     "some-type",
+				Source:   Source{"some": "source"},
+				Version:  Version{"version": "1"},
 				Metadata: []MetadataField{
 					{Name: "meta1", Value: "value1"},
 				},
@@ -830,30 +899,30 @@ func itIsADB() {
 			Ω(err).ShouldNot(HaveOccurred())
 
 			err = db.SaveBuildOutput(sb1.ID, VersionedResource{
-				Name:    "resource-1",
-				Type:    "some-type",
-				Version: Version{"v": "r1-common-to-shared-and-j1"},
+				Resource: "resource-1",
+				Type:     "some-type",
+				Version:  Version{"v": "r1-common-to-shared-and-j1"},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
 			err = db.SaveBuildOutput(sb1.ID, VersionedResource{
-				Name:    "resource-2",
-				Type:    "some-type",
-				Version: Version{"v": "r2-common-to-shared-and-j2"},
+				Resource: "resource-2",
+				Type:     "some-type",
+				Version:  Version{"v": "r2-common-to-shared-and-j2"},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
 			err = db.SaveBuildOutput(j1b1.ID, VersionedResource{
-				Name:    "resource-1",
-				Type:    "some-type",
-				Version: Version{"v": "r1-common-to-shared-and-j1"},
+				Resource: "resource-1",
+				Type:     "some-type",
+				Version:  Version{"v": "r1-common-to-shared-and-j1"},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
 			err = db.SaveBuildOutput(j2b1.ID, VersionedResource{
-				Name:    "resource-2",
-				Type:    "some-type",
-				Version: Version{"v": "r2-common-to-shared-and-j2"},
+				Resource: "resource-2",
+				Type:     "some-type",
+				Version:  Version{"v": "r2-common-to-shared-and-j2"},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
@@ -868,14 +937,14 @@ func itIsADB() {
 				},
 			})).Should(Equal(VersionedResources{
 				{
-					Name:    "resource-1",
-					Type:    "some-type",
-					Version: Version{"v": "r1-common-to-shared-and-j1"},
+					Resource: "resource-1",
+					Type:     "some-type",
+					Version:  Version{"v": "r1-common-to-shared-and-j1"},
 				},
 				{
-					Name:    "resource-2",
-					Type:    "some-type",
-					Version: Version{"v": "r2-common-to-shared-and-j2"},
+					Resource: "resource-2",
+					Type:     "some-type",
+					Version:  Version{"v": "r2-common-to-shared-and-j2"},
 				},
 			}))
 
@@ -889,23 +958,23 @@ func itIsADB() {
 			Ω(err).ShouldNot(HaveOccurred())
 
 			err = db.SaveBuildOutput(sb2.ID, VersionedResource{
-				Name:    "resource-1",
-				Type:    "some-type",
-				Version: Version{"v": "new-r1-common-to-shared-and-j1"},
+				Resource: "resource-1",
+				Type:     "some-type",
+				Version:  Version{"v": "new-r1-common-to-shared-and-j1"},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
 			err = db.SaveBuildOutput(sb2.ID, VersionedResource{
-				Name:    "resource-2",
-				Type:    "some-type",
-				Version: Version{"v": "new-r2-common-to-shared-and-j2"},
+				Resource: "resource-2",
+				Type:     "some-type",
+				Version:  Version{"v": "new-r2-common-to-shared-and-j2"},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
 			err = db.SaveBuildOutput(j1b2.ID, VersionedResource{
-				Name:    "resource-1",
-				Type:    "some-type",
-				Version: Version{"v": "new-r1-common-to-shared-and-j1"},
+				Resource: "resource-1",
+				Type:     "some-type",
+				Version:  Version{"v": "new-r1-common-to-shared-and-j1"},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
@@ -922,22 +991,22 @@ func itIsADB() {
 				},
 			})).Should(Equal(VersionedResources{
 				{
-					Name:    "resource-1",
-					Type:    "some-type",
-					Version: Version{"v": "r1-common-to-shared-and-j1"},
+					Resource: "resource-1",
+					Type:     "some-type",
+					Version:  Version{"v": "r1-common-to-shared-and-j1"},
 				},
 				{
-					Name:    "resource-2",
-					Type:    "some-type",
-					Version: Version{"v": "r2-common-to-shared-and-j2"},
+					Resource: "resource-2",
+					Type:     "some-type",
+					Version:  Version{"v": "r2-common-to-shared-and-j2"},
 				},
 			}))
 
 			// now save the output of resource-2 job-2
 			err = db.SaveBuildOutput(j2b2.ID, VersionedResource{
-				Name:    "resource-2",
-				Type:    "some-type",
-				Version: Version{"v": "new-r2-common-to-shared-and-j2"},
+				Resource: "resource-2",
+				Type:     "some-type",
+				Version:  Version{"v": "new-r2-common-to-shared-and-j2"},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
@@ -952,14 +1021,14 @@ func itIsADB() {
 				},
 			})).Should(Equal(VersionedResources{
 				{
-					Name:    "resource-1",
-					Type:    "some-type",
-					Version: Version{"v": "new-r1-common-to-shared-and-j1"},
+					Resource: "resource-1",
+					Type:     "some-type",
+					Version:  Version{"v": "new-r1-common-to-shared-and-j1"},
 				},
 				{
-					Name:    "resource-2",
-					Type:    "some-type",
-					Version: Version{"v": "new-r2-common-to-shared-and-j2"},
+					Resource: "resource-2",
+					Type:     "some-type",
+					Version:  Version{"v": "new-r2-common-to-shared-and-j2"},
 				},
 			}))
 
@@ -968,30 +1037,30 @@ func itIsADB() {
 				version := fmt.Sprintf("version-%d", i+1)
 
 				err = db.SaveBuildOutput(sb1.ID, VersionedResource{
-					Name:    "resource-1",
-					Type:    "some-type",
-					Version: Version{"v": version + "-r1-common-to-shared-and-j1"},
+					Resource: "resource-1",
+					Type:     "some-type",
+					Version:  Version{"v": version + "-r1-common-to-shared-and-j1"},
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				err = db.SaveBuildOutput(sb1.ID, VersionedResource{
-					Name:    "resource-2",
-					Type:    "some-type",
-					Version: Version{"v": version + "-r2-common-to-shared-and-j2"},
+					Resource: "resource-2",
+					Type:     "some-type",
+					Version:  Version{"v": version + "-r2-common-to-shared-and-j2"},
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				err = db.SaveBuildOutput(j1b1.ID, VersionedResource{
-					Name:    "resource-1",
-					Type:    "some-type",
-					Version: Version{"v": version + "-r1-common-to-shared-and-j1"},
+					Resource: "resource-1",
+					Type:     "some-type",
+					Version:  Version{"v": version + "-r1-common-to-shared-and-j1"},
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				err = db.SaveBuildOutput(j2b1.ID, VersionedResource{
-					Name:    "resource-2",
-					Type:    "some-type",
-					Version: Version{"v": version + "-r2-common-to-shared-and-j2"},
+					Resource: "resource-2",
+					Type:     "some-type",
+					Version:  Version{"v": version + "-r2-common-to-shared-and-j2"},
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
@@ -1006,14 +1075,14 @@ func itIsADB() {
 					},
 				})).Should(Equal(VersionedResources{
 					{
-						Name:    "resource-1",
-						Type:    "some-type",
-						Version: Version{"v": version + "-r1-common-to-shared-and-j1"},
+						Resource: "resource-1",
+						Type:     "some-type",
+						Version:  Version{"v": version + "-r1-common-to-shared-and-j1"},
 					},
 					{
-						Name:    "resource-2",
-						Type:    "some-type",
-						Version: Version{"v": version + "-r2-common-to-shared-and-j2"},
+						Resource: "resource-2",
+						Type:     "some-type",
+						Version:  Version{"v": version + "-r2-common-to-shared-and-j2"},
 					},
 				}))
 			}

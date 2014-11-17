@@ -40,10 +40,11 @@ var _ = Describe("Factory", func() {
 
 			Privileged: true,
 
-			BuildConfigPath: "some-resource/build.yml",
+			BuildConfigPath: "some-input/build.yml",
 
 			Inputs: []atc.InputConfig{
 				{
+					Name:     "some-input",
 					Resource: "some-resource",
 					Params:   atc.Params{"some": "params"},
 				},
@@ -84,7 +85,7 @@ var _ = Describe("Factory", func() {
 
 			Inputs: []turbine.Input{
 				{
-					Name:       "some-resource",
+					Name:       "some-input",
 					Resource:   "some-resource",
 					Type:       "git",
 					Source:     turbine.Source{"uri": "git://some-resource"},
@@ -238,21 +239,24 @@ var _ = Describe("Factory", func() {
 		})
 	})
 
-	Context("when versioned resources are specified", func() {
+	Context("when inputs with versions are specified", func() {
 		It("uses them for the build's inputs", func() {
-			turbineBuild, err := factory.Create(job, resources, db.VersionedResources{
+			turbineBuild, err := factory.Create(job, resources, []db.BuildInput{
 				{
-					Name:    "some-resource",
-					Type:    "git-ng",
-					Version: db.Version{"version": "1"},
-					Source:  db.Source{"uri": "git://some-provided-uri"},
+					Name: "some-input",
+					VersionedResource: db.VersionedResource{
+						Resource: "some-resource",
+						Type:     "git-ng",
+						Version:  db.Version{"version": "1"},
+						Source:   db.Source{"uri": "git://some-provided-uri"},
+					},
 				},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Ω(turbineBuild.Inputs).Should(Equal([]turbine.Input{
 				{
-					Name:       "some-resource",
+					Name:       "some-input",
 					Resource:   "some-resource",
 					Type:       "git-ng",
 					Source:     turbine.Source{"uri": "git://some-provided-uri"},

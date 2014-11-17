@@ -35,7 +35,7 @@ type VersionedResources []VersionedResource
 
 func (vrs VersionedResources) Lookup(name string) (VersionedResource, bool) {
 	for _, vr := range vrs {
-		if vr.Name == name {
+		if vr.Resource == name {
 			return vr, true
 		}
 	}
@@ -44,7 +44,7 @@ func (vrs VersionedResources) Lookup(name string) (VersionedResource, bool) {
 }
 
 type VersionedResource struct {
-	Name     string
+	Resource string
 	Type     string
 	Source   Source
 	Version  Version

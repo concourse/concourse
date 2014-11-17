@@ -33,7 +33,7 @@ type TrackerDB interface {
 	SaveBuildStartTime(buildID int, startTime time.Time) error
 	SaveBuildEndTime(buildID int, startTime time.Time) error
 
-	SaveBuildInput(buildID int, vr db.VersionedResource) error
+	SaveBuildInput(buildID int, input db.BuildInput) error
 	SaveBuildOutput(buildID int, vr db.VersionedResource) error
 
 	SaveBuildStatus(buildID int, status db.Status) error
@@ -262,14 +262,19 @@ func (tracker *tracker) TrackBuild(build db.Build) error {
 					input.Input.Resource = input.Input.Name
 				}
 
-				err = tracker.db.SaveBuildInput(build.ID, vrFromInput(input.Input))
+				vr := vrFromInput(input.Input)
+
+				err = tracker.db.SaveBuildInput(build.ID, db.BuildInput{
+					Name:              input.Input.Name,
+					VersionedResource: vr,
+				})
 				if err != nil {
 					tLog.Error("failed-to-save-build-input", err)
 					return err
 				}
 
 				// record implicit output
-				outputs[input.Input.Resource] = vrFromInput(input.Input)
+				outputs[input.Input.Resource] = vr
 
 			case "output":
 				if build.JobName == "" {
@@ -319,7 +324,7 @@ func vrFromInput(input turbine.Input) db.VersionedResource {
 	}
 
 	return db.VersionedResource{
-		Name:     input.Resource,
+		Resource: input.Resource,
 		Type:     input.Type,
 		Source:   db.Source(input.Source),
 		Version:  db.Version(input.Version),
@@ -340,7 +345,7 @@ func vrFromOutput(output turbine.Output) db.VersionedResource {
 	}
 
 	return db.VersionedResource{
-		Name:     output.Name,
+		Resource: output.Name,
 		Type:     output.Type,
 		Source:   db.Source(output.Source),
 		Version:  db.Version(output.Version),

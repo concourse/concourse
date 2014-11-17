@@ -66,10 +66,12 @@ var _ = Describe("Scheduler", func() {
 
 			Inputs: []atc.InputConfig{
 				{
+					Name:     "some-input",
 					Resource: "some-resource",
 					Params:   atc.Params{"some": "params"},
 				},
 				{
+					Name:     "some-other-input",
 					Resource: "some-other-resource",
 					Params:   atc.Params{"some": "params"},
 				},
@@ -175,14 +177,29 @@ var _ = Describe("Scheduler", func() {
 			})
 		})
 
-		Context("when inputs are found", func() {
-			foundInputs := db.VersionedResources{
-				{Name: "some-resource", Version: db.Version{"version": "1"}},
-				{Name: "some-other-resource", Version: db.Version{"version": "2"}},
+		Context("when versions are found", func() {
+			foundVersions := db.VersionedResources{
+				{Resource: "some-resource", Version: db.Version{"version": "1"}},
+				{Resource: "some-other-resource", Version: db.Version{"version": "2"}},
+			}
+
+			newInputs := []db.BuildInput{
+				{
+					Name: "some-input",
+					VersionedResource: db.VersionedResource{
+						Resource: "some-resource", Version: db.Version{"version": "1"},
+					},
+				},
+				{
+					Name: "some-other-input",
+					VersionedResource: db.VersionedResource{
+						Resource: "some-other-resource", Version: db.Version{"version": "2"},
+					},
+				},
 			}
 
 			BeforeEach(func() {
-				schedulerDB.GetLatestInputVersionsReturns(foundInputs, nil)
+				schedulerDB.GetLatestInputVersionsReturns(foundVersions, nil)
 			})
 
 			It("checks if they are already used for a build", func() {
@@ -193,7 +210,7 @@ var _ = Describe("Scheduler", func() {
 
 				checkedJob, checkedInputs := schedulerDB.GetJobBuildForInputsArgsForCall(0)
 				Ω(checkedJob).Should(Equal("some-job"))
-				Ω(checkedInputs).Should(Equal(foundInputs))
+				Ω(checkedInputs).Should(ConsistOf(newInputs))
 			})
 
 			Describe("getting the latest inputs from the database", func() {
@@ -205,7 +222,7 @@ var _ = Describe("Scheduler", func() {
 							db.ResourceLock("some-other-resource"),
 						}))
 
-						return foundInputs, nil
+						return foundVersions, nil
 					}
 				})
 
@@ -229,15 +246,15 @@ var _ = Describe("Scheduler", func() {
 						Trigger:  &trigger,
 					})
 
-					foundInputsWithCheck := append(
-						foundInputs,
+					foundVersionsWithCheck := append(
+						foundVersions,
 						db.VersionedResource{
-							Name:    "some-non-checking-resource",
-							Version: db.Version{"version": 3},
+							Resource: "some-non-checking-resource",
+							Version:  db.Version{"version": 3},
 						},
 					)
 
-					schedulerDB.GetLatestInputVersionsReturns(foundInputsWithCheck, nil)
+					schedulerDB.GetLatestInputVersionsReturns(foundVersionsWithCheck, nil)
 				})
 
 				It("excludes them from the inputs when checking for a build", func() {
@@ -248,7 +265,7 @@ var _ = Describe("Scheduler", func() {
 
 					checkedJob, checkedInputs := schedulerDB.GetJobBuildForInputsArgsForCall(0)
 					Ω(checkedJob).Should(Equal("some-job"))
-					Ω(checkedInputs).Should(Equal(foundInputs))
+					Ω(checkedInputs).Should(Equal(newInputs))
 				})
 			})
 
@@ -298,7 +315,7 @@ var _ = Describe("Scheduler", func() {
 					Ω(schedulerDB.CreateJobBuildWithInputsCallCount()).Should(Equal(1))
 					buildJob, buildInputs := schedulerDB.CreateJobBuildWithInputsArgsForCall(0)
 					Ω(buildJob).Should(Equal("some-job"))
-					Ω(buildInputs).Should(Equal(foundInputs))
+					Ω(buildInputs).Should(Equal(newInputs))
 				})
 
 				Context("when creating the build succeeds", func() {
@@ -324,7 +341,7 @@ var _ = Describe("Scheduler", func() {
 							createJob, createResources, createInputs := factory.CreateArgsForCall(0)
 							Ω(createJob).Should(Equal(job))
 							Ω(createResources).Should(Equal(resources))
-							Ω(createInputs).Should(Equal(foundInputs))
+							Ω(createInputs).Should(Equal(newInputs))
 
 							Ω(builder.BuildCallCount()).Should(Equal(1))
 							builtBuild, builtTurbineBuild := builder.BuildArgsForCall(0)
@@ -383,9 +400,19 @@ var _ = Describe("Scheduler", func() {
 
 	Describe("TryNextPendingBuild", func() {
 		Context("when a pending build is found", func() {
-			pendingInputs := db.VersionedResources{
-				{Name: "some-resource", Version: db.Version{"version": "1"}},
-				{Name: "some-other-resource", Version: db.Version{"version": "2"}},
+			pendingInputs := []db.BuildInput{
+				{
+					Name: "some-input",
+					VersionedResource: db.VersionedResource{
+						Resource: "some-resource", Version: db.Version{"version": "1"},
+					},
+				},
+				{
+					Name: "some-other-input",
+					VersionedResource: db.VersionedResource{
+						Resource: "some-other-resource", Version: db.Version{"version": "2"},
+					},
+				},
 			}
 
 			BeforeEach(func() {
@@ -435,7 +462,7 @@ var _ = Describe("Scheduler", func() {
 
 		Context("when a pending build is not found", func() {
 			BeforeEach(func() {
-				schedulerDB.GetNextPendingBuildReturns(db.Build{}, db.VersionedResources{}, sql.ErrNoRows)
+				schedulerDB.GetNextPendingBuildReturns(db.Build{}, []db.BuildInput{}, sql.ErrNoRows)
 			})
 
 			It("returns no error", func() {
@@ -453,7 +480,7 @@ var _ = Describe("Scheduler", func() {
 			disaster := errors.New("oh no!")
 
 			BeforeEach(func() {
-				schedulerDB.GetNextPendingBuildReturns(db.Build{}, db.VersionedResources{}, disaster)
+				schedulerDB.GetNextPendingBuildReturns(db.Build{}, []db.BuildInput{}, disaster)
 			})
 
 			It("returns the error", func() {
@@ -552,18 +579,28 @@ var _ = Describe("Scheduler", func() {
 		Context("when the job has dependant inputs", func() {
 			BeforeEach(func() {
 				job.Inputs = append(job.Inputs, atc.InputConfig{
+					Name:     "some-dependant-input",
 					Resource: "some-dependant-resource",
 					Passed:   []string{"job-a"},
 				})
 			})
 
 			Context("and they can be satisfied", func() {
-				foundInputs := db.VersionedResources{
-					{Name: "some-dependant-resource", Version: db.Version{"version": "2"}},
+				foundVersions := db.VersionedResources{
+					{Resource: "some-dependant-resource", Version: db.Version{"version": "2"}},
+				}
+
+				dependantInputs := []db.BuildInput{
+					{
+						Name: "some-dependant-input",
+						VersionedResource: db.VersionedResource{
+							Resource: "some-dependant-resource", Version: db.Version{"version": "2"},
+						},
+					},
 				}
 
 				BeforeEach(func() {
-					schedulerDB.GetLatestInputVersionsReturns(foundInputs, nil)
+					schedulerDB.GetLatestInputVersionsReturns(foundVersions, nil)
 				})
 
 				It("creates a build with the found inputs", func() {
@@ -573,6 +610,7 @@ var _ = Describe("Scheduler", func() {
 					Ω(schedulerDB.GetLatestInputVersionsCallCount()).Should(Equal(1))
 					Ω(schedulerDB.GetLatestInputVersionsArgsForCall(0)).Should(Equal([]atc.InputConfig{
 						{
+							Name:     "some-dependant-input",
 							Resource: "some-dependant-resource",
 							Passed:   []string{"job-a"},
 						},
@@ -582,7 +620,7 @@ var _ = Describe("Scheduler", func() {
 
 					jobName, inputs := schedulerDB.CreateJobBuildWithInputsArgsForCall(0)
 					Ω(jobName).Should(Equal("some-job"))
-					Ω(inputs).Should(Equal(foundInputs))
+					Ω(inputs).Should(Equal(dependantInputs))
 				})
 
 				Context("when creating the build succeeds", func() {
@@ -609,7 +647,7 @@ var _ = Describe("Scheduler", func() {
 							createJob, createResources, createInputs := factory.CreateArgsForCall(0)
 							Ω(createJob).Should(Equal(job))
 							Ω(createResources).Should(Equal(resources))
-							Ω(createInputs).Should(Equal(foundInputs))
+							Ω(createInputs).Should(Equal(dependantInputs))
 
 							Ω(builder.BuildCallCount()).Should(Equal(1))
 							builtBuild, builtTurbineBuild := builder.BuildArgsForCall(0)

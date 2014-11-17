@@ -19,6 +19,7 @@ type SQLDB struct {
 }
 
 const buildColumns = "id, name, job_name, status, guid, endpoint, start_time, end_time"
+const qualifiedBuildColumns = "b.id, b.name, b.job_name, b.status, b.guid, b.endpoint, b.start_time, b.end_time"
 
 func NewSQL(logger lager.Logger, sqldbConnection *sql.DB) *SQLDB {
 	return &SQLDB{
@@ -190,14 +191,14 @@ func (db *SQLDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, er
 	outputs := []BuildOutput{}
 
 	rows, err := db.conn.Query(`
-		SELECT v.resource_name, v.type, v.source, v.version, v.metadata,
+		SELECT i.name, v.resource_name, v.type, v.source, v.version, v.metadata,
 		NOT EXISTS (
 			SELECT 1
-			FROM build_inputs, builds
+			FROM build_inputs ci, builds cb
 			WHERE versioned_resource_id = v.id
-			AND job_name = b.job_name
-			AND build_id = id
-			AND build_id < b.id
+			AND cb.job_name = b.job_name
+			AND ci.build_id = cb.id
+			AND ci.build_id < b.id
 		)
 		FROM versioned_resources v, build_inputs i, builds b
 		WHERE b.id = $1
@@ -211,11 +212,12 @@ func (db *SQLDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, er
 	defer rows.Close()
 
 	for rows.Next() {
+		var inputName string
 		var vr VersionedResource
 		var firstOccurrence bool
 
 		var source, version, metadata string
-		err := rows.Scan(&vr.Name, &vr.Type, &source, &version, &metadata, &firstOccurrence)
+		err := rows.Scan(&inputName, &vr.Resource, &vr.Type, &source, &version, &metadata, &firstOccurrence)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -236,6 +238,7 @@ func (db *SQLDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, er
 		}
 
 		inputs = append(inputs, BuildInput{
+			Name:              inputName,
 			VersionedResource: vr,
 			FirstOccurrence:   firstOccurrence,
 		})
@@ -264,7 +267,7 @@ func (db *SQLDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, er
 		var vr VersionedResource
 
 		var source, version, metadata string
-		err := rows.Scan(&vr.Name, &vr.Type, &source, &version, &metadata)
+		err := rows.Scan(&vr.Resource, &vr.Type, &source, &version, &metadata)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -500,7 +503,7 @@ func (db *SQLDB) SaveBuildEndTime(buildID int, endTime time.Time) error {
 	return nil
 }
 
-func (db *SQLDB) SaveBuildInput(buildID int, vr VersionedResource) error {
+func (db *SQLDB) SaveBuildInput(buildID int, input BuildInput) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return err
@@ -508,21 +511,22 @@ func (db *SQLDB) SaveBuildInput(buildID int, vr VersionedResource) error {
 
 	defer tx.Rollback()
 
-	vrID, err := db.saveVersionedResource(tx, vr)
+	vrID, err := db.saveVersionedResource(tx, input.VersionedResource)
 	if err != nil {
 		return err
 	}
 
 	_, err = tx.Exec(`
-		INSERT INTO build_inputs (build_id, versioned_resource_id)
-		SELECT $1, $2
+		INSERT INTO build_inputs (build_id, versioned_resource_id, name)
+		SELECT $1, $2, $3
 		WHERE NOT EXISTS (
 			SELECT 1
 			FROM build_inputs
 			WHERE build_id = $1
 			AND versioned_resource_id = $2
+			AND name = $3
 		)
-	`, buildID, vrID)
+	`, buildID, vrID, input.Name)
 	if err != nil {
 		return err
 	}
@@ -656,7 +660,7 @@ func (db *SQLDB) GetLatestVersionedResource(name string) (VersionedResource, err
 	var sourceBytes, versionBytes, metadataBytes string
 
 	vr := VersionedResource{
-		Name: name,
+		Resource: name,
 	}
 
 	err := db.conn.QueryRow(`
@@ -745,7 +749,7 @@ func (db *SQLDB) GetLatestInputVersions(inputs []atc.InputConfig) (VersionedReso
 			i+1,
 			strings.Join(fromAliases, ", "),
 			strings.Join(conditions, "\nAND "),
-		), params...).Scan(&id, &vr.Name, &vr.Type, &source, &version, &metadata)
+		), params...).Scan(&id, &vr.Resource, &vr.Type, &source, &version, &metadata)
 
 		params = append(params, id)
 		conditions = append(conditions, fmt.Sprintf("v%d.id = $%d", i+1, len(params)))
@@ -771,12 +775,14 @@ func (db *SQLDB) GetLatestInputVersions(inputs []atc.InputConfig) (VersionedReso
 	return vrs, nil
 }
 
-func (db *SQLDB) GetJobBuildForInputs(job string, inputs VersionedResources) (Build, error) {
-	from := []string{"builds"}
+func (db *SQLDB) GetJobBuildForInputs(job string, inputs []BuildInput) (Build, error) {
+	from := []string{"builds b"}
 	conditions := []string{"job_name = $1"}
 	params := []interface{}{job}
 
-	for i, vr := range inputs {
+	for i, input := range inputs {
+		vr := input.VersionedResource
+
 		versionBytes, err := json.Marshal(vr.Version)
 		if err != nil {
 			return Build{}, err
@@ -790,22 +796,23 @@ func (db *SQLDB) GetJobBuildForInputs(job string, inputs VersionedResources) (Bu
 			WHERE resource_name = $1
 			AND type = $2
 			AND version = $3
-		`, vr.Name, vr.Type, string(versionBytes)).Scan(&id)
+		`, vr.Resource, vr.Type, string(versionBytes)).Scan(&id)
 		if err != nil {
 			return Build{}, err
 		}
 
 		from = append(from, fmt.Sprintf("build_inputs i%d", i+1))
-		params = append(params, id)
+		params = append(params, id, input.Name)
 
 		conditions = append(conditions,
 			fmt.Sprintf("i%d.build_id = id", i+1),
-			fmt.Sprintf("i%d.versioned_resource_id = $%d", i+1, len(params)),
+			fmt.Sprintf("i%d.versioned_resource_id = $%d", i+1, len(params)-1),
+			fmt.Sprintf("i%d.name = $%d", i+1, len(params)),
 		)
 	}
 
 	return scanBuild(db.conn.QueryRow(fmt.Sprintf(`
-		SELECT `+buildColumns+`
+		SELECT `+qualifiedBuildColumns+`
 		FROM %s
 		WHERE %s
 		`,
@@ -815,7 +822,7 @@ func (db *SQLDB) GetJobBuildForInputs(job string, inputs VersionedResources) (Bu
 	))
 }
 
-func (db *SQLDB) CreateJobBuildWithInputs(job string, inputs VersionedResources) (Build, error) {
+func (db *SQLDB) CreateJobBuildWithInputs(job string, inputs []BuildInput) (Build, error) {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return Build{}, err
@@ -848,16 +855,16 @@ func (db *SQLDB) CreateJobBuildWithInputs(job string, inputs VersionedResources)
 		return Build{}, err
 	}
 
-	for _, vr := range inputs {
-		vrID, err := db.saveVersionedResource(tx, vr)
+	for _, input := range inputs {
+		vrID, err := db.saveVersionedResource(tx, input.VersionedResource)
 		if err != nil {
 			return Build{}, err
 		}
 
 		_, err = tx.Exec(`
-			INSERT INTO build_inputs (build_id, versioned_resource_id)
-			VALUES ($1, $2)
-		`, build.ID, vrID)
+			INSERT INTO build_inputs (build_id, versioned_resource_id, name)
+			VALUES ($1, $2, $3)
+		`, build.ID, vrID, input.Name)
 		if err != nil {
 			return Build{}, err
 		}
@@ -871,7 +878,7 @@ func (db *SQLDB) CreateJobBuildWithInputs(job string, inputs VersionedResources)
 	return build, nil
 }
 
-func (db *SQLDB) GetNextPendingBuild(job string) (Build, VersionedResources, error) {
+func (db *SQLDB) GetNextPendingBuild(job string) (Build, []BuildInput, error) {
 	build, err := scanBuild(db.conn.QueryRow(`
 		SELECT `+buildColumns+`
 		FROM builds
@@ -881,20 +888,15 @@ func (db *SQLDB) GetNextPendingBuild(job string) (Build, VersionedResources, err
 		LIMIT 1
 	`, job))
 	if err != nil {
-		return Build{}, VersionedResources{}, err
+		return Build{}, nil, err
 	}
 
 	inputs, _, err := db.GetBuildResources(build.ID)
 	if err != nil {
-		return Build{}, VersionedResources{}, err
+		return Build{}, nil, err
 	}
 
-	vrs := make([]VersionedResource, len(inputs))
-	for i, input := range inputs {
-		vrs[i] = input.VersionedResource
-	}
-
-	return build, vrs, nil
+	return build, inputs, nil
 }
 
 func (db *SQLDB) GetResourceHistory(resource string) ([]*VersionHistory, error) {
@@ -923,7 +925,7 @@ func (db *SQLDB) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 
 		var versionString, sourceString, metadataString string
 
-		err := vrRows.Scan(&vrID, &vr.Name, &vr.Type, &versionString, &sourceString, &metadataString)
+		err := vrRows.Scan(&vrID, &vr.Resource, &vr.Type, &versionString, &sourceString, &metadataString)
 		if err != nil {
 			return nil, err
 		}
@@ -956,11 +958,11 @@ func (db *SQLDB) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 
 	for id, vh := range vhs {
 		inRows, err := db.conn.Query(`
-			SELECT `+buildColumns+`
-			FROM builds, build_inputs i
+			SELECT `+qualifiedBuildColumns+`
+			FROM builds b, build_inputs i
 			WHERE i.versioned_resource_id = $1
-			AND i.build_id = id
-			ORDER BY id ASC
+			AND i.build_id = b.id
+			ORDER BY b.id ASC
 		`, id)
 		if err != nil {
 			return nil, err
@@ -969,11 +971,11 @@ func (db *SQLDB) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 		defer inRows.Close()
 
 		outRows, err := db.conn.Query(`
-			SELECT `+buildColumns+`
-			FROM builds, build_outputs o
+			SELECT `+qualifiedBuildColumns+`
+			FROM builds b, build_outputs o
 			WHERE o.versioned_resource_id = $1
-			AND o.build_id = id
-			ORDER BY id ASC
+			AND o.build_id = b.id
+			ORDER BY b.id ASC
 		`, id)
 		if err != nil {
 			return nil, err
@@ -1173,7 +1175,7 @@ func (db *SQLDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (int, e
 			WHERE NOT EXISTS (
 				SELECT 1 FROM resources WHERE name = $1
 			)
-		`, vr.Name)
+		`, vr.Resource)
 	if err != nil {
 		return 0, err
 	}
@@ -1205,7 +1207,7 @@ func (db *SQLDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (int, e
 			AND type = $2
 			AND version = $3
 		)
-	`, vr.Name, vr.Type, string(versionJSON), string(sourceJSON), string(metadataJSON))
+	`, vr.Resource, vr.Type, string(versionJSON), string(sourceJSON), string(metadataJSON))
 	if err != nil {
 		return 0, err
 	}
@@ -1218,7 +1220,7 @@ func (db *SQLDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (int, e
 			AND type = $2
 			AND version = $3
 			RETURNING id
-		`, vr.Name, vr.Type, string(versionJSON), string(sourceJSON), string(metadataJSON)).Scan(&id)
+		`, vr.Resource, vr.Type, string(versionJSON), string(sourceJSON), string(metadataJSON)).Scan(&id)
 
 	if err != nil {
 		return 0, err

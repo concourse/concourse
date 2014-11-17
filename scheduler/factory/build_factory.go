@@ -20,14 +20,14 @@ type ConfigDB interface {
 func (factory *BuildFactory) Create(
 	job atc.JobConfig,
 	resources atc.ResourceConfigs,
-	inputVersions db.VersionedResources,
+	inputs []db.BuildInput,
 ) (turbine.Build, error) {
-	inputs, err := factory.computeInputs(job, resources, inputVersions)
+	tInputs, err := factory.computeInputs(job, resources, inputs)
 	if err != nil {
 		return turbine.Build{}, err
 	}
 
-	outputs, err := factory.computeOutputs(job, resources)
+	tOutputs, err := factory.computeOutputs(job, resources)
 	if err != nil {
 		return turbine.Build{}, err
 	}
@@ -35,8 +35,8 @@ func (factory *BuildFactory) Create(
 	return turbine.Build{
 		Config: job.BuildConfig,
 
-		Inputs:  inputs,
-		Outputs: outputs,
+		Inputs:  tInputs,
+		Outputs: tOutputs,
 
 		Privileged: job.Privileged,
 	}, nil
@@ -45,7 +45,7 @@ func (factory *BuildFactory) Create(
 func (factory *BuildFactory) computeInputs(
 	job atc.JobConfig,
 	resources atc.ResourceConfigs,
-	inputs db.VersionedResources,
+	dbInputs []db.BuildInput,
 ) ([]turbine.Input, error) {
 	turbineInputs := make([]turbine.Input, len(job.Inputs))
 	for i, input := range job.Inputs {
@@ -54,12 +54,15 @@ func (factory *BuildFactory) computeInputs(
 			return nil, fmt.Errorf("unknown resource: %s", input.Resource)
 		}
 
-		vr, found := inputs.Lookup(input.Resource)
-		if !found {
-			vr = db.VersionedResource{
-				Name:   resource.Name,
-				Type:   resource.Type,
-				Source: db.Source(resource.Source),
+		vr := db.VersionedResource{
+			Resource: resource.Name,
+			Type:     resource.Type,
+			Source:   db.Source(resource.Source),
+		}
+
+		for _, dbInput := range dbInputs {
+			if dbInput.Name == input.Name {
+				vr = dbInput.VersionedResource
 			}
 		}
 
@@ -77,7 +80,7 @@ func (factory *BuildFactory) inputFor(
 ) turbine.Input {
 	turbineInput := turbine.Input{
 		Name:     inputName,
-		Resource: vr.Name,
+		Resource: vr.Resource,
 		Type:     vr.Type,
 		Source:   turbine.Source(vr.Source),
 		Version:  turbine.Version(vr.Version),
@@ -85,7 +88,7 @@ func (factory *BuildFactory) inputFor(
 	}
 
 	if turbineInput.Name == "" {
-		turbineInput.Name = vr.Name
+		turbineInput.Name = vr.Resource
 	}
 
 	if filepath.HasPrefix(job.BuildConfigPath, turbineInput.Name+"/") {

@@ -205,24 +205,24 @@ var _ = Describe("Radar", func() {
 				Eventually(tracker.SaveVersionedResourceCallCount).Should(Equal(3))
 
 				Ω(tracker.SaveVersionedResourceArgsForCall(0)).Should(Equal(db.VersionedResource{
-					Name:    "some-resource",
-					Type:    "git",
-					Source:  db.Source{"uri": "http://example.com"},
-					Version: db.Version{"version": "1"},
+					Resource: "some-resource",
+					Type:     "git",
+					Source:   db.Source{"uri": "http://example.com"},
+					Version:  db.Version{"version": "1"},
 				}))
 
 				Ω(tracker.SaveVersionedResourceArgsForCall(1)).Should(Equal(db.VersionedResource{
-					Name:    "some-resource",
-					Type:    "git",
-					Source:  db.Source{"uri": "http://example.com"},
-					Version: db.Version{"version": "2"},
+					Resource: "some-resource",
+					Type:     "git",
+					Source:   db.Source{"uri": "http://example.com"},
+					Version:  db.Version{"version": "2"},
 				}))
 
 				Ω(tracker.SaveVersionedResourceArgsForCall(2)).Should(Equal(db.VersionedResource{
-					Name:    "some-resource",
-					Type:    "git",
-					Source:  db.Source{"uri": "http://example.com"},
-					Version: db.Version{"version": "3"},
+					Resource: "some-resource",
+					Type:     "git",
+					Source:   db.Source{"uri": "http://example.com"},
+					Version:  db.Version{"version": "3"},
 				}))
 			})
 

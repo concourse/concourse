@@ -19,7 +19,9 @@ type DB interface {
 	GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error)
 
 	CreateJobBuild(job string) (Build, error)
-	CreateJobBuildWithInputs(job string, inputs VersionedResources) (Build, error)
+
+	GetJobBuildForInputs(job string, inputs []BuildInput) (Build, error)
+	CreateJobBuildWithInputs(job string, inputs []BuildInput) (Build, error)
 
 	CreateOneOffBuild() (Build, error)
 
@@ -30,7 +32,7 @@ type DB interface {
 	GetBuildEvents(buildID int) ([]BuildEvent, error)
 	SaveBuildEvent(buildID int, event BuildEvent) error
 
-	SaveBuildInput(buildID int, vr VersionedResource) error
+	SaveBuildInput(buildID int, input BuildInput) error
 	SaveBuildOutput(buildID int, vr VersionedResource) error
 
 	SaveBuildStatus(buildID int, status Status) error
@@ -42,9 +44,8 @@ type DB interface {
 	GetLatestVersionedResource(resource string) (VersionedResource, error)
 
 	GetLatestInputVersions([]atc.InputConfig) (VersionedResources, error)
-	GetJobBuildForInputs(job string, inputs VersionedResources) (Build, error)
 
-	GetNextPendingBuild(job string) (Build, VersionedResources, error)
+	GetNextPendingBuild(job string) (Build, []BuildInput, error)
 
 	GetResourceHistory(resource string) ([]*VersionHistory, error)
 
@@ -70,6 +71,8 @@ type BuildEvent struct {
 }
 
 type BuildInput struct {
+	Name string
+
 	VersionedResource
 
 	FirstOccurrence bool

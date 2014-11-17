@@ -146,10 +146,10 @@ func (radar *Radar) Scan(checker ResourceChecker, resourceName string) ifrit.Run
 
 				for _, version := range newVersions {
 					err = radar.tracker.SaveVersionedResource(db.VersionedResource{
-						Name:    resource.Name,
-						Type:    resource.Type,
-						Source:  db.Source(resource.Source),
-						Version: version,
+						Resource: resource.Name,
+						Type:     resource.Type,
+						Source:   db.Source(resource.Source),
+						Version:  version,
 					})
 					if err != nil {
 						log.Error("failed-to-save-current-version", err, lager.Data{

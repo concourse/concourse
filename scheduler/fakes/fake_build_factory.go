@@ -11,12 +11,12 @@ import (
 )
 
 type FakeBuildFactory struct {
-	CreateStub        func(atc.JobConfig, atc.ResourceConfigs, db.VersionedResources) (turbine.Build, error)
+	CreateStub        func(atc.JobConfig, atc.ResourceConfigs, []db.BuildInput) (turbine.Build, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
 		arg1 atc.JobConfig
 		arg2 atc.ResourceConfigs
-		arg3 db.VersionedResources
+		arg3 []db.BuildInput
 	}
 	createReturns struct {
 		result1 turbine.Build
@@ -24,12 +24,12 @@ type FakeBuildFactory struct {
 	}
 }
 
-func (fake *FakeBuildFactory) Create(arg1 atc.JobConfig, arg2 atc.ResourceConfigs, arg3 db.VersionedResources) (turbine.Build, error) {
+func (fake *FakeBuildFactory) Create(arg1 atc.JobConfig, arg2 atc.ResourceConfigs, arg3 []db.BuildInput) (turbine.Build, error) {
 	fake.createMutex.Lock()
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
 		arg1 atc.JobConfig
 		arg2 atc.ResourceConfigs
-		arg3 db.VersionedResources
+		arg3 []db.BuildInput
 	}{arg1, arg2, arg3})
 	fake.createMutex.Unlock()
 	if fake.CreateStub != nil {
@@ -45,7 +45,7 @@ func (fake *FakeBuildFactory) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
-func (fake *FakeBuildFactory) CreateArgsForCall(i int) (atc.JobConfig, atc.ResourceConfigs, db.VersionedResources) {
+func (fake *FakeBuildFactory) CreateArgsForCall(i int) (atc.JobConfig, atc.ResourceConfigs, []db.BuildInput) {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
 	return fake.createArgsForCall[i].arg1, fake.createArgsForCall[i].arg2, fake.createArgsForCall[i].arg3
