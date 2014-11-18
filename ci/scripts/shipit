@@ -1,9 +1,11 @@
 #!/bin/bash
 # vim: set ft=sh
 
-set -e -x
+set -e
 
 source ./deployments/ci/bosh_environment
+
+set -x
 
 VERSION=$(cat ./version/number)
 if [ -z "$VERSION" ]; then
