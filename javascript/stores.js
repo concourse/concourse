@@ -178,6 +178,7 @@ var ResourceStore = Fluxxor.createStore({
     if (this.resources[type] === undefined) {
       this.resources[type] = Immutable.Map();
     }
+    resource.kind = type;
     var newResource = Immutable.fromJS(resource);
     if (this.resources[type].has(resource.name)) {
       newResource = this.resources[type].get(resource.name).merge(newResource);
@@ -187,11 +188,9 @@ var ResourceStore = Fluxxor.createStore({
     return this.resources[type].get(resource.name);
   },
 
-  updateResource: function(type, name, callback) {
-    var resource = this.addResource(type, { name: name, version: [], metadata: [] });
-    resource = callback(resource);
-    this.setResource(type, name, resource);
-    this.emit("change");
+  updateResource: function(type, name, attributes) {
+    attributes.name = name;
+    this.addResource(type, attributes);
   },
 
   setResource: function(type, name, resource) {
@@ -203,21 +202,16 @@ var ResourceStore = Fluxxor.createStore({
   },
 
   onSetResourceRunning: function(data) {
-    this.updateResource(data.type, data.name, function(resource) {
-      return resource.set('running', data.value);
-    });
+    this.updateResource(data.type, data.name, { running: data.value });
   },
 
   onSetResourceErrored: function(data) {
-    this.updateResource(data.type, data.name, function(resource) {
-      return resource.set('errored', data.value);
-    });
+    this.updateResource(data.type, data.name, { errored: data.value });
   },
 
   onToggleResourceLogs: function(data) {
-    this.updateResource(data.type, data.name, function(resource) {
-      return resource.set('showLogs', !resource.get('showLogs'));
-    });
+    var resource = this.resources[data.type].get(data.name);
+    this.updateResource(data.type, data.name, { showLogs: !resource.get('showLogs') });
   },
 
   getState: function() {

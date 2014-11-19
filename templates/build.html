@@ -35,7 +35,7 @@
   var inputResources = [
   {{range .Inputs}}
     {
-      resource: "{{.Name}}",
+      name: "{{.Name}}",
       first_occurence: {{.FirstOccurrence}},
       version: {
       {{range $name, $val := .Version}}
