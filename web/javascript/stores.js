@@ -21,41 +21,42 @@ function LogsModel() {
     this.lines = newLines;
   }.bind(this));
   this.linesCursor = this.batchCursor.last();
+  this.carriage = 0;
 
   this.addLog = function(line) {
     var sequence = ansiparse(line);
 
     for (var i = 0; i < sequence.length; i++) {
       if (sequence[i].cr) {
-        this.carriageReturned = true;
+        this.carriage = 0;
       } else if (sequence[i].linebreak) {
         this.pushLine(Immutable.List())
         this.refreshCursor();
-        this.carriageReturned = false;
+        this.carriage = 0;
         this.changed = true;
-      } else if (this.carriageReturned) {
-        if (sequence[i].text) {
-          this.pushSequence(sequence[i]);
-          var textLen = sequence[i].text.length;
-
-          this.cursor.forEach(function(e, i) {
-            if(e.text.length >= textLen) {
-              e.text = e.text.substr(textLen);
-              this.cursor = this.cursor.set(i, e);
-              return false;
-            } else {
-              e.text = ''
-              textLen -= e.text.length;
-              this.cursor = this.cursor.set(i, e);
-            }
-          }, this);
-
-          this.refreshLineCursor();
-          this.changed = true;
-        }
-      } else {
+      } else if (sequence[i].text) {
+        var textLen = sequence[i].text.length;
+        var carriage = this.carriage;
+        var cursor = this.cursor.update(function(line) {
+          return line.slice(carriage);
+        });
+        this.cursor = this.cursor.update(function(line) {
+          return line.slice(0, carriage);
+        });
         this.pushSequence(sequence[i]);
+        this.carriage++;
+
+        cursor.forEach(function(e, i) {
+          if(e.text.length >= textLen) {
+            e.text = e.text.substr(textLen);
+            textLen -= e.text.length;
+            this.pushSequence(e);
+            return false;
+          }
+        }, this);
+
         this.refreshLineCursor();
+        this.changed = true;
       }
     };
   };
