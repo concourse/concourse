@@ -15,16 +15,20 @@ var Resource = React.createClass({
   render: function() {
     var resource = this.props.resource;
     var versionDetails = [];
-    resource.get('version').forEach(function(version, key) {
-      versionDetails.push(<dt key={"version-dt-"+key}>{key}</dt>);
-      versionDetails.push(<dd key={"version-dd-"+key}>{version}</dd>);
-    });
+    if (resource.has('version')) {
+      resource.get('version').forEach(function(version, key) {
+        versionDetails.push(<dt key={"version-dt-"+key}>{key}</dt>);
+        versionDetails.push(<dd key={"version-dd-"+key}>{version}</dd>);
+      });
+    }
     var metadataDetails = [];
-    resource.get('metadata').forEach(function(metadata) {
-      var metadata = metadata.toJS();
-      metadataDetails.push(<dt key={"metadata-dt-"+metadata.name}>{metadata.name}</dt>);
-      metadataDetails.push(<dd key={"metadata-dd-"+metadata.name}>{metadata.value}</dd>);
-    });
+    if (resource.has('metadata')) {
+      resource.get('metadata').forEach(function(metadata) {
+        var metadata = metadata.toJS();
+        metadataDetails.push(<dt key={"metadata-dt-"+metadata.name}>{metadata.name}</dt>);
+        metadataDetails.push(<dd key={"metadata-dd-"+metadata.name}>{metadata.value}</dd>);
+      });
+    }
 
     var cx = React.addons.classSet;
     var classNames = cx({

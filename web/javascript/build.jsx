@@ -214,7 +214,6 @@ var eventHandlers = {
 
 function renderResource(event, type) {
   var resource = event[type];
-  resource.kind = type;
   flux.actions.addResource(type, resource);
   flux.actions.setResourceRunning(type, resource.name, false);
 }
