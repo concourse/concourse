@@ -62,7 +62,7 @@ type FakeSchedulerDB struct {
 	GetAllStartedBuildsStub        func() ([]db.Build, error)
 	getAllStartedBuildsMutex       sync.RWMutex
 	getAllStartedBuildsArgsForCall []struct{}
-	getAllStartedBuildsReturns struct {
+	getAllStartedBuildsReturns     struct {
 		result1 []db.Build
 		result2 error
 	}
