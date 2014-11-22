@@ -28,7 +28,15 @@
   </ul>
 </div>
 
-<div id="build-body"></div>
+<div id="build-body">
+  <div id="build-requires-auth">
+    <form method="get" action="{{url "LogIn"}}">
+      <input type="submit" value="log in to view" />
+      <input type="hidden" name="redirect-to" value="{{url "GetBuild" .Job .Build}}" />
+    </form>
+  </div>
+  <div id="build-logs"></div>
+</div>
 
 <script src="{{url "Public" "build.js"}}"></script>
 <script type="text/javascript">
