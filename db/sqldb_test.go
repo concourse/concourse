@@ -11,7 +11,7 @@ import (
 	"github.com/tedsuo/ifrit"
 
 	"github.com/concourse/atc"
-	. "github.com/concourse/atc/db"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/postgresrunner"
 	"github.com/concourse/turbine"
 )
@@ -22,7 +22,7 @@ var _ = Describe("SQL DB", func() {
 	var dbConn *sql.DB
 	var dbProcess ifrit.Process
 
-	var sqlDB *SQLDB
+	var sqlDB *db.SQLDB
 
 	var dbSharedBehaviorInput = dbSharedBehaviorInput{}
 
@@ -44,7 +44,7 @@ var _ = Describe("SQL DB", func() {
 
 		dbConn = postgresRunner.Open()
 
-		sqlDB = NewSQL(lagertest.NewTestLogger("test"), dbConn)
+		sqlDB = db.NewSQL(lagertest.NewTestLogger("test"), dbConn)
 
 		dbSharedBehaviorInput.DB = sqlDB
 	})

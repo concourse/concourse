@@ -2,7 +2,7 @@ package db_test
 
 import (
 	"github.com/concourse/atc"
-	. "github.com/concourse/atc/db"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/fakes"
 
 	. "github.com/onsi/ginkgo"
@@ -11,7 +11,7 @@ import (
 
 var _ = Describe("ConfigDBWithDefaults", func() {
 	var realConfigDB *fakes.FakeConfigDB
-	var configDB ConfigDB
+	var configDB db.ConfigDB
 	var config atc.Config
 
 	JustBeforeEach(func() {
@@ -21,7 +21,7 @@ var _ = Describe("ConfigDBWithDefaults", func() {
 	BeforeEach(func() {
 		realConfigDB = new(fakes.FakeConfigDB)
 
-		configDB = ConfigDBWithDefaults{
+		configDB = db.ConfigDBWithDefaults{
 			ConfigDB: realConfigDB,
 		}
 	})
