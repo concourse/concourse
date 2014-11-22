@@ -103,6 +103,7 @@ var _ = Describe("Watching", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/builds"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Build{
+						{ID: 4, Name: "1", Status: "started", JobName: "some-job"},
 						{ID: 3, Name: "3", Status: "started"},
 						{ID: 2, Name: "2", Status: "started"},
 						{ID: 1, Name: "1", Status: "finished"},
@@ -112,7 +113,7 @@ var _ = Describe("Watching", func() {
 			)
 		})
 
-		It("watches the most recent build", func() {
+		It("watches the most recent one-off build", func() {
 			watch()
 		})
 	})
