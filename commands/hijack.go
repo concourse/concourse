@@ -30,6 +30,7 @@ import (
 func Hijack(c *cli.Context) {
 	atcURL := c.GlobalString("atcURL")
 	insecure := c.GlobalBool("insecure")
+	privileged := c.Bool("privileged")
 
 	reqGenerator := rata.NewRequestGenerator(atcURL, atc.Routes)
 
@@ -65,7 +66,7 @@ func Hijack(c *cli.Context) {
 		Args: args,
 		Env:  []string{"TERM=" + os.Getenv("TERM")},
 
-		Privileged: true,
+		Privileged: privileged,
 		TTY:        ttySpec,
 	}
 
