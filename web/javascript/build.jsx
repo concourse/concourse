@@ -66,13 +66,6 @@ var Build = React.createClass({
 
     return (
       <div>
-        <div id="build-requires-auth">
-          <form method="get" action="/login">
-            <input type="submit" value="log in to view" />
-            <input type="hidden" name="redirect-to" value="/jobs/atc/builds/253" />
-          </form>
-        </div>
-
         <div className="build-resources build-inputs">{inputResources}</div>
         <div className="build-logs">{runLogs}</div>
         <div className="build-resources build-outputs">{outputResources}</div>
@@ -82,7 +75,7 @@ var Build = React.createClass({
 });
 
 var buildComponent = React.render(<Build flux={flux}/>,
-                                  document.getElementById('build-body'));
+                                  document.getElementById('build-logs'));
 
 function streamLog(uri) {
   var es = new EventSource(uri);
