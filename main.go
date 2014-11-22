@@ -66,8 +66,28 @@ func main() {
 					Name:  "build, b",
 					Usage: "hijack a specific build of a job",
 				},
+				cli.BoolFlag{
+					Name:  "privileged, p",
+					Usage: "run the build with root privileges",
+				},
 			},
 			Action: commands.Hijack,
+		},
+		{
+			Name:      "watch",
+			ShortName: "w",
+			Usage:     "Stream a build's log",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "job, j",
+					Usage: "if specified, hijacks builds of the given job",
+				},
+				cli.StringFlag{
+					Name:  "build, b",
+					Usage: "hijack a specific build of a job",
+				},
+			},
+			Action: commands.Watch,
 		},
 		{
 			Name:      "configure",
