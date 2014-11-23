@@ -20,9 +20,17 @@ import (
 func NewHandler(
 	logger lager.Logger,
 	validator auth.Validator,
+
 	buildsDB buildserver.BuildsDB,
-	jobsDB jobserver.JobsDB,
+	buildserverConfigDB buildserver.ConfigDB,
+
 	configDB configserver.ConfigDB,
+
+	jobsDB jobserver.JobsDB,
+	jobserverConfigDB jobserver.ConfigDB,
+
+	resourceserverConfigDB resourceserver.ConfigDB,
+
 	configValidator configserver.ConfigValidator,
 	builder builder.Builder,
 	pingInterval time.Duration,
@@ -33,14 +41,16 @@ func NewHandler(
 	buildServer := buildserver.NewServer(
 		logger,
 		buildsDB,
+		buildserverConfigDB,
 		builder,
 		pingInterval,
 		eventHandlerFactory,
 		drain,
+		validator,
 	)
 
-	jobServer := jobserver.NewServer(logger, jobsDB, configDB)
-	resourceServer := resourceserver.NewServer(logger, configDB)
+	jobServer := jobserver.NewServer(logger, jobsDB, jobserverConfigDB)
+	resourceServer := resourceserver.NewServer(logger, resourceserverConfigDB)
 	pipeServer := pipes.NewServer(logger, peerAddr)
 
 	configServer := configserver.NewServer(logger, configDB, configValidator)
@@ -56,16 +66,16 @@ func NewHandler(
 		atc.GetConfig:  validate(http.HandlerFunc(configServer.GetConfig)),
 		atc.SaveConfig: validate(http.HandlerFunc(configServer.SaveConfig)),
 
+		atc.ListBuilds:  http.HandlerFunc(buildServer.ListBuilds),
 		atc.CreateBuild: validate(http.HandlerFunc(buildServer.CreateBuild)),
-		atc.ListBuilds:  validate(http.HandlerFunc(buildServer.ListBuilds)),
-		atc.BuildEvents: validate(http.HandlerFunc(buildServer.BuildEvents)),
+		atc.BuildEvents: http.HandlerFunc(buildServer.BuildEvents),
 		atc.AbortBuild:  validate(http.HandlerFunc(buildServer.AbortBuild)),
 		atc.HijackBuild: validate(http.HandlerFunc(buildServer.HijackBuild)),
 
 		atc.ListJobs:      http.HandlerFunc(jobServer.ListJobs),
-		atc.GetJob:        validate(http.HandlerFunc(jobServer.GetJob)),
-		atc.ListJobBuilds: validate(http.HandlerFunc(jobServer.ListJobBuilds)),
-		atc.GetJobBuild:   validate(http.HandlerFunc(jobServer.GetJobBuild)),
+		atc.GetJob:        http.HandlerFunc(jobServer.GetJob),
+		atc.ListJobBuilds: http.HandlerFunc(jobServer.ListJobBuilds),
+		atc.GetJobBuild:   http.HandlerFunc(jobServer.GetJobBuild),
 
 		atc.ListResources: http.HandlerFunc(resourceServer.ListResources),
 

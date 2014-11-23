@@ -2,7 +2,6 @@ package configserver
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -14,7 +13,8 @@ type Server struct {
 }
 
 type ConfigDB interface {
-	db.ConfigDB
+	GetConfig() (atc.Config, error)
+	SaveConfig(atc.Config) error
 }
 
 type ConfigValidator func(atc.Config) error

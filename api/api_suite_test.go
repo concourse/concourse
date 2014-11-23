@@ -14,17 +14,17 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
 	buildfakes "github.com/concourse/atc/api/buildserver/fakes"
-	configfakes "github.com/concourse/atc/api/configserver/fakes"
 	jobfakes "github.com/concourse/atc/api/jobserver/fakes"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/builder/fakebuilder"
+	dbfakes "github.com/concourse/atc/db/fakes"
 	"github.com/concourse/atc/event"
 )
 
 var (
 	buildsDB            *buildfakes.FakeBuildsDB
 	jobsDB              *jobfakes.FakeJobsDB
-	configDB            *configfakes.FakeConfigDB
+	configDB            *dbfakes.FakeConfigDB
 	configValidationErr error
 	builder             *fakebuilder.FakeBuilder
 	pingInterval        time.Duration
@@ -65,7 +65,8 @@ func (f *fakeEventHandlerFactory) Construct(
 var _ = BeforeEach(func() {
 	buildsDB = new(buildfakes.FakeBuildsDB)
 	jobsDB = new(jobfakes.FakeJobsDB)
-	configDB = new(configfakes.FakeConfigDB)
+	configDB = new(dbfakes.FakeConfigDB)
+
 	configValidationErr = nil
 	builder = new(fakebuilder.FakeBuilder)
 	pingInterval = 100 * time.Millisecond
@@ -77,9 +78,17 @@ var _ = BeforeEach(func() {
 	handler, err := api.NewHandler(
 		lagertest.NewTestLogger("callbacks"),
 		auth.NoopValidator{},
+
 		buildsDB,
+		configDB,
+
+		configDB,
+
 		jobsDB,
 		configDB,
+
+		configDB,
+
 		func(atc.Config) error { return configValidationErr },
 		builder,
 		pingInterval,

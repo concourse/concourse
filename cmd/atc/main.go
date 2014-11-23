@@ -241,9 +241,17 @@ func main() {
 	apiHandler, err := api.NewHandler(
 		logger,
 		webValidator,
-		db,
+
 		db,
 		configDB,
+
+		configDB,
+
+		db,
+		configDB,
+
+		configDB,
+
 		config.ValidateConfig,
 		builder,
 		5*time.Second,

@@ -144,3 +144,12 @@ func (jobs JobConfigs) Lookup(name string) (JobConfig, bool) {
 
 	return JobConfig{}, false
 }
+
+func (config Config) JobIsPublic(jobName string) (bool, error) {
+	job, found := config.Jobs.Lookup(jobName)
+	if !found {
+		return false, fmt.Errorf("cannot find job with job name '%s'", jobName)
+	}
+
+	return job.Public, nil
+}
