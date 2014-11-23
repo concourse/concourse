@@ -35,97 +35,33 @@
       <input type="hidden" name="redirect-to" value="{{url "GetBuild" .Job .Build}}" />
     </form>
   </div>
-
-  {{/* omitting whitespace for :empty style */}}
-  <div class="build-resources build-inputs">{{range .Inputs}}
-    <div data-resource="{{.Name}}" class="build-source{{if .FirstOccurrence}} first-occurrence{{end}}">
-      <div class="header">
-        <h3>{{.Name}}</h3>
-
-        <dl class="version">
-          {{range $name, $val := .Version}}
-          <dt>{{$name}}</dt>
-            <dd>{{$val}}</dd>
-          {{end}}
-        </dl>
-
-        <div style="clear: both"></div>
-      </div>
-
-      <div class="resource-body">
-        <dl class="build-metadata">
-          {{range .Metadata}}
-          <dt>{{.Name}}</dt>
-            <dd>{{.Value}}</dd>
-          {{end}}
-        </dl>
-
-        <pre class="log"></pre>
-        <div style="clear: both"></div>
-      </div>
-    </div>
-    {{end}}</div>
-
-  <pre id="build-log"></pre>
-
-  {{/* omitting whitespace for :empty style */}}
-  <div class="build-resources build-outputs">{{range .Outputs}}
-    <div data-resource="{{.Resource}}" class="build-source">
-      <div class="header">
-        <h3>{{.Resource}}</h3>
-
-        <dl class="version">
-          {{range $name, $val := .Version}}
-          <dt>{{$name}}</dt>
-            <dd>{{$val}}</dd>
-          {{end}}
-        </dl>
-
-        <div style="clear: both"></div>
-      </div>
-
-      <div class="resource-body">
-        <dl class="build-metadata">
-          {{range .Metadata}}
-          <dt>{{.Name}}</dt>
-            <dd>{{.Value}}</dd>
-          {{end}}
-        </dl>
-
-        <pre class="log"></pre>
-        <div style="clear: both"></div>
-      </div>
-    </div>
-    {{end}}</div>
+  <div id="build-logs"></div>
 </div>
 
-{{/* used for constructing elements via JS */}}
-<div style="display: none" id="resource-template">
-  <div class="build-source">
-    <div class="header">
-      <h3></h3>
-
-      <dl class="version"></dl>
-
-      <div style="clear: both"></div>
-    </div>
-
-    <div class="resource-body">
-      <dl class="build-metadata">
-      </dl>
-
-      <pre class="log"></pre>
-      <div style="clear: both"></div>
-    </div>
-  </div>
-</div>
-
-<script src="{{url "Public" "jquery-2.1.1.min.js"}}"></script>
-<script src="{{url "Public" "moment.min.js"}}"></script>
-<script src="{{url "Public" "moment-duration-format.js"}}"></script>
-<script src="{{url "Public" "ansiparse.js"}}"></script>
 <script src="{{url "Public" "build.js"}}"></script>
 <script type="text/javascript">
-streamLog({{url "LogOutput" .Build | js}})
+  var inputResources = [
+  {{range .Inputs}}
+    {
+      name: "{{.Name}}",
+      first_occurence: {{.FirstOccurrence}},
+      version: {
+      {{range $name, $val := .Version}}
+        "{{$name}}": "{{$val}}",
+      {{end}}
+      },
+      metadata: [
+      {{range .Metadata}}
+        { name: "{{.Name}}", value: "{{.Value}}" },
+      {{end}}
+      ],
+    },
+  {{end}}
+  ];
+
+  for (var i = 0; i < inputResources.length; i++) {
+    renderResource({ input: inputResources[i] }, "input");
+  }
+  streamLog({{url "LogOutput" .Build | js}})
 </script>
 {{end}}
