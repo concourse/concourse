@@ -2,10 +2,11 @@
 package fakes
 
 import (
-	"sync"
-
 	"github.com/concourse/atc/api/buildserver"
+
 	"github.com/concourse/atc/db"
+
+	"sync"
 )
 
 type FakeBuildsDB struct {
