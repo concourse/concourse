@@ -44,7 +44,7 @@ var _ = Describe("Factory", func() {
 
 			Inputs: []atc.InputConfig{
 				{
-					Name:     "some-input",
+					RawName:  "some-input",
 					Resource: "some-resource",
 					Params:   atc.Params{"some": "params"},
 				},
@@ -52,19 +52,19 @@ var _ = Describe("Factory", func() {
 
 			Outputs: []atc.OutputConfig{
 				{
-					Resource:  "some-resource",
-					Params:    atc.Params{"foo": "bar"},
-					PerformOn: []atc.OutputCondition{"success"},
+					Resource:     "some-resource",
+					Params:       atc.Params{"foo": "bar"},
+					RawPerformOn: []atc.OutputCondition{"success"},
 				},
 				{
-					Resource:  "some-resource",
-					Params:    atc.Params{"foo": "bar"},
-					PerformOn: []atc.OutputCondition{"failure"},
+					Resource:     "some-resource",
+					Params:       atc.Params{"foo": "bar"},
+					RawPerformOn: []atc.OutputCondition{"failure"},
 				},
 				{
-					Resource:  "some-resource",
-					Params:    atc.Params{"foo": "bar"},
-					PerformOn: []atc.OutputCondition{},
+					Resource:     "some-resource",
+					Params:       atc.Params{"foo": "bar"},
+					RawPerformOn: []atc.OutputCondition{},
 				},
 			},
 		}
@@ -161,7 +161,7 @@ var _ = Describe("Factory", func() {
 	Context("when an input has an explicit name", func() {
 		BeforeEach(func() {
 			job.Inputs = append(job.Inputs, atc.InputConfig{
-				Name:     "some-named-input",
+				RawName:  "some-named-input",
 				Resource: "some-named-resource",
 				Params:   atc.Params{"some": "named-params"},
 			})
@@ -186,7 +186,7 @@ var _ = Describe("Factory", func() {
 	Context("when an explicitly named input is the source of the config", func() {
 		BeforeEach(func() {
 			job.Inputs = append(job.Inputs, atc.InputConfig{
-				Name:     "some-named-input",
+				RawName:  "some-named-input",
 				Resource: "some-named-resource",
 				Params:   atc.Params{"some": "named-params"},
 			})

@@ -67,16 +67,16 @@ var _ = Describe("Scheduler", func() {
 
 			Inputs: []atc.InputConfig{
 				{
-					Name:     "some-input",
-					Resource: "some-resource",
-					Params:   atc.Params{"some": "params"},
-					Trigger:  &yes,
+					RawName:    "some-input",
+					Resource:   "some-resource",
+					Params:     atc.Params{"some": "params"},
+					RawTrigger: &yes,
 				},
 				{
-					Name:     "some-other-input",
-					Resource: "some-other-resource",
-					Params:   atc.Params{"some": "params"},
-					Trigger:  &yes,
+					RawName:    "some-other-input",
+					Resource:   "some-other-resource",
+					Params:     atc.Params{"some": "params"},
+					RawTrigger: &yes,
 				},
 			},
 		}
@@ -245,8 +245,8 @@ var _ = Describe("Scheduler", func() {
 					trigger := false
 
 					job.Inputs = append(job.Inputs, atc.InputConfig{
-						Resource: "some-non-checking-resource",
-						Trigger:  &trigger,
+						Resource:   "some-non-checking-resource",
+						RawTrigger: &trigger,
 					})
 
 					foundVersionsWithCheck := append(
@@ -278,7 +278,7 @@ var _ = Describe("Scheduler", func() {
 
 					for i, input := range job.Inputs {
 						noChecking := input
-						noChecking.Trigger = &trigger
+						noChecking.RawTrigger = &trigger
 
 						job.Inputs[i] = noChecking
 					}
@@ -582,7 +582,7 @@ var _ = Describe("Scheduler", func() {
 		Context("when the job has dependant inputs", func() {
 			BeforeEach(func() {
 				job.Inputs = append(job.Inputs, atc.InputConfig{
-					Name:     "some-dependant-input",
+					RawName:  "some-dependant-input",
 					Resource: "some-dependant-resource",
 					Passed:   []string{"job-a"},
 				})
@@ -613,7 +613,7 @@ var _ = Describe("Scheduler", func() {
 					Ω(schedulerDB.GetLatestInputVersionsCallCount()).Should(Equal(1))
 					Ω(schedulerDB.GetLatestInputVersionsArgsForCall(0)).Should(Equal([]atc.InputConfig{
 						{
-							Name:     "some-dependant-input",
+							RawName:  "some-dependant-input",
 							Resource: "some-dependant-resource",
 							Passed:   []string{"job-a"},
 						},

@@ -151,10 +151,10 @@ func validateJobs(c atc.Config) error {
 
 		for i, input := range job.Inputs {
 			var inputIdentifier string
-			if input.Name == "" {
+			if input.Name() == "" {
 				inputIdentifier = fmt.Sprintf("at index %d", i)
 			} else {
-				inputIdentifier = fmt.Sprintf("'%s'", input.Name)
+				inputIdentifier = fmt.Sprintf("'%s'", input.Name())
 			}
 
 			if input.Resource == "" {

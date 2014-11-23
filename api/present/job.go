@@ -43,11 +43,11 @@ func Job(job atc.JobConfig, groups atc.GroupConfigs, finishedBuild, nextBuild *d
 	inputs := make([]atc.JobInput, len(job.Inputs))
 	for i, input := range job.Inputs {
 		inputs[i] = atc.JobInput{
-			Name:     input.Name,
+			Name:     input.Name(),
 			Resource: input.Resource,
 			Passed:   input.Passed,
 			Hidden:   input.Hidden,
-			Trigger:  *input.Trigger,
+			Trigger:  input.Trigger(),
 		}
 	}
 
@@ -55,7 +55,7 @@ func Job(job atc.JobConfig, groups atc.GroupConfigs, finishedBuild, nextBuild *d
 	for i, output := range job.Outputs {
 		outputs[i] = atc.JobOutput{
 			Resource:  output.Resource,
-			PerformOn: output.PerformOn,
+			PerformOn: output.PerformOn(),
 		}
 	}
 

@@ -61,12 +61,12 @@ func (factory *BuildFactory) computeInputs(
 		}
 
 		for _, dbInput := range dbInputs {
-			if dbInput.Name == input.Name {
+			if dbInput.Name == input.Name() {
 				vr = dbInput.VersionedResource
 			}
 		}
 
-		turbineInputs[i] = factory.inputFor(job, vr, input.Name, input.Params)
+		turbineInputs[i] = factory.inputFor(job, vr, input.Name(), input.Params)
 	}
 
 	return turbineInputs, nil
@@ -110,7 +110,7 @@ func (factory *BuildFactory) computeOutputs(
 		}
 
 		conditions := []turbine.OutputCondition{}
-		for _, cond := range output.PerformOn {
+		for _, cond := range output.PerformOn() {
 			conditions = append(conditions, turbine.OutputCondition(cond))
 		}
 

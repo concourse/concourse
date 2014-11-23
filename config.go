@@ -47,12 +47,24 @@ type JobConfig struct {
 }
 
 type InputConfig struct {
-	Name     string   `yaml:"name,omitempty" json:"name,omitempty"`
-	Resource string   `yaml:"resource" json:"resource"`
-	Params   Params   `yaml:"params,omitempty" json:"params,omitempty"`
-	Passed   []string `yaml:"passed,omitempty" json:"passed,omitempty"`
-	Trigger  *bool    `yaml:"trigger,omitempty" json:"trigger,omitempty"`
-	Hidden   bool     `yaml:"hidden,omitempty" json:"hidden,omitempty"`
+	RawName    string   `yaml:"name,omitempty" json:"name,omitempty"`
+	Resource   string   `yaml:"resource" json:"resource"`
+	Params     Params   `yaml:"params,omitempty" json:"params,omitempty"`
+	Passed     []string `yaml:"passed,omitempty" json:"passed,omitempty"`
+	RawTrigger *bool    `json:"trigger,omitempty"`
+	Hidden     bool     `json:"hidden,omitempty"`
+}
+
+func (config InputConfig) Name() string {
+	if len(config.RawName) > 0 {
+		return config.RawName
+	}
+
+	return config.Resource
+}
+
+func (config InputConfig) Trigger() bool {
+	return config.RawTrigger == nil || *config.RawTrigger
 }
 
 type OutputConfig struct {
@@ -60,7 +72,15 @@ type OutputConfig struct {
 	Params   Params `yaml:"params,omitempty" json:"params,omitempty"`
 
 	// e.g. [success, failure]; default [success]
-	PerformOn []OutputCondition `yaml:"perform_on,omitempty" json:"perform_on,omitempty"`
+	RawPerformOn []OutputCondition `yaml:"perform_on,omitempty" json:"perform_on,omitempty"`
+}
+
+func (config OutputConfig) PerformOn() []OutputCondition {
+	if config.RawPerformOn == nil { // NOT len(0)
+		return []OutputCondition{"success"}
+	}
+
+	return config.RawPerformOn
 }
 
 type OutputCondition string

@@ -66,7 +66,7 @@ func (s *Scheduler) BuildLatestInputs(job atc.JobConfig, resources atc.ResourceC
 
 	inputs := []db.BuildInput{}
 	for _, input := range job.Inputs {
-		if !*input.Trigger {
+		if !input.Trigger() {
 			continue
 		}
 
@@ -81,7 +81,7 @@ func (s *Scheduler) BuildLatestInputs(job atc.JobConfig, resources atc.ResourceC
 		}
 
 		inputs = append(inputs, db.BuildInput{
-			Name:              input.Name,
+			Name:              input.Name(),
 			VersionedResource: vr,
 		})
 	}
@@ -194,7 +194,7 @@ func (s *Scheduler) TriggerImmediately(job atc.JobConfig, resources atc.Resource
 			vr, found := versions.Lookup(input.Resource)
 			if found {
 				inputs = append(inputs, db.BuildInput{
-					Name:              input.Name,
+					Name:              input.Name(),
 					VersionedResource: vr,
 				})
 			}

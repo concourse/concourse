@@ -95,13 +95,13 @@ var _ = Describe("SQL DB", func() {
 
 					Inputs: []atc.InputConfig{
 						{
-							Name:     "some-input",
+							RawName:  "some-input",
 							Resource: "some-resource",
 							Params: atc.Params{
 								"some-param": "some-value",
 							},
-							Passed:  []string{"job-1", "job-2"},
-							Trigger: &yep,
+							Passed:     []string{"job-1", "job-2"},
+							RawTrigger: &yep,
 						},
 					},
 
@@ -111,7 +111,7 @@ var _ = Describe("SQL DB", func() {
 							Params: atc.Params{
 								"some-param": "some-value",
 							},
-							PerformOn: []atc.OutputCondition{"success", "failure"},
+							RawPerformOn: []atc.OutputCondition{"success", "failure"},
 						},
 					},
 				},
@@ -149,7 +149,7 @@ var _ = Describe("SQL DB", func() {
 				BuildConfigPath: "new/config/path.yml",
 				Inputs: []atc.InputConfig{
 					{
-						Name:     "new-input",
+						RawName:  "new-input",
 						Resource: "new-resource",
 						Params: atc.Params{
 							"new-param": "new-value",

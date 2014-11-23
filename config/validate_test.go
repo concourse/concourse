@@ -53,7 +53,7 @@ var _ = Describe("ValidateConfig", func() {
 
 					Inputs: []atc.InputConfig{
 						{
-							Name:     "some-input",
+							RawName:  "some-input",
 							Resource: "some-resource",
 							Params: atc.Params{
 								"some-param": "some-value",
@@ -68,7 +68,7 @@ var _ = Describe("ValidateConfig", func() {
 							Params: atc.Params{
 								"some-param": "some-value",
 							},
-							PerformOn: []atc.OutputCondition{"success", "failure"},
+							RawPerformOn: []atc.OutputCondition{"success", "failure"},
 						},
 					},
 				},
@@ -225,7 +225,7 @@ var _ = Describe("ValidateConfig", func() {
 		Context("when a job's input has no resource", func() {
 			BeforeEach(func() {
 				job.Inputs = append(job.Inputs, atc.InputConfig{
-					Name: "foo",
+					RawName: "foo",
 				})
 				config.Jobs = append(config.Jobs, job)
 			})
@@ -241,7 +241,7 @@ var _ = Describe("ValidateConfig", func() {
 		Context("when a job's input has a bogus resource", func() {
 			BeforeEach(func() {
 				job.Inputs = append(job.Inputs, atc.InputConfig{
-					Name:     "foo",
+					RawName:  "foo",
 					Resource: "bogus-resource",
 				})
 				config.Jobs = append(config.Jobs, job)
@@ -258,7 +258,7 @@ var _ = Describe("ValidateConfig", func() {
 		Context("when a job's input's passed constraints reference a bogus job", func() {
 			BeforeEach(func() {
 				job.Inputs = append(job.Inputs, atc.InputConfig{
-					Name:     "foo",
+					RawName:  "foo",
 					Resource: "some-resource",
 					Passed:   []string{"bogus-job"},
 				})

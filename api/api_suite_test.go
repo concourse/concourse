@@ -18,7 +18,6 @@ import (
 	jobfakes "github.com/concourse/atc/api/jobserver/fakes"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/builder/fakebuilder"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/event"
 )
 
@@ -80,7 +79,7 @@ var _ = BeforeEach(func() {
 		auth.NoopValidator{},
 		buildsDB,
 		jobsDB,
-		db.ConfigDBWithDefaults{configDB},
+		configDB,
 		func(atc.Config) error { return configValidationErr },
 		builder,
 		pingInterval,

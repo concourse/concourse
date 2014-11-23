@@ -205,8 +205,6 @@ func main() {
 		configDB = db
 	}
 
-	configDB = Db.ConfigDBWithDefaults{configDB}
-
 	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, turbine.Routes)
 	builder := builder.NewBuilder(db, turbineEndpoint)
 	tracker := sched.NewTracker(logger.Session("tracker"), db, db)
