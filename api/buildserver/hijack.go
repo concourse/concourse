@@ -31,6 +31,7 @@ func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if build.Guid == "" {
+		hLog.Error("missing-build-guid", nil)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
