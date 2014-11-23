@@ -12,6 +12,11 @@ import (
 var _ = Describe("ConfigDBWithDefaults", func() {
 	var realConfigDB *fakes.FakeConfigDB
 	var configDB ConfigDB
+	var config atc.Config
+
+	JustBeforeEach(func() {
+		realConfigDB.GetConfigReturns(config, nil)
+	})
 
 	BeforeEach(func() {
 		realConfigDB = new(fakes.FakeConfigDB)
@@ -23,7 +28,7 @@ var _ = Describe("ConfigDBWithDefaults", func() {
 
 	Context("when an input does not specify its name or whether to trigger", func() {
 		BeforeEach(func() {
-			realConfigDB.GetConfigReturns(atc.Config{
+			config = atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
@@ -34,7 +39,7 @@ var _ = Describe("ConfigDBWithDefaults", func() {
 						},
 					},
 				},
-			}, nil)
+			}
 		})
 
 		It("defaults trigger to true, and the name to the resource", func() {
@@ -59,7 +64,7 @@ var _ = Describe("ConfigDBWithDefaults", func() {
 
 	Context("when an output does not specify when to perform", func() {
 		BeforeEach(func() {
-			realConfigDB.GetConfigReturns(atc.Config{
+			config = atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
@@ -70,7 +75,7 @@ var _ = Describe("ConfigDBWithDefaults", func() {
 						},
 					},
 				},
-			}, nil)
+			}
 		})
 
 		It("performs on success", func() {
