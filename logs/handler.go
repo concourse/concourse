@@ -21,13 +21,6 @@ func NewHandler(
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		buildIDStr := r.FormValue(":build_id")
 
-		config, err := configDB.GetConfig()
-		if err != nil {
-			logger.Error("failed-to-load-config", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
 		log := logger.Session("logs-out", lager.Data{
 			"build_id": buildIDStr,
 		})
@@ -35,25 +28,44 @@ func NewHandler(
 		buildID, err := strconv.Atoi(buildIDStr)
 		if err != nil {
 			log.Error("invalid-build-id", err)
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		authenticated := validator.IsAuthenticated(r)
+		build, err := db.GetBuild(buildID)
+		if err != nil {
+			log.Error("invalid-build-id", err)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 
 		var censor event.Censor
-		if !authenticated {
+		if !validator.IsAuthenticated(r) {
 			censor = (&auth.EventCensor{}).Censor
 
-			build, err := db.GetBuild(buildID)
-			if err != nil {
-				log.Error("invalid-build-id", err)
-				w.WriteHeader(http.StatusNotFound)
+			if build.OneOff() {
+				log.Info("unauthorized-build-event-access")
+				auth.Unauthorized(w)
 				return
 			}
 
-			job, found := config.Jobs.Lookup(build.JobName)
-			if !found || !job.Public {
-				w.WriteHeader(http.StatusNotFound)
+			config, err := configDB.GetConfig()
+			if err != nil {
+				log.Error("unable-to-get-config", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			public, err := config.JobIsPublic(build.JobName)
+			if err != nil {
+				log.Error("unable-to-determine-public-status", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			if !public {
+				log.Info("unauthorized-build-event-access")
+				auth.Unauthorized(w)
 				return
 			}
 		}
