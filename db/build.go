@@ -31,6 +31,10 @@ type Build struct {
 	EndTime   time.Time
 }
 
+func (b Build) OneOff() bool {
+	return b.JobName == ""
+}
+
 type VersionedResources []VersionedResource
 
 func (vrs VersionedResources) Lookup(name string) (VersionedResource, bool) {
