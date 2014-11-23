@@ -11,11 +11,11 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if h.Validator.IsAuthenticated(r) {
 		h.Handler.ServeHTTP(w, r)
 	} else {
-		h.Unauthorized(w)
+		Unauthorized(w)
 	}
 }
 
-func (h Handler) Unauthorized(w http.ResponseWriter) {
+func Unauthorized(w http.ResponseWriter) {
 	w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 	w.WriteHeader(http.StatusUnauthorized)
 }
