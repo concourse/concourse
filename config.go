@@ -52,7 +52,7 @@ type InputConfig struct {
 	Params     Params   `yaml:"params,omitempty" json:"params,omitempty"`
 	Passed     []string `yaml:"passed,omitempty" json:"passed,omitempty"`
 	RawTrigger *bool    `yaml:"trigger" json:"trigger"`
-	Hidden     bool     `yaml:"hidden" json:"hidden,omitempty"`
+	Hidden     bool     `yaml:"hidden,omitempty" json:"hidden,omitempty"`
 }
 
 func (config InputConfig) Name() string {
