@@ -30,7 +30,7 @@ function LogsModel() {
       if (sequence[i].cr) {
         this.carriage = 0;
       } else if (sequence[i].linebreak) {
-        this.pushLine(Immutable.List())
+        this.pushLine(Immutable.List.of(sequence[i]))
         this.refreshCursor();
         this.carriage = 0;
         this.changed = true;
