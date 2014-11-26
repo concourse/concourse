@@ -53,6 +53,9 @@ svg .gateway {
 .build-source.first-occurrence .header {
   background: #505050;
 }
+svg .node.job.normal rect {
+  fill: #505050;
+}
 /* dim */
 svg .path.pending {
   stroke: #b0b0b0;
