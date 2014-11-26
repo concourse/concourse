@@ -3,8 +3,8 @@
 {{define "body"}}
 <div id="page-header">
   <ul class="groups">
-    {{range $group, $enabled := .Groups}}
-    <li{{if $enabled}} class="active"{{end}}><a href="/?groups={{$group}}">{{$group}}</a>
+    {{range .GroupStates}}
+    <li{{if .Enabled}} class="active"{{end}}><a href="/?groups={{.Name}}">{{.Name}}</a>
     {{end}}
   </ul>
 </div>

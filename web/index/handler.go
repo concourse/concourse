@@ -30,7 +30,13 @@ func NewHandler(logger lager.Logger, db db.DB, configDB db.ConfigDB, template *t
 }
 
 type TemplateData struct {
-	Groups map[string]bool
+	GroupStates []GroupState
+	Groups      map[string]bool
+}
+
+type GroupState struct {
+	Name    string
+	Enabled bool
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -55,8 +61,17 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		groups[name] = true
 	}
 
+	groupStates := make([]GroupState, len(config.Groups))
+	for i, group := range config.Groups {
+		groupStates[i] = GroupState{
+			Name:    group.Name,
+			Enabled: groups[group.Name],
+		}
+	}
+
 	data := TemplateData{
-		Groups: groups,
+		Groups:      groups,
+		GroupStates: groupStates,
 	}
 
 	log := handler.logger.Session("index")
