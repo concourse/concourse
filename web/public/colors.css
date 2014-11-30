@@ -38,11 +38,8 @@ svg .cluster {
   background: #303030;
 }
 /* even more highlight background */
-svg .path {
+svg .edge {
   stroke: #505050;
-}
-svg .arrowhead-normal path {
-  fill: #505050;
 }
 svg .gateway {
   fill: #505050;
@@ -57,11 +54,8 @@ svg .node.job.normal rect {
   fill: #505050;
 }
 /* dim */
-svg .path.pending {
+svg .edge.pending {
   stroke: #b0b0b0;
-}
-svg .arrowhead-pending path {
-  fill: #b0b0b0;
 }
 svg .node.job.pending rect {
   fill: #b0b0b0;
@@ -120,11 +114,8 @@ svg h1 a {
   color: #f5f5f5;
 }
 /* good */
-svg .path.succeeded {
+svg .edge.succeeded {
   stroke: #90a959;
-}
-svg .arrowhead-succeeded path {
-  fill: #90a959;
 }
 svg .node.job.succeeded rect {
   fill: #90a959;
@@ -139,11 +130,8 @@ li.succeeded {
   background: #90a959;
 }
 /* bad */
-svg .path.failed {
+svg .edge.failed {
   stroke: #ac4142;
-}
-svg .arrowhead-failed path {
-  fill: #ac4142;
 }
 svg .node.job.failed rect {
   fill: #ac4142;
@@ -167,11 +155,8 @@ span.error {
   color: #ac4142;
 }
 /* like, really bad */
-svg .path.errored {
+svg .edge.errored {
   stroke: #d28445;
-}
-svg .arrowhead-errored path {
-  fill: #d28445;
 }
 svg .node.job.errored rect {
   fill: #d28445;
@@ -192,11 +177,8 @@ svg .node.resource.failing rect {
   background: #d28445;
 }
 /* not so bad */
-svg .path.aborted {
+svg .edge.aborted {
   stroke: #8f5536;
-}
-svg .arrowhead-aborted path {
-  fill: #8f5536;
 }
 svg .node.job.aborted rect {
   fill: #8f5536;
@@ -214,15 +196,6 @@ li.aborted {
   background: #8f5536;
 }
 /* active */
-svg .path.started {
-  stroke: #f4bf75;
-}
-svg .arrowhead-started path {
-  fill: #f4bf75;
-}
-svg .node.job.started rect {
-  fill: #f4bf75;
-}
 #page-header.started .build-header {
   background: #f4bf75;
 }

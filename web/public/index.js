@@ -5,81 +5,120 @@ function draw(groups, renderFn) {
     $.get("/api/v1/resources", function(resourcesPayload) {
       var resources = JSON.parse(resourcesPayload);
 
-      var graph = generateGraph(groups, jobs, resources);
-
-      graph.nodes().forEach(function(v) {
-        var node = graph.node(v);
-
-        if (node.gateway) {
-          node.height = 30;
-          node.width = 2;
-        }
-
-        node.paddingLeft = 0;
-        node.paddingRight = 0;
-        node.paddingTop = 0;
-        node.paddingBottom = 0;
-      });
-
-      graph.edges().forEach(function(e) {
-        var edge = graph.edge(e);
-
-        // curvy
-        edge.lineInterpolate = "bundle";
-        edge.lineTension = 1.0;
-      });
-
-      renderFn(graph);
-
-      graph.edges().forEach(function(e) {
-        var edge = graph.edge(e);
-
-        if (edge.status) {
-          $("#"+edge.id).attr("class", "path " + edge.status);
-        }
-      });
+      renderFn(jobs, resources);
     });
   });
 }
 
-function drawContinuously(render, svg, groups) {
-  draw(groups, function(graph) {
-    render(svg, graph);
+function drawContinuously(svg, groups) {
+  draw(groups, function(jobs, resources) {
+    var graph = createGraph(svg, groups, jobs, resources);
 
-    svg.attr("viewBox", "-20 -20 " + (graph.graph().width + 40) + " " + (graph.graph().height + 40));
+    var svgEdges = svg.selectAll("g.edge")
+      .data(graph.edges(), function(e) { return e.id() + e.source.node.class });
+
+    svgEdges.exit().remove();
+
+    var svgNodes = svg.selectAll("g.node")
+      .data(graph.nodes(), function(n) { return n.id + "-" + n.class });
+
+    svgNodes.exit().remove();
+
+    var svgEdge = svgEdges.enter().append("g")
+      .attr("class", function(edge) { return "edge " + edge.source.node.status })
+
+    function highlight(thing) {
+      if (!thing.key) {
+        return
+      }
+
+      svgEdges.each(function(edge) {
+        if (edge.source.key == thing.key) {
+          d3.select(this).classed({
+            active: true
+          })
+        }
+      })
+
+      svgNodes.each(function(node) {
+        if (node.key == thing.key) {
+          d3.select(this).classed({
+            active: true
+          })
+        }
+      })
+    }
+
+    function lowlight(thing) {
+      if (!thing.key) {
+        return
+      }
+
+      svgEdges.classed({ active: false })
+      svgNodes.classed({ active: false })
+    }
+
+    var svgNode = svgNodes.enter().append("g")
+      .attr("class", function(node) { return "node " + node.class })
+      .on("mouseover", highlight)
+      .on("mouseout", lowlight)
+
+    var nodeLink = svgNode.append("svg:a")
+      .attr("xlink:href", function(node) { return node.url })
+
+    var nodeBackground = nodeLink.append("rect")
+      .attr("height", function(node) { return node.height() })
+
+    nodeLink.append("text")
+      .text(function(node) { return node.name })
+      .attr("dominant-baseline", "middle")
+      .attr("text-anchor", "middle")
+      .attr("x", function(node) { return node.width() / 2 })
+      .attr("y", function(node) { return node.height() / 2 })
+
+    nodeBackground.attr("width", function(node) { return node.width() })
+
+    graph.layout()
+
+    svgNode.attr("transform", function(node) {
+      var position = node.position();
+      return "translate("+position.x+", "+position.y+")"
+    })
+
+    svgEdge.append("path")
+      .attr("d", function(edge) { return edge.path() })
+      .on("mouseover", highlight)
+      .on("mouseout", lowlight)
+
+    var bbox = svg.node().getBBox();
+    d3.select(svg.node().parentNode)
+      .attr("viewBox", "" + (bbox.x - 20) + " " + (bbox.y - 20) + " " + (bbox.width + 40) + " " + (bbox.height + 40))
 
     setTimeout(function() {
-      drawContinuously(render, svg, groups)
+      drawContinuously(svg, groups)
     }, 5000)
   });
 }
 
 function renderPipeline(groups) {
-  var svg = d3.select("svg");
+  var svg = d3.select("#pipeline")
+    .append("svg")
+      .attr("width", "100%")
+      .attr("height", "100%");
 
+  svg.append("defs").append("filter")
+    .attr("id", "embiggen")
+    .append("feMorphology")
+    .attr("operator", "dilate")
+    .attr("radius", "4")
+
+  var g = svg.append("g");
   svg.call(d3.behavior.zoom().on("zoom", function() {
     var ev = d3.event;
-    svg.select("g.output")
-       .attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
+    g.attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
   }));
 
-  var render = new dagreD3.render();
-
-  render.arrows().status = function(parent, id, edge, type) {
-    parent.append("svg:marker")
-      .attr("id", id)
-      .attr("class", "arrowhead-"+edge.status)
-      .attr("viewBox", "0 0 10 10")
-      .attr("refX", 8)
-      .attr("refY", 5)
-      .attr("markerWidth", 8)
-      .attr("markerHeight", 5)
-      .attr("orient", "auto")
-      .append("svg:path")
-      .attr("d", "M 0 0 L 10 5 L 0 10 z");
-  };
-
-  drawContinuously(render, svg, groups);
+  drawContinuously(g, groups);
 
   $("ul.groups li a").click(function(e) {
     var group = e.target.text;
@@ -103,4 +142,201 @@ function renderPipeline(groups) {
 
     return false;
   });
+}
+
+function createGraph(svg, groups, jobs, resources) {
+  var graph = new Graph();
+
+  var resourceURLs = {};
+
+  for (var i in resources) {
+    var resource = resources[i];
+    resourceURLs[resource.name] = resource.url;
+  }
+
+  for (var i in jobs) {
+    var job = jobs[i];
+
+    if (!groupsMatch(job.groups, groups)) {
+      continue;
+    }
+
+    var id = jobNode(job.name);
+
+    var classes = ["job"];
+    var status = "pending";
+
+    var url = job.url;
+    if (job.next_build) {
+      url = job.next_build.url;
+    } else if (job.finished_build) {
+      url = job.finished_build.url;
+    }
+
+    if (job.next_build) {
+      classes.push(job.next_build.status)
+    }
+
+    if (job.finished_build) {
+      status = job.finished_build.status;
+      classes.push(job.finished_build.status);
+    }
+
+    graph.setNode(id, new Node({
+      id: id,
+      name: job.name,
+      class: classes.join(" "),
+      status: status,
+      url: url,
+      svg: svg
+    }));
+  }
+
+  // populate job output nodes and edges
+  for (var i in jobs) {
+    var job = jobs[i];
+    var id = jobNode(job.name);
+
+    if (!groupsMatch(job.groups, groups)) {
+      continue;
+    }
+
+    for (var j in job.outputs) {
+      var output = job.outputs[j];
+
+      var outputId = outputNode(job.name, output.resource);
+
+      graph.setNode(outputId, new Node({
+        id: outputId,
+        name: output.resource,
+        key: output.resource,
+        class: "output",
+        url: resourceURLs[output.resource],
+        svg: svg
+      }));
+
+      graph.addEdge(id, outputId, output.resource)
+    }
+  }
+
+  // populate dependant job input edges
+  //
+  // do this first as this is what primarily determines node ranks
+  for (var i in jobs) {
+    var job = jobs[i];
+    var id = jobNode(job.name);
+
+    if (!groupsMatch(job.groups, groups)) {
+      continue;
+    }
+
+    for (var j in job.inputs) {
+      var input = job.inputs[j];
+
+      if (input.passed && input.passed.length > 0) {
+        for (var p in input.passed) {
+          var sourceJobNode = jobNode(input.passed[p]);
+
+          var sourceOutputNode = outputNode(input.passed[p], input.resource);
+          var sourceInputNode = inputNode(input.passed[p], input.resource);
+
+          var sourceNode;
+          if (graph.node(sourceOutputNode)) {
+            sourceNode = sourceOutputNode;
+          } else {
+            if (!graph.node(sourceInputNode)) {
+              graph.setNode(sourceInputNode, new Node({
+                id: sourceInputNode,
+                name: input.resource,
+                key: input.resource,
+                class: "constrained-input",
+                url: resourceURLs[input.resource],
+                svg: svg
+              }));
+            }
+
+            if (graph.node(sourceJobNode)) {
+              graph.addEdge(sourceJobNode, sourceInputNode, input.resource);
+            }
+
+            sourceNode = sourceInputNode;
+          }
+
+          graph.addEdge(sourceNode, id, input.resource);
+        }
+      }
+    }
+  }
+
+  // populate unconstrained job inputs
+  //
+  // now that we know the rank, draw one unconstrained input per rank
+  for (var i in jobs) {
+    var job = jobs[i];
+    var id = jobNode(job.name);
+
+    if (!groupsMatch(job.groups, groups)) {
+      continue;
+    }
+
+    var node = graph.node(id);
+    var rank = node.rank();
+
+    for (var j in job.inputs) {
+      var input = job.inputs[j];
+
+      if (!input.passed || input.passed.length == 0) {
+        var inputId = inputNode(rank, input.resource);
+
+        if (!graph.node(inputId)) {
+          graph.setNode(inputId, new Node({
+            id: inputId,
+            name: input.resource,
+            key: input.resource,
+            class: "input",
+            url: resourceURLs[input.resource],
+            svg: svg
+          }));
+        }
+
+        graph.addEdge(inputId, id, input.resource)
+      }
+    }
+  }
+
+  return graph;
+}
+
+function groupsMatch(groups, groupEnabled) {
+  for(var i in groups) {
+    if (groupEnabled[groups[i]]) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function groupNode(name) {
+  return "group-"+name;
+}
+
+function resourceNode(name) {
+  return "resource-"+name;
+}
+
+function jobNode(name) {
+  return "job-"+name;
+}
+
+function gatewayNode(jobNames) {
+  return "gateway-"+jobNames.sort().join("-")
+}
+
+function outputNode(jobName, resourceName) {
+  return "job-"+jobName+"-output-"+resourceName
+}
+
+function inputNode(jobName, resourceName) {
+  return "job-"+jobName+"-input-"+resourceName
 }

@@ -37,16 +37,14 @@ svg .cluster { fill: @base02; }
 .build-resources { background: @base02; }
 
 /* even more highlight background */
-svg .path { stroke: @base03; }
-svg .arrowhead-normal path { fill: @base03; }
+svg .edge { stroke: @base03; }
 svg .gateway { fill: @base03; }
 .groups li.active a { background: @base03; }
 .build-source.first-occurrence .header { background: @base03; }
 svg .node.job.normal rect { fill: @base03; }
 
 /* dim */
-svg .path.pending { stroke: @base04; }
-svg .arrowhead-pending path { fill: @base04; }
+svg .edge.pending { stroke: @base04; }
 svg .node.job.pending rect { fill: @base04; }
 #page-header.pending .build-header { background: @base04; }
 li.pending { background: @base04; }
@@ -71,16 +69,14 @@ svg h1 a { color: @base07; }
 .groups li a { color: @base07; }
 
 /* good */
-svg .path.succeeded { stroke: @base0B; }
-svg .arrowhead-succeeded path { fill: @base0B; }
+svg .edge.succeeded { stroke: @base0B; }
 svg .node.job.succeeded rect { fill: @base0B; }
 #page-header.succeeded .build-header { background: @base0B; }
 li.succeeded { background: @base0B; }
 .legend dt.succeeded { background: @base0B; }
 
 /* bad */
-svg .path.failed { stroke: @base08; }
-svg .arrowhead-failed path { fill: @base08; }
+svg .edge.failed { stroke: @base08; }
 svg .node.job.failed rect { fill: @base08; }
 #page-header.failed .build-header { background: @base08; }
 li.failed { background: @base08; }
@@ -90,8 +86,7 @@ li.failed { background: @base08; }
 span.error { color: @base08; }
 
 /* like, really bad */
-svg .path.errored { stroke: @base09; }
-svg .arrowhead-errored path { fill: @base09; }
+svg .edge.errored { stroke: @base09; }
 svg .node.job.errored rect { fill: @base09; }
 #page-header.errored .build-header { background: @base09; }
 li.errored { background: @base09; }
@@ -100,8 +95,7 @@ svg .node.resource.failing rect { fill: @base09; }
 .build-source.errored .header { background: @base09; }
 
 /* not so bad */
-svg .path.aborted { stroke: @base0F; }
-svg .arrowhead-aborted path { fill: @base0F; }
+svg .edge.aborted { stroke: @base0F; }
 svg .node.job.aborted rect { fill: @base0F; }
 #page-header.aborted .build-header { background: @base0F; }
 li.aborted { background: @base0F; }
@@ -109,9 +103,6 @@ li.aborted { background: @base0F; }
 .build-header .abort-build input:active { background: @base0F; }
 
 /* active */
-svg .path.started { stroke: @base0A; }
-svg .arrowhead-started path { fill: @base0A; }
-svg .node.job.started rect { fill: @base0A; }
 #page-header.started .build-header { background: @base0A; }
 li.started { background: @base0A; }
 .legend dt.started { background: @base0A; }
