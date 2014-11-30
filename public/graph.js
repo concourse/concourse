@@ -1,353 +1,472 @@
-function objectIsEmpty(obj) {
-  for(var x in obj)
-    return false;
+function Graph() {
+  this._nodes = {};
+  this._edges = [];
+};
 
-  return true;
-}
+Graph.prototype.setNode = function(id, value) {
+  this._nodes[id] = value;
+};
 
-function generateGraph(groups, jobs, resources) {
-  var cGraph = new dagreD3.graphlib.Graph({
-    compound: true
-  }).setGraph({
-    rankDir: "LR"
-  });
-
-  populateGroupNodes(cGraph, groups);
-  populateResourceNodes(cGraph, resources);
-  populateJobNodesAndEdges(cGraph, jobs);
-  inlineNodesIntoCommonGroup(cGraph);
-
-  if (!objectIsEmpty(groups)) {
-    removeUnconnectedGroupMembers(groups, cGraph);
-    removeOrphanedNodes(cGraph);
+Graph.prototype.addEdge = function(sourceId, targetId, key) {
+  var source = this._nodes[sourceId];
+  if (source === undefined) {
+    throw "source node does not exist: " + sourceId;
   }
 
-  return cGraph;
-}
-
-function populateGroupNodes(cGraph, groups) {
-  for (var name in groups) {
-    cGraph.setNode(groupNode(name), {});
-  }
-}
-
-function populateResourceNodes(cGraph, resources) {
-  for (var i in resources) {
-    var resource = resources[i];
-    var id = resourceNode(resource.name);
-
-    var classes = ["resource"];
-
-    if (resource.failing) {
-      classes.push("failing");
-    }
-
-    if (resource.checking) {
-      classes.push("checking")
-    }
-
-    cGraph.setNode(id, {
-      resource: resource.name,
-      class: classes.join(" "),
-      label: "<h1 class=\"resource\"><a href=\"" + resource.url + "\">" + resource.name + "</a></h1>",
-      labelType: "html",
-      groups: resource.groups
-    });
-
-    if (resource.groups.length == 1) {
-      cGraph.setParent(id, groupNode(resource.groups[0]));
-    }
-  }
-}
-
-function populateJobNodesAndEdges(cGraph, jobs) {
-  // populate all job nodes first, so that they can be interconnected
-  for (var i in jobs) {
-    var job = jobs[i];
-    var id = jobNode(job.name);
-
-    var classes = ["job"];
-
-    var status = "normal";
-    var url = job.url;
-    if (job.next_build) {
-      status = job.next_build.status;
-      url = job.next_build.url;
-    } else if (job.finished_build) {
-      status = job.finished_build.status;
-      url = job.finished_build.url;
-    }
-
-    classes.push(status);
-
-    cGraph.setNode(id, {
-      job: job.name,
-      class: classes.join(" "),
-      status: status,
-      label: "<h1 class=\"job\"><a href=\"" + url + "\">" + job.name + "</a></h1>",
-      labelType: "html",
-      groups: job.groups,
-      totalInputs: job.inputs.length
-    });
-
-    if (job.groups.length == 1) {
-      cGraph.setParent(id, groupNode(job.groups[0]));
-    }
+  var target = this._nodes[targetId];
+  if (target === undefined) {
+    throw "target node does not exist: " + targetId;
   }
 
-  // populate job input and output edges
-  for (var i in jobs) {
-    var job = jobs[i];
-    var id = jobNode(job.name);
-
-    for (var j in job.inputs) {
-      var input = job.inputs[j];
-
-      if (input.hidden) {
-        continue;
-      }
-
-      if (!input.passed || input.passed.length == 0) {
-        edgeFromResource(cGraph, input.resource, id);
-      } else if (input.passed.length == 1) {
-        edgeFromJob(cGraph, input.passed[0], id, input.resource);
-      } else {
-        edgeFromGateway(cGraph, input.passed, id, input.resource);
-      }
-    }
-
-    for (var j in job.outputs) {
-      var output = job.outputs[j];
-      var destinationNode = resourceNode(output.resource);
-
-      edgeFromJob(cGraph, job.name, destinationNode);
-    }
-  }
-}
-
-function edgeFromResource(graph, resourceName, destinationNode) {
-  var sourceNode = resourceNode(resourceName);
-
-  graph.setEdge(sourceNode, destinationNode, {
-    "id": "resource-"+sourceNode+"-to-"+destinationNode,
-    "status": "normal",
-    "arrowhead": "status",
-  });
-}
-
-function edgeFromJob(graph, sourceJobName, destinationNode, resourceName) {
-  var sourceNode = jobNode(sourceJobName);
-  var sourceJob = graph.node(sourceNode);
-
-  var existingEdge = graph.edge(sourceNode, destinationNode);
-  if (existingEdge && resourceName && sourceJob.totalInputs > 1) {
-    existingEdge.label += "\n" + resourceName
-  } else {
-    var label;
-    if (sourceJob.totalInputs > 1) {
-      label = resourceName;
-    }
-
-    graph.setEdge(sourceNode, destinationNode, {
-      "id": "job-"+sourceNode+"-to-"+destinationNode,
-      "label": label,
-      "status": sourceJob.status,
-      "arrowhead": "status",
-    });
-  }
-}
-
-function edgeFromGateway(graph, gatewayJobNames, destinationNode, label) {
-  var sourceNode = gatewayNode(gatewayJobNames);
-
-  graph.setNode(sourceNode, {
-    label: "",
-    gateway: true,
-    class: "gateway"
-  });
-
-  for (var i in gatewayJobNames) {
-    edgeFromJob(graph, gatewayJobNames[i], sourceNode, label);
+  if (source._edgeKeys.indexOf(key) == -1) {
+    source._edgeKeys.push(key);
   }
 
-  graph.setEdge(sourceNode, destinationNode, {
-    "id": "gateway-"+sourceNode+"-to-"+destinationNode,
-    "status": "normal",
-    "arrowhead": "status"
-  });
+  if (target._edgeKeys.indexOf(key) == -1) {
+    target._edgeKeys.push(key);
+  }
+
+  var edgeSource = source._edgeSources[key];
+  if (!edgeSource) {
+    edgeSource = new EdgeSource(source, key);
+    source._edgeSources[key] = edgeSource;
+  }
+
+  var edgeTarget = target._edgeTargets[key];
+  if (!edgeTarget) {
+    edgeTarget = new EdgeTarget(target, key);
+    target._edgeTargets[key] = edgeTarget;
+  }
+
+  var edge = new Edge(edgeSource, edgeTarget);
+  target._inEdges.push(edge);
+  source._outEdges.push(edge);
+  this._edges.push(edge);
+
+  source._clearCaches();
+  target._clearCaches();
 }
 
-function _nodes(graph, v, edgesFn, edgeAttr) {
-  var nodes = {};
+Graph.prototype.node = function(id) {
+  return this._nodes[id];
+};
 
-  var edges = graph[edgesFn](v);
-  for (var i in edges) {
-    var edge = edges[i];
-    var edgePoint = edge[edgeAttr];
+Graph.prototype.nodes = function() {
+  var nodes = [];
 
-    var node = graph.node(edgePoint);
-    if (node.gateway) {
-      var gatewayNodes = _nodes(graph, edgePoint, edgesFn, edgeAttr);
-      for (var n in gatewayNodes) {
-        nodes[n] = gatewayNodes[n]
-      }
-    } else {
-      nodes[edgePoint] = node
-    }
+  for (var id in this._nodes) {
+    nodes.push(this._nodes[id]);
   }
 
   return nodes;
-}
+};
 
-function upstreamNodes(graph, v) {
-  return _nodes(graph, v, "inEdges", "v");
-}
+Graph.prototype.edges = function() {
+  return this._edges;
+};
 
-function downstreamNodes(graph, v) {
-  return _nodes(graph, v, "outEdges", "w");
-}
+Graph.prototype.layout = function() {
+  var columns = {};
 
-function inlineNodesIntoCommonGroup(cGraph) {
-  cGraph.nodes().forEach(function(v) {
-    var commonGroup;
+  for (var i in this._nodes) {
+    var node = this._nodes[i];
 
-    var outNodes = downstreamNodes(cGraph, v);
-    for(var o in outNodes) {
-      var parent = cGraph.parent(o);
-
-      if (!commonGroup) {
-        commonGroup = parent;
-      }
-
-      if (commonGroup != parent) {
-        return
-      }
+    var columnIdx = node.column();
+    var column = columns[columnIdx];
+    if (!column) {
+      column = new Column();
+      columns[columnIdx] = column;
     }
 
-    var inNodes = upstreamNodes(cGraph, v);
-    for(var i in inNodes) {
-      var parent = cGraph.parent(i);
+    column.nodes.push(node);
+  }
 
-      if (!commonGroup) {
-        commonGroup = parent;
-      }
+  for (var c in columns)
+    columns[c]._cacheEdges()
 
-      if (commonGroup != parent) {
-        return
+  for (var i in this._nodes) {
+    var node = this._nodes[i];
+
+    var column = node.column();
+
+    var columnOffset = 0;
+    for (var c in columns) {
+      if (c < column) {
+        columnOffset += columns[c].width() + 50;
       }
     }
 
-    if (commonGroup) {
-      cGraph.setParent(v, commonGroup);
+    node._position.x = columnOffset + ((columns[column].width() - node.width()) / 2);
+  }
+
+  for (var c in columns) {
+    columns[c].layout();
+  }
+
+  for (var i = 0; i < 10; i++) {
+    for (var c in columns) {
+      columns[c].improve();
     }
-  });
+  }
 }
 
-function removeUnconnectedGroupMembers(groups, digraph) {
-  digraph.nodes().forEach(function(v) {
-    if (dagreD3.util.isSubgraph(digraph, v)) {
-      return;
-    }
+function Column() {
+  this.nodes = [];
 
-    var value = digraph.node(v);
-    if (value.gateway && connectedUpstreamAndDownstream(digraph, groups, v)) {
-      return;
-    }
-
-    if (connectedUpstreamOrDownstream(digraph, groups, v)) {
-      return;
-    }
-
-    if (!nodeIsInGroups(groups, value)) {
-      digraph.removeNode(v);
-    }
-  });
+  this._spacing = 10;
 }
 
-function connectedUpstreamAndDownstream(digraph, groups, v) {
-  var hasUpstreamNode, hasDownstreamNode;
+Column.prototype.improve = function() {
+  var nodes = this.nodes;
 
-  var inNodes = upstreamNodes(digraph, v);
-  for(var i in inNodes) {
-    if (nodeIsInGroups(groups, inNodes[i])) {
-      hasUpstreamNode = true;
-      break;
+  for (var i = 0; i < nodes.length; i++) {
+    var nodeIdx = i;
+
+    for (var j = 0; j < nodes.length; j++) {
+      if (nodeIdx == j) {
+        continue;
+      }
+
+      var crossingBefore = this.crossingLines();
+      var before = crossingBefore.inputs + crossingBefore.outputs;
+      var beforeCost = this.cost();
+
+      this.swap(nodeIdx, j)
+
+      var crossingAfter = this.crossingLines();
+      var after = crossingAfter.inputs + crossingAfter.outputs;
+      var afterCost = this.cost();
+
+      if (
+        // fewer crossing overall
+        after < before ||
+
+        // same crossing but fewer crossing inputs (next column may fix outputs)
+        (after == before && crossingAfter.inputs < crossingBefore.inputs) ||
+
+        // same crossing but nodes are closer
+        (after == before && afterCost < beforeCost) ||
+
+        // nodes are closer by a significant amount
+        (beforeCost - afterCost > 50)
+      ) {
+        nodeIdx = j;
+      } else {
+        this.swap(nodeIdx, j)
+      }
+    }
+  }
+}
+
+Column.prototype.swap = function(a, b) {
+  var tmp = this.nodes[a];
+  this.nodes[a] = this.nodes[b];
+  this.nodes[b] = tmp;
+
+  this.layout();
+}
+
+Column.prototype.cost = function() {
+  var cost = 0;
+
+  var nodes = this.nodes,
+      totalNodes = nodes.length
+
+  for (var i = 0; i < totalNodes; i++) {
+    cost += nodes[i].travel();
+  }
+
+  return cost;
+}
+
+Column.prototype.width = function() {
+  var width = 0;
+
+  for (var i in this.nodes) {
+    width = Math.max(width, this.nodes[i].width())
+  }
+
+  return width;
+}
+
+Column.prototype.layout = function() {
+  var rollingOffset = 0;
+
+  for (var i in this.nodes) {
+    var node = this.nodes[i];
+
+    node._position.y = rollingOffset;
+
+    rollingOffset += node.height() + this._spacing;
+  }
+}
+
+function crossingEdges(edges) {
+  var crossingLines = 0;
+
+  var totalEdges = edges.length;
+  for (var i = 0; i < totalEdges; i++) {
+    var edgeA = edges[i];
+    var edgeASourceY = edgeA.source.y();
+    var edgeATargetY = edgeA.target.y();
+
+    for (var j = 0; j < totalEdges; j++) {
+      var edgeB = edges[j];
+      var edgeBSourceY = edgeB.source.y();
+      var edgeBTargetY = edgeB.target.y();
+
+      if (edgesAreCrossing(edgeASourceY, edgeATargetY, edgeBSourceY, edgeBTargetY)) {
+        crossingLines++;
+      }
     }
   }
 
-  var outNodes = downstreamNodes(digraph, v);
-  for(var o in outNodes) {
-    if (nodeIsInGroups(groups, outNodes[o])) {
-      hasDownstreamNode = true;
-      break;
-    }
+  return crossingLines;
+}
+
+function edgesAreCrossing(edgeASourceY, edgeATargetY, edgeBSourceY, edgeBTargetY) {
+  return (edgeASourceY < edgeBSourceY && edgeATargetY > edgeBTargetY) ||
+         (edgeASourceY > edgeBSourceY && edgeATargetY < edgeBTargetY)
+}
+
+Column.prototype.crossingLines = function() {
+  return {
+    inputs: crossingEdges(this._allInEdges),
+    outputs: crossingEdges(this._allOutEdges)
+  }
+}
+
+Column.prototype._cacheEdges = function() {
+  this._allInEdges = [];
+  this._allOutEdges = [];
+
+  var nodes = this.nodes;
+  var totalNodes = this.nodes.length;
+  for (var i = 0; i < totalNodes; i++) {
+    this._allInEdges = this._allInEdges.concat(nodes[i]._inEdges);
+    this._allOutEdges = this._allOutEdges.concat(nodes[i]._outEdges);
+  }
+}
+
+function Node(opts) {
+  // Graph node ID
+  this.id = opts.id;
+  this.name = opts.name;
+  this.class = opts.class;
+  this.status = opts.status;
+  this.key = opts.key;
+  this.url = opts.url;
+  this.svg = opts.svg;
+
+  // DOM element
+  this.label = undefined;
+
+  // [EdgeTarget]
+  this._edgeTargets = {};
+
+  // [EdgeSource]
+  this._edgeSources = {};
+
+  this._edgeKeys = [];
+  this._inEdges = [];
+  this._outEdges = [];
+
+  this._cachedRank = -1;
+  this._cachedWidth = 0;
+
+  // position (determined by graph.layout())
+  this._position = {
+    x: 0,
+    y: 0
+  };
+};
+
+Node.prototype.width = function() {
+  if (this._cachedWidth == 0) {
+    var id = this.id;
+
+    var svgNode = this.svg.selectAll("g.node").filter(function(node) {
+      return node.id == id;
+    })
+
+    this._cachedWidth = svgNode.select("text").node().getBBox().width;
   }
 
-  return hasUpstreamNode && hasDownstreamNode;
+  return this._cachedWidth + 10;
 }
 
-function connectedUpstreamOrDownstream(digraph, groups, v) {
-  var value = digraph.node(v);
+Node.prototype.height = function() {
+  return 5 + (12 * Math.max(this._edgeKeys.length, 1)) + 5;
+}
 
-  var inNodes = upstreamNodes(digraph, v);
-  for(var i in inNodes) {
-    if (nodeIsInGroups(groups, inNodes[i])) {
-      return true;
-    }
+Node.prototype.position = function() {
+  return this._position;
+}
+
+Node.prototype.travel = function() {
+  var travel = 0;
+
+  var inEdges = this._inEdges,
+      totalInEdges = inEdges.length;
+
+  var outEdges = this._outEdges,
+      totalOutEdges = outEdges.length;
+
+  for (var i = 0; i < totalInEdges; i++) {
+    travel += Math.abs(inEdges[i].dy());
   }
 
-  var outNodes = downstreamNodes(digraph, v);
-  for(var o in outNodes) {
-    if (nodeIsInGroups(groups, outNodes[o])) {
-      return true;
-    }
+  for (var i = 0; i < totalOutEdges; i++) {
+    travel += Math.abs(outEdges[i].dy());
   }
 
-  return false;
+  return travel;
 }
 
-function removeOrphanedNodes(digraph) {
-  digraph.nodes().forEach(function(v) {
-    if (dagreD3.util.isSubgraph(digraph, v)) {
-      return;
+Node.prototype.column = function() {
+  if (this._inEdges.length == 0) {
+    var nextmostRank = Infinity;
+
+    for (var i in this._outEdges) {
+      nextmostRank = Math.min(nextmostRank, this._outEdges[i].target.node.rank() - 1)
     }
 
-    if (!digraph.node(v).gateway && digraph.parent(v)) {
-      return;
+    if (nextmostRank == Infinity) {
+      return 0;
     }
 
-    if (digraph.nodeEdges(v).length == 0) {
-      digraph.removeNode(v);
-    }
-  });
-}
-
-function nodeIsInGroups(groups, value) {
-  if (!value.groups) {
-    return false;
+    return nextmostRank;
   }
 
-  for(var i in value.groups) {
-    if (groups[value.groups[i]]) {
-      return true;
-    }
+  return this.rank();
+};
+
+Node.prototype.rank = function() {
+  if (this._cachedRank != -1) {
+    return this._cachedRank;
   }
 
-  return false;
+  var rank = -1;
+
+  for (var i in this._inEdges) {
+    var source = this._inEdges[i].source.node;
+    rank = Math.max(rank, source.rank())
+  }
+
+  rank = rank + 1;
+
+  this._cachedRank = rank;
+
+  return rank;
 }
 
-function groupNode(name) {
-  return "group-"+name;
+Node.prototype._clearCaches = function() {
+  this._cachedRank = -1;
+  this._cachedPosition = undefined;
 }
 
-function resourceNode(name) {
-  return "resource-"+name;
+function Edge(source, target) {
+  this.source = source;
+  this.target = target;
 }
 
-function jobNode(name) {
-  return "job-"+name;
+Edge.prototype.id = function() {
+  return this.source.id() + "-to-" + this.target.id();
 }
 
-function gatewayNode(jobNames) {
-  return "gateway-"+jobNames.sort().join("-")
+Edge.prototype.dy = function() {
+  return this.source.y() - this.target.y();
+}
+
+Edge.prototype.path = function() {
+  var sourcePosition = this.source.position();
+  var targetPosition = this.target.position();
+
+  var curvature = 0.5;
+
+  var x0 = sourcePosition.x,
+      x1 = targetPosition.x,
+      xi = d3.interpolateNumber(x0, x1),
+      x2 = xi(curvature),
+      x3 = xi(1 - curvature),
+      y0 = sourcePosition.y,
+      y1 = targetPosition.y;
+
+  return "M" + x0 + "," + y0
+       + " " + "C" + x2 + "," + y0
+       + " " + x3 + "," + y1
+       + " " + x1 + "," + y1;
+}
+
+function EdgeSource(node, key) {
+  // spacing between edge sources
+  this._spacing = 12;
+
+  // Node
+  this.node = node;
+
+  // Key
+  this.key = key;
+};
+
+EdgeSource.prototype.width = function() {
+  return 0;
+}
+
+EdgeSource.prototype.height = function() {
+  return 0;
+}
+
+EdgeSource.prototype.id = function() {
+  return this.node.id + "-" + this.key + "-source";
+}
+
+EdgeSource.prototype.position = function() {
+  return {
+    x: this.node.position().x + this.node.width(),
+    y: this.y()
+  }
+};
+
+EdgeSource.prototype.y = function() {
+  var nodePosition = this.node.position();
+  var index = this.node._edgeKeys.indexOf(this.key);
+  return nodePosition.y + this._spacing + ((this.height() + this._spacing) * index)
+}
+
+function EdgeTarget(node, key) {
+  // spacing between edge targets
+  this._spacing = 12;
+
+  // Node
+  this.node = node;
+
+  // Key
+  this.key = key;
+};
+
+EdgeTarget.prototype.width = function() {
+  return 0;
+}
+
+EdgeTarget.prototype.height = function() {
+  return 0;
+}
+
+EdgeTarget.prototype.id = function() {
+  return this.node.id + "-" + this.key + "-target";
+}
+
+EdgeTarget.prototype.position = function() {
+  return {
+    x: this.node.position().x,
+    y: this.y()
+  }
+};
+
+EdgeTarget.prototype.y = function() {
+  var nodePosition = this.node.position();
+  var index = this.node._edgeKeys.indexOf(this.key);
+
+  return nodePosition.y + this._spacing + ((this.height() + this._spacing) * index)
 }
