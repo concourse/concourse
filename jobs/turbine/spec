@@ -13,6 +13,7 @@ packages:
   - pid_utils
   - turbine
   - archive_resource
+  - cf_resource
   - docker_image_resource
   - git_resource
   - s3_resource
@@ -38,6 +39,7 @@ properties:
     description: "the mapping from known resource types to their container rootfs"
     default:
       archive: /var/vcap/packages/archive_resource
+      cf: /var/vcap/packages/cf_resource
       docker-image: /var/vcap/packages/docker_image_resource
       git: /var/vcap/packages/git_resource
       s3: /var/vcap/packages/s3_resource
