@@ -8,10 +8,10 @@ postgresql/postgresql-9.3.4.tar.gz:
   sha: 9f80b3cfebc434ca0860fc8489923cea73456081
   size: 21865589
 resources/archive-resource.tar.gz:
-  object_id: 0aad7e44-d383-4b44-99d5-fbbbbfbbf51c
+  object_id: 54d8357f-5718-4b53-8101-87f91394468b
   sha: !binary |-
-    ZWYyNDExYjc5YWMyNzI5ZDY1NjljZTY4Njc2YjM3M2FiOTJhY2U4OA==
-  size: 2549734
+    ODRkNGZkOWU4M2RlMTNmNjBkYTBmMzBmMjI5YTQ3NDAxMWUyOGFjOQ==
+  size: 2549518
 resources/time-resource.tar.gz:
   object_id: 73db0c47-0f5f-4a69-8436-ae3c207d5b9f
   sha: !binary |-
