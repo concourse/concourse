@@ -218,7 +218,6 @@ Each configured job consists of the following attributes:
       resource's @code{in} script.
     }
 
-
     @defthing[trigger boolean]{
       @emph{Optional.} Default @code{true}. By default, when any of a job's
       inputs have new versions, a new build of the job is triggered.
