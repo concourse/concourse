@@ -46,7 +46,6 @@ var _ = Describe("Jobs API", func() {
 							Inputs: []atc.InputConfig{
 								{
 									Resource: "some-input",
-									Hidden:   true,
 								},
 								{
 									RawName:    "some-name",
@@ -126,8 +125,7 @@ var _ = Describe("Jobs API", func() {
 							{
 								"name": "some-input",
 								"resource": "some-input",
-								"trigger": true,
-								"hidden": true
+								"trigger": true
 							},
 							{
 								"name": "some-name",
@@ -237,7 +235,6 @@ var _ = Describe("Jobs API", func() {
 							Inputs: []atc.InputConfig{
 								{
 									Resource: "input-2",
-									Hidden:   true,
 								},
 							},
 							Outputs: []atc.OutputConfig{{Resource: "output-2"}},
@@ -340,7 +337,7 @@ var _ = Describe("Jobs API", func() {
 								"status": "succeeded",
 								"url": "/jobs/job-2/builds/1"
 							},
-							"inputs": [{"name": "input-2", "resource": "input-2", "trigger": true, "hidden": true}],
+							"inputs": [{"name": "input-2", "resource": "input-2", "trigger": true}],
 							"outputs": [{"resource": "output-2", "perform_on": ["success"]}],
 							"groups": ["group-2"]
 						},

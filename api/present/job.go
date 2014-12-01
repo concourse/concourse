@@ -46,7 +46,6 @@ func Job(job atc.JobConfig, groups atc.GroupConfigs, finishedBuild, nextBuild *d
 			Name:     input.Name(),
 			Resource: input.Resource,
 			Passed:   input.Passed,
-			Hidden:   input.Hidden,
 			Trigger:  input.Trigger(),
 		}
 	}
