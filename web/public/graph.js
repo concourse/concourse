@@ -324,7 +324,7 @@ Node.prototype.travel = function() {
 }
 
 Node.prototype.column = function() {
-  if (this._inEdges.length == 0) {
+  if (this._inEdges.length == 0 || this.dependsOn(this, [])) {
     var nextmostRank = Infinity;
 
     for (var i in this._outEdges) {
@@ -350,6 +350,11 @@ Node.prototype.rank = function() {
 
   for (var i in this._inEdges) {
     var source = this._inEdges[i].source.node;
+
+    if (source.dependsOn(this, [])) {
+      continue;
+    }
+
     rank = Math.max(rank, source.rank())
   }
 
@@ -358,6 +363,28 @@ Node.prototype.rank = function() {
   this._cachedRank = rank;
 
   return rank;
+}
+
+Node.prototype.dependsOn = function(node, stack) {
+  for (var i in this._inEdges) {
+    var source = this._inEdges[i].source.node;
+
+    if (source == node) {
+      return true;
+    }
+
+    if (stack.indexOf(this) != -1) {
+      continue;
+    }
+
+    stack.push(this)
+
+    if (source.dependsOn(node, stack)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 Node.prototype._clearCaches = function() {
@@ -386,15 +413,29 @@ Edge.prototype.path = function() {
 
   var x0 = sourcePosition.x,
       x1 = targetPosition.x,
-      xi = d3.interpolateNumber(x0, x1),
-      x2 = xi(curvature),
-      x3 = xi(1 - curvature),
       y0 = sourcePosition.y,
       y1 = targetPosition.y;
 
-  return "M" + x0 + "," + y0
-       + " " + "C" + x2 + "," + y0
-       + " " + x3 + "," + y1
+  var intermediatePoints = [];
+
+  if (sourcePosition.x > targetPosition.x) {
+    var belowSourceNode = this.source.node.position().y + this.source.node.height(),
+        belowTargetNode = this.target.node.position().y + this.target.node.height();
+
+    intermediatePoints = [
+      (sourcePosition.x + 100) + "," + (belowSourceNode + 100),
+      (targetPosition.x - 100) + "," + (belowTargetNode + 100),
+    ]
+  } else {
+    var xi = d3.interpolateNumber(x0, x1),
+        x2 = xi(curvature),
+        x3 = xi(1 - curvature),
+
+    intermediatePoints = [x2+","+y0, x3+","+y1]
+  }
+
+  return "M" + x0 + "," + y0 +" "
+       + "C" + intermediatePoints.join(" ")
        + " " + x1 + "," + y1;
 }
 
