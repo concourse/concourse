@@ -38,7 +38,7 @@ Graph.prototype.addEdge = function(sourceId, targetId, key) {
     target._edgeTargets[key] = edgeTarget;
   }
 
-  var edge = new Edge(edgeSource, edgeTarget);
+  var edge = new Edge(edgeSource, edgeTarget, key);
   target._inEdges.push(edge);
   source._outEdges.push(edge);
   this._edges.push(edge);
@@ -412,9 +412,10 @@ Node.prototype._clearCaches = function() {
   this._cachedPosition = undefined;
 }
 
-function Edge(source, target) {
+function Edge(source, target, key) {
   this.source = source;
   this.target = target;
+  this.key = key;
 }
 
 Edge.prototype.id = function() {
