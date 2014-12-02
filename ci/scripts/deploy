@@ -11,19 +11,6 @@ if [ -z "$VERSION" ]; then
   exit 1
 fi
 
-git config --global user.email "ci@localhost"
-git config --global user.name "CI Bot"
-
-cp deployments/ci/config/private.yml concourse/config/private.yml
-
-bosh target ${BOSH_TARGET}
-
-bosh deployment deployments/ci/deployments/concourse.yml
-
-bosh -n upload stemcell bosh-stemcell/*.tgz --skip-if-exists
-
-bosh -n upload release garden-linux-release/*.tgz --skip-if-exists
-
 set +x
   spiff diff --separator $'\f' \
     concourse/manifests/aws-vpc.yml \
@@ -40,7 +27,20 @@ set -x
 
 cd concourse/
 
+git config --global user.email "ci@localhost"
+git config --global user.name "CI Bot"
+
 git merge --no-edit master
+
+cp deployments/ci/config/private.yml concourse/config/private.yml
+
+bosh target ${BOSH_TARGET}
+
+bosh deployment deployments/ci/deployments/concourse.yml
+
+bosh -n upload stemcell bosh-stemcell/*.tgz --skip-if-exists
+
+bosh -n upload release garden-linux-release/*.tgz --skip-if-exists
 
 bosh -n create release --final --version "$VERSION"
 bosh -n upload release --skip-if-exists
