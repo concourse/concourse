@@ -167,10 +167,7 @@ Column.prototype.improve = function() {
         (after == before && crossingAfter.inputs < crossingBefore.inputs) ||
 
         // same crossing but nodes are closer
-        (after == before && afterCost < beforeCost) ||
-
-        // nodes are closer by a significant amount
-        (beforeCost - afterCost > 50)
+        (after == before && afterCost < beforeCost)
       ) {
         nodeIdx = j;
       } else {
