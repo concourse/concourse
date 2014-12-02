@@ -164,7 +164,6 @@ function createGraph(svg, groups, jobs, resources) {
     var id = jobNode(job.name);
 
     var classes = ["job"];
-    var status = "pending";
 
     var url = job.url;
     if (job.next_build) {
@@ -173,13 +172,17 @@ function createGraph(svg, groups, jobs, resources) {
       url = job.finished_build.url;
     }
 
-    if (job.next_build) {
-      classes.push(job.next_build.status)
+    var status;
+    if (job.finished_build) {
+      status = job.finished_build.status
+    } else {
+      status = "pending";
     }
 
-    if (job.finished_build) {
-      status = job.finished_build.status;
-      classes.push(job.finished_build.status);
+    classes.push(status);
+
+    if (job.next_build) {
+      classes.push("started");
     }
 
     graph.setNode(id, new Node({
