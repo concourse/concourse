@@ -97,6 +97,28 @@ Graph.prototype.layout = function() {
     }
 
     node._position.x = columnOffset + ((columns[column].width() - node.width()) / 2);
+
+    node._edgeKeys.sort(function(a, b) {
+      var targetA = node._edgeTargets[a];
+      var targetB = node._edgeTargets[b];
+
+      var aIsConnected = targetA && targetA.isConnected();
+      var bIsConnected = targetB && targetB.isConnected();
+
+      if (aIsConnected) {
+        if (bIsConnected) {
+          return a.localeCompare(b);
+        } else {
+          return -1;
+        }
+      } else {
+        if (bIsConnected) {
+          return 1;
+        } else {
+          return a.localeCompare(b);
+        }
+      }
+    });
   }
 
   for (var c in columns) {
@@ -296,7 +318,8 @@ Node.prototype.width = function() {
 }
 
 Node.prototype.height = function() {
-  return 5 + (12 * Math.max(this._edgeKeys.length, 1)) + 5;
+  var keys = Math.max(this._edgeKeys.length, 1);
+  return (20 * keys) + (10 * (keys - 1));
 }
 
 Node.prototype.position = function() {
@@ -441,7 +464,7 @@ Edge.prototype.path = function() {
 
 function EdgeSource(node, key) {
   // spacing between edge sources
-  this._spacing = 12;
+  this._spacing = 30;
 
   // Node
   this.node = node;
@@ -472,12 +495,12 @@ EdgeSource.prototype.position = function() {
 EdgeSource.prototype.y = function() {
   var nodePosition = this.node.position();
   var index = this.node._edgeKeys.indexOf(this.key);
-  return nodePosition.y + this._spacing + ((this.height() + this._spacing) * index)
+  return nodePosition.y + 10 + ((this.height() + this._spacing) * index)
 }
 
 function EdgeTarget(node, key) {
   // spacing between edge targets
-  this._spacing = 12;
+  this._spacing = 30;
 
   // Node
   this.node = node;
@@ -498,6 +521,20 @@ EdgeTarget.prototype.id = function() {
   return this.node.id + "-" + this.key + "-target";
 }
 
+EdgeTarget.prototype.isConnected = function() {
+  var edges = this.node._inEdges;
+
+  for (var i in edges) {
+    if (edges[i].source.key == this.key) {
+      if (edges[i].source.node._inEdges.length > 0) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
+
 EdgeTarget.prototype.position = function() {
   return {
     x: this.node.position().x,
@@ -509,5 +546,5 @@ EdgeTarget.prototype.y = function() {
   var nodePosition = this.node.position();
   var index = this.node._edgeKeys.indexOf(this.key);
 
-  return nodePosition.y + this._spacing + ((this.height() + this._spacing) * index)
+  return nodePosition.y + 10 + ((this.height() + this._spacing) * index)
 }
