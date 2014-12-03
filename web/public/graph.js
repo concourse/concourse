@@ -102,22 +102,22 @@ Graph.prototype.layout = function() {
       var targetA = node._edgeTargets[a];
       var targetB = node._edgeTargets[b];
 
+      if (targetA && !targetB) {
+        return -1;
+      } else if (!targetA && targetB) {
+        return 1;
+      }
+
       var aIsConnected = targetA && targetA.isConnected();
       var bIsConnected = targetB && targetB.isConnected();
 
-      if (aIsConnected) {
-        if (bIsConnected) {
-          return a.localeCompare(b);
-        } else {
-          return -1;
-        }
-      } else {
-        if (bIsConnected) {
-          return 1;
-        } else {
-          return a.localeCompare(b);
-        }
+      if (aIsConnected && !bIsConnected) {
+        return -1;
+      } else if (!aIsConnected && bIsConnected) {
+        return 1;
       }
+
+      return a.localeCompare(b);
     });
   }
 
