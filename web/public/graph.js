@@ -141,6 +141,9 @@ function Column() {
 Column.prototype.improve = function() {
   var nodes = this.nodes;
 
+  var beforeCrossing = this.crossingLines();
+  var beforeCost = this.cost();
+
   for (var i = 0; i < nodes.length; i++) {
     var nodeIdx = i;
 
@@ -149,27 +152,29 @@ Column.prototype.improve = function() {
         continue;
       }
 
-      var crossingBefore = this.crossingLines();
-      var before = crossingBefore.inputs + crossingBefore.outputs;
-      var beforeCost = this.cost();
+      var before = beforeCrossing.inputs + beforeCrossing.outputs;
 
       this.swap(nodeIdx, j)
 
-      var crossingAfter = this.crossingLines();
-      var after = crossingAfter.inputs + crossingAfter.outputs;
+      var afterCrossing = this.crossingLines();
       var afterCost = this.cost();
+
+      var after = afterCrossing.inputs + afterCrossing.outputs;
 
       if (
         // fewer crossing overall
         after < before ||
 
         // same crossing but fewer crossing inputs (next column may fix outputs)
-        (after == before && crossingAfter.inputs < crossingBefore.inputs) ||
+        (after == before && afterCrossing.inputs < beforeCrossing.inputs) ||
 
         // same crossing but nodes are closer
         (after == before && afterCost < beforeCost)
       ) {
         nodeIdx = j;
+
+        beforeCrossing = afterCrossing;
+        beforeCost = afterCost;
       } else {
         this.swap(nodeIdx, j)
       }
