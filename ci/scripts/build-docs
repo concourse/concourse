@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -e
+
+function abort() {
+  echo "$@" >&2
+  exit 1
+}
+
+[ -n "$VERSION_FILE" ] || abort "must specify \$VERSION_FILE"
+[ -f "$VERSION_FILE" ] || abort "'$VERSION_FILE' does not exist"
+
+version=$(cat ${VERSION_FILE})
+
+cd docs/docs/
+
+raco scribble ++arg ${version} --htmls concourse.yml
