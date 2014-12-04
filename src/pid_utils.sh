@@ -47,8 +47,8 @@ wait_pidfile() {
         if [ $timeout -gt 0 ]; then
           if [ $countdown -eq 0 ]; then
             if [ "$force" = "1" ]; then
-              echo -ne "\nKill timed out, using kill -9 on $pid... "
-              kill -9 $pid
+              echo -ne "\nKill timed out, using kill -QUIT on $pid... "
+              kill -QUIT $pid
               sleep 0.5
             fi
             break
