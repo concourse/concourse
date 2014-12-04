@@ -14,4 +14,4 @@ version=$(cat ${VERSION_FILE})
 
 cd docs/docs/
 
-raco scribble ++arg ${version} --htmls concourse.yml
+raco scribble ++arg ${version} --htmls concourse.scrbl
