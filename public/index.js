@@ -10,17 +10,22 @@ function draw(groups, renderFn) {
   });
 }
 
+var currentHighlight;
+
 function drawContinuously(svg, groups) {
   draw(groups, function(jobs, resources) {
     var graph = createGraph(svg, groups, jobs, resources);
 
+    svg.selectAll("g.edge").remove();
+    svg.selectAll("g.node").remove();
+
     var svgEdges = svg.selectAll("g.edge")
-      .data(graph.edges(), function(e) { return e.id() + e.source.node.class });
+      .data(graph.edges());
 
     svgEdges.exit().remove();
 
     var svgNodes = svg.selectAll("g.node")
-      .data(graph.nodes(), function(n) { return n.id + "-" + n.class });
+      .data(graph.nodes());
 
     svgNodes.exit().remove();
 
@@ -31,6 +36,8 @@ function drawContinuously(svg, groups) {
       if (!thing.key) {
         return
       }
+
+      currentHighlight = thing.key;
 
       svgEdges.each(function(edge) {
         if (edge.source.key == thing.key) {
@@ -53,6 +60,8 @@ function drawContinuously(svg, groups) {
       if (!thing.key) {
         return
       }
+
+      currentHighlight = undefined;
 
       svgEdges.classed({ active: false })
       svgNodes.classed({ active: false })
@@ -94,9 +103,23 @@ function drawContinuously(svg, groups) {
     d3.select(svg.node().parentNode)
       .attr("viewBox", "" + (bbox.x - 20) + " " + (bbox.y - 20) + " " + (bbox.width + 40) + " " + (bbox.height + 40))
 
+    if (currentHighlight) {
+      svgNodes.each(function(node) {
+        if (node.key == currentHighlight) {
+          highlight(node)
+        }
+      });
+
+      svgEdges.each(function(node) {
+        if (node.key == currentHighlight) {
+          highlight(node)
+        }
+      });
+    }
+
     setTimeout(function() {
       drawContinuously(svg, groups)
-    }, 5000)
+    }, 4000)
   });
 }
 

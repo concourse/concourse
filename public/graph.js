@@ -313,7 +313,13 @@ Node.prototype.width = function() {
       return node.id == id;
     })
 
-    this._cachedWidth = svgNode.select("text").node().getBBox().width;
+    var textNode = svgNode.select("text").node();
+
+    if (textNode) {
+      this._cachedWidth = textNode.getBBox().width;
+    } else {
+      return 0;
+    }
   }
 
   return this._cachedWidth + 10;
