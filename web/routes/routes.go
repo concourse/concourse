@@ -8,7 +8,6 @@ const (
 	GetBuild     = "GetBuild"
 	AbortBuild   = "AbortBuild"
 	Public       = "Public"
-	LogOutput    = "LogOutput"
 	GetResource  = "GetResource"
 	GetJob       = "GetJob"
 	LogIn        = "LogIn"
@@ -23,7 +22,6 @@ var Routes = rata.Routes{
 
 	// public jobs only
 	{Path: "/jobs/:job/builds/:build", Method: "GET", Name: GetBuild},
-	{Path: "/builds/:build_id/log", Method: "GET", Name: LogOutput},
 
 	// private
 	{Path: "/login", Method: "GET", Name: LogIn},

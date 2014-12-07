@@ -34,8 +34,8 @@ func (funcs templateFuncs) url(handler string, args ...interface{}) (string, err
 			"filename": args[0].(string),
 		})
 
-	case routes.LogOutput:
-		return routes.Routes.CreatePathForRoute(handler, rata.Params{
+	case atc.BuildEvents:
+		return atc.Routes.CreatePathForRoute(handler, rata.Params{
 			"build_id": fmt.Sprintf("%d", args[0].(db.Build).ID),
 		})
 
