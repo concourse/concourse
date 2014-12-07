@@ -17,7 +17,6 @@ import (
 	"github.com/concourse/atc/web/getresource"
 	"github.com/concourse/atc/web/index"
 	"github.com/concourse/atc/web/login"
-	"github.com/concourse/atc/web/logs"
 	"github.com/concourse/atc/web/routes"
 	"github.com/concourse/atc/web/triggerbuild"
 )
@@ -67,9 +66,6 @@ func NewHandler(
 		routes.GetJob:      getjob.NewHandler(logger, db, configDB, jobTemplate),
 		routes.GetResource: getresource.NewHandler(logger, db, configDB, resourceTemplate),
 		routes.GetBuild:    getbuild.NewHandler(logger, db, configDB, buildTemplate),
-
-		// public jobs, or authed
-		routes.LogOutput: logs.NewHandler(logger, validator, db, configDB, drain),
 
 		// private
 		routes.LogIn: auth.Handler{
