@@ -46,93 +46,145 @@ var _ = Describe("Pipes API", func() {
 		return response
 	}
 
-	Describe("POST /api/v1/pipes", func() {
-		var pipe atc.Pipe
-
+	Context("when authenticated", func() {
 		BeforeEach(func() {
-			pipe = createPipe()
+			authValidator.IsAuthenticatedReturns(true)
 		})
 
-		It("returns the server's configured peer addr", func() {
-			Ω(pipe.PeerAddr).Should(Equal("127.0.0.1:1234"))
-		})
-
-		It("returns unique pipe IDs", func() {
-			anotherPipe := createPipe()
-			Ω(anotherPipe.ID).ShouldNot(Equal(pipe.ID))
-		})
-
-		Describe("GET /api/v1/pipes/:pipe", func() {
-			var readRes *http.Response
+		Describe("POST /api/v1/pipes", func() {
+			var pipe atc.Pipe
 
 			BeforeEach(func() {
-				readRes = readPipe(pipe.ID)
+				pipe = createPipe()
 			})
 
-			AfterEach(func() {
-				readRes.Body.Close()
+			It("returns the server's configured peer addr", func() {
+				Ω(pipe.PeerAddr).Should(Equal("127.0.0.1:1234"))
 			})
 
-			It("responds with 200", func() {
-				Ω(readRes.StatusCode).Should(Equal(http.StatusOK))
+			It("returns unique pipe IDs", func() {
+				anotherPipe := createPipe()
+				Ω(anotherPipe.ID).ShouldNot(Equal(pipe.ID))
 			})
 
-			Describe("PUT /api/v1/pipes/:pipe", func() {
-				var writeRes *http.Response
+			Describe("GET /api/v1/pipes/:pipe", func() {
+				var readRes *http.Response
 
 				BeforeEach(func() {
-					writeRes = writePipe(pipe.ID, bytes.NewBufferString("some data"))
+					readRes = readPipe(pipe.ID)
 				})
 
 				AfterEach(func() {
-					writeRes.Body.Close()
-				})
-
-				It("responds with 200", func() {
-					Ω(writeRes.StatusCode).Should(Equal(http.StatusOK))
-				})
-
-				It("streams the data to the reader", func() {
-					Ω(ioutil.ReadAll(readRes.Body)).Should(Equal([]byte("some data")))
-				})
-
-				It("reaps the pipe", func() {
-					Eventually(func() int {
-						secondReadRes := readPipe(pipe.ID)
-						defer secondReadRes.Body.Close()
-
-						return secondReadRes.StatusCode
-					}).Should(Equal(http.StatusNotFound))
-				})
-			})
-
-			Context("when the reader disconnects", func() {
-				BeforeEach(func() {
 					readRes.Body.Close()
 				})
 
-				It("reaps the pipe", func() {
-					Eventually(func() int {
-						secondReadRes := readPipe(pipe.ID)
-						defer secondReadRes.Body.Close()
+				It("responds with 200", func() {
+					Ω(readRes.StatusCode).Should(Equal(http.StatusOK))
+				})
 
-						return secondReadRes.StatusCode
-					}).Should(Equal(http.StatusNotFound))
+				Describe("PUT /api/v1/pipes/:pipe", func() {
+					var writeRes *http.Response
+
+					BeforeEach(func() {
+						writeRes = writePipe(pipe.ID, bytes.NewBufferString("some data"))
+					})
+
+					AfterEach(func() {
+						writeRes.Body.Close()
+					})
+
+					It("responds with 200", func() {
+						Ω(writeRes.StatusCode).Should(Equal(http.StatusOK))
+					})
+
+					It("streams the data to the reader", func() {
+						Ω(ioutil.ReadAll(readRes.Body)).Should(Equal([]byte("some data")))
+					})
+
+					It("reaps the pipe", func() {
+						Eventually(func() int {
+							secondReadRes := readPipe(pipe.ID)
+							defer secondReadRes.Body.Close()
+
+							return secondReadRes.StatusCode
+						}).Should(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("when the reader disconnects", func() {
+					BeforeEach(func() {
+						readRes.Body.Close()
+					})
+
+					It("reaps the pipe", func() {
+						Eventually(func() int {
+							secondReadRes := readPipe(pipe.ID)
+							defer secondReadRes.Body.Close()
+
+							return secondReadRes.StatusCode
+						}).Should(Equal(http.StatusNotFound))
+					})
+				})
+			})
+
+			Describe("with an invalid id", func() {
+				It("returns 404", func() {
+					readRes := readPipe("bogus-id")
+					defer readRes.Body.Close()
+
+					Ω(readRes.StatusCode).Should(Equal(http.StatusNotFound))
+
+					writeRes := writePipe("bogus-id", nil)
+					defer writeRes.Body.Close()
+
+					Ω(writeRes.StatusCode).Should(Equal(http.StatusNotFound))
 				})
 			})
 		})
+	})
 
-		Describe("with an invalid id", func() {
-			It("returns 404", func() {
-				readRes := readPipe("bogus-id")
-				defer readRes.Body.Close()
+	Context("when not authenticated", func() {
+		BeforeEach(func() {
+			authValidator.IsAuthenticatedReturns(false)
+		})
 
-				Ω(readRes.StatusCode).Should(Equal(http.StatusNotFound))
+		Describe("POST /api/v1/pipes", func() {
+			var response *http.Response
 
-				writeRes := writePipe("bogus-id", nil)
-				defer writeRes.Body.Close()
+			BeforeEach(func() {
+				req, err := http.NewRequest("POST", server.URL+"/api/v1/pipes", nil)
+				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(writeRes.StatusCode).Should(Equal(http.StatusNotFound))
+				response, err = client.Do(req)
+				Ω(err).ShouldNot(HaveOccurred())
+			})
+
+			AfterEach(func() {
+				response.Body.Close()
+			})
+
+			It("returns 401", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+			})
+		})
+
+		Describe("GET /api/v1/pipes/:pipe", func() {
+			var response *http.Response
+
+			BeforeEach(func() {
+				req, err := http.NewRequest("GET", server.URL+"/api/v1/pipes/some-guid", nil)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				response, err = client.Do(req)
+				Ω(err).ShouldNot(HaveOccurred())
+			})
+
+			AfterEach(func() {
+				response.Body.Close()
+			})
+
+			It("returns 401", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
 			})
 		})
 	})

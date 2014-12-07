@@ -16,6 +16,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/ghttp"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/turbine"
 )
@@ -49,52 +50,68 @@ var _ = Describe("Builds API", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		Context("when creating a one-off build succeeds", func() {
+		Context("when authenticated", func() {
 			BeforeEach(func() {
-				buildsDB.CreateOneOffBuildReturns(db.Build{
-					ID:      42,
-					Name:    "1",
-					JobName: "job1",
-					Status:  db.StatusStarted,
-				}, nil)
+				authValidator.IsAuthenticatedReturns(true)
 			})
 
-			Context("and building succeeds", func() {
-				It("returns 201 Created", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusCreated))
-				})
-
-				It("returns the build", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Ω(err).ShouldNot(HaveOccurred())
-
-					Ω(body).Should(MatchJSON(`{
-						"id": 42,
-						"name": "1",
-						"job_name": "job1",
-						"status": "started",
-						"url": "/jobs/job1/builds/1"
-					}`))
-				})
-
-				It("executes a one-off build", func() {
-					Ω(buildsDB.CreateOneOffBuildCallCount()).Should(Equal(1))
-
-					Ω(builder.BuildCallCount()).Should(Equal(1))
-					oneOff, tBuild := builder.BuildArgsForCall(0)
-					Ω(oneOff).Should(Equal(db.Build{
+			Context("when creating a one-off build succeeds", func() {
+				BeforeEach(func() {
+					buildsDB.CreateOneOffBuildReturns(db.Build{
 						ID:      42,
 						Name:    "1",
 						JobName: "job1",
 						Status:  db.StatusStarted,
-					}))
-					Ω(tBuild).Should(Equal(turbineBuild))
+					}, nil)
+				})
+
+				Context("and building succeeds", func() {
+					It("returns 201 Created", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusCreated))
+					})
+
+					It("returns the build", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Ω(body).Should(MatchJSON(`{
+							"id": 42,
+							"name": "1",
+							"job_name": "job1",
+							"status": "started",
+							"url": "/jobs/job1/builds/1"
+						}`))
+					})
+
+					It("executes a one-off build", func() {
+						Ω(buildsDB.CreateOneOffBuildCallCount()).Should(Equal(1))
+
+						Ω(builder.BuildCallCount()).Should(Equal(1))
+						oneOff, tBuild := builder.BuildArgsForCall(0)
+						Ω(oneOff).Should(Equal(db.Build{
+							ID:      42,
+							Name:    "1",
+							JobName: "job1",
+							Status:  db.StatusStarted,
+						}))
+						Ω(tBuild).Should(Equal(turbineBuild))
+					})
+				})
+
+				Context("and building fails", func() {
+					BeforeEach(func() {
+						builder.BuildReturns(errors.New("oh no!"))
+					})
+
+					It("returns 500 Internal Server Error", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					})
 				})
 			})
 
-			Context("and building fails", func() {
+			Context("when creating a one-off build fails", func() {
 				BeforeEach(func() {
-					builder.BuildReturns(errors.New("oh no!"))
+					buildsDB.CreateOneOffBuildReturns(db.Build{}, errors.New("oh no!"))
 				})
 
 				It("returns 500 Internal Server Error", func() {
@@ -103,13 +120,18 @@ var _ = Describe("Builds API", func() {
 			})
 		})
 
-		Context("when creating a one-off build fails", func() {
+		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				buildsDB.CreateOneOffBuildReturns(db.Build{}, errors.New("oh no!"))
+				authValidator.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 500 Internal Server Error", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+			It("returns 401", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+			})
+
+			It("does not trigger a build", func() {
+				Ω(buildsDB.CreateOneOffBuildCallCount()).Should(BeZero())
+				Ω(builder.BuildCallCount()).Should(BeZero())
 			})
 		})
 	})
@@ -189,6 +211,12 @@ var _ = Describe("Builds API", func() {
 		BeforeEach(func() {
 			var err error
 
+			buildsDB.GetBuildReturns(db.Build{
+				ID:      128,
+				Guid:    "some-guid",
+				JobName: "some-job",
+			}, nil)
+
 			request, err = http.NewRequest("GET", server.URL+"/api/v1/builds/128/events", nil)
 			Ω(err).ShouldNot(HaveOccurred())
 		})
@@ -200,17 +228,70 @@ var _ = Describe("Builds API", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("serves the request via the event handler with no censor", func() {
-			Ω(response.StatusCode).Should(Equal(200))
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+			})
 
-			body, err := ioutil.ReadAll(response.Body)
-			Ω(err).ShouldNot(HaveOccurred())
+			It("returns 200", func() {
+				Ω(response.StatusCode).Should(Equal(200))
+			})
 
-			Ω(string(body)).Should(Equal("fake event handler factory was here"))
+			It("serves the request via the event handler with no censor", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(constructedEventHandler.db).Should(Equal(buildsDB))
-			Ω(constructedEventHandler.buildID).Should(Equal(128))
-			Ω(constructedEventHandler.censor).Should(BeNil())
+				Ω(string(body)).Should(Equal("fake event handler factory was here"))
+
+				Ω(constructedEventHandler.db).Should(Equal(buildsDB))
+				Ω(constructedEventHandler.buildID).Should(Equal(128))
+				Ω(constructedEventHandler.censor).Should(BeNil())
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			Context("and the build is private", func() {
+				BeforeEach(func() {
+					configDB.GetConfigReturns(atc.Config{
+						Jobs: atc.JobConfigs{
+							{Name: "some-job", Public: false},
+						},
+					}, nil)
+				})
+
+				It("returns 401", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				})
+			})
+
+			Context("and the build is public", func() {
+				BeforeEach(func() {
+					configDB.GetConfigReturns(atc.Config{
+						Jobs: atc.JobConfigs{
+							{Name: "some-job", Public: true},
+						},
+					}, nil)
+				})
+
+				It("returns 200", func() {
+					Ω(response.StatusCode).Should(Equal(200))
+				})
+
+				It("serves the request via the event handler with a censor", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(string(body)).Should(Equal("fake event handler factory was here"))
+
+					Ω(constructedEventHandler.db).Should(Equal(buildsDB))
+					Ω(constructedEventHandler.buildID).Should(Equal(128))
+					Ω(constructedEventHandler.censor).ShouldNot(BeNil())
+				})
+			})
 		})
 	})
 
@@ -249,32 +330,48 @@ var _ = Describe("Builds API", func() {
 			abortTarget.Close()
 		})
 
-		Context("when the build can be aborted", func() {
+		Context("when authenticated", func() {
 			BeforeEach(func() {
-				buildsDB.SaveBuildStatusReturns(nil)
+				authValidator.IsAuthenticatedReturns(true)
 			})
 
-			It("aborts the build via its abort callback", func() {
-				Ω(abortTarget.ReceivedRequests()).Should(HaveLen(1))
-			})
-
-			Context("and the abort callback returns a status code", func() {
+			Context("when the build can be aborted", func() {
 				BeforeEach(func() {
-					abortTarget.SetHandler(0, func(w http.ResponseWriter, r *http.Request) {
-						w.WriteHeader(http.StatusTeapot)
+					buildsDB.SaveBuildStatusReturns(nil)
+				})
+
+				It("aborts the build via its abort callback", func() {
+					Ω(abortTarget.ReceivedRequests()).Should(HaveLen(1))
+				})
+
+				Context("and the abort callback returns a status code", func() {
+					BeforeEach(func() {
+						abortTarget.SetHandler(0, func(w http.ResponseWriter, r *http.Request) {
+							w.WriteHeader(http.StatusTeapot)
+						})
+					})
+
+					It("forwards it", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusTeapot))
 					})
 				})
 
-				It("forwards it", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusTeapot))
+				Context("and the abort callback fails", func() {
+					BeforeEach(func() {
+						abortTarget.SetHandler(0, func(w http.ResponseWriter, r *http.Request) {
+							abortTarget.CloseClientConnections()
+						})
+					})
+
+					It("returns 500 Internal Server Error", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					})
 				})
 			})
 
-			Context("and the abort callback fails", func() {
+			Context("when the build cannot be aborted", func() {
 				BeforeEach(func() {
-					abortTarget.SetHandler(0, func(w http.ResponseWriter, r *http.Request) {
-						abortTarget.CloseClientConnections()
-					})
+					buildsDB.SaveBuildStatusReturns(errors.New("oh no!"))
 				})
 
 				It("returns 500 Internal Server Error", func() {
@@ -283,13 +380,17 @@ var _ = Describe("Builds API", func() {
 			})
 		})
 
-		Context("when the build cannot be aborted", func() {
+		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				buildsDB.SaveBuildStatusReturns(errors.New("oh no!"))
+				authValidator.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 500 Internal Server Error", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+			It("returns 401", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+			})
+
+			It("does not abort the build", func() {
+				Ω(abortTarget.ReceivedRequests()).Should(BeEmpty())
 			})
 		})
 	})
@@ -367,67 +468,87 @@ var _ = Describe("Builds API", func() {
 			hijackTarget.Close()
 		})
 
-		Context("when the build can be found", func() {
-			Context("and it has a hijack URL", func() {
-				BeforeEach(func() {
-					buildsDB.GetBuildReturns(db.Build{
-						ID:       128,
-						Guid:     "some-guid",
-						Endpoint: hijackTarget.URL(),
-					}, nil)
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			Context("when the build can be found", func() {
+				Context("and it has a hijack URL", func() {
+					BeforeEach(func() {
+						buildsDB.GetBuildReturns(db.Build{
+							ID:       128,
+							Guid:     "some-guid",
+							Endpoint: hijackTarget.URL(),
+						}, nil)
+					})
+
+					It("proxies all traffic via a hijacked connection", func() {
+						var serverReceivedBuf *gbytes.Buffer
+						Eventually(buildHijackReaders).Should(Receive(&serverReceivedBuf))
+
+						var serverConnectedConn net.Conn
+						Eventually(buildHijackConns).Should(Receive(&serverConnectedConn))
+
+						clientReceivedBuf := gbytes.NewBuffer()
+
+						readingFromServer := new(sync.WaitGroup)
+						readingFromServer.Add(1)
+						go func() {
+							io.Copy(clientReceivedBuf, clientReader)
+							readingFromServer.Done()
+						}()
+
+						_, err := clientConn.Write([]byte("hello from client"))
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Eventually(serverReceivedBuf).Should(gbytes.Say("hello from client"))
+
+						_, err = serverConnectedConn.Write([]byte("hello from server"))
+						Ω(err).ShouldNot(HaveOccurred())
+
+						err = serverConnectedConn.Close()
+						Ω(err).ShouldNot(HaveOccurred())
+
+						readingFromServer.Wait()
+
+						Eventually(clientReceivedBuf).Should(gbytes.Say("hello from server"))
+					})
 				})
 
-				It("proxies all traffic via a hijacked connection", func() {
-					var serverReceivedBuf *gbytes.Buffer
-					Eventually(buildHijackReaders).Should(Receive(&serverReceivedBuf))
+				Context("but it does not have a hijack URL", func() {
+					BeforeEach(func() {
+						buildsDB.GetBuildReturns(db.Build{ID: 128}, nil)
+					})
 
-					var serverConnectedConn net.Conn
-					Eventually(buildHijackConns).Should(Receive(&serverConnectedConn))
-
-					clientReceivedBuf := gbytes.NewBuffer()
-
-					readingFromServer := new(sync.WaitGroup)
-					readingFromServer.Add(1)
-					go func() {
-						io.Copy(clientReceivedBuf, clientReader)
-						readingFromServer.Done()
-					}()
-
-					_, err := clientConn.Write([]byte("hello from client"))
-					Ω(err).ShouldNot(HaveOccurred())
-
-					Eventually(serverReceivedBuf).Should(gbytes.Say("hello from client"))
-
-					_, err = serverConnectedConn.Write([]byte("hello from server"))
-					Ω(err).ShouldNot(HaveOccurred())
-
-					err = serverConnectedConn.Close()
-					Ω(err).ShouldNot(HaveOccurred())
-
-					readingFromServer.Wait()
-
-					Eventually(clientReceivedBuf).Should(gbytes.Say("hello from server"))
+					It("returns 400 Bad Request", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+					})
 				})
 			})
 
-			Context("but it does not have a hijack URL", func() {
+			Context("when the build cannot be found", func() {
 				BeforeEach(func() {
-					buildsDB.GetBuildReturns(db.Build{ID: 128}, nil)
+					buildsDB.GetBuildReturns(db.Build{}, errors.New("oh no!"))
 				})
 
-				It("returns 400 Bad Request", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+				It("returns 404 Not Found", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
 				})
 			})
 		})
 
-		Context("when the build cannot be found", func() {
+		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				buildsDB.GetBuildReturns(db.Build{}, errors.New("oh no!"))
+				authValidator.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 404 Not Found", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+			It("returns 401", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+			})
+
+			It("does not hijack the build", func() {
+				Ω(hijackTarget.ReceivedRequests()).Should(BeEmpty())
 			})
 		})
 	})

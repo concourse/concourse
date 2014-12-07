@@ -91,31 +91,47 @@ var _ = Describe("Config API", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		Context("when the config can be loaded", func() {
+		Context("when authenticated", func() {
 			BeforeEach(func() {
-				configDB.GetConfigReturns(config, nil)
+				authValidator.IsAuthenticatedReturns(true)
 			})
 
-			It("returns 200", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+			Context("when the config can be loaded", func() {
+				BeforeEach(func() {
+					configDB.GetConfigReturns(config, nil)
+				})
+
+				It("returns 200", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				})
+
+				It("returns the config", func() {
+					var returnedConfig atc.Config
+					err := json.NewDecoder(response.Body).Decode(&returnedConfig)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(returnedConfig).Should(Equal(config))
+				})
 			})
 
-			It("returns the config", func() {
-				var returnedConfig atc.Config
-				err := json.NewDecoder(response.Body).Decode(&returnedConfig)
-				Ω(err).ShouldNot(HaveOccurred())
+			Context("when getting the config fails", func() {
+				BeforeEach(func() {
+					configDB.GetConfigReturns(atc.Config{}, errors.New("oh no!"))
+				})
 
-				Ω(returnedConfig).Should(Equal(config))
+				It("returns 500", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				})
 			})
 		})
 
-		Context("when getting the config fails", func() {
+		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				configDB.GetConfigReturns(atc.Config{}, errors.New("oh no!"))
+				authValidator.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 500", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+			It("returns 401", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -136,41 +152,61 @@ var _ = Describe("Config API", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		Context("when the config is valid", func() {
-			It("returns 200", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
 			})
 
-			It("saves it", func() {
-				Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
-				Ω(configDB.SaveConfigArgsForCall(0)).Should(Equal(config))
-			})
-
-			Context("and saving it fails", func() {
-				BeforeEach(func() {
-					configDB.SaveConfigReturns(errors.New("oh no!"))
+			Context("when the config is valid", func() {
+				It("returns 200", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusOK))
 				})
 
-				It("returns 500", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				It("saves it", func() {
+					Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
+					Ω(configDB.SaveConfigArgsForCall(0)).Should(Equal(config))
+				})
+
+				Context("and saving it fails", func() {
+					BeforeEach(func() {
+						configDB.SaveConfigReturns(errors.New("oh no!"))
+					})
+
+					It("returns 500", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					})
+				})
+			})
+
+			Context("when the config is invalid", func() {
+				BeforeEach(func() {
+					configValidationErr = errors.New("totally invalid")
+				})
+
+				It("returns 400", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+				})
+
+				It("returns the validation error in the response body", func() {
+					Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("totally invalid")))
+				})
+
+				It("does not save it", func() {
+					Ω(configDB.SaveConfigCallCount()).Should(BeZero())
 				})
 			})
 		})
 
-		Context("when the config is invalid", func() {
+		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				configValidationErr = errors.New("totally invalid")
+				authValidator.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 400", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+			It("returns 401", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
 			})
 
-			It("returns the validation error in the response body", func() {
-				Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("totally invalid")))
-			})
-
-			It("does not save it", func() {
+			It("does not save the config", func() {
 				Ω(configDB.SaveConfigCallCount()).Should(BeZero())
 			})
 		})

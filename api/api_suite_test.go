@@ -15,13 +15,14 @@ import (
 	"github.com/concourse/atc/api"
 	buildfakes "github.com/concourse/atc/api/buildserver/fakes"
 	jobfakes "github.com/concourse/atc/api/jobserver/fakes"
-	"github.com/concourse/atc/auth"
+	authfakes "github.com/concourse/atc/auth/fakes"
 	"github.com/concourse/atc/builder/fakebuilder"
 	dbfakes "github.com/concourse/atc/db/fakes"
 	"github.com/concourse/atc/event"
 )
 
 var (
+	authValidator       *authfakes.FakeValidator
 	buildsDB            *buildfakes.FakeBuildsDB
 	jobsDB              *jobfakes.FakeJobsDB
 	configDB            *dbfakes.FakeConfigDB
@@ -67,6 +68,7 @@ var _ = BeforeEach(func() {
 	jobsDB = new(jobfakes.FakeJobsDB)
 	configDB = new(dbfakes.FakeConfigDB)
 
+	authValidator = new(authfakes.FakeValidator)
 	configValidationErr = nil
 	builder = new(fakebuilder.FakeBuilder)
 	pingInterval = 100 * time.Millisecond
@@ -77,7 +79,7 @@ var _ = BeforeEach(func() {
 
 	handler, err := api.NewHandler(
 		lagertest.NewTestLogger("callbacks"),
-		auth.NoopValidator{},
+		authValidator,
 
 		buildsDB,
 		configDB,
