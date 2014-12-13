@@ -29,6 +29,7 @@ import (
 	"github.com/concourse/atc/config"
 	Db "github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migrations"
+	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/event"
 	rdr "github.com/concourse/atc/radar"
 	sched "github.com/concourse/atc/scheduler"
@@ -206,8 +207,11 @@ func main() {
 	}
 
 	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, turbine.Routes)
+	engine := engine.NewTurbine(turbineEndpoint, db)
+
+	tracker := sched.NewTracker(logger.Session("tracker"), engine, db)
+
 	builder := builder.NewBuilder(db, turbineEndpoint)
-	tracker := sched.NewTracker(logger.Session("tracker"), db, db)
 
 	scheduler := &sched.Scheduler{
 		DB:      db,
