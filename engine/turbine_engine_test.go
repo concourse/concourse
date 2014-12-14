@@ -471,27 +471,31 @@ var _ = Describe("TurbineEngine", func() {
 						})
 
 						Context("and an input event appears", func() {
+							var input turbine.Input
+
 							BeforeEach(func() {
-								events = append(events, event.Input{
-									Input: turbine.Input{
-										Name:     "some-input-name",
-										Resource: "some-input-resource",
-										Type:     "some-type",
-										Source:   turbine.Source{"input-source": "some-source"},
-										Version:  turbine.Version{"version": "input-version"},
-										Metadata: []turbine.MetadataField{
-											{Name: "input-meta", Value: "some-value"},
-										},
+								input = turbine.Input{
+									Name:     "some-input-name",
+									Resource: "some-input-resource",
+									Type:     "some-type",
+									Source:   turbine.Source{"input-source": "some-source"},
+									Version:  turbine.Version{"version": "input-version"},
+									Metadata: []turbine.MetadataField{
+										{Name: "input-meta", Value: "some-value"},
 									},
-								})
+								}
 							})
 
-							itSavesTheEvent(2)
-
-							Context("and the build is for a job", func() {
+							Context("and the input corresponds to a resource", func() {
 								BeforeEach(func() {
-									buildModel.JobName = "lol"
+									input.Resource = "some-input-resource"
+
+									events = append(events, event.Input{
+										Input: input,
+									})
 								})
+
+								itSavesTheEvent(2)
 
 								It("saves the build's input", func() {
 									Eventually(fakeDB.SaveBuildInputCallCount).Should(Equal(1))
@@ -583,10 +587,16 @@ var _ = Describe("TurbineEngine", func() {
 								})
 							})
 
-							Context("and the build is not for a job (i.e. one-off)", func() {
+							Context("and the input does not correspond to a resource (one-off)", func() {
 								BeforeEach(func() {
-									buildModel.JobName = ""
+									input.Resource = ""
+
+									events = append(events, event.Input{
+										Input: input,
+									})
 								})
+
+								itSavesTheEvent(2)
 
 								It("does not save an input", func() {
 									Consistently(fakeDB.SaveBuildInputCallCount).Should(Equal(0))
@@ -609,102 +619,45 @@ var _ = Describe("TurbineEngine", func() {
 								})
 							})
 
-							Context("and the build is for a job", func() {
-								BeforeEach(func() {
-									buildModel.JobName = "lol"
-								})
-
-								It("does not save the output immediately", func() {
-									Consistently(fakeDB.SaveBuildOutputCallCount).Should(BeZero())
-								})
-
-								Context("and a successful status event appears", func() {
-									BeforeEach(func() {
-										events = append(events, event.Status{
-											Status: turbine.StatusSucceeded,
-										})
-									})
-
-									It("saves the build's output", func() {
-										Eventually(fakeDB.SaveBuildOutputCallCount).Should(Equal(1))
-
-										id, output := fakeDB.SaveBuildOutputArgsForCall(0)
-										Ω(id).Should(Equal(1))
-										Ω(output).Should(Equal(db.VersionedResource{
-											Resource: "some-output-name",
-											Type:     "some-type",
-											Source:   db.Source{"output-source": "some-source"},
-											Version:  db.Version{"version": "output-version"},
-											Metadata: []db.MetadataField{
-												{Name: "output-meta", Value: "some-value"},
-											},
-										}))
-									})
-								})
-
-								Context("and an errored status event appears", func() {
-									BeforeEach(func() {
-										events = append(events, event.Status{
-											Status: turbine.StatusErrored,
-										})
-									})
-
-									It("does not save the build's output", func() {
-										Consistently(fakeDB.SaveBuildOutputCallCount).Should(BeZero())
-									})
-								})
-							})
-
-							Context("and the build is not for a job (i.e. one-off)", func() {
-								BeforeEach(func() {
-									buildModel.JobName = ""
-								})
-
-								It("does not save an output", func() {
-									Consistently(fakeDB.SaveBuildOutputCallCount).Should(Equal(0))
-								})
-							})
-						})
-
-						Context("and an input event appears, with no resource present", func() {
-							BeforeEach(func() {
-								events = append(events, event.Input{
-									Input: turbine.Input{
-										Name:    "some-input-name",
-										Type:    "some-type",
-										Source:  turbine.Source{"input-source": "some-source"},
-										Version: turbine.Version{"version": "input-version"},
-										Metadata: []turbine.MetadataField{
-											{Name: "input-meta", Value: "some-value"},
-										},
-									},
-								})
-							})
-
 							itSavesTheEvent(2)
 
-							Context("and the build is for a job", func() {
+							It("does not save the output immediately", func() {
+								Consistently(fakeDB.SaveBuildOutputCallCount).Should(BeZero())
+							})
+
+							Context("and a successful status event appears", func() {
 								BeforeEach(func() {
-									buildModel.JobName = "lol"
+									events = append(events, event.Status{
+										Status: turbine.StatusSucceeded,
+									})
 								})
 
-								It("saves the build's input by its name, for backwards-compatibility", func() {
-									Eventually(fakeDB.SaveBuildInputCallCount).Should(Equal(1))
+								It("saves the build's output", func() {
+									Eventually(fakeDB.SaveBuildOutputCallCount).Should(Equal(1))
 
-									id, input := fakeDB.SaveBuildInputArgsForCall(0)
+									id, output := fakeDB.SaveBuildOutputArgsForCall(0)
 									Ω(id).Should(Equal(1))
-									Ω(input).Should(Equal(db.BuildInput{
-										Name: "some-input-name",
-										VersionedResource: db.VersionedResource{
-											Resource: "some-input-name",
-											Type:     "some-type",
-											Source:   db.Source{"input-source": "some-source"},
-											Version:  db.Version{"version": "input-version"},
-											Metadata: []db.MetadataField{
-												{Name: "input-meta", Value: "some-value"},
-											},
+									Ω(output).Should(Equal(db.VersionedResource{
+										Resource: "some-output-name",
+										Type:     "some-type",
+										Source:   db.Source{"output-source": "some-source"},
+										Version:  db.Version{"version": "output-version"},
+										Metadata: []db.MetadataField{
+											{Name: "output-meta", Value: "some-value"},
 										},
 									}))
+								})
+							})
+
+							Context("and an errored status event appears", func() {
+								BeforeEach(func() {
+									events = append(events, event.Status{
+										Status: turbine.StatusErrored,
+									})
+								})
+
+								It("does not save the build's output", func() {
+									Consistently(fakeDB.SaveBuildOutputCallCount).Should(BeZero())
 								})
 							})
 						})

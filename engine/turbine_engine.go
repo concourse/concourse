@@ -126,11 +126,11 @@ func (engine *turbineEngine) CreateBuild(build db.Build, tBuild turbine.Build) (
 
 	return &turbineBuild{
 		guid: metadata.Guid,
+		id:   build.ID,
 
 		metadata: string(metadataPayload),
 
-		model: build,
-		db:    engine.db,
+		db: engine.db,
 
 		httpClient:      engine.httpClient,
 		turbineEndpoint: rata.NewRequestGenerator(metadata.Endpoint, turbine.Routes),
@@ -151,11 +151,11 @@ func (engine *turbineEngine) LookupBuild(build db.Build) (Build, error) {
 
 	return &turbineBuild{
 		guid: metadata.Guid,
+		id:   build.ID,
 
 		metadata: build.EngineMetadata,
 
-		model: build,
-		db:    engine.db,
+		db: engine.db,
 
 		httpClient:      engine.httpClient,
 		turbineEndpoint: rata.NewRequestGenerator(metadata.Endpoint, turbine.Routes),
@@ -164,11 +164,11 @@ func (engine *turbineEngine) LookupBuild(build db.Build) (Build, error) {
 
 type turbineBuild struct {
 	guid string
+	id   int
 
 	metadata string
 
-	model db.Build
-	db    EngineDB
+	db EngineDB
 
 	turbineEndpoint *rata.RequestGenerator
 	httpClient      *http.Client
@@ -234,7 +234,7 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 	if resp.StatusCode == http.StatusNotFound {
 		logger.Info("saving-orphaned-build-as-errored")
 
-		err := build.db.SaveBuildStatus(build.model.ID, db.StatusErrored)
+		err := build.db.SaveBuildStatus(build.id, db.StatusErrored)
 		if err != nil {
 			logger.Error("failed-to-save-orphaned-build-as-errored", err)
 			return err
@@ -269,7 +269,7 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 			return err
 		}
 
-		err = build.db.SaveBuildEvent(build.model.ID, db.BuildEvent{
+		err = build.db.SaveBuildEvent(build.id, db.BuildEvent{
 			ID:      id,
 			Type:    se.Name,
 			Payload: string(se.Data),
@@ -339,20 +339,20 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 				}
 
 				if status.Status == turbine.StatusStarted {
-					err = build.db.SaveBuildStartTime(build.model.ID, time.Unix(status.Time, 0))
+					err = build.db.SaveBuildStartTime(build.id, time.Unix(status.Time, 0))
 					if err != nil {
 						logger.Error("failed-to-save-build-start-time", err)
 						return err
 					}
 				} else {
-					err = build.db.SaveBuildEndTime(build.model.ID, time.Unix(status.Time, 0))
+					err = build.db.SaveBuildEndTime(build.id, time.Unix(status.Time, 0))
 					if err != nil {
 						logger.Error("failed-to-save-build-end-time", err)
 						return err
 					}
 				}
 
-				err = build.db.SaveBuildStatus(build.model.ID, db.Status(status.Status))
+				err = build.db.SaveBuildStatus(build.id, db.Status(status.Status))
 				if err != nil {
 					logger.Error("failed-to-save-build-status", err)
 					return err
@@ -360,7 +360,7 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 
 				if status.Status == turbine.StatusSucceeded {
 					for _, output := range outputs {
-						err := build.db.SaveBuildOutput(build.model.ID, output)
+						err := build.db.SaveBuildOutput(build.id, output)
 						if err != nil {
 							logger.Error("failed-to-save-build-output", err)
 							return err
@@ -369,11 +369,6 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 				}
 
 			case "input":
-				if build.model.JobName == "" {
-					logger.Info("ignoring-build-input-for-one-off")
-					break
-				}
-
 				logger.Info("processing-build-input", lager.Data{
 					"event": string(se.Data),
 				})
@@ -386,12 +381,12 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 				}
 
 				if input.Input.Resource == "" {
-					input.Input.Resource = input.Input.Name
+					break
 				}
 
 				vr := vrFromInput(input.Input)
 
-				err = build.db.SaveBuildInput(build.model.ID, db.BuildInput{
+				err = build.db.SaveBuildInput(build.id, db.BuildInput{
 					Name:              input.Input.Name,
 					VersionedResource: vr,
 				})
@@ -404,11 +399,6 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 				outputs[input.Input.Resource] = vr
 
 			case "output":
-				if build.model.JobName == "" {
-					logger.Info("ignoring-build-output-for-one-off")
-					break
-				}
-
 				var output event.Output
 				err := json.Unmarshal(se.Data, &output)
 				if err != nil {
