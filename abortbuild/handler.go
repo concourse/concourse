@@ -1,7 +1,6 @@
 package abortbuild
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -12,21 +11,23 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/web/routes"
-	"github.com/concourse/turbine"
 )
 
 type handler struct {
 	logger lager.Logger
 
-	db         db.DB
+	db     db.DB
+	engine engine.Engine
+
 	httpClient *http.Client
 }
 
-func NewHandler(logger lager.Logger, db db.DB) http.Handler {
+func NewHandler(logger lager.Logger, db db.DB, engine engine.Engine) http.Handler {
 	return &handler{
 		logger: logger,
 
-		db: db,
+		db:     db,
+		engine: engine,
 
 		httpClient: &http.Client{
 			Transport: &http.Transport{
@@ -61,36 +62,19 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if build.EngineMetadata != "" {
-		var metadata engine.TurbineMetadata
-		err := json.Unmarshal([]byte(build.EngineMetadata), &metadata)
+	if build.Engine != "" {
+		engineBuild, err := handler.engine.LookupBuild(build)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		err = engineBuild.Abort()
 		if err != nil {
 			log.Error("failed-to-unmarshal-metadata", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-
-		generator := rata.NewRequestGenerator(metadata.Endpoint, turbine.Routes)
-
-		abort, err := generator.CreateRequest(
-			turbine.AbortBuild,
-			rata.Params{"guid": metadata.Guid},
-			nil,
-		)
-		if err != nil {
-			log.Error("failed-to-construct-abort-request", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		resp, err := handler.httpClient.Do(abort)
-		if err != nil {
-			log.Error("failed-to-abort-build", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		resp.Body.Close()
 	}
 
 	redirectPath, err := routes.Routes.CreatePathForRoute(routes.GetBuild, rata.Params{
