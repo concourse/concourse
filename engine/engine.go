@@ -16,13 +16,13 @@ var ErrBuildNotFound = errors.New("build not found")
 type Engine interface {
 	Name() string
 
-	CreateBuild(turbine.Build) (Build, error)
+	CreateBuild(db.Build, turbine.Build) (Build, error)
 	LookupBuild(db.Build) (Build, error)
 }
 
 //go:generate counterfeiter . Build
 type Build interface {
-	Guid() string
+	Metadata() string
 
 	Abort() error
 	Hijack(garden.ProcessSpec, garden.ProcessIO) error

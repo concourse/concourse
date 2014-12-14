@@ -211,7 +211,7 @@ func main() {
 
 	tracker := sched.NewTracker(logger.Session("tracker"), engine, db, db)
 
-	builder := builder.NewBuilder(db, turbineEndpoint)
+	builder := builder.NewBuilder(db, engine)
 
 	scheduler := &sched.Scheduler{
 		DB:      db,

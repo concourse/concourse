@@ -11,10 +11,10 @@ import (
 )
 
 type FakeBuild struct {
-	GuidStub        func() string
-	guidMutex       sync.RWMutex
-	guidArgsForCall []struct{}
-	guidReturns struct {
+	MetadataStub        func() string
+	metadataMutex       sync.RWMutex
+	metadataArgsForCall []struct{}
+	metadataReturns struct {
 		result1 string
 	}
 	AbortStub        func() error
@@ -52,26 +52,26 @@ type FakeBuild struct {
 	}
 }
 
-func (fake *FakeBuild) Guid() string {
-	fake.guidMutex.Lock()
-	fake.guidArgsForCall = append(fake.guidArgsForCall, struct{}{})
-	fake.guidMutex.Unlock()
-	if fake.GuidStub != nil {
-		return fake.GuidStub()
+func (fake *FakeBuild) Metadata() string {
+	fake.metadataMutex.Lock()
+	fake.metadataArgsForCall = append(fake.metadataArgsForCall, struct{}{})
+	fake.metadataMutex.Unlock()
+	if fake.MetadataStub != nil {
+		return fake.MetadataStub()
 	} else {
-		return fake.guidReturns.result1
+		return fake.metadataReturns.result1
 	}
 }
 
-func (fake *FakeBuild) GuidCallCount() int {
-	fake.guidMutex.RLock()
-	defer fake.guidMutex.RUnlock()
-	return len(fake.guidArgsForCall)
+func (fake *FakeBuild) MetadataCallCount() int {
+	fake.metadataMutex.RLock()
+	defer fake.metadataMutex.RUnlock()
+	return len(fake.metadataArgsForCall)
 }
 
-func (fake *FakeBuild) GuidReturns(result1 string) {
-	fake.GuidStub = nil
-	fake.guidReturns = struct {
+func (fake *FakeBuild) MetadataReturns(result1 string) {
+	fake.MetadataStub = nil
+	fake.metadataReturns = struct {
 		result1 string
 	}{result1}
 }

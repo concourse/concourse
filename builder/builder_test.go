@@ -1,34 +1,36 @@
 package builder_test
 
 import (
-	"net/http"
+	"errors"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/ghttp"
-	"github.com/tedsuo/rata"
 
 	. "github.com/concourse/atc/builder"
 	"github.com/concourse/atc/builder/fakes"
 	"github.com/concourse/atc/db"
+	enginefakes "github.com/concourse/atc/engine/fakes"
 	"github.com/concourse/turbine"
 )
 
 var _ = Describe("Builder", func() {
 	var (
-		builderDB     *fakes.FakeBuilderDB
-		turbineServer *ghttp.Server
+		builderDB  *fakes.FakeBuilderDB
+		fakeEngine *enginefakes.FakeEngine
 
 		builder Builder
 
 		build        db.Build
 		turbineBuild turbine.Build
+
+		buildErr error
 	)
 
 	BeforeEach(func() {
 		builderDB = new(fakes.FakeBuilderDB)
 
-		turbineServer = ghttp.NewServer()
+		fakeEngine = new(enginefakes.FakeEngine)
+		fakeEngine.NameReturns("fake-engine")
 
 		build = db.Build{
 			ID:   128,
@@ -53,98 +55,60 @@ var _ = Describe("Builder", func() {
 
 		builderDB.StartBuildReturns(true, nil)
 
-		builder = NewBuilder(
-			builderDB,
-			rata.NewRequestGenerator(turbineServer.URL(), turbine.Routes),
-		)
+		builder = NewBuilder(builderDB, fakeEngine)
 	})
 
-	successfulBuildStart := func(build turbine.Build) http.HandlerFunc {
-		createdBuild := build
-		createdBuild.Guid = "some-build-guid"
-
-		return ghttp.CombineHandlers(
-			ghttp.VerifyJSONRepresenting(build),
-			func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Add("X-Turbine-Endpoint", turbineServer.URL())
-			},
-			ghttp.RespondWithJSONEncoded(201, createdBuild),
-		)
-	}
-
-	It("starts the build and saves its guid and endpoint", func() {
-		turbineServer.AppendHandlers(
-			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("POST", "/builds"),
-				successfulBuildStart(turbineBuild),
-			),
-		)
-
-		err := builder.Build(build, turbineBuild)
-		Ω(err).ShouldNot(HaveOccurred())
-
-		Ω(builderDB.StartBuildCallCount()).Should(Equal(1))
-
-		buildID, engine, metadata := builderDB.StartBuildArgsForCall(0)
-		Ω(buildID).Should(Equal(128))
-		Ω(engine).Should(ContainSubstring("turbine"))
-		Ω(metadata).Should(MatchJSON(`{"guid":"some-build-guid","endpoint":"` + turbineServer.URL() + `"}`))
+	JustBeforeEach(func() {
+		buildErr = builder.Build(build, turbineBuild)
 	})
 
-	Context("when the build fails to transition to started", func() {
+	Context("when creating the build succeeds", func() {
+		var fakeBuild *enginefakes.FakeBuild
+
 		BeforeEach(func() {
-			builderDB.StartBuildReturns(false, nil)
+			fakeBuild = new(enginefakes.FakeBuild)
+			fakeBuild.MetadataReturns("some-metadata")
+
+			fakeEngine.CreateBuildReturns(fakeBuild, nil)
 		})
 
-		It("aborts the build on the turbine", func() {
-			turbineServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/builds"),
-					successfulBuildStart(turbineBuild),
-				),
-				ghttp.VerifyRequest("POST", "/builds/some-build-guid/abort"),
-			)
-
-			err := builder.Build(build, turbineBuild)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			Ω(turbineServer.ReceivedRequests()).Should(HaveLen(2))
-		})
-	})
-
-	Context("when the turbine server is unreachable", func() {
-		BeforeEach(func() {
-			turbineServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/builds"),
-					func(w http.ResponseWriter, r *http.Request) {
-						turbineServer.HTTPTestServer.CloseClientConnections()
-					},
-				),
-			)
+		It("succeeds", func() {
+			Ω(buildErr).ShouldNot(HaveOccurred())
 		})
 
-		It("returns an error", func() {
-			err := builder.Build(build, turbineBuild)
-			Ω(err).Should(HaveOccurred())
+		It("starts the build in the database", func() {
+			Ω(builderDB.StartBuildCallCount()).Should(Equal(1))
 
-			Ω(turbineServer.ReceivedRequests()).Should(HaveLen(1))
+			buildID, engine, metadata := builderDB.StartBuildArgsForCall(0)
+			Ω(buildID).Should(Equal(128))
+			Ω(engine).Should(Equal("fake-engine"))
+			Ω(metadata).Should(Equal("some-metadata"))
+		})
+
+		Context("when the build fails to transition to started", func() {
+			BeforeEach(func() {
+				builderDB.StartBuildReturns(false, nil)
+			})
+
+			It("aborts the build", func() {
+				Ω(fakeBuild.AbortCallCount()).Should(Equal(1))
+			})
 		})
 	})
 
-	Context("when the turbine server returns non-201", func() {
+	Context("when creating the build fails", func() {
+		disaster := errors.New("failed")
+
 		BeforeEach(func() {
-			turbineServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/builds"),
-					ghttp.RespondWith(400, ""),
-				),
-			)
+			fakeEngine.CreateBuildReturns(nil, disaster)
 		})
 
-		It("returns an error", func() {
-			err := builder.Build(build, turbineBuild)
-			Ω(err).Should(HaveOccurred())
+		It("returns the error", func() {
+			Ω(buildErr).Should(Equal(disaster))
+		})
+
+		It("does not start the build", func() {
+			Ω(builderDB.StartBuildCallCount()).Should(Equal(0))
 		})
 	})
 })

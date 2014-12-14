@@ -50,6 +50,111 @@ var _ = Describe("TurbineEngine", func() {
 		})
 	})
 
+	Describe("CreateBuild", func() {
+		var (
+			build        db.Build
+			turbineBuild turbine.Build
+
+			createdBuild Build
+			createErr    error
+		)
+
+		BeforeEach(func() {
+			build = db.Build{
+				ID: 1,
+			}
+
+			turbineBuild = turbine.Build{
+				Config: turbine.Config{
+					Image: "some-image",
+
+					Params: map[string]string{
+						"FOO": "1",
+						"BAR": "2",
+					},
+
+					Run: turbine.RunConfig{
+						Path: "some-script",
+						Args: []string{"arg1", "arg2"},
+					},
+				},
+			}
+		})
+
+		JustBeforeEach(func() {
+			createdBuild, createErr = engine.CreateBuild(build, turbineBuild)
+		})
+
+		successfulBuildStart := func(build turbine.Build) http.HandlerFunc {
+			createdBuild := build
+			createdBuild.Guid = "some-build-guid"
+
+			return ghttp.CombineHandlers(
+				ghttp.VerifyJSONRepresenting(build),
+				func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Add("X-Turbine-Endpoint", turbineServer.URL())
+				},
+				ghttp.RespondWithJSONEncoded(201, createdBuild),
+			)
+		}
+
+		Context("when the turbine server successfully executes", func() {
+			BeforeEach(func() {
+				turbineServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("POST", "/builds"),
+						successfulBuildStart(turbineBuild),
+					),
+				)
+			})
+
+			It("succeeds", func() {
+				Ω(createErr).ShouldNot(HaveOccurred())
+			})
+
+			It("returns a build with the correct metadata", func() {
+				var metadata TurbineMetadata
+				err := json.Unmarshal([]byte(createdBuild.Metadata()), &metadata)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(metadata.Guid).Should(Equal("some-build-guid"))
+				Ω(metadata.Endpoint).Should(Equal(turbineServer.URL()))
+			})
+		})
+
+		Context("when the turbine server is unreachable", func() {
+			BeforeEach(func() {
+				turbineServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("POST", "/builds"),
+						func(w http.ResponseWriter, r *http.Request) {
+							turbineServer.HTTPTestServer.CloseClientConnections()
+						},
+					),
+				)
+			})
+
+			It("returns an error", func() {
+				Ω(createErr).Should(HaveOccurred())
+			})
+		})
+
+		Context("when the turbine server returns non-201", func() {
+			BeforeEach(func() {
+				turbineServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("POST", "/builds"),
+						ghttp.RespondWith(400, ""),
+					),
+				)
+			})
+
+			It("returns an error", func() {
+				Ω(createErr).Should(HaveOccurred())
+			})
+		})
+	})
+
 	Describe("LookupBuild", func() {
 		var (
 			buildModel db.Build

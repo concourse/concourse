@@ -16,10 +16,11 @@ type FakeEngine struct {
 	nameReturns struct {
 		result1 string
 	}
-	CreateBuildStub        func(turbine.Build) (engine.Build, error)
+	CreateBuildStub        func(db.Build, turbine.Build) (engine.Build, error)
 	createBuildMutex       sync.RWMutex
 	createBuildArgsForCall []struct {
-		arg1 turbine.Build
+		arg1 db.Build
+		arg2 turbine.Build
 	}
 	createBuildReturns struct {
 		result1 engine.Build
@@ -60,14 +61,15 @@ func (fake *FakeEngine) NameReturns(result1 string) {
 	}{result1}
 }
 
-func (fake *FakeEngine) CreateBuild(arg1 turbine.Build) (engine.Build, error) {
+func (fake *FakeEngine) CreateBuild(arg1 db.Build, arg2 turbine.Build) (engine.Build, error) {
 	fake.createBuildMutex.Lock()
 	fake.createBuildArgsForCall = append(fake.createBuildArgsForCall, struct {
-		arg1 turbine.Build
-	}{arg1})
+		arg1 db.Build
+		arg2 turbine.Build
+	}{arg1, arg2})
 	fake.createBuildMutex.Unlock()
 	if fake.CreateBuildStub != nil {
-		return fake.CreateBuildStub(arg1)
+		return fake.CreateBuildStub(arg1, arg2)
 	} else {
 		return fake.createBuildReturns.result1, fake.createBuildReturns.result2
 	}
@@ -79,10 +81,10 @@ func (fake *FakeEngine) CreateBuildCallCount() int {
 	return len(fake.createBuildArgsForCall)
 }
 
-func (fake *FakeEngine) CreateBuildArgsForCall(i int) turbine.Build {
+func (fake *FakeEngine) CreateBuildArgsForCall(i int) (db.Build, turbine.Build) {
 	fake.createBuildMutex.RLock()
 	defer fake.createBuildMutex.RUnlock()
-	return fake.createBuildArgsForCall[i].arg1
+	return fake.createBuildArgsForCall[i].arg1, fake.createBuildArgsForCall[i].arg2
 }
 
 func (fake *FakeEngine) CreateBuildReturns(result1 engine.Build, result2 error) {

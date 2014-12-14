@@ -1,7 +1,9 @@
 package engine
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -30,6 +32,8 @@ type EngineDB interface {
 
 	SaveBuildStatus(buildID int, status db.Status) error
 }
+
+var ErrBadResponse = errors.New("bad response from turbine")
 
 type TurbineMetadata struct {
 	Guid     string `json:"guid"`
@@ -74,9 +78,63 @@ func (engine *turbineEngine) Name() string {
 	return "turbine"
 }
 
-func (engine *turbineEngine) CreateBuild(build turbine.Build) (Build, error) {
-	// POST /builds, immediately start saving events
-	return nil, nil
+func (engine *turbineEngine) CreateBuild(build db.Build, tBuild turbine.Build) (Build, error) {
+	req := new(bytes.Buffer)
+
+	err := json.NewEncoder(req).Encode(tBuild)
+	if err != nil {
+		return nil, err
+	}
+
+	execute, err := engine.turbineEndpoint.CreateRequest(
+		turbine.ExecuteBuild,
+		nil,
+		req,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	execute.Header.Set("Content-Type", "application/json")
+
+	resp, err := engine.httpClient.Do(execute)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, ErrBadResponse
+	}
+
+	var startedBuild turbine.Build
+	err = json.NewDecoder(resp.Body).Decode(&startedBuild)
+	if err != nil {
+		return nil, err
+	}
+
+	resp.Body.Close()
+
+	metadata := TurbineMetadata{
+		Guid:     startedBuild.Guid,
+		Endpoint: resp.Header.Get("X-Turbine-Endpoint"),
+	}
+
+	metadataPayload, err := json.Marshal(metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	return &turbineBuild{
+		guid: metadata.Guid,
+
+		metadata: string(metadataPayload),
+
+		model: build,
+		db:    engine.db,
+
+		httpClient:      engine.httpClient,
+		turbineEndpoint: rata.NewRequestGenerator(metadata.Endpoint, turbine.Routes),
+	}, nil
 }
 
 func (engine *turbineEngine) LookupBuild(build db.Build) (Build, error) {
@@ -92,7 +150,10 @@ func (engine *turbineEngine) LookupBuild(build db.Build) (Build, error) {
 	}
 
 	return &turbineBuild{
-		guid:  metadata.Guid,
+		guid: metadata.Guid,
+
+		metadata: build.EngineMetadata,
+
 		model: build,
 		db:    engine.db,
 
@@ -104,6 +165,8 @@ func (engine *turbineEngine) LookupBuild(build db.Build) (Build, error) {
 type turbineBuild struct {
 	guid string
 
+	metadata string
+
 	model db.Build
 	db    EngineDB
 
@@ -111,8 +174,8 @@ type turbineBuild struct {
 	httpClient      *http.Client
 }
 
-func (build *turbineBuild) Guid() string {
-	return build.guid
+func (build *turbineBuild) Metadata() string {
+	return build.metadata
 }
 
 func (build *turbineBuild) Abort() error {
