@@ -12,17 +12,20 @@ import (
 
 var ErrBuildNotFound = errors.New("build not found")
 
+//go:generate counterfeiter . Engine
 type Engine interface {
+	Name() string
+
 	CreateBuild(turbine.Build) (Build, error)
 	LookupBuild(db.Build) (Build, error)
-
-	ResumeBuild(db.Build, lager.Logger) error
 }
 
+//go:generate counterfeiter . Build
 type Build interface {
 	Guid() string
 
 	Abort() error
 	Hijack(garden.ProcessSpec, garden.ProcessIO) error
 	Subscribe(from uint) (<-chan event.Event, chan<- struct{}, error)
+	Resume(lager.Logger) error
 }

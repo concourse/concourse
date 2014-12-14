@@ -26,7 +26,7 @@ type DB interface {
 	CreateOneOffBuild() (Build, error)
 
 	ScheduleBuild(buildID int, serial bool) (bool, error)
-	StartBuild(buildID int, buildGuid, turbineEndpoint string) (bool, error)
+	StartBuild(buildID int, engineName, engineMetadata string) (bool, error)
 
 	GetLastBuildEventID(buildID int) (int, error)
 	GetBuildEvents(buildID int) ([]BuildEvent, error)

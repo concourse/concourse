@@ -85,10 +85,10 @@ var _ = Describe("Builder", func() {
 
 		Ω(builderDB.StartBuildCallCount()).Should(Equal(1))
 
-		buildID, guid, endpoint := builderDB.StartBuildArgsForCall(0)
+		buildID, engine, metadata := builderDB.StartBuildArgsForCall(0)
 		Ω(buildID).Should(Equal(128))
-		Ω(guid).Should(ContainSubstring("some-build-guid"))
-		Ω(endpoint).Should(ContainSubstring(turbineServer.URL()))
+		Ω(engine).Should(ContainSubstring("turbine"))
+		Ω(metadata).Should(MatchJSON(`{"guid":"some-build-guid","endpoint":"` + turbineServer.URL() + `"}`))
 	})
 
 	Context("when the build fails to transition to started", func() {

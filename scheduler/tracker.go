@@ -1,43 +1,36 @@
 package scheduler
 
 import (
-	"sync"
-
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/engine"
 	"github.com/pivotal-golang/lager"
 )
 
-//go:generate counterfeiter . Engine
-type Engine interface {
-	ResumeBuild(db.Build, lager.Logger) error
+//go:generate counterfeiter . TrackerDB
+type TrackerDB interface {
+	SaveBuildStatus(buildID int, status db.Status) error
 }
 
 type tracker struct {
 	logger lager.Logger
 
-	engine Engine
-
+	engine engine.Engine
+	db     TrackerDB
 	locker Locker
-
-	trackingBuilds map[int]bool
-	lock           *sync.Mutex
 }
 
-func NewTracker(logger lager.Logger, engine Engine, locker Locker) BuildTracker {
+func NewTracker(logger lager.Logger, engine engine.Engine, db TrackerDB, locker Locker) BuildTracker {
 	return &tracker{
 		logger: logger,
 
 		engine: engine,
-
+		db:     db,
 		locker: locker,
-
-		trackingBuilds: make(map[int]bool),
-		lock:           new(sync.Mutex),
 	}
 }
 
-func (tracker *tracker) TrackBuild(build db.Build) error {
-	lock, err := tracker.locker.AcquireWriteLockImmediately([]db.NamedLock{db.BuildTrackingLock(build.Guid)})
+func (tracker *tracker) TrackBuild(buildModel db.Build) error {
+	lock, err := tracker.locker.AcquireWriteLockImmediately([]db.NamedLock{db.BuildTrackingLock(buildModel.ID)})
 	if err != nil {
 		return nil
 	}
@@ -45,36 +38,24 @@ func (tracker *tracker) TrackBuild(build db.Build) error {
 	defer lock.Release()
 
 	tLog := tracker.logger.Session("tracking", lager.Data{
-		"build": build.ID,
+		"build": buildModel.ID,
 	})
 
 	tLog.Info("start")
 	defer tLog.Info("done")
 
-	alreadyTracking := tracker.markTracking(build.ID)
-	if alreadyTracking {
-		tLog.Info("already-tracking")
+	build, err := tracker.engine.LookupBuild(buildModel)
+	if err != nil {
+		tLog.Info("saving-untrackable-build-as-errored")
+
+		err := tracker.db.SaveBuildStatus(buildModel.ID, db.StatusErrored)
+		if err != nil {
+			tLog.Error("failed-to-save-untrackable-build-as-errored", err)
+			return err
+		}
+
 		return nil
 	}
 
-	defer tracker.unmarkTracking(build.ID)
-
-	return tracker.engine.ResumeBuild(build, tLog)
-}
-
-func (tracker *tracker) markTracking(buildID int) bool {
-	tracker.lock.Lock()
-	alreadyTracking, found := tracker.trackingBuilds[buildID]
-	if !found {
-		tracker.trackingBuilds[buildID] = true
-	}
-	tracker.lock.Unlock()
-
-	return alreadyTracking
-}
-
-func (tracker *tracker) unmarkTracking(buildID int) {
-	tracker.lock.Lock()
-	delete(tracker.trackingBuilds, buildID)
-	tracker.lock.Unlock()
+	return build.Resume(tLog)
 }

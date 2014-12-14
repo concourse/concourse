@@ -96,17 +96,17 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				var expectedStartedBuild1 db.Build
 
 				BeforeEach(func() {
-					started, err := database.StartBuild(build1.ID, "some-guid", "some-endpoint")
+					started, err := database.StartBuild(build1.ID, "some-engine", "some-metadata")
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(started).Should(BeTrue())
 
 					expectedStartedBuild1 = build1
 					expectedStartedBuild1.Status = db.StatusStarted
-					expectedStartedBuild1.Guid = "some-guid"
-					expectedStartedBuild1.Endpoint = "some-endpoint"
+					expectedStartedBuild1.Engine = "some-engine"
+					expectedStartedBuild1.EngineMetadata = "some-metadata"
 				})
 
-				It("saves the updated status, and the guid and endpoint", func() {
+				It("saves the updated status, and the engine and engine metadata", func() {
 					currentBuild, err := database.GetCurrentBuild("some-job")
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(currentBuild).Should(Equal(expectedStartedBuild1))
@@ -345,7 +345,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			nextBuild, err := database.CreateJobBuild("some-job")
 			Ω(err).ShouldNot(HaveOccurred())
 
-			started, err := database.StartBuild(nextBuild.ID, "some-guid", "some-other-endpoint")
+			started, err := database.StartBuild(nextBuild.ID, "some-engine", "meta")
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(started).Should(BeTrue())
 
@@ -364,7 +364,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Ω(next.ID).Should(Equal(nextBuild.ID)) // not anotherRunningBuild
 			Ω(finished.ID).Should(Equal(finishedBuild.ID))
 
-			started, err = database.StartBuild(anotherRunningBuild.ID, "some-guid", "some-other-endpoint")
+			started, err = database.StartBuild(anotherRunningBuild.ID, "some-engine", "meta")
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(started).Should(BeTrue())
 
@@ -1152,7 +1152,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 					Describe("starting the build", func() {
 						It("fails", func() {
-							started, err := database.StartBuild(firstBuild.ID, "some-guid", "some-endpoint")
+							started, err := database.StartBuild(firstBuild.ID, "some-engine", "some-meta")
 							Ω(err).ShouldNot(HaveOccurred())
 							Ω(started).Should(BeFalse())
 						})

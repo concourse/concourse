@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/engine"
 	. "github.com/concourse/atc/event"
 	"github.com/concourse/atc/event/fakes"
 	"github.com/concourse/turbine/event"
@@ -121,11 +122,19 @@ var _ = Describe("Handler", func() {
 					),
 				)
 
-				buildsDB.GetBuildReturns(db.Build{
-					ID:       128,
+				metadata := engine.TurbineMetadata{
 					Guid:     "some-guid",
 					Endpoint: turbineEndpoint.URL(),
-					Status:   db.StatusStarted,
+				}
+
+				metadataPayload, err := json.Marshal(metadata)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				buildsDB.GetBuildReturns(db.Build{
+					ID:             128,
+					Engine:         "turbine",
+					EngineMetadata: string(metadataPayload),
+					Status:         db.StatusStarted,
 				}, nil)
 			})
 

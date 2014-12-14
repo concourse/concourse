@@ -10,6 +10,7 @@ import (
 	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/engine"
 	"github.com/concourse/turbine"
 )
 
@@ -84,7 +85,17 @@ func (builder *builder) Build(build db.Build, turbineBuild turbine.Build) error 
 
 	resp.Body.Close()
 
-	started, err := builder.db.StartBuild(build.ID, startedBuild.Guid, resp.Header.Get("X-Turbine-Endpoint"))
+	metadata := engine.TurbineMetadata{
+		Guid:     startedBuild.Guid,
+		Endpoint: resp.Header.Get("X-Turbine-Endpoint"),
+	}
+
+	metadataPayload, err := json.Marshal(metadata)
+	if err != nil {
+		return err
+	}
+
+	started, err := builder.db.StartBuild(build.ID, "turbine", string(metadataPayload))
 	if err != nil {
 		return err
 	}

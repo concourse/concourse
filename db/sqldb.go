@@ -18,8 +18,8 @@ type SQLDB struct {
 	conn   *sql.DB
 }
 
-const buildColumns = "id, name, job_name, status, guid, endpoint, start_time, end_time"
-const qualifiedBuildColumns = "b.id, b.name, b.job_name, b.status, b.guid, b.endpoint, b.start_time, b.end_time"
+const buildColumns = "id, name, job_name, status, engine, engine_metadata, start_time, end_time"
+const qualifiedBuildColumns = "b.id, b.name, b.job_name, b.status, b.engine, b.engine_metadata, b.start_time, b.end_time"
 
 func NewSQL(logger lager.Logger, sqldbConnection *sql.DB) *SQLDB {
 	return &SQLDB{
@@ -458,13 +458,13 @@ func (db *SQLDB) ScheduleBuild(buildID int, serial bool) (bool, error) {
 	return rows == 1, nil
 }
 
-func (db *SQLDB) StartBuild(buildID int, guid, endpoint string) (bool, error) {
+func (db *SQLDB) StartBuild(buildID int, engine, metadata string) (bool, error) {
 	result, err := db.conn.Exec(`
 		UPDATE builds
-		SET status = 'started', guid = $2, endpoint = $3
+		SET status = 'started', engine = $2, engine_metadata = $3
 		WHERE id = $1
 		AND status = 'pending'
-	`, buildID, guid, endpoint)
+	`, buildID, engine, metadata)
 	if err != nil {
 		return false, err
 	}
@@ -1238,12 +1238,11 @@ func scanBuild(row scannable) (Build, error) {
 	var name string
 	var jobName sql.NullString
 	var status string
-	var guid sql.NullString
-	var endpoint sql.NullString
+	var engine, engineMetadata sql.NullString
 	var startTime pq.NullTime
 	var endTime pq.NullTime
 
-	err := row.Scan(&id, &name, &jobName, &status, &guid, &endpoint, &startTime, &endTime)
+	err := row.Scan(&id, &name, &jobName, &status, &engine, &engineMetadata, &startTime, &endTime)
 	if err != nil {
 		return Build{}, err
 	}
@@ -1254,8 +1253,8 @@ func scanBuild(row scannable) (Build, error) {
 		JobName: jobName.String,
 		Status:  Status(status),
 
-		Guid:     guid.String,
-		Endpoint: endpoint.String,
+		Engine:         engine.String,
+		EngineMetadata: engineMetadata.String,
 
 		StartTime: startTime.Time,
 		EndTime:   endTime.Time,

@@ -18,6 +18,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/engine"
 	"github.com/concourse/turbine"
 )
 
@@ -213,7 +214,6 @@ var _ = Describe("Builds API", func() {
 
 			buildsDB.GetBuildReturns(db.Build{
 				ID:      128,
-				Guid:    "some-guid",
 				JobName: "some-job",
 			}, nil)
 
@@ -309,10 +309,18 @@ var _ = Describe("Builds API", func() {
 				ghttp.VerifyRequest("POST", "/builds/some-guid/abort"),
 			)
 
-			buildsDB.GetBuildReturns(db.Build{
-				ID:       128,
+			metadata := engine.TurbineMetadata{
 				Guid:     "some-guid",
 				Endpoint: abortTarget.URL(),
+			}
+
+			metadataPayload, err := json.Marshal(metadata)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			buildsDB.GetBuildReturns(db.Build{
+				ID:             128,
+				Engine:         "turbine",
+				EngineMetadata: string(metadataPayload),
 			}, nil)
 		})
 
@@ -476,10 +484,18 @@ var _ = Describe("Builds API", func() {
 			Context("when the build can be found", func() {
 				Context("and it has a hijack URL", func() {
 					BeforeEach(func() {
-						buildsDB.GetBuildReturns(db.Build{
-							ID:       128,
+						metadata := engine.TurbineMetadata{
 							Guid:     "some-guid",
 							Endpoint: hijackTarget.URL(),
+						}
+
+						metadataPayload, err := json.Marshal(metadata)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						buildsDB.GetBuildReturns(db.Build{
+							ID:             128,
+							Engine:         "turbine",
+							EngineMetadata: string(metadataPayload),
 						}, nil)
 					})
 

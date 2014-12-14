@@ -1,11 +1,13 @@
 package event
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/engine"
 	"github.com/concourse/turbine"
 	"github.com/tedsuo/rata"
 	"github.com/vito/go-sse/sse"
@@ -34,11 +36,18 @@ func NewHandler(buildsDB BuildsDB, buildID int, censor Censor) http.Handler {
 		w.Header().Add("Connection", "keep-alive")
 
 		if build.Status == db.StatusStarted {
-			generator := rata.NewRequestGenerator(build.Endpoint, turbine.Routes)
+			var metadata engine.TurbineMetadata
+			err := json.Unmarshal([]byte(build.EngineMetadata), &metadata)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			generator := rata.NewRequestGenerator(metadata.Endpoint, turbine.Routes)
 
 			events, err := generator.CreateRequest(
 				turbine.GetBuildEvents,
-				rata.Params{"guid": build.Guid},
+				rata.Params{"guid": metadata.Guid},
 				nil,
 			)
 			if err != nil {

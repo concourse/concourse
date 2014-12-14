@@ -1,12 +1,14 @@
 package buildserver
 
 import (
+	"encoding/json"
 	"io"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"strconv"
 
+	"github.com/concourse/atc/engine"
 	"github.com/concourse/turbine"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
@@ -30,17 +32,25 @@ func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if build.Guid == "" {
-		hLog.Error("missing-build-guid", nil)
+	if build.EngineMetadata == "" {
+		hLog.Error("missing-engine-metadata", nil)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	generator := rata.NewRequestGenerator(build.Endpoint, turbine.Routes)
+	var metadata engine.TurbineMetadata
+	err = json.Unmarshal([]byte(build.EngineMetadata), &metadata)
+	if err != nil {
+		hLog.Error("failed-to-unmarshal-metadata", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	generator := rata.NewRequestGenerator(metadata.Endpoint, turbine.Routes)
 
 	hijack, err := generator.CreateRequest(
 		turbine.HijackBuild,
-		rata.Params{"guid": build.Guid},
+		rata.Params{"guid": metadata.Guid},
 		r.Body,
 	)
 	if err != nil {

@@ -19,4 +19,5 @@ var Migrations = []migration.Migrator{
 	DropOldLocks,
 	AddConfig,
 	AddNameToBuildInputs,
+	AddEngineAndEngineMetadataToBuilds,
 }

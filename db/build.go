@@ -24,8 +24,8 @@ type Build struct {
 
 	JobName string
 
-	Guid     string
-	Endpoint string
+	Engine         string
+	EngineMetadata string
 
 	StartTime time.Time
 	EndTime   time.Time
