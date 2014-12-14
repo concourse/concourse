@@ -19,6 +19,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
+	enginefakes "github.com/concourse/atc/engine/fakes"
 	"github.com/concourse/turbine"
 )
 
@@ -348,30 +349,45 @@ var _ = Describe("Builds API", func() {
 					buildsDB.SaveBuildStatusReturns(nil)
 				})
 
-				It("aborts the build via its abort callback", func() {
-					Ω(abortTarget.ReceivedRequests()).Should(HaveLen(1))
-				})
+				Context("and the engine returns a build", func() {
+					var fakeBuild *enginefakes.FakeBuild
 
-				Context("and the abort callback returns a status code", func() {
 					BeforeEach(func() {
-						abortTarget.SetHandler(0, func(w http.ResponseWriter, r *http.Request) {
-							w.WriteHeader(http.StatusTeapot)
+						fakeBuild = new(enginefakes.FakeBuild)
+						fakeEngine.LookupBuildReturns(fakeBuild, nil)
+					})
+
+					It("aborts the build", func() {
+						Ω(fakeBuild.AbortCallCount()).Should(Equal(1))
+					})
+
+					Context("and aborting succeeds", func() {
+						BeforeEach(func() {
+							fakeBuild.AbortReturns(nil)
+						})
+
+						It("returns 204", func() {
+							Ω(response.StatusCode).Should(Equal(http.StatusNoContent))
 						})
 					})
 
-					It("forwards it", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusTeapot))
+					Context("and aborting fails", func() {
+						BeforeEach(func() {
+							fakeBuild.AbortReturns(errors.New("oh no!"))
+						})
+
+						It("returns 500", func() {
+							Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+						})
 					})
 				})
 
-				Context("and the abort callback fails", func() {
+				Context("and the engine returns no build", func() {
 					BeforeEach(func() {
-						abortTarget.SetHandler(0, func(w http.ResponseWriter, r *http.Request) {
-							abortTarget.CloseClientConnections()
-						})
+						fakeEngine.LookupBuildReturns(nil, errors.New("oh no!"))
 					})
 
-					It("returns 500 Internal Server Error", func() {
+					It("returns 500", func() {
 						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
 					})
 				})

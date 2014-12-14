@@ -10,6 +10,7 @@ import (
 
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/web/abortbuild"
 	"github.com/concourse/atc/web/getbuild"
@@ -29,6 +30,7 @@ func NewHandler(
 	configDB db.ConfigDB,
 	templatesDir, publicDir string,
 	drain <-chan struct{},
+	engine engine.Engine,
 ) (http.Handler, error) {
 	funcs := template.FuncMap{
 		"url": templateFuncs{}.url,
@@ -79,7 +81,7 @@ func NewHandler(
 		},
 
 		routes.AbortBuild: auth.Handler{
-			Handler:   abortbuild.NewHandler(logger, db),
+			Handler:   abortbuild.NewHandler(logger, db, engine),
 			Validator: validator,
 		},
 	}

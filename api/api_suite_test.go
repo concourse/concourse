@@ -18,11 +18,13 @@ import (
 	authfakes "github.com/concourse/atc/auth/fakes"
 	"github.com/concourse/atc/builder/fakebuilder"
 	dbfakes "github.com/concourse/atc/db/fakes"
+	enginefakes "github.com/concourse/atc/engine/fakes"
 	"github.com/concourse/atc/event"
 )
 
 var (
 	authValidator       *authfakes.FakeValidator
+	fakeEngine          *enginefakes.FakeEngine
 	buildsDB            *buildfakes.FakeBuildsDB
 	jobsDB              *jobfakes.FakeJobsDB
 	configDB            *dbfakes.FakeConfigDB
@@ -75,6 +77,8 @@ var _ = BeforeEach(func() {
 	peerAddr = "127.0.0.1:1234"
 	drain = make(chan struct{})
 
+	fakeEngine = new(enginefakes.FakeEngine)
+
 	constructedEventHandler = &fakeEventHandlerFactory{}
 
 	handler, err := api.NewHandler(
@@ -97,6 +101,8 @@ var _ = BeforeEach(func() {
 		peerAddr,
 		constructedEventHandler.Construct,
 		drain,
+
+		fakeEngine,
 	)
 	Ω(err).ShouldNot(HaveOccurred())
 

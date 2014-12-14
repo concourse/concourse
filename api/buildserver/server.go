@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/builder"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/event"
 	"github.com/pivotal-golang/lager"
 )
@@ -17,6 +18,7 @@ type EventHandlerFactory func(event.BuildsDB, int, event.Censor) http.Handler
 type Server struct {
 	logger lager.Logger
 
+	engine              engine.Engine
 	db                  BuildsDB
 	configDB            ConfigDB
 	builder             builder.Builder
@@ -44,6 +46,7 @@ type ConfigDB interface {
 
 func NewServer(
 	logger lager.Logger,
+	engine engine.Engine,
 	db BuildsDB,
 	configDB ConfigDB,
 	builder builder.Builder,
@@ -54,6 +57,7 @@ func NewServer(
 ) *Server {
 	return &Server{
 		logger:              logger,
+		engine:              engine,
 		db:                  db,
 		configDB:            configDB,
 		builder:             builder,

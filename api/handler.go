@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/atc/api/resourceserver"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/builder"
+	"github.com/concourse/atc/engine"
 )
 
 func NewHandler(
@@ -37,9 +38,12 @@ func NewHandler(
 	peerAddr string,
 	eventHandlerFactory buildserver.EventHandlerFactory,
 	drain <-chan struct{},
+
+	engine engine.Engine,
 ) (http.Handler, error) {
 	buildServer := buildserver.NewServer(
 		logger,
+		engine,
 		buildsDB,
 		buildserverConfigDB,
 		builder,

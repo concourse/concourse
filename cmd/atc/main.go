@@ -262,6 +262,8 @@ func main() {
 		callbacksURL.Host,
 		event.NewHandler,
 		drain,
+
+		engine,
 	)
 	if err != nil {
 		fatal(err)
@@ -276,6 +278,7 @@ func main() {
 		*templatesDir,
 		*publicDir,
 		drain,
+		engine,
 	)
 	if err != nil {
 		fatal(err)
