@@ -6,6 +6,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/engine"
 	"github.com/concourse/turbine"
 )
 
@@ -21,18 +22,18 @@ func (factory *BuildFactory) Create(
 	job atc.JobConfig,
 	resources atc.ResourceConfigs,
 	inputs []db.BuildInput,
-) (turbine.Build, error) {
+) (engine.BuildPlan, error) {
 	tInputs, err := factory.computeInputs(job, resources, inputs)
 	if err != nil {
-		return turbine.Build{}, err
+		return engine.BuildPlan{}, err
 	}
 
 	tOutputs, err := factory.computeOutputs(job, resources)
 	if err != nil {
-		return turbine.Build{}, err
+		return engine.BuildPlan{}, err
 	}
 
-	return turbine.Build{
+	return engine.BuildPlan{
 		Config: job.BuildConfig,
 
 		Inputs:  tInputs,

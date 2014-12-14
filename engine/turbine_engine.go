@@ -78,10 +78,10 @@ func (engine *turbineEngine) Name() string {
 	return "turbine"
 }
 
-func (engine *turbineEngine) CreateBuild(build db.Build, tBuild turbine.Build) (Build, error) {
+func (engine *turbineEngine) CreateBuild(build db.Build, plan BuildPlan) (Build, error) {
 	req := new(bytes.Buffer)
 
-	err := json.NewEncoder(req).Encode(tBuild)
+	err := json.NewEncoder(req).Encode(plan)
 	if err != nil {
 		return nil, err
 	}

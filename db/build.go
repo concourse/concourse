@@ -1,10 +1,6 @@
 package db
 
-import (
-	"time"
-
-	"github.com/concourse/turbine"
-)
+import "time"
 
 type Status string
 
@@ -55,9 +51,9 @@ type VersionedResource struct {
 	Metadata []MetadataField
 }
 
-type Source turbine.Source
+type Source map[string]interface{}
 
-type Version turbine.Version
+type Version map[string]interface{}
 
 type MetadataField struct {
 	Name  string

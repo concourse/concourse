@@ -25,12 +25,12 @@ import (
 
 var _ = Describe("Builds API", func() {
 	Describe("POST /api/v1/builds", func() {
-		var turbineBuild turbine.Build
+		var buildPlan engine.BuildPlan
 
 		var response *http.Response
 
 		BeforeEach(func() {
-			turbineBuild = turbine.Build{
+			buildPlan = engine.BuildPlan{
 				Config: turbine.Config{
 					Run: turbine.RunConfig{
 						Path: "ls",
@@ -40,7 +40,7 @@ var _ = Describe("Builds API", func() {
 		})
 
 		JustBeforeEach(func() {
-			reqPayload, err := json.Marshal(turbineBuild)
+			reqPayload, err := json.Marshal(buildPlan)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			req, err := http.NewRequest("POST", server.URL+"/api/v1/builds", bytes.NewBuffer(reqPayload))
@@ -89,14 +89,14 @@ var _ = Describe("Builds API", func() {
 						Ω(buildsDB.CreateOneOffBuildCallCount()).Should(Equal(1))
 
 						Ω(builder.BuildCallCount()).Should(Equal(1))
-						oneOff, tBuild := builder.BuildArgsForCall(0)
+						oneOff, plan := builder.BuildArgsForCall(0)
 						Ω(oneOff).Should(Equal(db.Build{
 							ID:      42,
 							Name:    "1",
 							JobName: "job1",
 							Status:  db.StatusStarted,
 						}))
-						Ω(tBuild).Should(Equal(turbineBuild))
+						Ω(plan).Should(Equal(buildPlan))
 					})
 				})
 
@@ -310,18 +310,9 @@ var _ = Describe("Builds API", func() {
 				ghttp.VerifyRequest("POST", "/builds/some-guid/abort"),
 			)
 
-			metadata := engine.TurbineMetadata{
-				Guid:     "some-guid",
-				Endpoint: abortTarget.URL(),
-			}
-
-			metadataPayload, err := json.Marshal(metadata)
-			Ω(err).ShouldNot(HaveOccurred())
-
 			buildsDB.GetBuildReturns(db.Build{
-				ID:             128,
-				Engine:         "turbine",
-				EngineMetadata: string(metadataPayload),
+				ID:     128,
+				Status: db.StatusStarted,
 			}, nil)
 		})
 
@@ -349,31 +340,50 @@ var _ = Describe("Builds API", func() {
 					buildsDB.SaveBuildStatusReturns(nil)
 				})
 
-				Context("and the engine returns a build", func() {
-					var fakeBuild *enginefakes.FakeBuild
-
+				Context("and the build is started", func() {
 					BeforeEach(func() {
-						fakeBuild = new(enginefakes.FakeBuild)
-						fakeEngine.LookupBuildReturns(fakeBuild, nil)
+						buildsDB.GetBuildReturns(db.Build{
+							ID:     128,
+							Status: db.StatusStarted,
+						}, nil)
 					})
 
-					It("aborts the build", func() {
-						Ω(fakeBuild.AbortCallCount()).Should(Equal(1))
-					})
+					Context("and the engine returns a build", func() {
+						var fakeBuild *enginefakes.FakeBuild
 
-					Context("and aborting succeeds", func() {
 						BeforeEach(func() {
-							fakeBuild.AbortReturns(nil)
+							fakeBuild = new(enginefakes.FakeBuild)
+							fakeEngine.LookupBuildReturns(fakeBuild, nil)
 						})
 
-						It("returns 204", func() {
-							Ω(response.StatusCode).Should(Equal(http.StatusNoContent))
+						It("aborts the build", func() {
+							Ω(fakeBuild.AbortCallCount()).Should(Equal(1))
+						})
+
+						Context("and aborting succeeds", func() {
+							BeforeEach(func() {
+								fakeBuild.AbortReturns(nil)
+							})
+
+							It("returns 204", func() {
+								Ω(response.StatusCode).Should(Equal(http.StatusNoContent))
+							})
+						})
+
+						Context("and aborting fails", func() {
+							BeforeEach(func() {
+								fakeBuild.AbortReturns(errors.New("oh no!"))
+							})
+
+							It("returns 500", func() {
+								Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+							})
 						})
 					})
 
-					Context("and aborting fails", func() {
+					Context("and the engine returns no build", func() {
 						BeforeEach(func() {
-							fakeBuild.AbortReturns(errors.New("oh no!"))
+							fakeEngine.LookupBuildReturns(nil, errors.New("oh no!"))
 						})
 
 						It("returns 500", func() {
@@ -382,13 +392,20 @@ var _ = Describe("Builds API", func() {
 					})
 				})
 
-				Context("and the engine returns no build", func() {
+				Context("and the status is pending", func() {
 					BeforeEach(func() {
-						fakeEngine.LookupBuildReturns(nil, errors.New("oh no!"))
+						buildsDB.GetBuildReturns(db.Build{
+							ID:     128,
+							Status: db.StatusPending,
+						}, nil)
 					})
 
-					It("returns 500", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					It("does not do anything with the engine", func() {
+						Ω(fakeEngine.LookupBuildCallCount()).Should(Equal(0))
+					})
+
+					It("returns 204", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusNoContent))
 					})
 				})
 			})

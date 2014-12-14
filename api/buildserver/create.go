@@ -4,14 +4,13 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/concourse/turbine"
-
 	"github.com/concourse/atc/api/present"
+	"github.com/concourse/atc/engine"
 )
 
 func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
-	var turbineBuild turbine.Build
-	err := json.NewDecoder(r.Body).Decode(&turbineBuild)
+	var plan engine.BuildPlan
+	err := json.NewDecoder(r.Body).Decode(&plan)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -24,7 +23,7 @@ func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.builder.Build(build, turbineBuild)
+	err = s.builder.Build(build, plan)
 	if err != nil {
 		s.logger.Error("failed-to-start-build", err)
 		w.WriteHeader(http.StatusInternalServerError)

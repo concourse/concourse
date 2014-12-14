@@ -3,6 +3,7 @@ package factory_test
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/engine"
 	. "github.com/concourse/atc/scheduler/factory"
 	"github.com/concourse/turbine"
 
@@ -17,7 +18,7 @@ var _ = Describe("Factory", func() {
 		job       atc.JobConfig
 		resources atc.ResourceConfigs
 
-		expectedTurbineBuild turbine.Build
+		expectedBuildPlan engine.BuildPlan
 	)
 
 	BeforeEach(func() {
@@ -69,7 +70,7 @@ var _ = Describe("Factory", func() {
 			},
 		}
 
-		expectedTurbineBuild = turbine.Build{
+		expectedBuildPlan = engine.BuildPlan{
 			Config: turbine.Config{
 				Image: "some-image",
 
@@ -152,10 +153,10 @@ var _ = Describe("Factory", func() {
 	})
 
 	It("creates a turbine build based on the job's configuration", func() {
-		turbineBuild, err := factory.Create(job, resources, nil)
+		buildPlan, err := factory.Create(job, resources, nil)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		Ω(turbineBuild).Should(Equal(expectedTurbineBuild))
+		Ω(buildPlan).Should(Equal(expectedBuildPlan))
 	})
 
 	Context("when an input has an explicit name", func() {
@@ -166,7 +167,7 @@ var _ = Describe("Factory", func() {
 				Params:   atc.Params{"some": "named-params"},
 			})
 
-			expectedTurbineBuild.Inputs = append(expectedTurbineBuild.Inputs, turbine.Input{
+			expectedBuildPlan.Inputs = append(expectedBuildPlan.Inputs, turbine.Input{
 				Name:     "some-named-input",
 				Resource: "some-named-resource",
 				Type:     "git",
@@ -176,10 +177,10 @@ var _ = Describe("Factory", func() {
 		})
 
 		It("uses it as the name for the input", func() {
-			turbineBuild, err := factory.Create(job, resources, nil)
+			buildPlan, err := factory.Create(job, resources, nil)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(turbineBuild.Inputs).Should(Equal(expectedTurbineBuild.Inputs))
+			Ω(buildPlan.Inputs).Should(Equal(expectedBuildPlan.Inputs))
 		})
 	})
 
@@ -193,9 +194,9 @@ var _ = Describe("Factory", func() {
 
 			job.BuildConfigPath = "some-named-input/build.yml"
 
-			expectedTurbineBuild.Inputs[0].ConfigPath = ""
+			expectedBuildPlan.Inputs[0].ConfigPath = ""
 
-			expectedTurbineBuild.Inputs = append(expectedTurbineBuild.Inputs, turbine.Input{
+			expectedBuildPlan.Inputs = append(expectedBuildPlan.Inputs, turbine.Input{
 				Name:       "some-named-input",
 				Resource:   "some-named-resource",
 				Type:       "git",
@@ -206,10 +207,10 @@ var _ = Describe("Factory", func() {
 		})
 
 		It("uses the explicit name to match the config path", func() {
-			turbineBuild, err := factory.Create(job, resources, nil)
+			buildPlan, err := factory.Create(job, resources, nil)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(turbineBuild.Inputs).Should(Equal(expectedTurbineBuild.Inputs))
+			Ω(buildPlan.Inputs).Should(Equal(expectedBuildPlan.Inputs))
 		})
 	})
 
@@ -221,9 +222,9 @@ var _ = Describe("Factory", func() {
 
 			job.BuildConfigPath = "some-resource-with-longer-name/build.yml"
 
-			expectedTurbineBuild.Inputs[0].ConfigPath = ""
+			expectedBuildPlan.Inputs[0].ConfigPath = ""
 
-			expectedTurbineBuild.Inputs = append(expectedTurbineBuild.Inputs, turbine.Input{
+			expectedBuildPlan.Inputs = append(expectedBuildPlan.Inputs, turbine.Input{
 				Name:       "some-resource-with-longer-name",
 				Resource:   "some-resource-with-longer-name",
 				Type:       "git",
@@ -233,16 +234,16 @@ var _ = Describe("Factory", func() {
 		})
 
 		It("chooses the correct input path", func() {
-			turbineBuild, err := factory.Create(job, resources, nil)
+			buildPlan, err := factory.Create(job, resources, nil)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(turbineBuild.Inputs).Should(Equal(expectedTurbineBuild.Inputs))
+			Ω(buildPlan.Inputs).Should(Equal(expectedBuildPlan.Inputs))
 		})
 	})
 
 	Context("when inputs with versions are specified", func() {
 		It("uses them for the build's inputs", func() {
-			turbineBuild, err := factory.Create(job, resources, []db.BuildInput{
+			buildPlan, err := factory.Create(job, resources, []db.BuildInput{
 				{
 					Name: "some-input",
 					VersionedResource: db.VersionedResource{
@@ -255,7 +256,7 @@ var _ = Describe("Factory", func() {
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(turbineBuild.Inputs).Should(Equal([]turbine.Input{
+			Ω(buildPlan.Inputs).Should(Equal([]turbine.Input{
 				{
 					Name:       "some-input",
 					Resource:   "some-resource",

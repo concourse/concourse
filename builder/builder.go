@@ -3,15 +3,15 @@ package builder
 import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
-	"github.com/concourse/turbine"
 )
 
 type BuilderDB interface {
 	StartBuild(buildID int, engine, metadata string) (bool, error)
 }
 
+//go:generate counterfeiter -o fakebuilder/builder.go . Builder
 type Builder interface {
-	Build(db.Build, turbine.Build) error
+	Build(db.Build, engine.BuildPlan) error
 }
 
 type builder struct {
@@ -26,8 +26,8 @@ func NewBuilder(db BuilderDB, engine engine.Engine) Builder {
 	}
 }
 
-func (builder *builder) Build(build db.Build, turbineBuild turbine.Build) error {
-	createdBuild, err := builder.engine.CreateBuild(build, turbineBuild)
+func (builder *builder) Build(build db.Build, plan engine.BuildPlan) error {
+	createdBuild, err := builder.engine.CreateBuild(build, plan)
 	if err != nil {
 		return err
 	}

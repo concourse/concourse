@@ -9,6 +9,7 @@ import (
 	. "github.com/concourse/atc/builder"
 	"github.com/concourse/atc/builder/fakes"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/engine"
 	enginefakes "github.com/concourse/atc/engine/fakes"
 	"github.com/concourse/turbine"
 )
@@ -20,8 +21,8 @@ var _ = Describe("Builder", func() {
 
 		builder Builder
 
-		build        db.Build
-		turbineBuild turbine.Build
+		build db.Build
+		plan  engine.BuildPlan
 
 		buildErr error
 	)
@@ -37,7 +38,7 @@ var _ = Describe("Builder", func() {
 			Name: "some-build",
 		}
 
-		turbineBuild = turbine.Build{
+		plan = engine.BuildPlan{
 			Config: turbine.Config{
 				Image: "some-image",
 
@@ -59,7 +60,7 @@ var _ = Describe("Builder", func() {
 	})
 
 	JustBeforeEach(func() {
-		buildErr = builder.Build(build, turbineBuild)
+		buildErr = builder.Build(build, plan)
 	})
 
 	Context("when creating the build succeeds", func() {

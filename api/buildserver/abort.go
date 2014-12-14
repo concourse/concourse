@@ -33,7 +33,7 @@ func (s *Server) AbortBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if build.Engine != "" {
+	if build.Status == db.StatusStarted {
 		engineBuild, err := s.engine.LookupBuild(build)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)

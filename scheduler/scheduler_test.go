@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/atc/builder/fakebuilder"
 	"github.com/concourse/atc/db"
 	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/engine"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/fakes"
 	"github.com/concourse/turbine"
@@ -25,7 +26,7 @@ var _ = Describe("Scheduler", func() {
 		locker      *fakes.FakeLocker
 		tracker     *fakes.FakeBuildTracker
 
-		createdTurbineBuild turbine.Build
+		createdBuildPlan engine.BuildPlan
 
 		job       atc.JobConfig
 		resources atc.ResourceConfigs
@@ -42,13 +43,13 @@ var _ = Describe("Scheduler", func() {
 		locker = new(fakes.FakeLocker)
 		tracker = new(fakes.FakeBuildTracker)
 
-		createdTurbineBuild = turbine.Build{
+		createdBuildPlan = engine.BuildPlan{
 			Config: turbine.Config{
 				Run: turbine.RunConfig{Path: "some-build"},
 			},
 		}
 
-		factory.CreateReturns(createdTurbineBuild, nil)
+		factory.CreateReturns(createdBuildPlan, nil)
 
 		scheduler = &Scheduler{
 			Logger:  lagertest.NewTestLogger("test"),
@@ -349,7 +350,7 @@ var _ = Describe("Scheduler", func() {
 							Ω(builder.BuildCallCount()).Should(Equal(1))
 							builtBuild, builtTurbineBuild := builder.BuildArgsForCall(0)
 							Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
-							Ω(builtTurbineBuild).Should(Equal(createdTurbineBuild))
+							Ω(builtTurbineBuild).Should(Equal(createdBuildPlan))
 						})
 					})
 
@@ -445,7 +446,7 @@ var _ = Describe("Scheduler", func() {
 					Ω(builder.BuildCallCount()).Should(Equal(1))
 					builtBuild, builtTurbineBuild := builder.BuildArgsForCall(0)
 					Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
-					Ω(builtTurbineBuild).Should(Equal(createdTurbineBuild))
+					Ω(builtTurbineBuild).Should(Equal(createdBuildPlan))
 				})
 			})
 
@@ -542,7 +543,7 @@ var _ = Describe("Scheduler", func() {
 						Ω(builder.BuildCallCount()).Should(Equal(1))
 						builtBuild, builtTurbineBuild := builder.BuildArgsForCall(0)
 						Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
-						Ω(builtTurbineBuild).Should(Equal(createdTurbineBuild))
+						Ω(builtTurbineBuild).Should(Equal(createdBuildPlan))
 					})
 				})
 
@@ -655,7 +656,7 @@ var _ = Describe("Scheduler", func() {
 							Ω(builder.BuildCallCount()).Should(Equal(1))
 							builtBuild, builtTurbineBuild := builder.BuildArgsForCall(0)
 							Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
-							Ω(builtTurbineBuild).Should(Equal(createdTurbineBuild))
+							Ω(builtTurbineBuild).Should(Equal(createdBuildPlan))
 						})
 					})
 				})

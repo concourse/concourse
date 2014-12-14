@@ -8,9 +8,10 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/builder"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/turbine"
+	"github.com/concourse/atc/engine"
 )
 
+//go:generate counterfeiter . SchedulerDB
 type SchedulerDB interface {
 	ScheduleBuild(buildID int, serial bool) (bool, error)
 
@@ -24,10 +25,12 @@ type SchedulerDB interface {
 	GetAllStartedBuilds() ([]db.Build, error)
 }
 
+//go:generate counterfeiter . BuildFactory
 type BuildFactory interface {
-	Create(atc.JobConfig, atc.ResourceConfigs, []db.BuildInput) (turbine.Build, error)
+	Create(atc.JobConfig, atc.ResourceConfigs, []db.BuildInput) (engine.BuildPlan, error)
 }
 
+//go:generate counterfeiter . BuildTracker
 type BuildTracker interface {
 	TrackBuild(db.Build) error
 }
@@ -117,13 +120,13 @@ func (s *Scheduler) BuildLatestInputs(job atc.JobConfig, resources atc.ResourceC
 		"inputs": inputs,
 	})
 
-	turbineBuild, err := s.Factory.Create(job, resources, inputs)
+	buildPlan, err := s.Factory.Create(job, resources, inputs)
 	if err != nil {
 		buildLog.Error("failed-to-create", err)
 		return err
 	}
 
-	err = s.Builder.Build(build, turbineBuild)
+	err = s.Builder.Build(build, buildPlan)
 	if err != nil {
 		buildLog.Error("failed-to-build", err)
 		return err
@@ -153,13 +156,13 @@ func (s *Scheduler) TryNextPendingBuild(job atc.JobConfig, resources atc.Resourc
 		return nil
 	}
 
-	turbineBuild, err := s.Factory.Create(job, resources, inputs)
+	buildPlan, err := s.Factory.Create(job, resources, inputs)
 	if err != nil {
 		buildLog.Error("failed-to-create", err)
 		return err
 	}
 
-	err = s.Builder.Build(build, turbineBuild)
+	err = s.Builder.Build(build, buildPlan)
 	if err != nil {
 		buildLog.Error("failed-to-build", err)
 		return err
@@ -216,13 +219,13 @@ func (s *Scheduler) TriggerImmediately(job atc.JobConfig, resources atc.Resource
 		return build, nil
 	}
 
-	turbineBuild, err := s.Factory.Create(job, resources, inputs)
+	buildPlan, err := s.Factory.Create(job, resources, inputs)
 	if err != nil {
 		buildLog.Error("failed-to-create", err)
 		return db.Build{}, err
 	}
 
-	err = s.Builder.Build(build, turbineBuild)
+	err = s.Builder.Build(build, buildPlan)
 	if err != nil {
 		buildLog.Error("failed-to-build", err)
 		return db.Build{}, err

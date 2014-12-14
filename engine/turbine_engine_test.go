@@ -53,7 +53,7 @@ var _ = Describe("TurbineEngine", func() {
 	Describe("CreateBuild", func() {
 		var (
 			build        db.Build
-			turbineBuild turbine.Build
+			turbineBuild BuildPlan
 
 			createdBuild Build
 			createErr    error
@@ -64,7 +64,7 @@ var _ = Describe("TurbineEngine", func() {
 				ID: 1,
 			}
 
-			turbineBuild = turbine.Build{
+			turbineBuild = BuildPlan{
 				Config: turbine.Config{
 					Image: "some-image",
 
@@ -85,7 +85,7 @@ var _ = Describe("TurbineEngine", func() {
 			createdBuild, createErr = engine.CreateBuild(build, turbineBuild)
 		})
 
-		successfulBuildStart := func(build turbine.Build) http.HandlerFunc {
+		successfulBuildStart := func(build BuildPlan) http.HandlerFunc {
 			createdBuild := build
 			createdBuild.Guid = "some-build-guid"
 

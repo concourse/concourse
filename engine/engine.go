@@ -12,11 +12,14 @@ import (
 
 var ErrBuildNotFound = errors.New("build not found")
 
+// intermediate
+type BuildPlan turbine.Build
+
 //go:generate counterfeiter . Engine
 type Engine interface {
 	Name() string
 
-	CreateBuild(db.Build, turbine.Build) (Build, error)
+	CreateBuild(db.Build, BuildPlan) (Build, error)
 	LookupBuild(db.Build) (Build, error)
 }
 
