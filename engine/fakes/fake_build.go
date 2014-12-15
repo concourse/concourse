@@ -6,7 +6,6 @@ import (
 
 	garden "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/concourse/atc/engine"
-	"github.com/concourse/turbine/event"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -32,15 +31,14 @@ type FakeBuild struct {
 	hijackReturns struct {
 		result1 error
 	}
-	SubscribeStub        func(from uint) (<-chan event.Event, chan<- struct{}, error)
+	SubscribeStub        func(from uint) (engine.EventSource, error)
 	subscribeMutex       sync.RWMutex
 	subscribeArgsForCall []struct {
 		from uint
 	}
 	subscribeReturns struct {
-		result1 <-chan event.Event
-		result2 chan<- struct{}
-		result3 error
+		result1 engine.EventSource
+		result2 error
 	}
 	ResumeStub        func(lager.Logger) error
 	resumeMutex       sync.RWMutex
@@ -133,7 +131,7 @@ func (fake *FakeBuild) HijackReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBuild) Subscribe(from uint) (<-chan event.Event, chan<- struct{}, error) {
+func (fake *FakeBuild) Subscribe(from uint) (engine.EventSource, error) {
 	fake.subscribeMutex.Lock()
 	fake.subscribeArgsForCall = append(fake.subscribeArgsForCall, struct {
 		from uint
@@ -142,7 +140,7 @@ func (fake *FakeBuild) Subscribe(from uint) (<-chan event.Event, chan<- struct{}
 	if fake.SubscribeStub != nil {
 		return fake.SubscribeStub(from)
 	} else {
-		return fake.subscribeReturns.result1, fake.subscribeReturns.result2, fake.subscribeReturns.result3
+		return fake.subscribeReturns.result1, fake.subscribeReturns.result2
 	}
 }
 
@@ -158,13 +156,12 @@ func (fake *FakeBuild) SubscribeArgsForCall(i int) uint {
 	return fake.subscribeArgsForCall[i].from
 }
 
-func (fake *FakeBuild) SubscribeReturns(result1 <-chan event.Event, result2 chan<- struct{}, result3 error) {
+func (fake *FakeBuild) SubscribeReturns(result1 engine.EventSource, result2 error) {
 	fake.SubscribeStub = nil
 	fake.subscribeReturns = struct {
-		result1 <-chan event.Event
-		result2 chan<- struct{}
-		result3 error
-	}{result1, result2, result3}
+		result1 engine.EventSource
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeBuild) Resume(arg1 lager.Logger) error {

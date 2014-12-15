@@ -11,6 +11,9 @@ import (
 )
 
 var ErrBuildNotFound = errors.New("build not found")
+var ErrEndOfStream = errors.New("end of stream")
+var ErrReadClosedStream = errors.New("read of closed stream")
+var ErrCloseClosedStream = errors.New("close of closed stream")
 
 // intermediate
 type BuildPlan turbine.Build
@@ -29,6 +32,12 @@ type Build interface {
 
 	Abort() error
 	Hijack(garden.ProcessSpec, garden.ProcessIO) error
-	Subscribe(from uint) (<-chan event.Event, chan<- struct{}, error)
+	Subscribe(from uint) (EventSource, error)
 	Resume(lager.Logger) error
+}
+
+//go:generate counterfeiter . EventSource
+type EventSource interface {
+	Next() (event.Event, error)
+	Close() error
 }

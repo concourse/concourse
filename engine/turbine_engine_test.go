@@ -190,7 +190,7 @@ var _ = Describe("TurbineEngine", func() {
 
 		Context("when the build's metadata is missing guid", func() {
 			BeforeEach(func() {
-				buildModel.EngineMetadata = ``
+				buildModel.EngineMetadata = `{"endpoint":"http://example.com"}`
 			})
 
 			It("returns an error", func() {
@@ -200,7 +200,7 @@ var _ = Describe("TurbineEngine", func() {
 
 		Context("when the build's metadata is missing endpoint", func() {
 			BeforeEach(func() {
-				buildModel.EngineMetadata = ``
+				buildModel.EngineMetadata = `{"guid":"abc"}`
 			})
 
 			It("returns an error", func() {
@@ -285,6 +285,241 @@ var _ = Describe("TurbineEngine", func() {
 
 				It("returns an error", func() {
 					Ω(abortErr).Should(HaveOccurred())
+				})
+			})
+		})
+
+		Describe("Subscribe", func() {
+			var (
+				buildModel db.Build
+
+				subSource EventSource
+				subErr    error
+			)
+
+			BeforeEach(func() {
+				metadata := TurbineMetadata{
+					Guid:     "some-guid",
+					Endpoint: buildEndpoint.URL(),
+				}
+
+				metadataPayload, err := json.Marshal(metadata)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				buildModel = db.Build{
+					ID:             1,
+					Engine:         engine.Name(),
+					EngineMetadata: string(metadataPayload),
+				}
+			})
+
+			JustBeforeEach(func() {
+				build, err := engine.LookupBuild(buildModel)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				subSource, subErr = build.Subscribe(123)
+			})
+
+			AfterEach(func() {
+				if subSource != nil {
+					subSource.Close()
+				}
+			})
+
+			Context("when the build's turbine returns events", func() {
+				var (
+					events []event.Event
+				)
+
+				BeforeEach(func() {
+					events = []event.Event{}
+
+					buildEndpoint.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/builds/some-guid/events"),
+							func(w http.ResponseWriter, r *http.Request) {
+								flusher := w.(http.Flusher)
+
+								Ω(r.Header.Get("Last-Event-ID")).Should(Equal("122"))
+
+								w.Header().Add("Content-Type", "text/event-stream; charset=utf-8")
+								w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
+								w.Header().Add("Connection", "keep-alive")
+
+								w.WriteHeader(http.StatusOK)
+
+								flusher.Flush()
+
+								for id, e := range events {
+									payload, err := json.Marshal(e)
+									Ω(err).ShouldNot(HaveOccurred())
+
+									event := sse.Event{
+										ID:   fmt.Sprintf("%d", id),
+										Name: string(e.EventType()),
+										Data: []byte(payload),
+									}
+
+									err = event.Write(w)
+									if err != nil {
+										return
+									}
+
+									flusher.Flush()
+								}
+							},
+						),
+					)
+				})
+
+				itEmitsTheEvent := func(count int) {
+					It("emits the event", func() {
+						Eventually(subSource.Next).Should(Equal(events[count-1]))
+					})
+				}
+
+				Describe("Closing", func() {
+					BeforeEach(func() {
+						events = append(events,
+							event.Version("1.0"),
+							event.Status{Status: turbine.StatusStarted},
+						)
+					})
+
+					It("succeeds and prevents more events from being read", func() {
+						Ω(subSource.Next()).Should(Equal(event.Version("1.0")))
+
+						err := subSource.Close()
+						Ω(err).ShouldNot(HaveOccurred())
+
+						_, err = subSource.Next()
+						Ω(err).Should(Equal(ErrReadClosedStream))
+
+						err = subSource.Close()
+						Ω(err).Should(Equal(ErrCloseClosedStream))
+					})
+				})
+
+				for _, v1version := range []string{"1.0", "1.1"} {
+					version := v1version
+
+					Context("and they're v"+version, func() {
+						BeforeEach(func() {
+							events = append(events, event.Version(version))
+						})
+
+						itEmitsTheEvent(1)
+
+						Context("and a status event appears", func() {
+							Context("and it's started", func() {
+								BeforeEach(func() {
+									events = append(events, event.Status{
+										Status: turbine.StatusStarted,
+										Time:   1234,
+									})
+								})
+
+								itEmitsTheEvent(2)
+							})
+
+							Context("and it's completed", func() {
+								BeforeEach(func() {
+									events = append(events, event.Status{
+										Status: turbine.StatusSucceeded,
+										Time:   1234,
+									})
+								})
+
+								itEmitsTheEvent(2)
+							})
+						})
+
+						Context("and an input event appears", func() {
+							BeforeEach(func() {
+								events = append(events, event.Input{
+									Input: turbine.Input{
+										Name:     "some-input-name",
+										Resource: "some-input-resource",
+										Type:     "some-type",
+										Source:   turbine.Source{"input-source": "some-source"},
+										Version:  turbine.Version{"version": "input-version"},
+										Metadata: []turbine.MetadataField{
+											{Name: "input-meta", Value: "some-value"},
+										},
+									},
+								})
+							})
+
+							itEmitsTheEvent(2)
+						})
+
+						Context("and an output event appears", func() {
+							BeforeEach(func() {
+								events = append(events, event.Output{
+									Output: turbine.Output{
+										Name:    "some-output-name",
+										Type:    "some-type",
+										Source:  turbine.Source{"output-source": "some-source"},
+										Version: turbine.Version{"version": "output-version"},
+										Metadata: []turbine.MetadataField{
+											{Name: "output-meta", Value: "some-value"},
+										},
+									},
+								})
+							})
+
+							itEmitsTheEvent(2)
+						})
+
+						Context("and an end event appears", func() {
+							BeforeEach(func() {
+								events = append(events, event.End{})
+							})
+
+							itEmitsTheEvent(2)
+						})
+					})
+				}
+
+				Context("and they're some other version", func() {
+					BeforeEach(func() {
+						events = append(
+							events,
+							event.Version("2.0"),
+							event.Status{Status: turbine.StatusSucceeded},
+						)
+					})
+
+					It("skips the events", func() {
+						_, err := subSource.Next()
+						Ω(err).Should(Equal(ErrEndOfStream))
+					})
+				})
+			})
+
+			Context("when the build's turbine returns 404", func() {
+				BeforeEach(func() {
+					buildEndpoint.AppendHandlers(
+						ghttp.RespondWith(http.StatusNotFound, ""),
+					)
+				})
+
+				It("returns an error", func() {
+					Ω(subErr).Should(HaveOccurred())
+				})
+			})
+
+			Context("when the build's turbine is inaccessible", func() {
+				BeforeEach(func() {
+					buildEndpoint.AppendHandlers(
+						func(w http.ResponseWriter, r *http.Request) {
+							buildEndpoint.CloseClientConnections()
+						},
+					)
+				})
+
+				It("returns an error", func() {
+					Ω(subErr).Should(HaveOccurred())
 				})
 			})
 		})

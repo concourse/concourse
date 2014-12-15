@@ -4,12 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
-	"github.com/concourse/turbine"
-	"github.com/tedsuo/rata"
+	"github.com/concourse/turbine/event"
 	"github.com/vito/go-sse/sse"
 )
 
@@ -18,9 +16,9 @@ type BuildsDB interface {
 	GetBuildEvents(buildID int) ([]db.BuildEvent, error)
 }
 
-type Censor func(sse.Event) (sse.Event, error)
+type Censor func(event.Event) event.Event
 
-func NewHandler(buildsDB BuildsDB, buildID int, censor Censor) http.Handler {
+func NewHandler(buildsDB BuildsDB, buildID int, engine engine.Engine, censor Censor) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		build, err := buildsDB.GetBuild(buildID)
 		if err != nil {
@@ -35,48 +33,38 @@ func NewHandler(buildsDB BuildsDB, buildID int, censor Censor) http.Handler {
 		w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
 		w.Header().Add("Connection", "keep-alive")
 
+		var start uint = 0
+		if r.Header.Get("Last-Event-ID") != "" {
+			_, err := fmt.Sscanf(r.Header.Get("Last-Event-ID"), "%d", &start)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			start++
+		}
+
 		if build.Status == db.StatusStarted {
-			var metadata engine.TurbineMetadata
-			err := json.Unmarshal([]byte(build.EngineMetadata), &metadata)
+			engineBuild, err := engine.LookupBuild(build)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
-			generator := rata.NewRequestGenerator(metadata.Endpoint, turbine.Routes)
-
-			events, err := generator.CreateRequest(
-				turbine.GetBuildEvents,
-				rata.Params{"guid": metadata.Guid},
-				nil,
-			)
+			events, err := engineBuild.Subscribe(start)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
-			events.Header.Set("Last-Event-ID", r.Header.Get("Last-Event-ID"))
+			defer events.Close()
 
-			resp, err := http.DefaultClient.Do(events)
-			if err != nil {
-				w.WriteHeader(http.StatusServiceUnavailable)
-				return
-			}
-
-			defer resp.Body.Close()
-
-			w.WriteHeader(http.StatusOK)
-
-			flusher.Flush()
-
-			reader := sse.NewReader(resp.Body)
-
-			es := make(chan sse.Event)
+			es := make(chan event.Event)
 			errs := make(chan error, 1)
 
 			go func() {
 				for {
-					ev, err := reader.Next()
+					ev, err := events.Next()
 					if err != nil {
 						errs <- err
 						return
@@ -94,16 +82,24 @@ func NewHandler(buildsDB BuildsDB, buildID int, censor Censor) http.Handler {
 				select {
 				case ev := <-es:
 					if censor != nil {
-						ev, err = censor(ev)
-						if err != nil {
-							return
-						}
+						ev = censor(ev)
 					}
 
-					err = ev.Write(w)
+					payload, err := json.Marshal(ev)
 					if err != nil {
 						return
 					}
+
+					err = sse.Event{
+						ID:   fmt.Sprintf("%d", start),
+						Name: string(ev.EventType()),
+						Data: payload,
+					}.Write(w)
+					if err != nil {
+						return
+					}
+
+					start++
 
 					flusher.Flush()
 				case <-errs:
@@ -119,41 +115,35 @@ func NewHandler(buildsDB BuildsDB, buildID int, censor Censor) http.Handler {
 				return
 			}
 
-			start := 0
-			if r.Header.Get("Last-Event-ID") != "" {
-				var err error
-
-				lastEvent, err := strconv.Atoi(r.Header.Get("Last-Event-ID"))
-				if err != nil {
-					w.WriteHeader(http.StatusBadRequest)
-					return
-				}
-
-				start = lastEvent + 1
-			}
-
-			if start >= len(events) {
+			if start >= uint(len(events)) {
 				return
 			}
 
-			for idx, event := range events[start:] {
-				ev := sse.Event{
-					ID:   fmt.Sprintf("%d", idx+start),
-					Name: event.Type,
-					Data: []byte(event.Payload),
+			for _, be := range events[start:] {
+				ev, err := event.ParseEvent(event.EventType(be.Type), []byte(be.Payload))
+				if err != nil {
+					continue
 				}
 
 				if censor != nil {
-					ev, err = censor(ev)
-					if err != nil {
-						return
-					}
+					ev = censor(ev)
 				}
 
-				err := ev.Write(w)
+				payload, err := json.Marshal(ev)
 				if err != nil {
 					return
 				}
+
+				err = sse.Event{
+					ID:   fmt.Sprintf("%d", start),
+					Name: string(ev.EventType()),
+					Data: payload,
+				}.Write(w)
+				if err != nil {
+					return
+				}
+
+				start++
 
 				flusher.Flush()
 			}

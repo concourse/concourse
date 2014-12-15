@@ -207,9 +207,33 @@ func (build *turbineBuild) Hijack(garden.ProcessSpec, garden.ProcessIO) error {
 	return nil
 }
 
-func (build *turbineBuild) Subscribe(from uint) (<-chan event.Event, chan<- struct{}, error) {
-	// GET /events
-	return nil, nil, nil
+func (build *turbineBuild) Subscribe(from uint) (EventSource, error) {
+	getEvents, err := build.turbineEndpoint.CreateRequest(
+		turbine.GetBuildEvents,
+		rata.Params{"guid": build.guid},
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if from > 0 {
+		getEvents.Header.Set("Last-Event-ID", strconv.Itoa(int(from-1)))
+	}
+
+	resp, err := http.DefaultClient.Do(getEvents)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, ErrBadResponse
+	}
+
+	return &eventSource{
+		reader: sse.NewReader(resp.Body),
+		closer: resp.Body,
+	}, nil
 }
 
 func (build *turbineBuild) Resume(logger lager.Logger) error {
@@ -451,4 +475,57 @@ func vrFromOutput(output turbine.Output) db.VersionedResource {
 		Version:  db.Version(output.Version),
 		Metadata: metadata,
 	}
+}
+
+type eventSource struct {
+	reader         *sse.Reader
+	currentVersion string
+
+	closer io.Closer
+	closed bool
+}
+
+func (source *eventSource) Next() (event.Event, error) {
+	if source.closed {
+		return nil, ErrReadClosedStream
+	}
+
+	for {
+		se, err := source.reader.Next()
+		if err != nil {
+			if err == io.EOF {
+				return nil, ErrEndOfStream
+			}
+
+			return nil, err
+		}
+
+		if se.Name == "version" {
+			var version event.Version
+			err := json.Unmarshal(se.Data, &version)
+			if err != nil {
+				return nil, err
+			}
+
+			source.currentVersion = string(version)
+		}
+
+		switch source.currentVersion {
+		case "1.0":
+			fallthrough
+		case "1.1":
+			return event.ParseEvent(event.EventType(se.Name), se.Data)
+		}
+	}
+
+	panic("unreachable")
+}
+
+func (source *eventSource) Close() error {
+	if source.closed {
+		return ErrCloseClosedStream
+	}
+
+	source.closed = true
+	return source.closer.Close()
 }

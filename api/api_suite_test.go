@@ -18,6 +18,7 @@ import (
 	authfakes "github.com/concourse/atc/auth/fakes"
 	"github.com/concourse/atc/builder/fakebuilder"
 	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/engine"
 	enginefakes "github.com/concourse/atc/engine/fakes"
 	"github.com/concourse/atc/event"
 )
@@ -43,6 +44,7 @@ var (
 type fakeEventHandlerFactory struct {
 	db      event.BuildsDB
 	buildID int
+	engine  engine.Engine
 	censor  event.Censor
 
 	lock sync.Mutex
@@ -51,11 +53,13 @@ type fakeEventHandlerFactory struct {
 func (f *fakeEventHandlerFactory) Construct(
 	db event.BuildsDB,
 	buildID int,
+	engine engine.Engine,
 	censor event.Censor,
 ) http.Handler {
 	f.lock.Lock()
 	f.db = db
 	f.buildID = buildID
+	f.engine = engine
 	f.censor = censor
 	f.lock.Unlock()
 

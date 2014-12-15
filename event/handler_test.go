@@ -1,17 +1,14 @@
 package event_test
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
-	"strings"
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
+	enginefakes "github.com/concourse/atc/engine/fakes"
 	. "github.com/concourse/atc/event"
 	"github.com/concourse/atc/event/fakes"
 	"github.com/concourse/turbine/event"
@@ -19,12 +16,12 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/ghttp"
 )
 
 var _ = Describe("Handler", func() {
 	var (
-		buildsDB *fakes.FakeBuildsDB
+		buildsDB   *fakes.FakeBuildsDB
+		fakeEngine *enginefakes.FakeEngine
 
 		server *httptest.Server
 		client *http.Client
@@ -32,9 +29,9 @@ var _ = Describe("Handler", func() {
 
 	BeforeEach(func() {
 		buildsDB = new(fakes.FakeBuildsDB)
-		handler := NewHandler(buildsDB, 128, nil)
+		fakeEngine = new(enginefakes.FakeEngine)
 
-		server = httptest.NewServer(handler)
+		server = httptest.NewServer(NewHandler(buildsDB, 128, fakeEngine, nil))
 
 		client = &http.Client{
 			Transport: &http.Transport{},
@@ -61,164 +58,91 @@ var _ = Describe("Handler", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		capsCensor := func(ev sse.Event) (sse.Event, error) {
-			ev.Name = strings.ToUpper(ev.Name)
-			ev.Data = bytes.ToUpper(ev.Data)
-			return ev, nil
+		weirdCensor := func(ev event.Event) event.Event {
+			switch e := ev.(type) {
+			case event.Version:
+				return event.Version("1." + e)
+			case event.Start:
+				e.Time *= 2
+				return e
+			}
+
+			return ev
 		}
 
 		Context("when the build is started", func() {
-			var (
-				turbineEndpoint *ghttp.Server
-
-				returnedEvents []event.Event
-			)
-
 			BeforeEach(func() {
-				turbineEndpoint = ghttp.NewServer()
-
-				returnedEvents = []event.Event{}
-
-				turbineEndpoint.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/builds/some-guid/events"),
-						func(w http.ResponseWriter, r *http.Request) {
-							flusher := w.(http.Flusher)
-
-							w.Header().Add("Content-Type", "text/event-stream; charset=utf-8")
-							w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
-							w.Header().Add("Connection", "keep-alive")
-
-							w.WriteHeader(http.StatusOK)
-
-							flusher.Flush()
-
-							start := 0
-							if r.Header.Get("Last-Event-ID") != "" {
-								lastEvent, err := strconv.Atoi(r.Header.Get("Last-Event-ID"))
-								Ω(err).ShouldNot(HaveOccurred())
-
-								start = lastEvent + 1
-							}
-
-							for idx, e := range returnedEvents[start:] {
-								payload, err := json.Marshal(e)
-								Ω(err).ShouldNot(HaveOccurred())
-
-								event := sse.Event{
-									ID:   fmt.Sprintf("%d", idx+start),
-									Name: string(e.EventType()),
-									Data: []byte(payload),
-								}
-
-								err = event.Write(w)
-								if err != nil {
-									return
-								}
-
-								flusher.Flush()
-							}
-						},
-					),
-				)
-
-				metadata := engine.TurbineMetadata{
-					Guid:     "some-guid",
-					Endpoint: turbineEndpoint.URL(),
-				}
-
-				metadataPayload, err := json.Marshal(metadata)
-				Ω(err).ShouldNot(HaveOccurred())
-
 				buildsDB.GetBuildReturns(db.Build{
 					ID:             128,
-					Engine:         "turbine",
-					EngineMetadata: string(metadataPayload),
+					Engine:         "some-engine",
+					EngineMetadata: "some-metadata",
 					Status:         db.StatusStarted,
 				}, nil)
 			})
 
-			Context("when the turbine returns events", func() {
+			Context("when the engine returns a build", func() {
+				var fakeBuild *enginefakes.FakeBuild
+
 				BeforeEach(func() {
-					returnedEvents = append(
-						returnedEvents,
-						event.Version("1.0"),
-						event.Start{Time: 1},
-						event.End{},
-					)
+					fakeBuild = new(enginefakes.FakeBuild)
+					fakeEngine.LookupBuildReturns(fakeBuild, nil)
 				})
 
-				AfterEach(func() {
-					turbineEndpoint.Close()
-				})
+				Context("and subscribing to it succeeds", func() {
+					var fakeEventSource *enginefakes.FakeEventSource
 
-				It("returns 200", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
-				})
-
-				It("returns Content-Type as text/event-stream", func() {
-					Ω(response.Header.Get("Content-Type")).Should(Equal("text/event-stream; charset=utf-8"))
-					Ω(response.Header.Get("Cache-Control")).Should(Equal("no-cache, no-store, must-revalidate"))
-					Ω(response.Header.Get("Connection")).Should(Equal("keep-alive"))
-				})
-
-				It("proxies them", func() {
-					reader := sse.NewReader(response.Body)
-
-					Ω(reader.Next()).Should(Equal(sse.Event{
-						ID:   "0",
-						Name: "version",
-						Data: []byte(`"1.0"`),
-					}))
-
-					Ω(reader.Next()).Should(Equal(sse.Event{
-						ID:   "1",
-						Name: "start",
-						Data: []byte(`{"time":1}`),
-					}))
-
-					Ω(reader.Next()).Should(Equal(sse.Event{
-						ID:   "2",
-						Name: "end",
-						Data: []byte(`{}`),
-					}))
-				})
-
-				Context("when a censor is provided", func() {
 					BeforeEach(func() {
-						server.Config.Handler = NewHandler(buildsDB, 128, capsCensor)
+						returnedEvents := []event.Event{
+							event.Version("1.0"),
+							event.Start{Time: 1},
+							event.End{},
+						}
+
+						fakeEventSource = new(enginefakes.FakeEventSource)
+
+						fakeBuild.SubscribeStub = func(from uint) (engine.EventSource, error) {
+							fakeEventSource.NextStub = func() (event.Event, error) {
+								defer GinkgoRecover()
+
+								Ω(fakeEventSource.CloseCallCount()).Should(Equal(0))
+
+								if from >= uint(len(returnedEvents)) {
+									return nil, engine.ErrEndOfStream
+								}
+
+								from++
+
+								return returnedEvents[from-1], nil
+							}
+
+							return fakeEventSource, nil
+						}
 					})
 
-					It("filters the events through it", func() {
+					It("returns 200", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusOK))
+					})
+
+					It("returns Content-Type as text/event-stream", func() {
+						Ω(response.Header.Get("Content-Type")).Should(Equal("text/event-stream; charset=utf-8"))
+						Ω(response.Header.Get("Cache-Control")).Should(Equal("no-cache, no-store, must-revalidate"))
+						Ω(response.Header.Get("Connection")).Should(Equal("keep-alive"))
+					})
+
+					It("emits them", func() {
 						reader := sse.NewReader(response.Body)
 
 						Ω(reader.Next()).Should(Equal(sse.Event{
 							ID:   "0",
-							Name: "VERSION",
+							Name: "version",
 							Data: []byte(`"1.0"`),
 						}))
 
 						Ω(reader.Next()).Should(Equal(sse.Event{
 							ID:   "1",
-							Name: "START",
-							Data: []byte(`{"TIME":1}`),
+							Name: "start",
+							Data: []byte(`{"time":1}`),
 						}))
-
-						Ω(reader.Next()).Should(Equal(sse.Event{
-							ID:   "2",
-							Name: "END",
-							Data: []byte(`{}`),
-						}))
-					})
-				})
-
-				Context("when the Last-Event-ID header is given", func() {
-					BeforeEach(func() {
-						request.Header.Set("Last-Event-ID", "1")
-					})
-
-					It("forwards it to the turbine", func() {
-						reader := sse.NewReader(response.Body)
 
 						Ω(reader.Next()).Should(Equal(sse.Event{
 							ID:   "2",
@@ -226,16 +150,68 @@ var _ = Describe("Handler", func() {
 							Data: []byte(`{}`),
 						}))
 					})
+
+					It("closes the event source", func() {
+						Eventually(fakeEventSource.CloseCallCount).Should(Equal(1))
+					})
+
+					Context("when a censor is provided", func() {
+						BeforeEach(func() {
+							server.Config.Handler = NewHandler(buildsDB, 128, fakeEngine, weirdCensor)
+						})
+
+						It("filters the events through it", func() {
+							reader := sse.NewReader(response.Body)
+
+							Ω(reader.Next()).Should(Equal(sse.Event{
+								ID:   "0",
+								Name: "version",
+								Data: []byte(`"1.1.0"`),
+							}))
+
+							Ω(reader.Next()).Should(Equal(sse.Event{
+								ID:   "1",
+								Name: "start",
+								Data: []byte(`{"time":2}`),
+							}))
+
+							Ω(reader.Next()).Should(Equal(sse.Event{
+								ID:   "2",
+								Name: "end",
+								Data: []byte(`{}`),
+							}))
+						})
+					})
+
+					Context("when the Last-Event-ID header is given", func() {
+						BeforeEach(func() {
+							request.Header.Set("Last-Event-ID", "1")
+						})
+
+						It("starts subscribing from after the id", func() {
+							Ω(fakeBuild.SubscribeArgsForCall(0)).Should(Equal(uint(2)))
+						})
+					})
+				})
+
+				Context("when subscribing to it fails", func() {
+					BeforeEach(func() {
+						fakeBuild.SubscribeReturns(nil, errors.New("nope"))
+					})
+
+					It("returns 500", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					})
 				})
 			})
 
-			Context("when the turbine is unavailable", func() {
+			Context("when looking up the build fails", func() {
 				BeforeEach(func() {
-					turbineEndpoint.Close()
+					fakeEngine.LookupBuildReturns(nil, errors.New("nope"))
 				})
 
-				It("returns 503", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusServiceUnavailable))
+				It("returns 500", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -281,7 +257,7 @@ var _ = Describe("Handler", func() {
 
 			Context("when a censor is provided", func() {
 				BeforeEach(func() {
-					server.Config.Handler = NewHandler(buildsDB, 128, capsCensor)
+					server.Config.Handler = NewHandler(buildsDB, 128, fakeEngine, weirdCensor)
 				})
 
 				It("filters the events through it", func() {
@@ -289,14 +265,14 @@ var _ = Describe("Handler", func() {
 
 					Ω(reader.Next()).Should(Equal(sse.Event{
 						ID:   "0",
-						Name: "VERSION",
-						Data: []byte(`"1.0"`),
+						Name: "version",
+						Data: []byte(`"1.1.0"`),
 					}))
 
 					Ω(reader.Next()).Should(Equal(sse.Event{
 						ID:   "1",
-						Name: "START",
-						Data: []byte(`{"TIME":1}`),
+						Name: "start",
+						Data: []byte(`{"time":2}`),
 					}))
 				})
 			})
