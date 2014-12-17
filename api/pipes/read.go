@@ -29,9 +29,15 @@ func (s *Server) ReadPipe(w http.ResponseWriter, r *http.Request) {
 		close(copied)
 	}()
 
-	select {
-	case <-copied:
-	case <-closed:
+dance:
+	for {
+		select {
+		case <-copied:
+			break dance
+		case <-closed:
+			// connection died; terminate the pipe
+			pipe.write.Close()
+		}
 	}
 
 	s.pipesL.Lock()
