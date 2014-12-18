@@ -1,21 +1,22 @@
 package api_test
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
-	"io"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"sync"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/ghttp"
 
+	garden "github.com/cloudfoundry-incubator/garden/api"
+	gfakes "github.com/cloudfoundry-incubator/garden/api/fakes"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
@@ -439,49 +440,23 @@ var _ = Describe("Builds API", func() {
 
 	Describe("POST /api/v1/builds/:build_id/hijack", func() {
 		var (
-			hijackTarget *ghttp.Server
+			requestPayload string
 
 			response *http.Response
 
-			buildHijackConns   <-chan net.Conn
-			buildHijackReaders <-chan *gbytes.Buffer
-
 			clientConn   net.Conn
-			clientReader io.Reader
+			clientReader *bufio.Reader
+
+			clientEnc *json.Encoder
+			clientDec *json.Decoder
 		)
 
 		BeforeEach(func() {
-			hijackedConns := make(chan net.Conn, 1)
-			buildHijackConns = hijackedConns
+			requestPayload = `{"path":"ls"}`
 
-			hijackedReaders := make(chan *gbytes.Buffer, 1)
-			buildHijackReaders = hijackedReaders
-
-			hijackTarget = ghttp.NewServer()
-			hijackTarget.AppendHandlers(ghttp.CombineHandlers(
-				ghttp.VerifyRequest("POST", "/builds/some-guid/hijack"),
-				func(w http.ResponseWriter, r *http.Request) {
-					w.WriteHeader(http.StatusOK)
-
-					var msg json.RawMessage
-					err := json.NewDecoder(r.Body).Decode(&msg)
-					Ω(err).ShouldNot(HaveOccurred())
-
-					Ω(string(msg)).Should(Equal(string(`{"some":"hijack-body"}`)))
-
-					conn, br, err := w.(http.Hijacker).Hijack()
-					Ω(err).ShouldNot(HaveOccurred())
-
-					defer conn.Close()
-
-					buf := gbytes.NewBuffer()
-
-					hijackedConns <- conn
-					hijackedReaders <- buf
-
-					io.Copy(buf, br)
-				},
-			))
+			buildsDB.GetBuildReturns(db.Build{
+				ID: 128,
+			}, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -490,7 +465,7 @@ var _ = Describe("Builds API", func() {
 			hijackReq, err := http.NewRequest(
 				"POST",
 				server.URL+"/api/v1/builds/128/hijack",
-				bytes.NewBufferString(`{"some":"hijack-body"}`),
+				bytes.NewBufferString(requestPayload),
 			)
 			Ω(err).ShouldNot(HaveOccurred())
 
@@ -503,11 +478,13 @@ var _ = Describe("Builds API", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 
 			clientConn, clientReader = client.Hijack()
+
+			clientEnc = json.NewEncoder(clientConn)
+			clientDec = json.NewDecoder(clientReader)
 		})
 
 		AfterEach(func() {
 			clientConn.Close()
-			hijackTarget.Close()
 		})
 
 		Context("when authenticated", func() {
@@ -515,75 +492,210 @@ var _ = Describe("Builds API", func() {
 				authValidator.IsAuthenticatedReturns(true)
 			})
 
-			Context("when the build can be found", func() {
-				Context("and it has a hijack URL", func() {
-					BeforeEach(func() {
-						metadata := engine.TurbineMetadata{
-							Guid:     "some-guid",
-							Endpoint: hijackTarget.URL(),
-						}
+			Context("and the engine returns a build", func() {
+				var fakeBuild *enginefakes.FakeBuild
 
-						metadataPayload, err := json.Marshal(metadata)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						buildsDB.GetBuildReturns(db.Build{
-							ID:             128,
-							Engine:         "turbine",
-							EngineMetadata: string(metadataPayload),
-						}, nil)
-					})
-
-					It("proxies all traffic via a hijacked connection", func() {
-						var serverReceivedBuf *gbytes.Buffer
-						Eventually(buildHijackReaders).Should(Receive(&serverReceivedBuf))
-
-						var serverConnectedConn net.Conn
-						Eventually(buildHijackConns).Should(Receive(&serverConnectedConn))
-
-						clientReceivedBuf := gbytes.NewBuffer()
-
-						readingFromServer := new(sync.WaitGroup)
-						readingFromServer.Add(1)
-						go func() {
-							io.Copy(clientReceivedBuf, clientReader)
-							readingFromServer.Done()
-						}()
-
-						_, err := clientConn.Write([]byte("hello from client"))
-						Ω(err).ShouldNot(HaveOccurred())
-
-						Eventually(serverReceivedBuf).Should(gbytes.Say("hello from client"))
-
-						_, err = serverConnectedConn.Write([]byte("hello from server"))
-						Ω(err).ShouldNot(HaveOccurred())
-
-						err = serverConnectedConn.Close()
-						Ω(err).ShouldNot(HaveOccurred())
-
-						readingFromServer.Wait()
-
-						Eventually(clientReceivedBuf).Should(gbytes.Say("hello from server"))
-					})
+				BeforeEach(func() {
+					fakeBuild = new(enginefakes.FakeBuild)
+					fakeEngine.LookupBuildReturns(fakeBuild, nil)
 				})
 
-				Context("but it does not have a hijack URL", func() {
+				Context("when hijacking succeeds", func() {
+					var (
+						fakeProcess *gfakes.FakeProcess
+						processExit chan int
+					)
+
 					BeforeEach(func() {
-						buildsDB.GetBuildReturns(db.Build{ID: 128}, nil)
+						processExit = make(chan int)
+
+						fakeProcess = new(gfakes.FakeProcess)
+						fakeProcess.WaitStub = func() (int, error) {
+							return <-processExit, nil
+						}
+
+						fakeBuild.HijackReturns(fakeProcess, nil)
 					})
 
-					It("returns 400 Bad Request", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+					AfterEach(func() {
+						close(processExit)
+					})
+
+					It("hijacks the build", func() {
+						Eventually(fakeBuild.HijackCallCount).Should(Equal(1))
+
+						Ω(fakeEngine.LookupBuildArgsForCall(0)).Should(Equal(db.Build{
+							ID: 128,
+						}))
+
+						spec, io := fakeBuild.HijackArgsForCall(0)
+						Ω(spec).Should(Equal(garden.ProcessSpec{
+							Path: "ls",
+						}))
+						Ω(io.Stdin).ShouldNot(BeNil())
+						Ω(io.Stdout).ShouldNot(BeNil())
+						Ω(io.Stderr).ShouldNot(BeNil())
+					})
+
+					Context("when stdin is sent over the API", func() {
+						JustBeforeEach(func() {
+							err := clientEnc.Encode(atc.HijackInput{
+								Stdin: []byte("some stdin\n"),
+							})
+							Ω(err).ShouldNot(HaveOccurred())
+						})
+
+						It("forwards the payload to the process", func() {
+							_, io := fakeBuild.HijackArgsForCall(0)
+							Ω(bufio.NewReader(io.Stdin).ReadBytes('\n')).Should(Equal([]byte("some stdin\n")))
+						})
+					})
+
+					Context("when the process prints to stdout", func() {
+						JustBeforeEach(func() {
+							Eventually(fakeBuild.HijackCallCount).Should(Equal(1))
+
+							_, io := fakeBuild.HijackArgsForCall(0)
+
+							_, err := fmt.Fprintf(io.Stdout, "some stdout\n")
+							Ω(err).ShouldNot(HaveOccurred())
+						})
+
+						It("forwards it to the response", func() {
+							var hijackOutput atc.HijackOutput
+							err := clientDec.Decode(&hijackOutput)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							Ω(hijackOutput).Should(Equal(atc.HijackOutput{
+								Stdout: []byte("some stdout\n"),
+							}))
+						})
+					})
+
+					Context("when the process prints to stderr", func() {
+						JustBeforeEach(func() {
+							Eventually(fakeBuild.HijackCallCount).Should(Equal(1))
+
+							_, io := fakeBuild.HijackArgsForCall(0)
+
+							_, err := fmt.Fprintf(io.Stderr, "some stderr\n")
+							Ω(err).ShouldNot(HaveOccurred())
+						})
+
+						It("forwards it to the response", func() {
+							var hijackOutput atc.HijackOutput
+							err := clientDec.Decode(&hijackOutput)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							Ω(hijackOutput).Should(Equal(atc.HijackOutput{
+								Stderr: []byte("some stderr\n"),
+							}))
+						})
+					})
+
+					Context("when the process exits", func() {
+						JustBeforeEach(func() {
+							Eventually(processExit).Should(BeSent(123))
+						})
+
+						It("forwards its exit status to the response", func() {
+							var hijackOutput atc.HijackOutput
+							err := clientDec.Decode(&hijackOutput)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							exitStatus := 123
+							Ω(hijackOutput).Should(Equal(atc.HijackOutput{
+								ExitStatus: &exitStatus,
+							}))
+						})
+					})
+
+					Context("when new tty settings are sent over the API", func() {
+						JustBeforeEach(func() {
+							err := clientEnc.Encode(atc.HijackInput{
+								TTYSpec: &atc.HijackTTYSpec{
+									WindowSize: atc.HijackWindowSize{
+										Columns: 123,
+										Rows:    456,
+									},
+								},
+							})
+							Ω(err).ShouldNot(HaveOccurred())
+						})
+
+						It("forwards it to the process", func() {
+							Eventually(fakeProcess.SetTTYCallCount).Should(Equal(1))
+
+							Ω(fakeProcess.SetTTYArgsForCall(0)).Should(Equal(garden.TTYSpec{
+								WindowSize: &garden.WindowSize{
+									Columns: 123,
+									Rows:    456,
+								},
+							}))
+						})
+
+						Context("and setting the TTY on the process fails", func() {
+							BeforeEach(func() {
+								fakeProcess.SetTTYReturns(errors.New("oh no!"))
+							})
+
+							It("forwards the error to the response", func() {
+								var hijackOutput atc.HijackOutput
+								err := clientDec.Decode(&hijackOutput)
+								Ω(err).ShouldNot(HaveOccurred())
+
+								Ω(hijackOutput).Should(Equal(atc.HijackOutput{
+									Error: "oh no!",
+								}))
+							})
+						})
+					})
+
+					Context("when waiting on the process fails", func() {
+						BeforeEach(func() {
+							fakeProcess.WaitReturns(0, errors.New("oh no!"))
+						})
+
+						It("forwards the error to the response", func() {
+							var hijackOutput atc.HijackOutput
+							err := clientDec.Decode(&hijackOutput)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							Ω(hijackOutput).Should(Equal(atc.HijackOutput{
+								Error: "oh no!",
+							}))
+						})
 					})
 				})
 			})
 
-			Context("when the build cannot be found", func() {
+			Context("when the build cannot be found via the engine", func() {
+				BeforeEach(func() {
+					fakeEngine.LookupBuildReturns(nil, errors.New("oh no!"))
+				})
+
+				It("returns 404 Not Found", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("when the build cannot be found in the database", func() {
 				BeforeEach(func() {
 					buildsDB.GetBuildReturns(db.Build{}, errors.New("oh no!"))
 				})
 
 				It("returns 404 Not Found", func() {
 					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("when the request payload is invalid", func() {
+				BeforeEach(func() {
+					requestPayload = "ß"
+				})
+
+				It("returns Bad Request", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
 				})
 			})
 		})
@@ -598,7 +710,7 @@ var _ = Describe("Builds API", func() {
 			})
 
 			It("does not hijack the build", func() {
-				Ω(hijackTarget.ReceivedRequests()).Should(BeEmpty())
+				Ω(fakeEngine.LookupBuildCallCount()).Should(BeZero())
 			})
 		})
 	})

@@ -31,7 +31,7 @@ type Build interface {
 	Metadata() string
 
 	Abort() error
-	Hijack(garden.ProcessSpec, garden.ProcessIO) error
+	Hijack(garden.ProcessSpec, garden.ProcessIO) (garden.Process, error)
 	Subscribe(from uint) (EventSource, error)
 	Resume(lager.Logger) error
 }

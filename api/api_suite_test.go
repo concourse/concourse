@@ -9,6 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/concourse/atc"
@@ -85,8 +86,11 @@ var _ = BeforeEach(func() {
 
 	constructedEventHandler = &fakeEventHandlerFactory{}
 
+	logger := lagertest.NewTestLogger("callbacks")
+	logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
+
 	handler, err := api.NewHandler(
-		lagertest.NewTestLogger("callbacks"),
+		logger,
 		authValidator,
 
 		buildsDB,

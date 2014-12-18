@@ -1,11 +1,14 @@
 package engine_test
 
 import (
+	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 
+	garden "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/fakes"
@@ -17,6 +20,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/ghttp"
 )
 
@@ -128,7 +132,7 @@ var _ = Describe("TurbineEngine", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/builds"),
 						func(w http.ResponseWriter, r *http.Request) {
-							turbineServer.HTTPTestServer.CloseClientConnections()
+							turbineServer.CloseClientConnections()
 						},
 					),
 				)
@@ -231,7 +235,10 @@ var _ = Describe("TurbineEngine", func() {
 		})
 
 		AfterEach(func() {
-			buildEndpoint.Close()
+			if buildEndpoint != nil {
+				// tests that close it nil it out to prevent double-closing
+				buildEndpoint.Close()
+			}
 		})
 
 		Describe("Abort", func() {
@@ -285,6 +292,155 @@ var _ = Describe("TurbineEngine", func() {
 
 				It("returns an error", func() {
 					Ω(abortErr).Should(HaveOccurred())
+				})
+			})
+		})
+
+		Describe("Hijack", func() {
+			var (
+				buildModel db.Build
+
+				stdoutBuf *gbytes.Buffer
+				stderrBuf *gbytes.Buffer
+
+				process   garden.Process
+				hijackErr error
+			)
+
+			BeforeEach(func() {
+				metadata := TurbineMetadata{
+					Guid:     "some-guid",
+					Endpoint: buildEndpoint.URL(),
+				}
+
+				metadataPayload, err := json.Marshal(metadata)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				buildModel = db.Build{
+					ID:             1,
+					Engine:         engine.Name(),
+					EngineMetadata: string(metadataPayload),
+				}
+
+				stdoutBuf = gbytes.NewBuffer()
+				stderrBuf = gbytes.NewBuffer()
+			})
+
+			JustBeforeEach(func() {
+				build, err := engine.LookupBuild(buildModel)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				process, hijackErr = build.Hijack(garden.ProcessSpec{
+					Path: "ls",
+				}, garden.ProcessIO{
+					Stdout: stdoutBuf,
+					Stderr: stderrBuf,
+					Stdin:  bytes.NewBufferString("marco"),
+				})
+			})
+
+			Context("when hijacking from the turbine succeeds", func() {
+				BeforeEach(func() {
+					buildEndpoint.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("POST", "/builds/some-guid/hijack"),
+							ghttp.VerifyJSONRepresenting(garden.ProcessSpec{
+								Path: "ls",
+							}),
+							func(w http.ResponseWriter, r *http.Request) {
+								w.WriteHeader(http.StatusOK)
+
+								sconn, sbr, err := w.(http.Hijacker).Hijack()
+								Ω(err).ShouldNot(HaveOccurred())
+
+								defer sconn.Close()
+
+								decoder := gob.NewDecoder(sbr)
+
+								payload := turbine.HijackPayload{}
+								err = decoder.Decode(&payload)
+								Ω(err).ShouldNot(HaveOccurred())
+
+								Ω(payload).Should(Equal(turbine.HijackPayload{
+									Stdin: []byte("marco"),
+								}))
+
+								_, err = fmt.Fprintf(sconn, "polo\n")
+								Ω(err).ShouldNot(HaveOccurred())
+
+								payload = turbine.HijackPayload{}
+								err = decoder.Decode(&payload)
+								Ω(err).ShouldNot(HaveOccurred())
+
+								Ω(payload).Should(Equal(turbine.HijackPayload{
+									TTYSpec: &garden.TTYSpec{
+										WindowSize: &garden.WindowSize{
+											Columns: 123,
+											Rows:    456,
+										},
+									},
+								}))
+
+								_, err = fmt.Fprintf(sconn, "got new tty\n")
+								Ω(err).ShouldNot(HaveOccurred())
+							},
+						),
+					)
+				})
+
+				It("handles all stdio, tty setting, and waits for the stream to end", func() {
+					Ω(hijackErr).ShouldNot(HaveOccurred())
+
+					Eventually(stdoutBuf).Should(gbytes.Say("polo"))
+
+					err := process.SetTTY(garden.TTYSpec{
+						WindowSize: &garden.WindowSize{
+							Columns: 123,
+							Rows:    456,
+						},
+					})
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Eventually(stdoutBuf).Should(gbytes.Say("got new tty"))
+
+					Ω(process.Wait()).Should(Equal(0))
+				})
+			})
+
+			Context("when the turbine returns a non-200 response", func() {
+				BeforeEach(func() {
+					buildEndpoint.AppendHandlers(
+						ghttp.RespondWith(http.StatusNotFound, ""),
+					)
+				})
+
+				It("returns ErrBadResponse", func() {
+					Ω(hijackErr).Should(Equal(ErrBadResponse))
+				})
+			})
+
+			Context("when the turbine request is interrupted", func() {
+				BeforeEach(func() {
+					buildEndpoint.AppendHandlers(
+						func(w http.ResponseWriter, r *http.Request) {
+							buildEndpoint.CloseClientConnections()
+						},
+					)
+				})
+
+				It("returns an error", func() {
+					Ω(hijackErr).Should(HaveOccurred())
+				})
+			})
+
+			Context("when the turbine is not listening", func() {
+				BeforeEach(func() {
+					buildEndpoint.Close()
+					buildEndpoint = nil
+				})
+
+				It("returns an error", func() {
+					Ω(hijackErr).Should(HaveOccurred())
 				})
 			})
 		})

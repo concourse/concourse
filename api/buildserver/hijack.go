@@ -3,15 +3,12 @@ package buildserver
 import (
 	"encoding/json"
 	"io"
-	"net"
 	"net/http"
-	"net/http/httputil"
 	"strconv"
 
-	"github.com/concourse/atc/engine"
-	"github.com/concourse/turbine"
+	garden "github.com/cloudfoundry-incubator/garden/api"
+	"github.com/concourse/atc"
 	"github.com/pivotal-golang/lager"
-	"github.com/tedsuo/rata"
 )
 
 func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
@@ -25,6 +22,14 @@ func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
 		"build": buildID,
 	})
 
+	var processSpec garden.ProcessSpec
+	err = json.NewDecoder(r.Body).Decode(&processSpec)
+	if err != nil {
+		hLog.Error("malformed-process-spec", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	build, err := s.db.GetBuild(buildID)
 	if err != nil {
 		hLog.Error("failed-to-get-build", err)
@@ -32,76 +37,172 @@ func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if build.EngineMetadata == "" {
-		hLog.Error("missing-engine-metadata", nil)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	var metadata engine.TurbineMetadata
-	err = json.Unmarshal([]byte(build.EngineMetadata), &metadata)
+	engineBuild, err := s.engine.LookupBuild(build)
 	if err != nil {
-		hLog.Error("failed-to-unmarshal-metadata", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	generator := rata.NewRequestGenerator(metadata.Endpoint, turbine.Routes)
-
-	hijack, err := generator.CreateRequest(
-		turbine.HijackBuild,
-		rata.Params{"guid": metadata.Guid},
-		r.Body,
-	)
-	if err != nil {
-		hLog.Error("failed-to-construct-hijack-request", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	hijackURL := hijack.URL
-
-	conn, err := net.Dial("tcp", hijackURL.Host)
-	if err != nil {
-		hLog.Error("failed-to-dial-turbine", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	client := httputil.NewClientConn(conn, nil)
-
-	resp, err := client.Do(hijack)
-	if err != nil {
-		hLog.Error("failed-to-hijack", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		hLog.Info("bad-hijack-response", lager.Data{
-			"status": resp.Status,
-		})
-
-		resp.Write(w)
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 
-	sconn, sbr, err := w.(http.Hijacker).Hijack()
+	conn, br, err := w.(http.Hijacker).Hijack()
 	if err != nil {
 		hLog.Error("failed-to-hijack", err)
 		return
 	}
 
-	cconn, cbr := client.Hijack()
+	defer conn.Close()
 
-	defer cconn.Close()
-	defer sconn.Close()
+	stdinR, stdinW := io.Pipe()
+
+	enc := json.NewEncoder(conn)
+	dec := json.NewDecoder(br)
+
+	inputs := make(chan atc.HijackInput)
+	outputs := make(chan atc.HijackOutput)
+	exited := make(chan int, 1)
+	errs := make(chan error, 1)
+
+	cleanup := make(chan struct{})
+	defer close(cleanup)
+
+	outW := &stdoutWriter{
+		outputs: outputs,
+		done:    cleanup,
+	}
+
+	errW := &stderrWriter{
+		outputs: outputs,
+		done:    cleanup,
+	}
+
+	process, err := engineBuild.Hijack(processSpec, garden.ProcessIO{
+		Stdin:  stdinR,
+		Stdout: outW,
+		Stderr: errW,
+	})
+	if err != nil {
+		hLog.Error("failed-to-hijack", err)
+		return
+	}
 
 	hLog.Info("hijacked")
 
-	go io.Copy(cconn, sbr)
+	go func() {
+		for {
+			var input atc.HijackInput
+			err := dec.Decode(&input)
+			if err != nil {
+				break
+			}
 
-	io.Copy(sconn, cbr)
+			select {
+			case inputs <- input:
+			case <-cleanup:
+				return
+			}
+		}
+	}()
+
+	go func() {
+		status, err := process.Wait()
+		if err != nil {
+			errs <- err
+		} else {
+			exited <- status
+		}
+	}()
+
+	for {
+		select {
+		case input := <-inputs:
+			if input.TTYSpec != nil {
+				err := process.SetTTY(garden.TTYSpec{
+					WindowSize: &garden.WindowSize{
+						Columns: input.TTYSpec.WindowSize.Columns,
+						Rows:    input.TTYSpec.WindowSize.Rows,
+					},
+				})
+				if err != nil {
+					enc.Encode(atc.HijackOutput{
+						Error: err.Error(),
+					})
+				}
+			} else {
+				stdinW.Write(input.Stdin)
+			}
+
+		case output := <-outputs:
+			err := enc.Encode(output)
+			if err != nil {
+				return
+			}
+
+		case status := <-exited:
+			enc.Encode(atc.HijackOutput{
+				ExitStatus: &status,
+			})
+
+			return
+
+		case err := <-errs:
+			enc.Encode(atc.HijackOutput{
+				Error: err.Error(),
+			})
+
+			return
+		}
+	}
+}
+
+type stdoutWriter struct {
+	outputs chan<- atc.HijackOutput
+	done    chan struct{}
+}
+
+func (writer *stdoutWriter) Write(b []byte) (int, error) {
+	chunk := make([]byte, len(b))
+	copy(chunk, b)
+
+	output := atc.HijackOutput{
+		Stdout: chunk,
+	}
+
+	select {
+	case writer.outputs <- output:
+	case <-writer.done:
+	}
+
+	return len(b), nil
+}
+
+func (writer *stdoutWriter) Close() error {
+	close(writer.done)
+	return nil
+}
+
+type stderrWriter struct {
+	outputs chan<- atc.HijackOutput
+	done    chan struct{}
+}
+
+func (writer *stderrWriter) Write(b []byte) (int, error) {
+	chunk := make([]byte, len(b))
+	copy(chunk, b)
+
+	output := atc.HijackOutput{
+		Stderr: chunk,
+	}
+
+	select {
+	case writer.outputs <- output:
+	case <-writer.done:
+	}
+
+	return len(b), nil
+}
+
+func (writer *stderrWriter) Close() error {
+	close(writer.done)
+	return nil
 }

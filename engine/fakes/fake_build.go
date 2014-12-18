@@ -13,23 +13,24 @@ type FakeBuild struct {
 	MetadataStub        func() string
 	metadataMutex       sync.RWMutex
 	metadataArgsForCall []struct{}
-	metadataReturns struct {
+	metadataReturns     struct {
 		result1 string
 	}
 	AbortStub        func() error
 	abortMutex       sync.RWMutex
 	abortArgsForCall []struct{}
-	abortReturns struct {
+	abortReturns     struct {
 		result1 error
 	}
-	HijackStub        func(garden.ProcessSpec, garden.ProcessIO) error
+	HijackStub        func(garden.ProcessSpec, garden.ProcessIO) (garden.Process, error)
 	hijackMutex       sync.RWMutex
 	hijackArgsForCall []struct {
 		arg1 garden.ProcessSpec
 		arg2 garden.ProcessIO
 	}
 	hijackReturns struct {
-		result1 error
+		result1 garden.Process
+		result2 error
 	}
 	SubscribeStub        func(from uint) (engine.EventSource, error)
 	subscribeMutex       sync.RWMutex
@@ -98,7 +99,7 @@ func (fake *FakeBuild) AbortReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBuild) Hijack(arg1 garden.ProcessSpec, arg2 garden.ProcessIO) error {
+func (fake *FakeBuild) Hijack(arg1 garden.ProcessSpec, arg2 garden.ProcessIO) (garden.Process, error) {
 	fake.hijackMutex.Lock()
 	fake.hijackArgsForCall = append(fake.hijackArgsForCall, struct {
 		arg1 garden.ProcessSpec
@@ -108,7 +109,7 @@ func (fake *FakeBuild) Hijack(arg1 garden.ProcessSpec, arg2 garden.ProcessIO) er
 	if fake.HijackStub != nil {
 		return fake.HijackStub(arg1, arg2)
 	} else {
-		return fake.hijackReturns.result1
+		return fake.hijackReturns.result1, fake.hijackReturns.result2
 	}
 }
 
@@ -124,11 +125,12 @@ func (fake *FakeBuild) HijackArgsForCall(i int) (garden.ProcessSpec, garden.Proc
 	return fake.hijackArgsForCall[i].arg1, fake.hijackArgsForCall[i].arg2
 }
 
-func (fake *FakeBuild) HijackReturns(result1 error) {
+func (fake *FakeBuild) HijackReturns(result1 garden.Process, result2 error) {
 	fake.HijackStub = nil
 	fake.hijackReturns = struct {
-		result1 error
-	}{result1}
+		result1 garden.Process
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeBuild) Subscribe(from uint) (engine.EventSource, error) {

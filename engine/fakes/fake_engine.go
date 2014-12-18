@@ -12,7 +12,7 @@ type FakeEngine struct {
 	NameStub        func() string
 	nameMutex       sync.RWMutex
 	nameArgsForCall []struct{}
-	nameReturns struct {
+	nameReturns     struct {
 		result1 string
 	}
 	CreateBuildStub        func(db.Build, engine.BuildPlan) (engine.Build, error)

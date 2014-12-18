@@ -1,13 +1,18 @@
 package engine
 
 import (
+	"bufio"
 	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/http/httputil"
 	"strconv"
+	"sync"
 	"time"
 
 	garden "github.com/cloudfoundry-incubator/garden/api"
@@ -202,9 +207,44 @@ func (build *turbineBuild) Abort() error {
 	return nil
 }
 
-func (build *turbineBuild) Hijack(garden.ProcessSpec, garden.ProcessIO) error {
-	// POST /hijack
-	return nil
+func (build *turbineBuild) Hijack(spec garden.ProcessSpec, processIO garden.ProcessIO) (garden.Process, error) {
+	specPayload, err := json.Marshal(spec)
+	if err != nil {
+		return nil, err
+	}
+
+	hijackReq, err := build.turbineEndpoint.CreateRequest(
+		turbine.HijackBuild,
+		rata.Params{"guid": build.guid},
+		bytes.NewBuffer(specPayload),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	hijackReq.Header.Set("Content-Type", "application/json")
+
+	hijackURL := hijackReq.URL
+
+	conn, err := net.Dial("tcp", hijackURL.Host)
+	if err != nil {
+		return nil, err
+	}
+
+	client := httputil.NewClientConn(conn, nil)
+
+	resp, err := client.Do(hijackReq)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, ErrBadResponse
+	}
+
+	conn, br := client.Hijack()
+
+	return newTurbineProcess(conn, br, processIO), nil
 }
 
 func (build *turbineBuild) Subscribe(from uint) (EventSource, error) {
@@ -528,4 +568,62 @@ func (source *eventSource) Close() error {
 
 	source.closed = true
 	return source.closer.Close()
+}
+
+func newTurbineProcess(conn net.Conn, br *bufio.Reader, processIO garden.ProcessIO) garden.Process {
+	process := &turbineProcess{
+		conn:   gob.NewEncoder(conn),
+		closer: conn,
+		br:     br,
+		wg:     new(sync.WaitGroup),
+	}
+
+	process.trackIO(processIO)
+
+	return process
+}
+
+type turbineProcess struct {
+	conn   *gob.Encoder
+	closer io.Closer
+	br     *bufio.Reader
+	wg     *sync.WaitGroup
+}
+
+func (process *turbineProcess) ID() uint32 {
+	return 0
+}
+
+func (process *turbineProcess) SetTTY(spec garden.TTYSpec) error {
+	return process.conn.Encode(turbine.HijackPayload{
+		TTYSpec: &spec,
+	})
+}
+
+func (process *turbineProcess) Wait() (int, error) {
+	process.wg.Wait()
+	process.closer.Close()
+	return 0, nil
+}
+
+func (process *turbineProcess) Write(b []byte) (int, error) {
+	err := process.conn.Encode(turbine.HijackPayload{
+		Stdin: b,
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	return len(b), nil
+}
+
+func (process *turbineProcess) trackIO(processIO garden.ProcessIO) {
+	process.wg.Add(1)
+
+	go func() {
+		defer process.wg.Done()
+		io.Copy(processIO.Stdout, process.br)
+	}()
+
+	go io.Copy(process, processIO.Stdin)
 }
