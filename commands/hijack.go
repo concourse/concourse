@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/base64"
-	"encoding/gob"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -21,8 +21,8 @@ import (
 	garden "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/codegangsta/cli"
 	"github.com/concourse/atc"
-	"github.com/concourse/turbine"
 	"github.com/kr/pty"
+	"github.com/mgutz/ansi"
 	"github.com/pkg/term"
 	"github.com/tedsuo/rata"
 )
@@ -136,7 +136,8 @@ func Hijack(c *cli.Context) {
 		in = os.Stdin
 	}
 
-	encoder := gob.NewEncoder(cconn)
+	encoder := json.NewEncoder(cconn)
+	decoder := json.NewDecoder(cbr)
 
 	resized := make(chan os.Signal, 10)
 	signal.Notify(resized, syscall.SIGWINCH)
@@ -144,21 +145,42 @@ func Hijack(c *cli.Context) {
 	go func() {
 		for {
 			<-resized
+			// TODO json race
 			sendSize(encoder)
 		}
 	}()
 
 	go io.Copy(&stdinWriter{encoder}, in)
 
-	io.Copy(os.Stdout, cbr)
+	var exitStatus int
+	for {
+		var output atc.HijackOutput
+		err := decoder.Decode(&output)
+		if err != nil {
+			break
+		}
+
+		if output.ExitStatus != nil {
+			exitStatus = *output.ExitStatus
+		} else if len(output.Error) > 0 {
+			fmt.Fprintf(os.Stderr, "%s\n", ansi.Color(output.Error, "red+b"))
+			exitStatus = 255
+		} else if len(output.Stdout) > 0 {
+			os.Stdout.Write(output.Stdout)
+		} else if len(output.Stderr) > 0 {
+			os.Stderr.Write(output.Stderr)
+		}
+	}
+
+	os.Exit(exitStatus)
 }
 
-func sendSize(enc *gob.Encoder) {
+func sendSize(enc *json.Encoder) {
 	rows, cols, err := pty.Getsize(os.Stdin)
 	if err == nil {
-		enc.Encode(turbine.HijackPayload{
-			TTYSpec: &garden.TTYSpec{
-				WindowSize: &garden.WindowSize{
+		enc.Encode(atc.HijackInput{
+			TTYSpec: &atc.HijackTTYSpec{
+				WindowSize: atc.HijackWindowSize{
 					Columns: cols,
 					Rows:    rows,
 				},
@@ -168,11 +190,11 @@ func sendSize(enc *gob.Encoder) {
 }
 
 type stdinWriter struct {
-	enc *gob.Encoder
+	enc *json.Encoder
 }
 
 func (w *stdinWriter) Write(d []byte) (int, error) {
-	err := w.enc.Encode(turbine.HijackPayload{
+	err := w.enc.Encode(atc.HijackInput{
 		Stdin: d,
 	})
 	if err != nil {

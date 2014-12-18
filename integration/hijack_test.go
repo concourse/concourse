@@ -1,14 +1,14 @@
 package integration_test
 
 import (
-	"encoding/gob"
+	"encoding/json"
 	"net/http"
 	"os"
 	"os/exec"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/turbine"
 	"github.com/kr/pty"
+	"github.com/mgutz/ansi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -27,10 +27,12 @@ var _ = Describe("Hijacking", func() {
 		os.Setenv("ATC_URL", atcServer.URL())
 	})
 
-	hijackHandler := func(didHijack chan<- struct{}) http.HandlerFunc {
+	hijackHandler := func(didHijack chan<- struct{}, errorMessages ...string) http.HandlerFunc {
 		return ghttp.CombineHandlers(
 			ghttp.VerifyRequest("POST", "/api/v1/builds/3/hijack"),
 			func(w http.ResponseWriter, r *http.Request) {
+				defer GinkgoRecover()
+
 				w.WriteHeader(http.StatusOK)
 
 				sconn, sbr, err := w.(http.Hijacker).Hijack()
@@ -40,18 +42,43 @@ var _ = Describe("Hijacking", func() {
 
 				close(didHijack)
 
-				decoder := gob.NewDecoder(sbr)
+				decoder := json.NewDecoder(sbr)
+				encoder := json.NewEncoder(sconn)
 
-				var payload turbine.HijackPayload
+				var payload atc.HijackInput
 
 				err = decoder.Decode(&payload)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(payload).Should(Equal(turbine.HijackPayload{
-					Stdin: []byte("marco"),
+				Ω(payload).Should(Equal(atc.HijackInput{
+					Stdin: []byte("some stdin"),
 				}))
 
-				_, err = sconn.Write([]byte("polo"))
+				err = encoder.Encode(atc.HijackOutput{
+					Stdout: []byte("some stdout"),
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = encoder.Encode(atc.HijackOutput{
+					Stderr: []byte("some stderr"),
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				if len(errorMessages) > 0 {
+					for _, msg := range errorMessages {
+						err := encoder.Encode(atc.HijackOutput{
+							Error: msg,
+						})
+						Ω(err).ShouldNot(HaveOccurred())
+					}
+
+					return
+				}
+
+				exitStatus := 123
+				err = encoder.Encode(atc.HijackOutput{
+					ExitStatus: &exitStatus,
+				})
 				Ω(err).ShouldNot(HaveOccurred())
 			},
 		)
@@ -69,15 +96,16 @@ var _ = Describe("Hijacking", func() {
 
 		Eventually(hijacked).Should(BeClosed())
 
-		_, err = pty.WriteString("marco")
+		_, err = pty.WriteString("some stdin")
 		Ω(err).ShouldNot(HaveOccurred())
 
-		Eventually(sess).Should(gbytes.Say("polo"))
+		Eventually(sess.Out).Should(gbytes.Say("some stdout"))
+		Eventually(sess.Err).Should(gbytes.Say("some stderr"))
 
 		err = pty.Close()
 		Ω(err).ShouldNot(HaveOccurred())
 
-		Eventually(sess).Should(gexec.Exit(0))
+		Eventually(sess).Should(gexec.Exit(123))
 	}
 
 	Context("with no arguments", func() {
@@ -185,6 +213,49 @@ var _ = Describe("Hijacking", func() {
 
 			It("hijacks the given build", func() {
 				hijack("--job", "some-job", "--build", "3")
+			})
+		})
+
+		Context("when hijacking yields an error", func() {
+			BeforeEach(func() {
+				didHijack := make(chan struct{})
+				hijacked = didHijack
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/builds"),
+						ghttp.RespondWithJSONEncoded(200, []atc.Build{
+							{ID: 4, Name: "1", Status: "started", JobName: "some-job"},
+							{ID: 3, Name: "3", Status: "started"},
+							{ID: 2, Name: "2", Status: "started"},
+							{ID: 1, Name: "1", Status: "finished"},
+						}),
+					),
+					hijackHandler(didHijack, "something went wrong"),
+				)
+			})
+
+			It("prints it to stderr and exits 255", func() {
+				pty, tty, err := pty.Open()
+				Ω(err).ShouldNot(HaveOccurred())
+
+				flyCmd := exec.Command(flyPath, "hijack")
+				flyCmd.Stdin = tty
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Eventually(hijacked).Should(BeClosed())
+
+				_, err = pty.WriteString("some stdin")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Eventually(sess.Err.Contents).Should(ContainSubstring(ansi.Color("something went wrong", "red+b") + "\n"))
+
+				err = pty.Close()
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Eventually(sess).Should(gexec.Exit(255))
 			})
 		})
 	})
