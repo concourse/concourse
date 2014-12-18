@@ -13,7 +13,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/ghttp"
 )
 
 var _ = Describe("Tracker", func() {
@@ -23,8 +22,6 @@ var _ = Describe("Tracker", func() {
 
 		tracker BuildTracker
 
-		turbineServer *ghttp.Server
-
 		lock   *dbfakes.FakeLock
 		locker *fakes.FakeLocker
 	)
@@ -33,19 +30,12 @@ var _ = Describe("Tracker", func() {
 		engine = new(efakes.FakeEngine)
 		trackerDB = new(fakes.FakeTrackerDB)
 
-		turbineServer = ghttp.NewServer()
-
 		locker = new(fakes.FakeLocker)
 
 		tracker = NewTracker(lagertest.NewTestLogger("test"), engine, trackerDB, locker)
 
 		lock = new(dbfakes.FakeLock)
 		locker.AcquireWriteLockImmediatelyReturns(lock, nil)
-	})
-
-	AfterEach(func() {
-		turbineServer.CloseClientConnections()
-		turbineServer.Close()
 	})
 
 	Describe("TrackBuild", func() {
