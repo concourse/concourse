@@ -242,7 +242,6 @@ func abortOnSignal(
 		rata.Params{"build_id": strconv.Itoa(build.ID)},
 		nil,
 	)
-
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -250,6 +249,7 @@ func abortOnSignal(
 	resp, err := atcRequester.httpClient.Do(abortReq)
 	if err != nil {
 		log.Println("failed to abort:", err)
+		os.Exit(255)
 	}
 
 	resp.Body.Close()
