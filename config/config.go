@@ -5,17 +5,17 @@ import (
 	"log"
 	"syscall"
 
-	"github.com/concourse/turbine"
+	"github.com/concourse/atc"
 	"gopkg.in/yaml.v2"
 )
 
-func LoadConfig(configPath string, args []string) turbine.Config {
+func LoadBuildConfig(configPath string, args []string) atc.BuildConfig {
 	configFile, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		log.Fatalln("could not open config file:", err)
 	}
 
-	var config turbine.Config
+	var config atc.BuildConfig
 
 	err = yaml.Unmarshal(configFile, &config)
 	if err != nil {

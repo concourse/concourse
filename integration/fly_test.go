@@ -34,7 +34,7 @@ var _ = Describe("Fly CLI", func() {
 	var events chan event.Event
 	var uploadingBits <-chan struct{}
 
-	var expectedTurbineBuild turbine.Build
+	var expectedBuildPlan atc.BuildPlan
 
 	BeforeEach(func() {
 		var err error
@@ -70,25 +70,25 @@ run:
 		streaming = make(chan struct{})
 		events = make(chan event.Event)
 
-		expectedTurbineBuild = turbine.Build{
-			Config: turbine.Config{
+		expectedBuildPlan = atc.BuildPlan{
+			Config: atc.BuildConfig{
 				Image: "ubuntu",
 				Params: map[string]string{
 					"FOO": "bar",
 					"BAZ": "buzz",
 					"X":   "1",
 				},
-				Run: turbine.RunConfig{
+				Run: atc.BuildRunConfig{
 					Path: "find",
 					Args: []string{"."},
 				},
 			},
 
-			Inputs: []turbine.Input{
+			Inputs: []atc.InputPlan{
 				{
 					Name: filepath.Base(buildDir),
 					Type: "archive",
-					Source: turbine.Source{
+					Source: atc.Source{
 						"uri": "http://127.0.0.1:1234/api/v1/pipes/some-pipe-id",
 					},
 				},
@@ -110,7 +110,7 @@ run:
 			),
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/builds"),
-				ghttp.VerifyJSONRepresenting(expectedTurbineBuild),
+				ghttp.VerifyJSONRepresenting(expectedBuildPlan),
 				func(w http.ResponseWriter, r *http.Request) {
 					http.SetCookie(w, &http.Cookie{
 						Name:    "Some-Cookie",
@@ -212,7 +212,7 @@ run:
 
 	Context("when arguments are passed through", func() {
 		BeforeEach(func() {
-			expectedTurbineBuild.Config.Run.Args = []string{".", "-name", `foo "bar" baz`}
+			expectedBuildPlan.Config.Run.Args = []string{".", "-name", `foo "bar" baz`}
 		})
 
 		It("inserts them into the config template", func() {
@@ -234,7 +234,7 @@ run:
 
 	Context("when running with --privileged", func() {
 		BeforeEach(func() {
-			expectedTurbineBuild.Privileged = true
+			expectedBuildPlan.Privileged = true
 		})
 
 		It("inserts them into the config template", func() {
@@ -270,7 +270,7 @@ run:
 
 	Context("when parameters are specified in the environment", func() {
 		BeforeEach(func() {
-			expectedTurbineBuild.Config.Params = map[string]string{
+			expectedBuildPlan.Config.Params = map[string]string{
 				"FOO": "newbar",
 				"BAZ": "buzz",
 				"X":   "",

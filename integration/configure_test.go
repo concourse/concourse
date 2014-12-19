@@ -14,7 +14,6 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/turbine"
 )
 
 var _ = Describe("Fly CLI", func() {
@@ -66,7 +65,7 @@ var _ = Describe("Fly CLI", func() {
 						Public: true,
 
 						BuildConfigPath: "some/config/path.yml",
-						BuildConfig: turbine.Config{
+						BuildConfig: atc.BuildConfig{
 							Image: "some-image",
 							Params: map[string]string{
 								"A": "B",
@@ -77,7 +76,7 @@ var _ = Describe("Fly CLI", func() {
 
 						Serial: true,
 
-						Inputs: []atc.InputConfig{
+						Inputs: []atc.JobInputConfig{
 							{
 								RawName:  "some-input",
 								Resource: "some-resource",
@@ -88,7 +87,7 @@ var _ = Describe("Fly CLI", func() {
 							},
 						},
 
-						Outputs: []atc.OutputConfig{
+						Outputs: []atc.JobOutputConfig{
 							{
 								Resource: "some-resource",
 								Params: atc.Params{

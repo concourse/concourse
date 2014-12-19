@@ -22,7 +22,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/config"
 	"github.com/concourse/fly/eventstream"
-	"github.com/concourse/turbine"
 	"github.com/pivotal-golang/archiver/compressor"
 	"github.com/tedsuo/rata"
 	"github.com/vito/go-sse/sse"
@@ -87,7 +86,7 @@ func Execute(c *cli.Context) {
 		atcRequester,
 		c.Bool("privileged"),
 		inputs,
-		config.LoadConfig(absConfig, c.Args()),
+		config.LoadBuildConfig(absConfig, c.Args()),
 	)
 
 	terminate := make(chan os.Signal, 1)
@@ -162,11 +161,11 @@ func createBuild(
 	atcRequester *atcRequester,
 	privileged bool,
 	inputs []Input,
-	config turbine.Config,
+	config atc.BuildConfig,
 ) atc.Build {
 	buffer := &bytes.Buffer{}
 
-	buildInputs := make([]turbine.Input, len(inputs))
+	buildInputs := make([]atc.InputPlan, len(inputs))
 	for idx, i := range inputs {
 		readPipe, err := atcRequester.CreateHTTPRequest(
 			atc.ReadPipe,
@@ -179,22 +178,22 @@ func createBuild(
 
 		readPipe.URL.Host = i.Pipe.PeerAddr
 
-		buildInputs[idx] = turbine.Input{
+		buildInputs[idx] = atc.InputPlan{
 			Name: i.Name,
 			Type: "archive",
-			Source: turbine.Source{
+			Source: atc.Source{
 				"uri": readPipe.URL.String(),
 			},
 		}
 	}
 
-	turbineBuild := turbine.Build{
+	buildPlan := atc.BuildPlan{
 		Privileged: privileged,
 		Config:     config,
 		Inputs:     buildInputs,
 	}
 
-	err := json.NewEncoder(buffer).Encode(turbineBuild)
+	err := json.NewEncoder(buffer).Encode(buildPlan)
 	if err != nil {
 		log.Fatalln("encoding build failed:", err)
 	}
