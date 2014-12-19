@@ -43,7 +43,7 @@ type DB interface {
 	SaveVersionedResource(VersionedResource) error
 	GetLatestVersionedResource(resource string) (VersionedResource, error)
 
-	GetLatestInputVersions([]atc.InputConfig) (VersionedResources, error)
+	GetLatestInputVersions([]atc.JobInputConfig) (VersionedResources, error)
 
 	GetNextPendingBuild(job string) (Build, []BuildInput, error)
 

@@ -692,7 +692,7 @@ func (db *SQLDB) GetLatestVersionedResource(name string) (VersionedResource, err
 	return vr, nil
 }
 
-func (db *SQLDB) GetLatestInputVersions(inputs []atc.InputConfig) (VersionedResources, error) {
+func (db *SQLDB) GetLatestInputVersions(inputs []atc.JobInputConfig) (VersionedResources, error) {
 	fromAliases := []string{}
 	conditions := []string{}
 	params := []interface{}{}

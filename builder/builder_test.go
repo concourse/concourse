@@ -6,12 +6,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/concourse/atc"
 	. "github.com/concourse/atc/builder"
 	"github.com/concourse/atc/builder/fakes"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/engine"
 	enginefakes "github.com/concourse/atc/engine/fakes"
-	"github.com/concourse/turbine"
 )
 
 var _ = Describe("Builder", func() {
@@ -22,7 +21,7 @@ var _ = Describe("Builder", func() {
 		builder Builder
 
 		build db.Build
-		plan  engine.BuildPlan
+		plan  atc.BuildPlan
 
 		buildErr error
 	)
@@ -38,8 +37,8 @@ var _ = Describe("Builder", func() {
 			Name: "some-build",
 		}
 
-		plan = engine.BuildPlan{
-			Config: turbine.Config{
+		plan = atc.BuildPlan{
+			Config: atc.BuildConfig{
 				Image: "some-image",
 
 				Params: map[string]string{
@@ -47,7 +46,7 @@ var _ = Describe("Builder", func() {
 					"BAR": "2",
 				},
 
-				Run: turbine.RunConfig{
+				Run: atc.BuildRunConfig{
 					Path: "some-script",
 					Args: []string{"arg1", "arg2"},
 				},

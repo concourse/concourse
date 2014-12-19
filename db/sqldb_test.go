@@ -13,7 +13,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/postgresrunner"
-	"github.com/concourse/turbine"
 )
 
 var _ = Describe("SQL DB", func() {
@@ -87,7 +86,7 @@ var _ = Describe("SQL DB", func() {
 					Public: true,
 
 					BuildConfigPath: "some/config/path.yml",
-					BuildConfig: turbine.Config{
+					BuildConfig: atc.BuildConfig{
 						Image: "some-image",
 					},
 
@@ -95,7 +94,7 @@ var _ = Describe("SQL DB", func() {
 
 					Serial: true,
 
-					Inputs: []atc.InputConfig{
+					Inputs: []atc.JobInputConfig{
 						{
 							RawName:  "some-input",
 							Resource: "some-resource",
@@ -107,7 +106,7 @@ var _ = Describe("SQL DB", func() {
 						},
 					},
 
-					Outputs: []atc.OutputConfig{
+					Outputs: []atc.JobOutputConfig{
 						{
 							Resource: "some-resource",
 							Params: atc.Params{
@@ -149,7 +148,7 @@ var _ = Describe("SQL DB", func() {
 			updatedConfig.Jobs = append(config.Jobs, atc.JobConfig{
 				Name:            "some-resource",
 				BuildConfigPath: "new/config/path.yml",
-				Inputs: []atc.InputConfig{
+				Inputs: []atc.JobInputConfig{
 					{
 						RawName:  "new-input",
 						Resource: "new-resource",

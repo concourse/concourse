@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/turbine"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -45,7 +44,7 @@ var _ = Describe("Config API", func() {
 					Public: true,
 
 					BuildConfigPath: "some/config/path.yml",
-					BuildConfig: turbine.Config{
+					BuildConfig: atc.BuildConfig{
 						Image: "some-image",
 					},
 
@@ -53,7 +52,7 @@ var _ = Describe("Config API", func() {
 
 					Serial: true,
 
-					Inputs: []atc.InputConfig{
+					Inputs: []atc.JobInputConfig{
 						{
 							RawName:  "some-input",
 							Resource: "some-resource",
@@ -64,7 +63,7 @@ var _ = Describe("Config API", func() {
 						},
 					},
 
-					Outputs: []atc.OutputConfig{
+					Outputs: []atc.JobOutputConfig{
 						{
 							Resource: "some-resource",
 							Params: atc.Params{

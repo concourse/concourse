@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	garden "github.com/cloudfoundry-incubator/garden/api"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/turbine"
 	"github.com/concourse/turbine/event"
 	"github.com/pivotal-golang/lager"
 )
@@ -15,14 +15,11 @@ var ErrEndOfStream = errors.New("end of stream")
 var ErrReadClosedStream = errors.New("read of closed stream")
 var ErrCloseClosedStream = errors.New("close of closed stream")
 
-// intermediate
-type BuildPlan turbine.Build
-
 //go:generate counterfeiter . Engine
 type Engine interface {
 	Name() string
 
-	CreateBuild(db.Build, BuildPlan) (Build, error)
+	CreateBuild(db.Build, atc.BuildPlan) (Build, error)
 	LookupBuild(db.Build) (Build, error)
 }
 

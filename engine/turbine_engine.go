@@ -16,6 +16,7 @@ import (
 	"time"
 
 	garden "github.com/cloudfoundry-incubator/garden/api"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/turbine"
 	"github.com/concourse/turbine/event"
@@ -83,9 +84,14 @@ func (engine *turbineEngine) Name() string {
 	return "turbine"
 }
 
-func (engine *turbineEngine) CreateBuild(build db.Build, plan BuildPlan) (Build, error) {
+func (engine *turbineEngine) CreateBuild(build db.Build, plan atc.BuildPlan) (Build, error) {
 	req := new(bytes.Buffer)
 
+	// NB: this is abusing the fact that atc build plans encode to an equivalent
+	// structure as turbine builds. this is a temporary (lol) step, as the very
+	// existence of turbine is on a timer.
+	//
+	// if you're someone but Alex reading this, pls fix.
 	err := json.NewEncoder(req).Encode(plan)
 	if err != nil {
 		return nil, err

@@ -3,7 +3,6 @@ package config_test
 import (
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/config"
-	"github.com/concourse/turbine"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -43,7 +42,7 @@ var _ = Describe("ValidateConfig", func() {
 					Public: true,
 
 					BuildConfigPath: "some/config/path.yml",
-					BuildConfig: turbine.Config{
+					BuildConfig: atc.BuildConfig{
 						Image: "some-image",
 					},
 
@@ -51,7 +50,7 @@ var _ = Describe("ValidateConfig", func() {
 
 					Serial: true,
 
-					Inputs: []atc.InputConfig{
+					Inputs: []atc.JobInputConfig{
 						{
 							RawName:  "some-input",
 							Resource: "some-resource",
@@ -62,7 +61,7 @@ var _ = Describe("ValidateConfig", func() {
 						},
 					},
 
-					Outputs: []atc.OutputConfig{
+					Outputs: []atc.JobOutputConfig{
 						{
 							Resource: "some-resource",
 							Params: atc.Params{
@@ -209,7 +208,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job has no config and no config path", func() {
 			BeforeEach(func() {
-				job.BuildConfig = turbine.Config{}
+				job.BuildConfig = atc.BuildConfig{}
 				job.BuildConfigPath = ""
 				config.Jobs = append(config.Jobs, job)
 			})
@@ -224,7 +223,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job's input has no resource", func() {
 			BeforeEach(func() {
-				job.Inputs = append(job.Inputs, atc.InputConfig{
+				job.Inputs = append(job.Inputs, atc.JobInputConfig{
 					RawName: "foo",
 				})
 				config.Jobs = append(config.Jobs, job)
@@ -240,7 +239,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job's input has a bogus resource", func() {
 			BeforeEach(func() {
-				job.Inputs = append(job.Inputs, atc.InputConfig{
+				job.Inputs = append(job.Inputs, atc.JobInputConfig{
 					RawName:  "foo",
 					Resource: "bogus-resource",
 				})
@@ -257,7 +256,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job's input's passed constraints reference a bogus job", func() {
 			BeforeEach(func() {
-				job.Inputs = append(job.Inputs, atc.InputConfig{
+				job.Inputs = append(job.Inputs, atc.JobInputConfig{
 					RawName:  "foo",
 					Resource: "some-resource",
 					Passed:   []string{"bogus-job"},
@@ -275,7 +274,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job's output has no resource", func() {
 			BeforeEach(func() {
-				job.Outputs = append(job.Outputs, atc.OutputConfig{})
+				job.Outputs = append(job.Outputs, atc.JobOutputConfig{})
 				config.Jobs = append(config.Jobs, job)
 			})
 
@@ -289,7 +288,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job's output has a bogus resource", func() {
 			BeforeEach(func() {
-				job.Outputs = append(job.Outputs, atc.OutputConfig{
+				job.Outputs = append(job.Outputs, atc.JobOutputConfig{
 					Resource: "bogus-resource",
 				})
 				config.Jobs = append(config.Jobs, job)

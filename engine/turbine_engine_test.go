@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	garden "github.com/cloudfoundry-incubator/garden/api"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/fakes"
@@ -56,8 +57,8 @@ var _ = Describe("TurbineEngine", func() {
 
 	Describe("CreateBuild", func() {
 		var (
-			build        db.Build
-			turbineBuild BuildPlan
+			build     db.Build
+			buildPlan atc.BuildPlan
 
 			createdBuild Build
 			createErr    error
@@ -68,8 +69,8 @@ var _ = Describe("TurbineEngine", func() {
 				ID: 1,
 			}
 
-			turbineBuild = BuildPlan{
-				Config: turbine.Config{
+			buildPlan = atc.BuildPlan{
+				Config: atc.BuildConfig{
 					Image: "some-image",
 
 					Params: map[string]string{
@@ -77,7 +78,7 @@ var _ = Describe("TurbineEngine", func() {
 						"BAR": "2",
 					},
 
-					Run: turbine.RunConfig{
+					Run: atc.BuildRunConfig{
 						Path: "some-script",
 						Args: []string{"arg1", "arg2"},
 					},
@@ -86,19 +87,18 @@ var _ = Describe("TurbineEngine", func() {
 		})
 
 		JustBeforeEach(func() {
-			createdBuild, createErr = engine.CreateBuild(build, turbineBuild)
+			createdBuild, createErr = engine.CreateBuild(build, buildPlan)
 		})
 
-		successfulBuildStart := func(build BuildPlan) http.HandlerFunc {
-			createdBuild := build
-			createdBuild.Guid = "some-build-guid"
-
+		successfulBuildStart := func(build atc.BuildPlan) http.HandlerFunc {
 			return ghttp.CombineHandlers(
 				ghttp.VerifyJSONRepresenting(build),
 				func(w http.ResponseWriter, r *http.Request) {
 					w.Header().Add("X-Turbine-Endpoint", turbineServer.URL())
 				},
-				ghttp.RespondWithJSONEncoded(201, createdBuild),
+				ghttp.RespondWithJSONEncoded(201, turbine.Build{
+					Guid: "some-build-guid",
+				}),
 			)
 		}
 
@@ -107,7 +107,7 @@ var _ = Describe("TurbineEngine", func() {
 				turbineServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/builds"),
-						successfulBuildStart(turbineBuild),
+						successfulBuildStart(buildPlan),
 					),
 				)
 			})

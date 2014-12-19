@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/engine"
 )
 
 func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
-	var plan engine.BuildPlan
+	var plan atc.BuildPlan
 	err := json.NewDecoder(r.Body).Decode(&plan)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

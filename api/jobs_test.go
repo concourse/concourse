@@ -43,7 +43,7 @@ var _ = Describe("Jobs API", func() {
 					Jobs: []atc.JobConfig{
 						{
 							Name: "some-job",
-							Inputs: []atc.InputConfig{
+							Inputs: []atc.JobInputConfig{
 								{
 									Resource: "some-input",
 								},
@@ -55,7 +55,7 @@ var _ = Describe("Jobs API", func() {
 									RawTrigger: &no,
 								},
 							},
-							Outputs: []atc.OutputConfig{
+							Outputs: []atc.JobOutputConfig{
 								{
 									Resource: "some-output",
 								},
@@ -227,22 +227,22 @@ var _ = Describe("Jobs API", func() {
 					Jobs: []atc.JobConfig{
 						{
 							Name:    "job-1",
-							Inputs:  []atc.InputConfig{{Resource: "input-1"}},
-							Outputs: []atc.OutputConfig{{Resource: "output-1"}},
+							Inputs:  []atc.JobInputConfig{{Resource: "input-1"}},
+							Outputs: []atc.JobOutputConfig{{Resource: "output-1"}},
 						},
 						{
 							Name: "job-2",
-							Inputs: []atc.InputConfig{
+							Inputs: []atc.JobInputConfig{
 								{
 									Resource: "input-2",
 								},
 							},
-							Outputs: []atc.OutputConfig{{Resource: "output-2"}},
+							Outputs: []atc.JobOutputConfig{{Resource: "output-2"}},
 						},
 						{
 							Name:    "job-3",
-							Inputs:  []atc.InputConfig{{Resource: "input-3"}},
-							Outputs: []atc.OutputConfig{{Resource: "output-3"}},
+							Inputs:  []atc.JobInputConfig{{Resource: "input-3"}},
+							Outputs: []atc.JobOutputConfig{{Resource: "output-3"}},
 						},
 					},
 				}, nil)

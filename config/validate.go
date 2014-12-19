@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/turbine"
 )
 
 type InvalidConfigError struct {
@@ -145,7 +144,7 @@ func validateJobs(c atc.Config) error {
 			errorMessages = append(errorMessages, identifier+" has no name")
 		}
 
-		if job.BuildConfigPath == "" && reflect.DeepEqual(job.BuildConfig, turbine.Config{}) {
+		if job.BuildConfigPath == "" && reflect.DeepEqual(job.BuildConfig, atc.BuildConfig{}) {
 			errorMessages = append(errorMessages, identifier+" has no build configuration")
 		}
 

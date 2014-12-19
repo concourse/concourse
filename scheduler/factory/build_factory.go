@@ -6,8 +6,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/engine"
-	"github.com/concourse/turbine"
 )
 
 type BuildFactory struct {
@@ -22,18 +20,18 @@ func (factory *BuildFactory) Create(
 	job atc.JobConfig,
 	resources atc.ResourceConfigs,
 	inputs []db.BuildInput,
-) (engine.BuildPlan, error) {
+) (atc.BuildPlan, error) {
 	tInputs, err := factory.computeInputs(job, resources, inputs)
 	if err != nil {
-		return engine.BuildPlan{}, err
+		return atc.BuildPlan{}, err
 	}
 
 	tOutputs, err := factory.computeOutputs(job, resources)
 	if err != nil {
-		return engine.BuildPlan{}, err
+		return atc.BuildPlan{}, err
 	}
 
-	return engine.BuildPlan{
+	return atc.BuildPlan{
 		Config: job.BuildConfig,
 
 		Inputs:  tInputs,
@@ -47,8 +45,8 @@ func (factory *BuildFactory) computeInputs(
 	job atc.JobConfig,
 	resources atc.ResourceConfigs,
 	dbInputs []db.BuildInput,
-) ([]turbine.Input, error) {
-	turbineInputs := make([]turbine.Input, len(job.Inputs))
+) ([]atc.InputPlan, error) {
+	buildPlans := make([]atc.InputPlan, len(job.Inputs))
 	for i, input := range job.Inputs {
 		resource, found := resources.Lookup(input.Resource)
 		if !found {
@@ -67,10 +65,10 @@ func (factory *BuildFactory) computeInputs(
 			}
 		}
 
-		turbineInputs[i] = factory.inputFor(job, vr, input.Name(), input.Params)
+		buildPlans[i] = factory.inputFor(job, vr, input.Name(), input.Params)
 	}
 
-	return turbineInputs, nil
+	return buildPlans, nil
 }
 
 func (factory *BuildFactory) inputFor(
@@ -78,53 +76,48 @@ func (factory *BuildFactory) inputFor(
 	vr db.VersionedResource,
 	inputName string,
 	params atc.Params,
-) turbine.Input {
-	turbineInput := turbine.Input{
+) atc.InputPlan {
+	inputPlan := atc.InputPlan{
 		Name:     inputName,
 		Resource: vr.Resource,
 		Type:     vr.Type,
-		Source:   turbine.Source(vr.Source),
-		Version:  turbine.Version(vr.Version),
-		Params:   turbine.Params(params),
+		Source:   atc.Source(vr.Source),
+		Version:  atc.Version(vr.Version),
+		Params:   atc.Params(params),
 	}
 
-	if turbineInput.Name == "" {
-		turbineInput.Name = vr.Resource
+	if inputPlan.Name == "" {
+		inputPlan.Name = vr.Resource
 	}
 
-	if filepath.HasPrefix(job.BuildConfigPath, turbineInput.Name+"/") {
-		turbineInput.ConfigPath = job.BuildConfigPath[len(turbineInput.Name)+1:]
+	if filepath.HasPrefix(job.BuildConfigPath, inputPlan.Name+"/") {
+		inputPlan.ConfigPath = job.BuildConfigPath[len(inputPlan.Name)+1:]
 	}
 
-	return turbineInput
+	return inputPlan
 }
 
 func (factory *BuildFactory) computeOutputs(
 	job atc.JobConfig,
 	resources atc.ResourceConfigs,
-) ([]turbine.Output, error) {
-	turbineOutputs := []turbine.Output{}
+) ([]atc.OutputPlan, error) {
+	outputPlans := []atc.OutputPlan{}
 	for _, output := range job.Outputs {
 		resource, found := resources.Lookup(output.Resource)
 		if !found {
 			return nil, fmt.Errorf("unknown resource: %s", output.Resource)
 		}
 
-		conditions := []turbine.OutputCondition{}
-		for _, cond := range output.PerformOn() {
-			conditions = append(conditions, turbine.OutputCondition(cond))
-		}
-
-		turbineOutput := turbine.Output{
+		outputPlan := atc.OutputPlan{
 			Name:   resource.Name,
 			Type:   resource.Type,
-			On:     conditions,
-			Params: turbine.Params(output.Params),
-			Source: turbine.Source(resource.Source),
+			On:     output.PerformOn(),
+			Params: atc.Params(output.Params),
+			Source: atc.Source(resource.Source),
 		}
 
-		turbineOutputs = append(turbineOutputs, turbineOutput)
+		outputPlans = append(outputPlans, outputPlan)
 	}
 
-	return turbineOutputs, nil
+	return outputPlans, nil
 }

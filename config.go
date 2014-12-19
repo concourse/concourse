@@ -3,9 +3,11 @@ package atc
 import (
 	"fmt"
 	"time"
-
-	"github.com/concourse/turbine"
 )
+
+type Source map[string]interface{}
+type Params map[string]interface{}
+type Version map[string]interface{}
 
 type Config struct {
 	Groups    GroupConfigs    `yaml:"groups" json:"groups"`
@@ -28,25 +30,23 @@ type ResourceConfig struct {
 	Source Source `yaml:"source" json:"source"`
 }
 
-type Source map[string]interface{}
-
 type JobConfig struct {
 	Name string `yaml:"name" json:"name"`
 
 	Public bool `yaml:"public,omitempty" json:"public,omitempty"`
 
-	BuildConfigPath string         `yaml:"build,omitempty" json:"build,omitempty"`
-	BuildConfig     turbine.Config `yaml:"config,omitempty" json:"config,omitempty"`
+	BuildConfigPath string      `yaml:"build,omitempty" json:"build,omitempty"`
+	BuildConfig     BuildConfig `yaml:"config,omitempty" json:"config,omitempty"`
 
 	Privileged bool `yaml:"privileged,omitempty" json:"privileged,omitempty"`
 
 	Serial bool `yaml:"serial,omitempty" json:"serial,omitempty"`
 
-	Inputs  []InputConfig  `yaml:"inputs,omitempty" json:"inputs,omitempty"`
-	Outputs []OutputConfig `yaml:"outputs,omitempty" json:"outputs,omitempty"`
+	Inputs  []JobInputConfig  `yaml:"inputs,omitempty" json:"inputs,omitempty"`
+	Outputs []JobOutputConfig `yaml:"outputs,omitempty" json:"outputs,omitempty"`
 }
 
-type InputConfig struct {
+type JobInputConfig struct {
 	RawName    string   `yaml:"name,omitempty" json:"name,omitempty"`
 	Resource   string   `yaml:"resource" json:"resource"`
 	Params     Params   `yaml:"params,omitempty" json:"params,omitempty"`
@@ -54,7 +54,7 @@ type InputConfig struct {
 	RawTrigger *bool    `yaml:"trigger" json:"trigger"`
 }
 
-func (config InputConfig) Name() string {
+func (config JobInputConfig) Name() string {
 	if len(config.RawName) > 0 {
 		return config.RawName
 	}
@@ -62,11 +62,11 @@ func (config InputConfig) Name() string {
 	return config.Resource
 }
 
-func (config InputConfig) Trigger() bool {
+func (config JobInputConfig) Trigger() bool {
 	return config.RawTrigger == nil || *config.RawTrigger
 }
 
-type OutputConfig struct {
+type JobOutputConfig struct {
 	Resource string `yaml:"resource" json:"resource"`
 	Params   Params `yaml:"params,omitempty" json:"params,omitempty"`
 
@@ -74,7 +74,7 @@ type OutputConfig struct {
 	RawPerformOn []OutputCondition `yaml:"perform_on,omitempty" json:"perform_on,omitempty"`
 }
 
-func (config OutputConfig) PerformOn() []OutputCondition {
+func (config JobOutputConfig) PerformOn() []OutputCondition {
 	if config.RawPerformOn == nil { // NOT len(0)
 		return []OutputCondition{"success"}
 	}
@@ -84,14 +84,19 @@ func (config OutputConfig) PerformOn() []OutputCondition {
 
 type OutputCondition string
 
+const (
+	OutputConditionSuccess OutputCondition = "success"
+	OutputConditionFailure OutputCondition = "failure"
+)
+
 func (c *OutputCondition) UnmarshalYAML(tag string, value interface{}) error {
 	str, ok := value.(string)
 	if !ok {
 		return fmt.Errorf("invalid output condition: %#v (must be success/failure)", value)
 	}
 
-	switch turbine.OutputCondition(str) {
-	case turbine.OutputConditionSuccess, turbine.OutputConditionFailure:
+	switch OutputCondition(str) {
+	case OutputConditionSuccess, OutputConditionFailure:
 		*c = OutputCondition(str)
 	default:
 		return fmt.Errorf("unknown output condition: %s (must be success/failure)", str)
@@ -117,8 +122,6 @@ func (d *Duration) UnmarshalYAML(tag string, value interface{}) error {
 
 	return nil
 }
-
-type Params map[string]interface{}
 
 type ResourceConfigs []ResourceConfig
 

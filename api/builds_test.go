@@ -19,21 +19,19 @@ import (
 	gfakes "github.com/cloudfoundry-incubator/garden/api/fakes"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/engine"
 	enginefakes "github.com/concourse/atc/engine/fakes"
-	"github.com/concourse/turbine"
 )
 
 var _ = Describe("Builds API", func() {
 	Describe("POST /api/v1/builds", func() {
-		var buildPlan engine.BuildPlan
+		var buildPlan atc.BuildPlan
 
 		var response *http.Response
 
 		BeforeEach(func() {
-			buildPlan = engine.BuildPlan{
-				Config: turbine.Config{
-					Run: turbine.RunConfig{
+			buildPlan = atc.BuildPlan{
+				Config: atc.BuildConfig{
+					Run: atc.BuildRunConfig{
 						Path: "ls",
 					},
 				},

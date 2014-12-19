@@ -4,6 +4,7 @@ package fakes
 import (
 	"sync"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 )
@@ -12,14 +13,14 @@ type FakeEngine struct {
 	NameStub        func() string
 	nameMutex       sync.RWMutex
 	nameArgsForCall []struct{}
-	nameReturns     struct {
+	nameReturns struct {
 		result1 string
 	}
-	CreateBuildStub        func(db.Build, engine.BuildPlan) (engine.Build, error)
+	CreateBuildStub        func(db.Build, atc.BuildPlan) (engine.Build, error)
 	createBuildMutex       sync.RWMutex
 	createBuildArgsForCall []struct {
 		arg1 db.Build
-		arg2 engine.BuildPlan
+		arg2 atc.BuildPlan
 	}
 	createBuildReturns struct {
 		result1 engine.Build
@@ -60,11 +61,11 @@ func (fake *FakeEngine) NameReturns(result1 string) {
 	}{result1}
 }
 
-func (fake *FakeEngine) CreateBuild(arg1 db.Build, arg2 engine.BuildPlan) (engine.Build, error) {
+func (fake *FakeEngine) CreateBuild(arg1 db.Build, arg2 atc.BuildPlan) (engine.Build, error) {
 	fake.createBuildMutex.Lock()
 	fake.createBuildArgsForCall = append(fake.createBuildArgsForCall, struct {
 		arg1 db.Build
-		arg2 engine.BuildPlan
+		arg2 atc.BuildPlan
 	}{arg1, arg2})
 	fake.createBuildMutex.Unlock()
 	if fake.CreateBuildStub != nil {
@@ -80,7 +81,7 @@ func (fake *FakeEngine) CreateBuildCallCount() int {
 	return len(fake.createBuildArgsForCall)
 }
 
-func (fake *FakeEngine) CreateBuildArgsForCall(i int) (db.Build, engine.BuildPlan) {
+func (fake *FakeEngine) CreateBuildArgsForCall(i int) (db.Build, atc.BuildPlan) {
 	fake.createBuildMutex.RLock()
 	defer fake.createBuildMutex.RUnlock()
 	return fake.createBuildArgsForCall[i].arg1, fake.createBuildArgsForCall[i].arg2

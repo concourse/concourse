@@ -8,10 +8,8 @@ import (
 	"github.com/concourse/atc/builder/fakebuilder"
 	"github.com/concourse/atc/db"
 	dbfakes "github.com/concourse/atc/db/fakes"
-	"github.com/concourse/atc/engine"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/fakes"
-	"github.com/concourse/turbine"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
@@ -26,7 +24,7 @@ var _ = Describe("Scheduler", func() {
 		locker      *fakes.FakeLocker
 		tracker     *fakes.FakeBuildTracker
 
-		createdBuildPlan engine.BuildPlan
+		createdBuildPlan atc.BuildPlan
 
 		job       atc.JobConfig
 		resources atc.ResourceConfigs
@@ -43,9 +41,9 @@ var _ = Describe("Scheduler", func() {
 		locker = new(fakes.FakeLocker)
 		tracker = new(fakes.FakeBuildTracker)
 
-		createdBuildPlan = engine.BuildPlan{
-			Config: turbine.Config{
-				Run: turbine.RunConfig{Path: "some-build"},
+		createdBuildPlan = atc.BuildPlan{
+			Config: atc.BuildConfig{
+				Run: atc.BuildRunConfig{Path: "some-build"},
 			},
 		}
 
@@ -66,7 +64,7 @@ var _ = Describe("Scheduler", func() {
 
 			Serial: true,
 
-			Inputs: []atc.InputConfig{
+			Inputs: []atc.JobInputConfig{
 				{
 					RawName:    "some-input",
 					Resource:   "some-resource",
@@ -160,7 +158,7 @@ var _ = Describe("Scheduler", func() {
 
 		Context("when the job has no inputs", func() {
 			BeforeEach(func() {
-				job.Inputs = []atc.InputConfig{}
+				job.Inputs = []atc.JobInputConfig{}
 			})
 
 			It("succeeds", func() {
@@ -219,7 +217,7 @@ var _ = Describe("Scheduler", func() {
 
 			Describe("getting the latest inputs from the database", func() {
 				BeforeEach(func() {
-					schedulerDB.GetLatestInputVersionsStub = func(inputs []atc.InputConfig) (db.VersionedResources, error) {
+					schedulerDB.GetLatestInputVersionsStub = func(inputs []atc.JobInputConfig) (db.VersionedResources, error) {
 						Ω(locker.AcquireReadLockCallCount()).Should(Equal(1))
 						Ω(locker.AcquireReadLockArgsForCall(0)).Should(ConsistOf([]db.NamedLock{
 							db.ResourceLock("some-resource"),
@@ -245,7 +243,7 @@ var _ = Describe("Scheduler", func() {
 				BeforeEach(func() {
 					trigger := false
 
-					job.Inputs = append(job.Inputs, atc.InputConfig{
+					job.Inputs = append(job.Inputs, atc.JobInputConfig{
 						Resource:   "some-non-checking-resource",
 						RawTrigger: &trigger,
 					})
@@ -348,9 +346,9 @@ var _ = Describe("Scheduler", func() {
 							Ω(createInputs).Should(Equal(newInputs))
 
 							Ω(builder.BuildCallCount()).Should(Equal(1))
-							builtBuild, builtTurbineBuild := builder.BuildArgsForCall(0)
+							builtBuild, buildPlan := builder.BuildArgsForCall(0)
 							Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
-							Ω(builtTurbineBuild).Should(Equal(createdBuildPlan))
+							Ω(buildPlan).Should(Equal(createdBuildPlan))
 						})
 					})
 
@@ -444,9 +442,9 @@ var _ = Describe("Scheduler", func() {
 					Ω(createInputs).Should(Equal(pendingInputs))
 
 					Ω(builder.BuildCallCount()).Should(Equal(1))
-					builtBuild, builtTurbineBuild := builder.BuildArgsForCall(0)
+					builtBuild, buildPlan := builder.BuildArgsForCall(0)
 					Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
-					Ω(builtTurbineBuild).Should(Equal(createdBuildPlan))
+					Ω(buildPlan).Should(Equal(createdBuildPlan))
 				})
 			})
 
@@ -541,9 +539,9 @@ var _ = Describe("Scheduler", func() {
 						Ω(createInputs).Should(BeZero())
 
 						Ω(builder.BuildCallCount()).Should(Equal(1))
-						builtBuild, builtTurbineBuild := builder.BuildArgsForCall(0)
+						builtBuild, buildPlan := builder.BuildArgsForCall(0)
 						Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
-						Ω(builtTurbineBuild).Should(Equal(createdBuildPlan))
+						Ω(buildPlan).Should(Equal(createdBuildPlan))
 					})
 				})
 
@@ -582,7 +580,7 @@ var _ = Describe("Scheduler", func() {
 
 		Context("when the job has dependant inputs", func() {
 			BeforeEach(func() {
-				job.Inputs = append(job.Inputs, atc.InputConfig{
+				job.Inputs = append(job.Inputs, atc.JobInputConfig{
 					RawName:  "some-dependant-input",
 					Resource: "some-dependant-resource",
 					Passed:   []string{"job-a"},
@@ -612,7 +610,7 @@ var _ = Describe("Scheduler", func() {
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(schedulerDB.GetLatestInputVersionsCallCount()).Should(Equal(1))
-					Ω(schedulerDB.GetLatestInputVersionsArgsForCall(0)).Should(Equal([]atc.InputConfig{
+					Ω(schedulerDB.GetLatestInputVersionsArgsForCall(0)).Should(Equal([]atc.JobInputConfig{
 						{
 							RawName:  "some-dependant-input",
 							Resource: "some-dependant-resource",
@@ -654,9 +652,9 @@ var _ = Describe("Scheduler", func() {
 							Ω(createInputs).Should(Equal(dependantInputs))
 
 							Ω(builder.BuildCallCount()).Should(Equal(1))
-							builtBuild, builtTurbineBuild := builder.BuildArgsForCall(0)
+							builtBuild, buildPlan := builder.BuildArgsForCall(0)
 							Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
-							Ω(builtTurbineBuild).Should(Equal(createdBuildPlan))
+							Ω(buildPlan).Should(Equal(createdBuildPlan))
 						})
 					})
 				})

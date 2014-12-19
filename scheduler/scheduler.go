@@ -8,14 +8,13 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/builder"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/engine"
 )
 
 //go:generate counterfeiter . SchedulerDB
 type SchedulerDB interface {
 	ScheduleBuild(buildID int, serial bool) (bool, error)
 
-	GetLatestInputVersions([]atc.InputConfig) (db.VersionedResources, error)
+	GetLatestInputVersions([]atc.JobInputConfig) (db.VersionedResources, error)
 
 	GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.Build, error)
 	CreateJobBuildWithInputs(job string, inputs []db.BuildInput) (db.Build, error)
@@ -27,7 +26,7 @@ type SchedulerDB interface {
 
 //go:generate counterfeiter . BuildFactory
 type BuildFactory interface {
-	Create(atc.JobConfig, atc.ResourceConfigs, []db.BuildInput) (engine.BuildPlan, error)
+	Create(atc.JobConfig, atc.ResourceConfigs, []db.BuildInput) (atc.BuildPlan, error)
 }
 
 //go:generate counterfeiter . BuildTracker
@@ -174,7 +173,7 @@ func (s *Scheduler) TryNextPendingBuild(job atc.JobConfig, resources atc.Resourc
 func (s *Scheduler) TriggerImmediately(job atc.JobConfig, resources atc.ResourceConfigs) (db.Build, error) {
 	buildLog := s.Logger.Session("trigger-immediately")
 
-	passedInputs := []atc.InputConfig{}
+	passedInputs := []atc.JobInputConfig{}
 	for _, input := range job.Inputs {
 		if len(input.Passed) == 0 {
 			continue
@@ -247,7 +246,7 @@ func (s *Scheduler) TrackInFlightBuilds() error {
 	return nil
 }
 
-func (s *Scheduler) lockVersionUpdatesFor(inputs []atc.InputConfig) (db.Lock, error) {
+func (s *Scheduler) lockVersionUpdatesFor(inputs []atc.JobInputConfig) (db.Lock, error) {
 	locks := []db.NamedLock{}
 	for _, input := range inputs {
 		locks = append(locks, db.ResourceLock(input.Resource))

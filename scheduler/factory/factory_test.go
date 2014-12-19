@@ -3,9 +3,7 @@ package factory_test
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/engine"
 	. "github.com/concourse/atc/scheduler/factory"
-	"github.com/concourse/turbine"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,7 +16,7 @@ var _ = Describe("Factory", func() {
 		job       atc.JobConfig
 		resources atc.ResourceConfigs
 
-		expectedBuildPlan engine.BuildPlan
+		expectedBuildPlan atc.BuildPlan
 	)
 
 	BeforeEach(func() {
@@ -27,13 +25,13 @@ var _ = Describe("Factory", func() {
 		job = atc.JobConfig{
 			Name: "some-job",
 
-			BuildConfig: turbine.Config{
+			BuildConfig: atc.BuildConfig{
 				Image: "some-image",
 				Params: map[string]string{
 					"FOO": "1",
 					"BAR": "2",
 				},
-				Run: turbine.RunConfig{
+				Run: atc.BuildRunConfig{
 					Path: "some-script",
 					Args: []string{"arg1", "arg2"},
 				},
@@ -43,7 +41,7 @@ var _ = Describe("Factory", func() {
 
 			BuildConfigPath: "some-input/build.yml",
 
-			Inputs: []atc.InputConfig{
+			Inputs: []atc.JobInputConfig{
 				{
 					RawName:  "some-input",
 					Resource: "some-resource",
@@ -51,7 +49,7 @@ var _ = Describe("Factory", func() {
 				},
 			},
 
-			Outputs: []atc.OutputConfig{
+			Outputs: []atc.JobOutputConfig{
 				{
 					Resource:     "some-resource",
 					Params:       atc.Params{"foo": "bar"},
@@ -70,8 +68,8 @@ var _ = Describe("Factory", func() {
 			},
 		}
 
-		expectedBuildPlan = engine.BuildPlan{
-			Config: turbine.Config{
+		expectedBuildPlan = atc.BuildPlan{
+			Config: atc.BuildConfig{
 				Image: "some-image",
 
 				Params: map[string]string{
@@ -79,44 +77,44 @@ var _ = Describe("Factory", func() {
 					"BAR": "2",
 				},
 
-				Run: turbine.RunConfig{
+				Run: atc.BuildRunConfig{
 					Path: "some-script",
 					Args: []string{"arg1", "arg2"},
 				},
 			},
 
-			Inputs: []turbine.Input{
+			Inputs: []atc.InputPlan{
 				{
 					Name:       "some-input",
 					Resource:   "some-resource",
 					Type:       "git",
-					Source:     turbine.Source{"uri": "git://some-resource"},
-					Params:     turbine.Params{"some": "params"},
+					Source:     atc.Source{"uri": "git://some-resource"},
+					Params:     atc.Params{"some": "params"},
 					ConfigPath: "build.yml",
 				},
 			},
 
-			Outputs: []turbine.Output{
+			Outputs: []atc.OutputPlan{
 				{
 					Name:   "some-resource",
 					Type:   "git",
-					On:     []turbine.OutputCondition{turbine.OutputConditionSuccess},
-					Params: turbine.Params{"foo": "bar"},
-					Source: turbine.Source{"uri": "git://some-resource"},
+					On:     []atc.OutputCondition{atc.OutputConditionSuccess},
+					Params: atc.Params{"foo": "bar"},
+					Source: atc.Source{"uri": "git://some-resource"},
 				},
 				{
 					Name:   "some-resource",
 					Type:   "git",
-					On:     []turbine.OutputCondition{turbine.OutputConditionFailure},
-					Params: turbine.Params{"foo": "bar"},
-					Source: turbine.Source{"uri": "git://some-resource"},
+					On:     []atc.OutputCondition{atc.OutputConditionFailure},
+					Params: atc.Params{"foo": "bar"},
+					Source: atc.Source{"uri": "git://some-resource"},
 				},
 				{
 					Name:   "some-resource",
 					Type:   "git",
-					On:     []turbine.OutputCondition{},
-					Params: turbine.Params{"foo": "bar"},
-					Source: turbine.Source{"uri": "git://some-resource"},
+					On:     []atc.OutputCondition{},
+					Params: atc.Params{"foo": "bar"},
+					Source: atc.Source{"uri": "git://some-resource"},
 				},
 			},
 
@@ -152,7 +150,7 @@ var _ = Describe("Factory", func() {
 		}
 	})
 
-	It("creates a turbine build based on the job's configuration", func() {
+	It("creates a build plan based on the job's configuration", func() {
 		buildPlan, err := factory.Create(job, resources, nil)
 		Ω(err).ShouldNot(HaveOccurred())
 
@@ -161,18 +159,18 @@ var _ = Describe("Factory", func() {
 
 	Context("when an input has an explicit name", func() {
 		BeforeEach(func() {
-			job.Inputs = append(job.Inputs, atc.InputConfig{
+			job.Inputs = append(job.Inputs, atc.JobInputConfig{
 				RawName:  "some-named-input",
 				Resource: "some-named-resource",
 				Params:   atc.Params{"some": "named-params"},
 			})
 
-			expectedBuildPlan.Inputs = append(expectedBuildPlan.Inputs, turbine.Input{
+			expectedBuildPlan.Inputs = append(expectedBuildPlan.Inputs, atc.InputPlan{
 				Name:     "some-named-input",
 				Resource: "some-named-resource",
 				Type:     "git",
-				Source:   turbine.Source{"uri": "git://some-named-resource"},
-				Params:   turbine.Params{"some": "named-params"},
+				Source:   atc.Source{"uri": "git://some-named-resource"},
+				Params:   atc.Params{"some": "named-params"},
 			})
 		})
 
@@ -186,7 +184,7 @@ var _ = Describe("Factory", func() {
 
 	Context("when an explicitly named input is the source of the config", func() {
 		BeforeEach(func() {
-			job.Inputs = append(job.Inputs, atc.InputConfig{
+			job.Inputs = append(job.Inputs, atc.JobInputConfig{
 				RawName:  "some-named-input",
 				Resource: "some-named-resource",
 				Params:   atc.Params{"some": "named-params"},
@@ -196,12 +194,12 @@ var _ = Describe("Factory", func() {
 
 			expectedBuildPlan.Inputs[0].ConfigPath = ""
 
-			expectedBuildPlan.Inputs = append(expectedBuildPlan.Inputs, turbine.Input{
+			expectedBuildPlan.Inputs = append(expectedBuildPlan.Inputs, atc.InputPlan{
 				Name:       "some-named-input",
 				Resource:   "some-named-resource",
 				Type:       "git",
-				Source:     turbine.Source{"uri": "git://some-named-resource"},
-				Params:     turbine.Params{"some": "named-params"},
+				Source:     atc.Source{"uri": "git://some-named-resource"},
+				Params:     atc.Params{"some": "named-params"},
 				ConfigPath: "build.yml",
 			})
 		})
@@ -216,7 +214,7 @@ var _ = Describe("Factory", func() {
 
 	Context("when two inputs have overlappying names for the config path", func() {
 		BeforeEach(func() {
-			job.Inputs = append(job.Inputs, atc.InputConfig{
+			job.Inputs = append(job.Inputs, atc.JobInputConfig{
 				Resource: "some-resource-with-longer-name",
 			})
 
@@ -224,11 +222,11 @@ var _ = Describe("Factory", func() {
 
 			expectedBuildPlan.Inputs[0].ConfigPath = ""
 
-			expectedBuildPlan.Inputs = append(expectedBuildPlan.Inputs, turbine.Input{
+			expectedBuildPlan.Inputs = append(expectedBuildPlan.Inputs, atc.InputPlan{
 				Name:       "some-resource-with-longer-name",
 				Resource:   "some-resource-with-longer-name",
 				Type:       "git",
-				Source:     turbine.Source{"uri": "git://some-resource-with-longer-name"},
+				Source:     atc.Source{"uri": "git://some-resource-with-longer-name"},
 				ConfigPath: "build.yml",
 			})
 		})
@@ -256,14 +254,14 @@ var _ = Describe("Factory", func() {
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(buildPlan.Inputs).Should(Equal([]turbine.Input{
+			Ω(buildPlan.Inputs).Should(Equal([]atc.InputPlan{
 				{
 					Name:       "some-input",
 					Resource:   "some-resource",
 					Type:       "git-ng",
-					Source:     turbine.Source{"uri": "git://some-provided-uri"},
-					Params:     turbine.Params{"some": "params"},
-					Version:    turbine.Version{"version": "1"},
+					Source:     atc.Source{"uri": "git://some-provided-uri"},
+					Params:     atc.Params{"some": "params"},
+					Version:    atc.Version{"version": "1"},
 					ConfigPath: "build.yml",
 				},
 			}))
@@ -272,7 +270,7 @@ var _ = Describe("Factory", func() {
 
 	Context("when the job's input is not found", func() {
 		BeforeEach(func() {
-			job.Inputs = append(job.Inputs, atc.InputConfig{
+			job.Inputs = append(job.Inputs, atc.JobInputConfig{
 				Resource: "some-bogus-resource",
 			})
 		})
@@ -285,7 +283,7 @@ var _ = Describe("Factory", func() {
 
 	Context("when the job's output is not found", func() {
 		BeforeEach(func() {
-			job.Outputs = append(job.Outputs, atc.OutputConfig{
+			job.Outputs = append(job.Outputs, atc.JobOutputConfig{
 				Resource: "some-bogus-resource",
 			})
 		})
