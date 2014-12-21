@@ -29,6 +29,8 @@ files:
   - github.com/concourse/atc/db/migrations/*.go # gosub
   - github.com/concourse/atc/engine/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
+  - github.com/concourse/atc/event/v1event/*.go # gosub
+  - github.com/concourse/atc/event/v2event/*.go # gosub
   - github.com/concourse/atc/radar/*.go # gosub
   - github.com/concourse/atc/scheduler/*.go # gosub
   - github.com/concourse/atc/scheduler/factory/*.go # gosub
