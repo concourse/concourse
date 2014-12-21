@@ -5,17 +5,13 @@ import (
 	"io"
 	"strings"
 
+	"github.com/concourse/atc"
+	"github.com/concourse/atc/event/v1event"
 	"github.com/mgutz/ansi"
-
-	"github.com/concourse/turbine"
-	"github.com/concourse/turbine/event"
 )
 
-type V10Renderer struct {
-}
-
-func (V10Renderer) Render(dst io.Writer, src EventStream) int {
-	var buildConfig turbine.Config
+func Render(dst io.Writer, src EventStream) int {
+	var buildConfig atc.BuildConfig
 
 	exitStatus := 0
 
@@ -31,10 +27,10 @@ func (V10Renderer) Render(dst io.Writer, src EventStream) int {
 		}
 
 		switch e := ev.(type) {
-		case event.Log:
+		case v1event.Log:
 			fmt.Fprintf(dst, "%s", e.Payload)
 
-		case event.Initialize:
+		case v1event.Initialize:
 			buildConfig = e.BuildConfig
 
 			if buildConfig.Image != "" {
@@ -43,17 +39,17 @@ func (V10Renderer) Render(dst io.Writer, src EventStream) int {
 				fmt.Fprintf(dst, "\x1b[1minitializing\x1b[0m\n")
 			}
 
-		case event.Start:
+		case v1event.Start:
 			argv := strings.Join(append([]string{buildConfig.Run.Path}, buildConfig.Run.Args...), " ")
 			fmt.Fprintf(dst, "\x1b[1mrunning %s\x1b[0m\n", argv)
 
-		case event.Finish:
+		case v1event.Finish:
 			exitStatus = e.ExitStatus
 
-		case event.Error:
+		case v1event.Error:
 			fmt.Fprintf(dst, "%s\n", ansi.Color(e.Message, "red+b"))
 
-		case event.Status:
+		case v1event.Status:
 			var color string
 
 			switch e.Status {

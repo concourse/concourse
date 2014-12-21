@@ -20,7 +20,8 @@ import (
 	"github.com/vito/go-sse/sse"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/turbine/event"
+	"github.com/concourse/atc/event"
+	"github.com/concourse/atc/event/v1event"
 )
 
 var _ = Describe("Fly CLI", func() {
@@ -29,7 +30,7 @@ var _ = Describe("Fly CLI", func() {
 
 	var atcServer *ghttp.Server
 	var streaming chan struct{}
-	var events chan event.Event
+	var events chan atc.Event
 	var uploadingBits <-chan struct{}
 
 	var expectedBuildPlan atc.BuildPlan
@@ -73,7 +74,7 @@ run:
 		os.Setenv("ATC_URL", atcServer.URL())
 
 		streaming = make(chan struct{})
-		events = make(chan event.Event)
+		events = make(chan atc.Event)
 
 		expectedBuildPlan = atc.BuildPlan{
 			Config: atc.BuildConfig{
@@ -153,29 +154,18 @@ run:
 
 					flusher.Flush()
 
-					version := sse.Event{
-						ID:   "0",
-						Name: "version",
-						Data: []byte(`"1.1"`),
-					}
-
-					err := version.Write(w)
-					Ω(err).ShouldNot(HaveOccurred())
-
-					flusher.Flush()
-
 					close(streaming)
 
-					id := 1
+					id := 0
 
 					for e := range events {
-						payload, err := json.Marshal(e)
+						payload, err := json.Marshal(event.Message{e})
 						Ω(err).ShouldNot(HaveOccurred())
 
 						event := sse.Event{
 							ID:   fmt.Sprintf("%d", id),
-							Name: string(e.EventType()),
-							Data: []byte(payload),
+							Name: "event",
+							Data: payload,
 						}
 
 						err = event.Write(w)
@@ -185,6 +175,11 @@ run:
 
 						id++
 					}
+
+					err := sse.Event{
+						Name: "end",
+					}.Write(w)
+					Ω(err).ShouldNot(HaveOccurred())
 				},
 			),
 			ghttp.CombineHandlers(
@@ -246,7 +241,7 @@ run:
 
 		Eventually(streaming).Should(BeClosed())
 
-		events <- event.Log{Payload: "sup"}
+		events <- v1event.Log{Payload: "sup"}
 		close(events)
 
 		Eventually(sess.Out).Should(gbytes.Say("sup"))

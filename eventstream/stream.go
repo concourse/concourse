@@ -1,12 +1,18 @@
 package eventstream
 
 import (
-	"github.com/concourse/turbine/event"
+	"encoding/json"
+	"fmt"
+	"io"
+
+	"github.com/concourse/atc"
+	"github.com/concourse/atc/event"
 	"github.com/vito/go-sse/sse"
 )
 
+//go:generate counterfeiter . EventStream
 type EventStream interface {
-	NextEvent() (event.Event, error)
+	NextEvent() (atc.Event, error)
 }
 
 type SSEEventStream struct {
@@ -17,11 +23,26 @@ func NewSSEEventStream(reader *sse.EventSource) *SSEEventStream {
 	return &SSEEventStream{sseReader: reader}
 }
 
-func (s *SSEEventStream) NextEvent() (event.Event, error) {
+func (s *SSEEventStream) NextEvent() (atc.Event, error) {
 	se, err := s.sseReader.Next()
 	if err != nil {
 		return nil, err
 	}
 
-	return event.ParseEvent(event.EventType(se.Name), se.Data)
+	switch se.Name {
+	case "event":
+		var message event.Message
+		err = json.Unmarshal(se.Data, &message)
+		if err != nil {
+			return nil, err
+		}
+
+		return message.Event, nil
+
+	case "end":
+		return nil, io.EOF
+
+	default:
+		return nil, fmt.Errorf("unknown event name: %s", se.Name)
+	}
 }

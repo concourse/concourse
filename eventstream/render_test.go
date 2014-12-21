@@ -4,10 +4,10 @@ import (
 	"io"
 	"time"
 
+	"github.com/concourse/atc"
+	"github.com/concourse/atc/event/v1event"
 	. "github.com/concourse/fly/eventstream"
 	"github.com/concourse/fly/eventstream/fakes"
-	"github.com/concourse/turbine"
-	"github.com/concourse/turbine/event"
 	"github.com/mgutz/ansi"
 
 	. "github.com/onsi/ginkgo"
@@ -20,9 +20,7 @@ var _ = Describe("V1.0 Renderer", func() {
 		out    *gbytes.Buffer
 		stream *fakes.FakeEventStream
 
-		receivedEvents chan<- event.Event
-
-		renderer Renderer
+		receivedEvents chan<- atc.Event
 
 		exitStatus int
 	)
@@ -31,10 +29,10 @@ var _ = Describe("V1.0 Renderer", func() {
 		out = gbytes.NewBuffer()
 		stream = new(fakes.FakeEventStream)
 
-		events := make(chan event.Event, 100)
+		events := make(chan atc.Event, 100)
 		receivedEvents = events
 
-		stream.NextEventStub = func() (event.Event, error) {
+		stream.NextEventStub = func() (atc.Event, error) {
 			select {
 			case ev := <-events:
 				return ev, nil
@@ -42,17 +40,15 @@ var _ = Describe("V1.0 Renderer", func() {
 				return nil, io.EOF
 			}
 		}
-
-		renderer = V10Renderer{}
 	})
 
 	JustBeforeEach(func() {
-		exitStatus = renderer.Render(out, stream)
+		exitStatus = Render(out, stream)
 	})
 
 	Context("when a Log event is received", func() {
 		BeforeEach(func() {
-			receivedEvents <- event.Log{
+			receivedEvents <- v1event.Log{
 				Payload: "hello",
 			}
 		})
@@ -64,7 +60,7 @@ var _ = Describe("V1.0 Renderer", func() {
 
 	Context("when an Error event is received", func() {
 		BeforeEach(func() {
-			receivedEvents <- event.Error{
+			receivedEvents <- v1event.Error{
 				Message: "oh no!",
 			}
 		})
@@ -76,10 +72,10 @@ var _ = Describe("V1.0 Renderer", func() {
 
 	Context("when an Initialize event is received", func() {
 		BeforeEach(func() {
-			receivedEvents <- event.Initialize{
-				BuildConfig: turbine.Config{
+			receivedEvents <- v1event.Initialize{
+				BuildConfig: atc.BuildConfig{
 					Image: "some-image",
-					Run: turbine.RunConfig{
+					Run: atc.BuildRunConfig{
 						Path: "/some/script",
 						Args: []string{"arg1", "arg2"},
 					},
@@ -93,7 +89,7 @@ var _ = Describe("V1.0 Renderer", func() {
 
 		Context("and a Start event is received", func() {
 			BeforeEach(func() {
-				receivedEvents <- event.Start{
+				receivedEvents <- v1event.Start{
 					Time: time.Now().Unix(),
 				}
 			})
@@ -106,7 +102,7 @@ var _ = Describe("V1.0 Renderer", func() {
 
 	Context("when a Finish event is received", func() {
 		BeforeEach(func() {
-			receivedEvents <- event.Finish{
+			receivedEvents <- v1event.Finish{
 				ExitStatus: 42,
 			}
 		})
@@ -117,8 +113,8 @@ var _ = Describe("V1.0 Renderer", func() {
 
 		Context("and a Status event is received", func() {
 			BeforeEach(func() {
-				receivedEvents <- event.Status{
-					Status: turbine.StatusSucceeded,
+				receivedEvents <- v1event.Status{
+					Status: atc.StatusSucceeded,
 				}
 			})
 
@@ -135,8 +131,8 @@ var _ = Describe("V1.0 Renderer", func() {
 	Describe("receiving a Status event", func() {
 		Context("with status 'succeeded'", func() {
 			BeforeEach(func() {
-				receivedEvents <- event.Status{
-					Status: turbine.StatusSucceeded,
+				receivedEvents <- v1event.Status{
+					Status: atc.StatusSucceeded,
 				}
 			})
 
@@ -151,8 +147,8 @@ var _ = Describe("V1.0 Renderer", func() {
 
 		Context("with status 'failed'", func() {
 			BeforeEach(func() {
-				receivedEvents <- event.Status{
-					Status: turbine.StatusFailed,
+				receivedEvents <- v1event.Status{
+					Status: atc.StatusFailed,
 				}
 			})
 
@@ -167,8 +163,8 @@ var _ = Describe("V1.0 Renderer", func() {
 
 		Context("with status 'errored'", func() {
 			BeforeEach(func() {
-				receivedEvents <- event.Status{
-					Status: turbine.StatusErrored,
+				receivedEvents <- v1event.Status{
+					Status: atc.StatusErrored,
 				}
 			})
 
@@ -183,8 +179,8 @@ var _ = Describe("V1.0 Renderer", func() {
 
 		Context("with status 'aborted'", func() {
 			BeforeEach(func() {
-				receivedEvents <- event.Status{
-					Status: turbine.StatusAborted,
+				receivedEvents <- v1event.Status{
+					Status: atc.StatusAborted,
 				}
 			})
 

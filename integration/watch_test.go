@@ -7,25 +7,27 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/turbine/event"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/vito/go-sse/sse"
+
+	"github.com/concourse/atc"
+	"github.com/concourse/atc/event"
+	"github.com/concourse/atc/event/v1event"
 )
 
 var _ = Describe("Watching", func() {
 	var atcServer *ghttp.Server
 	var streaming chan struct{}
-	var events chan event.Event
+	var events chan atc.Event
 
 	BeforeEach(func() {
 		atcServer = ghttp.NewServer()
 		streaming = make(chan struct{})
-		events = make(chan event.Event)
+		events = make(chan atc.Event)
 
 		os.Setenv("ATC_URL", atcServer.URL())
 	})
@@ -44,29 +46,18 @@ var _ = Describe("Watching", func() {
 
 				flusher.Flush()
 
-				version := sse.Event{
-					ID:   "0",
-					Name: "version",
-					Data: []byte(`"1.1"`),
-				}
-
-				err := version.Write(w)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				flusher.Flush()
-
 				close(streaming)
 
-				id := 1
+				id := 0
 
 				for e := range events {
-					payload, err := json.Marshal(e)
+					payload, err := json.Marshal(event.Message{e})
 					Ω(err).ShouldNot(HaveOccurred())
 
 					event := sse.Event{
 						ID:   fmt.Sprintf("%d", id),
-						Name: string(e.EventType()),
-						Data: []byte(payload),
+						Name: "event",
+						Data: payload,
 					}
 
 					err = event.Write(w)
@@ -76,6 +67,11 @@ var _ = Describe("Watching", func() {
 
 					id++
 				}
+
+				err := sse.Event{
+					Name: "end",
+				}.Write(w)
+				Ω(err).ShouldNot(HaveOccurred())
 			},
 		)
 	}
@@ -88,7 +84,7 @@ var _ = Describe("Watching", func() {
 
 		Eventually(streaming).Should(BeClosed())
 
-		events <- event.Log{Payload: "sup"}
+		events <- v1event.Log{Payload: "sup"}
 
 		Eventually(sess.Out).Should(gbytes.Say("sup"))
 
