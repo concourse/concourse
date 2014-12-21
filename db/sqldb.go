@@ -584,7 +584,7 @@ func (db *SQLDB) GetBuildEvents(buildID int) ([]BuildEvent, error) {
 	var events []BuildEvent
 
 	rows, err := db.conn.Query(`
-		SELECT event_id, type, payload
+		SELECT event_id, type, payload, version
 		FROM build_events
 		WHERE build_id = $1
 		ORDER BY event_id ASC
@@ -595,7 +595,7 @@ func (db *SQLDB) GetBuildEvents(buildID int) ([]BuildEvent, error) {
 
 	for rows.Next() {
 		var event BuildEvent
-		err := rows.Scan(&event.ID, &event.Type, &event.Payload)
+		err := rows.Scan(&event.ID, &event.Type, &event.Payload, &event.Version)
 		if err != nil {
 			return nil, err
 		}
@@ -624,15 +624,15 @@ func (db *SQLDB) GetLastBuildEventID(buildID int) (int, error) {
 
 func (db *SQLDB) SaveBuildEvent(buildID int, event BuildEvent) error {
 	_, err := db.conn.Exec(`
-		INSERT INTO build_events (build_id, event_id, type, payload)
-		SELECT $1, $2, $3, $4
+		INSERT INTO build_events (build_id, event_id, type, payload, version)
+		SELECT $1, $2, $3, $4, $5
 		WHERE NOT EXISTS (
 			SELECT 1
 			FROM build_events
 			WHERE build_id = $1
 			AND event_id = $2
 		)
-	`, buildID, event.ID, event.Type, event.Payload)
+	`, buildID, event.ID, event.Type, event.Payload, event.Version)
 	if err != nil {
 		return err
 	}

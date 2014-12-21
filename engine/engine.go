@@ -6,7 +6,6 @@ import (
 	garden "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/turbine/event"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -35,6 +34,6 @@ type Build interface {
 
 //go:generate counterfeiter . EventSource
 type EventSource interface {
-	Next() (event.Event, error)
+	Next() (atc.Event, error)
 	Close() error
 }

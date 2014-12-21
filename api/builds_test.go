@@ -246,7 +246,7 @@ var _ = Describe("Builds API", func() {
 				Ω(constructedEventHandler.db).Should(Equal(buildsDB))
 				Ω(constructedEventHandler.buildID).Should(Equal(128))
 				Ω(constructedEventHandler.engine).Should(Equal(fakeEngine))
-				Ω(constructedEventHandler.censor).Should(BeNil())
+				Ω(constructedEventHandler.censor).Should(BeFalse())
 			})
 		})
 
@@ -290,7 +290,7 @@ var _ = Describe("Builds API", func() {
 
 					Ω(constructedEventHandler.db).Should(Equal(buildsDB))
 					Ω(constructedEventHandler.buildID).Should(Equal(128))
-					Ω(constructedEventHandler.censor).ShouldNot(BeNil())
+					Ω(constructedEventHandler.censor).Should(BeTrue())
 				})
 			})
 		})

@@ -20,4 +20,5 @@ var Migrations = []migration.Migrator{
 	AddConfig,
 	AddNameToBuildInputs,
 	AddEngineAndEngineMetadataToBuilds,
+	AddVersionToBuildEvents,
 }

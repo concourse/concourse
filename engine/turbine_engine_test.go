@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
 	garden "github.com/cloudfoundry-incubator/garden/api"
@@ -13,8 +14,10 @@ import (
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/fakes"
+	"github.com/concourse/atc/event/v1event"
+	"github.com/concourse/atc/event/v2event"
 	"github.com/concourse/turbine"
-	"github.com/concourse/turbine/event"
+	tevent "github.com/concourse/turbine/event"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/rata"
 	"github.com/vito/go-sse/sse"
@@ -484,11 +487,11 @@ var _ = Describe("TurbineEngine", func() {
 
 			Context("when the build's turbine returns events", func() {
 				var (
-					events []event.Event
+					events []tevent.Event
 				)
 
 				BeforeEach(func() {
-					events = []event.Event{}
+					events = []tevent.Event{}
 
 					buildEndpoint.AppendHandlers(
 						ghttp.CombineHandlers(
@@ -528,22 +531,25 @@ var _ = Describe("TurbineEngine", func() {
 					)
 				})
 
-				itEmitsTheEvent := func(count int) {
+				itEmits := func(event atc.Event) {
 					It("emits the event", func() {
-						Eventually(subSource.Next).Should(Equal(events[count-1]))
+						Eventually(subSource.Next).Should(Equal(event))
 					})
 				}
 
 				Describe("Closing", func() {
 					BeforeEach(func() {
 						events = append(events,
-							event.Version("1.0"),
-							event.Status{Status: turbine.StatusStarted},
+							tevent.Version("1.0"),
+							tevent.Status{Status: turbine.StatusStarted},
+							tevent.Status{Status: turbine.StatusSucceeded},
 						)
 					})
 
 					It("succeeds and prevents more events from being read", func() {
-						Ω(subSource.Next()).Should(Equal(event.Version("1.0")))
+						Ω(subSource.Next()).Should(Equal(v1event.Status{
+							Status: atc.StatusStarted,
+						}))
 
 						err := subSource.Close()
 						Ω(err).ShouldNot(HaveOccurred())
@@ -561,44 +567,55 @@ var _ = Describe("TurbineEngine", func() {
 
 					Context("and they're v"+version, func() {
 						BeforeEach(func() {
-							events = append(events, event.Version(version))
+							events = append(events, tevent.Version(version))
 						})
 
-						itEmitsTheEvent(1)
+						It("does not emit the version", func() {
+							_, err := subSource.Next()
+							Ω(err).Should(Equal(io.EOF))
+						})
 
 						Context("and a status event appears", func() {
 							Context("and it's started", func() {
 								BeforeEach(func() {
-									events = append(events, event.Status{
+									events = append(events, tevent.Status{
 										Status: turbine.StatusStarted,
 										Time:   1234,
 									})
 								})
 
-								itEmitsTheEvent(2)
+								itEmits(v1event.Status{
+									Status: atc.StatusStarted,
+									Time:   1234,
+								})
 							})
 
 							Context("and it's completed", func() {
 								BeforeEach(func() {
-									events = append(events, event.Status{
+									events = append(events, tevent.Status{
 										Status: turbine.StatusSucceeded,
 										Time:   1234,
 									})
 								})
 
-								itEmitsTheEvent(2)
+								itEmits(v1event.Status{
+									Status: atc.StatusSucceeded,
+									Time:   1234,
+								})
 							})
 						})
 
 						Context("and an input event appears", func() {
 							BeforeEach(func() {
-								events = append(events, event.Input{
+								events = append(events, tevent.Input{
 									Input: turbine.Input{
-										Name:     "some-input-name",
-										Resource: "some-input-resource",
-										Type:     "some-type",
-										Source:   turbine.Source{"input-source": "some-source"},
-										Version:  turbine.Version{"version": "input-version"},
+										Name:       "some-input-name",
+										Resource:   "some-input-resource",
+										Type:       "some-type",
+										Source:     turbine.Source{"input-source": "some-source"},
+										Version:    turbine.Version{"version": "input-version"},
+										Params:     turbine.Params{"input-param": "some-param"},
+										ConfigPath: "foo/build.yml",
 										Metadata: []turbine.MetadataField{
 											{Name: "input-meta", Value: "some-value"},
 										},
@@ -606,17 +623,33 @@ var _ = Describe("TurbineEngine", func() {
 								})
 							})
 
-							itEmitsTheEvent(2)
+							itEmits(v2event.Input{
+								Plan: atc.InputPlan{
+									Name:       "some-input-name",
+									Resource:   "some-input-resource",
+									Type:       "some-type",
+									Version:    atc.Version{"version": "input-version"}, // preserved as it may have been requested
+									Source:     atc.Source{"input-source": "some-source"},
+									Params:     atc.Params{"input-param": "some-param"},
+									ConfigPath: "foo/build.yml",
+								},
+								FetchedVersion: atc.Version{"version": "input-version"},
+								FetchedMetadata: []atc.MetadataField{
+									{Name: "input-meta", Value: "some-value"},
+								},
+							})
 						})
 
 						Context("and an output event appears", func() {
 							BeforeEach(func() {
-								events = append(events, event.Output{
+								events = append(events, tevent.Output{
 									Output: turbine.Output{
 										Name:    "some-output-name",
 										Type:    "some-type",
+										On:      turbine.OutputConditions{turbine.OutputConditionFailure},
 										Source:  turbine.Source{"output-source": "some-source"},
 										Version: turbine.Version{"version": "output-version"},
+										Params:  turbine.Params{"output-param": "some-param"},
 										Metadata: []turbine.MetadataField{
 											{Name: "output-meta", Value: "some-value"},
 										},
@@ -624,15 +657,30 @@ var _ = Describe("TurbineEngine", func() {
 								})
 							})
 
-							itEmitsTheEvent(2)
+							itEmits(v2event.Output{
+								Plan: atc.OutputPlan{
+									Name:   "some-output-name",
+									Type:   "some-type",
+									On:     atc.OutputConditions{atc.OutputConditionFailure},
+									Source: atc.Source{"output-source": "some-source"},
+									Params: atc.Params{"output-param": "some-param"},
+								},
+								CreatedVersion: atc.Version{"version": "output-version"},
+								CreatedMetadata: []atc.MetadataField{
+									{Name: "output-meta", Value: "some-value"},
+								},
+							})
 						})
 
 						Context("and an end event appears", func() {
 							BeforeEach(func() {
-								events = append(events, event.End{})
+								events = append(events, tevent.End{})
 							})
 
-							itEmitsTheEvent(2)
+							It("returns ErrEndOfStream", func() {
+								_, err := subSource.Next()
+								Ω(err).Should(Equal(ErrEndOfStream))
+							})
 						})
 					})
 				}
@@ -641,14 +689,14 @@ var _ = Describe("TurbineEngine", func() {
 					BeforeEach(func() {
 						events = append(
 							events,
-							event.Version("2.0"),
-							event.Status{Status: turbine.StatusSucceeded},
+							tevent.Version("2.0"),
+							tevent.Status{Status: turbine.StatusSucceeded},
 						)
 					})
 
 					It("skips the events", func() {
 						_, err := subSource.Next()
-						Ω(err).Should(Equal(ErrEndOfStream))
+						Ω(err).Should(Equal(io.EOF))
 					})
 				})
 			})
@@ -712,11 +760,11 @@ var _ = Describe("TurbineEngine", func() {
 
 			Context("when the build's turbine returns events", func() {
 				var (
-					events []event.Event
+					events []tevent.Event
 				)
 
 				BeforeEach(func() {
-					events = []event.Event{}
+					events = []tevent.Event{}
 
 					buildEndpoint.AppendHandlers(
 						ghttp.CombineHandlers(
@@ -754,20 +802,24 @@ var _ = Describe("TurbineEngine", func() {
 					)
 				})
 
-				itSavesTheEvent := func(count int) {
+				itSavesTheEvent := func(id int, event atc.Event) {
 					It("saves the event", func() {
-						Eventually(fakeDB.SaveBuildEventCallCount).Should(BeNumerically(">=", count))
-
-						event := events[count-1]
-
 						payload, err := json.Marshal(event)
 						Ω(err).ShouldNot(HaveOccurred())
 
-						buildID, buildEvent := fakeDB.SaveBuildEventArgsForCall(count - 1)
-						Ω(buildID).Should(Equal(1))
-						Ω(buildEvent).Should(Equal(db.BuildEvent{
-							ID:      count - 1,
+						savedEvents := fakeDB.SaveBuildEventCallCount()
+						buildEvents := make([]db.BuildEvent, savedEvents)
+
+						for i := 0; i < savedEvents; i++ {
+							buildID, buildEvent := fakeDB.SaveBuildEventArgsForCall(i)
+							buildEvents[i] = buildEvent
+							Ω(buildID).Should(Equal(1))
+						}
+
+						Ω(buildEvents).Should(ContainElement(db.BuildEvent{
+							ID:      id,
 							Type:    string(event.EventType()),
+							Version: string(event.Version()),
 							Payload: string(payload),
 						}))
 					})
@@ -781,7 +833,7 @@ var _ = Describe("TurbineEngine", func() {
 							fakeDB.SaveBuildEventStub = func(int, db.BuildEvent) error {
 								num++
 
-								if num == count {
+								if num-1 == id {
 									return disaster
 								}
 
@@ -800,21 +852,26 @@ var _ = Describe("TurbineEngine", func() {
 
 					Context("and they're v"+version, func() {
 						BeforeEach(func() {
-							events = append(events, event.Version(version))
+							events = append(events, tevent.Version(version))
 						})
 
-						itSavesTheEvent(1)
+						It("does not save the version", func() {
+							Ω(fakeDB.SaveBuildEventCallCount()).Should(BeZero())
+						})
 
 						Context("and a status event appears", func() {
 							Context("and it's started", func() {
 								BeforeEach(func() {
-									events = append(events, event.Status{
+									events = append(events, tevent.Status{
 										Status: turbine.StatusStarted,
 										Time:   1234,
 									})
 								})
 
-								itSavesTheEvent(2)
+								itSavesTheEvent(0, v1event.Status{
+									Status: atc.StatusStarted,
+									Time:   1234,
+								})
 
 								It("saves the build's status", func() {
 									Eventually(fakeDB.SaveBuildStatusCallCount).Should(Equal(1))
@@ -835,13 +892,16 @@ var _ = Describe("TurbineEngine", func() {
 
 							Context("and it's completed", func() {
 								BeforeEach(func() {
-									events = append(events, event.Status{
+									events = append(events, tevent.Status{
 										Status: turbine.StatusSucceeded,
 										Time:   1234,
 									})
 								})
 
-								itSavesTheEvent(2)
+								itSavesTheEvent(0, v1event.Status{
+									Status: atc.StatusSucceeded,
+									Time:   1234,
+								})
 
 								It("saves the build's status", func() {
 									Eventually(fakeDB.SaveBuildStatusCallCount).Should(Equal(1))
@@ -866,11 +926,13 @@ var _ = Describe("TurbineEngine", func() {
 
 							BeforeEach(func() {
 								input = turbine.Input{
-									Name:     "some-input-name",
-									Resource: "some-input-resource",
-									Type:     "some-type",
-									Source:   turbine.Source{"input-source": "some-source"},
-									Version:  turbine.Version{"version": "input-version"},
+									Name:       "some-input-name",
+									Resource:   "some-input-resource",
+									Type:       "some-type",
+									Source:     turbine.Source{"input-source": "some-source"},
+									Params:     turbine.Params{"input-param": "some-param"},
+									Version:    turbine.Version{"version": "input-version"},
+									ConfigPath: "foo/build.yml",
 									Metadata: []turbine.MetadataField{
 										{Name: "input-meta", Value: "some-value"},
 									},
@@ -881,12 +943,26 @@ var _ = Describe("TurbineEngine", func() {
 								BeforeEach(func() {
 									input.Resource = "some-input-resource"
 
-									events = append(events, event.Input{
+									events = append(events, tevent.Input{
 										Input: input,
 									})
 								})
 
-								itSavesTheEvent(2)
+								itSavesTheEvent(0, v2event.Input{
+									Plan: atc.InputPlan{
+										Name:       "some-input-name",
+										Resource:   "some-input-resource",
+										Type:       "some-type",
+										Version:    atc.Version{"version": "input-version"}, // preserved as it may have been requested
+										Source:     atc.Source{"input-source": "some-source"},
+										Params:     atc.Params{"input-param": "some-param"},
+										ConfigPath: "foo/build.yml",
+									},
+									FetchedVersion: atc.Version{"version": "input-version"},
+									FetchedMetadata: []atc.MetadataField{
+										{Name: "input-meta", Value: "some-value"},
+									},
+								})
 
 								It("saves the build's input", func() {
 									Eventually(fakeDB.SaveBuildInputCallCount).Should(Equal(1))
@@ -909,12 +985,16 @@ var _ = Describe("TurbineEngine", func() {
 
 								Context("and a successful status event appears", func() {
 									BeforeEach(func() {
-										events = append(events, event.Status{
+										events = append(events, tevent.Status{
 											Status: turbine.StatusSucceeded,
+											Time:   1234,
 										})
 									})
 
-									itSavesTheEvent(3)
+									itSavesTheEvent(1, v1event.Status{
+										Status: atc.StatusSucceeded,
+										Time:   1234,
+									})
 
 									It("saves the build's input as an implicit output", func() {
 										Eventually(fakeDB.SaveBuildOutputCallCount).Should(Equal(1))
@@ -935,11 +1015,13 @@ var _ = Describe("TurbineEngine", func() {
 
 								Context("and an output event appears for the same input resource", func() {
 									BeforeEach(func() {
-										events = append(events, event.Output{
+										events = append(events, tevent.Output{
 											Output: turbine.Output{
 												Name:    "some-input-resource", // TODO rename Output.Name to Output.Resource
 												Type:    "some-type",
+												On:      turbine.OutputConditions{turbine.OutputConditionFailure},
 												Source:  turbine.Source{"input-source": "some-source"},
+												Params:  turbine.Params{"output-param": "some-param"},
 												Version: turbine.Version{"version": "explicit-input-version"},
 												Metadata: []turbine.MetadataField{
 													{Name: "input-meta", Value: "some-value"},
@@ -948,16 +1030,32 @@ var _ = Describe("TurbineEngine", func() {
 										})
 									})
 
-									itSavesTheEvent(3)
+									itSavesTheEvent(1, v2event.Output{
+										Plan: atc.OutputPlan{
+											Name:   "some-input-resource",
+											Type:   "some-type",
+											On:     atc.OutputConditions{atc.OutputConditionFailure},
+											Source: atc.Source{"input-source": "some-source"},
+											Params: atc.Params{"output-param": "some-param"},
+										},
+										CreatedVersion: atc.Version{"version": "explicit-input-version"},
+										CreatedMetadata: []atc.MetadataField{
+											{Name: "input-meta", Value: "some-value"},
+										},
+									})
 
 									Context("and a successful status event appears", func() {
 										BeforeEach(func() {
-											events = append(events, event.Status{
+											events = append(events, tevent.Status{
 												Status: turbine.StatusSucceeded,
+												Time:   1234,
 											})
 										})
 
-										itSavesTheEvent(4)
+										itSavesTheEvent(2, v1event.Status{
+											Status: atc.StatusSucceeded,
+											Time:   1234,
+										})
 
 										It("saves the explicit output instead of the implicit one", func() {
 											Eventually(fakeDB.SaveBuildOutputCallCount).Should(Equal(1))
@@ -982,12 +1080,26 @@ var _ = Describe("TurbineEngine", func() {
 								BeforeEach(func() {
 									input.Resource = ""
 
-									events = append(events, event.Input{
+									events = append(events, tevent.Input{
 										Input: input,
 									})
 								})
 
-								itSavesTheEvent(2)
+								itSavesTheEvent(0, v2event.Input{
+									Plan: atc.InputPlan{
+										Name:       "some-input-name",
+										Resource:   "",
+										Type:       "some-type",
+										Version:    atc.Version{"version": "input-version"}, // preserved as it may have been requested
+										Source:     atc.Source{"input-source": "some-source"},
+										Params:     atc.Params{"input-param": "some-param"},
+										ConfigPath: "foo/build.yml",
+									},
+									FetchedVersion: atc.Version{"version": "input-version"},
+									FetchedMetadata: []atc.MetadataField{
+										{Name: "input-meta", Value: "some-value"},
+									},
+								})
 
 								It("does not save an input", func() {
 									Consistently(fakeDB.SaveBuildInputCallCount).Should(Equal(0))
@@ -997,11 +1109,13 @@ var _ = Describe("TurbineEngine", func() {
 
 						Context("and an output event appears", func() {
 							BeforeEach(func() {
-								events = append(events, event.Output{
+								events = append(events, tevent.Output{
 									Output: turbine.Output{
 										Name:    "some-output-name",
 										Type:    "some-type",
+										On:      turbine.OutputConditions{turbine.OutputConditionFailure},
 										Source:  turbine.Source{"output-source": "some-source"},
+										Params:  turbine.Params{"output-param": "some-param"},
 										Version: turbine.Version{"version": "output-version"},
 										Metadata: []turbine.MetadataField{
 											{Name: "output-meta", Value: "some-value"},
@@ -1010,7 +1124,19 @@ var _ = Describe("TurbineEngine", func() {
 								})
 							})
 
-							itSavesTheEvent(2)
+							itSavesTheEvent(0, v2event.Output{
+								Plan: atc.OutputPlan{
+									Name:   "some-output-name",
+									Type:   "some-type",
+									On:     atc.OutputConditions{atc.OutputConditionFailure},
+									Source: atc.Source{"output-source": "some-source"},
+									Params: atc.Params{"output-param": "some-param"},
+								},
+								CreatedVersion: atc.Version{"version": "output-version"},
+								CreatedMetadata: []atc.MetadataField{
+									{Name: "output-meta", Value: "some-value"},
+								},
+							})
 
 							It("does not save the output immediately", func() {
 								Consistently(fakeDB.SaveBuildOutputCallCount).Should(BeZero())
@@ -1018,7 +1144,7 @@ var _ = Describe("TurbineEngine", func() {
 
 							Context("and a successful status event appears", func() {
 								BeforeEach(func() {
-									events = append(events, event.Status{
+									events = append(events, tevent.Status{
 										Status: turbine.StatusSucceeded,
 									})
 								})
@@ -1042,7 +1168,7 @@ var _ = Describe("TurbineEngine", func() {
 
 							Context("and an errored status event appears", func() {
 								BeforeEach(func() {
-									events = append(events, event.Status{
+									events = append(events, tevent.Status{
 										Status: turbine.StatusErrored,
 									})
 								})
@@ -1057,7 +1183,7 @@ var _ = Describe("TurbineEngine", func() {
 							var buildDeleted <-chan struct{}
 
 							BeforeEach(func() {
-								events = append(events, event.End{})
+								events = append(events, tevent.End{})
 
 								deleted := make(chan struct{})
 								buildDeleted = deleted
@@ -1083,15 +1209,13 @@ var _ = Describe("TurbineEngine", func() {
 					BeforeEach(func() {
 						events = append(
 							events,
-							event.Version("2.0"),
-							event.Status{Status: turbine.StatusSucceeded},
+							tevent.Version("2.0"),
+							tevent.Status{Status: turbine.StatusSucceeded},
 						)
 					})
 
-					itSavesTheEvent(1)
-					itSavesTheEvent(2)
-
 					It("ignores the events", func() {
+						Consistently(fakeDB.SaveBuildEventCallCount).Should(Equal(0))
 						Consistently(fakeDB.SaveBuildStatusCallCount).Should(Equal(0))
 					})
 				})

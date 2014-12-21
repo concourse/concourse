@@ -18,8 +18,10 @@ import (
 	garden "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/event/v1event"
+	"github.com/concourse/atc/event/v2event"
 	"github.com/concourse/turbine"
-	"github.com/concourse/turbine/event"
+	tevent "github.com/concourse/turbine/event"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 	"github.com/vito/go-sse/sse"
@@ -276,217 +278,154 @@ func (build *turbineBuild) Subscribe(from uint) (EventSource, error) {
 		return nil, ErrBadResponse
 	}
 
-	return &eventSource{
+	return &turbineEventSource{
 		reader: sse.NewReader(resp.Body),
 		closer: resp.Body,
 	}, nil
 }
 
 func (build *turbineBuild) Resume(logger lager.Logger) error {
-	events, err := build.turbineEndpoint.CreateRequest(
-		turbine.GetBuildEvents,
-		rata.Params{"guid": build.guid},
-		nil,
-	)
+	var idx uint = 0
+
+	events, err := build.Subscribe(idx)
 	if err != nil {
-		logger.Error("failed-to-create-events-request", err)
-		return err
-	}
+		if err == ErrBadResponse {
+			logger.Info("saving-orphaned-build-as-errored")
 
-	resp, err := http.DefaultClient.Do(events)
-	if err != nil {
-		logger.Error("failed-to-get-events", err)
-		return err
-	}
+			err := build.db.SaveBuildStatus(build.id, db.StatusErrored)
+			if err != nil {
+				logger.Error("failed-to-save-orphaned-build-as-errored", err)
+				return err
+			}
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		logger.Info("saving-orphaned-build-as-errored")
-
-		err := build.db.SaveBuildStatus(build.id, db.StatusErrored)
-		if err != nil {
-			logger.Error("failed-to-save-orphaned-build-as-errored", err)
-			return err
+			return nil
 		}
 
-		return nil
+		return err
 	}
 
-	reader := sse.NewReader(resp.Body)
+	defer events.Close()
 
 	outputs := map[string]db.VersionedResource{}
 
-	var currentVersion string
-
 	for {
-		se, err := reader.Next()
+		e, err := events.Next()
 		if err != nil {
-			if err == io.EOF {
+			if err == ErrEndOfStream {
 				logger.Info("event-stream-completed")
+
+				del, err := build.turbineEndpoint.CreateRequest(
+					turbine.DeleteBuild,
+					rata.Params{"guid": build.guid},
+					nil,
+				)
+				if err != nil {
+					logger.Error("failed-to-create-delete-request", err)
+					return err
+				}
+
+				resp, err := http.DefaultClient.Do(del)
+				if err != nil {
+					logger.Error("failed-to-delete-build", err)
+					return err
+				}
+
+				resp.Body.Close()
+
 				return nil
 			}
 
 			return err
 		}
 
-		id, err := strconv.Atoi(se.ID)
-		if err != nil {
-			logger.Error("non-numerical-event-id", err, lager.Data{
-				"id": se.ID,
-			})
+		evLog := logger.Session("event", lager.Data{"event": e})
 
+		payload, err := json.Marshal(e)
+		if err != nil {
+			evLog.Error("failed-to-marshal-event", err)
 			return err
 		}
+
+		idx++
 
 		err = build.db.SaveBuildEvent(build.id, db.BuildEvent{
-			ID:      id,
-			Type:    se.Name,
-			Payload: string(se.Data),
+			ID:      int(idx - 1),
+			Type:    string(e.EventType()),
+			Payload: string(payload),
+			Version: string(e.Version()),
 		})
 		if err != nil {
-			logger.Error("failed-to-save-build-event", err, lager.Data{
-				"event": se,
-			})
-
+			evLog.Error("failed-to-save-build-event", err)
 			return err
 		}
 
-		if se.Name == "version" {
-			var version event.Version
-			err := json.Unmarshal(se.Data, &version)
+		switch ev := e.(type) {
+		case v1event.Status:
+			evLog.Info("processing-build-status")
+
+			if ev.Status == atc.StatusStarted {
+				err = build.db.SaveBuildStartTime(build.id, time.Unix(ev.Time, 0))
+				if err != nil {
+					evLog.Error("failed-to-save-build-start-time", err)
+					return err
+				}
+			} else {
+				err = build.db.SaveBuildEndTime(build.id, time.Unix(ev.Time, 0))
+				if err != nil {
+					evLog.Error("failed-to-save-build-end-time", err)
+					return err
+				}
+			}
+
+			err = build.db.SaveBuildStatus(build.id, db.Status(ev.Status))
 			if err != nil {
-				logger.Error("failed-to-unmarshal-version", err)
+				evLog.Error("failed-to-save-build-status", err)
 				return err
 			}
 
-			logger.Info("event-stream-version", lager.Data{
-				"version": string(version),
+			if ev.Status == atc.StatusSucceeded {
+				for _, output := range outputs {
+					err := build.db.SaveBuildOutput(build.id, output)
+					if err != nil {
+						evLog.Error("failed-to-save-build-output", err)
+						return err
+					}
+				}
+			}
+
+		case v2event.Input:
+			evLog.Info("processing-build-input")
+
+			if ev.Plan.Resource == "" {
+				break
+			}
+
+			vr := vrFromInput(ev)
+
+			err = build.db.SaveBuildInput(build.id, db.BuildInput{
+				Name:              ev.Plan.Name,
+				VersionedResource: vr,
 			})
-
-			currentVersion = string(version)
-			continue
-		}
-
-		if se.Name == "end" {
-			logger.Info("event-stream-ended")
-
-			del, err := build.turbineEndpoint.CreateRequest(
-				turbine.DeleteBuild,
-				rata.Params{"guid": build.guid},
-				nil,
-			)
 			if err != nil {
-				logger.Error("failed-to-create-delete-request", err)
+				evLog.Error("failed-to-save-build-input", err)
 				return err
 			}
 
-			resp, err := http.DefaultClient.Do(del)
-			if err != nil {
-				logger.Error("failed-to-delete-build", err)
-				return err
-			}
+			// record implicit output
+			outputs[ev.Plan.Resource] = vr
 
-			resp.Body.Close()
-			continue
-		}
-
-		switch currentVersion {
-		case "1.0":
-			fallthrough
-		case "1.1":
-			switch se.Name {
-			case "status":
-				logger.Info("processing-build-status", lager.Data{
-					"event": string(se.Data),
-				})
-
-				var status event.Status
-				err := json.Unmarshal(se.Data, &status)
-				if err != nil {
-					logger.Error("failed-to-unmarshal-status", err)
-					return err
-				}
-
-				if status.Status == turbine.StatusStarted {
-					err = build.db.SaveBuildStartTime(build.id, time.Unix(status.Time, 0))
-					if err != nil {
-						logger.Error("failed-to-save-build-start-time", err)
-						return err
-					}
-				} else {
-					err = build.db.SaveBuildEndTime(build.id, time.Unix(status.Time, 0))
-					if err != nil {
-						logger.Error("failed-to-save-build-end-time", err)
-						return err
-					}
-				}
-
-				err = build.db.SaveBuildStatus(build.id, db.Status(status.Status))
-				if err != nil {
-					logger.Error("failed-to-save-build-status", err)
-					return err
-				}
-
-				if status.Status == turbine.StatusSucceeded {
-					for _, output := range outputs {
-						err := build.db.SaveBuildOutput(build.id, output)
-						if err != nil {
-							logger.Error("failed-to-save-build-output", err)
-							return err
-						}
-					}
-				}
-
-			case "input":
-				logger.Info("processing-build-input", lager.Data{
-					"event": string(se.Data),
-				})
-
-				var input event.Input
-				err := json.Unmarshal(se.Data, &input)
-				if err != nil {
-					logger.Error("failed-to-unarshal-input", err)
-					return err
-				}
-
-				if input.Input.Resource == "" {
-					break
-				}
-
-				vr := vrFromInput(input.Input)
-
-				err = build.db.SaveBuildInput(build.id, db.BuildInput{
-					Name:              input.Input.Name,
-					VersionedResource: vr,
-				})
-				if err != nil {
-					logger.Error("failed-to-save-build-input", err)
-					return err
-				}
-
-				// record implicit output
-				outputs[input.Input.Resource] = vr
-
-			case "output":
-				var output event.Output
-				err := json.Unmarshal(se.Data, &output)
-				if err != nil {
-					logger.Error("failed-to-unarshal-output", err)
-					return err
-				}
-
-				outputs[output.Output.Name] = vrFromOutput(output.Output)
-			}
+		case v2event.Output:
+			evLog.Info("processing-build-output")
+			outputs[ev.Plan.Name] = vrFromOutput(ev)
 		}
 	}
 
 	return nil
 }
 
-func vrFromInput(input turbine.Input) db.VersionedResource {
-	metadata := make([]db.MetadataField, len(input.Metadata))
-	for i, md := range input.Metadata {
+func vrFromInput(input v2event.Input) db.VersionedResource {
+	metadata := make([]db.MetadataField, len(input.FetchedMetadata))
+	for i, md := range input.FetchedMetadata {
 		metadata[i] = db.MetadataField{
 			Name:  md.Name,
 			Value: md.Value,
@@ -494,20 +433,17 @@ func vrFromInput(input turbine.Input) db.VersionedResource {
 	}
 
 	return db.VersionedResource{
-		Resource: input.Resource,
-		Type:     input.Type,
-		Source:   db.Source(input.Source),
-		Version:  db.Version(input.Version),
+		Resource: input.Plan.Resource,
+		Type:     input.Plan.Type,
+		Source:   db.Source(input.Plan.Source),
+		Version:  db.Version(input.FetchedVersion),
 		Metadata: metadata,
 	}
 }
 
-// same as input, but type is different.
-//
-// :(
-func vrFromOutput(output turbine.Output) db.VersionedResource {
-	metadata := make([]db.MetadataField, len(output.Metadata))
-	for i, md := range output.Metadata {
+func vrFromOutput(output v2event.Output) db.VersionedResource {
+	metadata := make([]db.MetadataField, len(output.CreatedMetadata))
+	for i, md := range output.CreatedMetadata {
 		metadata[i] = db.MetadataField{
 			Name:  md.Name,
 			Value: md.Value,
@@ -515,15 +451,15 @@ func vrFromOutput(output turbine.Output) db.VersionedResource {
 	}
 
 	return db.VersionedResource{
-		Resource: output.Name,
-		Type:     output.Type,
-		Source:   db.Source(output.Source),
-		Version:  db.Version(output.Version),
+		Resource: output.Plan.Name,
+		Type:     output.Plan.Type,
+		Source:   db.Source(output.Plan.Source),
+		Version:  db.Version(output.CreatedVersion),
 		Metadata: metadata,
 	}
 }
 
-type eventSource struct {
+type turbineEventSource struct {
 	reader         *sse.Reader
 	currentVersion string
 
@@ -531,7 +467,7 @@ type eventSource struct {
 	closed bool
 }
 
-func (source *eventSource) Next() (event.Event, error) {
+func (source *turbineEventSource) Next() (atc.Event, error) {
 	if source.closed {
 		return nil, ErrReadClosedStream
 	}
@@ -539,41 +475,147 @@ func (source *eventSource) Next() (event.Event, error) {
 	for {
 		se, err := source.reader.Next()
 		if err != nil {
-			if err == io.EOF {
-				return nil, ErrEndOfStream
-			}
-
 			return nil, err
 		}
 
 		if se.Name == "version" {
-			var version event.Version
+			var version atc.EventVersion
 			err := json.Unmarshal(se.Data, &version)
 			if err != nil {
 				return nil, err
 			}
 
 			source.currentVersion = string(version)
+
+			continue
 		}
 
 		switch source.currentVersion {
 		case "1.0":
 			fallthrough
 		case "1.1":
-			return event.ParseEvent(event.EventType(se.Name), se.Data)
+			tev, err := tevent.ParseEvent(tevent.EventType(se.Name), se.Data)
+			if err != nil {
+				return nil, err
+			}
+
+			switch tev.(type) {
+			case tevent.End:
+				return nil, ErrEndOfStream
+			default:
+				return source.convertEvent(tev), nil
+			}
 		}
 	}
 
 	panic("unreachable")
 }
 
-func (source *eventSource) Close() error {
+func (source *turbineEventSource) Close() error {
 	if source.closed {
 		return ErrCloseClosedStream
 	}
 
 	source.closed = true
 	return source.closer.Close()
+}
+
+func (source *turbineEventSource) convertEvent(tev tevent.Event) atc.Event {
+	switch e := tev.(type) {
+	case tevent.Error:
+		return v1event.Error{
+			Message: e.Message,
+			Origin:  source.convertOrigin(e.Origin),
+		}
+	case tevent.Finish:
+		return v1event.Finish(e)
+	case tevent.Initialize:
+		return v1event.Initialize{
+			BuildConfig: atc.BuildConfig{
+				Image:  e.BuildConfig.Image,
+				Inputs: source.convertBuildInputConfigs(e.BuildConfig.Inputs),
+				Params: e.BuildConfig.Params,
+				Run:    atc.BuildRunConfig(e.BuildConfig.Run),
+			},
+		}
+	case tevent.Input:
+		return v2event.Input{
+			Plan: atc.InputPlan{
+				Name:       e.Input.Name,
+				Resource:   e.Input.Resource,
+				Type:       e.Input.Type,
+				Source:     atc.Source(e.Input.Source),
+				Version:    atc.Version(e.Input.Version),
+				Params:     atc.Params(e.Input.Params),
+				ConfigPath: e.Input.ConfigPath,
+			},
+			FetchedVersion:  atc.Version(e.Input.Version),
+			FetchedMetadata: source.convertMetadata(e.Input.Metadata),
+		}
+	case tevent.Log:
+		return v1event.Log{
+			Payload: e.Payload,
+			Origin:  source.convertOrigin(e.Origin),
+		}
+	case tevent.Output:
+		return v2event.Output{
+			Plan: atc.OutputPlan{
+				Name:   e.Output.Name,
+				Type:   e.Output.Type,
+				On:     source.convertOutputConditions(e.Output.On),
+				Source: atc.Source(e.Output.Source),
+				Params: atc.Params(e.Output.Params),
+			},
+			CreatedVersion:  atc.Version(e.Output.Version),
+			CreatedMetadata: source.convertMetadata(e.Output.Metadata),
+		}
+	case tevent.Start:
+		return v1event.Start(e)
+	case tevent.Status:
+		return v1event.Status{
+			Status: atc.BuildStatus(e.Status),
+			Time:   e.Time,
+		}
+	default:
+		panic("unknown type: " + tev.EventType())
+	}
+}
+
+func (source *turbineEventSource) convertMetadata(tm []turbine.MetadataField) []atc.MetadataField {
+	meta := make([]atc.MetadataField, len(tm))
+	for i, m := range tm {
+		meta[i] = atc.MetadataField{
+			Name:  m.Name,
+			Value: m.Value,
+		}
+	}
+
+	return meta
+}
+
+func (source *turbineEventSource) convertOutputConditions(tcs turbine.OutputConditions) atc.OutputConditions {
+	cs := make(atc.OutputConditions, len(tcs))
+	for i, c := range tcs {
+		cs[i] = atc.OutputCondition(c)
+	}
+
+	return cs
+}
+
+func (source *turbineEventSource) convertOrigin(to tevent.Origin) v1event.Origin {
+	return v1event.Origin{
+		Type: v1event.OriginType(to.Type),
+		Name: to.Name,
+	}
+}
+
+func (source *turbineEventSource) convertBuildInputConfigs(tbics []turbine.InputConfig) []atc.BuildInputConfig {
+	inputs := make([]atc.BuildInputConfig, len(tbics))
+	for i, tbic := range tbics {
+		inputs[i] = atc.BuildInputConfig(tbic)
+	}
+
+	return inputs
 }
 
 func newTurbineProcess(conn net.Conn, br *bufio.Reader, processIO garden.ProcessIO) garden.Process {

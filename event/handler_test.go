@@ -6,17 +6,28 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	enginefakes "github.com/concourse/atc/engine/fakes"
 	. "github.com/concourse/atc/event"
 	"github.com/concourse/atc/event/fakes"
-	"github.com/concourse/turbine/event"
 	"github.com/vito/go-sse/sse"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+type fakeEvent struct {
+	Value string `json:"value"`
+}
+
+func (e fakeEvent) EventType() atc.EventType { return "fake" }
+func (fakeEvent) Version() atc.EventVersion  { return "42.0" }
+func (e fakeEvent) Censored() atc.Event {
+	e.Value = "censored " + e.Value
+	return e
+}
 
 var _ = Describe("Handler", func() {
 	var (
@@ -31,7 +42,7 @@ var _ = Describe("Handler", func() {
 		buildsDB = new(fakes.FakeBuildsDB)
 		fakeEngine = new(enginefakes.FakeEngine)
 
-		server = httptest.NewServer(NewHandler(buildsDB, 128, fakeEngine, nil))
+		server = httptest.NewServer(NewHandler(buildsDB, 128, fakeEngine, false))
 
 		client = &http.Client{
 			Transport: &http.Transport{},
@@ -58,18 +69,6 @@ var _ = Describe("Handler", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		weirdCensor := func(ev event.Event) event.Event {
-			switch e := ev.(type) {
-			case event.Version:
-				return event.Version("1." + e)
-			case event.Start:
-				e.Time *= 2
-				return e
-			}
-
-			return ev
-		}
-
 		Context("when the build is started", func() {
 			BeforeEach(func() {
 				buildsDB.GetBuildReturns(db.Build{
@@ -92,16 +91,16 @@ var _ = Describe("Handler", func() {
 					var fakeEventSource *enginefakes.FakeEventSource
 
 					BeforeEach(func() {
-						returnedEvents := []event.Event{
-							event.Version("1.0"),
-							event.Start{Time: 1},
-							event.End{},
+						returnedEvents := []atc.Event{
+							fakeEvent{"e1"},
+							fakeEvent{"e2"},
+							fakeEvent{"e3"},
 						}
 
 						fakeEventSource = new(enginefakes.FakeEventSource)
 
 						fakeBuild.SubscribeStub = func(from uint) (engine.EventSource, error) {
-							fakeEventSource.NextStub = func() (event.Event, error) {
+							fakeEventSource.NextStub = func() (atc.Event, error) {
 								defer GinkgoRecover()
 
 								Ω(fakeEventSource.CloseCallCount()).Should(Equal(0))
@@ -129,25 +128,34 @@ var _ = Describe("Handler", func() {
 						Ω(response.Header.Get("Connection")).Should(Equal("keep-alive"))
 					})
 
-					It("emits them", func() {
+					It("returns the protocol version as X-ATC-Stream-Version", func() {
+						Ω(response.Header.Get("X-ATC-Stream-Version")).Should(Equal("2.0"))
+					})
+
+					It("emits them, followed by an end event", func() {
 						reader := sse.NewReader(response.Body)
 
 						Ω(reader.Next()).Should(Equal(sse.Event{
 							ID:   "0",
-							Name: "version",
-							Data: []byte(`"1.0"`),
+							Name: "event",
+							Data: []byte(`{"data":{"value":"e1"},"event":"fake","version":"42.0"}`),
 						}))
 
 						Ω(reader.Next()).Should(Equal(sse.Event{
 							ID:   "1",
-							Name: "start",
-							Data: []byte(`{"time":1}`),
+							Name: "event",
+							Data: []byte(`{"data":{"value":"e2"},"event":"fake","version":"42.0"}`),
 						}))
 
 						Ω(reader.Next()).Should(Equal(sse.Event{
 							ID:   "2",
+							Name: "event",
+							Data: []byte(`{"data":{"value":"e3"},"event":"fake","version":"42.0"}`),
+						}))
+
+						Ω(reader.Next()).Should(Equal(sse.Event{
 							Name: "end",
-							Data: []byte(`{}`),
+							Data: []byte{},
 						}))
 					})
 
@@ -155,9 +163,9 @@ var _ = Describe("Handler", func() {
 						Eventually(fakeEventSource.CloseCallCount).Should(Equal(1))
 					})
 
-					Context("when a censor is provided", func() {
+					Context("when told to censor", func() {
 						BeforeEach(func() {
-							server.Config.Handler = NewHandler(buildsDB, 128, fakeEngine, weirdCensor)
+							server.Config.Handler = NewHandler(buildsDB, 128, fakeEngine, true)
 						})
 
 						It("filters the events through it", func() {
@@ -165,20 +173,25 @@ var _ = Describe("Handler", func() {
 
 							Ω(reader.Next()).Should(Equal(sse.Event{
 								ID:   "0",
-								Name: "version",
-								Data: []byte(`"1.1.0"`),
+								Name: "event",
+								Data: []byte(`{"data":{"value":"censored e1"},"event":"fake","version":"42.0"}`),
 							}))
 
 							Ω(reader.Next()).Should(Equal(sse.Event{
 								ID:   "1",
-								Name: "start",
-								Data: []byte(`{"time":2}`),
+								Name: "event",
+								Data: []byte(`{"data":{"value":"censored e2"},"event":"fake","version":"42.0"}`),
 							}))
 
 							Ω(reader.Next()).Should(Equal(sse.Event{
 								ID:   "2",
+								Name: "event",
+								Data: []byte(`{"data":{"value":"censored e3"},"event":"fake","version":"42.0"}`),
+							}))
+
+							Ω(reader.Next()).Should(Equal(sse.Event{
 								Name: "end",
-								Data: []byte(`{}`),
+								Data: []byte{},
 							}))
 						})
 					})
@@ -225,54 +238,62 @@ var _ = Describe("Handler", func() {
 
 				buildsDB.GetBuildEventsReturns([]db.BuildEvent{
 					{
-						Type:    "version",
-						Payload: `"1.0"`,
+						Type:    "initialize",
+						Payload: `{"config":{"params":{"SECRET":"lol"},"run":{"path":"ls"}}}`,
+						Version: "1.1",
 					},
 					{
 						Type:    "start",
 						Payload: `{"time":1}`,
+						Version: "1.1",
 					},
 					{
-						Type:    "end",
-						Payload: `{}`,
+						Type:    "status",
+						Payload: `{"status":"succeeded","time":123}`,
+						Version: "1.1",
 					},
 				}, nil)
 			})
 
-			It("returns the build's events from the database", func() {
+			It("returns the build's events from the database, followed by an end event", func() {
 				reader := sse.NewReader(response.Body)
 
 				Ω(reader.Next()).Should(Equal(sse.Event{
 					ID:   "0",
-					Name: "version",
-					Data: []byte(`"1.0"`),
+					Name: "event",
+					Data: []byte(`{"data":{"config":{"params":{"SECRET":"lol"},"run":{"path":"ls"}}},"event":"initialize","version":"1.1"}`),
 				}))
 
 				Ω(reader.Next()).Should(Equal(sse.Event{
 					ID:   "1",
-					Name: "start",
-					Data: []byte(`{"time":1}`),
+					Name: "event",
+					Data: []byte(`{"data":{"time":1},"event":"start","version":"1.1"}`),
+				}))
+
+				Ω(reader.Next()).Should(Equal(sse.Event{
+					ID:   "2",
+					Name: "event",
+					Data: []byte(`{"data":{"status":"succeeded","time":123},"event":"status","version":"1.1"}`),
+				}))
+
+				Ω(reader.Next()).Should(Equal(sse.Event{
+					Name: "end",
+					Data: []byte{},
 				}))
 			})
 
-			Context("when a censor is provided", func() {
+			Context("when told to censor", func() {
 				BeforeEach(func() {
-					server.Config.Handler = NewHandler(buildsDB, 128, fakeEngine, weirdCensor)
+					server.Config.Handler = NewHandler(buildsDB, 128, fakeEngine, true)
 				})
 
-				It("filters the events through it", func() {
+				It("censors the events", func() {
 					reader := sse.NewReader(response.Body)
 
 					Ω(reader.Next()).Should(Equal(sse.Event{
 						ID:   "0",
-						Name: "version",
-						Data: []byte(`"1.1.0"`),
-					}))
-
-					Ω(reader.Next()).Should(Equal(sse.Event{
-						ID:   "1",
-						Name: "start",
-						Data: []byte(`{"time":2}`),
+						Name: "event",
+						Data: []byte(`{"data":{"config":{"run":{"path":"ls"}}},"event":"initialize","version":"1.1"}`),
 					}))
 				})
 			})
@@ -287,18 +308,23 @@ var _ = Describe("Handler", func() {
 
 					Ω(reader.Next()).Should(Equal(sse.Event{
 						ID:   "2",
-						Name: "end",
-						Data: []byte(`{}`),
+						Name: "event",
+						Data: []byte(`{"data":{"status":"succeeded","time":123},"event":"status","version":"1.1"}`),
 					}))
 				})
 
 				Context("but the id reaches the end", func() {
 					BeforeEach(func() {
-						request.Header.Set("Last-Event-ID", "2")
+						request.Header.Set("Last-Event-ID", "3")
 					})
 
-					It("returns no events", func() {
+					It("returns an end event and ends the stream", func() {
 						reader := sse.NewReader(response.Body)
+
+						Ω(reader.Next()).Should(Equal(sse.Event{
+							Name: "end",
+							Data: []byte{},
+						}))
 
 						_, err := reader.Next()
 						Ω(err).Should(Equal(io.EOF))

@@ -46,7 +46,7 @@ type fakeEventHandlerFactory struct {
 	db      event.BuildsDB
 	buildID int
 	engine  engine.Engine
-	censor  event.Censor
+	censor  bool
 
 	lock sync.Mutex
 }
@@ -55,7 +55,7 @@ func (f *fakeEventHandlerFactory) Construct(
 	db event.BuildsDB,
 	buildID int,
 	engine engine.Engine,
-	censor event.Censor,
+	censor bool,
 ) http.Handler {
 	f.lock.Lock()
 	f.db = db

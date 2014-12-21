@@ -5,20 +5,70 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
-	"github.com/concourse/turbine/event"
 	"github.com/vito/go-sse/sse"
 )
+
+const ProtocolVersionHeader = "X-ATC-Stream-Version"
+const CurrentProtocolVersion = "2.0"
 
 type BuildsDB interface {
 	GetBuild(buildID int) (db.Build, error)
 	GetBuildEvents(buildID int) ([]db.BuildEvent, error)
 }
 
-type Censor func(event.Event) event.Event
+type Message struct {
+	Event atc.Event
+}
 
-func NewHandler(buildsDB BuildsDB, buildID int, engine engine.Engine, censor Censor) http.Handler {
+type eventEnvelope struct {
+	Data    *json.RawMessage `json:"data"`
+	Event   atc.EventType    `json:"event"`
+	Version atc.EventVersion `json:"version"`
+}
+
+func (m Message) MarshalJSON() ([]byte, error) {
+	var envelope eventEnvelope
+
+	payload, err := json.Marshal(m.Event)
+	if err != nil {
+		return nil, err
+	}
+
+	envelope.Data = (*json.RawMessage)(&payload)
+	envelope.Event = m.Event.EventType()
+	envelope.Version = m.Event.Version()
+
+	return json.Marshal(envelope)
+}
+
+func (m *Message) UnmarshalJSON(bytes []byte) error {
+	var envelope eventEnvelope
+
+	err := json.Unmarshal(bytes, &envelope)
+	if err != nil {
+		return err
+	}
+
+	event, err := ParseEvent(envelope.Version, envelope.Event, *envelope.Data)
+	if err != nil {
+		return err
+	}
+
+	m.Event = event
+
+	return nil
+}
+
+type EventPayload struct {
+	Data    *json.RawMessage `json:"data"`
+	Event   atc.EventType    `json:"event"`
+	Version atc.EventVersion `json:"version"`
+}
+
+func NewHandler(buildsDB BuildsDB, buildID int, eg engine.Engine, censor bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		build, err := buildsDB.GetBuild(buildID)
 		if err != nil {
@@ -32,6 +82,7 @@ func NewHandler(buildsDB BuildsDB, buildID int, engine engine.Engine, censor Cen
 		w.Header().Add("Content-Type", "text/event-stream; charset=utf-8")
 		w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
 		w.Header().Add("Connection", "keep-alive")
+		w.Header().Add(ProtocolVersionHeader, CurrentProtocolVersion)
 
 		var start uint = 0
 		if r.Header.Get("Last-Event-ID") != "" {
@@ -45,7 +96,7 @@ func NewHandler(buildsDB BuildsDB, buildID int, engine engine.Engine, censor Cen
 		}
 
 		if build.Status == db.StatusStarted {
-			engineBuild, err := engine.LookupBuild(build)
+			engineBuild, err := eg.LookupBuild(build)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
@@ -59,7 +110,7 @@ func NewHandler(buildsDB BuildsDB, buildID int, engine engine.Engine, censor Cen
 
 			defer events.Close()
 
-			es := make(chan event.Event)
+			es := make(chan atc.Event)
 			errs := make(chan error, 1)
 
 			go func() {
@@ -81,18 +132,18 @@ func NewHandler(buildsDB BuildsDB, buildID int, engine engine.Engine, censor Cen
 			for {
 				select {
 				case ev := <-es:
-					if censor != nil {
-						ev = censor(ev)
+					if censor {
+						ev = ev.Censored()
 					}
 
-					payload, err := json.Marshal(ev)
+					payload, err := json.Marshal(Message{ev})
 					if err != nil {
 						return
 					}
 
 					err = sse.Event{
 						ID:   fmt.Sprintf("%d", start),
-						Name: string(ev.EventType()),
+						Name: "event",
 						Data: payload,
 					}.Write(w)
 					if err != nil {
@@ -102,7 +153,14 @@ func NewHandler(buildsDB BuildsDB, buildID int, engine engine.Engine, censor Cen
 					start++
 
 					flusher.Flush()
-				case <-errs:
+				case err := <-errs:
+					if err == engine.ErrEndOfStream {
+						err = sse.Event{Name: "end"}.Write(w)
+						if err != nil {
+							return
+						}
+					}
+
 					return
 				case <-closed:
 					return
@@ -116,27 +174,32 @@ func NewHandler(buildsDB BuildsDB, buildID int, engine engine.Engine, censor Cen
 			}
 
 			if start >= uint(len(events)) {
+				err = sse.Event{Name: "end"}.Write(w)
+				if err != nil {
+					return
+				}
+
 				return
 			}
 
 			for _, be := range events[start:] {
-				ev, err := event.ParseEvent(event.EventType(be.Type), []byte(be.Payload))
+				ev, err := ParseEvent(atc.EventVersion(be.Version), atc.EventType(be.Type), []byte(be.Payload))
 				if err != nil {
 					continue
 				}
 
-				if censor != nil {
-					ev = censor(ev)
+				if censor {
+					ev = ev.Censored()
 				}
 
-				payload, err := json.Marshal(ev)
+				payload, err := json.Marshal(Message{ev})
 				if err != nil {
 					return
 				}
 
 				err = sse.Event{
 					ID:   fmt.Sprintf("%d", start),
-					Name: string(ev.EventType()),
+					Name: "event",
 					Data: payload,
 				}.Write(w)
 				if err != nil {
@@ -146,6 +209,11 @@ func NewHandler(buildsDB BuildsDB, buildID int, engine engine.Engine, censor Cen
 				start++
 
 				flusher.Flush()
+			}
+
+			err = sse.Event{Name: "end"}.Write(w)
+			if err != nil {
+				return
 			}
 		}
 

@@ -68,6 +68,7 @@ type BuildEvent struct {
 	ID      int
 	Type    string
 	Payload string
+	Version string
 }
 
 type BuildInput struct {

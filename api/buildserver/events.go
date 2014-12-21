@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/event"
 )
 
 func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
@@ -23,9 +22,9 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var censor event.Censor
+	censor := false
 	if !s.fallback.IsAuthenticated(r) {
-		censor = auth.Censor
+		censor = true
 
 		if build.OneOff() {
 			auth.Unauthorized(w)

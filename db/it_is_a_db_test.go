@@ -228,6 +228,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				ID:      0,
 				Type:    "log",
 				Payload: "some ",
+				Version: "1.0",
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
@@ -239,6 +240,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				ID:      1,
 				Type:    "log",
 				Payload: "log",
+				Version: "1.0",
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
@@ -251,6 +253,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				ID:      1,
 				Type:    "log",
 				Payload: "log",
+				Version: "1.0",
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
@@ -265,11 +268,13 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					ID:      0,
 					Type:    "log",
 					Payload: "some ",
+					Version: "1.0",
 				},
 				db.BuildEvent{
 					ID:      1,
 					Type:    "log",
 					Payload: "log",
+					Version: "1.0",
 				},
 			}))
 		})
