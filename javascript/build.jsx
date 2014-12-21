@@ -81,24 +81,30 @@ function streamLog(uri) {
   var es = new EventSource(uri);
 
   var successfullyConnected = false;
-  var eventHandler;
-  var currentVersion;
 
-  es.addEventListener("version", function(event) {
-    successfullyConnected = true;
+  es.addEventListener("event", function(event) {
+    var msg = JSON.parse(event.data);
 
-    if (eventHandler) {
-      for (var key in eventHandler) {
-        es.removeEventListener(key, eventHandler[key]);
-      }
+    var versionSegments = msg.version.split(".");
+
+    var majorHandler = eventHandlers[versionSegments[0]];
+    if (!majorHandler) {
+      console.log("unknown major version: " + msg.version);
+      return;
     }
 
-    currentVersion = JSON.parse(event.data);
-    eventHandler = eventHandlers[currentVersion];
-
-    for (var key in eventHandler) {
-      es.addEventListener(key, eventHandler[key], false);
+    var minorHandler = majorHandler[versionSegments[1]] || majorHandler["*"];
+    if (!minorHandler) {
+      console.log("unknown minor version: " + msg.version);
+      return;
     }
+
+    var handler = minorHandler[msg.event];
+    if (!handler) {
+      return;
+    }
+
+    handler(msg.data);
   });
 
   es.addEventListener("end", function(event) {
@@ -106,12 +112,6 @@ function streamLog(uri) {
   });
 
   es.onerror = function(event) {
-    if(currentVersion != "1.1") {
-      // versions < 1.1 cannot distinguish between end of stream and an
-      // interrupted connection
-      es.close();
-    }
-
     if(!successfullyConnected) {
       // assume rejected because of auth
       $("#build-requires-auth").show();
@@ -122,87 +122,106 @@ function streamLog(uri) {
 var moment = require('moment');
 require("moment-duration-format");
 
-var v1Handlers = {
-  "log": function(msg) {
-    processLogs(JSON.parse(msg.data));
-  },
+var eventHandlers = {
+  "1": {
+    "*": {
+      "log": function(data) {
+        processLogs(data);
+      },
 
-  "error": function(msg) {
-    if (msg.data === undefined) {
-      // 'error' event may also be native browser error, unfortunately
-      return
-    }
+      "error": function(data) {
+        processError(data);
+      },
 
-    processError(JSON.parse(msg.data));
-  },
+      "status": function(data) {
+        processStatus(data);
+      },
 
-  "status": function(msg) {
-    var event = JSON.parse(msg.data);
+      "input": function(data) {
+        renderResource(data, "input");
+      },
 
-    var currentStatus = $("#page-header").attr("class");
-
-    var buildTimes = $(".build-times");
-
-    var status = event.status;
-    var m = moment.unix(event.time);
-
-    var time = $("<time>");
-    time.text(m.fromNow());
-    time.attr("datetime", m.format());
-    time.attr("title", m.format("lll Z"));
-    time.addClass(status);
-
-    if(status == "started") {
-      $("<dt/>").text(status).appendTo(buildTimes);
-      $("<dd/>").append(time).appendTo(buildTimes);
-    } else {
-      $("<dt/>").text(status).appendTo(buildTimes);
-      $("<dd/>").append(time).appendTo(buildTimes);
-
-      var startTime = $(".build-times time.started").attr("datetime");
-
-      // Some events cause the build to never start (e.g. input errors).
-      var didStart = !!startTime
-
-      if(didStart) {
-        var duration = moment.duration(m.diff(moment(startTime)));
-
-        var durationEle = $("<span>");
-        durationEle.addClass("duration");
-        durationEle.text(duration.format("h[h]m[m]s[s]"));
-
-        $("<dt/>").text("duration").appendTo(buildTimes);
-        $("<dd/>").append(durationEle).appendTo(buildTimes);
+      "output": function(data) {
+        renderResource(data, "output");
       }
     }
-
-    // only transition from transient states; state may already be set
-    // if the page loaded after build was done
-    if(currentStatus != "pending" && currentStatus != "started") {
-      return;
-    }
-
-    $("#page-header").attr("class", status);
-    $("#builds .current").attr("class", status + " current");
-
-    if(status != "started") {
-      $(".abort-build").remove();
-    }
   },
 
-  "input": function(msg) {
-    renderResource(JSON.parse(msg.data), msg.type);
-  },
+  "2": {
+    "*": {
+      "input": function(data) {
+        flux.actions.addResource("input", {
+          "name": data.plan.name,
+          "version": data.version,
+          "metadata": data.metadata
+        });
 
-  "output": function(msg) {
-    renderResource(JSON.parse(msg.data), msg.type);
+        flux.actions.setResourceRunning("input", data.plan.name, false);
+      },
+
+      "output": function(data) {
+        flux.actions.addResource("output", {
+          "name": data.plan.name,
+          "version": data.version,
+          "metadata": data.metadata
+        });
+
+        flux.actions.setResourceRunning("output", data.plan.name, false);
+      }
+    }
   }
 }
 
-var eventHandlers = {
-  "1.0": v1Handlers,
+function processStatus(event) {
+  var currentStatus = $("#page-header").attr("class");
 
-  "1.1": v1Handlers,
+  var buildTimes = $(".build-times");
+
+  var status = event.status;
+  var m = moment.unix(event.time);
+
+  var time = $("<time>");
+  time.text(m.fromNow());
+  time.attr("datetime", m.format());
+  time.attr("title", m.format("lll Z"));
+  time.addClass(status);
+
+  if(status == "started") {
+    $("<dt/>").text(status).appendTo(buildTimes);
+    $("<dd/>").append(time).appendTo(buildTimes);
+  } else {
+    $("<dt/>").text(status).appendTo(buildTimes);
+    $("<dd/>").append(time).appendTo(buildTimes);
+
+    var startTime = $(".build-times time.started").attr("datetime");
+
+    // Some events cause the build to never start (e.g. input errors).
+    var didStart = !!startTime
+
+    if(didStart) {
+      var duration = moment.duration(m.diff(moment(startTime)));
+
+      var durationEle = $("<span>");
+      durationEle.addClass("duration");
+      durationEle.text(duration.format("h[h]m[m]s[s]"));
+
+      $("<dt/>").text("duration").appendTo(buildTimes);
+      $("<dd/>").append(durationEle).appendTo(buildTimes);
+    }
+  }
+
+  // only transition from transient states; state may already be set
+  // if the page loaded after build was done
+  if(currentStatus != "pending" && currentStatus != "started") {
+    return;
+  }
+
+  $("#page-header").attr("class", status);
+  $("#builds .current").attr("class", status + " current");
+
+  if(status != "started") {
+    $(".abort-build").remove();
+  }
 }
 
 function renderResource(event, type) {
@@ -294,4 +313,3 @@ $(document).ready(function() {
 
 window.streamLog = streamLog;
 window.renderResource = renderResource;
-
