@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/event/v1event"
+	"github.com/concourse/atc/event"
 	. "github.com/concourse/fly/eventstream"
 	"github.com/concourse/fly/eventstream/fakes"
 	"github.com/mgutz/ansi"
@@ -48,7 +48,7 @@ var _ = Describe("V1.0 Renderer", func() {
 
 	Context("when a Log event is received", func() {
 		BeforeEach(func() {
-			receivedEvents <- v1event.Log{
+			receivedEvents <- event.Log{
 				Payload: "hello",
 			}
 		})
@@ -60,7 +60,7 @@ var _ = Describe("V1.0 Renderer", func() {
 
 	Context("when an Error event is received", func() {
 		BeforeEach(func() {
-			receivedEvents <- v1event.Error{
+			receivedEvents <- event.Error{
 				Message: "oh no!",
 			}
 		})
@@ -72,7 +72,7 @@ var _ = Describe("V1.0 Renderer", func() {
 
 	Context("when an Initialize event is received", func() {
 		BeforeEach(func() {
-			receivedEvents <- v1event.Initialize{
+			receivedEvents <- event.Initialize{
 				BuildConfig: atc.BuildConfig{
 					Image: "some-image",
 					Run: atc.BuildRunConfig{
@@ -89,7 +89,7 @@ var _ = Describe("V1.0 Renderer", func() {
 
 		Context("and a Start event is received", func() {
 			BeforeEach(func() {
-				receivedEvents <- v1event.Start{
+				receivedEvents <- event.Start{
 					Time: time.Now().Unix(),
 				}
 			})
@@ -102,7 +102,7 @@ var _ = Describe("V1.0 Renderer", func() {
 
 	Context("when a Finish event is received", func() {
 		BeforeEach(func() {
-			receivedEvents <- v1event.Finish{
+			receivedEvents <- event.Finish{
 				ExitStatus: 42,
 			}
 		})
@@ -113,7 +113,7 @@ var _ = Describe("V1.0 Renderer", func() {
 
 		Context("and a Status event is received", func() {
 			BeforeEach(func() {
-				receivedEvents <- v1event.Status{
+				receivedEvents <- event.Status{
 					Status: atc.StatusSucceeded,
 				}
 			})
@@ -131,7 +131,7 @@ var _ = Describe("V1.0 Renderer", func() {
 	Describe("receiving a Status event", func() {
 		Context("with status 'succeeded'", func() {
 			BeforeEach(func() {
-				receivedEvents <- v1event.Status{
+				receivedEvents <- event.Status{
 					Status: atc.StatusSucceeded,
 				}
 			})
@@ -147,7 +147,7 @@ var _ = Describe("V1.0 Renderer", func() {
 
 		Context("with status 'failed'", func() {
 			BeforeEach(func() {
-				receivedEvents <- v1event.Status{
+				receivedEvents <- event.Status{
 					Status: atc.StatusFailed,
 				}
 			})
@@ -163,7 +163,7 @@ var _ = Describe("V1.0 Renderer", func() {
 
 		Context("with status 'errored'", func() {
 			BeforeEach(func() {
-				receivedEvents <- v1event.Status{
+				receivedEvents <- event.Status{
 					Status: atc.StatusErrored,
 				}
 			})
@@ -179,7 +179,7 @@ var _ = Describe("V1.0 Renderer", func() {
 
 		Context("with status 'aborted'", func() {
 			BeforeEach(func() {
-				receivedEvents <- v1event.Status{
+				receivedEvents <- event.Status{
 					Status: atc.StatusAborted,
 				}
 			})

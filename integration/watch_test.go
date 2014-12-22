@@ -16,7 +16,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/event"
-	"github.com/concourse/atc/event/v1event"
 )
 
 var _ = Describe("Watching", func() {
@@ -84,7 +83,7 @@ var _ = Describe("Watching", func() {
 
 		Eventually(streaming).Should(BeClosed())
 
-		events <- v1event.Log{Payload: "sup"}
+		events <- event.Log{Payload: "sup"}
 
 		Eventually(sess.Out).Should(gbytes.Say("sup"))
 

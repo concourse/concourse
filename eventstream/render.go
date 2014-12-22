@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/event/v1event"
+	"github.com/concourse/atc/event"
 	"github.com/mgutz/ansi"
 )
 
@@ -27,10 +27,10 @@ func Render(dst io.Writer, src EventStream) int {
 		}
 
 		switch e := ev.(type) {
-		case v1event.Log:
+		case event.Log:
 			fmt.Fprintf(dst, "%s", e.Payload)
 
-		case v1event.Initialize:
+		case event.Initialize:
 			buildConfig = e.BuildConfig
 
 			if buildConfig.Image != "" {
@@ -39,17 +39,17 @@ func Render(dst io.Writer, src EventStream) int {
 				fmt.Fprintf(dst, "\x1b[1minitializing\x1b[0m\n")
 			}
 
-		case v1event.Start:
+		case event.Start:
 			argv := strings.Join(append([]string{buildConfig.Run.Path}, buildConfig.Run.Args...), " ")
 			fmt.Fprintf(dst, "\x1b[1mrunning %s\x1b[0m\n", argv)
 
-		case v1event.Finish:
+		case event.Finish:
 			exitStatus = e.ExitStatus
 
-		case v1event.Error:
+		case event.Error:
 			fmt.Fprintf(dst, "%s\n", ansi.Color(e.Message, "red+b"))
 
-		case v1event.Status:
+		case event.Status:
 			var color string
 
 			switch e.Status {

@@ -22,7 +22,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/event"
-	"github.com/concourse/atc/event/v1event"
 )
 
 var _ = Describe("Fly CLI", func() {
@@ -196,7 +195,7 @@ run:
 
 		Eventually(streaming).Should(BeClosed())
 
-		events <- v1event.Log{Payload: "sup"}
+		events <- event.Log{Payload: "sup"}
 
 		Eventually(sess.Out).Should(gbytes.Say("sup"))
 
@@ -321,7 +320,7 @@ run:
 
 				Eventually(aborted, 5.0).Should(BeClosed())
 
-				events <- v1event.Status{Status: atc.StatusErrored}
+				events <- event.Status{Status: atc.StatusErrored}
 				close(events)
 
 				Eventually(flySession, 5.0).Should(gexec.Exit(2))
@@ -344,7 +343,7 @@ run:
 
 				Eventually(aborted, 5.0).Should(BeClosed())
 
-				events <- v1event.Status{Status: atc.StatusErrored}
+				events <- event.Status{Status: atc.StatusErrored}
 				close(events)
 
 				Eventually(flySession, 5.0).Should(gexec.Exit(2))
@@ -362,7 +361,7 @@ run:
 
 			Eventually(streaming, 5).Should(BeClosed())
 
-			events <- v1event.Status{Status: atc.StatusSucceeded}
+			events <- event.Status{Status: atc.StatusSucceeded}
 			close(events)
 
 			Eventually(flySession, 5.0).Should(gexec.Exit(0))
@@ -379,7 +378,7 @@ run:
 
 			Eventually(streaming, 5).Should(BeClosed())
 
-			events <- v1event.Status{Status: atc.StatusFailed}
+			events <- event.Status{Status: atc.StatusFailed}
 			close(events)
 
 			Eventually(flySession, 5.0).Should(gexec.Exit(1))
@@ -396,7 +395,7 @@ run:
 
 			Eventually(streaming, 5).Should(BeClosed())
 
-			events <- v1event.Status{Status: atc.StatusErrored}
+			events <- event.Status{Status: atc.StatusErrored}
 			close(events)
 
 			Eventually(flySession, 5.0).Should(gexec.Exit(2))
