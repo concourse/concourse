@@ -52,6 +52,49 @@ func init() {
 	registerEvent(Finish{})
 }
 
+type Message struct {
+	Event atc.Event
+}
+
+type eventEnvelope struct {
+	Data    *json.RawMessage `json:"data"`
+	Event   atc.EventType    `json:"event"`
+	Version atc.EventVersion `json:"version"`
+}
+
+func (m Message) MarshalJSON() ([]byte, error) {
+	var envelope eventEnvelope
+
+	payload, err := json.Marshal(m.Event)
+	if err != nil {
+		return nil, err
+	}
+
+	envelope.Data = (*json.RawMessage)(&payload)
+	envelope.Event = m.Event.EventType()
+	envelope.Version = m.Event.Version()
+
+	return json.Marshal(envelope)
+}
+
+func (m *Message) UnmarshalJSON(bytes []byte) error {
+	var envelope eventEnvelope
+
+	err := json.Unmarshal(bytes, &envelope)
+	if err != nil {
+		return err
+	}
+
+	event, err := ParseEvent(envelope.Version, envelope.Event, *envelope.Data)
+	if err != nil {
+		return err
+	}
+
+	m.Event = event
+
+	return nil
+}
+
 func ParseEvent(version atc.EventVersion, typ atc.EventType, payload []byte) (atc.Event, error) {
 	versions, found := events[typ]
 	if !found {
