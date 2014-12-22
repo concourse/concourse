@@ -11,7 +11,7 @@ type Error struct {
 }
 
 func (Error) EventType() atc.EventType  { return EventTypeError }
-func (Error) Version() atc.EventVersion { return "1.1" }
+func (Error) Version() atc.EventVersion { return "1.0" }
 func (e Error) Censored() atc.Event     { return e }
 
 type Finish struct {
@@ -20,7 +20,7 @@ type Finish struct {
 }
 
 func (Finish) EventType() atc.EventType  { return EventTypeFinish }
-func (Finish) Version() atc.EventVersion { return "1.1" }
+func (Finish) Version() atc.EventVersion { return "1.0" }
 func (e Finish) Censored() atc.Event     { return e }
 
 type Initialize struct {
@@ -28,7 +28,7 @@ type Initialize struct {
 }
 
 func (Initialize) EventType() atc.EventType  { return EventTypeInitialize }
-func (Initialize) Version() atc.EventVersion { return "1.1" }
+func (Initialize) Version() atc.EventVersion { return "1.0" }
 func (e Initialize) Censored() atc.Event {
 	e.BuildConfig.Params = nil
 	return e
@@ -39,7 +39,7 @@ type Input struct {
 }
 
 func (Input) EventType() atc.EventType  { return EventTypeInput }
-func (Input) Version() atc.EventVersion { return "1.1" }
+func (Input) Version() atc.EventVersion { return "1.0" }
 func (e Input) Censored() atc.Event {
 	e.Input.Source = nil
 	e.Input.Params = nil
@@ -52,7 +52,7 @@ type Log struct {
 }
 
 func (Log) EventType() atc.EventType  { return EventTypeLog }
-func (Log) Version() atc.EventVersion { return "1.1" }
+func (Log) Version() atc.EventVersion { return "1.0" }
 func (e Log) Censored() atc.Event     { return e }
 
 type Output struct {
@@ -60,7 +60,7 @@ type Output struct {
 }
 
 func (Output) EventType() atc.EventType  { return EventTypeOutput }
-func (Output) Version() atc.EventVersion { return "1.1" }
+func (Output) Version() atc.EventVersion { return "1.0" }
 func (e Output) Censored() atc.Event {
 	e.Output.Source = nil
 	e.Output.Params = nil
@@ -72,7 +72,7 @@ type Start struct {
 }
 
 func (Start) EventType() atc.EventType  { return EventTypeStart }
-func (Start) Version() atc.EventVersion { return "1.1" }
+func (Start) Version() atc.EventVersion { return "1.0" }
 func (e Start) Censored() atc.Event     { return e }
 
 type Status struct {
@@ -81,7 +81,7 @@ type Status struct {
 }
 
 func (Status) EventType() atc.EventType  { return EventTypeStatus }
-func (Status) Version() atc.EventVersion { return "1.1" }
+func (Status) Version() atc.EventVersion { return "1.0" }
 func (e Status) Censored() atc.Event     { return e }
 
 type Origin struct {

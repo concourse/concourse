@@ -17,7 +17,7 @@ func (err UnknownVersionError) Error() string {
 func ParseEvent(version atc.EventVersion, typ atc.EventType, payload []byte) (atc.Event, error) {
 	// TODO switch on major version instead
 	switch version {
-	case "1.0", "1.1":
+	case "1.0":
 		return v1event.ParseEvent(typ, payload)
 	case "2.0":
 		return v2event.ParseEvent(typ, payload)
