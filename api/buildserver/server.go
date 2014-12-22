@@ -9,11 +9,11 @@ import (
 	"github.com/concourse/atc/builder"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
-	"github.com/concourse/atc/event"
+	"github.com/concourse/atc/event/handler"
 	"github.com/pivotal-golang/lager"
 )
 
-type EventHandlerFactory func(event.BuildsDB, int, engine.Engine, bool) http.Handler
+type EventHandlerFactory func(handler.BuildsDB, int, engine.Engine, bool) http.Handler
 
 type Server struct {
 	logger lager.Logger

@@ -1,11 +1,11 @@
-package v1event_test
+package event_test
 
 import (
 	"fmt"
 	"time"
 
 	"github.com/concourse/atc"
-	. "github.com/concourse/atc/event/v1event"
+	. "github.com/concourse/atc/event"
 	"github.com/concourse/turbine"
 
 	. "github.com/onsi/ginkgo"
@@ -66,9 +66,9 @@ var _ = Describe("Censorship", func() {
 		})
 	})
 
-	Describe("Input", func() {
+	Describe("Input 1.0", func() {
 		It("censors source and params", func() {
-			Ω(Input{
+			Ω(InputV10{
 				Input: turbine.Input{
 					Name:       "some-name",
 					Resource:   "some-resource",
@@ -79,7 +79,7 @@ var _ = Describe("Censorship", func() {
 					Version:    turbine.Version{"ref": "foo"},
 					Metadata:   []turbine.MetadataField{{"public", "data"}},
 				},
-			}.Censored()).Should(Equal(Input{
+			}.Censored()).Should(Equal(InputV10{
 				Input: turbine.Input{
 					Name:       "some-name",
 					Resource:   "some-resource",
@@ -92,9 +92,9 @@ var _ = Describe("Censorship", func() {
 		})
 	})
 
-	Describe("Output", func() {
+	Describe("Output 1.0", func() {
 		It("censors source and params", func() {
-			Ω(Output{
+			Ω(OutputV10{
 				Output: turbine.Output{
 					Name:     "some-name",
 					Type:     "git",
@@ -104,7 +104,7 @@ var _ = Describe("Censorship", func() {
 					Version:  turbine.Version{"ref": "foo"},
 					Metadata: []turbine.MetadataField{{"public", "data"}},
 				},
-			}.Censored()).Should(Equal(Output{
+			}.Censored()).Should(Equal(OutputV10{
 				Output: turbine.Output{
 					Name:     "some-name",
 					Type:     "git",
@@ -112,6 +112,56 @@ var _ = Describe("Censorship", func() {
 					Version:  turbine.Version{"ref": "foo"},
 					Metadata: []turbine.MetadataField{{"public", "data"}},
 				},
+			}))
+		})
+	})
+
+	Describe("Input 2.0", func() {
+		It("censors source and params", func() {
+			Ω(Input{
+				Plan: atc.InputPlan{
+					Name:       "some-name",
+					Resource:   "some-resource",
+					Type:       "git",
+					Source:     atc.Source{"some": "secret"},
+					Params:     atc.Params{"another": "secret"},
+					ConfigPath: "config/path.yml",
+				},
+				FetchedVersion:  atc.Version{"ref": "foo"},
+				FetchedMetadata: []atc.MetadataField{{"public", "data"}},
+			}.Censored()).Should(Equal(Input{
+				Plan: atc.InputPlan{
+					Name:       "some-name",
+					Resource:   "some-resource",
+					Type:       "git",
+					ConfigPath: "config/path.yml",
+				},
+				FetchedVersion:  atc.Version{"ref": "foo"},
+				FetchedMetadata: []atc.MetadataField{{"public", "data"}},
+			}))
+		})
+	})
+
+	Describe("Output 2.0", func() {
+		It("censors source and params", func() {
+			Ω(Output{
+				Plan: atc.OutputPlan{
+					Name:   "some-name",
+					Type:   "git",
+					On:     []atc.OutputCondition{atc.OutputConditionSuccess},
+					Source: atc.Source{"some": "secret"},
+					Params: atc.Params{"another": "secret"},
+				},
+				CreatedVersion:  atc.Version{"ref": "foo"},
+				CreatedMetadata: []atc.MetadataField{{"public", "data"}},
+			}.Censored()).Should(Equal(Output{
+				Plan: atc.OutputPlan{
+					Name: "some-name",
+					Type: "git",
+					On:   []atc.OutputCondition{atc.OutputConditionSuccess},
+				},
+				CreatedVersion:  atc.Version{"ref": "foo"},
+				CreatedMetadata: []atc.MetadataField{{"public", "data"}},
 			}))
 		})
 	})

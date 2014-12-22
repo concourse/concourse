@@ -1,4 +1,4 @@
-package v1event
+package event
 
 import "github.com/concourse/atc"
 

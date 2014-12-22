@@ -21,7 +21,7 @@ import (
 	dbfakes "github.com/concourse/atc/db/fakes"
 	"github.com/concourse/atc/engine"
 	enginefakes "github.com/concourse/atc/engine/fakes"
-	"github.com/concourse/atc/event"
+	"github.com/concourse/atc/event/handler"
 )
 
 var (
@@ -43,7 +43,7 @@ var (
 )
 
 type fakeEventHandlerFactory struct {
-	db      event.BuildsDB
+	db      handler.BuildsDB
 	buildID int
 	engine  engine.Engine
 	censor  bool
@@ -52,7 +52,7 @@ type fakeEventHandlerFactory struct {
 }
 
 func (f *fakeEventHandlerFactory) Construct(
-	db event.BuildsDB,
+	db handler.BuildsDB,
 	buildID int,
 	engine engine.Engine,
 	censor bool,

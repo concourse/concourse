@@ -18,8 +18,7 @@ import (
 	garden "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/event/v1event"
-	"github.com/concourse/atc/event/v2event"
+	"github.com/concourse/atc/event"
 	"github.com/concourse/turbine"
 	tevent "github.com/concourse/turbine/event"
 	"github.com/pivotal-golang/lager"
@@ -360,7 +359,7 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 		}
 
 		switch ev := e.(type) {
-		case v1event.Status:
+		case event.Status:
 			evLog.Info("processing-build-status")
 
 			if ev.Status == atc.StatusStarted {
@@ -393,7 +392,7 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 				}
 			}
 
-		case v2event.Input:
+		case event.Input:
 			evLog.Info("processing-build-input")
 
 			if ev.Plan.Resource == "" {
@@ -414,7 +413,7 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 			// record implicit output
 			outputs[ev.Plan.Resource] = vr
 
-		case v2event.Output:
+		case event.Output:
 			evLog.Info("processing-build-output")
 			outputs[ev.Plan.Name] = vrFromOutput(ev)
 		}
@@ -423,7 +422,7 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 	return nil
 }
 
-func vrFromInput(input v2event.Input) db.VersionedResource {
+func vrFromInput(input event.Input) db.VersionedResource {
 	metadata := make([]db.MetadataField, len(input.FetchedMetadata))
 	for i, md := range input.FetchedMetadata {
 		metadata[i] = db.MetadataField{
@@ -441,7 +440,7 @@ func vrFromInput(input v2event.Input) db.VersionedResource {
 	}
 }
 
-func vrFromOutput(output v2event.Output) db.VersionedResource {
+func vrFromOutput(output event.Output) db.VersionedResource {
 	metadata := make([]db.MetadataField, len(output.CreatedMetadata))
 	for i, md := range output.CreatedMetadata {
 		metadata[i] = db.MetadataField{
@@ -523,14 +522,14 @@ func (source *turbineEventSource) Close() error {
 func (source *turbineEventSource) convertEvent(tev tevent.Event) atc.Event {
 	switch e := tev.(type) {
 	case tevent.Error:
-		return v1event.Error{
+		return event.Error{
 			Message: e.Message,
 			Origin:  source.convertOrigin(e.Origin),
 		}
 	case tevent.Finish:
-		return v1event.Finish(e)
+		return event.Finish(e)
 	case tevent.Initialize:
-		return v1event.Initialize{
+		return event.Initialize{
 			BuildConfig: atc.BuildConfig{
 				Image:  e.BuildConfig.Image,
 				Inputs: source.convertBuildInputConfigs(e.BuildConfig.Inputs),
@@ -539,7 +538,7 @@ func (source *turbineEventSource) convertEvent(tev tevent.Event) atc.Event {
 			},
 		}
 	case tevent.Input:
-		return v2event.Input{
+		return event.Input{
 			Plan: atc.InputPlan{
 				Name:       e.Input.Name,
 				Resource:   e.Input.Resource,
@@ -553,12 +552,12 @@ func (source *turbineEventSource) convertEvent(tev tevent.Event) atc.Event {
 			FetchedMetadata: source.convertMetadata(e.Input.Metadata),
 		}
 	case tevent.Log:
-		return v1event.Log{
+		return event.Log{
 			Payload: e.Payload,
 			Origin:  source.convertOrigin(e.Origin),
 		}
 	case tevent.Output:
-		return v2event.Output{
+		return event.Output{
 			Plan: atc.OutputPlan{
 				Name:   e.Output.Name,
 				Type:   e.Output.Type,
@@ -570,9 +569,9 @@ func (source *turbineEventSource) convertEvent(tev tevent.Event) atc.Event {
 			CreatedMetadata: source.convertMetadata(e.Output.Metadata),
 		}
 	case tevent.Start:
-		return v1event.Start(e)
+		return event.Start(e)
 	case tevent.Status:
-		return v1event.Status{
+		return event.Status{
 			Status: atc.BuildStatus(e.Status),
 			Time:   e.Time,
 		}
@@ -602,9 +601,9 @@ func (source *turbineEventSource) convertOutputConditions(tcs turbine.OutputCond
 	return cs
 }
 
-func (source *turbineEventSource) convertOrigin(to tevent.Origin) v1event.Origin {
-	return v1event.Origin{
-		Type: v1event.OriginType(to.Type),
+func (source *turbineEventSource) convertOrigin(to tevent.Origin) event.Origin {
+	return event.Origin{
+		Type: event.OriginType(to.Type),
 		Name: to.Name,
 	}
 }

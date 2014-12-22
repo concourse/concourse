@@ -1,4 +1,4 @@
-package v1event
+package event
 
 import (
 	"github.com/concourse/atc"
@@ -34,13 +34,13 @@ func (e Initialize) Censored() atc.Event {
 	return e
 }
 
-type Input struct {
+type InputV10 struct {
 	Input turbine.Input `json:"input"`
 }
 
-func (Input) EventType() atc.EventType  { return EventTypeInput }
-func (Input) Version() atc.EventVersion { return "1.0" }
-func (e Input) Censored() atc.Event {
+func (InputV10) EventType() atc.EventType  { return EventTypeInput }
+func (InputV10) Version() atc.EventVersion { return "1.0" }
+func (e InputV10) Censored() atc.Event {
 	e.Input.Source = nil
 	e.Input.Params = nil
 	return e
@@ -55,13 +55,13 @@ func (Log) EventType() atc.EventType  { return EventTypeLog }
 func (Log) Version() atc.EventVersion { return "1.0" }
 func (e Log) Censored() atc.Event     { return e }
 
-type Output struct {
+type OutputV10 struct {
 	Output turbine.Output `json:"output"`
 }
 
-func (Output) EventType() atc.EventType  { return EventTypeOutput }
-func (Output) Version() atc.EventVersion { return "1.0" }
-func (e Output) Censored() atc.Event {
+func (OutputV10) EventType() atc.EventType  { return EventTypeOutput }
+func (OutputV10) Version() atc.EventVersion { return "1.0" }
+func (e OutputV10) Censored() atc.Event {
 	e.Output.Source = nil
 	e.Output.Params = nil
 	return e
@@ -97,3 +97,31 @@ const (
 	OriginTypeOutput  OriginType = "output"
 	OriginTypeRun     OriginType = "run"
 )
+
+type Input struct {
+	Plan            atc.InputPlan       `json:"plan"`
+	FetchedVersion  atc.Version         `json:"version"`
+	FetchedMetadata []atc.MetadataField `json:"metadata"`
+}
+
+func (Input) EventType() atc.EventType  { return EventTypeInput }
+func (Input) Version() atc.EventVersion { return "2.0" }
+func (e Input) Censored() atc.Event {
+	e.Plan.Source = nil
+	e.Plan.Params = nil
+	return e
+}
+
+type Output struct {
+	Plan            atc.OutputPlan      `json:"plan"`
+	CreatedVersion  atc.Version         `json:"version"`
+	CreatedMetadata []atc.MetadataField `json:"metadata"`
+}
+
+func (Output) EventType() atc.EventType  { return EventTypeOutput }
+func (Output) Version() atc.EventVersion { return "2.0" }
+func (e Output) Censored() atc.Event {
+	e.Plan.Source = nil
+	e.Plan.Params = nil
+	return e
+}

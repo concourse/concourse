@@ -1,4 +1,4 @@
-package event
+package handler
 
 import (
 	"encoding/json"
@@ -8,12 +8,14 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
+	"github.com/concourse/atc/event"
 	"github.com/vito/go-sse/sse"
 )
 
 const ProtocolVersionHeader = "X-ATC-Stream-Version"
 const CurrentProtocolVersion = "2.0"
 
+//go:generate counterfeiter . BuildsDB
 type BuildsDB interface {
 	GetBuild(buildID int) (db.Build, error)
 	GetBuildEvents(buildID int) ([]db.BuildEvent, error)
@@ -52,7 +54,7 @@ func (m *Message) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 
-	event, err := ParseEvent(envelope.Version, envelope.Event, *envelope.Data)
+	event, err := event.ParseEvent(envelope.Version, envelope.Event, *envelope.Data)
 	if err != nil {
 		return err
 	}
@@ -183,7 +185,7 @@ func NewHandler(buildsDB BuildsDB, buildID int, eg engine.Engine, censor bool) h
 			}
 
 			for _, be := range events[start:] {
-				ev, err := ParseEvent(atc.EventVersion(be.Version), atc.EventType(be.Type), []byte(be.Payload))
+				ev, err := event.ParseEvent(atc.EventVersion(be.Version), atc.EventType(be.Type), []byte(be.Payload))
 				if err != nil {
 					continue
 				}

@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/event"
+	"github.com/concourse/atc/event/handler"
 )
 
 type FakeBuildsDB struct {
@@ -95,4 +95,4 @@ func (fake *FakeBuildsDB) GetBuildEventsReturns(result1 []db.BuildEvent, result2
 	}{result1, result2}
 }
 
-var _ event.BuildsDB = new(FakeBuildsDB)
+var _ handler.BuildsDB = new(FakeBuildsDB)

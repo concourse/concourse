@@ -14,8 +14,7 @@ import (
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/fakes"
-	"github.com/concourse/atc/event/v1event"
-	"github.com/concourse/atc/event/v2event"
+	"github.com/concourse/atc/event"
 	"github.com/concourse/turbine"
 	tevent "github.com/concourse/turbine/event"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -547,7 +546,7 @@ var _ = Describe("TurbineEngine", func() {
 					})
 
 					It("succeeds and prevents more events from being read", func() {
-						Ω(subSource.Next()).Should(Equal(v1event.Status{
+						Ω(subSource.Next()).Should(Equal(event.Status{
 							Status: atc.StatusStarted,
 						}))
 
@@ -584,7 +583,7 @@ var _ = Describe("TurbineEngine", func() {
 									})
 								})
 
-								itEmits(v1event.Status{
+								itEmits(event.Status{
 									Status: atc.StatusStarted,
 									Time:   1234,
 								})
@@ -598,7 +597,7 @@ var _ = Describe("TurbineEngine", func() {
 									})
 								})
 
-								itEmits(v1event.Status{
+								itEmits(event.Status{
 									Status: atc.StatusSucceeded,
 									Time:   1234,
 								})
@@ -623,7 +622,7 @@ var _ = Describe("TurbineEngine", func() {
 								})
 							})
 
-							itEmits(v2event.Input{
+							itEmits(event.Input{
 								Plan: atc.InputPlan{
 									Name:       "some-input-name",
 									Resource:   "some-input-resource",
@@ -657,7 +656,7 @@ var _ = Describe("TurbineEngine", func() {
 								})
 							})
 
-							itEmits(v2event.Output{
+							itEmits(event.Output{
 								Plan: atc.OutputPlan{
 									Name:   "some-output-name",
 									Type:   "some-type",
@@ -868,7 +867,7 @@ var _ = Describe("TurbineEngine", func() {
 									})
 								})
 
-								itSavesTheEvent(0, v1event.Status{
+								itSavesTheEvent(0, event.Status{
 									Status: atc.StatusStarted,
 									Time:   1234,
 								})
@@ -898,7 +897,7 @@ var _ = Describe("TurbineEngine", func() {
 									})
 								})
 
-								itSavesTheEvent(0, v1event.Status{
+								itSavesTheEvent(0, event.Status{
 									Status: atc.StatusSucceeded,
 									Time:   1234,
 								})
@@ -948,7 +947,7 @@ var _ = Describe("TurbineEngine", func() {
 									})
 								})
 
-								itSavesTheEvent(0, v2event.Input{
+								itSavesTheEvent(0, event.Input{
 									Plan: atc.InputPlan{
 										Name:       "some-input-name",
 										Resource:   "some-input-resource",
@@ -991,7 +990,7 @@ var _ = Describe("TurbineEngine", func() {
 										})
 									})
 
-									itSavesTheEvent(1, v1event.Status{
+									itSavesTheEvent(1, event.Status{
 										Status: atc.StatusSucceeded,
 										Time:   1234,
 									})
@@ -1030,7 +1029,7 @@ var _ = Describe("TurbineEngine", func() {
 										})
 									})
 
-									itSavesTheEvent(1, v2event.Output{
+									itSavesTheEvent(1, event.Output{
 										Plan: atc.OutputPlan{
 											Name:   "some-input-resource",
 											Type:   "some-type",
@@ -1052,7 +1051,7 @@ var _ = Describe("TurbineEngine", func() {
 											})
 										})
 
-										itSavesTheEvent(2, v1event.Status{
+										itSavesTheEvent(2, event.Status{
 											Status: atc.StatusSucceeded,
 											Time:   1234,
 										})
@@ -1085,7 +1084,7 @@ var _ = Describe("TurbineEngine", func() {
 									})
 								})
 
-								itSavesTheEvent(0, v2event.Input{
+								itSavesTheEvent(0, event.Input{
 									Plan: atc.InputPlan{
 										Name:       "some-input-name",
 										Resource:   "",
@@ -1124,7 +1123,7 @@ var _ = Describe("TurbineEngine", func() {
 								})
 							})
 
-							itSavesTheEvent(0, v2event.Output{
+							itSavesTheEvent(0, event.Output{
 								Plan: atc.OutputPlan{
 									Name:   "some-output-name",
 									Type:   "some-type",

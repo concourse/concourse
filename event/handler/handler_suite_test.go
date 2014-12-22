@@ -1,4 +1,4 @@
-package v2event_test
+package handler_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestV2event(t *testing.T) {
+func TestHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "V2 Event Suite")
+	RunSpecs(t, "Handler Suite")
 }

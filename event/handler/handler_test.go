@@ -1,4 +1,4 @@
-package event_test
+package handler_test
 
 import (
 	"errors"
@@ -10,8 +10,8 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	enginefakes "github.com/concourse/atc/engine/fakes"
-	. "github.com/concourse/atc/event"
-	"github.com/concourse/atc/event/fakes"
+	. "github.com/concourse/atc/event/handler"
+	"github.com/concourse/atc/event/handler/fakes"
 	"github.com/vito/go-sse/sse"
 
 	. "github.com/onsi/ginkgo"
@@ -240,17 +240,17 @@ var _ = Describe("Handler", func() {
 					{
 						Type:    "initialize",
 						Payload: `{"config":{"params":{"SECRET":"lol"},"run":{"path":"ls"}}}`,
-						Version: "1.1",
+						Version: "1.0",
 					},
 					{
 						Type:    "start",
 						Payload: `{"time":1}`,
-						Version: "1.1",
+						Version: "1.0",
 					},
 					{
 						Type:    "status",
 						Payload: `{"status":"succeeded","time":123}`,
-						Version: "1.1",
+						Version: "1.0",
 					},
 				}, nil)
 			})
@@ -261,19 +261,19 @@ var _ = Describe("Handler", func() {
 				Ω(reader.Next()).Should(Equal(sse.Event{
 					ID:   "0",
 					Name: "event",
-					Data: []byte(`{"data":{"config":{"params":{"SECRET":"lol"},"run":{"path":"ls"}}},"event":"initialize","version":"1.1"}`),
+					Data: []byte(`{"data":{"config":{"params":{"SECRET":"lol"},"run":{"path":"ls"}}},"event":"initialize","version":"1.0"}`),
 				}))
 
 				Ω(reader.Next()).Should(Equal(sse.Event{
 					ID:   "1",
 					Name: "event",
-					Data: []byte(`{"data":{"time":1},"event":"start","version":"1.1"}`),
+					Data: []byte(`{"data":{"time":1},"event":"start","version":"1.0"}`),
 				}))
 
 				Ω(reader.Next()).Should(Equal(sse.Event{
 					ID:   "2",
 					Name: "event",
-					Data: []byte(`{"data":{"status":"succeeded","time":123},"event":"status","version":"1.1"}`),
+					Data: []byte(`{"data":{"status":"succeeded","time":123},"event":"status","version":"1.0"}`),
 				}))
 
 				Ω(reader.Next()).Should(Equal(sse.Event{
@@ -293,7 +293,7 @@ var _ = Describe("Handler", func() {
 					Ω(reader.Next()).Should(Equal(sse.Event{
 						ID:   "0",
 						Name: "event",
-						Data: []byte(`{"data":{"config":{"run":{"path":"ls"}}},"event":"initialize","version":"1.1"}`),
+						Data: []byte(`{"data":{"config":{"run":{"path":"ls"}}},"event":"initialize","version":"1.0"}`),
 					}))
 				})
 			})
@@ -309,7 +309,7 @@ var _ = Describe("Handler", func() {
 					Ω(reader.Next()).Should(Equal(sse.Event{
 						ID:   "2",
 						Name: "event",
-						Data: []byte(`{"data":{"status":"succeeded","time":123},"event":"status","version":"1.1"}`),
+						Data: []byte(`{"data":{"status":"succeeded","time":123},"event":"status","version":"1.0"}`),
 					}))
 				})
 
