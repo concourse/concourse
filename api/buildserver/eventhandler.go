@@ -1,4 +1,4 @@
-package handler
+package buildserver
 
 import (
 	"encoding/json"
@@ -15,13 +15,7 @@ import (
 const ProtocolVersionHeader = "X-ATC-Stream-Version"
 const CurrentProtocolVersion = "2.0"
 
-//go:generate counterfeiter . BuildsDB
-type BuildsDB interface {
-	GetBuild(buildID int) (db.Build, error)
-	GetBuildEvents(buildID int) ([]db.BuildEvent, error)
-}
-
-func NewHandler(buildsDB BuildsDB, buildID int, eg engine.Engine, censor bool) http.Handler {
+func NewEventHandler(buildsDB BuildsDB, buildID int, eg engine.Engine, censor bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		build, err := buildsDB.GetBuild(buildID)
 		if err != nil {

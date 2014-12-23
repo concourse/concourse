@@ -1,4 +1,4 @@
-package handler_test
+package buildserver_test
 
 import (
 	"errors"
@@ -7,11 +7,11 @@ import (
 	"net/http/httptest"
 
 	"github.com/concourse/atc"
+	. "github.com/concourse/atc/api/buildserver"
+	"github.com/concourse/atc/api/buildserver/fakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	enginefakes "github.com/concourse/atc/engine/fakes"
-	. "github.com/concourse/atc/event/handler"
-	"github.com/concourse/atc/event/handler/fakes"
 	"github.com/vito/go-sse/sse"
 
 	. "github.com/onsi/ginkgo"
@@ -42,7 +42,7 @@ var _ = Describe("Handler", func() {
 		buildsDB = new(fakes.FakeBuildsDB)
 		fakeEngine = new(enginefakes.FakeEngine)
 
-		server = httptest.NewServer(NewHandler(buildsDB, 128, fakeEngine, false))
+		server = httptest.NewServer(NewEventHandler(buildsDB, 128, fakeEngine, false))
 
 		client = &http.Client{
 			Transport: &http.Transport{},
@@ -165,7 +165,7 @@ var _ = Describe("Handler", func() {
 
 					Context("when told to censor", func() {
 						BeforeEach(func() {
-							server.Config.Handler = NewHandler(buildsDB, 128, fakeEngine, true)
+							server.Config.Handler = NewEventHandler(buildsDB, 128, fakeEngine, true)
 						})
 
 						It("filters the events through it", func() {
@@ -284,7 +284,7 @@ var _ = Describe("Handler", func() {
 
 			Context("when told to censor", func() {
 				BeforeEach(func() {
-					server.Config.Handler = NewHandler(buildsDB, 128, fakeEngine, true)
+					server.Config.Handler = NewEventHandler(buildsDB, 128, fakeEngine, true)
 				})
 
 				It("censors the events", func() {

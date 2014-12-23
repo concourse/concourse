@@ -14,6 +14,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
+	"github.com/concourse/atc/api/buildserver"
 	buildfakes "github.com/concourse/atc/api/buildserver/fakes"
 	jobfakes "github.com/concourse/atc/api/jobserver/fakes"
 	authfakes "github.com/concourse/atc/auth/fakes"
@@ -21,7 +22,6 @@ import (
 	dbfakes "github.com/concourse/atc/db/fakes"
 	"github.com/concourse/atc/engine"
 	enginefakes "github.com/concourse/atc/engine/fakes"
-	"github.com/concourse/atc/event/handler"
 )
 
 var (
@@ -43,7 +43,7 @@ var (
 )
 
 type fakeEventHandlerFactory struct {
-	db      handler.BuildsDB
+	db      buildserver.BuildsDB
 	buildID int
 	engine  engine.Engine
 	censor  bool
@@ -52,7 +52,7 @@ type fakeEventHandlerFactory struct {
 }
 
 func (f *fakeEventHandlerFactory) Construct(
-	db handler.BuildsDB,
+	db buildserver.BuildsDB,
 	buildID int,
 	engine engine.Engine,
 	censor bool,

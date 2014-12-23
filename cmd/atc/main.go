@@ -24,13 +24,13 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
+	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/builder"
 	"github.com/concourse/atc/config"
 	Db "github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/engine"
-	"github.com/concourse/atc/event/handler"
 	rdr "github.com/concourse/atc/radar"
 	sched "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/factory"
@@ -260,7 +260,7 @@ func main() {
 		builder,
 		5*time.Second,
 		callbacksURL.Host,
-		handler.NewHandler,
+		buildserver.NewEventHandler,
 		drain,
 
 		engine,

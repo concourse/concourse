@@ -1,4 +1,4 @@
-package handler_test
+package buildserver_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -9,5 +9,5 @@ import (
 
 func TestHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Handler Suite")
+	RunSpecs(t, "Build Server Suite")
 }
