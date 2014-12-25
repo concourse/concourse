@@ -55,26 +55,17 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = handler.db.SaveBuildStatus(buildID, db.StatusAborted)
+	engineBuild, err := handler.engine.LookupBuild(build)
 	if err != nil {
-		log.Error("failed-to-set-aborted", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	if build.Engine != "" {
-		engineBuild, err := handler.engine.LookupBuild(build)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		err = engineBuild.Abort()
-		if err != nil {
-			log.Error("failed-to-unmarshal-metadata", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	err = engineBuild.Abort()
+	if err != nil {
+		log.Error("failed-to-unmarshal-metadata", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	redirectPath, err := routes.Routes.CreatePathForRoute(routes.GetBuild, rata.Params{
