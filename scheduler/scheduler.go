@@ -149,6 +149,11 @@ func (s *Scheduler) TryNextPendingBuild(job atc.JobConfig, resources atc.Resourc
 		return nil
 	}
 
+	buildLog.Info("building", lager.Data{
+		"build":  build,
+		"inputs": inputs,
+	})
+
 	buildPlan, err := s.Factory.Create(job, resources, inputs)
 	if err != nil {
 		buildLog.Error("failed-to-create", err)
@@ -211,6 +216,11 @@ func (s *Scheduler) TriggerImmediately(job atc.JobConfig, resources atc.Resource
 	if !scheduled {
 		return build, nil
 	}
+
+	buildLog.Info("building", lager.Data{
+		"build":  build,
+		"inputs": inputs,
+	})
 
 	buildPlan, err := s.Factory.Create(job, resources, inputs)
 	if err != nil {
