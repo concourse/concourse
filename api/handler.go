@@ -14,7 +14,6 @@ import (
 	"github.com/concourse/atc/api/pipes"
 	"github.com/concourse/atc/api/resourceserver"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/builder"
 	"github.com/concourse/atc/engine"
 )
 
@@ -33,7 +32,6 @@ func NewHandler(
 	resourceserverConfigDB resourceserver.ConfigDB,
 
 	configValidator configserver.ConfigValidator,
-	builder builder.Builder,
 	pingInterval time.Duration,
 	peerAddr string,
 	eventHandlerFactory buildserver.EventHandlerFactory,
@@ -46,7 +44,6 @@ func NewHandler(
 		engine,
 		buildsDB,
 		buildserverConfigDB,
-		builder,
 		pingInterval,
 		eventHandlerFactory,
 		drain,

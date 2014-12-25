@@ -65,7 +65,7 @@ type turbineEngine struct {
 	db              EngineDB
 }
 
-func NewTurbine(turbineEndpoint *rata.RequestGenerator, db EngineDB) Engine {
+func NewTurbineEngine(turbineEndpoint *rata.RequestGenerator, db EngineDB) Engine {
 	return &turbineEngine{
 		turbineEndpoint: turbineEndpoint,
 		db:              db,

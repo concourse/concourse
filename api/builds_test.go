@@ -87,8 +87,8 @@ var _ = Describe("Builds API", func() {
 					It("executes a one-off build", func() {
 						Ω(buildsDB.CreateOneOffBuildCallCount()).Should(Equal(1))
 
-						Ω(builder.BuildCallCount()).Should(Equal(1))
-						oneOff, plan := builder.BuildArgsForCall(0)
+						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
+						oneOff, plan := fakeEngine.CreateBuildArgsForCall(0)
 						Ω(oneOff).Should(Equal(db.Build{
 							ID:      42,
 							Name:    "1",
@@ -101,7 +101,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("and building fails", func() {
 					BeforeEach(func() {
-						builder.BuildReturns(errors.New("oh no!"))
+						fakeEngine.CreateBuildReturns(nil, errors.New("oh no!"))
 					})
 
 					It("returns 500 Internal Server Error", func() {
@@ -132,7 +132,7 @@ var _ = Describe("Builds API", func() {
 
 			It("does not trigger a build", func() {
 				Ω(buildsDB.CreateOneOffBuildCallCount()).Should(BeZero())
-				Ω(builder.BuildCallCount()).Should(BeZero())
+				Ω(fakeEngine.CreateBuildCallCount()).Should(BeZero())
 			})
 		})
 	})
@@ -335,87 +335,45 @@ var _ = Describe("Builds API", func() {
 				authValidator.IsAuthenticatedReturns(true)
 			})
 
-			Context("when the build can be aborted", func() {
+			Context("and the engine returns a build", func() {
+				var fakeBuild *enginefakes.FakeBuild
+
 				BeforeEach(func() {
-					buildsDB.SaveBuildStatusReturns(nil)
+					fakeBuild = new(enginefakes.FakeBuild)
+					fakeEngine.LookupBuildReturns(fakeBuild, nil)
 				})
 
-				Context("and the build is started", func() {
-					BeforeEach(func() {
-						buildsDB.GetBuildReturns(db.Build{
-							ID:     128,
-							Status: db.StatusStarted,
-						}, nil)
-					})
-
-					Context("and the engine returns a build", func() {
-						var fakeBuild *enginefakes.FakeBuild
-
-						BeforeEach(func() {
-							fakeBuild = new(enginefakes.FakeBuild)
-							fakeEngine.LookupBuildReturns(fakeBuild, nil)
-						})
-
-						It("aborts the build", func() {
-							Ω(fakeBuild.AbortCallCount()).Should(Equal(1))
-						})
-
-						Context("and aborting succeeds", func() {
-							BeforeEach(func() {
-								fakeBuild.AbortReturns(nil)
-							})
-
-							It("returns 204", func() {
-								Ω(response.StatusCode).Should(Equal(http.StatusNoContent))
-							})
-						})
-
-						Context("and aborting fails", func() {
-							BeforeEach(func() {
-								fakeBuild.AbortReturns(errors.New("oh no!"))
-							})
-
-							It("returns 500", func() {
-								Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
-							})
-						})
-					})
-
-					Context("and the engine returns no build", func() {
-						BeforeEach(func() {
-							fakeEngine.LookupBuildReturns(nil, errors.New("oh no!"))
-						})
-
-						It("returns 500", func() {
-							Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
-						})
-					})
+				It("aborts the build", func() {
+					Ω(fakeBuild.AbortCallCount()).Should(Equal(1))
 				})
 
-				Context("and the status is pending", func() {
+				Context("and aborting succeeds", func() {
 					BeforeEach(func() {
-						buildsDB.GetBuildReturns(db.Build{
-							ID:     128,
-							Status: db.StatusPending,
-						}, nil)
-					})
-
-					It("does not do anything with the engine", func() {
-						Ω(fakeEngine.LookupBuildCallCount()).Should(Equal(0))
+						fakeBuild.AbortReturns(nil)
 					})
 
 					It("returns 204", func() {
 						Ω(response.StatusCode).Should(Equal(http.StatusNoContent))
 					})
 				})
+
+				Context("and aborting fails", func() {
+					BeforeEach(func() {
+						fakeBuild.AbortReturns(errors.New("oh no!"))
+					})
+
+					It("returns 500", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					})
+				})
 			})
 
-			Context("when the build cannot be aborted", func() {
+			Context("and the engine returns no build", func() {
 				BeforeEach(func() {
-					buildsDB.SaveBuildStatusReturns(errors.New("oh no!"))
+					fakeEngine.LookupBuildReturns(nil, errors.New("oh no!"))
 				})
 
-				It("returns 500 Internal Server Error", func() {
+				It("returns 500", func() {
 					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
 				})
 			})

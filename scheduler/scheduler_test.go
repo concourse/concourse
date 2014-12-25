@@ -5,9 +5,10 @@ import (
 	"errors"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/builder/fakebuilder"
 	"github.com/concourse/atc/db"
 	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/engine"
+	enginefakes "github.com/concourse/atc/engine/fakes"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/fakes"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -20,9 +21,8 @@ var _ = Describe("Scheduler", func() {
 	var (
 		schedulerDB *fakes.FakeSchedulerDB
 		factory     *fakes.FakeBuildFactory
-		builder     *fakebuilder.FakeBuilder
+		fakeEngine  *enginefakes.FakeEngine
 		locker      *fakes.FakeLocker
-		tracker     *fakes.FakeBuildTracker
 
 		createdBuildPlan atc.BuildPlan
 
@@ -37,9 +37,8 @@ var _ = Describe("Scheduler", func() {
 	BeforeEach(func() {
 		schedulerDB = new(fakes.FakeSchedulerDB)
 		factory = new(fakes.FakeBuildFactory)
-		builder = new(fakebuilder.FakeBuilder)
+		fakeEngine = new(enginefakes.FakeEngine)
 		locker = new(fakes.FakeLocker)
-		tracker = new(fakes.FakeBuildTracker)
 
 		createdBuildPlan = atc.BuildPlan{
 			Config: atc.BuildConfig{
@@ -54,8 +53,7 @@ var _ = Describe("Scheduler", func() {
 			DB:      schedulerDB,
 			Locker:  locker,
 			Factory: factory,
-			Builder: builder,
-			Tracker: tracker,
+			Engine:  fakeEngine,
 		}
 
 		yes := true
@@ -113,7 +111,11 @@ var _ = Describe("Scheduler", func() {
 	})
 
 	Describe("TrackInFlightBuilds", func() {
-		var inFlightBuilds []db.Build
+		var (
+			inFlightBuilds []db.Build
+
+			engineBuilds []*enginefakes.FakeBuild
+		)
 
 		BeforeEach(func() {
 			inFlightBuilds = []db.Build{
@@ -122,17 +124,26 @@ var _ = Describe("Scheduler", func() {
 				{ID: 3},
 			}
 
+			engineBuilds = []*enginefakes.FakeBuild{
+				new(enginefakes.FakeBuild),
+				new(enginefakes.FakeBuild),
+				new(enginefakes.FakeBuild),
+			}
+
 			schedulerDB.GetAllStartedBuildsReturns(inFlightBuilds, nil)
+
+			fakeEngine.LookupBuildStub = func(build db.Build) (engine.Build, error) {
+				return engineBuilds[build.ID-1], nil
+			}
 		})
 
-		It("invokes the tracker with all currently in-flight builds", func() {
+		It("resumes all currently in-flight builds", func() {
 			err := scheduler.TrackInFlightBuilds()
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Eventually(tracker.TrackBuildCallCount).Should(Equal(3))
-			Ω(tracker.TrackBuildArgsForCall(0)).Should(Equal(inFlightBuilds[0]))
-			Ω(tracker.TrackBuildArgsForCall(1)).Should(Equal(inFlightBuilds[1]))
-			Ω(tracker.TrackBuildArgsForCall(2)).Should(Equal(inFlightBuilds[2]))
+			Eventually(engineBuilds[0].ResumeCallCount).Should(Equal(1))
+			Eventually(engineBuilds[1].ResumeCallCount).Should(Equal(1))
+			Eventually(engineBuilds[2].ResumeCallCount).Should(Equal(1))
 		})
 	})
 
@@ -152,7 +163,7 @@ var _ = Describe("Scheduler", func() {
 			It("does not trigger a build", func() {
 				scheduler.BuildLatestInputs(job, resources)
 
-				Ω(builder.BuildCallCount()).Should(Equal(0))
+				Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 			})
 		})
 
@@ -175,7 +186,7 @@ var _ = Describe("Scheduler", func() {
 			It("does not trigger a build", func() {
 				scheduler.BuildLatestInputs(job, resources)
 
-				Ω(builder.BuildCallCount()).Should(Equal(0))
+				Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 			})
 		})
 
@@ -301,7 +312,7 @@ var _ = Describe("Scheduler", func() {
 					err := scheduler.BuildLatestInputs(job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(builder.BuildCallCount()).Should(Equal(0))
+					Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 				})
 			})
 
@@ -345,8 +356,8 @@ var _ = Describe("Scheduler", func() {
 							Ω(createResources).Should(Equal(resources))
 							Ω(createInputs).Should(Equal(newInputs))
 
-							Ω(builder.BuildCallCount()).Should(Equal(1))
-							builtBuild, buildPlan := builder.BuildArgsForCall(0)
+							Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
+							builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
 							Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
 							Ω(buildPlan).Should(Equal(createdBuildPlan))
 						})
@@ -361,7 +372,7 @@ var _ = Describe("Scheduler", func() {
 							err := scheduler.BuildLatestInputs(job, resources)
 							Ω(err).ShouldNot(HaveOccurred())
 
-							Ω(builder.BuildCallCount()).Should(Equal(0))
+							Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 						})
 					})
 				})
@@ -380,7 +391,7 @@ var _ = Describe("Scheduler", func() {
 
 					It("does not start a build", func() {
 						scheduler.BuildLatestInputs(job, resources)
-						Ω(builder.BuildCallCount()).Should(Equal(0))
+						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 					})
 				})
 			})
@@ -394,7 +405,7 @@ var _ = Describe("Scheduler", func() {
 					err := scheduler.BuildLatestInputs(job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(builder.BuildCallCount()).Should(Equal(0))
+					Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 				})
 			})
 		})
@@ -441,8 +452,8 @@ var _ = Describe("Scheduler", func() {
 					Ω(createResources).Should(Equal(resources))
 					Ω(createInputs).Should(Equal(pendingInputs))
 
-					Ω(builder.BuildCallCount()).Should(Equal(1))
-					builtBuild, buildPlan := builder.BuildArgsForCall(0)
+					Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
+					builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
 					Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
 					Ω(buildPlan).Should(Equal(createdBuildPlan))
 				})
@@ -457,7 +468,7 @@ var _ = Describe("Scheduler", func() {
 					err := scheduler.TryNextPendingBuild(job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(builder.BuildCallCount()).Should(Equal(0))
+					Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 				})
 			})
 		})
@@ -474,7 +485,7 @@ var _ = Describe("Scheduler", func() {
 
 			It("does not start a build", func() {
 				scheduler.TryNextPendingBuild(job, resources)
-				Ω(builder.BuildCallCount()).Should(Equal(0))
+				Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 			})
 		})
 
@@ -492,7 +503,7 @@ var _ = Describe("Scheduler", func() {
 
 			It("does not start a build", func() {
 				scheduler.TryNextPendingBuild(job, resources)
-				Ω(builder.BuildCallCount()).Should(Equal(0))
+				Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 			})
 		})
 	})
@@ -538,8 +549,8 @@ var _ = Describe("Scheduler", func() {
 						Ω(createResources).Should(Equal(resources))
 						Ω(createInputs).Should(BeZero())
 
-						Ω(builder.BuildCallCount()).Should(Equal(1))
-						builtBuild, buildPlan := builder.BuildArgsForCall(0)
+						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
+						builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
 						Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
 						Ω(buildPlan).Should(Equal(createdBuildPlan))
 					})
@@ -554,7 +565,7 @@ var _ = Describe("Scheduler", func() {
 						_, err := scheduler.TriggerImmediately(job, resources)
 						Ω(err).ShouldNot(HaveOccurred())
 
-						Ω(builder.BuildCallCount()).Should(Equal(0))
+						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 					})
 				})
 			})
@@ -573,7 +584,7 @@ var _ = Describe("Scheduler", func() {
 
 				It("does not start a build", func() {
 					scheduler.TriggerImmediately(job, resources)
-					Ω(builder.BuildCallCount()).Should(Equal(0))
+					Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 				})
 			})
 		})
@@ -651,8 +662,8 @@ var _ = Describe("Scheduler", func() {
 							Ω(createResources).Should(Equal(resources))
 							Ω(createInputs).Should(Equal(dependantInputs))
 
-							Ω(builder.BuildCallCount()).Should(Equal(1))
-							builtBuild, buildPlan := builder.BuildArgsForCall(0)
+							Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
+							builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
 							Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
 							Ω(buildPlan).Should(Equal(createdBuildPlan))
 						})
@@ -666,7 +677,7 @@ var _ = Describe("Scheduler", func() {
 
 					It("does not start a build", func() {
 						scheduler.TriggerImmediately(job, resources)
-						Ω(builder.BuildCallCount()).Should(Equal(0))
+						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 					})
 				})
 
@@ -684,7 +695,7 @@ var _ = Describe("Scheduler", func() {
 
 					It("does not start a build", func() {
 						scheduler.TriggerImmediately(job, resources)
-						Ω(builder.BuildCallCount()).Should(Equal(0))
+						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 					})
 				})
 			})
@@ -706,7 +717,7 @@ var _ = Describe("Scheduler", func() {
 
 					Ω(schedulerDB.CreateJobBuildWithInputsCallCount()).Should(Equal(0))
 
-					Ω(builder.BuildCallCount()).Should(Equal(0))
+					Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 				})
 			})
 		})

@@ -41,7 +41,7 @@ var _ = Describe("TurbineEngine", func() {
 
 		turbineServer = ghttp.NewServer()
 
-		engine = NewTurbine(
+		engine = NewTurbineEngine(
 			rata.NewRequestGenerator(turbineServer.URL(), turbine.Routes),
 			fakeDB,
 		)

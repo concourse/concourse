@@ -6,8 +6,8 @@ import (
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/builder"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/engine"
 )
 
 //go:generate counterfeiter . SchedulerDB
@@ -29,18 +29,12 @@ type BuildFactory interface {
 	Create(atc.JobConfig, atc.ResourceConfigs, []db.BuildInput) (atc.BuildPlan, error)
 }
 
-//go:generate counterfeiter . BuildTracker
-type BuildTracker interface {
-	TrackBuild(db.Build) error
-}
-
 type Scheduler struct {
 	Logger  lager.Logger
 	Locker  Locker
 	DB      SchedulerDB
 	Factory BuildFactory
-	Builder builder.Builder
-	Tracker BuildTracker
+	Engine  engine.Engine
 }
 
 func (s *Scheduler) BuildLatestInputs(job atc.JobConfig, resources atc.ResourceConfigs) error {
@@ -125,7 +119,7 @@ func (s *Scheduler) BuildLatestInputs(job atc.JobConfig, resources atc.ResourceC
 		return err
 	}
 
-	err = s.Builder.Build(build, buildPlan)
+	_, err = s.Engine.CreateBuild(build, buildPlan)
 	if err != nil {
 		buildLog.Error("failed-to-build", err)
 		return err
@@ -161,7 +155,7 @@ func (s *Scheduler) TryNextPendingBuild(job atc.JobConfig, resources atc.Resourc
 		return err
 	}
 
-	err = s.Builder.Build(build, buildPlan)
+	_, err = s.Engine.CreateBuild(build, buildPlan)
 	if err != nil {
 		buildLog.Error("failed-to-build", err)
 		return err
@@ -224,7 +218,7 @@ func (s *Scheduler) TriggerImmediately(job atc.JobConfig, resources atc.Resource
 		return db.Build{}, err
 	}
 
-	err = s.Builder.Build(build, buildPlan)
+	_, err = s.Engine.CreateBuild(build, buildPlan)
 	if err != nil {
 		buildLog.Error("failed-to-build", err)
 		return db.Build{}, err
@@ -240,7 +234,17 @@ func (s *Scheduler) TrackInFlightBuilds() error {
 	}
 
 	for _, b := range builds {
-		go s.Tracker.TrackBuild(b)
+		tLog := s.Logger.Session("track", lager.Data{
+			"build": b.ID,
+		})
+
+		engineBuild, err := s.Engine.LookupBuild(b)
+		if err != nil {
+			tLog.Error("failed-to-lookup-build", err)
+			continue
+		}
+
+		go engineBuild.Resume(tLog)
 	}
 
 	return nil

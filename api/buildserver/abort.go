@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -26,26 +25,17 @@ func (s *Server) AbortBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.db.SaveBuildStatus(buildID, db.StatusAborted)
+	engineBuild, err := s.engine.LookupBuild(build)
 	if err != nil {
-		aLog.Error("failed-to-set-aborted", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	if build.Status == db.StatusStarted {
-		engineBuild, err := s.engine.LookupBuild(build)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		err = engineBuild.Abort()
-		if err != nil {
-			aLog.Error("failed-to-unmarshal-metadata", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	err = engineBuild.Abort()
+	if err != nil {
+		aLog.Error("failed-to-unmarshal-metadata", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)

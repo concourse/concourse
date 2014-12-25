@@ -26,7 +26,6 @@ import (
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/builder"
 	"github.com/concourse/atc/config"
 	Db "github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migrations"
@@ -207,19 +206,14 @@ func main() {
 	}
 
 	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, turbine.Routes)
-	engine := engine.NewTurbine(turbineEndpoint, db)
-
-	tracker := sched.NewTracker(logger.Session("tracker"), engine, db, db)
-
-	builder := builder.NewBuilder(db, engine)
+	engine := engine.NewDBEngine(engine.NewTurbineEngine(turbineEndpoint, db), db, db)
 
 	scheduler := &sched.Scheduler{
 		DB:      db,
 		Factory: &factory.BuildFactory{ConfigDB: configDB},
-		Builder: builder,
-		Tracker: tracker,
 		Locker:  db,
 		Logger:  logger.Session("scheduler"),
+		Engine:  engine,
 	}
 
 	radar := rdr.NewRadar(logger, db, *checkInterval, db, configDB)
@@ -257,7 +251,6 @@ func main() {
 		configDB,
 
 		config.ValidateConfig,
-		builder,
 		5*time.Second,
 		callbacksURL.Host,
 		buildserver.NewEventHandler,

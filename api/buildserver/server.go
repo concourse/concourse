@@ -6,7 +6,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/builder"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/pivotal-golang/lager"
@@ -20,7 +19,6 @@ type Server struct {
 	engine              engine.Engine
 	db                  BuildsDB
 	configDB            ConfigDB
-	builder             builder.Builder
 	pingInterval        time.Duration
 	eventHandlerFactory EventHandlerFactory
 	drain               <-chan struct{}
@@ -29,16 +27,17 @@ type Server struct {
 	httpClient *http.Client
 }
 
+//go:generate counterfeiter . BuildsDB
 type BuildsDB interface {
 	GetBuild(buildID int) (db.Build, error)
 	GetAllBuilds() ([]db.Build, error)
 
 	CreateOneOffBuild() (db.Build, error)
-	SaveBuildStatus(buildID int, status db.Status) error
 
 	GetBuildEvents(buildID int) ([]db.BuildEvent, error)
 }
 
+//go:generate counterfeiter . ConfigDB
 type ConfigDB interface {
 	GetConfig() (atc.Config, error)
 }
@@ -48,7 +47,6 @@ func NewServer(
 	engine engine.Engine,
 	db BuildsDB,
 	configDB ConfigDB,
-	builder builder.Builder,
 	pingInterval time.Duration,
 	eventHandlerFactory EventHandlerFactory,
 	drain <-chan struct{},
@@ -59,7 +57,6 @@ func NewServer(
 		engine:              engine,
 		db:                  db,
 		configDB:            configDB,
-		builder:             builder,
 		pingInterval:        pingInterval,
 		eventHandlerFactory: eventHandlerFactory,
 		fallback:            fallback,

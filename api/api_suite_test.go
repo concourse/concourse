@@ -18,7 +18,6 @@ import (
 	buildfakes "github.com/concourse/atc/api/buildserver/fakes"
 	jobfakes "github.com/concourse/atc/api/jobserver/fakes"
 	authfakes "github.com/concourse/atc/auth/fakes"
-	"github.com/concourse/atc/builder/fakebuilder"
 	dbfakes "github.com/concourse/atc/db/fakes"
 	"github.com/concourse/atc/engine"
 	enginefakes "github.com/concourse/atc/engine/fakes"
@@ -31,7 +30,6 @@ var (
 	jobsDB              *jobfakes.FakeJobsDB
 	configDB            *dbfakes.FakeConfigDB
 	configValidationErr error
-	builder             *fakebuilder.FakeBuilder
 	pingInterval        time.Duration
 	peerAddr            string
 	drain               chan struct{}
@@ -77,7 +75,6 @@ var _ = BeforeEach(func() {
 
 	authValidator = new(authfakes.FakeValidator)
 	configValidationErr = nil
-	builder = new(fakebuilder.FakeBuilder)
 	pingInterval = 100 * time.Millisecond
 	peerAddr = "127.0.0.1:1234"
 	drain = make(chan struct{})
@@ -104,7 +101,6 @@ var _ = BeforeEach(func() {
 		configDB,
 
 		func(atc.Config) error { return configValidationErr },
-		builder,
 		pingInterval,
 		peerAddr,
 		constructedEventHandler.Construct,
