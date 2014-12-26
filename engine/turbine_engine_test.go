@@ -1200,6 +1200,23 @@ var _ = Describe("TurbineEngine", func() {
 							It("deletes the build from the turbine", func() {
 								Eventually(buildDeleted).Should(BeClosed())
 							})
+
+							It("marks the build as completed", func() {
+								Ω(fakeDB.CompleteBuildCallCount()).Should(Equal(1))
+								Ω(fakeDB.CompleteBuildArgsForCall(0)).Should(Equal(buildModel.ID))
+							})
+
+							Context("when marking the build as completed fails", func() {
+								disaster := errors.New("oh no!")
+
+								BeforeEach(func() {
+									fakeDB.CompleteBuildReturns(disaster)
+								})
+
+								It("returns the error", func() {
+									Ω(resumeErr).Should(Equal(disaster))
+								})
+							})
 						})
 					})
 				}

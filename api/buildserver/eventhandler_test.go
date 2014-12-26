@@ -2,7 +2,6 @@ package buildserver_test
 
 import (
 	"errors"
-	"io"
 	"net/http"
 	"net/http/httptest"
 
@@ -69,7 +68,7 @@ var _ = Describe("Handler", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		Context("when the build is started", func() {
+		Context("when the build exists", func() {
 			BeforeEach(func() {
 				buildsDB.GetBuildReturns(db.Build{
 					ID:             128,
@@ -229,107 +228,13 @@ var _ = Describe("Handler", func() {
 			})
 		})
 
-		Context("when the build is completed", func() {
+		Context("when the build does not exist", func() {
 			BeforeEach(func() {
-				buildsDB.GetBuildReturns(db.Build{
-					ID:     128,
-					Status: db.StatusSucceeded,
-				}, nil)
-
-				buildsDB.GetBuildEventsReturns([]db.BuildEvent{
-					{
-						Type:    "initialize",
-						Payload: `{"config":{"params":{"SECRET":"lol"},"run":{"path":"ls"}}}`,
-						Version: "1.0",
-					},
-					{
-						Type:    "start",
-						Payload: `{"time":1}`,
-						Version: "1.0",
-					},
-					{
-						Type:    "status",
-						Payload: `{"status":"succeeded","time":123}`,
-						Version: "1.0",
-					},
-				}, nil)
+				buildsDB.GetBuildReturns(db.Build{}, errors.New("nope"))
 			})
 
-			It("returns the build's events from the database, followed by an end event", func() {
-				reader := sse.NewReader(response.Body)
-
-				Ω(reader.Next()).Should(Equal(sse.Event{
-					ID:   "0",
-					Name: "event",
-					Data: []byte(`{"data":{"config":{"params":{"SECRET":"lol"},"run":{"path":"ls"}}},"event":"initialize","version":"1.0"}`),
-				}))
-
-				Ω(reader.Next()).Should(Equal(sse.Event{
-					ID:   "1",
-					Name: "event",
-					Data: []byte(`{"data":{"time":1},"event":"start","version":"1.0"}`),
-				}))
-
-				Ω(reader.Next()).Should(Equal(sse.Event{
-					ID:   "2",
-					Name: "event",
-					Data: []byte(`{"data":{"status":"succeeded","time":123},"event":"status","version":"1.0"}`),
-				}))
-
-				Ω(reader.Next()).Should(Equal(sse.Event{
-					Name: "end",
-					Data: []byte{},
-				}))
-			})
-
-			Context("when told to censor", func() {
-				BeforeEach(func() {
-					server.Config.Handler = NewEventHandler(buildsDB, 128, fakeEngine, true)
-				})
-
-				It("censors the events", func() {
-					reader := sse.NewReader(response.Body)
-
-					Ω(reader.Next()).Should(Equal(sse.Event{
-						ID:   "0",
-						Name: "event",
-						Data: []byte(`{"data":{"config":{"run":{"path":"ls"}}},"event":"initialize","version":"1.0"}`),
-					}))
-				})
-			})
-
-			Context("when the Last-Event-ID header is given", func() {
-				BeforeEach(func() {
-					request.Header.Set("Last-Event-ID", "1")
-				})
-
-				It("offsets the events from the database", func() {
-					reader := sse.NewReader(response.Body)
-
-					Ω(reader.Next()).Should(Equal(sse.Event{
-						ID:   "2",
-						Name: "event",
-						Data: []byte(`{"data":{"status":"succeeded","time":123},"event":"status","version":"1.0"}`),
-					}))
-				})
-
-				Context("but the id reaches the end", func() {
-					BeforeEach(func() {
-						request.Header.Set("Last-Event-ID", "3")
-					})
-
-					It("returns an end event and ends the stream", func() {
-						reader := sse.NewReader(response.Body)
-
-						Ω(reader.Next()).Should(Equal(sse.Event{
-							Name: "end",
-							Data: []byte{},
-						}))
-
-						_, err := reader.Next()
-						Ω(err).Should(Equal(io.EOF))
-					})
-				})
+			It("returns 404", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
 			})
 		})
 	})

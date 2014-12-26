@@ -30,6 +30,7 @@ import (
 type EngineDB interface {
 	GetLastBuildEventID(buildID int) (int, error)
 	SaveBuildEvent(buildID int, event db.BuildEvent) error
+	CompleteBuild(buildID int) error
 
 	SaveBuildStartTime(buildID int, startTime time.Time) error
 	SaveBuildEndTime(buildID int, startTime time.Time) error
@@ -331,7 +332,7 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 
 				resp.Body.Close()
 
-				return nil
+				return build.db.CompleteBuild(build.id)
 			}
 
 			return err

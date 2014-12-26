@@ -33,8 +33,6 @@ type BuildsDB interface {
 	GetAllBuilds() ([]db.Build, error)
 
 	CreateOneOffBuild() (db.Build, error)
-
-	GetBuildEvents(buildID int) ([]db.BuildEvent, error)
 }
 
 //go:generate counterfeiter . ConfigDB

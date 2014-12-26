@@ -209,19 +209,21 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 		})
 
-		It("saves events correctly", func() {
+		It("saves and propagates events correctly", func() {
 			build, err := database.CreateJobBuild("some-job")
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(build.Name).Should(Equal("1"))
 
 			By("initially returning zero-values for events and last ID")
-			events, err := database.GetBuildEvents(build.ID)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(events).Should(BeEmpty())
-
 			lastID, err := database.GetLastBuildEventID(build.ID)
 			Ω(err).Should(HaveOccurred())
 			Ω(lastID).Should(Equal(0))
+
+			By("allowing you to subscribe when no events have yet occurred")
+			events, err := database.GetBuildEvents(build.ID, 0)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			defer events.Close()
 
 			By("saving them in order and knowing the last ID")
 			err = database.SaveBuildEvent(build.ID, db.BuildEvent{
@@ -236,6 +238,13 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(lastID).Should(Equal(0))
 
+			Ω(events.Next()).Should(Equal(db.BuildEvent{
+				ID:      0,
+				Type:    "log",
+				Payload: "some ",
+				Version: "1.0",
+			}))
+
 			err = database.SaveBuildEvent(build.ID, db.BuildEvent{
 				ID:      1,
 				Type:    "log",
@@ -244,9 +253,60 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
+			Ω(events.Next()).Should(Equal(db.BuildEvent{
+				ID:      1,
+				Type:    "log",
+				Payload: "log",
+				Version: "1.0",
+			}))
+
 			lastID, err = database.GetLastBuildEventID(build.ID)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(lastID).Should(Equal(1))
+
+			By("allowing you to subscribe from an offset")
+			eventsFrom1, err := database.GetBuildEvents(build.ID, 1)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			defer eventsFrom1.Close()
+
+			Ω(eventsFrom1.Next()).Should(Equal(db.BuildEvent{
+				ID:      1,
+				Type:    "log",
+				Payload: "log",
+				Version: "1.0",
+			}))
+
+			By("notifying those waiting on events as soon as they're saved")
+			nextEvent := make(chan db.BuildEvent)
+			nextErr := make(chan error)
+
+			go func() {
+				event, err := events.Next()
+				if err != nil {
+					nextErr <- err
+				} else {
+					nextEvent <- event
+				}
+			}()
+
+			Consistently(nextEvent).ShouldNot(Receive())
+			Consistently(nextErr).ShouldNot(Receive())
+
+			err = database.SaveBuildEvent(build.ID, db.BuildEvent{
+				ID:      2,
+				Type:    "log",
+				Payload: "log 2",
+				Version: "1.0",
+			})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Eventually(nextEvent).Should(Receive(Equal(db.BuildEvent{
+				ID:      2,
+				Type:    "log",
+				Payload: "log 2",
+				Version: "1.0",
+			})))
 
 			By("being idempotent")
 			err = database.SaveBuildEvent(build.ID, db.BuildEvent{
@@ -259,24 +319,63 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			lastID, err = database.GetLastBuildEventID(build.ID)
 			Ω(err).ShouldNot(HaveOccurred())
-			Ω(lastID).Should(Equal(1))
+			Ω(lastID).Should(Equal(2))
 
-			events, err = database.GetBuildEvents(build.ID)
+			events2, err := database.GetBuildEvents(build.ID, 0)
 			Ω(err).ShouldNot(HaveOccurred())
-			Ω(events).Should(Equal([]db.BuildEvent{
-				db.BuildEvent{
-					ID:      0,
-					Type:    "log",
-					Payload: "some ",
-					Version: "1.0",
-				},
-				db.BuildEvent{
-					ID:      1,
-					Type:    "log",
-					Payload: "log",
-					Version: "1.0",
-				},
+
+			defer events2.Close()
+
+			Ω(events2.Next()).Should(Equal(db.BuildEvent{
+				ID:      0,
+				Type:    "log",
+				Payload: "some ",
+				Version: "1.0",
 			}))
+
+			Ω(events2.Next()).Should(Equal(db.BuildEvent{
+				ID:      1,
+				Type:    "log",
+				Payload: "log",
+				Version: "1.0",
+			}))
+
+			Ω(events2.Next()).Should(Equal(db.BuildEvent{
+				ID:      2,
+				Type:    "log",
+				Payload: "log 2",
+				Version: "1.0",
+			}))
+
+			By("returning ErrEndOfBuildEventStream and notifying those waiting when the build is completed")
+			go func() {
+				event, err := events.Next()
+				if err != nil {
+					nextErr <- err
+				} else {
+					nextEvent <- event
+				}
+			}()
+
+			Consistently(nextEvent).ShouldNot(Receive())
+			Consistently(nextErr).ShouldNot(Receive())
+
+			err = database.CompleteBuild(build.ID)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Eventually(nextErr).Should(Receive(Equal(db.ErrEndOfBuildEventStream)))
+
+			_, err = events2.Next()
+			Ω(err).Should(Equal(db.ErrEndOfBuildEventStream))
+
+			By("returning ErrBuildEventStreamClosed for Next calls after Close")
+			events3, err := database.GetBuildEvents(build.ID, 0)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			events3.Close()
+
+			_, err = events3.Next()
+			Ω(err).Should(Equal(db.ErrBuildEventStreamClosed))
 		})
 
 		It("can create one-off builds with increasing names", func() {

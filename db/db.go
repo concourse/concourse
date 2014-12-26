@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"time"
 
 	"github.com/concourse/atc"
@@ -29,8 +30,9 @@ type DB interface {
 	StartBuild(buildID int, engineName, engineMetadata string) (bool, error)
 
 	GetLastBuildEventID(buildID int) (int, error)
-	GetBuildEvents(buildID int) ([]BuildEvent, error)
+	GetBuildEvents(buildID int, from uint) (BuildEventSource, error)
 	SaveBuildEvent(buildID int, event BuildEvent) error
+	CompleteBuild(buildID int) error
 
 	SaveBuildInput(buildID int, input BuildInput) error
 	SaveBuildOutput(buildID int, vr VersionedResource) error
@@ -69,6 +71,15 @@ type BuildEvent struct {
 	Type    string
 	Payload string
 	Version string
+}
+
+var ErrEndOfBuildEventStream = errors.New("end of build event stream")
+var ErrBuildEventStreamClosed = errors.New("build event stream closed")
+
+//go:generate counterfeiter . BuildEventSource
+type BuildEventSource interface {
+	Next() (BuildEvent, error)
+	Close() error
 }
 
 type BuildInput struct {

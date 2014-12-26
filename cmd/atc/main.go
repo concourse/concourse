@@ -14,7 +14,7 @@ import (
 
 	"github.com/BurntSushi/migration"
 	"github.com/cloudfoundry-incubator/candiedyaml"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -176,7 +176,9 @@ func main() {
 		break
 	}
 
-	db := Db.NewSQL(logger.Session("db"), dbConn)
+	listener := pq.NewListener(*sqlDataSource, time.Second, time.Minute, nil)
+
+	db := Db.NewSQL(logger.Session("db"), dbConn, listener)
 
 	var configDB Db.ConfigDB
 

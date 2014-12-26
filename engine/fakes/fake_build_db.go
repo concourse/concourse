@@ -18,6 +18,16 @@ type FakeBuildDB struct {
 		result1 db.Build
 		result2 error
 	}
+	GetBuildEventsStub        func(int, uint) (db.BuildEventSource, error)
+	getBuildEventsMutex       sync.RWMutex
+	getBuildEventsArgsForCall []struct {
+		arg1 int
+		arg2 uint
+	}
+	getBuildEventsReturns struct {
+		result1 db.BuildEventSource
+		result2 error
+	}
 	StartBuildStub        func(int, string, string) (bool, error)
 	startBuildMutex       sync.RWMutex
 	startBuildArgsForCall []struct {
@@ -69,6 +79,40 @@ func (fake *FakeBuildDB) GetBuildReturns(result1 db.Build, result2 error) {
 	fake.GetBuildStub = nil
 	fake.getBuildReturns = struct {
 		result1 db.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBuildDB) GetBuildEvents(arg1 int, arg2 uint) (db.BuildEventSource, error) {
+	fake.getBuildEventsMutex.Lock()
+	fake.getBuildEventsArgsForCall = append(fake.getBuildEventsArgsForCall, struct {
+		arg1 int
+		arg2 uint
+	}{arg1, arg2})
+	fake.getBuildEventsMutex.Unlock()
+	if fake.GetBuildEventsStub != nil {
+		return fake.GetBuildEventsStub(arg1, arg2)
+	} else {
+		return fake.getBuildEventsReturns.result1, fake.getBuildEventsReturns.result2
+	}
+}
+
+func (fake *FakeBuildDB) GetBuildEventsCallCount() int {
+	fake.getBuildEventsMutex.RLock()
+	defer fake.getBuildEventsMutex.RUnlock()
+	return len(fake.getBuildEventsArgsForCall)
+}
+
+func (fake *FakeBuildDB) GetBuildEventsArgsForCall(i int) (int, uint) {
+	fake.getBuildEventsMutex.RLock()
+	defer fake.getBuildEventsMutex.RUnlock()
+	return fake.getBuildEventsArgsForCall[i].arg1, fake.getBuildEventsArgsForCall[i].arg2
+}
+
+func (fake *FakeBuildDB) GetBuildEventsReturns(result1 db.BuildEventSource, result2 error) {
+	fake.GetBuildEventsStub = nil
+	fake.getBuildEventsReturns = struct {
+		result1 db.BuildEventSource
 		result2 error
 	}{result1, result2}
 }

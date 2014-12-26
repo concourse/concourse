@@ -14,6 +14,7 @@ import (
 	dbfakes "github.com/concourse/atc/db/fakes"
 	. "github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/fakes"
+	"github.com/concourse/atc/event"
 
 	garden "github.com/cloudfoundry-incubator/garden/api"
 	gardenfakes "github.com/cloudfoundry-incubator/garden/api/fakes"
@@ -177,16 +178,6 @@ var _ = Describe("DBEngine", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		// Describe("Metadata", func() {
-		// 	BeforeEach(func() {
-		// 		realBuild.MetadataReturns("some-metadata")
-		// 	})
-		//
-		// 	It("delegates to the real build", func() {
-		// 		Ω(build.Metadata()).Should(Equal("some-metadata"))
-		// 	})
-		// })
-
 		Describe("Hijack", func() {
 			var (
 				hijackSpec garden.ProcessSpec
@@ -295,57 +286,79 @@ var _ = Describe("DBEngine", func() {
 				subscribedStream, subscribeErr = build.Subscribe(subscribeFrom)
 			})
 
-			Context("when the engine build exists", func() {
-				var realBuild *fakes.FakeBuild
+			Context("when subscribing via the db succeeds", func() {
+				var dbSource *dbfakes.FakeBuildEventSource
 
 				BeforeEach(func() {
-					fakeBuildDB.GetBuildReturns(model, nil)
+					dbEvents := make(chan db.BuildEvent, 3)
 
-					realBuild = new(fakes.FakeBuild)
-					fakeEngine.LookupBuildReturns(realBuild, nil)
+					dbEvents <- db.BuildEvent{
+						Type:    "initialize",
+						Payload: `{"config":{"params":{"SECRET":"lol"},"run":{"path":"ls"}}}`,
+						Version: "1.0",
+					}
+
+					dbEvents <- db.BuildEvent{
+						Type:    "start",
+						Payload: `{"time":1}`,
+						Version: "1.0",
+					}
+
+					close(dbEvents)
+
+					dbSource = new(dbfakes.FakeBuildEventSource)
+
+					dbSource.NextStub = func() (db.BuildEvent, error) {
+						select {
+						case e, ok := <-dbEvents:
+							if !ok {
+								return db.BuildEvent{}, db.ErrEndOfBuildEventStream
+							}
+
+							return e, nil
+						}
+					}
+
+					fakeBuildDB.GetBuildEventsReturns(dbSource, nil)
 				})
 
-				Context("when subscribing to the real build succeeds", func() {
-					var fakeStream *fakes.FakeEventSource
+				It("succeeds", func() {
+					Ω(subscribeErr).ShouldNot(HaveOccurred())
 
-					BeforeEach(func() {
-						fakeStream = new(fakes.FakeEventSource)
-						realBuild.SubscribeReturns(fakeStream, nil)
-					})
+					Ω(fakeBuildDB.GetBuildEventsCallCount()).Should(Equal(1))
+					buildID, from := fakeBuildDB.GetBuildEventsArgsForCall(0)
 
-					It("succeeds", func() {
-						Ω(subscribeErr).ShouldNot(HaveOccurred())
-
-						subscribedFrom := realBuild.SubscribeArgsForCall(0)
-						Ω(subscribedFrom).Should(Equal(subscribeFrom))
-					})
-
-					It("returns the subscribed stream", func() {
-						Ω(subscribedStream).Should(Equal(fakeStream))
-					})
+					Ω(buildID).Should(Equal(model.ID))
+					Ω(from).Should(Equal(subscribeFrom))
 				})
 
-				Context("when subscribing to the real build fails", func() {
-					disaster := errors.New("oh no!")
+				It("returns an event source", func() {
+					Ω(subscribedStream.Next()).Should(Equal(event.Initialize{
+						BuildConfig: atc.BuildConfig{
+							Params: map[string]string{"SECRET": "lol"},
+							Run: atc.BuildRunConfig{
+								Path: "ls",
+							},
+						},
+					}))
 
-					BeforeEach(func() {
-						realBuild.SubscribeReturns(nil, disaster)
-					})
+					Ω(subscribedStream.Next()).Should(Equal(event.Start{
+						Time: 1,
+					}))
 
-					It("returns the error", func() {
-						Ω(subscribeErr).Should(Equal(disaster))
-					})
+					_, err := subscribedStream.Next()
+					Ω(err).Should(Equal(ErrEndOfStream))
 				})
-			})
 
-			Context("when the build is not yet active", func() {
-				BeforeEach(func() {
-					model.Engine = ""
-					fakeBuildDB.GetBuildReturns(model, nil)
-				})
+				Describe("closing the event source", func() {
+					It("closes the db source", func() {
+						Ω(dbSource.CloseCallCount()).Should(Equal(0))
 
-				It("returns ErrBuildNotActive", func() {
-					Ω(subscribeErr).Should(Equal(ErrBuildNotActive))
+						err := subscribedStream.Close()
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Ω(dbSource.CloseCallCount()).Should(Equal(1))
+					})
 				})
 			})
 
@@ -353,8 +366,7 @@ var _ = Describe("DBEngine", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					fakeBuildDB.GetBuildReturns(model, nil)
-					fakeEngine.LookupBuildReturns(nil, disaster)
+					fakeBuildDB.GetBuildEventsReturns(nil, disaster)
 				})
 
 				It("returns the error", func() {

@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -19,6 +20,7 @@ var _ = Describe("SQL DB", func() {
 	var postgresRunner postgresrunner.Runner
 
 	var dbConn *sql.DB
+	var listener *pq.Listener
 	var dbProcess ifrit.Process
 
 	var sqlDB *db.SQLDB
@@ -43,13 +45,20 @@ var _ = Describe("SQL DB", func() {
 
 		dbConn = postgresRunner.Open()
 
-		sqlDB = db.NewSQL(lagertest.NewTestLogger("test"), dbConn)
+		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
+
+		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
+
+		sqlDB = db.NewSQL(lagertest.NewTestLogger("test"), dbConn, listener)
 
 		dbSharedBehaviorInput.DB = sqlDB
 	})
 
 	AfterEach(func() {
 		err := dbConn.Close()
+		Ω(err).ShouldNot(HaveOccurred())
+
+		err = listener.Close()
 		Ω(err).ShouldNot(HaveOccurred())
 
 		postgresRunner.DropTestDB()

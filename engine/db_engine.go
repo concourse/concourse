@@ -7,6 +7,7 @@ import (
 	garden "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/event"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -15,6 +16,7 @@ var ErrBuildNotActive = errors.New("build not yet active")
 //go:generate counterfeiter . BuildDB
 type BuildDB interface {
 	GetBuild(int) (db.Build, error)
+	GetBuildEvents(int, uint) (db.BuildEventSource, error)
 	StartBuild(int, string, string) (bool, error)
 
 	SaveBuildStatus(int, db.Status) error
@@ -146,21 +148,40 @@ func (build *dbBuild) Hijack(spec garden.ProcessSpec, io garden.ProcessIO) (gard
 }
 
 func (build *dbBuild) Subscribe(from uint) (EventSource, error) {
-	model, err := build.db.GetBuild(build.id)
+	dbSource, err := build.db.GetBuildEvents(build.id, from)
 	if err != nil {
 		return nil, err
 	}
 
-	if model.Engine == "" {
-		return nil, ErrBuildNotActive
+	return &dbEventSource{
+		dbSource: dbSource,
+	}, nil
+}
+
+type dbEventSource struct {
+	dbSource db.BuildEventSource
+}
+
+func (source *dbEventSource) Next() (atc.Event, error) {
+	be, err := source.dbSource.Next()
+	if err != nil {
+		if err == db.ErrEndOfBuildEventStream {
+			return nil, ErrEndOfStream
+		}
+
+		return nil, err
 	}
 
-	engineBuild, err := build.engine.LookupBuild(model)
+	ev, err := event.ParseEvent(atc.EventVersion(be.Version), atc.EventType(be.Type), []byte(be.Payload))
 	if err != nil {
 		return nil, err
 	}
 
-	return engineBuild.Subscribe(from)
+	return ev, nil
+}
+
+func (source *dbEventSource) Close() error {
+	return source.dbSource.Close()
 }
 
 func (build *dbBuild) Resume(logger lager.Logger) error {

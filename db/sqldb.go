@@ -15,16 +15,24 @@ import (
 
 type SQLDB struct {
 	logger lager.Logger
-	conn   *sql.DB
+
+	conn *sql.DB
+	bus  *notificationsBus
 }
 
 const buildColumns = "id, name, job_name, status, engine, engine_metadata, start_time, end_time"
 const qualifiedBuildColumns = "b.id, b.name, b.job_name, b.status, b.engine, b.engine_metadata, b.start_time, b.end_time"
 
-func NewSQL(logger lager.Logger, sqldbConnection *sql.DB) *SQLDB {
+func NewSQL(
+	logger lager.Logger,
+	sqldbConnection *sql.DB,
+	listener *pq.Listener,
+) *SQLDB {
 	return &SQLDB{
 		logger: logger,
-		conn:   sqldbConnection,
+
+		conn: sqldbConnection,
+		bus:  newNotificationsBus(listener),
 	}
 }
 
@@ -580,30 +588,25 @@ func (db *SQLDB) SaveBuildStatus(buildID int, status Status) error {
 	return nil
 }
 
-func (db *SQLDB) GetBuildEvents(buildID int) ([]BuildEvent, error) {
-	var events []BuildEvent
+func (db *SQLDB) GetBuildEvents(buildID int, from uint) (BuildEventSource, error) {
+	channel := buildEventsChannel(buildID)
 
-	rows, err := db.conn.Query(`
-		SELECT event_id, type, payload, version
-		FROM build_events
-		WHERE build_id = $1
-		ORDER BY event_id ASC
-	`, buildID)
+	notify, err := db.bus.Listen(channel)
 	if err != nil {
 		return nil, err
 	}
 
-	for rows.Next() {
-		var event BuildEvent
-		err := rows.Scan(&event.ID, &event.Type, &event.Payload, &event.Version)
-		if err != nil {
-			return nil, err
-		}
+	return newSQLDBBuildEventSource(
+		buildID,
+		db.conn,
+		db.bus,
+		notify,
+		from,
+	), nil
+}
 
-		events = append(events, event)
-	}
-
-	return events, nil
+func buildEventsChannel(buildID int) string {
+	return fmt.Sprintf("build_events_%d", buildID)
 }
 
 func (db *SQLDB) GetLastBuildEventID(buildID int) (int, error) {
@@ -633,6 +636,29 @@ func (db *SQLDB) SaveBuildEvent(buildID int, event BuildEvent) error {
 			AND event_id = $2
 		)
 	`, buildID, event.ID, event.Type, event.Payload, event.Version)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.conn.Exec("NOTIFY " + buildEventsChannel(buildID))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *SQLDB) CompleteBuild(buildID int) error {
+	_, err := db.conn.Exec(`
+		UPDATE builds
+		SET completed = true
+		WHERE id = $1
+	`, buildID)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.conn.Exec("NOTIFY " + buildEventsChannel(buildID))
 	if err != nil {
 		return err
 	}
