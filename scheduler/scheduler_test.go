@@ -341,25 +341,41 @@ var _ = Describe("Scheduler", func() {
 							schedulerDB.ScheduleBuildReturns(true, nil)
 						})
 
-						It("triggers a build of the job with the found inputs", func() {
-							err := scheduler.BuildLatestInputs(job, resources)
-							Ω(err).ShouldNot(HaveOccurred())
+						Context("and creating the engine build succeeds", func() {
+							var createdBuild *enginefakes.FakeBuild
 
-							Ω(schedulerDB.ScheduleBuildCallCount()).Should(Equal(1))
-							scheduledBuildID, serial := schedulerDB.ScheduleBuildArgsForCall(0)
-							Ω(scheduledBuildID).Should(Equal(128))
-							Ω(serial).Should(Equal(job.Serial))
+							BeforeEach(func() {
+								createdBuild = new(enginefakes.FakeBuild)
+								fakeEngine.CreateBuildReturns(createdBuild, nil)
+							})
 
-							Ω(factory.CreateCallCount()).Should(Equal(1))
-							createJob, createResources, createInputs := factory.CreateArgsForCall(0)
-							Ω(createJob).Should(Equal(job))
-							Ω(createResources).Should(Equal(resources))
-							Ω(createInputs).Should(Equal(newInputs))
+							It("triggers a build of the job with the found inputs", func() {
+								err := scheduler.BuildLatestInputs(job, resources)
+								Ω(err).ShouldNot(HaveOccurred())
 
-							Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
-							builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
-							Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
-							Ω(buildPlan).Should(Equal(createdBuildPlan))
+								Ω(schedulerDB.ScheduleBuildCallCount()).Should(Equal(1))
+								scheduledBuildID, serial := schedulerDB.ScheduleBuildArgsForCall(0)
+								Ω(scheduledBuildID).Should(Equal(128))
+								Ω(serial).Should(Equal(job.Serial))
+
+								Ω(factory.CreateCallCount()).Should(Equal(1))
+								createJob, createResources, createInputs := factory.CreateArgsForCall(0)
+								Ω(createJob).Should(Equal(job))
+								Ω(createResources).Should(Equal(resources))
+								Ω(createInputs).Should(Equal(newInputs))
+
+								Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
+								builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
+								Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
+								Ω(buildPlan).Should(Equal(createdBuildPlan))
+							})
+
+							It("immediately resumes the build", func() {
+								err := scheduler.BuildLatestInputs(job, resources)
+								Ω(err).ShouldNot(HaveOccurred())
+
+								Eventually(createdBuild.ResumeCallCount).Should(Equal(1))
+							})
 						})
 					})
 
@@ -437,25 +453,41 @@ var _ = Describe("Scheduler", func() {
 					schedulerDB.ScheduleBuildReturns(true, nil)
 				})
 
-				It("builds it", func() {
-					err := scheduler.TryNextPendingBuild(job, resources)
-					Ω(err).ShouldNot(HaveOccurred())
+				Context("and creating the engine build succeeds", func() {
+					var createdBuild *enginefakes.FakeBuild
 
-					Ω(schedulerDB.ScheduleBuildCallCount()).Should(Equal(1))
-					scheduledBuildID, serial := schedulerDB.ScheduleBuildArgsForCall(0)
-					Ω(scheduledBuildID).Should(Equal(128))
-					Ω(serial).Should(Equal(job.Serial))
+					BeforeEach(func() {
+						createdBuild = new(enginefakes.FakeBuild)
+						fakeEngine.CreateBuildReturns(createdBuild, nil)
+					})
 
-					Ω(factory.CreateCallCount()).Should(Equal(1))
-					createJob, createResources, createInputs := factory.CreateArgsForCall(0)
-					Ω(createJob).Should(Equal(job))
-					Ω(createResources).Should(Equal(resources))
-					Ω(createInputs).Should(Equal(pendingInputs))
+					It("builds it", func() {
+						err := scheduler.TryNextPendingBuild(job, resources)
+						Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
-					builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
-					Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
-					Ω(buildPlan).Should(Equal(createdBuildPlan))
+						Ω(schedulerDB.ScheduleBuildCallCount()).Should(Equal(1))
+						scheduledBuildID, serial := schedulerDB.ScheduleBuildArgsForCall(0)
+						Ω(scheduledBuildID).Should(Equal(128))
+						Ω(serial).Should(Equal(job.Serial))
+
+						Ω(factory.CreateCallCount()).Should(Equal(1))
+						createJob, createResources, createInputs := factory.CreateArgsForCall(0)
+						Ω(createJob).Should(Equal(job))
+						Ω(createResources).Should(Equal(resources))
+						Ω(createInputs).Should(Equal(pendingInputs))
+
+						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
+						builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
+						Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
+						Ω(buildPlan).Should(Equal(createdBuildPlan))
+					})
+
+					It("immediately resumes the build", func() {
+						err := scheduler.TryNextPendingBuild(job, resources)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Eventually(createdBuild.ResumeCallCount).Should(Equal(1))
+					})
 				})
 			})
 
@@ -533,26 +565,43 @@ var _ = Describe("Scheduler", func() {
 						schedulerDB.ScheduleBuildReturns(true, nil)
 					})
 
-					It("triggers a build of the job with the found inputs", func() {
-						build, err := scheduler.TriggerImmediately(job, resources)
-						Ω(err).ShouldNot(HaveOccurred())
-						Ω(build).Should(Equal(db.Build{ID: 128, Name: "42"}))
+					Context("and creating the engine build succeeds", func() {
+						var createdBuild *enginefakes.FakeBuild
 
-						Ω(schedulerDB.ScheduleBuildCallCount()).Should(Equal(1))
-						scheduledBuildID, serial := schedulerDB.ScheduleBuildArgsForCall(0)
-						Ω(scheduledBuildID).Should(Equal(128))
-						Ω(serial).Should(Equal(job.Serial))
+						BeforeEach(func() {
+							createdBuild = new(enginefakes.FakeBuild)
+							fakeEngine.CreateBuildReturns(createdBuild, nil)
+						})
 
-						Ω(factory.CreateCallCount()).Should(Equal(1))
-						createJob, createResources, createInputs := factory.CreateArgsForCall(0)
-						Ω(createJob).Should(Equal(job))
-						Ω(createResources).Should(Equal(resources))
-						Ω(createInputs).Should(BeZero())
+						It("triggers a build of the job with the found inputs", func() {
+							build, err := scheduler.TriggerImmediately(job, resources)
+							Ω(err).ShouldNot(HaveOccurred())
+							Ω(build).Should(Equal(db.Build{ID: 128, Name: "42"}))
 
-						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
-						builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
-						Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
-						Ω(buildPlan).Should(Equal(createdBuildPlan))
+							Ω(schedulerDB.ScheduleBuildCallCount()).Should(Equal(1))
+							scheduledBuildID, serial := schedulerDB.ScheduleBuildArgsForCall(0)
+							Ω(scheduledBuildID).Should(Equal(128))
+							Ω(serial).Should(Equal(job.Serial))
+
+							Ω(factory.CreateCallCount()).Should(Equal(1))
+							createJob, createResources, createInputs := factory.CreateArgsForCall(0)
+							Ω(createJob).Should(Equal(job))
+							Ω(createResources).Should(Equal(resources))
+							Ω(createInputs).Should(BeZero())
+
+							Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
+							builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
+							Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
+							Ω(buildPlan).Should(Equal(createdBuildPlan))
+						})
+
+						It("immediately resumes the build", func() {
+							build, err := scheduler.TriggerImmediately(job, resources)
+							Ω(err).ShouldNot(HaveOccurred())
+							Ω(build).Should(Equal(db.Build{ID: 128, Name: "42"}))
+
+							Eventually(createdBuild.ResumeCallCount).Should(Equal(1))
+						})
 					})
 				})
 
@@ -646,26 +695,43 @@ var _ = Describe("Scheduler", func() {
 							schedulerDB.ScheduleBuildReturns(true, nil)
 						})
 
-						It("triggers a build of the job with the found inputs", func() {
-							build, err := scheduler.TriggerImmediately(job, resources)
-							Ω(err).ShouldNot(HaveOccurred())
-							Ω(build).Should(Equal(db.Build{ID: 128, Name: "42"}))
+						Context("and creating the engine build succeeds", func() {
+							var createdBuild *enginefakes.FakeBuild
 
-							Ω(schedulerDB.ScheduleBuildCallCount()).Should(Equal(1))
-							scheduledBuildID, serial := schedulerDB.ScheduleBuildArgsForCall(0)
-							Ω(scheduledBuildID).Should(Equal(128))
-							Ω(serial).Should(Equal(job.Serial))
+							BeforeEach(func() {
+								createdBuild = new(enginefakes.FakeBuild)
+								fakeEngine.CreateBuildReturns(createdBuild, nil)
+							})
 
-							Ω(factory.CreateCallCount()).Should(Equal(1))
-							createJob, createResources, createInputs := factory.CreateArgsForCall(0)
-							Ω(createJob).Should(Equal(job))
-							Ω(createResources).Should(Equal(resources))
-							Ω(createInputs).Should(Equal(dependantInputs))
+							It("triggers a build of the job with the found inputs", func() {
+								build, err := scheduler.TriggerImmediately(job, resources)
+								Ω(err).ShouldNot(HaveOccurred())
+								Ω(build).Should(Equal(db.Build{ID: 128, Name: "42"}))
 
-							Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
-							builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
-							Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
-							Ω(buildPlan).Should(Equal(createdBuildPlan))
+								Ω(schedulerDB.ScheduleBuildCallCount()).Should(Equal(1))
+								scheduledBuildID, serial := schedulerDB.ScheduleBuildArgsForCall(0)
+								Ω(scheduledBuildID).Should(Equal(128))
+								Ω(serial).Should(Equal(job.Serial))
+
+								Ω(factory.CreateCallCount()).Should(Equal(1))
+								createJob, createResources, createInputs := factory.CreateArgsForCall(0)
+								Ω(createJob).Should(Equal(job))
+								Ω(createResources).Should(Equal(resources))
+								Ω(createInputs).Should(Equal(dependantInputs))
+
+								Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
+								builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
+								Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
+								Ω(buildPlan).Should(Equal(createdBuildPlan))
+							})
+
+							It("immediately resumes the build", func() {
+								build, err := scheduler.TriggerImmediately(job, resources)
+								Ω(err).ShouldNot(HaveOccurred())
+								Ω(build).Should(Equal(db.Build{ID: 128, Name: "42"}))
+
+								Eventually(createdBuild.ResumeCallCount).Should(Equal(1))
+							})
 						})
 					})
 				})

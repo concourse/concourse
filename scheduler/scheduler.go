@@ -119,11 +119,13 @@ func (s *Scheduler) BuildLatestInputs(job atc.JobConfig, resources atc.ResourceC
 		return err
 	}
 
-	_, err = s.Engine.CreateBuild(build, buildPlan)
+	createdBuild, err := s.Engine.CreateBuild(build, buildPlan)
 	if err != nil {
 		buildLog.Error("failed-to-build", err)
 		return err
 	}
+
+	go createdBuild.Resume(buildLog)
 
 	return nil
 }
@@ -160,11 +162,13 @@ func (s *Scheduler) TryNextPendingBuild(job atc.JobConfig, resources atc.Resourc
 		return err
 	}
 
-	_, err = s.Engine.CreateBuild(build, buildPlan)
+	createdBuild, err := s.Engine.CreateBuild(build, buildPlan)
 	if err != nil {
 		buildLog.Error("failed-to-build", err)
 		return err
 	}
+
+	go createdBuild.Resume(buildLog)
 
 	return nil
 }
@@ -228,11 +232,13 @@ func (s *Scheduler) TriggerImmediately(job atc.JobConfig, resources atc.Resource
 		return db.Build{}, err
 	}
 
-	_, err = s.Engine.CreateBuild(build, buildPlan)
+	createdBuild, err := s.Engine.CreateBuild(build, buildPlan)
 	if err != nil {
 		buildLog.Error("failed-to-build", err)
 		return db.Build{}, err
 	}
+
+	go createdBuild.Resume(buildLog)
 
 	return build, nil
 }
