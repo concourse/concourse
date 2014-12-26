@@ -333,9 +333,21 @@ function createGraph(svg, groups, jobs, resources) {
   return graph;
 }
 
-function groupsMatch(groups, groupEnabled) {
-  for(var i in groups) {
-    if (groupEnabled[groups[i]]) {
+function objectIsEmpty(o) {
+  for (var x in o) {
+    return false;
+  }
+
+  return true;
+}
+
+function groupsMatch(objGroups, groups) {
+  if (objectIsEmpty(groups)) {
+    return true;
+  }
+
+  for(var i in objGroups) {
+    if (groups[objGroups[i]]) {
       return true;
     }
   }
