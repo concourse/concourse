@@ -602,9 +602,9 @@ func (db *SQLDB) SaveBuildStatus(buildID int, status Status) error {
 }
 
 func (db *SQLDB) GetBuildEvents(buildID int, from uint) (EventSource, error) {
-	channel := buildEventsChannel(buildID)
-
-	notify, err := db.bus.Listen(channel)
+	notifier, err := newConditionNotifier(db.bus, buildEventsChannel(buildID), func() (bool, error) {
+		return true, nil
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -612,8 +612,7 @@ func (db *SQLDB) GetBuildEvents(buildID int, from uint) (EventSource, error) {
 	return newSQLDBBuildEventSource(
 		buildID,
 		db.conn,
-		db.bus,
-		notify,
+		notifier,
 		from,
 	), nil
 }
@@ -637,55 +636,16 @@ func (db *SQLDB) AbortBuild(buildID int) error {
 }
 
 func (db *SQLDB) AbortNotifier(buildID int) (Notifier, error) {
-	channel := buildAbortChannel(buildID)
+	return newConditionNotifier(db.bus, buildAbortChannel(buildID), func() (bool, error) {
+		var aborted bool
+		err := db.conn.QueryRow(`
+			SELECT status = 'aborted'
+			FROM builds
+			WHERE id = $1
+		`, buildID).Scan(&aborted)
 
-	notified, err := db.bus.Listen(channel)
-	if err != nil {
-		return nil, err
-	}
-
-	var currentStatus string
-	err = db.conn.QueryRow(`
-		SELECT status
-		FROM builds
-		WHERE id = $1
-	`, buildID).Scan(&currentStatus)
-	if err != nil {
-		db.bus.Unlisten(channel, notified)
-		return nil, err
-	}
-
-	if Status(currentStatus) == StatusAborted {
-		db.bus.Unlisten(channel, notified)
-		return &closedNotifier{}, nil
-	}
-
-	return &busNotifier{
-		notified: notified,
-		bus:      db.bus,
-		channel:  channel,
-	}, nil
-}
-
-type closedNotifier struct{}
-
-func (closedNotifier) Notify() <-chan struct{} {
-	closed := make(chan struct{})
-	close(closed)
-	return closed
-}
-
-func (closedNotifier) Close() error { return nil }
-
-type busNotifier struct {
-	notified chan struct{}
-	bus      *notificationsBus
-	channel  string
-}
-
-func (notifier *busNotifier) Notify() <-chan struct{} { return notifier.notified }
-func (notifier *busNotifier) Close() error {
-	return notifier.bus.Unlisten(notifier.channel, notifier.notified)
+		return aborted, err
+	})
 }
 
 func (db *SQLDB) SaveBuildEvent(buildID int, event atc.Event) error {
@@ -1368,4 +1328,86 @@ func buildEventsChannel(buildID int) string {
 
 func buildAbortChannel(buildID int) string {
 	return fmt.Sprintf("build_abort_%d", buildID)
+}
+
+func newConditionNotifier(bus *notificationsBus, channel string, cond func() (bool, error)) (Notifier, error) {
+	notified, err := bus.Listen(channel)
+	if err != nil {
+		return nil, err
+	}
+
+	notifier := &conditionNotifier{
+		cond:    cond,
+		bus:     bus,
+		channel: channel,
+
+		notified: notified,
+		notify:   make(chan struct{}, 1),
+
+		stop: make(chan struct{}),
+	}
+
+	go notifier.watch()
+
+	return notifier, nil
+}
+
+type conditionNotifier struct {
+	cond func() (bool, error)
+
+	bus     *notificationsBus
+	channel string
+
+	notified chan bool
+	notify   chan struct{}
+
+	stop chan struct{}
+}
+
+func (notifier *conditionNotifier) Notify() <-chan struct{} {
+	return notifier.notify
+}
+
+func (notifier *conditionNotifier) Close() error {
+	close(notifier.stop)
+	return notifier.bus.Unlisten(notifier.channel, notifier.notified)
+}
+
+func (notifier *conditionNotifier) watch() {
+	for {
+		c, err := notifier.cond()
+		if err != nil {
+			select {
+			case <-time.After(5 * time.Second):
+				continue
+			case <-notifier.stop:
+				return
+			}
+		}
+
+		if c {
+			notifier.sendNotification()
+		}
+
+	dance:
+		for {
+			select {
+			case <-notifier.stop:
+				return
+			case ok := <-notifier.notified:
+				if ok {
+					notifier.sendNotification()
+				} else {
+					break dance
+				}
+			}
+		}
+	}
+}
+
+func (notifier *conditionNotifier) sendNotification() {
+	select {
+	case notifier.notify <- struct{}{}:
+	default:
+	}
 }

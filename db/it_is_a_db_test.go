@@ -104,7 +104,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					notifier, err := database.AbortNotifier(build1.ID)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Eventually(notifier.Notify()).Should(BeClosed())
+					Eventually(notifier.Notify()).Should(Receive())
 				})
 			})
 

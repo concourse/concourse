@@ -9,7 +9,7 @@ import (
 type notificationsBus struct {
 	listener *pq.Listener
 
-	notifications  map[string]map[chan struct{}]struct{}
+	notifications  map[string]map[chan bool]struct{}
 	notificationsL sync.Mutex
 }
 
@@ -17,7 +17,7 @@ func newNotificationsBus(listener *pq.Listener) *notificationsBus {
 	bus := &notificationsBus{
 		listener: listener,
 
-		notifications: make(map[string]map[chan struct{}]struct{}),
+		notifications: make(map[string]map[chan bool]struct{}),
 	}
 
 	go bus.dispatchNotifications()
@@ -25,7 +25,7 @@ func newNotificationsBus(listener *pq.Listener) *notificationsBus {
 	return bus
 }
 
-func (bus *notificationsBus) Listen(channel string) (chan struct{}, error) {
+func (bus *notificationsBus) Listen(channel string) (chan bool, error) {
 	bus.notificationsL.Lock()
 	firstListen := len(bus.notifications[channel]) == 0
 
@@ -38,11 +38,11 @@ func (bus *notificationsBus) Listen(channel string) (chan struct{}, error) {
 	}
 
 	// buffer so that notifications can be nonblocking (only need one at a time)
-	notify := make(chan struct{}, 1)
+	notify := make(chan bool, 1)
 
 	sinks, found := bus.notifications[channel]
 	if !found {
-		sinks = map[chan struct{}]struct{}{}
+		sinks = map[chan bool]struct{}{}
 		bus.notifications[channel] = sinks
 	}
 
@@ -53,7 +53,7 @@ func (bus *notificationsBus) Listen(channel string) (chan struct{}, error) {
 	return notify, nil
 }
 
-func (bus *notificationsBus) Unlisten(channel string, notify chan struct{}) error {
+func (bus *notificationsBus) Unlisten(channel string, notify chan bool) error {
 	bus.notificationsL.Lock()
 	delete(bus.notifications[channel], notify)
 	lastSink := len(bus.notifications[channel]) == 0
@@ -73,15 +73,13 @@ func (bus *notificationsBus) dispatchNotifications() {
 			break
 		}
 
-		if notification == nil {
-			continue
-		}
+		gotNotification := notification != nil
 
 		bus.notificationsL.Lock()
 
 		for sink, _ := range bus.notifications[notification.Channel] {
 			select {
-			case sink <- struct{}{}:
+			case sink <- gotNotification:
 			default:
 			}
 		}
