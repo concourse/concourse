@@ -37,7 +37,6 @@ type BuildsDB interface {
 	CreateOneOffBuild() (db.Build, error)
 }
 
-//go:generate counterfeiter . ConfigDB
 type ConfigDB interface {
 	GetConfig() (atc.Config, error)
 }

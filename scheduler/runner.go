@@ -9,11 +9,13 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
+//go:generate counterfeiter . Locker
 type Locker interface {
 	AcquireWriteLockImmediately(lock []db.NamedLock) (db.Lock, error)
 	AcquireReadLock(lock []db.NamedLock) (db.Lock, error)
 }
 
+//go:generate counterfeiter . BuildScheduler
 type BuildScheduler interface {
 	TryNextPendingBuild(atc.JobConfig, atc.ResourceConfigs) error
 	BuildLatestInputs(atc.JobConfig, atc.ResourceConfigs) error
@@ -21,6 +23,7 @@ type BuildScheduler interface {
 	TrackInFlightBuilds() error
 }
 
+//go:generate counterfeiter . ConfigDB
 type ConfigDB interface {
 	GetConfig() (atc.Config, error)
 }

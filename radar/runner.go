@@ -11,12 +11,14 @@ import (
 	"github.com/tedsuo/rata"
 )
 
+//go:generate counterfeiter . Locker
 type Locker interface {
 	AcquireWriteLockImmediately(lock []db.NamedLock) (db.Lock, error)
 	AcquireReadLock(lock []db.NamedLock) (db.Lock, error)
 	AcquireWriteLock(lock []db.NamedLock) (db.Lock, error)
 }
 
+//go:generate counterfeiter . Scanner
 type Scanner interface {
 	Scan(ResourceChecker, string) ifrit.Runner
 }

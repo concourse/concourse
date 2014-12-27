@@ -58,11 +58,13 @@ type DB interface {
 	SaveBuildEngineMetadata(buildID int, engineMetadata string) error
 }
 
+//go:generate counterfeiter . ConfigDB
 type ConfigDB interface {
 	GetConfig() (atc.Config, error)
 	SaveConfig(atc.Config) error
 }
 
+//go:generate counterfeiter . Lock
 type Lock interface {
 	Release() error
 }

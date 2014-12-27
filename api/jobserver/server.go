@@ -14,6 +14,7 @@ type Server struct {
 	configDB ConfigDB
 }
 
+//go:generate counterfeiter . JobsDB
 type JobsDB interface {
 	GetAllJobBuilds(job string) ([]db.Build, error)
 	GetCurrentBuild(job string) (db.Build, error)

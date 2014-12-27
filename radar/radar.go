@@ -12,15 +12,18 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
+//go:generate counterfeiter . VersionDB
 type VersionDB interface {
 	SaveVersionedResource(db.VersionedResource) error
 	GetLatestVersionedResource(string) (db.VersionedResource, error)
 }
 
+//go:generate counterfeiter . ResourceChecker
 type ResourceChecker interface {
 	CheckResource(atc.ResourceConfig, db.Version) ([]db.Version, error)
 }
 
+//go:generate counterfeiter . ConfigDB
 type ConfigDB interface {
 	GetConfig() (atc.Config, error)
 }

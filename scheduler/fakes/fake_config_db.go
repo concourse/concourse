@@ -12,7 +12,7 @@ type FakeConfigDB struct {
 	GetConfigStub        func() (atc.Config, error)
 	getConfigMutex       sync.RWMutex
 	getConfigArgsForCall []struct{}
-	getConfigReturns     struct {
+	getConfigReturns struct {
 		result1 atc.Config
 		result2 error
 	}
