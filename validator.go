@@ -11,6 +11,7 @@ import (
 
 var ErrUnparsableHeader = errors.New("cannot parse 'Authorization' header")
 
+//go:generate counterfeiter . Validator
 type Validator interface {
 	IsAuthenticated(*http.Request) bool
 }
