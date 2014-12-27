@@ -14,7 +14,6 @@ import (
 	dbfakes "github.com/concourse/atc/db/fakes"
 	. "github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/fakes"
-	"github.com/concourse/atc/event"
 
 	garden "github.com/cloudfoundry-incubator/garden/api"
 	gardenfakes "github.com/cloudfoundry-incubator/garden/api/fakes"
@@ -266,111 +265,6 @@ var _ = Describe("DBEngine", func() {
 
 				It("returns the error", func() {
 					Ω(hijackErr).Should(Equal(disaster))
-				})
-			})
-		})
-
-		Describe("Subscribe", func() {
-			var (
-				subscribeFrom uint
-
-				subscribedStream EventSource
-				subscribeErr     error
-			)
-
-			BeforeEach(func() {
-				subscribeFrom = 42
-			})
-
-			JustBeforeEach(func() {
-				subscribedStream, subscribeErr = build.Subscribe(subscribeFrom)
-			})
-
-			Context("when subscribing via the db succeeds", func() {
-				var dbSource *dbfakes.FakeBuildEventSource
-
-				BeforeEach(func() {
-					dbEvents := make(chan db.BuildEvent, 3)
-
-					dbEvents <- db.BuildEvent{
-						Type:    "initialize",
-						Payload: `{"config":{"params":{"SECRET":"lol"},"run":{"path":"ls"}}}`,
-						Version: "1.0",
-					}
-
-					dbEvents <- db.BuildEvent{
-						Type:    "start",
-						Payload: `{"time":1}`,
-						Version: "1.0",
-					}
-
-					close(dbEvents)
-
-					dbSource = new(dbfakes.FakeBuildEventSource)
-
-					dbSource.NextStub = func() (db.BuildEvent, error) {
-						select {
-						case e, ok := <-dbEvents:
-							if !ok {
-								return db.BuildEvent{}, db.ErrEndOfBuildEventStream
-							}
-
-							return e, nil
-						}
-					}
-
-					fakeBuildDB.GetBuildEventsReturns(dbSource, nil)
-				})
-
-				It("succeeds", func() {
-					Ω(subscribeErr).ShouldNot(HaveOccurred())
-
-					Ω(fakeBuildDB.GetBuildEventsCallCount()).Should(Equal(1))
-					buildID, from := fakeBuildDB.GetBuildEventsArgsForCall(0)
-
-					Ω(buildID).Should(Equal(model.ID))
-					Ω(from).Should(Equal(subscribeFrom))
-				})
-
-				It("returns an event source", func() {
-					Ω(subscribedStream.Next()).Should(Equal(event.Initialize{
-						BuildConfig: atc.BuildConfig{
-							Params: map[string]string{"SECRET": "lol"},
-							Run: atc.BuildRunConfig{
-								Path: "ls",
-							},
-						},
-					}))
-
-					Ω(subscribedStream.Next()).Should(Equal(event.Start{
-						Time: 1,
-					}))
-
-					_, err := subscribedStream.Next()
-					Ω(err).Should(Equal(ErrEndOfStream))
-				})
-
-				Describe("closing the event source", func() {
-					It("closes the db source", func() {
-						Ω(dbSource.CloseCallCount()).Should(Equal(0))
-
-						err := subscribedStream.Close()
-						Ω(err).ShouldNot(HaveOccurred())
-
-						Ω(dbSource.CloseCallCount()).Should(Equal(1))
-					})
-				})
-			})
-
-			Context("when looking up the engine build fails", func() {
-				disaster := errors.New("nope")
-
-				BeforeEach(func() {
-					fakeBuildDB.GetBuildEventsReturns(nil, disaster)
-				})
-
-				It("returns the error", func() {
-					Ω(subscribeErr).Should(Equal(disaster))
 				})
 			})
 		})

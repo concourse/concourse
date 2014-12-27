@@ -11,7 +11,7 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type EventHandlerFactory func(BuildsDB, int, engine.Engine, bool) http.Handler
+type EventHandlerFactory func(BuildsDB, int, bool) http.Handler
 
 type Server struct {
 	logger lager.Logger
@@ -30,6 +30,8 @@ type Server struct {
 //go:generate counterfeiter . BuildsDB
 type BuildsDB interface {
 	GetBuild(buildID int) (db.Build, error)
+	GetBuildEvents(buildID int, from uint) (db.EventSource, error)
+
 	GetAllBuilds() ([]db.Build, error)
 
 	CreateOneOffBuild() (db.Build, error)

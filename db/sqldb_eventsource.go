@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"sync"
 
+	"github.com/concourse/atc"
+	"github.com/concourse/atc/event"
 	"github.com/lib/pq"
 )
 
@@ -24,7 +26,7 @@ func newSQLDBBuildEventSource(
 		notify: notify,
 		bus:    notificationsBus,
 
-		events: make(chan BuildEvent, 20),
+		events: make(chan atc.Event, 20),
 		stop:   make(chan struct{}),
 		wg:     wg,
 	}
@@ -44,17 +46,17 @@ type sqldbBuildEventSource struct {
 	notify chan struct{}
 	bus    *notificationsBus
 
-	events chan BuildEvent
+	events chan atc.Event
 	stop   chan struct{}
 	err    error
 	wg     *sync.WaitGroup
 }
 
-func (source *sqldbBuildEventSource) Next() (BuildEvent, error) {
+func (source *sqldbBuildEventSource) Next() (atc.Event, error) {
 	select {
 	case e, ok := <-source.events:
 		if !ok {
-			return BuildEvent{}, source.err
+			return nil, source.err
 		}
 
 		return e, nil
@@ -90,7 +92,7 @@ func (source *sqldbBuildEventSource) collectEvents(cursor uint) {
 		}
 
 		rows, err := source.conn.Query(`
-			SELECT event_id, type, payload, version
+			SELECT type, version, payload
 			FROM build_events
 			WHERE build_id = $1
 			ORDER BY event_id ASC
@@ -110,8 +112,17 @@ func (source *sqldbBuildEventSource) collectEvents(cursor uint) {
 
 			cursor++
 
-			var event BuildEvent
-			err := rows.Scan(&event.ID, &event.Type, &event.Payload, &event.Version)
+			var t, v, p string
+			err := rows.Scan(&t, &v, &p)
+			if err != nil {
+				rows.Close()
+
+				source.err = err
+				close(source.events)
+				return
+			}
+
+			ev, err := event.ParseEvent(atc.EventVersion(v), atc.EventType(t), []byte(p))
 			if err != nil {
 				rows.Close()
 
@@ -121,7 +132,7 @@ func (source *sqldbBuildEventSource) collectEvents(cursor uint) {
 			}
 
 			select {
-			case source.events <- event:
+			case source.events <- ev:
 			case <-source.stop:
 				rows.Close()
 

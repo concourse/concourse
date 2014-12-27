@@ -29,8 +29,8 @@ type DB interface {
 	ScheduleBuild(buildID int, serial bool) (bool, error)
 	StartBuild(buildID int, engineName, engineMetadata string) (bool, error)
 
-	GetBuildEvents(buildID int, from uint) (BuildEventSource, error)
-	SaveBuildEvent(buildID int, event BuildEvent) error
+	GetBuildEvents(buildID int, from uint) (EventSource, error)
+	SaveBuildEvent(buildID int, event atc.Event) error
 	CompleteBuild(buildID int) error
 
 	SaveBuildInput(buildID int, input BuildInput) error
@@ -54,6 +54,8 @@ type DB interface {
 	AcquireWriteLock(locks []NamedLock) (Lock, error)
 	AcquireReadLock(locks []NamedLock) (Lock, error)
 	ListLocks() ([]string, error)
+
+	SaveBuildEngineMetadata(buildID int, engineMetadata string) error
 }
 
 type ConfigDB interface {
@@ -65,19 +67,12 @@ type Lock interface {
 	Release() error
 }
 
-type BuildEvent struct {
-	ID      int
-	Type    string
-	Payload string
-	Version string
-}
-
 var ErrEndOfBuildEventStream = errors.New("end of build event stream")
 var ErrBuildEventStreamClosed = errors.New("build event stream closed")
 
-//go:generate counterfeiter . BuildEventSource
-type BuildEventSource interface {
-	Next() (BuildEvent, error)
+//go:generate counterfeiter . EventSource
+type EventSource interface {
+	Next() (atc.Event, error)
 	Close() error
 }
 

@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"strconv"
 	"sync"
 	"time"
 
@@ -28,8 +27,10 @@ import (
 
 //go:generate counterfeiter . EngineDB
 type EngineDB interface {
-	SaveBuildEvent(buildID int, event db.BuildEvent) error
+	SaveBuildEvent(buildID int, event atc.Event) error
 	CompleteBuild(buildID int) error
+
+	SaveBuildEngineMetadata(buildID int, metadata string) error
 
 	SaveBuildStartTime(buildID int, startTime time.Time) error
 	SaveBuildEndTime(buildID int, startTime time.Time) error
@@ -43,8 +44,9 @@ type EngineDB interface {
 var ErrBadResponse = errors.New("bad response from turbine")
 
 type TurbineMetadata struct {
-	Guid     string `json:"guid"`
-	Endpoint string `json:"endpoint"`
+	Guid        string `json:"guid"`
+	Endpoint    string `json:"endpoint"`
+	LastEventID *uint  `json:"last_event_id"`
 }
 
 func (metadata TurbineMetadata) Validate() error {
@@ -131,16 +133,11 @@ func (engine *turbineEngine) CreateBuild(build db.Build, plan atc.BuildPlan) (Bu
 		Endpoint: resp.Header.Get("X-Turbine-Endpoint"),
 	}
 
-	metadataPayload, err := json.Marshal(metadata)
-	if err != nil {
-		return nil, err
-	}
-
 	return &turbineBuild{
 		guid: metadata.Guid,
 		id:   build.ID,
 
-		metadata: string(metadataPayload),
+		metadata: metadata,
 
 		db: engine.db,
 
@@ -165,7 +162,7 @@ func (engine *turbineEngine) LookupBuild(build db.Build) (Build, error) {
 		guid: metadata.Guid,
 		id:   build.ID,
 
-		metadata: build.EngineMetadata,
+		metadata: metadata,
 
 		db: engine.db,
 
@@ -178,7 +175,8 @@ type turbineBuild struct {
 	guid string
 	id   int
 
-	metadata string
+	metadata  TurbineMetadata
+	metadataL sync.Mutex
 
 	db EngineDB
 
@@ -187,7 +185,15 @@ type turbineBuild struct {
 }
 
 func (build *turbineBuild) Metadata() string {
-	return build.metadata
+	build.metadataL.Lock()
+	defer build.metadataL.Unlock()
+
+	payload, err := json.Marshal(build.metadata)
+	if err != nil {
+		panic("failed to marshal turbine metadata: " + err.Error())
+	}
+
+	return string(payload)
 }
 
 func (build *turbineBuild) Abort() error {
@@ -254,39 +260,8 @@ func (build *turbineBuild) Hijack(spec garden.ProcessSpec, processIO garden.Proc
 	return newTurbineProcess(conn, br, processIO), nil
 }
 
-func (build *turbineBuild) Subscribe(from uint) (EventSource, error) {
-	getEvents, err := build.turbineEndpoint.CreateRequest(
-		turbine.GetBuildEvents,
-		rata.Params{"guid": build.guid},
-		nil,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if from > 0 {
-		getEvents.Header.Set("Last-Event-ID", strconv.Itoa(int(from-1)))
-	}
-
-	resp, err := http.DefaultClient.Do(getEvents)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode == http.StatusNotFound {
-		return nil, ErrBadResponse
-	}
-
-	return &turbineEventSource{
-		reader: sse.NewReader(resp.Body),
-		closer: resp.Body,
-	}, nil
-}
-
 func (build *turbineBuild) Resume(logger lager.Logger) error {
-	var idx uint = 0
-
-	events, err := build.Subscribe(idx)
+	events, err := build.subscribe(build.metadata.LastEventID)
 	if err != nil {
 		if err == ErrBadResponse {
 			logger.Info("saving-orphaned-build-as-errored")
@@ -308,9 +283,9 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 	outputs := map[string]db.VersionedResource{}
 
 	for {
-		e, err := events.Next()
+		e, id, err := events.Next()
 		if err != nil {
-			if err == ErrEndOfStream {
+			if err == errEndOfStream {
 				logger.Info("event-stream-completed")
 
 				del, err := build.turbineEndpoint.CreateRequest(
@@ -339,22 +314,15 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 
 		evLog := logger.Session("event", lager.Data{"event": e})
 
-		payload, err := json.Marshal(e)
+		err = build.db.SaveBuildEvent(build.id, e)
 		if err != nil {
-			evLog.Error("failed-to-marshal-event", err)
+			evLog.Error("failed-to-save-build-event", err)
 			return err
 		}
 
-		idx++
-
-		err = build.db.SaveBuildEvent(build.id, db.BuildEvent{
-			ID:      int(idx - 1),
-			Type:    string(e.EventType()),
-			Payload: string(payload),
-			Version: string(e.Version()),
-		})
+		err = build.updateLastEventID(id)
 		if err != nil {
-			evLog.Error("failed-to-save-build-event", err)
+			evLog.Error("failed-to-update-metadata", err)
 			return err
 		}
 
@@ -422,6 +390,40 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 	return nil
 }
 
+func (build *turbineBuild) subscribe(lastID *uint) (*turbineEventSource, error) {
+	getEvents, err := build.turbineEndpoint.CreateRequest(
+		turbine.GetBuildEvents,
+		rata.Params{"guid": build.guid},
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.DefaultClient.Do(getEvents)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, ErrBadResponse
+	}
+
+	return &turbineEventSource{
+		reader: sse.NewReader(resp.Body),
+		lastID: lastID,
+		closer: resp.Body,
+	}, nil
+}
+
+func (build *turbineBuild) updateLastEventID(newID uint) error {
+	build.metadataL.Lock()
+	build.metadata.LastEventID = &newID
+	build.metadataL.Unlock()
+
+	return build.db.SaveBuildEngineMetadata(build.id, build.Metadata())
+}
+
 func vrFromInput(input event.Input) db.VersionedResource {
 	metadata := make([]db.MetadataField, len(input.FetchedMetadata))
 	for i, md := range input.FetchedMetadata {
@@ -458,34 +460,54 @@ func vrFromOutput(output event.Output) db.VersionedResource {
 	}
 }
 
+var errEndOfStream = errors.New("end of stream")
+var errReadClosedStream = errors.New("read of closed stream")
+var errCloseClosedStream = errors.New("close of closed stream")
+
 type turbineEventSource struct {
-	reader         *sse.Reader
+	reader *sse.Reader
+	lastID *uint
+
 	currentVersion string
 
 	closer io.Closer
 	closed bool
 }
 
-func (source *turbineEventSource) Next() (atc.Event, error) {
+func (source *turbineEventSource) Next() (atc.Event, uint, error) {
 	if source.closed {
-		return nil, ErrReadClosedStream
+		return nil, 0, errReadClosedStream
 	}
 
 	for {
 		se, err := source.reader.Next()
 		if err != nil {
-			return nil, err
+			return nil, 0, err
+		}
+
+		var id uint
+		_, err = fmt.Sscanf(se.ID, "%d", &id)
+		if err != nil {
+			return nil, 0, err
 		}
 
 		if se.Name == "version" {
 			var version atc.EventVersion
 			err := json.Unmarshal(se.Data, &version)
 			if err != nil {
-				return nil, err
+				return nil, 0, err
 			}
 
 			source.currentVersion = string(version)
 
+			continue
+		}
+
+		if source.lastID != nil && id <= *source.lastID {
+			// skip old IDs.
+			//
+			// can't use Last-Event-ID because we must see the version to know how to
+			// process the later events.
 			continue
 		}
 
@@ -495,14 +517,14 @@ func (source *turbineEventSource) Next() (atc.Event, error) {
 		case "1.1":
 			tev, err := tevent.ParseEvent(tevent.EventType(se.Name), se.Data)
 			if err != nil {
-				return nil, err
+				return nil, 0, err
 			}
 
 			switch tev.(type) {
 			case tevent.End:
-				return nil, ErrEndOfStream
+				return nil, 0, errEndOfStream
 			default:
-				return source.convertEvent(tev), nil
+				return source.convertEvent(tev), id, nil
 			}
 		}
 	}
@@ -512,7 +534,7 @@ func (source *turbineEventSource) Next() (atc.Event, error) {
 
 func (source *turbineEventSource) Close() error {
 	if source.closed {
-		return ErrCloseClosedStream
+		return errCloseClosedStream
 	}
 
 	source.closed = true

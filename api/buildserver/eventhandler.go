@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/engine"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/event"
 	"github.com/vito/go-sse/sse"
 )
@@ -14,14 +14,8 @@ import (
 const ProtocolVersionHeader = "X-ATC-Stream-Version"
 const CurrentProtocolVersion = "2.0"
 
-func NewEventHandler(buildsDB BuildsDB, buildID int, eg engine.Engine, censor bool) http.Handler {
+func NewEventHandler(buildsDB BuildsDB, buildID int, censor bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		build, err := buildsDB.GetBuild(buildID)
-		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-
 		flusher := w.(http.Flusher)
 		closed := w.(http.CloseNotifier).CloseNotify()
 
@@ -41,15 +35,9 @@ func NewEventHandler(buildsDB BuildsDB, buildID int, eg engine.Engine, censor bo
 			start++
 		}
 
-		engineBuild, err := eg.LookupBuild(build)
+		events, err := buildsDB.GetBuildEvents(buildID, start)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		events, err := engineBuild.Subscribe(start)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
@@ -99,7 +87,7 @@ func NewEventHandler(buildsDB BuildsDB, buildID int, eg engine.Engine, censor bo
 
 				flusher.Flush()
 			case err := <-errs:
-				if err == engine.ErrEndOfStream {
+				if err == db.ErrEndOfBuildEventStream {
 					err = sse.Event{Name: "end"}.Write(w)
 					if err != nil {
 						return

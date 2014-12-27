@@ -9,8 +9,7 @@ import (
 	. "github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/api/buildserver/fakes"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/engine"
-	enginefakes "github.com/concourse/atc/engine/fakes"
+	dbfakes "github.com/concourse/atc/db/fakes"
 	"github.com/vito/go-sse/sse"
 
 	. "github.com/onsi/ginkgo"
@@ -30,8 +29,7 @@ func (e fakeEvent) Censored() atc.Event {
 
 var _ = Describe("Handler", func() {
 	var (
-		buildsDB   *fakes.FakeBuildsDB
-		fakeEngine *enginefakes.FakeEngine
+		buildsDB *fakes.FakeBuildsDB
 
 		server *httptest.Server
 		client *http.Client
@@ -39,9 +37,8 @@ var _ = Describe("Handler", func() {
 
 	BeforeEach(func() {
 		buildsDB = new(fakes.FakeBuildsDB)
-		fakeEngine = new(enginefakes.FakeEngine)
 
-		server = httptest.NewServer(NewEventHandler(buildsDB, 128, fakeEngine, false))
+		server = httptest.NewServer(NewEventHandler(buildsDB, 128, false))
 
 		client = &http.Client{
 			Transport: &http.Transport{},
@@ -68,169 +65,132 @@ var _ = Describe("Handler", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		Context("when the build exists", func() {
+		Context("when subscribing to the build succeeds", func() {
+			var fakeEventSource *dbfakes.FakeEventSource
+
 			BeforeEach(func() {
-				buildsDB.GetBuildReturns(db.Build{
-					ID:             128,
-					Engine:         "some-engine",
-					EngineMetadata: "some-metadata",
-					Status:         db.StatusStarted,
-				}, nil)
+				returnedEvents := []atc.Event{
+					fakeEvent{"e1"},
+					fakeEvent{"e2"},
+					fakeEvent{"e3"},
+				}
+
+				fakeEventSource = new(dbfakes.FakeEventSource)
+
+				buildsDB.GetBuildEventsStub = func(buildID int, from uint) (db.EventSource, error) {
+					Ω(buildID).Should(Equal(128))
+
+					fakeEventSource.NextStub = func() (atc.Event, error) {
+						defer GinkgoRecover()
+
+						Ω(fakeEventSource.CloseCallCount()).Should(Equal(0))
+
+						if from >= uint(len(returnedEvents)) {
+							return nil, db.ErrEndOfBuildEventStream
+						}
+
+						from++
+
+						return returnedEvents[from-1], nil
+					}
+
+					return fakeEventSource, nil
+				}
 			})
 
-			Context("when the engine returns a build", func() {
-				var fakeBuild *enginefakes.FakeBuild
+			It("returns 200", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+			})
 
+			It("returns Content-Type as text/event-stream", func() {
+				Ω(response.Header.Get("Content-Type")).Should(Equal("text/event-stream; charset=utf-8"))
+				Ω(response.Header.Get("Cache-Control")).Should(Equal("no-cache, no-store, must-revalidate"))
+				Ω(response.Header.Get("Connection")).Should(Equal("keep-alive"))
+			})
+
+			It("returns the protocol version as X-ATC-Stream-Version", func() {
+				Ω(response.Header.Get("X-ATC-Stream-Version")).Should(Equal("2.0"))
+			})
+
+			It("emits them, followed by an end event", func() {
+				reader := sse.NewReader(response.Body)
+
+				Ω(reader.Next()).Should(Equal(sse.Event{
+					ID:   "0",
+					Name: "event",
+					Data: []byte(`{"data":{"value":"e1"},"event":"fake","version":"42.0"}`),
+				}))
+
+				Ω(reader.Next()).Should(Equal(sse.Event{
+					ID:   "1",
+					Name: "event",
+					Data: []byte(`{"data":{"value":"e2"},"event":"fake","version":"42.0"}`),
+				}))
+
+				Ω(reader.Next()).Should(Equal(sse.Event{
+					ID:   "2",
+					Name: "event",
+					Data: []byte(`{"data":{"value":"e3"},"event":"fake","version":"42.0"}`),
+				}))
+
+				Ω(reader.Next()).Should(Equal(sse.Event{
+					Name: "end",
+					Data: []byte{},
+				}))
+			})
+
+			It("closes the event source", func() {
+				Eventually(fakeEventSource.CloseCallCount).Should(Equal(1))
+			})
+
+			Context("when told to censor", func() {
 				BeforeEach(func() {
-					fakeBuild = new(enginefakes.FakeBuild)
-					fakeEngine.LookupBuildReturns(fakeBuild, nil)
+					server.Config.Handler = NewEventHandler(buildsDB, 128, true)
 				})
 
-				Context("and subscribing to it succeeds", func() {
-					var fakeEventSource *enginefakes.FakeEventSource
+				It("filters the events through it", func() {
+					reader := sse.NewReader(response.Body)
 
-					BeforeEach(func() {
-						returnedEvents := []atc.Event{
-							fakeEvent{"e1"},
-							fakeEvent{"e2"},
-							fakeEvent{"e3"},
-						}
+					Ω(reader.Next()).Should(Equal(sse.Event{
+						ID:   "0",
+						Name: "event",
+						Data: []byte(`{"data":{"value":"censored e1"},"event":"fake","version":"42.0"}`),
+					}))
 
-						fakeEventSource = new(enginefakes.FakeEventSource)
+					Ω(reader.Next()).Should(Equal(sse.Event{
+						ID:   "1",
+						Name: "event",
+						Data: []byte(`{"data":{"value":"censored e2"},"event":"fake","version":"42.0"}`),
+					}))
 
-						fakeBuild.SubscribeStub = func(from uint) (engine.EventSource, error) {
-							fakeEventSource.NextStub = func() (atc.Event, error) {
-								defer GinkgoRecover()
+					Ω(reader.Next()).Should(Equal(sse.Event{
+						ID:   "2",
+						Name: "event",
+						Data: []byte(`{"data":{"value":"censored e3"},"event":"fake","version":"42.0"}`),
+					}))
 
-								Ω(fakeEventSource.CloseCallCount()).Should(Equal(0))
-
-								if from >= uint(len(returnedEvents)) {
-									return nil, engine.ErrEndOfStream
-								}
-
-								from++
-
-								return returnedEvents[from-1], nil
-							}
-
-							return fakeEventSource, nil
-						}
-					})
-
-					It("returns 200", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusOK))
-					})
-
-					It("returns Content-Type as text/event-stream", func() {
-						Ω(response.Header.Get("Content-Type")).Should(Equal("text/event-stream; charset=utf-8"))
-						Ω(response.Header.Get("Cache-Control")).Should(Equal("no-cache, no-store, must-revalidate"))
-						Ω(response.Header.Get("Connection")).Should(Equal("keep-alive"))
-					})
-
-					It("returns the protocol version as X-ATC-Stream-Version", func() {
-						Ω(response.Header.Get("X-ATC-Stream-Version")).Should(Equal("2.0"))
-					})
-
-					It("emits them, followed by an end event", func() {
-						reader := sse.NewReader(response.Body)
-
-						Ω(reader.Next()).Should(Equal(sse.Event{
-							ID:   "0",
-							Name: "event",
-							Data: []byte(`{"data":{"value":"e1"},"event":"fake","version":"42.0"}`),
-						}))
-
-						Ω(reader.Next()).Should(Equal(sse.Event{
-							ID:   "1",
-							Name: "event",
-							Data: []byte(`{"data":{"value":"e2"},"event":"fake","version":"42.0"}`),
-						}))
-
-						Ω(reader.Next()).Should(Equal(sse.Event{
-							ID:   "2",
-							Name: "event",
-							Data: []byte(`{"data":{"value":"e3"},"event":"fake","version":"42.0"}`),
-						}))
-
-						Ω(reader.Next()).Should(Equal(sse.Event{
-							Name: "end",
-							Data: []byte{},
-						}))
-					})
-
-					It("closes the event source", func() {
-						Eventually(fakeEventSource.CloseCallCount).Should(Equal(1))
-					})
-
-					Context("when told to censor", func() {
-						BeforeEach(func() {
-							server.Config.Handler = NewEventHandler(buildsDB, 128, fakeEngine, true)
-						})
-
-						It("filters the events through it", func() {
-							reader := sse.NewReader(response.Body)
-
-							Ω(reader.Next()).Should(Equal(sse.Event{
-								ID:   "0",
-								Name: "event",
-								Data: []byte(`{"data":{"value":"censored e1"},"event":"fake","version":"42.0"}`),
-							}))
-
-							Ω(reader.Next()).Should(Equal(sse.Event{
-								ID:   "1",
-								Name: "event",
-								Data: []byte(`{"data":{"value":"censored e2"},"event":"fake","version":"42.0"}`),
-							}))
-
-							Ω(reader.Next()).Should(Equal(sse.Event{
-								ID:   "2",
-								Name: "event",
-								Data: []byte(`{"data":{"value":"censored e3"},"event":"fake","version":"42.0"}`),
-							}))
-
-							Ω(reader.Next()).Should(Equal(sse.Event{
-								Name: "end",
-								Data: []byte{},
-							}))
-						})
-					})
-
-					Context("when the Last-Event-ID header is given", func() {
-						BeforeEach(func() {
-							request.Header.Set("Last-Event-ID", "1")
-						})
-
-						It("starts subscribing from after the id", func() {
-							Ω(fakeBuild.SubscribeArgsForCall(0)).Should(Equal(uint(2)))
-						})
-					})
-				})
-
-				Context("when subscribing to it fails", func() {
-					BeforeEach(func() {
-						fakeBuild.SubscribeReturns(nil, errors.New("nope"))
-					})
-
-					It("returns 500", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
-					})
+					Ω(reader.Next()).Should(Equal(sse.Event{
+						Name: "end",
+						Data: []byte{},
+					}))
 				})
 			})
 
-			Context("when looking up the build fails", func() {
+			Context("when the Last-Event-ID header is given", func() {
 				BeforeEach(func() {
-					fakeEngine.LookupBuildReturns(nil, errors.New("nope"))
+					request.Header.Set("Last-Event-ID", "1")
 				})
 
-				It("returns 500", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				It("starts subscribing from after the id", func() {
+					_, from := buildsDB.GetBuildEventsArgsForCall(0)
+					Ω(from).Should(Equal(uint(2)))
 				})
 			})
 		})
 
-		Context("when the build does not exist", func() {
+		Context("when subscribing to it fails", func() {
 			BeforeEach(func() {
-				buildsDB.GetBuildReturns(db.Build{}, errors.New("nope"))
+				buildsDB.GetBuildEventsReturns(nil, errors.New("nope"))
 			})
 
 			It("returns 404", func() {

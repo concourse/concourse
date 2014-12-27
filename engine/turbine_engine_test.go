@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 
 	garden "github.com/cloudfoundry-incubator/garden/api"
@@ -447,286 +446,6 @@ var _ = Describe("TurbineEngine", func() {
 			})
 		})
 
-		Describe("Subscribe", func() {
-			var (
-				buildModel db.Build
-
-				subSource EventSource
-				subErr    error
-			)
-
-			BeforeEach(func() {
-				metadata := TurbineMetadata{
-					Guid:     "some-guid",
-					Endpoint: buildEndpoint.URL(),
-				}
-
-				metadataPayload, err := json.Marshal(metadata)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				buildModel = db.Build{
-					ID:             1,
-					Engine:         engine.Name(),
-					EngineMetadata: string(metadataPayload),
-				}
-			})
-
-			JustBeforeEach(func() {
-				build, err := engine.LookupBuild(buildModel)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				subSource, subErr = build.Subscribe(123)
-			})
-
-			AfterEach(func() {
-				if subSource != nil {
-					subSource.Close()
-				}
-			})
-
-			Context("when the build's turbine returns events", func() {
-				var (
-					events []tevent.Event
-				)
-
-				BeforeEach(func() {
-					events = []tevent.Event{}
-
-					buildEndpoint.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/builds/some-guid/events"),
-							func(w http.ResponseWriter, r *http.Request) {
-								flusher := w.(http.Flusher)
-
-								Ω(r.Header.Get("Last-Event-ID")).Should(Equal("122"))
-
-								w.Header().Add("Content-Type", "text/event-stream; charset=utf-8")
-								w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
-								w.Header().Add("Connection", "keep-alive")
-
-								w.WriteHeader(http.StatusOK)
-
-								flusher.Flush()
-
-								for id, e := range events {
-									payload, err := json.Marshal(e)
-									Ω(err).ShouldNot(HaveOccurred())
-
-									event := sse.Event{
-										ID:   fmt.Sprintf("%d", id),
-										Name: string(e.EventType()),
-										Data: []byte(payload),
-									}
-
-									err = event.Write(w)
-									if err != nil {
-										return
-									}
-
-									flusher.Flush()
-								}
-							},
-						),
-					)
-				})
-
-				itEmits := func(event atc.Event) {
-					It("emits the event", func() {
-						Eventually(subSource.Next).Should(Equal(event))
-					})
-				}
-
-				Describe("Closing", func() {
-					BeforeEach(func() {
-						events = append(events,
-							tevent.Version("1.0"),
-							tevent.Status{Status: turbine.StatusStarted},
-							tevent.Status{Status: turbine.StatusSucceeded},
-						)
-					})
-
-					It("succeeds and prevents more events from being read", func() {
-						Ω(subSource.Next()).Should(Equal(event.Status{
-							Status: atc.StatusStarted,
-						}))
-
-						err := subSource.Close()
-						Ω(err).ShouldNot(HaveOccurred())
-
-						_, err = subSource.Next()
-						Ω(err).Should(Equal(ErrReadClosedStream))
-
-						err = subSource.Close()
-						Ω(err).Should(Equal(ErrCloseClosedStream))
-					})
-				})
-
-				for _, v1version := range []string{"1.0", "1.1"} {
-					version := v1version
-
-					Context("and they're v"+version, func() {
-						BeforeEach(func() {
-							events = append(events, tevent.Version(version))
-						})
-
-						It("does not emit the version", func() {
-							_, err := subSource.Next()
-							Ω(err).Should(Equal(io.EOF))
-						})
-
-						Context("and a status event appears", func() {
-							Context("and it's started", func() {
-								BeforeEach(func() {
-									events = append(events, tevent.Status{
-										Status: turbine.StatusStarted,
-										Time:   1234,
-									})
-								})
-
-								itEmits(event.Status{
-									Status: atc.StatusStarted,
-									Time:   1234,
-								})
-							})
-
-							Context("and it's completed", func() {
-								BeforeEach(func() {
-									events = append(events, tevent.Status{
-										Status: turbine.StatusSucceeded,
-										Time:   1234,
-									})
-								})
-
-								itEmits(event.Status{
-									Status: atc.StatusSucceeded,
-									Time:   1234,
-								})
-							})
-						})
-
-						Context("and an input event appears", func() {
-							BeforeEach(func() {
-								events = append(events, tevent.Input{
-									Input: turbine.Input{
-										Name:       "some-input-name",
-										Resource:   "some-input-resource",
-										Type:       "some-type",
-										Source:     turbine.Source{"input-source": "some-source"},
-										Version:    turbine.Version{"version": "input-version"},
-										Params:     turbine.Params{"input-param": "some-param"},
-										ConfigPath: "foo/build.yml",
-										Metadata: []turbine.MetadataField{
-											{Name: "input-meta", Value: "some-value"},
-										},
-									},
-								})
-							})
-
-							itEmits(event.Input{
-								Plan: atc.InputPlan{
-									Name:       "some-input-name",
-									Resource:   "some-input-resource",
-									Type:       "some-type",
-									Version:    atc.Version{"version": "input-version"}, // preserved as it may have been requested
-									Source:     atc.Source{"input-source": "some-source"},
-									Params:     atc.Params{"input-param": "some-param"},
-									ConfigPath: "foo/build.yml",
-								},
-								FetchedVersion: atc.Version{"version": "input-version"},
-								FetchedMetadata: []atc.MetadataField{
-									{Name: "input-meta", Value: "some-value"},
-								},
-							})
-						})
-
-						Context("and an output event appears", func() {
-							BeforeEach(func() {
-								events = append(events, tevent.Output{
-									Output: turbine.Output{
-										Name:    "some-output-name",
-										Type:    "some-type",
-										On:      turbine.OutputConditions{turbine.OutputConditionFailure},
-										Source:  turbine.Source{"output-source": "some-source"},
-										Version: turbine.Version{"version": "output-version"},
-										Params:  turbine.Params{"output-param": "some-param"},
-										Metadata: []turbine.MetadataField{
-											{Name: "output-meta", Value: "some-value"},
-										},
-									},
-								})
-							})
-
-							itEmits(event.Output{
-								Plan: atc.OutputPlan{
-									Name:   "some-output-name",
-									Type:   "some-type",
-									On:     atc.OutputConditions{atc.OutputConditionFailure},
-									Source: atc.Source{"output-source": "some-source"},
-									Params: atc.Params{"output-param": "some-param"},
-								},
-								CreatedVersion: atc.Version{"version": "output-version"},
-								CreatedMetadata: []atc.MetadataField{
-									{Name: "output-meta", Value: "some-value"},
-								},
-							})
-						})
-
-						Context("and an end event appears", func() {
-							BeforeEach(func() {
-								events = append(events, tevent.End{})
-							})
-
-							It("returns ErrEndOfStream", func() {
-								_, err := subSource.Next()
-								Ω(err).Should(Equal(ErrEndOfStream))
-							})
-						})
-					})
-				}
-
-				Context("and they're some other version", func() {
-					BeforeEach(func() {
-						events = append(
-							events,
-							tevent.Version("2.0"),
-							tevent.Status{Status: turbine.StatusSucceeded},
-						)
-					})
-
-					It("skips the events", func() {
-						_, err := subSource.Next()
-						Ω(err).Should(Equal(io.EOF))
-					})
-				})
-			})
-
-			Context("when the build's turbine returns 404", func() {
-				BeforeEach(func() {
-					buildEndpoint.AppendHandlers(
-						ghttp.RespondWith(http.StatusNotFound, ""),
-					)
-				})
-
-				It("returns an error", func() {
-					Ω(subErr).Should(HaveOccurred())
-				})
-			})
-
-			Context("when the build's turbine is inaccessible", func() {
-				BeforeEach(func() {
-					buildEndpoint.AppendHandlers(
-						func(w http.ResponseWriter, r *http.Request) {
-							buildEndpoint.CloseClientConnections()
-						},
-					)
-				})
-
-				It("returns an error", func() {
-					Ω(subErr).Should(HaveOccurred())
-				})
-			})
-		})
-
 		Describe("Resume", func() {
 			var (
 				buildModel db.Build
@@ -801,38 +520,45 @@ var _ = Describe("TurbineEngine", func() {
 					)
 				})
 
-				itSavesTheEvent := func(id int, event atc.Event) {
+				itSavesTheEvent := func(id uint, event atc.Event) {
 					It("saves the event", func() {
-						payload, err := json.Marshal(event)
-						Ω(err).ShouldNot(HaveOccurred())
-
 						savedEvents := fakeDB.SaveBuildEventCallCount()
-						buildEvents := make([]db.BuildEvent, savedEvents)
 
+						buildEvents := make([]atc.Event, savedEvents)
 						for i := 0; i < savedEvents; i++ {
 							buildID, buildEvent := fakeDB.SaveBuildEventArgsForCall(i)
 							buildEvents[i] = buildEvent
 							Ω(buildID).Should(Equal(1))
 						}
 
-						Ω(buildEvents).Should(ContainElement(db.BuildEvent{
-							ID:      id,
-							Type:    string(event.EventType()),
-							Version: string(event.Version()),
-							Payload: string(payload),
-						}))
+						Ω(buildEvents).Should(ContainElement(event))
+					})
+
+					It("saves the metadata with the new ID", func() {
+						Ω(fakeDB.SaveBuildEngineMetadataCallCount()).Should(BeNumerically("==", id))
+
+						metadataPayload, err := json.Marshal(TurbineMetadata{
+							Guid:        "some-guid",
+							Endpoint:    buildEndpoint.URL(),
+							LastEventID: &id,
+						})
+						Ω(err).ShouldNot(HaveOccurred())
+
+						savedBuildID, savedMetadata := fakeDB.SaveBuildEngineMetadataArgsForCall(int(id) - 1)
+						Ω(savedBuildID).Should(Equal(1))
+						Ω(savedMetadata).Should(Equal(string(metadataPayload)))
 					})
 
 					Context("when saving the event fails", func() {
 						disaster := errors.New("oh no!")
 
 						BeforeEach(func() {
-							num := 0
+							var num uint
 
-							fakeDB.SaveBuildEventStub = func(int, db.BuildEvent) error {
+							fakeDB.SaveBuildEventStub = func(int, atc.Event) error {
 								num++
 
-								if num-1 == id {
+								if num == id {
 									return disaster
 								}
 
@@ -842,6 +568,60 @@ var _ = Describe("TurbineEngine", func() {
 
 						It("returns an error", func() {
 							Ω(resumeErr).Should(Equal(disaster))
+						})
+					})
+
+					Context("when saving the engine metadata fails", func() {
+						disaster := errors.New("oh no!")
+
+						BeforeEach(func() {
+							var num uint
+
+							fakeDB.SaveBuildEngineMetadataStub = func(int, string) error {
+								num++
+
+								if num == id {
+									return disaster
+								}
+
+								return nil
+							}
+						})
+
+						It("returns an error", func() {
+							Ω(resumeErr).Should(Equal(disaster))
+						})
+					})
+
+					Context("when resuming from after the event id", func() {
+						BeforeEach(func() {
+							metadata := TurbineMetadata{
+								Guid:        "some-guid",
+								Endpoint:    buildEndpoint.URL(),
+								LastEventID: &id,
+							}
+
+							metadataPayload, err := json.Marshal(metadata)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							buildModel = db.Build{
+								ID:             1,
+								Engine:         engine.Name(),
+								EngineMetadata: string(metadataPayload),
+							}
+						})
+
+						It("does not save the event", func() {
+							savedEvents := fakeDB.SaveBuildEventCallCount()
+
+							buildEvents := make([]atc.Event, savedEvents)
+							for i := 0; i < savedEvents; i++ {
+								buildID, buildEvent := fakeDB.SaveBuildEventArgsForCall(i)
+								buildEvents[i] = buildEvent
+								Ω(buildID).Should(Equal(1))
+							}
+
+							Ω(buildEvents).ShouldNot(ContainElement(event))
 						})
 					})
 				}
@@ -867,7 +647,7 @@ var _ = Describe("TurbineEngine", func() {
 									})
 								})
 
-								itSavesTheEvent(0, event.Status{
+								itSavesTheEvent(1, event.Status{
 									Status: atc.StatusStarted,
 									Time:   1234,
 								})
@@ -897,7 +677,7 @@ var _ = Describe("TurbineEngine", func() {
 									})
 								})
 
-								itSavesTheEvent(0, event.Status{
+								itSavesTheEvent(1, event.Status{
 									Status: atc.StatusSucceeded,
 									Time:   1234,
 								})
@@ -947,7 +727,7 @@ var _ = Describe("TurbineEngine", func() {
 									})
 								})
 
-								itSavesTheEvent(0, event.Input{
+								itSavesTheEvent(1, event.Input{
 									Plan: atc.InputPlan{
 										Name:       "some-input-name",
 										Resource:   "some-input-resource",
@@ -990,7 +770,7 @@ var _ = Describe("TurbineEngine", func() {
 										})
 									})
 
-									itSavesTheEvent(1, event.Status{
+									itSavesTheEvent(2, event.Status{
 										Status: atc.StatusSucceeded,
 										Time:   1234,
 									})
@@ -1029,7 +809,7 @@ var _ = Describe("TurbineEngine", func() {
 										})
 									})
 
-									itSavesTheEvent(1, event.Output{
+									itSavesTheEvent(2, event.Output{
 										Plan: atc.OutputPlan{
 											Name:   "some-input-resource",
 											Type:   "some-type",
@@ -1051,7 +831,7 @@ var _ = Describe("TurbineEngine", func() {
 											})
 										})
 
-										itSavesTheEvent(2, event.Status{
+										itSavesTheEvent(3, event.Status{
 											Status: atc.StatusSucceeded,
 											Time:   1234,
 										})
@@ -1084,7 +864,7 @@ var _ = Describe("TurbineEngine", func() {
 									})
 								})
 
-								itSavesTheEvent(0, event.Input{
+								itSavesTheEvent(1, event.Input{
 									Plan: atc.InputPlan{
 										Name:       "some-input-name",
 										Resource:   "",
@@ -1123,7 +903,7 @@ var _ = Describe("TurbineEngine", func() {
 								})
 							})
 
-							itSavesTheEvent(0, event.Output{
+							itSavesTheEvent(1, event.Output{
 								Plan: atc.OutputPlan{
 									Name:   "some-output-name",
 									Type:   "some-type",

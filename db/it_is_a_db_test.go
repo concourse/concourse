@@ -6,6 +6,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/event"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -115,6 +116,15 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				It("is not reported as a started build", func() {
 					Ω(database.GetAllStartedBuilds()).Should(ConsistOf([]db.Build{expectedStartedBuild1}))
 				})
+
+				It("can have its engine metadata saved", func() {
+					err := database.SaveBuildEngineMetadata(build1.ID, "some-updated-metadata")
+					Ω(err).ShouldNot(HaveOccurred())
+
+					currentBuild, err := database.GetCurrentBuild("some-job")
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(currentBuild.EngineMetadata).Should(Equal("some-updated-metadata"))
+				})
 			})
 
 			Context("when the status is updated", func() {
@@ -220,35 +230,23 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			defer events.Close()
 
-			By("saving them in order and knowing the last ID")
-			err = database.SaveBuildEvent(build.ID, db.BuildEvent{
-				ID:      0,
-				Type:    "log",
+			By("saving them in order")
+			err = database.SaveBuildEvent(build.ID, event.Log{
 				Payload: "some ",
-				Version: "1.0",
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(events.Next()).Should(Equal(db.BuildEvent{
-				ID:      0,
-				Type:    "log",
+			Ω(events.Next()).Should(Equal(event.Log{
 				Payload: "some ",
-				Version: "1.0",
 			}))
 
-			err = database.SaveBuildEvent(build.ID, db.BuildEvent{
-				ID:      1,
-				Type:    "log",
+			err = database.SaveBuildEvent(build.ID, event.Log{
 				Payload: "log",
-				Version: "1.0",
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(events.Next()).Should(Equal(db.BuildEvent{
-				ID:      1,
-				Type:    "log",
+			Ω(events.Next()).Should(Equal(event.Log{
 				Payload: "log",
-				Version: "1.0",
 			}))
 
 			By("allowing you to subscribe from an offset")
@@ -257,15 +255,12 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			defer eventsFrom1.Close()
 
-			Ω(eventsFrom1.Next()).Should(Equal(db.BuildEvent{
-				ID:      1,
-				Type:    "log",
+			Ω(eventsFrom1.Next()).Should(Equal(event.Log{
 				Payload: "log",
-				Version: "1.0",
 			}))
 
 			By("notifying those waiting on events as soon as they're saved")
-			nextEvent := make(chan db.BuildEvent)
+			nextEvent := make(chan atc.Event)
 			nextErr := make(chan error)
 
 			go func() {
@@ -280,55 +275,14 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Consistently(nextEvent).ShouldNot(Receive())
 			Consistently(nextErr).ShouldNot(Receive())
 
-			err = database.SaveBuildEvent(build.ID, db.BuildEvent{
-				ID:      2,
-				Type:    "log",
+			err = database.SaveBuildEvent(build.ID, event.Log{
 				Payload: "log 2",
-				Version: "1.0",
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Eventually(nextEvent).Should(Receive(Equal(db.BuildEvent{
-				ID:      2,
-				Type:    "log",
+			Eventually(nextEvent).Should(Receive(Equal(event.Log{
 				Payload: "log 2",
-				Version: "1.0",
 			})))
-
-			By("being idempotent")
-			err = database.SaveBuildEvent(build.ID, db.BuildEvent{
-				ID:      1,
-				Type:    "log",
-				Payload: "log",
-				Version: "1.0",
-			})
-			Ω(err).ShouldNot(HaveOccurred())
-
-			events2, err := database.GetBuildEvents(build.ID, 0)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			defer events2.Close()
-
-			Ω(events2.Next()).Should(Equal(db.BuildEvent{
-				ID:      0,
-				Type:    "log",
-				Payload: "some ",
-				Version: "1.0",
-			}))
-
-			Ω(events2.Next()).Should(Equal(db.BuildEvent{
-				ID:      1,
-				Type:    "log",
-				Payload: "log",
-				Version: "1.0",
-			}))
-
-			Ω(events2.Next()).Should(Equal(db.BuildEvent{
-				ID:      2,
-				Type:    "log",
-				Payload: "log 2",
-				Version: "1.0",
-			}))
 
 			By("returning ErrEndOfBuildEventStream and notifying those waiting when the build is completed")
 			go func() {
@@ -348,7 +302,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			Eventually(nextErr).Should(Receive(Equal(db.ErrEndOfBuildEventStream)))
 
-			_, err = events2.Next()
+			_, err = events.Next()
 			Ω(err).Should(Equal(db.ErrEndOfBuildEventStream))
 
 			By("returning ErrBuildEventStreamClosed for Next calls after Close")

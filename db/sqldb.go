@@ -485,6 +485,19 @@ func (db *SQLDB) StartBuild(buildID int, engine, metadata string) (bool, error) 
 	return rows == 1, nil
 }
 
+func (db *SQLDB) SaveBuildEngineMetadata(buildID int, engineMetadata string) error {
+	_, err := db.conn.Exec(`
+		UPDATE builds
+		SET engine_metadata = $2
+		WHERE id = $1
+	`, buildID, engineMetadata)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (db *SQLDB) SaveBuildStartTime(buildID int, startTime time.Time) error {
 	_, err := db.conn.Exec(`
 		UPDATE builds
@@ -588,7 +601,7 @@ func (db *SQLDB) SaveBuildStatus(buildID int, status Status) error {
 	return nil
 }
 
-func (db *SQLDB) GetBuildEvents(buildID int, from uint) (BuildEventSource, error) {
+func (db *SQLDB) GetBuildEvents(buildID int, from uint) (EventSource, error) {
 	channel := buildEventsChannel(buildID)
 
 	notify, err := db.bus.Listen(channel)
@@ -609,17 +622,18 @@ func buildEventsChannel(buildID int) string {
 	return fmt.Sprintf("build_events_%d", buildID)
 }
 
-func (db *SQLDB) SaveBuildEvent(buildID int, event BuildEvent) error {
-	_, err := db.conn.Exec(`
-		INSERT INTO build_events (build_id, event_id, type, payload, version)
-		SELECT $1, $2, $3, $4, $5
-		WHERE NOT EXISTS (
-			SELECT 1
-			FROM build_events
-			WHERE build_id = $1
-			AND event_id = $2
-		)
-	`, buildID, event.ID, event.Type, event.Payload, event.Version)
+func (db *SQLDB) SaveBuildEvent(buildID int, event atc.Event) error {
+	payload, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.conn.Exec(`
+		INSERT INTO build_events (event_id, build_id, type, version, payload)
+		SELECT count(*), $1, $2, $3, $4
+		FROM build_events
+		WHERE build_id = $1
+	`, buildID, string(event.EventType()), string(event.Version()), payload)
 	if err != nil {
 		return err
 	}

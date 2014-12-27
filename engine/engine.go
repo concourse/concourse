@@ -10,9 +10,6 @@ import (
 )
 
 var ErrBuildNotFound = errors.New("build not found")
-var ErrEndOfStream = errors.New("end of stream")
-var ErrReadClosedStream = errors.New("read of closed stream")
-var ErrCloseClosedStream = errors.New("close of closed stream")
 
 //go:generate counterfeiter . Engine
 type Engine interface {
@@ -28,12 +25,5 @@ type Build interface {
 
 	Abort() error
 	Hijack(garden.ProcessSpec, garden.ProcessIO) (garden.Process, error)
-	Subscribe(from uint) (EventSource, error)
 	Resume(lager.Logger) error
-}
-
-//go:generate counterfeiter . EventSource
-type EventSource interface {
-	Next() (atc.Event, error)
-	Close() error
 }

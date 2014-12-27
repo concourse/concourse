@@ -4,15 +4,16 @@ package fakes
 import (
 	"sync"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 )
 
-type FakeBuildEventSource struct {
-	NextStub        func() (db.BuildEvent, error)
+type FakeEventSource struct {
+	NextStub        func() (atc.Event, error)
 	nextMutex       sync.RWMutex
 	nextArgsForCall []struct{}
 	nextReturns struct {
-		result1 db.BuildEvent
+		result1 atc.Event
 		result2 error
 	}
 	CloseStub        func() error
@@ -23,7 +24,7 @@ type FakeBuildEventSource struct {
 	}
 }
 
-func (fake *FakeBuildEventSource) Next() (db.BuildEvent, error) {
+func (fake *FakeEventSource) Next() (atc.Event, error) {
 	fake.nextMutex.Lock()
 	fake.nextArgsForCall = append(fake.nextArgsForCall, struct{}{})
 	fake.nextMutex.Unlock()
@@ -34,21 +35,21 @@ func (fake *FakeBuildEventSource) Next() (db.BuildEvent, error) {
 	}
 }
 
-func (fake *FakeBuildEventSource) NextCallCount() int {
+func (fake *FakeEventSource) NextCallCount() int {
 	fake.nextMutex.RLock()
 	defer fake.nextMutex.RUnlock()
 	return len(fake.nextArgsForCall)
 }
 
-func (fake *FakeBuildEventSource) NextReturns(result1 db.BuildEvent, result2 error) {
+func (fake *FakeEventSource) NextReturns(result1 atc.Event, result2 error) {
 	fake.NextStub = nil
 	fake.nextReturns = struct {
-		result1 db.BuildEvent
+		result1 atc.Event
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeBuildEventSource) Close() error {
+func (fake *FakeEventSource) Close() error {
 	fake.closeMutex.Lock()
 	fake.closeArgsForCall = append(fake.closeArgsForCall, struct{}{})
 	fake.closeMutex.Unlock()
@@ -59,17 +60,17 @@ func (fake *FakeBuildEventSource) Close() error {
 	}
 }
 
-func (fake *FakeBuildEventSource) CloseCallCount() int {
+func (fake *FakeEventSource) CloseCallCount() int {
 	fake.closeMutex.RLock()
 	defer fake.closeMutex.RUnlock()
 	return len(fake.closeArgsForCall)
 }
 
-func (fake *FakeBuildEventSource) CloseReturns(result1 error) {
+func (fake *FakeEventSource) CloseReturns(result1 error) {
 	fake.CloseStub = nil
 	fake.closeReturns = struct {
 		result1 error
 	}{result1}
 }
 
-var _ db.BuildEventSource = new(FakeBuildEventSource)
+var _ db.EventSource = new(FakeEventSource)

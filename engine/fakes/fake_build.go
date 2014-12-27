@@ -32,15 +32,6 @@ type FakeBuild struct {
 		result1 garden.Process
 		result2 error
 	}
-	SubscribeStub        func(from uint) (engine.EventSource, error)
-	subscribeMutex       sync.RWMutex
-	subscribeArgsForCall []struct {
-		from uint
-	}
-	subscribeReturns struct {
-		result1 engine.EventSource
-		result2 error
-	}
 	ResumeStub        func(lager.Logger) error
 	resumeMutex       sync.RWMutex
 	resumeArgsForCall []struct {
@@ -129,39 +120,6 @@ func (fake *FakeBuild) HijackReturns(result1 garden.Process, result2 error) {
 	fake.HijackStub = nil
 	fake.hijackReturns = struct {
 		result1 garden.Process
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeBuild) Subscribe(from uint) (engine.EventSource, error) {
-	fake.subscribeMutex.Lock()
-	fake.subscribeArgsForCall = append(fake.subscribeArgsForCall, struct {
-		from uint
-	}{from})
-	fake.subscribeMutex.Unlock()
-	if fake.SubscribeStub != nil {
-		return fake.SubscribeStub(from)
-	} else {
-		return fake.subscribeReturns.result1, fake.subscribeReturns.result2
-	}
-}
-
-func (fake *FakeBuild) SubscribeCallCount() int {
-	fake.subscribeMutex.RLock()
-	defer fake.subscribeMutex.RUnlock()
-	return len(fake.subscribeArgsForCall)
-}
-
-func (fake *FakeBuild) SubscribeArgsForCall(i int) uint {
-	fake.subscribeMutex.RLock()
-	defer fake.subscribeMutex.RUnlock()
-	return fake.subscribeArgsForCall[i].from
-}
-
-func (fake *FakeBuild) SubscribeReturns(result1 engine.EventSource, result2 error) {
-	fake.SubscribeStub = nil
-	fake.subscribeReturns = struct {
-		result1 engine.EventSource
 		result2 error
 	}{result1, result2}
 }
