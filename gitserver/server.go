@@ -119,7 +119,7 @@ func (server *Server) RevParse(ref string) string {
 
 	process, err := server.container.Run(gapi.ProcessSpec{
 		Path: "git",
-		Args: []string{"rev-parse", "-q", "--no-verify", ref},
+		Args: []string{"rev-parse", "-q", "--verify", ref},
 		Dir:  "some-repo",
 	}, gapi.ProcessIO{
 		Stdout: buf,

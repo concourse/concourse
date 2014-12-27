@@ -8,27 +8,24 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("A job with a git resource", func() {
-	It("triggers when it updates", func() {
-		guid1 := gitServer.Commit()
-
+var _ = Describe("A pipeline with git resources", func() {
+	It("triggers when the repo changes", func() {
 		By("building the initial commit")
+		guid1 := gitServer.Commit()
 		Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement(guid1))
 
-		guid2 := gitServer.Commit()
-
 		By("building another commit")
+		guid2 := gitServer.Commit()
 		Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement(guid2))
 	})
 
 	It("performs output conditions correctly", func() {
+		By("executing the build when a commit is made")
 		committedGuid := gitServer.Commit()
+		Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement(committedGuid))
 
 		masterSHA := gitServer.RevParse("master")
 		Ω(masterSHA).ShouldNot(BeEmpty())
-
-		By("executing the build")
-		Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement(committedGuid))
 
 		By("performing on: [success] outputs on success")
 		Eventually(func() string {
