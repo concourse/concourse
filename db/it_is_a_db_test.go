@@ -214,11 +214,6 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(build.Name).Should(Equal("1"))
 
-			By("initially returning zero-values for events and last ID")
-			lastID, err := database.GetLastBuildEventID(build.ID)
-			Ω(err).Should(HaveOccurred())
-			Ω(lastID).Should(Equal(0))
-
 			By("allowing you to subscribe when no events have yet occurred")
 			events, err := database.GetBuildEvents(build.ID, 0)
 			Ω(err).ShouldNot(HaveOccurred())
@@ -234,10 +229,6 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			lastID, err = database.GetLastBuildEventID(build.ID)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(lastID).Should(Equal(0))
-
 			Ω(events.Next()).Should(Equal(db.BuildEvent{
 				ID:      0,
 				Type:    "log",
@@ -259,10 +250,6 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				Payload: "log",
 				Version: "1.0",
 			}))
-
-			lastID, err = database.GetLastBuildEventID(build.ID)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(lastID).Should(Equal(1))
 
 			By("allowing you to subscribe from an offset")
 			eventsFrom1, err := database.GetBuildEvents(build.ID, 1)
@@ -316,10 +303,6 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				Version: "1.0",
 			})
 			Ω(err).ShouldNot(HaveOccurred())
-
-			lastID, err = database.GetLastBuildEventID(build.ID)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(lastID).Should(Equal(2))
 
 			events2, err := database.GetBuildEvents(build.ID, 0)
 			Ω(err).ShouldNot(HaveOccurred())

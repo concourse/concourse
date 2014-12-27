@@ -29,7 +29,6 @@ type DB interface {
 	ScheduleBuild(buildID int, serial bool) (bool, error)
 	StartBuild(buildID int, engineName, engineMetadata string) (bool, error)
 
-	GetLastBuildEventID(buildID int) (int, error)
 	GetBuildEvents(buildID int, from uint) (BuildEventSource, error)
 	SaveBuildEvent(buildID int, event BuildEvent) error
 	CompleteBuild(buildID int) error

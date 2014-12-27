@@ -609,22 +609,6 @@ func buildEventsChannel(buildID int) string {
 	return fmt.Sprintf("build_events_%d", buildID)
 }
 
-func (db *SQLDB) GetLastBuildEventID(buildID int) (int, error) {
-	var id int
-	err := db.conn.QueryRow(`
-		SELECT event_id
-		FROM build_events
-		WHERE build_id = $1
-		ORDER BY event_id DESC
-		LIMIT 1
-	`, buildID).Scan(&id)
-	if err != nil {
-		return 0, err
-	}
-
-	return id, nil
-}
-
 func (db *SQLDB) SaveBuildEvent(buildID int, event BuildEvent) error {
 	_, err := db.conn.Exec(`
 		INSERT INTO build_events (build_id, event_id, type, payload, version)

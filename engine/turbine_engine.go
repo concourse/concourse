@@ -28,7 +28,6 @@ import (
 
 //go:generate counterfeiter . EngineDB
 type EngineDB interface {
-	GetLastBuildEventID(buildID int) (int, error)
 	SaveBuildEvent(buildID int, event db.BuildEvent) error
 	CompleteBuild(buildID int) error
 
