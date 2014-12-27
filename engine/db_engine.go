@@ -140,24 +140,6 @@ func (build *dbBuild) Abort() error {
 	return engineBuild.Abort()
 }
 
-func (build *dbBuild) Hijack(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
-	model, err := build.db.GetBuild(build.id)
-	if err != nil {
-		return nil, err
-	}
-
-	if model.Engine == "" {
-		return nil, ErrBuildNotActive
-	}
-
-	engineBuild, err := build.engine.LookupBuild(model)
-	if err != nil {
-		return nil, err
-	}
-
-	return engineBuild.Hijack(spec, io)
-}
-
 func (build *dbBuild) Resume(logger lager.Logger) error {
 	lock, err := build.locker.AcquireWriteLockImmediately([]db.NamedLock{db.BuildTrackingLock(build.id)})
 	if err != nil {
@@ -209,4 +191,22 @@ func (build *dbBuild) Resume(logger lager.Logger) error {
 	}()
 
 	return engineBuild.Resume(logger)
+}
+
+func (build *dbBuild) Hijack(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
+	model, err := build.db.GetBuild(build.id)
+	if err != nil {
+		return nil, err
+	}
+
+	if model.Engine == "" {
+		return nil, ErrBuildNotActive
+	}
+
+	engineBuild, err := build.engine.LookupBuild(model)
+	if err != nil {
+		return nil, err
+	}
+
+	return engineBuild.Hijack(spec, io)
 }
