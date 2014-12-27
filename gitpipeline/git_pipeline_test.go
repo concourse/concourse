@@ -43,6 +43,6 @@ var _ = Describe("A job with a git resource", func() {
 		By("not performing on: [success] outputs on failure")
 		Consistently(func() string {
 			return noUpdateGitServer.RevParse("no-update")
-		}, 30*time.Second, 1*time.Second).Should(BeEmpty())
+		}, 10*time.Second, 1*time.Second).Should(BeEmpty())
 	})
 })

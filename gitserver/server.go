@@ -119,7 +119,7 @@ func (server *Server) RevParse(ref string) string {
 
 	process, err := server.container.Run(gapi.ProcessSpec{
 		Path: "git",
-		Args: []string{"rev-parse", ref},
+		Args: []string{"rev-parse", "-q", "--no-verify", ref},
 		Dir:  "some-repo",
 	}, gapi.ProcessIO{
 		Stdout: buf,
@@ -127,16 +127,10 @@ func (server *Server) RevParse(ref string) string {
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 
-	status, err := process.Wait()
+	_, err = process.Wait()
 	Ω(err).ShouldNot(HaveOccurred())
 
-	if status == 0 {
-		return buf.String()
-	} else {
-		// git rev-parse prints the input string if it cannot resolve it;
-		// return an empty string instead
-		return ""
-	}
+	return buf.String()
 }
 
 func (server *Server) CommittedGuids() []string {
