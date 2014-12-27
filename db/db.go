@@ -56,6 +56,15 @@ type DB interface {
 	ListLocks() ([]string, error)
 
 	SaveBuildEngineMetadata(buildID int, engineMetadata string) error
+
+	AbortBuild(buildID int) error
+	AbortNotifier(buildID int) (Notifier, error)
+}
+
+//go:generate counterfeiter . Notifier
+type Notifier interface {
+	Notify() <-chan struct{}
+	Close() error
 }
 
 //go:generate counterfeiter . ConfigDB

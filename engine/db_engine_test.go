@@ -276,90 +276,179 @@ var _ = Describe("DBEngine", func() {
 				abortErr = build.Abort()
 			})
 
-			Context("when the engine build exists", func() {
-				var realBuild *fakes.FakeBuild
+			Context("when acquiring the lock succeeds", func() {
+				var fakeLock *dbfakes.FakeLock
 
 				BeforeEach(func() {
-					fakeBuildDB.GetBuildReturns(model, nil)
-
-					realBuild = new(fakes.FakeBuild)
-					fakeEngine.LookupBuildReturns(realBuild, nil)
+					fakeLock = new(dbfakes.FakeLock)
+					fakeLocker.AcquireWriteLockImmediatelyReturns(fakeLock, nil)
 				})
 
-				It("succeeds", func() {
-					Ω(abortErr).ShouldNot(HaveOccurred())
-				})
-
-				It("saves the build status as errored", func() {
-					Ω(fakeBuildDB.SaveBuildStatusCallCount()).Should(Equal(1))
-
-					buildID, status := fakeBuildDB.SaveBuildStatusArgsForCall(0)
-					Ω(buildID).Should(Equal(model.ID))
-					Ω(status).Should(Equal(db.StatusAborted))
-				})
-
-				It("aborts the real build", func() {
-					Ω(realBuild.AbortCallCount()).Should(Equal(1))
-				})
-
-				Context("when saving the status fails", func() {
-					disaster := errors.New("oh no!")
-
+				Context("when the build is active", func() {
 					BeforeEach(func() {
-						fakeBuildDB.SaveBuildStatusReturns(disaster)
+						model.Engine = "fake-engine"
+						fakeBuildDB.GetBuildReturns(model, nil)
+
+						fakeBuildDB.AbortBuildStub = func(int) error {
+							Ω(fakeLocker.AcquireWriteLockImmediatelyCallCount()).Should(Equal(1))
+
+							lockedBuild := fakeLocker.AcquireWriteLockImmediatelyArgsForCall(0)
+							Ω(lockedBuild).Should(Equal([]db.NamedLock{db.BuildTrackingLock(model.ID)}))
+
+							Ω(fakeLock.ReleaseCallCount()).Should(BeZero())
+
+							return nil
+						}
 					})
 
-					It("returns the error", func() {
-						Ω(abortErr).Should(Equal(disaster))
+					Context("when the engine build exists", func() {
+						var realBuild *fakes.FakeBuild
+
+						BeforeEach(func() {
+							fakeBuildDB.GetBuildReturns(model, nil)
+
+							realBuild = new(fakes.FakeBuild)
+							fakeEngine.LookupBuildReturns(realBuild, nil)
+						})
+
+						Context("when aborting the db build succeeds", func() {
+							BeforeEach(func() {
+								fakeBuildDB.AbortBuildReturns(nil)
+							})
+
+							It("succeeds", func() {
+								Ω(abortErr).ShouldNot(HaveOccurred())
+							})
+
+							It("releases the lock", func() {
+								Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+							})
+
+							It("aborts the build via the db", func() {
+								Ω(fakeBuildDB.AbortBuildCallCount()).Should(Equal(1))
+
+								buildID := fakeBuildDB.AbortBuildArgsForCall(0)
+								Ω(buildID).Should(Equal(model.ID))
+							})
+
+							It("aborts the real build", func() {
+								Ω(realBuild.AbortCallCount()).Should(Equal(1))
+							})
+						})
+
+						Context("when aborting the db build fails", func() {
+							disaster := errors.New("oh no!")
+
+							BeforeEach(func() {
+								fakeBuildDB.AbortBuildReturns(disaster)
+							})
+
+							It("returns the error", func() {
+								Ω(abortErr).Should(Equal(disaster))
+							})
+
+							It("does not abort the real build", func() {
+								Ω(realBuild.AbortCallCount()).Should(BeZero())
+							})
+
+							It("releases the lock", func() {
+								Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+							})
+						})
+
+						Context("when aborting the real build fails", func() {
+							disaster := errors.New("oh no!")
+
+							BeforeEach(func() {
+								realBuild.AbortReturns(disaster)
+							})
+
+							It("returns the error", func() {
+								Ω(abortErr).Should(Equal(disaster))
+							})
+
+							It("releases the lock", func() {
+								Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+							})
+						})
+					})
+
+					Context("when looking up the engine build fails", func() {
+						disaster := errors.New("nope")
+
+						BeforeEach(func() {
+							fakeBuildDB.GetBuildReturns(model, nil)
+							fakeEngine.LookupBuildReturns(nil, disaster)
+						})
+
+						It("returns the error", func() {
+							Ω(abortErr).Should(Equal(disaster))
+						})
+
+						It("releases the lock", func() {
+							Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+						})
+					})
+				})
+
+				Context("when the build is not yet active", func() {
+					BeforeEach(func() {
+						model.Engine = ""
+						fakeBuildDB.GetBuildReturns(model, nil)
+					})
+
+					It("succeeds", func() {
+						Ω(abortErr).ShouldNot(HaveOccurred())
+					})
+
+					It("aborts the build in the db", func() {
+						Ω(fakeBuildDB.AbortBuildCallCount()).Should(Equal(1))
+
+						buildID := fakeBuildDB.AbortBuildArgsForCall(0)
+						Ω(buildID).Should(Equal(model.ID))
+					})
+
+					It("releases the lock", func() {
+						Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+					})
+				})
+			})
+
+			Context("when acquiring the lock fails", func() {
+				BeforeEach(func() {
+					fakeLocker.AcquireWriteLockImmediatelyReturns(nil, errors.New("no lock for you"))
+				})
+
+				Context("when aborting the build in the db succeeds", func() {
+					BeforeEach(func() {
+						fakeBuildDB.AbortBuildReturns(nil)
+					})
+
+					It("succeeds", func() {
+						Ω(abortErr).ShouldNot(HaveOccurred())
+					})
+
+					It("aborts the build in the db", func() {
+						Ω(fakeBuildDB.AbortBuildCallCount()).Should(Equal(1))
+						Ω(fakeBuildDB.AbortBuildArgsForCall(0)).Should(Equal(model.ID))
 					})
 
 					It("does not abort the real build", func() {
-						Ω(realBuild.AbortCallCount()).Should(BeZero())
+						Ω(fakeBuildDB.GetBuildCallCount()).Should(BeZero())
+						Ω(fakeEngine.LookupBuildCallCount()).Should(BeZero())
 					})
 				})
 
-				Context("when aborting the real build fails", func() {
+				Context("when aborting the build in the db fails", func() {
 					disaster := errors.New("oh no!")
 
 					BeforeEach(func() {
-						realBuild.AbortReturns(disaster)
+						fakeBuildDB.AbortBuildReturns(disaster)
 					})
 
-					It("returns the error", func() {
+					It("fails", func() {
 						Ω(abortErr).Should(Equal(disaster))
 					})
-				})
-			})
-
-			Context("when the build is not yet active", func() {
-				BeforeEach(func() {
-					model.Engine = ""
-					fakeBuildDB.GetBuildReturns(model, nil)
-				})
-
-				It("succeeds", func() {
-					Ω(abortErr).ShouldNot(HaveOccurred())
-				})
-
-				It("saves the build status as errored", func() {
-					Ω(fakeBuildDB.SaveBuildStatusCallCount()).Should(Equal(1))
-
-					buildID, status := fakeBuildDB.SaveBuildStatusArgsForCall(0)
-					Ω(buildID).Should(Equal(model.ID))
-					Ω(status).Should(Equal(db.StatusAborted))
-				})
-			})
-
-			Context("when looking up the engine build fails", func() {
-				disaster := errors.New("nope")
-
-				BeforeEach(func() {
-					fakeBuildDB.GetBuildReturns(model, nil)
-					fakeEngine.LookupBuildReturns(nil, disaster)
-				})
-
-				It("returns the error", func() {
-					Ω(abortErr).Should(Equal(disaster))
 				})
 			})
 		})
@@ -379,77 +468,180 @@ var _ = Describe("DBEngine", func() {
 				resumeErr = build.Resume(logger)
 			})
 
-			Context("when the engine build exists", func() {
-				var realBuild *fakes.FakeBuild
+			Context("when acquiring the lock succeeds", func() {
+				var fakeLock *dbfakes.FakeLock
 
 				BeforeEach(func() {
-					fakeBuildDB.GetBuildReturns(model, nil)
-
-					realBuild = new(fakes.FakeBuild)
-					fakeEngine.LookupBuildReturns(realBuild, nil)
+					fakeLock = new(dbfakes.FakeLock)
+					fakeLocker.AcquireWriteLockImmediatelyReturns(fakeLock, nil)
 				})
 
-				Context("when acquiring the lock succeeds", func() {
-					var fakeLock *dbfakes.FakeLock
-
+				Context("when the build is active", func() {
 					BeforeEach(func() {
-						fakeLock = new(dbfakes.FakeLock)
-						fakeLocker.AcquireWriteLockImmediatelyReturns(fakeLock, nil)
-
-						realBuild.ResumeStub = func(lager.Logger) error {
-							Ω(fakeLock.ReleaseCallCount()).Should(BeZero())
-							return nil
-						}
+						model.Engine = "fake-engine"
+						fakeBuildDB.GetBuildReturns(model, nil)
 					})
 
-					It("resumes the build, and releases the lock after", func() {
-						Ω(fakeLocker.AcquireWriteLockImmediatelyCallCount()).Should(Equal(1))
+					Context("when the engine build exists", func() {
+						var realBuild *fakes.FakeBuild
 
-						lockedBuild := fakeLocker.AcquireWriteLockImmediatelyArgsForCall(0)
-						Ω(lockedBuild).Should(Equal([]db.NamedLock{db.BuildTrackingLock(model.ID)}))
+						BeforeEach(func() {
+							fakeBuildDB.GetBuildReturns(model, nil)
 
-						Ω(realBuild.ResumeCallCount()).Should(Equal(1))
+							realBuild = new(fakes.FakeBuild)
+							fakeEngine.LookupBuildReturns(realBuild, nil)
 
-						Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+							realBuild.ResumeStub = func(lager.Logger) error {
+								Ω(fakeLocker.AcquireWriteLockImmediatelyCallCount()).Should(Equal(1))
+
+								lockedBuild := fakeLocker.AcquireWriteLockImmediatelyArgsForCall(0)
+								Ω(lockedBuild).Should(Equal([]db.NamedLock{db.BuildTrackingLock(model.ID)}))
+
+								Ω(fakeLock.ReleaseCallCount()).Should(BeZero())
+								return nil
+							}
+						})
+
+						Context("when listening for aborts succeeds", func() {
+							var (
+								notifier *dbfakes.FakeNotifier
+								abort    chan<- struct{}
+							)
+
+							BeforeEach(func() {
+								aborts := make(chan struct{})
+								abort = aborts
+
+								notifier = new(dbfakes.FakeNotifier)
+								notifier.NotifyReturns(aborts)
+
+								fakeBuildDB.AbortNotifierReturns(notifier, nil)
+							})
+
+							It("listens for aborts", func() {
+								Ω(fakeBuildDB.AbortNotifierCallCount()).Should(Equal(1))
+								Ω(fakeBuildDB.AbortNotifierArgsForCall(0)).Should(Equal(model.ID))
+							})
+
+							It("resumes the build", func() {
+								Ω(realBuild.ResumeCallCount()).Should(Equal(1))
+							})
+
+							It("releases the lock", func() {
+								Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+							})
+
+							It("closes the notifier", func() {
+								Ω(notifier.CloseCallCount()).Should(Equal(1))
+							})
+
+							Context("when the build is aborted", func() {
+								var errAborted = errors.New("aborted")
+
+								BeforeEach(func() {
+									aborted := make(chan error)
+
+									realBuild.AbortStub = func() error {
+										aborted <- errAborted
+										return nil
+									}
+
+									realBuild.ResumeStub = func(lager.Logger) error {
+										return <-aborted
+									}
+
+									close(abort)
+								})
+
+								It("returns whatever Resume returns", func() {
+									Ω(resumeErr).Should(Equal(errAborted))
+								})
+
+								It("aborts the build", func() {
+									Ω(realBuild.AbortCallCount()).Should(Equal(1))
+								})
+
+								It("releases the lock", func() {
+									Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+								})
+
+								It("closes the notifier", func() {
+									Ω(notifier.CloseCallCount()).Should(Equal(1))
+								})
+							})
+						})
+
+						Context("when listening for aborts fails", func() {
+							disaster := errors.New("oh no!")
+
+							BeforeEach(func() {
+								fakeBuildDB.AbortNotifierReturns(nil, disaster)
+							})
+
+							It("returns the error", func() {
+								Ω(resumeErr).Should(Equal(disaster))
+							})
+
+							It("does not resume the build", func() {
+								Ω(realBuild.ResumeCallCount()).Should(BeZero())
+							})
+
+							It("releases the lock", func() {
+								Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+							})
+						})
+					})
+
+					Context("when looking up the engine build fails", func() {
+						disaster := errors.New("nope")
+
+						BeforeEach(func() {
+							fakeBuildDB.GetBuildReturns(model, nil)
+							fakeEngine.LookupBuildReturns(nil, disaster)
+						})
+
+						It("returns the error", func() {
+							Ω(resumeErr).Should(Equal(disaster))
+						})
+
+						It("releases the lock", func() {
+							Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+						})
 					})
 				})
 
-				Context("when acquiring the lock fails", func() {
+				Context("when the build is not yet active", func() {
 					BeforeEach(func() {
-						fakeLocker.AcquireWriteLockImmediatelyReturns(nil, errors.New("no lock for you"))
+						model.Engine = ""
+						fakeBuildDB.GetBuildReturns(model, nil)
 					})
 
 					It("succeeds", func() {
 						Ω(resumeErr).ShouldNot(HaveOccurred())
 					})
 
-					It("does not resume the build", func() {
-						Ω(realBuild.ResumeCallCount()).Should(BeZero())
+					It("does not look up the build in the engine", func() {
+						Ω(fakeEngine.LookupBuildCallCount()).Should(BeZero())
+					})
+
+					It("releases the lock", func() {
+						Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
 					})
 				})
 			})
 
-			Context("when the build is not yet active", func() {
+			Context("when acquiring the lock fails", func() {
 				BeforeEach(func() {
-					model.Engine = ""
-					fakeBuildDB.GetBuildReturns(model, nil)
+					fakeLocker.AcquireWriteLockImmediatelyReturns(nil, errors.New("no lock for you"))
 				})
 
 				It("succeeds", func() {
 					Ω(resumeErr).ShouldNot(HaveOccurred())
 				})
-			})
 
-			Context("when looking up the engine build fails", func() {
-				disaster := errors.New("nope")
-
-				BeforeEach(func() {
-					fakeBuildDB.GetBuildReturns(model, nil)
-					fakeEngine.LookupBuildReturns(nil, disaster)
-				})
-
-				It("returns the error", func() {
-					Ω(resumeErr).Should(Equal(disaster))
+				It("does not look up the build", func() {
+					Ω(fakeBuildDB.GetBuildCallCount()).Should(BeZero())
+					Ω(fakeEngine.LookupBuildCallCount()).Should(BeZero())
 				})
 			})
 		})

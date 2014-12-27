@@ -618,8 +618,74 @@ func (db *SQLDB) GetBuildEvents(buildID int, from uint) (EventSource, error) {
 	), nil
 }
 
-func buildEventsChannel(buildID int) string {
-	return fmt.Sprintf("build_events_%d", buildID)
+func (db *SQLDB) AbortBuild(buildID int) error {
+	_, err := db.conn.Exec(`
+		UPDATE builds
+		SET status = 'aborted'
+		WHERE id = $1
+	`, buildID)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.conn.Exec("NOTIFY " + buildAbortChannel(buildID))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *SQLDB) AbortNotifier(buildID int) (Notifier, error) {
+	channel := buildAbortChannel(buildID)
+
+	notified, err := db.bus.Listen(channel)
+	if err != nil {
+		return nil, err
+	}
+
+	var currentStatus string
+	err = db.conn.QueryRow(`
+		SELECT status
+		FROM builds
+		WHERE id = $1
+	`, buildID).Scan(&currentStatus)
+	if err != nil {
+		db.bus.Unlisten(channel, notified)
+		return nil, err
+	}
+
+	if Status(currentStatus) == StatusAborted {
+		db.bus.Unlisten(channel, notified)
+		return &closedNotifier{}, nil
+	}
+
+	return &busNotifier{
+		notified: notified,
+		bus:      db.bus,
+		channel:  channel,
+	}, nil
+}
+
+type closedNotifier struct{}
+
+func (closedNotifier) Notify() <-chan struct{} {
+	closed := make(chan struct{})
+	close(closed)
+	return closed
+}
+
+func (closedNotifier) Close() error { return nil }
+
+type busNotifier struct {
+	notified chan struct{}
+	bus      *notificationsBus
+	channel  string
+}
+
+func (notifier *busNotifier) Notify() <-chan struct{} { return notifier.notified }
+func (notifier *busNotifier) Close() error {
+	return notifier.bus.Unlisten(notifier.channel, notifier.notified)
 }
 
 func (db *SQLDB) SaveBuildEvent(buildID int, event atc.Event) error {
@@ -1294,4 +1360,12 @@ func registerJob(tx *sql.Tx, name string) error {
 		)
 	`, name)
 	return err
+}
+
+func buildEventsChannel(buildID int) string {
+	return fmt.Sprintf("build_events_%d", buildID)
+}
+
+func buildAbortChannel(buildID int) string {
+	return fmt.Sprintf("build_abort_%d", buildID)
 }

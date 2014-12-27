@@ -18,7 +18,8 @@ type BuildDB interface {
 	GetBuildEvents(int, uint) (db.EventSource, error)
 	StartBuild(int, string, string) (bool, error)
 
-	SaveBuildStatus(int, db.Status) error
+	AbortBuild(int) error
+	AbortNotifier(int) (db.Notifier, error)
 }
 
 //go:generate counterfeiter . BuildLocker
@@ -98,14 +99,25 @@ func (build *dbBuild) Metadata() string {
 func (build *dbBuild) Abort() error {
 	// the order below is very important to avoid races with build creation.
 
+	lock, err := build.locker.AcquireWriteLockImmediately([]db.NamedLock{db.BuildTrackingLock(build.id)})
+	if err != nil {
+		// someone else is tracking the build; abort it, which will notify them
+		return build.db.AbortBuild(build.id)
+	}
+
+	defer lock.Release()
+
+	// no one is tracking the build; abort it ourselves
+
 	// first save the status so that CreateBuild will see a conflict when it
 	// tries to mark the build as started.
-	err := build.db.SaveBuildStatus(build.id, db.StatusAborted)
+	err = build.db.AbortBuild(build.id)
 	if err != nil {
 		return err
 	}
 
-	// reload the model *after* saving the status for the following check
+	// reload the model *after* saving the status for the following check to see
+	// if it was already started
 	model, err := build.db.GetBuild(build.id)
 	if err != nil {
 		return err
@@ -147,6 +159,13 @@ func (build *dbBuild) Hijack(spec garden.ProcessSpec, io garden.ProcessIO) (gard
 }
 
 func (build *dbBuild) Resume(logger lager.Logger) error {
+	lock, err := build.locker.AcquireWriteLockImmediately([]db.NamedLock{db.BuildTrackingLock(build.id)})
+	if err != nil {
+		return nil
+	}
+
+	defer lock.Release()
+
 	model, err := build.db.GetBuild(build.id)
 	if err != nil {
 		return err
@@ -161,12 +180,23 @@ func (build *dbBuild) Resume(logger lager.Logger) error {
 		return err
 	}
 
-	lock, err := build.locker.AcquireWriteLockImmediately([]db.NamedLock{db.BuildTrackingLock(build.id)})
+	aborts, err := build.db.AbortNotifier(build.id)
 	if err != nil {
-		return nil
+		return err
 	}
 
-	defer lock.Release()
+	defer aborts.Close()
+
+	done := make(chan struct{})
+	defer close(done)
+
+	go func() {
+		select {
+		case <-aborts.Notify():
+			engineBuild.Abort()
+		case <-done:
+		}
+	}()
 
 	return engineBuild.Resume(logger)
 }

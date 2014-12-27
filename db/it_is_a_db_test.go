@@ -73,6 +73,41 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				Ω(database.GetAllBuilds()).Should(Equal([]db.Build{build1}))
 			})
 
+			Describe("aborting", func() {
+				It("notifies listeners", func() {
+					notifier, err := database.AbortNotifier(build1.ID)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					defer notifier.Close()
+
+					Consistently(notifier.Notify()).ShouldNot(Receive())
+
+					err = database.AbortBuild(build1.ID)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Eventually(notifier.Notify(), 5).Should(Receive())
+				})
+
+				It("updates the build's status", func() {
+					err := database.AbortBuild(build1.ID)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					build, err := database.GetBuild(build1.ID)
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(build.Status).Should(Equal(db.StatusAborted))
+				})
+
+				It("immediately notifies new listeners", func() {
+					err := database.AbortBuild(build1.ID)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					notifier, err := database.AbortNotifier(build1.ID)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Eventually(notifier.Notify()).Should(BeClosed())
+				})
+			})
+
 			Context("when scheduled", func() {
 				BeforeEach(func() {
 					scheduled, err := database.ScheduleBuild(build1.ID, false)
