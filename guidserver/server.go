@@ -66,7 +66,7 @@ func Start(helperRootfs string, gardenClient gapi.Client) {
 	Eventually(func() (int, error) {
 		curl, err := container.Run(gapi.ProcessSpec{
 			Path: "curl",
-			Args: []string{"http://127.0.0.1:8080/registrations"},
+			Args: []string{"-s", "-f", "http://127.0.0.1:8080/registrations"},
 		}, gapi.ProcessIO{
 			Stdout: ginkgo.GinkgoWriter,
 			Stderr: ginkgo.GinkgoWriter,
@@ -93,7 +93,7 @@ func ReportingGuids() []string {
 
 	curl, err := container.Run(gapi.ProcessSpec{
 		Path: "curl",
-		Args: []string{"http://127.0.0.1:8080/registrations"},
+		Args: []string{"-s", "-f", "http://127.0.0.1:8080/registrations"},
 	}, gapi.ProcessIO{
 		Stdout: outBuf,
 		Stderr: ginkgo.GinkgoWriter,
