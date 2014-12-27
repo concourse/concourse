@@ -1,6 +1,7 @@
 package flying_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -8,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/mgutz/ansi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -61,12 +63,28 @@ run:
 		os.RemoveAll(tmpdir)
 	})
 
+	start := func(cmd *exec.Cmd) *gexec.Session {
+		session, err := gexec.Start(
+			cmd,
+			gexec.NewPrefixedWriter(
+				fmt.Sprintf("%s%s ", ansi.Color("[o]", "green"), ansi.Color("[fly]", "blue")),
+				GinkgoWriter,
+			),
+			gexec.NewPrefixedWriter(
+				fmt.Sprintf("%s%s ", ansi.Color("[e]", "red+bright"), ansi.Color("[fly]", "blue")),
+				GinkgoWriter,
+			),
+		)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		return session
+	}
+
 	It("works", func() {
 		fly := exec.Command(flyBin, "--", "SOME", "ARGS")
 		fly.Dir = fixture
 
-		session, err := gexec.Start(fly, GinkgoWriter, GinkgoWriter)
-		Ω(err).ShouldNot(HaveOccurred())
+		session := start(fly)
 
 		Eventually(session, 30*time.Second).Should(gexec.Exit(0))
 
@@ -91,15 +109,13 @@ cat < /tmp/fifo
 			fly := exec.Command(flyBin)
 			fly.Dir = fixture
 
-			flyS, err := gexec.Start(fly, GinkgoWriter, GinkgoWriter)
-			Ω(err).ShouldNot(HaveOccurred())
+			flyS := start(fly)
 
 			Eventually(flyS, 30*time.Second).Should(gbytes.Say("waiting"))
 
 			hijack := exec.Command(flyBin, "hijack", "--", "sh", "-c", "echo marco > /tmp/fifo")
 
-			hijackS, err := gexec.Start(hijack, GinkgoWriter, GinkgoWriter)
-			Ω(err).ShouldNot(HaveOccurred())
+			hijackS := start(hijack)
 
 			Eventually(flyS, 10*time.Second).Should(gbytes.Say("marco"))
 
@@ -126,8 +142,7 @@ wait
 			fly := exec.Command(flyBin)
 			fly.Dir = fixture
 
-			flyS, err := gexec.Start(fly, GinkgoWriter, GinkgoWriter)
-			Ω(err).ShouldNot(HaveOccurred())
+			flyS := start(fly)
 
 			Eventually(flyS, 30*time.Second).Should(gbytes.Say("waiting"))
 

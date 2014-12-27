@@ -5,10 +5,12 @@ import (
 	"fmt"
 
 	gapi "github.com/cloudfoundry-incubator/garden/api"
+	"github.com/mgutz/ansi"
 	"github.com/nu7hatch/gouuid"
 
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 )
 
 const gardenDeploymentIP = "10.244.16.2"
@@ -40,8 +42,14 @@ git init
 touch .git/git-daemon-export-ok
 `},
 	}, gapi.ProcessIO{
-		Stdout: ginkgo.GinkgoWriter,
-		Stderr: ginkgo.GinkgoWriter,
+		Stdout: gexec.NewPrefixedWriter(
+			fmt.Sprintf("%s%s ", ansi.Color("[o]", "green"), ansi.Color("[git setup]", "green")),
+			ginkgo.GinkgoWriter,
+		),
+		Stderr: gexec.NewPrefixedWriter(
+			fmt.Sprintf("%s%s ", ansi.Color("[e]", "red+bright"), ansi.Color("[git setup]", "green")),
+			ginkgo.GinkgoWriter,
+		),
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 	Ω(process.Wait()).Should(Equal(0))
@@ -58,8 +66,14 @@ touch .git/git-daemon-export-ok
 			".",
 		},
 	}, gapi.ProcessIO{
-		Stdout: ginkgo.GinkgoWriter,
-		Stderr: ginkgo.GinkgoWriter,
+		Stdout: gexec.NewPrefixedWriter(
+			fmt.Sprintf("%s%s ", ansi.Color("[o]", "green"), ansi.Color("[git server]", "green")),
+			ginkgo.GinkgoWriter,
+		),
+		Stderr: gexec.NewPrefixedWriter(
+			fmt.Sprintf("%s%s ", ansi.Color("[e]", "red+bright"), ansi.Color("[git server]", "green")),
+			ginkgo.GinkgoWriter,
+		),
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 	Ω(process.Wait()).Should(Equal(0))
@@ -103,8 +117,14 @@ func (server *Server) Commit() string {
 			),
 		},
 	}, gapi.ProcessIO{
-		Stdout: ginkgo.GinkgoWriter,
-		Stderr: ginkgo.GinkgoWriter,
+		Stdout: gexec.NewPrefixedWriter(
+			fmt.Sprintf("%s%s ", ansi.Color("[o]", "green"), ansi.Color("[git commit]", "green")),
+			ginkgo.GinkgoWriter,
+		),
+		Stderr: gexec.NewPrefixedWriter(
+			fmt.Sprintf("%s%s ", ansi.Color("[e]", "red+bright"), ansi.Color("[git commit]", "green")),
+			ginkgo.GinkgoWriter,
+		),
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 	Ω(process.Wait()).Should(Equal(0))
@@ -123,7 +143,10 @@ func (server *Server) RevParse(ref string) string {
 		Dir:  "some-repo",
 	}, gapi.ProcessIO{
 		Stdout: buf,
-		Stderr: ginkgo.GinkgoWriter,
+		Stderr: gexec.NewPrefixedWriter(
+			fmt.Sprintf("%s%s ", ansi.Color("[o]", "red+bright"), ansi.Color("[git rev-parse]", "green")),
+			ginkgo.GinkgoWriter,
+		),
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 

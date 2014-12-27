@@ -1,12 +1,15 @@
 package bosh
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os/exec"
 	"text/template"
 
+	"github.com/mgutz/ansi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 )
 
 func Deploy(deploymentName string, templateData ...interface{}) {
@@ -35,8 +38,15 @@ func Deploy(deploymentName string, templateData ...interface{}) {
 }
 
 func run(cmd *exec.Cmd) {
-	cmd.Stdout = GinkgoWriter
-	cmd.Stderr = GinkgoWriter
+	cmd.Stdout = gexec.NewPrefixedWriter(
+		fmt.Sprintf("%s%s ", ansi.Color("[o]", "green"), ansi.Color("[bosh]", "black+bright")),
+		GinkgoWriter,
+	)
+
+	cmd.Stderr = gexec.NewPrefixedWriter(
+		fmt.Sprintf("%s%s ", ansi.Color("[e]", "red+bright"), ansi.Color("[bosh]", "black+bright")),
+		GinkgoWriter,
+	)
 
 	err := cmd.Run()
 	Ω(err).ShouldNot(HaveOccurred())

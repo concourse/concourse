@@ -6,8 +6,10 @@ import (
 	"fmt"
 
 	gapi "github.com/cloudfoundry-incubator/garden/api"
+	"github.com/mgutz/ansi"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 )
 
 const gardenDeploymentIP = "10.244.16.2"
@@ -53,8 +55,14 @@ func Start(helperRootfs string, gardenClient gapi.Client) {
 		Path: "ruby",
 		Args: []string{"-e", amazingRubyServer},
 	}, gapi.ProcessIO{
-		Stdout: ginkgo.GinkgoWriter,
-		Stderr: ginkgo.GinkgoWriter,
+		Stdout: gexec.NewPrefixedWriter(
+			fmt.Sprintf("%s%s ", ansi.Color("[o]", "green"), ansi.Color("[guid server]", "magenta")),
+			ginkgo.GinkgoWriter,
+		),
+		Stderr: gexec.NewPrefixedWriter(
+			fmt.Sprintf("%s%s ", ansi.Color("[e]", "red+bright"), ansi.Color("[guid server]", "magenta")),
+			ginkgo.GinkgoWriter,
+		),
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 
@@ -68,8 +76,14 @@ func Start(helperRootfs string, gardenClient gapi.Client) {
 			Path: "curl",
 			Args: []string{"-s", "-f", "http://127.0.0.1:8080/registrations"},
 		}, gapi.ProcessIO{
-			Stdout: ginkgo.GinkgoWriter,
-			Stderr: ginkgo.GinkgoWriter,
+			Stdout: gexec.NewPrefixedWriter(
+				fmt.Sprintf("%s%s ", ansi.Color("[o]", "green"), ansi.Color("[guid server polling]", "magenta")),
+				ginkgo.GinkgoWriter,
+			),
+			Stderr: gexec.NewPrefixedWriter(
+				fmt.Sprintf("%s%s ", ansi.Color("[e]", "red+bright"), ansi.Color("[guid server polling]", "magenta")),
+				ginkgo.GinkgoWriter,
+			),
 		})
 		Ω(err).ShouldNot(HaveOccurred())
 
@@ -96,7 +110,10 @@ func ReportingGuids() []string {
 		Args: []string{"-s", "-f", "http://127.0.0.1:8080/registrations"},
 	}, gapi.ProcessIO{
 		Stdout: outBuf,
-		Stderr: ginkgo.GinkgoWriter,
+		Stderr: gexec.NewPrefixedWriter(
+			fmt.Sprintf("%s%s ", ansi.Color("[e]", "red+bright"), ansi.Color("[guid server polling]", "magenta")),
+			ginkgo.GinkgoWriter,
+		),
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 
