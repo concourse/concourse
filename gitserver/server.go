@@ -3,6 +3,7 @@ package gitserver
 import (
 	"bytes"
 	"fmt"
+	"time"
 
 	gapi "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/mgutz/ansi"
@@ -27,6 +28,7 @@ type Server struct {
 func Start(helperRootfs string, gardenClient gapi.Client) *Server {
 	container, err := gardenClient.Create(gapi.ContainerSpec{
 		RootFSPath: helperRootfs,
+		GraceTime:  time.Hour,
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 

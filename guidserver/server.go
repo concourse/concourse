@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	gapi "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/mgutz/ansi"
@@ -48,6 +49,7 @@ func Start(helperRootfs string, gardenClient gapi.Client) {
 
 	container, err = gardenClient.Create(gapi.ContainerSpec{
 		RootFSPath: helperRootfs,
+		GraceTime:  time.Hour,
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 
