@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/tls"
 	"encoding/base64"
@@ -118,8 +119,10 @@ func Hijack(c *cli.Context) {
 		os.Exit(1)
 	}
 
-	cconn, cbr := clientConn.Hijack()
+	os.Exit(hijack(clientConn.Hijack()))
+}
 
+func hijack(conn net.Conn, br *bufio.Reader) int {
 	var in io.Reader
 
 	term, err := term.Open(os.Stdin.Name())
@@ -136,8 +139,8 @@ func Hijack(c *cli.Context) {
 		in = os.Stdin
 	}
 
-	encoder := json.NewEncoder(cconn)
-	decoder := json.NewDecoder(cbr)
+	encoder := json.NewEncoder(conn)
+	decoder := json.NewDecoder(br)
 
 	resized := make(chan os.Signal, 10)
 	signal.Notify(resized, syscall.SIGWINCH)
@@ -172,7 +175,7 @@ func Hijack(c *cli.Context) {
 		}
 	}
 
-	os.Exit(exitStatus)
+	return exitStatus
 }
 
 func sendSize(enc *json.Encoder) {
