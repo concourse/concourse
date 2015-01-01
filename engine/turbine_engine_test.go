@@ -71,7 +71,7 @@ var _ = Describe("TurbineEngine", func() {
 			}
 
 			buildPlan = atc.BuildPlan{
-				Config: atc.BuildConfig{
+				Config: &atc.BuildConfig{
 					Image: "some-image",
 
 					Params: map[string]string{

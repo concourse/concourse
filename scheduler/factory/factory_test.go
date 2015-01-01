@@ -25,7 +25,7 @@ var _ = Describe("Factory", func() {
 		job = atc.JobConfig{
 			Name: "some-job",
 
-			BuildConfig: atc.BuildConfig{
+			BuildConfig: &atc.BuildConfig{
 				Image: "some-image",
 				Params: map[string]string{
 					"FOO": "1",
@@ -69,7 +69,7 @@ var _ = Describe("Factory", func() {
 		}
 
 		expectedBuildPlan = atc.BuildPlan{
-			Config: atc.BuildConfig{
+			Config: &atc.BuildConfig{
 				Image: "some-image",
 
 				Params: map[string]string{

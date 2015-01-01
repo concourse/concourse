@@ -41,7 +41,7 @@ var _ = Describe("Scheduler", func() {
 		locker = new(fakes.FakeLocker)
 
 		createdBuildPlan = atc.BuildPlan{
-			Config: atc.BuildConfig{
+			Config: &atc.BuildConfig{
 				Run: atc.BuildRunConfig{Path: "some-build"},
 			},
 		}

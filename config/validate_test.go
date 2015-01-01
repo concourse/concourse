@@ -42,7 +42,7 @@ var _ = Describe("ValidateConfig", func() {
 					Public: true,
 
 					BuildConfigPath: "some/config/path.yml",
-					BuildConfig: atc.BuildConfig{
+					BuildConfig: &atc.BuildConfig{
 						Image: "some-image",
 					},
 
@@ -208,7 +208,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job has no config and no config path", func() {
 			BeforeEach(func() {
-				job.BuildConfig = atc.BuildConfig{}
+				job.BuildConfig = nil
 				job.BuildConfigPath = ""
 				config.Jobs = append(config.Jobs, job)
 			})

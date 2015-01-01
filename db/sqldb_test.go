@@ -95,7 +95,7 @@ var _ = Describe("SQL DB", func() {
 					Public: true,
 
 					BuildConfigPath: "some/config/path.yml",
-					BuildConfig: atc.BuildConfig{
+					BuildConfig: &atc.BuildConfig{
 						Image: "some-image",
 					},
 

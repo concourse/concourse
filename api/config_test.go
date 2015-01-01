@@ -44,7 +44,7 @@ var _ = Describe("Config API", func() {
 					Public: true,
 
 					BuildConfigPath: "some/config/path.yml",
-					BuildConfig: atc.BuildConfig{
+					BuildConfig: &atc.BuildConfig{
 						Image: "some-image",
 					},
 

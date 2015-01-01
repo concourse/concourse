@@ -3,7 +3,6 @@ package config
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/concourse/atc"
@@ -144,7 +143,7 @@ func validateJobs(c atc.Config) error {
 			errorMessages = append(errorMessages, identifier+" has no name")
 		}
 
-		if job.BuildConfigPath == "" && reflect.DeepEqual(job.BuildConfig, atc.BuildConfig{}) {
+		if job.BuildConfigPath == "" && job.BuildConfig == nil {
 			errorMessages = append(errorMessages, identifier+" has no build configuration")
 		}
 

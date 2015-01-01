@@ -21,7 +21,7 @@ const (
 type BuildPlan struct {
 	Privileged bool `json:"privileged"`
 
-	Config BuildConfig `json:"config"`
+	Config *BuildConfig `json:"config"`
 
 	Inputs  []InputPlan  `json:"inputs"`
 	Outputs []OutputPlan `json:"outputs"`

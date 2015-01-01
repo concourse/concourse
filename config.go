@@ -35,8 +35,8 @@ type JobConfig struct {
 
 	Public bool `yaml:"public,omitempty" json:"public,omitempty"`
 
-	BuildConfigPath string      `yaml:"build,omitempty" json:"build,omitempty"`
-	BuildConfig     BuildConfig `yaml:"config,omitempty" json:"config,omitempty"`
+	BuildConfigPath string       `yaml:"build,omitempty" json:"build,omitempty"`
+	BuildConfig     *BuildConfig `yaml:"config,omitempty" json:"config,omitempty"`
 
 	Privileged bool `yaml:"privileged,omitempty" json:"privileged,omitempty"`
 

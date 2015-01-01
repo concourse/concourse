@@ -30,7 +30,7 @@ var _ = Describe("Builds API", func() {
 
 		BeforeEach(func() {
 			buildPlan = atc.BuildPlan{
-				Config: atc.BuildConfig{
+				Config: &atc.BuildConfig{
 					Run: atc.BuildRunConfig{
 						Path: "ls",
 					},
