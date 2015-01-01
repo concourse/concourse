@@ -87,10 +87,10 @@ type MetadataField struct {
 
 type OutputConditions []OutputCondition
 
-func (cs OutputConditions) SatisfiedBy(exitStatus int) bool {
+func (cs OutputConditions) SatisfiedBy(successful bool) bool {
 	for _, status := range cs {
-		if (status == OutputConditionSuccess && exitStatus == 0) ||
-			(status == OutputConditionFailure && exitStatus != 0) {
+		if (status == OutputConditionSuccess && successful) ||
+			(status == OutputConditionFailure && !successful) {
 			return true
 		}
 	}
