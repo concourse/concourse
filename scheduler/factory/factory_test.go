@@ -69,6 +69,7 @@ var _ = Describe("Factory", func() {
 		}
 
 		expectedBuildPlan = atc.BuildPlan{
+			ConfigPath: "some-input/build.yml",
 			Config: &atc.BuildConfig{
 				Image: "some-image",
 
@@ -85,12 +86,11 @@ var _ = Describe("Factory", func() {
 
 			Inputs: []atc.InputPlan{
 				{
-					Name:       "some-input",
-					Resource:   "some-resource",
-					Type:       "git",
-					Source:     atc.Source{"uri": "git://some-resource"},
-					Params:     atc.Params{"some": "params"},
-					ConfigPath: "build.yml",
+					Name:     "some-input",
+					Resource: "some-resource",
+					Type:     "git",
+					Source:   atc.Source{"uri": "git://some-resource"},
+					Params:   atc.Params{"some": "params"},
 				},
 			},
 
@@ -182,63 +182,6 @@ var _ = Describe("Factory", func() {
 		})
 	})
 
-	Context("when an explicitly named input is the source of the config", func() {
-		BeforeEach(func() {
-			job.Inputs = append(job.Inputs, atc.JobInputConfig{
-				RawName:  "some-named-input",
-				Resource: "some-named-resource",
-				Params:   atc.Params{"some": "named-params"},
-			})
-
-			job.BuildConfigPath = "some-named-input/build.yml"
-
-			expectedBuildPlan.Inputs[0].ConfigPath = ""
-
-			expectedBuildPlan.Inputs = append(expectedBuildPlan.Inputs, atc.InputPlan{
-				Name:       "some-named-input",
-				Resource:   "some-named-resource",
-				Type:       "git",
-				Source:     atc.Source{"uri": "git://some-named-resource"},
-				Params:     atc.Params{"some": "named-params"},
-				ConfigPath: "build.yml",
-			})
-		})
-
-		It("uses the explicit name to match the config path", func() {
-			buildPlan, err := factory.Create(job, resources, nil)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			Ω(buildPlan.Inputs).Should(Equal(expectedBuildPlan.Inputs))
-		})
-	})
-
-	Context("when two inputs have overlappying names for the config path", func() {
-		BeforeEach(func() {
-			job.Inputs = append(job.Inputs, atc.JobInputConfig{
-				Resource: "some-resource-with-longer-name",
-			})
-
-			job.BuildConfigPath = "some-resource-with-longer-name/build.yml"
-
-			expectedBuildPlan.Inputs[0].ConfigPath = ""
-
-			expectedBuildPlan.Inputs = append(expectedBuildPlan.Inputs, atc.InputPlan{
-				Name:       "some-resource-with-longer-name",
-				Resource:   "some-resource-with-longer-name",
-				Type:       "git",
-				Source:     atc.Source{"uri": "git://some-resource-with-longer-name"},
-				ConfigPath: "build.yml",
-			})
-		})
-
-		It("chooses the correct input path", func() {
-			buildPlan, err := factory.Create(job, resources, nil)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			Ω(buildPlan.Inputs).Should(Equal(expectedBuildPlan.Inputs))
-		})
-	})
-
 	Context("when inputs with versions are specified", func() {
 		It("uses them for the build's inputs", func() {
 			buildPlan, err := factory.Create(job, resources, []db.BuildInput{
@@ -256,13 +199,12 @@ var _ = Describe("Factory", func() {
 
 			Ω(buildPlan.Inputs).Should(Equal([]atc.InputPlan{
 				{
-					Name:       "some-input",
-					Resource:   "some-resource",
-					Type:       "git-ng",
-					Source:     atc.Source{"uri": "git://some-provided-uri"},
-					Params:     atc.Params{"some": "params"},
-					Version:    atc.Version{"version": "1"},
-					ConfigPath: "build.yml",
+					Name:     "some-input",
+					Resource: "some-resource",
+					Type:     "git-ng",
+					Source:   atc.Source{"uri": "git://some-provided-uri"},
+					Params:   atc.Params{"some": "params"},
+					Version:  atc.Version{"version": "1"},
 				},
 			}))
 		})

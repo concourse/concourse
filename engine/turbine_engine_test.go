@@ -71,6 +71,9 @@ var _ = Describe("TurbineEngine", func() {
 			}
 
 			buildPlan = atc.BuildPlan{
+				Privileged: true,
+
+				ConfigPath: "some-input/build.yml",
 				Config: &atc.BuildConfig{
 					Image: "some-image",
 
@@ -84,6 +87,42 @@ var _ = Describe("TurbineEngine", func() {
 						Args: []string{"arg1", "arg2"},
 					},
 				},
+
+				Inputs: []atc.InputPlan{
+					{
+						Name:     "some-input",
+						Resource: "some-resource",
+						Type:     "some-type",
+						Version:  atc.Version{"some": "version"},
+						Source:   atc.Source{"some": "source"},
+						Params:   atc.Params{"some": "params"},
+					},
+					{
+						Name:     "some-other-input",
+						Resource: "some-other-resource",
+						Type:     "some-other-type",
+						Version:  atc.Version{"some": "other-version"},
+						Source:   atc.Source{"some": "other-source"},
+						Params:   atc.Params{"some": "other-params"},
+					},
+				},
+
+				Outputs: []atc.OutputPlan{
+					{
+						Name:   "some-output",
+						Type:   "some-type",
+						On:     atc.OutputConditions{atc.OutputConditionFailure},
+						Source: atc.Source{"some": "source"},
+						Params: atc.Params{"some": "params"},
+					},
+					{
+						Name:   "some-other-output",
+						Type:   "some-other-type",
+						On:     atc.OutputConditions{atc.OutputConditionSuccess},
+						Source: atc.Source{"some": "other-source"},
+						Params: atc.Params{"some": "other-params"},
+					},
+				},
 			}
 		})
 
@@ -91,9 +130,9 @@ var _ = Describe("TurbineEngine", func() {
 			createdBuild, createErr = engine.CreateBuild(build, buildPlan)
 		})
 
-		successfulBuildStart := func(build atc.BuildPlan) http.HandlerFunc {
+		successfulBuildStart := func(turbineBuild turbine.Build) http.HandlerFunc {
 			return ghttp.CombineHandlers(
-				ghttp.VerifyJSONRepresenting(build),
+				ghttp.VerifyJSONRepresenting(turbineBuild),
 				func(w http.ResponseWriter, r *http.Request) {
 					w.Header().Add("X-Turbine-Endpoint", turbineServer.URL())
 				},
@@ -108,7 +147,60 @@ var _ = Describe("TurbineEngine", func() {
 				turbineServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/builds"),
-						successfulBuildStart(buildPlan),
+						successfulBuildStart(turbine.Build{
+							Privileged: true,
+
+							Config: turbine.Config{
+								Image: "some-image",
+
+								Params: map[string]string{
+									"FOO": "1",
+									"BAR": "2",
+								},
+
+								Run: turbine.RunConfig{
+									Path: "some-script",
+									Args: []string{"arg1", "arg2"},
+								},
+							},
+
+							Inputs: []turbine.Input{
+								{
+									Name:       "some-input",
+									Resource:   "some-resource",
+									Type:       "some-type",
+									Version:    turbine.Version{"some": "version"},
+									Source:     turbine.Source{"some": "source"},
+									Params:     turbine.Params{"some": "params"},
+									ConfigPath: "build.yml",
+								},
+								{
+									Name:     "some-other-input",
+									Resource: "some-other-resource",
+									Type:     "some-other-type",
+									Version:  turbine.Version{"some": "other-version"},
+									Source:   turbine.Source{"some": "other-source"},
+									Params:   turbine.Params{"some": "other-params"},
+								},
+							},
+
+							Outputs: []turbine.Output{
+								{
+									Name:   "some-output",
+									Type:   "some-type",
+									On:     turbine.OutputConditions{turbine.OutputConditionFailure},
+									Source: turbine.Source{"some": "source"},
+									Params: turbine.Params{"some": "params"},
+								},
+								{
+									Name:   "some-other-output",
+									Type:   "some-other-type",
+									On:     turbine.OutputConditions{turbine.OutputConditionSuccess},
+									Source: turbine.Source{"some": "other-source"},
+									Params: turbine.Params{"some": "other-params"},
+								},
+							},
+						}),
 					),
 				)
 			})
@@ -729,13 +821,12 @@ var _ = Describe("TurbineEngine", func() {
 
 								itSavesTheEvent(1, event.Input{
 									Plan: atc.InputPlan{
-										Name:       "some-input-name",
-										Resource:   "some-input-resource",
-										Type:       "some-type",
-										Version:    atc.Version{"version": "input-version"}, // preserved as it may have been requested
-										Source:     atc.Source{"input-source": "some-source"},
-										Params:     atc.Params{"input-param": "some-param"},
-										ConfigPath: "foo/build.yml",
+										Name:     "some-input-name",
+										Resource: "some-input-resource",
+										Type:     "some-type",
+										Version:  atc.Version{"version": "input-version"}, // preserved as it may have been requested
+										Source:   atc.Source{"input-source": "some-source"},
+										Params:   atc.Params{"input-param": "some-param"},
 									},
 									FetchedVersion: atc.Version{"version": "input-version"},
 									FetchedMetadata: []atc.MetadataField{
@@ -866,13 +957,12 @@ var _ = Describe("TurbineEngine", func() {
 
 								itSavesTheEvent(1, event.Input{
 									Plan: atc.InputPlan{
-										Name:       "some-input-name",
-										Resource:   "",
-										Type:       "some-type",
-										Version:    atc.Version{"version": "input-version"}, // preserved as it may have been requested
-										Source:     atc.Source{"input-source": "some-source"},
-										Params:     atc.Params{"input-param": "some-param"},
-										ConfigPath: "foo/build.yml",
+										Name:     "some-input-name",
+										Resource: "",
+										Type:     "some-type",
+										Version:  atc.Version{"version": "input-version"}, // preserved as it may have been requested
+										Source:   atc.Source{"input-source": "some-source"},
+										Params:   atc.Params{"input-param": "some-param"},
 									},
 									FetchedVersion: atc.Version{"version": "input-version"},
 									FetchedMetadata: []atc.MetadataField{

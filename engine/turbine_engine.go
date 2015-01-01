@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"strings"
 	"sync"
 	"time"
 
@@ -90,12 +91,7 @@ func (engine *turbineEngine) Name() string {
 func (engine *turbineEngine) CreateBuild(build db.Build, plan atc.BuildPlan) (Build, error) {
 	req := new(bytes.Buffer)
 
-	// NB: this is abusing the fact that atc build plans encode to an equivalent
-	// structure as turbine builds. this is a temporary (lol) step, as the very
-	// existence of turbine is on a timer.
-	//
-	// if you're someone but Alex reading this, pls fix.
-	err := json.NewEncoder(req).Encode(plan)
+	err := json.NewEncoder(req).Encode(engine.convertBuildPlan(plan))
 	if err != nil {
 		return nil, err
 	}
@@ -169,6 +165,89 @@ func (engine *turbineEngine) LookupBuild(build db.Build) (Build, error) {
 		httpClient:      engine.httpClient,
 		turbineEndpoint: rata.NewRequestGenerator(metadata.Endpoint, turbine.Routes),
 	}, nil
+}
+
+func (engine *turbineEngine) convertBuildPlan(plan atc.BuildPlan) turbine.Build {
+	return turbine.Build{
+		Privileged: plan.Privileged,
+
+		Config: engine.convertBuildConfig(plan.Config),
+
+		Inputs:  engine.convertInputs(plan.Inputs, plan.ConfigPath),
+		Outputs: engine.convertOutputs(plan.Outputs),
+	}
+}
+
+func (engine *turbineEngine) convertBuildConfig(config *atc.BuildConfig) turbine.Config {
+	if config == nil {
+		return turbine.Config{}
+	}
+
+	inputs := make([]turbine.InputConfig, len(config.Inputs))
+	for i, input := range config.Inputs {
+		inputs[i] = turbine.InputConfig{
+			Name: input.Name,
+			Path: input.Path,
+		}
+	}
+
+	return turbine.Config{
+		Image:  config.Image,
+		Params: config.Params,
+
+		Inputs: inputs,
+
+		Run: turbine.RunConfig{
+			Path: config.Run.Path,
+			Args: config.Run.Args,
+		},
+	}
+}
+
+func (engine *turbineEngine) convertInputs(inputs []atc.InputPlan, configPath string) []turbine.Input {
+	tinputs := make([]turbine.Input, len(inputs))
+	for i, input := range inputs {
+		var config string
+		if strings.HasPrefix(configPath, input.Name+"/") {
+			config = configPath[len(input.Name)+1:]
+		}
+
+		tinputs[i] = turbine.Input{
+			Name:       input.Name,
+			Resource:   input.Resource,
+			Type:       input.Type,
+			Source:     turbine.Source(input.Source),
+			Params:     turbine.Params(input.Params),
+			Version:    turbine.Version(input.Version),
+			ConfigPath: config,
+		}
+	}
+
+	return tinputs
+}
+
+func (engine *turbineEngine) convertOutputs(outputs []atc.OutputPlan) []turbine.Output {
+	toutputs := make([]turbine.Output, len(outputs))
+	for i, output := range outputs {
+		toutputs[i] = turbine.Output{
+			Name:   output.Name,
+			Type:   output.Type,
+			On:     engine.convertOutputConditions(output.On),
+			Source: turbine.Source(output.Source),
+			Params: turbine.Params(output.Params),
+		}
+	}
+
+	return toutputs
+}
+
+func (engine *turbineEngine) convertOutputConditions(conds atc.OutputConditions) turbine.OutputConditions {
+	tconds := make(turbine.OutputConditions, len(conds))
+	for i, cond := range conds {
+		tconds[i] = turbine.OutputCondition(cond)
+	}
+
+	return tconds
 }
 
 type turbineBuild struct {
@@ -562,13 +641,12 @@ func (source *turbineEventSource) convertEvent(tev tevent.Event) atc.Event {
 	case tevent.Input:
 		return event.Input{
 			Plan: atc.InputPlan{
-				Name:       e.Input.Name,
-				Resource:   e.Input.Resource,
-				Type:       e.Input.Type,
-				Source:     atc.Source(e.Input.Source),
-				Version:    atc.Version(e.Input.Version),
-				Params:     atc.Params(e.Input.Params),
-				ConfigPath: e.Input.ConfigPath,
+				Name:     e.Input.Name,
+				Resource: e.Input.Resource,
+				Type:     e.Input.Type,
+				Source:   atc.Source(e.Input.Source),
+				Version:  atc.Version(e.Input.Version),
+				Params:   atc.Params(e.Input.Params),
 			},
 			FetchedVersion:  atc.Version(e.Input.Version),
 			FetchedMetadata: source.convertMetadata(e.Input.Metadata),

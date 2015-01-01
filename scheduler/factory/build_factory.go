@@ -2,7 +2,6 @@ package factory
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -32,7 +31,8 @@ func (factory *BuildFactory) Create(
 	}
 
 	return atc.BuildPlan{
-		Config: job.BuildConfig,
+		Config:     job.BuildConfig,
+		ConfigPath: job.BuildConfigPath,
 
 		Inputs:  tInputs,
 		Outputs: tOutputs,
@@ -88,10 +88,6 @@ func (factory *BuildFactory) inputFor(
 
 	if inputPlan.Name == "" {
 		inputPlan.Name = vr.Resource
-	}
-
-	if filepath.HasPrefix(job.BuildConfigPath, inputPlan.Name+"/") {
-		inputPlan.ConfigPath = job.BuildConfigPath[len(inputPlan.Name)+1:]
 	}
 
 	return inputPlan

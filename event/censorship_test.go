@@ -120,21 +120,19 @@ var _ = Describe("Censorship", func() {
 		It("censors source and params", func() {
 			Ω(Input{
 				Plan: atc.InputPlan{
-					Name:       "some-name",
-					Resource:   "some-resource",
-					Type:       "git",
-					Source:     atc.Source{"some": "secret"},
-					Params:     atc.Params{"another": "secret"},
-					ConfigPath: "config/path.yml",
+					Name:     "some-name",
+					Resource: "some-resource",
+					Type:     "git",
+					Source:   atc.Source{"some": "secret"},
+					Params:   atc.Params{"another": "secret"},
 				},
 				FetchedVersion:  atc.Version{"ref": "foo"},
 				FetchedMetadata: []atc.MetadataField{{"public", "data"}},
 			}.Censored()).Should(Equal(Input{
 				Plan: atc.InputPlan{
-					Name:       "some-name",
-					Resource:   "some-resource",
-					Type:       "git",
-					ConfigPath: "config/path.yml",
+					Name:     "some-name",
+					Resource: "some-resource",
+					Type:     "git",
 				},
 				FetchedVersion:  atc.Version{"ref": "foo"},
 				FetchedMetadata: []atc.MetadataField{{"public", "data"}},
