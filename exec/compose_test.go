@@ -131,7 +131,7 @@ var _ = Describe("Compose", func() {
 			})
 
 			It("forwards the signal to the first step and does not continue", func() {
-				Eventually(process.Ready()).Should(BeClosed())
+				Consistently(process.Ready()).ShouldNot(BeClosed())
 
 				process.Signal(os.Interrupt)
 
@@ -148,7 +148,7 @@ var _ = Describe("Compose", func() {
 			})
 
 			It("forwards the signal to the second step", func() {
-				Eventually(process.Ready()).Should(BeClosed())
+				Consistently(process.Ready()).ShouldNot(BeClosed())
 
 				Eventually(outSourceB.RunCallCount).Should(Equal(1))
 

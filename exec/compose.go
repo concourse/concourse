@@ -31,29 +31,19 @@ func (step composed) Using(source ArtifactSource) ArtifactSource {
 func (step *composed) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	step.firstSource = step.a.Using(step.source)
 
-	processA := ifrit.Background(step.firstSource)
-	readyA := processA.Ready()
+	firstProcess := ifrit.Background(step.firstSource)
 
 	var signalled bool
 	var waitErr error
 
-danceA:
+dance:
 	for {
 		select {
-		case <-readyA:
-			close(ready)
-			readyA = nil
-
-		case waitErr = <-processA.Wait():
-			if readyA != nil {
-				// if the process exits quickly enough we may miss the ready notification
-				close(ready)
-			}
-
-			break danceA
+		case waitErr = <-firstProcess.Wait():
+			break dance
 
 		case sig := <-signals:
-			processA.Signal(sig)
+			firstProcess.Signal(sig)
 			signalled = true
 		}
 	}
@@ -64,7 +54,7 @@ danceA:
 
 	step.secondSource = step.b.Using(step.firstSource)
 
-	return step.secondSource.Run(signals, make(chan struct{}))
+	return step.secondSource.Run(signals, ready)
 }
 
 func (step *composed) Release() error {
