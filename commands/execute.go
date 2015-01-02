@@ -189,7 +189,7 @@ func createBuild(
 
 	buildPlan := atc.BuildPlan{
 		Privileged: privileged,
-		Config:     config,
+		Config:     &config,
 		Inputs:     buildInputs,
 	}
 

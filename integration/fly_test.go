@@ -70,7 +70,7 @@ run:
 		events = make(chan atc.Event)
 
 		expectedBuildPlan = atc.BuildPlan{
-			Config: atc.BuildConfig{
+			Config: &atc.BuildConfig{
 				Image: "ubuntu",
 				Params: map[string]string{
 					"FOO": "bar",
