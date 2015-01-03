@@ -155,7 +155,7 @@ func (build *gardenBuild) Resume(lager.Logger) error {
 		configSource = exec.FileConfigSource{plan.ConfigPath}
 	}
 
-	var successReporter exec.SuccessReporter
+	successReporter := exec.NewSuccessReporter()
 
 	if configSource != nil {
 		ioConfig := exec.IOConfig{
