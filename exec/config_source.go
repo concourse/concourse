@@ -1,8 +1,6 @@
 package exec
 
 import (
-	"errors"
-
 	"github.com/cloudfoundry-incubator/candiedyaml"
 	"github.com/concourse/atc"
 )
@@ -12,11 +10,11 @@ type BuildConfigSource interface {
 	FetchConfig(ArtifactSource) (atc.BuildConfig, error)
 }
 
-type DirectConfigSource struct {
+type StaticConfigSource struct {
 	Config atc.BuildConfig
 }
 
-func (configSource DirectConfigSource) FetchConfig(ArtifactSource) (atc.BuildConfig, error) {
+func (configSource StaticConfigSource) FetchConfig(ArtifactSource) (atc.BuildConfig, error) {
 	return configSource.Config, nil
 }
 
@@ -46,6 +44,16 @@ type MergedConfigSource struct {
 	B BuildConfigSource
 }
 
-func (configSource MergedConfigSource) FetchConfig(ArtifactSource) (atc.BuildConfig, error) {
-	return atc.BuildConfig{}, errors.New("not implemented")
+func (configSource MergedConfigSource) FetchConfig(source ArtifactSource) (atc.BuildConfig, error) {
+	aConfig, err := configSource.A.FetchConfig(source)
+	if err != nil {
+		return atc.BuildConfig{}, err
+	}
+
+	bConfig, err := configSource.B.FetchConfig(source)
+	if err != nil {
+		return atc.BuildConfig{}, err
+	}
+
+	return aConfig.Merge(bConfig), nil
 }

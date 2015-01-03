@@ -43,8 +43,13 @@ func foo(factory exec.Factory, plan atc.BuildPlan) exec.Step {
 	}
 
 	var configSource exec.BuildConfigSource
-	if plan.Config != nil {
-		configSource = exec.DirectConfigSource{*plan.Config}
+	if plan.Config != nil && plan.ConfigPath != "" {
+		configSource = exec.MergedConfigSource{
+			A: exec.FileConfigSource{plan.ConfigPath},
+			B: exec.StaticConfigSource{*plan.Config},
+		}
+	} else if plan.Config != nil {
+		configSource = exec.StaticConfigSource{*plan.Config}
 	} else if plan.ConfigPath != "" {
 		configSource = exec.FileConfigSource{plan.ConfigPath}
 	}
