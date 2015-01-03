@@ -32,7 +32,8 @@ func (vs *versionedSource) Metadata() []atc.MetadataField {
 }
 
 func (vs *versionedSource) StreamOut(src string) (io.ReadCloser, error) {
-	return vs.container.StreamOut(path.Join(ResourcesDir, src))
+	// don't use path.Join; it strips trailing slashes
+	return vs.container.StreamOut(ResourcesDir + "/" + src)
 }
 
 func (vs *versionedSource) StreamIn(dst string, src io.Reader) error {
