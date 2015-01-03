@@ -9,6 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 
 	garden "github.com/cloudfoundry-incubator/garden/api"
 	gfakes "github.com/cloudfoundry-incubator/garden/api/fakes"
@@ -33,6 +34,10 @@ var _ = Describe("Resource In", func() {
 
 		versionedSource VersionedSource
 		inProcess       ifrit.Process
+
+		ioConfig  IOConfig
+		stdoutBuf *gbytes.Buffer
+		stderrBuf *gbytes.Buffer
 	)
 
 	BeforeEach(func() {
@@ -48,6 +53,14 @@ var _ = Describe("Resource In", func() {
 		inScriptProcess = new(gfakes.FakeProcess)
 		inScriptProcess.WaitStub = func() (int, error) {
 			return inScriptExitStatus, nil
+		}
+
+		stdoutBuf = gbytes.NewBuffer()
+		stderrBuf = gbytes.NewBuffer()
+
+		ioConfig = IOConfig{
+			Stdout: stdoutBuf,
+			Stderr: stderrBuf,
 		}
 	})
 
@@ -66,7 +79,7 @@ var _ = Describe("Resource In", func() {
 			return inScriptProcess, nil
 		}
 
-		versionedSource = resource.Get(source, params, version)
+		versionedSource = resource.Get(ioConfig, source, params, version)
 		inProcess = ifrit.Invoke(versionedSource)
 	})
 
@@ -110,17 +123,17 @@ var _ = Describe("Resource In", func() {
 		})
 	})
 
-	// Context("when /in outputs to stderr", func() {
-	// 	BeforeEach(func() {
-	// 		inScriptStderr = "some stderr data"
-	// 	})
-	//
-	// 	It("emits it to the log sink", func() {
-	// 		Ω(inErr).ShouldNot(HaveOccurred())
-	//
-	// 		Ω(string(logs.Contents())).Should(Equal("some stderr data"))
-	// 	})
-	// })
+	Context("when /in outputs to stderr", func() {
+		BeforeEach(func() {
+			inScriptStderr = "some stderr data"
+		})
+
+		It("emits it to the log sink", func() {
+			Eventually(inProcess.Wait()).Should(Receive(BeNil()))
+
+			Ω(stderrBuf).Should(gbytes.Say("some stderr data"))
+		})
+	})
 
 	Describe("streaming bits out", func() {
 		Context("when streaming out succeeds", func() {

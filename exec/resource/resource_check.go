@@ -18,6 +18,7 @@ func (resource *resource) Check(source atc.Source, version atc.Version) ([]atc.V
 		nil,
 		checkRequest{source, version},
 		&versions,
+		nil,
 	))
 
 	err := <-checking.Wait()

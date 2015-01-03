@@ -13,6 +13,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/exec/resource"
@@ -34,6 +35,10 @@ var _ = Describe("Resource Out", func() {
 
 		versionedSource VersionedSource
 		outProcess      ifrit.Process
+
+		ioConfig  IOConfig
+		stdoutBuf *gbytes.Buffer
+		stderrBuf *gbytes.Buffer
 	)
 
 	BeforeEach(func() {
@@ -49,6 +54,14 @@ var _ = Describe("Resource Out", func() {
 		outScriptProcess = new(gfakes.FakeProcess)
 		outScriptProcess.WaitStub = func() (int, error) {
 			return outScriptExitStatus, nil
+		}
+
+		stdoutBuf = gbytes.NewBuffer()
+		stderrBuf = gbytes.NewBuffer()
+
+		ioConfig = IOConfig{
+			Stdout: stdoutBuf,
+			Stderr: stderrBuf,
 		}
 	})
 
@@ -67,7 +80,7 @@ var _ = Describe("Resource Out", func() {
 			return outScriptProcess, nil
 		}
 
-		versionedSource = resource.Put(source, params, fakeArtifactSource)
+		versionedSource = resource.Put(ioConfig, source, params, fakeArtifactSource)
 		outProcess = ifrit.Invoke(versionedSource)
 	})
 
@@ -150,17 +163,17 @@ var _ = Describe("Resource Out", func() {
 		})
 	})
 
-	// Context("when /out outputs to stderr", func() {
-	// 	BeforeEach(func() {
-	// 		outScriptStderr = "some stderr data"
-	// 	})
-	//
-	// 	It("emits it to the log sink", func() {
-	// 		Ω(outErr).ShouldNot(HaveOccurred())
-	//
-	// 		Ω(string(logs.Contents())).Should(Equal("some stderr data"))
-	// 	})
-	// })
+	Context("when /out outputs to stderr", func() {
+		BeforeEach(func() {
+			outScriptStderr = "some stderr data"
+		})
+
+		It("emits it to the log sink", func() {
+			Eventually(outProcess.Wait()).Should(Receive(BeNil()))
+
+			Ω(stderrBuf).Should(gbytes.Say("some stderr data"))
+		})
+	})
 
 	Context("when running /opt/resource/out fails", func() {
 		disaster := errors.New("oh no!")

@@ -15,6 +15,8 @@ const ArtifactsRoot = "/tmp/build/src"
 var ErrInterrupted = errors.New("interrupted")
 
 type executeStep struct {
+	IOConfig IOConfig
+
 	GardenClient garden.Client
 	ConfigSource BuildConfigSource
 
@@ -56,7 +58,10 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 		Env:  step.envForParams(config.Params),
 
 		Dir: ArtifactsRoot,
-	}, garden.ProcessIO{})
+	}, garden.ProcessIO{
+		Stdout: step.IOConfig.Stdout,
+		Stderr: step.IOConfig.Stderr,
+	})
 	if err != nil {
 		return err
 	}

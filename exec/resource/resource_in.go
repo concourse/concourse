@@ -8,7 +8,7 @@ type inRequest struct {
 	Version atc.Version `json:"version,omitempty"`
 }
 
-func (resource *resource) Get(source atc.Source, params atc.Params, version atc.Version) VersionedSource {
+func (resource *resource) Get(ioConfig IOConfig, source atc.Source, params atc.Params, version atc.Version) VersionedSource {
 	vs := &versionedSource{
 		container: resource.container,
 	}
@@ -18,6 +18,7 @@ func (resource *resource) Get(source atc.Source, params atc.Params, version atc.
 		[]string{ResourcesDir},
 		inRequest{source, params, version},
 		&vs.versionResult,
+		ioConfig.Stderr,
 	)
 
 	return vs

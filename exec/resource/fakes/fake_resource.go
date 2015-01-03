@@ -9,22 +9,24 @@ import (
 )
 
 type FakeResource struct {
-	GetStub        func(atc.Source, atc.Params, atc.Version) resource.VersionedSource
+	GetStub        func(resource.IOConfig, atc.Source, atc.Params, atc.Version) resource.VersionedSource
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
-		arg1 atc.Source
-		arg2 atc.Params
-		arg3 atc.Version
+		arg1 resource.IOConfig
+		arg2 atc.Source
+		arg3 atc.Params
+		arg4 atc.Version
 	}
 	getReturns struct {
 		result1 resource.VersionedSource
 	}
-	PutStub        func(atc.Source, atc.Params, resource.ArtifactSource) resource.VersionedSource
+	PutStub        func(resource.IOConfig, atc.Source, atc.Params, resource.ArtifactSource) resource.VersionedSource
 	putMutex       sync.RWMutex
 	putArgsForCall []struct {
-		arg1 atc.Source
-		arg2 atc.Params
-		arg3 resource.ArtifactSource
+		arg1 resource.IOConfig
+		arg2 atc.Source
+		arg3 atc.Params
+		arg4 resource.ArtifactSource
 	}
 	putReturns struct {
 		result1 resource.VersionedSource
@@ -47,16 +49,17 @@ type FakeResource struct {
 	}
 }
 
-func (fake *FakeResource) Get(arg1 atc.Source, arg2 atc.Params, arg3 atc.Version) resource.VersionedSource {
+func (fake *FakeResource) Get(arg1 resource.IOConfig, arg2 atc.Source, arg3 atc.Params, arg4 atc.Version) resource.VersionedSource {
 	fake.getMutex.Lock()
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
-		arg1 atc.Source
-		arg2 atc.Params
-		arg3 atc.Version
-	}{arg1, arg2, arg3})
+		arg1 resource.IOConfig
+		arg2 atc.Source
+		arg3 atc.Params
+		arg4 atc.Version
+	}{arg1, arg2, arg3, arg4})
 	fake.getMutex.Unlock()
 	if fake.GetStub != nil {
-		return fake.GetStub(arg1, arg2, arg3)
+		return fake.GetStub(arg1, arg2, arg3, arg4)
 	} else {
 		return fake.getReturns.result1
 	}
@@ -68,10 +71,10 @@ func (fake *FakeResource) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeResource) GetArgsForCall(i int) (atc.Source, atc.Params, atc.Version) {
+func (fake *FakeResource) GetArgsForCall(i int) (resource.IOConfig, atc.Source, atc.Params, atc.Version) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
-	return fake.getArgsForCall[i].arg1, fake.getArgsForCall[i].arg2, fake.getArgsForCall[i].arg3
+	return fake.getArgsForCall[i].arg1, fake.getArgsForCall[i].arg2, fake.getArgsForCall[i].arg3, fake.getArgsForCall[i].arg4
 }
 
 func (fake *FakeResource) GetReturns(result1 resource.VersionedSource) {
@@ -81,16 +84,17 @@ func (fake *FakeResource) GetReturns(result1 resource.VersionedSource) {
 	}{result1}
 }
 
-func (fake *FakeResource) Put(arg1 atc.Source, arg2 atc.Params, arg3 resource.ArtifactSource) resource.VersionedSource {
+func (fake *FakeResource) Put(arg1 resource.IOConfig, arg2 atc.Source, arg3 atc.Params, arg4 resource.ArtifactSource) resource.VersionedSource {
 	fake.putMutex.Lock()
 	fake.putArgsForCall = append(fake.putArgsForCall, struct {
-		arg1 atc.Source
-		arg2 atc.Params
-		arg3 resource.ArtifactSource
-	}{arg1, arg2, arg3})
+		arg1 resource.IOConfig
+		arg2 atc.Source
+		arg3 atc.Params
+		arg4 resource.ArtifactSource
+	}{arg1, arg2, arg3, arg4})
 	fake.putMutex.Unlock()
 	if fake.PutStub != nil {
-		return fake.PutStub(arg1, arg2, arg3)
+		return fake.PutStub(arg1, arg2, arg3, arg4)
 	} else {
 		return fake.putReturns.result1
 	}
@@ -102,10 +106,10 @@ func (fake *FakeResource) PutCallCount() int {
 	return len(fake.putArgsForCall)
 }
 
-func (fake *FakeResource) PutArgsForCall(i int) (atc.Source, atc.Params, resource.ArtifactSource) {
+func (fake *FakeResource) PutArgsForCall(i int) (resource.IOConfig, atc.Source, atc.Params, resource.ArtifactSource) {
 	fake.putMutex.RLock()
 	defer fake.putMutex.RUnlock()
-	return fake.putArgsForCall[i].arg1, fake.putArgsForCall[i].arg2, fake.putArgsForCall[i].arg3
+	return fake.putArgsForCall[i].arg1, fake.putArgsForCall[i].arg2, fake.putArgsForCall[i].arg3, fake.putArgsForCall[i].arg4
 }
 
 func (fake *FakeResource) PutReturns(result1 resource.VersionedSource) {

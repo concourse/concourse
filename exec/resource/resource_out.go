@@ -12,7 +12,7 @@ type outRequest struct {
 	Params atc.Params `json:"params,omitempty"`
 }
 
-func (resource *resource) Put(source atc.Source, params atc.Params, artifactSource ArtifactSource) VersionedSource {
+func (resource *resource) Put(ioConfig IOConfig, source atc.Source, params atc.Params, artifactSource ArtifactSource) VersionedSource {
 	vs := &versionedSource{
 		container: resource.container,
 	}
@@ -31,6 +31,7 @@ func (resource *resource) Put(source atc.Source, params atc.Params, artifactSour
 				Source: source,
 			},
 			&vs.versionResult,
+			ioConfig.Stderr,
 		).Run(signals, ready)
 	})
 

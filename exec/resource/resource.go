@@ -10,12 +10,17 @@ import (
 
 //go:generate counterfeiter . Resource
 type Resource interface {
-	Get(atc.Source, atc.Params, atc.Version) VersionedSource
-	Put(atc.Source, atc.Params, ArtifactSource) VersionedSource
+	Get(IOConfig, atc.Source, atc.Params, atc.Version) VersionedSource
+	Put(IOConfig, atc.Source, atc.Params, ArtifactSource) VersionedSource
 
 	Check(atc.Source, atc.Version) ([]atc.Version, error)
 
 	Release() error
+}
+
+type IOConfig struct {
+	Stdout io.Writer
+	Stderr io.Writer
 }
 
 //go:generate counterfeiter . ArtifactSource

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 
 	garden "github.com/cloudfoundry-incubator/garden/api"
@@ -32,7 +33,7 @@ func (err ErrResourceScriptFailed) Error() string {
 	)
 }
 
-func (resource *resource) runScript(path string, args []string, input interface{}, output interface{}) ifrit.Runner {
+func (resource *resource) runScript(path string, args []string, input interface{}, output interface{}, logDest io.Writer) ifrit.Runner {
 	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 		request, err := json.Marshal(input)
 		if err != nil {
@@ -42,13 +43,20 @@ func (resource *resource) runScript(path string, args []string, input interface{
 		stdout := new(bytes.Buffer)
 		stderr := new(bytes.Buffer)
 
+		var stderrW io.Writer
+		if logDest != nil {
+			stderrW = io.MultiWriter(logDest, stderr)
+		} else {
+			stderrW = stderr
+		}
+
 		process, err := resource.container.Run(garden.ProcessSpec{
 			Path:       path,
 			Args:       args,
 			Privileged: true,
 		}, garden.ProcessIO{
 			Stdin:  bytes.NewBuffer(request),
-			Stderr: stderr,
+			Stderr: stderrW,
 			Stdout: stdout,
 		})
 		if err != nil {

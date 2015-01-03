@@ -27,6 +27,10 @@ var _ = Describe("GardenFactory", func() {
 		fakeGardenClient *gfakes.FakeClient
 
 		factory Factory
+
+		ioConfig  IOConfig
+		stdoutBuf *gbytes.Buffer
+		stderrBuf *gbytes.Buffer
 	)
 
 	BeforeEach(func() {
@@ -34,6 +38,14 @@ var _ = Describe("GardenFactory", func() {
 		fakeGardenClient = new(gfakes.FakeClient)
 
 		factory = NewGardenFactory(fakeGardenClient, fakeTracker)
+
+		stdoutBuf = gbytes.NewBuffer()
+		stderrBuf = gbytes.NewBuffer()
+
+		ioConfig = IOConfig{
+			Stdout: stdoutBuf,
+			Stderr: stderrBuf,
+		}
 	})
 
 	Describe("Get", func() {
@@ -63,7 +75,7 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			source = factory.Get(resourceConfig, params, version).Using(inSource)
+			source = factory.Get(ioConfig, resourceConfig, params, version).Using(inSource)
 			process = ifrit.Invoke(source)
 		})
 
@@ -91,10 +103,18 @@ var _ = Describe("GardenFactory", func() {
 			It("gets the resource with the correct source, params, and version", func() {
 				Ω(fakeResource.GetCallCount()).Should(Equal(1))
 
-				gotSource, gotParams, gotVersion := fakeResource.GetArgsForCall(0)
+				_, gotSource, gotParams, gotVersion := fakeResource.GetArgsForCall(0)
 				Ω(gotSource).Should(Equal(resourceConfig.Source))
 				Ω(gotParams).Should(Equal(params))
 				Ω(gotVersion).Should(Equal(version))
+			})
+
+			It("gets the resource with the io config forwarded", func() {
+				Ω(fakeResource.GetCallCount()).Should(Equal(1))
+
+				ioConfig, _, _, _ := fakeResource.GetArgsForCall(0)
+				Ω(ioConfig.Stdout).Should(Equal(stdoutBuf))
+				Ω(ioConfig.Stderr).Should(Equal(stderrBuf))
 			})
 
 			It("executes the get resource action", func() {
@@ -333,7 +353,7 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			source = factory.Put(resourceConfig, params).Using(inSource)
+			source = factory.Put(ioConfig, resourceConfig, params).Using(inSource)
 			process = ifrit.Invoke(source)
 		})
 
@@ -361,7 +381,7 @@ var _ = Describe("GardenFactory", func() {
 			It("puts the resource with the correct source and params, and the given source as the artifact source", func() {
 				Ω(fakeResource.PutCallCount()).Should(Equal(1))
 
-				putSource, putParams, putArtifactSource := fakeResource.PutArgsForCall(0)
+				_, putSource, putParams, putArtifactSource := fakeResource.PutArgsForCall(0)
 				Ω(putSource).Should(Equal(resourceConfig.Source))
 				Ω(putParams).Should(Equal(params))
 
@@ -372,6 +392,14 @@ var _ = Describe("GardenFactory", func() {
 
 				Ω(inSource.StreamToCallCount()).Should(Equal(1))
 				Ω(inSource.StreamToArgsForCall(0)).Should(Equal(dest))
+			})
+
+			It("puts the resource with the io config forwarded", func() {
+				Ω(fakeResource.PutCallCount()).Should(Equal(1))
+
+				ioConfig, _, _, _ := fakeResource.PutArgsForCall(0)
+				Ω(ioConfig.Stdout).Should(Equal(stdoutBuf))
+				Ω(ioConfig.Stderr).Should(Equal(stderrBuf))
 			})
 
 			It("executes the get resource action", func() {
@@ -600,7 +628,7 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			source = factory.Execute(configSource).Using(inSource)
+			source = factory.Execute(ioConfig, configSource).Using(inSource)
 			process = ifrit.Invoke(source)
 		})
 
@@ -675,6 +703,14 @@ var _ = Describe("GardenFactory", func() {
 						Env:  []string{"SOME=params"},
 						Dir:  "/tmp/build/src",
 					}))
+				})
+
+				It("directs the process's stdout/stderr to the io config", func() {
+					Ω(fakeContainer.RunCallCount()).Should(Equal(1))
+
+					_, io := fakeContainer.RunArgsForCall(0)
+					Ω(io.Stdout).Should(Equal(stdoutBuf))
+					Ω(io.Stderr).Should(Equal(stderrBuf))
 				})
 
 				Context("when the process exits 0", func() {
