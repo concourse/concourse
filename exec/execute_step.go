@@ -6,8 +6,10 @@ import (
 	"io"
 	"os"
 	"path"
+	"strings"
 
 	garden "github.com/cloudfoundry-incubator/garden/api"
+	"github.com/concourse/atc"
 )
 
 const ArtifactsRoot = "/tmp/build/src"
@@ -46,7 +48,8 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 	}
 
 	err = step.ArtifactSource.StreamTo(containerDestination{
-		Container: step.Container,
+		Container:    step.Container,
+		InputConfigs: config.Inputs,
 	})
 	if err != nil {
 		return err
@@ -141,8 +144,21 @@ func (executeStep) envForParams(params map[string]string) []string {
 
 type containerDestination struct {
 	Container garden.Container
+
+	InputConfigs []atc.BuildInputConfig
 }
 
 func (dest containerDestination) StreamIn(dst string, src io.Reader) error {
-	return dest.Container.StreamIn(path.Join(ArtifactsRoot, dst), src)
+	destSegments := strings.Split(dst, "/")
+
+	if len(destSegments) > 0 {
+		for _, config := range dest.InputConfigs {
+			if config.Name == destSegments[0] {
+				destSegments[0] = config.Path
+				break
+			}
+		}
+	}
+
+	return dest.Container.StreamIn(path.Join(ArtifactsRoot, strings.Join(destSegments, "/")), src)
 }

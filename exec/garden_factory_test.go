@@ -693,6 +693,71 @@ var _ = Describe("GardenFactory", func() {
 					Ω(source).Should(Equal(streamIn))
 				})
 
+				Context("when the configuration specifies paths for inputs", func() {
+					BeforeEach(func() {
+						configSource.FetchConfigReturns(atc.BuildConfig{
+							Image:  "some-image",
+							Params: map[string]string{"SOME": "params"},
+							Run: atc.BuildRunConfig{
+								Path: "ls",
+								Args: []string{"some", "args"},
+							},
+							Inputs: []atc.BuildInputConfig{
+								{Name: "some-input", Path: "some-input-configured-path"},
+								{Name: "some-other-input", Path: "some-other-input-configured-path"},
+							},
+						}, nil)
+					})
+
+					It("re-maps the stream destinations to the configured destinations", func() {
+						Ω(inSource.StreamToCallCount()).Should(Equal(1))
+
+						streamIn := new(bytes.Buffer)
+
+						By("remapping base destinations")
+						err := inSource.StreamToArgsForCall(0).StreamIn("some-input", streamIn)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						destination, source := fakeContainer.StreamInArgsForCall(0)
+						Ω(destination).Should(Equal("/tmp/build/src/some-input-configured-path"))
+						Ω(source).Should(Equal(streamIn))
+
+						containerDest := inSource.StreamToArgsForCall(0)
+
+						By("remapping subdirectory destinations")
+						err = containerDest.StreamIn("some-input/some-thing", streamIn)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						destination, source = fakeContainer.StreamInArgsForCall(1)
+						Ω(destination).Should(Equal("/tmp/build/src/some-input-configured-path/some-thing"))
+						Ω(source).Should(Equal(streamIn))
+
+						By("remapping other base destinations")
+						err = containerDest.StreamIn("some-other-input", streamIn)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						destination, source = fakeContainer.StreamInArgsForCall(2)
+						Ω(destination).Should(Equal("/tmp/build/src/some-other-input-configured-path"))
+						Ω(source).Should(Equal(streamIn))
+
+						By("not accidentally matching partial names")
+						err = containerDest.StreamIn("some-input-morewords", streamIn)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						destination, source = fakeContainer.StreamInArgsForCall(3)
+						Ω(destination).Should(Equal("/tmp/build/src/some-input-morewords"))
+						Ω(source).Should(Equal(streamIn))
+
+						By("not remapping unconfigured destinations")
+						err = containerDest.StreamIn("some-other-unconfigured-input", streamIn)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						destination, source = fakeContainer.StreamInArgsForCall(4)
+						Ω(destination).Should(Equal("/tmp/build/src/some-other-unconfigured-input"))
+						Ω(source).Should(Equal(streamIn))
+					})
+				})
+
 				It("runs a process with the config's path and args, in /tmp/build/src", func() {
 					Ω(fakeContainer.RunCallCount()).Should(Equal(1))
 
