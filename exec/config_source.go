@@ -3,6 +3,7 @@ package exec
 import (
 	"errors"
 
+	"github.com/cloudfoundry-incubator/candiedyaml"
 	"github.com/concourse/atc"
 )
 
@@ -15,8 +16,29 @@ type DirectConfigSource struct {
 	Config atc.BuildConfig
 }
 
-func (source DirectConfigSource) FetchConfig(ArtifactSource) (atc.BuildConfig, error) {
-	return source.Config, nil
+func (configSource DirectConfigSource) FetchConfig(ArtifactSource) (atc.BuildConfig, error) {
+	return configSource.Config, nil
+}
+
+type FileConfigSource struct {
+	Path string
+}
+
+func (configSource FileConfigSource) FetchConfig(source ArtifactSource) (atc.BuildConfig, error) {
+	stream, err := source.StreamFile(configSource.Path)
+	if err != nil {
+		return atc.BuildConfig{}, err
+	}
+
+	defer stream.Close()
+
+	var config atc.BuildConfig
+	err = candiedyaml.NewDecoder(stream).Decode(&config)
+	if err != nil {
+		return atc.BuildConfig{}, err
+	}
+
+	return config, nil
 }
 
 type MergedConfigSource struct {
@@ -24,14 +46,6 @@ type MergedConfigSource struct {
 	B BuildConfigSource
 }
 
-func (source MergedConfigSource) FetchConfig(ArtifactSource) (atc.BuildConfig, error) {
-	return atc.BuildConfig{}, errors.New("not implemented")
-}
-
-type FileConfigSource struct {
-	Path string
-}
-
-func (source FileConfigSource) FetchConfig(ArtifactSource) (atc.BuildConfig, error) {
+func (configSource MergedConfigSource) FetchConfig(ArtifactSource) (atc.BuildConfig, error) {
 	return atc.BuildConfig{}, errors.New("not implemented")
 }
