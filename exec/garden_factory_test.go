@@ -2,6 +2,7 @@ package exec_test
 
 import (
 	"archive/tar"
+	"bytes"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -648,14 +649,20 @@ var _ = Describe("GardenFactory", func() {
 					}))
 				})
 
-				It("streams the input source in to /tmp/build/src", func() {
+				It("streams the input source in relative to /tmp/build/src", func() {
 					Ω(inSource.StreamToCallCount()).Should(Equal(1))
 					Ω(inSource.StreamToArgsForCall(0)).ShouldNot(BeNil())
-					//
-					// Ω(fakeContainer.StreamInCallCount()).Should(Equal(1))
-					// destination, source := fakeContainer.StreamInArgsForCall(0)
-					// Ω(destination).Should(Equal("/tmp/build/src"))
-					// Ω(source).Should(Equal(streamedOut))
+
+					Ω(fakeContainer.StreamInCallCount()).Should(Equal(0))
+
+					streamIn := new(bytes.Buffer)
+
+					err := inSource.StreamToArgsForCall(0).StreamIn("some-path", streamIn)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					destination, source := fakeContainer.StreamInArgsForCall(0)
+					Ω(destination).Should(Equal("/tmp/build/src/some-path"))
+					Ω(source).Should(Equal(streamIn))
 				})
 
 				It("runs a process with the config's path and args, in /tmp/build/src", func() {
@@ -705,72 +712,6 @@ var _ = Describe("GardenFactory", func() {
 						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 					})
 				})
-
-				// Describe("streaming out", func() {
-				// 	Context("when the container can stream out", func() {
-				// 		var streamedOut io.ReadCloser
-				//
-				// 		BeforeEach(func() {
-				// 			streamedOut = ioutil.NopCloser(bytes.NewBufferString("lol"))
-				// 			fakeContainer.StreamOutReturns(streamedOut, nil)
-				// 		})
-				//
-				// 		It("streams out the given path relative to /tmp/build/src", func() {
-				// 			out, err := source.StreamOut("some-path")
-				// 			Ω(err).ShouldNot(HaveOccurred())
-				//
-				// 			Ω(out).Should(Equal(streamedOut))
-				//
-				// 			Ω(fakeContainer.StreamOutArgsForCall(0)).Should(Equal("/tmp/build/src/some-path"))
-				// 		})
-				// 	})
-				//
-				// 	Context("when the resource cannot stream out", func() {
-				// 		disaster := errors.New("nope")
-				//
-				// 		BeforeEach(func() {
-				// 			fakeContainer.StreamOutReturns(nil, disaster)
-				// 		})
-				//
-				// 		It("returns the error", func() {
-				// 			_, err := source.StreamOut("some-path")
-				// 			Ω(err).Should(Equal(disaster))
-				// 		})
-				// 	})
-				// })
-				//
-				// Describe("streaming a file out", func() {
-				// 	Context("when the container can stream out", func() {
-				// 		var streamedOut io.ReadCloser
-				//
-				// 		BeforeEach(func() {
-				// 			streamedOut = ioutil.NopCloser(bytes.NewBufferString("lol"))
-				// 			fakeContainer.StreamOutReturns(streamedOut, nil)
-				// 		})
-				//
-				// 		It("streams out the given path relative to /tmp/build/src", func() {
-				// 			out, err := source.StreamFile("some-path")
-				// 			Ω(err).ShouldNot(HaveOccurred())
-				//
-				// 			Ω(out).Should(Equal(streamedOut))
-				//
-				// 			Ω(fakeContainer.StreamOutArgsForCall(0)).Should(Equal("/tmp/build/src/some-path"))
-				// 		})
-				// 	})
-				//
-				// 	Context("when the resource cannot stream out", func() {
-				// 		disaster := errors.New("nope")
-				//
-				// 		BeforeEach(func() {
-				// 			fakeContainer.StreamOutReturns(nil, disaster)
-				// 		})
-				//
-				// 		It("returns the error", func() {
-				// 			_, err := source.StreamOut("some-path")
-				// 			Ω(err).Should(Equal(disaster))
-				// 		})
-				// 	})
-				// })
 
 				Describe("streaming to a destination", func() {
 					var fakeDestination *fakes.FakeArtifactDestination
