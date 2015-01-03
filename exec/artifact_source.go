@@ -3,6 +3,7 @@ package exec
 import (
 	"errors"
 	"io"
+	"os"
 
 	"github.com/concourse/atc"
 	"github.com/tedsuo/ifrit"
@@ -34,4 +35,20 @@ type SuccessIndicator interface {
 type VersionIndicator interface {
 	Version() atc.Version
 	Metadata() []atc.MetadataField
+}
+
+type NoopArtifactSource struct{}
+
+func (NoopArtifactSource) Run(<-chan os.Signal, chan<- struct{}) error {
+	return nil
+}
+
+func (NoopArtifactSource) Release() error { return nil }
+
+func (NoopArtifactSource) StreamTo(ArtifactDestination) error {
+	return nil
+}
+
+func (NoopArtifactSource) StreamFile(string) (io.ReadCloser, error) {
+	return nil, ErrFileNotFound
 }
