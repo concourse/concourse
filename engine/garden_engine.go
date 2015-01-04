@@ -44,6 +44,8 @@ func (engine *gardenEngine) CreateBuild(model db.Build, plan atc.BuildPlan) (Bui
 		metadata: GardenMetadata{
 			Plan: plan,
 		},
+
+		signals: make(chan os.Signal, 1),
 	}, nil
 }
 
@@ -59,6 +61,8 @@ func (engine *gardenEngine) LookupBuild(model db.Build) (Build, error) {
 		db:       engine.db,
 		factory:  engine.factory,
 		metadata: metadata,
+
+		signals: make(chan os.Signal, 1),
 	}, nil
 }
 
@@ -83,6 +87,7 @@ func (build *gardenBuild) Metadata() string {
 }
 
 func (build *gardenBuild) Abort() error {
+	build.signals <- os.Kill
 	return nil
 }
 
@@ -239,7 +244,7 @@ func (build *gardenBuild) Resume(lager.Logger) {
 
 	build.saveStart()
 
-	process := ifrit.Invoke(source)
+	process := ifrit.Background(source)
 
 	exited := process.Wait()
 
