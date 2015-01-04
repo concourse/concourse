@@ -253,7 +253,7 @@ function processLogs(event) {
 function processError(event) {
   var log;
 
-  if(event.origin) {
+  if(event.origin && event.origin.type) {
     switch(event.origin.type) {
     case "input":
     case "output":
