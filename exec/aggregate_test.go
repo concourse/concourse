@@ -230,4 +230,19 @@ var _ = Describe("Aggregate", func() {
 			})
 		})
 	})
+
+	Describe("getting a result", func() {
+		BeforeEach(func() {
+			outSourceA.ResultStub = successResult(true)
+			outSourceB.ResultStub = successResult(false)
+		})
+
+		It("collects aggregate results into a map", func() {
+			result := map[string]Success{}
+			Ω(source.Result(&result)).Should(BeTrue())
+
+			Ω(result["A"]).Should(Equal(Success(true)))
+			Ω(result["B"]).Should(Equal(Success(false)))
+		})
+	})
 })

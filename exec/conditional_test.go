@@ -14,17 +14,22 @@ import (
 	"github.com/onsi/gomega/gbytes"
 )
 
-type fakeSuccessfulIndicatorArtifactSource struct {
-	*fakes.FakeArtifactSource
-	*fakes.FakeSuccessIndicator
+func successResult(result Success) func(dest interface{}) bool {
+	return func(dest interface{}) bool {
+		switch x := dest.(type) {
+		case *Success:
+			*x = result
+			return true
+
+		default:
+			return false
+		}
+	}
 }
 
 var _ = Describe("Conditional", func() {
 	var (
-		inArtifactSource         *fakes.FakeArtifactSource
-		inSuccessIndicator       *fakes.FakeSuccessIndicator
-		inSourceSuccessIndicator *fakeSuccessfulIndicatorArtifactSource
-		inSource                 ArtifactSource
+		inSource *fakes.FakeArtifactSource
 
 		fakeStep    *fakes.FakeStep
 		conditional Conditional
@@ -40,21 +45,13 @@ var _ = Describe("Conditional", func() {
 		fakeStep = new(fakes.FakeStep)
 
 		outSource = new(fakes.FakeArtifactSource)
+		outSource.ResultStub = successResult(true)
+
 		fakeStep.UsingReturns(outSource)
 
 		conditional = Conditional{
 			Step: fakeStep,
 		}
-
-		inArtifactSource = new(fakes.FakeArtifactSource)
-		inSuccessIndicator = new(fakes.FakeSuccessIndicator)
-
-		inSourceSuccessIndicator = &fakeSuccessfulIndicatorArtifactSource{
-			FakeArtifactSource:   inArtifactSource,
-			FakeSuccessIndicator: inSuccessIndicator,
-		}
-
-		inSource = inSourceSuccessIndicator
 	})
 
 	JustBeforeEach(func() {
@@ -82,7 +79,7 @@ var _ = Describe("Conditional", func() {
 				err := source.StreamTo(fakeDestination)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(inArtifactSource.StreamToCallCount()).Should(Equal(0))
+				Ω(inSource.StreamToCallCount()).Should(Equal(0))
 
 				Ω(fakeDestination.StreamInCallCount()).Should(Equal(0))
 			})
@@ -97,7 +94,14 @@ var _ = Describe("Conditional", func() {
 
 		Describe("releasing", func() {
 			It("does not release the input source", func() {
-				Ω(inArtifactSource.ReleaseCallCount()).Should(Equal(0))
+				Ω(inSource.ReleaseCallCount()).Should(Equal(0))
+			})
+		})
+
+		Describe("getting the result", func() {
+			It("fails", func() {
+				var success Success
+				Ω(source.Result(&success)).Should(BeFalse())
 			})
 		})
 	}
@@ -137,6 +141,15 @@ var _ = Describe("Conditional", func() {
 				It("returns the error", func() {
 					err := source.StreamTo(fakeDestination)
 					Ω(err).Should(Equal(disaster))
+				})
+			})
+
+			Describe("getting the result", func() {
+				It("succeeds", func() {
+					var success Success
+					Ω(source.Result(&success)).Should(BeTrue())
+
+					Ω(bool(success)).Should(BeTrue())
 				})
 			})
 		})
@@ -202,7 +215,7 @@ var _ = Describe("Conditional", func() {
 
 		Context("when the input source is successful", func() {
 			BeforeEach(func() {
-				inSuccessIndicator.SuccessfulReturns(true)
+				inSource.ResultStub = successResult(true)
 			})
 
 			itDoesNothing()
@@ -210,17 +223,13 @@ var _ = Describe("Conditional", func() {
 
 		Context("when the input source failed", func() {
 			BeforeEach(func() {
-				inSuccessIndicator.SuccessfulReturns(false)
+				inSource.ResultStub = successResult(false)
 			})
 
 			itDoesNothing()
 		})
 
 		Context("when the input source cannot indicate success", func() {
-			BeforeEach(func() {
-				inSource = inArtifactSource
-			})
-
 			itDoesNothing()
 		})
 	})
@@ -232,7 +241,7 @@ var _ = Describe("Conditional", func() {
 
 		Context("when the input source is successful", func() {
 			BeforeEach(func() {
-				inSuccessIndicator.SuccessfulReturns(true)
+				inSource.ResultStub = successResult(true)
 			})
 
 			itDoesAThing()
@@ -240,17 +249,13 @@ var _ = Describe("Conditional", func() {
 
 		Context("when the input source failed", func() {
 			BeforeEach(func() {
-				inSuccessIndicator.SuccessfulReturns(false)
+				inSource.ResultStub = successResult(false)
 			})
 
 			itDoesNothing()
 		})
 
 		Context("when the input source cannot indicate success", func() {
-			BeforeEach(func() {
-				inSource = inArtifactSource
-			})
-
 			itDoesNothing()
 		})
 	})
@@ -262,7 +267,7 @@ var _ = Describe("Conditional", func() {
 
 		Context("when the input source is successful", func() {
 			BeforeEach(func() {
-				inSuccessIndicator.SuccessfulReturns(true)
+				inSource.ResultStub = successResult(true)
 			})
 
 			itDoesNothing()
@@ -270,17 +275,13 @@ var _ = Describe("Conditional", func() {
 
 		Context("when the input source failed", func() {
 			BeforeEach(func() {
-				inSuccessIndicator.SuccessfulReturns(false)
+				inSource.ResultStub = successResult(false)
 			})
 
 			itDoesAThing()
 		})
 
 		Context("when the input source cannot indicate success", func() {
-			BeforeEach(func() {
-				inSource = inArtifactSource
-			})
-
 			itDoesNothing()
 		})
 	})
@@ -295,7 +296,7 @@ var _ = Describe("Conditional", func() {
 
 		Context("when the input source is successful", func() {
 			BeforeEach(func() {
-				inSuccessIndicator.SuccessfulReturns(true)
+				inSource.ResultStub = successResult(true)
 			})
 
 			itDoesAThing()
@@ -303,17 +304,13 @@ var _ = Describe("Conditional", func() {
 
 		Context("when the input source failed", func() {
 			BeforeEach(func() {
-				inSuccessIndicator.SuccessfulReturns(false)
+				inSource.ResultStub = successResult(false)
 			})
 
 			itDoesAThing()
 		})
 
 		Context("when the input source cannot indicate success", func() {
-			BeforeEach(func() {
-				inSource = inArtifactSource
-			})
-
 			itDoesNothing()
 		})
 	})

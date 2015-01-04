@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"time"
+	"unicode/utf8"
 
 	garden "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/concourse/atc"
@@ -16,37 +18,18 @@ import (
 
 type GardenMetadata struct {
 	Plan atc.BuildPlan
-	// Progress GardenProgress
 }
-
-//
-// type GardenProgress struct {
-// 	Inputs  []InputSnapshot
-// 	Build   *BuildSnapshot
-// 	Outputs []OutputSnapshot
-// }
-//
-// type InputSnapshot struct {
-// 	InputPlan      atc.InputPlan
-// 	InputProcessID int
-// }
-//
-// type BuildSnapshot struct {
-// 	BuildConfig    atc.BuildConfig
-// 	BuildProcessID int
-// }
-//
-// type OutputSnapshot struct {
-// 	OutputPlan      atc.OutputPlan
-// 	OutputProcessID int
-// }
 
 type gardenEngine struct {
 	factory exec.Factory
+	db      EngineDB
 }
 
-func NewGardenEngine(factory exec.Factory) Engine {
-	return &gardenEngine{factory: factory}
+func NewGardenEngine(factory exec.Factory, db EngineDB) Engine {
+	return &gardenEngine{
+		factory: factory,
+		db:      db,
+	}
 }
 
 func (engine *gardenEngine) Name() string {
@@ -55,6 +38,8 @@ func (engine *gardenEngine) Name() string {
 
 func (engine *gardenEngine) CreateBuild(model db.Build, plan atc.BuildPlan) (Build, error) {
 	return &gardenBuild{
+		buildID: model.ID,
+		db:      engine.db,
 		factory: engine.factory,
 		metadata: GardenMetadata{
 			Plan: plan,
@@ -70,12 +55,17 @@ func (engine *gardenEngine) LookupBuild(model db.Build) (Build, error) {
 	}
 
 	return &gardenBuild{
+		buildID:  model.ID,
+		db:       engine.db,
 		factory:  engine.factory,
 		metadata: metadata,
 	}, nil
 }
 
 type gardenBuild struct {
+	buildID int
+	db      EngineDB
+
 	factory exec.Factory
 
 	signals chan os.Signal
@@ -120,15 +110,14 @@ func (build *gardenBuild) Resume(lager.Logger) error {
 		inputs := exec.Aggregate{}
 
 		for _, input := range plan.Inputs {
+			origin := event.Origin{
+				Type: event.OriginTypeInput,
+				Name: input.Name,
+			}
+
 			ioConfig := exec.IOConfig{
-				Stdout: build.ioWriter(event.Origin{
-					Type: event.OriginTypeInput,
-					Name: input.Name,
-				}),
-				Stderr: build.ioWriter(event.Origin{
-					Type: event.OriginTypeInput,
-					Name: input.Name,
-				}),
+				Stdout: build.ioWriter(origin),
+				Stderr: build.ioWriter(origin),
 			}
 
 			resourceConfig := atc.ResourceConfig{
@@ -137,7 +126,20 @@ func (build *gardenBuild) Resume(lager.Logger) error {
 				Source: input.Source,
 			}
 
-			inputs[input.Name] = build.factory.Get(ioConfig, resourceConfig, input.Params, input.Version)
+			plan := input
+			inputs[input.Name] = exec.OnComplete(
+				build.factory.Get(ioConfig, resourceConfig, input.Params, input.Version),
+				func(err error, source exec.ArtifactSource) {
+					if err != nil {
+						build.saveErr(err, origin)
+					} else {
+						var info exec.VersionInfo
+						if source.Result(&info) {
+							build.saveInput(plan, info)
+						}
+					}
+				},
+			)
 		}
 
 		step = inputs
@@ -169,25 +171,39 @@ func (build *gardenBuild) Resume(lager.Logger) error {
 			}),
 		}
 
-		configSource = initializeEmitter{configSource}
+		configSource = initializeEmitter{
+			buildID:           build.buildID,
+			db:                build.db,
+			BuildConfigSource: configSource,
+		}
 
-		step = exec.Compose(step, successReporter.Subject(build.factory.Execute(ioConfig, configSource)))
-		// finish event? (should probably have an origin.)
+		step = exec.Compose(step, exec.OnComplete(
+			successReporter.Subject(build.factory.Execute(ioConfig, configSource)),
+			func(err error, source exec.ArtifactSource) {
+				if err != nil {
+					build.saveErr(err, event.Origin{})
+				} else {
+					var status exec.ExitStatus
+					if source.Result(&status) {
+						build.saveFinish(status)
+					}
+				}
+			},
+		))
 	}
 
 	if len(plan.Outputs) > 0 {
 		outputs := exec.Aggregate{}
 
 		for _, output := range plan.Outputs {
+			origin := event.Origin{
+				Type: event.OriginTypeOutput,
+				Name: output.Name,
+			}
+
 			ioConfig := exec.IOConfig{
-				Stdout: build.ioWriter(event.Origin{
-					Type: event.OriginTypeOutput,
-					Name: output.Name,
-				}),
-				Stderr: build.ioWriter(event.Origin{
-					Type: event.OriginTypeOutput,
-					Name: output.Name,
-				}),
+				Stdout: build.ioWriter(origin),
+				Stderr: build.ioWriter(origin),
 			}
 
 			resourceConfig := atc.ResourceConfig{
@@ -196,9 +212,23 @@ func (build *gardenBuild) Resume(lager.Logger) error {
 				Source: output.Source,
 			}
 
+			plan := output
+
 			outputs[output.Name] = exec.Conditional{
 				Conditions: output.On,
-				Step:       build.factory.Put(ioConfig, resourceConfig, output.Params),
+				Step: exec.OnComplete(
+					build.factory.Put(ioConfig, resourceConfig, output.Params),
+					func(err error, source exec.ArtifactSource) {
+						if err != nil {
+							build.saveErr(err, origin)
+						} else {
+							var info exec.VersionInfo
+							if source.Result(&info) {
+								build.saveOutput(plan, info)
+							}
+						}
+					},
+				),
 			}
 		}
 
@@ -207,7 +237,7 @@ func (build *gardenBuild) Resume(lager.Logger) error {
 
 	source := step.Using(&exec.NoopArtifactSource{})
 
-	// start
+	build.saveStart()
 
 	process := ifrit.Invoke(source)
 
@@ -219,13 +249,13 @@ func (build *gardenBuild) Resume(lager.Logger) error {
 		select {
 		case err := <-exited:
 			if aborted {
-				// aborted
+				build.saveStatus(atc.StatusAborted)
 			} else if err != nil {
-				// errored
+				build.saveStatus(atc.StatusErrored)
 			} else if successReporter.Successful() {
-				// succeeded
+				build.saveStatus(atc.StatusSucceeded)
 			} else {
-				// failed
+				build.saveStatus(atc.StatusFailed)
 			}
 
 			return nil
@@ -244,11 +274,97 @@ func (build *gardenBuild) Hijack(garden.ProcessSpec, garden.ProcessIO) (garden.P
 	return nil, nil
 }
 
+func (build *gardenBuild) saveStart() {
+	// TODO handle errs
+
+	time := time.Now()
+
+	build.db.SaveBuildStartTime(build.buildID, time)
+
+	build.db.SaveBuildStatus(build.buildID, db.StatusStarted)
+
+	build.db.SaveBuildEvent(build.buildID, event.Start{
+		Time: time.Unix(),
+	})
+
+	build.db.SaveBuildEvent(build.buildID, event.Status{
+		Status: atc.StatusStarted,
+		Time:   time.Unix(),
+	})
+}
+
+func (build *gardenBuild) saveFinish(status exec.ExitStatus) {
+	build.db.SaveBuildEvent(build.buildID, event.Finish{
+		ExitStatus: int(status),
+		Time:       time.Now().Unix(),
+	})
+}
+
+func (build *gardenBuild) saveStatus(status atc.BuildStatus) {
+	// TODO handle errs
+
+	time := time.Now()
+
+	build.db.SaveBuildEndTime(build.buildID, time)
+
+	build.db.SaveBuildStatus(build.buildID, db.Status(status))
+
+	build.db.SaveBuildEvent(build.buildID, event.Status{
+		Status: status,
+		Time:   time.Unix(),
+	})
+
+	build.db.CompleteBuild(build.buildID)
+}
+
+func (build *gardenBuild) saveErr(err error, origin event.Origin) {
+	// TODO handle errs
+
+	build.db.SaveBuildEvent(build.buildID, event.Error{
+		Message: err.Error(),
+		Origin:  origin,
+	})
+}
+
+func (build *gardenBuild) saveInput(plan atc.InputPlan, info exec.VersionInfo) {
+	ev := event.Input{
+		Plan:            plan,
+		FetchedVersion:  info.Version,
+		FetchedMetadata: info.Metadata,
+	}
+
+	build.db.SaveBuildEvent(build.buildID, ev)
+
+	build.db.SaveBuildInput(build.buildID, db.BuildInput{
+		Name:              plan.Name,
+		VersionedResource: vrFromInput(ev),
+	})
+}
+
+func (build *gardenBuild) saveOutput(plan atc.OutputPlan, info exec.VersionInfo) {
+	ev := event.Output{
+		Plan:            plan,
+		CreatedVersion:  info.Version,
+		CreatedMetadata: info.Metadata,
+	}
+
+	build.db.SaveBuildEvent(build.buildID, ev)
+
+	build.db.SaveBuildOutput(build.buildID, vrFromOutput(ev))
+}
+
 func (build *gardenBuild) ioWriter(origin event.Origin) io.Writer {
-	return nil
+	return &dbEventWriter{
+		buildID: build.buildID,
+		db:      build.db,
+		origin:  origin,
+	}
 }
 
 type initializeEmitter struct {
+	buildID int
+	db      EngineDB
+
 	exec.BuildConfigSource
 }
 
@@ -258,7 +374,39 @@ func (emitter initializeEmitter) FetchConfig(source exec.ArtifactSource) (atc.Bu
 		return atc.BuildConfig{}, err
 	}
 
-	// initialize event
+	// TODO handle err
+	emitter.db.SaveBuildEvent(emitter.buildID, event.Initialize{
+		BuildConfig: config,
+	})
 
 	return config, nil
+}
+
+type dbEventWriter struct {
+	buildID int
+	db      EngineDB
+
+	origin event.Origin
+
+	dangling []byte
+}
+
+func (writer *dbEventWriter) Write(data []byte) (int, error) {
+	text := append(writer.dangling, data...)
+
+	checkEncoding, _ := utf8.DecodeLastRune(text)
+	if checkEncoding == utf8.RuneError {
+		writer.dangling = text
+		return len(data), nil
+	}
+
+	writer.dangling = nil
+
+	// TODO handle err
+	writer.db.SaveBuildEvent(writer.buildID, event.Log{
+		Payload: string(text),
+		Origin:  writer.origin,
+	})
+
+	return len(data), nil
 }

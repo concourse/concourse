@@ -26,7 +26,7 @@ type executeStep struct {
 
 	Container garden.Container
 
-	successful bool
+	exitStatus int
 }
 
 func (step executeStep) Using(source ArtifactSource) ArtifactSource {
@@ -88,7 +88,7 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 		return ErrInterrupted
 
 	case status := <-waitExitStatus:
-		step.successful = status == 0
+		step.exitStatus = status
 		return nil
 
 	case err := <-waitErr:
@@ -96,8 +96,19 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 	}
 }
 
-func (step *executeStep) Successful() bool {
-	return step.successful
+func (step *executeStep) Result(x interface{}) bool {
+	switch v := x.(type) {
+	case *Success:
+		*v = step.exitStatus == 0
+		return true
+
+	case *ExitStatus:
+		*v = ExitStatus(step.exitStatus)
+		return true
+
+	default:
+		return false
+	}
 }
 
 func (step *executeStep) Release() error {

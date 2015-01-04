@@ -86,3 +86,7 @@ func (step *composed) StreamFile(filePath string) (io.ReadCloser, error) {
 func (step *composed) StreamTo(dst ArtifactDestination) error {
 	return step.secondSource.StreamTo(dst)
 }
+
+func (step *composed) Result(x interface{}) bool {
+	return step.secondSource.Result(x)
+}

@@ -69,6 +69,20 @@ func (ras *resourceStep) StreamFile(path string) (io.ReadCloser, error) {
 	}, nil
 }
 
+func (ras *resourceStep) Result(x interface{}) bool {
+	switch v := x.(type) {
+	case *VersionInfo:
+		*v = VersionInfo{
+			Version:  ras.VersionedSource.Version(),
+			Metadata: ras.VersionedSource.Metadata(),
+		}
+		return true
+
+	default:
+		return false
+	}
+}
+
 type fileReadCloser struct {
 	io.Reader
 	io.Closer

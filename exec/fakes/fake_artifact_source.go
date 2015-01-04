@@ -42,6 +42,14 @@ type FakeArtifactSource struct {
 	releaseReturns struct {
 		result1 error
 	}
+	ResultStub        func(interface{}) bool
+	resultMutex       sync.RWMutex
+	resultArgsForCall []struct {
+		arg1 interface{}
+	}
+	resultReturns struct {
+		result1 bool
+	}
 }
 
 func (fake *FakeArtifactSource) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -163,6 +171,38 @@ func (fake *FakeArtifactSource) ReleaseReturns(result1 error) {
 	fake.ReleaseStub = nil
 	fake.releaseReturns = struct {
 		result1 error
+	}{result1}
+}
+
+func (fake *FakeArtifactSource) Result(arg1 interface{}) bool {
+	fake.resultMutex.Lock()
+	fake.resultArgsForCall = append(fake.resultArgsForCall, struct {
+		arg1 interface{}
+	}{arg1})
+	fake.resultMutex.Unlock()
+	if fake.ResultStub != nil {
+		return fake.ResultStub(arg1)
+	} else {
+		return fake.resultReturns.result1
+	}
+}
+
+func (fake *FakeArtifactSource) ResultCallCount() int {
+	fake.resultMutex.RLock()
+	defer fake.resultMutex.RUnlock()
+	return len(fake.resultArgsForCall)
+}
+
+func (fake *FakeArtifactSource) ResultArgsForCall(i int) interface{} {
+	fake.resultMutex.RLock()
+	defer fake.resultMutex.RUnlock()
+	return fake.resultArgsForCall[i].arg1
+}
+
+func (fake *FakeArtifactSource) ResultReturns(result1 bool) {
+	fake.ResultStub = nil
+	fake.resultReturns = struct {
+		result1 bool
 	}{result1}
 }
 

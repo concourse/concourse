@@ -19,6 +19,8 @@ type ArtifactSource interface {
 	StreamFile(path string) (io.ReadCloser, error)
 
 	Release() error
+
+	Result(interface{}) bool
 }
 
 //go:generate counterfeiter . ArtifactDestination
@@ -26,15 +28,13 @@ type ArtifactDestination interface {
 	StreamIn(string, io.Reader) error
 }
 
-//go:generate counterfeiter . SuccessIndicator
-type SuccessIndicator interface {
-	Successful() bool
-}
+type Success bool
 
-//go:generate counterfeiter . VersionIndicator
-type VersionIndicator interface {
-	Version() atc.Version
-	Metadata() []atc.MetadataField
+type ExitStatus int
+
+type VersionInfo struct {
+	Version  atc.Version
+	Metadata []atc.MetadataField
 }
 
 type NoopArtifactSource struct{}
@@ -51,4 +51,8 @@ func (NoopArtifactSource) StreamTo(ArtifactDestination) error {
 
 func (NoopArtifactSource) StreamFile(string) (io.ReadCloser, error) {
 	return nil, ErrFileNotFound
+}
+
+func (NoopArtifactSource) Result(interface{}) bool {
+	return false
 }

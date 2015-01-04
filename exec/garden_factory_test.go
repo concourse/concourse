@@ -121,6 +121,16 @@ var _ = Describe("GardenFactory", func() {
 				Ω(fakeVersionedSource.RunCallCount()).Should(Equal(1))
 			})
 
+			It("reports the fetched version info", func() {
+				fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
+				fakeVersionedSource.MetadataReturns([]atc.MetadataField{{"some", "metadata"}})
+
+				var info VersionInfo
+				Ω(source.Result(&info)).Should(BeTrue())
+				Ω(info.Version).Should(Equal(atc.Version{"some": "version"}))
+				Ω(info.Metadata).Should(Equal([]atc.MetadataField{{"some", "metadata"}}))
+			})
+
 			Describe("signalling", func() {
 				var receivedSignals <-chan os.Signal
 
@@ -187,7 +197,6 @@ var _ = Describe("GardenFactory", func() {
 					BeforeEach(func() {
 						streamedOut = gbytes.NewBuffer()
 						fakeVersionedSource.StreamOutReturns(streamedOut, nil)
-
 					})
 
 					It("streams the resource to the destination", func() {
@@ -404,6 +413,16 @@ var _ = Describe("GardenFactory", func() {
 
 			It("executes the get resource action", func() {
 				Ω(fakeVersionedSource.RunCallCount()).Should(Equal(1))
+			})
+
+			It("reports the created version info", func() {
+				fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
+				fakeVersionedSource.MetadataReturns([]atc.MetadataField{{"some", "metadata"}})
+
+				var info VersionInfo
+				Ω(source.Result(&info)).Should(BeTrue())
+				Ω(info.Version).Should(Equal(atc.Version{"some": "version"}))
+				Ω(info.Metadata).Should(Equal([]atc.MetadataField{{"some", "metadata"}}))
 			})
 
 			Describe("signalling", func() {
@@ -786,7 +805,17 @@ var _ = Describe("GardenFactory", func() {
 					It("is successful", func() {
 						Eventually(process.Wait()).Should(Receive(BeNil()))
 
-						Ω(source.(SuccessIndicator).Successful()).Should(BeTrue())
+						var success Success
+						Ω(source.Result(&success)).Should(BeTrue())
+						Ω(bool(success)).Should(BeTrue())
+					})
+
+					It("reports its exit status", func() {
+						Eventually(process.Wait()).Should(Receive(BeNil()))
+
+						var status ExitStatus
+						Ω(source.Result(&status)).Should(BeTrue())
+						Ω(status).Should(Equal(ExitStatus(0)))
 					})
 				})
 
@@ -798,7 +827,17 @@ var _ = Describe("GardenFactory", func() {
 					It("is not successful", func() {
 						Eventually(process.Wait()).Should(Receive(BeNil()))
 
-						Ω(source.(SuccessIndicator).Successful()).Should(BeFalse())
+						var success Success
+						Ω(source.Result(&success)).Should(BeTrue())
+						Ω(bool(success)).Should(BeFalse())
+					})
+
+					It("reports its exit status", func() {
+						Eventually(process.Wait()).Should(Receive(BeNil()))
+
+						var status ExitStatus
+						Ω(source.Result(&status)).Should(BeTrue())
+						Ω(status).Should(Equal(ExitStatus(1)))
 					})
 				})
 

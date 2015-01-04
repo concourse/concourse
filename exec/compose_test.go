@@ -238,6 +238,20 @@ var _ = Describe("Compose", func() {
 				})
 			})
 
+			Describe("getting the result", func() {
+				BeforeEach(func() {
+					outSourceB.ResultStub = successResult(true)
+				})
+
+				It("delegates to the second source", func() {
+					Eventually(process.Wait()).Should(Receive(BeNil()))
+
+					var success Success
+					Ω(source.Result(&success)).Should(BeTrue())
+					Ω(bool(success)).Should(BeTrue())
+				})
+			})
+
 			Describe("streaming to a destination", func() {
 				var fakeDestination *fakes.FakeArtifactDestination
 

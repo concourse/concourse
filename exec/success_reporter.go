@@ -63,8 +63,9 @@ func (step successReporterStep) Run(signals <-chan os.Signal, ready chan<- struc
 		return err
 	}
 
-	if indicator, ok := step.ArtifactSource.(SuccessIndicator); ok {
-		if !indicator.Successful() {
+	var succeeded Success
+	if step.ArtifactSource.Result(&succeeded) {
+		if succeeded == false {
 			step.reporter.fail()
 		}
 	}

@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"reflect"
 	"strings"
 
 	"github.com/tedsuo/ifrit"
@@ -93,6 +94,36 @@ func (source aggregateArtifactSource) Release() error {
 	}
 
 	return nil
+}
+
+func (source aggregateArtifactSource) Result(x interface{}) bool {
+	t := reflect.TypeOf(x)
+	v := reflect.ValueOf(x)
+
+	var m reflect.Value
+
+	if t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Map {
+		m = v.Elem()
+	} else if t.Kind() == reflect.Map {
+		m = v
+	} else {
+		return false
+	}
+
+	if m.Type().Key().Kind() != reflect.String {
+		return false
+	}
+
+	for name, src := range source {
+		res := reflect.New(m.Type().Elem())
+		if !src.Result(res.Interface()) {
+			return false
+		}
+
+		m.SetMapIndex(reflect.ValueOf(name), res.Elem())
+	}
+
+	return true
 }
 
 type subdirectoryDestination struct {

@@ -21,9 +21,8 @@ func (c Conditional) Using(source ArtifactSource) ArtifactSource {
 }
 
 func (c *Conditional) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	indicator, ok := c.inputSource.(SuccessIndicator)
-
-	if ok && c.Conditions.SatisfiedBy(indicator.Successful()) {
+	var succeeded Success
+	if c.inputSource.Result(&succeeded) && c.Conditions.SatisfiedBy(bool(succeeded)) {
 		c.outputSource = c.Step.Using(c.inputSource)
 	} else {
 		c.outputSource = &NoopArtifactSource{}
@@ -42,4 +41,8 @@ func (c *Conditional) StreamTo(dst ArtifactDestination) error {
 
 func (c *Conditional) StreamFile(path string) (io.ReadCloser, error) {
 	return c.outputSource.StreamFile(path)
+}
+
+func (c *Conditional) Result(x interface{}) bool {
+	return c.outputSource.Result(x)
 }

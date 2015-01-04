@@ -31,7 +31,7 @@ var _ = Describe("SuccessReporter", func() {
 			inSource *fakes.FakeArtifactSource
 
 			firstStep       *fakes.FakeStep
-			firstStepSource *fakeSuccessfulIndicatorArtifactSource
+			firstStepSource *fakes.FakeArtifactSource
 
 			firstProcess ifrit.Process
 		)
@@ -41,11 +41,7 @@ var _ = Describe("SuccessReporter", func() {
 
 			firstStep = new(fakes.FakeStep)
 
-			firstStepSource = &fakeSuccessfulIndicatorArtifactSource{
-				FakeArtifactSource:   new(fakes.FakeArtifactSource),
-				FakeSuccessIndicator: new(fakes.FakeSuccessIndicator),
-			}
-
+			firstStepSource = new(fakes.FakeArtifactSource)
 			firstStep.UsingReturns(firstStepSource)
 		})
 
@@ -55,7 +51,7 @@ var _ = Describe("SuccessReporter", func() {
 
 		Context("when the source is not successful", func() {
 			BeforeEach(func() {
-				firstStepSource.SuccessfulReturns(false)
+				firstStepSource.ResultStub = successResult(false)
 			})
 
 			Context("when the wrapped step's source exits successfully", func() {
@@ -83,7 +79,7 @@ var _ = Describe("SuccessReporter", func() {
 						inSource *fakes.FakeArtifactSource
 
 						secondStep       *fakes.FakeStep
-						secondStepSource *fakeSuccessfulIndicatorArtifactSource
+						secondStepSource *fakes.FakeArtifactSource
 
 						secondProcess ifrit.Process
 					)
@@ -93,11 +89,7 @@ var _ = Describe("SuccessReporter", func() {
 
 						secondStep = new(fakes.FakeStep)
 
-						secondStepSource = &fakeSuccessfulIndicatorArtifactSource{
-							FakeArtifactSource:   new(fakes.FakeArtifactSource),
-							FakeSuccessIndicator: new(fakes.FakeSuccessIndicator),
-						}
-
+						secondStepSource = new(fakes.FakeArtifactSource)
 						secondStep.UsingReturns(secondStepSource)
 					})
 
@@ -108,7 +100,7 @@ var _ = Describe("SuccessReporter", func() {
 
 					Context("when the source is successful", func() {
 						BeforeEach(func() {
-							secondStepSource.SuccessfulReturns(true)
+							secondStepSource.ResultStub = successResult(true)
 						})
 
 						Context("when the wrapped step's source exits successfully", func() {
@@ -153,7 +145,7 @@ var _ = Describe("SuccessReporter", func() {
 
 					Context("when the source is not successful", func() {
 						BeforeEach(func() {
-							secondStepSource.SuccessfulReturns(false)
+							secondStepSource.ResultStub = successResult(false)
 						})
 
 						Context("when the wrapped step's source exits successfully", func() {
@@ -219,7 +211,7 @@ var _ = Describe("SuccessReporter", func() {
 
 		Context("when the source is successful", func() {
 			BeforeEach(func() {
-				firstStepSource.SuccessfulReturns(true)
+				firstStepSource.ResultStub = successResult(true)
 			})
 
 			Context("when the wrapped step's source exits successfully", func() {
@@ -247,7 +239,7 @@ var _ = Describe("SuccessReporter", func() {
 						inSource *fakes.FakeArtifactSource
 
 						secondStep       *fakes.FakeStep
-						secondStepSource *fakeSuccessfulIndicatorArtifactSource
+						secondStepSource *fakes.FakeArtifactSource
 
 						secondProcess ifrit.Process
 					)
@@ -257,11 +249,7 @@ var _ = Describe("SuccessReporter", func() {
 
 						secondStep = new(fakes.FakeStep)
 
-						secondStepSource = &fakeSuccessfulIndicatorArtifactSource{
-							FakeArtifactSource:   new(fakes.FakeArtifactSource),
-							FakeSuccessIndicator: new(fakes.FakeSuccessIndicator),
-						}
-
+						secondStepSource = new(fakes.FakeArtifactSource)
 						secondStep.UsingReturns(secondStepSource)
 					})
 
@@ -272,7 +260,7 @@ var _ = Describe("SuccessReporter", func() {
 
 					Context("when the source is successful", func() {
 						BeforeEach(func() {
-							secondStepSource.SuccessfulReturns(true)
+							secondStepSource.ResultStub = successResult(true)
 						})
 
 						Context("when the wrapped step's source exits successfully", func() {
@@ -317,7 +305,7 @@ var _ = Describe("SuccessReporter", func() {
 
 					Context("when the source is not successful", func() {
 						BeforeEach(func() {
-							secondStepSource.SuccessfulReturns(false)
+							secondStepSource.ResultStub = successResult(false)
 						})
 
 						Context("when the wrapped step's source exits successfully", func() {
