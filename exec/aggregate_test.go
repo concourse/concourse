@@ -93,6 +93,35 @@ var _ = Describe("Aggregate", func() {
 		})
 	})
 
+	Describe("signalling", func() {
+		var receivedSignals chan os.Signal
+
+		BeforeEach(func() {
+			receivedSignals = make(chan os.Signal, 2)
+
+			outSourceA.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+				close(ready)
+				receivedSignals <- <-signals
+				return nil
+			}
+
+			outSourceB.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+				close(ready)
+				receivedSignals <- <-signals
+				return nil
+			}
+		})
+
+		It("propagates to all sources", func() {
+			process.Signal(os.Interrupt)
+
+			Eventually(process.Wait()).Should(Receive())
+
+			Ω(receivedSignals).Should(Receive(Equal(os.Interrupt)))
+			Ω(receivedSignals).Should(Receive(Equal(os.Interrupt)))
+		})
+	})
+
 	Context("when sources fail", func() {
 		disasterA := errors.New("nope A")
 		disasterB := errors.New("nope B")

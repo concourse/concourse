@@ -14,7 +14,7 @@ import (
 type Aggregate map[string]Step
 
 func (a Aggregate) Using(source ArtifactSource) ArtifactSource {
-	sources := aggregateArtifactSource{}
+	sources := aggregateSource{}
 
 	for name, step := range a {
 		sources[name] = step.Using(source)
@@ -23,9 +23,9 @@ func (a Aggregate) Using(source ArtifactSource) ArtifactSource {
 	return sources
 }
 
-type aggregateArtifactSource map[string]ArtifactSource
+type aggregateSource map[string]ArtifactSource
 
-func (source aggregateArtifactSource) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+func (source aggregateSource) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	members := map[string]ifrit.Process{}
 
 	for mn, ms := range source {
@@ -45,9 +45,16 @@ func (source aggregateArtifactSource) Run(signals <-chan os.Signal, ready chan<-
 	var errorMessages []string
 
 	for mn, mp := range members {
-		err := <-mp.Wait()
-		if err != nil {
-			errorMessages = append(errorMessages, mn+": "+err.Error())
+		select {
+		case sig := <-signals:
+			for _, mp := range members {
+				mp.Signal(sig)
+			}
+
+		case err := <-mp.Wait():
+			if err != nil {
+				errorMessages = append(errorMessages, mn+": "+err.Error())
+			}
 		}
 	}
 
@@ -58,7 +65,7 @@ func (source aggregateArtifactSource) Run(signals <-chan os.Signal, ready chan<-
 	return nil
 }
 
-func (source aggregateArtifactSource) StreamTo(dest ArtifactDestination) error {
+func (source aggregateSource) StreamTo(dest ArtifactDestination) error {
 	for name, src := range source {
 		err := src.StreamTo(subdirectoryDestination{dest, name})
 		if err != nil {
@@ -69,7 +76,7 @@ func (source aggregateArtifactSource) StreamTo(dest ArtifactDestination) error {
 	return nil
 }
 
-func (source aggregateArtifactSource) StreamFile(path string) (io.ReadCloser, error) {
+func (source aggregateSource) StreamFile(path string) (io.ReadCloser, error) {
 	for name, src := range source {
 		if strings.HasPrefix(path, name+"/") {
 			return src.StreamFile(path[len(name)+1:])
@@ -79,7 +86,7 @@ func (source aggregateArtifactSource) StreamFile(path string) (io.ReadCloser, er
 	return nil, ErrFileNotFound
 }
 
-func (source aggregateArtifactSource) Release() error {
+func (source aggregateSource) Release() error {
 	var errorMessages []string
 
 	for name, src := range source {
@@ -96,7 +103,7 @@ func (source aggregateArtifactSource) Release() error {
 	return nil
 }
 
-func (source aggregateArtifactSource) Result(x interface{}) bool {
+func (source aggregateSource) Result(x interface{}) bool {
 	t := reflect.TypeOf(x)
 	v := reflect.ValueOf(x)
 
