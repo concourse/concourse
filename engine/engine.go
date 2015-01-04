@@ -25,5 +25,5 @@ type Build interface {
 
 	Abort() error
 	Hijack(garden.ProcessSpec, garden.ProcessIO) (garden.Process, error)
-	Resume(lager.Logger) error
+	Resume(lager.Logger)
 }

@@ -32,13 +32,10 @@ type FakeBuild struct {
 		result1 garden.Process
 		result2 error
 	}
-	ResumeStub        func(lager.Logger) error
+	ResumeStub        func(lager.Logger)
 	resumeMutex       sync.RWMutex
 	resumeArgsForCall []struct {
 		arg1 lager.Logger
-	}
-	resumeReturns struct {
-		result1 error
 	}
 }
 
@@ -124,16 +121,14 @@ func (fake *FakeBuild) HijackReturns(result1 garden.Process, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeBuild) Resume(arg1 lager.Logger) error {
+func (fake *FakeBuild) Resume(arg1 lager.Logger) {
 	fake.resumeMutex.Lock()
 	fake.resumeArgsForCall = append(fake.resumeArgsForCall, struct {
 		arg1 lager.Logger
 	}{arg1})
 	fake.resumeMutex.Unlock()
 	if fake.ResumeStub != nil {
-		return fake.ResumeStub(arg1)
-	} else {
-		return fake.resumeReturns.result1
+		fake.ResumeStub(arg1)
 	}
 }
 
@@ -147,13 +142,6 @@ func (fake *FakeBuild) ResumeArgsForCall(i int) lager.Logger {
 	fake.resumeMutex.RLock()
 	defer fake.resumeMutex.RUnlock()
 	return fake.resumeArgsForCall[i].arg1
-}
-
-func (fake *FakeBuild) ResumeReturns(result1 error) {
-	fake.ResumeStub = nil
-	fake.resumeReturns = struct {
-		result1 error
-	}{result1}
 }
 
 var _ engine.Build = new(FakeBuild)

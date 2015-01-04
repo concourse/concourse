@@ -454,18 +454,14 @@ var _ = Describe("DBEngine", func() {
 		})
 
 		Describe("Resume", func() {
-			var (
-				logger lager.Logger
-
-				resumeErr error
-			)
+			var logger lager.Logger
 
 			BeforeEach(func() {
 				logger = lagertest.NewTestLogger("test")
 			})
 
 			JustBeforeEach(func() {
-				resumeErr = build.Resume(logger)
+				build.Resume(logger)
 			})
 
 			Context("when acquiring the lock succeeds", func() {
@@ -491,14 +487,13 @@ var _ = Describe("DBEngine", func() {
 							realBuild = new(fakes.FakeBuild)
 							fakeEngine.LookupBuildReturns(realBuild, nil)
 
-							realBuild.ResumeStub = func(lager.Logger) error {
+							realBuild.ResumeStub = func(lager.Logger) {
 								Ω(fakeLocker.AcquireWriteLockImmediatelyCallCount()).Should(Equal(1))
 
 								lockedBuild := fakeLocker.AcquireWriteLockImmediatelyArgsForCall(0)
 								Ω(lockedBuild).Should(Equal([]db.NamedLock{db.BuildTrackingLock(model.ID)}))
 
 								Ω(fakeLock.ReleaseCallCount()).Should(BeZero())
-								return nil
 							}
 						})
 
@@ -546,15 +541,11 @@ var _ = Describe("DBEngine", func() {
 										return nil
 									}
 
-									realBuild.ResumeStub = func(lager.Logger) error {
-										return <-aborted
+									realBuild.ResumeStub = func(lager.Logger) {
+										<-aborted
 									}
 
 									close(abort)
-								})
-
-								It("returns whatever Resume returns", func() {
-									Ω(resumeErr).Should(Equal(errAborted))
 								})
 
 								It("aborts the build", func() {
@@ -578,10 +569,6 @@ var _ = Describe("DBEngine", func() {
 								fakeBuildDB.AbortNotifierReturns(nil, disaster)
 							})
 
-							It("returns the error", func() {
-								Ω(resumeErr).Should(Equal(disaster))
-							})
-
 							It("does not resume the build", func() {
 								Ω(realBuild.ResumeCallCount()).Should(BeZero())
 							})
@@ -600,10 +587,6 @@ var _ = Describe("DBEngine", func() {
 							fakeEngine.LookupBuildReturns(nil, disaster)
 						})
 
-						It("returns the error", func() {
-							Ω(resumeErr).Should(Equal(disaster))
-						})
-
 						It("releases the lock", func() {
 							Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
 						})
@@ -614,10 +597,6 @@ var _ = Describe("DBEngine", func() {
 					BeforeEach(func() {
 						model.Engine = ""
 						fakeBuildDB.GetBuildReturns(model, nil)
-					})
-
-					It("succeeds", func() {
-						Ω(resumeErr).ShouldNot(HaveOccurred())
 					})
 
 					It("does not look up the build in the engine", func() {
@@ -633,10 +612,6 @@ var _ = Describe("DBEngine", func() {
 			Context("when acquiring the lock fails", func() {
 				BeforeEach(func() {
 					fakeLocker.AcquireWriteLockImmediatelyReturns(nil, errors.New("no lock for you"))
-				})
-
-				It("succeeds", func() {
-					Ω(resumeErr).ShouldNot(HaveOccurred())
 				})
 
 				It("does not look up the build", func() {

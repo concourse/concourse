@@ -140,11 +140,11 @@ func (build *dbBuild) Abort() error {
 	return engineBuild.Abort()
 }
 
-func (build *dbBuild) Resume(logger lager.Logger) error {
+func (build *dbBuild) Resume(logger lager.Logger) {
 	lock, err := build.locker.AcquireWriteLockImmediately([]db.NamedLock{db.BuildTrackingLock(build.id)})
 	if err != nil {
 		// already being tracked somewhere; short-circuit
-		return nil
+		return
 	}
 
 	defer lock.Release()
@@ -152,24 +152,24 @@ func (build *dbBuild) Resume(logger lager.Logger) error {
 	model, err := build.db.GetBuild(build.id)
 	if err != nil {
 		logger.Error("failed-to-load-build-from-db", err)
-		return err
+		return
 	}
 
 	if model.Engine == "" {
 		logger.Error("build-has-no-engine", err)
-		return nil
+		return
 	}
 
 	engineBuild, err := build.engine.LookupBuild(model)
 	if err != nil {
 		logger.Error("failed-to-lookup-build-from-engine", err)
-		return err
+		return
 	}
 
 	aborts, err := build.db.AbortNotifier(build.id)
 	if err != nil {
 		logger.Error("failed-to-listen-for-aborts", err)
-		return err
+		return
 	}
 
 	defer aborts.Close()
@@ -190,7 +190,7 @@ func (build *dbBuild) Resume(logger lager.Logger) error {
 		}
 	}()
 
-	return engineBuild.Resume(logger)
+	engineBuild.Resume(logger)
 }
 
 func (build *dbBuild) Hijack(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {

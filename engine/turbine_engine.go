@@ -339,7 +339,7 @@ func (build *turbineBuild) Hijack(spec garden.ProcessSpec, processIO garden.Proc
 	return newTurbineProcess(conn, br, processIO), nil
 }
 
-func (build *turbineBuild) Resume(logger lager.Logger) error {
+func (build *turbineBuild) Resume(logger lager.Logger) {
 	events, err := build.subscribe(build.metadata.LastEventID)
 	if err != nil {
 		if err == ErrBadResponse {
@@ -348,13 +348,15 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 			err := build.db.SaveBuildStatus(build.id, db.StatusErrored)
 			if err != nil {
 				logger.Error("failed-to-save-orphaned-build-as-errored", err)
-				return err
+				return
 			}
 
-			return nil
+			return
 		}
 
-		return err
+		logger.Error("failed-to-subscribe", err)
+
+		return
 	}
 
 	defer events.Close()
@@ -374,21 +376,27 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 				)
 				if err != nil {
 					logger.Error("failed-to-create-delete-request", err)
-					return err
+					return
 				}
 
 				resp, err := http.DefaultClient.Do(del)
 				if err != nil {
 					logger.Error("failed-to-delete-build", err)
-					return err
+					return
 				}
 
 				resp.Body.Close()
 
-				return build.db.CompleteBuild(build.id)
+				err = build.db.CompleteBuild(build.id)
+				if err != nil {
+					logger.Error("failed-to-complete-build", err)
+					return
+				}
 			}
 
-			return err
+			logger.Error("failed-to-get-next-event", err)
+
+			return
 		}
 
 		evLog := logger.Session("event", lager.Data{"event": e})
@@ -396,13 +404,13 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 		err = build.db.SaveBuildEvent(build.id, e)
 		if err != nil {
 			evLog.Error("failed-to-save-build-event", err)
-			return err
+			return
 		}
 
 		err = build.updateLastEventID(id)
 		if err != nil {
 			evLog.Error("failed-to-update-metadata", err)
-			return err
+			return
 		}
 
 		switch ev := e.(type) {
@@ -413,20 +421,20 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 				err = build.db.SaveBuildStartTime(build.id, time.Unix(ev.Time, 0))
 				if err != nil {
 					evLog.Error("failed-to-save-build-start-time", err)
-					return err
+					return
 				}
 			} else {
 				err = build.db.SaveBuildEndTime(build.id, time.Unix(ev.Time, 0))
 				if err != nil {
 					evLog.Error("failed-to-save-build-end-time", err)
-					return err
+					return
 				}
 			}
 
 			err = build.db.SaveBuildStatus(build.id, db.Status(ev.Status))
 			if err != nil {
 				evLog.Error("failed-to-save-build-status", err)
-				return err
+				return
 			}
 
 			if ev.Status == atc.StatusSucceeded {
@@ -434,7 +442,7 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 					err := build.db.SaveBuildOutput(build.id, output)
 					if err != nil {
 						evLog.Error("failed-to-save-build-output", err)
-						return err
+						return
 					}
 				}
 			}
@@ -454,7 +462,7 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 			})
 			if err != nil {
 				evLog.Error("failed-to-save-build-input", err)
-				return err
+				return
 			}
 
 			// record implicit output
@@ -465,8 +473,6 @@ func (build *turbineBuild) Resume(logger lager.Logger) error {
 			outputs[ev.Plan.Name] = vrFromOutput(ev)
 		}
 	}
-
-	return nil
 }
 
 func (build *turbineBuild) subscribe(lastID *uint) (*turbineEventSource, error) {

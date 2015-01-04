@@ -101,7 +101,7 @@ func (build *gardenBuild) Abort() error {
 //     "D": Conditional{Put()},
 //   },
 // )
-func (build *gardenBuild) Resume(lager.Logger) error {
+func (build *gardenBuild) Resume(lager.Logger) {
 	plan := build.metadata.Plan
 
 	var step exec.Step
@@ -258,7 +258,7 @@ func (build *gardenBuild) Resume(lager.Logger) error {
 				build.saveStatus(atc.StatusFailed)
 			}
 
-			return nil
+			return
 
 		case sig := <-build.signals:
 			process.Signal(sig)

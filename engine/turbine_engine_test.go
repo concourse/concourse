@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -539,11 +538,7 @@ var _ = Describe("TurbineEngine", func() {
 		})
 
 		Describe("Resume", func() {
-			var (
-				buildModel db.Build
-
-				resumeErr error
-			)
+			var buildModel db.Build
 
 			BeforeEach(func() {
 				metadata := TurbineMetadata{
@@ -565,7 +560,7 @@ var _ = Describe("TurbineEngine", func() {
 				build, err := engine.LookupBuild(buildModel)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				resumeErr = build.Resume(lagertest.NewTestLogger("test"))
+				build.Resume(lagertest.NewTestLogger("test"))
 			})
 
 			Context("when the build's turbine returns events", func() {
@@ -639,50 +634,6 @@ var _ = Describe("TurbineEngine", func() {
 						savedBuildID, savedMetadata := fakeDB.SaveBuildEngineMetadataArgsForCall(int(id) - 1)
 						Ω(savedBuildID).Should(Equal(1))
 						Ω(savedMetadata).Should(Equal(string(metadataPayload)))
-					})
-
-					Context("when saving the event fails", func() {
-						disaster := errors.New("oh no!")
-
-						BeforeEach(func() {
-							var num uint
-
-							fakeDB.SaveBuildEventStub = func(int, atc.Event) error {
-								num++
-
-								if num == id {
-									return disaster
-								}
-
-								return nil
-							}
-						})
-
-						It("returns an error", func() {
-							Ω(resumeErr).Should(Equal(disaster))
-						})
-					})
-
-					Context("when saving the engine metadata fails", func() {
-						disaster := errors.New("oh no!")
-
-						BeforeEach(func() {
-							var num uint
-
-							fakeDB.SaveBuildEngineMetadataStub = func(int, string) error {
-								num++
-
-								if num == id {
-									return disaster
-								}
-
-								return nil
-							}
-						})
-
-						It("returns an error", func() {
-							Ω(resumeErr).Should(Equal(disaster))
-						})
 					})
 
 					Context("when resuming from after the event id", func() {
@@ -1075,18 +1026,6 @@ var _ = Describe("TurbineEngine", func() {
 								Ω(fakeDB.CompleteBuildCallCount()).Should(Equal(1))
 								Ω(fakeDB.CompleteBuildArgsForCall(0)).Should(Equal(buildModel.ID))
 							})
-
-							Context("when marking the build as completed fails", func() {
-								disaster := errors.New("oh no!")
-
-								BeforeEach(func() {
-									fakeDB.CompleteBuildReturns(disaster)
-								})
-
-								It("returns the error", func() {
-									Ω(resumeErr).Should(Equal(disaster))
-								})
-							})
 						})
 					})
 				}
@@ -1114,10 +1053,6 @@ var _ = Describe("TurbineEngine", func() {
 					)
 				})
 
-				It("does not return an error", func() {
-					Ω(resumeErr).ShouldNot(HaveOccurred())
-				})
-
 				It("sets the build's status to errored", func() {
 					// TODO some way of messaging this?
 
@@ -1136,10 +1071,6 @@ var _ = Describe("TurbineEngine", func() {
 							buildEndpoint.CloseClientConnections()
 						},
 					)
-				})
-
-				It("returns an error", func() {
-					Ω(resumeErr).Should(HaveOccurred())
 				})
 
 				It("does not update the build's status, as the turbine may be temporarily AWOL (i.e. rolling update)", func() {
