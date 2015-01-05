@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/concourse/atc/db"
+	"github.com/concourse/turbine/resource"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
-	"github.com/tedsuo/rata"
 )
 
 //go:generate counterfeiter . Locker
@@ -20,7 +20,7 @@ type Locker interface {
 
 //go:generate counterfeiter . Scanner
 type Scanner interface {
-	Scan(ResourceChecker, string) ifrit.Runner
+	Scan(string) ifrit.Runner
 }
 
 type Runner struct {
@@ -34,7 +34,7 @@ type Runner struct {
 
 	syncInterval time.Duration
 
-	turbineEndpoint *rata.RequestGenerator
+	tracker resource.Tracker
 }
 
 func NewRunner(
@@ -44,16 +44,14 @@ func NewRunner(
 	scanner Scanner,
 	configDB ConfigDB,
 	syncInterval time.Duration,
-	turbineEndpoint *rata.RequestGenerator,
 ) *Runner {
 	return &Runner{
-		logger:          logger,
-		noop:            noop,
-		locker:          locker,
-		scanner:         scanner,
-		configDB:        configDB,
-		syncInterval:    syncInterval,
-		turbineEndpoint: turbineEndpoint,
+		logger:       logger,
+		noop:         noop,
+		locker:       locker,
+		scanner:      scanner,
+		configDB:     configDB,
+		syncInterval: syncInterval,
 	}
 }
 
@@ -104,16 +102,16 @@ dance:
 					continue
 				}
 
-				checker := NewTurbineChecker(runner.turbineEndpoint)
-
 				scanning[resource.Name] = true
+
+				runner := runner.scanner.Scan(resource.Name)
 
 				// avoid deadlock if exit event is blocked; inserting in this case
 				// will block on the event being consumed (which is in this select)
 				go func(name string) {
 					insertScanner <- grouper.Member{
 						Name:   name,
-						Runner: runner.scanner.Scan(checker, name),
+						Runner: runner,
 					}
 				}(resource.Name)
 			}

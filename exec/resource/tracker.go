@@ -49,5 +49,5 @@ func (tracker *tracker) Init(sessionID SessionID, typ ResourceType) (Resource, e
 		}
 	}
 
-	return NewResource(container, tracker.gardenClient), nil
+	return NewResource(container, tracker.gardenClient, typ), nil
 }

@@ -2,11 +2,11 @@ package radar
 
 import (
 	"os"
-	"sync"
 	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/exec/resource"
 	"github.com/tedsuo/ifrit"
 
 	"github.com/pivotal-golang/lager"
@@ -18,11 +18,6 @@ type VersionDB interface {
 	GetLatestVersionedResource(string) (db.VersionedResource, error)
 }
 
-//go:generate counterfeiter . ResourceChecker
-type ResourceChecker interface {
-	CheckResource(atc.ResourceConfig, db.Version) ([]db.Version, error)
-}
-
 //go:generate counterfeiter . ConfigDB
 type ConfigDB interface {
 	GetConfig() (atc.Config, error)
@@ -31,21 +26,19 @@ type ConfigDB interface {
 type Radar struct {
 	logger lager.Logger
 
-	tracker  VersionDB
+	tracker resource.Tracker
+
 	interval time.Duration
 
-	locker Locker
-
-	configDB ConfigDB
-
-	failing  map[string]bool
-	checking map[string]bool
-	statusL  *sync.Mutex
+	locker    Locker
+	versionDB VersionDB
+	configDB  ConfigDB
 }
 
 func NewRadar(
 	logger lager.Logger,
-	tracker VersionDB,
+	tracker resource.Tracker,
+	versionDB VersionDB,
 	interval time.Duration,
 	locker Locker,
 	configDB ConfigDB,
@@ -53,24 +46,33 @@ func NewRadar(
 	return &Radar{
 		logger: logger,
 
-		tracker:  tracker,
-		interval: interval,
+		tracker: tracker,
+
+		versionDB: versionDB,
+		interval:  interval,
 
 		locker: locker,
 
 		configDB: configDB,
-
-		failing:  make(map[string]bool),
-		checking: make(map[string]bool),
-		statusL:  new(sync.Mutex),
 	}
 }
 
-func (radar *Radar) Scan(checker ResourceChecker, resourceName string) ifrit.Runner {
+func (radar *Radar) Scan(resourceName string) ifrit.Runner {
 	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 		ticker := time.NewTicker(radar.interval)
 
 		close(ready)
+
+		var res resource.Resource
+
+		defer func() {
+			if res != nil {
+				res.Release()
+			}
+		}()
+
+		checkLock := []db.NamedLock{db.ResourceCheckingLock(resourceName)}
+		resLock := []db.NamedLock{db.ResourceLock(resourceName)}
 
 		for {
 			var resourceCheckingLock db.Lock
@@ -80,7 +82,7 @@ func (radar *Radar) Scan(checker ResourceChecker, resourceName string) ifrit.Run
 				return nil
 
 			case <-ticker.C:
-				resourceCheckingLock, err = radar.locker.AcquireWriteLockImmediately([]db.NamedLock{db.ResourceCheckingLock(resourceName)})
+				resourceCheckingLock, err = radar.locker.AcquireWriteLockImmediately(checkLock)
 				if err != nil {
 					break
 				}
@@ -90,28 +92,40 @@ func (radar *Radar) Scan(checker ResourceChecker, resourceName string) ifrit.Run
 					continue
 				}
 
-				resource, found := config.Resources.Lookup(resourceName)
+				resourceConfig, found := config.Resources.Lookup(resourceName)
 				if !found {
 					return nil
 				}
 
-				radar.setChecking(resource.Name)
+				typ := resource.ResourceType(resourceConfig.Type)
 
-				var from db.Version
+				if res == nil || res.Type() != typ {
+					if res != nil {
+						err := res.Release()
+						if err != nil {
+							return err
+						}
+					}
+
+					res, err = radar.tracker.Init("", typ)
+					if err != nil {
+						return err
+					}
+				}
+
 				log := radar.logger.Session("radar", lager.Data{
-					"resource": resource.Name,
-					"type":     resource.Type,
+					"resource": resourceConfig.Name,
+					"type":     resourceConfig.Type,
 				})
 
-				lock, err := radar.locker.AcquireReadLock([]db.NamedLock{db.ResourceLock(resource.Name)})
+				lock, err := radar.locker.AcquireReadLock(resLock)
 				if err != nil {
-					log.Error("failed-to-acquire-inputs-lock", err, lager.Data{
-						"resource_name": resource.Name,
-					})
+					log.Error("failed-to-acquire-inputs-lock", err)
 					break
 				}
 
-				if vr, err := radar.tracker.GetLatestVersionedResource(resource.Name); err == nil {
+				var from db.Version
+				if vr, err := radar.versionDB.GetLatestVersionedResource(resourceName); err == nil {
 					from = vr.Version
 				}
 
@@ -121,10 +135,7 @@ func (radar *Radar) Scan(checker ResourceChecker, resourceName string) ifrit.Run
 					"from": from,
 				})
 
-				newVersions, err := checker.CheckResource(resource, from)
-
-				radar.setFailing(resource.Name, err != nil)
-
+				newVersions, err := res.Check(resourceConfig.Source, atc.Version(from))
 				if err != nil {
 					log.Error("failed-to-check", err)
 					break
@@ -139,20 +150,18 @@ func (radar *Radar) Scan(checker ResourceChecker, resourceName string) ifrit.Run
 					"total":    len(newVersions),
 				})
 
-				lock, err = radar.locker.AcquireWriteLock([]db.NamedLock{db.ResourceLock(resource.Name)})
+				lock, err = radar.locker.AcquireWriteLock(resLock)
 				if err != nil {
-					log.Error("failed-to-acquire-inputs-lock", err, lager.Data{
-						"resource_name": resource.Name,
-					})
+					log.Error("failed-to-acquire-inputs-lock", err)
 					break
 				}
 
 				for _, version := range newVersions {
-					err = radar.tracker.SaveVersionedResource(db.VersionedResource{
-						Resource: resource.Name,
-						Type:     resource.Type,
-						Source:   db.Source(resource.Source),
-						Version:  version,
+					err = radar.versionDB.SaveVersionedResource(db.VersionedResource{
+						Resource: resourceConfig.Name,
+						Type:     resourceConfig.Type,
+						Source:   db.Source(resourceConfig.Source),
+						Version:  db.Version(version),
 					})
 					if err != nil {
 						log.Error("failed-to-save-current-version", err, lager.Data{
@@ -169,30 +178,4 @@ func (radar *Radar) Scan(checker ResourceChecker, resourceName string) ifrit.Run
 			}
 		}
 	})
-}
-
-func (radar *Radar) ResourceStatus(resource string) (bool, bool) {
-	radar.statusL.Lock()
-	defer radar.statusL.Unlock()
-	return radar.failing[resource], radar.checking[resource]
-}
-
-func (radar *Radar) setChecking(resource string) {
-	radar.statusL.Lock()
-	radar.checking[resource] = true
-	radar.statusL.Unlock()
-}
-
-func (radar *Radar) setFailing(resource string, failing bool) {
-	radar.statusL.Lock()
-
-	delete(radar.checking, resource)
-
-	if failing {
-		radar.failing[resource] = true
-	} else {
-		delete(radar.failing, resource)
-	}
-
-	radar.statusL.Unlock()
 }

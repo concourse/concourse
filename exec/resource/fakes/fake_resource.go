@@ -9,6 +9,12 @@ import (
 )
 
 type FakeResource struct {
+	TypeStub        func() resource.ResourceType
+	typeMutex       sync.RWMutex
+	typeArgsForCall []struct{}
+	typeReturns struct {
+		result1 resource.ResourceType
+	}
 	GetStub        func(resource.IOConfig, atc.Source, atc.Params, atc.Version) resource.VersionedSource
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
@@ -47,6 +53,30 @@ type FakeResource struct {
 	releaseReturns struct {
 		result1 error
 	}
+}
+
+func (fake *FakeResource) Type() resource.ResourceType {
+	fake.typeMutex.Lock()
+	fake.typeArgsForCall = append(fake.typeArgsForCall, struct{}{})
+	fake.typeMutex.Unlock()
+	if fake.TypeStub != nil {
+		return fake.TypeStub()
+	} else {
+		return fake.typeReturns.result1
+	}
+}
+
+func (fake *FakeResource) TypeCallCount() int {
+	fake.typeMutex.RLock()
+	defer fake.typeMutex.RUnlock()
+	return len(fake.typeArgsForCall)
+}
+
+func (fake *FakeResource) TypeReturns(result1 resource.ResourceType) {
+	fake.TypeStub = nil
+	fake.typeReturns = struct {
+		result1 resource.ResourceType
+	}{result1}
 }
 
 func (fake *FakeResource) Get(arg1 resource.IOConfig, arg2 atc.Source, arg3 atc.Params, arg4 atc.Version) resource.VersionedSource {

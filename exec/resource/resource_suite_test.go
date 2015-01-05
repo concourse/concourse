@@ -23,7 +23,7 @@ var _ = BeforeEach(func() {
 	fakeContainer = new(gfakes.FakeContainer)
 	fakeContainer.HandleReturns("some-handle")
 
-	resource = NewResource(fakeContainer, gardenClient)
+	resource = NewResource(fakeContainer, gardenClient, "some-type")
 })
 
 func TestResource(t *testing.T) {

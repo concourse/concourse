@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -14,6 +15,8 @@ import (
 
 	"github.com/BurntSushi/migration"
 	"github.com/cloudfoundry-incubator/candiedyaml"
+	gclient "github.com/cloudfoundry-incubator/garden/client"
+	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
 	"github.com/lib/pq"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
@@ -30,6 +33,7 @@ import (
 	Db "github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/engine"
+	"github.com/concourse/atc/exec/resource"
 	rdr "github.com/concourse/atc/radar"
 	sched "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/factory"
@@ -59,6 +63,32 @@ var turbineURL = flag.String(
 	"turbineURL",
 	"http://127.0.0.1:4637",
 	"address denoting the turbine service",
+)
+
+var gardenNetwork = flag.String(
+	"gardenNetwork",
+	"tcp",
+	"garden API connection network (unix or tcp)",
+)
+
+var gardenAddr = flag.String(
+	"gardenAddr",
+	"127.0.0.1:7777",
+	"garden API connection address",
+)
+
+var resourceTypes = flag.String(
+	"resourceTypes",
+	`{
+		"git": "docker:///concourse/git-resource",
+		"archive": "docker:///concourse/archive-resource",
+		"docker-image": "docker:///concourse/docker-image-resource",
+		"time": "docker:///concourse/time-resource",
+		"s3": "docker:///concourse/s3-resource",
+		"tracker": "docker:///concourse/tracker-resource",
+		"semver": "docker:///concourse/semver-resource"
+	}`,
+	"map of resource type to its docker image",
 )
 
 var sqlDriver = flag.String(
@@ -207,7 +237,21 @@ func main() {
 		configDB = db
 	}
 
+	gardenClient := gclient.New(gconn.New(
+		*gardenNetwork,
+		*gardenAddr,
+	))
+
+	resourceMapping := resource.ResourceMapping{}
+	err = json.Unmarshal([]byte(*resourceTypes), &resourceMapping)
+	if err != nil {
+		logger.Fatal("failed-to-parse-resource-types", err)
+	}
+
+	resourceTracker := resource.NewTracker(resourceMapping, gardenClient)
+
 	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, turbine.Routes)
+
 	engine := engine.NewDBEngine(engine.NewTurbineEngine(turbineEndpoint, db), db, db)
 
 	scheduler := &sched.Scheduler{
@@ -218,7 +262,7 @@ func main() {
 		Engine:  engine,
 	}
 
-	radar := rdr.NewRadar(logger, db, *checkInterval, db, configDB)
+	radar := rdr.NewRadar(logger, resourceTracker, db, *checkInterval, db, configDB)
 
 	var webValidator auth.Validator
 
@@ -324,7 +368,6 @@ func main() {
 			radar,
 			configDB,
 			1*time.Minute,
-			turbineEndpoint,
 		)},
 
 		{"scheduler", &sched.Runner{

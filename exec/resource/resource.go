@@ -10,6 +10,8 @@ import (
 
 //go:generate counterfeiter . Resource
 type Resource interface {
+	Type() ResourceType
+
 	Get(IOConfig, atc.Source, atc.Params, atc.Version) VersionedSource
 	Put(IOConfig, atc.Source, atc.Params, ArtifactSource) VersionedSource
 
@@ -49,16 +51,23 @@ const ResourcesDir = "/tmp/build/src"
 type resource struct {
 	container    garden.Container
 	gardenClient garden.Client
+	typ          ResourceType
 }
 
 func NewResource(
 	container garden.Container,
 	gardenClient garden.Client,
+	typ ResourceType,
 ) Resource {
 	return &resource{
 		container:    container,
 		gardenClient: gardenClient,
+		typ:          typ,
 	}
+}
+
+func (resource *resource) Type() ResourceType {
+	return resource.typ
 }
 
 func (resource *resource) Release() error {

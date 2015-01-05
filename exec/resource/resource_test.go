@@ -5,6 +5,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	. "github.com/concourse/atc/exec/resource"
 )
 
 var _ = Describe("Resource", func() {
@@ -28,6 +30,12 @@ var _ = Describe("Resource", func() {
 				err := resource.Release()
 				Ω(err).Should(Equal(disaster))
 			})
+		})
+	})
+
+	Describe("Type", func() {
+		It("returns the resource's type", func() {
+			Ω(resource.Type()).Should(Equal(ResourceType("some-type")))
 		})
 	})
 })
