@@ -47,6 +47,10 @@ jobs:
             name: atc
             password: dummy-password
 
+      garden:
+        listen_network: tcp
+        listen_address: 0.0.0.0:7777
+
       postgresql:
         databases: [{name: atc}]
         roles:

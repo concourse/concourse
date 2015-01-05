@@ -10,10 +10,16 @@ files:
   - github.com/concourse/atc/cmd/atc/*.go # gosub
   - code.google.com/p/go.crypto/bcrypt/*.go # gosub
   - code.google.com/p/go.crypto/blowfish/*.go # gosub
+  - code.google.com/p/gogoprotobuf/proto/*.go # gosub
   - github.com/BurntSushi/migration/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
   - github.com/cloudfoundry-incubator/candiedyaml/*.go # gosub
   - github.com/cloudfoundry-incubator/garden/api/*.go # gosub
+  - github.com/cloudfoundry-incubator/garden/client/*.go # gosub
+  - github.com/cloudfoundry-incubator/garden/client/connection/*.go # gosub
+  - github.com/cloudfoundry-incubator/garden/protocol/*.go # gosub
+  - github.com/cloudfoundry-incubator/garden/routes/*.go # gosub
+  - github.com/cloudfoundry-incubator/garden/transport/*.go # gosub
   - github.com/concourse/atc/*.go # gosub
   - github.com/concourse/atc/api/*.go # gosub
   - github.com/concourse/atc/api/buildserver/*.go # gosub
@@ -43,8 +49,9 @@ files:
   - github.com/concourse/atc/web/routes/*.go # gosub
   - github.com/concourse/atc/web/triggerbuild/*.go # gosub
   - github.com/concourse/turbine/*.go # gosub
+  - github.com/concourse/turbine/config/*.go # gosub
   - github.com/concourse/turbine/event/*.go # gosub
-  - github.com/gorilla/websocket/*.go # gosub
+  - github.com/concourse/turbine/resource/*.go # gosub
   - github.com/lib/pq/*.go # gosub
   - github.com/lib/pq/oid/*.go # gosub
   - github.com/nu7hatch/gouuid/*.go # gosub

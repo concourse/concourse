@@ -91,10 +91,14 @@ jobs:
       - {release: concourse, name: consul-agent}
     networks: [{name: concourse}]
     properties:
+      garden:
+        listen_network: tcp
+        listen_address: 0.0.0.0:7777
+
       consul:
         agent:
           servers: {lan: [*web_static_ip]}
-          services: [{name: turbine}]
+          services: [{name: turbine}, {name: garden}]
 
 resource_pools:
   - name: orchestration

@@ -77,9 +77,12 @@ jobs:
         # cannot enforce quotas in bosh-lite
         disk_quota_enabled: false
 
+        listen_network: tcp
+        listen_address: 0.0.0.0:7777
+
       consul:
         agent:
-          services: [{name: turbine}]
+          services: [{name: turbine}, {name: garden}]
           servers: {lan: *web-ips}
 
 networks:

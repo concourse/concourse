@@ -29,11 +29,11 @@ properties:
 
   turbine.garden.network:
     description: "network type for the garden server connection (tcp or unix)"
-    default: unix
+    default: tcp
 
   turbine.garden.address:
     description: "garden server connection address"
-    default: /var/vcap/data/garden/garden.sock
+    default: 127.0.0.1:7777
 
   turbine.resource_types:
     description: "the mapping from known resource types to their container rootfs"
