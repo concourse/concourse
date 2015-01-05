@@ -21,6 +21,8 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
+const sessionID = "some-session-id"
+
 var _ = Describe("GardenFactory", func() {
 	var (
 		fakeTracker      *rfakes.FakeTracker
@@ -75,7 +77,7 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			source = factory.Get(ioConfig, resourceConfig, params, version).Using(inSource)
+			source = factory.Get(sessionID, ioConfig, resourceConfig, params, version).Using(inSource)
 			process = ifrit.Invoke(source)
 		})
 
@@ -93,10 +95,11 @@ var _ = Describe("GardenFactory", func() {
 				fakeResource.GetReturns(fakeVersionedSource)
 			})
 
-			It("initializes the resource with the correct type", func() {
+			It("initializes the resource with the correct type and session id", func() {
 				Ω(fakeTracker.InitCallCount()).Should(Equal(1))
 
-				typ := fakeTracker.InitArgsForCall(0)
+				sid, typ := fakeTracker.InitArgsForCall(0)
+				Ω(sid).Should(Equal(resource.SessionID(sessionID)))
 				Ω(typ).Should(Equal(resource.ResourceType("some-resource-type")))
 			})
 
@@ -362,7 +365,7 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			source = factory.Put(ioConfig, resourceConfig, params).Using(inSource)
+			source = factory.Put(sessionID, ioConfig, resourceConfig, params).Using(inSource)
 			process = ifrit.Invoke(source)
 		})
 
@@ -380,10 +383,11 @@ var _ = Describe("GardenFactory", func() {
 				fakeResource.PutReturns(fakeVersionedSource)
 			})
 
-			It("initializes the resource with the correct type", func() {
+			It("initializes the resource with the correct type and session id", func() {
 				Ω(fakeTracker.InitCallCount()).Should(Equal(1))
 
-				typ := fakeTracker.InitArgsForCall(0)
+				sid, typ := fakeTracker.InitArgsForCall(0)
+				Ω(sid).Should(Equal(resource.SessionID(sessionID)))
 				Ω(typ).Should(Equal(resource.ResourceType("some-resource-type")))
 			})
 
@@ -647,241 +651,353 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			source = factory.Execute(ioConfig, configSource).Using(inSource)
+			source = factory.Execute(sessionID, ioConfig, configSource).Using(inSource)
 			process = ifrit.Invoke(source)
 		})
 
-		Context("when the getting the config works", func() {
+		Context("when the container does not yet exist", func() {
 			BeforeEach(func() {
-				configSource.FetchConfigReturns(atc.BuildConfig{
-					Image:  "some-image",
-					Params: map[string]string{"SOME": "params"},
-					Run: atc.BuildRunConfig{
-						Path: "ls",
-						Args: []string{"some", "args"},
-					},
-				}, nil)
-
-				inSource.StreamToReturns(nil)
+				fakeGardenClient.LookupReturns(nil, errors.New("nope"))
 			})
 
-			Context("when creating the build's container works", func() {
-				var (
-					fakeContainer *gfakes.FakeContainer
-					fakeProcess   *gfakes.FakeProcess
-				)
-
+			Context("when the getting the config works", func() {
 				BeforeEach(func() {
-					fakeContainer = new(gfakes.FakeContainer)
-					fakeContainer.HandleReturns("some-handle")
-					fakeGardenClient.CreateReturns(fakeContainer, nil)
+					configSource.FetchConfigReturns(atc.BuildConfig{
+						Image:  "some-image",
+						Params: map[string]string{"SOME": "params"},
+						Run: atc.BuildRunConfig{
+							Path: "ls",
+							Args: []string{"some", "args"},
+						},
+					}, nil)
 
-					fakeProcess = new(gfakes.FakeProcess)
-					fakeContainer.RunReturns(fakeProcess, nil)
-
-					fakeContainer.StreamInReturns(nil)
+					inSource.StreamToReturns(nil)
 				})
 
-				It("gets the config from the input artifact soruce", func() {
-					Ω(configSource.FetchConfigCallCount()).Should(Equal(1))
+				Context("when creating the build's container works", func() {
+					var (
+						fakeContainer *gfakes.FakeContainer
+						fakeProcess   *gfakes.FakeProcess
+					)
 
-					source := configSource.FetchConfigArgsForCall(0)
-					Ω(source).Should(Equal(inSource))
-				})
-
-				It("creates a container with the config's image", func() {
-					Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
-					Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
-						RootFSPath: "some-image",
-					}))
-				})
-
-				It("streams the input source in relative to /tmp/build/src", func() {
-					Ω(inSource.StreamToCallCount()).Should(Equal(1))
-					Ω(inSource.StreamToArgsForCall(0)).ShouldNot(BeNil())
-
-					Ω(fakeContainer.StreamInCallCount()).Should(Equal(0))
-
-					streamIn := new(bytes.Buffer)
-
-					err := inSource.StreamToArgsForCall(0).StreamIn("some-path", streamIn)
-					Ω(err).ShouldNot(HaveOccurred())
-
-					destination, source := fakeContainer.StreamInArgsForCall(0)
-					Ω(destination).Should(Equal("/tmp/build/src/some-path"))
-					Ω(source).Should(Equal(streamIn))
-				})
-
-				Context("when the configuration specifies paths for inputs", func() {
 					BeforeEach(func() {
-						configSource.FetchConfigReturns(atc.BuildConfig{
-							Image:  "some-image",
-							Params: map[string]string{"SOME": "params"},
-							Run: atc.BuildRunConfig{
-								Path: "ls",
-								Args: []string{"some", "args"},
-							},
-							Inputs: []atc.BuildInputConfig{
-								{Name: "some-input", Path: "some-input-configured-path"},
-								{Name: "some-other-input", Path: "some-other-input-configured-path"},
-							},
-						}, nil)
+						fakeContainer = new(gfakes.FakeContainer)
+						fakeContainer.HandleReturns("some-handle")
+						fakeGardenClient.CreateReturns(fakeContainer, nil)
+
+						fakeProcess = new(gfakes.FakeProcess)
+						fakeProcess.IDReturns(42)
+						fakeContainer.RunReturns(fakeProcess, nil)
+
+						fakeContainer.StreamInReturns(nil)
 					})
 
-					It("re-maps the stream destinations to the configured destinations", func() {
+					It("looked up the container via the session ID", func() {
+						Ω(fakeGardenClient.LookupArgsForCall(0)).Should(Equal(sessionID))
+					})
+
+					It("gets the config from the input artifact soruce", func() {
+						Ω(configSource.FetchConfigCallCount()).Should(Equal(1))
+
+						source := configSource.FetchConfigArgsForCall(0)
+						Ω(source).Should(Equal(inSource))
+					})
+
+					It("creates a container with the config's image and the session ID as the handle", func() {
+						Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
+						Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
+							Handle:     sessionID,
+							RootFSPath: "some-image",
+						}))
+					})
+
+					It("streams the input source in relative to /tmp/build/src", func() {
 						Ω(inSource.StreamToCallCount()).Should(Equal(1))
+						Ω(inSource.StreamToArgsForCall(0)).ShouldNot(BeNil())
+
+						Ω(fakeContainer.StreamInCallCount()).Should(Equal(0))
 
 						streamIn := new(bytes.Buffer)
 
-						By("remapping base destinations")
-						err := inSource.StreamToArgsForCall(0).StreamIn("some-input", streamIn)
+						err := inSource.StreamToArgsForCall(0).StreamIn("some-path", streamIn)
 						Ω(err).ShouldNot(HaveOccurred())
 
 						destination, source := fakeContainer.StreamInArgsForCall(0)
-						Ω(destination).Should(Equal("/tmp/build/src/some-input-configured-path"))
-						Ω(source).Should(Equal(streamIn))
-
-						containerDest := inSource.StreamToArgsForCall(0)
-
-						By("remapping subdirectory destinations")
-						err = containerDest.StreamIn("some-input/some-thing", streamIn)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						destination, source = fakeContainer.StreamInArgsForCall(1)
-						Ω(destination).Should(Equal("/tmp/build/src/some-input-configured-path/some-thing"))
-						Ω(source).Should(Equal(streamIn))
-
-						By("remapping other base destinations")
-						err = containerDest.StreamIn("some-other-input", streamIn)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						destination, source = fakeContainer.StreamInArgsForCall(2)
-						Ω(destination).Should(Equal("/tmp/build/src/some-other-input-configured-path"))
-						Ω(source).Should(Equal(streamIn))
-
-						By("not accidentally matching partial names")
-						err = containerDest.StreamIn("some-input-morewords", streamIn)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						destination, source = fakeContainer.StreamInArgsForCall(3)
-						Ω(destination).Should(Equal("/tmp/build/src/some-input-morewords"))
-						Ω(source).Should(Equal(streamIn))
-
-						By("not remapping unconfigured destinations")
-						err = containerDest.StreamIn("some-other-unconfigured-input", streamIn)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						destination, source = fakeContainer.StreamInArgsForCall(4)
-						Ω(destination).Should(Equal("/tmp/build/src/some-other-unconfigured-input"))
+						Ω(destination).Should(Equal("/tmp/build/src/some-path"))
 						Ω(source).Should(Equal(streamIn))
 					})
-				})
 
-				It("runs a process with the config's path and args, in /tmp/build/src", func() {
-					Ω(fakeContainer.RunCallCount()).Should(Equal(1))
+					It("runs a process with the config's path and args, in /tmp/build/src", func() {
+						Ω(fakeContainer.RunCallCount()).Should(Equal(1))
 
-					spec, _ := fakeContainer.RunArgsForCall(0)
-					Ω(spec).Should(Equal(garden.ProcessSpec{
-						Path: "ls",
-						Args: []string{"some", "args"},
-						Env:  []string{"SOME=params"},
-						Dir:  "/tmp/build/src",
-					}))
-				})
-
-				It("directs the process's stdout/stderr to the io config", func() {
-					Ω(fakeContainer.RunCallCount()).Should(Equal(1))
-
-					_, io := fakeContainer.RunArgsForCall(0)
-					Ω(io.Stdout).Should(Equal(stdoutBuf))
-					Ω(io.Stderr).Should(Equal(stderrBuf))
-				})
-
-				Context("when the process exits 0", func() {
-					BeforeEach(func() {
-						fakeProcess.WaitReturns(0, nil)
+						spec, _ := fakeContainer.RunArgsForCall(0)
+						Ω(spec).Should(Equal(garden.ProcessSpec{
+							Path: "ls",
+							Args: []string{"some", "args"},
+							Env:  []string{"SOME=params"},
+							Dir:  "/tmp/build/src",
+						}))
 					})
 
-					It("is successful", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
+					It("directs the process's stdout/stderr to the io config", func() {
+						Ω(fakeContainer.RunCallCount()).Should(Equal(1))
 
-						var success Success
-						Ω(source.Result(&success)).Should(BeTrue())
-						Ω(bool(success)).Should(BeTrue())
+						_, io := fakeContainer.RunArgsForCall(0)
+						Ω(io.Stdout).Should(Equal(stdoutBuf))
+						Ω(io.Stderr).Should(Equal(stderrBuf))
 					})
 
-					It("reports its exit status", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
+					It("saves the process ID as a property", func() {
+						Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(1))
 
-						var status ExitStatus
-						Ω(source.Result(&status)).Should(BeTrue())
-						Ω(status).Should(Equal(ExitStatus(0)))
-					})
-				})
-
-				Context("when the process exits nonzero", func() {
-					BeforeEach(func() {
-						fakeProcess.WaitReturns(1, nil)
+						name, value := fakeContainer.SetPropertyArgsForCall(0)
+						Ω(name).Should(Equal("execute-process"))
+						Ω(value).Should(Equal("42"))
 					})
 
-					It("is not successful", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
-
-						var success Success
-						Ω(source.Result(&success)).Should(BeTrue())
-						Ω(bool(success)).Should(BeFalse())
-					})
-
-					It("reports its exit status", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
-
-						var status ExitStatus
-						Ω(source.Result(&status)).Should(BeTrue())
-						Ω(status).Should(Equal(ExitStatus(1)))
-					})
-				})
-
-				Context("when waiting on the process fails", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeProcess.WaitReturns(0, disaster)
-					})
-
-					It("exits with the failure", func() {
-						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-					})
-				})
-
-				Describe("streaming to a destination", func() {
-					var fakeDestination *fakes.FakeArtifactDestination
-
-					BeforeEach(func() {
-						fakeDestination = new(fakes.FakeArtifactDestination)
-					})
-
-					Context("when the resource can stream out", func() {
-						var streamedOut io.ReadCloser
-
+					Context("when the configuration specifies paths for inputs", func() {
 						BeforeEach(func() {
-							streamedOut = gbytes.NewBuffer()
-							fakeContainer.StreamOutReturns(streamedOut, nil)
+							configSource.FetchConfigReturns(atc.BuildConfig{
+								Image:  "some-image",
+								Params: map[string]string{"SOME": "params"},
+								Run: atc.BuildRunConfig{
+									Path: "ls",
+									Args: []string{"some", "args"},
+								},
+								Inputs: []atc.BuildInputConfig{
+									{Name: "some-input", Path: "some-input-configured-path"},
+									{Name: "some-other-input", Path: "some-other-input-configured-path"},
+								},
+							}, nil)
 						})
 
-						It("streams the resource to the destination", func() {
-							err := source.StreamTo(fakeDestination)
+						It("re-maps the stream destinations to the configured destinations", func() {
+							Ω(inSource.StreamToCallCount()).Should(Equal(1))
+
+							streamIn := new(bytes.Buffer)
+
+							By("remapping base destinations")
+							err := inSource.StreamToArgsForCall(0).StreamIn("some-input", streamIn)
 							Ω(err).ShouldNot(HaveOccurred())
 
-							Ω(fakeContainer.StreamOutCallCount()).Should(Equal(1))
-							Ω(fakeContainer.StreamOutArgsForCall(0)).Should(Equal("/tmp/build/src"))
+							destination, source := fakeContainer.StreamInArgsForCall(0)
+							Ω(destination).Should(Equal("/tmp/build/src/some-input-configured-path"))
+							Ω(source).Should(Equal(streamIn))
 
-							Ω(fakeDestination.StreamInCallCount()).Should(Equal(1))
-							dest, src := fakeDestination.StreamInArgsForCall(0)
-							Ω(dest).Should(Equal("."))
-							Ω(src).Should(Equal(streamedOut))
+							containerDest := inSource.StreamToArgsForCall(0)
+
+							By("remapping subdirectory destinations")
+							err = containerDest.StreamIn("some-input/some-thing", streamIn)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							destination, source = fakeContainer.StreamInArgsForCall(1)
+							Ω(destination).Should(Equal("/tmp/build/src/some-input-configured-path/some-thing"))
+							Ω(source).Should(Equal(streamIn))
+
+							By("remapping other base destinations")
+							err = containerDest.StreamIn("some-other-input", streamIn)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							destination, source = fakeContainer.StreamInArgsForCall(2)
+							Ω(destination).Should(Equal("/tmp/build/src/some-other-input-configured-path"))
+							Ω(source).Should(Equal(streamIn))
+
+							By("not accidentally matching partial names")
+							err = containerDest.StreamIn("some-input-morewords", streamIn)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							destination, source = fakeContainer.StreamInArgsForCall(3)
+							Ω(destination).Should(Equal("/tmp/build/src/some-input-morewords"))
+							Ω(source).Should(Equal(streamIn))
+
+							By("not remapping unconfigured destinations")
+							err = containerDest.StreamIn("some-other-unconfigured-input", streamIn)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							destination, source = fakeContainer.StreamInArgsForCall(4)
+							Ω(destination).Should(Equal("/tmp/build/src/some-other-unconfigured-input"))
+							Ω(source).Should(Equal(streamIn))
+						})
+					})
+
+					Context("when the process exits 0", func() {
+						BeforeEach(func() {
+							fakeProcess.WaitReturns(0, nil)
 						})
 
-						Context("when streaming out of the versioned source fails", func() {
+						It("saves the exit status property", func() {
+							Eventually(process.Wait()).Should(Receive(BeNil()))
+
+							Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(2))
+
+							name, value := fakeContainer.SetPropertyArgsForCall(1)
+							Ω(name).Should(Equal("exit-status"))
+							Ω(value).Should(Equal("0"))
+						})
+
+						It("is successful", func() {
+							Eventually(process.Wait()).Should(Receive(BeNil()))
+
+							var success Success
+							Ω(source.Result(&success)).Should(BeTrue())
+							Ω(bool(success)).Should(BeTrue())
+						})
+
+						It("reports its exit status", func() {
+							Eventually(process.Wait()).Should(Receive(BeNil()))
+
+							var status ExitStatus
+							Ω(source.Result(&status)).Should(BeTrue())
+							Ω(status).Should(Equal(ExitStatus(0)))
+						})
+
+						Context("when saving the exit status fails", func() {
+							disaster := errors.New("nope")
+
+							BeforeEach(func() {
+								fakeContainer.SetPropertyStub = func(name string, value string) error {
+									if name == "exit-status" {
+										return disaster
+									}
+
+									return nil
+								}
+							})
+
+							It("exits with the error", func() {
+								Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+							})
+						})
+					})
+
+					Context("when the process exits nonzero", func() {
+						BeforeEach(func() {
+							fakeProcess.WaitReturns(1, nil)
+						})
+
+						It("saves the exit status property", func() {
+							Eventually(process.Wait()).Should(Receive(BeNil()))
+
+							Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(2))
+
+							name, value := fakeContainer.SetPropertyArgsForCall(1)
+							Ω(name).Should(Equal("exit-status"))
+							Ω(value).Should(Equal("1"))
+						})
+
+						It("is not successful", func() {
+							Eventually(process.Wait()).Should(Receive(BeNil()))
+
+							var success Success
+							Ω(source.Result(&success)).Should(BeTrue())
+							Ω(bool(success)).Should(BeFalse())
+						})
+
+						It("reports its exit status", func() {
+							Eventually(process.Wait()).Should(Receive(BeNil()))
+
+							var status ExitStatus
+							Ω(source.Result(&status)).Should(BeTrue())
+							Ω(status).Should(Equal(ExitStatus(1)))
+						})
+
+						Context("when saving the exit status fails", func() {
+							disaster := errors.New("nope")
+
+							BeforeEach(func() {
+								fakeContainer.SetPropertyStub = func(name string, value string) error {
+									if name == "exit-status" {
+										return disaster
+									}
+
+									return nil
+								}
+							})
+
+							It("exits with the error", func() {
+								Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+							})
+						})
+					})
+
+					Context("when waiting on the process fails", func() {
+						disaster := errors.New("nope")
+
+						BeforeEach(func() {
+							fakeProcess.WaitReturns(0, disaster)
+						})
+
+						It("exits with the failure", func() {
+							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+						})
+					})
+
+					Context("when setting the process property fails", func() {
+						disaster := errors.New("nope")
+
+						BeforeEach(func() {
+							fakeContainer.SetPropertyReturns(disaster)
+						})
+
+						It("exits with the error", func() {
+							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+						})
+					})
+
+					Describe("streaming to a destination", func() {
+						var fakeDestination *fakes.FakeArtifactDestination
+
+						BeforeEach(func() {
+							fakeDestination = new(fakes.FakeArtifactDestination)
+						})
+
+						Context("when the resource can stream out", func() {
+							var streamedOut io.ReadCloser
+
+							BeforeEach(func() {
+								streamedOut = gbytes.NewBuffer()
+								fakeContainer.StreamOutReturns(streamedOut, nil)
+							})
+
+							It("streams the resource to the destination", func() {
+								err := source.StreamTo(fakeDestination)
+								Ω(err).ShouldNot(HaveOccurred())
+
+								Ω(fakeContainer.StreamOutCallCount()).Should(Equal(1))
+								Ω(fakeContainer.StreamOutArgsForCall(0)).Should(Equal("/tmp/build/src"))
+
+								Ω(fakeDestination.StreamInCallCount()).Should(Equal(1))
+								dest, src := fakeDestination.StreamInArgsForCall(0)
+								Ω(dest).Should(Equal("."))
+								Ω(src).Should(Equal(streamedOut))
+							})
+
+							Context("when streaming out of the versioned source fails", func() {
+								disaster := errors.New("nope")
+
+								BeforeEach(func() {
+									fakeContainer.StreamOutReturns(nil, disaster)
+								})
+
+								It("returns the error", func() {
+									Ω(source.StreamTo(fakeDestination)).Should(Equal(disaster))
+								})
+							})
+
+							Context("when streaming in to the destination fails", func() {
+								disaster := errors.New("nope")
+
+								BeforeEach(func() {
+									fakeDestination.StreamInReturns(disaster)
+								})
+
+								It("returns the error", func() {
+									Ω(source.StreamTo(fakeDestination)).Should(Equal(disaster))
+								})
+							})
+						})
+
+						Context("when the container cannot stream out", func() {
 							disaster := errors.New("nope")
 
 							BeforeEach(func() {
@@ -892,197 +1008,185 @@ var _ = Describe("GardenFactory", func() {
 								Ω(source.StreamTo(fakeDestination)).Should(Equal(disaster))
 							})
 						})
-
-						Context("when streaming in to the destination fails", func() {
-							disaster := errors.New("nope")
-
-							BeforeEach(func() {
-								fakeDestination.StreamInReturns(disaster)
-							})
-
-							It("returns the error", func() {
-								Ω(source.StreamTo(fakeDestination)).Should(Equal(disaster))
-							})
-						})
 					})
 
-					Context("when the container cannot stream out", func() {
-						disaster := errors.New("nope")
+					Describe("streaming a file out", func() {
+						Context("when the container can stream out", func() {
+							var (
+								fileContent = "file-content"
 
-						BeforeEach(func() {
-							fakeContainer.StreamOutReturns(nil, disaster)
-						})
+								tarBuffer *gbytes.Buffer
+							)
 
-						It("returns the error", func() {
-							Ω(source.StreamTo(fakeDestination)).Should(Equal(disaster))
-						})
-					})
-				})
-
-				Describe("streaming a file out", func() {
-					Context("when the container can stream out", func() {
-						var (
-							fileContent = "file-content"
-
-							tarBuffer *gbytes.Buffer
-						)
-
-						BeforeEach(func() {
-							tarBuffer = gbytes.NewBuffer()
-							fakeContainer.StreamOutReturns(tarBuffer, nil)
-						})
-
-						Context("when the file exists", func() {
 							BeforeEach(func() {
-								tarWriter := tar.NewWriter(tarBuffer)
+								tarBuffer = gbytes.NewBuffer()
+								fakeContainer.StreamOutReturns(tarBuffer, nil)
+							})
 
-								err := tarWriter.WriteHeader(&tar.Header{
-									Name: "some-file",
-									Mode: 0644,
-									Size: int64(len(fileContent)),
+							Context("when the file exists", func() {
+								BeforeEach(func() {
+									tarWriter := tar.NewWriter(tarBuffer)
+
+									err := tarWriter.WriteHeader(&tar.Header{
+										Name: "some-file",
+										Mode: 0644,
+										Size: int64(len(fileContent)),
+									})
+									Ω(err).ShouldNot(HaveOccurred())
+
+									_, err = tarWriter.Write([]byte(fileContent))
+									Ω(err).ShouldNot(HaveOccurred())
 								})
-								Ω(err).ShouldNot(HaveOccurred())
 
-								_, err = tarWriter.Write([]byte(fileContent))
-								Ω(err).ShouldNot(HaveOccurred())
-							})
-
-							It("streams out the given path", func() {
-								reader, err := source.StreamFile("some-path")
-								Ω(err).ShouldNot(HaveOccurred())
-
-								Ω(ioutil.ReadAll(reader)).Should(Equal([]byte(fileContent)))
-
-								Ω(fakeContainer.StreamOutArgsForCall(0)).Should(Equal("/tmp/build/src/some-path"))
-							})
-
-							Describe("closing the stream", func() {
-								It("closes the stream from the versioned source", func() {
+								It("streams out the given path", func() {
 									reader, err := source.StreamFile("some-path")
 									Ω(err).ShouldNot(HaveOccurred())
 
-									Ω(tarBuffer.Closed()).Should(BeFalse())
+									Ω(ioutil.ReadAll(reader)).Should(Equal([]byte(fileContent)))
 
-									err = reader.Close()
-									Ω(err).ShouldNot(HaveOccurred())
+									Ω(fakeContainer.StreamOutArgsForCall(0)).Should(Equal("/tmp/build/src/some-path"))
+								})
 
-									Ω(tarBuffer.Closed()).Should(BeTrue())
+								Describe("closing the stream", func() {
+									It("closes the stream from the versioned source", func() {
+										reader, err := source.StreamFile("some-path")
+										Ω(err).ShouldNot(HaveOccurred())
+
+										Ω(tarBuffer.Closed()).Should(BeFalse())
+
+										err = reader.Close()
+										Ω(err).ShouldNot(HaveOccurred())
+
+										Ω(tarBuffer.Closed()).Should(BeTrue())
+									})
+								})
+							})
+
+							Context("but the stream is empty", func() {
+								It("returns ErrFileNotFound", func() {
+									_, err := source.StreamFile("some-path")
+									Ω(err).Should(Equal(ErrFileNotFound))
 								})
 							})
 						})
 
-						Context("but the stream is empty", func() {
-							It("returns ErrFileNotFound", func() {
+						Context("when the container cannot stream out", func() {
+							disaster := errors.New("nope")
+
+							BeforeEach(func() {
+								fakeContainer.StreamOutReturns(nil, disaster)
+							})
+
+							It("returns the error", func() {
 								_, err := source.StreamFile("some-path")
-								Ω(err).Should(Equal(ErrFileNotFound))
+								Ω(err).Should(Equal(disaster))
 							})
 						})
 					})
 
-					Context("when the container cannot stream out", func() {
+					Describe("signalling", func() {
+						var stopped chan struct{}
+
+						BeforeEach(func() {
+							stopped = make(chan struct{})
+
+							fakeProcess.WaitStub = func() (int, error) {
+								<-stopped
+								return 128 + 15, nil
+							}
+
+							fakeContainer.StopStub = func(bool) error {
+								close(stopped)
+								return nil
+							}
+						})
+
+						It("stops the container", func() {
+							process.Signal(os.Interrupt)
+							Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
+
+							Ω(fakeContainer.StopCallCount()).Should(Equal(1))
+						})
+					})
+
+					Describe("releasing", func() {
+						Context("when destroying the container succeeds", func() {
+							BeforeEach(func() {
+								fakeGardenClient.DestroyReturns(nil)
+							})
+
+							It("succeeds", func() {
+								Ω(fakeGardenClient.DestroyCallCount()).Should(BeZero())
+
+								err := source.Release()
+								Ω(err).ShouldNot(HaveOccurred())
+
+								Ω(fakeGardenClient.DestroyCallCount()).Should(Equal(1))
+								Ω(fakeGardenClient.DestroyArgsForCall(0)).Should(Equal("some-handle"))
+							})
+						})
+
+						Context("when releasing the resource fails", func() {
+							disaster := errors.New("nope")
+
+							BeforeEach(func() {
+								fakeGardenClient.DestroyReturns(disaster)
+							})
+
+							It("returns the error", func() {
+								err := source.Release()
+								Ω(err).Should(Equal(disaster))
+							})
+						})
+					})
+
+					Context("when streaming out from the previous source fails", func() {
 						disaster := errors.New("nope")
 
 						BeforeEach(func() {
-							fakeContainer.StreamOutReturns(nil, disaster)
+							inSource.StreamToReturns(disaster)
 						})
 
-						It("returns the error", func() {
-							_, err := source.StreamFile("some-path")
-							Ω(err).Should(Equal(disaster))
-						})
-					})
-				})
-
-				Describe("signalling", func() {
-					var stopped chan struct{}
-
-					BeforeEach(func() {
-						stopped = make(chan struct{})
-
-						fakeProcess.WaitStub = func() (int, error) {
-							<-stopped
-							return 128 + 15, nil
-						}
-
-						fakeContainer.StopStub = func(bool) error {
-							close(stopped)
-							return nil
-						}
-					})
-
-					It("stops the container", func() {
-						process.Signal(os.Interrupt)
-						Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
-
-						Ω(fakeContainer.StopCallCount()).Should(Equal(1))
-					})
-				})
-
-				Describe("releasing", func() {
-					Context("when destroying the container succeeds", func() {
-						BeforeEach(func() {
-							fakeGardenClient.DestroyReturns(nil)
-						})
-
-						It("succeeds", func() {
-							Ω(fakeGardenClient.DestroyCallCount()).Should(BeZero())
-
-							err := source.Release()
-							Ω(err).ShouldNot(HaveOccurred())
-
-							Ω(fakeGardenClient.DestroyCallCount()).Should(Equal(1))
-							Ω(fakeGardenClient.DestroyArgsForCall(0)).Should(Equal("some-handle"))
+						It("exits with the error", func() {
+							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 						})
 					})
 
-					Context("when releasing the resource fails", func() {
+					Context("when streaming the bits in to the container fails", func() {
 						disaster := errors.New("nope")
 
 						BeforeEach(func() {
-							fakeGardenClient.DestroyReturns(disaster)
+							inSource.StreamToReturns(disaster)
 						})
 
-						It("returns the error", func() {
-							err := source.Release()
-							Ω(err).Should(Equal(disaster))
+						It("exits with the error", func() {
+							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+						})
+
+						It("does not execute anything", func() {
+							Eventually(process.Wait()).Should(Receive())
+							Ω(fakeContainer.RunCallCount()).Should(Equal(0))
+						})
+					})
+
+					Context("when running the build's script fails", func() {
+						disaster := errors.New("nope")
+
+						BeforeEach(func() {
+							fakeContainer.RunReturns(nil, disaster)
+						})
+
+						It("exits with the error", func() {
+							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 						})
 					})
 				})
 
-				Context("when streaming out from the previous source fails", func() {
+				Context("when creating the container fails", func() {
 					disaster := errors.New("nope")
 
 					BeforeEach(func() {
-						inSource.StreamToReturns(disaster)
-					})
-
-					It("exits with the error", func() {
-						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-					})
-				})
-
-				Context("when streaming the bits in to the container fails", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						inSource.StreamToReturns(disaster)
-					})
-
-					It("exits with the error", func() {
-						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-					})
-
-					It("does not execute anything", func() {
-						Eventually(process.Wait()).Should(Receive())
-						Ω(fakeContainer.RunCallCount()).Should(Equal(0))
-					})
-				})
-
-				Context("when running the build's script fails", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeContainer.RunReturns(nil, disaster)
+						fakeGardenClient.CreateReturns(nil, disaster)
 					})
 
 					It("exits with the error", func() {
@@ -1091,28 +1195,123 @@ var _ = Describe("GardenFactory", func() {
 				})
 			})
 
-			Context("when creating the container fails", func() {
+			Context("when getting the config fails", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					fakeGardenClient.CreateReturns(nil, disaster)
+					configSource.FetchConfigReturns(atc.BuildConfig{}, disaster)
 				})
 
-				It("exits with the error", func() {
+				It("exits with the failure", func() {
 					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 				})
 			})
 		})
 
-		Context("when getting the config fails", func() {
-			disaster := errors.New("nope")
+		Context("when the container already exists", func() {
+			var fakeContainer *gfakes.FakeContainer
 
 			BeforeEach(func() {
-				configSource.FetchConfigReturns(atc.BuildConfig{}, disaster)
+				fakeContainer = new(gfakes.FakeContainer)
+				fakeGardenClient.LookupReturns(fakeContainer, nil)
 			})
 
-			It("exits with the failure", func() {
-				Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+			Context("when an exit status is already saved off", func() {
+				BeforeEach(func() {
+					fakeContainer.GetPropertyStub = func(name string) (string, error) {
+						switch name {
+						case "exit-status":
+							return "123", nil
+						default:
+							return "", errors.New("unstubbed property: " + name)
+						}
+					}
+				})
+
+				It("exits with success", func() {
+					Eventually(process.Wait()).Should(Receive(BeNil()))
+				})
+
+				It("does not attach to any process", func() {
+					Ω(fakeContainer.AttachCallCount()).Should(BeZero())
+				})
+
+				It("is not successful", func() {
+					Eventually(process.Wait()).Should(Receive(BeNil()))
+
+					var success Success
+					Ω(source.Result(&success)).Should(BeTrue())
+					Ω(bool(success)).Should(BeFalse())
+				})
+
+				It("reports its exit status", func() {
+					Eventually(process.Wait()).Should(Receive(BeNil()))
+
+					var status ExitStatus
+					Ω(source.Result(&status)).Should(BeTrue())
+					Ω(status).Should(Equal(ExitStatus(123)))
+				})
+			})
+
+			Context("when the process id can be found", func() {
+				BeforeEach(func() {
+					fakeContainer.GetPropertyStub = func(name string) (string, error) {
+						switch name {
+						case "execute-process":
+							return "42", nil
+						default:
+							return "", errors.New("unstubbed property: " + name)
+						}
+					}
+				})
+
+				Context("when attaching to the process succeeds", func() {
+					var fakeProcess *gfakes.FakeProcess
+
+					BeforeEach(func() {
+						fakeProcess = new(gfakes.FakeProcess)
+						fakeContainer.AttachReturns(fakeProcess, nil)
+					})
+
+					It("attaches to the correct process", func() {
+						Ω(fakeContainer.AttachCallCount()).Should(Equal(1))
+
+						pid, _ := fakeContainer.AttachArgsForCall(0)
+						Ω(pid).Should(Equal(uint32(42)))
+					})
+
+					It("directs the process's stdout/stderr to the io config", func() {
+						Ω(fakeContainer.AttachCallCount()).Should(Equal(1))
+
+						_, pio := fakeContainer.AttachArgsForCall(0)
+						Ω(pio.Stdout).Should(Equal(stdoutBuf))
+						Ω(pio.Stderr).Should(Equal(stderrBuf))
+					})
+				})
+
+				Context("when attaching to the process fails", func() {
+					disaster := errors.New("nope")
+
+					BeforeEach(func() {
+						fakeContainer.AttachReturns(nil, disaster)
+					})
+
+					It("exits with the error", func() {
+						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+					})
+				})
+			})
+
+			Context("when the process id cannot be found", func() {
+				disaster := errors.New("nope")
+
+				BeforeEach(func() {
+					fakeContainer.GetPropertyReturns("", disaster)
+				})
+
+				It("exits with the failure", func() {
+					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+				})
 			})
 		})
 	})

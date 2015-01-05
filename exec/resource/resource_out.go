@@ -18,11 +18,6 @@ func (resource *resource) Put(ioConfig IOConfig, source atc.Source, params atc.P
 	}
 
 	vs.Runner = ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
-		err := artifactSource.StreamTo(vs)
-		if err != nil {
-			return err
-		}
-
 		return resource.runScript(
 			"/opt/resource/out",
 			[]string{ResourcesDir},
@@ -32,6 +27,9 @@ func (resource *resource) Put(ioConfig IOConfig, source atc.Source, params atc.P
 			},
 			&vs.versionResult,
 			ioConfig.Stderr,
+			artifactSource,
+			vs,
+			true,
 		).Run(signals, ready)
 	})
 

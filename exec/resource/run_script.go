@@ -14,6 +14,9 @@ import (
 
 var ErrAborted = errors.New("script aborted")
 
+const resourceProcessIDPropertyName = "resource-process"
+const resourceResultPropertyName = "resource-result"
+
 type ErrResourceScriptFailed struct {
 	Path       string
 	Args       []string
@@ -33,11 +36,27 @@ func (err ErrResourceScriptFailed) Error() string {
 	)
 }
 
-func (resource *resource) runScript(path string, args []string, input interface{}, output interface{}, logDest io.Writer) ifrit.Runner {
+func (resource *resource) runScript(
+	path string,
+	args []string,
+	input interface{},
+	output interface{},
+	logDest io.Writer,
+	inputSource ArtifactSource,
+	inputDestination ArtifactDestination,
+	recoverable bool,
+) ifrit.Runner {
 	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 		request, err := json.Marshal(input)
 		if err != nil {
 			return err
+		}
+
+		if recoverable {
+			result, err := resource.container.GetProperty(resourceResultPropertyName)
+			if err == nil {
+				return json.Unmarshal([]byte(result), &output)
+			}
 		}
 
 		stdout := new(bytes.Buffer)
@@ -50,17 +69,51 @@ func (resource *resource) runScript(path string, args []string, input interface{
 			stderrW = stderr
 		}
 
-		process, err := resource.container.Run(garden.ProcessSpec{
-			Path:       path,
-			Args:       args,
-			Privileged: true,
-		}, garden.ProcessIO{
+		processIO := garden.ProcessIO{
 			Stdin:  bytes.NewBuffer(request),
 			Stderr: stderrW,
 			Stdout: stdout,
-		})
-		if err != nil {
-			return err
+		}
+
+		var process garden.Process
+
+		processIDProp, err := resource.container.GetProperty(resourceProcessIDPropertyName)
+		if recoverable && err == nil {
+			var processID uint32
+			_, err = fmt.Sscanf(processIDProp, "%d", &processID)
+			if err != nil {
+				return err
+			}
+
+			process, err = resource.container.Attach(processID, processIO)
+			if err != nil {
+				return err
+			}
+		} else {
+			if inputSource != nil {
+				err := inputSource.StreamTo(inputDestination)
+				if err != nil {
+					return err
+				}
+			}
+
+			process, err = resource.container.Run(garden.ProcessSpec{
+				Path:       path,
+				Args:       args,
+				Privileged: true,
+			}, processIO)
+			if err != nil {
+				return err
+			}
+
+			if recoverable {
+				processIDValue := fmt.Sprintf("%d", process.ID())
+
+				err := resource.container.SetProperty(resourceProcessIDPropertyName, processIDValue)
+				if err != nil {
+					return err
+				}
+			}
 		}
 
 		close(ready)
@@ -86,6 +139,13 @@ func (resource *resource) runScript(path string, args []string, input interface{
 					Stdout:     stdout.String(),
 					Stderr:     stderr.String(),
 					ExitStatus: status,
+				}
+			}
+
+			if recoverable {
+				err := resource.container.SetProperty(resourceResultPropertyName, stdout.String())
+				if err != nil {
+					return err
 				}
 			}
 

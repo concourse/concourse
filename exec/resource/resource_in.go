@@ -19,6 +19,9 @@ func (resource *resource) Get(ioConfig IOConfig, source atc.Source, params atc.P
 		inRequest{source, params, version},
 		&vs.versionResult,
 		ioConfig.Stderr,
+		nil,
+		nil,
+		true,
 	)
 
 	return vs

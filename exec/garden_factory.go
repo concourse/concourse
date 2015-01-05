@@ -22,8 +22,10 @@ func NewGardenFactory(
 	}
 }
 
-func (factory *gardenFactory) Get(ioConfig IOConfig, config atc.ResourceConfig, params atc.Params, version atc.Version) Step {
+func (factory *gardenFactory) Get(sessionID SessionID, ioConfig IOConfig, config atc.ResourceConfig, params atc.Params, version atc.Version) Step {
 	return resourceStep{
+		SessionID: resource.SessionID(sessionID),
+
 		Tracker: factory.resourceTracker,
 		Type:    resource.ResourceType(config.Type),
 
@@ -33,8 +35,10 @@ func (factory *gardenFactory) Get(ioConfig IOConfig, config atc.ResourceConfig, 
 	}
 }
 
-func (factory *gardenFactory) Put(ioConfig IOConfig, config atc.ResourceConfig, params atc.Params) Step {
+func (factory *gardenFactory) Put(sessionID SessionID, ioConfig IOConfig, config atc.ResourceConfig, params atc.Params) Step {
 	return resourceStep{
+		SessionID: resource.SessionID(sessionID),
+
 		Tracker: factory.resourceTracker,
 		Type:    resource.ResourceType(config.Type),
 
@@ -44,10 +48,13 @@ func (factory *gardenFactory) Put(ioConfig IOConfig, config atc.ResourceConfig, 
 	}
 }
 
-func (factory *gardenFactory) Execute(ioConfig IOConfig, configSource BuildConfigSource) Step {
+func (factory *gardenFactory) Execute(sessionID SessionID, ioConfig IOConfig, configSource BuildConfigSource) Step {
 	return executeStep{
+		SessionID: sessionID,
+
 		IOConfig:     ioConfig,
-		GardenClient: factory.gardenClient,
 		ConfigSource: configSource,
+
+		GardenClient: factory.gardenClient,
 	}
 }

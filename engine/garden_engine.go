@@ -2,6 +2,7 @@ package engine
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"time"
@@ -133,7 +134,7 @@ func (build *gardenBuild) Resume(lager.Logger) {
 
 			plan := input
 			inputs[input.Name] = exec.OnComplete(
-				build.factory.Get(ioConfig, resourceConfig, input.Params, input.Version),
+				build.factory.Get(build.inputSessionID(input.Name), ioConfig, resourceConfig, input.Params, input.Version),
 				func(err error, source exec.ArtifactSource) {
 					if err != nil {
 						build.saveErr(err, origin)
@@ -183,7 +184,7 @@ func (build *gardenBuild) Resume(lager.Logger) {
 		}
 
 		step = exec.Compose(step, exec.OnComplete(
-			successReporter.Subject(build.factory.Execute(ioConfig, configSource)),
+			successReporter.Subject(build.factory.Execute(build.executeSessionID(), ioConfig, configSource)),
 			func(err error, source exec.ArtifactSource) {
 				if err != nil {
 					build.saveErr(err, event.Origin{})
@@ -222,7 +223,7 @@ func (build *gardenBuild) Resume(lager.Logger) {
 			outputs[output.Name] = exec.Conditional{
 				Conditions: output.On,
 				Step: exec.OnComplete(
-					build.factory.Put(ioConfig, resourceConfig, output.Params),
+					build.factory.Put(build.outputSessionID(output.Name), ioConfig, resourceConfig, output.Params),
 					func(err error, source exec.ArtifactSource) {
 						if err != nil {
 							build.saveErr(err, origin)
@@ -277,6 +278,18 @@ func (build *gardenBuild) Resume(lager.Logger) {
 
 func (build *gardenBuild) Hijack(garden.ProcessSpec, garden.ProcessIO) (garden.Process, error) {
 	return nil, nil
+}
+
+func (build *gardenBuild) executeSessionID() exec.SessionID {
+	return exec.SessionID(fmt.Sprintf("build-%d-execute", build.buildID))
+}
+
+func (build *gardenBuild) inputSessionID(inputName string) exec.SessionID {
+	return exec.SessionID(fmt.Sprintf("build-%d-input-%s", build.buildID, inputName))
+}
+
+func (build *gardenBuild) outputSessionID(outputName string) exec.SessionID {
+	return exec.SessionID(fmt.Sprintf("build-%d-output-%s", build.buildID, outputName))
 }
 
 func (build *gardenBuild) saveStart() {

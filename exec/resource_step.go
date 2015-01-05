@@ -9,6 +9,8 @@ import (
 )
 
 type resourceStep struct {
+	SessionID resource.SessionID
+
 	Tracker resource.Tracker
 	Type    resource.ResourceType
 
@@ -26,7 +28,7 @@ func (step resourceStep) Using(source ArtifactSource) ArtifactSource {
 }
 
 func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	resource, err := ras.Tracker.Init(ras.Type)
+	resource, err := ras.Tracker.Init(ras.SessionID, ras.Type)
 	if err != nil {
 		return err
 	}
