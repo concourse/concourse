@@ -33,6 +33,7 @@ import (
 	Db "github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/engine"
+	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/resource"
 	rdr "github.com/concourse/atc/radar"
 	sched "github.com/concourse/atc/scheduler"
@@ -251,8 +252,12 @@ func main() {
 	resourceTracker := resource.NewTracker(resourceMapping, gardenClient)
 
 	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, turbine.Routes)
+	turbineEngine := engine.NewTurbineEngine(turbineEndpoint, db)
 
-	engine := engine.NewDBEngine(engine.NewTurbineEngine(turbineEndpoint, db), db, db)
+	gardenFactory := exec.NewGardenFactory(gardenClient, resourceTracker)
+	gardenEngine := engine.NewGardenEngine(gardenFactory, db)
+
+	engine := engine.NewDBEngine(engine.Engines{turbineEngine, gardenEngine}, db, db)
 
 	scheduler := &sched.Scheduler{
 		DB:      db,

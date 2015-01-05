@@ -27,3 +27,15 @@ type Build interface {
 	Hijack(garden.ProcessSpec, garden.ProcessIO) (garden.Process, error)
 	Resume(lager.Logger)
 }
+
+type Engines []Engine
+
+func (engines Engines) Lookup(name string) (Engine, bool) {
+	for _, e := range engines {
+		if e.Name() == name {
+			return e, true
+		}
+	}
+
+	return nil, false
+}

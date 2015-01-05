@@ -2,6 +2,7 @@ package engine
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 
 	garden "github.com/cloudfoundry-incubator/garden/api"
@@ -27,9 +28,9 @@ type BuildLocker interface {
 	AcquireWriteLockImmediately([]db.NamedLock) (db.Lock, error)
 }
 
-func NewDBEngine(engine Engine, buildDB BuildDB, locker BuildLocker) Engine {
+func NewDBEngine(engines Engines, buildDB BuildDB, locker BuildLocker) Engine {
 	return &dbEngine{
-		engine: engine,
+		engines: engines,
 
 		db:     buildDB,
 		locker: locker,
@@ -37,7 +38,7 @@ func NewDBEngine(engine Engine, buildDB BuildDB, locker BuildLocker) Engine {
 }
 
 type dbEngine struct {
-	engine Engine
+	engines Engines
 
 	db     BuildDB
 	locker BuildLocker
@@ -48,12 +49,14 @@ func (*dbEngine) Name() string {
 }
 
 func (engine *dbEngine) CreateBuild(build db.Build, plan atc.BuildPlan) (Build, error) {
-	createdBuild, err := engine.engine.CreateBuild(build, plan)
+	buildEngine := engine.engines[0]
+
+	createdBuild, err := buildEngine.CreateBuild(build, plan)
 	if err != nil {
 		return nil, err
 	}
 
-	started, err := engine.db.StartBuild(build.ID, engine.engine.Name(), createdBuild.Metadata())
+	started, err := engine.db.StartBuild(build.ID, buildEngine.Name(), createdBuild.Metadata())
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +68,7 @@ func (engine *dbEngine) CreateBuild(build db.Build, plan atc.BuildPlan) (Build, 
 	return &dbBuild{
 		id: build.ID,
 
-		engine: engine.engine,
+		engine: buildEngine,
 
 		db:     engine.db,
 		locker: engine.locker,
@@ -73,10 +76,15 @@ func (engine *dbEngine) CreateBuild(build db.Build, plan atc.BuildPlan) (Build, 
 }
 
 func (engine *dbEngine) LookupBuild(build db.Build) (Build, error) {
+	buildEngine, found := engine.engines.Lookup(build.Engine)
+	if !found {
+		return nil, fmt.Errorf("unknown build engine: %s", build.Engine)
+	}
+
 	return &dbBuild{
 		id: build.ID,
 
-		engine: engine.engine,
+		engine: buildEngine,
 
 		db:     engine.db,
 		locker: engine.locker,

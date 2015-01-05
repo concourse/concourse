@@ -21,7 +21,8 @@ import (
 
 var _ = Describe("DBEngine", func() {
 	var (
-		fakeEngine  *fakes.FakeEngine
+		fakeEngineA *fakes.FakeEngine
+		fakeEngineB *fakes.FakeEngine
 		fakeBuildDB *fakes.FakeBuildDB
 		fakeLocker  *fakes.FakeBuildLocker
 
@@ -29,13 +30,16 @@ var _ = Describe("DBEngine", func() {
 	)
 
 	BeforeEach(func() {
-		fakeEngine = new(fakes.FakeEngine)
-		fakeEngine.NameReturns("fake-engine")
+		fakeEngineA = new(fakes.FakeEngine)
+		fakeEngineA.NameReturns("fake-engine-a")
+
+		fakeEngineB = new(fakes.FakeEngine)
+		fakeEngineB.NameReturns("fake-engine-b")
 
 		fakeBuildDB = new(fakes.FakeBuildDB)
 		fakeLocker = new(fakes.FakeBuildLocker)
 
-		dbEngine = NewDBEngine(fakeEngine, fakeBuildDB, fakeLocker)
+		dbEngine = NewDBEngine(Engines{fakeEngineA, fakeEngineB}, fakeBuildDB, fakeLocker)
 	})
 
 	Describe("CreateBuild", func() {
@@ -83,7 +87,7 @@ var _ = Describe("DBEngine", func() {
 				fakeBuild = new(fakes.FakeBuild)
 				fakeBuild.MetadataReturns("some-metadata")
 
-				fakeEngine.CreateBuildReturns(fakeBuild, nil)
+				fakeEngineA.CreateBuildReturns(fakeBuild, nil)
 			})
 
 			It("succeeds", func() {
@@ -99,7 +103,7 @@ var _ = Describe("DBEngine", func() {
 
 				buildID, engine, metadata := fakeBuildDB.StartBuildArgsForCall(0)
 				Ω(buildID).Should(Equal(128))
-				Ω(engine).Should(Equal("fake-engine"))
+				Ω(engine).Should(Equal("fake-engine-a"))
 				Ω(metadata).Should(Equal("some-metadata"))
 			})
 
@@ -118,7 +122,7 @@ var _ = Describe("DBEngine", func() {
 			disaster := errors.New("failed")
 
 			BeforeEach(func() {
-				fakeEngine.CreateBuildReturns(nil, disaster)
+				fakeEngineA.CreateBuildReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {
@@ -143,6 +147,8 @@ var _ = Describe("DBEngine", func() {
 			build = db.Build{
 				ID:   128,
 				Name: "some-build",
+
+				Engine: "fake-engine-a",
 			}
 		})
 
@@ -157,6 +163,16 @@ var _ = Describe("DBEngine", func() {
 		It("returns a build", func() {
 			Ω(foundBuild).ShouldNot(BeNil())
 		})
+
+		Context("when the build's engine is unknown", func() {
+			BeforeEach(func() {
+				build.Engine = "bogus"
+			})
+
+			It("returns an error", func() {
+				Ω(lookupErr).Should(HaveOccurred())
+			})
+		})
 	})
 
 	Describe("Builds", func() {
@@ -169,7 +185,7 @@ var _ = Describe("DBEngine", func() {
 			model = db.Build{
 				ID: 128,
 
-				Engine: "fake-engine",
+				Engine: "fake-engine-b",
 			}
 
 			var err error
@@ -207,7 +223,7 @@ var _ = Describe("DBEngine", func() {
 					fakeBuildDB.GetBuildReturns(model, nil)
 
 					realBuild = new(fakes.FakeBuild)
-					fakeEngine.LookupBuildReturns(realBuild, nil)
+					fakeEngineB.LookupBuildReturns(realBuild, nil)
 				})
 
 				Context("when hijacking the real build succeeds", func() {
@@ -260,7 +276,7 @@ var _ = Describe("DBEngine", func() {
 
 				BeforeEach(func() {
 					fakeBuildDB.GetBuildReturns(model, nil)
-					fakeEngine.LookupBuildReturns(nil, disaster)
+					fakeEngineB.LookupBuildReturns(nil, disaster)
 				})
 
 				It("returns the error", func() {
@@ -308,7 +324,7 @@ var _ = Describe("DBEngine", func() {
 							fakeBuildDB.GetBuildReturns(model, nil)
 
 							realBuild = new(fakes.FakeBuild)
-							fakeEngine.LookupBuildReturns(realBuild, nil)
+							fakeEngineB.LookupBuildReturns(realBuild, nil)
 						})
 
 						Context("when aborting the db build succeeds", func() {
@@ -378,7 +394,7 @@ var _ = Describe("DBEngine", func() {
 
 						BeforeEach(func() {
 							fakeBuildDB.GetBuildReturns(model, nil)
-							fakeEngine.LookupBuildReturns(nil, disaster)
+							fakeEngineB.LookupBuildReturns(nil, disaster)
 						})
 
 						It("returns the error", func() {
@@ -435,7 +451,7 @@ var _ = Describe("DBEngine", func() {
 
 					It("does not abort the real build", func() {
 						Ω(fakeBuildDB.GetBuildCallCount()).Should(BeZero())
-						Ω(fakeEngine.LookupBuildCallCount()).Should(BeZero())
+						Ω(fakeEngineB.LookupBuildCallCount()).Should(BeZero())
 					})
 				})
 
@@ -485,7 +501,7 @@ var _ = Describe("DBEngine", func() {
 							fakeBuildDB.GetBuildReturns(model, nil)
 
 							realBuild = new(fakes.FakeBuild)
-							fakeEngine.LookupBuildReturns(realBuild, nil)
+							fakeEngineB.LookupBuildReturns(realBuild, nil)
 
 							realBuild.ResumeStub = func(lager.Logger) {
 								Ω(fakeLocker.AcquireWriteLockImmediatelyCallCount()).Should(Equal(1))
@@ -584,7 +600,7 @@ var _ = Describe("DBEngine", func() {
 
 						BeforeEach(func() {
 							fakeBuildDB.GetBuildReturns(model, nil)
-							fakeEngine.LookupBuildReturns(nil, disaster)
+							fakeEngineB.LookupBuildReturns(nil, disaster)
 						})
 
 						It("releases the lock", func() {
@@ -600,7 +616,7 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					It("does not look up the build in the engine", func() {
-						Ω(fakeEngine.LookupBuildCallCount()).Should(BeZero())
+						Ω(fakeEngineB.LookupBuildCallCount()).Should(BeZero())
 					})
 
 					It("releases the lock", func() {
@@ -616,7 +632,7 @@ var _ = Describe("DBEngine", func() {
 
 				It("does not look up the build", func() {
 					Ω(fakeBuildDB.GetBuildCallCount()).Should(BeZero())
-					Ω(fakeEngine.LookupBuildCallCount()).Should(BeZero())
+					Ω(fakeEngineB.LookupBuildCallCount()).Should(BeZero())
 				})
 			})
 		})
