@@ -74,9 +74,17 @@ func (radar *Radar) Scan(resourceName string) ifrit.Runner {
 		checkLock := []db.NamedLock{db.ResourceCheckingLock(resourceName)}
 		resLock := []db.NamedLock{db.ResourceLock(resourceName)}
 
+		var resourceCheckingLock db.Lock
+
+		defer func() {
+			if resourceCheckingLock != nil {
+				resourceCheckingLock.Release()
+			}
+		}()
+
 		for {
-			var resourceCheckingLock db.Lock
 			var err error
+
 			select {
 			case <-signals:
 				return nil
@@ -89,7 +97,7 @@ func (radar *Radar) Scan(resourceName string) ifrit.Runner {
 
 				config, err := radar.configDB.GetConfig()
 				if err != nil {
-					continue
+					break
 				}
 
 				resourceConfig, found := config.Resources.Lookup(resourceName)

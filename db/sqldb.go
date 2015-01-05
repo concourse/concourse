@@ -1084,7 +1084,7 @@ func (db *SQLDB) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 	return hs, nil
 }
 
-func (db *SQLDB) acquireLock(lockType string, locks []NamedLock) (*txLock, error) {
+func (db *SQLDB) acquireLock(lockType string, locks []NamedLock) (Lock, error) {
 	params := []interface{}{}
 	refs := []string{}
 	for i, lock := range locks {
@@ -1202,11 +1202,15 @@ func (lock *txLock) cleanup() error {
 		return nil
 	}
 
-	_, err = cleanupLock.tx.Exec(`
+	// acquireLock cannot return *txLock as that is a non-nil interface type when it fails
+	internalLock := cleanupLock.(*txLock)
+
+	_, err = internalLock.tx.Exec(`
 		DELETE FROM locks
 		WHERE name IN (`+strings.Join(refs, ",")+`)
 	`, lockNames...)
-	return cleanupLock.release()
+
+	return internalLock.release()
 }
 
 func (lock *txLock) Release() error {
