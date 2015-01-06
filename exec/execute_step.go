@@ -229,7 +229,7 @@ func (dest containerDestination) StreamIn(dst string, src io.Reader) error {
 
 	if len(destSegments) > 0 {
 		for _, config := range dest.InputConfigs {
-			if config.Name == destSegments[0] {
+			if config.Name == destSegments[0] && config.Path != "" {
 				destSegments[0] = config.Path
 				break
 			}

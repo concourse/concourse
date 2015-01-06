@@ -908,6 +908,63 @@ var _ = Describe("GardenFactory", func() {
 						})
 					})
 
+					Context("when the configuration specifies names of inputs without paths", func() {
+						BeforeEach(func() {
+							configSource.FetchConfigReturns(atc.BuildConfig{
+								Image:  "some-image",
+								Params: map[string]string{"SOME": "params"},
+								Run: atc.BuildRunConfig{
+									Path: "ls",
+									Args: []string{"some", "args"},
+								},
+								Inputs: []atc.BuildInputConfig{
+									{Name: "some-input"},
+									{Name: "some-other-input"},
+								},
+							}, nil)
+						})
+
+						It("does not re-map the stream destinations", func() {
+							Ω(inSource.StreamToCallCount()).Should(Equal(1))
+
+							streamIn := new(bytes.Buffer)
+
+							By("not remapping base destinations")
+							err := inSource.StreamToArgsForCall(0).StreamIn("some-input", streamIn)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							destination, source := fakeContainer.StreamInArgsForCall(0)
+							Ω(destination).Should(Equal("/tmp/build/src/some-input"))
+							Ω(source).Should(Equal(streamIn))
+
+							containerDest := inSource.StreamToArgsForCall(0)
+
+							By("not remapping subdirectory destinations")
+							err = containerDest.StreamIn("some-input/some-thing", streamIn)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							destination, source = fakeContainer.StreamInArgsForCall(1)
+							Ω(destination).Should(Equal("/tmp/build/src/some-input/some-thing"))
+							Ω(source).Should(Equal(streamIn))
+
+							By("not remapping other base destinations")
+							err = containerDest.StreamIn("some-other-input", streamIn)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							destination, source = fakeContainer.StreamInArgsForCall(2)
+							Ω(destination).Should(Equal("/tmp/build/src/some-other-input"))
+							Ω(source).Should(Equal(streamIn))
+
+							By("not remapping unconfigured destinations")
+							err = containerDest.StreamIn("some-other-unconfigured-input", streamIn)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							destination, source = fakeContainer.StreamInArgsForCall(3)
+							Ω(destination).Should(Equal("/tmp/build/src/some-other-unconfigured-input"))
+							Ω(source).Should(Equal(streamIn))
+						})
+					})
+
 					Context("when the process exits 0", func() {
 						BeforeEach(func() {
 							fakeProcess.WaitReturns(0, nil)
