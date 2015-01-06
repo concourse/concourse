@@ -257,7 +257,7 @@ func main() {
 	gardenFactory := exec.NewGardenFactory(gardenClient, resourceTracker)
 	gardenEngine := engine.NewGardenEngine(gardenFactory, db)
 
-	engine := engine.NewDBEngine(engine.Engines{turbineEngine, gardenEngine}, db, db)
+	engine := engine.NewDBEngine(engine.Engines{gardenEngine, turbineEngine}, db, db)
 
 	scheduler := &sched.Scheduler{
 		DB:      db,
