@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -97,6 +98,23 @@ type implicitOutput struct {
 	info exec.VersionInfo
 }
 
+type implicitOutputTracker struct {
+	implicitOutputs  map[string]implicitOutput
+	implicitOutputsL sync.Mutex
+}
+
+func (t *implicitOutputTracker) register(name string, output implicitOutput) {
+	t.implicitOutputsL.Lock()
+	t.implicitOutputs[name] = output
+	t.implicitOutputsL.Unlock()
+}
+
+func (t *implicitOutputTracker) unregister(name string) {
+	t.implicitOutputsL.Lock()
+	delete(t.implicitOutputs, name)
+	t.implicitOutputsL.Unlock()
+}
+
 // Compose(
 //   Compose(
 //     Aggregate{ // inputs
@@ -115,7 +133,9 @@ type implicitOutput struct {
 func (build *gardenBuild) Resume(lager.Logger) {
 	plan := build.metadata.Plan
 
-	implicitOutputs := make(chan implicitOutput, len(plan.Inputs))
+	implicitOutputsT := &implicitOutputTracker{
+		implicitOutputs: map[string]implicitOutput{},
+	}
 
 	var step exec.Step
 
@@ -151,7 +171,7 @@ func (build *gardenBuild) Resume(lager.Logger) {
 							build.saveInput(plan, info)
 						}
 
-						implicitOutputs <- implicitOutput{plan, info}
+						implicitOutputsT.register(plan.Resource, implicitOutput{plan, info})
 					}
 				},
 			)
@@ -237,6 +257,8 @@ func (build *gardenBuild) Resume(lager.Logger) {
 						if err != nil {
 							build.saveErr(err, origin)
 						} else {
+							implicitOutputsT.unregister(plan.Name)
+
 							var info exec.VersionInfo
 							if source.Result(&info) {
 								build.saveOutput(plan, info)
@@ -270,8 +292,7 @@ func (build *gardenBuild) Resume(lager.Logger) {
 			} else if successReporter.Successful() {
 				build.saveStatus(atc.StatusSucceeded)
 
-				for i := 0; i < len(implicitOutputs); i++ {
-					o := <-implicitOutputs
+				for _, o := range implicitOutputsT.implicitOutputs {
 					build.saveImplicitOutput(o.plan, o.info)
 				}
 			} else {
