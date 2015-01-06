@@ -200,7 +200,7 @@ func (step *executeStep) StreamFile(source string) (io.ReadCloser, error) {
 }
 
 func (step *executeStep) StreamTo(destination ArtifactDestination) error {
-	out, err := step.container.StreamOut(ArtifactsRoot)
+	out, err := step.container.StreamOut(ArtifactsRoot + "/")
 	if err != nil {
 		return err
 	}

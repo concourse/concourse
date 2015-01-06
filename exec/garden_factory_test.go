@@ -1052,7 +1052,7 @@ var _ = Describe("GardenFactory", func() {
 								Ω(err).ShouldNot(HaveOccurred())
 
 								Ω(fakeContainer.StreamOutCallCount()).Should(Equal(1))
-								Ω(fakeContainer.StreamOutArgsForCall(0)).Should(Equal("/tmp/build/src"))
+								Ω(fakeContainer.StreamOutArgsForCall(0)).Should(Equal("/tmp/build/src/"))
 
 								Ω(fakeDestination.StreamInCallCount()).Should(Equal(1))
 								dest, src := fakeDestination.StreamInArgsForCall(0)
