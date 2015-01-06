@@ -50,6 +50,94 @@ var _ = Describe("GardenFactory", func() {
 		}
 	})
 
+	Describe("Hijack", func() {
+		var (
+			processSpec garden.ProcessSpec
+			processIO   garden.ProcessIO
+
+			hijackedProcess garden.Process
+			hijackErr       error
+		)
+
+		BeforeEach(func() {
+			processSpec = garden.ProcessSpec{
+				Path: "ls",
+			}
+
+			processIO = garden.ProcessIO{
+				Stdin:  new(bytes.Buffer),
+				Stdout: new(bytes.Buffer),
+				Stderr: new(bytes.Buffer),
+			}
+		})
+
+		JustBeforeEach(func() {
+			hijackedProcess, hijackErr = factory.Hijack(sessionID, processSpec, processIO)
+		})
+
+		Context("when finding the session's container succeeds", func() {
+			var fakeContainer *gfakes.FakeContainer
+
+			BeforeEach(func() {
+				fakeContainer = new(gfakes.FakeContainer)
+				fakeGardenClient.LookupReturns(fakeContainer, nil)
+			})
+
+			Context("and the container can spawn processes", func() {
+				var fakeProcess *gfakes.FakeProcess
+
+				BeforeEach(func() {
+					fakeProcess = new(gfakes.FakeProcess)
+					fakeContainer.RunReturns(fakeProcess, nil)
+				})
+
+				It("looks up by session id", func() {
+					Ω(fakeGardenClient.LookupArgsForCall(0)).Should(Equal(sessionID))
+				})
+
+				It("succeeds", func() {
+					Ω(hijackErr).ShouldNot(HaveOccurred())
+				})
+
+				It("returns the process", func() {
+					Ω(hijackedProcess).Should(Equal(fakeProcess))
+				})
+
+				It("spawns the process with the given spec and IO config", func() {
+					Ω(fakeContainer.RunCallCount()).Should(Equal(1))
+
+					ranSpec, ranIO := fakeContainer.RunArgsForCall(0)
+					Ω(ranSpec).Should(Equal(processSpec))
+					Ω(ranIO).Should(Equal(processIO))
+				})
+			})
+
+			Context("when the container cannot spawn processes", func() {
+				disaster := errors.New("nope")
+
+				BeforeEach(func() {
+					fakeContainer.RunReturns(nil, disaster)
+				})
+
+				It("returns the error", func() {
+					Ω(hijackErr).Should(Equal(disaster))
+				})
+			})
+		})
+
+		Context("when finding the session's container fails", func() {
+			disaster := errors.New("nope")
+
+			BeforeEach(func() {
+				fakeGardenClient.LookupReturns(nil, disaster)
+			})
+
+			It("returns the error", func() {
+				Ω(hijackErr).Should(Equal(disaster))
+			})
+		})
+	})
+
 	Describe("Get", func() {
 		var (
 			resourceConfig atc.ResourceConfig

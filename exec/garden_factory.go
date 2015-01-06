@@ -58,3 +58,12 @@ func (factory *gardenFactory) Execute(sessionID SessionID, ioConfig IOConfig, co
 		GardenClient: factory.gardenClient,
 	}
 }
+
+func (factory *gardenFactory) Hijack(sessionID SessionID, spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
+	container, err := factory.gardenClient.Lookup(string(sessionID))
+	if err != nil {
+		return nil, err
+	}
+
+	return container.Run(spec, io)
+}

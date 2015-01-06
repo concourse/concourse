@@ -276,8 +276,8 @@ func (build *gardenBuild) Resume(lager.Logger) {
 	}
 }
 
-func (build *gardenBuild) Hijack(garden.ProcessSpec, garden.ProcessIO) (garden.Process, error) {
-	return nil, nil
+func (build *gardenBuild) Hijack(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
+	return build.factory.Hijack(build.executeSessionID(), spec, io)
 }
 
 func (build *gardenBuild) executeSessionID() exec.SessionID {
