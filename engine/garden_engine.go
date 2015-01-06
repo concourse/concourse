@@ -92,6 +92,11 @@ func (build *gardenBuild) Abort() error {
 	return nil
 }
 
+type implicitOutput struct {
+	plan atc.InputPlan
+	info exec.VersionInfo
+}
+
 // Compose(
 //   Compose(
 //     Aggregate{ // inputs
@@ -109,6 +114,8 @@ func (build *gardenBuild) Abort() error {
 // )
 func (build *gardenBuild) Resume(lager.Logger) {
 	plan := build.metadata.Plan
+
+	implicitOutputs := make(chan implicitOutput, len(plan.Inputs))
 
 	var step exec.Step
 
@@ -143,6 +150,8 @@ func (build *gardenBuild) Resume(lager.Logger) {
 						if source.Result(&info) {
 							build.saveInput(plan, info)
 						}
+
+						implicitOutputs <- implicitOutput{plan, info}
 					}
 				},
 			)
@@ -260,6 +269,11 @@ func (build *gardenBuild) Resume(lager.Logger) {
 				build.saveStatus(atc.StatusErrored)
 			} else if successReporter.Successful() {
 				build.saveStatus(atc.StatusSucceeded)
+
+				for i := 0; i < len(implicitOutputs); i++ {
+					o := <-implicitOutputs
+					build.saveImplicitOutput(o.plan, o.info)
+				}
 			} else {
 				build.saveStatus(atc.StatusFailed)
 			}
@@ -369,6 +383,24 @@ func (build *gardenBuild) saveOutput(plan atc.OutputPlan, info exec.VersionInfo)
 	build.db.SaveBuildEvent(build.buildID, ev)
 
 	build.db.SaveBuildOutput(build.buildID, vrFromOutput(ev))
+}
+
+func (build *gardenBuild) saveImplicitOutput(plan atc.InputPlan, info exec.VersionInfo) {
+	metadata := make([]db.MetadataField, len(info.Metadata))
+	for i, md := range info.Metadata {
+		metadata[i] = db.MetadataField{
+			Name:  md.Name,
+			Value: md.Value,
+		}
+	}
+
+	build.db.SaveBuildOutput(build.buildID, db.VersionedResource{
+		Resource: plan.Resource,
+		Type:     plan.Type,
+		Source:   db.Source(plan.Source),
+		Version:  db.Version(info.Version),
+		Metadata: metadata,
+	})
 }
 
 func (build *gardenBuild) ioWriter(origin event.Origin) io.Writer {
