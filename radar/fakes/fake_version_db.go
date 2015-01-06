@@ -30,10 +30,10 @@ type FakeVersionDB struct {
 
 func (fake *FakeVersionDB) SaveVersionedResource(arg1 db.VersionedResource) error {
 	fake.saveVersionedResourceMutex.Lock()
-	defer fake.saveVersionedResourceMutex.Unlock()
 	fake.saveVersionedResourceArgsForCall = append(fake.saveVersionedResourceArgsForCall, struct {
 		arg1 db.VersionedResource
 	}{arg1})
+	fake.saveVersionedResourceMutex.Unlock()
 	if fake.SaveVersionedResourceStub != nil {
 		return fake.SaveVersionedResourceStub(arg1)
 	} else {
@@ -62,10 +62,10 @@ func (fake *FakeVersionDB) SaveVersionedResourceReturns(result1 error) {
 
 func (fake *FakeVersionDB) GetLatestVersionedResource(arg1 string) (db.VersionedResource, error) {
 	fake.getLatestVersionedResourceMutex.Lock()
-	defer fake.getLatestVersionedResourceMutex.Unlock()
 	fake.getLatestVersionedResourceArgsForCall = append(fake.getLatestVersionedResourceArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	fake.getLatestVersionedResourceMutex.Unlock()
 	if fake.GetLatestVersionedResourceStub != nil {
 		return fake.GetLatestVersionedResourceStub(arg1)
 	} else {
