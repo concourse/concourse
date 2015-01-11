@@ -1,8 +1,6 @@
 package scheduler
 
 import (
-	"database/sql"
-
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc"
@@ -56,6 +54,10 @@ func (s *Scheduler) BuildLatestInputs(job atc.JobConfig, resources atc.ResourceC
 	lock.Release()
 
 	if err != nil {
+		if err == db.ErrNoVersions {
+			return nil
+		}
+
 		buildLog.Error("failed-to-get-latest-input-versions", err)
 		return err
 	}
@@ -135,7 +137,7 @@ func (s *Scheduler) TryNextPendingBuild(job atc.JobConfig, resources atc.Resourc
 
 	build, inputs, err := s.DB.GetNextPendingBuild(job.Name)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == db.ErrNoBuild {
 			return nil
 		}
 

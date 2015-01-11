@@ -318,8 +318,11 @@ func (db *SQLDB) GetCurrentBuild(job string) (Build, error) {
 
 	defer rows.Close()
 
-	if !rows.Next() {
-		rows, err = db.conn.Query(`
+	if rows.Next() {
+		return scanBuild(rows)
+	}
+
+	pendingRows, err := db.conn.Query(`
 			SELECT `+buildColumns+`
 			FROM builds
 			WHERE job_name = $1
@@ -327,16 +330,17 @@ func (db *SQLDB) GetCurrentBuild(job string) (Build, error) {
 			ORDER BY id ASC
 			LIMIT 1
 		`, job)
-		if err != nil {
-			return Build{}, err
-		}
-
-		defer rows.Close()
-
-		rows.Next()
+	if err != nil {
+		return Build{}, err
 	}
 
-	return scanBuild(rows)
+	defer pendingRows.Close()
+
+	if pendingRows.Next() {
+		return scanBuild(pendingRows)
+	}
+
+	return Build{}, ErrNoBuild
 }
 
 func (db *SQLDB) GetJobFinishedAndNextBuild(job string) (*Build, *Build, error) {
@@ -353,7 +357,7 @@ func (db *SQLDB) GetJobFinishedAndNextBuild(job string) (*Build, *Build, error) 
 	`, job))
 	if err == nil {
 		finished = &finishedBuild
-	} else if err != nil && err != sql.ErrNoRows {
+	} else if err != nil && err != ErrNoBuild {
 		return nil, nil, err
 	}
 
@@ -367,7 +371,7 @@ func (db *SQLDB) GetJobFinishedAndNextBuild(job string) (*Build, *Build, error) 
 	`, job))
 	if err == nil {
 		next = &nextBuild
-	} else if err != nil && err != sql.ErrNoRows {
+	} else if err != nil && err != ErrNoBuild {
 		return nil, nil, err
 	}
 
@@ -800,6 +804,13 @@ func (db *SQLDB) GetLatestInputVersions(inputs []atc.JobInputConfig) (VersionedR
 			strings.Join(fromAliases, ", "),
 			strings.Join(conditions, "\nAND "),
 		), params...).Scan(&id, &vr.Resource, &vr.Type, &source, &version, &metadata)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, ErrNoVersions
+			}
+
+			return nil, err
+		}
 
 		params = append(params, id)
 		conditions = append(conditions, fmt.Sprintf("v%d.id = $%d", i+1, len(params)))
@@ -1298,6 +1309,10 @@ func scanBuild(row scannable) (Build, error) {
 
 	err := row.Scan(&id, &name, &jobName, &status, &engine, &engineMetadata, &startTime, &endTime)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return Build{}, ErrNoBuild
+		}
+
 		return Build{}, err
 	}
 

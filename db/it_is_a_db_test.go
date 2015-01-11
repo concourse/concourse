@@ -25,7 +25,12 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 		It("initially has no current build for a job", func() {
 			_, err := database.GetCurrentBuild("some-job")
-			Ω(err).Should(HaveOccurred())
+			Ω(err).Should(Equal(db.ErrNoBuild))
+		})
+
+		It("initially has no pending build for a job", func() {
+			_, _, err := database.GetNextPendingBuild("some-job")
+			Ω(err).Should(Equal(db.ErrNoBuild))
 		})
 
 		Context("when a build is created for a job", func() {
@@ -978,6 +983,18 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 				sb1, err := database.CreateJobBuild("shared-job")
 				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = database.GetLatestInputVersions([]atc.JobInputConfig{
+					{
+						Resource: "resource-1",
+						Passed:   []string{"shared-job", "job-1"},
+					},
+					{
+						Resource: "resource-2",
+						Passed:   []string{"shared-job", "job-2"},
+					},
+				})
+				Ω(err).Should(Equal(db.ErrNoVersions))
 
 				err = database.SaveBuildOutput(sb1.ID, db.VersionedResource{
 					Resource: "resource-1",
