@@ -58,7 +58,7 @@ dance:
 	for {
 		select {
 		case <-time.After(runner.Interval):
-			runner.tick()
+			runner.tick(runner.Logger.Session("tick"))
 
 		case <-signals:
 			break dance
@@ -68,21 +68,19 @@ dance:
 	return nil
 }
 
-func (runner *Runner) tick() {
-	sLog := runner.Logger.Session("tick")
-
-	sLog.Info("start")
-	defer sLog.Info("done")
+func (runner *Runner) tick(logger lager.Logger) {
+	logger.Info("start")
+	defer logger.Info("done")
 
 	config, err := runner.ConfigDB.GetConfig()
 	if err != nil {
-		sLog.Error("failed-to-get-config", err)
+		logger.Error("failed-to-get-config", err)
 		return
 	}
 
 	err = runner.Scheduler.TrackInFlightBuilds()
 	if err != nil {
-		sLog.Error("failed-to-track-in-flight-builds", err)
+		logger.Error("failed-to-track-in-flight-builds", err)
 	}
 
 	if runner.Noop {
@@ -95,18 +93,18 @@ func (runner *Runner) tick() {
 			continue
 		}
 
-		sLog.Info("scheduling", lager.Data{
+		logger.Debug("scheduling", lager.Data{
 			"job": job.Name,
 		})
 
 		err = runner.Scheduler.TryNextPendingBuild(job, config.Resources)
 		if err != nil {
-			sLog.Error("failed-to-try-next-pending-build", err)
+			logger.Error("failed-to-try-next-pending-build", err)
 		}
 
 		err = runner.Scheduler.BuildLatestInputs(job, config.Resources)
 		if err != nil {
-			sLog.Error("failed-to-build-from-latest-inputs", err)
+			logger.Error("failed-to-build-from-latest-inputs", err)
 		}
 
 		lock.Release()
