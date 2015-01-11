@@ -63,6 +63,8 @@ var _ = Describe("GardenEngine", func() {
 		)
 
 		BeforeEach(func() {
+			logger = lagertest.NewTestLogger("test")
+
 			buildModel = db.Build{ID: 42}
 
 			buildConfig = atc.BuildConfig{
