@@ -21,14 +21,16 @@ type GardenMetadata struct {
 }
 
 type gardenEngine struct {
-	factory exec.Factory
-	db      EngineDB
+	factory         exec.Factory
+	delegateFactory BuildDelegateFactory
+	db              EngineDB
 }
 
-func NewGardenEngine(factory exec.Factory, db EngineDB) Engine {
+func NewGardenEngine(factory exec.Factory, delegateFactory BuildDelegateFactory, db EngineDB) Engine {
 	return &gardenEngine{
-		factory: factory,
-		db:      db,
+		factory:         factory,
+		delegateFactory: delegateFactory,
+		db:              db,
 	}
 }
 
@@ -38,9 +40,10 @@ func (engine *gardenEngine) Name() string {
 
 func (engine *gardenEngine) CreateBuild(model db.Build, plan atc.BuildPlan) (Build, error) {
 	return &gardenBuild{
-		buildID: model.ID,
-		db:      engine.db,
-		factory: engine.factory,
+		buildID:  model.ID,
+		db:       engine.db,
+		factory:  engine.factory,
+		delegate: engine.delegateFactory.Delegate(model.ID),
 		metadata: GardenMetadata{
 			Plan: plan,
 		},
@@ -60,6 +63,7 @@ func (engine *gardenEngine) LookupBuild(model db.Build) (Build, error) {
 		buildID:  model.ID,
 		db:       engine.db,
 		factory:  engine.factory,
+		delegate: engine.delegateFactory.Delegate(model.ID),
 		metadata: metadata,
 
 		signals: make(chan os.Signal, 1),
@@ -70,7 +74,8 @@ type gardenBuild struct {
 	buildID int
 	db      EngineDB
 
-	factory exec.Factory
+	factory  exec.Factory
+	delegate BuildDelegate
 
 	signals chan os.Signal
 
@@ -92,41 +97,20 @@ func (build *gardenBuild) Abort() error {
 }
 
 func (build *gardenBuild) Resume(lager.Logger) {
-	plan := build.metadata.Plan
+	build.delegate.Start()
 
-	delegate := newDelegate(build.db, build.buildID)
-
-	var step exec.Step
-
-	if len(plan.Inputs) > 0 {
-		step = build.aggregateInputsStep(delegate)
-	}
-
-	var configSource exec.BuildConfigSource
-	if plan.Config != nil && plan.ConfigPath != "" {
-		configSource = exec.MergedConfigSource{
-			A: exec.FileConfigSource{plan.ConfigPath},
-			B: exec.StaticConfigSource{*plan.Config},
-		}
-	} else if plan.Config != nil {
-		configSource = exec.StaticConfigSource{*plan.Config}
-	} else if plan.ConfigPath != "" {
-		configSource = exec.FileConfigSource{plan.ConfigPath}
-	}
-
-	if configSource != nil {
-		step = exec.Compose(step, build.executeStep(delegate, configSource))
-	}
-
-	if len(plan.Outputs) > 0 {
-		step = exec.Compose(step, build.aggregateOutputsStep(delegate))
-	}
-
-	step = exec.OnComplete(step, delegate.Finish())
+	step := exec.OnComplete(
+		exec.Compose(
+			build.aggregateInputsStep(),
+			exec.Compose(
+				build.executeStep(),
+				build.aggregateOutputsStep(),
+			),
+		),
+		build.delegate.Finish(),
+	)
 
 	source := step.Using(&exec.NoopArtifactSource{})
-
-	delegate.Start()
 
 	process := ifrit.Background(source)
 
@@ -141,7 +125,7 @@ func (build *gardenBuild) Resume(lager.Logger) {
 			process.Signal(sig)
 
 			if sig == os.Kill {
-				delegate.Aborted()
+				build.delegate.Aborted()
 			}
 		}
 	}
@@ -151,7 +135,7 @@ func (build *gardenBuild) Hijack(spec garden.ProcessSpec, io garden.ProcessIO) (
 	return build.factory.Hijack(build.executeSessionID(), spec, io)
 }
 
-func (build *gardenBuild) aggregateInputsStep(delegate Delegate) exec.Step {
+func (build *gardenBuild) aggregateInputsStep() exec.Step {
 	inputs := exec.Aggregate{}
 
 	for _, input := range build.metadata.Plan.Inputs {
@@ -173,14 +157,36 @@ func (build *gardenBuild) aggregateInputsStep(delegate Delegate) exec.Step {
 
 		inputs[input.Name] = exec.OnComplete(
 			build.factory.Get(build.inputSessionID(input.Name), ioConfig, resourceConfig, input.Params, input.Version),
-			delegate.InputCompleted(input),
+			build.delegate.InputCompleted(input),
 		)
 	}
 
 	return inputs
 }
 
-func (build *gardenBuild) executeStep(delegate Delegate, configSource exec.BuildConfigSource) exec.Step {
+func (build *gardenBuild) executeStep() exec.Step {
+	plan := build.metadata.Plan
+
+	var configSource exec.BuildConfigSource
+	if plan.Config != nil && plan.ConfigPath != "" {
+		configSource = exec.MergedConfigSource{
+			A: exec.FileConfigSource{plan.ConfigPath},
+			B: exec.StaticConfigSource{*plan.Config},
+		}
+	} else if plan.Config != nil {
+		configSource = exec.StaticConfigSource{*plan.Config}
+	} else if plan.ConfigPath != "" {
+		configSource = exec.FileConfigSource{plan.ConfigPath}
+	} else {
+		return exec.Identity{}
+	}
+
+	configSource = initializeEmitter{
+		buildID:           build.buildID,
+		db:                build.db,
+		BuildConfigSource: configSource,
+	}
+
 	ioConfig := exec.IOConfig{
 		Stdout: build.ioWriter(event.Origin{
 			Type: event.OriginTypeRun,
@@ -192,19 +198,13 @@ func (build *gardenBuild) executeStep(delegate Delegate, configSource exec.Build
 		}),
 	}
 
-	configSource = initializeEmitter{
-		buildID:           build.buildID,
-		db:                build.db,
-		BuildConfigSource: configSource,
-	}
-
 	return exec.OnComplete(
 		build.factory.Execute(build.executeSessionID(), ioConfig, configSource),
-		delegate.ExecutionCompleted(),
+		build.delegate.ExecutionCompleted(),
 	)
 }
 
-func (build *gardenBuild) aggregateOutputsStep(delegate Delegate) exec.Step {
+func (build *gardenBuild) aggregateOutputsStep() exec.Step {
 	outputs := exec.Aggregate{}
 
 	for _, output := range build.metadata.Plan.Outputs {
@@ -228,7 +228,7 @@ func (build *gardenBuild) aggregateOutputsStep(delegate Delegate) exec.Step {
 			Conditions: output.On,
 			Step: exec.OnComplete(
 				build.factory.Put(build.outputSessionID(output.Name), ioConfig, resourceConfig, output.Params),
-				delegate.OutputCompleted(output),
+				build.delegate.OutputCompleted(output),
 			),
 		}
 	}
@@ -269,7 +269,6 @@ func (emitter initializeEmitter) FetchConfig(source exec.ArtifactSource) (atc.Bu
 		return atc.BuildConfig{}, err
 	}
 
-	// TODO handle err
 	emitter.db.SaveBuildEvent(emitter.buildID, event.Initialize{
 		BuildConfig: config,
 	})
@@ -297,7 +296,6 @@ func (writer *dbEventWriter) Write(data []byte) (int, error) {
 
 	writer.dangling = nil
 
-	// TODO handle err
 	writer.db.SaveBuildEvent(writer.buildID, event.Log{
 		Payload: string(text),
 		Origin:  writer.origin,

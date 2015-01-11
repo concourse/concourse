@@ -32,7 +32,7 @@ var _ = Describe("OnComplete", func() {
 		outSource = new(fakes.FakeArtifactSource)
 		wrappedStep.UsingReturns(outSource)
 
-		callback = func(error, ArtifactSource) {}
+		callback = CallbackFunc(func(error, ArtifactSource) {})
 	})
 
 	JustBeforeEach(func() {
@@ -63,11 +63,11 @@ var _ = Describe("OnComplete", func() {
 					outSource.RunReturns(nil)
 
 					calledBack = make(chan struct{})
-					callback = func(err error, source ArtifactSource) {
+					callback = CallbackFunc(func(err error, source ArtifactSource) {
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(source).Should(Equal(outSource))
 						close(calledBack)
-					}
+					})
 				})
 
 				It("succeeds", func() {
@@ -88,11 +88,11 @@ var _ = Describe("OnComplete", func() {
 					outSource.RunReturns(disaster)
 
 					calledBack = make(chan struct{})
-					callback = func(err error, source ArtifactSource) {
+					callback = CallbackFunc(func(err error, source ArtifactSource) {
 						Ω(err).Should(Equal(disaster))
 						Ω(source).Should(Equal(outSource))
 						close(calledBack)
-					}
+					})
 				})
 
 				It("propagates the failure", func() {

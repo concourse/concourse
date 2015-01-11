@@ -9,6 +9,8 @@ import (
 
 type SessionID string
 
+//go:generate counterfeiter . Factory
+
 type Factory interface {
 	Get(SessionID, IOConfig, atc.ResourceConfig, atc.Params, atc.Version) Step
 	Put(SessionID, IOConfig, atc.ResourceConfig, atc.Params) Step

@@ -15,7 +15,9 @@ type implicitOutput struct {
 	info exec.VersionInfo
 }
 
-type Delegate interface {
+//go:generate counterfeiter . BuildDelegate
+
+type BuildDelegate interface {
 	InputCompleted(atc.InputPlan) exec.CompleteCallback
 	ExecutionCompleted() exec.CompleteCallback
 	OutputCompleted(atc.OutputPlan) exec.CompleteCallback
@@ -23,6 +25,24 @@ type Delegate interface {
 	Start()
 	Finish() exec.CompleteCallback
 	Aborted()
+}
+
+//go:generate counterfeiter . BuildDelegateFactory
+
+type BuildDelegateFactory interface {
+	Delegate(buildID int) BuildDelegate
+}
+
+type buildDelegateFactory struct {
+	db EngineDB
+}
+
+func NewBuildDelegateFactory(db EngineDB) BuildDelegateFactory {
+	return buildDelegateFactory{db}
+}
+
+func (factory buildDelegateFactory) Delegate(buildID int) BuildDelegate {
+	return newBuildDelegate(factory.db, buildID)
 }
 
 type delegate struct {
@@ -38,7 +58,7 @@ type delegate struct {
 	lock sync.Mutex
 }
 
-func newDelegate(db EngineDB, buildID int) Delegate {
+func newBuildDelegate(db EngineDB, buildID int) BuildDelegate {
 	return &delegate{
 		db: db,
 
@@ -52,7 +72,7 @@ func newDelegate(db EngineDB, buildID int) Delegate {
 }
 
 func (delegate *delegate) InputCompleted(plan atc.InputPlan) exec.CompleteCallback {
-	return func(err error, source exec.ArtifactSource) {
+	return exec.CallbackFunc(func(err error, source exec.ArtifactSource) {
 		if err != nil {
 			delegate.saveErr(err, event.Origin{
 				Type: event.OriginTypeInput,
@@ -65,11 +85,11 @@ func (delegate *delegate) InputCompleted(plan atc.InputPlan) exec.CompleteCallba
 				delegate.registerImplicitOutput(plan.Resource, implicitOutput{plan, info})
 			}
 		}
-	}
+	})
 }
 
 func (delegate *delegate) ExecutionCompleted() exec.CompleteCallback {
-	return func(err error, source exec.ArtifactSource) {
+	return exec.CallbackFunc(func(err error, source exec.ArtifactSource) {
 		if err != nil {
 			delegate.saveErr(err, event.Origin{})
 		} else {
@@ -85,11 +105,11 @@ func (delegate *delegate) ExecutionCompleted() exec.CompleteCallback {
 				}
 			}
 		}
-	}
+	})
 }
 
 func (delegate *delegate) OutputCompleted(plan atc.OutputPlan) exec.CompleteCallback {
-	return func(err error, source exec.ArtifactSource) {
+	return exec.CallbackFunc(func(err error, source exec.ArtifactSource) {
 		if err != nil {
 			delegate.saveErr(err, event.Origin{
 				Type: event.OriginTypeOutput,
@@ -103,15 +123,30 @@ func (delegate *delegate) OutputCompleted(plan atc.OutputPlan) exec.CompleteCall
 				delegate.saveOutput(plan, info)
 			}
 		}
-	}
+	})
 }
 
 func (delegate *delegate) Start() {
-	delegate.saveStart()
+	// TODO?: make this a callback hooked in to the steps when a certain one starts
+
+	time := time.Now()
+
+	delegate.db.SaveBuildStartTime(delegate.buildID, time)
+
+	delegate.db.SaveBuildStatus(delegate.buildID, db.StatusStarted)
+
+	delegate.db.SaveBuildEvent(delegate.buildID, event.Start{
+		Time: time.Unix(),
+	})
+
+	delegate.db.SaveBuildEvent(delegate.buildID, event.Status{
+		Status: atc.StatusStarted,
+		Time:   time.Unix(),
+	})
 }
 
 func (delegate *delegate) Finish() exec.CompleteCallback {
-	return func(err error, source exec.ArtifactSource) {
+	return exec.CallbackFunc(func(err error, source exec.ArtifactSource) {
 		if delegate.aborted {
 			delegate.saveStatus(atc.StatusAborted)
 		} else if err != nil {
@@ -125,7 +160,7 @@ func (delegate *delegate) Finish() exec.CompleteCallback {
 		} else {
 			delegate.saveStatus(atc.StatusFailed)
 		}
-	}
+	})
 }
 
 func (delegate *delegate) Aborted() {
@@ -142,25 +177,6 @@ func (delegate *delegate) unregisterImplicitOutput(resource string) {
 	delegate.lock.Lock()
 	delete(delegate.implicitOutputs, resource)
 	delegate.lock.Unlock()
-}
-
-func (delegate *delegate) saveStart() {
-	// TODO handle errs
-
-	time := time.Now()
-
-	delegate.db.SaveBuildStartTime(delegate.buildID, time)
-
-	delegate.db.SaveBuildStatus(delegate.buildID, db.StatusStarted)
-
-	delegate.db.SaveBuildEvent(delegate.buildID, event.Start{
-		Time: time.Unix(),
-	})
-
-	delegate.db.SaveBuildEvent(delegate.buildID, event.Status{
-		Status: atc.StatusStarted,
-		Time:   time.Unix(),
-	})
 }
 
 func (delegate *delegate) saveFinish(status exec.ExitStatus) {

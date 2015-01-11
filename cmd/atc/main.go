@@ -255,7 +255,7 @@ func main() {
 	turbineEngine := engine.NewTurbineEngine(turbineEndpoint, db)
 
 	gardenFactory := exec.NewGardenFactory(gardenClient, resourceTracker)
-	gardenEngine := engine.NewGardenEngine(gardenFactory, db)
+	gardenEngine := engine.NewGardenEngine(gardenFactory, engine.NewBuildDelegateFactory(db), db)
 
 	engine := engine.NewDBEngine(engine.Engines{gardenEngine, turbineEngine}, db, db)
 

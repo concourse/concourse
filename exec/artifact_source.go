@@ -56,3 +56,9 @@ func (NoopArtifactSource) StreamFile(string) (io.ReadCloser, error) {
 func (NoopArtifactSource) Result(interface{}) bool {
 	return false
 }
+
+type Identity struct{}
+
+func (Identity) Using(source ArtifactSource) ArtifactSource {
+	return source
+}
