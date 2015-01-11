@@ -205,9 +205,11 @@ func (build *gardenBuild) executeStep(logger lager.Logger) exec.Step {
 }
 
 func (build *gardenBuild) aggregateOutputsStep(logger lager.Logger) exec.Step {
+	plan := build.metadata.Plan
+
 	outputs := exec.Aggregate{}
 
-	for _, output := range build.metadata.Plan.Outputs {
+	for _, output := range plan.Outputs {
 		origin := event.Origin{
 			Type: event.OriginTypeOutput,
 			Name: output.Name,
@@ -224,13 +226,20 @@ func (build *gardenBuild) aggregateOutputsStep(logger lager.Logger) exec.Step {
 			Source: output.Source,
 		}
 
-		outputs[output.Name] = exec.Conditional{
-			Conditions: output.On,
-			Step: exec.OnComplete(
-				build.factory.Put(build.outputSessionID(output.Name), ioConfig, resourceConfig, output.Params),
-				build.delegate.OutputCompleted(logger.Session(output.Name), output),
-			),
+		step := exec.OnComplete(
+			build.factory.Put(build.outputSessionID(output.Name), ioConfig, resourceConfig, output.Params),
+			build.delegate.OutputCompleted(logger.Session(output.Name), output),
+		)
+
+		if plan.Config != nil || plan.ConfigPath != "" {
+			// if there's a build configured, make this conditional
+			step = exec.Conditional{
+				Conditions: output.On,
+				Step:       step,
+			}
 		}
+
+		outputs[output.Name] = step
 	}
 
 	return outputs

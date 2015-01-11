@@ -43,11 +43,14 @@ var _ = Describe("GardenEngine", func() {
 			fakeOutputCompleteCallback    *execfakes.FakeCompleteCallback
 			fakeFinishCallback            *execfakes.FakeCompleteCallback
 
-			buildModel  db.Build
-			buildConfig atc.BuildConfig
+			buildModel db.Build
+
 			inputPlan   *atc.InputPlan
 			outputPlan  *atc.OutputPlan
 			privileged  bool
+			buildConfig *atc.BuildConfig
+
+			buildConfigPath string
 
 			build engine.Build
 
@@ -68,7 +71,7 @@ var _ = Describe("GardenEngine", func() {
 
 			buildModel = db.Build{ID: 42}
 
-			buildConfig = atc.BuildConfig{
+			buildConfig = &atc.BuildConfig{
 				Image:  "some-image",
 				Params: map[string]string{"PARAM": "value"},
 				Run: atc.BuildRunConfig{
@@ -79,6 +82,8 @@ var _ = Describe("GardenEngine", func() {
 					{Name: "some-input"},
 				},
 			}
+
+			buildConfigPath = "some-input/build.yml"
 
 			inputPlan = &atc.InputPlan{
 				Name:     "some-input",
@@ -136,8 +141,8 @@ var _ = Describe("GardenEngine", func() {
 			build, err = gardenEngine.CreateBuild(buildModel, atc.BuildPlan{
 				Privileged: privileged,
 
-				Config:     &buildConfig,
-				ConfigPath: "some-input/build.yml",
+				Config:     buildConfig,
+				ConfigPath: buildConfigPath,
 
 				Inputs: []atc.InputPlan{*inputPlan},
 
@@ -303,7 +308,7 @@ params:
 				config, err := configSource.FetchConfig(fakeSource)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				mergedConfig := buildConfig
+				mergedConfig := *buildConfig
 				mergedConfig.Params["ANOTHER_PARAM"] = "another-value"
 
 				Ω(config).Should(Equal(mergedConfig))
@@ -481,7 +486,7 @@ params:
 					})
 				})
 
-				Context("when the output has no conditions", func() {
+				Context("when the output has empty conditions", func() {
 					BeforeEach(func() {
 						outputPlan.On = atc.OutputConditions{}
 					})
@@ -596,7 +601,7 @@ params:
 					})
 				})
 
-				Context("when the output has no conditions", func() {
+				Context("when the output has empty conditions", func() {
 					BeforeEach(func() {
 						outputPlan.On = atc.OutputConditions{}
 					})
@@ -604,6 +609,17 @@ params:
 					It("does not execute the output", func() {
 						Ω(outputSource.RunCallCount()).Should(BeZero())
 					})
+				})
+			})
+
+			Context("when no build is configured", func() {
+				BeforeEach(func() {
+					buildConfig = nil
+					buildConfigPath = ""
+				})
+
+				It("executes the output", func() {
+					Ω(outputSource.RunCallCount()).Should(Equal(1))
 				})
 			})
 		})
