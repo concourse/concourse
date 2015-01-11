@@ -213,11 +213,8 @@ var _ = Describe("ValidateConfig", func() {
 				config.Jobs = append(config.Jobs, job)
 			})
 
-			It("returns an error", func() {
-				Ω(validateErr).Should(HaveOccurred())
-				Ω(validateErr.Error()).Should(ContainSubstring(
-					"job 'some-other-job' has no build configuration",
-				))
+			It("returns no error", func() {
+				Ω(validateErr).ShouldNot(HaveOccurred())
 			})
 		})
 

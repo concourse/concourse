@@ -143,10 +143,6 @@ func validateJobs(c atc.Config) error {
 			errorMessages = append(errorMessages, identifier+" has no name")
 		}
 
-		if job.BuildConfigPath == "" && job.BuildConfig == nil {
-			errorMessages = append(errorMessages, identifier+" has no build configuration")
-		}
-
 		for i, input := range job.Inputs {
 			var inputIdentifier string
 			if input.Name() == "" {
