@@ -33,12 +33,13 @@ type FakeFactory struct {
 	putReturns struct {
 		result1 exec.Step
 	}
-	ExecuteStub        func(exec.SessionID, exec.IOConfig, exec.BuildConfigSource) exec.Step
+	ExecuteStub        func(exec.SessionID, exec.IOConfig, exec.Privileged, exec.BuildConfigSource) exec.Step
 	executeMutex       sync.RWMutex
 	executeArgsForCall []struct {
 		arg1 exec.SessionID
 		arg2 exec.IOConfig
-		arg3 exec.BuildConfigSource
+		arg3 exec.Privileged
+		arg4 exec.BuildConfigSource
 	}
 	executeReturns struct {
 		result1 exec.Step
@@ -127,16 +128,17 @@ func (fake *FakeFactory) PutReturns(result1 exec.Step) {
 	}{result1}
 }
 
-func (fake *FakeFactory) Execute(arg1 exec.SessionID, arg2 exec.IOConfig, arg3 exec.BuildConfigSource) exec.Step {
+func (fake *FakeFactory) Execute(arg1 exec.SessionID, arg2 exec.IOConfig, arg3 exec.Privileged, arg4 exec.BuildConfigSource) exec.Step {
 	fake.executeMutex.Lock()
 	fake.executeArgsForCall = append(fake.executeArgsForCall, struct {
 		arg1 exec.SessionID
 		arg2 exec.IOConfig
-		arg3 exec.BuildConfigSource
-	}{arg1, arg2, arg3})
+		arg3 exec.Privileged
+		arg4 exec.BuildConfigSource
+	}{arg1, arg2, arg3, arg4})
 	fake.executeMutex.Unlock()
 	if fake.ExecuteStub != nil {
-		return fake.ExecuteStub(arg1, arg2, arg3)
+		return fake.ExecuteStub(arg1, arg2, arg3, arg4)
 	} else {
 		return fake.executeReturns.result1
 	}
@@ -148,10 +150,10 @@ func (fake *FakeFactory) ExecuteCallCount() int {
 	return len(fake.executeArgsForCall)
 }
 
-func (fake *FakeFactory) ExecuteArgsForCall(i int) (exec.SessionID, exec.IOConfig, exec.BuildConfigSource) {
+func (fake *FakeFactory) ExecuteArgsForCall(i int) (exec.SessionID, exec.IOConfig, exec.Privileged, exec.BuildConfigSource) {
 	fake.executeMutex.RLock()
 	defer fake.executeMutex.RUnlock()
-	return fake.executeArgsForCall[i].arg1, fake.executeArgsForCall[i].arg2, fake.executeArgsForCall[i].arg3
+	return fake.executeArgsForCall[i].arg1, fake.executeArgsForCall[i].arg2, fake.executeArgsForCall[i].arg3, fake.executeArgsForCall[i].arg4
 }
 
 func (fake *FakeFactory) ExecuteReturns(result1 exec.Step) {

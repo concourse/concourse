@@ -47,6 +47,7 @@ var _ = Describe("GardenEngine", func() {
 			buildConfig atc.BuildConfig
 			inputPlan   *atc.InputPlan
 			outputPlan  *atc.OutputPlan
+			privileged  bool
 
 			build engine.Build
 
@@ -96,6 +97,8 @@ var _ = Describe("GardenEngine", func() {
 				Params: atc.Params{"some": "params"},
 			}
 
+			privileged = false
+
 			fakeDelegate = new(fakes.FakeBuildDelegate)
 			fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
@@ -131,6 +134,8 @@ var _ = Describe("GardenEngine", func() {
 		JustBeforeEach(func() {
 			var err error
 			build, err = gardenEngine.CreateBuild(buildModel, atc.BuildPlan{
+				Privileged: privileged,
+
 				Config:     &buildConfig,
 				ConfigPath: "some-input/build.yml",
 
@@ -229,8 +234,9 @@ var _ = Describe("GardenEngine", func() {
 		It("constructs executions correctly", func() {
 			Ω(fakeFactory.ExecuteCallCount()).Should(Equal(1))
 
-			sessionID, ioConfig, configSource := fakeFactory.ExecuteArgsForCall(0)
+			sessionID, ioConfig, privileged, configSource := fakeFactory.ExecuteArgsForCall(0)
 			Ω(sessionID).Should(Equal(exec.SessionID("build-42-execute")))
+			Ω(privileged).Should(Equal(exec.Privileged(false)))
 			Ω(configSource).ShouldNot(BeNil())
 
 			Ω(fakeDB.SaveBuildEventCallCount()).Should(BeZero())
@@ -264,11 +270,24 @@ var _ = Describe("GardenEngine", func() {
 			}))
 		})
 
+		Context("when the build is privileged", func() {
+			BeforeEach(func() {
+				privileged = true
+			})
+
+			It("constructs the execute step privileged", func() {
+				Ω(fakeFactory.ExecuteCallCount()).Should(Equal(1))
+
+				_, _, privileged, _ := fakeFactory.ExecuteArgsForCall(0)
+				Ω(privileged).Should(Equal(exec.Privileged(true)))
+			})
+		})
+
 		Describe("fetching the config", func() {
 			It("emits an initialize event", func() {
 				Ω(fakeFactory.ExecuteCallCount()).Should(Equal(1))
 
-				_, _, configSource := fakeFactory.ExecuteArgsForCall(0)
+				_, _, _, configSource := fakeFactory.ExecuteArgsForCall(0)
 
 				fakeSource := new(execfakes.FakeArtifactSource)
 

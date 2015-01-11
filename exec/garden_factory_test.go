@@ -724,6 +724,7 @@ var _ = Describe("GardenFactory", func() {
 
 	Describe("Execute", func() {
 		var (
+			privileged   Privileged
 			configSource *fakes.FakeBuildConfigSource
 
 			inSource *fakes.FakeArtifactSource
@@ -733,13 +734,14 @@ var _ = Describe("GardenFactory", func() {
 		)
 
 		BeforeEach(func() {
+			privileged = false
 			configSource = new(fakes.FakeBuildConfigSource)
 
 			inSource = new(fakes.FakeArtifactSource)
 		})
 
 		JustBeforeEach(func() {
-			source = factory.Execute(sessionID, ioConfig, configSource).Using(inSource)
+			source = factory.Execute(sessionID, ioConfig, privileged, configSource).Using(inSource)
 			process = ifrit.Invoke(source)
 		})
 
@@ -796,6 +798,7 @@ var _ = Describe("GardenFactory", func() {
 						Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
 							Handle:     sessionID,
 							RootFSPath: "some-image",
+							Privileged: false,
 						}))
 					})
 
@@ -820,10 +823,11 @@ var _ = Describe("GardenFactory", func() {
 
 						spec, _ := fakeContainer.RunArgsForCall(0)
 						Ω(spec).Should(Equal(garden.ProcessSpec{
-							Path: "ls",
-							Args: []string{"some", "args"},
-							Env:  []string{"SOME=params"},
-							Dir:  "/tmp/build/src",
+							Path:       "ls",
+							Args:       []string{"some", "args"},
+							Env:        []string{"SOME=params"},
+							Dir:        "/tmp/build/src",
+							Privileged: false,
 						}))
 					})
 
@@ -841,6 +845,34 @@ var _ = Describe("GardenFactory", func() {
 						name, value := fakeContainer.SetPropertyArgsForCall(0)
 						Ω(name).Should(Equal("execute-process"))
 						Ω(value).Should(Equal("42"))
+					})
+
+					Context("when privileged", func() {
+						BeforeEach(func() {
+							privileged = true
+						})
+
+						It("creates the container privileged", func() {
+							Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
+							Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
+								Handle:     sessionID,
+								RootFSPath: "some-image",
+								Privileged: true,
+							}))
+						})
+
+						It("runs the process privileged", func() {
+							Ω(fakeContainer.RunCallCount()).Should(Equal(1))
+
+							spec, _ := fakeContainer.RunArgsForCall(0)
+							Ω(spec).Should(Equal(garden.ProcessSpec{
+								Path:       "ls",
+								Args:       []string{"some", "args"},
+								Env:        []string{"SOME=params"},
+								Dir:        "/tmp/build/src",
+								Privileged: true,
+							}))
+						})
 					})
 
 					Context("when the configuration specifies paths for inputs", func() {

@@ -199,7 +199,7 @@ func (build *gardenBuild) executeStep(logger lager.Logger) exec.Step {
 	}
 
 	return exec.OnComplete(
-		build.factory.Execute(build.executeSessionID(), ioConfig, configSource),
+		build.factory.Execute(build.executeSessionID(), ioConfig, exec.Privileged(plan.Privileged), configSource),
 		build.delegate.ExecutionCompleted(logger),
 	)
 }

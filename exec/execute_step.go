@@ -25,6 +25,7 @@ type executeStep struct {
 
 	IOConfig IOConfig
 
+	Privileged   Privileged
 	ConfigSource BuildConfigSource
 
 	GardenClient garden.Client
@@ -94,6 +95,7 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 		step.container, err = step.GardenClient.Create(garden.ContainerSpec{
 			Handle:     string(step.SessionID),
 			RootFSPath: config.Image,
+			Privileged: bool(step.Privileged),
 		})
 		if err != nil {
 			return err
@@ -113,6 +115,8 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 			Env:  step.envForParams(config.Params),
 
 			Dir: ArtifactsRoot,
+
+			Privileged: bool(step.Privileged),
 		}, processIO)
 		if err != nil {
 			return err

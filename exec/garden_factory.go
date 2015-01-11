@@ -48,11 +48,13 @@ func (factory *gardenFactory) Put(sessionID SessionID, ioConfig IOConfig, config
 	}
 }
 
-func (factory *gardenFactory) Execute(sessionID SessionID, ioConfig IOConfig, configSource BuildConfigSource) Step {
+func (factory *gardenFactory) Execute(sessionID SessionID, ioConfig IOConfig, privileged Privileged, configSource BuildConfigSource) Step {
 	return executeStep{
 		SessionID: sessionID,
 
-		IOConfig:     ioConfig,
+		IOConfig: ioConfig,
+
+		Privileged:   privileged,
 		ConfigSource: configSource,
 
 		GardenClient: factory.gardenClient,
