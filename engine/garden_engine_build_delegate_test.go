@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
 	execfakes "github.com/concourse/atc/exec/fakes"
+	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -24,6 +25,8 @@ var _ = Describe("BuildDelegate", func() {
 		buildID int
 
 		delegate BuildDelegate
+
+		logger *lagertest.TestLogger
 	)
 
 	BeforeEach(func() {
@@ -32,11 +35,13 @@ var _ = Describe("BuildDelegate", func() {
 
 		buildID = 42
 		delegate = factory.Delegate(buildID)
+
+		logger = lagertest.NewTestLogger("test")
 	})
 
 	Describe("Start", func() {
 		BeforeEach(func() {
-			delegate.Start()
+			delegate.Start(logger)
 		})
 
 		It("saves the build's start time", func() {
@@ -95,7 +100,7 @@ var _ = Describe("BuildDelegate", func() {
 				Params:   atc.Params{"some": "params"},
 			}
 
-			callback = delegate.InputCompleted(inputPlan)
+			callback = delegate.InputCompleted(logger, inputPlan)
 
 			cbErr = nil
 			cbSource = new(execfakes.FakeArtifactSource)
@@ -158,7 +163,7 @@ var _ = Describe("BuildDelegate", func() {
 					)
 
 					BeforeEach(func() {
-						finishCallback = delegate.Finish()
+						finishCallback = delegate.Finish(logger)
 
 						finishCBErr = nil
 						finishCBSource = new(execfakes.FakeArtifactSource)
@@ -221,7 +226,7 @@ var _ = Describe("BuildDelegate", func() {
 						Params: atc.Params{"some": "output-params"},
 					}
 
-					outputCallback = delegate.OutputCompleted(outputPlan)
+					outputCallback = delegate.OutputCompleted(logger, outputPlan)
 
 					outputCBErr = nil
 					outputCBSource = new(execfakes.FakeArtifactSource)
@@ -244,7 +249,7 @@ var _ = Describe("BuildDelegate", func() {
 					)
 
 					BeforeEach(func() {
-						finishCallback = delegate.Finish()
+						finishCallback = delegate.Finish(logger)
 
 						finishCBErr = nil
 						finishCBSource = new(execfakes.FakeArtifactSource)
@@ -305,7 +310,7 @@ var _ = Describe("BuildDelegate", func() {
 		)
 
 		BeforeEach(func() {
-			callback = delegate.ExecutionCompleted()
+			callback = delegate.ExecutionCompleted(logger)
 
 			cbErr = nil
 			cbSource = new(execfakes.FakeArtifactSource)
@@ -344,7 +349,7 @@ var _ = Describe("BuildDelegate", func() {
 					)
 
 					BeforeEach(func() {
-						finishCallback = delegate.Finish()
+						finishCallback = delegate.Finish(logger)
 
 						finishCBErr = nil
 						finishCBSource = new(execfakes.FakeArtifactSource)
@@ -410,7 +415,7 @@ var _ = Describe("BuildDelegate", func() {
 					)
 
 					BeforeEach(func() {
-						finishCallback = delegate.Finish()
+						finishCallback = delegate.Finish(logger)
 
 						finishCBErr = nil
 						finishCBSource = new(execfakes.FakeArtifactSource)
@@ -492,7 +497,7 @@ var _ = Describe("BuildDelegate", func() {
 				Params: atc.Params{"some": "params"},
 			}
 
-			callback = delegate.OutputCompleted(outputPlan)
+			callback = delegate.OutputCompleted(logger, outputPlan)
 
 			cbErr = nil
 			cbSource = new(execfakes.FakeArtifactSource)
@@ -570,7 +575,7 @@ var _ = Describe("BuildDelegate", func() {
 
 	Describe("Aborted", func() {
 		JustBeforeEach(func() {
-			delegate.Aborted()
+			delegate.Aborted(logger)
 		})
 
 		Describe("Finish", func() {
@@ -582,7 +587,7 @@ var _ = Describe("BuildDelegate", func() {
 			)
 
 			BeforeEach(func() {
-				finishCallback = delegate.Finish()
+				finishCallback = delegate.Finish(logger)
 
 				finishCBErr = nil
 				finishCBSource = new(execfakes.FakeArtifactSource)

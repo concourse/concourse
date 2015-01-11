@@ -14,6 +14,7 @@ import (
 	execfakes "github.com/concourse/atc/exec/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 )
 
@@ -296,7 +297,7 @@ params:
 
 		Context("before executing anything", func() {
 			BeforeEach(func() {
-				fakeDelegate.StartStub = func() {
+				fakeDelegate.StartStub = func(lager.Logger) {
 					Ω(inputSource.RunCallCount()).Should(BeZero())
 					Ω(executeSource.RunCallCount()).Should(BeZero())
 					Ω(outputSource.RunCallCount()).Should(BeZero())

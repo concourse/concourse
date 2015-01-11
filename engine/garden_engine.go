@@ -96,18 +96,18 @@ func (build *gardenBuild) Abort() error {
 	return nil
 }
 
-func (build *gardenBuild) Resume(lager.Logger) {
-	build.delegate.Start()
+func (build *gardenBuild) Resume(logger lager.Logger) {
+	build.delegate.Start(logger.Session("start"))
 
 	step := exec.OnComplete(
 		exec.Compose(
-			build.aggregateInputsStep(),
+			build.aggregateInputsStep(logger.Session("inputs")),
 			exec.Compose(
-				build.executeStep(),
-				build.aggregateOutputsStep(),
+				build.executeStep(logger.Session("execute")),
+				build.aggregateOutputsStep(logger.Session("outputs")),
 			),
 		),
-		build.delegate.Finish(),
+		build.delegate.Finish(logger.Session("finish")),
 	)
 
 	source := step.Using(&exec.NoopArtifactSource{})
@@ -125,7 +125,7 @@ func (build *gardenBuild) Resume(lager.Logger) {
 			process.Signal(sig)
 
 			if sig == os.Kill {
-				build.delegate.Aborted()
+				build.delegate.Aborted(logger)
 			}
 		}
 	}
@@ -135,7 +135,7 @@ func (build *gardenBuild) Hijack(spec garden.ProcessSpec, io garden.ProcessIO) (
 	return build.factory.Hijack(build.executeSessionID(), spec, io)
 }
 
-func (build *gardenBuild) aggregateInputsStep() exec.Step {
+func (build *gardenBuild) aggregateInputsStep(logger lager.Logger) exec.Step {
 	inputs := exec.Aggregate{}
 
 	for _, input := range build.metadata.Plan.Inputs {
@@ -157,14 +157,14 @@ func (build *gardenBuild) aggregateInputsStep() exec.Step {
 
 		inputs[input.Name] = exec.OnComplete(
 			build.factory.Get(build.inputSessionID(input.Name), ioConfig, resourceConfig, input.Params, input.Version),
-			build.delegate.InputCompleted(input),
+			build.delegate.InputCompleted(logger.Session(input.Name), input),
 		)
 	}
 
 	return inputs
 }
 
-func (build *gardenBuild) executeStep() exec.Step {
+func (build *gardenBuild) executeStep(logger lager.Logger) exec.Step {
 	plan := build.metadata.Plan
 
 	var configSource exec.BuildConfigSource
@@ -200,11 +200,11 @@ func (build *gardenBuild) executeStep() exec.Step {
 
 	return exec.OnComplete(
 		build.factory.Execute(build.executeSessionID(), ioConfig, configSource),
-		build.delegate.ExecutionCompleted(),
+		build.delegate.ExecutionCompleted(logger),
 	)
 }
 
-func (build *gardenBuild) aggregateOutputsStep() exec.Step {
+func (build *gardenBuild) aggregateOutputsStep(logger lager.Logger) exec.Step {
 	outputs := exec.Aggregate{}
 
 	for _, output := range build.metadata.Plan.Outputs {
@@ -228,7 +228,7 @@ func (build *gardenBuild) aggregateOutputsStep() exec.Step {
 			Conditions: output.On,
 			Step: exec.OnComplete(
 				build.factory.Put(build.outputSessionID(output.Name), ioConfig, resourceConfig, output.Params),
-				build.delegate.OutputCompleted(output),
+				build.delegate.OutputCompleted(logger.Session(output.Name), output),
 			),
 		}
 	}
