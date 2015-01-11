@@ -203,7 +203,7 @@ func (delegate *delegate) Finish(logger lager.Logger) exec.CompleteCallback {
 	})
 }
 
-func (delegate *delegate) Aborted(lager.Logger) {
+func (delegate *delegate) Aborted(logger lager.Logger) {
 	delegate.aborted = true
 
 	logger.Info("aborted")
