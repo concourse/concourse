@@ -78,6 +78,8 @@ func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 	scanning := make(map[string]bool)
 
+	runner.tick(scanning, insertScanner)
+
 dance:
 	for {
 		select {
@@ -92,31 +94,35 @@ dance:
 			delete(scanning, exited.Member.Name)
 
 		case <-ticker.C:
-			config, err := runner.configDB.GetConfig()
-			if err != nil {
-				continue
-			}
-
-			for _, resource := range config.Resources {
-				if scanning[resource.Name] {
-					continue
-				}
-
-				scanning[resource.Name] = true
-
-				runner := runner.scanner.Scan(resource.Name)
-
-				// avoid deadlock if exit event is blocked; inserting in this case
-				// will block on the event being consumed (which is in this select)
-				go func(name string) {
-					insertScanner <- grouper.Member{
-						Name:   name,
-						Runner: runner,
-					}
-				}(resource.Name)
-			}
+			runner.tick(scanning, insertScanner)
 		}
 	}
 
 	return nil
+}
+
+func (runner *Runner) tick(scanning map[string]bool, insertScanner chan<- grouper.Member) {
+	config, err := runner.configDB.GetConfig()
+	if err != nil {
+		return
+	}
+
+	for _, resource := range config.Resources {
+		if scanning[resource.Name] {
+			continue
+		}
+
+		scanning[resource.Name] = true
+
+		runner := runner.scanner.Scan(resource.Name)
+
+		// avoid deadlock if exit event is blocked; inserting in this case
+		// will block on the event being consumed (which is in this select)
+		go func(name string) {
+			insertScanner <- grouper.Member{
+				Name:   name,
+				Runner: runner,
+			}
+		}(resource.Name)
+	}
 }

@@ -56,10 +56,10 @@ func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 dance:
 	for {
+		runner.tick(runner.Logger.Session("tick"))
+
 		select {
 		case <-time.After(runner.Interval):
-			runner.tick(runner.Logger.Session("tick"))
-
 		case <-signals:
 			break dance
 		}
