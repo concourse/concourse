@@ -93,20 +93,22 @@ func (runner *Runner) tick(logger lager.Logger) {
 			continue
 		}
 
-		logger.Debug("scheduling", lager.Data{
+		runner.schedule(job, config.Resources, logger.Session("scheduling", lager.Data{
 			"job": job.Name,
-		})
-
-		err = runner.Scheduler.TryNextPendingBuild(job, config.Resources)
-		if err != nil {
-			logger.Error("failed-to-try-next-pending-build", err)
-		}
-
-		err = runner.Scheduler.BuildLatestInputs(job, config.Resources)
-		if err != nil {
-			logger.Error("failed-to-build-from-latest-inputs", err)
-		}
+		}))
 
 		lock.Release()
+	}
+}
+
+func (runner *Runner) schedule(job atc.JobConfig, resources atc.ResourceConfigs, logger lager.Logger) {
+	err := runner.Scheduler.TryNextPendingBuild(job, resources)
+	if err != nil {
+		logger.Error("failed-to-try-next-pending-build", err)
+	}
+
+	err = runner.Scheduler.BuildLatestInputs(job, resources)
+	if err != nil {
+		logger.Error("failed-to-build-from-latest-inputs", err)
 	}
 }
