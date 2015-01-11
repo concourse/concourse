@@ -893,52 +893,90 @@ var _ = Describe("GardenFactory", func() {
 							}, nil)
 						})
 
-						It("re-maps the stream destinations to the configured destinations", func() {
-							Ω(inSource.StreamToCallCount()).Should(Equal(1))
+						Context("when all inputs are present in the in source", func() {
+							BeforeEach(func() {
+								inSource.StreamToStub = func(dest ArtifactDestination) error {
+									defer GinkgoRecover()
 
-							streamIn := new(bytes.Buffer)
+									streamIn := new(bytes.Buffer)
 
-							By("remapping base destinations")
-							err := inSource.StreamToArgsForCall(0).StreamIn("some-input", streamIn)
-							Ω(err).ShouldNot(HaveOccurred())
+									By("remapping base destinations")
+									err := dest.StreamIn("some-input", streamIn)
+									Ω(err).ShouldNot(HaveOccurred())
 
-							destination, source := fakeContainer.StreamInArgsForCall(0)
-							Ω(destination).Should(Equal("/tmp/build/src/some-input-configured-path"))
-							Ω(source).Should(Equal(streamIn))
+									destination, source := fakeContainer.StreamInArgsForCall(0)
+									Ω(destination).Should(Equal("/tmp/build/src/some-input-configured-path"))
+									Ω(source).Should(Equal(streamIn))
 
-							containerDest := inSource.StreamToArgsForCall(0)
+									By("remapping subdirectory destinations")
+									err = dest.StreamIn("some-input/some-thing", streamIn)
+									Ω(err).ShouldNot(HaveOccurred())
 
-							By("remapping subdirectory destinations")
-							err = containerDest.StreamIn("some-input/some-thing", streamIn)
-							Ω(err).ShouldNot(HaveOccurred())
+									destination, source = fakeContainer.StreamInArgsForCall(1)
+									Ω(destination).Should(Equal("/tmp/build/src/some-input-configured-path/some-thing"))
+									Ω(source).Should(Equal(streamIn))
 
-							destination, source = fakeContainer.StreamInArgsForCall(1)
-							Ω(destination).Should(Equal("/tmp/build/src/some-input-configured-path/some-thing"))
-							Ω(source).Should(Equal(streamIn))
+									By("remapping other base destinations")
+									err = dest.StreamIn("some-other-input", streamIn)
+									Ω(err).ShouldNot(HaveOccurred())
 
-							By("remapping other base destinations")
-							err = containerDest.StreamIn("some-other-input", streamIn)
-							Ω(err).ShouldNot(HaveOccurred())
+									destination, source = fakeContainer.StreamInArgsForCall(2)
+									Ω(destination).Should(Equal("/tmp/build/src/some-other-input-configured-path"))
+									Ω(source).Should(Equal(streamIn))
 
-							destination, source = fakeContainer.StreamInArgsForCall(2)
-							Ω(destination).Should(Equal("/tmp/build/src/some-other-input-configured-path"))
-							Ω(source).Should(Equal(streamIn))
+									By("not accidentally matching partial names")
+									err = dest.StreamIn("some-input-morewords", streamIn)
+									Ω(err).ShouldNot(HaveOccurred())
 
-							By("not accidentally matching partial names")
-							err = containerDest.StreamIn("some-input-morewords", streamIn)
-							Ω(err).ShouldNot(HaveOccurred())
+									destination, source = fakeContainer.StreamInArgsForCall(3)
+									Ω(destination).Should(Equal("/tmp/build/src/some-input-morewords"))
+									Ω(source).Should(Equal(streamIn))
 
-							destination, source = fakeContainer.StreamInArgsForCall(3)
-							Ω(destination).Should(Equal("/tmp/build/src/some-input-morewords"))
-							Ω(source).Should(Equal(streamIn))
+									By("not remapping unconfigured destinations")
+									err = dest.StreamIn("some-other-unconfigured-input", streamIn)
+									Ω(err).ShouldNot(HaveOccurred())
 
-							By("not remapping unconfigured destinations")
-							err = containerDest.StreamIn("some-other-unconfigured-input", streamIn)
-							Ω(err).ShouldNot(HaveOccurred())
+									destination, source = fakeContainer.StreamInArgsForCall(4)
+									Ω(destination).Should(Equal("/tmp/build/src/some-other-unconfigured-input"))
+									Ω(source).Should(Equal(streamIn))
 
-							destination, source = fakeContainer.StreamInArgsForCall(4)
-							Ω(destination).Should(Equal("/tmp/build/src/some-other-unconfigured-input"))
-							Ω(source).Should(Equal(streamIn))
+									return nil
+								}
+							})
+
+							It("re-maps the stream destinations to the configured destinations", func() {
+								Ω(inSource.StreamToCallCount()).Should(Equal(1))
+
+								Eventually(process.Wait()).Should(Receive(BeNil()))
+							})
+						})
+
+						Context("when any of the inputs are missing", func() {
+							BeforeEach(func() {
+								inSource.StreamToStub = func(dest ArtifactDestination) error {
+									defer GinkgoRecover()
+
+									streamIn := new(bytes.Buffer)
+
+									err := dest.StreamIn("some-unconfigured-input", streamIn)
+									Ω(err).ShouldNot(HaveOccurred())
+
+									destination, source := fakeContainer.StreamInArgsForCall(0)
+									Ω(destination).Should(Equal("/tmp/build/src/some-unconfigured-input"))
+									Ω(source).Should(Equal(streamIn))
+
+									return nil
+								}
+							})
+
+							It("exits with failure", func() {
+								Ω(inSource.StreamToCallCount()).Should(Equal(1))
+
+								var err error
+								Eventually(process.Wait()).Should(Receive(&err))
+								Ω(err).Should(BeAssignableToTypeOf(MissingInputsError{}))
+								Ω(err.(MissingInputsError).Inputs).Should(ConsistOf("some-input", "some-other-input"))
+							})
 						})
 					})
 
@@ -958,44 +996,81 @@ var _ = Describe("GardenFactory", func() {
 							}, nil)
 						})
 
-						It("does not re-map the stream destinations", func() {
-							Ω(inSource.StreamToCallCount()).Should(Equal(1))
+						Context("when all inputs are present in the in source", func() {
+							BeforeEach(func() {
+								inSource.StreamToStub = func(dest ArtifactDestination) error {
+									defer GinkgoRecover()
 
-							streamIn := new(bytes.Buffer)
+									streamIn := new(bytes.Buffer)
 
-							By("not remapping base destinations")
-							err := inSource.StreamToArgsForCall(0).StreamIn("some-input", streamIn)
-							Ω(err).ShouldNot(HaveOccurred())
+									err := dest.StreamIn("some-input", streamIn)
+									Ω(err).ShouldNot(HaveOccurred())
 
-							destination, source := fakeContainer.StreamInArgsForCall(0)
-							Ω(destination).Should(Equal("/tmp/build/src/some-input"))
-							Ω(source).Should(Equal(streamIn))
+									destination, source := fakeContainer.StreamInArgsForCall(0)
+									Ω(destination).Should(Equal("/tmp/build/src/some-input"))
+									Ω(source).Should(Equal(streamIn))
 
-							containerDest := inSource.StreamToArgsForCall(0)
+									By("not remapping subdirectory destinations")
+									err = dest.StreamIn("some-input/some-thing", streamIn)
+									Ω(err).ShouldNot(HaveOccurred())
 
-							By("not remapping subdirectory destinations")
-							err = containerDest.StreamIn("some-input/some-thing", streamIn)
-							Ω(err).ShouldNot(HaveOccurred())
+									destination, source = fakeContainer.StreamInArgsForCall(1)
+									Ω(destination).Should(Equal("/tmp/build/src/some-input/some-thing"))
+									Ω(source).Should(Equal(streamIn))
 
-							destination, source = fakeContainer.StreamInArgsForCall(1)
-							Ω(destination).Should(Equal("/tmp/build/src/some-input/some-thing"))
-							Ω(source).Should(Equal(streamIn))
+									By("not remapping other base destinations")
+									err = dest.StreamIn("some-other-input", streamIn)
+									Ω(err).ShouldNot(HaveOccurred())
 
-							By("not remapping other base destinations")
-							err = containerDest.StreamIn("some-other-input", streamIn)
-							Ω(err).ShouldNot(HaveOccurred())
+									destination, source = fakeContainer.StreamInArgsForCall(2)
+									Ω(destination).Should(Equal("/tmp/build/src/some-other-input"))
+									Ω(source).Should(Equal(streamIn))
 
-							destination, source = fakeContainer.StreamInArgsForCall(2)
-							Ω(destination).Should(Equal("/tmp/build/src/some-other-input"))
-							Ω(source).Should(Equal(streamIn))
+									By("not remapping unconfigured destinations")
+									err = dest.StreamIn("some-other-unconfigured-input", streamIn)
+									Ω(err).ShouldNot(HaveOccurred())
 
-							By("not remapping unconfigured destinations")
-							err = containerDest.StreamIn("some-other-unconfigured-input", streamIn)
-							Ω(err).ShouldNot(HaveOccurred())
+									destination, source = fakeContainer.StreamInArgsForCall(3)
+									Ω(destination).Should(Equal("/tmp/build/src/some-other-unconfigured-input"))
+									Ω(source).Should(Equal(streamIn))
 
-							destination, source = fakeContainer.StreamInArgsForCall(3)
-							Ω(destination).Should(Equal("/tmp/build/src/some-other-unconfigured-input"))
-							Ω(source).Should(Equal(streamIn))
+									return nil
+								}
+							})
+
+							It("does not re-map the stream destinations", func() {
+								Ω(inSource.StreamToCallCount()).Should(Equal(1))
+
+								Eventually(process.Wait()).Should(Receive(BeNil()))
+							})
+						})
+
+						Context("when any of the inputs are missing", func() {
+							BeforeEach(func() {
+								inSource.StreamToStub = func(dest ArtifactDestination) error {
+									defer GinkgoRecover()
+
+									streamIn := new(bytes.Buffer)
+
+									err := dest.StreamIn("some-unconfigured-input", streamIn)
+									Ω(err).ShouldNot(HaveOccurred())
+
+									destination, source := fakeContainer.StreamInArgsForCall(0)
+									Ω(destination).Should(Equal("/tmp/build/src/some-unconfigured-input"))
+									Ω(source).Should(Equal(streamIn))
+
+									return nil
+								}
+							})
+
+							It("exits with failure", func() {
+								Ω(inSource.StreamToCallCount()).Should(Equal(1))
+
+								var err error
+								Eventually(process.Wait()).Should(Receive(&err))
+								Ω(err).Should(BeAssignableToTypeOf(MissingInputsError{}))
+								Ω(err.(MissingInputsError).Inputs).Should(ConsistOf("some-input", "some-other-input"))
+							})
 						})
 					})
 

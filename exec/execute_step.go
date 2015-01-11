@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 
 	garden "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/concourse/atc"
@@ -19,6 +20,14 @@ const executeProcessPropertyName = "execute-process"
 const executeExitStatusPropertyName = "exit-status"
 
 var ErrInterrupted = errors.New("interrupted")
+
+type MissingInputsError struct {
+	Inputs []string
+}
+
+func (err MissingInputsError) Error() string {
+	return fmt.Sprintf("missing inputs: %s", strings.Join(err.Inputs, ", "))
+}
 
 type executeStep struct {
 	SessionID SessionID
@@ -101,12 +110,17 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 			return err
 		}
 
-		err = step.artifactSource.StreamTo(containerDestination{
-			Container:    step.container,
-			InputConfigs: config.Inputs,
-		})
+		dest := newContainerDestination(step.container, config.Inputs)
+
+		err = step.artifactSource.StreamTo(dest)
 		if err != nil {
 			return err
+		}
+
+		missing := dest.MissingInputs()
+
+		if len(missing) > 0 {
+			return MissingInputsError{missing}
 		}
 
 		step.process, err = step.container.Run(garden.ProcessSpec{
@@ -225,16 +239,38 @@ func (executeStep) envForParams(params map[string]string) []string {
 }
 
 type containerDestination struct {
-	Container garden.Container
+	container    garden.Container
+	inputConfigs []atc.BuildInputConfig
 
-	InputConfigs []atc.BuildInputConfig
+	missingInputs map[string]struct{}
+
+	lock sync.Mutex
 }
 
-func (dest containerDestination) StreamIn(dst string, src io.Reader) error {
+func newContainerDestination(container garden.Container, inputs []atc.BuildInputConfig) *containerDestination {
+	missingInputs := map[string]struct{}{}
+
+	for _, i := range inputs {
+		missingInputs[i.Name] = struct{}{}
+	}
+
+	return &containerDestination{
+		container:    container,
+		inputConfigs: inputs,
+
+		missingInputs: missingInputs,
+	}
+}
+
+func (dest *containerDestination) StreamIn(dst string, src io.Reader) error {
 	destSegments := strings.Split(dst, "/")
 
 	if len(destSegments) > 0 {
-		for _, config := range dest.InputConfigs {
+		dest.lock.Lock()
+		delete(dest.missingInputs, destSegments[0])
+		dest.lock.Unlock()
+
+		for _, config := range dest.inputConfigs {
 			if config.Name == destSegments[0] && config.Path != "" {
 				destSegments[0] = config.Path
 				break
@@ -242,5 +278,18 @@ func (dest containerDestination) StreamIn(dst string, src io.Reader) error {
 		}
 	}
 
-	return dest.Container.StreamIn(path.Join(ArtifactsRoot, strings.Join(destSegments, "/")), src)
+	return dest.container.StreamIn(path.Join(ArtifactsRoot, strings.Join(destSegments, "/")), src)
+}
+
+func (dest *containerDestination) MissingInputs() []string {
+	dest.lock.Lock()
+	defer dest.lock.Unlock()
+
+	missing := make([]string, 0, len(dest.missingInputs))
+
+	for i, _ := range dest.missingInputs {
+		missing = append(missing, i)
+	}
+
+	return missing
 }
