@@ -117,6 +117,8 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 			Dir: ArtifactsRoot,
 
 			Privileged: bool(step.Privileged),
+
+			TTY: &garden.TTYSpec{},
 		}, processIO)
 		if err != nil {
 			return err

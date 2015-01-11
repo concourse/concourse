@@ -828,6 +828,7 @@ var _ = Describe("GardenFactory", func() {
 							Env:        []string{"SOME=params"},
 							Dir:        "/tmp/build/src",
 							Privileged: false,
+							TTY:        &garden.TTYSpec{},
 						}))
 					})
 
@@ -871,6 +872,7 @@ var _ = Describe("GardenFactory", func() {
 								Env:        []string{"SOME=params"},
 								Dir:        "/tmp/build/src",
 								Privileged: true,
+								TTY:        &garden.TTYSpec{},
 							}))
 						})
 					})
