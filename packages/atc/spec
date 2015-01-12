@@ -48,6 +48,7 @@ files:
   - github.com/concourse/atc/web/login/*.go # gosub
   - github.com/concourse/atc/web/routes/*.go # gosub
   - github.com/concourse/atc/web/triggerbuild/*.go # gosub
+  - github.com/concourse/atc/worker/*.go # gosub
   - github.com/concourse/turbine/*.go # gosub
   - github.com/concourse/turbine/config/*.go # gosub
   - github.com/concourse/turbine/event/*.go # gosub
