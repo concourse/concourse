@@ -41,7 +41,7 @@ releases:
     version: latest
 
 jobs:
-  - name: atc
+  - name: web
     instances: 1
     resource_pool: orchestration
     persistent_disk: 1024
@@ -65,7 +65,7 @@ jobs:
           mode: server
           services: [{name: atc}]
 
-  - name: postgresql
+  - name: db
     instances: 1
     resource_pool: databases
     persistent_disk: 10240
@@ -83,7 +83,7 @@ jobs:
           servers: {lan: [*web_static_ip]}
           services: [{name: postgresql}]
 
-  - name: turbine
+  - name: worker
     instances: 1
     resource_pool: workers
     templates:
