@@ -22,6 +22,9 @@ const (
 	CreatePipe = "CreatePipe"
 	WritePipe  = "WritePipe"
 	ReadPipe   = "ReadPipe"
+
+	RegisterWorker = "RegisterWorker"
+	ListWorkers    = "ListWorkers"
 )
 
 var Routes = rata.Routes{
@@ -44,4 +47,7 @@ var Routes = rata.Routes{
 	{Path: "/api/v1/pipes", Method: "POST", Name: CreatePipe},
 	{Path: "/api/v1/pipes/:pipe_id", Method: "PUT", Name: WritePipe},
 	{Path: "/api/v1/pipes/:pipe_id", Method: "GET", Name: ReadPipe},
+
+	{Path: "/api/v1/workers", Method: "POST", Name: RegisterWorker},
+	{Path: "/api/v1/workers", Method: "GET", Name: ListWorkers},
 }

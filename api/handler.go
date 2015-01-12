@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/atc/api/jobserver"
 	"github.com/concourse/atc/api/pipes"
 	"github.com/concourse/atc/api/resourceserver"
+	"github.com/concourse/atc/api/workerserver"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/engine"
 )
@@ -30,6 +31,8 @@ func NewHandler(
 	jobserverConfigDB jobserver.ConfigDB,
 
 	resourceserverConfigDB resourceserver.ConfigDB,
+
+	workerDB workerserver.WorkerDB,
 
 	configValidator configserver.ConfigValidator,
 	pingInterval time.Duration,
@@ -55,6 +58,8 @@ func NewHandler(
 	pipeServer := pipes.NewServer(logger, peerAddr)
 
 	configServer := configserver.NewServer(logger, configDB, configValidator)
+
+	workerServer := workerserver.NewServer(logger, workerDB)
 
 	validate := func(handler http.Handler) http.Handler {
 		return auth.Handler{
@@ -83,6 +88,9 @@ func NewHandler(
 		atc.CreatePipe: validate(http.HandlerFunc(pipeServer.CreatePipe)),
 		atc.WritePipe:  validate(http.HandlerFunc(pipeServer.WritePipe)),
 		atc.ReadPipe:   validate(http.HandlerFunc(pipeServer.ReadPipe)),
+
+		atc.ListWorkers:    validate(http.HandlerFunc(workerServer.ListWorkers)),
+		atc.RegisterWorker: validate(http.HandlerFunc(workerServer.RegisterWorker)),
 	}
 
 	return rata.NewRouter(atc.Routes, handlers)

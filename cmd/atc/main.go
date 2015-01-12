@@ -67,8 +67,8 @@ var turbineURL = flag.String(
 
 var gardenAddr = flag.String(
 	"gardenAddr",
-	"127.0.0.1:7777",
-	"garden API connection address",
+	"",
+	"garden API host:port. leave empty for dynamic registration.",
 )
 
 var resourceTypes = flag.String(
@@ -231,7 +231,12 @@ func main() {
 		configDB = db
 	}
 
-	workerClient := worker.NewGardenWorker(*gardenAddr, -1)
+	var workerClient worker.Client
+	if *gardenAddr != "" {
+		workerClient = worker.NewGardenWorker(*gardenAddr, -1)
+	} else {
+		workerClient = worker.NewPool(worker.NewDBWorkerProvider(db))
+	}
 
 	resourceMapping := resource.ResourceMapping{}
 	err = json.Unmarshal([]byte(*resourceTypes), &resourceMapping)
@@ -290,6 +295,8 @@ func main() {
 		configDB,
 
 		configDB,
+
+		db,
 
 		config.ValidateConfig,
 		5*time.Second,
