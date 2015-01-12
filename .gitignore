@@ -36,6 +36,7 @@ src/sourcegraph.com/sqs/goreturns/
 src/golang.org/x/tools/
 src/github.com/golang/lint/
 src/github.com/jstemmer/gotags/
+src/github.com/maxbrunsfeld/counterfeiter/
 
 # ctags
 tags
