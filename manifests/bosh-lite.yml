@@ -44,6 +44,7 @@ jobs:
 
       consul:
         agent:
+          services: [{name: atc}]
           mode: server
 
   - name: db
@@ -71,6 +72,7 @@ jobs:
     templates:
       - {release: concourse, name: turbine}
       - {release: garden-linux, name: garden}
+      - {release: concourse, name: gate}
       - {release: concourse, name: consul-agent}
     properties:
       garden:

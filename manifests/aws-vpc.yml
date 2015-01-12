@@ -63,6 +63,7 @@ jobs:
       consul:
         agent:
           mode: server
+          services: [{name: atc}]
 
   - name: postgresql
     instances: 1
@@ -88,12 +89,18 @@ jobs:
     templates:
       - {release: concourse, name: turbine}
       - {release: garden-linux, name: garden}
+      - {release: concourse, name: gate}
       - {release: concourse, name: consul-agent}
     networks: [{name: concourse}]
     properties:
       garden:
         listen_network: tcp
         listen_address: 0.0.0.0:7777
+
+      gate:
+        atc:
+          username: ~
+          password: ~
 
       consul:
         agent:

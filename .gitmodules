@@ -122,3 +122,7 @@
 	path = src/github.com/ziutek/syslog
 	url = https://github.com/ziutek/syslog
 	branch = master
+[submodule "src/github.com/concourse/gate"]
+	path = src/github.com/concourse/gate
+	url = git@github.com:concourse/gate.git
+	branch = master

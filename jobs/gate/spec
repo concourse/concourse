@@ -1,0 +1,56 @@
+---
+name: gate
+
+description: |
+  Gate registers a Garden worker with the ATC on an interval.
+
+templates:
+  gate_ctl.erb: bin/gate_ctl
+
+packages:
+  - pid_utils
+  - gate
+
+  # colocate base resources
+  - archive_resource
+  - cf_resource
+  - docker_image_resource
+  - git_resource
+  - s3_resource
+  - semver_resource
+  - time_resource
+  - tracker_resource
+  - vagrant_cloud_resource
+
+properties:
+  gate.heartbeat_interval:
+    description: "interval on which to register with the ATC"
+    default: 30s
+
+  gate.garden.address:
+    description: "garden server connection address"
+    default: 127.0.0.1:7777
+
+  gate.atc.address:
+    description: "atc server connection address"
+    default: atc.service.dc1.consul:8080
+
+  gate.atc.username:
+    description: "ATC API basic auth username"
+    default: ''
+
+  gate.atc.password:
+    description: "ATC API basic auth password"
+    default: ''
+
+  blackbox.sources.gate:
+    description: "files whose contents blackbox will emit to its syslog drain"
+    default:
+      - /var/vcap/sys/log/gate/gate.stdout.log
+      - /var/vcap/sys/log/gate/gate.stderr.log
+
+  blackbox.sources.garden:
+    description: "files whose contents blackbox will emit to its syslog drain"
+    default:
+      - /var/vcap/sys/log/garden/garden.stdout.log
+      - /var/vcap/sys/log/garden/garden.stderr.log

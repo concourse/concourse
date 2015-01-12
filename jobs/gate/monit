@@ -1,0 +1,5 @@
+check process gate
+  with pidfile /var/vcap/sys/run/gate/gate.pid
+  start program "/var/vcap/jobs/gate/bin/gate_ctl start"
+  stop program "/var/vcap/jobs/gate/bin/gate_ctl stop"
+  group vcap
