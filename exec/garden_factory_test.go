@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/atc/exec/fakes"
 	"github.com/concourse/atc/exec/resource"
 	rfakes "github.com/concourse/atc/exec/resource/fakes"
+	wfakes "github.com/concourse/atc/worker/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -26,7 +27,7 @@ const sessionID = "some-session-id"
 var _ = Describe("GardenFactory", func() {
 	var (
 		fakeTracker      *rfakes.FakeTracker
-		fakeGardenClient *gfakes.FakeClient
+		fakeWorkerClient *wfakes.FakeClient
 
 		factory Factory
 
@@ -37,9 +38,9 @@ var _ = Describe("GardenFactory", func() {
 
 	BeforeEach(func() {
 		fakeTracker = new(rfakes.FakeTracker)
-		fakeGardenClient = new(gfakes.FakeClient)
+		fakeWorkerClient = new(wfakes.FakeClient)
 
-		factory = NewGardenFactory(fakeGardenClient, fakeTracker)
+		factory = NewGardenFactory(fakeWorkerClient, fakeTracker)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -76,11 +77,11 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		Context("when finding the session's container succeeds", func() {
-			var fakeContainer *gfakes.FakeContainer
+			var fakeContainer *wfakes.FakeContainer
 
 			BeforeEach(func() {
-				fakeContainer = new(gfakes.FakeContainer)
-				fakeGardenClient.LookupReturns(fakeContainer, nil)
+				fakeContainer = new(wfakes.FakeContainer)
+				fakeWorkerClient.LookupReturns(fakeContainer, nil)
 			})
 
 			Context("and the container can spawn processes", func() {
@@ -92,7 +93,7 @@ var _ = Describe("GardenFactory", func() {
 				})
 
 				It("looks up by session id", func() {
-					Ω(fakeGardenClient.LookupArgsForCall(0)).Should(Equal(sessionID))
+					Ω(fakeWorkerClient.LookupArgsForCall(0)).Should(Equal(sessionID))
 				})
 
 				It("succeeds", func() {
@@ -129,7 +130,7 @@ var _ = Describe("GardenFactory", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeGardenClient.LookupReturns(nil, disaster)
+				fakeWorkerClient.LookupReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {
@@ -747,7 +748,7 @@ var _ = Describe("GardenFactory", func() {
 
 		Context("when the container does not yet exist", func() {
 			BeforeEach(func() {
-				fakeGardenClient.LookupReturns(nil, errors.New("nope"))
+				fakeWorkerClient.LookupReturns(nil, errors.New("nope"))
 			})
 
 			Context("when the getting the config works", func() {
@@ -766,14 +767,14 @@ var _ = Describe("GardenFactory", func() {
 
 				Context("when creating the build's container works", func() {
 					var (
-						fakeContainer *gfakes.FakeContainer
+						fakeContainer *wfakes.FakeContainer
 						fakeProcess   *gfakes.FakeProcess
 					)
 
 					BeforeEach(func() {
-						fakeContainer = new(gfakes.FakeContainer)
+						fakeContainer = new(wfakes.FakeContainer)
 						fakeContainer.HandleReturns("some-handle")
-						fakeGardenClient.CreateReturns(fakeContainer, nil)
+						fakeWorkerClient.CreateReturns(fakeContainer, nil)
 
 						fakeProcess = new(gfakes.FakeProcess)
 						fakeProcess.IDReturns(42)
@@ -783,7 +784,7 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					It("looked up the container via the session ID", func() {
-						Ω(fakeGardenClient.LookupArgsForCall(0)).Should(Equal(sessionID))
+						Ω(fakeWorkerClient.LookupArgsForCall(0)).Should(Equal(sessionID))
 					})
 
 					It("gets the config from the input artifact soruce", func() {
@@ -794,8 +795,8 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					It("creates a container with the config's image and the session ID as the handle", func() {
-						Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
-						Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
+						Ω(fakeWorkerClient.CreateCallCount()).Should(Equal(1))
+						Ω(fakeWorkerClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
 							Handle:     sessionID,
 							RootFSPath: "some-image",
 							Privileged: false,
@@ -854,8 +855,8 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("creates the container privileged", func() {
-							Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
-							Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
+							Ω(fakeWorkerClient.CreateCallCount()).Should(Equal(1))
+							Ω(fakeWorkerClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
 								Handle:     sessionID,
 								RootFSPath: "some-image",
 								Privileged: true,
@@ -1366,17 +1367,16 @@ var _ = Describe("GardenFactory", func() {
 					Describe("releasing", func() {
 						Context("when destroying the container succeeds", func() {
 							BeforeEach(func() {
-								fakeGardenClient.DestroyReturns(nil)
+								fakeContainer.DestroyReturns(nil)
 							})
 
 							It("succeeds", func() {
-								Ω(fakeGardenClient.DestroyCallCount()).Should(BeZero())
+								Ω(fakeContainer.DestroyCallCount()).Should(BeZero())
 
 								err := source.Release()
 								Ω(err).ShouldNot(HaveOccurred())
 
-								Ω(fakeGardenClient.DestroyCallCount()).Should(Equal(1))
-								Ω(fakeGardenClient.DestroyArgsForCall(0)).Should(Equal("some-handle"))
+								Ω(fakeContainer.DestroyCallCount()).Should(Equal(1))
 							})
 						})
 
@@ -1384,7 +1384,7 @@ var _ = Describe("GardenFactory", func() {
 							disaster := errors.New("nope")
 
 							BeforeEach(func() {
-								fakeGardenClient.DestroyReturns(disaster)
+								fakeContainer.DestroyReturns(disaster)
 							})
 
 							It("returns the error", func() {
@@ -1440,7 +1440,7 @@ var _ = Describe("GardenFactory", func() {
 					disaster := errors.New("nope")
 
 					BeforeEach(func() {
-						fakeGardenClient.CreateReturns(nil, disaster)
+						fakeWorkerClient.CreateReturns(nil, disaster)
 					})
 
 					It("exits with the error", func() {
@@ -1463,11 +1463,11 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		Context("when the container already exists", func() {
-			var fakeContainer *gfakes.FakeContainer
+			var fakeContainer *wfakes.FakeContainer
 
 			BeforeEach(func() {
-				fakeContainer = new(gfakes.FakeContainer)
-				fakeGardenClient.LookupReturns(fakeContainer, nil)
+				fakeContainer = new(wfakes.FakeContainer)
+				fakeWorkerClient.LookupReturns(fakeContainer, nil)
 			})
 
 			Context("when an exit status is already saved off", func() {

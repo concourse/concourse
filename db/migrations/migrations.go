@@ -22,4 +22,5 @@ var Migrations = []migration.Migrator{
 	AddEngineAndEngineMetadataToBuilds,
 	AddVersionToBuildEvents,
 	AddCompletedToBuilds,
+	AddWorkers,
 }

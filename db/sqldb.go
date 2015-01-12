@@ -1190,6 +1190,101 @@ func (db *SQLDB) ListLocks() ([]string, error) {
 	return locks, nil
 }
 
+func (db *SQLDB) SaveWorker(info WorkerInfo, ttl time.Duration) error {
+	if ttl == 0 {
+		result, err := db.conn.Exec(`
+			UPDATE workers
+			SET expires = NULL, active_containers = $2
+			WHERE addr = $1
+		`, info.Addr, info.ActiveContainers)
+		if err != nil {
+			return err
+		}
+
+		affected, err := result.RowsAffected()
+		if err != nil {
+			return err
+		}
+
+		if affected == 0 {
+			_, err := db.conn.Exec(`
+				INSERT INTO workers (addr, expires, active_containers)
+				VALUES ($1, NULL, $2)
+			`, info.Addr, info.ActiveContainers)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	} else {
+		interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
+
+		result, err := db.conn.Exec(`
+			UPDATE workers
+			SET expires = NOW() + $2::INTERVAL, active_containers = $3
+			WHERE addr = $1
+		`, info.Addr, interval, info.ActiveContainers)
+		if err != nil {
+			return err
+		}
+
+		affected, err := result.RowsAffected()
+		if err != nil {
+			return err
+		}
+
+		if affected == 0 {
+			_, err := db.conn.Exec(`
+				INSERT INTO workers (addr, expires, active_containers)
+				VALUES ($1, NOW() + $2::INTERVAL, $3)
+			`, info.Addr, interval, info.ActiveContainers)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+}
+
+func (db *SQLDB) Workers() ([]WorkerInfo, error) {
+	// reap expired workers
+	_, err := db.conn.Exec(`
+		DELETE FROM workers
+		WHERE expires IS NOT NULL
+		AND expires < NOW()
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	// select remaining workers
+	rows, err := db.conn.Query(`
+		SELECT addr, active_containers
+		FROM workers
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	infos := []WorkerInfo{}
+	for rows.Next() {
+		info := WorkerInfo{}
+
+		err := rows.Scan(&info.Addr, &info.ActiveContainers)
+		if err != nil {
+			return nil, err
+		}
+
+		infos = append(infos, info)
+	}
+
+	return infos, nil
+}
+
 type txLock struct {
 	tx         *sql.Tx
 	db         *SQLDB

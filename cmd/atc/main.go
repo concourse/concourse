@@ -15,8 +15,6 @@ import (
 
 	"github.com/BurntSushi/migration"
 	"github.com/cloudfoundry-incubator/candiedyaml"
-	gclient "github.com/cloudfoundry-incubator/garden/client"
-	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
 	"github.com/lib/pq"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
@@ -39,6 +37,7 @@ import (
 	sched "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/factory"
 	"github.com/concourse/atc/web"
+	"github.com/concourse/atc/worker"
 	"github.com/concourse/turbine"
 )
 
@@ -64,12 +63,6 @@ var turbineURL = flag.String(
 	"turbineURL",
 	"http://127.0.0.1:4637",
 	"address denoting the turbine service",
-)
-
-var gardenNetwork = flag.String(
-	"gardenNetwork",
-	"tcp",
-	"garden API connection network (unix or tcp)",
 )
 
 var gardenAddr = flag.String(
@@ -238,10 +231,7 @@ func main() {
 		configDB = db
 	}
 
-	gardenClient := gclient.New(gconn.New(
-		*gardenNetwork,
-		*gardenAddr,
-	))
+	workerClient := worker.NewGardenWorker(*gardenAddr, -1)
 
 	resourceMapping := resource.ResourceMapping{}
 	err = json.Unmarshal([]byte(*resourceTypes), &resourceMapping)
@@ -249,12 +239,12 @@ func main() {
 		logger.Fatal("failed-to-parse-resource-types", err)
 	}
 
-	resourceTracker := resource.NewTracker(resourceMapping, gardenClient)
+	resourceTracker := resource.NewTracker(resourceMapping, workerClient)
 
 	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, turbine.Routes)
 	turbineEngine := engine.NewTurbineEngine(turbineEndpoint, db)
 
-	gardenFactory := exec.NewGardenFactory(gardenClient, resourceTracker)
+	gardenFactory := exec.NewGardenFactory(workerClient, resourceTracker)
 	gardenEngine := engine.NewGardenEngine(gardenFactory, engine.NewBuildDelegateFactory(db), db)
 
 	engine := engine.NewDBEngine(engine.Engines{gardenEngine, turbineEngine}, db, db)

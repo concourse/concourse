@@ -3,7 +3,7 @@ package resource_test
 import (
 	"testing"
 
-	gfakes "github.com/cloudfoundry-incubator/garden/api/fakes"
+	wfakes "github.com/concourse/atc/worker/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -11,19 +11,18 @@ import (
 )
 
 var (
-	gardenClient  *gfakes.FakeClient
-	fakeContainer *gfakes.FakeContainer
+	workerClient  *wfakes.FakeClient
+	fakeContainer *wfakes.FakeContainer
 
 	resource Resource
 )
 
 var _ = BeforeEach(func() {
-	gardenClient = new(gfakes.FakeClient)
+	workerClient = new(wfakes.FakeClient)
 
-	fakeContainer = new(gfakes.FakeContainer)
-	fakeContainer.HandleReturns("some-handle")
+	fakeContainer = new(wfakes.FakeContainer)
 
-	resource = NewResource(fakeContainer, gardenClient, "some-type")
+	resource = NewResource(fakeContainer, "some-type")
 })
 
 func TestResource(t *testing.T) {

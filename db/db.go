@@ -59,6 +59,9 @@ type DB interface {
 
 	AbortBuild(buildID int) error
 	AbortNotifier(buildID int) (Notifier, error)
+
+	Workers() ([]WorkerInfo, error) // auto-expires workers based on ttl
+	SaveWorker(WorkerInfo, time.Duration) error
 }
 
 //go:generate counterfeiter . Notifier
@@ -108,4 +111,10 @@ type VersionHistory struct {
 type JobHistory struct {
 	JobName string
 	Builds  []Build
+}
+
+type WorkerInfo struct {
+	Addr string
+
+	ActiveContainers int
 }

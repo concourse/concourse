@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	garden "github.com/cloudfoundry-incubator/garden/api"
-	gfakes "github.com/cloudfoundry-incubator/garden/api/fakes"
+	wfakes "github.com/concourse/atc/worker/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -26,9 +26,9 @@ var _ = Describe("Tracker", func() {
 			"type2": "image2",
 		}
 
-		gardenClient.CreateReturns(fakeContainer, nil)
+		workerClient.CreateReturns(fakeContainer, nil)
 
-		tracker = NewTracker(resourceTypes, gardenClient)
+		tracker = NewTracker(resourceTypes, workerClient)
 	})
 
 	Describe("Init", func() {
@@ -49,7 +49,7 @@ var _ = Describe("Tracker", func() {
 
 		Context("when a container does not exist for the session", func() {
 			BeforeEach(func() {
-				gardenClient.LookupReturns(nil, errors.New("nope"))
+				workerClient.LookupReturns(nil, errors.New("nope"))
 			})
 
 			It("does not error and returns a resource", func() {
@@ -58,7 +58,7 @@ var _ = Describe("Tracker", func() {
 			})
 
 			It("creates a privileged container with the resource type's image, and the session as the handle", func() {
-				Ω(gardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
+				Ω(workerClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
 					Handle:     sessionID,
 					RootFSPath: "image1",
 					Privileged: true,
@@ -69,7 +69,7 @@ var _ = Describe("Tracker", func() {
 				disaster := errors.New("oh no!")
 
 				BeforeEach(func() {
-					gardenClient.CreateReturns(nil, disaster)
+					workerClient.CreateReturns(nil, disaster)
 				})
 
 				It("returns the error and no resource", func() {
@@ -90,11 +90,11 @@ var _ = Describe("Tracker", func() {
 		})
 
 		Context("when a container already exists for the session", func() {
-			var fakeContainer *gfakes.FakeContainer
+			var fakeContainer *wfakes.FakeContainer
 
 			BeforeEach(func() {
-				fakeContainer = new(gfakes.FakeContainer)
-				gardenClient.LookupReturns(fakeContainer, nil)
+				fakeContainer = new(wfakes.FakeContainer)
+				workerClient.LookupReturns(fakeContainer, nil)
 			})
 
 			It("does not error and returns a resource", func() {
@@ -103,7 +103,7 @@ var _ = Describe("Tracker", func() {
 			})
 
 			It("does not create a container", func() {
-				Ω(gardenClient.CreateCallCount()).Should(BeZero())
+				Ω(workerClient.CreateCallCount()).Should(BeZero())
 			})
 		})
 	})

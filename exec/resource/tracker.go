@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	garden "github.com/cloudfoundry-incubator/garden/api"
+	"github.com/concourse/atc/worker"
 )
 
 type ResourceMapping map[ResourceType]ContainerImage
@@ -19,27 +20,27 @@ type Tracker interface {
 
 type tracker struct {
 	resourceTypes ResourceMapping
-	gardenClient  garden.Client
+	workerClient  worker.Client
 }
 
 var ErrUnknownResourceType = errors.New("unknown resource type")
 
-func NewTracker(resourceTypes ResourceMapping, gardenClient garden.Client) Tracker {
+func NewTracker(resourceTypes ResourceMapping, workerClient worker.Client) Tracker {
 	return &tracker{
 		resourceTypes: resourceTypes,
-		gardenClient:  gardenClient,
+		workerClient:  workerClient,
 	}
 }
 
 func (tracker *tracker) Init(sessionID SessionID, typ ResourceType) (Resource, error) {
-	container, err := tracker.gardenClient.Lookup(string(sessionID))
+	container, err := tracker.workerClient.Lookup(string(sessionID))
 	if err != nil {
 		resourceImage, found := tracker.resourceTypes[typ]
 		if !found {
 			return nil, ErrUnknownResourceType
 		}
 
-		container, err = tracker.gardenClient.Create(garden.ContainerSpec{
+		container, err = tracker.workerClient.Create(garden.ContainerSpec{
 			Handle:     string(sessionID),
 			RootFSPath: string(resourceImage),
 			Privileged: true,
@@ -49,5 +50,5 @@ func (tracker *tracker) Init(sessionID SessionID, typ ResourceType) (Resource, e
 		}
 	}
 
-	return NewResource(container, tracker.gardenClient, typ), nil
+	return NewResource(container, typ), nil
 }

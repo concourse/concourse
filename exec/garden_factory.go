@@ -5,19 +5,20 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/exec/resource"
+	"github.com/concourse/atc/worker"
 )
 
 type gardenFactory struct {
-	gardenClient    garden.Client
+	workerClient    worker.Client
 	resourceTracker resource.Tracker
 }
 
 func NewGardenFactory(
-	gardenClient garden.Client,
+	workerClient worker.Client,
 	resourceTracker resource.Tracker,
 ) Factory {
 	return &gardenFactory{
-		gardenClient:    gardenClient,
+		workerClient:    workerClient,
 		resourceTracker: resourceTracker,
 	}
 }
@@ -57,12 +58,12 @@ func (factory *gardenFactory) Execute(sessionID SessionID, ioConfig IOConfig, pr
 		Privileged:   privileged,
 		ConfigSource: configSource,
 
-		GardenClient: factory.gardenClient,
+		WorkerClient: factory.workerClient,
 	}
 }
 
 func (factory *gardenFactory) Hijack(sessionID SessionID, spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
-	container, err := factory.gardenClient.Lookup(string(sessionID))
+	container, err := factory.workerClient.Lookup(string(sessionID))
 	if err != nil {
 		return nil, err
 	}

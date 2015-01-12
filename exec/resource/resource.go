@@ -3,8 +3,8 @@ package resource
 import (
 	"io"
 
-	garden "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/worker"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -49,20 +49,17 @@ type VersionedSource interface {
 const ResourcesDir = "/tmp/build/src"
 
 type resource struct {
-	container    garden.Container
-	gardenClient garden.Client
-	typ          ResourceType
+	container worker.Container
+	typ       ResourceType
 }
 
 func NewResource(
-	container garden.Container,
-	gardenClient garden.Client,
+	container worker.Container,
 	typ ResourceType,
 ) Resource {
 	return &resource{
-		container:    container,
-		gardenClient: gardenClient,
-		typ:          typ,
+		container: container,
+		typ:       typ,
 	}
 }
 
@@ -71,5 +68,5 @@ func (resource *resource) Type() ResourceType {
 }
 
 func (resource *resource) Release() error {
-	return resource.gardenClient.Destroy(resource.container.Handle())
+	return resource.container.Destroy()
 }

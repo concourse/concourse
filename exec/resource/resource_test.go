@@ -15,15 +15,14 @@ var _ = Describe("Resource", func() {
 			err := resource.Release()
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(gardenClient.DestroyCallCount()).Should(Equal(1))
-			Ω(gardenClient.DestroyArgsForCall(0)).Should(Equal("some-handle"))
+			Ω(fakeContainer.DestroyCallCount()).Should(Equal(1))
 		})
 
 		Context("when destroying the container fails", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				gardenClient.DestroyReturns(disaster)
+				fakeContainer.DestroyReturns(disaster)
 			})
 
 			It("returns the error", func() {

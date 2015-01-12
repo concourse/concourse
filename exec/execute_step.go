@@ -12,6 +12,7 @@ import (
 
 	garden "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/worker"
 )
 
 const ArtifactsRoot = "/tmp/build/src"
@@ -37,11 +38,11 @@ type executeStep struct {
 	Privileged   Privileged
 	ConfigSource BuildConfigSource
 
-	GardenClient garden.Client
+	WorkerClient worker.Client
 
 	artifactSource ArtifactSource
 
-	container garden.Container
+	container worker.Container
 	process   garden.Process
 
 	exitStatus int
@@ -60,7 +61,7 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 		Stderr: step.IOConfig.Stderr,
 	}
 
-	step.container, err = step.GardenClient.Lookup(string(step.SessionID))
+	step.container, err = step.WorkerClient.Lookup(string(step.SessionID))
 	if err == nil {
 		// container already exists; recover session
 
@@ -101,7 +102,7 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 			return err
 		}
 
-		step.container, err = step.GardenClient.Create(garden.ContainerSpec{
+		step.container, err = step.WorkerClient.Create(garden.ContainerSpec{
 			Handle:     string(step.SessionID),
 			RootFSPath: config.Image,
 			Privileged: bool(step.Privileged),
@@ -197,7 +198,7 @@ func (step *executeStep) Result(x interface{}) bool {
 }
 
 func (step *executeStep) Release() error {
-	return step.GardenClient.Destroy(step.container.Handle())
+	return step.container.Destroy()
 }
 
 func (step *executeStep) StreamFile(source string) (io.ReadCloser, error) {

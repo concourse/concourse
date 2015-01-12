@@ -355,6 +355,48 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Ω(err).Should(Equal(db.ErrBuildEventStreamClosed))
 		})
 
+		It("can keep track of workers", func() {
+			Ω(database.Workers()).Should(BeEmpty())
+
+			infoA := db.WorkerInfo{
+				Addr:             "1.2.3.4:7777",
+				ActiveContainers: 42,
+			}
+
+			infoB := db.WorkerInfo{
+				Addr:             "1.2.3.4:8888",
+				ActiveContainers: 42,
+			}
+
+			By("persisting workers with no TTLs")
+			err := database.SaveWorker(infoA, 0)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(database.Workers()).Should(ConsistOf(infoA))
+
+			By("being idempotent")
+			err = database.SaveWorker(infoA, 0)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(database.Workers()).Should(ConsistOf(infoA))
+
+			By("expiring TTLs")
+			ttl := 1 * time.Second
+
+			err = database.SaveWorker(infoB, ttl)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Consistently(database.Workers, ttl/2).Should(ConsistOf(infoA, infoB))
+			Eventually(database.Workers, 2*ttl).Should(ConsistOf(infoA))
+
+			By("overwriting TTLs")
+			err = database.SaveWorker(infoA, ttl)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Consistently(database.Workers, ttl/2).Should(ConsistOf(infoA))
+			Eventually(database.Workers, 2*ttl).Should(BeEmpty())
+		})
+
 		It("can create one-off builds with increasing names", func() {
 			oneOff, err := database.CreateOneOffBuild()
 			Ω(err).ShouldNot(HaveOccurred())
