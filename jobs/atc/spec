@@ -79,10 +79,6 @@ properties:
   atc.postgresql.role.password:
     description: "password to use when connecting"
 
-  atc.garden.address:
-    description: "garden server connection address"
-    default: garden.service.dc1.consul:7777
-
   atc.resource_types:
     description: "the mapping from known resource types to their container rootfs"
     default:
