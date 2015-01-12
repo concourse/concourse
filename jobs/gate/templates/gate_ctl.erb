@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+<% require "cgi" %>
+
 RUN_DIR=/var/vcap/sys/run/gate
 LOG_DIR=/var/vcap/sys/log/gate
 PIDFILE=$RUN_DIR/gate.pid
@@ -44,7 +46,7 @@ case $1 in
     exec chpst -u vcap:vcap /var/vcap/packages/gate/bin/gate \
       -heartbeatInterval=<%= p("gate.heartbeat_interval") %> \
       -gardenAddr=<%= my_ip + ":" + p("gate.garden.address").split(":")[1] %> \
-      -atcAPIURL=http://<%= p("gate.atc.username") %>:<%= p("gate.atc.password") %>@<%= p("gate.atc.address") %> \
+      -atcAPIURL=<%= "http://#{CGI.escape(p("gate.atc.username"))}:#{CGI.escape(p("gate.atc.password"))}@#{p("gate.atc.address")}" %> \
       1>>$LOG_DIR/gate.stdout.log \
       2>>$LOG_DIR/gate.stderr.log
 
