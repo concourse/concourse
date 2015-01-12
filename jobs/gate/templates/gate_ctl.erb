@@ -43,7 +43,7 @@ case $1 in
 
     exec chpst -u vcap:vcap /var/vcap/packages/gate/bin/gate \
       -heartbeatInterval=<%= p("gate.heartbeat_interval") %> \
-      -gardenAddr=<%= p("gate.garden.address") %> \
+      -gardenAddr=<%= my_ip + ":" + p("gate.garden.address").split(":")[1] %> \
       -atcAPIURL=http://<%= p("gate.atc.username") %>:<%= p("gate.atc.password") %>@<%= p("gate.atc.address") %> \
       1>>$LOG_DIR/gate.stdout.log \
       2>>$LOG_DIR/gate.stderr.log
