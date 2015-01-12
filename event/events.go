@@ -1,9 +1,6 @@
 package event
 
-import (
-	"github.com/concourse/atc"
-	"github.com/concourse/turbine"
-)
+import "github.com/concourse/atc"
 
 type Error struct {
 	Message string `json:"message"`
@@ -34,18 +31,6 @@ func (e Initialize) Censored() atc.Event {
 	return e
 }
 
-type InputV10 struct {
-	Input turbine.Input `json:"input"`
-}
-
-func (InputV10) EventType() atc.EventType  { return EventTypeInput }
-func (InputV10) Version() atc.EventVersion { return "1.0" }
-func (e InputV10) Censored() atc.Event {
-	e.Input.Source = nil
-	e.Input.Params = nil
-	return e
-}
-
 type Log struct {
 	Origin  Origin `json:"origin"`
 	Payload string `json:"payload"`
@@ -54,18 +39,6 @@ type Log struct {
 func (Log) EventType() atc.EventType  { return EventTypeLog }
 func (Log) Version() atc.EventVersion { return "1.0" }
 func (e Log) Censored() atc.Event     { return e }
-
-type OutputV10 struct {
-	Output turbine.Output `json:"output"`
-}
-
-func (OutputV10) EventType() atc.EventType  { return EventTypeOutput }
-func (OutputV10) Version() atc.EventVersion { return "1.0" }
-func (e OutputV10) Censored() atc.Event {
-	e.Output.Source = nil
-	e.Output.Params = nil
-	return e
-}
 
 type Start struct {
 	Time int64 `json:"time"`

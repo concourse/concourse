@@ -6,7 +6,6 @@ import (
 
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/event"
-	"github.com/concourse/turbine"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -66,57 +65,7 @@ var _ = Describe("Censorship", func() {
 		})
 	})
 
-	Describe("Input 1.0", func() {
-		It("censors source and params", func() {
-			Ω(InputV10{
-				Input: turbine.Input{
-					Name:       "some-name",
-					Resource:   "some-resource",
-					Type:       "git",
-					Source:     turbine.Source{"some": "secret"},
-					Params:     turbine.Params{"another": "secret"},
-					ConfigPath: "config/path.yml",
-					Version:    turbine.Version{"ref": "foo"},
-					Metadata:   []turbine.MetadataField{{"public", "data"}},
-				},
-			}.Censored()).Should(Equal(InputV10{
-				Input: turbine.Input{
-					Name:       "some-name",
-					Resource:   "some-resource",
-					Type:       "git",
-					ConfigPath: "config/path.yml",
-					Version:    turbine.Version{"ref": "foo"},
-					Metadata:   []turbine.MetadataField{{"public", "data"}},
-				},
-			}))
-		})
-	})
-
-	Describe("Output 1.0", func() {
-		It("censors source and params", func() {
-			Ω(OutputV10{
-				Output: turbine.Output{
-					Name:     "some-name",
-					Type:     "git",
-					On:       []turbine.OutputCondition{turbine.OutputConditionSuccess},
-					Source:   turbine.Source{"some": "secret"},
-					Params:   turbine.Params{"another": "secret"},
-					Version:  turbine.Version{"ref": "foo"},
-					Metadata: []turbine.MetadataField{{"public", "data"}},
-				},
-			}.Censored()).Should(Equal(OutputV10{
-				Output: turbine.Output{
-					Name:     "some-name",
-					Type:     "git",
-					On:       []turbine.OutputCondition{turbine.OutputConditionSuccess},
-					Version:  turbine.Version{"ref": "foo"},
-					Metadata: []turbine.MetadataField{{"public", "data"}},
-				},
-			}))
-		})
-	})
-
-	Describe("Input 2.0", func() {
+	Describe("Input", func() {
 		It("censors source and params", func() {
 			Ω(Input{
 				Plan: atc.InputPlan{
@@ -140,7 +89,7 @@ var _ = Describe("Censorship", func() {
 		})
 	})
 
-	Describe("Output 2.0", func() {
+	Describe("Output", func() {
 		It("censors source and params", func() {
 			Ω(Output{
 				Plan: atc.OutputPlan{
