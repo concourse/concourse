@@ -26,12 +26,10 @@ var _ = BeforeSuite(func() {
 	bosh.Deploy("noop.yml")
 
 	atcURL := "http://10.244.8.2:8080"
-	turbineURL := "http://10.244.8.2:4637"
 
 	os.Setenv("ATC_URL", atcURL)
 
 	Eventually(errorPolling(atcURL), 1*time.Minute).ShouldNot(HaveOccurred())
-	Eventually(errorPolling(turbineURL), 1*time.Minute).ShouldNot(HaveOccurred())
 })
 
 func TestFlying(t *testing.T) {
