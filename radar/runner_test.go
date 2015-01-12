@@ -7,11 +7,9 @@ import (
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/fakes"
-	"github.com/concourse/turbine"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
-	"github.com/tedsuo/rata"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -19,12 +17,11 @@ import (
 
 var _ = Describe("Runner", func() {
 	var (
-		locker          *fakes.FakeLocker
-		configDB        *fakes.FakeConfigDB
-		scanner         *fakes.FakeScanner
-		noop            bool
-		turbineEndpoint *rata.RequestGenerator
-		syncInterval    time.Duration
+		locker       *fakes.FakeLocker
+		configDB     *fakes.FakeConfigDB
+		scanner      *fakes.FakeScanner
+		noop         bool
+		syncInterval time.Duration
 
 		initialConfig atc.Config
 
@@ -58,8 +55,6 @@ var _ = Describe("Runner", func() {
 				return nil
 			})
 		}
-
-		turbineEndpoint = rata.NewRequestGenerator("turbine-host", turbine.Routes)
 	})
 
 	JustBeforeEach(func() {

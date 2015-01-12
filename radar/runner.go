@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/concourse/atc/db"
-	"github.com/concourse/turbine/resource"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -33,8 +32,6 @@ type Runner struct {
 	configDB ConfigDB
 
 	syncInterval time.Duration
-
-	tracker resource.Tracker
 }
 
 func NewRunner(
