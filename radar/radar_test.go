@@ -252,6 +252,18 @@ var _ = Describe("Radar", func() {
 			})
 		})
 
+		Context("when checking fails", func() {
+			disaster := errors.New("nope")
+
+			BeforeEach(func() {
+				fakeResource.CheckReturns(nil, disaster)
+			})
+
+			It("exits with the failure", func() {
+				Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+			})
+		})
+
 		Context("when the config changes", func() {
 			var newConfig atc.Config
 

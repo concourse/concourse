@@ -146,7 +146,12 @@ func (radar *Radar) Scan(resourceName string) ifrit.Runner {
 				newVersions, err := res.Check(resourceConfig.Source, atc.Version(from))
 				if err != nil {
 					log.Error("failed-to-check", err)
-					break
+
+					// ideally we'd check for non-recoverable errors like ErrContainerNotFound.
+					// until Garden returns rich error objects, all we can do is exit.
+					// [#85476532]
+
+					return err
 				}
 
 				if len(newVersions) == 0 {
