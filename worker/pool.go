@@ -2,8 +2,10 @@ package worker
 
 import (
 	"errors"
+	"math/rand"
 	"sort"
 	"sync"
+	"time"
 
 	garden "github.com/cloudfoundry-incubator/garden/api"
 )
@@ -25,10 +27,15 @@ var ErrNoWorkers = errors.New("no workers")
 
 type Pool struct {
 	provider WorkerProvider
+
+	rand *rand.Rand
 }
 
 func NewPool(provider WorkerProvider) Client {
-	return &Pool{provider}
+	return &Pool{
+		provider: provider,
+		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
+	}
 }
 
 func (pool *Pool) Create(spec garden.ContainerSpec) (Container, error) {
@@ -41,9 +48,15 @@ func (pool *Pool) Create(spec garden.ContainerSpec) (Container, error) {
 		return nil, ErrNoWorkers
 	}
 
-	sort.Sort(byActiveContainers(workers))
+	shuffled := make([]Worker, len(workers))
+	indices := pool.rand.Perm(len(workers))
+	for i := 0; i < len(indices); i++ {
+		shuffled[i] = workers[indices[i]]
+	}
 
-	return workers[0].Create(spec)
+	sort.Sort(byActiveContainers(shuffled))
+
+	return shuffled[0].Create(spec)
 }
 
 func (pool *Pool) Lookup(handle string) (Container, error) {

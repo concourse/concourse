@@ -89,6 +89,23 @@ var _ = Describe("Pool", func() {
 					Ω(createErr).Should(Equal(disaster))
 				})
 			})
+
+			Context("when the workers have the same total containers", func() {
+				BeforeEach(func() {
+					workerA.ActiveContainersReturns(1)
+					workerB.ActiveContainersReturns(1)
+				})
+
+				It("creates using a random worker", func() {
+					for i := 1; i < 100; i++ { // account for initial create in JustBefore
+						createdContainer, createErr := pool.Create(spec)
+						Ω(createErr).ShouldNot(HaveOccurred())
+						Ω(createdContainer).Should(Equal(fakeContainer))
+					}
+
+					Ω(workerA.CreateCallCount()).Should(BeNumerically("~", workerB.CreateCallCount(), 50))
+				})
+			})
 		})
 
 		Context("with no workers", func() {
