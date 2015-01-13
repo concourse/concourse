@@ -3,7 +3,6 @@ package worker
 import (
 	"errors"
 	"math/rand"
-	"sort"
 	"sync"
 	"time"
 
@@ -48,15 +47,7 @@ func (pool *Pool) Create(spec garden.ContainerSpec) (Container, error) {
 		return nil, ErrNoWorkers
 	}
 
-	shuffled := make([]Worker, len(workers))
-	indices := pool.rand.Perm(len(workers))
-	for i := 0; i < len(indices); i++ {
-		shuffled[i] = workers[indices[i]]
-	}
-
-	sort.Sort(byActiveContainers(shuffled))
-
-	return shuffled[0].Create(spec)
+	return workers[pool.rand.Intn(len(workers))].Create(spec)
 }
 
 func (pool *Pool) Lookup(handle string) (Container, error) {
