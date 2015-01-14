@@ -4,7 +4,6 @@ package fakes
 import (
 	"sync"
 
-	garden "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/exec"
 )
@@ -44,15 +43,15 @@ type FakeFactory struct {
 	executeReturns struct {
 		result1 exec.Step
 	}
-	HijackStub        func(exec.SessionID, garden.ProcessSpec, garden.ProcessIO) (garden.Process, error)
+	HijackStub        func(exec.SessionID, exec.IOConfig, atc.HijackProcessSpec) (exec.HijackedProcess, error)
 	hijackMutex       sync.RWMutex
 	hijackArgsForCall []struct {
 		arg1 exec.SessionID
-		arg2 garden.ProcessSpec
-		arg3 garden.ProcessIO
+		arg2 exec.IOConfig
+		arg3 atc.HijackProcessSpec
 	}
 	hijackReturns struct {
-		result1 garden.Process
+		result1 exec.HijackedProcess
 		result2 error
 	}
 }
@@ -163,12 +162,12 @@ func (fake *FakeFactory) ExecuteReturns(result1 exec.Step) {
 	}{result1}
 }
 
-func (fake *FakeFactory) Hijack(arg1 exec.SessionID, arg2 garden.ProcessSpec, arg3 garden.ProcessIO) (garden.Process, error) {
+func (fake *FakeFactory) Hijack(arg1 exec.SessionID, arg2 exec.IOConfig, arg3 atc.HijackProcessSpec) (exec.HijackedProcess, error) {
 	fake.hijackMutex.Lock()
 	fake.hijackArgsForCall = append(fake.hijackArgsForCall, struct {
 		arg1 exec.SessionID
-		arg2 garden.ProcessSpec
-		arg3 garden.ProcessIO
+		arg2 exec.IOConfig
+		arg3 atc.HijackProcessSpec
 	}{arg1, arg2, arg3})
 	fake.hijackMutex.Unlock()
 	if fake.HijackStub != nil {
@@ -184,16 +183,16 @@ func (fake *FakeFactory) HijackCallCount() int {
 	return len(fake.hijackArgsForCall)
 }
 
-func (fake *FakeFactory) HijackArgsForCall(i int) (exec.SessionID, garden.ProcessSpec, garden.ProcessIO) {
+func (fake *FakeFactory) HijackArgsForCall(i int) (exec.SessionID, exec.IOConfig, atc.HijackProcessSpec) {
 	fake.hijackMutex.RLock()
 	defer fake.hijackMutex.RUnlock()
 	return fake.hijackArgsForCall[i].arg1, fake.hijackArgsForCall[i].arg2, fake.hijackArgsForCall[i].arg3
 }
 
-func (fake *FakeFactory) HijackReturns(result1 garden.Process, result2 error) {
+func (fake *FakeFactory) HijackReturns(result1 exec.HijackedProcess, result2 error) {
 	fake.HijackStub = nil
 	fake.hijackReturns = struct {
-		result1 garden.Process
+		result1 exec.HijackedProcess
 		result2 error
 	}{result1, result2}
 }

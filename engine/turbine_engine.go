@@ -299,8 +299,8 @@ func (build *turbineBuild) Abort() error {
 	return nil
 }
 
-func (build *turbineBuild) Hijack(spec garden.ProcessSpec, processIO garden.ProcessIO) (garden.Process, error) {
-	specPayload, err := json.Marshal(spec)
+func (build *turbineBuild) Hijack(spec atc.HijackProcessSpec, processIO HijackProcessIO) (HijackedProcess, error) {
+	specPayload, err := json.Marshal(convertProcessSpec(spec))
 	if err != nil {
 		return nil, err
 	}
@@ -723,7 +723,7 @@ func (source *turbineEventSource) convertBuildInputConfigs(tbics []turbine.Input
 	return inputs
 }
 
-func newTurbineProcess(conn net.Conn, br *bufio.Reader, processIO garden.ProcessIO) garden.Process {
+func newTurbineProcess(conn net.Conn, br *bufio.Reader, processIO HijackProcessIO) HijackedProcess {
 	process := &turbineProcess{
 		conn:   gob.NewEncoder(conn),
 		closer: conn,
@@ -743,13 +743,14 @@ type turbineProcess struct {
 	wg     *sync.WaitGroup
 }
 
-func (process *turbineProcess) ID() uint32 {
-	return 0
-}
-
-func (process *turbineProcess) SetTTY(spec garden.TTYSpec) error {
+func (process *turbineProcess) SetTTY(spec atc.HijackTTYSpec) error {
 	return process.conn.Encode(turbine.HijackPayload{
-		TTYSpec: &spec,
+		TTYSpec: &garden.TTYSpec{
+			WindowSize: &garden.WindowSize{
+				Columns: spec.WindowSize.Columns,
+				Rows:    spec.WindowSize.Rows,
+			},
+		},
 	})
 }
 
@@ -770,7 +771,7 @@ func (process *turbineProcess) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-func (process *turbineProcess) trackIO(processIO garden.ProcessIO) {
+func (process *turbineProcess) trackIO(processIO HijackProcessIO) {
 	process.wg.Add(1)
 
 	go func() {
@@ -779,4 +780,28 @@ func (process *turbineProcess) trackIO(processIO garden.ProcessIO) {
 	}()
 
 	go io.Copy(process, processIO.Stdin)
+}
+
+func convertProcessSpec(spec atc.HijackProcessSpec) garden.ProcessSpec {
+	var tty *garden.TTYSpec
+	if spec.TTY != nil {
+		tty = &garden.TTYSpec{
+			WindowSize: &garden.WindowSize{
+				Columns: spec.TTY.WindowSize.Columns,
+				Rows:    spec.TTY.WindowSize.Rows,
+			},
+		}
+	}
+
+	return garden.ProcessSpec{
+		Path: spec.Path,
+		Args: spec.Args,
+		Env:  spec.Env,
+		Dir:  spec.Dir,
+
+		Privileged: spec.Privileged,
+		User:       spec.User,
+
+		TTY: tty,
+	}
 }

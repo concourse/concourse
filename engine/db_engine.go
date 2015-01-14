@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 
-	garden "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
@@ -201,7 +200,7 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 	engineBuild.Resume(logger)
 }
 
-func (build *dbBuild) Hijack(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
+func (build *dbBuild) Hijack(spec atc.HijackProcessSpec, io HijackProcessIO) (HijackedProcess, error) {
 	model, err := build.db.GetBuild(build.id)
 	if err != nil {
 		return nil, err

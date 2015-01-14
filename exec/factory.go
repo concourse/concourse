@@ -3,7 +3,6 @@ package exec
 import (
 	"io"
 
-	garden "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/concourse/atc"
 )
 
@@ -17,12 +16,18 @@ type Factory interface {
 	// Delete(atc.ResourceConfig, atc.Params, atc.Version) Step
 	Execute(SessionID, IOConfig, Privileged, BuildConfigSource) Step
 
-	Hijack(SessionID, garden.ProcessSpec, garden.ProcessIO) (garden.Process, error)
+	Hijack(SessionID, IOConfig, atc.HijackProcessSpec) (HijackedProcess, error)
+}
+
+type HijackedProcess interface {
+	Wait() (int, error)
+	SetTTY(atc.HijackTTYSpec) error
 }
 
 type Privileged bool
 
 type IOConfig struct {
+	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
 }

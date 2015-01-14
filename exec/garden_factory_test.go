@@ -53,19 +53,19 @@ var _ = Describe("GardenFactory", func() {
 
 	Describe("Hijack", func() {
 		var (
-			processSpec garden.ProcessSpec
-			processIO   garden.ProcessIO
+			processSpec atc.HijackProcessSpec
+			processIO   IOConfig
 
-			hijackedProcess garden.Process
+			hijackedProcess HijackedProcess
 			hijackErr       error
 		)
 
 		BeforeEach(func() {
-			processSpec = garden.ProcessSpec{
+			processSpec = atc.HijackProcessSpec{
 				Path: "ls",
 			}
 
-			processIO = garden.ProcessIO{
+			processIO = IOConfig{
 				Stdin:  new(bytes.Buffer),
 				Stdout: new(bytes.Buffer),
 				Stderr: new(bytes.Buffer),
@@ -73,7 +73,7 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			hijackedProcess, hijackErr = factory.Hijack(sessionID, processSpec, processIO)
+			hijackedProcess, hijackErr = factory.Hijack(sessionID, processIO, processSpec)
 		})
 
 		Context("when finding the session's container succeeds", func() {
@@ -100,16 +100,44 @@ var _ = Describe("GardenFactory", func() {
 					Ω(hijackErr).ShouldNot(HaveOccurred())
 				})
 
-				It("returns the process", func() {
-					Ω(hijackedProcess).Should(Equal(fakeProcess))
-				})
-
 				It("spawns the process with the given spec and IO config", func() {
 					Ω(fakeContainer.RunCallCount()).Should(Equal(1))
 
 					ranSpec, ranIO := fakeContainer.RunArgsForCall(0)
-					Ω(ranSpec).Should(Equal(processSpec))
-					Ω(ranIO).Should(Equal(processIO))
+					Ω(ranSpec).Should(Equal(garden.ProcessSpec{
+						Path: "ls",
+					}))
+					Ω(ranIO).Should(Equal(garden.ProcessIO(processIO)))
+				})
+
+				Describe("waiting on the process", func() {
+					BeforeEach(func() {
+						fakeProcess.WaitReturns(123, nil)
+					})
+
+					It("delegates to the garden process", func() {
+						Ω(hijackedProcess.Wait()).Should(Equal(123))
+					})
+				})
+
+				Describe("updating the process's TTY", func() {
+					It("delegates to the garden process", func() {
+						err := hijackedProcess.SetTTY(atc.HijackTTYSpec{
+							WindowSize: atc.HijackWindowSize{
+								Columns: 123,
+								Rows:    456,
+							},
+						})
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Ω(fakeProcess.SetTTYCallCount()).Should(Equal(1))
+						Ω(fakeProcess.SetTTYArgsForCall(0)).Should(Equal(garden.TTYSpec{
+							WindowSize: &garden.WindowSize{
+								Columns: 123,
+								Rows:    456,
+							},
+						}))
+					})
 				})
 			})
 

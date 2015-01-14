@@ -4,7 +4,7 @@ package fakes
 import (
 	"sync"
 
-	garden "github.com/cloudfoundry-incubator/garden/api"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/engine"
 	"github.com/pivotal-golang/lager"
 )
@@ -22,14 +22,14 @@ type FakeBuild struct {
 	abortReturns struct {
 		result1 error
 	}
-	HijackStub        func(garden.ProcessSpec, garden.ProcessIO) (garden.Process, error)
+	HijackStub        func(atc.HijackProcessSpec, engine.HijackProcessIO) (engine.HijackedProcess, error)
 	hijackMutex       sync.RWMutex
 	hijackArgsForCall []struct {
-		arg1 garden.ProcessSpec
-		arg2 garden.ProcessIO
+		arg1 atc.HijackProcessSpec
+		arg2 engine.HijackProcessIO
 	}
 	hijackReturns struct {
-		result1 garden.Process
+		result1 engine.HijackedProcess
 		result2 error
 	}
 	ResumeStub        func(lager.Logger)
@@ -87,11 +87,11 @@ func (fake *FakeBuild) AbortReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBuild) Hijack(arg1 garden.ProcessSpec, arg2 garden.ProcessIO) (garden.Process, error) {
+func (fake *FakeBuild) Hijack(arg1 atc.HijackProcessSpec, arg2 engine.HijackProcessIO) (engine.HijackedProcess, error) {
 	fake.hijackMutex.Lock()
 	fake.hijackArgsForCall = append(fake.hijackArgsForCall, struct {
-		arg1 garden.ProcessSpec
-		arg2 garden.ProcessIO
+		arg1 atc.HijackProcessSpec
+		arg2 engine.HijackProcessIO
 	}{arg1, arg2})
 	fake.hijackMutex.Unlock()
 	if fake.HijackStub != nil {
@@ -107,16 +107,16 @@ func (fake *FakeBuild) HijackCallCount() int {
 	return len(fake.hijackArgsForCall)
 }
 
-func (fake *FakeBuild) HijackArgsForCall(i int) (garden.ProcessSpec, garden.ProcessIO) {
+func (fake *FakeBuild) HijackArgsForCall(i int) (atc.HijackProcessSpec, engine.HijackProcessIO) {
 	fake.hijackMutex.RLock()
 	defer fake.hijackMutex.RUnlock()
 	return fake.hijackArgsForCall[i].arg1, fake.hijackArgsForCall[i].arg2
 }
 
-func (fake *FakeBuild) HijackReturns(result1 garden.Process, result2 error) {
+func (fake *FakeBuild) HijackReturns(result1 engine.HijackedProcess, result2 error) {
 	fake.HijackStub = nil
 	fake.hijackReturns = struct {
-		result1 garden.Process
+		result1 engine.HijackedProcess
 		result2 error
 	}{result1, result2}
 }

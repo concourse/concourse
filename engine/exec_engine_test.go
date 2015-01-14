@@ -18,13 +18,13 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 )
 
-var _ = Describe("GardenEngine", func() {
+var _ = Describe("ExecEngine", func() {
 	var (
 		fakeFactory         *execfakes.FakeFactory
 		fakeDelegateFactory *fakes.FakeBuildDelegateFactory
 		fakeDB              *fakes.FakeEngineDB
 
-		gardenEngine engine.Engine
+		execEngine engine.Engine
 	)
 
 	BeforeEach(func() {
@@ -32,7 +32,7 @@ var _ = Describe("GardenEngine", func() {
 		fakeDelegateFactory = new(fakes.FakeBuildDelegateFactory)
 		fakeDB = new(fakes.FakeEngineDB)
 
-		gardenEngine = engine.NewGardenEngine(fakeFactory, fakeDelegateFactory, fakeDB)
+		execEngine = engine.NewExecEngine(fakeFactory, fakeDelegateFactory, fakeDB)
 	})
 
 	Describe("Resume", func() {
@@ -138,7 +138,7 @@ var _ = Describe("GardenEngine", func() {
 
 		JustBeforeEach(func() {
 			var err error
-			build, err = gardenEngine.CreateBuild(buildModel, atc.BuildPlan{
+			build, err = execEngine.CreateBuild(buildModel, atc.BuildPlan{
 				Privileged: privileged,
 
 				Config:     buildConfig,

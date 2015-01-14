@@ -2,8 +2,8 @@ package engine
 
 import (
 	"errors"
+	"io"
 
-	garden "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
@@ -12,6 +12,7 @@ import (
 var ErrBuildNotFound = errors.New("build not found")
 
 //go:generate counterfeiter . Engine
+
 type Engine interface {
 	Name() string
 
@@ -20,12 +21,26 @@ type Engine interface {
 }
 
 //go:generate counterfeiter . Build
+
 type Build interface {
 	Metadata() string
 
 	Abort() error
-	Hijack(garden.ProcessSpec, garden.ProcessIO) (garden.Process, error)
+	Hijack(atc.HijackProcessSpec, HijackProcessIO) (HijackedProcess, error)
 	Resume(lager.Logger)
+}
+
+type HijackProcessIO struct {
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
+}
+
+//go:generate counterfeiter . HijackedProcess
+
+type HijackedProcess interface {
+	Wait() (int, error)
+	SetTTY(atc.HijackTTYSpec) error
 }
 
 type Engines []Engine

@@ -1,8 +1,15 @@
 package atc
 
-type HijackInput struct {
-	Stdin   []byte         `json:"stdin,omitempty"`
-	TTYSpec *HijackTTYSpec `json:"tty,omitempty"`
+type HijackProcessSpec struct {
+	Path string   `json:"path"`
+	Args []string `json:"args"`
+	Env  []string `json:"env"`
+	Dir  string   `json:"dir"`
+
+	Privileged bool   `json:"privileged"`
+	User       string `json:"user"`
+
+	TTY *HijackTTYSpec `json:"tty"`
 }
 
 type HijackTTYSpec struct {
@@ -12,6 +19,11 @@ type HijackTTYSpec struct {
 type HijackWindowSize struct {
 	Columns int `json:"columns"`
 	Rows    int `json:"rows"`
+}
+
+type HijackInput struct {
+	Stdin   []byte         `json:"stdin,omitempty"`
+	TTYSpec *HijackTTYSpec `json:"tty,omitempty"`
 }
 
 type HijackOutput struct {

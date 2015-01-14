@@ -14,9 +14,6 @@ import (
 	dbfakes "github.com/concourse/atc/db/fakes"
 	. "github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/fakes"
-
-	garden "github.com/cloudfoundry-incubator/garden/api"
-	gardenfakes "github.com/cloudfoundry-incubator/garden/api/fakes"
 )
 
 var _ = Describe("DBEngine", func() {
@@ -195,19 +192,19 @@ var _ = Describe("DBEngine", func() {
 
 		Describe("Hijack", func() {
 			var (
-				hijackSpec garden.ProcessSpec
-				hijackIO   garden.ProcessIO
+				hijackSpec atc.HijackProcessSpec
+				hijackIO   HijackProcessIO
 
-				hijackedProcess garden.Process
+				hijackedProcess HijackedProcess
 				hijackErr       error
 			)
 
 			BeforeEach(func() {
-				hijackSpec = garden.ProcessSpec{
+				hijackSpec = atc.HijackProcessSpec{
 					Path: "ls",
 				}
 
-				hijackIO = garden.ProcessIO{
+				hijackIO = HijackProcessIO{
 					Stdin: bytes.NewBufferString("lol"),
 				}
 			})
@@ -227,10 +224,10 @@ var _ = Describe("DBEngine", func() {
 				})
 
 				Context("when hijacking the real build succeeds", func() {
-					var fakeProcess *gardenfakes.FakeProcess
+					var fakeProcess *fakes.FakeHijackedProcess
 
 					BeforeEach(func() {
-						fakeProcess = new(gardenfakes.FakeProcess)
+						fakeProcess = new(fakes.FakeHijackedProcess)
 						realBuild.HijackReturns(fakeProcess, nil)
 					})
 

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	garden "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/engine"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -22,7 +22,7 @@ func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
 		"build": buildID,
 	})
 
-	var processSpec garden.ProcessSpec
+	var processSpec atc.HijackProcessSpec
 	err = json.NewDecoder(r.Body).Decode(&processSpec)
 	if err != nil {
 		hLog.Error("malformed-process-spec", err)
@@ -76,7 +76,7 @@ func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
 		done:    cleanup,
 	}
 
-	process, err := engineBuild.Hijack(processSpec, garden.ProcessIO{
+	process, err := engineBuild.Hijack(processSpec, engine.HijackProcessIO{
 		Stdin:  stdinR,
 		Stdout: outW,
 		Stderr: errW,
@@ -117,8 +117,8 @@ func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
 		select {
 		case input := <-inputs:
 			if input.TTYSpec != nil {
-				err := process.SetTTY(garden.TTYSpec{
-					WindowSize: &garden.WindowSize{
+				err := process.SetTTY(atc.HijackTTYSpec{
+					WindowSize: atc.HijackWindowSize{
 						Columns: input.TTYSpec.WindowSize.Columns,
 						Rows:    input.TTYSpec.WindowSize.Rows,
 					},

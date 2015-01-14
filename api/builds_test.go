@@ -15,8 +15,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 
-	garden "github.com/cloudfoundry-incubator/garden/api"
-	gfakes "github.com/cloudfoundry-incubator/garden/api/fakes"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	enginefakes "github.com/concourse/atc/engine/fakes"
@@ -457,14 +455,14 @@ var _ = Describe("Builds API", func() {
 
 				Context("when hijacking succeeds", func() {
 					var (
-						fakeProcess *gfakes.FakeProcess
+						fakeProcess *enginefakes.FakeHijackedProcess
 						processExit chan int
 					)
 
 					BeforeEach(func() {
 						processExit = make(chan int)
 
-						fakeProcess = new(gfakes.FakeProcess)
+						fakeProcess = new(enginefakes.FakeHijackedProcess)
 						fakeProcess.WaitStub = func() (int, error) {
 							return <-processExit, nil
 						}
@@ -484,7 +482,7 @@ var _ = Describe("Builds API", func() {
 						}))
 
 						spec, io := fakeBuild.HijackArgsForCall(0)
-						Ω(spec).Should(Equal(garden.ProcessSpec{
+						Ω(spec).Should(Equal(atc.HijackProcessSpec{
 							Path: "ls",
 						}))
 						Ω(io.Stdin).ShouldNot(BeNil())
@@ -581,8 +579,8 @@ var _ = Describe("Builds API", func() {
 						It("forwards it to the process", func() {
 							Eventually(fakeProcess.SetTTYCallCount).Should(Equal(1))
 
-							Ω(fakeProcess.SetTTYArgsForCall(0)).Should(Equal(garden.TTYSpec{
-								WindowSize: &garden.WindowSize{
+							Ω(fakeProcess.SetTTYArgsForCall(0)).Should(Equal(atc.HijackTTYSpec{
+								WindowSize: atc.HijackWindowSize{
 									Columns: 123,
 									Rows:    456,
 								},

@@ -7,7 +7,6 @@ import (
 	"os"
 	"unicode/utf8"
 
-	garden "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/event"
@@ -16,35 +15,35 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
-type GardenMetadata struct {
+type execMetadata struct {
 	Plan atc.BuildPlan
 }
 
-type gardenEngine struct {
+type execEngine struct {
 	factory         exec.Factory
 	delegateFactory BuildDelegateFactory
 	db              EngineDB
 }
 
-func NewGardenEngine(factory exec.Factory, delegateFactory BuildDelegateFactory, db EngineDB) Engine {
-	return &gardenEngine{
+func NewExecEngine(factory exec.Factory, delegateFactory BuildDelegateFactory, db EngineDB) Engine {
+	return &execEngine{
 		factory:         factory,
 		delegateFactory: delegateFactory,
 		db:              db,
 	}
 }
 
-func (engine *gardenEngine) Name() string {
-	return "garden.v1"
+func (engine *execEngine) Name() string {
+	return "exec.v1"
 }
 
-func (engine *gardenEngine) CreateBuild(model db.Build, plan atc.BuildPlan) (Build, error) {
-	return &gardenBuild{
+func (engine *execEngine) CreateBuild(model db.Build, plan atc.BuildPlan) (Build, error) {
+	return &execBuild{
 		buildID:  model.ID,
 		db:       engine.db,
 		factory:  engine.factory,
 		delegate: engine.delegateFactory.Delegate(model.ID),
-		metadata: GardenMetadata{
+		metadata: execMetadata{
 			Plan: plan,
 		},
 
@@ -52,14 +51,14 @@ func (engine *gardenEngine) CreateBuild(model db.Build, plan atc.BuildPlan) (Bui
 	}, nil
 }
 
-func (engine *gardenEngine) LookupBuild(model db.Build) (Build, error) {
-	var metadata GardenMetadata
+func (engine *execEngine) LookupBuild(model db.Build) (Build, error) {
+	var metadata execMetadata
 	err := json.Unmarshal([]byte(model.EngineMetadata), &metadata)
 	if err != nil {
 		return nil, err
 	}
 
-	return &gardenBuild{
+	return &execBuild{
 		buildID:  model.ID,
 		db:       engine.db,
 		factory:  engine.factory,
@@ -70,7 +69,7 @@ func (engine *gardenEngine) LookupBuild(model db.Build) (Build, error) {
 	}, nil
 }
 
-type gardenBuild struct {
+type execBuild struct {
 	buildID int
 	db      EngineDB
 
@@ -79,10 +78,10 @@ type gardenBuild struct {
 
 	signals chan os.Signal
 
-	metadata GardenMetadata
+	metadata execMetadata
 }
 
-func (build *gardenBuild) Metadata() string {
+func (build *execBuild) Metadata() string {
 	payload, err := json.Marshal(build.metadata)
 	if err != nil {
 		panic("failed to marshal build metadata: " + err.Error())
@@ -91,12 +90,12 @@ func (build *gardenBuild) Metadata() string {
 	return string(payload)
 }
 
-func (build *gardenBuild) Abort() error {
+func (build *execBuild) Abort() error {
 	build.signals <- os.Kill
 	return nil
 }
 
-func (build *gardenBuild) Resume(logger lager.Logger) {
+func (build *execBuild) Resume(logger lager.Logger) {
 	build.delegate.Start(logger.Session("start"))
 
 	step := exec.OnComplete(
@@ -131,11 +130,17 @@ func (build *gardenBuild) Resume(logger lager.Logger) {
 	}
 }
 
-func (build *gardenBuild) Hijack(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
-	return build.factory.Hijack(build.executeSessionID(), spec, io)
+func (build *execBuild) Hijack(spec atc.HijackProcessSpec, io HijackProcessIO) (HijackedProcess, error) {
+	ioConfig := exec.IOConfig{
+		Stdin:  io.Stdin,
+		Stdout: io.Stdout,
+		Stderr: io.Stderr,
+	}
+
+	return build.factory.Hijack(build.executeSessionID(), ioConfig, spec)
 }
 
-func (build *gardenBuild) aggregateInputsStep(logger lager.Logger) exec.Step {
+func (build *execBuild) aggregateInputsStep(logger lager.Logger) exec.Step {
 	inputs := exec.Aggregate{}
 
 	for _, input := range build.metadata.Plan.Inputs {
@@ -164,7 +169,7 @@ func (build *gardenBuild) aggregateInputsStep(logger lager.Logger) exec.Step {
 	return inputs
 }
 
-func (build *gardenBuild) executeStep(logger lager.Logger) exec.Step {
+func (build *execBuild) executeStep(logger lager.Logger) exec.Step {
 	plan := build.metadata.Plan
 
 	var configSource exec.BuildConfigSource
@@ -204,7 +209,7 @@ func (build *gardenBuild) executeStep(logger lager.Logger) exec.Step {
 	)
 }
 
-func (build *gardenBuild) aggregateOutputsStep(logger lager.Logger) exec.Step {
+func (build *execBuild) aggregateOutputsStep(logger lager.Logger) exec.Step {
 	plan := build.metadata.Plan
 
 	outputs := exec.Aggregate{}
@@ -245,19 +250,19 @@ func (build *gardenBuild) aggregateOutputsStep(logger lager.Logger) exec.Step {
 	return outputs
 }
 
-func (build *gardenBuild) executeSessionID() exec.SessionID {
+func (build *execBuild) executeSessionID() exec.SessionID {
 	return exec.SessionID(fmt.Sprintf("build-%d-execute", build.buildID))
 }
 
-func (build *gardenBuild) inputSessionID(inputName string) exec.SessionID {
+func (build *execBuild) inputSessionID(inputName string) exec.SessionID {
 	return exec.SessionID(fmt.Sprintf("build-%d-input-%s", build.buildID, inputName))
 }
 
-func (build *gardenBuild) outputSessionID(outputName string) exec.SessionID {
+func (build *execBuild) outputSessionID(outputName string) exec.SessionID {
 	return exec.SessionID(fmt.Sprintf("build-%d-output-%s", build.buildID, outputName))
 }
 
-func (build *gardenBuild) ioWriter(origin event.Origin) io.Writer {
+func (build *execBuild) ioWriter(origin event.Origin) io.Writer {
 	return &dbEventWriter{
 		buildID: build.buildID,
 		db:      build.db,

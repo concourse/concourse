@@ -395,7 +395,7 @@ var _ = Describe("TurbineEngine", func() {
 				stdoutBuf *gbytes.Buffer
 				stderrBuf *gbytes.Buffer
 
-				process   garden.Process
+				process   HijackedProcess
 				hijackErr error
 			)
 
@@ -422,9 +422,9 @@ var _ = Describe("TurbineEngine", func() {
 				build, err := engine.LookupBuild(buildModel)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				process, hijackErr = build.Hijack(garden.ProcessSpec{
+				process, hijackErr = build.Hijack(atc.HijackProcessSpec{
 					Path: "ls",
-				}, garden.ProcessIO{
+				}, HijackProcessIO{
 					Stdout: stdoutBuf,
 					Stderr: stderrBuf,
 					Stdin:  bytes.NewBufferString("marco"),
@@ -485,8 +485,8 @@ var _ = Describe("TurbineEngine", func() {
 
 					Eventually(stdoutBuf).Should(gbytes.Say("polo"))
 
-					err := process.SetTTY(garden.TTYSpec{
-						WindowSize: &garden.WindowSize{
+					err := process.SetTTY(atc.HijackTTYSpec{
+						WindowSize: atc.HijackWindowSize{
 							Columns: 123,
 							Rows:    456,
 						},
