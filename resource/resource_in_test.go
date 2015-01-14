@@ -7,34 +7,33 @@ import (
 	"io/ioutil"
 	"os"
 
-	garden "github.com/cloudfoundry-incubator/garden/api"
-	gfakes "github.com/cloudfoundry-incubator/garden/api/fakes"
-	"github.com/tedsuo/ifrit"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 
+	garden "github.com/cloudfoundry-incubator/garden/api"
+	gfakes "github.com/cloudfoundry-incubator/garden/api/fakes"
+	"github.com/tedsuo/ifrit"
+
 	"github.com/concourse/atc"
-	. "github.com/concourse/atc/exec/resource"
-	"github.com/concourse/atc/exec/resource/fakes"
+	. "github.com/concourse/atc/resource"
 )
 
-var _ = Describe("Resource Out", func() {
+var _ = Describe("Resource In", func() {
 	var (
-		source             atc.Source
-		params             atc.Params
-		fakeArtifactSource *fakes.FakeArtifactSource
+		source  atc.Source
+		params  atc.Params
+		version atc.Version
 
-		outScriptStdout     string
-		outScriptStderr     string
-		outScriptExitStatus int
-		runOutError         error
+		inScriptStdout     string
+		inScriptStderr     string
+		inScriptExitStatus int
+		runInError         error
 
-		outScriptProcess *gfakes.FakeProcess
+		inScriptProcess *gfakes.FakeProcess
 
 		versionedSource VersionedSource
-		outProcess      ifrit.Process
+		inProcess       ifrit.Process
 
 		ioConfig  IOConfig
 		stdoutBuf *gbytes.Buffer
@@ -43,18 +42,18 @@ var _ = Describe("Resource Out", func() {
 
 	BeforeEach(func() {
 		source = atc.Source{"some": "source"}
+		version = atc.Version{"some": "version"}
 		params = atc.Params{"some": "params"}
-		fakeArtifactSource = new(fakes.FakeArtifactSource)
 
-		outScriptStdout = "{}"
-		outScriptStderr = ""
-		outScriptExitStatus = 0
-		runOutError = nil
+		inScriptStdout = "{}"
+		inScriptStderr = ""
+		inScriptExitStatus = 0
+		runInError = nil
 
-		outScriptProcess = new(gfakes.FakeProcess)
-		outScriptProcess.IDReturns(42)
-		outScriptProcess.WaitStub = func() (int, error) {
-			return outScriptExitStatus, nil
+		inScriptProcess = new(gfakes.FakeProcess)
+		inScriptProcess.IDReturns(42)
+		inScriptProcess.WaitStub = func() (int, error) {
+			return inScriptExitStatus, nil
 		}
 
 		stdoutBuf = gbytes.NewBuffer()
@@ -68,35 +67,35 @@ var _ = Describe("Resource Out", func() {
 
 	JustBeforeEach(func() {
 		fakeContainer.RunStub = func(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
-			if runOutError != nil {
-				return nil, runOutError
+			if runInError != nil {
+				return nil, runInError
 			}
 
-			_, err := io.Stdout.Write([]byte(outScriptStdout))
+			_, err := io.Stdout.Write([]byte(inScriptStdout))
 			Ω(err).ShouldNot(HaveOccurred())
 
-			_, err = io.Stderr.Write([]byte(outScriptStderr))
+			_, err = io.Stderr.Write([]byte(inScriptStderr))
 			Ω(err).ShouldNot(HaveOccurred())
 
-			return outScriptProcess, nil
+			return inScriptProcess, nil
 		}
 
-		fakeContainer.AttachStub = func(processID uint32, io garden.ProcessIO) (garden.Process, error) {
-			if runOutError != nil {
-				return nil, runOutError
+		fakeContainer.AttachStub = func(pid uint32, io garden.ProcessIO) (garden.Process, error) {
+			if runInError != nil {
+				return nil, runInError
 			}
 
-			_, err := io.Stdout.Write([]byte(outScriptStdout))
+			_, err := io.Stdout.Write([]byte(inScriptStdout))
 			Ω(err).ShouldNot(HaveOccurred())
 
-			_, err = io.Stderr.Write([]byte(outScriptStderr))
+			_, err = io.Stderr.Write([]byte(inScriptStderr))
 			Ω(err).ShouldNot(HaveOccurred())
 
-			return outScriptProcess, nil
+			return inScriptProcess, nil
 		}
 
-		versionedSource = resource.Put(ioConfig, source, params, fakeArtifactSource)
-		outProcess = ifrit.Invoke(versionedSource)
+		versionedSource = resource.Get(ioConfig, source, params, version)
+		inProcess = ifrit.Invoke(versionedSource)
 	})
 
 	itCanStreamOut := func() {
@@ -115,7 +114,7 @@ var _ = Describe("Resource Out", func() {
 				})
 
 				It("returns the output stream of /tmp/build/src/some-name/", func() {
-					Eventually(outProcess.Wait()).Should(Receive(BeNil()))
+					Eventually(inProcess.Wait()).Should(Receive(BeNil()))
 
 					inStream, err := versionedSource.StreamOut("some/subdir")
 					Ω(err).ShouldNot(HaveOccurred())
@@ -134,7 +133,7 @@ var _ = Describe("Resource Out", func() {
 				})
 
 				It("returns the error", func() {
-					Eventually(outProcess.Wait()).Should(Receive(BeNil()))
+					Eventually(inProcess.Wait()).Should(Receive(BeNil()))
 
 					_, err := versionedSource.StreamOut("some/subdir")
 					Ω(err).Should(Equal(disaster))
@@ -151,7 +150,7 @@ var _ = Describe("Resource Out", func() {
 				waiting := make(chan struct{})
 				waited = waiting
 
-				outScriptProcess.WaitStub = func() (int, error) {
+				inScriptProcess.WaitStub = func() (int, error) {
 					// cause waiting to block so that it can be aborted
 					<-waiting
 					return 0, nil
@@ -159,7 +158,7 @@ var _ = Describe("Resource Out", func() {
 			})
 
 			It("stops the container", func() {
-				outProcess.Signal(os.Interrupt)
+				inProcess.Signal(os.Interrupt)
 
 				Eventually(fakeContainer.StopCallCount).Should(Equal(1))
 
@@ -190,18 +189,18 @@ var _ = Describe("Resource Out", func() {
 		})
 
 		It("exits successfully", func() {
-			Eventually(outProcess.Wait()).Should(Receive(BeNil()))
+			Eventually(inProcess.Wait()).Should(Receive(BeNil()))
 		})
 
 		It("does not run or attach to anything", func() {
-			Eventually(outProcess.Wait()).Should(Receive(BeNil()))
+			Eventually(inProcess.Wait()).Should(Receive(BeNil()))
 
 			Ω(fakeContainer.RunCallCount()).Should(BeZero())
 			Ω(fakeContainer.AttachCallCount()).Should(BeZero())
 		})
 
 		It("can be accessed on the versioned source", func() {
-			Eventually(outProcess.Wait()).Should(Receive(BeNil()))
+			Eventually(inProcess.Wait()).Should(Receive(BeNil()))
 
 			Ω(versionedSource.Version()).Should(Equal(atc.Version{"some": "new-version"}))
 			Ω(versionedSource.Metadata()).Should(Equal([]atc.MetadataField{
@@ -211,7 +210,7 @@ var _ = Describe("Resource Out", func() {
 		})
 	})
 
-	Context("when /out has already been spawned", func() {
+	Context("when /in has already been spawned", func() {
 		BeforeEach(func() {
 			fakeContainer.GetPropertyStub = func(name string) (string, error) {
 				switch name {
@@ -224,7 +223,7 @@ var _ = Describe("Resource Out", func() {
 		})
 
 		It("reattaches to it", func() {
-			Eventually(outProcess.Wait()).Should(Receive(BeNil()))
+			Eventually(inProcess.Wait()).Should(Receive(BeNil()))
 
 			pid, io := fakeContainer.AttachArgsForCall(0)
 			Ω(pid).Should(Equal(uint32(42)))
@@ -234,24 +233,21 @@ var _ = Describe("Resource Out", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Ω(request).Should(MatchJSON(`{
+				"source": {"some":"source"},
 				"params": {"some":"params"},
-				"source": {"some":"source"}
+				"version": {"some":"version"}
 			}`))
 		})
 
 		It("does not run an additional process", func() {
-			Eventually(outProcess.Wait()).Should(Receive(BeNil()))
+			Eventually(inProcess.Wait()).Should(Receive(BeNil()))
 
 			Ω(fakeContainer.RunCallCount()).Should(BeZero())
 		})
 
-		It("does not stream the artifact source to the versioned source", func() {
-			Ω(fakeArtifactSource.StreamToCallCount()).Should(Equal(0))
-		})
-
-		Context("when /opt/resource/out prints the version and metadata", func() {
+		Context("when /opt/resource/in prints the response", func() {
 			BeforeEach(func() {
-				outScriptStdout = `{
+				inScriptStdout = `{
 					"version": {"some": "new-version"},
 					"metadata": [
 						{"name": "a", "value":"a-value"},
@@ -260,8 +256,8 @@ var _ = Describe("Resource Out", func() {
 				}`
 			})
 
-			It("returns the build source printed out by /opt/resource/out", func() {
-				Eventually(outProcess.Wait()).Should(Receive(BeNil()))
+			It("can be accessed on the versioned source", func() {
+				Eventually(inProcess.Wait()).Should(Receive(BeNil()))
 
 				Ω(versionedSource.Version()).Should(Equal(atc.Version{"some": "new-version"}))
 				Ω(versionedSource.Metadata()).Should(Equal([]atc.MetadataField{
@@ -271,57 +267,60 @@ var _ = Describe("Resource Out", func() {
 			})
 
 			It("saves it as a property on the container", func() {
-				Eventually(outProcess.Wait()).Should(Receive(BeNil()))
+				Eventually(inProcess.Wait()).Should(Receive(BeNil()))
 
 				Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(1))
 
 				name, value := fakeContainer.SetPropertyArgsForCall(0)
 				Ω(name).Should(Equal("resource-result"))
-				Ω(value).Should(Equal(outScriptStdout))
+				Ω(value).Should(Equal(inScriptStdout))
 			})
 		})
 
-		Context("when /out outputs to stderr", func() {
+		Context("when /in outputs to stderr", func() {
 			BeforeEach(func() {
-				outScriptStderr = "some stderr data"
+				inScriptStderr = "some stderr data"
 			})
 
 			It("emits it to the log sink", func() {
-				Eventually(outProcess.Wait()).Should(Receive(BeNil()))
+				Eventually(inProcess.Wait()).Should(Receive(BeNil()))
 
 				Ω(stderrBuf).Should(gbytes.Say("some stderr data"))
 			})
 		})
 
-		Context("when running /opt/resource/out fails", func() {
+		Context("when attaching to the process fails", func() {
 			disaster := errors.New("oh no!")
 
 			BeforeEach(func() {
-				runOutError = disaster
+				runInError = disaster
 			})
 
-			It("returns the error", func() {
-				Eventually(outProcess.Wait()).Should(Receive(Equal(disaster)))
+			It("returns an err", func() {
+				Eventually(inProcess.Wait()).Should(Receive(Equal(disaster)))
 			})
 		})
 
-		Context("when /opt/resource/out exits nonzero", func() {
+		Context("when the process exits nonzero", func() {
 			BeforeEach(func() {
-				outScriptStdout = "some-stdout-data"
-				outScriptStderr = "some-stderr-data"
-				outScriptExitStatus = 9
+				inScriptStdout = "some-stdout-data"
+				inScriptStderr = "some-stderr-data"
+				inScriptExitStatus = 9
 			})
 
 			It("returns an err containing stdout/stderr of the process", func() {
-				var outErr error
-				Eventually(outProcess.Wait()).Should(Receive(&outErr))
+				var inErr error
+				Eventually(inProcess.Wait()).Should(Receive(&inErr))
 
-				Ω(outErr).Should(HaveOccurred())
-				Ω(outErr.Error()).Should(ContainSubstring("some-stdout-data"))
-				Ω(outErr.Error()).Should(ContainSubstring("some-stderr-data"))
-				Ω(outErr.Error()).Should(ContainSubstring("exit status 9"))
+				Ω(inErr).Should(HaveOccurred())
+				Ω(inErr.Error()).Should(ContainSubstring("some-stdout-data"))
+				Ω(inErr.Error()).Should(ContainSubstring("some-stderr-data"))
+				Ω(inErr.Error()).Should(ContainSubstring("exit status 9"))
 			})
 		})
+
+		itCanStreamOut()
+		itStopsOnSignal()
 	})
 
 	Context("when /in has not yet been spawned", func() {
@@ -336,11 +335,11 @@ var _ = Describe("Resource Out", func() {
 			}
 		})
 
-		It("runs /opt/resource/out <source path> with the request on stdin", func() {
-			Eventually(outProcess.Wait()).Should(Receive(BeNil()))
+		It("runs /opt/resource/in <destination> with the request on stdin", func() {
+			Eventually(inProcess.Wait()).Should(Receive(BeNil()))
 
 			spec, io := fakeContainer.RunArgsForCall(0)
-			Ω(spec.Path).Should(Equal("/opt/resource/out"))
+			Ω(spec.Path).Should(Equal("/opt/resource/in"))
 			Ω(spec.Args).Should(Equal([]string{"/tmp/build/src"}))
 			Ω(spec.Privileged).Should(BeTrue())
 
@@ -348,16 +347,10 @@ var _ = Describe("Resource Out", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Ω(request).Should(MatchJSON(`{
+				"source": {"some":"source"},
 				"params": {"some":"params"},
-				"source": {"some":"source"}
+				"version": {"some":"version"}
 			}`))
-		})
-
-		It("streams the artifact source to the versioned source", func() {
-			Ω(fakeArtifactSource.StreamToCallCount()).Should(Equal(1))
-
-			dest := fakeArtifactSource.StreamToArgsForCall(0)
-			Ω(dest).Should(Equal(versionedSource))
 		})
 
 		It("saves the process ID as a property", func() {
@@ -368,52 +361,19 @@ var _ = Describe("Resource Out", func() {
 			Ω(value).Should(Equal("42"))
 		})
 
-		Describe("streaming in", func() {
-			Context("when the container can stream in", func() {
-				BeforeEach(func() {
-					fakeContainer.StreamInReturns(nil)
-				})
-
-				It("streams in to the path relative to /tmp/build/src", func() {
-					buf := new(bytes.Buffer)
-
-					err := versionedSource.StreamIn("some-path", buf)
-					Ω(err).ShouldNot(HaveOccurred())
-
-					Ω(fakeContainer.StreamInCallCount()).Should(Equal(1))
-					dst, src := fakeContainer.StreamInArgsForCall(0)
-					Ω(dst).Should(Equal("/tmp/build/src/some-path"))
-					Ω(src).Should(Equal(buf))
-				})
-			})
-
-			Context("when the container cannot stream in", func() {
-				disaster := errors.New("oh no!")
-
-				BeforeEach(func() {
-					fakeContainer.StreamInReturns(disaster)
-				})
-
-				It("returns the error", func() {
-					err := versionedSource.StreamIn("some-path", nil)
-					Ω(err).Should(Equal(disaster))
-				})
-			})
-		})
-
-		Context("when /opt/resource/out prints the version and metadata", func() {
+		Context("when /opt/resource/in prints the response", func() {
 			BeforeEach(func() {
-				outScriptStdout = `{
-				"version": {"some": "new-version"},
-				"metadata": [
-					{"name": "a", "value":"a-value"},
-					{"name": "b","value": "b-value"}
-				]
-			}`
+				inScriptStdout = `{
+					"version": {"some": "new-version"},
+					"metadata": [
+						{"name": "a", "value":"a-value"},
+						{"name": "b","value": "b-value"}
+					]
+				}`
 			})
 
-			It("returns the build source printed out by /opt/resource/out", func() {
-				Eventually(outProcess.Wait()).Should(Receive(BeNil()))
+			It("can be accessed on the versioned source", func() {
+				Eventually(inProcess.Wait()).Should(Receive(BeNil()))
 
 				Ω(versionedSource.Version()).Should(Equal(atc.Version{"some": "new-version"}))
 				Ω(versionedSource.Metadata()).Should(Equal([]atc.MetadataField{
@@ -423,55 +383,55 @@ var _ = Describe("Resource Out", func() {
 			})
 
 			It("saves it as a property on the container", func() {
-				Eventually(outProcess.Wait()).Should(Receive(BeNil()))
+				Eventually(inProcess.Wait()).Should(Receive(BeNil()))
 
 				Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(2))
 
 				name, value := fakeContainer.SetPropertyArgsForCall(1)
 				Ω(name).Should(Equal("resource-result"))
-				Ω(value).Should(Equal(outScriptStdout))
+				Ω(value).Should(Equal(inScriptStdout))
 			})
 		})
 
-		Context("when /out outputs to stderr", func() {
+		Context("when /in outputs to stderr", func() {
 			BeforeEach(func() {
-				outScriptStderr = "some stderr data"
+				inScriptStderr = "some stderr data"
 			})
 
 			It("emits it to the log sink", func() {
-				Eventually(outProcess.Wait()).Should(Receive(BeNil()))
+				Eventually(inProcess.Wait()).Should(Receive(BeNil()))
 
 				Ω(stderrBuf).Should(gbytes.Say("some stderr data"))
 			})
 		})
 
-		Context("when running /opt/resource/out fails", func() {
+		Context("when running /opt/resource/in fails", func() {
 			disaster := errors.New("oh no!")
 
 			BeforeEach(func() {
-				runOutError = disaster
+				runInError = disaster
 			})
 
-			It("returns the error", func() {
-				Eventually(outProcess.Wait()).Should(Receive(Equal(disaster)))
+			It("returns an err", func() {
+				Eventually(inProcess.Wait()).Should(Receive(Equal(disaster)))
 			})
 		})
 
-		Context("when /opt/resource/out exits nonzero", func() {
+		Context("when /opt/resource/in exits nonzero", func() {
 			BeforeEach(func() {
-				outScriptStdout = "some-stdout-data"
-				outScriptStderr = "some-stderr-data"
-				outScriptExitStatus = 9
+				inScriptStdout = "some-stdout-data"
+				inScriptStderr = "some-stderr-data"
+				inScriptExitStatus = 9
 			})
 
 			It("returns an err containing stdout/stderr of the process", func() {
-				var outErr error
-				Eventually(outProcess.Wait()).Should(Receive(&outErr))
+				var inErr error
+				Eventually(inProcess.Wait()).Should(Receive(&inErr))
 
-				Ω(outErr).Should(HaveOccurred())
-				Ω(outErr.Error()).Should(ContainSubstring("some-stdout-data"))
-				Ω(outErr.Error()).Should(ContainSubstring("some-stderr-data"))
-				Ω(outErr.Error()).Should(ContainSubstring("exit status 9"))
+				Ω(inErr).Should(HaveOccurred())
+				Ω(inErr.Error()).Should(ContainSubstring("some-stdout-data"))
+				Ω(inErr.Error()).Should(ContainSubstring("some-stderr-data"))
+				Ω(inErr.Error()).Should(ContainSubstring("exit status 9"))
 			})
 		})
 

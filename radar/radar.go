@@ -6,7 +6,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/exec/resource"
+	"github.com/concourse/atc/resource"
 	"github.com/tedsuo/ifrit"
 
 	"github.com/pivotal-golang/lager"

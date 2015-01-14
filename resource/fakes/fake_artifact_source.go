@@ -4,7 +4,7 @@ package fakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/exec/resource"
+	"github.com/concourse/atc/resource"
 )
 
 type FakeArtifactSource struct {

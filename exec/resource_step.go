@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/concourse/atc/exec/resource"
+	"github.com/concourse/atc/resource"
 )
 
 type resourceStep struct {

@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/concourse/atc/exec/resource"
+	. "github.com/concourse/atc/resource"
 )
 
 var (

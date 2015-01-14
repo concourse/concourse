@@ -5,7 +5,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/concourse/atc/exec/resource"
+	"github.com/concourse/atc/resource"
 )
 
 type FakeArtifactDestination struct {

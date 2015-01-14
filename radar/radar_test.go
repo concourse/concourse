@@ -10,8 +10,8 @@ import (
 	dbfakes "github.com/concourse/atc/db/fakes"
 	"github.com/tedsuo/ifrit"
 
-	"github.com/concourse/atc/exec/resource"
-	rfakes "github.com/concourse/atc/exec/resource/fakes"
+	"github.com/concourse/atc/resource"
+	rfakes "github.com/concourse/atc/resource/fakes"
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/fakes"
 	. "github.com/onsi/ginkgo"

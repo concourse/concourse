@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/exec/resource"
+	"github.com/concourse/atc/resource"
 )
 
 type FakeResource struct {
