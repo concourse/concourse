@@ -19,7 +19,6 @@ import (
 	"strings"
 	"syscall"
 
-	garden "github.com/cloudfoundry-incubator/garden/api"
 	"github.com/codegangsta/cli"
 	"github.com/concourse/atc"
 	"github.com/kr/pty"
@@ -50,19 +49,19 @@ func Hijack(c *cli.Context) {
 		args = argv[1:]
 	}
 
-	var ttySpec *garden.TTYSpec
+	var ttySpec *atc.HijackTTYSpec
 
 	rows, cols, err := pty.Getsize(os.Stdin)
 	if err == nil {
-		ttySpec = &garden.TTYSpec{
-			WindowSize: &garden.WindowSize{
+		ttySpec = &atc.HijackTTYSpec{
+			WindowSize: atc.HijackWindowSize{
 				Columns: cols,
 				Rows:    rows,
 			},
 		}
 	}
 
-	spec := garden.ProcessSpec{
+	spec := atc.HijackProcessSpec{
 		Path: path,
 		Args: args,
 		Env:  []string{"TERM=" + os.Getenv("TERM")},
