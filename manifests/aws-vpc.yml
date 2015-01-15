@@ -87,7 +87,6 @@ jobs:
     instances: 1
     resource_pool: workers
     templates:
-      - {release: concourse, name: turbine}
       - {release: garden-linux, name: garden}
       - {release: concourse, name: gate}
       - {release: concourse, name: consul-agent}
@@ -105,7 +104,7 @@ jobs:
       consul:
         agent:
           servers: {lan: [*web_static_ip]}
-          services: [{name: turbine}, {name: garden}]
+          services: [{name: garden}]
 
 resource_pools:
   - name: orchestration

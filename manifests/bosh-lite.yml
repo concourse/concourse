@@ -70,7 +70,6 @@ jobs:
     resource_pool: concourse
     networks: [{name: concourse}]
     templates:
-      - {release: concourse, name: turbine}
       - {release: garden-linux, name: garden}
       - {release: concourse, name: gate}
       - {release: concourse, name: consul-agent}
@@ -84,7 +83,7 @@ jobs:
 
       consul:
         agent:
-          services: [{name: turbine}, {name: garden}]
+          services: [{name: garden}]
           servers: {lan: *web-ips}
 
 networks:

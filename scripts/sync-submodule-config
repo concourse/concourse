@@ -3,7 +3,6 @@
 
 gosub list \
   -a github.com/concourse/fly \
-  -a github.com/concourse/turbine/cmd/... \
   -a github.com/concourse/atc/cmd/... \
   -a github.com/concourse/blackbox/cmd/... \
   -a github.com/concourse/gate/cmd/... \

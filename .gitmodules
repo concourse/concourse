@@ -10,10 +10,6 @@
 	path = src/github.com/concourse/atc
 	url = https://github.com/concourse/atc
 	branch = master
-[submodule "src/github.com/concourse/turbine"]
-	path = src/github.com/concourse/turbine
-	url = https://github.com/concourse/turbine
-	branch = master
 [submodule "src/github.com/gorilla/websocket"]
 	path = src/github.com/gorilla/websocket
 	url = https://github.com/gorilla/websocket

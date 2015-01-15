@@ -2,7 +2,7 @@
 
 set -e
 
-for pkg in turbine atc blackbox gate; do
+for pkg in atc blackbox gate; do
   pushd packages/$pkg
     {
       cat spec | grep -v '# gosub'

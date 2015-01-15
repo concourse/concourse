@@ -31,7 +31,6 @@ jobs:
     networks: [{name: concourse}]
     templates:
       - {release: concourse, name: atc}
-      - {release: concourse, name: turbine}
       - {release: concourse, name: postgresql}
       - {release: garden-linux, name: garden}
       - {release: concourse, name: consul-agent}
@@ -61,7 +60,6 @@ jobs:
           mode: server
           services:
             - name: atc
-            - name: turbine
             - name: postgresql
             - name: garden
 

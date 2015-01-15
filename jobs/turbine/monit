@@ -1,5 +1,0 @@
-check process turbine
-  with pidfile /var/vcap/sys/run/turbine/turbine.pid
-  start program "/var/vcap/jobs/turbine/bin/turbine_ctl start"
-  stop program "/var/vcap/jobs/turbine/bin/turbine_ctl stop"
-  group vcap

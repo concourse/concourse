@@ -59,7 +59,6 @@ case $1 in
       -callbacksURL=<%= "http://#{my_ip}:#{p("atc.web_listen_port")}" %> \
       -webListenPort=<%= p("atc.web_listen_port") %> \
       -webListenAddress=<%= p("atc.web_listen_address") %> \
-      -turbineURL=http://<%= p("atc.turbine.address") %> \
       -sqlDataSource=<%= esc("postgres://#{p("atc.postgresql.role.name")}:#{p("atc.postgresql.role.password")}@#{p("atc.postgresql.address")}/#{p("atc.postgresql.database")}?sslmode=disable") %> \
       -httpUsername=<%= esc(p("atc.basic_auth_username")) %> \
       -httpHashedPassword=<%= esc(p("atc.basic_auth_encrypted_password")) %> \

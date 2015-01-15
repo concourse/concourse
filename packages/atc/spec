@@ -50,8 +50,6 @@ files:
   - github.com/concourse/atc/web/routes/*.go # gosub
   - github.com/concourse/atc/web/triggerbuild/*.go # gosub
   - github.com/concourse/atc/worker/*.go # gosub
-  - github.com/concourse/turbine/*.go # gosub
-  - github.com/concourse/turbine/event/*.go # gosub
   - github.com/lib/pq/*.go # gosub
   - github.com/lib/pq/oid/*.go # gosub
   - github.com/nu7hatch/gouuid/*.go # gosub
