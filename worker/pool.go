@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	garden "github.com/cloudfoundry-incubator/garden/api"
+	"github.com/cloudfoundry-incubator/garden"
 )
 
 //go:generate counterfeiter . Client

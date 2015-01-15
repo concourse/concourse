@@ -4,7 +4,7 @@ import (
 	"io"
 	"path"
 
-	garden "github.com/cloudfoundry-incubator/garden/api"
+	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
 	"github.com/tedsuo/ifrit"
 )

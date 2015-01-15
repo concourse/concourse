@@ -3,7 +3,7 @@ package resource_test
 import (
 	"errors"
 
-	garden "github.com/cloudfoundry-incubator/garden/api"
+	"github.com/cloudfoundry-incubator/garden"
 	wfakes "github.com/concourse/atc/worker/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

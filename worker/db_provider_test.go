@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	garden "github.com/cloudfoundry-incubator/garden/api"
-	gfakes "github.com/cloudfoundry-incubator/garden/api/fakes"
+	"github.com/cloudfoundry-incubator/garden"
+	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
 	"github.com/cloudfoundry-incubator/garden/server"
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/worker"

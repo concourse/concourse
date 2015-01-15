@@ -8,7 +8,7 @@ import (
 	"io"
 	"os"
 
-	garden "github.com/cloudfoundry-incubator/garden/api"
+	"github.com/cloudfoundry-incubator/garden"
 	"github.com/tedsuo/ifrit"
 )
 

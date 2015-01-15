@@ -8,8 +8,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	garden "github.com/cloudfoundry-incubator/garden/api"
-	gfakes "github.com/cloudfoundry-incubator/garden/api/fakes"
+	"github.com/cloudfoundry-incubator/garden"
+	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/fakes"
