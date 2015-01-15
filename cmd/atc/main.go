@@ -21,7 +21,6 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
-	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
@@ -32,13 +31,12 @@ import (
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/exec"
-	"github.com/concourse/atc/resource"
 	rdr "github.com/concourse/atc/radar"
+	"github.com/concourse/atc/resource"
 	sched "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/factory"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/worker"
-	"github.com/concourse/turbine"
 )
 
 var pipelinePath = flag.String(
@@ -57,12 +55,6 @@ var publicDir = flag.String(
 	"public",
 	"./web/public",
 	"path to directory containing public resources (javascript, css, etc.)",
-)
-
-var turbineURL = flag.String(
-	"turbineURL",
-	"http://127.0.0.1:4637",
-	"address denoting the turbine service",
 )
 
 var gardenAddr = flag.String(
@@ -246,13 +238,10 @@ func main() {
 
 	resourceTracker := resource.NewTracker(resourceMapping, workerClient)
 
-	turbineEndpoint := rata.NewRequestGenerator(*turbineURL, turbine.Routes)
-	turbineEngine := engine.NewTurbineEngine(turbineEndpoint, db)
-
 	gardenFactory := exec.NewGardenFactory(workerClient, resourceTracker)
 	execEngine := engine.NewExecEngine(gardenFactory, engine.NewBuildDelegateFactory(db), db)
 
-	engine := engine.NewDBEngine(engine.Engines{execEngine, turbineEngine}, db, db)
+	engine := engine.NewDBEngine(engine.Engines{execEngine}, db, db)
 
 	scheduler := &sched.Scheduler{
 		DB:      db,
