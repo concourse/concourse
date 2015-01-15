@@ -4,6 +4,7 @@
 
 @title[#:version version #:tag "release-notes"]{Release Notes}
 
+@include-section{release-notes/v0.28.0.scrbl}
 @include-section{release-notes/v0.27.0.scrbl}
 @include-section{release-notes/v0.26.0.scrbl}
 @include-section{release-notes/v0.25.0.scrbl}
