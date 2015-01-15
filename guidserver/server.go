@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	gapi "github.com/cloudfoundry-incubator/garden/api"
+	"github.com/cloudfoundry-incubator/garden"
 	"github.com/mgutz/ansi"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -40,23 +40,23 @@ trap('INT') {
 server.start
 `
 
-var container gapi.Container
+var container garden.Container
 
 var addr string
 
-func Start(helperRootfs string, gardenClient gapi.Client) {
+func Start(helperRootfs string, gardenClient garden.Client) {
 	var err error
 
-	container, err = gardenClient.Create(gapi.ContainerSpec{
+	container, err = gardenClient.Create(garden.ContainerSpec{
 		RootFSPath: helperRootfs,
 		GraceTime:  time.Hour,
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 
-	_, err = container.Run(gapi.ProcessSpec{
+	_, err = container.Run(garden.ProcessSpec{
 		Path: "ruby",
 		Args: []string{"-e", amazingRubyServer},
-	}, gapi.ProcessIO{
+	}, garden.ProcessIO{
 		Stdout: gexec.NewPrefixedWriter(
 			fmt.Sprintf("%s%s ", ansi.Color("[o]", "green"), ansi.Color("[guid server]", "magenta")),
 			ginkgo.GinkgoWriter,
@@ -74,10 +74,10 @@ func Start(helperRootfs string, gardenClient gapi.Client) {
 	addr = fmt.Sprintf("%s:%d", gardenDeploymentIP, hostPort)
 
 	Eventually(func() (int, error) {
-		curl, err := container.Run(gapi.ProcessSpec{
+		curl, err := container.Run(garden.ProcessSpec{
 			Path: "curl",
 			Args: []string{"-s", "-f", "http://127.0.0.1:8080/registrations"},
-		}, gapi.ProcessIO{
+		}, garden.ProcessIO{
 			Stdout: gexec.NewPrefixedWriter(
 				fmt.Sprintf("%s%s ", ansi.Color("[o]", "green"), ansi.Color("[guid server polling]", "magenta")),
 				ginkgo.GinkgoWriter,
@@ -93,7 +93,7 @@ func Start(helperRootfs string, gardenClient gapi.Client) {
 	}, 2).Should(Equal(0))
 }
 
-func Stop(gardenClient gapi.Client) {
+func Stop(gardenClient garden.Client) {
 	gardenClient.Destroy(container.Handle())
 
 	container = nil
@@ -107,10 +107,10 @@ func CurlCommand() string {
 func ReportingGuids() []string {
 	outBuf := new(bytes.Buffer)
 
-	curl, err := container.Run(gapi.ProcessSpec{
+	curl, err := container.Run(garden.ProcessSpec{
 		Path: "curl",
 		Args: []string{"-s", "-f", "http://127.0.0.1:8080/registrations"},
-	}, gapi.ProcessIO{
+	}, garden.ProcessIO{
 		Stdout: outBuf,
 		Stderr: gexec.NewPrefixedWriter(
 			fmt.Sprintf("%s%s ", ansi.Color("[e]", "red+bright"), ansi.Color("[guid server polling]", "magenta")),
