@@ -10,10 +10,6 @@
 	path = src/github.com/concourse/atc
 	url = https://github.com/concourse/atc
 	branch = master
-[submodule "src/github.com/gorilla/websocket"]
-	path = src/github.com/gorilla/websocket
-	url = https://github.com/gorilla/websocket
-	branch = master
 [submodule "src/github.com/lib/pq"]
 	path = src/github.com/lib/pq
 	url = https://github.com/lib/pq
@@ -37,10 +33,6 @@
 [submodule "src/github.com/cloudfoundry-incubator/garden"]
 	path = src/github.com/cloudfoundry-incubator/garden
 	url = https://github.com/cloudfoundry-incubator/garden
-	branch = master
-[submodule "src/code.google.com/p/gogoprotobuf"]
-	path = src/code.google.com/p/gogoprotobuf
-	url = https://code.google.com/p/gogoprotobuf
 	branch = master
 [submodule "src/github.com/onsi/ginkgo"]
 	path = src/github.com/onsi/ginkgo
@@ -121,4 +113,8 @@
 [submodule "src/github.com/concourse/gate"]
 	path = src/github.com/concourse/gate
 	url = git@github.com:concourse/gate.git
+	branch = master
+[submodule "src/github.com/gogo/protobuf"]
+	path = src/github.com/gogo/protobuf
+	url = https://github.com/gogo/protobuf
 	branch = master
