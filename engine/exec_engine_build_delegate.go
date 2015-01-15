@@ -327,3 +327,39 @@ func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.Input
 
 	logger.Info("saved", lager.Data{"resource": plan.Resource})
 }
+
+func vrFromInput(input event.Input) db.VersionedResource {
+	metadata := make([]db.MetadataField, len(input.FetchedMetadata))
+	for i, md := range input.FetchedMetadata {
+		metadata[i] = db.MetadataField{
+			Name:  md.Name,
+			Value: md.Value,
+		}
+	}
+
+	return db.VersionedResource{
+		Resource: input.Plan.Resource,
+		Type:     input.Plan.Type,
+		Source:   db.Source(input.Plan.Source),
+		Version:  db.Version(input.FetchedVersion),
+		Metadata: metadata,
+	}
+}
+
+func vrFromOutput(output event.Output) db.VersionedResource {
+	metadata := make([]db.MetadataField, len(output.CreatedMetadata))
+	for i, md := range output.CreatedMetadata {
+		metadata[i] = db.MetadataField{
+			Name:  md.Name,
+			Value: md.Value,
+		}
+	}
+
+	return db.VersionedResource{
+		Resource: output.Plan.Name,
+		Type:     output.Plan.Type,
+		Source:   db.Source(output.Plan.Source),
+		Version:  db.Version(output.CreatedVersion),
+		Metadata: metadata,
+	}
+}

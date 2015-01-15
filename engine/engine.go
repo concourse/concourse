@@ -3,6 +3,7 @@ package engine
 import (
 	"errors"
 	"io"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -18,6 +19,21 @@ type Engine interface {
 
 	CreateBuild(db.Build, atc.BuildPlan) (Build, error)
 	LookupBuild(db.Build) (Build, error)
+}
+
+type EngineDB interface {
+	SaveBuildEvent(buildID int, event atc.Event) error
+	CompleteBuild(buildID int) error
+
+	SaveBuildEngineMetadata(buildID int, metadata string) error
+
+	SaveBuildStartTime(buildID int, startTime time.Time) error
+	SaveBuildEndTime(buildID int, startTime time.Time) error
+
+	SaveBuildInput(buildID int, input db.BuildInput) error
+	SaveBuildOutput(buildID int, vr db.VersionedResource) error
+
+	SaveBuildStatus(buildID int, status db.Status) error
 }
 
 //go:generate counterfeiter . Build
