@@ -2,6 +2,12 @@
 
 @title[#:style '(quiet unnumbered)]{v0.27.0}
 
+Large internal restructuring and refactoring geared towards removing the Turbine
+component.
+
+A few things in the deployment manifest have changed as a result. See the @hyperlink["https://github.com/concourse/concourse/tree/102398a7e4701dec0fe8cdfaf99c415b64542e12/manifests"]{example manifests}
+to see what's new.
+
 @itemlist[
   @item{
     A new execution engine has been introduced to the ATC, which replaces the
@@ -28,5 +34,13 @@
 
   @item{
     Fixed @code{fly hijack} clobbering the terminal's TTY state.
+  }
+
+  @item{
+    Garden Workers can be dynamically registered and listed through the API.
+    Containers are distributed among them randomly.
+
+    Later this will be expanded to support workers of various platforms, and
+    various supported resource types.
   }
 ]
