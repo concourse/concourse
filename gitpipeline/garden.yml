@@ -1,5 +1,5 @@
 ---
-name: garden
+name: garden-testflight
 
 director_uuid: <%= `bosh status --uuid` %>
 

@@ -21,7 +21,7 @@ var _ = BeforeSuite(func() {
 	flyBin, err = gexec.Build("github.com/concourse/fly", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
-	bosh.DeleteDeployment("concourse")
+	bosh.DeleteDeployment("concourse-testflight")
 
 	bosh.Deploy("noop.yml")
 

@@ -40,8 +40,8 @@ type GitPipelineTemplate struct {
 }
 
 var _ = BeforeSuite(func() {
-	bosh.DeleteDeployment("garden")
-	bosh.DeleteDeployment("concourse")
+	bosh.DeleteDeployment("garden-testflight")
+	bosh.DeleteDeployment("concourse-testflight")
 
 	bosh.Deploy("garden.yml")
 

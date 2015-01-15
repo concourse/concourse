@@ -1,5 +1,5 @@
 ---
-name: concourse
+name: concourse-testflight
 
 director_uuid: <%= `bosh status --uuid` %>
 
