@@ -113,6 +113,9 @@ svg h1 a {
 .groups li a {
   color: #f5f5f5;
 }
+#version-history .toggle-resource-version {
+  color: #f5f5f5;
+}
 /* good */
 svg .edge.succeeded {
   stroke: #90a959;
@@ -127,6 +130,9 @@ li.succeeded {
   background: #90a959;
 }
 .legend dt.succeeded {
+  background: #90a959;
+}
+#version-history tr.disabled .toggle-resource-version {
   background: #90a959;
 }
 /* bad */
@@ -153,6 +159,9 @@ li.failed {
 }
 span.error {
   color: #ac4142;
+}
+#version-history tr.enabled .toggle-resource-version {
+  background: #ac4142;
 }
 /* like, really bad */
 svg .edge.errored {

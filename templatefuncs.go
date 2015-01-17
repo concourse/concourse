@@ -39,6 +39,11 @@ func (funcs templateFuncs) url(handler string, args ...interface{}) (string, err
 			"build_id": fmt.Sprintf("%d", args[0].(db.Build).ID),
 		})
 
+	case atc.EnableResourceVersion, atc.DisableResourceVersion:
+		return atc.Routes.CreatePathForRoute(handler, rata.Params{
+			"version_id": fmt.Sprintf("%d", args[0].(db.SavedVersionedResource).ID),
+		})
+
 	case routes.LogIn:
 		return routes.Routes.CreatePathForRoute(handler, rata.Params{})
 

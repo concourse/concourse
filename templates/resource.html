@@ -11,20 +11,22 @@
 
 <table id="version-history">
   <colgroup>
-     <col span="1" style="width: 20%;">
-     <col span="1" style="width: 40%;">
-     <col span="1" style="width: 40%;">
+    <col span="1" style="width: 15%;">
+    <col span="1" style="width: 5%;">
+    <col span="1" style="width: 40%;">
+    <col span="1" style="width: 40%;">
   </colgroup>
   <thead>
     <tr>
       <th>metadata</th>
+      <th></th>
       <th>inputs to</th>
       <th>outputs of</th>
     </tr>
   </thead>
   <tbody>
     {{range .History}}
-    <tr>
+    <tr class="{{if .VersionedResource.Enabled}}enabled{{else}}disabled{{end}}">
       <td>
         <div class="build-source">
           <div class="header">
@@ -47,6 +49,9 @@
             {{end}}
           </dl>
         </div>
+      </td>
+      <td>
+        <a class="toggle-resource-version" href="javascript:;" data-enable-url="{{url "EnableResourceVersion" .VersionedResource}}" data-disable-url="{{url "DisableResourceVersion" .VersionedResource}}">{{if .VersionedResource.Enabled}}disable{{else}}enable{{end}}</a>
       </td>
       <td>
         <table class="jobs">
@@ -86,4 +91,7 @@
     {{end}}
   </tbody>
 </table>
+
+<script src="{{url "Public" "jquery-2.1.1.min.js"}}"></script>
+<script src="{{url "Public" "resources.js"}}"></script>
 {{end}}

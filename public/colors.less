@@ -67,6 +67,7 @@ svg h1 a { color: @base07; }
 .builds-list li a { color: @base07; }
 #builds li a { color: @base07; }
 .groups li a { color: @base07; }
+#version-history .toggle-resource-version { color: @base07; }
 
 /* good */
 svg .edge.succeeded { stroke: @base0B; }
@@ -74,6 +75,7 @@ svg .node.job.succeeded rect { fill: @base0B; }
 #page-header.succeeded .build-header { background: @base0B; }
 li.succeeded { background: @base0B; }
 .legend dt.succeeded { background: @base0B; }
+#version-history tr.disabled .toggle-resource-version { background: @base0B; }
 
 /* bad */
 svg .edge.failed { stroke: @base08; }
@@ -84,6 +86,7 @@ li.failed { background: @base08; }
 .build-header .abort-build input { color: @base08; }
 .build-header .abort-build input:hover { background: @base08; }
 span.error { color: @base08; }
+#version-history tr.enabled .toggle-resource-version { background: @base08; }
 
 /* like, really bad */
 svg .edge.errored { stroke: @base09; }
