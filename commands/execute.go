@@ -111,6 +111,12 @@ func Execute(c *cli.Context) {
 		},
 	}
 
+	err = eventSource.Connect()
+	if err != nil {
+		log.Println("failed to connect to event stream:", err)
+		os.Exit(1)
+	}
+
 	go func() {
 		for _, i := range inputs {
 			upload(i, excludeIgnored, atcRequester)
