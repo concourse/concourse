@@ -28,9 +28,10 @@ func NewHandler(
 	configDB configserver.ConfigDB,
 
 	jobsDB jobserver.JobsDB,
-	jobserverConfigDB jobserver.ConfigDB,
+	jobsConfigDB jobserver.ConfigDB,
 
-	resourceserverConfigDB resourceserver.ConfigDB,
+	resourceDB resourceserver.ResourceDB,
+	resourceConfigDB resourceserver.ConfigDB,
 
 	workerDB workerserver.WorkerDB,
 
@@ -53,8 +54,8 @@ func NewHandler(
 		validator,
 	)
 
-	jobServer := jobserver.NewServer(logger, jobsDB, jobserverConfigDB)
-	resourceServer := resourceserver.NewServer(logger, resourceserverConfigDB)
+	jobServer := jobserver.NewServer(logger, jobsDB, jobsConfigDB)
+	resourceServer := resourceserver.NewServer(logger, resourceDB, resourceConfigDB)
 	pipeServer := pipes.NewServer(logger, peerAddr)
 
 	configServer := configserver.NewServer(logger, configDB, configValidator)
@@ -83,7 +84,9 @@ func NewHandler(
 		atc.ListJobBuilds: http.HandlerFunc(jobServer.ListJobBuilds),
 		atc.GetJobBuild:   http.HandlerFunc(jobServer.GetJobBuild),
 
-		atc.ListResources: http.HandlerFunc(resourceServer.ListResources),
+		atc.ListResources:          http.HandlerFunc(resourceServer.ListResources),
+		atc.EnableResourceVersion:  http.HandlerFunc(resourceServer.EnableResourceVersion),
+		atc.DisableResourceVersion: http.HandlerFunc(resourceServer.DisableResourceVersion),
 
 		atc.CreatePipe: validate(http.HandlerFunc(pipeServer.CreatePipe)),
 		atc.WritePipe:  validate(http.HandlerFunc(pipeServer.WritePipe)),

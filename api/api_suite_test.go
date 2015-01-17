@@ -17,6 +17,7 @@ import (
 	"github.com/concourse/atc/api/buildserver"
 	buildfakes "github.com/concourse/atc/api/buildserver/fakes"
 	jobfakes "github.com/concourse/atc/api/jobserver/fakes"
+	resourcefakes "github.com/concourse/atc/api/resourceserver/fakes"
 	workerfakes "github.com/concourse/atc/api/workerserver/fakes"
 	authfakes "github.com/concourse/atc/auth/fakes"
 	dbfakes "github.com/concourse/atc/db/fakes"
@@ -30,6 +31,7 @@ var (
 	jobsDB              *jobfakes.FakeJobsDB
 	configDB            *dbfakes.FakeConfigDB
 	workerDB            *workerfakes.FakeWorkerDB
+	resourceDB          *resourcefakes.FakeResourceDB
 	configValidationErr error
 	pingInterval        time.Duration
 	peerAddr            string
@@ -71,6 +73,7 @@ var _ = BeforeEach(func() {
 	jobsDB = new(jobfakes.FakeJobsDB)
 	configDB = new(dbfakes.FakeConfigDB)
 	workerDB = new(workerfakes.FakeWorkerDB)
+	resourceDB = new(resourcefakes.FakeResourceDB)
 
 	authValidator = new(authfakes.FakeValidator)
 	configValidationErr = nil
@@ -97,6 +100,7 @@ var _ = BeforeEach(func() {
 		jobsDB,
 		configDB,
 
+		resourceDB,
 		configDB,
 
 		workerDB,

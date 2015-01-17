@@ -85,4 +85,80 @@ var _ = Describe("Resources API", func() {
 			})
 		})
 	})
+
+	Describe("PUT /api/v1/resources/:resource_id/enable", func() {
+		var response *http.Response
+
+		JustBeforeEach(func() {
+			var err error
+
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/resources/42/enable", nil)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			response, err = client.Do(request)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		Context("when enabling the resource succeeds", func() {
+			BeforeEach(func() {
+				resourceDB.EnableVersionedResourceReturns(nil)
+			})
+
+			It("enabled the right versioned resource", func() {
+				Ω(resourceDB.EnableVersionedResourceArgsForCall(0)).Should(Equal(42))
+			})
+
+			It("returns 200", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+			})
+		})
+
+		Context("when enabling the resource fails", func() {
+			BeforeEach(func() {
+				resourceDB.EnableVersionedResourceReturns(errors.New("welp"))
+			})
+
+			It("returns 500", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+			})
+		})
+	})
+
+	Describe("PUT /api/v1/resources/:resource_id/disable", func() {
+		var response *http.Response
+
+		JustBeforeEach(func() {
+			var err error
+
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/resources/42/disable", nil)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			response, err = client.Do(request)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		Context("when enabling the resource succeeds", func() {
+			BeforeEach(func() {
+				resourceDB.DisableVersionedResourceReturns(nil)
+			})
+
+			It("disabled the right versioned resource", func() {
+				Ω(resourceDB.DisableVersionedResourceArgsForCall(0)).Should(Equal(42))
+			})
+
+			It("returns 200", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+			})
+		})
+
+		Context("when enabling the resource fails", func() {
+			BeforeEach(func() {
+				resourceDB.DisableVersionedResourceReturns(errors.New("welp"))
+			})
+
+			It("returns 500", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+			})
+		})
+	})
 })

@@ -9,19 +9,29 @@ import (
 type Server struct {
 	logger lager.Logger
 
-	configDB ConfigDB
+	resourceDB ResourceDB
+	configDB   ConfigDB
 }
 
 type ConfigDB interface {
 	GetConfig() (atc.Config, error)
 }
 
+//go:generate counterfeiter . ResourceDB
+
+type ResourceDB interface {
+	EnableVersionedResource(resourceID int) error
+	DisableVersionedResource(resourceID int) error
+}
+
 func NewServer(
 	logger lager.Logger,
+	resourceDB ResourceDB,
 	configDB ConfigDB,
 ) *Server {
 	return &Server{
-		logger:   logger,
-		configDB: configDB,
+		logger:     logger,
+		resourceDB: resourceDB,
+		configDB:   configDB,
 	}
 }
