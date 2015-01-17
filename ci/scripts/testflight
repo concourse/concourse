@@ -21,6 +21,7 @@ bosh -n upload stemcell lite-stemcell/*.tgz --skip-if-exists
 
 # upload garden linux release
 bosh -n upload release garden-linux-release/*.tgz --skip-if-exists
+export GARDEN_LINUX_VERSION=$(cat garden-linux-release/version)
 
 # create and upload concourse release
 pushd concourse/
