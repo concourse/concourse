@@ -43,6 +43,8 @@ type DB interface {
 
 	SaveVersionedResource(VersionedResource) error
 	GetLatestVersionedResource(resource string) (VersionedResource, error)
+	EnableVersionedResource(resource string, version Version) error
+	DisableVersionedResource(resource string, version Version) error
 
 	GetLatestInputVersions([]atc.JobInputConfig) (VersionedResources, error)
 

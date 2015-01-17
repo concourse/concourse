@@ -710,6 +710,62 @@ func (db *SQLDB) SaveVersionedResource(vr VersionedResource) error {
 	return tx.Commit()
 }
 
+func (db *SQLDB) DisableVersionedResource(resource string, version Version) error {
+	versionPayload, err := json.Marshal(version)
+	if err != nil {
+		return err
+	}
+
+	rows, err := db.conn.Exec(`
+		UPDATE versioned_resources
+		SET enabled = false
+		WHERE resource_name = $1
+		AND version = $2
+	`, resource, versionPayload)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := rows.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no rows affected")
+	}
+
+	return nil
+}
+
+func (db *SQLDB) EnableVersionedResource(resource string, version Version) error {
+	versionPayload, err := json.Marshal(version)
+	if err != nil {
+		return err
+	}
+
+	rows, err := db.conn.Exec(`
+		UPDATE versioned_resources
+		SET enabled = true
+		WHERE resource_name = $1
+		AND version = $2
+	`, resource, versionPayload)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := rows.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no rows affected")
+	}
+
+	return nil
+}
+
 func (db *SQLDB) GetLatestVersionedResource(name string) (VersionedResource, error) {
 	var sourceBytes, versionBytes, metadataBytes string
 
@@ -797,6 +853,7 @@ func (db *SQLDB) GetLatestInputVersions(inputs []atc.JobInputConfig) (VersionedR
 				SELECT v%[1]d.id, v%[1]d.resource_name, v%[1]d.type, v%[1]d.source, v%[1]d.version, v%[1]d.metadata
 				FROM %s
 				WHERE %s
+				AND v%[1]d.enabled
 				ORDER BY v%[1]d.id DESC
 				LIMIT 1
 			`,

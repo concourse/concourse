@@ -1015,6 +1015,133 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 		})
 
+		Describe("enabling and disabling versioned resources", func() {
+			resource := "some-resource"
+			version := db.Version{"version": "1"}
+
+			It("returns an error if the resource or version is bogus", func() {
+				err := database.EnableVersionedResource("bogus", version)
+				Ω(err).Should(HaveOccurred())
+
+				err = database.DisableVersionedResource("bogus", version)
+				Ω(err).Should(HaveOccurred())
+
+				vr := db.VersionedResource{
+					Resource: resource,
+					Type:     "some-type",
+					Source:   db.Source{"some": "source"},
+					Version:  version,
+					Metadata: []db.MetadataField{
+						{Name: "meta1", Value: "value1"},
+					},
+				}
+
+				err = database.SaveVersionedResource(vr)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = database.EnableVersionedResource(resource, db.Version{"version": "bogus"})
+				Ω(err).Should(HaveOccurred())
+
+				err = database.DisableVersionedResource(resource, db.Version{"version": "bogus"})
+				Ω(err).Should(HaveOccurred())
+			})
+
+			It("does not affect explicitly fetching the latest version", func() {
+				vr := db.VersionedResource{
+					Resource: resource,
+					Type:     "some-type",
+					Source:   db.Source{"some": "source"},
+					Version:  version,
+					Metadata: []db.MetadataField{
+						{Name: "meta1", Value: "value1"},
+					},
+				}
+
+				err := database.SaveVersionedResource(vr)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(database.GetLatestVersionedResource(resource)).Should(Equal(vr))
+
+				err = database.DisableVersionedResource(resource, version)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(database.GetLatestVersionedResource(resource)).Should(Equal(vr))
+
+				err = database.EnableVersionedResource(resource, version)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(database.GetLatestVersionedResource(resource)).Should(Equal(vr))
+			})
+
+			It("prevents the resource version from being a candidate for build inputs", func() {
+				version1 := db.Version{"version": "v1"}
+				version2 := db.Version{"version": "v2"}
+
+				vr1 := db.VersionedResource{
+					Resource: resource,
+					Type:     "some-type",
+					Source:   db.Source{"some": "source"},
+					Version:  version1,
+					Metadata: []db.MetadataField{
+						{Name: "meta1", Value: "value1"},
+					},
+				}
+
+				err := database.SaveVersionedResource(vr1)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				vr2 := db.VersionedResource{
+					Resource: resource,
+					Type:     "some-type",
+					Source:   db.Source{"some": "source"},
+					Version:  version2,
+					Metadata: []db.MetadataField{
+						{Name: "meta1", Value: "value1"},
+					},
+				}
+
+				err = database.SaveVersionedResource(vr2)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				inputConfigs := []atc.JobInputConfig{
+					{
+						Resource: resource,
+					},
+				}
+
+				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal(db.VersionedResources{
+					vr2,
+				}))
+
+				err = database.DisableVersionedResource(resource, version2)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal(db.VersionedResources{
+					vr1,
+				}))
+
+				err = database.DisableVersionedResource(resource, version1)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = database.GetLatestInputVersions(inputConfigs)
+				Ω(err).Should(HaveOccurred())
+
+				err = database.EnableVersionedResource(resource, version1)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal(db.VersionedResources{
+					vr1,
+				}))
+
+				err = database.EnableVersionedResource(resource, version2)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal(db.VersionedResources{
+					vr2,
+				}))
+			})
+		})
+
 		Describe("determining the inputs for a job", func() {
 			It("ensures that versions from jobs mentioned in two input's 'passed' sections came from the same builds", func() {
 				j1b1, err := database.CreateJobBuild("job-1")

@@ -23,4 +23,5 @@ var Migrations = []migration.Migrator{
 	AddVersionToBuildEvents,
 	AddCompletedToBuilds,
 	AddWorkers,
+	AddEnabledToBuilds,
 }
