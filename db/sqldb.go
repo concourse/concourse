@@ -536,7 +536,7 @@ func (db *SQLDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersionedRe
 
 	defer tx.Rollback()
 
-	vrID, err := db.saveVersionedResource(tx, input.VersionedResource)
+	svr, err := db.saveVersionedResource(tx, input.VersionedResource)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
@@ -551,7 +551,7 @@ func (db *SQLDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersionedRe
 			AND versioned_resource_id = $2
 			AND name = $3
 		)
-	`, buildID, vrID, input.Name)
+	`, buildID, svr.ID, input.Name)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
@@ -561,10 +561,7 @@ func (db *SQLDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersionedRe
 		return SavedVersionedResource{}, err
 	}
 
-	return SavedVersionedResource{
-		ID:                vrID,
-		VersionedResource: input.VersionedResource,
-	}, nil
+	return svr, nil
 }
 
 func (db *SQLDB) SaveBuildOutput(buildID int, vr VersionedResource) (SavedVersionedResource, error) {
@@ -575,7 +572,7 @@ func (db *SQLDB) SaveBuildOutput(buildID int, vr VersionedResource) (SavedVersio
 
 	defer tx.Rollback()
 
-	vrID, err := db.saveVersionedResource(tx, vr)
+	svr, err := db.saveVersionedResource(tx, vr)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
@@ -583,7 +580,7 @@ func (db *SQLDB) SaveBuildOutput(buildID int, vr VersionedResource) (SavedVersio
 	_, err = tx.Exec(`
 		INSERT INTO build_outputs (build_id, versioned_resource_id)
 		VALUES ($1, $2)
-	`, buildID, vrID)
+	`, buildID, svr.ID)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
@@ -593,10 +590,7 @@ func (db *SQLDB) SaveBuildOutput(buildID int, vr VersionedResource) (SavedVersio
 		return SavedVersionedResource{}, err
 	}
 
-	return SavedVersionedResource{
-		ID:                vrID,
-		VersionedResource: vr,
-	}, nil
+	return svr, nil
 }
 
 func (db *SQLDB) SaveBuildStatus(buildID int, status Status) error {
@@ -718,7 +712,7 @@ func (db *SQLDB) SaveVersionedResource(vr VersionedResource) (SavedVersionedReso
 
 	defer tx.Rollback()
 
-	vrID, err := db.saveVersionedResource(tx, vr)
+	svr, err := db.saveVersionedResource(tx, vr)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
@@ -728,10 +722,7 @@ func (db *SQLDB) SaveVersionedResource(vr VersionedResource) (SavedVersionedReso
 		return SavedVersionedResource{}, err
 	}
 
-	return SavedVersionedResource{
-		ID:                vrID,
-		VersionedResource: vr,
-	}, nil
+	return svr, nil
 }
 
 type nonOneRowAffectedError struct {
@@ -789,39 +780,39 @@ func (db *SQLDB) EnableVersionedResource(resourceID int) error {
 func (db *SQLDB) GetLatestVersionedResource(name string) (SavedVersionedResource, error) {
 	var sourceBytes, versionBytes, metadataBytes string
 
-	vr := SavedVersionedResource{
+	svr := SavedVersionedResource{
 		VersionedResource: VersionedResource{
 			Resource: name,
 		},
 	}
 
 	err := db.conn.QueryRow(`
-		SELECT id, type, source, version, metadata
+		SELECT id, enabled, type, source, version, metadata
 		FROM versioned_resources
 		WHERE resource_name = $1
 		ORDER BY id DESC
 		LIMIT 1
-	`, name).Scan(&vr.ID, &vr.Type, &sourceBytes, &versionBytes, &metadataBytes)
+	`, name).Scan(&svr.ID, &svr.Enabled, &svr.Type, &sourceBytes, &versionBytes, &metadataBytes)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
 
-	err = json.Unmarshal([]byte(sourceBytes), &vr.Source)
+	err = json.Unmarshal([]byte(sourceBytes), &svr.Source)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
 
-	err = json.Unmarshal([]byte(versionBytes), &vr.Version)
+	err = json.Unmarshal([]byte(versionBytes), &svr.Version)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
 
-	err = json.Unmarshal([]byte(metadataBytes), &vr.Metadata)
+	err = json.Unmarshal([]byte(metadataBytes), &svr.Metadata)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
 
-	return vr, nil
+	return svr, nil
 }
 
 // buckle up
@@ -863,10 +854,12 @@ func (db *SQLDB) GetLatestInputVersions(inputs []atc.JobInputConfig) (SavedVersi
 		}
 	}
 
-	vrs := []SavedVersionedResource{}
+	svrs := []SavedVersionedResource{}
 
 	for i, _ := range inputs {
-		var vr SavedVersionedResource
+		svr := SavedVersionedResource{
+			Enabled: true, // this is inherent with the following query
+		}
 
 		var source, version, metadata string
 
@@ -882,7 +875,7 @@ func (db *SQLDB) GetLatestInputVersions(inputs []atc.JobInputConfig) (SavedVersi
 			i+1,
 			strings.Join(fromAliases, ", "),
 			strings.Join(conditions, "\nAND "),
-		), params...).Scan(&vr.ID, &vr.Resource, &vr.Type, &source, &version, &metadata)
+		), params...).Scan(&svr.ID, &svr.Resource, &svr.Type, &source, &version, &metadata)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				return nil, ErrNoVersions
@@ -891,28 +884,28 @@ func (db *SQLDB) GetLatestInputVersions(inputs []atc.JobInputConfig) (SavedVersi
 			return nil, err
 		}
 
-		params = append(params, vr.ID)
+		params = append(params, svr.ID)
 		conditions = append(conditions, fmt.Sprintf("v%d.id = $%d", i+1, len(params)))
 
-		err = json.Unmarshal([]byte(source), &vr.Source)
+		err = json.Unmarshal([]byte(source), &svr.Source)
 		if err != nil {
 			return nil, err
 		}
 
-		err = json.Unmarshal([]byte(version), &vr.Version)
+		err = json.Unmarshal([]byte(version), &svr.Version)
 		if err != nil {
 			return nil, err
 		}
 
-		err = json.Unmarshal([]byte(metadata), &vr.Metadata)
+		err = json.Unmarshal([]byte(metadata), &svr.Metadata)
 		if err != nil {
 			return nil, err
 		}
 
-		vrs = append(vrs, vr)
+		svrs = append(svrs, svr)
 	}
 
-	return vrs, nil
+	return svrs, nil
 }
 
 func (db *SQLDB) GetJobBuildForInputs(job string, inputs []BuildInput) (Build, error) {
@@ -996,7 +989,7 @@ func (db *SQLDB) CreateJobBuildWithInputs(job string, inputs []BuildInput) (Buil
 	}
 
 	for _, input := range inputs {
-		vrID, err := db.saveVersionedResource(tx, input.VersionedResource)
+		svr, err := db.saveVersionedResource(tx, input.VersionedResource)
 		if err != nil {
 			return Build{}, err
 		}
@@ -1004,7 +997,7 @@ func (db *SQLDB) CreateJobBuildWithInputs(job string, inputs []BuildInput) (Buil
 		_, err = tx.Exec(`
 			INSERT INTO build_inputs (build_id, versioned_resource_id, name)
 			VALUES ($1, $2, $3)
-		`, build.ID, vrID, input.Name)
+		`, build.ID, svr.ID, input.Name)
 		if err != nil {
 			return Build{}, err
 		}
@@ -1048,7 +1041,7 @@ func (db *SQLDB) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 	seenInputs := map[int]map[int]bool{}
 
 	vrRows, err := db.conn.Query(`
-		SELECT v.id, v.resource_name, v.type, v.version, v.source, v.metadata
+		SELECT v.id, v.enabled, v.resource_name, v.type, v.version, v.source, v.metadata
 		FROM versioned_resources v
 		WHERE v.resource_name = $1
 		ORDER BY v.id DESC
@@ -1060,43 +1053,39 @@ func (db *SQLDB) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 	defer vrRows.Close()
 
 	for vrRows.Next() {
-		var vrID int
-		var vr VersionedResource
+		var svr SavedVersionedResource
 
 		var versionString, sourceString, metadataString string
 
-		err := vrRows.Scan(&vrID, &vr.Resource, &vr.Type, &versionString, &sourceString, &metadataString)
+		err := vrRows.Scan(&svr.ID, &svr.Enabled, &svr.Resource, &svr.Type, &versionString, &sourceString, &metadataString)
 		if err != nil {
 			return nil, err
 		}
 
-		err = json.Unmarshal([]byte(sourceString), &vr.Source)
+		err = json.Unmarshal([]byte(sourceString), &svr.Source)
 		if err != nil {
 			return nil, err
 		}
 
-		err = json.Unmarshal([]byte(versionString), &vr.Version)
+		err = json.Unmarshal([]byte(versionString), &svr.Version)
 		if err != nil {
 			return nil, err
 		}
 
-		err = json.Unmarshal([]byte(metadataString), &vr.Metadata)
+		err = json.Unmarshal([]byte(metadataString), &svr.Metadata)
 		if err != nil {
 			return nil, err
 		}
 
-		vhs[vrID] = &VersionHistory{
-			VersionedResource: SavedVersionedResource{
-				ID:                vrID,
-				VersionedResource: vr,
-			},
+		vhs[svr.ID] = &VersionHistory{
+			VersionedResource: svr,
 		}
 
-		hs = append(hs, vhs[vrID])
+		hs = append(hs, vhs[svr.ID])
 
-		inputHs[vrID] = map[string]*JobHistory{}
-		outputHs[vrID] = map[string]*JobHistory{}
-		seenInputs[vrID] = map[int]bool{}
+		inputHs[svr.ID] = map[string]*JobHistory{}
+		outputHs[svr.ID] = map[string]*JobHistory{}
+		seenInputs[svr.ID] = map[int]bool{}
 	}
 
 	for id, vh := range vhs {
@@ -1410,7 +1399,7 @@ func (lock *txLock) Release() error {
 	return lock.cleanup()
 }
 
-func (db *SQLDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (int, error) {
+func (db *SQLDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (SavedVersionedResource, error) {
 	_, err := tx.Exec(`
 			INSERT INTO resources (name)
 			SELECT $1
@@ -1419,25 +1408,26 @@ func (db *SQLDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (int, e
 			)
 		`, vr.Resource)
 	if err != nil {
-		return 0, err
+		return SavedVersionedResource{}, err
 	}
 
 	versionJSON, err := json.Marshal(vr.Version)
 	if err != nil {
-		return 0, err
+		return SavedVersionedResource{}, err
 	}
 
 	sourceJSON, err := json.Marshal(vr.Source)
 	if err != nil {
-		return 0, err
+		return SavedVersionedResource{}, err
 	}
 
 	metadataJSON, err := json.Marshal(vr.Metadata)
 	if err != nil {
-		return 0, err
+		return SavedVersionedResource{}, err
 	}
 
 	var id int
+	var enabled bool
 
 	_, err = tx.Exec(`
 		INSERT INTO versioned_resources (resource_name, type, version, source, metadata)
@@ -1451,24 +1441,29 @@ func (db *SQLDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (int, e
 		)
 	`, vr.Resource, vr.Type, string(versionJSON), string(sourceJSON), string(metadataJSON))
 	if err != nil {
-		return 0, err
+		return SavedVersionedResource{}, err
 	}
 
 	// separate from above, as it conditionally inserts (can't use RETURNING)
 	err = tx.QueryRow(`
-			UPDATE versioned_resources
-			SET source = $4, metadata = $5
-			WHERE resource_name = $1
-			AND type = $2
-			AND version = $3
-			RETURNING id
-		`, vr.Resource, vr.Type, string(versionJSON), string(sourceJSON), string(metadataJSON)).Scan(&id)
+		UPDATE versioned_resources
+		SET source = $4, metadata = $5
+		WHERE resource_name = $1
+		AND type = $2
+		AND version = $3
+		RETURNING id, enabled
+	`, vr.Resource, vr.Type, string(versionJSON), string(sourceJSON), string(metadataJSON)).Scan(&id, &enabled)
 
 	if err != nil {
-		return 0, err
+		return SavedVersionedResource{}, err
 	}
 
-	return id, nil
+	return SavedVersionedResource{
+		ID:      id,
+		Enabled: enabled,
+
+		VersionedResource: vr,
+	}, nil
 }
 
 type scannable interface {

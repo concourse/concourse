@@ -1048,12 +1048,18 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				err = database.DisableVersionedResource(savedVR.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestVersionedResource(resource)).Should(Equal(savedVR))
+				disabledVR := savedVR
+				disabledVR.Enabled = false
+
+				Ω(database.GetLatestVersionedResource(resource)).Should(Equal(disabledVR))
 
 				err = database.EnableVersionedResource(savedVR.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestVersionedResource(resource)).Should(Equal(savedVR))
+				enabledVR := savedVR
+				enabledVR.Enabled = true
+
+				Ω(database.GetLatestVersionedResource(resource)).Should(Equal(enabledVR))
 			})
 
 			It("prevents the resource version from being a candidate for build inputs", func() {

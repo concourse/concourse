@@ -54,6 +54,8 @@ func (vrs VersionedResources) Lookup(name string) (VersionedResource, bool) {
 type SavedVersionedResource struct {
 	ID int
 
+	Enabled bool
+
 	VersionedResource
 }
 
