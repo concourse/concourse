@@ -85,8 +85,8 @@ func NewHandler(
 		atc.GetJobBuild:   http.HandlerFunc(jobServer.GetJobBuild),
 
 		atc.ListResources:          http.HandlerFunc(resourceServer.ListResources),
-		atc.EnableResourceVersion:  http.HandlerFunc(resourceServer.EnableResourceVersion),
-		atc.DisableResourceVersion: http.HandlerFunc(resourceServer.DisableResourceVersion),
+		atc.EnableResourceVersion:  validate(http.HandlerFunc(resourceServer.EnableResourceVersion)),
+		atc.DisableResourceVersion: validate(http.HandlerFunc(resourceServer.DisableResourceVersion)),
 
 		atc.CreatePipe: validate(http.HandlerFunc(pipeServer.CreatePipe)),
 		atc.WritePipe:  validate(http.HandlerFunc(pipeServer.WritePipe)),

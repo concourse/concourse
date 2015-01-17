@@ -99,27 +99,43 @@ var _ = Describe("Resources API", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		Context("when enabling the resource succeeds", func() {
+		Context("when authenticated", func() {
 			BeforeEach(func() {
-				resourceDB.EnableVersionedResourceReturns(nil)
+				authValidator.IsAuthenticatedReturns(true)
 			})
 
-			It("enabled the right versioned resource", func() {
-				Ω(resourceDB.EnableVersionedResourceArgsForCall(0)).Should(Equal(42))
+			Context("when enabling the resource succeeds", func() {
+				BeforeEach(func() {
+					resourceDB.EnableVersionedResourceReturns(nil)
+				})
+
+				It("enabled the right versioned resource", func() {
+					Ω(resourceDB.EnableVersionedResourceArgsForCall(0)).Should(Equal(42))
+				})
+
+				It("returns 200", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				})
 			})
 
-			It("returns 200", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+			Context("when enabling the resource fails", func() {
+				BeforeEach(func() {
+					resourceDB.EnableVersionedResourceReturns(errors.New("welp"))
+				})
+
+				It("returns 500", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				})
 			})
 		})
 
-		Context("when enabling the resource fails", func() {
+		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				resourceDB.EnableVersionedResourceReturns(errors.New("welp"))
+				authValidator.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 500", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+			It("returns Unauthorized", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -137,27 +153,43 @@ var _ = Describe("Resources API", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		Context("when enabling the resource succeeds", func() {
+		Context("when authenticated", func() {
 			BeforeEach(func() {
-				resourceDB.DisableVersionedResourceReturns(nil)
+				authValidator.IsAuthenticatedReturns(true)
 			})
 
-			It("disabled the right versioned resource", func() {
-				Ω(resourceDB.DisableVersionedResourceArgsForCall(0)).Should(Equal(42))
+			Context("when enabling the resource succeeds", func() {
+				BeforeEach(func() {
+					resourceDB.DisableVersionedResourceReturns(nil)
+				})
+
+				It("disabled the right versioned resource", func() {
+					Ω(resourceDB.DisableVersionedResourceArgsForCall(0)).Should(Equal(42))
+				})
+
+				It("returns 200", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				})
 			})
 
-			It("returns 200", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+			Context("when enabling the resource fails", func() {
+				BeforeEach(func() {
+					resourceDB.DisableVersionedResourceReturns(errors.New("welp"))
+				})
+
+				It("returns 500", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				})
 			})
 		})
 
-		Context("when enabling the resource fails", func() {
+		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				resourceDB.DisableVersionedResourceReturns(errors.New("welp"))
+				authValidator.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 500", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+			It("returns Unauthorized", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
