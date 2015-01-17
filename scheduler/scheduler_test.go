@@ -144,6 +144,31 @@ var _ = Describe("Scheduler", func() {
 			Eventually(engineBuilds[1].ResumeCallCount).Should(Equal(1))
 			Eventually(engineBuilds[2].ResumeCallCount).Should(Equal(1))
 		})
+
+		Context("when a build cannot be looked up", func() {
+			BeforeEach(func() {
+				fakeEngine.LookupBuildReturns(nil, errors.New("nope"))
+			})
+
+			It("saves its status as errored", func() {
+				err := scheduler.TrackInFlightBuilds()
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(schedulerDB.SaveBuildStatusCallCount()).Should(Equal(3))
+
+				savedBuilID1, status1 := schedulerDB.SaveBuildStatusArgsForCall(0)
+				Ω(savedBuilID1).Should(Equal(1))
+				Ω(status1).Should(Equal(db.StatusErrored))
+
+				savedBuilID2, status2 := schedulerDB.SaveBuildStatusArgsForCall(1)
+				Ω(savedBuilID2).Should(Equal(2))
+				Ω(status2).Should(Equal(db.StatusErrored))
+
+				savedBuilID3, status3 := schedulerDB.SaveBuildStatusArgsForCall(2)
+				Ω(savedBuilID3).Should(Equal(3))
+				Ω(status3).Should(Equal(db.StatusErrored))
+			})
+		})
 	})
 
 	Describe("BuildLatestInputs", func() {

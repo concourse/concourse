@@ -66,6 +66,15 @@ type FakeSchedulerDB struct {
 		result1 []db.Build
 		result2 error
 	}
+	SaveBuildStatusStub        func(buildID int, status db.Status) error
+	saveBuildStatusMutex       sync.RWMutex
+	saveBuildStatusArgsForCall []struct {
+		buildID int
+		status  db.Status
+	}
+	saveBuildStatusReturns struct {
+		result1 error
+	}
 }
 
 func (fake *FakeSchedulerDB) ScheduleBuild(buildID int, serial bool) (bool, error) {
@@ -260,6 +269,39 @@ func (fake *FakeSchedulerDB) GetAllStartedBuildsReturns(result1 []db.Build, resu
 		result1 []db.Build
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeSchedulerDB) SaveBuildStatus(buildID int, status db.Status) error {
+	fake.saveBuildStatusMutex.Lock()
+	fake.saveBuildStatusArgsForCall = append(fake.saveBuildStatusArgsForCall, struct {
+		buildID int
+		status  db.Status
+	}{buildID, status})
+	fake.saveBuildStatusMutex.Unlock()
+	if fake.SaveBuildStatusStub != nil {
+		return fake.SaveBuildStatusStub(buildID, status)
+	} else {
+		return fake.saveBuildStatusReturns.result1
+	}
+}
+
+func (fake *FakeSchedulerDB) SaveBuildStatusCallCount() int {
+	fake.saveBuildStatusMutex.RLock()
+	defer fake.saveBuildStatusMutex.RUnlock()
+	return len(fake.saveBuildStatusArgsForCall)
+}
+
+func (fake *FakeSchedulerDB) SaveBuildStatusArgsForCall(i int) (int, db.Status) {
+	fake.saveBuildStatusMutex.RLock()
+	defer fake.saveBuildStatusMutex.RUnlock()
+	return fake.saveBuildStatusArgsForCall[i].buildID, fake.saveBuildStatusArgsForCall[i].status
+}
+
+func (fake *FakeSchedulerDB) SaveBuildStatusReturns(result1 error) {
+	fake.SaveBuildStatusStub = nil
+	fake.saveBuildStatusReturns = struct {
+		result1 error
+	}{result1}
 }
 
 var _ scheduler.SchedulerDB = new(FakeSchedulerDB)

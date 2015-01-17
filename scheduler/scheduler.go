@@ -20,6 +20,8 @@ type SchedulerDB interface {
 	GetNextPendingBuild(job string) (db.Build, []db.BuildInput, error)
 
 	GetAllStartedBuilds() ([]db.Build, error)
+
+	SaveBuildStatus(buildID int, status db.Status) error
 }
 
 //go:generate counterfeiter . BuildFactory
@@ -259,6 +261,12 @@ func (s *Scheduler) TrackInFlightBuilds() error {
 		engineBuild, err := s.Engine.LookupBuild(b)
 		if err != nil {
 			tLog.Error("failed-to-lookup-build", err)
+
+			err := s.DB.SaveBuildStatus(b.ID, db.StatusErrored)
+			if err != nil {
+				tLog.Error("failed-to-mark-build-as-errored", err)
+			}
+
 			continue
 		}
 
