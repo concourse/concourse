@@ -113,7 +113,7 @@ var _ = Describe("Handler", func() {
 			})
 
 			It("emits them, followed by an end event", func() {
-				reader := sse.NewReader(response.Body)
+				reader := sse.NewReadCloser(response.Body)
 
 				Ω(reader.Next()).Should(Equal(sse.Event{
 					ID:   "0",
@@ -149,7 +149,7 @@ var _ = Describe("Handler", func() {
 				})
 
 				It("filters the events through it", func() {
-					reader := sse.NewReader(response.Body)
+					reader := sse.NewReadCloser(response.Body)
 
 					Ω(reader.Next()).Should(Equal(sse.Event{
 						ID:   "0",
