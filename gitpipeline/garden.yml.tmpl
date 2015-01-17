@@ -5,7 +5,7 @@ director_uuid: <%= `bosh status --uuid` %>
 
 releases:
   - name: garden-linux
-    version: latest
+    version: {{.GardenLinuxVersion}}
 
 jobs:
   - name: garden

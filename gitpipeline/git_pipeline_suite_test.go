@@ -1,6 +1,8 @@
 package git_pipeline_test
 
 import (
+	"os"
+
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/cloudfoundry-incubator/garden/client"
 	"github.com/cloudfoundry-incubator/garden/client/connection"
@@ -26,6 +28,10 @@ var (
 	noUpdateGitServer *gitserver.Server
 )
 
+type GardenLinuxDeploymentData struct {
+	GardenLinuxVersion string
+}
+
 type GitPipelineTemplate struct {
 	GitServers struct {
 		Origin   string
@@ -37,13 +43,22 @@ type GitPipelineTemplate struct {
 	GuidServerCurlCommand string
 
 	TestflightHelperImage string
+
+	GardenLinuxDeploymentData
 }
 
 var _ = BeforeSuite(func() {
+	gardenLinuxVersion := os.Getenv("GARDEN_LINUX_VERSION")
+	Ω(gardenLinuxVersion).ShouldNot(BeEmpty(), "must set $GARDEN_LINUX_VERSION")
+
 	bosh.DeleteDeployment("garden-testflight")
 	bosh.DeleteDeployment("concourse-testflight")
 
-	bosh.Deploy("garden.yml")
+	gardenLinuxDeploymentData := GardenLinuxDeploymentData{
+		GardenLinuxVersion: gardenLinuxVersion,
+	}
+
+	bosh.Deploy("garden.yml", gardenLinuxDeploymentData)
 
 	gardenClient = client.New(connection.New("tcp", "10.244.16.2:7777"))
 	Eventually(gardenClient.Ping, 10*time.Second).ShouldNot(HaveOccurred())
@@ -56,14 +71,16 @@ var _ = BeforeSuite(func() {
 	noUpdateGitServer = gitserver.Start(helperRootfs, gardenClient)
 
 	templateData := GitPipelineTemplate{
-		TestflightHelperImage: helperRootfs,
-		GuidServerCurlCommand: guidserver.CurlCommand(),
+		GardenLinuxDeploymentData: gardenLinuxDeploymentData,
 	}
 
 	templateData.GitServers.Origin = gitServer.URI()
 	templateData.GitServers.Success = successGitServer.URI()
 	templateData.GitServers.Failure = failureGitServer.URI()
 	templateData.GitServers.NoUpdate = noUpdateGitServer.URI()
+
+	templateData.TestflightHelperImage = helperRootfs
+	templateData.GuidServerCurlCommand = guidserver.CurlCommand()
 
 	bosh.Deploy("deployment.yml.tmpl", templateData)
 })
