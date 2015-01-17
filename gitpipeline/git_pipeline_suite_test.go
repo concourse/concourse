@@ -58,7 +58,7 @@ var _ = BeforeSuite(func() {
 		GardenLinuxVersion: gardenLinuxVersion,
 	}
 
-	bosh.Deploy("garden.yml", gardenLinuxDeploymentData)
+	bosh.Deploy("garden.yml.tmpl", gardenLinuxDeploymentData)
 
 	gardenClient = client.New(connection.New("tcp", "10.244.16.2:7777"))
 	Eventually(gardenClient.Ping, 10*time.Second).ShouldNot(HaveOccurred())
