@@ -21,6 +21,8 @@ type Engine interface {
 	LookupBuild(db.Build) (Build, error)
 }
 
+//go:generate counterfeiter . EngineDB
+
 type EngineDB interface {
 	SaveBuildEvent(buildID int, event atc.Event) error
 	CompleteBuild(buildID int) error
@@ -30,8 +32,8 @@ type EngineDB interface {
 	SaveBuildStartTime(buildID int, startTime time.Time) error
 	SaveBuildEndTime(buildID int, startTime time.Time) error
 
-	SaveBuildInput(buildID int, input db.BuildInput) error
-	SaveBuildOutput(buildID int, vr db.VersionedResource) error
+	SaveBuildInput(buildID int, input db.BuildInput) (db.SavedVersionedResource, error)
+	SaveBuildOutput(buildID int, vr db.VersionedResource) (db.SavedVersionedResource, error)
 
 	SaveBuildStatus(buildID int, status db.Status) error
 }

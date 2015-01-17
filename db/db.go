@@ -33,20 +33,20 @@ type DB interface {
 	SaveBuildEvent(buildID int, event atc.Event) error
 	CompleteBuild(buildID int) error
 
-	SaveBuildInput(buildID int, input BuildInput) error
-	SaveBuildOutput(buildID int, vr VersionedResource) error
+	SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error)
+	SaveBuildOutput(buildID int, vr VersionedResource) (SavedVersionedResource, error)
 
 	SaveBuildStatus(buildID int, status Status) error
 
 	SaveBuildStartTime(buildID int, startTime time.Time) error
 	SaveBuildEndTime(buildID int, endTime time.Time) error
 
-	SaveVersionedResource(VersionedResource) error
-	GetLatestVersionedResource(resource string) (VersionedResource, error)
-	EnableVersionedResource(resource string, version Version) error
-	DisableVersionedResource(resource string, version Version) error
+	SaveVersionedResource(VersionedResource) (SavedVersionedResource, error)
+	GetLatestVersionedResource(resource string) (SavedVersionedResource, error)
+	EnableVersionedResource(resourceID int) error
+	DisableVersionedResource(resourceID int) error
 
-	GetLatestInputVersions([]atc.JobInputConfig) (VersionedResources, error)
+	GetLatestInputVersions([]atc.JobInputConfig) (SavedVersionedResources, error)
 
 	GetNextPendingBuild(job string) (Build, []BuildInput, error)
 
@@ -105,7 +105,7 @@ type BuildOutput struct {
 }
 
 type VersionHistory struct {
-	VersionedResource VersionedResource
+	VersionedResource SavedVersionedResource
 	InputsTo          []*JobHistory
 	OutputsOf         []*JobHistory
 }

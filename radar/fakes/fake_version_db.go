@@ -9,26 +9,27 @@ import (
 )
 
 type FakeVersionDB struct {
-	SaveVersionedResourceStub        func(db.VersionedResource) error
+	SaveVersionedResourceStub        func(db.VersionedResource) (db.SavedVersionedResource, error)
 	saveVersionedResourceMutex       sync.RWMutex
 	saveVersionedResourceArgsForCall []struct {
 		arg1 db.VersionedResource
 	}
 	saveVersionedResourceReturns struct {
-		result1 error
+		result1 db.SavedVersionedResource
+		result2 error
 	}
-	GetLatestVersionedResourceStub        func(string) (db.VersionedResource, error)
+	GetLatestVersionedResourceStub        func(string) (db.SavedVersionedResource, error)
 	getLatestVersionedResourceMutex       sync.RWMutex
 	getLatestVersionedResourceArgsForCall []struct {
 		arg1 string
 	}
 	getLatestVersionedResourceReturns struct {
-		result1 db.VersionedResource
+		result1 db.SavedVersionedResource
 		result2 error
 	}
 }
 
-func (fake *FakeVersionDB) SaveVersionedResource(arg1 db.VersionedResource) error {
+func (fake *FakeVersionDB) SaveVersionedResource(arg1 db.VersionedResource) (db.SavedVersionedResource, error) {
 	fake.saveVersionedResourceMutex.Lock()
 	fake.saveVersionedResourceArgsForCall = append(fake.saveVersionedResourceArgsForCall, struct {
 		arg1 db.VersionedResource
@@ -37,7 +38,7 @@ func (fake *FakeVersionDB) SaveVersionedResource(arg1 db.VersionedResource) erro
 	if fake.SaveVersionedResourceStub != nil {
 		return fake.SaveVersionedResourceStub(arg1)
 	} else {
-		return fake.saveVersionedResourceReturns.result1
+		return fake.saveVersionedResourceReturns.result1, fake.saveVersionedResourceReturns.result2
 	}
 }
 
@@ -53,14 +54,15 @@ func (fake *FakeVersionDB) SaveVersionedResourceArgsForCall(i int) db.VersionedR
 	return fake.saveVersionedResourceArgsForCall[i].arg1
 }
 
-func (fake *FakeVersionDB) SaveVersionedResourceReturns(result1 error) {
+func (fake *FakeVersionDB) SaveVersionedResourceReturns(result1 db.SavedVersionedResource, result2 error) {
 	fake.SaveVersionedResourceStub = nil
 	fake.saveVersionedResourceReturns = struct {
-		result1 error
-	}{result1}
+		result1 db.SavedVersionedResource
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeVersionDB) GetLatestVersionedResource(arg1 string) (db.VersionedResource, error) {
+func (fake *FakeVersionDB) GetLatestVersionedResource(arg1 string) (db.SavedVersionedResource, error) {
 	fake.getLatestVersionedResourceMutex.Lock()
 	fake.getLatestVersionedResourceArgsForCall = append(fake.getLatestVersionedResourceArgsForCall, struct {
 		arg1 string
@@ -85,10 +87,10 @@ func (fake *FakeVersionDB) GetLatestVersionedResourceArgsForCall(i int) string {
 	return fake.getLatestVersionedResourceArgsForCall[i].arg1
 }
 
-func (fake *FakeVersionDB) GetLatestVersionedResourceReturns(result1 db.VersionedResource, result2 error) {
+func (fake *FakeVersionDB) GetLatestVersionedResourceReturns(result1 db.SavedVersionedResource, result2 error) {
 	fake.GetLatestVersionedResourceStub = nil
 	fake.getLatestVersionedResourceReturns = struct {
-		result1 db.VersionedResource
+		result1 db.SavedVersionedResource
 		result2 error
 	}{result1, result2}
 }

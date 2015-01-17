@@ -528,17 +528,17 @@ func (db *SQLDB) SaveBuildEndTime(buildID int, endTime time.Time) error {
 	return nil
 }
 
-func (db *SQLDB) SaveBuildInput(buildID int, input BuildInput) error {
+func (db *SQLDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error) {
 	tx, err := db.conn.Begin()
 	if err != nil {
-		return err
+		return SavedVersionedResource{}, err
 	}
 
 	defer tx.Rollback()
 
 	vrID, err := db.saveVersionedResource(tx, input.VersionedResource)
 	if err != nil {
-		return err
+		return SavedVersionedResource{}, err
 	}
 
 	_, err = tx.Exec(`
@@ -553,23 +553,31 @@ func (db *SQLDB) SaveBuildInput(buildID int, input BuildInput) error {
 		)
 	`, buildID, vrID, input.Name)
 	if err != nil {
-		return err
+		return SavedVersionedResource{}, err
 	}
 
-	return tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return SavedVersionedResource{}, err
+	}
+
+	return SavedVersionedResource{
+		ID:                vrID,
+		VersionedResource: input.VersionedResource,
+	}, nil
 }
 
-func (db *SQLDB) SaveBuildOutput(buildID int, vr VersionedResource) error {
+func (db *SQLDB) SaveBuildOutput(buildID int, vr VersionedResource) (SavedVersionedResource, error) {
 	tx, err := db.conn.Begin()
 	if err != nil {
-		return err
+		return SavedVersionedResource{}, err
 	}
 
 	defer tx.Rollback()
 
 	vrID, err := db.saveVersionedResource(tx, vr)
 	if err != nil {
-		return err
+		return SavedVersionedResource{}, err
 	}
 
 	_, err = tx.Exec(`
@@ -577,10 +585,18 @@ func (db *SQLDB) SaveBuildOutput(buildID int, vr VersionedResource) error {
 		VALUES ($1, $2)
 	`, buildID, vrID)
 	if err != nil {
-		return err
+		return SavedVersionedResource{}, err
 	}
 
-	return tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return SavedVersionedResource{}, err
+	}
+
+	return SavedVersionedResource{
+		ID:                vrID,
+		VersionedResource: vr,
+	}, nil
 }
 
 func (db *SQLDB) SaveBuildStatus(buildID int, status Status) error {
@@ -694,34 +710,44 @@ func (db *SQLDB) CompleteBuild(buildID int) error {
 	return nil
 }
 
-func (db *SQLDB) SaveVersionedResource(vr VersionedResource) error {
+func (db *SQLDB) SaveVersionedResource(vr VersionedResource) (SavedVersionedResource, error) {
 	tx, err := db.conn.Begin()
 	if err != nil {
-		return err
+		return SavedVersionedResource{}, err
 	}
 
 	defer tx.Rollback()
 
-	_, err = db.saveVersionedResource(tx, vr)
+	vrID, err := db.saveVersionedResource(tx, vr)
 	if err != nil {
-		return err
+		return SavedVersionedResource{}, err
 	}
 
-	return tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return SavedVersionedResource{}, err
+	}
+
+	return SavedVersionedResource{
+		ID:                vrID,
+		VersionedResource: vr,
+	}, nil
 }
 
-func (db *SQLDB) DisableVersionedResource(resource string, version Version) error {
-	versionPayload, err := json.Marshal(version)
-	if err != nil {
-		return err
-	}
+type nonOneRowAffectedError struct {
+	RowsAffected int64
+}
 
+func (err nonOneRowAffectedError) Error() string {
+	return fmt.Sprintf("expected 1 row to be updated; got %d", err.RowsAffected)
+}
+
+func (db *SQLDB) DisableVersionedResource(resourceID int) error {
 	rows, err := db.conn.Exec(`
 		UPDATE versioned_resources
 		SET enabled = false
-		WHERE resource_name = $1
-		AND version = $2
-	`, resource, versionPayload)
+		WHERE id = $1
+	`, resourceID)
 	if err != nil {
 		return err
 	}
@@ -731,25 +757,19 @@ func (db *SQLDB) DisableVersionedResource(resource string, version Version) erro
 		return err
 	}
 
-	if rowsAffected == 0 {
-		return fmt.Errorf("no rows affected")
+	if rowsAffected != 1 {
+		return nonOneRowAffectedError{rowsAffected}
 	}
 
 	return nil
 }
 
-func (db *SQLDB) EnableVersionedResource(resource string, version Version) error {
-	versionPayload, err := json.Marshal(version)
-	if err != nil {
-		return err
-	}
-
+func (db *SQLDB) EnableVersionedResource(resourceID int) error {
 	rows, err := db.conn.Exec(`
 		UPDATE versioned_resources
 		SET enabled = true
-		WHERE resource_name = $1
-		AND version = $2
-	`, resource, versionPayload)
+		WHERE id = $1
+	`, resourceID)
 	if err != nil {
 		return err
 	}
@@ -759,50 +779,53 @@ func (db *SQLDB) EnableVersionedResource(resource string, version Version) error
 		return err
 	}
 
-	if rowsAffected == 0 {
-		return fmt.Errorf("no rows affected")
+	if rowsAffected != 1 {
+		return nonOneRowAffectedError{rowsAffected}
 	}
 
 	return nil
 }
 
-func (db *SQLDB) GetLatestVersionedResource(name string) (VersionedResource, error) {
+func (db *SQLDB) GetLatestVersionedResource(name string) (SavedVersionedResource, error) {
 	var sourceBytes, versionBytes, metadataBytes string
 
-	vr := VersionedResource{
-		Resource: name,
+	vr := SavedVersionedResource{
+		VersionedResource: VersionedResource{
+			Resource: name,
+		},
 	}
 
 	err := db.conn.QueryRow(`
-		SELECT type, source, version, metadata
+		SELECT id, type, source, version, metadata
 		FROM versioned_resources
 		WHERE resource_name = $1
 		ORDER BY id DESC
 		LIMIT 1
-	`, name).Scan(&vr.Type, &sourceBytes, &versionBytes, &metadataBytes)
+	`, name).Scan(&vr.ID, &vr.Type, &sourceBytes, &versionBytes, &metadataBytes)
 	if err != nil {
-		return VersionedResource{}, err
+		return SavedVersionedResource{}, err
 	}
 
 	err = json.Unmarshal([]byte(sourceBytes), &vr.Source)
 	if err != nil {
-		return VersionedResource{}, err
+		return SavedVersionedResource{}, err
 	}
 
 	err = json.Unmarshal([]byte(versionBytes), &vr.Version)
 	if err != nil {
-		return VersionedResource{}, err
+		return SavedVersionedResource{}, err
 	}
 
 	err = json.Unmarshal([]byte(metadataBytes), &vr.Metadata)
 	if err != nil {
-		return VersionedResource{}, err
+		return SavedVersionedResource{}, err
 	}
 
 	return vr, nil
 }
 
-func (db *SQLDB) GetLatestInputVersions(inputs []atc.JobInputConfig) (VersionedResources, error) {
+// buckle up
+func (db *SQLDB) GetLatestInputVersions(inputs []atc.JobInputConfig) (SavedVersionedResources, error) {
 	fromAliases := []string{}
 	conditions := []string{}
 	params := []interface{}{}
@@ -840,12 +863,11 @@ func (db *SQLDB) GetLatestInputVersions(inputs []atc.JobInputConfig) (VersionedR
 		}
 	}
 
-	vrs := []VersionedResource{}
+	vrs := []SavedVersionedResource{}
 
 	for i, _ := range inputs {
-		var vr VersionedResource
+		var vr SavedVersionedResource
 
-		var id int
 		var source, version, metadata string
 
 		err := db.conn.QueryRow(fmt.Sprintf(
@@ -860,7 +882,7 @@ func (db *SQLDB) GetLatestInputVersions(inputs []atc.JobInputConfig) (VersionedR
 			i+1,
 			strings.Join(fromAliases, ", "),
 			strings.Join(conditions, "\nAND "),
-		), params...).Scan(&id, &vr.Resource, &vr.Type, &source, &version, &metadata)
+		), params...).Scan(&vr.ID, &vr.Resource, &vr.Type, &source, &version, &metadata)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				return nil, ErrNoVersions
@@ -869,7 +891,7 @@ func (db *SQLDB) GetLatestInputVersions(inputs []atc.JobInputConfig) (VersionedR
 			return nil, err
 		}
 
-		params = append(params, id)
+		params = append(params, vr.ID)
 		conditions = append(conditions, fmt.Sprintf("v%d.id = $%d", i+1, len(params)))
 
 		err = json.Unmarshal([]byte(source), &vr.Source)
@@ -1064,7 +1086,10 @@ func (db *SQLDB) GetResourceHistory(resource string) ([]*VersionHistory, error) 
 		}
 
 		vhs[vrID] = &VersionHistory{
-			VersionedResource: vr,
+			VersionedResource: SavedVersionedResource{
+				ID:                vrID,
+				VersionedResource: vr,
+			},
 		}
 
 		hs = append(hs, vhs[vrID])

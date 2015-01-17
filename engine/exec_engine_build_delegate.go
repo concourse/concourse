@@ -277,7 +277,7 @@ func (delegate *delegate) saveInput(logger lager.Logger, plan atc.InputPlan, inf
 		logger.Error("failed-to-save-input-event", err)
 	}
 
-	err = delegate.db.SaveBuildInput(delegate.buildID, db.BuildInput{
+	_, err = delegate.db.SaveBuildInput(delegate.buildID, db.BuildInput{
 		Name:              plan.Name,
 		VersionedResource: vrFromInput(ev),
 	})
@@ -298,7 +298,7 @@ func (delegate *delegate) saveOutput(logger lager.Logger, plan atc.OutputPlan, i
 		logger.Error("failed-to-save-output-event", err)
 	}
 
-	err = delegate.db.SaveBuildOutput(delegate.buildID, vrFromOutput(ev))
+	_, err = delegate.db.SaveBuildOutput(delegate.buildID, vrFromOutput(ev))
 	if err != nil {
 		logger.Error("failed-to-save-output", err)
 	}
@@ -313,7 +313,7 @@ func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.Input
 		}
 	}
 
-	err := delegate.db.SaveBuildOutput(delegate.buildID, db.VersionedResource{
+	_, err := delegate.db.SaveBuildOutput(delegate.buildID, db.VersionedResource{
 		Resource: plan.Resource,
 		Type:     plan.Type,
 		Source:   db.Source(plan.Source),

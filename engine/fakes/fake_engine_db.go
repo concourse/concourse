@@ -55,23 +55,25 @@ type FakeEngineDB struct {
 	saveBuildEndTimeReturns struct {
 		result1 error
 	}
-	SaveBuildInputStub        func(buildID int, input db.BuildInput) error
+	SaveBuildInputStub        func(buildID int, input db.BuildInput) (db.SavedVersionedResource, error)
 	saveBuildInputMutex       sync.RWMutex
 	saveBuildInputArgsForCall []struct {
 		buildID int
 		input   db.BuildInput
 	}
 	saveBuildInputReturns struct {
-		result1 error
+		result1 db.SavedVersionedResource
+		result2 error
 	}
-	SaveBuildOutputStub        func(buildID int, vr db.VersionedResource) error
+	SaveBuildOutputStub        func(buildID int, vr db.VersionedResource) (db.SavedVersionedResource, error)
 	saveBuildOutputMutex       sync.RWMutex
 	saveBuildOutputArgsForCall []struct {
 		buildID int
 		vr      db.VersionedResource
 	}
 	saveBuildOutputReturns struct {
-		result1 error
+		result1 db.SavedVersionedResource
+		result2 error
 	}
 	SaveBuildStatusStub        func(buildID int, status db.Status) error
 	saveBuildStatusMutex       sync.RWMutex
@@ -248,7 +250,7 @@ func (fake *FakeEngineDB) SaveBuildEndTimeReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeEngineDB) SaveBuildInput(buildID int, input db.BuildInput) error {
+func (fake *FakeEngineDB) SaveBuildInput(buildID int, input db.BuildInput) (db.SavedVersionedResource, error) {
 	fake.saveBuildInputMutex.Lock()
 	fake.saveBuildInputArgsForCall = append(fake.saveBuildInputArgsForCall, struct {
 		buildID int
@@ -258,7 +260,7 @@ func (fake *FakeEngineDB) SaveBuildInput(buildID int, input db.BuildInput) error
 	if fake.SaveBuildInputStub != nil {
 		return fake.SaveBuildInputStub(buildID, input)
 	} else {
-		return fake.saveBuildInputReturns.result1
+		return fake.saveBuildInputReturns.result1, fake.saveBuildInputReturns.result2
 	}
 }
 
@@ -274,14 +276,15 @@ func (fake *FakeEngineDB) SaveBuildInputArgsForCall(i int) (int, db.BuildInput) 
 	return fake.saveBuildInputArgsForCall[i].buildID, fake.saveBuildInputArgsForCall[i].input
 }
 
-func (fake *FakeEngineDB) SaveBuildInputReturns(result1 error) {
+func (fake *FakeEngineDB) SaveBuildInputReturns(result1 db.SavedVersionedResource, result2 error) {
 	fake.SaveBuildInputStub = nil
 	fake.saveBuildInputReturns = struct {
-		result1 error
-	}{result1}
+		result1 db.SavedVersionedResource
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeEngineDB) SaveBuildOutput(buildID int, vr db.VersionedResource) error {
+func (fake *FakeEngineDB) SaveBuildOutput(buildID int, vr db.VersionedResource) (db.SavedVersionedResource, error) {
 	fake.saveBuildOutputMutex.Lock()
 	fake.saveBuildOutputArgsForCall = append(fake.saveBuildOutputArgsForCall, struct {
 		buildID int
@@ -291,7 +294,7 @@ func (fake *FakeEngineDB) SaveBuildOutput(buildID int, vr db.VersionedResource) 
 	if fake.SaveBuildOutputStub != nil {
 		return fake.SaveBuildOutputStub(buildID, vr)
 	} else {
-		return fake.saveBuildOutputReturns.result1
+		return fake.saveBuildOutputReturns.result1, fake.saveBuildOutputReturns.result2
 	}
 }
 
@@ -307,11 +310,12 @@ func (fake *FakeEngineDB) SaveBuildOutputArgsForCall(i int) (int, db.VersionedRe
 	return fake.saveBuildOutputArgsForCall[i].buildID, fake.saveBuildOutputArgsForCall[i].vr
 }
 
-func (fake *FakeEngineDB) SaveBuildOutputReturns(result1 error) {
+func (fake *FakeEngineDB) SaveBuildOutputReturns(result1 db.SavedVersionedResource, result2 error) {
 	fake.SaveBuildOutputStub = nil
 	fake.saveBuildOutputReturns = struct {
-		result1 error
-	}{result1}
+		result1 db.SavedVersionedResource
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeEngineDB) SaveBuildStatus(buildID int, status db.Status) error {

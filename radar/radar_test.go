@@ -10,10 +10,10 @@ import (
 	dbfakes "github.com/concourse/atc/db/fakes"
 	"github.com/tedsuo/ifrit"
 
-	"github.com/concourse/atc/resource"
-	rfakes "github.com/concourse/atc/resource/fakes"
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/fakes"
+	"github.com/concourse/atc/resource"
+	rfakes "github.com/concourse/atc/resource/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -161,8 +161,9 @@ var _ = Describe("Radar", func() {
 
 		Context("when there is a current version", func() {
 			BeforeEach(func() {
-				fakeVersionDB.GetLatestVersionedResourceReturns(db.VersionedResource{
-					Version: db.Version{"version": "1"},
+				fakeVersionDB.GetLatestVersionedResourceReturns(db.SavedVersionedResource{
+					ID:                1,
+					VersionedResource: db.VersionedResource{Version: db.Version{"version": "1"}},
 				}, nil)
 			})
 
@@ -172,8 +173,9 @@ var _ = Describe("Radar", func() {
 				_, version := fakeResource.CheckArgsForCall(0)
 				Ω(version).Should(Equal(atc.Version{"version": "1"}))
 
-				fakeVersionDB.GetLatestVersionedResourceReturns(db.VersionedResource{
-					Version: db.Version{"version": "2"},
+				fakeVersionDB.GetLatestVersionedResourceReturns(db.SavedVersionedResource{
+					ID:                2,
+					VersionedResource: db.VersionedResource{Version: db.Version{"version": "2"}},
 				}, nil)
 
 				Eventually(times).Should(Receive())

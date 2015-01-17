@@ -775,7 +775,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					VersionedResource: vr2,
 				}
 
-				err = database.SaveBuildInput(build.ID, input1)
+				_, err = database.SaveBuildInput(build.ID, input1)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				_, err = database.GetJobBuildForInputs("some-job", []db.BuildInput{
@@ -784,7 +784,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				})
 				Ω(err).Should(HaveOccurred())
 
-				err = database.SaveBuildInput(build.ID, otherInput)
+				_, err = database.SaveBuildInput(build.ID, otherInput)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				_, err = database.GetJobBuildForInputs("some-job", []db.BuildInput{
@@ -793,7 +793,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				})
 				Ω(err).Should(HaveOccurred())
 
-				err = database.SaveBuildInput(build.ID, input2)
+				_, err = database.SaveBuildInput(build.ID, input2)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				foundBuild, err := database.GetJobBuildForInputs("some-job", []db.BuildInput{
@@ -803,16 +803,16 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(foundBuild).Should(Equal(build))
 
-				err = database.SaveBuildOutput(build.ID, vr1)
+				_, err = database.SaveBuildOutput(build.ID, vr1)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				modifiedVR2 := vr2
 				modifiedVR2.Version = db.Version{"ver": "3"}
 
-				err = database.SaveBuildOutput(build.ID, modifiedVR2)
+				_, err = database.SaveBuildOutput(build.ID, modifiedVR2)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				err = database.SaveBuildOutput(build.ID, vr2)
+				_, err = database.SaveBuildOutput(build.ID, vr2)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				inputs, outputs, err := database.GetBuildResources(build.ID)
@@ -829,13 +829,13 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				duplicateBuild, err := database.CreateJobBuild("some-job")
 				Ω(err).ShouldNot(HaveOccurred())
 
-				err = database.SaveBuildInput(duplicateBuild.ID, db.BuildInput{
+				_, err = database.SaveBuildInput(duplicateBuild.ID, db.BuildInput{
 					Name:              "other-build-input",
 					VersionedResource: vr1,
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				err = database.SaveBuildInput(duplicateBuild.ID, db.BuildInput{
+				_, err = database.SaveBuildInput(duplicateBuild.ID, db.BuildInput{
 					Name:              "other-build-other-input",
 					VersionedResource: vr2,
 				})
@@ -851,13 +851,13 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				newBuildInOtherJob, err := database.CreateJobBuild("some-other-job")
 				Ω(err).ShouldNot(HaveOccurred())
 
-				err = database.SaveBuildInput(newBuildInOtherJob.ID, db.BuildInput{
+				_, err = database.SaveBuildInput(newBuildInOtherJob.ID, db.BuildInput{
 					Name:              "other-job-input",
 					VersionedResource: vr1,
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				err = database.SaveBuildInput(newBuildInOtherJob.ID, db.BuildInput{
+				_, err = database.SaveBuildInput(newBuildInOtherJob.ID, db.BuildInput{
 					Name:              "other-job-other-input",
 					VersionedResource: vr2,
 				})
@@ -875,7 +875,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				build, err := database.CreateJobBuild("some-job")
 				Ω(err).ShouldNot(HaveOccurred())
 
-				err = database.SaveBuildInput(build.ID, db.BuildInput{
+				_, err = database.SaveBuildInput(build.ID, db.BuildInput{
 					Name:              "some-input",
 					VersionedResource: vr2,
 				})
@@ -890,7 +890,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				withMetadata := vr2
 				withMetadata.Metadata = buildMetadata
 
-				err = database.SaveBuildInput(build.ID, db.BuildInput{
+				_, err = database.SaveBuildInput(build.ID, db.BuildInput{
 					Name:              "some-other-input",
 					VersionedResource: withMetadata,
 				})
@@ -903,7 +903,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					{Name: "some-other-input", VersionedResource: withMetadata, FirstOccurrence: true},
 				}))
 
-				err = database.SaveBuildInput(build.ID, db.BuildInput{
+				_, err = database.SaveBuildInput(build.ID, db.BuildInput{
 					Name:              "some-input",
 					VersionedResource: withMetadata,
 				})
@@ -972,20 +972,20 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					},
 				}
 
-				err := database.SaveVersionedResource(vr1)
+				savedVR1, err := database.SaveVersionedResource(vr1)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestVersionedResource("some-resource")).Should(Equal(vr1))
+				Ω(database.GetLatestVersionedResource("some-resource")).Should(Equal(savedVR1))
 
-				err = database.SaveVersionedResource(vr2)
+				savedVR2, err := database.SaveVersionedResource(vr2)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestVersionedResource("some-resource")).Should(Equal(vr2))
+				Ω(database.GetLatestVersionedResource("some-resource")).Should(Equal(savedVR2))
 
-				err = database.SaveVersionedResource(vr3)
+				savedVR3, err := database.SaveVersionedResource(vr3)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestVersionedResource("some-resource")).Should(Equal(vr3))
+				Ω(database.GetLatestVersionedResource("some-resource")).Should(Equal(savedVR3))
 			})
 
 			It("overwrites the existing source and metadata for the same version", func() {
@@ -999,19 +999,21 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					},
 				}
 
-				err := database.SaveVersionedResource(vr)
+				savedVR, err := database.SaveVersionedResource(vr)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestVersionedResource("some-resource")).Should(Equal(vr))
+				Ω(database.GetLatestVersionedResource("some-resource")).Should(Equal(savedVR))
 
 				modified := vr
 				modified.Source["additional"] = "data"
 				modified.Metadata[0].Value = "modified-value1"
 
-				err = database.SaveVersionedResource(modified)
+				savedModifiedVR, err := database.SaveVersionedResource(modified)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestVersionedResource("some-resource")).Should(Equal(modified))
+				Ω(database.GetLatestVersionedResource("some-resource")).Should(Equal(savedModifiedVR))
+
+				Ω(savedModifiedVR.ID).Should(Equal(savedVR.ID))
 			})
 		})
 
@@ -1020,29 +1022,10 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			version := db.Version{"version": "1"}
 
 			It("returns an error if the resource or version is bogus", func() {
-				err := database.EnableVersionedResource("bogus", version)
+				err := database.EnableVersionedResource(42)
 				Ω(err).Should(HaveOccurred())
 
-				err = database.DisableVersionedResource("bogus", version)
-				Ω(err).Should(HaveOccurred())
-
-				vr := db.VersionedResource{
-					Resource: resource,
-					Type:     "some-type",
-					Source:   db.Source{"some": "source"},
-					Version:  version,
-					Metadata: []db.MetadataField{
-						{Name: "meta1", Value: "value1"},
-					},
-				}
-
-				err = database.SaveVersionedResource(vr)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				err = database.EnableVersionedResource(resource, db.Version{"version": "bogus"})
-				Ω(err).Should(HaveOccurred())
-
-				err = database.DisableVersionedResource(resource, db.Version{"version": "bogus"})
+				err = database.DisableVersionedResource(42)
 				Ω(err).Should(HaveOccurred())
 			})
 
@@ -1057,20 +1040,20 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					},
 				}
 
-				err := database.SaveVersionedResource(vr)
+				savedVR, err := database.SaveVersionedResource(vr)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestVersionedResource(resource)).Should(Equal(vr))
+				Ω(database.GetLatestVersionedResource(resource)).Should(Equal(savedVR))
 
-				err = database.DisableVersionedResource(resource, version)
+				err = database.DisableVersionedResource(savedVR.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestVersionedResource(resource)).Should(Equal(vr))
+				Ω(database.GetLatestVersionedResource(resource)).Should(Equal(savedVR))
 
-				err = database.EnableVersionedResource(resource, version)
+				err = database.EnableVersionedResource(savedVR.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestVersionedResource(resource)).Should(Equal(vr))
+				Ω(database.GetLatestVersionedResource(resource)).Should(Equal(savedVR))
 			})
 
 			It("prevents the resource version from being a candidate for build inputs", func() {
@@ -1087,7 +1070,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					},
 				}
 
-				err := database.SaveVersionedResource(vr1)
+				savedVR1, err := database.SaveVersionedResource(vr1)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				vr2 := db.VersionedResource{
@@ -1100,7 +1083,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					},
 				}
 
-				err = database.SaveVersionedResource(vr2)
+				savedVR2, err := database.SaveVersionedResource(vr2)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				inputConfigs := []atc.JobInputConfig{
@@ -1109,35 +1092,35 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					},
 				}
 
-				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal(db.VersionedResources{
-					vr2,
+				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal(db.SavedVersionedResources{
+					savedVR2,
 				}))
 
-				err = database.DisableVersionedResource(resource, version2)
+				err = database.DisableVersionedResource(savedVR2.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal(db.VersionedResources{
-					vr1,
+				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal(db.SavedVersionedResources{
+					savedVR1,
 				}))
 
-				err = database.DisableVersionedResource(resource, version1)
+				err = database.DisableVersionedResource(savedVR1.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				_, err = database.GetLatestInputVersions(inputConfigs)
 				Ω(err).Should(HaveOccurred())
 
-				err = database.EnableVersionedResource(resource, version1)
+				err = database.EnableVersionedResource(savedVR1.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal(db.VersionedResources{
-					vr1,
+				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal(db.SavedVersionedResources{
+					savedVR1,
 				}))
 
-				err = database.EnableVersionedResource(resource, version2)
+				err = database.EnableVersionedResource(savedVR2.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal(db.VersionedResources{
-					vr2,
+				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal(db.SavedVersionedResources{
+					savedVR2,
 				}))
 			})
 		})
@@ -1165,28 +1148,28 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				})
 				Ω(err).Should(Equal(db.ErrNoVersions))
 
-				err = database.SaveBuildOutput(sb1.ID, db.VersionedResource{
+				_, err = database.SaveBuildOutput(sb1.ID, db.VersionedResource{
 					Resource: "resource-1",
 					Type:     "some-type",
 					Version:  db.Version{"v": "r1-common-to-shared-and-j1"},
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				err = database.SaveBuildOutput(sb1.ID, db.VersionedResource{
+				_, err = database.SaveBuildOutput(sb1.ID, db.VersionedResource{
 					Resource: "resource-2",
 					Type:     "some-type",
 					Version:  db.Version{"v": "r2-common-to-shared-and-j2"},
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				err = database.SaveBuildOutput(j1b1.ID, db.VersionedResource{
+				savedVR1, err := database.SaveBuildOutput(j1b1.ID, db.VersionedResource{
 					Resource: "resource-1",
 					Type:     "some-type",
 					Version:  db.Version{"v": "r1-common-to-shared-and-j1"},
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				err = database.SaveBuildOutput(j2b1.ID, db.VersionedResource{
+				savedVR2, err := database.SaveBuildOutput(j2b1.ID, db.VersionedResource{
 					Resource: "resource-2",
 					Type:     "some-type",
 					Version:  db.Version{"v": "r2-common-to-shared-and-j2"},
@@ -1202,18 +1185,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 						Resource: "resource-2",
 						Passed:   []string{"shared-job", "job-2"},
 					},
-				})).Should(Equal(db.VersionedResources{
-					{
-						Resource: "resource-1",
-						Type:     "some-type",
-						Version:  db.Version{"v": "r1-common-to-shared-and-j1"},
-					},
-					{
-						Resource: "resource-2",
-						Type:     "some-type",
-						Version:  db.Version{"v": "r2-common-to-shared-and-j2"},
-					},
-				}))
+				})).Should(Equal(db.SavedVersionedResources{savedVR1, savedVR2}))
 
 				sb2, err := database.CreateJobBuild("shared-job")
 				Ω(err).ShouldNot(HaveOccurred())
@@ -1224,21 +1196,21 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				j2b2, err := database.CreateJobBuild("job-2")
 				Ω(err).ShouldNot(HaveOccurred())
 
-				err = database.SaveBuildOutput(sb2.ID, db.VersionedResource{
+				savedCommonVR1, err := database.SaveBuildOutput(sb2.ID, db.VersionedResource{
 					Resource: "resource-1",
 					Type:     "some-type",
 					Version:  db.Version{"v": "new-r1-common-to-shared-and-j1"},
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				err = database.SaveBuildOutput(sb2.ID, db.VersionedResource{
+				_, err = database.SaveBuildOutput(sb2.ID, db.VersionedResource{
 					Resource: "resource-2",
 					Type:     "some-type",
 					Version:  db.Version{"v": "new-r2-common-to-shared-and-j2"},
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				err = database.SaveBuildOutput(j1b2.ID, db.VersionedResource{
+				savedCommonVR1, err = database.SaveBuildOutput(j1b2.ID, db.VersionedResource{
 					Resource: "resource-1",
 					Type:     "some-type",
 					Version:  db.Version{"v": "new-r1-common-to-shared-and-j1"},
@@ -1256,21 +1228,10 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 						Resource: "resource-2",
 						Passed:   []string{"shared-job", "job-2"},
 					},
-				})).Should(Equal(db.VersionedResources{
-					{
-						Resource: "resource-1",
-						Type:     "some-type",
-						Version:  db.Version{"v": "r1-common-to-shared-and-j1"},
-					},
-					{
-						Resource: "resource-2",
-						Type:     "some-type",
-						Version:  db.Version{"v": "r2-common-to-shared-and-j2"},
-					},
-				}))
+				})).Should(Equal(db.SavedVersionedResources{savedVR1, savedVR2}))
 
 				// now save the output of resource-2 job-2
-				err = database.SaveBuildOutput(j2b2.ID, db.VersionedResource{
+				savedCommonVR2, err := database.SaveBuildOutput(j2b2.ID, db.VersionedResource{
 					Resource: "resource-2",
 					Type:     "some-type",
 					Version:  db.Version{"v": "new-r2-common-to-shared-and-j2"},
@@ -1286,45 +1247,34 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 						Resource: "resource-2",
 						Passed:   []string{"shared-job", "job-2"},
 					},
-				})).Should(Equal(db.VersionedResources{
-					{
-						Resource: "resource-1",
-						Type:     "some-type",
-						Version:  db.Version{"v": "new-r1-common-to-shared-and-j1"},
-					},
-					{
-						Resource: "resource-2",
-						Type:     "some-type",
-						Version:  db.Version{"v": "new-r2-common-to-shared-and-j2"},
-					},
-				}))
+				})).Should(Equal(db.SavedVersionedResources{savedCommonVR1, savedCommonVR2}))
 
 				// save newer versions; should be new latest
 				for i := 0; i < 10; i++ {
 					version := fmt.Sprintf("version-%d", i+1)
 
-					err = database.SaveBuildOutput(sb1.ID, db.VersionedResource{
+					savedCommonVR1, err := database.SaveBuildOutput(sb1.ID, db.VersionedResource{
 						Resource: "resource-1",
 						Type:     "some-type",
 						Version:  db.Version{"v": version + "-r1-common-to-shared-and-j1"},
 					})
 					Ω(err).ShouldNot(HaveOccurred())
 
-					err = database.SaveBuildOutput(sb1.ID, db.VersionedResource{
+					savedCommonVR2, err := database.SaveBuildOutput(sb1.ID, db.VersionedResource{
 						Resource: "resource-2",
 						Type:     "some-type",
 						Version:  db.Version{"v": version + "-r2-common-to-shared-and-j2"},
 					})
 					Ω(err).ShouldNot(HaveOccurred())
 
-					err = database.SaveBuildOutput(j1b1.ID, db.VersionedResource{
+					savedCommonVR1, err = database.SaveBuildOutput(j1b1.ID, db.VersionedResource{
 						Resource: "resource-1",
 						Type:     "some-type",
 						Version:  db.Version{"v": version + "-r1-common-to-shared-and-j1"},
 					})
 					Ω(err).ShouldNot(HaveOccurred())
 
-					err = database.SaveBuildOutput(j2b1.ID, db.VersionedResource{
+					savedCommonVR2, err = database.SaveBuildOutput(j2b1.ID, db.VersionedResource{
 						Resource: "resource-2",
 						Type:     "some-type",
 						Version:  db.Version{"v": version + "-r2-common-to-shared-and-j2"},
@@ -1340,18 +1290,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 							Resource: "resource-2",
 							Passed:   []string{"shared-job", "job-2"},
 						},
-					})).Should(Equal(db.VersionedResources{
-						{
-							Resource: "resource-1",
-							Type:     "some-type",
-							Version:  db.Version{"v": version + "-r1-common-to-shared-and-j1"},
-						},
-						{
-							Resource: "resource-2",
-							Type:     "some-type",
-							Version:  db.Version{"v": version + "-r2-common-to-shared-and-j2"},
-						},
-					}))
+					})).Should(Equal(db.SavedVersionedResources{savedCommonVR1, savedCommonVR2}))
 				}
 			})
 		})

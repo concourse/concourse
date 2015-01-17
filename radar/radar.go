@@ -14,8 +14,8 @@ import (
 
 //go:generate counterfeiter . VersionDB
 type VersionDB interface {
-	SaveVersionedResource(db.VersionedResource) error
-	GetLatestVersionedResource(string) (db.VersionedResource, error)
+	SaveVersionedResource(db.VersionedResource) (db.SavedVersionedResource, error)
+	GetLatestVersionedResource(string) (db.SavedVersionedResource, error)
 }
 
 //go:generate counterfeiter . ConfigDB
@@ -170,7 +170,7 @@ func (radar *Radar) Scan(resourceName string) ifrit.Runner {
 				}
 
 				for _, version := range newVersions {
-					err = radar.versionDB.SaveVersionedResource(db.VersionedResource{
+					_, err = radar.versionDB.SaveVersionedResource(db.VersionedResource{
 						Resource: resourceConfig.Name,
 						Type:     resourceConfig.Type,
 						Source:   db.Source(resourceConfig.Source),

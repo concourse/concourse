@@ -31,6 +31,14 @@ func (b Build) OneOff() bool {
 	return b.JobName == ""
 }
 
+type VersionedResource struct {
+	Resource string
+	Type     string
+	Source   Source
+	Version  Version
+	Metadata []MetadataField
+}
+
 type VersionedResources []VersionedResource
 
 func (vrs VersionedResources) Lookup(name string) (VersionedResource, bool) {
@@ -43,12 +51,22 @@ func (vrs VersionedResources) Lookup(name string) (VersionedResource, bool) {
 	return VersionedResource{}, false
 }
 
-type VersionedResource struct {
-	Resource string
-	Type     string
-	Source   Source
-	Version  Version
-	Metadata []MetadataField
+type SavedVersionedResource struct {
+	ID int
+
+	VersionedResource
+}
+
+type SavedVersionedResources []SavedVersionedResource
+
+func (vrs SavedVersionedResources) Lookup(name string) (SavedVersionedResource, bool) {
+	for _, vr := range vrs {
+		if vr.Resource == name {
+			return vr, true
+		}
+	}
+
+	return SavedVersionedResource{}, false
 }
 
 type Source map[string]interface{}

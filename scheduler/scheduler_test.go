@@ -215,9 +215,9 @@ var _ = Describe("Scheduler", func() {
 		})
 
 		Context("when versions are found", func() {
-			foundVersions := db.VersionedResources{
-				{Resource: "some-resource", Version: db.Version{"version": "1"}},
-				{Resource: "some-other-resource", Version: db.Version{"version": "2"}},
+			foundVersions := db.SavedVersionedResources{
+				{ID: 1, VersionedResource: db.VersionedResource{Resource: "some-resource", Version: db.Version{"version": "1"}}},
+				{ID: 2, VersionedResource: db.VersionedResource{Resource: "some-other-resource", Version: db.Version{"version": "2"}}},
 			}
 
 			newInputs := []db.BuildInput{
@@ -252,7 +252,7 @@ var _ = Describe("Scheduler", func() {
 
 			Describe("getting the latest inputs from the database", func() {
 				BeforeEach(func() {
-					schedulerDB.GetLatestInputVersionsStub = func(inputs []atc.JobInputConfig) (db.VersionedResources, error) {
+					schedulerDB.GetLatestInputVersionsStub = func(inputs []atc.JobInputConfig) (db.SavedVersionedResources, error) {
 						Ω(locker.AcquireReadLockCallCount()).Should(Equal(1))
 						Ω(locker.AcquireReadLockArgsForCall(0)).Should(ConsistOf([]db.NamedLock{
 							db.ResourceLock("some-resource"),
@@ -285,9 +285,12 @@ var _ = Describe("Scheduler", func() {
 
 					foundVersionsWithCheck := append(
 						foundVersions,
-						db.VersionedResource{
-							Resource: "some-non-checking-resource",
-							Version:  db.Version{"version": 3},
+						db.SavedVersionedResource{
+							ID: 3,
+							VersionedResource: db.VersionedResource{
+								Resource: "some-non-checking-resource",
+								Version:  db.Version{"version": 3},
+							},
 						},
 					)
 
@@ -672,8 +675,8 @@ var _ = Describe("Scheduler", func() {
 			})
 
 			Context("and they can be satisfied", func() {
-				foundVersions := db.VersionedResources{
-					{Resource: "some-dependant-resource", Version: db.Version{"version": "2"}},
+				foundVersions := db.SavedVersionedResources{
+					{ID: 1, VersionedResource: db.VersionedResource{Resource: "some-dependant-resource", Version: db.Version{"version": "2"}}},
 				}
 
 				dependantInputs := []db.BuildInput{

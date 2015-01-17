@@ -12,7 +12,7 @@ import (
 type SchedulerDB interface {
 	ScheduleBuild(buildID int, serial bool) (bool, error)
 
-	GetLatestInputVersions([]atc.JobInputConfig) (db.VersionedResources, error)
+	GetLatestInputVersions([]atc.JobInputConfig) (db.SavedVersionedResources, error)
 
 	GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.Build, error)
 	CreateJobBuildWithInputs(job string, inputs []db.BuildInput) (db.Build, error)
@@ -82,7 +82,7 @@ func (s *Scheduler) BuildLatestInputs(job atc.JobConfig, resources atc.ResourceC
 
 		inputs = append(inputs, db.BuildInput{
 			Name:              input.Name(),
-			VersionedResource: vr,
+			VersionedResource: vr.VersionedResource,
 		})
 	}
 
@@ -204,7 +204,7 @@ func (s *Scheduler) TriggerImmediately(job atc.JobConfig, resources atc.Resource
 			if found {
 				inputs = append(inputs, db.BuildInput{
 					Name:              input.Name(),
-					VersionedResource: vr,
+					VersionedResource: vr.VersionedResource,
 				})
 			}
 		}
