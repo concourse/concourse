@@ -24,4 +24,5 @@ var Migrations = []migration.Migrator{
 	AddCompletedToBuilds,
 	AddWorkers,
 	AddEnabledToBuilds,
+	CreateEventIDSequencesForInFlightBuilds,
 }

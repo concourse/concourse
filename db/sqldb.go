@@ -411,6 +411,13 @@ func (db *SQLDB) CreateJobBuild(job string) (Build, error) {
 		return Build{}, err
 	}
 
+	_, err = tx.Exec(fmt.Sprintf(`
+		CREATE SEQUENCE %s
+	`, buildEventSeq(build.ID)))
+	if err != nil {
+		return Build{}, err
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		return Build{}, err
@@ -420,11 +427,35 @@ func (db *SQLDB) CreateJobBuild(job string) (Build, error) {
 }
 
 func (db *SQLDB) CreateOneOffBuild() (Build, error) {
-	return scanBuild(db.conn.QueryRow(`
-		INSERT INTO builds(name, status)
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return Build{}, err
+	}
+
+	defer tx.Rollback()
+
+	build, err := scanBuild(tx.QueryRow(`
+		INSERT INTO builds (name, status)
 		VALUES (nextval('one_off_name'), 'pending')
 		RETURNING ` + buildColumns + `
 	`))
+	if err != nil {
+		return Build{}, err
+	}
+
+	_, err = tx.Exec(fmt.Sprintf(`
+		CREATE SEQUENCE %s
+	`, buildEventSeq(build.ID)))
+	if err != nil {
+		return Build{}, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return Build{}, err
+	}
+
+	return build, nil
 }
 
 func (db *SQLDB) ScheduleBuild(buildID int, serial bool) (bool, error) {
@@ -668,12 +699,10 @@ func (db *SQLDB) SaveBuildEvent(buildID int, event atc.Event) error {
 		return err
 	}
 
-	_, err = db.conn.Exec(`
+	_, err = db.conn.Exec(fmt.Sprintf(`
 		INSERT INTO build_events (event_id, build_id, type, version, payload)
-		SELECT count(*), $1, $2, $3, $4
-		FROM build_events
-		WHERE build_id = $1
-	`, buildID, string(event.EventType()), string(event.Version()), payload)
+		VALUES (nextval('%s')-1, $1, $2, $3, $4)
+	`, buildEventSeq(buildID)), buildID, string(event.EventType()), string(event.Version()), payload)
 	if err != nil {
 		return err
 	}
@@ -687,7 +716,14 @@ func (db *SQLDB) SaveBuildEvent(buildID int, event atc.Event) error {
 }
 
 func (db *SQLDB) CompleteBuild(buildID int) error {
-	_, err := db.conn.Exec(`
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = tx.Exec(`
 		UPDATE builds
 		SET completed = true
 		WHERE id = $1
@@ -696,6 +732,19 @@ func (db *SQLDB) CompleteBuild(buildID int) error {
 		return err
 	}
 
+	_, err = tx.Exec(fmt.Sprintf(`
+		DROP SEQUENCE %s
+	`, buildEventSeq(buildID)))
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	// doesn't really need to be in transaction
 	_, err = db.conn.Exec("NOTIFY " + buildEventsChannel(buildID))
 	if err != nil {
 		return err
@@ -988,6 +1037,13 @@ func (db *SQLDB) CreateJobBuildWithInputs(job string, inputs []BuildInput) (Buil
 		return Build{}, err
 	}
 
+	_, err = tx.Exec(fmt.Sprintf(`
+		CREATE SEQUENCE %s
+	`, buildEventSeq(build.ID)))
+	if err != nil {
+		return Build{}, err
+	}
+
 	for _, input := range inputs {
 		svr, err := db.saveVersionedResource(tx, input.VersionedResource)
 		if err != nil {
@@ -1195,9 +1251,9 @@ func (db *SQLDB) acquireLock(lockType string, locks []NamedLock) (Lock, error) {
 	}
 
 	result, err := tx.Exec(`
-	SELECT 1 FROM locks
-	WHERE name IN (`+strings.Join(refs, ",")+`)
-	FOR `+lockType+`
+		SELECT 1 FROM locks
+		WHERE name IN (`+strings.Join(refs, ",")+`)
+		FOR `+lockType+`
 	`, params...)
 	if err != nil {
 		tx.Commit()
@@ -1209,6 +1265,7 @@ func (db *SQLDB) acquireLock(lockType string, locks []NamedLock) (Lock, error) {
 		tx.Commit()
 		return nil, err
 	}
+
 	if rowsAffected == 0 {
 		tx.Commit()
 		return nil, ErrLockRowNotPresentOrAlreadyDeleted
@@ -1519,6 +1576,10 @@ func buildEventsChannel(buildID int) string {
 
 func buildAbortChannel(buildID int) string {
 	return fmt.Sprintf("build_abort_%d", buildID)
+}
+
+func buildEventSeq(buildID int) string {
+	return fmt.Sprintf("build_event_id_seq_%d", buildID)
 }
 
 func newConditionNotifier(bus *notificationsBus, channel string, cond func() (bool, error)) (Notifier, error) {
