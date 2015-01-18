@@ -412,7 +412,7 @@ func (db *SQLDB) CreateJobBuild(job string) (Build, error) {
 	}
 
 	_, err = tx.Exec(fmt.Sprintf(`
-		CREATE SEQUENCE %s
+		CREATE SEQUENCE %s MINVALUE 0
 	`, buildEventSeq(build.ID)))
 	if err != nil {
 		return Build{}, err
@@ -444,7 +444,7 @@ func (db *SQLDB) CreateOneOffBuild() (Build, error) {
 	}
 
 	_, err = tx.Exec(fmt.Sprintf(`
-		CREATE SEQUENCE %s
+		CREATE SEQUENCE %s MINVALUE 0
 	`, buildEventSeq(build.ID)))
 	if err != nil {
 		return Build{}, err
@@ -701,7 +701,7 @@ func (db *SQLDB) SaveBuildEvent(buildID int, event atc.Event) error {
 
 	_, err = db.conn.Exec(fmt.Sprintf(`
 		INSERT INTO build_events (event_id, build_id, type, version, payload)
-		VALUES (nextval('%s')-1, $1, $2, $3, $4)
+		VALUES (nextval('%s'), $1, $2, $3, $4)
 	`, buildEventSeq(buildID)), buildID, string(event.EventType()), string(event.Version()), payload)
 	if err != nil {
 		return err
@@ -1038,7 +1038,7 @@ func (db *SQLDB) CreateJobBuildWithInputs(job string, inputs []BuildInput) (Buil
 	}
 
 	_, err = tx.Exec(fmt.Sprintf(`
-		CREATE SEQUENCE %s
+		CREATE SEQUENCE %s MINVALUE 0
 	`, buildEventSeq(build.ID)))
 	if err != nil {
 		return Build{}, err

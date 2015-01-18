@@ -35,8 +35,8 @@ func CreateEventIDSequencesForInFlightBuilds(tx migration.LimitedTx) error {
 		cursor = id
 
 		_, err = tx.Exec(fmt.Sprintf(`
-      CREATE SEQUENCE %s START WITH %d
-    `, buildEventSeq(id), eventIDStart))
+      CREATE SEQUENCE %s MINVALUE 0 START WITH %d
+    `, buildEventSeq(id), eventIDStart+1))
 		if err != nil {
 			return err
 		}
