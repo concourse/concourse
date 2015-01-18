@@ -211,8 +211,8 @@ li.aborted {
 li.started {
   background: #f4bf75;
 }
-.legend dt.started {
-  background: #f4bf75;
+.legend dt.started rect {
+  stroke: #f4bf75;
 }
 svg .node.job.started rect {
   stroke: #f4bf75;
