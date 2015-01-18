@@ -74,7 +74,7 @@ const (
 type Input struct {
 	Plan            atc.InputPlan       `json:"plan"`
 	FetchedVersion  atc.Version         `json:"version"`
-	FetchedMetadata []atc.MetadataField `json:"metadata"`
+	FetchedMetadata []atc.MetadataField `json:"metadata,omitempty"`
 }
 
 func (Input) EventType() atc.EventType  { return EventTypeInput }
@@ -88,7 +88,7 @@ func (e Input) Censored() atc.Event {
 type Output struct {
 	Plan            atc.OutputPlan      `json:"plan"`
 	CreatedVersion  atc.Version         `json:"version"`
-	CreatedMetadata []atc.MetadataField `json:"metadata"`
+	CreatedMetadata []atc.MetadataField `json:"metadata,omitempty"`
 }
 
 func (Output) EventType() atc.EventType  { return EventTypeOutput }
