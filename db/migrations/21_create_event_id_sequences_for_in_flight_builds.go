@@ -12,7 +12,6 @@ func CreateEventIDSequencesForInFlightBuilds(tx migration.LimitedTx) error {
 
 	for {
 		var id, eventIDStart int
-		var guid, endpoint string
 
 		err := tx.QueryRow(`
       SELECT id, max(event_id)
@@ -24,7 +23,7 @@ func CreateEventIDSequencesForInFlightBuilds(tx migration.LimitedTx) error {
       GROUP BY id
       ORDER BY id ASC
       LIMIT 1
-    `, cursor).Scan(&id, &guid, &endpoint)
+    `, cursor).Scan(&id, &eventIDStart)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				break
@@ -39,7 +38,7 @@ func CreateEventIDSequencesForInFlightBuilds(tx migration.LimitedTx) error {
       CREATE SEQUENCE %s START WITH %d
     `, buildEventSeq(id), eventIDStart))
 		if err != nil {
-			continue
+			return err
 		}
 	}
 
