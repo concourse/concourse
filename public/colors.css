@@ -214,6 +214,9 @@ li.started {
 .legend dt.started {
   background: #f4bf75;
 }
+svg .node.job.started rect {
+  stroke: #f4bf75;
+}
 /* ansi text */
 ::selection {
   background: #505050;
