@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/codegangsta/cli"
@@ -53,26 +54,8 @@ func main() {
 			Flags:     executeFlags,
 			Action:    commands.Execute,
 		},
-		{
-			Name:      "hijack",
-			ShortName: "i",
-			Usage:     "Execute an interactive command in a build's container",
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "job, j",
-					Usage: "if specified, hijacks builds of the given job",
-				},
-				cli.StringFlag{
-					Name:  "build, b",
-					Usage: "hijack a specific build of a job",
-				},
-				cli.BoolFlag{
-					Name:  "privileged, p",
-					Usage: "run the build with root privileges",
-				},
-			},
-			Action: commands.Hijack,
-		},
+		takeControl("hijack"),
+		takeControl("intercept"),
 		{
 			Name:      "watch",
 			ShortName: "w",
@@ -111,5 +94,28 @@ func main() {
 	if err != nil {
 		println(err.Error())
 		os.Exit(1)
+	}
+}
+
+func takeControl(commandName string) cli.Command {
+	return cli.Command{
+		Name:      commandName,
+		ShortName: "i",
+		Usage:     "Execute an interactive command in a build's container",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "job, j",
+				Usage: fmt.Sprintf("if specified, %ss builds of the given job", commandName),
+			},
+			cli.StringFlag{
+				Name:  "build, b",
+				Usage: fmt.Sprintf("%s a specific build of a job", commandName),
+			},
+			cli.BoolFlag{
+				Name:  "privileged, p",
+				Usage: "run the build with root privileges",
+			},
+		},
+		Action: commands.Hijack,
 	}
 }

@@ -84,11 +84,11 @@ var _ = Describe("Hijacking", func() {
 		)
 	}
 
-	hijack := func(args ...string) {
+	fly := func(command string, args ...string) {
 		pty, tty, err := pty.Open()
 		Ω(err).ShouldNot(HaveOccurred())
 
-		flyCmd := exec.Command(flyPath, append([]string{"hijack"}, args...)...)
+		flyCmd := exec.Command(flyPath, append([]string{command}, args...)...)
 		flyCmd.Stdin = tty
 
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -106,6 +106,10 @@ var _ = Describe("Hijacking", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 
 		Eventually(sess).Should(gexec.Exit(123))
+	}
+
+	hijack := func(args ...string) {
+		fly("hijack", args...)
 	}
 
 	Context("with no arguments", func() {
@@ -129,6 +133,10 @@ var _ = Describe("Hijacking", func() {
 
 		It("hijacks the most recent one-off build", func() {
 			hijack()
+		})
+
+		It("hijacks the most recent one-off build with a more politically correct command", func() {
+			fly("intercept")
 		})
 	})
 
