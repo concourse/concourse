@@ -77,8 +77,15 @@ func (resource *resource) runScript(
 
 		var process garden.Process
 
-		processIDProp, err := resource.container.GetProperty(resourceProcessIDPropertyName)
-		if recoverable && err == nil {
+		var processIDProp string
+		if recoverable {
+			processIDProp, err = resource.container.GetProperty(resourceProcessIDPropertyName)
+			if err != nil {
+				processIDProp = ""
+			}
+		}
+
+		if processIDProp != "" {
 			var processID uint32
 			_, err = fmt.Sscanf(processIDProp, "%d", &processID)
 			if err != nil {
