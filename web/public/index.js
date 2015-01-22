@@ -75,8 +75,15 @@ function drawContinuously(svg, groups) {
     var nodeLink = svgNode.append("svg:a")
       .attr("xlink:href", function(node) { return node.url })
 
-    var nodeBackground = nodeLink.append("rect")
+    var jobStatusBackground = nodeLink.append("rect")
       .attr("height", function(node) { return node.height() })
+
+    var animatableBackground = nodeLink.append("foreignObject")
+      .attr("height", function(node) { return node.height() })
+
+    var animationTarget = animatableBackground.append("xhtml:div")
+
+    animationTarget.style("height", function(node) { return node.height() + "px" })
 
     nodeLink.append("text")
       .text(function(node) { return node.name })
@@ -85,7 +92,9 @@ function drawContinuously(svg, groups) {
       .attr("x", function(node) { return node.width() / 2 })
       .attr("y", function(node) { return node.height() / 2 })
 
-    nodeBackground.attr("width", function(node) { return node.width() })
+    jobStatusBackground.attr("width", function(node) { return node.width() })
+    animatableBackground.attr("width", function(node) { return node.width() })
+    animationTarget.style("width", function(node) { return node.width() + "px" })
 
     graph.layout()
 

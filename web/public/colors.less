@@ -109,7 +109,23 @@ li.aborted { background: @base0F; }
 #page-header.started .build-header { background: @base0A; }
 li.started { background: @base0A; }
 .legend dt.started rect { stroke: @base0A; }
-svg .node.job.started rect { stroke: @base0A; }
+
+svg .job.node.started div,
+.legend dt.started {
+  -webkit-animation: started-stripes 1s linear infinite;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 7px,
+    @base0A 7px,
+    @base0A 10px
+  );
+  background-size: 28px 100%;
+}
+
+@-webkit-keyframes started-stripes {
+  100% { background-position: -28px 0px; }
+}
 
 /* ansi text */
 ::selection { background: @base03; color: @base07; }
