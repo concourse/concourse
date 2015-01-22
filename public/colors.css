@@ -214,8 +214,16 @@ li.started {
 .legend dt.started rect {
   stroke: #f4bf75;
 }
-svg .node.job.started rect {
-  stroke: #f4bf75;
+svg .job.node.started div,
+.legend dt.started {
+  -webkit-animation: started-stripes 1s linear infinite;
+  background-image: repeating-linear-gradient(-45deg, transparent, transparent 7px, #f4bf75 7px, #f4bf75 10px);
+  background-size: 28px 100%;
+}
+@-webkit-keyframes started-stripes {
+  100% {
+    background-position: -28px 0px;
+  }
 }
 /* ansi text */
 ::selection {
