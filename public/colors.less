@@ -113,18 +113,25 @@ li.started { background: @base0A; }
 svg .job.node.started div,
 .legend dt.started {
   -webkit-animation: started-stripes 1s linear infinite;
-  background-image: repeating-linear-gradient(
+
+  background-size: 30px 30px;
+  background-position: 10px 0;
+  background-image: linear-gradient(
     -45deg,
-    transparent,
-    transparent 7px,
-    @base0A 7px,
-    @base0A 10px
+
+    @base0A  25%,
+    transparent       25%,
+    transparent       50%,
+    @base0A  50%,
+    @base0A  75%,
+    transparent       75%,
+    transparent
   );
-  background-size: 28px 100%;
 }
 
 @-webkit-keyframes started-stripes {
-  100% { background-position: -28px 0px; }
+  from { background-position: 0 0;    }
+  to   { background-position: 30px 0px; }
 }
 
 /* ansi text */
