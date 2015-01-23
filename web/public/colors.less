@@ -112,20 +112,25 @@ li.started { background: @base0A; }
 
 svg .job.node.started div,
 .legend dt.started {
-  -webkit-animation: started-stripes 1s linear infinite;
+  -webkit-animation: started-circles 1s linear infinite;
+}
 
-  background-size: 30px 30px;
-  background-image: linear-gradient(
-    -45deg,
+.generate-keyframes(@frame: 0%) when (@frame =< 100%) {
+  @{frame} {
+    background-image: repeating-radial-gradient(
+      circle,
+      transparent unit(@frame / 5, px),
+      transparent unit(@frame / 5, px) + 5px,
+      @base0A unit(@frame / 5, px) + 5px,
+      @base0A unit(@frame / 5, px) + 20px,
+    );
+  }
 
-    @base0A  25%,
-    transparent       25%,
-    transparent       50%,
-    @base0A  50%,
-    @base0A  75%,
-    transparent       75%,
-    transparent
-  );
+  .generate-keyframes(@frame + 5%)
+}
+
+@-webkit-keyframes started-circles {
+  .generate-keyframes(0%)
 }
 
 @-webkit-keyframes started-stripes {
