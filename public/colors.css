@@ -216,10 +216,72 @@ li.started {
 }
 svg .job.node.started div,
 .legend dt.started {
-  -webkit-animation: started-stripes 1s linear infinite;
-  background-size: 30px 30px;
-  background-position: 10px 0;
-  background-image: linear-gradient(-45deg, #f4bf75 25%, transparent 25%, transparent 50%, #f4bf75 50%, #f4bf75 75%, transparent 75%, transparent);
+  -webkit-animation: started-circles 1s linear infinite;
+}
+@-webkit-keyframes started-circles {
+  0% {
+    background-image: repeating-radial-gradient(circle, transparent 0px, transparent 5px, #f4bf75 5px, #f4bf75 20px);
+  }
+  5% {
+    background-image: repeating-radial-gradient(circle, transparent 1px, transparent 6px, #f4bf75 6px, #f4bf75 21px);
+  }
+  10% {
+    background-image: repeating-radial-gradient(circle, transparent 2px, transparent 7px, #f4bf75 7px, #f4bf75 22px);
+  }
+  15% {
+    background-image: repeating-radial-gradient(circle, transparent 3px, transparent 8px, #f4bf75 8px, #f4bf75 23px);
+  }
+  20% {
+    background-image: repeating-radial-gradient(circle, transparent 4px, transparent 9px, #f4bf75 9px, #f4bf75 24px);
+  }
+  25% {
+    background-image: repeating-radial-gradient(circle, transparent 5px, transparent 10px, #f4bf75 10px, #f4bf75 25px);
+  }
+  30% {
+    background-image: repeating-radial-gradient(circle, transparent 6px, transparent 11px, #f4bf75 11px, #f4bf75 26px);
+  }
+  35% {
+    background-image: repeating-radial-gradient(circle, transparent 7px, transparent 12px, #f4bf75 12px, #f4bf75 27px);
+  }
+  40% {
+    background-image: repeating-radial-gradient(circle, transparent 8px, transparent 13px, #f4bf75 13px, #f4bf75 28px);
+  }
+  45% {
+    background-image: repeating-radial-gradient(circle, transparent 9px, transparent 14px, #f4bf75 14px, #f4bf75 29px);
+  }
+  50% {
+    background-image: repeating-radial-gradient(circle, transparent 10px, transparent 15px, #f4bf75 15px, #f4bf75 30px);
+  }
+  55% {
+    background-image: repeating-radial-gradient(circle, transparent 11px, transparent 16px, #f4bf75 16px, #f4bf75 31px);
+  }
+  60% {
+    background-image: repeating-radial-gradient(circle, transparent 12px, transparent 17px, #f4bf75 17px, #f4bf75 32px);
+  }
+  65% {
+    background-image: repeating-radial-gradient(circle, transparent 13px, transparent 18px, #f4bf75 18px, #f4bf75 33px);
+  }
+  70% {
+    background-image: repeating-radial-gradient(circle, transparent 14px, transparent 19px, #f4bf75 19px, #f4bf75 34px);
+  }
+  75% {
+    background-image: repeating-radial-gradient(circle, transparent 15px, transparent 20px, #f4bf75 20px, #f4bf75 35px);
+  }
+  80% {
+    background-image: repeating-radial-gradient(circle, transparent 16px, transparent 21px, #f4bf75 21px, #f4bf75 36px);
+  }
+  85% {
+    background-image: repeating-radial-gradient(circle, transparent 17px, transparent 22px, #f4bf75 22px, #f4bf75 37px);
+  }
+  90% {
+    background-image: repeating-radial-gradient(circle, transparent 18px, transparent 23px, #f4bf75 23px, #f4bf75 38px);
+  }
+  95% {
+    background-image: repeating-radial-gradient(circle, transparent 19px, transparent 24px, #f4bf75 24px, #f4bf75 39px);
+  }
+  100% {
+    background-image: repeating-radial-gradient(circle, transparent 20px, transparent 25px, #f4bf75 25px, #f4bf75 40px);
+  }
 }
 @-webkit-keyframes started-stripes {
   from {
