@@ -1,5 +1,7 @@
 # concourse
 
+![Official Concourse Logo](official-concourse-logo.png)
+
 A [BOSH](https://github.com/cloudfoundry/bosh) release for concourse. The
 easiest way to deploy your own instance of concourse on AWS, vSphere,
 Openstack or with Vagrant.
