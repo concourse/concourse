@@ -214,7 +214,7 @@ li.started {
 .legend dt.started rect {
   stroke: #f4bf75;
 }
-svg .job.node div,
+svg .job.node.started div,
 .legend dt.started {
   -webkit-animation: started-circles 1s linear infinite;
 }
