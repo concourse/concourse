@@ -42,7 +42,7 @@ git config --global user.name "CI Bot"
 
 git merge --no-edit master
 
-bosh -n create release --final --version "$VERSION"
+bosh -n --parallel 4 create release --final --version "$VERSION"
 bosh -n upload release --skip-if-exists
 
 bosh -n deploy
