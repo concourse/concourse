@@ -113,6 +113,7 @@ li.started { background: @base0A; }
 svg .job.node.started div,
 .legend dt.started {
   -webkit-animation: started-circles 1s linear infinite;
+  animation: started-circles 1s linear infinite;
 }
 
 .generate-keyframes(@frame: 0%) when (@frame =< 100%) {
@@ -133,9 +134,8 @@ svg .job.node.started div,
   .generate-keyframes(0%)
 }
 
-@-webkit-keyframes started-stripes {
-  from { background-position: 0 0;    }
-  to   { background-position: 30px 0px; }
+@keyframes started-circles {
+  .generate-keyframes(0%)
 }
 
 /* ansi text */
