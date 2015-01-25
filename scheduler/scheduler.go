@@ -11,6 +11,7 @@ import (
 //go:generate counterfeiter . SchedulerDB
 type SchedulerDB interface {
 	ScheduleBuild(buildID int, serial bool) (bool, error)
+	FinishBuild(buildID int, status db.Status) error
 
 	GetLatestInputVersions([]atc.JobInputConfig) (db.SavedVersionedResources, error)
 
@@ -20,8 +21,6 @@ type SchedulerDB interface {
 	GetNextPendingBuild(job string) (db.Build, []db.BuildInput, error)
 
 	GetAllStartedBuilds() ([]db.Build, error)
-
-	SaveBuildStatus(buildID int, status db.Status) error
 }
 
 //go:generate counterfeiter . BuildFactory
@@ -262,7 +261,7 @@ func (s *Scheduler) TrackInFlightBuilds() error {
 		if err != nil {
 			tLog.Error("failed-to-lookup-build", err)
 
-			err := s.DB.SaveBuildStatus(b.ID, db.StatusErrored)
+			err := s.DB.FinishBuild(b.ID, db.StatusErrored)
 			if err != nil {
 				tLog.Error("failed-to-mark-build-as-errored", err)
 			}

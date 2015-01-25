@@ -37,11 +37,6 @@ type FakeBuildDelegate struct {
 	outputDelegateReturns struct {
 		result1 exec.PutDelegate
 	}
-	StartStub        func(lager.Logger)
-	startMutex       sync.RWMutex
-	startArgsForCall []struct {
-		arg1 lager.Logger
-	}
 	FinishStub        func(lager.Logger, error)
 	finishMutex       sync.RWMutex
 	finishArgsForCall []struct {
@@ -151,29 +146,6 @@ func (fake *FakeBuildDelegate) OutputDelegateReturns(result1 exec.PutDelegate) {
 	fake.outputDelegateReturns = struct {
 		result1 exec.PutDelegate
 	}{result1}
-}
-
-func (fake *FakeBuildDelegate) Start(arg1 lager.Logger) {
-	fake.startMutex.Lock()
-	fake.startArgsForCall = append(fake.startArgsForCall, struct {
-		arg1 lager.Logger
-	}{arg1})
-	fake.startMutex.Unlock()
-	if fake.StartStub != nil {
-		fake.StartStub(arg1)
-	}
-}
-
-func (fake *FakeBuildDelegate) StartCallCount() int {
-	fake.startMutex.RLock()
-	defer fake.startMutex.RUnlock()
-	return len(fake.startArgsForCall)
-}
-
-func (fake *FakeBuildDelegate) StartArgsForCall(i int) lager.Logger {
-	fake.startMutex.RLock()
-	defer fake.startMutex.RUnlock()
-	return fake.startArgsForCall[i].arg1
 }
 
 func (fake *FakeBuildDelegate) Finish(arg1 lager.Logger, arg2 error) {

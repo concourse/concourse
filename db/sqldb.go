@@ -11,6 +11,7 @@ import (
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/event"
 )
 
 type SQLDB struct {
@@ -502,22 +503,99 @@ func (db *SQLDB) ScheduleBuild(buildID int, serial bool) (bool, error) {
 }
 
 func (db *SQLDB) StartBuild(buildID int, engine, metadata string) (bool, error) {
-	result, err := db.conn.Exec(`
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	defer tx.Rollback()
+
+	var startTime time.Time
+
+	err = tx.QueryRow(`
 		UPDATE builds
-		SET status = 'started', engine = $2, engine_metadata = $3
+		SET status = 'started', start_time = now(), engine = $2, engine_metadata = $3
 		WHERE id = $1
 		AND status = 'pending'
-	`, buildID, engine, metadata)
+		RETURNING start_time
+	`, buildID, engine, metadata).Scan(&startTime)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	err = db.saveBuildEvent(tx, buildID, event.Status{
+		Status: atc.StatusStarted,
+		Time:   startTime.Unix(),
+	})
 	if err != nil {
 		return false, err
 	}
 
-	rows, err := result.RowsAffected()
+	err = tx.Commit()
 	if err != nil {
 		return false, err
 	}
 
-	return rows == 1, nil
+	// doesn't really need to be in transaction
+	_, err = db.conn.Exec("NOTIFY " + buildEventsChannel(buildID))
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (db *SQLDB) FinishBuild(buildID int, status Status) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	var endTime time.Time
+
+	err = tx.QueryRow(`
+		UPDATE builds
+		SET status = $2, end_time = now(), completed = true
+		WHERE id = $1
+		RETURNING end_time
+	`, buildID, string(status)).Scan(&endTime)
+	if err != nil {
+		return err
+	}
+
+	err = db.saveBuildEvent(tx, buildID, event.Status{
+		Status: atc.BuildStatus(status),
+		Time:   endTime.Unix(),
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(fmt.Sprintf(`
+		DROP SEQUENCE %s
+	`, buildEventSeq(buildID)))
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	// doesn't really need to be in transaction
+	_, err = db.conn.Exec("NOTIFY " + buildEventsChannel(buildID))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (db *SQLDB) SaveBuildEngineMetadata(buildID int, engineMetadata string) error {
@@ -526,32 +604,6 @@ func (db *SQLDB) SaveBuildEngineMetadata(buildID int, engineMetadata string) err
 		SET engine_metadata = $2
 		WHERE id = $1
 	`, buildID, engineMetadata)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (db *SQLDB) SaveBuildStartTime(buildID int, startTime time.Time) error {
-	_, err := db.conn.Exec(`
-		UPDATE builds
-		SET start_time = $2
-		WHERE id = $1
-	`, buildID, startTime)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (db *SQLDB) SaveBuildEndTime(buildID int, endTime time.Time) error {
-	_, err := db.conn.Exec(`
-		UPDATE builds
-		SET end_time = $2
-		WHERE id = $1
-	`, buildID, endTime)
 	if err != nil {
 		return err
 	}
@@ -624,28 +676,6 @@ func (db *SQLDB) SaveBuildOutput(buildID int, vr VersionedResource) (SavedVersio
 	return svr, nil
 }
 
-func (db *SQLDB) SaveBuildStatus(buildID int, status Status) error {
-	result, err := db.conn.Exec(`
-		UPDATE builds
-		SET status = $2
-		WHERE id = $1
-	`, buildID, string(status))
-	if err != nil {
-		return err
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rows != 1 {
-		return fmt.Errorf("more than one row affected: %d", rows)
-	}
-
-	return nil
-}
-
 func (db *SQLDB) GetBuildEvents(buildID int, from uint) (EventSource, error) {
 	notifier, err := newConditionNotifier(db.bus, buildEventsChannel(buildID), func() (bool, error) {
 		return true, nil
@@ -694,28 +724,6 @@ func (db *SQLDB) AbortNotifier(buildID int) (Notifier, error) {
 }
 
 func (db *SQLDB) SaveBuildEvent(buildID int, event atc.Event) error {
-	payload, err := json.Marshal(event)
-	if err != nil {
-		return err
-	}
-
-	_, err = db.conn.Exec(fmt.Sprintf(`
-		INSERT INTO build_events (event_id, build_id, type, version, payload)
-		VALUES (nextval('%s'), $1, $2, $3, $4)
-	`, buildEventSeq(buildID)), buildID, string(event.EventType()), string(event.Version()), payload)
-	if err != nil {
-		return err
-	}
-
-	_, err = db.conn.Exec("NOTIFY " + buildEventsChannel(buildID))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (db *SQLDB) CompleteBuild(buildID int) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return err
@@ -723,18 +731,7 @@ func (db *SQLDB) CompleteBuild(buildID int) error {
 
 	defer tx.Rollback()
 
-	_, err = tx.Exec(`
-		UPDATE builds
-		SET completed = true
-		WHERE id = $1
-	`, buildID)
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(fmt.Sprintf(`
-		DROP SEQUENCE %s
-	`, buildEventSeq(buildID)))
+	err = db.saveBuildEvent(tx, buildID, event)
 	if err != nil {
 		return err
 	}
@@ -1454,6 +1451,23 @@ func (lock *txLock) Release() error {
 	}
 
 	return lock.cleanup()
+}
+
+func (db *SQLDB) saveBuildEvent(tx *sql.Tx, buildID int, event atc.Event) error {
+	payload, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(fmt.Sprintf(`
+		INSERT INTO build_events (event_id, build_id, type, version, payload)
+		VALUES (nextval('%s'), $1, $2, $3, $4)
+	`, buildEventSeq(buildID)), buildID, string(event.EventType()), string(event.Version()), payload)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (db *SQLDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (SavedVersionedResource, error) {

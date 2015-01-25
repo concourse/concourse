@@ -25,7 +25,6 @@ type BuildDelegate interface {
 	ExecutionDelegate(lager.Logger) exec.ExecuteDelegate
 	OutputDelegate(lager.Logger, atc.OutputPlan) exec.PutDelegate
 
-	Start(lager.Logger)
 	Finish(lager.Logger, error)
 	Aborted(lager.Logger)
 }
@@ -94,32 +93,6 @@ func (delegate *delegate) ExecutionDelegate(logger lager.Logger) exec.ExecuteDel
 	return &executionDelegate{
 		logger:   logger,
 		delegate: delegate,
-	}
-}
-
-func (delegate *delegate) Start(logger lager.Logger) {
-	// TODO?: make this a callback hooked in to the steps when a certain one starts
-
-	startedAt := time.Now()
-
-	logger.Info("start", lager.Data{"started-at": startedAt})
-
-	err := delegate.db.SaveBuildStartTime(delegate.buildID, startedAt)
-	if err != nil {
-		logger.Error("failed-to-save-start-time", err)
-	}
-
-	err = delegate.db.SaveBuildStatus(delegate.buildID, db.StatusStarted)
-	if err != nil {
-		logger.Error("failed-to-save-status", err)
-	}
-
-	err = delegate.db.SaveBuildEvent(delegate.buildID, event.Status{
-		Status: atc.StatusStarted,
-		Time:   startedAt.Unix(),
-	})
-	if err != nil {
-		logger.Error("failed-to-save-status-event", err)
 	}
 }
 
@@ -196,29 +169,9 @@ func (delegate *delegate) saveFinish(logger lager.Logger, status exec.ExitStatus
 }
 
 func (delegate *delegate) saveStatus(logger lager.Logger, status atc.BuildStatus) {
-	time := time.Now()
-
-	err := delegate.db.SaveBuildEndTime(delegate.buildID, time)
+	err := delegate.db.FinishBuild(delegate.buildID, db.Status(status))
 	if err != nil {
-		logger.Error("failed-to-save-end-time", err)
-	}
-
-	err = delegate.db.SaveBuildStatus(delegate.buildID, db.Status(status))
-	if err != nil {
-		logger.Error("failed-to-save-status", err)
-	}
-
-	err = delegate.db.SaveBuildEvent(delegate.buildID, event.Status{
-		Status: status,
-		Time:   time.Unix(),
-	})
-	if err != nil {
-		logger.Error("failed-to-save-status-event", err)
-	}
-
-	err = delegate.db.CompleteBuild(delegate.buildID)
-	if err != nil {
-		logger.Error("failed-to-complete-build", err)
+		logger.Error("failed-to-finish-build", err)
 	}
 }
 

@@ -11,7 +11,6 @@ import (
 	execfakes "github.com/concourse/atc/exec/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 )
 
@@ -191,23 +190,6 @@ var _ = Describe("ExecEngine", func() {
 
 				_, _, privileged, _ := fakeFactory.ExecuteArgsForCall(0)
 				Ω(privileged).Should(Equal(exec.Privileged(true)))
-			})
-		})
-
-		Context("before executing anything", func() {
-			BeforeEach(func() {
-				fakeDelegate.StartStub = func(lager.Logger) {
-					Ω(inputSource.RunCallCount()).Should(BeZero())
-					Ω(executeSource.RunCallCount()).Should(BeZero())
-					Ω(outputSource.RunCallCount()).Should(BeZero())
-				}
-			})
-
-			It("starts the build via the delegate", func() {
-				Ω(fakeDelegate.StartCallCount()).Should(Equal(1))
-				Ω(inputSource.RunCallCount()).Should(Equal(1))
-				Ω(executeSource.RunCallCount()).Should(Equal(1))
-				Ω(outputSource.RunCallCount()).Should(Equal(1))
 			})
 		})
 

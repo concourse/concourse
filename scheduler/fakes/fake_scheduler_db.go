@@ -20,6 +20,15 @@ type FakeSchedulerDB struct {
 		result1 bool
 		result2 error
 	}
+	FinishBuildStub        func(buildID int, status db.Status) error
+	finishBuildMutex       sync.RWMutex
+	finishBuildArgsForCall []struct {
+		buildID int
+		status  db.Status
+	}
+	finishBuildReturns struct {
+		result1 error
+	}
 	GetLatestInputVersionsStub        func([]atc.JobInputConfig) (db.SavedVersionedResources, error)
 	getLatestInputVersionsMutex       sync.RWMutex
 	getLatestInputVersionsArgsForCall []struct {
@@ -66,15 +75,6 @@ type FakeSchedulerDB struct {
 		result1 []db.Build
 		result2 error
 	}
-	SaveBuildStatusStub        func(buildID int, status db.Status) error
-	saveBuildStatusMutex       sync.RWMutex
-	saveBuildStatusArgsForCall []struct {
-		buildID int
-		status  db.Status
-	}
-	saveBuildStatusReturns struct {
-		result1 error
-	}
 }
 
 func (fake *FakeSchedulerDB) ScheduleBuild(buildID int, serial bool) (bool, error) {
@@ -109,6 +109,39 @@ func (fake *FakeSchedulerDB) ScheduleBuildReturns(result1 bool, result2 error) {
 		result1 bool
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeSchedulerDB) FinishBuild(buildID int, status db.Status) error {
+	fake.finishBuildMutex.Lock()
+	fake.finishBuildArgsForCall = append(fake.finishBuildArgsForCall, struct {
+		buildID int
+		status  db.Status
+	}{buildID, status})
+	fake.finishBuildMutex.Unlock()
+	if fake.FinishBuildStub != nil {
+		return fake.FinishBuildStub(buildID, status)
+	} else {
+		return fake.finishBuildReturns.result1
+	}
+}
+
+func (fake *FakeSchedulerDB) FinishBuildCallCount() int {
+	fake.finishBuildMutex.RLock()
+	defer fake.finishBuildMutex.RUnlock()
+	return len(fake.finishBuildArgsForCall)
+}
+
+func (fake *FakeSchedulerDB) FinishBuildArgsForCall(i int) (int, db.Status) {
+	fake.finishBuildMutex.RLock()
+	defer fake.finishBuildMutex.RUnlock()
+	return fake.finishBuildArgsForCall[i].buildID, fake.finishBuildArgsForCall[i].status
+}
+
+func (fake *FakeSchedulerDB) FinishBuildReturns(result1 error) {
+	fake.FinishBuildStub = nil
+	fake.finishBuildReturns = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeSchedulerDB) GetLatestInputVersions(arg1 []atc.JobInputConfig) (db.SavedVersionedResources, error) {
@@ -269,39 +302,6 @@ func (fake *FakeSchedulerDB) GetAllStartedBuildsReturns(result1 []db.Build, resu
 		result1 []db.Build
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakeSchedulerDB) SaveBuildStatus(buildID int, status db.Status) error {
-	fake.saveBuildStatusMutex.Lock()
-	fake.saveBuildStatusArgsForCall = append(fake.saveBuildStatusArgsForCall, struct {
-		buildID int
-		status  db.Status
-	}{buildID, status})
-	fake.saveBuildStatusMutex.Unlock()
-	if fake.SaveBuildStatusStub != nil {
-		return fake.SaveBuildStatusStub(buildID, status)
-	} else {
-		return fake.saveBuildStatusReturns.result1
-	}
-}
-
-func (fake *FakeSchedulerDB) SaveBuildStatusCallCount() int {
-	fake.saveBuildStatusMutex.RLock()
-	defer fake.saveBuildStatusMutex.RUnlock()
-	return len(fake.saveBuildStatusArgsForCall)
-}
-
-func (fake *FakeSchedulerDB) SaveBuildStatusArgsForCall(i int) (int, db.Status) {
-	fake.saveBuildStatusMutex.RLock()
-	defer fake.saveBuildStatusMutex.RUnlock()
-	return fake.saveBuildStatusArgsForCall[i].buildID, fake.saveBuildStatusArgsForCall[i].status
-}
-
-func (fake *FakeSchedulerDB) SaveBuildStatusReturns(result1 error) {
-	fake.SaveBuildStatusStub = nil
-	fake.saveBuildStatusReturns = struct {
-		result1 error
-	}{result1}
 }
 
 var _ scheduler.SchedulerDB = new(FakeSchedulerDB)

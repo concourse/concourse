@@ -154,17 +154,17 @@ var _ = Describe("Scheduler", func() {
 				err := scheduler.TrackInFlightBuilds()
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(schedulerDB.SaveBuildStatusCallCount()).Should(Equal(3))
+				Ω(schedulerDB.FinishBuildCallCount()).Should(Equal(3))
 
-				savedBuilID1, status1 := schedulerDB.SaveBuildStatusArgsForCall(0)
+				savedBuilID1, status1 := schedulerDB.FinishBuildArgsForCall(0)
 				Ω(savedBuilID1).Should(Equal(1))
 				Ω(status1).Should(Equal(db.StatusErrored))
 
-				savedBuilID2, status2 := schedulerDB.SaveBuildStatusArgsForCall(1)
+				savedBuilID2, status2 := schedulerDB.FinishBuildArgsForCall(1)
 				Ω(savedBuilID2).Should(Equal(2))
 				Ω(status2).Should(Equal(db.StatusErrored))
 
-				savedBuilID3, status3 := schedulerDB.SaveBuildStatusArgsForCall(2)
+				savedBuilID3, status3 := schedulerDB.FinishBuildArgsForCall(2)
 				Ω(savedBuilID3).Should(Equal(3))
 				Ω(status3).Should(Equal(db.StatusErrored))
 			})

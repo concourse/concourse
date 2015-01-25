@@ -93,8 +93,6 @@ func (build *execBuild) Abort() error {
 }
 
 func (build *execBuild) Resume(logger lager.Logger) {
-	build.delegate.Start(logger.Session("start"))
-
 	step := exec.Compose(
 		build.aggregateInputsStep(logger.Session("inputs")),
 		exec.Compose(

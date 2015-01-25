@@ -134,27 +134,30 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 
 			Context("when started", func() {
-				var expectedStartedBuild1 db.Build
-
 				BeforeEach(func() {
 					started, err := database.StartBuild(build1.ID, "some-engine", "some-metadata")
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(started).Should(BeTrue())
-
-					expectedStartedBuild1 = build1
-					expectedStartedBuild1.Status = db.StatusStarted
-					expectedStartedBuild1.Engine = "some-engine"
-					expectedStartedBuild1.EngineMetadata = "some-metadata"
 				})
 
 				It("saves the updated status, and the engine and engine metadata", func() {
 					currentBuild, err := database.GetCurrentBuild("some-job")
 					Ω(err).ShouldNot(HaveOccurred())
-					Ω(currentBuild).Should(Equal(expectedStartedBuild1))
+					Ω(currentBuild.Status).Should(Equal(db.StatusStarted))
+					Ω(currentBuild.Engine).Should(Equal("some-engine"))
+					Ω(currentBuild.EngineMetadata).Should(Equal("some-metadata"))
 				})
 
 				It("is not reported as a started build", func() {
-					Ω(database.GetAllStartedBuilds()).Should(ConsistOf([]db.Build{expectedStartedBuild1}))
+					startedBuilds, err := database.GetAllStartedBuilds()
+					Ω(err).ShouldNot(HaveOccurred())
+
+					ids := make([]int, len(startedBuilds))
+					for i, b := range startedBuilds {
+						ids[i] = b.ID
+					}
+
+					Ω(ids).Should(ConsistOf(build1.ID))
 				})
 
 				It("can have its engine metadata saved", func() {
@@ -165,23 +168,25 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(currentBuild.EngineMetadata).Should(Equal("some-updated-metadata"))
 				})
-			})
 
-			Context("when the status is updated", func() {
-				var expectedSucceededBuild1 db.Build
-
-				BeforeEach(func() {
-					err := database.SaveBuildStatus(build1.ID, db.StatusSucceeded)
-					Ω(err).ShouldNot(HaveOccurred())
-
-					expectedSucceededBuild1 = build1
-					expectedSucceededBuild1.Status = db.StatusSucceeded
-				})
-
-				It("is reflected through getting the build", func() {
+				It("saves the build's start time", func() {
 					currentBuild, err := database.GetCurrentBuild("some-job")
 					Ω(err).ShouldNot(HaveOccurred())
-					Ω(currentBuild).Should(Equal(expectedSucceededBuild1))
+					Ω(currentBuild.StartTime.Unix()).Should(BeNumerically("~", time.Now().Unix(), 3))
+				})
+			})
+
+			Context("when the build finishes", func() {
+				BeforeEach(func() {
+					err := database.FinishBuild(build1.ID, db.StatusSucceeded)
+					Ω(err).ShouldNot(HaveOccurred())
+				})
+
+				It("sets the build's status and end time", func() {
+					currentBuild, err := database.GetCurrentBuild("some-job")
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(currentBuild.Status).Should(Equal(db.StatusSucceeded))
+					Ω(currentBuild.EndTime.Unix()).Should(BeNumerically("~", time.Now().Unix(), 3))
 				})
 			})
 
@@ -324,27 +329,6 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				Payload: "log 2",
 			})))
 
-			By("returning ErrEndOfBuildEventStream and notifying those waiting when the build is completed")
-			go func() {
-				event, err := events.Next()
-				if err != nil {
-					nextErr <- err
-				} else {
-					nextEvent <- event
-				}
-			}()
-
-			Consistently(nextEvent).ShouldNot(Receive())
-			Consistently(nextErr).ShouldNot(Receive())
-
-			err = database.CompleteBuild(build.ID)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			Eventually(nextErr).Should(Receive(Equal(db.ErrEndOfBuildEventStream)))
-
-			_, err = events.Next()
-			Ω(err).Should(Equal(db.ErrEndOfBuildEventStream))
-
 			By("returning ErrBuildEventStreamClosed for Next calls after Close")
 			events3, err := database.GetBuildEvents(build.ID, 0)
 			Ω(err).ShouldNot(HaveOccurred())
@@ -353,6 +337,47 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			_, err = events3.Next()
 			Ω(err).Should(Equal(db.ErrBuildEventStreamClosed))
+		})
+
+		It("saves and emits status events", func() {
+			build, err := database.CreateJobBuild("some-job")
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(build.Name).Should(Equal("1"))
+
+			By("allowing you to subscribe when no events have yet occurred")
+			events, err := database.GetBuildEvents(build.ID, 0)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			defer events.Close()
+
+			By("emitting a status event when started")
+			started, err := database.StartBuild(build.ID, "engine", "metadata")
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(started).Should(BeTrue())
+
+			startedBuild, err := database.GetBuild(build.ID)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(events.Next()).Should(Equal(event.Status{
+				Status: atc.StatusStarted,
+				Time:   startedBuild.StartTime.Unix(),
+			}))
+
+			By("emitting a status event when finished")
+			err = database.FinishBuild(build.ID, db.StatusSucceeded)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			finishedBuild, err := database.GetBuild(build.ID)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(events.Next()).Should(Equal(event.Status{
+				Status: atc.StatusSucceeded,
+				Time:   finishedBuild.EndTime.Unix(),
+			}))
+
+			By("ending the stream when finished")
+			_, err = events.Next()
+			Ω(err).Should(Equal(db.ErrEndOfBuildEventStream))
 		})
 
 		It("can keep track of workers", func() {
@@ -426,26 +451,6 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Ω(allBuilds).Should(Equal([]db.Build{nextOneOff, jobBuild, oneOff}))
 		})
 
-		It("can save a build's start/end timestamps", func() {
-			build, err := database.CreateJobBuild("some-job")
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(build.Name).Should(Equal("1"))
-
-			startTime := time.Now()
-			endTime := startTime.Add(time.Second)
-
-			err = database.SaveBuildStartTime(build.ID, startTime)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			err = database.SaveBuildEndTime(build.ID, endTime)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			build, err = database.GetBuild(build.ID)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(build.StartTime.Unix()).Should(Equal(startTime.Unix()))
-			Ω(build.EndTime.Unix()).Should(Equal(endTime.Unix()))
-		})
-
 		It("can report a job's latest running and finished builds", func() {
 			finished, next, err := database.GetJobFinishedAndNextBuild("some-job")
 			Ω(err).ShouldNot(HaveOccurred())
@@ -456,7 +461,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			finishedBuild, err := database.CreateJobBuild("some-job")
 			Ω(err).ShouldNot(HaveOccurred())
 
-			err = database.SaveBuildStatus(finishedBuild.ID, db.StatusSucceeded)
+			err = database.FinishBuild(finishedBuild.ID, db.StatusSucceeded)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			finished, next, err = database.GetJobFinishedAndNextBuild("some-job")
@@ -497,7 +502,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Ω(next.ID).Should(Equal(nextBuild.ID)) // not anotherRunningBuild
 			Ω(finished.ID).Should(Equal(finishedBuild.ID))
 
-			err = database.SaveBuildStatus(nextBuild.ID, db.StatusSucceeded)
+			err = database.FinishBuild(nextBuild.ID, db.StatusSucceeded)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			finished, next, err = database.GetJobFinishedAndNextBuild("some-job")
@@ -1319,7 +1324,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			Context("and then aborted", func() {
 				BeforeEach(func() {
-					err := database.SaveBuildStatus(firstBuild.ID, db.StatusAborted)
+					err := database.FinishBuild(firstBuild.ID, db.StatusAborted)
 					Ω(err).ShouldNot(HaveOccurred())
 				})
 
@@ -1347,7 +1352,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 				Context("and then aborted", func() {
 					BeforeEach(func() {
-						err := database.SaveBuildStatus(firstBuild.ID, db.StatusAborted)
+						err := database.FinishBuild(firstBuild.ID, db.StatusAborted)
 						Ω(err).ShouldNot(HaveOccurred())
 					})
 
@@ -1459,7 +1464,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 							Context("and the first build's status changes to "+string(status), func() {
 								BeforeEach(func() {
-									err := database.SaveBuildStatus(firstBuild.ID, status)
+									err := database.FinishBuild(firstBuild.ID, status)
 									Ω(err).ShouldNot(HaveOccurred())
 								})
 
@@ -1476,7 +1481,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 					Describe("after the first build is aborted", func() {
 						BeforeEach(func() {
-							err := database.SaveBuildStatus(firstBuild.ID, db.StatusAborted)
+							err := database.FinishBuild(firstBuild.ID, db.StatusAborted)
 							Ω(err).ShouldNot(HaveOccurred())
 						})
 
@@ -1503,7 +1508,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 						Context("and the first build finishes", func() {
 							BeforeEach(func() {
-								err := database.SaveBuildStatus(firstBuild.ID, db.StatusSucceeded)
+								err := database.FinishBuild(firstBuild.ID, db.StatusSucceeded)
 								Ω(err).ShouldNot(HaveOccurred())
 							})
 

@@ -28,18 +28,13 @@ type DB interface {
 
 	ScheduleBuild(buildID int, serial bool) (bool, error)
 	StartBuild(buildID int, engineName, engineMetadata string) (bool, error)
+	FinishBuild(buildID int, status Status) error
 
 	GetBuildEvents(buildID int, from uint) (EventSource, error)
 	SaveBuildEvent(buildID int, event atc.Event) error
-	CompleteBuild(buildID int) error
 
 	SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error)
 	SaveBuildOutput(buildID int, vr VersionedResource) (SavedVersionedResource, error)
-
-	SaveBuildStatus(buildID int, status Status) error
-
-	SaveBuildStartTime(buildID int, startTime time.Time) error
-	SaveBuildEndTime(buildID int, endTime time.Time) error
 
 	SaveVersionedResource(VersionedResource) (SavedVersionedResource, error)
 	GetLatestVersionedResource(resource string) (SavedVersionedResource, error)

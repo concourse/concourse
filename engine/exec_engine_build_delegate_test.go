@@ -39,43 +39,6 @@ var _ = Describe("BuildDelegate", func() {
 		logger = lagertest.NewTestLogger("test")
 	})
 
-	Describe("Start", func() {
-		BeforeEach(func() {
-			delegate.Start(logger)
-		})
-
-		It("saves the build's start time", func() {
-			Ω(fakeDB.SaveBuildStartTimeCallCount()).Should(Equal(1))
-
-			buildID, startTime := fakeDB.SaveBuildStartTimeArgsForCall(0)
-			Ω(buildID).Should(Equal(42))
-			Ω(startTime).Should(BeTemporally("~", time.Now(), time.Second))
-		})
-
-		It("saves the build's status as 'started'", func() {
-			Ω(fakeDB.SaveBuildStatusCallCount()).Should(Equal(1))
-
-			buildID, status := fakeDB.SaveBuildStatusArgsForCall(0)
-			Ω(buildID).Should(Equal(42))
-			Ω(status).Should(Equal(db.StatusStarted))
-		})
-
-		It("saves a 'started' status event", func() {
-			Ω(fakeDB.SaveBuildStartTimeCallCount()).Should(Equal(1))
-
-			_, startTime := fakeDB.SaveBuildStartTimeArgsForCall(0)
-
-			Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(1))
-
-			buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
-			Ω(buildID).Should(Equal(42))
-			Ω(savedEvent).Should(Equal(event.Status{
-				Status: atc.StatusStarted,
-				Time:   startTime.Unix(),
-			}))
-		})
-	})
-
 	Describe("InputDelegate", func() {
 		var (
 			inputPlan atc.InputPlan
@@ -402,10 +365,10 @@ var _ = Describe("BuildDelegate", func() {
 							finishErr = nil
 						})
 
-						It("saves status as 'succeeded'", func() {
-							Ω(fakeDB.SaveBuildStatusCallCount()).Should(Equal(1))
+						It("finishes with status 'succeeded'", func() {
+							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
 
-							buildID, savedStatus := fakeDB.SaveBuildStatusArgsForCall(0)
+							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
 							Ω(buildID).Should(Equal(42))
 							Ω(savedStatus).Should(Equal(db.StatusSucceeded))
 						})
@@ -418,10 +381,10 @@ var _ = Describe("BuildDelegate", func() {
 							finishErr = disaster
 						})
 
-						It("saves status as 'errored'", func() {
-							Ω(fakeDB.SaveBuildStatusCallCount()).Should(Equal(1))
+						It("finishes with status 'errored'", func() {
+							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
 
-							buildID, savedStatus := fakeDB.SaveBuildStatusArgsForCall(0)
+							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
 							Ω(buildID).Should(Equal(42))
 							Ω(savedStatus).Should(Equal(db.StatusErrored))
 						})
@@ -460,10 +423,10 @@ var _ = Describe("BuildDelegate", func() {
 							finishErr = nil
 						})
 
-						It("saves status as 'failed'", func() {
-							Ω(fakeDB.SaveBuildStatusCallCount()).Should(Equal(1))
+						It("finishes with status 'failed'", func() {
+							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
 
-							buildID, savedStatus := fakeDB.SaveBuildStatusArgsForCall(0)
+							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
 							Ω(buildID).Should(Equal(42))
 							Ω(savedStatus).Should(Equal(db.StatusFailed))
 						})
@@ -476,10 +439,10 @@ var _ = Describe("BuildDelegate", func() {
 							finishErr = disaster
 						})
 
-						It("saves status as 'errored'", func() {
-							Ω(fakeDB.SaveBuildStatusCallCount()).Should(Equal(1))
+						It("finishes with status 'errored'", func() {
+							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
 
-							buildID, savedStatus := fakeDB.SaveBuildStatusArgsForCall(0)
+							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
 							Ω(buildID).Should(Equal(42))
 							Ω(savedStatus).Should(Equal(db.StatusErrored))
 						})
@@ -714,10 +677,10 @@ var _ = Describe("BuildDelegate", func() {
 					finishErr = nil
 				})
 
-				It("saves status as 'aborted'", func() {
-					Ω(fakeDB.SaveBuildStatusCallCount()).Should(Equal(1))
+				It("finishes with status 'aborted'", func() {
+					Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
 
-					buildID, savedStatus := fakeDB.SaveBuildStatusArgsForCall(0)
+					buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
 					Ω(buildID).Should(Equal(42))
 					Ω(savedStatus).Should(Equal(db.StatusAborted))
 				})
@@ -730,10 +693,10 @@ var _ = Describe("BuildDelegate", func() {
 					finishErr = disaster
 				})
 
-				It("saves status as 'aborted'", func() {
-					Ω(fakeDB.SaveBuildStatusCallCount()).Should(Equal(1))
+				It("finishes with status 'aborted'", func() {
+					Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
 
-					buildID, savedStatus := fakeDB.SaveBuildStatusArgsForCall(0)
+					buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
 					Ω(buildID).Should(Equal(42))
 					Ω(savedStatus).Should(Equal(db.StatusAborted))
 				})

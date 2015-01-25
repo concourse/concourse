@@ -3,7 +3,6 @@ package fakes
 
 import (
 	"sync"
-	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -20,12 +19,13 @@ type FakeEngineDB struct {
 	saveBuildEventReturns struct {
 		result1 error
 	}
-	CompleteBuildStub        func(buildID int) error
-	completeBuildMutex       sync.RWMutex
-	completeBuildArgsForCall []struct {
+	FinishBuildStub        func(buildID int, status db.Status) error
+	finishBuildMutex       sync.RWMutex
+	finishBuildArgsForCall []struct {
 		buildID int
+		status  db.Status
 	}
-	completeBuildReturns struct {
+	finishBuildReturns struct {
 		result1 error
 	}
 	SaveBuildEngineMetadataStub        func(buildID int, metadata string) error
@@ -35,24 +35,6 @@ type FakeEngineDB struct {
 		metadata string
 	}
 	saveBuildEngineMetadataReturns struct {
-		result1 error
-	}
-	SaveBuildStartTimeStub        func(buildID int, startTime time.Time) error
-	saveBuildStartTimeMutex       sync.RWMutex
-	saveBuildStartTimeArgsForCall []struct {
-		buildID   int
-		startTime time.Time
-	}
-	saveBuildStartTimeReturns struct {
-		result1 error
-	}
-	SaveBuildEndTimeStub        func(buildID int, startTime time.Time) error
-	saveBuildEndTimeMutex       sync.RWMutex
-	saveBuildEndTimeArgsForCall []struct {
-		buildID   int
-		startTime time.Time
-	}
-	saveBuildEndTimeReturns struct {
 		result1 error
 	}
 	SaveBuildInputStub        func(buildID int, input db.BuildInput) (db.SavedVersionedResource, error)
@@ -74,15 +56,6 @@ type FakeEngineDB struct {
 	saveBuildOutputReturns struct {
 		result1 db.SavedVersionedResource
 		result2 error
-	}
-	SaveBuildStatusStub        func(buildID int, status db.Status) error
-	saveBuildStatusMutex       sync.RWMutex
-	saveBuildStatusArgsForCall []struct {
-		buildID int
-		status  db.Status
-	}
-	saveBuildStatusReturns struct {
-		result1 error
 	}
 }
 
@@ -119,34 +92,35 @@ func (fake *FakeEngineDB) SaveBuildEventReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeEngineDB) CompleteBuild(buildID int) error {
-	fake.completeBuildMutex.Lock()
-	fake.completeBuildArgsForCall = append(fake.completeBuildArgsForCall, struct {
+func (fake *FakeEngineDB) FinishBuild(buildID int, status db.Status) error {
+	fake.finishBuildMutex.Lock()
+	fake.finishBuildArgsForCall = append(fake.finishBuildArgsForCall, struct {
 		buildID int
-	}{buildID})
-	fake.completeBuildMutex.Unlock()
-	if fake.CompleteBuildStub != nil {
-		return fake.CompleteBuildStub(buildID)
+		status  db.Status
+	}{buildID, status})
+	fake.finishBuildMutex.Unlock()
+	if fake.FinishBuildStub != nil {
+		return fake.FinishBuildStub(buildID, status)
 	} else {
-		return fake.completeBuildReturns.result1
+		return fake.finishBuildReturns.result1
 	}
 }
 
-func (fake *FakeEngineDB) CompleteBuildCallCount() int {
-	fake.completeBuildMutex.RLock()
-	defer fake.completeBuildMutex.RUnlock()
-	return len(fake.completeBuildArgsForCall)
+func (fake *FakeEngineDB) FinishBuildCallCount() int {
+	fake.finishBuildMutex.RLock()
+	defer fake.finishBuildMutex.RUnlock()
+	return len(fake.finishBuildArgsForCall)
 }
 
-func (fake *FakeEngineDB) CompleteBuildArgsForCall(i int) int {
-	fake.completeBuildMutex.RLock()
-	defer fake.completeBuildMutex.RUnlock()
-	return fake.completeBuildArgsForCall[i].buildID
+func (fake *FakeEngineDB) FinishBuildArgsForCall(i int) (int, db.Status) {
+	fake.finishBuildMutex.RLock()
+	defer fake.finishBuildMutex.RUnlock()
+	return fake.finishBuildArgsForCall[i].buildID, fake.finishBuildArgsForCall[i].status
 }
 
-func (fake *FakeEngineDB) CompleteBuildReturns(result1 error) {
-	fake.CompleteBuildStub = nil
-	fake.completeBuildReturns = struct {
+func (fake *FakeEngineDB) FinishBuildReturns(result1 error) {
+	fake.FinishBuildStub = nil
+	fake.finishBuildReturns = struct {
 		result1 error
 	}{result1}
 }
@@ -180,72 +154,6 @@ func (fake *FakeEngineDB) SaveBuildEngineMetadataArgsForCall(i int) (int, string
 func (fake *FakeEngineDB) SaveBuildEngineMetadataReturns(result1 error) {
 	fake.SaveBuildEngineMetadataStub = nil
 	fake.saveBuildEngineMetadataReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeEngineDB) SaveBuildStartTime(buildID int, startTime time.Time) error {
-	fake.saveBuildStartTimeMutex.Lock()
-	fake.saveBuildStartTimeArgsForCall = append(fake.saveBuildStartTimeArgsForCall, struct {
-		buildID   int
-		startTime time.Time
-	}{buildID, startTime})
-	fake.saveBuildStartTimeMutex.Unlock()
-	if fake.SaveBuildStartTimeStub != nil {
-		return fake.SaveBuildStartTimeStub(buildID, startTime)
-	} else {
-		return fake.saveBuildStartTimeReturns.result1
-	}
-}
-
-func (fake *FakeEngineDB) SaveBuildStartTimeCallCount() int {
-	fake.saveBuildStartTimeMutex.RLock()
-	defer fake.saveBuildStartTimeMutex.RUnlock()
-	return len(fake.saveBuildStartTimeArgsForCall)
-}
-
-func (fake *FakeEngineDB) SaveBuildStartTimeArgsForCall(i int) (int, time.Time) {
-	fake.saveBuildStartTimeMutex.RLock()
-	defer fake.saveBuildStartTimeMutex.RUnlock()
-	return fake.saveBuildStartTimeArgsForCall[i].buildID, fake.saveBuildStartTimeArgsForCall[i].startTime
-}
-
-func (fake *FakeEngineDB) SaveBuildStartTimeReturns(result1 error) {
-	fake.SaveBuildStartTimeStub = nil
-	fake.saveBuildStartTimeReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeEngineDB) SaveBuildEndTime(buildID int, startTime time.Time) error {
-	fake.saveBuildEndTimeMutex.Lock()
-	fake.saveBuildEndTimeArgsForCall = append(fake.saveBuildEndTimeArgsForCall, struct {
-		buildID   int
-		startTime time.Time
-	}{buildID, startTime})
-	fake.saveBuildEndTimeMutex.Unlock()
-	if fake.SaveBuildEndTimeStub != nil {
-		return fake.SaveBuildEndTimeStub(buildID, startTime)
-	} else {
-		return fake.saveBuildEndTimeReturns.result1
-	}
-}
-
-func (fake *FakeEngineDB) SaveBuildEndTimeCallCount() int {
-	fake.saveBuildEndTimeMutex.RLock()
-	defer fake.saveBuildEndTimeMutex.RUnlock()
-	return len(fake.saveBuildEndTimeArgsForCall)
-}
-
-func (fake *FakeEngineDB) SaveBuildEndTimeArgsForCall(i int) (int, time.Time) {
-	fake.saveBuildEndTimeMutex.RLock()
-	defer fake.saveBuildEndTimeMutex.RUnlock()
-	return fake.saveBuildEndTimeArgsForCall[i].buildID, fake.saveBuildEndTimeArgsForCall[i].startTime
-}
-
-func (fake *FakeEngineDB) SaveBuildEndTimeReturns(result1 error) {
-	fake.SaveBuildEndTimeStub = nil
-	fake.saveBuildEndTimeReturns = struct {
 		result1 error
 	}{result1}
 }
@@ -316,39 +224,6 @@ func (fake *FakeEngineDB) SaveBuildOutputReturns(result1 db.SavedVersionedResour
 		result1 db.SavedVersionedResource
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakeEngineDB) SaveBuildStatus(buildID int, status db.Status) error {
-	fake.saveBuildStatusMutex.Lock()
-	fake.saveBuildStatusArgsForCall = append(fake.saveBuildStatusArgsForCall, struct {
-		buildID int
-		status  db.Status
-	}{buildID, status})
-	fake.saveBuildStatusMutex.Unlock()
-	if fake.SaveBuildStatusStub != nil {
-		return fake.SaveBuildStatusStub(buildID, status)
-	} else {
-		return fake.saveBuildStatusReturns.result1
-	}
-}
-
-func (fake *FakeEngineDB) SaveBuildStatusCallCount() int {
-	fake.saveBuildStatusMutex.RLock()
-	defer fake.saveBuildStatusMutex.RUnlock()
-	return len(fake.saveBuildStatusArgsForCall)
-}
-
-func (fake *FakeEngineDB) SaveBuildStatusArgsForCall(i int) (int, db.Status) {
-	fake.saveBuildStatusMutex.RLock()
-	defer fake.saveBuildStatusMutex.RUnlock()
-	return fake.saveBuildStatusArgsForCall[i].buildID, fake.saveBuildStatusArgsForCall[i].status
-}
-
-func (fake *FakeEngineDB) SaveBuildStatusReturns(result1 error) {
-	fake.SaveBuildStatusStub = nil
-	fake.saveBuildStatusReturns = struct {
-		result1 error
-	}{result1}
 }
 
 var _ engine.EngineDB = new(FakeEngineDB)
