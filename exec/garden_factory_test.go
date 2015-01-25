@@ -94,6 +94,10 @@ var _ = Describe("GardenFactory", func() {
 					Ω(hijackErr).ShouldNot(HaveOccurred())
 				})
 
+				It("releases the container", func() {
+					Ω(fakeContainer.ReleaseCallCount()).Should(Equal(1))
+				})
+
 				It("spawns the process with the given spec and IO config", func() {
 					Ω(fakeContainer.RunCallCount()).Should(Equal(1))
 
@@ -1263,6 +1267,11 @@ var _ = Describe("GardenFactory", func() {
 							Ω(status).Should(Equal(ExitStatus(0)))
 						})
 
+						It("releases the container", func() {
+							Eventually(process.Wait()).Should(Receive(BeNil()))
+							Ω(fakeContainer.ReleaseCallCount()).Should(Equal(1))
+						})
+
 						Describe("before saving the exit status property", func() {
 							BeforeEach(func() {
 								executeDelegate.FinishedStub = func(ExitStatus) {
@@ -1337,6 +1346,11 @@ var _ = Describe("GardenFactory", func() {
 							var status ExitStatus
 							Ω(source.Result(&status)).Should(BeTrue())
 							Ω(status).Should(Equal(ExitStatus(1)))
+						})
+
+						It("releases the container", func() {
+							Eventually(process.Wait()).Should(Receive(BeNil()))
+							Ω(fakeContainer.ReleaseCallCount()).Should(Equal(1))
 						})
 
 						Describe("before saving the exit status property", func() {

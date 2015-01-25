@@ -71,11 +71,16 @@ var _ = Describe("Worker", func() {
 					err := createdContainer.Destroy()
 					Ω(err).ShouldNot(HaveOccurred())
 
+					By("destroying via garden")
 					Ω(fakeGardenClient.DestroyCallCount()).Should(Equal(1))
 					Ω(fakeGardenClient.DestroyArgsForCall(0)).Should(Equal("some-handle"))
+
+					By("no longer heartbeating")
+					fakeClock.Increment(30 * time.Second)
+					Consistently(fakeContainer.SetPropertyCallCount).Should(BeZero())
 				})
 
-				It("is kept alive by continuously setting a keepalive properity", func() {
+				It("is kept alive by continuously setting a keepalive property until released", func() {
 					Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(0))
 
 					fakeClock.Increment(30 * time.Second)
@@ -91,6 +96,12 @@ var _ = Describe("Worker", func() {
 					name, value = fakeContainer.SetPropertyArgsForCall(1)
 					Ω(name).Should(Equal("keepalive"))
 					Ω(value).Should(Equal("183")) // unix timestamp
+
+					createdContainer.Release()
+
+					fakeClock.Increment(30 * time.Second)
+
+					Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(2))
 				})
 			})
 		})
@@ -148,11 +159,16 @@ var _ = Describe("Worker", func() {
 					err := foundContainer.Destroy()
 					Ω(err).ShouldNot(HaveOccurred())
 
+					By("destroying via garden")
 					Ω(fakeGardenClient.DestroyCallCount()).Should(Equal(1))
 					Ω(fakeGardenClient.DestroyArgsForCall(0)).Should(Equal("some-handle"))
+
+					By("no longer heartbeating")
+					fakeClock.Increment(30 * time.Second)
+					Consistently(fakeContainer.SetPropertyCallCount).Should(BeZero())
 				})
 
-				It("is kept alive by continuously setting a keepalive properity", func() {
+				It("is kept alive by continuously setting a keepalive property until released", func() {
 					Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(0))
 
 					fakeClock.Increment(30 * time.Second)
@@ -168,6 +184,12 @@ var _ = Describe("Worker", func() {
 					name, value = fakeContainer.SetPropertyArgsForCall(1)
 					Ω(name).Should(Equal("keepalive"))
 					Ω(value).Should(Equal("183")) // unix timestamp
+
+					foundContainer.Release()
+
+					fakeClock.Increment(30 * time.Second)
+
+					Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(2))
 				})
 			})
 		})

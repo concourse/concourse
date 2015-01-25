@@ -3,6 +3,7 @@ package worker
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
@@ -27,6 +28,8 @@ type Container interface {
 	garden.Container
 
 	Destroy() error
+
+	Release()
 }
 
 type gardenWorker struct {
@@ -75,22 +78,7 @@ type gardenWorkerContainer struct {
 	clock clock.Clock
 
 	stopHeartbeating chan struct{}
-}
-
-func (container *gardenWorkerContainer) Destroy() error {
-	close(container.stopHeartbeating)
-	return container.gardenClient.Destroy(container.Handle())
-}
-
-func (container *gardenWorkerContainer) heartbeat(pacemaker clock.Ticker) {
-	for {
-		select {
-		case <-pacemaker.C():
-			container.SetProperty("keepalive", fmt.Sprintf("%d", container.clock.Now().Unix()))
-		case <-container.stopHeartbeating:
-			return
-		}
-	}
+	heartbeating     *sync.WaitGroup
 }
 
 func newGardenWorkerContainer(container garden.Container, gardenClient garden.Client, clock clock.Clock) Container {
@@ -99,11 +87,37 @@ func newGardenWorkerContainer(container garden.Container, gardenClient garden.Cl
 
 		gardenClient: gardenClient,
 
-		clock:            clock,
+		clock: clock,
+
+		heartbeating:     new(sync.WaitGroup),
 		stopHeartbeating: make(chan struct{}),
 	}
 
+	workerContainer.heartbeating.Add(1)
 	go workerContainer.heartbeat(clock.NewTicker(containerKeepalive))
 
 	return workerContainer
+}
+
+func (container *gardenWorkerContainer) Destroy() error {
+	container.Release()
+	return container.gardenClient.Destroy(container.Handle())
+}
+
+func (container *gardenWorkerContainer) Release() {
+	close(container.stopHeartbeating)
+	container.heartbeating.Wait()
+}
+
+func (container *gardenWorkerContainer) heartbeat(pacemaker clock.Ticker) {
+	defer container.heartbeating.Done()
+
+	for {
+		select {
+		case <-pacemaker.C():
+			container.SetProperty("keepalive", fmt.Sprintf("%d", container.clock.Now().Unix()))
+		case <-container.stopHeartbeating:
+			return
+		}
+	}
 }

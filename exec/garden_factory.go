@@ -80,6 +80,8 @@ func (factory *gardenFactory) Hijack(sessionID SessionID, ioConfig IOConfig, spe
 		return nil, err
 	}
 
+	defer container.Release()
+
 	process, err := container.Run(convertProcessSpec(spec), garden.ProcessIO{
 		Stdin:  ioConfig.Stdin,
 		Stdout: ioConfig.Stdout,

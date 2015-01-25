@@ -155,6 +155,8 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 		}
 	}
 
+	defer step.container.Release()
+
 	close(ready)
 
 	waitExitStatus := make(chan int, 1)

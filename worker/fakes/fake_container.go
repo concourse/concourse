@@ -185,6 +185,9 @@ type FakeContainer struct {
 	destroyReturns struct {
 		result1 error
 	}
+	ReleaseStub        func()
+	releaseMutex       sync.RWMutex
+	releaseArgsForCall []struct{}
 }
 
 func (fake *FakeContainer) Handle() string {
@@ -822,6 +825,21 @@ func (fake *FakeContainer) DestroyReturns(result1 error) {
 	fake.destroyReturns = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeContainer) Release() {
+	fake.releaseMutex.Lock()
+	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct{}{})
+	fake.releaseMutex.Unlock()
+	if fake.ReleaseStub != nil {
+		fake.ReleaseStub()
+	}
+}
+
+func (fake *FakeContainer) ReleaseCallCount() int {
+	fake.releaseMutex.RLock()
+	defer fake.releaseMutex.RUnlock()
+	return len(fake.releaseArgsForCall)
 }
 
 var _ worker.Container = new(FakeContainer)
