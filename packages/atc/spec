@@ -59,4 +59,5 @@ files:
   - github.com/tedsuo/ifrit/http_server/*.go # gosub
   - github.com/tedsuo/ifrit/sigmon/*.go # gosub
   - github.com/tedsuo/rata/*.go # gosub
+  - github.com/vito/clock/*.go # gosub
   - github.com/vito/go-sse/sse/*.go # gosub
