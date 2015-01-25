@@ -2,13 +2,16 @@ package worker
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
-	gclient "github.com/cloudfoundry-incubator/garden/client"
-	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
+	"github.com/vito/clock"
 )
 
 var ErrContainerNotFound = errors.New("container not found")
+
+const containerKeepalive = 30 * time.Second
 
 //go:generate counterfeiter . Worker
 
@@ -28,13 +31,15 @@ type Container interface {
 
 type gardenWorker struct {
 	gardenClient garden.Client
+	clock        clock.Clock
 
 	activeContainers int
 }
 
-func NewGardenWorker(addr string, activeContainers int) Worker {
+func NewGardenWorker(gardenClient garden.Client, clock clock.Clock, activeContainers int) Worker {
 	return &gardenWorker{
-		gardenClient: gclient.New(gconn.New("tcp", addr)),
+		gardenClient: gardenClient,
+		clock:        clock,
 
 		activeContainers: activeContainers,
 	}
@@ -46,11 +51,7 @@ func (worker *gardenWorker) Create(spec garden.ContainerSpec) (Container, error)
 		return nil, err
 	}
 
-	return &gardenWorkerContainer{
-		Container: gardenContainer,
-
-		gardenClient: worker.gardenClient,
-	}, nil
+	return newGardenWorkerContainer(gardenContainer, worker.gardenClient, worker.clock), nil
 }
 
 func (worker *gardenWorker) Lookup(handle string) (Container, error) {
@@ -59,11 +60,7 @@ func (worker *gardenWorker) Lookup(handle string) (Container, error) {
 		return nil, err
 	}
 
-	return &gardenWorkerContainer{
-		Container: gardenContainer,
-
-		gardenClient: worker.gardenClient,
-	}, nil
+	return newGardenWorkerContainer(gardenContainer, worker.gardenClient, worker.clock), nil
 }
 
 func (worker *gardenWorker) ActiveContainers() int {
@@ -74,8 +71,39 @@ type gardenWorkerContainer struct {
 	garden.Container
 
 	gardenClient garden.Client
+
+	clock clock.Clock
+
+	stopHeartbeating chan struct{}
 }
 
 func (container *gardenWorkerContainer) Destroy() error {
+	close(container.stopHeartbeating)
 	return container.gardenClient.Destroy(container.Handle())
+}
+
+func (container *gardenWorkerContainer) heartbeat(pacemaker clock.Ticker) {
+	for {
+		select {
+		case <-pacemaker.C():
+			container.SetProperty("keepalive", fmt.Sprintf("%d", container.clock.Now().Unix()))
+		case <-container.stopHeartbeating:
+			return
+		}
+	}
+}
+
+func newGardenWorkerContainer(container garden.Container, gardenClient garden.Client, clock clock.Clock) Container {
+	workerContainer := &gardenWorkerContainer{
+		Container: container,
+
+		gardenClient: gardenClient,
+
+		clock:            clock,
+		stopHeartbeating: make(chan struct{}),
+	}
+
+	go workerContainer.heartbeat(clock.NewTicker(containerKeepalive))
+
+	return workerContainer
 }

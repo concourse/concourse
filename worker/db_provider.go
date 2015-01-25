@@ -1,6 +1,12 @@
 package worker
 
-import "github.com/concourse/atc/db"
+import (
+	gclient "github.com/cloudfoundry-incubator/garden/client"
+	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
+	"github.com/vito/clock"
+
+	"github.com/concourse/atc/db"
+)
 
 //go:generate counterfeiter . WorkerDB
 
@@ -24,7 +30,11 @@ func (provider *dbProvider) Workers() ([]Worker, error) {
 
 	workers := make([]Worker, len(workerInfos))
 	for i, info := range workerInfos {
-		workers[i] = NewGardenWorker(info.Addr, info.ActiveContainers)
+		workers[i] = NewGardenWorker(
+			gclient.New(gconn.New("tcp", info.Addr)),
+			clock.NewClock(),
+			info.ActiveContainers,
+		)
 	}
 
 	return workers, nil

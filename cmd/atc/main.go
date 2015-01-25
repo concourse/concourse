@@ -15,12 +15,15 @@ import (
 
 	"github.com/BurntSushi/migration"
 	"github.com/cloudfoundry-incubator/candiedyaml"
+	gclient "github.com/cloudfoundry-incubator/garden/client"
+	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
 	"github.com/lib/pq"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
+	"github.com/vito/clock"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
@@ -57,10 +60,16 @@ var publicDir = flag.String(
 	"path to directory containing public resources (javascript, css, etc.)",
 )
 
+var gardenNetwork = flag.String(
+	"gardenNetwork",
+	"",
+	"garden API network type (tcp/unix). leave empty for dynamic registration.",
+)
+
 var gardenAddr = flag.String(
 	"gardenAddr",
 	"",
-	"garden API host:port. leave empty for dynamic registration.",
+	"garden API network address (host:port or socket path). leave empty for dynamic registration.",
 )
 
 var resourceTypes = flag.String(
@@ -225,7 +234,7 @@ func main() {
 
 	var workerClient worker.Client
 	if *gardenAddr != "" {
-		workerClient = worker.NewGardenWorker(*gardenAddr, -1)
+		workerClient = worker.NewGardenWorker(gclient.New(gconn.New(*gardenNetwork, *gardenAddr)), clock.NewClock(), -1)
 	} else {
 		workerClient = worker.NewPool(worker.NewDBWorkerProvider(db))
 	}
