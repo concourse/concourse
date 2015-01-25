@@ -11,6 +11,8 @@ import (
 type resourceStep struct {
 	SessionID resource.SessionID
 
+	Delegate ResourceDelegate
+
 	Tracker resource.Tracker
 	Type    resource.ResourceType
 
@@ -24,7 +26,11 @@ type resourceStep struct {
 
 func (step resourceStep) Using(source ArtifactSource) ArtifactSource {
 	step.ArtifactSource = source
-	return &step
+
+	return failureReporter{
+		ArtifactSource: &step,
+		ReportFailure:  step.Delegate.Failed,
+	}
 }
 
 func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -36,7 +42,17 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 	ras.Resource = resource
 	ras.VersionedSource = ras.Action(resource, ras.ArtifactSource)
 
-	return ras.VersionedSource.Run(signals, ready)
+	err = ras.VersionedSource.Run(signals, ready)
+	if err != nil {
+		return err
+	}
+
+	ras.Delegate.Completed(VersionInfo{
+		Version:  ras.VersionedSource.Version(),
+		Metadata: ras.VersionedSource.Metadata(),
+	})
+
+	return nil
 }
 
 func (ras *resourceStep) Release() error {

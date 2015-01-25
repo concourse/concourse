@@ -9,11 +9,11 @@ import (
 )
 
 type FakeFactory struct {
-	GetStub        func(exec.SessionID, exec.IOConfig, atc.ResourceConfig, atc.Params, atc.Version) exec.Step
+	GetStub        func(exec.SessionID, exec.GetDelegate, atc.ResourceConfig, atc.Params, atc.Version) exec.Step
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
 		arg1 exec.SessionID
-		arg2 exec.IOConfig
+		arg2 exec.GetDelegate
 		arg3 atc.ResourceConfig
 		arg4 atc.Params
 		arg5 atc.Version
@@ -21,22 +21,22 @@ type FakeFactory struct {
 	getReturns struct {
 		result1 exec.Step
 	}
-	PutStub        func(exec.SessionID, exec.IOConfig, atc.ResourceConfig, atc.Params) exec.Step
+	PutStub        func(exec.SessionID, exec.PutDelegate, atc.ResourceConfig, atc.Params) exec.Step
 	putMutex       sync.RWMutex
 	putArgsForCall []struct {
 		arg1 exec.SessionID
-		arg2 exec.IOConfig
+		arg2 exec.PutDelegate
 		arg3 atc.ResourceConfig
 		arg4 atc.Params
 	}
 	putReturns struct {
 		result1 exec.Step
 	}
-	ExecuteStub        func(exec.SessionID, exec.IOConfig, exec.Privileged, exec.BuildConfigSource) exec.Step
+	ExecuteStub        func(exec.SessionID, exec.ExecuteDelegate, exec.Privileged, exec.BuildConfigSource) exec.Step
 	executeMutex       sync.RWMutex
 	executeArgsForCall []struct {
 		arg1 exec.SessionID
-		arg2 exec.IOConfig
+		arg2 exec.ExecuteDelegate
 		arg3 exec.Privileged
 		arg4 exec.BuildConfigSource
 	}
@@ -56,11 +56,11 @@ type FakeFactory struct {
 	}
 }
 
-func (fake *FakeFactory) Get(arg1 exec.SessionID, arg2 exec.IOConfig, arg3 atc.ResourceConfig, arg4 atc.Params, arg5 atc.Version) exec.Step {
+func (fake *FakeFactory) Get(arg1 exec.SessionID, arg2 exec.GetDelegate, arg3 atc.ResourceConfig, arg4 atc.Params, arg5 atc.Version) exec.Step {
 	fake.getMutex.Lock()
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
 		arg1 exec.SessionID
-		arg2 exec.IOConfig
+		arg2 exec.GetDelegate
 		arg3 atc.ResourceConfig
 		arg4 atc.Params
 		arg5 atc.Version
@@ -79,7 +79,7 @@ func (fake *FakeFactory) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeFactory) GetArgsForCall(i int) (exec.SessionID, exec.IOConfig, atc.ResourceConfig, atc.Params, atc.Version) {
+func (fake *FakeFactory) GetArgsForCall(i int) (exec.SessionID, exec.GetDelegate, atc.ResourceConfig, atc.Params, atc.Version) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	return fake.getArgsForCall[i].arg1, fake.getArgsForCall[i].arg2, fake.getArgsForCall[i].arg3, fake.getArgsForCall[i].arg4, fake.getArgsForCall[i].arg5
@@ -92,11 +92,11 @@ func (fake *FakeFactory) GetReturns(result1 exec.Step) {
 	}{result1}
 }
 
-func (fake *FakeFactory) Put(arg1 exec.SessionID, arg2 exec.IOConfig, arg3 atc.ResourceConfig, arg4 atc.Params) exec.Step {
+func (fake *FakeFactory) Put(arg1 exec.SessionID, arg2 exec.PutDelegate, arg3 atc.ResourceConfig, arg4 atc.Params) exec.Step {
 	fake.putMutex.Lock()
 	fake.putArgsForCall = append(fake.putArgsForCall, struct {
 		arg1 exec.SessionID
-		arg2 exec.IOConfig
+		arg2 exec.PutDelegate
 		arg3 atc.ResourceConfig
 		arg4 atc.Params
 	}{arg1, arg2, arg3, arg4})
@@ -114,7 +114,7 @@ func (fake *FakeFactory) PutCallCount() int {
 	return len(fake.putArgsForCall)
 }
 
-func (fake *FakeFactory) PutArgsForCall(i int) (exec.SessionID, exec.IOConfig, atc.ResourceConfig, atc.Params) {
+func (fake *FakeFactory) PutArgsForCall(i int) (exec.SessionID, exec.PutDelegate, atc.ResourceConfig, atc.Params) {
 	fake.putMutex.RLock()
 	defer fake.putMutex.RUnlock()
 	return fake.putArgsForCall[i].arg1, fake.putArgsForCall[i].arg2, fake.putArgsForCall[i].arg3, fake.putArgsForCall[i].arg4
@@ -127,11 +127,11 @@ func (fake *FakeFactory) PutReturns(result1 exec.Step) {
 	}{result1}
 }
 
-func (fake *FakeFactory) Execute(arg1 exec.SessionID, arg2 exec.IOConfig, arg3 exec.Privileged, arg4 exec.BuildConfigSource) exec.Step {
+func (fake *FakeFactory) Execute(arg1 exec.SessionID, arg2 exec.ExecuteDelegate, arg3 exec.Privileged, arg4 exec.BuildConfigSource) exec.Step {
 	fake.executeMutex.Lock()
 	fake.executeArgsForCall = append(fake.executeArgsForCall, struct {
 		arg1 exec.SessionID
-		arg2 exec.IOConfig
+		arg2 exec.ExecuteDelegate
 		arg3 exec.Privileged
 		arg4 exec.BuildConfigSource
 	}{arg1, arg2, arg3, arg4})
@@ -149,7 +149,7 @@ func (fake *FakeFactory) ExecuteCallCount() int {
 	return len(fake.executeArgsForCall)
 }
 
-func (fake *FakeFactory) ExecuteArgsForCall(i int) (exec.SessionID, exec.IOConfig, exec.Privileged, exec.BuildConfigSource) {
+func (fake *FakeFactory) ExecuteArgsForCall(i int) (exec.SessionID, exec.ExecuteDelegate, exec.Privileged, exec.BuildConfigSource) {
 	fake.executeMutex.RLock()
 	defer fake.executeMutex.RUnlock()
 	return fake.executeArgsForCall[i].arg1, fake.executeArgsForCall[i].arg2, fake.executeArgsForCall[i].arg3, fake.executeArgsForCall[i].arg4

@@ -33,7 +33,7 @@ func (err MissingInputsError) Error() string {
 type executeStep struct {
 	SessionID SessionID
 
-	IOConfig IOConfig
+	Delegate ExecuteDelegate
 
 	Privileged   Privileged
 	ConfigSource BuildConfigSource
@@ -50,15 +50,19 @@ type executeStep struct {
 
 func (step executeStep) Using(source ArtifactSource) ArtifactSource {
 	step.artifactSource = source
-	return &step
+
+	return failureReporter{
+		ArtifactSource: &step,
+		ReportFailure:  step.Delegate.Failed,
+	}
 }
 
 func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	var err error
 
 	processIO := garden.ProcessIO{
-		Stdout: step.IOConfig.Stdout,
-		Stderr: step.IOConfig.Stderr,
+		Stdout: step.Delegate.Stdout(),
+		Stderr: step.Delegate.Stderr(),
 	}
 
 	step.container, err = step.WorkerClient.Lookup(string(step.SessionID))
@@ -102,6 +106,8 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 			return err
 		}
 
+		step.Delegate.Initializing(config)
+
 		step.container, err = step.WorkerClient.Create(garden.ContainerSpec{
 			Handle:     string(step.SessionID),
 			RootFSPath: config.Image,
@@ -123,6 +129,8 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 		if len(missing) > 0 {
 			return MissingInputsError{missing}
 		}
+
+		step.Delegate.Started()
 
 		step.process, err = step.container.Run(garden.ProcessSpec{
 			Path: config.Run.Path,
@@ -167,6 +175,8 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 	case status := <-waitExitStatus:
 		step.exitStatus = status
+
+		step.Delegate.Finished(ExitStatus(status))
 
 		statusValue := fmt.Sprintf("%d", status)
 

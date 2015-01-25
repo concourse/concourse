@@ -11,44 +11,42 @@ import (
 )
 
 type FakeBuildDelegate struct {
-	InputCompletedStub        func(lager.Logger, atc.InputPlan) exec.CompleteCallback
-	inputCompletedMutex       sync.RWMutex
-	inputCompletedArgsForCall []struct {
+	InputDelegateStub        func(lager.Logger, atc.InputPlan) exec.GetDelegate
+	inputDelegateMutex       sync.RWMutex
+	inputDelegateArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 atc.InputPlan
 	}
-	inputCompletedReturns struct {
-		result1 exec.CompleteCallback
+	inputDelegateReturns struct {
+		result1 exec.GetDelegate
 	}
-	ExecutionCompletedStub        func(lager.Logger) exec.CompleteCallback
-	executionCompletedMutex       sync.RWMutex
-	executionCompletedArgsForCall []struct {
+	ExecutionDelegateStub        func(lager.Logger) exec.ExecuteDelegate
+	executionDelegateMutex       sync.RWMutex
+	executionDelegateArgsForCall []struct {
 		arg1 lager.Logger
 	}
-	executionCompletedReturns struct {
-		result1 exec.CompleteCallback
+	executionDelegateReturns struct {
+		result1 exec.ExecuteDelegate
 	}
-	OutputCompletedStub        func(lager.Logger, atc.OutputPlan) exec.CompleteCallback
-	outputCompletedMutex       sync.RWMutex
-	outputCompletedArgsForCall []struct {
+	OutputDelegateStub        func(lager.Logger, atc.OutputPlan) exec.PutDelegate
+	outputDelegateMutex       sync.RWMutex
+	outputDelegateArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 atc.OutputPlan
 	}
-	outputCompletedReturns struct {
-		result1 exec.CompleteCallback
+	outputDelegateReturns struct {
+		result1 exec.PutDelegate
 	}
 	StartStub        func(lager.Logger)
 	startMutex       sync.RWMutex
 	startArgsForCall []struct {
 		arg1 lager.Logger
 	}
-	FinishStub        func(lager.Logger) exec.CompleteCallback
+	FinishStub        func(lager.Logger, error)
 	finishMutex       sync.RWMutex
 	finishArgsForCall []struct {
 		arg1 lager.Logger
-	}
-	finishReturns struct {
-		result1 exec.CompleteCallback
+		arg2 error
 	}
 	AbortedStub        func(lager.Logger)
 	abortedMutex       sync.RWMutex
@@ -57,101 +55,101 @@ type FakeBuildDelegate struct {
 	}
 }
 
-func (fake *FakeBuildDelegate) InputCompleted(arg1 lager.Logger, arg2 atc.InputPlan) exec.CompleteCallback {
-	fake.inputCompletedMutex.Lock()
-	fake.inputCompletedArgsForCall = append(fake.inputCompletedArgsForCall, struct {
+func (fake *FakeBuildDelegate) InputDelegate(arg1 lager.Logger, arg2 atc.InputPlan) exec.GetDelegate {
+	fake.inputDelegateMutex.Lock()
+	fake.inputDelegateArgsForCall = append(fake.inputDelegateArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 atc.InputPlan
 	}{arg1, arg2})
-	fake.inputCompletedMutex.Unlock()
-	if fake.InputCompletedStub != nil {
-		return fake.InputCompletedStub(arg1, arg2)
+	fake.inputDelegateMutex.Unlock()
+	if fake.InputDelegateStub != nil {
+		return fake.InputDelegateStub(arg1, arg2)
 	} else {
-		return fake.inputCompletedReturns.result1
+		return fake.inputDelegateReturns.result1
 	}
 }
 
-func (fake *FakeBuildDelegate) InputCompletedCallCount() int {
-	fake.inputCompletedMutex.RLock()
-	defer fake.inputCompletedMutex.RUnlock()
-	return len(fake.inputCompletedArgsForCall)
+func (fake *FakeBuildDelegate) InputDelegateCallCount() int {
+	fake.inputDelegateMutex.RLock()
+	defer fake.inputDelegateMutex.RUnlock()
+	return len(fake.inputDelegateArgsForCall)
 }
 
-func (fake *FakeBuildDelegate) InputCompletedArgsForCall(i int) (lager.Logger, atc.InputPlan) {
-	fake.inputCompletedMutex.RLock()
-	defer fake.inputCompletedMutex.RUnlock()
-	return fake.inputCompletedArgsForCall[i].arg1, fake.inputCompletedArgsForCall[i].arg2
+func (fake *FakeBuildDelegate) InputDelegateArgsForCall(i int) (lager.Logger, atc.InputPlan) {
+	fake.inputDelegateMutex.RLock()
+	defer fake.inputDelegateMutex.RUnlock()
+	return fake.inputDelegateArgsForCall[i].arg1, fake.inputDelegateArgsForCall[i].arg2
 }
 
-func (fake *FakeBuildDelegate) InputCompletedReturns(result1 exec.CompleteCallback) {
-	fake.InputCompletedStub = nil
-	fake.inputCompletedReturns = struct {
-		result1 exec.CompleteCallback
+func (fake *FakeBuildDelegate) InputDelegateReturns(result1 exec.GetDelegate) {
+	fake.InputDelegateStub = nil
+	fake.inputDelegateReturns = struct {
+		result1 exec.GetDelegate
 	}{result1}
 }
 
-func (fake *FakeBuildDelegate) ExecutionCompleted(arg1 lager.Logger) exec.CompleteCallback {
-	fake.executionCompletedMutex.Lock()
-	fake.executionCompletedArgsForCall = append(fake.executionCompletedArgsForCall, struct {
+func (fake *FakeBuildDelegate) ExecutionDelegate(arg1 lager.Logger) exec.ExecuteDelegate {
+	fake.executionDelegateMutex.Lock()
+	fake.executionDelegateArgsForCall = append(fake.executionDelegateArgsForCall, struct {
 		arg1 lager.Logger
 	}{arg1})
-	fake.executionCompletedMutex.Unlock()
-	if fake.ExecutionCompletedStub != nil {
-		return fake.ExecutionCompletedStub(arg1)
+	fake.executionDelegateMutex.Unlock()
+	if fake.ExecutionDelegateStub != nil {
+		return fake.ExecutionDelegateStub(arg1)
 	} else {
-		return fake.executionCompletedReturns.result1
+		return fake.executionDelegateReturns.result1
 	}
 }
 
-func (fake *FakeBuildDelegate) ExecutionCompletedCallCount() int {
-	fake.executionCompletedMutex.RLock()
-	defer fake.executionCompletedMutex.RUnlock()
-	return len(fake.executionCompletedArgsForCall)
+func (fake *FakeBuildDelegate) ExecutionDelegateCallCount() int {
+	fake.executionDelegateMutex.RLock()
+	defer fake.executionDelegateMutex.RUnlock()
+	return len(fake.executionDelegateArgsForCall)
 }
 
-func (fake *FakeBuildDelegate) ExecutionCompletedArgsForCall(i int) lager.Logger {
-	fake.executionCompletedMutex.RLock()
-	defer fake.executionCompletedMutex.RUnlock()
-	return fake.executionCompletedArgsForCall[i].arg1
+func (fake *FakeBuildDelegate) ExecutionDelegateArgsForCall(i int) lager.Logger {
+	fake.executionDelegateMutex.RLock()
+	defer fake.executionDelegateMutex.RUnlock()
+	return fake.executionDelegateArgsForCall[i].arg1
 }
 
-func (fake *FakeBuildDelegate) ExecutionCompletedReturns(result1 exec.CompleteCallback) {
-	fake.ExecutionCompletedStub = nil
-	fake.executionCompletedReturns = struct {
-		result1 exec.CompleteCallback
+func (fake *FakeBuildDelegate) ExecutionDelegateReturns(result1 exec.ExecuteDelegate) {
+	fake.ExecutionDelegateStub = nil
+	fake.executionDelegateReturns = struct {
+		result1 exec.ExecuteDelegate
 	}{result1}
 }
 
-func (fake *FakeBuildDelegate) OutputCompleted(arg1 lager.Logger, arg2 atc.OutputPlan) exec.CompleteCallback {
-	fake.outputCompletedMutex.Lock()
-	fake.outputCompletedArgsForCall = append(fake.outputCompletedArgsForCall, struct {
+func (fake *FakeBuildDelegate) OutputDelegate(arg1 lager.Logger, arg2 atc.OutputPlan) exec.PutDelegate {
+	fake.outputDelegateMutex.Lock()
+	fake.outputDelegateArgsForCall = append(fake.outputDelegateArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 atc.OutputPlan
 	}{arg1, arg2})
-	fake.outputCompletedMutex.Unlock()
-	if fake.OutputCompletedStub != nil {
-		return fake.OutputCompletedStub(arg1, arg2)
+	fake.outputDelegateMutex.Unlock()
+	if fake.OutputDelegateStub != nil {
+		return fake.OutputDelegateStub(arg1, arg2)
 	} else {
-		return fake.outputCompletedReturns.result1
+		return fake.outputDelegateReturns.result1
 	}
 }
 
-func (fake *FakeBuildDelegate) OutputCompletedCallCount() int {
-	fake.outputCompletedMutex.RLock()
-	defer fake.outputCompletedMutex.RUnlock()
-	return len(fake.outputCompletedArgsForCall)
+func (fake *FakeBuildDelegate) OutputDelegateCallCount() int {
+	fake.outputDelegateMutex.RLock()
+	defer fake.outputDelegateMutex.RUnlock()
+	return len(fake.outputDelegateArgsForCall)
 }
 
-func (fake *FakeBuildDelegate) OutputCompletedArgsForCall(i int) (lager.Logger, atc.OutputPlan) {
-	fake.outputCompletedMutex.RLock()
-	defer fake.outputCompletedMutex.RUnlock()
-	return fake.outputCompletedArgsForCall[i].arg1, fake.outputCompletedArgsForCall[i].arg2
+func (fake *FakeBuildDelegate) OutputDelegateArgsForCall(i int) (lager.Logger, atc.OutputPlan) {
+	fake.outputDelegateMutex.RLock()
+	defer fake.outputDelegateMutex.RUnlock()
+	return fake.outputDelegateArgsForCall[i].arg1, fake.outputDelegateArgsForCall[i].arg2
 }
 
-func (fake *FakeBuildDelegate) OutputCompletedReturns(result1 exec.CompleteCallback) {
-	fake.OutputCompletedStub = nil
-	fake.outputCompletedReturns = struct {
-		result1 exec.CompleteCallback
+func (fake *FakeBuildDelegate) OutputDelegateReturns(result1 exec.PutDelegate) {
+	fake.OutputDelegateStub = nil
+	fake.outputDelegateReturns = struct {
+		result1 exec.PutDelegate
 	}{result1}
 }
 
@@ -178,16 +176,15 @@ func (fake *FakeBuildDelegate) StartArgsForCall(i int) lager.Logger {
 	return fake.startArgsForCall[i].arg1
 }
 
-func (fake *FakeBuildDelegate) Finish(arg1 lager.Logger) exec.CompleteCallback {
+func (fake *FakeBuildDelegate) Finish(arg1 lager.Logger, arg2 error) {
 	fake.finishMutex.Lock()
 	fake.finishArgsForCall = append(fake.finishArgsForCall, struct {
 		arg1 lager.Logger
-	}{arg1})
+		arg2 error
+	}{arg1, arg2})
 	fake.finishMutex.Unlock()
 	if fake.FinishStub != nil {
-		return fake.FinishStub(arg1)
-	} else {
-		return fake.finishReturns.result1
+		fake.FinishStub(arg1, arg2)
 	}
 }
 
@@ -197,17 +194,10 @@ func (fake *FakeBuildDelegate) FinishCallCount() int {
 	return len(fake.finishArgsForCall)
 }
 
-func (fake *FakeBuildDelegate) FinishArgsForCall(i int) lager.Logger {
+func (fake *FakeBuildDelegate) FinishArgsForCall(i int) (lager.Logger, error) {
 	fake.finishMutex.RLock()
 	defer fake.finishMutex.RUnlock()
-	return fake.finishArgsForCall[i].arg1
-}
-
-func (fake *FakeBuildDelegate) FinishReturns(result1 exec.CompleteCallback) {
-	fake.FinishStub = nil
-	fake.finishReturns = struct {
-		result1 exec.CompleteCallback
-	}{result1}
+	return fake.finishArgsForCall[i].arg1, fake.finishArgsForCall[i].arg2
 }
 
 func (fake *FakeBuildDelegate) Aborted(arg1 lager.Logger) {

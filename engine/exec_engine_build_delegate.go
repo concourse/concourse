@@ -1,8 +1,10 @@
 package engine
 
 import (
+	"io"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -19,12 +21,12 @@ type implicitOutput struct {
 //go:generate counterfeiter . BuildDelegate
 
 type BuildDelegate interface {
-	InputCompleted(lager.Logger, atc.InputPlan) exec.CompleteCallback
-	ExecutionCompleted(lager.Logger) exec.CompleteCallback
-	OutputCompleted(lager.Logger, atc.OutputPlan) exec.CompleteCallback
+	InputDelegate(lager.Logger, atc.InputPlan) exec.GetDelegate
+	ExecutionDelegate(lager.Logger) exec.ExecuteDelegate
+	OutputDelegate(lager.Logger, atc.OutputPlan) exec.PutDelegate
 
 	Start(lager.Logger)
-	Finish(lager.Logger) exec.CompleteCallback
+	Finish(lager.Logger, error)
 	Aborted(lager.Logger)
 }
 
@@ -72,74 +74,27 @@ func newBuildDelegate(db EngineDB, buildID int) BuildDelegate {
 	}
 }
 
-func (delegate *delegate) InputCompleted(logger lager.Logger, plan atc.InputPlan) exec.CompleteCallback {
-	return exec.CallbackFunc(func(err error, source exec.ArtifactSource) {
-		if err != nil {
-			delegate.saveErr(logger, err, event.Origin{
-				Type: event.OriginTypeInput,
-				Name: plan.Name,
-			})
-
-			logger.Error("errored", err)
-		} else {
-			var info exec.VersionInfo
-			if source.Result(&info) {
-				delegate.saveInput(logger, plan, info)
-				delegate.registerImplicitOutput(plan.Resource, implicitOutput{plan, info})
-			}
-
-			logger.Info("finished", lager.Data{"version-info": info})
-		}
-	})
+func (delegate *delegate) InputDelegate(logger lager.Logger, plan atc.InputPlan) exec.GetDelegate {
+	return &inputDelegate{
+		logger:   logger,
+		plan:     plan,
+		delegate: delegate,
+	}
 }
 
-func (delegate *delegate) ExecutionCompleted(logger lager.Logger) exec.CompleteCallback {
-	return exec.CallbackFunc(func(err error, source exec.ArtifactSource) {
-		if err != nil {
-			delegate.saveErr(logger, err, event.Origin{})
-
-			logger.Error("errored", err)
-		} else {
-			var status exec.ExitStatus
-			if source.Result(&status) {
-				delegate.saveFinish(status)
-			}
-
-			var success exec.Success
-			if source.Result(&success) {
-				if success == false {
-					delegate.successful = false
-				}
-			}
-
-			logger.Info("finished", lager.Data{
-				"status":    status,
-				"succeeded": success,
-			})
-		}
-	})
+func (delegate *delegate) OutputDelegate(logger lager.Logger, plan atc.OutputPlan) exec.PutDelegate {
+	return &outputDelegate{
+		logger:   logger,
+		plan:     plan,
+		delegate: delegate,
+	}
 }
 
-func (delegate *delegate) OutputCompleted(logger lager.Logger, plan atc.OutputPlan) exec.CompleteCallback {
-	return exec.CallbackFunc(func(err error, source exec.ArtifactSource) {
-		if err != nil {
-			delegate.saveErr(logger, err, event.Origin{
-				Type: event.OriginTypeOutput,
-				Name: plan.Name,
-			})
-
-			logger.Error("errored", err)
-		} else {
-			delegate.unregisterImplicitOutput(plan.Name)
-
-			var info exec.VersionInfo
-			if source.Result(&info) {
-				delegate.saveOutput(logger, plan, info)
-			}
-
-			logger.Info("finished", lager.Data{"version-info": info})
-		}
-	})
+func (delegate *delegate) ExecutionDelegate(logger lager.Logger) exec.ExecuteDelegate {
+	return &executionDelegate{
+		logger:   logger,
+		delegate: delegate,
+	}
 }
 
 func (delegate *delegate) Start(logger lager.Logger) {
@@ -159,13 +114,6 @@ func (delegate *delegate) Start(logger lager.Logger) {
 		logger.Error("failed-to-save-status", err)
 	}
 
-	err = delegate.db.SaveBuildEvent(delegate.buildID, event.Start{
-		Time: startedAt.Unix(),
-	})
-	if err != nil {
-		logger.Error("failed-to-save-start-event", err)
-	}
-
 	err = delegate.db.SaveBuildEvent(delegate.buildID, event.Status{
 		Status: atc.StatusStarted,
 		Time:   startedAt.Unix(),
@@ -175,32 +123,30 @@ func (delegate *delegate) Start(logger lager.Logger) {
 	}
 }
 
-func (delegate *delegate) Finish(logger lager.Logger) exec.CompleteCallback {
-	return exec.CallbackFunc(func(err error, source exec.ArtifactSource) {
-		if delegate.aborted {
-			delegate.saveStatus(logger, atc.StatusAborted)
+func (delegate *delegate) Finish(logger lager.Logger, err error) {
+	if delegate.aborted {
+		delegate.saveStatus(logger, atc.StatusAborted)
 
-			logger.Info("aborted")
-		} else if err != nil {
-			delegate.saveStatus(logger, atc.StatusErrored)
+		logger.Info("aborted")
+	} else if err != nil {
+		delegate.saveStatus(logger, atc.StatusErrored)
 
-			logger.Error("errored", err)
-		} else if delegate.successful {
-			delegate.saveStatus(logger, atc.StatusSucceeded)
+		logger.Error("errored", err)
+	} else if delegate.successful {
+		delegate.saveStatus(logger, atc.StatusSucceeded)
 
-			implicits := logger.Session("implicit-outputs")
+		implicits := logger.Session("implicit-outputs")
 
-			for _, o := range delegate.implicitOutputs {
-				delegate.saveImplicitOutput(implicits.Session(o.plan.Name), o.plan, o.info)
-			}
-
-			logger.Info("succeeded")
-		} else {
-			delegate.saveStatus(logger, atc.StatusFailed)
-
-			logger.Info("failed")
+		for _, o := range delegate.implicitOutputs {
+			delegate.saveImplicitOutput(implicits.Session(o.plan.Name), o.plan, o.info)
 		}
-	})
+
+		logger.Info("succeeded")
+	} else {
+		delegate.saveStatus(logger, atc.StatusFailed)
+
+		logger.Info("failed")
+	}
 }
 
 func (delegate *delegate) Aborted(logger lager.Logger) {
@@ -221,11 +167,32 @@ func (delegate *delegate) unregisterImplicitOutput(resource string) {
 	delegate.lock.Unlock()
 }
 
-func (delegate *delegate) saveFinish(status exec.ExitStatus) {
-	delegate.db.SaveBuildEvent(delegate.buildID, event.Finish{
+func (delegate *delegate) saveInitialize(logger lager.Logger, buildConfig atc.BuildConfig) {
+	err := delegate.db.SaveBuildEvent(delegate.buildID, event.Initialize{
+		BuildConfig: buildConfig,
+	})
+	if err != nil {
+		logger.Error("failed-to-save-initialize-event", err)
+	}
+}
+
+func (delegate *delegate) saveStart(logger lager.Logger) {
+	err := delegate.db.SaveBuildEvent(delegate.buildID, event.Start{
+		Time: time.Now().Unix(),
+	})
+	if err != nil {
+		logger.Error("failed-to-save-start-event", err)
+	}
+}
+
+func (delegate *delegate) saveFinish(logger lager.Logger, status exec.ExitStatus) {
+	err := delegate.db.SaveBuildEvent(delegate.buildID, event.Finish{
 		ExitStatus: int(status),
 		Time:       time.Now().Unix(),
 	})
+	if err != nil {
+		logger.Error("failed-to-save-finish-event", err)
+	}
 }
 
 func (delegate *delegate) saveStatus(logger lager.Logger, status atc.BuildStatus) {
@@ -326,6 +293,164 @@ func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.Input
 	}
 
 	logger.Info("saved", lager.Data{"resource": plan.Resource})
+}
+
+func (delegate *delegate) eventWriter(origin event.Origin) io.Writer {
+	return &dbEventWriter{
+		db:      delegate.db,
+		buildID: delegate.buildID,
+		origin:  origin,
+	}
+}
+
+type inputDelegate struct {
+	logger lager.Logger
+
+	plan atc.InputPlan
+
+	delegate *delegate
+}
+
+func (input *inputDelegate) Completed(info exec.VersionInfo) {
+	input.delegate.saveInput(input.logger, input.plan, info)
+	input.delegate.registerImplicitOutput(input.plan.Resource, implicitOutput{input.plan, info})
+	input.logger.Info("finished", lager.Data{"version-info": info})
+}
+
+func (input *inputDelegate) Failed(err error) {
+	input.delegate.saveErr(input.logger, err, event.Origin{
+		Type: event.OriginTypeInput,
+		Name: input.plan.Name,
+	})
+
+	input.logger.Error("errored", err)
+}
+
+func (input *inputDelegate) Stdout() io.Writer {
+	return input.delegate.eventWriter(event.Origin{
+		Type: event.OriginTypeInput,
+		Name: input.plan.Name,
+	})
+}
+
+func (input *inputDelegate) Stderr() io.Writer {
+	return input.delegate.eventWriter(event.Origin{
+		Type: event.OriginTypeInput,
+		Name: input.plan.Name,
+	})
+}
+
+type outputDelegate struct {
+	logger lager.Logger
+
+	plan atc.OutputPlan
+
+	delegate *delegate
+}
+
+func (output *outputDelegate) Completed(info exec.VersionInfo) {
+	output.delegate.unregisterImplicitOutput(output.plan.Name)
+	output.delegate.saveOutput(output.logger, output.plan, info)
+	output.logger.Info("finished", lager.Data{"version-info": info})
+}
+
+func (output *outputDelegate) Failed(err error) {
+	output.delegate.saveErr(output.logger, err, event.Origin{
+		Type: event.OriginTypeOutput,
+		Name: output.plan.Name,
+	})
+
+	output.logger.Error("errored", err)
+}
+
+func (output *outputDelegate) Stdout() io.Writer {
+	return output.delegate.eventWriter(event.Origin{
+		Type: event.OriginTypeOutput,
+		Name: output.plan.Name,
+	})
+}
+
+func (output *outputDelegate) Stderr() io.Writer {
+	return output.delegate.eventWriter(event.Origin{
+		Type: event.OriginTypeOutput,
+		Name: output.plan.Name,
+	})
+}
+
+type executionDelegate struct {
+	logger lager.Logger
+
+	delegate *delegate
+}
+
+func (execution *executionDelegate) Initializing(config atc.BuildConfig) {
+	execution.delegate.saveInitialize(execution.logger, config)
+}
+
+func (execution *executionDelegate) Started() {
+	execution.delegate.saveStart(execution.logger)
+
+	execution.logger.Info("started")
+}
+
+func (execution *executionDelegate) Finished(status exec.ExitStatus) {
+	execution.delegate.saveFinish(execution.logger, status)
+
+	if status != 0 {
+		execution.delegate.successful = false
+	}
+
+	execution.logger.Info("finished", lager.Data{
+		"status":    status,
+		"succeeded": status == 0,
+	})
+}
+
+func (execution *executionDelegate) Failed(err error) {
+	execution.delegate.saveErr(execution.logger, err, event.Origin{})
+	execution.logger.Error("errored", err)
+}
+
+func (execution *executionDelegate) Stdout() io.Writer {
+	return execution.delegate.eventWriter(event.Origin{
+		Type: event.OriginTypeRun,
+		Name: "stdout",
+	})
+}
+
+func (execution *executionDelegate) Stderr() io.Writer {
+	return execution.delegate.eventWriter(event.Origin{
+		Type: event.OriginTypeRun,
+		Name: "stderr",
+	})
+}
+
+type dbEventWriter struct {
+	buildID int
+	db      EngineDB
+
+	origin event.Origin
+
+	dangling []byte
+}
+
+func (writer *dbEventWriter) Write(data []byte) (int, error) {
+	text := append(writer.dangling, data...)
+
+	checkEncoding, _ := utf8.DecodeLastRune(text)
+	if checkEncoding == utf8.RuneError {
+		writer.dangling = text
+		return len(data), nil
+	}
+
+	writer.dangling = nil
+
+	writer.db.SaveBuildEvent(writer.buildID, event.Log{
+		Payload: string(text),
+		Origin:  writer.origin,
+	})
+
+	return len(data), nil
 }
 
 func vrFromInput(input event.Input) db.VersionedResource {

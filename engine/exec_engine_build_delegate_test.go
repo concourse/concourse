@@ -2,6 +2,7 @@ package engine_test
 
 import (
 	"errors"
+	"io"
 	"time"
 
 	"github.com/concourse/atc"
@@ -10,7 +11,6 @@ import (
 	"github.com/concourse/atc/engine/fakes"
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
-	execfakes "github.com/concourse/atc/exec/fakes"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
@@ -60,18 +60,14 @@ var _ = Describe("BuildDelegate", func() {
 			Ω(status).Should(Equal(db.StatusStarted))
 		})
 
-		It("saves a start event and a 'started' status event", func() {
+		It("saves a 'started' status event", func() {
 			Ω(fakeDB.SaveBuildStartTimeCallCount()).Should(Equal(1))
 
 			_, startTime := fakeDB.SaveBuildStartTimeArgsForCall(0)
 
-			Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(2))
+			Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(1))
 
 			buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
-			Ω(buildID).Should(Equal(42))
-			Ω(savedEvent).Should(Equal(event.Start{Time: startTime.Unix()}))
-
-			buildID, savedEvent = fakeDB.SaveBuildEventArgsForCall(1)
 			Ω(buildID).Should(Equal(42))
 			Ω(savedEvent).Should(Equal(event.Status{
 				Status: atc.StatusStarted,
@@ -80,14 +76,11 @@ var _ = Describe("BuildDelegate", func() {
 		})
 	})
 
-	Describe("InputCompleted", func() {
+	Describe("InputDelegate", func() {
 		var (
 			inputPlan atc.InputPlan
 
-			callback exec.CompleteCallback
-
-			cbErr    error
-			cbSource *execfakes.FakeArtifactSource
+			inputDelegate exec.GetDelegate
 		)
 
 		BeforeEach(func() {
@@ -100,28 +93,21 @@ var _ = Describe("BuildDelegate", func() {
 				Params:   atc.Params{"some": "params"},
 			}
 
-			callback = delegate.InputCompleted(logger, inputPlan)
-
-			cbErr = nil
-			cbSource = new(execfakes.FakeArtifactSource)
+			inputDelegate = delegate.InputDelegate(logger, inputPlan)
 		})
 
-		JustBeforeEach(func() {
-			callback.Call(cbErr, cbSource)
-		})
-
-		Describe("success", func() {
+		Describe("Completed", func() {
 			var versionInfo exec.VersionInfo
 
 			BeforeEach(func() {
-				cbErr = nil
-
 				versionInfo = exec.VersionInfo{
 					Version:  atc.Version{"result": "version"},
 					Metadata: []atc.MetadataField{{"result", "metadata"}},
 				}
+			})
 
-				cbSource.ResultStub = versionInfoResult(versionInfo)
+			JustBeforeEach(func() {
+				inputDelegate.Completed(versionInfo)
 			})
 
 			It("saves the build's input", func() {
@@ -155,27 +141,15 @@ var _ = Describe("BuildDelegate", func() {
 
 			Context("when the resource only occurs as an input", func() {
 				Describe("Finish", func() {
-					var (
-						finishCallback exec.CompleteCallback
-
-						finishCBErr    error
-						finishCBSource *execfakes.FakeArtifactSource
-					)
-
-					BeforeEach(func() {
-						finishCallback = delegate.Finish(logger)
-
-						finishCBErr = nil
-						finishCBSource = new(execfakes.FakeArtifactSource)
-					})
+					var finishErr error
 
 					JustBeforeEach(func() {
-						finishCallback.Call(finishCBErr, finishCBSource)
+						delegate.Finish(logger, finishErr)
 					})
 
 					Context("with success", func() {
 						BeforeEach(func() {
-							finishCBErr = nil
+							finishErr = nil
 						})
 
 						It("saves the input as an implicit output", func() {
@@ -197,7 +171,7 @@ var _ = Describe("BuildDelegate", func() {
 						disaster := errors.New("nope")
 
 						BeforeEach(func() {
-							finishCBErr = disaster
+							finishErr = disaster
 						})
 
 						It("does not save the input as an implicit output", func() {
@@ -211,10 +185,7 @@ var _ = Describe("BuildDelegate", func() {
 				var (
 					outputPlan atc.OutputPlan
 
-					outputCallback exec.CompleteCallback
-
-					outputCBErr    error
-					outputCBSource *execfakes.FakeArtifactSource
+					outputDelegate exec.PutDelegate
 				)
 
 				BeforeEach(func() {
@@ -226,37 +197,25 @@ var _ = Describe("BuildDelegate", func() {
 						Params: atc.Params{"some": "output-params"},
 					}
 
-					outputCallback = delegate.OutputCompleted(logger, outputPlan)
+					outputDelegate = delegate.OutputDelegate(logger, outputPlan)
+				})
 
-					outputCBErr = nil
-					outputCBSource = new(execfakes.FakeArtifactSource)
-					outputCBSource.ResultStub = versionInfoResult(exec.VersionInfo{
+				JustBeforeEach(func() {
+					outputDelegate.Completed(exec.VersionInfo{
 						Version:  atc.Version{"explicit": "version"},
 						Metadata: []atc.MetadataField{{"explicit", "metadata"}},
 					})
 				})
 
-				JustBeforeEach(func() {
-					outputCallback.Call(outputCBErr, outputCBSource)
-				})
-
 				Describe("Finish", func() {
-					var (
-						finishCallback exec.CompleteCallback
-
-						finishCBErr    error
-						finishCBSource *execfakes.FakeArtifactSource
-					)
+					var finishErr error
 
 					BeforeEach(func() {
-						finishCallback = delegate.Finish(logger)
-
-						finishCBErr = nil
-						finishCBSource = new(execfakes.FakeArtifactSource)
+						finishErr = nil
 					})
 
 					JustBeforeEach(func() {
-						finishCallback.Call(finishCBErr, finishCBSource)
+						delegate.Finish(logger, finishErr)
 					})
 
 					It("only saves the explicit output", func() {
@@ -276,9 +235,9 @@ var _ = Describe("BuildDelegate", func() {
 			})
 		})
 
-		Describe("failure", func() {
-			BeforeEach(func() {
-				cbErr = errors.New("nope")
+		Describe("Failed", func() {
+			JustBeforeEach(func() {
+				inputDelegate.Failed(errors.New("nope"))
 			})
 
 			It("does not save the build's input", func() {
@@ -299,35 +258,122 @@ var _ = Describe("BuildDelegate", func() {
 				}))
 			})
 		})
+
+		Describe("Stdout", func() {
+			var writer io.Writer
+
+			BeforeEach(func() {
+				writer = inputDelegate.Stdout()
+			})
+
+			It("saves log events with the input's origin", func() {
+				_, err := writer.Write([]byte("some stdout"))
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(1))
+
+				savedBuildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
+				Ω(savedBuildID).Should(Equal(buildID))
+				Ω(savedEvent).Should(Equal(event.Log{
+					Origin: event.Origin{
+						Type: event.OriginTypeInput,
+						Name: "some-input",
+					},
+					Payload: "some stdout",
+				}))
+			})
+		})
+
+		Describe("Stderr", func() {
+			var writer io.Writer
+
+			BeforeEach(func() {
+				writer = inputDelegate.Stderr()
+			})
+
+			It("saves log events with the input's origin", func() {
+				_, err := writer.Write([]byte("some stderr"))
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(1))
+
+				savedBuildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
+				Ω(savedBuildID).Should(Equal(buildID))
+				Ω(savedEvent).Should(Equal(event.Log{
+					Origin: event.Origin{
+						Type: event.OriginTypeInput,
+						Name: "some-input",
+					},
+					Payload: "some stderr",
+				}))
+			})
+		})
 	})
 
-	Describe("ExecutionCompleted", func() {
+	Describe("ExecutionDelegate", func() {
 		var (
-			callback exec.CompleteCallback
-
-			cbErr    error
-			cbSource *execfakes.FakeArtifactSource
+			executionDelegate exec.ExecuteDelegate
 		)
 
 		BeforeEach(func() {
-			callback = delegate.ExecutionCompleted(logger)
-
-			cbErr = nil
-			cbSource = new(execfakes.FakeArtifactSource)
+			executionDelegate = delegate.ExecutionDelegate(logger)
 		})
 
-		JustBeforeEach(func() {
-			callback.Call(cbErr, cbSource)
-		})
+		Describe("Initializing", func() {
+			var buildConfig atc.BuildConfig
 
-		Describe("success", func() {
 			BeforeEach(func() {
-				cbErr = nil
+				buildConfig = atc.BuildConfig{
+					Run: atc.BuildRunConfig{
+						Path: "ls",
+					},
+				}
+			})
+
+			JustBeforeEach(func() {
+				executionDelegate.Initializing(buildConfig)
+			})
+
+			It("saves an initialize event", func() {
+				Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(1))
+
+				buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
+				Ω(buildID).Should(Equal(42))
+				Ω(savedEvent).Should(Equal(event.Initialize{
+					BuildConfig: buildConfig,
+				}))
+			})
+		})
+
+		Describe("Started", func() {
+			JustBeforeEach(func() {
+				executionDelegate.Started()
+			})
+
+			It("saves a start event", func() {
+				Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(1))
+
+				buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
+				Ω(buildID).Should(Equal(42))
+				Ω(savedEvent).Should(BeAssignableToTypeOf(event.Start{}))
+				Ω(savedEvent.(event.Start).Time).Should(BeNumerically("~", time.Now().Unix(), 1))
+			})
+		})
+
+		Describe("Finished", func() {
+			var exitStatus exec.ExitStatus
+
+			BeforeEach(func() {
+				exitStatus = 0
+			})
+
+			JustBeforeEach(func() {
+				executionDelegate.Finished(exitStatus)
 			})
 
 			Context("with a successful result", func() {
 				BeforeEach(func() {
-					cbSource.ResultStub = exitStatusResult(0)
+					exitStatus = 0
 				})
 
 				It("saves a finish event", func() {
@@ -341,27 +387,19 @@ var _ = Describe("BuildDelegate", func() {
 				})
 
 				Describe("Finish", func() {
-					var (
-						finishCallback exec.CompleteCallback
-
-						finishCBErr    error
-						finishCBSource *execfakes.FakeArtifactSource
-					)
+					var finishErr error
 
 					BeforeEach(func() {
-						finishCallback = delegate.Finish(logger)
-
-						finishCBErr = nil
-						finishCBSource = new(execfakes.FakeArtifactSource)
+						finishErr = nil
 					})
 
 					JustBeforeEach(func() {
-						finishCallback.Call(finishCBErr, finishCBSource)
+						delegate.Finish(logger, finishErr)
 					})
 
 					Context("with success", func() {
 						BeforeEach(func() {
-							finishCBErr = nil
+							finishErr = nil
 						})
 
 						It("saves status as 'succeeded'", func() {
@@ -377,7 +415,7 @@ var _ = Describe("BuildDelegate", func() {
 						disaster := errors.New("nope")
 
 						BeforeEach(func() {
-							finishCBErr = disaster
+							finishErr = disaster
 						})
 
 						It("saves status as 'errored'", func() {
@@ -393,7 +431,7 @@ var _ = Describe("BuildDelegate", func() {
 
 			Context("with a failed result", func() {
 				BeforeEach(func() {
-					cbSource.ResultStub = exitStatusResult(1)
+					exitStatus = 1
 				})
 
 				It("saves a finish event", func() {
@@ -407,27 +445,19 @@ var _ = Describe("BuildDelegate", func() {
 				})
 
 				Describe("Finish", func() {
-					var (
-						finishCallback exec.CompleteCallback
-
-						finishCBErr    error
-						finishCBSource *execfakes.FakeArtifactSource
-					)
+					var finishErr error
 
 					BeforeEach(func() {
-						finishCallback = delegate.Finish(logger)
-
-						finishCBErr = nil
-						finishCBSource = new(execfakes.FakeArtifactSource)
+						finishErr = nil
 					})
 
 					JustBeforeEach(func() {
-						finishCallback.Call(finishCBErr, finishCBSource)
+						delegate.Finish(logger, finishErr)
 					})
 
 					Context("with success", func() {
 						BeforeEach(func() {
-							finishCBErr = nil
+							finishErr = nil
 						})
 
 						It("saves status as 'failed'", func() {
@@ -443,7 +473,7 @@ var _ = Describe("BuildDelegate", func() {
 						disaster := errors.New("nope")
 
 						BeforeEach(func() {
-							finishCBErr = disaster
+							finishErr = disaster
 						})
 
 						It("saves status as 'errored'", func() {
@@ -458,9 +488,9 @@ var _ = Describe("BuildDelegate", func() {
 			})
 		})
 
-		Describe("failure", func() {
-			BeforeEach(func() {
-				cbErr = errors.New("nope")
+		Describe("Failed", func() {
+			JustBeforeEach(func() {
+				executionDelegate.Failed(errors.New("nope"))
 			})
 
 			It("does not save the build's input", func() {
@@ -477,16 +507,63 @@ var _ = Describe("BuildDelegate", func() {
 				}))
 			})
 		})
+
+		Describe("Stdout", func() {
+			var writer io.Writer
+
+			BeforeEach(func() {
+				writer = executionDelegate.Stdout()
+			})
+
+			It("saves log events with the correct origin", func() {
+				_, err := writer.Write([]byte("some stdout"))
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(1))
+
+				savedBuildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
+				Ω(savedBuildID).Should(Equal(buildID))
+				Ω(savedEvent).Should(Equal(event.Log{
+					Origin: event.Origin{
+						Type: event.OriginTypeRun,
+						Name: "stdout",
+					},
+					Payload: "some stdout",
+				}))
+			})
+		})
+
+		Describe("Stderr", func() {
+			var writer io.Writer
+
+			BeforeEach(func() {
+				writer = executionDelegate.Stderr()
+			})
+
+			It("saves log events with the correct origin", func() {
+				_, err := writer.Write([]byte("some stderr"))
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(1))
+
+				savedBuildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
+				Ω(savedBuildID).Should(Equal(buildID))
+				Ω(savedEvent).Should(Equal(event.Log{
+					Origin: event.Origin{
+						Type: event.OriginTypeRun,
+						Name: "stderr",
+					},
+					Payload: "some stderr",
+				}))
+			})
+		})
 	})
 
-	Describe("OutputCompleted", func() {
+	Describe("OutputDelegate", func() {
 		var (
 			outputPlan atc.OutputPlan
 
-			callback exec.CompleteCallback
-
-			cbErr    error
-			cbSource *execfakes.FakeArtifactSource
+			outputDelegate exec.PutDelegate
 		)
 
 		BeforeEach(func() {
@@ -497,28 +574,21 @@ var _ = Describe("BuildDelegate", func() {
 				Params: atc.Params{"some": "params"},
 			}
 
-			callback = delegate.OutputCompleted(logger, outputPlan)
-
-			cbErr = nil
-			cbSource = new(execfakes.FakeArtifactSource)
+			outputDelegate = delegate.OutputDelegate(logger, outputPlan)
 		})
 
-		JustBeforeEach(func() {
-			callback.Call(cbErr, cbSource)
-		})
-
-		Describe("success", func() {
+		Describe("Completed", func() {
 			var versionInfo exec.VersionInfo
 
 			BeforeEach(func() {
-				cbErr = nil
-
 				versionInfo = exec.VersionInfo{
 					Version:  atc.Version{"result": "version"},
 					Metadata: []atc.MetadataField{{"result", "metadata"}},
 				}
+			})
 
-				cbSource.ResultStub = versionInfoResult(versionInfo)
+			JustBeforeEach(func() {
+				outputDelegate.Completed(versionInfo)
 			})
 
 			It("saves the build's output", func() {
@@ -548,9 +618,9 @@ var _ = Describe("BuildDelegate", func() {
 			})
 		})
 
-		Describe("failure", func() {
-			BeforeEach(func() {
-				cbErr = errors.New("nope")
+		Describe("Failed", func() {
+			JustBeforeEach(func() {
+				outputDelegate.Failed(errors.New("nope"))
 			})
 
 			It("does not save the build's input", func() {
@@ -571,6 +641,56 @@ var _ = Describe("BuildDelegate", func() {
 				}))
 			})
 		})
+
+		Describe("Stdout", func() {
+			var writer io.Writer
+
+			BeforeEach(func() {
+				writer = outputDelegate.Stdout()
+			})
+
+			It("saves log events with the output's origin", func() {
+				_, err := writer.Write([]byte("some stdout"))
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(1))
+
+				savedBuildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
+				Ω(savedBuildID).Should(Equal(buildID))
+				Ω(savedEvent).Should(Equal(event.Log{
+					Origin: event.Origin{
+						Type: event.OriginTypeOutput,
+						Name: "some-output-resource",
+					},
+					Payload: "some stdout",
+				}))
+			})
+		})
+
+		Describe("Stderr", func() {
+			var writer io.Writer
+
+			BeforeEach(func() {
+				writer = outputDelegate.Stderr()
+			})
+
+			It("saves log events with the output's origin", func() {
+				_, err := writer.Write([]byte("some stderr"))
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(1))
+
+				savedBuildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
+				Ω(savedBuildID).Should(Equal(buildID))
+				Ω(savedEvent).Should(Equal(event.Log{
+					Origin: event.Origin{
+						Type: event.OriginTypeOutput,
+						Name: "some-output-resource",
+					},
+					Payload: "some stderr",
+				}))
+			})
+		})
 	})
 
 	Describe("Aborted", func() {
@@ -579,27 +699,19 @@ var _ = Describe("BuildDelegate", func() {
 		})
 
 		Describe("Finish", func() {
-			var (
-				finishCallback exec.CompleteCallback
-
-				finishCBErr    error
-				finishCBSource *execfakes.FakeArtifactSource
-			)
+			var finishErr error
 
 			BeforeEach(func() {
-				finishCallback = delegate.Finish(logger)
-
-				finishCBErr = nil
-				finishCBSource = new(execfakes.FakeArtifactSource)
+				finishErr = nil
 			})
 
 			JustBeforeEach(func() {
-				finishCallback.Call(finishCBErr, finishCBSource)
+				delegate.Finish(logger, finishErr)
 			})
 
 			Context("with success", func() {
 				BeforeEach(func() {
-					finishCBErr = nil
+					finishErr = nil
 				})
 
 				It("saves status as 'aborted'", func() {
@@ -615,7 +727,7 @@ var _ = Describe("BuildDelegate", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					finishCBErr = disaster
+					finishErr = disaster
 				})
 
 				It("saves status as 'aborted'", func() {
@@ -629,33 +741,3 @@ var _ = Describe("BuildDelegate", func() {
 		})
 	})
 })
-
-func versionInfoResult(result exec.VersionInfo) func(dest interface{}) bool {
-	return func(dest interface{}) bool {
-		switch x := dest.(type) {
-		case *exec.VersionInfo:
-			*x = result
-			return true
-
-		default:
-			return false
-		}
-	}
-}
-
-func exitStatusResult(result exec.ExitStatus) func(dest interface{}) bool {
-	return func(dest interface{}) bool {
-		switch x := dest.(type) {
-		case *exec.ExitStatus:
-			*x = result
-			return true
-
-		case *exec.Success:
-			*x = result == 0
-			return true
-
-		default:
-			return false
-		}
-	}
-}

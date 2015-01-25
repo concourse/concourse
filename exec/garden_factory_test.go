@@ -31,7 +31,6 @@ var _ = Describe("GardenFactory", func() {
 
 		factory Factory
 
-		ioConfig  IOConfig
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
 	)
@@ -44,11 +43,6 @@ var _ = Describe("GardenFactory", func() {
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
-
-		ioConfig = IOConfig{
-			Stdout: stdoutBuf,
-			Stderr: stderrBuf,
-		}
 	})
 
 	Describe("Hijack", func() {
@@ -169,6 +163,7 @@ var _ = Describe("GardenFactory", func() {
 
 	Describe("Get", func() {
 		var (
+			getDelegate    *fakes.FakeGetDelegate
 			resourceConfig atc.ResourceConfig
 			params         atc.Params
 			version        atc.Version
@@ -180,6 +175,10 @@ var _ = Describe("GardenFactory", func() {
 		)
 
 		BeforeEach(func() {
+			getDelegate = new(fakes.FakeGetDelegate)
+			getDelegate.StdoutReturns(stdoutBuf)
+			getDelegate.StderrReturns(stderrBuf)
+
 			resourceConfig = atc.ResourceConfig{
 				Name:   "some-resource",
 				Type:   "some-resource-type",
@@ -194,7 +193,7 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			source = factory.Get(sessionID, ioConfig, resourceConfig, params, version).Using(inSource)
+			source = factory.Get(sessionID, getDelegate, resourceConfig, params, version).Using(inSource)
 			process = ifrit.Invoke(source)
 		})
 
@@ -209,6 +208,9 @@ var _ = Describe("GardenFactory", func() {
 				fakeTracker.InitReturns(fakeResource, nil)
 
 				fakeVersionedSource = new(rfakes.FakeVersionedSource)
+				fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
+				fakeVersionedSource.MetadataReturns([]atc.MetadataField{{"some", "metadata"}})
+
 				fakeResource.GetReturns(fakeVersionedSource)
 			})
 
@@ -242,13 +244,19 @@ var _ = Describe("GardenFactory", func() {
 			})
 
 			It("reports the fetched version info", func() {
-				fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
-				fakeVersionedSource.MetadataReturns([]atc.MetadataField{{"some", "metadata"}})
-
 				var info VersionInfo
 				Ω(source.Result(&info)).Should(BeTrue())
 				Ω(info.Version).Should(Equal(atc.Version{"some": "version"}))
 				Ω(info.Metadata).Should(Equal([]atc.MetadataField{{"some", "metadata"}}))
+			})
+
+			It("completes via the delegate", func() {
+				Eventually(getDelegate.CompletedCallCount).Should(Equal(1))
+
+				Ω(getDelegate.CompletedArgsForCall(0)).Should(Equal(VersionInfo{
+					Version:  atc.Version{"some": "version"},
+					Metadata: []atc.MetadataField{{"some", "metadata"}},
+				}))
 			})
 
 			Describe("signalling", func() {
@@ -269,6 +277,27 @@ var _ = Describe("GardenFactory", func() {
 					process.Signal(os.Interrupt)
 					Eventually(receivedSignals).Should(Receive(Equal(os.Interrupt)))
 					Eventually(process.Wait()).Should(Receive())
+				})
+			})
+
+			Context("when fetching fails", func() {
+				disaster := errors.New("nope")
+
+				BeforeEach(func() {
+					fakeVersionedSource.RunReturns(disaster)
+				})
+
+				It("exits with the failure", func() {
+					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+				})
+
+				It("invokes the delegate's Failed callback without completing", func() {
+					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+
+					Ω(getDelegate.CompletedCallCount()).Should(BeZero())
+
+					Ω(getDelegate.FailedCallCount()).Should(Equal(1))
+					Ω(getDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
 				})
 			})
 
@@ -455,11 +484,21 @@ var _ = Describe("GardenFactory", func() {
 			It("exits with the failure", func() {
 				Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 			})
+
+			It("invokes the delegate's Failed callback", func() {
+				Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+
+				Ω(getDelegate.CompletedCallCount()).Should(BeZero())
+
+				Ω(getDelegate.FailedCallCount()).Should(Equal(1))
+				Ω(getDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+			})
 		})
 	})
 
 	Describe("Put", func() {
 		var (
+			putDelegate    *fakes.FakePutDelegate
 			resourceConfig atc.ResourceConfig
 			params         atc.Params
 
@@ -470,6 +509,10 @@ var _ = Describe("GardenFactory", func() {
 		)
 
 		BeforeEach(func() {
+			putDelegate = new(fakes.FakePutDelegate)
+			putDelegate.StdoutReturns(stdoutBuf)
+			putDelegate.StderrReturns(stderrBuf)
+
 			resourceConfig = atc.ResourceConfig{
 				Name:   "some-resource",
 				Type:   "some-resource-type",
@@ -482,7 +525,7 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			source = factory.Put(sessionID, ioConfig, resourceConfig, params).Using(inSource)
+			source = factory.Put(sessionID, putDelegate, resourceConfig, params).Using(inSource)
 			process = ifrit.Invoke(source)
 		})
 
@@ -497,6 +540,9 @@ var _ = Describe("GardenFactory", func() {
 				fakeTracker.InitReturns(fakeResource, nil)
 
 				fakeVersionedSource = new(rfakes.FakeVersionedSource)
+				fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
+				fakeVersionedSource.MetadataReturns([]atc.MetadataField{{"some", "metadata"}})
+
 				fakeResource.PutReturns(fakeVersionedSource)
 			})
 
@@ -537,13 +583,19 @@ var _ = Describe("GardenFactory", func() {
 			})
 
 			It("reports the created version info", func() {
-				fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
-				fakeVersionedSource.MetadataReturns([]atc.MetadataField{{"some", "metadata"}})
-
 				var info VersionInfo
 				Ω(source.Result(&info)).Should(BeTrue())
 				Ω(info.Version).Should(Equal(atc.Version{"some": "version"}))
 				Ω(info.Metadata).Should(Equal([]atc.MetadataField{{"some", "metadata"}}))
+			})
+
+			It("completes via the delegate", func() {
+				Eventually(putDelegate.CompletedCallCount).Should(Equal(1))
+
+				Ω(putDelegate.CompletedArgsForCall(0)).Should(Equal(VersionInfo{
+					Version:  atc.Version{"some": "version"},
+					Metadata: []atc.MetadataField{{"some", "metadata"}},
+				}))
 			})
 
 			Describe("signalling", func() {
@@ -564,6 +616,27 @@ var _ = Describe("GardenFactory", func() {
 					process.Signal(os.Interrupt)
 					Eventually(receivedSignals).Should(Receive(Equal(os.Interrupt)))
 					Eventually(process.Wait()).Should(Receive())
+				})
+			})
+
+			Context("when fetching fails", func() {
+				disaster := errors.New("nope")
+
+				BeforeEach(func() {
+					fakeVersionedSource.RunReturns(disaster)
+				})
+
+				It("exits with the failure", func() {
+					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+				})
+
+				It("invokes the delegate's Failed callback without completing", func() {
+					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+
+					Ω(putDelegate.CompletedCallCount()).Should(BeZero())
+
+					Ω(putDelegate.FailedCallCount()).Should(Equal(1))
+					Ω(putDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
 				})
 			})
 
@@ -748,13 +821,23 @@ var _ = Describe("GardenFactory", func() {
 			It("exits with the failure", func() {
 				Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 			})
+
+			It("invokes the delegate's Failed callback", func() {
+				Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+
+				Ω(putDelegate.CompletedCallCount()).Should(BeZero())
+
+				Ω(putDelegate.FailedCallCount()).Should(Equal(1))
+				Ω(putDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+			})
 		})
 	})
 
 	Describe("Execute", func() {
 		var (
-			privileged   Privileged
-			configSource *fakes.FakeBuildConfigSource
+			executeDelegate *fakes.FakeExecuteDelegate
+			privileged      Privileged
+			configSource    *fakes.FakeBuildConfigSource
 
 			inSource *fakes.FakeArtifactSource
 
@@ -763,6 +846,10 @@ var _ = Describe("GardenFactory", func() {
 		)
 
 		BeforeEach(func() {
+			executeDelegate = new(fakes.FakeExecuteDelegate)
+			executeDelegate.StdoutReturns(stdoutBuf)
+			executeDelegate.StderrReturns(stderrBuf)
+
 			privileged = false
 			configSource = new(fakes.FakeBuildConfigSource)
 
@@ -770,7 +857,7 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			source = factory.Execute(sessionID, ioConfig, privileged, configSource).Using(inSource)
+			source = factory.Execute(sessionID, executeDelegate, privileged, configSource).Using(inSource)
 			process = ifrit.Invoke(source)
 		})
 
@@ -780,15 +867,19 @@ var _ = Describe("GardenFactory", func() {
 			})
 
 			Context("when the getting the config works", func() {
+				var fetchedConfig atc.BuildConfig
+
 				BeforeEach(func() {
-					configSource.FetchConfigReturns(atc.BuildConfig{
+					fetchedConfig = atc.BuildConfig{
 						Image:  "some-image",
 						Params: map[string]string{"SOME": "params"},
 						Run: atc.BuildRunConfig{
 							Path: "ls",
 							Args: []string{"some", "args"},
 						},
-					}, nil)
+					}
+
+					configSource.FetchConfigReturns(fetchedConfig, nil)
 
 					inSource.StreamToReturns(nil)
 				})
@@ -809,6 +900,20 @@ var _ = Describe("GardenFactory", func() {
 						fakeContainer.RunReturns(fakeProcess, nil)
 
 						fakeContainer.StreamInReturns(nil)
+					})
+
+					Describe("before having created the container", func() {
+						BeforeEach(func() {
+							executeDelegate.InitializingStub = func(atc.BuildConfig) {
+								defer GinkgoRecover()
+								Ω(fakeWorkerClient.CreateCallCount()).Should(BeZero())
+							}
+						})
+
+						It("invokes the delegate's Initializing callback", func() {
+							Ω(executeDelegate.InitializingCallCount()).Should(Equal(1))
+							Ω(executeDelegate.InitializingArgsForCall(0)).Should(Equal(fetchedConfig))
+						})
 					})
 
 					It("looked up the container via the session ID", func() {
@@ -875,6 +980,10 @@ var _ = Describe("GardenFactory", func() {
 						name, value := fakeContainer.SetPropertyArgsForCall(0)
 						Ω(name).Should(Equal("execute-process"))
 						Ω(value).Should(Equal("42"))
+					})
+
+					It("invokes the delegate's Started callback", func() {
+						Ω(executeDelegate.StartedCallCount()).Should(Equal(1))
 					})
 
 					Context("when privileged", func() {
@@ -1006,6 +1115,16 @@ var _ = Describe("GardenFactory", func() {
 								Ω(err).Should(BeAssignableToTypeOf(MissingInputsError{}))
 								Ω(err.(MissingInputsError).Inputs).Should(ConsistOf("some-input", "some-other-input"))
 							})
+
+							It("invokes the delegate's Failed callback", func() {
+								Eventually(process.Wait()).Should(Receive(HaveOccurred()))
+
+								Ω(executeDelegate.FailedCallCount()).Should(Equal(1))
+
+								err := executeDelegate.FailedArgsForCall(0)
+								Ω(err).Should(BeAssignableToTypeOf(MissingInputsError{}))
+								Ω(err.(MissingInputsError).Inputs).Should(ConsistOf("some-input", "some-other-input"))
+							})
 						})
 					})
 
@@ -1100,6 +1219,16 @@ var _ = Describe("GardenFactory", func() {
 								Ω(err).Should(BeAssignableToTypeOf(MissingInputsError{}))
 								Ω(err.(MissingInputsError).Inputs).Should(ConsistOf("some-input", "some-other-input"))
 							})
+
+							It("invokes the delegate's Failed callback", func() {
+								Eventually(process.Wait()).Should(Receive(HaveOccurred()))
+
+								Ω(executeDelegate.FailedCallCount()).Should(Equal(1))
+
+								err := executeDelegate.FailedArgsForCall(0)
+								Ω(err).Should(BeAssignableToTypeOf(MissingInputsError{}))
+								Ω(err.(MissingInputsError).Inputs).Should(ConsistOf("some-input", "some-other-input"))
+							})
 						})
 					})
 
@@ -1134,6 +1263,26 @@ var _ = Describe("GardenFactory", func() {
 							Ω(status).Should(Equal(ExitStatus(0)))
 						})
 
+						Describe("before saving the exit status property", func() {
+							BeforeEach(func() {
+								executeDelegate.FinishedStub = func(ExitStatus) {
+									callCount := fakeContainer.SetPropertyCallCount()
+
+									for i := 0; i < callCount; i++ {
+										name, _ := fakeContainer.SetPropertyArgsForCall(i)
+										Ω(name).ShouldNot(Equal("exit-status"))
+									}
+								}
+							})
+
+							It("invokes the delegate's Finished callback", func() {
+								Eventually(process.Wait()).Should(Receive(BeNil()))
+
+								Ω(executeDelegate.FinishedCallCount()).Should(Equal(1))
+								Ω(executeDelegate.FinishedArgsForCall(0)).Should(Equal(ExitStatus(0)))
+							})
+						})
+
 						Context("when saving the exit status fails", func() {
 							disaster := errors.New("nope")
 
@@ -1149,6 +1298,12 @@ var _ = Describe("GardenFactory", func() {
 
 							It("exits with the error", func() {
 								Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+							})
+
+							It("invokes the delegate's Failed callback", func() {
+								Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+								Ω(executeDelegate.FailedCallCount()).Should(Equal(1))
+								Ω(executeDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
 							})
 						})
 					})
@@ -1184,6 +1339,26 @@ var _ = Describe("GardenFactory", func() {
 							Ω(status).Should(Equal(ExitStatus(1)))
 						})
 
+						Describe("before saving the exit status property", func() {
+							BeforeEach(func() {
+								executeDelegate.FinishedStub = func(ExitStatus) {
+									callCount := fakeContainer.SetPropertyCallCount()
+
+									for i := 0; i < callCount; i++ {
+										name, _ := fakeContainer.SetPropertyArgsForCall(i)
+										Ω(name).ShouldNot(Equal("exit-status"))
+									}
+								}
+							})
+
+							It("invokes the delegate's Finished callback", func() {
+								Eventually(process.Wait()).Should(Receive(BeNil()))
+
+								Ω(executeDelegate.FinishedCallCount()).Should(Equal(1))
+								Ω(executeDelegate.FinishedArgsForCall(0)).Should(Equal(ExitStatus(1)))
+							})
+						})
+
 						Context("when saving the exit status fails", func() {
 							disaster := errors.New("nope")
 
@@ -1200,6 +1375,12 @@ var _ = Describe("GardenFactory", func() {
 							It("exits with the error", func() {
 								Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 							})
+
+							It("invokes the delegate's Failed callback", func() {
+								Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+								Ω(executeDelegate.FailedCallCount()).Should(Equal(1))
+								Ω(executeDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+							})
 						})
 					})
 
@@ -1213,6 +1394,12 @@ var _ = Describe("GardenFactory", func() {
 						It("exits with the failure", func() {
 							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 						})
+
+						It("invokes the delegate's Failed callback", func() {
+							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+							Ω(executeDelegate.FailedCallCount()).Should(Equal(1))
+							Ω(executeDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+						})
 					})
 
 					Context("when setting the process property fails", func() {
@@ -1224,6 +1411,12 @@ var _ = Describe("GardenFactory", func() {
 
 						It("exits with the error", func() {
 							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+						})
+
+						It("invokes the delegate's Failed callback", func() {
+							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+							Ω(executeDelegate.FailedCallCount()).Should(Equal(1))
+							Ω(executeDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
 						})
 					})
 
@@ -1432,6 +1625,12 @@ var _ = Describe("GardenFactory", func() {
 						It("exits with the error", func() {
 							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 						})
+
+						It("invokes the delegate's Failed callback", func() {
+							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+							Ω(executeDelegate.FailedCallCount()).Should(Equal(1))
+							Ω(executeDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+						})
 					})
 
 					Context("when streaming the bits in to the container fails", func() {
@@ -1449,6 +1648,12 @@ var _ = Describe("GardenFactory", func() {
 							Eventually(process.Wait()).Should(Receive())
 							Ω(fakeContainer.RunCallCount()).Should(Equal(0))
 						})
+
+						It("invokes the delegate's Failed callback", func() {
+							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+							Ω(executeDelegate.FailedCallCount()).Should(Equal(1))
+							Ω(executeDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+						})
 					})
 
 					Context("when running the build's script fails", func() {
@@ -1460,6 +1665,12 @@ var _ = Describe("GardenFactory", func() {
 
 						It("exits with the error", func() {
 							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+						})
+
+						It("invokes the delegate's Failed callback", func() {
+							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+							Ω(executeDelegate.FailedCallCount()).Should(Equal(1))
+							Ω(executeDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
 						})
 					})
 				})
@@ -1474,6 +1685,12 @@ var _ = Describe("GardenFactory", func() {
 					It("exits with the error", func() {
 						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 					})
+
+					It("invokes the delegate's Failed callback", func() {
+						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+						Ω(executeDelegate.FailedCallCount()).Should(Equal(1))
+						Ω(executeDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+					})
 				})
 			})
 
@@ -1486,6 +1703,12 @@ var _ = Describe("GardenFactory", func() {
 
 				It("exits with the failure", func() {
 					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+				})
+
+				It("invokes the delegate's Failed callback", func() {
+					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+					Ω(executeDelegate.FailedCallCount()).Should(Equal(1))
+					Ω(executeDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
 				})
 			})
 		})
@@ -1533,6 +1756,16 @@ var _ = Describe("GardenFactory", func() {
 					Ω(source.Result(&status)).Should(BeTrue())
 					Ω(status).Should(Equal(ExitStatus(123)))
 				})
+
+				It("does not invoke the delegate's Started callback", func() {
+					Eventually(process.Wait()).Should(Receive(BeNil()))
+					Ω(executeDelegate.StartedCallCount()).Should(BeZero())
+				})
+
+				It("does not invoke the delegate's Finished callback", func() {
+					Eventually(process.Wait()).Should(Receive(BeNil()))
+					Ω(executeDelegate.FinishedCallCount()).Should(BeZero())
+				})
 			})
 
 			Context("when the process id can be found", func() {
@@ -1569,6 +1802,10 @@ var _ = Describe("GardenFactory", func() {
 						Ω(pio.Stdout).Should(Equal(stdoutBuf))
 						Ω(pio.Stderr).Should(Equal(stderrBuf))
 					})
+
+					It("does not invoke the delegate's Started callback", func() {
+						Ω(executeDelegate.StartedCallCount()).Should(BeZero())
+					})
 				})
 
 				Context("when attaching to the process fails", func() {
@@ -1580,6 +1817,12 @@ var _ = Describe("GardenFactory", func() {
 
 					It("exits with the error", func() {
 						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+					})
+
+					It("invokes the delegate's Failed callback", func() {
+						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+						Ω(executeDelegate.FailedCallCount()).Should(Equal(1))
+						Ω(executeDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
 					})
 				})
 			})
@@ -1593,6 +1836,12 @@ var _ = Describe("GardenFactory", func() {
 
 				It("exits with the failure", func() {
 					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+				})
+
+				It("invokes the delegate's Failed callback", func() {
+					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+					Eventually(executeDelegate.FailedCallCount()).Should(Equal(1))
+					Ω(executeDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
 				})
 			})
 		})

@@ -1,15 +1,12 @@
 package engine_test
 
 import (
-	"bytes"
 	"errors"
-	"io/ioutil"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/fakes"
-	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
 	execfakes "github.com/concourse/atc/exec/fakes"
 	. "github.com/onsi/ginkgo"
@@ -37,11 +34,10 @@ var _ = Describe("ExecEngine", func() {
 
 	Describe("Resume", func() {
 		var (
-			fakeDelegate                  *fakes.FakeBuildDelegate
-			fakeInputCompleteCallback     *execfakes.FakeCompleteCallback
-			fakeExecutionCompleteCallback *execfakes.FakeCompleteCallback
-			fakeOutputCompleteCallback    *execfakes.FakeCompleteCallback
-			fakeFinishCallback            *execfakes.FakeCompleteCallback
+			fakeDelegate          *fakes.FakeBuildDelegate
+			fakeInputDelegate     *execfakes.FakeGetDelegate
+			fakeExecutionDelegate *execfakes.FakeExecuteDelegate
+			fakeOutputDelegate    *execfakes.FakePutDelegate
 
 			buildModel db.Build
 
@@ -107,17 +103,14 @@ var _ = Describe("ExecEngine", func() {
 			fakeDelegate = new(fakes.FakeBuildDelegate)
 			fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-			fakeInputCompleteCallback = new(execfakes.FakeCompleteCallback)
-			fakeDelegate.InputCompletedReturns(fakeInputCompleteCallback)
+			fakeInputDelegate = new(execfakes.FakeGetDelegate)
+			fakeDelegate.InputDelegateReturns(fakeInputDelegate)
 
-			fakeExecutionCompleteCallback = new(execfakes.FakeCompleteCallback)
-			fakeDelegate.ExecutionCompletedReturns(fakeExecutionCompleteCallback)
+			fakeExecutionDelegate = new(execfakes.FakeExecuteDelegate)
+			fakeDelegate.ExecutionDelegateReturns(fakeExecutionDelegate)
 
-			fakeOutputCompleteCallback = new(execfakes.FakeCompleteCallback)
-			fakeDelegate.OutputCompletedReturns(fakeOutputCompleteCallback)
-
-			fakeFinishCallback = new(execfakes.FakeCompleteCallback)
-			fakeDelegate.FinishReturns(fakeFinishCallback)
+			fakeOutputDelegate = new(execfakes.FakePutDelegate)
+			fakeDelegate.OutputDelegateReturns(fakeOutputDelegate)
 
 			inputStep = new(execfakes.FakeStep)
 			inputSource = new(execfakes.FakeArtifactSource)
@@ -153,126 +146,39 @@ var _ = Describe("ExecEngine", func() {
 			build.Resume(logger)
 		})
 
-		It("constructs inputs correcly", func() {
+		It("constructs inputs correctly", func() {
 			Ω(fakeFactory.GetCallCount()).Should(Equal(1))
 
-			sessionID, ioConfig, resourceConfig, params, version := fakeFactory.GetArgsForCall(0)
+			sessionID, delegate, resourceConfig, params, version := fakeFactory.GetArgsForCall(0)
 			Ω(sessionID).Should(Equal(exec.SessionID("build-42-input-some-input")))
+			Ω(delegate).Should(Equal(fakeInputDelegate))
 			Ω(resourceConfig.Name).Should(Equal("some-input-resource"))
 			Ω(resourceConfig.Type).Should(Equal("some-type"))
 			Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
 			Ω(params).Should(Equal(atc.Params{"some": "params"}))
 			Ω(version).Should(Equal(atc.Version{"some": "version"}))
-
-			Ω(fakeDB.SaveBuildEventCallCount()).Should(BeZero())
-
-			_, err := ioConfig.Stdout.Write([]byte("some stdout"))
-			Ω(err).ShouldNot(HaveOccurred())
-
-			_, err = ioConfig.Stderr.Write([]byte("some stderr"))
-			Ω(err).ShouldNot(HaveOccurred())
-
-			Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(2))
-
-			buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
-			Ω(buildID).Should(Equal(buildModel.ID))
-			Ω(savedEvent).Should(Equal(event.Log{
-				Origin: event.Origin{
-					Type: event.OriginTypeInput,
-					Name: "some-input",
-				},
-				Payload: "some stdout",
-			}))
-
-			buildID, savedEvent = fakeDB.SaveBuildEventArgsForCall(1)
-			Ω(buildID).Should(Equal(buildModel.ID))
-			Ω(savedEvent).Should(Equal(event.Log{
-				Origin: event.Origin{
-					Type: event.OriginTypeInput,
-					Name: "some-input",
-				},
-				Payload: "some stderr",
-			}))
 		})
 
-		It("constructs outputs correcly", func() {
+		It("constructs outputs correctly", func() {
 			Ω(fakeFactory.PutCallCount()).Should(Equal(1))
 
-			sessionID, ioConfig, resourceConfig, params := fakeFactory.PutArgsForCall(0)
+			sessionID, delegate, resourceConfig, params := fakeFactory.PutArgsForCall(0)
 			Ω(sessionID).Should(Equal(exec.SessionID("build-42-output-some-output-resource")))
+			Ω(delegate).Should(Equal(fakeOutputDelegate))
 			Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
 			Ω(resourceConfig.Type).Should(Equal("some-type"))
 			Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
 			Ω(params).Should(Equal(atc.Params{"some": "params"}))
-
-			Ω(fakeDB.SaveBuildEventCallCount()).Should(BeZero())
-
-			_, err := ioConfig.Stdout.Write([]byte("some stdout"))
-			Ω(err).ShouldNot(HaveOccurred())
-
-			_, err = ioConfig.Stderr.Write([]byte("some stderr"))
-			Ω(err).ShouldNot(HaveOccurred())
-
-			Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(2))
-
-			buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
-			Ω(buildID).Should(Equal(buildModel.ID))
-			Ω(savedEvent).Should(Equal(event.Log{
-				Origin: event.Origin{
-					Type: event.OriginTypeOutput,
-					Name: "some-output-resource",
-				},
-				Payload: "some stdout",
-			}))
-
-			buildID, savedEvent = fakeDB.SaveBuildEventArgsForCall(1)
-			Ω(buildID).Should(Equal(buildModel.ID))
-			Ω(savedEvent).Should(Equal(event.Log{
-				Origin: event.Origin{
-					Type: event.OriginTypeOutput,
-					Name: "some-output-resource",
-				},
-				Payload: "some stderr",
-			}))
 		})
 
 		It("constructs executions correctly", func() {
 			Ω(fakeFactory.ExecuteCallCount()).Should(Equal(1))
 
-			sessionID, ioConfig, privileged, configSource := fakeFactory.ExecuteArgsForCall(0)
+			sessionID, delegate, privileged, configSource := fakeFactory.ExecuteArgsForCall(0)
 			Ω(sessionID).Should(Equal(exec.SessionID("build-42-execute")))
+			Ω(delegate).Should(Equal(fakeExecutionDelegate))
 			Ω(privileged).Should(Equal(exec.Privileged(false)))
 			Ω(configSource).ShouldNot(BeNil())
-
-			Ω(fakeDB.SaveBuildEventCallCount()).Should(BeZero())
-
-			_, err := ioConfig.Stdout.Write([]byte("some stdout"))
-			Ω(err).ShouldNot(HaveOccurred())
-
-			_, err = ioConfig.Stderr.Write([]byte("some stderr"))
-			Ω(err).ShouldNot(HaveOccurred())
-
-			Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(2))
-
-			buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
-			Ω(buildID).Should(Equal(buildModel.ID))
-			Ω(savedEvent).Should(Equal(event.Log{
-				Origin: event.Origin{
-					Type: event.OriginTypeRun,
-					Name: "stdout",
-				},
-				Payload: "some stdout",
-			}))
-
-			buildID, savedEvent = fakeDB.SaveBuildEventArgsForCall(1)
-			Ω(buildID).Should(Equal(buildModel.ID))
-			Ω(savedEvent).Should(Equal(event.Log{
-				Origin: event.Origin{
-					Type: event.OriginTypeRun,
-					Name: "stderr",
-				},
-				Payload: "some stderr",
-			}))
 		})
 
 		Context("when the build is privileged", func() {
@@ -285,39 +191,6 @@ var _ = Describe("ExecEngine", func() {
 
 				_, _, privileged, _ := fakeFactory.ExecuteArgsForCall(0)
 				Ω(privileged).Should(Equal(exec.Privileged(true)))
-			})
-		})
-
-		Describe("fetching the config", func() {
-			It("emits an initialize event", func() {
-				Ω(fakeFactory.ExecuteCallCount()).Should(Equal(1))
-
-				_, _, _, configSource := fakeFactory.ExecuteArgsForCall(0)
-
-				fakeSource := new(execfakes.FakeArtifactSource)
-
-				configStream := ioutil.NopCloser(bytes.NewBufferString(`---
-params:
-  ANOTHER_PARAM: another-value
-`))
-
-				fakeSource.StreamFileReturns(configStream, nil)
-
-				Ω(fakeDB.SaveBuildEventCallCount()).Should(BeZero())
-
-				config, err := configSource.FetchConfig(fakeSource)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				mergedConfig := *buildConfig
-				mergedConfig.Params["ANOTHER_PARAM"] = "another-value"
-
-				Ω(config).Should(Equal(mergedConfig))
-
-				Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(1))
-
-				buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
-				Ω(buildID).Should(Equal(buildModel.ID))
-				Ω(savedEvent).Should(Equal(event.Initialize{config}))
 			})
 		})
 
@@ -343,13 +216,6 @@ params:
 				inputSource.RunReturns(nil)
 			})
 
-			It("invokes the delegate's input complete callback", func() {
-				Ω(fakeInputCompleteCallback.CallCallCount()).Should(Equal(1))
-				cbErr, cbSource := fakeInputCompleteCallback.CallArgsForCall(0)
-				Ω(cbErr).ShouldNot(HaveOccurred())
-				Ω(cbSource).Should(Equal(inputSource))
-			})
-
 			Context("when executing the build errors", func() {
 				disaster := errors.New("oh no!")
 
@@ -361,16 +227,9 @@ params:
 					Ω(outputSource.RunCallCount()).Should(BeZero())
 				})
 
-				It("invokes the delegate's execution complete callback", func() {
-					Ω(fakeExecutionCompleteCallback.CallCallCount()).Should(Equal(1))
-					cbErr, cbSource := fakeExecutionCompleteCallback.CallArgsForCall(0)
-					Ω(cbErr).Should(Equal(disaster))
-					Ω(cbSource).Should(Equal(executeSource))
-				})
-
-				It("invokes the delegate's finish callback", func() {
-					Ω(fakeFinishCallback.CallCallCount()).Should(Equal(1))
-					cbErr, _ := fakeFinishCallback.CallArgsForCall(0)
+				It("finishes with error", func() {
+					Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
+					_, cbErr := fakeDelegate.FinishArgsForCall(0)
 					Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
 				})
 			})
@@ -379,13 +238,6 @@ params:
 				BeforeEach(func() {
 					executeSource.RunReturns(nil)
 					executeSource.ResultStub = successResult(true)
-				})
-
-				It("invokes the delegate's execution complete callback", func() {
-					Ω(fakeExecutionCompleteCallback.CallCallCount()).Should(Equal(1))
-					cbErr, cbSource := fakeExecutionCompleteCallback.CallArgsForCall(0)
-					Ω(cbErr).ShouldNot(HaveOccurred())
-					Ω(cbSource).Should(Equal(executeSource))
 				})
 
 				Context("when the output should perform on success", func() {
@@ -402,11 +254,10 @@ params:
 							outputSource.RunReturns(nil)
 						})
 
-						It("invokes the delegate's output complete callback", func() {
-							Ω(fakeOutputCompleteCallback.CallCallCount()).Should(Equal(1))
-							cbErr, cbSource := fakeOutputCompleteCallback.CallArgsForCall(0)
+						It("finishes with success", func() {
+							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
+							_, cbErr := fakeDelegate.FinishArgsForCall(0)
 							Ω(cbErr).ShouldNot(HaveOccurred())
-							Ω(cbSource).Should(Equal(outputSource))
 						})
 					})
 
@@ -417,16 +268,9 @@ params:
 							outputSource.RunReturns(disaster)
 						})
 
-						It("invokes the delegate's output complete callback", func() {
-							Ω(fakeOutputCompleteCallback.CallCallCount()).Should(Equal(1))
-							cbErr, cbSource := fakeOutputCompleteCallback.CallArgsForCall(0)
-							Ω(cbErr).Should(Equal(disaster))
-							Ω(cbSource).Should(Equal(outputSource))
-						})
-
-						It("invokes the delegate's finish callback", func() {
-							Ω(fakeFinishCallback.CallCallCount()).Should(Equal(1))
-							cbErr, _ := fakeFinishCallback.CallArgsForCall(0)
+						It("finishes with the error", func() {
+							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
+							_, cbErr := fakeDelegate.FinishArgsForCall(0)
 							Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
 						})
 					})
@@ -456,11 +300,10 @@ params:
 							outputSource.RunReturns(nil)
 						})
 
-						It("invokes the delegate's output complete callback", func() {
-							Ω(fakeOutputCompleteCallback.CallCallCount()).Should(Equal(1))
-							cbErr, cbSource := fakeOutputCompleteCallback.CallArgsForCall(0)
+						It("finishes with success", func() {
+							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
+							_, cbErr := fakeDelegate.FinishArgsForCall(0)
 							Ω(cbErr).ShouldNot(HaveOccurred())
-							Ω(cbSource).Should(Equal(outputSource))
 						})
 					})
 
@@ -471,16 +314,9 @@ params:
 							outputSource.RunReturns(disaster)
 						})
 
-						It("invokes the delegate's output complete callback", func() {
-							Ω(fakeOutputCompleteCallback.CallCallCount()).Should(Equal(1))
-							cbErr, cbSource := fakeOutputCompleteCallback.CallArgsForCall(0)
-							Ω(cbErr).Should(Equal(disaster))
-							Ω(cbSource).Should(Equal(outputSource))
-						})
-
-						It("invokes the delegate's finish callback", func() {
-							Ω(fakeFinishCallback.CallCallCount()).Should(Equal(1))
-							cbErr, _ := fakeFinishCallback.CallArgsForCall(0)
+						It("finishes with the error", func() {
+							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
+							_, cbErr := fakeDelegate.FinishArgsForCall(0)
 							Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
 						})
 					})
@@ -527,11 +363,10 @@ params:
 							outputSource.RunReturns(nil)
 						})
 
-						It("invokes the delegate's output complete callback", func() {
-							Ω(fakeOutputCompleteCallback.CallCallCount()).Should(Equal(1))
-							cbErr, cbSource := fakeOutputCompleteCallback.CallArgsForCall(0)
+						It("finishes with success", func() {
+							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
+							_, cbErr := fakeDelegate.FinishArgsForCall(0)
 							Ω(cbErr).ShouldNot(HaveOccurred())
-							Ω(cbSource).Should(Equal(outputSource))
 						})
 					})
 
@@ -542,16 +377,9 @@ params:
 							outputSource.RunReturns(disaster)
 						})
 
-						It("invokes the delegate's output complete callback", func() {
-							Ω(fakeOutputCompleteCallback.CallCallCount()).Should(Equal(1))
-							cbErr, cbSource := fakeOutputCompleteCallback.CallArgsForCall(0)
-							Ω(cbErr).Should(Equal(disaster))
-							Ω(cbSource).Should(Equal(outputSource))
-						})
-
-						It("invokes the delegate's finish callback", func() {
-							Ω(fakeFinishCallback.CallCallCount()).Should(Equal(1))
-							cbErr, _ := fakeFinishCallback.CallArgsForCall(0)
+						It("finishes with the error", func() {
+							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
+							_, cbErr := fakeDelegate.FinishArgsForCall(0)
 							Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
 						})
 					})
@@ -571,11 +399,10 @@ params:
 							outputSource.RunReturns(nil)
 						})
 
-						It("invokes the delegate's output complete callback", func() {
-							Ω(fakeOutputCompleteCallback.CallCallCount()).Should(Equal(1))
-							cbErr, cbSource := fakeOutputCompleteCallback.CallArgsForCall(0)
+						It("finishes with success", func() {
+							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
+							_, cbErr := fakeDelegate.FinishArgsForCall(0)
 							Ω(cbErr).ShouldNot(HaveOccurred())
-							Ω(cbSource).Should(Equal(outputSource))
 						})
 					})
 
@@ -586,16 +413,9 @@ params:
 							outputSource.RunReturns(disaster)
 						})
 
-						It("invokes the delegate's output complete callback", func() {
-							Ω(fakeOutputCompleteCallback.CallCallCount()).Should(Equal(1))
-							cbErr, cbSource := fakeOutputCompleteCallback.CallArgsForCall(0)
-							Ω(cbErr).Should(Equal(disaster))
-							Ω(cbSource).Should(Equal(outputSource))
-						})
-
-						It("invokes the delegate's finish callback", func() {
-							Ω(fakeFinishCallback.CallCallCount()).Should(Equal(1))
-							cbErr, _ := fakeFinishCallback.CallArgsForCall(0)
+						It("finishes with the error", func() {
+							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
+							_, cbErr := fakeDelegate.FinishArgsForCall(0)
 							Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
 						})
 					})
@@ -639,16 +459,9 @@ params:
 				Ω(outputSource.RunCallCount()).Should(BeZero())
 			})
 
-			It("invokes the delegate's input complete callback", func() {
-				Ω(fakeInputCompleteCallback.CallCallCount()).Should(Equal(1))
-				cbErr, cbSource := fakeInputCompleteCallback.CallArgsForCall(0)
-				Ω(cbErr).Should(Equal(disaster))
-				Ω(cbSource).Should(Equal(inputSource))
-			})
-
-			It("invokes the delegate's finish callback", func() {
-				Ω(fakeFinishCallback.CallCallCount()).Should(Equal(1))
-				cbErr, _ := fakeFinishCallback.CallArgsForCall(0)
+			It("finishes with the error", func() {
+				Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
+				_, cbErr := fakeDelegate.FinishArgsForCall(0)
 				Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
 			})
 		})

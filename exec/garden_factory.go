@@ -1,6 +1,8 @@
 package exec
 
 import (
+	"os"
+
 	"github.com/cloudfoundry-incubator/garden"
 
 	"github.com/concourse/atc"
@@ -23,43 +25,47 @@ func NewGardenFactory(
 	}
 }
 
-func (factory *gardenFactory) Get(sessionID SessionID, ioConfig IOConfig, config atc.ResourceConfig, params atc.Params, version atc.Version) Step {
+func (factory *gardenFactory) Get(sessionID SessionID, delegate GetDelegate, config atc.ResourceConfig, params atc.Params, version atc.Version) Step {
 	return resourceStep{
 		SessionID: resource.SessionID(sessionID),
+
+		Delegate: delegate,
 
 		Tracker: factory.resourceTracker,
 		Type:    resource.ResourceType(config.Type),
 
 		Action: func(r resource.Resource, s ArtifactSource) resource.VersionedSource {
 			return r.Get(resource.IOConfig{
-				Stdout: ioConfig.Stdout,
-				Stderr: ioConfig.Stderr,
+				Stdout: delegate.Stdout(),
+				Stderr: delegate.Stderr(),
 			}, config.Source, params, version)
 		},
 	}
 }
 
-func (factory *gardenFactory) Put(sessionID SessionID, ioConfig IOConfig, config atc.ResourceConfig, params atc.Params) Step {
+func (factory *gardenFactory) Put(sessionID SessionID, delegate PutDelegate, config atc.ResourceConfig, params atc.Params) Step {
 	return resourceStep{
 		SessionID: resource.SessionID(sessionID),
+
+		Delegate: delegate,
 
 		Tracker: factory.resourceTracker,
 		Type:    resource.ResourceType(config.Type),
 
 		Action: func(r resource.Resource, s ArtifactSource) resource.VersionedSource {
 			return r.Put(resource.IOConfig{
-				Stdout: ioConfig.Stdout,
-				Stderr: ioConfig.Stderr,
+				Stdout: delegate.Stdout(),
+				Stderr: delegate.Stderr(),
 			}, config.Source, params, resourceSource{s})
 		},
 	}
 }
 
-func (factory *gardenFactory) Execute(sessionID SessionID, ioConfig IOConfig, privileged Privileged, configSource BuildConfigSource) Step {
+func (factory *gardenFactory) Execute(sessionID SessionID, delegate ExecuteDelegate, privileged Privileged, configSource BuildConfigSource) Step {
 	return executeStep{
 		SessionID: sessionID,
 
-		IOConfig: ioConfig,
+		Delegate: delegate,
 
 		Privileged:   privileged,
 		ConfigSource: configSource,
@@ -125,4 +131,19 @@ func (p hijackedProcess) SetTTY(spec atc.HijackTTYSpec) error {
 			Rows:    spec.WindowSize.Rows,
 		},
 	})
+}
+
+type failureReporter struct {
+	ArtifactSource
+
+	ReportFailure func(error)
+}
+
+func (reporter failureReporter) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+	err := reporter.ArtifactSource.Run(signals, ready)
+	if err != nil {
+		reporter.ReportFailure(err)
+	}
+
+	return err
 }

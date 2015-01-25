@@ -3,13 +3,10 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
-	"unicode/utf8"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
@@ -98,15 +95,12 @@ func (build *execBuild) Abort() error {
 func (build *execBuild) Resume(logger lager.Logger) {
 	build.delegate.Start(logger.Session("start"))
 
-	step := exec.OnComplete(
+	step := exec.Compose(
+		build.aggregateInputsStep(logger.Session("inputs")),
 		exec.Compose(
-			build.aggregateInputsStep(logger.Session("inputs")),
-			exec.Compose(
-				build.executeStep(logger.Session("execute")),
-				build.aggregateOutputsStep(logger.Session("outputs")),
-			),
+			build.executeStep(logger.Session("execute")),
+			build.aggregateOutputsStep(logger.Session("outputs")),
 		),
-		build.delegate.Finish(logger.Session("finish")),
 	)
 
 	source := step.Using(&exec.NoopArtifactSource{})
@@ -117,7 +111,8 @@ func (build *execBuild) Resume(logger lager.Logger) {
 
 	for {
 		select {
-		case <-exited:
+		case err := <-exited:
+			build.delegate.Finish(logger.Session("finish"), err)
 			return
 
 		case sig := <-build.signals:
@@ -144,25 +139,16 @@ func (build *execBuild) aggregateInputsStep(logger lager.Logger) exec.Step {
 	inputs := exec.Aggregate{}
 
 	for _, input := range build.metadata.Plan.Inputs {
-		origin := event.Origin{
-			Type: event.OriginTypeInput,
-			Name: input.Name,
-		}
-
-		ioConfig := exec.IOConfig{
-			Stdout: build.ioWriter(origin),
-			Stderr: build.ioWriter(origin),
-		}
-
-		resourceConfig := atc.ResourceConfig{
-			Name:   input.Resource,
-			Type:   input.Type,
-			Source: input.Source,
-		}
-
-		inputs[input.Name] = exec.OnComplete(
-			build.factory.Get(build.inputSessionID(input.Name), ioConfig, resourceConfig, input.Params, input.Version),
-			build.delegate.InputCompleted(logger.Session(input.Name), input),
+		inputs[input.Name] = build.factory.Get(
+			build.inputSessionID(input.Name),
+			build.delegate.InputDelegate(logger.Session(input.Name), input),
+			atc.ResourceConfig{
+				Name:   input.Resource,
+				Type:   input.Type,
+				Source: input.Source,
+			},
+			input.Params,
+			input.Version,
 		)
 	}
 
@@ -186,26 +172,11 @@ func (build *execBuild) executeStep(logger lager.Logger) exec.Step {
 		return exec.Identity{}
 	}
 
-	configSource = initializeEmitter{
-		buildID:           build.buildID,
-		db:                build.db,
-		BuildConfigSource: configSource,
-	}
-
-	ioConfig := exec.IOConfig{
-		Stdout: build.ioWriter(event.Origin{
-			Type: event.OriginTypeRun,
-			Name: "stdout",
-		}),
-		Stderr: build.ioWriter(event.Origin{
-			Type: event.OriginTypeRun,
-			Name: "stderr",
-		}),
-	}
-
-	return exec.OnComplete(
-		build.factory.Execute(build.executeSessionID(), ioConfig, exec.Privileged(plan.Privileged), configSource),
-		build.delegate.ExecutionCompleted(logger),
+	return build.factory.Execute(
+		build.executeSessionID(),
+		build.delegate.ExecutionDelegate(logger),
+		exec.Privileged(plan.Privileged),
+		configSource,
 	)
 }
 
@@ -215,25 +186,15 @@ func (build *execBuild) aggregateOutputsStep(logger lager.Logger) exec.Step {
 	outputs := exec.Aggregate{}
 
 	for _, output := range plan.Outputs {
-		origin := event.Origin{
-			Type: event.OriginTypeOutput,
-			Name: output.Name,
-		}
-
-		ioConfig := exec.IOConfig{
-			Stdout: build.ioWriter(origin),
-			Stderr: build.ioWriter(origin),
-		}
-
-		resourceConfig := atc.ResourceConfig{
-			Name:   output.Name,
-			Type:   output.Type,
-			Source: output.Source,
-		}
-
-		step := exec.OnComplete(
-			build.factory.Put(build.outputSessionID(output.Name), ioConfig, resourceConfig, output.Params),
-			build.delegate.OutputCompleted(logger.Session(output.Name), output),
+		step := build.factory.Put(
+			build.outputSessionID(output.Name),
+			build.delegate.OutputDelegate(logger.Session(output.Name), output),
+			atc.ResourceConfig{
+				Name:   output.Name,
+				Type:   output.Type,
+				Source: output.Source,
+			},
+			output.Params,
 		)
 
 		if plan.Config != nil || plan.ConfigPath != "" {
@@ -260,60 +221,4 @@ func (build *execBuild) inputSessionID(inputName string) exec.SessionID {
 
 func (build *execBuild) outputSessionID(outputName string) exec.SessionID {
 	return exec.SessionID(fmt.Sprintf("build-%d-output-%s", build.buildID, outputName))
-}
-
-func (build *execBuild) ioWriter(origin event.Origin) io.Writer {
-	return &dbEventWriter{
-		buildID: build.buildID,
-		db:      build.db,
-		origin:  origin,
-	}
-}
-
-type initializeEmitter struct {
-	buildID int
-	db      EngineDB
-
-	exec.BuildConfigSource
-}
-
-func (emitter initializeEmitter) FetchConfig(source exec.ArtifactSource) (atc.BuildConfig, error) {
-	config, err := emitter.BuildConfigSource.FetchConfig(source)
-	if err != nil {
-		return atc.BuildConfig{}, err
-	}
-
-	emitter.db.SaveBuildEvent(emitter.buildID, event.Initialize{
-		BuildConfig: config,
-	})
-
-	return config, nil
-}
-
-type dbEventWriter struct {
-	buildID int
-	db      EngineDB
-
-	origin event.Origin
-
-	dangling []byte
-}
-
-func (writer *dbEventWriter) Write(data []byte) (int, error) {
-	text := append(writer.dangling, data...)
-
-	checkEncoding, _ := utf8.DecodeLastRune(text)
-	if checkEncoding == utf8.RuneError {
-		writer.dangling = text
-		return len(data), nil
-	}
-
-	writer.dangling = nil
-
-	writer.db.SaveBuildEvent(writer.buildID, event.Log{
-		Payload: string(text),
-		Origin:  writer.origin,
-	})
-
-	return len(data), nil
 }
