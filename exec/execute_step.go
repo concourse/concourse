@@ -2,6 +2,7 @@ package exec
 
 import (
 	"archive/tar"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -113,6 +114,11 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 			RootFSPath: config.Image,
 			Privileged: bool(step.Privileged),
 		})
+		if err != nil {
+			return err
+		}
+
+		err = step.ensureBuildDirExists(step.container)
 		if err != nil {
 			return err
 		}
@@ -239,6 +245,22 @@ func (step *executeStep) StreamTo(destination ArtifactDestination) error {
 	}
 
 	return destination.StreamIn(".", out)
+}
+
+func (step *executeStep) ensureBuildDirExists(container garden.Container) error {
+	emptyTar := new(bytes.Buffer)
+
+	err := tar.NewWriter(emptyTar).Close()
+	if err != nil {
+		return err
+	}
+
+	err = container.StreamIn(ArtifactsRoot, emptyTar)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (executeStep) envForParams(params map[string]string) []string {

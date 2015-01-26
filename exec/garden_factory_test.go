@@ -940,18 +940,30 @@ var _ = Describe("GardenFactory", func() {
 						}))
 					})
 
+					It("ensures /tmp/build/src exists by streaming in an empty payload", func() {
+						Ω(fakeContainer.StreamInCallCount()).Should(Equal(1))
+
+						destination, stream := fakeContainer.StreamInArgsForCall(0)
+						Ω(destination).Should(Equal("/tmp/build/src"))
+
+						tarReader := tar.NewReader(stream)
+
+						_, err := tarReader.Next()
+						Ω(err).Should(Equal(io.EOF))
+					})
+
 					It("streams the input source in relative to /tmp/build/src", func() {
 						Ω(inSource.StreamToCallCount()).Should(Equal(1))
 						Ω(inSource.StreamToArgsForCall(0)).ShouldNot(BeNil())
 
-						Ω(fakeContainer.StreamInCallCount()).Should(Equal(0))
+						streamInCount := fakeContainer.StreamInCallCount()
 
 						streamIn := new(bytes.Buffer)
 
 						err := inSource.StreamToArgsForCall(0).StreamIn("some-path", streamIn)
 						Ω(err).ShouldNot(HaveOccurred())
 
-						destination, source := fakeContainer.StreamInArgsForCall(0)
+						destination, source := fakeContainer.StreamInArgsForCall(streamInCount)
 						Ω(destination).Should(Equal("/tmp/build/src/some-path"))
 						Ω(source).Should(Equal(streamIn))
 					})
@@ -1046,7 +1058,7 @@ var _ = Describe("GardenFactory", func() {
 									err := dest.StreamIn("some-input", streamIn)
 									Ω(err).ShouldNot(HaveOccurred())
 
-									destination, source := fakeContainer.StreamInArgsForCall(0)
+									destination, source := fakeContainer.StreamInArgsForCall(1)
 									Ω(destination).Should(Equal("/tmp/build/src/some-input-configured-path"))
 									Ω(source).Should(Equal(streamIn))
 
@@ -1054,7 +1066,7 @@ var _ = Describe("GardenFactory", func() {
 									err = dest.StreamIn("some-input/some-thing", streamIn)
 									Ω(err).ShouldNot(HaveOccurred())
 
-									destination, source = fakeContainer.StreamInArgsForCall(1)
+									destination, source = fakeContainer.StreamInArgsForCall(2)
 									Ω(destination).Should(Equal("/tmp/build/src/some-input-configured-path/some-thing"))
 									Ω(source).Should(Equal(streamIn))
 
@@ -1062,7 +1074,7 @@ var _ = Describe("GardenFactory", func() {
 									err = dest.StreamIn("some-other-input", streamIn)
 									Ω(err).ShouldNot(HaveOccurred())
 
-									destination, source = fakeContainer.StreamInArgsForCall(2)
+									destination, source = fakeContainer.StreamInArgsForCall(3)
 									Ω(destination).Should(Equal("/tmp/build/src/some-other-input-configured-path"))
 									Ω(source).Should(Equal(streamIn))
 
@@ -1070,7 +1082,7 @@ var _ = Describe("GardenFactory", func() {
 									err = dest.StreamIn("some-input-morewords", streamIn)
 									Ω(err).ShouldNot(HaveOccurred())
 
-									destination, source = fakeContainer.StreamInArgsForCall(3)
+									destination, source = fakeContainer.StreamInArgsForCall(4)
 									Ω(destination).Should(Equal("/tmp/build/src/some-input-morewords"))
 									Ω(source).Should(Equal(streamIn))
 
@@ -1078,7 +1090,7 @@ var _ = Describe("GardenFactory", func() {
 									err = dest.StreamIn("some-other-unconfigured-input", streamIn)
 									Ω(err).ShouldNot(HaveOccurred())
 
-									destination, source = fakeContainer.StreamInArgsForCall(4)
+									destination, source = fakeContainer.StreamInArgsForCall(5)
 									Ω(destination).Should(Equal("/tmp/build/src/some-other-unconfigured-input"))
 									Ω(source).Should(Equal(streamIn))
 
@@ -1103,7 +1115,7 @@ var _ = Describe("GardenFactory", func() {
 									err := dest.StreamIn("some-unconfigured-input", streamIn)
 									Ω(err).ShouldNot(HaveOccurred())
 
-									destination, source := fakeContainer.StreamInArgsForCall(0)
+									destination, source := fakeContainer.StreamInArgsForCall(1)
 									Ω(destination).Should(Equal("/tmp/build/src/some-unconfigured-input"))
 									Ω(source).Should(Equal(streamIn))
 
@@ -1158,7 +1170,7 @@ var _ = Describe("GardenFactory", func() {
 									err := dest.StreamIn("some-input", streamIn)
 									Ω(err).ShouldNot(HaveOccurred())
 
-									destination, source := fakeContainer.StreamInArgsForCall(0)
+									destination, source := fakeContainer.StreamInArgsForCall(1)
 									Ω(destination).Should(Equal("/tmp/build/src/some-input"))
 									Ω(source).Should(Equal(streamIn))
 
@@ -1166,7 +1178,7 @@ var _ = Describe("GardenFactory", func() {
 									err = dest.StreamIn("some-input/some-thing", streamIn)
 									Ω(err).ShouldNot(HaveOccurred())
 
-									destination, source = fakeContainer.StreamInArgsForCall(1)
+									destination, source = fakeContainer.StreamInArgsForCall(2)
 									Ω(destination).Should(Equal("/tmp/build/src/some-input/some-thing"))
 									Ω(source).Should(Equal(streamIn))
 
@@ -1174,7 +1186,7 @@ var _ = Describe("GardenFactory", func() {
 									err = dest.StreamIn("some-other-input", streamIn)
 									Ω(err).ShouldNot(HaveOccurred())
 
-									destination, source = fakeContainer.StreamInArgsForCall(2)
+									destination, source = fakeContainer.StreamInArgsForCall(3)
 									Ω(destination).Should(Equal("/tmp/build/src/some-other-input"))
 									Ω(source).Should(Equal(streamIn))
 
@@ -1182,7 +1194,7 @@ var _ = Describe("GardenFactory", func() {
 									err = dest.StreamIn("some-other-unconfigured-input", streamIn)
 									Ω(err).ShouldNot(HaveOccurred())
 
-									destination, source = fakeContainer.StreamInArgsForCall(3)
+									destination, source = fakeContainer.StreamInArgsForCall(4)
 									Ω(destination).Should(Equal("/tmp/build/src/some-other-unconfigured-input"))
 									Ω(source).Should(Equal(streamIn))
 
@@ -1207,7 +1219,7 @@ var _ = Describe("GardenFactory", func() {
 									err := dest.StreamIn("some-unconfigured-input", streamIn)
 									Ω(err).ShouldNot(HaveOccurred())
 
-									destination, source := fakeContainer.StreamInArgsForCall(0)
+									destination, source := fakeContainer.StreamInArgsForCall(1)
 									Ω(destination).Should(Equal("/tmp/build/src/some-unconfigured-input"))
 									Ω(source).Should(Equal(streamIn))
 
