@@ -58,6 +58,7 @@ func NewServer(
 		configDB:            configDB,
 		pingInterval:        pingInterval,
 		eventHandlerFactory: eventHandlerFactory,
+		drain:               drain,
 		fallback:            fallback,
 
 		httpClient: &http.Client{
