@@ -25,7 +25,7 @@ directory to setup your environment.
   go build
   ```
 
-4. You can also now run tests by installing and running ginkgo:
+4. You can also now run tests by installing and running [ginkgo](http://onsi.github.io/ginkgo/):
 
   ```bash
   go get github.com/onsi/ginkgo/ginkgo
