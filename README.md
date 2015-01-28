@@ -6,7 +6,7 @@ A good place to start learning about Concourse is its [BOSH release](https://git
 
 ## Building
 
-Building and testing fly is most easily done from a checkout of [concourse](https://github.com/concourse/concourse).
+Fly is built using [Go](http://golang.org/). Building and testing fly is most easily done from a checkout of [concourse](https://github.com/concourse/concourse). 
 
 1. Check out concourse and update submodules:
 
