@@ -85,16 +85,6 @@ function drawContinuously(svg, groups) {
 
     animationTarget.style("height", function(node) { return node.height() + "px" })
 
-    nodeLink
-      .filter(function(node) { return !node.key })
-      .append("text")
-      .text(function(node) { return node.name })
-      .attr("class", "shadow")
-      .attr("dominant-baseline", "middle")
-      .attr("text-anchor", "middle")
-      .attr("x", function(node) { return node.width() / 2 })
-      .attr("y", function(node) { return node.height() / 2 })
-
     nodeLink.append("text")
       .text(function(node) { return node.name })
       .attr("dominant-baseline", "middle")
@@ -151,14 +141,8 @@ function renderPipeline(groups) {
   svg.append("defs").append("filter")
     .attr("id", "embiggen")
     .append("feMorphology")
-      .attr("operator", "dilate")
-      .attr("radius", "4")
-
-  svg.select("defs").append("filter")
-    .attr("id", "shadow")
-    .append("feGaussianBlur")
-      .attr("stdDeviation", "1 1")
-      .attr("result", "shadow")
+    .attr("operator", "dilate")
+    .attr("radius", "4")
 
   var g = svg.append("g");
   svg.call(d3.behavior.zoom().on("zoom", function() {
