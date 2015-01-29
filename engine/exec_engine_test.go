@@ -2,6 +2,7 @@ package engine_test
 
 import (
 	"errors"
+	"os"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -178,6 +179,28 @@ var _ = Describe("ExecEngine", func() {
 			Ω(delegate).Should(Equal(fakeExecutionDelegate))
 			Ω(privileged).Should(Equal(exec.Privileged(false)))
 			Ω(configSource).ShouldNot(BeNil())
+		})
+
+		Context("when the steps complete", func() {
+			BeforeEach(func() {
+				assertNotReleased := func(signals <-chan os.Signal, ready chan<- struct{}) error {
+					defer GinkgoRecover()
+					Consistently(inputSource.ReleaseCallCount).Should(BeZero())
+					Consistently(executeSource.ReleaseCallCount).Should(BeZero())
+					Consistently(outputSource.ReleaseCallCount).Should(BeZero())
+					return nil
+				}
+
+				inputSource.RunStub = assertNotReleased
+				executeSource.RunStub = assertNotReleased
+				outputSource.RunStub = assertNotReleased
+			})
+
+			It("releases all sources", func() {
+				Ω(inputSource.ReleaseCallCount()).Should(Equal(1))
+				Ω(executeSource.ReleaseCallCount()).Should(Equal(1))
+				Ω(outputSource.ReleaseCallCount()).Should(Equal(1))
+			})
 		})
 
 		Context("when the build is privileged", func() {

@@ -103,6 +103,8 @@ func (build *execBuild) Resume(logger lager.Logger) {
 
 	source := step.Using(&exec.NoopArtifactSource{})
 
+	defer source.Release()
+
 	process := ifrit.Background(source)
 
 	exited := process.Wait()

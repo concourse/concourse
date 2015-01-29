@@ -1279,11 +1279,6 @@ var _ = Describe("GardenFactory", func() {
 							Ω(status).Should(Equal(ExitStatus(0)))
 						})
 
-						It("releases the container", func() {
-							Eventually(process.Wait()).Should(Receive(BeNil()))
-							Ω(fakeContainer.ReleaseCallCount()).Should(Equal(1))
-						})
-
 						Describe("before saving the exit status property", func() {
 							BeforeEach(func() {
 								executeDelegate.FinishedStub = func(ExitStatus) {
@@ -1358,11 +1353,6 @@ var _ = Describe("GardenFactory", func() {
 							var status ExitStatus
 							Ω(source.Result(&status)).Should(BeTrue())
 							Ω(status).Should(Equal(ExitStatus(1)))
-						})
-
-						It("releases the container", func() {
-							Eventually(process.Wait()).Should(Receive(BeNil()))
-							Ω(fakeContainer.ReleaseCallCount()).Should(Equal(1))
 						})
 
 						Describe("before saving the exit status property", func() {
@@ -1612,32 +1602,13 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					Describe("releasing", func() {
-						Context("when destroying the container succeeds", func() {
-							BeforeEach(func() {
-								fakeContainer.DestroyReturns(nil)
-							})
+						It("releases the container", func() {
+							Ω(fakeContainer.ReleaseCallCount()).Should(BeZero())
 
-							It("succeeds", func() {
-								Ω(fakeContainer.DestroyCallCount()).Should(BeZero())
+							err := source.Release()
+							Ω(err).ShouldNot(HaveOccurred())
 
-								err := source.Release()
-								Ω(err).ShouldNot(HaveOccurred())
-
-								Ω(fakeContainer.DestroyCallCount()).Should(Equal(1))
-							})
-						})
-
-						Context("when releasing the resource fails", func() {
-							disaster := errors.New("nope")
-
-							BeforeEach(func() {
-								fakeContainer.DestroyReturns(disaster)
-							})
-
-							It("returns the error", func() {
-								err := source.Release()
-								Ω(err).Should(Equal(disaster))
-							})
+							Ω(fakeContainer.ReleaseCallCount()).Should(Equal(1))
 						})
 					})
 

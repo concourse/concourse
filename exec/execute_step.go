@@ -161,8 +161,6 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 		}
 	}
 
-	defer step.container.Release()
-
 	close(ready)
 
 	waitExitStatus := make(chan int, 1)
@@ -216,7 +214,8 @@ func (step *executeStep) Result(x interface{}) bool {
 }
 
 func (step *executeStep) Release() error {
-	return step.container.Destroy()
+	step.container.Release()
+	return nil
 }
 
 func (step *executeStep) StreamFile(source string) (io.ReadCloser, error) {
