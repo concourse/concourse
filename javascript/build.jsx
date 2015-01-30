@@ -42,7 +42,10 @@ var Build = React.createClass({
       runLogs = <Logs autoscroll={this.state.autoscroll} batches={this.state.logs.get('run')} />;
     }
     var inputResources = [];
-    if (this.state.resources.has('input')) {
+
+    var resources = this.state.resources;
+
+    if (resources.has('input') && (typeof resources.get('input') !== "undefined")) {
       this.state.resources.get('input').forEach(function(input) {
         var logs;
         var key = 'input-' + input.get('name');
@@ -52,8 +55,9 @@ var Build = React.createClass({
         inputResources.push(<Resource key={key} resource={input} logs={logs} autoscroll={this.state.autoscroll} />);
       }, this);
     }
+
     var outputResources = [];
-    if (this.state.resources.has('output')) {
+    if (resources.has('output') && (typeof resources.get('output') !== "undefined")) {
       this.state.resources.get('output').forEach(function(output) {
         var logs;
         var key = 'output-' + output.get('name');
