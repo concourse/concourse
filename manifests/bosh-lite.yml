@@ -81,6 +81,8 @@ jobs:
         listen_network: tcp
         listen_address: 0.0.0.0:7777
 
+        allow_host_access: true
+
       consul:
         agent:
           services: [{name: garden}]
