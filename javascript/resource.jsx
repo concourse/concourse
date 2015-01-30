@@ -15,14 +15,14 @@ var Resource = React.createClass({
   render: function() {
     var resource = this.props.resource;
     var versionDetails = [];
-    if (resource.has('version')) {
+    if (resource.get('version') !== undefined) {
       resource.get('version').forEach(function(version, key) {
         versionDetails.push(<dt key={"version-dt-"+key}>{key}</dt>);
         versionDetails.push(<dd key={"version-dd-"+key}>{version}</dd>);
       });
     }
     var metadataDetails = [];
-    if (resource.has('metadata')) {
+    if (resource.get('metadata') !== undefined) {
       resource.get('metadata').forEach(function(metadata) {
         var metadata = metadata.toJS();
         metadataDetails.push(<dt key={"metadata-dt-"+metadata.name}>{metadata.name}</dt>);
