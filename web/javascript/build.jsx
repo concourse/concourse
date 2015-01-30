@@ -45,8 +45,8 @@ var Build = React.createClass({
 
     var resources = this.state.resources;
 
-    if (resources.has('input') && (typeof resources.get('input') !== "undefined")) {
-      this.state.resources.get('input').forEach(function(input) {
+    if (resources.get('input') !== undefined) {
+      resources.get('input').forEach(function(input) {
         var logs;
         var key = 'input-' + input.get('name');
         if (this.state.logs.has(key)) {
@@ -57,8 +57,8 @@ var Build = React.createClass({
     }
 
     var outputResources = [];
-    if (resources.has('output') && (typeof resources.get('output') !== "undefined")) {
-      this.state.resources.get('output').forEach(function(output) {
+    if (resources.get('output') !== undefined) {
+      resources.get('output').forEach(function(output) {
         var logs;
         var key = 'output-' + output.get('name');
         if (this.state.logs.has(key)) {
