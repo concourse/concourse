@@ -60,4 +60,6 @@ builds:
     version: 0.29.0
   e3ab4dc3-9223-4c37-90a0-c142e70bac5f:
     version: 0.30.0
+  f1f3ee24-b199-43a6-b1d5-740d1dfd0735:
+    version: 0.31.0
 format-version: '2'
