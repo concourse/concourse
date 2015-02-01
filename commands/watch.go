@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/codegangsta/cli"
 	"github.com/concourse/atc"
@@ -21,20 +22,21 @@ func Watch(c *cli.Context) {
 
 	build := getBuild(c, atcRequester.httpClient, atcRequester.RequestGenerator)
 
-	eventSource := &sse.EventSource{
-		Client: atcRequester.httpClient,
-		CreateRequest: func() *http.Request {
-			logOutput, err := atcRequester.CreateRequest(
-				atc.BuildEvents,
-				rata.Params{"build_id": strconv.Itoa(build.ID)},
-				nil,
-			)
-			if err != nil {
-				log.Fatalln(err)
-			}
+	eventSource, err := sse.Connect(atcRequester.httpClient, time.Second, func() *http.Request {
+		logOutput, err := atcRequester.CreateRequest(
+			atc.BuildEvents,
+			rata.Params{"build_id": strconv.Itoa(build.ID)},
+			nil,
+		)
+		if err != nil {
+			log.Fatalln(err)
+		}
 
-			return logOutput
-		},
+		return logOutput
+	})
+	if err != nil {
+		log.Println("failed to attach to stream:", err)
+		os.Exit(1)
 	}
 
 	exitCode, err := eventstream.RenderStream(eventSource)

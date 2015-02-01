@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
+	"time"
 
 	"crypto/tls"
 	"log"
@@ -95,23 +96,18 @@ func Execute(c *cli.Context) {
 
 	signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
 
-	eventSource := &sse.EventSource{
-		Client: atcRequester.httpClient,
-		CreateRequest: func() *http.Request {
-			logOutput, err := atcRequester.CreateRequest(
-				atc.BuildEvents,
-				rata.Params{"build_id": strconv.Itoa(build.ID)},
-				nil,
-			)
-			if err != nil {
-				log.Fatalln(err)
-			}
+	eventSource, err := sse.Connect(atcRequester.httpClient, time.Second, func() *http.Request {
+		logOutput, err := atcRequester.CreateRequest(
+			atc.BuildEvents,
+			rata.Params{"build_id": strconv.Itoa(build.ID)},
+			nil,
+		)
+		if err != nil {
+			log.Fatalln(err)
+		}
 
-			return logOutput
-		},
-	}
-
-	err = eventSource.Connect()
+		return logOutput
+	})
 	if err != nil {
 		log.Println("failed to connect to event stream:", err)
 		os.Exit(1)
