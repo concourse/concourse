@@ -76,6 +76,7 @@ var resourceTypes = flag.String(
 	"resourceTypes",
 	`{
 		"git": "docker:///concourse/git-resource",
+		"github-release": "docker:///concourse/github-release-resource",
 		"archive": "docker:///concourse/archive-resource",
 		"docker-image": "docker:///concourse/docker-image-resource",
 		"time": "docker:///concourse/time-resource",
