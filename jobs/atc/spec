@@ -87,6 +87,7 @@ properties:
       time: /var/vcap/packages/time_resource
       tracker: /var/vcap/packages/tracker_resource
       vagrant-cloud: /var/vcap/packages/vagrant_cloud_resource
+      github-release: /var/vcap/packages/github-release_resource
 
   blackbox.sources.atc:
     description: "files whose contents blackbox will emit to its syslog drain"
