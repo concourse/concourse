@@ -16,6 +16,7 @@ packages:
   - cf_resource
   - docker_image_resource
   - git_resource
+  - github_release_resource
   - s3_resource
   - semver_resource
   - time_resource

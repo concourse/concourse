@@ -1,0 +1,5 @@
+---
+name: github_release_resource
+
+files:
+  - resources/github-release-resource.tar.gz
