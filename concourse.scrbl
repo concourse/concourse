@@ -1,9 +1,9 @@
 #lang scribble/manual
- 
+
 @(require "common.rkt")
 
 @title[#:version version]{Concourse: CI that scales with your project}
- 
+
 @image[#:suffixes '(".svg" ".png") "images/example-pipeline"]{Example Pipeline}
 
 Concourse is a CI system composed of simple tools and ideas. It can express
