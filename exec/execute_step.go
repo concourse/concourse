@@ -214,7 +214,10 @@ func (step *executeStep) Result(x interface{}) bool {
 }
 
 func (step *executeStep) Release() error {
-	step.container.Release()
+	if step.container != nil {
+		step.container.Release()
+	}
+
 	return nil
 }
 

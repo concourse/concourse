@@ -56,7 +56,11 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 }
 
 func (ras *resourceStep) Release() error {
-	return ras.Resource.Release()
+	if ras.Resource != nil {
+		return ras.Resource.Release()
+	}
+
+	return nil
 }
 
 func (ras *resourceStep) StreamTo(destination ArtifactDestination) error {

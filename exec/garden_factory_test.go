@@ -497,6 +497,17 @@ var _ = Describe("GardenFactory", func() {
 				Ω(getDelegate.FailedCallCount()).Should(Equal(1))
 				Ω(getDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
 			})
+
+			Describe("releasing", func() {
+				JustBeforeEach(func() {
+					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+				})
+
+				It("succeeds", func() {
+					err := source.Release()
+					Ω(err).ShouldNot(HaveOccurred())
+				})
+			})
 		})
 	})
 
@@ -833,6 +844,17 @@ var _ = Describe("GardenFactory", func() {
 
 				Ω(putDelegate.FailedCallCount()).Should(Equal(1))
 				Ω(putDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+			})
+
+			Describe("releasing", func() {
+				JustBeforeEach(func() {
+					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+				})
+
+				It("succeeds", func() {
+					err := source.Release()
+					Ω(err).ShouldNot(HaveOccurred())
+				})
 			})
 		})
 	})
@@ -1687,6 +1709,17 @@ var _ = Describe("GardenFactory", func() {
 						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 						Ω(executeDelegate.FailedCallCount()).Should(Equal(1))
 						Ω(executeDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+					})
+
+					Describe("releasing", func() {
+						JustBeforeEach(func() {
+							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+						})
+
+						It("succeeds", func() {
+							err := source.Release()
+							Ω(err).ShouldNot(HaveOccurred())
+						})
 					})
 				})
 			})
