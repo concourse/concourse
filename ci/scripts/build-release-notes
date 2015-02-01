@@ -14,6 +14,8 @@ version=$(cat ${VERSION_FILE})
 
 cd docs/
 
+echo v${version} > release-name
+
 raco scribble --dest-name notes.md --markdown \
   docs/release-notes/v${version}.scrbl
 
