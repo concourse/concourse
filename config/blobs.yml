@@ -56,3 +56,8 @@ resources/cf-resource.tar.gz:
   sha: !binary |-
     NjczZDVmMzhiN2RhMmI5OTJhZGYwZTA0MGU4MTM1ZjI3ZTJkYmE4NQ==
   size: 12570574
+resources/github-release-resource.tar.gz:
+  object_id: f0dc47ea-601a-488e-9296-db924edb5892
+  sha: !binary |-
+    ODFiM2ZkNDMxNmY2YTlmZjY3ZTAwNDk2NzE4MDZlZjlhMTI2NjIwYg==
+  size: 5243316
