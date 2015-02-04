@@ -261,7 +261,7 @@ func main() {
 		Engine:  engine,
 	}
 
-	radar := rdr.NewRadar(logger, resourceTracker, db, *checkInterval, db, configDB)
+	radar := rdr.NewRadar(resourceTracker, db, *checkInterval, db, configDB)
 
 	var webValidator auth.Validator
 

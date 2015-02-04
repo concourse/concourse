@@ -11,15 +11,17 @@ import (
 )
 
 //go:generate counterfeiter . Locker
+
 type Locker interface {
 	AcquireWriteLockImmediately(lock []db.NamedLock) (db.Lock, error)
 	AcquireReadLock(lock []db.NamedLock) (db.Lock, error)
 	AcquireWriteLock(lock []db.NamedLock) (db.Lock, error)
 }
 
-//go:generate counterfeiter . Scanner
-type Scanner interface {
-	Scan(string) ifrit.Runner
+//go:generate counterfeiter . ScannerFactory
+
+type ScannerFactory interface {
+	Scanner(lager.Logger, string) ifrit.Runner
 }
 
 type Runner struct {
@@ -27,9 +29,9 @@ type Runner struct {
 
 	noop bool
 
-	locker   Locker
-	scanner  Scanner
-	configDB ConfigDB
+	locker         Locker
+	scannerFactory ScannerFactory
+	configDB       ConfigDB
 
 	syncInterval time.Duration
 }
@@ -38,17 +40,17 @@ func NewRunner(
 	logger lager.Logger,
 	noop bool,
 	locker Locker,
-	scanner Scanner,
+	scannerFactory ScannerFactory,
 	configDB ConfigDB,
 	syncInterval time.Duration,
 ) *Runner {
 	return &Runner{
-		logger:       logger,
-		noop:         noop,
-		locker:       locker,
-		scanner:      scanner,
-		configDB:     configDB,
-		syncInterval: syncInterval,
+		logger:         logger,
+		noop:           noop,
+		locker:         locker,
+		scannerFactory: scannerFactory,
+		configDB:       configDB,
+		syncInterval:   syncInterval,
 	}
 }
 
@@ -88,6 +90,10 @@ dance:
 			break dance
 
 		case exited := <-exits:
+			runner.logger.Error("scanner-exited", exited.Err, lager.Data{
+				"member": exited.Member.Name,
+			})
+
 			delete(scanning, exited.Member.Name)
 
 		case <-ticker.C:
@@ -111,7 +117,7 @@ func (runner *Runner) tick(scanning map[string]bool, insertScanner chan<- groupe
 
 		scanning[resource.Name] = true
 
-		runner := runner.scanner.Scan(resource.Name)
+		runner := runner.scannerFactory.Scanner(runner.logger.Session("scan", lager.Data{"resource": resource.Name}), resource.Name)
 
 		// avoid deadlock if exit event is blocked; inserting in this case
 		// will block on the event being consumed (which is in this select)

@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/fakes"
+	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
@@ -17,11 +18,11 @@ import (
 
 var _ = Describe("Runner", func() {
 	var (
-		locker       *fakes.FakeLocker
-		configDB     *fakes.FakeConfigDB
-		scanner      *fakes.FakeScanner
-		noop         bool
-		syncInterval time.Duration
+		locker         *fakes.FakeLocker
+		configDB       *fakes.FakeConfigDB
+		scannerFactory *fakes.FakeScannerFactory
+		noop           bool
+		syncInterval   time.Duration
 
 		initialConfig atc.Config
 
@@ -30,7 +31,7 @@ var _ = Describe("Runner", func() {
 
 	BeforeEach(func() {
 		locker = new(fakes.FakeLocker)
-		scanner = new(fakes.FakeScanner)
+		scannerFactory = new(fakes.FakeScannerFactory)
 		configDB = new(fakes.FakeConfigDB)
 		noop = false
 		syncInterval = 100 * time.Millisecond
@@ -48,7 +49,7 @@ var _ = Describe("Runner", func() {
 
 		configDB.GetConfigReturns(initialConfig, nil)
 
-		scanner.ScanStub = func(string) ifrit.Runner {
+		scannerFactory.ScannerStub = func(lager.Logger, string) ifrit.Runner {
 			return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 				close(ready)
 				<-signals
@@ -62,7 +63,7 @@ var _ = Describe("Runner", func() {
 			lagertest.NewTestLogger("test"),
 			noop,
 			locker,
-			scanner,
+			scannerFactory,
 			configDB,
 			syncInterval,
 		))
@@ -73,12 +74,12 @@ var _ = Describe("Runner", func() {
 	})
 
 	It("scans for every configured resource", func() {
-		Eventually(scanner.ScanCallCount).Should(Equal(2))
+		Eventually(scannerFactory.ScannerCallCount).Should(Equal(2))
 
-		resource := scanner.ScanArgsForCall(0)
+		_, resource := scannerFactory.ScannerArgsForCall(0)
 		Ω(resource).Should(Equal("some-resource"))
 
-		resource = scanner.ScanArgsForCall(1)
+		_, resource = scannerFactory.ScannerArgsForCall(1)
 		Ω(resource).Should(Equal("some-other-resource"))
 	})
 
@@ -102,12 +103,12 @@ var _ = Describe("Runner", func() {
 		})
 
 		It("scans for them eventually", func() {
-			Eventually(scanner.ScanCallCount).Should(Equal(2))
+			Eventually(scannerFactory.ScannerCallCount).Should(Equal(2))
 
-			resource := scanner.ScanArgsForCall(0)
+			_, resource := scannerFactory.ScannerArgsForCall(0)
 			Ω(resource).Should(Equal("some-resource"))
 
-			resource = scanner.ScanArgsForCall(1)
+			_, resource = scannerFactory.ScannerArgsForCall(1)
 			Ω(resource).Should(Equal("some-other-resource"))
 
 			newConfig := initialConfig
@@ -117,12 +118,12 @@ var _ = Describe("Runner", func() {
 
 			updateConfig <- newConfig
 
-			Eventually(scanner.ScanCallCount).Should(Equal(3))
+			Eventually(scannerFactory.ScannerCallCount).Should(Equal(3))
 
-			resource = scanner.ScanArgsForCall(2)
+			_, resource = scannerFactory.ScannerArgsForCall(2)
 			Ω(resource).Should(Equal("another-resource"))
 
-			Consistently(scanner.ScanCallCount).Should(Equal(3))
+			Consistently(scannerFactory.ScannerCallCount).Should(Equal(3))
 		})
 	})
 
@@ -132,7 +133,7 @@ var _ = Describe("Runner", func() {
 		BeforeEach(func() {
 			scannerExit = make(chan struct{})
 
-			scanner.ScanStub = func(string) ifrit.Runner {
+			scannerFactory.ScannerStub = func(lager.Logger, string) ifrit.Runner {
 				return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 					close(ready)
 
@@ -147,22 +148,22 @@ var _ = Describe("Runner", func() {
 		})
 
 		It("starts scanning again eventually", func() {
-			Eventually(scanner.ScanCallCount).Should(Equal(2))
+			Eventually(scannerFactory.ScannerCallCount).Should(Equal(2))
 
-			resource := scanner.ScanArgsForCall(0)
+			_, resource := scannerFactory.ScannerArgsForCall(0)
 			Ω(resource).Should(Equal("some-resource"))
 
-			resource = scanner.ScanArgsForCall(1)
+			_, resource = scannerFactory.ScannerArgsForCall(1)
 			Ω(resource).Should(Equal("some-other-resource"))
 
 			close(scannerExit)
 
-			Eventually(scanner.ScanCallCount, 10*syncInterval).Should(Equal(4))
+			Eventually(scannerFactory.ScannerCallCount, 10*syncInterval).Should(Equal(4))
 
-			resource = scanner.ScanArgsForCall(2)
+			_, resource = scannerFactory.ScannerArgsForCall(2)
 			Ω(resource).Should(Equal("some-resource"))
 
-			resource = scanner.ScanArgsForCall(3)
+			_, resource = scannerFactory.ScannerArgsForCall(3)
 			Ω(resource).Should(Equal("some-other-resource"))
 		})
 	})
@@ -173,7 +174,7 @@ var _ = Describe("Runner", func() {
 		})
 
 		It("does not start scanning resources", func() {
-			Ω(scanner.ScanCallCount()).Should(Equal(0))
+			Ω(scannerFactory.ScannerCallCount()).Should(Equal(0))
 		})
 	})
 })

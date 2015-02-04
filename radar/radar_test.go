@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 
 	. "github.com/concourse/atc/radar"
@@ -16,7 +17,6 @@ import (
 	rfakes "github.com/concourse/atc/resource/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/lager/lagertest"
 )
 
 var _ = Describe("Radar", func() {
@@ -39,14 +39,13 @@ var _ = Describe("Radar", func() {
 	)
 
 	BeforeEach(func() {
-		logger := lagertest.NewTestLogger("radar")
 		fakeTracker = new(rfakes.FakeTracker)
 		fakeVersionDB = new(fakes.FakeVersionDB)
 		locker = new(fakes.FakeLocker)
 		configDB = new(fakes.FakeConfigDB)
 		interval = 100 * time.Millisecond
 
-		radar = NewRadar(logger, fakeTracker, fakeVersionDB, interval, locker, configDB)
+		radar = NewRadar(fakeTracker, fakeVersionDB, interval, locker, configDB)
 
 		resourceConfig = atc.ResourceConfig{
 			Name:   "some-resource",
@@ -69,7 +68,7 @@ var _ = Describe("Radar", func() {
 	})
 
 	JustBeforeEach(func() {
-		process = ifrit.Invoke(radar.Scan("some-resource"))
+		process = ifrit.Invoke(radar.Scanner(lagertest.NewTestLogger("test"), "some-resource"))
 	})
 
 	AfterEach(func() {
