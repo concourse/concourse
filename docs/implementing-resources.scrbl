@@ -1,5 +1,5 @@
 #lang scribble/manual
- 
+
 @(require "common.rkt")
 
 @title[#:version version #:tag "implementing-resources"]{Implementing a Resource}
@@ -22,7 +22,7 @@ and must print the array of new versions, in chronological order, to stdout.
 
 Note that the current version will be missing if this is the first time the
 resource has been used. In this case, the script should emit only the most
-recent version, *not* every version since the resource's inception.
+recent version, @emph{not} every version since the resource's inception.
 
 For example, here's what the input for a @code{git} resource may look like:
 
