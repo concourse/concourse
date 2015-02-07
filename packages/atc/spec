@@ -16,6 +16,7 @@ files:
   - github.com/cloudfoundry-incubator/garden/*.go # gosub
   - github.com/cloudfoundry-incubator/garden/client/*.go # gosub
   - github.com/cloudfoundry-incubator/garden/client/connection/*.go # gosub
+  - github.com/cloudfoundry-incubator/garden/protocol/*.go # gosub
   - github.com/cloudfoundry-incubator/garden/routes/*.go # gosub
   - github.com/cloudfoundry-incubator/garden/transport/*.go # gosub
   - github.com/concourse/atc/*.go # gosub
@@ -48,6 +49,7 @@ files:
   - github.com/concourse/atc/web/routes/*.go # gosub
   - github.com/concourse/atc/web/triggerbuild/*.go # gosub
   - github.com/concourse/atc/worker/*.go # gosub
+  - github.com/gogo/protobuf/proto/*.go # gosub
   - github.com/lib/pq/*.go # gosub
   - github.com/lib/pq/oid/*.go # gosub
   - github.com/nu7hatch/gouuid/*.go # gosub
