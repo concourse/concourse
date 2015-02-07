@@ -1,12 +1,17 @@
-function draw(groups, renderFn) {
-  $.get("/api/v1/jobs", function(jobsPayload) {
-    var jobs = JSON.parse(jobsPayload);
-
-    $.get("/api/v1/resources", function(resourcesPayload) {
-      var resources = JSON.parse(resourcesPayload);
-
-      renderFn(jobs, resources);
-    });
+function draw(groups, renderFn, completeFn) {
+  $.ajax({
+    url: "/api/v1/jobs",
+    dataType: "json",
+    complete: completeFn,
+    success: function(jobs) {
+      $.ajax({
+        url: "/api/v1/resources",
+        dataType: "json",
+        success: function(resources) {
+          renderFn(jobs, resources);
+        }
+      });
+    }
   });
 }
 
@@ -125,10 +130,10 @@ function drawContinuously(svg, groups) {
         }
       });
     }
-
+  }, function() {
     setTimeout(function() {
       drawContinuously(svg, groups)
-    }, 4000)
+    }, 4000);
   });
 }
 
