@@ -144,8 +144,6 @@ var _ = Describe("DBEngine", func() {
 			build = db.Build{
 				ID:   128,
 				Name: "some-build",
-
-				Engine: "fake-engine-a",
 			}
 		})
 
@@ -161,13 +159,29 @@ var _ = Describe("DBEngine", func() {
 			Ω(foundBuild).ShouldNot(BeNil())
 		})
 
-		Context("when the build's engine is unknown", func() {
-			BeforeEach(func() {
-				build.Engine = "bogus"
+		Describe("Abort", func() {
+			var abortErr error
+
+			JustBeforeEach(func() {
+				abortErr = foundBuild.Abort()
 			})
 
-			It("returns an error", func() {
-				Ω(lookupErr).Should(HaveOccurred())
+			Context("when acquiring the lock succeeds", func() {
+				var fakeLock *dbfakes.FakeLock
+
+				BeforeEach(func() {
+					fakeLock = new(dbfakes.FakeLock)
+					fakeLocker.AcquireWriteLockImmediatelyReturns(fakeLock, nil)
+				})
+
+				It("succeeds", func() {
+					Ω(abortErr).ShouldNot(HaveOccurred())
+				})
+
+				It("marks the build as aborted", func() {
+					Ω(fakeBuildDB.AbortBuildCallCount()).Should(Equal(1))
+					Ω(fakeBuildDB.AbortBuildArgsForCall(0)).Should(Equal(build.ID))
+				})
 			})
 		})
 	})
@@ -299,7 +313,8 @@ var _ = Describe("DBEngine", func() {
 
 				Context("when the build is active", func() {
 					BeforeEach(func() {
-						model.Engine = "fake-engine"
+						model.Engine = "fake-engine-b"
+
 						fakeBuildDB.GetBuildReturns(model, nil)
 
 						fakeBuildDB.AbortBuildStub = func(int) error {
@@ -487,7 +502,7 @@ var _ = Describe("DBEngine", func() {
 
 				Context("when the build is active", func() {
 					BeforeEach(func() {
-						model.Engine = "fake-engine"
+						model.Engine = "fake-engine-b"
 						fakeBuildDB.GetBuildReturns(model, nil)
 					})
 
@@ -603,6 +618,27 @@ var _ = Describe("DBEngine", func() {
 						It("releases the lock", func() {
 							Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
 						})
+
+						It("marks the build as errored", func() {
+							Ω(fakeBuildDB.FinishBuildCallCount()).Should(Equal(1))
+							buildID, buildStatus := fakeBuildDB.FinishBuildArgsForCall(0)
+							Ω(buildID).Should(Equal(model.ID))
+							Ω(buildStatus).Should(Equal(db.StatusErrored))
+						})
+					})
+				})
+
+				Context("when the build's engine is unknown", func() {
+					BeforeEach(func() {
+						model.Engine = "bogus"
+						fakeBuildDB.GetBuildReturns(model, nil)
+					})
+
+					It("marks the build as errored", func() {
+						Ω(fakeBuildDB.FinishBuildCallCount()).Should(Equal(1))
+						buildID, buildStatus := fakeBuildDB.FinishBuildArgsForCall(0)
+						Ω(buildID).Should(Equal(model.ID))
+						Ω(buildStatus).Should(Equal(db.StatusErrored))
 					})
 				})
 

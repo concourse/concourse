@@ -56,6 +56,15 @@ type FakeBuildDB struct {
 		result1 db.Notifier
 		result2 error
 	}
+	FinishBuildStub        func(int, db.Status) error
+	finishBuildMutex       sync.RWMutex
+	finishBuildArgsForCall []struct {
+		arg1 int
+		arg2 db.Status
+	}
+	finishBuildReturns struct {
+		result1 error
+	}
 }
 
 func (fake *FakeBuildDB) GetBuild(arg1 int) (db.Build, error) {
@@ -223,6 +232,39 @@ func (fake *FakeBuildDB) AbortNotifierReturns(result1 db.Notifier, result2 error
 		result1 db.Notifier
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeBuildDB) FinishBuild(arg1 int, arg2 db.Status) error {
+	fake.finishBuildMutex.Lock()
+	fake.finishBuildArgsForCall = append(fake.finishBuildArgsForCall, struct {
+		arg1 int
+		arg2 db.Status
+	}{arg1, arg2})
+	fake.finishBuildMutex.Unlock()
+	if fake.FinishBuildStub != nil {
+		return fake.FinishBuildStub(arg1, arg2)
+	} else {
+		return fake.finishBuildReturns.result1
+	}
+}
+
+func (fake *FakeBuildDB) FinishBuildCallCount() int {
+	fake.finishBuildMutex.RLock()
+	defer fake.finishBuildMutex.RUnlock()
+	return len(fake.finishBuildArgsForCall)
+}
+
+func (fake *FakeBuildDB) FinishBuildArgsForCall(i int) (int, db.Status) {
+	fake.finishBuildMutex.RLock()
+	defer fake.finishBuildMutex.RUnlock()
+	return fake.finishBuildArgsForCall[i].arg1, fake.finishBuildArgsForCall[i].arg2
+}
+
+func (fake *FakeBuildDB) FinishBuildReturns(result1 error) {
+	fake.FinishBuildStub = nil
+	fake.finishBuildReturns = struct {
+		result1 error
+	}{result1}
 }
 
 var _ engine.BuildDB = new(FakeBuildDB)

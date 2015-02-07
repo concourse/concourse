@@ -13,6 +13,7 @@ import (
 var ErrBuildNotActive = errors.New("build not yet active")
 
 //go:generate counterfeiter . BuildDB
+
 type BuildDB interface {
 	GetBuild(int) (db.Build, error)
 	GetBuildEvents(int, uint) (db.EventSource, error)
@@ -20,9 +21,12 @@ type BuildDB interface {
 
 	AbortBuild(int) error
 	AbortNotifier(int) (db.Notifier, error)
+
+	FinishBuild(int, db.Status) error
 }
 
 //go:generate counterfeiter . BuildLocker
+
 type BuildLocker interface {
 	AcquireWriteLockImmediately([]db.NamedLock) (db.Lock, error)
 }
@@ -34,6 +38,14 @@ func NewDBEngine(engines Engines, buildDB BuildDB, locker BuildLocker) Engine {
 		db:     buildDB,
 		locker: locker,
 	}
+}
+
+type UnknownEngineError struct {
+	Engine string
+}
+
+func (err UnknownEngineError) Error() string {
+	return fmt.Sprintf("unknown build engine: %s", err.Engine)
 }
 
 type dbEngine struct {
@@ -67,7 +79,7 @@ func (engine *dbEngine) CreateBuild(build db.Build, plan atc.BuildPlan) (Build, 
 	return &dbBuild{
 		id: build.ID,
 
-		engine: buildEngine,
+		engines: engine.engines,
 
 		db:     engine.db,
 		locker: engine.locker,
@@ -75,15 +87,10 @@ func (engine *dbEngine) CreateBuild(build db.Build, plan atc.BuildPlan) (Build, 
 }
 
 func (engine *dbEngine) LookupBuild(build db.Build) (Build, error) {
-	buildEngine, found := engine.engines.Lookup(build.Engine)
-	if !found {
-		return nil, fmt.Errorf("unknown build engine: %s", build.Engine)
-	}
-
 	return &dbBuild{
 		id: build.ID,
 
-		engine: buildEngine,
+		engines: engine.engines,
 
 		db:     engine.db,
 		locker: engine.locker,
@@ -93,7 +100,7 @@ func (engine *dbEngine) LookupBuild(build db.Build) (Build, error) {
 type dbBuild struct {
 	id int
 
-	engine Engine
+	engines Engines
 
 	db     BuildDB
 	locker BuildLocker
@@ -137,8 +144,13 @@ func (build *dbBuild) Abort() error {
 		return nil
 	}
 
+	buildEngine, found := build.engines.Lookup(model.Engine)
+	if !found {
+		return UnknownEngineError{model.Engine}
+	}
+
 	// find the real build to abort...
-	engineBuild, err := build.engine.LookupBuild(model)
+	engineBuild, err := buildEngine.LookupBuild(model)
 	if err != nil {
 		return err
 	}
@@ -167,9 +179,19 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 		return
 	}
 
-	engineBuild, err := build.engine.LookupBuild(model)
+	buildEngine, found := build.engines.Lookup(model.Engine)
+	if !found {
+		logger.Error("unknown-build-engine", nil, lager.Data{
+			"engine": model.Engine,
+		})
+		build.finishWithError(model.ID, logger)
+		return
+	}
+
+	engineBuild, err := buildEngine.LookupBuild(model)
 	if err != nil {
 		logger.Error("failed-to-lookup-build-from-engine", err)
+		build.finishWithError(model.ID, logger)
 		return
 	}
 
@@ -210,10 +232,22 @@ func (build *dbBuild) Hijack(spec atc.HijackProcessSpec, io HijackProcessIO) (Hi
 		return nil, ErrBuildNotActive
 	}
 
-	engineBuild, err := build.engine.LookupBuild(model)
+	buildEngine, found := build.engines.Lookup(model.Engine)
+	if !found {
+		return nil, UnknownEngineError{model.Engine}
+	}
+
+	engineBuild, err := buildEngine.LookupBuild(model)
 	if err != nil {
 		return nil, err
 	}
 
 	return engineBuild.Hijack(spec, io)
+}
+
+func (build *dbBuild) finishWithError(buildID int, logger lager.Logger) {
+	err := build.db.FinishBuild(buildID, db.StatusErrored)
+	if err != nil {
+		logger.Error("failed-to-mark-build-as-errored", err)
+	}
 }
