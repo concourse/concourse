@@ -3,7 +3,7 @@ package worker
 import (
 	gclient "github.com/cloudfoundry-incubator/garden/client"
 	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
-	"github.com/vito/clock"
+	"github.com/pivotal-golang/clock"
 
 	"github.com/concourse/atc/db"
 )

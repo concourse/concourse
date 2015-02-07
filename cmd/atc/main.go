@@ -23,7 +23,7 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
-	"github.com/vito/clock"
+	"github.com/pivotal-golang/clock"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"

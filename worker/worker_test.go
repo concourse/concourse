@@ -9,7 +9,7 @@ import (
 	. "github.com/concourse/atc/worker"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/vito/clock/fakeclock"
+	"github.com/pivotal-golang/clock/fakeclock"
 )
 
 var _ = Describe("Worker", func() {

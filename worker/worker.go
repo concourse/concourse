@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
-	"github.com/vito/clock"
+	"github.com/pivotal-golang/clock"
 )
 
 var ErrContainerNotFound = errors.New("container not found")
