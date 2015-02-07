@@ -112,7 +112,7 @@
 	branch = master
 [submodule "src/github.com/concourse/gate"]
 	path = src/github.com/concourse/gate
-	url = git@github.com:concourse/gate.git
+	url = https://github.com/concourse/gate.git
 	branch = master
 [submodule "src/github.com/gogo/protobuf"]
 	path = src/github.com/gogo/protobuf
@@ -120,5 +120,5 @@
 	branch = master
 [submodule "src/github.com/vito/clock"]
 	path = src/github.com/vito/clock
-	url = git@github.com:vito/clock.git
+	url = https://github.com/vito/clock.git
 	branch = master
