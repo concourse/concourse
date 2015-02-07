@@ -6,44 +6,50 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/scheduler"
+	"github.com/pivotal-golang/lager"
 )
 
 type FakeBuildScheduler struct {
-	TryNextPendingBuildStub        func(atc.JobConfig, atc.ResourceConfigs) error
+	TryNextPendingBuildStub        func(lager.Logger, atc.JobConfig, atc.ResourceConfigs) error
 	tryNextPendingBuildMutex       sync.RWMutex
 	tryNextPendingBuildArgsForCall []struct {
-		arg1 atc.JobConfig
-		arg2 atc.ResourceConfigs
+		arg1 lager.Logger
+		arg2 atc.JobConfig
+		arg3 atc.ResourceConfigs
 	}
 	tryNextPendingBuildReturns struct {
 		result1 error
 	}
-	BuildLatestInputsStub        func(atc.JobConfig, atc.ResourceConfigs) error
+	BuildLatestInputsStub        func(lager.Logger, atc.JobConfig, atc.ResourceConfigs) error
 	buildLatestInputsMutex       sync.RWMutex
 	buildLatestInputsArgsForCall []struct {
-		arg1 atc.JobConfig
-		arg2 atc.ResourceConfigs
+		arg1 lager.Logger
+		arg2 atc.JobConfig
+		arg3 atc.ResourceConfigs
 	}
 	buildLatestInputsReturns struct {
 		result1 error
 	}
-	TrackInFlightBuildsStub        func() error
+	TrackInFlightBuildsStub        func(lager.Logger) error
 	trackInFlightBuildsMutex       sync.RWMutex
-	trackInFlightBuildsArgsForCall []struct{}
+	trackInFlightBuildsArgsForCall []struct {
+		arg1 lager.Logger
+	}
 	trackInFlightBuildsReturns struct {
 		result1 error
 	}
 }
 
-func (fake *FakeBuildScheduler) TryNextPendingBuild(arg1 atc.JobConfig, arg2 atc.ResourceConfigs) error {
+func (fake *FakeBuildScheduler) TryNextPendingBuild(arg1 lager.Logger, arg2 atc.JobConfig, arg3 atc.ResourceConfigs) error {
 	fake.tryNextPendingBuildMutex.Lock()
 	fake.tryNextPendingBuildArgsForCall = append(fake.tryNextPendingBuildArgsForCall, struct {
-		arg1 atc.JobConfig
-		arg2 atc.ResourceConfigs
-	}{arg1, arg2})
+		arg1 lager.Logger
+		arg2 atc.JobConfig
+		arg3 atc.ResourceConfigs
+	}{arg1, arg2, arg3})
 	fake.tryNextPendingBuildMutex.Unlock()
 	if fake.TryNextPendingBuildStub != nil {
-		return fake.TryNextPendingBuildStub(arg1, arg2)
+		return fake.TryNextPendingBuildStub(arg1, arg2, arg3)
 	} else {
 		return fake.tryNextPendingBuildReturns.result1
 	}
@@ -55,10 +61,10 @@ func (fake *FakeBuildScheduler) TryNextPendingBuildCallCount() int {
 	return len(fake.tryNextPendingBuildArgsForCall)
 }
 
-func (fake *FakeBuildScheduler) TryNextPendingBuildArgsForCall(i int) (atc.JobConfig, atc.ResourceConfigs) {
+func (fake *FakeBuildScheduler) TryNextPendingBuildArgsForCall(i int) (lager.Logger, atc.JobConfig, atc.ResourceConfigs) {
 	fake.tryNextPendingBuildMutex.RLock()
 	defer fake.tryNextPendingBuildMutex.RUnlock()
-	return fake.tryNextPendingBuildArgsForCall[i].arg1, fake.tryNextPendingBuildArgsForCall[i].arg2
+	return fake.tryNextPendingBuildArgsForCall[i].arg1, fake.tryNextPendingBuildArgsForCall[i].arg2, fake.tryNextPendingBuildArgsForCall[i].arg3
 }
 
 func (fake *FakeBuildScheduler) TryNextPendingBuildReturns(result1 error) {
@@ -68,15 +74,16 @@ func (fake *FakeBuildScheduler) TryNextPendingBuildReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBuildScheduler) BuildLatestInputs(arg1 atc.JobConfig, arg2 atc.ResourceConfigs) error {
+func (fake *FakeBuildScheduler) BuildLatestInputs(arg1 lager.Logger, arg2 atc.JobConfig, arg3 atc.ResourceConfigs) error {
 	fake.buildLatestInputsMutex.Lock()
 	fake.buildLatestInputsArgsForCall = append(fake.buildLatestInputsArgsForCall, struct {
-		arg1 atc.JobConfig
-		arg2 atc.ResourceConfigs
-	}{arg1, arg2})
+		arg1 lager.Logger
+		arg2 atc.JobConfig
+		arg3 atc.ResourceConfigs
+	}{arg1, arg2, arg3})
 	fake.buildLatestInputsMutex.Unlock()
 	if fake.BuildLatestInputsStub != nil {
-		return fake.BuildLatestInputsStub(arg1, arg2)
+		return fake.BuildLatestInputsStub(arg1, arg2, arg3)
 	} else {
 		return fake.buildLatestInputsReturns.result1
 	}
@@ -88,10 +95,10 @@ func (fake *FakeBuildScheduler) BuildLatestInputsCallCount() int {
 	return len(fake.buildLatestInputsArgsForCall)
 }
 
-func (fake *FakeBuildScheduler) BuildLatestInputsArgsForCall(i int) (atc.JobConfig, atc.ResourceConfigs) {
+func (fake *FakeBuildScheduler) BuildLatestInputsArgsForCall(i int) (lager.Logger, atc.JobConfig, atc.ResourceConfigs) {
 	fake.buildLatestInputsMutex.RLock()
 	defer fake.buildLatestInputsMutex.RUnlock()
-	return fake.buildLatestInputsArgsForCall[i].arg1, fake.buildLatestInputsArgsForCall[i].arg2
+	return fake.buildLatestInputsArgsForCall[i].arg1, fake.buildLatestInputsArgsForCall[i].arg2, fake.buildLatestInputsArgsForCall[i].arg3
 }
 
 func (fake *FakeBuildScheduler) BuildLatestInputsReturns(result1 error) {
@@ -101,12 +108,14 @@ func (fake *FakeBuildScheduler) BuildLatestInputsReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBuildScheduler) TrackInFlightBuilds() error {
+func (fake *FakeBuildScheduler) TrackInFlightBuilds(arg1 lager.Logger) error {
 	fake.trackInFlightBuildsMutex.Lock()
-	fake.trackInFlightBuildsArgsForCall = append(fake.trackInFlightBuildsArgsForCall, struct{}{})
+	fake.trackInFlightBuildsArgsForCall = append(fake.trackInFlightBuildsArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
 	fake.trackInFlightBuildsMutex.Unlock()
 	if fake.TrackInFlightBuildsStub != nil {
-		return fake.TrackInFlightBuildsStub()
+		return fake.TrackInFlightBuildsStub(arg1)
 	} else {
 		return fake.trackInFlightBuildsReturns.result1
 	}
@@ -116,6 +125,12 @@ func (fake *FakeBuildScheduler) TrackInFlightBuildsCallCount() int {
 	fake.trackInFlightBuildsMutex.RLock()
 	defer fake.trackInFlightBuildsMutex.RUnlock()
 	return len(fake.trackInFlightBuildsArgsForCall)
+}
+
+func (fake *FakeBuildScheduler) TrackInFlightBuildsArgsForCall(i int) lager.Logger {
+	fake.trackInFlightBuildsMutex.RLock()
+	defer fake.trackInFlightBuildsMutex.RUnlock()
+	return fake.trackInFlightBuildsArgsForCall[i].arg1
 }
 
 func (fake *FakeBuildScheduler) TrackInFlightBuildsReturns(result1 error) {

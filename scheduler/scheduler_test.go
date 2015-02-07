@@ -31,6 +31,8 @@ var _ = Describe("Scheduler", func() {
 		readLock *dbfakes.FakeLock
 
 		scheduler *Scheduler
+
+		logger *lagertest.TestLogger
 	)
 
 	BeforeEach(func() {
@@ -48,12 +50,13 @@ var _ = Describe("Scheduler", func() {
 		factory.CreateReturns(createdBuildPlan, nil)
 
 		scheduler = &Scheduler{
-			Logger:  lagertest.NewTestLogger("test"),
 			DB:      schedulerDB,
 			Locker:  locker,
 			Factory: factory,
 			Engine:  fakeEngine,
 		}
+
+		logger = lagertest.NewTestLogger("test")
 
 		yes := true
 		job = atc.JobConfig{
@@ -137,7 +140,7 @@ var _ = Describe("Scheduler", func() {
 		})
 
 		It("resumes all currently in-flight builds", func() {
-			err := scheduler.TrackInFlightBuilds()
+			err := scheduler.TrackInFlightBuilds(logger)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Eventually(engineBuilds[0].ResumeCallCount).Should(Equal(1))
@@ -151,7 +154,7 @@ var _ = Describe("Scheduler", func() {
 			})
 
 			It("saves its status as errored", func() {
-				err := scheduler.TrackInFlightBuilds()
+				err := scheduler.TrackInFlightBuilds(logger)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(schedulerDB.FinishBuildCallCount()).Should(Equal(3))
@@ -180,12 +183,12 @@ var _ = Describe("Scheduler", func() {
 			})
 
 			It("returns the error", func() {
-				err := scheduler.BuildLatestInputs(job, resources)
+				err := scheduler.BuildLatestInputs(logger, job, resources)
 				Ω(err).Should(Equal(disaster))
 			})
 
 			It("does not trigger a build", func() {
-				scheduler.BuildLatestInputs(job, resources)
+				scheduler.BuildLatestInputs(logger, job, resources)
 
 				Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 			})
@@ -197,18 +200,18 @@ var _ = Describe("Scheduler", func() {
 			})
 
 			It("succeeds", func() {
-				err := scheduler.BuildLatestInputs(job, resources)
+				err := scheduler.BuildLatestInputs(logger, job, resources)
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 
 			It("does not try to fetch inputs from the database", func() {
-				scheduler.BuildLatestInputs(job, resources)
+				scheduler.BuildLatestInputs(logger, job, resources)
 
 				Ω(schedulerDB.GetLatestInputVersionsCallCount()).Should(BeZero())
 			})
 
 			It("does not trigger a build", func() {
-				scheduler.BuildLatestInputs(job, resources)
+				scheduler.BuildLatestInputs(logger, job, resources)
 
 				Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 			})
@@ -240,7 +243,7 @@ var _ = Describe("Scheduler", func() {
 			})
 
 			It("checks if they are already used for a build", func() {
-				err := scheduler.BuildLatestInputs(job, resources)
+				err := scheduler.BuildLatestInputs(logger, job, resources)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(schedulerDB.GetJobBuildForInputsCallCount()).Should(Equal(1))
@@ -264,7 +267,7 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("is done while holding a read lock for every resource", func() {
-					err := scheduler.BuildLatestInputs(job, resources)
+					err := scheduler.BuildLatestInputs(logger, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					// assertion is in stub to guarantee order
@@ -298,7 +301,7 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("excludes them from the inputs when checking for a build", func() {
-					err := scheduler.BuildLatestInputs(job, resources)
+					err := scheduler.BuildLatestInputs(logger, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(schedulerDB.GetJobBuildForInputsCallCount()).Should(Equal(1))
@@ -322,21 +325,21 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("does not check for builds for the inputs", func() {
-					err := scheduler.BuildLatestInputs(job, resources)
+					err := scheduler.BuildLatestInputs(logger, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(schedulerDB.GetJobBuildForInputsCallCount()).Should(Equal(0))
 				})
 
 				It("does not create a build", func() {
-					err := scheduler.BuildLatestInputs(job, resources)
+					err := scheduler.BuildLatestInputs(logger, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(schedulerDB.CreateJobBuildWithInputsCallCount()).Should(Equal(0))
 				})
 
 				It("does not trigger a build", func() {
-					err := scheduler.BuildLatestInputs(job, resources)
+					err := scheduler.BuildLatestInputs(logger, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
@@ -349,7 +352,7 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("creates a build with the found inputs", func() {
-					err := scheduler.BuildLatestInputs(job, resources)
+					err := scheduler.BuildLatestInputs(logger, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(schedulerDB.CreateJobBuildWithInputsCallCount()).Should(Equal(1))
@@ -377,7 +380,7 @@ var _ = Describe("Scheduler", func() {
 							})
 
 							It("triggers a build of the job with the found inputs", func() {
-								err := scheduler.BuildLatestInputs(job, resources)
+								err := scheduler.BuildLatestInputs(logger, job, resources)
 								Ω(err).ShouldNot(HaveOccurred())
 
 								Ω(schedulerDB.ScheduleBuildCallCount()).Should(Equal(1))
@@ -398,7 +401,7 @@ var _ = Describe("Scheduler", func() {
 							})
 
 							It("immediately resumes the build", func() {
-								err := scheduler.BuildLatestInputs(job, resources)
+								err := scheduler.BuildLatestInputs(logger, job, resources)
 								Ω(err).ShouldNot(HaveOccurred())
 
 								Eventually(createdBuild.ResumeCallCount).Should(Equal(1))
@@ -412,7 +415,7 @@ var _ = Describe("Scheduler", func() {
 						})
 
 						It("does not start a build", func() {
-							err := scheduler.BuildLatestInputs(job, resources)
+							err := scheduler.BuildLatestInputs(logger, job, resources)
 							Ω(err).ShouldNot(HaveOccurred())
 
 							Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
@@ -428,12 +431,12 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("returns the error", func() {
-						err := scheduler.BuildLatestInputs(job, resources)
+						err := scheduler.BuildLatestInputs(logger, job, resources)
 						Ω(err).Should(Equal(disaster))
 					})
 
 					It("does not start a build", func() {
-						scheduler.BuildLatestInputs(job, resources)
+						scheduler.BuildLatestInputs(logger, job, resources)
 						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 					})
 				})
@@ -445,7 +448,7 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("does not trigger a build", func() {
-					err := scheduler.BuildLatestInputs(job, resources)
+					err := scheduler.BuildLatestInputs(logger, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
@@ -489,7 +492,7 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("builds it", func() {
-						err := scheduler.TryNextPendingBuild(job, resources)
+						err := scheduler.TryNextPendingBuild(logger, job, resources)
 						Ω(err).ShouldNot(HaveOccurred())
 
 						Ω(schedulerDB.ScheduleBuildCallCount()).Should(Equal(1))
@@ -510,7 +513,7 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("immediately resumes the build", func() {
-						err := scheduler.TryNextPendingBuild(job, resources)
+						err := scheduler.TryNextPendingBuild(logger, job, resources)
 						Ω(err).ShouldNot(HaveOccurred())
 
 						Eventually(createdBuild.ResumeCallCount).Should(Equal(1))
@@ -524,7 +527,7 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("does not start a build", func() {
-					err := scheduler.TryNextPendingBuild(job, resources)
+					err := scheduler.TryNextPendingBuild(logger, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
@@ -538,12 +541,12 @@ var _ = Describe("Scheduler", func() {
 			})
 
 			It("returns no error", func() {
-				err := scheduler.TryNextPendingBuild(job, resources)
+				err := scheduler.TryNextPendingBuild(logger, job, resources)
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 
 			It("does not start a build", func() {
-				scheduler.TryNextPendingBuild(job, resources)
+				scheduler.TryNextPendingBuild(logger, job, resources)
 				Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 			})
 		})
@@ -556,12 +559,12 @@ var _ = Describe("Scheduler", func() {
 			})
 
 			It("returns the error", func() {
-				err := scheduler.TryNextPendingBuild(job, resources)
+				err := scheduler.TryNextPendingBuild(logger, job, resources)
 				Ω(err).Should(Equal(disaster))
 			})
 
 			It("does not start a build", func() {
-				scheduler.TryNextPendingBuild(job, resources)
+				scheduler.TryNextPendingBuild(logger, job, resources)
 				Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 			})
 		})
@@ -570,7 +573,7 @@ var _ = Describe("Scheduler", func() {
 	Describe("TriggerImmediately", func() {
 		Context("when the job does not have any dependant inputs", func() {
 			It("creates a build without any specific inputs", func() {
-				_, err := scheduler.TriggerImmediately(job, resources)
+				_, err := scheduler.TriggerImmediately(logger, job, resources)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(schedulerDB.GetLatestInputVersionsCallCount()).Should(Equal(0))
@@ -601,7 +604,7 @@ var _ = Describe("Scheduler", func() {
 						})
 
 						It("triggers a build of the job with the found inputs", func() {
-							build, err := scheduler.TriggerImmediately(job, resources)
+							build, err := scheduler.TriggerImmediately(logger, job, resources)
 							Ω(err).ShouldNot(HaveOccurred())
 							Ω(build).Should(Equal(db.Build{ID: 128, Name: "42"}))
 
@@ -623,7 +626,7 @@ var _ = Describe("Scheduler", func() {
 						})
 
 						It("immediately resumes the build", func() {
-							build, err := scheduler.TriggerImmediately(job, resources)
+							build, err := scheduler.TriggerImmediately(logger, job, resources)
 							Ω(err).ShouldNot(HaveOccurred())
 							Ω(build).Should(Equal(db.Build{ID: 128, Name: "42"}))
 
@@ -638,7 +641,7 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("does not start a build", func() {
-						_, err := scheduler.TriggerImmediately(job, resources)
+						_, err := scheduler.TriggerImmediately(logger, job, resources)
 						Ω(err).ShouldNot(HaveOccurred())
 
 						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
@@ -654,12 +657,12 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("returns the error", func() {
-					_, err := scheduler.TriggerImmediately(job, resources)
+					_, err := scheduler.TriggerImmediately(logger, job, resources)
 					Ω(err).Should(Equal(disaster))
 				})
 
 				It("does not start a build", func() {
-					scheduler.TriggerImmediately(job, resources)
+					scheduler.TriggerImmediately(logger, job, resources)
 					Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 				})
 			})
@@ -693,7 +696,7 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("creates a build with the found inputs", func() {
-					_, err := scheduler.TriggerImmediately(job, resources)
+					_, err := scheduler.TriggerImmediately(logger, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(schedulerDB.GetLatestInputVersionsCallCount()).Should(Equal(1))
@@ -731,7 +734,7 @@ var _ = Describe("Scheduler", func() {
 							})
 
 							It("triggers a build of the job with the found inputs", func() {
-								build, err := scheduler.TriggerImmediately(job, resources)
+								build, err := scheduler.TriggerImmediately(logger, job, resources)
 								Ω(err).ShouldNot(HaveOccurred())
 								Ω(build).Should(Equal(db.Build{ID: 128, Name: "42"}))
 
@@ -753,7 +756,7 @@ var _ = Describe("Scheduler", func() {
 							})
 
 							It("immediately resumes the build", func() {
-								build, err := scheduler.TriggerImmediately(job, resources)
+								build, err := scheduler.TriggerImmediately(logger, job, resources)
 								Ω(err).ShouldNot(HaveOccurred())
 								Ω(build).Should(Equal(db.Build{ID: 128, Name: "42"}))
 
@@ -769,7 +772,7 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("does not start a build", func() {
-						scheduler.TriggerImmediately(job, resources)
+						scheduler.TriggerImmediately(logger, job, resources)
 						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 					})
 				})
@@ -782,12 +785,12 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("returns the error", func() {
-						_, err := scheduler.TriggerImmediately(job, resources)
+						_, err := scheduler.TriggerImmediately(logger, job, resources)
 						Ω(err).Should(Equal(disaster))
 					})
 
 					It("does not start a build", func() {
-						scheduler.TriggerImmediately(job, resources)
+						scheduler.TriggerImmediately(logger, job, resources)
 						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 					})
 				})
@@ -801,12 +804,12 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("returns the error", func() {
-					_, err := scheduler.TriggerImmediately(job, resources)
+					_, err := scheduler.TriggerImmediately(logger, job, resources)
 					Ω(err).Should(Equal(disaster))
 				})
 
 				It("does not create or start a build", func() {
-					scheduler.TriggerImmediately(job, resources)
+					scheduler.TriggerImmediately(logger, job, resources)
 
 					Ω(schedulerDB.CreateJobBuildWithInputsCallCount()).Should(Equal(0))
 

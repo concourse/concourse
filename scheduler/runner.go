@@ -10,20 +10,23 @@ import (
 )
 
 //go:generate counterfeiter . Locker
+
 type Locker interface {
 	AcquireWriteLockImmediately(lock []db.NamedLock) (db.Lock, error)
 	AcquireReadLock(lock []db.NamedLock) (db.Lock, error)
 }
 
 //go:generate counterfeiter . BuildScheduler
-type BuildScheduler interface {
-	TryNextPendingBuild(atc.JobConfig, atc.ResourceConfigs) error
-	BuildLatestInputs(atc.JobConfig, atc.ResourceConfigs) error
 
-	TrackInFlightBuilds() error
+type BuildScheduler interface {
+	TryNextPendingBuild(lager.Logger, atc.JobConfig, atc.ResourceConfigs) error
+	BuildLatestInputs(lager.Logger, atc.JobConfig, atc.ResourceConfigs) error
+
+	TrackInFlightBuilds(lager.Logger) error
 }
 
 //go:generate counterfeiter . ConfigDB
+
 type ConfigDB interface {
 	GetConfig() (atc.Config, error)
 }
@@ -78,7 +81,7 @@ func (runner *Runner) tick(logger lager.Logger) {
 		return
 	}
 
-	err = runner.Scheduler.TrackInFlightBuilds()
+	err = runner.Scheduler.TrackInFlightBuilds(logger)
 	if err != nil {
 		logger.Error("failed-to-track-in-flight-builds", err)
 	}
@@ -93,21 +96,23 @@ func (runner *Runner) tick(logger lager.Logger) {
 			continue
 		}
 
-		runner.schedule(job, config.Resources, logger.Session("scheduling", lager.Data{
+		sLog := logger.Session("scheduling", lager.Data{
 			"job": job.Name,
-		}))
+		})
+
+		runner.schedule(sLog, job, config.Resources)
 
 		lock.Release()
 	}
 }
 
-func (runner *Runner) schedule(job atc.JobConfig, resources atc.ResourceConfigs, logger lager.Logger) {
-	err := runner.Scheduler.TryNextPendingBuild(job, resources)
+func (runner *Runner) schedule(logger lager.Logger, job atc.JobConfig, resources atc.ResourceConfigs) {
+	err := runner.Scheduler.TryNextPendingBuild(logger, job, resources)
 	if err != nil {
 		logger.Error("failed-to-try-next-pending-build", err)
 	}
 
-	err = runner.Scheduler.BuildLatestInputs(job, resources)
+	err = runner.Scheduler.BuildLatestInputs(logger, job, resources)
 	if err != nil {
 		logger.Error("failed-to-build-from-latest-inputs", err)
 	}

@@ -18,12 +18,12 @@ import (
 	gclient "github.com/cloudfoundry-incubator/garden/client"
 	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
 	"github.com/lib/pq"
+	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
-	"github.com/pivotal-golang/clock"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
@@ -257,7 +257,6 @@ func main() {
 		DB:      db,
 		Factory: &factory.BuildFactory{ConfigDB: configDB},
 		Locker:  db,
-		Logger:  logger.Session("scheduler"),
 		Engine:  engine,
 	}
 

@@ -105,7 +105,7 @@ var _ = Describe("Runner", func() {
 		It("follows on to the next job", func() {
 			Eventually(locker.AcquireWriteLockImmediatelyCallCount).Should(Equal(2))
 
-			job, resources := scheduler.TryNextPendingBuildArgsForCall(0)
+			_, job, resources := scheduler.TryNextPendingBuildArgsForCall(0)
 			Ω(job).Should(Equal(atc.JobConfig{Name: "some-other-job"}))
 			Ω(resources).Should(Equal(initialConfig.Resources))
 		})
@@ -118,11 +118,11 @@ var _ = Describe("Runner", func() {
 	It("schedules pending builds", func() {
 		Eventually(scheduler.TryNextPendingBuildCallCount).Should(Equal(2))
 
-		job, resources := scheduler.TryNextPendingBuildArgsForCall(0)
+		_, job, resources := scheduler.TryNextPendingBuildArgsForCall(0)
 		Ω(job).Should(Equal(atc.JobConfig{Name: "some-job"}))
 		Ω(resources).Should(Equal(initialConfig.Resources))
 
-		job, resources = scheduler.TryNextPendingBuildArgsForCall(1)
+		_, job, resources = scheduler.TryNextPendingBuildArgsForCall(1)
 		Ω(job).Should(Equal(atc.JobConfig{Name: "some-other-job"}))
 		Ω(resources).Should(Equal(initialConfig.Resources))
 	})
@@ -130,11 +130,11 @@ var _ = Describe("Runner", func() {
 	It("schedules builds for new inputs", func() {
 		Eventually(scheduler.BuildLatestInputsCallCount).Should(Equal(2))
 
-		job, resources := scheduler.BuildLatestInputsArgsForCall(0)
+		_, job, resources := scheduler.BuildLatestInputsArgsForCall(0)
 		Ω(job).Should(Equal(atc.JobConfig{Name: "some-job"}))
 		Ω(resources).Should(Equal(initialConfig.Resources))
 
-		job, resources = scheduler.BuildLatestInputsArgsForCall(1)
+		_, job, resources = scheduler.BuildLatestInputsArgsForCall(1)
 		Ω(job).Should(Equal(atc.JobConfig{Name: "some-other-job"}))
 		Ω(resources).Should(Equal(initialConfig.Resources))
 	})
