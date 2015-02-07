@@ -486,6 +486,7 @@ func (db *SQLDB) ScheduleBuild(buildID int, serial bool) (bool, error) {
 				SELECT 1
 				FROM builds s
 				WHERE s.job_name = b.job_name
+				AND s.id != b.id
 				AND (s.status = 'started' OR (s.status = 'pending' AND s.scheduled = true))
 			)
 		)

@@ -1379,11 +1379,35 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					Ω(scheduled).Should(BeTrue())
 				})
 
+				Describe("twice", func() {
+					It("succeeds idempotently", func() {
+						scheduled, err := database.ScheduleBuild(firstBuild.ID, false)
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(scheduled).Should(BeTrue())
+
+						scheduled, err = database.ScheduleBuild(firstBuild.ID, false)
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(scheduled).Should(BeTrue())
+					})
+				})
+
 				Context("serially", func() {
 					It("succeeds", func() {
 						scheduled, err := database.ScheduleBuild(firstBuild.ID, true)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeTrue())
+					})
+
+					Describe("twice", func() {
+						It("succeeds idempotently", func() {
+							scheduled, err := database.ScheduleBuild(firstBuild.ID, true)
+							Ω(err).ShouldNot(HaveOccurred())
+							Ω(scheduled).Should(BeTrue())
+
+							scheduled, err = database.ScheduleBuild(firstBuild.ID, true)
+							Ω(err).ShouldNot(HaveOccurred())
+							Ω(scheduled).Should(BeTrue())
+						})
 					})
 				})
 			})
