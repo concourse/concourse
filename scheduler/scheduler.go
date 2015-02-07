@@ -56,6 +56,7 @@ func (s *Scheduler) BuildLatestInputs(job atc.JobConfig, resources atc.ResourceC
 
 	if err != nil {
 		if err == db.ErrNoVersions {
+			buildLog.Debug("no-input-versions-available")
 			return nil
 		}
 
@@ -86,35 +87,39 @@ func (s *Scheduler) BuildLatestInputs(job atc.JobConfig, resources atc.ResourceC
 	}
 
 	if len(inputs) == 0 {
+		buildLog.Debug("no-triggered-input-versions")
 		return nil
 	}
 
-	_, err = s.DB.GetJobBuildForInputs(job.Name, inputs)
+	existingBuild, err := s.DB.GetJobBuildForInputs(job.Name, inputs)
 	if err == nil {
+		buildLog.Debug("build-already-exists-for-inputs", lager.Data{
+			"existing-build": existingBuild.ID,
+		})
+
 		return nil
 	}
 
 	build, err := s.DB.CreateJobBuildWithInputs(job.Name, inputs)
 	if err != nil {
-		buildLog.Error("failed-to-create-build", err, lager.Data{
-			"inputs": inputs,
-		})
+		buildLog.Error("failed-to-create-build", err)
 		return err
 	}
 
+	buildLog = buildLog.WithData(lager.Data{"build": build.ID})
+
+	buildLog.Debug("created-build")
+
 	scheduled, err := s.DB.ScheduleBuild(build.ID, job.Serial)
 	if err != nil {
+		buildLog.Error("failed-to-scheduled-build", err)
 		return err
 	}
 
 	if !scheduled {
+		buildLog.Debug("build-could-not-be-scheduled")
 		return nil
 	}
-
-	buildLog.Info("building", lager.Data{
-		"build":  build,
-		"inputs": inputs,
-	})
 
 	buildPlan, err := s.Factory.Create(job, resources, inputs)
 	if err != nil {
@@ -127,6 +132,8 @@ func (s *Scheduler) BuildLatestInputs(job atc.JobConfig, resources atc.ResourceC
 		buildLog.Error("failed-to-build", err)
 		return err
 	}
+
+	buildLog.Info("building")
 
 	go createdBuild.Resume(buildLog)
 
@@ -145,31 +152,32 @@ func (s *Scheduler) TryNextPendingBuild(job atc.JobConfig, resources atc.Resourc
 		return err
 	}
 
+	buildLog = buildLog.WithData(lager.Data{"build": build.ID})
+
 	scheduled, err := s.DB.ScheduleBuild(build.ID, job.Serial)
 	if err != nil {
+		buildLog.Error("failed-to-schedule-build", err)
 		return err
 	}
 
 	if !scheduled {
+		buildLog.Debug("build-could-not-be-scheduled")
 		return nil
 	}
 
-	buildLog.Info("building", lager.Data{
-		"build":  build,
-		"inputs": inputs,
-	})
-
 	buildPlan, err := s.Factory.Create(job, resources, inputs)
 	if err != nil {
-		buildLog.Error("failed-to-create", err)
+		buildLog.Error("failed-to-create-build-plan", err)
 		return err
 	}
 
 	createdBuild, err := s.Engine.CreateBuild(build, buildPlan)
 	if err != nil {
-		buildLog.Error("failed-to-build", err)
+		buildLog.Error("failed-to-create-build", err)
 		return err
 	}
+
+	buildLog.Info("building")
 
 	go createdBuild.Resume(buildLog)
 
@@ -217,17 +225,16 @@ func (s *Scheduler) TriggerImmediately(job atc.JobConfig, resources atc.Resource
 
 	scheduled, err := s.DB.ScheduleBuild(build.ID, job.Serial)
 	if err != nil {
+		buildLog.Error("failed-to-schedule-build", err)
 		return db.Build{}, err
 	}
 
 	if !scheduled {
+		buildLog.Debug("build-could-not-be-scheduled")
 		return build, nil
 	}
 
-	buildLog.Info("building", lager.Data{
-		"build":  build,
-		"inputs": inputs,
-	})
+	buildLog = buildLog.WithData(lager.Data{"build": build.ID})
 
 	buildPlan, err := s.Factory.Create(job, resources, inputs)
 	if err != nil {
@@ -240,6 +247,8 @@ func (s *Scheduler) TriggerImmediately(job atc.JobConfig, resources atc.Resource
 		buildLog.Error("failed-to-build", err)
 		return db.Build{}, err
 	}
+
+	buildLog.Info("building")
 
 	go createdBuild.Resume(buildLog)
 
