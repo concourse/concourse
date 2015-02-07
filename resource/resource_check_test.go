@@ -55,9 +55,6 @@ var _ = Describe("Resource Check", func() {
 			_, err := io.Stdout.Write([]byte(checkScriptStdout))
 			Ω(err).ShouldNot(HaveOccurred())
 
-			_, err = io.Stderr.Write([]byte(checkScriptStderr))
-			Ω(err).ShouldNot(HaveOccurred())
-
 			return checkScriptProcess, nil
 		}
 
@@ -108,16 +105,12 @@ var _ = Describe("Resource Check", func() {
 
 	Context("when /opt/resource/check exits nonzero", func() {
 		BeforeEach(func() {
-			checkScriptStdout = "some-stdout-data"
-			checkScriptStderr = "some-stderr-data"
 			checkScriptExitStatus = 9
 		})
 
 		It("returns an err containing stdout/stderr of the process", func() {
 			Ω(checkErr).Should(HaveOccurred())
 
-			Ω(checkErr.Error()).Should(ContainSubstring("some-stdout-data"))
-			Ω(checkErr.Error()).Should(ContainSubstring("some-stderr-data"))
 			Ω(checkErr.Error()).Should(ContainSubstring("exit status 9"))
 		})
 	})

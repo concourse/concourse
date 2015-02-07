@@ -20,19 +20,15 @@ const resourceResultPropertyName = "resource-result"
 type ErrResourceScriptFailed struct {
 	Path       string
 	Args       []string
-	Stdout     string
-	Stderr     string
 	ExitStatus int
 }
 
 func (err ErrResourceScriptFailed) Error() string {
 	return fmt.Sprintf(
-		"resource script '%s %v' failed: exit status %d\n\nstdout:\n\n%s\n\nstderr:\n\n%s",
+		"resource script '%s %v' failed: exit status %d",
 		err.Path,
 		err.Args,
 		err.ExitStatus,
-		err.Stdout,
-		err.Stderr,
 	)
 }
 
@@ -60,18 +56,10 @@ func (resource *resource) runScript(
 		}
 
 		stdout := new(bytes.Buffer)
-		stderr := new(bytes.Buffer)
-
-		var stderrW io.Writer
-		if logDest != nil {
-			stderrW = io.MultiWriter(logDest, stderr)
-		} else {
-			stderrW = stderr
-		}
 
 		processIO := garden.ProcessIO{
 			Stdin:  bytes.NewBuffer(request),
-			Stderr: stderrW,
+			Stderr: logDest,
 			Stdout: stdout,
 		}
 
@@ -143,8 +131,6 @@ func (resource *resource) runScript(
 				return ErrResourceScriptFailed{
 					Path:       path,
 					Args:       args,
-					Stdout:     stdout.String(),
-					Stderr:     stderr.String(),
 					ExitStatus: status,
 				}
 			}

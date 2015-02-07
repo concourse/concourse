@@ -307,8 +307,6 @@ var _ = Describe("Resource Out", func() {
 
 		Context("when /opt/resource/out exits nonzero", func() {
 			BeforeEach(func() {
-				outScriptStdout = "some-stdout-data"
-				outScriptStderr = "some-stderr-data"
 				outScriptExitStatus = 9
 			})
 
@@ -317,8 +315,6 @@ var _ = Describe("Resource Out", func() {
 				Eventually(outProcess.Wait()).Should(Receive(&outErr))
 
 				Ω(outErr).Should(HaveOccurred())
-				Ω(outErr.Error()).Should(ContainSubstring("some-stdout-data"))
-				Ω(outErr.Error()).Should(ContainSubstring("some-stderr-data"))
 				Ω(outErr.Error()).Should(ContainSubstring("exit status 9"))
 			})
 		})
@@ -459,8 +455,6 @@ var _ = Describe("Resource Out", func() {
 
 		Context("when /opt/resource/out exits nonzero", func() {
 			BeforeEach(func() {
-				outScriptStdout = "some-stdout-data"
-				outScriptStderr = "some-stderr-data"
 				outScriptExitStatus = 9
 			})
 
@@ -469,8 +463,6 @@ var _ = Describe("Resource Out", func() {
 				Eventually(outProcess.Wait()).Should(Receive(&outErr))
 
 				Ω(outErr).Should(HaveOccurred())
-				Ω(outErr.Error()).Should(ContainSubstring("some-stdout-data"))
-				Ω(outErr.Error()).Should(ContainSubstring("some-stderr-data"))
 				Ω(outErr.Error()).Should(ContainSubstring("exit status 9"))
 			})
 		})
