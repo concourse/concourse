@@ -52,7 +52,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	log.Debug("triggering")
 
-	build, err := handler.scheduler.TriggerImmediately(job, config.Resources)
+	build, err := handler.scheduler.TriggerImmediately(log, job, config.Resources)
 	if err != nil {
 		log.Error("failed-to-trigger", err)
 		w.WriteHeader(http.StatusInternalServerError)
