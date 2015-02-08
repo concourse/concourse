@@ -30,6 +30,8 @@ func NewHandler(logger lager.Logger, db db.DB, configDB db.ConfigDB, template *t
 }
 
 type TemplateData struct {
+	GroupStates []GroupState
+
 	Job    atc.JobConfig
 	Builds []db.Build
 
@@ -38,6 +40,11 @@ type TemplateData struct {
 	Outputs []db.BuildOutput
 
 	Abortable bool
+}
+
+type GroupState struct {
+	Name    string
+	Enabled bool
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -64,6 +71,21 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !found {
 		w.WriteHeader(http.StatusNotFound)
 		return
+	}
+
+	groupStates := make([]GroupState, len(config.Groups))
+	for i, group := range config.Groups {
+		enabled := false
+		for _, groupJob := range group.Jobs {
+			if groupJob == job.Name {
+				enabled = true
+			}
+		}
+
+		groupStates[i] = GroupState{
+			Name:    group.Name,
+			Enabled: enabled,
+		}
 	}
 
 	log := handler.logger.Session("get-build", lager.Data{
@@ -101,6 +123,8 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	templateData := TemplateData{
+		GroupStates: groupStates,
+
 		Job:    job,
 		Builds: bs,
 

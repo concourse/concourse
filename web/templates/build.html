@@ -2,6 +2,8 @@
 
 {{define "body"}}
 <div id="page-header" class="{{.Build.Status}}">
+  <ul class="groups"><li><a href="/">main</a></li>{{range .GroupStates}}<li{{if .Enabled}} class="active"{{end}}><a href="/?groups={{.Name}}">{{.Name}}</a></li>{{end}}</ul>
+
   <div class="build-header">
     <form class="trigger-build" method="post" action="{{url "TriggerBuild" .Job}}">
       <input type="submit" value="trigger build" />
