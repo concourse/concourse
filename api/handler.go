@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/api/configserver"
 	"github.com/concourse/atc/api/jobserver"
+	"github.com/concourse/atc/api/loglevelserver"
 	"github.com/concourse/atc/api/pipes"
 	"github.com/concourse/atc/api/resourceserver"
 	"github.com/concourse/atc/api/workerserver"
@@ -42,6 +43,8 @@ func NewHandler(
 	drain <-chan struct{},
 
 	engine engine.Engine,
+
+	sink *lager.ReconfigurableSink,
 ) (http.Handler, error) {
 	buildServer := buildserver.NewServer(
 		logger,
@@ -61,6 +64,8 @@ func NewHandler(
 	configServer := configserver.NewServer(logger, configDB, configValidator)
 
 	workerServer := workerserver.NewServer(logger, workerDB)
+
+	logLevelServer := loglevelserver.NewServer(logger, sink)
 
 	validate := func(handler http.Handler) http.Handler {
 		return auth.Handler{
@@ -94,6 +99,9 @@ func NewHandler(
 
 		atc.ListWorkers:    validate(http.HandlerFunc(workerServer.ListWorkers)),
 		atc.RegisterWorker: validate(http.HandlerFunc(workerServer.RegisterWorker)),
+
+		atc.SetLogLevel: validate(http.HandlerFunc(logLevelServer.SetMinLevel)),
+		atc.GetLogLevel: http.HandlerFunc(logLevelServer.GetMinLevel),
 	}
 
 	return rata.NewRouter(atc.Routes, handlers)

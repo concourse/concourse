@@ -25,6 +25,8 @@ import (
 )
 
 var (
+	sink *lager.ReconfigurableSink
+
 	authValidator       *authfakes.FakeValidator
 	fakeEngine          *enginefakes.FakeEngine
 	buildsDB            *buildfakes.FakeBuildsDB
@@ -86,7 +88,9 @@ var _ = BeforeEach(func() {
 	constructedEventHandler = &fakeEventHandlerFactory{}
 
 	logger := lagertest.NewTestLogger("callbacks")
-	logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
+
+	sink = lager.NewReconfigurableSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG), lager.DEBUG)
+	logger.RegisterSink(sink)
 
 	handler, err := api.NewHandler(
 		logger,
@@ -112,6 +116,8 @@ var _ = BeforeEach(func() {
 		drain,
 
 		fakeEngine,
+
+		sink,
 	)
 	Ω(err).ShouldNot(HaveOccurred())
 

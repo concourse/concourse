@@ -27,6 +27,9 @@ const (
 
 	RegisterWorker = "RegisterWorker"
 	ListWorkers    = "ListWorkers"
+
+	SetLogLevel = "SetLogLevel"
+	GetLogLevel = "GetLogLevel"
 )
 
 var Routes = rata.Routes{
@@ -52,6 +55,9 @@ var Routes = rata.Routes{
 	{Path: "/api/v1/pipes/:pipe_id", Method: "PUT", Name: WritePipe},
 	{Path: "/api/v1/pipes/:pipe_id", Method: "GET", Name: ReadPipe},
 
-	{Path: "/api/v1/workers", Method: "POST", Name: RegisterWorker},
 	{Path: "/api/v1/workers", Method: "GET", Name: ListWorkers},
+	{Path: "/api/v1/workers", Method: "POST", Name: RegisterWorker},
+
+	{Path: "/api/v1/log-level", Method: "GET", Name: GetLogLevel},
+	{Path: "/api/v1/log-level", Method: "PUT", Name: SetLogLevel},
 }
