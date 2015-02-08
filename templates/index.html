@@ -2,11 +2,7 @@
 
 {{define "body"}}
 <div id="page-header">
-  <ul class="groups">
-    {{range .GroupStates}}
-    <li{{if .Enabled}} class="active"{{end}}><a href="/?groups={{.Name}}">{{.Name}}</a>
-    {{end}}
-  </ul>
+  <ul class="groups"><li><a href="/">main</a></li>{{range .GroupStates}}<li{{if .Enabled}} class="active"{{end}}><a href="/?groups={{.Name}}">{{.Name}}</a></li>{{end}}</ul>
 </div>
 
 <div id="pipeline">

@@ -27,9 +27,6 @@ svg .node rect {
 .build-source .header {
   background: #151515;
 }
-#page-header {
-  background: #151515;
-}
 /* highlight background */
 svg .cluster {
   fill: #303030;
@@ -43,9 +40,6 @@ svg .edge {
 }
 svg .gateway {
   fill: #505050;
-}
-.groups li.active a {
-  background: #505050;
 }
 .build-source.first-occurrence .header {
   background: #505050;
@@ -123,7 +117,7 @@ svg .edge.succeeded {
 svg .node.job.succeeded rect {
   fill: #90a959;
 }
-#page-header.succeeded .build-header {
+#page-header.succeeded {
   background: #90a959;
 }
 li.succeeded {
@@ -142,7 +136,7 @@ svg .edge.failed {
 svg .node.job.failed rect {
   fill: #ac4142;
 }
-#page-header.failed .build-header {
+#page-header.failed {
   background: #ac4142;
 }
 li.failed {
@@ -170,7 +164,7 @@ svg .edge.errored {
 svg .node.job.errored rect {
   fill: #d28445;
 }
-#page-header.errored .build-header {
+#page-header.errored {
   background: #d28445;
 }
 li.errored {
@@ -192,7 +186,7 @@ svg .edge.aborted {
 svg .node.job.aborted rect {
   fill: #8f5536;
 }
-#page-header.aborted .build-header {
+#page-header.aborted {
   background: #8f5536;
 }
 li.aborted {
@@ -205,7 +199,7 @@ li.aborted {
   background: #8f5536;
 }
 /* active */
-#page-header.started .build-header {
+#page-header.started {
   background: #f4bf75;
 }
 li.started {
