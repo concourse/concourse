@@ -9,8 +9,6 @@ var FluxMixin = Fluxxor.FluxMixin(React),
     StoreWatchMixin = Fluxxor.StoreWatchMixin;
 var flux = require('./stores');
 
-var ansiparse = require('./ansiparse');
-
 window.React = React;
 
 var $ = require('jquery');
