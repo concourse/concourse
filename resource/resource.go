@@ -2,6 +2,7 @@ package resource
 
 import (
 	"io"
+	"sync"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
@@ -51,6 +52,8 @@ const ResourcesDir = "/tmp/build/src"
 type resource struct {
 	container worker.Container
 	typ       ResourceType
+
+	releaseOnce sync.Once
 }
 
 func NewResource(
@@ -68,5 +71,11 @@ func (resource *resource) Type() ResourceType {
 }
 
 func (resource *resource) Release() error {
-	return resource.container.Destroy()
+	var err error
+
+	resource.releaseOnce.Do(func() {
+		err = resource.container.Destroy()
+	})
+
+	return err
 }

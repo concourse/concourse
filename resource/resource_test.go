@@ -18,6 +18,16 @@ var _ = Describe("Resource", func() {
 			Ω(fakeContainer.DestroyCallCount()).Should(Equal(1))
 		})
 
+		It("only destroys on the first call", func() {
+			err := resource.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = resource.Release()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(fakeContainer.DestroyCallCount()).Should(Equal(1))
+		})
+
 		Context("when destroying the container fails", func() {
 			disaster := errors.New("nope")
 
