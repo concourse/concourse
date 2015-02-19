@@ -1,7 +1,0 @@
----
-name: consul_0.4
-
-dependencies: []
-
-files:
-  - consul_0.4/consul

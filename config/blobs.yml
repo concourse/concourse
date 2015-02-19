@@ -9,28 +9,23 @@ postgresql/postgresql-9.3.4.tar.gz:
   size: 21865589
 resources/archive-resource.tar.gz:
   object_id: e7afa101-925b-4cb5-8c12-831e5d097574
-  sha: !binary |-
-    NzU2ZmVlYzQ5MDI1YTYwMDQyMWQ3YWU3ZTM0MjAxZTMwYWRmMjdmZQ==
+  sha: 756feec49025a600421d7ae7e34201e30adf27fe
   size: 2549492
 resources/time-resource.tar.gz:
   object_id: 8c81f0eb-5661-4a29-a15d-7a23963eebb2
-  sha: !binary |-
-    Yjg0NDAxYzFkNDM1NzliNzQwYjhjMDNmN2Y3ZmUxNGY5NjMxYWIyMg==
+  sha: b84401c1d43579b740b8c03f7f7fe14f9631ab22
   size: 2518568
 resources/semver-resource.tar.gz:
   object_id: bc0e5c72-8ebb-44be-97f2-14b5bb66e581
-  sha: !binary |-
-    ZGMzNzg5N2QzOWFlMmMzZWVkMmU3NDdhZDY5ZGE1ZjU4MzFjYTUxMQ==
+  sha: dc37897d39ae2c3eed2e747ad69da5f5831ca511
   size: 8618262
 resources/s3-resource.tar.gz:
   object_id: d1a12e4d-5875-4031-afa7-2540dbc24291
-  sha: !binary |-
-    NWUxYjdhMWVmZDZhOGRjYmYyNTk3NGZmNjExNWNhMGYxZjcyODQ4Ng==
+  sha: 5e1b7a1efd6a8dcbf25974ff6115ca0f1f728486
   size: 8830181
 resources/tracker-resource.tar.gz:
   object_id: 4d514d25-9542-4757-89ab-016740992dbb
-  sha: !binary |-
-    NTAxYjRlNDI0N2Q3MDAxZTgwZjUwOTFkMDU3MTllN2I2ODYzMzZjNQ==
+  sha: 501b4e4247d7001e80f5091d05719e7b686336c5
   size: 11537270
 resources/git-resource.tar.gz:
   object_id: 552fe395-0591-4cb6-9b80-456ffb7f0eee
@@ -39,8 +34,7 @@ resources/git-resource.tar.gz:
   size: 7504142
 resources/docker-image-resource.tar.gz:
   object_id: b520777a-e97b-4a19-9c9f-744da00a4e76
-  sha: !binary |-
-    NzYxNmU0NTRjZGJjZDY0YzUxY2I0ODAxOTZiY2JmNjAyYTE4ZmIxNA==
+  sha: 7616e454cdbcd64c51cb480196bcbf602a18fb14
   size: 8277120
 consul_0.4/consul:
   object_id: 854e5eba-0de6-4212-af07-c58dab9cfd3a
@@ -48,16 +42,17 @@ consul_0.4/consul:
   size: 16085929
 resources/vagrant-cloud-resource.tar.gz:
   object_id: e3f29890-33a5-4768-af55-d6847537b39f
-  sha: !binary |-
-    YzIwYzNhODgzYmE4MjI3OGNmMTAxYzg3ODEyYTRiOGQ3ZjhlYzFmNg==
+  sha: c20c3a883ba82278cf101c87812a4b8d7f8ec1f6
   size: 9154791
 resources/cf-resource.tar.gz:
   object_id: d40725e8-87cb-4572-ad26-a78f3f82c5b3
-  sha: !binary |-
-    NmE2NzBmODg5NGI2MThiNmFiZDdmYTJmZDJkZDM0YzlhYjA2NjYzNA==
+  sha: 6a670f8894b618b6abd7fa2fd2dd34c9ab066634
   size: 12629391
 resources/github-release-resource.tar.gz:
   object_id: 2813eadf-3228-4bb3-b564-2d830127f645
-  sha: !binary |-
-    MzgxZjY3YTdkZmNmNDUwMGExNDgyNDZlNjJmMmNlODA3NDgyYWI4ZA==
+  sha: 381f67a7dfcf4500a148246e62f2ce807482ab8d
   size: 6777058
+consul_0.5/consul:
+  object_id: 97b99488-7553-47f0-8294-ad1f8533b164
+  sha: f461a632165ce878045afaaf04de699510e53374
+  size: 17734417

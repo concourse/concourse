@@ -6,7 +6,7 @@ RUN_DIR=/var/vcap/sys/run/consul-agent
 DATA_DIR=/var/vcap/store/consul-agent
 CONF_DIR=/var/vcap/jobs/consul-agent/config
 
-PKG=/var/vcap/packages/consul_0.4
+PKG=/var/vcap/packages/consul
 
 mkdir -p /var/vcap/sys/log/monit
 exec 1>> /var/vcap/sys/log/monit/consul-agent.out.log
