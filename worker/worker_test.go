@@ -191,6 +191,11 @@ var _ = Describe("Worker", func() {
 
 					Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(2))
 				})
+
+				It("can be released multiple times", func() {
+					foundContainer.Release()
+					Ω(foundContainer.Release).ShouldNot(Panic())
+				})
 			})
 		})
 

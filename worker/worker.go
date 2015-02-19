@@ -79,6 +79,8 @@ type gardenWorkerContainer struct {
 
 	stopHeartbeating chan struct{}
 	heartbeating     *sync.WaitGroup
+
+	releaseOnce sync.Once
 }
 
 func newGardenWorkerContainer(container garden.Container, gardenClient garden.Client, clock clock.Clock) Container {
@@ -105,8 +107,10 @@ func (container *gardenWorkerContainer) Destroy() error {
 }
 
 func (container *gardenWorkerContainer) Release() {
-	close(container.stopHeartbeating)
-	container.heartbeating.Wait()
+	container.releaseOnce.Do(func() {
+		close(container.stopHeartbeating)
+		container.heartbeating.Wait()
+	})
 }
 
 func (container *gardenWorkerContainer) heartbeat(pacemaker clock.Ticker) {
