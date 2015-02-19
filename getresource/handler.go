@@ -7,6 +7,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/web/group"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -33,6 +34,8 @@ func NewHandler(logger lager.Logger, db db.DB, configDB db.ConfigDB, template *t
 type TemplateData struct {
 	Resource atc.ResourceConfig
 	History  []*db.VersionHistory
+
+	GroupStates []group.State
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -57,6 +60,16 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	templateData := TemplateData{
 		Resource: resource,
 		History:  history,
+
+		GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
+			for _, groupResource := range g.Resources {
+				if groupResource == resource.Name {
+					return true
+				}
+			}
+
+			return false
+		}),
 	}
 
 	err = handler.template.Execute(w, templateData)

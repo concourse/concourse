@@ -6,6 +6,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/web/group"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -32,6 +33,8 @@ func NewHandler(logger lager.Logger, db db.DB, configDB db.ConfigDB, template *t
 type TemplateData struct {
 	Job    atc.JobConfig
 	Builds []db.Build
+
+	GroupStates []group.State
 
 	CurrentBuild db.Build
 }
@@ -75,6 +78,16 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	templateData := TemplateData{
 		Job:    job,
 		Builds: bs,
+
+		GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
+			for _, groupJob := range g.Jobs {
+				if groupJob == job.Name {
+					return true
+				}
+			}
+
+			return false
+		}),
 
 		CurrentBuild: currentBuild,
 	}

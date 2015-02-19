@@ -1,10 +1,6 @@
 {{define "title"}}Concourse{{end}}
 
 {{define "body"}}
-<div id="page-header">
-  <ul class="groups"><li><a href="/">main</a></li>{{range .GroupStates}}<li{{if .Enabled}} class="active"{{end}}><a href="/?groups={{.Name}}">{{.Name}}</a></li>{{end}}</ul>
-</div>
-
 <div id="pipeline">
   <dl class="legend">
     <dt class="pending"></dt>
