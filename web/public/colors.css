@@ -27,11 +27,17 @@ svg .node rect {
 .build-source .header {
   background: #151515;
 }
+.groups {
+  background: #151515;
+}
 /* highlight background */
 svg .cluster {
   fill: #303030;
 }
 .build-resources {
+  background: #303030;
+}
+.groups li.main a {
   background: #303030;
 }
 /* even more highlight background */
@@ -46,6 +52,9 @@ svg .gateway {
 }
 svg .node.job.normal rect {
   fill: #505050;
+}
+.groups li.active a {
+  background: #505050;
 }
 /* dim */
 svg .edge.pending {
