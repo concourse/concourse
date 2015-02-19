@@ -38,10 +38,10 @@ resources/git-resource.tar.gz:
     YTcyNWMzODE5NmNkM2Q2NDUwNTRjNjViMDY4NmU4ZDY5YWNkNWY0OQ==
   size: 9155172
 resources/docker-image-resource.tar.gz:
-  object_id: 968d64ba-de6b-4664-8356-89ebad347b97
+  object_id: b520777a-e97b-4a19-9c9f-744da00a4e76
   sha: !binary |-
-    YjExMjc2MDA1MmVhOWExNDY3MTA1YzQ1YmMxZTEzY2NmZjg2ZDhlYg==
-  size: 8277138
+    NzYxNmU0NTRjZGJjZDY0YzUxY2I0ODAxOTZiY2JmNjAyYTE4ZmIxNA==
+  size: 8277120
 consul_0.4/consul:
   object_id: 854e5eba-0de6-4212-af07-c58dab9cfd3a
   sha: 8be7984e9e1b7aab3d1eee14acdf59bb62207b6c
