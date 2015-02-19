@@ -6,6 +6,10 @@
     <link href="{{url "Public" "colors.css"}}" media="all" rel="stylesheet" type="text/css" />
   </head>
   <body>
+    <nav>
+      <ul class="groups"><li class="main"><a href="/">main</a></li>{{range .GroupStates}}<li{{if .Enabled}} class="active"{{end}}><a href="/?groups={{.Name}}">{{.Name}}</a></li>{{end}}</ul>
+    </nav>
+
     {{template "body" .}}
   </body>
 </html>

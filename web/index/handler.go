@@ -6,7 +6,9 @@ import (
 
 	"github.com/pivotal-golang/lager"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/web/group"
 )
 
 type handler struct {
@@ -30,13 +32,8 @@ func NewHandler(logger lager.Logger, db db.DB, configDB db.ConfigDB, template *t
 }
 
 type TemplateData struct {
-	GroupStates []GroupState
+	GroupStates []group.State
 	Groups      map[string]bool
-}
-
-type GroupState struct {
-	Name    string
-	Enabled bool
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -61,17 +58,11 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		groups[name] = true
 	}
 
-	groupStates := make([]GroupState, len(config.Groups))
-	for i, group := range config.Groups {
-		groupStates[i] = GroupState{
-			Name:    group.Name,
-			Enabled: groups[group.Name],
-		}
-	}
-
 	data := TemplateData{
-		Groups:      groups,
-		GroupStates: groupStates,
+		Groups: groups,
+		GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
+			return groups[g.Name]
+		}),
 	}
 
 	log := handler.logger.Session("index")

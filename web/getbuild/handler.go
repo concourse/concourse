@@ -6,6 +6,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/web/group"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -30,7 +31,7 @@ func NewHandler(logger lager.Logger, db db.DB, configDB db.ConfigDB, template *t
 }
 
 type TemplateData struct {
-	GroupStates []GroupState
+	GroupStates []group.State
 
 	Job    atc.JobConfig
 	Builds []db.Build
@@ -40,11 +41,6 @@ type TemplateData struct {
 	Outputs []db.BuildOutput
 
 	Abortable bool
-}
-
-type GroupState struct {
-	Name    string
-	Enabled bool
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -71,21 +67,6 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !found {
 		w.WriteHeader(http.StatusNotFound)
 		return
-	}
-
-	groupStates := make([]GroupState, len(config.Groups))
-	for i, group := range config.Groups {
-		enabled := false
-		for _, groupJob := range group.Jobs {
-			if groupJob == job.Name {
-				enabled = true
-			}
-		}
-
-		groupStates[i] = GroupState{
-			Name:    group.Name,
-			Enabled: enabled,
-		}
 	}
 
 	log := handler.logger.Session("get-build", lager.Data{
@@ -123,7 +104,15 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	templateData := TemplateData{
-		GroupStates: groupStates,
+		GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
+			for _, groupJob := range g.Jobs {
+				if groupJob == job.Name {
+					return true
+				}
+			}
+
+			return false
+		}),
 
 		Job:    job,
 		Builds: bs,
