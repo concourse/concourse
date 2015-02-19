@@ -3,6 +3,7 @@ package worker_test
 import (
 	"errors"
 	"fmt"
+	"net"
 
 	"github.com/cloudfoundry-incubator/garden"
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
@@ -67,6 +68,24 @@ var _ = Describe("DBProvider", func() {
 	AfterEach(func() {
 		workerAServer.Stop()
 		workerBServer.Stop()
+
+		Eventually(func() error {
+			conn, err := net.Dial("tcp", workerAAddr)
+			if err == nil {
+				conn.Close()
+			}
+
+			return err
+		}).Should(HaveOccurred())
+
+		Eventually(func() error {
+			conn, err := net.Dial("tcp", workerBAddr)
+			if err == nil {
+				conn.Close()
+			}
+
+			return err
+		}).Should(HaveOccurred())
 	})
 
 	Context("when the database yields workers", func() {
