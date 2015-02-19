@@ -44,6 +44,7 @@ files:
   - github.com/concourse/atc/web/getbuild/*.go # gosub
   - github.com/concourse/atc/web/getjob/*.go # gosub
   - github.com/concourse/atc/web/getresource/*.go # gosub
+  - github.com/concourse/atc/web/group/*.go # gosub
   - github.com/concourse/atc/web/index/*.go # gosub
   - github.com/concourse/atc/web/login/*.go # gosub
   - github.com/concourse/atc/web/routes/*.go # gosub
