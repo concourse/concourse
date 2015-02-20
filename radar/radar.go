@@ -149,7 +149,7 @@ func (scanner *scanner) tick(logger lager.Logger) error {
 			}
 		}
 
-		scanner.resource, err = scanner.tracker.Init("", typ)
+		scanner.resource, err = scanner.tracker.Init(scanner.workerSessionID(), typ)
 		if err != nil {
 			logger.Error("failed-to-initialize-new-resource", err)
 			return err
@@ -216,4 +216,8 @@ func (scanner *scanner) tick(logger lager.Logger) error {
 	lock.Release()
 
 	return nil
+}
+
+func (scanner *scanner) workerSessionID() resource.SessionID {
+	return resource.SessionID("check-" + scanner.resourceName)
 }

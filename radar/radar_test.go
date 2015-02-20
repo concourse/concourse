@@ -98,7 +98,8 @@ var _ = Describe("Radar", func() {
 		It("constructs the resource of the correct type", func() {
 			Eventually(times).Should(Receive())
 
-			_, typ := fakeTracker.InitArgsForCall(0)
+			sessionID, typ := fakeTracker.InitArgsForCall(0)
+			Ω(sessionID).Should(Equal(resource.SessionID("check-some-resource")))
 			Ω(typ).Should(Equal(resource.ResourceType("git")))
 		})
 
