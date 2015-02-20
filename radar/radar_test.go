@@ -99,7 +99,7 @@ var _ = Describe("Radar", func() {
 			Eventually(times).Should(Receive())
 
 			sessionID, typ := fakeTracker.InitArgsForCall(0)
-			Ω(sessionID).Should(Equal(resource.SessionID("check-some-resource")))
+			Ω(sessionID).Should(Equal(resource.SessionID("check-git-some-resource")))
 			Ω(typ).Should(Equal(resource.ResourceType("git")))
 		})
 
@@ -342,7 +342,8 @@ var _ = Describe("Radar", func() {
 
 					Ω(fakeTracker.InitCallCount()).Should(Equal(2))
 
-					_, typ := fakeTracker.InitArgsForCall(1)
+					sessionID, typ := fakeTracker.InitArgsForCall(1)
+					Ω(sessionID).Should(Equal(resource.SessionID("check-new-type-some-resource")))
 					Ω(typ).Should(Equal(resource.ResourceType("new-type")))
 				})
 

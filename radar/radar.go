@@ -84,12 +84,6 @@ func (scanner *scanner) Run(signals <-chan os.Signal, ready chan<- struct{}) err
 
 	close(ready)
 
-	defer func() {
-		if scanner.resource != nil {
-			scanner.resource.Release()
-		}
-	}()
-
 	checkLock := []db.NamedLock{db.ResourceCheckingLock(scanner.resourceName)}
 
 	for {
@@ -149,7 +143,7 @@ func (scanner *scanner) tick(logger lager.Logger) error {
 			}
 		}
 
-		scanner.resource, err = scanner.tracker.Init(scanner.workerSessionID(), typ)
+		scanner.resource, err = scanner.tracker.Init(scanner.workerSessionID(resourceConfig), typ)
 		if err != nil {
 			logger.Error("failed-to-initialize-new-resource", err)
 			return err
@@ -218,6 +212,6 @@ func (scanner *scanner) tick(logger lager.Logger) error {
 	return nil
 }
 
-func (scanner *scanner) workerSessionID() resource.SessionID {
-	return resource.SessionID("check-" + scanner.resourceName)
+func (scanner *scanner) workerSessionID(res atc.ResourceConfig) resource.SessionID {
+	return resource.SessionID("check-" + res.Type + "-" + res.Name)
 }
