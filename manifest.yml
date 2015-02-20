@@ -1,6 +1,6 @@
 ---
 name: docs
-domain: concourse.ci
+domain: concourse-ci.org
 host: ''
 buildpack: https://github.com/pearkes/heroku-buildpack-static.git
 path: ./concourse
