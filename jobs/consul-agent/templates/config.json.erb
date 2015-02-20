@@ -22,9 +22,15 @@
   server = p("consul.agent.mode") == "server"
   lan_servers = p("consul.agent.servers.lan")
 
+  if server
+    data_dir="/var/vcap/store/consul-agent"
+  else
+    data_dir="/var/vcap/data/consul-agent"
+  end
+
   config = {
     "datacenter" => p("consul.agent.datacenter"),
-    "data_dir" => "/var/vcap/store/consul-agent",
+    "data_dir" => data_dir,
     "log_level" => p("consul.agent.log_level"),
     "node_name" => "#{name}-#{spec.index}",
     "server" => server,

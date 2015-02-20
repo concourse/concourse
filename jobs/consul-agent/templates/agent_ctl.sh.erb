@@ -3,7 +3,13 @@
 
 LOG_DIR=/var/vcap/sys/log/consul-agent
 RUN_DIR=/var/vcap/sys/run/consul-agent
+
+<% if p("consul.agent.mode") == "server" %>
 DATA_DIR=/var/vcap/store/consul-agent
+<% else %>
+DATA_DIR=/var/vcap/data/consul-agent
+<% end %>
+
 CONF_DIR=/var/vcap/jobs/consul-agent/config
 
 PKG=/var/vcap/packages/consul
@@ -14,6 +20,13 @@ exec 2>> /var/vcap/sys/log/monit/consul-agent.err.log
 
 case $1 in
   start)
+    <% if p("consul.agent.mode") == "server" %>
+    if ! mountpoint -q /var/vcap/store; then
+      echo "$DATA_DIR must be a persistent disk"
+      exit 1
+    fi
+    <% end %>
+
     mkdir -p $LOG_DIR
     chown -R vcap:vcap $LOG_DIR
 
