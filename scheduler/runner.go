@@ -12,14 +12,16 @@ import (
 //go:generate counterfeiter . Locker
 
 type Locker interface {
-	AcquireWriteLockImmediately(lock []db.NamedLock) (db.Lock, error)
-	AcquireReadLock(lock []db.NamedLock) (db.Lock, error)
+	AcquireWriteLock([]db.NamedLock) (db.Lock, error)
+	AcquireWriteLockImmediately([]db.NamedLock) (db.Lock, error)
+
+	AcquireReadLock([]db.NamedLock) (db.Lock, error)
 }
 
 //go:generate counterfeiter . BuildScheduler
 
 type BuildScheduler interface {
-	TryNextPendingBuild(lager.Logger, atc.JobConfig, atc.ResourceConfigs) error
+	TryNextPendingBuild(lager.Logger, atc.JobConfig, atc.ResourceConfigs) Waiter
 	BuildLatestInputs(lager.Logger, atc.JobConfig, atc.ResourceConfigs) error
 
 	TrackInFlightBuilds(lager.Logger) error
@@ -107,12 +109,9 @@ func (runner *Runner) tick(logger lager.Logger) {
 }
 
 func (runner *Runner) schedule(logger lager.Logger, job atc.JobConfig, resources atc.ResourceConfigs) {
-	err := runner.Scheduler.TryNextPendingBuild(logger, job, resources)
-	if err != nil {
-		logger.Error("failed-to-try-next-pending-build", err)
-	}
+	runner.Scheduler.TryNextPendingBuild(logger, job, resources).Wait()
 
-	err = runner.Scheduler.BuildLatestInputs(logger, job, resources)
+	err := runner.Scheduler.BuildLatestInputs(logger, job, resources)
 	if err != nil {
 		logger.Error("failed-to-build-from-latest-inputs", err)
 	}

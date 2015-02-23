@@ -29,6 +29,15 @@ type FakeSchedulerDB struct {
 	finishBuildReturns struct {
 		result1 error
 	}
+	SaveResourceVersionsStub        func(atc.ResourceConfig, []atc.Version) error
+	saveResourceVersionsMutex       sync.RWMutex
+	saveResourceVersionsArgsForCall []struct {
+		arg1 atc.ResourceConfig
+		arg2 []atc.Version
+	}
+	saveResourceVersionsReturns struct {
+		result1 error
+	}
 	GetLatestInputVersionsStub        func([]atc.JobInputConfig) ([]db.BuildInput, error)
 	getLatestInputVersionsMutex       sync.RWMutex
 	getLatestInputVersionsArgsForCall []struct {
@@ -36,6 +45,15 @@ type FakeSchedulerDB struct {
 	}
 	getLatestInputVersionsReturns struct {
 		result1 []db.BuildInput
+		result2 error
+	}
+	CreateJobBuildStub        func(job string) (db.Build, error)
+	createJobBuildMutex       sync.RWMutex
+	createJobBuildArgsForCall []struct {
+		job string
+	}
+	createJobBuildReturns struct {
+		result1 db.Build
 		result2 error
 	}
 	GetJobBuildForInputsStub        func(job string, inputs []db.BuildInput) (db.Build, error)
@@ -144,6 +162,39 @@ func (fake *FakeSchedulerDB) FinishBuildReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeSchedulerDB) SaveResourceVersions(arg1 atc.ResourceConfig, arg2 []atc.Version) error {
+	fake.saveResourceVersionsMutex.Lock()
+	fake.saveResourceVersionsArgsForCall = append(fake.saveResourceVersionsArgsForCall, struct {
+		arg1 atc.ResourceConfig
+		arg2 []atc.Version
+	}{arg1, arg2})
+	fake.saveResourceVersionsMutex.Unlock()
+	if fake.SaveResourceVersionsStub != nil {
+		return fake.SaveResourceVersionsStub(arg1, arg2)
+	} else {
+		return fake.saveResourceVersionsReturns.result1
+	}
+}
+
+func (fake *FakeSchedulerDB) SaveResourceVersionsCallCount() int {
+	fake.saveResourceVersionsMutex.RLock()
+	defer fake.saveResourceVersionsMutex.RUnlock()
+	return len(fake.saveResourceVersionsArgsForCall)
+}
+
+func (fake *FakeSchedulerDB) SaveResourceVersionsArgsForCall(i int) (atc.ResourceConfig, []atc.Version) {
+	fake.saveResourceVersionsMutex.RLock()
+	defer fake.saveResourceVersionsMutex.RUnlock()
+	return fake.saveResourceVersionsArgsForCall[i].arg1, fake.saveResourceVersionsArgsForCall[i].arg2
+}
+
+func (fake *FakeSchedulerDB) SaveResourceVersionsReturns(result1 error) {
+	fake.SaveResourceVersionsStub = nil
+	fake.saveResourceVersionsReturns = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeSchedulerDB) GetLatestInputVersions(arg1 []atc.JobInputConfig) ([]db.BuildInput, error) {
 	fake.getLatestInputVersionsMutex.Lock()
 	fake.getLatestInputVersionsArgsForCall = append(fake.getLatestInputVersionsArgsForCall, struct {
@@ -173,6 +224,39 @@ func (fake *FakeSchedulerDB) GetLatestInputVersionsReturns(result1 []db.BuildInp
 	fake.GetLatestInputVersionsStub = nil
 	fake.getLatestInputVersionsReturns = struct {
 		result1 []db.BuildInput
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeSchedulerDB) CreateJobBuild(job string) (db.Build, error) {
+	fake.createJobBuildMutex.Lock()
+	fake.createJobBuildArgsForCall = append(fake.createJobBuildArgsForCall, struct {
+		job string
+	}{job})
+	fake.createJobBuildMutex.Unlock()
+	if fake.CreateJobBuildStub != nil {
+		return fake.CreateJobBuildStub(job)
+	} else {
+		return fake.createJobBuildReturns.result1, fake.createJobBuildReturns.result2
+	}
+}
+
+func (fake *FakeSchedulerDB) CreateJobBuildCallCount() int {
+	fake.createJobBuildMutex.RLock()
+	defer fake.createJobBuildMutex.RUnlock()
+	return len(fake.createJobBuildArgsForCall)
+}
+
+func (fake *FakeSchedulerDB) CreateJobBuildArgsForCall(i int) string {
+	fake.createJobBuildMutex.RLock()
+	defer fake.createJobBuildMutex.RUnlock()
+	return fake.createJobBuildArgsForCall[i].job
+}
+
+func (fake *FakeSchedulerDB) CreateJobBuildReturns(result1 db.Build, result2 error) {
+	fake.CreateJobBuildStub = nil
+	fake.createJobBuildReturns = struct {
+		result1 db.Build
 		result2 error
 	}{result1, result2}
 }

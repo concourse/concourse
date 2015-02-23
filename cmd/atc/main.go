@@ -255,13 +255,14 @@ func main() {
 
 	engine := engine.NewDBEngine(engine.Engines{execEngine}, db, db)
 
+	radar := rdr.NewRadar(resourceTracker, db, *checkInterval, db, configDB)
+
 	scheduler := &sched.Scheduler{
 		DB:      db,
 		Factory: &factory.BuildFactory{ConfigDB: configDB},
 		Engine:  engine,
+		Scanner: radar,
 	}
-
-	radar := rdr.NewRadar(resourceTracker, db, *checkInterval, db, configDB)
 
 	var webValidator auth.Validator
 

@@ -17,9 +17,10 @@ import (
 
 var _ = Describe("Scheduler", func() {
 	var (
-		schedulerDB *fakes.FakeSchedulerDB
-		factory     *fakes.FakeBuildFactory
-		fakeEngine  *enginefakes.FakeEngine
+		fakeSchedulerDB *fakes.FakeSchedulerDB
+		factory         *fakes.FakeBuildFactory
+		fakeEngine      *enginefakes.FakeEngine
+		fakeScanner     *fakes.FakeScanner
 
 		createdBuildPlan atc.BuildPlan
 
@@ -32,9 +33,10 @@ var _ = Describe("Scheduler", func() {
 	)
 
 	BeforeEach(func() {
-		schedulerDB = new(fakes.FakeSchedulerDB)
+		fakeSchedulerDB = new(fakes.FakeSchedulerDB)
 		factory = new(fakes.FakeBuildFactory)
 		fakeEngine = new(enginefakes.FakeEngine)
+		fakeScanner = new(fakes.FakeScanner)
 
 		createdBuildPlan = atc.BuildPlan{
 			Config: &atc.BuildConfig{
@@ -45,9 +47,10 @@ var _ = Describe("Scheduler", func() {
 		factory.CreateReturns(createdBuildPlan, nil)
 
 		scheduler = &Scheduler{
-			DB:      schedulerDB,
+			DB:      fakeSchedulerDB,
 			Factory: factory,
 			Engine:  fakeEngine,
+			Scanner: fakeScanner,
 		}
 
 		logger = lagertest.NewTestLogger("test")
@@ -79,6 +82,11 @@ var _ = Describe("Scheduler", func() {
 				Name:   "some-resource",
 				Type:   "git",
 				Source: atc.Source{"uri": "git://some-resource"},
+			},
+			{
+				Name:   "some-other-resource",
+				Type:   "git",
+				Source: atc.Source{"uri": "git://some-other-resource"},
 			},
 			{
 				Name:   "some-dependant-resource",
@@ -123,7 +131,7 @@ var _ = Describe("Scheduler", func() {
 				new(enginefakes.FakeBuild),
 			}
 
-			schedulerDB.GetAllStartedBuildsReturns(inFlightBuilds, nil)
+			fakeSchedulerDB.GetAllStartedBuildsReturns(inFlightBuilds, nil)
 
 			fakeEngine.LookupBuildStub = func(build db.Build) (engine.Build, error) {
 				return engineBuilds[build.ID-1], nil
@@ -148,17 +156,17 @@ var _ = Describe("Scheduler", func() {
 				err := scheduler.TrackInFlightBuilds(logger)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(schedulerDB.FinishBuildCallCount()).Should(Equal(3))
+				Ω(fakeSchedulerDB.FinishBuildCallCount()).Should(Equal(3))
 
-				savedBuilID1, status1 := schedulerDB.FinishBuildArgsForCall(0)
+				savedBuilID1, status1 := fakeSchedulerDB.FinishBuildArgsForCall(0)
 				Ω(savedBuilID1).Should(Equal(1))
 				Ω(status1).Should(Equal(db.StatusErrored))
 
-				savedBuilID2, status2 := schedulerDB.FinishBuildArgsForCall(1)
+				savedBuilID2, status2 := fakeSchedulerDB.FinishBuildArgsForCall(1)
 				Ω(savedBuilID2).Should(Equal(2))
 				Ω(status2).Should(Equal(db.StatusErrored))
 
-				savedBuilID3, status3 := schedulerDB.FinishBuildArgsForCall(2)
+				savedBuilID3, status3 := fakeSchedulerDB.FinishBuildArgsForCall(2)
 				Ω(savedBuilID3).Should(Equal(3))
 				Ω(status3).Should(Equal(db.StatusErrored))
 			})
@@ -170,7 +178,7 @@ var _ = Describe("Scheduler", func() {
 			disaster := errors.New("oh no!")
 
 			BeforeEach(func() {
-				schedulerDB.GetLatestInputVersionsReturns(nil, disaster)
+				fakeSchedulerDB.GetLatestInputVersionsReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {
@@ -198,7 +206,7 @@ var _ = Describe("Scheduler", func() {
 			It("does not try to fetch inputs from the database", func() {
 				scheduler.BuildLatestInputs(logger, job, resources)
 
-				Ω(schedulerDB.GetLatestInputVersionsCallCount()).Should(BeZero())
+				Ω(fakeSchedulerDB.GetLatestInputVersionsCallCount()).Should(BeZero())
 			})
 
 			It("does not trigger a build", func() {
@@ -225,16 +233,16 @@ var _ = Describe("Scheduler", func() {
 			}
 
 			BeforeEach(func() {
-				schedulerDB.GetLatestInputVersionsReturns(newInputs, nil)
+				fakeSchedulerDB.GetLatestInputVersionsReturns(newInputs, nil)
 			})
 
 			It("checks if they are already used for a build", func() {
 				err := scheduler.BuildLatestInputs(logger, job, resources)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(schedulerDB.GetJobBuildForInputsCallCount()).Should(Equal(1))
+				Ω(fakeSchedulerDB.GetJobBuildForInputsCallCount()).Should(Equal(1))
 
-				checkedJob, checkedInputs := schedulerDB.GetJobBuildForInputsArgsForCall(0)
+				checkedJob, checkedInputs := fakeSchedulerDB.GetJobBuildForInputsArgsForCall(0)
 				Ω(checkedJob).Should(Equal("some-job"))
 				Ω(checkedInputs).Should(ConsistOf(newInputs))
 			})
@@ -259,16 +267,16 @@ var _ = Describe("Scheduler", func() {
 						},
 					)
 
-					schedulerDB.GetLatestInputVersionsReturns(foundInputsWithCheck, nil)
+					fakeSchedulerDB.GetLatestInputVersionsReturns(foundInputsWithCheck, nil)
 				})
 
 				It("excludes them from the inputs when checking for a build", func() {
 					err := scheduler.BuildLatestInputs(logger, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(schedulerDB.GetJobBuildForInputsCallCount()).Should(Equal(1))
+					Ω(fakeSchedulerDB.GetJobBuildForInputsCallCount()).Should(Equal(1))
 
-					checkedJob, checkedInputs := schedulerDB.GetJobBuildForInputsArgsForCall(0)
+					checkedJob, checkedInputs := fakeSchedulerDB.GetJobBuildForInputsArgsForCall(0)
 					Ω(checkedJob).Should(Equal("some-job"))
 					Ω(checkedInputs).Should(Equal(newInputs))
 				})
@@ -290,14 +298,14 @@ var _ = Describe("Scheduler", func() {
 					err := scheduler.BuildLatestInputs(logger, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(schedulerDB.GetJobBuildForInputsCallCount()).Should(Equal(0))
+					Ω(fakeSchedulerDB.GetJobBuildForInputsCallCount()).Should(Equal(0))
 				})
 
 				It("does not create a build", func() {
 					err := scheduler.BuildLatestInputs(logger, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(schedulerDB.CreateJobBuildWithInputsCallCount()).Should(Equal(0))
+					Ω(fakeSchedulerDB.CreateJobBuildWithInputsCallCount()).Should(Equal(0))
 				})
 
 				It("does not trigger a build", func() {
@@ -310,27 +318,27 @@ var _ = Describe("Scheduler", func() {
 
 			Context("and they are not used for a build", func() {
 				BeforeEach(func() {
-					schedulerDB.GetJobBuildForInputsReturns(db.Build{}, errors.New("no build"))
+					fakeSchedulerDB.GetJobBuildForInputsReturns(db.Build{}, errors.New("no build"))
 				})
 
 				It("creates a build with the found inputs", func() {
 					err := scheduler.BuildLatestInputs(logger, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(schedulerDB.CreateJobBuildWithInputsCallCount()).Should(Equal(1))
-					buildJob, buildInputs := schedulerDB.CreateJobBuildWithInputsArgsForCall(0)
+					Ω(fakeSchedulerDB.CreateJobBuildWithInputsCallCount()).Should(Equal(1))
+					buildJob, buildInputs := fakeSchedulerDB.CreateJobBuildWithInputsArgsForCall(0)
 					Ω(buildJob).Should(Equal("some-job"))
 					Ω(buildInputs).Should(Equal(newInputs))
 				})
 
 				Context("when creating the build succeeds", func() {
 					BeforeEach(func() {
-						schedulerDB.CreateJobBuildWithInputsReturns(db.Build{ID: 128, Name: "42"}, nil)
+						fakeSchedulerDB.CreateJobBuildWithInputsReturns(db.Build{ID: 128, Name: "42"}, nil)
 					})
 
 					Context("and it can be scheduled", func() {
 						BeforeEach(func() {
-							schedulerDB.ScheduleBuildReturns(true, nil)
+							fakeSchedulerDB.ScheduleBuildReturns(true, nil)
 						})
 
 						Context("and creating the engine build succeeds", func() {
@@ -345,8 +353,8 @@ var _ = Describe("Scheduler", func() {
 								err := scheduler.BuildLatestInputs(logger, job, resources)
 								Ω(err).ShouldNot(HaveOccurred())
 
-								Ω(schedulerDB.ScheduleBuildCallCount()).Should(Equal(1))
-								scheduledBuildID, serial := schedulerDB.ScheduleBuildArgsForCall(0)
+								Ω(fakeSchedulerDB.ScheduleBuildCallCount()).Should(Equal(1))
+								scheduledBuildID, serial := fakeSchedulerDB.ScheduleBuildArgsForCall(0)
 								Ω(scheduledBuildID).Should(Equal(128))
 								Ω(serial).Should(Equal(job.Serial))
 
@@ -373,7 +381,7 @@ var _ = Describe("Scheduler", func() {
 
 					Context("when the build cannot be scheduled", func() {
 						BeforeEach(func() {
-							schedulerDB.ScheduleBuildReturns(false, nil)
+							fakeSchedulerDB.ScheduleBuildReturns(false, nil)
 						})
 
 						It("does not start a build", func() {
@@ -389,7 +397,7 @@ var _ = Describe("Scheduler", func() {
 					disaster := errors.New("oh no!")
 
 					BeforeEach(func() {
-						schedulerDB.CreateJobBuildWithInputsReturns(db.Build{}, disaster)
+						fakeSchedulerDB.CreateJobBuildWithInputsReturns(db.Build{}, disaster)
 					})
 
 					It("returns the error", func() {
@@ -406,7 +414,7 @@ var _ = Describe("Scheduler", func() {
 
 			Context("but they are already used for a build", func() {
 				BeforeEach(func() {
-					schedulerDB.GetJobBuildForInputsReturns(db.Build{ID: 128, Name: "42"}, nil)
+					fakeSchedulerDB.GetJobBuildForInputsReturns(db.Build{ID: 128, Name: "42"}, nil)
 				})
 
 				It("does not trigger a build", func() {
@@ -420,6 +428,10 @@ var _ = Describe("Scheduler", func() {
 	})
 
 	Describe("TryNextPendingBuild", func() {
+		JustBeforeEach(func() {
+			scheduler.TryNextPendingBuild(logger, job, resources).Wait()
+		})
+
 		Context("when a pending build is found", func() {
 			pendingInputs := []db.BuildInput{
 				{
@@ -436,13 +448,19 @@ var _ = Describe("Scheduler", func() {
 				},
 			}
 
+			pendingBuild := db.Build{
+				ID:     128,
+				Name:   "42",
+				Status: db.StatusPending,
+			}
+
 			BeforeEach(func() {
-				schedulerDB.GetNextPendingBuildReturns(db.Build{ID: 128, Name: "42"}, pendingInputs, nil)
+				fakeSchedulerDB.GetNextPendingBuildReturns(pendingBuild, pendingInputs, nil)
 			})
 
 			Context("and it can be scheduled", func() {
 				BeforeEach(func() {
-					schedulerDB.ScheduleBuildReturns(true, nil)
+					fakeSchedulerDB.ScheduleBuildReturns(true, nil)
 				})
 
 				Context("and creating the engine build succeeds", func() {
@@ -454,11 +472,8 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("builds it", func() {
-						err := scheduler.TryNextPendingBuild(logger, job, resources)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						Ω(schedulerDB.ScheduleBuildCallCount()).Should(Equal(1))
-						scheduledBuildID, serial := schedulerDB.ScheduleBuildArgsForCall(0)
+						Ω(fakeSchedulerDB.ScheduleBuildCallCount()).Should(Equal(1))
+						scheduledBuildID, serial := fakeSchedulerDB.ScheduleBuildArgsForCall(0)
 						Ω(scheduledBuildID).Should(Equal(128))
 						Ω(serial).Should(Equal(job.Serial))
 
@@ -470,41 +485,89 @@ var _ = Describe("Scheduler", func() {
 
 						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
 						builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
-						Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
+						Ω(builtBuild).Should(Equal(pendingBuild))
 						Ω(buildPlan).Should(Equal(createdBuildPlan))
 					})
 
 					It("immediately resumes the build", func() {
-						err := scheduler.TryNextPendingBuild(logger, job, resources)
-						Ω(err).ShouldNot(HaveOccurred())
-
 						Eventually(createdBuild.ResumeCallCount).Should(Equal(1))
+					})
+
+					Context("when the inputs are only partially determined", func() {
+						// this can happen if the job config changes after a pending build is created
+
+						BeforeEach(func() {
+							fakeSchedulerDB.GetNextPendingBuildReturns(pendingBuild, pendingInputs[1:], nil)
+						})
+
+						It("marks the build as errored", func() {
+							Ω(fakeSchedulerDB.FinishBuildCallCount()).Should(Equal(1))
+
+							buildID, status := fakeSchedulerDB.FinishBuildArgsForCall(0)
+							Ω(buildID).Should(Equal(pendingBuild.ID))
+							Ω(status).Should(Equal(db.StatusErrored))
+						})
+					})
+
+					Context("when the inputs are not yet determined", func() {
+						BeforeEach(func() {
+							fakeSchedulerDB.GetNextPendingBuildReturns(pendingBuild, []db.BuildInput{}, nil)
+
+							fakeSchedulerDB.GetLatestInputVersionsReturns(pendingInputs, nil)
+						})
+
+						It("scans for new versions for each input, and queries for the latest job inputs", func() {
+							Ω(fakeScanner.ScanCallCount()).Should(Equal(2))
+
+							_, resourceName := fakeScanner.ScanArgsForCall(0)
+							Ω(resourceName).Should(Equal("some-resource"))
+
+							_, resourceName = fakeScanner.ScanArgsForCall(1)
+							Ω(resourceName).Should(Equal("some-other-resource"))
+
+							Ω(fakeSchedulerDB.GetLatestInputVersionsCallCount()).Should(Equal(1))
+							inputConfigs := fakeSchedulerDB.GetLatestInputVersionsArgsForCall(0)
+							Ω(inputConfigs).Should(Equal(job.Inputs))
+
+							Ω(factory.CreateCallCount()).Should(Equal(1))
+							createJob, createResources, createInputs := factory.CreateArgsForCall(0)
+							Ω(createJob).Should(Equal(job))
+							Ω(createResources).Should(Equal(resources))
+							Ω(createInputs).Should(Equal(pendingInputs))
+
+							Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
+							builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
+							Ω(builtBuild).Should(Equal(pendingBuild))
+							Ω(buildPlan).Should(Equal(createdBuildPlan))
+						})
 					})
 				})
 			})
 
 			Context("when the build cannot be scheduled", func() {
 				BeforeEach(func() {
-					schedulerDB.ScheduleBuildReturns(false, nil)
+					fakeSchedulerDB.ScheduleBuildReturns(false, nil)
 				})
 
 				It("does not start a build", func() {
-					err := scheduler.TryNextPendingBuild(logger, job, resources)
-					Ω(err).ShouldNot(HaveOccurred())
-
 					Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
+				})
+
+				Context("and the build's inputs are not determined", func() {
+					BeforeEach(func() {
+						fakeSchedulerDB.GetNextPendingBuildReturns(pendingBuild, []db.BuildInput{}, nil)
+					})
+
+					It("does not perform any scans", func() {
+						Ω(fakeScanner.ScanCallCount()).Should(Equal(0))
+					})
 				})
 			})
 		})
 
 		Context("when a pending build is not found", func() {
 			BeforeEach(func() {
-				schedulerDB.GetNextPendingBuildReturns(db.Build{}, []db.BuildInput{}, db.ErrNoBuild)
-			})
-
-			It("returns no error", func() {
-				err := scheduler.TryNextPendingBuild(logger, job, resources)
-				Ω(err).ShouldNot(HaveOccurred())
+				fakeSchedulerDB.GetNextPendingBuildReturns(db.Build{}, []db.BuildInput{}, db.ErrNoBuild)
 			})
 
 			It("does not start a build", func() {
@@ -517,12 +580,7 @@ var _ = Describe("Scheduler", func() {
 			disaster := errors.New("oh no!")
 
 			BeforeEach(func() {
-				schedulerDB.GetNextPendingBuildReturns(db.Build{}, []db.BuildInput{}, disaster)
-			})
-
-			It("returns the error", func() {
-				err := scheduler.TryNextPendingBuild(logger, job, resources)
-				Ω(err).Should(Equal(disaster))
+				fakeSchedulerDB.GetNextPendingBuildReturns(db.Build{}, []db.BuildInput{}, disaster)
 			})
 
 			It("does not start a build", func() {
@@ -533,246 +591,97 @@ var _ = Describe("Scheduler", func() {
 	})
 
 	Describe("TriggerImmediately", func() {
-		Context("when the job does not have any dependant inputs", func() {
-			It("creates a build without any specific inputs", func() {
-				_, err := scheduler.TriggerImmediately(logger, job, resources)
-				Ω(err).ShouldNot(HaveOccurred())
+		It("creates a build without any specific inputs", func() {
+			_, err := scheduler.TriggerImmediately(logger, job, resources)
+			Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(schedulerDB.GetLatestInputVersionsCallCount()).Should(Equal(0))
+			Ω(fakeSchedulerDB.GetLatestInputVersionsCallCount()).Should(Equal(0))
 
-				Ω(schedulerDB.CreateJobBuildWithInputsCallCount()).Should(Equal(1))
+			Ω(fakeSchedulerDB.CreateJobBuildCallCount()).Should(Equal(1))
 
-				jobName, inputs := schedulerDB.CreateJobBuildWithInputsArgsForCall(0)
-				Ω(jobName).Should(Equal("some-job"))
-				Ω(inputs).Should(BeZero())
+			jobName := fakeSchedulerDB.CreateJobBuildArgsForCall(0)
+			Ω(jobName).Should(Equal("some-job"))
+		})
+
+		Context("when creating the build succeeds", func() {
+			BeforeEach(func() {
+				fakeSchedulerDB.CreateJobBuildReturns(db.Build{ID: 128, Name: "42"}, nil)
 			})
 
-			Context("when creating the build succeeds", func() {
+			Context("and it can be scheduled", func() {
 				BeforeEach(func() {
-					schedulerDB.CreateJobBuildWithInputsReturns(db.Build{ID: 128, Name: "42"}, nil)
+					fakeSchedulerDB.ScheduleBuildReturns(true, nil)
 				})
 
-				Context("and it can be scheduled", func() {
+				Context("and creating the engine build succeeds", func() {
+					var createdBuild *enginefakes.FakeBuild
+
 					BeforeEach(func() {
-						schedulerDB.ScheduleBuildReturns(true, nil)
+						createdBuild = new(enginefakes.FakeBuild)
+						fakeEngine.CreateBuildReturns(createdBuild, nil)
 					})
 
-					Context("and creating the engine build succeeds", func() {
-						var createdBuild *enginefakes.FakeBuild
-
-						BeforeEach(func() {
-							createdBuild = new(enginefakes.FakeBuild)
-							fakeEngine.CreateBuildReturns(createdBuild, nil)
-						})
-
-						It("triggers a build of the job with the found inputs", func() {
-							build, err := scheduler.TriggerImmediately(logger, job, resources)
-							Ω(err).ShouldNot(HaveOccurred())
-							Ω(build).Should(Equal(db.Build{ID: 128, Name: "42"}))
-
-							Ω(schedulerDB.ScheduleBuildCallCount()).Should(Equal(1))
-							scheduledBuildID, serial := schedulerDB.ScheduleBuildArgsForCall(0)
-							Ω(scheduledBuildID).Should(Equal(128))
-							Ω(serial).Should(Equal(job.Serial))
-
-							Ω(factory.CreateCallCount()).Should(Equal(1))
-							createJob, createResources, createInputs := factory.CreateArgsForCall(0)
-							Ω(createJob).Should(Equal(job))
-							Ω(createResources).Should(Equal(resources))
-							Ω(createInputs).Should(BeZero())
-
-							Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
-							builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
-							Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
-							Ω(buildPlan).Should(Equal(createdBuildPlan))
-						})
-
-						It("immediately resumes the build", func() {
-							build, err := scheduler.TriggerImmediately(logger, job, resources)
-							Ω(err).ShouldNot(HaveOccurred())
-							Ω(build).Should(Equal(db.Build{ID: 128, Name: "42"}))
-
-							Eventually(createdBuild.ResumeCallCount).Should(Equal(1))
-						})
-					})
-				})
-
-				Context("when the build cannot be scheduled", func() {
-					BeforeEach(func() {
-						schedulerDB.ScheduleBuildReturns(false, nil)
-					})
-
-					It("does not start a build", func() {
-						_, err := scheduler.TriggerImmediately(logger, job, resources)
+					It("triggers a build of the job with the found inputs", func() {
+						build, err := scheduler.TriggerImmediately(logger, job, resources)
 						Ω(err).ShouldNot(HaveOccurred())
+						Ω(build).Should(Equal(db.Build{ID: 128, Name: "42"}))
 
-						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
+						Eventually(fakeSchedulerDB.ScheduleBuildCallCount).Should(Equal(1))
+						scheduledBuildID, serial := fakeSchedulerDB.ScheduleBuildArgsForCall(0)
+						Ω(scheduledBuildID).Should(Equal(128))
+						Ω(serial).Should(Equal(job.Serial))
+
+						Eventually(factory.CreateCallCount).Should(Equal(1))
+						createJob, createResources, createInputs := factory.CreateArgsForCall(0)
+						Ω(createJob).Should(Equal(job))
+						Ω(createResources).Should(Equal(resources))
+						Ω(createInputs).Should(BeZero())
+
+						Eventually(fakeEngine.CreateBuildCallCount).Should(Equal(1))
+						builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
+						Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
+						Ω(buildPlan).Should(Equal(createdBuildPlan))
+					})
+
+					It("immediately resumes the build", func() {
+						build, err := scheduler.TriggerImmediately(logger, job, resources)
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(build).Should(Equal(db.Build{ID: 128, Name: "42"}))
+
+						Eventually(createdBuild.ResumeCallCount).Should(Equal(1))
 					})
 				})
 			})
 
-			Context("when creating the build fails", func() {
-				disaster := errors.New("oh no!")
-
+			Context("when the build cannot be scheduled", func() {
 				BeforeEach(func() {
-					schedulerDB.CreateJobBuildWithInputsReturns(db.Build{}, disaster)
-				})
-
-				It("returns the error", func() {
-					_, err := scheduler.TriggerImmediately(logger, job, resources)
-					Ω(err).Should(Equal(disaster))
+					fakeSchedulerDB.ScheduleBuildReturns(false, nil)
 				})
 
 				It("does not start a build", func() {
-					scheduler.TriggerImmediately(logger, job, resources)
+					_, err := scheduler.TriggerImmediately(logger, job, resources)
+					Ω(err).ShouldNot(HaveOccurred())
+
 					Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 				})
 			})
 		})
 
-		Context("when the job has dependant inputs", func() {
+		Context("when creating the build fails", func() {
+			disaster := errors.New("oh no!")
+
 			BeforeEach(func() {
-				job.Inputs = append(job.Inputs, atc.JobInputConfig{
-					RawName:  "some-dependant-input",
-					Resource: "some-dependant-resource",
-					Passed:   []string{"job-a"},
-				})
+				fakeSchedulerDB.CreateJobBuildReturns(db.Build{}, disaster)
 			})
 
-			Context("and they can be satisfied", func() {
-				dependantInputs := []db.BuildInput{
-					{
-						Name: "some-dependant-input",
-						VersionedResource: db.VersionedResource{
-							Resource: "some-dependant-resource", Version: db.Version{"version": "2"},
-						},
-					},
-				}
-
-				BeforeEach(func() {
-					schedulerDB.GetLatestInputVersionsReturns(dependantInputs, nil)
-				})
-
-				It("creates a build with the found inputs", func() {
-					_, err := scheduler.TriggerImmediately(logger, job, resources)
-					Ω(err).ShouldNot(HaveOccurred())
-
-					Ω(schedulerDB.GetLatestInputVersionsCallCount()).Should(Equal(1))
-					Ω(schedulerDB.GetLatestInputVersionsArgsForCall(0)).Should(Equal([]atc.JobInputConfig{
-						{
-							RawName:  "some-dependant-input",
-							Resource: "some-dependant-resource",
-							Passed:   []string{"job-a"},
-						},
-					}))
-
-					Ω(schedulerDB.CreateJobBuildWithInputsCallCount()).Should(Equal(1))
-
-					jobName, inputs := schedulerDB.CreateJobBuildWithInputsArgsForCall(0)
-					Ω(jobName).Should(Equal("some-job"))
-					Ω(inputs).Should(Equal(dependantInputs))
-				})
-
-				Context("when creating the build succeeds", func() {
-					BeforeEach(func() {
-						schedulerDB.CreateJobBuildWithInputsReturns(db.Build{ID: 128, Name: "42"}, nil)
-					})
-
-					Context("and it can be scheduled", func() {
-						BeforeEach(func() {
-							schedulerDB.ScheduleBuildReturns(true, nil)
-						})
-
-						Context("and creating the engine build succeeds", func() {
-							var createdBuild *enginefakes.FakeBuild
-
-							BeforeEach(func() {
-								createdBuild = new(enginefakes.FakeBuild)
-								fakeEngine.CreateBuildReturns(createdBuild, nil)
-							})
-
-							It("triggers a build of the job with the found inputs", func() {
-								build, err := scheduler.TriggerImmediately(logger, job, resources)
-								Ω(err).ShouldNot(HaveOccurred())
-								Ω(build).Should(Equal(db.Build{ID: 128, Name: "42"}))
-
-								Ω(schedulerDB.ScheduleBuildCallCount()).Should(Equal(1))
-								scheduledBuildID, serial := schedulerDB.ScheduleBuildArgsForCall(0)
-								Ω(scheduledBuildID).Should(Equal(128))
-								Ω(serial).Should(Equal(job.Serial))
-
-								Ω(factory.CreateCallCount()).Should(Equal(1))
-								createJob, createResources, createInputs := factory.CreateArgsForCall(0)
-								Ω(createJob).Should(Equal(job))
-								Ω(createResources).Should(Equal(resources))
-								Ω(createInputs).Should(Equal(dependantInputs))
-
-								Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
-								builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
-								Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
-								Ω(buildPlan).Should(Equal(createdBuildPlan))
-							})
-
-							It("immediately resumes the build", func() {
-								build, err := scheduler.TriggerImmediately(logger, job, resources)
-								Ω(err).ShouldNot(HaveOccurred())
-								Ω(build).Should(Equal(db.Build{ID: 128, Name: "42"}))
-
-								Eventually(createdBuild.ResumeCallCount).Should(Equal(1))
-							})
-						})
-					})
-				})
-
-				Context("when the build cannot be scheduled", func() {
-					BeforeEach(func() {
-						schedulerDB.ScheduleBuildReturns(false, nil)
-					})
-
-					It("does not start a build", func() {
-						scheduler.TriggerImmediately(logger, job, resources)
-						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
-					})
-				})
-
-				Context("when creating the build fails", func() {
-					disaster := errors.New("oh no!")
-
-					BeforeEach(func() {
-						schedulerDB.CreateJobBuildWithInputsReturns(db.Build{}, disaster)
-					})
-
-					It("returns the error", func() {
-						_, err := scheduler.TriggerImmediately(logger, job, resources)
-						Ω(err).Should(Equal(disaster))
-					})
-
-					It("does not start a build", func() {
-						scheduler.TriggerImmediately(logger, job, resources)
-						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
-					})
-				})
+			It("returns the error", func() {
+				_, err := scheduler.TriggerImmediately(logger, job, resources)
+				Ω(err).Should(Equal(disaster))
 			})
 
-			Context("but they cannot be satisfied", func() {
-				disaster := errors.New("oh no!")
-
-				BeforeEach(func() {
-					schedulerDB.GetLatestInputVersionsReturns(nil, disaster)
-				})
-
-				It("returns the error", func() {
-					_, err := scheduler.TriggerImmediately(logger, job, resources)
-					Ω(err).Should(Equal(disaster))
-				})
-
-				It("does not create or start a build", func() {
-					scheduler.TriggerImmediately(logger, job, resources)
-
-					Ω(schedulerDB.CreateJobBuildWithInputsCallCount()).Should(Equal(0))
-
-					Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
-				})
+			It("does not start a build", func() {
+				scheduler.TriggerImmediately(logger, job, resources)
+				Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 			})
 		})
 	})

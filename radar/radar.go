@@ -24,6 +24,8 @@ type ConfigDB interface {
 	GetConfig() (atc.Config, error)
 }
 
+var errResourceNoLongerConfigured = errors.New("resource no longer configured")
+
 type Radar struct {
 	logger lager.Logger
 
@@ -53,72 +55,54 @@ func NewRadar(
 }
 
 func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runner {
-	return &scanner{
-		logger:       logger,
-		resourceName: resourceName,
+	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+		ticker := time.NewTicker(radar.interval)
 
-		tracker:   radar.tracker,
-		versionDB: radar.versionDB,
-		interval:  radar.interval,
-		locker:    radar.locker,
-		configDB:  radar.configDB,
-	}
-}
+		close(ready)
 
-type scanner struct {
-	logger lager.Logger
+		for {
+			select {
+			case <-signals:
+				return nil
 
-	resourceName string
+			case <-ticker.C:
+				resourceCheckingLock, err := radar.locker.AcquireWriteLockImmediately(radar.checkLock(resourceName))
+				if err != nil {
+					continue
+				}
 
-	tracker   resource.Tracker
-	versionDB VersionDB
-	interval  time.Duration
-	locker    Locker
-	configDB  ConfigDB
+				err = radar.scan(logger.Session("tick"), resourceName)
 
-	resource resource.Resource
-}
-
-func (scanner *scanner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	ticker := time.NewTicker(scanner.interval)
-
-	close(ready)
-
-	checkLock := []db.NamedLock{db.ResourceCheckingLock(scanner.resourceName)}
-
-	for {
-		select {
-		case <-signals:
-			return nil
-
-		case <-ticker.C:
-			resourceCheckingLock, err := scanner.locker.AcquireWriteLockImmediately(checkLock)
-			if err != nil {
-				continue
-			}
-
-			err = scanner.tick(scanner.logger.Session("tick"))
-			if err != nil {
 				resourceCheckingLock.Release()
-				return err
-			}
 
-			resourceCheckingLock.Release()
+				if err != nil {
+					return err
+				}
+			}
 		}
-	}
+	})
 }
 
-var errResourceNoLongerConfigured = errors.New("resource no longer configured")
+func (radar *Radar) Scan(logger lager.Logger, resourceName string) error {
+	lock, err := radar.locker.AcquireWriteLock(radar.checkLock(resourceName))
+	if err != nil {
+		return err
+	}
 
-func (scanner *scanner) tick(logger lager.Logger) error {
-	config, err := scanner.configDB.GetConfig()
+	defer lock.Release()
+
+	return radar.scan(logger, resourceName)
+}
+
+func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
+	config, err := radar.configDB.GetConfig()
 	if err != nil {
 		logger.Error("failed-to-get-config", err)
 		// don't propagate error; we can just retry next tick
 		return nil
 	}
 
-	resourceConfig, found := config.Resources.Lookup(scanner.resourceName)
+	resourceConfig, found := config.Resources.Lookup(resourceName)
 	if !found {
 		logger.Info("resource-removed-from-configuration")
 		// return an error so that we exit
@@ -127,29 +111,14 @@ func (scanner *scanner) tick(logger lager.Logger) error {
 
 	typ := resource.ResourceType(resourceConfig.Type)
 
-	if scanner.resource == nil || scanner.resource.Type() != typ {
-		if scanner.resource != nil {
-			logger.Info("resource-type-changed", lager.Data{
-				"before": typ,
-				"after":  scanner.resource.Type(),
-			})
-
-			err := scanner.resource.Release()
-			if err != nil {
-				logger.Error("failed-to-release-checking-container", err)
-				return err
-			}
-		}
-
-		scanner.resource, err = scanner.tracker.Init(scanner.workerSessionID(resourceConfig), typ)
-		if err != nil {
-			logger.Error("failed-to-initialize-new-resource", err)
-			return err
-		}
+	res, err := radar.tracker.Init(checkSessionID(resourceConfig), typ)
+	if err != nil {
+		logger.Error("failed-to-initialize-new-resource", err)
+		return err
 	}
 
 	var from db.Version
-	if vr, err := scanner.versionDB.GetLatestVersionedResource(scanner.resourceName); err == nil {
+	if vr, err := radar.versionDB.GetLatestVersionedResource(resourceName); err == nil {
 		from = vr.Version
 	}
 
@@ -157,7 +126,7 @@ func (scanner *scanner) tick(logger lager.Logger) error {
 		"from": from,
 	})
 
-	newVersions, err := scanner.resource.Check(resourceConfig.Source, atc.Version(from))
+	newVersions, err := res.Check(resourceConfig.Source, atc.Version(from))
 	if err != nil {
 		logger.Error("failed-to-check", err)
 
@@ -177,7 +146,7 @@ func (scanner *scanner) tick(logger lager.Logger) error {
 		"total":    len(newVersions),
 	})
 
-	err = scanner.versionDB.SaveResourceVersions(resourceConfig, newVersions)
+	err = radar.versionDB.SaveResourceVersions(resourceConfig, newVersions)
 	if err != nil {
 		logger.Error("failed-to-save-versions", err, lager.Data{
 			"versions": newVersions,
@@ -187,6 +156,10 @@ func (scanner *scanner) tick(logger lager.Logger) error {
 	return nil
 }
 
-func (scanner *scanner) workerSessionID(res atc.ResourceConfig) resource.SessionID {
+func (radar *Radar) checkLock(resourceName string) []db.NamedLock {
+	return []db.NamedLock{db.ResourceCheckingLock(resourceName)}
+}
+
+func checkSessionID(res atc.ResourceConfig) resource.SessionID {
 	return resource.SessionID("check-" + res.Type + "-" + res.Name)
 }

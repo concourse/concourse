@@ -10,7 +10,7 @@ import (
 )
 
 type FakeBuildScheduler struct {
-	TryNextPendingBuildStub        func(lager.Logger, atc.JobConfig, atc.ResourceConfigs) error
+	TryNextPendingBuildStub        func(lager.Logger, atc.JobConfig, atc.ResourceConfigs) scheduler.Waiter
 	tryNextPendingBuildMutex       sync.RWMutex
 	tryNextPendingBuildArgsForCall []struct {
 		arg1 lager.Logger
@@ -18,7 +18,7 @@ type FakeBuildScheduler struct {
 		arg3 atc.ResourceConfigs
 	}
 	tryNextPendingBuildReturns struct {
-		result1 error
+		result1 scheduler.Waiter
 	}
 	BuildLatestInputsStub        func(lager.Logger, atc.JobConfig, atc.ResourceConfigs) error
 	buildLatestInputsMutex       sync.RWMutex
@@ -40,7 +40,7 @@ type FakeBuildScheduler struct {
 	}
 }
 
-func (fake *FakeBuildScheduler) TryNextPendingBuild(arg1 lager.Logger, arg2 atc.JobConfig, arg3 atc.ResourceConfigs) error {
+func (fake *FakeBuildScheduler) TryNextPendingBuild(arg1 lager.Logger, arg2 atc.JobConfig, arg3 atc.ResourceConfigs) scheduler.Waiter {
 	fake.tryNextPendingBuildMutex.Lock()
 	fake.tryNextPendingBuildArgsForCall = append(fake.tryNextPendingBuildArgsForCall, struct {
 		arg1 lager.Logger
@@ -67,10 +67,10 @@ func (fake *FakeBuildScheduler) TryNextPendingBuildArgsForCall(i int) (lager.Log
 	return fake.tryNextPendingBuildArgsForCall[i].arg1, fake.tryNextPendingBuildArgsForCall[i].arg2, fake.tryNextPendingBuildArgsForCall[i].arg3
 }
 
-func (fake *FakeBuildScheduler) TryNextPendingBuildReturns(result1 error) {
+func (fake *FakeBuildScheduler) TryNextPendingBuildReturns(result1 scheduler.Waiter) {
 	fake.TryNextPendingBuildStub = nil
 	fake.tryNextPendingBuildReturns = struct {
-		result1 error
+		result1 scheduler.Waiter
 	}{result1}
 }
 

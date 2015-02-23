@@ -2,6 +2,7 @@ package scheduler_test
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/concourse/atc"
@@ -9,6 +10,7 @@ import (
 	dbfakes "github.com/concourse/atc/db/fakes"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/fakes"
+	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
@@ -36,6 +38,10 @@ var _ = Describe("Runner", func() {
 		configDB = new(fakes.FakeConfigDB)
 		scheduler = new(fakes.FakeBuildScheduler)
 		noop = false
+
+		scheduler.TryNextPendingBuildStub = func(lager.Logger, atc.JobConfig, atc.ResourceConfigs) Waiter {
+			return new(sync.WaitGroup)
+		}
 
 		initialConfig = atc.Config{
 			Jobs: atc.JobConfigs{

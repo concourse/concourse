@@ -61,22 +61,15 @@ var _ = Describe("Radar", func() {
 
 		readLock = new(dbfakes.FakeLock)
 		locker.AcquireReadLockReturns(readLock, nil)
+
 		writeLock = new(dbfakes.FakeLock)
 		locker.AcquireWriteLockReturns(writeLock, nil)
+
 		writeImmediatelyLock = new(dbfakes.FakeLock)
 		locker.AcquireWriteLockImmediatelyReturns(writeImmediatelyLock, nil)
 	})
 
-	JustBeforeEach(func() {
-		process = ifrit.Invoke(radar.Scanner(lagertest.NewTestLogger("test"), "some-resource"))
-	})
-
-	AfterEach(func() {
-		process.Signal(os.Interrupt)
-		Eventually(process.Wait()).Should(Receive())
-	})
-
-	Describe("checking", func() {
+	Describe("Scanner", func() {
 		var (
 			fakeResource *rfakes.FakeResource
 
@@ -93,6 +86,15 @@ var _ = Describe("Radar", func() {
 				times <- time.Now()
 				return nil, nil
 			}
+		})
+
+		JustBeforeEach(func() {
+			process = ifrit.Invoke(radar.Scanner(lagertest.NewTestLogger("test"), "some-resource"))
+		})
+
+		AfterEach(func() {
+			process.Signal(os.Interrupt)
+			Eventually(process.Wait()).Should(Receive())
 		})
 
 		It("constructs the resource of the correct type", func() {
@@ -267,65 +269,6 @@ var _ = Describe("Radar", func() {
 				})
 			})
 
-			Context("when the resource's type changes", func() {
-				var newResource atc.ResourceConfig
-
-				BeforeEach(func() {
-					newResource = atc.ResourceConfig{
-						Name:   "some-resource",
-						Type:   "new-type",
-						Source: atc.Source{"uri": "http://example.com"},
-					}
-
-					newConfig = atc.Config{
-						Resources: atc.ResourceConfigs{newResource},
-					}
-				})
-
-				It("continues checking with a new resource of the proper type", func() {
-					Eventually(times).Should(Receive())
-
-					Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
-
-					source, _ := fakeResource.CheckArgsForCall(0)
-					Ω(source).Should(Equal(resourceConfig.Source))
-
-					Eventually(times).Should(Receive())
-
-					Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
-
-					Ω(fakeTracker.InitCallCount()).Should(Equal(2))
-
-					sessionID, typ := fakeTracker.InitArgsForCall(1)
-					Ω(sessionID).Should(Equal(resource.SessionID("check-new-type-some-resource")))
-					Ω(typ).Should(Equal(resource.ResourceType("new-type")))
-				})
-
-				Context("when releasing the resource fails", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeResource.ReleaseReturns(disaster)
-					})
-
-					It("exits with the error", func() {
-						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-					})
-				})
-
-				Context("when initializing the new resource fails", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeTracker.InitReturns(nil, disaster)
-					})
-
-					It("exits with the error", func() {
-						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-					})
-				})
-			})
-
 			Context("with the resource removed", func() {
 				BeforeEach(func() {
 					newConfig = atc.Config{
@@ -369,6 +312,124 @@ var _ = Describe("Radar", func() {
 				Eventually(times, 2).Should(Receive(&time2))
 
 				Ω(time2.Sub(time1)).Should(BeNumerically("~", interval, interval/2))
+			})
+		})
+	})
+
+	Describe("Scan", func() {
+		var (
+			fakeResource *rfakes.FakeResource
+
+			scanErr error
+		)
+
+		BeforeEach(func() {
+			fakeResource = new(rfakes.FakeResource)
+			fakeTracker.InitReturns(fakeResource, nil)
+		})
+
+		JustBeforeEach(func() {
+			scanErr = radar.Scan(lagertest.NewTestLogger("test"), "some-resource")
+		})
+
+		It("succeeds", func() {
+			Ω(scanErr).ShouldNot(HaveOccurred())
+		})
+
+		It("constructs the resource of the correct type", func() {
+			sessionID, typ := fakeTracker.InitArgsForCall(0)
+			Ω(sessionID).Should(Equal(resource.SessionID("check-git-some-resource")))
+			Ω(typ).Should(Equal(resource.ResourceType("git")))
+		})
+
+		It("grabs a resource checking lock before checking, releases after done", func() {
+			Ω(locker.AcquireWriteLockCallCount()).Should(Equal(1))
+
+			lockedInputs := locker.AcquireWriteLockArgsForCall(0)
+			Ω(lockedInputs).Should(Equal([]db.NamedLock{db.ResourceCheckingLock("some-resource")}))
+
+			Ω(writeLock.ReleaseCallCount()).Should(Equal(1))
+		})
+
+		Context("when there is no current version", func() {
+			It("checks from nil", func() {
+				_, version := fakeResource.CheckArgsForCall(0)
+				Ω(version).Should(BeNil())
+			})
+		})
+
+		Context("when there is a current version", func() {
+			BeforeEach(func() {
+				fakeVersionDB.GetLatestVersionedResourceReturns(db.SavedVersionedResource{
+					ID:                1,
+					VersionedResource: db.VersionedResource{Version: db.Version{"version": "1"}},
+				}, nil)
+			})
+
+			It("checks from it", func() {
+				_, version := fakeResource.CheckArgsForCall(0)
+				Ω(version).Should(Equal(atc.Version{"version": "1"}))
+			})
+		})
+
+		Context("when the check returns versions", func() {
+			var checkedFrom chan atc.Version
+
+			var nextVersions []atc.Version
+
+			BeforeEach(func() {
+				checkedFrom = make(chan atc.Version, 100)
+
+				nextVersions = []atc.Version{
+					{"version": "1"},
+					{"version": "2"},
+					{"version": "3"},
+				}
+
+				checkResults := map[int][]atc.Version{
+					0: nextVersions,
+				}
+
+				check := 0
+				fakeResource.CheckStub = func(source atc.Source, from atc.Version) ([]atc.Version, error) {
+					defer GinkgoRecover()
+
+					Ω(source).Should(Equal(resourceConfig.Source))
+
+					checkedFrom <- from
+					result := checkResults[check]
+					check++
+
+					return result, nil
+				}
+			})
+
+			It("saves them all, in order", func() {
+				Ω(fakeVersionDB.SaveResourceVersionsCallCount()).Should(Equal(1))
+
+				resourceConfig, versions := fakeVersionDB.SaveResourceVersionsArgsForCall(0)
+				Ω(resourceConfig).Should(Equal(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "git",
+					Source: atc.Source{"uri": "http://example.com"},
+				}))
+				Ω(versions).Should(Equal([]atc.Version{
+					{"version": "1"},
+					{"version": "2"},
+					{"version": "3"},
+				}))
+			})
+		})
+
+		Context("when checking fails", func() {
+			disaster := errors.New("nope")
+
+			BeforeEach(func() {
+				fakeResource.CheckReturns(nil, disaster)
+			})
+
+			It("returns the error", func() {
+				Ω(scanErr).Should(Equal(disaster))
 			})
 		})
 	})
