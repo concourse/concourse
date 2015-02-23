@@ -14,7 +14,7 @@ type SchedulerDB interface {
 	ScheduleBuild(buildID int, serial bool) (bool, error)
 	FinishBuild(buildID int, status db.Status) error
 
-	GetLatestInputVersions([]atc.JobInputConfig) (db.SavedVersionedResources, error)
+	GetLatestInputVersions([]atc.JobInputConfig) ([]db.BuildInput, error)
 
 	GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.Build, error)
 	CreateJobBuildWithInputs(job string, inputs []db.BuildInput) (db.Build, error)
@@ -44,7 +44,7 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, job atc.JobConfig, re
 		return nil
 	}
 
-	versions, err := s.DB.GetLatestInputVersions(job.Inputs)
+	latestInputs, err := s.DB.GetLatestInputVersions(job.Inputs)
 	if err != nil {
 		if err == db.ErrNoVersions {
 			logger.Debug("no-input-versions-available")
@@ -55,34 +55,25 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, job atc.JobConfig, re
 		return err
 	}
 
-	inputs := []db.BuildInput{}
-	for _, input := range job.Inputs {
-		if !input.Trigger() {
-			continue
-		}
+	checkInputs := []db.BuildInput{}
+	for _, input := range latestInputs {
+		for _, ji := range job.Inputs {
+			if ji.Name() == input.Name {
+				if ji.Trigger() {
+					checkInputs = append(checkInputs, input)
+				}
 
-		vr, found := versions.Lookup(input.Resource)
-		if !found {
-			// this really shouldn't happen, but...
-			logger.Error("failed-to-find-version", nil, lager.Data{
-				"resource": input.Resource,
-				"versions": versions,
-			})
-			continue
+				break
+			}
 		}
-
-		inputs = append(inputs, db.BuildInput{
-			Name:              input.Name(),
-			VersionedResource: vr.VersionedResource,
-		})
 	}
 
-	if len(inputs) == 0 {
+	if len(checkInputs) == 0 {
 		logger.Debug("no-triggered-input-versions")
 		return nil
 	}
 
-	existingBuild, err := s.DB.GetJobBuildForInputs(job.Name, inputs)
+	existingBuild, err := s.DB.GetJobBuildForInputs(job.Name, checkInputs)
 	if err == nil {
 		logger.Debug("build-already-exists-for-inputs", lager.Data{
 			"existing-build": existingBuild.ID,
@@ -91,7 +82,7 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, job atc.JobConfig, re
 		return nil
 	}
 
-	build, err := s.DB.CreateJobBuildWithInputs(job.Name, inputs)
+	build, err := s.DB.CreateJobBuildWithInputs(job.Name, latestInputs)
 	if err != nil {
 		logger.Error("failed-to-create-build", err)
 		return err
@@ -112,7 +103,7 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, job atc.JobConfig, re
 		return nil
 	}
 
-	buildPlan, err := s.Factory.Create(job, resources, inputs)
+	buildPlan, err := s.Factory.Create(job, resources, latestInputs)
 	if err != nil {
 		logger.Error("failed-to-create", err)
 		return err
@@ -191,21 +182,13 @@ func (s *Scheduler) TriggerImmediately(logger lager.Logger, job atc.JobConfig, r
 	var err error
 
 	if len(passedInputs) > 0 {
-		versions, err := s.DB.GetLatestInputVersions(passedInputs)
+		dependantInputs, err := s.DB.GetLatestInputVersions(passedInputs)
 		if err != nil {
 			logger.Error("failed-to-get-build-inputs", err)
 			return db.Build{}, err
 		}
 
-		for _, input := range job.Inputs {
-			vr, found := versions.Lookup(input.Resource)
-			if found {
-				inputs = append(inputs, db.BuildInput{
-					Name:              input.Name(),
-					VersionedResource: vr.VersionedResource,
-				})
-			}
-		}
+		inputs = append(inputs, dependantInputs...)
 	}
 
 	build, err := s.DB.CreateJobBuildWithInputs(job.Name, inputs)

@@ -1052,39 +1052,53 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 				inputConfigs := []atc.JobInputConfig{
 					{
+						RawName:  "some-input-name",
 						Resource: resource,
 					},
 				}
 
-				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal(db.SavedVersionedResources{
-					savedVR2,
+				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal([]db.BuildInput{
+					{
+						Name:              "some-input-name",
+						VersionedResource: savedVR2.VersionedResource,
+					},
 				}))
 
 				err = database.DisableVersionedResource(savedVR2.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal(db.SavedVersionedResources{
-					savedVR1,
+				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal([]db.BuildInput{
+					{
+						Name:              "some-input-name",
+						VersionedResource: savedVR1.VersionedResource,
+					},
 				}))
 
 				err = database.DisableVersionedResource(savedVR1.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
+				// no versions
 				_, err = database.GetLatestInputVersions(inputConfigs)
 				Ω(err).Should(HaveOccurred())
 
 				err = database.EnableVersionedResource(savedVR1.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal(db.SavedVersionedResources{
-					savedVR1,
+				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal([]db.BuildInput{
+					{
+						Name:              "some-input-name",
+						VersionedResource: savedVR1.VersionedResource,
+					},
 				}))
 
 				err = database.EnableVersionedResource(savedVR2.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal(db.SavedVersionedResources{
-					savedVR2,
+				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal([]db.BuildInput{
+					{
+						Name:              "some-input-name",
+						VersionedResource: savedVR2.VersionedResource,
+					},
 				}))
 			})
 		})
@@ -1149,7 +1163,16 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 						Resource: "resource-2",
 						Passed:   []string{"shared-job", "job-2"},
 					},
-				})).Should(Equal(db.SavedVersionedResources{savedVR1, savedVR2}))
+				})).Should(Equal([]db.BuildInput{
+					{
+						Name:              "resource-1",
+						VersionedResource: savedVR1.VersionedResource,
+					},
+					{
+						Name:              "resource-2",
+						VersionedResource: savedVR2.VersionedResource,
+					},
+				}))
 
 				sb2, err := database.CreateJobBuild("shared-job")
 				Ω(err).ShouldNot(HaveOccurred())
@@ -1192,7 +1215,16 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 						Resource: "resource-2",
 						Passed:   []string{"shared-job", "job-2"},
 					},
-				})).Should(Equal(db.SavedVersionedResources{savedVR1, savedVR2}))
+				})).Should(Equal([]db.BuildInput{
+					{
+						Name:              "resource-1",
+						VersionedResource: savedVR1.VersionedResource,
+					},
+					{
+						Name:              "resource-2",
+						VersionedResource: savedVR2.VersionedResource,
+					},
+				}))
 
 				// now save the output of resource-2 job-2
 				savedCommonVR2, err := database.SaveBuildOutput(j2b2.ID, db.VersionedResource{
@@ -1211,7 +1243,16 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 						Resource: "resource-2",
 						Passed:   []string{"shared-job", "job-2"},
 					},
-				})).Should(Equal(db.SavedVersionedResources{savedCommonVR1, savedCommonVR2}))
+				})).Should(Equal([]db.BuildInput{
+					{
+						Name:              "resource-1",
+						VersionedResource: savedCommonVR1.VersionedResource,
+					},
+					{
+						Name:              "resource-2",
+						VersionedResource: savedCommonVR2.VersionedResource,
+					},
+				}))
 
 				// save newer versions; should be new latest
 				for i := 0; i < 10; i++ {
@@ -1254,7 +1295,16 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 							Resource: "resource-2",
 							Passed:   []string{"shared-job", "job-2"},
 						},
-					})).Should(Equal(db.SavedVersionedResources{savedCommonVR1, savedCommonVR2}))
+					})).Should(Equal([]db.BuildInput{
+						{
+							Name:              "resource-1",
+							VersionedResource: savedCommonVR1.VersionedResource,
+						},
+						{
+							Name:              "resource-2",
+							VersionedResource: savedCommonVR2.VersionedResource,
+						},
+					}))
 				}
 			})
 		})

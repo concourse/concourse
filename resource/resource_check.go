@@ -10,13 +10,13 @@ type checkRequest struct {
 	Version atc.Version `json:"version"`
 }
 
-func (resource *resource) Check(source atc.Source, version atc.Version) ([]atc.Version, error) {
+func (resource *resource) Check(source atc.Source, fromVersion atc.Version) ([]atc.Version, error) {
 	var versions []atc.Version
 
 	checking := ifrit.Invoke(resource.runScript(
 		"/opt/resource/check",
 		nil,
-		checkRequest{source, version},
+		checkRequest{source, fromVersion},
 		&versions,
 		nil,
 		nil,

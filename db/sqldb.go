@@ -870,7 +870,7 @@ func (db *SQLDB) GetLatestVersionedResource(name string) (SavedVersionedResource
 }
 
 // buckle up
-func (db *SQLDB) GetLatestInputVersions(inputs []atc.JobInputConfig) (SavedVersionedResources, error) {
+func (db *SQLDB) GetLatestInputVersions(inputs []atc.JobInputConfig) ([]BuildInput, error) {
 	fromAliases := []string{}
 	conditions := []string{}
 	params := []interface{}{}
@@ -908,9 +908,9 @@ func (db *SQLDB) GetLatestInputVersions(inputs []atc.JobInputConfig) (SavedVersi
 		}
 	}
 
-	svrs := []SavedVersionedResource{}
+	buildInputs := []BuildInput{}
 
-	for i, _ := range inputs {
+	for i, input := range inputs {
 		svr := SavedVersionedResource{
 			Enabled: true, // this is inherent with the following query
 		}
@@ -956,10 +956,13 @@ func (db *SQLDB) GetLatestInputVersions(inputs []atc.JobInputConfig) (SavedVersi
 			return nil, err
 		}
 
-		svrs = append(svrs, svr)
+		buildInputs = append(buildInputs, BuildInput{
+			Name:              input.Name(),
+			VersionedResource: svr.VersionedResource,
+		})
 	}
 
-	return svrs, nil
+	return buildInputs, nil
 }
 
 func (db *SQLDB) GetJobBuildForInputs(job string, inputs []BuildInput) (Build, error) {

@@ -209,11 +209,6 @@ var _ = Describe("Scheduler", func() {
 		})
 
 		Context("when versions are found", func() {
-			foundVersions := db.SavedVersionedResources{
-				{ID: 1, VersionedResource: db.VersionedResource{Resource: "some-resource", Version: db.Version{"version": "1"}}},
-				{ID: 2, VersionedResource: db.VersionedResource{Resource: "some-other-resource", Version: db.Version{"version": "2"}}},
-			}
-
 			newInputs := []db.BuildInput{
 				{
 					Name: "some-input",
@@ -230,7 +225,7 @@ var _ = Describe("Scheduler", func() {
 			}
 
 			BeforeEach(func() {
-				schedulerDB.GetLatestInputVersionsReturns(foundVersions, nil)
+				schedulerDB.GetLatestInputVersionsReturns(newInputs, nil)
 			})
 
 			It("checks if they are already used for a build", func() {
@@ -253,10 +248,10 @@ var _ = Describe("Scheduler", func() {
 						RawTrigger: &trigger,
 					})
 
-					foundVersionsWithCheck := append(
-						foundVersions,
-						db.SavedVersionedResource{
-							ID: 3,
+					foundInputsWithCheck := append(
+						newInputs,
+						db.BuildInput{
+							Name: "some-non-checking-resource",
 							VersionedResource: db.VersionedResource{
 								Resource: "some-non-checking-resource",
 								Version:  db.Version{"version": 3},
@@ -264,7 +259,7 @@ var _ = Describe("Scheduler", func() {
 						},
 					)
 
-					schedulerDB.GetLatestInputVersionsReturns(foundVersionsWithCheck, nil)
+					schedulerDB.GetLatestInputVersionsReturns(foundInputsWithCheck, nil)
 				})
 
 				It("excludes them from the inputs when checking for a build", func() {
@@ -645,10 +640,6 @@ var _ = Describe("Scheduler", func() {
 			})
 
 			Context("and they can be satisfied", func() {
-				foundVersions := db.SavedVersionedResources{
-					{ID: 1, VersionedResource: db.VersionedResource{Resource: "some-dependant-resource", Version: db.Version{"version": "2"}}},
-				}
-
 				dependantInputs := []db.BuildInput{
 					{
 						Name: "some-dependant-input",
@@ -659,7 +650,7 @@ var _ = Describe("Scheduler", func() {
 				}
 
 				BeforeEach(func() {
-					schedulerDB.GetLatestInputVersionsReturns(foundVersions, nil)
+					schedulerDB.GetLatestInputVersionsReturns(dependantInputs, nil)
 				})
 
 				It("creates a build with the found inputs", func() {

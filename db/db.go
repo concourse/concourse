@@ -41,7 +41,7 @@ type DB interface {
 	EnableVersionedResource(resourceID int) error
 	DisableVersionedResource(resourceID int) error
 
-	GetLatestInputVersions([]atc.JobInputConfig) (SavedVersionedResources, error)
+	GetLatestInputVersions([]atc.JobInputConfig) ([]BuildInput, error)
 
 	GetNextPendingBuild(job string) (Build, []BuildInput, error)
 
