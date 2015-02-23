@@ -132,7 +132,7 @@ var _ = AfterEach(func() {
 	server.Close()
 })
 
-func TestApi(t *testing.T) {
+func TestAPI(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Api Suite")
+	RunSpecs(t, "API Suite")
 }

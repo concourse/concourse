@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestDb(t *testing.T) {
+func TestDB(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Db Suite")
+	RunSpecs(t, "DB Suite")
 }

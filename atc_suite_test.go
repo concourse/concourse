@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestAtc(t *testing.T) {
+func TestATC(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Atc Suite")
+	RunSpecs(t, "ATC Suite")
 }
