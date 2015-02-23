@@ -258,7 +258,6 @@ func main() {
 	scheduler := &sched.Scheduler{
 		DB:      db,
 		Factory: &factory.BuildFactory{ConfigDB: configDB},
-		Locker:  db,
 		Engine:  engine,
 	}
 

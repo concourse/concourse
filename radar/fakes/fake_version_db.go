@@ -4,19 +4,20 @@ package fakes
 import (
 	"sync"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/radar"
 )
 
 type FakeVersionDB struct {
-	SaveVersionedResourceStub        func(db.VersionedResource) (db.SavedVersionedResource, error)
-	saveVersionedResourceMutex       sync.RWMutex
-	saveVersionedResourceArgsForCall []struct {
-		arg1 db.VersionedResource
+	SaveResourceVersionsStub        func(atc.ResourceConfig, []atc.Version) error
+	saveResourceVersionsMutex       sync.RWMutex
+	saveResourceVersionsArgsForCall []struct {
+		arg1 atc.ResourceConfig
+		arg2 []atc.Version
 	}
-	saveVersionedResourceReturns struct {
-		result1 db.SavedVersionedResource
-		result2 error
+	saveResourceVersionsReturns struct {
+		result1 error
 	}
 	GetLatestVersionedResourceStub        func(string) (db.SavedVersionedResource, error)
 	getLatestVersionedResourceMutex       sync.RWMutex
@@ -29,37 +30,37 @@ type FakeVersionDB struct {
 	}
 }
 
-func (fake *FakeVersionDB) SaveVersionedResource(arg1 db.VersionedResource) (db.SavedVersionedResource, error) {
-	fake.saveVersionedResourceMutex.Lock()
-	fake.saveVersionedResourceArgsForCall = append(fake.saveVersionedResourceArgsForCall, struct {
-		arg1 db.VersionedResource
-	}{arg1})
-	fake.saveVersionedResourceMutex.Unlock()
-	if fake.SaveVersionedResourceStub != nil {
-		return fake.SaveVersionedResourceStub(arg1)
+func (fake *FakeVersionDB) SaveResourceVersions(arg1 atc.ResourceConfig, arg2 []atc.Version) error {
+	fake.saveResourceVersionsMutex.Lock()
+	fake.saveResourceVersionsArgsForCall = append(fake.saveResourceVersionsArgsForCall, struct {
+		arg1 atc.ResourceConfig
+		arg2 []atc.Version
+	}{arg1, arg2})
+	fake.saveResourceVersionsMutex.Unlock()
+	if fake.SaveResourceVersionsStub != nil {
+		return fake.SaveResourceVersionsStub(arg1, arg2)
 	} else {
-		return fake.saveVersionedResourceReturns.result1, fake.saveVersionedResourceReturns.result2
+		return fake.saveResourceVersionsReturns.result1
 	}
 }
 
-func (fake *FakeVersionDB) SaveVersionedResourceCallCount() int {
-	fake.saveVersionedResourceMutex.RLock()
-	defer fake.saveVersionedResourceMutex.RUnlock()
-	return len(fake.saveVersionedResourceArgsForCall)
+func (fake *FakeVersionDB) SaveResourceVersionsCallCount() int {
+	fake.saveResourceVersionsMutex.RLock()
+	defer fake.saveResourceVersionsMutex.RUnlock()
+	return len(fake.saveResourceVersionsArgsForCall)
 }
 
-func (fake *FakeVersionDB) SaveVersionedResourceArgsForCall(i int) db.VersionedResource {
-	fake.saveVersionedResourceMutex.RLock()
-	defer fake.saveVersionedResourceMutex.RUnlock()
-	return fake.saveVersionedResourceArgsForCall[i].arg1
+func (fake *FakeVersionDB) SaveResourceVersionsArgsForCall(i int) (atc.ResourceConfig, []atc.Version) {
+	fake.saveResourceVersionsMutex.RLock()
+	defer fake.saveResourceVersionsMutex.RUnlock()
+	return fake.saveResourceVersionsArgsForCall[i].arg1, fake.saveResourceVersionsArgsForCall[i].arg2
 }
 
-func (fake *FakeVersionDB) SaveVersionedResourceReturns(result1 db.SavedVersionedResource, result2 error) {
-	fake.SaveVersionedResourceStub = nil
-	fake.saveVersionedResourceReturns = struct {
-		result1 db.SavedVersionedResource
-		result2 error
-	}{result1, result2}
+func (fake *FakeVersionDB) SaveResourceVersionsReturns(result1 error) {
+	fake.SaveResourceVersionsStub = nil
+	fake.saveResourceVersionsReturns = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeVersionDB) GetLatestVersionedResource(arg1 string) (db.SavedVersionedResource, error) {

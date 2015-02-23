@@ -15,7 +15,7 @@ import (
 
 //go:generate counterfeiter . VersionDB
 type VersionDB interface {
-	SaveVersionedResource(db.VersionedResource) (db.SavedVersionedResource, error)
+	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 	GetLatestVersionedResource(string) (db.SavedVersionedResource, error)
 }
 
@@ -111,8 +111,6 @@ func (scanner *scanner) Run(signals <-chan os.Signal, ready chan<- struct{}) err
 var errResourceNoLongerConfigured = errors.New("resource no longer configured")
 
 func (scanner *scanner) tick(logger lager.Logger) error {
-	resLock := []db.NamedLock{db.ResourceLock(scanner.resourceName)}
-
 	config, err := scanner.configDB.GetConfig()
 	if err != nil {
 		logger.Error("failed-to-get-config", err)
@@ -150,18 +148,10 @@ func (scanner *scanner) tick(logger lager.Logger) error {
 		}
 	}
 
-	lock, err := scanner.locker.AcquireReadLock(resLock)
-	if err != nil {
-		logger.Error("failed-to-acquire-inputs-lock", err)
-		return nil
-	}
-
 	var from db.Version
 	if vr, err := scanner.versionDB.GetLatestVersionedResource(scanner.resourceName); err == nil {
 		from = vr.Version
 	}
-
-	lock.Release()
 
 	logger.Debug("checking", lager.Data{
 		"from": from,
@@ -187,27 +177,12 @@ func (scanner *scanner) tick(logger lager.Logger) error {
 		"total":    len(newVersions),
 	})
 
-	lock, err = scanner.locker.AcquireWriteLock(resLock)
+	err = scanner.versionDB.SaveResourceVersions(resourceConfig, newVersions)
 	if err != nil {
-		logger.Error("failed-to-acquire-inputs-lock", err)
-		return nil
-	}
-
-	for _, version := range newVersions {
-		_, err = scanner.versionDB.SaveVersionedResource(db.VersionedResource{
-			Resource: resourceConfig.Name,
-			Type:     resourceConfig.Type,
-			Source:   db.Source(resourceConfig.Source),
-			Version:  db.Version(version),
+		logger.Error("failed-to-save-versions", err, lager.Data{
+			"versions": newVersions,
 		})
-		if err != nil {
-			logger.Error("failed-to-save-current-version", err, lager.Data{
-				"version": version,
-			})
-		}
 	}
-
-	lock.Release()
 
 	return nil
 }

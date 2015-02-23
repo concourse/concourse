@@ -5,7 +5,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
 	"github.com/concourse/atc/engine"
 	enginefakes "github.com/concourse/atc/engine/fakes"
 	. "github.com/concourse/atc/scheduler"
@@ -21,14 +20,11 @@ var _ = Describe("Scheduler", func() {
 		schedulerDB *fakes.FakeSchedulerDB
 		factory     *fakes.FakeBuildFactory
 		fakeEngine  *enginefakes.FakeEngine
-		locker      *fakes.FakeLocker
 
 		createdBuildPlan atc.BuildPlan
 
 		job       atc.JobConfig
 		resources atc.ResourceConfigs
-
-		readLock *dbfakes.FakeLock
 
 		scheduler *Scheduler
 
@@ -39,7 +35,6 @@ var _ = Describe("Scheduler", func() {
 		schedulerDB = new(fakes.FakeSchedulerDB)
 		factory = new(fakes.FakeBuildFactory)
 		fakeEngine = new(enginefakes.FakeEngine)
-		locker = new(fakes.FakeLocker)
 
 		createdBuildPlan = atc.BuildPlan{
 			Config: &atc.BuildConfig{
@@ -51,7 +46,6 @@ var _ = Describe("Scheduler", func() {
 
 		scheduler = &Scheduler{
 			DB:      schedulerDB,
-			Locker:  locker,
 			Factory: factory,
 			Engine:  fakeEngine,
 		}
@@ -107,9 +101,6 @@ var _ = Describe("Scheduler", func() {
 				Source: atc.Source{"uri": "git://some-named-resource"},
 			},
 		}
-
-		readLock = new(dbfakes.FakeLock)
-		locker.AcquireReadLockReturns(readLock, nil)
 	})
 
 	Describe("TrackInFlightBuilds", func() {
@@ -251,30 +242,6 @@ var _ = Describe("Scheduler", func() {
 				checkedJob, checkedInputs := schedulerDB.GetJobBuildForInputsArgsForCall(0)
 				Ω(checkedJob).Should(Equal("some-job"))
 				Ω(checkedInputs).Should(ConsistOf(newInputs))
-			})
-
-			Describe("getting the latest inputs from the database", func() {
-				BeforeEach(func() {
-					schedulerDB.GetLatestInputVersionsStub = func(inputs []atc.JobInputConfig) (db.SavedVersionedResources, error) {
-						Ω(locker.AcquireReadLockCallCount()).Should(Equal(1))
-						Ω(locker.AcquireReadLockArgsForCall(0)).Should(ConsistOf([]db.NamedLock{
-							db.ResourceLock("some-resource"),
-							db.ResourceLock("some-other-resource"),
-						}))
-
-						return foundVersions, nil
-					}
-				})
-
-				It("is done while holding a read lock for every resource", func() {
-					err := scheduler.BuildLatestInputs(logger, job, resources)
-					Ω(err).ShouldNot(HaveOccurred())
-
-					// assertion is in stub to guarantee order
-					Ω(schedulerDB.GetLatestInputVersionsCallCount()).Should(Equal(1))
-
-					Ω(readLock.ReleaseCallCount()).Should(Equal(1))
-				})
 			})
 
 			Context("and the job has inputs configured not to check", func() {

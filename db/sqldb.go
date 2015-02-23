@@ -751,25 +751,32 @@ func (db *SQLDB) SaveBuildEvent(buildID int, event atc.Event) error {
 	return nil
 }
 
-func (db *SQLDB) SaveVersionedResource(vr VersionedResource) (SavedVersionedResource, error) {
+func (db *SQLDB) SaveResourceVersions(config atc.ResourceConfig, versions []atc.Version) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
-		return SavedVersionedResource{}, err
+		return err
 	}
 
 	defer tx.Rollback()
 
-	svr, err := db.saveVersionedResource(tx, vr)
-	if err != nil {
-		return SavedVersionedResource{}, err
+	for _, version := range versions {
+		_, err := db.saveVersionedResource(tx, VersionedResource{
+			Resource: config.Name,
+			Type:     config.Type,
+			Source:   Source(config.Source),
+			Version:  Version(version),
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return SavedVersionedResource{}, err
+		return err
 	}
 
-	return svr, nil
+	return nil
 }
 
 type nonOneRowAffectedError struct {

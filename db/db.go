@@ -36,7 +36,7 @@ type DB interface {
 	SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error)
 	SaveBuildOutput(buildID int, vr VersionedResource) (SavedVersionedResource, error)
 
-	SaveVersionedResource(VersionedResource) (SavedVersionedResource, error)
+	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 	GetLatestVersionedResource(resource string) (SavedVersionedResource, error)
 	EnableVersionedResource(resourceID int) error
 	DisableVersionedResource(resourceID int) error

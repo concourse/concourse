@@ -124,32 +124,6 @@ var _ = Describe("Radar", func() {
 			Ω(writeImmediatelyLock.ReleaseCallCount()).Should(Equal(1))
 		})
 
-		It("grabs a read lock before checking, releases after", func() {
-			Eventually(times).Should(Receive())
-
-			Ω(locker.AcquireReadLockCallCount()).Should(Equal(1))
-
-			lockedInputs := locker.AcquireReadLockArgsForCall(0)
-			Ω(lockedInputs).Should(Equal([]db.NamedLock{db.ResourceLock("some-resource")}))
-
-			Ω(readLock.ReleaseCallCount()).Should(Equal(1))
-
-			Ω(locker.AcquireWriteLockCallCount()).Should(Equal(0))
-		})
-
-		It("grabs a lock before checking, releases after", func() {
-			Eventually(times).Should(Receive())
-
-			Ω(locker.AcquireReadLockCallCount()).Should(Equal(1))
-
-			lockedInputs := locker.AcquireReadLockArgsForCall(0)
-			Ω(lockedInputs).Should(Equal([]db.NamedLock{db.ResourceLock("some-resource")}))
-
-			Ω(readLock.ReleaseCallCount()).Should(Equal(1))
-
-			Ω(locker.AcquireWriteLockCallCount()).Should(Equal(0))
-		})
-
 		Context("when there is no current version", func() {
 			It("checks from nil", func() {
 				Eventually(times).Should(Receive())
@@ -218,39 +192,19 @@ var _ = Describe("Radar", func() {
 			})
 
 			It("saves them all, in order", func() {
-				Eventually(fakeVersionDB.SaveVersionedResourceCallCount).Should(Equal(3))
+				Eventually(fakeVersionDB.SaveResourceVersionsCallCount).Should(Equal(1))
 
-				Ω(fakeVersionDB.SaveVersionedResourceArgsForCall(0)).Should(Equal(db.VersionedResource{
-					Resource: "some-resource",
-					Type:     "git",
-					Source:   db.Source{"uri": "http://example.com"},
-					Version:  db.Version{"version": "1"},
+				resourceConfig, versions := fakeVersionDB.SaveResourceVersionsArgsForCall(0)
+				Ω(resourceConfig).Should(Equal(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "git",
+					Source: atc.Source{"uri": "http://example.com"},
 				}))
-
-				Ω(fakeVersionDB.SaveVersionedResourceArgsForCall(1)).Should(Equal(db.VersionedResource{
-					Resource: "some-resource",
-					Type:     "git",
-					Source:   db.Source{"uri": "http://example.com"},
-					Version:  db.Version{"version": "2"},
+				Ω(versions).Should(Equal([]atc.Version{
+					{"version": "1"},
+					{"version": "2"},
+					{"version": "3"},
 				}))
-
-				Ω(fakeVersionDB.SaveVersionedResourceArgsForCall(2)).Should(Equal(db.VersionedResource{
-					Resource: "some-resource",
-					Type:     "git",
-					Source:   db.Source{"uri": "http://example.com"},
-					Version:  db.Version{"version": "3"},
-				}))
-			})
-
-			It("grabs a write lock around the save", func() {
-				Eventually(fakeVersionDB.SaveVersionedResourceCallCount).Should(Equal(3))
-
-				Ω(locker.AcquireWriteLockCallCount()).Should(Equal(1))
-
-				lockedInputs := locker.AcquireWriteLockArgsForCall(0)
-				Ω(lockedInputs).Should(Equal([]db.NamedLock{db.ResourceLock("some-resource")}))
-
-				Ω(writeLock.ReleaseCallCount()).Should(Equal(1))
 			})
 		})
 

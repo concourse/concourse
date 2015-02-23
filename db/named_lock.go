@@ -4,12 +4,6 @@ type NamedLock interface {
 	Name() string
 }
 
-type ResourceLock string
-
-func (resourceLock ResourceLock) Name() string {
-	return "resource: " + string(resourceLock)
-}
-
 type ResourceCheckingLock string
 
 func (resourceCheckingLock ResourceCheckingLock) Name() string {

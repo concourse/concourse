@@ -31,7 +31,6 @@ type BuildFactory interface {
 }
 
 type Scheduler struct {
-	Locker  Locker
 	DB      SchedulerDB
 	Factory BuildFactory
 	Engine  engine.Engine
@@ -45,16 +44,7 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, job atc.JobConfig, re
 		return nil
 	}
 
-	lock, err := s.lockVersionUpdatesFor(job.Inputs)
-	if err != nil {
-		logger.Error("failed-to-acquire-inputs-lock", err)
-		return err
-	}
-
 	versions, err := s.DB.GetLatestInputVersions(job.Inputs)
-
-	lock.Release()
-
 	if err != nil {
 		if err == db.ErrNoVersions {
 			logger.Debug("no-input-versions-available")
@@ -283,13 +273,4 @@ func (s *Scheduler) TrackInFlightBuilds(logger lager.Logger) error {
 	}
 
 	return nil
-}
-
-func (s *Scheduler) lockVersionUpdatesFor(inputs []atc.JobInputConfig) (db.Lock, error) {
-	locks := []db.NamedLock{}
-	for _, input := range inputs {
-		locks = append(locks, db.ResourceLock(input.Resource))
-	}
-
-	return s.Locker.AcquireReadLock(locks)
 }

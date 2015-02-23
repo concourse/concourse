@@ -514,7 +514,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 		Describe("locking", func() {
 			It("can be done generically with a unique name", func() {
-				lock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceLock("a-name")})
+				lock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceCheckingLock("a-name")})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				secondLockCh := make(chan db.Lock, 1)
@@ -522,7 +522,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				go func() {
 					defer GinkgoRecover()
 
-					secondLock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceLock("a-name")})
+					secondLock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceCheckingLock("a-name")})
 					Ω(err).ShouldNot(HaveOccurred())
 
 					secondLockCh <- secondLock
@@ -541,10 +541,10 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 
 			It("can be done without waiting", func() {
-				lock, err := database.AcquireWriteLockImmediately([]db.NamedLock{db.ResourceLock("a-name")})
+				lock, err := database.AcquireWriteLockImmediately([]db.NamedLock{db.ResourceCheckingLock("a-name")})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				secondLock, err := database.AcquireWriteLockImmediately([]db.NamedLock{db.ResourceLock("a-name")})
+				secondLock, err := database.AcquireWriteLockImmediately([]db.NamedLock{db.ResourceCheckingLock("a-name")})
 				Ω(err).Should(HaveOccurred())
 				Ω(secondLock).Should(BeNil())
 
@@ -553,7 +553,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 
 			It("does not let anyone write if someone is reading", func() {
-				lock, err := database.AcquireReadLock([]db.NamedLock{db.ResourceLock("a-name")})
+				lock, err := database.AcquireReadLock([]db.NamedLock{db.ResourceCheckingLock("a-name")})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				secondLockCh := make(chan db.Lock, 1)
@@ -561,7 +561,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				go func() {
 					defer GinkgoRecover()
 
-					secondLock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceLock("a-name")})
+					secondLock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceCheckingLock("a-name")})
 					Ω(err).ShouldNot(HaveOccurred())
 
 					secondLockCh <- secondLock
@@ -580,7 +580,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 
 			It("does not let anyone read if someone is writing", func() {
-				lock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceLock("a-name")})
+				lock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceCheckingLock("a-name")})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				secondLockCh := make(chan db.Lock, 1)
@@ -588,7 +588,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				go func() {
 					defer GinkgoRecover()
 
-					secondLock, err := database.AcquireReadLock([]db.NamedLock{db.ResourceLock("a-name")})
+					secondLock, err := database.AcquireReadLock([]db.NamedLock{db.ResourceCheckingLock("a-name")})
 					Ω(err).ShouldNot(HaveOccurred())
 
 					secondLockCh <- secondLock
@@ -607,7 +607,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 
 			It("lets many reads simultaneously", func() {
-				lock, err := database.AcquireReadLock([]db.NamedLock{db.ResourceLock("a-name")})
+				lock, err := database.AcquireReadLock([]db.NamedLock{db.ResourceCheckingLock("a-name")})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				secondLockCh := make(chan db.Lock, 1)
@@ -615,7 +615,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				go func() {
 					defer GinkgoRecover()
 
-					secondLock, err := database.AcquireReadLock([]db.NamedLock{db.ResourceLock("a-name")})
+					secondLock, err := database.AcquireReadLock([]db.NamedLock{db.ResourceCheckingLock("a-name")})
 					Ω(err).ShouldNot(HaveOccurred())
 
 					secondLockCh <- secondLock
@@ -632,7 +632,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 
 			It("can be done multiple times if using different locks", func() {
-				lock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceLock("name-1")})
+				lock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceCheckingLock("name-1")})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				var secondLock db.Lock
@@ -641,7 +641,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				go func() {
 					defer GinkgoRecover()
 
-					secondLock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceLock("name-2")})
+					secondLock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceCheckingLock("name-2")})
 					Ω(err).ShouldNot(HaveOccurred())
 
 					secondLockCh <- secondLock
@@ -657,7 +657,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 
 			It("can be done for multiple locks at a time", func() {
-				lock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceLock("name-1"), db.ResourceLock("name-2")})
+				lock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceCheckingLock("name-1"), db.ResourceCheckingLock("name-2")})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				secondLockCh := make(chan db.Lock, 1)
@@ -665,7 +665,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				go func() {
 					defer GinkgoRecover()
 
-					secondLock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceLock("name-1")})
+					secondLock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceCheckingLock("name-1")})
 					Ω(err).ShouldNot(HaveOccurred())
 
 					secondLockCh <- secondLock
@@ -678,7 +678,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				go func() {
 					defer GinkgoRecover()
 
-					thirdLock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceLock("name-2")})
+					thirdLock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceCheckingLock("name-2")})
 					Ω(err).ShouldNot(HaveOccurred())
 
 					thirdLockCh <- thirdLock
@@ -703,16 +703,16 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 
 			It("cleans up after releasing", func() {
-				lock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceLock("a-name")})
+				lock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceCheckingLock("a-name")})
 				Ω(err).ShouldNot(HaveOccurred())
-				Ω(database.ListLocks()).Should(ContainElement(db.ResourceLock("a-name").Name()))
+				Ω(database.ListLocks()).Should(ContainElement(db.ResourceCheckingLock("a-name").Name()))
 
 				secondLockCh := make(chan db.Lock, 1)
 
 				go func() {
 					defer GinkgoRecover()
 
-					secondLock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceLock("a-name")})
+					secondLock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceCheckingLock("a-name")})
 					Ω(err).ShouldNot(HaveOccurred())
 
 					secondLockCh <- secondLock
@@ -722,7 +722,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 				err = lock.Release()
 				Ω(err).ShouldNot(HaveOccurred())
-				Ω(database.ListLocks()).Should(ContainElement(db.ResourceLock("a-name").Name()))
+				Ω(database.ListLocks()).Should(ContainElement(db.ResourceCheckingLock("a-name").Name()))
 
 				var secondLock db.Lock
 				Eventually(secondLockCh).Should(Receive(&secondLock))
@@ -947,84 +947,44 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 		Describe("saving versioned resources", func() {
 			It("updates the latest versioned resource", func() {
-				vr1 := db.VersionedResource{
+				err := database.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				savedVR, err := database.GetLatestVersionedResource("some-resource")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(savedVR.VersionedResource).Should(Equal(db.VersionedResource{
 					Resource: "some-resource",
 					Type:     "some-type",
 					Source:   db.Source{"some": "source"},
 					Version:  db.Version{"version": "1"},
-					Metadata: []db.MetadataField{
-						{Name: "meta1", Value: "value1"},
-					},
-				}
+				}))
 
-				vr2 := db.VersionedResource{
-					Resource: "some-resource",
-					Type:     "some-type",
-					Source:   db.Source{"some": "source"},
-					Version:  db.Version{"version": "2"},
-					Metadata: []db.MetadataField{
-						{Name: "meta2", Value: "value2"},
-					},
-				}
+				err = database.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "2"}, {"version": "3"}})
+				Ω(err).ShouldNot(HaveOccurred())
 
-				vr3 := db.VersionedResource{
+				savedVR, err = database.GetLatestVersionedResource("some-resource")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(savedVR.VersionedResource).Should(Equal(db.VersionedResource{
 					Resource: "some-resource",
 					Type:     "some-type",
 					Source:   db.Source{"some": "source"},
 					Version:  db.Version{"version": "3"},
-					Metadata: []db.MetadataField{
-						{Name: "meta3", Value: "value3"},
-					},
-				}
-
-				savedVR1, err := database.SaveVersionedResource(vr1)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(database.GetLatestVersionedResource("some-resource")).Should(Equal(savedVR1))
-
-				savedVR2, err := database.SaveVersionedResource(vr2)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(database.GetLatestVersionedResource("some-resource")).Should(Equal(savedVR2))
-
-				savedVR3, err := database.SaveVersionedResource(vr3)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(database.GetLatestVersionedResource("some-resource")).Should(Equal(savedVR3))
-			})
-
-			It("overwrites the existing source and metadata for the same version", func() {
-				vr := db.VersionedResource{
-					Resource: "some-resource",
-					Type:     "some-type",
-					Source:   db.Source{"some": "source"},
-					Version:  db.Version{"version": "1"},
-					Metadata: []db.MetadataField{
-						{Name: "meta1", Value: "value1"},
-					},
-				}
-
-				savedVR, err := database.SaveVersionedResource(vr)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(database.GetLatestVersionedResource("some-resource")).Should(Equal(savedVR))
-
-				modified := vr
-				modified.Source["additional"] = "data"
-				modified.Metadata[0].Value = "modified-value1"
-
-				savedModifiedVR, err := database.SaveVersionedResource(modified)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(database.GetLatestVersionedResource("some-resource")).Should(Equal(savedModifiedVR))
-
-				Ω(savedModifiedVR.ID).Should(Equal(savedVR.ID))
+				}))
 			})
 		})
 
 		Describe("enabling and disabling versioned resources", func() {
 			resource := "some-resource"
-			version := db.Version{"version": "1"}
 
 			It("returns an error if the resource or version is bogus", func() {
 				err := database.EnableVersionedResource(42)
@@ -1035,20 +995,22 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 
 			It("does not affect explicitly fetching the latest version", func() {
-				vr := db.VersionedResource{
-					Resource: resource,
-					Type:     "some-type",
-					Source:   db.Source{"some": "source"},
-					Version:  version,
-					Metadata: []db.MetadataField{
-						{Name: "meta1", Value: "value1"},
-					},
-				}
-
-				savedVR, err := database.SaveVersionedResource(vr)
+				err := database.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestVersionedResource(resource)).Should(Equal(savedVR))
+				savedVR, err := database.GetLatestVersionedResource(resource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(savedVR.VersionedResource).Should(Equal(db.VersionedResource{
+					Resource: "some-resource",
+					Type:     "some-type",
+					Source:   db.Source{"some": "source"},
+					Version:  db.Version{"version": "1"},
+				}))
 
 				err = database.DisableVersionedResource(savedVR.ID)
 				Ω(err).ShouldNot(HaveOccurred())
@@ -1068,33 +1030,24 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 
 			It("prevents the resource version from being a candidate for build inputs", func() {
-				version1 := db.Version{"version": "v1"}
-				version2 := db.Version{"version": "v2"}
-
-				vr1 := db.VersionedResource{
-					Resource: resource,
-					Type:     "some-type",
-					Source:   db.Source{"some": "source"},
-					Version:  version1,
-					Metadata: []db.MetadataField{
-						{Name: "meta1", Value: "value1"},
-					},
-				}
-
-				savedVR1, err := database.SaveVersionedResource(vr1)
+				err := database.SaveResourceVersions(atc.ResourceConfig{
+					Name:   resource,
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				vr2 := db.VersionedResource{
-					Resource: resource,
-					Type:     "some-type",
-					Source:   db.Source{"some": "source"},
-					Version:  version2,
-					Metadata: []db.MetadataField{
-						{Name: "meta1", Value: "value1"},
-					},
-				}
+				savedVR1, err := database.GetLatestVersionedResource(resource)
+				Ω(err).ShouldNot(HaveOccurred())
 
-				savedVR2, err := database.SaveVersionedResource(vr2)
+				err = database.SaveResourceVersions(atc.ResourceConfig{
+					Name:   resource,
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "2"}})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				savedVR2, err := database.GetLatestVersionedResource(resource)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				inputConfigs := []atc.JobInputConfig{
