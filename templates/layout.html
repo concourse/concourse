@@ -8,7 +8,7 @@
   </head>
   <body>
     <nav>
-      <ul class="groups"><li class="main"><a href="/">main</a></li>{{range .GroupStates}}<li{{if .Enabled}} class="active"{{end}}><a href="/?groups={{.Name}}">{{.Name}}</a></li>{{end}}</ul>
+      <ul class="groups"><li class="main"><a href="/"><i class="fa fa-home"></i></a></li>{{range .GroupStates}}<li{{if .Enabled}} class="active"{{end}}><a href="/?groups={{.Name}}">{{.Name}}</a></li>{{end}}</ul>
     </nav>
 
     {{template "body" .}}
