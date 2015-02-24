@@ -31,13 +31,11 @@ svg .node rect { fill: @base00; }
 .builds-list { background: @base00; }
 .build-source .header { background: @base00; }
 .groups { background: @base00; }
-.build-header .trigger-build button:active { background: @base00; }
 
 /* highlight background */
 svg .cluster { fill: @base02; }
 .build-resources { background: @base02; }
 .groups li.main a { background: @base02; }
-.build-header .trigger-build button:hover { background: @base02; }
 
 /* even more highlight background */
 svg .edge { stroke: @base03; }
@@ -45,6 +43,17 @@ svg .gateway { fill: @base03; }
 .build-source.first-occurrence .header { background: @base03; }
 svg .node.job.normal rect { fill: @base03; }
 .groups li.active a { background: @base03; }
+
+/* order here matters >:( */
+.build-header .trigger-build button { color: @base07; }
+.build-header .trigger-build button:hover { background: @base02; }
+.build-header .trigger-build button:active { background: @base04; }
+.build-header .trigger-build button:focus { background: @base04; }
+
+.build-header .abort-build button { color: @base08; }
+.build-header .abort-build button:hover { background: @base08; color: @base07; }
+.build-header .abort-build button:active { color: @base07; background: @base0F; }
+.build-header .abort-build button:focus { background: @base0F; }
 
 /* dim */
 svg .edge.pending { stroke: @base04; }
@@ -58,7 +67,6 @@ li.pending { background: @base04; }
 .build-source .header .version { color: @base06; }
 #build-requires-auth input { color: @base06; }
 svg .node.resource a { color: @base06; }
-.build-header .trigger-build button { color: @base06; }
 
 /* emphasis */
 .build-header h1 { color: @base07; }
@@ -66,14 +74,11 @@ svg .node.resource a { color: @base06; }
 .resource-header h1 { color: @base07; }
 svg .edgeLabel text { fill: @base07; }
 svg h1 a { color: @base07; }
-.build-header .abort-build button:hover { color: @base07; }
-.build-header .abort-build button:active { color: @base07; }
 .builds-list li a { color: @base07; }
 #builds li a { color: @base07; }
 .groups li a { color: @base07; }
 #version-history .toggle-resource-version { color: @base07; }
 #cli-downloads a { color: @base07; }
-.build-header .trigger-build button { color: @base07; }
 
 /* good */
 svg .edge.succeeded { stroke: @base0B; }
@@ -89,8 +94,6 @@ svg .node.job.failed rect { fill: @base08; }
 #page-header.failed { background: @base08; }
 li.failed { background: @base08; }
 .legend dt.failed { background: @base08; }
-.build-header .abort-build button { color: @base08; }
-.build-header .abort-build button:hover { background: @base08; }
 span.error { color: @base08; }
 #version-history tr.enabled .toggle-resource-version { background: @base08; }
 
@@ -109,7 +112,6 @@ svg .node.job.aborted rect { fill: @base0F; }
 #page-header.aborted { background: @base0F; }
 li.aborted { background: @base0F; }
 .legend dt.aborted { background: @base0F; }
-.build-header .abort-build button:active { background: @base0F; }
 
 /* active */
 #page-header.started { background: @base0A; }
