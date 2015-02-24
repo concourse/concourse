@@ -4,7 +4,7 @@
 <div id="page-header">
   <div class="build-header {{.CurrentBuild.Status}}">
     <form class="trigger-build" method="post" action="{{url "TriggerBuild" .Job}}">
-      <input type="submit" value="trigger build" />
+      <button><i class="fa fa-plus-circle"></i></button>
     </form>
 
     <h1>{{.Job.Name}}</h1>
