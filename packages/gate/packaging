@@ -2,7 +2,7 @@ set -e
 
 REPO_NAME=github.com/concourse/gate
 
-export GOROOT=$(readlink -nf /var/vcap/packages/golang_1.3)
+export GOROOT=$(readlink -nf /var/vcap/packages/golang)
 export GOPATH=$BOSH_INSTALL_TARGET
 export PATH=$GOROOT/bin:$PATH
 

@@ -2,7 +2,7 @@
 name: atc
 
 dependencies:
-  - golang_1.3
+  - golang
 
 files:
   - github.com/concourse/atc/web/templates/**/*
@@ -21,6 +21,7 @@ files:
   - github.com/concourse/atc/*.go # gosub
   - github.com/concourse/atc/api/*.go # gosub
   - github.com/concourse/atc/api/buildserver/*.go # gosub
+  - github.com/concourse/atc/api/cliserver/*.go # gosub
   - github.com/concourse/atc/api/configserver/*.go # gosub
   - github.com/concourse/atc/api/jobserver/*.go # gosub
   - github.com/concourse/atc/api/loglevelserver/*.go # gosub

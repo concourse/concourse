@@ -2,7 +2,7 @@
 name: gate
 
 dependencies:
-  - golang_1.3
+  - golang
 
 files:
   - github.com/concourse/gate/cmd/gate/*.go # gosub

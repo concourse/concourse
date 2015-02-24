@@ -2,6 +2,18 @@
 
 set -e
 
+for pkg in fly; do
+  pushd packages/$pkg
+    {
+      cat spec | grep -v '# gosub'
+      gosub list -a github.com/concourse/$pkg | \
+        sed -e 's/\(.*\)/  - \1\/*.go # gosub/g'
+    } > spec.new
+
+    mv spec.new spec
+  popd
+done
+
 for pkg in atc blackbox gate; do
   pushd packages/$pkg
     {

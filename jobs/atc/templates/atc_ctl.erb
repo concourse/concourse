@@ -66,6 +66,7 @@ case $1 in
       -dev=<%= p("atc.development_mode").inspect %> \
       -checkInterval=<%= p("atc.default_check_interval") %> \
       -resourceTypes=<%= Shellwords.shellescape(p("atc.resource_types").to_json) %> \
+      -cliDownloadsDir=/var/vcap/packages/fly \
       1>>$LOG_DIR/atc.stdout.log \
       2>>$LOG_DIR/atc.stderr.log
 

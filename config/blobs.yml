@@ -1,16 +1,11 @@
 ---
-golang_1.3/go1.3.linux-amd64.tar.gz:
-  object_id: a0efd822-3cc4-4acf-af26-702cae02ff7a
-  sha: b6b154933039987056ac307e20c25fa508a06ba6
-  size: 51123994
 postgresql/postgresql-9.3.4.tar.gz:
   object_id: a62f2cda-80fa-4daf-a59c-5acc9a6a3c2e
   sha: 9f80b3cfebc434ca0860fc8489923cea73456081
   size: 21865589
 resources/archive-resource.tar.gz:
   object_id: 3a2b7fc4-0e41-4d86-93ab-7dd272d6e784
-  sha: !binary |-
-    ZTVjOGY2ZDFmMjVjZGYxYWVmNmFlMWY0MzAwZDI4YjM5NWY5OTZlNw==
+  sha: e5c8f6d1f25cdf1aef6ae1f4300d28b395f996e7
   size: 2549712
 resources/time-resource.tar.gz:
   object_id: 8c81f0eb-5661-4a29-a15d-7a23963eebb2
@@ -18,13 +13,11 @@ resources/time-resource.tar.gz:
   size: 2518568
 resources/semver-resource.tar.gz:
   object_id: 81002089-75c2-4e78-baa7-5a148faec28a
-  sha: !binary |-
-    MzY4YTBiY2M1YTc4MjAzZWIzZmYzMDMxZDIwNGQ1YzFkYTZiOTIwZA==
+  sha: 368a0bcc5a78203eb3ff3031d204d5c1da6b920d
   size: 8618176
 resources/s3-resource.tar.gz:
   object_id: c8584748-b6d9-4d8b-a263-0d9a45c1e52d
-  sha: !binary |-
-    MmFiODAzZmVmN2VhZDM2YzgwNGFjZGQ4YzhlZjM5ZTRjZmNjNWJlYQ==
+  sha: 2ab803fef7ead36c804acdd8c8ef39e4cfcc5bea
   size: 8830242
 resources/tracker-resource.tar.gz:
   object_id: 4d514d25-9542-4757-89ab-016740992dbb
@@ -32,30 +25,29 @@ resources/tracker-resource.tar.gz:
   size: 11537270
 resources/git-resource.tar.gz:
   object_id: b0b61046-0050-49a2-b0e5-08176ab7e084
-  sha: !binary |-
-    MWMyNGJlMjZlZDc4M2MyMDAwZGRjNDk2OTQ1OWY0NTM5ZGZjZDc3MQ==
+  sha: 1c24be26ed783c2000ddc4969459f4539dfcd771
   size: 7504552
 resources/docker-image-resource.tar.gz:
   object_id: da620fc6-2620-4b48-ab0a-2433ab7f94e8
-  sha: !binary |-
-    YTA1Mjc1ZTkyYjQ0NjYxZDFiYjYwZjQwYmY2NDQ5ZjA5NTdiNWNlZQ==
+  sha: a05275e92b44661d1bb60f40bf6449f0957b5cee
   size: 8277114
 resources/vagrant-cloud-resource.tar.gz:
   object_id: 0e96b46b-02dd-44e5-95c0-eb22dc7cd5f6
-  sha: !binary |-
-    NTQwYjhmOWI3ZjJiOTA5NWQ4ZTU5NzlhZTg2MWEwMTMzNGFmNjVjNQ==
+  sha: 540b8f9b7f2b9095d8e5979ae861a01334af65c5
   size: 9154707
 resources/cf-resource.tar.gz:
   object_id: 6727f2e0-ae02-48f3-a967-b0ada952e84a
-  sha: !binary |-
-    YTJhZmJkMWY0YTBlNjMzZDA0YzFjMTM4NDUwNzQyOGM5M2E2YWVjYw==
+  sha: a2afbd1f4a0e633d04c1c1384507428c93a6aecc
   size: 12629394
 resources/github-release-resource.tar.gz:
   object_id: 4c29079d-bae9-4e34-89e0-4e8250d8ca2b
-  sha: !binary |-
-    ZDE1NGI0Y2Q3ZjgyNThkYzQwZjg4MzZmMTNmMzM1NzcxYTM0NWE1Yg==
+  sha: d154b4cd7f8258dc40f8836f13f335771a345a5b
   size: 6781979
 consul_0.5/consul:
   object_id: 97b99488-7553-47f0-8294-ad1f8533b164
   sha: f461a632165ce878045afaaf04de699510e53374
   size: 17734417
+golang_1.4/go1.4.2.src.tar.gz:
+  object_id: 774af869-61a5-47ec-955c-41b00a96e941
+  sha: 460caac03379f746c473814a65223397e9c9a2f6
+  size: 10921896

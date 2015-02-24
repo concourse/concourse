@@ -13,6 +13,7 @@ templates:
 packages:
   - pid_utils
   - atc
+  - fly
 
 properties:
   atc.web_listen_port:
