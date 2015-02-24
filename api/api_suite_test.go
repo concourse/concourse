@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -38,6 +39,7 @@ var (
 	pingInterval        time.Duration
 	peerAddr            string
 	drain               chan struct{}
+	cliDownloadsDir     string
 
 	constructedEventHandler *fakeEventHandlerFactory
 
@@ -85,6 +87,11 @@ var _ = BeforeEach(func() {
 
 	fakeEngine = new(enginefakes.FakeEngine)
 
+	var err error
+
+	cliDownloadsDir, err = ioutil.TempDir("", "cli-downloads")
+	Ω(err).ShouldNot(HaveOccurred())
+
 	constructedEventHandler = &fakeEventHandlerFactory{}
 
 	logger := lagertest.NewTestLogger("callbacks")
@@ -118,6 +125,8 @@ var _ = BeforeEach(func() {
 		fakeEngine,
 
 		sink,
+
+		cliDownloadsDir,
 	)
 	Ω(err).ShouldNot(HaveOccurred())
 

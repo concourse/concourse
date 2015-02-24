@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/pivotal-golang/lager"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/buildserver"
+	"github.com/concourse/atc/api/cliserver"
 	"github.com/concourse/atc/api/configserver"
 	"github.com/concourse/atc/api/jobserver"
 	"github.com/concourse/atc/api/loglevelserver"
@@ -45,7 +47,14 @@ func NewHandler(
 	engine engine.Engine,
 
 	sink *lager.ReconfigurableSink,
+
+	cliDownloadsDir string,
 ) (http.Handler, error) {
+	absCLIDownloadsDir, err := filepath.Abs(cliDownloadsDir)
+	if err != nil {
+		return nil, err
+	}
+
 	buildServer := buildserver.NewServer(
 		logger,
 		engine,
@@ -66,6 +75,8 @@ func NewHandler(
 	workerServer := workerserver.NewServer(logger, workerDB)
 
 	logLevelServer := loglevelserver.NewServer(logger, sink)
+
+	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
 
 	validate := func(handler http.Handler) http.Handler {
 		return auth.Handler{
@@ -102,6 +113,8 @@ func NewHandler(
 
 		atc.SetLogLevel: validate(http.HandlerFunc(logLevelServer.SetMinLevel)),
 		atc.GetLogLevel: http.HandlerFunc(logLevelServer.GetMinLevel),
+
+		atc.DownloadCLI: http.HandlerFunc(cliServer.Download),
 	}
 
 	return rata.NewRouter(atc.Routes, handlers)

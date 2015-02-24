@@ -30,6 +30,8 @@ const (
 
 	SetLogLevel = "SetLogLevel"
 	GetLogLevel = "GetLogLevel"
+
+	DownloadCLI = "DownloadCLI"
 )
 
 var Routes = rata.Routes{
@@ -60,4 +62,6 @@ var Routes = rata.Routes{
 
 	{Path: "/api/v1/log-level", Method: "GET", Name: GetLogLevel},
 	{Path: "/api/v1/log-level", Method: "PUT", Name: SetLogLevel},
+
+	{Path: "/api/v1/cli", Method: "GET", Name: DownloadCLI},
 }

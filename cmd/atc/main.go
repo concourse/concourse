@@ -165,6 +165,12 @@ var noop = flag.Bool(
 	"don't trigger any builds automatically",
 )
 
+var cliDownloadsDir = flag.String(
+	"cliDownloadsDir",
+	"",
+	"directory containing CLI binaries to serve",
+)
+
 func main() {
 	flag.Parse()
 
@@ -308,6 +314,8 @@ func main() {
 		engine,
 
 		sink,
+
+		*cliDownloadsDir,
 	)
 	if err != nil {
 		fatal(err)
