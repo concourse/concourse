@@ -4,17 +4,17 @@ package fakes
 import (
 	"sync"
 
-	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc/worker"
 )
 
 type FakeWorker struct {
-	CreateStub        func(garden.ContainerSpec) (worker.Container, error)
-	createMutex       sync.RWMutex
-	createArgsForCall []struct {
-		arg1 garden.ContainerSpec
+	CreateContainerStub        func(handle string, spec worker.ContainerSpec) (worker.Container, error)
+	createContainerMutex       sync.RWMutex
+	createContainerArgsForCall []struct {
+		handle string
+		spec   worker.ContainerSpec
 	}
-	createReturns struct {
+	createContainerReturns struct {
 		result1 worker.Container
 		result2 error
 	}
@@ -33,36 +33,45 @@ type FakeWorker struct {
 	activeContainersReturns struct {
 		result1 int
 	}
-}
-
-func (fake *FakeWorker) Create(arg1 garden.ContainerSpec) (worker.Container, error) {
-	fake.createMutex.Lock()
-	fake.createArgsForCall = append(fake.createArgsForCall, struct {
-		arg1 garden.ContainerSpec
-	}{arg1})
-	fake.createMutex.Unlock()
-	if fake.CreateStub != nil {
-		return fake.CreateStub(arg1)
-	} else {
-		return fake.createReturns.result1, fake.createReturns.result2
+	SatisfiesStub        func(worker.ContainerSpec) bool
+	satisfiesMutex       sync.RWMutex
+	satisfiesArgsForCall []struct {
+		arg1 worker.ContainerSpec
+	}
+	satisfiesReturns struct {
+		result1 bool
 	}
 }
 
-func (fake *FakeWorker) CreateCallCount() int {
-	fake.createMutex.RLock()
-	defer fake.createMutex.RUnlock()
-	return len(fake.createArgsForCall)
+func (fake *FakeWorker) CreateContainer(handle string, spec worker.ContainerSpec) (worker.Container, error) {
+	fake.createContainerMutex.Lock()
+	fake.createContainerArgsForCall = append(fake.createContainerArgsForCall, struct {
+		handle string
+		spec   worker.ContainerSpec
+	}{handle, spec})
+	fake.createContainerMutex.Unlock()
+	if fake.CreateContainerStub != nil {
+		return fake.CreateContainerStub(handle, spec)
+	} else {
+		return fake.createContainerReturns.result1, fake.createContainerReturns.result2
+	}
 }
 
-func (fake *FakeWorker) CreateArgsForCall(i int) garden.ContainerSpec {
-	fake.createMutex.RLock()
-	defer fake.createMutex.RUnlock()
-	return fake.createArgsForCall[i].arg1
+func (fake *FakeWorker) CreateContainerCallCount() int {
+	fake.createContainerMutex.RLock()
+	defer fake.createContainerMutex.RUnlock()
+	return len(fake.createContainerArgsForCall)
 }
 
-func (fake *FakeWorker) CreateReturns(result1 worker.Container, result2 error) {
-	fake.CreateStub = nil
-	fake.createReturns = struct {
+func (fake *FakeWorker) CreateContainerArgsForCall(i int) (string, worker.ContainerSpec) {
+	fake.createContainerMutex.RLock()
+	defer fake.createContainerMutex.RUnlock()
+	return fake.createContainerArgsForCall[i].handle, fake.createContainerArgsForCall[i].spec
+}
+
+func (fake *FakeWorker) CreateContainerReturns(result1 worker.Container, result2 error) {
+	fake.CreateContainerStub = nil
+	fake.createContainerReturns = struct {
 		result1 worker.Container
 		result2 error
 	}{result1, result2}
@@ -122,6 +131,38 @@ func (fake *FakeWorker) ActiveContainersReturns(result1 int) {
 	fake.ActiveContainersStub = nil
 	fake.activeContainersReturns = struct {
 		result1 int
+	}{result1}
+}
+
+func (fake *FakeWorker) Satisfies(arg1 worker.ContainerSpec) bool {
+	fake.satisfiesMutex.Lock()
+	fake.satisfiesArgsForCall = append(fake.satisfiesArgsForCall, struct {
+		arg1 worker.ContainerSpec
+	}{arg1})
+	fake.satisfiesMutex.Unlock()
+	if fake.SatisfiesStub != nil {
+		return fake.SatisfiesStub(arg1)
+	} else {
+		return fake.satisfiesReturns.result1
+	}
+}
+
+func (fake *FakeWorker) SatisfiesCallCount() int {
+	fake.satisfiesMutex.RLock()
+	defer fake.satisfiesMutex.RUnlock()
+	return len(fake.satisfiesArgsForCall)
+}
+
+func (fake *FakeWorker) SatisfiesArgsForCall(i int) worker.ContainerSpec {
+	fake.satisfiesMutex.RLock()
+	defer fake.satisfiesMutex.RUnlock()
+	return fake.satisfiesArgsForCall[i].arg1
+}
+
+func (fake *FakeWorker) SatisfiesReturns(result1 bool) {
+	fake.SatisfiesStub = nil
+	fake.satisfiesReturns = struct {
+		result1 bool
 	}{result1}
 }
 

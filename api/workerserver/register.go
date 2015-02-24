@@ -37,6 +37,7 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 	err = s.db.SaveWorker(db.WorkerInfo{
 		Addr:             registration.Addr,
 		ActiveContainers: registration.ActiveContainers,
+		ResourceTypes:    registration.ResourceTypes,
 	}, ttl)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

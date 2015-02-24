@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/atc/exec/fakes"
 	"github.com/concourse/atc/resource"
 	rfakes "github.com/concourse/atc/resource/fakes"
+	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -919,7 +920,7 @@ var _ = Describe("GardenFactory", func() {
 					BeforeEach(func() {
 						fakeContainer = new(wfakes.FakeContainer)
 						fakeContainer.HandleReturns("some-handle")
-						fakeWorkerClient.CreateReturns(fakeContainer, nil)
+						fakeWorkerClient.CreateContainerReturns(fakeContainer, nil)
 
 						fakeProcess = new(gfakes.FakeProcess)
 						fakeProcess.IDReturns(42)
@@ -932,7 +933,7 @@ var _ = Describe("GardenFactory", func() {
 						BeforeEach(func() {
 							executeDelegate.InitializingStub = func(atc.BuildConfig) {
 								defer GinkgoRecover()
-								Ω(fakeWorkerClient.CreateCallCount()).Should(BeZero())
+								Ω(fakeWorkerClient.CreateContainerCallCount()).Should(BeZero())
 							}
 						})
 
@@ -954,10 +955,11 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					It("creates a container with the config's image and the session ID as the handle", func() {
-						Ω(fakeWorkerClient.CreateCallCount()).Should(Equal(1))
-						Ω(fakeWorkerClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
-							Handle:     sessionID,
-							RootFSPath: "some-image",
+						Ω(fakeWorkerClient.CreateContainerCallCount()).Should(Equal(1))
+						handle, spec := fakeWorkerClient.CreateContainerArgsForCall(0)
+						Ω(handle).Should(Equal(sessionID))
+						Ω(spec).Should(Equal(worker.ImageContainerSpec{
+							Image:      "some-image",
 							Privileged: false,
 						}))
 					})
@@ -1030,10 +1032,11 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("creates the container privileged", func() {
-							Ω(fakeWorkerClient.CreateCallCount()).Should(Equal(1))
-							Ω(fakeWorkerClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
-								Handle:     sessionID,
-								RootFSPath: "some-image",
+							Ω(fakeWorkerClient.CreateContainerCallCount()).Should(Equal(1))
+							handle, spec := fakeWorkerClient.CreateContainerArgsForCall(0)
+							Ω(handle).Should(Equal(sessionID))
+							Ω(spec).Should(Equal(worker.ImageContainerSpec{
+								Image:      "some-image",
 								Privileged: true,
 							}))
 						})
@@ -1698,7 +1701,7 @@ var _ = Describe("GardenFactory", func() {
 					disaster := errors.New("nope")
 
 					BeforeEach(func() {
-						fakeWorkerClient.CreateReturns(nil, disaster)
+						fakeWorkerClient.CreateContainerReturns(nil, disaster)
 					})
 
 					It("exits with the error", func() {

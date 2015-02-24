@@ -3,7 +3,6 @@ package worker_test
 import (
 	"errors"
 
-	"github.com/cloudfoundry-incubator/garden"
 	. "github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/fakes"
 
@@ -26,26 +25,25 @@ var _ = Describe("Pool", func() {
 
 	Describe("Create", func() {
 		var (
-			spec garden.ContainerSpec
+			spec ContainerSpec
 
 			createdContainer Container
 			createErr        error
 		)
 
 		BeforeEach(func() {
-			spec = garden.ContainerSpec{
-				Handle: "some-handle",
-			}
+			spec = ResourceTypeContainerSpec{Type: "some-type"}
 		})
 
 		JustBeforeEach(func() {
-			createdContainer, createErr = pool.Create(spec)
+			createdContainer, createErr = pool.CreateContainer("handle", spec)
 		})
 
 		Context("with multiple workers", func() {
 			var (
 				workerA *fakes.FakeWorker
 				workerB *fakes.FakeWorker
+				workerC *fakes.FakeWorker
 
 				fakeContainer *fakes.FakeContainer
 			)
@@ -53,15 +51,20 @@ var _ = Describe("Pool", func() {
 			BeforeEach(func() {
 				workerA = new(fakes.FakeWorker)
 				workerB = new(fakes.FakeWorker)
+				workerC = new(fakes.FakeWorker)
 
 				workerA.ActiveContainersReturns(3)
 				workerB.ActiveContainersReturns(2)
 
-				fakeContainer = new(fakes.FakeContainer)
-				workerA.CreateReturns(fakeContainer, nil)
-				workerB.CreateReturns(fakeContainer, nil)
+				workerA.SatisfiesReturns(true)
+				workerB.SatisfiesReturns(true)
 
-				fakeProvider.WorkersReturns([]Worker{workerA, workerB}, nil)
+				fakeContainer = new(fakes.FakeContainer)
+				workerA.CreateContainerReturns(fakeContainer, nil)
+				workerB.CreateContainerReturns(fakeContainer, nil)
+				workerC.CreateContainerReturns(fakeContainer, nil)
+
+				fakeProvider.WorkersReturns([]Worker{workerA, workerB, workerC}, nil)
 			})
 
 			It("succeeds", func() {
@@ -72,22 +75,34 @@ var _ = Describe("Pool", func() {
 				Ω(createdContainer).Should(Equal(fakeContainer))
 			})
 
+			It("checks that the workers satisfy the given spec", func() {
+				Ω(workerA.SatisfiesCallCount()).Should(Equal(1))
+				Ω(workerA.SatisfiesArgsForCall(0)).Should(Equal(spec))
+
+				Ω(workerB.SatisfiesCallCount()).Should(Equal(1))
+				Ω(workerB.SatisfiesArgsForCall(0)).Should(Equal(spec))
+
+				Ω(workerC.SatisfiesCallCount()).Should(Equal(1))
+				Ω(workerC.SatisfiesArgsForCall(0)).Should(Equal(spec))
+			})
+
 			It("creates using a random worker", func() {
 				for i := 1; i < 100; i++ { // account for initial create in JustBefore
-					createdContainer, createErr := pool.Create(spec)
+					createdContainer, createErr := pool.CreateContainer("handle", spec)
 					Ω(createErr).ShouldNot(HaveOccurred())
 					Ω(createdContainer).Should(Equal(fakeContainer))
 				}
 
-				Ω(workerA.CreateCallCount()).Should(BeNumerically("~", workerB.CreateCallCount(), 50))
+				Ω(workerA.CreateContainerCallCount()).Should(BeNumerically("~", workerB.CreateContainerCallCount(), 50))
+				Ω(workerC.CreateContainerCallCount()).Should(BeZero())
 			})
 
 			Context("when creating the container fails", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					workerA.CreateReturns(nil, disaster)
-					workerB.CreateReturns(nil, disaster)
+					workerA.CreateContainerReturns(nil, disaster)
+					workerB.CreateContainerReturns(nil, disaster)
 				})
 
 				It("returns the error", func() {

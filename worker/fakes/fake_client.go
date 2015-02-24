@@ -4,17 +4,17 @@ package fakes
 import (
 	"sync"
 
-	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc/worker"
 )
 
 type FakeClient struct {
-	CreateStub        func(garden.ContainerSpec) (worker.Container, error)
-	createMutex       sync.RWMutex
-	createArgsForCall []struct {
-		arg1 garden.ContainerSpec
+	CreateContainerStub        func(handle string, spec worker.ContainerSpec) (worker.Container, error)
+	createContainerMutex       sync.RWMutex
+	createContainerArgsForCall []struct {
+		handle string
+		spec   worker.ContainerSpec
 	}
-	createReturns struct {
+	createContainerReturns struct {
 		result1 worker.Container
 		result2 error
 	}
@@ -29,34 +29,35 @@ type FakeClient struct {
 	}
 }
 
-func (fake *FakeClient) Create(arg1 garden.ContainerSpec) (worker.Container, error) {
-	fake.createMutex.Lock()
-	fake.createArgsForCall = append(fake.createArgsForCall, struct {
-		arg1 garden.ContainerSpec
-	}{arg1})
-	fake.createMutex.Unlock()
-	if fake.CreateStub != nil {
-		return fake.CreateStub(arg1)
+func (fake *FakeClient) CreateContainer(handle string, spec worker.ContainerSpec) (worker.Container, error) {
+	fake.createContainerMutex.Lock()
+	fake.createContainerArgsForCall = append(fake.createContainerArgsForCall, struct {
+		handle string
+		spec   worker.ContainerSpec
+	}{handle, spec})
+	fake.createContainerMutex.Unlock()
+	if fake.CreateContainerStub != nil {
+		return fake.CreateContainerStub(handle, spec)
 	} else {
-		return fake.createReturns.result1, fake.createReturns.result2
+		return fake.createContainerReturns.result1, fake.createContainerReturns.result2
 	}
 }
 
-func (fake *FakeClient) CreateCallCount() int {
-	fake.createMutex.RLock()
-	defer fake.createMutex.RUnlock()
-	return len(fake.createArgsForCall)
+func (fake *FakeClient) CreateContainerCallCount() int {
+	fake.createContainerMutex.RLock()
+	defer fake.createContainerMutex.RUnlock()
+	return len(fake.createContainerArgsForCall)
 }
 
-func (fake *FakeClient) CreateArgsForCall(i int) garden.ContainerSpec {
-	fake.createMutex.RLock()
-	defer fake.createMutex.RUnlock()
-	return fake.createArgsForCall[i].arg1
+func (fake *FakeClient) CreateContainerArgsForCall(i int) (string, worker.ContainerSpec) {
+	fake.createContainerMutex.RLock()
+	defer fake.createContainerMutex.RUnlock()
+	return fake.createContainerArgsForCall[i].handle, fake.createContainerArgsForCall[i].spec
 }
 
-func (fake *FakeClient) CreateReturns(result1 worker.Container, result2 error) {
-	fake.CreateStub = nil
-	fake.createReturns = struct {
+func (fake *FakeClient) CreateContainerReturns(result1 worker.Container, result2 error) {
+	fake.CreateContainerStub = nil
+	fake.createContainerReturns = struct {
 		result1 worker.Container
 		result2 error
 	}{result1, result2}

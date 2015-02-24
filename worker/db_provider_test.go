@@ -8,6 +8,7 @@ import (
 	"github.com/cloudfoundry-incubator/garden"
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
 	"github.com/cloudfoundry-incubator/garden/server"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/fakes"
@@ -94,10 +95,16 @@ var _ = Describe("DBProvider", func() {
 				{
 					Addr:             workerAAddr,
 					ActiveContainers: 2,
+					ResourceTypes: []atc.WorkerResourceType{
+						{Type: "some-resource-a", Image: "some-image-a"},
+					},
 				},
 				{
 					Addr:             workerBAddr,
 					ActiveContainers: 2,
+					ResourceTypes: []atc.WorkerResourceType{
+						{Type: "some-resource-b", Image: "some-image-b"},
+					},
 				},
 			}, nil)
 		})
@@ -112,8 +119,8 @@ var _ = Describe("DBProvider", func() {
 
 		Describe("a created container", func() {
 			It("calls through to garden", func() {
-				spec := garden.ContainerSpec{
-					Handle: "some-handle",
+				spec := ResourceTypeContainerSpec{
+					Type: "some-resource-a",
 				}
 
 				fakeContainer := new(gfakes.FakeContainer)
@@ -121,13 +128,13 @@ var _ = Describe("DBProvider", func() {
 
 				workerA.CreateReturns(fakeContainer, nil)
 
-				container, err := workers[0].Create(spec)
+				container, err := workers[0].CreateContainer("created-handle", spec)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(container.Handle()).Should(Equal("created-handle"))
 
 				Ω(workerA.CreateCallCount()).Should(Equal(1))
-				Ω(workerA.CreateArgsForCall(0).Handle).Should(Equal("some-handle"))
+				Ω(workerA.CreateArgsForCall(0).Handle).Should(Equal("created-handle"))
 
 				err = container.Destroy()
 				Ω(err).ShouldNot(HaveOccurred())

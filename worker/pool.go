@@ -5,14 +5,12 @@ import (
 	"math/rand"
 	"sync"
 	"time"
-
-	"github.com/cloudfoundry-incubator/garden"
 )
 
 //go:generate counterfeiter . Client
 
 type Client interface {
-	Create(garden.ContainerSpec) (Container, error)
+	CreateContainer(handle string, spec ContainerSpec) (Container, error)
 	Lookup(handle string) (Container, error)
 }
 
@@ -37,7 +35,7 @@ func NewPool(provider WorkerProvider) Client {
 	}
 }
 
-func (pool *Pool) Create(spec garden.ContainerSpec) (Container, error) {
+func (pool *Pool) CreateContainer(handle string, spec ContainerSpec) (Container, error) {
 	workers, err := pool.provider.Workers()
 	if err != nil {
 		return nil, err
@@ -47,7 +45,14 @@ func (pool *Pool) Create(spec garden.ContainerSpec) (Container, error) {
 		return nil, ErrNoWorkers
 	}
 
-	return workers[pool.rand.Intn(len(workers))].Create(spec)
+	compatibleWorkers := []Worker{}
+	for _, worker := range workers {
+		if worker.Satisfies(spec) {
+			compatibleWorkers = append(compatibleWorkers, worker)
+		}
+	}
+
+	return compatibleWorkers[pool.rand.Intn(len(compatibleWorkers))].CreateContainer(handle, spec)
 }
 
 func (pool *Pool) Lookup(handle string) (Container, error) {

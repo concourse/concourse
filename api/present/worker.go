@@ -9,5 +9,6 @@ func Worker(workerInfo db.WorkerInfo) atc.Worker {
 	return atc.Worker{
 		Addr:             workerInfo.Addr,
 		ActiveContainers: workerInfo.ActiveContainers,
+		ResourceTypes:    workerInfo.ResourceTypes,
 	}
 }

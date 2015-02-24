@@ -6,6 +6,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/garden"
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
+	"github.com/concourse/atc"
 	. "github.com/concourse/atc/worker"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,6 +18,7 @@ var _ = Describe("Worker", func() {
 		fakeGardenClient *gfakes.FakeClient
 		fakeClock        *fakeclock.FakeClock
 		activeContainers int
+		resourceTypes    []atc.WorkerResourceType
 
 		worker Worker
 	)
@@ -25,96 +27,203 @@ var _ = Describe("Worker", func() {
 		fakeGardenClient = new(gfakes.FakeClient)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		activeContainers = 42
+		resourceTypes = []atc.WorkerResourceType{
+			{Type: "some-resource", Image: "some-resource-image"},
+		}
 
-		worker = NewGardenWorker(fakeGardenClient, fakeClock, activeContainers)
+		worker = NewGardenWorker(fakeGardenClient, fakeClock, activeContainers, resourceTypes)
 	})
 
-	Describe("Create", func() {
+	Describe("CreateContainer", func() {
 		var (
-			spec garden.ContainerSpec
+			spec ContainerSpec
 
 			createdContainer Container
 			createErr        error
 		)
 
-		BeforeEach(func() {
-			spec = garden.ContainerSpec{
-				RootFSPath: "some-rootfs-path",
-			}
-		})
-
 		JustBeforeEach(func() {
-			createdContainer, createErr = worker.Create(spec)
+			createdContainer, createErr = worker.CreateContainer("some-handle", spec)
 		})
 
-		Context("when creating works", func() {
-			var fakeContainer *gfakes.FakeContainer
-
-			BeforeEach(func() {
-				fakeContainer = new(gfakes.FakeContainer)
-				fakeContainer.HandleReturns("some-handle")
-
-				fakeGardenClient.CreateReturns(fakeContainer, nil)
-			})
-
-			It("succeeds", func() {
-				Ω(createErr).ShouldNot(HaveOccurred())
-			})
-
-			It("creates the container with the Garden client", func() {
-				Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
-				Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(spec))
-			})
-
-			Describe("the created container", func() {
-				It("can be destroyed", func() {
-					err := createdContainer.Destroy()
-					Ω(err).ShouldNot(HaveOccurred())
-
-					By("destroying via garden")
-					Ω(fakeGardenClient.DestroyCallCount()).Should(Equal(1))
-					Ω(fakeGardenClient.DestroyArgsForCall(0)).Should(Equal("some-handle"))
-
-					By("no longer heartbeating")
-					fakeClock.Increment(30 * time.Second)
-					Consistently(fakeContainer.SetPropertyCallCount).Should(BeZero())
+		Context("with a resource type container spec", func() {
+			Context("when the resource type is supported by the worker", func() {
+				BeforeEach(func() {
+					spec = ResourceTypeContainerSpec{
+						Type: "some-resource",
+					}
 				})
 
-				It("is kept alive by continuously setting a keepalive property until released", func() {
-					Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(0))
+				Context("when creating works", func() {
+					var fakeContainer *gfakes.FakeContainer
 
-					fakeClock.Increment(30 * time.Second)
+					BeforeEach(func() {
+						fakeContainer = new(gfakes.FakeContainer)
+						fakeContainer.HandleReturns("some-handle")
 
-					Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(1))
-					name, value := fakeContainer.SetPropertyArgsForCall(0)
-					Ω(name).Should(Equal("keepalive"))
-					Ω(value).Should(Equal("153")) // unix timestamp
+						fakeGardenClient.CreateReturns(fakeContainer, nil)
+					})
 
-					fakeClock.Increment(30 * time.Second)
+					It("succeeds", func() {
+						Ω(createErr).ShouldNot(HaveOccurred())
+					})
 
-					Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(2))
-					name, value = fakeContainer.SetPropertyArgsForCall(1)
-					Ω(name).Should(Equal("keepalive"))
-					Ω(value).Should(Equal("183")) // unix timestamp
+					It("creates the container with the Garden client", func() {
+						Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
+						Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
+							Handle:     "some-handle",
+							RootFSPath: "some-resource-image",
+							Privileged: true,
+						}))
+					})
 
-					createdContainer.Release()
+					Describe("the created container", func() {
+						It("can be destroyed", func() {
+							err := createdContainer.Destroy()
+							Ω(err).ShouldNot(HaveOccurred())
 
-					fakeClock.Increment(30 * time.Second)
+							By("destroying via garden")
+							Ω(fakeGardenClient.DestroyCallCount()).Should(Equal(1))
+							Ω(fakeGardenClient.DestroyArgsForCall(0)).Should(Equal("some-handle"))
 
-					Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(2))
+							By("no longer heartbeating")
+							fakeClock.Increment(30 * time.Second)
+							Consistently(fakeContainer.SetPropertyCallCount).Should(BeZero())
+						})
+
+						It("is kept alive by continuously setting a keepalive property until released", func() {
+							Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(0))
+
+							fakeClock.Increment(30 * time.Second)
+
+							Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(1))
+							name, value := fakeContainer.SetPropertyArgsForCall(0)
+							Ω(name).Should(Equal("keepalive"))
+							Ω(value).Should(Equal("153")) // unix timestamp
+
+							fakeClock.Increment(30 * time.Second)
+
+							Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(2))
+							name, value = fakeContainer.SetPropertyArgsForCall(1)
+							Ω(name).Should(Equal("keepalive"))
+							Ω(value).Should(Equal("183")) // unix timestamp
+
+							createdContainer.Release()
+
+							fakeClock.Increment(30 * time.Second)
+
+							Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(2))
+						})
+					})
+				})
+
+				Context("when creating fails", func() {
+					disaster := errors.New("nope")
+
+					BeforeEach(func() {
+						fakeGardenClient.CreateReturns(nil, disaster)
+					})
+
+					It("returns the error", func() {
+						Ω(createErr).Should(Equal(disaster))
+					})
+				})
+			})
+
+			Context("when the type is unknown", func() {
+				BeforeEach(func() {
+					spec = ResourceTypeContainerSpec{
+						Type: "some-bogus-resource",
+					}
+				})
+
+				It("returns ErrUnsupportedResourceType", func() {
+					Ω(createErr).Should(Equal(ErrUnsupportedResourceType))
 				})
 			})
 		})
 
-		Context("when creating fails", func() {
-			disaster := errors.New("nope")
-
+		Context("with a resource type container spec", func() {
 			BeforeEach(func() {
-				fakeGardenClient.CreateReturns(nil, disaster)
+				spec = ImageContainerSpec{
+					Image:      "some-image",
+					Privileged: true,
+				}
 			})
 
-			It("returns the error", func() {
-				Ω(createErr).Should(Equal(disaster))
+			Context("when creating works", func() {
+				var fakeContainer *gfakes.FakeContainer
+
+				BeforeEach(func() {
+					fakeContainer = new(gfakes.FakeContainer)
+					fakeContainer.HandleReturns("some-handle")
+
+					fakeGardenClient.CreateReturns(fakeContainer, nil)
+				})
+
+				It("succeeds", func() {
+					Ω(createErr).ShouldNot(HaveOccurred())
+				})
+
+				It("creates the container with the Garden client", func() {
+					Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
+					Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
+						Handle:     "some-handle",
+						RootFSPath: "some-image",
+						Privileged: true,
+					}))
+				})
+
+				Describe("the created container", func() {
+					It("can be destroyed", func() {
+						err := createdContainer.Destroy()
+						Ω(err).ShouldNot(HaveOccurred())
+
+						By("destroying via garden")
+						Ω(fakeGardenClient.DestroyCallCount()).Should(Equal(1))
+						Ω(fakeGardenClient.DestroyArgsForCall(0)).Should(Equal("some-handle"))
+
+						By("no longer heartbeating")
+						fakeClock.Increment(30 * time.Second)
+						Consistently(fakeContainer.SetPropertyCallCount).Should(BeZero())
+					})
+
+					It("is kept alive by continuously setting a keepalive property until released", func() {
+						Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(0))
+
+						fakeClock.Increment(30 * time.Second)
+
+						Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(1))
+						name, value := fakeContainer.SetPropertyArgsForCall(0)
+						Ω(name).Should(Equal("keepalive"))
+						Ω(value).Should(Equal("153")) // unix timestamp
+
+						fakeClock.Increment(30 * time.Second)
+
+						Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(2))
+						name, value = fakeContainer.SetPropertyArgsForCall(1)
+						Ω(name).Should(Equal("keepalive"))
+						Ω(value).Should(Equal("183")) // unix timestamp
+
+						createdContainer.Release()
+
+						fakeClock.Increment(30 * time.Second)
+
+						Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(2))
+					})
+				})
+			})
+
+			Context("when creating fails", func() {
+				disaster := errors.New("nope")
+
+				BeforeEach(func() {
+					fakeGardenClient.CreateReturns(nil, disaster)
+				})
+
+				It("returns the error", func() {
+					Ω(createErr).Should(Equal(disaster))
+				})
 			})
 		})
 	})
@@ -208,6 +317,63 @@ var _ = Describe("Worker", func() {
 
 			It("returns the error", func() {
 				Ω(lookupErr).Should(Equal(disaster))
+			})
+		})
+	})
+
+	Describe("Satisfies", func() {
+		var (
+			spec      ContainerSpec
+			satisfies bool
+		)
+
+		JustBeforeEach(func() {
+			satisfies = worker.Satisfies(spec)
+		})
+
+		Context("with an ImageContainerSpec", func() {
+			BeforeEach(func() {
+				spec = ImageContainerSpec{}
+			})
+
+			It("returns true", func() {
+				Ω(satisfies).Should(BeTrue())
+			})
+		})
+
+		Context("with a ResourceTypeContainerSpec", func() {
+			Context("when the type is supported by the worker", func() {
+				BeforeEach(func() {
+					spec = ResourceTypeContainerSpec{
+						Type: "some-resource",
+					}
+				})
+
+				It("returns true", func() {
+					Ω(satisfies).Should(BeTrue())
+				})
+			})
+
+			Context("when the type is not supported by the worker", func() {
+				BeforeEach(func() {
+					spec = ResourceTypeContainerSpec{
+						Type: "some-other-resource",
+					}
+				})
+
+				It("returns false", func() {
+					Ω(satisfies).Should(BeFalse())
+				})
+			})
+		})
+
+		Context("with any other container spec", func() {
+			BeforeEach(func() {
+				spec = 42
+			})
+
+			It("returns false", func() {
+				Ω(satisfies).Should(BeFalse())
 			})
 		})
 	})

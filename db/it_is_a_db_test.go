@@ -386,11 +386,17 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			infoA := db.WorkerInfo{
 				Addr:             "1.2.3.4:7777",
 				ActiveContainers: 42,
+				ResourceTypes: []atc.WorkerResourceType{
+					{Type: "some-resource-a", Image: "some-image-a"},
+				},
 			}
 
 			infoB := db.WorkerInfo{
 				Addr:             "1.2.3.4:8888",
 				ActiveContainers: 42,
+				ResourceTypes: []atc.WorkerResourceType{
+					{Type: "some-resource-b", Image: "some-image-b"},
+				},
 			}
 
 			By("persisting workers with no TTLs")

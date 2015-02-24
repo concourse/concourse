@@ -36,8 +36,20 @@ var _ = Describe("Workers API", func() {
 			Context("when the workers can be listed", func() {
 				BeforeEach(func() {
 					workerDB.WorkersReturns([]db.WorkerInfo{
-						{Addr: "1.2.3.4:7777", ActiveContainers: 1},
-						{Addr: "1.2.3.4:8888", ActiveContainers: 2},
+						{
+							Addr:             "1.2.3.4:7777",
+							ActiveContainers: 1,
+							ResourceTypes: []atc.WorkerResourceType{
+								{Type: "some-resource", Image: "some-resource-image"},
+							},
+						},
+						{
+							Addr:             "1.2.3.4:8888",
+							ActiveContainers: 2,
+							ResourceTypes: []atc.WorkerResourceType{
+								{Type: "some-resource", Image: "some-resource-image"},
+							},
+						},
 					}, nil)
 				})
 
@@ -51,8 +63,20 @@ var _ = Describe("Workers API", func() {
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(returnedWorkers).Should(Equal([]atc.Worker{
-						{Addr: "1.2.3.4:7777", ActiveContainers: 1},
-						{Addr: "1.2.3.4:8888", ActiveContainers: 2},
+						{
+							Addr:             "1.2.3.4:7777",
+							ActiveContainers: 1,
+							ResourceTypes: []atc.WorkerResourceType{
+								{Type: "some-resource", Image: "some-resource-image"},
+							},
+						},
+						{
+							Addr:             "1.2.3.4:8888",
+							ActiveContainers: 2,
+							ResourceTypes: []atc.WorkerResourceType{
+								{Type: "some-resource", Image: "some-resource-image"},
+							},
+						},
 					}))
 				})
 			})
@@ -91,6 +115,9 @@ var _ = Describe("Workers API", func() {
 			worker = atc.Worker{
 				Addr:             "1.2.3.4:7777",
 				ActiveContainers: 2,
+				ResourceTypes: []atc.WorkerResourceType{
+					{Type: "some-resource", Image: "some-resource-image"},
+				},
 			}
 
 			ttl = 30 * time.Second
@@ -124,6 +151,9 @@ var _ = Describe("Workers API", func() {
 					Ω(savedInfo).Should(Equal(db.WorkerInfo{
 						Addr:             "1.2.3.4:7777",
 						ActiveContainers: 2,
+						ResourceTypes: []atc.WorkerResourceType{
+							{Type: "some-resource", Image: "some-resource-image"},
+						},
 					}))
 					Ω(savedTTL).Should(Equal(ttl))
 				})

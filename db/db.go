@@ -114,4 +114,5 @@ type WorkerInfo struct {
 	Addr string
 
 	ActiveContainers int
+	ResourceTypes    []atc.WorkerResourceType
 }

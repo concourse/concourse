@@ -34,6 +34,7 @@ func (provider *dbProvider) Workers() ([]Worker, error) {
 			gclient.New(gconn.New("tcp", info.Addr)),
 			clock.NewClock(),
 			info.ActiveContainers,
+			info.ResourceTypes,
 		)
 	}
 

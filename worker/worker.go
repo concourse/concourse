@@ -7,10 +7,12 @@ import (
 	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
+	"github.com/concourse/atc"
 	"github.com/pivotal-golang/clock"
 )
 
 var ErrContainerNotFound = errors.New("container not found")
+var ErrUnsupportedResourceType = errors.New("unsupported resource type")
 
 const containerKeepalive = 30 * time.Second
 
@@ -20,6 +22,7 @@ type Worker interface {
 	Client
 
 	ActiveContainers() int
+	Satisfies(ContainerSpec) bool
 }
 
 //go:generate counterfeiter . Container
@@ -37,19 +40,47 @@ type gardenWorker struct {
 	clock        clock.Clock
 
 	activeContainers int
+	resourceTypes    []atc.WorkerResourceType
 }
 
-func NewGardenWorker(gardenClient garden.Client, clock clock.Clock, activeContainers int) Worker {
+func NewGardenWorker(gardenClient garden.Client, clock clock.Clock, activeContainers int, resourceTypes []atc.WorkerResourceType) Worker {
 	return &gardenWorker{
 		gardenClient: gardenClient,
 		clock:        clock,
 
 		activeContainers: activeContainers,
+		resourceTypes:    resourceTypes,
 	}
 }
 
-func (worker *gardenWorker) Create(spec garden.ContainerSpec) (Container, error) {
-	gardenContainer, err := worker.gardenClient.Create(spec)
+func (worker *gardenWorker) CreateContainer(handle string, spec ContainerSpec) (Container, error) {
+	gardenSpec := garden.ContainerSpec{
+		Handle: handle,
+	}
+
+dance:
+	switch s := spec.(type) {
+	case ResourceTypeContainerSpec:
+		gardenSpec.Privileged = true
+
+		for _, t := range worker.resourceTypes {
+			if t.Type == s.Type {
+				gardenSpec.RootFSPath = t.Image
+				break dance
+			}
+		}
+
+		return nil, ErrUnsupportedResourceType
+
+	case ImageContainerSpec:
+		gardenSpec.RootFSPath = s.Image
+		gardenSpec.Privileged = s.Privileged
+
+	default:
+		return nil, fmt.Errorf("unknown container spec type: %T (%#v)", s, s)
+	}
+
+	gardenContainer, err := worker.gardenClient.Create(gardenSpec)
 	if err != nil {
 		return nil, err
 	}
@@ -68,6 +99,22 @@ func (worker *gardenWorker) Lookup(handle string) (Container, error) {
 
 func (worker *gardenWorker) ActiveContainers() int {
 	return worker.activeContainers
+}
+
+func (worker *gardenWorker) Satisfies(spec ContainerSpec) bool {
+	switch s := spec.(type) {
+	case ResourceTypeContainerSpec:
+		for _, t := range worker.resourceTypes {
+			if t.Type == s.Type {
+				return true
+			}
+		}
+
+	case ImageContainerSpec:
+		return true
+	}
+
+	return false
 }
 
 type gardenWorkerContainer struct {

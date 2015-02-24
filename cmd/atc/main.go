@@ -74,17 +74,17 @@ var gardenAddr = flag.String(
 
 var resourceTypes = flag.String(
 	"resourceTypes",
-	`{
-		"git": "docker:///concourse/git-resource",
-		"github-release": "docker:///concourse/github-release-resource",
-		"archive": "docker:///concourse/archive-resource",
-		"docker-image": "docker:///concourse/docker-image-resource",
-		"time": "docker:///concourse/time-resource",
-		"s3": "docker:///concourse/s3-resource",
-		"tracker": "docker:///concourse/tracker-resource",
-		"semver": "docker:///concourse/semver-resource"
-	}`,
-	"map of resource type to its docker image",
+	`[
+		{"type": "archive", "image": "docker:///concourse/archive-resource" },
+		{"type": "docker-image", "image": "docker:///concourse/docker-image-resource" },
+		{"type": "git", "image": "docker:///concourse/git-resource" },
+		{"type": "github-release", "image": "docker:///concourse/github-release-resource" },
+		{"type": "s3", "image": "docker:///concourse/s3-resource" },
+		{"type": "semver", "image": "docker:///concourse/semver-resource" },
+		{"type": "time", "image": "docker:///concourse/time-resource" },
+		{"type": "tracker", "image": "docker:///concourse/tracker-resource" }
+	]`,
+	"map of resource type to its rootfs",
 )
 
 var sqlDriver = flag.String(
@@ -241,21 +241,20 @@ func main() {
 		configDB = db
 	}
 
+	var resourceTypesNG []atc.WorkerResourceType
+	err = json.Unmarshal([]byte(*resourceTypes), &resourceTypesNG)
+	if err != nil {
+		logger.Fatal("invalid-resource-types", err)
+	}
+
 	var workerClient worker.Client
 	if *gardenAddr != "" {
-		workerClient = worker.NewGardenWorker(gclient.New(gconn.New(*gardenNetwork, *gardenAddr)), clock.NewClock(), -1)
+		workerClient = worker.NewGardenWorker(gclient.New(gconn.New(*gardenNetwork, *gardenAddr)), clock.NewClock(), -1, resourceTypesNG)
 	} else {
 		workerClient = worker.NewPool(worker.NewDBWorkerProvider(db))
 	}
 
-	resourceMapping := resource.ResourceMapping{}
-	err = json.Unmarshal([]byte(*resourceTypes), &resourceMapping)
-	if err != nil {
-		logger.Fatal("failed-to-parse-resource-types", err)
-	}
-
-	resourceTracker := resource.NewTracker(resourceMapping, workerClient)
-
+	resourceTracker := resource.NewTracker(workerClient)
 	gardenFactory := exec.NewGardenFactory(workerClient, resourceTracker)
 	execEngine := engine.NewExecEngine(gardenFactory, engine.NewBuildDelegateFactory(db), db)
 

@@ -109,11 +109,13 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 		step.Delegate.Initializing(config)
 
-		step.container, err = step.WorkerClient.Create(garden.ContainerSpec{
-			Handle:     string(step.SessionID),
-			RootFSPath: config.Image,
-			Privileged: bool(step.Privileged),
-		})
+		step.container, err = step.WorkerClient.CreateContainer(
+			string(step.SessionID),
+			worker.ImageContainerSpec{
+				Image:      config.Image,
+				Privileged: bool(step.Privileged),
+			},
+		)
 		if err != nil {
 			return err
 		}

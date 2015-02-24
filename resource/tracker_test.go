@@ -3,7 +3,7 @@ package resource_test
 import (
 	"errors"
 
-	"github.com/cloudfoundry-incubator/garden"
+	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,20 +15,13 @@ const sessionID = "some-session-id"
 
 var _ = Describe("Tracker", func() {
 	var (
-		resourceTypes ResourceMapping
-
 		tracker Tracker
 	)
 
 	BeforeEach(func() {
-		resourceTypes = ResourceMapping{
-			"type1": "image1",
-			"type2": "image2",
-		}
+		workerClient.CreateContainerReturns(fakeContainer, nil)
 
-		workerClient.CreateReturns(fakeContainer, nil)
-
-		tracker = NewTracker(resourceTypes, workerClient)
+		tracker = NewTracker(workerClient)
 	})
 
 	Describe("Init", func() {
@@ -58,10 +51,11 @@ var _ = Describe("Tracker", func() {
 			})
 
 			It("creates a privileged container with the resource type's image, and the session as the handle", func() {
-				Ω(workerClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
-					Handle:     sessionID,
-					RootFSPath: "image1",
-					Privileged: true,
+				handle, spec := workerClient.CreateContainerArgsForCall(0)
+
+				Ω(handle).Should(Equal(sessionID))
+				Ω(spec).Should(Equal(worker.ResourceTypeContainerSpec{
+					Type: string(initType),
 				}))
 			})
 
@@ -69,22 +63,12 @@ var _ = Describe("Tracker", func() {
 				disaster := errors.New("oh no!")
 
 				BeforeEach(func() {
-					workerClient.CreateReturns(nil, disaster)
+					workerClient.CreateContainerReturns(nil, disaster)
 				})
 
 				It("returns the error and no resource", func() {
 					Ω(initErr).Should(Equal(disaster))
 					Ω(initResource).Should(BeNil())
-				})
-			})
-
-			Context("with an unknown resource type", func() {
-				BeforeEach(func() {
-					initType = "bogus-type"
-				})
-
-				It("returns ErrUnknownResourceType", func() {
-					Ω(initErr).Should(Equal(ErrUnknownResourceType))
 				})
 			})
 		})
@@ -103,7 +87,7 @@ var _ = Describe("Tracker", func() {
 			})
 
 			It("does not create a container", func() {
-				Ω(workerClient.CreateCallCount()).Should(BeZero())
+				Ω(workerClient.CreateContainerCallCount()).Should(BeZero())
 			})
 		})
 	})
