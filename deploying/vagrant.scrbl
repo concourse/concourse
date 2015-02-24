@@ -7,39 +7,49 @@
 Before you go and spend money on hardware, you probably want to kick the tires a
 bit.
 
-The easiest way to get something up and running is to use the
-@hyperlink["https://github.com/cppforlife/vagrant-bosh"]{BOSH Vagrant
-provisioner}. This requires no BOSH experience.
+The easiest way to get something up and running is to use the pre-built Vagrant
+boxes. This requires no BOSH experience, but is otherwise exactly the same as a
+BOSH deployment in terms of features.
 
-If you have no need for multiple workers, you can use a Vagrant provider like
-AWS to spin up a single-instance deployment. This is perfectly fine for a lot
-of use cases.
+Currently, only VirtualBox is supported. Pre-built AWS and VMware Fusion boxes
+will be available in the future.
 
-To spin up Concourse with Vagrant:
+@; If you have no need for multiple workers, you can use a Vagrant provider like
+@; AWS to spin up a single-instance deployment. This is perfectly fine for a lot
+@; of use cases.
 
-@margin-note{
-  You may run into problems on OS X with @code{nokogiri}; here's a
-  @hyperlink["https://github.com/cppforlife/vagrant-bosh/issues/2#issuecomment-52075709"]{workaround}.
-
-  This is a
-  @hyperlink["https://github.com/mitchellh/vagrant/issues/3769"]{known issue}
-  with Vagrant, though the source of the issue appears to be upstream.
-}
+To spin up Concourse with Vagrant, run the following in any directory:
 
 @codeblock|{
-$ cd path/to/concourse/
-$ git submodule update --init --recursive
-$ vagrant plugin install vagrant-bosh
-$ vagrant up
+$ vagrant init concourse/lite ; # places Vagrantfile in current directory
+$ vagrant up                  ; # downloads the box and spins up the VM
 }|
 
-This flow still uses BOSH, but makes some sacrifices. Everything's on one
-machine, which isn't exactly production-worthy and scalable.
+The web server will be running at @hyperlink["http://192.168.100.4:8080"]{192.168.100.4:8080}.
 
-By default, `vagrant up` in the release uses a
-@hyperlink["https://github.com/concourse/concourse/blob/master/manifests/vagrant-bosh.yml"]{predefined
-BOSH deployment manifest} that configures a single dummy job.
+@margin-note{
+  If you're on Linux or OS X, you will have to @code{chmod +x} the downloaded
+  binary and put it in your @code{$PATH}.
+}
 
-To configure the pipeline, edit the manifest and run `vagrant provision`. This
-is a great way to iterate on your pipeline's configuration with a much faster
-feedback loop than a full BOSH deploy.
+Next, download the Fly CLI from the @hyperlink["http://192.168.100.4:8080"]{main page}.
+There are links to binaries for common platforms at the bottom right.
+
+The default pipeline configuration is blank. You can see the current configuration by running:
+
+@codeblock|{
+$ fly configure
+}|
+
+To configure a pipeline, fill in jobs and resources (see @secref{pipelines}),
+place the resulting config in a file, and run:
+
+@codeblock|{
+$ fly configure -c path/to/pipeline.yml
+}|
+
+This will validate your pipeline config and immediately switch Concourse to it.
+
+To download the current configuration, run the same command with no flags:
+
+To run arbitrary builds against the Vagrant box, see @secref{running-builds}.
