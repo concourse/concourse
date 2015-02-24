@@ -30,6 +30,9 @@ svg .node rect {
 .groups {
   background: #151515;
 }
+.build-header .trigger-build button:active {
+  background: #151515;
+}
 /* highlight background */
 svg .cluster {
   fill: #303030;
@@ -38,6 +41,9 @@ svg .cluster {
   background: #303030;
 }
 .groups li.main a {
+  background: #303030;
+}
+.build-header .trigger-build button:hover {
   background: #303030;
 }
 /* even more highlight background */
@@ -85,6 +91,9 @@ li.pending {
 svg .node.resource a {
   color: #e0e0e0;
 }
+.build-header .trigger-build button {
+  color: #e0e0e0;
+}
 /* emphasis */
 .build-header h1 {
   color: #f5f5f5;
@@ -101,10 +110,10 @@ svg .edgeLabel text {
 svg h1 a {
   color: #f5f5f5;
 }
-.build-header .abort-build input:hover {
+.build-header .abort-build button:hover {
   color: #f5f5f5;
 }
-.build-header .abort-build input:active {
+.build-header .abort-build button:active {
   color: #f5f5f5;
 }
 .builds-list li a {
@@ -120,6 +129,9 @@ svg h1 a {
   color: #f5f5f5;
 }
 #cli-downloads a {
+  color: #f5f5f5;
+}
+.build-header .trigger-build button {
   color: #f5f5f5;
 }
 /* good */
@@ -157,10 +169,10 @@ li.failed {
 .legend dt.failed {
   background: #ac4142;
 }
-.build-header .abort-build input {
+.build-header .abort-build button {
   color: #ac4142;
 }
-.build-header .abort-build input:hover {
+.build-header .abort-build button:hover {
   background: #ac4142;
 }
 span.error {
@@ -207,7 +219,7 @@ li.aborted {
 .legend dt.aborted {
   background: #8f5536;
 }
-.build-header .abort-build input:active {
+.build-header .abort-build button:active {
   background: #8f5536;
 }
 /* active */
