@@ -57,30 +57,30 @@ svg .node.job.normal rect {
   background: #505050;
 }
 /* order here matters >:( */
-.build-header .trigger-build button {
+.build-header .trigger-build button i {
   color: #f5f5f5;
 }
-.build-header .trigger-build button:hover {
+.build-header .trigger-build button i:hover {
   background: #303030;
 }
-.build-header .trigger-build button:active {
+.build-header .trigger-build button i:active {
   background: #b0b0b0;
 }
-.build-header .trigger-build button:focus {
+.build-header .trigger-build button i:focus {
   background: #b0b0b0;
 }
-.build-header .abort-build button {
+.build-header .abort-build button i {
   color: #ac4142;
 }
-.build-header .abort-build button:hover {
+.build-header .abort-build button i:hover {
   background: #ac4142;
   color: #f5f5f5;
 }
-.build-header .abort-build button:active {
+.build-header .abort-build button i:active {
   color: #f5f5f5;
   background: #8f5536;
 }
-.build-header .abort-build button:focus {
+.build-header .abort-build button i:focus {
   background: #8f5536;
 }
 /* dim */
