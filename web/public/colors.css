@@ -119,6 +119,9 @@ svg h1 a {
 #version-history .toggle-resource-version {
   color: #f5f5f5;
 }
+#cli-downloads a {
+  color: #f5f5f5;
+}
 /* good */
 svg .edge.succeeded {
   stroke: #90a959;

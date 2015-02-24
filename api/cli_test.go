@@ -18,12 +18,19 @@ var _ = Describe("CLI Downloads API", func() {
 	BeforeEach(func() {
 		var err error
 
-		durr := filepath.Join(cliDownloadsDir, "darwin", "amd64")
+		darwinDurr := filepath.Join(cliDownloadsDir, "darwin", "amd64")
+		windowsDurr := filepath.Join(cliDownloadsDir, "windows", "amd64")
 
-		err = os.MkdirAll(durr, 0755)
+		err = os.MkdirAll(darwinDurr, 0755)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		err = ioutil.WriteFile(filepath.Join(durr, "fly"), []byte("soi soi soi"), 0644)
+		err = os.MkdirAll(windowsDurr, 0755)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		err = ioutil.WriteFile(filepath.Join(darwinDurr, "fly"), []byte("soi soi soi"), 0644)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		err = ioutil.WriteFile(filepath.Join(windowsDurr, "fly"), []byte("soi soi soi.notavirus.bat"), 0644)
 		Ω(err).ShouldNot(HaveOccurred())
 	})
 
@@ -50,6 +57,28 @@ var _ = Describe("CLI Downloads API", func() {
 
 		It("returns the file binary", func() {
 			Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("soi soi soi")))
+		})
+	})
+
+	Describe("GET /api/v1/cli?platform=windows&arch=amd64", func() {
+		JustBeforeEach(func() {
+			req, err := http.NewRequest("GET", server.URL+"/api/v1/cli?platform=windows&arch=amd64", nil)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			response, err = client.Do(req)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("returns 200", func() {
+			Ω(response.StatusCode).Should(Equal(http.StatusOK))
+		})
+
+		It("sets the filename as 'fly.exe'", func() {
+			Ω(response.Header.Get("Content-Disposition")).Should(Equal("attachment; filename=fly.exe"))
+		})
+
+		It("returns the file binary", func() {
+			Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("soi soi soi.notavirus.bat")))
 		})
 	})
 
