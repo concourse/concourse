@@ -32,6 +32,30 @@ properties:
     description: "garden server connection address"
     default: 127.0.0.1:7777
 
+  gate.resource_types:
+    description: "resource types supported by the worker, in [{type: type, image: image}] form"
+    default:
+      - type: archive
+        image: /var/vcap/packages/archive_resource
+      - type: cf
+        image: /var/vcap/packages/cf_resource
+      - type: docker-image
+        image: /var/vcap/packages/docker_image_resource
+      - type: git
+        image: /var/vcap/packages/git_resource
+      - type: s3
+        image: /var/vcap/packages/s3_resource
+      - type: semver
+        image: /var/vcap/packages/semver_resource
+      - type: time
+        image: /var/vcap/packages/time_resource
+      - type: tracker
+        image: /var/vcap/packages/tracker_resource
+      - type: vagrant-cloud
+        image: /var/vcap/packages/vagrant_cloud_resource
+      - type: github-release
+        image: /var/vcap/packages/github_release_resource
+
   gate.atc.address:
     description: "atc server connection address"
     default: atc.service.dc1.consul:8080

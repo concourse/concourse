@@ -76,20 +76,6 @@ properties:
   atc.postgresql.role.password:
     description: "password to use when connecting"
 
-  atc.resource_types:
-    description: "the mapping from known resource types to their container rootfs"
-    default:
-      archive: /var/vcap/packages/archive_resource
-      cf: /var/vcap/packages/cf_resource
-      docker-image: /var/vcap/packages/docker_image_resource
-      git: /var/vcap/packages/git_resource
-      s3: /var/vcap/packages/s3_resource
-      semver: /var/vcap/packages/semver_resource
-      time: /var/vcap/packages/time_resource
-      tracker: /var/vcap/packages/tracker_resource
-      vagrant-cloud: /var/vcap/packages/vagrant_cloud_resource
-      github-release: /var/vcap/packages/github_release_resource
-
   blackbox.sources.atc:
     description: "files whose contents blackbox will emit to its syslog drain"
     default:
