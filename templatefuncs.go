@@ -2,6 +2,7 @@ package web
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -46,6 +47,17 @@ func (funcs templateFuncs) url(handler string, args ...interface{}) (string, err
 
 	case routes.LogIn:
 		return routes.Routes.CreatePathForRoute(handler, rata.Params{})
+
+	case atc.DownloadCLI:
+		path, err := atc.Routes.CreatePathForRoute(handler, rata.Params{})
+		if err != nil {
+			return "", err
+		}
+
+		return path + "?" + url.Values{
+			"platform": {args[0].(string)},
+			"arch":     {args[1].(string)},
+		}.Encode(), nil
 
 	default:
 		return "", fmt.Errorf("unknown route: %s", handler)
