@@ -41,7 +41,7 @@ func main() {
 
 	app.Flags = append(executeFlags, cli.StringFlag{
 		Name:   "atcURL",
-		Value:  "http://127.0.0.1:8080",
+		Value:  "http://192.168.100.4:8080",
 		Usage:  "address of the ATC to use",
 		EnvVar: "ATC_URL",
 	})
