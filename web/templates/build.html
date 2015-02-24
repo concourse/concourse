@@ -4,12 +4,12 @@
 <div id="page-header" class="{{.Build.Status}}">
   <div class="build-header">
     <form class="trigger-build" method="post" action="{{url "TriggerBuild" .Job}}">
-      <button type="submit"><i class="fa fa-plus-circle"></i></button>
+      <button><i class="fa fa-plus-circle"></i></button>
     </form>
 
     {{if .Abortable}}
     <form class="abort-build" method="post" action="{{url "AbortBuild" .Build}}">
-      <button type="submit"><i class="fa fa-times"></i></button>
+      <button><i class="fa fa-times-circle"></i></button>
     </form>
     {{end}}
 

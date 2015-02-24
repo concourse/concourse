@@ -30,9 +30,6 @@ svg .node rect {
 .groups {
   background: #151515;
 }
-.build-header .trigger-build button:active {
-  background: #151515;
-}
 /* highlight background */
 svg .cluster {
   fill: #303030;
@@ -41,9 +38,6 @@ svg .cluster {
   background: #303030;
 }
 .groups li.main a {
-  background: #303030;
-}
-.build-header .trigger-build button:hover {
   background: #303030;
 }
 /* even more highlight background */
@@ -61,6 +55,33 @@ svg .node.job.normal rect {
 }
 .groups li.active a {
   background: #505050;
+}
+/* order here matters >:( */
+.build-header .trigger-build button {
+  color: #f5f5f5;
+}
+.build-header .trigger-build button:hover {
+  background: #303030;
+}
+.build-header .trigger-build button:active {
+  background: #b0b0b0;
+}
+.build-header .trigger-build button:focus {
+  background: #b0b0b0;
+}
+.build-header .abort-build button {
+  color: #ac4142;
+}
+.build-header .abort-build button:hover {
+  background: #ac4142;
+  color: #f5f5f5;
+}
+.build-header .abort-build button:active {
+  color: #f5f5f5;
+  background: #8f5536;
+}
+.build-header .abort-build button:focus {
+  background: #8f5536;
 }
 /* dim */
 svg .edge.pending {
@@ -91,9 +112,6 @@ li.pending {
 svg .node.resource a {
   color: #e0e0e0;
 }
-.build-header .trigger-build button {
-  color: #e0e0e0;
-}
 /* emphasis */
 .build-header h1 {
   color: #f5f5f5;
@@ -110,12 +128,6 @@ svg .edgeLabel text {
 svg h1 a {
   color: #f5f5f5;
 }
-.build-header .abort-build button:hover {
-  color: #f5f5f5;
-}
-.build-header .abort-build button:active {
-  color: #f5f5f5;
-}
 .builds-list li a {
   color: #f5f5f5;
 }
@@ -129,9 +141,6 @@ svg h1 a {
   color: #f5f5f5;
 }
 #cli-downloads a {
-  color: #f5f5f5;
-}
-.build-header .trigger-build button {
   color: #f5f5f5;
 }
 /* good */
@@ -167,12 +176,6 @@ li.failed {
   background: #ac4142;
 }
 .legend dt.failed {
-  background: #ac4142;
-}
-.build-header .abort-build button {
-  color: #ac4142;
-}
-.build-header .abort-build button:hover {
   background: #ac4142;
 }
 span.error {
@@ -217,9 +220,6 @@ li.aborted {
   background: #8f5536;
 }
 .legend dt.aborted {
-  background: #8f5536;
-}
-.build-header .abort-build button:active {
   background: #8f5536;
 }
 /* active */
