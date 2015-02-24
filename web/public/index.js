@@ -157,7 +157,7 @@ function renderPipeline(groups) {
 
   drawContinuously(g, groups);
 
-  $("ul.groups li a").click(function(e) {
+  $("ul.groups li:not(.main) a").click(function(e) {
     var group = e.target.text;
 
     if (e.shiftKey) {
