@@ -11,7 +11,7 @@ cp -a * ${BOSH_INSTALL_TARGET}/src
 
 for platform in linux darwin windows; do
   mkdir -p ${BOSH_INSTALL_TARGET}/${platform}/amd64
-  go build -o ${BOSH_INSTALL_TARGET}/${platform}/amd64/fly ${REPO_NAME}
+  GOOS=${platform} GOARCH=amd64 go build -o ${BOSH_INSTALL_TARGET}/${platform}/amd64/fly ${REPO_NAME}
 done
 
 rm -rf ${BOSH_INSTALL_TARGET}/pkg
