@@ -389,6 +389,8 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				ResourceTypes: []atc.WorkerResourceType{
 					{Type: "some-resource-a", Image: "some-image-a"},
 				},
+				Platform: "webos",
+				Tags:     []string{"palm", "was", "great"},
 			}
 
 			infoB := db.WorkerInfo{
@@ -397,6 +399,8 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				ResourceTypes: []atc.WorkerResourceType{
 					{Type: "some-resource-b", Image: "some-image-b"},
 				},
+				Platform: "plan9",
+				Tags:     []string{"russ", "cox", "was", "here"},
 			}
 
 			By("persisting workers with no TTLs")

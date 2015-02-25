@@ -41,15 +41,26 @@ type gardenWorker struct {
 
 	activeContainers int
 	resourceTypes    []atc.WorkerResourceType
+	platform         string
+	tags             []string
 }
 
-func NewGardenWorker(gardenClient garden.Client, clock clock.Clock, activeContainers int, resourceTypes []atc.WorkerResourceType) Worker {
+func NewGardenWorker(
+	gardenClient garden.Client,
+	clock clock.Clock,
+	activeContainers int,
+	resourceTypes []atc.WorkerResourceType,
+	platform string,
+	tags []string,
+) Worker {
 	return &gardenWorker{
 		gardenClient: gardenClient,
 		clock:        clock,
 
 		activeContainers: activeContainers,
 		resourceTypes:    resourceTypes,
+		platform:         platform,
+		tags:             tags,
 	}
 }
 
@@ -111,6 +122,21 @@ func (worker *gardenWorker) Satisfies(spec ContainerSpec) bool {
 		}
 
 	case ImageContainerSpec:
+		if s.Platform != worker.platform {
+			return false
+		}
+
+	insert_coin:
+		for _, stag := range s.Tags {
+			for _, wtag := range worker.tags {
+				if stag == wtag {
+					continue insert_coin
+				}
+			}
+
+			return false
+		}
+
 		return true
 	}
 

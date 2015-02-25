@@ -42,6 +42,8 @@ var _ = Describe("Workers API", func() {
 							ResourceTypes: []atc.WorkerResourceType{
 								{Type: "some-resource", Image: "some-resource-image"},
 							},
+							Platform: "freebsd",
+							Tags:     []string{"demon"},
 						},
 						{
 							Addr:             "1.2.3.4:8888",
@@ -49,6 +51,8 @@ var _ = Describe("Workers API", func() {
 							ResourceTypes: []atc.WorkerResourceType{
 								{Type: "some-resource", Image: "some-resource-image"},
 							},
+							Platform: "beos",
+							Tags:     []string{"best", "os", "ever", "rip"},
 						},
 					}, nil)
 				})
@@ -69,6 +73,8 @@ var _ = Describe("Workers API", func() {
 							ResourceTypes: []atc.WorkerResourceType{
 								{Type: "some-resource", Image: "some-resource-image"},
 							},
+							Platform: "freebsd",
+							Tags:     []string{"demon"},
 						},
 						{
 							Addr:             "1.2.3.4:8888",
@@ -76,6 +82,8 @@ var _ = Describe("Workers API", func() {
 							ResourceTypes: []atc.WorkerResourceType{
 								{Type: "some-resource", Image: "some-resource-image"},
 							},
+							Platform: "beos",
+							Tags:     []string{"best", "os", "ever", "rip"},
 						},
 					}))
 				})
@@ -118,6 +126,8 @@ var _ = Describe("Workers API", func() {
 				ResourceTypes: []atc.WorkerResourceType{
 					{Type: "some-resource", Image: "some-resource-image"},
 				},
+				Platform: "haiku",
+				Tags:     []string{"not", "a", "limerick"},
 			}
 
 			ttl = 30 * time.Second
@@ -154,6 +164,8 @@ var _ = Describe("Workers API", func() {
 						ResourceTypes: []atc.WorkerResourceType{
 							{Type: "some-resource", Image: "some-resource-image"},
 						},
+						Platform: "haiku",
+						Tags:     []string{"not", "a", "limerick"},
 					}))
 					Ω(savedTTL).Should(Equal(ttl))
 				})

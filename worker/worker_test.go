@@ -19,6 +19,8 @@ var _ = Describe("Worker", func() {
 		fakeClock        *fakeclock.FakeClock
 		activeContainers int
 		resourceTypes    []atc.WorkerResourceType
+		platform         string
+		tags             []string
 
 		worker Worker
 	)
@@ -30,8 +32,17 @@ var _ = Describe("Worker", func() {
 		resourceTypes = []atc.WorkerResourceType{
 			{Type: "some-resource", Image: "some-resource-image"},
 		}
+		platform = "some-platform"
+		tags = []string{"some", "tags"}
 
-		worker = NewGardenWorker(fakeGardenClient, fakeClock, activeContainers, resourceTypes)
+		worker = NewGardenWorker(
+			fakeGardenClient,
+			fakeClock,
+			activeContainers,
+			resourceTypes,
+			platform,
+			tags,
+		)
 	})
 
 	Describe("CreateContainer", func() {
@@ -322,26 +333,85 @@ var _ = Describe("Worker", func() {
 	})
 
 	Describe("Satisfies", func() {
-		var (
-			spec      ContainerSpec
-			satisfies bool
-		)
-
-		JustBeforeEach(func() {
-			satisfies = worker.Satisfies(spec)
-		})
-
 		Context("with an ImageContainerSpec", func() {
+			var (
+				spec      ImageContainerSpec
+				satisfies bool
+			)
+
 			BeforeEach(func() {
 				spec = ImageContainerSpec{}
 			})
 
-			It("returns true", func() {
-				Ω(satisfies).Should(BeTrue())
+			JustBeforeEach(func() {
+				satisfies = worker.Satisfies(spec)
+			})
+
+			Context("when the platform is compatible", func() {
+				BeforeEach(func() {
+					spec.Platform = "some-platform"
+				})
+
+				It("returns true", func() {
+					Ω(satisfies).Should(BeTrue())
+				})
+
+				Context("when all of the requested tags are present", func() {
+					BeforeEach(func() {
+						spec.Tags = []string{"some", "tags"}
+					})
+
+					It("returns true", func() {
+						Ω(satisfies).Should(BeTrue())
+					})
+				})
+
+				Context("when some of the requested tags are present", func() {
+					BeforeEach(func() {
+						spec.Tags = []string{"some"}
+					})
+
+					It("returns true", func() {
+						Ω(satisfies).Should(BeTrue())
+					})
+				})
+
+				Context("when any of the requested tags are not present", func() {
+					BeforeEach(func() {
+						spec.Tags = []string{"bogus", "tags"}
+					})
+
+					It("returns false", func() {
+						Ω(satisfies).Should(BeFalse())
+					})
+				})
+			})
+
+			Context("when the platform is incompatible", func() {
+				BeforeEach(func() {
+					spec.Platform = "some-bogus-platform"
+				})
+
+				It("returns false", func() {
+					Ω(satisfies).Should(BeFalse())
+				})
 			})
 		})
 
 		Context("with a ResourceTypeContainerSpec", func() {
+			var (
+				spec      ResourceTypeContainerSpec
+				satisfies bool
+			)
+
+			BeforeEach(func() {
+				spec = ResourceTypeContainerSpec{}
+			})
+
+			JustBeforeEach(func() {
+				satisfies = worker.Satisfies(spec)
+			})
+
 			Context("when the type is supported by the worker", func() {
 				BeforeEach(func() {
 					spec = ResourceTypeContainerSpec{
@@ -356,9 +426,7 @@ var _ = Describe("Worker", func() {
 
 			Context("when the type is not supported by the worker", func() {
 				BeforeEach(func() {
-					spec = ResourceTypeContainerSpec{
-						Type: "some-other-resource",
-					}
+					spec.Type = "some-other-resource"
 				})
 
 				It("returns false", func() {
@@ -368,12 +436,8 @@ var _ = Describe("Worker", func() {
 		})
 
 		Context("with any other container spec", func() {
-			BeforeEach(func() {
-				spec = 42
-			})
-
 			It("returns false", func() {
-				Ω(satisfies).Should(BeFalse())
+				Ω(worker.Satisfies("snickers")).Should(BeFalse())
 			})
 		})
 	})

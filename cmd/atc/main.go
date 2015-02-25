@@ -249,7 +249,14 @@ func main() {
 
 	var workerClient worker.Client
 	if *gardenAddr != "" {
-		workerClient = worker.NewGardenWorker(gclient.New(gconn.New(*gardenNetwork, *gardenAddr)), clock.NewClock(), -1, resourceTypesNG)
+		workerClient = worker.NewGardenWorker(
+			gclient.New(gconn.New(*gardenNetwork, *gardenAddr)),
+			clock.NewClock(),
+			-1,
+			resourceTypesNG,
+			"linux",
+			[]string{},
+		)
 	} else {
 		workerClient = worker.NewPool(worker.NewDBWorkerProvider(db))
 	}

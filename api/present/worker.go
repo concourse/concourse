@@ -10,5 +10,7 @@ func Worker(workerInfo db.WorkerInfo) atc.Worker {
 		Addr:             workerInfo.Addr,
 		ActiveContainers: workerInfo.ActiveContainers,
 		ResourceTypes:    workerInfo.ResourceTypes,
+		Platform:         workerInfo.Platform,
+		Tags:             workerInfo.Tags,
 	}
 }

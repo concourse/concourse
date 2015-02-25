@@ -1332,12 +1332,17 @@ func (db *SQLDB) SaveWorker(info WorkerInfo, ttl time.Duration) error {
 		return err
 	}
 
+	tags, err := json.Marshal(info.Tags)
+	if err != nil {
+		return err
+	}
+
 	if ttl == 0 {
 		result, err := db.conn.Exec(`
 			UPDATE workers
-			SET expires = NULL, active_containers = $2, resource_types = $3
+			SET expires = NULL, active_containers = $2, resource_types = $3, platform = $4, tags = $5
 			WHERE addr = $1
-		`, info.Addr, info.ActiveContainers, resourceTypes)
+		`, info.Addr, info.ActiveContainers, resourceTypes, info.Platform, tags)
 		if err != nil {
 			return err
 		}
@@ -1349,9 +1354,9 @@ func (db *SQLDB) SaveWorker(info WorkerInfo, ttl time.Duration) error {
 
 		if affected == 0 {
 			_, err := db.conn.Exec(`
-				INSERT INTO workers (addr, expires, active_containers, resource_types)
-				VALUES ($1, NULL, $2, $3)
-			`, info.Addr, info.ActiveContainers, resourceTypes)
+				INSERT INTO workers (addr, expires, active_containers, resource_types, platform, tags)
+				VALUES ($1, NULL, $2, $3, $4, $5)
+			`, info.Addr, info.ActiveContainers, resourceTypes, info.Platform, tags)
 			if err != nil {
 				return err
 			}
@@ -1363,9 +1368,9 @@ func (db *SQLDB) SaveWorker(info WorkerInfo, ttl time.Duration) error {
 
 		result, err := db.conn.Exec(`
 			UPDATE workers
-			SET expires = NOW() + $2::INTERVAL, active_containers = $3, resource_types = $4
+			SET expires = NOW() + $2::INTERVAL, active_containers = $3, resource_types = $4, platform = $5, tags = $6
 			WHERE addr = $1
-		`, info.Addr, interval, info.ActiveContainers, resourceTypes)
+		`, info.Addr, interval, info.ActiveContainers, resourceTypes, info.Platform, tags)
 		if err != nil {
 			return err
 		}
@@ -1377,9 +1382,9 @@ func (db *SQLDB) SaveWorker(info WorkerInfo, ttl time.Duration) error {
 
 		if affected == 0 {
 			_, err := db.conn.Exec(`
-				INSERT INTO workers (addr, expires, active_containers, resource_types)
-				VALUES ($1, NOW() + $2::INTERVAL, $3, $4)
-			`, info.Addr, interval, info.ActiveContainers, resourceTypes)
+				INSERT INTO workers (addr, expires, active_containers, resource_types, platform, tags)
+				VALUES ($1, NOW() + $2::INTERVAL, $3, $4, $5, $6)
+			`, info.Addr, interval, info.ActiveContainers, resourceTypes, info.Platform, tags)
 			if err != nil {
 				return err
 			}
@@ -1402,7 +1407,7 @@ func (db *SQLDB) Workers() ([]WorkerInfo, error) {
 
 	// select remaining workers
 	rows, err := db.conn.Query(`
-		SELECT addr, active_containers, resource_types
+		SELECT addr, active_containers, resource_types, platform, tags
 		FROM workers
 	`)
 	if err != nil {
@@ -1416,13 +1421,19 @@ func (db *SQLDB) Workers() ([]WorkerInfo, error) {
 		info := WorkerInfo{}
 
 		var resourceTypes []byte
+		var tags []byte
 
-		err := rows.Scan(&info.Addr, &info.ActiveContainers, &resourceTypes)
+		err := rows.Scan(&info.Addr, &info.ActiveContainers, &resourceTypes, &info.Platform, &tags)
 		if err != nil {
 			return nil, err
 		}
 
 		err = json.Unmarshal(resourceTypes, &info.ResourceTypes)
+		if err != nil {
+			return nil, err
+		}
+
+		err = json.Unmarshal(tags, &info.Tags)
 		if err != nil {
 			return nil, err
 		}

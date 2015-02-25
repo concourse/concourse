@@ -115,4 +115,6 @@ type WorkerInfo struct {
 
 	ActiveContainers int
 	ResourceTypes    []atc.WorkerResourceType
+	Platform         string
+	Tags             []string
 }

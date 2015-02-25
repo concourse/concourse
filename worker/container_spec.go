@@ -7,6 +7,9 @@ type ResourceTypeContainerSpec struct {
 }
 
 type ImageContainerSpec struct {
+	Platform string
+	Tags     []string
+
 	Image      string
 	Privileged bool
 }

@@ -35,6 +35,8 @@ func (provider *dbProvider) Workers() ([]Worker, error) {
 			clock.NewClock(),
 			info.ActiveContainers,
 			info.ResourceTypes,
+			info.Platform,
+			info.Tags,
 		)
 	}
 

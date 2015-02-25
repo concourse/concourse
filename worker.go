@@ -6,6 +6,9 @@ type Worker struct {
 	ActiveContainers int `json:"active_containers"`
 
 	ResourceTypes []WorkerResourceType `json:"resource_types"`
+
+	Platform string   `json:"platform"`
+	Tags     []string `json:"tags"`
 }
 
 type WorkerResourceType struct {

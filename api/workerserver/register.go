@@ -38,6 +38,8 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 		Addr:             registration.Addr,
 		ActiveContainers: registration.ActiveContainers,
 		ResourceTypes:    registration.ResourceTypes,
+		Platform:         registration.Platform,
+		Tags:             registration.Tags,
 	}, ttl)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
