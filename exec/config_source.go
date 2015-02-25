@@ -36,6 +36,11 @@ func (configSource FileConfigSource) FetchConfig(source ArtifactSource) (atc.Bui
 		return atc.BuildConfig{}, err
 	}
 
+	err = config.Validate()
+	if err != nil {
+		return atc.BuildConfig{}, err
+	}
+
 	return config, nil
 }
 

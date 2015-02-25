@@ -898,8 +898,10 @@ var _ = Describe("GardenFactory", func() {
 
 				BeforeEach(func() {
 					fetchedConfig = atc.BuildConfig{
-						Image:  "some-image",
-						Params: map[string]string{"SOME": "params"},
+						Platform: "some-platform",
+						Tags:     []string{"some", "tags"},
+						Image:    "some-image",
+						Params:   map[string]string{"SOME": "params"},
 						Run: atc.BuildRunConfig{
 							Path: "ls",
 							Args: []string{"some", "args"},
@@ -958,7 +960,9 @@ var _ = Describe("GardenFactory", func() {
 						Ω(fakeWorkerClient.CreateContainerCallCount()).Should(Equal(1))
 						handle, spec := fakeWorkerClient.CreateContainerArgsForCall(0)
 						Ω(handle).Should(Equal(sessionID))
-						Ω(spec).Should(Equal(worker.ImageContainerSpec{
+						Ω(spec).Should(Equal(worker.ExecuteContainerSpec{
+							Platform:   "some-platform",
+							Tags:       []string{"some", "tags"},
 							Image:      "some-image",
 							Privileged: false,
 						}))
@@ -1035,7 +1039,9 @@ var _ = Describe("GardenFactory", func() {
 							Ω(fakeWorkerClient.CreateContainerCallCount()).Should(Equal(1))
 							handle, spec := fakeWorkerClient.CreateContainerArgsForCall(0)
 							Ω(handle).Should(Equal(sessionID))
-							Ω(spec).Should(Equal(worker.ImageContainerSpec{
+							Ω(spec).Should(Equal(worker.ExecuteContainerSpec{
+								Platform:   "some-platform",
+								Tags:       []string{"some", "tags"},
 								Image:      "some-image",
 								Privileged: true,
 							}))

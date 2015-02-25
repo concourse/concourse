@@ -1,5 +1,10 @@
 package atc
 
+import (
+	"fmt"
+	"strings"
+)
+
 type Build struct {
 	ID      int    `json:"id"`
 	Name    string `json:"name"`
@@ -29,10 +34,12 @@ type BuildPlan struct {
 }
 
 type BuildConfig struct {
-	Image  string             `json:"image,omitempty"   yaml:"image"`
-	Params map[string]string  `json:"params,omitempty"  yaml:"params"`
-	Run    BuildRunConfig     `json:"run,omitempty"     yaml:"run"`
-	Inputs []BuildInputConfig `json:"inputs,omitempty"  yaml:"inputs"`
+	Platform string             `json:"platform,omitempty" yaml:"platform"`
+	Tags     []string           `json:"tags,omitempty"  yaml:"tags"`
+	Image    string             `json:"image,omitempty"   yaml:"image"`
+	Params   map[string]string  `json:"params,omitempty"  yaml:"params"`
+	Run      BuildRunConfig     `json:"run,omitempty"     yaml:"run"`
+	Inputs   []BuildInputConfig `json:"inputs,omitempty"  yaml:"inputs"`
 }
 
 func (a BuildConfig) Merge(b BuildConfig) BuildConfig {
@@ -65,6 +72,27 @@ func (a BuildConfig) Merge(b BuildConfig) BuildConfig {
 	}
 
 	return a
+}
+
+func (config BuildConfig) Validate() error {
+	messages := []string{"invalid build configuration:"}
+
+	var invalid bool
+	if config.Platform == "" {
+		messages = append(messages, "  missing 'platform'")
+		invalid = true
+	}
+
+	if config.Run.Path == "" {
+		messages = append(messages, "  missing path to executable to run")
+		invalid = true
+	}
+
+	if invalid {
+		return fmt.Errorf(strings.Join(messages, "\n"))
+	}
+
+	return nil
 }
 
 type BuildRunConfig struct {

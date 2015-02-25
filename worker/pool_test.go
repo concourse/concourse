@@ -109,6 +109,21 @@ var _ = Describe("Pool", func() {
 					Ω(createErr).Should(Equal(disaster))
 				})
 			})
+
+			Context("when no workers satisfy the spec", func() {
+				BeforeEach(func() {
+					workerA.SatisfiesReturns(false)
+					workerB.SatisfiesReturns(false)
+					workerC.SatisfiesReturns(false)
+				})
+
+				It("returns a NoCompatibleWorkersError", func() {
+					Ω(createErr).Should(Equal(NoCompatibleWorkersError{
+						Spec:    spec,
+						Workers: []Worker{workerA, workerB, workerC},
+					}))
+				})
+			})
 		})
 
 		Context("with no workers", func() {

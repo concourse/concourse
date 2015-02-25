@@ -8,6 +8,41 @@ import (
 )
 
 var _ = Describe("BuildConfig", func() {
+	Describe("validating", func() {
+		validConfig := BuildConfig{
+			Platform: "linux",
+			Run: BuildRunConfig{
+				Path: "reboot",
+			},
+		}
+
+		var invalidConfig BuildConfig
+
+		BeforeEach(func() {
+			invalidConfig = validConfig
+		})
+
+		Context("when platform is missing", func() {
+			BeforeEach(func() {
+				invalidConfig.Platform = ""
+			})
+
+			It("returns an error", func() {
+				Ω(invalidConfig.Validate()).Should(MatchError(ContainSubstring("missing 'platform'")))
+			})
+		})
+
+		Context("when run is missing", func() {
+			BeforeEach(func() {
+				invalidConfig.Run.Path = ""
+			})
+
+			It("returns an error", func() {
+				Ω(invalidConfig.Validate()).Should(MatchError(ContainSubstring("missing path to executable to run")))
+			})
+		})
+	})
+
 	Describe("merging", func() {
 		It("merges params while preserving other properties", func() {
 			Ω(BuildConfig{

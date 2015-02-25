@@ -156,7 +156,7 @@ var _ = Describe("Worker", func() {
 
 		Context("with a resource type container spec", func() {
 			BeforeEach(func() {
-				spec = ImageContainerSpec{
+				spec = ExecuteContainerSpec{
 					Image:      "some-image",
 					Privileged: true,
 				}
@@ -333,14 +333,14 @@ var _ = Describe("Worker", func() {
 	})
 
 	Describe("Satisfies", func() {
-		Context("with an ImageContainerSpec", func() {
+		Context("with an ExecuteContainerSpec", func() {
 			var (
-				spec      ImageContainerSpec
+				spec      ExecuteContainerSpec
 				satisfies bool
 			)
 
 			BeforeEach(func() {
-				spec = ImageContainerSpec{}
+				spec = ExecuteContainerSpec{}
 			})
 
 			JustBeforeEach(func() {
@@ -432,12 +432,6 @@ var _ = Describe("Worker", func() {
 				It("returns false", func() {
 					Ω(satisfies).Should(BeFalse())
 				})
-			})
-		})
-
-		Context("with any other container spec", func() {
-			It("returns false", func() {
-				Ω(worker.Satisfies("snickers")).Should(BeFalse())
 			})
 		})
 	})

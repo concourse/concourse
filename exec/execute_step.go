@@ -111,7 +111,9 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 		step.container, err = step.WorkerClient.CreateContainer(
 			string(step.SessionID),
-			worker.ImageContainerSpec{
+			worker.ExecuteContainerSpec{
+				Platform:   config.Platform,
+				Tags:       config.Tags,
 				Image:      config.Image,
 				Privileged: bool(step.Privileged),
 			},

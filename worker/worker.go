@@ -3,6 +3,7 @@ package worker
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -23,6 +24,8 @@ type Worker interface {
 
 	ActiveContainers() int
 	Satisfies(ContainerSpec) bool
+
+	Description() string
 }
 
 //go:generate counterfeiter . Container
@@ -83,7 +86,7 @@ dance:
 
 		return nil, ErrUnsupportedResourceType
 
-	case ImageContainerSpec:
+	case ExecuteContainerSpec:
 		gardenSpec.RootFSPath = s.Image
 		gardenSpec.Privileged = s.Privileged
 
@@ -121,7 +124,7 @@ func (worker *gardenWorker) Satisfies(spec ContainerSpec) bool {
 			}
 		}
 
-	case ImageContainerSpec:
+	case ExecuteContainerSpec:
 		if s.Platform != worker.platform {
 			return false
 		}
@@ -141,6 +144,18 @@ func (worker *gardenWorker) Satisfies(spec ContainerSpec) bool {
 	}
 
 	return false
+}
+
+func (worker *gardenWorker) Description() string {
+	messages := []string{
+		fmt.Sprintf("platform '%s'", worker.platform),
+	}
+
+	for _, tag := range worker.tags {
+		messages = append(messages, fmt.Sprintf("tag '%s'", tag))
+	}
+
+	return strings.Join(messages, ", ")
 }
 
 type gardenWorkerContainer struct {

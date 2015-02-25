@@ -41,6 +41,12 @@ type FakeWorker struct {
 	satisfiesReturns struct {
 		result1 bool
 	}
+	DescriptionStub        func() string
+	descriptionMutex       sync.RWMutex
+	descriptionArgsForCall []struct{}
+	descriptionReturns struct {
+		result1 string
+	}
 }
 
 func (fake *FakeWorker) CreateContainer(handle string, spec worker.ContainerSpec) (worker.Container, error) {
@@ -163,6 +169,30 @@ func (fake *FakeWorker) SatisfiesReturns(result1 bool) {
 	fake.SatisfiesStub = nil
 	fake.satisfiesReturns = struct {
 		result1 bool
+	}{result1}
+}
+
+func (fake *FakeWorker) Description() string {
+	fake.descriptionMutex.Lock()
+	fake.descriptionArgsForCall = append(fake.descriptionArgsForCall, struct{}{})
+	fake.descriptionMutex.Unlock()
+	if fake.DescriptionStub != nil {
+		return fake.DescriptionStub()
+	} else {
+		return fake.descriptionReturns.result1
+	}
+}
+
+func (fake *FakeWorker) DescriptionCallCount() int {
+	fake.descriptionMutex.RLock()
+	defer fake.descriptionMutex.RUnlock()
+	return len(fake.descriptionArgsForCall)
+}
+
+func (fake *FakeWorker) DescriptionReturns(result1 string) {
+	fake.DescriptionStub = nil
+	fake.descriptionReturns = struct {
+		result1 string
 	}{result1}
 }
 

@@ -2,6 +2,7 @@ package worker
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -21,6 +22,24 @@ type WorkerProvider interface {
 }
 
 var ErrNoWorkers = errors.New("no workers")
+
+type NoCompatibleWorkersError struct {
+	Spec    ContainerSpec
+	Workers []Worker
+}
+
+func (err NoCompatibleWorkersError) Error() string {
+	availableWorkers := ""
+	for _, worker := range err.Workers {
+		availableWorkers += "\n  - " + worker.Description()
+	}
+
+	return fmt.Sprintf(
+		"no workers satisfying: %s\n\navailable workers: %s",
+		err.Spec.Description(),
+		availableWorkers,
+	)
+}
 
 type Pool struct {
 	provider WorkerProvider
@@ -52,7 +71,16 @@ func (pool *Pool) CreateContainer(handle string, spec ContainerSpec) (Container,
 		}
 	}
 
-	return compatibleWorkers[pool.rand.Intn(len(compatibleWorkers))].CreateContainer(handle, spec)
+	if len(compatibleWorkers) == 0 {
+		return nil, NoCompatibleWorkersError{
+			Spec:    spec,
+			Workers: workers,
+		}
+	}
+
+	randomWorker := compatibleWorkers[pool.rand.Intn(len(compatibleWorkers))]
+
+	return randomWorker.CreateContainer(handle, spec)
 }
 
 func (pool *Pool) Lookup(handle string) (Container, error) {

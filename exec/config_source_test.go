@@ -16,8 +16,10 @@ import (
 var _ = Describe("ConfigSource", func() {
 	var (
 		someConfig = atc.BuildConfig{
-			Image:  "some-image",
-			Params: map[string]string{"PARAM": "value"},
+			Platform: "some-platform",
+			Tags:     []string{"some", "tags"},
+			Image:    "some-image",
+			Params:   map[string]string{"PARAM": "value"},
 			Run: atc.BuildRunConfig{
 				Path: "ls",
 				Args: []string{"-al"},
@@ -100,6 +102,26 @@ var _ = Describe("ConfigSource", func() {
 
 			It("closes the stream", func() {
 				Ω(streamedOut.Closed()).Should(BeTrue())
+			})
+		})
+
+		Context("when the artifact source provides an invalid configuration", func() {
+			var streamedOut *gbytes.Buffer
+
+			BeforeEach(func() {
+				invalidConfig := someConfig
+				invalidConfig.Platform = ""
+				invalidConfig.Run = atc.BuildRunConfig{}
+
+				marshalled, err := candiedyaml.Marshal(invalidConfig)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				streamedOut = gbytes.BufferWithBytes(marshalled)
+				fakeArtifactSource.StreamFileReturns(streamedOut, nil)
+			})
+
+			It("returns an error", func() {
+				Ω(fetchErr).Should(HaveOccurred())
 			})
 		})
 
