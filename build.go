@@ -43,6 +43,10 @@ type BuildConfig struct {
 }
 
 func (a BuildConfig) Merge(b BuildConfig) BuildConfig {
+	if b.Platform != "" {
+		a.Platform = b.Platform
+	}
+
 	if b.Image != "" {
 		a.Image = b.Image
 	}

@@ -74,21 +74,23 @@ var _ = Describe("BuildConfig", func() {
 			}).Tags).Should(ConsistOf("a", "b", "c", "d"))
 		})
 
+		It("overrides the platform", func() {
+			Ω(BuildConfig{
+				Platform: "platform-a",
+			}.Merge(BuildConfig{
+				Image: "platform-b",
+			})).Should(Equal(BuildConfig{
+				Image: "platform-b",
+			}))
+		})
+
 		It("overrides the image", func() {
 			Ω(BuildConfig{
 				Image: "some-image",
-				Run: BuildRunConfig{
-					Path: "some-path",
-					Args: []string{"arg1", "arg2"},
-				},
 			}.Merge(BuildConfig{
 				Image: "better-image",
 			})).Should(Equal(BuildConfig{
 				Image: "better-image",
-				Run: BuildRunConfig{
-					Path: "some-path",
-					Args: []string{"arg1", "arg2"},
-				},
 			}))
 		})
 
