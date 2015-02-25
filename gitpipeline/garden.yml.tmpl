@@ -1,7 +1,7 @@
 ---
 name: garden-testflight
 
-director_uuid: <%= `bosh status --uuid` %>
+director_uuid: {{.DirectorUUID}}
 
 releases:
   - name: garden-linux

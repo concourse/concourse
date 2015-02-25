@@ -12,11 +12,11 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-func DeleteDeployment(deploymentName string) {
-	deleteDeployment := exec.Command("bosh", "-n", "delete", "deployment", deploymentName, "--force")
+func DirectorUUID() string {
+	directorUUID := exec.Command("bosh", "status", "--uuid")
 
 	session, err := gexec.Start(
-		deleteDeployment,
+		directorUUID,
 		gexec.NewPrefixedWriter(
 			fmt.Sprintf("%s%s ", ansi.Color("[o]", "green"), ansi.Color("[bosh]", "black+bright")),
 			GinkgoWriter,
@@ -30,13 +30,5 @@ func DeleteDeployment(deploymentName string) {
 
 	Eventually(session, 5*time.Minute).Should(gexec.Exit())
 
-	if strings.Contains(string(session.Out.Contents()), "doesn't exist") {
-		return
-	}
-
-	if strings.Contains(string(session.Err.Contents()), "doesn't exist") {
-		return
-	}
-
-	Ω(session.ExitCode()).Should(Equal(0))
+	return strings.TrimSpace(string(session.Out.Contents()))
 }

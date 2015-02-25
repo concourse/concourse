@@ -16,6 +16,8 @@ import (
 var flyBin string
 
 type GardenLinuxDeploymentData struct {
+	DirectorUUID string
+
 	GardenLinuxVersion string
 }
 
@@ -28,15 +30,18 @@ var _ = BeforeSuite(func() {
 	flyBin, err = gexec.Build("github.com/concourse/fly", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
+	directorUUID := bosh.DirectorUUID()
+
 	bosh.DeleteDeployment("concourse-testflight")
 
 	gardenLinuxDeploymentData := GardenLinuxDeploymentData{
+		DirectorUUID:       directorUUID,
 		GardenLinuxVersion: gardenLinuxVersion,
 	}
 
 	bosh.Deploy("noop.yml.tmpl", gardenLinuxDeploymentData)
 
-	atcURL := "http://10.244.8.2:8080"
+	atcURL := "http://10.244.15.2:8080"
 
 	os.Setenv("ATC_URL", atcURL)
 

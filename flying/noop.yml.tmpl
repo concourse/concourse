@@ -1,7 +1,7 @@
 ---
 name: concourse-testflight
 
-director_uuid: <%= `bosh status --uuid` %>
+director_uuid: {{.DirectorUUID}}
 
 # noop pipeline
 pipeline: &pipeline
@@ -19,7 +19,7 @@ jobs:
     instances: 1
     networks:
       - name: concourse
-        static_ips: [&web-ip 10.244.8.2]
+        static_ips: [&web-ip 10.244.15.2]
     persistent_disk: 10240
     resource_pool: concourse
     templates:
@@ -66,26 +66,26 @@ networks:
   - name: concourse
     subnets:
       # network with static ip used for web
-      - range: 10.244.8.0/30
-        reserved: [10.244.8.1]
-        static: [10.244.8.2]
+      - range: 10.244.15.0/30
+        reserved: [10.244.15.1]
+        static: [10.244.15.2]
         cloud_properties: {}
 
       # networks for dynamic ips (compilation vms)
-      - range: 10.244.8.4/30
-        reserved: [10.244.8.5]
+      - range: 10.244.15.4/30
+        reserved: [10.244.15.5]
         cloud_properties: {}
-      - range: 10.244.8.8/30
-        reserved: [10.244.8.9]
+      - range: 10.244.15.8/30
+        reserved: [10.244.15.9]
         cloud_properties: {}
-      - range: 10.244.8.12/30
-        reserved: [10.244.8.13]
+      - range: 10.244.15.12/30
+        reserved: [10.244.15.13]
         cloud_properties: {}
-      - range: 10.244.8.16/30
-        reserved: [10.244.8.17]
+      - range: 10.244.15.16/30
+        reserved: [10.244.15.17]
         cloud_properties: {}
-      - range: 10.244.8.20/30
-        reserved: [10.244.8.21]
+      - range: 10.244.15.20/30
+        reserved: [10.244.15.21]
         cloud_properties: {}
 
 resource_pools:

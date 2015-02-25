@@ -46,6 +46,8 @@ exit 0
 		err = ioutil.WriteFile(
 			filepath.Join(fixture, "build.yml"),
 			[]byte(`---
+platform: linux
+
 image: /var/vcap/packages/busybox
 
 params:
@@ -117,7 +119,7 @@ cat < /tmp/fifo
 
 			hijackS := start(hijack)
 
-			Eventually(flyS, 10*time.Second).Should(gbytes.Say("marco"))
+			Eventually(flyS, 15*time.Second).Should(gbytes.Say("marco"))
 
 			Eventually(hijackS, 5*time.Second).Should(gexec.Exit())
 

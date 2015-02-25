@@ -29,10 +29,14 @@ var (
 )
 
 type GardenLinuxDeploymentData struct {
+	DirectorUUID string
+
 	GardenLinuxVersion string
 }
 
 type GitPipelineTemplate struct {
+	DirectorUUID string
+
 	GitServers struct {
 		Origin   string
 		Success  string
@@ -51,10 +55,13 @@ var _ = BeforeSuite(func() {
 	gardenLinuxVersion := os.Getenv("GARDEN_LINUX_VERSION")
 	Ω(gardenLinuxVersion).ShouldNot(BeEmpty(), "must set $GARDEN_LINUX_VERSION")
 
+	directorUUID := bosh.DirectorUUID()
+
 	bosh.DeleteDeployment("garden-testflight")
 	bosh.DeleteDeployment("concourse-testflight")
 
 	gardenLinuxDeploymentData := GardenLinuxDeploymentData{
+		DirectorUUID:       directorUUID,
 		GardenLinuxVersion: gardenLinuxVersion,
 	}
 
@@ -71,6 +78,7 @@ var _ = BeforeSuite(func() {
 	noUpdateGitServer = gitserver.Start(helperRootfs, gardenClient)
 
 	templateData := GitPipelineTemplate{
+		DirectorUUID:              directorUUID,
 		GardenLinuxDeploymentData: gardenLinuxDeploymentData,
 	}
 
