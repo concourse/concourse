@@ -34,7 +34,9 @@ var _ = Describe("Worker", func() {
 		}
 		platform = "some-platform"
 		tags = []string{"some", "tags"}
+	})
 
+	JustBeforeEach(func() {
 		worker = NewGardenWorker(
 			fakeGardenClient,
 			fakeClock,
@@ -352,8 +354,24 @@ var _ = Describe("Worker", func() {
 					spec.Platform = "some-platform"
 				})
 
-				It("returns true", func() {
-					Ω(satisfies).Should(BeTrue())
+				Context("when no tags are specified", func() {
+					BeforeEach(func() {
+						spec.Tags = nil
+					})
+
+					It("returns false", func() {
+						Ω(satisfies).Should(BeFalse())
+					})
+				})
+
+				Context("when the worker has no tags", func() {
+					BeforeEach(func() {
+						tags = []string{}
+					})
+
+					It("returns true", func() {
+						Ω(satisfies).Should(BeTrue())
+					})
 				})
 
 				Context("when all of the requested tags are present", func() {

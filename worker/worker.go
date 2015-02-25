@@ -129,6 +129,10 @@ func (worker *gardenWorker) Satisfies(spec ContainerSpec) bool {
 			return false
 		}
 
+		if len(worker.tags) > 0 && len(s.Tags) == 0 {
+			return false
+		}
+
 	insert_coin:
 		for _, stag := range s.Tags {
 			for _, wtag := range worker.tags {
