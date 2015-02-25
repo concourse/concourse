@@ -78,9 +78,9 @@ var _ = Describe("BuildConfig", func() {
 			Ω(BuildConfig{
 				Platform: "platform-a",
 			}.Merge(BuildConfig{
-				Image: "platform-b",
+				Platform: "platform-b",
 			})).Should(Equal(BuildConfig{
-				Image: "platform-b",
+				Platform: "platform-b",
 			}))
 		})
 
