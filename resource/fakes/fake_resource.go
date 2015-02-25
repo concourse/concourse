@@ -47,10 +47,13 @@ type FakeResource struct {
 		result1 []atc.Version
 		result2 error
 	}
-	ReleaseStub        func() error
+	ReleaseStub        func()
 	releaseMutex       sync.RWMutex
 	releaseArgsForCall []struct{}
-	releaseReturns struct {
+	DestroyStub        func() error
+	destroyMutex       sync.RWMutex
+	destroyArgsForCall []struct{}
+	destroyReturns struct {
 		result1 error
 	}
 }
@@ -183,14 +186,12 @@ func (fake *FakeResource) CheckReturns(result1 []atc.Version, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeResource) Release() error {
+func (fake *FakeResource) Release() {
 	fake.releaseMutex.Lock()
 	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct{}{})
 	fake.releaseMutex.Unlock()
 	if fake.ReleaseStub != nil {
-		return fake.ReleaseStub()
-	} else {
-		return fake.releaseReturns.result1
+		fake.ReleaseStub()
 	}
 }
 
@@ -200,9 +201,26 @@ func (fake *FakeResource) ReleaseCallCount() int {
 	return len(fake.releaseArgsForCall)
 }
 
-func (fake *FakeResource) ReleaseReturns(result1 error) {
-	fake.ReleaseStub = nil
-	fake.releaseReturns = struct {
+func (fake *FakeResource) Destroy() error {
+	fake.destroyMutex.Lock()
+	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct{}{})
+	fake.destroyMutex.Unlock()
+	if fake.DestroyStub != nil {
+		return fake.DestroyStub()
+	} else {
+		return fake.destroyReturns.result1
+	}
+}
+
+func (fake *FakeResource) DestroyCallCount() int {
+	fake.destroyMutex.RLock()
+	defer fake.destroyMutex.RUnlock()
+	return len(fake.destroyArgsForCall)
+}
+
+func (fake *FakeResource) DestroyReturns(result1 error) {
+	fake.DestroyStub = nil
+	fake.destroyReturns = struct {
 		result1 error
 	}{result1}
 }

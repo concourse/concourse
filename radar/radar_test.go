@@ -126,6 +126,12 @@ var _ = Describe("Radar", func() {
 			Ω(writeImmediatelyLock.ReleaseCallCount()).Should(Equal(1))
 		})
 
+		It("releases after checking", func() {
+			Eventually(times).Should(Receive())
+
+			Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
+		})
+
 		Context("when there is no current version", func() {
 			It("checks from nil", func() {
 				Eventually(times).Should(Receive())
@@ -349,6 +355,10 @@ var _ = Describe("Radar", func() {
 			Ω(lockedInputs).Should(Equal([]db.NamedLock{db.ResourceCheckingLock("some-resource")}))
 
 			Ω(writeLock.ReleaseCallCount()).Should(Equal(1))
+		})
+
+		It("releases the resource", func() {
+			Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
 		})
 
 		Context("when there is no current version", func() {

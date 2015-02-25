@@ -11,18 +11,26 @@ import (
 
 var _ = Describe("Resource", func() {
 	Describe("Release", func() {
+		It("releases the container", func() {
+			resource.Release()
+
+			Ω(fakeContainer.ReleaseCallCount()).Should(Equal(1))
+		})
+	})
+
+	Describe("Destroy", func() {
 		It("destroys the container", func() {
-			err := resource.Release()
+			err := resource.Destroy()
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Ω(fakeContainer.DestroyCallCount()).Should(Equal(1))
 		})
 
 		It("only destroys on the first call", func() {
-			err := resource.Release()
+			err := resource.Destroy()
 			Ω(err).ShouldNot(HaveOccurred())
 
-			err = resource.Release()
+			err = resource.Destroy()
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Ω(fakeContainer.DestroyCallCount()).Should(Equal(1))
@@ -36,7 +44,7 @@ var _ = Describe("Resource", func() {
 			})
 
 			It("returns the error", func() {
-				err := resource.Release()
+				err := resource.Destroy()
 				Ω(err).Should(Equal(disaster))
 			})
 		})

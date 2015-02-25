@@ -117,6 +117,8 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 		return err
 	}
 
+	defer res.Release()
+
 	var from db.Version
 	if vr, err := radar.versionDB.GetLatestVersionedResource(resourceName); err == nil {
 		from = vr.Version

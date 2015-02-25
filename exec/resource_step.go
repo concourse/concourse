@@ -57,7 +57,7 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 func (ras *resourceStep) Release() error {
 	if ras.Resource != nil {
-		return ras.Resource.Release()
+		return ras.Resource.Destroy()
 	}
 
 	return nil

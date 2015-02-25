@@ -10,6 +10,7 @@ import (
 )
 
 //go:generate counterfeiter . Resource
+
 type Resource interface {
 	Type() ResourceType
 
@@ -18,7 +19,8 @@ type Resource interface {
 
 	Check(atc.Source, atc.Version) ([]atc.Version, error)
 
-	Release() error
+	Release()
+	Destroy() error
 }
 
 type IOConfig struct {
@@ -27,16 +29,19 @@ type IOConfig struct {
 }
 
 //go:generate counterfeiter . ArtifactSource
+
 type ArtifactSource interface {
 	StreamTo(ArtifactDestination) error
 }
 
 //go:generate counterfeiter . ArtifactDestination
+
 type ArtifactDestination interface {
 	StreamIn(string, io.Reader) error
 }
 
 //go:generate counterfeiter . VersionedSource
+
 type VersionedSource interface {
 	ifrit.Runner
 
@@ -70,7 +75,11 @@ func (resource *resource) Type() ResourceType {
 	return resource.typ
 }
 
-func (resource *resource) Release() error {
+func (resource *resource) Release() {
+	resource.container.Release()
+}
+
+func (resource *resource) Destroy() error {
 	var err error
 
 	resource.releaseOnce.Do(func() {
