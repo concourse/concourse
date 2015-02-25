@@ -48,6 +48,8 @@ case $1 in
       -gardenAddr=<%= my_ip + ":" + p("gate.garden.address").split(":")[1] %> \
       -atcAPIURL=<%= "http://#{CGI.escape(p("gate.atc.username"))}:#{CGI.escape(p("gate.atc.password"))}@#{p("gate.atc.address")}" %> \
       -resourceTypes=<%= Shellwords.shellescape(p("gate.resource_types").to_json) %> \
+      -platform=<%= p("gate.platform") %> \
+      -tags=<%= Shellwords.shellescape(p("gate.tags").join(",")) %> \
       1>>$LOG_DIR/gate.stdout.log \
       2>>$LOG_DIR/gate.stderr.log
 

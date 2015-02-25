@@ -56,6 +56,14 @@ properties:
       - type: github-release
         image: /var/vcap/packages/github_release_resource
 
+  gate.platform:
+    description: "platform of the worker to advertise"
+    default: linux
+
+  gate.tags:
+    description: "an array of tags to advertise for the worker"
+    default: []
+
   gate.atc.address:
     description: "atc server connection address"
     default: atc.service.dc1.consul:8080
