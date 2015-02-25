@@ -165,6 +165,11 @@ func createBuild(
 	inputs []Input,
 	config atc.BuildConfig,
 ) atc.Build {
+	if err := config.Validate(); err != nil {
+		println(err.Error())
+		os.Exit(1)
+	}
+
 	buffer := &bytes.Buffer{}
 
 	buildInputs := make([]atc.InputPlan, len(inputs))

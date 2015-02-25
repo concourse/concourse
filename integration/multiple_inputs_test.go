@@ -46,6 +46,8 @@ var _ = Describe("Fly CLI", func() {
 		err = ioutil.WriteFile(
 			filepath.Join(buildDir, "build.yml"),
 			[]byte(`---
+platform: some-platform
+
 image: ubuntu
 
 params:
@@ -77,7 +79,8 @@ run:
 
 		expectedBuildPlan = atc.BuildPlan{
 			Config: &atc.BuildConfig{
-				Image: "ubuntu",
+				Platform: "some-platform",
+				Image:    "ubuntu",
 				Params: map[string]string{
 					"FOO": "bar",
 					"BAZ": "buzz",

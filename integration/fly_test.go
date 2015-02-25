@@ -47,6 +47,8 @@ var _ = Describe("Fly CLI", func() {
 		err = ioutil.WriteFile(
 			filepath.Join(buildDir, "build.yml"),
 			[]byte(`---
+platform: some-platform
+
 image: ubuntu
 
 params:
@@ -71,7 +73,8 @@ run:
 
 		expectedBuildPlan = atc.BuildPlan{
 			Config: &atc.BuildConfig{
-				Image: "ubuntu",
+				Platform: "some-platform",
+				Image:    "ubuntu",
 				Params: map[string]string{
 					"FOO": "bar",
 					"BAZ": "buzz",
@@ -201,6 +204,32 @@ run:
 
 		close(events)
 		Eventually(sess).Should(gexec.Exit(0))
+	})
+
+	Context("when the build config is invalid", func() {
+		BeforeEach(func() {
+			// missing platform and run path
+			err := ioutil.WriteFile(
+				filepath.Join(buildDir, "build.yml"),
+				[]byte(`---
+run: {}
+`),
+				0644,
+			)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("prints the failure and exits 1", func() {
+			flyCmd := exec.Command(flyPath)
+			flyCmd.Dir = buildDir
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Eventually(sess.Err).Should(gbytes.Say("missing"))
+
+			Eventually(sess).Should(gexec.Exit(1))
+		})
 	})
 
 	Context("when arguments are passed through", func() {
