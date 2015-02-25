@@ -66,6 +66,14 @@ var _ = Describe("BuildConfig", func() {
 			}))
 		})
 
+		It("merges tags", func() {
+			Ω(BuildConfig{
+				Tags: []string{"a", "b"},
+			}.Merge(BuildConfig{
+				Tags: []string{"b", "c", "d"},
+			}).Tags).Should(ConsistOf("a", "b", "c", "d"))
+		})
+
 		It("overrides the image", func() {
 			Ω(BuildConfig{
 				Image: "some-image",

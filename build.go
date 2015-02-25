@@ -63,6 +63,27 @@ func (a BuildConfig) Merge(b BuildConfig) BuildConfig {
 		a.Params = b.Params
 	}
 
+	if len(a.Tags) > 0 || len(b.Tags) > 0 {
+		uniqTags := map[string]struct{}{}
+
+		for _, tag := range a.Tags {
+			uniqTags[tag] = struct{}{}
+		}
+
+		for _, tag := range b.Tags {
+			uniqTags[tag] = struct{}{}
+		}
+
+		tags := make([]string, len(uniqTags))
+		i := 0
+		for tag, _ := range uniqTags {
+			tags[i] = tag
+			i++
+		}
+
+		a.Tags = tags
+	}
+
 	if len(b.Inputs) != 0 {
 		a.Inputs = b.Inputs
 	}
