@@ -9,11 +9,13 @@ import (
 type ResourceType string
 type ContainerImage string
 
-type SessionID string
+type Session struct {
+	ID string
+}
 
 //go:generate counterfeiter . Tracker
 type Tracker interface {
-	Init(SessionID, ResourceType) (Resource, error)
+	Init(Session, ResourceType) (Resource, error)
 }
 
 type tracker struct {
@@ -28,10 +30,10 @@ func NewTracker(workerClient worker.Client) Tracker {
 	}
 }
 
-func (tracker *tracker) Init(sessionID SessionID, typ ResourceType) (Resource, error) {
-	container, err := tracker.workerClient.Lookup(string(sessionID))
+func (tracker *tracker) Init(session Session, typ ResourceType) (Resource, error) {
+	container, err := tracker.workerClient.Lookup(string(session.ID))
 	if err != nil {
-		container, err = tracker.workerClient.CreateContainer(string(sessionID), worker.ResourceTypeContainerSpec{
+		container, err = tracker.workerClient.CreateContainer(string(session.ID), worker.ResourceTypeContainerSpec{
 			Type: string(typ),
 		})
 		if err != nil {

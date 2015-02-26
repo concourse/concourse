@@ -8,10 +8,10 @@ import (
 )
 
 type FakeTracker struct {
-	InitStub        func(resource.SessionID, resource.ResourceType) (resource.Resource, error)
+	InitStub        func(resource.Session, resource.ResourceType) (resource.Resource, error)
 	initMutex       sync.RWMutex
 	initArgsForCall []struct {
-		arg1 resource.SessionID
+		arg1 resource.Session
 		arg2 resource.ResourceType
 	}
 	initReturns struct {
@@ -20,10 +20,10 @@ type FakeTracker struct {
 	}
 }
 
-func (fake *FakeTracker) Init(arg1 resource.SessionID, arg2 resource.ResourceType) (resource.Resource, error) {
+func (fake *FakeTracker) Init(arg1 resource.Session, arg2 resource.ResourceType) (resource.Resource, error) {
 	fake.initMutex.Lock()
 	fake.initArgsForCall = append(fake.initArgsForCall, struct {
-		arg1 resource.SessionID
+		arg1 resource.Session
 		arg2 resource.ResourceType
 	}{arg1, arg2})
 	fake.initMutex.Unlock()
@@ -40,7 +40,7 @@ func (fake *FakeTracker) InitCallCount() int {
 	return len(fake.initArgsForCall)
 }
 
-func (fake *FakeTracker) InitArgsForCall(i int) (resource.SessionID, resource.ResourceType) {
+func (fake *FakeTracker) InitArgsForCall(i int) (resource.Session, resource.ResourceType) {
 	fake.initMutex.RLock()
 	defer fake.initMutex.RUnlock()
 	return fake.initArgsForCall[i].arg1, fake.initArgsForCall[i].arg2

@@ -27,7 +27,9 @@ func NewGardenFactory(
 
 func (factory *gardenFactory) Get(sessionID SessionID, delegate GetDelegate, config atc.ResourceConfig, params atc.Params, version atc.Version) Step {
 	return resourceStep{
-		SessionID: resource.SessionID(sessionID),
+		Session: resource.Session{
+			ID: string(sessionID),
+		},
 
 		Delegate: delegate,
 
@@ -45,7 +47,9 @@ func (factory *gardenFactory) Get(sessionID SessionID, delegate GetDelegate, con
 
 func (factory *gardenFactory) Put(sessionID SessionID, delegate PutDelegate, config atc.ResourceConfig, params atc.Params) Step {
 	return resourceStep{
-		SessionID: resource.SessionID(sessionID),
+		Session: resource.Session{
+			ID: string(sessionID),
+		},
 
 		Delegate: delegate,
 

@@ -11,12 +11,14 @@ import (
 	. "github.com/concourse/atc/resource"
 )
 
-const sessionID = "some-session-id"
-
 var _ = Describe("Tracker", func() {
 	var (
 		tracker Tracker
 	)
+
+	var session = Session{
+		ID: "some-session-id",
+	}
 
 	BeforeEach(func() {
 		workerClient.CreateContainerReturns(fakeContainer, nil)
@@ -37,7 +39,7 @@ var _ = Describe("Tracker", func() {
 		})
 
 		JustBeforeEach(func() {
-			initResource, initErr = tracker.Init(sessionID, initType)
+			initResource, initErr = tracker.Init(session, initType)
 		})
 
 		Context("when a container does not exist for the session", func() {
@@ -53,7 +55,7 @@ var _ = Describe("Tracker", func() {
 			It("creates a privileged container with the resource type's image, and the session as the handle", func() {
 				handle, spec := workerClient.CreateContainerArgsForCall(0)
 
-				Ω(handle).Should(Equal(sessionID))
+				Ω(handle).Should(Equal(session.ID))
 				Ω(spec).Should(Equal(worker.ResourceTypeContainerSpec{
 					Type: string(initType),
 				}))

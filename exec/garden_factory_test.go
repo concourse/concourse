@@ -223,7 +223,9 @@ var _ = Describe("GardenFactory", func() {
 				Ω(fakeTracker.InitCallCount()).Should(Equal(1))
 
 				sid, typ := fakeTracker.InitArgsForCall(0)
-				Ω(sid).Should(Equal(resource.SessionID(sessionID)))
+				Ω(sid).Should(Equal(resource.Session{
+					ID: sessionID,
+				}))
 				Ω(typ).Should(Equal(resource.ResourceType("some-resource-type")))
 			})
 
@@ -566,7 +568,9 @@ var _ = Describe("GardenFactory", func() {
 				Ω(fakeTracker.InitCallCount()).Should(Equal(1))
 
 				sid, typ := fakeTracker.InitArgsForCall(0)
-				Ω(sid).Should(Equal(resource.SessionID(sessionID)))
+				Ω(sid).Should(Equal(resource.Session{
+					ID: sessionID,
+				}))
 				Ω(typ).Should(Equal(resource.ResourceType("some-resource-type")))
 			})
 

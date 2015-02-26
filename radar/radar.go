@@ -111,7 +111,7 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 
 	typ := resource.ResourceType(resourceConfig.Type)
 
-	res, err := radar.tracker.Init(checkSessionID(resourceConfig), typ)
+	res, err := radar.tracker.Init(checkSession(resourceConfig), typ)
 	if err != nil {
 		logger.Error("failed-to-initialize-new-resource", err)
 		return err
@@ -162,6 +162,8 @@ func (radar *Radar) checkLock(resourceName string) []db.NamedLock {
 	return []db.NamedLock{db.ResourceCheckingLock(resourceName)}
 }
 
-func checkSessionID(res atc.ResourceConfig) resource.SessionID {
-	return resource.SessionID("check-" + res.Type + "-" + res.Name)
+func checkSession(res atc.ResourceConfig) resource.Session {
+	return resource.Session{
+		ID: "check-" + res.Type + "-" + res.Name,
+	}
 }
