@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"runtime"
 
 	"github.com/codegangsta/cli"
@@ -20,7 +21,8 @@ func Sync(c *cli.Context) {
 		atc.DownloadCLI, rata.Params{}, nil,
 	)
 	if err != nil {
-		fmt.Printf("Building request failed: %v\n", err)
+		fmt.Printf("building request failed: %v\n", err)
+		os.Exit(1)
 	}
 
 	request.URL.RawQuery = url.Values{
@@ -28,16 +30,18 @@ func Sync(c *cli.Context) {
 		"platform": []string{runtime.GOOS},
 	}.Encode()
 
+	fmt.Printf("downloading fly from %s...", request.URL.Host)
+
 	err, errRecover := update.New().FromUrl(request.URL.String())
 	if err != nil {
-		fmt.Printf("Update failed: %v\n", err)
+		fmt.Printf("update failed: %v\n", err)
 		if errRecover != nil {
-			fmt.Printf("Failed to recover previous executable: %v!\n", errRecover)
-			fmt.Printf("Things are probably in a bad state on your machine now.\n")
+			fmt.Printf("failed to recover previous executable: %v!\n", errRecover)
+			fmt.Printf("things are probably in a bad state on your machine now.\n")
 		}
 
 		return
 	}
 
-	fmt.Println("Update successful!")
+	fmt.Println("update successful!")
 }
