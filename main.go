@@ -88,6 +88,12 @@ func main() {
 			},
 			Action: commands.Configure,
 		},
+		{
+			Name:      "sync",
+			ShortName: "s",
+			Usage:     "download and replace the current fly from the target",
+			Action:    commands.Sync,
+		},
 	}
 
 	err := app.Run(os.Args)
