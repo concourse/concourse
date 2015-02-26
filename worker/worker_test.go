@@ -90,6 +90,27 @@ var _ = Describe("Worker", func() {
 						}))
 					})
 
+					Context("if the container is marked as ephemeral", func() {
+						BeforeEach(func() {
+							spec = ResourceTypeContainerSpec{
+								Type:      "some-resource",
+								Ephemeral: true,
+							}
+						})
+
+						It("adds an 'ephemeral' property to the container", func() {
+							Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
+							Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
+								Handle:     "some-handle",
+								RootFSPath: "some-resource-image",
+								Privileged: true,
+								Properties: garden.Properties{
+									"ephemeral": "true",
+								},
+							}))
+						})
+					})
+
 					Describe("the created container", func() {
 						It("can be destroyed", func() {
 							err := createdContainer.Destroy()

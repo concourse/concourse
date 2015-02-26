@@ -10,7 +10,8 @@ type ContainerSpec interface {
 }
 
 type ResourceTypeContainerSpec struct {
-	Type string
+	Type      string
+	Ephemeral bool
 }
 
 func (spec ResourceTypeContainerSpec) Description() string {

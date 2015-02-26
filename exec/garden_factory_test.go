@@ -219,12 +219,13 @@ var _ = Describe("GardenFactory", func() {
 				fakeResource.GetReturns(fakeVersionedSource)
 			})
 
-			It("initializes the resource with the correct type and session id", func() {
+			It("initializes the resource with the correct type and session id, making sure that it is not ephemeral", func() {
 				Ω(fakeTracker.InitCallCount()).Should(Equal(1))
 
 				sid, typ := fakeTracker.InitArgsForCall(0)
 				Ω(sid).Should(Equal(resource.Session{
-					ID: sessionID,
+					ID:        sessionID,
+					Ephemeral: false,
 				}))
 				Ω(typ).Should(Equal(resource.ResourceType("some-resource-type")))
 			})

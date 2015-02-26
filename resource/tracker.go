@@ -10,7 +10,8 @@ type ResourceType string
 type ContainerImage string
 
 type Session struct {
-	ID string
+	ID        string
+	Ephemeral bool
 }
 
 //go:generate counterfeiter . Tracker
@@ -35,7 +36,8 @@ func (tracker *tracker) Init(session Session, typ ResourceType) (Resource, error
 	container, err := tracker.workerClient.Lookup(string(session.ID))
 	if err != nil {
 		container, err = tracker.workerClient.CreateContainer(string(session.ID), worker.ResourceTypeContainerSpec{
-			Type: string(typ),
+			Type:      string(typ),
+			Ephemeral: session.Ephemeral,
 		})
 		if err != nil {
 			return nil, err

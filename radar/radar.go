@@ -164,6 +164,7 @@ func (radar *Radar) checkLock(resourceName string) []db.NamedLock {
 
 func checkSession(res atc.ResourceConfig) resource.Session {
 	return resource.Session{
-		ID: "check-" + res.Type + "-" + res.Name,
+		ID:        "check-" + res.Type + "-" + res.Name,
+		Ephemeral: true,
 	}
 }

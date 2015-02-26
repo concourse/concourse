@@ -28,7 +28,8 @@ func NewGardenFactory(
 func (factory *gardenFactory) Get(sessionID SessionID, delegate GetDelegate, config atc.ResourceConfig, params atc.Params, version atc.Version) Step {
 	return resourceStep{
 		Session: resource.Session{
-			ID: string(sessionID),
+			ID:        string(sessionID),
+			Ephemeral: false,
 		},
 
 		Delegate: delegate,

@@ -17,7 +17,8 @@ var _ = Describe("Tracker", func() {
 	)
 
 	var session = Session{
-		ID: "some-session-id",
+		ID:        "some-session-id",
+		Ephemeral: true,
 	}
 
 	BeforeEach(func() {
@@ -52,12 +53,13 @@ var _ = Describe("Tracker", func() {
 				Ω(initResource).ShouldNot(BeNil())
 			})
 
-			It("creates a privileged container with the resource type's image, and the session as the handle", func() {
+			It("creates a container with the resource's type, ephemeral information, and the session as the handle", func() {
 				handle, spec := workerClient.CreateContainerArgsForCall(0)
 
 				Ω(handle).Should(Equal(session.ID))
 				Ω(spec).Should(Equal(worker.ResourceTypeContainerSpec{
-					Type: string(initType),
+					Type:      string(initType),
+					Ephemeral: true,
 				}))
 			})
 

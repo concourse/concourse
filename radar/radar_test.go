@@ -102,7 +102,8 @@ var _ = Describe("Radar", func() {
 
 			sessionID, typ := fakeTracker.InitArgsForCall(0)
 			Ω(sessionID).Should(Equal(resource.Session{
-				ID: "check-git-some-resource",
+				ID:        "check-git-some-resource",
+				Ephemeral: true,
 			}))
 			Ω(typ).Should(Equal(resource.ResourceType("git")))
 		})
@@ -347,7 +348,8 @@ var _ = Describe("Radar", func() {
 		It("constructs the resource of the correct type", func() {
 			sessionID, typ := fakeTracker.InitArgsForCall(0)
 			Ω(sessionID).Should(Equal(resource.Session{
-				ID: "check-git-some-resource",
+				ID:        "check-git-some-resource",
+				Ephemeral: true,
 			}))
 			Ω(typ).Should(Equal(resource.ResourceType("git")))
 		})

@@ -77,6 +77,12 @@ dance:
 	case ResourceTypeContainerSpec:
 		gardenSpec.Privileged = true
 
+		if s.Ephemeral {
+			gardenSpec.Properties = garden.Properties{
+				"ephemeral": "true",
+			}
+		}
+
 		for _, t := range worker.resourceTypes {
 			if t.Type == s.Type {
 				gardenSpec.RootFSPath = t.Image
