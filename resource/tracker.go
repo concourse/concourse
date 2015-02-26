@@ -14,6 +14,7 @@ type Session struct {
 }
 
 //go:generate counterfeiter . Tracker
+
 type Tracker interface {
 	Init(Session, ResourceType) (Resource, error)
 }
