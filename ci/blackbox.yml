@@ -1,4 +1,5 @@
 ---
+platform: linux
 image: docker:///mischief/docker-golang
 
 inputs:
