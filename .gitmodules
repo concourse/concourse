@@ -122,3 +122,7 @@
 	path = src/github.com/hashicorp/go-multierror
 	url = https://github.com/hashicorp/go-multierror
 	branch = master
+[submodule "src/github.com/gogo/protobuf"]
+	path = src/github.com/gogo/protobuf
+	url = https://github.com/gogo/protobuf
+	branch = master
