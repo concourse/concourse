@@ -112,13 +112,13 @@
 	branch = master
 [submodule "src/github.com/concourse/gate"]
 	path = src/github.com/concourse/gate
-	url = https://github.com/concourse/gate.git
-	branch = master
-[submodule "src/github.com/gogo/protobuf"]
-	path = src/github.com/gogo/protobuf
-	url = https://github.com/gogo/protobuf
+	url = git@github.com:concourse/gate.git
 	branch = master
 [submodule "src/github.com/pivotal-golang/clock"]
 	path = src/github.com/pivotal-golang/clock
 	url = https://github.com/pivotal-golang/clock
+	branch = master
+[submodule "src/github.com/hashicorp/go-multierror"]
+	path = src/github.com/hashicorp/go-multierror
+	url = https://github.com/hashicorp/go-multierror
 	branch = master
