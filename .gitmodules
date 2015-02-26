@@ -126,3 +126,15 @@
 	path = src/github.com/gogo/protobuf
 	url = https://github.com/gogo/protobuf
 	branch = master
+[submodule "src/github.com/kr/binarydist"]
+	path = src/github.com/kr/binarydist
+	url = https://github.com/kr/binarydist
+	branch = master
+[submodule "src/github.com/inconshreveable/go-update"]
+	path = src/github.com/inconshreveable/go-update
+	url = https://github.com/inconshreveable/go-update
+	branch = master
+[submodule "src/github.com/kardianos/osext"]
+	path = src/github.com/kardianos/osext
+	url = https://github.com/kardianos/osext
+	branch = master
