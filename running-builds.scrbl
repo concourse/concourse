@@ -21,6 +21,8 @@ Conventionally a build's configuration is placed in the root of a repo as
 
 @codeblock|{
 ---
+platform: linux
+
 image: docker:///ubuntu#14.04
 
 run:
@@ -33,12 +35,26 @@ This configuration specifies that the build must run with the
 
 A build's configuration specifies the following:
 
+@defthing[platform string]{
+  @emph{Required.} The platform the build should run on. By convention,
+  @code{windows}, @code{linux}, or @code{darwin} are specified. This determines
+  the pool of workers that the build can run against. The base deployment
+  provides Linux workers.
+}
+
+@defthing[tags string]{
+  @emph{Optional.} A set of arbitrary tags to determine which workers the build
+  should run on. This is typically left empty for builds configs, and overridden
+  by jobs. This is to keep build configs limited to actual requirements, rather
+  than worker placement/pipeline config.
+}
+
 @defthing[image string]{
-  @emph{Required.} The base image of the container. For a
-  Docker image, specify in the format @code{docker:///username/repo#tag}
-  (rather than @code{username/repo:tag}). If you for whatever reason have an
-  extracted rootfs lying around, you can also specify the absolute path to it
-  on the worker VM.
+  @emph{Optional.} The base image of the container. For a Docker image, specify
+  in the format @code{docker:///username/repo#tag} (rather than
+  @code{username/repo:tag}). If you for whatever reason have an extracted
+  rootfs lying around, you can also specify the absolute path to it on the
+  worker VM.
 }
 
 @defthing[inputs [object]]{
