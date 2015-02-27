@@ -1,18 +1,29 @@
 #lang scribble/manual
 
+@(require scribble/core
+          scribble/html-properties)
+
+@(define strike
+     (make-style "strike"
+                 (list (make-css-addition "concourse.css"))))
+
 @title[#:style '(quiet unnumbered)]{v0.35.0}
 
-There was a little delay in cutting this release as the laptop^H^H^H^H^H^H high
-performance build cluster we use to build the Packer boxes was decomissioned as
-we switched over to new hardware.
+There was a little delay in cutting this release as the @elem[#:style
+strike]{laptop} high performance build cluster we use to build the Packer
+boxes was decomissioned as we switched over to new hardware.
 
 @itemlist[
   @item{
     Workers can now advertise the platform that they support as well as
-    additional tags that can influence the placement of builds. For more
-    information see THIS DOCUMENTATION THAT'S TOTALLY WRITTEN. The main
-    takeaway is that you'll need to add @code{platform: linux} to all of your
-    @code{build.yml}s.
+    additional tags that can influence the placement of builds.
+
+    Today's build configs will have to start specifying an explicit
+    @code{platform}. See @secref{configuring-builds} for more information. The
+    main takeaway is that you'll need to add @code{platform: linux} to all
+    of your @code{build.yml}s.
+
+    For more information on configuring additional workers, see @secref{worker-pools}.
   }
 
   @item{
@@ -23,7 +34,8 @@ we switched over to new hardware.
 
   @item{
     You can now download a compatible @code{fly} from ATC. Look for the links
-    in the bottom right of the main page.
+    in the bottom right of the main page. The new @code{fly sync} command can be
+    used to synchronise the version of @code{fly} with the targetted ATC.
   }
 
   @item{
