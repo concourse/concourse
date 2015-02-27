@@ -1,11 +1,6 @@
 #lang scribble/manual
 
-@(require scribble/core
-          scribble/html-properties)
-
-@(define strike
-     (make-style "strike"
-                 (list (make-css-addition "concourse.css"))))
+@(require "../common.rkt")
 
 @title[#:style '(quiet unnumbered)]{v0.35.0}
 
