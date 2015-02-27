@@ -1,6 +1,9 @@
 #!/bin/bash -e
 
-<% require "cgi" %>
+<%
+  require "cgi"
+  require "shellwords"
+%>
 
 RUN_DIR=/var/vcap/sys/run/gate
 LOG_DIR=/var/vcap/sys/log/gate
