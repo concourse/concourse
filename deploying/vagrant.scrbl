@@ -27,13 +27,13 @@ $ vagrant up                  ; # downloads the box and spins up the VM
 
 The web server will be running at @hyperlink["http://192.168.100.4:8080"]{192.168.100.4:8080}.
 
+Next, download the Fly CLI from the @hyperlink["http://192.168.100.4:8080"]{main page}.
+There are links to binaries for common platforms at the bottom right.
+
 @margin-note{
   If you're on Linux or OS X, you will have to @code{chmod +x} the downloaded
   binary and put it in your @code{$PATH}.
 }
-
-Next, download the Fly CLI from the @hyperlink["http://192.168.100.4:8080"]{main page}.
-There are links to binaries for common platforms at the bottom right.
 
 The default pipeline configuration is blank. You can see the current configuration by running:
 
@@ -49,7 +49,5 @@ $ fly configure -c path/to/pipeline.yml
 }|
 
 This will validate your pipeline config and immediately switch Concourse to it.
-
-To download the current configuration, run the same command with no flags:
 
 To run arbitrary builds against the Vagrant box, see @secref{running-builds}.
