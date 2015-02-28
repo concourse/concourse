@@ -21,4 +21,5 @@ To see a live example, check out
 @include-section{running-builds.scrbl}
 @include-section{pipelines.scrbl}
 @include-section{implementing-resources.scrbl}
+@include-section{fly-cli.scrbl}
 @include-section{release-notes.scrbl}
