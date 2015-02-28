@@ -18,7 +18,7 @@ platforms in the bottom right hand corner of the main page.
 Fly works with an already deployed ATC. If you don't already have one of
 these you should follow the @seclink["deploying-with-vagrant"]{Deploying
 with Vagrant} or @seclink["deploying-with-bosh"]{Deploying with BOSH} guides
-to deploy a Concourse that contains an ATC.
+to deploy a Concourse.
 
 Once, you've deployed an ATC you can tell @code{fly} to target it in a
 couple of ways. You can either set the environment variable @code{ATC_URL}
@@ -40,8 +40,8 @@ $ ATC_URL='http://ci.example.com' fly sync
 }
 
 The single quotes aren't always required but if you need to put HTTP basic
-authentication crednentials inline then they can help by avoiding the need
-to escape sepcial characters in passwords. For example:
+authentication credentials inline then they can help by avoiding the need to
+escape sepcial characters in passwords. For example:
 
 @codeblock|{
 $ fly --atcURL 'http://username:p@$$w0rd@ci.example.com' sync
@@ -150,12 +150,12 @@ definition in the YAML file specified.
 @section{@code{intercept}: Accessing a running or recent build}
 
 Sometimes it's helpful to be on the same machine as your builds so that you
-can profile or inspect it as it is running or see the state the the machine
-was left in at the end of it. Due to Concourse running builds in containers
-on remote machines this would typically be hard to access. To help with this
-there is a @code{fly intercept} command that will give you a shell inside
-the most recent one-off build that was submitted to Concourse. For example,
-running the following will run a build and then enter the finished build's
+can profile or inspect them as they run or see the state the machine at the
+end of a run. Due to Concourse running builds in containers on remote
+machines this would typically be hard to access. To this end, there is a
+@code{fly intercept} command that will give you a shell inside the most
+recent one-off build that was submitted to Concourse. For example, running
+the following will run a build and then enter the finished build's
 container:
 
 @margin-note{
@@ -180,7 +180,7 @@ remote container that is running as the @code{root} user.
 
 @margin-note{
   The command @code{fly hijack} is an alias of @code{fly intercept}. Both can
-  be used interchangably. 
+  be used interchangably.
 }
 
 @centered{
