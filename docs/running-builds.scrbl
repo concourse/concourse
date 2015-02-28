@@ -164,25 +164,5 @@ Fly will automatically capture @code{SIGINT} and @code{SIGTERM} and abort the
 build when received. Generally Fly tries to be as thin of a proxy as possible;
 this allows it to be transparently composed with other toolchains.
 
-
-@subsection{Hijacking}
-
-When a build is running, it's off in a container in a VM somewhere.
-Traditionally your builds run on your machine, making it easy to see what's
-going on with standard tools like @code{ps auxf}.
-
-Fly preserves this functionality by allowing you to @code{hijack} the build's
-container.
-
-When a build is running, simply execute @code{fly hijack} from any terminal.
-You will be placed in a new interactive session running in the most recent
-build's container. This can be done multiple times.
-
-@centered{
-  @image["images/fly-demo.png"]{Fly Demo}
-}
-
-A specific command can also be given, e.g. @code{fly hijack ps auxf} or
-@code{fly hijack htop}. This allows for patterns such as @code{watch fly hijack
-ps auxf}, which will continuously show the process tree of the current build,
-even as the "current build" changes.
+For more information on how to use @code{fly}, see @@seclink["fly-cli"]{the
+Fly CLI} section.
