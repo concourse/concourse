@@ -4,11 +4,10 @@
 
 @title[#:version version #:tag "fly-cli"]{The Fly CLI}
 
-The @code{fly} tool is a command line interface to Concourse. It is used for
-a number of tasks from connectiing to a shell in one of your build's
-containers to uploading new pipeline configuration into a running Concourse.
-Learning how to use @code{fly} will make using Concourse faster and more
-useful.
+The @code{fly} tool is a command line interface to Concourse. It is used for a
+number of tasks from connecting to a shell in one of your build's containers to
+uploading new pipeline configuration into a running Concourse.  Learning how to
+use @code{fly} will make using Concourse faster and more useful.
 
 You can download @code{fly} from an ATC. There are download links for common
 platforms in the bottom right hand corner of the main page.
@@ -41,7 +40,7 @@ $ ATC_URL='http://ci.example.com' fly sync
 
 The single quotes aren't always required but if you need to put HTTP basic
 authentication credentials inline then they can help by avoiding the need to
-escape sepcial characters in passwords. For example:
+escape special characters in passwords. For example:
 
 @codeblock|{
 $ fly --atcURL 'http://username:p@$$w0rd@ci.example.com' sync
