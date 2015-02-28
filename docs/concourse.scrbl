@@ -18,8 +18,8 @@ To see a live example, check out
 @include-section{what-and-why.scrbl}
 @include-section{concepts.scrbl}
 @include-section{getting-started.scrbl}
+@include-section{fly-cli.scrbl}
 @include-section{running-builds.scrbl}
 @include-section{pipelines.scrbl}
 @include-section{implementing-resources.scrbl}
-@include-section{fly-cli.scrbl}
 @include-section{release-notes.scrbl}
