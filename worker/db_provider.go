@@ -1,6 +1,8 @@
 package worker
 
 import (
+	"time"
+
 	gclient "github.com/cloudfoundry-incubator/garden/client"
 	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
 	"github.com/pivotal-golang/clock"
@@ -28,11 +30,21 @@ func (provider *dbProvider) Workers() ([]Worker, error) {
 		return nil, err
 	}
 
+	tikTok := clock.NewClock()
+
 	workers := make([]Worker, len(workerInfos))
 	for i, info := range workerInfos {
+		gardenConn := RetryableConnection{
+			Connection: gconn.New("tcp", info.Addr),
+			Sleeper:    tikTok,
+			RetryPolicy: ExponentialRetryPolicy{
+				Timeout: 5 * time.Minute,
+			},
+		}
+
 		workers[i] = NewGardenWorker(
-			gclient.New(gconn.New("tcp", info.Addr)),
-			clock.NewClock(),
+			gclient.New(gardenConn),
+			tikTok,
 			info.ActiveContainers,
 			info.ResourceTypes,
 			info.Platform,
