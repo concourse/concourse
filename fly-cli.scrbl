@@ -145,8 +145,9 @@ use the @code{-c} or @code{--config} flag, like so:
 $ fly configure --config pipeline.yml
 }|
 
-This will update the Concourse's pipeline configuration instantly to the pipeline
-definition in the YAML file specified.
+This will present a diff of the changes and ask you to confirm the changes.
+If you accept then Concourse's pipeline configuration instantly to the
+pipeline definition in the YAML file specified.
 
 @section{@code{intercept}: Accessing a running or recent build}
 
