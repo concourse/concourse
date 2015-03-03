@@ -4,7 +4,8 @@ name: concourse
 # replace with bosh status --uuid
 director_uuid: REPLACE_WITH_UUID
 
-# pick a sane password
+# pick a sane db name and password
+atc_db_name: &atc-db-name atc
 atc_db_role: &atc-db-role
   name: atc
   password: REPLACE_WITH_DB_PASSWORD
@@ -22,7 +23,7 @@ networks:
       - range: 10.0.16.0/20
         reserved: [10.0.16.2 - 10.0.16.9]
         static:
-          - &web_static_ip 10.0.16.10
+          - &discovery_static_ip 10.0.16.10
         dns: [10.0.0.2]
         gateway: 10.0.16.1
         cloud_properties:
@@ -36,27 +37,38 @@ releases:
     version: latest
 
 jobs:
-  - name: web
+  - name: discovery
     instances: 1
-    resource_pool: orchestration
+    resource_pool: discovery
     persistent_disk: 1024
     templates:
-      - {release: concourse, name: atc}
       - {release: concourse, name: consul-agent}
     networks:
       - name: concourse
-        static_ips: [*web_static_ip]
+        static_ips: [*discovery_static_ip]
+    properties:
+      consul:
+        agent:
+          mode: server
+
+  - name: web
+    instances: 1
+    resource_pool: web
+    templates:
+      - {release: concourse, name: atc}
+      - {release: concourse, name: consul-agent}
+    networks: [{name: concourse}]
     properties:
       atc:
         basic_auth_username: ~
         basic_auth_encrypted_password: ~
         postgresql:
-          database: &atc-db-name atc
+          database: *atc-db-name
           role: *atc-db-role
 
       consul:
         agent:
-          mode: server
+          servers: {lan: [*discovery_static_ip]}
           services: [{name: atc}]
 
   - name: db
@@ -74,18 +86,22 @@ jobs:
 
       consul:
         agent:
-          servers: {lan: [*web_static_ip]}
+          servers: {lan: [*discovery_static_ip]}
           services: [{name: postgresql}]
 
   - name: worker
     instances: 1
     resource_pool: workers
     templates:
-      - {release: garden-linux, name: garden}
       - {release: concourse, name: gate}
+      - {release: garden-linux, name: garden}
       - {release: concourse, name: consul-agent}
     networks: [{name: concourse}]
     properties:
+      consul:
+        agent:
+          servers: {lan: [*discovery_static_ip]}
+
       garden:
         listen_network: tcp
         listen_address: 0.0.0.0:7777
@@ -97,11 +113,10 @@ jobs:
 
       consul:
         agent:
-          servers: {lan: [*web_static_ip]}
-          services: [{name: garden}]
+          servers: {lan: [*discovery_static_ip]}
 
 resource_pools:
-  - name: orchestration
+  - name: web
     network: concourse
     stemcell: &stemcell
       name: bosh-aws-xen-hvm-ubuntu-trusty-go_agent
@@ -110,6 +125,13 @@ resource_pools:
       instance_type: m3.medium
       availability_zone: *az
       elbs: [REPLACE_WITH_WEB_ELB_NAME]
+
+  - name: discovery
+    network: concourse
+    stemcell: *stemcell
+    cloud_properties:
+      instance_type: m3.medium
+      availability_zone: *az
 
   - name: databases
     network: concourse
@@ -135,7 +157,7 @@ compilation:
 
 update:
   canaries: 1
-  max_in_flight: 3
+  max_in_flight: 1
   serial: false
   canary_watch_time: 1000-60000
   update_watch_time: 1000-60000
