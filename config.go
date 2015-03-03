@@ -23,6 +23,16 @@ type GroupConfig struct {
 
 type GroupConfigs []GroupConfig
 
+func (groups GroupConfigs) Lookup(name string) (GroupConfig, bool) {
+	for _, group := range groups {
+		if group.Name == name {
+			return group, true
+		}
+	}
+
+	return GroupConfig{}, false
+}
+
 type ResourceConfig struct {
 	Name string `yaml:"name" json:"name"`
 
