@@ -7,10 +7,10 @@
 Once you start needing more workers and @emph{really} caring about your CI
 deployment, though, it's best to manage it with BOSH proper.
 
-Using BOSH gives you a self-healing, predictable environment, that can be scaled
-up or down by changing a single number.
+Using BOSH gives you a self-healing, predictable environment, that can be
+scaled up or down by changing a single number.
 
-The @hyperlink["http://docs.cloudfoundry.org/bosh/"]{BOSH documentation} outlines the
+The @hyperlink["https://bosh.io/docs"]{BOSH documentation} outlines the
 concepts, and how to bootstrap on various infrastructures.
 
 
@@ -18,30 +18,29 @@ concepts, and how to bootstrap on various infrastructures.
 
 Step one is to pick your infrastructure. AWS, vSphere, and OpenStack are fully
 supported by BOSH.
-@hyperlink["https://github.com/cloudfoundry/bosh-lite"]{BOSH-Lite} is a
-pseudo-infrastructure that deploys everything within a single VM. It is a great
-way to get started with Concourse and BOSH at the same time, with a faster
-feedback loop.
+@hyperlink["https://github.com/cloudfoundry/bosh-lite"]{BOSH-Lite} is
+a pseudo-infrastructure that deploys everything within a single VM. It is
+a great way to get started with Concourse and BOSH at the same time, with
+a faster feedback loop.
 
-Concourse's infrastructure requirements are fairly straightforward. For example,
-Concourse's own pipeline is deployed within an AWS VPC, with its web instances
-automatically registered with an Elastic Load Balancer by BOSH.
+Concourse's infrastructure requirements are fairly straightforward. For
+example, Concourse's own pipeline is deployed within an AWS VPC, with its web
+instances automatically registered with an Elastic Load Balancer by BOSH.
 
 @hyperlink["http://consul.io"]{Consul} is baked into the BOSH release, so that
-you only need to configure static IPs for the jobs running Consul in server
-mode, and then configure the Consul agents on the other jobs to join with the
-server. This way you can have 100 workers without having to configure them 100
-times.
+you only need to configure static IPs for the Consul servers, and then
+configure the Consul agents on the other jobs to join with the server. This
+way you can have 100 workers without having to configure them 100 times.
 
 
 @subsection{BOSH-Lite}
 
 Learning BOSH and your infrastructure at the same time will probably be hard.
 If you're getting started with BOSH, you may want to check out
-@hyperlink["https://github.com/cloudfoundry/bosh-lite"]{BOSH-Lite} first, which
-gives you a fairly BOSHy experience, in a single VM on your machine. This is a
-good way to learn the BOSH tooling without having to pay hourly for AWS
-instances.
+@hyperlink["https://github.com/cloudfoundry/bosh-lite"]{BOSH-Lite} first,
+which gives you a fairly BOSHy experience, in a single VM on your machine.
+This is a good way to learn the BOSH tooling without having to pay hourly for
+AWS instances.
 
 
 @subsection{AWS}
@@ -50,14 +49,15 @@ For AWS, it is recommended to deploy Concourse within a VPC, with the
 @code{web} jobs sitting behind an ELB. Registering instances with the ELB is
 automated by BOSH; you'll just have to create the ELB itself. This
 configuration is more secure, as your CI system's internal jobs aren't exposed
-to the outside world; only the webserver.
+to the outside world.
 
 
 @subsection{vSphere, OpenStack}
 
-Deploying to vSphere and OpenStack should look roughly the same as the rest, but
-this configuration has so far not seen any mileage. You may want to consult the
-@hyperlink["http://docs.cloudfoundry.org/bosh/"]{BOSH documentation} instead.
+Deploying to vSphere and OpenStack should look roughly the same as the rest,
+but this configuration has so far not seen any mileage. You may want to
+consult the @hyperlink["http://docs.cloudfoundry.org/bosh/"]{BOSH
+documentation} instead.
 
 
 @section{Deploying and upgrading Concourse}
@@ -68,19 +68,24 @@ you started:
 
 @subsection{Upload the stemcell}
 
-A stemcell is the base image for your VMs. It controls the kernel and OS
-distribution, and the version of the BOSH agent.
+A stemcell is a base image for your VMs. It controls the kernel and OS
+distribution, and the version of the BOSH agent. For more information, consult
+the @hyperlink["http://bosh.io/docs/stemcell.html"]{BOSH documentation}.
 
-Concourse is tested on the Trusty stemcell. You can find the latest stemcell by
-executing @code{bosh public stemcells --full}. Pick the one that matches your
-infrastructure, and upload it to your BOSH director with `bosh upload stemcell
-<full url>`.
+To upload the latest AWS Trusty stemcell to your BOSH director, execute the
+following:
+
+@codeblock|{
+bosh upload stemcell https://bosh.io/d/stemcells/bosh-aws-xen-hvm-ubuntu-trusty-go_agent
+}|
 
 
 @subsection{Upload the Concourse & Garden releases}
 
-A release is a curated distribution of all of the source bits and configuration
-necessary to deploy and scale a product.
+A release is a curated distribution of all of the source bits and
+configuration necessary to deploy and scale a product. To learn more about
+BOSH releases, refer to the
+@hyperlink["http://bosh.io/docs/release.html"]{BOSH documentation}.
 
 A Concourse deployment currently requires two releases:
 @hyperlink["http://github.com/concourse/concourse"]{Concourse}'s release
@@ -88,20 +93,23 @@ itself, and
 @hyperlink["http://github.com/cloudfoundry-incubator/garden-linux-release"]{Garden
 Linux}, which it uses for container management.
 
-To upload the releases, simply execute @code{bosh upload release}, with either
-a release tarball or a @code{.yml} file from the release repo. Concourse's
-release repo includes the correct Garden release as a submodule, guaranteeing
-that they're in sync.
-
-To upload the two releases from the Concourse release repo, execute:
+To upload the latest version of both releases, execute:
 
 @codeblock|{
-$ cd concourse/
-$ bosh upload release releases/concourse/concourse-X.X.X.yml
-$ bosh upload release garden-linux-release/releases/garden-linux/garden-linux-Y.Y.Y.yml
+bosh upload release https://bosh.io/d/github.com/concourse/concourse
+bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release
 }|
 
-(Replacing the X's and Y's with the highest version number available.)
+Note that as these are technically two separate releases, there is no
+guarantee that they work together at all times. Concourse depends on Garden
+Linux, and while each release does go through its own CI pipeline, there's
+a chance that Garden Linux makes a backwards-incompatible change.
+
+Currently the safest way to know which Garden Linux version to use is to go to
+our CI pipeline's @hyperlink["http://ci.concourse.ci/jobs/shipit"]{shipit}
+job, and see which version of Garden Linux fed into it. Then, browse
+@hyperlink["http://bosh.io/releases/github.com/cloudfoundry-incubator/garden-linux-release"]{Garden
+Linux's releases} and upload that version.
 
 
 @subsection{Configure & Deploy}
@@ -139,24 +147,35 @@ values:
   }
 
   @item{
-    @code{jobs.web.networks.X.static_ips} and
-    @code{jobs.X.properties.consul.agent.servers.lan}: Pick an internal private
-    IP to assign here; this controls how Concourse auto-discovers its internal
-    services/workers.
+    @code{jobs.discovery.networks.X.static_ips}: A set of static IPs within
+    your network, used for each of the Consul servers.
+
+    When changing this, be careful to update each job's
+    @code{consul.agent.servers.lan} property to include the full set of IPs.
+
+    For a small-scale deployment, a single Consul server is probably fine. For
+    HA, you'll probably want to scale up to 3 or so. Refer to
+    @hyperlink["http://consul.io"]{Consul}'s documentation for more
+    information.
   }
 
   @item{
-    @code{jobs.web.properties.atc.pipeline}: The configuration for your entire
-    CI pipeline.
-  }
-
-  @item{
-    @code{jobs.web.properties.atc.basic_auth_username}
+    @code{jobs.web.properties.atc.basic_auth_username},
     @code{jobs.web.properties.atc.basic_auth_encrypted_password}: Basic auth
     credentials for the public web server.
 
     The password must be a BCrypt-encrypted string. Note that higher encryption
     costs may make the site less responsive.
+  }
+
+  @item{
+    @code{jobs.worker.gate.atc.username},
+    @code{jobs.worker.gate.atc.password}: Basic auth credentials to use when
+    registering the worker. These must be specified if basic auth is
+    configured, otherwise no workers will be available.
+
+    These are the same credentials as above, only in plaintext. Yes, it's kind
+    of silly. We'd like to improve this in the future.
   }
 
   @item{
@@ -173,8 +192,8 @@ values:
 
   @item{
     @code{jobs.db.persistent_disk}: How much space to give PostgreSQL. You can
-    change this at any time; BOSH will safely migrate your persistent data to a
-    new disk when scaling up.
+    change this at any time; BOSH will safely migrate your persistent data to
+    a new disk when scaling up.
   }
 
   @item{

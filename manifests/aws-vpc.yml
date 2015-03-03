@@ -98,10 +98,6 @@ jobs:
       - {release: concourse, name: consul-agent}
     networks: [{name: concourse}]
     properties:
-      consul:
-        agent:
-          servers: {lan: [*discovery_static_ip]}
-
       garden:
         listen_network: tcp
         listen_address: 0.0.0.0:7777
