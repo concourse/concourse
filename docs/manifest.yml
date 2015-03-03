@@ -1,5 +1,7 @@
 ---
 name: docs
+instances: 2
+memory: 64M
 domain: concourse.ci
 host: ''
 buildpack: https://github.com/pearkes/heroku-buildpack-static.git
