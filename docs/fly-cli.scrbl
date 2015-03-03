@@ -10,7 +10,7 @@ containers to uploading new pipeline configuration into a running Concourse.
 Learning how to use @code{fly} will make using Concourse faster and more
 useful.
 
-You can download @code{fly} from an Concourse. There are download links for
+You can download @code{fly} from a Concourse. There are download links for
 common platforms in the bottom right hand corner of the main page.
 
 @section{Targeting your Concourse}
@@ -20,11 +20,11 @@ these you should follow the @seclink["deploying-with-vagrant"]{Deploying
 with Vagrant} or @seclink["deploying-with-bosh"]{Deploying with BOSH} guides
 to deploy a Concourse.
 
-Once, you've deployed an Concourse you can tell @code{fly} to target it in a
+Once you've deployed Concourse you can tell @code{fly} to target it in a
 couple of ways. You can either set the environment variable @code{ATC_URL}
 or you can give the command line option @code{--atcURL}. For example, if we
 wanted to run @code{fly sync} (don't worry what this means just yet) while
-pointing at an Concourse that we normally reach by going to
+pointing at Concourse that you normally reach by going to
 @code{http://ci.example.com} then you could run either of the following:
 
 @codeblock|{
@@ -39,17 +39,17 @@ $ ATC_URL='http://ci.example.com' fly sync
   to deploy Concourse.
 }
 
-The single quotes aren't always required but if you need to put HTTP basic
-authentication credentials inline then they can help by avoiding the need to
+The single quotes aren't always required, but if you need to put HTTP basic
+authentication credentials inline, then they can help by avoiding the need to
 escape special characters in passwords. For example:
 
 @codeblock|{
 $ fly --atcURL 'http://username:p@$$w0rd@ci.example.com' sync
 }|
 
-If your Concourse uses SSL but does not have a CA signed certificate then
-you can use the @code{-k} or @code{--insecure} flag in order to make fly not
-check the remote certificates.
+If your Concourse uses SSL but does not have a CA signed certificate, you
+can use the @code{-k} or @code{--insecure} flag in order to make @code{fly}
+not check the remote certificates.
 
 For the rest of this document it is assumed you are setting the target in
 each of the commands and so it will not be included for brevity.
@@ -80,15 +80,15 @@ $ fly execute -c tests.yml
 }|
 
 If you have many extra files or large files in your currect directory that
-would normally be ignored by your version control system then you can use
+would normally be ignored by your version control system, then you can use
 the @code{-x} or @code{--exclude-ignored} flags in order to limit the files
 that you send to Concourse to just those that are not ignored.
 
 If your build needs to run as @code{root} then you can specify the @code{-p}
 or @code{--privileged} flag.
 
-The default @code{fly} command is @code{execute} and so you can omit and
-just run the following to get the same effect:
+The default @code{fly} command is @code{execute}, so you can just run the
+following to get the same effect:
 
 @codeblock|{
 $ fly
@@ -119,7 +119,7 @@ inputs:
 }|
 
 If you specify an input then the default input will no longer be added
-automatically and you will need to explicitly list it (the code input
+automatically and you will need to explicitly list it (the @code{code} input
 above).
 
 This feature can be used to mimic other resources and try out combinations
@@ -127,16 +127,18 @@ of input that would normally not be possible in a pipeline.
 
 @section{@code{configure}: Reconfiguring Concourse}
 
-Fly can be used to fetch and update the current pipeline configuration
-inside an Concourse. This is achieved by using the @code{configure} command.
-For example, to fetch the current configuration of an Concourse and print it
-on @code{STDOUT} run the following:
+Fly can be used to fetch and update the current pipeline configuration. This
+is achieved by using the @code{configure} command. For example, to fetch the
+current configuration of your Concourse and print it on @code{STDOUT} run
+the following:
 
 @codeblock|{
 $ fly configure
 }|
 
-To get JSON instead of YAML you can use the @code{-j} or @code{--json} argument.
+To get JSON instead of YAML you can use the @code{-j} or @code{--json}
+argument. This can be useful when inspecting your config with
+@hyperlink["http://stedolan.github.io/jq/"]{jq}.
 
 To submit configuration to Concourse from a file on your local disk you can
 use the @code{-c} or @code{--config} flag, like so:
@@ -146,7 +148,7 @@ $ fly configure --config pipeline.yml
 }|
 
 This will present a diff of the changes and ask you to confirm the changes.
-If you accept then Concourse's pipeline configuration instantly to the
+If you accept then Concourse's pipeline configuration will switch to the
 pipeline definition in the YAML file specified.
 
 @section{@code{intercept}: Accessing a running or recent build}
@@ -197,10 +199,10 @@ current build, even as the "current build" changes.
 @section{@code{sync}: Update your local copy of @code{fly}}
 
 Occasionally we add additional features to @code{fly} or make changes to the
-communiction between it and Concourse. To make sure you're running the
-latest and greatest version that works with the Concourse you are targeting
-we provide a command called @code{sync} that will update your local
-@code{fly}. It can be used like so:
+communiction between it and Concourse's API server. To make sure you're
+running the latest and greatest version that works with the Concourse you
+are targeting we provide a command called @code{sync} that will update your
+local @code{fly}. It can be used like so:
 
 @codeblock|{
 $ fly sync
