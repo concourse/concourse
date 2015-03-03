@@ -4,26 +4,27 @@
 
 @title[#:version version #:tag "fly-cli"]{The Fly CLI}
 
-The @code{fly} tool is a command line interface to Concourse. It is used for a
-number of tasks from connecting to a shell in one of your build's containers to
-uploading new pipeline configuration into a running Concourse.  Learning how to
-use @code{fly} will make using Concourse faster and more useful.
+The @code{fly} tool is a command line interface to Concourse. It is used for
+a number of tasks from connecting to a shell in one of your build's
+containers to uploading new pipeline configuration into a running Concourse.
+Learning how to use @code{fly} will make using Concourse faster and more
+useful.
 
-You can download @code{fly} from an ATC. There are download links for common
-platforms in the bottom right hand corner of the main page.
+You can download @code{fly} from an Concourse. There are download links for
+common platforms in the bottom right hand corner of the main page.
 
-@section{Targeting your ATC}
+@section{Targeting your Concourse}
 
-Fly works with an already deployed ATC. If you don't already have one of
+Fly works with an already deployed Concourse. If you don't already have one of
 these you should follow the @seclink["deploying-with-vagrant"]{Deploying
 with Vagrant} or @seclink["deploying-with-bosh"]{Deploying with BOSH} guides
 to deploy a Concourse.
 
-Once, you've deployed an ATC you can tell @code{fly} to target it in a
+Once, you've deployed an Concourse you can tell @code{fly} to target it in a
 couple of ways. You can either set the environment variable @code{ATC_URL}
 or you can give the command line option @code{--atcURL}. For example, if we
 wanted to run @code{fly sync} (don't worry what this means just yet) while
-pointing at an ATC that we normally reach by going to
+pointing at an Concourse that we normally reach by going to
 @code{http://ci.example.com} then you could run either of the following:
 
 @codeblock|{
@@ -45,6 +46,10 @@ escape special characters in passwords. For example:
 @codeblock|{
 $ fly --atcURL 'http://username:p@$$w0rd@ci.example.com' sync
 }|
+
+If your Concourse uses SSL but does not have a CA signed certificate then
+you can use the @code{-k} or @code{--insecure} flag in order to make fly not
+check the remote certificates.
 
 For the rest of this document it is assumed you are setting the target in
 each of the commands and so it will not be included for brevity.
@@ -73,10 +78,6 @@ specify it using the @code{-c} or @code{--config} argument like so:
 @codeblock|{
 $ fly execute -c tests.yml
 }|
-
-If your ATC uses SSL but does not have a CA signed certificate then you can
-use the @code{-k} or @code{--insecure} flag in order to make fly not check the
-remote certificates.
 
 If you have many extra files or large files in your currect directory that
 would normally be ignored by your version control system then you can use
@@ -118,17 +119,18 @@ inputs:
 }|
 
 If you specify an input then the default input will no longer be added
-automatically and you will need to explicitly list it (the code input above).
+automatically and you will need to explicitly list it (the code input
+above).
 
 This feature can be used to mimic other resources and try out combinations
 of input that would normally not be possible in a pipeline.
 
-@section{@code{configure}: Reconfigure an ATC}
+@section{@code{configure}: Reconfiguring Concourse}
 
 Fly can be used to fetch and update the current pipeline configuration
-inside an ATC. This is achieved by using the @code{configure} command. For
-example, to fetch the current configuration of an ATC and print it on
-@code{STDOUT} run the following:
+inside an Concourse. This is achieved by using the @code{configure} command.
+For example, to fetch the current configuration of an Concourse and print it
+on @code{STDOUT} run the following:
 
 @codeblock|{
 $ fly configure
@@ -136,14 +138,14 @@ $ fly configure
 
 To get JSON instead of YAML you can use the @code{-j} or @code{--json} argument.
 
-To submit configuration to ATC from a file on your local disk you can use
-the @code{-c} or @code{--config} flag, like so:
+To submit configuration to Concourse from a file on your local disk you can
+use the @code{-c} or @code{--config} flag, like so:
 
 @codeblock|{
 $ fly configure --config pipeline.yml
 }|
 
-This will update the ATC's pipeline configuration instantly to the pipeline
+This will update the Concourse's pipeline configuration instantly to the pipeline
 definition in the YAML file specified.
 
 @section{@code{intercept}: Accessing a running or recent build}
@@ -194,10 +196,10 @@ current build, even as the "current build" changes.
 @section{@code{sync}: Update your local copy of @code{fly}}
 
 Occasionally we add additional features to @code{fly} or make changes to the
-communiction between it and ATC. To make sure you're running the latest and
-greatest version that works with the ATC you are targeting we provide a
-command called @code{sync} that will update your local @code{fly}. It can be
-used like so:
+communiction between it and Concourse. To make sure you're running the
+latest and greatest version that works with the Concourse you are targeting
+we provide a command called @code{sync} that will update your local
+@code{fly}. It can be used like so:
 
 @codeblock|{
 $ fly sync
@@ -205,8 +207,8 @@ $ fly sync
 
 @section{@code{watch}: View logs of in-progress builds}
 
-ATC emits streaming colored logs on the website but it can be helpful to
-have the logs availiable to the command line. (e.g. so that they can be
+Concourse emits streaming colored logs on the website but it can be helpful
+to have the logs availiable to the command line. (e.g. so that they can be
 processed by other commands).
 
 The @code{watch} command can be used to do just this. You can also view
