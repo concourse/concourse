@@ -138,3 +138,7 @@
 	path = src/github.com/kardianos/osext
 	url = https://github.com/kardianos/osext
 	branch = master
+[submodule "src/github.com/aryann/difflib"]
+	path = src/github.com/aryann/difflib
+	url = https://github.com/aryann/difflib
+	branch = master
