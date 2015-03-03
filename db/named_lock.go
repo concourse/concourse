@@ -1,5 +1,7 @@
 package db
 
+import "fmt"
+
 type NamedLock interface {
 	Name() string
 }
@@ -16,8 +18,8 @@ func (jobSchedulingLock JobSchedulingLock) Name() string {
 	return "jobScheduling: " + string(jobSchedulingLock)
 }
 
-type BuildTrackingLock string
+type BuildTrackingLock int
 
 func (buildTrackingLock BuildTrackingLock) Name() string {
-	return "buildTracking: " + string(buildTrackingLock)
+	return fmt.Sprintf("buildTracking: %d", int(buildTrackingLock))
 }
