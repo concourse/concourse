@@ -4,11 +4,6 @@ name: concourse
 # replace with bosh status --uuid
 director_uuid: REPLACE_WITH_UUID
 
-# fill in resources and jobs
-pipeline: &pipeline
-  resources: []
-  jobs: []
-
 # pick a sane password
 atc_db_role: &atc-db-role
   name: atc
@@ -53,7 +48,6 @@ jobs:
         static_ips: [*web_static_ip]
     properties:
       atc:
-        pipeline: *pipeline
         basic_auth_username: ~
         basic_auth_encrypted_password: ~
         postgresql:

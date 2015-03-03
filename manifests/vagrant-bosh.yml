@@ -1,18 +1,6 @@
 ---
 name: concourse
 
-# fill in with jobs and resources
-pipeline: &pipeline
-  resources: []
-
-  jobs:
-    - name: dummy
-      config:
-        image: docker:///busybox
-        run:
-          path: echo
-          args: [Hello, world!]
-
 releases:
   - name: concourse
     url: dir+bosh://.
@@ -37,8 +25,6 @@ jobs:
       - {release: concourse, name: consul-agent}
     properties:
       atc:
-        pipeline: *pipeline
-
         # turn off and provide auth for a real vagrant instance
         development_mode: true
 

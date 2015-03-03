@@ -3,18 +3,6 @@ name: concourse
 
 director_uuid: <%= `bosh status --uuid` %>
 
-# fill in with jobs and resources
-pipeline: &pipeline
-  resources: []
-
-  jobs:
-    - name: dummy
-      config:
-        image: docker:///busybox
-        run:
-          path: echo
-          args: [Hello, world!]
-
 releases:
   - name: concourse
     version: latest
@@ -34,7 +22,6 @@ jobs:
       - {release: concourse, name: consul-agent}
     properties:
       atc:
-        pipeline: *pipeline
         development_mode: true
         postgresql:
           database: &atc-db atc
