@@ -112,6 +112,8 @@ func setConfig(atcRequester *atcRequester, configPath string) {
 		os.Exit(1)
 	}
 
+	configID := resp.Header.Get(atc.ConfigIDHeader)
+
 	var existingConfig atc.Config
 	err = json.NewDecoder(resp.Body).Decode(&existingConfig)
 	if err != nil {
@@ -131,6 +133,7 @@ func setConfig(atcRequester *atcRequester, configPath string) {
 	}
 
 	setConfig.Header.Set("Content-Type", "application/json")
+	setConfig.Header.Set(atc.ConfigIDHeader, configID)
 
 	resp, err = atcRequester.httpClient.Do(setConfig)
 	if err != nil {

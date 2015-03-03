@@ -147,7 +147,7 @@ var _ = Describe("Fly CLI", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/config"),
-						ghttp.RespondWithJSONEncoded(200, config),
+						ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigIDHeader: {"42"}}),
 					),
 				)
 			})
@@ -201,7 +201,7 @@ var _ = Describe("Fly CLI", func() {
 				changedConfig = config
 
 				atcServer.RouteToHandler("GET", "/api/v1/config",
-					ghttp.RespondWithJSONEncoded(200, config),
+					ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigIDHeader: {"42"}}),
 				)
 			})
 
@@ -240,7 +240,7 @@ var _ = Describe("Fly CLI", func() {
 
 					atcServer.RouteToHandler("PUT", "/api/v1/config",
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("PUT", "/api/v1/config"),
+							ghttp.VerifyHeaderKV(atc.ConfigIDHeader, "42"),
 							ghttp.VerifyJSONRepresenting(changedConfig),
 							ghttp.RespondWith(200, ""),
 						),
