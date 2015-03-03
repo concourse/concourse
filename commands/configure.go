@@ -13,7 +13,6 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/concourse/atc"
 	"github.com/onsi/gomega/gexec"
-	"github.com/pkg/term"
 	"gopkg.in/yaml.v2"
 )
 
@@ -188,43 +187,8 @@ func diff(existingConfig atc.Config, newConfig atc.Config) {
 		}
 	}
 
-	if askToConfirm() {
-		println("y")
-	} else {
-		println("")
+	if !askToConfirm() {
 		println("bailing out")
 		os.Exit(1)
 	}
-}
-
-func askToConfirm() bool {
-	fmt.Printf("apply configuration? (y/n): ")
-
-	var in io.Reader
-
-	term, err := term.Open(os.Stdin.Name())
-	if err == nil {
-		err = term.SetRaw()
-		if err != nil {
-			log.Fatalln("failed to set raw:", term)
-		}
-
-		defer term.Restore()
-
-		in = term
-	} else {
-		in = os.Stdin
-	}
-
-	ans := make([]byte, 1)
-	n, err := in.Read(ans)
-	if err != nil {
-		log.Fatalln("failed to read response:", err)
-	}
-
-	if n == 0 {
-		log.Fatalln("no response")
-	}
-
-	return ans[0] == 'y'
 }
