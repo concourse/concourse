@@ -8,11 +8,7 @@ import (
 )
 
 type BuildFactory struct {
-	ConfigDB ConfigDB
-}
-
-type ConfigDB interface {
-	GetConfig() (atc.Config, error)
+	ConfigDB db.ConfigDB
 }
 
 func (factory *BuildFactory) Create(

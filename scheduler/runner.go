@@ -27,17 +27,11 @@ type BuildScheduler interface {
 	TrackInFlightBuilds(lager.Logger) error
 }
 
-//go:generate counterfeiter . ConfigDB
-
-type ConfigDB interface {
-	GetConfig() (atc.Config, error)
-}
-
 type Runner struct {
 	Logger lager.Logger
 
 	Locker   Locker
-	ConfigDB ConfigDB
+	ConfigDB db.ConfigDB
 
 	Scheduler BuildScheduler
 
@@ -77,7 +71,7 @@ func (runner *Runner) tick(logger lager.Logger) {
 	logger.Info("start")
 	defer logger.Info("done")
 
-	config, err := runner.ConfigDB.GetConfig()
+	config, _, err := runner.ConfigDB.GetConfig()
 	if err != nil {
 		logger.Error("failed-to-get-config", err)
 		return

@@ -100,7 +100,7 @@ var _ = Describe("BasicAuthHandler", func() {
 
 			responseBody, err := ioutil.ReadAll(response.Body)
 			Ω(err).ShouldNot(HaveOccurred())
-			Ω(string(responseBody)).Should(BeEmpty())
+			Ω(string(responseBody)).Should(Equal("not authorized"))
 		})
 	})
 
@@ -117,7 +117,7 @@ var _ = Describe("BasicAuthHandler", func() {
 
 			responseBody, err := ioutil.ReadAll(response.Body)
 			Ω(err).ShouldNot(HaveOccurred())
-			Ω(string(responseBody)).Should(BeEmpty())
+			Ω(string(responseBody)).Should(Equal("not authorized"))
 		})
 	})
 })

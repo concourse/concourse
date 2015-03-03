@@ -37,7 +37,7 @@ type TemplateData struct {
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	config, err := handler.configDB.GetConfig()
+	config, _, err := handler.configDB.GetConfig()
 	if err != nil {
 		handler.logger.Error("failed-to-load-config", err)
 		w.WriteHeader(http.StatusInternalServerError)

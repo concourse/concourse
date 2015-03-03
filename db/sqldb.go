@@ -37,30 +37,31 @@ func NewSQL(
 	}
 }
 
-func (db *SQLDB) GetConfig() (atc.Config, error) {
+func (db *SQLDB) GetConfig() (atc.Config, ConfigID, error) {
 	var configBlob []byte
+	var id int
 	err := db.conn.QueryRow(`
-		SELECT config
+		SELECT config, id
 		FROM config
-	`).Scan(&configBlob)
+	`).Scan(&configBlob, &id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return atc.Config{}, nil
+			return atc.Config{}, 0, nil
 		} else {
-			return atc.Config{}, err
+			return atc.Config{}, 0, err
 		}
 	}
 
 	var config atc.Config
 	err = json.Unmarshal(configBlob, &config)
 	if err != nil {
-		return atc.Config{}, err
+		return atc.Config{}, 0, err
 	}
 
-	return config, nil
+	return config, ConfigID(id), nil
 }
 
-func (db *SQLDB) SaveConfig(config atc.Config) error {
+func (db *SQLDB) SaveConfig(config atc.Config, from ConfigID) error {
 	payload, err := json.Marshal(config)
 	if err != nil {
 		return err
@@ -73,10 +74,20 @@ func (db *SQLDB) SaveConfig(config atc.Config) error {
 
 	defer tx.Rollback()
 
+	var existingConfig int
+	err = tx.QueryRow(`
+		SELECT COUNT(1)
+		FROM config
+	`).Scan(&existingConfig)
+	if err != nil {
+		return err
+	}
+
 	result, err := tx.Exec(`
 		UPDATE config
-		SET config = $1
-	`, payload)
+		SET config = $1, id = nextval('config_id_seq')
+		WHERE id = $2
+	`, payload, from)
 	if err != nil {
 		return err
 	}
@@ -87,12 +98,16 @@ func (db *SQLDB) SaveConfig(config atc.Config) error {
 	}
 
 	if rows == 0 {
-		_, err := tx.Exec(`
-			INSERT INTO config (config)
-			VALUES ($1)
+		if existingConfig == 0 {
+			_, err := tx.Exec(`
+			INSERT INTO config (config, id)
+			VALUES ($1, nextval('config_id_seq'))
 		`, payload)
-		if err != nil {
-			return err
+			if err != nil {
+				return err
+			}
+		} else {
+			return ErrConfigComparisonFailed
 		}
 	}
 

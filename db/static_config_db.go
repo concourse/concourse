@@ -12,10 +12,10 @@ type StaticConfigDB struct {
 
 var ErrConfigIsStatic = errors.New("configuration is static")
 
-func (db StaticConfigDB) GetConfig() (atc.Config, error) {
-	return db.Config, nil
+func (db StaticConfigDB) GetConfig() (atc.Config, ConfigID, error) {
+	return db.Config, 0, nil
 }
 
-func (db StaticConfigDB) SaveConfig(atc.Config) error {
+func (db StaticConfigDB) SaveConfig(atc.Config, ConfigID) error {
 	return ErrConfigIsStatic
 }

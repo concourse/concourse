@@ -103,17 +103,11 @@ var _ = BeforeEach(func() {
 		logger,
 		authValidator,
 
+		configDB,
+
 		buildsDB,
-		configDB,
-
-		configDB,
-
 		jobsDB,
-		configDB,
-
 		resourceDB,
-		configDB,
-
 		workerDB,
 
 		func(atc.Config) error { return configValidationErr },

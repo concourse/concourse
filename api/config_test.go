@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -97,11 +98,15 @@ var _ = Describe("Config API", func() {
 
 			Context("when the config can be loaded", func() {
 				BeforeEach(func() {
-					configDB.GetConfigReturns(config, nil)
+					configDB.GetConfigReturns(config, 1, nil)
 				})
 
 				It("returns 200", func() {
 					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				})
+
+				It("returns the config ID as X-Concourse-Config-ID", func() {
+					Ω(response.Header.Get(atc.ConfigIDHeader)).Should(Equal("1"))
 				})
 
 				It("returns the config", func() {
@@ -115,7 +120,7 @@ var _ = Describe("Config API", func() {
 
 			Context("when getting the config fails", func() {
 				BeforeEach(func() {
-					configDB.GetConfigReturns(atc.Config{}, errors.New("oh no!"))
+					configDB.GetConfigReturns(atc.Config{}, 0, errors.New("oh no!"))
 				})
 
 				It("returns 500", func() {
@@ -137,17 +142,21 @@ var _ = Describe("Config API", func() {
 
 	Describe("PUT /api/v1/config", func() {
 		var (
+			request  *http.Request
 			response *http.Response
 		)
 
-		JustBeforeEach(func() {
+		BeforeEach(func() {
 			payload, err := json.Marshal(config)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			req, err := http.NewRequest("PUT", server.URL+"/api/v1/config", ioutil.NopCloser(bytes.NewBuffer(payload)))
+			request, err = http.NewRequest("PUT", server.URL+"/api/v1/config", ioutil.NopCloser(bytes.NewBuffer(payload)))
 			Ω(err).ShouldNot(HaveOccurred())
+		})
 
-			response, err = client.Do(req)
+		JustBeforeEach(func() {
+			var err error
+			response, err = client.Do(request)
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
@@ -156,38 +165,87 @@ var _ = Describe("Config API", func() {
 				authValidator.IsAuthenticatedReturns(true)
 			})
 
-			Context("when the config is valid", func() {
-				It("returns 200", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+			Context("when a config ID is specified", func() {
+				BeforeEach(func() {
+					request.Header.Set(atc.ConfigIDHeader, "42")
 				})
 
-				It("saves it", func() {
-					Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
-					Ω(configDB.SaveConfigArgsForCall(0)).Should(Equal(config))
-				})
-
-				Context("and saving it fails", func() {
-					BeforeEach(func() {
-						configDB.SaveConfigReturns(errors.New("oh no!"))
+				Context("when the config is valid", func() {
+					It("returns 200", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusOK))
 					})
 
-					It("returns 500", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					It("saves it", func() {
+						Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
+
+						config, id := configDB.SaveConfigArgsForCall(0)
+						Ω(config).Should(Equal(config))
+						Ω(id).Should(Equal(db.ConfigID(42)))
+					})
+
+					Context("and saving it fails", func() {
+						BeforeEach(func() {
+							configDB.SaveConfigReturns(errors.New("oh no!"))
+						})
+
+						It("returns 500", func() {
+							Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+						})
+
+						It("returns the error in the response body", func() {
+							Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("failed to save config: oh no!")))
+						})
+					})
+
+					Context("when the config is invalid", func() {
+						BeforeEach(func() {
+							configValidationErr = errors.New("totally invalid")
+						})
+
+						It("returns 400", func() {
+							Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+						})
+
+						It("returns the validation error in the response body", func() {
+							Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("totally invalid")))
+						})
+
+						It("does not save it", func() {
+							Ω(configDB.SaveConfigCallCount()).Should(BeZero())
+						})
 					})
 				})
 			})
 
-			Context("when the config is invalid", func() {
+			Context("when a config ID is not specified", func() {
 				BeforeEach(func() {
-					configValidationErr = errors.New("totally invalid")
+					// don't
 				})
 
 				It("returns 400", func() {
 					Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
 				})
 
-				It("returns the validation error in the response body", func() {
-					Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("totally invalid")))
+				It("returns an error in the response body", func() {
+					Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("no config ID specified")))
+				})
+
+				It("does not save it", func() {
+					Ω(configDB.SaveConfigCallCount()).Should(BeZero())
+				})
+			})
+
+			Context("when a config ID is malformed", func() {
+				BeforeEach(func() {
+					request.Header.Set(atc.ConfigIDHeader, "forty-two")
+				})
+
+				It("returns 400", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+				})
+
+				It("returns an error in the response body", func() {
+					Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("config ID is malformed: expected integer")))
 				})
 
 				It("does not save it", func() {
@@ -207,6 +265,10 @@ var _ = Describe("Config API", func() {
 
 			It("does not save the config", func() {
 				Ω(configDB.SaveConfigCallCount()).Should(BeZero())
+			})
+
+			It("returns the error in the response body", func() {
+				Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("not authorized")))
 			})
 		})
 	})

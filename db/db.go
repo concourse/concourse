@@ -62,18 +62,26 @@ type DB interface {
 }
 
 //go:generate counterfeiter . Notifier
+
 type Notifier interface {
 	Notify() <-chan struct{}
 	Close() error
 }
 
 //go:generate counterfeiter . ConfigDB
+
 type ConfigDB interface {
-	GetConfig() (atc.Config, error)
-	SaveConfig(atc.Config) error
+	GetConfig() (atc.Config, ConfigID, error)
+	SaveConfig(atc.Config, ConfigID) error
 }
 
+// sequence identifier used for compare-and-swap
+type ConfigID int
+
+var ErrConfigComparisonFailed = errors.New("comparison with existing config failed during save")
+
 //go:generate counterfeiter . Lock
+
 type Lock interface {
 	Release() error
 }
@@ -82,6 +90,7 @@ var ErrEndOfBuildEventStream = errors.New("end of build event stream")
 var ErrBuildEventStreamClosed = errors.New("build event stream closed")
 
 //go:generate counterfeiter . EventSource
+
 type EventSource interface {
 	Next() (atc.Event, error)
 	Close() error

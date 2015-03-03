@@ -10,7 +10,7 @@ import (
 func (s *Server) GetJob(w http.ResponseWriter, r *http.Request) {
 	jobName := r.FormValue(":job_name")
 
-	config, err := s.configDB.GetConfig()
+	config, _, err := s.configDB.GetConfig()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

@@ -11,7 +11,7 @@ import (
 func (s *Server) ListResources(w http.ResponseWriter, r *http.Request) {
 	var resources []atc.Resource
 
-	config, err := s.configDB.GetConfig()
+	config, _, err := s.configDB.GetConfig()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

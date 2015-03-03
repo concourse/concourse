@@ -133,11 +133,14 @@ var _ = Describe("SQL DB", func() {
 			Ω(sqlDB.GetConfig()).Should(BeZero())
 
 			By("being able to save the config")
-			err := sqlDB.SaveConfig(config)
+			err := sqlDB.SaveConfig(config, 0)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			By("returning the saved config to later gets")
-			Ω(sqlDB.GetConfig()).Should(Equal(config))
+			returnedConfig, configID, err := sqlDB.GetConfig()
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(returnedConfig).Should(Equal(config))
+			Ω(configID).Should(Equal(db.ConfigID(1)))
 
 			updatedConfig := config
 
@@ -168,12 +171,22 @@ var _ = Describe("SQL DB", func() {
 				},
 			})
 
+			By("not allowing non-sequential updates")
+			err = sqlDB.SaveConfig(updatedConfig, 0)
+			Ω(err).Should(Equal(db.ErrConfigComparisonFailed))
+
+			err = sqlDB.SaveConfig(updatedConfig, 5)
+			Ω(err).Should(Equal(db.ErrConfigComparisonFailed))
+
 			By("being able to update the config")
-			err = sqlDB.SaveConfig(updatedConfig)
+			err = sqlDB.SaveConfig(updatedConfig, 1)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			By("returning the updated config")
-			Ω(sqlDB.GetConfig()).Should(Equal(updatedConfig))
+			returnedConfig, configID, err = sqlDB.GetConfig()
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(returnedConfig).Should(Equal(updatedConfig))
+			Ω(configID).Should(Equal(db.ConfigID(2)))
 		})
 	})
 })

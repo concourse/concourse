@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+const ConfigIDHeader = "X-Concourse-Config-ID"
+
 type Source map[string]interface{}
 type Params map[string]interface{}
 type Version map[string]interface{}

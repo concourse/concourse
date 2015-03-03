@@ -19,11 +19,6 @@ type VersionDB interface {
 	GetLatestVersionedResource(string) (db.SavedVersionedResource, error)
 }
 
-//go:generate counterfeiter . ConfigDB
-type ConfigDB interface {
-	GetConfig() (atc.Config, error)
-}
-
 var errResourceNoLongerConfigured = errors.New("resource no longer configured")
 
 type Radar struct {
@@ -35,7 +30,7 @@ type Radar struct {
 
 	locker    Locker
 	versionDB VersionDB
-	configDB  ConfigDB
+	configDB  db.ConfigDB
 }
 
 func NewRadar(
@@ -43,7 +38,7 @@ func NewRadar(
 	versionDB VersionDB,
 	interval time.Duration,
 	locker Locker,
-	configDB ConfigDB,
+	configDB db.ConfigDB,
 ) *Radar {
 	return &Radar{
 		tracker:   tracker,
@@ -95,7 +90,7 @@ func (radar *Radar) Scan(logger lager.Logger, resourceName string) error {
 }
 
 func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
-	config, err := radar.configDB.GetConfig()
+	config, _, err := radar.configDB.GetConfig()
 	if err != nil {
 		logger.Error("failed-to-get-config", err)
 		// don't propagate error; we can just retry next tick

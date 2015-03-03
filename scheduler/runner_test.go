@@ -22,7 +22,7 @@ import (
 var _ = Describe("Runner", func() {
 	var (
 		locker    *fakes.FakeLocker
-		configDB  *fakes.FakeConfigDB
+		configDB  *dbfakes.FakeConfigDB
 		scheduler *fakes.FakeBuildScheduler
 		noop      bool
 
@@ -35,7 +35,7 @@ var _ = Describe("Runner", func() {
 
 	BeforeEach(func() {
 		locker = new(fakes.FakeLocker)
-		configDB = new(fakes.FakeConfigDB)
+		configDB = new(dbfakes.FakeConfigDB)
 		scheduler = new(fakes.FakeBuildScheduler)
 		noop = false
 
@@ -67,7 +67,7 @@ var _ = Describe("Runner", func() {
 			},
 		}
 
-		configDB.GetConfigReturns(initialConfig, nil)
+		configDB.GetConfigReturns(initialConfig, 1, nil)
 
 		lock = new(dbfakes.FakeLock)
 		locker.AcquireWriteLockImmediatelyReturns(lock, nil)

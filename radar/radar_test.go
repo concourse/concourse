@@ -23,7 +23,7 @@ var _ = Describe("Radar", func() {
 	var (
 		fakeTracker   *rfakes.FakeTracker
 		fakeVersionDB *fakes.FakeVersionDB
-		configDB      *fakes.FakeConfigDB
+		configDB      *dbfakes.FakeConfigDB
 		interval      time.Duration
 
 		radar *Radar
@@ -42,7 +42,7 @@ var _ = Describe("Radar", func() {
 		fakeTracker = new(rfakes.FakeTracker)
 		fakeVersionDB = new(fakes.FakeVersionDB)
 		locker = new(fakes.FakeLocker)
-		configDB = new(fakes.FakeConfigDB)
+		configDB = new(dbfakes.FakeConfigDB)
 		interval = 100 * time.Millisecond
 
 		radar = NewRadar(fakeTracker, fakeVersionDB, interval, locker, configDB)
@@ -57,7 +57,7 @@ var _ = Describe("Radar", func() {
 			Resources: atc.ResourceConfigs{
 				resourceConfig,
 			},
-		}, nil)
+		}, 1, nil)
 
 		readLock = new(dbfakes.FakeLock)
 		locker.AcquireReadLockReturns(readLock, nil)
@@ -240,12 +240,12 @@ var _ = Describe("Radar", func() {
 					Resources: atc.ResourceConfigs{resourceConfig},
 				}
 
-				configDB.GetConfigStub = func() (atc.Config, error) {
+				configDB.GetConfigStub = func() (atc.Config, db.ConfigID, error) {
 					select {
 					case c := <-configs:
-						return c, nil
+						return c, 1, nil
 					default:
-						return newConfig, nil
+						return newConfig, 2, nil
 					}
 				}
 			})

@@ -33,7 +33,7 @@ func NewHandler(
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	config, err := handler.db.GetConfig()
+	config, _, err := handler.db.GetConfig()
 	if err != nil {
 		handler.logger.Error("failed-to-load-config", err)
 		w.WriteHeader(http.StatusInternalServerError)

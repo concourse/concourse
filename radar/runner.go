@@ -31,7 +31,7 @@ type Runner struct {
 
 	locker         Locker
 	scannerFactory ScannerFactory
-	configDB       ConfigDB
+	configDB       db.ConfigDB
 
 	syncInterval time.Duration
 }
@@ -41,7 +41,7 @@ func NewRunner(
 	noop bool,
 	locker Locker,
 	scannerFactory ScannerFactory,
-	configDB ConfigDB,
+	configDB db.ConfigDB,
 	syncInterval time.Duration,
 ) *Runner {
 	return &Runner{
@@ -105,7 +105,7 @@ dance:
 }
 
 func (runner *Runner) tick(scanning map[string]bool, insertScanner chan<- grouper.Member) {
-	config, err := runner.configDB.GetConfig()
+	config, _, err := runner.configDB.GetConfig()
 	if err != nil {
 		return
 	}

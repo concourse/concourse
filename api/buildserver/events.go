@@ -31,7 +31,7 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		config, err := s.configDB.GetConfig()
+		config, _, err := s.configDB.GetConfig()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

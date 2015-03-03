@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
@@ -18,7 +17,7 @@ type Server struct {
 
 	engine              engine.Engine
 	db                  BuildsDB
-	configDB            ConfigDB
+	configDB            db.ConfigDB
 	pingInterval        time.Duration
 	eventHandlerFactory EventHandlerFactory
 	drain               <-chan struct{}
@@ -37,15 +36,11 @@ type BuildsDB interface {
 	CreateOneOffBuild() (db.Build, error)
 }
 
-type ConfigDB interface {
-	GetConfig() (atc.Config, error)
-}
-
 func NewServer(
 	logger lager.Logger,
 	engine engine.Engine,
 	db BuildsDB,
-	configDB ConfigDB,
+	configDB db.ConfigDB,
 	pingInterval time.Duration,
 	eventHandlerFactory EventHandlerFactory,
 	drain <-chan struct{},

@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
+	dbfakes "github.com/concourse/atc/db/fakes"
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/fakes"
 	"github.com/pivotal-golang/lager"
@@ -19,7 +21,7 @@ import (
 var _ = Describe("Runner", func() {
 	var (
 		locker         *fakes.FakeLocker
-		configDB       *fakes.FakeConfigDB
+		configDB       *dbfakes.FakeConfigDB
 		scannerFactory *fakes.FakeScannerFactory
 		noop           bool
 		syncInterval   time.Duration
@@ -32,7 +34,7 @@ var _ = Describe("Runner", func() {
 	BeforeEach(func() {
 		locker = new(fakes.FakeLocker)
 		scannerFactory = new(fakes.FakeScannerFactory)
-		configDB = new(fakes.FakeConfigDB)
+		configDB = new(dbfakes.FakeConfigDB)
 		noop = false
 		syncInterval = 100 * time.Millisecond
 
@@ -47,7 +49,7 @@ var _ = Describe("Runner", func() {
 			},
 		}
 
-		configDB.GetConfigReturns(initialConfig, nil)
+		configDB.GetConfigReturns(initialConfig, 1, nil)
 
 		scannerFactory.ScannerStub = func(lager.Logger, string) ifrit.Runner {
 			return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -92,13 +94,13 @@ var _ = Describe("Runner", func() {
 
 			config := initialConfig
 
-			configDB.GetConfigStub = func() (atc.Config, error) {
+			configDB.GetConfigStub = func() (atc.Config, db.ConfigID, error) {
 				select {
 				case config = <-configs:
 				default:
 				}
 
-				return config, nil
+				return config, 1, nil
 			}
 		})
 

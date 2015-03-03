@@ -298,17 +298,11 @@ func main() {
 		logger,
 		webValidator,
 
-		db,
-		configDB,
-
 		configDB,
 
 		db,
-		configDB,
-
 		db,
-		configDB,
-
+		db,
 		db,
 
 		config.ValidateConfig,

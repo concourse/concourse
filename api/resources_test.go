@@ -41,7 +41,7 @@ var _ = Describe("Resources API", func() {
 						{Name: "resource-2", Type: "type-2"},
 						{Name: "resource-3", Type: "type-3"},
 					},
-				}, nil)
+				}, 1, nil)
 			})
 
 			It("returns 200 OK", func() {
@@ -77,7 +77,7 @@ var _ = Describe("Resources API", func() {
 
 		Context("when getting the resource config fails", func() {
 			BeforeEach(func() {
-				configDB.GetConfigReturns(atc.Config{}, errors.New("oh no!"))
+				configDB.GetConfigReturns(atc.Config{}, 0, errors.New("oh no!"))
 			})
 
 			It("returns 500", func() {

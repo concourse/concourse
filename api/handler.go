@@ -18,6 +18,7 @@ import (
 	"github.com/concourse/atc/api/resourceserver"
 	"github.com/concourse/atc/api/workerserver"
 	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 )
 
@@ -25,17 +26,11 @@ func NewHandler(
 	logger lager.Logger,
 	validator auth.Validator,
 
+	configDB db.ConfigDB,
+
 	buildsDB buildserver.BuildsDB,
-	buildserverConfigDB buildserver.ConfigDB,
-
-	configDB configserver.ConfigDB,
-
 	jobsDB jobserver.JobsDB,
-	jobsConfigDB jobserver.ConfigDB,
-
 	resourceDB resourceserver.ResourceDB,
-	resourceConfigDB resourceserver.ConfigDB,
-
 	workerDB workerserver.WorkerDB,
 
 	configValidator configserver.ConfigValidator,
@@ -59,15 +54,15 @@ func NewHandler(
 		logger,
 		engine,
 		buildsDB,
-		buildserverConfigDB,
+		configDB,
 		pingInterval,
 		eventHandlerFactory,
 		drain,
 		validator,
 	)
 
-	jobServer := jobserver.NewServer(logger, jobsDB, jobsConfigDB)
-	resourceServer := resourceserver.NewServer(logger, resourceDB, resourceConfigDB)
+	jobServer := jobserver.NewServer(logger, jobsDB, configDB)
+	resourceServer := resourceserver.NewServer(logger, resourceDB, configDB)
 	pipeServer := pipes.NewServer(logger, peerAddr)
 
 	configServer := configserver.NewServer(logger, configDB, configValidator)

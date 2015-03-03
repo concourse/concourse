@@ -67,7 +67,7 @@ var _ = Describe("Jobs API", func() {
 							},
 						},
 					},
-				}, nil)
+				}, 1, nil)
 			})
 
 			Context("when getting the build succeeds", func() {
@@ -180,7 +180,7 @@ var _ = Describe("Jobs API", func() {
 						Jobs: []atc.JobConfig{
 							{Name: "other-job"},
 						},
-					}, nil)
+					}, 1, nil)
 				})
 
 				It("returns 404", func() {
@@ -191,7 +191,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when getting the job config fails", func() {
 			BeforeEach(func() {
-				configDB.GetConfigReturns(atc.Config{}, errors.New("oh no!"))
+				configDB.GetConfigReturns(atc.Config{}, 0, errors.New("oh no!"))
 			})
 
 			It("returns 500", func() {
@@ -245,7 +245,7 @@ var _ = Describe("Jobs API", func() {
 							Outputs: []atc.JobOutputConfig{{Resource: "output-3"}},
 						},
 					},
-				}, nil)
+				}, 1, nil)
 			})
 
 			Context("when getting each job's builds succeeds", func() {
@@ -367,7 +367,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when getting the job config fails", func() {
 			BeforeEach(func() {
-				configDB.GetConfigReturns(atc.Config{}, errors.New("oh no!"))
+				configDB.GetConfigReturns(atc.Config{}, 0, errors.New("oh no!"))
 			})
 
 			It("returns 500", func() {
