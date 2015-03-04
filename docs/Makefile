@@ -1,6 +1,10 @@
 VERSION?=0.0.0
 
-all:
+all: install build
+
+install:
 	raco pkg install --auto -j 4 scribble || true
+
+build:
 	raco scribble ++arg ${VERSION} --htmls concourse.scrbl
 

@@ -105,11 +105,12 @@ guarantee that they work together at all times. Concourse depends on Garden
 Linux, and while each release does go through its own CI pipeline, there's
 a chance that Garden Linux makes a backwards-incompatible change.
 
-Currently the safest way to know which Garden Linux version to use is to go to
-our CI pipeline's @hyperlink["http://ci.concourse.ci/jobs/shipit"]{shipit}
-job, and see which version of Garden Linux fed into it. Then, browse
-@hyperlink["http://bosh.io/releases/github.com/cloudfoundry-incubator/garden-linux-release"]{Garden
-Linux's releases} and upload that version.
+Currently the safest way to know which Garden Linux version to use is to go
+to our
+@hyperlink["https://github.com/concourse/concourse/releases/latest"]{latest
+GitHub release} and grab Concourse and Garden-Linux from the @emph{Downloads}
+section. You can give these URLs directly to @code{bosh upload release} as
+well.
 
 
 @subsection{Configure & Deploy}
