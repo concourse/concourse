@@ -196,7 +196,7 @@ A specific command can also be given, e.g. @code{fly intercept ps auxf} or
 intercept ps auxf}, which will continuously show the process tree of the
 current build, even as the "current build" changes.
 
-@section{@code{sync}: Update your local copy of @code{fly}}
+@section[#:tag "fly-sync"]{@code{sync}: Update your local copy of @code{fly}}
 
 Occasionally we add additional features to @code{fly} or make changes to the
 communiction between it and Concourse's API server. To make sure you're
