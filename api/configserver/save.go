@@ -7,6 +7,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/mitchellh/mapstructure"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -29,11 +30,50 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var config atc.Config
-	err = json.NewDecoder(r.Body).Decode(&config)
+	var configStructure interface{}
+	err = json.NewDecoder(r.Body).Decode(&configStructure)
 	if err != nil {
 		session.Error("malformed-json", err)
 		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var config atc.Config
+	var md mapstructure.Metadata
+	msConfig := &mapstructure.DecoderConfig{
+		Metadata: &md,
+		Result:   &config,
+	}
+	decoder, err := mapstructure.NewDecoder(msConfig)
+	if err != nil {
+		session.Error("failed-to-construct-decoder", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if err := decoder.Decode(configStructure); err != nil {
+		session.Error("could-not-decode", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = mapstructure.Decode(configStructure, &config)
+	if err != nil {
+		session.Error("invalid-config-structure", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if len(md.Unused) != 0 {
+		session.Error("extra-keys", err, lager.Data{
+			"unused-keys": md.Unused,
+		})
+		w.WriteHeader(http.StatusBadRequest)
+
+		fmt.Fprintln(w, "unknown/extra keys:")
+		for _, unusedKey := range md.Unused {
+			fmt.Fprintf(w, "  - %s\n", unusedKey)
+		}
 		return
 	}
 

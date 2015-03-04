@@ -12,15 +12,15 @@ type Params map[string]interface{}
 type Version map[string]interface{}
 
 type Config struct {
-	Groups    GroupConfigs    `yaml:"groups" json:"groups"`
-	Resources ResourceConfigs `yaml:"resources" json:"resources"`
-	Jobs      JobConfigs      `yaml:"jobs" json:"jobs"`
+	Groups    GroupConfigs    `yaml:"groups" json:"groups" mapstructure:"groups"`
+	Resources ResourceConfigs `yaml:"resources" json:"resources" mapstructure:"resources"`
+	Jobs      JobConfigs      `yaml:"jobs" json:"jobs" mapstructure:"jobs"`
 }
 
 type GroupConfig struct {
-	Name      string   `yaml:"name" json:"name"`
-	Jobs      []string `yaml:"jobs,omitempty" json:"jobs,omitempty"`
-	Resources []string `yaml:"resources,omitempty" json:"resources,omitempty"`
+	Name      string   `yaml:"name" json:"name" mapstructure:"name"`
+	Jobs      []string `yaml:"jobs,omitempty" json:"jobs,omitempty" mapstructure:"jobs"`
+	Resources []string `yaml:"resources,omitempty" json:"resources,omitempty" mapstructure:"resources"`
 }
 
 type GroupConfigs []GroupConfig
@@ -36,34 +36,34 @@ func (groups GroupConfigs) Lookup(name string) (GroupConfig, bool) {
 }
 
 type ResourceConfig struct {
-	Name string `yaml:"name" json:"name"`
+	Name string `yaml:"name" json:"name" mapstructure:"name"`
 
-	Type   string `yaml:"type" json:"type"`
-	Source Source `yaml:"source" json:"source"`
+	Type   string `yaml:"type" json:"type" mapstructure:"type"`
+	Source Source `yaml:"source" json:"source" mapstructure:"source"`
 }
 
 type JobConfig struct {
-	Name string `yaml:"name" json:"name"`
+	Name string `yaml:"name" json:"name" mapstructure:"name"`
 
-	Public bool `yaml:"public,omitempty" json:"public,omitempty"`
+	Public bool `yaml:"public,omitempty" json:"public,omitempty" mapstructure:"public"`
 
-	BuildConfigPath string       `yaml:"build,omitempty" json:"build,omitempty"`
-	BuildConfig     *BuildConfig `yaml:"config,omitempty" json:"config,omitempty"`
+	BuildConfigPath string       `yaml:"build,omitempty" json:"build,omitempty" mapstructure:"build"`
+	BuildConfig     *BuildConfig `yaml:"config,omitempty" json:"config,omitempty" mapstructure:"config"`
 
-	Privileged bool `yaml:"privileged,omitempty" json:"privileged,omitempty"`
+	Privileged bool `yaml:"privileged,omitempty" json:"privileged,omitempty" mapstructure:"privileged"`
 
-	Serial bool `yaml:"serial,omitempty" json:"serial,omitempty"`
+	Serial bool `yaml:"serial,omitempty" json:"serial,omitempty" mapstructure:"serial"`
 
-	Inputs  []JobInputConfig  `yaml:"inputs,omitempty" json:"inputs,omitempty"`
-	Outputs []JobOutputConfig `yaml:"outputs,omitempty" json:"outputs,omitempty"`
+	Inputs  []JobInputConfig  `yaml:"inputs,omitempty" json:"inputs,omitempty" mapstructure:"inputs"`
+	Outputs []JobOutputConfig `yaml:"outputs,omitempty" json:"outputs,omitempty" mapstructure:"outputs"`
 }
 
 type JobInputConfig struct {
-	RawName    string   `yaml:"name,omitempty" json:"name,omitempty"`
-	Resource   string   `yaml:"resource" json:"resource"`
-	Params     Params   `yaml:"params,omitempty" json:"params,omitempty"`
-	Passed     []string `yaml:"passed,omitempty" json:"passed,omitempty"`
-	RawTrigger *bool    `yaml:"trigger" json:"trigger"`
+	RawName    string   `yaml:"name,omitempty" json:"name,omitempty" mapstructure:"name"`
+	Resource   string   `yaml:"resource" json:"resource" mapstructure:"resource"`
+	Params     Params   `yaml:"params,omitempty" json:"params,omitempty" mapstructure:"params"`
+	Passed     []string `yaml:"passed,omitempty" json:"passed,omitempty" mapstructure:"passed"`
+	RawTrigger *bool    `yaml:"trigger" json:"trigger" mapstructure:"trigger"`
 }
 
 func (config JobInputConfig) Name() string {
@@ -79,11 +79,11 @@ func (config JobInputConfig) Trigger() bool {
 }
 
 type JobOutputConfig struct {
-	Resource string `yaml:"resource" json:"resource"`
-	Params   Params `yaml:"params,omitempty" json:"params,omitempty"`
+	Resource string `yaml:"resource" json:"resource" mapstructure:"resource"`
+	Params   Params `yaml:"params,omitempty" json:"params,omitempty" mapstructure:"params"`
 
 	// e.g. [success, failure]; default [success]
-	RawPerformOn []OutputCondition `yaml:"perform_on,omitempty" json:"perform_on,omitempty"`
+	RawPerformOn []OutputCondition `yaml:"perform_on,omitempty" json:"perform_on,omitempty" mapstructure:"perform_on"`
 }
 
 func (config JobOutputConfig) PerformOn() []OutputCondition {

@@ -11,7 +11,14 @@ import (
 	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
+
+type RemoraConfig struct {
+	atc.Config
+
+	Extra string `json:"extra"`
+}
 
 var _ = Describe("Config API", func() {
 	var (
@@ -168,6 +175,34 @@ var _ = Describe("Config API", func() {
 			Context("when a config ID is specified", func() {
 				BeforeEach(func() {
 					request.Header.Set(atc.ConfigIDHeader, "42")
+				})
+
+				Context("when the config contains extra keys", func() {
+					BeforeEach(func() {
+						remoraPayload, err := json.Marshal(RemoraConfig{
+							Config: config,
+							Extra:  "noooooo",
+						})
+						Ω(err).ShouldNot(HaveOccurred())
+
+						request.Body = gbytes.BufferWithBytes(remoraPayload)
+					})
+
+					It("returns 400", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+					})
+
+					It("returns an error in the response body", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Ω(body).Should(ContainSubstring("unknown/extra keys:"))
+						Ω(body).Should(ContainSubstring("- extra"))
+					})
+
+					It("does not save it", func() {
+						Ω(configDB.SaveConfigCallCount()).Should(BeZero())
+					})
 				})
 
 				Context("when the config is valid", func() {
