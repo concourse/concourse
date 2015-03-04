@@ -142,3 +142,7 @@
 	path = src/github.com/aryann/difflib
 	url = https://github.com/aryann/difflib
 	branch = master
+[submodule "src/github.com/mitchellh/mapstructure"]
+	path = src/github.com/mitchellh/mapstructure
+	url = https://github.com/mitchellh/mapstructure
+	branch = master
