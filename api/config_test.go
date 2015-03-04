@@ -1,7 +1,6 @@
 package api_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -12,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"gopkg.in/yaml.v2"
 )
 
 type RemoraConfig struct {
@@ -154,10 +154,8 @@ var _ = Describe("Config API", func() {
 		)
 
 		BeforeEach(func() {
-			payload, err := json.Marshal(config)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			request, err = http.NewRequest("PUT", server.URL+"/api/v1/config", ioutil.NopCloser(bytes.NewBuffer(payload)))
+			var err error
+			request, err = http.NewRequest("PUT", server.URL+"/api/v1/config", nil)
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
@@ -177,8 +175,141 @@ var _ = Describe("Config API", func() {
 					request.Header.Set(atc.ConfigIDHeader, "42")
 				})
 
+				Context("when the config is valid", func() {
+					Context("JSON", func() {
+						BeforeEach(func() {
+							request.Header.Set("Content-Type", "application/json")
+
+							payload, err := json.Marshal(config)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							request.Body = gbytes.BufferWithBytes(payload)
+						})
+
+						It("returns 200", func() {
+							Ω(response.StatusCode).Should(Equal(http.StatusOK))
+						})
+
+						It("saves it", func() {
+							Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
+
+							config, id := configDB.SaveConfigArgsForCall(0)
+							Ω(config).Should(Equal(config))
+							Ω(id).Should(Equal(db.ConfigID(42)))
+						})
+
+						Context("and saving it fails", func() {
+							BeforeEach(func() {
+								configDB.SaveConfigReturns(errors.New("oh no!"))
+							})
+
+							It("returns 500", func() {
+								Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+							})
+
+							It("returns the error in the response body", func() {
+								Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("failed to save config: oh no!")))
+							})
+						})
+
+						Context("when the config is invalid", func() {
+							BeforeEach(func() {
+								configValidationErr = errors.New("totally invalid")
+							})
+
+							It("returns 400", func() {
+								Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+							})
+
+							It("returns the validation error in the response body", func() {
+								Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("totally invalid")))
+							})
+
+							It("does not save it", func() {
+								Ω(configDB.SaveConfigCallCount()).Should(BeZero())
+							})
+						})
+					})
+
+					Context("YAML", func() {
+						BeforeEach(func() {
+							request.Header.Set("Content-Type", "application/x-yaml")
+
+							payload, err := yaml.Marshal(config)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							request.Body = gbytes.BufferWithBytes(payload)
+						})
+
+						It("returns 200", func() {
+							Ω(response.StatusCode).Should(Equal(http.StatusOK))
+						})
+
+						It("saves it", func() {
+							Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
+
+							config, id := configDB.SaveConfigArgsForCall(0)
+							Ω(config).Should(Equal(config))
+							Ω(id).Should(Equal(db.ConfigID(42)))
+						})
+
+						Context("and saving it fails", func() {
+							BeforeEach(func() {
+								configDB.SaveConfigReturns(errors.New("oh no!"))
+							})
+
+							It("returns 500", func() {
+								Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+							})
+
+							It("returns the error in the response body", func() {
+								Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("failed to save config: oh no!")))
+							})
+						})
+
+						Context("when the config is invalid", func() {
+							BeforeEach(func() {
+								configValidationErr = errors.New("totally invalid")
+							})
+
+							It("returns 400", func() {
+								Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+							})
+
+							It("returns the validation error in the response body", func() {
+								Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("totally invalid")))
+							})
+
+							It("does not save it", func() {
+								Ω(configDB.SaveConfigCallCount()).Should(BeZero())
+							})
+						})
+					})
+				})
+
+				Context("when the Content-Type is unsupported", func() {
+					BeforeEach(func() {
+						request.Header.Set("Content-Type", "application/x-toml")
+
+						payload, err := yaml.Marshal(config)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						request.Body = gbytes.BufferWithBytes(payload)
+					})
+
+					It("returns Unsupported Media Type", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusUnsupportedMediaType))
+					})
+
+					It("does not save it", func() {
+						Ω(configDB.SaveConfigCallCount()).Should(BeZero())
+					})
+				})
+
 				Context("when the config contains extra keys", func() {
 					BeforeEach(func() {
+						request.Header.Set("Content-Type", "application/json")
+
 						remoraPayload, err := json.Marshal(RemoraConfig{
 							Config: config,
 							Extra:  "noooooo",
@@ -202,52 +333,6 @@ var _ = Describe("Config API", func() {
 
 					It("does not save it", func() {
 						Ω(configDB.SaveConfigCallCount()).Should(BeZero())
-					})
-				})
-
-				Context("when the config is valid", func() {
-					It("returns 200", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusOK))
-					})
-
-					It("saves it", func() {
-						Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
-
-						config, id := configDB.SaveConfigArgsForCall(0)
-						Ω(config).Should(Equal(config))
-						Ω(id).Should(Equal(db.ConfigID(42)))
-					})
-
-					Context("and saving it fails", func() {
-						BeforeEach(func() {
-							configDB.SaveConfigReturns(errors.New("oh no!"))
-						})
-
-						It("returns 500", func() {
-							Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
-						})
-
-						It("returns the error in the response body", func() {
-							Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("failed to save config: oh no!")))
-						})
-					})
-
-					Context("when the config is invalid", func() {
-						BeforeEach(func() {
-							configValidationErr = errors.New("totally invalid")
-						})
-
-						It("returns 400", func() {
-							Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
-						})
-
-						It("returns the validation error in the response body", func() {
-							Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("totally invalid")))
-						})
-
-						It("does not save it", func() {
-							Ω(configDB.SaveConfigCallCount()).Should(BeZero())
-						})
 					})
 				})
 			})

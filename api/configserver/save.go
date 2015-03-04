@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/cloudfoundry-incubator/candiedyaml"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/mitchellh/mapstructure"
@@ -31,9 +32,23 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var configStructure interface{}
-	err = json.NewDecoder(r.Body).Decode(&configStructure)
+
+	contentType := r.Header.Get("Content-Type")
+	switch contentType {
+	case "application/json":
+		err = json.NewDecoder(r.Body).Decode(&configStructure)
+	case "application/x-yaml":
+		err = candiedyaml.NewDecoder(r.Body).Decode(&configStructure)
+	default:
+		w.WriteHeader(http.StatusUnsupportedMediaType)
+		return
+	}
+
 	if err != nil {
-		session.Error("malformed-json", err)
+		session.Error("malformed-request-payload", err, lager.Data{
+			"content-type": contentType,
+		})
+
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
