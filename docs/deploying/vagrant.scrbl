@@ -21,8 +21,8 @@ will be available in the future.
 To spin up Concourse with Vagrant, run the following in any directory:
 
 @codeblock|{
-$ vagrant init concourse/lite ; # places Vagrantfile in current directory
-$ vagrant up                  ; # downloads the box and spins up the VM
+vagrant init concourse/lite ; # places Vagrantfile in current directory
+vagrant up                  ; # downloads the box and spins up the VM
 }|
 
 The web server will be running at @hyperlink["http://192.168.100.4:8080"]{192.168.100.4:8080}.
