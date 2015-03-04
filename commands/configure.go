@@ -86,11 +86,6 @@ func setConfig(atcRequester *atcRequester, configPath string) {
 		log.Fatalln(err)
 	}
 
-	payload, err := json.Marshal(newConfig)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
 	getConfig, err := atcRequester.CreateRequest(
 		atc.GetConfig,
 		nil,
@@ -125,13 +120,13 @@ func setConfig(atcRequester *atcRequester, configPath string) {
 	setConfig, err := atcRequester.CreateRequest(
 		atc.SaveConfig,
 		nil,
-		bytes.NewBuffer(payload),
+		bytes.NewBuffer(configFile),
 	)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	setConfig.Header.Set("Content-Type", "application/json")
+	setConfig.Header.Set("Content-Type", "application/x-yaml")
 	setConfig.Header.Set(atc.ConfigIDHeader, configID)
 
 	resp, err = atcRequester.httpClient.Do(setConfig)

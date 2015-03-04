@@ -189,6 +189,7 @@ var _ = Describe("Fly CLI", func() {
 			var (
 				changedConfig atc.Config
 
+				payload    []byte
 				configFile *os.File
 			)
 
@@ -206,7 +207,9 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			JustBeforeEach(func() {
-				payload, err := yaml.Marshal(changedConfig)
+				var err error
+
+				payload, err = yaml.Marshal(changedConfig)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				_, err = configFile.Write(payload)
@@ -241,7 +244,10 @@ var _ = Describe("Fly CLI", func() {
 					atcServer.RouteToHandler("PUT", "/api/v1/config",
 						ghttp.CombineHandlers(
 							ghttp.VerifyHeaderKV(atc.ConfigIDHeader, "42"),
-							ghttp.VerifyJSONRepresenting(changedConfig),
+							ghttp.VerifyHeaderKV("Content-Type", "application/x-yaml"),
+							func(w http.ResponseWriter, r *http.Request) {
+								Ω(ioutil.ReadAll(r.Body)).Should(Equal(payload))
+							},
 							ghttp.RespondWith(200, ""),
 						),
 					)
