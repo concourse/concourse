@@ -16,6 +16,11 @@
   }
 
   @item{
+    You can now use the GitHub release resource without an access token for
+    everything except publishing a resource.
+  }
+
+  @item{
     The GitHub Release resource now @emph{actually} supports being used as an
     input. We had previously forgotten to actually wire in the command. Woops.
   }
