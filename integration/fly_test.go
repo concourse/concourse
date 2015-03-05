@@ -33,7 +33,7 @@ var _ = Describe("Fly CLI", func() {
 	var events chan atc.Event
 	var uploadingBits <-chan struct{}
 
-	var expectedBuildPlan atc.BuildPlan
+	var expectedPlan atc.Plan
 
 	BeforeEach(func() {
 		var err error
@@ -71,27 +71,36 @@ run:
 		streaming = make(chan struct{})
 		events = make(chan atc.Event)
 
-		expectedBuildPlan = atc.BuildPlan{
-			Config: &atc.BuildConfig{
-				Platform: "some-platform",
-				Image:    "ubuntu",
-				Params: map[string]string{
-					"FOO": "bar",
-					"BAZ": "buzz",
-					"X":   "1",
+		expectedPlan = atc.Plan{
+			Compose: &atc.ComposePlan{
+				A: atc.Plan{
+					Aggregate: &atc.AggregatePlan{
+						filepath.Base(buildDir): atc.Plan{
+							Get: &atc.GetPlan{
+								Name: filepath.Base(buildDir),
+								Type: "archive",
+								Source: atc.Source{
+									"uri": "http://127.0.0.1:1234/api/v1/pipes/some-pipe-id",
+								},
+							},
+						},
+					},
 				},
-				Run: atc.BuildRunConfig{
-					Path: "find",
-					Args: []string{"."},
-				},
-			},
-
-			Inputs: []atc.InputPlan{
-				{
-					Name: filepath.Base(buildDir),
-					Type: "archive",
-					Source: atc.Source{
-						"uri": "http://127.0.0.1:1234/api/v1/pipes/some-pipe-id",
+				B: atc.Plan{
+					Execute: &atc.ExecutePlan{
+						Config: &atc.BuildConfig{
+							Platform: "some-platform",
+							Image:    "ubuntu",
+							Params: map[string]string{
+								"FOO": "bar",
+								"BAZ": "buzz",
+								"X":   "1",
+							},
+							Run: atc.BuildRunConfig{
+								Path: "find",
+								Args: []string{"."},
+							},
+						},
 					},
 				},
 			},
@@ -112,7 +121,7 @@ run:
 			),
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/builds"),
-				ghttp.VerifyJSONRepresenting(expectedBuildPlan),
+				ghttp.VerifyJSONRepresenting(expectedPlan),
 				func(w http.ResponseWriter, r *http.Request) {
 					http.SetCookie(w, &http.Cookie{
 						Name:    "Some-Cookie",
@@ -234,7 +243,7 @@ run: {}
 
 	Context("when arguments are passed through", func() {
 		BeforeEach(func() {
-			expectedBuildPlan.Config.Run.Args = []string{".", "-name", `foo "bar" baz`}
+			expectedPlan.Compose.B.Execute.Config.Run.Args = []string{".", "-name", `foo "bar" baz`}
 		})
 
 		It("inserts them into the config template", func() {
@@ -256,7 +265,7 @@ run: {}
 
 	Context("when running with --privileged", func() {
 		BeforeEach(func() {
-			expectedBuildPlan.Privileged = true
+			expectedPlan.Compose.B.Execute.Privileged = true
 		})
 
 		It("inserts them into the config template", func() {
@@ -292,7 +301,7 @@ run: {}
 
 	Context("when parameters are specified in the environment", func() {
 		BeforeEach(func() {
-			expectedBuildPlan.Config.Params = map[string]string{
+			expectedPlan.Compose.B.Execute.Config.Params = map[string]string{
 				"FOO": "newbar",
 				"BAZ": "buzz",
 				"X":   "",

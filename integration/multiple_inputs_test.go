@@ -32,7 +32,7 @@ var _ = Describe("Fly CLI", func() {
 	var events chan atc.Event
 	var uploadingBits <-chan struct{}
 
-	var expectedBuildPlan atc.BuildPlan
+	var expectedPlan atc.Plan
 
 	BeforeEach(func() {
 		var err error
@@ -77,34 +77,45 @@ run:
 		streaming = make(chan struct{})
 		events = make(chan atc.Event)
 
-		expectedBuildPlan = atc.BuildPlan{
-			Config: &atc.BuildConfig{
-				Platform: "some-platform",
-				Image:    "ubuntu",
-				Params: map[string]string{
-					"FOO": "bar",
-					"BAZ": "buzz",
-					"X":   "1",
-				},
-				Run: atc.BuildRunConfig{
-					Path: "find",
-					Args: []string{"."},
-				},
-			},
-
-			Inputs: []atc.InputPlan{
-				{
-					Name: "buildDir",
-					Type: "archive",
-					Source: atc.Source{
-						"uri": "http://127.0.0.1:1234/api/v1/pipes/some-pipe-id",
+		expectedPlan = atc.Plan{
+			Compose: &atc.ComposePlan{
+				A: atc.Plan{
+					Aggregate: &atc.AggregatePlan{
+						"buildDir": atc.Plan{
+							Get: &atc.GetPlan{
+								Name: "buildDir",
+								Type: "archive",
+								Source: atc.Source{
+									"uri": "http://127.0.0.1:1234/api/v1/pipes/some-pipe-id",
+								},
+							},
+						},
+						"s3Asset": atc.Plan{
+							Get: &atc.GetPlan{
+								Name: "s3Asset",
+								Type: "archive",
+								Source: atc.Source{
+									"uri": "http://127.0.0.1:1234/api/v1/pipes/some-other-pipe-id",
+								},
+							},
+						},
 					},
 				},
-				{
-					Name: "s3Asset",
-					Type: "archive",
-					Source: atc.Source{
-						"uri": "http://127.0.0.1:1234/api/v1/pipes/some-other-pipe-id",
+				B: atc.Plan{
+					Execute: &atc.ExecutePlan{
+						Config: &atc.BuildConfig{
+							Platform: "some-platform",
+							Image:    "ubuntu",
+							Params: map[string]string{
+								"FOO": "bar",
+								"BAZ": "buzz",
+								"X":   "1",
+							},
+							Run: atc.BuildRunConfig{
+								Path: "find",
+								Args: []string{"."},
+							},
+						},
 					},
 				},
 			},
@@ -132,7 +143,7 @@ run:
 			),
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/builds"),
-				ghttp.VerifyJSONRepresenting(expectedBuildPlan),
+				ghttp.VerifyJSONRepresenting(expectedPlan),
 				func(w http.ResponseWriter, r *http.Request) {
 					http.SetCookie(w, &http.Cookie{
 						Name:    "Some-Cookie",

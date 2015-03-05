@@ -172,8 +172,8 @@ func createBuild(
 
 	buffer := &bytes.Buffer{}
 
-	buildInputs := make([]atc.InputPlan, len(inputs))
-	for idx, i := range inputs {
+	buildInputs := atc.AggregatePlan{}
+	for _, i := range inputs {
 		readPipe, err := atcRequester.CreateHTTPRequest(
 			atc.ReadPipe,
 			rata.Params{"pipe_id": i.Pipe.ID},
@@ -185,22 +185,32 @@ func createBuild(
 
 		readPipe.URL.Host = i.Pipe.PeerAddr
 
-		buildInputs[idx] = atc.InputPlan{
-			Name: i.Name,
-			Type: "archive",
-			Source: atc.Source{
-				"uri": readPipe.URL.String(),
+		buildInputs[i.Name] = atc.Plan{
+			Get: &atc.GetPlan{
+				Name: i.Name,
+				Type: "archive",
+				Source: atc.Source{
+					"uri": readPipe.URL.String(),
+				},
 			},
 		}
 	}
 
-	buildPlan := atc.BuildPlan{
-		Privileged: privileged,
-		Config:     &config,
-		Inputs:     buildInputs,
+	plan := atc.Plan{
+		Compose: &atc.ComposePlan{
+			A: atc.Plan{
+				Aggregate: &buildInputs,
+			},
+			B: atc.Plan{
+				Execute: &atc.ExecutePlan{
+					Privileged: privileged,
+					Config:     &config,
+				},
+			},
+		},
 	}
 
-	err := json.NewEncoder(buffer).Encode(buildPlan)
+	err := json.NewEncoder(buffer).Encode(plan)
 	if err != nil {
 		log.Fatalln("encoding build failed:", err)
 	}
