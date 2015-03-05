@@ -218,7 +218,7 @@ func (build *execBuild) buildStep(plan atc.Plan, logger lager.Logger) exec.Step 
 		)
 	}
 
-	panic("everything was nil")
+	return exec.Identity{}
 }
 
 func (build *execBuild) executeSessionID() exec.SessionID {
