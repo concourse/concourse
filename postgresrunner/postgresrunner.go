@@ -23,6 +23,8 @@ type Runner struct {
 }
 
 func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+	defer ginkgo.GinkgoRecover()
+
 	tmpdir, err := ioutil.TempDir("", "postgres")
 	Ω(err).ShouldNot(HaveOccurred())
 
