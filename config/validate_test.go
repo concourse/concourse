@@ -67,7 +67,7 @@ var _ = Describe("ValidateConfig", func() {
 							Params: atc.Params{
 								"some-param": "some-value",
 							},
-							RawPerformOn: []atc.OutputCondition{"success", "failure"},
+							RawPerformOn: []atc.Condition{"success", "failure"},
 						},
 					},
 				},

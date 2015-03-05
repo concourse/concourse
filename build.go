@@ -156,7 +156,7 @@ type OutputPlan struct {
 	Type string `json:"type"`
 
 	// e.g. [success, failure]
-	On OutputConditions `json:"on,omitempty"`
+	On Conditions `json:"on,omitempty"`
 
 	// e.g. git url, branch, private_key
 	Source Source `json:"source,omitempty"`
@@ -170,12 +170,12 @@ type MetadataField struct {
 	Value string `json:"value"`
 }
 
-type OutputConditions []OutputCondition
+type Conditions []Condition
 
-func (cs OutputConditions) SatisfiedBy(successful bool) bool {
+func (cs Conditions) SatisfiedBy(successful bool) bool {
 	for _, status := range cs {
-		if (status == OutputConditionSuccess && successful) ||
-			(status == OutputConditionFailure && !successful) {
+		if (status == ConditionSuccess && successful) ||
+			(status == ConditionFailure && !successful) {
 			return true
 		}
 	}

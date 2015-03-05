@@ -40,6 +40,6 @@ type ExecutePlan struct {
 }
 
 type ConditionalPlan struct {
-	Conditions OutputConditions `json:"conditions"` // TODO rename
-	Plan       Plan             `json:"plan"`
+	Conditions Conditions `json:"conditions"`
+	Plan       Plan       `json:"plan"`
 }

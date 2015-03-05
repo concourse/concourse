@@ -95,7 +95,7 @@ var _ = Describe("Censorship", func() {
 				Plan: atc.OutputPlan{
 					Name:   "some-name",
 					Type:   "git",
-					On:     []atc.OutputCondition{atc.OutputConditionSuccess},
+					On:     []atc.Condition{atc.ConditionSuccess},
 					Source: atc.Source{"some": "secret"},
 					Params: atc.Params{"another": "secret"},
 				},
@@ -105,7 +105,7 @@ var _ = Describe("Censorship", func() {
 				Plan: atc.OutputPlan{
 					Name: "some-name",
 					Type: "git",
-					On:   []atc.OutputCondition{atc.OutputConditionSuccess},
+					On:   []atc.Condition{atc.ConditionSuccess},
 				},
 				CreatedVersion:  atc.Version{"ref": "foo"},
 				CreatedMetadata: []atc.MetadataField{{"public", "data"}},

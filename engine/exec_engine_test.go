@@ -91,7 +91,7 @@ var _ = Describe("ExecEngine", func() {
 			}
 
 			outputPlan = &atc.ConditionalPlan{
-				Conditions: atc.OutputConditions{atc.OutputConditionSuccess},
+				Conditions: atc.Conditions{atc.ConditionSuccess},
 				Plan: atc.Plan{
 					Put: &atc.PutPlan{
 						Resource: "some-output-resource",
@@ -271,7 +271,7 @@ var _ = Describe("ExecEngine", func() {
 
 				Context("when the output should perform on success", func() {
 					BeforeEach(func() {
-						outputPlan.Conditions = atc.OutputConditions{atc.OutputConditionSuccess}
+						outputPlan.Conditions = atc.Conditions{atc.ConditionSuccess}
 					})
 
 					It("executes the output", func() {
@@ -307,7 +307,7 @@ var _ = Describe("ExecEngine", func() {
 
 				Context("when the output should perform on failure", func() {
 					BeforeEach(func() {
-						outputPlan.Conditions = atc.OutputConditions{atc.OutputConditionFailure}
+						outputPlan.Conditions = atc.Conditions{atc.ConditionFailure}
 					})
 
 					It("does not execute the output", func() {
@@ -317,7 +317,7 @@ var _ = Describe("ExecEngine", func() {
 
 				Context("when the output should perform on success or failure", func() {
 					BeforeEach(func() {
-						outputPlan.Conditions = atc.OutputConditions{atc.OutputConditionSuccess, atc.OutputConditionFailure}
+						outputPlan.Conditions = atc.Conditions{atc.ConditionSuccess, atc.ConditionFailure}
 					})
 
 					It("executes the output", func() {
@@ -353,7 +353,7 @@ var _ = Describe("ExecEngine", func() {
 
 				Context("when the output has empty conditions", func() {
 					BeforeEach(func() {
-						outputPlan.Conditions = atc.OutputConditions{}
+						outputPlan.Conditions = atc.Conditions{}
 					})
 
 					It("does not execute the output", func() {
@@ -370,7 +370,7 @@ var _ = Describe("ExecEngine", func() {
 
 				Context("when the output should perform on success", func() {
 					BeforeEach(func() {
-						outputPlan.Conditions = atc.OutputConditions{atc.OutputConditionSuccess}
+						outputPlan.Conditions = atc.Conditions{atc.ConditionSuccess}
 					})
 
 					It("does not execute the output", func() {
@@ -380,7 +380,7 @@ var _ = Describe("ExecEngine", func() {
 
 				Context("when the output should perform on failure", func() {
 					BeforeEach(func() {
-						outputPlan.Conditions = atc.OutputConditions{atc.OutputConditionFailure}
+						outputPlan.Conditions = atc.Conditions{atc.ConditionFailure}
 					})
 
 					It("executes the output", func() {
@@ -416,7 +416,7 @@ var _ = Describe("ExecEngine", func() {
 
 				Context("when the output should perform on success or failure", func() {
 					BeforeEach(func() {
-						outputPlan.Conditions = atc.OutputConditions{atc.OutputConditionSuccess, atc.OutputConditionFailure}
+						outputPlan.Conditions = atc.Conditions{atc.ConditionSuccess, atc.ConditionFailure}
 					})
 
 					It("executes the output", func() {
@@ -452,7 +452,7 @@ var _ = Describe("ExecEngine", func() {
 
 				Context("when the output has empty conditions", func() {
 					BeforeEach(func() {
-						outputPlan.Conditions = atc.OutputConditions{}
+						outputPlan.Conditions = atc.Conditions{}
 					})
 
 					It("does not execute the output", func() {

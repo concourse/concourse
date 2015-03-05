@@ -210,7 +210,7 @@ var _ = Describe("Conditional", func() {
 
 	Context("with no conditions", func() {
 		BeforeEach(func() {
-			conditional.Conditions = atc.OutputConditions{}
+			conditional.Conditions = atc.Conditions{}
 		})
 
 		Context("when the input source is successful", func() {
@@ -236,7 +236,7 @@ var _ = Describe("Conditional", func() {
 
 	Context("with a success condition", func() {
 		BeforeEach(func() {
-			conditional.Conditions = atc.OutputConditions{atc.OutputConditionSuccess}
+			conditional.Conditions = atc.Conditions{atc.ConditionSuccess}
 		})
 
 		Context("when the input source is successful", func() {
@@ -262,7 +262,7 @@ var _ = Describe("Conditional", func() {
 
 	Context("with a failure condition", func() {
 		BeforeEach(func() {
-			conditional.Conditions = atc.OutputConditions{atc.OutputConditionFailure}
+			conditional.Conditions = atc.Conditions{atc.ConditionFailure}
 		})
 
 		Context("when the input source is successful", func() {
@@ -288,9 +288,9 @@ var _ = Describe("Conditional", func() {
 
 	Context("with a success or failure condition", func() {
 		BeforeEach(func() {
-			conditional.Conditions = atc.OutputConditions{
-				atc.OutputConditionFailure,
-				atc.OutputConditionSuccess,
+			conditional.Conditions = atc.Conditions{
+				atc.ConditionFailure,
+				atc.ConditionSuccess,
 			}
 		})
 

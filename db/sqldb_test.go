@@ -121,7 +121,7 @@ var _ = Describe("SQL DB", func() {
 							Params: atc.Params{
 								"some-param": "some-value",
 							},
-							RawPerformOn: []atc.OutputCondition{"success", "failure"},
+							RawPerformOn: []atc.Condition{"success", "failure"},
 						},
 					},
 				},

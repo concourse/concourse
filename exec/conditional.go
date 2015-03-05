@@ -8,7 +8,7 @@ import (
 )
 
 type Conditional struct {
-	Conditions atc.OutputConditions
+	Conditions atc.Conditions
 	Step       Step
 
 	inputSource  ArtifactSource

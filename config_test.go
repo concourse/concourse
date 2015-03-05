@@ -33,15 +33,15 @@ var _ = Describe("Config", func() {
 
 	Describe("JobOutputConfig", func() {
 		It("defaults PerformOn to [success]", func() {
-			Ω(JobOutputConfig{}.PerformOn()).Should(Equal([]OutputCondition{"success"}))
+			Ω(JobOutputConfig{}.PerformOn()).Should(Equal([]Condition{"success"}))
 
 			Ω(JobOutputConfig{
-				RawPerformOn: []OutputCondition{},
-			}.PerformOn()).Should(Equal([]OutputCondition{}))
+				RawPerformOn: []Condition{},
+			}.PerformOn()).Should(Equal([]Condition{}))
 
 			Ω(JobOutputConfig{
-				RawPerformOn: []OutputCondition{"failure"},
-			}.PerformOn()).Should(Equal([]OutputCondition{"failure"}))
+				RawPerformOn: []Condition{"failure"},
+			}.PerformOn()).Should(Equal([]Condition{"failure"}))
 		})
 	})
 })

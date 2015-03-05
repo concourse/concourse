@@ -53,17 +53,17 @@ var _ = Describe("Factory", func() {
 				{
 					Resource:     "some-resource",
 					Params:       atc.Params{"foo": "bar"},
-					RawPerformOn: []atc.OutputCondition{"success"},
+					RawPerformOn: []atc.Condition{"success"},
 				},
 				{
 					Resource:     "some-other-resource",
 					Params:       atc.Params{"foo": "bar"},
-					RawPerformOn: []atc.OutputCondition{"failure"},
+					RawPerformOn: []atc.Condition{"failure"},
 				},
 				{
 					Resource:     "some-other-other-resource",
 					Params:       atc.Params{"foo": "bar"},
-					RawPerformOn: []atc.OutputCondition{},
+					RawPerformOn: []atc.Condition{},
 				},
 			},
 		}
@@ -109,7 +109,7 @@ var _ = Describe("Factory", func() {
 							Aggregate: &atc.AggregatePlan{
 								"some-resource": atc.Plan{
 									Conditional: &atc.ConditionalPlan{
-										Conditions: []atc.OutputCondition{atc.OutputConditionSuccess},
+										Conditions: []atc.Condition{atc.ConditionSuccess},
 										Plan: atc.Plan{
 											Put: &atc.PutPlan{
 												Resource: "some-resource",
@@ -122,7 +122,7 @@ var _ = Describe("Factory", func() {
 								},
 								"some-other-resource": atc.Plan{
 									Conditional: &atc.ConditionalPlan{
-										Conditions: []atc.OutputCondition{atc.OutputConditionFailure},
+										Conditions: []atc.Condition{atc.ConditionFailure},
 										Plan: atc.Plan{
 											Put: &atc.PutPlan{
 												Resource: "some-other-resource",
@@ -135,7 +135,7 @@ var _ = Describe("Factory", func() {
 								},
 								"some-other-other-resource": atc.Plan{
 									Conditional: &atc.ConditionalPlan{
-										Conditions: []atc.OutputCondition{},
+										Conditions: []atc.Condition{},
 										Plan: atc.Plan{
 											Put: &atc.PutPlan{
 												Resource: "some-other-other-resource",

@@ -43,16 +43,13 @@ type ResourceConfig struct {
 }
 
 type JobConfig struct {
-	Name string `yaml:"name" json:"name" mapstructure:"name"`
+	Name   string `yaml:"name" json:"name" mapstructure:"name"`
+	Public bool   `yaml:"public,omitempty" json:"public,omitempty" mapstructure:"public"`
+	Serial bool   `yaml:"serial,omitempty" json:"serial,omitempty" mapstructure:"serial"`
 
-	Public bool `yaml:"public,omitempty" json:"public,omitempty" mapstructure:"public"`
-
+	Privileged      bool         `yaml:"privileged,omitempty" json:"privileged,omitempty" mapstructure:"privileged"`
 	BuildConfigPath string       `yaml:"build,omitempty" json:"build,omitempty" mapstructure:"build"`
 	BuildConfig     *BuildConfig `yaml:"config,omitempty" json:"config,omitempty" mapstructure:"config"`
-
-	Privileged bool `yaml:"privileged,omitempty" json:"privileged,omitempty" mapstructure:"privileged"`
-
-	Serial bool `yaml:"serial,omitempty" json:"serial,omitempty" mapstructure:"serial"`
 
 	Inputs  []JobInputConfig  `yaml:"inputs,omitempty" json:"inputs,omitempty" mapstructure:"inputs"`
 	Outputs []JobOutputConfig `yaml:"outputs,omitempty" json:"outputs,omitempty" mapstructure:"outputs"`
@@ -83,33 +80,33 @@ type JobOutputConfig struct {
 	Params   Params `yaml:"params,omitempty" json:"params,omitempty" mapstructure:"params"`
 
 	// e.g. [success, failure]; default [success]
-	RawPerformOn []OutputCondition `yaml:"perform_on,omitempty" json:"perform_on,omitempty" mapstructure:"perform_on"`
+	RawPerformOn []Condition `yaml:"perform_on,omitempty" json:"perform_on,omitempty" mapstructure:"perform_on"`
 }
 
-func (config JobOutputConfig) PerformOn() []OutputCondition {
+func (config JobOutputConfig) PerformOn() []Condition {
 	if config.RawPerformOn == nil { // NOT len(0)
-		return []OutputCondition{"success"}
+		return []Condition{"success"}
 	}
 
 	return config.RawPerformOn
 }
 
-type OutputCondition string
+type Condition string
 
 const (
-	OutputConditionSuccess OutputCondition = "success"
-	OutputConditionFailure OutputCondition = "failure"
+	ConditionSuccess Condition = "success"
+	ConditionFailure Condition = "failure"
 )
 
-func (c *OutputCondition) UnmarshalYAML(tag string, value interface{}) error {
+func (c *Condition) UnmarshalYAML(tag string, value interface{}) error {
 	str, ok := value.(string)
 	if !ok {
 		return fmt.Errorf("invalid output condition: %#v (must be success/failure)", value)
 	}
 
-	switch OutputCondition(str) {
-	case OutputConditionSuccess, OutputConditionFailure:
-		*c = OutputCondition(str)
+	switch Condition(str) {
+	case ConditionSuccess, ConditionFailure:
+		*c = Condition(str)
 	default:
 		return fmt.Errorf("unknown output condition: %s (must be success/failure)", str)
 	}
