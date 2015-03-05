@@ -53,6 +53,39 @@ type JobConfig struct {
 
 	Inputs  []JobInputConfig  `yaml:"inputs,omitempty" json:"inputs,omitempty" mapstructure:"inputs"`
 	Outputs []JobOutputConfig `yaml:"outputs,omitempty" json:"outputs,omitempty" mapstructure:"outputs"`
+
+	Plan PlanSequence `yaml:"plan,omitempty" json:"plan,omitempty" mapstructure:"plan"`
+}
+
+// A PlanSequence corresponds to a chain of Compose plan, with an implicit
+// `on: [success]` after every Execute plan.
+type PlanSequence []PlanConfig
+
+// A PlanConfig is a flattened set of configuration corresponding to
+// a particular Plan, where Source and Version are populated lazily.
+type PlanConfig struct {
+	// corresponds to Get and Put resource plans, respectively
+	Get      string // name of 'input', e.g. bosh-stemcell
+	Put      string // name of 'output', e.g. rootfs-tarball
+	Resource string // corresponding resource config, e.g. aws-stemcell
+
+	// corresponds to an Execute plan
+	Execute         string       // name of 'execute', e.g. unit, go1.3, go1.4
+	BuildConfigPath string       // build config path, e.g. foo/build.yml
+	BuildConfig     *BuildConfig // inlined build config
+
+	// corresponds to a Conditional plan
+	On Conditions   // conditions on which to perform a nested sequence
+	Do PlanSequence // sequence to execute if conditions are met
+
+	// corresponds to an Aggregate plan, keyed by the name of each sub-plan
+	Aggregate PlanSequence
+
+	// used by Get, Put, and Execute for specifying params to resource or
+	// build
+	//
+	// for Execute, it's shorthand for BuildConfig.Params
+	Params Params
 }
 
 type JobInputConfig struct {
