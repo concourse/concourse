@@ -22,22 +22,24 @@ import (
 
 var _ = Describe("Builds API", func() {
 	Describe("POST /api/v1/builds", func() {
-		var buildPlan atc.BuildPlan
+		var plan atc.Plan
 
 		var response *http.Response
 
 		BeforeEach(func() {
-			buildPlan = atc.BuildPlan{
-				Config: &atc.BuildConfig{
-					Run: atc.BuildRunConfig{
-						Path: "ls",
+			plan = atc.Plan{
+				Execute: &atc.ExecutePlan{
+					Config: &atc.BuildConfig{
+						Run: atc.BuildRunConfig{
+							Path: "ls",
+						},
 					},
 				},
 			}
 		})
 
 		JustBeforeEach(func() {
-			reqPayload, err := json.Marshal(buildPlan)
+			reqPayload, err := json.Marshal(plan)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			req, err := http.NewRequest("POST", server.URL+"/api/v1/builds", bytes.NewBuffer(reqPayload))
@@ -86,14 +88,14 @@ var _ = Describe("Builds API", func() {
 						Ω(buildsDB.CreateOneOffBuildCallCount()).Should(Equal(1))
 
 						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
-						oneOff, plan := fakeEngine.CreateBuildArgsForCall(0)
+						oneOff, builtPlan := fakeEngine.CreateBuildArgsForCall(0)
 						Ω(oneOff).Should(Equal(db.Build{
 							ID:      42,
 							Name:    "1",
 							JobName: "job1",
 							Status:  db.StatusStarted,
 						}))
-						Ω(plan).Should(Equal(buildPlan))
+						Ω(builtPlan).Should(Equal(plan))
 					})
 				})
 

@@ -16,7 +16,7 @@ var _ = Describe("Factory", func() {
 		job       atc.JobConfig
 		resources atc.ResourceConfigs
 
-		expectedBuildPlan atc.BuildPlan
+		expectedPlan atc.Plan
 	)
 
 	BeforeEach(func() {
@@ -56,69 +56,101 @@ var _ = Describe("Factory", func() {
 					RawPerformOn: []atc.OutputCondition{"success"},
 				},
 				{
-					Resource:     "some-resource",
+					Resource:     "some-other-resource",
 					Params:       atc.Params{"foo": "bar"},
 					RawPerformOn: []atc.OutputCondition{"failure"},
 				},
 				{
-					Resource:     "some-resource",
+					Resource:     "some-other-other-resource",
 					Params:       atc.Params{"foo": "bar"},
 					RawPerformOn: []atc.OutputCondition{},
 				},
 			},
 		}
 
-		expectedBuildPlan = atc.BuildPlan{
-			ConfigPath: "some-input/build.yml",
-			Config: &atc.BuildConfig{
-				Image: "some-image",
-
-				Params: map[string]string{
-					"FOO": "1",
-					"BAR": "2",
+		expectedPlan = atc.Plan{
+			Compose: &atc.ComposePlan{
+				A: atc.Plan{
+					Aggregate: &atc.AggregatePlan{
+						"some-input": atc.Plan{
+							Get: &atc.GetPlan{
+								Type:     "git",
+								Name:     "some-input",
+								Resource: "some-resource",
+								Source:   atc.Source{"uri": "git://some-resource"},
+								Params:   atc.Params{"some": "params"},
+							},
+						},
+					},
 				},
+				B: atc.Plan{
+					Compose: &atc.ComposePlan{
+						A: atc.Plan{
+							Execute: &atc.ExecutePlan{
+								Privileged: true,
 
-				Run: atc.BuildRunConfig{
-					Path: "some-script",
-					Args: []string{"arg1", "arg2"},
+								ConfigPath: "some-input/build.yml",
+								Config: &atc.BuildConfig{
+									Image: "some-image",
+
+									Params: map[string]string{
+										"FOO": "1",
+										"BAR": "2",
+									},
+
+									Run: atc.BuildRunConfig{
+										Path: "some-script",
+										Args: []string{"arg1", "arg2"},
+									},
+								},
+							},
+						},
+						B: atc.Plan{
+							Aggregate: &atc.AggregatePlan{
+								"some-resource": atc.Plan{
+									Conditional: &atc.ConditionalPlan{
+										Conditions: []atc.OutputCondition{atc.OutputConditionSuccess},
+										Plan: atc.Plan{
+											Put: &atc.PutPlan{
+												Resource: "some-resource",
+												Type:     "git",
+												Params:   atc.Params{"foo": "bar"},
+												Source:   atc.Source{"uri": "git://some-resource"},
+											},
+										},
+									},
+								},
+								"some-other-resource": atc.Plan{
+									Conditional: &atc.ConditionalPlan{
+										Conditions: []atc.OutputCondition{atc.OutputConditionFailure},
+										Plan: atc.Plan{
+											Put: &atc.PutPlan{
+												Resource: "some-other-resource",
+												Type:     "git",
+												Params:   atc.Params{"foo": "bar"},
+												Source:   atc.Source{"uri": "git://some-other-resource"},
+											},
+										},
+									},
+								},
+								"some-other-other-resource": atc.Plan{
+									Conditional: &atc.ConditionalPlan{
+										Conditions: []atc.OutputCondition{},
+										Plan: atc.Plan{
+											Put: &atc.PutPlan{
+												Resource: "some-other-other-resource",
+												Type:     "git",
+												Params:   atc.Params{"foo": "bar"},
+												Source:   atc.Source{"uri": "git://some-other-other-resource"},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 			},
-
-			Inputs: []atc.InputPlan{
-				{
-					Name:     "some-input",
-					Resource: "some-resource",
-					Type:     "git",
-					Source:   atc.Source{"uri": "git://some-resource"},
-					Params:   atc.Params{"some": "params"},
-				},
-			},
-
-			Outputs: []atc.OutputPlan{
-				{
-					Name:   "some-resource",
-					Type:   "git",
-					On:     []atc.OutputCondition{atc.OutputConditionSuccess},
-					Params: atc.Params{"foo": "bar"},
-					Source: atc.Source{"uri": "git://some-resource"},
-				},
-				{
-					Name:   "some-resource",
-					Type:   "git",
-					On:     []atc.OutputCondition{atc.OutputConditionFailure},
-					Params: atc.Params{"foo": "bar"},
-					Source: atc.Source{"uri": "git://some-resource"},
-				},
-				{
-					Name:   "some-resource",
-					Type:   "git",
-					On:     []atc.OutputCondition{},
-					Params: atc.Params{"foo": "bar"},
-					Source: atc.Source{"uri": "git://some-resource"},
-				},
-			},
-
-			Privileged: true,
 		}
 
 		resources = atc.ResourceConfigs{
@@ -126,6 +158,16 @@ var _ = Describe("Factory", func() {
 				Name:   "some-resource",
 				Type:   "git",
 				Source: atc.Source{"uri": "git://some-resource"},
+			},
+			{
+				Name:   "some-other-resource",
+				Type:   "git",
+				Source: atc.Source{"uri": "git://some-other-resource"},
+			},
+			{
+				Name:   "some-other-other-resource",
+				Type:   "git",
+				Source: atc.Source{"uri": "git://some-other-other-resource"},
 			},
 			{
 				Name:   "some-dependant-resource",
@@ -151,10 +193,51 @@ var _ = Describe("Factory", func() {
 	})
 
 	It("creates a build plan based on the job's configuration", func() {
-		buildPlan, err := factory.Create(job, resources, nil)
+		plan, err := factory.Create(job, resources, nil)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		Ω(buildPlan).Should(Equal(expectedBuildPlan))
+		Ω(plan).Should(Equal(expectedPlan))
+	})
+
+	Context("when no build config is present", func() {
+		BeforeEach(func() {
+			job.BuildConfig = nil
+			job.BuildConfigPath = ""
+
+			expectedPlan.Compose.B.Compose.B.Aggregate = &atc.AggregatePlan{
+				"some-resource": atc.Plan{
+					Put: &atc.PutPlan{
+						Resource: "some-resource",
+						Type:     "git",
+						Params:   atc.Params{"foo": "bar"},
+						Source:   atc.Source{"uri": "git://some-resource"},
+					},
+				},
+				"some-other-resource": atc.Plan{
+					Put: &atc.PutPlan{
+						Resource: "some-other-resource",
+						Type:     "git",
+						Params:   atc.Params{"foo": "bar"},
+						Source:   atc.Source{"uri": "git://some-other-resource"},
+					},
+				},
+				"some-other-other-resource": atc.Plan{
+					Put: &atc.PutPlan{
+						Resource: "some-other-other-resource",
+						Type:     "git",
+						Params:   atc.Params{"foo": "bar"},
+						Source:   atc.Source{"uri": "git://some-other-other-resource"},
+					},
+				},
+			}
+		})
+
+		It("performs the outputs unconditionally", func() {
+			plan, err := factory.Create(job, resources, nil)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(plan.Compose.B.Compose.B.Aggregate).Should(Equal(expectedPlan.Compose.B.Compose.B.Aggregate))
+		})
 	})
 
 	Context("when an input has an explicit name", func() {
@@ -165,26 +248,28 @@ var _ = Describe("Factory", func() {
 				Params:   atc.Params{"some": "named-params"},
 			})
 
-			expectedBuildPlan.Inputs = append(expectedBuildPlan.Inputs, atc.InputPlan{
-				Name:     "some-named-input",
-				Resource: "some-named-resource",
-				Type:     "git",
-				Source:   atc.Source{"uri": "git://some-named-resource"},
-				Params:   atc.Params{"some": "named-params"},
-			})
+			(*expectedPlan.Compose.A.Aggregate)["some-named-input"] = atc.Plan{
+				Get: &atc.GetPlan{
+					Name:     "some-named-input",
+					Resource: "some-named-resource",
+					Type:     "git",
+					Source:   atc.Source{"uri": "git://some-named-resource"},
+					Params:   atc.Params{"some": "named-params"},
+				},
+			}
 		})
 
 		It("uses it as the name for the input", func() {
-			buildPlan, err := factory.Create(job, resources, nil)
+			plan, err := factory.Create(job, resources, nil)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(buildPlan.Inputs).Should(Equal(expectedBuildPlan.Inputs))
+			Ω(plan.Compose.A.Aggregate).Should(Equal(expectedPlan.Compose.A.Aggregate))
 		})
 	})
 
 	Context("when inputs with versions are specified", func() {
 		It("uses them for the build's inputs", func() {
-			buildPlan, err := factory.Create(job, resources, []db.BuildInput{
+			plan, err := factory.Create(job, resources, []db.BuildInput{
 				{
 					Name: "some-input",
 					VersionedResource: db.VersionedResource{
@@ -197,15 +282,13 @@ var _ = Describe("Factory", func() {
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(buildPlan.Inputs).Should(Equal([]atc.InputPlan{
-				{
-					Name:     "some-input",
-					Resource: "some-resource",
-					Type:     "git-ng",
-					Source:   atc.Source{"uri": "git://some-provided-uri"},
-					Params:   atc.Params{"some": "params"},
-					Version:  atc.Version{"version": "1"},
-				},
+			Ω((*plan.Compose.A.Aggregate)["some-input"].Get).Should(Equal(&atc.GetPlan{
+				Name:     "some-input",
+				Resource: "some-resource",
+				Type:     "git-ng",
+				Source:   atc.Source{"uri": "git://some-provided-uri"},
+				Params:   atc.Params{"some": "params"},
+				Version:  atc.Version{"version": "1"},
 			}))
 		})
 	})

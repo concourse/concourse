@@ -13,7 +13,7 @@ import (
 )
 
 type execMetadata struct {
-	Plan atc.BuildPlan
+	Plan atc.Plan
 }
 
 type execEngine struct {
@@ -34,7 +34,7 @@ func (engine *execEngine) Name() string {
 	return "exec.v1"
 }
 
-func (engine *execEngine) CreateBuild(model db.Build, plan atc.BuildPlan) (Build, error) {
+func (engine *execEngine) CreateBuild(model db.Build, plan atc.Plan) (Build, error) {
 	return &execBuild{
 		buildID:  model.ID,
 		db:       engine.db,
@@ -93,14 +93,7 @@ func (build *execBuild) Abort() error {
 }
 
 func (build *execBuild) Resume(logger lager.Logger) {
-	step := exec.Compose(
-		build.aggregateInputsStep(logger.Session("inputs")),
-		exec.Compose(
-			build.executeStep(logger.Session("execute")),
-			build.aggregateOutputsStep(logger.Session("outputs")),
-		),
-	)
-
+	step := build.buildStep(build.metadata.Plan, logger)
 	source := step.Using(&exec.NoopArtifactSource{})
 
 	defer source.Release()
@@ -135,80 +128,97 @@ func (build *execBuild) Hijack(spec atc.HijackProcessSpec, io HijackProcessIO) (
 	return build.factory.Hijack(build.executeSessionID(), ioConfig, spec)
 }
 
-func (build *execBuild) aggregateInputsStep(logger lager.Logger) exec.Step {
-	inputs := exec.Aggregate{}
+func (build *execBuild) buildStep(plan atc.Plan, logger lager.Logger) exec.Step {
+	if plan.Aggregate != nil {
+		logger = logger.Session("aggregate")
 
-	for _, input := range build.metadata.Plan.Inputs {
-		inputs[input.Name] = build.factory.Get(
-			build.inputSessionID(input.Name),
-			build.delegate.InputDelegate(logger.Session(input.Name), input),
-			atc.ResourceConfig{
-				Name:   input.Resource,
-				Type:   input.Type,
-				Source: input.Source,
-			},
-			input.Params,
-			input.Version,
-		)
-	}
-
-	return inputs
-}
-
-func (build *execBuild) executeStep(logger lager.Logger) exec.Step {
-	plan := build.metadata.Plan
-
-	var configSource exec.BuildConfigSource
-	if plan.Config != nil && plan.ConfigPath != "" {
-		configSource = exec.MergedConfigSource{
-			A: exec.FileConfigSource{plan.ConfigPath},
-			B: exec.StaticConfigSource{*plan.Config},
+		step := exec.Aggregate{}
+		for name, innerPlan := range *plan.Aggregate {
+			step[name] = build.buildStep(innerPlan, logger.Session(name))
 		}
-	} else if plan.Config != nil {
-		configSource = exec.StaticConfigSource{*plan.Config}
-	} else if plan.ConfigPath != "" {
-		configSource = exec.FileConfigSource{plan.ConfigPath}
-	} else {
-		return exec.Identity{}
+
+		return step
 	}
 
-	return build.factory.Execute(
-		build.executeSessionID(),
-		build.delegate.ExecutionDelegate(logger),
-		exec.Privileged(plan.Privileged),
-		configSource,
-	)
-}
-
-func (build *execBuild) aggregateOutputsStep(logger lager.Logger) exec.Step {
-	plan := build.metadata.Plan
-
-	outputs := exec.Aggregate{}
-
-	for _, output := range plan.Outputs {
-		step := build.factory.Put(
-			build.outputSessionID(output.Name),
-			build.delegate.OutputDelegate(logger.Session(output.Name), output),
-			atc.ResourceConfig{
-				Name:   output.Name,
-				Type:   output.Type,
-				Source: output.Source,
-			},
-			output.Params,
+	if plan.Compose != nil {
+		return exec.Compose(
+			build.buildStep(plan.Compose.A, logger),
+			build.buildStep(plan.Compose.B, logger),
 		)
+	}
 
-		if plan.Config != nil || plan.ConfigPath != "" {
-			// if there's a build configured, make this conditional
-			step = exec.Conditional{
-				Conditions: output.On,
-				Step:       step,
+	if plan.Conditional != nil {
+		logger = logger.Session("conditional", lager.Data{
+			"on": plan.Conditional.Conditions,
+		})
+
+		return exec.Conditional{
+			Conditions: plan.Conditional.Conditions,
+			Step:       build.buildStep(plan.Conditional.Plan, logger),
+		}
+	}
+
+	if plan.Execute != nil {
+		logger = logger.Session("execute")
+
+		var configSource exec.BuildConfigSource
+		if plan.Execute.Config != nil && plan.Execute.ConfigPath != "" {
+			configSource = exec.MergedConfigSource{
+				A: exec.FileConfigSource{plan.Execute.ConfigPath},
+				B: exec.StaticConfigSource{*plan.Execute.Config},
 			}
+		} else if plan.Execute.Config != nil {
+			configSource = exec.StaticConfigSource{*plan.Execute.Config}
+		} else if plan.Execute.ConfigPath != "" {
+			configSource = exec.FileConfigSource{plan.Execute.ConfigPath}
+		} else {
+			return exec.Identity{}
 		}
 
-		outputs[output.Name] = step
+		return build.factory.Execute(
+			build.executeSessionID(),
+			build.delegate.ExecutionDelegate(logger),
+			exec.Privileged(plan.Execute.Privileged),
+			configSource,
+		)
 	}
 
-	return outputs
+	if plan.Get != nil {
+		logger = logger.Session("get", lager.Data{
+			"name": plan.Get.Name,
+		})
+
+		return build.factory.Get(
+			build.inputSessionID(plan.Get.Name),
+			build.delegate.InputDelegate(logger, *plan.Get),
+			atc.ResourceConfig{
+				Name:   plan.Get.Resource,
+				Type:   plan.Get.Type,
+				Source: plan.Get.Source,
+			},
+			plan.Get.Params,
+			plan.Get.Version,
+		)
+	}
+
+	if plan.Put != nil {
+		logger = logger.Session("put", lager.Data{
+			"name": plan.Put.Resource,
+		})
+
+		return build.factory.Put(
+			build.outputSessionID(plan.Put.Resource),
+			build.delegate.OutputDelegate(logger, *plan.Put),
+			atc.ResourceConfig{
+				Name:   plan.Put.Resource,
+				Type:   plan.Put.Type,
+				Source: plan.Put.Source,
+			},
+			plan.Put.Params,
+		)
+	}
+
+	panic("everything was nil")
 }
 
 func (build *execBuild) executeSessionID() exec.SessionID {

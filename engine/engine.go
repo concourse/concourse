@@ -16,7 +16,7 @@ var ErrBuildNotFound = errors.New("build not found")
 type Engine interface {
 	Name() string
 
-	CreateBuild(db.Build, atc.BuildPlan) (Build, error)
+	CreateBuild(db.Build, atc.Plan) (Build, error)
 	LookupBuild(db.Build) (Build, error)
 }
 

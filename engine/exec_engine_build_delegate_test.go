@@ -41,13 +41,13 @@ var _ = Describe("BuildDelegate", func() {
 
 	Describe("InputDelegate", func() {
 		var (
-			inputPlan atc.InputPlan
+			getPlan atc.GetPlan
 
 			inputDelegate exec.GetDelegate
 		)
 
 		BeforeEach(func() {
-			inputPlan = atc.InputPlan{
+			getPlan = atc.GetPlan{
 				Name:     "some-input",
 				Resource: "some-input-resource",
 				Type:     "some-type",
@@ -56,7 +56,7 @@ var _ = Describe("BuildDelegate", func() {
 				Params:   atc.Params{"some": "params"},
 			}
 
-			inputDelegate = delegate.InputDelegate(logger, inputPlan)
+			inputDelegate = delegate.InputDelegate(logger, getPlan)
 		})
 
 		Describe("Completed", func() {
@@ -96,7 +96,14 @@ var _ = Describe("BuildDelegate", func() {
 				buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
 				Ω(buildID).Should(Equal(42))
 				Ω(savedEvent).Should(Equal(event.Input{
-					Plan:            inputPlan,
+					Plan: atc.InputPlan{
+						Name:     "some-input",
+						Resource: "some-input-resource",
+						Type:     "some-type",
+						Version:  atc.Version{"some": "version"},
+						Source:   atc.Source{"some": "source"},
+						Params:   atc.Params{"some": "params"},
+					},
 					FetchedVersion:  versionInfo.Version,
 					FetchedMetadata: versionInfo.Metadata,
 				}))
@@ -146,21 +153,20 @@ var _ = Describe("BuildDelegate", func() {
 
 			Context("when the same resource occurs as an explicit output", func() {
 				var (
-					outputPlan atc.OutputPlan
+					putPlan atc.PutPlan
 
 					outputDelegate exec.PutDelegate
 				)
 
 				BeforeEach(func() {
-					outputPlan = atc.OutputPlan{
-						Name:   "some-input-resource",
-						Type:   "some-type",
-						On:     atc.OutputConditions{atc.OutputConditionSuccess},
-						Source: atc.Source{"some": "source"},
-						Params: atc.Params{"some": "output-params"},
+					putPlan = atc.PutPlan{
+						Resource: "some-input-resource",
+						Type:     "some-type",
+						Source:   atc.Source{"some": "source"},
+						Params:   atc.Params{"some": "output-params"},
 					}
 
-					outputDelegate = delegate.OutputDelegate(logger, outputPlan)
+					outputDelegate = delegate.OutputDelegate(logger, putPlan)
 				})
 
 				JustBeforeEach(func() {
@@ -524,20 +530,20 @@ var _ = Describe("BuildDelegate", func() {
 
 	Describe("OutputDelegate", func() {
 		var (
-			outputPlan atc.OutputPlan
+			putPlan atc.PutPlan
 
 			outputDelegate exec.PutDelegate
 		)
 
 		BeforeEach(func() {
-			outputPlan = atc.OutputPlan{
-				Name:   "some-output-resource",
-				Type:   "some-type",
-				Source: atc.Source{"some": "source"},
-				Params: atc.Params{"some": "params"},
+			putPlan = atc.PutPlan{
+				Resource: "some-output-resource",
+				Type:     "some-type",
+				Source:   atc.Source{"some": "source"},
+				Params:   atc.Params{"some": "params"},
 			}
 
-			outputDelegate = delegate.OutputDelegate(logger, outputPlan)
+			outputDelegate = delegate.OutputDelegate(logger, putPlan)
 		})
 
 		Describe("Completed", func() {
@@ -574,7 +580,12 @@ var _ = Describe("BuildDelegate", func() {
 				buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
 				Ω(buildID).Should(Equal(42))
 				Ω(savedEvent).Should(Equal(event.Output{
-					Plan:            outputPlan,
+					Plan: atc.OutputPlan{
+						Name:   "some-output-resource",
+						Type:   "some-type",
+						Source: atc.Source{"some": "source"},
+						Params: atc.Params{"some": "params"},
+					},
 					CreatedVersion:  versionInfo.Version,
 					CreatedMetadata: versionInfo.Metadata,
 				}))

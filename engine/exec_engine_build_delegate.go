@@ -14,16 +14,16 @@ import (
 )
 
 type implicitOutput struct {
-	plan atc.InputPlan
+	plan atc.GetPlan
 	info exec.VersionInfo
 }
 
 //go:generate counterfeiter . BuildDelegate
 
 type BuildDelegate interface {
-	InputDelegate(lager.Logger, atc.InputPlan) exec.GetDelegate
+	InputDelegate(lager.Logger, atc.GetPlan) exec.GetDelegate
 	ExecutionDelegate(lager.Logger) exec.ExecuteDelegate
-	OutputDelegate(lager.Logger, atc.OutputPlan) exec.PutDelegate
+	OutputDelegate(lager.Logger, atc.PutPlan) exec.PutDelegate
 
 	Finish(lager.Logger, error)
 	Aborted(lager.Logger)
@@ -73,7 +73,7 @@ func newBuildDelegate(db EngineDB, buildID int) BuildDelegate {
 	}
 }
 
-func (delegate *delegate) InputDelegate(logger lager.Logger, plan atc.InputPlan) exec.GetDelegate {
+func (delegate *delegate) InputDelegate(logger lager.Logger, plan atc.GetPlan) exec.GetDelegate {
 	return &inputDelegate{
 		logger:   logger,
 		plan:     plan,
@@ -81,7 +81,7 @@ func (delegate *delegate) InputDelegate(logger lager.Logger, plan atc.InputPlan)
 	}
 }
 
-func (delegate *delegate) OutputDelegate(logger lager.Logger, plan atc.OutputPlan) exec.PutDelegate {
+func (delegate *delegate) OutputDelegate(logger lager.Logger, plan atc.PutPlan) exec.PutDelegate {
 	return &outputDelegate{
 		logger:   logger,
 		plan:     plan,
@@ -185,9 +185,17 @@ func (delegate *delegate) saveErr(logger lager.Logger, errVal error, origin even
 	}
 }
 
-func (delegate *delegate) saveInput(logger lager.Logger, plan atc.InputPlan, info exec.VersionInfo) {
+func (delegate *delegate) saveInput(logger lager.Logger, plan atc.GetPlan, info exec.VersionInfo) {
+	// TODO: use new event type
 	ev := event.Input{
-		Plan:            plan,
+		Plan: atc.InputPlan{
+			Name:     plan.Name,
+			Resource: plan.Resource,
+			Type:     plan.Type,
+			Source:   plan.Source,
+			Params:   plan.Params,
+			Version:  plan.Version,
+		},
 		FetchedVersion:  info.Version,
 		FetchedMetadata: info.Metadata,
 	}
@@ -206,9 +214,15 @@ func (delegate *delegate) saveInput(logger lager.Logger, plan atc.InputPlan, inf
 	}
 }
 
-func (delegate *delegate) saveOutput(logger lager.Logger, plan atc.OutputPlan, info exec.VersionInfo) {
+func (delegate *delegate) saveOutput(logger lager.Logger, plan atc.PutPlan, info exec.VersionInfo) {
+	// TODO: use new event type
 	ev := event.Output{
-		Plan:            plan,
+		Plan: atc.OutputPlan{
+			Name:   plan.Resource,
+			Type:   plan.Type,
+			Source: plan.Source,
+			Params: plan.Params,
+		},
 		CreatedVersion:  info.Version,
 		CreatedMetadata: info.Metadata,
 	}
@@ -224,7 +238,7 @@ func (delegate *delegate) saveOutput(logger lager.Logger, plan atc.OutputPlan, i
 	}
 }
 
-func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.InputPlan, info exec.VersionInfo) {
+func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.GetPlan, info exec.VersionInfo) {
 	metadata := make([]db.MetadataField, len(info.Metadata))
 	for i, md := range info.Metadata {
 		metadata[i] = db.MetadataField{
@@ -259,7 +273,7 @@ func (delegate *delegate) eventWriter(origin event.Origin) io.Writer {
 type inputDelegate struct {
 	logger lager.Logger
 
-	plan atc.InputPlan
+	plan atc.GetPlan
 
 	delegate *delegate
 }
@@ -296,13 +310,13 @@ func (input *inputDelegate) Stderr() io.Writer {
 type outputDelegate struct {
 	logger lager.Logger
 
-	plan atc.OutputPlan
+	plan atc.PutPlan
 
 	delegate *delegate
 }
 
 func (output *outputDelegate) Completed(info exec.VersionInfo) {
-	output.delegate.unregisterImplicitOutput(output.plan.Name)
+	output.delegate.unregisterImplicitOutput(output.plan.Resource)
 	output.delegate.saveOutput(output.logger, output.plan, info)
 	output.logger.Info("finished", lager.Data{"version-info": info})
 }
@@ -310,7 +324,7 @@ func (output *outputDelegate) Completed(info exec.VersionInfo) {
 func (output *outputDelegate) Failed(err error) {
 	output.delegate.saveErr(output.logger, err, event.Origin{
 		Type: event.OriginTypeOutput,
-		Name: output.plan.Name,
+		Name: output.plan.Resource,
 	})
 
 	output.logger.Error("errored", err)
@@ -319,14 +333,14 @@ func (output *outputDelegate) Failed(err error) {
 func (output *outputDelegate) Stdout() io.Writer {
 	return output.delegate.eventWriter(event.Origin{
 		Type: event.OriginTypeOutput,
-		Name: output.plan.Name,
+		Name: output.plan.Resource,
 	})
 }
 
 func (output *outputDelegate) Stderr() io.Writer {
 	return output.delegate.eventWriter(event.Origin{
 		Type: event.OriginTypeOutput,
-		Name: output.plan.Name,
+		Name: output.plan.Resource,
 	})
 }
 

@@ -9,7 +9,7 @@ import (
 )
 
 func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
-	var plan atc.BuildPlan
+	var plan atc.Plan
 	err := json.NewDecoder(r.Body).Decode(&plan)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

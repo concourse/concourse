@@ -59,7 +59,7 @@ func (*dbEngine) Name() string {
 	return "db"
 }
 
-func (engine *dbEngine) CreateBuild(build db.Build, plan atc.BuildPlan) (Build, error) {
+func (engine *dbEngine) CreateBuild(build db.Build, plan atc.Plan) (Build, error) {
 	buildEngine := engine.engines[0]
 
 	createdBuild, err := buildEngine.CreateBuild(build, plan)

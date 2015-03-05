@@ -42,7 +42,7 @@ var _ = Describe("DBEngine", func() {
 	Describe("CreateBuild", func() {
 		var (
 			build db.Build
-			plan  atc.BuildPlan
+			plan  atc.Plan
 
 			createdBuild Build
 			buildErr     error
@@ -54,18 +54,20 @@ var _ = Describe("DBEngine", func() {
 				Name: "some-build",
 			}
 
-			plan = atc.BuildPlan{
-				Config: &atc.BuildConfig{
-					Image: "some-image",
+			plan = atc.Plan{
+				Execute: &atc.ExecutePlan{
+					Config: &atc.BuildConfig{
+						Image: "some-image",
 
-					Params: map[string]string{
-						"FOO": "1",
-						"BAR": "2",
-					},
+						Params: map[string]string{
+							"FOO": "1",
+							"BAR": "2",
+						},
 
-					Run: atc.BuildRunConfig{
-						Path: "some-script",
-						Args: []string{"arg1", "arg2"},
+						Run: atc.BuildRunConfig{
+							Path: "some-script",
+							Args: []string{"arg1", "arg2"},
+						},
 					},
 				},
 			}

@@ -41,8 +41,8 @@ var _ = Describe("ExecEngine", func() {
 
 			buildModel db.Build
 
-			inputPlan   *atc.InputPlan
-			outputPlan  *atc.OutputPlan
+			inputPlan   *atc.GetPlan
+			outputPlan  *atc.ConditionalPlan
 			privileged  bool
 			buildConfig *atc.BuildConfig
 
@@ -81,7 +81,7 @@ var _ = Describe("ExecEngine", func() {
 
 			buildConfigPath = "some-input/build.yml"
 
-			inputPlan = &atc.InputPlan{
+			inputPlan = &atc.GetPlan{
 				Name:     "some-input",
 				Resource: "some-input-resource",
 				Type:     "some-type",
@@ -90,12 +90,16 @@ var _ = Describe("ExecEngine", func() {
 				Params:   atc.Params{"some": "params"},
 			}
 
-			outputPlan = &atc.OutputPlan{
-				Name:   "some-output-resource",
-				Type:   "some-type",
-				On:     atc.OutputConditions{atc.OutputConditionSuccess},
-				Source: atc.Source{"some": "source"},
-				Params: atc.Params{"some": "params"},
+			outputPlan = &atc.ConditionalPlan{
+				Conditions: atc.OutputConditions{atc.OutputConditionSuccess},
+				Plan: atc.Plan{
+					Put: &atc.PutPlan{
+						Resource: "some-output-resource",
+						Type:     "some-type",
+						Source:   atc.Source{"some": "source"},
+						Params:   atc.Params{"some": "params"},
+					},
+				},
 			}
 
 			privileged = false
@@ -131,15 +135,35 @@ var _ = Describe("ExecEngine", func() {
 
 		JustBeforeEach(func() {
 			var err error
-			build, err = execEngine.CreateBuild(buildModel, atc.BuildPlan{
-				Privileged: privileged,
+			build, err = execEngine.CreateBuild(buildModel, atc.Plan{
+				Compose: &atc.ComposePlan{
+					A: atc.Plan{
+						Aggregate: &atc.AggregatePlan{
+							"some-input": atc.Plan{
+								Get: inputPlan,
+							},
+						},
+					},
+					B: atc.Plan{
+						Compose: &atc.ComposePlan{
+							A: atc.Plan{
+								Execute: &atc.ExecutePlan{
+									Privileged: privileged,
 
-				Config:     buildConfig,
-				ConfigPath: buildConfigPath,
-
-				Inputs: []atc.InputPlan{*inputPlan},
-
-				Outputs: []atc.OutputPlan{*outputPlan},
+									Config:     buildConfig,
+									ConfigPath: buildConfigPath,
+								},
+							},
+							B: atc.Plan{
+								Aggregate: &atc.AggregatePlan{
+									"some-output-resource": atc.Plan{
+										Conditional: outputPlan,
+									},
+								},
+							},
+						},
+					},
+				},
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
@@ -247,7 +271,7 @@ var _ = Describe("ExecEngine", func() {
 
 				Context("when the output should perform on success", func() {
 					BeforeEach(func() {
-						outputPlan.On = atc.OutputConditions{atc.OutputConditionSuccess}
+						outputPlan.Conditions = atc.OutputConditions{atc.OutputConditionSuccess}
 					})
 
 					It("executes the output", func() {
@@ -283,7 +307,7 @@ var _ = Describe("ExecEngine", func() {
 
 				Context("when the output should perform on failure", func() {
 					BeforeEach(func() {
-						outputPlan.On = atc.OutputConditions{atc.OutputConditionFailure}
+						outputPlan.Conditions = atc.OutputConditions{atc.OutputConditionFailure}
 					})
 
 					It("does not execute the output", func() {
@@ -293,7 +317,7 @@ var _ = Describe("ExecEngine", func() {
 
 				Context("when the output should perform on success or failure", func() {
 					BeforeEach(func() {
-						outputPlan.On = atc.OutputConditions{atc.OutputConditionSuccess, atc.OutputConditionFailure}
+						outputPlan.Conditions = atc.OutputConditions{atc.OutputConditionSuccess, atc.OutputConditionFailure}
 					})
 
 					It("executes the output", func() {
@@ -329,7 +353,7 @@ var _ = Describe("ExecEngine", func() {
 
 				Context("when the output has empty conditions", func() {
 					BeforeEach(func() {
-						outputPlan.On = atc.OutputConditions{}
+						outputPlan.Conditions = atc.OutputConditions{}
 					})
 
 					It("does not execute the output", func() {
@@ -346,7 +370,7 @@ var _ = Describe("ExecEngine", func() {
 
 				Context("when the output should perform on success", func() {
 					BeforeEach(func() {
-						outputPlan.On = atc.OutputConditions{atc.OutputConditionSuccess}
+						outputPlan.Conditions = atc.OutputConditions{atc.OutputConditionSuccess}
 					})
 
 					It("does not execute the output", func() {
@@ -356,7 +380,7 @@ var _ = Describe("ExecEngine", func() {
 
 				Context("when the output should perform on failure", func() {
 					BeforeEach(func() {
-						outputPlan.On = atc.OutputConditions{atc.OutputConditionFailure}
+						outputPlan.Conditions = atc.OutputConditions{atc.OutputConditionFailure}
 					})
 
 					It("executes the output", func() {
@@ -392,7 +416,7 @@ var _ = Describe("ExecEngine", func() {
 
 				Context("when the output should perform on success or failure", func() {
 					BeforeEach(func() {
-						outputPlan.On = atc.OutputConditions{atc.OutputConditionSuccess, atc.OutputConditionFailure}
+						outputPlan.Conditions = atc.OutputConditions{atc.OutputConditionSuccess, atc.OutputConditionFailure}
 					})
 
 					It("executes the output", func() {
@@ -428,23 +452,12 @@ var _ = Describe("ExecEngine", func() {
 
 				Context("when the output has empty conditions", func() {
 					BeforeEach(func() {
-						outputPlan.On = atc.OutputConditions{}
+						outputPlan.Conditions = atc.OutputConditions{}
 					})
 
 					It("does not execute the output", func() {
 						Ω(outputSource.RunCallCount()).Should(BeZero())
 					})
-				})
-			})
-
-			Context("when no build is configured", func() {
-				BeforeEach(func() {
-					buildConfig = nil
-					buildConfigPath = ""
-				})
-
-				It("executes the output", func() {
-					Ω(outputSource.RunCallCount()).Should(Equal(1))
 				})
 			})
 		})

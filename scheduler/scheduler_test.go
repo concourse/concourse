@@ -22,7 +22,7 @@ var _ = Describe("Scheduler", func() {
 		fakeEngine      *enginefakes.FakeEngine
 		fakeScanner     *fakes.FakeScanner
 
-		createdBuildPlan atc.BuildPlan
+		createdPlan atc.Plan
 
 		job       atc.JobConfig
 		resources atc.ResourceConfigs
@@ -38,13 +38,15 @@ var _ = Describe("Scheduler", func() {
 		fakeEngine = new(enginefakes.FakeEngine)
 		fakeScanner = new(fakes.FakeScanner)
 
-		createdBuildPlan = atc.BuildPlan{
-			Config: &atc.BuildConfig{
-				Run: atc.BuildRunConfig{Path: "some-build"},
+		createdPlan = atc.Plan{
+			Execute: &atc.ExecutePlan{
+				Config: &atc.BuildConfig{
+					Run: atc.BuildRunConfig{Path: "some-build"},
+				},
 			},
 		}
 
-		factory.CreateReturns(createdBuildPlan, nil)
+		factory.CreateReturns(createdPlan, nil)
 
 		scheduler = &Scheduler{
 			DB:      fakeSchedulerDB,
@@ -365,9 +367,9 @@ var _ = Describe("Scheduler", func() {
 								Ω(createInputs).Should(Equal(newInputs))
 
 								Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
-								builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
+								builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
 								Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
-								Ω(buildPlan).Should(Equal(createdBuildPlan))
+								Ω(plan).Should(Equal(createdPlan))
 							})
 
 							It("immediately resumes the build", func() {
@@ -484,9 +486,9 @@ var _ = Describe("Scheduler", func() {
 						Ω(createInputs).Should(Equal(pendingInputs))
 
 						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
-						builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
+						builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
 						Ω(builtBuild).Should(Equal(pendingBuild))
-						Ω(buildPlan).Should(Equal(createdBuildPlan))
+						Ω(plan).Should(Equal(createdPlan))
 					})
 
 					It("immediately resumes the build", func() {
@@ -536,9 +538,9 @@ var _ = Describe("Scheduler", func() {
 							Ω(createInputs).Should(Equal(pendingInputs))
 
 							Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
-							builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
+							builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
 							Ω(builtBuild).Should(Equal(pendingBuild))
-							Ω(buildPlan).Should(Equal(createdBuildPlan))
+							Ω(plan).Should(Equal(createdPlan))
 						})
 					})
 				})
@@ -638,9 +640,9 @@ var _ = Describe("Scheduler", func() {
 						Ω(createInputs).Should(BeZero())
 
 						Eventually(fakeEngine.CreateBuildCallCount).Should(Equal(1))
-						builtBuild, buildPlan := fakeEngine.CreateBuildArgsForCall(0)
+						builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
 						Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
-						Ω(buildPlan).Should(Equal(createdBuildPlan))
+						Ω(plan).Should(Equal(createdPlan))
 					})
 
 					It("immediately resumes the build", func() {
