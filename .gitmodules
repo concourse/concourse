@@ -112,7 +112,7 @@
 	branch = master
 [submodule "src/github.com/concourse/gate"]
 	path = src/github.com/concourse/gate
-	url = git@github.com:concourse/gate.git
+	url = https://github.com/concourse/gate
 	branch = master
 [submodule "src/github.com/pivotal-golang/clock"]
 	path = src/github.com/pivotal-golang/clock
