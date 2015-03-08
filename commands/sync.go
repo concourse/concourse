@@ -30,7 +30,7 @@ func Sync(c *cli.Context) {
 		"platform": []string{runtime.GOOS},
 	}.Encode()
 
-	fmt.Printf("downloading fly from %s...", request.URL.Host)
+	fmt.Printf("downloading fly from %s... ", request.URL.Host)
 
 	err, errRecover := update.New().FromUrl(request.URL.String())
 	if err != nil {
