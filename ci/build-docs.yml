@@ -8,6 +8,7 @@ inputs:
 params:
   VERSION_FILE:
   ANALYTICS_ID:
+  GAUGES_ID:
 
 run:
   path: docs/ci/scripts/build-docs
