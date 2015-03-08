@@ -7,6 +7,7 @@ inputs:
 
 params:
   VERSION_FILE:
+  ANALYTICS_ID:
 
 run:
   path: docs/ci/scripts/build-docs

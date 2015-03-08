@@ -11,7 +11,12 @@ function abort() {
 [ -f "$VERSION_FILE" ] || abort "'$VERSION_FILE' does not exist"
 
 version=$(cat ${VERSION_FILE})
+site_id=${SITE_ID}
 
 cd docs/docs/
 
-raco scribble ++arg ${version} --htmls concourse.scrbl
+if [ -n "$ANALTICS_ID" ]; then
+  raco scribble ++arg ${version} ++arg "$ANALYTICS_ID" --htmls concourse.scrbl
+else
+  raco scribble ++arg ${version} --htmls concourse.scrbl
+fi
