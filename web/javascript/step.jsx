@@ -9,43 +9,45 @@ var Step = React.createClass({
 
   toggleLogs: function() {
     var model = this.props.model;
-    this.getFlux().actions.toggleStepLogs(model.origin);
+    this.getFlux().actions.toggleStepLogs(model.origin());
   },
 
   render: function() {
     var model = this.props.model;
 
     var versionDetails = [];
-    if (model.version !== undefined) {
-      for (var key in model.version) {
-        var value = model.version[key];
+    var version = model.version();
+    if (version !== undefined) {
+      for (var key in version) {
+        var value = version[key];
         versionDetails.push(<dt key={"version-dt-"+key}>{key}</dt>);
         versionDetails.push(<dd key={"version-dd-"+key}>{value}</dd>);
       }
     }
 
     var metadataDetails = [];
-    if (model.metadata !== undefined) {
-      model.metadata.forEach(function(metadata) {
-        metadataDetails.push(<dt key={"metadata-dt-"+metadata.name}>{metadata.name}</dt>);
-        metadataDetails.push(<dd key={"metadata-dd-"+metadata.name}>{metadata.value}</dd>);
+    var metadata = model.metadata();
+    if (metadata !== undefined) {
+      metadata.forEach(function(field) {
+        metadataDetails.push(<dt key={"metadata-dt-"+field.name}>{field.name}</dt>);
+        metadataDetails.push(<dd key={"metadata-dd-"+field.name}>{field.value}</dd>);
       });
     }
 
     var cx = React.addons.classSet;
     var classNames = cx({
       "build-step": true,
-      "running": model.running,
-      "errored": model.errored,
-      "first-occurrence": model.first_occurrence
+      "running": model.isRunning(),
+      "errored": model.isErrored(),
+      "first-occurrence": model.isFirstOccurrence()
     });
 
-    var displayLogs = model.showLogs ? 'block' : 'none';
+    var displayLogs = model.isShowingLogs() ? 'block' : 'none';
 
     return (
       <div className={classNames}>
         <div className="header" onClick={this.toggleLogs}>
-          <h3>{model.origin.name}</h3>
+          <h3>{model.origin().name}</h3>
 
           <dl className="version">{versionDetails}</dl>
 
@@ -55,7 +57,7 @@ var Step = React.createClass({
         <div className="resource-body" style={{display: displayLogs}}>
           <dl className="build-metadata">{metadataDetails}</dl>
 
-          <Logs batches={this.props.logs || Immutable.List()} autoscroll={this.props.autoscroll} />
+          <Logs batches={this.props.logs} autoscroll={this.props.autoscroll} />
 
           <div style={{clear: 'both'}}></div>
         </div>
