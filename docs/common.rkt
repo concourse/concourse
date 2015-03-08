@@ -31,41 +31,40 @@
     [latex ""]
     [html (make-element
             (make-style #f
-                (list
-                  (if (not (equal? "" (analytics-id)))
-                    (make-script-property
-                      "text/javascript"
-                      (analytics-script (analytics-id)))
-                    "")
-                  (if (not (equal? "" (gauges-id)))
-                    (make-script-property
-                      "text/javascript"
-                      (gauges-script (gauges-id)))
-                    "")))
+              (list
+                (make-script-property
+                  "text/javascript"
+                  (append
+                    (analytics-script (analytics-id))
+                    (gauges-script (gauges-id))))))
             '())]
     [text ""]))
 
 (define (analytics-script site-id)
-  (list
-    "(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){\n"
-    "(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),\n"
-    "m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)\n"
-    "})(window,document,'script','//www.google-analytics.com/analytics.js','ga');\n"
-    "\n"
-    "ga('create', '" site-id "', 'auto');\n"
-    "ga('send', 'pageview');\n"))
+  (if (equal? "" site-id)
+    (list)
+    (list
+      "(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){\n"
+      "(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),\n"
+      "m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)\n"
+      "})(window,document,'script','//www.google-analytics.com/analytics.js','ga');\n"
+      "\n"
+      "ga('create', '" site-id "', 'auto');\n"
+      "ga('send', 'pageview');\n")))
 
 (define (gauges-script site-id)
-  (list
-    "var _gauges = _gauges || [];\n"
-    "(function() {\n"
-    "  var t   = document.createElement('script');\n"
-    "  t.type  = 'text/javascript';\n"
-    "  t.async = true;\n"
-    "  t.id    = 'gauges-tracker';\n"
-    "  t.setAttribute('data-site-id', '" site-id "');\n"
-    "  t.setAttribute('data-track-path', 'https://track.gaug.es/track.gif');\n"
-    "  t.src = 'https://track.gaug.es/track.js';\n"
-    "  var s = document.getElementsByTagName('script')[0];\n"
-    "  s.parentNode.insertBefore(t, s);\n"
-    "})();\n"))
+  (if (equal? "" site-id)
+    (list)
+    (list
+      "var _gauges = _gauges || [];\n"
+      "(function() {\n"
+      "  var t   = document.createElement('script');\n"
+      "  t.type  = 'text/javascript';\n"
+      "  t.async = true;\n"
+      "  t.id    = 'gauges-tracker';\n"
+      "  t.setAttribute('data-site-id', '" site-id "');\n"
+      "  t.setAttribute('data-track-path', 'https://track.gaug.es/track.gif');\n"
+      "  t.src = 'https://track.gaug.es/track.js';\n"
+      "  var s = document.getElementsByTagName('script')[0];\n"
+      "  s.parentNode.insertBefore(t, s);\n"
+      "})();\n")))
