@@ -13,6 +13,13 @@ execute one-off builds, either locally or in another CI system.
 To see a live example, check out
 @hyperlink["http://ci.concourse.ci"]{Concourse's own CI pipeline}.
 
+Concourse is completely open source. All of the source code lives under the
+@hyperlink["https://github.com/concourse"]{Concourse organization} on GitHub.
+
+For more information or if you need help: we're on IRC in the
+@hyperlink["irc://irc.freenode.net/concourse"]{#concourse} channel on Freenode.
+(@hyperlink["http://webchat.freenode.net/?channels=concourse"]{Webchat})
+
 @table-of-contents[]
 
 @include-section{what-and-why.scrbl}
