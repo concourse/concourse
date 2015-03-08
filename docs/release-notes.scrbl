@@ -26,3 +26,5 @@
 @include-section{release-notes/v0.19.0.scrbl}
 @include-section{release-notes/v0.18.0.scrbl}
 @include-section{release-notes/v0.17.0.scrbl}
+
+@inject-analytics[]

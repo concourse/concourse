@@ -30,3 +30,4 @@ down, and @code{out} for pushing it up.
 Distributing resource types as containers allows them to package their own
 dependencies. For example, the Git resource comes with @code{git} installed.
 
+@inject-analytics[]

@@ -30,3 +30,5 @@ runs as an unprivileged user, unless the job is configured with
 
 The build's user is *not* configurable as part of the build. This is to prevent
 pull-request -triggered builds escalating privileges and running arbitrary code.
+
+@inject-analytics[]

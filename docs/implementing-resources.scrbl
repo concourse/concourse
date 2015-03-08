@@ -163,3 +163,5 @@ And output:
   ]
 }
 }|
+
+@inject-analytics[]

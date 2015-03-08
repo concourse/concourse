@@ -44,3 +44,5 @@ For example:
     ]
   }
 }|
+
+@inject-analytics[]

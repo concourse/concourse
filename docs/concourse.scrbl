@@ -23,3 +23,5 @@ To see a live example, check out
 @include-section{pipelines.scrbl}
 @include-section{implementing-resources.scrbl}
 @include-section{release-notes.scrbl}
+
+@inject-analytics[]

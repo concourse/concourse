@@ -323,3 +323,5 @@ Each group allows you to set the following attributes:
   Resources that are inputs or outputs of jobs in the group are automatically
   added; they do not have to be explicitly listed here.
 }
+
+@inject-analytics[]

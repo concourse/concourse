@@ -61,3 +61,5 @@ no inter-relationships). If any outputs fail to execute, the build errors
 Outputs can be used to do all kinds of things, from bumping version numbers, to
 pushing to repos, to marking tasks as finished in your issue tracking system.
 These are all modeled as @seclink["resources"]{resources}.
+
+@inject-analytics[]

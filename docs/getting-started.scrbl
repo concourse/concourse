@@ -36,3 +36,5 @@ quick to bootstrap.
 @include-section{deploying/vagrant.scrbl}
 @include-section{deploying/bosh.scrbl}
 @include-section{deploying/worker-pools.scrbl}
+
+@inject-analytics[]

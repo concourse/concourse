@@ -223,3 +223,5 @@ $ bosh deploy
 When new Concourse versions come out, upgrading should simply be a matter of
 uploading the new releases and deploying again. BOSH will then kick off a
 rolling deploy of your cluster.
+
+@inject-analytics[]

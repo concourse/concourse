@@ -1,6 +1,8 @@
 #lang scribble/manual
  
-@title[#:style 'toc]{Concepts}
+@(require "common.rkt")
+
+@title[#:version version #:style 'toc]{Concepts}
 
 Like files and pipes in Unix, the goal is to build an expressive system with as
 few distinct moving parts as possible.
@@ -21,3 +23,5 @@ becomes more involved.
 @include-section{concepts/builds.scrbl}
 @include-section{concepts/jobs.scrbl}
 @include-section{concepts/resources.scrbl}
+
+@inject-analytics[]
