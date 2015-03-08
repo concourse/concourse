@@ -9,11 +9,12 @@ var EMIT_INTERVAL = 300;
 
 var constants = {
   ADD_LOG: 'ADD_LOG',
-  ADD_RESOURCE: 'ADD_RESOURCE',
   ADD_ERROR: 'ADD_ERROR',
-  SET_RESOURCE_RUNNING: 'SET_RESOURCE_RUNNING',
-  SET_RESOURCE_ERRORED: 'SET_RESOURCE_ERRORED',
-  TOGGLE_RESOURCE_LOGS: 'TOGGLE_RESOURCE_LOGS',
+
+  SET_STEP_RUNNING: 'SET_STEP_RUNNING',
+  SET_STEP_ERRORED: 'SET_STEP_ERRORED',
+  SET_STEP_VERSION_INFO: 'SET_STEP_VERSION_INFO',
+  TOGGLE_STEP_LOGS: 'TOGGLE_STEP_LOGS',
 }
 
 function LogsModel() {
@@ -158,7 +159,8 @@ function LogsModel() {
 
 var LogStore = Fluxxor.createStore({
   initialize: function() {
-    this.logs = {};
+    this.logs = Immutable.Map();
+
     this.bindActions(
       constants.ADD_LOG, this.onAddLog,
       constants.ADD_ERROR, this.onAddError
@@ -166,140 +168,162 @@ var LogStore = Fluxxor.createStore({
     setInterval(this.emitEvents.bind(this), EMIT_INTERVAL);
   },
 
-  getLogs: function(type) {
-    if (this.logs[type] === undefined) {
-      this.logs[type] = new LogsModel();
+  getLogs: function(origin) {
+    var logsModel = this.logs.getIn(origin.location);
+
+    if (logsModel === undefined) {
+      logsModel = new LogsModel();
+      this.logs = this.logs.setIn(origin.location, logsModel);
     }
-    return this.logs[type];
+
+    return logsModel;
   },
 
   onAddLog: function(data) {
-    this.getLogs(data.type).addLog(data.line);
+    this.getLogs(data.origin).addLog(data.line);
   },
 
   onAddError: function(data) {
-    this.getLogs(data.type).addError(data.line);
+    this.getLogs(data.origin).addError(data.line);
   },
 
   emitEvents: function() {
     var shouldEmit = false;
-
-    for (var k in this.logs) {
-      if (this.logs.hasOwnProperty(k)) {
-        if (this.logs[k].changed) {
-          shouldEmit = true;
-          break;
-        }
+    walkTree(this.logs, function(logsModel) {
+      if (logsModel.changed) {
+        shouldEmit = true;
+        return false;
       }
-    }
+    });
 
     if (shouldEmit) {
       this.emit("change");
 
-      for (var k in this.logs) {
-        if (this.logs.hasOwnProperty(k)) {
-          this.logs[k].changed = false
-        }
-      }
+      walkTree(this.logs, function(logsModel) {
+        logsModel.changed = false;
+      });
     }
   },
 
   getState: function() {
-    var state = {};
-    for (var k in this.logs) {
-      if (this.logs.hasOwnProperty(k)) {
-        state[k] = this.logs[k].lines;
-      }
-    }
-    return Immutable.fromJS(state);
+    return this.logs;
   },
 });
 
-var ResourceStore = Fluxxor.createStore({
+function walkTree(iterable, cb) {
+  iterable.forEach(function(x) {
+    if (Immutable.Iterable.isIterable(x)) {
+      walkTree(x, cb)
+    } else {
+      return cb(x)
+    }
+  })
+}
+
+function StepModel(origin, properties) {
+  this.origin = origin;
+
+  this.showLogs = origin.type == "execute";
+
+  this.running = false;
+  this.errored = false;
+
+  this.version = undefined;
+  this.metadata = undefined;
+}
+
+var StepStore = Fluxxor.createStore({
   initialize: function() {
-    this.resources = {};
+    this.steps = Immutable.Map();
+
     this.bindActions(
-      constants.ADD_RESOURCE, this.onAddResource,
-      constants.SET_RESOURCE_RUNNING, this.onSetResourceRunning,
-      constants.SET_RESOURCE_ERRORED, this.onSetResourceErrored,
-      constants.TOGGLE_RESOURCE_LOGS, this.onToggleResourceLogs
+      constants.SET_STEP_RUNNING, this.onSetStepRunning,
+      constants.SET_STEP_ERRORED, this.onSetStepErrored,
+      constants.SET_STEP_VERSION_INFO, this.onSetStepVersionInfo,
+      constants.TOGGLE_STEP_LOGS, this.onToggleStepLogs
     );
   },
 
-  addResource: function(type, resource) {
-    if (this.resources[type] === undefined) {
-      this.resources[type] = Immutable.Map();
-    }
-    resource.kind = type;
-    var newResource = Immutable.fromJS(resource);
-    if (this.resources[type].has(resource.name)) {
-      newResource = this.resources[type].get(resource.name).merge(newResource);
-    }
-    this.setResource(type, resource.name, newResource);
+  setStep: function(origin, changes) {
+    this.steps = this.steps.updateIn(origin.location, function(stepModel) {
+      if (stepModel === undefined) {
+        return new StepModel(origin);
+      } else {
+        // *must* return new object, otherwise immutable tree remains
+        // same and nothing updates
+
+        var newStep = new StepModel(origin);
+
+        newStep.showLogs = stepModel.showLogs;
+        newStep.running = stepModel.running;
+        newStep.errored = stepModel.errored;
+        newStep.version = stepModel.version;
+        newStep.metadata = stepModel.metadata;
+
+        for (var k in changes) {
+          if (changes.hasOwnProperty(k)) {
+            newStep[k] = changes[k]
+          }
+        }
+
+        return newStep;
+      }
+    });
+
     this.emit("change");
-    return this.resources[type].get(resource.name);
   },
 
-  updateResource: function(type, name, attributes) {
-    attributes.name = name;
-    this.addResource(type, attributes);
+  onSetStepVersionInfo: function(data) {
+    this.setStep(data.origin, { version: data.version, metadata: data.metadata });
   },
 
-  setResource: function(type, name, resource) {
-    this.resources[type] = this.resources[type].set(name, resource);
+  onSetStepRunning: function(data) {
+    this.setStep(data.origin, { running: data.running });
   },
 
-  onAddResource: function(data) {
-    this.addResource(data.type, data.resource);
+  onSetStepErrored: function(data) {
+    this.setStep(data.origin, { errored: data.errored });
   },
 
-  onSetResourceRunning: function(data) {
-    this.updateResource(data.type, data.name, { running: data.value });
-  },
-
-  onSetResourceErrored: function(data) {
-    this.updateResource(data.type, data.name, { errored: data.value });
-  },
-
-  onToggleResourceLogs: function(data) {
-    var resource = this.resources[data.type].get(data.name);
-    this.updateResource(data.type, data.name, { showLogs: !resource.get('showLogs') });
+  onToggleStepLogs: function(data) {
+    var step = this.steps.getIn(data.origin.location);
+    this.setStep(data.origin, { showLogs: !step.showLogs });
   },
 
   getState: function() {
-    return Immutable.fromJS(this.resources);
+    return this.steps;
   },
 });
 
 var actions = {
-  addLog: function(type, line) {
-    this.dispatch(constants.ADD_LOG, { type: type, line: line });
+  addLog: function(origin, line) {
+    this.dispatch(constants.ADD_LOG, { origin: origin, line: line });
   },
 
-  addError: function(type, line) {
-    this.dispatch(constants.ADD_ERROR, { type: type, line: line });
+  addError: function(origin, line) {
+    this.dispatch(constants.ADD_ERROR, { origin: origin, line: line });
   },
 
-  addResource: function(type, resource) {
-    this.dispatch(constants.ADD_RESOURCE, { type: type, resource: resource });
+  setStepVersionInfo: function(origin, version, metadata) {
+    this.dispatch(constants.SET_STEP_VERSION_INFO, { origin: origin, version: version, metadata: metadata});
   },
 
-  setResourceRunning: function(type, name, value) {
-    this.dispatch(constants.SET_RESOURCE_RUNNING, { type: type, name: name, value: value });
+  setStepRunning: function(origin, running) {
+    this.dispatch(constants.SET_STEP_RUNNING, { origin: origin, running: running });
   },
 
-  setResourceErrored: function(type, name, value) {
-    this.dispatch(constants.SET_RESOURCE_ERRORED, { type: type, name: name, value: value });
+  setStepErrored: function(origin, erored) {
+    this.dispatch(constants.SET_STEP_ERRORED, { origin: origin, errored: errored });
   },
 
-  toggleResourceLogs: function(type, name) {
-    this.dispatch(constants.TOGGLE_RESOURCE_LOGS, { type: type, name: name });
+  toggleStepLogs: function(origin) {
+    this.dispatch(constants.TOGGLE_STEP_LOGS, { origin: origin });
   },
 }
 
 var stores = {
-  LogStore: new LogStore(),
-  ResourceStore: new ResourceStore(),
+  "LogStore": new LogStore(),
+  "StepStore": new StepStore(),
 };
 
 var foregroundColors = {

@@ -29,18 +29,18 @@ a { color: @base0D; } /* not really used anywhere... */
 svg .node rect { fill: @base00; }
 #builds { background: @base00; }
 .builds-list { background: @base00; }
-.build-source .header { background: @base00; }
+.build-step .header { background: @base00; }
 .groups { background: @base00; }
 
 /* highlight background */
 svg .cluster { fill: @base02; }
-.build-resources { background: @base02; }
+.steps .nest { background: @base02; }
 .groups li.main a { background: @base02; }
 
 /* even more highlight background */
 svg .edge { stroke: @base03; }
 svg .gateway { fill: @base03; }
-.build-source.first-occurrence .header { background: @base03; }
+.build-step.first-occurrence .header { background: @base03; }
 svg .node.job.normal rect { fill: @base03; }
 .groups li.active a { background: @base03; }
 
@@ -64,7 +64,7 @@ li.pending { background: @base04; }
 #build-requires-auth input:hover { background: @base04; }
 
 /* highlight foreground */
-.build-source .header .version { color: @base06; }
+.build-step .header .version { color: @base06; }
 #build-requires-auth input { color: @base06; }
 svg .node.resource a { color: @base06; }
 
@@ -104,7 +104,7 @@ svg .node.job.errored rect { fill: @base09; }
 li.errored { background: @base09; }
 .legend dt.errored { background: @base09; }
 svg .node.resource.failing rect { fill: @base09; }
-.build-source.errored .header { background: @base09; }
+.build-step.errored .header { background: @base09; }
 
 /* not so bad */
 svg .edge.aborted { stroke: @base0F; }

@@ -4,27 +4,29 @@ var ImmutableRenderMixin = require('react-immutable-render-mixin');
 var FluxMixin = require('fluxxor').FluxMixin(React);
 var Logs = require('./logs.jsx');
 
-var Resource = React.createClass({
+var Step = React.createClass({
   mixins: [FluxMixin, ImmutableRenderMixin],
 
   toggleLogs: function() {
-    var resource = this.props.resource;
-    this.getFlux().actions.toggleResourceLogs(resource.get('kind'), resource.get('name'));
+    var model = this.props.model;
+    this.getFlux().actions.toggleStepLogs(model.origin);
   },
 
   render: function() {
-    var resource = this.props.resource;
+    var model = this.props.model;
+
     var versionDetails = [];
-    if (resource.get('version') !== undefined) {
-      resource.get('version').forEach(function(version, key) {
+    if (model.version !== undefined) {
+      for (var key in model.version) {
+        var value = model.version[key];
         versionDetails.push(<dt key={"version-dt-"+key}>{key}</dt>);
-        versionDetails.push(<dd key={"version-dd-"+key}>{version}</dd>);
-      });
+        versionDetails.push(<dd key={"version-dd-"+key}>{value}</dd>);
+      }
     }
+
     var metadataDetails = [];
-    if (resource.get('metadata') !== undefined) {
-      resource.get('metadata').forEach(function(metadata) {
-        var metadata = metadata.toJS();
+    if (model.metadata !== undefined) {
+      model.metadata.forEach(function(metadata) {
         metadataDetails.push(<dt key={"metadata-dt-"+metadata.name}>{metadata.name}</dt>);
         metadataDetails.push(<dd key={"metadata-dd-"+metadata.name}>{metadata.value}</dd>);
       });
@@ -32,18 +34,18 @@ var Resource = React.createClass({
 
     var cx = React.addons.classSet;
     var classNames = cx({
-      "build-source": true,
-      "running": resource.get('running'),
-      "errored": resource.get('errored'),
-      "first-occurrence": resource.get('first_occurence'),
+      "build-step": true,
+      "running": model.running,
+      "errored": model.errored,
+      "first-occurrence": model.first_occurrence
     });
 
-    var displayLogs = resource.get('showLogs') ? 'block' : 'none';
+    var displayLogs = model.showLogs ? 'block' : 'none';
 
     return (
       <div className={classNames}>
         <div className="header" onClick={this.toggleLogs}>
-          <h3>{resource.get('name')}</h3>
+          <h3>{model.origin.name}</h3>
 
           <dl className="version">{versionDetails}</dl>
 
@@ -62,4 +64,4 @@ var Resource = React.createClass({
   },
 });
 
-module.exports = Resource;
+module.exports = Step;

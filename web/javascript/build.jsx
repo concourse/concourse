@@ -1,8 +1,9 @@
 var React = require('react/addons');
+var Immutable = require("immutable");
 var ImmutableRenderMixin = require('react-immutable-render-mixin');
 
 var Logs = require('./logs.jsx');
-var Resource = require('./resource.jsx');
+var Step = require('./step.jsx');
 
 var Fluxxor = require('fluxxor');
 var FluxMixin = Fluxxor.FluxMixin(React),
@@ -13,17 +14,27 @@ window.React = React;
 
 var $ = require('jquery');
 
+function walkTree(iterable, cb) {
+  iterable.forEach(function(x) {
+    if (Immutable.Iterable.isIterable(x)) {
+      walkTree(x, cb)
+    } else {
+      return cb(x)
+    }
+  })
+}
+
 var Build = React.createClass({
   mixins: [
-    ImmutableRenderMixin, FluxMixin,
-    StoreWatchMixin("LogStore", "ResourceStore"),
+    ImmutableRenderMixin,
+    FluxMixin, StoreWatchMixin("LogStore", "StepStore"),
   ],
 
   getStateFromFlux: function() {
     var flux = this.getFlux();
     return {
       logs: flux.store("LogStore").getState(),
-      resources: flux.store("ResourceStore").getState(),
+      steps: flux.store("StepStore").getState(),
     };
   },
 
@@ -34,45 +45,50 @@ var Build = React.createClass({
   },
 
   render: function() {
-    var t = new Date();
-    var runLogs = '';
-    if (this.state.logs.has('run')) {
-      runLogs = <Logs autoscroll={this.state.autoscroll} batches={this.state.logs.get('run')} />;
-    }
-    var inputResources = [];
+    var containers = {};
 
-    var resources = this.state.resources;
+    var logs = this.state.logs;
+    var autoscroll = this.state.autoscroll;
 
-    if (resources.get('input') !== undefined) {
-      resources.get('input').forEach(function(input) {
-        var logs;
-        var key = 'input-' + input.get('name');
-        if (this.state.logs.has(key)) {
-          logs = this.state.logs.get(key);
+    walkTree(this.state.steps, function(step) {
+      var loc = step.origin.location;
+
+      var parentKey = loc.slice();
+      var stepID = parentKey.pop();
+
+      var steps = containers[parentKey.toString()];
+      if (steps === undefined) {
+        steps = [];
+        containers[parentKey.toString()] = steps;
+      }
+
+      var stepLogs = logs.getIn(loc);
+
+      var logLines;
+      if (stepLogs !== undefined) {
+        logLines = stepLogs.lines;
+      } else {
+        logLines = Immutable.List()
+      }
+
+      steps[stepID-1] = <Step key={loc.toString()} model={step} logs={logLines} autoscroll={autoscroll} />;
+    });
+
+    var stepEles = [];
+    for (var containerLoc in containers) {
+      var ele = containers[containerLoc];
+
+      if (containerLoc.length > 0) {
+        var locChain = containerLoc.split(",");
+        for (var i in locChain) {
+          ele = <div className="nest">{ele}</div>;
         }
-        inputResources.push(<Resource key={key} resource={input} logs={logs} autoscroll={this.state.autoscroll} />);
-      }, this);
+      }
+
+      stepEles.push(<div className="seq" key={containerLoc}>{ele}</div>);
     }
 
-    var outputResources = [];
-    if (resources.get('output') !== undefined) {
-      resources.get('output').forEach(function(output) {
-        var logs;
-        var key = 'output-' + output.get('name');
-        if (this.state.logs.has(key)) {
-          logs = this.state.logs.get(key);
-        }
-        outputResources.push(<Resource key={key} resource={output} logs={logs} autoscroll={this.state.autoscroll} />);
-      }, this);
-    }
-
-    return (
-      <div>
-        <div className="build-resources build-inputs">{inputResources}</div>
-        <div className="build-logs">{runLogs}</div>
-        <div className="build-resources build-outputs">{outputResources}</div>
-      </div>
-    );
+    return (<div className="steps">{stepEles}</div>);
   },
 });
 
@@ -124,6 +140,49 @@ function streamLog(uri) {
 var moment = require('moment');
 require("moment-duration-format");
 
+var legacyInputLocations = [];
+var legacyOutputLocations = [];
+
+function legacyInputOrigin(name) {
+  var inputOrigin = legacyInputLocations.indexOf(name);
+  if (inputOrigin == -1) {
+    legacyInputLocations.push(name);
+    inputOrigin = legacyInputLocations.length - 1;
+  }
+
+  var loc = [1, inputOrigin + 1];
+
+  return {
+    "name": name,
+    "type": "get",
+    "location": loc
+  }
+}
+
+function legacyRunOrigin() {
+  return {
+    "name": "build",
+    "type": "execute",
+    "location": [2]
+  }
+}
+
+function legacyOutputOrigin(name) {
+  var outputOrigin = legacyOutputLocations.indexOf(name);
+  if (outputOrigin == -1) {
+    legacyOutputLocations.push(name);
+    outputOrigin = legacyOutputLocations.length - 1;
+  }
+
+  var loc = [3, outputOrigin + 1];
+
+  return {
+    "name": name,
+    "type": "put",
+    "location": loc
+  }
+}
+
 var eventHandlers = {
   "1": {
     "*": {
@@ -140,11 +199,21 @@ var eventHandlers = {
       },
 
       "input": function(data) {
-        renderResource(data, "input");
+        var resource = event["input"];
+
+        var origin = legacyInputOrigin(resource.name);
+
+        flux.actions.setStepVersionInfo(origin, resource.version, resource.metadata);
+        flux.actions.setStepRunning(origin, false);
       },
 
       "output": function(data) {
-        renderResource(data, "output");
+        var resource = event["output"];
+
+        var origin = legacyOutputOrigin(resource.name);
+
+        flux.actions.setStepVersionInfo(origin, resource.version, resource.metadata);
+        flux.actions.setStepRunning(origin, false);
       }
     }
   },
@@ -152,23 +221,17 @@ var eventHandlers = {
   "2": {
     "*": {
       "input": function(data) {
-        flux.actions.addResource("input", {
-          "name": data.plan.name,
-          "version": data.version,
-          "metadata": data.metadata
-        });
+        var origin = legacyInputOrigin(data.plan.name);
 
-        flux.actions.setResourceRunning("input", data.plan.name, false);
+        flux.actions.setStepVersionInfo(origin, data.version, data.metadata);
+        flux.actions.setStepRunning(origin, false);
       },
 
       "output": function(data) {
-        flux.actions.addResource("output", {
-          "name": data.plan.name,
-          "version": data.version,
-          "metadata": data.metadata
-        });
+        var origin = legacyOutputOrigin(data.plan.name);
 
-        flux.actions.setResourceRunning("output", data.plan.name, false);
+        flux.actions.setStepVersionInfo(origin, data.version, data.metadata);
+        flux.actions.setStepRunning(origin, false);
       }
     }
   }
@@ -226,51 +289,52 @@ function processStatus(event) {
   }
 }
 
-function renderResource(event, type) {
-  var resource = event[type];
-  flux.actions.addResource(type, resource);
-  flux.actions.setResourceRunning(type, resource.name, false);
-}
-
 function processLogs(event) {
-  var log;
+  var origin;
 
   switch(event.origin.type) {
   case "run":
-    log = "run";
+    origin = legacyRunOrigin();
     break;
   case "input":
+    origin = legacyInputOrigin(event.origin.name);
+    break;
   case "output":
-    flux.actions.setResourceRunning(event.origin.type, event.origin.name, true);
-    log = event.origin.type + "-" + event.origin.name;
+    origin = legacyOutputOrigin(event.origin.name);
+    break;
   }
 
-  if(!log || !event.payload) {
+  if(!origin || !event.payload) {
     return;
   }
 
-  flux.actions.addLog(log, event.payload);
+  flux.actions.setStepRunning(origin, true);
+  flux.actions.addLog(origin, event.payload);
 }
 
 function processError(event) {
-  var log;
+  var origin;
 
   if(event.origin && event.origin.type) {
     switch(event.origin.type) {
     case "input":
+      origin = legacyOutputOrigin(event.origin.name);
+      break;
     case "output":
-      flux.actions.setResourceRunning(event.origin.type, event.origin.name, false);
-      flux.actions.setResourceErrored(event.origin.type, event.origin.name, true);
-      log = event.origin.type + "-" + event.origin.name;
+      origin = legacyOutputOrigin(event.origin.name);
+      break;
     }
   } else {
-    log = 'run'
+    origin = legacyRunOrigin();
   }
 
-  if(!log) {
+  if(!origin) {
     return;
   }
-  flux.actions.addError(log, event.message);
+
+  flux.actions.setStepRunning(origin, false);
+  flux.actions.setStepErrored(origin, true);
+  flux.actions.addError(origin, event.message);
 }
 
 function scrollToCurrentBuild() {
@@ -314,4 +378,3 @@ $(document).ready(function() {
 });
 
 window.streamLog = streamLog;
-window.renderResource = renderResource;
