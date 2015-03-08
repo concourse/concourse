@@ -15,8 +15,9 @@ site_id=${SITE_ID}
 
 cd docs/docs/
 
-if [ -n "$ANALYTICS_ID" ]; then
-  raco scribble ++arg ${version} ++arg "$ANALYTICS_ID" --htmls concourse.scrbl
-else
-  raco scribble ++arg ${version} --htmls concourse.scrbl
-fi
+raco scribble \
+  ++arg --version ++arg "$version" \
+  ++arg --analytics-id ++arg "$ANALYTICS_ID" \
+  ++arg --gauges-id ++arg "$GAUGES_ID" \
+  --htmls \
+  concourse.scrbl
