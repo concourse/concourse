@@ -224,3 +224,5 @@ the current logs if the build is still in progress.
 @codeblock|{
 $ fly watch --job tests --build 52
 }|
+
+@inject-analytics[]

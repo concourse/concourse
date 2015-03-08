@@ -166,3 +166,5 @@ this allows it to be transparently composed with other toolchains.
 
 For more information on how to use @code{fly}, see @@seclink["fly-cli"]{the
 Fly CLI} section.
+
+@inject-analytics[]

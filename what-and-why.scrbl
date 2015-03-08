@@ -194,3 +194,5 @@ to the S3 bucket containing final releases.
 
 Though the above chain of events may sound complicated, in reality it is just a
 bunch of simple functions of inputs → outputs.
+
+@inject-analytics[]
