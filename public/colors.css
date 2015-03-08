@@ -24,7 +24,7 @@ svg .node rect {
 .builds-list {
   background: #151515;
 }
-.build-source .header {
+.build-step .header {
   background: #151515;
 }
 .groups {
@@ -34,7 +34,7 @@ svg .node rect {
 svg .cluster {
   fill: #303030;
 }
-.build-resources {
+.steps .nest {
   background: #303030;
 }
 .groups li.main a {
@@ -47,7 +47,7 @@ svg .edge {
 svg .gateway {
   fill: #505050;
 }
-.build-source.first-occurrence .header {
+.build-step.first-occurrence .header {
   background: #505050;
 }
 svg .node.job.normal rect {
@@ -103,7 +103,7 @@ li.pending {
   background: #b0b0b0;
 }
 /* highlight foreground */
-.build-source .header .version {
+.build-step .header .version {
   color: #e0e0e0;
 }
 #build-requires-auth input {
@@ -203,7 +203,7 @@ li.errored {
 svg .node.resource.failing rect {
   fill: #d28445;
 }
-.build-source.errored .header {
+.build-step.errored .header {
   background: #d28445;
 }
 /* not so bad */
