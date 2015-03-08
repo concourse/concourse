@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -e -x
 
 function abort() {
   echo "$@" >&2
