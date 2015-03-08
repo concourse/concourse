@@ -22,14 +22,14 @@ function rebundle(bundler) {
 }
 
 gulp.task('build', function () {
-  var bundler = browserify('./build.jsx', { debug: !production });
+  var bundler = browserify('./event_handler.jsx', { debug: !production });
   bundler.transform(reactify);
 
   return rebundle(bundler);
 });
 
 gulp.task('watch', function () {
-  var bundler = watchify(browserify('./build.jsx'), { debug: !production });
+  var bundler = watchify(browserify('./event_handler.jsx'), { debug: !production });
   bundler.transform(reactify);
 
   bundler.on('update', function() { rebundle(bundler); });
