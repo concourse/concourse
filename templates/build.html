@@ -38,25 +38,6 @@
 
 <script src="{{url "Public" "build.js"}}"></script>
 <script type="text/javascript">
-  var inputResources = [
-  {{range .Inputs}}
-    {
-      name: "{{.Name}}",
-      first_occurence: {{.FirstOccurrence}},
-      version: {
-      {{range $name, $val := .Version}}
-        "{{$name}}": "{{$val}}",
-      {{end}}
-      },
-      metadata: [
-      {{range .Metadata}}
-        { name: "{{.Name}}", value: "{{.Value}}" },
-      {{end}}
-      ],
-    },
-  {{end}}
-  ];
-
   streamLog({{url "BuildEvents" .Build | js}})
 </script>
 {{end}}

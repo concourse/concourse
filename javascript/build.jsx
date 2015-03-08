@@ -51,7 +51,7 @@ var Build = React.createClass({
     var autoscroll = this.state.autoscroll;
 
     walkTree(this.state.steps, function(step) {
-      var loc = step.origin.location;
+      var loc = step.origin().location;
 
       var parentKey = loc.slice();
       var stepID = parentKey.pop();
@@ -213,6 +213,11 @@ var eventHandlers = {
         var origin = legacyOutputOrigin(resource.name);
 
         flux.actions.setStepVersionInfo(origin, resource.version, resource.metadata);
+        flux.actions.setStepRunning(origin, false);
+      },
+
+      "finish": function(data) {
+        var origin = legacyRunOrigin();
         flux.actions.setStepRunning(origin, false);
       }
     }

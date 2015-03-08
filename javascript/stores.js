@@ -220,16 +220,62 @@ function walkTree(iterable, cb) {
   })
 }
 
-function StepModel(origin, properties) {
-  this.origin = origin;
+function StepModel(origin) {
+  this._map = new Immutable.Map({
+    origin: origin,
+    showLogs: origin.type == "execute",
 
-  this.showLogs = origin.type == "execute";
+    running: false,
+    errored: false,
 
-  this.running = false;
-  this.errored = false;
+    version: undefined,
+    metadata: undefined
+  });
 
-  this.version = undefined;
-  this.metadata = undefined;
+  this.merge = function(attrs) {
+    var newModel = new StepModel(this.origin());
+    newModel._map = this._map.merge(attrs);
+    return newModel;
+  }
+
+  this.origin = function() {
+    return this._map.get("origin");
+  }
+
+  this.isShowingLogs = function() {
+    return this._map.get("showLogs");
+  }
+
+  this.isRunning = function() {
+    return this._map.get("running");
+  }
+
+  this.isErrored = function() {
+    return this._map.get("errored");
+  }
+
+  this.isFirstOccurrence = function() {
+    // currently not supported
+    return false;
+  }
+
+  this.version = function() {
+    var x = this._map.get("version");
+    if (x === undefined) {
+      return undefined;
+    }
+
+    return x.toJS();
+  }
+
+  this.metadata = function() {
+    var meta = this._map.get("metadata");
+    if (meta === undefined) {
+      return undefined;
+    }
+
+    return meta.toJS();
+  }
 }
 
 var StepStore = Fluxxor.createStore({
@@ -249,24 +295,7 @@ var StepStore = Fluxxor.createStore({
       if (stepModel === undefined) {
         return new StepModel(origin);
       } else {
-        // *must* return new object, otherwise immutable tree remains
-        // same and nothing updates
-
-        var newStep = new StepModel(origin);
-
-        newStep.showLogs = stepModel.showLogs;
-        newStep.running = stepModel.running;
-        newStep.errored = stepModel.errored;
-        newStep.version = stepModel.version;
-        newStep.metadata = stepModel.metadata;
-
-        for (var k in changes) {
-          if (changes.hasOwnProperty(k)) {
-            newStep[k] = changes[k]
-          }
-        }
-
-        return newStep;
+        return stepModel.merge(changes);
       }
     });
 
@@ -287,7 +316,7 @@ var StepStore = Fluxxor.createStore({
 
   onToggleStepLogs: function(data) {
     var step = this.steps.getIn(data.origin.location);
-    this.setStep(data.origin, { showLogs: !step.showLogs });
+    this.setStep(data.origin, { showLogs: !step.isShowingLogs() });
   },
 
   getState: function() {
