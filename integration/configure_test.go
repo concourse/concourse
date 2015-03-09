@@ -108,7 +108,7 @@ var _ = Describe("Fly CLI", func() {
 								Params: atc.Params{
 									"some-param": "some-value",
 								},
-								RawPerformOn: []atc.OutputCondition{"success", "failure"},
+								RawPerformOn: []atc.Condition{"success", "failure"},
 							},
 						},
 					},
@@ -134,7 +134,7 @@ var _ = Describe("Fly CLI", func() {
 								Params: atc.Params{
 									"some-param": "some-value",
 								},
-								RawPerformOn: []atc.OutputCondition{"success", "failure"},
+								RawPerformOn: []atc.Condition{"success", "failure"},
 							},
 						},
 					},

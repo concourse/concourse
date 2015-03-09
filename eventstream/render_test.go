@@ -70,9 +70,9 @@ var _ = Describe("V1.0 Renderer", func() {
 		})
 	})
 
-	Context("when an Initialize event is received", func() {
+	Context("when an InitializeExecute event is received", func() {
 		BeforeEach(func() {
-			receivedEvents <- event.Initialize{
+			receivedEvents <- event.InitializeExecute{
 				BuildConfig: atc.BuildConfig{
 					Image: "some-image",
 					Run: atc.BuildRunConfig{
@@ -87,9 +87,9 @@ var _ = Describe("V1.0 Renderer", func() {
 			Ω(out.Contents()).Should(ContainSubstring("\x1b[1minitializing with some-image\x1b[0m\n"))
 		})
 
-		Context("and a Start event is received", func() {
+		Context("and a StartExecute event is received", func() {
 			BeforeEach(func() {
-				receivedEvents <- event.Start{
+				receivedEvents <- event.StartExecute{
 					Time: time.Now().Unix(),
 				}
 			})
@@ -100,9 +100,9 @@ var _ = Describe("V1.0 Renderer", func() {
 		})
 	})
 
-	Context("when a Finish event is received", func() {
+	Context("when a FinishExecute event is received", func() {
 		BeforeEach(func() {
-			receivedEvents <- event.Finish{
+			receivedEvents <- event.FinishExecute{
 				ExitStatus: 42,
 			}
 		})
@@ -122,7 +122,7 @@ var _ = Describe("V1.0 Renderer", func() {
 				Ω(out.Contents()).Should(ContainSubstring("succeeded"))
 			})
 
-			It("exits with the status from the Finish event", func() {
+			It("exits with the status from the FinishExecute event", func() {
 				Ω(exitStatus).Should(Equal(42))
 			})
 		})

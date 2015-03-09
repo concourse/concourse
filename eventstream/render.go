@@ -30,7 +30,7 @@ func Render(dst io.Writer, src EventStream) int {
 		case event.Log:
 			fmt.Fprintf(dst, "%s", e.Payload)
 
-		case event.Initialize:
+		case event.InitializeExecute:
 			buildConfig = e.BuildConfig
 
 			if buildConfig.Image != "" {
@@ -39,11 +39,11 @@ func Render(dst io.Writer, src EventStream) int {
 				fmt.Fprintf(dst, "\x1b[1minitializing\x1b[0m\n")
 			}
 
-		case event.Start:
+		case event.StartExecute:
 			argv := strings.Join(append([]string{buildConfig.Run.Path}, buildConfig.Run.Args...), " ")
 			fmt.Fprintf(dst, "\x1b[1mrunning %s\x1b[0m\n", argv)
 
-		case event.Finish:
+		case event.FinishExecute:
 			exitStatus = e.ExitStatus
 
 		case event.Error:
