@@ -23,7 +23,7 @@ var Store = Fluxxor.createStore({
   setStep: function(origin, changes) {
     this.steps = this.steps.updateIn(origin.location, function(stepModel) {
       if (stepModel === undefined) {
-        return new StepModel(origin);
+        return new StepModel(origin).merge(changes);
       } else {
         return stepModel.merge(changes);
       }

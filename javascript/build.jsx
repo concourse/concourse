@@ -35,10 +35,11 @@ var Build = React.createClass({
   render: function() {
     var containers = {};
 
+    var steps = this.state.steps;
     var logs = this.state.logs;
     var autoscroll = this.state.autoscroll;
 
-    tree.walk(this.state.steps, function(step) {
+    tree.walk(steps, function(step) {
       var loc = step.origin().location;
 
       var parentKey = loc.slice();

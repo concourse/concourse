@@ -92,6 +92,24 @@ var eventHandlers = {
       "finish": function(data) {
         var origin = legacyRunOrigin();
         flux.actions.setStepRunning(origin, false);
+      },
+
+      "initialize-execute": function(data) {
+        flux.actions.setStepRunning(data.origin, true);
+      },
+
+      "finish-execute": function(data) {
+        flux.actions.setStepRunning(data.origin, false);
+      },
+
+      "finish-get": function(data) {
+        flux.actions.setStepVersionInfo(data.origin, data.version, data.metadata);
+        flux.actions.setStepRunning(data.origin, false);
+      },
+
+      "finish-put": function(data) {
+        flux.actions.setStepVersionInfo(data.origin, data.version, data.metadata);
+        flux.actions.setStepRunning(data.origin, false);
       }
     }
   },
@@ -110,7 +128,11 @@ var eventHandlers = {
 
         flux.actions.setStepVersionInfo(origin, data.version, data.metadata);
         flux.actions.setStepRunning(origin, false);
-      }
+      },
+
+      "log": function(data) {
+        processLogs(data);
+      },
     }
   }
 }
@@ -179,6 +201,11 @@ function processLogs(event) {
     break;
   case "output":
     origin = legacyOutputOrigin(event.origin.name);
+    break;
+  case "get":
+  case "put":
+  case "execute":
+    origin = event.origin;
     break;
   }
 
