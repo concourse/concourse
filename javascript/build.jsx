@@ -57,9 +57,10 @@ var Build = React.createClass({
     var stepEles = [];
     containers.walk(function(ele) {
       var key = ele.key;
+      var depth = ele.props.depth;
 
-      if (ele.props.depth > 0) {
-        for (var i = 0; i < ele.props.depth; i++) {
+      if (depth > 0) {
+        for (var i = 0; i < depth; i++) {
           ele = <div className="nest">{ele}</div>;
         }
       }
