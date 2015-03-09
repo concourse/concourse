@@ -2,13 +2,13 @@
 
 @(require "common.rkt")
 
-@title[#:version version #:tag "running-builds"]{Running Builds}
+@title[#:version version #:tag "running-builds"]{Builds}
 
 The smallest configurable unit in Concourse is a single build.
 
 Once you have a running Concourse deployment, you can start configuring your
 builds and executing them interactively from your terminal with the
-@seclink["fly"]{Fly} commandline tool.
+@seclink["fly-cli"]{Fly} commandline tool.
 
 Once you've figured out your build's configuration, you can reuse it for a
 @seclink["jobs"]{Job} in your @seclink["pipelines"]{Pipeline}.
@@ -30,8 +30,8 @@ run:
 }|
 
 This configuration specifies that the build must run with the
-@code{ubuntu:14.04} Docker image, and run the script
-@code{my-repo/scripts/test}.
+@code{ubuntu:14.04} Docker image, and when the build is executed it will run
+the script @code{my-repo/scripts/test}.
 
 A build's configuration specifies the following:
 
@@ -110,61 +110,12 @@ A build's configuration specifies the following:
 }
 
 
-@section[#:tag "fly"]{Running with @code{fly}}
+@section[#:tag "fly"]{Running builds with @code{fly}}
 
-@hyperlink["https://github.com/concourse/fly"]{Fly} is a command-line tool that
-executes a build configuration against a Concourse deployment.
+@seclink["fly-cli"]{Fly} is a command-line tool that can be used to execute
+a build configuration against a Concourse deployment. This provides a fast
+feedback loop for iterating on the build configuration and your code.
 
-Typically this is used in combination with a
-@seclink["deploying-with-vagrant"]{Vagrant}-deployed VM, to provide fast local
-feedback on a build, which executes exactly the same way that it would in a
-pipeline.
-
-
-@subsection{Installation}
-
-Currently, Fly must be built manually as there are no prebuilt releases. If you
-have Go installed, this is as easy as:
-
-@codeblock|{
-go get github.com/concourse/fly
-}|
-
-
-@subsection{Using @code{fly}}
-
-@margin-note{
-  Flying with a remote Concourse can be done by setting @code{$ATC_URL} to its
-  full @code{http://...} address.
-}
-
-Once @code{fly} is installed, the only thing to configure is the ATC URL.
-
-If you've set up a local @seclink["deploying-with-vagrant"]{Vagrant-deployed}
-instance, no further configuration is necessary: @code{fly} defaults to looking
-at the ports forwarded through this configuration.
-
-Otherwise, to execute @code{fly} against an arbitrary deployment, just set
-@code{$ATC_URL} to the URL of the ATC in your deployment (e.g.
-@code|{https://user:pass@ci.myproject.com:443}|).
-
-The simplest use of @code{fly} is to run it with no arguments in a directory
-containing @code{build.yml}:
-
-@codeblock|{
-$ cd some-project/
-$ fly
-}|
-
-This will kick off a build and stream the output back. Fly accepts flags for
-pointing it at a specific build config file, and for running with the contents
-of a different directory. Consult @code{fly --help} to see all of the flags.
-
-Fly will automatically capture @code{SIGINT} and @code{SIGTERM} and abort the
-build when received. Generally Fly tries to be as thin of a proxy as possible;
-this allows it to be transparently composed with other toolchains.
-
-For more information on how to use @code{fly}, see @@seclink["fly-cli"]{the
-Fly CLI} section.
+For more information, see @secref{fly-execute}.
 
 @inject-analytics[]

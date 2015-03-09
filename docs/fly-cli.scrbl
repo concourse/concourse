@@ -54,7 +54,7 @@ not check the remote certificates.
 For the rest of this document it is assumed you are setting the target in
 each of the commands and so it will not be included for brevity.
 
-@section{@code{execute}: Submitting Local Builds}
+@section[#:tag "fly-execute"]{@code{execute}: Submitting Local Builds}
 
 One of the most common use cases of @code{fly} is taking a local project on
 your computer and submitting it up with a build configuration to be run
@@ -71,6 +71,10 @@ $ fly execute
 }|
 
 And your files will be uploaded and the build will be executed with them.
+
+Fly will automatically capture @code{SIGINT} and @code{SIGTERM} and abort the
+build when received. This allows it to be transparently composed with other
+toolchains.
 
 If your build configuration is in a non-standard location then you can
 specify it using the @code{-c} or @code{--config} argument like so:
