@@ -150,7 +150,7 @@ build fails (we can't fix that), fix things up, @code{fly}...
 At the end of this, instead of 20 junk commits pushed to your repo, you've
 figured out a configuration for both running locally and running in CI.
 
-See @secref{running-builds}.
+See @secref{builds} and @secref{fly-execute}.
 
 
 @section[#:style 'toc-hidden]{Bootstrapped}
