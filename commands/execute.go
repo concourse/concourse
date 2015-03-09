@@ -203,6 +203,7 @@ func createBuild(
 			},
 			B: atc.Plan{
 				Execute: &atc.ExecutePlan{
+					Name:       "build",
 					Privileged: privileged,
 					Config:     &config,
 				},

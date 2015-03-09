@@ -88,6 +88,7 @@ run:
 				},
 				B: atc.Plan{
 					Execute: &atc.ExecutePlan{
+						Name: "build",
 						Config: &atc.BuildConfig{
 							Platform: "some-platform",
 							Image:    "ubuntu",
