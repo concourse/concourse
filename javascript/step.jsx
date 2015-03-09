@@ -44,17 +44,47 @@ var Step = React.createClass({
 
     var displayLogs = model.isShowingLogs() ? 'block' : 'none';
 
+    var classes = ["left", "fa", "fa-fw"];
+    switch (model.origin().type) {
+    case "get":
+      classes.push("fa-arrow-down");
+      break;
+    case "put":
+      classes.push("fa-arrow-up");
+      break;
+    case "execute":
+      classes.push("fa-terminal");
+      break;
+    }
+
+    var status = "";
+    if (model.isRunning()) {
+      status = <i className="right fa fa-fw fa-circle-o-notch fa-spin"></i>
+    } else if (model.isErrored()) {
+      status = <i className="right errored fa fa-fw fa-exclamation-triangle"></i>
+    } else if (model.isSuccessful() === true) {
+      status = <i className="right succeeded fa fa-fw fa-check"></i>
+    } else if (model.isSuccessful() === false) {
+      status = <i className="right failed fa fa-fw fa-times"></i>
+    } else if (model.version() !== undefined) {
+      status = <i className="right fa fa-fw fa-cube"></i>
+    }
+
     return (
       <div className={classNames}>
         <div className="header" onClick={this.toggleLogs}>
-          <h3>{model.origin().name}</h3>
+          {status}
+
+          <i className={classes.join(" ")}></i>
 
           <dl className="version">{versionDetails}</dl>
+
+          <h3>{model.origin().name}</h3>
 
           <div style={{clear: 'both'}}></div>
         </div>
 
-        <div className="resource-body" style={{display: displayLogs}}>
+        <div className="step-body" style={{display: displayLogs}}>
           <dl className="build-metadata">{metadataDetails}</dl>
 
           <Logs batches={this.props.logs} autoscroll={this.props.autoscroll} />

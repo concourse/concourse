@@ -12,14 +12,18 @@ var actions = {
   },
 
   setStepVersionInfo: function(origin, version, metadata) {
-    this.dispatch(StepStore.SET_STEP_VERSION_INFO, { origin: origin, version: version, metadata: metadata});
+    this.dispatch(StepStore.SET_STEP_VERSION_INFO, { origin: origin, version: version, metadata: metadata });
+  },
+
+  setStepSuccessful: function(origin, successful) {
+    this.dispatch(StepStore.SET_STEP_SUCCESSFUL, { origin: origin, successful: successful });
   },
 
   setStepRunning: function(origin, running) {
     this.dispatch(StepStore.SET_STEP_RUNNING, { origin: origin, running: running });
   },
 
-  setStepErrored: function(origin, erored) {
+  setStepErrored: function(origin, errored) {
     this.dispatch(StepStore.SET_STEP_ERRORED, { origin: origin, errored: errored });
   },
 
