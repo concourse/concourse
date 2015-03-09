@@ -36,10 +36,12 @@ var _ = Describe("Auth", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 
 		atcPort = 5697 + uint16(GinkgoParallelNode())
+		debugPort := 6697 + uint16(GinkgoParallelNode())
 
 		atcCommand := exec.Command(
 			atcBin,
 			"-webListenPort", fmt.Sprintf("%d", atcPort),
+			"-debugListenPort", fmt.Sprintf("%d", debugPort),
 			"-httpUsername", "admin",
 			"-httpHashedPassword", "$2a$04$Cl3vCfrp01EM9NGekxL59uPusP/hBIM3toCkCuECK3saCbOAyrg/O", // "password"
 			"-templates", filepath.Join("..", "web", "templates"),
