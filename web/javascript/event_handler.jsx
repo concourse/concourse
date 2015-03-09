@@ -99,6 +99,7 @@ var eventHandlers = {
       },
 
       "finish-execute": function(data) {
+        flux.actions.setStepSuccessful(data.origin, data.exit_status == 0);
         flux.actions.setStepRunning(data.origin, false);
       },
 
@@ -227,6 +228,11 @@ function processError(event) {
       break;
     case "output":
       origin = legacyOutputOrigin(event.origin.name);
+      break;
+    case "get":
+    case "put":
+    case "execute":
+      origin = event.origin;
       break;
     }
   } else {

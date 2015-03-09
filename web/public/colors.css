@@ -165,6 +165,9 @@ li.succeeded {
 #version-history tr.disabled .toggle-resource-version {
   background: #90a959;
 }
+.build-step i.succeeded {
+  color: #90a959;
+}
 /* bad */
 svg .edge.failed {
   stroke: #ac4142;
@@ -187,6 +190,9 @@ span.error {
 #version-history tr.enabled .toggle-resource-version {
   background: #ac4142;
 }
+.build-step i.failed {
+  color: #ac4142;
+}
 /* like, really bad */
 svg .edge.errored {
   stroke: #d28445;
@@ -206,8 +212,8 @@ li.errored {
 svg .node.resource.failing rect {
   fill: #d28445;
 }
-.build-step.errored .header {
-  background: #d28445;
+.build-step i.errored {
+  color: #d28445;
 }
 /* not so bad */
 svg .edge.aborted {

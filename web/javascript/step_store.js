@@ -5,6 +5,7 @@ var constants = {
   SET_STEP_RUNNING: 'SET_STEP_RUNNING',
   SET_STEP_ERRORED: 'SET_STEP_ERRORED',
   SET_STEP_VERSION_INFO: 'SET_STEP_VERSION_INFO',
+  SET_STEP_SUCCESSFUL: 'SET_STEP_SUCCESSFUL',
   TOGGLE_STEP_LOGS: 'TOGGLE_STEP_LOGS',
 };
 
@@ -16,6 +17,7 @@ var Store = Fluxxor.createStore({
       constants.SET_STEP_RUNNING, this.onSetStepRunning,
       constants.SET_STEP_ERRORED, this.onSetStepErrored,
       constants.SET_STEP_VERSION_INFO, this.onSetStepVersionInfo,
+      constants.SET_STEP_SUCCESSFUL, this.onSetStepSuccessful,
       constants.TOGGLE_STEP_LOGS, this.onToggleStepLogs
     );
   },
@@ -36,6 +38,10 @@ var Store = Fluxxor.createStore({
     this.setStep(data.origin, { version: data.version, metadata: data.metadata });
   },
 
+  onSetStepSuccessful: function(data) {
+    this.setStep(data.origin, { successful: data.successful });
+  },
+
   onSetStepRunning: function(data) {
     this.setStep(data.origin, { running: data.running });
   },
@@ -46,7 +52,7 @@ var Store = Fluxxor.createStore({
 
   onToggleStepLogs: function(data) {
     var step = this.steps.getIn(data.origin.location);
-    this.setStep(data.origin, { showLogs: !step.isShowingLogs() });
+    this.setStep(data.origin, { showLogs: !step.isShowingLogs(), userToggled: true });
   },
 
   getState: function() {
@@ -57,13 +63,17 @@ var Store = Fluxxor.createStore({
 function StepModel(origin) {
   this._map = new Immutable.Map({
     origin: origin,
-    showLogs: origin.type == "execute",
+
+    showLogs: true,
+    userToggled: false,
 
     running: false,
     errored: false,
 
     version: undefined,
-    metadata: undefined
+    metadata: undefined,
+
+    successful: undefined,
   });
 
   this.merge = function(attrs) {
@@ -77,7 +87,12 @@ function StepModel(origin) {
   }
 
   this.isShowingLogs = function() {
-    return this._map.get("showLogs");
+    var showLogs = this._map.get("showLogs");
+    if (this.wasToggled()) {
+      return showLogs
+    }
+
+    return showLogs && (this.isRunning() || this.isSuccessful() === false);
   }
 
   this.isRunning = function() {
@@ -88,9 +103,17 @@ function StepModel(origin) {
     return this._map.get("errored");
   }
 
+  this.isSuccessful = function() {
+    return this._map.get("successful");
+  }
+
   this.isFirstOccurrence = function() {
     // currently not supported
     return false;
+  }
+
+  this.wasToggled = function() {
+    return this._map.get("userToggled");
   }
 
   this.version = function() {

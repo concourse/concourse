@@ -88,6 +88,7 @@ svg .node.job.succeeded rect { fill: @base0B; }
 li.succeeded { background: @base0B; }
 .legend dt.succeeded { background: @base0B; }
 #version-history tr.disabled .toggle-resource-version { background: @base0B; }
+.build-step i.succeeded { color: @base0B; }
 
 /* bad */
 svg .edge.failed { stroke: @base08; }
@@ -97,6 +98,7 @@ li.failed { background: @base08; }
 .legend dt.failed { background: @base08; }
 span.error { color: @base08; }
 #version-history tr.enabled .toggle-resource-version { background: @base08; }
+.build-step i.failed { color: @base08; }
 
 /* like, really bad */
 svg .edge.errored { stroke: @base09; }
@@ -105,7 +107,7 @@ svg .node.job.errored rect { fill: @base09; }
 li.errored { background: @base09; }
 .legend dt.errored { background: @base09; }
 svg .node.resource.failing rect { fill: @base09; }
-.build-step.errored .header { background: @base09; }
+.build-step i.errored { color: @base09; }
 
 /* not so bad */
 svg .edge.aborted { stroke: @base0F; }
