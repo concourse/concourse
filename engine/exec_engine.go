@@ -7,6 +7,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
@@ -93,7 +94,7 @@ func (build *execBuild) Abort() error {
 }
 
 func (build *execBuild) Resume(logger lager.Logger) {
-	step := build.buildStep(build.metadata.Plan, logger)
+	step := build.buildStep(logger, build.metadata.Plan, event.OriginLocation{0})
 	source := step.Using(&exec.NoopArtifactSource{})
 
 	defer source.Release()
@@ -125,26 +126,28 @@ func (build *execBuild) Hijack(spec atc.HijackProcessSpec, io HijackProcessIO) (
 		Stderr: io.Stderr,
 	}
 
-	return build.factory.Hijack(build.executeSessionID(), ioConfig, spec)
+	return build.factory.Hijack(build.executeSessionID("build"), ioConfig, spec)
 }
 
-func (build *execBuild) buildStep(plan atc.Plan, logger lager.Logger) exec.Step {
+func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan, location event.OriginLocation) exec.Step {
 	if plan.Aggregate != nil {
 		logger = logger.Session("aggregate")
 
 		step := exec.Aggregate{}
+
+		var aID uint = 1
 		for name, innerPlan := range *plan.Aggregate {
-			step[name] = build.buildStep(innerPlan, logger.Session(name))
+			step[name] = build.buildStep(logger.Session(name), innerPlan, location.Chain(aID))
+			aID++
 		}
 
 		return step
 	}
 
 	if plan.Compose != nil {
-		return exec.Compose(
-			build.buildStep(plan.Compose.A, logger),
-			build.buildStep(plan.Compose.B, logger),
-		)
+		x := build.buildStep(logger, plan.Compose.A, location.Incr(1))
+		y := build.buildStep(logger, plan.Compose.B, location.Incr(2))
+		return exec.Compose(x, y)
 	}
 
 	if plan.Conditional != nil {
@@ -154,7 +157,7 @@ func (build *execBuild) buildStep(plan atc.Plan, logger lager.Logger) exec.Step 
 
 		return exec.Conditional{
 			Conditions: plan.Conditional.Conditions,
-			Step:       build.buildStep(plan.Conditional.Plan, logger),
+			Step:       build.buildStep(logger, plan.Conditional.Plan, location),
 		}
 	}
 
@@ -176,8 +179,8 @@ func (build *execBuild) buildStep(plan atc.Plan, logger lager.Logger) exec.Step 
 		}
 
 		return build.factory.Execute(
-			build.executeSessionID(),
-			build.delegate.ExecutionDelegate(logger),
+			build.executeSessionID(plan.Execute.Name),
+			build.delegate.ExecutionDelegate(logger, *plan.Execute, location),
 			exec.Privileged(plan.Execute.Privileged),
 			configSource,
 		)
@@ -190,7 +193,7 @@ func (build *execBuild) buildStep(plan atc.Plan, logger lager.Logger) exec.Step 
 
 		return build.factory.Get(
 			build.inputSessionID(plan.Get.Name),
-			build.delegate.InputDelegate(logger, *plan.Get),
+			build.delegate.InputDelegate(logger, *plan.Get, location),
 			atc.ResourceConfig{
 				Name:   plan.Get.Resource,
 				Type:   plan.Get.Type,
@@ -208,7 +211,7 @@ func (build *execBuild) buildStep(plan atc.Plan, logger lager.Logger) exec.Step 
 
 		return build.factory.Put(
 			build.outputSessionID(plan.Put.Resource),
-			build.delegate.OutputDelegate(logger, *plan.Put),
+			build.delegate.OutputDelegate(logger, *plan.Put, location),
 			atc.ResourceConfig{
 				Name:   plan.Put.Resource,
 				Type:   plan.Put.Type,
@@ -221,8 +224,8 @@ func (build *execBuild) buildStep(plan atc.Plan, logger lager.Logger) exec.Step 
 	return exec.Identity{}
 }
 
-func (build *execBuild) executeSessionID() exec.SessionID {
-	return exec.SessionID(fmt.Sprintf("build-%d-execute", build.buildID))
+func (build *execBuild) executeSessionID(executeName string) exec.SessionID {
+	return exec.SessionID(fmt.Sprintf("build-%d-execute-%s", build.buildID, executeName))
 }
 
 func (build *execBuild) inputSessionID(inputName string) exec.SessionID {

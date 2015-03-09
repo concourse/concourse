@@ -12,20 +12,20 @@ const (
 	EventTypeStatus atc.EventType = "status"
 
 	// build initializing (all inputs fetched; fetching image)
-	EventTypeInitialize atc.EventType = "initialize"
+	EventTypeInitializeExecute atc.EventType = "initialize-execute"
 
 	// build execution started
-	EventTypeStart atc.EventType = "start"
+	EventTypeStartExecute atc.EventType = "start-execute"
 
 	// build execution finished
-	EventTypeFinish atc.EventType = "finish"
+	EventTypeFinishExecute atc.EventType = "finish-execute"
+
+	// finished getting something
+	EventTypeFinishGet atc.EventType = "finish-get"
+
+	// finished putting something
+	EventTypeFinishPut atc.EventType = "finish-put"
 
 	// error occurred
 	EventTypeError atc.EventType = "error"
-
-	// input fetched
-	EventTypeInput atc.EventType = "input"
-
-	// output completed
-	EventTypeOutput atc.EventType = "output"
 )

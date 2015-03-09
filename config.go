@@ -64,28 +64,62 @@ type PlanSequence []PlanConfig
 // A PlanConfig is a flattened set of configuration corresponding to
 // a particular Plan, where Source and Version are populated lazily.
 type PlanConfig struct {
-	// corresponds to Get and Put resource plans, respectively
-	Get      string // name of 'input', e.g. bosh-stemcell
-	Put      string // name of 'output', e.g. rootfs-tarball
-	Resource string // corresponding resource config, e.g. aws-stemcell
+	// makes the Plan conditional
+	// conditions on which to perform a nested sequence
+	On *Conditions `yaml:"on,omitempty" json:"on,omitempty" mapstructure:"on"`
 
-	// corresponds to an Execute plan
-	Execute         string       // name of 'execute', e.g. unit, go1.3, go1.4
-	BuildConfigPath string       // build config path, e.g. foo/build.yml
-	BuildConfig     *BuildConfig // inlined build config
-
-	// corresponds to a Conditional plan
-	On Conditions   // conditions on which to perform a nested sequence
-	Do PlanSequence // sequence to execute if conditions are met
+	// compose a nested sequence of plans
+	// name of the nested 'do'
+	RawName string `yaml:"name,omitempty" json:"name,omitempty" mapstructure:"name"`
+	// sequence to execute if conditions are met
+	Do *PlanSequence `yaml:"do,omitempty" json:"do,omitempty" mapstructure:"do"`
 
 	// corresponds to an Aggregate plan, keyed by the name of each sub-plan
-	Aggregate PlanSequence
+	Aggregate *PlanSequence `yaml:"aggregate,omitempty" json:"aggregate,omitempty" mapstructure:"aggregate"`
+
+	// corresponds to Get and Put resource plans, respectively
+	// name of 'input', e.g. bosh-stemcell
+	Get string `yaml:"get,omitempty" json:"get,omitempty" mapstructure:"get"`
+	// name of 'output', e.g. rootfs-tarball
+	Put string `yaml:"put,omitempty" json:"put,omitempty" mapstructure:"put"`
+	// corresponding resource config, e.g. aws-stemcell
+	Resource string `yaml:"resource,omitempty" json:"resource,omitempty" mapstructure:"resource"`
+
+	// corresponds to an Execute plan
+	// name of 'execute', e.g. unit, go1.3, go1.4
+	Execute string `yaml:"execute,omitempty" json:"execute,omitempty" mapstructure:"execute"`
+	// run build privileged
+	Privileged bool `yaml:"privileged,omitempty" json:"privileged,omitempty" mapstructure:"privileged"`
+	// build config path, e.g. foo/build.yml
+	BuildConfigPath string `yaml:"build,omitempty" json:"build,omitempty" mapstructure:"build"`
+	// inlined build config
+	BuildConfig *BuildConfig `yaml:"config,omitempty" json:"config,omitempty" mapstructure:"config"`
 
 	// used by Get, Put, and Execute for specifying params to resource or
 	// build
 	//
 	// for Execute, it's shorthand for BuildConfig.Params
-	Params Params
+	Params Params `yaml:"params,omitempty" json:"params,omitempty" mapstructure:"params"`
+}
+
+func (config PlanConfig) Name() string {
+	if config.RawName != "" {
+		return config.RawName
+	}
+
+	if config.Get != "" {
+		return config.Get
+	}
+
+	if config.Put != "" {
+		return config.Put
+	}
+
+	if config.Execute != "" {
+		return config.Execute
+	}
+
+	return ""
 }
 
 type JobInputConfig struct {

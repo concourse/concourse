@@ -27,12 +27,15 @@ type GetPlan struct {
 
 type PutPlan struct {
 	Type     string `json:"type"`
+	Name     string `json:"name,omitempty"`
 	Resource string `json:"resource"`
 	Source   Source `json:"source"`
 	Params   Params `json:"params,omitempty"`
 }
 
 type ExecutePlan struct {
+	Name string `json:"name,omitempty"`
+
 	Privileged bool `json:"privileged"`
 
 	ConfigPath string       `json:"config_path,omitempty"`

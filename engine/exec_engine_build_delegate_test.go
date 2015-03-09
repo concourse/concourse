@@ -27,6 +27,8 @@ var _ = Describe("BuildDelegate", func() {
 		delegate BuildDelegate
 
 		logger *lagertest.TestLogger
+
+		location event.OriginLocation
 	)
 
 	BeforeEach(func() {
@@ -37,6 +39,8 @@ var _ = Describe("BuildDelegate", func() {
 		delegate = factory.Delegate(buildID)
 
 		logger = lagertest.NewTestLogger("test")
+
+		location = event.OriginLocation{0, 3, 1, 2}
 	})
 
 	Describe("InputDelegate", func() {
@@ -56,7 +60,7 @@ var _ = Describe("BuildDelegate", func() {
 				Params:   atc.Params{"some": "params"},
 			}
 
-			inputDelegate = delegate.InputDelegate(logger, getPlan)
+			inputDelegate = delegate.InputDelegate(logger, getPlan, location)
 		})
 
 		Describe("Completed", func() {
@@ -90,13 +94,18 @@ var _ = Describe("BuildDelegate", func() {
 				}))
 			})
 
-			It("saves an input event", func() {
+			It("saves a finish-get event", func() {
 				Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(1))
 
 				buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
 				Ω(buildID).Should(Equal(42))
-				Ω(savedEvent).Should(Equal(event.Input{
-					Plan: atc.InputPlan{
+				Ω(savedEvent).Should(Equal(event.FinishGet{
+					Origin: event.Origin{
+						Type:     event.OriginTypeGet,
+						Name:     "some-input",
+						Location: location,
+					},
+					Plan: event.GetPlan{
 						Name:     "some-input",
 						Resource: "some-input-resource",
 						Type:     "some-type",
@@ -166,7 +175,7 @@ var _ = Describe("BuildDelegate", func() {
 						Params:   atc.Params{"some": "output-params"},
 					}
 
-					outputDelegate = delegate.OutputDelegate(logger, putPlan)
+					outputDelegate = delegate.OutputDelegate(logger, putPlan, location)
 				})
 
 				JustBeforeEach(func() {
@@ -220,8 +229,9 @@ var _ = Describe("BuildDelegate", func() {
 				Ω(buildID).Should(Equal(42))
 				Ω(savedEvent).Should(Equal(event.Error{
 					Origin: event.Origin{
-						Type: event.OriginTypeInput,
-						Name: "some-input",
+						Type:     event.OriginTypeGet,
+						Name:     "some-input",
+						Location: location,
 					},
 					Message: "nope",
 				}))
@@ -245,8 +255,10 @@ var _ = Describe("BuildDelegate", func() {
 				Ω(savedBuildID).Should(Equal(buildID))
 				Ω(savedEvent).Should(Equal(event.Log{
 					Origin: event.Origin{
-						Type: event.OriginTypeInput,
-						Name: "some-input",
+						Type:     event.OriginTypeGet,
+						Name:     "some-input",
+						Source:   event.OriginSourceStdout,
+						Location: location,
 					},
 					Payload: "some stdout",
 				}))
@@ -270,8 +282,10 @@ var _ = Describe("BuildDelegate", func() {
 				Ω(savedBuildID).Should(Equal(buildID))
 				Ω(savedEvent).Should(Equal(event.Log{
 					Origin: event.Origin{
-						Type: event.OriginTypeInput,
-						Name: "some-input",
+						Type:     event.OriginTypeGet,
+						Name:     "some-input",
+						Source:   event.OriginSourceStderr,
+						Location: location,
 					},
 					Payload: "some stderr",
 				}))
@@ -281,11 +295,18 @@ var _ = Describe("BuildDelegate", func() {
 
 	Describe("ExecutionDelegate", func() {
 		var (
+			executePlan       atc.ExecutePlan
 			executionDelegate exec.ExecuteDelegate
 		)
 
 		BeforeEach(func() {
-			executionDelegate = delegate.ExecutionDelegate(logger)
+			executePlan = atc.ExecutePlan{
+				Name:       "some-execute",
+				Privileged: true,
+				ConfigPath: "/etc/concourse/config.yml",
+			}
+
+			executionDelegate = delegate.ExecutionDelegate(logger, executePlan, location)
 		})
 
 		Describe("Initializing", func() {
@@ -308,8 +329,13 @@ var _ = Describe("BuildDelegate", func() {
 
 				buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
 				Ω(buildID).Should(Equal(42))
-				Ω(savedEvent).Should(Equal(event.Initialize{
+				Ω(savedEvent).Should(Equal(event.InitializeExecute{
 					BuildConfig: buildConfig,
+					Origin: event.Origin{
+						Type:     event.OriginTypeExecute,
+						Name:     "some-execute",
+						Location: location,
+					},
 				}))
 			})
 		})
@@ -324,8 +350,13 @@ var _ = Describe("BuildDelegate", func() {
 
 				buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
 				Ω(buildID).Should(Equal(42))
-				Ω(savedEvent).Should(BeAssignableToTypeOf(event.Start{}))
-				Ω(savedEvent.(event.Start).Time).Should(BeNumerically("~", time.Now().Unix(), 1))
+				Ω(savedEvent).Should(BeAssignableToTypeOf(event.StartExecute{}))
+				Ω(savedEvent.(event.StartExecute).Time).Should(BeNumerically("~", time.Now().Unix(), 1))
+				Ω(savedEvent.(event.StartExecute).Origin).Should(Equal(event.Origin{
+					Type:     event.OriginTypeExecute,
+					Name:     "some-execute",
+					Location: location,
+				}))
 			})
 		})
 
@@ -350,9 +381,14 @@ var _ = Describe("BuildDelegate", func() {
 
 					buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
 					Ω(buildID).Should(Equal(42))
-					Ω(savedEvent).Should(BeAssignableToTypeOf(event.Finish{}))
-					Ω(savedEvent.(event.Finish).ExitStatus).Should(Equal(0))
-					Ω(savedEvent.(event.Finish).Time).Should(BeNumerically("<=", time.Now().Unix(), 1))
+					Ω(savedEvent).Should(BeAssignableToTypeOf(event.FinishExecute{}))
+					Ω(savedEvent.(event.FinishExecute).ExitStatus).Should(Equal(0))
+					Ω(savedEvent.(event.FinishExecute).Time).Should(BeNumerically("<=", time.Now().Unix(), 1))
+					Ω(savedEvent.(event.FinishExecute).Origin).Should(Equal(event.Origin{
+						Type:     event.OriginTypeExecute,
+						Name:     "some-execute",
+						Location: location,
+					}))
 				})
 
 				Describe("Finish", func() {
@@ -408,9 +444,14 @@ var _ = Describe("BuildDelegate", func() {
 
 					buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
 					Ω(buildID).Should(Equal(42))
-					Ω(savedEvent).Should(BeAssignableToTypeOf(event.Finish{}))
-					Ω(savedEvent.(event.Finish).ExitStatus).Should(Equal(1))
-					Ω(savedEvent.(event.Finish).Time).Should(BeNumerically("<=", time.Now().Unix(), 1))
+					Ω(savedEvent).Should(BeAssignableToTypeOf(event.FinishExecute{}))
+					Ω(savedEvent.(event.FinishExecute).ExitStatus).Should(Equal(1))
+					Ω(savedEvent.(event.FinishExecute).Time).Should(BeNumerically("<=", time.Now().Unix(), 1))
+					Ω(savedEvent.(event.FinishExecute).Origin).Should(Equal(event.Origin{
+						Type:     event.OriginTypeExecute,
+						Name:     "some-execute",
+						Location: location,
+					}))
 				})
 
 				Describe("Finish", func() {
@@ -473,6 +514,11 @@ var _ = Describe("BuildDelegate", func() {
 				Ω(buildID).Should(Equal(42))
 				Ω(savedEvent).Should(Equal(event.Error{
 					Message: "nope",
+					Origin: event.Origin{
+						Type:     event.OriginTypeExecute,
+						Name:     "some-execute",
+						Location: location,
+					},
 				}))
 			})
 		})
@@ -494,8 +540,10 @@ var _ = Describe("BuildDelegate", func() {
 				Ω(savedBuildID).Should(Equal(buildID))
 				Ω(savedEvent).Should(Equal(event.Log{
 					Origin: event.Origin{
-						Type: event.OriginTypeRun,
-						Name: "stdout",
+						Type:     event.OriginTypeExecute,
+						Name:     "some-execute",
+						Source:   event.OriginSourceStdout,
+						Location: location,
 					},
 					Payload: "some stdout",
 				}))
@@ -519,8 +567,10 @@ var _ = Describe("BuildDelegate", func() {
 				Ω(savedBuildID).Should(Equal(buildID))
 				Ω(savedEvent).Should(Equal(event.Log{
 					Origin: event.Origin{
-						Type: event.OriginTypeRun,
-						Name: "stderr",
+						Type:     event.OriginTypeExecute,
+						Name:     "some-execute",
+						Source:   event.OriginSourceStderr,
+						Location: location,
 					},
 					Payload: "some stderr",
 				}))
@@ -537,13 +587,14 @@ var _ = Describe("BuildDelegate", func() {
 
 		BeforeEach(func() {
 			putPlan = atc.PutPlan{
+				Name:     "some-output-name",
 				Resource: "some-output-resource",
 				Type:     "some-type",
 				Source:   atc.Source{"some": "source"},
 				Params:   atc.Params{"some": "params"},
 			}
 
-			outputDelegate = delegate.OutputDelegate(logger, putPlan)
+			outputDelegate = delegate.OutputDelegate(logger, putPlan, location)
 		})
 
 		Describe("Completed", func() {
@@ -579,12 +630,18 @@ var _ = Describe("BuildDelegate", func() {
 
 				buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
 				Ω(buildID).Should(Equal(42))
-				Ω(savedEvent).Should(Equal(event.Output{
-					Plan: atc.OutputPlan{
-						Name:   "some-output-resource",
-						Type:   "some-type",
-						Source: atc.Source{"some": "source"},
-						Params: atc.Params{"some": "params"},
+				Ω(savedEvent).Should(Equal(event.FinishPut{
+					Origin: event.Origin{
+						Type:     event.OriginTypePut,
+						Name:     "some-output-name",
+						Location: location,
+					},
+					Plan: event.PutPlan{
+						Name:     "some-output-name",
+						Resource: "some-output-resource",
+						Type:     "some-type",
+						Source:   atc.Source{"some": "source"},
+						Params:   atc.Params{"some": "params"},
 					},
 					CreatedVersion:  versionInfo.Version,
 					CreatedMetadata: versionInfo.Metadata,
@@ -608,8 +665,9 @@ var _ = Describe("BuildDelegate", func() {
 				Ω(buildID).Should(Equal(42))
 				Ω(savedEvent).Should(Equal(event.Error{
 					Origin: event.Origin{
-						Type: event.OriginTypeOutput,
-						Name: "some-output-resource",
+						Type:     event.OriginTypePut,
+						Name:     "some-output-name",
+						Location: location,
 					},
 					Message: "nope",
 				}))
@@ -633,8 +691,10 @@ var _ = Describe("BuildDelegate", func() {
 				Ω(savedBuildID).Should(Equal(buildID))
 				Ω(savedEvent).Should(Equal(event.Log{
 					Origin: event.Origin{
-						Type: event.OriginTypeOutput,
-						Name: "some-output-resource",
+						Type:     event.OriginTypePut,
+						Name:     "some-output-name",
+						Source:   event.OriginSourceStdout,
+						Location: location,
 					},
 					Payload: "some stdout",
 				}))
@@ -658,8 +718,10 @@ var _ = Describe("BuildDelegate", func() {
 				Ω(savedBuildID).Should(Equal(buildID))
 				Ω(savedEvent).Should(Equal(event.Log{
 					Origin: event.Origin{
-						Type: event.OriginTypeOutput,
-						Name: "some-output-resource",
+						Type:     event.OriginTypePut,
+						Name:     "some-output-name",
+						Source:   event.OriginSourceStderr,
+						Location: location,
 					},
 					Payload: "some stderr",
 				}))

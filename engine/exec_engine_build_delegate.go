@@ -21,9 +21,9 @@ type implicitOutput struct {
 //go:generate counterfeiter . BuildDelegate
 
 type BuildDelegate interface {
-	InputDelegate(lager.Logger, atc.GetPlan) exec.GetDelegate
-	ExecutionDelegate(lager.Logger) exec.ExecuteDelegate
-	OutputDelegate(lager.Logger, atc.PutPlan) exec.PutDelegate
+	InputDelegate(lager.Logger, atc.GetPlan, event.OriginLocation) exec.GetDelegate
+	ExecutionDelegate(lager.Logger, atc.ExecutePlan, event.OriginLocation) exec.ExecuteDelegate
+	OutputDelegate(lager.Logger, atc.PutPlan, event.OriginLocation) exec.PutDelegate
 
 	Finish(lager.Logger, error)
 	Aborted(lager.Logger)
@@ -73,25 +73,29 @@ func newBuildDelegate(db EngineDB, buildID int) BuildDelegate {
 	}
 }
 
-func (delegate *delegate) InputDelegate(logger lager.Logger, plan atc.GetPlan) exec.GetDelegate {
+func (delegate *delegate) InputDelegate(logger lager.Logger, plan atc.GetPlan, location event.OriginLocation) exec.GetDelegate {
 	return &inputDelegate{
 		logger:   logger,
 		plan:     plan,
+		location: location,
 		delegate: delegate,
 	}
 }
 
-func (delegate *delegate) OutputDelegate(logger lager.Logger, plan atc.PutPlan) exec.PutDelegate {
+func (delegate *delegate) OutputDelegate(logger lager.Logger, plan atc.PutPlan, location event.OriginLocation) exec.PutDelegate {
 	return &outputDelegate{
 		logger:   logger,
 		plan:     plan,
+		location: location,
 		delegate: delegate,
 	}
 }
 
-func (delegate *delegate) ExecutionDelegate(logger lager.Logger) exec.ExecuteDelegate {
+func (delegate *delegate) ExecutionDelegate(logger lager.Logger, plan atc.ExecutePlan, location event.OriginLocation) exec.ExecuteDelegate {
 	return &executionDelegate{
 		logger:   logger,
+		plan:     plan,
+		location: location,
 		delegate: delegate,
 	}
 }
@@ -140,28 +144,31 @@ func (delegate *delegate) unregisterImplicitOutput(resource string) {
 	delegate.lock.Unlock()
 }
 
-func (delegate *delegate) saveInitialize(logger lager.Logger, buildConfig atc.BuildConfig) {
-	err := delegate.db.SaveBuildEvent(delegate.buildID, event.Initialize{
+func (delegate *delegate) saveInitialize(logger lager.Logger, buildConfig atc.BuildConfig, origin event.Origin) {
+	err := delegate.db.SaveBuildEvent(delegate.buildID, event.InitializeExecute{
 		BuildConfig: buildConfig,
+		Origin:      origin,
 	})
 	if err != nil {
 		logger.Error("failed-to-save-initialize-event", err)
 	}
 }
 
-func (delegate *delegate) saveStart(logger lager.Logger) {
-	err := delegate.db.SaveBuildEvent(delegate.buildID, event.Start{
-		Time: time.Now().Unix(),
+func (delegate *delegate) saveStart(logger lager.Logger, origin event.Origin) {
+	err := delegate.db.SaveBuildEvent(delegate.buildID, event.StartExecute{
+		Time:   time.Now().Unix(),
+		Origin: origin,
 	})
 	if err != nil {
 		logger.Error("failed-to-save-start-event", err)
 	}
 }
 
-func (delegate *delegate) saveFinish(logger lager.Logger, status exec.ExitStatus) {
-	err := delegate.db.SaveBuildEvent(delegate.buildID, event.Finish{
+func (delegate *delegate) saveFinish(logger lager.Logger, status exec.ExitStatus, origin event.Origin) {
+	err := delegate.db.SaveBuildEvent(delegate.buildID, event.FinishExecute{
 		ExitStatus: int(status),
 		Time:       time.Now().Unix(),
+		Origin:     origin,
 	})
 	if err != nil {
 		logger.Error("failed-to-save-finish-event", err)
@@ -185,10 +192,10 @@ func (delegate *delegate) saveErr(logger lager.Logger, errVal error, origin even
 	}
 }
 
-func (delegate *delegate) saveInput(logger lager.Logger, plan atc.GetPlan, info exec.VersionInfo) {
-	// TODO: use new event type
-	ev := event.Input{
-		Plan: atc.InputPlan{
+func (delegate *delegate) saveInput(logger lager.Logger, plan atc.GetPlan, info exec.VersionInfo, origin event.Origin) {
+	ev := event.FinishGet{
+		Origin: origin,
+		Plan: event.GetPlan{
 			Name:     plan.Name,
 			Resource: plan.Resource,
 			Type:     plan.Type,
@@ -214,14 +221,15 @@ func (delegate *delegate) saveInput(logger lager.Logger, plan atc.GetPlan, info 
 	}
 }
 
-func (delegate *delegate) saveOutput(logger lager.Logger, plan atc.PutPlan, info exec.VersionInfo) {
-	// TODO: use new event type
-	ev := event.Output{
-		Plan: atc.OutputPlan{
-			Name:   plan.Resource,
-			Type:   plan.Type,
-			Source: plan.Source,
-			Params: plan.Params,
+func (delegate *delegate) saveOutput(logger lager.Logger, plan atc.PutPlan, info exec.VersionInfo, origin event.Origin) {
+	ev := event.FinishPut{
+		Origin: origin,
+		Plan: event.PutPlan{
+			Name:     plan.Name,
+			Resource: plan.Resource,
+			Type:     plan.Type,
+			Source:   plan.Source,
+			Params:   plan.Params,
 		},
 		CreatedVersion:  info.Version,
 		CreatedMetadata: info.Metadata,
@@ -273,21 +281,27 @@ func (delegate *delegate) eventWriter(origin event.Origin) io.Writer {
 type inputDelegate struct {
 	logger lager.Logger
 
-	plan atc.GetPlan
+	plan     atc.GetPlan
+	location event.OriginLocation
 
 	delegate *delegate
 }
 
 func (input *inputDelegate) Completed(info exec.VersionInfo) {
-	input.delegate.saveInput(input.logger, input.plan, info)
+	input.delegate.saveInput(input.logger, input.plan, info, event.Origin{
+		Type:     event.OriginTypeGet,
+		Name:     input.plan.Name,
+		Location: input.location,
+	})
 	input.delegate.registerImplicitOutput(input.plan.Resource, implicitOutput{input.plan, info})
 	input.logger.Info("finished", lager.Data{"version-info": info})
 }
 
 func (input *inputDelegate) Failed(err error) {
 	input.delegate.saveErr(input.logger, err, event.Origin{
-		Type: event.OriginTypeInput,
-		Name: input.plan.Name,
+		Type:     event.OriginTypeGet,
+		Name:     input.plan.Name,
+		Location: input.location,
 	})
 
 	input.logger.Error("errored", err)
@@ -295,36 +309,46 @@ func (input *inputDelegate) Failed(err error) {
 
 func (input *inputDelegate) Stdout() io.Writer {
 	return input.delegate.eventWriter(event.Origin{
-		Type: event.OriginTypeInput,
-		Name: input.plan.Name,
+		Type:     event.OriginTypeGet,
+		Name:     input.plan.Name,
+		Source:   event.OriginSourceStdout,
+		Location: input.location,
 	})
 }
 
 func (input *inputDelegate) Stderr() io.Writer {
 	return input.delegate.eventWriter(event.Origin{
-		Type: event.OriginTypeInput,
-		Name: input.plan.Name,
+		Type:     event.OriginTypeGet,
+		Name:     input.plan.Name,
+		Source:   event.OriginSourceStderr,
+		Location: input.location,
 	})
 }
 
 type outputDelegate struct {
 	logger lager.Logger
 
-	plan atc.PutPlan
+	plan     atc.PutPlan
+	location event.OriginLocation
 
 	delegate *delegate
 }
 
 func (output *outputDelegate) Completed(info exec.VersionInfo) {
 	output.delegate.unregisterImplicitOutput(output.plan.Resource)
-	output.delegate.saveOutput(output.logger, output.plan, info)
+	output.delegate.saveOutput(output.logger, output.plan, info, event.Origin{
+		Type:     event.OriginTypePut,
+		Name:     output.plan.Name,
+		Location: output.location,
+	})
 	output.logger.Info("finished", lager.Data{"version-info": info})
 }
 
 func (output *outputDelegate) Failed(err error) {
 	output.delegate.saveErr(output.logger, err, event.Origin{
-		Type: event.OriginTypeOutput,
-		Name: output.plan.Resource,
+		Type:     event.OriginTypePut,
+		Name:     output.plan.Name,
+		Location: output.location,
 	})
 
 	output.logger.Error("errored", err)
@@ -332,36 +356,55 @@ func (output *outputDelegate) Failed(err error) {
 
 func (output *outputDelegate) Stdout() io.Writer {
 	return output.delegate.eventWriter(event.Origin{
-		Type: event.OriginTypeOutput,
-		Name: output.plan.Resource,
+		Type:     event.OriginTypePut,
+		Name:     output.plan.Name,
+		Source:   event.OriginSourceStdout,
+		Location: output.location,
 	})
 }
 
 func (output *outputDelegate) Stderr() io.Writer {
 	return output.delegate.eventWriter(event.Origin{
-		Type: event.OriginTypeOutput,
-		Name: output.plan.Resource,
+		Type:     event.OriginTypePut,
+		Name:     output.plan.Name,
+		Source:   event.OriginSourceStderr,
+		Location: output.location,
 	})
 }
 
 type executionDelegate struct {
 	logger lager.Logger
 
+	plan     atc.ExecutePlan
+	location event.OriginLocation
+
 	delegate *delegate
 }
 
 func (execution *executionDelegate) Initializing(config atc.BuildConfig) {
-	execution.delegate.saveInitialize(execution.logger, config)
+	execution.delegate.saveInitialize(execution.logger, config, event.Origin{
+		Type:     event.OriginTypeExecute,
+		Name:     execution.plan.Name,
+		Location: execution.location,
+	})
 }
 
 func (execution *executionDelegate) Started() {
-	execution.delegate.saveStart(execution.logger)
+	execution.delegate.saveStart(execution.logger, event.Origin{
+		Type:     event.OriginTypeExecute,
+		Name:     execution.plan.Name,
+		Location: execution.location,
+	})
 
 	execution.logger.Info("started")
 }
 
 func (execution *executionDelegate) Finished(status exec.ExitStatus) {
-	execution.delegate.saveFinish(execution.logger, status)
+	execution.delegate.saveFinish(execution.logger, status, event.Origin{
+		Type:     event.OriginTypeExecute,
+		Name:     execution.plan.Name,
+		Location: execution.location,
+	})
 
 	if status != 0 {
 		execution.delegate.successful = false
@@ -374,21 +417,29 @@ func (execution *executionDelegate) Finished(status exec.ExitStatus) {
 }
 
 func (execution *executionDelegate) Failed(err error) {
-	execution.delegate.saveErr(execution.logger, err, event.Origin{})
+	execution.delegate.saveErr(execution.logger, err, event.Origin{
+		Type:     event.OriginTypeExecute,
+		Name:     execution.plan.Name,
+		Location: execution.location,
+	})
 	execution.logger.Error("errored", err)
 }
 
 func (execution *executionDelegate) Stdout() io.Writer {
 	return execution.delegate.eventWriter(event.Origin{
-		Type: event.OriginTypeRun,
-		Name: "stdout",
+		Type:     event.OriginTypeExecute,
+		Name:     execution.plan.Name,
+		Source:   event.OriginSourceStdout,
+		Location: execution.location,
 	})
 }
 
 func (execution *executionDelegate) Stderr() io.Writer {
 	return execution.delegate.eventWriter(event.Origin{
-		Type: event.OriginTypeRun,
-		Name: "stderr",
+		Type:     event.OriginTypeExecute,
+		Name:     execution.plan.Name,
+		Source:   event.OriginSourceStderr,
+		Location: execution.location,
 	})
 }
 
@@ -420,9 +471,9 @@ func (writer *dbEventWriter) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
-func vrFromInput(input event.Input) db.VersionedResource {
-	metadata := make([]db.MetadataField, len(input.FetchedMetadata))
-	for i, md := range input.FetchedMetadata {
+func vrFromInput(got event.FinishGet) db.VersionedResource {
+	metadata := make([]db.MetadataField, len(got.FetchedMetadata))
+	for i, md := range got.FetchedMetadata {
 		metadata[i] = db.MetadataField{
 			Name:  md.Name,
 			Value: md.Value,
@@ -430,17 +481,17 @@ func vrFromInput(input event.Input) db.VersionedResource {
 	}
 
 	return db.VersionedResource{
-		Resource: input.Plan.Resource,
-		Type:     input.Plan.Type,
-		Source:   db.Source(input.Plan.Source),
-		Version:  db.Version(input.FetchedVersion),
+		Resource: got.Plan.Resource,
+		Type:     got.Plan.Type,
+		Source:   db.Source(got.Plan.Source),
+		Version:  db.Version(got.FetchedVersion),
 		Metadata: metadata,
 	}
 }
 
-func vrFromOutput(output event.Output) db.VersionedResource {
-	metadata := make([]db.MetadataField, len(output.CreatedMetadata))
-	for i, md := range output.CreatedMetadata {
+func vrFromOutput(putted event.FinishPut) db.VersionedResource {
+	metadata := make([]db.MetadataField, len(putted.CreatedMetadata))
+	for i, md := range putted.CreatedMetadata {
 		metadata[i] = db.MetadataField{
 			Name:  md.Name,
 			Value: md.Value,
@@ -448,10 +499,10 @@ func vrFromOutput(output event.Output) db.VersionedResource {
 	}
 
 	return db.VersionedResource{
-		Resource: output.Plan.Name,
-		Type:     output.Plan.Type,
-		Source:   db.Source(output.Plan.Source),
-		Version:  db.Version(output.CreatedVersion),
+		Resource: putted.Plan.Resource,
+		Type:     putted.Plan.Type,
+		Source:   db.Source(putted.Plan.Source),
+		Version:  db.Version(putted.CreatedVersion),
 		Metadata: metadata,
 	}
 }

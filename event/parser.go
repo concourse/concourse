@@ -33,23 +33,24 @@ func registerEvent(e atc.Event) {
 }
 
 func init() {
-	registerEvent(Input{})
-	registerEvent(InputV10{})
-
-	registerEvent(Output{})
-	registerEvent(OutputV10{})
-
-	registerEvent(Initialize{})
-
-	registerEvent(Start{})
-
+	registerEvent(InitializeExecute{})
+	registerEvent(StartExecute{})
+	registerEvent(FinishExecute{})
+	registerEvent(FinishGet{})
+	registerEvent(FinishPut{})
 	registerEvent(Status{})
-
 	registerEvent(Log{})
-
 	registerEvent(Error{})
 
-	registerEvent(Finish{})
+	// deprecated:
+	registerEvent(InputV10{})
+	registerEvent(OutputV10{})
+	registerEvent(FinishV10{})
+	registerEvent(LogV10{})
+	registerEvent(StartV10{})
+	registerEvent(InitializeV10{})
+	registerEvent(InputV20{})
+	registerEvent(OutputV20{})
 }
 
 type Message struct {

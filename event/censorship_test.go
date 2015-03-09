@@ -15,7 +15,7 @@ var _ = Describe("Censorship", func() {
 	for _, e := range []atc.Event{
 		Log{
 			Origin: Origin{
-				Type: OriginTypeInput,
+				Type: OriginTypeGet,
 				Name: "some-input",
 			},
 			Payload: "some log",
@@ -23,12 +23,22 @@ var _ = Describe("Censorship", func() {
 		Status{
 			Status: atc.StatusSucceeded,
 		},
-		Start{
+		StartExecute{
 			Time: time.Now().Unix(),
+			Origin: Origin{
+				Type:     OriginTypeExecute,
+				Name:     "build",
+				Location: OriginLocation{1, 2},
+			},
 		},
-		Finish{
+		FinishExecute{
 			Time:       time.Now().Unix(),
 			ExitStatus: 123,
+			Origin: Origin{
+				Type:     OriginTypeExecute,
+				Name:     "build",
+				Location: OriginLocation{1, 2},
+			},
 		},
 		Error{
 			Message: "some error",
@@ -43,9 +53,9 @@ var _ = Describe("Censorship", func() {
 		})
 	}
 
-	Describe("Initialize", func() {
+	Describe("InitializeV10", func() {
 		It("censors the build params", func() {
-			Ω(Initialize{
+			Ω(InitializeV10{
 				BuildConfig: atc.BuildConfig{
 					Image:  "some-image",
 					Params: map[string]string{"super": "secret"},
@@ -53,7 +63,7 @@ var _ = Describe("Censorship", func() {
 						Path: "ls",
 					},
 				},
-			}.Censored()).Should(Equal(Initialize{
+			}.Censored()).Should(Equal(InitializeV10{
 				BuildConfig: atc.BuildConfig{
 					Image:  "some-image",
 					Params: nil,
@@ -65,9 +75,31 @@ var _ = Describe("Censorship", func() {
 		})
 	})
 
-	Describe("Input", func() {
+	Describe("InitializeExecute", func() {
+		It("censors the build params", func() {
+			Ω(InitializeExecute{
+				BuildConfig: atc.BuildConfig{
+					Image:  "some-image",
+					Params: map[string]string{"super": "secret"},
+					Run: atc.BuildRunConfig{
+						Path: "ls",
+					},
+				},
+			}.Censored()).Should(Equal(InitializeExecute{
+				BuildConfig: atc.BuildConfig{
+					Image:  "some-image",
+					Params: nil,
+					Run: atc.BuildRunConfig{
+						Path: "ls",
+					},
+				},
+			}))
+		})
+	})
+
+	Describe("InputV20", func() {
 		It("censors source and params", func() {
-			Ω(Input{
+			Ω(InputV20{
 				Plan: atc.InputPlan{
 					Name:     "some-name",
 					Resource: "some-resource",
@@ -77,7 +109,7 @@ var _ = Describe("Censorship", func() {
 				},
 				FetchedVersion:  atc.Version{"ref": "foo"},
 				FetchedMetadata: []atc.MetadataField{{"public", "data"}},
-			}.Censored()).Should(Equal(Input{
+			}.Censored()).Should(Equal(InputV20{
 				Plan: atc.InputPlan{
 					Name:     "some-name",
 					Resource: "some-resource",
@@ -89,9 +121,9 @@ var _ = Describe("Censorship", func() {
 		})
 	})
 
-	Describe("Output", func() {
+	Describe("OutputV20", func() {
 		It("censors source and params", func() {
-			Ω(Output{
+			Ω(OutputV20{
 				Plan: atc.OutputPlan{
 					Name:   "some-name",
 					Type:   "git",
@@ -101,11 +133,57 @@ var _ = Describe("Censorship", func() {
 				},
 				CreatedVersion:  atc.Version{"ref": "foo"},
 				CreatedMetadata: []atc.MetadataField{{"public", "data"}},
-			}.Censored()).Should(Equal(Output{
+			}.Censored()).Should(Equal(OutputV20{
 				Plan: atc.OutputPlan{
 					Name: "some-name",
 					Type: "git",
 					On:   []atc.Condition{atc.ConditionSuccess},
+				},
+				CreatedVersion:  atc.Version{"ref": "foo"},
+				CreatedMetadata: []atc.MetadataField{{"public", "data"}},
+			}))
+		})
+	})
+
+	Describe("FinishGet", func() {
+		It("censors source and params", func() {
+			Ω(FinishGet{
+				Plan: GetPlan{
+					Name:     "some-name",
+					Resource: "some-resource",
+					Type:     "git",
+					Source:   atc.Source{"some": "secret"},
+					Params:   atc.Params{"another": "secret"},
+				},
+				FetchedVersion:  atc.Version{"ref": "foo"},
+				FetchedMetadata: []atc.MetadataField{{"public", "data"}},
+			}.Censored()).Should(Equal(FinishGet{
+				Plan: GetPlan{
+					Name:     "some-name",
+					Resource: "some-resource",
+					Type:     "git",
+				},
+				FetchedVersion:  atc.Version{"ref": "foo"},
+				FetchedMetadata: []atc.MetadataField{{"public", "data"}},
+			}))
+		})
+	})
+
+	Describe("FinishPut", func() {
+		It("censors source and params", func() {
+			Ω(FinishPut{
+				Plan: PutPlan{
+					Name:   "some-name",
+					Type:   "git",
+					Source: atc.Source{"some": "secret"},
+					Params: atc.Params{"another": "secret"},
+				},
+				CreatedVersion:  atc.Version{"ref": "foo"},
+				CreatedMetadata: []atc.MetadataField{{"public", "data"}},
+			}.Censored()).Should(Equal(FinishPut{
+				Plan: PutPlan{
+					Name: "some-name",
+					Type: "git",
 				},
 				CreatedVersion:  atc.Version{"ref": "foo"},
 				CreatedMetadata: []atc.MetadataField{{"public", "data"}},

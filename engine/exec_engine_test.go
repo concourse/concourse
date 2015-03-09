@@ -148,6 +148,8 @@ var _ = Describe("ExecEngine", func() {
 						Compose: &atc.ComposePlan{
 							A: atc.Plan{
 								Execute: &atc.ExecutePlan{
+									Name: "some-execute",
+
 									Privileged: privileged,
 
 									Config:     buildConfig,
@@ -199,7 +201,7 @@ var _ = Describe("ExecEngine", func() {
 			Ω(fakeFactory.ExecuteCallCount()).Should(Equal(1))
 
 			sessionID, delegate, privileged, configSource := fakeFactory.ExecuteArgsForCall(0)
-			Ω(sessionID).Should(Equal(exec.SessionID("build-42-execute")))
+			Ω(sessionID).Should(Equal(exec.SessionID("build-42-execute-some-execute")))
 			Ω(delegate).Should(Equal(fakeExecutionDelegate))
 			Ω(privileged).Should(Equal(exec.Privileged(false)))
 			Ω(configSource).ShouldNot(BeNil())
