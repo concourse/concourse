@@ -5,6 +5,9 @@ body {
 #build-requires-auth input {
   background: #202020;
 }
+.steps .nest.even {
+  background: #202020;
+}
 /* foreground */
 body {
   color: #d0d0d0;
@@ -34,7 +37,7 @@ svg .node rect {
 svg .cluster {
   fill: #303030;
 }
-.steps .nest {
+.steps .nest.odd {
   background: #303030;
 }
 .groups li.main a {

@@ -54,21 +54,33 @@ var Build = React.createClass({
       containers.add(loc, <Step key={loc.toString()} depth={loc.length - 1} model={step} logs={logLines} autoscroll={autoscroll} />);
     });
 
-    var stepEles = [];
-    containers.walk(function(ele) {
-      var key = ele.key;
-      var depth = ele.props.depth;
+    function recurseList(list, key) {
+      return list.filterNot(function(e) {
+        return e === undefined;
+      }).map(function(e, i) {
+        return recurse(e, key.concat([i]));
+      }).toArray();
+    }
 
-      if (depth > 0) {
-        for (var i = 0; i < depth; i++) {
-          ele = <div className="nest">{ele}</div>;
+    function recurse(ele, key) {
+      if (Immutable.List.isList(ele)) {
+        var childEles = recurseList(ele, key);
+
+        var classes = ["nest"];
+
+        if (key.length % 2 === 0) {
+          classes.push("even");
+        } else {
+          classes.push("odd");
         }
+
+        return <div className={classes.join(" ")} key={key.toString()}>{childEles}</div>;
+      } else {
+        return <div className="seq" key={key.toString()}>{ele}</div>;
       }
+    }
 
-      stepEles.push(<div className="seq" key={key}>{ele}</div>);
-    });
-
-    return (<div className="steps">{stepEles}</div>);
+    return (<div className="steps">{ recurseList(containers.tree, []) }</div>);
   },
 });
 
