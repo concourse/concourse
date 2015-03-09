@@ -2,7 +2,7 @@
  
 @(require "common.rkt")
 
-@title[#:version version]{What & Why}
+@title[#:version version #:tag "what-and-why"]{What & Why}
 
 There are countless CI options out there. Transitioning from one CI system to
 another can be a huge investment depending on the size of your project.
@@ -32,7 +32,7 @@ The focus has not been on adding feature after feature, checkbox after
 checkbox. Instead, Concourse defines three primitives that, together, can
 express arbitrary features and pipelines.
 
-To learn them, see @secref{Concepts}.
+To learn them, see @secref{concepts}.
 
 
 @section[#:style 'toc-hidden]{Usable}
