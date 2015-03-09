@@ -1,6 +1,7 @@
 package acceptance_test
 
 import (
+	"fmt"
 	"net/http"
 	"os/exec"
 	"path/filepath"
@@ -21,6 +22,7 @@ import (
 var _ = Describe("Auth", func() {
 	var atcProcess ifrit.Process
 	var dbListener *pq.Listener
+	var atcPort uint16
 
 	BeforeEach(func() {
 		logger := lagertest.NewTestLogger("test")
@@ -33,8 +35,11 @@ var _ = Describe("Auth", func() {
 		atcBin, err := gexec.Build("github.com/concourse/atc/cmd/atc")
 		Ω(err).ShouldNot(HaveOccurred())
 
+		atcPort = 5697 + uint16(GinkgoParallelNode())
+
 		atcCommand := exec.Command(
 			atcBin,
+			"-webListenPort", fmt.Sprintf("%d", atcPort),
 			"-httpUsername", "admin",
 			"-httpHashedPassword", "$2a$04$Cl3vCfrp01EM9NGekxL59uPusP/hBIM3toCkCuECK3saCbOAyrg/O", // "password"
 			"-templates", filepath.Join("..", "web", "templates"),
@@ -60,7 +65,7 @@ var _ = Describe("Auth", func() {
 	})
 
 	It("can reach the page", func() {
-		request, err := http.NewRequest("GET", "http://127.0.0.1:8080", nil)
+		request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d", atcPort), nil)
 
 		resp, err := http.DefaultClient.Do(request)
 		Ω(err).ShouldNot(HaveOccurred())
