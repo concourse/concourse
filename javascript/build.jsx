@@ -33,7 +33,7 @@ var Build = React.createClass({
   },
 
   render: function() {
-    var containers = {};
+    var containers = new tree.OrderedTree();
 
     var steps = this.state.steps;
     var logs = this.state.logs;
@@ -41,15 +41,6 @@ var Build = React.createClass({
 
     tree.walk(steps, function(step) {
       var loc = step.origin().location;
-
-      var parentKey = loc.slice();
-      var stepID = parentKey.pop();
-
-      var steps = containers[parentKey.toString()];
-      if (steps === undefined) {
-        steps = [];
-        containers[parentKey.toString()] = steps;
-      }
 
       var stepLogs = logs.getIn(loc);
 
@@ -60,22 +51,21 @@ var Build = React.createClass({
         logLines = Immutable.List()
       }
 
-      steps[stepID-1] = <Step key={loc.toString()} model={step} logs={logLines} autoscroll={autoscroll} />;
+      containers.add(loc, <Step key={loc.toString()} depth={loc.length - 1} model={step} logs={logLines} autoscroll={autoscroll} />);
     });
 
     var stepEles = [];
-    for (var containerLoc in containers) {
-      var ele = containers[containerLoc];
+    containers.walk(function(ele) {
+      var key = ele.key;
 
-      if (containerLoc.length > 0) {
-        var locChain = containerLoc.split(",");
-        for (var i in locChain) {
+      if (ele.props.depth > 0) {
+        for (var i = 0; i < ele.props.depth; i++) {
           ele = <div className="nest">{ele}</div>;
         }
       }
 
-      stepEles.push(<div className="seq" key={containerLoc}>{ele}</div>);
-    }
+      stepEles.push(<div className="seq" key={key}>{ele}</div>);
+    });
 
     return (<div className="steps">{stepEles}</div>);
   },
