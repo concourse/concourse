@@ -2,7 +2,7 @@
 
 @(require "common.rkt")
 
-@title[#:version version #:style 'toc]{Getting Started}
+@title[#:version version #:style 'toc #:tag "getting-started"]{Getting Started}
 
 The @hyperlink["https://github.com/concourse/concourse"]{Concourse repo} is a
 @hyperlink["https://github.com/cloudfoundry/bosh"]{BOSH} release containing

@@ -2,7 +2,7 @@
  
 @(require "common.rkt")
 
-@title[#:version version #:style 'toc]{Concepts}
+@title[#:version version #:style 'toc #:tag "concepts"]{Concepts}
 
 Like files and pipes in Unix, the goal is to build an expressive system with as
 few distinct moving parts as possible.
