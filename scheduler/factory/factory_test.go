@@ -192,8 +192,8 @@ var _ = Describe("Factory", func() {
 				{
 					Aggregate: &atc.PlanSequence{
 						{
-							On:      &atc.Conditions{"success"},
-							RawName: "some-resource",
+							Conditions: &atc.Conditions{"success"},
+							RawName:    "some-resource",
 							Do: &atc.PlanSequence{
 								{
 									Put:    "some-resource",
@@ -202,14 +202,14 @@ var _ = Describe("Factory", func() {
 							},
 						},
 						{
-							On:     &atc.Conditions{"failure"},
-							Put:    "some-other-resource",
-							Params: atc.Params{"foo": "bar"},
+							Conditions: &atc.Conditions{"failure"},
+							Put:        "some-other-resource",
+							Params:     atc.Params{"foo": "bar"},
 						},
 						{
-							On:     &atc.Conditions{},
-							Put:    "some-other-other-resource",
-							Params: atc.Params{"foo": "bar"},
+							Conditions: &atc.Conditions{},
+							Put:        "some-other-other-resource",
+							Params:     atc.Params{"foo": "bar"},
 						},
 					},
 				},
@@ -231,12 +231,12 @@ var _ = Describe("Factory", func() {
 							Execute: "those who resist our will",
 						},
 						{
-							Execute: "the deal",
-							On:      &atc.Conditions{"success"},
+							Execute:    "the deal",
+							Conditions: &atc.Conditions{"success"},
 						},
 						{
-							Execute: "the other deal",
-							On:      &atc.Conditions{"failure"},
+							Execute:    "the other deal",
+							Conditions: &atc.Conditions{"failure"},
 						},
 					},
 				}, resources, nil)).Should(Equal(atc.Plan{
@@ -318,8 +318,8 @@ var _ = Describe("Factory", func() {
 								Execute: "those who resist our will",
 							},
 							{
-								Get: "money",
-								On:  &atc.Conditions{"failure"},
+								Get:        "money",
+								Conditions: &atc.Conditions{"failure"},
 							},
 						},
 					}, resources, nil)).Should(Equal(atc.Plan{
@@ -389,8 +389,8 @@ var _ = Describe("Factory", func() {
 								Execute: "those who resist our will",
 							},
 							{
-								Put: "money",
-								On:  &atc.Conditions{"failure"},
+								Put:        "money",
+								Conditions: &atc.Conditions{"failure"},
 							},
 						},
 					}, resources, nil)).Should(Equal(atc.Plan{
@@ -459,8 +459,8 @@ var _ = Describe("Factory", func() {
 								Execute: "those who resist our will",
 							},
 							{
-								Execute: "haters",
-								On:      &atc.Conditions{"failure"},
+								Execute:    "haters",
+								Conditions: &atc.Conditions{"failure"},
 							},
 						},
 					}, resources, nil)).Should(Equal(atc.Plan{
@@ -497,15 +497,15 @@ var _ = Describe("Factory", func() {
 							{
 								Aggregate: &atc.PlanSequence{
 									{
-										Put: "haters",
-										On:  &atc.Conditions{"failure"},
+										Put:        "haters",
+										Conditions: &atc.Conditions{"failure"},
 									},
 									{
 										Put: "gonna",
 									},
 									{
-										Put: "hate",
-										On:  &atc.Conditions{},
+										Put:        "hate",
+										Conditions: &atc.Conditions{},
 									},
 								},
 							},
@@ -577,8 +577,8 @@ var _ = Describe("Factory", func() {
 										Put: "gonna",
 									},
 									{
-										Put: "hate",
-										On:  &atc.Conditions{},
+										Put:        "hate",
+										Conditions: &atc.Conditions{},
 									},
 								},
 							},
@@ -641,15 +641,15 @@ var _ = Describe("Factory", func() {
 							{
 								Do: &atc.PlanSequence{
 									{
-										Put: "haters",
-										On:  &atc.Conditions{"failure"},
+										Put:        "haters",
+										Conditions: &atc.Conditions{"failure"},
 									},
 									{
 										Put: "gonna",
 									},
 									{
-										Put: "hate",
-										On:  &atc.Conditions{},
+										Put:        "hate",
+										Conditions: &atc.Conditions{},
 									},
 								},
 							},

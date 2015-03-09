@@ -66,7 +66,7 @@ type PlanSequence []PlanConfig
 type PlanConfig struct {
 	// makes the Plan conditional
 	// conditions on which to perform a nested sequence
-	On *Conditions `yaml:"on,omitempty" json:"on,omitempty" mapstructure:"on"`
+	Conditions *Conditions `yaml:"conditions,omitempty" json:"conditions,omitempty" mapstructure:"conditions"`
 
 	// compose a nested sequence of plans
 	// name of the nested 'do'

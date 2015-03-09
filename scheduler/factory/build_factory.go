@@ -212,10 +212,10 @@ func (factory *BuildFactory) constructPlanFromConfig(
 		}
 	}
 
-	if planConfig.On != nil {
+	if planConfig.Conditions != nil {
 		plan = atc.Plan{
 			Conditional: &atc.ConditionalPlan{
-				Conditions: *planConfig.On,
+				Conditions: *planConfig.Conditions,
 				Plan:       plan,
 			},
 		}
