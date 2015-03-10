@@ -91,7 +91,7 @@ var _ = Describe("Fly CLI", func() {
 
 						Serial: true,
 
-						Inputs: []atc.JobInputConfig{
+						InputConfigs: []atc.JobInputConfig{
 							{
 								RawName:  "some-input",
 								Resource: "some-resource",
@@ -102,7 +102,7 @@ var _ = Describe("Fly CLI", func() {
 							},
 						},
 
-						Outputs: []atc.JobOutputConfig{
+						OutputConfigs: []atc.JobOutputConfig{
 							{
 								Resource: "some-resource",
 								Params: atc.Params{
@@ -117,7 +117,7 @@ var _ = Describe("Fly CLI", func() {
 
 						BuildConfigPath: "some/config/path.yml",
 
-						Inputs: []atc.JobInputConfig{
+						InputConfigs: []atc.JobInputConfig{
 							{
 								RawName:  "some-other-input",
 								Resource: "some-other-resource",
@@ -128,7 +128,7 @@ var _ = Describe("Fly CLI", func() {
 							},
 						},
 
-						Outputs: []atc.JobOutputConfig{
+						OutputConfigs: []atc.JobOutputConfig{
 							{
 								Resource: "some-other-resource",
 								Params: atc.Params{
