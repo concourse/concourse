@@ -25,41 +25,17 @@ func Configure(c *cli.Context) {
 	atcRequester := newAtcRequester(atcURL, insecure)
 
 	if configPath == "" {
-		getConfig(atcRequester, asJSON)
+		dumpConfig(atcRequester, asJSON)
 	} else {
 		setConfig(atcRequester, configPath)
 	}
 }
 
-func getConfig(atcRequester *atcRequester, asJSON bool) {
-	getConfig, err := atcRequester.CreateRequest(
-		atc.GetConfig,
-		nil,
-		nil,
-	)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	resp, err := atcRequester.httpClient.Do(getConfig)
-	if err != nil {
-		log.Println("failed to get config:", err, resp)
-		os.Exit(1)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		log.Println("bad response when getting config:", resp.Status)
-		os.Exit(1)
-	}
-
-	var config atc.Config
-	err = json.NewDecoder(resp.Body).Decode(&config)
-	if err != nil {
-		log.Println("invalid config from server:", err)
-		os.Exit(1)
-	}
+func dumpConfig(atcRequester *atcRequester, asJSON bool) {
+	config := getConfig(atcRequester)
 
 	var payload []byte
+	var err error
 	if asJSON {
 		payload, err = json.Marshal(config)
 	} else {

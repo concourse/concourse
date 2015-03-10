@@ -127,6 +127,16 @@ func main() {
 				atcURLFlag,
 			},
 		},
+		{
+			Name:      "checklist",
+			ShortName: "l",
+			Usage:     "print a Checkman checkfile for the pipeline configuration",
+			Action:    commands.Checklist,
+			Flags: []cli.Flag{
+				insecureFlag,
+				atcURLFlag,
+			},
+		},
 	}
 
 	err := app.Run(os.Args)

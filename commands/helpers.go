@@ -11,6 +11,37 @@ import (
 	"github.com/tedsuo/rata"
 )
 
+func getConfig(atcRequester *atcRequester) atc.Config {
+	getConfigRequest, err := atcRequester.CreateRequest(
+		atc.GetConfig,
+		nil,
+		nil,
+	)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	resp, err := atcRequester.httpClient.Do(getConfigRequest)
+	if err != nil {
+		log.Println("failed to get config:", err, resp)
+		os.Exit(1)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		log.Println("bad response when getting config:", resp.Status)
+		os.Exit(1)
+	}
+
+	var config atc.Config
+	err = json.NewDecoder(resp.Body).Decode(&config)
+	if err != nil {
+		log.Println("invalid config from server:", err)
+		os.Exit(1)
+	}
+
+	return config
+}
+
 func getBuild(ctx *cli.Context, client *http.Client, reqGenerator *rata.RequestGenerator) atc.Build {
 	jobName := ctx.String("job")
 	buildName := ctx.String("build")
