@@ -92,7 +92,7 @@ function StepModel(origin) {
       return showLogs
     }
 
-    return showLogs && (this.isRunning() || this.isSuccessful() === false);
+    return showLogs && (this.isRunning() || this.isErrored() || this.isSuccessful() === false);
   }
 
   this.isRunning = function() {
