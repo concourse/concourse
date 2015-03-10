@@ -60,7 +60,7 @@ var _ = Describe("Config API", func() {
 
 					Serial: true,
 
-					Inputs: []atc.JobInputConfig{
+					InputConfigs: []atc.JobInputConfig{
 						{
 							RawName:  "some-input",
 							Resource: "some-resource",
@@ -71,7 +71,7 @@ var _ = Describe("Config API", func() {
 						},
 					},
 
-					Outputs: []atc.JobOutputConfig{
+					OutputConfigs: []atc.JobOutputConfig{
 						{
 							Resource: "some-resource",
 							Params: atc.Params{

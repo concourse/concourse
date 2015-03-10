@@ -13,13 +13,13 @@ type Job struct {
 }
 
 type JobInput struct {
-	Name     string   `json:"name,omitempty"`
+	Name     string   `json:"name"`
 	Resource string   `json:"resource"`
 	Passed   []string `json:"passed,omitempty"`
 	Trigger  bool     `json:"trigger"`
 }
 
 type JobOutput struct {
-	Resource  string      `json:"resource"`
-	PerformOn []Condition `json:"perform_on"`
+	Name     string `json:"name"`
+	Resource string `json:"resource"`
 }

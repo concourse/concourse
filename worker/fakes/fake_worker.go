@@ -30,7 +30,7 @@ type FakeWorker struct {
 	ActiveContainersStub        func() int
 	activeContainersMutex       sync.RWMutex
 	activeContainersArgsForCall []struct{}
-	activeContainersReturns struct {
+	activeContainersReturns     struct {
 		result1 int
 	}
 	SatisfiesStub        func(worker.ContainerSpec) bool
@@ -44,7 +44,7 @@ type FakeWorker struct {
 	DescriptionStub        func() string
 	descriptionMutex       sync.RWMutex
 	descriptionArgsForCall []struct{}
-	descriptionReturns struct {
+	descriptionReturns     struct {
 		result1 string
 	}
 }

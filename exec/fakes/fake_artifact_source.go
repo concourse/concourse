@@ -39,7 +39,7 @@ type FakeArtifactSource struct {
 	ReleaseStub        func() error
 	releaseMutex       sync.RWMutex
 	releaseArgsForCall []struct{}
-	releaseReturns struct {
+	releaseReturns     struct {
 		result1 error
 	}
 	ResultStub        func(interface{}) bool

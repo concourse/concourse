@@ -143,7 +143,7 @@ func validateJobs(c atc.Config) error {
 			errorMessages = append(errorMessages, identifier+" has no name")
 		}
 
-		for i, input := range job.Inputs {
+		for i, input := range job.InputConfigs {
 			var inputIdentifier string
 			if input.Name() == "" {
 				inputIdentifier = fmt.Sprintf("at index %d", i)
@@ -175,7 +175,7 @@ func validateJobs(c atc.Config) error {
 			}
 		}
 
-		for i, output := range job.Outputs {
+		for i, output := range job.OutputConfigs {
 			outputIdentifier := fmt.Sprintf("at index %d", i)
 
 			if output.Resource == "" {

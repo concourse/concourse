@@ -721,7 +721,7 @@ var _ = Describe("Factory", func() {
 				},
 			}
 
-			job.Inputs = []atc.JobInputConfig{
+			job.InputConfigs = []atc.JobInputConfig{
 				{
 					RawName:  "some-input",
 					Resource: "some-resource",
@@ -729,7 +729,7 @@ var _ = Describe("Factory", func() {
 				},
 			}
 
-			job.Outputs = []atc.JobOutputConfig{
+			job.OutputConfigs = []atc.JobOutputConfig{
 				{
 					Resource:     "some-resource",
 					Params:       atc.Params{"foo": "bar"},
@@ -801,7 +801,7 @@ var _ = Describe("Factory", func() {
 
 		Context("when an input has an explicit name", func() {
 			BeforeEach(func() {
-				job.Inputs = append(job.Inputs, atc.JobInputConfig{
+				job.InputConfigs = append(job.InputConfigs, atc.JobInputConfig{
 					RawName:  "some-named-input",
 					Resource: "some-named-resource",
 					Params:   atc.Params{"some": "named-params"},
@@ -854,7 +854,7 @@ var _ = Describe("Factory", func() {
 
 		Context("when the job's input is not found", func() {
 			BeforeEach(func() {
-				job.Inputs = append(job.Inputs, atc.JobInputConfig{
+				job.InputConfigs = append(job.InputConfigs, atc.JobInputConfig{
 					Resource: "some-bogus-resource",
 				})
 			})
@@ -867,7 +867,7 @@ var _ = Describe("Factory", func() {
 
 		Context("when the job's output is not found", func() {
 			BeforeEach(func() {
-				job.Outputs = append(job.Outputs, atc.JobOutputConfig{
+				job.OutputConfigs = append(job.OutputConfigs, atc.JobOutputConfig{
 					Resource: "some-bogus-resource",
 				})
 			})
@@ -883,7 +883,7 @@ var _ = Describe("Factory", func() {
 		BeforeEach(func() {
 			job.Plan = atc.PlanSequence{{Get: "money"}, {Get: "paid"}}
 
-			job.Inputs = []atc.JobInputConfig{
+			job.InputConfigs = []atc.JobInputConfig{
 				{Resource: "money"},
 			}
 		})

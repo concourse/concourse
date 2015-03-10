@@ -51,18 +51,18 @@ type JobConfig struct {
 	BuildConfigPath string       `yaml:"build,omitempty" json:"build,omitempty" mapstructure:"build"`
 	BuildConfig     *BuildConfig `yaml:"config,omitempty" json:"config,omitempty" mapstructure:"config"`
 
-	Inputs  []JobInputConfig  `yaml:"inputs,omitempty" json:"inputs,omitempty" mapstructure:"inputs"`
-	Outputs []JobOutputConfig `yaml:"outputs,omitempty" json:"outputs,omitempty" mapstructure:"outputs"`
+	InputConfigs  []JobInputConfig  `yaml:"inputs,omitempty" json:"inputs,omitempty" mapstructure:"inputs"`
+	OutputConfigs []JobOutputConfig `yaml:"outputs,omitempty" json:"outputs,omitempty" mapstructure:"outputs"`
 
 	Plan PlanSequence `yaml:"plan,omitempty" json:"plan,omitempty" mapstructure:"plan"`
 }
 
-func (config JobConfig) BuildInputs() []JobBuildInput {
-	if config.Inputs != nil {
-		var inputs []JobBuildInput
+func (config JobConfig) Inputs() []JobInput {
+	if config.InputConfigs != nil {
+		var inputs []JobInput
 
-		for _, config := range config.Inputs {
-			inputs = append(inputs, JobBuildInput{
+		for _, config := range config.InputConfigs {
+			inputs = append(inputs, JobInput{
 				Name:     config.Name(),
 				Resource: config.Resource,
 				Passed:   config.Passed,
@@ -73,70 +73,24 @@ func (config JobConfig) BuildInputs() []JobBuildInput {
 		return inputs
 	}
 
-	if len(config.Plan) == 0 {
-		return []JobBuildInput{}
-	}
-
-	collectTriggers := true
-	return collectInputs(PlanConfig{Do: &config.Plan}, collectTriggers)
+	return collectInputs(PlanConfig{Do: &config.Plan}, true)
 }
 
-func collectInputs(plan PlanConfig, collectTriggers bool) []JobBuildInput {
-	if plan.Do != nil {
-		var inputs []JobBuildInput
+func (config JobConfig) Outputs() []JobOutput {
+	if config.OutputConfigs != nil {
+		var outputs []JobOutput
 
-		for _, p := range *plan.Do {
-			inputs = append(inputs, collectInputs(p, collectTriggers)...)
-			collectTriggers = false
+		for _, config := range config.OutputConfigs {
+			outputs = append(outputs, JobOutput{
+				Name:     config.Resource,
+				Resource: config.Resource,
+			})
 		}
 
-		return inputs
+		return outputs
 	}
 
-	if plan.Get != "" {
-		get := plan.Get
-
-		if len(plan.Passed) == 0 && !collectTriggers {
-			// if there are no passed: constraints, and it's not in the first step,
-			// don't consider it an input
-			return []JobBuildInput{}
-		}
-
-		resource := get
-		if plan.Resource != "" {
-			resource = plan.Resource
-		}
-
-		var shouldTrigger bool
-		if !collectTriggers {
-			shouldTrigger = false
-		} else if plan.RawTrigger == nil {
-			shouldTrigger = true
-		} else {
-			shouldTrigger = *plan.RawTrigger
-		}
-
-		return []JobBuildInput{
-			{
-				Name:     get,
-				Resource: resource,
-				Passed:   plan.Passed,
-				Trigger:  shouldTrigger,
-			},
-		}
-	}
-
-	if plan.Aggregate != nil {
-		var inputs []JobBuildInput
-
-		for _, p := range *plan.Aggregate {
-			inputs = append(inputs, collectInputs(p, collectTriggers)...)
-		}
-
-		return inputs
-	}
-
-	return []JobBuildInput{}
+	return collectOutputs(PlanConfig{Do: &config.Plan})
 }
 
 // A PlanSequence corresponds to a chain of Compose plan, with an implicit
@@ -153,6 +107,7 @@ type PlanConfig struct {
 	// compose a nested sequence of plans
 	// name of the nested 'do'
 	RawName string `yaml:"name,omitempty" json:"name,omitempty" mapstructure:"name"`
+
 	// sequence to execute if conditions are met
 	Do *PlanSequence `yaml:"do,omitempty" json:"do,omitempty" mapstructure:"do"`
 
@@ -208,13 +163,6 @@ func (config PlanConfig) Name() string {
 	}
 
 	return ""
-}
-
-type JobBuildInput struct {
-	Name     string
-	Resource string
-	Passed   []string
-	Trigger  bool
 }
 
 type JobInputConfig struct {
@@ -325,4 +273,102 @@ func (config Config) JobIsPublic(jobName string) (bool, error) {
 	}
 
 	return job.Public, nil
+}
+
+func collectInputs(plan PlanConfig, collectTriggers bool) []JobInput {
+	if plan.Do != nil {
+		var inputs []JobInput
+
+		for _, p := range *plan.Do {
+			inputs = append(inputs, collectInputs(p, collectTriggers)...)
+			collectTriggers = false
+		}
+
+		return inputs
+	}
+
+	if plan.Get != "" {
+		get := plan.Get
+
+		if len(plan.Passed) == 0 && !collectTriggers {
+			// if there are no passed: constraints, and it's not in the first step,
+			// don't consider it an input
+			return []JobInput{}
+		}
+
+		resource := get
+		if plan.Resource != "" {
+			resource = plan.Resource
+		}
+
+		var shouldTrigger bool
+		if !collectTriggers {
+			shouldTrigger = false
+		} else if plan.RawTrigger == nil {
+			shouldTrigger = true
+		} else {
+			shouldTrigger = *plan.RawTrigger
+		}
+
+		return []JobInput{
+			{
+				Name:     get,
+				Resource: resource,
+				Passed:   plan.Passed,
+				Trigger:  shouldTrigger,
+			},
+		}
+	}
+
+	if plan.Aggregate != nil {
+		var inputs []JobInput
+
+		for _, p := range *plan.Aggregate {
+			inputs = append(inputs, collectInputs(p, collectTriggers)...)
+		}
+
+		return inputs
+	}
+
+	return []JobInput{}
+}
+
+func collectOutputs(plan PlanConfig) []JobOutput {
+	if plan.Do != nil {
+		var outputs []JobOutput
+
+		for _, p := range *plan.Do {
+			outputs = append(outputs, collectOutputs(p)...)
+		}
+
+		return outputs
+	}
+
+	if plan.Put != "" {
+		put := plan.Put
+
+		resource := put
+		if plan.Resource != "" {
+			resource = plan.Resource
+		}
+
+		return []JobOutput{
+			{
+				Name:     put,
+				Resource: resource,
+			},
+		}
+	}
+
+	if plan.Aggregate != nil {
+		var outputs []JobOutput
+
+		for _, p := range *plan.Aggregate {
+			outputs = append(outputs, collectOutputs(p)...)
+		}
+
+		return outputs
+	}
+
+	return []JobOutput{}
 }

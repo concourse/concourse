@@ -17,7 +17,7 @@ type SchedulerDB interface {
 	FinishBuild(buildID int, status db.Status) error
 
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
-	GetLatestInputVersions([]atc.JobBuildInput) ([]db.BuildInput, error)
+	GetLatestInputVersions([]atc.JobInput) ([]db.BuildInput, error)
 
 	CreateJobBuild(job string) (db.Build, error)
 
@@ -55,7 +55,7 @@ type Scheduler struct {
 func (s *Scheduler) BuildLatestInputs(logger lager.Logger, job atc.JobConfig, resources atc.ResourceConfigs) error {
 	logger = logger.Session("build-latest")
 
-	inputs := job.BuildInputs()
+	inputs := job.Inputs()
 
 	if len(inputs) == 0 {
 		// no inputs; no-op
@@ -75,9 +75,9 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, job atc.JobConfig, re
 
 	checkInputs := []db.BuildInput{}
 	for _, input := range latestInputs {
-		for _, ji := range job.Inputs {
-			if ji.Name() == input.Name {
-				if ji.Trigger() {
+		for _, ji := range inputs {
+			if ji.Name == input.Name {
+				if ji.Trigger {
 					checkInputs = append(checkInputs, input)
 				}
 
@@ -238,9 +238,9 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, build db.
 		return nil
 	}
 
-	if len(inputs) == 0 {
-		buildInputs := job.BuildInputs()
+	buildInputs := job.Inputs()
 
+	if len(inputs) == 0 {
 		for _, input := range buildInputs {
 			scanLog := logger.Session("scan", lager.Data{
 				"input":    input.Name,
@@ -261,10 +261,10 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, build db.
 			logger.Error("failed-to-get-latest-input-versions", err)
 			return nil
 		}
-	} else if len(inputs) != len(job.Inputs) {
+	} else if len(inputs) != len(buildInputs) {
 		logger.Error("input-configuration-mismatch", nil, lager.Data{
 			"build-inputs": inputs,
-			"job-inputs":   job.Inputs,
+			"job-inputs":   buildInputs,
 		})
 
 		err := s.DB.FinishBuild(build.ID, db.StatusErrored)

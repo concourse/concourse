@@ -1060,7 +1060,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				savedVR2, err := database.GetLatestVersionedResource(resource)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				jobBuildInputs := []atc.JobBuildInput{
+				jobBuildInputs := []atc.JobInput{
 					{
 						Name:     "some-input-name",
 						Resource: resource,
@@ -1124,7 +1124,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				sb1, err := database.CreateJobBuild("shared-job")
 				Ω(err).ShouldNot(HaveOccurred())
 
-				_, err = database.GetLatestInputVersions([]atc.JobBuildInput{
+				_, err = database.GetLatestInputVersions([]atc.JobInput{
 					{
 						Name:     "input-1",
 						Resource: "resource-1",
@@ -1166,7 +1166,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestInputVersions([]atc.JobBuildInput{
+				Ω(database.GetLatestInputVersions([]atc.JobInput{
 					{
 						Name:     "input-1",
 						Resource: "resource-1",
@@ -1220,7 +1220,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 				// do NOT save resource-2 as an output of job-2
 
-				Ω(database.GetLatestInputVersions([]atc.JobBuildInput{
+				Ω(database.GetLatestInputVersions([]atc.JobInput{
 					{
 						Name:     "input-1",
 						Resource: "resource-1",
@@ -1250,7 +1250,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestInputVersions([]atc.JobBuildInput{
+				Ω(database.GetLatestInputVersions([]atc.JobInput{
 					{
 						Name:     "input-1",
 						Resource: "resource-1",
@@ -1304,7 +1304,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					})
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(database.GetLatestInputVersions([]atc.JobBuildInput{
+					Ω(database.GetLatestInputVersions([]atc.JobInput{
 						{
 							Name:     "input-1",
 							Resource: "resource-1",

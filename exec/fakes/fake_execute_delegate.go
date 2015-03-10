@@ -15,9 +15,9 @@ type FakeExecuteDelegate struct {
 	initializingArgsForCall []struct {
 		arg1 atc.BuildConfig
 	}
-	StartedStub        func()
-	startedMutex       sync.RWMutex
-	startedArgsForCall []struct{}
+	StartedStub         func()
+	startedMutex        sync.RWMutex
+	startedArgsForCall  []struct{}
 	FinishedStub        func(exec.ExitStatus)
 	finishedMutex       sync.RWMutex
 	finishedArgsForCall []struct {
@@ -31,13 +31,13 @@ type FakeExecuteDelegate struct {
 	StdoutStub        func() io.Writer
 	stdoutMutex       sync.RWMutex
 	stdoutArgsForCall []struct{}
-	stdoutReturns struct {
+	stdoutReturns     struct {
 		result1 io.Writer
 	}
 	StderrStub        func() io.Writer
 	stderrMutex       sync.RWMutex
 	stderrArgsForCall []struct{}
-	stderrReturns struct {
+	stderrReturns     struct {
 		result1 io.Writer
 	}
 }

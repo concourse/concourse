@@ -38,10 +38,10 @@ type FakeSchedulerDB struct {
 	saveResourceVersionsReturns struct {
 		result1 error
 	}
-	GetLatestInputVersionsStub        func([]atc.JobBuildInput) ([]db.BuildInput, error)
+	GetLatestInputVersionsStub        func([]atc.JobInput) ([]db.BuildInput, error)
 	getLatestInputVersionsMutex       sync.RWMutex
 	getLatestInputVersionsArgsForCall []struct {
-		arg1 []atc.JobBuildInput
+		arg1 []atc.JobInput
 	}
 	getLatestInputVersionsReturns struct {
 		result1 []db.BuildInput
@@ -89,7 +89,7 @@ type FakeSchedulerDB struct {
 	GetAllStartedBuildsStub        func() ([]db.Build, error)
 	getAllStartedBuildsMutex       sync.RWMutex
 	getAllStartedBuildsArgsForCall []struct{}
-	getAllStartedBuildsReturns struct {
+	getAllStartedBuildsReturns     struct {
 		result1 []db.Build
 		result2 error
 	}
@@ -195,10 +195,10 @@ func (fake *FakeSchedulerDB) SaveResourceVersionsReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeSchedulerDB) GetLatestInputVersions(arg1 []atc.JobBuildInput) ([]db.BuildInput, error) {
+func (fake *FakeSchedulerDB) GetLatestInputVersions(arg1 []atc.JobInput) ([]db.BuildInput, error) {
 	fake.getLatestInputVersionsMutex.Lock()
 	fake.getLatestInputVersionsArgsForCall = append(fake.getLatestInputVersionsArgsForCall, struct {
-		arg1 []atc.JobBuildInput
+		arg1 []atc.JobInput
 	}{arg1})
 	fake.getLatestInputVersionsMutex.Unlock()
 	if fake.GetLatestInputVersionsStub != nil {
@@ -214,7 +214,7 @@ func (fake *FakeSchedulerDB) GetLatestInputVersionsCallCount() int {
 	return len(fake.getLatestInputVersionsArgsForCall)
 }
 
-func (fake *FakeSchedulerDB) GetLatestInputVersionsArgsForCall(i int) []atc.JobBuildInput {
+func (fake *FakeSchedulerDB) GetLatestInputVersionsArgsForCall(i int) []atc.JobInput {
 	fake.getLatestInputVersionsMutex.RLock()
 	defer fake.getLatestInputVersionsMutex.RUnlock()
 	return fake.getLatestInputVersionsArgsForCall[i].arg1

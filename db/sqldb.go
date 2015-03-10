@@ -885,7 +885,7 @@ func (db *SQLDB) GetLatestVersionedResource(name string) (SavedVersionedResource
 }
 
 // buckle up
-func (db *SQLDB) GetLatestInputVersions(inputs []atc.JobBuildInput) ([]BuildInput, error) {
+func (db *SQLDB) GetLatestInputVersions(inputs []atc.JobInput) ([]BuildInput, error) {
 	fromAliases := []string{}
 	conditions := []string{}
 	params := []interface{}{}

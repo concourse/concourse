@@ -63,7 +63,7 @@ var _ = Describe("Scheduler", func() {
 
 			Serial: true,
 
-			Inputs: []atc.JobInputConfig{
+			InputConfigs: []atc.JobInputConfig{
 				{
 					RawName:    "some-input",
 					Resource:   "some-resource",
@@ -197,7 +197,7 @@ var _ = Describe("Scheduler", func() {
 
 		Context("when the job has no inputs", func() {
 			BeforeEach(func() {
-				job.Inputs = []atc.JobInputConfig{}
+				job.InputConfigs = []atc.JobInputConfig{}
 			})
 
 			It("succeeds", func() {
@@ -243,7 +243,7 @@ var _ = Describe("Scheduler", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(fakeSchedulerDB.GetLatestInputVersionsCallCount()).Should(Equal(1))
-				Ω(fakeSchedulerDB.GetLatestInputVersionsArgsForCall(0)).Should(Equal([]atc.JobBuildInput{
+				Ω(fakeSchedulerDB.GetLatestInputVersionsArgsForCall(0)).Should(Equal([]atc.JobInput{
 					{
 						Name:     "some-input",
 						Resource: "some-resource",
@@ -267,7 +267,7 @@ var _ = Describe("Scheduler", func() {
 				BeforeEach(func() {
 					trigger := false
 
-					job.Inputs = append(job.Inputs, atc.JobInputConfig{
+					job.InputConfigs = append(job.InputConfigs, atc.JobInputConfig{
 						Resource:   "some-non-triggering-resource",
 						RawTrigger: &trigger,
 					})
@@ -302,11 +302,11 @@ var _ = Describe("Scheduler", func() {
 				BeforeEach(func() {
 					trigger := false
 
-					for i, input := range job.Inputs {
+					for i, input := range job.InputConfigs {
 						noChecking := input
 						noChecking.RawTrigger = &trigger
 
-						job.Inputs[i] = noChecking
+						job.InputConfigs[i] = noChecking
 					}
 				})
 
@@ -543,7 +543,7 @@ var _ = Describe("Scheduler", func() {
 
 							Ω(fakeSchedulerDB.GetLatestInputVersionsCallCount()).Should(Equal(1))
 							inputConfigs := fakeSchedulerDB.GetLatestInputVersionsArgsForCall(0)
-							Ω(inputConfigs).Should(Equal([]atc.JobBuildInput{
+							Ω(inputConfigs).Should(Equal([]atc.JobInput{
 								{
 									Name:     "some-input",
 									Resource: "some-resource",

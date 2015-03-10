@@ -270,8 +270,8 @@ func (factory *BuildFactory) hasPlanConfig(job atc.JobConfig) bool {
 }
 
 func (factory *BuildFactory) hasIOConfig(job atc.JobConfig) bool {
-	return len(job.Inputs) > 0 ||
-		len(job.Outputs) > 0 ||
+	return len(job.InputConfigs) > 0 ||
+		len(job.OutputConfigs) > 0 ||
 		job.BuildConfig != nil ||
 		len(job.BuildConfigPath) > 0
 }
@@ -283,7 +283,7 @@ func (factory *BuildFactory) computeInputs(
 ) (atc.AggregatePlan, error) {
 	getPlans := atc.AggregatePlan{}
 
-	for _, input := range job.Inputs {
+	for _, input := range job.InputConfigs {
 		resource, found := resources.Lookup(input.Resource)
 		if !found {
 			return nil, fmt.Errorf("unknown resource: %s", input.Resource)
@@ -322,7 +322,7 @@ func (factory *BuildFactory) computeOutputs(
 ) (atc.AggregatePlan, error) {
 	outputPlans := atc.AggregatePlan{}
 
-	for _, output := range job.Outputs {
+	for _, output := range job.OutputConfigs {
 		resource, found := resources.Lookup(output.Resource)
 		if !found {
 			return nil, fmt.Errorf("unknown resource: %s", output.Resource)

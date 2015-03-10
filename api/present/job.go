@@ -40,32 +40,14 @@ func Job(job atc.JobConfig, groups atc.GroupConfigs, finishedBuild, nextBuild *d
 		}
 	}
 
-	inputs := make([]atc.JobInput, len(job.Inputs))
-	for i, input := range job.Inputs {
-		inputs[i] = atc.JobInput{
-			Name:     input.Name(),
-			Resource: input.Resource,
-			Passed:   input.Passed,
-			Trigger:  input.Trigger(),
-		}
-	}
-
-	outputs := make([]atc.JobOutput, len(job.Outputs))
-	for i, output := range job.Outputs {
-		outputs[i] = atc.JobOutput{
-			Resource:  output.Resource,
-			PerformOn: output.PerformOn(),
-		}
-	}
-
 	return atc.Job{
 		Name:          job.Name,
 		URL:           req.URL.String(),
 		FinishedBuild: presentedFinishedBuild,
 		NextBuild:     presentedNextBuild,
 
-		Inputs:  inputs,
-		Outputs: outputs,
+		Inputs:  job.Inputs(),
+		Outputs: job.Outputs(),
 
 		Groups: groupNames,
 	}

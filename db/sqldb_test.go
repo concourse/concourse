@@ -103,7 +103,7 @@ var _ = Describe("SQL DB", func() {
 
 					Serial: true,
 
-					Inputs: []atc.JobInputConfig{
+					InputConfigs: []atc.JobInputConfig{
 						{
 							RawName:  "some-input",
 							Resource: "some-resource",
@@ -115,7 +115,7 @@ var _ = Describe("SQL DB", func() {
 						},
 					},
 
-					Outputs: []atc.JobOutputConfig{
+					OutputConfigs: []atc.JobOutputConfig{
 						{
 							Resource: "some-resource",
 							Params: atc.Params{
@@ -160,7 +160,7 @@ var _ = Describe("SQL DB", func() {
 			updatedConfig.Jobs = append(config.Jobs, atc.JobConfig{
 				Name:            "some-resource",
 				BuildConfigPath: "new/config/path.yml",
-				Inputs: []atc.JobInputConfig{
+				InputConfigs: []atc.JobInputConfig{
 					{
 						RawName:  "new-input",
 						Resource: "new-resource",

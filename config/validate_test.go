@@ -50,7 +50,7 @@ var _ = Describe("ValidateConfig", func() {
 
 					Serial: true,
 
-					Inputs: []atc.JobInputConfig{
+					InputConfigs: []atc.JobInputConfig{
 						{
 							RawName:  "some-input",
 							Resource: "some-resource",
@@ -61,7 +61,7 @@ var _ = Describe("ValidateConfig", func() {
 						},
 					},
 
-					Outputs: []atc.JobOutputConfig{
+					OutputConfigs: []atc.JobOutputConfig{
 						{
 							Resource: "some-resource",
 							Params: atc.Params{
@@ -220,7 +220,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job's input has no resource", func() {
 			BeforeEach(func() {
-				job.Inputs = append(job.Inputs, atc.JobInputConfig{
+				job.InputConfigs = append(job.InputConfigs, atc.JobInputConfig{
 					RawName: "foo",
 				})
 				config.Jobs = append(config.Jobs, job)
@@ -236,7 +236,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job's input has a bogus resource", func() {
 			BeforeEach(func() {
-				job.Inputs = append(job.Inputs, atc.JobInputConfig{
+				job.InputConfigs = append(job.InputConfigs, atc.JobInputConfig{
 					RawName:  "foo",
 					Resource: "bogus-resource",
 				})
@@ -253,7 +253,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job's input's passed constraints reference a bogus job", func() {
 			BeforeEach(func() {
-				job.Inputs = append(job.Inputs, atc.JobInputConfig{
+				job.InputConfigs = append(job.InputConfigs, atc.JobInputConfig{
 					RawName:  "foo",
 					Resource: "some-resource",
 					Passed:   []string{"bogus-job"},
@@ -271,7 +271,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job's output has no resource", func() {
 			BeforeEach(func() {
-				job.Outputs = append(job.Outputs, atc.JobOutputConfig{})
+				job.OutputConfigs = append(job.OutputConfigs, atc.JobOutputConfig{})
 				config.Jobs = append(config.Jobs, job)
 			})
 
@@ -285,7 +285,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job's output has a bogus resource", func() {
 			BeforeEach(func() {
-				job.Outputs = append(job.Outputs, atc.JobOutputConfig{
+				job.OutputConfigs = append(job.OutputConfigs, atc.JobOutputConfig{
 					Resource: "bogus-resource",
 				})
 				config.Jobs = append(config.Jobs, job)

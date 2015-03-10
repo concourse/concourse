@@ -43,7 +43,7 @@ var _ = Describe("Jobs API", func() {
 					Jobs: []atc.JobConfig{
 						{
 							Name: "some-job",
-							Inputs: []atc.JobInputConfig{
+							InputConfigs: []atc.JobInputConfig{
 								{
 									Resource: "some-input",
 								},
@@ -55,7 +55,7 @@ var _ = Describe("Jobs API", func() {
 									RawTrigger: &no,
 								},
 							},
-							Outputs: []atc.JobOutputConfig{
+							OutputConfigs: []atc.JobOutputConfig{
 								{
 									Resource: "some-output",
 								},
@@ -136,12 +136,12 @@ var _ = Describe("Jobs API", func() {
 						],
 						"outputs": [
 							{
-								"resource": "some-output",
-								"perform_on": ["success"]
+								"name": "some-output",
+								"resource": "some-output"
 							},
 							{
-								"resource": "some-other-output",
-								"perform_on": ["failure"]
+								"name": "some-other-output",
+								"resource": "some-other-output"
 							}
 						],
 						"groups": ["group-1", "group-2"]
@@ -226,23 +226,23 @@ var _ = Describe("Jobs API", func() {
 
 					Jobs: []atc.JobConfig{
 						{
-							Name:    "job-1",
-							Inputs:  []atc.JobInputConfig{{Resource: "input-1"}},
-							Outputs: []atc.JobOutputConfig{{Resource: "output-1"}},
+							Name:          "job-1",
+							InputConfigs:  []atc.JobInputConfig{{Resource: "input-1"}},
+							OutputConfigs: []atc.JobOutputConfig{{Resource: "output-1"}},
 						},
 						{
 							Name: "job-2",
-							Inputs: []atc.JobInputConfig{
+							InputConfigs: []atc.JobInputConfig{
 								{
 									Resource: "input-2",
 								},
 							},
-							Outputs: []atc.JobOutputConfig{{Resource: "output-2"}},
+							OutputConfigs: []atc.JobOutputConfig{{Resource: "output-2"}},
 						},
 						{
-							Name:    "job-3",
-							Inputs:  []atc.JobInputConfig{{Resource: "input-3"}},
-							Outputs: []atc.JobOutputConfig{{Resource: "output-3"}},
+							Name:          "job-3",
+							InputConfigs:  []atc.JobInputConfig{{Resource: "input-3"}},
+							OutputConfigs: []atc.JobOutputConfig{{Resource: "output-3"}},
 						},
 					},
 				}, 1, nil)
@@ -323,7 +323,7 @@ var _ = Describe("Jobs API", func() {
 								"url": "/jobs/job-1/builds/1"
 							},
 							"inputs": [{"name": "input-1", "resource": "input-1", "trigger": true}],
-							"outputs": [{"resource": "output-1", "perform_on": ["success"]}],
+							"outputs": [{"name": "output-1", "resource": "output-1"}],
 							"groups": ["group-1", "group-2"]
 						},
 						{
@@ -338,7 +338,7 @@ var _ = Describe("Jobs API", func() {
 								"url": "/jobs/job-2/builds/1"
 							},
 							"inputs": [{"name": "input-2", "resource": "input-2", "trigger": true}],
-							"outputs": [{"resource": "output-2", "perform_on": ["success"]}],
+							"outputs": [{"name": "output-2", "resource": "output-2"}],
 							"groups": ["group-2"]
 						},
 						{
@@ -347,7 +347,7 @@ var _ = Describe("Jobs API", func() {
 							"next_build": null,
 							"finished_build": null,
 							"inputs": [{"name": "input-3", "resource": "input-3", "trigger": true}],
-							"outputs": [{"resource": "output-3", "perform_on": ["success"]}],
+							"outputs": [{"name": "output-3", "resource": "output-3"}],
 							"groups": []
 						}
 					]`))
