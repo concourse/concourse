@@ -20,6 +20,6 @@ type JobInput struct {
 }
 
 type JobOutput struct {
-	Resource  string            `json:"resource"`
+	Resource  string      `json:"resource"`
 	PerformOn []Condition `json:"perform_on"`
 }

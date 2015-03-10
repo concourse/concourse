@@ -242,6 +242,20 @@ var _ = Describe("Scheduler", func() {
 				err := scheduler.BuildLatestInputs(logger, job, resources)
 				Ω(err).ShouldNot(HaveOccurred())
 
+				Ω(fakeSchedulerDB.GetLatestInputVersionsCallCount()).Should(Equal(1))
+				Ω(fakeSchedulerDB.GetLatestInputVersionsArgsForCall(0)).Should(Equal([]atc.JobBuildInput{
+					{
+						Name:     "some-input",
+						Resource: "some-resource",
+						Trigger:  true,
+					},
+					{
+						Name:     "some-other-input",
+						Resource: "some-other-resource",
+						Trigger:  true,
+					},
+				}))
+
 				Ω(fakeSchedulerDB.GetJobBuildForInputsCallCount()).Should(Equal(1))
 
 				checkedJob, checkedInputs := fakeSchedulerDB.GetJobBuildForInputsArgsForCall(0)
@@ -249,21 +263,21 @@ var _ = Describe("Scheduler", func() {
 				Ω(checkedInputs).Should(ConsistOf(newInputs))
 			})
 
-			Context("and the job has inputs configured not to check", func() {
+			Context("and the job has inputs configured to not trigger when they change", func() {
 				BeforeEach(func() {
 					trigger := false
 
 					job.Inputs = append(job.Inputs, atc.JobInputConfig{
-						Resource:   "some-non-checking-resource",
+						Resource:   "some-non-triggering-resource",
 						RawTrigger: &trigger,
 					})
 
 					foundInputsWithCheck := append(
 						newInputs,
 						db.BuildInput{
-							Name: "some-non-checking-resource",
+							Name: "some-non-triggering-resource",
 							VersionedResource: db.VersionedResource{
-								Resource: "some-non-checking-resource",
+								Resource: "some-non-triggering-resource",
 								Version:  db.Version{"version": 3},
 							},
 						},
@@ -284,7 +298,7 @@ var _ = Describe("Scheduler", func() {
 				})
 			})
 
-			Context("and all inputs are configured not to check", func() {
+			Context("and all inputs are configured not to trigger", func() {
 				BeforeEach(func() {
 					trigger := false
 
@@ -529,7 +543,18 @@ var _ = Describe("Scheduler", func() {
 
 							Ω(fakeSchedulerDB.GetLatestInputVersionsCallCount()).Should(Equal(1))
 							inputConfigs := fakeSchedulerDB.GetLatestInputVersionsArgsForCall(0)
-							Ω(inputConfigs).Should(Equal(job.Inputs))
+							Ω(inputConfigs).Should(Equal([]atc.JobBuildInput{
+								{
+									Name:     "some-input",
+									Resource: "some-resource",
+									Trigger:  true,
+								},
+								{
+									Name:     "some-other-input",
+									Resource: "some-other-resource",
+									Trigger:  true,
+								},
+							}))
 
 							Ω(factory.CreateCallCount()).Should(Equal(1))
 							createJob, createResources, createInputs := factory.CreateArgsForCall(0)

@@ -57,6 +57,88 @@ type JobConfig struct {
 	Plan PlanSequence `yaml:"plan,omitempty" json:"plan,omitempty" mapstructure:"plan"`
 }
 
+func (config JobConfig) BuildInputs() []JobBuildInput {
+	if config.Inputs != nil {
+		var inputs []JobBuildInput
+
+		for _, config := range config.Inputs {
+			inputs = append(inputs, JobBuildInput{
+				Name:     config.Name(),
+				Resource: config.Resource,
+				Passed:   config.Passed,
+				Trigger:  config.Trigger(),
+			})
+		}
+
+		return inputs
+	}
+
+	if len(config.Plan) == 0 {
+		return []JobBuildInput{}
+	}
+
+	collectTriggers := true
+	return collectInputs(PlanConfig{Do: &config.Plan}, collectTriggers)
+}
+
+func collectInputs(plan PlanConfig, collectTriggers bool) []JobBuildInput {
+	if plan.Do != nil {
+		var inputs []JobBuildInput
+
+		for _, p := range *plan.Do {
+			inputs = append(inputs, collectInputs(p, collectTriggers)...)
+			collectTriggers = false
+		}
+
+		return inputs
+	}
+
+	if plan.Get != "" {
+		get := plan.Get
+
+		if len(plan.Passed) == 0 && !collectTriggers {
+			// if there are no passed: constraints, and it's not in the first step,
+			// don't consider it an input
+			return []JobBuildInput{}
+		}
+
+		resource := get
+		if plan.Resource != "" {
+			resource = plan.Resource
+		}
+
+		var shouldTrigger bool
+		if !collectTriggers {
+			shouldTrigger = false
+		} else if plan.RawTrigger == nil {
+			shouldTrigger = true
+		} else {
+			shouldTrigger = *plan.RawTrigger
+		}
+
+		return []JobBuildInput{
+			{
+				Name:     get,
+				Resource: resource,
+				Passed:   plan.Passed,
+				Trigger:  shouldTrigger,
+			},
+		}
+	}
+
+	if plan.Aggregate != nil {
+		var inputs []JobBuildInput
+
+		for _, p := range *plan.Aggregate {
+			inputs = append(inputs, collectInputs(p, collectTriggers)...)
+		}
+
+		return inputs
+	}
+
+	return []JobBuildInput{}
+}
+
 // A PlanSequence corresponds to a chain of Compose plan, with an implicit
 // `on: [success]` after every Execute plan.
 type PlanSequence []PlanConfig
@@ -80,8 +162,14 @@ type PlanConfig struct {
 	// corresponds to Get and Put resource plans, respectively
 	// name of 'input', e.g. bosh-stemcell
 	Get string `yaml:"get,omitempty" json:"get,omitempty" mapstructure:"get"`
+	// jobs that this resource must have made it through
+	Passed []string `yaml:"passed,omitempty" json:"passed,omitempty" mapstructure:"passed"`
+	// whether to trigger based on this resource changing
+	RawTrigger *bool `yaml:"trigger,omitempty" json:"trigger,omitempty" mapstructure:"trigger"`
+
 	// name of 'output', e.g. rootfs-tarball
 	Put string `yaml:"put,omitempty" json:"put,omitempty" mapstructure:"put"`
+
 	// corresponding resource config, e.g. aws-stemcell
 	Resource string `yaml:"resource,omitempty" json:"resource,omitempty" mapstructure:"resource"`
 
@@ -120,6 +208,13 @@ func (config PlanConfig) Name() string {
 	}
 
 	return ""
+}
+
+type JobBuildInput struct {
+	Name     string
+	Resource string
+	Passed   []string
+	Trigger  bool
 }
 
 type JobInputConfig struct {

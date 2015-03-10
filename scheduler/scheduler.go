@@ -17,7 +17,7 @@ type SchedulerDB interface {
 	FinishBuild(buildID int, status db.Status) error
 
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
-	GetLatestInputVersions([]atc.JobInputConfig) ([]db.BuildInput, error)
+	GetLatestInputVersions([]atc.JobBuildInput) ([]db.BuildInput, error)
 
 	CreateJobBuild(job string) (db.Build, error)
 
@@ -55,12 +55,14 @@ type Scheduler struct {
 func (s *Scheduler) BuildLatestInputs(logger lager.Logger, job atc.JobConfig, resources atc.ResourceConfigs) error {
 	logger = logger.Session("build-latest")
 
-	if len(job.Inputs) == 0 {
+	inputs := job.BuildInputs()
+
+	if len(inputs) == 0 {
 		// no inputs; no-op
 		return nil
 	}
 
-	latestInputs, err := s.DB.GetLatestInputVersions(job.Inputs)
+	latestInputs, err := s.DB.GetLatestInputVersions(inputs)
 	if err != nil {
 		if err == db.ErrNoVersions {
 			logger.Debug("no-input-versions-available")
@@ -237,9 +239,11 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, build db.
 	}
 
 	if len(inputs) == 0 {
-		for _, input := range job.Inputs {
+		buildInputs := job.BuildInputs()
+
+		for _, input := range buildInputs {
 			scanLog := logger.Session("scan", lager.Data{
-				"input":    input.Name(),
+				"input":    input.Name,
 				"resource": input.Resource,
 			})
 
@@ -252,7 +256,7 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, build db.
 			scanLog.Info("done")
 		}
 
-		inputs, err = s.DB.GetLatestInputVersions(job.Inputs)
+		inputs, err = s.DB.GetLatestInputVersions(buildInputs)
 		if err != nil {
 			logger.Error("failed-to-get-latest-input-versions", err)
 			return nil

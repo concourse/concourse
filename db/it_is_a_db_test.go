@@ -1060,14 +1060,14 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				savedVR2, err := database.GetLatestVersionedResource(resource)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				inputConfigs := []atc.JobInputConfig{
+				jobBuildInputs := []atc.JobBuildInput{
 					{
-						RawName:  "some-input-name",
+						Name:     "some-input-name",
 						Resource: resource,
 					},
 				}
 
-				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal([]db.BuildInput{
+				Ω(database.GetLatestInputVersions(jobBuildInputs)).Should(Equal([]db.BuildInput{
 					{
 						Name:              "some-input-name",
 						VersionedResource: savedVR2.VersionedResource,
@@ -1077,7 +1077,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				err = database.DisableVersionedResource(savedVR2.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal([]db.BuildInput{
+				Ω(database.GetLatestInputVersions(jobBuildInputs)).Should(Equal([]db.BuildInput{
 					{
 						Name:              "some-input-name",
 						VersionedResource: savedVR1.VersionedResource,
@@ -1088,13 +1088,13 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				Ω(err).ShouldNot(HaveOccurred())
 
 				// no versions
-				_, err = database.GetLatestInputVersions(inputConfigs)
+				_, err = database.GetLatestInputVersions(jobBuildInputs)
 				Ω(err).Should(HaveOccurred())
 
 				err = database.EnableVersionedResource(savedVR1.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal([]db.BuildInput{
+				Ω(database.GetLatestInputVersions(jobBuildInputs)).Should(Equal([]db.BuildInput{
 					{
 						Name:              "some-input-name",
 						VersionedResource: savedVR1.VersionedResource,
@@ -1104,7 +1104,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				err = database.EnableVersionedResource(savedVR2.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestInputVersions(inputConfigs)).Should(Equal([]db.BuildInput{
+				Ω(database.GetLatestInputVersions(jobBuildInputs)).Should(Equal([]db.BuildInput{
 					{
 						Name:              "some-input-name",
 						VersionedResource: savedVR2.VersionedResource,
@@ -1124,12 +1124,14 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				sb1, err := database.CreateJobBuild("shared-job")
 				Ω(err).ShouldNot(HaveOccurred())
 
-				_, err = database.GetLatestInputVersions([]atc.JobInputConfig{
+				_, err = database.GetLatestInputVersions([]atc.JobBuildInput{
 					{
+						Name:     "input-1",
 						Resource: "resource-1",
 						Passed:   []string{"shared-job", "job-1"},
 					},
 					{
+						Name:     "input-2",
 						Resource: "resource-2",
 						Passed:   []string{"shared-job", "job-2"},
 					},
@@ -1164,22 +1166,24 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestInputVersions([]atc.JobInputConfig{
+				Ω(database.GetLatestInputVersions([]atc.JobBuildInput{
 					{
+						Name:     "input-1",
 						Resource: "resource-1",
 						Passed:   []string{"shared-job", "job-1"},
 					},
 					{
+						Name:     "input-2",
 						Resource: "resource-2",
 						Passed:   []string{"shared-job", "job-2"},
 					},
 				})).Should(Equal([]db.BuildInput{
 					{
-						Name:              "resource-1",
+						Name:              "input-1",
 						VersionedResource: savedVR1.VersionedResource,
 					},
 					{
-						Name:              "resource-2",
+						Name:              "input-2",
 						VersionedResource: savedVR2.VersionedResource,
 					},
 				}))
@@ -1216,22 +1220,24 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 				// do NOT save resource-2 as an output of job-2
 
-				Ω(database.GetLatestInputVersions([]atc.JobInputConfig{
+				Ω(database.GetLatestInputVersions([]atc.JobBuildInput{
 					{
+						Name:     "input-1",
 						Resource: "resource-1",
 						Passed:   []string{"shared-job", "job-1"},
 					},
 					{
+						Name:     "input-2",
 						Resource: "resource-2",
 						Passed:   []string{"shared-job", "job-2"},
 					},
 				})).Should(Equal([]db.BuildInput{
 					{
-						Name:              "resource-1",
+						Name:              "input-1",
 						VersionedResource: savedVR1.VersionedResource,
 					},
 					{
-						Name:              "resource-2",
+						Name:              "input-2",
 						VersionedResource: savedVR2.VersionedResource,
 					},
 				}))
@@ -1244,22 +1250,24 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(database.GetLatestInputVersions([]atc.JobInputConfig{
+				Ω(database.GetLatestInputVersions([]atc.JobBuildInput{
 					{
+						Name:     "input-1",
 						Resource: "resource-1",
 						Passed:   []string{"shared-job", "job-1"},
 					},
 					{
+						Name:     "input-2",
 						Resource: "resource-2",
 						Passed:   []string{"shared-job", "job-2"},
 					},
 				})).Should(Equal([]db.BuildInput{
 					{
-						Name:              "resource-1",
+						Name:              "input-1",
 						VersionedResource: savedCommonVR1.VersionedResource,
 					},
 					{
-						Name:              "resource-2",
+						Name:              "input-2",
 						VersionedResource: savedCommonVR2.VersionedResource,
 					},
 				}))
@@ -1296,22 +1304,24 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					})
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(database.GetLatestInputVersions([]atc.JobInputConfig{
+					Ω(database.GetLatestInputVersions([]atc.JobBuildInput{
 						{
+							Name:     "input-1",
 							Resource: "resource-1",
 							Passed:   []string{"shared-job", "job-1"},
 						},
 						{
+							Name:     "input-2",
 							Resource: "resource-2",
 							Passed:   []string{"shared-job", "job-2"},
 						},
 					})).Should(Equal([]db.BuildInput{
 						{
-							Name:              "resource-1",
+							Name:              "input-1",
 							VersionedResource: savedCommonVR1.VersionedResource,
 						},
 						{
-							Name:              "resource-2",
+							Name:              "input-2",
 							VersionedResource: savedCommonVR2.VersionedResource,
 						},
 					}))
