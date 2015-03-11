@@ -3,6 +3,15 @@ var LogsStore = require("./logs_store");
 var StepStore = require("./step_store");
 
 var actions = {
+  preloadInput: function(name, firstOccurrence, version, metadata) {
+    this.dispatch(StepStore.PRELOAD_INPUT, {
+      name: name,
+      firstOccurrence: firstOccurrence,
+      version: version,
+      metadata: metadata
+    });
+  },
+
   addLog: function(origin, line) {
     this.dispatch(LogsStore.ADD_LOG, { origin: origin, line: line });
   },

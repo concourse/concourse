@@ -38,6 +38,23 @@
 
 <script src="{{url "Public" "build.js"}}"></script>
 <script type="text/javascript">
+  {{range .Inputs}}
+  preloadInput(
+    {{.Name}},
+    {{.FirstOccurrence}},
+    {
+      {{range $name, $val := .Version}}
+        "{{$name}}": "{{$val}}",
+      {{end}}
+    },
+    [
+      {{range .Metadata}}
+        { name: "{{.Name}}", value: "{{.Value}}" },
+      {{end}}
+    ]
+  );
+  {{end}}
+
   streamLog({{url "BuildEvents" .Build | js}})
 </script>
 {{end}}

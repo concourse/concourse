@@ -331,5 +331,5 @@ function legacyOutputOrigin(name) {
   }
 }
 
-
 window.streamLog = streamLog;
+window.preloadInput = flux.actions.preloadInput;
