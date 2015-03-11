@@ -41,6 +41,18 @@ var targetFlag = cli.StringFlag{
 	EnvVar: "ATC_URL",
 }
 
+var stepTypeFlag = cli.StringFlag{
+	Name:  "step-type, t",
+	Value: "execute",
+	Usage: "type of step to hijack. one of get, put, or execute.",
+}
+
+var stepNameFlag = cli.StringFlag{
+	Name:  "step-name, n",
+	Value: "build",
+	Usage: "name of step to hijack (e.g. build, unit, resource name)",
+}
+
 var executeFlags = []cli.Flag{
 	buildConfigFlag,
 	inputFlag,
@@ -157,6 +169,8 @@ func takeControl(commandName string) cli.Command {
 			privilegedFlag,
 			insecureFlag,
 			targetFlag,
+			stepTypeFlag,
+			stepNameFlag,
 		},
 		Action: commands.Hijack,
 	}

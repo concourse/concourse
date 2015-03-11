@@ -33,6 +33,8 @@ func Hijack(c *cli.Context) {
 	target := c.GlobalString("target")
 	insecure := c.GlobalBool("insecure")
 	privileged := c.Bool("privileged")
+	stepType := c.String("step-type")
+	stepName := c.String("step-name")
 
 	reqGenerator := rata.NewRequestGenerator(target, atc.Routes)
 
@@ -100,6 +102,11 @@ func Hijack(c *cli.Context) {
 		hijackReq.Header.Add("Authorization", basicAuth(hijackReq.URL.User))
 		hijackReq.URL.User = nil
 	}
+
+	hijackReq.URL.RawQuery = url.Values{
+		"type": []string{stepType},
+		"name": []string{stepName},
+	}.Encode()
 
 	conn, err := dialEndpoint(hijackReq.URL, tlsConfig)
 	if err != nil {

@@ -27,9 +27,9 @@ var _ = Describe("Hijacking", func() {
 		os.Setenv("ATC_URL", atcServer.URL())
 	})
 
-	hijackHandler := func(didHijack chan<- struct{}, errorMessages ...string) http.HandlerFunc {
+	hijackHandler := func(didHijack chan<- struct{}, rawQuery []string, errorMessages []string) http.HandlerFunc {
 		return ghttp.CombineHandlers(
-			ghttp.VerifyRequest("POST", "/api/v1/builds/3/hijack"),
+			ghttp.VerifyRequest("POST", "/api/v1/builds/3/hijack", rawQuery...),
 			func(w http.ResponseWriter, r *http.Request) {
 				defer GinkgoRecover()
 
@@ -127,7 +127,7 @@ var _ = Describe("Hijacking", func() {
 						{ID: 1, Name: "1", Status: "finished"},
 					}),
 				),
-				hijackHandler(didHijack),
+				hijackHandler(didHijack, nil, nil),
 			)
 		})
 
@@ -164,7 +164,7 @@ var _ = Describe("Hijacking", func() {
 							},
 						}),
 					),
-					hijackHandler(didHijack),
+					hijackHandler(didHijack, nil, nil),
 				)
 			})
 
@@ -191,7 +191,7 @@ var _ = Describe("Hijacking", func() {
 							},
 						}),
 					),
-					hijackHandler(didHijack),
+					hijackHandler(didHijack, nil, nil),
 				)
 			})
 
@@ -215,7 +215,7 @@ var _ = Describe("Hijacking", func() {
 							JobName: "some-job",
 						}),
 					),
-					hijackHandler(didHijack),
+					hijackHandler(didHijack, nil, nil),
 				)
 			})
 
@@ -239,7 +239,7 @@ var _ = Describe("Hijacking", func() {
 							{ID: 1, Name: "1", Status: "finished"},
 						}),
 					),
-					hijackHandler(didHijack, "something went wrong"),
+					hijackHandler(didHijack, nil, []string{"something went wrong"}),
 				)
 			})
 
@@ -265,6 +265,30 @@ var _ = Describe("Hijacking", func() {
 
 				Eventually(sess).Should(gexec.Exit(255))
 			})
+		})
+	})
+
+	Context("when a step type and name are specified", func() {
+		BeforeEach(func() {
+			didHijack := make(chan struct{})
+			hijacked = didHijack
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/builds"),
+					ghttp.RespondWithJSONEncoded(200, []atc.Build{
+						{ID: 4, Name: "1", Status: "started", JobName: "some-job"},
+						{ID: 3, Name: "3", Status: "started"},
+						{ID: 2, Name: "2", Status: "started"},
+						{ID: 1, Name: "1", Status: "finished"},
+					}),
+				),
+				hijackHandler(didHijack, []string{"type=get&name=money"}, nil),
+			)
+		})
+
+		It("hijacks the given type and name", func() {
+			hijack("-t", "get", "-n", "money")
 		})
 	})
 })
