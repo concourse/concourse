@@ -7,31 +7,49 @@ var constants = {
   SET_STEP_VERSION_INFO: 'SET_STEP_VERSION_INFO',
   SET_STEP_SUCCESSFUL: 'SET_STEP_SUCCESSFUL',
   TOGGLE_STEP_LOGS: 'TOGGLE_STEP_LOGS',
+  PRELOAD_INPUT: 'PRELOAD_INPUT',
 };
 
 var Store = Fluxxor.createStore({
   initialize: function() {
     this.steps = Immutable.Map();
 
+    this.preloadedInputs = Immutable.Map();
+
     this.bindActions(
       constants.SET_STEP_RUNNING, this.onSetStepRunning,
       constants.SET_STEP_ERRORED, this.onSetStepErrored,
       constants.SET_STEP_VERSION_INFO, this.onSetStepVersionInfo,
       constants.SET_STEP_SUCCESSFUL, this.onSetStepSuccessful,
-      constants.TOGGLE_STEP_LOGS, this.onToggleStepLogs
+      constants.TOGGLE_STEP_LOGS, this.onToggleStepLogs,
+      constants.PRELOAD_INPUT, this.onPreloadInput
     );
   },
 
   setStep: function(origin, changes) {
+    var preloadedData = {};
+    if (origin.type == "get" && this.preloadedInputs.has(origin.name)) {
+      preloadedData = this.preloadedInputs.get(origin.name);
+      console.log("REPAL", preloadedData);
+    }
+
     this.steps = this.steps.updateIn(origin.location, function(stepModel) {
       if (stepModel === undefined) {
-        return new StepModel(origin).merge(changes);
+        return new StepModel(origin).merge(preloadedData).merge(changes);
       } else {
         return stepModel.merge(changes);
       }
     });
 
     this.emit("change");
+  },
+
+  setPreloadedInput: function(name, data) {
+    this.preloadedInputs = this.preloadedInputs.set(name, data);
+  },
+
+  onPreloadInput: function(data) {
+    this.setPreloadedInput(data.name, data);
   },
 
   onSetStepVersionInfo: function(data) {
@@ -74,6 +92,8 @@ function StepModel(origin) {
     metadata: undefined,
 
     successful: undefined,
+
+    firstOccurrence: false,
   });
 
   this.merge = function(attrs) {
@@ -108,8 +128,7 @@ function StepModel(origin) {
   }
 
   this.isFirstOccurrence = function() {
-    // currently not supported
-    return false;
+    return this._map.get("firstOccurrence");
   }
 
   this.wasToggled = function() {
