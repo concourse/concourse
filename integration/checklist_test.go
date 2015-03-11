@@ -51,87 +51,9 @@ var _ = Describe("Fly CLI", func() {
 					},
 				},
 
-				Resources: atc.ResourceConfigs{
-					{
-						Name: "some-resource",
-						Type: "some-type",
-						Source: atc.Source{
-							"source-config": "some-value",
-						},
-					},
-					{
-						Name: "some-other-resource",
-						Type: "some-other-type",
-						Source: atc.Source{
-							"source-config": "some-value",
-						},
-					},
-				},
-
 				Jobs: atc.JobConfigs{
 					{
-						Name: "some-job",
-
-						Public: true,
-
-						BuildConfigPath: "some/config/path.yml",
-						BuildConfig: &atc.BuildConfig{
-							Image: "some-image",
-							Params: map[string]string{
-								"A": "B",
-							},
-						},
-
-						Privileged: true,
-
-						Serial: true,
-
-						InputConfigs: []atc.JobInputConfig{
-							{
-								RawName:  "some-input",
-								Resource: "some-resource",
-								Params: atc.Params{
-									"some-param": "some-value",
-								},
-								Passed: []string{"job-1", "job-2"},
-							},
-						},
-
-						OutputConfigs: []atc.JobOutputConfig{
-							{
-								Resource: "some-resource",
-								Params: atc.Params{
-									"some-param": "some-value",
-								},
-								RawPerformOn: []atc.Condition{"success", "failure"},
-							},
-						},
-					},
-					{
-						Name: "some-other-job",
-
-						BuildConfigPath: "some/config/path.yml",
-
-						InputConfigs: []atc.JobInputConfig{
-							{
-								RawName:  "some-other-input",
-								Resource: "some-other-resource",
-								Params: atc.Params{
-									"some-param": "some-value",
-								},
-								Passed: []string{"job-1", "job-2"},
-							},
-						},
-
-						OutputConfigs: []atc.JobOutputConfig{
-							{
-								Resource: "some-other-resource",
-								Params: atc.Params{
-									"some-param": "some-value",
-								},
-								RawPerformOn: []atc.Condition{"success", "failure"},
-							},
-						},
+						Name: "some-orphaned-job",
 					},
 				},
 			}
@@ -162,10 +84,9 @@ job-3: concourse.check %s   job-3
 job-4: concourse.check %s   job-4
 
 #- misc
-some-other-job: concourse.check %s   some-other-job
-some-job: concourse.check %s   some-job
+some-orphaned-job: concourse.check %s   some-orphaned-job
 
-`, atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL())))
+`, atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL())))
 		})
 	})
 })
