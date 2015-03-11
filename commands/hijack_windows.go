@@ -10,6 +10,6 @@ import (
 )
 
 func Hijack(c *cli.Context) {
-	log.Fatalln("Command not supported on Windows!")
+	log.Fatalln("command not supported on windows!")
 	os.Exit(1)
 }
