@@ -125,7 +125,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			It("returns an error", func() {
 				Ω(validateErr).Should(HaveOccurred())
-				Ω(validateErr.Error()).Should(ContainSubstring("resource at index 1 has no name"))
+				Ω(validateErr.Error()).Should(ContainSubstring("resources[1] has no name"))
 			})
 		})
 
@@ -139,7 +139,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			It("returns an error", func() {
 				Ω(validateErr).Should(HaveOccurred())
-				Ω(validateErr.Error()).Should(ContainSubstring("resource 'bogus-resource' has no type"))
+				Ω(validateErr.Error()).Should(ContainSubstring("resources.bogus-resource has no type"))
 			})
 		})
 
@@ -153,8 +153,8 @@ var _ = Describe("ValidateConfig", func() {
 
 			It("returns an error describing both errors", func() {
 				Ω(validateErr).Should(HaveOccurred())
-				Ω(validateErr.Error()).Should(ContainSubstring("resource at index 1 has no name"))
-				Ω(validateErr.Error()).Should(ContainSubstring("resource at index 1 has no type"))
+				Ω(validateErr.Error()).Should(ContainSubstring("resources[1] has no name"))
+				Ω(validateErr.Error()).Should(ContainSubstring("resources[1] has no type"))
 			})
 		})
 
@@ -166,7 +166,7 @@ var _ = Describe("ValidateConfig", func() {
 			It("returns an error", func() {
 				Ω(validateErr).Should(HaveOccurred())
 				Ω(validateErr.Error()).Should(ContainSubstring(
-					"resources at index 0 and 1 have the same name ('some-resource')",
+					"resources[0] and resources[1] have the same name ('some-resource')",
 				))
 			})
 		})
@@ -201,7 +201,7 @@ var _ = Describe("ValidateConfig", func() {
 			It("returns an error", func() {
 				Ω(validateErr).Should(HaveOccurred())
 				Ω(validateErr.Error()).Should(ContainSubstring(
-					"job at index 1 has no name",
+					"jobs[1] has no name",
 				))
 			})
 		})
@@ -229,7 +229,7 @@ var _ = Describe("ValidateConfig", func() {
 			It("returns an error", func() {
 				Ω(validateErr).Should(HaveOccurred())
 				Ω(validateErr.Error()).Should(ContainSubstring(
-					"job 'some-other-job' has an input ('foo') with no resource",
+					"jobs.some-other-job.inputs.foo has no resource",
 				))
 			})
 		})
@@ -246,7 +246,7 @@ var _ = Describe("ValidateConfig", func() {
 			It("returns an error", func() {
 				Ω(validateErr).Should(HaveOccurred())
 				Ω(validateErr.Error()).Should(ContainSubstring(
-					"job 'some-other-job' has an input ('foo') with an unknown resource ('bogus-resource')",
+					"jobs.some-other-job.inputs.foo has an unknown resource ('bogus-resource')",
 				))
 			})
 		})
@@ -264,7 +264,7 @@ var _ = Describe("ValidateConfig", func() {
 			It("returns an error", func() {
 				Ω(validateErr).Should(HaveOccurred())
 				Ω(validateErr.Error()).Should(ContainSubstring(
-					"job 'some-other-job' has an input ('foo') with an unknown job dependency ('bogus-job')",
+					"jobs.some-other-job.inputs.foo.passed references an unknown job ('bogus-job')",
 				))
 			})
 		})
@@ -278,7 +278,7 @@ var _ = Describe("ValidateConfig", func() {
 			It("returns an error", func() {
 				Ω(validateErr).Should(HaveOccurred())
 				Ω(validateErr.Error()).Should(ContainSubstring(
-					"job 'some-other-job' has an output (at index 0) with no resource",
+					"jobs.some-other-job.outputs[0] has no resource",
 				))
 			})
 		})
@@ -294,8 +294,192 @@ var _ = Describe("ValidateConfig", func() {
 			It("returns an error", func() {
 				Ω(validateErr).Should(HaveOccurred())
 				Ω(validateErr.Error()).Should(ContainSubstring(
-					"job 'some-other-job' has an output (at index 0) with an unknown resource ('bogus-resource')",
+					"jobs.some-other-job.outputs[0] has an unknown resource ('bogus-resource')",
 				))
+			})
+		})
+
+		Describe("plans", func() {
+			BeforeEach(func() {
+				// clear out old-style configuration
+				job.BuildConfigPath = ""
+				job.BuildConfig = nil
+				job.InputConfigs = nil
+				job.OutputConfigs = nil
+			})
+
+			Context("when multiple actions are specified in the same plan", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Get:       "lol",
+						Put:       "lol",
+						Execute:   "lol",
+						Do:        &atc.PlanSequence{},
+						Aggregate: &atc.PlanSequence{},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job.plan[0] has multiple actions specified (get, put, execute, do, aggregate)",
+					))
+				})
+			})
+
+			Context("when no actions are specified in the plan", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job.plan[0] has no action specified",
+					))
+				})
+			})
+
+			Context("when a get plan has execute-only fields specified", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Get:             "lol",
+						Privileged:      true,
+						BuildConfigPath: "build.yml",
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job.plan[0].get.lol has invalid fields specified (privileged, build)",
+					))
+				})
+			})
+
+			Context("when an execute plan has invalid fields specified", func() {
+				BeforeEach(func() {
+					no := false
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Execute:    "lol",
+						Resource:   "some-resource",
+						Passed:     []string{"hi"},
+						RawTrigger: &no,
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job.plan[0].execute.lol has invalid fields specified (resource, passed, trigger)",
+					))
+				})
+			})
+
+			Context("when an execute plan has params specified", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Execute: "lol",
+						Params:  atc.Params{"A": "B"},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job.plan[0].execute.lol specifies params, which should be config.params",
+					))
+				})
+			})
+
+			Context("when a put plan has invalid fields specified", func() {
+				BeforeEach(func() {
+					no := false
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Put:             "lol",
+						Passed:          []string{"get", "only"},
+						RawTrigger:      &no,
+						Privileged:      true,
+						BuildConfigPath: "build.yml",
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job.plan[0].put.lol has invalid fields specified (passed, trigger, privileged, build)",
+					))
+				})
+			})
+
+			Context("when an aggregate step has a member who has no name", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Aggregate: &atc.PlanSequence{
+							{Aggregate: &atc.PlanSequence{}},
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job.plan[0].aggregate[0] has no name",
+					))
+				})
+			})
+
+			Context("when a job's input's passed constraints reference a bogus job", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Get:    "lol",
+						Passed: []string{"bogus-job"},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job.plan[0].get.lol.passed references an unknown job ('bogus-job')",
+					))
+				})
+			})
+
+			Context("when a man, a plan, a canal, panama are specified", func() {
+				BeforeEach(func() {
+					job.BuildConfig = &atc.BuildConfig{
+						Run: atc.BuildRunConfig{
+							Path: "ls",
+						},
+					}
+
+					job.Plan = append(job.Plan, atc.PlanConfig{Get: "foo"})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job has both a plan and inputs/outputs/build config specified",
+					))
+				})
 			})
 		})
 
@@ -306,7 +490,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			It("returns an error", func() {
 				Ω(validateErr).Should(HaveOccurred())
-				Ω(validateErr.Error()).Should(ContainSubstring("jobs at index 0 and 1 have the same name ('some-job')"))
+				Ω(validateErr.Error()).Should(ContainSubstring("jobs[0] and jobs[1] have the same name ('some-job')"))
 			})
 		})
 	})

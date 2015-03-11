@@ -91,15 +91,15 @@ func validateResources(c atc.Config) error {
 	for i, resource := range c.Resources {
 		var identifier string
 		if resource.Name == "" {
-			identifier = fmt.Sprintf("resource at index %d", i)
+			identifier = fmt.Sprintf("resources[%d]", i)
 		} else {
-			identifier = fmt.Sprintf("resource '%s'", resource.Name)
+			identifier = fmt.Sprintf("resources.%s", resource.Name)
 		}
 
 		if other, exists := names[resource.Name]; exists {
 			errorMessages = append(errorMessages,
 				fmt.Sprintf(
-					"resources at index %d and %d have the same name ('%s')",
+					"resources[%d] and resources[%d] have the same name ('%s')",
 					other, i, resource.Name))
 		} else if resource.Name != "" {
 			names[resource.Name] = i
@@ -125,15 +125,15 @@ func validateJobs(c atc.Config) error {
 	for i, job := range c.Jobs {
 		var identifier string
 		if job.Name == "" {
-			identifier = fmt.Sprintf("job at index %d", i)
+			identifier = fmt.Sprintf("jobs[%d]", i)
 		} else {
-			identifier = fmt.Sprintf("job '%s'", job.Name)
+			identifier = fmt.Sprintf("jobs.%s", job.Name)
 		}
 
 		if other, exists := names[job.Name]; exists {
 			errorMessages = append(errorMessages,
 				fmt.Sprintf(
-					"jobs at index %d and %d have the same name ('%s')",
+					"jobs[%d] and jobs[%d] have the same name ('%s')",
 					other, i, job.Name))
 		} else if job.Name != "" {
 			names[job.Name] = i
@@ -143,57 +143,255 @@ func validateJobs(c atc.Config) error {
 			errorMessages = append(errorMessages, identifier+" has no name")
 		}
 
-		for i, input := range job.InputConfigs {
-			var inputIdentifier string
-			if input.Name() == "" {
-				inputIdentifier = fmt.Sprintf("at index %d", i)
-			} else {
-				inputIdentifier = fmt.Sprintf("'%s'", input.Name())
-			}
+		if job.Plan != nil && (job.BuildConfig != nil || len(job.BuildConfigPath) > 0 || len(job.InputConfigs) > 0 || len(job.OutputConfigs) > 0) {
+			errorMessages = append(errorMessages, identifier+" has both a plan and inputs/outputs/build config specified")
+		}
 
-			if input.Resource == "" {
-				errorMessages = append(errorMessages,
-					identifier+" has an input ("+inputIdentifier+") with no resource")
-			} else {
-				_, found := c.Resources.Lookup(input.Resource)
-				if !found {
-					errorMessages = append(errorMessages,
-						fmt.Sprintf(
-							"%s has an input (%s) with an unknown resource ('%s')",
-							identifier, inputIdentifier, input.Resource))
-				}
-			}
+		errorMessages = append(errorMessages, validatePlan(c, identifier+".plan", atc.PlanConfig{Do: &job.Plan})...)
+		errorMessages = append(errorMessages, validateInputOutputConfig(c, job, identifier)...)
+	}
 
-			for _, job := range input.Passed {
-				_, found := c.Jobs.Lookup(job)
-				if !found {
-					errorMessages = append(errorMessages,
-						fmt.Sprintf(
-							"%s has an input (%s) with an unknown job dependency ('%s')",
-							identifier, inputIdentifier, job))
-				}
+	return compositeErr(errorMessages)
+}
+
+func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string {
+	foundTypes := []string{}
+
+	if plan.Get != "" {
+		foundTypes = append(foundTypes, "get")
+	}
+
+	if plan.Put != "" {
+		foundTypes = append(foundTypes, "put")
+	}
+
+	if plan.Execute != "" {
+		foundTypes = append(foundTypes, "execute")
+	}
+
+	if plan.Do != nil {
+		foundTypes = append(foundTypes, "do")
+	}
+
+	if plan.Aggregate != nil {
+		foundTypes = append(foundTypes, "aggregate")
+	}
+
+	if len(foundTypes) == 0 {
+		return []string{identifier + " has no action specified"}
+	}
+
+	if len(foundTypes) > 1 {
+		return []string{fmt.Sprintf("%s has multiple actions specified (%s)", identifier, strings.Join(foundTypes, ", "))}
+	}
+
+	switch {
+	case plan.Do != nil:
+		errorMessages := []string{}
+
+		for i, plan := range *plan.Do {
+			subIdentifier := fmt.Sprintf("%s[%d]", identifier, i)
+			errorMessages = append(errorMessages, validatePlan(c, subIdentifier, plan)...)
+		}
+
+		return errorMessages
+
+	case plan.Aggregate != nil:
+		errorMessages := []string{}
+
+		for i, plan := range *plan.Aggregate {
+			subIdentifier := fmt.Sprintf("%s.aggregate[%d]", identifier, i)
+			errorMessages = append(errorMessages, validatePlan(c, subIdentifier, plan)...)
+
+			if plan.Name() == "" {
+				errorMessages = append(errorMessages, subIdentifier+" has no name")
 			}
 		}
 
-		for i, output := range job.OutputConfigs {
-			outputIdentifier := fmt.Sprintf("at index %d", i)
+		return errorMessages
+	case plan.Get != "":
+		errorMessages := []string{}
+		subIdentifier := fmt.Sprintf("%s.get.%s", identifier, plan.Get)
 
-			if output.Resource == "" {
-				errorMessages = append(errorMessages,
-					identifier+" has an output ("+outputIdentifier+") with no resource")
-			} else {
-				_, found := c.Resources.Lookup(output.Resource)
-				if !found {
-					errorMessages = append(errorMessages,
-						fmt.Sprintf(
-							"%s has an output (%s) with an unknown resource ('%s')",
-							identifier, outputIdentifier, output.Resource))
-				}
+		badFields := []string{}
+
+		if plan.Privileged {
+			badFields = append(badFields, "privileged")
+		}
+
+		if plan.BuildConfig != nil {
+			badFields = append(badFields, "config")
+		}
+
+		if plan.BuildConfigPath != "" {
+			badFields = append(badFields, "build")
+		}
+
+		if len(badFields) > 0 {
+			errorMessages = append(
+				errorMessages,
+				fmt.Sprintf(
+					"%s has invalid fields specified (%s)",
+					subIdentifier,
+					strings.Join(badFields, ", "),
+				),
+			)
+		}
+
+		for _, job := range plan.Passed {
+			_, found := c.Jobs.Lookup(job)
+			if !found {
+				errorMessages = append(
+					errorMessages,
+					fmt.Sprintf(
+						"%s.passed references an unknown job ('%s')",
+						subIdentifier,
+						job,
+					),
+				)
+			}
+		}
+
+		return errorMessages
+	case plan.Put != "":
+		errorMessages := []string{}
+		subIdentifier := fmt.Sprintf("%s.put.%s", identifier, plan.Put)
+
+		badFields := []string{}
+
+		if len(plan.Passed) != 0 {
+			badFields = append(badFields, "passed")
+		}
+
+		if plan.RawTrigger != nil {
+			badFields = append(badFields, "trigger")
+		}
+
+		if plan.Privileged {
+			badFields = append(badFields, "privileged")
+		}
+
+		if plan.BuildConfig != nil {
+			badFields = append(badFields, "config")
+		}
+
+		if plan.BuildConfigPath != "" {
+			badFields = append(badFields, "build")
+		}
+
+		if len(badFields) > 0 {
+			errorMessages = append(
+				errorMessages,
+				fmt.Sprintf(
+					"%s has invalid fields specified (%s)",
+					subIdentifier,
+					strings.Join(badFields, ", "),
+				),
+			)
+		}
+
+		return errorMessages
+	case plan.Execute != "":
+		errorMessages := []string{}
+		subIdentifier := fmt.Sprintf("%s.execute.%s", identifier, plan.Execute)
+		badFields := []string{}
+
+		if plan.Resource != "" {
+			badFields = append(badFields, "resource")
+		}
+
+		if len(plan.Passed) != 0 {
+			badFields = append(badFields, "passed")
+		}
+
+		if plan.RawTrigger != nil {
+			badFields = append(badFields, "trigger")
+		}
+
+		if plan.Params != nil {
+			errorMessages = append(errorMessages, subIdentifier+" specifies params, which should be config.params")
+		}
+
+		if len(badFields) > 0 {
+			errorMessages = append(
+				errorMessages,
+				fmt.Sprintf(
+					"%s has invalid fields specified (%s)",
+					subIdentifier,
+					strings.Join(badFields, ", "),
+				),
+			)
+		}
+
+		return errorMessages
+	}
+
+	return nil
+}
+
+func validateInputOutputConfig(c atc.Config, job atc.JobConfig, identifier string) []string {
+	errorMessages := []string{}
+
+	for i, input := range job.InputConfigs {
+		var inputIdentifier string
+		if input.Name() == "" {
+			inputIdentifier = fmt.Sprintf("%s.inputs[%d]", identifier, i)
+		} else {
+			inputIdentifier = fmt.Sprintf("%s.inputs.%s", identifier, input.Name())
+		}
+
+		if input.Resource == "" {
+			errorMessages = append(errorMessages, inputIdentifier+" has no resource")
+		} else {
+			_, found := c.Resources.Lookup(input.Resource)
+			if !found {
+				errorMessages = append(
+					errorMessages,
+					fmt.Sprintf(
+						"%s has an unknown resource ('%s')",
+						inputIdentifier,
+						input.Resource,
+					),
+				)
+			}
+		}
+
+		for _, job := range input.Passed {
+			_, found := c.Jobs.Lookup(job)
+			if !found {
+				errorMessages = append(
+					errorMessages,
+					fmt.Sprintf(
+						"%s.passed references an unknown job ('%s')",
+						inputIdentifier,
+						job,
+					),
+				)
 			}
 		}
 	}
 
-	return compositeErr(errorMessages)
+	for i, output := range job.OutputConfigs {
+		outputIdentifier := fmt.Sprintf("%s.outputs[%d]", identifier, i)
+
+		if output.Resource == "" {
+			errorMessages = append(errorMessages,
+				outputIdentifier+" has no resource")
+		} else {
+			_, found := c.Resources.Lookup(output.Resource)
+			if !found {
+				errorMessages = append(errorMessages,
+					fmt.Sprintf(
+						"%s has an unknown resource ('%s')",
+						outputIdentifier,
+						output.Resource,
+					),
+				)
+			}
+		}
+	}
+
+	return errorMessages
 }
 
 func compositeErr(errorMessages []string) error {
