@@ -17,12 +17,12 @@ import (
 )
 
 func Configure(c *cli.Context) {
-	atcURL := c.GlobalString("atcURL")
+	target := c.GlobalString("target")
 	insecure := c.GlobalBool("insecure")
 	configPath := c.String("config")
 	asJSON := c.Bool("json")
 
-	atcRequester := newAtcRequester(atcURL, insecure)
+	atcRequester := newAtcRequester(target, insecure)
 
 	if configPath == "" {
 		dumpConfig(atcRequester, asJSON)

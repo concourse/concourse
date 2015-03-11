@@ -11,15 +11,15 @@ import (
 )
 
 func Checklist(c *cli.Context) {
-	rawATCURL := c.GlobalString("atcURL")
+	rawTarget := c.GlobalString("target")
 	insecure := c.GlobalBool("insecure")
 
-	atcRequester := newAtcRequester(rawATCURL, insecure)
+	atcRequester := newAtcRequester(rawTarget, insecure)
 
-	printCheckfile(getConfig(atcRequester), newATCURL(rawATCURL))
+	printCheckfile(getConfig(atcRequester), newTarget(rawTarget))
 }
 
-func printCheckfile(config atc.Config, au atcURL) {
+func printCheckfile(config atc.Config, au target) {
 	for _, group := range config.Groups {
 		printGroup(group, au)
 	}
@@ -30,7 +30,7 @@ func printCheckfile(config atc.Config, au atcURL) {
 	}
 }
 
-func printGroup(group atc.GroupConfig, au atcURL) {
+func printGroup(group atc.GroupConfig, au target) {
 	fmt.Printf("#- %s\n", group.Name)
 	for _, job := range group.Jobs {
 		fmt.Printf("%s: concourse.check %s %s %s %s\n", job, au.url, au.username, au.password, job)
@@ -58,16 +58,16 @@ func orphanedJobs(config atc.Config) []string {
 	return result
 }
 
-type atcURL struct {
+type target struct {
 	url      string
 	username string
 	password string
 }
 
-func newATCURL(rawATCURL string) atcURL {
-	u, err := url.Parse(rawATCURL)
+func newTarget(rawTarget string) target {
+	u, err := url.Parse(rawTarget)
 	if err != nil {
-		log.Printf("invalid atcURL '%s': %s\n", rawATCURL, err.Error())
+		log.Printf("invalid target '%s': %s\n", rawTarget, err.Error())
 		os.Exit(1)
 	}
 
@@ -79,7 +79,7 @@ func newATCURL(rawATCURL string) atcURL {
 	u.User = nil
 	url := u.String()
 
-	return atcURL{
+	return target{
 		url:      url,
 		username: username,
 		password: password,

@@ -15,10 +15,10 @@ import (
 )
 
 func Watch(c *cli.Context) {
-	atcURL := c.GlobalString("atcURL")
+	target := c.GlobalString("target")
 	insecure := c.GlobalBool("insecure")
 
-	atcRequester := newAtcRequester(atcURL, insecure)
+	atcRequester := newAtcRequester(target, insecure)
 
 	build := getBuild(c, atcRequester.httpClient, atcRequester.RequestGenerator)
 

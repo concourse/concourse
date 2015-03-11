@@ -35,12 +35,12 @@ type Input struct {
 }
 
 func Execute(c *cli.Context) {
-	atcURL := c.GlobalString("atcURL")
+	target := c.GlobalString("target")
 	buildConfig := c.String("config")
 	insecure := c.GlobalBool("insecure")
 	excludeIgnored := c.GlobalBool("exclude-ignored")
 
-	atcRequester := newAtcRequester(atcURL, insecure)
+	atcRequester := newAtcRequester(target, insecure)
 
 	inputMappings := c.StringSlice("input")
 	if len(inputMappings) == 0 {
@@ -362,11 +362,11 @@ type atcRequester struct {
 	httpClient *http.Client
 }
 
-func newAtcRequester(atcUrl string, insecure bool) *atcRequester {
+func newAtcRequester(target string, insecure bool) *atcRequester {
 	tlsClientConfig := &tls.Config{InsecureSkipVerify: insecure}
 
 	return &atcRequester{
-		rata.NewRequestGenerator(atcUrl, atc.Routes),
+		rata.NewRequestGenerator(target, atc.Routes),
 		&http.Client{Transport: &http.Transport{TLSClientConfig: tlsClientConfig}},
 	}
 }

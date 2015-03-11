@@ -14,8 +14,8 @@ import (
 )
 
 func Sync(c *cli.Context) {
-	atcURL := c.GlobalString("atcURL")
-	reqGenerator := rata.NewRequestGenerator(atcURL, atc.Routes)
+	target := c.GlobalString("target")
+	reqGenerator := rata.NewRequestGenerator(target, atc.Routes)
 
 	request, err := reqGenerator.CreateRequest(
 		atc.DownloadCLI, rata.Params{}, nil,

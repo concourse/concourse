@@ -34,10 +34,10 @@ var privilegedFlag = cli.BoolFlag{
 	Usage: "run the build or command with root privileges",
 }
 
-var atcURLFlag = cli.StringFlag{
-	Name:   "atcURL",
+var targetFlag = cli.StringFlag{
+	Name:   "target",
 	Value:  "http://192.168.100.4:8080",
-	Usage:  "address of the ATC to use",
+	Usage:  "address of the Concourse API server to use",
 	EnvVar: "ATC_URL",
 }
 
@@ -47,7 +47,7 @@ var executeFlags = []cli.Flag{
 	insecureFlag,
 	excludeIgnoredFlag,
 	privilegedFlag,
-	atcURLFlag,
+	targetFlag,
 }
 
 func jobFlag(verb string) cli.StringFlag {
@@ -101,7 +101,7 @@ func main() {
 				buildFlag("watches"),
 				jobFlag("watches"),
 				insecureFlag,
-				atcURLFlag,
+				targetFlag,
 			},
 			Action: commands.Watch,
 		},
@@ -113,7 +113,7 @@ func main() {
 				pipelineConfigFlag,
 				jsonFlag,
 				insecureFlag,
-				atcURLFlag,
+				targetFlag,
 			},
 			Action: commands.Configure,
 		},
@@ -124,7 +124,7 @@ func main() {
 			Action:    commands.Sync,
 			Flags: []cli.Flag{
 				insecureFlag,
-				atcURLFlag,
+				targetFlag,
 			},
 		},
 		{
@@ -134,7 +134,7 @@ func main() {
 			Action:    commands.Checklist,
 			Flags: []cli.Flag{
 				insecureFlag,
-				atcURLFlag,
+				targetFlag,
 			},
 		},
 	}
@@ -156,7 +156,7 @@ func takeControl(commandName string) cli.Command {
 			buildFlag(commandName + "s"),
 			privilegedFlag,
 			insecureFlag,
-			atcURLFlag,
+			targetFlag,
 		},
 		Action: commands.Hijack,
 	}
