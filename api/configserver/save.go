@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 
 	"github.com/cloudfoundry-incubator/candiedyaml"
 	"github.com/concourse/atc"
@@ -56,8 +57,25 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	var config atc.Config
 	var md mapstructure.Metadata
 	msConfig := &mapstructure.DecoderConfig{
-		Metadata: &md,
-		Result:   &config,
+		Metadata:         &md,
+		Result:           &config,
+		WeaklyTypedInput: true,
+		DecodeHook: func(
+			dataKind reflect.Kind,
+			valKind reflect.Kind,
+			data interface{},
+		) (interface{}, error) {
+			if valKind == reflect.String {
+				if dataKind == reflect.String {
+					return data, nil
+				}
+
+				// format it as JSON/YAML would
+				return json.Marshal(data)
+			}
+
+			return data, nil
+		},
 	}
 	decoder, err := mapstructure.NewDecoder(msConfig)
 	if err != nil {
@@ -68,13 +86,6 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 
 	if err := decoder.Decode(configStructure); err != nil {
 		session.Error("could-not-decode", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	err = mapstructure.Decode(configStructure, &config)
-	if err != nil {
-		session.Error("invalid-config-structure", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

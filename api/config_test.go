@@ -253,6 +253,53 @@ var _ = Describe("Config API", func() {
 							Ω(id).Should(Equal(db.ConfigID(42)))
 						})
 
+						Context("when the payload contains suspicious types", func() {
+							BeforeEach(func() {
+								payload := []byte(`
+jobs:
+- name: some-job
+  config:
+    run:
+      path: ls
+    params:
+      FOO: true
+      BAR: 1
+      BAZ: 1.9
+`)
+
+								request.Body = gbytes.BufferWithBytes(payload)
+							})
+
+							It("returns 200", func() {
+								Ω(response.StatusCode).Should(Equal(http.StatusOK))
+							})
+
+							It("saves it", func() {
+								Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
+
+								config, id := configDB.SaveConfigArgsForCall(0)
+								Ω(config).Should(Equal(atc.Config{
+									Jobs: atc.JobConfigs{
+										{
+											Name: "some-job",
+											BuildConfig: &atc.BuildConfig{
+												Run: atc.BuildRunConfig{
+													Path: "ls",
+												},
+
+												Params: map[string]string{
+													"FOO": "true",
+													"BAR": "1",
+													"BAZ": "1.9",
+												},
+											},
+										},
+									},
+								}))
+								Ω(id).Should(Equal(db.ConfigID(42)))
+							})
+						})
+
 						Context("and saving it fails", func() {
 							BeforeEach(func() {
 								configDB.SaveConfigReturns(errors.New("oh no!"))
