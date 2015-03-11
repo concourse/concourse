@@ -119,14 +119,26 @@ func (build *execBuild) Resume(logger lager.Logger) {
 	}
 }
 
-func (build *execBuild) Hijack(spec atc.HijackProcessSpec, io HijackProcessIO) (HijackedProcess, error) {
+func (build *execBuild) Hijack(target HijackTarget, spec atc.HijackProcessSpec, io HijackProcessIO) (HijackedProcess, error) {
 	ioConfig := exec.IOConfig{
 		Stdin:  io.Stdin,
 		Stdout: io.Stdout,
 		Stderr: io.Stderr,
 	}
 
-	return build.factory.Hijack(build.executeSessionID("build"), ioConfig, spec)
+	var sessionID exec.SessionID
+	switch target.Type {
+	case HijackTargetTypeGet:
+		sessionID = build.getSessionID(target.Name)
+	case HijackTargetTypePut:
+		sessionID = build.putSessionID(target.Name)
+	case HijackTargetTypeExecute:
+		sessionID = build.executeSessionID(target.Name)
+	default:
+		return nil, fmt.Errorf("invalid hijack target type: %s", target.Type)
+	}
+
+	return build.factory.Hijack(sessionID, ioConfig, spec)
 }
 
 func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan, location event.OriginLocation) exec.Step {
@@ -192,7 +204,7 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan, location e
 		})
 
 		return build.factory.Get(
-			build.inputSessionID(plan.Get.Name),
+			build.getSessionID(plan.Get.Name),
 			build.delegate.InputDelegate(logger, *plan.Get, location),
 			atc.ResourceConfig{
 				Name:   plan.Get.Resource,
@@ -210,7 +222,7 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan, location e
 		})
 
 		return build.factory.Put(
-			build.outputSessionID(plan.Put.Resource),
+			build.putSessionID(plan.Put.Resource),
 			build.delegate.OutputDelegate(logger, *plan.Put, location),
 			atc.ResourceConfig{
 				Name:   plan.Put.Resource,
@@ -228,10 +240,10 @@ func (build *execBuild) executeSessionID(executeName string) exec.SessionID {
 	return exec.SessionID(fmt.Sprintf("build-%d-execute-%s", build.buildID, executeName))
 }
 
-func (build *execBuild) inputSessionID(inputName string) exec.SessionID {
-	return exec.SessionID(fmt.Sprintf("build-%d-input-%s", build.buildID, inputName))
+func (build *execBuild) getSessionID(inputName string) exec.SessionID {
+	return exec.SessionID(fmt.Sprintf("build-%d-get-%s", build.buildID, inputName))
 }
 
-func (build *execBuild) outputSessionID(outputName string) exec.SessionID {
-	return exec.SessionID(fmt.Sprintf("build-%d-output-%s", build.buildID, outputName))
+func (build *execBuild) putSessionID(outputName string) exec.SessionID {
+	return exec.SessionID(fmt.Sprintf("build-%d-put-%s", build.buildID, outputName))
 }

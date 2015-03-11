@@ -222,7 +222,7 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 	engineBuild.Resume(logger)
 }
 
-func (build *dbBuild) Hijack(spec atc.HijackProcessSpec, io HijackProcessIO) (HijackedProcess, error) {
+func (build *dbBuild) Hijack(target HijackTarget, spec atc.HijackProcessSpec, io HijackProcessIO) (HijackedProcess, error) {
 	model, err := build.db.GetBuild(build.id)
 	if err != nil {
 		return nil, err
@@ -242,7 +242,7 @@ func (build *dbBuild) Hijack(spec atc.HijackProcessSpec, io HijackProcessIO) (Hi
 		return nil, err
 	}
 
-	return engineBuild.Hijack(spec, io)
+	return engineBuild.Hijack(target, spec, io)
 }
 
 func (build *dbBuild) finishWithError(buildID int, logger lager.Logger) {

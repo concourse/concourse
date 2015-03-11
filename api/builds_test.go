@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/engine"
 	enginefakes "github.com/concourse/atc/engine/fakes"
 )
 
@@ -396,6 +398,8 @@ var _ = Describe("Builds API", func() {
 	Describe("POST /api/v1/builds/:build_id/hijack", func() {
 		var (
 			requestPayload string
+			stepType       string
+			stepName       string
 
 			response *http.Response
 
@@ -408,6 +412,8 @@ var _ = Describe("Builds API", func() {
 
 		BeforeEach(func() {
 			requestPayload = `{"path":"ls"}`
+			stepType = "execute"
+			stepName = "build"
 
 			buildsDB.GetBuildReturns(db.Build{
 				ID: 128,
@@ -423,6 +429,11 @@ var _ = Describe("Builds API", func() {
 				bytes.NewBufferString(requestPayload),
 			)
 			Ω(err).ShouldNot(HaveOccurred())
+
+			hijackReq.URL.RawQuery = url.Values{
+				"type": []string{stepType},
+				"name": []string{stepName},
+			}.Encode()
 
 			conn, err := net.Dial("tcp", server.Listener.Addr().String())
 			Ω(err).ShouldNot(HaveOccurred())
@@ -483,7 +494,11 @@ var _ = Describe("Builds API", func() {
 							ID: 128,
 						}))
 
-						spec, io := fakeBuild.HijackArgsForCall(0)
+						target, spec, io := fakeBuild.HijackArgsForCall(0)
+						Ω(target).Should(Equal(engine.HijackTarget{
+							Type: engine.HijackTargetType(stepType),
+							Name: stepName,
+						}))
 						Ω(spec).Should(Equal(atc.HijackProcessSpec{
 							Path: "ls",
 						}))
@@ -501,7 +516,7 @@ var _ = Describe("Builds API", func() {
 						})
 
 						It("forwards the payload to the process", func() {
-							_, io := fakeBuild.HijackArgsForCall(0)
+							_, _, io := fakeBuild.HijackArgsForCall(0)
 							Ω(bufio.NewReader(io.Stdin).ReadBytes('\n')).Should(Equal([]byte("some stdin\n")))
 						})
 					})
@@ -510,7 +525,7 @@ var _ = Describe("Builds API", func() {
 						JustBeforeEach(func() {
 							Eventually(fakeBuild.HijackCallCount).Should(Equal(1))
 
-							_, io := fakeBuild.HijackArgsForCall(0)
+							_, _, io := fakeBuild.HijackArgsForCall(0)
 
 							_, err := fmt.Fprintf(io.Stdout, "some stdout\n")
 							Ω(err).ShouldNot(HaveOccurred())
@@ -531,7 +546,7 @@ var _ = Describe("Builds API", func() {
 						JustBeforeEach(func() {
 							Eventually(fakeBuild.HijackCallCount).Should(Equal(1))
 
-							_, io := fakeBuild.HijackArgsForCall(0)
+							_, _, io := fakeBuild.HijackArgsForCall(0)
 
 							_, err := fmt.Fprintf(io.Stderr, "some stderr\n")
 							Ω(err).ShouldNot(HaveOccurred())

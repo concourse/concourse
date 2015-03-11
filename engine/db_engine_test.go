@@ -208,6 +208,8 @@ var _ = Describe("DBEngine", func() {
 
 		Describe("Hijack", func() {
 			var (
+				hijackTarget HijackTarget
+
 				hijackSpec atc.HijackProcessSpec
 				hijackIO   HijackProcessIO
 
@@ -216,6 +218,8 @@ var _ = Describe("DBEngine", func() {
 			)
 
 			BeforeEach(func() {
+				hijackTarget = HijackTarget{"type", "name"}
+
 				hijackSpec = atc.HijackProcessSpec{
 					Path: "ls",
 				}
@@ -226,7 +230,7 @@ var _ = Describe("DBEngine", func() {
 			})
 
 			JustBeforeEach(func() {
-				hijackedProcess, hijackErr = build.Hijack(hijackSpec, hijackIO)
+				hijackedProcess, hijackErr = build.Hijack(hijackTarget, hijackSpec, hijackIO)
 			})
 
 			Context("when the engine build exists", func() {
@@ -250,7 +254,8 @@ var _ = Describe("DBEngine", func() {
 					It("succeeds", func() {
 						Ω(hijackErr).ShouldNot(HaveOccurred())
 
-						hijackedSpec, hijackedIO := realBuild.HijackArgsForCall(0)
+						hijackedTarget, hijackedSpec, hijackedIO := realBuild.HijackArgsForCall(0)
+						Ω(hijackedTarget).Should(Equal(hijackTarget))
 						Ω(hijackedSpec).Should(Equal(hijackSpec))
 						Ω(hijackedIO).Should(Equal(hijackIO))
 					})

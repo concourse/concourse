@@ -39,9 +39,22 @@ type Build interface {
 	Metadata() string
 
 	Abort() error
-	Hijack(atc.HijackProcessSpec, HijackProcessIO) (HijackedProcess, error)
+	Hijack(HijackTarget, atc.HijackProcessSpec, HijackProcessIO) (HijackedProcess, error)
 	Resume(lager.Logger)
 }
+
+type HijackTarget struct {
+	Type HijackTargetType
+	Name string
+}
+
+type HijackTargetType string
+
+const (
+	HijackTargetTypeGet     HijackTargetType = "get"
+	HijackTargetTypePut     HijackTargetType = "put"
+	HijackTargetTypeExecute HijackTargetType = "execute"
+)
 
 type HijackProcessIO struct {
 	Stdin  io.Reader

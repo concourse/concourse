@@ -76,7 +76,10 @@ func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
 		done:    cleanup,
 	}
 
-	process, err := engineBuild.Hijack(processSpec, engine.HijackProcessIO{
+	process, err := engineBuild.Hijack(engine.HijackTarget{
+		Type: engine.HijackTargetType(r.URL.Query().Get("type")),
+		Name: r.URL.Query().Get("name"),
+	}, processSpec, engine.HijackProcessIO{
 		Stdin:  stdinR,
 		Stdout: outW,
 		Stderr: errW,

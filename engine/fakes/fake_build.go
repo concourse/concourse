@@ -22,11 +22,12 @@ type FakeBuild struct {
 	abortReturns     struct {
 		result1 error
 	}
-	HijackStub        func(atc.HijackProcessSpec, engine.HijackProcessIO) (engine.HijackedProcess, error)
+	HijackStub        func(engine.HijackTarget, atc.HijackProcessSpec, engine.HijackProcessIO) (engine.HijackedProcess, error)
 	hijackMutex       sync.RWMutex
 	hijackArgsForCall []struct {
-		arg1 atc.HijackProcessSpec
-		arg2 engine.HijackProcessIO
+		arg1 engine.HijackTarget
+		arg2 atc.HijackProcessSpec
+		arg3 engine.HijackProcessIO
 	}
 	hijackReturns struct {
 		result1 engine.HijackedProcess
@@ -87,15 +88,16 @@ func (fake *FakeBuild) AbortReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBuild) Hijack(arg1 atc.HijackProcessSpec, arg2 engine.HijackProcessIO) (engine.HijackedProcess, error) {
+func (fake *FakeBuild) Hijack(arg1 engine.HijackTarget, arg2 atc.HijackProcessSpec, arg3 engine.HijackProcessIO) (engine.HijackedProcess, error) {
 	fake.hijackMutex.Lock()
 	fake.hijackArgsForCall = append(fake.hijackArgsForCall, struct {
-		arg1 atc.HijackProcessSpec
-		arg2 engine.HijackProcessIO
-	}{arg1, arg2})
+		arg1 engine.HijackTarget
+		arg2 atc.HijackProcessSpec
+		arg3 engine.HijackProcessIO
+	}{arg1, arg2, arg3})
 	fake.hijackMutex.Unlock()
 	if fake.HijackStub != nil {
-		return fake.HijackStub(arg1, arg2)
+		return fake.HijackStub(arg1, arg2, arg3)
 	} else {
 		return fake.hijackReturns.result1, fake.hijackReturns.result2
 	}
@@ -107,10 +109,10 @@ func (fake *FakeBuild) HijackCallCount() int {
 	return len(fake.hijackArgsForCall)
 }
 
-func (fake *FakeBuild) HijackArgsForCall(i int) (atc.HijackProcessSpec, engine.HijackProcessIO) {
+func (fake *FakeBuild) HijackArgsForCall(i int) (engine.HijackTarget, atc.HijackProcessSpec, engine.HijackProcessIO) {
 	fake.hijackMutex.RLock()
 	defer fake.hijackMutex.RUnlock()
-	return fake.hijackArgsForCall[i].arg1, fake.hijackArgsForCall[i].arg2
+	return fake.hijackArgsForCall[i].arg1, fake.hijackArgsForCall[i].arg2, fake.hijackArgsForCall[i].arg3
 }
 
 func (fake *FakeBuild) HijackReturns(result1 engine.HijackedProcess, result2 error) {
