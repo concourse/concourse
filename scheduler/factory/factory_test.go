@@ -58,7 +58,7 @@ var _ = Describe("Factory", func() {
 										"BAR": "2",
 									},
 
-									Run: atc.BuildRunConfig{
+									Run: atc.TaskRunConfig{
 										Path: "some-script",
 										Args: []string{"arg1", "arg2"},
 									},
@@ -183,7 +183,7 @@ var _ = Describe("Factory", func() {
 							"FOO": "1",
 							"BAR": "2",
 						},
-						Run: atc.BuildRunConfig{
+						Run: atc.TaskRunConfig{
 							Path: "some-script",
 							Args: []string{"arg1", "arg2"},
 						},
@@ -715,7 +715,7 @@ var _ = Describe("Factory", func() {
 					"FOO": "1",
 					"BAR": "2",
 				},
-				Run: atc.BuildRunConfig{
+				Run: atc.TaskRunConfig{
 					Path: "some-script",
 					Args: []string{"arg1", "arg2"},
 				},

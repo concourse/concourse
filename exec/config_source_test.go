@@ -20,11 +20,11 @@ var _ = Describe("ConfigSource", func() {
 			Tags:     []string{"some", "tags"},
 			Image:    "some-image",
 			Params:   map[string]string{"PARAM": "value"},
-			Run: atc.BuildRunConfig{
+			Run: atc.TaskRunConfig{
 				Path: "ls",
 				Args: []string{"-al"},
 			},
-			Inputs: []atc.BuildInputConfig{
+			Inputs: []atc.TaskInputConfig{
 				{Name: "some-input", Path: "some-path"},
 			},
 		}
@@ -111,7 +111,7 @@ var _ = Describe("ConfigSource", func() {
 			BeforeEach(func() {
 				invalidConfig := someConfig
 				invalidConfig.Platform = ""
-				invalidConfig.Run = atc.BuildRunConfig{}
+				invalidConfig.Run = atc.TaskRunConfig{}
 
 				marshalled, err := candiedyaml.Marshal(invalidConfig)
 				Ω(err).ShouldNot(HaveOccurred())

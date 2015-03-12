@@ -314,7 +314,7 @@ var _ = Describe("BuildDelegate", func() {
 
 			BeforeEach(func() {
 				taskConfig = atc.TaskConfig{
-					Run: atc.BuildRunConfig{
+					Run: atc.TaskRunConfig{
 						Path: "ls",
 					},
 				}

@@ -64,7 +64,7 @@ var _ = Describe("DBEngine", func() {
 							"BAR": "2",
 						},
 
-						Run: atc.BuildRunConfig{
+						Run: atc.TaskRunConfig{
 							Path: "some-script",
 							Args: []string{"arg1", "arg2"},
 						},

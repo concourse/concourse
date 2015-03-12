@@ -283,7 +283,7 @@ jobs:
 										{
 											Name: "some-job",
 											TaskConfig: &atc.TaskConfig{
-												Run: atc.BuildRunConfig{
+												Run: atc.TaskRunConfig{
 													Path: "ls",
 												},
 

@@ -23,23 +23,25 @@ const (
 	StatusAborted   BuildStatus = "aborted"
 )
 
-type BuildPlan struct {
-	Privileged bool `json:"privileged"`
-
-	Config     *TaskConfig `json:"config"`
-	ConfigPath string      `json:"config_path"`
-
-	Inputs  []InputPlan  `json:"inputs"`
-	Outputs []OutputPlan `json:"outputs"`
-}
-
 type TaskConfig struct {
-	Platform string             `json:"platform,omitempty" yaml:"platform"`
-	Tags     []string           `json:"tags,omitempty"  yaml:"tags"`
-	Image    string             `json:"image,omitempty"   yaml:"image"`
-	Params   map[string]string  `json:"params,omitempty"  yaml:"params"`
-	Run      BuildRunConfig     `json:"run,omitempty"     yaml:"run"`
-	Inputs   []BuildInputConfig `json:"inputs,omitempty"  yaml:"inputs"`
+	// The platform the task must run on (e.g. linux, windows).
+	Platform string `json:"platform,omitempty" yaml:"platform"`
+
+	// Additional tags to influence which workers the task can run on.
+	Tags []string `json:"tags,omitempty"  yaml:"tags"`
+
+	// Optional string specifying an image to use for the build. Depending on the
+	// platform, this may or may not be required (e.g. Windows/OS X vs. Linux).
+	Image string `json:"image,omitempty"   yaml:"image"`
+
+	// Parameters to pass to the task via environment variables.
+	Params map[string]string `json:"params,omitempty"  yaml:"params"`
+
+	// Script to execute.
+	Run TaskRunConfig `json:"run,omitempty"     yaml:"run"`
+
+	// The set of (logical, name-only) inputs required by the task.
+	Inputs []TaskInputConfig `json:"inputs,omitempty"  yaml:"inputs"`
 }
 
 func (a TaskConfig) Merge(b TaskConfig) TaskConfig {
@@ -120,49 +122,14 @@ func (config TaskConfig) Validate() error {
 	return nil
 }
 
-type BuildRunConfig struct {
+type TaskRunConfig struct {
 	Path string   `json:"path" yaml:"path"`
 	Args []string `json:"args,omitempty" yaml:"args"`
 }
 
-type BuildInputConfig struct {
+type TaskInputConfig struct {
 	Name string `json:"name" yaml:"name"`
 	Path string `json:"path,omitempty" yaml:"path"`
-}
-
-type InputPlan struct {
-	// logical name of the input with respect to the task's config
-	Name string `json:"name"`
-
-	// name of resource providing the input
-	Resource string `json:"resource"`
-
-	// type of resource
-	Type string `json:"type"`
-
-	// e.g. sha
-	Version Version `json:"version,omitempty"`
-
-	// e.g. git url, branch, private_key
-	Source Source `json:"source,omitempty"`
-
-	// arbitrary config for input
-	Params Params `json:"params,omitempty"`
-}
-
-type OutputPlan struct {
-	Name string `json:"name"`
-
-	Type string `json:"type"`
-
-	// e.g. [success, failure]
-	On Conditions `json:"on,omitempty"`
-
-	// e.g. git url, branch, private_key
-	Source Source `json:"source,omitempty"`
-
-	// arbitrary config for output
-	Params Params `json:"params,omitempty"`
 }
 
 type MetadataField struct {

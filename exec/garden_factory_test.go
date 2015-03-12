@@ -907,7 +907,7 @@ var _ = Describe("GardenFactory", func() {
 						Tags:     []string{"some", "tags"},
 						Image:    "some-image",
 						Params:   map[string]string{"SOME": "params"},
-						Run: atc.BuildRunConfig{
+						Run: atc.TaskRunConfig{
 							Path: "ls",
 							Args: []string{"some", "args"},
 						},
@@ -1072,11 +1072,11 @@ var _ = Describe("GardenFactory", func() {
 							configSource.FetchConfigReturns(atc.TaskConfig{
 								Image:  "some-image",
 								Params: map[string]string{"SOME": "params"},
-								Run: atc.BuildRunConfig{
+								Run: atc.TaskRunConfig{
 									Path: "ls",
 									Args: []string{"some", "args"},
 								},
-								Inputs: []atc.BuildInputConfig{
+								Inputs: []atc.TaskInputConfig{
 									{Name: "some-input", Path: "some-input-configured-path"},
 									{Name: "some-other-input", Path: "some-other-input-configured-path"},
 								},
@@ -1185,11 +1185,11 @@ var _ = Describe("GardenFactory", func() {
 							configSource.FetchConfigReturns(atc.TaskConfig{
 								Image:  "some-image",
 								Params: map[string]string{"SOME": "params"},
-								Run: atc.BuildRunConfig{
+								Run: atc.TaskRunConfig{
 									Path: "ls",
 									Args: []string{"some", "args"},
 								},
-								Inputs: []atc.BuildInputConfig{
+								Inputs: []atc.TaskInputConfig{
 									{Name: "some-input"},
 									{Name: "some-other-input"},
 								},

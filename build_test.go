@@ -11,7 +11,7 @@ var _ = Describe("TaskConfig", func() {
 	Describe("validating", func() {
 		validConfig := TaskConfig{
 			Platform: "linux",
-			Run: BuildRunConfig{
+			Run: TaskRunConfig{
 				Path: "reboot",
 			},
 		}
@@ -96,19 +96,19 @@ var _ = Describe("TaskConfig", func() {
 
 		It("overrides the run config", func() {
 			Ω(TaskConfig{
-				Run: BuildRunConfig{
+				Run: TaskRunConfig{
 					Path: "some-path",
 					Args: []string{"arg1", "arg2"},
 				},
 			}.Merge(TaskConfig{
 				Image: "some-image",
-				Run: BuildRunConfig{
+				Run: TaskRunConfig{
 					Path: "better-path",
 					Args: []string{"better-arg1", "better-arg2"},
 				},
 			})).Should(Equal(TaskConfig{
 				Image: "some-image",
-				Run: BuildRunConfig{
+				Run: TaskRunConfig{
 					Path: "better-path",
 					Args: []string{"better-arg1", "better-arg2"},
 				},
@@ -117,18 +117,18 @@ var _ = Describe("TaskConfig", func() {
 
 		It("overrides the run config even with no args", func() {
 			Ω(TaskConfig{
-				Run: BuildRunConfig{
+				Run: TaskRunConfig{
 					Path: "some-path",
 					Args: []string{"arg1", "arg2"},
 				},
 			}.Merge(TaskConfig{
 				Image: "some-image",
-				Run: BuildRunConfig{
+				Run: TaskRunConfig{
 					Path: "better-path",
 				},
 			})).Should(Equal(TaskConfig{
 				Image: "some-image",
-				Run: BuildRunConfig{
+				Run: TaskRunConfig{
 					Path: "better-path",
 				},
 			}))
@@ -136,15 +136,15 @@ var _ = Describe("TaskConfig", func() {
 
 		It("overrides input configuration", func() {
 			Ω(TaskConfig{
-				Inputs: []BuildInputConfig{
+				Inputs: []TaskInputConfig{
 					{Name: "some-input", Path: "some-destination"},
 				},
 			}.Merge(TaskConfig{
-				Inputs: []BuildInputConfig{
+				Inputs: []TaskInputConfig{
 					{Name: "another-input", Path: "another-destination"},
 				},
 			})).Should(Equal(TaskConfig{
-				Inputs: []BuildInputConfig{
+				Inputs: []TaskInputConfig{
 					{Name: "another-input", Path: "another-destination"},
 				},
 			}))

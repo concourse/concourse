@@ -32,7 +32,7 @@ var _ = Describe("Builds API", func() {
 			plan = atc.Plan{
 				Task: &atc.TaskPlan{
 					Config: &atc.TaskConfig{
-						Run: atc.BuildRunConfig{
+						Run: atc.TaskRunConfig{
 							Path: "ls",
 						},
 					},

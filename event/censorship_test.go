@@ -59,7 +59,7 @@ var _ = Describe("Censorship", func() {
 				TaskConfig: atc.TaskConfig{
 					Image:  "some-image",
 					Params: map[string]string{"super": "secret"},
-					Run: atc.BuildRunConfig{
+					Run: atc.TaskRunConfig{
 						Path: "ls",
 					},
 				},
@@ -67,7 +67,7 @@ var _ = Describe("Censorship", func() {
 				TaskConfig: atc.TaskConfig{
 					Image:  "some-image",
 					Params: nil,
-					Run: atc.BuildRunConfig{
+					Run: atc.TaskRunConfig{
 						Path: "ls",
 					},
 				},
@@ -81,7 +81,7 @@ var _ = Describe("Censorship", func() {
 				TaskConfig: atc.TaskConfig{
 					Image:  "some-image",
 					Params: map[string]string{"super": "secret"},
-					Run: atc.BuildRunConfig{
+					Run: atc.TaskRunConfig{
 						Path: "ls",
 					},
 				},
@@ -89,7 +89,7 @@ var _ = Describe("Censorship", func() {
 				TaskConfig: atc.TaskConfig{
 					Image:  "some-image",
 					Params: nil,
-					Run: atc.BuildRunConfig{
+					Run: atc.TaskRunConfig{
 						Path: "ls",
 					},
 				},
@@ -100,7 +100,7 @@ var _ = Describe("Censorship", func() {
 	Describe("InputV20", func() {
 		It("censors source and params", func() {
 			Ω(InputV20{
-				Plan: atc.InputPlan{
+				Plan: InputV20InputPlan{
 					Name:     "some-name",
 					Resource: "some-resource",
 					Type:     "git",
@@ -110,7 +110,7 @@ var _ = Describe("Censorship", func() {
 				FetchedVersion:  atc.Version{"ref": "foo"},
 				FetchedMetadata: []atc.MetadataField{{"public", "data"}},
 			}.Censored()).Should(Equal(InputV20{
-				Plan: atc.InputPlan{
+				Plan: InputV20InputPlan{
 					Name:     "some-name",
 					Resource: "some-resource",
 					Type:     "git",
@@ -124,7 +124,7 @@ var _ = Describe("Censorship", func() {
 	Describe("OutputV20", func() {
 		It("censors source and params", func() {
 			Ω(OutputV20{
-				Plan: atc.OutputPlan{
+				Plan: OutputV20OutputPlan{
 					Name:   "some-name",
 					Type:   "git",
 					On:     []atc.Condition{atc.ConditionSuccess},
@@ -134,7 +134,7 @@ var _ = Describe("Censorship", func() {
 				CreatedVersion:  atc.Version{"ref": "foo"},
 				CreatedMetadata: []atc.MetadataField{{"public", "data"}},
 			}.Censored()).Should(Equal(OutputV20{
-				Plan: atc.OutputPlan{
+				Plan: OutputV20OutputPlan{
 					Name: "some-name",
 					Type: "git",
 					On:   []atc.Condition{atc.ConditionSuccess},

@@ -41,7 +41,7 @@ var _ = Describe("Scheduler", func() {
 		createdPlan = atc.Plan{
 			Task: &atc.TaskPlan{
 				Config: &atc.TaskConfig{
-					Run: atc.BuildRunConfig{Path: "some-task"},
+					Run: atc.TaskRunConfig{Path: "some-task"},
 				},
 			},
 		}

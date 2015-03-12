@@ -281,14 +281,14 @@ func (taskStep) envForParams(params map[string]string) []string {
 
 type containerDestination struct {
 	container    garden.Container
-	inputConfigs []atc.BuildInputConfig
+	inputConfigs []atc.TaskInputConfig
 
 	missingInputs map[string]struct{}
 
 	lock sync.Mutex
 }
 
-func newContainerDestination(container garden.Container, inputs []atc.BuildInputConfig) *containerDestination {
+func newContainerDestination(container garden.Container, inputs []atc.TaskInputConfig) *containerDestination {
 	missingInputs := map[string]struct{}{}
 
 	for _, i := range inputs {

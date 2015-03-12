@@ -464,7 +464,7 @@ var _ = Describe("ValidateConfig", func() {
 			Context("when a man, a plan, a canal, panama are specified", func() {
 				BeforeEach(func() {
 					job.TaskConfig = &atc.TaskConfig{
-						Run: atc.BuildRunConfig{
+						Run: atc.TaskRunConfig{
 							Path: "ls",
 						},
 					}

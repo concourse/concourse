@@ -109,7 +109,7 @@ func (e InitializeV10) Censored() atc.Event {
 }
 
 type InputV20 struct {
-	Plan            atc.InputPlan       `json:"plan"`
+	Plan            InputV20InputPlan   `json:"plan"`
 	FetchedVersion  atc.Version         `json:"version"`
 	FetchedMetadata []atc.MetadataField `json:"metadata,omitempty"`
 }
@@ -123,7 +123,7 @@ func (e InputV20) Censored() atc.Event {
 }
 
 type OutputV20 struct {
-	Plan            atc.OutputPlan      `json:"plan"`
+	Plan            OutputV20OutputPlan `json:"plan"`
 	CreatedVersion  atc.Version         `json:"version"`
 	CreatedMetadata []atc.MetadataField `json:"metadata,omitempty"`
 }
@@ -134,4 +134,39 @@ func (e OutputV20) Censored() atc.Event {
 	e.Plan.Source = nil
 	e.Plan.Params = nil
 	return e
+}
+
+type InputV20InputPlan struct {
+	// logical name of the input with respect to the task's config
+	Name string `json:"name"`
+
+	// name of resource providing the input
+	Resource string `json:"resource"`
+
+	// type of resource
+	Type string `json:"type"`
+
+	// e.g. sha
+	Version atc.Version `json:"version,omitempty"`
+
+	// e.g. git url, branch, private_key
+	Source atc.Source `json:"source,omitempty"`
+
+	// arbitrary config for input
+	Params atc.Params `json:"params,omitempty"`
+}
+
+type OutputV20OutputPlan struct {
+	Name string `json:"name"`
+
+	Type string `json:"type"`
+
+	// e.g. [success, failure]
+	On atc.Conditions `json:"on,omitempty"`
+
+	// e.g. git url, branch, private_key
+	Source atc.Source `json:"source,omitempty"`
+
+	// arbitrary config for output
+	Params atc.Params `json:"params,omitempty"`
 }

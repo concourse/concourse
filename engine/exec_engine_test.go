@@ -71,11 +71,11 @@ var _ = Describe("ExecEngine", func() {
 			taskConfig = &atc.TaskConfig{
 				Image:  "some-image",
 				Params: map[string]string{"PARAM": "value"},
-				Run: atc.BuildRunConfig{
+				Run: atc.TaskRunConfig{
 					Path: "some-path",
 					Args: []string{"some", "args"},
 				},
-				Inputs: []atc.BuildInputConfig{
+				Inputs: []atc.TaskInputConfig{
 					{Name: "some-input"},
 				},
 			}
