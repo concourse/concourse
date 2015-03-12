@@ -94,11 +94,11 @@ var eventHandlers = {
         flux.actions.setStepRunning(origin, false);
       },
 
-      "initialize-execute": function(data) {
+      "initialize-task": function(data) {
         flux.actions.setStepRunning(data.origin, true);
       },
 
-      "finish-execute": function(data) {
+      "finish-task": function(data) {
         flux.actions.setStepSuccessful(data.origin, data.exit_status == 0);
         flux.actions.setStepRunning(data.origin, false);
       },
@@ -205,7 +205,7 @@ function processLogs(event) {
     break;
   case "get":
   case "put":
-  case "execute":
+  case "task":
     origin = event.origin;
     break;
   }
@@ -231,7 +231,7 @@ function processError(event) {
       break;
     case "get":
     case "put":
-    case "execute":
+    case "task":
       origin = event.origin;
       break;
     }
@@ -310,7 +310,7 @@ function legacyInputOrigin(name) {
 function legacyRunOrigin() {
   return {
     "name": "build",
-    "type": "execute",
+    "type": "task",
     "location": [2]
   }
 }
