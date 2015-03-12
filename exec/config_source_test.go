@@ -15,7 +15,7 @@ import (
 
 var _ = Describe("ConfigSource", func() {
 	var (
-		someConfig = atc.BuildConfig{
+		someConfig = atc.TaskConfig{
 			Platform: "some-platform",
 			Tags:     []string{"some", "tags"},
 			Image:    "some-image",
@@ -38,9 +38,9 @@ var _ = Describe("ConfigSource", func() {
 
 	Describe("StaticConfigSource", func() {
 		var (
-			configSource BuildConfigSource
+			configSource TaskConfigSource
 
-			fetchedConfig atc.BuildConfig
+			fetchedConfig atc.TaskConfig
 			fetchErr      error
 		)
 
@@ -63,9 +63,9 @@ var _ = Describe("ConfigSource", func() {
 
 	Describe("FileConfigSource", func() {
 		var (
-			configSource BuildConfigSource
+			configSource TaskConfigSource
 
-			fetchedConfig atc.BuildConfig
+			fetchedConfig atc.TaskConfig
 			fetchErr      error
 		)
 
@@ -157,18 +157,18 @@ var _ = Describe("ConfigSource", func() {
 
 	Describe("MergedConfigSource", func() {
 		var (
-			fakeConfigSourceA *fakes.FakeBuildConfigSource
-			fakeConfigSourceB *fakes.FakeBuildConfigSource
+			fakeConfigSourceA *fakes.FakeTaskConfigSource
+			fakeConfigSourceB *fakes.FakeTaskConfigSource
 
-			configSource BuildConfigSource
+			configSource TaskConfigSource
 
-			fetchedConfig atc.BuildConfig
+			fetchedConfig atc.TaskConfig
 			fetchErr      error
 		)
 
 		BeforeEach(func() {
-			fakeConfigSourceA = new(fakes.FakeBuildConfigSource)
-			fakeConfigSourceB = new(fakes.FakeBuildConfigSource)
+			fakeConfigSourceA = new(fakes.FakeTaskConfigSource)
+			fakeConfigSourceB = new(fakes.FakeTaskConfigSource)
 
 			configSource = MergedConfigSource{
 				A: fakeConfigSourceA,
@@ -181,7 +181,7 @@ var _ = Describe("ConfigSource", func() {
 		})
 
 		Context("when fetching via A succeeds", func() {
-			var configA = atc.BuildConfig{
+			var configA = atc.TaskConfig{
 				Image:  "some-image",
 				Params: map[string]string{"PARAM": "A"},
 			}
@@ -191,7 +191,7 @@ var _ = Describe("ConfigSource", func() {
 			})
 
 			Context("and fetching via B succeeds", func() {
-				var configB = atc.BuildConfig{
+				var configB = atc.TaskConfig{
 					Params: map[string]string{"PARAM": "B"},
 				}
 
@@ -209,7 +209,7 @@ var _ = Describe("ConfigSource", func() {
 				})
 
 				It("returns the merged config", func() {
-					Ω(fetchedConfig).Should(Equal(atc.BuildConfig{
+					Ω(fetchedConfig).Should(Equal(atc.TaskConfig{
 						Image:  "some-image",
 						Params: map[string]string{"PARAM": "B"},
 					}))
@@ -220,7 +220,7 @@ var _ = Describe("ConfigSource", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					fakeConfigSourceB.FetchConfigReturns(atc.BuildConfig{}, disaster)
+					fakeConfigSourceB.FetchConfigReturns(atc.TaskConfig{}, disaster)
 				})
 
 				It("returns the error", func() {
@@ -233,7 +233,7 @@ var _ = Describe("ConfigSource", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeConfigSourceA.FetchConfigReturns(atc.BuildConfig{}, disaster)
+				fakeConfigSourceA.FetchConfigReturns(atc.TaskConfig{}, disaster)
 			})
 
 			It("returns the error", func() {

@@ -8,19 +8,19 @@ import (
 	"github.com/concourse/atc/exec"
 )
 
-type FakeBuildConfigSource struct {
-	FetchConfigStub        func(exec.ArtifactSource) (atc.BuildConfig, error)
+type FakeTaskConfigSource struct {
+	FetchConfigStub        func(exec.ArtifactSource) (atc.TaskConfig, error)
 	fetchConfigMutex       sync.RWMutex
 	fetchConfigArgsForCall []struct {
 		arg1 exec.ArtifactSource
 	}
 	fetchConfigReturns struct {
-		result1 atc.BuildConfig
+		result1 atc.TaskConfig
 		result2 error
 	}
 }
 
-func (fake *FakeBuildConfigSource) FetchConfig(arg1 exec.ArtifactSource) (atc.BuildConfig, error) {
+func (fake *FakeTaskConfigSource) FetchConfig(arg1 exec.ArtifactSource) (atc.TaskConfig, error) {
 	fake.fetchConfigMutex.Lock()
 	fake.fetchConfigArgsForCall = append(fake.fetchConfigArgsForCall, struct {
 		arg1 exec.ArtifactSource
@@ -33,24 +33,24 @@ func (fake *FakeBuildConfigSource) FetchConfig(arg1 exec.ArtifactSource) (atc.Bu
 	}
 }
 
-func (fake *FakeBuildConfigSource) FetchConfigCallCount() int {
+func (fake *FakeTaskConfigSource) FetchConfigCallCount() int {
 	fake.fetchConfigMutex.RLock()
 	defer fake.fetchConfigMutex.RUnlock()
 	return len(fake.fetchConfigArgsForCall)
 }
 
-func (fake *FakeBuildConfigSource) FetchConfigArgsForCall(i int) exec.ArtifactSource {
+func (fake *FakeTaskConfigSource) FetchConfigArgsForCall(i int) exec.ArtifactSource {
 	fake.fetchConfigMutex.RLock()
 	defer fake.fetchConfigMutex.RUnlock()
 	return fake.fetchConfigArgsForCall[i].arg1
 }
 
-func (fake *FakeBuildConfigSource) FetchConfigReturns(result1 atc.BuildConfig, result2 error) {
+func (fake *FakeTaskConfigSource) FetchConfigReturns(result1 atc.TaskConfig, result2 error) {
 	fake.FetchConfigStub = nil
 	fake.fetchConfigReturns = struct {
-		result1 atc.BuildConfig
+		result1 atc.TaskConfig
 		result2 error
 	}{result1, result2}
 }
 
-var _ exec.BuildConfigSource = new(FakeBuildConfigSource)
+var _ exec.TaskConfigSource = new(FakeTaskConfigSource)

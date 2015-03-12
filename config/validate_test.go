@@ -41,8 +41,8 @@ var _ = Describe("ValidateConfig", func() {
 
 					Public: true,
 
-					BuildConfigPath: "some/config/path.yml",
-					BuildConfig: &atc.BuildConfig{
+					TaskConfigPath: "some/config/path.yml",
+					TaskConfig: &atc.TaskConfig{
 						Image: "some-image",
 					},
 
@@ -177,8 +177,8 @@ var _ = Describe("ValidateConfig", func() {
 
 		BeforeEach(func() {
 			job = atc.JobConfig{
-				Name:            "some-other-job",
-				BuildConfigPath: "some-build-config",
+				Name:           "some-other-job",
+				TaskConfigPath: "some-build-config",
 			}
 		})
 
@@ -208,8 +208,8 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job has no config and no config path", func() {
 			BeforeEach(func() {
-				job.BuildConfig = nil
-				job.BuildConfigPath = ""
+				job.TaskConfig = nil
+				job.TaskConfigPath = ""
 				config.Jobs = append(config.Jobs, job)
 			})
 
@@ -302,8 +302,8 @@ var _ = Describe("ValidateConfig", func() {
 		Describe("plans", func() {
 			BeforeEach(func() {
 				// clear out old-style configuration
-				job.BuildConfigPath = ""
-				job.BuildConfig = nil
+				job.TaskConfigPath = ""
+				job.TaskConfig = nil
 				job.InputConfigs = nil
 				job.OutputConfigs = nil
 			})
@@ -347,9 +347,9 @@ var _ = Describe("ValidateConfig", func() {
 			Context("when a get plan has task-only fields specified", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, atc.PlanConfig{
-						Get:             "lol",
-						Privileged:      true,
-						BuildConfigPath: "build.yml",
+						Get:            "lol",
+						Privileged:     true,
+						TaskConfigPath: "build.yml",
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -406,11 +406,11 @@ var _ = Describe("ValidateConfig", func() {
 				BeforeEach(func() {
 					no := false
 					job.Plan = append(job.Plan, atc.PlanConfig{
-						Put:             "lol",
-						Passed:          []string{"get", "only"},
-						RawTrigger:      &no,
-						Privileged:      true,
-						BuildConfigPath: "build.yml",
+						Put:            "lol",
+						Passed:         []string{"get", "only"},
+						RawTrigger:     &no,
+						Privileged:     true,
+						TaskConfigPath: "build.yml",
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -463,7 +463,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a man, a plan, a canal, panama are specified", func() {
 				BeforeEach(func() {
-					job.BuildConfig = &atc.BuildConfig{
+					job.TaskConfig = &atc.TaskConfig{
 						Run: atc.BuildRunConfig{
 							Path: "ls",
 						},

@@ -51,8 +51,8 @@ var _ = Describe("Config API", func() {
 
 					Public: true,
 
-					BuildConfigPath: "some/config/path.yml",
-					BuildConfig: &atc.BuildConfig{
+					TaskConfigPath: "some/config/path.yml",
+					TaskConfig: &atc.TaskConfig{
 						Image: "some-image",
 					},
 
@@ -282,7 +282,7 @@ jobs:
 									Jobs: atc.JobConfigs{
 										{
 											Name: "some-job",
-											BuildConfig: &atc.BuildConfig{
+											TaskConfig: &atc.TaskConfig{
 												Run: atc.BuildRunConfig{
 													Path: "ls",
 												},

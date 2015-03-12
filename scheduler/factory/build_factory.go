@@ -191,8 +191,8 @@ func (factory *BuildFactory) constructPlanFromConfig(
 			Task: &atc.TaskPlan{
 				Name:       planConfig.Task,
 				Privileged: planConfig.Privileged,
-				Config:     planConfig.BuildConfig,
-				ConfigPath: planConfig.BuildConfigPath,
+				Config:     planConfig.TaskConfig,
+				ConfigPath: planConfig.TaskConfigPath,
 			},
 		}
 
@@ -252,8 +252,8 @@ func (factory *BuildFactory) constructIOBasedPlan(
 
 							Privileged: job.Privileged,
 
-							Config:     job.BuildConfig,
-							ConfigPath: job.BuildConfigPath,
+							Config:     job.TaskConfig,
+							ConfigPath: job.TaskConfigPath,
 						},
 					},
 					B: atc.Plan{
@@ -272,8 +272,8 @@ func (factory *BuildFactory) hasPlanConfig(job atc.JobConfig) bool {
 func (factory *BuildFactory) hasIOConfig(job atc.JobConfig) bool {
 	return len(job.InputConfigs) > 0 ||
 		len(job.OutputConfigs) > 0 ||
-		job.BuildConfig != nil ||
-		len(job.BuildConfigPath) > 0
+		job.TaskConfig != nil ||
+		len(job.TaskConfigPath) > 0
 }
 
 func (factory *BuildFactory) computeInputs(
@@ -338,7 +338,7 @@ func (factory *BuildFactory) computeOutputs(
 			},
 		}
 
-		if job.BuildConfig != nil || job.BuildConfigPath != "" {
+		if job.TaskConfig != nil || job.TaskConfigPath != "" {
 			plan = atc.Plan{
 				Conditional: &atc.ConditionalPlan{
 					Conditions: output.PerformOn(),

@@ -26,14 +26,14 @@ const (
 type BuildPlan struct {
 	Privileged bool `json:"privileged"`
 
-	Config     *BuildConfig `json:"config"`
-	ConfigPath string       `json:"config_path"`
+	Config     *TaskConfig `json:"config"`
+	ConfigPath string      `json:"config_path"`
 
 	Inputs  []InputPlan  `json:"inputs"`
 	Outputs []OutputPlan `json:"outputs"`
 }
 
-type BuildConfig struct {
+type TaskConfig struct {
 	Platform string             `json:"platform,omitempty" yaml:"platform"`
 	Tags     []string           `json:"tags,omitempty"  yaml:"tags"`
 	Image    string             `json:"image,omitempty"   yaml:"image"`
@@ -42,7 +42,7 @@ type BuildConfig struct {
 	Inputs   []BuildInputConfig `json:"inputs,omitempty"  yaml:"inputs"`
 }
 
-func (a BuildConfig) Merge(b BuildConfig) BuildConfig {
+func (a TaskConfig) Merge(b TaskConfig) TaskConfig {
 	if b.Platform != "" {
 		a.Platform = b.Platform
 	}
@@ -99,7 +99,7 @@ func (a BuildConfig) Merge(b BuildConfig) BuildConfig {
 	return a
 }
 
-func (config BuildConfig) Validate() error {
+func (config TaskConfig) Validate() error {
 	messages := []string{"invalid build configuration:"}
 
 	var invalid bool

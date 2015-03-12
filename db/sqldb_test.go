@@ -94,8 +94,8 @@ var _ = Describe("SQL DB", func() {
 
 					Public: true,
 
-					BuildConfigPath: "some/config/path.yml",
-					BuildConfig: &atc.BuildConfig{
+					TaskConfigPath: "some/config/path.yml",
+					TaskConfig: &atc.TaskConfig{
 						Image: "some-image",
 					},
 
@@ -158,8 +158,8 @@ var _ = Describe("SQL DB", func() {
 			})
 
 			updatedConfig.Jobs = append(config.Jobs, atc.JobConfig{
-				Name:            "some-resource",
-				BuildConfigPath: "new/config/path.yml",
+				Name:           "some-resource",
+				TaskConfigPath: "new/config/path.yml",
 				InputConfigs: []atc.JobInputConfig{
 					{
 						RawName:  "new-input",

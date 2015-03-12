@@ -37,7 +37,7 @@ type taskStep struct {
 	Delegate TaskDelegate
 
 	Privileged   Privileged
-	ConfigSource BuildConfigSource
+	ConfigSource TaskConfigSource
 
 	WorkerClient worker.Client
 

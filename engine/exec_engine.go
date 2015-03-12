@@ -176,7 +176,7 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan, location e
 	if plan.Task != nil {
 		logger = logger.Session("task")
 
-		var configSource exec.BuildConfigSource
+		var configSource exec.TaskConfigSource
 		if plan.Task.Config != nil && plan.Task.ConfigPath != "" {
 			configSource = exec.MergedConfigSource{
 				A: exec.FileConfigSource{plan.Task.ConfigPath},

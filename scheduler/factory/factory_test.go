@@ -50,7 +50,7 @@ var _ = Describe("Factory", func() {
 								Privileged: true,
 
 								ConfigPath: "some-input/build.yml",
-								Config: &atc.BuildConfig{
+								Config: &atc.TaskConfig{
 									Image: "some-image",
 
 									Params: map[string]string{
@@ -174,10 +174,10 @@ var _ = Describe("Factory", func() {
 					},
 				},
 				{
-					Task:            "build",
-					Privileged:      true,
-					BuildConfigPath: "some-input/build.yml",
-					BuildConfig: &atc.BuildConfig{
+					Task:           "build",
+					Privileged:     true,
+					TaskConfigPath: "some-input/build.yml",
+					TaskConfig: &atc.TaskConfig{
 						Image: "some-image",
 						Params: map[string]string{
 							"FOO": "1",
@@ -708,8 +708,8 @@ var _ = Describe("Factory", func() {
 		BeforeEach(func() {
 			job.Privileged = true
 
-			job.BuildConfigPath = "some-input/build.yml"
-			job.BuildConfig = &atc.BuildConfig{
+			job.TaskConfigPath = "some-input/build.yml"
+			job.TaskConfig = &atc.TaskConfig{
 				Image: "some-image",
 				Params: map[string]string{
 					"FOO": "1",
@@ -757,8 +757,8 @@ var _ = Describe("Factory", func() {
 
 		Context("when no build config is present", func() {
 			BeforeEach(func() {
-				job.BuildConfig = nil
-				job.BuildConfigPath = ""
+				job.TaskConfig = nil
+				job.TaskConfigPath = ""
 
 				expectedPlan.Compose.B.Compose.B.Aggregate = &atc.AggregatePlan{
 					"some-resource": atc.Plan{

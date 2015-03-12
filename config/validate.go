@@ -143,7 +143,7 @@ func validateJobs(c atc.Config) error {
 			errorMessages = append(errorMessages, identifier+" has no name")
 		}
 
-		if job.Plan != nil && (job.BuildConfig != nil || len(job.BuildConfigPath) > 0 || len(job.InputConfigs) > 0 || len(job.OutputConfigs) > 0) {
+		if job.Plan != nil && (job.TaskConfig != nil || len(job.TaskConfigPath) > 0 || len(job.InputConfigs) > 0 || len(job.OutputConfigs) > 0) {
 			errorMessages = append(errorMessages, identifier+" has both a plan and inputs/outputs/build config specified")
 		}
 
@@ -219,11 +219,11 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 			badFields = append(badFields, "privileged")
 		}
 
-		if plan.BuildConfig != nil {
+		if plan.TaskConfig != nil {
 			badFields = append(badFields, "config")
 		}
 
-		if plan.BuildConfigPath != "" {
+		if plan.TaskConfigPath != "" {
 			badFields = append(badFields, "build")
 		}
 
@@ -271,11 +271,11 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 			badFields = append(badFields, "privileged")
 		}
 
-		if plan.BuildConfig != nil {
+		if plan.TaskConfig != nil {
 			badFields = append(badFields, "config")
 		}
 
-		if plan.BuildConfigPath != "" {
+		if plan.TaskConfigPath != "" {
 			badFields = append(badFields, "build")
 		}
 

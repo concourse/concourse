@@ -32,13 +32,13 @@ type FakeFactory struct {
 	putReturns struct {
 		result1 exec.Step
 	}
-	TaskStub        func(exec.SessionID, exec.TaskDelegate, exec.Privileged, exec.BuildConfigSource) exec.Step
+	TaskStub        func(exec.SessionID, exec.TaskDelegate, exec.Privileged, exec.TaskConfigSource) exec.Step
 	taskMutex       sync.RWMutex
 	taskArgsForCall []struct {
 		arg1 exec.SessionID
 		arg2 exec.TaskDelegate
 		arg3 exec.Privileged
-		arg4 exec.BuildConfigSource
+		arg4 exec.TaskConfigSource
 	}
 	taskReturns struct {
 		result1 exec.Step
@@ -127,13 +127,13 @@ func (fake *FakeFactory) PutReturns(result1 exec.Step) {
 	}{result1}
 }
 
-func (fake *FakeFactory) Task(arg1 exec.SessionID, arg2 exec.TaskDelegate, arg3 exec.Privileged, arg4 exec.BuildConfigSource) exec.Step {
+func (fake *FakeFactory) Task(arg1 exec.SessionID, arg2 exec.TaskDelegate, arg3 exec.Privileged, arg4 exec.TaskConfigSource) exec.Step {
 	fake.taskMutex.Lock()
 	fake.taskArgsForCall = append(fake.taskArgsForCall, struct {
 		arg1 exec.SessionID
 		arg2 exec.TaskDelegate
 		arg3 exec.Privileged
-		arg4 exec.BuildConfigSource
+		arg4 exec.TaskConfigSource
 	}{arg1, arg2, arg3, arg4})
 	fake.taskMutex.Unlock()
 	if fake.TaskStub != nil {
@@ -149,7 +149,7 @@ func (fake *FakeFactory) TaskCallCount() int {
 	return len(fake.taskArgsForCall)
 }
 
-func (fake *FakeFactory) TaskArgsForCall(i int) (exec.SessionID, exec.TaskDelegate, exec.Privileged, exec.BuildConfigSource) {
+func (fake *FakeFactory) TaskArgsForCall(i int) (exec.SessionID, exec.TaskDelegate, exec.Privileged, exec.TaskConfigSource) {
 	fake.taskMutex.RLock()
 	defer fake.taskMutex.RUnlock()
 	return fake.taskArgsForCall[i].arg1, fake.taskArgsForCall[i].arg2, fake.taskArgsForCall[i].arg3, fake.taskArgsForCall[i].arg4

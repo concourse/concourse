@@ -38,8 +38,8 @@ type TaskPlan struct {
 
 	Privileged bool `json:"privileged"`
 
-	ConfigPath string       `json:"config_path,omitempty"`
-	Config     *BuildConfig `json:"config,omitempty"`
+	ConfigPath string      `json:"config_path,omitempty"`
+	Config     *TaskConfig `json:"config,omitempty"`
 }
 
 type ConditionalPlan struct {

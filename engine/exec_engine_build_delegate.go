@@ -144,10 +144,10 @@ func (delegate *delegate) unregisterImplicitOutput(resource string) {
 	delegate.lock.Unlock()
 }
 
-func (delegate *delegate) saveInitialize(logger lager.Logger, buildConfig atc.BuildConfig, origin event.Origin) {
+func (delegate *delegate) saveInitialize(logger lager.Logger, buildConfig atc.TaskConfig, origin event.Origin) {
 	err := delegate.db.SaveBuildEvent(delegate.buildID, event.InitializeTask{
-		BuildConfig: buildConfig,
-		Origin:      origin,
+		TaskConfig: buildConfig,
+		Origin:     origin,
 	})
 	if err != nil {
 		logger.Error("failed-to-save-initialize-event", err)
@@ -381,7 +381,7 @@ type executionDelegate struct {
 	delegate *delegate
 }
 
-func (execution *executionDelegate) Initializing(config atc.BuildConfig) {
+func (execution *executionDelegate) Initializing(config atc.TaskConfig) {
 	execution.delegate.saveInitialize(execution.logger, config, event.Origin{
 		Type:     event.OriginTypeTask,
 		Name:     execution.plan.Name,

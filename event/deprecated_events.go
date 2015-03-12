@@ -98,13 +98,13 @@ func (StartV10) Version() atc.EventVersion { return "1.0" }
 func (e StartV10) Censored() atc.Event     { return e }
 
 type InitializeV10 struct {
-	BuildConfig atc.BuildConfig `json:"config"`
+	TaskConfig atc.TaskConfig `json:"config"`
 }
 
 func (InitializeV10) EventType() atc.EventType  { return "initialize" }
 func (InitializeV10) Version() atc.EventVersion { return "1.0" }
 func (e InitializeV10) Censored() atc.Event {
-	e.BuildConfig.Params = nil
+	e.TaskConfig.Params = nil
 	return e
 }
 

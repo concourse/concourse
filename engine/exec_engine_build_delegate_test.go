@@ -310,10 +310,10 @@ var _ = Describe("BuildDelegate", func() {
 		})
 
 		Describe("Initializing", func() {
-			var buildConfig atc.BuildConfig
+			var buildConfig atc.TaskConfig
 
 			BeforeEach(func() {
-				buildConfig = atc.BuildConfig{
+				buildConfig = atc.TaskConfig{
 					Run: atc.BuildRunConfig{
 						Path: "ls",
 					},
@@ -330,7 +330,7 @@ var _ = Describe("BuildDelegate", func() {
 				buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
 				Ω(buildID).Should(Equal(42))
 				Ω(savedEvent).Should(Equal(event.InitializeTask{
-					BuildConfig: buildConfig,
+					TaskConfig: buildConfig,
 					Origin: event.Origin{
 						Type:     event.OriginTypeTask,
 						Name:     "some-task",

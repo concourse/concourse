@@ -869,7 +869,7 @@ var _ = Describe("GardenFactory", func() {
 		var (
 			taskDelegate *fakes.FakeTaskDelegate
 			privileged   Privileged
-			configSource *fakes.FakeBuildConfigSource
+			configSource *fakes.FakeTaskConfigSource
 
 			inSource *fakes.FakeArtifactSource
 
@@ -883,7 +883,7 @@ var _ = Describe("GardenFactory", func() {
 			taskDelegate.StderrReturns(stderrBuf)
 
 			privileged = false
-			configSource = new(fakes.FakeBuildConfigSource)
+			configSource = new(fakes.FakeTaskConfigSource)
 
 			inSource = new(fakes.FakeArtifactSource)
 		})
@@ -899,10 +899,10 @@ var _ = Describe("GardenFactory", func() {
 			})
 
 			Context("when the getting the config works", func() {
-				var fetchedConfig atc.BuildConfig
+				var fetchedConfig atc.TaskConfig
 
 				BeforeEach(func() {
-					fetchedConfig = atc.BuildConfig{
+					fetchedConfig = atc.TaskConfig{
 						Platform: "some-platform",
 						Tags:     []string{"some", "tags"},
 						Image:    "some-image",
@@ -938,7 +938,7 @@ var _ = Describe("GardenFactory", func() {
 
 					Describe("before having created the container", func() {
 						BeforeEach(func() {
-							taskDelegate.InitializingStub = func(atc.BuildConfig) {
+							taskDelegate.InitializingStub = func(atc.TaskConfig) {
 								defer GinkgoRecover()
 								Ω(fakeWorkerClient.CreateContainerCallCount()).Should(BeZero())
 							}
@@ -1069,7 +1069,7 @@ var _ = Describe("GardenFactory", func() {
 
 					Context("when the configuration specifies paths for inputs", func() {
 						BeforeEach(func() {
-							configSource.FetchConfigReturns(atc.BuildConfig{
+							configSource.FetchConfigReturns(atc.TaskConfig{
 								Image:  "some-image",
 								Params: map[string]string{"SOME": "params"},
 								Run: atc.BuildRunConfig{
@@ -1182,7 +1182,7 @@ var _ = Describe("GardenFactory", func() {
 
 					Context("when the configuration specifies names of inputs without paths", func() {
 						BeforeEach(func() {
-							configSource.FetchConfigReturns(atc.BuildConfig{
+							configSource.FetchConfigReturns(atc.TaskConfig{
 								Image:  "some-image",
 								Params: map[string]string{"SOME": "params"},
 								Run: atc.BuildRunConfig{
@@ -1742,7 +1742,7 @@ var _ = Describe("GardenFactory", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					configSource.FetchConfigReturns(atc.BuildConfig{}, disaster)
+					configSource.FetchConfigReturns(atc.TaskConfig{}, disaster)
 				})
 
 				It("exits with the failure", func() {

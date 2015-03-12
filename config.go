@@ -47,9 +47,9 @@ type JobConfig struct {
 	Public bool   `yaml:"public,omitempty" json:"public,omitempty" mapstructure:"public"`
 	Serial bool   `yaml:"serial,omitempty" json:"serial,omitempty" mapstructure:"serial"`
 
-	Privileged      bool         `yaml:"privileged,omitempty" json:"privileged,omitempty" mapstructure:"privileged"`
-	BuildConfigPath string       `yaml:"build,omitempty" json:"build,omitempty" mapstructure:"build"`
-	BuildConfig     *BuildConfig `yaml:"config,omitempty" json:"config,omitempty" mapstructure:"config"`
+	Privileged     bool        `yaml:"privileged,omitempty" json:"privileged,omitempty" mapstructure:"privileged"`
+	TaskConfigPath string      `yaml:"build,omitempty" json:"build,omitempty" mapstructure:"build"`
+	TaskConfig     *TaskConfig `yaml:"config,omitempty" json:"config,omitempty" mapstructure:"config"`
 
 	InputConfigs  []JobInputConfig  `yaml:"inputs,omitempty" json:"inputs,omitempty" mapstructure:"inputs"`
 	OutputConfigs []JobOutputConfig `yaml:"outputs,omitempty" json:"outputs,omitempty" mapstructure:"outputs"`
@@ -134,9 +134,9 @@ type PlanConfig struct {
 	// run build privileged
 	Privileged bool `yaml:"privileged,omitempty" json:"privileged,omitempty" mapstructure:"privileged"`
 	// build config path, e.g. foo/build.yml
-	BuildConfigPath string `yaml:"build,omitempty" json:"build,omitempty" mapstructure:"build"`
+	TaskConfigPath string `yaml:"build,omitempty" json:"build,omitempty" mapstructure:"build"`
 	// inlined build config
-	BuildConfig *BuildConfig `yaml:"config,omitempty" json:"config,omitempty" mapstructure:"config"`
+	TaskConfig *TaskConfig `yaml:"config,omitempty" json:"config,omitempty" mapstructure:"config"`
 
 	// used by Get and Put for specifying params to the resource
 	Params Params `yaml:"params,omitempty" json:"params,omitempty" mapstructure:"params"`

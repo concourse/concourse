@@ -10,10 +10,10 @@ import (
 )
 
 type FakeTaskDelegate struct {
-	InitializingStub        func(atc.BuildConfig)
+	InitializingStub        func(atc.TaskConfig)
 	initializingMutex       sync.RWMutex
 	initializingArgsForCall []struct {
-		arg1 atc.BuildConfig
+		arg1 atc.TaskConfig
 	}
 	StartedStub         func()
 	startedMutex        sync.RWMutex
@@ -42,10 +42,10 @@ type FakeTaskDelegate struct {
 	}
 }
 
-func (fake *FakeTaskDelegate) Initializing(arg1 atc.BuildConfig) {
+func (fake *FakeTaskDelegate) Initializing(arg1 atc.TaskConfig) {
 	fake.initializingMutex.Lock()
 	fake.initializingArgsForCall = append(fake.initializingArgsForCall, struct {
-		arg1 atc.BuildConfig
+		arg1 atc.TaskConfig
 	}{arg1})
 	fake.initializingMutex.Unlock()
 	if fake.InitializingStub != nil {
@@ -59,7 +59,7 @@ func (fake *FakeTaskDelegate) InitializingCallCount() int {
 	return len(fake.initializingArgsForCall)
 }
 
-func (fake *FakeTaskDelegate) InitializingArgsForCall(i int) atc.BuildConfig {
+func (fake *FakeTaskDelegate) InitializingArgsForCall(i int) atc.TaskConfig {
 	fake.initializingMutex.RLock()
 	defer fake.initializingMutex.RUnlock()
 	return fake.initializingArgsForCall[i].arg1

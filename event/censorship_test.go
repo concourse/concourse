@@ -56,7 +56,7 @@ var _ = Describe("Censorship", func() {
 	Describe("InitializeV10", func() {
 		It("censors the build params", func() {
 			Ω(InitializeV10{
-				BuildConfig: atc.BuildConfig{
+				TaskConfig: atc.TaskConfig{
 					Image:  "some-image",
 					Params: map[string]string{"super": "secret"},
 					Run: atc.BuildRunConfig{
@@ -64,7 +64,7 @@ var _ = Describe("Censorship", func() {
 					},
 				},
 			}.Censored()).Should(Equal(InitializeV10{
-				BuildConfig: atc.BuildConfig{
+				TaskConfig: atc.TaskConfig{
 					Image:  "some-image",
 					Params: nil,
 					Run: atc.BuildRunConfig{
@@ -78,7 +78,7 @@ var _ = Describe("Censorship", func() {
 	Describe("InitializeTask", func() {
 		It("censors the build params", func() {
 			Ω(InitializeTask{
-				BuildConfig: atc.BuildConfig{
+				TaskConfig: atc.TaskConfig{
 					Image:  "some-image",
 					Params: map[string]string{"super": "secret"},
 					Run: atc.BuildRunConfig{
@@ -86,7 +86,7 @@ var _ = Describe("Censorship", func() {
 					},
 				},
 			}.Censored()).Should(Equal(InitializeTask{
-				BuildConfig: atc.BuildConfig{
+				TaskConfig: atc.TaskConfig{
 					Image:  "some-image",
 					Params: nil,
 					Run: atc.BuildRunConfig{

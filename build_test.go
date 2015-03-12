@@ -7,16 +7,16 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("BuildConfig", func() {
+var _ = Describe("TaskConfig", func() {
 	Describe("validating", func() {
-		validConfig := BuildConfig{
+		validConfig := TaskConfig{
 			Platform: "linux",
 			Run: BuildRunConfig{
 				Path: "reboot",
 			},
 		}
 
-		var invalidConfig BuildConfig
+		var invalidConfig TaskConfig
 
 		BeforeEach(func() {
 			invalidConfig = validConfig
@@ -45,18 +45,18 @@ var _ = Describe("BuildConfig", func() {
 
 	Describe("merging", func() {
 		It("merges params while preserving other properties", func() {
-			Ω(BuildConfig{
+			Ω(TaskConfig{
 				Image: "some-image",
 				Params: map[string]string{
 					"FOO": "1",
 					"BAR": "2",
 				},
-			}.Merge(BuildConfig{
+			}.Merge(TaskConfig{
 				Params: map[string]string{
 					"FOO": "3",
 					"BAZ": "4",
 				},
-			})).Should(Equal(BuildConfig{
+			})).Should(Equal(TaskConfig{
 				Image: "some-image",
 				Params: map[string]string{
 					"FOO": "3",
@@ -67,46 +67,46 @@ var _ = Describe("BuildConfig", func() {
 		})
 
 		It("merges tags", func() {
-			Ω(BuildConfig{
+			Ω(TaskConfig{
 				Tags: []string{"a", "b"},
-			}.Merge(BuildConfig{
+			}.Merge(TaskConfig{
 				Tags: []string{"b", "c", "d"},
 			}).Tags).Should(ConsistOf("a", "b", "c", "d"))
 		})
 
 		It("overrides the platform", func() {
-			Ω(BuildConfig{
+			Ω(TaskConfig{
 				Platform: "platform-a",
-			}.Merge(BuildConfig{
+			}.Merge(TaskConfig{
 				Platform: "platform-b",
-			})).Should(Equal(BuildConfig{
+			})).Should(Equal(TaskConfig{
 				Platform: "platform-b",
 			}))
 		})
 
 		It("overrides the image", func() {
-			Ω(BuildConfig{
+			Ω(TaskConfig{
 				Image: "some-image",
-			}.Merge(BuildConfig{
+			}.Merge(TaskConfig{
 				Image: "better-image",
-			})).Should(Equal(BuildConfig{
+			})).Should(Equal(TaskConfig{
 				Image: "better-image",
 			}))
 		})
 
 		It("overrides the run config", func() {
-			Ω(BuildConfig{
+			Ω(TaskConfig{
 				Run: BuildRunConfig{
 					Path: "some-path",
 					Args: []string{"arg1", "arg2"},
 				},
-			}.Merge(BuildConfig{
+			}.Merge(TaskConfig{
 				Image: "some-image",
 				Run: BuildRunConfig{
 					Path: "better-path",
 					Args: []string{"better-arg1", "better-arg2"},
 				},
-			})).Should(Equal(BuildConfig{
+			})).Should(Equal(TaskConfig{
 				Image: "some-image",
 				Run: BuildRunConfig{
 					Path: "better-path",
@@ -116,17 +116,17 @@ var _ = Describe("BuildConfig", func() {
 		})
 
 		It("overrides the run config even with no args", func() {
-			Ω(BuildConfig{
+			Ω(TaskConfig{
 				Run: BuildRunConfig{
 					Path: "some-path",
 					Args: []string{"arg1", "arg2"},
 				},
-			}.Merge(BuildConfig{
+			}.Merge(TaskConfig{
 				Image: "some-image",
 				Run: BuildRunConfig{
 					Path: "better-path",
 				},
-			})).Should(Equal(BuildConfig{
+			})).Should(Equal(TaskConfig{
 				Image: "some-image",
 				Run: BuildRunConfig{
 					Path: "better-path",
@@ -135,15 +135,15 @@ var _ = Describe("BuildConfig", func() {
 		})
 
 		It("overrides input configuration", func() {
-			Ω(BuildConfig{
+			Ω(TaskConfig{
 				Inputs: []BuildInputConfig{
 					{Name: "some-input", Path: "some-destination"},
 				},
-			}.Merge(BuildConfig{
+			}.Merge(TaskConfig{
 				Inputs: []BuildInputConfig{
 					{Name: "another-input", Path: "another-destination"},
 				},
-			})).Should(Equal(BuildConfig{
+			})).Should(Equal(TaskConfig{
 				Inputs: []BuildInputConfig{
 					{Name: "another-input", Path: "another-destination"},
 				},

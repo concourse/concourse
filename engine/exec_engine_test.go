@@ -45,7 +45,7 @@ var _ = Describe("ExecEngine", func() {
 			inputPlan   *atc.GetPlan
 			outputPlan  *atc.ConditionalPlan
 			privileged  bool
-			buildConfig *atc.BuildConfig
+			buildConfig *atc.TaskConfig
 
 			buildConfigPath string
 
@@ -68,7 +68,7 @@ var _ = Describe("ExecEngine", func() {
 
 			buildModel = db.Build{ID: 42}
 
-			buildConfig = &atc.BuildConfig{
+			buildConfig = &atc.TaskConfig{
 				Image:  "some-image",
 				Params: map[string]string{"PARAM": "value"},
 				Run: atc.BuildRunConfig{

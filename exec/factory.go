@@ -14,7 +14,7 @@ type Factory interface {
 	Get(SessionID, GetDelegate, atc.ResourceConfig, atc.Params, atc.Version) Step
 	Put(SessionID, PutDelegate, atc.ResourceConfig, atc.Params) Step
 	// Delete(atc.ResourceConfig, atc.Params, atc.Version) Step
-	Task(SessionID, TaskDelegate, Privileged, BuildConfigSource) Step
+	Task(SessionID, TaskDelegate, Privileged, TaskConfigSource) Step
 
 	Hijack(SessionID, IOConfig, atc.HijackProcessSpec) (HijackedProcess, error)
 }
@@ -22,7 +22,7 @@ type Factory interface {
 //go:generate counterfeiter . TaskDelegate
 
 type TaskDelegate interface {
-	Initializing(atc.BuildConfig)
+	Initializing(atc.TaskConfig)
 	Started()
 	Finished(ExitStatus)
 	Failed(error)

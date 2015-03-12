@@ -22,14 +22,14 @@ func (FinishTask) Version() atc.EventVersion { return "1.0" }
 func (e FinishTask) Censored() atc.Event     { return e }
 
 type InitializeTask struct {
-	BuildConfig atc.BuildConfig `json:"config"`
-	Origin      Origin          `json:"origin"`
+	TaskConfig atc.TaskConfig `json:"config"`
+	Origin     Origin         `json:"origin"`
 }
 
 func (InitializeTask) EventType() atc.EventType  { return EventTypeInitializeTask }
 func (InitializeTask) Version() atc.EventVersion { return "1.0" }
 func (e InitializeTask) Censored() atc.Event {
-	e.BuildConfig.Params = nil
+	e.TaskConfig.Params = nil
 	return e
 }
 
