@@ -48,7 +48,7 @@ type JobConfig struct {
 	Serial bool   `yaml:"serial,omitempty" json:"serial,omitempty" mapstructure:"serial"`
 
 	Privileged     bool        `yaml:"privileged,omitempty" json:"privileged,omitempty" mapstructure:"privileged"`
-	TaskConfigPath string      `yaml:"file,omitempty" json:"file,omitempty" mapstructure:"file"`
+	TaskConfigPath string      `yaml:"build,omitempty" json:"build,omitempty" mapstructure:"build"`
 	TaskConfig     *TaskConfig `yaml:"config,omitempty" json:"config,omitempty" mapstructure:"config"`
 
 	InputConfigs  []JobInputConfig  `yaml:"inputs,omitempty" json:"inputs,omitempty" mapstructure:"inputs"`
