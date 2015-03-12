@@ -51,9 +51,9 @@ type HijackTarget struct {
 type HijackTargetType string
 
 const (
-	HijackTargetTypeGet     HijackTargetType = "get"
-	HijackTargetTypePut     HijackTargetType = "put"
-	HijackTargetTypeExecute HijackTargetType = "execute"
+	HijackTargetTypeGet  HijackTargetType = "get"
+	HijackTargetTypePut  HijackTargetType = "put"
+	HijackTargetTypeTask HijackTargetType = "task"
 )
 
 type HijackProcessIO struct {

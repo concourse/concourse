@@ -52,7 +52,7 @@ var Step = React.createClass({
     case "put":
       classes.push("fa-arrow-up");
       break;
-    case "execute":
+    case "task":
       classes.push("fa-terminal");
       break;
     }

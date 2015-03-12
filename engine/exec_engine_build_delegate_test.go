@@ -295,18 +295,18 @@ var _ = Describe("BuildDelegate", func() {
 
 	Describe("ExecutionDelegate", func() {
 		var (
-			executePlan       atc.ExecutePlan
-			executionDelegate exec.ExecuteDelegate
+			taskPlan          atc.TaskPlan
+			executionDelegate exec.TaskDelegate
 		)
 
 		BeforeEach(func() {
-			executePlan = atc.ExecutePlan{
-				Name:       "some-execute",
+			taskPlan = atc.TaskPlan{
+				Name:       "some-task",
 				Privileged: true,
 				ConfigPath: "/etc/concourse/config.yml",
 			}
 
-			executionDelegate = delegate.ExecutionDelegate(logger, executePlan, location)
+			executionDelegate = delegate.ExecutionDelegate(logger, taskPlan, location)
 		})
 
 		Describe("Initializing", func() {
@@ -329,11 +329,11 @@ var _ = Describe("BuildDelegate", func() {
 
 				buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
 				Ω(buildID).Should(Equal(42))
-				Ω(savedEvent).Should(Equal(event.InitializeExecute{
+				Ω(savedEvent).Should(Equal(event.InitializeTask{
 					BuildConfig: buildConfig,
 					Origin: event.Origin{
-						Type:     event.OriginTypeExecute,
-						Name:     "some-execute",
+						Type:     event.OriginTypeTask,
+						Name:     "some-task",
 						Location: location,
 					},
 				}))
@@ -350,11 +350,11 @@ var _ = Describe("BuildDelegate", func() {
 
 				buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
 				Ω(buildID).Should(Equal(42))
-				Ω(savedEvent).Should(BeAssignableToTypeOf(event.StartExecute{}))
-				Ω(savedEvent.(event.StartExecute).Time).Should(BeNumerically("~", time.Now().Unix(), 1))
-				Ω(savedEvent.(event.StartExecute).Origin).Should(Equal(event.Origin{
-					Type:     event.OriginTypeExecute,
-					Name:     "some-execute",
+				Ω(savedEvent).Should(BeAssignableToTypeOf(event.StartTask{}))
+				Ω(savedEvent.(event.StartTask).Time).Should(BeNumerically("~", time.Now().Unix(), 1))
+				Ω(savedEvent.(event.StartTask).Origin).Should(Equal(event.Origin{
+					Type:     event.OriginTypeTask,
+					Name:     "some-task",
 					Location: location,
 				}))
 			})
@@ -381,12 +381,12 @@ var _ = Describe("BuildDelegate", func() {
 
 					buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
 					Ω(buildID).Should(Equal(42))
-					Ω(savedEvent).Should(BeAssignableToTypeOf(event.FinishExecute{}))
-					Ω(savedEvent.(event.FinishExecute).ExitStatus).Should(Equal(0))
-					Ω(savedEvent.(event.FinishExecute).Time).Should(BeNumerically("<=", time.Now().Unix(), 1))
-					Ω(savedEvent.(event.FinishExecute).Origin).Should(Equal(event.Origin{
-						Type:     event.OriginTypeExecute,
-						Name:     "some-execute",
+					Ω(savedEvent).Should(BeAssignableToTypeOf(event.FinishTask{}))
+					Ω(savedEvent.(event.FinishTask).ExitStatus).Should(Equal(0))
+					Ω(savedEvent.(event.FinishTask).Time).Should(BeNumerically("<=", time.Now().Unix(), 1))
+					Ω(savedEvent.(event.FinishTask).Origin).Should(Equal(event.Origin{
+						Type:     event.OriginTypeTask,
+						Name:     "some-task",
 						Location: location,
 					}))
 				})
@@ -444,12 +444,12 @@ var _ = Describe("BuildDelegate", func() {
 
 					buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
 					Ω(buildID).Should(Equal(42))
-					Ω(savedEvent).Should(BeAssignableToTypeOf(event.FinishExecute{}))
-					Ω(savedEvent.(event.FinishExecute).ExitStatus).Should(Equal(1))
-					Ω(savedEvent.(event.FinishExecute).Time).Should(BeNumerically("<=", time.Now().Unix(), 1))
-					Ω(savedEvent.(event.FinishExecute).Origin).Should(Equal(event.Origin{
-						Type:     event.OriginTypeExecute,
-						Name:     "some-execute",
+					Ω(savedEvent).Should(BeAssignableToTypeOf(event.FinishTask{}))
+					Ω(savedEvent.(event.FinishTask).ExitStatus).Should(Equal(1))
+					Ω(savedEvent.(event.FinishTask).Time).Should(BeNumerically("<=", time.Now().Unix(), 1))
+					Ω(savedEvent.(event.FinishTask).Origin).Should(Equal(event.Origin{
+						Type:     event.OriginTypeTask,
+						Name:     "some-task",
 						Location: location,
 					}))
 				})
@@ -515,8 +515,8 @@ var _ = Describe("BuildDelegate", func() {
 				Ω(savedEvent).Should(Equal(event.Error{
 					Message: "nope",
 					Origin: event.Origin{
-						Type:     event.OriginTypeExecute,
-						Name:     "some-execute",
+						Type:     event.OriginTypeTask,
+						Name:     "some-task",
 						Location: location,
 					},
 				}))
@@ -540,8 +540,8 @@ var _ = Describe("BuildDelegate", func() {
 				Ω(savedBuildID).Should(Equal(buildID))
 				Ω(savedEvent).Should(Equal(event.Log{
 					Origin: event.Origin{
-						Type:     event.OriginTypeExecute,
-						Name:     "some-execute",
+						Type:     event.OriginTypeTask,
+						Name:     "some-task",
 						Source:   event.OriginSourceStdout,
 						Location: location,
 					},
@@ -567,8 +567,8 @@ var _ = Describe("BuildDelegate", func() {
 				Ω(savedBuildID).Should(Equal(buildID))
 				Ω(savedEvent).Should(Equal(event.Log{
 					Origin: event.Origin{
-						Type:     event.OriginTypeExecute,
-						Name:     "some-execute",
+						Type:     event.OriginTypeTask,
+						Name:     "some-task",
 						Source:   event.OriginSourceStderr,
 						Location: location,
 					},

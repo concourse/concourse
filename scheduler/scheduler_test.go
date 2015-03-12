@@ -39,7 +39,7 @@ var _ = Describe("Scheduler", func() {
 		fakeScanner = new(fakes.FakeScanner)
 
 		createdPlan = atc.Plan{
-			Execute: &atc.ExecutePlan{
+			Task: &atc.TaskPlan{
 				Config: &atc.BuildConfig{
 					Run: atc.BuildRunConfig{Path: "some-build"},
 				},

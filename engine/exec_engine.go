@@ -132,8 +132,8 @@ func (build *execBuild) Hijack(target HijackTarget, spec atc.HijackProcessSpec, 
 		sessionID = build.getSessionID(target.Name)
 	case HijackTargetTypePut:
 		sessionID = build.putSessionID(target.Name)
-	case HijackTargetTypeExecute:
-		sessionID = build.executeSessionID(target.Name)
+	case HijackTargetTypeTask:
+		sessionID = build.taskSessionID(target.Name)
 	default:
 		return nil, fmt.Errorf("invalid hijack target type: %s", target.Type)
 	}
@@ -173,27 +173,27 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan, location e
 		}
 	}
 
-	if plan.Execute != nil {
-		logger = logger.Session("execute")
+	if plan.Task != nil {
+		logger = logger.Session("task")
 
 		var configSource exec.BuildConfigSource
-		if plan.Execute.Config != nil && plan.Execute.ConfigPath != "" {
+		if plan.Task.Config != nil && plan.Task.ConfigPath != "" {
 			configSource = exec.MergedConfigSource{
-				A: exec.FileConfigSource{plan.Execute.ConfigPath},
-				B: exec.StaticConfigSource{*plan.Execute.Config},
+				A: exec.FileConfigSource{plan.Task.ConfigPath},
+				B: exec.StaticConfigSource{*plan.Task.Config},
 			}
-		} else if plan.Execute.Config != nil {
-			configSource = exec.StaticConfigSource{*plan.Execute.Config}
-		} else if plan.Execute.ConfigPath != "" {
-			configSource = exec.FileConfigSource{plan.Execute.ConfigPath}
+		} else if plan.Task.Config != nil {
+			configSource = exec.StaticConfigSource{*plan.Task.Config}
+		} else if plan.Task.ConfigPath != "" {
+			configSource = exec.FileConfigSource{plan.Task.ConfigPath}
 		} else {
 			return exec.Identity{}
 		}
 
-		return build.factory.Execute(
-			build.executeSessionID(plan.Execute.Name),
-			build.delegate.ExecutionDelegate(logger, *plan.Execute, location),
-			exec.Privileged(plan.Execute.Privileged),
+		return build.factory.Task(
+			build.taskSessionID(plan.Task.Name),
+			build.delegate.ExecutionDelegate(logger, *plan.Task, location),
+			exec.Privileged(plan.Task.Privileged),
 			configSource,
 		)
 	}
@@ -236,8 +236,8 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan, location e
 	return exec.Identity{}
 }
 
-func (build *execBuild) executeSessionID(executeName string) exec.SessionID {
-	return exec.SessionID(fmt.Sprintf("build-%d-execute-%s", build.buildID, executeName))
+func (build *execBuild) taskSessionID(taskName string) exec.SessionID {
+	return exec.SessionID(fmt.Sprintf("build-%d-task-%s", build.buildID, taskName))
 }
 
 func (build *execBuild) getSessionID(inputName string) exec.SessionID {

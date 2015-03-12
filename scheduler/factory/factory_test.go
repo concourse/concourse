@@ -44,7 +44,7 @@ var _ = Describe("Factory", func() {
 				B: atc.Plan{
 					Compose: &atc.ComposePlan{
 						A: atc.Plan{
-							Execute: &atc.ExecutePlan{
+							Task: &atc.TaskPlan{
 								Name: "build",
 
 								Privileged: true,
@@ -174,7 +174,7 @@ var _ = Describe("Factory", func() {
 					},
 				},
 				{
-					Execute:         "build",
+					Task:            "build",
 					Privileged:      true,
 					BuildConfigPath: "some-input/build.yml",
 					BuildConfig: &atc.BuildConfig{
@@ -228,21 +228,21 @@ var _ = Describe("Factory", func() {
 				Ω(factory.Create(atc.JobConfig{
 					Plan: atc.PlanSequence{
 						{
-							Execute: "those who resist our will",
+							Task: "those who resist our will",
 						},
 						{
-							Execute:    "the deal",
+							Task:       "the deal",
 							Conditions: &atc.Conditions{"success"},
 						},
 						{
-							Execute:    "the other deal",
+							Task:       "the other deal",
 							Conditions: &atc.Conditions{"failure"},
 						},
 					},
 				}, resources, nil)).Should(Equal(atc.Plan{
 					Compose: &atc.ComposePlan{
 						A: atc.Plan{
-							Execute: &atc.ExecutePlan{
+							Task: &atc.TaskPlan{
 								Name: "those who resist our will",
 							},
 						},
@@ -252,7 +252,7 @@ var _ = Describe("Factory", func() {
 								Plan: atc.Plan{
 									Compose: &atc.ComposePlan{
 										A: atc.Plan{
-											Execute: &atc.ExecutePlan{
+											Task: &atc.TaskPlan{
 												Name: "the deal",
 											},
 										},
@@ -260,7 +260,7 @@ var _ = Describe("Factory", func() {
 											Conditional: &atc.ConditionalPlan{
 												Conditions: atc.Conditions{"failure"},
 												Plan: atc.Plan{
-													Execute: &atc.ExecutePlan{
+													Task: &atc.TaskPlan{
 														Name: "the other deal",
 													},
 												},
@@ -275,13 +275,13 @@ var _ = Describe("Factory", func() {
 			})
 		})
 
-		Context("when a get plan follows an execute plan", func() {
+		Context("when a get plan follows a task plan", func() {
 			Context("with no explicit condition", func() {
-				It("executes only on success", func() {
+				It("runs only on success", func() {
 					Ω(factory.Create(atc.JobConfig{
 						Plan: atc.PlanSequence{
 							{
-								Execute: "those who resist our will",
+								Task: "those who resist our will",
 							},
 							{
 								Get: "money",
@@ -290,7 +290,7 @@ var _ = Describe("Factory", func() {
 					}, resources, nil)).Should(Equal(atc.Plan{
 						Compose: &atc.ComposePlan{
 							A: atc.Plan{
-								Execute: &atc.ExecutePlan{
+								Task: &atc.TaskPlan{
 									Name: "those who resist our will",
 								},
 							},
@@ -311,11 +311,11 @@ var _ = Describe("Factory", func() {
 			})
 
 			Context("when it has an explicit condition", func() {
-				It("executes with the given condition", func() {
+				It("runs with the given condition", func() {
 					Ω(factory.Create(atc.JobConfig{
 						Plan: atc.PlanSequence{
 							{
-								Execute: "those who resist our will",
+								Task: "those who resist our will",
 							},
 							{
 								Get:        "money",
@@ -325,7 +325,7 @@ var _ = Describe("Factory", func() {
 					}, resources, nil)).Should(Equal(atc.Plan{
 						Compose: &atc.ComposePlan{
 							A: atc.Plan{
-								Execute: &atc.ExecutePlan{
+								Task: &atc.TaskPlan{
 									Name: "those who resist our will",
 								},
 							},
@@ -346,13 +346,13 @@ var _ = Describe("Factory", func() {
 			})
 		})
 
-		Context("when a put plan follows an execute plan", func() {
+		Context("when a put plan follows a task plan", func() {
 			Context("with no explicit condition", func() {
-				It("executes only on success", func() {
+				It("runs only on success", func() {
 					Ω(factory.Create(atc.JobConfig{
 						Plan: atc.PlanSequence{
 							{
-								Execute: "those who resist our will",
+								Task: "those who resist our will",
 							},
 							{
 								Put: "money",
@@ -361,7 +361,7 @@ var _ = Describe("Factory", func() {
 					}, resources, nil)).Should(Equal(atc.Plan{
 						Compose: &atc.ComposePlan{
 							A: atc.Plan{
-								Execute: &atc.ExecutePlan{
+								Task: &atc.TaskPlan{
 									Name: "those who resist our will",
 								},
 							},
@@ -382,11 +382,11 @@ var _ = Describe("Factory", func() {
 			})
 
 			Context("when it has an explicit condition", func() {
-				It("executes with the given condition", func() {
+				It("runs with the given condition", func() {
 					Ω(factory.Create(atc.JobConfig{
 						Plan: atc.PlanSequence{
 							{
-								Execute: "those who resist our will",
+								Task: "those who resist our will",
 							},
 							{
 								Put:        "money",
@@ -396,7 +396,7 @@ var _ = Describe("Factory", func() {
 					}, resources, nil)).Should(Equal(atc.Plan{
 						Compose: &atc.ComposePlan{
 							A: atc.Plan{
-								Execute: &atc.ExecutePlan{
+								Task: &atc.TaskPlan{
 									Name: "those who resist our will",
 								},
 							},
@@ -417,22 +417,22 @@ var _ = Describe("Factory", func() {
 			})
 		})
 
-		Context("when an execute plan follows an execute plan", func() {
+		Context("when a task plan follows a task plan", func() {
 			Context("with no explicit condition", func() {
-				It("executes only on success", func() {
+				It("runs only on success", func() {
 					Ω(factory.Create(atc.JobConfig{
 						Plan: atc.PlanSequence{
 							{
-								Execute: "those who resist our will",
+								Task: "those who resist our will",
 							},
 							{
-								Execute: "haters",
+								Task: "haters",
 							},
 						},
 					}, resources, nil)).Should(Equal(atc.Plan{
 						Compose: &atc.ComposePlan{
 							A: atc.Plan{
-								Execute: &atc.ExecutePlan{
+								Task: &atc.TaskPlan{
 									Name: "those who resist our will",
 								},
 							},
@@ -440,7 +440,7 @@ var _ = Describe("Factory", func() {
 								Conditional: &atc.ConditionalPlan{
 									Conditions: atc.Conditions{"success"},
 									Plan: atc.Plan{
-										Execute: &atc.ExecutePlan{
+										Task: &atc.TaskPlan{
 											Name: "haters",
 										},
 									},
@@ -452,21 +452,21 @@ var _ = Describe("Factory", func() {
 			})
 
 			Context("when it has an explicit condition", func() {
-				It("executes with the given condition", func() {
+				It("runs with the given condition", func() {
 					Ω(factory.Create(atc.JobConfig{
 						Plan: atc.PlanSequence{
 							{
-								Execute: "those who resist our will",
+								Task: "those who resist our will",
 							},
 							{
-								Execute:    "haters",
+								Task:       "haters",
 								Conditions: &atc.Conditions{"failure"},
 							},
 						},
 					}, resources, nil)).Should(Equal(atc.Plan{
 						Compose: &atc.ComposePlan{
 							A: atc.Plan{
-								Execute: &atc.ExecutePlan{
+								Task: &atc.TaskPlan{
 									Name: "those who resist our will",
 								},
 							},
@@ -474,7 +474,7 @@ var _ = Describe("Factory", func() {
 								Conditional: &atc.ConditionalPlan{
 									Conditions: atc.Conditions{"failure"},
 									Plan: atc.Plan{
-										Execute: &atc.ExecutePlan{
+										Task: &atc.TaskPlan{
 											Name: "haters",
 										},
 									},
@@ -486,13 +486,13 @@ var _ = Describe("Factory", func() {
 			})
 		})
 
-		Context("when an aggregate plan follows an execute plan", func() {
+		Context("when an aggregate plan follows a task plan", func() {
 			Context("and any of its plans have explicit conditions", func() {
-				It("executes them with their given condition", func() {
+				It("runs them with their given condition", func() {
 					Ω(factory.Create(atc.JobConfig{
 						Plan: atc.PlanSequence{
 							{
-								Execute: "those who resist our will",
+								Task: "those who resist our will",
 							},
 							{
 								Aggregate: &atc.PlanSequence{
@@ -513,7 +513,7 @@ var _ = Describe("Factory", func() {
 					}, resources, nil)).Should(Equal(atc.Plan{
 						Compose: &atc.ComposePlan{
 							A: atc.Plan{
-								Execute: &atc.ExecutePlan{
+								Task: &atc.TaskPlan{
 									Name: "those who resist our will",
 								},
 							},
@@ -560,13 +560,13 @@ var _ = Describe("Factory", func() {
 			})
 		})
 
-		Context("when a do plan follows an execute plan", func() {
+		Context("when a do plan follows a task plan", func() {
 			Context("and its first plan has no explicit condition", func() {
-				It("executes only on success", func() {
+				It("runs only on success", func() {
 					Ω(factory.Create(atc.JobConfig{
 						Plan: atc.PlanSequence{
 							{
-								Execute: "those who resist our will",
+								Task: "those who resist our will",
 							},
 							{
 								Do: &atc.PlanSequence{
@@ -586,7 +586,7 @@ var _ = Describe("Factory", func() {
 					}, resources, nil)).Should(Equal(atc.Plan{
 						Compose: &atc.ComposePlan{
 							A: atc.Plan{
-								Execute: &atc.ExecutePlan{
+								Task: &atc.TaskPlan{
 									Name: "those who resist our will",
 								},
 							},
@@ -632,11 +632,11 @@ var _ = Describe("Factory", func() {
 			})
 
 			Context("and its first plan has an explicit condition", func() {
-				It("executes with the given condition", func() {
+				It("runs with the given condition", func() {
 					Ω(factory.Create(atc.JobConfig{
 						Plan: atc.PlanSequence{
 							{
-								Execute: "those who resist our will",
+								Task: "those who resist our will",
 							},
 							{
 								Do: &atc.PlanSequence{
@@ -657,7 +657,7 @@ var _ = Describe("Factory", func() {
 					}, resources, nil)).Should(Equal(atc.Plan{
 						Compose: &atc.ComposePlan{
 							A: atc.Plan{
-								Execute: &atc.ExecutePlan{
+								Task: &atc.TaskPlan{
 									Name: "those who resist our will",
 								},
 							},

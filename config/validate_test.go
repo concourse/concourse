@@ -313,7 +313,7 @@ var _ = Describe("ValidateConfig", func() {
 					job.Plan = append(job.Plan, atc.PlanConfig{
 						Get:       "lol",
 						Put:       "lol",
-						Execute:   "lol",
+						Task:      "lol",
 						Do:        &atc.PlanSequence{},
 						Aggregate: &atc.PlanSequence{},
 					})
@@ -324,7 +324,7 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Ω(validateErr).Should(HaveOccurred())
 					Ω(validateErr.Error()).Should(ContainSubstring(
-						"jobs.some-other-job.plan[0] has multiple actions specified (get, put, execute, do, aggregate)",
+						"jobs.some-other-job.plan[0] has multiple actions specified (get, put, task, do, aggregate)",
 					))
 				})
 			})
@@ -344,7 +344,7 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			Context("when a get plan has execute-only fields specified", func() {
+			Context("when a get plan has task-only fields specified", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, atc.PlanConfig{
 						Get:             "lol",
@@ -363,11 +363,11 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			Context("when an execute plan has invalid fields specified", func() {
+			Context("when a task plan has invalid fields specified", func() {
 				BeforeEach(func() {
 					no := false
 					job.Plan = append(job.Plan, atc.PlanConfig{
-						Execute:    "lol",
+						Task:       "lol",
 						Resource:   "some-resource",
 						Passed:     []string{"hi"},
 						RawTrigger: &no,
@@ -379,16 +379,16 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Ω(validateErr).Should(HaveOccurred())
 					Ω(validateErr.Error()).Should(ContainSubstring(
-						"jobs.some-other-job.plan[0].execute.lol has invalid fields specified (resource, passed, trigger)",
+						"jobs.some-other-job.plan[0].task.lol has invalid fields specified (resource, passed, trigger)",
 					))
 				})
 			})
 
-			Context("when an execute plan has params specified", func() {
+			Context("when a task plan has params specified", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, atc.PlanConfig{
-						Execute: "lol",
-						Params:  atc.Params{"A": "B"},
+						Task:   "lol",
+						Params: atc.Params{"A": "B"},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -397,7 +397,7 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Ω(validateErr).Should(HaveOccurred())
 					Ω(validateErr.Error()).Should(ContainSubstring(
-						"jobs.some-other-job.plan[0].execute.lol specifies params, which should be config.params",
+						"jobs.some-other-job.plan[0].task.lol specifies params, which should be config.params",
 					))
 				})
 			})

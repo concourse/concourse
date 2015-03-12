@@ -12,13 +12,13 @@ const (
 	EventTypeStatus atc.EventType = "status"
 
 	// build initializing (all inputs fetched; fetching image)
-	EventTypeInitializeExecute atc.EventType = "initialize-execute"
+	EventTypeInitializeTask atc.EventType = "initialize-task"
 
 	// build execution started
-	EventTypeStartExecute atc.EventType = "start-execute"
+	EventTypeStartTask atc.EventType = "start-task"
 
 	// build execution finished
-	EventTypeFinishExecute atc.EventType = "finish-execute"
+	EventTypeFinishTask atc.EventType = "finish-task"
 
 	// finished getting something
 	EventTypeFinishGet atc.EventType = "finish-get"

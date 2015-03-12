@@ -11,36 +11,36 @@ func (Error) EventType() atc.EventType  { return EventTypeError }
 func (Error) Version() atc.EventVersion { return "1.0" }
 func (e Error) Censored() atc.Event     { return e }
 
-type FinishExecute struct {
+type FinishTask struct {
 	Time       int64  `json:"time"`
 	ExitStatus int    `json:"exit_status"`
 	Origin     Origin `json:"origin"`
 }
 
-func (FinishExecute) EventType() atc.EventType  { return EventTypeFinishExecute }
-func (FinishExecute) Version() atc.EventVersion { return "1.0" }
-func (e FinishExecute) Censored() atc.Event     { return e }
+func (FinishTask) EventType() atc.EventType  { return EventTypeFinishTask }
+func (FinishTask) Version() atc.EventVersion { return "1.0" }
+func (e FinishTask) Censored() atc.Event     { return e }
 
-type InitializeExecute struct {
+type InitializeTask struct {
 	BuildConfig atc.BuildConfig `json:"config"`
 	Origin      Origin          `json:"origin"`
 }
 
-func (InitializeExecute) EventType() atc.EventType  { return EventTypeInitializeExecute }
-func (InitializeExecute) Version() atc.EventVersion { return "1.0" }
-func (e InitializeExecute) Censored() atc.Event {
+func (InitializeTask) EventType() atc.EventType  { return EventTypeInitializeTask }
+func (InitializeTask) Version() atc.EventVersion { return "1.0" }
+func (e InitializeTask) Censored() atc.Event {
 	e.BuildConfig.Params = nil
 	return e
 }
 
-type StartExecute struct {
+type StartTask struct {
 	Time   int64  `json:"time"`
 	Origin Origin `json:"origin"`
 }
 
-func (StartExecute) EventType() atc.EventType  { return EventTypeStartExecute }
-func (StartExecute) Version() atc.EventVersion { return "1.0" }
-func (e StartExecute) Censored() atc.Event     { return e }
+func (StartTask) EventType() atc.EventType  { return EventTypeStartTask }
+func (StartTask) Version() atc.EventVersion { return "1.0" }
+func (e StartTask) Censored() atc.Event     { return e }
 
 type Status struct {
 	Status atc.BuildStatus `json:"status"`
@@ -73,7 +73,7 @@ const (
 	OriginTypeInvalid OriginType = ""
 	OriginTypeGet     OriginType = "get"
 	OriginTypePut     OriginType = "put"
-	OriginTypeExecute OriginType = "execute"
+	OriginTypeTask    OriginType = "task"
 )
 
 type OriginSource string

@@ -18,7 +18,7 @@ func (spec ResourceTypeContainerSpec) Description() string {
 	return fmt.Sprintf("resource type '%s'", spec.Type)
 }
 
-type ExecuteContainerSpec struct {
+type TaskContainerSpec struct {
 	Platform string
 	Tags     []string
 
@@ -26,7 +26,7 @@ type ExecuteContainerSpec struct {
 	Privileged bool
 }
 
-func (spec ExecuteContainerSpec) Description() string {
+func (spec TaskContainerSpec) Description() string {
 	messages := []string{
 		fmt.Sprintf("platform '%s'", spec.Platform),
 	}

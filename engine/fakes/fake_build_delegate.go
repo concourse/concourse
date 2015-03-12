@@ -22,15 +22,15 @@ type FakeBuildDelegate struct {
 	inputDelegateReturns struct {
 		result1 exec.GetDelegate
 	}
-	ExecutionDelegateStub        func(lager.Logger, atc.ExecutePlan, event.OriginLocation) exec.ExecuteDelegate
+	ExecutionDelegateStub        func(lager.Logger, atc.TaskPlan, event.OriginLocation) exec.TaskDelegate
 	executionDelegateMutex       sync.RWMutex
 	executionDelegateArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 atc.ExecutePlan
+		arg2 atc.TaskPlan
 		arg3 event.OriginLocation
 	}
 	executionDelegateReturns struct {
-		result1 exec.ExecuteDelegate
+		result1 exec.TaskDelegate
 	}
 	OutputDelegateStub        func(lager.Logger, atc.PutPlan, event.OriginLocation) exec.PutDelegate
 	outputDelegateMutex       sync.RWMutex
@@ -89,11 +89,11 @@ func (fake *FakeBuildDelegate) InputDelegateReturns(result1 exec.GetDelegate) {
 	}{result1}
 }
 
-func (fake *FakeBuildDelegate) ExecutionDelegate(arg1 lager.Logger, arg2 atc.ExecutePlan, arg3 event.OriginLocation) exec.ExecuteDelegate {
+func (fake *FakeBuildDelegate) ExecutionDelegate(arg1 lager.Logger, arg2 atc.TaskPlan, arg3 event.OriginLocation) exec.TaskDelegate {
 	fake.executionDelegateMutex.Lock()
 	fake.executionDelegateArgsForCall = append(fake.executionDelegateArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 atc.ExecutePlan
+		arg2 atc.TaskPlan
 		arg3 event.OriginLocation
 	}{arg1, arg2, arg3})
 	fake.executionDelegateMutex.Unlock()
@@ -110,16 +110,16 @@ func (fake *FakeBuildDelegate) ExecutionDelegateCallCount() int {
 	return len(fake.executionDelegateArgsForCall)
 }
 
-func (fake *FakeBuildDelegate) ExecutionDelegateArgsForCall(i int) (lager.Logger, atc.ExecutePlan, event.OriginLocation) {
+func (fake *FakeBuildDelegate) ExecutionDelegateArgsForCall(i int) (lager.Logger, atc.TaskPlan, event.OriginLocation) {
 	fake.executionDelegateMutex.RLock()
 	defer fake.executionDelegateMutex.RUnlock()
 	return fake.executionDelegateArgsForCall[i].arg1, fake.executionDelegateArgsForCall[i].arg2, fake.executionDelegateArgsForCall[i].arg3
 }
 
-func (fake *FakeBuildDelegate) ExecutionDelegateReturns(result1 exec.ExecuteDelegate) {
+func (fake *FakeBuildDelegate) ExecutionDelegateReturns(result1 exec.TaskDelegate) {
 	fake.ExecutionDelegateStub = nil
 	fake.executionDelegateReturns = struct {
-		result1 exec.ExecuteDelegate
+		result1 exec.TaskDelegate
 	}{result1}
 }
 

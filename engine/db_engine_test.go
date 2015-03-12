@@ -55,7 +55,7 @@ var _ = Describe("DBEngine", func() {
 			}
 
 			plan = atc.Plan{
-				Execute: &atc.ExecutePlan{
+				Task: &atc.TaskPlan{
 					Config: &atc.BuildConfig{
 						Image: "some-image",
 

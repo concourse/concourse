@@ -22,7 +22,7 @@ type implicitOutput struct {
 
 type BuildDelegate interface {
 	InputDelegate(lager.Logger, atc.GetPlan, event.OriginLocation) exec.GetDelegate
-	ExecutionDelegate(lager.Logger, atc.ExecutePlan, event.OriginLocation) exec.ExecuteDelegate
+	ExecutionDelegate(lager.Logger, atc.TaskPlan, event.OriginLocation) exec.TaskDelegate
 	OutputDelegate(lager.Logger, atc.PutPlan, event.OriginLocation) exec.PutDelegate
 
 	Finish(lager.Logger, error)
@@ -91,7 +91,7 @@ func (delegate *delegate) OutputDelegate(logger lager.Logger, plan atc.PutPlan, 
 	}
 }
 
-func (delegate *delegate) ExecutionDelegate(logger lager.Logger, plan atc.ExecutePlan, location event.OriginLocation) exec.ExecuteDelegate {
+func (delegate *delegate) ExecutionDelegate(logger lager.Logger, plan atc.TaskPlan, location event.OriginLocation) exec.TaskDelegate {
 	return &executionDelegate{
 		logger:   logger,
 		plan:     plan,
@@ -145,7 +145,7 @@ func (delegate *delegate) unregisterImplicitOutput(resource string) {
 }
 
 func (delegate *delegate) saveInitialize(logger lager.Logger, buildConfig atc.BuildConfig, origin event.Origin) {
-	err := delegate.db.SaveBuildEvent(delegate.buildID, event.InitializeExecute{
+	err := delegate.db.SaveBuildEvent(delegate.buildID, event.InitializeTask{
 		BuildConfig: buildConfig,
 		Origin:      origin,
 	})
@@ -155,7 +155,7 @@ func (delegate *delegate) saveInitialize(logger lager.Logger, buildConfig atc.Bu
 }
 
 func (delegate *delegate) saveStart(logger lager.Logger, origin event.Origin) {
-	err := delegate.db.SaveBuildEvent(delegate.buildID, event.StartExecute{
+	err := delegate.db.SaveBuildEvent(delegate.buildID, event.StartTask{
 		Time:   time.Now().Unix(),
 		Origin: origin,
 	})
@@ -165,7 +165,7 @@ func (delegate *delegate) saveStart(logger lager.Logger, origin event.Origin) {
 }
 
 func (delegate *delegate) saveFinish(logger lager.Logger, status exec.ExitStatus, origin event.Origin) {
-	err := delegate.db.SaveBuildEvent(delegate.buildID, event.FinishExecute{
+	err := delegate.db.SaveBuildEvent(delegate.buildID, event.FinishTask{
 		ExitStatus: int(status),
 		Time:       time.Now().Unix(),
 		Origin:     origin,
@@ -375,7 +375,7 @@ func (output *outputDelegate) Stderr() io.Writer {
 type executionDelegate struct {
 	logger lager.Logger
 
-	plan     atc.ExecutePlan
+	plan     atc.TaskPlan
 	location event.OriginLocation
 
 	delegate *delegate
@@ -383,7 +383,7 @@ type executionDelegate struct {
 
 func (execution *executionDelegate) Initializing(config atc.BuildConfig) {
 	execution.delegate.saveInitialize(execution.logger, config, event.Origin{
-		Type:     event.OriginTypeExecute,
+		Type:     event.OriginTypeTask,
 		Name:     execution.plan.Name,
 		Location: execution.location,
 	})
@@ -391,7 +391,7 @@ func (execution *executionDelegate) Initializing(config atc.BuildConfig) {
 
 func (execution *executionDelegate) Started() {
 	execution.delegate.saveStart(execution.logger, event.Origin{
-		Type:     event.OriginTypeExecute,
+		Type:     event.OriginTypeTask,
 		Name:     execution.plan.Name,
 		Location: execution.location,
 	})
@@ -401,7 +401,7 @@ func (execution *executionDelegate) Started() {
 
 func (execution *executionDelegate) Finished(status exec.ExitStatus) {
 	execution.delegate.saveFinish(execution.logger, status, event.Origin{
-		Type:     event.OriginTypeExecute,
+		Type:     event.OriginTypeTask,
 		Name:     execution.plan.Name,
 		Location: execution.location,
 	})
@@ -418,7 +418,7 @@ func (execution *executionDelegate) Finished(status exec.ExitStatus) {
 
 func (execution *executionDelegate) Failed(err error) {
 	execution.delegate.saveErr(execution.logger, err, event.Origin{
-		Type:     event.OriginTypeExecute,
+		Type:     event.OriginTypeTask,
 		Name:     execution.plan.Name,
 		Location: execution.location,
 	})
@@ -427,7 +427,7 @@ func (execution *executionDelegate) Failed(err error) {
 
 func (execution *executionDelegate) Stdout() io.Writer {
 	return execution.delegate.eventWriter(event.Origin{
-		Type:     event.OriginTypeExecute,
+		Type:     event.OriginTypeTask,
 		Name:     execution.plan.Name,
 		Source:   event.OriginSourceStdout,
 		Location: execution.location,
@@ -436,7 +436,7 @@ func (execution *executionDelegate) Stdout() io.Writer {
 
 func (execution *executionDelegate) Stderr() io.Writer {
 	return execution.delegate.eventWriter(event.Origin{
-		Type:     event.OriginTypeExecute,
+		Type:     event.OriginTypeTask,
 		Name:     execution.plan.Name,
 		Source:   event.OriginSourceStderr,
 		Location: execution.location,

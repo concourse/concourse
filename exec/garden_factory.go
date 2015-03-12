@@ -66,8 +66,8 @@ func (factory *gardenFactory) Put(sessionID SessionID, delegate PutDelegate, con
 	}
 }
 
-func (factory *gardenFactory) Execute(sessionID SessionID, delegate ExecuteDelegate, privileged Privileged, configSource BuildConfigSource) Step {
-	return executeStep{
+func (factory *gardenFactory) Task(sessionID SessionID, delegate TaskDelegate, privileged Privileged, configSource BuildConfigSource) Step {
+	return taskStep{
 		SessionID: sessionID,
 
 		Delegate: delegate,

@@ -32,15 +32,15 @@ type FakeFactory struct {
 	putReturns struct {
 		result1 exec.Step
 	}
-	ExecuteStub        func(exec.SessionID, exec.ExecuteDelegate, exec.Privileged, exec.BuildConfigSource) exec.Step
-	executeMutex       sync.RWMutex
-	executeArgsForCall []struct {
+	TaskStub        func(exec.SessionID, exec.TaskDelegate, exec.Privileged, exec.BuildConfigSource) exec.Step
+	taskMutex       sync.RWMutex
+	taskArgsForCall []struct {
 		arg1 exec.SessionID
-		arg2 exec.ExecuteDelegate
+		arg2 exec.TaskDelegate
 		arg3 exec.Privileged
 		arg4 exec.BuildConfigSource
 	}
-	executeReturns struct {
+	taskReturns struct {
 		result1 exec.Step
 	}
 	HijackStub        func(exec.SessionID, exec.IOConfig, atc.HijackProcessSpec) (exec.HijackedProcess, error)
@@ -127,37 +127,37 @@ func (fake *FakeFactory) PutReturns(result1 exec.Step) {
 	}{result1}
 }
 
-func (fake *FakeFactory) Execute(arg1 exec.SessionID, arg2 exec.ExecuteDelegate, arg3 exec.Privileged, arg4 exec.BuildConfigSource) exec.Step {
-	fake.executeMutex.Lock()
-	fake.executeArgsForCall = append(fake.executeArgsForCall, struct {
+func (fake *FakeFactory) Task(arg1 exec.SessionID, arg2 exec.TaskDelegate, arg3 exec.Privileged, arg4 exec.BuildConfigSource) exec.Step {
+	fake.taskMutex.Lock()
+	fake.taskArgsForCall = append(fake.taskArgsForCall, struct {
 		arg1 exec.SessionID
-		arg2 exec.ExecuteDelegate
+		arg2 exec.TaskDelegate
 		arg3 exec.Privileged
 		arg4 exec.BuildConfigSource
 	}{arg1, arg2, arg3, arg4})
-	fake.executeMutex.Unlock()
-	if fake.ExecuteStub != nil {
-		return fake.ExecuteStub(arg1, arg2, arg3, arg4)
+	fake.taskMutex.Unlock()
+	if fake.TaskStub != nil {
+		return fake.TaskStub(arg1, arg2, arg3, arg4)
 	} else {
-		return fake.executeReturns.result1
+		return fake.taskReturns.result1
 	}
 }
 
-func (fake *FakeFactory) ExecuteCallCount() int {
-	fake.executeMutex.RLock()
-	defer fake.executeMutex.RUnlock()
-	return len(fake.executeArgsForCall)
+func (fake *FakeFactory) TaskCallCount() int {
+	fake.taskMutex.RLock()
+	defer fake.taskMutex.RUnlock()
+	return len(fake.taskArgsForCall)
 }
 
-func (fake *FakeFactory) ExecuteArgsForCall(i int) (exec.SessionID, exec.ExecuteDelegate, exec.Privileged, exec.BuildConfigSource) {
-	fake.executeMutex.RLock()
-	defer fake.executeMutex.RUnlock()
-	return fake.executeArgsForCall[i].arg1, fake.executeArgsForCall[i].arg2, fake.executeArgsForCall[i].arg3, fake.executeArgsForCall[i].arg4
+func (fake *FakeFactory) TaskArgsForCall(i int) (exec.SessionID, exec.TaskDelegate, exec.Privileged, exec.BuildConfigSource) {
+	fake.taskMutex.RLock()
+	defer fake.taskMutex.RUnlock()
+	return fake.taskArgsForCall[i].arg1, fake.taskArgsForCall[i].arg2, fake.taskArgsForCall[i].arg3, fake.taskArgsForCall[i].arg4
 }
 
-func (fake *FakeFactory) ExecuteReturns(result1 exec.Step) {
-	fake.ExecuteStub = nil
-	fake.executeReturns = struct {
+func (fake *FakeFactory) TaskReturns(result1 exec.Step) {
+	fake.TaskStub = nil
+	fake.taskReturns = struct {
 		result1 exec.Step
 	}{result1}
 }

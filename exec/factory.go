@@ -14,14 +14,14 @@ type Factory interface {
 	Get(SessionID, GetDelegate, atc.ResourceConfig, atc.Params, atc.Version) Step
 	Put(SessionID, PutDelegate, atc.ResourceConfig, atc.Params) Step
 	// Delete(atc.ResourceConfig, atc.Params, atc.Version) Step
-	Execute(SessionID, ExecuteDelegate, Privileged, BuildConfigSource) Step
+	Task(SessionID, TaskDelegate, Privileged, BuildConfigSource) Step
 
 	Hijack(SessionID, IOConfig, atc.HijackProcessSpec) (HijackedProcess, error)
 }
 
-//go:generate counterfeiter . ExecuteDelegate
+//go:generate counterfeiter . TaskDelegate
 
-type ExecuteDelegate interface {
+type TaskDelegate interface {
 	Initializing(atc.BuildConfig)
 	Started()
 	Finished(ExitStatus)

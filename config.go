@@ -94,7 +94,7 @@ func (config JobConfig) Outputs() []JobOutput {
 }
 
 // A PlanSequence corresponds to a chain of Compose plan, with an implicit
-// `on: [success]` after every Execute plan.
+// `on: [success]` after every Task plan.
 type PlanSequence []PlanConfig
 
 // A PlanConfig is a flattened set of configuration corresponding to
@@ -108,7 +108,7 @@ type PlanConfig struct {
 	// name of the nested 'do'
 	RawName string `yaml:"name,omitempty" json:"name,omitempty" mapstructure:"name"`
 
-	// sequence to execute if conditions are met
+	// a nested chain of steps to run
 	Do *PlanSequence `yaml:"do,omitempty" json:"do,omitempty" mapstructure:"do"`
 
 	// corresponds to an Aggregate plan, keyed by the name of each sub-plan
@@ -128,9 +128,9 @@ type PlanConfig struct {
 	// corresponding resource config, e.g. aws-stemcell
 	Resource string `yaml:"resource,omitempty" json:"resource,omitempty" mapstructure:"resource"`
 
-	// corresponds to an Execute plan
-	// name of 'execute', e.g. unit, go1.3, go1.4
-	Execute string `yaml:"execute,omitempty" json:"execute,omitempty" mapstructure:"execute"`
+	// corresponds to a Task plan
+	// name of 'task', e.g. unit, go1.3, go1.4
+	Task string `yaml:"task,omitempty" json:"task,omitempty" mapstructure:"task"`
 	// run build privileged
 	Privileged bool `yaml:"privileged,omitempty" json:"privileged,omitempty" mapstructure:"privileged"`
 	// build config path, e.g. foo/build.yml
@@ -138,10 +138,7 @@ type PlanConfig struct {
 	// inlined build config
 	BuildConfig *BuildConfig `yaml:"config,omitempty" json:"config,omitempty" mapstructure:"config"`
 
-	// used by Get, Put, and Execute for specifying params to resource or
-	// build
-	//
-	// for Execute, it's shorthand for BuildConfig.Params
+	// used by Get and Put for specifying params to the resource
 	Params Params `yaml:"params,omitempty" json:"params,omitempty" mapstructure:"params"`
 }
 
@@ -158,8 +155,8 @@ func (config PlanConfig) Name() string {
 		return config.Put
 	}
 
-	if config.Execute != "" {
-		return config.Execute
+	if config.Task != "" {
+		return config.Task
 	}
 
 	return ""

@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/atc/db"
 )
 
-const defaultExecuteName = "build"
+const defaultTaskName = "build"
 
 type BuildFactory struct {
 	ConfigDB db.ConfigDB
@@ -58,8 +58,8 @@ func (factory *BuildFactory) constructPlanSequenceBasedPlan(
 			inputs,
 		)
 
-		// if following an execute step, later steps default to on [success]
-		if prevPlan.Execute != nil && plan.Conditional == nil {
+		// if following a task step, later steps default to on [success]
+		if prevPlan.Task != nil && plan.Conditional == nil {
 			plan = makeConditionalOnSuccess(plan)
 		}
 
@@ -186,10 +186,10 @@ func (factory *BuildFactory) constructPlanFromConfig(
 			},
 		}
 
-	case planConfig.Execute != "":
+	case planConfig.Task != "":
 		plan = atc.Plan{
-			Execute: &atc.ExecutePlan{
-				Name:       planConfig.Execute,
+			Task: &atc.TaskPlan{
+				Name:       planConfig.Task,
 				Privileged: planConfig.Privileged,
 				Config:     planConfig.BuildConfig,
 				ConfigPath: planConfig.BuildConfigPath,
@@ -247,8 +247,8 @@ func (factory *BuildFactory) constructIOBasedPlan(
 			B: atc.Plan{
 				Compose: &atc.ComposePlan{
 					A: atc.Plan{
-						Execute: &atc.ExecutePlan{
-							Name: defaultExecuteName,
+						Task: &atc.TaskPlan{
+							Name: defaultTaskName,
 
 							Privileged: job.Privileged,
 

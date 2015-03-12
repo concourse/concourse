@@ -18,8 +18,8 @@ import (
 
 const ArtifactsRoot = "/tmp/build/src"
 
-const executeProcessPropertyName = "execute-process"
-const executeExitStatusPropertyName = "exit-status"
+const taskProcessPropertyName = "task-process"
+const taskExitStatusPropertyName = "exit-status"
 
 var ErrInterrupted = errors.New("interrupted")
 
@@ -31,10 +31,10 @@ func (err MissingInputsError) Error() string {
 	return fmt.Sprintf("missing inputs: %s", strings.Join(err.Inputs, ", "))
 }
 
-type executeStep struct {
+type taskStep struct {
 	SessionID SessionID
 
-	Delegate ExecuteDelegate
+	Delegate TaskDelegate
 
 	Privileged   Privileged
 	ConfigSource BuildConfigSource
@@ -49,7 +49,7 @@ type executeStep struct {
 	exitStatus int
 }
 
-func (step executeStep) Using(source ArtifactSource) ArtifactSource {
+func (step taskStep) Using(source ArtifactSource) ArtifactSource {
 	step.artifactSource = source
 
 	return failureReporter{
@@ -58,7 +58,7 @@ func (step executeStep) Using(source ArtifactSource) ArtifactSource {
 	}
 }
 
-func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	var err error
 
 	processIO := garden.ProcessIO{
@@ -70,7 +70,7 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 	if err == nil {
 		// container already exists; recover session
 
-		exitStatusProp, err := step.container.GetProperty(executeExitStatusPropertyName)
+		exitStatusProp, err := step.container.GetProperty(taskExitStatusPropertyName)
 		if err == nil {
 			// process already completed; recover result
 
@@ -82,7 +82,7 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 			return nil
 		}
 
-		processIDProp, err := step.container.GetProperty(executeProcessPropertyName)
+		processIDProp, err := step.container.GetProperty(taskProcessPropertyName)
 		if err != nil {
 			// rogue container? perhaps did not shut down cleanly.
 			return err
@@ -111,7 +111,7 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 		step.container, err = step.WorkerClient.CreateContainer(
 			string(step.SessionID),
-			worker.ExecuteContainerSpec{
+			worker.TaskContainerSpec{
 				Platform:   config.Platform,
 				Tags:       config.Tags,
 				Image:      config.Image,
@@ -159,7 +159,7 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 		pidValue := fmt.Sprintf("%d", step.process.ID())
 
-		err = step.container.SetProperty(executeProcessPropertyName, pidValue)
+		err = step.container.SetProperty(taskProcessPropertyName, pidValue)
 		if err != nil {
 			return err
 		}
@@ -190,7 +190,7 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 		statusValue := fmt.Sprintf("%d", status)
 
-		err := step.container.SetProperty(executeExitStatusPropertyName, statusValue)
+		err := step.container.SetProperty(taskExitStatusPropertyName, statusValue)
 		if err != nil {
 			return err
 		}
@@ -202,7 +202,7 @@ func (step *executeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 	}
 }
 
-func (step *executeStep) Result(x interface{}) bool {
+func (step *taskStep) Result(x interface{}) bool {
 	switch v := x.(type) {
 	case *Success:
 		*v = step.exitStatus == 0
@@ -217,7 +217,7 @@ func (step *executeStep) Result(x interface{}) bool {
 	}
 }
 
-func (step *executeStep) Release() error {
+func (step *taskStep) Release() error {
 	if step.container != nil {
 		step.container.Release()
 	}
@@ -225,7 +225,7 @@ func (step *executeStep) Release() error {
 	return nil
 }
 
-func (step *executeStep) StreamFile(source string) (io.ReadCloser, error) {
+func (step *taskStep) StreamFile(source string) (io.ReadCloser, error) {
 	out, err := step.container.StreamOut(path.Join(ArtifactsRoot, source))
 	if err != nil {
 		return nil, err
@@ -244,7 +244,7 @@ func (step *executeStep) StreamFile(source string) (io.ReadCloser, error) {
 	}, nil
 }
 
-func (step *executeStep) StreamTo(destination ArtifactDestination) error {
+func (step *taskStep) StreamTo(destination ArtifactDestination) error {
 	out, err := step.container.StreamOut(ArtifactsRoot + "/")
 	if err != nil {
 		return err
@@ -253,7 +253,7 @@ func (step *executeStep) StreamTo(destination ArtifactDestination) error {
 	return destination.StreamIn(".", out)
 }
 
-func (step *executeStep) ensureBuildDirExists(container garden.Container) error {
+func (step *taskStep) ensureBuildDirExists(container garden.Container) error {
 	emptyTar := new(bytes.Buffer)
 
 	err := tar.NewWriter(emptyTar).Close()
@@ -269,7 +269,7 @@ func (step *executeStep) ensureBuildDirExists(container garden.Container) error 
 	return nil
 }
 
-func (executeStep) envForParams(params map[string]string) []string {
+func (taskStep) envForParams(params map[string]string) []string {
 	env := make([]string, 0, len(params))
 
 	for k, v := range params {

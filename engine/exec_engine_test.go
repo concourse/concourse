@@ -37,7 +37,7 @@ var _ = Describe("ExecEngine", func() {
 		var (
 			fakeDelegate          *fakes.FakeBuildDelegate
 			fakeInputDelegate     *execfakes.FakeGetDelegate
-			fakeExecutionDelegate *execfakes.FakeExecuteDelegate
+			fakeExecutionDelegate *execfakes.FakeTaskDelegate
 			fakeOutputDelegate    *execfakes.FakePutDelegate
 
 			buildModel db.Build
@@ -56,8 +56,8 @@ var _ = Describe("ExecEngine", func() {
 			inputStep   *execfakes.FakeStep
 			inputSource *execfakes.FakeArtifactSource
 
-			executeStep   *execfakes.FakeStep
-			executeSource *execfakes.FakeArtifactSource
+			taskStep   *execfakes.FakeStep
+			taskSource *execfakes.FakeArtifactSource
 
 			outputStep   *execfakes.FakeStep
 			outputSource *execfakes.FakeArtifactSource
@@ -111,7 +111,7 @@ var _ = Describe("ExecEngine", func() {
 			fakeInputDelegate = new(execfakes.FakeGetDelegate)
 			fakeDelegate.InputDelegateReturns(fakeInputDelegate)
 
-			fakeExecutionDelegate = new(execfakes.FakeExecuteDelegate)
+			fakeExecutionDelegate = new(execfakes.FakeTaskDelegate)
 			fakeDelegate.ExecutionDelegateReturns(fakeExecutionDelegate)
 
 			fakeOutputDelegate = new(execfakes.FakePutDelegate)
@@ -122,11 +122,11 @@ var _ = Describe("ExecEngine", func() {
 			inputStep.UsingReturns(inputSource)
 			fakeFactory.GetReturns(inputStep)
 
-			executeStep = new(execfakes.FakeStep)
-			executeSource = new(execfakes.FakeArtifactSource)
-			executeSource.ResultStub = successResult(true)
-			executeStep.UsingReturns(executeSource)
-			fakeFactory.ExecuteReturns(executeStep)
+			taskStep = new(execfakes.FakeStep)
+			taskSource = new(execfakes.FakeArtifactSource)
+			taskSource.ResultStub = successResult(true)
+			taskStep.UsingReturns(taskSource)
+			fakeFactory.TaskReturns(taskStep)
 
 			outputStep = new(execfakes.FakeStep)
 			outputSource = new(execfakes.FakeArtifactSource)
@@ -148,8 +148,8 @@ var _ = Describe("ExecEngine", func() {
 					B: atc.Plan{
 						Compose: &atc.ComposePlan{
 							A: atc.Plan{
-								Execute: &atc.ExecutePlan{
-									Name: "some-execute",
+								Task: &atc.TaskPlan{
+									Name: "some-task",
 
 									Privileged: privileged,
 
@@ -199,10 +199,10 @@ var _ = Describe("ExecEngine", func() {
 		})
 
 		It("constructs executions correctly", func() {
-			Ω(fakeFactory.ExecuteCallCount()).Should(Equal(1))
+			Ω(fakeFactory.TaskCallCount()).Should(Equal(1))
 
-			sessionID, delegate, privileged, configSource := fakeFactory.ExecuteArgsForCall(0)
-			Ω(sessionID).Should(Equal(exec.SessionID("build-42-execute-some-execute")))
+			sessionID, delegate, privileged, configSource := fakeFactory.TaskArgsForCall(0)
+			Ω(sessionID).Should(Equal(exec.SessionID("build-42-task-some-task")))
 			Ω(delegate).Should(Equal(fakeExecutionDelegate))
 			Ω(privileged).Should(Equal(exec.Privileged(false)))
 			Ω(configSource).ShouldNot(BeNil())
@@ -213,19 +213,19 @@ var _ = Describe("ExecEngine", func() {
 				assertNotReleased := func(signals <-chan os.Signal, ready chan<- struct{}) error {
 					defer GinkgoRecover()
 					Consistently(inputSource.ReleaseCallCount).Should(BeZero())
-					Consistently(executeSource.ReleaseCallCount).Should(BeZero())
+					Consistently(taskSource.ReleaseCallCount).Should(BeZero())
 					Consistently(outputSource.ReleaseCallCount).Should(BeZero())
 					return nil
 				}
 
 				inputSource.RunStub = assertNotReleased
-				executeSource.RunStub = assertNotReleased
+				taskSource.RunStub = assertNotReleased
 				outputSource.RunStub = assertNotReleased
 			})
 
 			It("releases all sources", func() {
 				Ω(inputSource.ReleaseCallCount()).Should(Equal(1))
-				Ω(executeSource.ReleaseCallCount()).Should(Equal(1))
+				Ω(taskSource.ReleaseCallCount()).Should(Equal(1))
 				Ω(outputSource.ReleaseCallCount()).Should(Equal(1))
 			})
 		})
@@ -235,10 +235,10 @@ var _ = Describe("ExecEngine", func() {
 				privileged = true
 			})
 
-			It("constructs the execute step privileged", func() {
-				Ω(fakeFactory.ExecuteCallCount()).Should(Equal(1))
+			It("constructs the task step privileged", func() {
+				Ω(fakeFactory.TaskCallCount()).Should(Equal(1))
 
-				_, _, privileged, _ := fakeFactory.ExecuteArgsForCall(0)
+				_, _, privileged, _ := fakeFactory.TaskArgsForCall(0)
 				Ω(privileged).Should(Equal(exec.Privileged(true)))
 			})
 		})
@@ -252,10 +252,10 @@ var _ = Describe("ExecEngine", func() {
 				disaster := errors.New("oh no!")
 
 				BeforeEach(func() {
-					executeSource.RunReturns(disaster)
+					taskSource.RunReturns(disaster)
 				})
 
-				It("does not execute any outputs", func() {
+				It("does not run any outputs", func() {
 					Ω(outputSource.RunCallCount()).Should(BeZero())
 				})
 
@@ -268,8 +268,8 @@ var _ = Describe("ExecEngine", func() {
 
 			Context("when executing the build succeeds", func() {
 				BeforeEach(func() {
-					executeSource.RunReturns(nil)
-					executeSource.ResultStub = successResult(true)
+					taskSource.RunReturns(nil)
+					taskSource.ResultStub = successResult(true)
 				})
 
 				Context("when the output should perform on success", func() {
@@ -277,7 +277,7 @@ var _ = Describe("ExecEngine", func() {
 						outputPlan.Conditions = atc.Conditions{atc.ConditionSuccess}
 					})
 
-					It("executes the output", func() {
+					It("runs the output", func() {
 						Ω(outputSource.RunCallCount()).Should(Equal(1))
 					})
 
@@ -313,7 +313,7 @@ var _ = Describe("ExecEngine", func() {
 						outputPlan.Conditions = atc.Conditions{atc.ConditionFailure}
 					})
 
-					It("does not execute the output", func() {
+					It("does not run the output", func() {
 						Ω(outputSource.RunCallCount()).Should(BeZero())
 					})
 				})
@@ -323,7 +323,7 @@ var _ = Describe("ExecEngine", func() {
 						outputPlan.Conditions = atc.Conditions{atc.ConditionSuccess, atc.ConditionFailure}
 					})
 
-					It("executes the output", func() {
+					It("runs the output", func() {
 						Ω(outputSource.RunCallCount()).Should(Equal(1))
 					})
 
@@ -359,7 +359,7 @@ var _ = Describe("ExecEngine", func() {
 						outputPlan.Conditions = atc.Conditions{}
 					})
 
-					It("does not execute the output", func() {
+					It("does not run the output", func() {
 						Ω(outputSource.RunCallCount()).Should(BeZero())
 					})
 				})
@@ -367,8 +367,8 @@ var _ = Describe("ExecEngine", func() {
 
 			Context("when executing the build fails", func() {
 				BeforeEach(func() {
-					executeSource.RunReturns(nil)
-					executeSource.ResultStub = successResult(false)
+					taskSource.RunReturns(nil)
+					taskSource.ResultStub = successResult(false)
 				})
 
 				Context("when the output should perform on success", func() {
@@ -376,7 +376,7 @@ var _ = Describe("ExecEngine", func() {
 						outputPlan.Conditions = atc.Conditions{atc.ConditionSuccess}
 					})
 
-					It("does not execute the output", func() {
+					It("does not run the output", func() {
 						Ω(outputSource.RunCallCount()).Should(BeZero())
 					})
 				})
@@ -386,7 +386,7 @@ var _ = Describe("ExecEngine", func() {
 						outputPlan.Conditions = atc.Conditions{atc.ConditionFailure}
 					})
 
-					It("executes the output", func() {
+					It("runs the output", func() {
 						Ω(outputSource.RunCallCount()).Should(Equal(1))
 					})
 
@@ -422,7 +422,7 @@ var _ = Describe("ExecEngine", func() {
 						outputPlan.Conditions = atc.Conditions{atc.ConditionSuccess, atc.ConditionFailure}
 					})
 
-					It("executes the output", func() {
+					It("runs the output", func() {
 						Ω(outputSource.RunCallCount()).Should(Equal(1))
 					})
 
@@ -458,7 +458,7 @@ var _ = Describe("ExecEngine", func() {
 						outputPlan.Conditions = atc.Conditions{}
 					})
 
-					It("does not execute the output", func() {
+					It("does not run the output", func() {
 						Ω(outputSource.RunCallCount()).Should(BeZero())
 					})
 				})
@@ -472,11 +472,11 @@ var _ = Describe("ExecEngine", func() {
 				inputSource.RunReturns(disaster)
 			})
 
-			It("does not execute the build", func() {
-				Ω(executeSource.RunCallCount()).Should(BeZero())
+			It("does not run the build", func() {
+				Ω(taskSource.RunCallCount()).Should(BeZero())
 			})
 
-			It("does not execute any outputs", func() {
+			It("does not run any outputs", func() {
 				Ω(outputSource.RunCallCount()).Should(BeZero())
 			})
 
@@ -577,9 +577,9 @@ var _ = Describe("ExecEngine", func() {
 				})
 			})
 
-			Context("when hijacking a 'execute' step", func() {
+			Context("when hijacking a 'task' step", func() {
 				BeforeEach(func() {
-					hijackTarget.Type = engine.HijackTargetTypeExecute
+					hijackTarget.Type = engine.HijackTargetTypeTask
 				})
 
 				It("succeeds", func() {
@@ -590,7 +590,7 @@ var _ = Describe("ExecEngine", func() {
 					Ω(fakeFactory.HijackCallCount()).Should(Equal(1))
 
 					sessionID, ioConfig, spec := fakeFactory.HijackArgsForCall(0)
-					Ω(sessionID).Should(Equal(exec.SessionID("build-128-execute-some-step")))
+					Ω(sessionID).Should(Equal(exec.SessionID("build-128-task-some-step")))
 					Ω(ioConfig).Should(Equal(exec.IOConfig{
 						Stdin:  hijackIO.Stdin,
 						Stdout: hijackIO.Stdout,

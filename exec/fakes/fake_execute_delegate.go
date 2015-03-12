@@ -9,7 +9,7 @@ import (
 	"github.com/concourse/atc/exec"
 )
 
-type FakeExecuteDelegate struct {
+type FakeTaskDelegate struct {
 	InitializingStub        func(atc.BuildConfig)
 	initializingMutex       sync.RWMutex
 	initializingArgsForCall []struct {
@@ -42,7 +42,7 @@ type FakeExecuteDelegate struct {
 	}
 }
 
-func (fake *FakeExecuteDelegate) Initializing(arg1 atc.BuildConfig) {
+func (fake *FakeTaskDelegate) Initializing(arg1 atc.BuildConfig) {
 	fake.initializingMutex.Lock()
 	fake.initializingArgsForCall = append(fake.initializingArgsForCall, struct {
 		arg1 atc.BuildConfig
@@ -53,19 +53,19 @@ func (fake *FakeExecuteDelegate) Initializing(arg1 atc.BuildConfig) {
 	}
 }
 
-func (fake *FakeExecuteDelegate) InitializingCallCount() int {
+func (fake *FakeTaskDelegate) InitializingCallCount() int {
 	fake.initializingMutex.RLock()
 	defer fake.initializingMutex.RUnlock()
 	return len(fake.initializingArgsForCall)
 }
 
-func (fake *FakeExecuteDelegate) InitializingArgsForCall(i int) atc.BuildConfig {
+func (fake *FakeTaskDelegate) InitializingArgsForCall(i int) atc.BuildConfig {
 	fake.initializingMutex.RLock()
 	defer fake.initializingMutex.RUnlock()
 	return fake.initializingArgsForCall[i].arg1
 }
 
-func (fake *FakeExecuteDelegate) Started() {
+func (fake *FakeTaskDelegate) Started() {
 	fake.startedMutex.Lock()
 	fake.startedArgsForCall = append(fake.startedArgsForCall, struct{}{})
 	fake.startedMutex.Unlock()
@@ -74,13 +74,13 @@ func (fake *FakeExecuteDelegate) Started() {
 	}
 }
 
-func (fake *FakeExecuteDelegate) StartedCallCount() int {
+func (fake *FakeTaskDelegate) StartedCallCount() int {
 	fake.startedMutex.RLock()
 	defer fake.startedMutex.RUnlock()
 	return len(fake.startedArgsForCall)
 }
 
-func (fake *FakeExecuteDelegate) Finished(arg1 exec.ExitStatus) {
+func (fake *FakeTaskDelegate) Finished(arg1 exec.ExitStatus) {
 	fake.finishedMutex.Lock()
 	fake.finishedArgsForCall = append(fake.finishedArgsForCall, struct {
 		arg1 exec.ExitStatus
@@ -91,19 +91,19 @@ func (fake *FakeExecuteDelegate) Finished(arg1 exec.ExitStatus) {
 	}
 }
 
-func (fake *FakeExecuteDelegate) FinishedCallCount() int {
+func (fake *FakeTaskDelegate) FinishedCallCount() int {
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
 	return len(fake.finishedArgsForCall)
 }
 
-func (fake *FakeExecuteDelegate) FinishedArgsForCall(i int) exec.ExitStatus {
+func (fake *FakeTaskDelegate) FinishedArgsForCall(i int) exec.ExitStatus {
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
 	return fake.finishedArgsForCall[i].arg1
 }
 
-func (fake *FakeExecuteDelegate) Failed(arg1 error) {
+func (fake *FakeTaskDelegate) Failed(arg1 error) {
 	fake.failedMutex.Lock()
 	fake.failedArgsForCall = append(fake.failedArgsForCall, struct {
 		arg1 error
@@ -114,19 +114,19 @@ func (fake *FakeExecuteDelegate) Failed(arg1 error) {
 	}
 }
 
-func (fake *FakeExecuteDelegate) FailedCallCount() int {
+func (fake *FakeTaskDelegate) FailedCallCount() int {
 	fake.failedMutex.RLock()
 	defer fake.failedMutex.RUnlock()
 	return len(fake.failedArgsForCall)
 }
 
-func (fake *FakeExecuteDelegate) FailedArgsForCall(i int) error {
+func (fake *FakeTaskDelegate) FailedArgsForCall(i int) error {
 	fake.failedMutex.RLock()
 	defer fake.failedMutex.RUnlock()
 	return fake.failedArgsForCall[i].arg1
 }
 
-func (fake *FakeExecuteDelegate) Stdout() io.Writer {
+func (fake *FakeTaskDelegate) Stdout() io.Writer {
 	fake.stdoutMutex.Lock()
 	fake.stdoutArgsForCall = append(fake.stdoutArgsForCall, struct{}{})
 	fake.stdoutMutex.Unlock()
@@ -137,20 +137,20 @@ func (fake *FakeExecuteDelegate) Stdout() io.Writer {
 	}
 }
 
-func (fake *FakeExecuteDelegate) StdoutCallCount() int {
+func (fake *FakeTaskDelegate) StdoutCallCount() int {
 	fake.stdoutMutex.RLock()
 	defer fake.stdoutMutex.RUnlock()
 	return len(fake.stdoutArgsForCall)
 }
 
-func (fake *FakeExecuteDelegate) StdoutReturns(result1 io.Writer) {
+func (fake *FakeTaskDelegate) StdoutReturns(result1 io.Writer) {
 	fake.StdoutStub = nil
 	fake.stdoutReturns = struct {
 		result1 io.Writer
 	}{result1}
 }
 
-func (fake *FakeExecuteDelegate) Stderr() io.Writer {
+func (fake *FakeTaskDelegate) Stderr() io.Writer {
 	fake.stderrMutex.Lock()
 	fake.stderrArgsForCall = append(fake.stderrArgsForCall, struct{}{})
 	fake.stderrMutex.Unlock()
@@ -161,17 +161,17 @@ func (fake *FakeExecuteDelegate) Stderr() io.Writer {
 	}
 }
 
-func (fake *FakeExecuteDelegate) StderrCallCount() int {
+func (fake *FakeTaskDelegate) StderrCallCount() int {
 	fake.stderrMutex.RLock()
 	defer fake.stderrMutex.RUnlock()
 	return len(fake.stderrArgsForCall)
 }
 
-func (fake *FakeExecuteDelegate) StderrReturns(result1 io.Writer) {
+func (fake *FakeTaskDelegate) StderrReturns(result1 io.Writer) {
 	fake.StderrStub = nil
 	fake.stderrReturns = struct {
 		result1 io.Writer
 	}{result1}
 }
 
-var _ exec.ExecuteDelegate = new(FakeExecuteDelegate)
+var _ exec.TaskDelegate = new(FakeTaskDelegate)

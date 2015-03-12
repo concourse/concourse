@@ -23,19 +23,19 @@ var _ = Describe("Censorship", func() {
 		Status{
 			Status: atc.StatusSucceeded,
 		},
-		StartExecute{
+		StartTask{
 			Time: time.Now().Unix(),
 			Origin: Origin{
-				Type:     OriginTypeExecute,
+				Type:     OriginTypeTask,
 				Name:     "build",
 				Location: OriginLocation{1, 2},
 			},
 		},
-		FinishExecute{
+		FinishTask{
 			Time:       time.Now().Unix(),
 			ExitStatus: 123,
 			Origin: Origin{
-				Type:     OriginTypeExecute,
+				Type:     OriginTypeTask,
 				Name:     "build",
 				Location: OriginLocation{1, 2},
 			},
@@ -75,9 +75,9 @@ var _ = Describe("Censorship", func() {
 		})
 	})
 
-	Describe("InitializeExecute", func() {
+	Describe("InitializeTask", func() {
 		It("censors the build params", func() {
-			Ω(InitializeExecute{
+			Ω(InitializeTask{
 				BuildConfig: atc.BuildConfig{
 					Image:  "some-image",
 					Params: map[string]string{"super": "secret"},
@@ -85,7 +85,7 @@ var _ = Describe("Censorship", func() {
 						Path: "ls",
 					},
 				},
-			}.Censored()).Should(Equal(InitializeExecute{
+			}.Censored()).Should(Equal(InitializeTask{
 				BuildConfig: atc.BuildConfig{
 					Image:  "some-image",
 					Params: nil,

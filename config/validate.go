@@ -165,8 +165,8 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 		foundTypes = append(foundTypes, "put")
 	}
 
-	if plan.Execute != "" {
-		foundTypes = append(foundTypes, "execute")
+	if plan.Task != "" {
+		foundTypes = append(foundTypes, "task")
 	}
 
 	if plan.Do != nil {
@@ -291,9 +291,9 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 		}
 
 		return errorMessages
-	case plan.Execute != "":
+	case plan.Task != "":
 		errorMessages := []string{}
-		subIdentifier := fmt.Sprintf("%s.execute.%s", identifier, plan.Execute)
+		subIdentifier := fmt.Sprintf("%s.task.%s", identifier, plan.Task)
 		badFields := []string{}
 
 		if plan.Resource != "" {

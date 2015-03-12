@@ -92,7 +92,7 @@ dance:
 
 		return nil, ErrUnsupportedResourceType
 
-	case ExecuteContainerSpec:
+	case TaskContainerSpec:
 		gardenSpec.RootFSPath = s.Image
 		gardenSpec.Privileged = s.Privileged
 
@@ -130,7 +130,7 @@ func (worker *gardenWorker) Satisfies(spec ContainerSpec) bool {
 			}
 		}
 
-	case ExecuteContainerSpec:
+	case TaskContainerSpec:
 		if s.Platform != worker.platform {
 			return false
 		}

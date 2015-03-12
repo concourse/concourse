@@ -30,7 +30,7 @@ var _ = Describe("Builds API", func() {
 
 		BeforeEach(func() {
 			plan = atc.Plan{
-				Execute: &atc.ExecutePlan{
+				Task: &atc.TaskPlan{
 					Config: &atc.BuildConfig{
 						Run: atc.BuildRunConfig{
 							Path: "ls",
@@ -86,7 +86,7 @@ var _ = Describe("Builds API", func() {
 						}`))
 					})
 
-					It("executes a one-off build", func() {
+					It("runs a one-off build", func() {
 						Ω(buildsDB.CreateOneOffBuildCallCount()).Should(Equal(1))
 
 						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
@@ -412,7 +412,7 @@ var _ = Describe("Builds API", func() {
 
 		BeforeEach(func() {
 			requestPayload = `{"path":"ls"}`
-			stepType = "execute"
+			stepType = "task"
 			stepName = "build"
 
 			buildsDB.GetBuildReturns(db.Build{

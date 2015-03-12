@@ -5,7 +5,7 @@ type Plan struct {
 	Aggregate   *AggregatePlan   `json:"aggregate,omitempty"`
 	Get         *GetPlan         `json:"get,omitempty"`
 	Put         *PutPlan         `json:"put,omitempty"`
-	Execute     *ExecutePlan     `json:"execute,omitempty"`
+	Task        *TaskPlan        `json:"task,omitempty"`
 	Conditional *ConditionalPlan `json:"conditional,omitempty"`
 }
 
@@ -33,7 +33,7 @@ type PutPlan struct {
 	Params   Params `json:"params,omitempty"`
 }
 
-type ExecutePlan struct {
+type TaskPlan struct {
 	Name string `json:"name,omitempty"`
 
 	Privileged bool `json:"privileged"`
