@@ -43,8 +43,8 @@ var targetFlag = cli.StringFlag{
 
 var stepTypeFlag = cli.StringFlag{
 	Name:  "step-type, t",
-	Value: "execute",
-	Usage: "type of step to hijack. one of get, put, or execute.",
+	Value: "task",
+	Usage: "type of step to hijack. one of get, put, or task.",
 }
 
 var stepNameFlag = cli.StringFlag{

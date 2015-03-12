@@ -127,7 +127,7 @@ var _ = Describe("Hijacking", func() {
 						{ID: 1, Name: "1", Status: "finished"},
 					}),
 				),
-				hijackHandler(didHijack, nil, nil),
+				hijackHandler(didHijack, []string{"type=task&name=build"}, nil),
 			)
 		})
 
