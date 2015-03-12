@@ -260,7 +260,7 @@ var _ = Describe("Resource Out", func() {
 				}`
 			})
 
-			It("returns the build source printed out by /opt/resource/out", func() {
+			It("returns the version and metadata printed out by /opt/resource/out", func() {
 				Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
 				Ω(versionedSource.Version()).Should(Equal(atc.Version{"some": "new-version"}))
@@ -408,7 +408,7 @@ var _ = Describe("Resource Out", func() {
 			}`
 			})
 
-			It("returns the build source printed out by /opt/resource/out", func() {
+			It("returns the version and metadata printed out by /opt/resource/out", func() {
 				Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
 				Ω(versionedSource.Version()).Should(Equal(atc.Version{"some": "new-version"}))

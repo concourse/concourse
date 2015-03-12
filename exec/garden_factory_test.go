@@ -918,7 +918,7 @@ var _ = Describe("GardenFactory", func() {
 					inSource.StreamToReturns(nil)
 				})
 
-				Context("when creating the build's container works", func() {
+				Context("when creating the task's container works", func() {
 					var (
 						fakeContainer *wfakes.FakeContainer
 						fakeProcess   *gfakes.FakeProcess
@@ -1689,7 +1689,7 @@ var _ = Describe("GardenFactory", func() {
 						})
 					})
 
-					Context("when running the build's script fails", func() {
+					Context("when running the task's script fails", func() {
 						disaster := errors.New("nope")
 
 						BeforeEach(func() {

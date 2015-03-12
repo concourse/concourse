@@ -48,7 +48,7 @@ type JobConfig struct {
 	Serial bool   `yaml:"serial,omitempty" json:"serial,omitempty" mapstructure:"serial"`
 
 	Privileged     bool        `yaml:"privileged,omitempty" json:"privileged,omitempty" mapstructure:"privileged"`
-	TaskConfigPath string      `yaml:"build,omitempty" json:"build,omitempty" mapstructure:"build"`
+	TaskConfigPath string      `yaml:"file,omitempty" json:"file,omitempty" mapstructure:"file"`
 	TaskConfig     *TaskConfig `yaml:"config,omitempty" json:"config,omitempty" mapstructure:"config"`
 
 	InputConfigs  []JobInputConfig  `yaml:"inputs,omitempty" json:"inputs,omitempty" mapstructure:"inputs"`
@@ -131,11 +131,11 @@ type PlanConfig struct {
 	// corresponds to a Task plan
 	// name of 'task', e.g. unit, go1.3, go1.4
 	Task string `yaml:"task,omitempty" json:"task,omitempty" mapstructure:"task"`
-	// run build privileged
+	// run task privileged
 	Privileged bool `yaml:"privileged,omitempty" json:"privileged,omitempty" mapstructure:"privileged"`
-	// build config path, e.g. foo/build.yml
-	TaskConfigPath string `yaml:"build,omitempty" json:"build,omitempty" mapstructure:"build"`
-	// inlined build config
+	// task config path, e.g. foo/build.yml
+	TaskConfigPath string `yaml:"file,omitempty" json:"file,omitempty" mapstructure:"file"`
+	// inlined task config
 	TaskConfig *TaskConfig `yaml:"config,omitempty" json:"config,omitempty" mapstructure:"config"`
 
 	// used by Get and Put for specifying params to the resource

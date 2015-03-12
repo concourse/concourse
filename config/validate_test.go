@@ -178,7 +178,7 @@ var _ = Describe("ValidateConfig", func() {
 		BeforeEach(func() {
 			job = atc.JobConfig{
 				Name:           "some-other-job",
-				TaskConfigPath: "some-build-config",
+				TaskConfigPath: "some-task-config",
 			}
 		})
 
@@ -349,7 +349,7 @@ var _ = Describe("ValidateConfig", func() {
 					job.Plan = append(job.Plan, atc.PlanConfig{
 						Get:            "lol",
 						Privileged:     true,
-						TaskConfigPath: "build.yml",
+						TaskConfigPath: "task.yml",
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -358,7 +358,7 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Ω(validateErr).Should(HaveOccurred())
 					Ω(validateErr.Error()).Should(ContainSubstring(
-						"jobs.some-other-job.plan[0].get.lol has invalid fields specified (privileged, build)",
+						"jobs.some-other-job.plan[0].get.lol has invalid fields specified (privileged, file)",
 					))
 				})
 			})
@@ -410,7 +410,7 @@ var _ = Describe("ValidateConfig", func() {
 						Passed:         []string{"get", "only"},
 						RawTrigger:     &no,
 						Privileged:     true,
-						TaskConfigPath: "build.yml",
+						TaskConfigPath: "btaskyml",
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -419,7 +419,7 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Ω(validateErr).Should(HaveOccurred())
 					Ω(validateErr.Error()).Should(ContainSubstring(
-						"jobs.some-other-job.plan[0].put.lol has invalid fields specified (passed, trigger, privileged, build)",
+						"jobs.some-other-job.plan[0].put.lol has invalid fields specified (passed, trigger, privileged, file)",
 					))
 				})
 			})

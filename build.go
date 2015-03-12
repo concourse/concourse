@@ -100,7 +100,7 @@ func (a TaskConfig) Merge(b TaskConfig) TaskConfig {
 }
 
 func (config TaskConfig) Validate() error {
-	messages := []string{"invalid build configuration:"}
+	messages := []string{"invalid task configuration:"}
 
 	var invalid bool
 	if config.Platform == "" {
@@ -131,7 +131,7 @@ type BuildInputConfig struct {
 }
 
 type InputPlan struct {
-	// logical name of the input with respect to the build's config
+	// logical name of the input with respect to the task's config
 	Name string `json:"name"`
 
 	// name of resource providing the input

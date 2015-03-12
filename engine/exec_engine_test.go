@@ -42,12 +42,12 @@ var _ = Describe("ExecEngine", func() {
 
 			buildModel db.Build
 
-			inputPlan   *atc.GetPlan
-			outputPlan  *atc.ConditionalPlan
-			privileged  bool
-			buildConfig *atc.TaskConfig
+			inputPlan  *atc.GetPlan
+			outputPlan *atc.ConditionalPlan
+			privileged bool
+			taskConfig *atc.TaskConfig
 
-			buildConfigPath string
+			taskConfigPath string
 
 			build engine.Build
 
@@ -68,7 +68,7 @@ var _ = Describe("ExecEngine", func() {
 
 			buildModel = db.Build{ID: 42}
 
-			buildConfig = &atc.TaskConfig{
+			taskConfig = &atc.TaskConfig{
 				Image:  "some-image",
 				Params: map[string]string{"PARAM": "value"},
 				Run: atc.BuildRunConfig{
@@ -80,7 +80,7 @@ var _ = Describe("ExecEngine", func() {
 				},
 			}
 
-			buildConfigPath = "some-input/build.yml"
+			taskConfigPath = "some-input/build.yml"
 
 			inputPlan = &atc.GetPlan{
 				Name:     "some-input",
@@ -153,8 +153,8 @@ var _ = Describe("ExecEngine", func() {
 
 									Privileged: privileged,
 
-									Config:     buildConfig,
-									ConfigPath: buildConfigPath,
+									Config:     taskConfig,
+									ConfigPath: taskConfigPath,
 								},
 							},
 							B: atc.Plan{
@@ -230,7 +230,7 @@ var _ = Describe("ExecEngine", func() {
 			})
 		})
 
-		Context("when the build is privileged", func() {
+		Context("when the task is privileged", func() {
 			BeforeEach(func() {
 				privileged = true
 			})
@@ -248,7 +248,7 @@ var _ = Describe("ExecEngine", func() {
 				inputSource.RunReturns(nil)
 			})
 
-			Context("when executing the build errors", func() {
+			Context("when executing the task errors", func() {
 				disaster := errors.New("oh no!")
 
 				BeforeEach(func() {
@@ -266,7 +266,7 @@ var _ = Describe("ExecEngine", func() {
 				})
 			})
 
-			Context("when executing the build succeeds", func() {
+			Context("when executing the task succeeds", func() {
 				BeforeEach(func() {
 					taskSource.RunReturns(nil)
 					taskSource.ResultStub = successResult(true)
@@ -365,7 +365,7 @@ var _ = Describe("ExecEngine", func() {
 				})
 			})
 
-			Context("when executing the build fails", func() {
+			Context("when executing the task fails", func() {
 				BeforeEach(func() {
 					taskSource.RunReturns(nil)
 					taskSource.ResultStub = successResult(false)
@@ -472,7 +472,7 @@ var _ = Describe("ExecEngine", func() {
 				inputSource.RunReturns(disaster)
 			})
 
-			It("does not run the build", func() {
+			It("does not run the task", func() {
 				Ω(taskSource.RunCallCount()).Should(BeZero())
 			})
 

@@ -224,7 +224,7 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 		}
 
 		if plan.TaskConfigPath != "" {
-			badFields = append(badFields, "build")
+			badFields = append(badFields, "file")
 		}
 
 		if len(badFields) > 0 {
@@ -276,7 +276,7 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 		}
 
 		if plan.TaskConfigPath != "" {
-			badFields = append(badFields, "build")
+			badFields = append(badFields, "file")
 		}
 
 		if len(badFields) > 0 {

@@ -11,13 +11,13 @@ const (
 	// build status change (e.g. 'started', 'succeeded')
 	EventTypeStatus atc.EventType = "status"
 
-	// build initializing (all inputs fetched; fetching image)
+	// task initializing (all inputs fetched; fetching image)
 	EventTypeInitializeTask atc.EventType = "initialize-task"
 
-	// build execution started
+	// task execution started
 	EventTypeStartTask atc.EventType = "start-task"
 
-	// build execution finished
+	// task execution finished
 	EventTypeFinishTask atc.EventType = "finish-task"
 
 	// finished getting something

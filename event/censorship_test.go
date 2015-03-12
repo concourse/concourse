@@ -54,7 +54,7 @@ var _ = Describe("Censorship", func() {
 	}
 
 	Describe("InitializeV10", func() {
-		It("censors the build params", func() {
+		It("censors the task's params", func() {
 			Ω(InitializeV10{
 				TaskConfig: atc.TaskConfig{
 					Image:  "some-image",
@@ -76,7 +76,7 @@ var _ = Describe("Censorship", func() {
 	})
 
 	Describe("InitializeTask", func() {
-		It("censors the build params", func() {
+		It("censors the task's params", func() {
 			Ω(InitializeTask{
 				TaskConfig: atc.TaskConfig{
 					Image:  "some-image",

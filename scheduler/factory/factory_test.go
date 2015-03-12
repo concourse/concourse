@@ -704,7 +704,7 @@ var _ = Describe("Factory", func() {
 		})
 	})
 
-	Context("when the job has inputs, outputs, and a build config", func() {
+	Context("when the job has inputs, outputs, and a task config", func() {
 		BeforeEach(func() {
 			job.Privileged = true
 
@@ -755,7 +755,7 @@ var _ = Describe("Factory", func() {
 			Ω(plan).Should(Equal(expectedPlan))
 		})
 
-		Context("when no build config is present", func() {
+		Context("when no task config is present", func() {
 			BeforeEach(func() {
 				job.TaskConfig = nil
 				job.TaskConfigPath = ""

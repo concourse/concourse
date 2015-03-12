@@ -144,9 +144,9 @@ func (delegate *delegate) unregisterImplicitOutput(resource string) {
 	delegate.lock.Unlock()
 }
 
-func (delegate *delegate) saveInitialize(logger lager.Logger, buildConfig atc.TaskConfig, origin event.Origin) {
+func (delegate *delegate) saveInitialize(logger lager.Logger, taskConfig atc.TaskConfig, origin event.Origin) {
 	err := delegate.db.SaveBuildEvent(delegate.buildID, event.InitializeTask{
-		TaskConfig: buildConfig,
+		TaskConfig: taskConfig,
 		Origin:     origin,
 	})
 	if err != nil {
