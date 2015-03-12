@@ -87,9 +87,9 @@ run:
 					},
 				},
 				B: atc.Plan{
-					Execute: &atc.ExecutePlan{
+					Task: &atc.TaskPlan{
 						Name: "build",
-						Config: &atc.BuildConfig{
+						Config: &atc.TaskConfig{
 							Platform: "some-platform",
 							Image:    "ubuntu",
 							Params: map[string]string{
@@ -97,7 +97,7 @@ run:
 								"BAZ": "buzz",
 								"X":   "1",
 							},
-							Run: atc.BuildRunConfig{
+							Run: atc.TaskRunConfig{
 								Path: "find",
 								Args: []string{"."},
 							},
@@ -244,7 +244,7 @@ run: {}
 
 	Context("when arguments are passed through", func() {
 		BeforeEach(func() {
-			expectedPlan.Compose.B.Execute.Config.Run.Args = []string{".", "-name", `foo "bar" baz`}
+			expectedPlan.Compose.B.Task.Config.Run.Args = []string{".", "-name", `foo "bar" baz`}
 		})
 
 		It("inserts them into the config template", func() {
@@ -266,7 +266,7 @@ run: {}
 
 	Context("when running with --privileged", func() {
 		BeforeEach(func() {
-			expectedPlan.Compose.B.Execute.Privileged = true
+			expectedPlan.Compose.B.Task.Privileged = true
 		})
 
 		It("inserts them into the config template", func() {
@@ -302,7 +302,7 @@ run: {}
 
 	Context("when parameters are specified in the environment", func() {
 		BeforeEach(func() {
-			expectedPlan.Compose.B.Execute.Config.Params = map[string]string{
+			expectedPlan.Compose.B.Task.Config.Params = map[string]string{
 				"FOO": "newbar",
 				"BAZ": "buzz",
 				"X":   "",

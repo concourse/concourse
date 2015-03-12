@@ -70,12 +70,12 @@ var _ = Describe("V1.0 Renderer", func() {
 		})
 	})
 
-	Context("when an InitializeExecute event is received", func() {
+	Context("when an InitializeTask event is received", func() {
 		BeforeEach(func() {
-			receivedEvents <- event.InitializeExecute{
-				BuildConfig: atc.BuildConfig{
+			receivedEvents <- event.InitializeTask{
+				TaskConfig: atc.TaskConfig{
 					Image: "some-image",
-					Run: atc.BuildRunConfig{
+					Run: atc.TaskRunConfig{
 						Path: "/some/script",
 						Args: []string{"arg1", "arg2"},
 					},
@@ -89,7 +89,7 @@ var _ = Describe("V1.0 Renderer", func() {
 
 		Context("and a StartExecute event is received", func() {
 			BeforeEach(func() {
-				receivedEvents <- event.StartExecute{
+				receivedEvents <- event.StartTask{
 					Time: time.Now().Unix(),
 				}
 			})
@@ -100,9 +100,9 @@ var _ = Describe("V1.0 Renderer", func() {
 		})
 	})
 
-	Context("when a FinishExecute event is received", func() {
+	Context("when a FinishTask event is received", func() {
 		BeforeEach(func() {
-			receivedEvents <- event.FinishExecute{
+			receivedEvents <- event.FinishTask{
 				ExitStatus: 42,
 			}
 		})
@@ -122,7 +122,7 @@ var _ = Describe("V1.0 Renderer", func() {
 				Ω(out.Contents()).Should(ContainSubstring("succeeded"))
 			})
 
-			It("exits with the status from the FinishExecute event", func() {
+			It("exits with the status from the FinishTask event", func() {
 				Ω(exitStatus).Should(Equal(42))
 			})
 		})

@@ -87,7 +87,7 @@ func Execute(c *cli.Context) {
 		atcRequester,
 		c.Bool("privileged"),
 		inputs,
-		config.LoadBuildConfig(absConfig, c.Args()),
+		config.LoadTaskConfig(absConfig, c.Args()),
 	)
 
 	terminate := make(chan os.Signal, 1)
@@ -163,7 +163,7 @@ func createBuild(
 	atcRequester *atcRequester,
 	privileged bool,
 	inputs []Input,
-	config atc.BuildConfig,
+	config atc.TaskConfig,
 ) atc.Build {
 	if err := config.Validate(); err != nil {
 		println(err.Error())
@@ -202,7 +202,7 @@ func createBuild(
 				Aggregate: &buildInputs,
 			},
 			B: atc.Plan{
-				Execute: &atc.ExecutePlan{
+				Task: &atc.TaskPlan{
 					Name:       "build",
 					Privileged: privileged,
 					Config:     &config,

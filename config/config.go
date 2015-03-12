@@ -9,13 +9,13 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func LoadBuildConfig(configPath string, args []string) atc.BuildConfig {
+func LoadTaskConfig(configPath string, args []string) atc.TaskConfig {
 	configFile, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		log.Fatalln("could not open config file:", err)
 	}
 
-	var config atc.BuildConfig
+	var config atc.TaskConfig
 
 	err = yaml.Unmarshal(configFile, &config)
 	if err != nil {

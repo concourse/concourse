@@ -102,9 +102,9 @@ run:
 					},
 				},
 				B: atc.Plan{
-					Execute: &atc.ExecutePlan{
+					Task: &atc.TaskPlan{
 						Name: "build",
-						Config: &atc.BuildConfig{
+						Config: &atc.TaskConfig{
 							Platform: "some-platform",
 							Image:    "ubuntu",
 							Params: map[string]string{
@@ -112,7 +112,7 @@ run:
 								"BAZ": "buzz",
 								"X":   "1",
 							},
-							Run: atc.BuildRunConfig{
+							Run: atc.TaskRunConfig{
 								Path: "find",
 								Args: []string{"."},
 							},

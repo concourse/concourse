@@ -79,8 +79,8 @@ var _ = Describe("Fly CLI", func() {
 
 						Public: true,
 
-						BuildConfigPath: "some/config/path.yml",
-						BuildConfig: &atc.BuildConfig{
+						TaskConfigPath: "some/config/path.yml",
+						TaskConfig: &atc.TaskConfig{
 							Image: "some-image",
 							Params: map[string]string{
 								"A": "B",
@@ -115,7 +115,7 @@ var _ = Describe("Fly CLI", func() {
 					{
 						Name: "some-other-job",
 
-						BuildConfigPath: "some/config/path.yml",
+						TaskConfigPath: "some/config/path.yml",
 
 						InputConfigs: []atc.JobInputConfig{
 							{
