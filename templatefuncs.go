@@ -1,8 +1,13 @@
 package web
 
 import (
+	"crypto/md5"
 	"fmt"
+	"io"
 	"net/url"
+	"os"
+	"path/filepath"
+	"sync"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -10,7 +15,35 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-type templateFuncs struct{}
+type templateFuncs struct {
+	assetsDir string
+	assetIDs  map[string]string
+	assetsL   sync.Mutex
+}
+
+func (funcs templateFuncs) asset(asset string) (string, error) {
+	funcs.assetsL.Lock()
+	defer funcs.assetsL.Unlock()
+
+	id, found := funcs.assetIDs[asset]
+	if !found {
+		hash := md5.New()
+
+		file, err := os.Open(filepath.Join(funcs.assetsDir, asset))
+		if err != nil {
+			return "", err
+		}
+
+		_, err = io.Copy(hash, file)
+		if err != nil {
+			return "", err
+		}
+
+		id = fmt.Sprintf("%x", hash.Sum(nil))
+	}
+
+	return funcs.url("Public", asset+"?id="+id)
+}
 
 func (funcs templateFuncs) url(handler string, args ...interface{}) (string, error) {
 	switch handler {

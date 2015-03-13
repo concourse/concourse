@@ -32,8 +32,14 @@ func NewHandler(
 	drain <-chan struct{},
 	engine engine.Engine,
 ) (http.Handler, error) {
+	tfuncs := &templateFuncs{
+		assetsDir: publicDir,
+		assetIDs:  map[string]string{},
+	}
+
 	funcs := template.FuncMap{
-		"url": templateFuncs{}.url,
+		"url":   tfuncs.url,
+		"asset": tfuncs.asset,
 	}
 
 	indexTemplate, err := loadTemplate(templatesDir, "index.html", funcs)
