@@ -95,7 +95,7 @@ var _ = Describe("Radar", func() {
 
 		AfterEach(func() {
 			process.Signal(os.Interrupt)
-			Eventually(process.Wait()).Should(Receive())
+			<-process.Wait()
 		})
 
 		It("constructs the resource of the correct type", func() {
