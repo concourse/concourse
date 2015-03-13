@@ -28,4 +28,5 @@ var Migrations = []migration.Migrator{
 	AddResourceTypesToWorkers,
 	AddPlatformAndTagsToWorkers,
 	AddIdToConfig,
+	ConvertJobBuildConfigToJobPlans,
 }
