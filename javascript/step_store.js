@@ -30,7 +30,6 @@ var Store = Fluxxor.createStore({
     var preloadedData = {};
     if (origin.type == "get" && this.preloadedInputs.has(origin.name)) {
       preloadedData = this.preloadedInputs.get(origin.name);
-      console.log("REPAL", preloadedData);
     }
 
     this.steps = this.steps.updateIn(origin.location, function(stepModel) {
@@ -137,7 +136,7 @@ function StepModel(origin) {
 
   this.version = function() {
     var x = this._map.get("version");
-    if (x === undefined) {
+    if (!x) {
       return undefined;
     }
 

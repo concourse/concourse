@@ -4,18 +4,13 @@ function OrderedTree() {
   this.tree = Immutable.List();
 
   this.add = function(location, value) {
-    var indices = [];
-    for (var l in location) {
-      indices[l] = location[l]-1;
-    }
-
-    for (var i = 0; i < indices.length; i++) {
-      this.tree = this.tree.updateIn(indices.slice(0, i+1), function(ele) {
+    for (var i = 0; i < location.length; i++) {
+      this.tree = this.tree.updateIn(location.slice(0, i+1), function(ele) {
         return ele || Immutable.List();
       });
     }
 
-    this.tree = this.tree.setIn(indices, value);
+    this.tree = this.tree.setIn(location, value);
   }
 
   this.walk = function(cb) {
