@@ -63,6 +63,7 @@ func ConvertJobBuildConfigToJobPlans(tx migration.LimitedTx) error {
 				Task:           "build", // default name
 				TaskConfigPath: job.TaskConfigPath,
 				TaskConfig:     job.TaskConfig,
+				Privileged:     job.Privileged,
 			})
 		}
 
@@ -85,10 +86,12 @@ func ConvertJobBuildConfigToJobPlans(tx migration.LimitedTx) error {
 			convertedSequence = append(convertedSequence, PlanConfig{Aggregate: &outputAggregates})
 		}
 
+		// zero-out old-style config so they're omitted from new payload
 		config.Jobs[ji].InputConfigs = nil
 		config.Jobs[ji].OutputConfigs = nil
 		config.Jobs[ji].TaskConfigPath = ""
 		config.Jobs[ji].TaskConfig = nil
+		config.Jobs[ji].Privileged = false
 
 		config.Jobs[ji].Plan = convertedSequence
 	}

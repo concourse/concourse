@@ -112,6 +112,7 @@ var _ = Describe("25ConvertJobBuildConfigToJobPlans", func() {
 						"config": {
 							"params": {"A": "B"}
 						},
+						"privileged": true,
 						"outputs": [
 							{
 								"resource": "some-resource",
@@ -133,6 +134,7 @@ var _ = Describe("25ConvertJobBuildConfigToJobPlans", func() {
 						"config": {
 							"params": {"A": "B"}
 						},
+						"privileged": false,
 						"outputs": [
 							{
 								"resource": "some-resource",
@@ -254,6 +256,7 @@ var _ = Describe("25ConvertJobBuildConfigToJobPlans", func() {
 							},
 							{
 								"task": "build",
+								"privileged": true,
 								"file": "some-input-name/build.yml",
 								"config": {
 									"params": {"A": "B"}
