@@ -198,6 +198,19 @@ func (config JobOutputConfig) PerformOn() []Condition {
 	return config.RawPerformOn
 }
 
+type Conditions []Condition
+
+func (cs Conditions) SatisfiedBy(successful bool) bool {
+	for _, status := range cs {
+		if (status == ConditionSuccess && successful) ||
+			(status == ConditionFailure && !successful) {
+			return true
+		}
+	}
+
+	return false
+}
+
 type Condition string
 
 const (

@@ -25,23 +25,23 @@ const (
 
 type TaskConfig struct {
 	// The platform the task must run on (e.g. linux, windows).
-	Platform string `json:"platform,omitempty" yaml:"platform"`
+	Platform string `json:"platform,omitempty" yaml:"platform,omitempty"`
 
 	// Additional tags to influence which workers the task can run on.
-	Tags []string `json:"tags,omitempty"  yaml:"tags"`
+	Tags []string `json:"tags,omitempty"  yaml:"tags,omitempty"`
 
 	// Optional string specifying an image to use for the build. Depending on the
 	// platform, this may or may not be required (e.g. Windows/OS X vs. Linux).
-	Image string `json:"image,omitempty"   yaml:"image"`
+	Image string `json:"image,omitempty"   yaml:"image,omitempty"`
 
 	// Parameters to pass to the task via environment variables.
-	Params map[string]string `json:"params,omitempty"  yaml:"params"`
+	Params map[string]string `json:"params,omitempty"  yaml:"params,omitempty"`
 
 	// Script to execute.
-	Run TaskRunConfig `json:"run,omitempty"     yaml:"run"`
+	Run TaskRunConfig `json:"run,omitempty"     yaml:"run,omitempty"`
 
 	// The set of (logical, name-only) inputs required by the task.
-	Inputs []TaskInputConfig `json:"inputs,omitempty"  yaml:"inputs"`
+	Inputs []TaskInputConfig `json:"inputs,omitempty"  yaml:"inputs,omitempty"`
 }
 
 func (a TaskConfig) Merge(b TaskConfig) TaskConfig {
@@ -135,17 +135,4 @@ type TaskInputConfig struct {
 type MetadataField struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
-}
-
-type Conditions []Condition
-
-func (cs Conditions) SatisfiedBy(successful bool) bool {
-	for _, status := range cs {
-		if (status == ConditionSuccess && successful) ||
-			(status == ConditionFailure && !successful) {
-			return true
-		}
-	}
-
-	return false
 }
