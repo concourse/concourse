@@ -23,7 +23,9 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
-const sessionID = "some-session-id"
+var identifier = worker.Identifier{
+	Name: "some-session-id",
+}
 
 var _ = Describe("GardenFactory", func() {
 	var (
@@ -44,126 +46,6 @@ var _ = Describe("GardenFactory", func() {
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
-	})
-
-	Describe("Hijack", func() {
-		var (
-			processSpec atc.HijackProcessSpec
-			processIO   IOConfig
-
-			hijackedProcess HijackedProcess
-			hijackErr       error
-		)
-
-		BeforeEach(func() {
-			processSpec = atc.HijackProcessSpec{
-				Path: "ls",
-			}
-
-			processIO = IOConfig{
-				Stdin:  new(bytes.Buffer),
-				Stdout: new(bytes.Buffer),
-				Stderr: new(bytes.Buffer),
-			}
-		})
-
-		JustBeforeEach(func() {
-			hijackedProcess, hijackErr = factory.Hijack(sessionID, processIO, processSpec)
-		})
-
-		Context("when finding the session's container succeeds", func() {
-			var fakeContainer *wfakes.FakeContainer
-
-			BeforeEach(func() {
-				fakeContainer = new(wfakes.FakeContainer)
-				fakeWorkerClient.LookupReturns(fakeContainer, nil)
-			})
-
-			Context("and the container can spawn processes", func() {
-				var fakeProcess *gfakes.FakeProcess
-
-				BeforeEach(func() {
-					fakeProcess = new(gfakes.FakeProcess)
-					fakeContainer.RunReturns(fakeProcess, nil)
-				})
-
-				It("looks up by session id", func() {
-					Ω(fakeWorkerClient.LookupArgsForCall(0)).Should(Equal(sessionID))
-				})
-
-				It("succeeds", func() {
-					Ω(hijackErr).ShouldNot(HaveOccurred())
-				})
-
-				It("releases the container", func() {
-					Ω(fakeContainer.ReleaseCallCount()).Should(Equal(1))
-				})
-
-				It("spawns the process with the given spec and IO config", func() {
-					Ω(fakeContainer.RunCallCount()).Should(Equal(1))
-
-					ranSpec, ranIO := fakeContainer.RunArgsForCall(0)
-					Ω(ranSpec).Should(Equal(garden.ProcessSpec{
-						Path: "ls",
-					}))
-					Ω(ranIO).Should(Equal(garden.ProcessIO(processIO)))
-				})
-
-				Describe("waiting on the process", func() {
-					BeforeEach(func() {
-						fakeProcess.WaitReturns(123, nil)
-					})
-
-					It("delegates to the garden process", func() {
-						Ω(hijackedProcess.Wait()).Should(Equal(123))
-					})
-				})
-
-				Describe("updating the process's TTY", func() {
-					It("delegates to the garden process", func() {
-						err := hijackedProcess.SetTTY(atc.HijackTTYSpec{
-							WindowSize: atc.HijackWindowSize{
-								Columns: 123,
-								Rows:    456,
-							},
-						})
-						Ω(err).ShouldNot(HaveOccurred())
-
-						Ω(fakeProcess.SetTTYCallCount()).Should(Equal(1))
-						Ω(fakeProcess.SetTTYArgsForCall(0)).Should(Equal(garden.TTYSpec{
-							WindowSize: &garden.WindowSize{
-								Columns: 123,
-								Rows:    456,
-							},
-						}))
-					})
-				})
-			})
-
-			Context("when the container cannot spawn processes", func() {
-				disaster := errors.New("nope")
-
-				BeforeEach(func() {
-					fakeContainer.RunReturns(nil, disaster)
-				})
-
-				It("returns the error", func() {
-					Ω(hijackErr).Should(Equal(disaster))
-				})
-			})
-		})
-
-		Context("when finding the session's container fails", func() {
-			disaster := errors.New("nope")
-
-			BeforeEach(func() {
-				fakeWorkerClient.LookupReturns(nil, disaster)
-			})
-
-			It("returns the error", func() {
-				Ω(hijackErr).Should(Equal(disaster))
-			})
-		})
 	})
 
 	Describe("Get", func() {
@@ -198,7 +80,7 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			source = factory.Get(sessionID, getDelegate, resourceConfig, params, version).Using(inSource)
+			source = factory.Get(identifier, getDelegate, resourceConfig, params, version).Using(inSource)
 			process = ifrit.Invoke(source)
 		})
 
@@ -224,7 +106,7 @@ var _ = Describe("GardenFactory", func() {
 
 				sid, typ := fakeTracker.InitArgsForCall(0)
 				Ω(sid).Should(Equal(resource.Session{
-					ID:        sessionID,
+					ID:        identifier,
 					Ephemeral: false,
 				}))
 				Ω(typ).Should(Equal(resource.ResourceType("some-resource-type")))
@@ -544,7 +426,7 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			source = factory.Put(sessionID, putDelegate, resourceConfig, params).Using(inSource)
+			source = factory.Put(identifier, putDelegate, resourceConfig, params).Using(inSource)
 			process = ifrit.Invoke(source)
 		})
 
@@ -570,7 +452,7 @@ var _ = Describe("GardenFactory", func() {
 
 				sid, typ := fakeTracker.InitArgsForCall(0)
 				Ω(sid).Should(Equal(resource.Session{
-					ID: sessionID,
+					ID: identifier,
 				}))
 				Ω(typ).Should(Equal(resource.ResourceType("some-resource-type")))
 			})
@@ -889,7 +771,7 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			source = factory.Task(sessionID, taskDelegate, privileged, configSource).Using(inSource)
+			source = factory.Task(identifier, taskDelegate, privileged, configSource).Using(inSource)
 			process = ifrit.Invoke(source)
 		})
 
@@ -951,7 +833,7 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					It("looked up the container via the session ID", func() {
-						Ω(fakeWorkerClient.LookupArgsForCall(0)).Should(Equal(sessionID))
+						Ω(fakeWorkerClient.LookupArgsForCall(0)).Should(Equal(identifier))
 					})
 
 					It("gets the config from the input artifact soruce", func() {
@@ -963,8 +845,8 @@ var _ = Describe("GardenFactory", func() {
 
 					It("creates a container with the config's image and the session ID as the handle", func() {
 						Ω(fakeWorkerClient.CreateContainerCallCount()).Should(Equal(1))
-						handle, spec := fakeWorkerClient.CreateContainerArgsForCall(0)
-						Ω(handle).Should(Equal(sessionID))
+						createdIdentifier, spec := fakeWorkerClient.CreateContainerArgsForCall(0)
+						Ω(createdIdentifier).Should(Equal(identifier))
 						Ω(spec).Should(Equal(worker.TaskContainerSpec{
 							Platform:   "some-platform",
 							Tags:       []string{"some", "tags"},
@@ -1027,7 +909,7 @@ var _ = Describe("GardenFactory", func() {
 						Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(1))
 
 						name, value := fakeContainer.SetPropertyArgsForCall(0)
-						Ω(name).Should(Equal("task-process"))
+						Ω(name).Should(Equal("concourse:task-process"))
 						Ω(value).Should(Equal("42"))
 					})
 
@@ -1042,8 +924,8 @@ var _ = Describe("GardenFactory", func() {
 
 						It("creates the container privileged", func() {
 							Ω(fakeWorkerClient.CreateContainerCallCount()).Should(Equal(1))
-							handle, spec := fakeWorkerClient.CreateContainerArgsForCall(0)
-							Ω(handle).Should(Equal(sessionID))
+							createdIdentifier, spec := fakeWorkerClient.CreateContainerArgsForCall(0)
+							Ω(createdIdentifier).Should(Equal(identifier))
 							Ω(spec).Should(Equal(worker.TaskContainerSpec{
 								Platform:   "some-platform",
 								Tags:       []string{"some", "tags"},
@@ -1295,7 +1177,7 @@ var _ = Describe("GardenFactory", func() {
 							Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(2))
 
 							name, value := fakeContainer.SetPropertyArgsForCall(1)
-							Ω(name).Should(Equal("exit-status"))
+							Ω(name).Should(Equal("concourse:exit-status"))
 							Ω(value).Should(Equal("0"))
 						})
 
@@ -1322,7 +1204,7 @@ var _ = Describe("GardenFactory", func() {
 
 									for i := 0; i < callCount; i++ {
 										name, _ := fakeContainer.SetPropertyArgsForCall(i)
-										Ω(name).ShouldNot(Equal("exit-status"))
+										Ω(name).ShouldNot(Equal("concourse:exit-status"))
 									}
 								}
 							})
@@ -1340,7 +1222,7 @@ var _ = Describe("GardenFactory", func() {
 
 							BeforeEach(func() {
 								fakeContainer.SetPropertyStub = func(name string, value string) error {
-									if name == "exit-status" {
+									if name == "concourse:exit-status" {
 										return disaster
 									}
 
@@ -1371,7 +1253,7 @@ var _ = Describe("GardenFactory", func() {
 							Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(2))
 
 							name, value := fakeContainer.SetPropertyArgsForCall(1)
-							Ω(name).Should(Equal("exit-status"))
+							Ω(name).Should(Equal("concourse:exit-status"))
 							Ω(value).Should(Equal("1"))
 						})
 
@@ -1398,7 +1280,7 @@ var _ = Describe("GardenFactory", func() {
 
 									for i := 0; i < callCount; i++ {
 										name, _ := fakeContainer.SetPropertyArgsForCall(i)
-										Ω(name).ShouldNot(Equal("exit-status"))
+										Ω(name).ShouldNot(Equal("concourse:exit-status"))
 									}
 								}
 							})
@@ -1416,7 +1298,7 @@ var _ = Describe("GardenFactory", func() {
 
 							BeforeEach(func() {
 								fakeContainer.SetPropertyStub = func(name string, value string) error {
-									if name == "exit-status" {
+									if name == "concourse:exit-status" {
 										return disaster
 									}
 
@@ -1769,7 +1651,7 @@ var _ = Describe("GardenFactory", func() {
 				BeforeEach(func() {
 					fakeContainer.GetPropertyStub = func(name string) (string, error) {
 						switch name {
-						case "exit-status":
+						case "concourse:exit-status":
 							return "123", nil
 						default:
 							return "", errors.New("unstubbed property: " + name)
@@ -1816,7 +1698,7 @@ var _ = Describe("GardenFactory", func() {
 				BeforeEach(func() {
 					fakeContainer.GetPropertyStub = func(name string) (string, error) {
 						switch name {
-						case "task-process":
+						case "concourse:task-process":
 							return "42", nil
 						default:
 							return "", errors.New("unstubbed property: " + name)

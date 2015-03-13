@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
+	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -16,6 +17,7 @@ type Server struct {
 	logger lager.Logger
 
 	engine              engine.Engine
+	workerClient        worker.Client
 	db                  BuildsDB
 	configDB            db.ConfigDB
 	pingInterval        time.Duration
@@ -39,6 +41,7 @@ type BuildsDB interface {
 func NewServer(
 	logger lager.Logger,
 	engine engine.Engine,
+	workerClient worker.Client,
 	db BuildsDB,
 	configDB db.ConfigDB,
 	pingInterval time.Duration,
@@ -49,6 +52,7 @@ func NewServer(
 	return &Server{
 		logger:              logger,
 		engine:              engine,
+		workerClient:        workerClient,
 		db:                  db,
 		configDB:            configDB,
 		pingInterval:        pingInterval,

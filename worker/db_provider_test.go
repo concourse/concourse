@@ -119,6 +119,8 @@ var _ = Describe("DBProvider", func() {
 
 		Describe("a created container", func() {
 			It("calls through to garden", func() {
+				id := Identifier{Name: "some-name"}
+
 				spec := ResourceTypeContainerSpec{
 					Type: "some-resource-a",
 				}
@@ -128,13 +130,15 @@ var _ = Describe("DBProvider", func() {
 
 				workerA.CreateReturns(fakeContainer, nil)
 
-				container, err := workers[0].CreateContainer("created-handle", spec)
+				container, err := workers[0].CreateContainer(id, spec)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(container.Handle()).Should(Equal("created-handle"))
 
 				Ω(workerA.CreateCallCount()).Should(Equal(1))
-				Ω(workerA.CreateArgsForCall(0).Handle).Should(Equal("created-handle"))
+				Ω(workerA.CreateArgsForCall(0).Properties).Should(Equal(garden.Properties{
+					"concourse:name": "some-name",
+				}))
 
 				err = container.Destroy()
 				Ω(err).ShouldNot(HaveOccurred())
@@ -151,7 +155,7 @@ var _ = Describe("DBProvider", func() {
 
 				workerA.ContainersReturns([]garden.Container{fakeContainer}, nil)
 
-				container, err := workers[0].Lookup("some-handle")
+				container, err := workers[0].Lookup(Identifier{Name: "some-name"})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(container.Handle()).Should(Equal("some-handle"))

@@ -17,6 +17,8 @@ var ErrUnsupportedResourceType = errors.New("unsupported resource type")
 
 const containerKeepalive = 30 * time.Second
 
+const ephemeralPropertyName = "concourse:ephemeral"
+
 //go:generate counterfeiter . Worker
 
 type Worker interface {
@@ -26,16 +28,6 @@ type Worker interface {
 	Satisfies(ContainerSpec) bool
 
 	Description() string
-}
-
-//go:generate counterfeiter . Container
-
-type Container interface {
-	garden.Container
-
-	Destroy() error
-
-	Release()
 }
 
 type gardenWorker struct {
@@ -67,9 +59,9 @@ func NewGardenWorker(
 	}
 }
 
-func (worker *gardenWorker) CreateContainer(handle string, spec ContainerSpec) (Container, error) {
+func (worker *gardenWorker) CreateContainer(id Identifier, spec ContainerSpec) (Container, error) {
 	gardenSpec := garden.ContainerSpec{
-		Handle: handle,
+		Properties: id.gardenProperties(),
 	}
 
 dance:
@@ -78,9 +70,7 @@ dance:
 		gardenSpec.Privileged = true
 
 		if s.Ephemeral {
-			gardenSpec.Properties = garden.Properties{
-				"ephemeral": "true",
-			}
+			gardenSpec.Properties[ephemeralPropertyName] = "true"
 		}
 
 		for _, t := range worker.resourceTypes {
@@ -108,13 +98,31 @@ dance:
 	return newGardenWorkerContainer(gardenContainer, worker.gardenClient, worker.clock), nil
 }
 
-func (worker *gardenWorker) Lookup(handle string) (Container, error) {
-	gardenContainer, err := worker.gardenClient.Lookup(handle)
+func (worker *gardenWorker) Lookup(id Identifier) (Container, error) {
+	containers, err := worker.gardenClient.Containers(id.gardenProperties())
 	if err != nil {
 		return nil, err
 	}
 
-	return newGardenWorkerContainer(gardenContainer, worker.gardenClient, worker.clock), nil
+	if len(containers) == 0 {
+	}
+
+	switch len(containers) {
+	case 0:
+		return nil, ErrContainerNotFound
+	case 1:
+		return newGardenWorkerContainer(containers[0], worker.gardenClient, worker.clock), nil
+	default:
+		handles := []string{}
+
+		for _, c := range containers {
+			handles = append(handles, c.Handle())
+		}
+
+		return nil, MultipleContainersError{
+			Handles: handles,
+		}
+	}
 }
 
 func (worker *gardenWorker) ActiveContainers() int {

@@ -14,8 +14,8 @@ import (
 
 var ErrAborted = errors.New("script aborted")
 
-const resourceProcessIDPropertyName = "resource-process"
-const resourceResultPropertyName = "resource-result"
+const resourceProcessIDPropertyName = "concourse:resource-process"
+const resourceResultPropertyName = "concourse:resource-result"
 
 type ErrResourceScriptFailed struct {
 	Path       string

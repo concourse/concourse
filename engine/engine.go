@@ -2,7 +2,6 @@ package engine
 
 import (
 	"errors"
-	"io"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -39,34 +38,7 @@ type Build interface {
 	Metadata() string
 
 	Abort() error
-	Hijack(HijackTarget, atc.HijackProcessSpec, HijackProcessIO) (HijackedProcess, error)
 	Resume(lager.Logger)
-}
-
-type HijackTarget struct {
-	Type HijackTargetType
-	Name string
-}
-
-type HijackTargetType string
-
-const (
-	HijackTargetTypeGet  HijackTargetType = "get"
-	HijackTargetTypePut  HijackTargetType = "put"
-	HijackTargetTypeTask HijackTargetType = "task"
-)
-
-type HijackProcessIO struct {
-	Stdin  io.Reader
-	Stdout io.Writer
-	Stderr io.Writer
-}
-
-//go:generate counterfeiter . HijackedProcess
-
-type HijackedProcess interface {
-	Wait() (int, error)
-	SetTTY(atc.HijackTTYSpec) error
 }
 
 type Engines []Engine

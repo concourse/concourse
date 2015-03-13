@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 
@@ -102,7 +103,13 @@ var _ = Describe("Radar", func() {
 
 			sessionID, typ := fakeTracker.InitArgsForCall(0)
 			Ω(sessionID).Should(Equal(resource.Session{
-				ID:        "check-git-some-resource",
+				ID: worker.Identifier{
+					Name: "some-resource",
+					Type: "check",
+
+					CheckType:   "git",
+					CheckSource: resourceConfig.Source,
+				},
 				Ephemeral: true,
 			}))
 			Ω(typ).Should(Equal(resource.ResourceType("git")))
@@ -348,7 +355,13 @@ var _ = Describe("Radar", func() {
 		It("constructs the resource of the correct type", func() {
 			sessionID, typ := fakeTracker.InitArgsForCall(0)
 			Ω(sessionID).Should(Equal(resource.Session{
-				ID:        "check-git-some-resource",
+				ID: worker.Identifier{
+					Name: "some-resource",
+					Type: "check",
+
+					CheckType:   "git",
+					CheckSource: resourceConfig.Source,
+				},
 				Ephemeral: true,
 			}))
 			Ω(typ).Should(Equal(resource.ResourceType("git")))

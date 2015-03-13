@@ -17,7 +17,9 @@ var _ = Describe("Tracker", func() {
 	)
 
 	var session = Session{
-		ID:        "some-session-id",
+		ID: worker.Identifier{
+			Name: "some-name",
+		},
 		Ephemeral: true,
 	}
 
@@ -54,9 +56,9 @@ var _ = Describe("Tracker", func() {
 			})
 
 			It("creates a container with the resource's type, ephemeral information, and the session as the handle", func() {
-				handle, spec := workerClient.CreateContainerArgsForCall(0)
+				id, spec := workerClient.CreateContainerArgsForCall(0)
 
-				Ω(handle).Should(Equal(session.ID))
+				Ω(id).Should(Equal(session.ID))
 				Ω(spec).Should(Equal(worker.ResourceTypeContainerSpec{
 					Type:      string(initType),
 					Ephemeral: true,

@@ -20,6 +20,7 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
+	"github.com/concourse/atc/worker"
 )
 
 func NewHandler(
@@ -40,6 +41,7 @@ func NewHandler(
 	drain <-chan struct{},
 
 	engine engine.Engine,
+	workerClient worker.Client,
 
 	sink *lager.ReconfigurableSink,
 
@@ -53,6 +55,7 @@ func NewHandler(
 	buildServer := buildserver.NewServer(
 		logger,
 		engine,
+		workerClient,
 		buildsDB,
 		configDB,
 		pingInterval,

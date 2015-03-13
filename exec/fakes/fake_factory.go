@@ -6,13 +6,14 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/exec"
+	"github.com/concourse/atc/worker"
 )
 
 type FakeFactory struct {
-	GetStub        func(exec.SessionID, exec.GetDelegate, atc.ResourceConfig, atc.Params, atc.Version) exec.Step
+	GetStub        func(worker.Identifier, exec.GetDelegate, atc.ResourceConfig, atc.Params, atc.Version) exec.Step
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
-		arg1 exec.SessionID
+		arg1 worker.Identifier
 		arg2 exec.GetDelegate
 		arg3 atc.ResourceConfig
 		arg4 atc.Params
@@ -21,10 +22,10 @@ type FakeFactory struct {
 	getReturns struct {
 		result1 exec.Step
 	}
-	PutStub        func(exec.SessionID, exec.PutDelegate, atc.ResourceConfig, atc.Params) exec.Step
+	PutStub        func(worker.Identifier, exec.PutDelegate, atc.ResourceConfig, atc.Params) exec.Step
 	putMutex       sync.RWMutex
 	putArgsForCall []struct {
-		arg1 exec.SessionID
+		arg1 worker.Identifier
 		arg2 exec.PutDelegate
 		arg3 atc.ResourceConfig
 		arg4 atc.Params
@@ -32,10 +33,10 @@ type FakeFactory struct {
 	putReturns struct {
 		result1 exec.Step
 	}
-	TaskStub        func(exec.SessionID, exec.TaskDelegate, exec.Privileged, exec.TaskConfigSource) exec.Step
+	TaskStub        func(worker.Identifier, exec.TaskDelegate, exec.Privileged, exec.TaskConfigSource) exec.Step
 	taskMutex       sync.RWMutex
 	taskArgsForCall []struct {
-		arg1 exec.SessionID
+		arg1 worker.Identifier
 		arg2 exec.TaskDelegate
 		arg3 exec.Privileged
 		arg4 exec.TaskConfigSource
@@ -43,23 +44,12 @@ type FakeFactory struct {
 	taskReturns struct {
 		result1 exec.Step
 	}
-	HijackStub        func(exec.SessionID, exec.IOConfig, atc.HijackProcessSpec) (exec.HijackedProcess, error)
-	hijackMutex       sync.RWMutex
-	hijackArgsForCall []struct {
-		arg1 exec.SessionID
-		arg2 exec.IOConfig
-		arg3 atc.HijackProcessSpec
-	}
-	hijackReturns struct {
-		result1 exec.HijackedProcess
-		result2 error
-	}
 }
 
-func (fake *FakeFactory) Get(arg1 exec.SessionID, arg2 exec.GetDelegate, arg3 atc.ResourceConfig, arg4 atc.Params, arg5 atc.Version) exec.Step {
+func (fake *FakeFactory) Get(arg1 worker.Identifier, arg2 exec.GetDelegate, arg3 atc.ResourceConfig, arg4 atc.Params, arg5 atc.Version) exec.Step {
 	fake.getMutex.Lock()
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
-		arg1 exec.SessionID
+		arg1 worker.Identifier
 		arg2 exec.GetDelegate
 		arg3 atc.ResourceConfig
 		arg4 atc.Params
@@ -79,7 +69,7 @@ func (fake *FakeFactory) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeFactory) GetArgsForCall(i int) (exec.SessionID, exec.GetDelegate, atc.ResourceConfig, atc.Params, atc.Version) {
+func (fake *FakeFactory) GetArgsForCall(i int) (worker.Identifier, exec.GetDelegate, atc.ResourceConfig, atc.Params, atc.Version) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	return fake.getArgsForCall[i].arg1, fake.getArgsForCall[i].arg2, fake.getArgsForCall[i].arg3, fake.getArgsForCall[i].arg4, fake.getArgsForCall[i].arg5
@@ -92,10 +82,10 @@ func (fake *FakeFactory) GetReturns(result1 exec.Step) {
 	}{result1}
 }
 
-func (fake *FakeFactory) Put(arg1 exec.SessionID, arg2 exec.PutDelegate, arg3 atc.ResourceConfig, arg4 atc.Params) exec.Step {
+func (fake *FakeFactory) Put(arg1 worker.Identifier, arg2 exec.PutDelegate, arg3 atc.ResourceConfig, arg4 atc.Params) exec.Step {
 	fake.putMutex.Lock()
 	fake.putArgsForCall = append(fake.putArgsForCall, struct {
-		arg1 exec.SessionID
+		arg1 worker.Identifier
 		arg2 exec.PutDelegate
 		arg3 atc.ResourceConfig
 		arg4 atc.Params
@@ -114,7 +104,7 @@ func (fake *FakeFactory) PutCallCount() int {
 	return len(fake.putArgsForCall)
 }
 
-func (fake *FakeFactory) PutArgsForCall(i int) (exec.SessionID, exec.PutDelegate, atc.ResourceConfig, atc.Params) {
+func (fake *FakeFactory) PutArgsForCall(i int) (worker.Identifier, exec.PutDelegate, atc.ResourceConfig, atc.Params) {
 	fake.putMutex.RLock()
 	defer fake.putMutex.RUnlock()
 	return fake.putArgsForCall[i].arg1, fake.putArgsForCall[i].arg2, fake.putArgsForCall[i].arg3, fake.putArgsForCall[i].arg4
@@ -127,10 +117,10 @@ func (fake *FakeFactory) PutReturns(result1 exec.Step) {
 	}{result1}
 }
 
-func (fake *FakeFactory) Task(arg1 exec.SessionID, arg2 exec.TaskDelegate, arg3 exec.Privileged, arg4 exec.TaskConfigSource) exec.Step {
+func (fake *FakeFactory) Task(arg1 worker.Identifier, arg2 exec.TaskDelegate, arg3 exec.Privileged, arg4 exec.TaskConfigSource) exec.Step {
 	fake.taskMutex.Lock()
 	fake.taskArgsForCall = append(fake.taskArgsForCall, struct {
-		arg1 exec.SessionID
+		arg1 worker.Identifier
 		arg2 exec.TaskDelegate
 		arg3 exec.Privileged
 		arg4 exec.TaskConfigSource
@@ -149,7 +139,7 @@ func (fake *FakeFactory) TaskCallCount() int {
 	return len(fake.taskArgsForCall)
 }
 
-func (fake *FakeFactory) TaskArgsForCall(i int) (exec.SessionID, exec.TaskDelegate, exec.Privileged, exec.TaskConfigSource) {
+func (fake *FakeFactory) TaskArgsForCall(i int) (worker.Identifier, exec.TaskDelegate, exec.Privileged, exec.TaskConfigSource) {
 	fake.taskMutex.RLock()
 	defer fake.taskMutex.RUnlock()
 	return fake.taskArgsForCall[i].arg1, fake.taskArgsForCall[i].arg2, fake.taskArgsForCall[i].arg3, fake.taskArgsForCall[i].arg4
@@ -160,41 +150,6 @@ func (fake *FakeFactory) TaskReturns(result1 exec.Step) {
 	fake.taskReturns = struct {
 		result1 exec.Step
 	}{result1}
-}
-
-func (fake *FakeFactory) Hijack(arg1 exec.SessionID, arg2 exec.IOConfig, arg3 atc.HijackProcessSpec) (exec.HijackedProcess, error) {
-	fake.hijackMutex.Lock()
-	fake.hijackArgsForCall = append(fake.hijackArgsForCall, struct {
-		arg1 exec.SessionID
-		arg2 exec.IOConfig
-		arg3 atc.HijackProcessSpec
-	}{arg1, arg2, arg3})
-	fake.hijackMutex.Unlock()
-	if fake.HijackStub != nil {
-		return fake.HijackStub(arg1, arg2, arg3)
-	} else {
-		return fake.hijackReturns.result1, fake.hijackReturns.result2
-	}
-}
-
-func (fake *FakeFactory) HijackCallCount() int {
-	fake.hijackMutex.RLock()
-	defer fake.hijackMutex.RUnlock()
-	return len(fake.hijackArgsForCall)
-}
-
-func (fake *FakeFactory) HijackArgsForCall(i int) (exec.SessionID, exec.IOConfig, atc.HijackProcessSpec) {
-	fake.hijackMutex.RLock()
-	defer fake.hijackMutex.RUnlock()
-	return fake.hijackArgsForCall[i].arg1, fake.hijackArgsForCall[i].arg2, fake.hijackArgsForCall[i].arg3
-}
-
-func (fake *FakeFactory) HijackReturns(result1 exec.HijackedProcess, result2 error) {
-	fake.HijackStub = nil
-	fake.hijackReturns = struct {
-		result1 exec.HijackedProcess
-		result2 error
-	}{result1, result2}
 }
 
 var _ exec.Factory = new(FakeFactory)

@@ -222,29 +222,6 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 	engineBuild.Resume(logger)
 }
 
-func (build *dbBuild) Hijack(target HijackTarget, spec atc.HijackProcessSpec, io HijackProcessIO) (HijackedProcess, error) {
-	model, err := build.db.GetBuild(build.id)
-	if err != nil {
-		return nil, err
-	}
-
-	if model.Engine == "" {
-		return nil, ErrBuildNotActive
-	}
-
-	buildEngine, found := build.engines.Lookup(model.Engine)
-	if !found {
-		return nil, UnknownEngineError{model.Engine}
-	}
-
-	engineBuild, err := buildEngine.LookupBuild(model)
-	if err != nil {
-		return nil, err
-	}
-
-	return engineBuild.Hijack(target, spec, io)
-}
-
 func (build *dbBuild) finishWithError(buildID int, logger lager.Logger) {
 	err := build.db.FinishBuild(buildID, db.StatusErrored)
 	if err != nil {

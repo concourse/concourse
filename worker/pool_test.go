@@ -25,6 +25,7 @@ var _ = Describe("Pool", func() {
 
 	Describe("Create", func() {
 		var (
+			id   Identifier
 			spec ContainerSpec
 
 			createdContainer Container
@@ -32,11 +33,12 @@ var _ = Describe("Pool", func() {
 		)
 
 		BeforeEach(func() {
+			id = Identifier{Name: "some-name"}
 			spec = ResourceTypeContainerSpec{Type: "some-type"}
 		})
 
 		JustBeforeEach(func() {
-			createdContainer, createErr = pool.CreateContainer("handle", spec)
+			createdContainer, createErr = pool.CreateContainer(id, spec)
 		})
 
 		Context("with multiple workers", func() {
@@ -88,7 +90,7 @@ var _ = Describe("Pool", func() {
 
 			It("creates using a random worker", func() {
 				for i := 1; i < 100; i++ { // account for initial create in JustBefore
-					createdContainer, createErr := pool.CreateContainer("handle", spec)
+					createdContainer, createErr := pool.CreateContainer(id, spec)
 					Ω(createErr).ShouldNot(HaveOccurred())
 					Ω(createdContainer).Should(Equal(fakeContainer))
 				}
@@ -151,18 +153,18 @@ var _ = Describe("Pool", func() {
 
 	Describe("Lookup", func() {
 		var (
-			handle string
+			id Identifier
 
 			foundContainer Container
 			lookupErr      error
 		)
 
 		BeforeEach(func() {
-			handle = "some-handle"
+			id = Identifier{Name: "some-name"}
 		})
 
 		JustBeforeEach(func() {
-			foundContainer, lookupErr = pool.Lookup(handle)
+			foundContainer, lookupErr = pool.Lookup(id)
 		})
 
 		Context("with multiple workers", func() {
@@ -195,12 +197,12 @@ var _ = Describe("Pool", func() {
 					Ω(foundContainer).Should(Equal(fakeContainer))
 				})
 
-				It("looks up by the given handle", func() {
+				It("looks up by the given identifier", func() {
 					Ω(workerA.LookupCallCount()).Should(Equal(1))
 					Ω(workerB.LookupCallCount()).Should(Equal(1))
 
-					Ω(workerA.LookupArgsForCall(0)).Should(Equal(handle))
-					Ω(workerB.LookupArgsForCall(0)).Should(Equal(handle))
+					Ω(workerA.LookupArgsForCall(0)).Should(Equal(id))
+					Ω(workerB.LookupArgsForCall(0)).Should(Equal(id))
 				})
 			})
 

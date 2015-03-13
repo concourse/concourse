@@ -19,10 +19,11 @@ import (
 	buildfakes "github.com/concourse/atc/api/buildserver/fakes"
 	jobfakes "github.com/concourse/atc/api/jobserver/fakes"
 	resourcefakes "github.com/concourse/atc/api/resourceserver/fakes"
-	workerfakes "github.com/concourse/atc/api/workerserver/fakes"
+	workerserverfakes "github.com/concourse/atc/api/workerserver/fakes"
 	authfakes "github.com/concourse/atc/auth/fakes"
 	dbfakes "github.com/concourse/atc/db/fakes"
 	enginefakes "github.com/concourse/atc/engine/fakes"
+	workerfakes "github.com/concourse/atc/worker/fakes"
 )
 
 var (
@@ -30,10 +31,11 @@ var (
 
 	authValidator       *authfakes.FakeValidator
 	fakeEngine          *enginefakes.FakeEngine
+	fakeWorkerClient    *workerfakes.FakeClient
 	buildsDB            *buildfakes.FakeBuildsDB
 	jobsDB              *jobfakes.FakeJobsDB
 	configDB            *dbfakes.FakeConfigDB
-	workerDB            *workerfakes.FakeWorkerDB
+	workerDB            *workerserverfakes.FakeWorkerDB
 	resourceDB          *resourcefakes.FakeResourceDB
 	configValidationErr error
 	pingInterval        time.Duration
@@ -76,7 +78,7 @@ var _ = BeforeEach(func() {
 	buildsDB = new(buildfakes.FakeBuildsDB)
 	jobsDB = new(jobfakes.FakeJobsDB)
 	configDB = new(dbfakes.FakeConfigDB)
-	workerDB = new(workerfakes.FakeWorkerDB)
+	workerDB = new(workerserverfakes.FakeWorkerDB)
 	resourceDB = new(resourcefakes.FakeResourceDB)
 
 	authValidator = new(authfakes.FakeValidator)
@@ -86,6 +88,7 @@ var _ = BeforeEach(func() {
 	drain = make(chan struct{})
 
 	fakeEngine = new(enginefakes.FakeEngine)
+	fakeWorkerClient = new(workerfakes.FakeClient)
 
 	var err error
 
@@ -117,6 +120,7 @@ var _ = BeforeEach(func() {
 		drain,
 
 		fakeEngine,
+		fakeWorkerClient,
 
 		sink,
 

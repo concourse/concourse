@@ -4,19 +4,16 @@ import (
 	"io"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/worker"
 )
-
-type SessionID string
 
 //go:generate counterfeiter . Factory
 
 type Factory interface {
-	Get(SessionID, GetDelegate, atc.ResourceConfig, atc.Params, atc.Version) Step
-	Put(SessionID, PutDelegate, atc.ResourceConfig, atc.Params) Step
+	Get(worker.Identifier, GetDelegate, atc.ResourceConfig, atc.Params, atc.Version) Step
+	Put(worker.Identifier, PutDelegate, atc.ResourceConfig, atc.Params) Step
 	// Delete(atc.ResourceConfig, atc.Params, atc.Version) Step
-	Task(SessionID, TaskDelegate, Privileged, TaskConfigSource) Step
-
-	Hijack(SessionID, IOConfig, atc.HijackProcessSpec) (HijackedProcess, error)
+	Task(worker.Identifier, TaskDelegate, Privileged, TaskConfigSource) Step
 }
 
 //go:generate counterfeiter . TaskDelegate

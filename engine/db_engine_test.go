@@ -1,7 +1,6 @@
 package engine_test
 
 import (
-	"bytes"
 	"errors"
 
 	. "github.com/onsi/ginkgo"
@@ -204,103 +203,6 @@ var _ = Describe("DBEngine", func() {
 			var err error
 			build, err = dbEngine.LookupBuild(model)
 			Ω(err).ShouldNot(HaveOccurred())
-		})
-
-		Describe("Hijack", func() {
-			var (
-				hijackTarget HijackTarget
-
-				hijackSpec atc.HijackProcessSpec
-				hijackIO   HijackProcessIO
-
-				hijackedProcess HijackedProcess
-				hijackErr       error
-			)
-
-			BeforeEach(func() {
-				hijackTarget = HijackTarget{"type", "name"}
-
-				hijackSpec = atc.HijackProcessSpec{
-					Path: "ls",
-				}
-
-				hijackIO = HijackProcessIO{
-					Stdin: bytes.NewBufferString("lol"),
-				}
-			})
-
-			JustBeforeEach(func() {
-				hijackedProcess, hijackErr = build.Hijack(hijackTarget, hijackSpec, hijackIO)
-			})
-
-			Context("when the engine build exists", func() {
-				var realBuild *fakes.FakeBuild
-
-				BeforeEach(func() {
-					fakeBuildDB.GetBuildReturns(model, nil)
-
-					realBuild = new(fakes.FakeBuild)
-					fakeEngineB.LookupBuildReturns(realBuild, nil)
-				})
-
-				Context("when hijacking the real build succeeds", func() {
-					var fakeProcess *fakes.FakeHijackedProcess
-
-					BeforeEach(func() {
-						fakeProcess = new(fakes.FakeHijackedProcess)
-						realBuild.HijackReturns(fakeProcess, nil)
-					})
-
-					It("succeeds", func() {
-						Ω(hijackErr).ShouldNot(HaveOccurred())
-
-						hijackedTarget, hijackedSpec, hijackedIO := realBuild.HijackArgsForCall(0)
-						Ω(hijackedTarget).Should(Equal(hijackTarget))
-						Ω(hijackedSpec).Should(Equal(hijackSpec))
-						Ω(hijackedIO).Should(Equal(hijackIO))
-					})
-
-					It("returns the hijacked process", func() {
-						Ω(hijackedProcess).Should(Equal(fakeProcess))
-					})
-				})
-
-				Context("when hijacking the real build fails", func() {
-					disaster := errors.New("oh no!")
-
-					BeforeEach(func() {
-						realBuild.HijackReturns(nil, disaster)
-					})
-
-					It("returns the error", func() {
-						Ω(hijackErr).Should(Equal(disaster))
-					})
-				})
-			})
-
-			Context("when the build is not yet active", func() {
-				BeforeEach(func() {
-					model.Engine = ""
-					fakeBuildDB.GetBuildReturns(model, nil)
-				})
-
-				It("returns ErrBuildNotActive", func() {
-					Ω(hijackErr).Should(Equal(ErrBuildNotActive))
-				})
-			})
-
-			Context("when looking up the engine build fails", func() {
-				disaster := errors.New("nope")
-
-				BeforeEach(func() {
-					fakeBuildDB.GetBuildReturns(model, nil)
-					fakeEngineB.LookupBuildReturns(nil, disaster)
-				})
-
-				It("returns the error", func() {
-					Ω(hijackErr).Should(Equal(disaster))
-				})
-			})
 		})
 
 		Describe("Abort", func() {

@@ -18,8 +18,8 @@ import (
 
 const ArtifactsRoot = "/tmp/build/src"
 
-const taskProcessPropertyName = "task-process"
-const taskExitStatusPropertyName = "exit-status"
+const taskProcessPropertyName = "concourse:task-process"
+const taskExitStatusPropertyName = "concourse:exit-status"
 
 var ErrInterrupted = errors.New("interrupted")
 
@@ -32,7 +32,7 @@ func (err MissingInputsError) Error() string {
 }
 
 type taskStep struct {
-	SessionID SessionID
+	WorkerID worker.Identifier
 
 	Delegate TaskDelegate
 
@@ -66,7 +66,7 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		Stderr: step.Delegate.Stderr(),
 	}
 
-	step.container, err = step.WorkerClient.Lookup(string(step.SessionID))
+	step.container, err = step.WorkerClient.Lookup(step.WorkerID)
 	if err == nil {
 		// container already exists; recover session
 
@@ -110,7 +110,7 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		step.Delegate.Initializing(config)
 
 		step.container, err = step.WorkerClient.CreateContainer(
-			string(step.SessionID),
+			step.WorkerID,
 			worker.TaskContainerSpec{
 				Platform:   config.Platform,
 				Tags:       config.Tags,

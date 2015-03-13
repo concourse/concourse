@@ -174,7 +174,7 @@ var _ = Describe("Resource In", func() {
 		BeforeEach(func() {
 			fakeContainer.GetPropertyStub = func(name string) (string, error) {
 				switch name {
-				case "resource-result":
+				case "concourse:resource-result":
 					return `{
 						"version": {"some": "new-version"},
 						"metadata": [
@@ -214,7 +214,7 @@ var _ = Describe("Resource In", func() {
 		BeforeEach(func() {
 			fakeContainer.GetPropertyStub = func(name string) (string, error) {
 				switch name {
-				case "resource-process":
+				case "concourse:resource-process":
 					return "42", nil
 				default:
 					return "", errors.New("unstubbed property: " + name)
@@ -272,7 +272,7 @@ var _ = Describe("Resource In", func() {
 				Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(1))
 
 				name, value := fakeContainer.SetPropertyArgsForCall(0)
-				Ω(name).Should(Equal("resource-result"))
+				Ω(name).Should(Equal("concourse:resource-result"))
 				Ω(value).Should(Equal(inScriptStdout))
 			})
 		})
@@ -323,7 +323,7 @@ var _ = Describe("Resource In", func() {
 		BeforeEach(func() {
 			fakeContainer.GetPropertyStub = func(name string) (string, error) {
 				switch name {
-				case "resource-process":
+				case "concourse:resource-process":
 					return "", errors.New("nope")
 				default:
 					return "", errors.New("unstubbed property: " + name)
@@ -353,7 +353,7 @@ var _ = Describe("Resource In", func() {
 			Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(1))
 
 			name, value := fakeContainer.SetPropertyArgsForCall(0)
-			Ω(name).Should(Equal("resource-process"))
+			Ω(name).Should(Equal("concourse:resource-process"))
 			Ω(value).Should(Equal("42"))
 		})
 
@@ -384,7 +384,7 @@ var _ = Describe("Resource In", func() {
 				Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(2))
 
 				name, value := fakeContainer.SetPropertyArgsForCall(1)
-				Ω(name).Should(Equal("resource-result"))
+				Ω(name).Should(Equal("concourse:resource-result"))
 				Ω(value).Should(Equal(inScriptStdout))
 			})
 		})

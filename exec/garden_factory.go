@@ -25,10 +25,10 @@ func NewGardenFactory(
 	}
 }
 
-func (factory *gardenFactory) Get(sessionID SessionID, delegate GetDelegate, config atc.ResourceConfig, params atc.Params, version atc.Version) Step {
+func (factory *gardenFactory) Get(id worker.Identifier, delegate GetDelegate, config atc.ResourceConfig, params atc.Params, version atc.Version) Step {
 	return resourceStep{
 		Session: resource.Session{
-			ID:        string(sessionID),
+			ID:        id,
 			Ephemeral: false,
 		},
 
@@ -46,10 +46,10 @@ func (factory *gardenFactory) Get(sessionID SessionID, delegate GetDelegate, con
 	}
 }
 
-func (factory *gardenFactory) Put(sessionID SessionID, delegate PutDelegate, config atc.ResourceConfig, params atc.Params) Step {
+func (factory *gardenFactory) Put(id worker.Identifier, delegate PutDelegate, config atc.ResourceConfig, params atc.Params) Step {
 	return resourceStep{
 		Session: resource.Session{
-			ID: string(sessionID),
+			ID: id,
 		},
 
 		Delegate: delegate,
@@ -66,9 +66,9 @@ func (factory *gardenFactory) Put(sessionID SessionID, delegate PutDelegate, con
 	}
 }
 
-func (factory *gardenFactory) Task(sessionID SessionID, delegate TaskDelegate, privileged Privileged, configSource TaskConfigSource) Step {
+func (factory *gardenFactory) Task(id worker.Identifier, delegate TaskDelegate, privileged Privileged, configSource TaskConfigSource) Step {
 	return taskStep{
-		SessionID: sessionID,
+		WorkerID: id,
 
 		Delegate: delegate,
 
@@ -77,26 +77,6 @@ func (factory *gardenFactory) Task(sessionID SessionID, delegate TaskDelegate, p
 
 		WorkerClient: factory.workerClient,
 	}
-}
-
-func (factory *gardenFactory) Hijack(sessionID SessionID, ioConfig IOConfig, spec atc.HijackProcessSpec) (HijackedProcess, error) {
-	container, err := factory.workerClient.Lookup(string(sessionID))
-	if err != nil {
-		return nil, err
-	}
-
-	defer container.Release()
-
-	process, err := container.Run(convertProcessSpec(spec), garden.ProcessIO{
-		Stdin:  ioConfig.Stdin,
-		Stdout: ioConfig.Stdout,
-		Stderr: ioConfig.Stderr,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return hijackedProcess{process}, nil
 }
 
 func convertProcessSpec(spec atc.HijackProcessSpec) garden.ProcessSpec {

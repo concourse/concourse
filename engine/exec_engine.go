@@ -2,13 +2,13 @@ package engine
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
+	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 )
@@ -119,35 +119,13 @@ func (build *execBuild) Resume(logger lager.Logger) {
 	}
 }
 
-func (build *execBuild) Hijack(target HijackTarget, spec atc.HijackProcessSpec, io HijackProcessIO) (HijackedProcess, error) {
-	ioConfig := exec.IOConfig{
-		Stdin:  io.Stdin,
-		Stdout: io.Stdout,
-		Stderr: io.Stderr,
-	}
-
-	var sessionID exec.SessionID
-	switch target.Type {
-	case HijackTargetTypeGet:
-		sessionID = build.getSessionID(target.Name)
-	case HijackTargetTypePut:
-		sessionID = build.putSessionID(target.Name)
-	case HijackTargetTypeTask:
-		sessionID = build.taskSessionID(target.Name)
-	default:
-		return nil, fmt.Errorf("invalid hijack target type: %s", target.Type)
-	}
-
-	return build.factory.Hijack(sessionID, ioConfig, spec)
-}
-
 func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan, location event.OriginLocation) exec.Step {
 	if plan.Aggregate != nil {
 		logger = logger.Session("aggregate")
 
 		step := exec.Aggregate{}
 
-		var aID uint = 1
+		var aID uint = 0
 		for name, innerPlan := range *plan.Aggregate {
 			step[name] = build.buildStep(logger.Session(name), innerPlan, location.Chain(aID))
 			aID++
@@ -157,8 +135,8 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan, location e
 	}
 
 	if plan.Compose != nil {
-		x := build.buildStep(logger, plan.Compose.A, location.Incr(1))
-		y := build.buildStep(logger, plan.Compose.B, location.Incr(2))
+		x := build.buildStep(logger, plan.Compose.A, location)
+		y := build.buildStep(logger, plan.Compose.B, location.Incr(1))
 		return exec.Compose(x, y)
 	}
 
@@ -191,7 +169,7 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan, location e
 		}
 
 		return build.factory.Task(
-			build.taskSessionID(plan.Task.Name),
+			build.taskIdentifier(plan.Task.Name, location),
 			build.delegate.ExecutionDelegate(logger, *plan.Task, location),
 			exec.Privileged(plan.Task.Privileged),
 			configSource,
@@ -204,7 +182,7 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan, location e
 		})
 
 		return build.factory.Get(
-			build.getSessionID(plan.Get.Name),
+			build.getIdentifier(plan.Get.Name, location),
 			build.delegate.InputDelegate(logger, *plan.Get, location),
 			atc.ResourceConfig{
 				Name:   plan.Get.Resource,
@@ -222,7 +200,7 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan, location e
 		})
 
 		return build.factory.Put(
-			build.putSessionID(plan.Put.Resource),
+			build.putIdentifier(plan.Put.Resource, location),
 			build.delegate.OutputDelegate(logger, *plan.Put, location),
 			atc.ResourceConfig{
 				Name:   plan.Put.Resource,
@@ -236,14 +214,32 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan, location e
 	return exec.Identity{}
 }
 
-func (build *execBuild) taskSessionID(taskName string) exec.SessionID {
-	return exec.SessionID(fmt.Sprintf("build-%d-task-%s", build.buildID, taskName))
+func (build *execBuild) taskIdentifier(name string, location event.OriginLocation) worker.Identifier {
+	return worker.Identifier{
+		BuildID: build.buildID,
+
+		Type:         "task",
+		Name:         name,
+		StepLocation: location,
+	}
 }
 
-func (build *execBuild) getSessionID(inputName string) exec.SessionID {
-	return exec.SessionID(fmt.Sprintf("build-%d-get-%s", build.buildID, inputName))
+func (build *execBuild) getIdentifier(name string, location event.OriginLocation) worker.Identifier {
+	return worker.Identifier{
+		BuildID: build.buildID,
+
+		Type:         "get",
+		Name:         name,
+		StepLocation: location,
+	}
 }
 
-func (build *execBuild) putSessionID(outputName string) exec.SessionID {
-	return exec.SessionID(fmt.Sprintf("build-%d-put-%s", build.buildID, outputName))
+func (build *execBuild) putIdentifier(name string, location event.OriginLocation) worker.Identifier {
+	return worker.Identifier{
+		BuildID: build.buildID,
+
+		Type:         "put",
+		Name:         name,
+		StepLocation: location,
+	}
 }

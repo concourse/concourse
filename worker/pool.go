@@ -8,13 +8,6 @@ import (
 	"time"
 )
 
-//go:generate counterfeiter . Client
-
-type Client interface {
-	CreateContainer(handle string, spec ContainerSpec) (Container, error)
-	Lookup(handle string) (Container, error)
-}
-
 //go:generate counterfeiter . WorkerProvider
 
 type WorkerProvider interface {
@@ -54,7 +47,7 @@ func NewPool(provider WorkerProvider) Client {
 	}
 }
 
-func (pool *Pool) CreateContainer(handle string, spec ContainerSpec) (Container, error) {
+func (pool *Pool) CreateContainer(id Identifier, spec ContainerSpec) (Container, error) {
 	workers, err := pool.provider.Workers()
 	if err != nil {
 		return nil, err
@@ -80,10 +73,10 @@ func (pool *Pool) CreateContainer(handle string, spec ContainerSpec) (Container,
 
 	randomWorker := compatibleWorkers[pool.rand.Intn(len(compatibleWorkers))]
 
-	return randomWorker.CreateContainer(handle, spec)
+	return randomWorker.CreateContainer(id, spec)
 }
 
-func (pool *Pool) Lookup(handle string) (Container, error) {
+func (pool *Pool) Lookup(id Identifier) (Container, error) {
 	workers, err := pool.provider.Workers()
 	if err != nil {
 		return nil, err
@@ -102,7 +95,7 @@ func (pool *Pool) Lookup(handle string) (Container, error) {
 		go func(worker Worker) {
 			defer wg.Done()
 
-			container, err := worker.Lookup(handle)
+			container, err := worker.Lookup(id)
 			if err == nil {
 				found <- container
 			}

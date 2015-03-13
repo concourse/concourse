@@ -49,14 +49,26 @@ var _ = Describe("Worker", func() {
 
 	Describe("CreateContainer", func() {
 		var (
+			id   Identifier
 			spec ContainerSpec
 
 			createdContainer Container
 			createErr        error
 		)
 
+		BeforeEach(func() {
+			id = Identifier{
+				Name:         "some-name",
+				BuildID:      42,
+				Type:         ContainerTypeGet,
+				StepLocation: []uint{1, 2, 3},
+				CheckType:    "some-check-type",
+				CheckSource:  atc.Source{"some": "source"},
+			}
+		})
+
 		JustBeforeEach(func() {
-			createdContainer, createErr = worker.CreateContainer("some-handle", spec)
+			createdContainer, createErr = worker.CreateContainer(id, spec)
 		})
 
 		Context("with a resource type container spec", func() {
@@ -84,9 +96,16 @@ var _ = Describe("Worker", func() {
 					It("creates the container with the Garden client", func() {
 						Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
 						Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
-							Handle:     "some-handle",
 							RootFSPath: "some-resource-image",
 							Privileged: true,
+							Properties: garden.Properties{
+								"concourse:type":         "get",
+								"concourse:location":     "[1 2 3]",
+								"concourse:check-type":   "some-check-type",
+								"concourse:check-source": "{\"some\":\"source\"}",
+								"concourse:name":         "some-name",
+								"concourse:build-id":     "42",
+							},
 						}))
 					})
 
@@ -101,11 +120,16 @@ var _ = Describe("Worker", func() {
 						It("adds an 'ephemeral' property to the container", func() {
 							Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
 							Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
-								Handle:     "some-handle",
 								RootFSPath: "some-resource-image",
 								Privileged: true,
 								Properties: garden.Properties{
-									"ephemeral": "true",
+									"concourse:type":         "get",
+									"concourse:location":     "[1 2 3]",
+									"concourse:check-type":   "some-check-type",
+									"concourse:check-source": "{\"some\":\"source\"}",
+									"concourse:name":         "some-name",
+									"concourse:build-id":     "42",
+									"concourse:ephemeral":    "true",
 								},
 							}))
 						})
@@ -202,9 +226,16 @@ var _ = Describe("Worker", func() {
 				It("creates the container with the Garden client", func() {
 					Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
 					Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
-						Handle:     "some-handle",
 						RootFSPath: "some-image",
 						Privileged: true,
+						Properties: garden.Properties{
+							"concourse:type":         "get",
+							"concourse:location":     "[1 2 3]",
+							"concourse:check-type":   "some-check-type",
+							"concourse:check-source": "{\"some\":\"source\"}",
+							"concourse:name":         "some-name",
+							"concourse:build-id":     "42",
+						},
 					}))
 				})
 
@@ -264,18 +295,18 @@ var _ = Describe("Worker", func() {
 
 	Describe("Lookup", func() {
 		var (
-			handle string
+			id Identifier
 
 			foundContainer Container
 			lookupErr      error
 		)
 
 		BeforeEach(func() {
-			handle = "some-handle"
+			id = Identifier{Name: "some-name"}
 		})
 
 		JustBeforeEach(func() {
-			foundContainer, lookupErr = worker.Lookup(handle)
+			foundContainer, lookupErr = worker.Lookup(id)
 		})
 
 		Context("when the container can be found", func() {
@@ -283,18 +314,20 @@ var _ = Describe("Worker", func() {
 
 			BeforeEach(func() {
 				fakeContainer = new(gfakes.FakeContainer)
-				fakeContainer.HandleReturns(handle)
+				fakeContainer.HandleReturns("some-handle")
 
-				fakeGardenClient.LookupReturns(fakeContainer, nil)
+				fakeGardenClient.ContainersReturns([]garden.Container{fakeContainer}, nil)
 			})
 
 			It("succeeds", func() {
 				Ω(lookupErr).ShouldNot(HaveOccurred())
 			})
 
-			It("looks up the container with the Garden client", func() {
-				Ω(fakeGardenClient.LookupCallCount()).Should(Equal(1))
-				Ω(fakeGardenClient.LookupArgsForCall(0)).Should(Equal(handle))
+			It("looks for containers with matching properties via the Garden client", func() {
+				Ω(fakeGardenClient.ContainersCallCount()).Should(Equal(1))
+				Ω(fakeGardenClient.ContainersArgsForCall(0)).Should(Equal(garden.Properties{
+					"concourse:name": "some-name",
+				}))
 			})
 
 			Describe("the found container", func() {
@@ -342,11 +375,42 @@ var _ = Describe("Worker", func() {
 			})
 		})
 
-		Context("when creating fails", func() {
+		Context("when multiple containers are found", func() {
+			var fakeContainer *gfakes.FakeContainer
+			var bonusContainer *gfakes.FakeContainer
+
+			BeforeEach(func() {
+				fakeContainer = new(gfakes.FakeContainer)
+				fakeContainer.HandleReturns("some-handle")
+
+				bonusContainer = new(gfakes.FakeContainer)
+				bonusContainer.HandleReturns("some-other-handle")
+
+				fakeGardenClient.ContainersReturns([]garden.Container{fakeContainer, bonusContainer}, nil)
+			})
+
+			It("returns ErrMultipleContainers", func() {
+				Ω(lookupErr).Should(Equal(MultipleContainersError{
+					Handles: []string{"some-handle", "some-other-handle"},
+				}))
+			})
+		})
+
+		Context("when no containers are found", func() {
+			BeforeEach(func() {
+				fakeGardenClient.ContainersReturns([]garden.Container{}, nil)
+			})
+
+			It("returns ErrContainerNotFound", func() {
+				Ω(lookupErr).Should(Equal(ErrContainerNotFound))
+			})
+		})
+
+		Context("when finding the containers fails", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeGardenClient.LookupReturns(nil, disaster)
+				fakeGardenClient.ContainersReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {

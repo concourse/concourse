@@ -1,7 +1,6 @@
 package engine_test
 
 import (
-	"bytes"
 	"errors"
 	"os"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/concourse/atc/engine/fakes"
 	"github.com/concourse/atc/exec"
 	execfakes "github.com/concourse/atc/exec/fakes"
+	"github.com/concourse/atc/worker"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -176,8 +176,13 @@ var _ = Describe("ExecEngine", func() {
 		It("constructs inputs correctly", func() {
 			Ω(fakeFactory.GetCallCount()).Should(Equal(1))
 
-			sessionID, delegate, resourceConfig, params, version := fakeFactory.GetArgsForCall(0)
-			Ω(sessionID).Should(Equal(exec.SessionID("build-42-get-some-input")))
+			workerID, delegate, resourceConfig, params, version := fakeFactory.GetArgsForCall(0)
+			Ω(workerID).Should(Equal(worker.Identifier{
+				BuildID:      42,
+				Type:         worker.ContainerTypeGet,
+				Name:         "some-input",
+				StepLocation: []uint{0, 0},
+			}))
 			Ω(delegate).Should(Equal(fakeInputDelegate))
 			Ω(resourceConfig.Name).Should(Equal("some-input-resource"))
 			Ω(resourceConfig.Type).Should(Equal("some-type"))
@@ -186,26 +191,36 @@ var _ = Describe("ExecEngine", func() {
 			Ω(version).Should(Equal(atc.Version{"some": "version"}))
 		})
 
+		It("constructs tasks correctly", func() {
+			Ω(fakeFactory.TaskCallCount()).Should(Equal(1))
+
+			workerID, delegate, privileged, configSource := fakeFactory.TaskArgsForCall(0)
+			Ω(workerID).Should(Equal(worker.Identifier{
+				BuildID:      42,
+				Type:         worker.ContainerTypeTask,
+				Name:         "some-task",
+				StepLocation: []uint{1},
+			}))
+			Ω(delegate).Should(Equal(fakeExecutionDelegate))
+			Ω(privileged).Should(Equal(exec.Privileged(false)))
+			Ω(configSource).ShouldNot(BeNil())
+		})
+
 		It("constructs outputs correctly", func() {
 			Ω(fakeFactory.PutCallCount()).Should(Equal(1))
 
-			sessionID, delegate, resourceConfig, params := fakeFactory.PutArgsForCall(0)
-			Ω(sessionID).Should(Equal(exec.SessionID("build-42-put-some-output-resource")))
+			workerID, delegate, resourceConfig, params := fakeFactory.PutArgsForCall(0)
+			Ω(workerID).Should(Equal(worker.Identifier{
+				BuildID:      42,
+				Type:         worker.ContainerTypePut,
+				Name:         "some-output-resource",
+				StepLocation: []uint{2, 0},
+			}))
 			Ω(delegate).Should(Equal(fakeOutputDelegate))
 			Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
 			Ω(resourceConfig.Type).Should(Equal("some-type"))
 			Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
 			Ω(params).Should(Equal(atc.Params{"some": "params"}))
-		})
-
-		It("constructs executions correctly", func() {
-			Ω(fakeFactory.TaskCallCount()).Should(Equal(1))
-
-			sessionID, delegate, privileged, configSource := fakeFactory.TaskArgsForCall(0)
-			Ω(sessionID).Should(Equal(exec.SessionID("build-42-task-some-task")))
-			Ω(delegate).Should(Equal(fakeExecutionDelegate))
-			Ω(privileged).Should(Equal(exec.Privileged(false)))
-			Ω(configSource).ShouldNot(BeNil())
 		})
 
 		Context("when the steps complete", func() {
@@ -484,142 +499,6 @@ var _ = Describe("ExecEngine", func() {
 				Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
 				_, cbErr := fakeDelegate.FinishArgsForCall(0)
 				Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
-			})
-		})
-	})
-
-	Describe("Hijack", func() {
-		var (
-			build engine.Build
-
-			hijackTarget engine.HijackTarget
-
-			hijackSpec atc.HijackProcessSpec
-			hijackIO   engine.HijackProcessIO
-
-			hijackedProcess engine.HijackedProcess
-			hijackErr       error
-		)
-
-		BeforeEach(func() {
-			var err error
-
-			build, err = execEngine.LookupBuild(db.Build{
-				ID:             128,
-				EngineMetadata: "{}",
-			})
-			Ω(err).ShouldNot(HaveOccurred())
-
-			hijackTarget = engine.HijackTarget{
-				Type: engine.HijackTargetTypeGet,
-				Name: "some-step",
-			}
-
-			hijackSpec = atc.HijackProcessSpec{
-				Path: "ls",
-			}
-
-			hijackIO = engine.HijackProcessIO{
-				Stdin:  bytes.NewBufferString("lol in"),
-				Stdout: bytes.NewBufferString("lol out"),
-				Stderr: bytes.NewBufferString("lol err"),
-			}
-		})
-
-		JustBeforeEach(func() {
-			hijackedProcess, hijackErr = build.Hijack(hijackTarget, hijackSpec, hijackIO)
-		})
-
-		Context("when the factory can hijack", func() {
-			Context("when hijacking a 'get' step", func() {
-				BeforeEach(func() {
-					hijackTarget.Type = engine.HijackTargetTypeGet
-				})
-
-				It("succeeds", func() {
-					Ω(hijackErr).ShouldNot(HaveOccurred())
-				})
-
-				It("hijacks using the factory, with the correct session ID", func() {
-					Ω(fakeFactory.HijackCallCount()).Should(Equal(1))
-
-					sessionID, ioConfig, spec := fakeFactory.HijackArgsForCall(0)
-					Ω(sessionID).Should(Equal(exec.SessionID("build-128-get-some-step")))
-					Ω(ioConfig).Should(Equal(exec.IOConfig{
-						Stdin:  hijackIO.Stdin,
-						Stdout: hijackIO.Stdout,
-						Stderr: hijackIO.Stderr,
-					}))
-					Ω(spec).Should(Equal(hijackSpec))
-				})
-			})
-
-			Context("when hijacking a 'put' step", func() {
-				BeforeEach(func() {
-					hijackTarget.Type = engine.HijackTargetTypePut
-				})
-
-				It("succeeds", func() {
-					Ω(hijackErr).ShouldNot(HaveOccurred())
-				})
-
-				It("hijacks using the factory, with the correct session ID", func() {
-					Ω(fakeFactory.HijackCallCount()).Should(Equal(1))
-
-					sessionID, ioConfig, spec := fakeFactory.HijackArgsForCall(0)
-					Ω(sessionID).Should(Equal(exec.SessionID("build-128-put-some-step")))
-					Ω(ioConfig).Should(Equal(exec.IOConfig{
-						Stdin:  hijackIO.Stdin,
-						Stdout: hijackIO.Stdout,
-						Stderr: hijackIO.Stderr,
-					}))
-					Ω(spec).Should(Equal(hijackSpec))
-				})
-			})
-
-			Context("when hijacking a 'task' step", func() {
-				BeforeEach(func() {
-					hijackTarget.Type = engine.HijackTargetTypeTask
-				})
-
-				It("succeeds", func() {
-					Ω(hijackErr).ShouldNot(HaveOccurred())
-				})
-
-				It("hijacks using the factory, with the correct session ID", func() {
-					Ω(fakeFactory.HijackCallCount()).Should(Equal(1))
-
-					sessionID, ioConfig, spec := fakeFactory.HijackArgsForCall(0)
-					Ω(sessionID).Should(Equal(exec.SessionID("build-128-task-some-step")))
-					Ω(ioConfig).Should(Equal(exec.IOConfig{
-						Stdin:  hijackIO.Stdin,
-						Stdout: hijackIO.Stdout,
-						Stderr: hijackIO.Stderr,
-					}))
-					Ω(spec).Should(Equal(hijackSpec))
-				})
-			})
-
-			Context("when a bogus type is given", func() {
-				BeforeEach(func() {
-					hijackTarget.Type = "bogus"
-				})
-
-				It("returns an error", func() {
-					Ω(hijackErr).Should(HaveOccurred())
-				})
-			})
-		})
-
-		Context("when the factory is out of work", func() {
-			disaster := errors.New("nope")
-
-			BeforeEach(func() {
-				fakeFactory.HijackReturns(nil, disaster)
-			})
-
-			It("returns the error", func() {
-				Ω(hijackErr).Should(Equal(disaster))
 			})
 		})
 	})

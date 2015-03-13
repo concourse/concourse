@@ -4,7 +4,6 @@ package fakes
 import (
 	"sync"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/engine"
 	"github.com/pivotal-golang/lager"
 )
@@ -13,25 +12,14 @@ type FakeBuild struct {
 	MetadataStub        func() string
 	metadataMutex       sync.RWMutex
 	metadataArgsForCall []struct{}
-	metadataReturns     struct {
+	metadataReturns struct {
 		result1 string
 	}
 	AbortStub        func() error
 	abortMutex       sync.RWMutex
 	abortArgsForCall []struct{}
-	abortReturns     struct {
+	abortReturns struct {
 		result1 error
-	}
-	HijackStub        func(engine.HijackTarget, atc.HijackProcessSpec, engine.HijackProcessIO) (engine.HijackedProcess, error)
-	hijackMutex       sync.RWMutex
-	hijackArgsForCall []struct {
-		arg1 engine.HijackTarget
-		arg2 atc.HijackProcessSpec
-		arg3 engine.HijackProcessIO
-	}
-	hijackReturns struct {
-		result1 engine.HijackedProcess
-		result2 error
 	}
 	ResumeStub        func(lager.Logger)
 	resumeMutex       sync.RWMutex
@@ -86,41 +74,6 @@ func (fake *FakeBuild) AbortReturns(result1 error) {
 	fake.abortReturns = struct {
 		result1 error
 	}{result1}
-}
-
-func (fake *FakeBuild) Hijack(arg1 engine.HijackTarget, arg2 atc.HijackProcessSpec, arg3 engine.HijackProcessIO) (engine.HijackedProcess, error) {
-	fake.hijackMutex.Lock()
-	fake.hijackArgsForCall = append(fake.hijackArgsForCall, struct {
-		arg1 engine.HijackTarget
-		arg2 atc.HijackProcessSpec
-		arg3 engine.HijackProcessIO
-	}{arg1, arg2, arg3})
-	fake.hijackMutex.Unlock()
-	if fake.HijackStub != nil {
-		return fake.HijackStub(arg1, arg2, arg3)
-	} else {
-		return fake.hijackReturns.result1, fake.hijackReturns.result2
-	}
-}
-
-func (fake *FakeBuild) HijackCallCount() int {
-	fake.hijackMutex.RLock()
-	defer fake.hijackMutex.RUnlock()
-	return len(fake.hijackArgsForCall)
-}
-
-func (fake *FakeBuild) HijackArgsForCall(i int) (engine.HijackTarget, atc.HijackProcessSpec, engine.HijackProcessIO) {
-	fake.hijackMutex.RLock()
-	defer fake.hijackMutex.RUnlock()
-	return fake.hijackArgsForCall[i].arg1, fake.hijackArgsForCall[i].arg2, fake.hijackArgsForCall[i].arg3
-}
-
-func (fake *FakeBuild) HijackReturns(result1 engine.HijackedProcess, result2 error) {
-	fake.HijackStub = nil
-	fake.hijackReturns = struct {
-		result1 engine.HijackedProcess
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeBuild) Resume(arg1 lager.Logger) {

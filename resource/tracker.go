@@ -10,7 +10,7 @@ type ResourceType string
 type ContainerImage string
 
 type Session struct {
-	ID        string
+	ID        worker.Identifier
 	Ephemeral bool
 }
 
@@ -33,9 +33,9 @@ func NewTracker(workerClient worker.Client) Tracker {
 }
 
 func (tracker *tracker) Init(session Session, typ ResourceType) (Resource, error) {
-	container, err := tracker.workerClient.Lookup(string(session.ID))
+	container, err := tracker.workerClient.Lookup(session.ID)
 	if err != nil {
-		container, err = tracker.workerClient.CreateContainer(string(session.ID), worker.ResourceTypeContainerSpec{
+		container, err = tracker.workerClient.CreateContainer(session.ID, worker.ResourceTypeContainerSpec{
 			Type:      string(typ),
 			Ephemeral: session.Ephemeral,
 		})

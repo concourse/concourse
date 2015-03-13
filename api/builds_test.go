@@ -16,10 +16,13 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 
+	"github.com/cloudfoundry-incubator/garden"
+	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/engine"
 	enginefakes "github.com/concourse/atc/engine/fakes"
+	"github.com/concourse/atc/worker"
+	workerfakes "github.com/concourse/atc/worker/fakes"
 )
 
 var _ = Describe("Builds API", func() {
@@ -458,29 +461,29 @@ var _ = Describe("Builds API", func() {
 				authValidator.IsAuthenticatedReturns(true)
 			})
 
-			Context("and the engine returns a build", func() {
-				var fakeBuild *enginefakes.FakeBuild
+			Context("and the worker client returns a container", func() {
+				var fakeContainer *workerfakes.FakeContainer
 
 				BeforeEach(func() {
-					fakeBuild = new(enginefakes.FakeBuild)
-					fakeEngine.LookupBuildReturns(fakeBuild, nil)
+					fakeContainer = new(workerfakes.FakeContainer)
+					fakeWorkerClient.LookupReturns(fakeContainer, nil)
 				})
 
-				Context("when hijacking succeeds", func() {
+				Context("when running the process succeeds", func() {
 					var (
-						fakeProcess *enginefakes.FakeHijackedProcess
+						fakeProcess *gfakes.FakeProcess
 						processExit chan int
 					)
 
 					BeforeEach(func() {
 						processExit = make(chan int)
 
-						fakeProcess = new(enginefakes.FakeHijackedProcess)
+						fakeProcess = new(gfakes.FakeProcess)
 						fakeProcess.WaitStub = func() (int, error) {
 							return <-processExit, nil
 						}
 
-						fakeBuild.HijackReturns(fakeProcess, nil)
+						fakeContainer.RunReturns(fakeProcess, nil)
 					})
 
 					AfterEach(func() {
@@ -488,18 +491,17 @@ var _ = Describe("Builds API", func() {
 					})
 
 					It("hijacks the build", func() {
-						Eventually(fakeBuild.HijackCallCount).Should(Equal(1))
+						Eventually(fakeContainer.RunCallCount).Should(Equal(1))
 
-						Ω(fakeEngine.LookupBuildArgsForCall(0)).Should(Equal(db.Build{
-							ID: 128,
-						}))
+						Ω(fakeWorkerClient.LookupArgsForCall(0)).Should(Equal(worker.Identifier{
+							BuildID: 128,
 
-						target, spec, io := fakeBuild.HijackArgsForCall(0)
-						Ω(target).Should(Equal(engine.HijackTarget{
-							Type: engine.HijackTargetType(stepType),
+							Type: worker.ContainerType(stepType),
 							Name: stepName,
 						}))
-						Ω(spec).Should(Equal(atc.HijackProcessSpec{
+
+						spec, io := fakeContainer.RunArgsForCall(0)
+						Ω(spec).Should(Equal(garden.ProcessSpec{
 							Path: "ls",
 						}))
 						Ω(io.Stdin).ShouldNot(BeNil())
@@ -516,16 +518,16 @@ var _ = Describe("Builds API", func() {
 						})
 
 						It("forwards the payload to the process", func() {
-							_, _, io := fakeBuild.HijackArgsForCall(0)
+							_, io := fakeContainer.RunArgsForCall(0)
 							Ω(bufio.NewReader(io.Stdin).ReadBytes('\n')).Should(Equal([]byte("some stdin\n")))
 						})
 					})
 
 					Context("when the process prints to stdout", func() {
 						JustBeforeEach(func() {
-							Eventually(fakeBuild.HijackCallCount).Should(Equal(1))
+							Eventually(fakeContainer.RunCallCount).Should(Equal(1))
 
-							_, _, io := fakeBuild.HijackArgsForCall(0)
+							_, io := fakeContainer.RunArgsForCall(0)
 
 							_, err := fmt.Fprintf(io.Stdout, "some stdout\n")
 							Ω(err).ShouldNot(HaveOccurred())
@@ -544,9 +546,9 @@ var _ = Describe("Builds API", func() {
 
 					Context("when the process prints to stderr", func() {
 						JustBeforeEach(func() {
-							Eventually(fakeBuild.HijackCallCount).Should(Equal(1))
+							Eventually(fakeContainer.RunCallCount).Should(Equal(1))
 
-							_, _, io := fakeBuild.HijackArgsForCall(0)
+							_, io := fakeContainer.RunArgsForCall(0)
 
 							_, err := fmt.Fprintf(io.Stderr, "some stderr\n")
 							Ω(err).ShouldNot(HaveOccurred())
@@ -596,8 +598,8 @@ var _ = Describe("Builds API", func() {
 						It("forwards it to the process", func() {
 							Eventually(fakeProcess.SetTTYCallCount).Should(Equal(1))
 
-							Ω(fakeProcess.SetTTYArgsForCall(0)).Should(Equal(atc.HijackTTYSpec{
-								WindowSize: atc.HijackWindowSize{
+							Ω(fakeProcess.SetTTYArgsForCall(0)).Should(Equal(garden.TTYSpec{
+								WindowSize: &garden.WindowSize{
 									Columns: 123,
 									Rows:    456,
 								},
@@ -639,9 +641,9 @@ var _ = Describe("Builds API", func() {
 				})
 			})
 
-			Context("when the build cannot be found via the engine", func() {
+			Context("when the container cannot be found", func() {
 				BeforeEach(func() {
-					fakeEngine.LookupBuildReturns(nil, errors.New("oh no!"))
+					fakeWorkerClient.LookupReturns(nil, worker.ErrContainerNotFound)
 				})
 
 				It("returns 404 Not Found", func() {

@@ -2,19 +2,21 @@ package buildserver
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
 
+	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/engine"
+	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager"
 )
 
 func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
 	buildID, err := strconv.Atoi(r.FormValue(":build_id"))
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("malformed build ID: %s", err), http.StatusBadRequest)
 		return
 	}
 
@@ -26,20 +28,26 @@ func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(r.Body).Decode(&processSpec)
 	if err != nil {
 		hLog.Error("malformed-process-spec", err)
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("malformed process spec: %s", err), http.StatusBadRequest)
 		return
 	}
 
-	build, err := s.db.GetBuild(buildID)
+	_, err = s.db.GetBuild(buildID)
 	if err != nil {
 		hLog.Error("failed-to-get-build", err)
-		w.WriteHeader(http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("failed to get build: %s", err), http.StatusNotFound)
 		return
 	}
 
-	engineBuild, err := s.engine.LookupBuild(build)
+	container, err := s.workerClient.Lookup(worker.Identifier{
+		BuildID: buildID,
+
+		Type: worker.ContainerType(r.URL.Query().Get("type")),
+		Name: r.URL.Query().Get("name"),
+	})
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
+		hLog.Error("failed-to-get-container", err)
+		http.Error(w, fmt.Sprintf("failed to get container: %s", err), http.StatusNotFound)
 		return
 	}
 
@@ -76,10 +84,28 @@ func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
 		done:    cleanup,
 	}
 
-	process, err := engineBuild.Hijack(engine.HijackTarget{
-		Type: engine.HijackTargetType(r.URL.Query().Get("type")),
-		Name: r.URL.Query().Get("name"),
-	}, processSpec, engine.HijackProcessIO{
+	var tty *garden.TTYSpec
+
+	if processSpec.TTY != nil {
+		tty = &garden.TTYSpec{
+			WindowSize: &garden.WindowSize{
+				Columns: processSpec.TTY.WindowSize.Columns,
+				Rows:    processSpec.TTY.WindowSize.Rows,
+			},
+		}
+	}
+
+	process, err := container.Run(garden.ProcessSpec{
+		Path: processSpec.Path,
+		Args: processSpec.Args,
+		Env:  processSpec.Env,
+		Dir:  processSpec.Dir,
+
+		Privileged: processSpec.Privileged,
+		User:       processSpec.User,
+
+		TTY: tty,
+	}, garden.ProcessIO{
 		Stdin:  stdinR,
 		Stdout: outW,
 		Stderr: errW,
@@ -120,8 +146,8 @@ func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
 		select {
 		case input := <-inputs:
 			if input.TTYSpec != nil {
-				err := process.SetTTY(atc.HijackTTYSpec{
-					WindowSize: atc.HijackWindowSize{
+				err := process.SetTTY(garden.TTYSpec{
+					WindowSize: &garden.WindowSize{
 						Columns: input.TTYSpec.WindowSize.Columns,
 						Rows:    input.TTYSpec.WindowSize.Rows,
 					},

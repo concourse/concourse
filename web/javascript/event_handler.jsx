@@ -294,11 +294,11 @@ var legacyOutputLocations = [];
 function legacyInputOrigin(name) {
   var inputOrigin = legacyInputLocations.indexOf(name);
   if (inputOrigin == -1) {
+    inputOrigin = legacyInputLocations.length;
     legacyInputLocations.push(name);
-    inputOrigin = legacyInputLocations.length - 1;
   }
 
-  var loc = [1, inputOrigin + 1];
+  var loc = [0, inputOrigin];
 
   return {
     "name": name,
@@ -311,18 +311,18 @@ function legacyRunOrigin() {
   return {
     "name": "build",
     "type": "task",
-    "location": [2]
+    "location": [1]
   }
 }
 
 function legacyOutputOrigin(name) {
   var outputOrigin = legacyOutputLocations.indexOf(name);
   if (outputOrigin == -1) {
+    outputOrigin = legacyOutputLocations.length;
     legacyOutputLocations.push(name);
-    outputOrigin = legacyOutputLocations.length - 1;
   }
 
-  var loc = [3, outputOrigin + 1];
+  var loc = [2, outputOrigin];
 
   return {
     "name": name,

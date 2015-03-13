@@ -11,7 +11,7 @@ type FakeWorkerProvider struct {
 	WorkersStub        func() ([]worker.Worker, error)
 	workersMutex       sync.RWMutex
 	workersArgsForCall []struct{}
-	workersReturns     struct {
+	workersReturns struct {
 		result1 []worker.Worker
 		result2 error
 	}

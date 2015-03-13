@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
+	"github.com/concourse/atc/worker"
 	"github.com/tedsuo/ifrit"
 
 	"github.com/pivotal-golang/lager"
@@ -106,7 +107,7 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 
 	typ := resource.ResourceType(resourceConfig.Type)
 
-	res, err := radar.tracker.Init(checkSession(resourceConfig), typ)
+	res, err := radar.tracker.Init(checkIdentifier(resourceConfig), typ)
 	if err != nil {
 		logger.Error("failed-to-initialize-new-resource", err)
 		return err
@@ -157,9 +158,15 @@ func (radar *Radar) checkLock(resourceName string) []db.NamedLock {
 	return []db.NamedLock{db.ResourceCheckingLock(resourceName)}
 }
 
-func checkSession(res atc.ResourceConfig) resource.Session {
+func checkIdentifier(res atc.ResourceConfig) resource.Session {
 	return resource.Session{
-		ID:        "check-" + res.Type + "-" + res.Name,
+		ID: worker.Identifier{
+			Name: res.Name,
+			Type: "check",
+
+			CheckType:   res.Type,
+			CheckSource: res.Source,
+		},
 		Ephemeral: true,
 	}
 }

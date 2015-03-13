@@ -312,6 +312,7 @@ func main() {
 		drain,
 
 		engine,
+		workerClient,
 
 		sink,
 
