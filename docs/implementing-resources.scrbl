@@ -4,8 +4,24 @@
 
 @title[#:version version #:tag "implementing-resources"]{Implementing a Resource}
 
-A resource type's container image provides the scripts @code{in},
-@code{out}, and @code{check}, all placed in @code{/opt/resource}.
+A resource type is implemented by a container image with three scripts:
+
+@itemlist[
+  @item{
+    @code{/opt/resource/check} for checking for new versions of the resource
+  }
+
+  @item{
+    @code{/opt/resource/in} for pulling a version of the resource down
+  }
+
+  @item{
+    @code{/opt/resource/out} for idempotently pushing a version up
+  }
+]
+
+Distributing resource types as containers allows them to package their own
+dependencies. For example, the Git resource comes with @code{git} installed.
 
 If a resource will only ever be used for generating output (for example, code
 coverage), it's reasonable to only implement @code{out}. This will work just

@@ -50,6 +50,6 @@ $ fly configure -c path/to/pipeline.yml
 
 This will validate your pipeline config and immediately switch Concourse to it.
 
-To run arbitrary builds against the Vagrant box, see @secref{running-builds}.
+To run arbitrary tasks against the Vagrant box, see @secref{running-tasks}.
 
 @inject-analytics[]

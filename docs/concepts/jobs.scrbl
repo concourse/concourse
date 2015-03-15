@@ -4,62 +4,33 @@
 
 @title[#:version version #:tag "jobs"]{Jobs}
 
-A job is a specification of a @seclink["builds"]{build} to run, combined with
-inputs to pull down, and outputs to push up upon the build's successful
-completion. Common jobs would be configured to run unit tests, or integration
-tests against multiple inputs.
+At a high level, a job describes some actions to perform when dependent
+resources change (or when manually triggered). For example, you may define a
+job that runs your unit tests whenever new code is pushed to a repository.
 
-@section{Inputs}
+Jobs can be thought of as functions with inputs and outputs, that
+automatically run when new inputs are available. A job can depend on the
+outputs of upstream jobs, which is the root of pipeline functionality.
 
-New builds of the job will automatically trigger when any of its inputs change.
-Jobs can be interconnected by applying @code{passed} constraints to the inputs
-resources - this is the crucial piece that allows pipelines to function.
+The definition of actions to perform is done via a
+@seclink["build-plans"]{Build Plan}, which is a very powerful
+composition-based DSL that can express anything from running simple unit
+tests to running a matrix of tasks and aggregating the result.
 
-Inputs can be thought of as the arguments to a function, your build.
-Concourse's job is to find which sets of arguments are OK, and which sets of
-arguments are not OK.
 
-The notion of a pipeline is introduced when wanting to restrict the potential
-set of arguments to ones that are more likely to work, as their values progress
-through a sequence of successful builds.
+@section[#:tag "job-builds"]{Builds}
 
-For example, if the latest version of a component causes its unit tests to
-fail, you don't want the pipeline to propagate that version to integration tests
-or a deploy to prod.
+An instance of execution of a job's plan is called a @emph{build}. A build
+can either succeed or fail, or error if something unrelated to your code goes
+wrong (for example, if the resources fail to fetch).
 
-A job's set of inputs can be configured to apply these constraints via the
-@code{passed} option. This is described below, along with the rest of the
-possible configuration.
+When a build runs, the job's plan is realized. Each step described by the
+job's plan is executed, and so long as all @secref{tasks} succeed, the
+build succeeds. If a task fails, the build fails, and its resources do not
+propagate to the rest of the pipeline.
 
-@section{Outputs}
-
-When a build succeeds, all of the resource versions used as inputs are
-implicitly recorded as outputs of the job.
-
-A job may however configure explicit outputs, which add to the output set,
-overriding existing implicit versions.
-
-For example, a job may pull in a repo that contains a @code{Dockerfile}, and
-push a Docker image when its tests go green:
-
-@codeblock|{
-jobs:
-  - name: git-resource-image
-    build: git-resource/unit-tests.yml
-    inputs:
-      - resource: git-resource
-    outputs:
-      - resource: git-resource-image
-        params:
-          build: git-resource
-}|
-
-When builds complete, all outputs are executed in parallel (as they should have
-no inter-relationships). If any outputs fail to execute, the build errors
-(overriding the otherwise successful status).
-
-Outputs can be used to do all kinds of things, from bumping version numbers, to
-pushing to repos, to marking tasks as finished in your issue tracking system.
-These are all modeled as @seclink["resources"]{resources}.
+Builds can be accessed while they're running (and also shortly after they
+finish) via @seclink["fly-intercept"]{@code{fly intercept}}, which can
+greatly help in debugging.
 
 @inject-analytics[]

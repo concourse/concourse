@@ -1,5 +1,5 @@
 #lang scribble/manual
- 
+
 @(require "common.rkt")
 
 @title[#:version version #:tag "what-and-why"]{What & Why}
@@ -54,11 +54,11 @@ Managing the state of the worker VMs in other CI systems is a nightmare. Build
 pollution is a constant threat, and the workers have to constantly be tweaked
 to make sure they're providing the right things for every build.
 
-In Concourse, the workers are stateless. Every build executes in a container
+In Concourse, the workers are stateless. Every task executes in a container
 defined by its own configuration. Multiple teams can use the same Concourse
 deployment without worrying about the state of the worker VMs.
 
-See @secref{builds}.
+See @secref{tasks}.
 
 
 @section[#:style 'toc-hidden]{Scalable, reproducible deployment}
@@ -140,9 +140,10 @@ See @secref{resources} and @secref{implementing-resources}.
 Everyone knows this dance: set up CI, push, build fails. Fix config, push,
 build fails... 20 commits later, a green dot and a messy repo history.
 
-Concourse's support for running builds locally eliminates this pesky workflow,
-and allows you to trust that your build running locally runs @emph{exactly} the
-same way that it runs in your pipeline.
+Concourse's support for running one-off builds from local task configuration
+eliminates this pesky workflow, and allows you to trust that your build
+running locally runs @emph{exactly} the same way that it runs in your
+pipeline.
 
 The workflow then becomes: set up CI, configure build locally, @code{fly},
 build fails (we can't fix that), fix things up, @code{fly}...
@@ -150,7 +151,7 @@ build fails (we can't fix that), fix things up, @code{fly}...
 At the end of this, instead of 20 junk commits pushed to your repo, you've
 figured out a configuration for both running locally and running in CI.
 
-See @secref{builds} and @secref{fly-execute}.
+See @secref{tasks} and @secref{fly-execute}.
 
 
 @section[#:style 'toc-hidden]{Bootstrapped}

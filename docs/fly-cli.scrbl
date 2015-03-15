@@ -54,29 +54,29 @@ not check the remote certificates.
 For the rest of this document it is assumed you are setting the target in
 each of the commands and so it will not be included for brevity.
 
-@section[#:tag "fly-execute"]{@code{execute}: Submitting Local Builds}
+@section[#:tag "fly-execute"]{@code{execute}: Submitting Local Tasks}
 
 One of the most common use cases of @code{fly} is taking a local project on
-your computer and submitting it up with a build configuration to be run
+your computer and submitting it up with a task configuration to be run
 inside a container in Concourse. This is useful to build Linux projects on
 OS X or to avoid all of those debugging commits when something is configured
 differently between your local and remote setup.
 
-If you have a build configuration called @code{build.yml} that describes a
-build that only requires the files in the current directory (e.g. most unit
+If you have a task configuration called @code{task.yml} that describes a
+task that only requires the files in the current directory (e.g. most unit
 tests and simple integration tests) then you can just run:
 
 @codeblock|{
 $ fly execute
 }|
 
-And your files will be uploaded and the build will be executed with them.
+And your files will be uploaded and the task will be executed with them.
 
 Fly will automatically capture @code{SIGINT} and @code{SIGTERM} and abort the
 build when received. This allows it to be transparently composed with other
 toolchains.
 
-If your build configuration is in a non-standard location then you can
+If your task configuration is in a non-standard location then you can
 specify it using the @code{-c} or @code{--config} argument like so:
 
 @codeblock|{
@@ -88,7 +88,7 @@ would normally be ignored by your version control system, then you can use
 the @code{-x} or @code{--exclude-ignored} flags in order to limit the files
 that you send to Concourse to just those that are not ignored.
 
-If your build needs to run as @code{root} then you can specify the @code{-p}
+If your task needs to run as @code{root} then you can specify the @code{-p}
 or @code{--privileged} flag.
 
 The default @code{fly} command is @code{execute}, so you can just run the
@@ -98,14 +98,14 @@ following to get the same effect:
 $ fly
 }|
 
-@subsection{Multiple Inputs to Locally Submitted Builds}
+@subsection{Multiple Inputs to Locally Submitted Tasks}
 
-Builds in Concourse can take multiple inputs. Up until now we've just been
+Tasks in Concourse can take multiple inputs. Up until now we've just been
 submitting a single input (our current working directory) that has the same
 name as the directory.
 
-Builds can specify the inputs that they require (for more information, refer
-to the @seclink["configuring-builds"]{configuring builds} documentation).
+Tasks can specify the inputs that they require (for more information, refer
+to the @seclink["configuring-tasks"]{configuring tasks} documentation).
 For @code{fly} to upload these inputs you can use the @code{-i} or
 @code{--input} arguments with name and path pairs. For example:
 
@@ -113,8 +113,8 @@ For @code{fly} to upload these inputs you can use the @code{-i} or
 $ fly execute -i code=. -i stemcells=../stemcells
 }|
 
-This would work together with a build.yml if its @code{inputs:} section was
-as follows:
+This would work together with a @code{task.yml} if its @code{inputs:}
+section was as follows:
 
 @codeblock|{
 inputs:
@@ -129,7 +129,7 @@ above).
 This feature can be used to mimic other resources and try out combinations
 of input that would normally not be possible in a pipeline.
 
-@section{@code{configure}: Reconfiguring Concourse}
+@section[#:tag "fly-configure"]{@code{configure}: Reconfiguring Concourse}
 
 Fly can be used to fetch and update the current pipeline configuration. This
 is achieved by using the @code{configure} command. For example, to fetch the
@@ -155,15 +155,15 @@ This will present a diff of the changes and ask you to confirm the changes.
 If you accept then Concourse's pipeline configuration will switch to the
 pipeline definition in the YAML file specified.
 
-@section{@code{intercept}: Accessing a running or recent build}
+@section[#:tag "fly-intercept"]{@code{intercept}: Accessing a running or recent build's steps}
 
-Sometimes it's helpful to be on the same machine as your builds so that you
+Sometimes it's helpful to be on the same machine as your tasks so that you
 can profile or inspect them as they run or see the state the machine at the
-end of a run. Due to Concourse running builds in containers on remote
+end of a run. Due to Concourse running tasks in containers on remote
 machines this would typically be hard to access. To this end, there is a
 @code{fly intercept} command that will give you a shell inside the most
 recent one-off build that was submitted to Concourse. For example, running
-the following will run a build and then enter the finished build's
+the following will run a task and then enter the finished task's
 container:
 
 @margin-note{
@@ -198,7 +198,7 @@ remote container that is running as the @code{root} user.
 A specific command can also be given, e.g. @code{fly intercept ps auxf} or
 @code{fly intercept htop}. This allows for patterns such as @code{watch fly
 intercept ps auxf}, which will continuously show the process tree of the
-current build, even as the "current build" changes.
+current build's task, even as the "current build" changes.
 
 @section[#:tag "fly-sync"]{@code{sync}: Update your local copy of @code{fly}}
 
@@ -212,7 +212,7 @@ local @code{fly}. It can be used like so:
 $ fly sync
 }|
 
-@section{@code{watch}: View logs of in-progress builds}
+@section[#:tag "fly-watch"]{@code{watch}: View logs of in-progress builds}
 
 Concourse emits streaming colored logs on the website but it can be helpful
 to have the logs availiable to the command line. (e.g. so that they can be

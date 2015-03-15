@@ -7,7 +7,7 @@
 Workers are @hyperlink["http://github.com/cloudfoundry-incubator/garden"]{Garden}
 servers, continuously heartbeating their presence to the Concourse API. Workers
 have a statically configured @code{platform} and a set of @code{tags}, both of
-which determine where builds are scheduled.
+which determine where tasks are scheduled.
 
 The worker also advertises which resource types it supports. This is just a
 mapping from resource type (e.g. @code{git}) to the image URI
@@ -16,16 +16,16 @@ mapping from resource type (e.g. @code{git}) to the image URI
 For a given resource, the workers declaring that they support its type are used
 to run its containers. The @code{platform} does not matter in this case.
 
-For a given build, only workers with a @code{platform} that matches the
-build's @code{platform} will be chosen. A worker's @code{platform} is
+For a given task, only workers with a @code{platform} that matches the
+task's @code{platform} will be chosen. A worker's @code{platform} is
 typically one of @code{linux}, @code{windows}, or @code{darwin}, but this is
 just convention.
 
 If a worker specifies @code{tags}, it is taken out of the "default" placement
-pool, and builds only run on the worker if they explicitly specify a common
-subset of the worker's tags. This can be done in the build's configuration
-directly (see @secref{configuring-builds}) or by specifying them in the job
-that's running the build (see @secref{pipelines}).
+pool, and tasks only run on the worker if they explicitly specify a common
+subset of the worker's tags. This can be done in the task's configuration
+directly (see @secref{configuring-tasks}) or by specifying them in the job
+that's running the task (see @secref{pipelines}).
 
 Worker registration is done via the ATC API. You can see the current set of
 workers via @code{GET /api/v1/workers}, and register one via @code{POST
