@@ -31,7 +31,7 @@ For a real world example of how groups can be used to simplify navigation and
 provide logical grouping, see the groups used at the top of the page in the
 @hyperlink["http://ci.concourse.ci"]{Concourse pipeline}.
 
-Each group allows you to set the following attributes:
+Each configured group consists of the following attributes:
 
 @defthing[name string]{
   @emph{Required.} The name of the group. This should be short and simple as

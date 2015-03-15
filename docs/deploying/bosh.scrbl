@@ -5,7 +5,7 @@
 @title[#:version version #:tag "deploying-with-bosh"]{Deploying a cluster with BOSH}
 
 Once you start needing more workers and @emph{really} caring about your CI
-deployment, though, it's best to manage it with BOSH proper.
+deployment, it's best to manage it with BOSH proper.
 
 Using BOSH gives you a self-healing, predictable environment, that can be
 scaled up or down by changing a single number.

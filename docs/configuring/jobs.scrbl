@@ -4,10 +4,21 @@
 
 @title[#:style 'toc #:version version #:tag "configuring-jobs"]{@code{jobs}: Plans to execute against resources}
 
-The @code{jobs} section is a list of all "connection points" in the
-pipeline. A job's configuration determines the @seclink["tasks"]{Tasks} that
-will run, when and how they will be run, propagation of resources through
-the pipeline, and how everything is visualized.
+@seclink["jobs"]{Jobs} determine the @emph{actions} of your pipeline, how
+resources progress through it, and how everything is visualized. They are
+listed under the @code{jobs} key in the pipeline configuration.
+
+The following example defines a simple unit-level job that will trigger
+whenever new code arrives at the @code{concourse} resource:
+
+@codeblock|{
+jobs:
+  - name: atc-unit
+    plan:
+      - get: concourse
+      - task: unit
+        file: ci/atc.yml
+}|
 
 Each configured job consists of the following attributes:
 
