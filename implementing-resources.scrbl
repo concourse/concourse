@@ -30,7 +30,7 @@ fine so long as no one tries to use it as an input.
 For use as an input, a resource should always implement @code{in} and
 @code{check} together.
 
-@section{@code{check}: Check for new versions.}
+@section{@code{check}@aux-elem{: Check for new versions.}}
 
 A resource type's @code{check} script is invoked to detect new versions of
 the resource. It is given the configured source and current version on stdin,
@@ -77,7 +77,7 @@ And the output, assuming @code{d74e01} is the commit immediately after
 
 The list may be empty, if the given version is already the latest.
 
-@section{@code{in}: Fetch a given resource.}
+@section{@code{in}@aux-elem{: Fetch a given resource.}}
 
 The @code{in} script is passed a destination directory as @code{$1}, and
 is given on stdin the configured source and, optionally, a precise version of
@@ -131,7 +131,7 @@ And output:
 }|
 
 
-@section{@code{out}: Update a resource.}
+@section{@code{out}@aux-elem{: Update a resource.}}
 
 The @code{out} script is called with a path to the directory containing the
 build's full set of sources as the first argument, and is given on stdin the

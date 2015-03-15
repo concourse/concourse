@@ -2,7 +2,7 @@
 
 @(require "../common.rkt")
 
-@title[#:version version #:tag "get-step"]{@code{get}: fetch a resource}
+@title[#:version version #:tag "get-step"]{@code{get}@aux-elem{: fetch a resource}}
 
 Fetches a resource, making it available to subsequent steps via the given name.
 

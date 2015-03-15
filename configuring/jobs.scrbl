@@ -2,7 +2,7 @@
 
 @(require "../common.rkt")
 
-@title[#:style 'toc #:version version #:tag "configuring-jobs"]{@code{jobs}: Plans to execute against resources}
+@title[#:style 'toc #:version version #:tag "configuring-jobs"]{@code{jobs}@aux-elem{: Plans to execute against resources}}
 
 @seclink["jobs"]{Jobs} determine the @emph{actions} of your pipeline, how
 resources progress through it, and how everything is visualized. They are

@@ -2,7 +2,7 @@
 
 @(require "../common.rkt")
 
-@title[#:style 'toc #:version version #:tag "configuring-resources"]{@code{resources}: Objects flowing through the pipeline}
+@title[#:style 'toc #:version version #:tag "configuring-resources"]{@code{resources}@aux-elem{: Objects flowing through the pipeline}}
 
 @seclink["resources"]{Resources} are the objects that are going to be used
 for jobs in the pipeline. They are listed under the @code{resources} key in
