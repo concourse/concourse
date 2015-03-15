@@ -14,11 +14,12 @@ boxes was decomissioned as we switched over to new hardware.
     additional tags that can influence the placement of builds.
 
     Today's build configs will have to start specifying an explicit
-    @code{platform}. See @secref{configuring-builds} for more information. The
+    @code{platform}. See @secref{configuring-tasks} for more information. The
     main takeaway is that you'll need to add @code{platform: linux} to all
     of your @code{build.yml}s.
 
-    For more information on configuring additional workers, see @secref{worker-pools}.
+    For more information on configuring additional workers, see
+    @secref{worker-pools}.
   }
 
   @item{

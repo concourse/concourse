@@ -8,7 +8,7 @@
 
 Concourse is a CI system composed of simple tools and ideas. It can express
 entire pipelines, integrating with arbitrary resources, or it can be used to
-execute one-off builds, either locally or in another CI system.
+execute one-off tasks, either locally or in another CI system.
 
 To see a live example, check out
 @hyperlink["http://ci.concourse.ci"]{Concourse's own CI pipeline}.
@@ -26,8 +26,9 @@ For more information or if you need help: we're on IRC in the
 @include-section{concepts.scrbl}
 @include-section{getting-started.scrbl}
 @include-section{fly-cli.scrbl}
-@include-section{running-builds.scrbl}
+@include-section{running-tasks.scrbl}
 @include-section{pipelines.scrbl}
+@include-section{build-plans.scrbl}
 @include-section{implementing-resources.scrbl}
 @include-section{release-notes.scrbl}
 
