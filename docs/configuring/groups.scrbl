@@ -2,7 +2,7 @@
 
 @(require "../common.rkt")
 
-@title[#:style 'toc #:version version #:tag "configuring-groups"]{@code{groups}: Splitting up your pipeline into sections}
+@title[#:style 'toc #:version version #:tag "configuring-groups"]{@code{groups}@aux-elem{: Splitting up your pipeline into sections}}
 
 A pipeline may optionally contain a section called @code{groups}. As more
 resources and jobs are added to a pipeline it can become difficult to navigate.

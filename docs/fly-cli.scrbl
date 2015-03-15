@@ -54,7 +54,7 @@ not check the remote certificates.
 For the rest of this document it is assumed you are setting the target in
 each of the commands and so it will not be included for brevity.
 
-@section[#:tag "fly-execute"]{@code{execute}: Submitting Local Tasks}
+@section[#:tag "fly-execute"]{@code{execute}@aux-elem{: Submitting Local Tasks}}
 
 One of the most common use cases of @code{fly} is taking a local project on
 your computer and submitting it up with a task configuration to be run
@@ -129,7 +129,7 @@ above).
 This feature can be used to mimic other resources and try out combinations
 of input that would normally not be possible in a pipeline.
 
-@section[#:tag "fly-configure"]{@code{configure}: Reconfiguring Concourse}
+@section[#:tag "fly-configure"]{@code{configure}@aux-elem{: Reconfiguring Concourse}}
 
 Fly can be used to fetch and update the current pipeline configuration. This
 is achieved by using the @code{configure} command. For example, to fetch the
@@ -155,7 +155,7 @@ This will present a diff of the changes and ask you to confirm the changes.
 If you accept then Concourse's pipeline configuration will switch to the
 pipeline definition in the YAML file specified.
 
-@section[#:tag "fly-intercept"]{@code{intercept}: Accessing a running or recent build's steps}
+@section[#:tag "fly-intercept"]{@code{intercept}@aux-elem{: Accessing a running or recent build's steps}}
 
 Sometimes it's helpful to be on the same machine as your tasks so that you
 can profile or inspect them as they run or see the state the machine at the
@@ -200,7 +200,7 @@ A specific command can also be given, e.g. @code{fly intercept ps auxf} or
 intercept ps auxf}, which will continuously show the process tree of the
 current build's task, even as the "current build" changes.
 
-@section[#:tag "fly-sync"]{@code{sync}: Update your local copy of @code{fly}}
+@section[#:tag "fly-sync"]{@code{sync}@aux-elem{: Update your local copy of @code{fly}}}
 
 Occasionally we add additional features to @code{fly} or make changes to the
 communiction between it and Concourse's API server. To make sure you're
@@ -212,7 +212,7 @@ local @code{fly}. It can be used like so:
 $ fly sync
 }|
 
-@section[#:tag "fly-watch"]{@code{watch}: View logs of in-progress builds}
+@section[#:tag "fly-watch"]{@code{watch}@aux-elem{: View logs of in-progress builds}}
 
 Concourse emits streaming colored logs on the website but it can be helpful
 to have the logs availiable to the command line. (e.g. so that they can be

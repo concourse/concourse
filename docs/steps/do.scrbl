@@ -2,7 +2,7 @@
 
 @(require "../common.rkt")
 
-@title[#:version version #:tag "do-step"]{@code{do}: run steps in series}
+@title[#:version version #:tag "do-step"]{@code{do}@aux-elem{: run steps in series}}
 
 Simply performs the given steps serially, with the same semantics as if they
 were at the top level step listing.

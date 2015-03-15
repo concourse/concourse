@@ -2,7 +2,7 @@
 
 @(require "../common.rkt")
 
-@title[#:style 'toc #:version version #:tag "task-step"]{@code{task}: execute a task}
+@title[#:style 'toc #:version version #:tag "task-step"]{@code{task}@aux-elem{: execute a task}}
 
 Executes a @seclink["tasks"]{Task}, either from a file fetched via the preceding
 steps, or with inlined configuration.

@@ -2,7 +2,7 @@
 
 @(require "../common.rkt")
 
-@title[#:version version #:tag "step-conditions"]{@code{conditions}: conditionally perform a step}
+@title[#:version version #:tag "step-conditions"]{@code{conditions}@aux-elem{: conditionally perform a step}}
 
 Any step can be made conditional by adding the @code{conditions} attribute
 to it.

@@ -2,7 +2,7 @@
 
 @(require "../common.rkt")
 
-@title[#:version version #:tag "put-step"]{@code{put}: update a resource}
+@title[#:version version #:tag "put-step"]{@code{put}@aux-elem{: update a resource}}
 
 Pushes to the given @seclink["resources"]{Resource} using the state from the
 preceding steps, if available.

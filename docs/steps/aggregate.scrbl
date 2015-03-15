@@ -2,7 +2,7 @@
 
 @(require "../common.rkt")
 
-@title[#:version version #:tag "aggregate-step"]{@code{aggregate}: run steps in parallel}
+@title[#:version version #:tag "aggregate-step"]{@code{aggregate}@aux-elem{: run steps in parallel}}
 
 Performs all of the given steps in parallel, aggregating their resulting
 file tree for subsequent steps.
