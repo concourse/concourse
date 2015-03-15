@@ -25,9 +25,9 @@ plan:
     file: task.yml
 }|
 
-This job says: @seclink["get-step"]{@code{get}} the @code{my-project}
-resource, and run a @seclink["task-step"]{@code{task}} step called
-@code{unit}, using the configuration from @code{task.yml}.
+This job says: @seclink["get-step"]{@code{get}} the @code{banana} resource,
+and run a @seclink["task-step"]{@code{task}} step called @code{unit}, using
+the configuration from @code{task.yml}.
 
 When new versions of @code{banana} are detected, a new build of
 @code{banana-unit} will be scheduled.
