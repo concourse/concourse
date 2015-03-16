@@ -95,7 +95,7 @@ var sqlDriver = flag.String(
 
 var sqlDataSource = flag.String(
 	"sqlDataSource",
-	"",
+	"postgres://127.0.0.1:5432/atc?sslmode=disable",
 	"database/sql data source configuration string",
 )
 
