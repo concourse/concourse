@@ -1,9 +1,6 @@
 package factory
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 )
@@ -14,24 +11,12 @@ type BuildFactory struct {
 	ConfigDB db.ConfigDB
 }
 
-var ErrBothPlanAndIOConfigured = errors.New("both plan and inputs/outputs configured")
-
 func (factory *BuildFactory) Create(
 	job atc.JobConfig,
 	resources atc.ResourceConfigs,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
-	if factory.hasPlanConfig(job) && factory.hasIOConfig(job) {
-		return atc.Plan{}, ErrBothPlanAndIOConfigured
-	}
-
-	if factory.hasIOConfig(job) {
-		return factory.constructIOBasedPlan(job, resources, inputs)
-	} else if factory.hasPlanConfig(job) {
-		return factory.constructPlanSequenceBasedPlan(job.Plan, resources, inputs), nil
-	}
-
-	return atc.Plan{}, nil
+	return factory.constructPlanSequenceBasedPlan(job.Plan, resources, inputs), nil
 }
 
 func (factory *BuildFactory) constructPlanSequenceBasedPlan(
@@ -58,13 +43,11 @@ func (factory *BuildFactory) constructPlanSequenceBasedPlan(
 			inputs,
 		)
 
-		// if following a task step, later steps default to on [success]
-		if prevPlan.Task != nil && plan.Conditional == nil {
-			plan = makeConditionalOnSuccess(plan)
-		}
+		// steps default to conditional on [success]
+		plan = makeConditionalOnSuccess(plan)
 
-		// if the previous plan is conditional, make the entire following sequence
-		// conditional
+		// if the previous plan is conditional, make the entire following chain
+		// of composed steps conditional
 		plan = conditionallyCompose(prevPlan, plan)
 	}
 
@@ -72,19 +55,12 @@ func (factory *BuildFactory) constructPlanSequenceBasedPlan(
 }
 
 func makeConditionalOnSuccess(plan atc.Plan) atc.Plan {
-	if plan.Aggregate != nil {
+	if plan.Conditional != nil {
+		return plan
+	} else if plan.Aggregate != nil {
 		conditionaled := atc.AggregatePlan{}
 		for name, plan := range *plan.Aggregate {
-			if plan.Conditional == nil {
-				plan = atc.Plan{
-					Conditional: &atc.ConditionalPlan{
-						Conditions: atc.Conditions{atc.ConditionSuccess},
-						Plan:       plan,
-					},
-				}
-			}
-
-			conditionaled[name] = plan
+			conditionaled[name] = makeConditionalOnSuccess(plan)
 		}
 
 		plan.Aggregate = &conditionaled
@@ -222,133 +198,4 @@ func (factory *BuildFactory) constructPlanFromConfig(
 	}
 
 	return plan
-}
-
-func (factory *BuildFactory) constructIOBasedPlan(
-	job atc.JobConfig,
-	resources atc.ResourceConfigs,
-	inputs []db.BuildInput,
-) (atc.Plan, error) {
-	tInputs, err := factory.computeInputs(job, resources, inputs)
-	if err != nil {
-		return atc.Plan{}, err
-	}
-
-	tOutputs, err := factory.computeOutputs(job, resources)
-	if err != nil {
-		return atc.Plan{}, err
-	}
-
-	return atc.Plan{
-		Compose: &atc.ComposePlan{
-			A: atc.Plan{
-				Aggregate: &tInputs,
-			},
-			B: atc.Plan{
-				Compose: &atc.ComposePlan{
-					A: atc.Plan{
-						Task: &atc.TaskPlan{
-							Name: defaultTaskName,
-
-							Privileged: job.Privileged,
-
-							Config:     job.TaskConfig,
-							ConfigPath: job.TaskConfigPath,
-						},
-					},
-					B: atc.Plan{
-						Aggregate: &tOutputs,
-					},
-				},
-			},
-		},
-	}, nil
-}
-
-func (factory *BuildFactory) hasPlanConfig(job atc.JobConfig) bool {
-	return len(job.Plan) > 0
-}
-
-func (factory *BuildFactory) hasIOConfig(job atc.JobConfig) bool {
-	return len(job.InputConfigs) > 0 ||
-		len(job.OutputConfigs) > 0 ||
-		job.TaskConfig != nil ||
-		len(job.TaskConfigPath) > 0
-}
-
-func (factory *BuildFactory) computeInputs(
-	job atc.JobConfig,
-	resources atc.ResourceConfigs,
-	dbInputs []db.BuildInput,
-) (atc.AggregatePlan, error) {
-	getPlans := atc.AggregatePlan{}
-
-	for _, input := range job.InputConfigs {
-		resource, found := resources.Lookup(input.Resource)
-		if !found {
-			return nil, fmt.Errorf("unknown resource: %s", input.Resource)
-		}
-
-		getPlan := atc.GetPlan{
-			Name:     input.Name(),
-			Resource: resource.Name,
-			Type:     resource.Type,
-			Source:   atc.Source(resource.Source),
-			Params:   atc.Params(input.Params),
-		}
-
-		for _, dbInput := range dbInputs {
-			vr := dbInput.VersionedResource
-
-			if dbInput.Name == getPlan.Name {
-				getPlan.Type = vr.Type
-				getPlan.Source = atc.Source(vr.Source)
-				getPlan.Version = atc.Version(vr.Version)
-				break
-			}
-		}
-
-		getPlans[input.Name()] = atc.Plan{
-			Get: &getPlan,
-		}
-	}
-
-	return getPlans, nil
-}
-
-func (factory *BuildFactory) computeOutputs(
-	job atc.JobConfig,
-	resources atc.ResourceConfigs,
-) (atc.AggregatePlan, error) {
-	outputPlans := atc.AggregatePlan{}
-
-	for _, output := range job.OutputConfigs {
-		resource, found := resources.Lookup(output.Resource)
-		if !found {
-			return nil, fmt.Errorf("unknown resource: %s", output.Resource)
-		}
-
-		plan := atc.Plan{
-			Put: &atc.PutPlan{
-				Name:     resource.Name,
-				Resource: resource.Name,
-				Type:     resource.Type,
-				Params:   atc.Params(output.Params),
-				Source:   atc.Source(resource.Source),
-			},
-		}
-
-		if job.TaskConfig != nil || job.TaskConfigPath != "" {
-			plan = atc.Plan{
-				Conditional: &atc.ConditionalPlan{
-					Conditions: output.PerformOn(),
-					Plan:       plan,
-				},
-			}
-		}
-
-		outputPlans[output.Resource] = plan
-	}
-
-	return outputPlans, nil
 }
