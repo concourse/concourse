@@ -104,6 +104,28 @@ func (source aggregateSource) Release() error {
 }
 
 func (source aggregateSource) Result(x interface{}) bool {
+	if success, ok := x.(*Success); ok {
+		succeeded := true
+		anyIndicated := false
+		for _, src := range source {
+			var s Success
+			if !src.Result(&s) {
+				continue
+			}
+
+			anyIndicated = true
+			succeeded = succeeded && bool(s)
+		}
+
+		if !anyIndicated {
+			return false
+		}
+
+		*success = Success(succeeded)
+
+		return true
+	}
+
 	t := reflect.TypeOf(x)
 	v := reflect.ValueOf(x)
 

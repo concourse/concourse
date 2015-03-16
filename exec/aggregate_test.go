@@ -261,17 +261,75 @@ var _ = Describe("Aggregate", func() {
 	})
 
 	Describe("getting a result", func() {
-		BeforeEach(func() {
-			outSourceA.ResultStub = successResult(true)
-			outSourceB.ResultStub = successResult(false)
+		Context("when getting a map of results", func() {
+			BeforeEach(func() {
+				outSourceA.ResultStub = successResult(true)
+				outSourceB.ResultStub = successResult(false)
+			})
+
+			It("collects aggregate results into a map", func() {
+				result := map[string]Success{}
+				Ω(source.Result(&result)).Should(BeTrue())
+
+				Ω(result["A"]).Should(Equal(Success(true)))
+				Ω(result["B"]).Should(Equal(Success(false)))
+			})
 		})
 
-		It("collects aggregate results into a map", func() {
-			result := map[string]Success{}
-			Ω(source.Result(&result)).Should(BeTrue())
+		Context("when getting a Success result", func() {
+			var result Success
 
-			Ω(result["A"]).Should(Equal(Success(true)))
-			Ω(result["B"]).Should(Equal(Success(false)))
+			BeforeEach(func() {
+				result = false
+			})
+
+			Context("and all branches are successful", func() {
+				BeforeEach(func() {
+					outSourceA.ResultStub = successResult(true)
+					outSourceB.ResultStub = successResult(true)
+				})
+
+				It("yields true", func() {
+					Ω(source.Result(&result)).Should(BeTrue())
+					Ω(result).Should(Equal(Success(true)))
+				})
+			})
+
+			Context("and some branches are not successful", func() {
+				BeforeEach(func() {
+					outSourceA.ResultStub = successResult(true)
+					outSourceB.ResultStub = successResult(false)
+				})
+
+				It("yields false", func() {
+					Ω(source.Result(&result)).Should(BeTrue())
+					Ω(result).Should(Equal(Success(false)))
+				})
+			})
+
+			Context("when some branches do not indicate success", func() {
+				BeforeEach(func() {
+					outSourceA.ResultStub = successResult(true)
+					outSourceB.ResultReturns(false)
+				})
+
+				It("only considers the branches that do", func() {
+					Ω(source.Result(&result)).Should(BeTrue())
+					Ω(result).Should(Equal(Success(true)))
+				})
+			})
+
+			Context("when no branches indicate success", func() {
+				BeforeEach(func() {
+					outSourceA.ResultReturns(false)
+					outSourceB.ResultReturns(false)
+				})
+
+				It("returns false", func() {
+					Ω(source.Result(&result)).Should(BeFalse())
+					Ω(result).Should(Equal(Success(false)))
+				})
+			})
 		})
 	})
 })
