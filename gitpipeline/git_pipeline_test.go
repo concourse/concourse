@@ -42,4 +42,13 @@ var _ = Describe("A pipeline with git resources", func() {
 			return noUpdateGitServer.RevParse("no-update")
 		}, 10*time.Second, 1*time.Second).Should(BeEmpty())
 	})
+
+	It("performs build matrixes correctly", func() {
+		By("executing the build when a commit is made")
+		committedGuid := gitServer.Commit()
+
+		Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement("passing-unit-1/file passing-unit-2/file " + committedGuid))
+
+		Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement("failed " + committedGuid))
+	})
 })

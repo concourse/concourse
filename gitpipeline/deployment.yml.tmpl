@@ -64,6 +64,56 @@ pipeline: &pipeline
               params:
                 repository: .
 
+    - name: fancy-build-matrix
+      plan:
+        - get: some-git-resource
+        - aggregate:
+            - task: passing-unit-1
+              config:
+                platform: linux
+                image: {{.TestflightHelperImage}}
+                run:
+                  path: touch
+                  args: [file]
+            - task: passing-unit-2
+              config:
+                platform: linux
+                image: {{.TestflightHelperImage}}
+                run:
+                  path: touch
+                  args: [file]
+        - task: curl-server
+          config:
+            platform: linux
+            image: {{.TestflightHelperImage}}
+            run:
+              path: bash
+              args: ["-c", '{ echo $(ls passing-unit-*/file) $(tail -1 passing-unit-1/guids); } | {{.GuidServerCurlCommand}}']
+        - aggregate:
+            - task: second-passing-unit-1
+              config:
+                platform: linux
+                image: {{.TestflightHelperImage}}
+                run:
+                  path: sh
+                  args: [-c, exit 0]
+            - task: second-failing-unit-2
+              config:
+                platform: linux
+                image: {{.TestflightHelperImage}}
+                run:
+                  path: sh
+                  args: [-c, exit 1]
+        - task: curl-server-failure
+          conditions: [failure]
+          config:
+            platform: linux
+            image: {{.TestflightHelperImage}}
+            run:
+              path: bash
+              args: ["-c", '{ echo failed $(tail -1 second-passing-unit-1/passing-unit-1/guids); } | {{.GuidServerCurlCommand}}']
+
+
 releases:
   - name: concourse
     version: latest
