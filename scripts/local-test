@@ -1,0 +1,7 @@
+#!/bin/sh
+
+export GARDEN_LINUX_VERSION=latest
+
+bosh target 192.168.50.4
+
+ginkgo -r -v "$@"
