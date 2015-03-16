@@ -11,13 +11,9 @@ fi
 git config --global user.email "ci@localhost"
 git config --global user.name "CI Bot"
 
-source ./deployments/ci/bosh_environment
-
 cp deployments/ci/config/private.yml concourse/config/private.yml
 
 gzip -c resource-image/rootfs.tar > ${RESOURCE_NAME}.tar.gz
-
-bosh target ${BOSH_TARGET}
 
 cd concourse/
 
