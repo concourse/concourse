@@ -241,6 +241,8 @@ func main() {
 		configDB = db
 	}
 
+	configDB = Db.PlanConvertingConfigDB{configDB}
+
 	var resourceTypesNG []atc.WorkerResourceType
 	err = json.Unmarshal([]byte(*resourceTypes), &resourceTypesNG)
 	if err != nil {
