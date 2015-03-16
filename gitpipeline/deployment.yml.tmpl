@@ -31,37 +31,38 @@ pipeline: &pipeline
         branch: no-update
 
   jobs:
-    - name: some-job
-      config:
-        platform: linux
-        image: {{.TestflightHelperImage}}
-        run:
-          path: bash
-          args: ["-c", "tail -1 some-git-resource/guids | {{.GuidServerCurlCommand}}"]
-      inputs:
-        - resource: some-git-resource
-      outputs:
-        - resource: some-git-resource-success
+    - name: some-passing-job
+      plan:
+        - get: some-git-resource
+        - task: curl-server
+          config:
+            platform: linux
+            image: {{.TestflightHelperImage}}
+            run:
+              path: bash
+              args: ["-c", "tail -1 guids | {{.GuidServerCurlCommand}}"]
+        - put: some-git-resource-success
           params:
-            repository: some-git-resource
+            repository: .
 
     - name: some-failing-job
-      config:
-        platform: linux
-        image: {{.TestflightHelperImage}}
-        run:
-          path: bash
-          args: ["-c", "exit 1"]
-      inputs:
-        - resource: some-git-resource
-      outputs:
-        - resource: some-git-resource-no-update
-          params:
-            repository: some-git-resource
-        - resource: some-git-resource-failure
-          perform_on: [failure]
-          params:
-            repository: some-git-resource
+      plan:
+        - get: some-git-resource
+        - task: curl-server
+          config:
+            platform: linux
+            image: {{.TestflightHelperImage}}
+            run:
+              path: bash
+              args: ["-c", "exit 1"]
+        - aggregate:
+            - put: some-git-resource-no-update
+              params:
+                repository: .
+            - put: some-git-resource-failure
+              conditions: [failure]
+              params:
+                repository: .
 
 releases:
   - name: concourse

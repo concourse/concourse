@@ -96,7 +96,7 @@ run:
 	})
 
 	Describe("hijacking", func() {
-		It("executes an interactive command in a running build's container", func() {
+		It("executes an interactive command in a running task's container", func() {
 			err := ioutil.WriteFile(
 				filepath.Join(fixture, "run"),
 				[]byte(`#!/bin/sh
@@ -128,11 +128,11 @@ cat < /tmp/fifo
 	})
 
 	Describe("aborting", func() {
-		It("terminates the running build", func() {
+		It("terminates the running task", func() {
 			err := ioutil.WriteFile(
 				filepath.Join(fixture, "run"),
 				[]byte(`#!/bin/sh
-trap "echo build got sigterm; exit 1" SIGTERM
+trap "echo task got sigterm; exit 1" SIGTERM
 sleep 1000 &
 echo waiting
 wait
@@ -150,7 +150,7 @@ wait
 
 			flyS.Signal(syscall.SIGTERM)
 
-			Eventually(flyS, 10*time.Second).Should(gbytes.Say("build got sigterm"))
+			Eventually(flyS, 10*time.Second).Should(gbytes.Say("task got sigterm"))
 
 			// build should have been aborted
 			Eventually(flyS, 10*time.Second).Should(gexec.Exit(3))
