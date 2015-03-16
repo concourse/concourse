@@ -22,7 +22,17 @@ func (c Conditional) Using(source ArtifactSource) ArtifactSource {
 
 func (c *Conditional) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	var succeeded Success
-	if c.inputSource.Result(&succeeded) && c.Conditions.SatisfiedBy(bool(succeeded)) {
+
+	conditionMatched := false
+	if c.inputSource.Result(&succeeded) {
+		conditionMatched = c.Conditions.SatisfiedBy(bool(succeeded))
+	} else {
+		// if previous step cannot indicate success, presume that it succeeded
+		// for this step to be running in the first place.
+		conditionMatched = c.Conditions.SatisfiedBy(true)
+	}
+
+	if conditionMatched {
 		c.outputSource = c.Step.Using(c.inputSource)
 	} else {
 		c.outputSource = &NoopArtifactSource{}

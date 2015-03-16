@@ -230,6 +230,10 @@ var _ = Describe("Conditional", func() {
 		})
 
 		Context("when the input source cannot indicate success", func() {
+			BeforeEach(func() {
+				inSource.ResultReturns(false)
+			})
+
 			itDoesNothing()
 		})
 	})
@@ -256,7 +260,11 @@ var _ = Describe("Conditional", func() {
 		})
 
 		Context("when the input source cannot indicate success", func() {
-			itDoesNothing()
+			BeforeEach(func() {
+				inSource.ResultReturns(false)
+			})
+
+			itDoesAThing()
 		})
 	})
 
@@ -282,6 +290,10 @@ var _ = Describe("Conditional", func() {
 		})
 
 		Context("when the input source cannot indicate success", func() {
+			BeforeEach(func() {
+				inSource.ResultReturns(false)
+			})
+
 			itDoesNothing()
 		})
 	})
@@ -311,7 +323,11 @@ var _ = Describe("Conditional", func() {
 		})
 
 		Context("when the input source cannot indicate success", func() {
-			itDoesNothing()
+			BeforeEach(func() {
+				inSource.ResultReturns(false)
+			})
+
+			itDoesAThing()
 		})
 	})
 })
