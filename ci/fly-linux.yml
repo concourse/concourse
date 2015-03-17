@@ -1,5 +1,6 @@
 ---
 platform: linux
+
 image: docker:///concourse/atc-ci
 
 inputs:

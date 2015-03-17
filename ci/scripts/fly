@@ -3,11 +3,8 @@
 
 set -e -x
 
-export GOROOT=/usr/local/go
-export PATH=$GOROOT/bin:$PATH
-
 export GOPATH=$PWD/concourse
-export PATH=$GOPATH/bin:$PATH
+export PATH=$GOPATH/bin:/usr/local/bin:$PATH
 
 go install github.com/onsi/ginkgo/ginkgo
 
