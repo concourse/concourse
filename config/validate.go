@@ -294,6 +294,11 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 	case plan.Task != "":
 		errorMessages := []string{}
 		subIdentifier := fmt.Sprintf("%s.task.%s", identifier, plan.Task)
+
+		if plan.TaskConfig == nil && plan.TaskConfigPath == "" {
+			errorMessages = append(errorMessages, subIdentifier+" does not specify any task configuration")
+		}
+
 		badFields := []string{}
 
 		if plan.Resource != "" {

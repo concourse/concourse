@@ -402,6 +402,23 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
+			Context("when a task plan has neither a config or a path set", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Task: "lol",
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job.plan[0].task.lol does not specify any task configuration",
+					))
+				})
+			})
+
 			Context("when a put plan has invalid fields specified", func() {
 				BeforeEach(func() {
 					no := false
