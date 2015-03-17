@@ -48,7 +48,7 @@ case $1 in
 
     exec chpst -u vcap:vcap /var/vcap/packages/gate/bin/gate \
       -heartbeatInterval=<%= p("gate.heartbeat_interval") %> \
-      -gardenAddr=<%= my_ip + ":" + p("gate.garden.address").split(":")[1] %> \
+      -gardenAddr=<%= p("gate.garden.address", my_ip + ":7777") %> \
       -atcAPIURL=<%= "http://#{CGI.escape(p("gate.atc.username"))}:#{CGI.escape(p("gate.atc.password"))}@#{p("gate.atc.address")}" %> \
       -resourceTypes=<%= Shellwords.shellescape(p("gate.resource_types").to_json) %> \
       -platform=<%= p("gate.platform") %> \

@@ -30,7 +30,6 @@ properties:
 
   gate.garden.address:
     description: "garden server connection address"
-    default: 127.0.0.1:7777
 
   gate.resource_types:
     description: "resource types supported by the worker, in [{type: type, image: image}] form"
