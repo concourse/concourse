@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"time"
 
 	"crypto/tls"
@@ -23,7 +22,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/config"
 	"github.com/concourse/fly/eventstream"
-	"github.com/pivotal-golang/archiver/compressor"
 	"github.com/tedsuo/rata"
 	"github.com/vito/go-sse/sse"
 )
@@ -281,55 +279,21 @@ func upload(input Input, excludeIgnored bool, atcRequester *atcRequester) {
 	path := input.Path
 	pipe := input.Pipe
 
-	var archive io.ReadCloser
-	if tarPath, err := exec.LookPath("tar"); err != nil {
-		compressor := compressor.NewTgz()
+	var files []string
+	var err error
 
-		tmpfile, err := ioutil.TempFile("", "fly")
+	if excludeIgnored {
+		files, err = getGitFiles(path)
 		if err != nil {
-			log.Fatalln("creating tempfile failed:", err)
-		}
-
-		tmpfile.Close()
-
-		defer os.Remove(tmpfile.Name())
-
-		err = compressor.Compress(path+"/", tmpfile.Name())
-		if err != nil {
-			log.Fatalln("creating archive failed:", err)
-		}
-
-		archive, err = os.Open(tmpfile.Name())
-		if err != nil {
-			log.Fatalln("could not open archive:", err)
+			log.Fatalln("could not determine ignored files:", err)
 		}
 	} else {
-		var files []string
+		files = []string{"."}
+	}
 
-		if excludeIgnored {
-			files, err = getGitFiles(path)
-			if err != nil {
-				log.Fatalln("could not determine ignored files:", err)
-			}
-		} else {
-			files = []string{"."}
-		}
-
-		tarCmd := exec.Command(tarPath, append([]string{"-czf", "-"}, files...)...)
-		tarCmd.Dir = path
-		tarCmd.Stderr = os.Stderr
-
-		archive, err = tarCmd.StdoutPipe()
-		if err != nil {
-			log.Fatalln("could not create tar pipe:", err)
-		}
-
-		err = tarCmd.Start()
-		if err != nil {
-			log.Fatalln("could not run tar:", err)
-		}
-
-		defer tarCmd.Wait()
+	archive, err := tarStreamFrom(path, files)
+	if err != nil {
+		log.Fatalln("failed to create tar stream:", err)
 	}
 
 	defer archive.Close()

@@ -2,10 +2,12 @@ package integration_test
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 
 	. "github.com/onsi/ginkgo"
@@ -19,6 +21,7 @@ var _ = Describe("Syncing", func() {
 	var (
 		atcServer *ghttp.Server
 
+		newFlyDir  string
 		newFlyPath string
 	)
 
@@ -41,12 +44,26 @@ var _ = Describe("Syncing", func() {
 	}
 
 	BeforeEach(func() {
-		newFly, err := ioutil.TempFile("", "fly-sync")
-		Ω(err).ShouldNot(HaveOccurred())
-		newFly.Close()
-		newFlyPath = newFly.Name()
+		var err error
 
-		err = exec.Command("cp", "-a", flyPath, newFlyPath).Run()
+		newFlyDir, err = ioutil.TempDir("", "fly-sync")
+		Ω(err).ShouldNot(HaveOccurred())
+
+		newFlyPath = filepath.Join(newFlyDir, "new-fly.exe.tga.bat.legit.notavirus")
+
+		newFly, err := os.Create(newFlyPath)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		oldFly, err := os.Open(flyPath)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		_, err = io.Copy(newFly, oldFly)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		newFly.Close()
+		oldFly.Close()
+
+		err = os.Chmod(newFlyPath, 0755)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		atcServer = ghttp.NewServer()
@@ -56,7 +73,7 @@ var _ = Describe("Syncing", func() {
 	})
 
 	AfterEach(func() {
-		os.RemoveAll(newFlyPath)
+		os.RemoveAll(newFlyDir)
 	})
 
 	sync := func(args ...string) {

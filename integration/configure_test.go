@@ -291,7 +291,7 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-new-job", "green")))
 
 					Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
-					fmt.Fprint(stdin, "y")
+					fmt.Fprintln(stdin, "y")
 
 					Eventually(sess).Should(gbytes.Say("configuration updated"))
 
@@ -310,7 +310,7 @@ var _ = Describe("Fly CLI", func() {
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
-					fmt.Fprint(stdin, "n")
+					fmt.Fprintln(stdin, "n")
 
 					Eventually(sess).Should(gexec.Exit(1))
 
@@ -335,7 +335,7 @@ var _ = Describe("Fly CLI", func() {
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
-					fmt.Fprint(stdin, "y")
+					fmt.Fprintln(stdin, "y")
 
 					Eventually(sess.Err).Should(gbytes.Say("failed to update configuration."))
 					Eventually(sess.Err).Should(gbytes.Say("  response code: 400"))
@@ -363,7 +363,7 @@ var _ = Describe("Fly CLI", func() {
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
-					fmt.Fprint(stdin, "y")
+					fmt.Fprintln(stdin, "y")
 
 					Eventually(sess.Err).Should(gbytes.Say("failed to update configuration: Put"))
 

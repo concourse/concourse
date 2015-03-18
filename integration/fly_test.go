@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -343,51 +344,53 @@ run: {}
 			)
 		})
 
-		Describe("with SIGINT", func() {
-			It("aborts the build and exits nonzero", func() {
-				flyCmd := exec.Command(flyPath)
-				flyCmd.Dir = buildDir
+		if runtime.GOOS != "windows" {
+			Describe("with SIGINT", func() {
+				It("aborts the build and exits nonzero", func() {
+					flyCmd := exec.Command(flyPath)
+					flyCmd.Dir = buildDir
 
-				flySession, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).ToNot(HaveOccurred())
+					flySession, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).ToNot(HaveOccurred())
 
-				Eventually(streaming, 5).Should(BeClosed())
+					Eventually(streaming, 5).Should(BeClosed())
 
-				Eventually(uploadingBits).Should(BeClosed())
+					Eventually(uploadingBits).Should(BeClosed())
 
-				flySession.Signal(syscall.SIGINT)
+					flySession.Signal(os.Interrupt)
 
-				Eventually(aborted, 5.0).Should(BeClosed())
+					Eventually(aborted, 5.0).Should(BeClosed())
 
-				events <- event.Status{Status: atc.StatusErrored}
-				close(events)
+					events <- event.Status{Status: atc.StatusErrored}
+					close(events)
 
-				Eventually(flySession, 5.0).Should(gexec.Exit(2))
+					Eventually(flySession, 5.0).Should(gexec.Exit(2))
+				})
 			})
-		})
 
-		Describe("with SIGTERM", func() {
-			It("aborts the build and exits nonzero", func() {
-				flyCmd := exec.Command(flyPath)
-				flyCmd.Dir = buildDir
+			Describe("with SIGTERM", func() {
+				It("aborts the build and exits nonzero", func() {
+					flyCmd := exec.Command(flyPath)
+					flyCmd.Dir = buildDir
 
-				flySession, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).ToNot(HaveOccurred())
+					flySession, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).ToNot(HaveOccurred())
 
-				Eventually(streaming, 5).Should(BeClosed())
+					Eventually(streaming, 5).Should(BeClosed())
 
-				Eventually(uploadingBits).Should(BeClosed())
+					Eventually(uploadingBits).Should(BeClosed())
 
-				flySession.Signal(syscall.SIGTERM)
+					flySession.Signal(syscall.SIGTERM)
 
-				Eventually(aborted, 5.0).Should(BeClosed())
+					Eventually(aborted, 5.0).Should(BeClosed())
 
-				events <- event.Status{Status: atc.StatusErrored}
-				close(events)
+					events <- event.Status{Status: atc.StatusErrored}
+					close(events)
 
-				Eventually(flySession, 5.0).Should(gexec.Exit(2))
+					Eventually(flySession, 5.0).Should(gexec.Exit(2))
+				})
 			})
-		})
+		}
 	})
 
 	Context("when the build succeeds", func() {

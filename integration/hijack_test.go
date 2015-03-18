@@ -1,3 +1,5 @@
+// +build !windows
+
 package integration_test
 
 import (
