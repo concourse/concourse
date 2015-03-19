@@ -2,6 +2,7 @@ package worker
 
 import (
 	"errors"
+	"expvar"
 	"fmt"
 	"strings"
 	"sync"
@@ -18,6 +19,8 @@ var ErrUnsupportedResourceType = errors.New("unsupported resource type")
 const containerKeepalive = 30 * time.Second
 
 const ephemeralPropertyName = "concourse:ephemeral"
+
+var trackedContainers = expvar.NewInt("TrackedContainers")
 
 //go:generate counterfeiter . Worker
 
@@ -102,9 +105,6 @@ func (worker *gardenWorker) LookupContainer(id Identifier) (Container, error) {
 	containers, err := worker.gardenClient.Containers(id.gardenProperties())
 	if err != nil {
 		return nil, err
-	}
-
-	if len(containers) == 0 {
 	}
 
 	switch len(containers) {
@@ -204,6 +204,8 @@ func newGardenWorkerContainer(container garden.Container, gardenClient garden.Cl
 	workerContainer.heartbeating.Add(1)
 	go workerContainer.heartbeat(clock.NewTicker(containerKeepalive))
 
+	trackedContainers.Add(1)
+
 	return workerContainer
 }
 
@@ -216,6 +218,7 @@ func (container *gardenWorkerContainer) Release() {
 	container.releaseOnce.Do(func() {
 		close(container.stopHeartbeating)
 		container.heartbeating.Wait()
+		trackedContainers.Add(-1)
 	})
 }
 

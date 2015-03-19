@@ -2,13 +2,23 @@ package workerserver
 
 import (
 	"encoding/json"
+	"expvar"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 )
+
+type IntMetric int
+
+func (i IntMetric) String() string {
+	return strconv.Itoa(int(i))
+}
+
+var workerContainers = expvar.NewMap("WorkerContainers")
 
 func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 	var registration atc.Worker
@@ -33,6 +43,8 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 		}
 	}
+
+	workerContainers.Set(registration.Addr, IntMetric(registration.ActiveContainers))
 
 	err = s.db.SaveWorker(db.WorkerInfo{
 		Addr:             registration.Addr,

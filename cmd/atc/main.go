@@ -17,6 +17,8 @@ import (
 	"github.com/cloudfoundry-incubator/candiedyaml"
 	gclient "github.com/cloudfoundry-incubator/garden/client"
 	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
+	httpmetrics "github.com/codahale/http-handlers/metrics"
+	_ "github.com/codahale/metrics/runtime"
 	"github.com/lib/pq"
 	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
@@ -358,6 +360,8 @@ func main() {
 	httpHandler = auth.CookieSetHandler{
 		Handler: httpHandler,
 	}
+
+	httpHandler = httpmetrics.Wrap(httpHandler)
 
 	webListenAddr := fmt.Sprintf("%s:%d", *webListenAddress, *webListenPort)
 	debugListenAddr := fmt.Sprintf("%s:%d", *debugListenAddress, *debugListenPort)
