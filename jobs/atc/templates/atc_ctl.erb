@@ -66,6 +66,7 @@ case $1 in
       -dev=<%= p("atc.development_mode").inspect %> \
       -checkInterval=<%= p("atc.default_check_interval") %> \
       -cliDownloadsDir=/var/vcap/packages/fly \
+      -metricsHost=<%= "#{name}-#{index}" %> \
       -metricsInterval=<%= p("metrics.interval_in_seconds") %>s \
       -datadogAPIKey=<%= p("metrics.datadog.api_key") %> \
       1>>$LOG_DIR/atc.stdout.log \
