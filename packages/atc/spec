@@ -18,10 +18,6 @@ files:
   - github.com/cloudfoundry-incubator/garden/client/connection/*.go # gosub
   - github.com/cloudfoundry-incubator/garden/routes/*.go # gosub
   - github.com/cloudfoundry-incubator/garden/transport/*.go # gosub
-  - github.com/codahale/hdrhistogram/*.go # gosub
-  - github.com/codahale/http-handlers/metrics/*.go # gosub
-  - github.com/codahale/metrics/*.go # gosub
-  - github.com/codahale/metrics/runtime/*.go # gosub
   - github.com/concourse/atc/*.go # gosub
   - github.com/concourse/atc/api/*.go # gosub
   - github.com/concourse/atc/api/buildserver/*.go # gosub
@@ -57,10 +53,12 @@ files:
   - github.com/concourse/atc/worker/*.go # gosub
   - github.com/lib/pq/*.go # gosub
   - github.com/lib/pq/oid/*.go # gosub
+  - github.com/markchadwick/go-datadog/*.go # gosub
   - github.com/mitchellh/mapstructure/*.go # gosub
   - github.com/nu7hatch/gouuid/*.go # gosub
   - github.com/pivotal-golang/clock/*.go # gosub
   - github.com/pivotal-golang/lager/*.go # gosub
+  - github.com/rcrowley/go-metrics/*.go # gosub
   - github.com/tedsuo/ifrit/*.go # gosub
   - github.com/tedsuo/ifrit/grouper/*.go # gosub
   - github.com/tedsuo/ifrit/http_server/*.go # gosub

@@ -16,6 +16,14 @@ packages:
   - fly
 
 properties:
+  metrics.interval_in_seconds:
+    description: "interval in seconds on which to emit metrics"
+    default: 10
+
+  metrics.datadog.api_key:
+    description: "emit metrics to Datadog with this key"
+    default: ""
+
   atc.web_listen_port:
     description: "port for the web server to listen on"
     default: 8080
