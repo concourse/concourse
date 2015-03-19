@@ -221,6 +221,7 @@ func (container *gardenWorkerContainer) Release() {
 
 func (container *gardenWorkerContainer) heartbeat(pacemaker clock.Ticker) {
 	defer container.heartbeating.Done()
+	defer pacemaker.Stop()
 
 	for {
 		select {
