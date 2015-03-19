@@ -58,10 +58,6 @@
 	path = src/github.com/mgutz/ansi
 	url = https://github.com/mgutz/ansi
 	branch = master
-[submodule "src/github.com/pivotal-golang/archiver"]
-	path = src/github.com/pivotal-golang/archiver
-	url = https://github.com/pivotal-golang/archiver
-	branch = master
 [submodule "src/github.com/pkg/term"]
 	path = src/github.com/pkg/term
 	url = https://github.com/pkg/term
@@ -145,4 +141,16 @@
 [submodule "src/github.com/mitchellh/mapstructure"]
 	path = src/github.com/mitchellh/mapstructure
 	url = https://github.com/mitchellh/mapstructure
+	branch = master
+[submodule "src/github.com/codahale/http-handlers"]
+	path = src/github.com/codahale/http-handlers
+	url = https://github.com/codahale/http-handlers
+	branch = master
+[submodule "src/github.com/codahale/metrics"]
+	path = src/github.com/codahale/metrics
+	url = https://github.com/codahale/metrics
+	branch = master
+[submodule "src/github.com/codahale/hdrhistogram"]
+	path = src/github.com/codahale/hdrhistogram
+	url = https://github.com/codahale/hdrhistogram
 	branch = master

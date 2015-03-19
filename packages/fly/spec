@@ -33,7 +33,6 @@ files:
   - github.com/onsi/gomega/matchers/support/goraph/node/*.go # gosub
   - github.com/onsi/gomega/matchers/support/goraph/util/*.go # gosub
   - github.com/onsi/gomega/types/*.go # gosub
-  - github.com/pivotal-golang/archiver/compressor/*.go # gosub
   - github.com/pkg/term/*.go # gosub
   - github.com/pkg/term/termios/*.go # gosub
   - github.com/tedsuo/rata/*.go # gosub
