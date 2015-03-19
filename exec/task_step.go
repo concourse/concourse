@@ -66,7 +66,7 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		Stderr: step.Delegate.Stderr(),
 	}
 
-	step.container, err = step.WorkerClient.Lookup(step.WorkerID)
+	step.container, err = step.WorkerClient.LookupContainer(step.WorkerID)
 	if err == nil {
 		// container already exists; recover session
 

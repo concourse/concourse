@@ -151,7 +151,7 @@ var _ = Describe("Pool", func() {
 		})
 	})
 
-	Describe("Lookup", func() {
+	Describe("LookupContainer", func() {
 		var (
 			id Identifier
 
@@ -164,7 +164,7 @@ var _ = Describe("Pool", func() {
 		})
 
 		JustBeforeEach(func() {
-			foundContainer, lookupErr = pool.Lookup(id)
+			foundContainer, lookupErr = pool.LookupContainer(id)
 		})
 
 		Context("with multiple workers", func() {
@@ -189,8 +189,8 @@ var _ = Describe("Pool", func() {
 
 			Context("when a worker can locate the container", func() {
 				BeforeEach(func() {
-					workerA.LookupReturns(fakeContainer, nil)
-					workerB.LookupReturns(nil, ErrContainerNotFound)
+					workerA.LookupContainerReturns(fakeContainer, nil)
+					workerB.LookupContainerReturns(nil, ErrContainerNotFound)
 				})
 
 				It("returns the container", func() {
@@ -198,18 +198,18 @@ var _ = Describe("Pool", func() {
 				})
 
 				It("looks up by the given identifier", func() {
-					Ω(workerA.LookupCallCount()).Should(Equal(1))
-					Ω(workerB.LookupCallCount()).Should(Equal(1))
+					Ω(workerA.LookupContainerCallCount()).Should(Equal(1))
+					Ω(workerB.LookupContainerCallCount()).Should(Equal(1))
 
-					Ω(workerA.LookupArgsForCall(0)).Should(Equal(id))
-					Ω(workerB.LookupArgsForCall(0)).Should(Equal(id))
+					Ω(workerA.LookupContainerArgsForCall(0)).Should(Equal(id))
+					Ω(workerB.LookupContainerArgsForCall(0)).Should(Equal(id))
 				})
 			})
 
 			Context("when no workers can locate the container", func() {
 				BeforeEach(func() {
-					workerA.LookupReturns(nil, ErrContainerNotFound)
-					workerB.LookupReturns(nil, ErrContainerNotFound)
+					workerA.LookupContainerReturns(nil, ErrContainerNotFound)
+					workerB.LookupContainerReturns(nil, ErrContainerNotFound)
 				})
 
 				It("returns ErrContainerNotFound", func() {

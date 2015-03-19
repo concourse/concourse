@@ -39,7 +39,7 @@ func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	container, err := s.workerClient.Lookup(worker.Identifier{
+	container, err := s.workerClient.LookupContainer(worker.Identifier{
 		BuildID: buildID,
 
 		Type: worker.ContainerType(r.URL.Query().Get("type")),

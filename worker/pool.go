@@ -76,7 +76,7 @@ func (pool *Pool) CreateContainer(id Identifier, spec ContainerSpec) (Container,
 	return randomWorker.CreateContainer(id, spec)
 }
 
-func (pool *Pool) Lookup(id Identifier) (Container, error) {
+func (pool *Pool) LookupContainer(id Identifier) (Container, error) {
 	workers, err := pool.provider.Workers()
 	if err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ func (pool *Pool) Lookup(id Identifier) (Container, error) {
 		go func(worker Worker) {
 			defer wg.Done()
 
-			container, err := worker.Lookup(id)
+			container, err := worker.LookupContainer(id)
 			if err == nil {
 				found <- container
 			}

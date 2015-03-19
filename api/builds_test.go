@@ -466,7 +466,7 @@ var _ = Describe("Builds API", func() {
 
 				BeforeEach(func() {
 					fakeContainer = new(workerfakes.FakeContainer)
-					fakeWorkerClient.LookupReturns(fakeContainer, nil)
+					fakeWorkerClient.LookupContainerReturns(fakeContainer, nil)
 				})
 
 				Context("when running the process succeeds", func() {
@@ -493,7 +493,7 @@ var _ = Describe("Builds API", func() {
 					It("hijacks the build", func() {
 						Eventually(fakeContainer.RunCallCount).Should(Equal(1))
 
-						Ω(fakeWorkerClient.LookupArgsForCall(0)).Should(Equal(worker.Identifier{
+						Ω(fakeWorkerClient.LookupContainerArgsForCall(0)).Should(Equal(worker.Identifier{
 							BuildID: 128,
 
 							Type: worker.ContainerType(stepType),
@@ -643,7 +643,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when the container cannot be found", func() {
 				BeforeEach(func() {
-					fakeWorkerClient.LookupReturns(nil, worker.ErrContainerNotFound)
+					fakeWorkerClient.LookupContainerReturns(nil, worker.ErrContainerNotFound)
 				})
 
 				It("returns 404 Not Found", func() {

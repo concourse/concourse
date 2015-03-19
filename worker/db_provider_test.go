@@ -155,7 +155,7 @@ var _ = Describe("DBProvider", func() {
 
 				workerA.ContainersReturns([]garden.Container{fakeContainer}, nil)
 
-				container, err := workers[0].Lookup(Identifier{Name: "some-name"})
+				container, err := workers[0].LookupContainer(Identifier{Name: "some-name"})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(container.Handle()).Should(Equal("some-handle"))

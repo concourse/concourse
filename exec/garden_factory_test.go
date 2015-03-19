@@ -777,7 +777,7 @@ var _ = Describe("GardenFactory", func() {
 
 		Context("when the container does not yet exist", func() {
 			BeforeEach(func() {
-				fakeWorkerClient.LookupReturns(nil, errors.New("nope"))
+				fakeWorkerClient.LookupContainerReturns(nil, errors.New("nope"))
 			})
 
 			Context("when the getting the config works", func() {
@@ -833,7 +833,7 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					It("looked up the container via the session ID", func() {
-						Ω(fakeWorkerClient.LookupArgsForCall(0)).Should(Equal(identifier))
+						Ω(fakeWorkerClient.LookupContainerArgsForCall(0)).Should(Equal(identifier))
 					})
 
 					It("gets the config from the input artifact soruce", func() {
@@ -1644,7 +1644,7 @@ var _ = Describe("GardenFactory", func() {
 
 			BeforeEach(func() {
 				fakeContainer = new(wfakes.FakeContainer)
-				fakeWorkerClient.LookupReturns(fakeContainer, nil)
+				fakeWorkerClient.LookupContainerReturns(fakeContainer, nil)
 			})
 
 			Context("when an exit status is already saved off", func() {

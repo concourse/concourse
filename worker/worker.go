@@ -98,7 +98,7 @@ dance:
 	return newGardenWorkerContainer(gardenContainer, worker.gardenClient, worker.clock), nil
 }
 
-func (worker *gardenWorker) Lookup(id Identifier) (Container, error) {
+func (worker *gardenWorker) LookupContainer(id Identifier) (Container, error) {
 	containers, err := worker.gardenClient.Containers(id.gardenProperties())
 	if err != nil {
 		return nil, err

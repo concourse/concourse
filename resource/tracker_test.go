@@ -47,7 +47,7 @@ var _ = Describe("Tracker", func() {
 
 		Context("when a container does not exist for the session", func() {
 			BeforeEach(func() {
-				workerClient.LookupReturns(nil, errors.New("nope"))
+				workerClient.LookupContainerReturns(nil, errors.New("nope"))
 			})
 
 			It("does not error and returns a resource", func() {
@@ -84,7 +84,7 @@ var _ = Describe("Tracker", func() {
 
 			BeforeEach(func() {
 				fakeContainer = new(wfakes.FakeContainer)
-				workerClient.LookupReturns(fakeContainer, nil)
+				workerClient.LookupContainerReturns(fakeContainer, nil)
 			})
 
 			It("does not error and returns a resource", func() {
