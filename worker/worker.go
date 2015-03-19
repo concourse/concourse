@@ -2,7 +2,6 @@ package worker
 
 import (
 	"errors"
-	"expvar"
 	"fmt"
 	"strings"
 	"sync"
@@ -11,6 +10,7 @@ import (
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
 	"github.com/pivotal-golang/clock"
+	"github.com/rcrowley/go-metrics"
 )
 
 var ErrContainerNotFound = errors.New("container not found")
@@ -20,7 +20,11 @@ const containerKeepalive = 30 * time.Second
 
 const ephemeralPropertyName = "concourse:ephemeral"
 
-var trackedContainers = expvar.NewInt("TrackedContainers")
+var trackedContainers = metrics.NewCounter()
+
+func init() {
+	metrics.Register("TrackedContainers", trackedContainers)
+}
 
 //go:generate counterfeiter . Worker
 
@@ -204,7 +208,7 @@ func newGardenWorkerContainer(container garden.Container, gardenClient garden.Cl
 	workerContainer.heartbeating.Add(1)
 	go workerContainer.heartbeat(clock.NewTicker(containerKeepalive))
 
-	trackedContainers.Add(1)
+	trackedContainers.Inc(1)
 
 	return workerContainer
 }
@@ -218,7 +222,7 @@ func (container *gardenWorkerContainer) Release() {
 	container.releaseOnce.Do(func() {
 		close(container.stopHeartbeating)
 		container.heartbeating.Wait()
-		trackedContainers.Add(-1)
+		trackedContainers.Dec(1)
 	})
 }
 
