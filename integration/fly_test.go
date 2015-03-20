@@ -214,7 +214,9 @@ run:
 		Eventually(sess.Out).Should(gbytes.Say("sup"))
 
 		close(events)
-		Eventually(sess).Should(gexec.Exit(0))
+
+		<-sess.Exited
+		Ω(sess.ExitCode()).Should(Equal(0))
 	})
 
 	Context("when the build config is invalid", func() {
@@ -239,7 +241,8 @@ run: {}
 
 			Eventually(sess.Err).Should(gbytes.Say("missing"))
 
-			Eventually(sess).Should(gexec.Exit(1))
+			<-sess.Exited
+			Ω(sess.ExitCode()).Should(Equal(1))
 		})
 	})
 
@@ -261,7 +264,9 @@ run: {}
 			Eventually(streaming, 5.0).Should(BeClosed())
 
 			close(events)
-			Eventually(sess).Should(gexec.Exit(0))
+
+			<-sess.Exited
+			Ω(sess.ExitCode()).Should(Equal(0))
 		})
 	})
 
@@ -283,7 +288,9 @@ run: {}
 			Eventually(streaming, 5.0).Should(BeClosed())
 
 			close(events)
-			Eventually(sess).Should(gexec.Exit(0))
+
+			<-sess.Exited
+			Ω(sess.ExitCode()).Should(Equal(0))
 		})
 	})
 
@@ -297,7 +304,9 @@ run: {}
 
 			Eventually(sess).Should(gbytes.Say("Incorrect Usage."))
 			Eventually(sess.Err).Should(gbytes.Say("bogus-flag"))
-			Eventually(sess).Should(gexec.Exit(1))
+
+			<-sess.Exited
+			Ω(sess.ExitCode()).Should(Equal(1))
 		})
 	})
 
@@ -324,7 +333,9 @@ run: {}
 			Eventually(streaming, 5.0).Should(BeClosed())
 
 			close(events)
-			Eventually(sess).Should(gexec.Exit(0))
+
+			<-sess.Exited
+			Ω(sess.ExitCode()).Should(Equal(0))
 		})
 	})
 
@@ -350,21 +361,22 @@ run: {}
 					flyCmd := exec.Command(flyPath)
 					flyCmd.Dir = buildDir
 
-					flySession, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).ToNot(HaveOccurred())
 
 					Eventually(streaming, 5).Should(BeClosed())
 
 					Eventually(uploadingBits).Should(BeClosed())
 
-					flySession.Signal(os.Interrupt)
+					sess.Signal(os.Interrupt)
 
 					Eventually(aborted, 5.0).Should(BeClosed())
 
 					events <- event.Status{Status: atc.StatusErrored}
 					close(events)
 
-					Eventually(flySession, 5.0).Should(gexec.Exit(2))
+					<-sess.Exited
+					Ω(sess.ExitCode()).Should(Equal(2))
 				})
 			})
 
@@ -373,21 +385,22 @@ run: {}
 					flyCmd := exec.Command(flyPath)
 					flyCmd.Dir = buildDir
 
-					flySession, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).ToNot(HaveOccurred())
 
 					Eventually(streaming, 5).Should(BeClosed())
 
 					Eventually(uploadingBits).Should(BeClosed())
 
-					flySession.Signal(syscall.SIGTERM)
+					sess.Signal(syscall.SIGTERM)
 
 					Eventually(aborted, 5.0).Should(BeClosed())
 
 					events <- event.Status{Status: atc.StatusErrored}
 					close(events)
 
-					Eventually(flySession, 5.0).Should(gexec.Exit(2))
+					<-sess.Exited
+					Ω(sess.ExitCode()).Should(Equal(2))
 				})
 			})
 		}
@@ -398,7 +411,7 @@ run: {}
 			flyCmd := exec.Command(flyPath)
 			flyCmd.Dir = buildDir
 
-			flySession, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
 
 			Eventually(streaming, 5).Should(BeClosed())
@@ -406,7 +419,8 @@ run: {}
 			events <- event.Status{Status: atc.StatusSucceeded}
 			close(events)
 
-			Eventually(flySession, 5.0).Should(gexec.Exit(0))
+			<-sess.Exited
+			Ω(sess.ExitCode()).Should(Equal(0))
 		})
 	})
 
@@ -415,7 +429,7 @@ run: {}
 			flyCmd := exec.Command(flyPath)
 			flyCmd.Dir = buildDir
 
-			flySession, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
 
 			Eventually(streaming, 5).Should(BeClosed())
@@ -423,7 +437,8 @@ run: {}
 			events <- event.Status{Status: atc.StatusFailed}
 			close(events)
 
-			Eventually(flySession, 5.0).Should(gexec.Exit(1))
+			<-sess.Exited
+			Ω(sess.ExitCode()).Should(Equal(1))
 		})
 	})
 
@@ -432,7 +447,7 @@ run: {}
 			flyCmd := exec.Command(flyPath)
 			flyCmd.Dir = buildDir
 
-			flySession, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
 
 			Eventually(streaming, 5).Should(BeClosed())
@@ -440,7 +455,8 @@ run: {}
 			events <- event.Status{Status: atc.StatusErrored}
 			close(events)
 
-			Eventually(flySession, 5.0).Should(gexec.Exit(2))
+			<-sess.Exited
+			Ω(sess.ExitCode()).Should(Equal(2))
 		})
 	})
 })

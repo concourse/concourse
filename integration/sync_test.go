@@ -81,7 +81,9 @@ var _ = Describe("Syncing", func() {
 
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 		Ω(err).ShouldNot(HaveOccurred())
-		Eventually(sess).Should(gexec.Exit(0))
+
+		<-sess.Exited
+		Ω(sess.ExitCode()).Should(Equal(0))
 	}
 
 	It("downloads and replaces the currently running executable", func() {

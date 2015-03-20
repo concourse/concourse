@@ -89,7 +89,8 @@ var _ = Describe("Watching", func() {
 
 		close(events)
 
-		Eventually(sess).Should(gexec.Exit(0))
+		<-sess.Exited
+		Ω(sess.ExitCode()).Should(Equal(0))
 	}
 
 	Context("with no arguments", func() {

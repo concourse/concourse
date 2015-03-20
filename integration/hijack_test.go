@@ -107,7 +107,8 @@ var _ = Describe("Hijacking", func() {
 		err = pty.Close()
 		Ω(err).ShouldNot(HaveOccurred())
 
-		Eventually(sess).Should(gexec.Exit(123))
+		<-sess.Exited
+		Ω(sess.ExitCode()).Should(Equal(123))
 	}
 
 	hijack := func(args ...string) {
@@ -265,7 +266,8 @@ var _ = Describe("Hijacking", func() {
 				err = pty.Close()
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Eventually(sess).Should(gexec.Exit(255))
+				<-sess.Exited
+				Ω(sess.ExitCode()).Should(Equal(255))
 			})
 		})
 	})

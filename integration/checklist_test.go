@@ -72,7 +72,8 @@ var _ = Describe("Fly CLI", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Eventually(sess).Should(gexec.Exit(0))
+			<-sess.Exited
+			Ω(sess.ExitCode()).Should(Equal(0))
 
 			Ω(string(sess.Out.Contents())).Should(Equal(fmt.Sprintf(
 				`#- some-group

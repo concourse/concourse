@@ -158,7 +158,8 @@ var _ = Describe("Fly CLI", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Eventually(sess).Should(gexec.Exit(0))
+				<-sess.Exited
+				Ω(sess.ExitCode()).Should(Equal(0))
 
 				var printedConfig atc.Config
 				err = yaml.Unmarshal(sess.Out.Contents(), &printedConfig)
@@ -174,7 +175,8 @@ var _ = Describe("Fly CLI", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Eventually(sess).Should(gexec.Exit(0))
+					<-sess.Exited
+					Ω(sess.ExitCode()).Should(Equal(0))
 
 					var printedConfig atc.Config
 					err = json.Unmarshal(sess.Out.Contents(), &printedConfig)
@@ -295,7 +297,8 @@ var _ = Describe("Fly CLI", func() {
 
 					Eventually(sess).Should(gbytes.Say("configuration updated"))
 
-					Eventually(sess).Should(gexec.Exit(0))
+					<-sess.Exited
+					Ω(sess.ExitCode()).Should(Equal(0))
 
 					Ω(atcServer.ReceivedRequests()).Should(HaveLen(2))
 				})
@@ -312,7 +315,8 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
 					fmt.Fprintln(stdin, "n")
 
-					Eventually(sess).Should(gexec.Exit(1))
+					<-sess.Exited
+					Ω(sess.ExitCode()).Should(Equal(1))
 
 					Ω(atcServer.ReceivedRequests()).Should(HaveLen(1))
 				})
@@ -342,7 +346,8 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Err).Should(gbytes.Say("  response body:"))
 					Eventually(sess.Err).Should(gbytes.Say("    nope"))
 
-					Eventually(sess).Should(gexec.Exit(1))
+					<-sess.Exited
+					Ω(sess.ExitCode()).Should(Equal(1))
 				})
 			})
 
@@ -367,7 +372,8 @@ var _ = Describe("Fly CLI", func() {
 
 					Eventually(sess.Err).Should(gbytes.Say("failed to update configuration: Put"))
 
-					Eventually(sess).Should(gexec.Exit(1))
+					<-sess.Exited
+					Ω(sess.ExitCode()).Should(Equal(1))
 				})
 			})
 		})
