@@ -142,11 +142,15 @@
 	path = src/github.com/mitchellh/mapstructure
 	url = https://github.com/mitchellh/mapstructure
 	branch = master
-[submodule "src/github.com/markchadwick/go-datadog"]
-	path = src/github.com/markchadwick/go-datadog
-	url = https://github.com/markchadwick/go-datadog
+[submodule "src/github.com/codahale/http-handlers"]
+	path = src/github.com/codahale/http-handlers
+	url = https://github.com/codahale/http-handlers
 	branch = master
-[submodule "src/github.com/rcrowley/go-metrics"]
-	path = src/github.com/rcrowley/go-metrics
-	url = https://github.com/rcrowley/go-metrics
+[submodule "src/github.com/codahale/metrics"]
+	path = src/github.com/codahale/metrics
+	url = https://github.com/codahale/metrics
+	branch = master
+[submodule "src/github.com/codahale/hdrhistogram"]
+	path = src/github.com/codahale/hdrhistogram
+	url = https://github.com/codahale/hdrhistogram
 	branch = master
