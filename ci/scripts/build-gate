@@ -12,8 +12,14 @@ echo "v$(cat version/number)" > $DISTDIR/release-name
 
 cd $GOPATH/src/github.com/concourse/gate
 
-GOOS=darwin GOARCH=amd64 \
-  go build -o $DISTDIR/artifacts/gate_darwin_amd64 ./cmd/gate
+GOOS=darwin GOARCH=amd64 go build \
+  -a -tags netgo -installsuffix netgo \
+  -o $DISTDIR/artifacts/gate_darwin_amd64 ./cmd/gate
 
-GOOS=windows GOARCH=amd64 \
-  go build -o $DISTDIR/artifacts/gate.exe ./cmd/gate
+GOOS=linux GOARCH=amd64 go build \
+  -a -tags netgo -installsuffix netgo \
+  -o $DISTDIR/artifacts/gate_linux_amd64 ./cmd/gate
+
+GOOS=windows GOARCH=amd64 go build \
+  -a -tags netgo -installsuffix netgo \
+  -o $DISTDIR/artifacts/gate.exe ./cmd/gate
