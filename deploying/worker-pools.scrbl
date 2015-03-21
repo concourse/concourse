@@ -45,4 +45,92 @@ For example:
   }
 }|
 
+
+@section[#:tag "other-workers"]{Windows and OS X Workers}
+
+For Windows and OS X, a primitive Garden backend is available, called
+@hyperlink["http://github.com/vito/houdini"]{Houdini}.
+
+@margin-note{
+  Containers running via Houdini are not isolated from each other. This is
+  much less safe than the Linux workers, but will do just fine if you trust
+  your builds.
+
+  A proper @hyperlink["https://github.com/cloudfoundry-incubator/garden-windows"]{Garden Windows}
+  implementation is in the works.
+}
+
+To set up Houdini, download the appropriate binary from its
+@hyperlink["https://github.com/vito/houdini/releases/latest"]{latest GitHub
+release}.
+
+By default, Houdini will place container data in @code{./containers}
+relative to wherever Houdini started from. To change this location, or see
+other settings, run Houdini with @code{--help}.
+
+
+@section[#:tag "linux-workers"]{Out-of-band Linux Workers}
+
+A typical Concourse deployment includes Garden Linux, which is what provides
+the default Linux workers.
+
+If you're deploying with BOSH, all worker configuration is automatic, and
+you can dynamically grow and shrink the worker pool just by changing the
+instance count and redeploying.
+
+However, sometimes your workers can't be automated by BOSH. Perhaps you have
+some managed server, and you want to run builds on it.
+
+To do this, you'll probably want to provision Garden Linux to your machine
+manually. This can be done with Vagrant via the
+@hyperlink["https://github.com/tknerr/vagrant-managed-servers"]{Vagrant
+Managed Servers} provider and the
+@hyperlink["https://github.com/cppforlife/vagrant-bosh"]{Vagrant BOSH}
+provisioner.
+
+
+@section[#:tag "gate"]{Registering workers with Concourse}
+
+Worker health checking and registration is automated by a tiny component
+called @hyperlink["https://github.com/concourse/gate"]{Gate}.
+
+Gate continuously pings the Garden server's API and registers it with the
+Concourse API. To run Gate, download the version for your platform from
+@hyperlink["https://github.com/concourse/gate/release"]{Gate's GitHub
+releases}, and run it like so:
+
+@codeblock|{
+  gate \
+    -atcAPIURL="http://my.atc.com" \
+    -gardenAddr=127.0.0.1:7777 \
+    -platform=your-platform \
+    -tags=a,b,c
+}|
+
+The @code{-atcAPIURL} flag should be the UR, to your Concourse deployment's
+web/API server, including any basic auth.
+
+The @code{-gardenAddr} flag specifies the address of the Garden server to
+advertise to the ATC. It will be continuously health checked, so it must
+also be reachable by the Gate.
+
+The @code{-platform} flag is the platform to advertise for your worker. This
+determines which tasks get placed on the worker. Standard names are
+@code{linux}, @code{darwin}, and @code{linux}.
+
+The optional @code{-tags} flag specifies a comma-separated list of tag
+names. If specified, only tasks with a matching (sub)set of tags will be run
+on the worker.
+
+An additional @code{-resourceTypes} flag can be specified, to provide a list
+of resource types supported by the worker. This value is provided as a
+JSON-formatted list of objects specifying the @code{name} of the resource
+type and @code{image} to use for its containers.
+
+Note that there is currently no auth between Concourse and its workers.
+Until this is implemented, you should probably lock down the Garden server's
+listen addresses to @code{127.0.0.1} and reach them via SSH tunnels, or have
+them all running within a private network (e.g. an AWS VPC).
+
+
 @inject-analytics[]
