@@ -42,7 +42,7 @@ var privilegedFlag = cli.BoolFlag{
 }
 
 var checkFlag = cli.StringFlag{
-	Name:  "check",
+	Name:  "check, c",
 	Usage: "name of a resource's checking container to hijack",
 }
 
