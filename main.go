@@ -8,6 +8,13 @@ import (
 	"github.com/concourse/fly/commands"
 )
 
+var targetFlag = cli.StringFlag{
+	Name:   "target",
+	Value:  "http://192.168.100.4:8080",
+	Usage:  "address of the Concourse API server to use",
+	EnvVar: "ATC_URL",
+}
+
 var buildConfigFlag = cli.StringFlag{
 	Name:  "config, c",
 	Value: "build.yml",
@@ -34,11 +41,9 @@ var privilegedFlag = cli.BoolFlag{
 	Usage: "run the build or command with root privileges",
 }
 
-var targetFlag = cli.StringFlag{
-	Name:   "target",
-	Value:  "http://192.168.100.4:8080",
-	Usage:  "address of the Concourse API server to use",
-	EnvVar: "ATC_URL",
+var checkFlag = cli.StringFlag{
+	Name:  "check",
+	Usage: "name of a resource's checking container to hijack",
 }
 
 var stepTypeFlag = cli.StringFlag{
@@ -171,6 +176,7 @@ func takeControl(commandName string) cli.Command {
 			targetFlag,
 			stepTypeFlag,
 			stepNameFlag,
+			checkFlag,
 		},
 		Action: commands.Hijack,
 	}

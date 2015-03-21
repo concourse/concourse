@@ -35,6 +35,7 @@ func Hijack(c *cli.Context) {
 	privileged := c.Bool("privileged")
 	stepType := c.String("step-type")
 	stepName := c.String("step-name")
+	check := c.String("check")
 
 	reqGenerator := rata.NewRequestGenerator(target, atc.Routes)
 
@@ -82,16 +83,26 @@ func Hijack(c *cli.Context) {
 
 	client := &http.Client{Transport: transport}
 
-	build := getBuild(c, client, reqGenerator)
+	reqValues := url.Values{}
+
+	if check == "" {
+		build := getBuild(c, client, reqGenerator)
+		reqValues["build-id"] = []string{strconv.Itoa(build.ID)}
+		reqValues["type"] = []string{stepType}
+		reqValues["name"] = []string{stepName}
+	} else {
+		reqValues["type"] = []string{"check"}
+		reqValues["name"] = []string{check}
+	}
 
 	payload, err := json.Marshal(spec)
 	if err != nil {
-		log.Fatalln("failed to marshal build spec:", err)
+		log.Fatalln("failed to marshal process spec:", err)
 	}
 
 	hijackReq, err := reqGenerator.CreateRequest(
-		atc.HijackBuild,
-		rata.Params{"build_id": strconv.Itoa(build.ID)},
+		atc.Hijack,
+		rata.Params{},
 		bytes.NewBuffer(payload),
 	)
 	if err != nil {
@@ -103,10 +114,7 @@ func Hijack(c *cli.Context) {
 		hijackReq.URL.User = nil
 	}
 
-	hijackReq.URL.RawQuery = url.Values{
-		"type": []string{stepType},
-		"name": []string{stepName},
-	}.Encode()
+	hijackReq.URL.RawQuery = reqValues.Encode()
 
 	conn, err := dialEndpoint(hijackReq.URL, tlsConfig)
 	if err != nil {

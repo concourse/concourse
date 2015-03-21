@@ -31,7 +31,7 @@ var _ = Describe("Hijacking", func() {
 
 	hijackHandler := func(didHijack chan<- struct{}, rawQuery []string, errorMessages []string) http.HandlerFunc {
 		return ghttp.CombineHandlers(
-			ghttp.VerifyRequest("POST", "/api/v1/builds/3/hijack", rawQuery...),
+			ghttp.VerifyRequest("POST", "/api/v1/hijack", rawQuery...),
 			func(w http.ResponseWriter, r *http.Request) {
 				defer GinkgoRecover()
 
@@ -130,7 +130,7 @@ var _ = Describe("Hijacking", func() {
 						{ID: 1, Name: "1", Status: "finished"},
 					}),
 				),
-				hijackHandler(didHijack, []string{"type=task&name=build"}, nil),
+				hijackHandler(didHijack, []string{"build-id=3&type=task&name=build"}, nil),
 			)
 		})
 
@@ -140,6 +140,21 @@ var _ = Describe("Hijacking", func() {
 
 		It("hijacks the most recent one-off build with a more politically correct command", func() {
 			fly("intercept")
+		})
+	})
+
+	Context("hijacks with check container", func() {
+		BeforeEach(func() {
+			didHijack := make(chan struct{})
+			hijacked = didHijack
+
+			atcServer.AppendHandlers(
+				hijackHandler(didHijack, []string{"type=check&name=some-resource-name"}, nil),
+			)
+		})
+
+		It("can accept the check resources name", func() {
+			hijack("--check", "some-resource-name")
 		})
 	})
 
@@ -167,7 +182,7 @@ var _ = Describe("Hijacking", func() {
 							},
 						}),
 					),
-					hijackHandler(didHijack, nil, nil),
+					hijackHandler(didHijack, []string{"build-id=3&type=task&name=build"}, nil),
 				)
 			})
 
@@ -194,7 +209,7 @@ var _ = Describe("Hijacking", func() {
 							},
 						}),
 					),
-					hijackHandler(didHijack, nil, nil),
+					hijackHandler(didHijack, []string{"build-id=3&type=task&name=build"}, nil),
 				)
 			})
 
@@ -218,7 +233,7 @@ var _ = Describe("Hijacking", func() {
 							JobName: "some-job",
 						}),
 					),
-					hijackHandler(didHijack, nil, nil),
+					hijackHandler(didHijack, []string{"build-id=3&type=task&name=build"}, nil),
 				)
 			})
 
@@ -242,7 +257,7 @@ var _ = Describe("Hijacking", func() {
 							{ID: 1, Name: "1", Status: "finished"},
 						}),
 					),
-					hijackHandler(didHijack, nil, []string{"something went wrong"}),
+					hijackHandler(didHijack, []string{"build-id=3&type=task&name=build"}, []string{"something went wrong"}),
 				)
 			})
 
@@ -287,7 +302,7 @@ var _ = Describe("Hijacking", func() {
 						{ID: 1, Name: "1", Status: "finished"},
 					}),
 				),
-				hijackHandler(didHijack, []string{"type=get&name=money"}, nil),
+				hijackHandler(didHijack, []string{"build-id=3&type=get&name=money"}, nil),
 			)
 		})
 
