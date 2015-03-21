@@ -310,7 +310,6 @@ func main() {
 		db,
 
 		config.ValidateConfig,
-		5*time.Second,
 		callbacksURL.Host,
 		buildserver.NewEventHandler,
 		drain,

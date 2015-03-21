@@ -1,4 +1,4 @@
-package buildserver
+package hijackserver
 
 import (
 	"encoding/json"
@@ -13,15 +13,25 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
-	buildID, err := strconv.Atoi(r.FormValue(":build_id"))
-	if err != nil {
-		http.Error(w, fmt.Sprintf("malformed build ID: %s", err), http.StatusBadRequest)
-		return
+func (s *Server) Hijack(w http.ResponseWriter, r *http.Request) {
+	workerIdentifier := worker.Identifier{
+		Type: worker.ContainerType(r.URL.Query().Get("type")),
+		Name: r.URL.Query().Get("name"),
+	}
+
+	var err error
+
+	buildIDParam := r.URL.Query().Get("build-id")
+	if len(buildIDParam) != 0 {
+		workerIdentifier.BuildID, err = strconv.Atoi(buildIDParam)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("malformed build ID: %s", err), http.StatusBadRequest)
+			return
+		}
 	}
 
 	hLog := s.logger.Session("hijack", lager.Data{
-		"build": buildID,
+		"identifier": workerIdentifier,
 	})
 
 	var processSpec atc.HijackProcessSpec
@@ -32,19 +42,7 @@ func (s *Server) HijackBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = s.db.GetBuild(buildID)
-	if err != nil {
-		hLog.Error("failed-to-get-build", err)
-		http.Error(w, fmt.Sprintf("failed to get build: %s", err), http.StatusNotFound)
-		return
-	}
-
-	container, err := s.workerClient.LookupContainer(worker.Identifier{
-		BuildID: buildID,
-
-		Type: worker.ContainerType(r.URL.Query().Get("type")),
-		Name: r.URL.Query().Get("name"),
-	})
+	container, err := s.workerClient.LookupContainer(workerIdentifier)
 	if err != nil {
 		hLog.Error("failed-to-get-container", err)
 		http.Error(w, fmt.Sprintf("failed to get container: %s", err), http.StatusNotFound)

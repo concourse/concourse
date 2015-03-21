@@ -3,7 +3,6 @@ package api
 import (
 	"net/http"
 	"path/filepath"
-	"time"
 
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
@@ -12,6 +11,7 @@ import (
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/api/cliserver"
 	"github.com/concourse/atc/api/configserver"
+	"github.com/concourse/atc/api/hijackserver"
 	"github.com/concourse/atc/api/jobserver"
 	"github.com/concourse/atc/api/loglevelserver"
 	"github.com/concourse/atc/api/pipes"
@@ -35,7 +35,6 @@ func NewHandler(
 	workerDB workerserver.WorkerDB,
 
 	configValidator configserver.ConfigValidator,
-	pingInterval time.Duration,
 	peerAddr string,
 	eventHandlerFactory buildserver.EventHandlerFactory,
 	drain <-chan struct{},
@@ -58,10 +57,14 @@ func NewHandler(
 		workerClient,
 		buildsDB,
 		configDB,
-		pingInterval,
 		eventHandlerFactory,
 		drain,
 		validator,
+	)
+
+	hijackServer := hijackserver.NewServer(
+		logger,
+		workerClient,
 	)
 
 	jobServer := jobserver.NewServer(logger, jobsDB, configDB)
@@ -87,11 +90,12 @@ func NewHandler(
 		atc.GetConfig:  validate(http.HandlerFunc(configServer.GetConfig)),
 		atc.SaveConfig: validate(http.HandlerFunc(configServer.SaveConfig)),
 
+		atc.Hijack: validate(http.HandlerFunc(hijackServer.Hijack)),
+
 		atc.ListBuilds:  http.HandlerFunc(buildServer.ListBuilds),
 		atc.CreateBuild: validate(http.HandlerFunc(buildServer.CreateBuild)),
 		atc.BuildEvents: http.HandlerFunc(buildServer.BuildEvents),
 		atc.AbortBuild:  validate(http.HandlerFunc(buildServer.AbortBuild)),
-		atc.HijackBuild: validate(http.HandlerFunc(buildServer.HijackBuild)),
 
 		atc.ListJobs:      http.HandlerFunc(jobServer.ListJobs),
 		atc.GetJob:        http.HandlerFunc(jobServer.GetJob),

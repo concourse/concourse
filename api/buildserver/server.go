@@ -20,7 +20,6 @@ type Server struct {
 	workerClient        worker.Client
 	db                  BuildsDB
 	configDB            db.ConfigDB
-	pingInterval        time.Duration
 	eventHandlerFactory EventHandlerFactory
 	drain               <-chan struct{}
 	fallback            auth.Validator
@@ -44,7 +43,6 @@ func NewServer(
 	workerClient worker.Client,
 	db BuildsDB,
 	configDB db.ConfigDB,
-	pingInterval time.Duration,
 	eventHandlerFactory EventHandlerFactory,
 	drain <-chan struct{},
 	fallback auth.Validator,
@@ -55,7 +53,6 @@ func NewServer(
 		workerClient:        workerClient,
 		db:                  db,
 		configDB:            configDB,
-		pingInterval:        pingInterval,
 		eventHandlerFactory: eventHandlerFactory,
 		drain:               drain,
 		fallback:            fallback,

@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -38,7 +37,6 @@ var (
 	workerDB            *workerserverfakes.FakeWorkerDB
 	resourceDB          *resourcefakes.FakeResourceDB
 	configValidationErr error
-	pingInterval        time.Duration
 	peerAddr            string
 	drain               chan struct{}
 	cliDownloadsDir     string
@@ -83,7 +81,6 @@ var _ = BeforeEach(func() {
 
 	authValidator = new(authfakes.FakeValidator)
 	configValidationErr = nil
-	pingInterval = 100 * time.Millisecond
 	peerAddr = "127.0.0.1:1234"
 	drain = make(chan struct{})
 
@@ -114,7 +111,6 @@ var _ = BeforeEach(func() {
 		workerDB,
 
 		func(atc.Config) error { return configValidationErr },
-		pingInterval,
 		peerAddr,
 		constructedEventHandler.Construct,
 		drain,

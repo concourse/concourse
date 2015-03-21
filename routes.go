@@ -6,11 +6,12 @@ const (
 	SaveConfig = "SaveConfig"
 	GetConfig  = "GetConfig"
 
+	Hijack = "Hijack"
+
 	CreateBuild = "CreateBuild"
 	ListBuilds  = "ListBuilds"
 	BuildEvents = "BuildEvents"
 	AbortBuild  = "AbortBuild"
-	HijackBuild = "HijackBuild"
 
 	GetJob        = "GetJob"
 	ListJobs      = "ListJobs"
@@ -42,7 +43,7 @@ var Routes = rata.Routes{
 	{Path: "/api/v1/builds", Method: "GET", Name: ListBuilds},
 	{Path: "/api/v1/builds/:build_id/events", Method: "GET", Name: BuildEvents},
 	{Path: "/api/v1/builds/:build_id/abort", Method: "POST", Name: AbortBuild},
-	{Path: "/api/v1/builds/:build_id/hijack", Method: "POST", Name: HijackBuild},
+	{Path: "/api/v1/hijack", Method: "POST", Name: Hijack},
 
 	{Path: "/api/v1/jobs", Method: "GET", Name: ListJobs},
 	{Path: "/api/v1/jobs/:job_name", Method: "GET", Name: GetJob},
