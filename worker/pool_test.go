@@ -183,6 +183,7 @@ var _ = Describe("Pool", func() {
 				workerB.ActiveContainersReturns(2)
 
 				fakeContainer = new(fakes.FakeContainer)
+				fakeContainer.HandleReturns("fake-container")
 
 				fakeProvider.WorkersReturns([]Worker{workerA, workerB}, nil)
 			})
@@ -214,6 +215,28 @@ var _ = Describe("Pool", func() {
 
 				It("returns ErrContainerNotFound", func() {
 					Ω(lookupErr).Should(Equal(ErrContainerNotFound))
+				})
+			})
+
+			Context("when multiple workers can locate the container", func() {
+				var secondFakeContainer *fakes.FakeContainer
+
+				BeforeEach(func() {
+					secondFakeContainer = new(fakes.FakeContainer)
+					secondFakeContainer.HandleReturns("second-fake-container")
+
+					workerA.LookupContainerReturns(fakeContainer, nil)
+					workerB.LookupContainerReturns(secondFakeContainer, nil)
+				})
+
+				It("returns a MultipleContainersError", func() {
+					Ω(lookupErr).Should(BeAssignableToTypeOf(MultipleContainersError{}))
+					Ω(lookupErr.(MultipleContainersError).Handles).Should(ConsistOf("fake-container", "second-fake-container"))
+				})
+
+				It("releases all returned containers", func() {
+					Ω(fakeContainer.ReleaseCallCount()).Should(Equal(1))
+					Ω(secondFakeContainer.ReleaseCallCount()).Should(Equal(1))
 				})
 			})
 		})

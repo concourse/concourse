@@ -104,11 +104,25 @@ func (pool *Pool) LookupContainer(id Identifier) (Container, error) {
 
 	wg.Wait()
 
-	select {
-	case container := <-found:
-		return container, nil
-	default:
+	totalFound := len(found)
+
+	switch totalFound {
+	case 0:
 		return nil, ErrContainerNotFound
+	case 1:
+		return <-found, nil
+	default:
+		handles := make([]string, totalFound)
+
+		for i := 0; i < totalFound; i++ {
+			c := <-found
+
+			handles[i] = c.Handle()
+
+			c.Release()
+		}
+
+		return nil, MultipleContainersError{Handles: handles}
 	}
 }
 
