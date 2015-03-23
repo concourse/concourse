@@ -49,6 +49,8 @@ func (s *Server) Hijack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defer container.Release()
+
 	w.WriteHeader(http.StatusOK)
 
 	conn, br, err := w.(http.Hijacker).Hijack()

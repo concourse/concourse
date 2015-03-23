@@ -218,6 +218,10 @@ var _ = Describe("Hijacking API", func() {
 								ExitStatus: &exitStatus,
 							}))
 						})
+
+						It("releases the container", func() {
+							Eventually(fakeContainer.ReleaseCallCount).Should(Equal(1))
+						})
 					})
 
 					Context("when new tty settings are sent over the API", func() {
