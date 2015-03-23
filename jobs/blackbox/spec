@@ -10,15 +10,28 @@ packages:
   - blackbox
 
 properties:
-  blackbox.destination.address:
+  blackbox.syslog.destination.address:
     description: "address for syslog drain (including port)"
 
-  blackbox.destination.transport:
+  blackbox.syslog.destination.transport:
     description: "transport protocol for syslog drain (udp/tcp/tls)"
     default: udp
 
-  blackbox.sources:
+  blackbox.syslog.sources:
     description: >
       files whose contents will be emitted to the destination.
       the format is `{ "tag" => ["/path/to/log"] }`.
+    default: {}
+
+  blackbox.expvar.datadog.api_key:
+    description: API key to use when sending metrics to Datadog
+
+  blackbox.expvar.interval_in_seconds:
+    description: interval on which to emit metrics
+    default: 10
+
+  blackbox.expvar.sources:
+    description: >
+      expvar endpoints from which to emit metrics
+      the format is `{ "name" => { "url" => "http://...", "tags" => ["program:atc"] }`.
     default: {}

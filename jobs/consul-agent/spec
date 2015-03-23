@@ -34,7 +34,7 @@ properties:
     description: "list of services to configure"
     default: []
 
-  blackbox.sources.consul:
+  blackbox.syslog.sources.consul:
     description: "files whose contents blackbox will emit to its syslog drain"
     default:
       - /var/vcap/sys/log/consul-agent/consul-agent.stdout.log

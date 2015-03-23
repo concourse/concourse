@@ -1,13 +1,34 @@
 hostname: <%= "#{name}-#{index}" %>
 
-destination:
-  transport: <%= p("blackbox.destination.transport") %>
-  address: <%= p("blackbox.destination.address") %>
+<% if_p("blackbox.syslog.destination.address") do %>
+syslog:
+  destination:
+    transport: <%= p("blackbox.syslog.destination.transport") %>
+    address: <%= p("blackbox.syslog.destination.address") %>
 
-sources:
-<% p("blackbox.sources").each do |tag, paths| %>
-<% paths.each do |path| %>
-  - path: <%= path %>
-    tag: <%= tag %>
+  sources: <%=
+    p("blackbox.syslog.sources").collect { |tag, paths|
+      paths.collect { |path|
+        { "path" => path, "tag" => tag }
+      }
+    }.flatten.to_json
+  %>
 <% end %>
+
+<% if_p("blackbox.expvar.datadog.api_key") do %>
+expvar:
+  datadog:
+    api_key: <%= p("blackbox.expvar.datadog.api_key") %>
+
+  interval:  <%= p("blackbox.expvar.interval_in_seconds") %>s
+
+  sources: <%=
+    p("blackbox.expvar.sources").collect do |name, config|
+      {
+        "name" => name,
+        "url" => config["url"],
+        "tags" => config["tags"] + ["job:#{name}", "index:#{index}"]
+      }
+    end.to_json
+  %>
 <% end %>

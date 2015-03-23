@@ -75,13 +75,13 @@ properties:
     description: "ATC API basic auth password"
     default: ''
 
-  blackbox.sources.gate:
+  blackbox.syslog.sources.gate:
     description: "files whose contents blackbox will emit to its syslog drain"
     default:
       - /var/vcap/sys/log/gate/gate.stdout.log
       - /var/vcap/sys/log/gate/gate.stderr.log
 
-  blackbox.sources.garden:
+  blackbox.syslog.sources.garden:
     description: "files whose contents blackbox will emit to its syslog drain"
     default:
       - /var/vcap/sys/log/garden/garden.stdout.log

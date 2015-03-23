@@ -76,8 +76,13 @@ properties:
   atc.postgresql.role.password:
     description: "password to use when connecting"
 
-  blackbox.sources.atc:
+  blackbox.syslog.sources.atc:
     description: "files whose contents blackbox will emit to its syslog drain"
     default:
       - /var/vcap/sys/log/atc/atc.stdout.log
       - /var/vcap/sys/log/atc/atc.stderr.log
+
+  blackbox.expvar.sources.atc:
+    default:
+      url: http://127.0.0.1:8079/debug/vars
+      tags: ["program:atc"]
