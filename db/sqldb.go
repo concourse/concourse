@@ -614,6 +614,17 @@ func (db *SQLDB) FinishBuild(buildID int, status Status) error {
 	return nil
 }
 
+func (db *SQLDB) ErrorBuild(buildID int, cause error) error {
+	err := db.SaveBuildEvent(buildID, event.Error{
+		Message: cause.Error(),
+	})
+	if err != nil {
+		return err
+	}
+
+	return db.FinishBuild(buildID, StatusErrored)
+}
+
 func (db *SQLDB) SaveBuildEngineMetadata(buildID int, engineMetadata string) error {
 	_, err := db.conn.Exec(`
 		UPDATE builds

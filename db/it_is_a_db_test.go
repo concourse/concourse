@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -1343,6 +1344,37 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(firstBuild.Name).Should(Equal("1"))
 				Ω(firstBuild.Status).Should(Equal(db.StatusPending))
+			})
+
+			Context("and then errored", func() {
+				BeforeEach(func() {
+					cause := errors.New("everything is broken")
+					err := database.ErrorBuild(firstBuild.ID, cause)
+					Ω(err).ShouldNot(HaveOccurred())
+				})
+
+				It("changes the state to errored", func() {
+					build, err := database.GetJobBuild(job, firstBuild.Name)
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(build.Status).Should(Equal(db.StatusErrored))
+				})
+
+				It("saves off the error for later debugging", func() {
+					eventStream, err := database.GetBuildEvents(firstBuild.ID, 0)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(eventStream.Next()).Should(Equal(event.Error{
+						Message: "everything is broken",
+					}))
+				})
+
+				Describe("scheduling the build", func() {
+					It("fails", func() {
+						scheduled, err := database.ScheduleBuild(firstBuild.ID, false)
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(scheduled).Should(BeFalse())
+					})
+				})
 			})
 
 			Context("and then aborted", func() {

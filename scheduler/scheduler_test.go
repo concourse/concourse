@@ -158,19 +158,19 @@ var _ = Describe("Scheduler", func() {
 				err := scheduler.TrackInFlightBuilds(logger)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(fakeSchedulerDB.FinishBuildCallCount()).Should(Equal(3))
+				Ω(fakeSchedulerDB.ErrorBuildCallCount()).Should(Equal(3))
 
-				savedBuilID1, status1 := fakeSchedulerDB.FinishBuildArgsForCall(0)
+				savedBuilID1, savedErr1 := fakeSchedulerDB.ErrorBuildArgsForCall(0)
 				Ω(savedBuilID1).Should(Equal(1))
-				Ω(status1).Should(Equal(db.StatusErrored))
+				Ω(savedErr1).Should(Equal(errors.New("nope")))
 
-				savedBuilID2, status2 := fakeSchedulerDB.FinishBuildArgsForCall(1)
+				savedBuilID2, savedErr2 := fakeSchedulerDB.ErrorBuildArgsForCall(1)
 				Ω(savedBuilID2).Should(Equal(2))
-				Ω(status2).Should(Equal(db.StatusErrored))
+				Ω(savedErr2).Should(Equal(errors.New("nope")))
 
-				savedBuilID3, status3 := fakeSchedulerDB.FinishBuildArgsForCall(2)
+				savedBuilID3, savedErr3 := fakeSchedulerDB.ErrorBuildArgsForCall(2)
 				Ω(savedBuilID3).Should(Equal(3))
-				Ω(status3).Should(Equal(db.StatusErrored))
+				Ω(savedErr3).Should(Equal(errors.New("nope")))
 			})
 		})
 	})
@@ -517,11 +517,11 @@ var _ = Describe("Scheduler", func() {
 						})
 
 						It("marks the build as errored", func() {
-							Ω(fakeSchedulerDB.FinishBuildCallCount()).Should(Equal(1))
+							Ω(fakeSchedulerDB.ErrorBuildCallCount()).Should(Equal(1))
 
-							buildID, status := fakeSchedulerDB.FinishBuildArgsForCall(0)
+							buildID, err := fakeSchedulerDB.ErrorBuildArgsForCall(0)
 							Ω(buildID).Should(Equal(pendingBuild.ID))
-							Ω(status).Should(Equal(db.StatusErrored))
+							Ω(err).Should(Equal(ErrPredeterminedInputsDifferFromConfiguration))
 						})
 					})
 

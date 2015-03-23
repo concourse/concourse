@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"errors"
 	"sync"
 
 	"github.com/pivotal-golang/lager"
@@ -10,11 +11,13 @@ import (
 	"github.com/concourse/atc/engine"
 )
 
+var ErrPredeterminedInputsDifferFromConfiguration = errors.New("predetermined build inputs out of sync with configuration")
+
 //go:generate counterfeiter . SchedulerDB
 
 type SchedulerDB interface {
 	ScheduleBuild(buildID int, serial bool) (bool, error)
-	FinishBuild(buildID int, status db.Status) error
+	ErrorBuild(buildID int, err error) error
 
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 	GetLatestInputVersions([]atc.JobInput) ([]db.BuildInput, error)
@@ -210,7 +213,7 @@ func (s *Scheduler) TrackInFlightBuilds(logger lager.Logger) error {
 		if err != nil {
 			tLog.Error("failed-to-lookup-build", err)
 
-			err := s.DB.FinishBuild(b.ID, db.StatusErrored)
+			err := s.DB.ErrorBuild(b.ID, err)
 			if err != nil {
 				tLog.Error("failed-to-mark-build-as-errored", err)
 			}
@@ -267,7 +270,7 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, build db.
 			"job-inputs":   buildInputs,
 		})
 
-		err := s.DB.FinishBuild(build.ID, db.StatusErrored)
+		err := s.DB.ErrorBuild(build.ID, ErrPredeterminedInputsDifferFromConfiguration)
 		if err != nil {
 			logger.Error("failed-to-mark-build-as-errored", err)
 		}

@@ -20,13 +20,13 @@ type FakeSchedulerDB struct {
 		result1 bool
 		result2 error
 	}
-	FinishBuildStub        func(buildID int, status db.Status) error
-	finishBuildMutex       sync.RWMutex
-	finishBuildArgsForCall []struct {
+	ErrorBuildStub        func(buildID int, err error) error
+	errorBuildMutex       sync.RWMutex
+	errorBuildArgsForCall []struct {
 		buildID int
-		status  db.Status
+		err     error
 	}
-	finishBuildReturns struct {
+	errorBuildReturns struct {
 		result1 error
 	}
 	SaveResourceVersionsStub        func(atc.ResourceConfig, []atc.Version) error
@@ -129,35 +129,35 @@ func (fake *FakeSchedulerDB) ScheduleBuildReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeSchedulerDB) FinishBuild(buildID int, status db.Status) error {
-	fake.finishBuildMutex.Lock()
-	fake.finishBuildArgsForCall = append(fake.finishBuildArgsForCall, struct {
+func (fake *FakeSchedulerDB) ErrorBuild(buildID int, err error) error {
+	fake.errorBuildMutex.Lock()
+	fake.errorBuildArgsForCall = append(fake.errorBuildArgsForCall, struct {
 		buildID int
-		status  db.Status
-	}{buildID, status})
-	fake.finishBuildMutex.Unlock()
-	if fake.FinishBuildStub != nil {
-		return fake.FinishBuildStub(buildID, status)
+		err     error
+	}{buildID, err})
+	fake.errorBuildMutex.Unlock()
+	if fake.ErrorBuildStub != nil {
+		return fake.ErrorBuildStub(buildID, err)
 	} else {
-		return fake.finishBuildReturns.result1
+		return fake.errorBuildReturns.result1
 	}
 }
 
-func (fake *FakeSchedulerDB) FinishBuildCallCount() int {
-	fake.finishBuildMutex.RLock()
-	defer fake.finishBuildMutex.RUnlock()
-	return len(fake.finishBuildArgsForCall)
+func (fake *FakeSchedulerDB) ErrorBuildCallCount() int {
+	fake.errorBuildMutex.RLock()
+	defer fake.errorBuildMutex.RUnlock()
+	return len(fake.errorBuildArgsForCall)
 }
 
-func (fake *FakeSchedulerDB) FinishBuildArgsForCall(i int) (int, db.Status) {
-	fake.finishBuildMutex.RLock()
-	defer fake.finishBuildMutex.RUnlock()
-	return fake.finishBuildArgsForCall[i].buildID, fake.finishBuildArgsForCall[i].status
+func (fake *FakeSchedulerDB) ErrorBuildArgsForCall(i int) (int, error) {
+	fake.errorBuildMutex.RLock()
+	defer fake.errorBuildMutex.RUnlock()
+	return fake.errorBuildArgsForCall[i].buildID, fake.errorBuildArgsForCall[i].err
 }
 
-func (fake *FakeSchedulerDB) FinishBuildReturns(result1 error) {
-	fake.FinishBuildStub = nil
-	fake.finishBuildReturns = struct {
+func (fake *FakeSchedulerDB) ErrorBuildReturns(result1 error) {
+	fake.ErrorBuildStub = nil
+	fake.errorBuildReturns = struct {
 		result1 error
 	}{result1}
 }
