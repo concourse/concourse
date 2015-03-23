@@ -47,7 +47,7 @@ var _ = Describe("Tracker", func() {
 
 		Context("when a container does not exist for the session", func() {
 			BeforeEach(func() {
-				workerClient.LookupContainerReturns(nil, errors.New("nope"))
+				workerClient.LookupContainerReturns(nil, worker.ErrContainerNotFound)
 			})
 
 			It("does not error and returns a resource", func() {
@@ -76,6 +76,23 @@ var _ = Describe("Tracker", func() {
 					Ω(initErr).Should(Equal(disaster))
 					Ω(initResource).Should(BeNil())
 				})
+			})
+		})
+
+		Context("when looking up the container fails for some reason", func() {
+			disaster := errors.New("nope")
+
+			BeforeEach(func() {
+				workerClient.LookupContainerReturns(nil, disaster)
+			})
+
+			It("returns the error and no resource", func() {
+				Ω(initErr).Should(Equal(disaster))
+				Ω(initResource).Should(BeNil())
+			})
+
+			It("does not create a container", func() {
+				Ω(workerClient.CreateContainerCallCount()).Should(BeZero())
 			})
 		})
 
