@@ -9,13 +9,23 @@ require("moment-duration-format");
 
 var flux = require('./flux');
 
-var buildComponent = React.render(
-  <Build flux={flux}/>,
-  document.getElementById('build-logs')
-);
+var buildComponent = <Build flux={flux}/>;
 
-function streamLog(uri) {
+function renderBuildComponent() {
+  React.render(
+    buildComponent,
+    document.getElementById('build-logs')
+  );
+}
+
+function streamLog(uri, status) {
   var es = new EventSource(uri);
+
+  var renderImmediately = status == 'pending' || status == 'started';
+
+  if (renderImmediately) {
+    renderBuildComponent();
+  }
 
   var successfullyConnected = false;
 
@@ -46,6 +56,10 @@ function streamLog(uri) {
 
   es.addEventListener("end", function(event) {
     es.close();
+
+    if (!renderImmediately) {
+      renderBuildComponent();
+    }
   });
 
   es.onopen = function() {

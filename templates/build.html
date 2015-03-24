@@ -55,6 +55,6 @@
   );
   {{end}}
 
-  streamLog({{url "BuildEvents" .Build | js}})
+  streamLog({{url "BuildEvents" .Build | js}}, {{.Build.Status | js}})
 </script>
 {{end}}
