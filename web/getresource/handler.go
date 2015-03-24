@@ -87,7 +87,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templateData.FailingToCheck = checkErr == nil
+	templateData.FailingToCheck = checkErr != nil
 
 	if handler.validator.IsAuthenticated(r) {
 		templateData.CheckError = checkErr
