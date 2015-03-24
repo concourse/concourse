@@ -72,7 +72,7 @@ func NewHandler(
 		routes.Index:       index.NewHandler(logger, db, configDB, indexTemplate),
 		routes.Public:      http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
 		routes.GetJob:      getjob.NewHandler(logger, db, configDB, jobTemplate),
-		routes.GetResource: getresource.NewHandler(logger, db, configDB, resourceTemplate),
+		routes.GetResource: getresource.NewHandler(logger, db, configDB, resourceTemplate, validator),
 		routes.GetBuild:    getbuild.NewHandler(logger, db, configDB, buildTemplate),
 
 		// private

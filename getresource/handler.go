@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web/group"
 	"github.com/pivotal-golang/lager"
@@ -17,15 +18,19 @@ type handler struct {
 	db       db.DB
 	configDB db.ConfigDB
 
+	validator auth.Validator
+
 	template *template.Template
 }
 
-func NewHandler(logger lager.Logger, db db.DB, configDB db.ConfigDB, template *template.Template) http.Handler {
+func NewHandler(logger lager.Logger, db db.DB, configDB db.ConfigDB, template *template.Template, validator auth.Validator) http.Handler {
 	return &handler{
 		logger: logger,
 
 		db:       db,
 		configDB: configDB,
+
+		validator: validator,
 
 		template: template,
 	}
@@ -35,7 +40,8 @@ type TemplateData struct {
 	Resource atc.ResourceConfig
 	History  []*db.VersionHistory
 
-	CheckError error
+	FailingToCheck bool
+	CheckError     error
 
 	GroupStates []group.State
 }
@@ -60,17 +66,9 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	checkErr, err := handler.db.GetResourceCheckError(resource.Name)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
 	templateData := TemplateData{
 		Resource: resource,
 		History:  history,
-
-		CheckError: checkErr,
 
 		GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
 			for _, groupResource := range g.Resources {
@@ -81,6 +79,18 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			return false
 		}),
+	}
+
+	checkErr, err := handler.db.GetResourceCheckError(resource.Name)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	templateData.FailingToCheck = checkErr == nil
+
+	if handler.validator.IsAuthenticated(r) {
+		templateData.CheckError = checkErr
 	}
 
 	err = handler.template.Execute(w, templateData)
