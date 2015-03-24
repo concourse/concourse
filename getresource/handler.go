@@ -35,6 +35,8 @@ type TemplateData struct {
 	Resource atc.ResourceConfig
 	History  []*db.VersionHistory
 
+	CheckError error
+
 	GroupStates []group.State
 }
 
@@ -54,12 +56,21 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	history, err := handler.db.GetResourceHistory(resource.Name)
 	if err != nil {
-		panic(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	checkErr, err := handler.db.GetResourceCheckError(resource.Name)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	templateData := TemplateData{
 		Resource: resource,
 		History:  history,
+
+		CheckError: checkErr,
 
 		GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
 			for _, groupResource := range g.Resources {

@@ -199,6 +199,9 @@ span.error {
 #version-history tr.enabled .toggle-resource-version {
   background: #ac4142;
 }
+.resource-check-status pre {
+  color: #ac4142;
+}
 /* like, really bad */
 svg .edge.errored {
   stroke: #d28445;
@@ -215,7 +218,7 @@ li.errored {
 .legend dt.errored {
   background: #d28445;
 }
-svg .node.resource.failing rect {
+svg .node.input.failing rect {
   fill: #d28445;
 }
 /* not so bad */
