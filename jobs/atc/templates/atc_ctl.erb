@@ -34,7 +34,8 @@ source /var/vcap/packages/pid_utils/pid_utils.sh
     network.ip
   end
 
-  my_ip = discover_external_ip
+  my_ip = p("atc.callbacks_address", nil)
+  my_ip ||= discover_external_ip
 %>
 
 case $1 in

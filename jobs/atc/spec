@@ -40,6 +40,9 @@ properties:
     description: "allow public viewing; destructive operations still require auth"
     default: false
 
+  atc.callbacks_address:
+    description: "address reachable by workers to reach the ATC. auto-detected if omitted."
+
   atc.pipeline:
     description: "static pipeline configuration containing jobs and resources. omit to manage config via the API."
     example:
