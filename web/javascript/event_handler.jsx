@@ -48,6 +48,10 @@ function streamLog(uri) {
     es.close();
   });
 
+  es.onopen = function() {
+    successfullyConnected = true;
+  };
+
   es.onerror = function(event) {
     if(!successfullyConnected) {
       // assume rejected because of auth
