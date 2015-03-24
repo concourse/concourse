@@ -127,12 +127,13 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 	})
 
 	newVersions, err := res.Check(resourceConfig.Source, atc.Version(from))
+
+	if setErr := radar.versionDB.SetResourceCheckError(resourceConfig.Name, err); setErr != nil {
+		logger.Error("failed-to-set-check-error", err)
+	}
+
 	if err != nil {
 		logger.Error("failed-to-check", err)
-
-		if setErr := radar.versionDB.SetResourceCheckError(resourceConfig.Name, err); setErr != nil {
-			logger.Error("failed-to-set-check-error", err)
-		}
 
 		return err
 	}

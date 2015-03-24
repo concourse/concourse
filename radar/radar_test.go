@@ -380,6 +380,14 @@ var _ = Describe("Radar", func() {
 			Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
 		})
 
+		It("clears the resource's check error", func() {
+			Ω(fakeVersionDB.SetResourceCheckErrorCallCount()).Should(Equal(1))
+
+			resourceName, err := fakeVersionDB.SetResourceCheckErrorArgsForCall(0)
+			Ω(resourceName).Should(Equal("some-resource"))
+			Ω(err).Should(BeNil())
+		})
+
 		Context("when there is no current version", func() {
 			It("checks from nil", func() {
 				_, version := fakeResource.CheckArgsForCall(0)
