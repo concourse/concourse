@@ -253,6 +253,12 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, build db.
 			err := s.Scanner.Scan(scanLog, input.Resource)
 			if err != nil {
 				scanLog.Error("failed-to-scan", err)
+
+				err := s.DB.ErrorBuild(build.ID, err)
+				if err != nil {
+					logger.Error("failed-to-mark-build-as-errored", err)
+				}
+
 				return nil
 			}
 

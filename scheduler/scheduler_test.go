@@ -567,6 +567,22 @@ var _ = Describe("Scheduler", func() {
 							Ω(builtBuild).Should(Equal(pendingBuild))
 							Ω(plan).Should(Equal(createdPlan))
 						})
+
+						Context("when scanning fails", func() {
+							disaster := errors.New("nope")
+
+							BeforeEach(func() {
+								fakeScanner.ScanReturns(disaster)
+							})
+
+							It("errors the build", func() {
+								Ω(fakeSchedulerDB.ErrorBuildCallCount()).Should(Equal(1))
+
+								buildID, err := fakeSchedulerDB.ErrorBuildArgsForCall(0)
+								Ω(buildID).Should(Equal(128))
+								Ω(err).Should(Equal(disaster))
+							})
+						})
 					})
 				})
 			})
