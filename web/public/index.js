@@ -185,10 +185,12 @@ function createGraph(svg, groups, jobs, resources) {
   var graph = new Graph();
 
   var resourceURLs = {};
+  var resourceCheckErrors = {};
 
   for (var i in resources) {
     var resource = resources[i];
     resourceURLs[resource.name] = resource.url;
+    resourceCheckErrors[resource.name] = resource.check_error;
   }
 
   for (var i in jobs) {
@@ -329,13 +331,18 @@ function createGraph(svg, groups, jobs, resources) {
         var inputId = inputNode(rank, input.resource);
 
         if (!graph.node(inputId)) {
+          var classes = "input";
+          if (resourceCheckErrors[input.resource]) {
+            classes += " failing";
+          }
+
           graph.setNode(inputId, new Node({
             id: inputId,
             name: input.resource,
             key: input.resource,
-            class: "input",
+            class: classes,
             url: resourceURLs[input.resource],
-            svg: svg
+            svg: svg,
           }));
         }
 

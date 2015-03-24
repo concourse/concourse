@@ -18,6 +18,8 @@ import (
 type VersionDB interface {
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 	GetLatestVersionedResource(string) (db.SavedVersionedResource, error)
+
+	SetResourceCheckError(string, error) error
 }
 
 var errResourceNoLongerConfigured = errors.New("resource no longer configured")
@@ -128,9 +130,9 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 	if err != nil {
 		logger.Error("failed-to-check", err)
 
-		// ideally we'd check for non-recoverable errors like ErrContainerNotFound.
-		// until Garden returns rich error objects, all we can do is exit.
-		// [#85476532]
+		if setErr := radar.versionDB.SetResourceCheckError(resourceConfig.Name, err); setErr != nil {
+			logger.Error("failed-to-set-check-error", err)
+		}
 
 		return err
 	}

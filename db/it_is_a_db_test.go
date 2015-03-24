@@ -34,6 +34,48 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Ω(err).Should(Equal(db.ErrNoBuild))
 		})
 
+		Describe("marking resource checks as errored", func() {
+			Context("when the resource is first created", func() {
+				It("is not errored", func() {
+					cause, err := database.GetResourceCheckError("resource-name")
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(cause).Should(BeNil())
+				})
+			})
+
+			Context("when a resource check is marked as errored", func() {
+				It("is then marked as errored", func() {
+					originalCause := errors.New("on fire")
+
+					err := database.SetResourceCheckError("resource-name", originalCause)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					cause, err := database.GetResourceCheckError("resource-name")
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(cause).Should(Equal(originalCause))
+				})
+			})
+
+			Context("when a resource is cleared of check errors", func() {
+				It("is not marked as errored again", func() {
+					originalCause := errors.New("on fire")
+
+					err := database.SetResourceCheckError("resource-name", originalCause)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					err = database.SetResourceCheckError("resource-name", nil)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					cause, err := database.GetResourceCheckError("resource-name")
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(cause).Should(BeNil())
+				})
+			})
+		})
+
 		Context("when a build is created for a job", func() {
 			var build1 db.Build
 

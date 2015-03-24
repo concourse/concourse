@@ -28,6 +28,15 @@ type FakeVersionDB struct {
 		result1 db.SavedVersionedResource
 		result2 error
 	}
+	SetResourceCheckErrorStub        func(string, error) error
+	setResourceCheckErrorMutex       sync.RWMutex
+	setResourceCheckErrorArgsForCall []struct {
+		arg1 string
+		arg2 error
+	}
+	setResourceCheckErrorReturns struct {
+		result1 error
+	}
 }
 
 func (fake *FakeVersionDB) SaveResourceVersions(arg1 atc.ResourceConfig, arg2 []atc.Version) error {
@@ -94,6 +103,39 @@ func (fake *FakeVersionDB) GetLatestVersionedResourceReturns(result1 db.SavedVer
 		result1 db.SavedVersionedResource
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeVersionDB) SetResourceCheckError(arg1 string, arg2 error) error {
+	fake.setResourceCheckErrorMutex.Lock()
+	fake.setResourceCheckErrorArgsForCall = append(fake.setResourceCheckErrorArgsForCall, struct {
+		arg1 string
+		arg2 error
+	}{arg1, arg2})
+	fake.setResourceCheckErrorMutex.Unlock()
+	if fake.SetResourceCheckErrorStub != nil {
+		return fake.SetResourceCheckErrorStub(arg1, arg2)
+	} else {
+		return fake.setResourceCheckErrorReturns.result1
+	}
+}
+
+func (fake *FakeVersionDB) SetResourceCheckErrorCallCount() int {
+	fake.setResourceCheckErrorMutex.RLock()
+	defer fake.setResourceCheckErrorMutex.RUnlock()
+	return len(fake.setResourceCheckErrorArgsForCall)
+}
+
+func (fake *FakeVersionDB) SetResourceCheckErrorArgsForCall(i int) (string, error) {
+	fake.setResourceCheckErrorMutex.RLock()
+	defer fake.setResourceCheckErrorMutex.RUnlock()
+	return fake.setResourceCheckErrorArgsForCall[i].arg1, fake.setResourceCheckErrorArgsForCall[i].arg2
+}
+
+func (fake *FakeVersionDB) SetResourceCheckErrorReturns(result1 error) {
+	fake.SetResourceCheckErrorStub = nil
+	fake.setResourceCheckErrorReturns = struct {
+		result1 error
+	}{result1}
 }
 
 var _ radar.VersionDB = new(FakeVersionDB)

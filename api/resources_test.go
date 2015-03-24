@@ -44,34 +44,59 @@ var _ = Describe("Resources API", func() {
 				}, 1, nil)
 			})
 
-			It("returns 200 OK", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+			Context("when getting the check error succeeds", func() {
+				BeforeEach(func() {
+					resourceDB.GetResourceCheckErrorStub = func(name string) (error, error) {
+						if name == "resource-2" {
+							return errors.New("sup"), nil
+						} else {
+							return nil, nil
+						}
+					}
+				})
+
+				It("returns 200 OK", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				})
+
+				It("returns each resource", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(body).Should(MatchJSON(`[
+									{
+										"name": "resource-1",
+										"type": "type-1",
+										"groups": ["group-1", "group-2"],
+										"url": "/resources/resource-1"
+									},
+									{
+										"name": "resource-2",
+										"type": "type-2",
+										"groups": ["group-2"],
+										"url": "/resources/resource-2",
+										"check_error": "sup"
+									},
+									{
+										"name": "resource-3",
+										"type": "type-3",
+										"groups": [],
+										"url": "/resources/resource-3"
+									}
+								]`))
+				})
 			})
 
-			It("returns each resource", func() {
-				body, err := ioutil.ReadAll(response.Body)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(body).Should(MatchJSON(`[
-					{
-						"name": "resource-1",
-						"type": "type-1",
-						"groups": ["group-1", "group-2"],
-						"url": "/resources/resource-1"
-					},
-					{
-						"name": "resource-2",
-						"type": "type-2",
-						"groups": ["group-2"],
-						"url": "/resources/resource-2"
-					},
-					{
-						"name": "resource-3",
-						"type": "type-3",
-						"groups": [],
-						"url": "/resources/resource-3"
+			Context("when getting the resource check error", func() {
+				BeforeEach(func() {
+					resourceDB.GetResourceCheckErrorStub = func(name string) (error, error) {
+						return nil, errors.New("oh no!")
 					}
-				]`))
+				})
+
+				It("returns 500", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				})
 			})
 		})
 

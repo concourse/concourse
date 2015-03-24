@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -208,6 +209,63 @@ func (db *SQLDB) GetJobBuild(job string, name string) (Build, error) {
 		WHERE job_name = $1
 		AND name = $2
 	`, job, name))
+}
+
+func (db *SQLDB) GetResourceCheckError(resourceName string) (error, error) {
+	var cause sql.NullString
+	err := db.conn.QueryRow(`
+		SELECT check_error
+		FROM resources
+		WHERE name = $1
+	`, resourceName).Scan(&cause)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	if !cause.Valid {
+		return nil, nil
+	}
+
+	return errors.New(cause.String), nil
+}
+
+func (db *SQLDB) SetResourceCheckError(resourceName string, cause error) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	err = registerResource(tx, resourceName)
+	if err != nil {
+		return err
+	}
+
+	if cause == nil {
+		_, err = tx.Exec(`
+			UPDATE resources
+			SET check_error = NULL
+			WHERE name = $1
+			`, resourceName)
+	} else {
+		_, err = tx.Exec(`
+			UPDATE resources
+			SET check_error = $2
+			WHERE name = $1
+		`, resourceName, cause.Error())
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (db *SQLDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error) {
@@ -1531,13 +1589,7 @@ func (db *SQLDB) saveBuildEvent(tx *sql.Tx, buildID int, event atc.Event) error 
 }
 
 func (db *SQLDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (SavedVersionedResource, error) {
-	_, err := tx.Exec(`
-			INSERT INTO resources (name)
-			SELECT $1
-			WHERE NOT EXISTS (
-				SELECT 1 FROM resources WHERE name = $1
-			)
-		`, vr.Resource)
+	err := registerResource(tx, vr.Resource)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
@@ -1639,6 +1691,17 @@ func registerJob(tx *sql.Tx, name string) error {
 		SELECT $1
 		WHERE NOT EXISTS (
 			SELECT 1 FROM jobs WHERE name = $1
+		)
+	`, name)
+	return err
+}
+
+func registerResource(tx *sql.Tx, name string) error {
+	_, err := tx.Exec(`
+		INSERT INTO resources (name)
+		SELECT $1
+		WHERE NOT EXISTS (
+			SELECT 1 FROM resources WHERE name = $1
 		)
 	`, name)
 	return err

@@ -460,6 +460,14 @@ var _ = Describe("Radar", func() {
 			It("returns the error", func() {
 				Ω(scanErr).Should(Equal(disaster))
 			})
+
+			It("sets the resource's check error", func() {
+				Ω(fakeVersionDB.SetResourceCheckErrorCallCount()).Should(Equal(1))
+
+				resourceName, err := fakeVersionDB.SetResourceCheckErrorArgsForCall(0)
+				Ω(resourceName).Should(Equal("some-resource"))
+				Ω(err).Should(Equal(disaster))
+			})
 		})
 	})
 })

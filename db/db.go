@@ -60,6 +60,9 @@ type DB interface {
 
 	Workers() ([]WorkerInfo, error) // auto-expires workers based on ttl
 	SaveWorker(WorkerInfo, time.Duration) error
+
+	GetResourceCheckError(string) (error, error)
+	SetResourceCheckError(string, error) error
 }
 
 //go:generate counterfeiter . Notifier

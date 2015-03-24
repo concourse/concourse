@@ -18,6 +18,8 @@ type Server struct {
 type ResourceDB interface {
 	EnableVersionedResource(resourceID int) error
 	DisableVersionedResource(resourceID int) error
+
+	GetResourceCheckError(resourceName string) (error, error)
 }
 
 func NewServer(

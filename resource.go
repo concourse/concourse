@@ -1,8 +1,9 @@
 package atc
 
 type Resource struct {
-	Name   string   `json:"name"`
-	Type   string   `json:"type"`
-	Groups []string `json:"groups"`
-	URL    string   `json:"url"`
+	Name       string   `json:"name"`
+	Type       string   `json:"type"`
+	Groups     []string `json:"groups"`
+	URL        string   `json:"url"`
+	CheckError string   `json:"check_error,omitempty"`
 }

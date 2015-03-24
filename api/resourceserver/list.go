@@ -18,7 +18,13 @@ func (s *Server) ListResources(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, resource := range config.Resources {
-		resources = append(resources, present.Resource(resource, config.Groups))
+		checkErr, err := s.resourceDB.GetResourceCheckError(resource.Name)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		resources = append(resources, present.Resource(resource, config.Groups, checkErr))
 	}
 
 	w.WriteHeader(http.StatusOK)

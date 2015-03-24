@@ -24,6 +24,15 @@ type FakeResourceDB struct {
 	disableVersionedResourceReturns struct {
 		result1 error
 	}
+	GetResourceCheckErrorStub        func(resourceName string) (error, error)
+	getResourceCheckErrorMutex       sync.RWMutex
+	getResourceCheckErrorArgsForCall []struct {
+		resourceName string
+	}
+	getResourceCheckErrorReturns struct {
+		result1 error
+		result2 error
+	}
 }
 
 func (fake *FakeResourceDB) EnableVersionedResource(resourceID int) error {
@@ -88,6 +97,39 @@ func (fake *FakeResourceDB) DisableVersionedResourceReturns(result1 error) {
 	fake.disableVersionedResourceReturns = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeResourceDB) GetResourceCheckError(resourceName string) (error, error) {
+	fake.getResourceCheckErrorMutex.Lock()
+	fake.getResourceCheckErrorArgsForCall = append(fake.getResourceCheckErrorArgsForCall, struct {
+		resourceName string
+	}{resourceName})
+	fake.getResourceCheckErrorMutex.Unlock()
+	if fake.GetResourceCheckErrorStub != nil {
+		return fake.GetResourceCheckErrorStub(resourceName)
+	} else {
+		return fake.getResourceCheckErrorReturns.result1, fake.getResourceCheckErrorReturns.result2
+	}
+}
+
+func (fake *FakeResourceDB) GetResourceCheckErrorCallCount() int {
+	fake.getResourceCheckErrorMutex.RLock()
+	defer fake.getResourceCheckErrorMutex.RUnlock()
+	return len(fake.getResourceCheckErrorArgsForCall)
+}
+
+func (fake *FakeResourceDB) GetResourceCheckErrorArgsForCall(i int) string {
+	fake.getResourceCheckErrorMutex.RLock()
+	defer fake.getResourceCheckErrorMutex.RUnlock()
+	return fake.getResourceCheckErrorArgsForCall[i].resourceName
+}
+
+func (fake *FakeResourceDB) GetResourceCheckErrorReturns(result1 error, result2 error) {
+	fake.GetResourceCheckErrorStub = nil
+	fake.getResourceCheckErrorReturns = struct {
+		result1 error
+		result2 error
+	}{result1, result2}
 }
 
 var _ resourceserver.ResourceDB = new(FakeResourceDB)

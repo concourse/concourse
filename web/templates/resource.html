@@ -1,9 +1,29 @@
 {{define "title"}}History - Concourse{{end}}
 
 {{define "body"}}
-<div id="page-header">
-  <div class="resource-header">
-    <h1>{{.Resource.Name}} history</h1>
+<div class="resource-header">
+  <h1>{{.Resource.Name}}</h1>
+</div>
+
+<div class="resource-check-status">
+  <div class="steps">
+    <div class="build-step">
+      {{if .CheckError}}
+      <div class="header">
+        <i class="right errored fa fa-fw fa-exclamation-triangle"></i>
+        <h3>check failing</h3>
+      </div>
+
+      <div class="step-body">
+        <pre>{{.CheckError.Error}}</pre>
+      </div>
+      {{else}}
+      <div class="header">
+        <i class="right succeeded fa fa-fw fa-check"></i>
+        <h3>checking successfully</h3>
+      </div>
+      {{end}}
+    </div>
   </div>
 </div>
 
