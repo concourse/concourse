@@ -8,15 +8,17 @@
 <div class="resource-check-status">
   <div class="steps">
     <div class="build-step">
-      {{if .CheckError}}
+      {{if .FailingToCheck}}
       <div class="header">
         <i class="right errored fa fa-fw fa-exclamation-triangle"></i>
         <h3>check failing</h3>
       </div>
 
+      {{if .CheckError}}
       <div class="step-body">
         <pre>{{.CheckError.Error}}</pre>
       </div>
+      {{end}}
       {{else}}
       <div class="header">
         <i class="right succeeded fa fa-fw fa-check"></i>

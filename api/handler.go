@@ -68,7 +68,7 @@ func NewHandler(
 	)
 
 	jobServer := jobserver.NewServer(logger, jobsDB, configDB)
-	resourceServer := resourceserver.NewServer(logger, resourceDB, configDB)
+	resourceServer := resourceserver.NewServer(logger, resourceDB, configDB, validator)
 	pipeServer := pipes.NewServer(logger, peerAddr)
 
 	configServer := configserver.NewServer(logger, configDB, configValidator)

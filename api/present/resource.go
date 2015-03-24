@@ -6,7 +6,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func Resource(resource atc.ResourceConfig, groups atc.GroupConfigs, checkErr error) atc.Resource {
+func Resource(resource atc.ResourceConfig, groups atc.GroupConfigs, checkErr error, showCheckError bool) atc.Resource {
 	generator := rata.NewRequestGenerator("", routes.Routes)
 
 	req, err := generator.CreateRequest(
@@ -28,15 +28,17 @@ func Resource(resource atc.ResourceConfig, groups atc.GroupConfigs, checkErr err
 	}
 
 	var checkErrString string
-	if checkErr != nil {
+	if checkErr != nil && showCheckError {
 		checkErrString = checkErr.Error()
 	}
 
 	return atc.Resource{
-		Name:       resource.Name,
-		Type:       resource.Type,
-		Groups:     groupNames,
-		URL:        req.URL.String(),
-		CheckError: checkErrString,
+		Name:   resource.Name,
+		Type:   resource.Type,
+		Groups: groupNames,
+		URL:    req.URL.String(),
+
+		FailingToCheck: checkErr != nil,
+		CheckError:     checkErrString,
 	}
 }

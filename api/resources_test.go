@@ -59,31 +59,71 @@ var _ = Describe("Resources API", func() {
 					Ω(response.StatusCode).Should(Equal(http.StatusOK))
 				})
 
-				It("returns each resource", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Ω(err).ShouldNot(HaveOccurred())
+				Context("when authenticated", func() {
+					BeforeEach(func() {
+						authValidator.IsAuthenticatedReturns(true)
+					})
 
-					Ω(body).Should(MatchJSON(`[
-									{
-										"name": "resource-1",
-										"type": "type-1",
-										"groups": ["group-1", "group-2"],
-										"url": "/resources/resource-1"
-									},
-									{
-										"name": "resource-2",
-										"type": "type-2",
-										"groups": ["group-2"],
-										"url": "/resources/resource-2",
-										"check_error": "sup"
-									},
-									{
-										"name": "resource-3",
-										"type": "type-3",
-										"groups": [],
-										"url": "/resources/resource-3"
-									}
-								]`))
+					It("returns each resource, including their check failure", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Ω(body).Should(MatchJSON(`[
+							{
+								"name": "resource-1",
+								"type": "type-1",
+								"groups": ["group-1", "group-2"],
+								"url": "/resources/resource-1"
+							},
+							{
+								"name": "resource-2",
+								"type": "type-2",
+								"groups": ["group-2"],
+								"url": "/resources/resource-2",
+								"failing_to_check": true,
+								"check_error": "sup"
+							},
+							{
+								"name": "resource-3",
+								"type": "type-3",
+								"groups": [],
+								"url": "/resources/resource-3"
+							}
+						]`))
+					})
+				})
+
+				Context("when not authenticated", func() {
+					BeforeEach(func() {
+						authValidator.IsAuthenticatedReturns(false)
+					})
+
+					It("returns each resource, excluding their check failure", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Ω(body).Should(MatchJSON(`[
+							{
+								"name": "resource-1",
+								"type": "type-1",
+								"groups": ["group-1", "group-2"],
+								"url": "/resources/resource-1"
+							},
+							{
+								"name": "resource-2",
+								"type": "type-2",
+								"groups": ["group-2"],
+								"url": "/resources/resource-2",
+								"failing_to_check": true
+							},
+							{
+								"name": "resource-3",
+								"type": "type-3",
+								"groups": [],
+								"url": "/resources/resource-3"
+							}
+						]`))
+					})
 				})
 			})
 

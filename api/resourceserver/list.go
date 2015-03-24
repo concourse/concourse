@@ -17,6 +17,8 @@ func (s *Server) ListResources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	showCheckErr := s.validator.IsAuthenticated(r)
+
 	for _, resource := range config.Resources {
 		checkErr, err := s.resourceDB.GetResourceCheckError(resource.Name)
 		if err != nil {
@@ -24,7 +26,7 @@ func (s *Server) ListResources(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		resources = append(resources, present.Resource(resource, config.Groups, checkErr))
+		resources = append(resources, present.Resource(resource, config.Groups, checkErr, showCheckErr))
 	}
 
 	w.WriteHeader(http.StatusOK)
