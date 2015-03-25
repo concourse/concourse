@@ -1,9 +1,12 @@
 package buildserver
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -33,6 +36,18 @@ func NewEventHandler(buildsDB BuildsDB, buildID int, censor bool) http.Handler {
 			}
 
 			start++
+		}
+
+		var responseWriter io.Writer = w
+
+		w.Header().Add("Vary", "Accept-Encoding")
+		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			w.Header().Set("Content-Encoding", "gzip")
+
+			gz := gzip.NewWriter(w)
+			defer gz.Close()
+
+			responseWriter = gz
 		}
 
 		events, err := buildsDB.GetBuildEvents(buildID, start)
@@ -78,7 +93,7 @@ func NewEventHandler(buildsDB BuildsDB, buildID int, censor bool) http.Handler {
 					ID:   fmt.Sprintf("%d", start),
 					Name: "event",
 					Data: payload,
-				}.Write(w)
+				}.Write(responseWriter)
 				if err != nil {
 					return
 				}
@@ -88,7 +103,7 @@ func NewEventHandler(buildsDB BuildsDB, buildID int, censor bool) http.Handler {
 				flusher.Flush()
 			case err := <-errs:
 				if err == db.ErrEndOfBuildEventStream {
-					err = sse.Event{Name: "end"}.Write(w)
+					err = sse.Event{Name: "end"}.Write(responseWriter)
 					if err != nil {
 						return
 					}
