@@ -39,6 +39,7 @@ func NewEventHandler(buildsDB BuildsDB, buildID int, censor bool) http.Handler {
 		}
 
 		var responseWriter io.Writer = w
+		var responseFlusher *gzip.Writer
 
 		w.Header().Add("Vary", "Accept-Encoding")
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
@@ -48,6 +49,7 @@ func NewEventHandler(buildsDB BuildsDB, buildID int, censor bool) http.Handler {
 			defer gz.Close()
 
 			responseWriter = gz
+			responseFlusher = gz
 		}
 
 		events, err := buildsDB.GetBuildEvents(buildID, start)
@@ -99,6 +101,13 @@ func NewEventHandler(buildsDB BuildsDB, buildID int, censor bool) http.Handler {
 				}
 
 				start++
+
+				if responseFlusher != nil {
+					err = responseFlusher.Flush()
+					if err != nil {
+						return
+					}
+				}
 
 				flusher.Flush()
 			case err := <-errs:
