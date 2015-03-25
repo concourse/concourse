@@ -39,10 +39,10 @@ resources/docker-image-resource.tar.gz:
     NzFkODlkNmM5NzQ0ODg3ZDM0NWMzN2I1NWNjN2I2N2Y2Nzk1YWEzZQ==
   size: 8277135
 resources/vagrant-cloud-resource.tar.gz:
-  object_id: 48e09904-8b92-46b0-82fc-dd6f0ad7c6df
+  object_id: ba9762cd-b2bd-4f55-b610-2e2bb87f6f6d
   sha: !binary |-
-    ZTE2MWE0NjU0ZTAyOTc1NGQ0YzQzNWUxNjc0ZTczNDUzYTYzMWMyNw==
-  size: 7502611
+    ODhlMDg2OTRhNzkzMzkxMDg0ZTdlZjA5MTBiZGNmZjRjYjllZDM0Yw==
+  size: 8409175
 resources/cf-resource.tar.gz:
   object_id: e7d1f1dd-2fde-4070-85d6-2a4474e37eac
   sha: !binary |-
