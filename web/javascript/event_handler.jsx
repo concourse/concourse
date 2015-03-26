@@ -12,10 +12,26 @@ var flux = require('./flux');
 var buildComponent = <Build flux={flux}/>;
 
 function renderBuildComponent() {
-  React.render(
+  var rendered = React.render(
     buildComponent,
     document.getElementById('build-logs')
   );
+
+  var title = $("#page-header");
+
+  if (title.hasClass("pending") || title.hasClass("started")) {
+    rendered.setState({ autoscroll: true });
+  }
+
+  $(window).scroll(function() {
+    var scrollEnd = $(window).scrollTop() + $(window).height();
+
+    if (scrollEnd >= ($(document).height() - 16)) {
+      rendered.setState({ autoscroll: true });
+    } else {
+      rendered.setState({ autoscroll: false });
+    }
+  });
 }
 
 function streamLog(uri, status) {
@@ -277,22 +293,6 @@ function scrollToCurrentBuild() {
 }
 
 $(document).ready(function() {
-  var title = $("#page-header");
-
-  if (title.hasClass("pending") || title.hasClass("started")) {
-    buildComponent.setState({ autoscroll: true });
-  }
-
-  $(window).scroll(function() {
-    var scrollEnd = $(window).scrollTop() + $(window).height();
-
-    if (scrollEnd >= ($(document).height() - 16)) {
-      buildComponent.setState({ autoscroll: true });
-    } else {
-      buildComponent.setState({ autoscroll: false });
-    }
-  });
-
   $("#builds").bind('mousewheel', function(e){
     if (e.originalEvent.deltaX != 0) {
       $(this).scrollLeft($(this).scrollLeft() + e.originalEvent.deltaX);
