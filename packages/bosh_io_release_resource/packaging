@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -e -x
+
+tar zxf resources/bosh-io-release-resource.tar.gz -C ${BOSH_INSTALL_TARGET}

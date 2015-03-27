@@ -1,0 +1,5 @@
+---
+name: bosh_io_release_resource
+
+files:
+  - resources/bosh-io-release-resource.tar.gz
