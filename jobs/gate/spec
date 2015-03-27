@@ -56,9 +56,9 @@ properties:
         image: /var/vcap/packages/vagrant_cloud_resource
       - type: github-release
         image: /var/vcap/packages/github_release_resource
-      - type: bosh-io-release-release
+      - type: bosh-io-release
         image: /var/vcap/packages/bosh_io_release_resource
-      - type: bosh-io-stemcell-release
+      - type: bosh-io-stemcell
         image: /var/vcap/packages/bosh_io_stemcell_resource
 
   gate.platform:
