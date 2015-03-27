@@ -28,5 +28,3 @@ bosh -n create release --final --with-tarball --version "$VERSION"
 
 git add -A
 git commit -m "release v${VERSION}"
-
-git tag "v${VERSION}"
