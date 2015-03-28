@@ -66,7 +66,7 @@ var _ = Describe("Syncing", func() {
 		err = os.Chmod(newFlyPath, 0755)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		atcServer = ghttp.NewServer()
+		atcServer = ghttp.NewTLSServer()
 		atcServer.AppendHandlers(cliHandler())
 
 		os.Setenv("ATC_URL", atcServer.URL())
@@ -87,7 +87,7 @@ var _ = Describe("Syncing", func() {
 	}
 
 	It("downloads and replaces the currently running executable", func() {
-		sync()
+		sync("-k")
 
 		contents, err := ioutil.ReadFile(newFlyPath)
 		Ω(err).ShouldNot(HaveOccurred())
