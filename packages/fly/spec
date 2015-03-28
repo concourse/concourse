@@ -14,8 +14,6 @@ files:
   - github.com/concourse/fly/commands/*.go # gosub
   - github.com/concourse/fly/config/*.go # gosub
   - github.com/concourse/fly/eventstream/*.go # gosub
-  - github.com/inconshreveable/go-update/*.go # gosub
-  - github.com/inconshreveable/go-update/download/*.go # gosub
   - github.com/kardianos/osext/*.go # gosub
   - github.com/kr/binarydist/*.go # gosub
   - github.com/kr/pty/*.go # gosub
@@ -37,4 +35,6 @@ files:
   - github.com/pkg/term/termios/*.go # gosub
   - github.com/tedsuo/rata/*.go # gosub
   - github.com/vito/go-sse/sse/*.go # gosub
+  - github.com/zachgersh/go-update/*.go # gosub
+  - github.com/zachgersh/go-update/download/*.go # gosub
   - gopkg.in/yaml.v2/*.go # gosub

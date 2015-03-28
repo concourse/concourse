@@ -126,10 +126,6 @@
 	path = src/github.com/kr/binarydist
 	url = https://github.com/kr/binarydist
 	branch = master
-[submodule "src/github.com/inconshreveable/go-update"]
-	path = src/github.com/inconshreveable/go-update
-	url = https://github.com/inconshreveable/go-update
-	branch = master
 [submodule "src/github.com/kardianos/osext"]
 	path = src/github.com/kardianos/osext
 	url = https://github.com/kardianos/osext
@@ -154,3 +150,7 @@
 	path = src/github.com/codahale/hdrhistogram
 	url = https://github.com/codahale/hdrhistogram
 	branch = master
+[submodule "src/github.com/zachgersh/go-update"]
+	path = src/github.com/zachgersh/go-update
+	url = https://github.com/zachgersh/go-update.git
+	branch = take-http-client
