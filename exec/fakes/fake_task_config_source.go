@@ -9,10 +9,10 @@ import (
 )
 
 type FakeTaskConfigSource struct {
-	FetchConfigStub        func(exec.ArtifactSource) (atc.TaskConfig, error)
+	FetchConfigStub        func(*exec.SourceRepository) (atc.TaskConfig, error)
 	fetchConfigMutex       sync.RWMutex
 	fetchConfigArgsForCall []struct {
-		arg1 exec.ArtifactSource
+		arg1 *exec.SourceRepository
 	}
 	fetchConfigReturns struct {
 		result1 atc.TaskConfig
@@ -20,10 +20,10 @@ type FakeTaskConfigSource struct {
 	}
 }
 
-func (fake *FakeTaskConfigSource) FetchConfig(arg1 exec.ArtifactSource) (atc.TaskConfig, error) {
+func (fake *FakeTaskConfigSource) FetchConfig(arg1 *exec.SourceRepository) (atc.TaskConfig, error) {
 	fake.fetchConfigMutex.Lock()
 	fake.fetchConfigArgsForCall = append(fake.fetchConfigArgsForCall, struct {
-		arg1 exec.ArtifactSource
+		arg1 *exec.SourceRepository
 	}{arg1})
 	fake.fetchConfigMutex.Unlock()
 	if fake.FetchConfigStub != nil {
@@ -39,7 +39,7 @@ func (fake *FakeTaskConfigSource) FetchConfigCallCount() int {
 	return len(fake.fetchConfigArgsForCall)
 }
 
-func (fake *FakeTaskConfigSource) FetchConfigArgsForCall(i int) exec.ArtifactSource {
+func (fake *FakeTaskConfigSource) FetchConfigArgsForCall(i int) *exec.SourceRepository {
 	fake.fetchConfigMutex.RLock()
 	defer fake.fetchConfigMutex.RUnlock()
 	return fake.fetchConfigArgsForCall[i].arg1

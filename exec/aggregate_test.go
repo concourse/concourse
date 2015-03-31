@@ -18,49 +18,55 @@ import (
 
 var _ = Describe("Aggregate", func() {
 	var (
-		fakeStepA *fakes.FakeStep
-		fakeStepB *fakes.FakeStep
+		fakeStepA *fakes.FakeStepFactory
+		fakeStepB *fakes.FakeStepFactory
 
-		aggregate Step
+		aggregate StepFactory
 
-		inSource *fakes.FakeArtifactSource
+		inStep *fakes.FakeStep
+		repo   *SourceRepository
 
-		outSourceA *fakes.FakeArtifactSource
-		outSourceB *fakes.FakeArtifactSource
+		outStepA *fakes.FakeStep
+		outStepB *fakes.FakeStep
 
-		source  ArtifactSource
+		step    Step
 		process ifrit.Process
 	)
 
 	BeforeEach(func() {
-		fakeStepA = new(fakes.FakeStep)
-		fakeStepB = new(fakes.FakeStep)
+		fakeStepA = new(fakes.FakeStepFactory)
+		fakeStepB = new(fakes.FakeStepFactory)
 
 		aggregate = Aggregate{
 			"A": fakeStepA,
 			"B": fakeStepB,
 		}
 
-		inSource = new(fakes.FakeArtifactSource)
+		inStep = new(fakes.FakeStep)
+		repo = NewSourceRepository()
 
-		outSourceA = new(fakes.FakeArtifactSource)
-		fakeStepA.UsingReturns(outSourceA)
+		outStepA = new(fakes.FakeStep)
+		fakeStepA.UsingReturns(outStepA)
 
-		outSourceB = new(fakes.FakeArtifactSource)
-		fakeStepB.UsingReturns(outSourceB)
+		outStepB = new(fakes.FakeStep)
+		fakeStepB.UsingReturns(outStepB)
 	})
 
 	JustBeforeEach(func() {
-		source = aggregate.Using(inSource)
-		process = ifrit.Invoke(source)
+		step = aggregate.Using(inStep, repo)
+		process = ifrit.Invoke(step)
 	})
 
 	It("uses the input source for all steps", func() {
 		Ω(fakeStepA.UsingCallCount()).Should(Equal(1))
-		Ω(fakeStepA.UsingArgsForCall(0)).Should(Equal(inSource))
+		step, repo := fakeStepA.UsingArgsForCall(0)
+		Ω(step).Should(Equal(inStep))
+		Ω(repo).Should(Equal(repo))
 
 		Ω(fakeStepB.UsingCallCount()).Should(Equal(1))
-		Ω(fakeStepB.UsingArgsForCall(0)).Should(Equal(inSource))
+		step, repo = fakeStepB.UsingArgsForCall(0)
+		Ω(step).Should(Equal(inStep))
+		Ω(repo).Should(Equal(repo))
 	})
 
 	It("exits successfully", func() {
@@ -72,14 +78,14 @@ var _ = Describe("Aggregate", func() {
 			wg := new(sync.WaitGroup)
 			wg.Add(2)
 
-			outSourceA.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+			outStepA.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
 				wg.Done()
 				wg.Wait()
 				close(ready)
 				return nil
 			}
 
-			outSourceB.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+			outStepB.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
 				wg.Done()
 				wg.Wait()
 				close(ready)
@@ -88,8 +94,8 @@ var _ = Describe("Aggregate", func() {
 		})
 
 		It("happens concurrently", func() {
-			Ω(outSourceA.RunCallCount()).Should(Equal(1))
-			Ω(outSourceB.RunCallCount()).Should(Equal(1))
+			Ω(outStepA.RunCallCount()).Should(Equal(1))
+			Ω(outStepB.RunCallCount()).Should(Equal(1))
 		})
 	})
 
@@ -99,13 +105,13 @@ var _ = Describe("Aggregate", func() {
 		BeforeEach(func() {
 			receivedSignals = make(chan os.Signal, 2)
 
-			outSourceA.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+			outStepA.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
 				close(ready)
 				receivedSignals <- <-signals
 				return nil
 			}
 
-			outSourceB.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+			outStepB.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
 				close(ready)
 				receivedSignals <- <-signals
 				return nil
@@ -127,8 +133,8 @@ var _ = Describe("Aggregate", func() {
 		disasterB := errors.New("nope B")
 
 		BeforeEach(func() {
-			outSourceA.RunReturns(disasterA)
-			outSourceB.RunReturns(disasterB)
+			outStepA.RunReturns(disasterA)
+			outStepB.RunReturns(disasterB)
 		})
 
 		It("exits with an error including the original message", func() {
@@ -148,14 +154,14 @@ var _ = Describe("Aggregate", func() {
 		})
 
 		It("streams each source to a subdirectory in the destination", func() {
-			err := source.StreamTo(fakeDestination)
+			err := step.StreamTo(fakeDestination)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(outSourceA.StreamToCallCount()).Should(Equal(1))
-			Ω(outSourceB.StreamToCallCount()).Should(Equal(1))
+			Ω(outStepA.StreamToCallCount()).Should(Equal(1))
+			Ω(outStepB.StreamToCallCount()).Should(Equal(1))
 
-			destA := outSourceA.StreamToArgsForCall(0)
-			destB := outSourceB.StreamToArgsForCall(0)
+			destA := outStepA.StreamToArgsForCall(0)
+			destB := outStepB.StreamToArgsForCall(0)
 
 			src := new(bytes.Buffer)
 
@@ -182,11 +188,11 @@ var _ = Describe("Aggregate", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				outSourceA.StreamToReturns(disaster)
+				outStepA.StreamToReturns(disaster)
 			})
 
 			It("returns the error", func() {
-				err := source.StreamTo(fakeDestination)
+				err := step.StreamTo(fakeDestination)
 				Ω(err).Should(Equal(disaster))
 			})
 		})
@@ -195,7 +201,7 @@ var _ = Describe("Aggregate", func() {
 	Describe("streaming a file out", func() {
 		Context("from a path not referring to any source", func() {
 			It("returns ErrFileNotFound", func() {
-				_, err := source.StreamFile("X/foo")
+				_, err := step.StreamFile("X/foo")
 				Ω(err).Should(Equal(ErrFileNotFound))
 			})
 		})
@@ -205,27 +211,27 @@ var _ = Describe("Aggregate", func() {
 
 			BeforeEach(func() {
 				outStream = gbytes.NewBuffer()
-				outSourceA.StreamFileReturns(outStream, nil)
+				outStepA.StreamFileReturns(outStream, nil)
 			})
 
 			It("streams out from the source", func() {
-				out, err := source.StreamFile("A/foo")
+				out, err := step.StreamFile("A/foo")
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(out).Should(Equal(outStream))
 
-				Ω(outSourceA.StreamFileArgsForCall(0)).Should(Equal("foo"))
+				Ω(outStepA.StreamFileArgsForCall(0)).Should(Equal("foo"))
 			})
 
 			Context("when streaming out from the source fails", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					outSourceA.StreamFileReturns(nil, disaster)
+					outStepA.StreamFileReturns(nil, disaster)
 				})
 
 				It("returns the error", func() {
-					_, err := source.StreamFile("A/foo")
+					_, err := step.StreamFile("A/foo")
 					Ω(err).Should(Equal(disaster))
 				})
 			})
@@ -234,11 +240,11 @@ var _ = Describe("Aggregate", func() {
 
 	Describe("releasing", func() {
 		It("releases all sources", func() {
-			err := source.Release()
+			err := step.Release()
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(outSourceA.ReleaseCallCount()).Should(Equal(1))
-			Ω(outSourceB.ReleaseCallCount()).Should(Equal(1))
+			Ω(outStepA.ReleaseCallCount()).Should(Equal(1))
+			Ω(outStepB.ReleaseCallCount()).Should(Equal(1))
 		})
 
 		Context("when the sources fail to release", func() {
@@ -246,12 +252,12 @@ var _ = Describe("Aggregate", func() {
 			disasterB := errors.New("nope B")
 
 			BeforeEach(func() {
-				outSourceA.ReleaseReturns(disasterA)
-				outSourceB.ReleaseReturns(disasterB)
+				outStepA.ReleaseReturns(disasterA)
+				outStepB.ReleaseReturns(disasterB)
 			})
 
 			It("returns an error describing the failures", func() {
-				err := source.Release()
+				err := step.Release()
 				Ω(err).Should(HaveOccurred())
 
 				Ω(err.Error()).Should(ContainSubstring("A: nope A"))
@@ -263,13 +269,13 @@ var _ = Describe("Aggregate", func() {
 	Describe("getting a result", func() {
 		Context("when getting a map of results", func() {
 			BeforeEach(func() {
-				outSourceA.ResultStub = successResult(true)
-				outSourceB.ResultStub = successResult(false)
+				outStepA.ResultStub = successResult(true)
+				outStepB.ResultStub = successResult(false)
 			})
 
 			It("collects aggregate results into a map", func() {
 				result := map[string]Success{}
-				Ω(source.Result(&result)).Should(BeTrue())
+				Ω(step.Result(&result)).Should(BeTrue())
 
 				Ω(result["A"]).Should(Equal(Success(true)))
 				Ω(result["B"]).Should(Equal(Success(false)))
@@ -285,48 +291,48 @@ var _ = Describe("Aggregate", func() {
 
 			Context("and all branches are successful", func() {
 				BeforeEach(func() {
-					outSourceA.ResultStub = successResult(true)
-					outSourceB.ResultStub = successResult(true)
+					outStepA.ResultStub = successResult(true)
+					outStepB.ResultStub = successResult(true)
 				})
 
 				It("yields true", func() {
-					Ω(source.Result(&result)).Should(BeTrue())
+					Ω(step.Result(&result)).Should(BeTrue())
 					Ω(result).Should(Equal(Success(true)))
 				})
 			})
 
 			Context("and some branches are not successful", func() {
 				BeforeEach(func() {
-					outSourceA.ResultStub = successResult(true)
-					outSourceB.ResultStub = successResult(false)
+					outStepA.ResultStub = successResult(true)
+					outStepB.ResultStub = successResult(false)
 				})
 
 				It("yields false", func() {
-					Ω(source.Result(&result)).Should(BeTrue())
+					Ω(step.Result(&result)).Should(BeTrue())
 					Ω(result).Should(Equal(Success(false)))
 				})
 			})
 
 			Context("when some branches do not indicate success", func() {
 				BeforeEach(func() {
-					outSourceA.ResultStub = successResult(true)
-					outSourceB.ResultReturns(false)
+					outStepA.ResultStub = successResult(true)
+					outStepB.ResultReturns(false)
 				})
 
 				It("only considers the branches that do", func() {
-					Ω(source.Result(&result)).Should(BeTrue())
+					Ω(step.Result(&result)).Should(BeTrue())
 					Ω(result).Should(Equal(Success(true)))
 				})
 			})
 
 			Context("when no branches indicate success", func() {
 				BeforeEach(func() {
-					outSourceA.ResultReturns(false)
-					outSourceB.ResultReturns(false)
+					outStepA.ResultReturns(false)
+					outStepB.ResultReturns(false)
 				})
 
 				It("returns false", func() {
-					Ω(source.Result(&result)).Should(BeFalse())
+					Ω(step.Result(&result)).Should(BeFalse())
 					Ω(result).Should(Equal(Success(false)))
 				})
 			})

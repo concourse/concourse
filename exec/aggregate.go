@@ -4,31 +4,30 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"reflect"
 	"strings"
 
 	"github.com/tedsuo/ifrit"
 )
 
-type Aggregate map[string]Step
+type Aggregate map[string]StepFactory
 
-func (a Aggregate) Using(source ArtifactSource) ArtifactSource {
-	sources := aggregateSource{}
+func (a Aggregate) Using(prev Step, repo *SourceRepository) Step {
+	sources := aggregateStep{}
 
 	for name, step := range a {
-		sources[name] = step.Using(source)
+		sources[name] = step.Using(prev, repo)
 	}
 
 	return sources
 }
 
-type aggregateSource map[string]ArtifactSource
+type aggregateStep map[string]Step
 
-func (source aggregateSource) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+func (step aggregateStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	members := map[string]ifrit.Process{}
 
-	for mn, ms := range source {
+	for mn, ms := range step {
 		process := ifrit.Background(ms)
 		members[mn] = process
 	}
@@ -65,28 +64,7 @@ func (source aggregateSource) Run(signals <-chan os.Signal, ready chan<- struct{
 	return nil
 }
 
-func (source aggregateSource) StreamTo(dest ArtifactDestination) error {
-	for name, src := range source {
-		err := src.StreamTo(subdirectoryDestination{dest, name})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (source aggregateSource) StreamFile(path string) (io.ReadCloser, error) {
-	for name, src := range source {
-		if strings.HasPrefix(path, name+"/") {
-			return src.StreamFile(path[len(name)+1:])
-		}
-	}
-
-	return nil, ErrFileNotFound
-}
-
-func (source aggregateSource) Release() error {
+func (source aggregateStep) Release() error {
 	var errorMessages []string
 
 	for name, src := range source {
@@ -103,7 +81,7 @@ func (source aggregateSource) Release() error {
 	return nil
 }
 
-func (source aggregateSource) Result(x interface{}) bool {
+func (source aggregateStep) Result(x interface{}) bool {
 	if success, ok := x.(*Success); ok {
 		succeeded := true
 		anyIndicated := false
@@ -155,11 +133,32 @@ func (source aggregateSource) Result(x interface{}) bool {
 	return true
 }
 
+func (source aggregateStep) StreamTo(dest ArtifactDestination) error {
+	for name, src := range source {
+		err := src.StreamTo(subdirectoryDestination{dest, name})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (source aggregateStep) StreamFile(path string) (io.ReadCloser, error) {
+	for name, src := range source {
+		if strings.HasPrefix(path, name+"/") {
+			return src.StreamFile(path[len(name)+1:])
+		}
+	}
+
+	return nil, ErrFileNotFound
+}
+
 type subdirectoryDestination struct {
 	destination  ArtifactDestination
 	subdirectory string
 }
 
-func (dest subdirectoryDestination) StreamIn(destPath string, src io.Reader) error {
-	return dest.destination.StreamIn(path.Join(dest.subdirectory, destPath), src)
+func (dest subdirectoryDestination) StreamIn(dst string, src io.Reader) error {
+	return dest.destination.StreamIn(dest.subdirectory+"/"+dst, src)
 }

@@ -9,29 +9,31 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
-func Compose(a Step, b Step) Step {
+func Compose(a StepFactory, b StepFactory) StepFactory {
 	return composed{a: a, b: b}
 }
 
 type composed struct {
-	a Step
-	b Step
+	a StepFactory
+	b StepFactory
 
-	source ArtifactSource
+	prev Step
+	repo *SourceRepository
 
-	firstSource  ArtifactSource
-	secondSource ArtifactSource
+	firstStep  Step
+	secondStep Step
 }
 
-func (step composed) Using(source ArtifactSource) ArtifactSource {
-	step.source = source
+func (step composed) Using(prev Step, repo *SourceRepository) Step {
+	step.prev = prev
+	step.repo = repo
 	return &step
 }
 
 func (step *composed) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	step.firstSource = step.a.Using(step.source)
+	step.firstStep = step.a.Using(step.prev, step.repo)
 
-	firstProcess := ifrit.Background(step.firstSource)
+	firstProcess := ifrit.Background(step.firstStep)
 
 	var signalled bool
 	var waitErr error
@@ -52,22 +54,22 @@ dance:
 		return waitErr
 	}
 
-	step.secondSource = step.b.Using(step.firstSource)
+	step.secondStep = step.b.Using(step.firstStep, step.repo)
 
-	return step.secondSource.Run(signals, ready)
+	return step.secondStep.Run(signals, ready)
 }
 
 func (step *composed) Release() error {
 	errorMessages := []string{}
 
-	if step.firstSource != nil {
-		if err := step.firstSource.Release(); err != nil {
+	if step.firstStep != nil {
+		if err := step.firstStep.Release(); err != nil {
 			errorMessages = append(errorMessages, "first step: "+err.Error())
 		}
 	}
 
-	if step.secondSource != nil {
-		if err := step.secondSource.Release(); err != nil {
+	if step.secondStep != nil {
+		if err := step.secondStep.Release(); err != nil {
 			errorMessages = append(errorMessages, "second step: "+err.Error())
 		}
 	}
@@ -79,14 +81,14 @@ func (step *composed) Release() error {
 	return nil
 }
 
+func (step *composed) Result(x interface{}) bool {
+	return step.secondStep.Result(x)
+}
+
 func (step *composed) StreamFile(filePath string) (io.ReadCloser, error) {
-	return step.secondSource.StreamFile(filePath)
+	return step.secondStep.StreamFile(filePath)
 }
 
 func (step *composed) StreamTo(dst ArtifactDestination) error {
-	return step.secondSource.StreamTo(dst)
-}
-
-func (step *composed) Result(x interface{}) bool {
-	return step.secondSource.Result(x)
+	return step.secondStep.StreamTo(dst)
 }

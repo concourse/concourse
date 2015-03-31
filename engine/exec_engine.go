@@ -94,8 +94,8 @@ func (build *execBuild) Abort() error {
 }
 
 func (build *execBuild) Resume(logger lager.Logger) {
-	step := build.buildStep(logger, build.metadata.Plan, event.OriginLocation{0})
-	source := step.Using(&exec.NoopArtifactSource{})
+	stepFactory := build.buildStepFactory(logger, build.metadata.Plan, event.OriginLocation{0})
+	source := stepFactory.Using(&exec.NoopStep{}, exec.NewSourceRepository())
 
 	defer source.Release()
 
@@ -119,7 +119,7 @@ func (build *execBuild) Resume(logger lager.Logger) {
 	}
 }
 
-func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan, location event.OriginLocation) exec.Step {
+func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, location event.OriginLocation) exec.StepFactory {
 	if plan.Aggregate != nil {
 		logger = logger.Session("aggregate")
 
@@ -127,7 +127,7 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan, location e
 
 		var aID uint = 0
 		for name, innerPlan := range *plan.Aggregate {
-			step[name] = build.buildStep(logger.Session(name), innerPlan, location.Chain(aID))
+			step[name] = build.buildStepFactory(logger.Session(name), innerPlan, location.Chain(aID))
 			aID++
 		}
 
@@ -135,8 +135,8 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan, location e
 	}
 
 	if plan.Compose != nil {
-		x := build.buildStep(logger, plan.Compose.A, location)
-		y := build.buildStep(logger, plan.Compose.B, location.Incr(1))
+		x := build.buildStepFactory(logger, plan.Compose.A, location)
+		y := build.buildStepFactory(logger, plan.Compose.B, location.Incr(1))
 		return exec.Compose(x, y)
 	}
 
@@ -146,8 +146,8 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan, location e
 		})
 
 		return exec.Conditional{
-			Conditions: plan.Conditional.Conditions,
-			Step:       build.buildStep(logger, plan.Conditional.Plan, location),
+			Conditions:  plan.Conditional.Conditions,
+			StepFactory: build.buildStepFactory(logger, plan.Conditional.Plan, location),
 		}
 	}
 
@@ -168,12 +168,15 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan, location e
 			return exec.Identity{}
 		}
 
-		return build.factory.Task(
-			build.taskIdentifier(plan.Task.Name, location),
-			build.delegate.ExecutionDelegate(logger, *plan.Task, location),
-			exec.Privileged(plan.Task.Privileged),
-			configSource,
-		)
+		return exec.Source{
+			Name: exec.SourceName(plan.Task.Name),
+			StepFactory: build.factory.Task(
+				build.taskIdentifier(plan.Task.Name, location),
+				build.delegate.ExecutionDelegate(logger, *plan.Task, location),
+				exec.Privileged(plan.Task.Privileged),
+				configSource,
+			),
+		}
 	}
 
 	if plan.Get != nil {
@@ -181,17 +184,20 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan, location e
 			"name": plan.Get.Name,
 		})
 
-		return build.factory.Get(
-			build.getIdentifier(plan.Get.Name, location),
-			build.delegate.InputDelegate(logger, *plan.Get, location),
-			atc.ResourceConfig{
-				Name:   plan.Get.Resource,
-				Type:   plan.Get.Type,
-				Source: plan.Get.Source,
-			},
-			plan.Get.Params,
-			plan.Get.Version,
-		)
+		return exec.Source{
+			Name: exec.SourceName(plan.Get.Name),
+			StepFactory: build.factory.Get(
+				build.getIdentifier(plan.Get.Name, location),
+				build.delegate.InputDelegate(logger, *plan.Get, location),
+				atc.ResourceConfig{
+					Name:   plan.Get.Resource,
+					Type:   plan.Get.Type,
+					Source: plan.Get.Source,
+				},
+				plan.Get.Params,
+				plan.Get.Version,
+			),
+		}
 	}
 
 	if plan.Put != nil {

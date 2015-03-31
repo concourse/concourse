@@ -9,7 +9,6 @@ import (
 	"os"
 	"path"
 	"strings"
-	"sync"
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
@@ -41,7 +40,8 @@ type taskStep struct {
 
 	WorkerClient worker.Client
 
-	artifactSource ArtifactSource
+	prev Step
+	repo *SourceRepository
 
 	container worker.Container
 	process   garden.Process
@@ -49,12 +49,13 @@ type taskStep struct {
 	exitStatus int
 }
 
-func (step taskStep) Using(source ArtifactSource) ArtifactSource {
-	step.artifactSource = source
+func (step taskStep) Using(prev Step, repo *SourceRepository) Step {
+	step.prev = prev
+	step.repo = repo
 
 	return failureReporter{
-		ArtifactSource: &step,
-		ReportFailure:  step.Delegate.Failed,
+		Step:          &step,
+		ReportFailure: step.Delegate.Failed,
 	}
 }
 
@@ -102,7 +103,7 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	} else {
 		// container does not exist; new session
 
-		config, err := step.ConfigSource.FetchConfig(step.artifactSource)
+		config, err := step.ConfigSource.FetchConfig(step.repo)
 		if err != nil {
 			return err
 		}
@@ -127,17 +128,9 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return err
 		}
 
-		dest := newContainerDestination(step.container, config.Inputs)
-
-		err = step.artifactSource.StreamTo(dest)
+		err = step.collectInputs(config.Inputs)
 		if err != nil {
 			return err
-		}
-
-		missing := dest.MissingInputs()
-
-		if len(missing) > 0 {
-			return MissingInputsError{missing}
 		}
 
 		step.Delegate.Started()
@@ -269,6 +262,42 @@ func (step *taskStep) ensureBuildDirExists(container garden.Container) error {
 	return nil
 }
 
+func (step *taskStep) collectInputs(inputs []atc.TaskInputConfig) error {
+	type inputPair struct {
+		source      ArtifactSource
+		destination ArtifactDestination
+	}
+
+	inputMappings := []inputPair{}
+
+	var missingInputs []string
+	for _, input := range inputs {
+		source, found := step.repo.SourceFor(SourceName(input.Name))
+		if !found {
+			missingInputs = append(missingInputs, input.Name)
+			continue
+		}
+
+		inputMappings = append(inputMappings, inputPair{
+			source:      source,
+			destination: newContainerDestination(step.container, input),
+		})
+	}
+
+	for _, pair := range inputMappings {
+		err := pair.source.StreamTo(pair.destination)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(missingInputs) > 0 {
+		return MissingInputsError{missingInputs}
+	}
+
+	return nil
+}
+
 func (taskStep) envForParams(params map[string]string) []string {
 	env := make([]string, 0, len(params))
 
@@ -280,57 +309,22 @@ func (taskStep) envForParams(params map[string]string) []string {
 }
 
 type containerDestination struct {
-	container    garden.Container
-	inputConfigs []atc.TaskInputConfig
-
-	missingInputs map[string]struct{}
-
-	lock sync.Mutex
+	container   garden.Container
+	inputConfig atc.TaskInputConfig
 }
 
-func newContainerDestination(container garden.Container, inputs []atc.TaskInputConfig) *containerDestination {
-	missingInputs := map[string]struct{}{}
-
-	for _, i := range inputs {
-		missingInputs[i.Name] = struct{}{}
-	}
-
+func newContainerDestination(container garden.Container, inputConfig atc.TaskInputConfig) *containerDestination {
 	return &containerDestination{
-		container:    container,
-		inputConfigs: inputs,
-
-		missingInputs: missingInputs,
+		container:   container,
+		inputConfig: inputConfig,
 	}
 }
 
 func (dest *containerDestination) StreamIn(dst string, src io.Reader) error {
-	destSegments := strings.Split(dst, "/")
-
-	if len(destSegments) > 0 {
-		dest.lock.Lock()
-		delete(dest.missingInputs, destSegments[0])
-		dest.lock.Unlock()
-
-		for _, config := range dest.inputConfigs {
-			if config.Name == destSegments[0] && config.Path != "" {
-				destSegments[0] = config.Path
-				break
-			}
-		}
+	inputDst := dest.inputConfig.Path
+	if len(inputDst) == 0 {
+		inputDst = dest.inputConfig.Name
 	}
 
-	return dest.container.StreamIn(path.Join(ArtifactsRoot, strings.Join(destSegments, "/")), src)
-}
-
-func (dest *containerDestination) MissingInputs() []string {
-	dest.lock.Lock()
-	defer dest.lock.Unlock()
-
-	missing := make([]string, 0, len(dest.missingInputs))
-
-	for i, _ := range dest.missingInputs {
-		missing = append(missing, i)
-	}
-
-	return missing
+	return dest.container.StreamIn(ArtifactsRoot+"/"+inputDst+"/"+dst, src)
 }

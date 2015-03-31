@@ -1,6 +1,7 @@
 package exec
 
-//go:generate counterfeiter . Step
-type Step interface {
-	Using(ArtifactSource) ArtifactSource
+//go:generate counterfeiter . StepFactory
+
+type StepFactory interface {
+	Using(Step, *SourceRepository) Step
 }

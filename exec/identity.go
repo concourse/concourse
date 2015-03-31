@@ -4,14 +4,14 @@ import "os"
 
 type Identity struct{}
 
-func (Identity) Using(source ArtifactSource) ArtifactSource {
-	return identitySource{source}
+func (Identity) Using(prev Step, repo *SourceRepository) Step {
+	return identityStep{prev}
 }
 
-type identitySource struct {
-	ArtifactSource
+type identityStep struct {
+	Step
 }
 
-func (identitySource) Run(<-chan os.Signal, chan<- struct{}) error {
+func (identityStep) Run(<-chan os.Signal, chan<- struct{}) error {
 	return nil
 }

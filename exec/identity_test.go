@@ -12,21 +12,23 @@ import (
 
 var _ = Describe("Identity", func() {
 	var (
-		inSource *fakes.FakeArtifactSource
+		inStep *fakes.FakeStep
+		repo   *SourceRepository
 
 		identity Identity
 
-		source ArtifactSource
+		step Step
 	)
 
 	BeforeEach(func() {
 		identity = Identity{}
 
-		inSource = new(fakes.FakeArtifactSource)
+		inStep = new(fakes.FakeStep)
+		repo = NewSourceRepository()
 	})
 
 	JustBeforeEach(func() {
-		source = identity.Using(inSource)
+		step = identity.Using(inStep, repo)
 	})
 
 	Describe("Run", func() {
@@ -34,42 +36,20 @@ var _ = Describe("Identity", func() {
 			ready := make(chan struct{})
 			signals := make(chan os.Signal)
 
-			err := source.Run(signals, ready)
+			err := step.Run(signals, ready)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(inSource.RunCallCount()).Should(BeZero())
-		})
-	})
-
-	Describe("StreamTo", func() {
-		It("calls through to the input source", func() {
-			destination := new(fakes.FakeArtifactDestination)
-
-			err := source.StreamTo(destination)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			Ω(inSource.StreamToCallCount()).Should(Equal(1))
-			Ω(inSource.StreamToArgsForCall(0)).Should(Equal(destination))
+			Ω(inStep.RunCallCount()).Should(BeZero())
 		})
 	})
 
 	Describe("Result", func() {
 		It("calls through to the input source", func() {
 			var result int
-			source.Result(&result)
+			step.Result(&result)
 
-			Ω(inSource.ResultCallCount()).Should(Equal(1))
-			Ω(inSource.ResultArgsForCall(0)).Should(Equal(&result))
-		})
-	})
-
-	Describe("StreamFile", func() {
-		It("calls through to the input source", func() {
-			_, err := source.StreamFile("some-path")
-			Ω(err).ShouldNot(HaveOccurred())
-
-			Ω(inSource.StreamFileCallCount()).Should(Equal(1))
-			Ω(inSource.StreamFileArgsForCall(0)).Should(Equal("some-path"))
+			Ω(inStep.ResultCallCount()).Should(Equal(1))
+			Ω(inStep.ResultArgsForCall(0)).Should(Equal(&result))
 		})
 	})
 })

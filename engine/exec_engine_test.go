@@ -53,14 +53,14 @@ var _ = Describe("ExecEngine", func() {
 
 			logger *lagertest.TestLogger
 
-			inputStep   *execfakes.FakeStep
-			inputSource *execfakes.FakeArtifactSource
+			inputStepFactory *execfakes.FakeStepFactory
+			inputStep        *execfakes.FakeStep
 
-			taskStep   *execfakes.FakeStep
-			taskSource *execfakes.FakeArtifactSource
+			taskStepFactory *execfakes.FakeStepFactory
+			taskStep        *execfakes.FakeStep
 
-			outputStep   *execfakes.FakeStep
-			outputSource *execfakes.FakeArtifactSource
+			outputStepFactory *execfakes.FakeStepFactory
+			outputStep        *execfakes.FakeStep
 		)
 
 		BeforeEach(func() {
@@ -117,21 +117,21 @@ var _ = Describe("ExecEngine", func() {
 			fakeOutputDelegate = new(execfakes.FakePutDelegate)
 			fakeDelegate.OutputDelegateReturns(fakeOutputDelegate)
 
+			inputStepFactory = new(execfakes.FakeStepFactory)
 			inputStep = new(execfakes.FakeStep)
-			inputSource = new(execfakes.FakeArtifactSource)
-			inputStep.UsingReturns(inputSource)
-			fakeFactory.GetReturns(inputStep)
+			inputStepFactory.UsingReturns(inputStep)
+			fakeFactory.GetReturns(inputStepFactory)
 
+			taskStepFactory = new(execfakes.FakeStepFactory)
 			taskStep = new(execfakes.FakeStep)
-			taskSource = new(execfakes.FakeArtifactSource)
-			taskSource.ResultStub = successResult(true)
-			taskStep.UsingReturns(taskSource)
-			fakeFactory.TaskReturns(taskStep)
+			taskStep.ResultStub = successResult(true)
+			taskStepFactory.UsingReturns(taskStep)
+			fakeFactory.TaskReturns(taskStepFactory)
 
+			outputStepFactory = new(execfakes.FakeStepFactory)
 			outputStep = new(execfakes.FakeStep)
-			outputSource = new(execfakes.FakeArtifactSource)
-			outputStep.UsingReturns(outputSource)
-			fakeFactory.PutReturns(outputStep)
+			outputStepFactory.UsingReturns(outputStep)
+			fakeFactory.PutReturns(outputStepFactory)
 		})
 
 		JustBeforeEach(func() {
@@ -227,21 +227,21 @@ var _ = Describe("ExecEngine", func() {
 			BeforeEach(func() {
 				assertNotReleased := func(signals <-chan os.Signal, ready chan<- struct{}) error {
 					defer GinkgoRecover()
-					Consistently(inputSource.ReleaseCallCount).Should(BeZero())
-					Consistently(taskSource.ReleaseCallCount).Should(BeZero())
-					Consistently(outputSource.ReleaseCallCount).Should(BeZero())
+					Consistently(inputStep.ReleaseCallCount).Should(BeZero())
+					Consistently(taskStep.ReleaseCallCount).Should(BeZero())
+					Consistently(outputStep.ReleaseCallCount).Should(BeZero())
 					return nil
 				}
 
-				inputSource.RunStub = assertNotReleased
-				taskSource.RunStub = assertNotReleased
-				outputSource.RunStub = assertNotReleased
+				inputStep.RunStub = assertNotReleased
+				taskStep.RunStub = assertNotReleased
+				outputStep.RunStub = assertNotReleased
 			})
 
 			It("releases all sources", func() {
-				Ω(inputSource.ReleaseCallCount()).Should(Equal(1))
-				Ω(taskSource.ReleaseCallCount()).Should(Equal(1))
-				Ω(outputSource.ReleaseCallCount()).Should(Equal(1))
+				Ω(inputStep.ReleaseCallCount()).Should(Equal(1))
+				Ω(taskStep.ReleaseCallCount()).Should(Equal(1))
+				Ω(outputStep.ReleaseCallCount()).Should(Equal(1))
 			})
 		})
 
@@ -260,18 +260,18 @@ var _ = Describe("ExecEngine", func() {
 
 		Context("when the input succeeds", func() {
 			BeforeEach(func() {
-				inputSource.RunReturns(nil)
+				inputStep.RunReturns(nil)
 			})
 
 			Context("when executing the task errors", func() {
 				disaster := errors.New("oh no!")
 
 				BeforeEach(func() {
-					taskSource.RunReturns(disaster)
+					taskStep.RunReturns(disaster)
 				})
 
 				It("does not run any outputs", func() {
-					Ω(outputSource.RunCallCount()).Should(BeZero())
+					Ω(outputStep.RunCallCount()).Should(BeZero())
 				})
 
 				It("finishes with error", func() {
@@ -283,8 +283,8 @@ var _ = Describe("ExecEngine", func() {
 
 			Context("when executing the task succeeds", func() {
 				BeforeEach(func() {
-					taskSource.RunReturns(nil)
-					taskSource.ResultStub = successResult(true)
+					taskStep.RunReturns(nil)
+					taskStep.ResultStub = successResult(true)
 				})
 
 				Context("when the output should perform on success", func() {
@@ -293,12 +293,12 @@ var _ = Describe("ExecEngine", func() {
 					})
 
 					It("runs the output", func() {
-						Ω(outputSource.RunCallCount()).Should(Equal(1))
+						Ω(outputStep.RunCallCount()).Should(Equal(1))
 					})
 
 					Context("when the output succeeds", func() {
 						BeforeEach(func() {
-							outputSource.RunReturns(nil)
+							outputStep.RunReturns(nil)
 						})
 
 						It("finishes with success", func() {
@@ -312,7 +312,7 @@ var _ = Describe("ExecEngine", func() {
 						disaster := errors.New("oh no!")
 
 						BeforeEach(func() {
-							outputSource.RunReturns(disaster)
+							outputStep.RunReturns(disaster)
 						})
 
 						It("finishes with the error", func() {
@@ -329,7 +329,7 @@ var _ = Describe("ExecEngine", func() {
 					})
 
 					It("does not run the output", func() {
-						Ω(outputSource.RunCallCount()).Should(BeZero())
+						Ω(outputStep.RunCallCount()).Should(BeZero())
 					})
 				})
 
@@ -339,12 +339,12 @@ var _ = Describe("ExecEngine", func() {
 					})
 
 					It("runs the output", func() {
-						Ω(outputSource.RunCallCount()).Should(Equal(1))
+						Ω(outputStep.RunCallCount()).Should(Equal(1))
 					})
 
 					Context("when the output succeeds", func() {
 						BeforeEach(func() {
-							outputSource.RunReturns(nil)
+							outputStep.RunReturns(nil)
 						})
 
 						It("finishes with success", func() {
@@ -358,7 +358,7 @@ var _ = Describe("ExecEngine", func() {
 						disaster := errors.New("oh no!")
 
 						BeforeEach(func() {
-							outputSource.RunReturns(disaster)
+							outputStep.RunReturns(disaster)
 						})
 
 						It("finishes with the error", func() {
@@ -375,15 +375,15 @@ var _ = Describe("ExecEngine", func() {
 					})
 
 					It("does not run the output", func() {
-						Ω(outputSource.RunCallCount()).Should(BeZero())
+						Ω(outputStep.RunCallCount()).Should(BeZero())
 					})
 				})
 			})
 
 			Context("when executing the task fails", func() {
 				BeforeEach(func() {
-					taskSource.RunReturns(nil)
-					taskSource.ResultStub = successResult(false)
+					taskStep.RunReturns(nil)
+					taskStep.ResultStub = successResult(false)
 				})
 
 				Context("when the output should perform on success", func() {
@@ -392,7 +392,7 @@ var _ = Describe("ExecEngine", func() {
 					})
 
 					It("does not run the output", func() {
-						Ω(outputSource.RunCallCount()).Should(BeZero())
+						Ω(outputStep.RunCallCount()).Should(BeZero())
 					})
 				})
 
@@ -402,12 +402,12 @@ var _ = Describe("ExecEngine", func() {
 					})
 
 					It("runs the output", func() {
-						Ω(outputSource.RunCallCount()).Should(Equal(1))
+						Ω(outputStep.RunCallCount()).Should(Equal(1))
 					})
 
 					Context("when the output succeeds", func() {
 						BeforeEach(func() {
-							outputSource.RunReturns(nil)
+							outputStep.RunReturns(nil)
 						})
 
 						It("finishes with success", func() {
@@ -421,7 +421,7 @@ var _ = Describe("ExecEngine", func() {
 						disaster := errors.New("oh no!")
 
 						BeforeEach(func() {
-							outputSource.RunReturns(disaster)
+							outputStep.RunReturns(disaster)
 						})
 
 						It("finishes with the error", func() {
@@ -438,12 +438,12 @@ var _ = Describe("ExecEngine", func() {
 					})
 
 					It("runs the output", func() {
-						Ω(outputSource.RunCallCount()).Should(Equal(1))
+						Ω(outputStep.RunCallCount()).Should(Equal(1))
 					})
 
 					Context("when the output succeeds", func() {
 						BeforeEach(func() {
-							outputSource.RunReturns(nil)
+							outputStep.RunReturns(nil)
 						})
 
 						It("finishes with success", func() {
@@ -457,7 +457,7 @@ var _ = Describe("ExecEngine", func() {
 						disaster := errors.New("oh no!")
 
 						BeforeEach(func() {
-							outputSource.RunReturns(disaster)
+							outputStep.RunReturns(disaster)
 						})
 
 						It("finishes with the error", func() {
@@ -474,7 +474,7 @@ var _ = Describe("ExecEngine", func() {
 					})
 
 					It("does not run the output", func() {
-						Ω(outputSource.RunCallCount()).Should(BeZero())
+						Ω(outputStep.RunCallCount()).Should(BeZero())
 					})
 				})
 			})
@@ -484,15 +484,15 @@ var _ = Describe("ExecEngine", func() {
 			disaster := errors.New("oh no!")
 
 			BeforeEach(func() {
-				inputSource.RunReturns(disaster)
+				inputStep.RunReturns(disaster)
 			})
 
 			It("does not run the task", func() {
-				Ω(taskSource.RunCallCount()).Should(BeZero())
+				Ω(taskStep.RunCallCount()).Should(BeZero())
 			})
 
 			It("does not run any outputs", func() {
-				Ω(outputSource.RunCallCount()).Should(BeZero())
+				Ω(outputStep.RunCallCount()).Should(BeZero())
 			})
 
 			It("finishes with the error", func() {

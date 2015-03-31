@@ -8,15 +8,18 @@ import (
 )
 
 type Conditional struct {
-	Conditions atc.Conditions
-	Step       Step
+	Conditions  atc.Conditions
+	StepFactory StepFactory
 
-	inputSource  ArtifactSource
-	outputSource ArtifactSource
+	prev Step
+	repo *SourceRepository
+
+	result Step
 }
 
-func (c Conditional) Using(source ArtifactSource) ArtifactSource {
-	c.inputSource = source
+func (c Conditional) Using(prev Step, repo *SourceRepository) Step {
+	c.prev = prev
+	c.repo = repo
 	return &c
 }
 
@@ -24,7 +27,7 @@ func (c *Conditional) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	var succeeded Success
 
 	conditionMatched := false
-	if c.inputSource.Result(&succeeded) {
+	if c.prev.Result(&succeeded) {
 		conditionMatched = c.Conditions.SatisfiedBy(bool(succeeded))
 	} else {
 		// if previous step cannot indicate success, presume that it succeeded
@@ -33,26 +36,26 @@ func (c *Conditional) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	}
 
 	if conditionMatched {
-		c.outputSource = c.Step.Using(c.inputSource)
+		c.result = c.StepFactory.Using(c.prev, c.repo)
 	} else {
-		c.outputSource = &NoopArtifactSource{}
+		c.result = &NoopStep{}
 	}
 
-	return c.outputSource.Run(signals, ready)
+	return c.result.Run(signals, ready)
 }
 
 func (c *Conditional) Release() error {
-	return c.outputSource.Release()
-}
-
-func (c *Conditional) StreamTo(dst ArtifactDestination) error {
-	return c.outputSource.StreamTo(dst)
-}
-
-func (c *Conditional) StreamFile(path string) (io.ReadCloser, error) {
-	return c.outputSource.StreamFile(path)
+	return c.result.Release()
 }
 
 func (c *Conditional) Result(x interface{}) bool {
-	return c.outputSource.Result(x)
+	return c.result.Result(x)
+}
+
+func (c *Conditional) StreamTo(dst ArtifactDestination) error {
+	return c.result.StreamTo(dst)
+}
+
+func (c *Conditional) StreamFile(path string) (io.ReadCloser, error) {
+	return c.result.StreamFile(path)
 }

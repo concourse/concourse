@@ -1,20 +1,23 @@
 package exec
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/cloudfoundry-incubator/candiedyaml"
 	"github.com/concourse/atc"
 )
 
 //go:generate counterfeiter . TaskConfigSource
 type TaskConfigSource interface {
-	FetchConfig(ArtifactSource) (atc.TaskConfig, error)
+	FetchConfig(*SourceRepository) (atc.TaskConfig, error)
 }
 
 type StaticConfigSource struct {
 	Config atc.TaskConfig
 }
 
-func (configSource StaticConfigSource) FetchConfig(ArtifactSource) (atc.TaskConfig, error) {
+func (configSource StaticConfigSource) FetchConfig(*SourceRepository) (atc.TaskConfig, error) {
 	return configSource.Config, nil
 }
 
@@ -22,8 +25,37 @@ type FileConfigSource struct {
 	Path string
 }
 
-func (configSource FileConfigSource) FetchConfig(source ArtifactSource) (atc.TaskConfig, error) {
-	stream, err := source.StreamFile(configSource.Path)
+type UnknownArtifactSourceError struct {
+	SourceName SourceName
+}
+
+func (err UnknownArtifactSourceError) Error() string {
+	return fmt.Sprintf("unknown artifact source: %s", err.SourceName)
+}
+
+type UnspecifiedArtifactSourceError struct {
+	Path string
+}
+
+func (err UnspecifiedArtifactSourceError) Error() string {
+	return fmt.Sprintf("config path '%s' does not specify where the file lives", err.Path)
+}
+
+func (configSource FileConfigSource) FetchConfig(repo *SourceRepository) (atc.TaskConfig, error) {
+	segs := strings.SplitN(configSource.Path, "/", 2)
+	if len(segs) != 2 {
+		return atc.TaskConfig{}, UnspecifiedArtifactSourceError{configSource.Path}
+	}
+
+	sourceName := SourceName(segs[0])
+	filePath := segs[1]
+
+	source, found := repo.SourceFor(sourceName)
+	if !found {
+		return atc.TaskConfig{}, UnknownArtifactSourceError{sourceName}
+	}
+
+	stream, err := source.StreamFile(filePath)
 	if err != nil {
 		return atc.TaskConfig{}, err
 	}
@@ -49,7 +81,7 @@ type MergedConfigSource struct {
 	B TaskConfigSource
 }
 
-func (configSource MergedConfigSource) FetchConfig(source ArtifactSource) (atc.TaskConfig, error) {
+func (configSource MergedConfigSource) FetchConfig(source *SourceRepository) (atc.TaskConfig, error) {
 	aConfig, err := configSource.A.FetchConfig(source)
 	if err != nil {
 		return atc.TaskConfig{}, err

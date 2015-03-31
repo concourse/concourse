@@ -55,9 +55,10 @@ var _ = Describe("GardenFactory", func() {
 			params         atc.Params
 			version        atc.Version
 
-			inSource ArtifactSource
+			inStep Step
+			repo   *SourceRepository
 
-			source  ArtifactSource
+			step    Step
 			process ifrit.Process
 		)
 
@@ -76,12 +77,13 @@ var _ = Describe("GardenFactory", func() {
 
 			version = atc.Version{"some-version": "some-value"}
 
-			inSource = nil // not needed for Get
+			inStep = nil // not needed for Get
+			repo = NewSourceRepository()
 		})
 
 		JustBeforeEach(func() {
-			source = factory.Get(identifier, getDelegate, resourceConfig, params, version).Using(inSource)
-			process = ifrit.Invoke(source)
+			step = factory.Get(identifier, getDelegate, resourceConfig, params, version).Using(inStep, repo)
+			process = ifrit.Invoke(step)
 		})
 
 		Context("when the tracker can initialize the resource", func() {
@@ -135,7 +137,7 @@ var _ = Describe("GardenFactory", func() {
 
 			It("reports the fetched version info", func() {
 				var info VersionInfo
-				Ω(source.Result(&info)).Should(BeTrue())
+				Ω(step.Result(&info)).Should(BeTrue())
 				Ω(info.Version).Should(Equal(atc.Version{"some": "version"}))
 				Ω(info.Metadata).Should(Equal([]atc.MetadataField{{"some", "metadata"}}))
 			})
@@ -200,7 +202,7 @@ var _ = Describe("GardenFactory", func() {
 					It("destroys the resource", func() {
 						Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
 
-						err := source.Release()
+						err := step.Release()
 						Ω(err).ShouldNot(HaveOccurred())
 
 						Ω(fakeResource.DestroyCallCount()).Should(Equal(1))
@@ -215,7 +217,7 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					It("returns the error", func() {
-						err := source.Release()
+						err := step.Release()
 						Ω(err).Should(Equal(disaster))
 					})
 				})
@@ -239,7 +241,7 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					It("streams the resource to the destination", func() {
-						err := source.StreamTo(fakeDestination)
+						err := step.StreamTo(fakeDestination)
 						Ω(err).ShouldNot(HaveOccurred())
 
 						Ω(fakeVersionedSource.StreamOutCallCount()).Should(Equal(1))
@@ -259,7 +261,7 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("returns the error", func() {
-							Ω(source.StreamTo(fakeDestination)).Should(Equal(disaster))
+							Ω(step.StreamTo(fakeDestination)).Should(Equal(disaster))
 						})
 					})
 
@@ -271,7 +273,7 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("returns the error", func() {
-							Ω(source.StreamTo(fakeDestination)).Should(Equal(disaster))
+							Ω(step.StreamTo(fakeDestination)).Should(Equal(disaster))
 						})
 					})
 				})
@@ -284,7 +286,7 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					It("returns the error", func() {
-						Ω(source.StreamTo(fakeDestination)).Should(Equal(disaster))
+						Ω(step.StreamTo(fakeDestination)).Should(Equal(disaster))
 					})
 				})
 			})
@@ -318,7 +320,7 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("streams out the given path", func() {
-							reader, err := source.StreamFile("some-path")
+							reader, err := step.StreamFile("some-path")
 							Ω(err).ShouldNot(HaveOccurred())
 
 							Ω(ioutil.ReadAll(reader)).Should(Equal([]byte(fileContent)))
@@ -328,7 +330,7 @@ var _ = Describe("GardenFactory", func() {
 
 						Describe("closing the stream", func() {
 							It("closes the stream from the versioned source", func() {
-								reader, err := source.StreamFile("some-path")
+								reader, err := step.StreamFile("some-path")
 								Ω(err).ShouldNot(HaveOccurred())
 
 								Ω(tarBuffer.Closed()).Should(BeFalse())
@@ -343,7 +345,7 @@ var _ = Describe("GardenFactory", func() {
 
 					Context("but the stream is empty", func() {
 						It("returns ErrFileNotFound", func() {
-							_, err := source.StreamFile("some-path")
+							_, err := step.StreamFile("some-path")
 							Ω(err).Should(Equal(ErrFileNotFound))
 						})
 					})
@@ -357,7 +359,7 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					It("returns the error", func() {
-						_, err := source.StreamFile("some-path")
+						_, err := step.StreamFile("some-path")
 						Ω(err).Should(Equal(disaster))
 					})
 				})
@@ -390,7 +392,7 @@ var _ = Describe("GardenFactory", func() {
 				})
 
 				It("succeeds", func() {
-					err := source.Release()
+					err := step.Release()
 					Ω(err).ShouldNot(HaveOccurred())
 				})
 			})
@@ -403,9 +405,10 @@ var _ = Describe("GardenFactory", func() {
 			resourceConfig atc.ResourceConfig
 			params         atc.Params
 
-			inSource *fakes.FakeArtifactSource
+			inStep *fakes.FakeStep
+			repo   *SourceRepository
 
-			source  ArtifactSource
+			step    Step
 			process ifrit.Process
 		)
 
@@ -422,12 +425,12 @@ var _ = Describe("GardenFactory", func() {
 
 			params = atc.Params{"some-param": "some-value"}
 
-			inSource = new(fakes.FakeArtifactSource)
+			inStep = new(fakes.FakeStep)
 		})
 
 		JustBeforeEach(func() {
-			source = factory.Put(identifier, putDelegate, resourceConfig, params).Using(inSource)
-			process = ifrit.Invoke(source)
+			step = factory.Put(identifier, putDelegate, resourceConfig, params).Using(inStep, repo)
+			process = ifrit.Invoke(step)
 		})
 
 		Context("when the tracker can initialize the resource", func() {
@@ -469,8 +472,8 @@ var _ = Describe("GardenFactory", func() {
 				err := putArtifactSource.StreamTo(dest)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(inSource.StreamToCallCount()).Should(Equal(1))
-				Ω(inSource.StreamToArgsForCall(0)).Should(Equal(dest))
+				Ω(inStep.StreamToCallCount()).Should(Equal(1))
+				Ω(inStep.StreamToArgsForCall(0)).Should(Equal(dest))
 			})
 
 			It("puts the resource with the io config forwarded", func() {
@@ -487,7 +490,7 @@ var _ = Describe("GardenFactory", func() {
 
 			It("reports the created version info", func() {
 				var info VersionInfo
-				Ω(source.Result(&info)).Should(BeTrue())
+				Ω(step.Result(&info)).Should(BeTrue())
 				Ω(info.Version).Should(Equal(atc.Version{"some": "version"}))
 				Ω(info.Metadata).Should(Equal([]atc.MetadataField{{"some", "metadata"}}))
 			})
@@ -552,7 +555,7 @@ var _ = Describe("GardenFactory", func() {
 					It("destroys the resource", func() {
 						Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
 
-						err := source.Release()
+						err := step.Release()
 						Ω(err).ShouldNot(HaveOccurred())
 
 						Ω(fakeResource.DestroyCallCount()).Should(Equal(1))
@@ -567,7 +570,7 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					It("returns the error", func() {
-						err := source.Release()
+						err := step.Release()
 						Ω(err).Should(Equal(disaster))
 					})
 				})
@@ -589,7 +592,7 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					It("streams the resource to the destination", func() {
-						err := source.StreamTo(fakeDestination)
+						err := step.StreamTo(fakeDestination)
 						Ω(err).ShouldNot(HaveOccurred())
 
 						Ω(fakeVersionedSource.StreamOutCallCount()).Should(Equal(1))
@@ -609,7 +612,7 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("returns the error", func() {
-							Ω(source.StreamTo(fakeDestination)).Should(Equal(disaster))
+							Ω(step.StreamTo(fakeDestination)).Should(Equal(disaster))
 						})
 					})
 
@@ -621,7 +624,7 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("returns the error", func() {
-							Ω(source.StreamTo(fakeDestination)).Should(Equal(disaster))
+							Ω(step.StreamTo(fakeDestination)).Should(Equal(disaster))
 						})
 					})
 				})
@@ -634,7 +637,7 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					It("returns the error", func() {
-						Ω(source.StreamTo(fakeDestination)).Should(Equal(disaster))
+						Ω(step.StreamTo(fakeDestination)).Should(Equal(disaster))
 					})
 				})
 			})
@@ -668,7 +671,7 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("streams out the given path", func() {
-							reader, err := source.StreamFile("some-path")
+							reader, err := step.StreamFile("some-path")
 							Ω(err).ShouldNot(HaveOccurred())
 
 							Ω(ioutil.ReadAll(reader)).Should(Equal([]byte(fileContent)))
@@ -678,7 +681,7 @@ var _ = Describe("GardenFactory", func() {
 
 						Describe("closing the stream", func() {
 							It("closes the stream from the versioned source", func() {
-								reader, err := source.StreamFile("some-path")
+								reader, err := step.StreamFile("some-path")
 								Ω(err).ShouldNot(HaveOccurred())
 
 								Ω(tarBuffer.Closed()).Should(BeFalse())
@@ -693,7 +696,7 @@ var _ = Describe("GardenFactory", func() {
 
 					Context("but the stream is empty", func() {
 						It("returns ErrFileNotFound", func() {
-							_, err := source.StreamFile("some-path")
+							_, err := step.StreamFile("some-path")
 							Ω(err).Should(Equal(ErrFileNotFound))
 						})
 					})
@@ -707,7 +710,7 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					It("returns the error", func() {
-						_, err := source.StreamFile("some-path")
+						_, err := step.StreamFile("some-path")
 						Ω(err).Should(Equal(disaster))
 					})
 				})
@@ -740,7 +743,7 @@ var _ = Describe("GardenFactory", func() {
 				})
 
 				It("succeeds", func() {
-					err := source.Release()
+					err := step.Release()
 					Ω(err).ShouldNot(HaveOccurred())
 				})
 			})
@@ -753,9 +756,10 @@ var _ = Describe("GardenFactory", func() {
 			privileged   Privileged
 			configSource *fakes.FakeTaskConfigSource
 
-			inSource *fakes.FakeArtifactSource
+			inStep *fakes.FakeStep
+			repo   *SourceRepository
 
-			source  ArtifactSource
+			step    Step
 			process ifrit.Process
 		)
 
@@ -767,12 +771,13 @@ var _ = Describe("GardenFactory", func() {
 			privileged = false
 			configSource = new(fakes.FakeTaskConfigSource)
 
-			inSource = new(fakes.FakeArtifactSource)
+			inStep = new(fakes.FakeStep)
+			repo = NewSourceRepository()
 		})
 
 		JustBeforeEach(func() {
-			source = factory.Task(identifier, taskDelegate, privileged, configSource).Using(inSource)
-			process = ifrit.Invoke(source)
+			step = factory.Task(identifier, taskDelegate, privileged, configSource).Using(inStep, repo)
+			process = ifrit.Invoke(step)
 		})
 
 		Context("when the container does not yet exist", func() {
@@ -796,8 +801,6 @@ var _ = Describe("GardenFactory", func() {
 					}
 
 					configSource.FetchConfigReturns(fetchedConfig, nil)
-
-					inSource.StreamToReturns(nil)
 				})
 
 				Context("when creating the task's container works", func() {
@@ -838,9 +841,7 @@ var _ = Describe("GardenFactory", func() {
 
 					It("gets the config from the input artifact soruce", func() {
 						Ω(configSource.FetchConfigCallCount()).Should(Equal(1))
-
-						source := configSource.FetchConfigArgsForCall(0)
-						Ω(source).Should(Equal(inSource))
+						Ω(configSource.FetchConfigArgsForCall(0)).Should(Equal(repo))
 					})
 
 					It("creates a container with the config's image and the session ID as the handle", func() {
@@ -865,22 +866,6 @@ var _ = Describe("GardenFactory", func() {
 
 						_, err := tarReader.Next()
 						Ω(err).Should(Equal(io.EOF))
-					})
-
-					It("streams the input source in relative to /tmp/build/src", func() {
-						Ω(inSource.StreamToCallCount()).Should(Equal(1))
-						Ω(inSource.StreamToArgsForCall(0)).ShouldNot(BeNil())
-
-						streamInCount := fakeContainer.StreamInCallCount()
-
-						streamIn := new(bytes.Buffer)
-
-						err := inSource.StreamToArgsForCall(0).StreamIn("some-path", streamIn)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						destination, source := fakeContainer.StreamInArgsForCall(streamInCount)
-						Ω(destination).Should(Equal("/tmp/build/src/some-path"))
-						Ω(source).Should(Equal(streamIn))
 					})
 
 					It("runs a process with the config's path and args, in /tmp/build/src", func() {
@@ -950,7 +935,13 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					Context("when the configuration specifies paths for inputs", func() {
+						var inputSource *fakes.FakeArtifactSource
+						var otherInputSource *fakes.FakeArtifactSource
+
 						BeforeEach(func() {
+							inputSource = new(fakes.FakeArtifactSource)
+							otherInputSource = new(fakes.FakeArtifactSource)
+
 							configSource.FetchConfigReturns(atc.TaskConfig{
 								Image:  "some-image",
 								Params: map[string]string{"SOME": "params"},
@@ -960,198 +951,86 @@ var _ = Describe("GardenFactory", func() {
 								},
 								Inputs: []atc.TaskInputConfig{
 									{Name: "some-input", Path: "some-input-configured-path"},
-									{Name: "some-other-input", Path: "some-other-input-configured-path"},
-								},
-							}, nil)
-						})
-
-						Context("when all inputs are present in the in source", func() {
-							BeforeEach(func() {
-								inSource.StreamToStub = func(dest ArtifactDestination) error {
-									defer GinkgoRecover()
-
-									streamIn := new(bytes.Buffer)
-
-									By("remapping base destinations")
-									err := dest.StreamIn("some-input", streamIn)
-									Ω(err).ShouldNot(HaveOccurred())
-
-									destination, source := fakeContainer.StreamInArgsForCall(1)
-									Ω(destination).Should(Equal("/tmp/build/src/some-input-configured-path"))
-									Ω(source).Should(Equal(streamIn))
-
-									By("remapping subdirectory destinations")
-									err = dest.StreamIn("some-input/some-thing", streamIn)
-									Ω(err).ShouldNot(HaveOccurred())
-
-									destination, source = fakeContainer.StreamInArgsForCall(2)
-									Ω(destination).Should(Equal("/tmp/build/src/some-input-configured-path/some-thing"))
-									Ω(source).Should(Equal(streamIn))
-
-									By("remapping other base destinations")
-									err = dest.StreamIn("some-other-input", streamIn)
-									Ω(err).ShouldNot(HaveOccurred())
-
-									destination, source = fakeContainer.StreamInArgsForCall(3)
-									Ω(destination).Should(Equal("/tmp/build/src/some-other-input-configured-path"))
-									Ω(source).Should(Equal(streamIn))
-
-									By("not accidentally matching partial names")
-									err = dest.StreamIn("some-input-morewords", streamIn)
-									Ω(err).ShouldNot(HaveOccurred())
-
-									destination, source = fakeContainer.StreamInArgsForCall(4)
-									Ω(destination).Should(Equal("/tmp/build/src/some-input-morewords"))
-									Ω(source).Should(Equal(streamIn))
-
-									By("not remapping unconfigured destinations")
-									err = dest.StreamIn("some-other-unconfigured-input", streamIn)
-									Ω(err).ShouldNot(HaveOccurred())
-
-									destination, source = fakeContainer.StreamInArgsForCall(5)
-									Ω(destination).Should(Equal("/tmp/build/src/some-other-unconfigured-input"))
-									Ω(source).Should(Equal(streamIn))
-
-									return nil
-								}
-							})
-
-							It("re-maps the stream destinations to the configured destinations", func() {
-								Ω(inSource.StreamToCallCount()).Should(Equal(1))
-
-								Eventually(process.Wait()).Should(Receive(BeNil()))
-							})
-						})
-
-						Context("when any of the inputs are missing", func() {
-							BeforeEach(func() {
-								inSource.StreamToStub = func(dest ArtifactDestination) error {
-									defer GinkgoRecover()
-
-									streamIn := new(bytes.Buffer)
-
-									err := dest.StreamIn("some-unconfigured-input", streamIn)
-									Ω(err).ShouldNot(HaveOccurred())
-
-									destination, source := fakeContainer.StreamInArgsForCall(1)
-									Ω(destination).Should(Equal("/tmp/build/src/some-unconfigured-input"))
-									Ω(source).Should(Equal(streamIn))
-
-									return nil
-								}
-							})
-
-							It("exits with failure", func() {
-								Ω(inSource.StreamToCallCount()).Should(Equal(1))
-
-								var err error
-								Eventually(process.Wait()).Should(Receive(&err))
-								Ω(err).Should(BeAssignableToTypeOf(MissingInputsError{}))
-								Ω(err.(MissingInputsError).Inputs).Should(ConsistOf("some-input", "some-other-input"))
-							})
-
-							It("invokes the delegate's Failed callback", func() {
-								Eventually(process.Wait()).Should(Receive(HaveOccurred()))
-
-								Ω(taskDelegate.FailedCallCount()).Should(Equal(1))
-
-								err := taskDelegate.FailedArgsForCall(0)
-								Ω(err).Should(BeAssignableToTypeOf(MissingInputsError{}))
-								Ω(err.(MissingInputsError).Inputs).Should(ConsistOf("some-input", "some-other-input"))
-							})
-						})
-					})
-
-					Context("when the configuration specifies names of inputs without paths", func() {
-						BeforeEach(func() {
-							configSource.FetchConfigReturns(atc.TaskConfig{
-								Image:  "some-image",
-								Params: map[string]string{"SOME": "params"},
-								Run: atc.TaskRunConfig{
-									Path: "ls",
-									Args: []string{"some", "args"},
-								},
-								Inputs: []atc.TaskInputConfig{
-									{Name: "some-input"},
 									{Name: "some-other-input"},
 								},
 							}, nil)
 						})
 
-						Context("when all inputs are present in the in source", func() {
+						Context("when all inputs are present in the in source repository", func() {
 							BeforeEach(func() {
-								inSource.StreamToStub = func(dest ArtifactDestination) error {
-									defer GinkgoRecover()
-
-									streamIn := new(bytes.Buffer)
-
-									err := dest.StreamIn("some-input", streamIn)
-									Ω(err).ShouldNot(HaveOccurred())
-
-									destination, source := fakeContainer.StreamInArgsForCall(1)
-									Ω(destination).Should(Equal("/tmp/build/src/some-input"))
-									Ω(source).Should(Equal(streamIn))
-
-									By("not remapping subdirectory destinations")
-									err = dest.StreamIn("some-input/some-thing", streamIn)
-									Ω(err).ShouldNot(HaveOccurred())
-
-									destination, source = fakeContainer.StreamInArgsForCall(2)
-									Ω(destination).Should(Equal("/tmp/build/src/some-input/some-thing"))
-									Ω(source).Should(Equal(streamIn))
-
-									By("not remapping other base destinations")
-									err = dest.StreamIn("some-other-input", streamIn)
-									Ω(err).ShouldNot(HaveOccurred())
-
-									destination, source = fakeContainer.StreamInArgsForCall(3)
-									Ω(destination).Should(Equal("/tmp/build/src/some-other-input"))
-									Ω(source).Should(Equal(streamIn))
-
-									By("not remapping unconfigured destinations")
-									err = dest.StreamIn("some-other-unconfigured-input", streamIn)
-									Ω(err).ShouldNot(HaveOccurred())
-
-									destination, source = fakeContainer.StreamInArgsForCall(4)
-									Ω(destination).Should(Equal("/tmp/build/src/some-other-unconfigured-input"))
-									Ω(source).Should(Equal(streamIn))
-
-									return nil
-								}
+								repo.RegisterSource("some-input", inputSource)
+								repo.RegisterSource("some-other-input", otherInputSource)
 							})
 
-							It("does not re-map the stream destinations", func() {
-								Ω(inSource.StreamToCallCount()).Should(Equal(1))
+							It("streams each of them to their configured destinations", func() {
+								streamIn := new(bytes.Buffer)
+
+								Ω(inputSource.StreamToCallCount()).Should(Equal(1))
+
+								destination := inputSource.StreamToArgsForCall(0)
+
+								initial := fakeContainer.StreamInCallCount()
+
+								err := destination.StreamIn("foo", streamIn)
+								Ω(err).ShouldNot(HaveOccurred())
+
+								Ω(fakeContainer.StreamInCallCount()).Should(Equal(initial + 1))
+								inDestination, source := fakeContainer.StreamInArgsForCall(initial)
+								Ω(inDestination).Should(Equal("/tmp/build/src/some-input-configured-path/foo"))
+								Ω(source).Should(Equal(streamIn))
+
+								Ω(otherInputSource.StreamToCallCount()).Should(Equal(1))
+
+								destination = otherInputSource.StreamToArgsForCall(0)
+
+								initial = fakeContainer.StreamInCallCount()
+
+								err = destination.StreamIn("foo", streamIn)
+								Ω(err).ShouldNot(HaveOccurred())
+
+								Ω(fakeContainer.StreamInCallCount()).Should(Equal(initial + 1))
+								inDestination, source = fakeContainer.StreamInArgsForCall(initial)
+								Ω(inDestination).Should(Equal("/tmp/build/src/some-other-input/foo"))
+								Ω(source).Should(Equal(streamIn))
 
 								Eventually(process.Wait()).Should(Receive(BeNil()))
+							})
+
+							Context("when streaming the bits in to the container fails", func() {
+								disaster := errors.New("nope")
+
+								BeforeEach(func() {
+									inputSource.StreamToReturns(disaster)
+								})
+
+								It("exits with the error", func() {
+									Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+								})
+
+								It("does not run anything", func() {
+									Eventually(process.Wait()).Should(Receive())
+									Ω(fakeContainer.RunCallCount()).Should(Equal(0))
+								})
+
+								It("invokes the delegate's Failed callback", func() {
+									Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+									Ω(taskDelegate.FailedCallCount()).Should(Equal(1))
+									Ω(taskDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+								})
 							})
 						})
 
 						Context("when any of the inputs are missing", func() {
 							BeforeEach(func() {
-								inSource.StreamToStub = func(dest ArtifactDestination) error {
-									defer GinkgoRecover()
-
-									streamIn := new(bytes.Buffer)
-
-									err := dest.StreamIn("some-unconfigured-input", streamIn)
-									Ω(err).ShouldNot(HaveOccurred())
-
-									destination, source := fakeContainer.StreamInArgsForCall(1)
-									Ω(destination).Should(Equal("/tmp/build/src/some-unconfigured-input"))
-									Ω(source).Should(Equal(streamIn))
-
-									return nil
-								}
+								repo.RegisterSource("some-input", inputSource)
+								// repo.RegisterSource("some-other-input", otherInputSource)
 							})
 
 							It("exits with failure", func() {
-								Ω(inSource.StreamToCallCount()).Should(Equal(1))
-
 								var err error
 								Eventually(process.Wait()).Should(Receive(&err))
 								Ω(err).Should(BeAssignableToTypeOf(MissingInputsError{}))
-								Ω(err.(MissingInputsError).Inputs).Should(ConsistOf("some-input", "some-other-input"))
+								Ω(err.(MissingInputsError).Inputs).Should(ConsistOf("some-other-input"))
 							})
 
 							It("invokes the delegate's Failed callback", func() {
@@ -1161,7 +1040,7 @@ var _ = Describe("GardenFactory", func() {
 
 								err := taskDelegate.FailedArgsForCall(0)
 								Ω(err).Should(BeAssignableToTypeOf(MissingInputsError{}))
-								Ω(err.(MissingInputsError).Inputs).Should(ConsistOf("some-input", "some-other-input"))
+								Ω(err.(MissingInputsError).Inputs).Should(ConsistOf("some-other-input"))
 							})
 						})
 					})
@@ -1185,7 +1064,7 @@ var _ = Describe("GardenFactory", func() {
 							Eventually(process.Wait()).Should(Receive(BeNil()))
 
 							var success Success
-							Ω(source.Result(&success)).Should(BeTrue())
+							Ω(step.Result(&success)).Should(BeTrue())
 							Ω(bool(success)).Should(BeTrue())
 						})
 
@@ -1193,7 +1072,7 @@ var _ = Describe("GardenFactory", func() {
 							Eventually(process.Wait()).Should(Receive(BeNil()))
 
 							var status ExitStatus
-							Ω(source.Result(&status)).Should(BeTrue())
+							Ω(step.Result(&status)).Should(BeTrue())
 							Ω(status).Should(Equal(ExitStatus(0)))
 						})
 
@@ -1261,7 +1140,7 @@ var _ = Describe("GardenFactory", func() {
 							Eventually(process.Wait()).Should(Receive(BeNil()))
 
 							var success Success
-							Ω(source.Result(&success)).Should(BeTrue())
+							Ω(step.Result(&success)).Should(BeTrue())
 							Ω(bool(success)).Should(BeFalse())
 						})
 
@@ -1269,7 +1148,7 @@ var _ = Describe("GardenFactory", func() {
 							Eventually(process.Wait()).Should(Receive(BeNil()))
 
 							var status ExitStatus
-							Ω(source.Result(&status)).Should(BeTrue())
+							Ω(step.Result(&status)).Should(BeTrue())
 							Ω(status).Should(Equal(ExitStatus(1)))
 						})
 
@@ -1370,7 +1249,7 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							It("streams the resource to the destination", func() {
-								err := source.StreamTo(fakeDestination)
+								err := step.StreamTo(fakeDestination)
 								Ω(err).ShouldNot(HaveOccurred())
 
 								Ω(fakeContainer.StreamOutCallCount()).Should(Equal(1))
@@ -1390,7 +1269,7 @@ var _ = Describe("GardenFactory", func() {
 								})
 
 								It("returns the error", func() {
-									Ω(source.StreamTo(fakeDestination)).Should(Equal(disaster))
+									Ω(step.StreamTo(fakeDestination)).Should(Equal(disaster))
 								})
 							})
 
@@ -1402,7 +1281,7 @@ var _ = Describe("GardenFactory", func() {
 								})
 
 								It("returns the error", func() {
-									Ω(source.StreamTo(fakeDestination)).Should(Equal(disaster))
+									Ω(step.StreamTo(fakeDestination)).Should(Equal(disaster))
 								})
 							})
 						})
@@ -1415,7 +1294,7 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							It("returns the error", func() {
-								Ω(source.StreamTo(fakeDestination)).Should(Equal(disaster))
+								Ω(step.StreamTo(fakeDestination)).Should(Equal(disaster))
 							})
 						})
 					})
@@ -1449,7 +1328,7 @@ var _ = Describe("GardenFactory", func() {
 								})
 
 								It("streams out the given path", func() {
-									reader, err := source.StreamFile("some-path")
+									reader, err := step.StreamFile("some-path")
 									Ω(err).ShouldNot(HaveOccurred())
 
 									Ω(ioutil.ReadAll(reader)).Should(Equal([]byte(fileContent)))
@@ -1459,7 +1338,7 @@ var _ = Describe("GardenFactory", func() {
 
 								Describe("closing the stream", func() {
 									It("closes the stream from the versioned source", func() {
-										reader, err := source.StreamFile("some-path")
+										reader, err := step.StreamFile("some-path")
 										Ω(err).ShouldNot(HaveOccurred())
 
 										Ω(tarBuffer.Closed()).Should(BeFalse())
@@ -1474,7 +1353,7 @@ var _ = Describe("GardenFactory", func() {
 
 							Context("but the stream is empty", func() {
 								It("returns ErrFileNotFound", func() {
-									_, err := source.StreamFile("some-path")
+									_, err := step.StreamFile("some-path")
 									Ω(err).Should(Equal(ErrFileNotFound))
 								})
 							})
@@ -1488,7 +1367,7 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							It("returns the error", func() {
-								_, err := source.StreamFile("some-path")
+								_, err := step.StreamFile("some-path")
 								Ω(err).Should(Equal(disaster))
 							})
 						})
@@ -1523,51 +1402,10 @@ var _ = Describe("GardenFactory", func() {
 						It("releases the container", func() {
 							Ω(fakeContainer.ReleaseCallCount()).Should(BeZero())
 
-							err := source.Release()
+							err := step.Release()
 							Ω(err).ShouldNot(HaveOccurred())
 
 							Ω(fakeContainer.ReleaseCallCount()).Should(Equal(1))
-						})
-					})
-
-					Context("when streaming out from the previous source fails", func() {
-						disaster := errors.New("nope")
-
-						BeforeEach(func() {
-							inSource.StreamToReturns(disaster)
-						})
-
-						It("exits with the error", func() {
-							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-						})
-
-						It("invokes the delegate's Failed callback", func() {
-							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-							Ω(taskDelegate.FailedCallCount()).Should(Equal(1))
-							Ω(taskDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
-						})
-					})
-
-					Context("when streaming the bits in to the container fails", func() {
-						disaster := errors.New("nope")
-
-						BeforeEach(func() {
-							inSource.StreamToReturns(disaster)
-						})
-
-						It("exits with the error", func() {
-							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-						})
-
-						It("does not run anything", func() {
-							Eventually(process.Wait()).Should(Receive())
-							Ω(fakeContainer.RunCallCount()).Should(Equal(0))
-						})
-
-						It("invokes the delegate's Failed callback", func() {
-							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-							Ω(taskDelegate.FailedCallCount()).Should(Equal(1))
-							Ω(taskDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
 						})
 					})
 
@@ -1613,7 +1451,7 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("succeeds", func() {
-							err := source.Release()
+							err := step.Release()
 							Ω(err).ShouldNot(HaveOccurred())
 						})
 					})
@@ -1671,7 +1509,7 @@ var _ = Describe("GardenFactory", func() {
 					Eventually(process.Wait()).Should(Receive(BeNil()))
 
 					var success Success
-					Ω(source.Result(&success)).Should(BeTrue())
+					Ω(step.Result(&success)).Should(BeTrue())
 					Ω(bool(success)).Should(BeFalse())
 				})
 
@@ -1679,7 +1517,7 @@ var _ = Describe("GardenFactory", func() {
 					Eventually(process.Wait()).Should(Receive(BeNil()))
 
 					var status ExitStatus
-					Ω(source.Result(&status)).Should(BeTrue())
+					Ω(step.Result(&status)).Should(BeTrue())
 					Ω(status).Should(Equal(ExitStatus(123)))
 				})
 

@@ -25,7 +25,7 @@ func NewGardenFactory(
 	}
 }
 
-func (factory *gardenFactory) Get(id worker.Identifier, delegate GetDelegate, config atc.ResourceConfig, params atc.Params, version atc.Version) Step {
+func (factory *gardenFactory) Get(id worker.Identifier, delegate GetDelegate, config atc.ResourceConfig, params atc.Params, version atc.Version) StepFactory {
 	return resourceStep{
 		Session: resource.Session{
 			ID:        id,
@@ -46,7 +46,7 @@ func (factory *gardenFactory) Get(id worker.Identifier, delegate GetDelegate, co
 	}
 }
 
-func (factory *gardenFactory) Put(id worker.Identifier, delegate PutDelegate, config atc.ResourceConfig, params atc.Params) Step {
+func (factory *gardenFactory) Put(id worker.Identifier, delegate PutDelegate, config atc.ResourceConfig, params atc.Params) StepFactory {
 	return resourceStep{
 		Session: resource.Session{
 			ID: id,
@@ -66,7 +66,7 @@ func (factory *gardenFactory) Put(id worker.Identifier, delegate PutDelegate, co
 	}
 }
 
-func (factory *gardenFactory) Task(id worker.Identifier, delegate TaskDelegate, privileged Privileged, configSource TaskConfigSource) Step {
+func (factory *gardenFactory) Task(id worker.Identifier, delegate TaskDelegate, privileged Privileged, configSource TaskConfigSource) StepFactory {
 	return taskStep{
 		WorkerID: id,
 
@@ -121,16 +121,24 @@ func (p hijackedProcess) SetTTY(spec atc.HijackTTYSpec) error {
 }
 
 type failureReporter struct {
-	ArtifactSource
+	Step
 
 	ReportFailure func(error)
 }
 
 func (reporter failureReporter) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	err := reporter.ArtifactSource.Run(signals, ready)
+	err := reporter.Step.Run(signals, ready)
 	if err != nil {
 		reporter.ReportFailure(err)
 	}
 
 	return err
+}
+
+type resourceSource struct {
+	ArtifactSource
+}
+
+func (source resourceSource) StreamTo(dest resource.ArtifactDestination) error {
+	return source.ArtifactSource.StreamTo(resource.ArtifactDestination(dest))
 }

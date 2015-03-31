@@ -16,15 +16,16 @@ import (
 
 var _ = Describe("Compose", func() {
 	var (
-		fakeStepA *fakes.FakeStep
-		fakeStepB *fakes.FakeStep
+		fakeStepFactoryA *fakes.FakeStepFactory
+		fakeStepFactoryB *fakes.FakeStepFactory
 
-		compose Step
+		compose StepFactory
 
-		inSource *fakes.FakeArtifactSource
+		inStep *fakes.FakeStep
+		repo   *SourceRepository
 
-		outSourceA *fakes.FakeArtifactSource
-		outSourceB *fakes.FakeArtifactSource
+		outStepA *fakes.FakeStep
+		outStepB *fakes.FakeStep
 
 		startA  chan error
 		finishA chan error
@@ -32,23 +33,24 @@ var _ = Describe("Compose", func() {
 		startB  chan error
 		finishB chan error
 
-		source  ArtifactSource
+		step    Step
 		process ifrit.Process
 	)
 
 	BeforeEach(func() {
-		fakeStepA = new(fakes.FakeStep)
-		fakeStepB = new(fakes.FakeStep)
+		fakeStepFactoryA = new(fakes.FakeStepFactory)
+		fakeStepFactoryB = new(fakes.FakeStepFactory)
 
-		compose = Compose(fakeStepA, fakeStepB)
+		compose = Compose(fakeStepFactoryA, fakeStepFactoryB)
 
-		inSource = new(fakes.FakeArtifactSource)
+		inStep = new(fakes.FakeStep)
+		repo = NewSourceRepository()
 
-		outSourceA = new(fakes.FakeArtifactSource)
-		fakeStepA.UsingReturns(outSourceA)
+		outStepA = new(fakes.FakeStep)
+		fakeStepFactoryA.UsingReturns(outStepA)
 
-		outSourceB = new(fakes.FakeArtifactSource)
-		fakeStepB.UsingReturns(outSourceB)
+		outStepB = new(fakes.FakeStep)
+		fakeStepFactoryB.UsingReturns(outStepB)
 
 		startA = make(chan error, 1)
 		finishA = make(chan error, 1)
@@ -56,7 +58,7 @@ var _ = Describe("Compose", func() {
 		startB = make(chan error, 1)
 		finishB = make(chan error, 1)
 
-		outSourceA.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+		outStepA.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
 			select {
 			case err := <-startA:
 				if err != nil {
@@ -76,7 +78,7 @@ var _ = Describe("Compose", func() {
 			}
 		}
 
-		outSourceB.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+		outStepB.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
 			select {
 			case err := <-startB:
 				if err != nil {
@@ -98,8 +100,8 @@ var _ = Describe("Compose", func() {
 	})
 
 	JustBeforeEach(func() {
-		source = compose.Using(inSource)
-		process = ifrit.Background(source)
+		step = compose.Using(inStep, repo)
+		process = ifrit.Background(step)
 	})
 
 	AfterEach(func() {
@@ -121,7 +123,7 @@ var _ = Describe("Compose", func() {
 
 				Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
 
-				Ω(fakeStepB.UsingCallCount()).Should(BeZero())
+				Ω(fakeStepFactoryB.UsingCallCount()).Should(BeZero())
 			})
 		})
 
@@ -137,7 +139,7 @@ var _ = Describe("Compose", func() {
 
 				Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
 
-				Ω(fakeStepB.UsingCallCount()).Should(BeZero())
+				Ω(fakeStepFactoryB.UsingCallCount()).Should(BeZero())
 			})
 		})
 
@@ -150,7 +152,7 @@ var _ = Describe("Compose", func() {
 			It("forwards the signal to the second step", func() {
 				Consistently(process.Ready()).ShouldNot(BeClosed())
 
-				Eventually(outSourceB.RunCallCount).Should(Equal(1))
+				Eventually(outStepB.RunCallCount).Should(Equal(1))
 
 				process.Signal(os.Interrupt)
 
@@ -169,7 +171,7 @@ var _ = Describe("Compose", func() {
 			It("forwards the signal to the second step", func() {
 				Eventually(process.Ready()).Should(BeClosed())
 
-				Eventually(outSourceB.RunCallCount).Should(Equal(1))
+				Eventually(outStepB.RunCallCount).Should(Equal(1))
 
 				Consistently(process.Wait()).ShouldNot(Receive())
 
@@ -187,13 +189,17 @@ var _ = Describe("Compose", func() {
 		})
 
 		It("uses the input source for the first step", func() {
-			Eventually(fakeStepA.UsingCallCount).Should(Equal(1))
-			Ω(fakeStepA.UsingArgsForCall(0)).Should(Equal(inSource))
+			Eventually(fakeStepFactoryA.UsingCallCount).Should(Equal(1))
+			step, repo := fakeStepFactoryA.UsingArgsForCall(0)
+			Ω(step).Should(Equal(inStep))
+			Ω(repo).Should(Equal(repo))
 		})
 
 		It("uses the first step's source as the input for the second step", func() {
-			Eventually(fakeStepB.UsingCallCount).Should(Equal(1))
-			Ω(fakeStepB.UsingArgsForCall(0)).Should(Equal(outSourceA))
+			Eventually(fakeStepFactoryB.UsingCallCount).Should(Equal(1))
+			step, repo := fakeStepFactoryB.UsingArgsForCall(0)
+			Ω(step).Should(Equal(outStepA))
+			Ω(repo).Should(Equal(repo))
 		})
 
 		Context("and the second source exits successfully", func() {
@@ -210,11 +216,11 @@ var _ = Describe("Compose", func() {
 				It("releases both sources", func() {
 					Eventually(process.Wait()).Should(Receive(BeNil()))
 
-					err := source.Release()
+					err := step.Release()
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(outSourceA.ReleaseCallCount()).Should(Equal(1))
-					Ω(outSourceB.ReleaseCallCount()).Should(Equal(1))
+					Ω(outStepA.ReleaseCallCount()).Should(Equal(1))
+					Ω(outStepB.ReleaseCallCount()).Should(Equal(1))
 				})
 
 				Context("when releasing the sources fails", func() {
@@ -222,14 +228,14 @@ var _ = Describe("Compose", func() {
 					disasterB := errors.New("nope B")
 
 					BeforeEach(func() {
-						outSourceA.ReleaseReturns(disasterA)
-						outSourceB.ReleaseReturns(disasterB)
+						outStepA.ReleaseReturns(disasterA)
+						outStepB.ReleaseReturns(disasterB)
 					})
 
 					It("returns an aggregate error", func() {
 						Eventually(process.Wait()).Should(Receive(BeNil()))
 
-						err := source.Release()
+						err := step.Release()
 						Ω(err).Should(HaveOccurred())
 
 						Ω(err.Error()).Should(ContainSubstring("first step: nope A"))
@@ -240,14 +246,14 @@ var _ = Describe("Compose", func() {
 
 			Describe("getting the result", func() {
 				BeforeEach(func() {
-					outSourceB.ResultStub = successResult(true)
+					outStepB.ResultStub = successResult(true)
 				})
 
 				It("delegates to the second source", func() {
 					Eventually(process.Wait()).Should(Receive(BeNil()))
 
 					var success Success
-					Ω(source.Result(&success)).Should(BeTrue())
+					Ω(step.Result(&success)).Should(BeTrue())
 					Ω(bool(success)).Should(BeTrue())
 				})
 			})
@@ -262,26 +268,26 @@ var _ = Describe("Compose", func() {
 				It("delegates to the second step's artifact source", func() {
 					Eventually(process.Wait()).Should(Receive(BeNil()))
 
-					err := source.StreamTo(fakeDestination)
+					err := step.StreamTo(fakeDestination)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(outSourceA.StreamToCallCount()).Should(Equal(0))
+					Ω(outStepA.StreamToCallCount()).Should(Equal(0))
 
-					Ω(outSourceB.StreamToCallCount()).Should(Equal(1))
-					Ω(outSourceB.StreamToArgsForCall(0)).Should(Equal(fakeDestination))
+					Ω(outStepB.StreamToCallCount()).Should(Equal(1))
+					Ω(outStepB.StreamToArgsForCall(0)).Should(Equal(fakeDestination))
 				})
 
 				Context("when the second step's source fails to stream out", func() {
 					disaster := errors.New("nope")
 
 					BeforeEach(func() {
-						outSourceB.StreamToReturns(disaster)
+						outStepB.StreamToReturns(disaster)
 					})
 
 					It("returns the error", func() {
 						Eventually(process.Wait()).Should(Receive(BeNil()))
 
-						err := source.StreamTo(fakeDestination)
+						err := step.StreamTo(fakeDestination)
 						Ω(err).Should(Equal(disaster))
 					})
 				})
@@ -292,17 +298,17 @@ var _ = Describe("Compose", func() {
 
 				BeforeEach(func() {
 					outStream = gbytes.NewBuffer()
-					outSourceB.StreamFileReturns(outStream, nil)
+					outStepB.StreamFileReturns(outStream, nil)
 				})
 
 				It("delegates to the second step's artifact source", func() {
 					Eventually(process.Wait()).Should(Receive(BeNil()))
 
-					reader, err := source.StreamFile("some-file")
+					reader, err := step.StreamFile("some-file")
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(outSourceB.StreamFileCallCount()).Should(Equal(1))
-					Ω(outSourceB.StreamFileArgsForCall(0)).Should(Equal("some-file"))
+					Ω(outStepB.StreamFileCallCount()).Should(Equal(1))
+					Ω(outStepB.StreamFileArgsForCall(0)).Should(Equal("some-file"))
 
 					Ω(reader).Should(Equal(outStream))
 				})
@@ -311,13 +317,13 @@ var _ = Describe("Compose", func() {
 					disaster := errors.New("nope")
 
 					BeforeEach(func() {
-						outSourceB.StreamFileReturns(nil, disaster)
+						outStepB.StreamFileReturns(nil, disaster)
 					})
 
 					It("returns the error", func() {
 						Eventually(process.Wait()).Should(Receive(BeNil()))
 
-						_, err := source.StreamFile("some-file")
+						_, err := step.StreamFile("some-file")
 						Ω(err).Should(Equal(disaster))
 					})
 				})
@@ -340,11 +346,11 @@ var _ = Describe("Compose", func() {
 				It("releases both sources", func() {
 					Eventually(process.Wait()).Should(Receive())
 
-					err := source.Release()
+					err := step.Release()
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(outSourceA.ReleaseCallCount()).Should(Equal(1))
-					Ω(outSourceB.ReleaseCallCount()).Should(Equal(1))
+					Ω(outStepA.ReleaseCallCount()).Should(Equal(1))
+					Ω(outStepB.ReleaseCallCount()).Should(Equal(1))
 				})
 
 				Context("when releasing the sources fails", func() {
@@ -352,14 +358,14 @@ var _ = Describe("Compose", func() {
 					disasterB := errors.New("nope B")
 
 					BeforeEach(func() {
-						outSourceA.ReleaseReturns(disasterA)
-						outSourceB.ReleaseReturns(disasterB)
+						outStepA.ReleaseReturns(disasterA)
+						outStepB.ReleaseReturns(disasterB)
 					})
 
 					It("returns an aggregate error", func() {
 						Eventually(process.Wait()).Should(Receive())
 
-						err := source.Release()
+						err := step.Release()
 						Ω(err).Should(HaveOccurred())
 
 						Ω(err.Error()).Should(ContainSubstring("first step: nope A"))
@@ -384,11 +390,11 @@ var _ = Describe("Compose", func() {
 				It("releases both sources", func() {
 					Eventually(process.Wait()).Should(Receive())
 
-					err := source.Release()
+					err := step.Release()
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(outSourceA.ReleaseCallCount()).Should(Equal(1))
-					Ω(outSourceB.ReleaseCallCount()).Should(Equal(1))
+					Ω(outStepA.ReleaseCallCount()).Should(Equal(1))
+					Ω(outStepB.ReleaseCallCount()).Should(Equal(1))
 				})
 
 				Context("when releasing the sources fails", func() {
@@ -396,14 +402,14 @@ var _ = Describe("Compose", func() {
 					disasterB := errors.New("nope B")
 
 					BeforeEach(func() {
-						outSourceA.ReleaseReturns(disasterA)
-						outSourceB.ReleaseReturns(disasterB)
+						outStepA.ReleaseReturns(disasterA)
+						outStepB.ReleaseReturns(disasterB)
 					})
 
 					It("returns an aggregate error", func() {
 						Eventually(process.Wait()).Should(Receive())
 
-						err := source.Release()
+						err := step.Release()
 						Ω(err).Should(HaveOccurred())
 
 						Ω(err.Error()).Should(ContainSubstring("first step: nope A"))
@@ -426,31 +432,31 @@ var _ = Describe("Compose", func() {
 		})
 
 		It("does not proceed to the second step", func() {
-			Ω(fakeStepB.UsingCallCount()).Should(BeZero())
+			Ω(fakeStepFactoryB.UsingCallCount()).Should(BeZero())
 		})
 
 		Describe("releasing", func() {
 			It("releases the first source", func() {
 				Eventually(process.Wait()).Should(Receive())
 
-				err := source.Release()
+				err := step.Release()
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(outSourceA.ReleaseCallCount()).Should(Equal(1))
-				Ω(outSourceB.ReleaseCallCount()).Should(BeZero())
+				Ω(outStepA.ReleaseCallCount()).Should(Equal(1))
+				Ω(outStepB.ReleaseCallCount()).Should(BeZero())
 			})
 
 			Context("when releasing the source fails", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					outSourceA.ReleaseReturns(disaster)
+					outStepA.ReleaseReturns(disaster)
 				})
 
 				It("returns an aggregate error", func() {
 					Eventually(process.Wait()).Should(Receive())
 
-					err := source.Release()
+					err := step.Release()
 					Ω(err).Should(HaveOccurred())
 
 					Ω(err.Error()).Should(ContainSubstring("first step: nope"))
@@ -472,31 +478,31 @@ var _ = Describe("Compose", func() {
 		})
 
 		It("does not proceed to the second step", func() {
-			Ω(fakeStepB.UsingCallCount()).Should(BeZero())
+			Ω(fakeStepFactoryB.UsingCallCount()).Should(BeZero())
 		})
 
 		Describe("releasing", func() {
 			It("releases the first source", func() {
 				Eventually(process.Wait()).Should(Receive())
 
-				err := source.Release()
+				err := step.Release()
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(outSourceA.ReleaseCallCount()).Should(Equal(1))
-				Ω(outSourceB.ReleaseCallCount()).Should(BeZero())
+				Ω(outStepA.ReleaseCallCount()).Should(Equal(1))
+				Ω(outStepB.ReleaseCallCount()).Should(BeZero())
 			})
 
 			Context("when releasing the source fails", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					outSourceA.ReleaseReturns(disaster)
+					outStepA.ReleaseReturns(disaster)
 				})
 
 				It("returns an aggregate error", func() {
 					Eventually(process.Wait()).Should(Receive())
 
-					err := source.Release()
+					err := step.Release()
 					Ω(err).Should(HaveOccurred())
 
 					Ω(err.Error()).Should(ContainSubstring("first step: nope"))

@@ -18,18 +18,20 @@ type resourceStep struct {
 
 	Action func(resource.Resource, ArtifactSource) resource.VersionedSource
 
-	ArtifactSource ArtifactSource
+	PreviousStep Step
+	Repository   *SourceRepository
 
 	Resource        resource.Resource
 	VersionedSource resource.VersionedSource
 }
 
-func (step resourceStep) Using(source ArtifactSource) ArtifactSource {
-	step.ArtifactSource = source
+func (step resourceStep) Using(prev Step, repo *SourceRepository) Step {
+	step.PreviousStep = prev
+	step.Repository = repo
 
 	return failureReporter{
-		ArtifactSource: &step,
-		ReportFailure:  step.Delegate.Failed,
+		Step:          &step,
+		ReportFailure: step.Delegate.Failed,
 	}
 }
 
@@ -40,7 +42,7 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 	}
 
 	ras.Resource = resource
-	ras.VersionedSource = ras.Action(resource, ras.ArtifactSource)
+	ras.VersionedSource = ras.Action(resource, ras.PreviousStep)
 
 	err = ras.VersionedSource.Run(signals, ready)
 	if err != nil {
@@ -61,6 +63,25 @@ func (ras *resourceStep) Release() error {
 	}
 
 	return nil
+}
+
+func (ras *resourceStep) Result(x interface{}) bool {
+	switch v := x.(type) {
+	case *VersionInfo:
+		*v = VersionInfo{
+			Version:  ras.VersionedSource.Version(),
+			Metadata: ras.VersionedSource.Metadata(),
+		}
+		return true
+
+	default:
+		return false
+	}
+}
+
+type fileReadCloser struct {
+	io.Reader
+	io.Closer
 }
 
 func (ras *resourceStep) StreamTo(destination ArtifactDestination) error {
@@ -89,31 +110,4 @@ func (ras *resourceStep) StreamFile(path string) (io.ReadCloser, error) {
 		Reader: tarReader,
 		Closer: out,
 	}, nil
-}
-
-func (ras *resourceStep) Result(x interface{}) bool {
-	switch v := x.(type) {
-	case *VersionInfo:
-		*v = VersionInfo{
-			Version:  ras.VersionedSource.Version(),
-			Metadata: ras.VersionedSource.Metadata(),
-		}
-		return true
-
-	default:
-		return false
-	}
-}
-
-type fileReadCloser struct {
-	io.Reader
-	io.Closer
-}
-
-type resourceSource struct {
-	ArtifactSource
-}
-
-func (source resourceSource) StreamTo(dest resource.ArtifactDestination) error {
-	return source.ArtifactSource.StreamTo(resource.ArtifactDestination(dest))
 }
