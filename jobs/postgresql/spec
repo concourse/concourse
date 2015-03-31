@@ -32,5 +32,6 @@ properties:
   blackbox.syslog.sources.postgresql:
     description: "files whose contents blackbox will emit to its syslog drain"
     default:
-      - /var/vcap/sys/log/postgresql/postgresql.stdout.log
-      - /var/vcap/sys/log/postgresql/postgresql.stderr.log
+      - /var/vcap/sys/log/postgresql/postgresql.log
+      - /var/vcap/sys/log/monit/postgresql_ctl.log
+      - /var/vcap/sys/log/monit/postgresql_ctl.err.log
