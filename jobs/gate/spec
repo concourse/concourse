@@ -92,3 +92,5 @@ properties:
     default:
       - /var/vcap/sys/log/garden/garden.stdout.log
       - /var/vcap/sys/log/garden/garden.stderr.log
+      - /var/vcap/sys/log/monit/garden_ctl.log
+      - /var/vcap/sys/log/monit/garden_ctl.err.log

@@ -84,6 +84,8 @@ properties:
     default:
       - /var/vcap/sys/log/atc/atc.stdout.log
       - /var/vcap/sys/log/atc/atc.stderr.log
+      - /var/vcap/sys/log/monit/atc_ctl.log
+      - /var/vcap/sys/log/monit/atc_ctl.err.log
 
   blackbox.expvar.sources.atc:
     default:

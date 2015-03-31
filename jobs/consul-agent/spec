@@ -39,3 +39,5 @@ properties:
     default:
       - /var/vcap/sys/log/consul-agent/consul-agent.stdout.log
       - /var/vcap/sys/log/consul-agent/consul-agent.stderr.log
+      - /var/vcap/sys/log/monit/consul-agent.out.log
+      - /var/vcap/sys/log/monit/consul-agent.err.log
