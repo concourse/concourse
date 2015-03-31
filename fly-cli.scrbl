@@ -63,14 +63,18 @@ OS X or to avoid all of those debugging commits when something is configured
 differently between your local and remote setup.
 
 If you have a task configuration called @code{task.yml} that describes a
-task that only requires the files in the current directory (e.g. most unit
-tests and simple integration tests) then you can just run:
+task that only requires a single input, whose contents are in the current
+directory (e.g. most unit tests and simple integration tests) then you can
+just run:
 
 @codeblock|{
 $ fly execute
 }|
 
-And your files will be uploaded and the task will be executed with them.
+Your files will be uploaded and the task will be executed with them. The
+working directory name will be used as the input name. If they do not match,
+you must specify @code{-i name=.} instead, where @code{name} is the input
+name from the task configuration.
 
 Fly will automatically capture @code{SIGINT} and @code{SIGTERM} and abort the
 build when received. This allows it to be transparently composed with other
@@ -104,9 +108,9 @@ Tasks in Concourse can take multiple inputs. Up until now we've just been
 submitting a single input (our current working directory) that has the same
 name as the directory.
 
-Tasks can specify the inputs that they require (for more information, refer
-to the @seclink["configuring-tasks"]{configuring tasks} documentation).
-For @code{fly} to upload these inputs you can use the @code{-i} or
+Tasks must specify the inputs that they require (for more information, refer
+to the @seclink["configuring-tasks"]{configuring tasks} documentation). For
+@code{fly} to upload these inputs you can use the @code{-i} or
 @code{--input} arguments with name and path pairs. For example:
 
 @codeblock|{
@@ -118,13 +122,13 @@ section was as follows:
 
 @codeblock|{
 inputs:
-  - name: code
-  - name: stemcells
+- name: code
+- name: stemcells
 }|
 
 If you specify an input then the default input will no longer be added
-automatically and you will need to explicitly list it (the @code{code} input
-above).
+automatically and you will need to explicitly list it (as with the
+@code{code} input above).
 
 This feature can be used to mimic other resources and try out combinations
 of input that would normally not be possible in a pipeline.

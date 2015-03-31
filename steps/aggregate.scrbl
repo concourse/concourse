@@ -4,47 +4,40 @@
 
 @title[#:version version #:tag "aggregate-step"]{@code{aggregate}@aux-elem{: run steps in parallel}}
 
-Performs all of the given steps in parallel, aggregating their resulting
-file tree for subsequent steps.
+@defthing[aggregate [step]]{
+  Performs the given steps in parallel.
 
-If you have a @seclink["tasks"]{Task} that expects multiple inputs, you
-would precede it with an @code{aggregate} containing a
-@seclink["get-step"]{@code{get}} step for each input:
+  If any sub-steps in an aggregate result in an error, the aggregate step as a
+  whole is considered to have errored.
 
-@codeblock|{
-plan:
+  Similarly, when aggregating @seclink["task-step"]{@code{task}} steps, if any
+  @emph{fail}, the aggregate step will fail. This is useful for build matrixes:
+
+  @codeblock|{
+  plan:
+  - get: some-repo
   - aggregate:
-      - get: component-a
-      - get: component-b
-      - get: integration-suite
+    - task: unit-windows
+      file: some-repo/ci/windows.yml
+    - task: unit-linux
+      file: some-repo/ci/linux.yml
+    - task: unit-darwin
+      file: some-repo/ci/darwin.yml
+  }|
+
+  The @code{aggregate} step is also useful for performing arbitrary steps in
+  parallel, for the sake of speeding up the build. It is often used to fetch
+  all dependent resources together:
+
+  @codeblock|{
+  plan:
+  - aggregate:
+    - get: component-a
+    - get: component-b
+    - get: integration-suite
   - task: integration
     file: integration-suite/task.yml
-}|
-
-@defthing[aggregate [step]]{
-  Configures steps to execute in parallel.
-
-  For each step, the resulting data will be collected and made available to
-  the steps following the aggregate, under a subdirectory named after the
-  branch's step.
-
-  That is, with the following aggregate:
-
-  @codeblock|{
-    aggregate:
-      - get: component-a
-      - get: component-b
   }|
-
-  The subsequent steps will run with the following data as the input:
-
-  @codeblock|{
-    component-a/...
-    component-b/...
-  }|
-
-  Where @code{...} is shorthand for whatever data was collected by the
-  respective @code{get} steps.
 }
 
 @inject-analytics[]

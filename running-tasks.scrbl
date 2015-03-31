@@ -25,13 +25,16 @@ platform: linux
 
 image: docker:///ubuntu#14.04
 
+inputs:
+- name: my-repo
+
 run:
   path: my-repo/scripts/test
 }|
 
 This configuration specifies that the task must run with the
-@code{ubuntu:14.04} Docker image, and when the task is executed it will run
-the script @code{my-repo/scripts/test}.
+@code{ubuntu:14.04} Docker image with a @code{my-repo} input, and when the
+task is executed it will run the script @code{my-repo/scripts/test}.
 
 A task's configuration specifies the following:
 
@@ -58,10 +61,11 @@ A task's configuration specifies the following:
 }
 
 @defthing[inputs [object]]{
-  @emph{Optional.} The expected set of inputs for the task.
+  @emph{Required.} The expected set of inputs for the task.
 
-  If present, the task will validate that its set of dependant inputs are
-  present before starting, rather than failing arbitrarily at runtime.
+  This determines which artifacts will propagate into the task, as the
+  @seclink["build-plans"]{build plan} executes. If any specified inputs
+  are not present, the task will end with an error, without running.
 
   Each input has the following attributes:
 
