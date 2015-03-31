@@ -5,8 +5,11 @@
 @title[#:style 'toc #:version version #:tag "build-plans"]{Build Plans}
 
 Each @seclink["jobs"]{Job} has a single build plan. When a build of a job is
-created, the plan determines what happens: @seclink["resources"]{Resources}
-may be fetched or updated, and @seclink["tasks"]{Tasks} may be performed.
+created, the plan determines what happens.
+
+A build plan is a sequence of @emph{steps} to execute. These steps may fetch
+down or update @seclink["resources"]{Resources}, or execute
+@seclink["tasks"]{Tasks}.
 
 A new build of the job is scheduled whenever any of the resources described
 by the first @seclink["get-step"]{@code{get}} steps have new versions.
@@ -20,9 +23,9 @@ A simple unit test job may look something like:
 @codeblock|{
 name: banana-unit
 plan:
-  - get: banana
-  - task: unit
-    file: task.yml
+- get: banana
+- task: unit
+  file: banana/task.yml
 }|
 
 This job says: @seclink["get-step"]{@code{get}} the @code{banana} resource,
@@ -44,14 +47,14 @@ configuration for the integration job may look something like:
 @codeblock|{
 name: fruit-basket-integration
 plan:
-  - aggregate:
-      - get: banana
-        passed: [banana-unit]
-      - get: apple
-        passed: [apple-unit]
-      - get: integration-suite
-  - task: integration
-    file: integration-suite/task.yml
+- aggregate:
+  - get: banana
+    passed: [banana-unit]
+  - get: apple
+    passed: [apple-unit]
+  - get: integration-suite
+- task: integration
+  file: integration-suite/task.yml
 }|
 
 Note the use of the @seclink["aggregate-step"]{@code{aggregate}} step to
@@ -61,9 +64,9 @@ With this example we've configured a tiny pipeline that will automatically
 run unit tests for two components, and continuously run integration tests
 against whichever versions pass both unit tests.
 
-This can be further chained into later stages; for example, you may want to
-continuously deliver an artifact built from whichever components pass
-@code{fruit-basket-integration}.
+This can be further chained into later "stages" of your pipeline; for
+example, you may want to continuously deliver an artifact built from
+whichever components pass @code{fruit-basket-integration}.
 
 To push artifacts, you would use a @seclink["put-step"]{@code{put}} step
 that targets the destination resource. For example:
@@ -71,17 +74,17 @@ that targets the destination resource. For example:
 @codeblock|{
 name: deliver-food
 plan:
-  - aggregate:
-      - get: banana
-        passed: [fruit-basket-integration]
-      - get: apple
-        passed: [fruit-basket-integration]
-      - get: baggy
-  - task: shrink-wrap
-    file: baggy/shrink-wrap.yml
-  - put: bagged-food
-    params:
-      bag: baggy/bagged.tgz
+- aggregate:
+  - get: banana
+    passed: [fruit-basket-integration]
+  - get: apple
+    passed: [fruit-basket-integration]
+  - get: baggy
+- task: shrink-wrap
+  file: baggy/shrink-wrap.yml
+- put: bagged-food
+  params:
+    bag: shrink-wrap/bagged.tgz
 }|
 
 This presumes that there's a @code{bagged-food}

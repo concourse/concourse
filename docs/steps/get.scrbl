@@ -12,13 +12,13 @@ For example, the following plan fetches a version number via the
 
 @codeblock|{
 plan:
-  - get: version
-    params:
-      bump: minor
-      rc: true
-  - put: version
-    params:
-      version: number
+- get: version
+  params:
+    bump: minor
+    rc: true
+- put: version
+  params:
+    version: version/number
 }|
 
 @defthing[get string]{

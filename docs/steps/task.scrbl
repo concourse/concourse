@@ -18,22 +18,37 @@ in a build matrix style configuration:
 
 @codeblock|{
 plan:
-  - get: my-repo
-  - aggregate:
-      - task: go-1.3
-        file: unit.yml
-        config:
-          params:
-            GO_VERSION: 1.3
+- get: my-repo
+- aggregate:
+  - task: go-1.3
+    file: my-repo/unit.yml
+    config:
+      params:
+        GO_VERSION: 1.3
 
-      - task: go-1.4
-        file: ci/go-1.4.yml
-        config:
-          params:
-            GO_VERSION: 1.4
+  - task: go-1.4
+    file: my-repo/ci/go-1.4.yml
+    config:
+      params:
+        GO_VERSION: 1.4
 }|
 
 Only if both tasks succeed will the build go green.
+
+When a task completes, its resulting file tree will be made available as a
+source named after the task. This allows subsequent steps to process the
+result of a task. For example, the follwing plan pulls down a repo, makes a
+commit to it, and pushes the commit to another repo:
+
+@codeblock|{
+plan:
+- get: my-repo
+- task: commit
+  file: my-repo/commit.yml
+- put: other-repo
+  params:
+    repository: commit/my-repo
+}|
 
 @defthing[task string]{
   @emph{Required.} A freeform name for the task that's being executed. Common
@@ -41,30 +56,32 @@ Only if both tasks succeed will the build go green.
 }
 
 @deftogether[(@defthing[file string] @defthing[config object])]{
-  @emph{At least one required.} The configuration for the task's running environment.
+  @emph{At least one required.} The configuration for the task's running
+  environment.
 
   @code{file} points at a @code{.yml} file containing the
   @seclink["configuring-tasks"]{task config}, which allows this to be tracked
-  with your resources. The file will provided by the preceding steps, so
-  you'll have to know where it ended up by the time you get to this step.
+  with your resources.
 
-  For example, if the preceding step was the following:
+  The first segment in the path should refer to another source from the plan,
+  and the rest of the path is relative to that source.
+
+  For example, if in your plan you have the following
+  @seclink["get-step"]{@code{get}} step:
 
   @codeblock|{
-    aggregate:
-      - get: something
+    - get: something
   }|
 
   And the @code{something} resource provided a @code{unit.yml} file, you
-  would set @code{file: something/unit.yml}. But if the previous step was
-  just the single @code{get} step, you would just set @code{file: unit.yml}.
+  would set @code{file: something/unit.yml}.
 
   @code{config} can be defined to inline the task config statically.
 
-  If both are specified, the value of @code{config} is "merged" into the
-  config loaded from the file. This allows task parameters to be specified
-  in the task's config file, and overridden in the pipeline (i.e. for passing
-  in secret credentials).
+  If both @code{file} and @code{config} are specified, the value of
+  @code{config} is "merged" into the config loaded from the file. This allows
+  task parameters to be specified in the task's config file, and overridden in
+  the pipeline (i.e. for passing in secret credentials).
 }
 
 @defthing[privileged boolean]{

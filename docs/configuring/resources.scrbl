@@ -13,10 +13,10 @@ release repository:
 
 @codeblock|{
 resources:
-  - name: concourse
-    type: git
-    source:
-      uri: https://github.com/concourse/concourse.git
+- name: concourse
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse.git
 }|
 
 Any time commits are pushed, the resource will detect them and save new

@@ -14,15 +14,15 @@ A simple grouping for the pipeline above may look like:
 
 @codeblock|{
 groups:
-  - name: tests
-    jobs:
-      - controller-mysql
-      - controller-postgres
-      - worker
-      - integration
-  - name: deploy
-    jobs:
-      - deploy
+- name: tests
+  jobs:
+  - controller-mysql
+  - controller-postgres
+  - worker
+  - integration
+- name: deploy
+  jobs:
+  - deploy
 }|
 
 This would display two tabs at the top of the home page: "tests" and "deploy".

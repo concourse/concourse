@@ -58,19 +58,19 @@ jobs:
     plan:
       - get: controller
       - task: unit
-        file: ci/mysql.yml
+        file: controller/ci/mysql.yml
 
   - name: controller-postgres
     plan:
       - get: controller
       - task: unit
-        file: ci/postgres.yml
+        file: controller/ci/postgres.yml
 
   - name: worker
     plan:
       - get: worker
       - task: unit
-        file: task.yml
+        file: worker/task.yml
 
   - name: integration
     plan:
@@ -96,7 +96,7 @@ jobs:
         file: release/ci/deploy.yml
       - put: final-release
         params:
-          from: release/build/*.tgz
+          from: deploy/release/build/*.tgz
 }|
 
 To learn what the heck that means, read on.

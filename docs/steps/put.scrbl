@@ -4,19 +4,19 @@
 
 @title[#:version version #:tag "put-step"]{@code{put}@aux-elem{: update a resource}}
 
-Pushes to the given @seclink["resources"]{Resource} using the state from the
-preceding steps, if available.
+Pushes to the given @seclink["resources"]{Resource}. All artifacts collected
+during the plan's execution will be available in the working directory.
 
 For example, the following plan fetches a repo using
-@seclink["get-step"]{@code{get}} and push it to another repo (assuming
+@seclink["get-step"]{@code{get}} and pushes it to another repo (assuming
 @code{repo-a} and @code{repo-b} are defined as @code{git} resources):
 
 @codeblock|{
 plan:
-  - get: repo-a
-  - put: repo-b
-    params:
-      repository: ./
+- get: repo-a
+- put: repo-b
+  params:
+    repository: repo-a
 }|
 
 @defthing[put string]{

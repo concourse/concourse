@@ -20,11 +20,12 @@ The following will perform the second task only if the first one fails:
 
 @codeblock|{
 plan:
-  - task: unit
-    file: unit.yml
-  - conditions: [failure]
-    task: alert
-    file: alert.yml
+- get: foo
+- task: unit
+  file: foo/unit.yml
+- conditions: [failure]
+  task: alert
+  file: foo/alert.yml
 }|
 
 If the condition does not match, the conditional step, and all subsequent
@@ -35,19 +36,20 @@ If you have multiple conditions you'd like to check, you can wrap them in an
 
 @codeblock|{
 plan:
-  - task: unit
-    file: unit.yml
-  - aggregate:
-      - conditions: [success]
-        task: update-status
-        file: update-status.yml
-        params:
-          status: good
-      - conditions: [failure]
-        task: update-status
-        file: update-status.yml
-        params:
-          status: bad
+- get: foo
+- task: unit
+  file: foo/unit.yml
+- aggregate:
+  - conditions: [success]
+    task: update-status
+    file: foo/update-status.yml
+    params:
+      status: good
+  - conditions: [failure]
+    task: update-status
+    file: foo/update-status.yml
+    params:
+      status: bad
 }|
 
 This will attempt both steps in series, and continue runing the steps after

@@ -13,11 +13,11 @@ whenever new code arrives at the @code{concourse} resource:
 
 @codeblock|{
 jobs:
-  - name: atc-unit
-    plan:
-      - get: concourse
-      - task: unit
-        file: ci/atc.yml
+- name: atc-unit
+  plan:
+  - get: concourse
+  - task: unit
+    file: concourse/ci/atc.yml
 }|
 
 Each configured job consists of the following attributes:
