@@ -1,6 +1,12 @@
 ---
 platform: linux
+
 image: docker:///concourse/concourse-ci
+
+inputs:
+  - name: concourse
+  - name: version
+  - name: deployments
 
 run:
   path: concourse/ci/scripts/shipit
