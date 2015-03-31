@@ -25,8 +25,10 @@ func NewGardenFactory(
 	}
 }
 
-func (factory *gardenFactory) Get(id worker.Identifier, delegate GetDelegate, config atc.ResourceConfig, params atc.Params, version atc.Version) StepFactory {
+func (factory *gardenFactory) Get(sourceName SourceName, id worker.Identifier, delegate GetDelegate, config atc.ResourceConfig, params atc.Params, version atc.Version) StepFactory {
 	return resourceStep{
+		SourceName: sourceName,
+
 		Session: resource.Session{
 			ID:        id,
 			Ephemeral: false,
@@ -66,8 +68,10 @@ func (factory *gardenFactory) Put(id worker.Identifier, delegate PutDelegate, co
 	}
 }
 
-func (factory *gardenFactory) Task(id worker.Identifier, delegate TaskDelegate, privileged Privileged, configSource TaskConfigSource) StepFactory {
+func (factory *gardenFactory) Task(sourceName SourceName, id worker.Identifier, delegate TaskDelegate, privileged Privileged, configSource TaskConfigSource) StepFactory {
 	return taskStep{
+		SourceName: sourceName,
+
 		WorkerID: id,
 
 		Delegate: delegate,

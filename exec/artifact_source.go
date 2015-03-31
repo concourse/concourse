@@ -18,8 +18,6 @@ type Step interface {
 
 	Release() error
 	Result(interface{}) bool
-
-	ArtifactSource
 }
 
 type SourceName string

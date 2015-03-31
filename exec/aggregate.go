@@ -2,7 +2,6 @@ package exec
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"reflect"
 	"strings"
@@ -131,25 +130,4 @@ func (source aggregateStep) Result(x interface{}) bool {
 	}
 
 	return true
-}
-
-func (source aggregateStep) StreamTo(dest ArtifactDestination) error {
-	for name, src := range source {
-		err := src.StreamTo(subdirectoryDestination{dest, name})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (source aggregateStep) StreamFile(path string) (io.ReadCloser, error) {
-	for name, src := range source {
-		if strings.HasPrefix(path, name+"/") {
-			return src.StreamFile(path[len(name)+1:])
-		}
-	}
-
-	return nil, ErrFileNotFound
 }

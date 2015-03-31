@@ -2,7 +2,6 @@ package exec_test
 
 import (
 	"errors"
-	"io"
 	"os"
 
 	. "github.com/concourse/atc/exec"
@@ -10,7 +9,6 @@ import (
 	"github.com/concourse/atc/exec/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -255,77 +253,6 @@ var _ = Describe("Compose", func() {
 					var success Success
 					Ω(step.Result(&success)).Should(BeTrue())
 					Ω(bool(success)).Should(BeTrue())
-				})
-			})
-
-			Describe("streaming to a destination", func() {
-				var fakeDestination *fakes.FakeArtifactDestination
-
-				BeforeEach(func() {
-					fakeDestination = new(fakes.FakeArtifactDestination)
-				})
-
-				It("delegates to the second step's artifact source", func() {
-					Eventually(process.Wait()).Should(Receive(BeNil()))
-
-					err := step.StreamTo(fakeDestination)
-					Ω(err).ShouldNot(HaveOccurred())
-
-					Ω(outStepA.StreamToCallCount()).Should(Equal(0))
-
-					Ω(outStepB.StreamToCallCount()).Should(Equal(1))
-					Ω(outStepB.StreamToArgsForCall(0)).Should(Equal(fakeDestination))
-				})
-
-				Context("when the second step's source fails to stream out", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						outStepB.StreamToReturns(disaster)
-					})
-
-					It("returns the error", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
-
-						err := step.StreamTo(fakeDestination)
-						Ω(err).Should(Equal(disaster))
-					})
-				})
-			})
-
-			Describe("streaming a file out", func() {
-				var outStream io.ReadCloser
-
-				BeforeEach(func() {
-					outStream = gbytes.NewBuffer()
-					outStepB.StreamFileReturns(outStream, nil)
-				})
-
-				It("delegates to the second step's artifact source", func() {
-					Eventually(process.Wait()).Should(Receive(BeNil()))
-
-					reader, err := step.StreamFile("some-file")
-					Ω(err).ShouldNot(HaveOccurred())
-
-					Ω(outStepB.StreamFileCallCount()).Should(Equal(1))
-					Ω(outStepB.StreamFileArgsForCall(0)).Should(Equal("some-file"))
-
-					Ω(reader).Should(Equal(outStream))
-				})
-
-				Context("when the output source fails to stream out", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						outStepB.StreamFileReturns(nil, disaster)
-					})
-
-					It("returns the error", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
-
-						_, err := step.StreamFile("some-file")
-						Ω(err).Should(Equal(disaster))
-					})
 				})
 			})
 		})

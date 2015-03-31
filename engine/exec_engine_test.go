@@ -176,7 +176,8 @@ var _ = Describe("ExecEngine", func() {
 		It("constructs inputs correctly", func() {
 			Ω(fakeFactory.GetCallCount()).Should(Equal(1))
 
-			workerID, delegate, resourceConfig, params, version := fakeFactory.GetArgsForCall(0)
+			sourceName, workerID, delegate, resourceConfig, params, version := fakeFactory.GetArgsForCall(0)
+			Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
 			Ω(workerID).Should(Equal(worker.Identifier{
 				BuildID:      42,
 				Type:         worker.ContainerTypeGet,
@@ -194,7 +195,8 @@ var _ = Describe("ExecEngine", func() {
 		It("constructs tasks correctly", func() {
 			Ω(fakeFactory.TaskCallCount()).Should(Equal(1))
 
-			workerID, delegate, privileged, configSource := fakeFactory.TaskArgsForCall(0)
+			sourceName, workerID, delegate, privileged, configSource := fakeFactory.TaskArgsForCall(0)
+			Ω(sourceName).Should(Equal(exec.SourceName("some-task")))
 			Ω(workerID).Should(Equal(worker.Identifier{
 				BuildID:      42,
 				Type:         worker.ContainerTypeTask,
@@ -253,7 +255,7 @@ var _ = Describe("ExecEngine", func() {
 			It("constructs the task step privileged", func() {
 				Ω(fakeFactory.TaskCallCount()).Should(Equal(1))
 
-				_, _, privileged, _ := fakeFactory.TaskArgsForCall(0)
+				_, _, _, privileged, _ := fakeFactory.TaskArgsForCall(0)
 				Ω(privileged).Should(Equal(exec.Privileged(true)))
 			})
 		})

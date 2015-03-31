@@ -31,6 +31,8 @@ func (err MissingInputsError) Error() string {
 }
 
 type taskStep struct {
+	SourceName SourceName
+
 	WorkerID worker.Identifier
 
 	Delegate TaskDelegate
@@ -177,6 +179,8 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		return ErrInterrupted
 
 	case status := <-waitExitStatus:
+		step.repo.RegisterSource(step.SourceName, step)
+
 		step.exitStatus = status
 
 		step.Delegate.Finished(ExitStatus(status))

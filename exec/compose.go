@@ -2,7 +2,6 @@ package exec
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
@@ -83,12 +82,4 @@ func (step *composed) Release() error {
 
 func (step *composed) Result(x interface{}) bool {
 	return step.secondStep.Result(x)
-}
-
-func (step *composed) StreamFile(filePath string) (io.ReadCloser, error) {
-	return step.secondStep.StreamFile(filePath)
-}
-
-func (step *composed) StreamTo(dst ArtifactDestination) error {
-	return step.secondStep.StreamTo(dst)
 }

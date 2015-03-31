@@ -1,7 +1,6 @@
 package exec
 
 import (
-	"io"
 	"os"
 
 	"github.com/concourse/atc"
@@ -50,12 +49,4 @@ func (c *Conditional) Release() error {
 
 func (c *Conditional) Result(x interface{}) bool {
 	return c.result.Result(x)
-}
-
-func (c *Conditional) StreamTo(dst ArtifactDestination) error {
-	return c.result.StreamTo(dst)
-}
-
-func (c *Conditional) StreamFile(path string) (io.ReadCloser, error) {
-	return c.result.StreamFile(path)
 }

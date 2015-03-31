@@ -37,6 +37,8 @@ var _ = Describe("GardenFactory", func() {
 		identifier = worker.Identifier{
 			Name: "some-session-id",
 		}
+
+		sourceName SourceName = "some-source-name"
 	)
 
 	BeforeEach(func() {
@@ -83,7 +85,7 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			step = factory.Get(identifier, getDelegate, resourceConfig, params, version).Using(inStep, repo)
+			step = factory.Get(sourceName, identifier, getDelegate, resourceConfig, params, version).Using(inStep, repo)
 			process = ifrit.Invoke(step)
 		})
 
@@ -224,37 +226,73 @@ var _ = Describe("GardenFactory", func() {
 				})
 			})
 
-			Describe("streaming to a destination", func() {
-				var fakeDestination *fakes.FakeArtifactDestination
+			Describe("the source registered with the repository", func() {
+				var artifactSource ArtifactSource
 
-				BeforeEach(func() {
-					fakeDestination = new(fakes.FakeArtifactDestination)
+				JustBeforeEach(func() {
+					Eventually(process.Wait()).Should(Receive(BeNil()))
+
+					var found bool
+					artifactSource, found = repo.SourceFor(sourceName)
+					Ω(found).Should(BeTrue())
 				})
 
-				Context("when the resource can stream out", func() {
-					var (
-						streamedOut io.ReadCloser
-					)
+				Describe("streaming to a destination", func() {
+					var fakeDestination *fakes.FakeArtifactDestination
 
 					BeforeEach(func() {
-						streamedOut = gbytes.NewBuffer()
-						fakeVersionedSource.StreamOutReturns(streamedOut, nil)
+						fakeDestination = new(fakes.FakeArtifactDestination)
 					})
 
-					It("streams the resource to the destination", func() {
-						err := step.StreamTo(fakeDestination)
-						Ω(err).ShouldNot(HaveOccurred())
+					Context("when the resource can stream out", func() {
+						var (
+							streamedOut io.ReadCloser
+						)
 
-						Ω(fakeVersionedSource.StreamOutCallCount()).Should(Equal(1))
-						Ω(fakeVersionedSource.StreamOutArgsForCall(0)).Should(Equal("."))
+						BeforeEach(func() {
+							streamedOut = gbytes.NewBuffer()
+							fakeVersionedSource.StreamOutReturns(streamedOut, nil)
+						})
 
-						Ω(fakeDestination.StreamInCallCount()).Should(Equal(1))
-						dest, src := fakeDestination.StreamInArgsForCall(0)
-						Ω(dest).Should(Equal("."))
-						Ω(src).Should(Equal(streamedOut))
+						It("streams the resource to the destination", func() {
+							err := artifactSource.StreamTo(fakeDestination)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							Ω(fakeVersionedSource.StreamOutCallCount()).Should(Equal(1))
+							Ω(fakeVersionedSource.StreamOutArgsForCall(0)).Should(Equal("."))
+
+							Ω(fakeDestination.StreamInCallCount()).Should(Equal(1))
+							dest, src := fakeDestination.StreamInArgsForCall(0)
+							Ω(dest).Should(Equal("."))
+							Ω(src).Should(Equal(streamedOut))
+						})
+
+						Context("when streaming out of the versioned source fails", func() {
+							disaster := errors.New("nope")
+
+							BeforeEach(func() {
+								fakeVersionedSource.StreamOutReturns(nil, disaster)
+							})
+
+							It("returns the error", func() {
+								Ω(artifactSource.StreamTo(fakeDestination)).Should(Equal(disaster))
+							})
+						})
+
+						Context("when streaming in to the destination fails", func() {
+							disaster := errors.New("nope")
+
+							BeforeEach(func() {
+								fakeDestination.StreamInReturns(disaster)
+							})
+
+							It("returns the error", func() {
+								Ω(artifactSource.StreamTo(fakeDestination)).Should(Equal(disaster))
+							})
+						})
 					})
 
-					Context("when streaming out of the versioned source fails", func() {
+					Context("when the resource cannot stream out", func() {
 						disaster := errors.New("nope")
 
 						BeforeEach(func() {
@@ -262,106 +300,82 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("returns the error", func() {
-							Ω(step.StreamTo(fakeDestination)).Should(Equal(disaster))
+							Ω(artifactSource.StreamTo(fakeDestination)).Should(Equal(disaster))
+						})
+					})
+				})
+
+				Describe("streaming a file out", func() {
+					Context("when the resource can stream out", func() {
+						var (
+							fileContent = "file-content"
+
+							tarBuffer *gbytes.Buffer
+						)
+
+						BeforeEach(func() {
+							tarBuffer = gbytes.NewBuffer()
+							fakeVersionedSource.StreamOutReturns(tarBuffer, nil)
+						})
+
+						Context("when the file exists", func() {
+							BeforeEach(func() {
+								tarWriter := tar.NewWriter(tarBuffer)
+
+								err := tarWriter.WriteHeader(&tar.Header{
+									Name: "some-file",
+									Mode: 0644,
+									Size: int64(len(fileContent)),
+								})
+								Ω(err).ShouldNot(HaveOccurred())
+
+								_, err = tarWriter.Write([]byte(fileContent))
+								Ω(err).ShouldNot(HaveOccurred())
+							})
+
+							It("streams out the given path", func() {
+								reader, err := artifactSource.StreamFile("some-path")
+								Ω(err).ShouldNot(HaveOccurred())
+
+								Ω(ioutil.ReadAll(reader)).Should(Equal([]byte(fileContent)))
+
+								Ω(fakeVersionedSource.StreamOutArgsForCall(0)).Should(Equal("some-path"))
+							})
+
+							Describe("closing the stream", func() {
+								It("closes the stream from the versioned source", func() {
+									reader, err := artifactSource.StreamFile("some-path")
+									Ω(err).ShouldNot(HaveOccurred())
+
+									Ω(tarBuffer.Closed()).Should(BeFalse())
+
+									err = reader.Close()
+									Ω(err).ShouldNot(HaveOccurred())
+
+									Ω(tarBuffer.Closed()).Should(BeTrue())
+								})
+							})
+						})
+
+						Context("but the stream is empty", func() {
+							It("returns ErrFileNotFound", func() {
+								_, err := artifactSource.StreamFile("some-path")
+								Ω(err).Should(Equal(ErrFileNotFound))
+							})
 						})
 					})
 
-					Context("when streaming in to the destination fails", func() {
+					Context("when the resource cannot stream out", func() {
 						disaster := errors.New("nope")
 
 						BeforeEach(func() {
-							fakeDestination.StreamInReturns(disaster)
+							fakeVersionedSource.StreamOutReturns(nil, disaster)
 						})
 
 						It("returns the error", func() {
-							Ω(step.StreamTo(fakeDestination)).Should(Equal(disaster))
+							_, err := artifactSource.StreamFile("some-path")
+							Ω(err).Should(Equal(disaster))
 						})
-					})
-				})
-
-				Context("when the resource cannot stream out", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeVersionedSource.StreamOutReturns(nil, disaster)
-					})
-
-					It("returns the error", func() {
-						Ω(step.StreamTo(fakeDestination)).Should(Equal(disaster))
-					})
-				})
-			})
-
-			Describe("streaming a file out", func() {
-				Context("when the resource can stream out", func() {
-					var (
-						fileContent = "file-content"
-
-						tarBuffer *gbytes.Buffer
-					)
-
-					BeforeEach(func() {
-						tarBuffer = gbytes.NewBuffer()
-						fakeVersionedSource.StreamOutReturns(tarBuffer, nil)
-					})
-
-					Context("when the file exists", func() {
-						BeforeEach(func() {
-							tarWriter := tar.NewWriter(tarBuffer)
-
-							err := tarWriter.WriteHeader(&tar.Header{
-								Name: "some-file",
-								Mode: 0644,
-								Size: int64(len(fileContent)),
-							})
-							Ω(err).ShouldNot(HaveOccurred())
-
-							_, err = tarWriter.Write([]byte(fileContent))
-							Ω(err).ShouldNot(HaveOccurred())
-						})
-
-						It("streams out the given path", func() {
-							reader, err := step.StreamFile("some-path")
-							Ω(err).ShouldNot(HaveOccurred())
-
-							Ω(ioutil.ReadAll(reader)).Should(Equal([]byte(fileContent)))
-
-							Ω(fakeVersionedSource.StreamOutArgsForCall(0)).Should(Equal("some-path"))
-						})
-
-						Describe("closing the stream", func() {
-							It("closes the stream from the versioned source", func() {
-								reader, err := step.StreamFile("some-path")
-								Ω(err).ShouldNot(HaveOccurred())
-
-								Ω(tarBuffer.Closed()).Should(BeFalse())
-
-								err = reader.Close()
-								Ω(err).ShouldNot(HaveOccurred())
-
-								Ω(tarBuffer.Closed()).Should(BeTrue())
-							})
-						})
-					})
-
-					Context("but the stream is empty", func() {
-						It("returns ErrFileNotFound", func() {
-							_, err := step.StreamFile("some-path")
-							Ω(err).Should(Equal(ErrFileNotFound))
-						})
-					})
-				})
-
-				Context("when the resource cannot stream out", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeVersionedSource.StreamOutReturns(nil, disaster)
-					})
-
-					It("returns the error", func() {
-						_, err := step.StreamFile("some-path")
-						Ω(err).Should(Equal(disaster))
 					})
 				})
 			})

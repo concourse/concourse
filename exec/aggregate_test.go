@@ -1,9 +1,7 @@
 package exec_test
 
 import (
-	"bytes"
 	"errors"
-	"io"
 	"os"
 	"sync"
 
@@ -12,7 +10,6 @@ import (
 	"github.com/concourse/atc/exec/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -143,98 +140,6 @@ var _ = Describe("Aggregate", func() {
 
 			Ω(err.Error()).Should(ContainSubstring("A: nope A"))
 			Ω(err.Error()).Should(ContainSubstring("B: nope B"))
-		})
-	})
-
-	Describe("streaming to a destination", func() {
-		var fakeDestination *fakes.FakeArtifactDestination
-
-		BeforeEach(func() {
-			fakeDestination = new(fakes.FakeArtifactDestination)
-		})
-
-		It("streams each source to a subdirectory in the destination", func() {
-			err := step.StreamTo(fakeDestination)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			Ω(outStepA.StreamToCallCount()).Should(Equal(1))
-			Ω(outStepB.StreamToCallCount()).Should(Equal(1))
-
-			destA := outStepA.StreamToArgsForCall(0)
-			destB := outStepB.StreamToArgsForCall(0)
-
-			src := new(bytes.Buffer)
-
-			err = destA.StreamIn("foo", src)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			Ω(fakeDestination.StreamInCallCount()).Should(Equal(1))
-
-			realDest, realSrc := fakeDestination.StreamInArgsForCall(0)
-			Ω(realDest).Should(Equal("A/foo"))
-			Ω(realSrc).Should(Equal(src))
-
-			err = destB.StreamIn("foo", src)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			Ω(fakeDestination.StreamInCallCount()).Should(Equal(2))
-
-			realDest, realSrc = fakeDestination.StreamInArgsForCall(1)
-			Ω(realDest).Should(Equal("B/foo"))
-			Ω(realSrc).Should(Equal(src))
-		})
-
-		Context("when the any of the sources fails to stream", func() {
-			disaster := errors.New("nope")
-
-			BeforeEach(func() {
-				outStepA.StreamToReturns(disaster)
-			})
-
-			It("returns the error", func() {
-				err := step.StreamTo(fakeDestination)
-				Ω(err).Should(Equal(disaster))
-			})
-		})
-	})
-
-	Describe("streaming a file out", func() {
-		Context("from a path not referring to any source", func() {
-			It("returns ErrFileNotFound", func() {
-				_, err := step.StreamFile("X/foo")
-				Ω(err).Should(Equal(ErrFileNotFound))
-			})
-		})
-
-		Context("from a path referring to a source", func() {
-			var outStream io.ReadCloser
-
-			BeforeEach(func() {
-				outStream = gbytes.NewBuffer()
-				outStepA.StreamFileReturns(outStream, nil)
-			})
-
-			It("streams out from the source", func() {
-				out, err := step.StreamFile("A/foo")
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(out).Should(Equal(outStream))
-
-				Ω(outStepA.StreamFileArgsForCall(0)).Should(Equal("foo"))
-			})
-
-			Context("when streaming out from the source fails", func() {
-				disaster := errors.New("nope")
-
-				BeforeEach(func() {
-					outStepA.StreamFileReturns(nil, disaster)
-				})
-
-				It("returns the error", func() {
-					_, err := step.StreamFile("A/foo")
-					Ω(err).Should(Equal(disaster))
-				})
-			})
 		})
 	})
 

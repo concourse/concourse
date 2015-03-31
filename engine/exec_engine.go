@@ -168,15 +168,13 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 			return exec.Identity{}
 		}
 
-		return exec.Source{
-			Name: exec.SourceName(plan.Task.Name),
-			StepFactory: build.factory.Task(
-				build.taskIdentifier(plan.Task.Name, location),
-				build.delegate.ExecutionDelegate(logger, *plan.Task, location),
-				exec.Privileged(plan.Task.Privileged),
-				configSource,
-			),
-		}
+		return build.factory.Task(
+			exec.SourceName(plan.Task.Name),
+			build.taskIdentifier(plan.Task.Name, location),
+			build.delegate.ExecutionDelegate(logger, *plan.Task, location),
+			exec.Privileged(plan.Task.Privileged),
+			configSource,
+		)
 	}
 
 	if plan.Get != nil {
@@ -184,20 +182,18 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 			"name": plan.Get.Name,
 		})
 
-		return exec.Source{
-			Name: exec.SourceName(plan.Get.Name),
-			StepFactory: build.factory.Get(
-				build.getIdentifier(plan.Get.Name, location),
-				build.delegate.InputDelegate(logger, *plan.Get, location),
-				atc.ResourceConfig{
-					Name:   plan.Get.Resource,
-					Type:   plan.Get.Type,
-					Source: plan.Get.Source,
-				},
-				plan.Get.Params,
-				plan.Get.Version,
-			),
-		}
+		return build.factory.Get(
+			exec.SourceName(plan.Get.Name),
+			build.getIdentifier(plan.Get.Name, location),
+			build.delegate.InputDelegate(logger, *plan.Get, location),
+			atc.ResourceConfig{
+				Name:   plan.Get.Resource,
+				Type:   plan.Get.Type,
+				Source: plan.Get.Source,
+			},
+			plan.Get.Params,
+			plan.Get.Version,
+		)
 	}
 
 	if plan.Put != nil {

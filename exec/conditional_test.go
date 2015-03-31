@@ -2,7 +2,6 @@ package exec_test
 
 import (
 	"errors"
-	"io"
 
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/exec"
@@ -11,7 +10,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
 )
 
 func successResult(result Success) func(dest interface{}) bool {
@@ -71,30 +69,6 @@ var _ = Describe("Conditional", func() {
 			Ω(fakeStepFactory.UsingCallCount()).Should(BeZero())
 		})
 
-		Describe("streaming to a destination", func() {
-			var fakeDestination *fakes.FakeArtifactDestination
-
-			BeforeEach(func() {
-				fakeDestination = new(fakes.FakeArtifactDestination)
-			})
-
-			It("does not stream from the input source", func() {
-				err := step.StreamTo(fakeDestination)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(inStep.StreamToCallCount()).Should(Equal(0))
-
-				Ω(fakeDestination.StreamInCallCount()).Should(Equal(0))
-			})
-		})
-
-		Describe("streaming a file out", func() {
-			It("returns ErrFileNotFound", func() {
-				_, err := step.StreamFile("some-file")
-				Ω(err).Should(Equal(ErrFileNotFound))
-			})
-		})
-
 		Describe("releasing", func() {
 			It("does not release the input source", func() {
 				Ω(inStep.ReleaseCallCount()).Should(Equal(0))
@@ -120,76 +94,6 @@ var _ = Describe("Conditional", func() {
 			step, repo := fakeStepFactory.UsingArgsForCall(0)
 			Ω(step).Should(Equal(inStep))
 			Ω(repo).Should(Equal(repo))
-		})
-
-		Describe("streaming to a destination", func() {
-			var fakeDestination *fakes.FakeArtifactDestination
-
-			BeforeEach(func() {
-				fakeDestination = new(fakes.FakeArtifactDestination)
-			})
-
-			It("delegates to the step's artifact source", func() {
-				err := step.StreamTo(fakeDestination)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(outStep.StreamToCallCount()).Should(Equal(1))
-				Ω(outStep.StreamToArgsForCall(0)).Should(Equal(fakeDestination))
-			})
-
-			Context("when the output source fails to stream out", func() {
-				disaster := errors.New("nope")
-
-				BeforeEach(func() {
-					outStep.StreamToReturns(disaster)
-				})
-
-				It("returns the error", func() {
-					err := step.StreamTo(fakeDestination)
-					Ω(err).Should(Equal(disaster))
-				})
-			})
-
-			Describe("getting the result", func() {
-				It("succeeds", func() {
-					var success Success
-					Ω(step.Result(&success)).Should(BeTrue())
-
-					Ω(bool(success)).Should(BeTrue())
-				})
-			})
-		})
-
-		Describe("streaming a file out", func() {
-			var outStream io.ReadCloser
-
-			BeforeEach(func() {
-				outStream = gbytes.NewBuffer()
-				outStep.StreamFileReturns(outStream, nil)
-			})
-
-			It("delegates to the step's artifact source", func() {
-				reader, err := step.StreamFile("some-file")
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(outStep.StreamFileCallCount()).Should(Equal(1))
-				Ω(outStep.StreamFileArgsForCall(0)).Should(Equal("some-file"))
-
-				Ω(reader).Should(Equal(outStream))
-			})
-
-			Context("when the output source fails to stream out", func() {
-				disaster := errors.New("nope")
-
-				BeforeEach(func() {
-					outStep.StreamFileReturns(nil, disaster)
-				})
-
-				It("returns the error", func() {
-					_, err := step.StreamFile("some-file")
-					Ω(err).Should(Equal(disaster))
-				})
-			})
 		})
 
 		Describe("releasing", func() {

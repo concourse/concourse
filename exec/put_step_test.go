@@ -1,11 +1,8 @@
 package exec_test
 
 import (
-	"archive/tar"
 	"bytes"
 	"errors"
-	"io"
-	"io/ioutil"
 	"os"
 
 	"github.com/concourse/atc"
@@ -235,146 +232,6 @@ var _ = Describe("GardenFactory", func() {
 
 					It("returns the error", func() {
 						err := step.Release()
-						Ω(err).Should(Equal(disaster))
-					})
-				})
-			})
-
-			Describe("streaming to a destination", func() {
-				var fakeDestination *fakes.FakeArtifactDestination
-
-				BeforeEach(func() {
-					fakeDestination = new(fakes.FakeArtifactDestination)
-				})
-
-				Context("when the resource can stream out", func() {
-					var streamedOut io.ReadCloser
-
-					BeforeEach(func() {
-						streamedOut = gbytes.NewBuffer()
-						fakeVersionedSource.StreamOutReturns(streamedOut, nil)
-					})
-
-					It("streams the resource to the destination", func() {
-						err := step.StreamTo(fakeDestination)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						Ω(fakeVersionedSource.StreamOutCallCount()).Should(Equal(1))
-						Ω(fakeVersionedSource.StreamOutArgsForCall(0)).Should(Equal("."))
-
-						Ω(fakeDestination.StreamInCallCount()).Should(Equal(1))
-						dest, src := fakeDestination.StreamInArgsForCall(0)
-						Ω(dest).Should(Equal("."))
-						Ω(src).Should(Equal(streamedOut))
-					})
-
-					Context("when streaming out of the versioned source fails", func() {
-						disaster := errors.New("nope")
-
-						BeforeEach(func() {
-							fakeVersionedSource.StreamOutReturns(nil, disaster)
-						})
-
-						It("returns the error", func() {
-							Ω(step.StreamTo(fakeDestination)).Should(Equal(disaster))
-						})
-					})
-
-					Context("when streaming in to the destination fails", func() {
-						disaster := errors.New("nope")
-
-						BeforeEach(func() {
-							fakeDestination.StreamInReturns(disaster)
-						})
-
-						It("returns the error", func() {
-							Ω(step.StreamTo(fakeDestination)).Should(Equal(disaster))
-						})
-					})
-				})
-
-				Context("when the resource cannot stream out", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeVersionedSource.StreamOutReturns(nil, disaster)
-					})
-
-					It("returns the error", func() {
-						Ω(step.StreamTo(fakeDestination)).Should(Equal(disaster))
-					})
-				})
-			})
-
-			Describe("streaming a file out", func() {
-				Context("when the resource can stream out", func() {
-					var (
-						fileContent = "file-content"
-
-						tarBuffer *gbytes.Buffer
-					)
-
-					BeforeEach(func() {
-						tarBuffer = gbytes.NewBuffer()
-						fakeVersionedSource.StreamOutReturns(tarBuffer, nil)
-					})
-
-					Context("when the file exists", func() {
-						BeforeEach(func() {
-							tarWriter := tar.NewWriter(tarBuffer)
-
-							err := tarWriter.WriteHeader(&tar.Header{
-								Name: "some-file",
-								Mode: 0644,
-								Size: int64(len(fileContent)),
-							})
-							Ω(err).ShouldNot(HaveOccurred())
-
-							_, err = tarWriter.Write([]byte(fileContent))
-							Ω(err).ShouldNot(HaveOccurred())
-						})
-
-						It("streams out the given path", func() {
-							reader, err := step.StreamFile("some-path")
-							Ω(err).ShouldNot(HaveOccurred())
-
-							Ω(ioutil.ReadAll(reader)).Should(Equal([]byte(fileContent)))
-
-							Ω(fakeVersionedSource.StreamOutArgsForCall(0)).Should(Equal("some-path"))
-						})
-
-						Describe("closing the stream", func() {
-							It("closes the stream from the versioned source", func() {
-								reader, err := step.StreamFile("some-path")
-								Ω(err).ShouldNot(HaveOccurred())
-
-								Ω(tarBuffer.Closed()).Should(BeFalse())
-
-								err = reader.Close()
-								Ω(err).ShouldNot(HaveOccurred())
-
-								Ω(tarBuffer.Closed()).Should(BeTrue())
-							})
-						})
-					})
-
-					Context("but the stream is empty", func() {
-						It("returns ErrFileNotFound", func() {
-							_, err := step.StreamFile("some-path")
-							Ω(err).Should(Equal(ErrFileNotFound))
-						})
-					})
-				})
-
-				Context("when the resource cannot stream out", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeVersionedSource.StreamOutReturns(nil, disaster)
-					})
-
-					It("returns the error", func() {
-						_, err := step.StreamFile("some-path")
 						Ω(err).Should(Equal(disaster))
 					})
 				})

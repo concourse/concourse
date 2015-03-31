@@ -9,6 +9,8 @@ import (
 )
 
 type resourceStep struct {
+	SourceName SourceName
+
 	Session resource.Session
 
 	Delegate ResourceDelegate
@@ -47,6 +49,10 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 	err = ras.VersionedSource.Run(signals, ready)
 	if err != nil {
 		return err
+	}
+
+	if ras.SourceName != "" {
+		ras.Repository.RegisterSource(ras.SourceName, ras)
 	}
 
 	ras.Delegate.Completed(VersionInfo{
