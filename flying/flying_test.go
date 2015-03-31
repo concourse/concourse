@@ -50,6 +50,9 @@ platform: linux
 
 image: /var/vcap/packages/busybox
 
+inputs:
+  - name: fixture
+
 params:
   FOO: 1
 

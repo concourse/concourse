@@ -38,12 +38,15 @@ pipeline: &pipeline
           config:
             platform: linux
             image: {{.TestflightHelperImage}}
+            inputs:
+              - name: some-git-resource
+                path: .
             run:
               path: bash
               args: ["-c", "tail -1 guids | {{.GuidServerCurlCommand}}"]
         - put: some-git-resource-success
           params:
-            repository: .
+            repository: curl-server
 
     - name: some-failing-job
       plan:
@@ -52,17 +55,20 @@ pipeline: &pipeline
           config:
             platform: linux
             image: {{.TestflightHelperImage}}
+            inputs:
+              - name: some-git-resource
+                path: .
             run:
               path: bash
               args: ["-c", "exit 1"]
         - aggregate:
             - put: some-git-resource-no-update
               params:
-                repository: .
+                repository: curl-server
             - put: some-git-resource-failure
               conditions: [failure]
               params:
-                repository: .
+                repository: curl-server
 
     - name: fancy-build-matrix
       plan:
@@ -86,9 +92,13 @@ pipeline: &pipeline
           config:
             platform: linux
             image: {{.TestflightHelperImage}}
+            inputs:
+              - name: passing-unit-1
+              - name: passing-unit-2
+              - name: some-git-resource
             run:
               path: bash
-              args: ["-c", '{ echo $(ls passing-unit-*/file) $(tail -1 passing-unit-1/guids); } | {{.GuidServerCurlCommand}}']
+              args: ["-c", '{ echo $(ls passing-unit-*/file) $(tail -1 some-git-resource/guids); } | {{.GuidServerCurlCommand}}']
         - aggregate:
             - task: second-passing-unit-1
               config:
@@ -109,9 +119,11 @@ pipeline: &pipeline
           config:
             platform: linux
             image: {{.TestflightHelperImage}}
+            inputs:
+              - name: some-git-resource
             run:
               path: bash
-              args: ["-c", '{ echo failed $(tail -1 second-passing-unit-1/passing-unit-1/guids); } | {{.GuidServerCurlCommand}}']
+              args: ["-c", '{ echo failed $(tail -1 some-git-resource/guids); } | {{.GuidServerCurlCommand}}']
 
 
 releases:
