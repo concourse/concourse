@@ -42,7 +42,7 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 	}
 
 	ras.Resource = resource
-	ras.VersionedSource = ras.Action(resource, ras.PreviousStep)
+	ras.VersionedSource = ras.Action(resource, ras.Repository)
 
 	err = ras.VersionedSource.Run(signals, ready)
 	if err != nil {

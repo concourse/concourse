@@ -153,12 +153,3 @@ func (source aggregateStep) StreamFile(path string) (io.ReadCloser, error) {
 
 	return nil, ErrFileNotFound
 }
-
-type subdirectoryDestination struct {
-	destination  ArtifactDestination
-	subdirectory string
-}
-
-func (dest subdirectoryDestination) StreamIn(dst string, src io.Reader) error {
-	return dest.destination.StreamIn(dest.subdirectory+"/"+dst, src)
-}

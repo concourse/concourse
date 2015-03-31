@@ -2,6 +2,7 @@ package exec_test
 
 import (
 	"archive/tar"
+	"bytes"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -54,6 +55,8 @@ var _ = Describe("GardenFactory", func() {
 			inStep *fakes.FakeStep
 			repo   *SourceRepository
 
+			fakeSource *fakes.FakeArtifactSource
+
 			step    Step
 			process ifrit.Process
 		)
@@ -72,6 +75,10 @@ var _ = Describe("GardenFactory", func() {
 			params = atc.Params{"some-param": "some-value"}
 
 			inStep = new(fakes.FakeStep)
+			repo = NewSourceRepository()
+
+			fakeSource = new(fakes.FakeArtifactSource)
+			repo.RegisterSource("some-source", fakeSource)
 		})
 
 		JustBeforeEach(func() {
@@ -106,7 +113,7 @@ var _ = Describe("GardenFactory", func() {
 				Ω(typ).Should(Equal(resource.ResourceType("some-resource-type")))
 			})
 
-			It("puts the resource with the correct source and params, and the given source as the artifact source", func() {
+			It("puts the resource with the correct source and params, and the full repository as the artifact source", func() {
 				Ω(fakeResource.PutCallCount()).Should(Equal(1))
 
 				_, putSource, putParams, putArtifactSource := fakeResource.PutArgsForCall(0)
@@ -118,8 +125,19 @@ var _ = Describe("GardenFactory", func() {
 				err := putArtifactSource.StreamTo(dest)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(inStep.StreamToCallCount()).Should(Equal(1))
-				Ω(inStep.StreamToArgsForCall(0)).Should(Equal(dest))
+				Ω(fakeSource.StreamToCallCount()).Should(Equal(1))
+
+				sourceDest := fakeSource.StreamToArgsForCall(0)
+
+				someStream := new(bytes.Buffer)
+
+				err = sourceDest.StreamIn("foo", someStream)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(dest.StreamInCallCount()).Should(Equal(1))
+				destPath, stream := dest.StreamInArgsForCall(0)
+				Ω(destPath).Should(Equal("some-source/foo"))
+				Ω(stream).Should(Equal(someStream))
 			})
 
 			It("puts the resource with the io config forwarded", func() {
