@@ -27,14 +27,6 @@ set -x
 
 cp deployments/ci/config/private.yml concourse/config/private.yml
 
-bosh target ${BOSH_TARGET}
-
-bosh deployment deployments/ci/deployments/concourse.yml
-
-bosh -n upload stemcell bosh-stemcell/*.tgz --skip-if-exists
-
-bosh -n upload release garden-linux-release/*.tgz --skip-if-exists
-
 cd concourse/
 
 git config --global user.email "ci@localhost"
@@ -42,7 +34,4 @@ git config --global user.name "CI Bot"
 
 git merge --no-edit master
 
-bosh -n create release --final --version "$VERSION"
-bosh -n upload release --skip-if-exists
-
-bosh -n deploy
+bosh -n create release --final --with-tarball --version "$VERSION"
