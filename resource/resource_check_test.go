@@ -71,7 +71,6 @@ var _ = Describe("Resource Check", func() {
 		Ω(spec.Path).Should(Equal("/opt/resource/check"))
 		Ω(spec.Args).Should(BeEmpty())
 		Ω(spec.Privileged).Should(BeTrue())
-		Ω(spec.TTY).Should(Equal(&garden.TTYSpec{}))
 
 		request, err := ioutil.ReadAll(io.Stdin)
 		Ω(err).ShouldNot(HaveOccurred())

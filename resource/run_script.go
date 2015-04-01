@@ -110,7 +110,6 @@ func (resource *resource) runScript(
 				Path:       path,
 				Args:       args,
 				Privileged: true,
-				TTY:        &garden.TTYSpec{},
 			}, processIO)
 			if err != nil {
 				return err
