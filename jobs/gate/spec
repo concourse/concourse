@@ -24,6 +24,7 @@ packages:
   - vagrant_cloud_resource
   - bosh_io_release_resource
   - bosh_io_stemcell_resource
+  - bosh_deployment_resource
 
 properties:
   gate.heartbeat_interval:
@@ -60,6 +61,8 @@ properties:
         image: /var/vcap/packages/bosh_io_release_resource
       - type: bosh-io-stemcell
         image: /var/vcap/packages/bosh_io_stemcell_resource
+      - type: bosh-deployment
+        image: /var/vcap/packages/bosh_deployment_resource
 
   gate.platform:
     description: "platform of the worker to advertise"
