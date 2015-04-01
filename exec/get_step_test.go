@@ -197,32 +197,13 @@ var _ = Describe("GardenFactory", func() {
 			})
 
 			Describe("releasing", func() {
-				Context("when destroying the resource succeeds", func() {
-					BeforeEach(func() {
-						fakeResource.DestroyReturns(nil)
-					})
+				It("releases the resource", func() {
+					Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
 
-					It("destroys the resource", func() {
-						Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
+					err := step.Release()
+					Ω(err).ShouldNot(HaveOccurred())
 
-						err := step.Release()
-						Ω(err).ShouldNot(HaveOccurred())
-
-						Ω(fakeResource.DestroyCallCount()).Should(Equal(1))
-					})
-				})
-
-				Context("when destroying the resource fails", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeResource.DestroyReturns(disaster)
-					})
-
-					It("returns the error", func() {
-						err := step.Release()
-						Ω(err).Should(Equal(disaster))
-					})
+					Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
 				})
 			})
 
