@@ -1,0 +1,73 @@
+#!/bin/bash -e
+
+<%
+  require "cgi"
+  require "shellwords"
+%>
+
+RUN_DIR=/var/vcap/sys/run/groundcrew
+LOG_DIR=/var/vcap/sys/log/groundcrew
+PIDFILE=$RUN_DIR/jettison.pid
+
+source /var/vcap/packages/pid_utils/pid_utils.sh
+
+<%
+  def discover_external_ip
+    networks = spec.networks.marshal_dump
+
+    _, network = networks.find do |_name, network_spec|
+      network_spec.default
+    end
+
+    if !network
+      _, network = networks.first
+    end
+
+    if !network
+      raise "Could not determine IP via network spec: #{networks}"
+    end
+
+    network.ip
+  end
+
+  garden_addr = p("groundcrew.garden.address", nil)
+  garden_addr ||= "#{discover_external_ip}:7777"
+%>
+
+case $1 in
+
+  start)
+    pid_guard $PIDFILE "jettison"
+
+    mkdir -p $RUN_DIR
+    chown -R vcap:vcap $RUN_DIR
+
+    mkdir -p $LOG_DIR
+    chown -R vcap:vcap $LOG_DIR
+
+    echo $$ > $PIDFILE
+
+    kill -STOP $$
+
+    rm $PIDFILE
+
+    ;;
+
+  stop)
+  <% unless p("groundcrew.garden.forward_address", nil) %> \
+    /var/vcap/packages/jettison/bin/jettison \
+      -gardenAddr=<%= garden_addr %> \
+      1>>$LOG_DIR/jettison.stdout.log \
+      2>>$LOG_DIR/jettison.stderr.log
+  <% end %>
+
+    kill -CONT $(cat $PIDFILE)
+
+    ;;
+
+  *)
+    echo "Usage: $0 {start|stop}"
+
+    ;;
+
+esac

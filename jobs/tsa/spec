@@ -1,0 +1,44 @@
+---
+name: tsa
+
+description: |
+  TSA registers workers with the ATC via a SSH interface.
+
+templates:
+  tsa_ctl.erb: bin/tsa_ctl
+  host_key.erb: config/host_key
+  authorized_keys.erb: config/authorized_keys
+
+packages:
+  - pid_utils
+  - tsa
+
+properties:
+  tsa.heartbeat_interval:
+    description: "interval on which to register with the ATC"
+    default: 30s
+
+  tsa.atc.address:
+    description: "atc server connection address"
+    default: atc.service.dc1.consul:8080
+
+  tsa.atc.username:
+    description: "ATC API basic auth username"
+    default: ''
+
+  tsa.atc.password:
+    description: "ATC API basic auth password"
+    default: ''
+
+  tsa.host_key:
+    description: "private key to use for the SSH server"
+
+  tsa.authorized_keys:
+    description: "public keys to permit"
+    default: []
+
+  blackbox.syslog.sources.tsa:
+    description: "files whose contents blackbox will emit to its syslog drain"
+    default:
+      - /var/vcap/sys/log/tsa/tsa.stdout.log
+      - /var/vcap/sys/log/tsa/tsa.stderr.log

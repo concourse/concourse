@@ -106,10 +106,6 @@
 	path = src/github.com/ziutek/syslog
 	url = https://github.com/ziutek/syslog
 	branch = master
-[submodule "src/github.com/concourse/gate"]
-	path = src/github.com/concourse/gate
-	url = https://github.com/concourse/gate
-	branch = master
 [submodule "src/github.com/pivotal-golang/clock"]
 	path = src/github.com/pivotal-golang/clock
 	url = https://github.com/pivotal-golang/clock
@@ -154,3 +150,19 @@
 	path = src/github.com/zachgersh/go-update
 	url = https://github.com/zachgersh/go-update.git
 	branch = take-http-client
+[submodule "src/github.com/concourse/tsa"]
+	path = src/github.com/concourse/tsa
+	url = git@github.com:concourse/tsa.git
+	branch = master
+[submodule "src/golang.org/x/crypto"]
+	path = src/golang.org/x/crypto
+	url = https://go.googlesource.com/crypto
+	branch = master
+[submodule "src/github.com/pivotal-golang/localip"]
+	path = src/github.com/pivotal-golang/localip
+	url = https://github.com/pivotal-golang/localip
+	branch = master
+[submodule "src/github.com/concourse/jettison"]
+	path = src/github.com/concourse/jettison
+	url = git@github.com:concourse/jettison.git
+	branch = master

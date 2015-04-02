@@ -1,0 +1,56 @@
+#!/bin/bash -e
+
+<%
+  require "cgi"
+  require "shellwords"
+%>
+
+RUN_DIR=/var/vcap/sys/run/groundcrew
+LOG_DIR=/var/vcap/sys/log/groundcrew
+PIDFILE=$RUN_DIR/beacon.pid
+
+source /var/vcap/packages/pid_utils/pid_utils.sh
+
+case $1 in
+
+  start)
+    pid_guard $PIDFILE "beacon"
+
+    mkdir -p $RUN_DIR
+    chown -R vcap:vcap $RUN_DIR
+
+    mkdir -p $LOG_DIR
+    chown -R vcap:vcap $LOG_DIR
+
+    echo $$ > $PIDFILE
+
+    chown vcap:vcap /var/vcap/jobs/groundcrew/config/private_key
+    chmod 0400 /var/vcap/jobs/groundcrew/config/private_key
+
+    exec chpst -u vcap:vcap ssh \
+      -p <%= p("groundcrew.tsa.port") %> <%= p("groundcrew.tsa.host") %> \
+      -i /var/vcap/jobs/groundcrew/config/private_key \
+      -o UserKnownHostsFile=/var/vcap/jobs/groundcrew/config/known_hosts \
+      <% if p("groundcrew.garden.forward_address", nil) %> \
+        -R0.0.0.0:0:<%= p("groundcrew.garden.forward_address") %> \
+        forward-worker \
+      <% else %> \
+        register-worker \
+      <% end %> \
+      < /var/vcap/jobs/groundcrew/config/worker.json \
+      1>>$LOG_DIR/beacon.stdout.log \
+      2>>$LOG_DIR/beacon.stderr.log
+
+    ;;
+
+  stop)
+    kill_and_wait $PIDFILE
+
+    ;;
+
+  *)
+    echo "Usage: $0 {start|stop}"
+
+    ;;
+
+esac

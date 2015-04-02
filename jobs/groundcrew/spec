@@ -1,15 +1,22 @@
 ---
-name: gate
+name: groundcrew
 
-description: |
-  Gate registers a Garden worker with the ATC on an interval.
+description: >
+  The ground crew registers a Garden worker with the ATC on an interval,
+  advertises supported resource types, and cleans up ephemeral containers on
+  shutdown.
 
 templates:
-  gate_ctl.erb: bin/gate_ctl
+  beacon_ctl.erb: bin/beacon_ctl
+  jettison_ctl.erb: bin/jettison_ctl
+
+  known_hosts.erb: config/known_hosts
+  private_key.erb: config/private_key
+  worker.json.erb: config/worker.json
 
 packages:
   - pid_utils
-  - gate
+  - jettison
 
   # colocate base resources
   - archive_resource
@@ -27,14 +34,26 @@ packages:
   - bosh_deployment_resource
 
 properties:
-  gate.heartbeat_interval:
-    description: "interval on which to register with the ATC"
-    default: 30s
+  groundcrew.tsa.host:
+    description: "host of the TSA server to register with"
 
-  gate.garden.address:
-    description: "garden server connection address"
+  groundcrew.tsa.port:
+    description: "port of the TSA server to register with"
+    default: 2222
 
-  gate.resource_types:
+  groundcrew.tsa.host_public_key:
+    description: "host key to verify for the TSA server"
+
+  groundcrew.tsa.private_key:
+    description: "private key to use when authenticating with the TSA"
+
+  groundcrew.garden.address:
+    description: "garden server connection address to advertise to the TSA"
+
+  groundcrew.garden.forward_address:
+    description: "garden server connection address to forward through SSH to the TSA"
+
+  groundcrew.resource_types:
     description: "resource types supported by the worker, in [{type: type, image: image}] form"
     default:
       - type: archive
@@ -64,31 +83,25 @@ properties:
       - type: bosh-deployment
         image: /var/vcap/packages/bosh_deployment_resource
 
-  gate.platform:
+  groundcrew.platform:
     description: "platform of the worker to advertise"
     default: linux
 
-  gate.tags:
+  groundcrew.tags:
     description: "an array of tags to advertise for the worker"
     default: []
 
-  gate.atc.address:
-    description: "atc server connection address"
-    default: atc.service.dc1.consul:8080
-
-  gate.atc.username:
-    description: "ATC API basic auth username"
-    default: ''
-
-  gate.atc.password:
-    description: "ATC API basic auth password"
-    default: ''
-
-  blackbox.syslog.sources.gate:
+  blackbox.syslog.sources.groundcrew:
     description: "files whose contents blackbox will emit to its syslog drain"
     default:
-      - /var/vcap/sys/log/gate/gate.stdout.log
-      - /var/vcap/sys/log/gate/gate.stderr.log
+      - /var/vcap/sys/log/groundcrew/beacon.stdout.log
+      - /var/vcap/sys/log/groundcrew/beacon.stderr.log
+      - /var/vcap/sys/log/groundcrew/jettison.stdout.log
+      - /var/vcap/sys/log/groundcrew/jettison.stderr.log
+      - /var/vcap/sys/log/monit/beacon_ctl.out.log
+      - /var/vcap/sys/log/monit/beacon_ctl.err.log
+      - /var/vcap/sys/log/monit/jettison_ctl.out.log
+      - /var/vcap/sys/log/monit/jettison_ctl.err.log
 
   blackbox.syslog.sources.garden:
     description: "files whose contents blackbox will emit to its syslog drain"
