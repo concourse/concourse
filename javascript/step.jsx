@@ -28,9 +28,9 @@ var Step = React.createClass({
     var metadataDetails = [];
     var metadata = model.metadata();
     if (metadata !== undefined) {
-      metadata.forEach(function(field) {
-        metadataDetails.push(<dt key={"metadata-dt-"+field.name}>{field.name}</dt>);
-        metadataDetails.push(<dd key={"metadata-dd-"+field.name}>{field.value}</dd>);
+      metadata.forEach(function(field, i) {
+        metadataDetails.push(<dt key={"metadata-dt-"+i}>{field.name}</dt>);
+        metadataDetails.push(<dd key={"metadata-dd-"+i}>{field.value}</dd>);
       });
     }
 
