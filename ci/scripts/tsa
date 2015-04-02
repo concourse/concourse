@@ -11,5 +11,5 @@ export PATH=$GOPATH/bin:$PATH
 
 go install github.com/onsi/ginkgo/ginkgo
 
-cd ${GOPATH}/src/github.com/concourse/gate
+cd ${GOPATH}/src/github.com/concourse/tsa
 ginkgo -r -p "$@"

@@ -7,4 +7,4 @@ inputs:
   - name: concourse
 
 run:
-  path: concourse/ci/scripts/gate
+  path: concourse/ci/scripts/tsa
