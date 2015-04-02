@@ -213,7 +213,7 @@ func (server *registrarSSHServer) continuouslyRegisterForwardedWorker(
 }
 
 func (server *registrarSSHServer) heartbeatWorker(logger lager.Logger, worker atc.Worker) ifrit.Process {
-	return ifrit.Invoke(tsa.NewHeartbeater(
+	return ifrit.Background(tsa.NewHeartbeater(
 		logger,
 		server.heartbeatInterval,
 		gclient.New(gconn.New("tcp", worker.Addr)),
@@ -301,7 +301,7 @@ func (server *registrarSSHServer) forwardTCPIP(
 	forwardIP string,
 	forwardPort uint32,
 ) ifrit.Process {
-	return ifrit.Invoke(ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+	return ifrit.Background(ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 		go func() {
 			<-signals
 
