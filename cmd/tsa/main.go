@@ -16,9 +16,9 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-var port = flag.Int(
-	"port",
-	8800,
+var listenPort = flag.Int(
+	"listenPort",
+	2222,
 	"port to listen for ssh connections on",
 )
 
@@ -74,7 +74,7 @@ func main() {
 		logger.Fatal("failed-to-configure-ssh-server", err)
 	}
 
-	listener, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", *port))
+	listener, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", *listenPort))
 	if err != nil {
 		logger.Fatal("failed-to-listen-for-connection", err)
 	}

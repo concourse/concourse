@@ -149,7 +149,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 			tsaCommand := exec.Command(
 				tsaPath,
-				"-port", strconv.Itoa(tsaPort),
+				"-listenPort", strconv.Itoa(tsaPort),
 				"-hostKey", hostKey,
 				"-authorizedKeys", authorizedKeysFile,
 				"-atcAPIURL", atcServer.URL(),
