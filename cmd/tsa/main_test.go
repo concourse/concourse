@@ -34,9 +34,9 @@ import (
 	"github.com/tedsuo/ifrit/ginkgomon"
 )
 
-func TestTsa(t *testing.T) {
+func TestIntegration(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "TSA Suite")
+	RunSpecs(t, "Integration Suite")
 }
 
 var tsaPath string
