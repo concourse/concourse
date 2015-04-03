@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	gclient "github.com/cloudfoundry-incubator/garden/client"
@@ -317,43 +318,64 @@ func (server *registrarSSHServer) forwardTCPIP(
 				break
 			}
 
-			var req forwardTCPIPChannelRequest
-			req.ForwardIP = forwardIP
-			req.ForwardPort = forwardPort
-
-			host, port, err := net.SplitHostPort(localConn.RemoteAddr().String())
-			if err != nil {
-				logger.Error("failed-to-split-host-port", err)
-				continue
-			}
-
-			req.OriginIP = host
-			_, err = fmt.Sscanf(port, "%d", &req.OriginPort)
-			if err != nil {
-				logger.Error("failed-to-parse-port", err)
-				continue
-			}
-
-			channel, reqs, err := conn.OpenChannel("forwarded-tcpip", ssh.Marshal(req))
-			if err != nil {
-				logger.Error("failed-to-open-channel", err)
-				continue
-			}
-
-			go func() {
-				for r := range reqs {
-					logger.Info("ignoring-request", lager.Data{
-						"type": r.Type,
-					})
-
-					r.Reply(false, nil)
-				}
-			}()
-
-			go io.Copy(channel, localConn)
-			go io.Copy(localConn, channel)
+			go forwardLocalConn(logger, localConn, conn, forwardIP, forwardPort)
 		}
 
 		return nil
 	}))
+}
+
+func forwardLocalConn(logger lager.Logger, localConn net.Conn, conn *ssh.ServerConn, forwardIP string, forwardPort uint32) {
+	defer localConn.Close()
+
+	var req forwardTCPIPChannelRequest
+	req.ForwardIP = forwardIP
+	req.ForwardPort = forwardPort
+
+	host, port, err := net.SplitHostPort(localConn.RemoteAddr().String())
+	if err != nil {
+		logger.Error("failed-to-split-host-port", err)
+		return
+	}
+
+	req.OriginIP = host
+	_, err = fmt.Sscanf(port, "%d", &req.OriginPort)
+	if err != nil {
+		logger.Error("failed-to-parse-port", err)
+		return
+	}
+
+	channel, reqs, err := conn.OpenChannel("forwarded-tcpip", ssh.Marshal(req))
+	if err != nil {
+		logger.Error("failed-to-open-channel", err)
+		return
+	}
+
+	defer channel.Close()
+
+	go func() {
+		for r := range reqs {
+			logger.Info("ignoring-request", lager.Data{
+				"type": r.Type,
+			})
+
+			r.Reply(false, nil)
+		}
+	}()
+
+	copying := new(sync.WaitGroup)
+
+	copying.Add(1)
+	go func() {
+		defer copying.Done()
+		io.Copy(channel, localConn)
+	}()
+
+	copying.Add(1)
+	go func() {
+		defer copying.Done()
+		io.Copy(localConn, channel)
+	}()
+
+	copying.Wait()
 }
