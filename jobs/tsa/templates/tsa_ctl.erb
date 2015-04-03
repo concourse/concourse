@@ -54,7 +54,9 @@ case $1 in
     done
 
     {
+<% if p("tsa.authorize_generated_worker_key") %>
       cat /var/vcap/packages/generated_worker_key/id_rsa.pub
+<% end %>
       cat <<EOF
 <%= p("tsa.authorized_keys").join("\n") %>
 EOF

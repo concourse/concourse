@@ -41,6 +41,10 @@ properties:
     description: "public keys to permit"
     default: []
 
+  tsa.authorize_generated_worker_key:
+    description: "permit access via generated worker key, local to deployment"
+    default: true
+
   consul.agent.services.tsa:
     description: "this property auto-registers TSA as a service"
     default: {}
