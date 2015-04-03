@@ -141,12 +141,12 @@ jobs:
     persistent_disk: 10240
     resource_pool: concourse
     templates:
+      - {release: concourse, name: consul-agent}
       - {release: concourse, name: atc}
       - {release: concourse, name: tsa}
       - {release: concourse, name: groundcrew}
       - {release: concourse, name: postgresql}
       - {release: garden-linux, name: garden}
-      - {release: concourse, name: consul-agent}
     properties:
       atc:
         pipeline: *pipeline
