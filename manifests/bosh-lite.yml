@@ -32,7 +32,7 @@ jobs:
 
       consul:
         agent:
-          services: [{name: atc}]
+          services: [{name: atc}, {name: tsa}]
           mode: server
 
   - name: db
@@ -70,10 +70,6 @@ jobs:
         listen_address: 0.0.0.0:7777
 
         allow_host_access: true
-
-      groundcrew:
-        tsa:
-          host: *web-ip
 
       consul:
         agent:

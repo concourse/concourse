@@ -38,6 +38,7 @@ packages:
 properties:
   groundcrew.tsa.host:
     description: "host of the TSA server to register with"
+    default: tsa.service.dc1.consul
 
   groundcrew.tsa.port:
     description: "port of the TSA server to register with"
