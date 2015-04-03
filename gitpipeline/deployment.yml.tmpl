@@ -142,7 +142,8 @@ jobs:
     resource_pool: concourse
     templates:
       - {release: concourse, name: atc}
-      - {release: concourse, name: gate}
+      - {release: concourse, name: tsa}
+      - {release: concourse, name: groundcrew}
       - {release: concourse, name: postgresql}
       - {release: garden-linux, name: garden}
       - {release: concourse, name: consul-agent}
@@ -179,6 +180,7 @@ jobs:
           mode: server
           services:
             - name: atc
+            - name: tsa
             - name: postgresql
             - name: garden
 
@@ -225,5 +227,5 @@ update:
   canaries: 1
   max_in_flight: 3
   serial: false
-  canary_watch_time: 1000-60000
-  update_watch_time: 1000-60000
+  canary_watch_time: 1000-120000
+  update_watch_time: 1000-120000
