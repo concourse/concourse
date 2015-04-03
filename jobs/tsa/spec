@@ -7,11 +7,12 @@ description: |
 templates:
   tsa_ctl.erb: bin/tsa_ctl
   host_key.erb: config/host_key
-  authorized_keys.erb: config/authorized_keys
 
 packages:
   - pid_utils
   - tsa
+  - generated_tsa_host_key
+  - generated_worker_key
 
 properties:
   tsa.heartbeat_interval:
@@ -24,14 +25,17 @@ properties:
 
   tsa.atc.username:
     description: "ATC API basic auth username"
-    default: ''
+    default: ""
 
   tsa.atc.password:
     description: "ATC API basic auth password"
-    default: ''
+    default: ""
 
   tsa.host_key:
-    description: "private key to use for the SSH server"
+    description: >
+      private key to use for the SSH server. if not specified, a
+      deployment-scoped default is used.
+    default: ""
 
   tsa.authorized_keys:
     description: "public keys to permit"

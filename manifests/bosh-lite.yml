@@ -30,39 +30,6 @@ jobs:
             name: atc
             password: dummy-postgres-password
 
-      tsa:
-        host_key: |
-          -----BEGIN RSA PRIVATE KEY-----
-          MIIEogIBAAKCAQEAwrJr3L4DLuQNd5T9oULF8Dy0q/k4RnDTqeQydrOOFhIqBVYv
-          Z3al/Y+AsTgF0cHOb2gdKitjKm5PRjfanntc+dKg75mYGnt+9HNxxwhsBujYcRdH
-          LyqVzrTWh+mVcBGjeXVNP6qpJ2ecwfoCQBT/YMoudZgaPtpZt6FDZfBbCGhAMYv0
-          3bSGLc73QRxRceRY6eCP5SRi+72mFyUOnKkApOokSKr+GkePCmFm99+7brTWi7JP
-          v+tVdwuio5UJMJtL3shobWXD0Afl9vvbSpe/H52mD8QpWrr0CcaD8AlWwzfrzf37
-          VrrKFlerW4ZfVMzwarsWwKta8opVzKcg+PE/HwIDAQABAoIBABBbcRhwlk/gNQlw
-          6QYdWAfg8cTpAUNZw06or1ytpShRilo8bWsh2rw8zDEXZdXDlJZjht++GWy9K8fY
-          dXOPJbaPbZnzq4W+DmJ3OH3iRUEnWtfVftOFnmRpaQSuKTHrKXLQ2haZPfDjkZXy
-          bTH5EaOOGO0kREA3lAYLdGAiG2PPSNcCyq0t4pRK8RB0npExllz78aItyYLsh72z
-          OgpEhr8hx74g0HNQFzIOd5TJ7O51eW5pSfq1S65145PPYRUeAsghMuAxet9xIfdo
-          flFZfCz5FS2MD/N4ozyr52TnEjhndqjsjjaMuxNfqJN5rz8YBWEUpv7D7hNIubkf
-          zuRpd9ECgYEA6ixG4bUH1kjeZif9xAmxPodWeU0tmpr6iUYHiA36a8xO0nPsUx+2
-          gDP+W5yvyXaV9iTFMNkAp8UUQfpEJ7cKp4hG3qbu9pilsULsHSAwBjbBzl+Q4BdW
-          IJBcOywdy0y21+mo8KBEXJ5CpVhvV3BBrZJB9PNVhoEmnNkdmwSkFXUCgYEA1Ngv
-          40VKCVeGZxhMEdUtFFBkZhgJlLxa1ygzk4GjGLiYBjwfiTe6gfOZ7MwZdGpiw5Sk
-          wboJWM6ghg6hRnA3GQh9HvVoPuZL6nj95s8xEQrVmu/XKC5CA9xlWk2F2uZ6bQ0B
-          TGeoGfWtP+RMX4uuHDQoyR4B0j9qvipsOxZpa8MCgYA/5C6+vF7UB3OumbCyQRa8
-          Ab8FP5p2uVwsAhBh/bZanRbQctKC538qwYTfyANqS1GlI+ktZ7e3Dp11VuwrjdR5
-          W0RC0XcXjxR+Jc04MSUJPP1p6kcj7RoRrnGLr4C9jEPC6zyt0nx0bLWwWU2fpMA2
-          tFYMmCu4lBpN5ysdtYlzVQKBgGKkcsUsppxfwP1kqFSXbJX+kBk0yLPy+1K94fFZ
-          4mGho2s4UBFDD6AMaujwyldGutETwau68XwD/ydB/oJrnU1vvrUrXQ3Ro5teSaW/
-          nmjckZSF1Txc++FYMmzAgumpaVHC9jgXzjOBxbJXtwGM9btCfSiATK3JEEpj1Ncp
-          kuALAoGAQwpvdIUWbwijlcn3H7GULjP2zLyR5vKbHGVZ36GhdTOlQTRew/JAbKBV
-          iMBidceDb/Xe3tV0Zz/TZPklRh2piU+O++HtlObCZDqTSGfokeNafmeDO+6nE2wH
-          p/m/bKRkYqkkQQ64n3mERwCrbZb9HH9fMybc0daCN/M6d5p6r+s=
-          -----END RSA PRIVATE KEY-----
-
-        authorized_keys:
-          - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCiYDeLGb+QO+Vl4uBcojyovgu4TbIvBy4Mag7cAVEoDvoK7ptud8/mozw6UjAgxjjkcUX1NQza577UcrHuoY1y8qoFtxGMFFCz8aJy1ofZGlkR+J/Qqzm/tQOAmR2xnduTwPrYsM/CYZ9Yi0xLFWRKp50MLpbf2wfwYYZ3tOs/3X9OkCPx16623s3VOcJ7syghohLbfOyZlXL70SDL/CZHzDLvpaXZ68diRV1QYYQiVm0Eey9TA5kGQNHZg5H3WgtOy6MJ8Oui0MjRc5jJqWIw1MnM+Ef1A9fd3tt/VzYBX5g+cT8qKABXOc3fB3TeASlLCegvWWX304ImZDUMFcsh
-
       consul:
         agent:
           services: [{name: atc}]
@@ -100,43 +67,13 @@ jobs:
         disk_quota_enabled: false
 
         listen_network: tcp
-        listen_address: 127.0.0.1:7777
+        listen_address: 0.0.0.0:7777
 
         allow_host_access: true
 
       groundcrew:
         tsa:
           host: *web-ip
-          host_public_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDCsmvcvgMu5A13lP2hQsXwPLSr+ThGcNOp5DJ2s44WEioFVi9ndqX9j4CxOAXRwc5vaB0qK2Mqbk9GN9qee1z50qDvmZgae370c3HHCGwG6NhxF0cvKpXOtNaH6ZVwEaN5dU0/qqknZ5zB+gJAFP9gyi51mBo+2lm3oUNl8FsIaEAxi/TdtIYtzvdBHFFx5Fjp4I/lJGL7vaYXJQ6cqQCk6iRIqv4aR48KYWb337tutNaLsk+/61V3C6KjlQkwm0veyGhtZcPQB+X2+9tKl78fnaYPxClauvQJxoPwCVbDN+vN/ftWusoWV6tbhl9UzPBquxbAq1ryilXMpyD48T8f pivotal@clementina.local
-
-          private_key: |
-            -----BEGIN RSA PRIVATE KEY-----
-            MIIEpAIBAAKCAQEAomA3ixm/kDvlZeLgXKI8qL4LuE2yLwcuDGoO3AFRKA76Cu6b
-            bnfP5qM8OlIwIMY45HFF9TUM2ue+1HKx7qGNcvKqBbcRjBRQs/GictaH2RpZEfif
-            0Ks5v7UDgJkdsZ3bk8D62LDPwmGfWItMSxVkSqedDC6W39sH8GGGd7TrP91/TpAj
-            8deutt7N1TnCe7MoIaIS23zsmZVy+9Egy/wmR8wy76Wl2evHYkVdUGGEIlZtBHsv
-            UwOZBkDR2YOR91oLTsujCfDrotDI0XOYyaliMNTJzPhH9QPX3d7bf1c2AV+YPnE/
-            KigAVznN3wd03gEpSwnoL1ll99OCJmQ1DBXLIQIDAQABAoIBAQCQ75Vkgi0tj2kp
-            0qM1zFKcxFYtwpxjweLmjdyJoFtSiFvEWks/BY77bYUbAbWX65dowXsSbrH0y5rY
-            gzAzstxRWC1PQKNXB+MpW2wHWVqU/SG4GtZ8Kfo4Fljz9rg8jI0si7rcpKYt+XmE
-            TYJiGswUnxxdfVCKrDWf6U1fmIvLynv2X9wfJP7qH0XYLXMilWq82YZwg0IcWF7W
-            CwsWFIywLRhVS3WtPKe3Ctkbx3xJEKiPmLTqbJAEt1qa7zYqDxNEKTLupDWyoFbp
-            ET14yQzbXUXGWjh+2I7GbSmCJ5y8UTdLPfbf6NRG5GG/BU0Ry1dAvv+vKbF8nxy6
-            5bPZYz2BAoGBANF5i7E5yalBRh8HtwdCDuNngC6oRCtZ8J2yKsA3RdrXuXuaOWy7
-            48foX/PRxpwQdUuFJIzShSsB5i4qngsm+VSe4r00xdyHnTBQnHe+KyDMNKR5XpsD
-            /j1vz64o/ztUF0GpfaTOBQ0LojHZzE0Ii56lBl4tv47pwdkCVtsRsu2ZAoGBAMZw
-            sGD5L32Jsy9yz/CJPh8rUVdqv5wUKOBAsB0hNTFg7HCEGbNt9z3bKNTZZDrSW94u
-            aqY7+SwG3CkxC84SHKYdBjstqvczHy2luzBey+0WeXj5qQhJNy/8u6cjoIzuLp3T
-            HVfDX3AJRaqWTFGYfOXW+U48M4MyTSvd/upafe7JAoGBAIeW6mIUKsGA+9eYEdQD
-            4Uk3NJR+3GlHNWWN7vgujuvh2TD1mhgU4pMCiiFzduCMErCIhSkWF5bICut1MIm9
-            d4RbuB6Kq0xdB9U/SJiForr/E1AnM6KZihbQahisdtE7VDZvdGGZ7VENZ7Zm6UQv
-            tNhCr4WEjUr/ajeCuR/iK/R5AoGAeU6kE/Pgmy6VUjkuco2DY0x4wiaokYIlZslE
-            n9oQCWqFv1aR24Uqsi6KbGukgOzdahoX6h0ZeleLOMcZv1SFHOr7Ryvoqose0SnS
-            H4SjxwCJK3H7aexQB07JbCg0WlK0PpizBFaTvgp9AwY0C2FbYKmk57WXi+kxEdL4
-            pUzCVTkCgYBWCO1kH2DDCSlBn66nadsSrNQvOKnS0nPdf0gChTG7ql/0hDX/yn+w
-            Sp5AIX58QvNui9kwTUFbm96W1ioF6athA6Ie6wHHV94bio0u1rS42uoWsjYfvkCO
-            4R91BGcO95W4Vn4C8CnHynBj1cDOidgzWsptlXR/y1ilZ6grJjFyRA==
-            -----END RSA PRIVATE KEY-----
 
       consul:
         agent:

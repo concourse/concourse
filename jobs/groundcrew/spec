@@ -17,6 +17,8 @@ templates:
 packages:
   - pid_utils
   - jettison
+  - generated_tsa_host_key
+  - generated_worker_key
 
   # colocate base resources
   - archive_resource
@@ -42,10 +44,16 @@ properties:
     default: 2222
 
   groundcrew.tsa.host_public_key:
-    description: "host key to verify for the TSA server"
+    description: >
+      host key to verify for the TSA server. if not specified, a
+      deployment-scoped default is used.
+    default: ""
 
   groundcrew.tsa.private_key:
-    description: "private key to use when authenticating with the TSA"
+    description: >
+      private key to use when authenticating with the TSA. if not specified, a
+      deployment-scoped default is used.
+    default: ""
 
   groundcrew.garden.address:
     description: "garden server connection address to advertise to the TSA"

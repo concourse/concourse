@@ -47,9 +47,26 @@ case $1 in
 
     echo $$ > /var/vcap/sys/run/tsa/tsa.pid
 
+    for key in /var/vcap/packages/generated_tsa_host_key/id_rsa \
+               /var/vcap/jobs/tsa/config/host_key; do
+      chown vcap:vcap $key
+      chmod 0400 $key
+    done
+
+    {
+      cat /var/vcap/packages/generated_worker_key/id_rsa.pub
+      cat <<EOF
+<%= p("tsa.authorized_keys").join("\n") %>
+EOF
+    } > /var/vcap/jobs/tsa/config/authorized_keys
+
     exec chpst -u vcap:vcap /var/vcap/packages/tsa/bin/tsa \
       -forwardHost=<%= my_ip %> \
+      <% if p("tsa.host_key") != "" %> \
       -hostKey=/var/vcap/jobs/tsa/config/host_key \
+      <% else %> \
+      -hostKey=/var/vcap/packages/generated_tsa_host_key/id_rsa \
+      <% end %> \
       -authorizedKeys=/var/vcap/jobs/tsa/config/authorized_keys \
       -heartbeatInterval=<%= p("tsa.heartbeat_interval") %> \
       -atcAPIURL=<%= "http://#{CGI.escape(p("tsa.atc.username"))}:#{CGI.escape(p("tsa.atc.password"))}@#{p("tsa.atc.address")}" %> \

@@ -24,13 +24,29 @@ case $1 in
 
     echo $$ > $PIDFILE
 
-    chown vcap:vcap /var/vcap/jobs/groundcrew/config/private_key
-    chmod 0400 /var/vcap/jobs/groundcrew/config/private_key
+    for key in /var/vcap/packages/generated_worker_key/id_rsa \
+               /var/vcap/jobs/groundcrew/config/private_key; do
+      chown vcap:vcap $key
+      chmod 0400 $key
+    done
+
+    {
+      echo -n '[<%= p("groundcrew.tsa.host") %>]:<%= p("groundcrew.tsa.port") %> '
+      cat /var/vcap/packages/generated_tsa_host_key/id_rsa.pub
+    } > /var/vcap/jobs/groundcrew/config/generated_tsa_known_hosts
 
     exec chpst -u vcap:vcap ssh \
       -p <%= p("groundcrew.tsa.port") %> <%= p("groundcrew.tsa.host") %> \
+      <% if p("groundcrew.tsa.private_key") != "" %> \
       -i /var/vcap/jobs/groundcrew/config/private_key \
+      <% else %> \
+      -i /var/vcap/packages/generated_worker_key/id_rsa \
+      <% end %> \
+      <% if p("groundcrew.tsa.host_public_key") != "" %> \
       -o UserKnownHostsFile=/var/vcap/jobs/groundcrew/config/known_hosts \
+      <% else %> \
+      -o UserKnownHostsFile=/var/vcap/jobs/groundcrew/config/generated_tsa_known_hosts \
+      <% end %> \
       <% if p("groundcrew.garden.forward_address", nil) %> \
         -R0.0.0.0:0:<%= p("groundcrew.garden.forward_address") %> \
         forward-worker \
