@@ -55,8 +55,9 @@ jobs:
     instances: 1
     resource_pool: web
     templates:
-      - {release: concourse, name: atc}
       - {release: concourse, name: consul-agent}
+      - {release: concourse, name: tsa}
+      - {release: concourse, name: atc}
     networks: [{name: concourse}]
     properties:
       atc:
@@ -75,8 +76,8 @@ jobs:
     resource_pool: databases
     persistent_disk: 10240
     templates:
-      - {release: concourse, name: postgresql}
       - {release: concourse, name: consul-agent}
+      - {release: concourse, name: postgresql}
     networks: [{name: concourse}]
     properties:
       postgresql:
@@ -91,19 +92,14 @@ jobs:
     instances: 1
     resource_pool: workers
     templates:
-      - {release: concourse, name: gate}
-      - {release: garden-linux, name: garden}
       - {release: concourse, name: consul-agent}
+      - {release: concourse, name: groundcrew}
+      - {release: garden-linux, name: garden}
     networks: [{name: concourse}]
     properties:
       garden:
         listen_network: tcp
         listen_address: 0.0.0.0:7777
-
-      gate:
-        atc:
-          username: ~
-          password: ~
 
       consul:
         agent:
