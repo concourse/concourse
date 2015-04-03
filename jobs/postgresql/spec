@@ -29,6 +29,10 @@ properties:
     description: "maximum number of open database connections"
     default: 500
 
+  consul.agent.services.postgresql:
+    description: "this property auto-registers PostgreSQL as a service"
+    default: {}
+
   blackbox.syslog.sources.postgresql:
     description: "files whose contents blackbox will emit to its syslog drain"
     default:

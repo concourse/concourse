@@ -79,6 +79,10 @@ properties:
   atc.postgresql.role.password:
     description: "password to use when connecting"
 
+  consul.agent.services.atc:
+    description: "this property auto-registers ATC as a service"
+    default: {}
+
   blackbox.syslog.sources.atc:
     description: "files whose contents blackbox will emit to its syslog drain"
     default:

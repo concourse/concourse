@@ -18,9 +18,9 @@ jobs:
         static_ips: &web-ips [&web-ip 10.244.8.2]
     persistent_disk: 1024 # for consul
     templates:
+      - {release: concourse, name: consul-agent}
       - {release: concourse, name: atc}
       - {release: concourse, name: tsa}
-      - {release: concourse, name: consul-agent}
     properties:
       atc:
         development_mode: true
@@ -32,7 +32,6 @@ jobs:
 
       consul:
         agent:
-          services: [{name: atc}, {name: tsa}]
           mode: server
 
   - name: db
@@ -41,8 +40,8 @@ jobs:
     networks: [{name: concourse}]
     persistent_disk: 10240
     templates:
-      - {release: concourse, name: postgresql}
       - {release: concourse, name: consul-agent}
+      - {release: concourse, name: postgresql}
     properties:
       postgresql:
         databases: [{name: *atc-db}]
@@ -50,7 +49,6 @@ jobs:
 
       consul:
         agent:
-          services: [{name: postgresql}]
           servers: {lan: *web-ips}
 
   - name: worker
@@ -58,9 +56,9 @@ jobs:
     resource_pool: concourse
     networks: [{name: concourse}]
     templates:
+      - {release: concourse, name: consul-agent}
       - {release: garden-linux, name: garden}
       - {release: concourse, name: groundcrew}
-      - {release: concourse, name: consul-agent}
     properties:
       garden:
         # cannot enforce quotas in bosh-lite
@@ -73,7 +71,6 @@ jobs:
 
       consul:
         agent:
-          services: [{name: garden}]
           servers: {lan: *web-ips}
 
 networks:

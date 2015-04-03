@@ -31,8 +31,8 @@ properties:
     default: dc1
 
   consul.agent.services:
-    description: "list of services to configure"
-    default: []
+    description: "map of services to configure"
+    default: {}
 
   blackbox.syslog.sources.consul:
     description: "files whose contents blackbox will emit to its syslog drain"

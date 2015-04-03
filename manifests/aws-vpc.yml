@@ -69,7 +69,6 @@ jobs:
       consul:
         agent:
           servers: {lan: [*discovery_static_ip]}
-          services: [{name: atc}]
 
   - name: db
     instances: 1
@@ -87,7 +86,6 @@ jobs:
       consul:
         agent:
           servers: {lan: [*discovery_static_ip]}
-          services: [{name: postgresql}]
 
   - name: worker
     instances: 1

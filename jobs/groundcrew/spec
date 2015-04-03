@@ -100,6 +100,10 @@ properties:
     description: "an array of tags to advertise for the worker"
     default: []
 
+  consul.agent.services.garden:
+    description: "this property auto-registers Garden as a service"
+    default: {}
+
   blackbox.syslog.sources.groundcrew:
     description: "files whose contents blackbox will emit to its syslog drain"
     default:

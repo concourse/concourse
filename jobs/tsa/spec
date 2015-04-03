@@ -41,6 +41,10 @@ properties:
     description: "public keys to permit"
     default: []
 
+  consul.agent.services.tsa:
+    description: "this property auto-registers TSA as a service"
+    default: {}
+
   blackbox.syslog.sources.tsa:
     description: "files whose contents blackbox will emit to its syslog drain"
     default:

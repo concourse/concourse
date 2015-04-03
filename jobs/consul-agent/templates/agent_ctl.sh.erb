@@ -36,9 +36,9 @@ case $1 in
     mkdir -p $DATA_DIR
     chown -R vcap:vcap $DATA_DIR
 
-    <% p("consul.agent.services").each do |service| %>
-    cat > $CONF_DIR/service-<%= service["name"] %>.json <<EOF
-<%= { "service" => service }.to_json %>
+    <% p("consul.agent.services").each do |name, service| %>
+    cat > $CONF_DIR/service-<%= name %>.json <<EOF
+<%= { "service" => service.merge("name" => name) }.to_json %>
 EOF
     <% end %>
 
