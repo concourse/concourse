@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"sync"
 	"time"
 
 	gclient "github.com/cloudfoundry-incubator/garden/client"
@@ -363,19 +362,6 @@ func forwardLocalConn(logger lager.Logger, localConn net.Conn, conn *ssh.ServerC
 		}
 	}()
 
-	copying := new(sync.WaitGroup)
-
-	copying.Add(1)
-	go func() {
-		defer copying.Done()
-		io.Copy(channel, localConn)
-	}()
-
-	copying.Add(1)
-	go func() {
-		defer copying.Done()
-		io.Copy(localConn, channel)
-	}()
-
-	copying.Wait()
+	go io.Copy(localConn, channel)
+	io.Copy(channel, localConn)
 }
