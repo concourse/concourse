@@ -27,9 +27,10 @@ subset of the worker's tags. This can be done in the task's configuration
 directly (see @secref{configuring-tasks}) or by specifying them in the job
 that's running the task (see @secref{pipelines}).
 
-Worker registration is done via the ATC API. You can see the current set of
-workers via @code{GET /api/v1/workers}, and register one via @code{POST
-/api/v1/workers} with a worker API object as the payload.
+Worker registration can be done directly via the ATC API, or through the
+@seclink["tsa"]{TSA}. You can see the current set of workers via @code{GET
+/api/v1/workers}, and register one via @code{POST /api/v1/workers} with a
+worker API object as the payload.
 
 For example:
 
@@ -44,6 +45,35 @@ For example:
     ]
   }
 }|
+
+The worker JSON object contains the following attributes:
+
+@defthing[platform string]{
+  @emph{Required.} The platform supported by the worker, e.g. @code{linux},
+  @code{darwin}, or @code{windows}.
+}
+
+@defthing[tags [string]]{
+  @emph{Optional.} A set of arbitrary tags. Only tasks matching a subset of
+  these tags will be placed on the worker.
+}
+
+@defthing[addr string]{
+  @emph{Required.} The address of the Garden server. Note that this address
+  must be reachable by the ATC, and has no authentication. For this reason it
+  should always be an address only reachable from within Concourse's private
+  network. To register external workers, see @secref{forwarding-via-tsa}.
+}
+
+@defthing[active_containers integer]{
+  @emph{Optional.} The number of containers currently running on the worker.
+}
+
+@defthing[resource_types [{type, image}]]{
+  @emph{Optional.} The set of resource types supported by the worker. If
+  specified, the worker may be used for running resource containers of the
+  given type, using the specified image URI.
+}
 
 
 @section[#:tag "other-workers"]{Windows and OS X Workers}
@@ -89,48 +119,80 @@ Managed Servers} provider and the
 provisioner.
 
 
-@section[#:tag "gate"]{Registering workers with Concourse}
+@section[#:tag "tsa"]{Registering workers via the TSA}
 
-Worker health checking and registration is automated by a tiny component
-called @hyperlink["https://github.com/concourse/gate"]{Gate}.
+The @hyperlink["https://github.com/concourse/tsa"]{TSA} is a SSH server that
+can register and heartbeat workers via two pseudo-commands:
+@code{register-worker} and @code{forward-worker}.
 
-Gate continuously pings the Garden server's API and registers it with the
-Concourse API. To run Gate, download the version for your platform from
-@hyperlink["https://github.com/concourse/gate/release"]{Gate's GitHub
-releases}, and run it like so:
+Both commands read a worker JSON payload from @code{stdin}. So long as the
+SSH connection is live and the Garden server is responsive, the TSA will
+register it with the ATC.
 
-@codeblock|{
-  gate \
-    -atcAPIURL="http://my.atc.com" \
-    -gardenAddr=127.0.0.1:7777 \
-    -platform=your-platform \
-    -tags=a,b,c
+
+@subsection[#:tag "authorizing-with-tsa"]{Authenticating}
+
+The TSA authorizes connections via public key authentication only (no
+passwords).
+
+Concourse automatically generates and authorizes a keypair for all workers
+within the BOSH deployment, so you don't have to do any extra configuration
+to register internal workers.
+
+@margin-note{
+  In the event of a leak, the auto-generated keypair can be disabled by
+  setting the
+  @elem[#:style break-word]{@code{tsa.authorize_generated_worker_key}}
+  property to @code{false}.
+}
+
+To register an external worker using the TSA, however, you'll first need to
+generate a private key, and then list it as an authorized key. For a BOSH
+deployment, this can be done by listing the authorized public keys under the
+@code{tsa.authorized_keys} property.
+
+
+@subsection[#:tag "registering-via-tsa"]{Registering a worker directly}
+
+The @code{register-worker} command is used when you have a Garden worker
+accessible from within the private network. For example, registering a
+Windows EC2 instance with the rest of your cluster, all within a VPC. This
+is also the default registration mode for all Concourse workers within the
+deployment.
+
+So, to register a worker for direct access, you would run something like this:
+
+@verbatim|{
+  ssh \
+    -i path/to/private-key \
+    -p 2222 some-atc.com \
+    register-worker < worker.json
 }|
 
-The @code{-atcAPIURL} flag should be the UR, to your Concourse deployment's
-web/API server, including any basic auth.
+...where @code{worker.json} contains the worker JSON payload to advertise.
 
-The @code{-gardenAddr} flag specifies the address of the Garden server to
-advertise to the ATC. It will be continuously health checked, so it must
-also be reachable by the Gate.
 
-The @code{-platform} flag is the platform to advertise for your worker. This
-determines which tasks get placed on the worker. Standard names are
-@code{linux}, @code{darwin}, and @code{linux}.
+@subsection[#:tag "forwarding-via-tsa"]{Forwarding a local Garden server}
 
-The optional @code{-tags} flag specifies a comma-separated list of tag
-names. If specified, only tasks with a matching (sub)set of tags will be run
-on the worker.
+The @code{forward-worker} command is used when you want to tunnel a
+locally-reachable Garden server (e.g. one listening on @code{127.0.0.1})
+through the TSA, who will advertise the tunneled address on the client's
+behalf.
 
-An additional @code{-resourceTypes} flag can be specified, to provide a list
-of resource types supported by the worker. This value is provided as a
-JSON-formatted list of objects specifying the @code{name} of the resource
-type and @code{image} to use for its containers.
+For example, to securely register a local Garden server as a worker, you
+would run:
 
-Note that there is currently no auth between Concourse and its workers.
-Until this is implemented, you should probably lock down the Garden server's
-listen addresses to @code{127.0.0.1} and reach them via SSH tunnels, or have
-them all running within a private network (e.g. an AWS VPC).
+@verbatim|{
+  ssh \
+    -i path/to/private-key \
+    -R 0.0.0.0:0:127.0.0.1:7777 \
+    -p 2222 some-atc.com \
+    forward-worker < worker.json
+}|
+
+...where @code{127.0.0.1:7777} is the address of the local Garden server,
+and @code{worker.json} is a file containing the worker JSON payload (sans
+@code{"addr"}).
 
 
 @inject-analytics[]

@@ -24,6 +24,11 @@
 (define strike (make-style "strike"
   (list (make-css-addition "concourse.css"))))
 
+(provide break-word)
+
+(define break-word (make-style "break-word"
+  (list (make-css-addition "concourse.css"))))
+
 (provide inject-analytics)
 
 (define (inject-analytics)

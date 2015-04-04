@@ -113,7 +113,7 @@ section. You can give these URLs directly to @code{bosh upload release} as
 well.
 
 
-@subsection{Configure & Deploy}
+@subsection[#:tag "bosh-properties"]{Configure & Deploy}
 
 All you need to deploy your entire Concourse cluster is a BOSH deployment
 manifest. This single document describes the desired layout of an entire
