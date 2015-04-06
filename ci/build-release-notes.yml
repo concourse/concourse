@@ -4,6 +4,7 @@ image: docker:///concourse/docs-ci
 
 inputs:
   - name: docs
+  - name: version
 
 params:
   VERSION_FILE:
