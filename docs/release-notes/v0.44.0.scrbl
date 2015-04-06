@@ -4,6 +4,7 @@
 
 This release is hella backwards incompatible. Read carefully, and ask in IRC
 (@hyperlink["irc://irc.freenode.net/concourse"]{#concourse}) if you need help!
+
 We won't be making such drastic changes after 1.0, but as long as we're still
 figuring things out, we don't want to collect tech debt or land on the wrong
 set of primitives.
