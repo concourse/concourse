@@ -13,7 +13,7 @@ function abort() {
 version=$(cat ${VERSION_FILE})
 site_id=${SITE_ID}
 
-cd docs/docs/
+cd concourse-develop/docs/
 
 raco scribble \
   ++arg --version ++arg "$version" \
