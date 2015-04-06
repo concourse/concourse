@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	_ "net/http/pprof"
 	"net/url"
@@ -14,7 +15,6 @@ import (
 	"time"
 
 	"github.com/BurntSushi/migration"
-	"github.com/cloudfoundry-incubator/candiedyaml"
 	gclient "github.com/cloudfoundry-incubator/garden/client"
 	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
 	httpmetrics "github.com/codahale/http-handlers/metrics"
@@ -26,6 +26,7 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
+	"gopkg.in/yaml.v2"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
@@ -224,13 +225,18 @@ func main() {
 			fatal(err)
 		}
 
-		var conf atc.Config
-		err = candiedyaml.NewDecoder(pipelineFile).Decode(&conf)
+		defer pipelineFile.Close()
+
+		readPipelineFile, err := ioutil.ReadAll(pipelineFile)
 		if err != nil {
 			fatal(err)
 		}
 
-		pipelineFile.Close()
+		var conf atc.Config
+		err = yaml.Unmarshal(readPipelineFile, &conf)
+		if err != nil {
+			fatal(err)
+		}
 
 		if err := config.ValidateConfig(conf); err != nil {
 			fatal(err)

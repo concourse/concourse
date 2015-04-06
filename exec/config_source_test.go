@@ -3,10 +3,10 @@ package exec_test
 import (
 	"errors"
 
-	"github.com/cloudfoundry-incubator/candiedyaml"
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/fakes"
+	"gopkg.in/yaml.v2"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -99,7 +99,7 @@ var _ = Describe("ConfigSource", func() {
 				var streamedOut *gbytes.Buffer
 
 				BeforeEach(func() {
-					marshalled, err := candiedyaml.Marshal(someConfig)
+					marshalled, err := yaml.Marshal(someConfig)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					streamedOut = gbytes.BufferWithBytes(marshalled)
@@ -131,7 +131,7 @@ var _ = Describe("ConfigSource", func() {
 					invalidConfig.Platform = ""
 					invalidConfig.Run = atc.TaskRunConfig{}
 
-					marshalled, err := candiedyaml.Marshal(invalidConfig)
+					marshalled, err := yaml.Marshal(invalidConfig)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					streamedOut = gbytes.BufferWithBytes(marshalled)

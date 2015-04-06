@@ -3,14 +3,15 @@ package configserver
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"reflect"
 
-	"github.com/cloudfoundry-incubator/candiedyaml"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pivotal-golang/lager"
+	"gopkg.in/yaml.v2"
 )
 
 func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +40,11 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	case "application/json":
 		err = json.NewDecoder(r.Body).Decode(&configStructure)
 	case "application/x-yaml":
-		err = candiedyaml.NewDecoder(r.Body).Decode(&configStructure)
+		var body []byte
+		body, err = ioutil.ReadAll(r.Body)
+		if err == nil {
+			err = yaml.Unmarshal(body, &configStructure)
+		}
 	default:
 		w.WriteHeader(http.StatusUnsupportedMediaType)
 		return

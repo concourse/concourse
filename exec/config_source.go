@@ -2,10 +2,11 @@ package exec
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
 
-	"github.com/cloudfoundry-incubator/candiedyaml"
 	"github.com/concourse/atc"
+	"gopkg.in/yaml.v2"
 )
 
 //go:generate counterfeiter . TaskConfigSource
@@ -62,9 +63,13 @@ func (configSource FileConfigSource) FetchConfig(repo *SourceRepository) (atc.Ta
 
 	defer stream.Close()
 
-	var config atc.TaskConfig
-	err = candiedyaml.NewDecoder(stream).Decode(&config)
+	streamedFile, err := ioutil.ReadAll(stream)
 	if err != nil {
+		return atc.TaskConfig{}, err
+	}
+
+	var config atc.TaskConfig
+	if err := yaml.Unmarshal(streamedFile, &config); err != nil {
 		return atc.TaskConfig{}, err
 	}
 
