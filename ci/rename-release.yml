@@ -1,0 +1,9 @@
+---
+platform: linux
+image: docker:///concourse/docs-ci
+
+inputs:
+  - name: garden-linux
+
+run:
+  path: docs/ci/scripts/rename-release

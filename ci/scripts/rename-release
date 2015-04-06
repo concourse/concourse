@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -e
+
+cd garden-linux/
+
+mv release.tgz garden-linux-$(cat version).tgz
