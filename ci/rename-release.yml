@@ -3,6 +3,7 @@ platform: linux
 image: docker:///concourse/docs-ci
 
 inputs:
+  - name: docs
   - name: garden-linux
 
 run:
