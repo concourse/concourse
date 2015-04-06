@@ -4,6 +4,7 @@ image: docker:///concourse/docs-ci
 
 inputs:
   - name: concourse-develop
+  - name: version
 
 params:
   VERSION_FILE:
