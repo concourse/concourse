@@ -3,7 +3,7 @@ platform: linux
 image: docker:///concourse/docs-ci
 
 inputs:
-  - name: docs
+  - name: concourse-develop
 
 params:
   VERSION_FILE:
@@ -11,4 +11,4 @@ params:
   GAUGES_ID:
 
 run:
-  path: docs/ci/scripts/build-docs
+  path: concourse-develop/ci/scripts/build-docs
