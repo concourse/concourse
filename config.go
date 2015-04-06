@@ -1,6 +1,7 @@
 package atc
 
 import (
+	"errors"
 	"fmt"
 	"time"
 )
@@ -218,17 +219,17 @@ const (
 	ConditionFailure Condition = "failure"
 )
 
-func (c *Condition) UnmarshalYAML(tag string, value interface{}) error {
-	str, ok := value.(string)
-	if !ok {
-		return fmt.Errorf("invalid output condition: %#v (must be success/failure)", value)
+func (c *Condition) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var str string
+	if err := unmarshal(&str); err != nil {
+		return fmt.Errorf("invalid condition: %s", err)
 	}
 
 	switch Condition(str) {
 	case ConditionSuccess, ConditionFailure:
 		*c = Condition(str)
 	default:
-		return fmt.Errorf("unknown output condition: %s (must be success/failure)", str)
+		return fmt.Errorf("unknown condition: %s (must be success/failure)", str)
 	}
 
 	return nil
@@ -236,10 +237,16 @@ func (c *Condition) UnmarshalYAML(tag string, value interface{}) error {
 
 type Duration time.Duration
 
-func (d *Duration) UnmarshalYAML(tag string, value interface{}) error {
-	str, ok := value.(string)
-	if !ok {
-		return fmt.Errorf("invalid duration: %#v", value)
+func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var num int64
+	if err := unmarshal(&num); err == nil {
+		*d = Duration(num)
+		return nil
+	}
+
+	var str string
+	if err := unmarshal(&str); err != nil {
+		return errors.New("invalid duration; must be string or number")
 	}
 
 	duration, err := time.ParseDuration(str)
