@@ -67,6 +67,11 @@ jobs:
           database: *atc-db-name
           role: *atc-db-role
 
+      tsa:
+        atc:
+          username: ~
+          password: ~
+
       consul:
         agent:
           servers: {lan: [*discovery_static_ip]}
