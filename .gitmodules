@@ -70,10 +70,6 @@
 	path = src/github.com/vito/gosub
 	url = https://github.com/vito/gosub
 	branch = master
-[submodule "src/github.com/cloudfoundry-incubator/candiedyaml"]
-	path = src/github.com/cloudfoundry-incubator/candiedyaml
-	url = https://github.com/cloudfoundry-incubator/candiedyaml
-	branch = master
 [submodule "src/github.com/vito/go-sse"]
 	path = src/github.com/vito/go-sse
 	url = https://github.com/vito/go-sse
