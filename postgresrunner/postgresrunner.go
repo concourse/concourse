@@ -101,8 +101,19 @@ func (runner *Runner) DataSourceName() string {
 
 func (runner *Runner) CreateTestDB() {
 	createdb := exec.Command("createdb", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
+
 	createS, err := gexec.Start(createdb, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 	Ω(err).ShouldNot(HaveOccurred())
+
+	status := createS.Wait(10 * time.Second)
+	if status.ExitCode() != 0 {
+		runner.DropTestDB()
+
+		createdb := exec.Command("createdb", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
+		createS, err = gexec.Start(createdb, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
+		Ω(err).ShouldNot(HaveOccurred())
+	}
+
 	Eventually(createS, 10*time.Second).Should(gexec.Exit(0))
 }
 
