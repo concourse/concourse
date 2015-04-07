@@ -1,0 +1,344 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+
+  "Description": "Infrastructure for a MicroBOSH deployment with an ELB.",
+
+  "Parameters": {
+    "HostedZoneName": {
+      "Description": "Route53 Hosted Zone in which to register the ELB's DNS record.",
+      "Type": "String"
+    },
+    "ELBRecordSetName": {
+      "Description": "Route53 Record Set name for the ELB.",
+      "Type": "String"
+    },
+
+    "VPCCIDR": {
+      "Description": "CIDR block for the VPC.",
+      "Type": "String",
+      "Default": "10.0.0.0/16"
+    },
+    "BOSHSubnetCIDR": {
+      "Description": "CIDR block for the BOSH subnet.",
+      "Type": "String",
+      "Default": "10.0.0.0/24"
+    },
+    "LoadBalancerSubnetCIDR": {
+      "Description": "CIDR block for the BOSH subnet.",
+      "Type": "String",
+      "Default": "10.0.2.0/24"
+    },
+    "InternalSubnetCIDR": {
+      "Description": "CIDR block for the Internal subnet.",
+      "Type": "String",
+      "Default": "10.0.16.0/20"
+    }
+  },
+
+  "Mappings": {
+    "AWSNATAMI" : {
+      "us-east-1":      { "AMI": "ami-ad227cc4" },
+      "us-west-1":      { "AMI": "ami-d69aad93" },
+      "us-west-2":      { "AMI": "ami-f032acc0" },
+      "eu-west-1":      { "AMI": "ami-f3e30084" },
+      "ap-southeast-1": { "AMI": "ami-f22772a0" },
+      "ap-southeast-2": { "AMI": "ami-3bae3201" },
+      "ap-northeast-1": { "AMI": "ami-cd43d9cc" },
+      "sa-east-1":      { "AMI": "ami-d78325ca" }
+    }
+  },
+
+  "Resources": {
+    "VPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": { "CidrBlock": { "Ref": "VPCCIDR" } }
+    },
+
+    "VPCGatewayInternetGateway": {
+      "Type": "AWS::EC2::InternetGateway"
+    },
+
+    "VPCGatewayAttachment": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "InternetGatewayId": { "Ref": "VPCGatewayInternetGateway" }
+      }
+    },
+
+    "BOSHSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "GroupDescription": "BOSH",
+        "SecurityGroupEgress": [],
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "0",
+            "IpProtocol": "tcp",
+            "ToPort": "65535"
+          },
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "0",
+            "IpProtocol": "udp",
+            "ToPort": "65535"
+          }
+        ]
+      }
+    },
+
+    "InternalSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "GroupDescription": "Internal",
+        "SecurityGroupEgress": [],
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "0",
+            "IpProtocol": "tcp",
+            "ToPort": "65535"
+          },
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "0",
+            "IpProtocol": "udp",
+            "ToPort": "65535"
+          }
+        ]
+      }
+    },
+
+    "WebSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "GroupDescription": "Web",
+        "SecurityGroupEgress": [],
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "80",
+            "IpProtocol": "tcp",
+            "ToPort": "80"
+          },
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "2222",
+            "IpProtocol": "tcp",
+            "ToPort": "2222"
+          }
+        ]
+      }
+    },
+
+    "OpenSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "GroupDescription": "Open",
+        "SecurityGroupEgress": [],
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "0",
+            "IpProtocol": "tcp",
+            "ToPort": "65535"
+          },
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "0",
+            "IpProtocol": "udp",
+            "ToPort": "65535"
+          }
+        ]
+      }
+    },
+
+    "BOSHSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "CidrBlock": { "Ref": "BOSHSubnetCIDR" },
+        "Tags": [{ "Key": "Name", "Value": "BOSH" }]
+      }
+    },
+
+    "BOSHRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": { "VpcId": { "Ref": "VPC" } }
+    },
+
+    "BOSHRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "VPCGatewayInternetGateway",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": { "Ref": "VPCGatewayInternetGateway" },
+        "RouteTableId": { "Ref": "BOSHRouteTable" }
+      }
+    },
+
+    "BOSHSubnetRouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": { "Ref": "BOSHRouteTable" },
+        "SubnetId": { "Ref": "BOSHSubnet" }
+      }
+    },
+
+    "NATInstance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "InstanceType": "m3.medium",
+        "SubnetId": { "Ref": "BOSHSubnet" },
+        "ImageId" : {
+          "Fn::FindInMap": ["AWSNATAMI", { "Ref" : "AWS::Region" }, "AMI"]
+        },
+        "KeyName": "bosh",
+        "SecurityGroupIds": [{ "Ref": "OpenSecurityGroup" }],
+        "SourceDestCheck": false,
+        "Tags": [{ "Key": "Name", "Value": "NAT" }]
+      }
+    },
+
+    "NATEIP": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "vpc",
+        "InstanceId": { "Ref": "NATInstance" }
+      }
+    },
+
+    "InternalSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "CidrBlock": { "Ref": "InternalSubnetCIDR" },
+        "VpcId": { "Ref": "VPC" },
+        "Tags": [{ "Key": "Name", "Value": "Internal" }]
+      }
+    },
+
+    "InternalRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": { "VpcId": { "Ref": "VPC" } }
+    },
+
+    "InternalRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "NATInstance",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "RouteTableId": { "Ref": "InternalRouteTable" },
+        "InstanceId": { "Ref": "NATInstance" }
+      }
+    },
+
+    "InternalSubnetRouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": { "Ref": "InternalRouteTable" },
+        "SubnetId": { "Ref": "InternalSubnet" }
+      }
+    },
+
+    "LoadBalancerSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "CidrBlock": { "Ref": "LoadBalancerSubnetCIDR" },
+        "VpcId": { "Ref": "VPC" },
+        "Tags": [{ "Key": "Name", "Value": "LoadBalancer" }]
+      }
+    },
+
+    "LoadBalancerRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": { "VpcId": { "Ref": "VPC" } }
+    },
+
+    "LoadBalancerRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "VPCGatewayInternetGateway",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": { "Ref": "VPCGatewayInternetGateway" },
+        "RouteTableId": { "Ref": "LoadBalancerRouteTable" }
+      }
+    },
+
+    "LoadBalancerSubnetRouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": { "Ref": "LoadBalancerRouteTable" },
+        "SubnetId": { "Ref": "LoadBalancerSubnet" }
+      }
+    },
+
+    "WebELBLoadBalancer": {
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+
+      "Properties": {
+        "Subnets": [{ "Ref": "LoadBalancerSubnet" }],
+        "SecurityGroups": [{ "Ref": "WebSecurityGroup" }],
+
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": "30",
+          "Target": "tcp:8080",
+          "Timeout": "5",
+          "UnhealthyThreshold": "10"
+        },
+
+        "Listeners": [
+          {
+            "InstancePort": "8080",
+            "LoadBalancerPort": "80",
+            "Protocol": "tcp",
+            "InstanceProtocol": "tcp"
+          },
+          {
+            "InstancePort": "2222",
+            "LoadBalancerPort": "2222",
+            "Protocol": "tcp",
+            "InstanceProtocol": "tcp"
+          }
+        ]
+      }
+    },
+
+    "WebELBRecordSet": {
+      "Type": "AWS::Route53::RecordSetGroup",
+      "Properties": {
+        "HostedZoneName": { "Ref": "HostedZoneName" },
+        "RecordSets": [
+          {
+            "Name": { "Ref": "ELBRecordSetName" },
+            "Type": "A",
+            "AliasTarget": {
+              "HostedZoneId": {
+                "Fn::GetAtt": [
+                  "WebELBLoadBalancer",
+                  "CanonicalHostedZoneNameID"
+                ]
+              },
+              "DNSName": {
+                "Fn::GetAtt": [
+                  "WebELBLoadBalancer",
+                  "CanonicalHostedZoneName"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+
+    "MicroEIP": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": { "Domain": "vpc" }
+    }
+  }
+}
