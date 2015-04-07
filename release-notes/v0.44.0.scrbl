@@ -53,6 +53,10 @@ set of primitives.
         the pool. Later on we may introduce a change so that @code{put} steps
         declare their dependencies, but for now streaming everything in is the
         simplest path forward.
+
+        The net effect of this is that any params referring to files in
+        @code{put} steps must now qualify the path with the source name, as
+        they're all fetched into subdirectories.
       }
 
       @item{
@@ -91,6 +95,40 @@ set of primitives.
     of the @code{task} step qualifies the filename with the name of the source
     containing it, and the @code{put} step qualifies the path to @code{foo}
     with the name of the task that it came from.
+
+    Also, the @code{something/build.yml} task would now explicitly list its
+    inputs, if it wasn't before. So that could mean changing:
+
+    @codeblock|{
+    platform: linux
+
+    image: docker:///busybox
+
+    run:
+      path: something/some-script
+    }|
+
+    ...to...
+
+    @codeblock|{
+    platform: linux
+
+    image: docker:///busybox
+
+    inputs:
+    - name: something
+
+    run:
+      path: something/some-script
+    }|
+
+    This has the advantage of making the task config more self-documenting,
+    and removes any doubt as to what inputs will be placed where when the
+    task starts.
+
+    Note that listing inputs in the task config is not @emph{new}, and if you
+    were already listing them before the semantics hasn't changed. The only
+    difference is that they're now required.
   }
 
   @item{
