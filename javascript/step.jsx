@@ -38,7 +38,6 @@ var Step = React.createClass({
     var classNames = cx({
       "build-step": true,
       "running": model.isRunning(),
-      "errored": model.isErrored(),
       "first-occurrence": model.isFirstOccurrence()
     });
 
