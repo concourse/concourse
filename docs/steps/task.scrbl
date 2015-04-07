@@ -4,13 +4,13 @@
 
 @title[#:style 'toc #:version version #:tag "task-step"]{@code{task}@aux-elem{: execute a task}}
 
-Executes a @seclink["tasks"]{Task}, either from a file fetched via the preceding
-steps, or with inlined configuration.
+Executes a @seclink["tasks"]{Task}, either from a file fetched via the
+preceding steps, or with inlined configuration.
 
-If any task in the build plan fails, the build will complete with failure.
-By default, any subsequent steps will not be performed. This can be
-configured by explicitly setting
-@seclink["step-conditions"]{@code{conditions}} on the step after the task.
+If any task in the build plan fails, the build will complete with failure. By
+default, any subsequent steps will not be performed. This can be configured by
+explicitly setting @seclink["step-conditions"]{@code{conditions}} on the step
+after the task.
 
 For example, the following plan fetches a single repository and executes
 multiple tasks, using the @seclink["aggregate-step"]{@code{aggregate}} step,
@@ -21,16 +21,9 @@ plan:
 - get: my-repo
 - aggregate:
   - task: go-1.3
-    file: my-repo/unit.yml
-    config:
-      params:
-        GO_VERSION: 1.3
-
+    file: my-repo/go-1.3.yml
   - task: go-1.4
     file: my-repo/ci/go-1.4.yml
-    config:
-      params:
-        GO_VERSION: 1.4
 }|
 
 Only if both tasks succeed will the build go green.
