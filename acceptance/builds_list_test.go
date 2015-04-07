@@ -162,7 +162,7 @@ var _ = Describe("One-off Builds", func() {
 
 				// build list -> one off build detail
 				Expect(page).Should(HaveURL(withPath("/builds")))
-				Expect(page.Find("h1")).To(HaveText("Builds"))
+				Expect(page.Find("h1")).To(HaveText("builds"))
 				Expect(page.Find(firstBuildNumber).Text()).To(ContainSubstring(fmt.Sprintf("%d", oneOffBuild.ID)))
 				Expect(page.Find(firstBuildLink).Click()).To(Succeed())
 

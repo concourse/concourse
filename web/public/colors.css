@@ -158,6 +158,12 @@ svg h1 a {
 #cli-downloads a {
   color: #f5f5f5;
 }
+.h1 {
+  line-height: 60px;
+  color: #f5f5f5;
+  font-weight: bold;
+  font-size: 24px;
+}
 /* good */
 svg .edge.succeeded {
   stroke: #90a959;
