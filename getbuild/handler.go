@@ -39,8 +39,6 @@ type TemplateData struct {
 	Build   db.Build
 	Inputs  []db.BuildInput
 	Outputs []db.BuildOutput
-
-	Abortable bool
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -95,14 +93,6 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var abortable bool
-	switch build.Status {
-	case db.StatusPending, db.StatusStarted:
-		abortable = true
-	default:
-		abortable = false
-	}
-
 	templateData := TemplateData{
 		GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
 			for _, groupJob := range g.Jobs {
@@ -117,10 +107,9 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Job:    job,
 		Builds: bs,
 
-		Build:     build,
-		Inputs:    inputs,
-		Outputs:   outputs,
-		Abortable: abortable,
+		Build:   build,
+		Inputs:  inputs,
+		Outputs: outputs,
 	}
 
 	err = handler.template.Execute(w, templateData)

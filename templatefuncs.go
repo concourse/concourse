@@ -45,44 +45,46 @@ func (funcs templateFuncs) asset(asset string) (string, error) {
 	return funcs.url("Public", asset+"?id="+id)
 }
 
-func (funcs templateFuncs) url(handler string, args ...interface{}) (string, error) {
-	switch handler {
+func (funcs templateFuncs) url(route string, args ...interface{}) (string, error) {
+	switch route {
 	case routes.TriggerBuild:
-		return routes.Routes.CreatePathForRoute(handler, rata.Params{
+		return routes.Routes.CreatePathForRoute(route, rata.Params{
 			"job": jobName(args[0]),
 		})
 
 	case routes.GetBuild:
-		return routes.Routes.CreatePathForRoute(handler, rata.Params{
-			"job":   jobName(args[0]),
-			"build": args[1].(db.Build).Name,
-		})
+		build := args[1].(db.Build)
+		build.JobName = jobName(args[0])
+		return routes.PathForBuild(build), nil
+
+	case routes.GetJoblessBuild:
+		return routes.PathForBuild(args[0].(db.Build)), nil
 
 	case routes.AbortBuild:
-		return routes.Routes.CreatePathForRoute(handler, rata.Params{
+		return routes.Routes.CreatePathForRoute(route, rata.Params{
 			"build_id": fmt.Sprintf("%d", args[0].(db.Build).ID),
 		})
 
 	case routes.Public:
-		return routes.Routes.CreatePathForRoute(handler, rata.Params{
+		return routes.Routes.CreatePathForRoute(route, rata.Params{
 			"filename": args[0].(string),
 		})
 
 	case atc.BuildEvents:
-		return atc.Routes.CreatePathForRoute(handler, rata.Params{
+		return atc.Routes.CreatePathForRoute(route, rata.Params{
 			"build_id": fmt.Sprintf("%d", args[0].(db.Build).ID),
 		})
 
 	case atc.EnableResourceVersion, atc.DisableResourceVersion:
-		return atc.Routes.CreatePathForRoute(handler, rata.Params{
+		return atc.Routes.CreatePathForRoute(route, rata.Params{
 			"version_id": fmt.Sprintf("%d", args[0].(db.SavedVersionedResource).ID),
 		})
 
 	case routes.LogIn:
-		return routes.Routes.CreatePathForRoute(handler, rata.Params{})
+		return routes.Routes.CreatePathForRoute(route, rata.Params{})
 
 	case atc.DownloadCLI:
-		path, err := atc.Routes.CreatePathForRoute(handler, rata.Params{})
+		path, err := atc.Routes.CreatePathForRoute(route, rata.Params{})
 		if err != nil {
 			return "", err
 		}
@@ -93,7 +95,7 @@ func (funcs templateFuncs) url(handler string, args ...interface{}) (string, err
 		}.Encode(), nil
 
 	default:
-		return "", fmt.Errorf("unknown route: %s", handler)
+		return "", fmt.Errorf("unknown route: %s", route)
 	}
 }
 

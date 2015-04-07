@@ -64,7 +64,7 @@ svg .node.job.normal rect { fill: @base03; }
 svg .edge.pending { stroke: @base04; }
 svg .node.job.pending rect { fill: @base04; }
 #page-header.pending .build-header { background: @base04; }
-li.pending { background: @base04; }
+.pending { background: @base04; }
 .legend dt.pending { background: @base04; }
 #build-requires-auth input:hover { background: @base04; }
 
@@ -89,7 +89,7 @@ svg h1 a { color: @base07; }
 svg .edge.succeeded { stroke: @base0B; }
 svg .node.job.succeeded rect { fill: @base0B; }
 #page-header.succeeded { background: @base0B; }
-li.succeeded { background: @base0B; }
+.succeeded { background: @base0B; }
 .legend dt.succeeded { background: @base0B; }
 #version-history tr.disabled .toggle-resource-version { background: @base0B; }
 
@@ -97,7 +97,7 @@ li.succeeded { background: @base0B; }
 svg .edge.failed { stroke: @base08; }
 svg .node.job.failed rect { fill: @base08; }
 #page-header.failed { background: @base08; }
-li.failed { background: @base08; }
+.failed { background: @base08; }
 .legend dt.failed { background: @base08; }
 span.error { color: @base08; }
 #version-history tr.enabled .toggle-resource-version { background: @base08; }
@@ -107,7 +107,7 @@ span.error { color: @base08; }
 svg .edge.errored { stroke: @base09; }
 svg .node.job.errored rect { fill: @base09; }
 #page-header.errored { background: @base09; }
-li.errored { background: @base09; }
+.errored { background: @base09; }
 .legend dt.errored { background: @base09; }
 svg .node.input.failing rect { fill: @base09; }
 
@@ -115,12 +115,12 @@ svg .node.input.failing rect { fill: @base09; }
 svg .edge.aborted { stroke: @base0F; }
 svg .node.job.aborted rect { fill: @base0F; }
 #page-header.aborted { background: @base0F; }
-li.aborted { background: @base0F; }
+.aborted { background: @base0F; }
 .legend dt.aborted { background: @base0F; }
 
 /* active */
 #page-header.started { background: @base0A; }
-li.started { background: @base0A; }
+.started { background: @base0A; }
 .legend dt.started rect { stroke: @base0A; }
 
 svg .job.node.started div,
@@ -186,3 +186,52 @@ svg .job.node.started div,
 .ansi-bright-magenta-bg { background-color: @base0E; font-weight: bold; }
 .ansi-bright-cyan-bg { background-color: @base0C; font-weight: bold; }
 .ansi-bright-white-bg { background-color: @base07; font-weight: bold; }
+
+
+
+.table {
+  font-size: 1.2em;
+  color: @base04;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.table td {
+  padding: 5px;
+  border-top: 1px solid @base02;
+}
+
+.table td:first-child {
+  padding-left: 0px;
+}
+
+.table td:last-child {
+  border-right: 1px solid @base02;
+}
+
+.build-number {
+  font-size: 2em;
+  color: @base07;
+  padding: 5px;
+  text-align: center;
+  border: 5px solid @base00;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.table thead {
+  text-align: left;
+}
+
+
+.build-one-off {
+  background-color: @base03;
+}
+
+.nav-item {
+  &, a {
+    color: @base07;
+  }
+  font-size: 18px;
+  line-height: 40px;
+}

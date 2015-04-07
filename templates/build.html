@@ -7,7 +7,7 @@
       <button><i class="fa fa-plus-circle"></i></button>
     </form>
 
-    {{if .Abortable}}
+    {{if .Build.Abortable}}
     <form class="abort-build" method="post" action="{{url "AbortBuild" .Build}}">
       <button><i class="fa fa-times-circle"></i></button>
     </form>

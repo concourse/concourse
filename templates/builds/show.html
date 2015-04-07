@@ -1,0 +1,31 @@
+{{define "title"}}One Off Build - Concourse{{end}}
+
+{{define "body"}}
+<div id="page-header" class="{{.Build.Status}}">
+  <div class="build-header">
+    {{if .Build.Abortable}}
+    <form class="abort-build" method="post" action="{{url "AbortBuild" .Build}}">
+      <button><i class="fa fa-times-circle"></i></button>
+    </form>
+    {{end}}
+    <h1>build #{{.Build.ID}}</h1>
+
+    <dl class="build-times"></dl>
+  </div>
+</div>
+
+<div id="build-body">
+  <div id="build-requires-auth">
+    <form method="get" action="{{url "LogIn"}}">
+      <input type="submit" value="log in to view" />
+      <input type="hidden" name="redirect-to" value="{{url "GetJoblessBuild" .Build}}" />
+    </form>
+  </div>
+  <div id="build-logs"></div>
+</div>
+
+<script src="{{asset "build.js"}}"></script>
+<script type="text/javascript">
+  streamLog({{url "BuildEvents" .Build | js}}, {{.Build.Status | js}})
+</script>
+{{end}}
