@@ -19,3 +19,9 @@ func States(config atc.GroupConfigs, pred func(atc.GroupConfig) bool) []State {
 
 	return states
 }
+
+func UnhighlightedStates(config atc.GroupConfigs) []State {
+	return States(config, func(atc.GroupConfig) bool {
+		return false
+	})
+}

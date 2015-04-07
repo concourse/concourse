@@ -1,0 +1,28 @@
+{{define "title"}}Builds - Concourse{{end}}
+
+{{define "body"}}
+<div class="wrap">
+  <h1>Builds</h1>
+
+
+  <div>
+    <table class="table">
+      <thead>
+        <th>ID</th>
+        <th>Job Name</th>
+        <th>Start Time</th>
+        <th>End Time</th>
+      </thead>
+
+      {{range .Builds}}
+        <tr class="table-row {{.CSSClass}}">
+          <td><a class="build-number {{.Status}}" href="{{.Path}}">#{{.ID}}</a></td>
+          <td>{{.JobName}}</td>
+          <td>{{.StartTime}}</td>
+          <td>{{.EndTime}}</td>
+        </tr>
+      {{end}}
+    </table>
+  </div>
+</div>
+{{end}}

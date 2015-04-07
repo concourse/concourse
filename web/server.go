@@ -14,7 +14,9 @@ import (
 	"github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/web/abortbuild"
 	"github.com/concourse/atc/web/getbuild"
+	"github.com/concourse/atc/web/getbuilds"
 	"github.com/concourse/atc/web/getjob"
+	"github.com/concourse/atc/web/getjoblessbuild"
 	"github.com/concourse/atc/web/getresource"
 	"github.com/concourse/atc/web/index"
 	"github.com/concourse/atc/web/login"
@@ -52,6 +54,16 @@ func NewHandler(
 		return nil, err
 	}
 
+	buildsTemplate, err := loadTemplate(templatesDir, filepath.Join("builds", "index.html"), funcs)
+	if err != nil {
+		return nil, err
+	}
+
+	joblessBuildTemplate, err := loadTemplate(templatesDir, filepath.Join("builds", "show.html"), funcs)
+	if err != nil {
+		return nil, err
+	}
+
 	resourceTemplate, err := loadTemplate(templatesDir, "resource.html", funcs)
 	if err != nil {
 		return nil, err
@@ -69,11 +81,13 @@ func NewHandler(
 
 	handlers := map[string]http.Handler{
 		// public
-		routes.Index:       index.NewHandler(logger, db, configDB, indexTemplate),
-		routes.Public:      http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
-		routes.GetJob:      getjob.NewHandler(logger, db, configDB, jobTemplate),
-		routes.GetResource: getresource.NewHandler(logger, db, configDB, resourceTemplate, validator),
-		routes.GetBuild:    getbuild.NewHandler(logger, db, configDB, buildTemplate),
+		routes.Index:           index.NewHandler(logger, db, configDB, indexTemplate),
+		routes.Public:          http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
+		routes.GetJob:          getjob.NewHandler(logger, db, configDB, jobTemplate),
+		routes.GetResource:     getresource.NewHandler(logger, db, configDB, resourceTemplate, validator),
+		routes.GetBuild:        getbuild.NewHandler(logger, db, configDB, buildTemplate),
+		routes.GetBuilds:       getbuilds.NewHandler(logger, db, configDB, buildsTemplate),
+		routes.GetJoblessBuild: getjoblessbuild.NewHandler(logger, db, configDB, joblessBuildTemplate),
 
 		// private
 		routes.LogIn: auth.Handler{

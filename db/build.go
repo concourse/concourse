@@ -31,6 +31,15 @@ func (b Build) OneOff() bool {
 	return b.JobName == ""
 }
 
+func (b Build) Abortable() bool {
+	switch b.Status {
+	case StatusPending, StatusStarted:
+		return true
+	default:
+		return false
+	}
+}
+
 type VersionedResource struct {
 	Resource string
 	Type     string
