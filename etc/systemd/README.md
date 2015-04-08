@@ -6,7 +6,7 @@ auto-register a local Garden server with the TSA.
 ## installation
 
 1. Copy the `concourse-beacon@.service` unit template into your systemd units
-directory, e.g. `/etc/systemd/systemd`. Note that `systemd link` won't work for
+directory, e.g. `/etc/systemd/system`. Note that `systemd link` won't work for
 the later steps; seems to be a systemd bug.
 
 1. Copy `concourse-beacon` into `/usr/sbin`.
