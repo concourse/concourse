@@ -184,16 +184,16 @@ function processStatus(event) {
   time.text(m.fromNow());
   time.attr("datetime", m.format());
   time.attr("title", m.format("lll Z"));
-  time.addClass(status);
 
   if(status == "started") {
+    time.addClass('js-startTime');
     $("<dt/>").text(status).appendTo(buildTimes);
     $("<dd/>").append(time).appendTo(buildTimes);
   } else {
     $("<dt/>").text(status).appendTo(buildTimes);
     $("<dd/>").append(time).appendTo(buildTimes);
 
-    var startTime = $(".build-times time.started").attr("datetime");
+    var startTime = $(".js-startTime").attr("datetime");
 
     // Some events cause the build to never start (e.g. input errors).
     var didStart = !!startTime
