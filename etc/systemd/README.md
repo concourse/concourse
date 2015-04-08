@@ -5,11 +5,8 @@ auto-register a local Garden server with the TSA.
 
 ## installation
 
-1. Copy the `concourse-beacon@.service` unit template into your systemd units
-directory, e.g. `/etc/systemd/system`. Note that `systemd link` won't work for
-the later steps; seems to be a systemd bug.
-
-1. Copy `concourse-beacon` into `/usr/sbin`.
+1. Run `make install`, which copies the service unit file and the associated
+binary into their respective locations.
 
 1. Create `/etc/concourse-beacon/known_hosts`, which should contain the public
 key of the target TSA. This can be created with `ssh-keyscan`, but be sure to
@@ -19,6 +16,9 @@ check the key matches what you expect!
 payload as documented in [Worker Pools](http://concourse.ci/worker-pools.html).
 
 1. Create a SSH keypair under `/etc/concourse-beacon/keypair`, named `id_rsa`.
+
+1. Authorize the generated key with the TSA by updating the
+`tsa.authorized_keys` property in your deployment.
 
 1. Enable an instance of the beacon, instantiated with the `host:ip` of your
 TSA server:
