@@ -1,0 +1,34 @@
+#!/bin/sh
+
+WORKER_PAYLOAD=/etc/concourse-beacon/worker.json
+WORKER_KEY=/etc/concourse-beacon/keypair/id_rsa
+
+if [ "$#" != 1 ]; then
+  echo "usage: $0 ip:port" >&2
+  exit 1
+fi
+
+if [ ! -f "$WORKER_PAYLOAD" ]; then
+  echo "must create $WORKER_PAYLOAD" >&2
+  exit 1
+fi
+
+if [ ! -f "$WORKER_KEY" ]; then
+  echo "must create $WORKER_KEY" >&2
+  exit 1
+fi
+
+HOST="$(echo $1 | cut -d: -f1)"
+PORT="$(echo $1 | cut -d: -f2)"
+
+if [ -z "$HOST" ] || [ -z "$PORT" ]; then
+  echo "must specify host:port" >&2
+  exit 1
+fi
+
+exec ssh \
+  -i "$WORKER_KEY" \
+  -R 0.0.0.0:0:127.0.0.1:7777 \
+  -p "$PORT" \
+  "$HOST" \
+  forward-worker < "$WORKER_PAYLOAD"

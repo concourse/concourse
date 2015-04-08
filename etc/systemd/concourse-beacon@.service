@@ -1,0 +1,9 @@
+[Unit]
+Description=Concourse Beacon for %I
+
+[Service]
+ExecStart=/usr/sbin/concourse-beacon %I
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
