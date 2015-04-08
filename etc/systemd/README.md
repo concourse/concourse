@@ -11,6 +11,10 @@ the later steps; seems to be a systemd bug.
 
 1. Copy `concourse-beacon` into `/usr/sbin`.
 
+1. Create `/etc/concourse-beacon/known_hosts`, which should contain the public
+key of the target TSA. This can be created with `ssh-keyscan`, but be sure to
+check the key matches what you expect!
+
 1. Create `/etc/concourse-beacon/worker.json`, which should contain your worker
 payload as documented in [Worker Pools](http://concourse.ci/worker-pools.html).
 

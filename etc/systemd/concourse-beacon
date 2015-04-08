@@ -27,6 +27,7 @@ if [ -z "$HOST" ] || [ -z "$PORT" ]; then
 fi
 
 exec ssh \
+  -o UserKnownHostsFile=/etc/concourse-beacon/known_hosts \
   -i "$WORKER_KEY" \
   -R 0.0.0.0:0:127.0.0.1:7777 \
   -p "$PORT" \
