@@ -10,4 +10,4 @@ RUN unzip /tmp/spiff_linux_amd64.zip -d /usr/local/bin
 RUN rm /tmp/spiff_linux_amd64.zip
 
 RUN gem install bundler --no-rdoc --no-ri
-RUN gem install bosh_cli --no-rdoc --no-ri
+RUN gem install bosh_cli -v 1.2915.0 --no-rdoc --no-ri

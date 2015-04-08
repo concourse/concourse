@@ -34,4 +34,4 @@ git config --global user.name "CI Bot"
 
 git merge --no-edit master
 
-bosh -n create release --final --with-tarball --version "$VERSION"
+bosh -n create release --with-tarball --version "$VERSION"
