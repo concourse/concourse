@@ -46,6 +46,19 @@ func (funcs templateFuncs) asset(asset string) (string, error) {
 }
 
 func (funcs templateFuncs) url(route string, args ...interface{}) (string, error) {
+	return PathFor(route, args...)
+}
+
+func jobName(x interface{}) string {
+	switch v := x.(type) {
+	case string:
+		return v
+	default:
+		return x.(atc.JobConfig).Name
+	}
+}
+
+func PathFor(route string, args ...interface{}) (string, error) {
 	switch route {
 	case routes.TriggerBuild:
 		return routes.Routes.CreatePathForRoute(route, rata.Params{
@@ -76,8 +89,11 @@ func (funcs templateFuncs) url(route string, args ...interface{}) (string, error
 		})
 
 	case atc.EnableResourceVersion, atc.DisableResourceVersion:
+		versionedResource := args[0].(db.SavedVersionedResource)
+
 		return atc.Routes.CreatePathForRoute(route, rata.Params{
-			"version_id": fmt.Sprintf("%d", args[0].(db.SavedVersionedResource).ID),
+			"resource_name":       fmt.Sprintf("%s", versionedResource.Resource),
+			"resource_version_id": fmt.Sprintf("%d", versionedResource.ID),
 		})
 
 	case routes.LogIn:
@@ -96,14 +112,5 @@ func (funcs templateFuncs) url(route string, args ...interface{}) (string, error
 
 	default:
 		return "", fmt.Errorf("unknown route: %s", route)
-	}
-}
-
-func jobName(x interface{}) string {
-	switch v := x.(type) {
-	case string:
-		return v
-	default:
-		return x.(atc.JobConfig).Name
 	}
 }

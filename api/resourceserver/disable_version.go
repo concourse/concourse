@@ -3,10 +3,12 @@ package resourceserver
 import (
 	"net/http"
 	"strconv"
+
+	"github.com/tedsuo/rata"
 )
 
 func (s *Server) DisableResourceVersion(w http.ResponseWriter, r *http.Request) {
-	resourceID, err := strconv.Atoi(r.FormValue(":version_id"))
+	resourceID, err := strconv.Atoi(rata.Param(r, "resource_version_id"))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return

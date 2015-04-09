@@ -151,13 +151,13 @@ var _ = Describe("Resources API", func() {
 		})
 	})
 
-	Describe("PUT /api/v1/resources/:resource_id/enable", func() {
+	Describe("PUT /api/v1/resources/:resource_name/versions/:resource_version_id/enable", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/resources/42/enable", nil)
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/resources/resource-name/versions/42/enable", nil)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -205,13 +205,13 @@ var _ = Describe("Resources API", func() {
 		})
 	})
 
-	Describe("PUT /api/v1/resources/:resource_id/disable", func() {
+	Describe("PUT /api/v1/resources/:resource_name/versions/:resource_version_id/disable", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/resources/42/disable", nil)
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/resources/resource-name/versions/42/disable", nil)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			response, err = client.Do(request)
