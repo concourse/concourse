@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	gclient "github.com/cloudfoundry-incubator/garden/client"
@@ -362,6 +363,24 @@ func forwardLocalConn(logger lager.Logger, localConn net.Conn, conn *ssh.ServerC
 		}
 	}()
 
-	go io.Copy(localConn, channel)
-	io.Copy(channel, localConn)
+	wg := new(sync.WaitGroup)
+
+	pipe := func(to io.WriteCloser, from io.ReadCloser) {
+		// if either end breaks, close both ends to ensure they're both unblocked,
+		// otherwise io.Copy can block forever if e.g. reading after write end has
+		// gone away
+		defer to.Close()
+		defer from.Close()
+		defer wg.Done()
+
+		io.Copy(to, from)
+	}
+
+	wg.Add(1)
+	go pipe(localConn, channel)
+
+	wg.Add(1)
+	go pipe(channel, localConn)
+
+	wg.Wait()
 }
