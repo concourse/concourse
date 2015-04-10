@@ -105,6 +105,8 @@ func NewHandler(
 		atc.ListResources:          http.HandlerFunc(resourceServer.ListResources),
 		atc.EnableResourceVersion:  validate(http.HandlerFunc(resourceServer.EnableResourceVersion)),
 		atc.DisableResourceVersion: validate(http.HandlerFunc(resourceServer.DisableResourceVersion)),
+		atc.PauseResource:          validate(http.HandlerFunc(resourceServer.PauseResource)),
+		atc.UnpauseResource:        validate(http.HandlerFunc(resourceServer.UnpauseResource)),
 
 		atc.CreatePipe: validate(http.HandlerFunc(pipeServer.CreatePipe)),
 		atc.WritePipe:  validate(http.HandlerFunc(pipeServer.WritePipe)),

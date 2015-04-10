@@ -211,27 +211,83 @@ func (db *SQLDB) GetJobBuild(job string, name string) (Build, error) {
 	`, job, name))
 }
 
-func (db *SQLDB) GetResourceCheckError(resourceName string) (error, error) {
-	var cause sql.NullString
-	err := db.conn.QueryRow(`
-		SELECT check_error
+func (db *SQLDB) GetResource(resourceName string) (Resource, error) {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return Resource{}, err
+	}
+
+	defer tx.Rollback()
+
+	err = registerResource(tx, resourceName)
+	if err != nil {
+		return Resource{}, err
+	}
+
+	var checkErr sql.NullString
+	var resource Resource
+
+	err = tx.QueryRow(`
+		SELECT name, check_error, paused
 		FROM resources
 		WHERE name = $1
-	`, resourceName).Scan(&cause)
-
+	`, resourceName).Scan(&resource.Name, &checkErr, &resource.Paused)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-
-		return nil, err
+		return Resource{}, err
 	}
 
-	if !cause.Valid {
-		return nil, nil
+	if checkErr.Valid {
+		resource.CheckError = errors.New(checkErr.String)
 	}
 
-	return errors.New(cause.String), nil
+	err = tx.Commit()
+	if err != nil {
+		return Resource{}, err
+	}
+
+	return resource, nil
+}
+
+func (db *SQLDB) PauseResource(resource string) error {
+	return db.updatePaused(resource, true)
+}
+
+func (db *SQLDB) UnpauseResource(resource string) error {
+	return db.updatePaused(resource, false)
+}
+
+func (db *SQLDB) updatePaused(resource string, pause bool) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	err = registerResource(tx, resource)
+	if err != nil {
+		return err
+	}
+
+	result, err := tx.Exec(`
+		UPDATE resources
+		SET paused = $1
+		WHERE name = $2
+	`, pause, resource)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected != 1 {
+		return nonOneRowAffectedError{rowsAffected}
+	}
+
+	return tx.Commit()
 }
 
 func (db *SQLDB) SetResourceCheckError(resourceName string, cause error) error {

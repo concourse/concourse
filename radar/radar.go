@@ -15,11 +15,14 @@ import (
 )
 
 //go:generate counterfeiter . VersionDB
+
 type VersionDB interface {
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 	GetLatestVersionedResource(string) (db.SavedVersionedResource, error)
 
 	SetResourceCheckError(string, error) error
+
+	GetResource(string) (db.Resource, error)
 }
 
 var errResourceNoLongerConfigured = errors.New("resource no longer configured")
@@ -105,6 +108,15 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 		logger.Info("resource-removed-from-configuration")
 		// return an error so that we exit
 		return errResourceNoLongerConfigured
+	}
+
+	dbResource, err := radar.versionDB.GetResource(resourceName)
+	if err != nil {
+		return err
+	}
+
+	if dbResource.Paused {
+		return nil
 	}
 
 	typ := resource.ResourceType(resourceConfig.Type)

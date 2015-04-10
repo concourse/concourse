@@ -3,7 +3,7 @@
   "main": "build.js",
   "repository": {
     "type": "git",
-    "url": "git://githu.com:concourse/atc.git"
+    "url": "git://github.com:concourse/atc.git"
   },
   "dependencies": {
     "fluxxor": "^1.5.0",
@@ -18,9 +18,17 @@
   "devDependencies": {
     "browserify": "^6.2.0",
     "gulp": "^3.8.10",
+    "gulp-add-src": "^0.2.0",
     "gulp-browserify": "^0.5.0",
+    "gulp-concat": "^2.5.2",
+    "gulp-jasmine-browser": "0.0.3",
+    "gulp-jshint": "^1.10.0",
     "gulp-uglify": "^1.0.1",
     "gulp-util": "^3.0.1",
+    "jasmine": "^2.2.1",
+    "jasmine-ajax": "^3.1.0",
+    "jasmine-jquery": "^2.0.6",
+    "jshint-stylish": "^1.0.1",
     "react-tools": "^0.12.0",
     "reactify": "^0.15.2",
     "vinyl-buffer": "^1.0.0",

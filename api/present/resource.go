@@ -2,11 +2,12 @@ package present
 
 import (
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web/routes"
 	"github.com/tedsuo/rata"
 )
 
-func Resource(resource atc.ResourceConfig, groups atc.GroupConfigs, checkErr error, showCheckError bool) atc.Resource {
+func Resource(resource atc.ResourceConfig, groups atc.GroupConfigs, dbResource db.Resource, showCheckError bool) atc.Resource {
 	generator := rata.NewRequestGenerator("", routes.Routes)
 
 	req, err := generator.CreateRequest(
@@ -28,8 +29,8 @@ func Resource(resource atc.ResourceConfig, groups atc.GroupConfigs, checkErr err
 	}
 
 	var checkErrString string
-	if checkErr != nil && showCheckError {
-		checkErrString = checkErr.Error()
+	if dbResource.CheckError != nil && showCheckError {
+		checkErrString = dbResource.CheckError.Error()
 	}
 
 	return atc.Resource{
@@ -38,7 +39,9 @@ func Resource(resource atc.ResourceConfig, groups atc.GroupConfigs, checkErr err
 		Groups: groupNames,
 		URL:    req.URL.String(),
 
-		FailingToCheck: checkErr != nil,
+		Paused: dbResource.Paused,
+
+		FailingToCheck: dbResource.FailingToCheck(),
 		CheckError:     checkErrString,
 	}
 }

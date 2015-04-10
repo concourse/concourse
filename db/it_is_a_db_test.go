@@ -37,10 +37,10 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 		Describe("marking resource checks as errored", func() {
 			Context("when the resource is first created", func() {
 				It("is not errored", func() {
-					cause, err := database.GetResourceCheckError("resource-name")
+					resource, err := database.GetResource("resource-name")
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(cause).Should(BeNil())
+					Ω(resource.CheckError).Should(BeNil())
 				})
 			})
 
@@ -51,10 +51,10 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					err := database.SetResourceCheckError("resource-name", originalCause)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					cause, err := database.GetResourceCheckError("resource-name")
+					resource, err := database.GetResource("resource-name")
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(cause).Should(Equal(originalCause))
+					Ω(resource.CheckError).Should(Equal(originalCause))
 				})
 			})
 
@@ -68,10 +68,10 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					err = database.SetResourceCheckError("resource-name", nil)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					cause, err := database.GetResourceCheckError("resource-name")
+					resource, err := database.GetResource("resource-name")
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(cause).Should(BeNil())
+					Ω(resource.CheckError).Should(BeNil())
 				})
 			})
 		})
@@ -1153,6 +1153,40 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 						VersionedResource: savedVR2.VersionedResource,
 					},
 				}))
+			})
+		})
+
+		Describe("pausing and unpausing resources", func() {
+			resource := "some-resource"
+
+			It("starts out as unpaused", func() {
+				resource, err := database.GetResource(resource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(resource.Paused).Should(BeFalse())
+			})
+
+			It("can be paused", func() {
+				err := database.PauseResource(resource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				pausedResource, err := database.GetResource(resource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(pausedResource.Paused).Should(BeTrue())
+			})
+
+			It("can be unpaused", func() {
+				err := database.PauseResource(resource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = database.UnpauseResource(resource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				unpausedResource, err := database.GetResource(resource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(unpausedResource.Paused).Should(BeFalse())
 			})
 		})
 

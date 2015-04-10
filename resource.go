@@ -6,6 +6,8 @@ type Resource struct {
 	Groups []string `json:"groups"`
 	URL    string   `json:"url"`
 
+	Paused bool `json:"paused,omitempty"`
+
 	FailingToCheck bool   `json:"failing_to_check,omitempty"`
 	CheckError     string `json:"check_error,omitempty"`
 }

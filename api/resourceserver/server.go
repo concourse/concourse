@@ -22,7 +22,9 @@ type ResourceDB interface {
 	EnableVersionedResource(resourceID int) error
 	DisableVersionedResource(resourceID int) error
 
-	GetResourceCheckError(resourceName string) (error, error)
+	GetResource(resourceName string) (db.Resource, error)
+	PauseResource(resourceName string) error
+	UnpauseResource(resourceName string) error
 }
 
 func NewServer(

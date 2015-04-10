@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/api/resourceserver"
+	"github.com/concourse/atc/db"
 )
 
 type FakeResourceDB struct {
@@ -24,14 +25,30 @@ type FakeResourceDB struct {
 	disableVersionedResourceReturns struct {
 		result1 error
 	}
-	GetResourceCheckErrorStub        func(resourceName string) (error, error)
-	getResourceCheckErrorMutex       sync.RWMutex
-	getResourceCheckErrorArgsForCall []struct {
+	GetResourceStub        func(resourceName string) (db.Resource, error)
+	getResourceMutex       sync.RWMutex
+	getResourceArgsForCall []struct {
 		resourceName string
 	}
-	getResourceCheckErrorReturns struct {
-		result1 error
+	getResourceReturns struct {
+		result1 db.Resource
 		result2 error
+	}
+	PauseResourceStub        func(resourceName string) error
+	pauseResourceMutex       sync.RWMutex
+	pauseResourceArgsForCall []struct {
+		resourceName string
+	}
+	pauseResourceReturns struct {
+		result1 error
+	}
+	UnpauseResourceStub        func(resourceName string) error
+	unpauseResourceMutex       sync.RWMutex
+	unpauseResourceArgsForCall []struct {
+		resourceName string
+	}
+	unpauseResourceReturns struct {
+		result1 error
 	}
 }
 
@@ -99,37 +116,101 @@ func (fake *FakeResourceDB) DisableVersionedResourceReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeResourceDB) GetResourceCheckError(resourceName string) (error, error) {
-	fake.getResourceCheckErrorMutex.Lock()
-	fake.getResourceCheckErrorArgsForCall = append(fake.getResourceCheckErrorArgsForCall, struct {
+func (fake *FakeResourceDB) GetResource(resourceName string) (db.Resource, error) {
+	fake.getResourceMutex.Lock()
+	fake.getResourceArgsForCall = append(fake.getResourceArgsForCall, struct {
 		resourceName string
 	}{resourceName})
-	fake.getResourceCheckErrorMutex.Unlock()
-	if fake.GetResourceCheckErrorStub != nil {
-		return fake.GetResourceCheckErrorStub(resourceName)
+	fake.getResourceMutex.Unlock()
+	if fake.GetResourceStub != nil {
+		return fake.GetResourceStub(resourceName)
 	} else {
-		return fake.getResourceCheckErrorReturns.result1, fake.getResourceCheckErrorReturns.result2
+		return fake.getResourceReturns.result1, fake.getResourceReturns.result2
 	}
 }
 
-func (fake *FakeResourceDB) GetResourceCheckErrorCallCount() int {
-	fake.getResourceCheckErrorMutex.RLock()
-	defer fake.getResourceCheckErrorMutex.RUnlock()
-	return len(fake.getResourceCheckErrorArgsForCall)
+func (fake *FakeResourceDB) GetResourceCallCount() int {
+	fake.getResourceMutex.RLock()
+	defer fake.getResourceMutex.RUnlock()
+	return len(fake.getResourceArgsForCall)
 }
 
-func (fake *FakeResourceDB) GetResourceCheckErrorArgsForCall(i int) string {
-	fake.getResourceCheckErrorMutex.RLock()
-	defer fake.getResourceCheckErrorMutex.RUnlock()
-	return fake.getResourceCheckErrorArgsForCall[i].resourceName
+func (fake *FakeResourceDB) GetResourceArgsForCall(i int) string {
+	fake.getResourceMutex.RLock()
+	defer fake.getResourceMutex.RUnlock()
+	return fake.getResourceArgsForCall[i].resourceName
 }
 
-func (fake *FakeResourceDB) GetResourceCheckErrorReturns(result1 error, result2 error) {
-	fake.GetResourceCheckErrorStub = nil
-	fake.getResourceCheckErrorReturns = struct {
-		result1 error
+func (fake *FakeResourceDB) GetResourceReturns(result1 db.Resource, result2 error) {
+	fake.GetResourceStub = nil
+	fake.getResourceReturns = struct {
+		result1 db.Resource
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeResourceDB) PauseResource(resourceName string) error {
+	fake.pauseResourceMutex.Lock()
+	fake.pauseResourceArgsForCall = append(fake.pauseResourceArgsForCall, struct {
+		resourceName string
+	}{resourceName})
+	fake.pauseResourceMutex.Unlock()
+	if fake.PauseResourceStub != nil {
+		return fake.PauseResourceStub(resourceName)
+	} else {
+		return fake.pauseResourceReturns.result1
+	}
+}
+
+func (fake *FakeResourceDB) PauseResourceCallCount() int {
+	fake.pauseResourceMutex.RLock()
+	defer fake.pauseResourceMutex.RUnlock()
+	return len(fake.pauseResourceArgsForCall)
+}
+
+func (fake *FakeResourceDB) PauseResourceArgsForCall(i int) string {
+	fake.pauseResourceMutex.RLock()
+	defer fake.pauseResourceMutex.RUnlock()
+	return fake.pauseResourceArgsForCall[i].resourceName
+}
+
+func (fake *FakeResourceDB) PauseResourceReturns(result1 error) {
+	fake.PauseResourceStub = nil
+	fake.pauseResourceReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResourceDB) UnpauseResource(resourceName string) error {
+	fake.unpauseResourceMutex.Lock()
+	fake.unpauseResourceArgsForCall = append(fake.unpauseResourceArgsForCall, struct {
+		resourceName string
+	}{resourceName})
+	fake.unpauseResourceMutex.Unlock()
+	if fake.UnpauseResourceStub != nil {
+		return fake.UnpauseResourceStub(resourceName)
+	} else {
+		return fake.unpauseResourceReturns.result1
+	}
+}
+
+func (fake *FakeResourceDB) UnpauseResourceCallCount() int {
+	fake.unpauseResourceMutex.RLock()
+	defer fake.unpauseResourceMutex.RUnlock()
+	return len(fake.unpauseResourceArgsForCall)
+}
+
+func (fake *FakeResourceDB) UnpauseResourceArgsForCall(i int) string {
+	fake.unpauseResourceMutex.RLock()
+	defer fake.unpauseResourceMutex.RUnlock()
+	return fake.unpauseResourceArgsForCall[i].resourceName
+}
+
+func (fake *FakeResourceDB) UnpauseResourceReturns(result1 error) {
+	fake.UnpauseResourceStub = nil
+	fake.unpauseResourceReturns = struct {
+		result1 error
+	}{result1}
 }
 
 var _ resourceserver.ResourceDB = new(FakeResourceDB)

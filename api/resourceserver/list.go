@@ -20,13 +20,21 @@ func (s *Server) ListResources(w http.ResponseWriter, r *http.Request) {
 	showCheckErr := s.validator.IsAuthenticated(r)
 
 	for _, resource := range config.Resources {
-		checkErr, err := s.resourceDB.GetResourceCheckError(resource.Name)
+		dbResource, err := s.resourceDB.GetResource(resource.Name)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		resources = append(resources, present.Resource(resource, config.Groups, checkErr, showCheckErr))
+		resources = append(
+			resources,
+			present.Resource(
+				resource,
+				config.Groups,
+				dbResource,
+				showCheckErr,
+			),
+		)
 	}
 
 	w.WriteHeader(http.StatusOK)

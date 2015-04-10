@@ -481,3 +481,27 @@ svg .job.node.started div,
 .nav-item a {
   color: #f5f5f5;
 }
+.paused {
+  background-color: #6a9fb5;
+}
+svg .paused rect {
+  fill: #6a9fb5;
+}
+.btn-pause {
+  display: inline-block;
+  color: #f5f5f5;
+}
+.btn-pause:hover {
+  cursor: pointer;
+}
+.btn-pause.enabled,
+.btn-pause.disabled:active {
+  background-color: #6a9fb5;
+}
+.btn-pause.loading {
+  background-color: #6a9fb5;
+}
+.btn-pause.disabled,
+.btn-pause.enabled:active {
+  background-color: #505050;
+}

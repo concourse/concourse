@@ -1,9 +1,7 @@
 package acceptance_test
 
 import (
-	"encoding/base64"
 	"fmt"
-	"net/http"
 	"os/exec"
 	"path/filepath"
 	"time"
@@ -21,7 +19,6 @@ import (
 
 	"github.com/cloudfoundry/gunk/urljoiner"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/event"
 )
@@ -170,15 +167,7 @@ var _ = Describe("One-off Builds", func() {
 				Expect(page.Find("h1")).To(HaveText(fmt.Sprintf("build #%d", oneOffBuild.ID)))
 				Consistently(page.Find("#build-logs").Text).ShouldNot(ContainSubstring("hello this is a payload"))
 
-				page.SetCookie(&http.Cookie{
-					Name:  auth.CookieName,
-					Value: "Basic " + base64.StdEncoding.EncodeToString([]byte("admin:password")),
-				})
-
-				url, err := page.URL()
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(page.Navigate(url)).Should(Succeed())
+				Authenticate(page, "admin", "password")
 
 				Eventually(page.Find("#build-logs").Text).Should(ContainSubstring("hello this is a payload"))
 				Expect(page.Find(".abort-build")).Should(BeFound())

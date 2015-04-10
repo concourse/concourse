@@ -47,6 +47,11 @@ type DB interface {
 	GetNextPendingBuild(job string) (Build, []BuildInput, error)
 
 	GetResourceHistory(resource string) ([]*VersionHistory, error)
+	PauseResource(resource string) error
+	UnpauseResource(resource string) error
+
+	GetResource(resource string) (Resource, error)
+	SetResourceCheckError(resource string, err error) error
 
 	AcquireWriteLockImmediately(locks []NamedLock) (Lock, error)
 	AcquireWriteLock(locks []NamedLock) (Lock, error)
@@ -60,9 +65,6 @@ type DB interface {
 
 	Workers() ([]WorkerInfo, error) // auto-expires workers based on ttl
 	SaveWorker(WorkerInfo, time.Duration) error
-
-	GetResourceCheckError(string) (error, error)
-	SetResourceCheckError(string, error) error
 }
 
 //go:generate counterfeiter . Notifier

@@ -60,6 +60,11 @@ var _ = Describe("Radar", func() {
 			},
 		}, 1, nil)
 
+		fakeVersionDB.GetResourceReturns(db.Resource{
+			Name:   "some-resource",
+			Paused: false,
+		}, nil)
+
 		readLock = new(dbfakes.FakeLock)
 		locker.AcquireReadLockReturns(readLock, nil)
 
@@ -234,6 +239,31 @@ var _ = Describe("Radar", func() {
 			})
 
 			It("exits with the failure", func() {
+				Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+			})
+		})
+
+		Context("when the resource is paused", func() {
+			BeforeEach(func() {
+				fakeVersionDB.GetResourceReturns(db.Resource{
+					Name:   "some-resource",
+					Paused: true,
+				}, nil)
+			})
+
+			It("exits the process", func() {
+				Consistently(times, 500*time.Millisecond).ShouldNot(Receive())
+			})
+		})
+
+		Context("when checking if the resource is paused fails", func() {
+			disaster := errors.New("disaster")
+
+			BeforeEach(func() {
+				fakeVersionDB.GetResourceReturns(db.Resource{}, disaster)
+			})
+
+			It("exits the process", func() {
 				Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 			})
 		})

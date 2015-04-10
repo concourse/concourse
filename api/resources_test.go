@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 )
 
 var _ = Describe("Resources API", func() {
@@ -46,11 +47,17 @@ var _ = Describe("Resources API", func() {
 
 			Context("when getting the check error succeeds", func() {
 				BeforeEach(func() {
-					resourceDB.GetResourceCheckErrorStub = func(name string) (error, error) {
+					resourceDB.GetResourceStub = func(name string) (db.Resource, error) {
 						if name == "resource-2" {
-							return errors.New("sup"), nil
+							return db.Resource{
+								Name:       name,
+								CheckError: errors.New("sup"),
+							}, nil
 						} else {
-							return nil, nil
+							return db.Resource{
+								Name:   name,
+								Paused: true,
+							}, nil
 						}
 					}
 				})
@@ -73,6 +80,7 @@ var _ = Describe("Resources API", func() {
 								"name": "resource-1",
 								"type": "type-1",
 								"groups": ["group-1", "group-2"],
+								"paused": true,
 								"url": "/resources/resource-1"
 							},
 							{
@@ -87,6 +95,7 @@ var _ = Describe("Resources API", func() {
 								"name": "resource-3",
 								"type": "type-3",
 								"groups": [],
+								"paused": true,
 								"url": "/resources/resource-3"
 							}
 						]`))
@@ -107,6 +116,7 @@ var _ = Describe("Resources API", func() {
 								"name": "resource-1",
 								"type": "type-1",
 								"groups": ["group-1", "group-2"],
+								"paused": true,
 								"url": "/resources/resource-1"
 							},
 							{
@@ -120,6 +130,7 @@ var _ = Describe("Resources API", func() {
 								"name": "resource-3",
 								"type": "type-3",
 								"groups": [],
+								"paused": true,
 								"url": "/resources/resource-3"
 							}
 						]`))
@@ -129,8 +140,8 @@ var _ = Describe("Resources API", func() {
 
 			Context("when getting the resource check error", func() {
 				BeforeEach(func() {
-					resourceDB.GetResourceCheckErrorStub = func(name string) (error, error) {
-						return nil, errors.New("oh no!")
+					resourceDB.GetResourceStub = func(name string) (db.Resource, error) {
+						return db.Resource{}, errors.New("oh no!")
 					}
 				})
 
@@ -240,6 +251,114 @@ var _ = Describe("Resources API", func() {
 			Context("when enabling the resource fails", func() {
 				BeforeEach(func() {
 					resourceDB.DisableVersionedResourceReturns(errors.New("welp"))
+				})
+
+				It("returns 500", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				})
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Unauthorized", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+			})
+		})
+	})
+
+	Describe("PUT /api/v1/resources/:resource_name/pause", func() {
+		var response *http.Response
+
+		JustBeforeEach(func() {
+			var err error
+
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/resources/resource-name/pause", nil)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			response, err = client.Do(request)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			Context("when pausing the resource succeeds", func() {
+				BeforeEach(func() {
+					resourceDB.PauseResourceReturns(nil)
+				})
+
+				It("paused the right resource", func() {
+					Ω(resourceDB.PauseResourceArgsForCall(0)).Should(Equal("resource-name"))
+				})
+
+				It("returns 200", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				})
+			})
+
+			Context("when pausing the resource fails", func() {
+				BeforeEach(func() {
+					resourceDB.PauseResourceReturns(errors.New("welp"))
+				})
+
+				It("returns 500", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				})
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Unauthorized", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+			})
+		})
+	})
+
+	Describe("PUT /api/v1/resources/:resource_name/unpause", func() {
+		var response *http.Response
+
+		JustBeforeEach(func() {
+			var err error
+
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/resources/resource-name/unpause", nil)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			response, err = client.Do(request)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			Context("when unpausing the resource succeeds", func() {
+				BeforeEach(func() {
+					resourceDB.UnpauseResourceReturns(nil)
+				})
+
+				It("unpaused the right resource", func() {
+					Ω(resourceDB.UnpauseResourceArgsForCall(0)).Should(Equal("resource-name"))
+				})
+
+				It("returns 200", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				})
+			})
+
+			Context("when unpausing the resource fails", func() {
+				BeforeEach(func() {
+					resourceDB.UnpauseResourceReturns(errors.New("welp"))
 				})
 
 				It("returns 500", func() {

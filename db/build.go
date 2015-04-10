@@ -40,6 +40,16 @@ func (b Build) Abortable() bool {
 	}
 }
 
+type Resource struct {
+	Name       string
+	CheckError error
+	Paused     bool
+}
+
+func (r Resource) FailingToCheck() bool {
+	return r.CheckError != nil
+}
+
 type VersionedResource struct {
 	Resource string
 	Type     string

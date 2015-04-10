@@ -6,6 +6,10 @@ var reactify = require('reactify');
 var watchify = require('watchify');
 var uglify = require('gulp-uglify');
 var buffer = require('vinyl-buffer');
+var concat = require('gulp-concat');
+var jshint = require('gulp-jshint');
+var addsrc = require('gulp-add-src');
+var jasmineBrowser = require('gulp-jasmine-browser');
 
 var production = (process.env.NODE_ENV === 'production');
 
@@ -21,11 +25,50 @@ function rebundle(bundler) {
   stream.pipe(gulp.dest('.'));
 }
 
-gulp.task('build', function () {
+gulp.task('compile-build', function () {
   var bundler = browserify('./event_handler.jsx', { debug: !production });
   bundler.transform(reactify);
 
   return rebundle(bundler);
+});
+
+gulp.task('compile-concourse', function () {
+   var stream = gulp.src('./concourse/*.js')
+    .pipe(jshint())
+    .pipe(jshint.reporter('jshint-stylish'))
+    .pipe(concat('concourse.js'))
+
+    if (production) {
+      stream = stream.pipe(buffer()).pipe(uglify());
+    }
+
+    return stream.pipe(gulp.dest('../public/'));
+});
+
+// jasmine stuff
+var externalFiles = ["../public/jquery-2.1.1.min.js", "spec/helpers/**/*.js"]
+var jsSourceFiles = ["concourse/*.js", "spec/**/*_spec.js"]
+var hintSpecFiles = function() {
+  gulp.src('spec/**/*_spec.js')
+}
+
+gulp.task('jasmine-cli', function(cb) {
+  return gulp.src(jsSourceFiles)
+    .pipe(jshint())
+    .pipe(jshint.reporter('jshint-stylish'))
+    .on('error', function(){
+      process.exit(1);
+    })
+    .pipe(addsrc(externalFiles))
+    .pipe(jasmineBrowser.specRunner({console: true}))
+    .pipe(jasmineBrowser.phantomjs());
+});
+
+gulp.task('jasmine', function() {
+  return gulp.src(jsSourceFiles)
+    .pipe(addsrc(externalFiles))
+    .pipe(jasmineBrowser.specRunner())
+    .pipe(jasmineBrowser.server());
 });
 
 gulp.task('watch', function () {
@@ -37,4 +80,4 @@ gulp.task('watch', function () {
   return rebundle(bundler);
 });
 
-gulp.task('default', ['build']);
+gulp.task('default', ['compile-build', 'compile-concourse']);
