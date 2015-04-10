@@ -56,12 +56,11 @@ gulp.task('jasmine-cli', function(cb) {
   return gulp.src(jsSourceFiles)
     .pipe(jshint())
     .pipe(jshint.reporter('jshint-stylish'))
-    .on('error', function(){
-      process.exit(1);
-    })
+    .on('error', process.exit.bind(process, 1))
     .pipe(addsrc(externalFiles))
     .pipe(jasmineBrowser.specRunner({console: true}))
-    .pipe(jasmineBrowser.phantomjs());
+    .pipe(jasmineBrowser.phantomjs())
+    .on('error', process.exit.bind(process, 1));
 });
 
 gulp.task('jasmine', function() {
