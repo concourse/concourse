@@ -22,3 +22,7 @@ RUN cd /tmp && unzip phantomjs-2.0.0-20141016-u1404-x86_64.zip && rm /tmp/phanto
 
 RUN mv /tmp/phantomjs-2.0.0-20141016 /usr/local/share
 RUN ln -sf /usr/local/share/phantomjs-2.0.0-20141016/bin/phantomjs /usr/local/bin
+
+# NPM
+RUN apt-get -y install nodejs npm
+RUN update-alternatives --install /usr/bin/node node /usr/bin/nodejs 10
