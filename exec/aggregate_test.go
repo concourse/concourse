@@ -35,8 +35,8 @@ var _ = Describe("Aggregate", func() {
 		fakeStepB = new(fakes.FakeStepFactory)
 
 		aggregate = Aggregate{
-			"A": fakeStepA,
-			"B": fakeStepB,
+			fakeStepA,
+			fakeStepB,
 		}
 
 		inStep = new(fakes.FakeStep)
@@ -138,8 +138,8 @@ var _ = Describe("Aggregate", func() {
 			var err error
 			Eventually(process.Wait()).Should(Receive(&err))
 
-			Ω(err.Error()).Should(ContainSubstring("A: nope A"))
-			Ω(err.Error()).Should(ContainSubstring("B: nope B"))
+			Ω(err.Error()).Should(ContainSubstring("nope A"))
+			Ω(err.Error()).Should(ContainSubstring("nope B"))
 		})
 	})
 
@@ -165,25 +165,17 @@ var _ = Describe("Aggregate", func() {
 				err := step.Release()
 				Ω(err).Should(HaveOccurred())
 
-				Ω(err.Error()).Should(ContainSubstring("A: nope A"))
-				Ω(err.Error()).Should(ContainSubstring("B: nope B"))
+				Ω(err.Error()).Should(ContainSubstring("nope A"))
+				Ω(err.Error()).Should(ContainSubstring("nope B"))
 			})
 		})
 	})
 
 	Describe("getting a result", func() {
-		Context("when getting a map of results", func() {
-			BeforeEach(func() {
-				outStepA.ResultStub = successResult(true)
-				outStepB.ResultStub = successResult(false)
-			})
-
-			It("collects aggregate results into a map", func() {
-				result := map[string]Success{}
-				Ω(step.Result(&result)).Should(BeTrue())
-
-				Ω(result["A"]).Should(Equal(Success(true)))
-				Ω(result["B"]).Should(Equal(Success(false)))
+		Context("when the result type is bad", func() {
+			It("returns false", func() {
+				result := "this-is-bad"
+				Ω(step.Result(&result)).Should(BeFalse())
 			})
 		})
 

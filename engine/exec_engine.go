@@ -126,8 +126,8 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 		step := exec.Aggregate{}
 
 		var aID uint = 0
-		for name, innerPlan := range *plan.Aggregate {
-			step[name] = build.buildStepFactory(logger.Session(name), innerPlan, location.Chain(aID))
+		for _, innerPlan := range *plan.Aggregate {
+			step = append(step, build.buildStepFactory(logger, innerPlan, location.Chain(aID)))
 			aID++
 		}
 

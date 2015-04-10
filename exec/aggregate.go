@@ -3,32 +3,31 @@ package exec
 import (
 	"fmt"
 	"os"
-	"reflect"
 	"strings"
 
 	"github.com/tedsuo/ifrit"
 )
 
-type Aggregate map[string]StepFactory
+type Aggregate []StepFactory
 
 func (a Aggregate) Using(prev Step, repo *SourceRepository) Step {
 	sources := aggregateStep{}
 
-	for name, step := range a {
-		sources[name] = step.Using(prev, repo)
+	for _, step := range a {
+		sources = append(sources, step.Using(prev, repo))
 	}
 
 	return sources
 }
 
-type aggregateStep map[string]Step
+type aggregateStep []Step
 
 func (step aggregateStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	members := map[string]ifrit.Process{}
+	members := []ifrit.Process{}
 
-	for mn, ms := range step {
+	for _, ms := range step {
 		process := ifrit.Background(ms)
-		members[mn] = process
+		members = append(members, process)
 	}
 
 	for _, mp := range members {
@@ -42,7 +41,7 @@ func (step aggregateStep) Run(signals <-chan os.Signal, ready chan<- struct{}) e
 
 	var errorMessages []string
 
-	for mn, mp := range members {
+	for _, mp := range members {
 		select {
 		case sig := <-signals:
 			for _, mp := range members {
@@ -51,7 +50,7 @@ func (step aggregateStep) Run(signals <-chan os.Signal, ready chan<- struct{}) e
 
 		case err := <-mp.Wait():
 			if err != nil {
-				errorMessages = append(errorMessages, mn+": "+err.Error())
+				errorMessages = append(errorMessages, err.Error())
 			}
 		}
 	}
@@ -66,10 +65,10 @@ func (step aggregateStep) Run(signals <-chan os.Signal, ready chan<- struct{}) e
 func (source aggregateStep) Release() error {
 	var errorMessages []string
 
-	for name, src := range source {
+	for _, src := range source {
 		err := src.Release()
 		if err != nil {
-			errorMessages = append(errorMessages, name+": "+err.Error())
+			errorMessages = append(errorMessages, err.Error())
 		}
 	}
 
@@ -103,31 +102,5 @@ func (source aggregateStep) Result(x interface{}) bool {
 		return true
 	}
 
-	t := reflect.TypeOf(x)
-	v := reflect.ValueOf(x)
-
-	var m reflect.Value
-
-	if t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Map {
-		m = v.Elem()
-	} else if t.Kind() == reflect.Map {
-		m = v
-	} else {
-		return false
-	}
-
-	if m.Type().Key().Kind() != reflect.String {
-		return false
-	}
-
-	for name, src := range source {
-		res := reflect.New(m.Type().Elem())
-		if !src.Result(res.Interface()) {
-			return false
-		}
-
-		m.SetMapIndex(reflect.ValueOf(name), res.Elem())
-	}
-
-	return true
+	return false
 }
