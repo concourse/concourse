@@ -1,6 +1,7 @@
 package getresource
 
 import (
+	"errors"
 	"html/template"
 	"log"
 	"net/http"
@@ -37,8 +38,9 @@ func NewHandler(logger lager.Logger, db db.DB, configDB db.ConfigDB, template *t
 }
 
 type TemplateData struct {
-	Resource atc.ResourceConfig
-	History  []*db.VersionHistory
+	Resource   atc.ResourceConfig
+	DBResource db.Resource
+	History    []*db.VersionHistory
 
 	FailingToCheck bool
 	CheckError     error
@@ -46,33 +48,44 @@ type TemplateData struct {
 	GroupStates []group.State
 }
 
-func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	config, _, err := handler.configDB.GetConfig()
+//go:generate counterfeiter . ResourcesDB
+
+type ResourcesDB interface {
+	GetResource(string) (db.Resource, error)
+	GetResourceHistory(string) ([]*db.VersionHistory, error)
+}
+
+var ErrResourceConfigNotFound = errors.New("could not find resource")
+
+func FetchTemplateData(resourceDB ResourcesDB, configDB db.ConfigDB, resourceName string) (TemplateData, error) {
+	config, _, err := configDB.GetConfig()
 	if err != nil {
-		handler.logger.Error("failed-to-load-config", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return TemplateData{}, err
 	}
 
-	resource, found := config.Resources.Lookup(r.FormValue(":resource"))
+	configResource, found := config.Resources.Lookup(resourceName)
 	if !found {
-		w.WriteHeader(http.StatusNotFound)
-		return
+		return TemplateData{}, ErrResourceConfigNotFound
 	}
 
-	history, err := handler.db.GetResourceHistory(resource.Name)
+	history, err := resourceDB.GetResourceHistory(configResource.Name)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return TemplateData{}, err
+	}
+
+	resource, err := resourceDB.GetResource(configResource.Name)
+	if err != nil {
+		return TemplateData{}, err
 	}
 
 	templateData := TemplateData{
-		Resource: resource,
-		History:  history,
+		Resource:   configResource,
+		DBResource: resource,
+		History:    history,
 
 		GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
 			for _, groupResource := range g.Resources {
-				if groupResource == resource.Name {
+				if groupResource == configResource.Name {
 					return true
 				}
 			}
@@ -81,16 +94,28 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}),
 	}
 
-	checkErr, err := handler.db.GetResourceCheckError(resource.Name)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+	return templateData, nil
+}
+
+func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	resourceName := r.FormValue(":resource")
+	templateData, err := FetchTemplateData(handler.db, handler.configDB, resourceName)
+
+	switch err {
+	case ErrResourceConfigNotFound:
+		handler.logger.Error("could-not-find-resource-in-config", ErrResourceConfigNotFound, lager.Data{
+			"resource": resourceName,
+		})
+		w.WriteHeader(http.StatusNotFound)
 		return
-	}
-
-	templateData.FailingToCheck = checkErr != nil
-
-	if handler.validator.IsAuthenticated(r) {
-		templateData.CheckError = checkErr
+	case nil:
+		break
+	default:
+		handler.logger.Error("failed-to-build-template-data", err, lager.Data{
+			"resource": resourceName,
+		})
+		http.Error(w, "failed to fetch resources", http.StatusInternalServerError)
+		return
 	}
 
 	err = handler.template.Execute(w, templateData)

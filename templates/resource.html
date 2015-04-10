@@ -5,26 +5,35 @@
   <h1>{{.Resource.Name}}</h1>
 </div>
 
-<div class="resource-check-status">
-  <div class="steps">
-    <div class="build-step">
-      {{if .FailingToCheck}}
-      <div class="header">
-        <i class="right errored fa fa-fw fa-exclamation-triangle"></i>
-        <h3>check failing</h3>
-      </div>
 
-      {{if .CheckError}}
-      <div class="step-body">
-        <pre>{{.CheckError.Error}}</pre>
+<div class="js-resource" data-resource-name="{{.Resource.Name}}">
+  <div class="resource-check-status">
+    <div class="steps">
+      <div class="build-step">
+        {{if .DBResource.FailingToCheck}}
+          <div class="header">
+            <i class="right errored fa fa-fw fa-exclamation-triangle"></i>
+            <h3>check failing</h3>
+          </div>
+
+          {{if .DBResource.CheckError}}
+          <div class="step-body">
+            <pre>{{.DBResource.CheckError.Error}}</pre>
+          </div>
+          {{end}}
+        {{else}}
+          <div class="header">
+            <i class="fr succeeded fa fa-fw fa-check"></i>
+            {{if .DBResource.Paused}}
+              <span class="btn-pause fl enabled js-pauseResourceCheck"><i class="fa fa-fw fa-play"></i></span>
+              <h3 class="js-resourceStatusText">checking paused</h3>
+            {{else}}
+              <span class="btn-pause fl disabled js-pauseResourceCheck"><i class="fa fa-fw fa-pause"></i></span>
+              <h3 class="js-resourceStatusText">checking successfully</h3>
+            {{end}}
+          </div>
+        {{end}}
       </div>
-      {{end}}
-      {{else}}
-      <div class="header">
-        <i class="right succeeded fa fa-fw fa-check"></i>
-        <h3>checking successfully</h3>
-      </div>
-      {{end}}
     </div>
   </div>
 </div>
@@ -114,4 +123,5 @@
 
 <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
 <script src="{{asset "resources.js"}}"></script>
+<script src="{{asset "concourse.js"}}"></script>
 {{end}}

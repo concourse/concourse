@@ -242,3 +242,44 @@ svg .job.node.started div,
   font-size: 18px;
   line-height: 40px;
 }
+
+
+// svg .node.input
+// svg .paused rect { fill: @base0D; }
+
+.paused {
+  background-color: @base0D;
+
+  svg & rect {
+    fill: @base0D;
+  }
+}
+
+.btn-pause {
+  display: inline-block;
+  color: @base07;
+
+  &:hover {
+    cursor: pointer;
+  }
+
+  &.enabled {
+    background-color: @base0D;
+
+    &:active {
+      &:extend(.btn-pause.disabled);
+    }
+  }
+
+  &.loading {
+    background-color: @base0D;
+  }
+
+  &.disabled {
+    background-color: @base03;
+
+    &:active {
+      &:extend(.btn-pause.enabled);
+    }
+  }
+}
