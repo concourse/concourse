@@ -183,7 +183,7 @@ func createBuild(
 
 		readPipe.URL.Host = i.Pipe.PeerAddr
 
-		buildInputs[i.Name] = atc.Plan{
+		buildInputs = append(buildInputs, atc.Plan{
 			Get: &atc.GetPlan{
 				Name: i.Name,
 				Type: "archive",
@@ -191,7 +191,7 @@ func createBuild(
 					"uri": readPipe.URL.String(),
 				},
 			},
-		}
+		})
 	}
 
 	plan := atc.Plan{

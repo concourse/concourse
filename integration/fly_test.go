@@ -76,7 +76,7 @@ run:
 			Compose: &atc.ComposePlan{
 				A: atc.Plan{
 					Aggregate: &atc.AggregatePlan{
-						filepath.Base(buildDir): atc.Plan{
+						atc.Plan{
 							Get: &atc.GetPlan{
 								Name: filepath.Base(buildDir),
 								Type: "archive",

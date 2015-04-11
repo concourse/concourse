@@ -81,7 +81,7 @@ run:
 			Compose: &atc.ComposePlan{
 				A: atc.Plan{
 					Aggregate: &atc.AggregatePlan{
-						"buildDir": atc.Plan{
+						atc.Plan{
 							Get: &atc.GetPlan{
 								Name: "buildDir",
 								Type: "archive",
@@ -90,7 +90,7 @@ run:
 								},
 							},
 						},
-						"s3Asset": atc.Plan{
+						atc.Plan{
 							Get: &atc.GetPlan{
 								Name: "s3Asset",
 								Type: "archive",
