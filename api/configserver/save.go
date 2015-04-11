@@ -116,7 +116,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session.Info("saving", lager.Data{"config": config})
+	session.Info("saving")
 
 	err = s.db.SaveConfig(config, id)
 	if err != nil {
