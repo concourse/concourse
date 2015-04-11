@@ -103,7 +103,7 @@ var _ = Describe("Resource Pausing", func() {
 				Expect(page.Find(".js-pauseResourceCheck").Click()).To(Succeed())
 				Eventually(page.Find(".header h3")).Should(HaveText("checking paused"))
 
-				RefreshPage(page)
+				page.Refresh()
 
 				Eventually(page.Find(".header h3")).Should(HaveText("checking paused"))
 			})

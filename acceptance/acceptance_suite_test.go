@@ -65,11 +65,5 @@ func Authenticate(page *agouti.Page, username, password string) {
 
 	// PhantomJS won't send the cookie on ajax requests if the page is not
 	// refreshed
-	RefreshPage(page)
-}
-
-func RefreshPage(page *agouti.Page) {
-	url, err := page.URL()
-	Ω(err).ShouldNot(HaveOccurred())
-	Ω(page.Navigate(url)).Should(Succeed())
+	page.Refresh()
 }
