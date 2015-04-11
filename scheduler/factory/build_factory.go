@@ -59,8 +59,8 @@ func makeConditionalOnSuccess(plan atc.Plan) atc.Plan {
 		return plan
 	} else if plan.Aggregate != nil {
 		conditionaled := atc.AggregatePlan{}
-		for name, plan := range *plan.Aggregate {
-			conditionaled[name] = makeConditionalOnSuccess(plan)
+		for _, plan := range *plan.Aggregate {
+			conditionaled = append(conditionaled, makeConditionalOnSuccess(plan))
 		}
 
 		plan.Aggregate = &conditionaled
@@ -176,11 +176,11 @@ func (factory *BuildFactory) constructPlanFromConfig(
 		aggregate := atc.AggregatePlan{}
 
 		for _, planConfig := range *planConfig.Aggregate {
-			aggregate[planConfig.Name()] = factory.constructPlanFromConfig(
+			aggregate = append(aggregate, factory.constructPlanFromConfig(
 				planConfig,
 				resources,
 				inputs,
-			)
+			))
 		}
 
 		plan = atc.Plan{

@@ -29,7 +29,7 @@ var _ = Describe("Factory", func() {
 			Compose: &atc.ComposePlan{
 				A: atc.Plan{
 					Aggregate: &atc.AggregatePlan{
-						"some-input": atc.Plan{
+						atc.Plan{
 							Get: &atc.GetPlan{
 								Type:     "git",
 								Name:     "some-input",
@@ -69,7 +69,7 @@ var _ = Describe("Factory", func() {
 								},
 								B: atc.Plan{
 									Aggregate: &atc.AggregatePlan{
-										"some-resource": atc.Plan{
+										atc.Plan{
 											Conditional: &atc.ConditionalPlan{
 												Conditions: []atc.Condition{atc.ConditionSuccess},
 												Plan: atc.Plan{
@@ -83,7 +83,7 @@ var _ = Describe("Factory", func() {
 												},
 											},
 										},
-										"some-other-resource": atc.Plan{
+										atc.Plan{
 											Conditional: &atc.ConditionalPlan{
 												Conditions: []atc.Condition{atc.ConditionFailure},
 												Plan: atc.Plan{
@@ -97,7 +97,7 @@ var _ = Describe("Factory", func() {
 												},
 											},
 										},
-										"some-other-other-resource": atc.Plan{
+										atc.Plan{
 											Conditional: &atc.ConditionalPlan{
 												Conditions: []atc.Condition{},
 												Plan: atc.Plan{
@@ -523,7 +523,7 @@ var _ = Describe("Factory", func() {
 							},
 							B: atc.Plan{
 								Aggregate: &atc.AggregatePlan{
-									"haters": atc.Plan{
+									atc.Plan{
 										Conditional: &atc.ConditionalPlan{
 											Conditions: atc.Conditions{atc.ConditionFailure},
 											Plan: atc.Plan{
@@ -534,7 +534,7 @@ var _ = Describe("Factory", func() {
 											},
 										},
 									},
-									"gonna": atc.Plan{
+									atc.Plan{
 										Conditional: &atc.ConditionalPlan{
 											Conditions: atc.Conditions{atc.ConditionSuccess},
 											Plan: atc.Plan{
@@ -545,7 +545,7 @@ var _ = Describe("Factory", func() {
 											},
 										},
 									},
-									"hate": atc.Plan{
+									atc.Plan{
 										Conditional: &atc.ConditionalPlan{
 											Conditions: atc.Conditions{},
 											Plan: atc.Plan{

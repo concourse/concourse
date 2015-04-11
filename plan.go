@@ -14,7 +14,7 @@ type ComposePlan struct {
 	B Plan `json:"b"`
 }
 
-type AggregatePlan map[string]Plan
+type AggregatePlan []Plan
 
 type GetPlan struct {
 	Type     string  `json:"type"`

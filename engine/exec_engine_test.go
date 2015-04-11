@@ -140,7 +140,7 @@ var _ = Describe("ExecEngine", func() {
 				Compose: &atc.ComposePlan{
 					A: atc.Plan{
 						Aggregate: &atc.AggregatePlan{
-							"some-input": atc.Plan{
+							atc.Plan{
 								Get: inputPlan,
 							},
 						},
@@ -159,7 +159,7 @@ var _ = Describe("ExecEngine", func() {
 							},
 							B: atc.Plan{
 								Aggregate: &atc.AggregatePlan{
-									"some-output-resource": atc.Plan{
+									atc.Plan{
 										Conditional: outputPlan,
 									},
 								},
