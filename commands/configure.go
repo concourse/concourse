@@ -12,6 +12,7 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/template"
 	"github.com/onsi/gomega/gexec"
 	"gopkg.in/yaml.v2"
 )
@@ -21,13 +22,14 @@ func Configure(c *cli.Context) {
 	insecure := c.GlobalBool("insecure")
 	configPath := c.String("config")
 	asJSON := c.Bool("json")
+	templateVariables := c.StringSlice("var")
 
 	atcRequester := newAtcRequester(target, insecure)
 
 	if configPath == "" {
 		dumpConfig(atcRequester, asJSON)
 	} else {
-		setConfig(atcRequester, configPath)
+		setConfig(atcRequester, configPath, templateVariables)
 	}
 }
 
@@ -50,11 +52,18 @@ func dumpConfig(atcRequester *atcRequester, asJSON bool) {
 	fmt.Printf("%s", payload)
 }
 
-func setConfig(atcRequester *atcRequester, configPath string) {
+func setConfig(atcRequester *atcRequester, configPath string, templateVariables []string) {
 	configFile, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	vars, err := template.LoadVariables(templateVariables)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	configFile = template.Evaluate(configFile, vars)
 
 	var newConfig atc.Config
 	err = yaml.Unmarshal(configFile, &newConfig)

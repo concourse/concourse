@@ -187,6 +187,94 @@ var _ = Describe("Fly CLI", func() {
 			})
 		})
 
+		Describe("templating", func() {
+			var (
+				payload []byte
+			)
+
+			BeforeEach(func() {
+				config = atc.Config{
+					Groups: atc.GroupConfigs{},
+					Resources: atc.ResourceConfigs{
+						{
+							Name: "some-resource",
+							Type: "template-type",
+							Source: atc.Source{
+								"source-config": "some-value",
+							},
+						},
+						{
+							Name: "some-other-resource",
+							Type: "some-other-type",
+							Source: atc.Source{
+								"secret_key": "secret",
+							},
+						},
+					},
+
+					Jobs: atc.JobConfigs{},
+				}
+
+				atcServer.RouteToHandler("GET", "/api/v1/config",
+					ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigIDHeader: {"42"}}),
+				)
+			})
+
+			Context("when configuring with templated keys succeeds", func() {
+				JustBeforeEach(func() {
+					var err error
+					payload, err = yaml.Marshal(config)
+					Ω(err).ShouldNot(HaveOccurred())
+				})
+
+				BeforeEach(func() {
+					atcServer.RouteToHandler("PUT", "/api/v1/config",
+						ghttp.CombineHandlers(
+							ghttp.VerifyHeaderKV(atc.ConfigIDHeader, "42"),
+							ghttp.VerifyHeaderKV("Content-Type", "application/x-yaml"),
+							func(w http.ResponseWriter, r *http.Request) {
+								body, err := ioutil.ReadAll(r.Body)
+								Ω(err).ShouldNot(HaveOccurred())
+
+								receivedConfig := atc.Config{}
+
+								err = yaml.Unmarshal(body, &receivedConfig)
+								Ω(err).ShouldNot(HaveOccurred())
+
+								Ω(receivedConfig).Should(Equal(config))
+							},
+							ghttp.RespondWith(200, ""),
+						),
+					)
+				})
+
+				It("parses the config file and sends it to the ATC", func() {
+					flyCmd := exec.Command(
+						flyPath, "configure",
+						"-c", "fixtures/testConfig.yml",
+						"-var", "resource-type=template-type",
+						"-var", "resource-key=secret",
+					)
+
+					stdin, err := flyCmd.StdinPipe()
+					Ω(err).ShouldNot(HaveOccurred())
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
+					fmt.Fprintln(stdin, "y")
+					Eventually(sess).Should(gbytes.Say("configuration updated"))
+
+					<-sess.Exited
+					Ω(sess.ExitCode()).Should(Equal(0))
+
+					Ω(atcServer.ReceivedRequests()).Should(HaveLen(2))
+				})
+			})
+
+		})
+
 		Describe("setting", func() {
 			var (
 				changedConfig atc.Config

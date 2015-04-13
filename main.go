@@ -58,6 +58,12 @@ var stepNameFlag = cli.StringFlag{
 	Usage: "name of step to hijack (e.g. build, unit, resource name)",
 }
 
+var varFlag = cli.StringSliceFlag{
+	Name:  "var, v",
+	Value: &cli.StringSlice{},
+	Usage: "variable flag that can be used for filling in template values in configuration (i.e. -var secret=key)",
+}
+
 var executeFlags = []cli.Flag{
 	buildConfigFlag,
 	inputFlag,
@@ -131,6 +137,7 @@ func main() {
 				jsonFlag,
 				insecureFlag,
 				targetFlag,
+				varFlag,
 			},
 			Action: commands.Configure,
 		},
