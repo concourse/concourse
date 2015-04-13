@@ -207,7 +207,7 @@ var _ = Describe("Fly CLI", func() {
 							Name: "some-other-resource",
 							Type: "some-other-type",
 							Source: atc.Source{
-								"secret_key": "secret",
+								"secret_key": "verysecret",
 							},
 						},
 					},
@@ -252,8 +252,8 @@ var _ = Describe("Fly CLI", func() {
 					flyCmd := exec.Command(
 						flyPath, "configure",
 						"-c", "fixtures/testConfig.yml",
-						"-var", "resource-type=template-type",
-						"-var", "resource-key=secret",
+						"-var", "resource-key=verysecret",
+						"-vars-from", "fixtures/vars.yml",
 					)
 
 					stdin, err := flyCmd.StdinPipe()

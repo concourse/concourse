@@ -64,6 +64,12 @@ var varFlag = cli.StringSliceFlag{
 	Usage: "variable flag that can be used for filling in template values in configuration (i.e. -var secret=key)",
 }
 
+var varFileFlag = cli.StringSliceFlag{
+	Name:  "vars-from, vf",
+	Value: &cli.StringSlice{},
+	Usage: "variable flag that can be used for filling in template values in configuration from a YAML file",
+}
+
 var executeFlags = []cli.Flag{
 	buildConfigFlag,
 	inputFlag,
@@ -138,6 +144,7 @@ func main() {
 				insecureFlag,
 				targetFlag,
 				varFlag,
+				varFileFlag,
 			},
 			Action: commands.Configure,
 		},

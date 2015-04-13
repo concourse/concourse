@@ -23,13 +23,14 @@ func Configure(c *cli.Context) {
 	configPath := c.String("config")
 	asJSON := c.Bool("json")
 	templateVariables := c.StringSlice("var")
+	templateVariablesFile := c.StringSlice("vars-from")
 
 	atcRequester := newAtcRequester(target, insecure)
 
 	if configPath == "" {
 		dumpConfig(atcRequester, asJSON)
 	} else {
-		setConfig(atcRequester, configPath, templateVariables)
+		setConfig(atcRequester, configPath, templateVariables, templateVariablesFile)
 	}
 }
 
@@ -52,10 +53,21 @@ func dumpConfig(atcRequester *atcRequester, asJSON bool) {
 	fmt.Printf("%s", payload)
 }
 
-func setConfig(atcRequester *atcRequester, configPath string, templateVariables []string) {
+func setConfig(atcRequester *atcRequester, configPath string, templateVariables []string, templateVariablesFile []string) {
 	configFile, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		log.Fatalln(err)
+	}
+
+	var resultVars template.Variables
+
+	for _, path := range templateVariablesFile {
+		fileVars, err := template.LoadVariablesFromFile(path)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		resultVars = resultVars.Merge(fileVars)
 	}
 
 	vars, err := template.LoadVariables(templateVariables)
@@ -63,7 +75,9 @@ func setConfig(atcRequester *atcRequester, configPath string, templateVariables 
 		log.Fatalln(err)
 	}
 
-	configFile = template.Evaluate(configFile, vars)
+	resultVars = resultVars.Merge(vars)
+
+	configFile = template.Evaluate(configFile, resultVars)
 
 	var newConfig atc.Config
 	err = yaml.Unmarshal(configFile, &newConfig)

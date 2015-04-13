@@ -5,8 +5,6 @@ import (
 	"regexp"
 )
 
-type Variables map[string]string
-
 var templateFormatRegex = regexp.MustCompile(`\{\{([-\w\p{L}]+)\}\}`)
 
 func Evaluate(content []byte, variables Variables) []byte {
