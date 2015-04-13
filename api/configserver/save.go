@@ -2,6 +2,7 @@ package configserver
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -70,6 +71,12 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 			valKind reflect.Kind,
 			data interface{},
 		) (interface{}, error) {
+			if valKind == reflect.Map {
+				if dataKind == reflect.Map {
+					return sanitize(data)
+				}
+			}
+
 			if valKind == reflect.String {
 				if dataKind == reflect.String {
 					return data, nil
@@ -129,4 +136,32 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	session.Info("saved")
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func sanitize(root interface{}) (interface{}, error) {
+	switch rootVal := root.(type) {
+	case map[interface{}]interface{}:
+		sanitized := map[string]interface{}{}
+
+		for key, val := range rootVal {
+			str, ok := key.(string)
+			if !ok {
+				return nil, errors.New("non-string key")
+			}
+
+			sub, err := sanitize(val)
+			if err != nil {
+				return nil, err
+			}
+
+			sanitized[str] = sub
+		}
+
+		return sanitized, nil
+
+	default:
+		return rootVal, nil
+	}
+
+	return nil, errors.New(fmt.Sprintf("unknown type (%s) during sanitization: %#v\n", reflect.TypeOf(root).String(), root))
 }

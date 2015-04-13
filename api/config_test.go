@@ -41,6 +41,12 @@ var _ = Describe("Config API", func() {
 					Type: "some-type",
 					Source: atc.Source{
 						"source-config": "some-value",
+						"nested": map[string]interface{}{
+							"key": "value",
+							"nested": map[string]interface{}{
+								"key": "value",
+							},
+						},
 					},
 				},
 			},
@@ -60,12 +66,32 @@ var _ = Describe("Config API", func() {
 
 					Serial: true,
 
+					Plan: atc.PlanSequence{
+						{
+							Params: atc.Params{
+								"some-param": "some-value",
+								"nested": map[string]interface{}{
+									"key": "value",
+									"nested": map[string]interface{}{
+										"key": "value",
+									},
+								},
+							},
+						},
+					},
+
 					InputConfigs: []atc.JobInputConfig{
 						{
 							RawName:  "some-input",
 							Resource: "some-resource",
 							Params: atc.Params{
 								"some-param": "some-value",
+								"nested": map[string]interface{}{
+									"key": "value",
+									"nested": map[string]interface{}{
+										"key": "value",
+									},
+								},
 							},
 							Passed: []string{"job-1", "job-2"},
 						},
@@ -76,6 +102,12 @@ var _ = Describe("Config API", func() {
 							Resource: "some-resource",
 							Params: atc.Params{
 								"some-param": "some-value",
+								"nested": map[string]interface{}{
+									"key": "value",
+									"nested": map[string]interface{}{
+										"key": "value",
+									},
+								},
 							},
 							RawPerformOn: []atc.Condition{"success", "failure"},
 						},
@@ -250,7 +282,18 @@ var _ = Describe("Config API", func() {
 
 							config, id := configDB.SaveConfigArgsForCall(0)
 							Ω(config).Should(Equal(config))
+
 							Ω(id).Should(Equal(db.ConfigID(42)))
+						})
+
+						It("does not give the DB a map of empty interfaces to empty interfaces", func() {
+							Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
+
+							config, _ := configDB.SaveConfigArgsForCall(0)
+							Ω(config).Should(Equal(config))
+
+							_, err := json.Marshal(config)
+							Ω(err).ShouldNot(HaveOccurred())
 						})
 
 						Context("when the payload contains suspicious types", func() {
