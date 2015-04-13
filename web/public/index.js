@@ -150,7 +150,12 @@ function renderPipeline(groups) {
     .attr("radius", "4")
 
   var g = svg.append("g");
-  svg.call(d3.behavior.zoom().on("zoom", function() {
+
+  svg.on("mousedown", function() {
+    var ev = d3.event;
+    if (ev.button || ev.ctrlKey)
+      ev.stopImmediatePropagation();
+  }).call(d3.behavior.zoom().scaleExtent([0.5, 10]).on("zoom", function() {
     var ev = d3.event;
     g.attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
   }));
