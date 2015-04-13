@@ -77,7 +77,10 @@ func setConfig(atcRequester *atcRequester, configPath string, templateVariables 
 
 	resultVars = resultVars.Merge(vars)
 
-	configFile = template.Evaluate(configFile, resultVars)
+	configFile, err = template.Evaluate(configFile, resultVars)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	var newConfig atc.Config
 	err = yaml.Unmarshal(configFile, &newConfig)

@@ -14,7 +14,8 @@ var _ = Describe("Template", func() {
 			"key": "foo",
 		}
 
-		result := template.Evaluate(byteSlice, variables)
+		result, err := template.Evaluate(byteSlice, variables)
+		Ω(err).ShouldNot(HaveOccurred())
 		Ω(result).Should(Equal([]byte(`"foo"`)))
 	})
 
@@ -25,7 +26,8 @@ var _ = Describe("Template", func() {
 			"value": "bar",
 		}
 
-		result := template.Evaluate(byteSlice, variables)
+		result, err := template.Evaluate(byteSlice, variables)
+		Ω(err).ShouldNot(HaveOccurred())
 		Ω(result).Should(Equal([]byte(`"foo"="bar"`)))
 	})
 
@@ -35,7 +37,8 @@ var _ = Describe("Template", func() {
 			"Ω": "☃",
 		}
 
-		result := template.Evaluate(byteSlice, variables)
+		result, err := template.Evaluate(byteSlice, variables)
+		Ω(err).ShouldNot(HaveOccurred())
 		Ω(result).Should(Equal([]byte(`"☃"`)))
 	})
 
@@ -46,7 +49,8 @@ var _ = Describe("Template", func() {
 			"with_an_underscore": "underscore",
 		}
 
-		result := template.Evaluate(byteSlice, variables)
+		result, err := template.Evaluate(byteSlice, variables)
+		Ω(err).ShouldNot(HaveOccurred())
 		Ω(result).Should(Equal([]byte(`"dash" = "underscore"`)))
 	})
 
@@ -56,7 +60,8 @@ var _ = Describe("Template", func() {
 			"key": "foo",
 		}
 
-		result := template.Evaluate(byteSlice, variables)
+		result, err := template.Evaluate(byteSlice, variables)
+		Ω(err).ShouldNot(HaveOccurred())
 		Ω(result).Should(Equal([]byte(`"foo"="foo"`)))
 	})
 
@@ -66,23 +71,26 @@ var _ = Describe("Template", func() {
 			"key": "this\nhas\nmany\nlines",
 		}
 
-		result := template.Evaluate(byteSlice, variables)
+		result, err := template.Evaluate(byteSlice, variables)
+		Ω(err).ShouldNot(HaveOccurred())
 		Ω(result).Should(Equal([]byte(`"this\nhas\nmany\nlines"`)))
 	})
 
-	It("ignores variables that are undefined", func() {
+	It("raises an error when encountering variables that are undefined", func() {
 		byteSlice := []byte("{{not-specified}}")
 		variables := template.Variables{}
 
-		result := template.Evaluate(byteSlice, variables)
-		Ω(result).Should(Equal([]byte("{{not-specified}}")))
+		_, err := template.Evaluate(byteSlice, variables)
+		Ω(err).Should(HaveOccurred())
+		Ω(err).Should(MatchError("unbound variable in template: 'not-specified'"))
 	})
 
 	It("ignores an invalid input", func() {
 		byteSlice := []byte("{{}")
 		variables := template.Variables{}
 
-		result := template.Evaluate(byteSlice, variables)
+		result, err := template.Evaluate(byteSlice, variables)
+		Ω(err).ShouldNot(HaveOccurred())
 		Ω(result).Should(Equal([]byte("{{}")))
 	})
 })
