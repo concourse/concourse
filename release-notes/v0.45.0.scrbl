@@ -23,6 +23,12 @@ that guy's release notes. It's a doozy.
   }
 
   @item{
+    Pipeline configurations can now be parameterized via @code{fly configure}.
+    This allows pipeline configurations to be reused, or published with the
+    credentials extracted into a separate (private) file.
+  }
+
+  @item{
     The @hyperlink["https://github.com/concourse/time-resource"]{Time
     resource} can now be configured to trigger once, or on an interval, within
     a time period. This can be used to e.g. run a build that cleans up
@@ -32,5 +38,11 @@ that guy's release notes. It's a doozy.
   @item{
     The super verbose and ugly perl warnings while cloning git repositories
     has been fixed!
+  }
+
+  @item{
+    Some pipeline UI quirks have been fixed. Right-clicking no longer triggers
+    dragging around, and the zooming has been bounded (no more losing your
+    pipeline!).
   }
 ]

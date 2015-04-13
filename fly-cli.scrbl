@@ -159,6 +159,52 @@ This will present a diff of the changes and ask you to confirm the changes.
 If you accept then Concourse's pipeline configuration will switch to the
 pipeline definition in the YAML file specified.
 
+@subsection{Parameters}
+
+The pipeline configuration can contain templates in the form of
+@code{{{foo-bar}}}. They will be replaced with string values populated by
+repeated @code{--var} or @code{--vars-from} flags.
+
+This allows for credentials to be extracted from a pipeline config, making it
+safe to check in to a public repository or pass around.
+
+For example, if you have a @code{pipeline.yml} as follows:
+
+@verbatim|{
+resources:
+- name: private-repo
+  type: git
+  source:
+    uri: git@...
+    branch: master
+    private_key: {{private-repo-key}}
+}|
+
+...you could then configure this pipeline like so:
+
+@codeblock|{
+$ fly configure --config pipeline.yml --var "private-repo-key=$(cat id_rsa)"
+}|
+
+Or, if you had a @code{credentials.yml} as follows:
+
+@verbatim|{
+private-repo-key: |
+  -----BEGIN RSA PRIVATE KEY-----
+  ...
+  -----END RSA PRIVATE KEY-----
+}|
+
+...you could configure it like so:
+
+@codeblock|{
+$ fly configure --config pipeline.yml --vars-from credentials.yml
+}|
+
+If both @code{--var} and @code{--vars-from} are specified, the @code{--var}
+flags take precedence.
+
+
 @section[#:tag "fly-intercept"]{@code{intercept}@aux-elem{: Accessing a running or recent build's steps}}
 
 Sometimes it's helpful to be on the same machine as your tasks so that you
