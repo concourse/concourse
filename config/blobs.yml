@@ -44,10 +44,10 @@ resources/vagrant-cloud-resource.tar.gz:
     ODhlMDg2OTRhNzkzMzkxMDg0ZTdlZjA5MTBiZGNmZjRjYjllZDM0Yw==
   size: 8409175
 resources/cf-resource.tar.gz:
-  object_id: 5213b273-8246-47ff-8673-79613d6d0871
+  object_id: 45d839b5-de52-4705-9247-51c92bc135df
   sha: !binary |-
-    NzlhNDM0NTg1NzM0MmY4ZjZlZWVhYzEzODE3ZjQ3ZDFjNzFhODM0Yw==
-  size: 12628263
+    MGMyMzY2M2RjMjA4N2Q3MjBiN2U3NzRlYzk0YWEyY2Y5MDMzOWQ5NA==
+  size: 12706331
 resources/github-release-resource.tar.gz:
   object_id: 998f0c03-5b47-4e1a-9214-61903ecd068d
   sha: !binary |-
