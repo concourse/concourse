@@ -1,0 +1,1030 @@
+groups:
+- name: concourse
+  jobs:
+  - atc
+  - blackbox
+  - deploy
+  - fly
+  - jettison
+  - tsa
+  - major
+  - rc
+  - shipit
+  - testflight
+
+- name: publish
+  jobs:
+  - aws-box
+  - github-release
+  - hangar
+  - product
+  - publish-houdini
+  - push-departures
+  - push-docs
+  - virtualbox-box
+
+- name: resources
+  jobs:
+  - archive-resource
+  - bosh-deployment-resource
+  - bosh-io-release-resource
+  - bosh-io-stemcell-resource
+  - broker-resource
+  - cf-resource
+  - docker-image-resource
+  - git-resource
+  - github-release-resource
+  - s3-resource
+  - semver-resource
+  - time-resource
+  - tracker-resource
+  - vagrant-cloud-resource
+
+- name: bosh-lite
+  jobs: [provision]
+
+jobs:
+- name: fly
+  public: true
+  plan:
+  - get: concourse
+  - aggregate:
+    - task: linux
+      file: concourse/ci/fly-linux.yml
+    - task: darwin
+      file: concourse/ci/fly-darwin.yml
+    - task: windows
+      file: concourse/ci/fly-windows.yml
+
+- name: atc
+  public: true
+  plan:
+  - get: concourse
+  - task: build
+    file: concourse/ci/atc.yml
+
+- name: blackbox
+  public: true
+  plan:
+  - get: concourse
+  - task: build
+    file: concourse/ci/blackbox.yml
+
+- name: jettison
+  public: true
+  plan:
+  - get: concourse
+  - task: build
+    file: concourse/ci/jettison.yml
+
+- name: tsa
+  public: true
+  plan:
+  - get: concourse
+  - task: build
+    file: concourse/ci/tsa.yml
+
+- name: rc
+  public: true
+  plan:
+  - get: concourse
+    passed: [atc, fly, blackbox, tsa, jettison]
+  - get: version
+    params: {bump: minor, pre: rc}
+  - put: version
+    params: {file: version/number}
+
+- name: major
+  public: true
+  plan:
+  - get: version
+    trigger: false
+    params: {bump: major}
+  - put: version
+    params: {file: version/number}
+
+- name: provision
+  serial: true
+  plan:
+  - aggregate:
+    - get: deployments
+      trigger: false
+    - get: bosh-lite
+      trigger: false
+  - task: build
+    privileged: true
+    file: deployments/lite/ci/provision-bosh-lite.yml
+  - conditions: [success, failure]
+    put: deployments
+    params: {repository: build/deployments, rebase: true}
+
+- name: testflight
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [rc]
+    - get: version
+      passed: [rc]
+    - get: garden-linux-release
+      resource: garden-linux
+    - get: lite-stemcell
+      trigger: false
+  - task: build
+    privileged: true
+    file: concourse/ci/testflight.yml
+    config: {params: {BOSH_LITE_IP: {{bosh-lite-ip}}}}
+
+- name: deploy
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [testflight]
+      params: {fetch: [master]}
+    - get: version
+      passed: [testflight]
+    - get: garden-linux-release
+      passed: [testflight]
+      resource: garden-linux
+    - get: bosh-stemcell
+      trigger: false
+      resource: aws-stemcell
+    - get: deployments
+  - task: build-dev-release
+    file: concourse/ci/deploy.yml
+  - put: concourse-deployment
+    params:
+      manifest: deployments/ci/deployments/concourse.yml
+      stemcells: [bosh-stemcell/*.tgz]
+      releases:
+        - garden-linux-release/*.tgz
+        - build-dev-release/concourse/dev_releases/concourse/concourse-*.tgz
+  - put: tracker
+    params: {repos: [concourse]}
+
+- name: shipit
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [deploy]
+      trigger: false
+      params: {fetch: [master]}
+    - get: version
+      passed: [deploy]
+      trigger: false
+      params: {bump: final}
+    - get: garden-linux-release
+      passed: [deploy]
+      trigger: false
+      resource: garden-linux
+    - get: deployments
+      trigger: false
+  - task: create-final-release
+    file: concourse/ci/shipit.yml
+  - aggregate:
+    - put: version
+      params: {file: version/number}
+    - put: concourse-master
+      params:
+        repository: create-final-release/concourse
+        tag: version/number
+        tag_prefix: v
+    - put: final-release
+      params: {from: create-final-release/concourse/releases/concourse/concourse-(.*).tgz}
+
+- name: virtualbox-box
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: final-release
+      passed: [shipit]
+    - get: garden-linux-release
+      passed: [shipit]
+      resource: garden-linux
+    - get: concourse-lite
+      trigger: false
+    - get: version
+      passed: [shipit]
+    - get: deployments
+      trigger: false
+  - task: build-box
+    privileged: true
+    file: deployments/buildbox/ci/build-boxes.yml
+  - put: virtualbox-box
+    params: {from: build-box/concourse-lite/concourse-virtualbox-ubuntu-trusty-(.*).box}
+  - aggregate:
+    - get: virtualbox-box
+    - get: concourse-develop
+      params: {submodules: none}
+  - task: build-release-notes
+    file: concourse-develop/ci/build-release-notes.yml
+    config:
+      params:
+        STRIP_HEADER: true
+        VERSION_FILE: version/number
+  - put: virtualbox-box-cloud
+    params:
+      description: build-release-notes/concourse-develop/notes.md
+      release: true
+      url: virtualbox-box/url
+      version: virtualbox-box/version
+
+- name: aws-box
+  serial: true
+  plan:
+  - aggregate:
+    - get: final-release
+      passed: [shipit]
+    - get: garden-linux-release
+      passed: [shipit]
+      resource: garden-linux
+    - get: version
+      passed: [shipit]
+    - get: concourse-lite
+      trigger: false
+    - get: deployments
+      trigger: false
+  - task: build-box
+    privileged: true
+    file: concourse-lite/ci/build-aws.yml
+    config:
+      params:
+        AWS_ACCESS_KEY_ID: {{aws-box-access-key}}
+        AWS_SECRET_ACCESS_KEY: {{aws-box-secret-key}}
+  - put: aws-box
+    params: {from: build-box/concourse-lite/concourse-aws-ubuntu-trusty-(.*).box}
+  - aggregate:
+    - get: aws-box
+    - get: concourse-develop
+      params: {submodules: none}
+  - task: build-release-notes
+    file: concourse-develop/ci/build-release-notes.yml
+    config:
+      params:
+        STRIP_HEADER: true
+        VERSION_FILE: version/number
+  - put: aws-box-cloud
+    params:
+      description: build-release-notes/concourse-develop/notes.md
+      release: true
+      url: aws-box/url
+      version: aws-box/version
+
+- name: push-docs
+  serial: true
+  plan:
+  - aggregate:
+    - get: version
+      passed: [shipit]
+    - get: concourse-develop
+      trigger: false
+      params: {submodules: none}
+  - task: build
+    file: concourse-develop/ci/build-docs.yml
+    config:
+      params:
+        ANALYTICS_ID: {{analytics-id}}
+        VERSION_FILE: version/number
+  - put: concourse-docs
+    params:
+      current_app_name: docs
+      manifest: build/concourse-develop/docs/manifest.yml
+
+- name: push-departures
+  serial: true
+  plan:
+  - get: departures
+  - put: departures-app
+    params:
+      current_app_name: departures
+      manifest: departures/manifest.yml
+
+- name: github-release
+  plan:
+  - aggregate:
+    - get: final-release
+      passed: [shipit]
+    - get: garden-linux
+      passed: [shipit]
+      resource: garden-linux
+    - get: version
+      passed: [shipit]
+    - get: concourse-develop
+      trigger: false
+      params: {submodules: none}
+  - aggregate:
+    - task: build-docs
+      file: concourse-develop/ci/build-release-notes.yml
+      config:
+        params:
+          STRIP_HEADER: true
+          VERSION_FILE: version/number
+    - task: rename-release
+      file: concourse-develop/ci/rename-release.yml
+  - put: github-release
+    params:
+      name: build-docs/concourse-develop/release-name
+      tag: build-docs/concourse-develop/release-name
+      body: build-docs/concourse-develop/notes.md
+      globs:
+      - final-release/*.tgz
+      - rename-release/garden-linux/garden-linux-*.tgz
+
+- name: product
+  serial: true
+  plan:
+  - aggregate:
+    - get: p-concourse
+    - get: final-release
+      passed: [shipit]
+    - get: garden-linux-release
+      passed: [shipit]
+      resource: garden-linux
+    - get: version
+      passed: [shipit]
+    - get: vsphere-stemcell
+  - task: build
+    file: p-concourse/ci/build.yml
+  - put: product
+    params: {from: build/p-concourse/p-concourse-(.*).pivotal}
+
+- name: hangar
+  public: true
+  plan:
+  - get: hangar
+  - task: build
+    file: hangar/build.yml
+
+- name: git-resource
+  serial: true
+  plan:
+  - get: git-resource
+  - put: git-resource-image
+    params: {build: git-resource}
+  - aggregate:
+    - get: resource-image
+      resource: git-resource-image
+      params: {rootfs: true}
+    - get: deployments
+    - get: concourse
+  - task: bump-package
+    file: concourse/ci/bump-resource-package.yml
+    config: {params: {RESOURCE_NAME: git-resource}}
+  - put: concourse
+    params: {repository: bump-package/concourse, rebase: true}
+
+- name: docker-image-resource
+  serial: true
+  plan:
+  - get: docker-image-resource
+  - put: docker-image-resource-image
+    params: {build: docker-image-resource}
+  - aggregate:
+    - get: resource-image
+      resource: docker-image-resource-image
+      params: {rootfs: true}
+    - get: deployments
+    - get: concourse
+  - task: bump-package
+    file: concourse/ci/bump-resource-package.yml
+    config: {params: {RESOURCE_NAME: docker-image-resource}}
+  - put: concourse
+    params: {repository: bump-package/concourse, rebase: true}
+
+- name: time-resource
+  serial: true
+  plan:
+  - get: time-resource
+  - task: unit
+    file: time-resource/build.yml
+  - put: time-resource-image
+    params: {build: unit/gopath/src/github.com/concourse/time-resource}
+  - aggregate:
+    - get: resource-image
+      resource: time-resource-image
+      params: {rootfs: true}
+    - get: deployments
+    - get: concourse
+  - task: bump-package
+    file: concourse/ci/bump-resource-package.yml
+    config: {params: {RESOURCE_NAME: time-resource}}
+  - put: concourse
+    params: {repository: bump-package/concourse, rebase: true}
+
+- name: archive-resource
+  serial: true
+  plan:
+  - get: archive-resource
+  - task: unit
+    file: archive-resource/build.yml
+  - put: archive-resource-image
+    params: {build: unit/archive-resource}
+  - aggregate:
+    - get: resource-image
+      resource: archive-resource-image
+      params: {rootfs: true}
+    - get: deployments
+    - get: concourse
+  - task: bump-package
+    file: concourse/ci/bump-resource-package.yml
+    config: {params: {RESOURCE_NAME: archive-resource}}
+  - put: concourse
+    params: {repository: bump-package/concourse, rebase: true}
+
+- name: bosh-deployment-resource
+  serial: true
+  plan:
+  - get: bosh-deployment-resource
+  - task: unit
+    file: bosh-deployment-resource/build.yml
+  - put: bosh-deployment-resource-image
+    params: {build: bosh-deployment-resource}
+  - aggregate:
+    - get: resource-image
+      resource: bosh-deployment-resource-image
+      params: {rootfs: true}
+    - get: deployments
+    - get: concourse
+  - task: bump-package
+    file: concourse/ci/bump-resource-package.yml
+    config: {params: {RESOURCE_NAME: bosh-deployment-resource}}
+  - put: concourse
+    params: {repository: bump-package/concourse, rebase: true}
+
+- name: broker-resource
+  serial: true
+  plan:
+  - get: broker-resource
+  - task: unit
+    file: broker-resource/build.yml
+
+- name: s3-resource
+  serial: true
+  plan:
+  - get: s3-resource
+  - task: unit
+    file: s3-resource/build.yml
+  - put: s3-resource-image
+    params: {build: unit/gopath/src/github.com/concourse/s3-resource}
+  - aggregate:
+    - get: resource-image
+      resource: s3-resource-image
+      params: {rootfs: true}
+    - get: deployments
+    - get: concourse
+  - task: bump-package
+    file: concourse/ci/bump-resource-package.yml
+    config: {params: {RESOURCE_NAME: s3-resource}}
+  - put: concourse
+    params: {repository: bump-package/concourse, rebase: true}
+
+- name: github-release-resource
+  serial: true
+  plan:
+  - get: github-release-resource
+  - task: unit
+    file: github-release-resource/build.yml
+  - put: github-release-resource-image
+    params: {build: unit/gopath/src/github.com/concourse/github-release-resource}
+  - aggregate:
+    - get: resource-image
+      resource: github-release-resource-image
+      params: {rootfs: true}
+    - get: deployments
+    - get: concourse
+  - task: bump-package
+    file: concourse/ci/bump-resource-package.yml
+    config: {params: {RESOURCE_NAME: github-release-resource}}
+  - put: concourse
+    params: {repository: bump-package/concourse, rebase: true}
+
+- name: cf-resource
+  serial: true
+  plan:
+  - aggregate:
+    - get: cf-resource
+    - get: cf-cli
+    - get: autopilot
+  - aggregate:
+    - task: autopilot-unit
+      file: autopilot/build.yml
+    - task: resource-unit
+      file: cf-resource/build.yml
+  - put: cf-resource-image
+    params: {build: resource-unit/gopath/src/github.com/concourse/cf-resource}
+  - aggregate:
+    - get: resource-image
+      resource: cf-resource-image
+      params: {rootfs: true}
+    - get: deployments
+    - get: concourse
+  - task: bump-package
+    file: concourse/ci/bump-resource-package.yml
+    config: {params: {RESOURCE_NAME: cf-resource}}
+  - put: concourse
+    params: {repository: bump-package/concourse, rebase: true}
+
+- name: semver-resource
+  serial: true
+  plan:
+  - get: semver-resource
+  - task: unit
+    file: semver-resource/build.yml
+    config:
+      params:
+        SEMVER_TESTING_ACCESS_KEY_ID: {{semver-access-key}}
+        SEMVER_TESTING_SECRET_ACCESS_KEY: {{semver-secret-key}}
+        SEMVER_TESTING_BUCKET: {{semver-bucket}}
+        SEMVER_TESTING_REGION: {{semver-region}}
+  - put: semver-resource-image
+    params: {build: unit/gopath/src/github.com/concourse/semver-resource}
+  - aggregate:
+    - get: resource-image
+      resource: semver-resource-image
+      params: {rootfs: true}
+    - get: deployments
+    - get: concourse
+  - task: bump-package
+    file: concourse/ci/bump-resource-package.yml
+    config: {params: {RESOURCE_NAME: semver-resource}}
+  - put: concourse
+    params: {repository: bump-package/concourse, rebase: true}
+
+- name: bosh-io-release-resource
+  serial: true
+  plan:
+  - get: bosh-io-release-resource
+  - put: bosh-io-release-resource-image
+    params: {build: bosh-io-release-resource}
+  - aggregate:
+    - get: resource-image
+      resource: bosh-io-release-resource-image
+      params: {rootfs: true}
+    - get: deployments
+    - get: concourse
+  - task: bump-package
+    file: concourse/ci/bump-resource-package.yml
+    config: {params: {RESOURCE_NAME: bosh-io-release-resource}}
+  - put: concourse
+    params: {repository: bump-package/concourse, rebase: true}
+
+- name: bosh-io-stemcell-resource
+  serial: true
+  plan:
+  - get: bosh-io-stemcell-resource
+  - put: bosh-io-stemcell-resource-image
+    params: {build: bosh-io-stemcell-resource}
+  - aggregate:
+    - get: resource-image
+      resource: bosh-io-stemcell-resource-image
+      params: {rootfs: true}
+    - get: deployments
+    - get: concourse
+  - task: bump-package
+    file: concourse/ci/bump-resource-package.yml
+    config: {params: {RESOURCE_NAME: bosh-io-stemcell-resource}}
+  - put: concourse
+    params: {repository: bump-package/concourse, rebase: true}
+
+- name: tracker-resource
+  serial: true
+  plan:
+  - get: tracker-resource
+  - task: unit
+    file: tracker-resource/build.yml
+  - put: tracker-resource-image
+    params: {build: gopath/src/github.com/concourse/tracker-resource}
+  - aggregate:
+    - get: resource-image
+      resource: tracker-resource-image
+      params: {rootfs: true}
+    - get: deployments
+    - get: concourse
+  - task: bump-package
+    file: concourse/ci/bump-resource-package.yml
+    config: {params: {RESOURCE_NAME: tracker-resource}}
+  - put: concourse
+    params: {repository: bump-package/concourse, rebase: true}
+
+- name: vagrant-cloud-resource
+  serial: true
+  plan:
+  - get: vagrant-cloud-resource
+  - put: vagrant-cloud-resource-image
+    params: {build: vagrant-cloud-resource}
+  - aggregate:
+    - get: resource-image
+      resource: vagrant-cloud-resource-image
+      params: {rootfs: true}
+    - get: deployments
+    - get: concourse
+  - task: bump-package
+    file: concourse/ci/bump-resource-package.yml
+    config: {params: {RESOURCE_NAME: vagrant-cloud-resource}}
+  - put: concourse
+    params: {repository: bump-package/concourse, rebase: true}
+
+- name: publish-houdini
+  plan:
+  - get: houdini
+  - task: build-artifacts
+    file: houdini/ci/build-artifacts.yml
+  - put: houdini-artifacts
+    params:
+      name: build-artifacts/dist/release-name
+      tag: build-artifacts/dist/release-name
+      globs: [build-artifacts/dist/artifacts/*]
+
+resources:
+- name: version
+  type: semver
+  source:
+    bucket: concourse-releases
+    key: current-version
+    access_key_id: {{pipeline-bucket-access-key}}
+    secret_access_key: {{pipeline-bucket-secret-key}}
+
+- name: final-release
+  type: s3
+  source:
+    bucket: concourse-releases
+    regexp: concourse-(.*).tgz
+    access_key_id: {{pipeline-bucket-access-key}}
+    secret_access_key: {{pipeline-bucket-secret-key}}
+
+- name: virtualbox-box
+  type: s3
+  source:
+    bucket: concourse-boxes
+    regexp: concourse-virtualbox-ubuntu-trusty-(.*).box
+    access_key_id: {{pipeline-bucket-access-key}}
+    secret_access_key: {{pipeline-bucket-secret-key}}
+
+- name: aws-box
+  type: s3
+  source:
+    bucket: concourse-boxes
+    regexp: concourse-aws-ubuntu-trusty-(.*).box
+    access_key_id: {{pipeline-bucket-access-key}}
+    secret_access_key: {{pipeline-bucket-secret-key}}
+
+- name: concourse-deployment
+  type: bosh-deployment
+  source:
+    target: {{bosh-target}}
+    username: {{bosh-username}}
+    password: {{bosh-password}}
+    deployment: {{bosh-deployment}}
+    ignore_ssl: yes
+
+- name: virtualbox-box-cloud
+  type: vagrant-cloud
+  source:
+    username: concourse
+    box: lite
+    provider: virtualbox
+    access_token: {{atlas-access-token}}
+
+- name: aws-box-cloud
+  type: vagrant-cloud
+  source:
+    username: concourse
+    box: lite
+    provider: aws
+    access_token: {{atlas-access-token}}
+
+- name: cf-cli
+  type: s3
+  source:
+    bucket: go-cli
+    regexp: releases/v(.*)/cf-linux-amd64.tgz
+
+- name: garden-linux
+  type: bosh-io-release
+  source:
+    repository: cloudfoundry-incubator/garden-linux-release
+
+- name: git-resource
+  type: git
+  source:
+    uri: https://github.com/concourse/git-resource.git
+    branch: master
+
+- name: docker-image-resource
+  type: git
+  source:
+    uri: https://github.com/concourse/docker-image-resource.git
+    branch: master
+
+- name: time-resource
+  type: git
+  source:
+    uri: https://github.com/concourse/time-resource.git
+    branch: master
+
+- name: tracker-resource
+  type: git
+  source:
+    uri: https://github.com/concourse/tracker-resource.git
+    branch: master
+
+- name: vagrant-cloud-resource
+  type: git
+  source:
+    uri: https://github.com/concourse/vagrant-cloud-resource.git
+    branch: master
+
+- name: cf-resource
+  type: git
+  source:
+    uri: https://github.com/concourse/cf-resource.git
+    branch: master
+
+- name: broker-resource
+  type: git
+  source:
+    uri: https://github.com/concourse/broker-resource.git
+    branch: master
+
+- name: s3-resource
+  type: git
+  source:
+    uri: https://github.com/concourse/s3-resource.git
+    branch: master
+
+- name: github-release-resource
+  type: git
+  source:
+    uri: https://github.com/concourse/github-release-resource.git
+    branch: master
+
+- name: semver-resource
+  type: git
+  source:
+    uri: https://github.com/concourse/semver-resource.git
+    branch: master
+
+- name: archive-resource
+  type: git
+  source:
+    uri: https://github.com/concourse/archive-resource.git
+    branch: master
+
+- name: bosh-deployment-resource
+  type: git
+  source:
+    uri: https://github.com/concourse/bosh-deployment-resource.git
+    branch: master
+
+- name: bosh-io-release-resource
+  type: git
+  source:
+    uri: https://github.com/concourse/bosh-io-release-resource.git
+    branch: master
+    ignore_paths: [README.md]
+
+- name: bosh-io-stemcell-resource
+  type: git
+  source:
+    uri: https://github.com/concourse/bosh-io-stemcell-resource.git
+    branch: master
+    ignore_paths: [README.md]
+
+- name: git-resource-image
+  type: docker-image
+  source:
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+    repository: concourse/git-resource
+
+- name: docker-image-resource-image
+  type: docker-image
+  source:
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+    repository: concourse/docker-image-resource
+
+- name: archive-resource-image
+  type: docker-image
+  source:
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+    repository: concourse/archive-resource
+
+- name: bosh-deployment-resource-image
+  type: docker-image
+  source:
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+    repository: concourse/bosh-deployment-resource
+
+- name: time-resource-image
+  type: docker-image
+  source:
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+    repository: concourse/time-resource
+
+- name: tracker-resource-image
+  type: docker-image
+  source:
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+    repository: concourse/tracker-resource
+
+- name: vagrant-cloud-resource-image
+  type: docker-image
+  source:
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+    repository: concourse/vagrant-cloud-resource
+
+- name: cf-resource-image
+  type: docker-image
+  source:
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+    repository: concourse/cf-resource
+
+- name: s3-resource-image
+  type: docker-image
+  source:
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+    repository: concourse/s3-resource
+
+- name: github-release-resource-image
+  type: docker-image
+  source:
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+    repository: concourse/github-release-resource
+
+- name: semver-resource-image
+  type: docker-image
+  source:
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+    repository: concourse/semver-resource
+
+- name: bosh-io-release-resource-image
+  type: docker-image
+  source:
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+    repository: concourse/bosh-io-release-resource
+
+- name: bosh-io-stemcell-resource-image
+  type: docker-image
+  source:
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+    repository: concourse/bosh-io-stemcell-resource
+
+- name: tracker
+  type: tracker
+  source:
+    tracker_url: https://www.pivotaltracker.com
+    project_id: "1059262"
+    token: {{tracker-token}}
+
+- name: aws-stemcell
+  type: bosh-io-stemcell
+  source:
+    name: bosh-aws-xen-hvm-ubuntu-trusty-go_agent
+
+- name: vsphere-stemcell
+  type: bosh-io-stemcell
+  source:
+    name: bosh-vsphere-esxi-ubuntu-trusty-go_agent
+
+- name: lite-stemcell
+  type: bosh-io-stemcell
+  source:
+    name: bosh-warden-boshlite-ubuntu-trusty-go_agent
+
+- name: concourse-lite
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse-lite.git
+    branch: master
+
+- name: concourse-develop
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse.git
+    branch: develop
+
+- name: concourse-docs
+  type: cf
+  source:
+    api: {{cf-target}}
+    username: {{cf-username}}
+    password: {{cf-password}}
+    organization: {{cf-organization}}
+    space: {{cf-space}}
+
+- name: departures
+  type: git
+  source:
+    uri: https://github.com/vito/departure-board.git
+    branch: master
+
+- name: departures-app
+  type: cf
+  source:
+    api: {{cf-target}}
+    username: {{cf-username}}
+    password: {{cf-password}}
+    organization: {{cf-organization}}
+    space: {{cf-space}}
+
+- name: github-release
+  type: github-release
+  source:
+    access_token: {{concourse-github-release-access-token}}
+    repository: concourse
+    user: concourse
+
+- name: concourse
+  type: git
+  source:
+    uri: git@github.com:concourse/concourse.git
+    branch: develop
+    private_key: {{concourse-repo-private-key}}
+
+- name: concourse-master
+  type: git
+  source:
+    uri: git@github.com:concourse/concourse.git
+    branch: master
+    private_key: {{concourse-repo-private-key}}
+
+- name: bosh-lite
+  type: git
+  source:
+    uri: https://github.com/cloudfoundry/bosh-lite.git
+    branch: master
+
+- name: hangar
+  type: git
+  source:
+    uri: https://github.com/concourse/hangar.git
+    branch: master
+
+- name: autopilot
+  type: git
+  source:
+    uri: https://github.com/concourse/autopilot.git
+    branch: master
+
+- name: p-concourse
+  type: git
+  source:
+    uri: https://github.com/concourse/p-concourse.git
+    branch: master
+
+- name: product
+  type: s3
+  source:
+    bucket: concourse-product
+    regexp: p-concourse-(.*).pivotal
+    access_key_id: {{pipeline-bucket-access-key}}
+    secret_access_key: {{pipeline-bucket-secret-key}}
+
+- name: deployments
+  type: git
+  source:
+    uri: git@github.com:concourse/deployments.git
+    branch: master
+    private_key: {{deployments-repo-private-key}}
+
+- name: houdini
+  type: git
+  source:
+    uri: https://github.com/vito/houdini.git
+    branch: master
+
+- name: houdini-artifacts
+  type: github-release
+  source:
+    user: vito
+    repository: houdini
+    access_token: {{houdini-github-release-access-token}}
