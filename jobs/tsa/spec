@@ -19,6 +19,9 @@ properties:
     description: "interval on which to register with the ATC"
     default: 30s
 
+  tsa.forward_host:
+    description: "address to advertise forwarded worker connections to. if not specified, determined dynamically."
+a
   tsa.atc.address:
     description: "atc server connection address"
     default: atc.service.dc1.consul:8080
