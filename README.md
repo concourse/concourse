@@ -10,9 +10,17 @@ Openstack or with Vagrant.
 * Roadmap: [Pivotal Tracker](https://www.pivotaltracker.com/n/projects/1059262)
 
 
+### Example
+
+Concourse's own CI pipeline lives at
+[ci.concourse.ci](http://ci.concourse.ci). Its configuration lives in this
+repo under
+[ci/pipeline.yml](https://github.com/concourse/concourse/blob/develop/ci/pipeline.yml).
+
+
 ### Try it on Vagrant
 
-Pre-built Vagrant boxes are available for VirtualBox and AWS. You can stand up 
+Pre-built Vagrant boxes are available for VirtualBox and AWS. You can stand up
 a new instance pretty quickly without having to clone this repo:
 
 ```
