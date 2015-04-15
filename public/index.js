@@ -219,7 +219,9 @@ function createGraph(svg, groups, jobs, resources) {
     }
 
     var status;
-    if (job.finished_build) {
+    if (job.paused) {
+      status = "paused";
+    } else if (job.finished_build) {
       status = job.finished_build.status
     } else {
       status = "pending";

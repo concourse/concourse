@@ -14,9 +14,9 @@ body {
 }
 /* regular links */
 a {
-  color: #6a9fb5;
+  color: #f5f5f5;
+  text-decoration: none;
 }
-/* not really used anywhere... */
 /* dark */
 svg .node rect {
   fill: #151515;
@@ -60,16 +60,19 @@ svg .node.job.normal rect {
   background: #505050;
 }
 /* order here matters >:( */
-.build-header .trigger-build button i {
+.build-action {
+  background-color: transparent;
+}
+.build-action i {
   color: #f5f5f5;
 }
-.build-header .trigger-build button i:hover {
+.build-action i:hover {
   background: #303030;
 }
-.build-header .trigger-build button i:active {
+.build-action i:active {
   background: #b0b0b0;
 }
-.build-header .trigger-build button i:focus {
+.build-action i:focus {
   background: #b0b0b0;
 }
 .build-header .abort-build button i {
@@ -504,4 +507,15 @@ svg .paused rect {
 .btn-pause.disabled,
 .btn-pause.enabled:active {
   background-color: #505050;
+}
+.btn-pause-large {
+  font-size: 25px;
+  text-align: center;
+}
+.btn-pause-large i {
+  line-height: 60px;
+  width: 60px;
+}
+.build-action.btn-pause i {
+  font-size: 23px;
 }

@@ -33,7 +33,7 @@ gulp.task('compile-build', function () {
 });
 
 gulp.task('compile-concourse', function () {
-   var stream = gulp.src('./concourse/*.js')
+   var stream = gulp.src(["concourse/concourse.js", "concourse/concourse.*.js", "concourse/jquery.*.js"])
     .pipe(jshint())
     .pipe(jshint.reporter('jshint-stylish'))
     .pipe(concat('concourse.js'))
@@ -47,7 +47,7 @@ gulp.task('compile-concourse', function () {
 
 // jasmine stuff
 var externalFiles = ["../public/jquery-2.1.1.min.js", "spec/helpers/**/*.js"]
-var jsSourceFiles = ["concourse/*.js", "spec/**/*_spec.js"]
+var jsSourceFiles = ["concourse/concourse.js", "concourse/concourse.*.js", "concourse/jquery.*.js", "spec/**/*_spec.js"]
 var hintSpecFiles = function() {
   gulp.src('spec/**/*_spec.js')
 }

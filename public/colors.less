@@ -24,7 +24,7 @@ body { background: @base01; }
 body { color: @base05; }
 
 /* regular links */
-a { color: @base0D; } /* not really used anywhere... */
+a { color: @base07; text-decoration: none; }
 
 /* dark */
 svg .node rect { fill: @base00; }
@@ -46,10 +46,11 @@ svg .node.job.normal rect { fill: @base03; }
 .groups li.active a { background: @base03; }
 
 /* order here matters >:( */
-.build-header .trigger-build button i { color: @base07; }
-.build-header .trigger-build button i:hover { background: @base02; }
-.build-header .trigger-build button i:active { background: @base04; }
-.build-header .trigger-build button i:focus { background: @base04; }
+.build-action {background-color: transparent;}
+.build-action i { color: @base07; }
+.build-action i:hover { background: @base02; }
+.build-action i:active { background: @base04; }
+.build-action i:focus { background: @base04; }
 
 .build-header .abort-build button i { color: @base08; }
 .build-header .abort-build button i:hover { background: @base08; color: @base07; }
@@ -282,4 +283,17 @@ svg .job.node.started div,
       &:extend(.btn-pause.enabled);
     }
   }
+}
+
+.btn-pause-large {
+  font-size: 25px;
+  text-align: center;
+}
+.btn-pause-large i {
+    line-height: 60px;
+    width: 60px;
+}
+
+.build-action.btn-pause i {
+  font-size: 23px;
 }
