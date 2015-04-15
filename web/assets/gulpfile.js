@@ -76,7 +76,7 @@ gulp.task('jasmine', function() {
 
 gulp.task('compile-css', function() {
 
-  return gulp.src('css/*.less')
+  return gulp.src('css/main.less')
     .pipe(less())
     .pipe(minifyCSS())
     .pipe(gulp.dest(publicDir));

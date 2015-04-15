@@ -1,0 +1,49 @@
+@import (reference) "_vars.less";
+
+nav .groups {
+  height: 40px;
+  display: block;
+  overflow: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.nav-right {
+  list-style: none;
+  position: fixed;
+  z-index: 2;
+  top: 0;
+  right: 10px;
+   height: 40px;
+  margin: 0;
+
+}
+
+nav .groups li {
+  display: inline-block;
+}
+
+nav .groups li a {
+  display: inline-block;
+  padding: 0 10px;
+  text-decoration: none;
+  font-size: 18px;
+  line-height: 40px;
+}
+
+
+
+
+.nav-item {
+  &, a {
+    color: @base07;
+  }
+  font-size: 18px;
+  line-height: 40px;
+}
