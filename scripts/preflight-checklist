@@ -1,0 +1,11 @@
+#!/bin/sh
+
+cd $(dirname $0)/..
+
+set -e -x
+
+./scripts/sync-submodule-config
+./scripts/sync-package-specs
+./scripts/commit-with-submodule-log "$@"
+
+git commit --amend
