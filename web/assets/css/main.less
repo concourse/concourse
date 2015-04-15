@@ -1,0 +1,496 @@
+body {
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+pre {
+  font-family: monospace;
+  word-wrap: break-word;
+}
+
+#page-header {
+  width: 100%;
+  position: fixed;
+  top: 40px;
+  z-index: 2;
+}
+
+nav .groups {
+  height: 40px;
+  display: block;
+  overflow: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.nav-right {
+  list-style: none;
+  position: fixed;
+  z-index: 2;
+  top: 0;
+  right: 10px;
+   height: 40px;
+  margin: 0;
+
+}
+
+nav .groups li {
+  display: inline-block;
+}
+
+nav .groups li a {
+  display: inline-block;
+  padding: 0 10px;
+  text-decoration: none;
+  font-size: 18px;
+  line-height: 40px;
+}
+
+
+#content {
+  margin-top: 40px;
+}
+
+.wrap {
+  padding: 0 20px;
+}
+
+.build-header,
+.resource-header {
+  padding: 0;
+  height: 60px;
+}
+
+.build-header h1,
+.resource-header h1 {
+  line-height: 60px;
+  float: left;
+  margin: 0;
+  margin-left: 18px;
+}
+
+.build-header .build-times {
+  height: 48px;
+  float: left;
+  padding: 6px;
+  margin: 0;
+}
+
+.build-header .build-times dt {
+  width: 8em;
+  display: inline-block;
+  float: left;
+  text-align: right;
+}
+
+.build-header .build-times dd {
+  margin-left: 9em;
+  white-space: pre;
+  word-wrap: break-word;
+}
+
+.build-header .abort-build {
+  float: right;
+}
+
+.build-action,
+.build-header .abort-build button {
+  background: transparent;
+  border: none;
+  margin: 10px 10px 0 0;
+  padding: 0;
+}
+
+.build-action i,
+.build-header .abort-build i {
+  width: 40px;
+  line-height: 40px;
+  border-radius: 50%;
+  font-size: 30px;
+  cursor: pointer;
+}
+
+.build-action:active,
+.build-header .abort-build button:active,
+.build-action:focus,
+.build-header .abort-build button:focus {
+  outline: none;
+}
+
+.build-header .abort-build button {
+  margin-right: 5px;
+}
+
+#cli-downloads {
+  position: fixed;
+  bottom: 1em;
+  right: 1em;
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+}
+
+#cli-downloads:before {
+  content: "cli:";
+}
+
+#cli-downloads li {
+  display: inline-block;
+}
+
+#cli-downloads a {
+  text-decoration: none;
+}
+
+#builds,
+.builds-list {
+  display: block;
+  overflow: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.builds-list li {
+  float: left;
+  margin: 5px;
+}
+
+#builds li {
+  opacity: .8;
+  display: inline-block;
+}
+
+#builds li.current {
+  opacity: 1;
+}
+
+#builds li a,
+.builds-list li a {
+  font-size: 20px;
+  line-height: 1em;
+  text-align: center;
+  margin: 0;
+  padding: 5px;
+  display: block;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+#build-body {
+  margin-top: 130px;
+}
+#build-body.build-body-noSubHeader {
+  margin-top: 100px;
+}
+
+#build-body .section {
+  margin: 0 30px;
+}
+
+#build-body .section h2 {
+  font-size: 2em;
+  font-weight: bold;
+  display: block;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+#build-body .builds-list {
+  padding: 20px;
+}
+
+#build-body .builds-list a {
+  font-size: 40px;
+  padding: 10px;
+}
+
+@-webkit-keyframes pulsate {
+  0% { opacity: 1.0; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1.0; }
+}
+
+@keyframes pulsate {
+  0% { opacity: 1.0; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1.0; }
+}
+
+#build-requires-auth {
+  display: none; /* gets toggled by failed websocket connection */
+}
+
+#build-requires-auth input {
+  width: 100%;
+  padding: 0 10px;
+  text-decoration: none;
+  font-size: 18px;
+  line-height: 40px;
+  font-family: inherit;
+  font-weight: bold;
+  cursor: pointer;
+  margin: 0;
+  border: none;
+}
+
+span.error {
+  font-weight: bold;
+}
+
+.step-body {
+  padding: 0 10px;
+}
+
+.step-body pre {
+  margin: 10px 0 0;
+}
+
+.build-metadata {
+  float: right;
+  margin: 0;
+}
+
+.steps {
+  padding: 10px;
+}
+
+.steps .seq {
+  clear: both;
+}
+
+.steps .seq > .build-source:last {
+  padding-bottom: 0;
+}
+
+.steps .seq, .steps .nest {
+  margin-bottom: 10px;
+}
+
+.steps .seq:last-child, .steps .nest:last-child {
+  margin-bottom: 0;
+}
+
+.steps .nest {
+  padding: 10px;
+  clear: both;
+}
+
+.build-step .header {
+  cursor: pointer;
+  clear: both;
+  position: relative;
+  min-height: 28px;
+}
+
+.build-step .header i {
+  line-height: 28px;
+  width: 28px;
+}
+
+.build-step .header i.left {
+  float: left;
+
+  /*
+    since the leftmost icons don't have a background color,
+    remove the spacing between it and the header
+  */
+  margin-right: -6px;
+}
+
+.build-step .header i.right {
+  float: right;
+}
+
+.build-step .header .version {
+  float: right;
+  margin: 0;
+  padding: 0 6px;
+  line-height: 28px;
+}
+
+.build-step .header h3 {
+  margin: 0;
+  padding: 0 6px;
+  float: left;
+  line-height: 28px;
+}
+
+.build-step dt,
+.build-metadata dt {
+  width: 10em;
+  display: inline-block;
+  float: left;
+  text-align: right;
+}
+
+.build-step dd,
+.build-metadata dd {
+  margin-left: 11em;
+  white-space: pre;
+  word-wrap: break-word;
+}
+
+.resource-check-status {
+  margin-bottom: 20px;
+}
+
+.resource-check-status .header {
+  cursor: default;
+}
+
+#version-history {
+  width: 100%;
+  padding: 0 10px;
+}
+
+#version-history tr.disabled {
+  opacity: 0.5;
+}
+
+#version-history .toggle-resource-version {
+  text-decoration: none;
+  display: inline-block;
+  line-height: 28px;
+  width: 60px;
+  text-align: center;
+}
+
+#version-history th {
+  text-align: left;
+  margin: 0;
+  padding: 0;
+}
+
+#version-history td {
+  margin: 0;
+  padding-bottom: 10px;
+  border-spacing: 10px;
+  border-right: 0;
+  border-bottom: 0;
+  vertical-align: top;
+}
+
+#version-history dl.build-metadata {
+  padding: 1em;
+  float: none;
+}
+
+#version-history table.jobs td {
+  border: 0;
+  padding: 10px 10px 0;
+  vertical-align: top;
+}
+
+#version-history table.jobs .builds-list li {
+  float: left;
+  margin: 5px;
+}
+
+#version-history table.jobs h3 {
+  margin: 0;
+  text-align: right;
+}
+
+#pipeline {
+  position: absolute;
+  top: 40px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+#pipeline svg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+#pipeline .legend {
+  position: fixed;
+  bottom: 1em;
+  left: 1em;
+  margin: 0;
+  padding: 0;
+}
+
+#pipeline .legend dt {
+  width: 10px;
+  height: 10px;
+  margin: 4px;
+  float: left;
+}
+
+#pipeline .legend dd {
+  margin-left: 22px;
+  line-height: 18px;
+}
+
+svg h1 {
+  margin: 5px;
+  width: 100%;
+}
+
+svg h1.resource {
+  font-size: 1.5em;
+  font-weight: normal;
+  width: 100%;
+}
+
+svg h1 a {
+  padding: 5px;
+  text-decoration: none;
+}
+
+svg .node.job h1 a {
+  font-weight: bold;
+}
+
+svg .node rect {
+  shape-rendering: crispEdges;
+}
+
+.edge path {
+  stroke-width: 2px;
+  fill: none;
+}
+
+.node text {
+  fill: #fff;
+}
+
+.node.job text {
+  font-weight: bold;
+}
+
+.node.constrained-input {
+  opacity: 0.5;
+}
+
+svg .active path {
+  stroke-width: 4px;
+}
+
+svg .active.node rect {
+  filter: url(#embiggen);
+}
+
+svg .active.node text {
+  font-size: 1.06em;
+}
+
+/* Util Classes */
+.fl {float: left;}
+.fr {float: right;}
