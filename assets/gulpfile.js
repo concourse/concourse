@@ -26,14 +26,14 @@ function rebundle(bundler) {
 }
 
 gulp.task('compile-build', function () {
-  var bundler = browserify('./event_handler.jsx', { debug: !production });
+  var bundler = browserify('./javascript/event_handler.jsx', { debug: !production });
   bundler.transform(reactify);
 
   return rebundle(bundler);
 });
 
 gulp.task('compile-concourse', function () {
-   var stream = gulp.src(["concourse/concourse.js", "concourse/concourse.*.js", "concourse/jquery.*.js"])
+   var stream = gulp.src(["javasciprt/concourse/concourse.js", "javasciprt/concourse/concourse.*.js", "javasciprt/concourse/jquery.*.js"])
     .pipe(jshint())
     .pipe(jshint.reporter('jshint-stylish'))
     .pipe(concat('concourse.js'))
@@ -46,10 +46,10 @@ gulp.task('compile-concourse', function () {
 });
 
 // jasmine stuff
-var externalFiles = ["../public/jquery-2.1.1.min.js", "spec/helpers/**/*.js"]
-var jsSourceFiles = ["concourse/concourse.js", "concourse/concourse.*.js", "concourse/jquery.*.js", "spec/**/*_spec.js"]
+var externalFiles = ["../public/jquery-2.1.1.min.js", "javascript/spec/helpers/**/*.js"]
+var jsSourceFiles = ["javascript/concourse/concourse.js", "javascript/concourse/concourse.*.js", "javascript/concourse/jquery.*.js", "javascript/spec/**/*_spec.js"]
 var hintSpecFiles = function() {
-  gulp.src('spec/**/*_spec.js')
+  gulp.src('javascript/spec/**/*_spec.js')
 }
 
 gulp.task('jasmine-cli', function(cb) {
@@ -71,7 +71,7 @@ gulp.task('jasmine', function() {
 });
 
 gulp.task('watch', function () {
-  var bundler = watchify(browserify('./event_handler.jsx'), { debug: !production });
+  var bundler = watchify(browserify('./javascript/event_handler.jsx'), { debug: !production });
   bundler.transform(reactify);
 
   bundler.on('update', function() { rebundle(bundler); });
