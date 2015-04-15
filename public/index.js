@@ -325,6 +325,7 @@ function createGraph(svg, groups, jobs, resources) {
   for (var i in jobs) {
     var job = jobs[i];
     var id = jobNode(job.name);
+    var status = "";
 
     if (!groupsMatch(job.groups, groups)) {
       continue;
@@ -347,6 +348,7 @@ function createGraph(svg, groups, jobs, resources) {
 
           if (resourcePaused[input.resource]) {
             classes += " paused";
+            status = "paused";
           }
 
           graph.setNode(inputId, new Node({
@@ -354,6 +356,7 @@ function createGraph(svg, groups, jobs, resources) {
             name: input.resource,
             key: input.resource,
             class: classes,
+            status: status,
             url: resourceURLs[input.resource],
             svg: svg,
           }));
