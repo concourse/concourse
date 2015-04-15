@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web"
+	"github.com/concourse/atc/web/routes"
 )
 
 func TestURLs(t *testing.T) {
@@ -46,6 +47,19 @@ var _ = Describe("URLs", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Ω(path).Should(Equal("/api/v1/resources/resource-name/versions/123/disable"))
+		})
+	})
+
+	Describe("Jobs Patch", func() {
+		It("returns the correct URL", func() {
+			job := atc.JobConfig{
+				Name: "some-job",
+			}
+
+			path, err := web.PathFor(routes.GetJob, job)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(path).Should(Equal("/jobs/some-job"))
 		})
 	})
 })

@@ -1,7 +1,9 @@
 package getjob
 
 import (
+	"errors"
 	"html/template"
+	"log"
 	"net/http"
 
 	"github.com/concourse/atc"
@@ -32,6 +34,7 @@ func NewHandler(logger lager.Logger, db db.DB, configDB db.ConfigDB, template *t
 
 type TemplateData struct {
 	Job    atc.JobConfig
+	DBJob  db.Job
 	Builds []db.Build
 
 	GroupStates []group.State
@@ -39,44 +42,46 @@ type TemplateData struct {
 	CurrentBuild db.Build
 }
 
-func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	jobName := r.FormValue(":job")
-	if len(jobName) == 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+//go:generate counterfeiter . JobDB
 
-	config, _, err := handler.configDB.GetConfig()
+type JobDB interface {
+	GetJob(string) (db.Job, error)
+	GetAllJobBuilds(job string) ([]db.Build, error)
+	GetCurrentBuild(job string) (db.Build, error)
+}
+
+var ErrJobConfigNotFound = errors.New("could not find job")
+var Err = errors.New("could not find job")
+
+func FetchTemplateData(jobDB JobDB, configDB db.ConfigDB, jobName string) (TemplateData, error) {
+	config, _, err := configDB.GetConfig()
 	if err != nil {
-		handler.logger.Error("failed-to-load-config", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return TemplateData{}, err
 	}
 
 	job, found := config.Jobs.Lookup(jobName)
 	if !found {
-		w.WriteHeader(http.StatusNotFound)
-		return
+		return TemplateData{}, ErrJobConfigNotFound
 	}
 
-	log := handler.logger.Session("get-job", lager.Data{
-		"job": job.Name,
-	})
-
-	bs, err := handler.db.GetAllJobBuilds(jobName)
+	bs, err := jobDB.GetAllJobBuilds(job.Name)
 	if err != nil {
-		log.Error("get-all-builds-failed", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return TemplateData{}, err
 	}
 
-	currentBuild, err := handler.db.GetCurrentBuild(job.Name)
+	currentBuild, err := jobDB.GetCurrentBuild(job.Name)
 	if err != nil {
 		currentBuild.Status = db.StatusPending
 	}
 
-	templateData := TemplateData{
+	dbJob, err := jobDB.GetJob(job.Name)
+	if err != nil {
+		return TemplateData{}, err
+	}
+
+	return TemplateData{
 		Job:    job,
+		DBJob:  dbJob,
 		Builds: bs,
 
 		GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
@@ -90,6 +95,32 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}),
 
 		CurrentBuild: currentBuild,
+	}, nil
+}
+
+func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	jobName := r.FormValue(":job")
+	if len(jobName) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	templateData, err := FetchTemplateData(handler.db, handler.configDB, jobName)
+	switch err {
+	case ErrJobConfigNotFound:
+		handler.logger.Error("could-not-find-job-in-config", ErrJobConfigNotFound, lager.Data{
+			"job": jobName,
+		})
+		w.WriteHeader(http.StatusNotFound)
+		return
+	case nil:
+		break
+	default:
+		handler.logger.Error("failed-to-build-template-data", err, lager.Data{
+			"job": jobName,
+		})
+		http.Error(w, "failed to fetch job", http.StatusInternalServerError)
+		return
 	}
 
 	err = handler.template.Execute(w, templateData)

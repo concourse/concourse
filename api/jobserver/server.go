@@ -19,6 +19,9 @@ type JobsDB interface {
 	GetCurrentBuild(job string) (db.Build, error)
 	GetJobBuild(job string, build string) (db.Build, error)
 	GetJobFinishedAndNextBuild(job string) (*db.Build, *db.Build, error)
+	GetJob(job string) (db.Job, error)
+	PauseJob(job string) error
+	UnpauseJob(job string) error
 }
 
 func NewServer(

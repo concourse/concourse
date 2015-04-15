@@ -101,6 +101,8 @@ func NewHandler(
 		atc.GetJob:        http.HandlerFunc(jobServer.GetJob),
 		atc.ListJobBuilds: http.HandlerFunc(jobServer.ListJobBuilds),
 		atc.GetJobBuild:   http.HandlerFunc(jobServer.GetJobBuild),
+		atc.PauseJob:      validate(http.HandlerFunc(jobServer.PauseJob)),
+		atc.UnpauseJob:    validate(http.HandlerFunc(jobServer.UnpauseJob)),
 
 		atc.ListResources:          http.HandlerFunc(resourceServer.ListResources),
 		atc.EnableResourceVersion:  validate(http.HandlerFunc(resourceServer.EnableResourceVersion)),

@@ -7,7 +7,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func Job(job atc.JobConfig, groups atc.GroupConfigs, finishedBuild, nextBuild *db.Build) atc.Job {
+func Job(dbJob db.Job, job atc.JobConfig, groups atc.GroupConfigs, finishedBuild, nextBuild *db.Build) atc.Job {
 	generator := rata.NewRequestGenerator("", routes.Routes)
 
 	req, err := generator.CreateRequest(
@@ -43,6 +43,7 @@ func Job(job atc.JobConfig, groups atc.GroupConfigs, finishedBuild, nextBuild *d
 	return atc.Job{
 		Name:          job.Name,
 		URL:           req.URL.String(),
+		Paused:        dbJob.Paused,
 		FinishedBuild: presentedFinishedBuild,
 		NextBuild:     presentedNextBuild,
 

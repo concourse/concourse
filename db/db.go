@@ -12,10 +12,13 @@ type DB interface {
 	GetAllBuilds() ([]Build, error)
 	GetAllStartedBuilds() ([]Build, error)
 
+	GetJob(resource string) (Job, error)
 	GetJobBuild(job string, build string) (Build, error)
 	GetAllJobBuilds(job string) ([]Build, error)
 	GetCurrentBuild(job string) (Build, error)
 	GetJobFinishedAndNextBuild(job string) (*Build, *Build, error)
+	PauseJob(job string) error
+	UnpauseJob(job string) error
 
 	GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error)
 

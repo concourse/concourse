@@ -202,6 +202,80 @@ func (db *SQLDB) GetBuild(buildID int) (Build, error) {
 	`, buildID))
 }
 
+func (db *SQLDB) GetJob(jobName string) (Job, error) {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return Job{}, err
+	}
+
+	defer tx.Rollback()
+
+	err = registerJob(tx, jobName)
+	if err != nil {
+		return Job{}, err
+	}
+
+	var job Job
+
+	err = tx.QueryRow(`
+				SELECT name, paused
+				FROM jobs
+				WHERE name = $1
+			`, jobName).Scan(&job.Name, &job.Paused)
+	if err != nil {
+		return Job{}, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return Job{}, err
+	}
+
+	return job, nil
+}
+
+func (db *SQLDB) PauseJob(job string) error {
+	return db.updatePausedJob(job, true)
+}
+
+func (db *SQLDB) UnpauseJob(job string) error {
+	return db.updatePausedJob(job, false)
+}
+
+func (db *SQLDB) updatePausedJob(job string, pause bool) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	err = registerJob(tx, job)
+	if err != nil {
+		return err
+	}
+
+	result, err := tx.Exec(`
+		UPDATE jobs
+		SET paused = $1
+		WHERE name = $2
+	`, pause, job)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected != 1 {
+		return nonOneRowAffectedError{rowsAffected}
+	}
+
+	return tx.Commit()
+}
+
 func (db *SQLDB) GetJobBuild(job string, name string) (Build, error) {
 	return scanBuild(db.conn.QueryRow(`
 		SELECT `+buildColumns+`
@@ -618,6 +692,13 @@ func (db *SQLDB) ScheduleBuild(buildID int, serial bool) (bool, error) {
 				AND s.id != b.id
 				AND (s.status = 'started' OR (s.status = 'pending' AND s.scheduled = true))
 			)
+		)
+		-- if the job is paused, we do not want to schedule
+		AND NOT EXISTS (
+			SELECT 1
+			FROM jobs j
+			WHERE j.name = b.job_name
+				AND j.paused = true
 		)
 	`, buildID, serial)
 	if err != nil {

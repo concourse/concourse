@@ -17,6 +17,8 @@ const (
 	ListJobs      = "ListJobs"
 	ListJobBuilds = "ListJobBuilds"
 	GetJobBuild   = "GetJobBuild"
+	PauseJob      = "PauseJob"
+	UnpauseJob    = "UnpauseJob"
 
 	ListResources          = "ListResources"
 	EnableResourceVersion  = "EnableResourceVersion"
@@ -51,6 +53,8 @@ var Routes = rata.Routes{
 	{Path: "/api/v1/jobs/:job_name", Method: "GET", Name: GetJob},
 	{Path: "/api/v1/jobs/:job_name/builds", Method: "GET", Name: ListJobBuilds},
 	{Path: "/api/v1/jobs/:job_name/builds/:build_name", Method: "GET", Name: GetJobBuild},
+	{Path: "/api/v1/jobs/:job_name/pause", Method: "PUT", Name: PauseJob},
+	{Path: "/api/v1/jobs/:job_name/unpause", Method: "PUT", Name: UnpauseJob},
 
 	{Path: "/api/v1/resources", Method: "GET", Name: ListResources},
 	{Path: "/api/v1/resources/:resource_name/versions/:resource_version_id/enable", Method: "PUT", Name: EnableResourceVersion},

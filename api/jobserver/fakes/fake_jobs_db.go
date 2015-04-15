@@ -47,6 +47,31 @@ type FakeJobsDB struct {
 		result2 *db.Build
 		result3 error
 	}
+	GetJobStub        func(job string) (db.Job, error)
+	getJobMutex       sync.RWMutex
+	getJobArgsForCall []struct {
+		job string
+	}
+	getJobReturns struct {
+		result1 db.Job
+		result2 error
+	}
+	PauseJobStub        func(job string) error
+	pauseJobMutex       sync.RWMutex
+	pauseJobArgsForCall []struct {
+		job string
+	}
+	pauseJobReturns struct {
+		result1 error
+	}
+	UnpauseJobStub        func(job string) error
+	unpauseJobMutex       sync.RWMutex
+	unpauseJobArgsForCall []struct {
+		job string
+	}
+	unpauseJobReturns struct {
+		result1 error
+	}
 }
 
 func (fake *FakeJobsDB) GetAllJobBuilds(job string) ([]db.Build, error) {
@@ -181,6 +206,103 @@ func (fake *FakeJobsDB) GetJobFinishedAndNextBuildReturns(result1 *db.Build, res
 		result2 *db.Build
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeJobsDB) GetJob(job string) (db.Job, error) {
+	fake.getJobMutex.Lock()
+	fake.getJobArgsForCall = append(fake.getJobArgsForCall, struct {
+		job string
+	}{job})
+	fake.getJobMutex.Unlock()
+	if fake.GetJobStub != nil {
+		return fake.GetJobStub(job)
+	} else {
+		return fake.getJobReturns.result1, fake.getJobReturns.result2
+	}
+}
+
+func (fake *FakeJobsDB) GetJobCallCount() int {
+	fake.getJobMutex.RLock()
+	defer fake.getJobMutex.RUnlock()
+	return len(fake.getJobArgsForCall)
+}
+
+func (fake *FakeJobsDB) GetJobArgsForCall(i int) string {
+	fake.getJobMutex.RLock()
+	defer fake.getJobMutex.RUnlock()
+	return fake.getJobArgsForCall[i].job
+}
+
+func (fake *FakeJobsDB) GetJobReturns(result1 db.Job, result2 error) {
+	fake.GetJobStub = nil
+	fake.getJobReturns = struct {
+		result1 db.Job
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeJobsDB) PauseJob(job string) error {
+	fake.pauseJobMutex.Lock()
+	fake.pauseJobArgsForCall = append(fake.pauseJobArgsForCall, struct {
+		job string
+	}{job})
+	fake.pauseJobMutex.Unlock()
+	if fake.PauseJobStub != nil {
+		return fake.PauseJobStub(job)
+	} else {
+		return fake.pauseJobReturns.result1
+	}
+}
+
+func (fake *FakeJobsDB) PauseJobCallCount() int {
+	fake.pauseJobMutex.RLock()
+	defer fake.pauseJobMutex.RUnlock()
+	return len(fake.pauseJobArgsForCall)
+}
+
+func (fake *FakeJobsDB) PauseJobArgsForCall(i int) string {
+	fake.pauseJobMutex.RLock()
+	defer fake.pauseJobMutex.RUnlock()
+	return fake.pauseJobArgsForCall[i].job
+}
+
+func (fake *FakeJobsDB) PauseJobReturns(result1 error) {
+	fake.PauseJobStub = nil
+	fake.pauseJobReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeJobsDB) UnpauseJob(job string) error {
+	fake.unpauseJobMutex.Lock()
+	fake.unpauseJobArgsForCall = append(fake.unpauseJobArgsForCall, struct {
+		job string
+	}{job})
+	fake.unpauseJobMutex.Unlock()
+	if fake.UnpauseJobStub != nil {
+		return fake.UnpauseJobStub(job)
+	} else {
+		return fake.unpauseJobReturns.result1
+	}
+}
+
+func (fake *FakeJobsDB) UnpauseJobCallCount() int {
+	fake.unpauseJobMutex.RLock()
+	defer fake.unpauseJobMutex.RUnlock()
+	return len(fake.unpauseJobArgsForCall)
+}
+
+func (fake *FakeJobsDB) UnpauseJobArgsForCall(i int) string {
+	fake.unpauseJobMutex.RLock()
+	defer fake.unpauseJobMutex.RUnlock()
+	return fake.unpauseJobArgsForCall[i].job
+}
+
+func (fake *FakeJobsDB) UnpauseJobReturns(result1 error) {
+	fake.UnpauseJobStub = nil
+	fake.unpauseJobReturns = struct {
+		result1 error
+	}{result1}
 }
 
 var _ jobserver.JobsDB = new(FakeJobsDB)

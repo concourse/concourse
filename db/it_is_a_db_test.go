@@ -1190,6 +1190,40 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 		})
 
+		Describe("pausing and unpausing jobs", func() {
+			job := "some-job"
+
+			It("starts out as unpaused", func() {
+				job, err := database.GetJob(job)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(job.Paused).Should(BeFalse())
+			})
+
+			It("can be paused", func() {
+				err := database.PauseJob(job)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				pausedJob, err := database.GetJob(job)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(pausedJob.Paused).Should(BeTrue())
+			})
+
+			It("can be unpaused", func() {
+				err := database.PauseJob(job)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = database.UnpauseJob(job)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				unpausedJob, err := database.GetJob(job)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(unpausedJob.Paused).Should(BeFalse())
+			})
+		})
+
 		Describe("determining the inputs for a job", func() {
 			It("ensures that versions from jobs mentioned in two input's 'passed' sections came from the same builds", func() {
 				j1b1, err := database.CreateJobBuild("job-1")
@@ -1409,14 +1443,15 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 		Context("when the first build is created", func() {
 			var firstBuild db.Build
 
-			var job string
+			var job db.Job
 
 			BeforeEach(func() {
 				var err error
 
-				job = "some-job"
+				job, err = database.GetJob("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
 
-				firstBuild, err = database.CreateJobBuild(job)
+				firstBuild, err = database.CreateJobBuild(job.Name)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(firstBuild.Name).Should(Equal("1"))
 				Ω(firstBuild.Status).Should(Equal(db.StatusPending))
@@ -1430,7 +1465,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				})
 
 				It("changes the state to errored", func() {
-					build, err := database.GetJobBuild(job, firstBuild.Name)
+					build, err := database.GetJobBuild(job.Name, firstBuild.Name)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(build.Status).Should(Equal(db.StatusErrored))
 				})
@@ -1460,9 +1495,24 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				})
 
 				It("changes the state to aborted", func() {
-					build, err := database.GetJobBuild(job, firstBuild.Name)
+					build, err := database.GetJobBuild(job.Name, firstBuild.Name)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(build.Status).Should(Equal(db.StatusAborted))
+				})
+
+				Describe("scheduling the build", func() {
+					It("fails", func() {
+						scheduled, err := database.ScheduleBuild(firstBuild.ID, false)
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(scheduled).Should(BeFalse())
+					})
+				})
+			})
+
+			Context("when the job is paused", func() {
+				BeforeEach(func() {
+					err := database.PauseJob(job.Name)
+					Ω(err).ShouldNot(HaveOccurred())
 				})
 
 				Describe("scheduling the build", func() {
@@ -1488,7 +1538,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					})
 
 					It("changes the state to aborted", func() {
-						build, err := database.GetJobBuild(job, firstBuild.Name)
+						build, err := database.GetJobBuild(job.Name, firstBuild.Name)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(build.Status).Should(Equal(db.StatusAborted))
 					})
@@ -1577,7 +1627,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					BeforeEach(func() {
 						var err error
 
-						secondBuild, err = database.CreateJobBuild(job)
+						secondBuild, err = database.CreateJobBuild(job.Name)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(secondBuild.Name).Should(Equal("2"))
 						Ω(secondBuild.Status).Should(Equal(db.StatusPending))
@@ -1655,7 +1705,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 						BeforeEach(func() {
 							var err error
 
-							thirdBuild, err = database.CreateJobBuild(job)
+							thirdBuild, err = database.CreateJobBuild(job.Name)
 							Ω(err).ShouldNot(HaveOccurred())
 							Ω(thirdBuild.Name).Should(Equal("3"))
 							Ω(thirdBuild.Status).Should(Equal(db.StatusPending))

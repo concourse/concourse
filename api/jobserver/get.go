@@ -28,7 +28,13 @@ func (s *Server) GetJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	dbJob, err := s.db.GetJob(job.Name)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 
-	json.NewEncoder(w).Encode(present.Job(job, config.Groups, finished, next))
+	json.NewEncoder(w).Encode(present.Job(dbJob, job, config.Groups, finished, next))
 }

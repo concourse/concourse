@@ -89,63 +89,82 @@ var _ = Describe("Jobs API", func() {
 					)
 				})
 
-				It("fetches by job", func() {
-					Ω(jobsDB.GetJobFinishedAndNextBuildCallCount()).Should(Equal(1))
+				Context("when getting the job fails", func() {
+					BeforeEach(func() {
+						jobsDB.GetJobReturns(db.Job{}, errors.New("nope"))
+					})
 
-					jobName := jobsDB.GetJobFinishedAndNextBuildArgsForCall(0)
-					Ω(jobName).Should(Equal("some-job"))
+					It("returns 500", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					})
 				})
+				Context("when getting the job succeeds", func() {
+					BeforeEach(func() {
+						jobsDB.GetJobReturns(db.Job{
+							Name:   "job-1",
+							Paused: true,
+						}, nil)
+					})
 
-				It("returns 200 OK", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
-				})
+					It("fetches by job", func() {
+						Ω(jobsDB.GetJobFinishedAndNextBuildCallCount()).Should(Equal(1))
 
-				It("returns the job's name, url, and any running and finished builds", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Ω(err).ShouldNot(HaveOccurred())
+						jobName := jobsDB.GetJobFinishedAndNextBuildArgsForCall(0)
+						Ω(jobName).Should(Equal("some-job"))
+					})
 
-					Ω(body).Should(MatchJSON(`{
-						"name": "some-job",
-						"url": "/jobs/some-job",
-						"next_build": {
-							"id": 3,
-							"name": "2",
-							"job_name": "some-job",
-							"status": "started",
-							"url": "/jobs/some-job/builds/2"
-						},
-						"finished_build": {
-							"id": 1,
-							"name": "1",
-							"job_name": "some-job",
-							"status": "succeeded",
-							"url": "/jobs/some-job/builds/1"
-						},
-						"inputs": [
-							{
-								"name": "some-input",
-								"resource": "some-input",
-								"trigger": true
+					It("returns 200 OK", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusOK))
+					})
+
+					It("returns the job's name, url, if it's paused, and any running and finished builds", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Ω(body).Should(MatchJSON(`{
+							"name": "some-job",
+							"paused": true,
+							"url": "/jobs/some-job",
+							"next_build": {
+								"id": 3,
+								"name": "2",
+								"job_name": "some-job",
+								"status": "started",
+								"url": "/jobs/some-job/builds/2"
 							},
-							{
-								"name": "some-name",
-								"resource": "some-other-input",
-								"passed": ["a", "b"],
-								"trigger": false
-							}
-						],
-						"outputs": [
-							{
-								"name": "some-output",
-								"resource": "some-output"
+							"finished_build": {
+								"id": 1,
+								"name": "1",
+								"job_name": "some-job",
+								"status": "succeeded",
+								"url": "/jobs/some-job/builds/1"
 							},
-							{
-								"name": "some-other-output",
-								"resource": "some-other-output"
-							}
-						],
-						"groups": ["group-1", "group-2"]
-					}`))
+							"inputs": [
+								{
+									"name": "some-input",
+									"resource": "some-input",
+									"trigger": true
+								},
+								{
+									"name": "some-name",
+									"resource": "some-other-input",
+									"passed": ["a", "b"],
+									"trigger": false
+								}
+							],
+							"outputs": [
+								{
+									"name": "some-output",
+									"resource": "some-output"
+								},
+								{
+									"name": "some-other-output",
+									"resource": "some-other-output"
+								}
+							],
+							"groups": ["group-1", "group-2"]
+						}`))
+					})
 				})
 
 				Context("when there are no running or finished builds", func() {
@@ -296,61 +315,83 @@ var _ = Describe("Jobs API", func() {
 					}
 				})
 
-				It("returns 200 OK", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				Context("when getting the job fails", func() {
+					BeforeEach(func() {
+						jobsDB.GetJobReturns(db.Job{}, errors.New("nope"))
+					})
+
+					It("returns 500", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					})
 				})
 
-				It("returns each job's name, url, and any running and finished builds", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Ω(err).ShouldNot(HaveOccurred())
+				Context("when getting the job succeeds", func() {
+					BeforeEach(func() {
+						jobsDB.GetJobReturns(db.Job{
+							Name:   "job-1",
+							Paused: true,
+						}, nil)
+					})
 
-					Ω(body).Should(MatchJSON(`[
-						{
-							"name": "job-1",
-							"url": "/jobs/job-1",
-							"next_build": {
-								"id": 3,
-								"name": "2",
-								"job_name": "job-1",
-								"status": "started",
-								"url": "/jobs/job-1/builds/2"
+					It("returns 200 OK", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusOK))
+					})
+
+					It("returns each job's name, url, and any running and finished builds", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Ω(body).Should(MatchJSON(`[
+							{
+								"name": "job-1",
+								"paused": true,
+								"url": "/jobs/job-1",
+								"next_build": {
+									"id": 3,
+									"name": "2",
+									"job_name": "job-1",
+									"status": "started",
+									"url": "/jobs/job-1/builds/2"
+								},
+								"finished_build": {
+									"id": 1,
+									"name": "1",
+									"job_name": "job-1",
+									"status": "succeeded",
+									"url": "/jobs/job-1/builds/1"
+								},
+								"inputs": [{"name": "input-1", "resource": "input-1", "trigger": true}],
+								"outputs": [{"name": "output-1", "resource": "output-1"}],
+								"groups": ["group-1", "group-2"]
 							},
-							"finished_build": {
-								"id": 1,
-								"name": "1",
-								"job_name": "job-1",
-								"status": "succeeded",
-								"url": "/jobs/job-1/builds/1"
+							{
+								"name": "job-2",
+								"paused": true,
+								"url": "/jobs/job-2",
+								"next_build": null,
+								"finished_build": {
+									"id": 4,
+									"name": "1",
+									"job_name": "job-2",
+									"status": "succeeded",
+									"url": "/jobs/job-2/builds/1"
+								},
+								"inputs": [{"name": "input-2", "resource": "input-2", "trigger": true}],
+								"outputs": [{"name": "output-2", "resource": "output-2"}],
+								"groups": ["group-2"]
 							},
-							"inputs": [{"name": "input-1", "resource": "input-1", "trigger": true}],
-							"outputs": [{"name": "output-1", "resource": "output-1"}],
-							"groups": ["group-1", "group-2"]
-						},
-						{
-							"name": "job-2",
-							"url": "/jobs/job-2",
-							"next_build": null,
-							"finished_build": {
-								"id": 4,
-								"name": "1",
-								"job_name": "job-2",
-								"status": "succeeded",
-								"url": "/jobs/job-2/builds/1"
-							},
-							"inputs": [{"name": "input-2", "resource": "input-2", "trigger": true}],
-							"outputs": [{"name": "output-2", "resource": "output-2"}],
-							"groups": ["group-2"]
-						},
-						{
-							"name": "job-3",
-							"url": "/jobs/job-3",
-							"next_build": null,
-							"finished_build": null,
-							"inputs": [{"name": "input-3", "resource": "input-3", "trigger": true}],
-							"outputs": [{"name": "output-3", "resource": "output-3"}],
-							"groups": []
-						}
-					]`))
+							{
+								"name": "job-3",
+								"paused": true,
+								"url": "/jobs/job-3",
+								"next_build": null,
+								"finished_build": null,
+								"inputs": [{"name": "input-3", "resource": "input-3", "trigger": true}],
+								"outputs": [{"name": "output-3", "resource": "output-3"}],
+								"groups": []
+							}
+						]`))
+					})
 				})
 			})
 
@@ -502,6 +543,114 @@ var _ = Describe("Jobs API", func() {
 
 			It("returns 404 Not Found", func() {
 				Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+			})
+		})
+	})
+
+	Describe("PUT /api/v1/jobs/:job_name/pause", func() {
+		var response *http.Response
+
+		JustBeforeEach(func() {
+			var err error
+
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/jobs/job-name/pause", nil)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			response, err = client.Do(request)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			Context("when pausing the resource succeeds", func() {
+				BeforeEach(func() {
+					jobsDB.PauseJobReturns(nil)
+				})
+
+				It("paused the right job", func() {
+					Ω(jobsDB.PauseJobArgsForCall(0)).Should(Equal("job-name"))
+				})
+
+				It("returns 200", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				})
+			})
+
+			Context("when pausing the job fails", func() {
+				BeforeEach(func() {
+					jobsDB.PauseJobReturns(errors.New("welp"))
+				})
+
+				It("returns 500", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				})
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Unauthorized", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+			})
+		})
+	})
+
+	Describe("PUT /api/v1/jobs/:job_name/unpause", func() {
+		var response *http.Response
+
+		JustBeforeEach(func() {
+			var err error
+
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/jobs/job-name/unpause", nil)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			response, err = client.Do(request)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			Context("when pausing the resource succeeds", func() {
+				BeforeEach(func() {
+					jobsDB.UnpauseJobReturns(nil)
+				})
+
+				It("paused the right job", func() {
+					Ω(jobsDB.UnpauseJobArgsForCall(0)).Should(Equal("job-name"))
+				})
+
+				It("returns 200", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				})
+			})
+
+			Context("when pausing the job fails", func() {
+				BeforeEach(func() {
+					jobsDB.UnpauseJobReturns(errors.New("welp"))
+				})
+
+				It("returns 500", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				})
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Unauthorized", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
 			})
 		})
 	})

@@ -83,6 +83,11 @@ func PathFor(route string, args ...interface{}) (string, error) {
 			"filename": args[0].(string),
 		})
 
+	case routes.GetJob:
+		return routes.Routes.CreatePathForRoute(route, rata.Params{
+			"job": args[0].(atc.JobConfig).Name,
+		})
+
 	case atc.BuildEvents:
 		return atc.Routes.CreatePathForRoute(route, rata.Params{
 			"build_id": fmt.Sprintf("%d", args[0].(db.Build).ID),

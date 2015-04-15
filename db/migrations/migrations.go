@@ -31,4 +31,5 @@ var Migrations = []migration.Migrator{
 	ConvertJobBuildConfigToJobPlans,
 	AddCheckErrorToResources,
 	AddPausedToResources,
+	AddPausedToJobs,
 }

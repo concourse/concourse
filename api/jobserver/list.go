@@ -24,7 +24,13 @@ func (s *Server) ListJobs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		jobs = append(jobs, present.Job(job, config.Groups, finished, next))
+		dbJob, err := s.db.GetJob(job.Name)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		jobs = append(jobs, present.Job(dbJob, job, config.Groups, finished, next))
 	}
 
 	w.WriteHeader(http.StatusOK)
