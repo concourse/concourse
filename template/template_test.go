@@ -76,13 +76,17 @@ var _ = Describe("Template", func() {
 		Ω(result).Should(Equal([]byte(`"this\nhas\nmany\nlines"`)))
 	})
 
-	It("raises an error when encountering variables that are undefined", func() {
-		byteSlice := []byte("{{not-specified}}")
+	It("raises an error for each variable that is undefined", func() {
+		byteSlice := []byte("{{not-specified-one}}{{not-specified-two}}")
 		variables := template.Variables{}
+		errorMsg := `2 error(s) occurred:
+
+* unbound variable in template: 'not-specified-one'
+* unbound variable in template: 'not-specified-two'`
 
 		_, err := template.Evaluate(byteSlice, variables)
 		Ω(err).Should(HaveOccurred())
-		Ω(err).Should(MatchError("unbound variable in template: 'not-specified'"))
+		Ω(err.Error()).Should(Equal(errorMsg))
 	})
 
 	It("ignores an invalid input", func() {
