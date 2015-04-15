@@ -17,7 +17,7 @@ mkdir ~/npm
 npm config set prefix ~/npm
 export PATH="$PATH:$HOME/npm/bin"
 
-cd web/javascript
+cd web/assets/javascript
 npm install
 npm install -g gulp
 gulp jasmine-cli
