@@ -325,7 +325,6 @@ function createGraph(svg, groups, jobs, resources) {
   for (var i in jobs) {
     var job = jobs[i];
     var id = jobNode(job.name);
-    var status = "";
 
     if (!groupsMatch(job.groups, groups)) {
       continue;
@@ -336,6 +335,7 @@ function createGraph(svg, groups, jobs, resources) {
 
     for (var j in job.inputs) {
       var input = job.inputs[j];
+      var status = "";
 
       if (!input.passed || input.passed.length == 0) {
         var inputId = inputNode(rank, input.resource);
