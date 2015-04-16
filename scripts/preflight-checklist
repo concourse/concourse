@@ -5,7 +5,10 @@ cd $(dirname $0)/..
 set -e -x
 
 ./scripts/sync-submodule-config
+
 ./scripts/sync-package-specs
+git add packages/*/spec
+
 ./scripts/commit-with-submodule-log "$@"
 
 git commit --amend
