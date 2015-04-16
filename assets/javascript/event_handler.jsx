@@ -220,7 +220,7 @@ function processStatus(event) {
   $("#builds .current").attr("class", status + " current");
 
   if(status != "started") {
-    $(".abort-build").remove();
+    $(".abort-build, .js-abortBuild").remove();
   }
 }
 

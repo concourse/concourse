@@ -40,20 +40,16 @@
   word-wrap: break-word;
 }
 
-.build-header .abort-build {
-  float: right;
-}
 
-.build-action,
-.build-header .abort-build button {
+.build-action {
   background: transparent;
   border: none;
   margin: 10px 10px 0 0;
   padding: 0;
+  text-align: center;
 }
 
-.build-action i,
-.build-header .abort-build i {
+.build-action i {
   width: 40px;
   line-height: 40px;
   border-radius: 50%;
@@ -62,14 +58,8 @@
 }
 
 .build-action:active,
-.build-header .abort-build button:active,
-.build-action:focus,
-.build-header .abort-build button:focus {
+.build-action:focus {
   outline: none;
-}
-
-.build-header .abort-build button {
-  margin-right: 5px;
 }
 
 #cli-downloads {

@@ -37,7 +37,7 @@ gulp.task('compile-build', function () {
 });
 
 gulp.task('compile-concourse', function () {
-   var stream = gulp.src(["javasciprt/concourse/concourse.js", "javasciprt/concourse/concourse.*.js", "javasciprt/concourse/jquery.*.js"])
+   var stream = gulp.src(["javascript/concourse/concourse.js", "javascript/concourse/concourse.*.js", "javascript/concourse/jquery.*.js"])
     .pipe(jshint())
     .pipe(jshint.reporter('jshint-stylish'))
     .pipe(concat('concourse.js'))
