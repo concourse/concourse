@@ -1,4 +1,4 @@
-describe("Resource", function () {
+describe("Job", function () {
   var job;
 
   beforeEach(function () {

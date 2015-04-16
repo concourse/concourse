@@ -170,7 +170,6 @@ var _ = Describe("One-off Builds", func() {
 				Authenticate(page, "admin", "password")
 
 				Eventually(page.Find("#build-logs").Text).Should(ContainSubstring("hello this is a payload"))
-				Expect(page.Find(".abort-build")).Should(BeFound())
 
 				Ω(sqlDB.FinishBuild(oneOffBuild.ID, db.StatusSucceeded)).Should(Succeed())
 				Eventually(page.Find(".build-times").Text).Should(ContainSubstring("duration"))
@@ -189,6 +188,24 @@ var _ = Describe("One-off Builds", func() {
 				Ω(sqlDB.FinishBuild(build.ID, db.StatusSucceeded)).Should(Succeed())
 
 				Eventually(page.Find(".build-times").Text).Should(ContainSubstring("duration"))
+			})
+
+			It("can abort builds from the one-off build page", func() {
+				// homepage -> build list
+				Expect(page.Navigate(homepage())).To(Succeed())
+				Authenticate(page, "admin", "password")
+				Expect(page.Find(allBuildsListIconLink).Click()).To(Succeed())
+
+				// build list -> one off build detail
+				Expect(page).Should(HaveURL(withPath("/builds")))
+				Expect(page.Find(firstBuildLink).Click()).To(Succeed())
+
+				// one off build detail
+				Expect(page.Find(".js-abortBuild").Click()).To(Succeed())
+				Expect(page).Should(HaveURL(withPath(fmt.Sprintf("/builds/%d", oneOffBuild.ID))))
+
+				Eventually(page.Find("#page-header.aborted")).Should(BeFound())
+				Eventually(page.Find(".js-abortBuild")).ShouldNot(BeFound())
 			})
 		})
 	})

@@ -2,12 +2,12 @@
 
 {{define "body"}}
 <div id="page-header" class="{{.Build.Status}}">
-  <div class="build-header">
+  <div class="build-header js-build" data-build-id="{{.Build.ID}}">
+
     {{if .Build.Abortable}}
-    <form class="abort-build" method="post" action="{{url "AbortBuild" .Build}}">
-      <button><i class="fa fa-times-circle"></i></button>
-    </form>
+    <span class="build-action build-action-abort fr js-abortBuild"><i class="fa fa-times-circle"></i></span>
     {{end}}
+
     <h1>build #{{.Build.ID}}</h1>
 
     <dl class="build-times"></dl>
@@ -25,6 +25,8 @@
 </div>
 
 <script src="{{asset "build.js"}}"></script>
+<script src="{{asset "jquery-2.1.1.min.js"}}"></script>
+<script src="{{asset "concourse.js"}}"></script>
 <script type="text/javascript">
   streamLog({{url "BuildEvents" .Build | js}}, {{.Build.Status | js}})
 </script>
