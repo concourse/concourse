@@ -12,7 +12,6 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/scheduler"
-	"github.com/concourse/atc/web/abortbuild"
 	"github.com/concourse/atc/web/getbuild"
 	"github.com/concourse/atc/web/getbuilds"
 	"github.com/concourse/atc/web/getjob"
@@ -97,11 +96,6 @@ func NewHandler(
 
 		routes.TriggerBuild: auth.Handler{
 			Handler:   triggerbuild.NewHandler(logger, configDB, scheduler),
-			Validator: validator,
-		},
-
-		routes.AbortBuild: auth.Handler{
-			Handler:   abortbuild.NewHandler(logger, db, engine),
 			Validator: validator,
 		},
 	}
