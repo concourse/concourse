@@ -73,11 +73,6 @@ func PathFor(route string, args ...interface{}) (string, error) {
 	case routes.GetJoblessBuild:
 		return routes.PathForBuild(args[0].(db.Build)), nil
 
-	case routes.AbortBuild:
-		return routes.Routes.CreatePathForRoute(route, rata.Params{
-			"build_id": fmt.Sprintf("%d", args[0].(db.Build).ID),
-		})
-
 	case routes.Public:
 		return routes.Routes.CreatePathForRoute(route, rata.Params{
 			"filename": args[0].(string),

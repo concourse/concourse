@@ -13,7 +13,6 @@ const (
 	GetBuild        = "GetBuild"
 	GetBuilds       = "GetBuilds"
 	GetJoblessBuild = "GetJoblessBuild"
-	AbortBuild      = "AbortBuild"
 	Public          = "Public"
 	GetResource     = "GetResource"
 	GetJob          = "GetJob"
@@ -34,7 +33,6 @@ var Routes = rata.Routes{
 	// private
 	{Path: "/login", Method: "GET", Name: LogIn},
 	{Path: "/jobs/:job/builds", Method: "POST", Name: TriggerBuild},
-	{Path: "/builds/:build_id/abort", Method: "POST", Name: AbortBuild},
 	{Path: "/builds", Method: "GET", Name: GetBuilds},
 	{Path: "/builds/:build_id", Method: "GET", Name: GetJoblessBuild},
 }
