@@ -15,6 +15,7 @@ files:
   - github.com/concourse/fly/config/*.go # gosub
   - github.com/concourse/fly/eventstream/*.go # gosub
   - github.com/concourse/fly/template/*.go # gosub
+  - github.com/hashicorp/go-multierror/*.go # gosub
   - github.com/kardianos/osext/*.go # gosub
   - github.com/kr/binarydist/*.go # gosub
   - github.com/kr/pty/*.go # gosub
