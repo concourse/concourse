@@ -26,7 +26,7 @@ var _ = Describe("Present", func() {
 			{
 				ID:        2,
 				JobName:   "",
-				StartTime: date,
+				StartTime: time.Time{},
 				EndTime:   date.Add(1 * time.Minute),
 				Status:    "pending",
 				Name:      "12",
@@ -49,7 +49,7 @@ var _ = Describe("Present", func() {
 		Ω(presentedBuilds[1]).Should(Equal(PresentedBuild{
 			ID:        2,
 			JobName:   "[one off]",
-			StartTime: "2004-04-03 13:45:33 (UTC)",
+			StartTime: "failed to start",
 			EndTime:   "2004-04-03 13:46:33 (UTC)",
 			CSSClass:  "build-one-off",
 			Status:    "pending",

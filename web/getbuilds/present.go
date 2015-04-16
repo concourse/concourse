@@ -30,6 +30,7 @@ func PresentBuilds(builds []db.Build) []PresentedBuild {
 	for _, build := range builds {
 		var cssClass string
 		var jobName string
+		var startTime string
 
 		if build.OneOff() {
 			jobName = "[one off]"
@@ -38,10 +39,17 @@ func PresentBuilds(builds []db.Build) []PresentedBuild {
 			jobName = build.JobName
 		}
 
+		nilTime := time.Time{}
+		if build.StartTime == nilTime {
+			startTime = "failed to start"
+		} else {
+			startTime = formatDate(build.StartTime)
+		}
+
 		presentedBuilds = append(presentedBuilds, PresentedBuild{
 			ID:        build.ID,
 			JobName:   jobName,
-			StartTime: formatDate(build.StartTime),
+			StartTime: startTime,
 			EndTime:   formatDate(build.EndTime),
 			CSSClass:  cssClass,
 			Status:    string(build.Status),
