@@ -924,15 +924,6 @@ func (db *SQLDB) AbortBuild(buildID int) error {
 		return err
 	}
 
-	err = db.SaveBuildEvent(buildID, event.Status{
-		Status: atc.StatusAborted,
-		Time:   time.Now().Unix(),
-	})
-
-	if err != nil {
-		return err
-	}
-
 	_, err = db.conn.Exec("NOTIFY " + buildAbortChannel(buildID))
 	if err != nil {
 		return err

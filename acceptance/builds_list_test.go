@@ -204,6 +204,8 @@ var _ = Describe("One-off Builds", func() {
 				Expect(page.Find(".js-abortBuild").Click()).To(Succeed())
 				Expect(page).Should(HaveURL(withPath(fmt.Sprintf("/builds/%d", oneOffBuild.ID))))
 
+				Ω(sqlDB.FinishBuild(oneOffBuild.ID, db.StatusAborted)).Should(Succeed())
+
 				Eventually(page.Find("#page-header.aborted")).Should(BeFound())
 				Eventually(page.Find(".js-abortBuild")).ShouldNot(BeFound())
 			})
