@@ -12,6 +12,7 @@ import (
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/fakes"
+	"github.com/pivotal-golang/lager"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -34,6 +35,7 @@ var _ = Describe("Retryable", func() {
 
 		conn = worker.RetryableConnection{
 			Connection:  innerConnection,
+			Logger:      lager.NewLogger("dumb"),
 			Sleeper:     sleeper,
 			RetryPolicy: retryPolicy,
 		}

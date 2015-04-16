@@ -9,6 +9,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/garden"
 	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
+	"github.com/pivotal-golang/lager"
 )
 
 import "time"
@@ -29,6 +30,7 @@ var retryableErrors = []error{
 	syscall.ECONNREFUSED,
 	syscall.ECONNRESET,
 	syscall.ETIMEDOUT,
+	errors.New("i/o timeout"),
 	errors.New("no such host"),
 	errors.New("remote error: handshake failure"),
 }
@@ -36,6 +38,7 @@ var retryableErrors = []error{
 type RetryableConnection struct {
 	gconn.Connection
 
+	Logger      lager.Logger
 	Sleeper     Sleeper
 	RetryPolicy RetryPolicy
 }
@@ -348,6 +351,9 @@ func (conn RetryableConnection) Attach(handle string, processID uint32, processI
 }
 
 func (conn *RetryableConnection) retry(action func() error) error {
+	retryLogger := conn.Logger.Session("retry")
+	startTime := time.Now()
+
 	var err error
 
 	var failedAttempts uint
@@ -358,6 +364,11 @@ func (conn *RetryableConnection) retry(action func() error) error {
 		}
 
 		if !conn.retryable(err) {
+			retryLogger.Error("non-retryable-error", err, lager.Data{
+				"failed-attempts": failedAttempts,
+				"ran-for":         time.Now().Sub(startTime).String(),
+			})
+
 			break
 		}
 
@@ -365,8 +376,19 @@ func (conn *RetryableConnection) retry(action func() error) error {
 
 		delay, keepRetrying := conn.RetryPolicy.DelayFor(failedAttempts)
 		if !keepRetrying {
+			retryLogger.Info("giving-up", lager.Data{
+				"total-failed-attempts": failedAttempts,
+				"ran-for":               time.Now().Sub(startTime).String(),
+			})
+
 			break
 		}
+
+		retryLogger.Error("retrying", err, lager.Data{
+			"failed-attempts": failedAttempts,
+			"next-attempt-in": delay.String(),
+			"ran-for":         time.Now().Sub(startTime).String(),
+		})
 
 		conn.Sleeper.Sleep(delay)
 	}

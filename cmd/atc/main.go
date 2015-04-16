@@ -268,7 +268,7 @@ func main() {
 			[]string{},
 		)
 	} else {
-		workerClient = worker.NewPool(worker.NewDBWorkerProvider(db))
+		workerClient = worker.NewPool(worker.NewDBWorkerProvider(db, logger))
 	}
 
 	resourceTracker := resource.NewTracker(workerClient)

@@ -6,6 +6,7 @@ import (
 	gclient "github.com/cloudfoundry-incubator/garden/client"
 	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
 	"github.com/pivotal-golang/clock"
+	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc/db"
 )
@@ -17,11 +18,12 @@ type WorkerDB interface {
 }
 
 type dbProvider struct {
-	db WorkerDB
+	db     WorkerDB
+	logger lager.Logger
 }
 
-func NewDBWorkerProvider(db WorkerDB) WorkerProvider {
-	return &dbProvider{db}
+func NewDBWorkerProvider(db WorkerDB, logger lager.Logger) WorkerProvider {
+	return &dbProvider{db, logger}
 }
 
 func (provider *dbProvider) Workers() ([]Worker, error) {
@@ -35,6 +37,7 @@ func (provider *dbProvider) Workers() ([]Worker, error) {
 	workers := make([]Worker, len(workerInfos))
 	for i, info := range workerInfos {
 		gardenConn := RetryableConnection{
+			Logger:     provider.logger.Session("garden-client"),
 			Connection: gconn.New("tcp", info.Addr),
 			Sleeper:    tikTok,
 			RetryPolicy: ExponentialRetryPolicy{

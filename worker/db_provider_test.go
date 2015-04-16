@@ -59,7 +59,7 @@ var _ = Describe("DBProvider", func() {
 		err = workerBServer.Start()
 		Ω(err).ShouldNot(HaveOccurred())
 
-		provider = NewDBWorkerProvider(fakeDB)
+		provider = NewDBWorkerProvider(fakeDB, logger)
 	})
 
 	JustBeforeEach(func() {
