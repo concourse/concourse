@@ -370,9 +370,9 @@ var _ = Describe("Scheduler", func() {
 								Ω(err).ShouldNot(HaveOccurred())
 
 								Ω(fakeSchedulerDB.ScheduleBuildCallCount()).Should(Equal(1))
-								scheduledBuildID, serial := fakeSchedulerDB.ScheduleBuildArgsForCall(0)
+								scheduledBuildID, jobConfig := fakeSchedulerDB.ScheduleBuildArgsForCall(0)
 								Ω(scheduledBuildID).Should(Equal(128))
-								Ω(serial).Should(Equal(job.Serial))
+								Ω(jobConfig).Should(Equal(job))
 
 								Ω(factory.CreateCallCount()).Should(Equal(1))
 								createJob, createResources, createInputs := factory.CreateArgsForCall(0)
@@ -489,9 +489,9 @@ var _ = Describe("Scheduler", func() {
 
 					It("builds it", func() {
 						Ω(fakeSchedulerDB.ScheduleBuildCallCount()).Should(Equal(1))
-						scheduledBuildID, serial := fakeSchedulerDB.ScheduleBuildArgsForCall(0)
+						scheduledBuildID, jobConfig := fakeSchedulerDB.ScheduleBuildArgsForCall(0)
 						Ω(scheduledBuildID).Should(Equal(128))
-						Ω(serial).Should(Equal(job.Serial))
+						Ω(jobConfig).Should(Equal(job))
 
 						Ω(factory.CreateCallCount()).Should(Equal(1))
 						createJob, createResources, createInputs := factory.CreateArgsForCall(0)
@@ -670,9 +670,9 @@ var _ = Describe("Scheduler", func() {
 						Ω(build).Should(Equal(db.Build{ID: 128, Name: "42"}))
 
 						Eventually(fakeSchedulerDB.ScheduleBuildCallCount).Should(Equal(1))
-						scheduledBuildID, serial := fakeSchedulerDB.ScheduleBuildArgsForCall(0)
+						scheduledBuildID, jobConfig := fakeSchedulerDB.ScheduleBuildArgsForCall(0)
 						Ω(scheduledBuildID).Should(Equal(128))
-						Ω(serial).Should(Equal(job.Serial))
+						Ω(jobConfig).Should(Equal(job))
 
 						Eventually(factory.CreateCallCount).Should(Equal(1))
 						createJob, createResources, createInputs := factory.CreateArgsForCall(0)

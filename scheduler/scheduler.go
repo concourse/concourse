@@ -16,7 +16,7 @@ var ErrPredeterminedInputsDifferFromConfiguration = errors.New("predetermined bu
 //go:generate counterfeiter . SchedulerDB
 
 type SchedulerDB interface {
-	ScheduleBuild(buildID int, serial bool) (bool, error)
+	ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool, error)
 	ErrorBuild(buildID int, err error) error
 
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
@@ -113,7 +113,7 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, job atc.JobConfig, re
 
 	logger.Debug("created-build")
 
-	scheduled, err := s.DB.ScheduleBuild(build.ID, job.Serial)
+	scheduled, err := s.DB.ScheduleBuild(build.ID, job)
 	if err != nil {
 		logger.Error("failed-to-scheduled-build", err)
 		return err
@@ -230,7 +230,7 @@ func (s *Scheduler) TrackInFlightBuilds(logger lager.Logger) error {
 func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, build db.Build, inputs []db.BuildInput, job atc.JobConfig, resources atc.ResourceConfigs) engine.Build {
 	logger = logger.WithData(lager.Data{"build": build.ID})
 
-	scheduled, err := s.DB.ScheduleBuild(build.ID, job.Serial)
+	scheduled, err := s.DB.ScheduleBuild(build.ID, job)
 	if err != nil {
 		logger.Error("failed-to-schedule-build", err)
 		return nil

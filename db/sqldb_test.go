@@ -65,6 +65,7 @@ var _ = Describe("SQL DB", func() {
 	})
 
 	Describe("is a DB", dbSharedBehavior(&dbSharedBehaviorInput))
+	Describe("has a job service", jobService(&dbSharedBehaviorInput))
 
 	Describe("config", func() {
 		yep := true

@@ -11,6 +11,36 @@ import (
 )
 
 var _ = Describe("Config", func() {
+
+	Describe("JobConfig", func() {
+		Describe("IsSerial", func() {
+			It("returns true if Serial is true or SerialGroups has items in it", func() {
+				jobConfig := JobConfig{
+					Serial:       true,
+					SerialGroups: []string{},
+				}
+
+				Ω(jobConfig.IsSerial()).Should(BeTrue())
+
+				jobConfig.SerialGroups = []string{
+					"one",
+				}
+				Ω(jobConfig.IsSerial()).Should(BeTrue())
+
+				jobConfig.Serial = false
+				Ω(jobConfig.IsSerial()).Should(BeTrue())
+			})
+
+			It("returns false if Serial is false and SerialGroups is empty", func() {
+				jobConfig := JobConfig{
+					Serial:       false,
+					SerialGroups: []string{},
+				}
+
+				Ω(jobConfig.IsSerial()).Should(BeFalse())
+			})
+		})
+	})
 	Describe("JobInputConfig", func() {
 		It("defaults its name to the resource name", func() {
 			Ω(JobInputConfig{

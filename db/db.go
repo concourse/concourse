@@ -11,8 +11,10 @@ type DB interface {
 	GetBuild(buildID int) (Build, error)
 	GetAllBuilds() ([]Build, error)
 	GetAllStartedBuilds() ([]Build, error)
+	GetRunningBuildsByJob(job string) ([]Build, error)
+	UpdateBuildToScheduled(buildID int) (bool, error)
 
-	GetJob(resource string) (Job, error)
+	GetJob(job string) (Job, error)
 	GetJobBuild(job string, build string) (Build, error)
 	GetAllJobBuilds(job string) ([]Build, error)
 	GetCurrentBuild(job string) (Build, error)
@@ -29,7 +31,7 @@ type DB interface {
 
 	CreateOneOffBuild() (Build, error)
 
-	ScheduleBuild(buildID int, serial bool) (bool, error)
+	ScheduleBuild(buildID int, job atc.JobConfig) (bool, error)
 	StartBuild(buildID int, engineName, engineMetadata string) (bool, error)
 	FinishBuild(buildID int, status Status) error
 	ErrorBuild(buildID int, cause error) error

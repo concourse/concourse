@@ -78,17 +78,23 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 		Context("when a build is created for a job", func() {
 			var build1 db.Build
+			var jobConfig atc.JobConfig
 
 			BeforeEach(func() {
 				var err error
 
 				build1, err = database.CreateJobBuild("some-job")
+				jobConfig = atc.JobConfig{
+					Serial: false,
+				}
+
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(build1.ID).ShouldNot(BeZero())
 				Ω(build1.JobName).Should(Equal("some-job"))
 				Ω(build1.Name).Should(Equal("1"))
 				Ω(build1.Status).Should(Equal(db.StatusPending))
+				Ω(build1.Scheduled).Should(BeFalse())
 			})
 
 			It("can be read back as the same object", func() {
@@ -158,9 +164,10 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			Context("when scheduled", func() {
 				BeforeEach(func() {
-					scheduled, err := database.ScheduleBuild(build1.ID, false)
+					scheduled, err := database.ScheduleBuild(build1.ID, jobConfig)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(scheduled).Should(BeTrue())
+					build1.Scheduled = true
 				})
 
 				It("remains the current build", func() {
@@ -563,6 +570,67 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			Ω(next.ID).Should(Equal(anotherRunningBuild.ID))
 			Ω(finished.ID).Should(Equal(nextBuild.ID))
+		})
+
+		Describe("GetRunningBuildsByJob", func() {
+			var pendingBuild db.Build
+			var startedBuild db.Build
+			var scheduledBuild db.Build
+			var anotherBuild db.Build
+
+			BeforeEach(func() {
+				var err error
+				pendingBuild, err = database.CreateJobBuild("matching-job")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				startedBuild, err = database.CreateJobBuild("matching-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				_, err = database.StartBuild(startedBuild.ID, "", "")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				scheduledBuild, err = database.CreateJobBuild("matching-job")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				updated, err := database.UpdateBuildToScheduled(scheduledBuild.ID)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(updated).Should(BeTrue())
+
+				anotherBuild, err = database.CreateJobBuild("not-matching-job")
+				Ω(err).ShouldNot(HaveOccurred())
+			})
+
+			It("returns a list of builds the matches the jobName passed in that are started or scheduled and have a different job id", func() {
+				builds, err := database.GetRunningBuildsByJob("matching-job")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(len(builds)).Should(Equal(2))
+
+				Ω(builds[0].ID).Should(Equal(scheduledBuild.ID))
+				Ω(builds[1].ID).Should(Equal(startedBuild.ID))
+			})
+		})
+
+		Describe("UpdateBuildToScheduled", func() {
+			It("updates the given build to scheduled = true", func() {
+				myBuild, err := database.CreateJobBuild("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(myBuild.Scheduled).Should(BeFalse())
+
+				updated, err := database.UpdateBuildToScheduled(myBuild.ID)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(updated).Should(BeTrue())
+
+				myBuild, err = database.GetBuild(myBuild.ID)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(myBuild.Scheduled).Should(BeTrue())
+			})
+
+			It("returns false if no rows were updated", func() {
+				updated, err := database.UpdateBuildToScheduled(0)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(updated).Should(BeFalse())
+			})
+
 		})
 
 		Describe("locking", func() {
@@ -1444,11 +1512,30 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			var firstBuild db.Build
 
 			var job db.Job
+			var jobConfig atc.JobConfig
+			var serialJobConfig atc.JobConfig
+			var serialGroupsJobConfig atc.JobConfig
 
 			BeforeEach(func() {
 				var err error
 
 				job, err = database.GetJob("some-job")
+				jobConfig = atc.JobConfig{
+					Name:   "some-job",
+					Serial: false,
+				}
+				serialJobConfig = atc.JobConfig{
+					Name:   "some-job",
+					Serial: true,
+				}
+				serialGroupsJobConfig = atc.JobConfig{
+					Name: "some-job",
+					SerialGroups: []string{
+						"group-one",
+						"group-two",
+					},
+				}
+
 				Ω(err).ShouldNot(HaveOccurred())
 
 				firstBuild, err = database.CreateJobBuild(job.Name)
@@ -1481,7 +1568,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 				Describe("scheduling the build", func() {
 					It("fails", func() {
-						scheduled, err := database.ScheduleBuild(firstBuild.ID, false)
+						scheduled, err := database.ScheduleBuild(firstBuild.ID, jobConfig)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeFalse())
 					})
@@ -1502,7 +1589,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 				Describe("scheduling the build", func() {
 					It("fails", func() {
-						scheduled, err := database.ScheduleBuild(firstBuild.ID, false)
+						scheduled, err := database.ScheduleBuild(firstBuild.ID, jobConfig)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeFalse())
 					})
@@ -1517,7 +1604,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 				Describe("scheduling the build", func() {
 					It("fails", func() {
-						scheduled, err := database.ScheduleBuild(firstBuild.ID, false)
+						scheduled, err := database.ScheduleBuild(firstBuild.ID, jobConfig)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeFalse())
 					})
@@ -1526,7 +1613,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			Context("and then scheduled", func() {
 				BeforeEach(func() {
-					scheduled, err := database.ScheduleBuild(firstBuild.ID, false)
+					scheduled, err := database.ScheduleBuild(firstBuild.ID, jobConfig)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(scheduled).Should(BeTrue())
 				})
@@ -1555,18 +1642,18 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			Describe("scheduling the build", func() {
 				It("succeeds", func() {
-					scheduled, err := database.ScheduleBuild(firstBuild.ID, false)
+					scheduled, err := database.ScheduleBuild(firstBuild.ID, jobConfig)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(scheduled).Should(BeTrue())
 				})
 
 				Describe("twice", func() {
 					It("succeeds idempotently", func() {
-						scheduled, err := database.ScheduleBuild(firstBuild.ID, false)
+						scheduled, err := database.ScheduleBuild(firstBuild.ID, jobConfig)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeTrue())
 
-						scheduled, err = database.ScheduleBuild(firstBuild.ID, false)
+						scheduled, err = database.ScheduleBuild(firstBuild.ID, jobConfig)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeTrue())
 					})
@@ -1574,18 +1661,18 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 				Context("serially", func() {
 					It("succeeds", func() {
-						scheduled, err := database.ScheduleBuild(firstBuild.ID, true)
+						scheduled, err := database.ScheduleBuild(firstBuild.ID, serialJobConfig)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeTrue())
 					})
 
 					Describe("twice", func() {
 						It("succeeds idempotently", func() {
-							scheduled, err := database.ScheduleBuild(firstBuild.ID, true)
+							scheduled, err := database.ScheduleBuild(firstBuild.ID, serialJobConfig)
 							Ω(err).ShouldNot(HaveOccurred())
 							Ω(scheduled).Should(BeTrue())
 
-							scheduled, err = database.ScheduleBuild(firstBuild.ID, true)
+							scheduled, err = database.ScheduleBuild(firstBuild.ID, serialJobConfig)
 							Ω(err).ShouldNot(HaveOccurred())
 							Ω(scheduled).Should(BeTrue())
 						})
@@ -1599,6 +1686,8 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				Context("for a different job", func() {
 					BeforeEach(func() {
 						var err error
+						jobConfig.Name = "some-other-job"
+						serialJobConfig.Name = "some-other-job"
 
 						secondBuild, err = database.CreateJobBuild("some-other-job")
 						Ω(err).ShouldNot(HaveOccurred())
@@ -1608,14 +1697,14 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 					Describe("scheduling the second build", func() {
 						It("succeeds", func() {
-							scheduled, err := database.ScheduleBuild(secondBuild.ID, false)
+							scheduled, err := database.ScheduleBuild(secondBuild.ID, jobConfig)
 							Ω(err).ShouldNot(HaveOccurred())
 							Ω(scheduled).Should(BeTrue())
 						})
 
 						Describe("serially", func() {
 							It("succeeds", func() {
-								scheduled, err := database.ScheduleBuild(secondBuild.ID, true)
+								scheduled, err := database.ScheduleBuild(secondBuild.ID, serialJobConfig)
 								Ω(err).ShouldNot(HaveOccurred())
 								Ω(scheduled).Should(BeTrue())
 							})
@@ -1635,14 +1724,14 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 					Describe("scheduling the second build", func() {
 						It("succeeds", func() {
-							scheduled, err := database.ScheduleBuild(secondBuild.ID, false)
+							scheduled, err := database.ScheduleBuild(secondBuild.ID, jobConfig)
 							Ω(err).ShouldNot(HaveOccurred())
 							Ω(scheduled).Should(BeTrue())
 						})
 
 						Describe("serially", func() {
 							It("fails", func() {
-								scheduled, err := database.ScheduleBuild(secondBuild.ID, true)
+								scheduled, err := database.ScheduleBuild(secondBuild.ID, serialJobConfig)
 								Ω(err).ShouldNot(HaveOccurred())
 								Ω(scheduled).Should(BeFalse())
 							})
@@ -1651,14 +1740,14 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 					Describe("after the first build schedules", func() {
 						BeforeEach(func() {
-							scheduled, err := database.ScheduleBuild(firstBuild.ID, false)
+							scheduled, err := database.ScheduleBuild(firstBuild.ID, jobConfig)
 							Ω(err).ShouldNot(HaveOccurred())
 							Ω(scheduled).Should(BeTrue())
 						})
 
 						Context("when the second build is scheduled serially", func() {
 							It("fails", func() {
-								scheduled, err := database.ScheduleBuild(secondBuild.ID, true)
+								scheduled, err := database.ScheduleBuild(secondBuild.ID, serialJobConfig)
 								Ω(err).ShouldNot(HaveOccurred())
 								Ω(scheduled).Should(BeFalse())
 							})
@@ -1675,7 +1764,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 								Context("and the second build is scheduled serially", func() {
 									It("succeeds", func() {
-										scheduled, err := database.ScheduleBuild(secondBuild.ID, true)
+										scheduled, err := database.ScheduleBuild(secondBuild.ID, serialJobConfig)
 										Ω(err).ShouldNot(HaveOccurred())
 										Ω(scheduled).Should(BeTrue())
 									})
@@ -1692,7 +1781,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 						Context("when the second build is scheduled serially", func() {
 							It("succeeds", func() {
-								scheduled, err := database.ScheduleBuild(secondBuild.ID, true)
+								scheduled, err := database.ScheduleBuild(secondBuild.ID, serialJobConfig)
 								Ω(err).ShouldNot(HaveOccurred())
 								Ω(scheduled).Should(BeTrue())
 							})
@@ -1719,7 +1808,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 							Context("and the third build is scheduled serially", func() {
 								It("fails, as it would have jumped the queue", func() {
-									scheduled, err := database.ScheduleBuild(thirdBuild.ID, true)
+									scheduled, err := database.ScheduleBuild(thirdBuild.ID, serialJobConfig)
 									Ω(err).ShouldNot(HaveOccurred())
 									Ω(scheduled).Should(BeFalse())
 								})
@@ -1728,14 +1817,14 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 						Context("and then scheduled", func() {
 							It("succeeds", func() {
-								scheduled, err := database.ScheduleBuild(thirdBuild.ID, false)
+								scheduled, err := database.ScheduleBuild(thirdBuild.ID, jobConfig)
 								Ω(err).ShouldNot(HaveOccurred())
 								Ω(scheduled).Should(BeTrue())
 							})
 
 							Describe("serially", func() {
 								It("fails", func() {
-									scheduled, err := database.ScheduleBuild(thirdBuild.ID, true)
+									scheduled, err := database.ScheduleBuild(thirdBuild.ID, serialJobConfig)
 									Ω(err).ShouldNot(HaveOccurred())
 									Ω(scheduled).Should(BeFalse())
 								})

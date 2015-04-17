@@ -22,8 +22,8 @@ type SQLDB struct {
 	bus  *notificationsBus
 }
 
-const buildColumns = "id, name, job_name, status, engine, engine_metadata, start_time, end_time"
-const qualifiedBuildColumns = "b.id, b.name, b.job_name, b.status, b.engine, b.engine_metadata, b.start_time, b.end_time"
+const buildColumns = "id, name, job_name, status, scheduled, engine, engine_metadata, start_time, end_time"
+const qualifiedBuildColumns = "b.id, b.name, b.job_name, b.status, b.scheduled, b.engine, b.engine_metadata, b.start_time, b.end_time"
 
 func NewSQL(
 	logger lager.Logger,
@@ -662,45 +662,45 @@ func (db *SQLDB) CreateOneOffBuild() (Build, error) {
 	return build, nil
 }
 
-func (db *SQLDB) ScheduleBuild(buildID int, serial bool) (bool, error) {
+func (db *SQLDB) GetRunningBuildsByJob(jobName string) ([]Build, error) {
+	rows, err := db.conn.Query(`
+		SELECT `+buildColumns+`
+		FROM builds
+		WHERE job_name = $1
+			AND (
+				status = 'started'
+				OR
+				(scheduled = true AND status = 'pending')
+			)
+		ORDER BY id DESC
+	`, jobName)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	bs := []Build{}
+
+	for rows.Next() {
+		build, err := scanBuild(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		bs = append(bs, build)
+	}
+
+	return bs, nil
+}
+
+func (db *SQLDB) UpdateBuildToScheduled(buildID int) (bool, error) {
 	result, err := db.conn.Exec(`
-		UPDATE builds AS b
-		SET scheduled = true
-
-		-- only the given build
-		WHERE b.id = $1
-		AND b.status = 'pending'
-
-		-- if serial, only if it's the nextmost pending
-		AND (
-			NOT $2 OR id IN (
-				SELECT p.id
-				FROM builds p
-				WHERE p.job_name = b.job_name
-				AND p.status = 'pending'
-				ORDER BY p.id ASC
-				LIMIT 1
-			)
-		)
-
-		-- if serial, not if another build is started or scheduled
-		AND NOT (
-			$2 AND EXISTS (
-				SELECT 1
-				FROM builds s
-				WHERE s.job_name = b.job_name
-				AND s.id != b.id
-				AND (s.status = 'started' OR (s.status = 'pending' AND s.scheduled = true))
-			)
-		)
-		-- if the job is paused, we do not want to schedule
-		AND NOT EXISTS (
-			SELECT 1
-			FROM jobs j
-			WHERE j.name = b.job_name
-				AND j.paused = true
-		)
-	`, buildID, serial)
+			UPDATE builds
+			SET scheduled = true
+			WHERE id = $1
+	`, buildID)
 	if err != nil {
 		return false, err
 	}
@@ -711,6 +711,43 @@ func (db *SQLDB) ScheduleBuild(buildID int, serial bool) (bool, error) {
 	}
 
 	return rows == 1, nil
+}
+
+func (db *SQLDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool, error) {
+	build, err := db.GetBuild(buildID)
+	if err != nil {
+		return false, err
+	}
+
+	// The function needs to be idempotent, that's why this isn't in CanBuildBeScheduled
+	if build.Scheduled {
+		return true, nil
+	}
+
+	jobService, err := NewJobService(jobConfig, db)
+	if err != nil {
+		return false, err
+	}
+
+	canBuildBeScheduled, reason, err := jobService.CanBuildBeScheduled(build)
+	if err != nil {
+		return false, err
+	}
+
+	if canBuildBeScheduled {
+		updated, err := db.UpdateBuildToScheduled(buildID)
+		if err != nil {
+			return false, err
+		}
+
+		return updated, nil
+	} else {
+		db.logger.Debug("Build did not schedule", lager.Data{
+			"reason":  reason,
+			"buildID": string(buildID),
+		})
+		return false, nil
+	}
 }
 
 func (db *SQLDB) StartBuild(buildID int, engine, metadata string) (bool, error) {
@@ -1795,11 +1832,12 @@ func scanBuild(row scannable) (Build, error) {
 	var name string
 	var jobName sql.NullString
 	var status string
+	var scheduled bool
 	var engine, engineMetadata sql.NullString
 	var startTime pq.NullTime
 	var endTime pq.NullTime
 
-	err := row.Scan(&id, &name, &jobName, &status, &engine, &engineMetadata, &startTime, &endTime)
+	err := row.Scan(&id, &name, &jobName, &status, &scheduled, &engine, &engineMetadata, &startTime, &endTime)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return Build{}, ErrNoBuild
@@ -1809,10 +1847,11 @@ func scanBuild(row scannable) (Build, error) {
 	}
 
 	return Build{
-		ID:      id,
-		Name:    name,
-		JobName: jobName.String,
-		Status:  Status(status),
+		ID:        id,
+		Name:      name,
+		JobName:   jobName.String,
+		Status:    Status(status),
+		Scheduled: scheduled,
 
 		Engine:         engine.String,
 		EngineMetadata: engineMetadata.String,

@@ -10,11 +10,11 @@ import (
 )
 
 type FakeSchedulerDB struct {
-	ScheduleBuildStub        func(buildID int, serial bool) (bool, error)
+	ScheduleBuildStub        func(buildID int, jobConfig atc.JobConfig) (bool, error)
 	scheduleBuildMutex       sync.RWMutex
 	scheduleBuildArgsForCall []struct {
-		buildID int
-		serial  bool
+		buildID   int
+		jobConfig atc.JobConfig
 	}
 	scheduleBuildReturns struct {
 		result1 bool
@@ -89,21 +89,21 @@ type FakeSchedulerDB struct {
 	GetAllStartedBuildsStub        func() ([]db.Build, error)
 	getAllStartedBuildsMutex       sync.RWMutex
 	getAllStartedBuildsArgsForCall []struct{}
-	getAllStartedBuildsReturns struct {
+	getAllStartedBuildsReturns     struct {
 		result1 []db.Build
 		result2 error
 	}
 }
 
-func (fake *FakeSchedulerDB) ScheduleBuild(buildID int, serial bool) (bool, error) {
+func (fake *FakeSchedulerDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool, error) {
 	fake.scheduleBuildMutex.Lock()
 	fake.scheduleBuildArgsForCall = append(fake.scheduleBuildArgsForCall, struct {
-		buildID int
-		serial  bool
-	}{buildID, serial})
+		buildID   int
+		jobConfig atc.JobConfig
+	}{buildID, jobConfig})
 	fake.scheduleBuildMutex.Unlock()
 	if fake.ScheduleBuildStub != nil {
-		return fake.ScheduleBuildStub(buildID, serial)
+		return fake.ScheduleBuildStub(buildID, jobConfig)
 	} else {
 		return fake.scheduleBuildReturns.result1, fake.scheduleBuildReturns.result2
 	}
@@ -115,10 +115,10 @@ func (fake *FakeSchedulerDB) ScheduleBuildCallCount() int {
 	return len(fake.scheduleBuildArgsForCall)
 }
 
-func (fake *FakeSchedulerDB) ScheduleBuildArgsForCall(i int) (int, bool) {
+func (fake *FakeSchedulerDB) ScheduleBuildArgsForCall(i int) (int, atc.JobConfig) {
 	fake.scheduleBuildMutex.RLock()
 	defer fake.scheduleBuildMutex.RUnlock()
-	return fake.scheduleBuildArgsForCall[i].buildID, fake.scheduleBuildArgsForCall[i].serial
+	return fake.scheduleBuildArgsForCall[i].buildID, fake.scheduleBuildArgsForCall[i].jobConfig
 }
 
 func (fake *FakeSchedulerDB) ScheduleBuildReturns(result1 bool, result2 error) {
