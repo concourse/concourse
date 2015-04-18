@@ -227,6 +227,7 @@
     "InternalSubnet": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
+        "AvailabilityZone": { "Fn::Select": ["0", { "Fn::GetAZs": { "Ref" : "AWS::Region" } }] },
         "CidrBlock": { "Ref": "InternalSubnetCIDR" },
         "VpcId": { "Ref": "VPC" },
         "Tags": [{ "Key": "Name", "Value": "Internal" }]
@@ -259,6 +260,7 @@
     "LoadBalancerSubnet": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
+        "AvailabilityZone": { "Fn::Select": ["0", { "Fn::GetAZs": { "Ref" : "AWS::Region" } }] },
         "CidrBlock": { "Ref": "LoadBalancerSubnetCIDR" },
         "VpcId": { "Ref": "VPC" },
         "Tags": [{ "Key": "Name", "Value": "LoadBalancer" }]
