@@ -32,6 +32,31 @@ Each configured job consists of the following attributes:
   queue up and execute one-by-one, rather than executing in parallel.
 }
 
+@defthing[serial_groups [string]]{
+  @emph{Optional. Default @code{[]}.} When set to an array of arbitrary
+  tag-like strings, builds of this job and other jobs referencing the same
+  tags will be serialized.
+
+  This can be used to ensure that certain jobs do not run at the same time,
+  like so:
+
+  @codeblock|{
+  jobs:
+  - name: job-a
+    serial_groups: [some-tag]
+  - name: job-b
+    serial_groups: [some-tag, some-other-tag]
+  - name: job-c
+    serial_groups: [some-other-tag]
+  }|
+
+  In this example, @code{job-a} and @code{job-c} can run concurrently, but
+  neither job can run builds at the same time as @code{job-b}.
+
+  The builds are executed in their order of creation, across all jobs with
+  common tags.
+}
+
 @defthing[public boolean]{
   @emph{Optional. Default @code{false}.} If set to @code{true}, the build log
   of this job will be viewable by unauthenticated users. Unauthenticated users
