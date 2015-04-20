@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
@@ -68,8 +69,14 @@ func (heartbeater *heartbeater) Run(signals <-chan os.Signal, ready chan<- struc
 }
 
 func (heartbeater *heartbeater) register(logger lager.Logger) bool {
-	logger.Info("start")
-	defer logger.Info("done")
+	heartbeatData := lager.Data{
+		"worker-platform": heartbeater.registration.Platform,
+		"worker-address":  heartbeater.registration.Addr,
+		"worker-tags":     strings.Join(heartbeater.registration.Tags, ","),
+	}
+
+	logger.Info("start", heartbeatData)
+	defer logger.Info("done", heartbeatData)
 
 	containers, err := heartbeater.gardenClient.Containers(nil)
 	if err != nil {
