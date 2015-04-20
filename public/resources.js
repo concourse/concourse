@@ -1,8 +1,8 @@
 $(document).ready(function() {
-  $("a.toggle-resource-version").on("click", function() {
+  $(".js-toggleResource").on("click", function() {
     var target;
 
-    if ($(this).text() == "enable") {
+    if ($(this).data("action") == "enable") {
       target = $(this).data("enable-url");
     } else {
       target = $(this).data("disable-url");
@@ -14,11 +14,11 @@ $(document).ready(function() {
       method: "PUT",
       url: target
     }).done(function() {
-      if ($(that).text() == "enable") {
-        $(that).text("disable");
+      if ($(that).data("action") == "enable") {
+        $(that).data("action", "disable");
         $(that).closest("tr").removeClass("disabled").addClass("enabled");
       } else {
-        $(that).text("enable");
+        $(that).data("action", "enable");
         $(that).closest("tr").removeClass("enabled").addClass("disabled");
       }
     });

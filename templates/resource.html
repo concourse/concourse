@@ -47,7 +47,6 @@
   <thead>
     <tr>
       <th>metadata</th>
-      <th></th>
       <th>inputs to</th>
       <th>outputs of</th>
     </tr>
@@ -55,10 +54,17 @@
   <tbody>
     {{range .History}}
     <tr class="{{if .VersionedResource.Enabled}}enabled{{else}}disabled{{end}}">
+
       <td>
+
         <div class="build-source">
           <div class="header">
-            <h3>version</h3>
+
+              <a class="fl btn-power-toggle js-toggleResource fa fa-power-off mrl" href="javascript:;" data-action="{{if .VersionedResource.Enabled}}disable{{else}}enable{{end}}" data-enable-url="{{url "EnableResourceVersion" .VersionedResource}}" data-disable-url="{{url "DisableResourceVersion" .VersionedResource}}"></a>
+
+            <h3>
+              version
+            </h3>
 
             <dl class="version">
               {{range $name, $val := .VersionedResource.Version}}
@@ -77,9 +83,6 @@
             {{end}}
           </dl>
         </div>
-      </td>
-      <td>
-        <a class="toggle-resource-version" href="javascript:;" data-enable-url="{{url "EnableResourceVersion" .VersionedResource}}" data-disable-url="{{url "DisableResourceVersion" .VersionedResource}}">{{if .VersionedResource.Enabled}}disable{{else}}enable{{end}}</a>
       </td>
       <td>
         <table class="jobs">
