@@ -3,6 +3,7 @@ package tsa
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/rata"
+	"golang.org/x/crypto/ssh"
 )
 
 type heartbeater struct {
@@ -25,6 +27,7 @@ type heartbeater struct {
 	atcEndpoint  *rata.RequestGenerator
 
 	registration atc.Worker
+	channel      ssh.Channel
 }
 
 func NewHeartbeater(
@@ -33,6 +36,7 @@ func NewHeartbeater(
 	gardenClient garden.Client,
 	atcEndpoint *rata.RequestGenerator,
 	worker atc.Worker,
+	channel ssh.Channel,
 ) ifrit.Runner {
 	return &heartbeater{
 		logger: logger,
@@ -43,6 +47,7 @@ func NewHeartbeater(
 		atcEndpoint:  atcEndpoint,
 
 		registration: worker,
+		channel:      channel,
 	}
 }
 
@@ -78,11 +83,17 @@ func (heartbeater *heartbeater) register(logger lager.Logger) bool {
 	logger.Info("start", heartbeatData)
 	defer logger.Info("done", heartbeatData)
 
+	before := time.Now()
+
 	containers, err := heartbeater.gardenClient.Containers(nil)
 	if err != nil {
 		logger.Error("failed-to-fetch-containers", err)
 		return false
 	}
+
+	after := time.Now()
+
+	fmt.Fprintf(heartbeater.channel, "heartbeat@%s took-%s\n", before.String(), after.Sub(before).String())
 
 	heartbeater.registration.ActiveContainers = len(containers)
 

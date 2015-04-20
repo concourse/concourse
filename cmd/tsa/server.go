@@ -191,7 +191,7 @@ func (server *registrarSSHServer) continuouslyRegisterWorkerDirectly(
 		return nil, err
 	}
 
-	return server.heartbeatWorker(logger, worker), nil
+	return server.heartbeatWorker(logger, worker, channel), nil
 }
 
 func (server *registrarSSHServer) continuouslyRegisterForwardedWorker(
@@ -210,16 +210,17 @@ func (server *registrarSSHServer) continuouslyRegisterForwardedWorker(
 
 	worker.Addr = fmt.Sprintf("%s:%d", server.forwardHost, boundPort)
 
-	return server.heartbeatWorker(logger, worker), nil
+	return server.heartbeatWorker(logger, worker, channel), nil
 }
 
-func (server *registrarSSHServer) heartbeatWorker(logger lager.Logger, worker atc.Worker) ifrit.Process {
+func (server *registrarSSHServer) heartbeatWorker(logger lager.Logger, worker atc.Worker, channel ssh.Channel) ifrit.Process {
 	return ifrit.Background(tsa.NewHeartbeater(
 		logger,
 		server.heartbeatInterval,
 		gclient.New(gconn.New("tcp", worker.Addr)),
 		server.atcEndpoint,
 		worker,
+		channel,
 	))
 }
 
