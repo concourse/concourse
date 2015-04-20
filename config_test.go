@@ -40,6 +40,34 @@ var _ = Describe("Config", func() {
 				Ω(jobConfig.IsSerial()).Should(BeFalse())
 			})
 		})
+
+		Describe("GetSerialGroups", func() {
+			It("Returns the values if SerialGroups is specified", func() {
+				jobConfig := JobConfig{
+					SerialGroups: []string{"one", "two"},
+				}
+
+				Ω(jobConfig.GetSerialGroups()).Should(Equal([]string{"one", "two"}))
+			})
+
+			It("Returns the job name if the SerialGroups are not specified", func() {
+				jobConfig := JobConfig{
+					Name:   "some-job",
+					Serial: true,
+				}
+
+				Ω(jobConfig.GetSerialGroups()).Should(Equal([]string{"some-job"}))
+			})
+
+			It("returns an empty slice of strings if there are no groups and it is not serial", func() {
+				jobConfig := JobConfig{
+					Name:   "some-job",
+					Serial: false,
+				}
+
+				Ω(jobConfig.GetSerialGroups()).Should(Equal([]string{}))
+			})
+		})
 	})
 	Describe("JobInputConfig", func() {
 		It("defaults its name to the resource name", func() {

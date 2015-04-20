@@ -7,8 +7,8 @@ import "github.com/concourse/atc"
 type JobServiceDB interface {
 	GetBuild(buildID int) (Build, error)
 	GetJob(job string) (Job, error)
-	GetRunningBuildsByJob(job string) ([]Build, error)
-	GetNextPendingBuild(job string) (Build, []BuildInput, error)
+	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]Build, error)
+	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (Build, error)
 }
 
 type JobService struct {
@@ -40,7 +40,7 @@ func (s JobService) CanBuildBeScheduled(build Build) (bool, string, error) {
 	}
 
 	if s.JobConfig.IsSerial() {
-		builds, err := s.DB.GetRunningBuildsByJob(s.DBJob.Name)
+		builds, err := s.DB.GetRunningBuildsBySerialGroup(s.DBJob.Name, s.JobConfig.GetSerialGroups())
 		if err != nil {
 			return false, "db-failed", err
 		}
@@ -49,7 +49,7 @@ func (s JobService) CanBuildBeScheduled(build Build) (bool, string, error) {
 			return false, "other-builds-running", nil
 		}
 
-		nextMostPendingBuild, _, err := s.DB.GetNextPendingBuild(s.DBJob.Name)
+		nextMostPendingBuild, err := s.DB.GetNextPendingBuildBySerialGroup(s.DBJob.Name, s.JobConfig.GetSerialGroups())
 		if err != nil {
 			return false, "db-failed", err
 		}

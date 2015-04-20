@@ -66,6 +66,7 @@ var _ = Describe("SQL DB", func() {
 
 	Describe("is a DB", dbSharedBehavior(&dbSharedBehaviorInput))
 	Describe("has a job service", jobService(&dbSharedBehaviorInput))
+	Describe("Can schedule builds with serial groups", serialGroupsBehavior(&dbSharedBehaviorInput))
 
 	Describe("config", func() {
 		yep := true

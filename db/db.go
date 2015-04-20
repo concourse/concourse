@@ -11,7 +11,8 @@ type DB interface {
 	GetBuild(buildID int) (Build, error)
 	GetAllBuilds() ([]Build, error)
 	GetAllStartedBuilds() ([]Build, error)
-	GetRunningBuildsByJob(job string) ([]Build, error)
+	GetRunningBuildsBySerialGroup(jobName string, serialGrous []string) ([]Build, error)
+	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (Build, error)
 	UpdateBuildToScheduled(buildID int) (bool, error)
 
 	GetJob(job string) (Job, error)

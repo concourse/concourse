@@ -32,4 +32,5 @@ var Migrations = []migration.Migrator{
 	AddCheckErrorToResources,
 	AddPausedToResources,
 	AddPausedToJobs,
+	CreateJobsSerialGroups,
 }

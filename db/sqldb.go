@@ -662,18 +662,88 @@ func (db *SQLDB) CreateOneOffBuild() (Build, error) {
 	return build, nil
 }
 
-func (db *SQLDB) GetRunningBuildsByJob(jobName string) ([]Build, error) {
-	rows, err := db.conn.Query(`
-		SELECT `+buildColumns+`
-		FROM builds
+func (db *SQLDB) updateSerialGroupsForJob(jobName string, serialGroups []string) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = tx.Exec(`
+		DELETE FROM jobs_serial_groups
 		WHERE job_name = $1
-			AND (
-				status = 'started'
-				OR
-				(scheduled = true AND status = 'pending')
-			)
-		ORDER BY id DESC
 	`, jobName)
+	if err != nil {
+		return err
+	}
+
+	for _, serialGroup := range serialGroups {
+		_, err = tx.Exec(`
+			INSERT INTO jobs_serial_groups (job_name, serial_group)
+			VALUES ($1, $2)
+		`, jobName, serialGroup)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (db *SQLDB) GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (Build, error) {
+	db.updateSerialGroupsForJob(jobName, serialGroups)
+
+	serialGroupNames := []interface{}{}
+	refs := []string{}
+	for i, serialGroup := range serialGroups {
+		serialGroupNames = append(serialGroupNames, serialGroup)
+		refs = append(refs, fmt.Sprintf("$%d", i+1))
+	}
+
+	build, err := scanBuild(db.conn.QueryRow(`
+		SELECT `+qualifiedBuildColumns+`
+		FROM builds b
+		INNER JOIN jobs j ON b.job_name = j.name
+		INNER JOIN jobs_serial_groups jsg ON j.name = jsg.job_name
+				AND jsg.serial_group IN (`+strings.Join(refs, ",")+`)
+		WHERE b.status = 'pending'
+		GROUP BY `+qualifiedBuildColumns+`
+		ORDER BY id ASC
+		LIMIT 1
+	`, serialGroupNames...))
+
+	if err != nil {
+		return Build{}, err
+	}
+
+	return build, nil
+
+}
+
+func (db *SQLDB) GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]Build, error) {
+	db.updateSerialGroupsForJob(jobName, serialGroups)
+
+	serialGroupNames := []interface{}{}
+	refs := []string{}
+	for i, serialGroup := range serialGroups {
+		serialGroupNames = append(serialGroupNames, serialGroup)
+		refs = append(refs, fmt.Sprintf("$%d", i+1))
+	}
+
+	rows, err := db.conn.Query(`
+		SELECT `+qualifiedBuildColumns+`
+		FROM builds b
+		INNER JOIN jobs j ON b.job_name = j.name
+		INNER JOIN jobs_serial_groups jsg ON j.name = jsg.job_name
+				AND jsg.serial_group IN (`+strings.Join(refs, ",")+`)
+		WHERE (
+				b.status = 'started'
+				OR
+				(b.scheduled = true AND b.status = 'pending')
+			)
+		GROUP BY `+qualifiedBuildColumns+`
+	`, serialGroupNames...)
 
 	if err != nil {
 		return nil, err

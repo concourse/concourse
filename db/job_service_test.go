@@ -123,7 +123,7 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 						Context("When the call to get running builds throws an error", func() {
 							BeforeEach(func() {
-								fakeDB.GetRunningBuildsByJobReturns([]db.Build{}, errors.New("disaster"))
+								fakeDB.GetRunningBuildsBySerialGroupReturns([]db.Build{}, errors.New("disaster"))
 							})
 
 							It("returns the error", func() {
@@ -136,7 +136,7 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 						Context("When another build with the same job is running", func() {
 							BeforeEach(func() {
-								fakeDB.GetRunningBuildsByJobReturns([]db.Build{
+								fakeDB.GetRunningBuildsBySerialGroupReturns([]db.Build{
 									{
 										Name: "Some-build",
 									},
@@ -153,12 +153,12 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 						Context("When no other builds are running", func() {
 							BeforeEach(func() {
-								fakeDB.GetRunningBuildsByJobReturns([]db.Build{}, nil)
+								fakeDB.GetRunningBuildsBySerialGroupReturns([]db.Build{}, nil)
 							})
 
 							Context("When the call to get next pending build fails", func() {
 								BeforeEach(func() {
-									fakeDB.GetNextPendingBuildReturns(db.Build{}, []db.BuildInput{}, errors.New("disaster"))
+									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{}, errors.New("disaster"))
 								})
 
 								It("returns false and the error", func() {
@@ -171,7 +171,7 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 							Context("When it is not the next most pending build", func() {
 								BeforeEach(func() {
-									fakeDB.GetNextPendingBuildReturns(db.Build{ID: 3}, []db.BuildInput{}, nil)
+									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{ID: 3}, nil)
 								})
 
 								It("returns false", func() {
@@ -184,7 +184,7 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 							Context("When it is the next most pending build", func() {
 								BeforeEach(func() {
-									fakeDB.GetNextPendingBuildReturns(db.Build{ID: dbBuild.ID}, []db.BuildInput{}, nil)
+									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{ID: dbBuild.ID}, nil)
 								})
 
 								It("returns true", func() {

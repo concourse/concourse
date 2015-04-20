@@ -572,7 +572,64 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Ω(finished.ID).Should(Equal(nextBuild.ID))
 		})
 
-		Describe("GetRunningBuildsByJob", func() {
+		Describe("GetNextPendingBuildBySerialGroup", func() {
+			var jobOneConfig atc.JobConfig
+			var jobOneTwoConfig atc.JobConfig
+			BeforeEach(func() {
+				jobOneConfig = atc.JobConfig{
+					Name:         "job-one",
+					SerialGroups: []string{"one"},
+				}
+				jobOneTwoConfig = atc.JobConfig{
+					Name:         "job-one-two",
+					SerialGroups: []string{"one", "two"},
+				}
+			})
+
+			It("should return the next most pending build in a group of jobs", func() {
+				buildOne, err := database.CreateJobBuild(jobOneConfig.Name)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				buildTwo, err := database.CreateJobBuild(jobOneConfig.Name)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				buildThree, err := database.CreateJobBuild(jobOneTwoConfig.Name)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				build, err := database.GetNextPendingBuildBySerialGroup("job-one", []string{"one"})
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(build.ID).Should(Equal(buildOne.ID))
+				build, err = database.GetNextPendingBuildBySerialGroup("job-one-two", []string{"one", "two"})
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(build.ID).Should(Equal(buildOne.ID))
+
+				scheduled, err := database.ScheduleBuild(buildOne.ID, jobOneConfig)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(scheduled).Should(BeTrue())
+				Ω(database.FinishBuild(buildOne.ID, db.StatusSucceeded)).Should(Succeed())
+
+				build, err = database.GetNextPendingBuildBySerialGroup("job-one", []string{"one"})
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(build.ID).Should(Equal(buildTwo.ID))
+				build, err = database.GetNextPendingBuildBySerialGroup("job-one-two", []string{"one", "two"})
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(build.ID).Should(Equal(buildTwo.ID))
+
+				scheduled, err = database.ScheduleBuild(buildTwo.ID, jobOneConfig)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(scheduled).Should(BeTrue())
+				Ω(database.FinishBuild(buildTwo.ID, db.StatusSucceeded)).Should(Succeed())
+
+				build, err = database.GetNextPendingBuildBySerialGroup("job-one", []string{"one"})
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(build.ID).Should(Equal(buildThree.ID))
+				build, err = database.GetNextPendingBuildBySerialGroup("job-one-two", []string{"one", "two"})
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(build.ID).Should(Equal(buildThree.ID))
+			})
+		})
+
+		Describe("GetRunningBuildsBySerialGroup", func() {
 			var pendingBuild db.Build
 			var startedBuild db.Build
 			var scheduledBuild db.Build
@@ -599,14 +656,11 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 
-			It("returns a list of builds the matches the jobName passed in that are started or scheduled and have a different job id", func() {
-				builds, err := database.GetRunningBuildsByJob("matching-job")
+			It("returns a list of builds the matches the jobName passed in that are started or scheduled and have a different serial group", func() {
+				builds, err := database.GetRunningBuildsBySerialGroup("matching-job", []string{"matching-job"})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(len(builds)).Should(Equal(2))
-
-				Ω(builds[0].ID).Should(Equal(scheduledBuild.ID))
-				Ω(builds[1].ID).Should(Equal(startedBuild.ID))
 			})
 		})
 

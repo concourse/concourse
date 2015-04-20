@@ -63,6 +63,18 @@ func (config JobConfig) IsSerial() bool {
 	return config.Serial || len(config.SerialGroups) > 0
 }
 
+func (config JobConfig) GetSerialGroups() []string {
+	if len(config.SerialGroups) > 0 {
+		return config.SerialGroups
+	}
+
+	if config.IsSerial() {
+		return []string{config.Name}
+	}
+
+	return []string{}
+}
+
 func (config JobConfig) Inputs() []JobInput {
 	if config.InputConfigs != nil {
 		var inputs []JobInput
