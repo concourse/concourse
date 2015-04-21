@@ -36,7 +36,7 @@ var _ = Describe("Resource Pausing", func() {
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		sqlDB = db.NewSQL(dbLogger, dbConn, dbListener)
 
-		atcProcess, atcPort = startATC(atcBin)
+		atcProcess, atcPort = startATC(atcBin, 1)
 	})
 
 	AfterEach(func() {

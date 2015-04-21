@@ -33,9 +33,10 @@ func NewHandler(
 	jobsDB jobserver.JobsDB,
 	resourceDB resourceserver.ResourceDB,
 	workerDB workerserver.WorkerDB,
+	pipeDB pipes.PipeDB,
 
 	configValidator configserver.ConfigValidator,
-	peerAddr string,
+	peerURL string,
 	eventHandlerFactory buildserver.EventHandlerFactory,
 	drain <-chan struct{},
 
@@ -69,7 +70,7 @@ func NewHandler(
 
 	jobServer := jobserver.NewServer(logger, jobsDB, configDB)
 	resourceServer := resourceserver.NewServer(logger, resourceDB, configDB, validator)
-	pipeServer := pipes.NewServer(logger, peerAddr)
+	pipeServer := pipes.NewServer(logger, peerURL, pipeDB)
 
 	configServer := configserver.NewServer(logger, configDB, configValidator)
 

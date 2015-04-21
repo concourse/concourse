@@ -314,9 +314,10 @@ func main() {
 		db,
 		db,
 		db,
+		db,
 
 		config.ValidateConfig,
-		callbacksURL.Host,
+		callbacksURL.String(),
 		buildserver.NewEventHandler,
 		drain,
 

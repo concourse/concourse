@@ -33,4 +33,5 @@ var Migrations = []migration.Migrator{
 	AddPausedToResources,
 	AddPausedToJobs,
 	CreateJobsSerialGroups,
+	CreatePipes,
 }

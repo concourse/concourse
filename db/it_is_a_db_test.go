@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/event"
+	"github.com/nu7hatch/gouuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -18,6 +19,22 @@ type dbSharedBehaviorInput struct {
 
 func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 	return func() {
+
+		Describe("CreatePipe", func() {
+			It("saves a pipe to the db", func() {
+				myGuid, err := uuid.NewV4()
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = database.CreatePipe(myGuid.String(), "a-url")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				pipe, err := database.GetPipe(myGuid.String())
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(pipe.ID).Should(Equal(myGuid.String()))
+				Ω(pipe.URL).Should(Equal("a-url"))
+			})
+		})
+
 		It("initially reports zero builds for a job", func() {
 			builds, err := database.GetAllJobBuilds("some-job")
 			Ω(err).ShouldNot(HaveOccurred())

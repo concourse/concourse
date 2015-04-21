@@ -17,6 +17,7 @@ import (
 	"github.com/concourse/atc/api/buildserver"
 	buildfakes "github.com/concourse/atc/api/buildserver/fakes"
 	jobfakes "github.com/concourse/atc/api/jobserver/fakes"
+	pipeserverfakes "github.com/concourse/atc/api/pipes/fakes"
 	resourcefakes "github.com/concourse/atc/api/resourceserver/fakes"
 	workerserverfakes "github.com/concourse/atc/api/workerserver/fakes"
 	authfakes "github.com/concourse/atc/auth/fakes"
@@ -35,6 +36,7 @@ var (
 	jobsDB              *jobfakes.FakeJobsDB
 	configDB            *dbfakes.FakeConfigDB
 	workerDB            *workerserverfakes.FakeWorkerDB
+	pipeDB              *pipeserverfakes.FakePipeDB
 	resourceDB          *resourcefakes.FakeResourceDB
 	configValidationErr error
 	peerAddr            string
@@ -78,6 +80,7 @@ var _ = BeforeEach(func() {
 	configDB = new(dbfakes.FakeConfigDB)
 	workerDB = new(workerserverfakes.FakeWorkerDB)
 	resourceDB = new(resourcefakes.FakeResourceDB)
+	pipeDB = new(pipeserverfakes.FakePipeDB)
 
 	authValidator = new(authfakes.FakeValidator)
 	configValidationErr = nil
@@ -109,6 +112,7 @@ var _ = BeforeEach(func() {
 		jobsDB,
 		resourceDB,
 		workerDB,
+		pipeDB,
 
 		func(atc.Config) error { return configValidationErr },
 		peerAddr,

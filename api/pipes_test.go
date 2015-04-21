@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -56,15 +57,19 @@ var _ = Describe("Pipes API", func() {
 
 			BeforeEach(func() {
 				pipe = createPipe()
-			})
-
-			It("returns the server's configured peer addr", func() {
-				Ω(pipe.PeerAddr).Should(Equal("127.0.0.1:1234"))
+				pipeDB.GetPipeReturns(db.Pipe{
+					ID:  pipe.ID,
+					URL: "127.0.0.1:1234",
+				}, nil)
 			})
 
 			It("returns unique pipe IDs", func() {
 				anotherPipe := createPipe()
 				Ω(anotherPipe.ID).ShouldNot(Equal(pipe.ID))
+			})
+
+			It("saves it", func() {
+				Ω(pipeDB.CreatePipeCallCount()).Should(Equal(1))
 			})
 
 			Describe("GET /api/v1/pipes/:pipe", func() {

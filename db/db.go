@@ -23,6 +23,9 @@ type DB interface {
 	PauseJob(job string) error
 	UnpauseJob(job string) error
 
+	CreatePipe(pipeGUID string, url string) error
+	GetPipe(pipeGUID string) (Pipe, error)
+
 	GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error)
 
 	CreateJobBuild(job string) (Build, error)

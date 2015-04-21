@@ -23,13 +23,14 @@ import (
 	"github.com/concourse/atc/event"
 )
 
-func startATC(atcBin string) (ifrit.Process, uint16) {
-	atcPort := 5697 + uint16(GinkgoParallelNode())
-	debugPort := 6697 + uint16(GinkgoParallelNode())
+func startATC(atcBin string, atcServerNumber uint16) (ifrit.Process, uint16) {
+	atcPort := 5697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
+	debugPort := 6697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
 
 	atcCommand := exec.Command(
 		atcBin,
 		"-webListenPort", fmt.Sprintf("%d", atcPort),
+		"-callbacksURL", fmt.Sprintf("http://127.0.0.1:%d", atcPort),
 		"-debugListenPort", fmt.Sprintf("%d", debugPort),
 		"-httpUsername", "admin",
 		"-httpHashedPassword", "$2a$04$DYaOWeQgyxTCv7QxydTP9u1KnwXWSKipC4BeTuBy.9m.IlkAdqNGG", // "password"
@@ -63,7 +64,7 @@ var _ = Describe("One-off Builds", func() {
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		sqlDB = db.NewSQL(dbLogger, dbConn, dbListener)
 
-		atcProcess, atcPort = startATC(atcBin)
+		atcProcess, atcPort = startATC(atcBin, 1)
 	})
 
 	AfterEach(func() {

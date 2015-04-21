@@ -17,11 +17,16 @@ func (s *Server) CreatePipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = s.db.CreatePipe(guid.String(), s.url)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	pr, pw := io.Pipe()
 
 	pipeResource := atc.Pipe{
-		ID:       guid.String(),
-		PeerAddr: s.peerAddr,
+		ID: guid.String(),
 	}
 
 	pipe := pipe{
