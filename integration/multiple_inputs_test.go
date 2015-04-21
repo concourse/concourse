@@ -86,7 +86,7 @@ run:
 								Name: "buildDir",
 								Type: "archive",
 								Source: atc.Source{
-									"uri": "http://127.0.0.1:1234/api/v1/pipes/some-pipe-id",
+									"uri": atcServer.URL() + "/api/v1/pipes/some-pipe-id",
 								},
 							},
 						},
@@ -95,7 +95,7 @@ run:
 								Name: "s3Asset",
 								Type: "archive",
 								Source: atc.Source{
-									"uri": "http://127.0.0.1:1234/api/v1/pipes/some-other-pipe-id",
+									"uri": atcServer.URL() + "/api/v1/pipes/some-other-pipe-id",
 								},
 							},
 						},
@@ -131,15 +131,13 @@ run:
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/pipes"),
 				ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Pipe{
-					ID:       "some-pipe-id",
-					PeerAddr: "127.0.0.1:1234",
+					ID: "some-pipe-id",
 				}),
 			),
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/pipes"),
 				ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Pipe{
-					ID:       "some-other-pipe-id",
-					PeerAddr: "127.0.0.1:1234",
+					ID: "some-other-pipe-id",
 				}),
 			),
 			ghttp.CombineHandlers(

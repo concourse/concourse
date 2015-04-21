@@ -81,7 +81,7 @@ run:
 								Name: filepath.Base(buildDir),
 								Type: "archive",
 								Source: atc.Source{
-									"uri": "http://127.0.0.1:1234/api/v1/pipes/some-pipe-id",
+									"uri": atcServer.URL() + "/api/v1/pipes/some-pipe-id",
 								},
 							},
 						},
@@ -117,8 +117,7 @@ run:
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/pipes"),
 				ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Pipe{
-					ID:       "some-pipe-id",
-					PeerAddr: "127.0.0.1:1234",
+					ID: "some-pipe-id",
 				}),
 			),
 			ghttp.CombineHandlers(

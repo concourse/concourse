@@ -181,8 +181,6 @@ func createBuild(
 			log.Fatalln(err)
 		}
 
-		readPipe.URL.Host = i.Pipe.PeerAddr
-
 		buildInputs = append(buildInputs, atc.Plan{
 			Get: &atc.GetPlan{
 				Name: i.Name,
