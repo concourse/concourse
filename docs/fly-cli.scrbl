@@ -22,13 +22,13 @@ to deploy a Concourse.
 
 Once you've deployed Concourse you can tell @code{fly} to target it in a
 couple of ways. You can either set the environment variable @code{ATC_URL}
-or you can give the command line option @code{--atcURL}. For example, if we
+or you can give the command line option @code{--target}. For example, if we
 wanted to run @code{fly sync} (don't worry what this means just yet) while
 pointing at Concourse that you normally reach by going to
 @code{http://ci.example.com} then you could run either of the following:
 
 @codeblock|{
-$ fly --atcURL 'http://ci.example.com' sync
+$ fly --target 'http://ci.example.com' sync
 
 $ ATC_URL='http://ci.example.com' fly sync
 }|
@@ -44,7 +44,7 @@ authentication credentials inline, then they can help by avoiding the need to
 escape special characters in passwords. For example:
 
 @codeblock|{
-$ fly --atcURL 'http://username:p@$$w0rd@ci.example.com' sync
+$ fly --target 'http://username:p@$$w0rd@ci.example.com' sync
 }|
 
 If your Concourse uses SSL but does not have a CA signed certificate, you
