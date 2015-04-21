@@ -324,7 +324,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 							Ω(c.Sub(b)).Should(BeNumerically("~", 3*heartbeatInterval, 1*time.Second))
 
-							Eventually(sshSess.Out).Should(gbytes.Say("heartbeat@"))
+							Eventually(sshSess.Out).Should(gbytes.Say("heartbeat"))
 						})
 
 						Context("when the client goes away", func() {

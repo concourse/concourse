@@ -2,9 +2,7 @@ package tsa_test
 
 import (
 	"encoding/json"
-	"io"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
@@ -13,6 +11,7 @@ import (
 	. "github.com/concourse/tsa"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -20,33 +19,6 @@ import (
 	"github.com/tedsuo/ifrit/ginkgomon"
 	"github.com/tedsuo/rata"
 )
-
-type FakeChannel struct {
-	message []byte
-}
-
-func (c FakeChannel) Close() error {
-	return nil
-}
-func (c FakeChannel) CloseWrite() error {
-	return nil
-}
-
-func (c FakeChannel) Read([]byte) (int, error) {
-	return 0, nil
-}
-
-func (c FakeChannel) Write(stringToWrite []byte) (int, error) {
-	return 0, nil
-}
-
-func (c FakeChannel) SendRequest(req string, wait bool, payload []byte) (bool, error) {
-	return true, nil
-}
-
-func (c FakeChannel) Stderr() io.ReadWriter {
-	return os.Stderr
-}
 
 var _ = Describe("Heartbeater", func() {
 	type registration struct {
@@ -69,7 +41,7 @@ var _ = Describe("Heartbeater", func() {
 		heartbeater ifrit.Process
 
 		registrations <-chan registration
-		sshChannel    FakeChannel
+		clientWriter  *gbytes.Buffer
 	)
 
 	BeforeEach(func() {
@@ -112,6 +84,7 @@ var _ = Describe("Heartbeater", func() {
 		})
 
 		fakeGardenClient = new(gfakes.FakeClient)
+		clientWriter = gbytes.NewBuffer()
 	})
 
 	JustBeforeEach(func() {
@@ -128,7 +101,7 @@ var _ = Describe("Heartbeater", func() {
 					Platform:      "some-platform",
 					Tags:          []string{"some", "tags"},
 				},
-				sshChannel,
+				clientWriter,
 			),
 		)
 	})
