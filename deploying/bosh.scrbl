@@ -170,8 +170,8 @@ values:
   }
 
   @item{
-    @code{jobs.worker.gate.atc.username},
-    @code{jobs.worker.gate.atc.password}: Basic auth credentials to use when
+    @code{jobs.web.properties.tsa.atc.username},
+    @code{jobs.web.properties.tsa.atc.password}: Basic auth credentials to use when
     registering the worker. These must be specified if basic auth is
     configured, otherwise no workers will be available.
 
