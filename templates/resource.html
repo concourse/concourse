@@ -37,45 +37,51 @@
   </div>
 </div>
 
-<table id="version-history">
-  <colgroup>
-    <col span="1" style="width: 15%;">
-    <col span="1" style="width: 5%;">
-    <col span="1" style="width: 40%;">
-    <col span="1" style="width: 40%;">
-  </colgroup>
-  <thead>
-    <tr>
-      <th>metadata</th>
-      <th>inputs to</th>
-      <th>outputs of</th>
-    </tr>
-  </thead>
-  <tbody>
-    {{range .History}}
-    <tr class="{{if .VersionedResource.Enabled}}enabled{{else}}disabled{{end}}">
+<ul class="list list-collapsable list-enableDisable mhm">
+  {{range .History}}
+    <li class="list-collapsable-item clearfix {{if .VersionedResource.Enabled}}enabled{{else}}disabled{{end}}">
 
-      <td>
+      <a class="fl btn-power-toggle js-toggleResource fa fa-power-off mrm" href="javascript:;" data-action="{{if .VersionedResource.Enabled}}disable{{else}}enable{{end}}" data-enable-url="{{url "EnableResourceVersion" .VersionedResource}}" data-disable-url="{{url "DisableResourceVersion" .VersionedResource}}"></a>
 
-        <div class="build-source">
-          <div class="header">
+      <div class="js-expandable list-collapsable-title">
+        {{range $name, $val := .VersionedResource.Version}}
+        {{$name}} {{$val}}
+        {{end}}
+      </div>
+      <div class="list-collapsable-content w100 clearfix phm pvs">
 
-              <a class="fl btn-power-toggle js-toggleResource fa fa-power-off mrl" href="javascript:;" data-action="{{if .VersionedResource.Enabled}}disable{{else}}enable{{end}}" data-enable-url="{{url "EnableResourceVersion" .VersionedResource}}" data-disable-url="{{url "DisableResourceVersion" .VersionedResource}}"></a>
+        <div class="fl prm" style="width:34%">
+          <div class="list-collapsable-title">inputs to</div>
 
-            <h3>
-              version
-            </h3>
+          {{range .InputsTo}}
+            {{$job := .JobName}}
+              <h3 class="man pas ansi-bright-black-bg">{{.JobName}}</h3>
+              <ul class="builds-list">
+                  {{range .Builds}}
+                  <li class="{{.Status}}"><a href="{{url "GetBuild" $job .}}">#{{.Name}}</a></li>
+                  {{end}}
+                </ul>
 
-            <dl class="version">
-              {{range $name, $val := .VersionedResource.Version}}
-              <dt>{{$name}}</dt>
-                <dd>{{$val}}</dd>
-              {{end}}
-            </dl>
+          {{end}}
+        </div>
 
-            <div style="clear: both"></div>
-          </div>
+        <div class="fl prm" style="width:33%">
+          <div class="list-collapsable-title">outputs of</div>
+          {{range .OutputsOf}}
+          {{$job := .JobName}}
+          <h3>{{.JobName}}</h3>
 
+          <ul class="builds-list">
+            {{range .Builds}}
+            <li class="{{.Status}}"><a href="{{url "GetBuild" $job .}}">#{{.Name}}</a></li>
+            {{end}}
+          </ul>
+          {{end}}
+
+        </div>
+
+        <div class="fl" style="width:33%">
+          <div class="list-collapsable-title" style="padding-left:5em;">metadata</div>
           <dl class="build-metadata">
             {{range .VersionedResource.Metadata}}
             <dt>{{.Name}}</dt>
@@ -83,45 +89,10 @@
             {{end}}
           </dl>
         </div>
-      </td>
-      <td>
-        <table class="jobs">
-          {{range .InputsTo}}
-          {{$job := .JobName}}
-          <tr>
-            <td class="name"><h3>{{.JobName}}</h3></td>
-            <td>
-              <ul class="builds-list">
-                {{range .Builds}}
-                <li class="{{.Status}}"><a href="{{url "GetBuild" $job .}}">#{{.Name}}</a></li>
-                {{end}}
-              </ul>
-            </td>
-          </tr>
-          {{end}}
-        </table>
-      </td>
-      <td>
-        <table class="jobs">
-          {{range .OutputsOf}}
-          {{$job := .JobName}}
-          <tr>
-            <td class="name"><h3>{{.JobName}}</h3></td>
-            <td>
-              <ul class="builds-list">
-                {{range .Builds}}
-                <li class="{{.Status}}"><a href="{{url "GetBuild" $job .}}">#{{.Name}}</a></li>
-                {{end}}
-              </ul>
-            </td>
-          </tr>
-          {{end}}
-        </table>
-      </td>
-    </tr>
-    {{end}}
-  </tbody>
-</table>
+      </div>
+    </li>
+  {{end}}
+</ul>
 
 <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
 <script src="{{asset "resources.js"}}"></script>
