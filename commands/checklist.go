@@ -13,10 +13,15 @@ import (
 func Checklist(c *cli.Context) {
 	rawTarget := c.GlobalString("target")
 	insecure := c.GlobalBool("insecure")
+	pipelineName := c.Args().First()
+
+	if pipelineName == "" {
+		pipelineName = atc.DefaultPipelineName
+	}
 
 	atcRequester := newAtcRequester(rawTarget, insecure)
 
-	printCheckfile(getConfig(atcRequester), newTarget(rawTarget))
+	printCheckfile(getConfig(pipelineName, atcRequester), newTarget(rawTarget))
 }
 
 func printCheckfile(config atc.Config, au target) {

@@ -14,6 +14,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
+	"github.com/tedsuo/rata"
 	"gopkg.in/yaml.v2"
 
 	"github.com/concourse/atc"
@@ -143,34 +144,22 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Describe("getting", func() {
-			BeforeEach(func() {
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/config"),
-						ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
-					),
-				)
-			})
 
-			It("prints the config as yaml to stdout", func() {
-				flyCmd := exec.Command(flyPath, "configure")
+			Context("when not specifying a pipeline name", func() {
+				BeforeEach(func() {
+					path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "main"})
+					Ω(err).ShouldNot(HaveOccurred())
 
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Ω(err).ShouldNot(HaveOccurred())
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", path),
+							ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
+						),
+					)
+				})
 
-				<-sess.Exited
-				Ω(sess.ExitCode()).Should(Equal(0))
-
-				var printedConfig atc.Config
-				err = yaml.Unmarshal(sess.Out.Contents(), &printedConfig)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(printedConfig).Should(Equal(config))
-			})
-
-			Context("when -j is given", func() {
-				It("prints the config as json to stdout", func() {
-					flyCmd := exec.Command(flyPath, "configure", "-j")
+				It("prints the config as yaml to stdout", func() {
+					flyCmd := exec.Command(flyPath, "configure")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Ω(err).ShouldNot(HaveOccurred())
@@ -179,10 +168,76 @@ var _ = Describe("Fly CLI", func() {
 					Ω(sess.ExitCode()).Should(Equal(0))
 
 					var printedConfig atc.Config
-					err = json.Unmarshal(sess.Out.Contents(), &printedConfig)
+					err = yaml.Unmarshal(sess.Out.Contents(), &printedConfig)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(printedConfig).Should(Equal(config))
+				})
+
+				Context("when -j is given", func() {
+					It("prints the config as json to stdout", func() {
+						flyCmd := exec.Command(flyPath, "configure", "-j")
+
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						<-sess.Exited
+						Ω(sess.ExitCode()).Should(Equal(0))
+
+						var printedConfig atc.Config
+						err = json.Unmarshal(sess.Out.Contents(), &printedConfig)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Ω(printedConfig).Should(Equal(config))
+					})
+				})
+			})
+
+			Context("when specifying a pipeline name", func() {
+				BeforeEach(func() {
+					path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "some-pipeline"})
+					Ω(err).ShouldNot(HaveOccurred())
+
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", path),
+							ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
+						),
+					)
+				})
+
+				It("prints the config as yaml to stdout", func() {
+					flyCmd := exec.Command(flyPath, "configure", "some-pipeline")
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					<-sess.Exited
+					Ω(sess.ExitCode()).Should(Equal(0))
+
+					var printedConfig atc.Config
+					err = yaml.Unmarshal(sess.Out.Contents(), &printedConfig)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(printedConfig).Should(Equal(config))
+				})
+
+				Context("when -j is given", func() {
+					It("prints the config as json to stdout", func() {
+						flyCmd := exec.Command(flyPath, "configure", "some-pipeline", "-j")
+
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						<-sess.Exited
+						Ω(sess.ExitCode()).Should(Equal(0))
+
+						var printedConfig atc.Config
+						err = json.Unmarshal(sess.Out.Contents(), &printedConfig)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Ω(printedConfig).Should(Equal(config))
+					})
 				})
 			})
 		})
@@ -215,7 +270,10 @@ var _ = Describe("Fly CLI", func() {
 					Jobs: atc.JobConfigs{},
 				}
 
-				atcServer.RouteToHandler("GET", "/api/v1/config",
+				path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "main"})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				atcServer.RouteToHandler("GET", path,
 					ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
 				)
 			})
@@ -228,7 +286,10 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				BeforeEach(func() {
-					atcServer.RouteToHandler("PUT", "/api/v1/config",
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "main"})
+					Ω(err).ShouldNot(HaveOccurred())
+
+					atcServer.RouteToHandler("PUT", path,
 						ghttp.CombineHandlers(
 							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 							ghttp.VerifyHeaderKV("Content-Type", "application/x-yaml"),
@@ -291,7 +352,10 @@ var _ = Describe("Fly CLI", func() {
 
 				changedConfig = config
 
-				atcServer.RouteToHandler("GET", "/api/v1/config",
+				path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "main"})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				atcServer.RouteToHandler("GET", path,
 					ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
 				)
 			})
@@ -331,7 +395,10 @@ var _ = Describe("Fly CLI", func() {
 					changedConfig.Jobs[0].Serial = false
 					changedConfig.Jobs = append(changedConfig.Jobs[:1], newJob)
 
-					atcServer.RouteToHandler("PUT", "/api/v1/config",
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "main"})
+					Ω(err).ShouldNot(HaveOccurred())
+
+					atcServer.RouteToHandler("PUT", path,
 						ghttp.CombineHandlers(
 							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 							ghttp.VerifyHeaderKV("Content-Type", "application/x-yaml"),
@@ -412,7 +479,10 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when configuring fails", func() {
 				BeforeEach(func() {
-					atcServer.RouteToHandler("PUT", "/api/v1/config",
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "main"})
+					Ω(err).ShouldNot(HaveOccurred())
+
+					atcServer.RouteToHandler("PUT", path,
 						ghttp.RespondWith(400, "nope"),
 					)
 				})
@@ -441,7 +511,10 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when the server rejects the request", func() {
 				BeforeEach(func() {
-					atcServer.RouteToHandler("PUT", "/api/v1/config", func(w http.ResponseWriter, r *http.Request) {
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "main"})
+					Ω(err).ShouldNot(HaveOccurred())
+
+					atcServer.RouteToHandler("PUT", path, func(w http.ResponseWriter, r *http.Request) {
 						atcServer.CloseClientConnections()
 					})
 				})

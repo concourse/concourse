@@ -135,9 +135,10 @@ func main() {
 			Action: commands.Watch,
 		},
 		{
-			Name:      "configure",
-			ShortName: "c",
-			Usage:     "Update configuration",
+			Name:        "configure",
+			ShortName:   "c",
+			Usage:       "Update configuration",
+			Description: "Specify a pipeline name to configure via `fly configure your-pipeline-name-here`",
 			Flags: []cli.Flag{
 				pipelineConfigFlag,
 				jsonFlag,

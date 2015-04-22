@@ -58,25 +58,29 @@ var _ = Describe("Fly CLI", func() {
 				},
 			}
 
-			atcServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/config"),
-					ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
-				),
-			)
 		})
 
-		It("prints the config as yaml to stdout", func() {
-			flyCmd := exec.Command(flyPath, "checklist")
+		Context("When a pipeline name is not specified", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/pipelines/main/config"),
+						ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
+					),
+				)
+			})
 
-			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Ω(err).ShouldNot(HaveOccurred())
+			It("prints the config as yaml to stdout", func() {
+				flyCmd := exec.Command(flyPath, "checklist")
 
-			<-sess.Exited
-			Ω(sess.ExitCode()).Should(Equal(0))
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(string(sess.Out.Contents())).Should(Equal(fmt.Sprintf(
-				`#- some-group
+				<-sess.Exited
+				Ω(sess.ExitCode()).Should(Equal(0))
+
+				Ω(string(sess.Out.Contents())).Should(Equal(fmt.Sprintf(
+					`#- some-group
 job-1: concourse.check %s   job-1
 job-2: concourse.check %s   job-2
 
@@ -88,6 +92,42 @@ job-4: concourse.check %s   job-4
 some-orphaned-job: concourse.check %s   some-orphaned-job
 
 `, atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL())))
+			})
+		})
+
+		Context("When a pipeline name is specified", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/config"),
+						ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
+					),
+				)
+			})
+
+			It("prints the config as yaml to stdout", func() {
+				flyCmd := exec.Command(flyPath, "checklist", "some-pipeline")
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				<-sess.Exited
+				Ω(sess.ExitCode()).Should(Equal(0))
+
+				Ω(string(sess.Out.Contents())).Should(Equal(fmt.Sprintf(
+					`#- some-group
+job-1: concourse.check %s   job-1
+job-2: concourse.check %s   job-2
+
+#- some-other-group
+job-3: concourse.check %s   job-3
+job-4: concourse.check %s   job-4
+
+#- misc
+some-orphaned-job: concourse.check %s   some-orphaned-job
+
+`, atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL())))
+			})
 		})
 	})
 })

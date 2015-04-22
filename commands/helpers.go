@@ -11,10 +11,10 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func getConfig(atcRequester *atcRequester) atc.Config {
+func getConfig(pipelineName string, atcRequester *atcRequester) atc.Config {
 	getConfigRequest, err := atcRequester.CreateRequest(
 		atc.GetConfig,
-		nil,
+		rata.Params{"pipeline_name": pipelineName},
 		nil,
 	)
 	if err != nil {

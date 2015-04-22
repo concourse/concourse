@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/template"
 	"github.com/onsi/gomega/gexec"
+	"github.com/tedsuo/rata"
 	"gopkg.in/yaml.v2"
 )
 
@@ -24,18 +25,23 @@ func Configure(c *cli.Context) {
 	asJSON := c.Bool("json")
 	templateVariables := c.StringSlice("var")
 	templateVariablesFile := c.StringSlice("vars-from")
+	pipelineName := c.Args().First()
+
+	if pipelineName == "" {
+		pipelineName = atc.DefaultPipelineName
+	}
 
 	atcRequester := newAtcRequester(target, insecure)
 
 	if configPath == "" {
-		dumpConfig(atcRequester, asJSON)
+		dumpConfig(pipelineName, atcRequester, asJSON)
 	} else {
-		setConfig(atcRequester, configPath, templateVariables, templateVariablesFile)
+		setConfig(pipelineName, atcRequester, configPath, templateVariables, templateVariablesFile)
 	}
 }
 
-func dumpConfig(atcRequester *atcRequester, asJSON bool) {
-	config := getConfig(atcRequester)
+func dumpConfig(pipelineName string, atcRequester *atcRequester, asJSON bool) {
+	config := getConfig(pipelineName, atcRequester)
 
 	var payload []byte
 	var err error
@@ -53,7 +59,7 @@ func dumpConfig(atcRequester *atcRequester, asJSON bool) {
 	fmt.Printf("%s", payload)
 }
 
-func setConfig(atcRequester *atcRequester, configPath string, templateVariables []string, templateVariablesFile []string) {
+func setConfig(pipelineName string, atcRequester *atcRequester, configPath string, templateVariables []string, templateVariablesFile []string) {
 	configFile, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		log.Fatalln(err)
@@ -90,7 +96,7 @@ func setConfig(atcRequester *atcRequester, configPath string, templateVariables 
 
 	getConfig, err := atcRequester.CreateRequest(
 		atc.GetConfig,
-		nil,
+		rata.Params{"pipeline_name": pipelineName},
 		nil,
 	)
 	if err != nil {
@@ -121,7 +127,7 @@ func setConfig(atcRequester *atcRequester, configPath string, templateVariables 
 
 	setConfig, err := atcRequester.CreateRequest(
 		atc.SaveConfig,
-		nil,
+		rata.Params{"pipeline_name": pipelineName},
 		bytes.NewBuffer(configFile),
 	)
 	if err != nil {
