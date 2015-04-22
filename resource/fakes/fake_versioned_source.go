@@ -23,13 +23,13 @@ type FakeVersionedSource struct {
 	VersionStub        func() atc.Version
 	versionMutex       sync.RWMutex
 	versionArgsForCall []struct{}
-	versionReturns struct {
+	versionReturns     struct {
 		result1 atc.Version
 	}
 	MetadataStub        func() []atc.MetadataField
 	metadataMutex       sync.RWMutex
 	metadataArgsForCall []struct{}
-	metadataReturns struct {
+	metadataReturns     struct {
 		result1 []atc.MetadataField
 	}
 	StreamOutStub        func(string) (io.ReadCloser, error)

@@ -9,26 +9,26 @@ import (
 )
 
 type FakeConfigDB struct {
-	GetConfigStub        func() (atc.Config, db.ConfigID, error)
+	GetConfigStub        func() (atc.Config, db.ConfigVersion, error)
 	getConfigMutex       sync.RWMutex
 	getConfigArgsForCall []struct{}
-	getConfigReturns struct {
+	getConfigReturns     struct {
 		result1 atc.Config
-		result2 db.ConfigID
+		result2 db.ConfigVersion
 		result3 error
 	}
-	SaveConfigStub        func(atc.Config, db.ConfigID) error
+	SaveConfigStub        func(atc.Config, db.ConfigVersion) error
 	saveConfigMutex       sync.RWMutex
 	saveConfigArgsForCall []struct {
 		arg1 atc.Config
-		arg2 db.ConfigID
+		arg2 db.ConfigVersion
 	}
 	saveConfigReturns struct {
 		result1 error
 	}
 }
 
-func (fake *FakeConfigDB) GetConfig() (atc.Config, db.ConfigID, error) {
+func (fake *FakeConfigDB) GetConfig() (atc.Config, db.ConfigVersion, error) {
 	fake.getConfigMutex.Lock()
 	fake.getConfigArgsForCall = append(fake.getConfigArgsForCall, struct{}{})
 	fake.getConfigMutex.Unlock()
@@ -45,20 +45,20 @@ func (fake *FakeConfigDB) GetConfigCallCount() int {
 	return len(fake.getConfigArgsForCall)
 }
 
-func (fake *FakeConfigDB) GetConfigReturns(result1 atc.Config, result2 db.ConfigID, result3 error) {
+func (fake *FakeConfigDB) GetConfigReturns(result1 atc.Config, result2 db.ConfigVersion, result3 error) {
 	fake.GetConfigStub = nil
 	fake.getConfigReturns = struct {
 		result1 atc.Config
-		result2 db.ConfigID
+		result2 db.ConfigVersion
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeConfigDB) SaveConfig(arg1 atc.Config, arg2 db.ConfigID) error {
+func (fake *FakeConfigDB) SaveConfig(arg1 atc.Config, arg2 db.ConfigVersion) error {
 	fake.saveConfigMutex.Lock()
 	fake.saveConfigArgsForCall = append(fake.saveConfigArgsForCall, struct {
 		arg1 atc.Config
-		arg2 db.ConfigID
+		arg2 db.ConfigVersion
 	}{arg1, arg2})
 	fake.saveConfigMutex.Unlock()
 	if fake.SaveConfigStub != nil {
@@ -74,7 +74,7 @@ func (fake *FakeConfigDB) SaveConfigCallCount() int {
 	return len(fake.saveConfigArgsForCall)
 }
 
-func (fake *FakeConfigDB) SaveConfigArgsForCall(i int) (atc.Config, db.ConfigID) {
+func (fake *FakeConfigDB) SaveConfigArgsForCall(i int) (atc.Config, db.ConfigVersion) {
 	fake.saveConfigMutex.RLock()
 	defer fake.saveConfigMutex.RUnlock()
 	return fake.saveConfigArgsForCall[i].arg1, fake.saveConfigArgsForCall[i].arg2
