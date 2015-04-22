@@ -26,7 +26,7 @@ var _ = Describe("FetchTemplateData", func() {
 
 	Context("when the config database returns an error", func() {
 		BeforeEach(func() {
-			fakeConfigDB.GetConfigReturns(atc.Config{}, db.ConfigID(1), errors.New("disaster"))
+			fakeConfigDB.GetConfigReturns(atc.Config{}, db.ConfigVersion(1), errors.New("disaster"))
 		})
 
 		It("returns an error if the config could not be loaded", func() {
@@ -57,7 +57,7 @@ var _ = Describe("FetchTemplateData", func() {
 				},
 			}
 
-			fakeConfigDB.GetConfigReturns(config, db.ConfigID(1), nil)
+			fakeConfigDB.GetConfigReturns(config, db.ConfigVersion(1), nil)
 		})
 
 		It("returns not found if the job cannot be found in the config", func() {
