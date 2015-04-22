@@ -84,7 +84,7 @@ var Step = React.createClass({
         </div>
 
         <div className="step-body" style={{display: displayLogs}}>
-          <dl className="build-metadata">{metadataDetails}</dl>
+          <dl className="build-metadata fr">{metadataDetails}</dl>
 
           <Logs batches={this.props.logs} autoscroll={this.props.autoscroll} />
 
