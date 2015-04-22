@@ -38,13 +38,13 @@ func NewSQL(
 	}
 }
 
-func (db *SQLDB) GetConfig() (atc.Config, ConfigID, error) {
+func (db *SQLDB) GetConfig() (atc.Config, ConfigVersion, error) {
 	var configBlob []byte
-	var id int
+	var version int
 	err := db.conn.QueryRow(`
-		SELECT config, id
+		SELECT config, version
 		FROM pipelines
-	`).Scan(&configBlob, &id)
+	`).Scan(&configBlob, &version)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return atc.Config{}, 0, nil
@@ -59,10 +59,10 @@ func (db *SQLDB) GetConfig() (atc.Config, ConfigID, error) {
 		return atc.Config{}, 0, err
 	}
 
-	return config, ConfigID(id), nil
+	return config, ConfigVersion(version), nil
 }
 
-func (db *SQLDB) SaveConfig(config atc.Config, from ConfigID) error {
+func (db *SQLDB) SaveConfig(config atc.Config, from ConfigVersion) error {
 	payload, err := json.Marshal(config)
 	if err != nil {
 		return err
@@ -86,8 +86,8 @@ func (db *SQLDB) SaveConfig(config atc.Config, from ConfigID) error {
 
 	result, err := tx.Exec(`
 		UPDATE pipelines
-		SET config = $1, id = nextval('config_id_seq')
-		WHERE id = $2
+		SET config = $1, version = nextval('config_version_seq')
+		WHERE version = $2
 	`, payload, from)
 	if err != nil {
 		return err
@@ -101,8 +101,8 @@ func (db *SQLDB) SaveConfig(config atc.Config, from ConfigID) error {
 	if rows == 0 {
 		if existingConfig == 0 {
 			_, err := tx.Exec(`
-			INSERT INTO pipelines (config, id)
-			VALUES ($1, nextval('config_id_seq'))
+			INSERT INTO pipelines (config, version)
+			VALUES ($1, nextval('config_version_seq'))
 		`, payload)
 			if err != nil {
 				return err

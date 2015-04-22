@@ -71,11 +71,11 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 
 	Describe("GetConfig", func() {
 		var gotConfig atc.Config
-		var gotID ConfigID
+		var gotVersion ConfigVersion
 		var getErr error
 
 		JustBeforeEach(func() {
-			gotConfig, gotID, getErr = configDB.GetConfig()
+			gotConfig, gotVersion, getErr = configDB.GetConfig()
 		})
 
 		Context("when the nested config db yields a config containing jobs with plans", func() {
@@ -88,7 +88,7 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 			})
 
 			It("returns the config ID", func() {
-				Ω(gotID).Should(Equal(ConfigID(42)))
+				Ω(gotVersion).Should(Equal(ConfigVersion(42)))
 			})
 
 			It("returns the config as-is", func() {
@@ -106,7 +106,7 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 			})
 
 			It("returns the config ID", func() {
-				Ω(gotID).Should(Equal(ConfigID(42)))
+				Ω(gotVersion).Should(Equal(ConfigVersion(42)))
 			})
 
 			It("returns the config with the job converted to using plans", func() {
@@ -129,17 +129,17 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 
 	Context("SaveConfig", func() {
 		var configToSave atc.Config
-		var idToSave ConfigID
+		var versionToSave ConfigVersion
 
 		var saveErr error
 
 		BeforeEach(func() {
 			configToSave = atc.Config{}
-			idToSave = 42
+			versionToSave = 42
 		})
 
 		JustBeforeEach(func() {
-			saveErr = configDB.SaveConfig(configToSave, idToSave)
+			saveErr = configDB.SaveConfig(configToSave, versionToSave)
 		})
 
 		Context("when the given config contains jobs with inputs/outputs/build", func() {
@@ -156,7 +156,7 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 
 				savedConfig, savedID := nestedDB.SaveConfigArgsForCall(0)
 				Ω(savedConfig).Should(Equal(planBasedConfig))
-				Ω(savedID).Should(Equal(ConfigID(42)))
+				Ω(savedID).Should(Equal(ConfigVersion(42)))
 			})
 
 			Context("when the nested config db fails to save", func() {
@@ -186,7 +186,7 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 
 				savedConfig, savedID := nestedDB.SaveConfigArgsForCall(0)
 				Ω(savedConfig).Should(Equal(planBasedConfig))
-				Ω(savedID).Should(Equal(ConfigID(42)))
+				Ω(savedID).Should(Equal(ConfigVersion(42)))
 			})
 
 			Context("when the nested config db fails to save", func() {

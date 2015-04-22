@@ -81,7 +81,7 @@ var _ = Describe("Resource Pausing", func() {
 					Jobs: []atc.JobConfig{
 						{Name: "job-name"},
 					},
-				}, db.ConfigID(1))).Should(Succeed())
+				}, db.ConfigVersion(1))).Should(Succeed())
 
 				build, err = sqlDB.CreateJobBuild("job-name")
 				Ω(err).ShouldNot(HaveOccurred())

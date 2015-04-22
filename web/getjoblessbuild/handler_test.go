@@ -46,7 +46,7 @@ var _ = Describe("Handler", func() {
 				},
 			}
 
-			fakeConfigDB.GetConfigReturns(config, db.ConfigID(1), nil)
+			fakeConfigDB.GetConfigReturns(config, db.ConfigVersion(1), nil)
 
 			templateData, err := FetchTemplateData("2", fakeDB, fakeConfigDB)
 			Ω(err).ShouldNot(HaveOccurred())
@@ -60,7 +60,7 @@ var _ = Describe("Handler", func() {
 		})
 
 		It("returns an error if fetching from the config fails", func() {
-			fakeConfigDB.GetConfigReturns(atc.Config{}, db.ConfigID(0), errors.New("Config disaster"))
+			fakeConfigDB.GetConfigReturns(atc.Config{}, db.ConfigVersion(0), errors.New("Config disaster"))
 
 			_, err := FetchTemplateData("2", fakeDB, fakeConfigDB)
 			Ω(err).Should(HaveOccurred())

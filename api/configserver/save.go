@@ -18,19 +18,19 @@ import (
 func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	session := s.logger.Session("set-config")
 
-	configIDStr := r.Header.Get(atc.ConfigIDHeader)
-	if len(configIDStr) == 0 {
+	configVersionStr := r.Header.Get(atc.ConfigVersionHeader)
+	if len(configVersionStr) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "no config ID specified")
+		fmt.Fprintf(w, "no config version specified")
 		return
 	}
 
-	var id db.ConfigID
-	_, err := fmt.Sscanf(configIDStr, "%d", &id)
+	var version db.ConfigVersion
+	_, err := fmt.Sscanf(configVersionStr, "%d", &version)
 	if err != nil {
-		session.Error("malformed-config-id", err)
+		session.Error("malformed-config-version", err)
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "config ID is malformed: %s", err)
+		fmt.Fprintf(w, "config version is malformed: %s", err)
 		return
 	}
 
@@ -125,7 +125,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 
 	session.Info("saving")
 
-	err = s.db.SaveConfig(config, id)
+	err = s.db.SaveConfig(config, version)
 	if err != nil {
 		session.Error("failed-to-save-config", err)
 		w.WriteHeader(http.StatusInternalServerError)

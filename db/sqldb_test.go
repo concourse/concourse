@@ -142,7 +142,7 @@ var _ = Describe("SQL DB", func() {
 			returnedConfig, configID, err := sqlDB.GetConfig()
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(returnedConfig).Should(Equal(config))
-			Ω(configID).Should(Equal(db.ConfigID(1)))
+			Ω(configID).Should(Equal(db.ConfigVersion(1)))
 
 			updatedConfig := config
 
@@ -188,7 +188,7 @@ var _ = Describe("SQL DB", func() {
 			returnedConfig, configID, err = sqlDB.GetConfig()
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(returnedConfig).Should(Equal(updatedConfig))
-			Ω(configID).Should(Equal(db.ConfigID(2)))
+			Ω(configID).Should(Equal(db.ConfigVersion(2)))
 		})
 	})
 })

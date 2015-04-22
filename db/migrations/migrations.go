@@ -35,4 +35,5 @@ var Migrations = []migration.Migrator{
 	CreateJobsSerialGroups,
 	CreatePipes,
 	RenameConfigToPipelines,
+	RenamePipelineIDToVersionAddPrimaryKey,
 }

@@ -86,12 +86,12 @@ type Notifier interface {
 //go:generate counterfeiter . ConfigDB
 
 type ConfigDB interface {
-	GetConfig() (atc.Config, ConfigID, error)
-	SaveConfig(atc.Config, ConfigID) error
+	GetConfig() (atc.Config, ConfigVersion, error)
+	SaveConfig(atc.Config, ConfigVersion) error
 }
 
 // sequence identifier used for compare-and-swap
-type ConfigID int
+type ConfigVersion int
 
 var ErrConfigComparisonFailed = errors.New("comparison with existing config failed during save")
 

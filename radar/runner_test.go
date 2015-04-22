@@ -94,7 +94,7 @@ var _ = Describe("Runner", func() {
 
 			config := initialConfig
 
-			configDB.GetConfigStub = func() (atc.Config, db.ConfigID, error) {
+			configDB.GetConfigStub = func() (atc.Config, db.ConfigVersion, error) {
 				select {
 				case config = <-configs:
 				default:

@@ -144,8 +144,8 @@ var _ = Describe("Config API", func() {
 					Ω(response.StatusCode).Should(Equal(http.StatusOK))
 				})
 
-				It("returns the config ID as X-Concourse-Config-ID", func() {
-					Ω(response.Header.Get(atc.ConfigIDHeader)).Should(Equal("1"))
+				It("returns the config version as X-Concourse-Config-Version", func() {
+					Ω(response.Header.Get(atc.ConfigVersionHeader)).Should(Equal("1"))
 				})
 
 				It("returns the config", func() {
@@ -202,9 +202,9 @@ var _ = Describe("Config API", func() {
 				authValidator.IsAuthenticatedReturns(true)
 			})
 
-			Context("when a config ID is specified", func() {
+			Context("when a config version is specified", func() {
 				BeforeEach(func() {
-					request.Header.Set(atc.ConfigIDHeader, "42")
+					request.Header.Set(atc.ConfigVersionHeader, "42")
 				})
 
 				Context("when the config is valid", func() {
@@ -227,7 +227,7 @@ var _ = Describe("Config API", func() {
 
 							config, id := configDB.SaveConfigArgsForCall(0)
 							Ω(config).Should(Equal(config))
-							Ω(id).Should(Equal(db.ConfigID(42)))
+							Ω(id).Should(Equal(db.ConfigVersion(42)))
 						})
 
 						Context("and saving it fails", func() {
@@ -283,7 +283,7 @@ var _ = Describe("Config API", func() {
 							config, id := configDB.SaveConfigArgsForCall(0)
 							Ω(config).Should(Equal(config))
 
-							Ω(id).Should(Equal(db.ConfigID(42)))
+							Ω(id).Should(Equal(db.ConfigVersion(42)))
 						})
 
 						It("does not give the DB a map of empty interfaces to empty interfaces", func() {
@@ -339,7 +339,7 @@ jobs:
 										},
 									},
 								}))
-								Ω(id).Should(Equal(db.ConfigID(42)))
+								Ω(id).Should(Equal(db.ConfigVersion(42)))
 							})
 						})
 
@@ -427,7 +427,7 @@ jobs:
 				})
 			})
 
-			Context("when a config ID is not specified", func() {
+			Context("when a config version is not specified", func() {
 				BeforeEach(func() {
 					// don't
 				})
@@ -437,7 +437,7 @@ jobs:
 				})
 
 				It("returns an error in the response body", func() {
-					Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("no config ID specified")))
+					Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("no config version specified")))
 				})
 
 				It("does not save it", func() {
@@ -445,9 +445,9 @@ jobs:
 				})
 			})
 
-			Context("when a config ID is malformed", func() {
+			Context("when a config version is malformed", func() {
 				BeforeEach(func() {
-					request.Header.Set(atc.ConfigIDHeader, "forty-two")
+					request.Header.Set(atc.ConfigVersionHeader, "forty-two")
 				})
 
 				It("returns 400", func() {
@@ -455,7 +455,7 @@ jobs:
 				})
 
 				It("returns an error in the response body", func() {
-					Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("config ID is malformed: expected integer")))
+					Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("config version is malformed: expected integer")))
 				})
 
 				It("does not save it", func() {

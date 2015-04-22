@@ -85,7 +85,7 @@ var _ = Describe("Resource Pausing", func() {
 					Resources: atc.ResourceConfigs{
 						{Name: "resource-name"},
 					},
-				}, db.ConfigID(1))).Should(Succeed())
+				}, db.ConfigVersion(1))).Should(Succeed())
 			})
 
 			It("can view the resource", func() {
