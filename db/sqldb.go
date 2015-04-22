@@ -43,7 +43,7 @@ func (db *SQLDB) GetConfig() (atc.Config, ConfigID, error) {
 	var id int
 	err := db.conn.QueryRow(`
 		SELECT config, id
-		FROM config
+		FROM pipelines
 	`).Scan(&configBlob, &id)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -78,14 +78,14 @@ func (db *SQLDB) SaveConfig(config atc.Config, from ConfigID) error {
 	var existingConfig int
 	err = tx.QueryRow(`
 		SELECT COUNT(1)
-		FROM config
+		FROM pipelines
 	`).Scan(&existingConfig)
 	if err != nil {
 		return err
 	}
 
 	result, err := tx.Exec(`
-		UPDATE config
+		UPDATE pipelines
 		SET config = $1, id = nextval('config_id_seq')
 		WHERE id = $2
 	`, payload, from)
@@ -101,7 +101,7 @@ func (db *SQLDB) SaveConfig(config atc.Config, from ConfigID) error {
 	if rows == 0 {
 		if existingConfig == 0 {
 			_, err := tx.Exec(`
-			INSERT INTO config (config, id)
+			INSERT INTO pipelines (config, id)
 			VALUES ($1, nextval('config_id_seq'))
 		`, payload)
 			if err != nil {
