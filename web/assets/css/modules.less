@@ -1,0 +1,40 @@
+@import (reference) "_vars.less";
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.list-collapsable-content {
+  display: none;
+  box-sizing: border-box;
+  background-color: @base02;
+  .expanded & {
+    display: block;
+  }
+  & div {
+    box-sizing: border-box;
+  }
+}
+
+.list-collapsable-item {
+  background-color: @base00;
+  display: block;
+  cursor: pointer;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+}
+
+.list-collapsable-title {
+  font-size: 12px;
+  line-height: 25px;
+  box-sizing: border-box;
+}
+
+
+
+.list-enableDisable .disabled {
+  opacity: 0.5;
+}
