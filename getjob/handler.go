@@ -54,7 +54,7 @@ var ErrJobConfigNotFound = errors.New("could not find job")
 var Err = errors.New("could not find job")
 
 func FetchTemplateData(jobDB JobDB, configDB db.ConfigDB, jobName string) (TemplateData, error) {
-	config, _, err := configDB.GetConfig()
+	config, _, err := configDB.GetConfig(atc.DefaultPipelineName)
 	if err != nil {
 		return TemplateData{}, err
 	}

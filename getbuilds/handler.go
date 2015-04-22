@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web/group"
 	"github.com/pivotal-golang/lager"
@@ -48,7 +49,7 @@ func FetchTemplateData(buildDB BuildsDB, configDB db.ConfigDB) (TemplateData, er
 		return TemplateData{}, err
 	}
 
-	config, _, err := configDB.GetConfig()
+	config, _, err := configDB.GetConfig(atc.DefaultPipelineName)
 	if err != nil {
 		return TemplateData{}, err
 	}
