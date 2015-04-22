@@ -147,7 +147,7 @@ var _ = Describe("Fly CLI", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/config"),
-						ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigIDHeader: {"42"}}),
+						ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
 					),
 				)
 			})
@@ -216,7 +216,7 @@ var _ = Describe("Fly CLI", func() {
 				}
 
 				atcServer.RouteToHandler("GET", "/api/v1/config",
-					ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigIDHeader: {"42"}}),
+					ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
 				)
 			})
 
@@ -230,7 +230,7 @@ var _ = Describe("Fly CLI", func() {
 				BeforeEach(func() {
 					atcServer.RouteToHandler("PUT", "/api/v1/config",
 						ghttp.CombineHandlers(
-							ghttp.VerifyHeaderKV(atc.ConfigIDHeader, "42"),
+							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 							ghttp.VerifyHeaderKV("Content-Type", "application/x-yaml"),
 							func(w http.ResponseWriter, r *http.Request) {
 								body, err := ioutil.ReadAll(r.Body)
@@ -292,7 +292,7 @@ var _ = Describe("Fly CLI", func() {
 				changedConfig = config
 
 				atcServer.RouteToHandler("GET", "/api/v1/config",
-					ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigIDHeader: {"42"}}),
+					ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
 				)
 			})
 
@@ -333,7 +333,7 @@ var _ = Describe("Fly CLI", func() {
 
 					atcServer.RouteToHandler("PUT", "/api/v1/config",
 						ghttp.CombineHandlers(
-							ghttp.VerifyHeaderKV(atc.ConfigIDHeader, "42"),
+							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 							ghttp.VerifyHeaderKV("Content-Type", "application/x-yaml"),
 							func(w http.ResponseWriter, r *http.Request) {
 								Ω(ioutil.ReadAll(r.Body)).Should(Equal(payload))

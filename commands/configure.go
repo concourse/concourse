@@ -108,7 +108,7 @@ func setConfig(atcRequester *atcRequester, configPath string, templateVariables 
 		os.Exit(1)
 	}
 
-	configID := resp.Header.Get(atc.ConfigIDHeader)
+	version := resp.Header.Get(atc.ConfigVersionHeader)
 
 	var existingConfig atc.Config
 	err = json.NewDecoder(resp.Body).Decode(&existingConfig)
@@ -129,7 +129,7 @@ func setConfig(atcRequester *atcRequester, configPath string, templateVariables 
 	}
 
 	setConfig.Header.Set("Content-Type", "application/x-yaml")
-	setConfig.Header.Set(atc.ConfigIDHeader, configID)
+	setConfig.Header.Set(atc.ConfigVersionHeader, version)
 
 	resp, err = atcRequester.httpClient.Do(setConfig)
 	if err != nil {
