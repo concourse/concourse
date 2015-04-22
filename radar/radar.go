@@ -96,7 +96,7 @@ func (radar *Radar) Scan(logger lager.Logger, resourceName string) error {
 }
 
 func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
-	config, _, err := radar.configDB.GetConfig()
+	config, _, err := radar.configDB.GetConfig(atc.DefaultPipelineName)
 	if err != nil {
 		logger.Error("failed-to-get-config", err)
 		// don't propagate error; we can just retry next tick

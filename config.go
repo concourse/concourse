@@ -7,6 +7,7 @@ import (
 )
 
 const ConfigVersionHeader = "X-Concourse-Config-Version"
+const DefaultPipelineName = "main"
 
 type Source map[string]interface{}
 type Params map[string]interface{}

@@ -77,7 +77,7 @@ var _ = Describe("Resource Pausing", func() {
 				location := event.OriginLocation{}.Chain(1)
 
 				// job build data
-				Ω(sqlDB.SaveConfig(atc.Config{
+				Ω(sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{
 					Jobs: []atc.JobConfig{
 						{Name: "job-name"},
 					},

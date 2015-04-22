@@ -277,7 +277,7 @@ var _ = Describe("Radar", func() {
 					Resources: atc.ResourceConfigs{resourceConfig},
 				}
 
-				configDB.GetConfigStub = func() (atc.Config, db.ConfigVersion, error) {
+				configDB.GetConfigStub = func(string) (atc.Config, db.ConfigVersion, error) {
 					select {
 					case c := <-configs:
 						return c, 1, nil

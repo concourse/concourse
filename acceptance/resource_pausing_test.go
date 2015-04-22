@@ -71,7 +71,7 @@ var _ = Describe("Resource Pausing", func() {
 		Context("with a resource in the configuration", func() {
 			BeforeEach(func() {
 				// job build data
-				Ω(sqlDB.SaveConfig(atc.Config{
+				Ω(sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{
 					Jobs: atc.JobConfigs{
 						{
 							Name: "job-name",

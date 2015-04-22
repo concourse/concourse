@@ -130,19 +130,57 @@ var _ = Describe("SQL DB", func() {
 			},
 		}
 
-		It("can manage pipeline configuration", func() {
+		otherConfig := atc.Config{
+			Groups: atc.GroupConfigs{
+				{
+					Name:      "some-group",
+					Jobs:      []string{"job-1", "job-2"},
+					Resources: []string{"resource-1", "resource-2"},
+				},
+			},
+
+			Resources: atc.ResourceConfigs{
+				{
+					Name: "some-other-resource",
+					Type: "some-type",
+					Source: atc.Source{
+						"source-config": "some-value",
+					},
+				},
+			},
+
+			Jobs: atc.JobConfigs{
+				{
+					Name: "some-other-job",
+				},
+			},
+		}
+
+		It("can manage multiple pipeline configurations", func() {
+			pipelineName := "a-pipeline-name"
+			otherPipelineName := "an-other-pipeline-name"
+
 			By("initially being empty")
-			Ω(sqlDB.GetConfig()).Should(BeZero())
+			Ω(sqlDB.GetConfig(pipelineName)).Should(BeZero())
+			Ω(sqlDB.GetConfig(otherPipelineName)).Should(BeZero())
 
 			By("being able to save the config")
-			err := sqlDB.SaveConfig(config, 0)
+			err := sqlDB.SaveConfig(pipelineName, config, 0)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = sqlDB.SaveConfig(otherPipelineName, otherConfig, 0)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			By("returning the saved config to later gets")
-			returnedConfig, configID, err := sqlDB.GetConfig()
+			returnedConfig, configVersion, err := sqlDB.GetConfig(pipelineName)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(returnedConfig).Should(Equal(config))
-			Ω(configID).Should(Equal(db.ConfigVersion(1)))
+			Ω(configVersion).ShouldNot(Equal(db.ConfigVersion(0)))
+
+			otherReturnedConfig, otherConfigVersion, err := sqlDB.GetConfig(otherPipelineName)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(otherReturnedConfig).Should(Equal(otherConfig))
+			Ω(otherConfigVersion).ShouldNot(Equal(db.ConfigVersion(0)))
 
 			updatedConfig := config
 
@@ -174,21 +212,34 @@ var _ = Describe("SQL DB", func() {
 			})
 
 			By("not allowing non-sequential updates")
-			err = sqlDB.SaveConfig(updatedConfig, 0)
+			err = sqlDB.SaveConfig(pipelineName, updatedConfig, configVersion-1)
 			Ω(err).Should(Equal(db.ErrConfigComparisonFailed))
 
-			err = sqlDB.SaveConfig(updatedConfig, 5)
+			err = sqlDB.SaveConfig(pipelineName, updatedConfig, configVersion+10)
 			Ω(err).Should(Equal(db.ErrConfigComparisonFailed))
 
-			By("being able to update the config")
-			err = sqlDB.SaveConfig(updatedConfig, 1)
+			err = sqlDB.SaveConfig(otherPipelineName, updatedConfig, otherConfigVersion-1)
+			Ω(err).Should(Equal(db.ErrConfigComparisonFailed))
+
+			err = sqlDB.SaveConfig(otherPipelineName, updatedConfig, otherConfigVersion+10)
+			Ω(err).Should(Equal(db.ErrConfigComparisonFailed))
+
+			By("being able to update the config with a valid con")
+			err = sqlDB.SaveConfig(pipelineName, updatedConfig, configVersion)
+			Ω(err).ShouldNot(HaveOccurred())
+			err = sqlDB.SaveConfig(otherPipelineName, updatedConfig, otherConfigVersion)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			By("returning the updated config")
-			returnedConfig, configID, err = sqlDB.GetConfig()
+			returnedConfig, newConfigVersion, err := sqlDB.GetConfig(pipelineName)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(returnedConfig).Should(Equal(updatedConfig))
-			Ω(configID).Should(Equal(db.ConfigVersion(2)))
+			Ω(newConfigVersion).ShouldNot(Equal(configVersion))
+
+			otherReturnedConfig, newOtherConfigVersion, err := sqlDB.GetConfig(otherPipelineName)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(otherReturnedConfig).Should(Equal(updatedConfig))
+			Ω(newOtherConfigVersion).ShouldNot(Equal(otherConfigVersion))
 		})
 	})
 })

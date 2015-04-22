@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/tedsuo/rata"
 	"gopkg.in/yaml.v2"
 )
 
@@ -22,10 +23,13 @@ type RemoraConfig struct {
 
 var _ = Describe("Config API", func() {
 	var (
-		config atc.Config
+		config           atc.Config
+		requestGenerator *rata.RequestGenerator
 	)
 
 	BeforeEach(func() {
+		requestGenerator = rata.NewRequestGenerator(server.URL, atc.Routes)
+
 		config = atc.Config{
 			Groups: atc.GroupConfigs{
 				{
@@ -117,13 +121,15 @@ var _ = Describe("Config API", func() {
 		}
 	})
 
-	Describe("GET /api/v1/config", func() {
+	Describe("GET /api/v1/pipelines/:name/config", func() {
 		var (
 			response *http.Response
 		)
 
 		JustBeforeEach(func() {
-			req, err := http.NewRequest("GET", server.URL+"/api/v1/config", nil)
+			req, err := requestGenerator.CreateRequest(atc.GetConfig, rata.Params{
+				"pipeline_name": "something-else",
+			}, nil)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			response, err = client.Do(req)
@@ -155,6 +161,11 @@ var _ = Describe("Config API", func() {
 
 					Ω(returnedConfig).Should(Equal(config))
 				})
+
+				It("calls get config with the correct arguments", func() {
+					name := configDB.GetConfigArgsForCall(0)
+					Ω(name).Should(Equal("something-else"))
+				})
 			})
 
 			Context("when getting the config fails", func() {
@@ -179,7 +190,7 @@ var _ = Describe("Config API", func() {
 		})
 	})
 
-	Describe("PUT /api/v1/config", func() {
+	Describe("PUT /api/v1/pipelines/:name/config", func() {
 		var (
 			request  *http.Request
 			response *http.Response
@@ -187,7 +198,9 @@ var _ = Describe("Config API", func() {
 
 		BeforeEach(func() {
 			var err error
-			request, err = http.NewRequest("PUT", server.URL+"/api/v1/config", nil)
+			request, err = requestGenerator.CreateRequest(atc.SaveConfig, rata.Params{
+				"pipeline_name": "a-pipeline",
+			}, nil)
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
@@ -225,7 +238,8 @@ var _ = Describe("Config API", func() {
 						It("saves it", func() {
 							Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
 
-							config, id := configDB.SaveConfigArgsForCall(0)
+							name, config, id := configDB.SaveConfigArgsForCall(0)
+							Ω(name).Should(Equal("a-pipeline"))
 							Ω(config).Should(Equal(config))
 							Ω(id).Should(Equal(db.ConfigVersion(42)))
 						})
@@ -280,16 +294,16 @@ var _ = Describe("Config API", func() {
 						It("saves it", func() {
 							Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
 
-							config, id := configDB.SaveConfigArgsForCall(0)
+							name, config, id := configDB.SaveConfigArgsForCall(0)
+							Ω(name).Should(Equal("a-pipeline"))
 							Ω(config).Should(Equal(config))
-
 							Ω(id).Should(Equal(db.ConfigVersion(42)))
 						})
 
 						It("does not give the DB a map of empty interfaces to empty interfaces", func() {
 							Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
 
-							config, _ := configDB.SaveConfigArgsForCall(0)
+							_, config, _ := configDB.SaveConfigArgsForCall(0)
 							Ω(config).Should(Equal(config))
 
 							_, err := json.Marshal(config)
@@ -320,7 +334,8 @@ jobs:
 							It("saves it", func() {
 								Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
 
-								config, id := configDB.SaveConfigArgsForCall(0)
+								name, config, id := configDB.SaveConfigArgsForCall(0)
+								Ω(name).Should(Equal("a-pipeline"))
 								Ω(config).Should(Equal(atc.Config{
 									Jobs: atc.JobConfigs{
 										{

@@ -86,8 +86,8 @@ type Notifier interface {
 //go:generate counterfeiter . ConfigDB
 
 type ConfigDB interface {
-	GetConfig() (atc.Config, ConfigVersion, error)
-	SaveConfig(atc.Config, ConfigVersion) error
+	GetConfig(pipelineName string) (atc.Config, ConfigVersion, error)
+	SaveConfig(string, atc.Config, ConfigVersion) error
 }
 
 // sequence identifier used for compare-and-swap

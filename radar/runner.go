@@ -4,6 +4,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
@@ -105,7 +106,7 @@ dance:
 }
 
 func (runner *Runner) tick(scanning map[string]bool, insertScanner chan<- grouper.Member) {
-	config, _, err := runner.configDB.GetConfig()
+	config, _, err := runner.configDB.GetConfig(atc.DefaultPipelineName)
 	if err != nil {
 		return
 	}

@@ -15,6 +15,8 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 	var nestedDB *fakes.FakeConfigDB
 	var configDB PlanConvertingConfigDB
 
+	pipelineName := "pipeline-name"
+
 	planBasedConfig := atc.Config{
 		Jobs: atc.JobConfigs{
 			{
@@ -75,7 +77,14 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 		var getErr error
 
 		JustBeforeEach(func() {
-			gotConfig, gotVersion, getErr = configDB.GetConfig()
+			gotConfig, gotVersion, getErr = configDB.GetConfig(pipelineName)
+		})
+
+		It("calls GetConfig with the correct arguments", func() {
+			Ω(nestedDB.GetConfigCallCount()).Should(Equal(1))
+
+			name := nestedDB.GetConfigArgsForCall(0)
+			Ω(name).Should(Equal(pipelineName))
 		})
 
 		Context("when the nested config db yields a config containing jobs with plans", func() {
@@ -139,7 +148,7 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 		})
 
 		JustBeforeEach(func() {
-			saveErr = configDB.SaveConfig(configToSave, versionToSave)
+			saveErr = configDB.SaveConfig(pipelineName, configToSave, versionToSave)
 		})
 
 		Context("when the given config contains jobs with inputs/outputs/build", func() {
@@ -154,7 +163,8 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 			It("converts them to a plan before saving in the nested config db", func() {
 				Ω(nestedDB.SaveConfigCallCount()).Should(Equal(1))
 
-				savedConfig, savedID := nestedDB.SaveConfigArgsForCall(0)
+				name, savedConfig, savedID := nestedDB.SaveConfigArgsForCall(0)
+				Ω(name).Should(Equal(pipelineName))
 				Ω(savedConfig).Should(Equal(planBasedConfig))
 				Ω(savedID).Should(Equal(ConfigVersion(42)))
 			})
@@ -184,7 +194,8 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 			It("passes them through to the nested config db", func() {
 				Ω(nestedDB.SaveConfigCallCount()).Should(Equal(1))
 
-				savedConfig, savedID := nestedDB.SaveConfigArgsForCall(0)
+				savedName, savedConfig, savedID := nestedDB.SaveConfigArgsForCall(0)
+				Ω(savedName).Should(Equal(pipelineName))
 				Ω(savedConfig).Should(Equal(planBasedConfig))
 				Ω(savedID).Should(Equal(ConfigVersion(42)))
 			})

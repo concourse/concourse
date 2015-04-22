@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
 )
 
 func (s *Server) GetJob(w http.ResponseWriter, r *http.Request) {
 	jobName := r.FormValue(":job_name")
 
-	config, _, err := s.configDB.GetConfig()
+	config, _, err := s.configDB.GetConfig(atc.DefaultPipelineName)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

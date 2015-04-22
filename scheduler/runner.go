@@ -71,7 +71,7 @@ func (runner *Runner) tick(logger lager.Logger) {
 	logger.Info("start")
 	defer logger.Info("done")
 
-	config, _, err := runner.ConfigDB.GetConfig()
+	config, _, err := runner.ConfigDB.GetConfig(atc.DefaultPipelineName)
 	if err != nil {
 		logger.Error("failed-to-get-config", err)
 		return

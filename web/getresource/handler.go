@@ -58,7 +58,7 @@ type ResourcesDB interface {
 var ErrResourceConfigNotFound = errors.New("could not find resource")
 
 func FetchTemplateData(resourceDB ResourcesDB, configDB db.ConfigDB, resourceName string) (TemplateData, error) {
-	config, _, err := configDB.GetConfig()
+	config, _, err := configDB.GetConfig(atc.DefaultPipelineName)
 	if err != nil {
 		return TemplateData{}, err
 	}

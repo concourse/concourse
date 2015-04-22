@@ -6,8 +6,8 @@ type PlanConvertingConfigDB struct {
 	NestedDB ConfigDB
 }
 
-func (db PlanConvertingConfigDB) GetConfig() (atc.Config, ConfigVersion, error) {
-	config, version, err := db.NestedDB.GetConfig()
+func (db PlanConvertingConfigDB) GetConfig(pipelineName string) (atc.Config, ConfigVersion, error) {
+	config, version, err := db.NestedDB.GetConfig(pipelineName)
 	if err != nil {
 		return atc.Config{}, 0, err
 	}
@@ -15,8 +15,8 @@ func (db PlanConvertingConfigDB) GetConfig() (atc.Config, ConfigVersion, error) 
 	return db.convertJobsToPlan(config), version, nil
 }
 
-func (db PlanConvertingConfigDB) SaveConfig(config atc.Config, version ConfigVersion) error {
-	return db.NestedDB.SaveConfig(db.convertJobsToPlan(config), version)
+func (db PlanConvertingConfigDB) SaveConfig(pipelineName string, config atc.Config, version ConfigVersion) error {
+	return db.NestedDB.SaveConfig(pipelineName, db.convertJobsToPlan(config), version)
 }
 
 func (db PlanConvertingConfigDB) convertJobsToPlan(config atc.Config) atc.Config {

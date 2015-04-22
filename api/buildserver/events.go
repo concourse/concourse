@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 )
 
@@ -31,7 +32,7 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		config, _, err := s.configDB.GetConfig()
+		config, _, err := s.configDB.GetConfig(atc.DefaultPipelineName)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

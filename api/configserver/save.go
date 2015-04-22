@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pivotal-golang/lager"
+	"github.com/tedsuo/rata"
 	"gopkg.in/yaml.v2"
 )
 
@@ -125,7 +126,8 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 
 	session.Info("saving")
 
-	err = s.db.SaveConfig(config, version)
+	pipelineName := rata.Param(r, "pipeline_name")
+	err = s.db.SaveConfig(pipelineName, config, version)
 	if err != nil {
 		session.Error("failed-to-save-config", err)
 		w.WriteHeader(http.StatusInternalServerError)

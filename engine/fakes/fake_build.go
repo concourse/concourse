@@ -12,13 +12,13 @@ type FakeBuild struct {
 	MetadataStub        func() string
 	metadataMutex       sync.RWMutex
 	metadataArgsForCall []struct{}
-	metadataReturns     struct {
+	metadataReturns struct {
 		result1 string
 	}
 	AbortStub        func() error
 	abortMutex       sync.RWMutex
 	abortArgsForCall []struct{}
-	abortReturns     struct {
+	abortReturns struct {
 		result1 error
 	}
 	ResumeStub        func(lager.Logger)

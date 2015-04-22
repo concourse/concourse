@@ -40,8 +40,8 @@ const (
 )
 
 var Routes = rata.Routes{
-	{Path: "/api/v1/config", Method: "PUT", Name: SaveConfig},
-	{Path: "/api/v1/config", Method: "GET", Name: GetConfig},
+	{Path: "/api/v1/pipelines/:pipeline_name/config", Method: "PUT", Name: SaveConfig},
+	{Path: "/api/v1/pipelines/:pipeline_name/config", Method: "GET", Name: GetConfig},
 
 	{Path: "/api/v1/builds", Method: "POST", Name: CreateBuild},
 	{Path: "/api/v1/builds", Method: "GET", Name: ListBuilds},

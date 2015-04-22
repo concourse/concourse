@@ -54,7 +54,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	config, _, err := handler.configDB.GetConfig()
+	config, _, err := handler.configDB.GetConfig(atc.DefaultPipelineName)
 	if err != nil {
 		handler.logger.Error("failed-to-load-config", err)
 		w.WriteHeader(http.StatusInternalServerError)

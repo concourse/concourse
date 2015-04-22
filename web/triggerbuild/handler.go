@@ -7,6 +7,7 @@ import (
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/web/routes"
@@ -33,7 +34,7 @@ func NewHandler(
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	config, _, err := handler.db.GetConfig()
+	config, _, err := handler.db.GetConfig(atc.DefaultPipelineName)
 	if err != nil {
 		handler.logger.Error("failed-to-load-config", err)
 		w.WriteHeader(http.StatusInternalServerError)

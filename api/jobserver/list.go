@@ -11,7 +11,7 @@ import (
 func (s *Server) ListJobs(w http.ResponseWriter, r *http.Request) {
 	var jobs []atc.Job
 
-	config, _, err := s.configDB.GetConfig()
+	config, _, err := s.configDB.GetConfig(atc.DefaultPipelineName)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
