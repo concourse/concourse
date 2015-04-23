@@ -15,7 +15,7 @@ jobs:
     resource_pool: concourse
     networks:
       - name: concourse
-        static_ips: &web-ips [&web-ip 10.244.8.2]
+        static_ips: &web-ips [10.244.8.2]
     persistent_disk: 1024 # for consul
     templates:
       - {release: concourse, name: consul-agent}
