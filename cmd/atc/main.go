@@ -6,7 +6,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	_ "net/http/pprof"
 	"net/url"
@@ -26,7 +25,6 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
-	"gopkg.in/yaml.v2"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
@@ -218,38 +216,7 @@ func main() {
 	db := Db.NewSQL(logger.Session("db"), dbConn, listener)
 
 	var configDB Db.ConfigDB
-
-	if *pipelinePath != "" {
-		pipelineFile, err := os.Open(*pipelinePath)
-		if err != nil {
-			fatal(err)
-		}
-
-		defer pipelineFile.Close()
-
-		readPipelineFile, err := ioutil.ReadAll(pipelineFile)
-		if err != nil {
-			fatal(err)
-		}
-
-		var conf atc.Config
-		err = yaml.Unmarshal(readPipelineFile, &conf)
-		if err != nil {
-			fatal(err)
-		}
-
-		if err := config.ValidateConfig(conf); err != nil {
-			fatal(err)
-		}
-
-		configDB = Db.StaticConfigDB{
-			Config: conf,
-		}
-	} else {
-		configDB = db
-	}
-
-	configDB = Db.PlanConvertingConfigDB{configDB}
+	configDB = Db.PlanConvertingConfigDB{db}
 
 	var resourceTypesNG []atc.WorkerResourceType
 	err = json.Unmarshal([]byte(*resourceTypes), &resourceTypesNG)
