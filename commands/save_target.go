@@ -73,6 +73,10 @@ func updateTargets(location string, c *cli.Context) {
 
 	var current *targetsYAML
 	err = yaml.Unmarshal(currentTargetsBytes, &current)
+	if err != nil {
+		log.Fatalln("could not unmarshal .flyrc")
+		return
+	}
 
 	current.Targets[targetToUpdate] = yamlToSet
 
@@ -82,5 +86,9 @@ func updateTargets(location string, c *cli.Context) {
 		return
 	}
 
-	ioutil.WriteFile(location, yamlBytes, os.ModePerm)
+	err = ioutil.WriteFile(location, yamlBytes, os.ModePerm)
+	if err != nil {
+		log.Fatalln("could not write .flyrc")
+		return
+	}
 }

@@ -30,11 +30,13 @@ targets:
 	})
 
 	AfterEach(func() {
+		theFile, _ := os.Open(flyrc)
+		theFile.Close()
 		os.Remove(flyrc)
 	})
 
 	It("should exit 1 when no name is provided", func() {
-		flyCmd := exec.Command(flyPath, "save_target", "--api",
+		flyCmd := exec.Command(flyPath, "save-target", "--api",
 			"http://some-target", "--username", "some-username",
 			"--password", "some-password", "--cert", "~/path/to/cert",
 		)
@@ -84,7 +86,7 @@ targets:
 		})
 
 		It("should use the target when passed to the next command", func() {
-			flyCmd := exec.Command(flyPath, "save_target", "--api",
+			flyCmd := exec.Command(flyPath, "save-target", "--api",
 				targetURL, "my-test-target",
 			)
 
@@ -108,7 +110,7 @@ targets:
 				err := ioutil.WriteFile(flyrc, []byte(stockYAML), os.ModePerm)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				flyCmd := exec.Command(flyPath, "save_target", "--api",
+				flyCmd := exec.Command(flyPath, "save-target", "--api",
 					"http://some-target", "--username", "some-username",
 					"--password", "some-password", "--cert", "~/path/to/cert",
 					"some-update-target",
@@ -133,7 +135,7 @@ targets:
 
 		Context("and the target is already saved", func() {
 			It("should update the target", func() {
-				flyCmd := exec.Command(flyPath, "save_target", "--api",
+				flyCmd := exec.Command(flyPath, "save-target", "--api",
 					"http://some-target", "--username", "some-username",
 					"--password", "some-password", "--cert", "~/path/to/cert",
 					"some-update-target",
@@ -142,7 +144,7 @@ targets:
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				flyCmd = exec.Command(flyPath, "save_target", "--api",
+				flyCmd = exec.Command(flyPath, "save-target", "--api",
 					"http://a-different-target", "--username", "some-username",
 					"--password", "stuff", "--cert", "~/path/to/different/cert",
 					"some-update-target",
@@ -164,7 +166,7 @@ targets:
 
 	Context("when no .flyrc exists", func() {
 		It("should create the file and write the target", func() {
-			flyCmd := exec.Command(flyPath, "save_target", "--api",
+			flyCmd := exec.Command(flyPath, "save-target", "--api",
 				"http://some-target", "--username", "some-username",
 				"--password", "some-password", "--cert", "~/path/to/cert",
 				"some-target",

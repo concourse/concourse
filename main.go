@@ -180,10 +180,9 @@ func main() {
 			},
 		},
 		{
-			Name:      "save_target",
-			ShortName: "save",
-			Usage:     "save a fly target to the .flyrc",
-			Action:    commands.SaveTarget,
+			Name:   "save-target",
+			Usage:  "save a fly target to the .flyrc",
+			Action: commands.SaveTarget,
 			Flags: []cli.Flag{
 				apiFlag,
 				usernameFlag,
