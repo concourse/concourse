@@ -4,18 +4,33 @@ package fakes
 import (
 	"sync"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web/getresource"
 )
 
 type FakeResourcesDB struct {
-	GetResourceStub        func(string) (db.Resource, error)
+	GetPipelineNameStub        func() string
+	getPipelineNameMutex       sync.RWMutex
+	getPipelineNameArgsForCall []struct{}
+	getPipelineNameReturns struct {
+		result1 string
+	}
+	GetConfigStub        func() (atc.Config, db.ConfigVersion, error)
+	getConfigMutex       sync.RWMutex
+	getConfigArgsForCall []struct{}
+	getConfigReturns struct {
+		result1 atc.Config
+		result2 db.ConfigVersion
+		result3 error
+	}
+	GetResourceStub        func(string) (db.SavedResource, error)
 	getResourceMutex       sync.RWMutex
 	getResourceArgsForCall []struct {
 		arg1 string
 	}
 	getResourceReturns struct {
-		result1 db.Resource
+		result1 db.SavedResource
 		result2 error
 	}
 	GetResourceHistoryStub        func(string) ([]*db.VersionHistory, error)
@@ -29,7 +44,57 @@ type FakeResourcesDB struct {
 	}
 }
 
-func (fake *FakeResourcesDB) GetResource(arg1 string) (db.Resource, error) {
+func (fake *FakeResourcesDB) GetPipelineName() string {
+	fake.getPipelineNameMutex.Lock()
+	fake.getPipelineNameArgsForCall = append(fake.getPipelineNameArgsForCall, struct{}{})
+	fake.getPipelineNameMutex.Unlock()
+	if fake.GetPipelineNameStub != nil {
+		return fake.GetPipelineNameStub()
+	} else {
+		return fake.getPipelineNameReturns.result1
+	}
+}
+
+func (fake *FakeResourcesDB) GetPipelineNameCallCount() int {
+	fake.getPipelineNameMutex.RLock()
+	defer fake.getPipelineNameMutex.RUnlock()
+	return len(fake.getPipelineNameArgsForCall)
+}
+
+func (fake *FakeResourcesDB) GetPipelineNameReturns(result1 string) {
+	fake.GetPipelineNameStub = nil
+	fake.getPipelineNameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeResourcesDB) GetConfig() (atc.Config, db.ConfigVersion, error) {
+	fake.getConfigMutex.Lock()
+	fake.getConfigArgsForCall = append(fake.getConfigArgsForCall, struct{}{})
+	fake.getConfigMutex.Unlock()
+	if fake.GetConfigStub != nil {
+		return fake.GetConfigStub()
+	} else {
+		return fake.getConfigReturns.result1, fake.getConfigReturns.result2, fake.getConfigReturns.result3
+	}
+}
+
+func (fake *FakeResourcesDB) GetConfigCallCount() int {
+	fake.getConfigMutex.RLock()
+	defer fake.getConfigMutex.RUnlock()
+	return len(fake.getConfigArgsForCall)
+}
+
+func (fake *FakeResourcesDB) GetConfigReturns(result1 atc.Config, result2 db.ConfigVersion, result3 error) {
+	fake.GetConfigStub = nil
+	fake.getConfigReturns = struct {
+		result1 atc.Config
+		result2 db.ConfigVersion
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeResourcesDB) GetResource(arg1 string) (db.SavedResource, error) {
 	fake.getResourceMutex.Lock()
 	fake.getResourceArgsForCall = append(fake.getResourceArgsForCall, struct {
 		arg1 string
@@ -54,10 +119,10 @@ func (fake *FakeResourcesDB) GetResourceArgsForCall(i int) string {
 	return fake.getResourceArgsForCall[i].arg1
 }
 
-func (fake *FakeResourcesDB) GetResourceReturns(result1 db.Resource, result2 error) {
+func (fake *FakeResourcesDB) GetResourceReturns(result1 db.SavedResource, result2 error) {
 	fake.GetResourceStub = nil
 	fake.getResourceReturns = struct {
-		result1 db.Resource
+		result1 db.SavedResource
 		result2 error
 	}{result1, result2}
 }

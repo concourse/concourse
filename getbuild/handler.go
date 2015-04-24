@@ -10,21 +10,15 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type handler struct {
+type server struct {
 	logger lager.Logger
-
-	db       db.DB
-	configDB db.ConfigDB
 
 	template *template.Template
 }
 
-func NewHandler(logger lager.Logger, db db.DB, configDB db.ConfigDB, template *template.Template) http.Handler {
-	return &handler{
+func NewServer(logger lager.Logger, template *template.Template) *server {
+	return &server{
 		logger: logger,
-
-		db:       db,
-		configDB: configDB,
 
 		template: template,
 	}
@@ -36,86 +30,90 @@ type TemplateData struct {
 	Job    atc.JobConfig
 	Builds []db.Build
 
-	Build   db.Build
-	Inputs  []db.BuildInput
-	Outputs []db.BuildOutput
+	Build        db.Build
+	Inputs       []db.BuildInput
+	Outputs      []db.BuildOutput
+	PipelineName string
 }
 
-func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	jobName := r.FormValue(":job")
-	if len(jobName) == 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+func (server *server) GetBuild(pipelineDB db.PipelineDB) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		jobName := r.FormValue(":job")
+		if len(jobName) == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 
-	buildName := r.FormValue(":build")
-	if len(buildName) == 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+		buildName := r.FormValue(":build")
+		if len(buildName) == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 
-	config, _, err := handler.configDB.GetConfig(atc.DefaultPipelineName)
-	if err != nil {
-		handler.logger.Error("failed-to-load-config", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+		config, _, err := pipelineDB.GetConfig()
+		if err != nil {
+			server.logger.Error("failed-to-load-config", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-	job, found := config.Jobs.Lookup(jobName)
-	if !found {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
+		job, found := config.Jobs.Lookup(jobName)
+		if !found {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 
-	log := handler.logger.Session("get-build", lager.Data{
-		"job":   job.Name,
-		"build": buildName,
-	})
-
-	build, err := handler.db.GetJobBuild(jobName, buildName)
-	if err != nil {
-		log.Error("get-build-failed", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	inputs, outputs, err := handler.db.GetBuildResources(build.ID)
-	if err != nil {
-		log.Error("failed-to-get-build-resources", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	bs, err := handler.db.GetAllJobBuilds(jobName)
-	if err != nil {
-		log.Error("get-all-builds-failed", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	templateData := TemplateData{
-		GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
-			for _, groupJob := range g.Jobs {
-				if groupJob == job.Name {
-					return true
-				}
-			}
-
-			return false
-		}),
-
-		Job:    job,
-		Builds: bs,
-
-		Build:   build,
-		Inputs:  inputs,
-		Outputs: outputs,
-	}
-
-	err = handler.template.Execute(w, templateData)
-	if err != nil {
-		log.Fatal("failed-to-task-template", err, lager.Data{
-			"template-data": templateData,
+		log := server.logger.Session("get-build", lager.Data{
+			"job":   job.Name,
+			"build": buildName,
 		})
-	}
+
+		build, err := pipelineDB.GetJobBuild(jobName, buildName)
+		if err != nil {
+			log.Error("get-build-failed", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		inputs, outputs, err := pipelineDB.GetBuildResources(build.ID)
+		if err != nil {
+			log.Error("failed-to-get-build-resources", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		bs, err := pipelineDB.GetAllJobBuilds(jobName)
+		if err != nil {
+			log.Error("get-all-builds-failed", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		templateData := TemplateData{
+			GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
+				for _, groupJob := range g.Jobs {
+					if groupJob == job.Name {
+						return true
+					}
+				}
+
+				return false
+			}),
+
+			Job:    job,
+			Builds: bs,
+
+			Build:        build,
+			Inputs:       inputs,
+			Outputs:      outputs,
+			PipelineName: pipelineDB.GetPipelineName(),
+		}
+
+		err = server.template.Execute(w, templateData)
+		if err != nil {
+			log.Fatal("failed-to-task-template", err, lager.Data{
+				"template-data": templateData,
+			})
+		}
+	})
 }

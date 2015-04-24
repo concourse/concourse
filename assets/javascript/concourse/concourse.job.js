@@ -2,8 +2,8 @@ concourse.Job = function ($el) {
   this.$el = $el;
   this.pauseBtn = this.$el.find('.js-pauseJobCheck').pausePlayBtn();
   this.jobName = this.$el.data('job-name');
-  this.pauseEndpoint = "/api/v1/jobs/" + this.jobName + "/pause";
-  this.unPauseEndpoint = "/api/v1/jobs/" + this.jobName + "/unpause";
+  this.pauseEndpoint = "/api/v1/pipelines/" + window.pipelineName + "/jobs/" + this.jobName + "/pause";
+  this.unPauseEndpoint = "/api/v1/pipelines/" + window.pipelineName + "/jobs/" + this.jobName + "/unpause";
 };
 
 concourse.Job.prototype.bindEvents = function () {

@@ -12,7 +12,7 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type handler struct {
+type server struct {
 	logger lager.Logger
 
 	db       db.DB
@@ -21,12 +21,9 @@ type handler struct {
 	template *template.Template
 }
 
-func NewHandler(logger lager.Logger, db db.DB, configDB db.ConfigDB, template *template.Template) http.Handler {
-	return &handler{
+func NewServer(logger lager.Logger, template *template.Template) *server {
+	return &server{
 		logger: logger,
-
-		db:       db,
-		configDB: configDB,
 
 		template: template,
 	}
@@ -34,27 +31,30 @@ func NewHandler(logger lager.Logger, db db.DB, configDB db.ConfigDB, template *t
 
 type TemplateData struct {
 	Job    atc.JobConfig
-	DBJob  db.Job
+	DBJob  db.SavedJob
 	Builds []db.Build
 
 	GroupStates []group.State
 
 	CurrentBuild db.Build
+	PipelineName string
 }
 
 //go:generate counterfeiter . JobDB
 
 type JobDB interface {
-	GetJob(string) (db.Job, error)
+	GetConfig() (atc.Config, db.ConfigVersion, error)
+	GetJob(string) (db.SavedJob, error)
 	GetAllJobBuilds(job string) ([]db.Build, error)
 	GetCurrentBuild(job string) (db.Build, error)
+	GetPipelineName() string
 }
 
 var ErrJobConfigNotFound = errors.New("could not find job")
 var Err = errors.New("could not find job")
 
-func FetchTemplateData(jobDB JobDB, configDB db.ConfigDB, jobName string) (TemplateData, error) {
-	config, _, err := configDB.GetConfig(atc.DefaultPipelineName)
+func FetchTemplateData(jobDB JobDB, jobName string) (TemplateData, error) {
+	config, _, err := jobDB.GetConfig()
 	if err != nil {
 		return TemplateData{}, err
 	}
@@ -95,38 +95,41 @@ func FetchTemplateData(jobDB JobDB, configDB db.ConfigDB, jobName string) (Templ
 		}),
 
 		CurrentBuild: currentBuild,
+		PipelineName: jobDB.GetPipelineName(),
 	}, nil
 }
 
-func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	jobName := r.FormValue(":job")
-	if len(jobName) == 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+func (server *server) GetJob(pipelineDB db.PipelineDB) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		jobName := r.FormValue(":job")
+		if len(jobName) == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 
-	templateData, err := FetchTemplateData(handler.db, handler.configDB, jobName)
-	switch err {
-	case ErrJobConfigNotFound:
-		handler.logger.Error("could-not-find-job-in-config", ErrJobConfigNotFound, lager.Data{
-			"job": jobName,
-		})
-		w.WriteHeader(http.StatusNotFound)
-		return
-	case nil:
-		break
-	default:
-		handler.logger.Error("failed-to-build-template-data", err, lager.Data{
-			"job": jobName,
-		})
-		http.Error(w, "failed to fetch job", http.StatusInternalServerError)
-		return
-	}
+		templateData, err := FetchTemplateData(pipelineDB, jobName)
+		switch err {
+		case ErrJobConfigNotFound:
+			server.logger.Error("could-not-find-job-in-config", ErrJobConfigNotFound, lager.Data{
+				"job": jobName,
+			})
+			w.WriteHeader(http.StatusNotFound)
+			return
+		case nil:
+			break
+		default:
+			server.logger.Error("failed-to-build-template-data", err, lager.Data{
+				"job": jobName,
+			})
+			http.Error(w, "failed to fetch job", http.StatusInternalServerError)
+			return
+		}
 
-	err = handler.template.Execute(w, templateData)
-	if err != nil {
-		log.Fatal("failed-to-task-template", err, lager.Data{
-			"template-data": templateData,
-		})
-	}
+		err = server.template.Execute(w, templateData)
+		if err != nil {
+			log.Fatal("failed-to-task-template", err, lager.Data{
+				"template-data": templateData,
+			})
+		}
+	})
 }

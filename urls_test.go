@@ -27,10 +27,10 @@ var _ = Describe("URLs", func() {
 				},
 			}
 
-			path, err := web.PathFor(atc.EnableResourceVersion, versionedResource)
+			path, err := web.PathFor(atc.EnableResourceVersion, "some-pipeline", versionedResource)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(path).Should(Equal("/api/v1/resources/resource-name/versions/123/enable"))
+			Ω(path).Should(Equal("/api/v1/pipelines/some-pipeline/resources/resource-name/versions/123/enable"))
 		})
 	})
 
@@ -43,10 +43,10 @@ var _ = Describe("URLs", func() {
 				},
 			}
 
-			path, err := web.PathFor(atc.DisableResourceVersion, versionedResource)
+			path, err := web.PathFor(atc.DisableResourceVersion, "some-pipeline", versionedResource)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(path).Should(Equal("/api/v1/resources/resource-name/versions/123/disable"))
+			Ω(path).Should(Equal("/api/v1/pipelines/some-pipeline/resources/resource-name/versions/123/disable"))
 		})
 	})
 
@@ -56,10 +56,10 @@ var _ = Describe("URLs", func() {
 				Name: "some-job",
 			}
 
-			path, err := web.PathFor(routes.GetJob, job)
+			path, err := web.PathFor(routes.GetJob, "another-pipeline", job)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(path).Should(Equal("/jobs/some-job"))
+			Ω(path).Should(Equal("/pipelines/another-pipeline/jobs/some-job"))
 		})
 	})
 })

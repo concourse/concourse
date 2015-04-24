@@ -7,69 +7,70 @@ import (
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/scheduler"
+	"github.com/concourse/atc/pipelines"
 	"github.com/concourse/atc/web/routes"
 )
 
-type handler struct {
-	logger lager.Logger
-
-	db        db.ConfigDB
-	scheduler *scheduler.Scheduler
+type server struct {
+	logger                lager.Logger
+	radarSchedulerFactory pipelines.RadarSchedulerFactory
 }
 
-func NewHandler(
+func NewServer(
 	logger lager.Logger,
-	db db.ConfigDB,
-	scheduler *scheduler.Scheduler,
-) http.Handler {
-	return &handler{
-		logger: logger,
-
-		db:        db,
-		scheduler: scheduler,
+	radarSchedulerFactory pipelines.RadarSchedulerFactory,
+) *server {
+	return &server{
+		logger:                logger,
+		radarSchedulerFactory: radarSchedulerFactory,
 	}
 }
 
-func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	config, _, err := handler.db.GetConfig(atc.DefaultPipelineName)
-	if err != nil {
-		handler.logger.Error("failed-to-load-config", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+func (server *server) TriggerBuild(pipelineDB db.PipelineDB) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		config, _, err := pipelineDB.GetConfig()
+		if err != nil {
+			server.logger.Error("failed-to-load-config", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-	job, found := config.Jobs.Lookup(r.FormValue(":job"))
-	if !found {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
+		job, found := config.Jobs.Lookup(r.FormValue(":job"))
+		if !found {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 
-	log := handler.logger.Session("trigger-build", lager.Data{
-		"job": job.Name,
-	})
-
-	log.Debug("triggering")
-
-	build, err := handler.scheduler.TriggerImmediately(log, job, config.Resources)
-	if err != nil {
-		log.Error("failed-to-trigger", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "failed to trigger: %s", err)
-		return
-	}
-
-	redirectPath, err := routes.Routes.CreatePathForRoute(routes.GetBuild, rata.Params{
-		"job":   job.Name,
-		"build": build.Name,
-	})
-	if err != nil {
-		log.Fatal("failed-to-construct-redirect-uri", err, lager.Data{
-			"build": build.Name,
+		log := server.logger.Session("trigger-build", lager.Data{
+			"job": job.Name,
 		})
-	}
 
-	http.Redirect(w, r, redirectPath, http.StatusFound)
+		log.Debug("triggering")
+
+		scheduler := server.radarSchedulerFactory.BuildScheduler(pipelineDB)
+
+		build, err := scheduler.TriggerImmediately(log, job, config.Resources)
+		if err != nil {
+			log.Error("failed-to-trigger", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "failed to trigger: %s", err)
+			return
+		}
+
+		redirectPath, err := routes.Routes.CreatePathForRoute(routes.GetBuild, rata.Params{
+			"pipeline_name": pipelineDB.GetPipelineName(),
+			"job":           job.Name,
+			"build":         build.Name,
+		})
+		if err != nil {
+			log.Fatal("failed-to-construct-redirect-uri", err, lager.Data{
+				"pipeline": pipelineDB.GetPipelineName(),
+				"job":      job.Name,
+				"build":    build.Name,
+			})
+		}
+
+		http.Redirect(w, r, redirectPath, http.StatusFound)
+	})
 }

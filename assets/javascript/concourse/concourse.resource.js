@@ -2,8 +2,8 @@ concourse.Resource = function ($el) {
   this.$el = $el;
   this.pauseBtn = this.$el.find('.js-pauseResourceCheck').pausePlayBtn();
   this.resourceName = this.$el.data('resource-name');
-  this.pauseEndpoint = "/api/v1/resources/" + this.resourceName + "/pause";
-  this.unPauseEndpoint = "/api/v1/resources/" + this.resourceName + "/unpause";
+  this.pauseEndpoint = "/api/v1/pipelines/" + window.pipelineName + "/resources/" + this.resourceName + "/pause";
+  this.unPauseEndpoint = "/api/v1/pipelines/" + window.pipelineName + "/resources/" + this.resourceName + "/unpause";
 };
 
 concourse.Resource.prototype.bindEvents = function () {

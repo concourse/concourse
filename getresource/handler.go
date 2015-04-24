@@ -13,23 +13,17 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type handler struct {
+type server struct {
 	logger lager.Logger
-
-	db       db.DB
-	configDB db.ConfigDB
 
 	validator auth.Validator
 
 	template *template.Template
 }
 
-func NewHandler(logger lager.Logger, db db.DB, configDB db.ConfigDB, template *template.Template, validator auth.Validator) http.Handler {
-	return &handler{
+func NewServer(logger lager.Logger, template *template.Template, validator auth.Validator) *server {
+	return &server{
 		logger: logger,
-
-		db:       db,
-		configDB: configDB,
 
 		validator: validator,
 
@@ -39,26 +33,29 @@ func NewHandler(logger lager.Logger, db db.DB, configDB db.ConfigDB, template *t
 
 type TemplateData struct {
 	Resource   atc.ResourceConfig
-	DBResource db.Resource
+	DBResource db.SavedResource
 	History    []*db.VersionHistory
 
 	FailingToCheck bool
 	CheckError     error
 
-	GroupStates []group.State
+	GroupStates  []group.State
+	PipelineName string
 }
 
 //go:generate counterfeiter . ResourcesDB
 
 type ResourcesDB interface {
-	GetResource(string) (db.Resource, error)
+	GetPipelineName() string
+	GetConfig() (atc.Config, db.ConfigVersion, error)
+	GetResource(string) (db.SavedResource, error)
 	GetResourceHistory(string) ([]*db.VersionHistory, error)
 }
 
 var ErrResourceConfigNotFound = errors.New("could not find resource")
 
-func FetchTemplateData(resourceDB ResourcesDB, configDB db.ConfigDB, resourceName string) (TemplateData, error) {
-	config, _, err := configDB.GetConfig(atc.DefaultPipelineName)
+func FetchTemplateData(resourceDB ResourcesDB, resourceName string) (TemplateData, error) {
+	config, _, err := resourceDB.GetConfig()
 	if err != nil {
 		return TemplateData{}, err
 	}
@@ -79,10 +76,10 @@ func FetchTemplateData(resourceDB ResourcesDB, configDB db.ConfigDB, resourceNam
 	}
 
 	templateData := TemplateData{
-		Resource:   configResource,
-		DBResource: resource,
-		History:    history,
-
+		Resource:     configResource,
+		DBResource:   resource,
+		History:      history,
+		PipelineName: resourceDB.GetPipelineName(),
 		GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
 			for _, groupResource := range g.Resources {
 				if groupResource == configResource.Name {
@@ -97,31 +94,33 @@ func FetchTemplateData(resourceDB ResourcesDB, configDB db.ConfigDB, resourceNam
 	return templateData, nil
 }
 
-func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	resourceName := r.FormValue(":resource")
-	templateData, err := FetchTemplateData(handler.db, handler.configDB, resourceName)
+func (server *server) GetResource(pipelineDB db.PipelineDB) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resourceName := r.FormValue(":resource")
+		templateData, err := FetchTemplateData(pipelineDB, resourceName)
 
-	switch err {
-	case ErrResourceConfigNotFound:
-		handler.logger.Error("could-not-find-resource-in-config", ErrResourceConfigNotFound, lager.Data{
-			"resource": resourceName,
-		})
-		w.WriteHeader(http.StatusNotFound)
-		return
-	case nil:
-		break
-	default:
-		handler.logger.Error("failed-to-build-template-data", err, lager.Data{
-			"resource": resourceName,
-		})
-		http.Error(w, "failed to fetch resources", http.StatusInternalServerError)
-		return
-	}
+		switch err {
+		case ErrResourceConfigNotFound:
+			server.logger.Error("could-not-find-resource-in-config", ErrResourceConfigNotFound, lager.Data{
+				"resource": resourceName,
+			})
+			w.WriteHeader(http.StatusNotFound)
+			return
+		case nil:
+			break
+		default:
+			server.logger.Error("failed-to-build-template-data", err, lager.Data{
+				"resource": resourceName,
+			})
+			http.Error(w, "failed to fetch resources", http.StatusInternalServerError)
+			return
+		}
 
-	err = handler.template.Execute(w, templateData)
-	if err != nil {
-		log.Fatal("failed-to-task-template", err, lager.Data{
-			"template-data": templateData,
-		})
-	}
+		err = server.template.Execute(w, templateData)
+		if err != nil {
+			log.Fatal("failed-to-task-template", err, lager.Data{
+				"template-data": templateData,
+			})
+		}
+	})
 }

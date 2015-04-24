@@ -38,10 +38,11 @@
 </div>
 
 <ul class="list list-collapsable list-enableDisable mhm">
+  {{$pipelineName := .PipelineName}}
   {{range .History}}
     <li class="list-collapsable-item clearfix {{if .VersionedResource.Enabled}}enabled{{else}}disabled{{end}}">
 
-      <a class="fl btn-power-toggle js-toggleResource fa fa-power-off mrm" href="javascript:;" data-action="{{if .VersionedResource.Enabled}}disable{{else}}enable{{end}}" data-enable-url="{{url "EnableResourceVersion" .VersionedResource}}" data-disable-url="{{url "DisableResourceVersion" .VersionedResource}}"></a>
+      <a class="fl btn-power-toggle js-toggleResource fa fa-power-off mrm" href="javascript:;" data-action="{{if .VersionedResource.Enabled}}disable{{else}}enable{{end}}" data-enable-url="{{url "EnableResourceVersion" $pipelineName .VersionedResource}}" data-disable-url="{{url "DisableResourceVersion" $pipelineName .VersionedResource}}"></a>
 
       <div class="js-expandable list-collapsable-title">
         {{range $name, $val := .VersionedResource.Version}}
@@ -93,6 +94,11 @@
     </li>
   {{end}}
 </ul>
+
+
+<script>
+  window.pipelineName = {{.PipelineName}};
+</script>
 
 <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
 <script src="{{asset "resources.js"}}"></script>
