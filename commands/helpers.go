@@ -2,14 +2,28 @@ package commands
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"path/filepath"
+	"runtime"
 
 	"github.com/codegangsta/cli"
 	"github.com/concourse/atc"
 	"github.com/tedsuo/rata"
+	"gopkg.in/yaml.v2"
 )
+
+type targetDetailsYAML struct {
+	Targets map[string]struct {
+		API      string `yaml:"api"`
+		Username string
+		Password string
+		Cert     string
+	}
+}
 
 func getConfig(pipelineName string, atcRequester *atcRequester) atc.Config {
 	getConfigRequest, err := atcRequester.CreateRequest(
@@ -40,6 +54,51 @@ func getConfig(pipelineName string, atcRequester *atcRequester) atc.Config {
 	}
 
 	return config
+}
+
+func returnTarget(startingTarget string) string {
+	target := lookupURLFromName(startingTarget)
+	if target == "" {
+		return startingTarget
+	}
+
+	return target
+}
+
+func lookupURLFromName(targetName string) string {
+	flyrc := filepath.Join(userHomeDir(), ".flyrc")
+
+	currentTargetsBytes, err := ioutil.ReadFile(flyrc)
+	if err != nil {
+		return ""
+	}
+
+	var current *targetDetailsYAML
+	err = yaml.Unmarshal(currentTargetsBytes, &current)
+	if err != nil {
+		return ""
+	}
+
+	if details, ok := current.Targets[targetName]; ok {
+		userInfo := url.UserPassword(details.Username, details.Password)
+		targetURL, _ := url.Parse(details.API)
+		targetURL.User = userInfo
+
+		return targetURL.String()
+	}
+
+	return ""
+}
+
+func userHomeDir() string {
+	if runtime.GOOS == "windows" {
+		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
+		if home == "" {
+			home = os.Getenv("USERPROFILE")
+		}
+		return home
+	}
+	return os.Getenv("HOME")
 }
 
 func getBuild(ctx *cli.Context, client *http.Client, reqGenerator *rata.RequestGenerator) atc.Build {

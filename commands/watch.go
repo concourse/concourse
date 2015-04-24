@@ -15,7 +15,7 @@ import (
 )
 
 func Watch(c *cli.Context) {
-	target := c.GlobalString("target")
+	target := returnTarget(c.GlobalString("target"))
 	insecure := c.GlobalBool("insecure")
 
 	atcRequester := newAtcRequester(target, insecure)

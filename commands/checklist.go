@@ -11,7 +11,7 @@ import (
 )
 
 func Checklist(c *cli.Context) {
-	rawTarget := c.GlobalString("target")
+	rawTarget := returnTarget(c.GlobalString("target"))
 	insecure := c.GlobalBool("insecure")
 	pipelineName := c.Args().First()
 

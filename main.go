@@ -11,7 +11,7 @@ import (
 var targetFlag = cli.StringFlag{
 	Name:   "target",
 	Value:  "http://192.168.100.4:8080",
-	Usage:  "address of the Concourse API server to use",
+	Usage:  "named target you have saved to your .flyrc file",
 	EnvVar: "ATC_URL",
 }
 
@@ -103,6 +103,26 @@ var jsonFlag = cli.BoolFlag{
 	Usage: "print config as json instead of yaml",
 }
 
+var apiFlag = cli.StringFlag{
+	Name:  "api",
+	Usage: "api url to target",
+}
+
+var usernameFlag = cli.StringFlag{
+	Name:  "username, user",
+	Usage: "username for the api",
+}
+
+var passwordFlag = cli.StringFlag{
+	Name:  "password, pass",
+	Usage: "password for the api",
+}
+
+var certFlag = cli.StringFlag{
+	Name:  "cert",
+	Usage: "directory to your cert",
+}
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "fly"
@@ -157,6 +177,18 @@ func main() {
 			Flags: []cli.Flag{
 				insecureFlag,
 				targetFlag,
+			},
+		},
+		{
+			Name:      "save_target",
+			ShortName: "save",
+			Usage:     "save a fly target to the .flyrc",
+			Action:    commands.SaveTarget,
+			Flags: []cli.Flag{
+				apiFlag,
+				usernameFlag,
+				passwordFlag,
+				certFlag,
 			},
 		},
 		{

@@ -19,7 +19,7 @@ import (
 )
 
 func Configure(c *cli.Context) {
-	target := c.GlobalString("target")
+	target := returnTarget(c.GlobalString("target"))
 	insecure := c.GlobalBool("insecure")
 	configPath := c.String("config")
 	asJSON := c.Bool("json")

@@ -33,7 +33,7 @@ type Input struct {
 }
 
 func Execute(c *cli.Context) {
-	target := c.GlobalString("target")
+	target := returnTarget(c.GlobalString("target"))
 	buildConfig := c.String("config")
 	insecure := c.GlobalBool("insecure")
 	excludeIgnored := c.GlobalBool("exclude-ignored")

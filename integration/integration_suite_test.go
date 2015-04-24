@@ -1,7 +1,9 @@
 package integration_test
 
 import (
+	"os"
 	"os/exec"
+	"runtime"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -30,4 +32,15 @@ func tarFiles(path string) string {
 	Expect(err).ToNot(HaveOccurred())
 
 	return string(output)
+}
+
+func userHomeDir() string {
+	if runtime.GOOS == "windows" {
+		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
+		if home == "" {
+			home = os.Getenv("USERPROFILE")
+		}
+		return home
+	}
+	return os.Getenv("HOME")
 }

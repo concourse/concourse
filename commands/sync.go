@@ -16,7 +16,7 @@ import (
 )
 
 func Sync(c *cli.Context) {
-	target := c.GlobalString("target")
+	target := returnTarget(c.GlobalString("target"))
 	insecure := c.Bool("insecure")
 	reqGenerator := rata.NewRequestGenerator(target, atc.Routes)
 
