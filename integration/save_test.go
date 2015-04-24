@@ -118,7 +118,6 @@ targets:
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Ω(err).ShouldNot(HaveOccurred())
-
 				Eventually(sess).Should(gexec.Exit(0))
 				Eventually(sess).Should(gbytes.Say("successfully saved target some-update-target"))
 
@@ -143,6 +142,7 @@ targets:
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Ω(err).ShouldNot(HaveOccurred())
+				Eventually(sess).Should(gexec.Exit(0))
 
 				flyCmd = exec.Command(flyPath, "save-target", "--api",
 					"http://a-different-target", "--username", "some-username",
