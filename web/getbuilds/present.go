@@ -8,9 +8,10 @@ import (
 )
 
 type PresentedBuild struct {
-	ID      int
-	JobName string
-	Status  string
+	ID           int
+	JobName      string
+	PipelineName string
+	Status       string
 
 	StartTime string
 	EndTime   string
@@ -30,13 +31,16 @@ func PresentBuilds(builds []db.Build) []PresentedBuild {
 	for _, build := range builds {
 		var cssClass string
 		var jobName string
+		var pipelineName string
 		var startTime string
 
 		if build.OneOff() {
 			jobName = "[one off]"
+			pipelineName = "[one off]"
 			cssClass = "build-one-off"
 		} else {
 			jobName = build.JobName
+			pipelineName = build.PipelineName
 		}
 
 		nilTime := time.Time{}
@@ -47,13 +51,14 @@ func PresentBuilds(builds []db.Build) []PresentedBuild {
 		}
 
 		presentedBuilds = append(presentedBuilds, PresentedBuild{
-			ID:        build.ID,
-			JobName:   jobName,
-			StartTime: startTime,
-			EndTime:   formatDate(build.EndTime),
-			CSSClass:  cssClass,
-			Status:    string(build.Status),
-			Path:      routes.PathForBuild(build),
+			ID:           build.ID,
+			JobName:      jobName,
+			PipelineName: pipelineName,
+			StartTime:    startTime,
+			EndTime:      formatDate(build.EndTime),
+			CSSClass:     cssClass,
+			Status:       string(build.Status),
+			Path:         routes.PathForBuild(build),
 		})
 	}
 

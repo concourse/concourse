@@ -8,7 +8,7 @@ import (
 const defaultTaskName = "build"
 
 type BuildFactory struct {
-	ConfigDB db.ConfigDB
+	PipelineName string
 }
 
 func (factory *BuildFactory) Create(
@@ -137,6 +137,7 @@ func (factory *BuildFactory) constructPlanFromConfig(
 			Get: &atc.GetPlan{
 				Type:     resource.Type,
 				Name:     name,
+				Pipeline: factory.PipelineName,
 				Resource: resourceName,
 				Source:   resource.Source,
 				Params:   planConfig.Params,
@@ -156,6 +157,7 @@ func (factory *BuildFactory) constructPlanFromConfig(
 			Put: &atc.PutPlan{
 				Type:     resource.Type,
 				Name:     planConfig.Put,
+				Pipeline: factory.PipelineName,
 				Resource: resourceName,
 				Source:   resource.Source,
 				Params:   planConfig.Params,

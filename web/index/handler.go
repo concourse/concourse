@@ -1,76 +1,40 @@
 package index
 
 import (
+	"database/sql"
 	"html/template"
+	"log"
 	"net/http"
-
-	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/web/group"
+	"github.com/pivotal-golang/lager"
 )
 
-type handler struct {
-	logger lager.Logger
+type TemplateData struct{}
 
-	db       db.DB
-	configDB db.ConfigDB
+func NewHandler(
+	logger lager.Logger,
+	pipelineDBFactory db.PipelineDBFactory,
+	pipelineHandler func(db.PipelineDB) http.Handler,
+	template *template.Template,
+) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		pipelineDB, err := pipelineDBFactory.BuildWithName(atc.DefaultPipelineName)
+		if err != nil {
 
-	template *template.Template
-}
+			if err == sql.ErrNoRows {
+				err = template.Execute(w, TemplateData{})
+				if err != nil {
+					log.Fatal("failed-to-task-template", err, lager.Data{})
+				}
+			}
 
-func NewHandler(logger lager.Logger, db db.DB, configDB db.ConfigDB, template *template.Template) http.Handler {
-	return &handler{
-		logger: logger,
+			logger.Error("failed-to-load-pipelinedb", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-		db:       db,
-		configDB: configDB,
-
-		template: template,
-	}
-}
-
-type TemplateData struct {
-	GroupStates []group.State
-	Groups      map[string]bool
-}
-
-func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	config, _, err := handler.configDB.GetConfig(atc.DefaultPipelineName)
-	if err != nil {
-		handler.logger.Error("failed-to-load-config", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	groups := map[string]bool{}
-	for _, group := range config.Groups {
-		groups[group.Name] = false
-	}
-
-	enabledGroups, found := r.URL.Query()["groups"]
-	if !found && len(config.Groups) > 0 {
-		enabledGroups = []string{config.Groups[0].Name}
-	}
-
-	for _, name := range enabledGroups {
-		groups[name] = true
-	}
-
-	data := TemplateData{
-		Groups: groups,
-		GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
-			return groups[g.Name]
-		}),
-	}
-
-	log := handler.logger.Session("index")
-
-	err = handler.template.Execute(w, data)
-	if err != nil {
-		log.Fatal("failed-to-task-template", err, lager.Data{
-			"template-data": data,
-		})
-	}
+		pipelineHandler(pipelineDB).ServeHTTP(w, r)
+	})
 }

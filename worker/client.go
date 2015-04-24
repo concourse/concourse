@@ -30,6 +30,8 @@ type Container interface {
 type Identifier struct {
 	Name string
 
+	PipelineName string
+
 	BuildID int
 
 	Type ContainerType
@@ -47,6 +49,10 @@ func (id Identifier) gardenProperties() garden.Properties {
 
 	if id.Name != "" {
 		props[propertyPrefix+"name"] = id.Name
+	}
+
+	if id.PipelineName != "" {
+		props[propertyPrefix+"pipeline-name"] = id.PipelineName
 	}
 
 	if id.BuildID != 0 {

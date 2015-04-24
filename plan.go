@@ -20,6 +20,7 @@ type GetPlan struct {
 	Type     string  `json:"type"`
 	Name     string  `json:"name,omitempty"`
 	Resource string  `json:"resource"`
+	Pipeline string  `json:"pipeline"`
 	Source   Source  `json:"source"`
 	Params   Params  `json:"params,omitempty"`
 	Version  Version `json:"version,omitempty"`
@@ -29,6 +30,7 @@ type PutPlan struct {
 	Type     string `json:"type"`
 	Name     string `json:"name,omitempty"`
 	Resource string `json:"resource"`
+	Pipeline string `json:"pipeline"`
 	Source   Source `json:"source"`
 	Params   Params `json:"params,omitempty"`
 }

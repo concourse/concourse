@@ -41,7 +41,8 @@ var _ = Describe("Multiple ATCs", func() {
 		postgresRunner.CreateTestDB()
 		dbConn = postgresRunner.Open()
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
-		sqlDB = db.NewSQL(dbLogger, dbConn, dbListener)
+		bus := db.NewNotificationsBus(dbListener)
+		sqlDB = db.NewSQL(dbLogger, dbConn, bus)
 
 		atcOneProcess, atcOnePort = startATC(atcBin, 1)
 		atcTwoProcess, atcTwoPort = startATC(atcBin, 2)

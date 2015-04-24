@@ -10,7 +10,7 @@
       {{else}}
         <span class="btn-pause btn-pause-large fl disabled js-pauseJobCheck"><i class="fa fa-fw fa-pause"></i></span>
       {{end}}
-      <form class="trigger-build" method="post" action="{{url "TriggerBuild" .Job}}">
+      <form class="trigger-build" method="post" action="{{url "TriggerBuild" .PipelineName .Job}}">
         <button class="build-action fr"><i class="fa fa-plus-circle"></i></button>
       </form>
 
@@ -34,6 +34,9 @@
   </div>
 </div>
 
+<script>
+  window.pipelineName = {{.PipelineName}};
+</script>
 <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
 <script src="{{asset "concourse.js"}}"></script>
 {{end}}

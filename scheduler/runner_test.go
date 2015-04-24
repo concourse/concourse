@@ -21,10 +21,10 @@ import (
 
 var _ = Describe("Runner", func() {
 	var (
-		locker    *fakes.FakeLocker
-		configDB  *dbfakes.FakeConfigDB
-		scheduler *fakes.FakeBuildScheduler
-		noop      bool
+		locker     *fakes.FakeLocker
+		pipelineDB *dbfakes.FakePipelineDB
+		scheduler  *fakes.FakeBuildScheduler
+		noop       bool
 
 		lock *dbfakes.FakeLock
 
@@ -35,7 +35,7 @@ var _ = Describe("Runner", func() {
 
 	BeforeEach(func() {
 		locker = new(fakes.FakeLocker)
-		configDB = new(dbfakes.FakeConfigDB)
+		pipelineDB = new(dbfakes.FakePipelineDB)
 		scheduler = new(fakes.FakeBuildScheduler)
 		noop = false
 
@@ -67,7 +67,10 @@ var _ = Describe("Runner", func() {
 			},
 		}
 
-		configDB.GetConfigReturns(initialConfig, 1, nil)
+		pipelineDB.ScopedNameStub = func(thing string) string {
+			return "pipeline:" + thing
+		}
+		pipelineDB.GetConfigReturns(initialConfig, 1, nil)
 
 		lock = new(dbfakes.FakeLock)
 		locker.AcquireWriteLockImmediatelyReturns(lock, nil)
@@ -77,7 +80,7 @@ var _ = Describe("Runner", func() {
 		process = ginkgomon.Invoke(&Runner{
 			Logger:    lagertest.NewTestLogger("test"),
 			Locker:    locker,
-			ConfigDB:  configDB,
+			DB:        pipelineDB,
 			Scheduler: scheduler,
 			Noop:      noop,
 			Interval:  100 * time.Millisecond,
@@ -92,10 +95,10 @@ var _ = Describe("Runner", func() {
 		Eventually(locker.AcquireWriteLockImmediatelyCallCount).Should(Equal(2))
 
 		job := locker.AcquireWriteLockImmediatelyArgsForCall(0)
-		Ω(job).Should(Equal([]db.NamedLock{db.JobSchedulingLock("some-job")}))
+		Ω(job).Should(Equal([]db.NamedLock{db.JobSchedulingLock("pipeline:some-job")}))
 
 		job = locker.AcquireWriteLockImmediatelyArgsForCall(1)
-		Ω(job).Should(Equal([]db.NamedLock{db.JobSchedulingLock("some-other-job")}))
+		Ω(job).Should(Equal([]db.NamedLock{db.JobSchedulingLock("pipeline:some-other-job")}))
 	})
 
 	Context("whe it can't get the lock for the first job", func() {
@@ -115,10 +118,6 @@ var _ = Describe("Runner", func() {
 			Ω(job).Should(Equal(atc.JobConfig{Name: "some-other-job"}))
 			Ω(resources).Should(Equal(initialConfig.Resources))
 		})
-	})
-
-	It("tracks in-flight builds", func() {
-		Eventually(scheduler.TrackInFlightBuildsCallCount).Should(Equal(1))
 	})
 
 	It("schedules pending builds", func() {
@@ -148,10 +147,6 @@ var _ = Describe("Runner", func() {
 	Context("when in noop mode", func() {
 		BeforeEach(func() {
 			noop = true
-		})
-
-		It("still tracks builds", func() {
-			Eventually(scheduler.TrackInFlightBuildsCallCount).ShouldNot(Equal(0))
 		})
 
 		It("does not start scheduling builds", func() {

@@ -7,12 +7,12 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func Job(dbJob db.Job, job atc.JobConfig, groups atc.GroupConfigs, finishedBuild, nextBuild *db.Build) atc.Job {
+func Job(dbJob db.SavedJob, job atc.JobConfig, groups atc.GroupConfigs, finishedBuild, nextBuild *db.Build) atc.Job {
 	generator := rata.NewRequestGenerator("", routes.Routes)
 
 	req, err := generator.CreateRequest(
 		routes.GetJob,
-		rata.Params{"job": job.Name},
+		rata.Params{"job": job.Name, "pipeline_name": dbJob.PipelineName},
 		nil,
 	)
 	if err != nil {

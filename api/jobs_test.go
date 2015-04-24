@@ -11,24 +11,36 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	dbfakes "github.com/concourse/atc/db/fakes"
 )
 
 var _ = Describe("Jobs API", func() {
-	Describe("GET /api/v1/jobs/:job_name", func() {
+	var pipelineDB *dbfakes.FakePipelineDB
+
+	BeforeEach(func() {
+		pipelineDB = new(dbfakes.FakePipelineDB)
+		pipelineDBFactory.BuildWithNameReturns(pipelineDB, nil)
+	})
+
+	Describe("GET /api/v1/pipelines/:pipeline_name/jobs/:job_name", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			response, err = client.Get(server.URL + "/api/v1/jobs/some-job")
+			response, err = client.Get(server.URL + "/api/v1/pipelines/some-pipeline/jobs/some-job")
 			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+			pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+			Ω(pipelineName).Should(Equal("some-pipeline"))
 		})
 
 		Context("when getting the job config succeeds", func() {
 			BeforeEach(func() {
 				no := false
 
-				configDB.GetConfigReturns(atc.Config{
+				pipelineDB.GetConfigReturns(atc.Config{
 					Groups: []atc.GroupConfig{
 						{
 							Name: "group-1",
@@ -72,18 +84,20 @@ var _ = Describe("Jobs API", func() {
 
 			Context("when getting the build succeeds", func() {
 				BeforeEach(func() {
-					jobsDB.GetJobFinishedAndNextBuildReturns(
+					pipelineDB.GetJobFinishedAndNextBuildReturns(
 						&db.Build{
-							ID:      1,
-							Name:    "1",
-							JobName: "some-job",
-							Status:  db.StatusSucceeded,
+							ID:           1,
+							Name:         "1",
+							JobName:      "some-job",
+							PipelineName: "some-pipeline",
+							Status:       db.StatusSucceeded,
 						},
 						&db.Build{
-							ID:      3,
-							Name:    "2",
-							JobName: "some-job",
-							Status:  db.StatusStarted,
+							ID:           3,
+							Name:         "2",
+							JobName:      "some-job",
+							PipelineName: "some-pipeline",
+							Status:       db.StatusStarted,
 						},
 						nil,
 					)
@@ -91,7 +105,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when getting the job fails", func() {
 					BeforeEach(func() {
-						jobsDB.GetJobReturns(db.Job{}, errors.New("nope"))
+						pipelineDB.GetJobReturns(db.SavedJob{}, errors.New("nope"))
 					})
 
 					It("returns 500", func() {
@@ -100,16 +114,20 @@ var _ = Describe("Jobs API", func() {
 				})
 				Context("when getting the job succeeds", func() {
 					BeforeEach(func() {
-						jobsDB.GetJobReturns(db.Job{
-							Name:   "job-1",
-							Paused: true,
+						pipelineDB.GetJobReturns(db.SavedJob{
+							ID:           1,
+							Paused:       true,
+							PipelineName: "some-pipeline",
+							Job: db.Job{
+								Name: "job-1",
+							},
 						}, nil)
 					})
 
 					It("fetches by job", func() {
-						Ω(jobsDB.GetJobFinishedAndNextBuildCallCount()).Should(Equal(1))
+						Ω(pipelineDB.GetJobFinishedAndNextBuildCallCount()).Should(Equal(1))
 
-						jobName := jobsDB.GetJobFinishedAndNextBuildArgsForCall(0)
+						jobName := pipelineDB.GetJobFinishedAndNextBuildArgsForCall(0)
 						Ω(jobName).Should(Equal("some-job"))
 					})
 
@@ -124,20 +142,20 @@ var _ = Describe("Jobs API", func() {
 						Ω(body).Should(MatchJSON(`{
 							"name": "some-job",
 							"paused": true,
-							"url": "/jobs/some-job",
+							"url": "/pipelines/some-pipeline/jobs/some-job",
 							"next_build": {
 								"id": 3,
 								"name": "2",
 								"job_name": "some-job",
 								"status": "started",
-								"url": "/jobs/some-job/builds/2"
+								"url": "/pipelines/some-pipeline/jobs/some-job/builds/2"
 							},
 							"finished_build": {
 								"id": 1,
 								"name": "1",
 								"job_name": "some-job",
 								"status": "succeeded",
-								"url": "/jobs/some-job/builds/1"
+								"url": "/pipelines/some-pipeline/jobs/some-job/builds/1"
 							},
 							"inputs": [
 								{
@@ -169,7 +187,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when there are no running or finished builds", func() {
 					BeforeEach(func() {
-						jobsDB.GetJobFinishedAndNextBuildReturns(nil, nil, nil)
+						pipelineDB.GetJobFinishedAndNextBuildReturns(nil, nil, nil)
 					})
 
 					It("returns null as their entries", func() {
@@ -185,7 +203,7 @@ var _ = Describe("Jobs API", func() {
 
 			Context("when getting the job's builds fails", func() {
 				BeforeEach(func() {
-					jobsDB.GetJobFinishedAndNextBuildReturns(nil, nil, errors.New("oh no!"))
+					pipelineDB.GetJobFinishedAndNextBuildReturns(nil, nil, errors.New("oh no!"))
 				})
 
 				It("returns 500", func() {
@@ -195,7 +213,7 @@ var _ = Describe("Jobs API", func() {
 
 			Context("when the job is not present in the config", func() {
 				BeforeEach(func() {
-					configDB.GetConfigReturns(atc.Config{
+					pipelineDB.GetConfigReturns(atc.Config{
 						Jobs: []atc.JobConfig{
 							{Name: "other-job"},
 						},
@@ -210,7 +228,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when getting the job config fails", func() {
 			BeforeEach(func() {
-				configDB.GetConfigReturns(atc.Config{}, 0, errors.New("oh no!"))
+				pipelineDB.GetConfigReturns(atc.Config{}, 0, errors.New("oh no!"))
 			})
 
 			It("returns 500", func() {
@@ -219,19 +237,19 @@ var _ = Describe("Jobs API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/jobs", func() {
+	Describe("GET /api/v1/pipelines/:pipeline_name/jobs", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			response, err = client.Get(server.URL + "/api/v1/jobs")
+			response, err = client.Get(server.URL + "/api/v1/pipelines/some-pipeline/jobs")
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
 		Context("when getting the job config succeeds", func() {
 			BeforeEach(func() {
-				configDB.GetConfigReturns(atc.Config{
+				pipelineDB.GetConfigReturns(atc.Config{
 					Groups: []atc.GroupConfig{
 						{
 							Name: "group-1",
@@ -271,7 +289,7 @@ var _ = Describe("Jobs API", func() {
 				BeforeEach(func() {
 					call := 0
 
-					jobsDB.GetJobFinishedAndNextBuildStub = func(jobName string) (*db.Build, *db.Build, error) {
+					pipelineDB.GetJobFinishedAndNextBuildStub = func(jobName string) (*db.Build, *db.Build, error) {
 						call++
 
 						var finishedBuild, nextBuild *db.Build
@@ -281,27 +299,30 @@ var _ = Describe("Jobs API", func() {
 							Ω(jobName).Should(Equal("job-1"))
 
 							finishedBuild = &db.Build{
-								ID:      1,
-								Name:    "1",
-								JobName: jobName,
-								Status:  db.StatusSucceeded,
+								ID:           1,
+								Name:         "1",
+								JobName:      jobName,
+								PipelineName: "another-pipeline",
+								Status:       db.StatusSucceeded,
 							}
 
 							nextBuild = &db.Build{
-								ID:      3,
-								Name:    "2",
-								JobName: jobName,
-								Status:  db.StatusStarted,
+								ID:           3,
+								Name:         "2",
+								JobName:      jobName,
+								PipelineName: "another-pipeline",
+								Status:       db.StatusStarted,
 							}
 
 						case 2:
 							Ω(jobName).Should(Equal("job-2"))
 
 							finishedBuild = &db.Build{
-								ID:      4,
-								Name:    "1",
-								JobName: "job-2",
-								Status:  db.StatusSucceeded,
+								ID:           4,
+								Name:         "1",
+								JobName:      "job-2",
+								PipelineName: "another-pipeline",
+								Status:       db.StatusSucceeded,
 							}
 
 						case 3:
@@ -317,7 +338,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when getting the job fails", func() {
 					BeforeEach(func() {
-						jobsDB.GetJobReturns(db.Job{}, errors.New("nope"))
+						pipelineDB.GetJobReturns(db.SavedJob{}, errors.New("nope"))
 					})
 
 					It("returns 500", func() {
@@ -327,9 +348,13 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when getting the job succeeds", func() {
 					BeforeEach(func() {
-						jobsDB.GetJobReturns(db.Job{
-							Name:   "job-1",
-							Paused: true,
+						pipelineDB.GetJobReturns(db.SavedJob{
+							ID:           1,
+							Paused:       true,
+							PipelineName: "another-pipeline",
+							Job: db.Job{
+								Name: "job-1",
+							},
 						}, nil)
 					})
 
@@ -345,20 +370,20 @@ var _ = Describe("Jobs API", func() {
 							{
 								"name": "job-1",
 								"paused": true,
-								"url": "/jobs/job-1",
+								"url": "/pipelines/another-pipeline/jobs/job-1",
 								"next_build": {
 									"id": 3,
 									"name": "2",
 									"job_name": "job-1",
 									"status": "started",
-									"url": "/jobs/job-1/builds/2"
+									"url": "/pipelines/another-pipeline/jobs/job-1/builds/2"
 								},
 								"finished_build": {
 									"id": 1,
 									"name": "1",
 									"job_name": "job-1",
 									"status": "succeeded",
-									"url": "/jobs/job-1/builds/1"
+									"url": "/pipelines/another-pipeline/jobs/job-1/builds/1"
 								},
 								"inputs": [{"name": "input-1", "resource": "input-1", "trigger": true}],
 								"outputs": [{"name": "output-1", "resource": "output-1"}],
@@ -367,14 +392,14 @@ var _ = Describe("Jobs API", func() {
 							{
 								"name": "job-2",
 								"paused": true,
-								"url": "/jobs/job-2",
+								"url": "/pipelines/another-pipeline/jobs/job-2",
 								"next_build": null,
 								"finished_build": {
 									"id": 4,
 									"name": "1",
 									"job_name": "job-2",
 									"status": "succeeded",
-									"url": "/jobs/job-2/builds/1"
+									"url": "/pipelines/another-pipeline/jobs/job-2/builds/1"
 								},
 								"inputs": [{"name": "input-2", "resource": "input-2", "trigger": true}],
 								"outputs": [{"name": "output-2", "resource": "output-2"}],
@@ -383,7 +408,7 @@ var _ = Describe("Jobs API", func() {
 							{
 								"name": "job-3",
 								"paused": true,
-								"url": "/jobs/job-3",
+								"url": "/pipelines/another-pipeline/jobs/job-3",
 								"next_build": null,
 								"finished_build": null,
 								"inputs": [{"name": "input-3", "resource": "input-3", "trigger": true}],
@@ -397,7 +422,7 @@ var _ = Describe("Jobs API", func() {
 
 			Context("when getting the build fails", func() {
 				BeforeEach(func() {
-					jobsDB.GetJobFinishedAndNextBuildReturns(nil, nil, errors.New("oh no!"))
+					pipelineDB.GetJobFinishedAndNextBuildReturns(nil, nil, errors.New("oh no!"))
 				})
 
 				It("returns 500", func() {
@@ -408,7 +433,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when getting the job config fails", func() {
 			BeforeEach(func() {
-				configDB.GetConfigReturns(atc.Config{}, 0, errors.New("oh no!"))
+				pipelineDB.GetConfigReturns(atc.Config{}, 0, errors.New("oh no!"))
 			})
 
 			It("returns 500", func() {
@@ -417,38 +442,44 @@ var _ = Describe("Jobs API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/jobs/:job_name/builds", func() {
+	Describe("GET /api/v1/pipelines/:pipeline_name/jobs/:job_name/builds", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			response, err = client.Get(server.URL + "/api/v1/jobs/some-job/builds")
+			response, err = client.Get(server.URL + "/api/v1/pipelines/some-pipeline/jobs/some-job/builds")
 			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+			pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+			Ω(pipelineName).Should(Equal("some-pipeline"))
 		})
 
 		Context("when getting the build succeeds", func() {
 			BeforeEach(func() {
-				jobsDB.GetAllJobBuildsReturns([]db.Build{
+				pipelineDB.GetAllJobBuildsReturns([]db.Build{
 					{
-						ID:      3,
-						Name:    "2",
-						JobName: "some-job",
-						Status:  db.StatusStarted,
+						ID:           3,
+						Name:         "2",
+						JobName:      "some-job",
+						PipelineName: "some-pipeline",
+						Status:       db.StatusStarted,
 					},
 					{
-						ID:      1,
-						Name:    "1",
-						JobName: "some-job",
-						Status:  db.StatusSucceeded,
+						ID:           1,
+						Name:         "1",
+						JobName:      "some-job",
+						PipelineName: "some-pipeline",
+						Status:       db.StatusSucceeded,
 					},
 				}, nil)
 			})
 
 			It("fetches by job and build name", func() {
-				Ω(jobsDB.GetAllJobBuildsCallCount()).Should(Equal(1))
+				Ω(pipelineDB.GetAllJobBuildsCallCount()).Should(Equal(1))
 
-				jobName := jobsDB.GetAllJobBuildsArgsForCall(0)
+				jobName := pipelineDB.GetAllJobBuildsArgsForCall(0)
 				Ω(jobName).Should(Equal("some-job"))
 			})
 
@@ -466,14 +497,14 @@ var _ = Describe("Jobs API", func() {
 						"name": "2",
 						"job_name": "some-job",
 						"status": "started",
-						"url": "/jobs/some-job/builds/2"
+						"url": "/pipelines/some-pipeline/jobs/some-job/builds/2"
 					},
 					{
 						"id": 1,
 						"name": "1",
 						"job_name": "some-job",
 						"status": "succeeded",
-						"url": "/jobs/some-job/builds/1"
+						"url": "/pipelines/some-pipeline/jobs/some-job/builds/1"
 					}
 				]`))
 			})
@@ -481,7 +512,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when getting the build fails", func() {
 			BeforeEach(func() {
-				jobsDB.GetAllJobBuildsReturns(nil, errors.New("oh no!"))
+				pipelineDB.GetAllJobBuildsReturns(nil, errors.New("oh no!"))
 			})
 
 			It("returns 404 Not Found", func() {
@@ -490,30 +521,35 @@ var _ = Describe("Jobs API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/jobs/:job_name/builds/:build_name", func() {
+	Describe("GET /api/v1/pipelines/:pipeline_name/jobs/:job_name/builds/:build_name", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			response, err = client.Get(server.URL + "/api/v1/jobs/some-job/builds/some-build")
+			response, err = client.Get(server.URL + "/api/v1/pipelines/some-pipeline/jobs/some-job/builds/some-build")
 			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+			pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+			Ω(pipelineName).Should(Equal("some-pipeline"))
 		})
 
 		Context("when getting the build succeeds", func() {
 			BeforeEach(func() {
-				jobsDB.GetJobBuildReturns(db.Build{
-					ID:      1,
-					Name:    "1",
-					JobName: "some-job",
-					Status:  db.StatusSucceeded,
+				pipelineDB.GetJobBuildReturns(db.Build{
+					ID:           1,
+					Name:         "1",
+					JobName:      "some-job",
+					PipelineName: "a-pipeline",
+					Status:       db.StatusSucceeded,
 				}, nil)
 			})
 
 			It("fetches by job and build name", func() {
-				Ω(jobsDB.GetJobBuildCallCount()).Should(Equal(1))
+				Ω(pipelineDB.GetJobBuildCallCount()).Should(Equal(1))
 
-				jobName, buildName := jobsDB.GetJobBuildArgsForCall(0)
+				jobName, buildName := pipelineDB.GetJobBuildArgsForCall(0)
 				Ω(jobName).Should(Equal("some-job"))
 				Ω(buildName).Should(Equal("some-build"))
 			})
@@ -531,14 +567,14 @@ var _ = Describe("Jobs API", func() {
 					"name": "1",
 					"job_name": "some-job",
 					"status": "succeeded",
-					"url": "/jobs/some-job/builds/1"
+					"url": "/pipelines/a-pipeline/jobs/some-job/builds/1"
 				}`))
 			})
 		})
 
 		Context("when getting the build fails", func() {
 			BeforeEach(func() {
-				jobsDB.GetJobBuildReturns(db.Build{}, errors.New("oh no!"))
+				pipelineDB.GetJobBuildReturns(db.Build{}, errors.New("oh no!"))
 			})
 
 			It("returns 404 Not Found", func() {
@@ -547,13 +583,13 @@ var _ = Describe("Jobs API", func() {
 		})
 	})
 
-	Describe("PUT /api/v1/jobs/:job_name/pause", func() {
+	Describe("PUT /api/v1/pipelines/:pipeline_name/jobs/:job_name/pause", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/jobs/job-name/pause", nil)
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/some-pipeline/jobs/job-name/pause", nil)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -565,13 +601,19 @@ var _ = Describe("Jobs API", func() {
 				authValidator.IsAuthenticatedReturns(true)
 			})
 
+			It("injects the PipelineDB", func() {
+				Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+				Ω(pipelineName).Should(Equal("some-pipeline"))
+			})
+
 			Context("when pausing the resource succeeds", func() {
 				BeforeEach(func() {
-					jobsDB.PauseJobReturns(nil)
+					pipelineDB.PauseJobReturns(nil)
 				})
 
 				It("paused the right job", func() {
-					Ω(jobsDB.PauseJobArgsForCall(0)).Should(Equal("job-name"))
+					Ω(pipelineDB.PauseJobArgsForCall(0)).Should(Equal("job-name"))
 				})
 
 				It("returns 200", func() {
@@ -581,7 +623,7 @@ var _ = Describe("Jobs API", func() {
 
 			Context("when pausing the job fails", func() {
 				BeforeEach(func() {
-					jobsDB.PauseJobReturns(errors.New("welp"))
+					pipelineDB.PauseJobReturns(errors.New("welp"))
 				})
 
 				It("returns 500", func() {
@@ -601,13 +643,13 @@ var _ = Describe("Jobs API", func() {
 		})
 	})
 
-	Describe("PUT /api/v1/jobs/:job_name/unpause", func() {
+	Describe("PUT /api/v1/pipelines/:pipeline_name/jobs/:job_name/unpause", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/jobs/job-name/unpause", nil)
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/some-pipeline/jobs/job-name/unpause", nil)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -619,13 +661,19 @@ var _ = Describe("Jobs API", func() {
 				authValidator.IsAuthenticatedReturns(true)
 			})
 
+			It("injects the PipelineDB", func() {
+				Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+				Ω(pipelineName).Should(Equal("some-pipeline"))
+			})
+
 			Context("when pausing the resource succeeds", func() {
 				BeforeEach(func() {
-					jobsDB.UnpauseJobReturns(nil)
+					pipelineDB.UnpauseJobReturns(nil)
 				})
 
 				It("paused the right job", func() {
-					Ω(jobsDB.UnpauseJobArgsForCall(0)).Should(Equal("job-name"))
+					Ω(pipelineDB.UnpauseJobArgsForCall(0)).Should(Equal("job-name"))
 				})
 
 				It("returns 200", func() {
@@ -635,7 +683,7 @@ var _ = Describe("Jobs API", func() {
 
 			Context("when pausing the job fails", func() {
 				BeforeEach(func() {
-					jobsDB.UnpauseJobReturns(errors.New("welp"))
+					pipelineDB.UnpauseJobReturns(errors.New("welp"))
 				})
 
 				It("returns 500", func() {

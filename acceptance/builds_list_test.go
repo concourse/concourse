@@ -2,8 +2,6 @@ package acceptance_test
 
 import (
 	"fmt"
-	"os/exec"
-	"path/filepath"
 	"time"
 
 	"github.com/lib/pq"
@@ -23,36 +21,11 @@ import (
 	"github.com/concourse/atc/event"
 )
 
-func startATC(atcBin string, atcServerNumber uint16) (ifrit.Process, uint16) {
-	atcPort := 5697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
-	debugPort := 6697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
-
-	atcCommand := exec.Command(
-		atcBin,
-		"-webListenPort", fmt.Sprintf("%d", atcPort),
-		"-callbacksURL", fmt.Sprintf("http://127.0.0.1:%d", atcPort),
-		"-debugListenPort", fmt.Sprintf("%d", debugPort),
-		"-httpUsername", "admin",
-		"-httpHashedPassword", "$2a$04$DYaOWeQgyxTCv7QxydTP9u1KnwXWSKipC4BeTuBy.9m.IlkAdqNGG", // "password"
-		"-publiclyViewable=true",
-		"-templates", filepath.Join("..", "web", "templates"),
-		"-public", filepath.Join("..", "web", "public"),
-		"-sqlDataSource", postgresRunner.DataSourceName(),
-	)
-	atcRunner := ginkgomon.New(ginkgomon.Config{
-		Command:       atcCommand,
-		Name:          "atc",
-		StartCheck:    "atc.listening",
-		AnsiColorCode: "32m",
-	})
-
-	return ginkgomon.Invoke(atcRunner), atcPort
-}
-
 var _ = Describe("One-off Builds", func() {
 	var atcProcess ifrit.Process
 	var dbListener *pq.Listener
 	var atcPort uint16
+	var pipelineDBFactory db.PipelineDBFactory
 
 	BeforeEach(func() {
 		atcBin, err := gexec.Build("github.com/concourse/atc/cmd/atc")
@@ -62,7 +35,9 @@ var _ = Describe("One-off Builds", func() {
 		postgresRunner.CreateTestDB()
 		dbConn = postgresRunner.Open()
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
-		sqlDB = db.NewSQL(dbLogger, dbConn, dbListener)
+		bus := db.NewNotificationsBus(dbListener)
+		sqlDB = db.NewSQL(dbLogger, dbConn, bus)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbLogger, dbConn, bus, sqlDB)
 
 		atcProcess, atcPort = startATC(atcBin, 1)
 	})
@@ -78,6 +53,7 @@ var _ = Describe("One-off Builds", func() {
 
 	Describe("viewing a list of builds", func() {
 		var page *agouti.Page
+		var pipelineDB db.PipelineDB
 
 		BeforeEach(func() {
 			var err error
@@ -119,7 +95,10 @@ var _ = Describe("One-off Builds", func() {
 					},
 				}, db.ConfigVersion(1))).Should(Succeed())
 
-				build, err = sqlDB.CreateJobBuild("job-name")
+				pipelineDB, err = pipelineDBFactory.BuildWithName(atc.DefaultPipelineName)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				build, err = pipelineDB.CreateJobBuild("job-name")
 				Ω(err).ShouldNot(HaveOccurred())
 
 				_, err = sqlDB.StartBuild(build.ID, "", "")
@@ -154,7 +133,7 @@ var _ = Describe("One-off Builds", func() {
 
 			It("can view builds", func() {
 				// homepage -> build list
-				Expect(page.Navigate(homepage())).To(Succeed())
+				Expect(page.Navigate(homepage() + "/pipelines/main")).To(Succeed())
 				Eventually(page.Find(allBuildsListIcon)).Should(BeFound())
 				Expect(page.Find(allBuildsListIconLink).Click()).To(Succeed())
 
@@ -180,20 +159,19 @@ var _ = Describe("One-off Builds", func() {
 
 				// job build detail
 				Expect(page.Find(secondBuildLink).Click()).To(Succeed())
-				Expect(page).Should(HaveURL(fmt.Sprintf("http://127.0.0.1:%d/jobs/job-name/builds/%d", atcPort, build.ID)))
+				Expect(page).Should(HaveURL(withPath(fmt.Sprintf("/pipelines/main/jobs/job-name/builds/%d", build.ID))))
 				Expect(page.Find("h1")).To(HaveText(fmt.Sprintf("job-name #%s", build.Name)))
 				Expect(page.Find("#builds").Text()).Should(ContainSubstring("%s", build.Name))
 
 				Eventually(page.Find("#build-logs").Text).Should(ContainSubstring("hello this is a payload"))
 
 				Ω(sqlDB.FinishBuild(build.ID, db.StatusSucceeded)).Should(Succeed())
-
 				Eventually(page.Find(".build-times").Text).Should(ContainSubstring("duration"))
 			})
 
 			It("can abort builds from the one-off build page", func() {
 				// homepage -> build list
-				Expect(page.Navigate(homepage())).To(Succeed())
+				Expect(page.Navigate(homepage() + "/pipelines/main")).To(Succeed())
 				Authenticate(page, "admin", "password")
 				Expect(page.Find(allBuildsListIconLink).Click()).To(Succeed())
 

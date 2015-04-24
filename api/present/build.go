@@ -12,7 +12,7 @@ func Build(build db.Build) atc.Build {
 
 	req, err := generator.CreateRequest(
 		routes.GetBuild,
-		rata.Params{"job": build.JobName, "build": build.Name},
+		rata.Params{"job": build.JobName, "build": build.Name, "pipeline_name": build.PipelineName},
 		nil,
 	)
 	if err != nil {

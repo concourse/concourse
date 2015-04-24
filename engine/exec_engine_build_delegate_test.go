@@ -54,6 +54,7 @@ var _ = Describe("BuildDelegate", func() {
 			getPlan = atc.GetPlan{
 				Name:     "some-input",
 				Resource: "some-input-resource",
+				Pipeline: "some-pipeline",
 				Type:     "some-type",
 				Version:  atc.Version{"some": "version"},
 				Source:   atc.Source{"some": "source"},
@@ -85,11 +86,12 @@ var _ = Describe("BuildDelegate", func() {
 				Ω(savedInput).Should(Equal(db.BuildInput{
 					Name: "some-input",
 					VersionedResource: db.VersionedResource{
-						Resource: "some-input-resource",
-						Type:     "some-type",
-						Source:   db.Source{"some": "source"},
-						Version:  db.Version{"result": "version"},
-						Metadata: []db.MetadataField{{"result", "metadata"}},
+						PipelineName: "some-pipeline",
+						Resource:     "some-input-resource",
+						Type:         "some-type",
+						Source:       db.Source{"some": "source"},
+						Version:      db.Version{"result": "version"},
+						Metadata:     []db.MetadataField{{"result", "metadata"}},
 					},
 				}))
 			})
@@ -137,11 +139,12 @@ var _ = Describe("BuildDelegate", func() {
 							buildID, savedOutput := fakeDB.SaveBuildOutputArgsForCall(0)
 							Ω(buildID).Should(Equal(42))
 							Ω(savedOutput).Should(Equal(db.VersionedResource{
-								Resource: "some-input-resource",
-								Type:     "some-type",
-								Source:   db.Source{"some": "source"},
-								Version:  db.Version{"result": "version"},
-								Metadata: []db.MetadataField{{"result", "metadata"}},
+								PipelineName: "some-pipeline",
+								Resource:     "some-input-resource",
+								Type:         "some-type",
+								Source:       db.Source{"some": "source"},
+								Version:      db.Version{"result": "version"},
+								Metadata:     []db.MetadataField{{"result", "metadata"}},
 							}))
 						})
 					})
@@ -169,6 +172,7 @@ var _ = Describe("BuildDelegate", func() {
 
 				BeforeEach(func() {
 					putPlan = atc.PutPlan{
+						Pipeline: "some-pipeline",
 						Resource: "some-input-resource",
 						Type:     "some-type",
 						Source:   atc.Source{"some": "source"},
@@ -202,11 +206,12 @@ var _ = Describe("BuildDelegate", func() {
 						buildID, savedOutput := fakeDB.SaveBuildOutputArgsForCall(0)
 						Ω(buildID).Should(Equal(42))
 						Ω(savedOutput).Should(Equal(db.VersionedResource{
-							Resource: "some-input-resource",
-							Type:     "some-type",
-							Source:   db.Source{"some": "source"},
-							Version:  db.Version{"explicit": "version"},
-							Metadata: []db.MetadataField{{"explicit", "metadata"}},
+							PipelineName: "some-pipeline",
+							Resource:     "some-input-resource",
+							Type:         "some-type",
+							Source:       db.Source{"some": "source"},
+							Version:      db.Version{"explicit": "version"},
+							Metadata:     []db.MetadataField{{"explicit", "metadata"}},
 						}))
 					})
 				})
@@ -589,6 +594,7 @@ var _ = Describe("BuildDelegate", func() {
 			putPlan = atc.PutPlan{
 				Name:     "some-output-name",
 				Resource: "some-output-resource",
+				Pipeline: "some-other-pipeline",
 				Type:     "some-type",
 				Source:   atc.Source{"some": "source"},
 				Params:   atc.Params{"some": "params"},
@@ -617,11 +623,12 @@ var _ = Describe("BuildDelegate", func() {
 				buildID, savedOutput := fakeDB.SaveBuildOutputArgsForCall(0)
 				Ω(buildID).Should(Equal(42))
 				Ω(savedOutput).Should(Equal(db.VersionedResource{
-					Resource: "some-output-resource",
-					Type:     "some-type",
-					Source:   db.Source{"some": "source"},
-					Version:  db.Version{"result": "version"},
-					Metadata: []db.MetadataField{{"result", "metadata"}},
+					PipelineName: "some-other-pipeline",
+					Resource:     "some-output-resource",
+					Type:         "some-type",
+					Source:       db.Source{"some": "source"},
+					Version:      db.Version{"result": "version"},
+					Metadata:     []db.MetadataField{{"result", "metadata"}},
 				}))
 			})
 

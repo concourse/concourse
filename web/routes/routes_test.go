@@ -12,8 +12,9 @@ var _ = Describe("Routes", func() {
 	Describe("BuildPath", func() {
 		It("returns the canonical path for a jobless build", func() {
 			joblessBuild := db.Build{
-				ID:   1,
-				Name: "23",
+				ID:           1,
+				Name:         "23",
+				PipelineName: "a-pipeline",
 			}
 
 			path := routes.PathForBuild(joblessBuild)
@@ -22,13 +23,14 @@ var _ = Describe("Routes", func() {
 
 		It("returns the canonical path for a job-filled build", func() {
 			build := db.Build{
-				ID:      1,
-				JobName: "hello",
-				Name:    "23",
+				ID:           1,
+				JobName:      "hello",
+				Name:         "23",
+				PipelineName: "a-pipeline",
 			}
 
 			path := routes.PathForBuild(build)
-			Ω(path).Should(Equal("/jobs/hello/builds/23"))
+			Ω(path).Should(Equal("/pipelines/a-pipeline/jobs/hello/builds/23"))
 		})
 	})
 })

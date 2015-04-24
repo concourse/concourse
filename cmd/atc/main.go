@@ -30,15 +30,16 @@ import (
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 	Db "github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/exec"
+	"github.com/concourse/atc/pipelines"
 	rdr "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/resource"
 	sched "github.com/concourse/atc/scheduler"
-	"github.com/concourse/atc/scheduler/factory"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/worker"
 )
@@ -217,8 +218,10 @@ func main() {
 	}
 
 	listener := pq.NewListener(*sqlDataSource, time.Second, time.Minute, nil)
+	bus := Db.NewNotificationsBus(listener)
 
-	db := Db.NewSQL(logger.Session("db"), dbConn, listener)
+	db := Db.NewSQL(logger.Session("db"), dbConn, bus)
+	pipelineDBFactory := Db.NewPipelineDBFactory(logger.Session("db"), dbConn, bus, db)
 
 	var configDB Db.ConfigDB
 	configDB = Db.PlanConvertingConfigDB{db}
@@ -253,15 +256,6 @@ func main() {
 
 	engine := engine.NewDBEngine(engine.Engines{execEngine}, db, db)
 
-	radar := rdr.NewRadar(resourceTracker, db, *checkInterval, db, configDB)
-
-	scheduler := &sched.Scheduler{
-		DB:      db,
-		Factory: &factory.BuildFactory{ConfigDB: configDB},
-		Engine:  engine,
-		Scanner: radar,
-	}
-
 	var webValidator auth.Validator
 
 	if *httpUsername != "" && *httpHashedPassword != "" {
@@ -281,38 +275,46 @@ func main() {
 	drain := make(chan struct{})
 
 	apiHandler, err := api.NewHandler(
-		logger,
-		webValidator,
+		logger,            // logger lager.Logger,
+		webValidator,      // validator auth.Validator,
+		pipelineDBFactory, // pipelineDBFactory db.PipelineDBFactory,
 
-		configDB,
+		configDB, // configDB db.ConfigDB,
 
-		db,
-		db,
-		db,
-		db,
-		db,
+		db, // buildsDB buildserver.BuildsDB,
+		db, // workerDB workerserver.WorkerDB,
+		db, // pipeDB pipes.PipeDB,
 
-		config.ValidateConfig,
-		callbacksURL.String(),
-		buildserver.NewEventHandler,
-		drain,
+		config.ValidateConfig,       // configValidator configserver.ConfigValidator,
+		callbacksURL.String(),       // peerURL string,
+		buildserver.NewEventHandler, // eventHandlerFactory buildserver.EventHandlerFactory,
+		drain, // drain <-chan struct{},
 
-		engine,
-		workerClient,
+		engine,       // engine engine.Engine,
+		workerClient, // workerClient worker.Client,
 
-		sink,
+		sink, // sink *lager.ReconfigurableSink,
 
-		*cliDownloadsDir,
+		*cliDownloadsDir, // cliDownloadsDir string,
 	)
 	if err != nil {
 		fatal(err)
 	}
 
+	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
+		resourceTracker,
+		*checkInterval,
+		db,
+		engine,
+		db,
+	)
+
 	webHandler, err := web.NewHandler(
 		logger,
 		webValidator,
-		scheduler,
+		radarSchedulerFactory,
 		db,
+		pipelineDBFactory,
 		configDB,
 		*templatesDir,
 		*publicDir,
@@ -348,7 +350,49 @@ func main() {
 	webListenAddr := fmt.Sprintf("%s:%d", *webListenAddress, *webListenPort)
 	debugListenAddr := fmt.Sprintf("%s:%d", *debugListenAddress, *debugListenPort)
 
-	group := grouper.NewParallel(os.Interrupt, []grouper.Member{
+	syncer := pipelines.NewSyncer(
+		logger.Session("syncer"),
+		db,
+		pipelineDBFactory,
+		func(pipelineDB Db.PipelineDB) ifrit.Runner {
+			return grouper.NewParallel(os.Interrupt, grouper.Members{
+				{
+					pipelineDB.ScopedName("radar"),
+					rdr.NewRunner(
+						logger.Session(pipelineDB.ScopedName("radar")),
+						*noop,
+						db,
+						radarSchedulerFactory.BuildRadar(pipelineDB),
+						pipelineDB,
+						1*time.Minute,
+					),
+				},
+				{
+					pipelineDB.ScopedName("scheduler"),
+					&sched.Runner{
+						Logger: logger.Session(pipelineDB.ScopedName("scheduler")),
+
+						Locker: db,
+						DB:     pipelineDB,
+
+						Scheduler: radarSchedulerFactory.BuildScheduler(pipelineDB),
+
+						Noop: *noop,
+
+						Interval: 10 * time.Second,
+					},
+				},
+			})
+		},
+	)
+
+	buildTracker := builds.NewTracker(
+		logger.Session("build-tracker"),
+		db,
+		engine,
+	)
+
+	memberGrouper := []grouper.Member{
 		{"web", http_server.New(webListenAddr, httpHandler)},
 
 		{"debug", http_server.New(debugListenAddr, http.DefaultServeMux)},
@@ -363,28 +407,20 @@ func main() {
 			return nil
 		})},
 
-		{"radar", rdr.NewRunner(
-			logger.Session("radar"),
-			*noop,
-			db,
-			radar,
-			configDB,
-			1*time.Minute,
-		)},
-
-		{"scheduler", &sched.Runner{
-			Logger: logger.Session("scheduler"),
-
-			Locker:   db,
-			ConfigDB: configDB,
-
-			Scheduler: scheduler,
-
-			Noop: *noop,
-
+		{"pipelines", pipelines.SyncRunner{
+			Syncer:   syncer,
 			Interval: 10 * time.Second,
+			Clock:    clock.NewClock(),
 		}},
-	})
+
+		{"builds", builds.TrackerRunner{
+			Tracker:  buildTracker,
+			Interval: 10 * time.Second,
+			Clock:    clock.NewClock(),
+		}},
+	}
+
+	group := grouper.NewParallel(os.Interrupt, memberGrouper)
 
 	running := ifrit.Envoke(sigmon.New(group))
 

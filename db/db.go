@@ -11,56 +11,21 @@ type DB interface {
 	GetBuild(buildID int) (Build, error)
 	GetAllBuilds() ([]Build, error)
 	GetAllStartedBuilds() ([]Build, error)
-	GetRunningBuildsBySerialGroup(jobName string, serialGrous []string) ([]Build, error)
-	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (Build, error)
-	UpdateBuildToScheduled(buildID int) (bool, error)
-
-	GetJob(job string) (Job, error)
-	GetJobBuild(job string, build string) (Build, error)
-	GetAllJobBuilds(job string) ([]Build, error)
-	GetCurrentBuild(job string) (Build, error)
-	GetJobFinishedAndNextBuild(job string) (*Build, *Build, error)
-	PauseJob(job string) error
-	UnpauseJob(job string) error
 
 	CreatePipe(pipeGUID string, url string) error
 	GetPipe(pipeGUID string) (Pipe, error)
 
-	GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error)
-
-	CreateJobBuild(job string) (Build, error)
-
-	GetJobBuildForInputs(job string, inputs []BuildInput) (Build, error)
-	CreateJobBuildWithInputs(job string, inputs []BuildInput) (Build, error)
-
 	CreateOneOffBuild() (Build, error)
 
-	ScheduleBuild(buildID int, job atc.JobConfig) (bool, error)
 	StartBuild(buildID int, engineName, engineMetadata string) (bool, error)
 	FinishBuild(buildID int, status Status) error
 	ErrorBuild(buildID int, cause error) error
 
-	GetBuildEvents(buildID int, from uint) (EventSource, error)
-	SaveBuildEvent(buildID int, event atc.Event) error
-
 	SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error)
 	SaveBuildOutput(buildID int, vr VersionedResource) (SavedVersionedResource, error)
 
-	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
-	GetLatestVersionedResource(resource string) (SavedVersionedResource, error)
-	EnableVersionedResource(resourceID int) error
-	DisableVersionedResource(resourceID int) error
-
-	GetLatestInputVersions([]atc.JobInput) ([]BuildInput, error)
-
-	GetNextPendingBuild(job string) (Build, []BuildInput, error)
-
-	GetResourceHistory(resource string) ([]*VersionHistory, error)
-	PauseResource(resource string) error
-	UnpauseResource(resource string) error
-
-	GetResource(resource string) (Resource, error)
-	SetResourceCheckError(resource string, err error) error
+	GetBuildEvents(buildID int, from uint) (EventSource, error)
+	SaveBuildEvent(buildID int, event atc.Event) error
 
 	AcquireWriteLockImmediately(locks []NamedLock) (Lock, error)
 	AcquireWriteLock(locks []NamedLock) (Lock, error)
@@ -81,6 +46,11 @@ type DB interface {
 type Notifier interface {
 	Notify() <-chan struct{}
 	Close() error
+}
+
+type PipelinesDB interface {
+	GetAllActivePipelines() ([]SavedPipeline, error)
+	GetPipelineByName(pipelineName string) (SavedPipeline, error)
 }
 
 //go:generate counterfeiter . ConfigDB

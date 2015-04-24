@@ -62,7 +62,7 @@ var _ = Describe("Build", func() {
 var _ = Describe("Resource", func() {
 	Describe("FailingToCheck", func() {
 		It("returns true if there is a check error", func() {
-			resource := db.Resource{
+			resource := db.SavedResource{
 				CheckError: errors.New("nope"),
 			}
 
@@ -70,7 +70,7 @@ var _ = Describe("Resource", func() {
 		})
 
 		It("returns false if there is no check error", func() {
-			resource := db.Resource{
+			resource := db.SavedResource{
 				CheckError: nil,
 			}
 			Ω(resource.FailingToCheck()).Should(BeFalse())

@@ -8,29 +8,26 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
-	"github.com/concourse/atc/web/getjob/fakes"
 	"github.com/concourse/atc/web/group"
 
 	. "github.com/concourse/atc/web/getjob"
+	"github.com/concourse/atc/web/getjob/fakes"
 )
 
 var _ = Describe("FetchTemplateData", func() {
 	var fakeDB *fakes.FakeJobDB
-	var fakeConfigDB *dbfakes.FakeConfigDB
 
 	BeforeEach(func() {
 		fakeDB = new(fakes.FakeJobDB)
-		fakeConfigDB = new(dbfakes.FakeConfigDB)
 	})
 
 	Context("when the config database returns an error", func() {
 		BeforeEach(func() {
-			fakeConfigDB.GetConfigReturns(atc.Config{}, db.ConfigVersion(1), errors.New("disaster"))
+			fakeDB.GetConfigReturns(atc.Config{}, db.ConfigVersion(1), errors.New("disaster"))
 		})
 
 		It("returns an error if the config could not be loaded", func() {
-			_, err := FetchTemplateData(fakeDB, fakeConfigDB, "job-name")
+			_, err := FetchTemplateData(fakeDB, "job-name")
 			Ω(err).Should(HaveOccurred())
 		})
 	})
@@ -57,11 +54,11 @@ var _ = Describe("FetchTemplateData", func() {
 				},
 			}
 
-			fakeConfigDB.GetConfigReturns(config, db.ConfigVersion(1), nil)
+			fakeDB.GetConfigReturns(config, db.ConfigVersion(1), nil)
 		})
 
 		It("returns not found if the job cannot be found in the config", func() {
-			_, err := FetchTemplateData(fakeDB, fakeConfigDB, "not-a-job-name")
+			_, err := FetchTemplateData(fakeDB, "not-a-job-name")
 			Ω(err).Should(HaveOccurred())
 			Ω(err).Should(MatchError(ErrJobConfigNotFound))
 		})
@@ -71,7 +68,7 @@ var _ = Describe("FetchTemplateData", func() {
 
 				It("returns an error if the jobs's builds could not be retreived", func() {
 					fakeDB.GetAllJobBuildsReturns([]db.Build{}, errors.New("disaster"))
-					_, err := FetchTemplateData(fakeDB, fakeConfigDB, "job-name")
+					_, err := FetchTemplateData(fakeDB, "job-name")
 					Ω(err).Should(HaveOccurred())
 				})
 			})
@@ -94,14 +91,14 @@ var _ = Describe("FetchTemplateData", func() {
 
 				Context("when the get job lookup returns an error", func() {
 					It("returns an ", func() {
-						fakeDB.GetJobReturns(db.Job{}, errors.New("disaster"))
-						_, err := FetchTemplateData(fakeDB, fakeConfigDB, "job-name")
+						fakeDB.GetJobReturns(db.SavedJob{}, errors.New("disaster"))
+						_, err := FetchTemplateData(fakeDB, "job-name")
 						Ω(err).Should(HaveOccurred())
 					})
 
 					Context("when the get job lookup returns a job", func() {
 						var groupStates []group.State
-						var dbJob db.Job
+						var dbJob db.SavedJob
 
 						BeforeEach(func() {
 							groupStates = []group.State{
@@ -115,12 +112,15 @@ var _ = Describe("FetchTemplateData", func() {
 								},
 							}
 
-							dbJob = db.Job{
-								Name:   "some-job",
+							dbJob = db.SavedJob{
 								Paused: false,
+								Job: db.Job{
+									Name: "some-job",
+								},
 							}
 
 							fakeDB.GetJobReturns(dbJob, nil)
+							fakeDB.GetPipelineNameReturns("some-pipeline")
 						})
 
 						Context("when the current build lookup returns an error", func() {
@@ -128,7 +128,7 @@ var _ = Describe("FetchTemplateData", func() {
 							It("has the correct template data and sets the current build status to pending", func() {
 								fakeDB.GetCurrentBuildReturns(db.Build{}, errors.New("No current build"))
 
-								templateData, err := FetchTemplateData(fakeDB, fakeConfigDB, "job-name")
+								templateData, err := FetchTemplateData(fakeDB, "job-name")
 								Ω(err).ShouldNot(HaveOccurred())
 
 								Ω(templateData.GroupStates).Should(ConsistOf(groupStates))
@@ -138,6 +138,7 @@ var _ = Describe("FetchTemplateData", func() {
 								Ω(templateData.CurrentBuild).Should(Equal(db.Build{
 									Status: db.StatusPending,
 								}))
+								Ω(templateData.PipelineName).Should(Equal("some-pipeline"))
 							})
 
 						})
@@ -157,7 +158,7 @@ var _ = Describe("FetchTemplateData", func() {
 							})
 
 							It("has the correct template data", func() {
-								templateData, err := FetchTemplateData(fakeDB, fakeConfigDB, "job-name")
+								templateData, err := FetchTemplateData(fakeDB, "job-name")
 								Ω(err).ShouldNot(HaveOccurred())
 
 								Ω(templateData.GroupStates).Should(ConsistOf(groupStates))
@@ -169,15 +170,17 @@ var _ = Describe("FetchTemplateData", func() {
 
 							Context("when the job is paused", func() {
 								BeforeEach(func() {
-									dbJob = db.Job{
-										Name:   "some-job",
+									dbJob = db.SavedJob{
 										Paused: true,
+										Job: db.Job{
+											Name: "some-job",
+										},
 									}
 									fakeDB.GetJobReturns(dbJob, nil)
 								})
 
 								It("has the correct template data and sets the current build status to paused", func() {
-									templateData, err := FetchTemplateData(fakeDB, fakeConfigDB, "job-name")
+									templateData, err := FetchTemplateData(fakeDB, "job-name")
 									Ω(err).ShouldNot(HaveOccurred())
 
 									Ω(templateData.GroupStates).Should(ConsistOf(groupStates))

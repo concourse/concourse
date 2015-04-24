@@ -22,14 +22,14 @@ import (
 
 var _ = Describe("Radar", func() {
 	var (
-		fakeTracker   *rfakes.FakeTracker
-		fakeVersionDB *fakes.FakeVersionDB
-		configDB      *dbfakes.FakeConfigDB
-		interval      time.Duration
+		fakeTracker *rfakes.FakeTracker
+		fakeRadarDB *fakes.FakeRadarDB
+		interval    time.Duration
 
 		radar *Radar
 
 		resourceConfig atc.ResourceConfig
+		savedResource  db.SavedResource
 
 		locker               *fakes.FakeLocker
 		readLock             *dbfakes.FakeLock
@@ -41,12 +41,12 @@ var _ = Describe("Radar", func() {
 
 	BeforeEach(func() {
 		fakeTracker = new(rfakes.FakeTracker)
-		fakeVersionDB = new(fakes.FakeVersionDB)
+		fakeRadarDB = new(fakes.FakeRadarDB)
 		locker = new(fakes.FakeLocker)
-		configDB = new(dbfakes.FakeConfigDB)
 		interval = 100 * time.Millisecond
 
-		radar = NewRadar(fakeTracker, fakeVersionDB, interval, locker, configDB)
+		fakeRadarDB.GetPipelineNameReturns("some-pipeline-name")
+		radar = NewRadar(fakeTracker, interval, locker, fakeRadarDB)
 
 		resourceConfig = atc.ResourceConfig{
 			Name:   "some-resource",
@@ -54,16 +54,24 @@ var _ = Describe("Radar", func() {
 			Source: atc.Source{"uri": "http://example.com"},
 		}
 
-		configDB.GetConfigReturns(atc.Config{
+		fakeRadarDB.ScopedNameStub = func(thing string) string {
+			return "pipeline:" + thing
+		}
+
+		fakeRadarDB.GetConfigReturns(atc.Config{
 			Resources: atc.ResourceConfigs{
 				resourceConfig,
 			},
 		}, 1, nil)
 
-		fakeVersionDB.GetResourceReturns(db.Resource{
-			Name:   "some-resource",
+		savedResource = db.SavedResource{
+			Resource: db.Resource{
+				Name: "some-resource",
+			},
 			Paused: false,
-		}, nil)
+		}
+
+		fakeRadarDB.GetResourceReturns(savedResource, nil)
 
 		readLock = new(dbfakes.FakeLock)
 		locker.AcquireReadLockReturns(readLock, nil)
@@ -109,6 +117,8 @@ var _ = Describe("Radar", func() {
 			sessionID, typ := fakeTracker.InitArgsForCall(0)
 			Ω(sessionID).Should(Equal(resource.Session{
 				ID: worker.Identifier{
+					PipelineName: "some-pipeline-name",
+
 					Name: "some-resource",
 					Type: "check",
 
@@ -136,7 +146,7 @@ var _ = Describe("Radar", func() {
 			Ω(locker.AcquireWriteLockImmediatelyCallCount()).Should(Equal(1))
 
 			lockedInputs := locker.AcquireWriteLockImmediatelyArgsForCall(0)
-			Ω(lockedInputs).Should(Equal([]db.NamedLock{db.ResourceCheckingLock("some-resource")}))
+			Ω(lockedInputs).Should(Equal([]db.NamedLock{db.ResourceCheckingLock("pipeline:some-resource")}))
 
 			Ω(writeImmediatelyLock.ReleaseCallCount()).Should(Equal(1))
 		})
@@ -158,10 +168,15 @@ var _ = Describe("Radar", func() {
 
 		Context("when there is a current version", func() {
 			BeforeEach(func() {
-				fakeVersionDB.GetLatestVersionedResourceReturns(db.SavedVersionedResource{
-					ID:                1,
-					VersionedResource: db.VersionedResource{Version: db.Version{"version": "1"}},
-				}, nil)
+				fakeRadarDB.GetLatestVersionedResourceReturns(
+					db.SavedVersionedResource{
+						ID: 1,
+						VersionedResource: db.VersionedResource{
+							Version: db.Version{
+								"version": "1",
+							},
+						},
+					}, nil)
 			})
 
 			It("checks from it", func() {
@@ -170,7 +185,7 @@ var _ = Describe("Radar", func() {
 				_, version := fakeResource.CheckArgsForCall(0)
 				Ω(version).Should(Equal(atc.Version{"version": "1"}))
 
-				fakeVersionDB.GetLatestVersionedResourceReturns(db.SavedVersionedResource{
+				fakeRadarDB.GetLatestVersionedResourceReturns(db.SavedVersionedResource{
 					ID:                2,
 					VersionedResource: db.VersionedResource{Version: db.Version{"version": "2"}},
 				}, nil)
@@ -215,9 +230,9 @@ var _ = Describe("Radar", func() {
 			})
 
 			It("saves them all, in order", func() {
-				Eventually(fakeVersionDB.SaveResourceVersionsCallCount).Should(Equal(1))
+				Eventually(fakeRadarDB.SaveResourceVersionsCallCount).Should(Equal(1))
 
-				resourceConfig, versions := fakeVersionDB.SaveResourceVersionsArgsForCall(0)
+				resourceConfig, versions := fakeRadarDB.SaveResourceVersionsArgsForCall(0)
 				Ω(resourceConfig).Should(Equal(atc.ResourceConfig{
 					Name:   "some-resource",
 					Type:   "git",
@@ -245,8 +260,10 @@ var _ = Describe("Radar", func() {
 
 		Context("when the resource is paused", func() {
 			BeforeEach(func() {
-				fakeVersionDB.GetResourceReturns(db.Resource{
-					Name:   "some-resource",
+				fakeRadarDB.GetResourceReturns(db.SavedResource{
+					Resource: db.Resource{
+						Name: "some-resource",
+					},
 					Paused: true,
 				}, nil)
 			})
@@ -260,7 +277,7 @@ var _ = Describe("Radar", func() {
 			disaster := errors.New("disaster")
 
 			BeforeEach(func() {
-				fakeVersionDB.GetResourceReturns(db.Resource{}, disaster)
+				fakeRadarDB.GetResourceReturns(db.SavedResource{}, disaster)
 			})
 
 			It("exits the process", func() {
@@ -277,7 +294,7 @@ var _ = Describe("Radar", func() {
 					Resources: atc.ResourceConfigs{resourceConfig},
 				}
 
-				configDB.GetConfigStub = func(string) (atc.Config, db.ConfigVersion, error) {
+				fakeRadarDB.GetConfigStub = func() (atc.Config, db.ConfigVersion, error) {
 					select {
 					case c := <-configs:
 						return c, 1, nil
@@ -386,8 +403,9 @@ var _ = Describe("Radar", func() {
 			sessionID, typ := fakeTracker.InitArgsForCall(0)
 			Ω(sessionID).Should(Equal(resource.Session{
 				ID: worker.Identifier{
-					Name: "some-resource",
-					Type: "check",
+					PipelineName: "some-pipeline-name",
+					Name:         "some-resource",
+					Type:         "check",
 
 					CheckType:   "git",
 					CheckSource: resourceConfig.Source,
@@ -401,7 +419,7 @@ var _ = Describe("Radar", func() {
 			Ω(locker.AcquireWriteLockCallCount()).Should(Equal(1))
 
 			lockedInputs := locker.AcquireWriteLockArgsForCall(0)
-			Ω(lockedInputs).Should(Equal([]db.NamedLock{db.ResourceCheckingLock("some-resource")}))
+			Ω(lockedInputs).Should(Equal([]db.NamedLock{db.ResourceCheckingLock("pipeline:some-resource")}))
 
 			Ω(writeLock.ReleaseCallCount()).Should(Equal(1))
 		})
@@ -411,10 +429,10 @@ var _ = Describe("Radar", func() {
 		})
 
 		It("clears the resource's check error", func() {
-			Ω(fakeVersionDB.SetResourceCheckErrorCallCount()).Should(Equal(1))
+			Ω(fakeRadarDB.SetResourceCheckErrorCallCount()).Should(Equal(1))
 
-			resourceName, err := fakeVersionDB.SetResourceCheckErrorArgsForCall(0)
-			Ω(resourceName).Should(Equal("some-resource"))
+			savedResourceArg, err := fakeRadarDB.SetResourceCheckErrorArgsForCall(0)
+			Ω(savedResourceArg).Should(Equal(savedResource))
 			Ω(err).Should(BeNil())
 		})
 
@@ -427,10 +445,15 @@ var _ = Describe("Radar", func() {
 
 		Context("when there is a current version", func() {
 			BeforeEach(func() {
-				fakeVersionDB.GetLatestVersionedResourceReturns(db.SavedVersionedResource{
-					ID:                1,
-					VersionedResource: db.VersionedResource{Version: db.Version{"version": "1"}},
-				}, nil)
+				fakeRadarDB.GetLatestVersionedResourceReturns(
+					db.SavedVersionedResource{
+						ID: 1,
+						VersionedResource: db.VersionedResource{
+							Version: db.Version{
+								"version": "1",
+							},
+						},
+					}, nil)
 			})
 
 			It("checks from it", func() {
@@ -472,9 +495,9 @@ var _ = Describe("Radar", func() {
 			})
 
 			It("saves them all, in order", func() {
-				Ω(fakeVersionDB.SaveResourceVersionsCallCount()).Should(Equal(1))
+				Ω(fakeRadarDB.SaveResourceVersionsCallCount()).Should(Equal(1))
 
-				resourceConfig, versions := fakeVersionDB.SaveResourceVersionsArgsForCall(0)
+				resourceConfig, versions := fakeRadarDB.SaveResourceVersionsArgsForCall(0)
 				Ω(resourceConfig).Should(Equal(atc.ResourceConfig{
 					Name:   "some-resource",
 					Type:   "git",
@@ -500,10 +523,10 @@ var _ = Describe("Radar", func() {
 			})
 
 			It("sets the resource's check error", func() {
-				Ω(fakeVersionDB.SetResourceCheckErrorCallCount()).Should(Equal(1))
+				Ω(fakeRadarDB.SetResourceCheckErrorCallCount()).Should(Equal(1))
 
-				resourceName, err := fakeVersionDB.SetResourceCheckErrorArgsForCall(0)
-				Ω(resourceName).Should(Equal("some-resource"))
+				savedResourceArg, err := fakeRadarDB.SetResourceCheckErrorArgsForCall(0)
+				Ω(savedResourceArg).Should(Equal(savedResource))
 				Ω(err).Should(Equal(disaster))
 			})
 		})

@@ -19,7 +19,9 @@ var _ = Describe("Factory", func() {
 	)
 
 	BeforeEach(func() {
-		factory = &BuildFactory{}
+		factory = &BuildFactory{
+			PipelineName: "some-pipeline",
+		}
 
 		job = atc.JobConfig{
 			Name: "some-job",
@@ -34,6 +36,7 @@ var _ = Describe("Factory", func() {
 								Type:     "git",
 								Name:     "some-input",
 								Resource: "some-resource",
+								Pipeline: "some-pipeline",
 								Source:   atc.Source{"uri": "git://some-resource"},
 								Params:   atc.Params{"some": "params"},
 							},
@@ -76,6 +79,7 @@ var _ = Describe("Factory", func() {
 													Put: &atc.PutPlan{
 														Name:     "some-resource",
 														Resource: "some-resource",
+														Pipeline: "some-pipeline",
 														Type:     "git",
 														Params:   atc.Params{"foo": "bar"},
 														Source:   atc.Source{"uri": "git://some-resource"},
@@ -90,6 +94,7 @@ var _ = Describe("Factory", func() {
 													Put: &atc.PutPlan{
 														Name:     "some-other-resource",
 														Resource: "some-other-resource",
+														Pipeline: "some-pipeline",
 														Type:     "git",
 														Params:   atc.Params{"foo": "bar"},
 														Source:   atc.Source{"uri": "git://some-other-resource"},
@@ -104,6 +109,7 @@ var _ = Describe("Factory", func() {
 													Put: &atc.PutPlan{
 														Name:     "some-other-other-resource",
 														Resource: "some-other-other-resource",
+														Pipeline: "some-pipeline",
 														Type:     "git",
 														Params:   atc.Params{"foo": "bar"},
 														Source:   atc.Source{"uri": "git://some-other-other-resource"},
@@ -305,6 +311,7 @@ var _ = Describe("Factory", func() {
 										Get: &atc.GetPlan{
 											Name:     "money",
 											Resource: "money",
+											Pipeline: "some-pipeline",
 										},
 									},
 								},
@@ -340,6 +347,7 @@ var _ = Describe("Factory", func() {
 										Get: &atc.GetPlan{
 											Name:     "money",
 											Resource: "money",
+											Pipeline: "some-pipeline",
 										},
 									},
 								},
@@ -376,6 +384,7 @@ var _ = Describe("Factory", func() {
 										Put: &atc.PutPlan{
 											Name:     "money",
 											Resource: "money",
+											Pipeline: "some-pipeline",
 										},
 									},
 								},
@@ -411,6 +420,7 @@ var _ = Describe("Factory", func() {
 										Put: &atc.PutPlan{
 											Name:     "money",
 											Resource: "money",
+											Pipeline: "some-pipeline",
 										},
 									},
 								},
@@ -530,6 +540,7 @@ var _ = Describe("Factory", func() {
 												Put: &atc.PutPlan{
 													Name:     "haters",
 													Resource: "haters",
+													Pipeline: "some-pipeline",
 												},
 											},
 										},
@@ -541,6 +552,7 @@ var _ = Describe("Factory", func() {
 												Put: &atc.PutPlan{
 													Name:     "gonna",
 													Resource: "gonna",
+													Pipeline: "some-pipeline",
 												},
 											},
 										},
@@ -552,6 +564,7 @@ var _ = Describe("Factory", func() {
 												Put: &atc.PutPlan{
 													Name:     "hate",
 													Resource: "hate",
+													Pipeline: "some-pipeline",
 												},
 											},
 										},
@@ -603,6 +616,7 @@ var _ = Describe("Factory", func() {
 												Put: &atc.PutPlan{
 													Name:     "haters",
 													Resource: "haters",
+													Pipeline: "some-pipeline",
 												},
 											},
 											B: atc.Plan{
@@ -614,6 +628,7 @@ var _ = Describe("Factory", func() {
 																Put: &atc.PutPlan{
 																	Name:     "gonna",
 																	Resource: "gonna",
+																	Pipeline: "some-pipeline",
 																},
 															},
 															B: atc.Plan{
@@ -623,6 +638,7 @@ var _ = Describe("Factory", func() {
 																		Put: &atc.PutPlan{
 																			Name:     "hate",
 																			Resource: "hate",
+																			Pipeline: "some-pipeline",
 																		},
 																	},
 																},
@@ -679,6 +695,7 @@ var _ = Describe("Factory", func() {
 												Put: &atc.PutPlan{
 													Name:     "haters",
 													Resource: "haters",
+													Pipeline: "some-pipeline",
 												},
 											},
 											B: atc.Plan{
@@ -690,6 +707,7 @@ var _ = Describe("Factory", func() {
 																Put: &atc.PutPlan{
 																	Name:     "gonna",
 																	Resource: "gonna",
+																	Pipeline: "some-pipeline",
 																},
 															},
 															B: atc.Plan{
@@ -699,6 +717,7 @@ var _ = Describe("Factory", func() {
 																		Put: &atc.PutPlan{
 																			Name:     "hate",
 																			Resource: "hate",
+																			Pipeline: "some-pipeline",
 																		},
 																	},
 																},

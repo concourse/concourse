@@ -5,15 +5,14 @@ import "github.com/concourse/atc"
 //go:generate counterfeiter . JobServiceDB
 
 type JobServiceDB interface {
-	GetBuild(buildID int) (Build, error)
-	GetJob(job string) (Job, error)
+	GetJob(job string) (SavedJob, error)
 	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]Build, error)
 	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (Build, error)
 }
 
 type JobService struct {
 	JobConfig atc.JobConfig
-	DBJob     Job
+	DBJob     SavedJob
 	DB        JobServiceDB
 }
 

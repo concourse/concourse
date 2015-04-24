@@ -21,7 +21,7 @@ import (
 var _ = Describe("Runner", func() {
 	var (
 		locker         *fakes.FakeLocker
-		configDB       *dbfakes.FakeConfigDB
+		pipelineDB     *dbfakes.FakePipelineDB
 		scannerFactory *fakes.FakeScannerFactory
 		noop           bool
 		syncInterval   time.Duration
@@ -34,7 +34,7 @@ var _ = Describe("Runner", func() {
 	BeforeEach(func() {
 		locker = new(fakes.FakeLocker)
 		scannerFactory = new(fakes.FakeScannerFactory)
-		configDB = new(dbfakes.FakeConfigDB)
+		pipelineDB = new(dbfakes.FakePipelineDB)
 		noop = false
 		syncInterval = 100 * time.Millisecond
 
@@ -49,7 +49,10 @@ var _ = Describe("Runner", func() {
 			},
 		}
 
-		configDB.GetConfigReturns(initialConfig, 1, nil)
+		pipelineDB.ScopedNameStub = func(thing string) string {
+			return "pipeline:" + thing
+		}
+		pipelineDB.GetConfigReturns(initialConfig, 1, nil)
 
 		scannerFactory.ScannerStub = func(lager.Logger, string) ifrit.Runner {
 			return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -66,7 +69,7 @@ var _ = Describe("Runner", func() {
 			noop,
 			locker,
 			scannerFactory,
-			configDB,
+			pipelineDB,
 			syncInterval,
 		))
 	})
@@ -94,7 +97,7 @@ var _ = Describe("Runner", func() {
 
 			config := initialConfig
 
-			configDB.GetConfigStub = func(string) (atc.Config, db.ConfigVersion, error) {
+			pipelineDB.GetConfigStub = func() (atc.Config, db.ConfigVersion, error) {
 				select {
 				case config = <-configs:
 				default:

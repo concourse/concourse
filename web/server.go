@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
-	"github.com/concourse/atc/scheduler"
+	"github.com/concourse/atc/pipelines"
 	"github.com/concourse/atc/web/getbuild"
 	"github.com/concourse/atc/web/getbuilds"
 	"github.com/concourse/atc/web/getjob"
@@ -19,6 +19,7 @@ import (
 	"github.com/concourse/atc/web/getresource"
 	"github.com/concourse/atc/web/index"
 	"github.com/concourse/atc/web/login"
+	"github.com/concourse/atc/web/pipeline"
 	"github.com/concourse/atc/web/routes"
 	"github.com/concourse/atc/web/triggerbuild"
 )
@@ -26,8 +27,9 @@ import (
 func NewHandler(
 	logger lager.Logger,
 	validator auth.Validator,
-	scheduler *scheduler.Scheduler,
+	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	db db.DB,
+	pipelineDBFactory db.PipelineDBFactory,
 	configDB db.ConfigDB,
 	templatesDir, publicDir string,
 	drain <-chan struct{},
@@ -43,7 +45,14 @@ func NewHandler(
 		"asset": tfuncs.asset,
 	}
 
-	indexTemplate, err := loadTemplate(templatesDir, "index.html", funcs)
+	pipelineHandlerFactory := pipelines.NewHandlerFactory(pipelineDBFactory)
+
+	indexTemplate, err := template.New("index.html").Funcs(funcs).ParseFiles(filepath.Join(templatesDir, "index.html"))
+	if err != nil {
+		return nil, err
+	}
+
+	pipelineTemplate, err := loadTemplate(templatesDir, "pipeline.html", funcs)
 	if err != nil {
 		return nil, err
 	}
@@ -78,13 +87,22 @@ func NewHandler(
 		return nil, err
 	}
 
+	jobServer := getjob.NewServer(logger, jobTemplate)
+	resourceServer := getresource.NewServer(logger, resourceTemplate, validator)
+	pipelineServer := pipeline.NewServer(logger, pipelineTemplate)
+	buildServer := getbuild.NewServer(logger, buildTemplate)
+	triggerBuildServer := triggerbuild.NewServer(logger, radarSchedulerFactory)
+
 	handlers := map[string]http.Handler{
 		// public
-		routes.Index:           index.NewHandler(logger, db, configDB, indexTemplate),
-		routes.Public:          http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
-		routes.GetJob:          getjob.NewHandler(logger, db, configDB, jobTemplate),
-		routes.GetResource:     getresource.NewHandler(logger, db, configDB, resourceTemplate, validator),
-		routes.GetBuild:        getbuild.NewHandler(logger, db, configDB, buildTemplate),
+		routes.Index:    index.NewHandler(logger, pipelineDBFactory, pipelineServer.GetPipeline, indexTemplate),
+		routes.Pipeline: pipelineHandlerFactory.HandlerFor(pipelineServer.GetPipeline),
+		routes.Public:   http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
+
+		routes.GetJob: pipelineHandlerFactory.HandlerFor(jobServer.GetJob),
+
+		routes.GetResource:     pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),
+		routes.GetBuild:        pipelineHandlerFactory.HandlerFor(buildServer.GetBuild),
 		routes.GetBuilds:       getbuilds.NewHandler(logger, db, configDB, buildsTemplate),
 		routes.GetJoblessBuild: getjoblessbuild.NewHandler(logger, db, configDB, joblessBuildTemplate),
 
@@ -95,7 +113,7 @@ func NewHandler(
 		},
 
 		routes.TriggerBuild: auth.Handler{
-			Handler:   triggerbuild.NewHandler(logger, configDB, scheduler),
+			Handler:   pipelineHandlerFactory.HandlerFor(triggerBuildServer.TriggerBuild),
 			Validator: validator,
 		},
 	}

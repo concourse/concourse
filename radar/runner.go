@@ -4,7 +4,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
@@ -30,11 +29,11 @@ type Runner struct {
 
 	noop bool
 
-	locker         Locker
-	scannerFactory ScannerFactory
-	configDB       db.ConfigDB
-
-	syncInterval time.Duration
+	locker            Locker
+	scannerFactory    ScannerFactory
+	db                db.PipelineDB
+	pipelineDBFactory db.PipelineDBFactory
+	syncInterval      time.Duration
 }
 
 func NewRunner(
@@ -42,7 +41,7 @@ func NewRunner(
 	noop bool,
 	locker Locker,
 	scannerFactory ScannerFactory,
-	configDB db.ConfigDB,
+	db db.PipelineDB,
 	syncInterval time.Duration,
 ) *Runner {
 	return &Runner{
@@ -50,7 +49,7 @@ func NewRunner(
 		noop:           noop,
 		locker:         locker,
 		scannerFactory: scannerFactory,
-		configDB:       configDB,
+		db:             db,
 		syncInterval:   syncInterval,
 	}
 }
@@ -106,19 +105,25 @@ dance:
 }
 
 func (runner *Runner) tick(scanning map[string]bool, insertScanner chan<- grouper.Member) {
-	config, _, err := runner.configDB.GetConfig(atc.DefaultPipelineName)
+	config, _, err := runner.db.GetConfig()
 	if err != nil {
+		runner.logger.Error("failed-to-get-config", err)
 		return
 	}
 
 	for _, resource := range config.Resources {
-		if scanning[resource.Name] {
+		scopedName := runner.db.ScopedName(resource.Name)
+
+		if scanning[scopedName] {
 			continue
 		}
 
-		scanning[resource.Name] = true
+		scanning[scopedName] = true
 
-		runner := runner.scannerFactory.Scanner(runner.logger.Session("scan", lager.Data{"resource": resource.Name}), resource.Name)
+		logger := runner.logger.Session("scan", lager.Data{
+			"pipeline:resource": runner.db.ScopedName(resource.Name),
+		})
+		runner := runner.scannerFactory.Scanner(logger, resource.Name)
 
 		// avoid deadlock if exit event is blocked; inserting in this case
 		// will block on the event being consumed (which is in this select)
@@ -127,6 +132,6 @@ func (runner *Runner) tick(scanning map[string]bool, insertScanner chan<- groupe
 				Name:   name,
 				Runner: runner,
 			}
-		}(resource.Name)
+		}(scopedName)
 	}
 }

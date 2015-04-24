@@ -214,7 +214,7 @@ func (delegate *delegate) saveInput(logger lager.Logger, plan atc.GetPlan, info 
 
 	_, err = delegate.db.SaveBuildInput(delegate.buildID, db.BuildInput{
 		Name:              plan.Name,
-		VersionedResource: vrFromInput(ev),
+		VersionedResource: vrFromInput(plan.Pipeline, ev),
 	})
 	if err != nil {
 		logger.Error("failed-to-save-input", err)
@@ -240,7 +240,7 @@ func (delegate *delegate) saveOutput(logger lager.Logger, plan atc.PutPlan, info
 		logger.Error("failed-to-save-output-event", err)
 	}
 
-	_, err = delegate.db.SaveBuildOutput(delegate.buildID, vrFromOutput(ev))
+	_, err = delegate.db.SaveBuildOutput(delegate.buildID, vrFromOutput(plan.Pipeline, ev))
 	if err != nil {
 		logger.Error("failed-to-save-output", err)
 	}
@@ -256,11 +256,12 @@ func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.GetPl
 	}
 
 	_, err := delegate.db.SaveBuildOutput(delegate.buildID, db.VersionedResource{
-		Resource: plan.Resource,
-		Type:     plan.Type,
-		Source:   db.Source(plan.Source),
-		Version:  db.Version(info.Version),
-		Metadata: metadata,
+		PipelineName: plan.Pipeline,
+		Resource:     plan.Resource,
+		Type:         plan.Type,
+		Source:       db.Source(plan.Source),
+		Version:      db.Version(info.Version),
+		Metadata:     metadata,
 	})
 	if err != nil {
 		logger.Error("failed-to-save", err)
@@ -471,7 +472,7 @@ func (writer *dbEventWriter) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
-func vrFromInput(got event.FinishGet) db.VersionedResource {
+func vrFromInput(pipelineName string, got event.FinishGet) db.VersionedResource {
 	metadata := make([]db.MetadataField, len(got.FetchedMetadata))
 	for i, md := range got.FetchedMetadata {
 		metadata[i] = db.MetadataField{
@@ -481,15 +482,16 @@ func vrFromInput(got event.FinishGet) db.VersionedResource {
 	}
 
 	return db.VersionedResource{
-		Resource: got.Plan.Resource,
-		Type:     got.Plan.Type,
-		Source:   db.Source(got.Plan.Source),
-		Version:  db.Version(got.FetchedVersion),
-		Metadata: metadata,
+		Resource:     got.Plan.Resource,
+		PipelineName: pipelineName,
+		Type:         got.Plan.Type,
+		Source:       db.Source(got.Plan.Source),
+		Version:      db.Version(got.FetchedVersion),
+		Metadata:     metadata,
 	}
 }
 
-func vrFromOutput(putted event.FinishPut) db.VersionedResource {
+func vrFromOutput(pipelineName string, putted event.FinishPut) db.VersionedResource {
 	metadata := make([]db.MetadataField, len(putted.CreatedMetadata))
 	for i, md := range putted.CreatedMetadata {
 		metadata[i] = db.MetadataField{
@@ -499,10 +501,11 @@ func vrFromOutput(putted event.FinishPut) db.VersionedResource {
 	}
 
 	return db.VersionedResource{
-		Resource: putted.Plan.Resource,
-		Type:     putted.Plan.Type,
-		Source:   db.Source(putted.Plan.Source),
-		Version:  db.Version(putted.CreatedVersion),
-		Metadata: metadata,
+		Resource:     putted.Plan.Resource,
+		PipelineName: pipelineName,
+		Type:         putted.Plan.Type,
+		Source:       db.Source(putted.Plan.Source),
+		Version:      db.Version(putted.CreatedVersion),
+		Metadata:     metadata,
 	}
 }

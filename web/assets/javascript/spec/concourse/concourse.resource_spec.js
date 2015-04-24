@@ -1,6 +1,8 @@
 describe("Resource", function () {
   var resource;
 
+  window.pipelineName = "some-pipeline";
+
   beforeEach(function () {
 
     setFixtures(
@@ -128,7 +130,7 @@ describe("Resource", function () {
 
         var request = jasmine.Ajax.requests.mostRecent();
 
-        expect(request.url).toBe('/api/v1/resources/a-resource/pause');
+        expect(request.url).toBe('/api/v1/pipelines/some-pipeline/resources/a-resource/pause');
         expect(request.method).toBe('PUT');
 
         respondWithSuccess(request);
@@ -137,7 +139,7 @@ describe("Resource", function () {
 
         request = jasmine.Ajax.requests.mostRecent();
 
-        expect(request.url).toBe('/api/v1/resources/a-resource/unpause');
+        expect(request.url).toBe('/api/v1/pipelines/some-pipeline/resources/a-resource/unpause');
         expect(request.method).toBe('PUT');
 
         respondWithSuccess(request);

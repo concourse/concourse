@@ -1,6 +1,12 @@
 package db
 
 type Job struct {
-	Name   string
-	Paused bool
+	Name string
+}
+
+type SavedJob struct {
+	ID           int
+	Paused       bool
+	PipelineName string
+	Job
 }

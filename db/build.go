@@ -20,7 +20,9 @@ type Build struct {
 	Status    Status
 	Scheduled bool
 
-	JobName string
+	JobID        int
+	JobName      string
+	PipelineName string
 
 	Engine         string
 	EngineMetadata string
@@ -43,21 +45,28 @@ func (b Build) Abortable() bool {
 }
 
 type Resource struct {
-	Name       string
-	CheckError error
-	Paused     bool
+	Name string
 }
 
-func (r Resource) FailingToCheck() bool {
+type SavedResource struct {
+	ID           int
+	CheckError   error
+	Paused       bool
+	PipelineName string
+	Resource
+}
+
+func (r SavedResource) FailingToCheck() bool {
 	return r.CheckError != nil
 }
 
 type VersionedResource struct {
-	Resource string
-	Type     string
-	Source   Source
-	Version  Version
-	Metadata []MetadataField
+	Resource     string
+	Type         string
+	Source       Source
+	Version      Version
+	Metadata     []MetadataField
+	PipelineName string
 }
 
 type VersionedResources []VersionedResource

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
+	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,6 +17,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/postgresrunner"
 	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/ginkgomon"
 
 	"testing"
 	"time"
@@ -66,4 +69,30 @@ func Authenticate(page *agouti.Page, username, password string) {
 	// PhantomJS won't send the cookie on ajax requests if the page is not
 	// refreshed
 	page.Refresh()
+}
+
+func startATC(atcBin string, atcServerNumber uint16) (ifrit.Process, uint16) {
+	atcPort := 5697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
+	debugPort := 6697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
+
+	atcCommand := exec.Command(
+		atcBin,
+		"-webListenPort", fmt.Sprintf("%d", atcPort),
+		"-callbacksURL", fmt.Sprintf("http://127.0.0.1:%d", atcPort),
+		"-debugListenPort", fmt.Sprintf("%d", debugPort),
+		"-httpUsername", "admin",
+		"-httpHashedPassword", "$2a$04$DYaOWeQgyxTCv7QxydTP9u1KnwXWSKipC4BeTuBy.9m.IlkAdqNGG", // "password"
+		"-publiclyViewable=true",
+		"-templates", filepath.Join("..", "web", "templates"),
+		"-public", filepath.Join("..", "web", "public"),
+		"-sqlDataSource", postgresRunner.DataSourceName(),
+	)
+	atcRunner := ginkgomon.New(ginkgomon.Config{
+		Command:       atcCommand,
+		Name:          "atc",
+		StartCheck:    "atc.listening",
+		AnsiColorCode: "32m",
+	})
+
+	return ginkgomon.Invoke(atcRunner), atcPort
 }

@@ -31,33 +31,33 @@ func serialGroupsBehavior(database *dbSharedBehaviorInput) func() {
 
 			Context("When a job is not the next most pending job within a serial group", func() {
 				It("should not be scheduled", func() {
-					buildOne, err := database.CreateJobBuild(jobOneConfig.Name)
+					buildOne, err := database.PipelineDB.CreateJobBuild(jobOneConfig.Name)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					buildTwo, err := database.CreateJobBuild(jobOneConfig.Name)
+					buildTwo, err := database.PipelineDB.CreateJobBuild(jobOneConfig.Name)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					buildThree, err := database.CreateJobBuild(jobOneTwoConfig.Name)
+					buildThree, err := database.PipelineDB.CreateJobBuild(jobOneTwoConfig.Name)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					scheduled, err := database.ScheduleBuild(buildOne.ID, jobOneConfig)
+					scheduled, err := database.PipelineDB.ScheduleBuild(buildOne.ID, jobOneConfig)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(scheduled).Should(BeTrue())
 
-					scheduled, err = database.ScheduleBuild(buildTwo.ID, jobOneConfig)
+					scheduled, err = database.PipelineDB.ScheduleBuild(buildTwo.ID, jobOneConfig)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(scheduled).Should(BeFalse())
-					scheduled, err = database.ScheduleBuild(buildThree.ID, jobOneTwoConfig)
+					scheduled, err = database.PipelineDB.ScheduleBuild(buildThree.ID, jobOneTwoConfig)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(scheduled).Should(BeFalse())
 
 					Ω(database.FinishBuild(buildOne.ID, db.StatusSucceeded)).Should(Succeed())
 
-					scheduled, err = database.ScheduleBuild(buildThree.ID, jobOneTwoConfig)
+					scheduled, err = database.PipelineDB.ScheduleBuild(buildThree.ID, jobOneTwoConfig)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(scheduled).Should(BeFalse())
 
-					scheduled, err = database.ScheduleBuild(buildTwo.ID, jobOneConfig)
+					scheduled, err = database.PipelineDB.ScheduleBuild(buildTwo.ID, jobOneConfig)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(scheduled).Should(BeTrue())
 				})
@@ -66,20 +66,20 @@ func serialGroupsBehavior(database *dbSharedBehaviorInput) func() {
 			Context("when a build is running under job-one", func() {
 				BeforeEach(func() {
 					var err error
-					build, err := database.CreateJobBuild(jobOneConfig.Name)
+					build, err := database.PipelineDB.CreateJobBuild(jobOneConfig.Name)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					scheduled, err := database.ScheduleBuild(build.ID, jobOneConfig)
+					scheduled, err := database.PipelineDB.ScheduleBuild(build.ID, jobOneConfig)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(scheduled).Should(BeTrue())
 				})
 
 				Context("and we schedule a build for job-one", func() {
 					It("fails", func() {
-						build, err := database.CreateJobBuild(jobOneConfig.Name)
+						build, err := database.PipelineDB.CreateJobBuild(jobOneConfig.Name)
 						Ω(err).ShouldNot(HaveOccurred())
 
-						scheduled, err := database.ScheduleBuild(build.ID, jobOneConfig)
+						scheduled, err := database.PipelineDB.ScheduleBuild(build.ID, jobOneConfig)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeFalse())
 					})
@@ -87,10 +87,10 @@ func serialGroupsBehavior(database *dbSharedBehaviorInput) func() {
 
 				Context("and we schedule a build for job-one-two", func() {
 					It("fails", func() {
-						build, err := database.CreateJobBuild(jobOneTwoConfig.Name)
+						build, err := database.PipelineDB.CreateJobBuild(jobOneTwoConfig.Name)
 						Ω(err).ShouldNot(HaveOccurred())
 
-						scheduled, err := database.ScheduleBuild(build.ID, jobOneTwoConfig)
+						scheduled, err := database.PipelineDB.ScheduleBuild(build.ID, jobOneTwoConfig)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeFalse())
 					})
@@ -98,10 +98,10 @@ func serialGroupsBehavior(database *dbSharedBehaviorInput) func() {
 
 				Context("and we schedule a build for job-two", func() {
 					It("succeeds", func() {
-						build, err := database.CreateJobBuild(jobTwoConfig.Name)
+						build, err := database.PipelineDB.CreateJobBuild(jobTwoConfig.Name)
 						Ω(err).ShouldNot(HaveOccurred())
 
-						scheduled, err := database.ScheduleBuild(build.ID, jobTwoConfig)
+						scheduled, err := database.PipelineDB.ScheduleBuild(build.ID, jobTwoConfig)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeTrue())
 					})
@@ -111,20 +111,20 @@ func serialGroupsBehavior(database *dbSharedBehaviorInput) func() {
 			Context("When a build is running in job-one-two", func() {
 				BeforeEach(func() {
 					var err error
-					build, err := database.CreateJobBuild(jobOneTwoConfig.Name)
+					build, err := database.PipelineDB.CreateJobBuild(jobOneTwoConfig.Name)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					scheduled, err := database.ScheduleBuild(build.ID, jobOneTwoConfig)
+					scheduled, err := database.PipelineDB.ScheduleBuild(build.ID, jobOneTwoConfig)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(scheduled).Should(BeTrue())
 				})
 
 				Context("and we schedule a build for job-one", func() {
 					It("fails", func() {
-						build, err := database.CreateJobBuild(jobOneConfig.Name)
+						build, err := database.PipelineDB.CreateJobBuild(jobOneConfig.Name)
 						Ω(err).ShouldNot(HaveOccurred())
 
-						scheduled, err := database.ScheduleBuild(build.ID, jobOneConfig)
+						scheduled, err := database.PipelineDB.ScheduleBuild(build.ID, jobOneConfig)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeFalse())
 					})
@@ -132,10 +132,10 @@ func serialGroupsBehavior(database *dbSharedBehaviorInput) func() {
 
 				Context("and we schedule a build for job-one-two", func() {
 					It("fails", func() {
-						build, err := database.CreateJobBuild(jobOneTwoConfig.Name)
+						build, err := database.PipelineDB.CreateJobBuild(jobOneTwoConfig.Name)
 						Ω(err).ShouldNot(HaveOccurred())
 
-						scheduled, err := database.ScheduleBuild(build.ID, jobOneTwoConfig)
+						scheduled, err := database.PipelineDB.ScheduleBuild(build.ID, jobOneTwoConfig)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeFalse())
 					})
@@ -143,10 +143,10 @@ func serialGroupsBehavior(database *dbSharedBehaviorInput) func() {
 
 				Context("and we schedule a build for job-two", func() {
 					It("fails", func() {
-						build, err := database.CreateJobBuild(jobTwoConfig.Name)
+						build, err := database.PipelineDB.CreateJobBuild(jobTwoConfig.Name)
 						Ω(err).ShouldNot(HaveOccurred())
 
-						scheduled, err := database.ScheduleBuild(build.ID, jobTwoConfig)
+						scheduled, err := database.PipelineDB.ScheduleBuild(build.ID, jobTwoConfig)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeFalse())
 					})
@@ -156,20 +156,20 @@ func serialGroupsBehavior(database *dbSharedBehaviorInput) func() {
 			Context("When a build is running in job two", func() {
 				BeforeEach(func() {
 					var err error
-					build, err := database.CreateJobBuild(jobTwoConfig.Name)
+					build, err := database.PipelineDB.CreateJobBuild(jobTwoConfig.Name)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					scheduled, err := database.ScheduleBuild(build.ID, jobTwoConfig)
+					scheduled, err := database.PipelineDB.ScheduleBuild(build.ID, jobTwoConfig)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(scheduled).Should(BeTrue())
 				})
 
 				Context("and we schedule a build for job-one", func() {
 					It("succeeds", func() {
-						build, err := database.CreateJobBuild(jobOneConfig.Name)
+						build, err := database.PipelineDB.CreateJobBuild(jobOneConfig.Name)
 						Ω(err).ShouldNot(HaveOccurred())
 
-						scheduled, err := database.ScheduleBuild(build.ID, jobOneConfig)
+						scheduled, err := database.PipelineDB.ScheduleBuild(build.ID, jobOneConfig)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeTrue())
 					})
@@ -177,10 +177,10 @@ func serialGroupsBehavior(database *dbSharedBehaviorInput) func() {
 
 				Context("and we schedule a build for job-one-two", func() {
 					It("fails", func() {
-						build, err := database.CreateJobBuild(jobOneTwoConfig.Name)
+						build, err := database.PipelineDB.CreateJobBuild(jobOneTwoConfig.Name)
 						Ω(err).ShouldNot(HaveOccurred())
 
-						scheduled, err := database.ScheduleBuild(build.ID, jobOneTwoConfig)
+						scheduled, err := database.PipelineDB.ScheduleBuild(build.ID, jobOneTwoConfig)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeFalse())
 					})
@@ -188,10 +188,10 @@ func serialGroupsBehavior(database *dbSharedBehaviorInput) func() {
 
 				Context("and we schedule a build for job-two", func() {
 					It("fails", func() {
-						build, err := database.CreateJobBuild(jobTwoConfig.Name)
+						build, err := database.PipelineDB.CreateJobBuild(jobTwoConfig.Name)
 						Ω(err).ShouldNot(HaveOccurred())
 
-						scheduled, err := database.ScheduleBuild(build.ID, jobTwoConfig)
+						scheduled, err := database.PipelineDB.ScheduleBuild(build.ID, jobTwoConfig)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(scheduled).Should(BeFalse())
 					})

@@ -14,18 +14,24 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-//go:generate counterfeiter . VersionDB
-
-type VersionDB interface {
-	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
-	GetLatestVersionedResource(string) (db.SavedVersionedResource, error)
-
-	SetResourceCheckError(string, error) error
-
-	GetResource(string) (db.Resource, error)
-}
-
 var errResourceNoLongerConfigured = errors.New("resource no longer configured")
+
+//go:generate counterfeiter . RadarDB
+
+type RadarDB interface {
+	GetPipelineName() string
+	ScopedName(string) string
+
+	GetConfig() (atc.Config, db.ConfigVersion, error)
+
+	GetLatestVersionedResource(resource db.SavedResource) (db.SavedVersionedResource, error)
+	GetResource(resourceName string) (db.SavedResource, error)
+	PauseResource(resourceName string) error
+	UnpauseResource(resourceName string) error
+
+	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
+	SetResourceCheckError(resource db.SavedResource, err error) error
+}
 
 type Radar struct {
 	logger lager.Logger
@@ -34,24 +40,21 @@ type Radar struct {
 
 	interval time.Duration
 
-	locker    Locker
-	versionDB VersionDB
-	configDB  db.ConfigDB
+	locker Locker
+	db     RadarDB
 }
 
 func NewRadar(
 	tracker resource.Tracker,
-	versionDB VersionDB,
 	interval time.Duration,
 	locker Locker,
-	configDB db.ConfigDB,
+	db RadarDB,
 ) *Radar {
 	return &Radar{
-		tracker:   tracker,
-		versionDB: versionDB,
-		interval:  interval,
-		locker:    locker,
-		configDB:  configDB,
+		tracker:  tracker,
+		interval: interval,
+		locker:   locker,
+		db:       db,
 	}
 }
 
@@ -67,7 +70,9 @@ func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runn
 				return nil
 
 			case <-ticker.C:
-				resourceCheckingLock, err := radar.locker.AcquireWriteLockImmediately(radar.checkLock(resourceName))
+				lock := radar.checkLock(radar.db.ScopedName(resourceName))
+				resourceCheckingLock, err := radar.locker.AcquireWriteLockImmediately(lock)
+
 				if err != nil {
 					continue
 				}
@@ -85,7 +90,7 @@ func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runn
 }
 
 func (radar *Radar) Scan(logger lager.Logger, resourceName string) error {
-	lock, err := radar.locker.AcquireWriteLock(radar.checkLock(resourceName))
+	lock, err := radar.locker.AcquireWriteLock(radar.checkLock(radar.db.ScopedName(resourceName)))
 	if err != nil {
 		return err
 	}
@@ -96,7 +101,7 @@ func (radar *Radar) Scan(logger lager.Logger, resourceName string) error {
 }
 
 func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
-	config, _, err := radar.configDB.GetConfig(atc.DefaultPipelineName)
+	config, _, err := radar.db.GetConfig()
 	if err != nil {
 		logger.Error("failed-to-get-config", err)
 		// don't propagate error; we can just retry next tick
@@ -110,18 +115,18 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 		return errResourceNoLongerConfigured
 	}
 
-	dbResource, err := radar.versionDB.GetResource(resourceName)
+	savedResource, err := radar.db.GetResource(resourceName)
 	if err != nil {
 		return err
 	}
 
-	if dbResource.Paused {
+	if savedResource.Paused {
 		return nil
 	}
 
 	typ := resource.ResourceType(resourceConfig.Type)
 
-	res, err := radar.tracker.Init(checkIdentifier(resourceConfig), typ)
+	res, err := radar.tracker.Init(checkIdentifier(radar.db.GetPipelineName(), resourceConfig), typ)
 	if err != nil {
 		logger.Error("failed-to-initialize-new-resource", err)
 		return err
@@ -130,7 +135,7 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 	defer res.Release()
 
 	var from db.Version
-	if vr, err := radar.versionDB.GetLatestVersionedResource(resourceName); err == nil {
+	if vr, err := radar.db.GetLatestVersionedResource(savedResource); err == nil {
 		from = vr.Version
 	}
 
@@ -139,8 +144,8 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 	})
 
 	newVersions, err := res.Check(resourceConfig.Source, atc.Version(from))
-
-	if setErr := radar.versionDB.SetResourceCheckError(resourceConfig.Name, err); setErr != nil {
+	setErr := radar.db.SetResourceCheckError(savedResource, err)
+	if setErr != nil {
 		logger.Error("failed-to-set-check-error", err)
 	}
 
@@ -159,7 +164,7 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 		"total":    len(newVersions),
 	})
 
-	err = radar.versionDB.SaveResourceVersions(resourceConfig, newVersions)
+	err = radar.db.SaveResourceVersions(resourceConfig, newVersions)
 	if err != nil {
 		logger.Error("failed-to-save-versions", err, lager.Data{
 			"versions": newVersions,
@@ -173,9 +178,11 @@ func (radar *Radar) checkLock(resourceName string) []db.NamedLock {
 	return []db.NamedLock{db.ResourceCheckingLock(resourceName)}
 }
 
-func checkIdentifier(res atc.ResourceConfig) resource.Session {
+func checkIdentifier(pipelineName string, res atc.ResourceConfig) resource.Session {
 	return resource.Session{
 		ID: worker.Identifier{
+			PipelineName: pipelineName,
+
 			Name: res.Name,
 			Type: "check",
 

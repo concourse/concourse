@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 )
 
@@ -29,8 +30,10 @@ var _ = Describe("Auth", func() {
 		postgresRunner.CreateTestDB()
 		dbConn = postgresRunner.Open()
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
+		bus := db.NewNotificationsBus(dbListener)
+		sqlDB = db.NewSQL(logger, dbConn, bus)
 
-		sqlDB = db.NewSQL(logger, dbConn, dbListener)
+		Ω(sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1))).Should(Succeed())
 
 		atcBin, err := gexec.Build("github.com/concourse/atc/cmd/atc")
 		Ω(err).ShouldNot(HaveOccurred())

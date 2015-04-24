@@ -8,22 +8,13 @@ import (
 )
 
 type FakeJobServiceDB struct {
-	GetBuildStub        func(buildID int) (db.Build, error)
-	getBuildMutex       sync.RWMutex
-	getBuildArgsForCall []struct {
-		buildID int
-	}
-	getBuildReturns struct {
-		result1 db.Build
-		result2 error
-	}
-	GetJobStub        func(job string) (db.Job, error)
+	GetJobStub        func(job string) (db.SavedJob, error)
 	getJobMutex       sync.RWMutex
 	getJobArgsForCall []struct {
 		job string
 	}
 	getJobReturns struct {
-		result1 db.Job
+		result1 db.SavedJob
 		result2 error
 	}
 	GetRunningBuildsBySerialGroupStub        func(jobName string, serialGroups []string) ([]db.Build, error)
@@ -48,40 +39,7 @@ type FakeJobServiceDB struct {
 	}
 }
 
-func (fake *FakeJobServiceDB) GetBuild(buildID int) (db.Build, error) {
-	fake.getBuildMutex.Lock()
-	fake.getBuildArgsForCall = append(fake.getBuildArgsForCall, struct {
-		buildID int
-	}{buildID})
-	fake.getBuildMutex.Unlock()
-	if fake.GetBuildStub != nil {
-		return fake.GetBuildStub(buildID)
-	} else {
-		return fake.getBuildReturns.result1, fake.getBuildReturns.result2
-	}
-}
-
-func (fake *FakeJobServiceDB) GetBuildCallCount() int {
-	fake.getBuildMutex.RLock()
-	defer fake.getBuildMutex.RUnlock()
-	return len(fake.getBuildArgsForCall)
-}
-
-func (fake *FakeJobServiceDB) GetBuildArgsForCall(i int) int {
-	fake.getBuildMutex.RLock()
-	defer fake.getBuildMutex.RUnlock()
-	return fake.getBuildArgsForCall[i].buildID
-}
-
-func (fake *FakeJobServiceDB) GetBuildReturns(result1 db.Build, result2 error) {
-	fake.GetBuildStub = nil
-	fake.getBuildReturns = struct {
-		result1 db.Build
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeJobServiceDB) GetJob(job string) (db.Job, error) {
+func (fake *FakeJobServiceDB) GetJob(job string) (db.SavedJob, error) {
 	fake.getJobMutex.Lock()
 	fake.getJobArgsForCall = append(fake.getJobArgsForCall, struct {
 		job string
@@ -106,10 +64,10 @@ func (fake *FakeJobServiceDB) GetJobArgsForCall(i int) string {
 	return fake.getJobArgsForCall[i].job
 }
 
-func (fake *FakeJobServiceDB) GetJobReturns(result1 db.Job, result2 error) {
+func (fake *FakeJobServiceDB) GetJobReturns(result1 db.SavedJob, result2 error) {
 	fake.GetJobStub = nil
 	fake.getJobReturns = struct {
-		result1 db.Job
+		result1 db.SavedJob
 		result2 error
 	}{result1, result2}
 }

@@ -16,12 +16,13 @@ var _ = Describe("Present", func() {
 
 		builds := []db.Build{
 			{
-				ID:        1,
-				JobName:   "hello",
-				StartTime: date,
-				EndTime:   date.Add(1 * time.Minute),
-				Status:    "pending",
-				Name:      "23",
+				ID:           1,
+				JobName:      "hello",
+				PipelineName: "a-pipeline",
+				StartTime:    date,
+				EndTime:      date.Add(1 * time.Minute),
+				Status:       "pending",
+				Name:         "23",
 			},
 			{
 				ID:        2,
@@ -37,23 +38,25 @@ var _ = Describe("Present", func() {
 
 		Ω(presentedBuilds).Should(HaveLen(2))
 		Ω(presentedBuilds[0]).Should(Equal(PresentedBuild{
-			ID:        1,
-			JobName:   "hello",
-			StartTime: "2004-04-03 13:45:33 (UTC)",
-			EndTime:   "2004-04-03 13:46:33 (UTC)",
-			CSSClass:  "",
-			Status:    "pending",
-			Path:      "/jobs/hello/builds/23",
+			ID:           1,
+			JobName:      "hello",
+			StartTime:    "2004-04-03 13:45:33 (UTC)",
+			EndTime:      "2004-04-03 13:46:33 (UTC)",
+			CSSClass:     "",
+			Status:       "pending",
+			PipelineName: "a-pipeline",
+			Path:         "/pipelines/a-pipeline/jobs/hello/builds/23",
 		}))
 
 		Ω(presentedBuilds[1]).Should(Equal(PresentedBuild{
-			ID:        2,
-			JobName:   "[one off]",
-			StartTime: "failed to start",
-			EndTime:   "2004-04-03 13:46:33 (UTC)",
-			CSSClass:  "build-one-off",
-			Status:    "pending",
-			Path:      "/builds/2",
+			ID:           2,
+			JobName:      "[one off]",
+			StartTime:    "failed to start",
+			EndTime:      "2004-04-03 13:46:33 (UTC)",
+			CSSClass:     "build-one-off",
+			Status:       "pending",
+			PipelineName: "[one off]",
+			Path:         "/builds/2",
 		}))
 	})
 })

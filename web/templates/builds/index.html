@@ -8,6 +8,7 @@
     <table class="table">
       <thead>
         <th>ID</th>
+        <th>Pipeline Name</th>
         <th>Job Name</th>
         <th>Start Time</th>
         <th>End Time</th>
@@ -16,6 +17,7 @@
       {{range .Builds}}
         <tr class="table-row {{.CSSClass}}">
           <td><a class="build-number {{.Status}}" href="{{.Path}}">#{{.ID}}</a></td>
+          <td>{{.PipelineName}}</td>
           <td>{{.JobName}}</td>
           <td>{{.StartTime}}</td>
           <td>{{.EndTime}}</td>

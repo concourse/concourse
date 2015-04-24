@@ -62,7 +62,8 @@ func PathFor(route string, args ...interface{}) (string, error) {
 	switch route {
 	case routes.TriggerBuild:
 		return routes.Routes.CreatePathForRoute(route, rata.Params{
-			"job": jobName(args[0]),
+			"pipeline_name": args[0].(string),
+			"job":           jobName(args[1]),
 		})
 
 	case routes.GetBuild:
@@ -80,7 +81,8 @@ func PathFor(route string, args ...interface{}) (string, error) {
 
 	case routes.GetJob:
 		return routes.Routes.CreatePathForRoute(route, rata.Params{
-			"job": args[0].(atc.JobConfig).Name,
+			"pipeline_name": args[0].(string),
+			"job":           args[1].(atc.JobConfig).Name,
 		})
 
 	case atc.BuildEvents:
@@ -89,9 +91,10 @@ func PathFor(route string, args ...interface{}) (string, error) {
 		})
 
 	case atc.EnableResourceVersion, atc.DisableResourceVersion:
-		versionedResource := args[0].(db.SavedVersionedResource)
+		versionedResource := args[1].(db.SavedVersionedResource)
 
 		return atc.Routes.CreatePathForRoute(route, rata.Params{
+			"pipeline_name":       args[0].(string),
 			"resource_name":       fmt.Sprintf("%s", versionedResource.Resource),
 			"resource_version_id": fmt.Sprintf("%d", versionedResource.ID),
 		})

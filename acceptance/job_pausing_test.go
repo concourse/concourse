@@ -21,12 +21,15 @@ import (
 	"github.com/concourse/atc/event"
 )
 
-var _ = Describe("Resource Pausing", func() {
+var _ = Describe("Job Pausing", func() {
 	var atcProcess ifrit.Process
 	var dbListener *pq.Listener
 	var atcPort uint16
+	var pipelineDBFactory db.PipelineDBFactory
+	var pipelineDB db.PipelineDB
 
 	BeforeEach(func() {
+		var err error
 		atcBin, err := gexec.Build("github.com/concourse/atc/cmd/atc")
 		Ω(err).ShouldNot(HaveOccurred())
 
@@ -34,8 +37,9 @@ var _ = Describe("Resource Pausing", func() {
 		postgresRunner.CreateTestDB()
 		dbConn = postgresRunner.Open()
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
-		sqlDB = db.NewSQL(dbLogger, dbConn, dbListener)
-
+		bus := db.NewNotificationsBus(dbListener)
+		sqlDB = db.NewSQL(dbLogger, dbConn, bus)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbLogger, dbConn, bus, sqlDB)
 		atcProcess, atcPort = startATC(atcBin, 1)
 	})
 
@@ -62,7 +66,7 @@ var _ = Describe("Resource Pausing", func() {
 		})
 
 		homepage := func() string {
-			return fmt.Sprintf("http://127.0.0.1:%d", atcPort)
+			return fmt.Sprintf("http://127.0.0.1:%d/pipelines/%s", atcPort, atc.DefaultPipelineName)
 		}
 
 		withPath := func(path string) string {
@@ -83,7 +87,10 @@ var _ = Describe("Resource Pausing", func() {
 					},
 				}, db.ConfigVersion(1))).Should(Succeed())
 
-				build, err = sqlDB.CreateJobBuild("job-name")
+				pipelineDB, err = pipelineDBFactory.BuildWithName(atc.DefaultPipelineName)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				build, err = pipelineDB.CreateJobBuild("job-name")
 				Ω(err).ShouldNot(HaveOccurred())
 
 				_, err = sqlDB.StartBuild(build.ID, "", "")

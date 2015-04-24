@@ -20,18 +20,18 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
+	"github.com/concourse/atc/pipelines"
 	"github.com/concourse/atc/worker"
 )
 
 func NewHandler(
 	logger lager.Logger,
 	validator auth.Validator,
+	pipelineDBFactory db.PipelineDBFactory,
 
 	configDB db.ConfigDB,
 
 	buildsDB buildserver.BuildsDB,
-	jobsDB jobserver.JobsDB,
-	resourceDB resourceserver.ResourceDB,
 	workerDB workerserver.WorkerDB,
 	pipeDB pipes.PipeDB,
 
@@ -52,6 +52,8 @@ func NewHandler(
 		return nil, err
 	}
 
+	pipelineHandlerFactory := pipelines.NewHandlerFactory(pipelineDBFactory)
+
 	buildServer := buildserver.NewServer(
 		logger,
 		engine,
@@ -68,8 +70,8 @@ func NewHandler(
 		workerClient,
 	)
 
-	jobServer := jobserver.NewServer(logger, jobsDB, configDB)
-	resourceServer := resourceserver.NewServer(logger, resourceDB, configDB, validator)
+	jobServer := jobserver.NewServer(logger)
+	resourceServer := resourceserver.NewServer(logger, validator)
 	pipeServer := pipes.NewServer(logger, peerURL, pipeDB)
 
 	configServer := configserver.NewServer(logger, configDB, configValidator)
@@ -98,18 +100,18 @@ func NewHandler(
 		atc.BuildEvents: http.HandlerFunc(buildServer.BuildEvents),
 		atc.AbortBuild:  validate(http.HandlerFunc(buildServer.AbortBuild)),
 
-		atc.ListJobs:      http.HandlerFunc(jobServer.ListJobs),
-		atc.GetJob:        http.HandlerFunc(jobServer.GetJob),
-		atc.ListJobBuilds: http.HandlerFunc(jobServer.ListJobBuilds),
-		atc.GetJobBuild:   http.HandlerFunc(jobServer.GetJobBuild),
-		atc.PauseJob:      validate(http.HandlerFunc(jobServer.PauseJob)),
-		atc.UnpauseJob:    validate(http.HandlerFunc(jobServer.UnpauseJob)),
+		atc.ListJobs:      pipelineHandlerFactory.HandlerFor(jobServer.ListJobs),
+		atc.GetJob:        pipelineHandlerFactory.HandlerFor(jobServer.GetJob),
+		atc.ListJobBuilds: pipelineHandlerFactory.HandlerFor(jobServer.ListJobBuilds),
+		atc.GetJobBuild:   pipelineHandlerFactory.HandlerFor(jobServer.GetJobBuild),
+		atc.PauseJob:      validate(pipelineHandlerFactory.HandlerFor(jobServer.PauseJob)),
+		atc.UnpauseJob:    validate(pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob)),
 
-		atc.ListResources:          http.HandlerFunc(resourceServer.ListResources),
-		atc.EnableResourceVersion:  validate(http.HandlerFunc(resourceServer.EnableResourceVersion)),
-		atc.DisableResourceVersion: validate(http.HandlerFunc(resourceServer.DisableResourceVersion)),
-		atc.PauseResource:          validate(http.HandlerFunc(resourceServer.PauseResource)),
-		atc.UnpauseResource:        validate(http.HandlerFunc(resourceServer.UnpauseResource)),
+		atc.ListResources:          pipelineHandlerFactory.HandlerFor(resourceServer.ListResources),
+		atc.EnableResourceVersion:  validate(pipelineHandlerFactory.HandlerFor(resourceServer.EnableResourceVersion)),
+		atc.DisableResourceVersion: validate(pipelineHandlerFactory.HandlerFor(resourceServer.DisableResourceVersion)),
+		atc.PauseResource:          validate(pipelineHandlerFactory.HandlerFor(resourceServer.PauseResource)),
+		atc.UnpauseResource:        validate(pipelineHandlerFactory.HandlerFor(resourceServer.UnpauseResource)),
 
 		atc.CreatePipe: validate(http.HandlerFunc(pipeServer.CreatePipe)),
 		atc.WritePipe:  validate(http.HandlerFunc(pipeServer.WritePipe)),

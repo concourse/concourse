@@ -2,56 +2,45 @@ package db_test
 
 import (
 	"database/sql"
-	"os"
 	"time"
 
 	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
-	"github.com/tedsuo/ifrit"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/postgresrunner"
 )
 
 var _ = Describe("SQL DB", func() {
-	var postgresRunner postgresrunner.Runner
-
 	var dbConn *sql.DB
 	var listener *pq.Listener
-	var dbProcess ifrit.Process
 
 	var sqlDB *db.SQLDB
+	var pipelineDB db.PipelineDB
 
 	var dbSharedBehaviorInput = dbSharedBehaviorInput{}
 
-	BeforeSuite(func() {
-		postgresRunner = postgresrunner.Runner{
-			Port: 5433 + GinkgoParallelNode(),
-		}
-
-		dbProcess = ifrit.Envoke(postgresRunner)
-	})
-
-	AfterSuite(func() {
-		dbProcess.Signal(os.Interrupt)
-		Eventually(dbProcess.Wait(), 10*time.Second).Should(Receive())
-	})
-
 	BeforeEach(func() {
+		var err error
 		postgresRunner.CreateTestDB()
-
 		dbConn = postgresRunner.Open()
-
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
+		bus := db.NewNotificationsBus(listener)
 
-		sqlDB = db.NewSQL(lagertest.NewTestLogger("test"), dbConn, listener)
+		sqlDB = db.NewSQL(lagertest.NewTestLogger("test"), dbConn, bus)
+
+		sqlDB.SaveConfig("some-pipeline", atc.Config{}, db.ConfigVersion(1))
+		pipelineDBFactory := db.NewPipelineDBFactory(lagertest.NewTestLogger("test"), dbConn, bus, sqlDB)
+
+		pipelineDB, err = pipelineDBFactory.BuildWithName("some-pipeline")
+		Ω(err).ShouldNot(HaveOccurred())
 
 		dbSharedBehaviorInput.DB = sqlDB
+		dbSharedBehaviorInput.PipelineDB = pipelineDB
 	})
 
 	AfterEach(func() {
@@ -155,6 +144,68 @@ var _ = Describe("SQL DB", func() {
 				},
 			},
 		}
+
+		It("can lookup a pipeline by name", func() {
+			pipelineName := "a-pipeline-name"
+			otherPipelineName := "an-other-pipeline-name"
+
+			err := sqlDB.SaveConfig(pipelineName, config, 0)
+			Ω(err).ShouldNot(HaveOccurred())
+			err = sqlDB.SaveConfig(otherPipelineName, otherConfig, 0)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			pipeline, err := sqlDB.GetPipelineByName(pipelineName)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(pipeline.Name).Should(Equal(pipelineName))
+			Ω(pipeline.Config).Should(Equal(config))
+			Ω(pipeline.ID).ShouldNot(Equal(0))
+
+			otherPipeline, err := sqlDB.GetPipelineByName(otherPipelineName)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(otherPipeline.Name).Should(Equal(otherPipelineName))
+			Ω(otherPipeline.Config).Should(Equal(otherConfig))
+			Ω(otherPipeline.ID).ShouldNot(Equal(0))
+		})
+
+		It("can get a list of all active pipelines", func() {
+			pipelineName := "a-pipeline-name"
+			otherPipelineName := "an-other-pipeline-name"
+
+			err := sqlDB.SaveConfig(pipelineName, config, 0)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = sqlDB.SaveConfig(otherPipelineName, otherConfig, 0)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			pipelines, err := sqlDB.GetAllActivePipelines()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(pipelines).Should(ConsistOf(
+				db.SavedPipeline{
+					ID: 1,
+					Pipeline: db.Pipeline{
+						Name:    "some-pipeline",
+						Version: db.ConfigVersion(1),
+					},
+				},
+				db.SavedPipeline{
+					ID: 2,
+					Pipeline: db.Pipeline{
+						Name:    pipelineName,
+						Config:  config,
+						Version: db.ConfigVersion(2),
+					},
+				},
+				db.SavedPipeline{
+					ID: 3,
+					Pipeline: db.Pipeline{
+						Name:    otherPipelineName,
+						Config:  otherConfig,
+						Version: db.ConfigVersion(3),
+					},
+				},
+			))
+		})
 
 		It("can manage multiple pipeline configurations", func() {
 			pipelineName := "a-pipeline-name"

@@ -22,8 +22,10 @@ func jobService(database *dbSharedBehaviorInput) func() {
 				})
 
 				It("sets the JobConfig and the DBJob", func() {
-					dbJob := db.Job{
-						Name: "a-job",
+					dbJob := db.SavedJob{
+						Job: db.Job{
+							Name: "a-job",
+						},
 					}
 
 					fakeDB.GetJobReturns(dbJob, nil)
@@ -39,7 +41,7 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 				Context("when the GetJob lookup fails", func() {
 					It("returns an error", func() {
-						fakeDB.GetJobReturns(db.Job{}, errors.New("disaster"))
+						fakeDB.GetJobReturns(db.SavedJob{}, errors.New("disaster"))
 						_, err := db.NewJobService(atc.JobConfig{}, fakeDB)
 						Ω(err).Should(HaveOccurred())
 					})
@@ -53,7 +55,7 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 				Context("When the job is paused", func() {
 					It("Returns false", func() {
-						dbJob := db.Job{
+						dbJob := db.SavedJob{
 							Paused: true,
 						}
 
@@ -69,7 +71,7 @@ func jobService(database *dbSharedBehaviorInput) func() {
 				})
 
 				Context("When the job is not paused", func() {
-					var dbJob db.Job
+					var dbJob db.SavedJob
 					var service db.JobService
 
 					BeforeEach(func() {

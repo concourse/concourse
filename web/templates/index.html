@@ -1,39 +1,20 @@
-{{define "title"}}Concourse{{end}}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Concourse</title>
+    <link href="{{asset "main.css"}}" media="all" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <div class="display-in-middle">
+        <div class="h1">no pipelines configured</div>
+        <h3>first, download the CLI tools:</h3>
+          <ul id="cli-downloads">
+            <li><a href="{{url "DownloadCLI" "darwin" "amd64"}}"><i class="fa fa-apple"></i></a></li>
+            <li><a href="{{url "DownloadCLI" "windows" "amd64"}}"><i class="fa fa-windows"></i></a></li>
+            <li><a href="{{url "DownloadCLI" "linux" "amd64"}}"><i class="fa fa-linux"></i></a></li>
+          </ul>
+        <h3>then, use `<a class="ansi-blue-fg" target="_blank" href="http://concourse.ci/fly-cli.html#%28part._fly-configure%29">fly configure</a>` to setup your new pipeline</h3>
 
-{{define "body"}}
-<div id="pipeline">
-  <dl class="legend">
-    <dt class="pending"></dt>
-      <dd>pending</dd>
-    <dt class="started"></dt>
-      <dd>started</dd>
-    <dt class="succeeded"></dt>
-      <dd>succeeded</dd>
-    <dt class="failed"></dt>
-      <dd>failed</dd>
-    <dt class="errored"></dt>
-      <dd>errored</dd>
-    <dt class="aborted"></dt>
-      <dd>aborted</dd>
-    <dt class="paused"></dt>
-      <dd>paused</dd>
-  </dl>
-</div>
-
-<ul id="cli-downloads">
-  <li><a href="{{url "DownloadCLI" "darwin" "amd64"}}"><i class="fa fa-apple"></i></a></li>
-  <li><a href="{{url "DownloadCLI" "windows" "amd64"}}"><i class="fa fa-windows"></i></a></li>
-  <li><a href="{{url "DownloadCLI" "linux" "amd64"}}"><i class="fa fa-linux"></i></a></li>
-</ul>
-
-<script src="{{asset "jquery-2.1.1.min.js"}}"></script>
-<script src="{{asset "d3.v355.min.js"}}"></script>
-<script src="{{asset "graph.js"}}"></script>
-<script src="{{asset "index.js"}}"></script>
-
-<script>
-$(document).ready(function() {
-  renderPipeline({{.Groups}});
-})
-</script>
-{{end}}
+    </div>
+  </body>
+</html>

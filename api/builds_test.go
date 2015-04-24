@@ -55,10 +55,11 @@ var _ = Describe("Builds API", func() {
 			Context("when creating a one-off build succeeds", func() {
 				BeforeEach(func() {
 					buildsDB.CreateOneOffBuildReturns(db.Build{
-						ID:      42,
-						Name:    "1",
-						JobName: "job1",
-						Status:  db.StatusStarted,
+						ID:           42,
+						Name:         "1",
+						JobName:      "job1",
+						PipelineName: "some-pipeline",
+						Status:       db.StatusStarted,
 					}, nil)
 				})
 
@@ -76,7 +77,7 @@ var _ = Describe("Builds API", func() {
 							"name": "1",
 							"job_name": "job1",
 							"status": "started",
-							"url": "/jobs/job1/builds/1"
+							"url": "/pipelines/some-pipeline/jobs/job1/builds/1"
 						}`))
 					})
 
@@ -86,10 +87,11 @@ var _ = Describe("Builds API", func() {
 						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
 						oneOff, builtPlan := fakeEngine.CreateBuildArgsForCall(0)
 						Ω(oneOff).Should(Equal(db.Build{
-							ID:      42,
-							Name:    "1",
-							JobName: "job1",
-							Status:  db.StatusStarted,
+							ID:           42,
+							Name:         "1",
+							JobName:      "job1",
+							PipelineName: "some-pipeline",
+							Status:       db.StatusStarted,
 						}))
 						Ω(builtPlan).Should(Equal(plan))
 					})
@@ -147,16 +149,18 @@ var _ = Describe("Builds API", func() {
 			BeforeEach(func() {
 				buildsDB.GetAllBuildsReturns([]db.Build{
 					{
-						ID:      3,
-						Name:    "2",
-						JobName: "job2",
-						Status:  db.StatusStarted,
+						ID:           3,
+						Name:         "2",
+						JobName:      "job2",
+						PipelineName: "some-pipeline",
+						Status:       db.StatusStarted,
 					},
 					{
-						ID:      1,
-						Name:    "1",
-						JobName: "job1",
-						Status:  db.StatusSucceeded,
+						ID:           1,
+						Name:         "1",
+						JobName:      "job1",
+						PipelineName: "some-pipeline",
+						Status:       db.StatusSucceeded,
 					},
 				}, nil)
 			})
@@ -175,14 +179,14 @@ var _ = Describe("Builds API", func() {
 						"name": "2",
 						"job_name": "job2",
 						"status": "started",
-						"url": "/jobs/job2/builds/2"
+						"url": "/pipelines/some-pipeline/jobs/job2/builds/2"
 					},
 					{
 						"id": 1,
 						"name": "1",
 						"job_name": "job1",
 						"status": "succeeded",
-						"url": "/jobs/job1/builds/1"
+						"url": "/pipelines/some-pipeline/jobs/job1/builds/1"
 					}
 				]`))
 			})

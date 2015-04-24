@@ -23,15 +23,13 @@ type Locker interface {
 type BuildScheduler interface {
 	TryNextPendingBuild(lager.Logger, atc.JobConfig, atc.ResourceConfigs) Waiter
 	BuildLatestInputs(lager.Logger, atc.JobConfig, atc.ResourceConfigs) error
-
-	TrackInFlightBuilds(lager.Logger) error
 }
 
 type Runner struct {
 	Logger lager.Logger
 
-	Locker   Locker
-	ConfigDB db.ConfigDB
+	Locker Locker
+	DB     db.PipelineDB
 
 	Scheduler BuildScheduler
 
@@ -71,15 +69,10 @@ func (runner *Runner) tick(logger lager.Logger) {
 	logger.Info("start")
 	defer logger.Info("done")
 
-	config, _, err := runner.ConfigDB.GetConfig(atc.DefaultPipelineName)
+	config, _, err := runner.DB.GetConfig()
 	if err != nil {
 		logger.Error("failed-to-get-config", err)
 		return
-	}
-
-	err = runner.Scheduler.TrackInFlightBuilds(logger)
-	if err != nil {
-		logger.Error("failed-to-track-in-flight-builds", err)
 	}
 
 	if runner.Noop {
@@ -87,7 +80,8 @@ func (runner *Runner) tick(logger lager.Logger) {
 	}
 
 	for _, job := range config.Jobs {
-		lock, err := runner.Locker.AcquireWriteLockImmediately([]db.NamedLock{db.JobSchedulingLock(job.Name)})
+		lock := []db.NamedLock{db.JobSchedulingLock(runner.DB.ScopedName(job.Name))}
+		jobCheckingLock, err := runner.Locker.AcquireWriteLockImmediately(lock)
 		if err != nil {
 			continue
 		}
@@ -98,7 +92,7 @@ func (runner *Runner) tick(logger lager.Logger) {
 
 		runner.schedule(sLog, job, config.Resources)
 
-		lock.Release()
+		jobCheckingLock.Release()
 	}
 }
 

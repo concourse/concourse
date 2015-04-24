@@ -1,11 +1,11 @@
 function draw(groups, renderFn, completeFn) {
   $.ajax({
-    url: "/api/v1/jobs",
+    url: "/api/v1/pipelines/" + window.pipelineName + "/jobs",
     dataType: "json",
     complete: completeFn,
     success: function(jobs) {
       $.ajax({
-        url: "/api/v1/resources",
+        url: "/api/v1/pipelines/" + window.pipelineName + "/resources",
         dataType: "json",
         success: function(resources) {
           renderFn(jobs, resources);

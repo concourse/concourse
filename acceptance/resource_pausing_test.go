@@ -33,8 +33,9 @@ var _ = Describe("Resource Pausing", func() {
 		postgresRunner.CreateTestDB()
 		dbConn = postgresRunner.Open()
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
-		sqlDB = db.NewSQL(dbLogger, dbConn, dbListener)
-
+		bus := db.NewNotificationsBus(dbListener)
+		sqlDB = db.NewSQL(dbLogger, dbConn, bus)
+		Ω(err).ShouldNot(HaveOccurred())
 		atcProcess, atcPort = startATC(atcBin, 1)
 	})
 
@@ -61,7 +62,7 @@ var _ = Describe("Resource Pausing", func() {
 		})
 
 		homepage := func() string {
-			return fmt.Sprintf("http://127.0.0.1:%d", atcPort)
+			return fmt.Sprintf("http://127.0.0.1:%d/pipelines/%s", atcPort, atc.DefaultPipelineName)
 		}
 
 		withPath := func(path string) string {

@@ -6,23 +6,26 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
+	"github.com/concourse/atc/db"
 )
 
-func (s *Server) ListJobBuilds(w http.ResponseWriter, r *http.Request) {
-	jobName := r.FormValue(":job_name")
+func (s *Server) ListJobBuilds(pipelineDB db.PipelineDB) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		jobName := r.FormValue(":job_name")
 
-	builds, err := s.db.GetAllJobBuilds(jobName)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
+		builds, err := pipelineDB.GetAllJobBuilds(jobName)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 
-	w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusOK)
 
-	resources := make([]atc.Build, len(builds))
-	for i := 0; i < len(builds); i++ {
-		resources[i] = present.Build(builds[i])
-	}
+		resources := make([]atc.Build, len(builds))
+		for i := 0; i < len(builds); i++ {
+			resources[i] = present.Build(builds[i])
+		}
 
-	json.NewEncoder(w).Encode(resources)
+		json.NewEncoder(w).Encode(resources)
+	})
 }

@@ -3,17 +3,20 @@ package resourceserver
 import (
 	"net/http"
 
+	"github.com/concourse/atc/db"
 	"github.com/tedsuo/rata"
 )
 
-func (s *Server) UnpauseResource(w http.ResponseWriter, r *http.Request) {
-	resourceName := rata.Param(r, "resource_name")
+func (s *Server) UnpauseResource(pipelineDB db.PipelineDB) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resourceName := rata.Param(r, "resource_name")
 
-	err := s.resourceDB.UnpauseResource(resourceName)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+		err := pipelineDB.UnpauseResource(resourceName)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-	w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusOK)
+	})
 }

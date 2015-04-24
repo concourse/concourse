@@ -59,6 +59,7 @@ var _ = Describe("Worker", func() {
 		BeforeEach(func() {
 			id = Identifier{
 				Name:         "some-name",
+				PipelineName: "some-pipeline",
 				BuildID:      42,
 				Type:         ContainerTypeGet,
 				StepLocation: []uint{1, 2, 3},
@@ -99,12 +100,13 @@ var _ = Describe("Worker", func() {
 							RootFSPath: "some-resource-image",
 							Privileged: true,
 							Properties: garden.Properties{
-								"concourse:type":         "get",
-								"concourse:location":     "[1 2 3]",
-								"concourse:check-type":   "some-check-type",
-								"concourse:check-source": "{\"some\":\"source\"}",
-								"concourse:name":         "some-name",
-								"concourse:build-id":     "42",
+								"concourse:type":          "get",
+								"concourse:pipeline-name": "some-pipeline",
+								"concourse:location":      "[1 2 3]",
+								"concourse:check-type":    "some-check-type",
+								"concourse:check-source":  "{\"some\":\"source\"}",
+								"concourse:name":          "some-name",
+								"concourse:build-id":      "42",
 							},
 						}))
 					})
@@ -123,13 +125,14 @@ var _ = Describe("Worker", func() {
 								RootFSPath: "some-resource-image",
 								Privileged: true,
 								Properties: garden.Properties{
-									"concourse:type":         "get",
-									"concourse:location":     "[1 2 3]",
-									"concourse:check-type":   "some-check-type",
-									"concourse:check-source": "{\"some\":\"source\"}",
-									"concourse:name":         "some-name",
-									"concourse:build-id":     "42",
-									"concourse:ephemeral":    "true",
+									"concourse:type":          "get",
+									"concourse:pipeline-name": "some-pipeline",
+									"concourse:location":      "[1 2 3]",
+									"concourse:check-type":    "some-check-type",
+									"concourse:check-source":  "{\"some\":\"source\"}",
+									"concourse:name":          "some-name",
+									"concourse:build-id":      "42",
+									"concourse:ephemeral":     "true",
 								},
 							}))
 						})
@@ -229,12 +232,13 @@ var _ = Describe("Worker", func() {
 						RootFSPath: "some-image",
 						Privileged: true,
 						Properties: garden.Properties{
-							"concourse:type":         "get",
-							"concourse:location":     "[1 2 3]",
-							"concourse:check-type":   "some-check-type",
-							"concourse:check-source": "{\"some\":\"source\"}",
-							"concourse:name":         "some-name",
-							"concourse:build-id":     "42",
+							"concourse:type":          "get",
+							"concourse:pipeline-name": "some-pipeline",
+							"concourse:location":      "[1 2 3]",
+							"concourse:check-type":    "some-check-type",
+							"concourse:check-source":  "{\"some\":\"source\"}",
+							"concourse:name":          "some-name",
+							"concourse:build-id":      "42",
 						},
 					}))
 				})

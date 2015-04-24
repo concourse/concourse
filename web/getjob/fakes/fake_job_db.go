@@ -4,18 +4,27 @@ package fakes
 import (
 	"sync"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web/getjob"
 )
 
 type FakeJobDB struct {
-	GetJobStub        func(string) (db.Job, error)
+	GetConfigStub        func() (atc.Config, db.ConfigVersion, error)
+	getConfigMutex       sync.RWMutex
+	getConfigArgsForCall []struct{}
+	getConfigReturns struct {
+		result1 atc.Config
+		result2 db.ConfigVersion
+		result3 error
+	}
+	GetJobStub        func(string) (db.SavedJob, error)
 	getJobMutex       sync.RWMutex
 	getJobArgsForCall []struct {
 		arg1 string
 	}
 	getJobReturns struct {
-		result1 db.Job
+		result1 db.SavedJob
 		result2 error
 	}
 	GetAllJobBuildsStub        func(job string) ([]db.Build, error)
@@ -36,9 +45,41 @@ type FakeJobDB struct {
 		result1 db.Build
 		result2 error
 	}
+	GetPipelineNameStub        func() string
+	getPipelineNameMutex       sync.RWMutex
+	getPipelineNameArgsForCall []struct{}
+	getPipelineNameReturns struct {
+		result1 string
+	}
 }
 
-func (fake *FakeJobDB) GetJob(arg1 string) (db.Job, error) {
+func (fake *FakeJobDB) GetConfig() (atc.Config, db.ConfigVersion, error) {
+	fake.getConfigMutex.Lock()
+	fake.getConfigArgsForCall = append(fake.getConfigArgsForCall, struct{}{})
+	fake.getConfigMutex.Unlock()
+	if fake.GetConfigStub != nil {
+		return fake.GetConfigStub()
+	} else {
+		return fake.getConfigReturns.result1, fake.getConfigReturns.result2, fake.getConfigReturns.result3
+	}
+}
+
+func (fake *FakeJobDB) GetConfigCallCount() int {
+	fake.getConfigMutex.RLock()
+	defer fake.getConfigMutex.RUnlock()
+	return len(fake.getConfigArgsForCall)
+}
+
+func (fake *FakeJobDB) GetConfigReturns(result1 atc.Config, result2 db.ConfigVersion, result3 error) {
+	fake.GetConfigStub = nil
+	fake.getConfigReturns = struct {
+		result1 atc.Config
+		result2 db.ConfigVersion
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeJobDB) GetJob(arg1 string) (db.SavedJob, error) {
 	fake.getJobMutex.Lock()
 	fake.getJobArgsForCall = append(fake.getJobArgsForCall, struct {
 		arg1 string
@@ -63,10 +104,10 @@ func (fake *FakeJobDB) GetJobArgsForCall(i int) string {
 	return fake.getJobArgsForCall[i].arg1
 }
 
-func (fake *FakeJobDB) GetJobReturns(result1 db.Job, result2 error) {
+func (fake *FakeJobDB) GetJobReturns(result1 db.SavedJob, result2 error) {
 	fake.GetJobStub = nil
 	fake.getJobReturns = struct {
-		result1 db.Job
+		result1 db.SavedJob
 		result2 error
 	}{result1, result2}
 }
@@ -135,6 +176,30 @@ func (fake *FakeJobDB) GetCurrentBuildReturns(result1 db.Build, result2 error) {
 		result1 db.Build
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeJobDB) GetPipelineName() string {
+	fake.getPipelineNameMutex.Lock()
+	fake.getPipelineNameArgsForCall = append(fake.getPipelineNameArgsForCall, struct{}{})
+	fake.getPipelineNameMutex.Unlock()
+	if fake.GetPipelineNameStub != nil {
+		return fake.GetPipelineNameStub()
+	} else {
+		return fake.getPipelineNameReturns.result1
+	}
+}
+
+func (fake *FakeJobDB) GetPipelineNameCallCount() int {
+	fake.getPipelineNameMutex.RLock()
+	defer fake.getPipelineNameMutex.RUnlock()
+	return len(fake.getPipelineNameArgsForCall)
+}
+
+func (fake *FakeJobDB) GetPipelineNameReturns(result1 string) {
+	fake.GetPipelineNameStub = nil
+	fake.getPipelineNameReturns = struct {
+		result1 string
+	}{result1}
 }
 
 var _ getjob.JobDB = new(FakeJobDB)

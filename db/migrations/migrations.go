@@ -37,4 +37,6 @@ var Migrations = []migration.Migrator{
 	RenameConfigToPipelines,
 	RenamePipelineIDToVersionAddPrimaryKey,
 	AddNameToPipelines,
+	AddPipelineIDToResources,
+	AddPipelineIDToJobs,
 }

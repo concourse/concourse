@@ -30,14 +30,6 @@ type FakeBuildScheduler struct {
 	buildLatestInputsReturns struct {
 		result1 error
 	}
-	TrackInFlightBuildsStub        func(lager.Logger) error
-	trackInFlightBuildsMutex       sync.RWMutex
-	trackInFlightBuildsArgsForCall []struct {
-		arg1 lager.Logger
-	}
-	trackInFlightBuildsReturns struct {
-		result1 error
-	}
 }
 
 func (fake *FakeBuildScheduler) TryNextPendingBuild(arg1 lager.Logger, arg2 atc.JobConfig, arg3 atc.ResourceConfigs) scheduler.Waiter {
@@ -104,38 +96,6 @@ func (fake *FakeBuildScheduler) BuildLatestInputsArgsForCall(i int) (lager.Logge
 func (fake *FakeBuildScheduler) BuildLatestInputsReturns(result1 error) {
 	fake.BuildLatestInputsStub = nil
 	fake.buildLatestInputsReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBuildScheduler) TrackInFlightBuilds(arg1 lager.Logger) error {
-	fake.trackInFlightBuildsMutex.Lock()
-	fake.trackInFlightBuildsArgsForCall = append(fake.trackInFlightBuildsArgsForCall, struct {
-		arg1 lager.Logger
-	}{arg1})
-	fake.trackInFlightBuildsMutex.Unlock()
-	if fake.TrackInFlightBuildsStub != nil {
-		return fake.TrackInFlightBuildsStub(arg1)
-	} else {
-		return fake.trackInFlightBuildsReturns.result1
-	}
-}
-
-func (fake *FakeBuildScheduler) TrackInFlightBuildsCallCount() int {
-	fake.trackInFlightBuildsMutex.RLock()
-	defer fake.trackInFlightBuildsMutex.RUnlock()
-	return len(fake.trackInFlightBuildsArgsForCall)
-}
-
-func (fake *FakeBuildScheduler) TrackInFlightBuildsArgsForCall(i int) lager.Logger {
-	fake.trackInFlightBuildsMutex.RLock()
-	defer fake.trackInFlightBuildsMutex.RUnlock()
-	return fake.trackInFlightBuildsArgsForCall[i].arg1
-}
-
-func (fake *FakeBuildScheduler) TrackInFlightBuildsReturns(result1 error) {
-	fake.TrackInFlightBuildsStub = nil
-	fake.trackInFlightBuildsReturns = struct {
 		result1 error
 	}{result1}
 }

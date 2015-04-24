@@ -16,9 +16,7 @@ import (
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/api/buildserver"
 	buildfakes "github.com/concourse/atc/api/buildserver/fakes"
-	jobfakes "github.com/concourse/atc/api/jobserver/fakes"
 	pipeserverfakes "github.com/concourse/atc/api/pipes/fakes"
-	resourcefakes "github.com/concourse/atc/api/resourceserver/fakes"
 	workerserverfakes "github.com/concourse/atc/api/workerserver/fakes"
 	authfakes "github.com/concourse/atc/auth/fakes"
 	dbfakes "github.com/concourse/atc/db/fakes"
@@ -33,11 +31,10 @@ var (
 	fakeEngine          *enginefakes.FakeEngine
 	fakeWorkerClient    *workerfakes.FakeClient
 	buildsDB            *buildfakes.FakeBuildsDB
-	jobsDB              *jobfakes.FakeJobsDB
 	configDB            *dbfakes.FakeConfigDB
 	workerDB            *workerserverfakes.FakeWorkerDB
 	pipeDB              *pipeserverfakes.FakePipeDB
-	resourceDB          *resourcefakes.FakeResourceDB
+	pipelineDBFactory   *dbfakes.FakePipelineDBFactory
 	configValidationErr error
 	peerAddr            string
 	drain               chan struct{}
@@ -76,10 +73,9 @@ func (f *fakeEventHandlerFactory) Construct(
 
 var _ = BeforeEach(func() {
 	buildsDB = new(buildfakes.FakeBuildsDB)
-	jobsDB = new(jobfakes.FakeJobsDB)
 	configDB = new(dbfakes.FakeConfigDB)
+	pipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 	workerDB = new(workerserverfakes.FakeWorkerDB)
-	resourceDB = new(resourcefakes.FakeResourceDB)
 	pipeDB = new(pipeserverfakes.FakePipeDB)
 
 	authValidator = new(authfakes.FakeValidator)
@@ -105,12 +101,11 @@ var _ = BeforeEach(func() {
 	handler, err := api.NewHandler(
 		logger,
 		authValidator,
+		pipelineDBFactory,
 
 		configDB,
 
 		buildsDB,
-		jobsDB,
-		resourceDB,
 		workerDB,
 		pipeDB,
 

@@ -13,7 +13,7 @@ type notificationsBus struct {
 	notificationsL sync.Mutex
 }
 
-func newNotificationsBus(listener *pq.Listener) *notificationsBus {
+func NewNotificationsBus(listener *pq.Listener) *notificationsBus {
 	bus := &notificationsBus{
 		listener: listener,
 

@@ -10,22 +10,34 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	dbfakes "github.com/concourse/atc/db/fakes"
 )
 
 var _ = Describe("Resources API", func() {
-	Describe("GET /api/v1/resources", func() {
+	var pipelineDB *dbfakes.FakePipelineDB
+
+	BeforeEach(func() {
+		pipelineDB = new(dbfakes.FakePipelineDB)
+		pipelineDBFactory.BuildWithNameReturns(pipelineDB, nil)
+	})
+
+	Describe("GET /api/v1/pipelines/:pipeline_name/resources", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			response, err = client.Get(server.URL + "/api/v1/resources")
+			response, err = client.Get(server.URL + "/api/v1/pipelines/a-pipeline/resources")
 			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+			pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+			Ω(pipelineName).Should(Equal("a-pipeline"))
 		})
 
 		Context("when getting the resource config succeeds", func() {
 			BeforeEach(func() {
-				configDB.GetConfigReturns(atc.Config{
+				pipelineDB.GetConfigReturns(atc.Config{
 					Groups: []atc.GroupConfig{
 						{
 							Name:      "group-1",
@@ -47,16 +59,24 @@ var _ = Describe("Resources API", func() {
 
 			Context("when getting the check error succeeds", func() {
 				BeforeEach(func() {
-					resourceDB.GetResourceStub = func(name string) (db.Resource, error) {
+					pipelineDB.GetResourceStub = func(name string) (db.SavedResource, error) {
 						if name == "resource-2" {
-							return db.Resource{
-								Name:       name,
-								CheckError: errors.New("sup"),
+							return db.SavedResource{
+								ID:           1,
+								CheckError:   errors.New("sup"),
+								PipelineName: "a-pipeline",
+								Resource: db.Resource{
+									Name: name,
+								},
 							}, nil
 						} else {
-							return db.Resource{
-								Name:   name,
-								Paused: true,
+							return db.SavedResource{
+								ID:           2,
+								Paused:       true,
+								PipelineName: "a-pipeline",
+								Resource: db.Resource{
+									Name: name,
+								},
 							}, nil
 						}
 					}
@@ -81,13 +101,13 @@ var _ = Describe("Resources API", func() {
 								"type": "type-1",
 								"groups": ["group-1", "group-2"],
 								"paused": true,
-								"url": "/resources/resource-1"
+								"url": "/pipelines/a-pipeline/resources/resource-1"
 							},
 							{
 								"name": "resource-2",
 								"type": "type-2",
 								"groups": ["group-2"],
-								"url": "/resources/resource-2",
+								"url": "/pipelines/a-pipeline/resources/resource-2",
 								"failing_to_check": true,
 								"check_error": "sup"
 							},
@@ -96,7 +116,7 @@ var _ = Describe("Resources API", func() {
 								"type": "type-3",
 								"groups": [],
 								"paused": true,
-								"url": "/resources/resource-3"
+								"url": "/pipelines/a-pipeline/resources/resource-3"
 							}
 						]`))
 					})
@@ -117,13 +137,13 @@ var _ = Describe("Resources API", func() {
 								"type": "type-1",
 								"groups": ["group-1", "group-2"],
 								"paused": true,
-								"url": "/resources/resource-1"
+								"url": "/pipelines/a-pipeline/resources/resource-1"
 							},
 							{
 								"name": "resource-2",
 								"type": "type-2",
 								"groups": ["group-2"],
-								"url": "/resources/resource-2",
+								"url": "/pipelines/a-pipeline/resources/resource-2",
 								"failing_to_check": true
 							},
 							{
@@ -131,7 +151,7 @@ var _ = Describe("Resources API", func() {
 								"type": "type-3",
 								"groups": [],
 								"paused": true,
-								"url": "/resources/resource-3"
+								"url": "/pipelines/a-pipeline/resources/resource-3"
 							}
 						]`))
 					})
@@ -140,8 +160,8 @@ var _ = Describe("Resources API", func() {
 
 			Context("when getting the resource check error", func() {
 				BeforeEach(func() {
-					resourceDB.GetResourceStub = func(name string) (db.Resource, error) {
-						return db.Resource{}, errors.New("oh no!")
+					pipelineDB.GetResourceStub = func(name string) (db.SavedResource, error) {
+						return db.SavedResource{}, errors.New("oh no!")
 					}
 				})
 
@@ -153,7 +173,7 @@ var _ = Describe("Resources API", func() {
 
 		Context("when getting the resource config fails", func() {
 			BeforeEach(func() {
-				configDB.GetConfigReturns(atc.Config{}, 0, errors.New("oh no!"))
+				pipelineDB.GetConfigReturns(atc.Config{}, 0, errors.New("oh no!"))
 			})
 
 			It("returns 500", func() {
@@ -162,17 +182,18 @@ var _ = Describe("Resources API", func() {
 		})
 	})
 
-	Describe("PUT /api/v1/resources/:resource_name/versions/:resource_version_id/enable", func() {
+	Describe("PUT /api/v1/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/enable", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/resources/resource-name/versions/42/enable", nil)
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/a-pipeline/resources/resource-name/versions/42/enable", nil)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			response, err = client.Do(request)
 			Ω(err).ShouldNot(HaveOccurred())
+
 		})
 
 		Context("when authenticated", func() {
@@ -180,13 +201,19 @@ var _ = Describe("Resources API", func() {
 				authValidator.IsAuthenticatedReturns(true)
 			})
 
+			It("injects the proper pipelineDB", func() {
+				Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+				Ω(pipelineName).Should(Equal("a-pipeline"))
+			})
+
 			Context("when enabling the resource succeeds", func() {
 				BeforeEach(func() {
-					resourceDB.EnableVersionedResourceReturns(nil)
+					pipelineDB.EnableVersionedResourceReturns(nil)
 				})
 
 				It("enabled the right versioned resource", func() {
-					Ω(resourceDB.EnableVersionedResourceArgsForCall(0)).Should(Equal(42))
+					Ω(pipelineDB.EnableVersionedResourceArgsForCall(0)).Should(Equal(42))
 				})
 
 				It("returns 200", func() {
@@ -196,7 +223,7 @@ var _ = Describe("Resources API", func() {
 
 			Context("when enabling the resource fails", func() {
 				BeforeEach(func() {
-					resourceDB.EnableVersionedResourceReturns(errors.New("welp"))
+					pipelineDB.EnableVersionedResourceReturns(errors.New("welp"))
 				})
 
 				It("returns 500", func() {
@@ -216,13 +243,13 @@ var _ = Describe("Resources API", func() {
 		})
 	})
 
-	Describe("PUT /api/v1/resources/:resource_name/versions/:resource_version_id/disable", func() {
+	Describe("PUT /api/v1/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/disable", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/resources/resource-name/versions/42/disable", nil)
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/a-pipeline/resources/resource-name/versions/42/disable", nil)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -232,15 +259,21 @@ var _ = Describe("Resources API", func() {
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			It("injects the proper pipelineDB", func() {
+				Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+				Ω(pipelineName).Should(Equal("a-pipeline"))
 			})
 
 			Context("when enabling the resource succeeds", func() {
 				BeforeEach(func() {
-					resourceDB.DisableVersionedResourceReturns(nil)
+					pipelineDB.DisableVersionedResourceReturns(nil)
 				})
 
 				It("disabled the right versioned resource", func() {
-					Ω(resourceDB.DisableVersionedResourceArgsForCall(0)).Should(Equal(42))
+					Ω(pipelineDB.DisableVersionedResourceArgsForCall(0)).Should(Equal(42))
 				})
 
 				It("returns 200", func() {
@@ -250,7 +283,7 @@ var _ = Describe("Resources API", func() {
 
 			Context("when enabling the resource fails", func() {
 				BeforeEach(func() {
-					resourceDB.DisableVersionedResourceReturns(errors.New("welp"))
+					pipelineDB.DisableVersionedResourceReturns(errors.New("welp"))
 				})
 
 				It("returns 500", func() {
@@ -270,13 +303,13 @@ var _ = Describe("Resources API", func() {
 		})
 	})
 
-	Describe("PUT /api/v1/resources/:resource_name/pause", func() {
+	Describe("PUT /api/v1/pipelines/:pipeline_name/resources/:resource_name/pause", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/resources/resource-name/pause", nil)
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/a-pipeline/resources/resource-name/pause", nil)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -286,15 +319,21 @@ var _ = Describe("Resources API", func() {
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			It("injects the proper pipelineDB", func() {
+				Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+				Ω(pipelineName).Should(Equal("a-pipeline"))
 			})
 
 			Context("when pausing the resource succeeds", func() {
 				BeforeEach(func() {
-					resourceDB.PauseResourceReturns(nil)
+					pipelineDB.PauseResourceReturns(nil)
 				})
 
 				It("paused the right resource", func() {
-					Ω(resourceDB.PauseResourceArgsForCall(0)).Should(Equal("resource-name"))
+					Ω(pipelineDB.PauseResourceArgsForCall(0)).Should(Equal("resource-name"))
 				})
 
 				It("returns 200", func() {
@@ -304,7 +343,7 @@ var _ = Describe("Resources API", func() {
 
 			Context("when pausing the resource fails", func() {
 				BeforeEach(func() {
-					resourceDB.PauseResourceReturns(errors.New("welp"))
+					pipelineDB.PauseResourceReturns(errors.New("welp"))
 				})
 
 				It("returns 500", func() {
@@ -324,13 +363,13 @@ var _ = Describe("Resources API", func() {
 		})
 	})
 
-	Describe("PUT /api/v1/resources/:resource_name/unpause", func() {
+	Describe("PUT /api/v1/pipelines/:pipeline_name/resources/:resource_name/unpause", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/resources/resource-name/unpause", nil)
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/a-pipeline/resources/resource-name/unpause", nil)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -342,13 +381,19 @@ var _ = Describe("Resources API", func() {
 				authValidator.IsAuthenticatedReturns(true)
 			})
 
+			It("injects the proper pipelineDB", func() {
+				Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+				Ω(pipelineName).Should(Equal("a-pipeline"))
+			})
+
 			Context("when unpausing the resource succeeds", func() {
 				BeforeEach(func() {
-					resourceDB.UnpauseResourceReturns(nil)
+					pipelineDB.UnpauseResourceReturns(nil)
 				})
 
 				It("unpaused the right resource", func() {
-					Ω(resourceDB.UnpauseResourceArgsForCall(0)).Should(Equal("resource-name"))
+					Ω(pipelineDB.UnpauseResourceArgsForCall(0)).Should(Equal("resource-name"))
 				})
 
 				It("returns 200", func() {
@@ -358,7 +403,7 @@ var _ = Describe("Resources API", func() {
 
 			Context("when unpausing the resource fails", func() {
 				BeforeEach(func() {
-					resourceDB.UnpauseResourceReturns(errors.New("welp"))
+					pipelineDB.UnpauseResourceReturns(errors.New("welp"))
 				})
 
 				It("returns 500", func() {
