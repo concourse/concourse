@@ -26,6 +26,10 @@ targets:
 `
 
 	BeforeEach(func() {
+		tmpDir, _ := ioutil.TempDir("", "fly-test")
+		os.Setenv("HOME", tmpDir)
+		os.Setenv("HOMEPATH", tmpDir)
+		os.Unsetenv("HOMEDRIVE")
 		flyrc = filepath.Join(userHomeDir(), ".flyrc")
 	})
 
@@ -33,6 +37,8 @@ targets:
 		theFile, _ := os.Open(flyrc)
 		theFile.Close()
 		os.Remove(flyrc)
+		os.Unsetenv("HOME")
+		os.Unsetenv("HOMEPATH")
 	})
 
 	It("should exit 1 when no name is provided", func() {
