@@ -11,7 +11,7 @@ entire pipelines, integrating with arbitrary resources, or it can be used to
 execute one-off tasks, either locally or in another CI system.
 
 To see a live example, check out
-@hyperlink["http://ci.concourse.ci"]{Concourse's own CI pipeline}.
+@hyperlink["https://ci.concourse.ci"]{Concourse's own CI pipeline}.
 
 Concourse is completely open source. All of the source code lives under the
 @hyperlink["https://github.com/concourse"]{Concourse organization} on GitHub.

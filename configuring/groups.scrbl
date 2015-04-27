@@ -29,7 +29,7 @@ This would display two tabs at the top of the home page: "tests" and "deploy".
 
 For a real world example of how groups can be used to simplify navigation and
 provide logical grouping, see the groups used at the top of the page in the
-@hyperlink["http://ci.concourse.ci"]{Concourse pipeline}.
+@hyperlink["https://ci.concourse.ci"]{Concourse pipeline}.
 
 Each configured group consists of the following attributes:
 
