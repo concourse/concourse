@@ -16,15 +16,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type targetDetailsYAML struct {
-	Targets map[string]struct {
-		API      string `yaml:"api"`
-		Username string
-		Password string
-		Cert     string
-	}
-}
-
 func getConfig(pipelineName string, atcRequester *atcRequester) atc.Config {
 	getConfigRequest, err := atcRequester.CreateRequest(
 		atc.GetConfig,
@@ -73,7 +64,7 @@ func lookupURLFromName(targetName string) string {
 		return ""
 	}
 
-	var current *targetDetailsYAML
+	var current *TargetDetailsYAML
 	err = yaml.Unmarshal(currentTargetsBytes, &current)
 	if err != nil {
 		return ""

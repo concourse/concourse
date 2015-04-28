@@ -11,8 +11,15 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type targetsYAML struct {
-	Targets map[string]yaml.MapSlice
+type targetProps struct {
+	API      string `yaml:"api"`
+	Username string
+	Password string
+	Cert     string
+}
+
+type TargetDetailsYAML struct {
+	Targets map[string]targetProps
 }
 
 func SaveTarget(c *cli.Context) {
@@ -35,13 +42,13 @@ func SaveTarget(c *cli.Context) {
 func createTargets(location string, c *cli.Context) {
 	targetName := c.Args().First()
 
-	targetsBytes, err := yaml.Marshal(&targetsYAML{
-		Targets: map[string]yaml.MapSlice{
+	targetsBytes, err := yaml.Marshal(&TargetDetailsYAML{
+		Targets: map[string]targetProps{
 			targetName: {
-				{Key: "api", Value: c.String("api")},
-				{Key: "username", Value: c.String("username")},
-				{Key: "password", Value: c.String("password")},
-				{Key: "cert", Value: c.String("cert")},
+				API:      c.String("api"),
+				Username: c.String("username"),
+				Password: c.String("password"),
+				Cert:     c.String("cert"),
 			},
 		},
 	})
@@ -58,11 +65,11 @@ func createTargets(location string, c *cli.Context) {
 
 func updateTargets(location string, c *cli.Context) {
 	targetToUpdate := c.Args().First()
-	yamlToSet := yaml.MapSlice{
-		{Key: "api", Value: c.String("api")},
-		{Key: "username", Value: c.String("username")},
-		{Key: "password", Value: c.String("password")},
-		{Key: "cert", Value: c.String("cert")},
+	yamlToSet := targetProps{
+		API:      c.String("api"),
+		Username: c.String("username"),
+		Password: c.String("password"),
+		Cert:     c.String("cert"),
 	}
 
 	currentTargetsBytes, err := ioutil.ReadFile(location)
@@ -71,7 +78,7 @@ func updateTargets(location string, c *cli.Context) {
 		return
 	}
 
-	var current *targetsYAML
+	var current *TargetDetailsYAML
 	err = yaml.Unmarshal(currentTargetsBytes, &current)
 	if err != nil {
 		log.Fatalln("could not unmarshal .flyrc")

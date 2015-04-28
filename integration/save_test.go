@@ -22,7 +22,7 @@ var _ = Describe("Fly CLI", func() {
 	var stockYAML = `
 targets:
   some-target-name:
-    some-target-key: some-existing-text
+    api: some-existing-text
 `
 
 	BeforeEach(func() {
