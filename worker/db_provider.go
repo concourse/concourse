@@ -36,9 +36,13 @@ func (provider *dbProvider) Workers() ([]Worker, error) {
 
 	workers := make([]Worker, len(workerInfos))
 	for i, info := range workerInfos {
+		workerLog := provider.logger.Session("worker-connection", lager.Data{
+			"addr": info.Addr,
+		})
+
 		gardenConn := RetryableConnection{
-			Logger:     provider.logger.Session("garden-client"),
-			Connection: gconn.New("tcp", info.Addr),
+			Logger:     workerLog,
+			Connection: gconn.NewWithLogger("tcp", info.Addr, workerLog.Session("garden-connection")),
 			Sleeper:    tikTok,
 			RetryPolicy: ExponentialRetryPolicy{
 				Timeout: 5 * time.Minute,

@@ -260,7 +260,11 @@ func main() {
 	var workerClient worker.Client
 	if *gardenAddr != "" {
 		workerClient = worker.NewGardenWorker(
-			gclient.New(gconn.New(*gardenNetwork, *gardenAddr)),
+			gclient.New(gconn.NewWithLogger(
+				*gardenNetwork,
+				*gardenAddr,
+				logger.Session("garden-connection"),
+			)),
 			clock.NewClock(),
 			-1,
 			resourceTypesNG,
