@@ -54,6 +54,35 @@ not check the remote certificates.
 For the rest of this document it is assumed you are setting the target in
 each of the commands and so it will not be included for brevity.
 
+@section[#:tag "fly-save-target"]{@code{save-target}@aux-elem{: Saving Concourse Targets}}
+
+Using @code{save-target} allows you to save a named target to a @code{.flyrc}
+stored in your home directory.  Passing a saved target name to @code{--target}
+will look up its details from your @code{.flyrc} and use them in the call
+specified.
+
+@margin-note{
+  Even though you can now pass a name to @code{--target} don't worry, your old
+  workflows with @{--target} continue to work exactly as described in the
+  section above.
+}
+
+The @code{--api} flag and a target name are the only two properties required to
+save a target:
+
+@codeblock|{
+$ fly save-target --api http://example.com my-target
+}|
+
+The full set of properties can be specified as such:
+
+@codeblock|{
+$ fly save-target --api http://example.com --username my-user
+--password my-password --cert /my-cert/directory my-target
+}|
+
+Note, @code{--cert} can be specified but is not currently used.
+
 @section[#:tag "fly-execute"]{@code{execute}@aux-elem{: Submitting Local Tasks}}
 
 One of the most common use cases of @code{fly} is taking a local project on
