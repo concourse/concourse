@@ -189,7 +189,12 @@ func main() {
 
 	logger := lager.NewLogger("atc")
 
-	sink := lager.NewReconfigurableSink(lager.NewWriterSink(os.Stdout, lager.DEBUG), lager.INFO)
+	logLevel := lager.INFO
+	if *dev {
+		logLevel = lager.DEBUG
+	}
+
+	sink := lager.NewReconfigurableSink(lager.NewWriterSink(os.Stdout, lager.DEBUG), logLevel)
 	logger.RegisterSink(sink)
 
 	var err error
