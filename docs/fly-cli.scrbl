@@ -20,23 +20,19 @@ these you should follow the @seclink["deploying-with-vagrant"]{Deploying
 with Vagrant} or @seclink["deploying-with-bosh"]{Deploying with BOSH} guides
 to deploy a Concourse.
 
-Once you've deployed Concourse you can tell @code{fly} to target it in a
-couple of ways. You can either set the environment variable @code{ATC_URL}
-or you can give the command line option @code{--target}. For example, if we
-wanted to run @code{fly sync} (don't worry what this means just yet) while
-pointing at Concourse that you normally reach by going to
-@code{http://ci.example.com} then you could run either of the following:
+Once you've deployed Concourse you can tell @code{fly} to target it via the
+@code{--target} flag. For example, if we wanted to run @code{fly sync} (don't
+worry what this means just yet) while pointing at Concourse that you normally
+reach by going to @code{http://ci.example.com} then you could run:
 
 @codeblock|{
 $ fly --target 'http://ci.example.com' sync
-
-$ ATC_URL='http://ci.example.com' fly sync
 }|
 
 @margin-note{
-  The default Vagrant address is set as the default in @code{fly}. This means
-  that you don't need to do anything extra if you are using the Vagrant boxes
-  to deploy Concourse.
+  The default Vagrant address is set as the default target in @code{fly}. This
+  means that you don't need to do anything extra if you are using the Vagrant
+  boxes to deploy Concourse.
 }
 
 The single quotes aren't always required, but if you need to put HTTP basic
@@ -57,31 +53,24 @@ each of the commands and so it will not be included for brevity.
 @section[#:tag "fly-save-target"]{@code{save-target}@aux-elem{: Saving Concourse Targets}}
 
 Using @code{save-target} allows you to save a named target to a @code{.flyrc}
-stored in your home directory.  Passing a saved target name to @code{--target}
-will look up its details from your @code{.flyrc} and use them in the call
-specified.
+file stored in your home directory, so that you don't have to repeat the full
+URL for every command. Passing the name of a saved target via @code{--target}
+(or @code{-t} for short) will look up its details from your @code{.flyrc} and
+use them in the call specified.
 
-@margin-note{
-  Even though you can now pass a name to @code{--target} don't worry, your old
-  workflows with @{--target} continue to work exactly as described in the
-  section above.
-}
-
-The @code{--api} flag and a target name are the only two properties required to
-save a target:
+The @code{--api} flag and a target name are the only two properties required
+to save a target:
 
 @codeblock|{
-$ fly save-target --api http://example.com my-target
+$ fly save-target --api https://example.com my-target
 }|
 
 The full set of properties can be specified as such:
 
 @codeblock|{
-$ fly save-target --api http://example.com --username my-user
---password my-password --cert /my-cert/directory my-target
+$ fly save-target --api https://example.com --username my-user
+--password my-password my-target
 }|
-
-Note, @code{--cert} can be specified but is not currently used.
 
 @section[#:tag "fly-execute"]{@code{execute}@aux-elem{: Submitting Local Tasks}}
 
@@ -155,26 +144,26 @@ automatically and you will need to explicitly list it (as with the
 This feature can be used to mimic other resources and try out combinations
 of input that would normally not be possible in a pipeline.
 
-@section[#:tag "fly-configure"]{@code{configure}@aux-elem{: Reconfiguring Concourse}}
+@section[#:tag "fly-configure"]{@code{configure}@aux-elem{: Configuring Pipelines}}
 
-Fly can be used to fetch and update the current pipeline configuration. This
+Fly can be used to fetch and update the configuration for your pipelines. This
 is achieved by using the @code{configure} command. For example, to fetch the
-current configuration of your Concourse and print it on @code{STDOUT} run
-the following:
+current configuration of your @code{my-pipeline} Concourse pipeline and print
+it on @code{STDOUT} run the following:
 
 @codeblock|{
-$ fly configure
+$ fly configure my-pipeline
 }|
 
 To get JSON instead of YAML you can use the @code{-j} or @code{--json}
 argument. This can be useful when inspecting your config with
 @hyperlink["http://stedolan.github.io/jq/"]{jq}.
 
-To submit configuration to Concourse from a file on your local disk you can
-use the @code{-c} or @code{--config} flag, like so:
+To submit a pipeline configuration to Concourse from a file on your local disk
+you can use the @code{-c} or @code{--config} flag, like so:
 
 @codeblock|{
-$ fly configure --config pipeline.yml
+$ fly configure --config pipeline.yml my-pipeline
 }|
 
 This will present a diff of the changes and ask you to confirm the changes.
@@ -205,7 +194,7 @@ resources:
 ...you could then configure this pipeline like so:
 
 @codeblock|{
-$ fly configure --config pipeline.yml --var "private-repo-key=$(cat id_rsa)"
+$ fly configure --config pipeline.yml --var "private-repo-key=$(cat id_rsa)" my-pipeline
 }|
 
 Or, if you had a @code{credentials.yml} as follows:
@@ -220,7 +209,7 @@ private-repo-key: |
 ...you could configure it like so:
 
 @codeblock|{
-$ fly configure --config pipeline.yml --vars-from credentials.yml
+$ fly configure --config pipeline.yml --vars-from credentials.yml my-pipeline
 }|
 
 If both @code{--var} and @code{--vars-from} are specified, the @code{--var}
