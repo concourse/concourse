@@ -1,7 +1,10 @@
 package git_pipeline_test
 
 import (
+	"fmt"
+	"net/http"
 	"os"
+	"os/exec"
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/cloudfoundry-incubator/garden/client"
@@ -11,12 +14,16 @@ import (
 	"github.com/concourse/testflight/guidserver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 
 	"testing"
 	"time"
 )
 
 const helperRootfs = "docker:///concourse/testflight-helper"
+
+var flyBin string
 
 var (
 	gardenClient garden.Client
@@ -36,24 +43,17 @@ type GardenLinuxDeploymentData struct {
 
 type GitPipelineTemplate struct {
 	DirectorUUID string
-
-	GitServers struct {
-		Origin   string
-		Success  string
-		Failure  string
-		NoUpdate string
-	}
-
-	GuidServerCurlCommand string
-
-	TestflightHelperImage string
-
 	GardenLinuxDeploymentData
 }
 
 var _ = BeforeSuite(func() {
 	gardenLinuxVersion := os.Getenv("GARDEN_LINUX_VERSION")
 	Ω(gardenLinuxVersion).ShouldNot(BeEmpty(), "must set $GARDEN_LINUX_VERSION")
+
+	var err error
+
+	flyBin, err = gexec.Build("github.com/concourse/fly", "-race")
+	Ω(err).ShouldNot(HaveOccurred())
 
 	directorUUID := bosh.DirectorUUID()
 
@@ -82,15 +82,39 @@ var _ = BeforeSuite(func() {
 		GardenLinuxDeploymentData: gardenLinuxDeploymentData,
 	}
 
-	templateData.GitServers.Origin = gitServer.URI()
-	templateData.GitServers.Success = successGitServer.URI()
-	templateData.GitServers.Failure = failureGitServer.URI()
-	templateData.GitServers.NoUpdate = noUpdateGitServer.URI()
-
-	templateData.TestflightHelperImage = helperRootfs
-	templateData.GuidServerCurlCommand = guidserver.CurlCommand()
-
 	bosh.Deploy("deployment.yml.tmpl", templateData)
+
+	atcURL := "http://10.244.15.2:8080"
+
+	os.Setenv("ATC_URL", atcURL)
+
+	Eventually(errorPolling(atcURL), 1*time.Minute).ShouldNot(HaveOccurred())
+
+	configureCmd := exec.Command(
+		flyBin,
+		"configure",
+		"-c", "pipeline.yml",
+		"-v", "failure-git-server="+failureGitServer.URI(),
+		"-v", "guid-server-curl-command="+guidserver.CurlCommand(),
+		"-v", "no-update-git-server="+noUpdateGitServer.URI(),
+		"-v", "origin-git-server="+gitServer.URI(),
+		"-v", "success-git-server="+successGitServer.URI(),
+		"-v", "testflight-helper-image="+helperRootfs,
+	)
+
+	stdin, err := configureCmd.StdinPipe()
+	Ω(err).ShouldNot(HaveOccurred())
+
+	defer stdin.Close()
+
+	configure, err := gexec.Start(configureCmd, GinkgoWriter, GinkgoWriter)
+	Ω(err).ShouldNot(HaveOccurred())
+
+	Eventually(configure, 10).Should(gbytes.Say("apply configuration?"))
+
+	fmt.Fprintln(stdin, "y")
+
+	Eventually(configure, 10).Should(gexec.Exit(0))
 })
 
 var _ = AfterSuite(func() {
@@ -105,4 +129,15 @@ var _ = AfterSuite(func() {
 func TestGitPipeline(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Git Pipeline Suite")
+}
+
+func errorPolling(url string) func() error {
+	return func() error {
+		resp, err := http.Get(url)
+		if err == nil {
+			resp.Body.Close()
+		}
+
+		return err
+	}
 }
