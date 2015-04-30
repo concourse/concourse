@@ -34,12 +34,14 @@ files:
   - github.com/concourse/atc/api/resourceserver/*.go # gosub
   - github.com/concourse/atc/api/workerserver/*.go # gosub
   - github.com/concourse/atc/auth/*.go # gosub
+  - github.com/concourse/atc/builds/*.go # gosub
   - github.com/concourse/atc/config/*.go # gosub
   - github.com/concourse/atc/db/*.go # gosub
   - github.com/concourse/atc/db/migrations/*.go # gosub
   - github.com/concourse/atc/engine/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
   - github.com/concourse/atc/exec/*.go # gosub
+  - github.com/concourse/atc/pipelines/*.go # gosub
   - github.com/concourse/atc/radar/*.go # gosub
   - github.com/concourse/atc/resource/*.go # gosub
   - github.com/concourse/atc/scheduler/*.go # gosub
@@ -53,6 +55,7 @@ files:
   - github.com/concourse/atc/web/group/*.go # gosub
   - github.com/concourse/atc/web/index/*.go # gosub
   - github.com/concourse/atc/web/login/*.go # gosub
+  - github.com/concourse/atc/web/pipeline/*.go # gosub
   - github.com/concourse/atc/web/routes/*.go # gosub
   - github.com/concourse/atc/web/triggerbuild/*.go # gosub
   - github.com/concourse/atc/worker/*.go # gosub
