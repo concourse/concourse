@@ -100,7 +100,7 @@ targets:
 			Ω(err).ShouldNot(HaveOccurred())
 			Eventually(sess).Should(gexec.Exit(0))
 
-			flyCmd = exec.Command(flyPath, "--target", targetURL, "checklist")
+			flyCmd = exec.Command(flyPath, "-t", targetURL, "checklist")
 
 			sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
