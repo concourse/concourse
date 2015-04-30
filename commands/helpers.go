@@ -100,8 +100,9 @@ func getBuild(ctx *cli.Context, client *http.Client, reqGenerator *rata.RequestG
 		buildReq, err := reqGenerator.CreateRequest(
 			atc.GetJobBuild,
 			rata.Params{
-				"job_name":   jobName,
-				"build_name": buildName,
+				"job_name":      jobName,
+				"build_name":    buildName,
+				"pipeline_name": atc.DefaultPipelineName,
 			},
 			nil,
 		)
@@ -131,7 +132,7 @@ func getBuild(ctx *cli.Context, client *http.Client, reqGenerator *rata.RequestG
 	} else if jobName != "" {
 		jobReq, err := reqGenerator.CreateRequest(
 			atc.GetJob,
-			rata.Params{"job_name": ctx.String("job")},
+			rata.Params{"job_name": ctx.String("job"), "pipeline_name": atc.DefaultPipelineName},
 			nil,
 		)
 		if err != nil {

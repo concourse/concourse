@@ -166,7 +166,7 @@ var _ = Describe("Hijacking", func() {
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/jobs/some-job"),
+						ghttp.VerifyRequest("GET", "/api/v1/pipelines/main/jobs/some-job"),
 						ghttp.RespondWithJSONEncoded(200, atc.Job{
 							NextBuild: &atc.Build{
 								ID:      3,
@@ -198,7 +198,7 @@ var _ = Describe("Hijacking", func() {
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/jobs/some-job"),
+						ghttp.VerifyRequest("GET", "/api/v1/pipelines/main/jobs/some-job"),
 						ghttp.RespondWithJSONEncoded(200, atc.Job{
 							NextBuild: nil,
 							FinishedBuild: &atc.Build{
@@ -225,7 +225,7 @@ var _ = Describe("Hijacking", func() {
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/jobs/some-job/builds/3"),
+						ghttp.VerifyRequest("GET", "/api/v1/pipelines/main/jobs/some-job/builds/3"),
 						ghttp.RespondWithJSONEncoded(200, atc.Build{
 							ID:      3,
 							Name:    "3",
