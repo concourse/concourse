@@ -86,7 +86,7 @@ run:
 	}
 
 	It("works", func() {
-		fly := exec.Command(flyBin, "--", "SOME", "ARGS")
+		fly := exec.Command(flyBin, "execute", "-c", "build.yml", "--", "SOME", "ARGS")
 		fly.Dir = fixture
 
 		session := start(fly)
@@ -111,7 +111,7 @@ cat < /tmp/fifo
 			)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			fly := exec.Command(flyBin)
+			fly := exec.Command(flyBin, "execute")
 			fly.Dir = fixture
 
 			flyS := start(fly)
@@ -144,7 +144,7 @@ wait
 			)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			fly := exec.Command(flyBin)
+			fly := exec.Command(flyBin, "execute")
 			fly.Dir = fixture
 
 			flyS := start(fly)
