@@ -200,7 +200,7 @@ run:
 	})
 
 	It("creates a build, streams output, uploads the bits, and polls until completion", func() {
-		flyCmd := exec.Command(flyPath)
+		flyCmd := exec.Command(flyPath, "e")
 		flyCmd.Dir = buildDir
 
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -232,7 +232,7 @@ run: {}
 		})
 
 		It("prints the failure and exits 1", func() {
-			flyCmd := exec.Command(flyPath)
+			flyCmd := exec.Command(flyPath, "e")
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -253,7 +253,7 @@ run: {}
 		It("inserts them into the config template", func() {
 			atcServer.AllowUnhandledRequests = true
 
-			flyCmd := exec.Command(flyPath, "--", "-name", "foo \"bar\" baz")
+			flyCmd := exec.Command(flyPath, "e", "--", "-name", "foo \"bar\" baz")
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -277,7 +277,7 @@ run: {}
 		It("inserts them into the config template", func() {
 			atcServer.AllowUnhandledRequests = true
 
-			flyCmd := exec.Command(flyPath, "--privileged")
+			flyCmd := exec.Command(flyPath, "e", "--privileged")
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -295,7 +295,7 @@ run: {}
 
 	Context("when running with bogus flags", func() {
 		It("exits 1", func() {
-			flyCmd := exec.Command(flyPath, "--bogus-flag")
+			flyCmd := exec.Command(flyPath, "e", "--bogus-flag")
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -321,7 +321,7 @@ run: {}
 		It("overrides the build's paramter values", func() {
 			atcServer.AllowUnhandledRequests = true
 
-			flyCmd := exec.Command(flyPath)
+			flyCmd := exec.Command(flyPath, "e")
 			flyCmd.Dir = buildDir
 			flyCmd.Env = append(os.Environ(), "FOO=newbar", "X=")
 
@@ -357,7 +357,7 @@ run: {}
 		if runtime.GOOS != "windows" {
 			Describe("with SIGINT", func() {
 				It("aborts the build and exits nonzero", func() {
-					flyCmd := exec.Command(flyPath)
+					flyCmd := exec.Command(flyPath, "e")
 					flyCmd.Dir = buildDir
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -381,7 +381,7 @@ run: {}
 
 			Describe("with SIGTERM", func() {
 				It("aborts the build and exits nonzero", func() {
-					flyCmd := exec.Command(flyPath)
+					flyCmd := exec.Command(flyPath, "e")
 					flyCmd.Dir = buildDir
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -407,7 +407,7 @@ run: {}
 
 	Context("when the build succeeds", func() {
 		It("exits 0", func() {
-			flyCmd := exec.Command(flyPath)
+			flyCmd := exec.Command(flyPath, "e")
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -425,7 +425,7 @@ run: {}
 
 	Context("when the build fails", func() {
 		It("exits 1", func() {
-			flyCmd := exec.Command(flyPath)
+			flyCmd := exec.Command(flyPath, "e")
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -443,7 +443,7 @@ run: {}
 
 	Context("when the build errors", func() {
 		It("exits 2", func() {
-			flyCmd := exec.Command(flyPath)
+			flyCmd := exec.Command(flyPath, "e")
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)

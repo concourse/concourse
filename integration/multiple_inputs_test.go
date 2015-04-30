@@ -243,7 +243,7 @@ run:
 
 	It("flies with multiple passengers", func() {
 		flyCmd := exec.Command(
-			flyPath,
+			flyPath, "e",
 			"--input", fmt.Sprintf("buildDir=%s", buildDir), "--input", fmt.Sprintf("s3Asset=%s", s3AssetDir),
 			"--config", filepath.Join(buildDir, "build.yml"),
 		)

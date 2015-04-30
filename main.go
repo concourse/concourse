@@ -73,10 +73,8 @@ var varFileFlag = cli.StringSliceFlag{
 var executeFlags = []cli.Flag{
 	buildConfigFlag,
 	inputFlag,
-	insecureFlag,
 	excludeIgnoredFlag,
 	privilegedFlag,
-	targetFlag,
 }
 
 func jobFlag(verb string) cli.StringFlag {
@@ -128,10 +126,10 @@ func main() {
 	app.Name = "fly"
 	app.Usage = "Concourse CLI"
 	app.Version = "0.0.1"
-	app.Action = commands.Execute
-
-	app.Flags = executeFlags
-
+	app.Flags = []cli.Flag{
+		insecureFlag,
+		targetFlag,
+	}
 	app.Commands = []cli.Command{
 		{
 			Name:      "execute",
@@ -149,8 +147,6 @@ func main() {
 			Flags: []cli.Flag{
 				buildFlag("watches"),
 				jobFlag("watches"),
-				insecureFlag,
-				targetFlag,
 			},
 			Action: commands.Watch,
 		},
@@ -162,8 +158,6 @@ func main() {
 			Flags: []cli.Flag{
 				pipelineConfigFlag,
 				jsonFlag,
-				insecureFlag,
-				targetFlag,
 				varFlag,
 				varFileFlag,
 			},
@@ -174,10 +168,6 @@ func main() {
 			ShortName: "s",
 			Usage:     "download and replace the current fly from the target",
 			Action:    commands.Sync,
-			Flags: []cli.Flag{
-				insecureFlag,
-				targetFlag,
-			},
 		},
 		{
 			Name:   "save-target",
@@ -195,10 +185,6 @@ func main() {
 			ShortName: "l",
 			Usage:     "print a Checkman checkfile for the pipeline configuration",
 			Action:    commands.Checklist,
-			Flags: []cli.Flag{
-				insecureFlag,
-				targetFlag,
-			},
 		},
 	}
 
@@ -218,8 +204,6 @@ func takeControl(commandName string) cli.Command {
 			jobFlag(commandName + "s"),
 			buildFlag(commandName + "s"),
 			privilegedFlag,
-			insecureFlag,
-			targetFlag,
 			stepTypeFlag,
 			stepNameFlag,
 			checkFlag,

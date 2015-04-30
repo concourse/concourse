@@ -36,7 +36,7 @@ func Execute(c *cli.Context) {
 	target := returnTarget(c.GlobalString("target"))
 	buildConfig := c.String("config")
 	insecure := c.GlobalBool("insecure")
-	excludeIgnored := c.GlobalBool("exclude-ignored")
+	excludeIgnored := c.Bool("exclude-ignored")
 
 	atcRequester := newAtcRequester(target, insecure)
 

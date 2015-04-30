@@ -76,18 +76,14 @@ var _ = Describe("Syncing", func() {
 		os.RemoveAll(newFlyDir)
 	})
 
-	sync := func(args ...string) {
-		flyCmd := exec.Command(newFlyPath, append([]string{"sync"}, args...)...)
+	It("downloads and replaces the currently running executable", func() {
+		flyCmd := exec.Command(newFlyPath, "-k", "sync")
 
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		<-sess.Exited
 		Ω(sess.ExitCode()).Should(Equal(0))
-	}
-
-	It("downloads and replaces the currently running executable", func() {
-		sync("-k")
 
 		contents, err := ioutil.ReadFile(newFlyPath)
 		Ω(err).ShouldNot(HaveOccurred())
