@@ -28,6 +28,7 @@ func NewHandler(
 				if err != nil {
 					log.Fatal("failed-to-task-template", err, lager.Data{})
 				}
+				return
 			}
 
 			logger.Error("failed-to-load-pipelinedb", err)
