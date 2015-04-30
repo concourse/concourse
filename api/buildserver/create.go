@@ -23,12 +23,14 @@ func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = s.engine.CreateBuild(build, plan)
+	engineBuild, err := s.engine.CreateBuild(build, plan)
 	if err != nil {
 		s.logger.Error("failed-to-start-build", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	go engineBuild.Resume(s.logger)
 
 	w.WriteHeader(http.StatusCreated)
 

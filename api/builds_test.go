@@ -6,10 +6,12 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"sync"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
+	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -64,6 +66,26 @@ var _ = Describe("Builds API", func() {
 				})
 
 				Context("and building succeeds", func() {
+					var fakeBuild *enginefakes.FakeBuild
+					var blockForever *sync.WaitGroup
+
+					BeforeEach(func() {
+						fakeBuild = new(enginefakes.FakeBuild)
+
+						blockForever = new(sync.WaitGroup)
+						blockForever.Add(1)
+
+						fakeBuild.ResumeStub = func(lager.Logger) {
+							blockForever.Wait()
+						}
+
+						fakeEngine.CreateBuildReturns(fakeBuild, nil)
+					})
+
+					AfterEach(func() {
+						blockForever.Done()
+					})
+
 					It("returns 201 Created", func() {
 						Ω(response.StatusCode).Should(Equal(http.StatusCreated))
 					})
@@ -81,7 +103,7 @@ var _ = Describe("Builds API", func() {
 						}`))
 					})
 
-					It("runs a one-off build", func() {
+					It("creates a one-off build and runs it asynchronously", func() {
 						Ω(buildsDB.CreateOneOffBuildCallCount()).Should(Equal(1))
 
 						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
@@ -94,6 +116,8 @@ var _ = Describe("Builds API", func() {
 							Status:       db.StatusStarted,
 						}))
 						Ω(builtPlan).Should(Equal(plan))
+
+						Ω(fakeBuild.ResumeCallCount()).Should(Equal(1))
 					})
 				})
 
