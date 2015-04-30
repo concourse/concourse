@@ -124,13 +124,6 @@ that you send to Concourse to just those that are not ignored.
 If your task needs to run as @code{root} then you can specify the @code{-p}
 or @code{--privileged} flag.
 
-The default @code{fly} command is @code{execute}, so you can just run the
-following to get the same effect:
-
-@codeblock|{
-$ fly
-}|
-
 @subsection{Multiple Inputs to Locally Submitted Tasks}
 
 Tasks in Concourse can take multiple inputs. Up until now we've just been
