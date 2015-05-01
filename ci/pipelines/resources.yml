@@ -19,6 +19,7 @@ groups:
 jobs:
 - name: git-resource
   serial: true
+  public: true
   plan:
   - get: git-resource
   - put: git-resource-image
@@ -37,6 +38,7 @@ jobs:
 
 - name: docker-image-resource
   serial: true
+  public: true
   plan:
   - get: docker-image-resource
   - put: docker-image-resource-image
@@ -55,6 +57,7 @@ jobs:
 
 - name: time-resource
   serial: true
+  public: true
   plan:
   - get: time-resource
   - task: unit
@@ -75,6 +78,7 @@ jobs:
 
 - name: archive-resource
   serial: true
+  public: true
   plan:
   - get: archive-resource
   - task: unit
@@ -95,6 +99,7 @@ jobs:
 
 - name: bosh-deployment-resource
   serial: true
+  public: true
   plan:
   - get: bosh-deployment-resource
   - task: unit
@@ -122,6 +127,7 @@ jobs:
 
 - name: s3-resource
   serial: true
+  public: true
   plan:
   - get: s3-resource
   - task: unit
@@ -142,6 +148,7 @@ jobs:
 
 - name: github-release-resource
   serial: true
+  public: true
   plan:
   - get: github-release-resource
   - task: unit
@@ -162,6 +169,7 @@ jobs:
 
 - name: cf-resource
   serial: true
+  public: true
   plan:
   - aggregate:
     - get: cf-resource
@@ -188,6 +196,7 @@ jobs:
 
 - name: semver-resource
   serial: true
+  public: false # easy to leak bucket params
   plan:
   - get: semver-resource
   - task: unit
@@ -214,6 +223,7 @@ jobs:
 
 - name: bosh-io-release-resource
   serial: true
+  public: true
   plan:
   - get: bosh-io-release-resource
   - put: bosh-io-release-resource-image
@@ -232,6 +242,7 @@ jobs:
 
 - name: bosh-io-stemcell-resource
   serial: true
+  public: true
   plan:
   - get: bosh-io-stemcell-resource
   - put: bosh-io-stemcell-resource-image
@@ -250,6 +261,7 @@ jobs:
 
 - name: tracker-resource
   serial: true
+  public: true
   plan:
   - get: tracker-resource
   - task: unit
@@ -270,6 +282,7 @@ jobs:
 
 - name: vagrant-cloud-resource
   serial: true
+  public: true
   plan:
   - get: vagrant-cloud-resource
   - put: vagrant-cloud-resource-image
