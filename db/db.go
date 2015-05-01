@@ -39,6 +39,8 @@ type DB interface {
 
 	Workers() ([]WorkerInfo, error) // auto-expires workers based on ttl
 	SaveWorker(WorkerInfo, time.Duration) error
+
+	GetConfigByBuildID(buildID int) (atc.Config, ConfigVersion, error)
 }
 
 //go:generate counterfeiter . Notifier

@@ -15,7 +15,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
 	enginefakes "github.com/concourse/atc/engine/fakes"
 )
 
@@ -228,11 +227,10 @@ var _ = Describe("Builds API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/pipelines/:pipeline_name/builds/:build_id/events", func() {
+	Describe("GET /api/v1/builds/:build_id/events", func() {
 		var (
-			request    *http.Request
-			response   *http.Response
-			pipelineDB *dbfakes.FakePipelineDB
+			request  *http.Request
+			response *http.Response
 		)
 
 		BeforeEach(func() {
@@ -242,11 +240,8 @@ var _ = Describe("Builds API", func() {
 				JobName: "some-job",
 			}, nil)
 
-			request, err = http.NewRequest("GET", server.URL+"/api/v1/pipelines/some-pipeline/builds/128/events", nil)
+			request, err = http.NewRequest("GET", server.URL+"/api/v1/builds/128/events", nil)
 			Ω(err).ShouldNot(HaveOccurred())
-
-			pipelineDB = new(dbfakes.FakePipelineDB)
-			pipelineDBFactory.BuildWithNameReturns(pipelineDB, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -254,12 +249,6 @@ var _ = Describe("Builds API", func() {
 
 			response, err = client.Do(request)
 			Ω(err).ShouldNot(HaveOccurred())
-		})
-
-		It("looks up the pipelineDB by name", func() {
-			Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
-			pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
-			Ω(pipelineName).Should(Equal("some-pipeline"))
 		})
 
 		Context("when authenticated", func() {
@@ -288,13 +277,15 @@ var _ = Describe("Builds API", func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
 
-			It("looks up the config from the pipelineDB", func() {
-				Ω(pipelineDB.GetConfigCallCount()).Should(Equal(1))
+			It("looks up the config from the buildsDB", func() {
+				Ω(buildsDB.GetConfigByBuildIDCallCount()).Should(Equal(1))
+				buildID := buildsDB.GetConfigByBuildIDArgsForCall(0)
+				Ω(buildID).Should(Equal(128))
 			})
 
 			Context("and the build is private", func() {
 				BeforeEach(func() {
-					pipelineDB.GetConfigReturns(atc.Config{
+					buildsDB.GetConfigByBuildIDReturns(atc.Config{
 						Jobs: atc.JobConfigs{
 							{Name: "some-job", Public: false},
 						},
@@ -308,7 +299,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("and the build is public", func() {
 				BeforeEach(func() {
-					pipelineDB.GetConfigReturns(atc.Config{
+					buildsDB.GetConfigByBuildIDReturns(atc.Config{
 						Jobs: atc.JobConfigs{
 							{Name: "some-job", Public: true},
 						},

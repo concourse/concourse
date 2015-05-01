@@ -19,7 +19,7 @@ var _ = Describe("SQL DB", func() {
 
 	var sqlDB *db.SQLDB
 	var pipelineDB db.PipelineDB
-
+	var pipelineDBFactory db.PipelineDBFactory
 	var dbSharedBehaviorInput = dbSharedBehaviorInput{}
 
 	BeforeEach(func() {
@@ -34,7 +34,7 @@ var _ = Describe("SQL DB", func() {
 		sqlDB = db.NewSQL(lagertest.NewTestLogger("test"), dbConn, bus)
 
 		sqlDB.SaveConfig("some-pipeline", atc.Config{}, db.ConfigVersion(1))
-		pipelineDBFactory := db.NewPipelineDBFactory(lagertest.NewTestLogger("test"), dbConn, bus, sqlDB)
+		pipelineDBFactory = db.NewPipelineDBFactory(lagertest.NewTestLogger("test"), dbConn, bus, sqlDB)
 
 		pipelineDB, err = pipelineDBFactory.BuildWithName("some-pipeline")
 		Ω(err).ShouldNot(HaveOccurred())
@@ -205,6 +205,19 @@ var _ = Describe("SQL DB", func() {
 					},
 				},
 			))
+		})
+
+		It("can lookup configs by build id", func() {
+			err := sqlDB.SaveConfig("my-pipeline", config, 0)
+
+			myPipelineDB, err := pipelineDBFactory.BuildWithName("my-pipeline")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			build, err := myPipelineDB.CreateJobBuild("some-job")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			gottenConfig, _, err := sqlDB.GetConfigByBuildID(build.ID)
+			Ω(gottenConfig).Should(Equal(config))
 		})
 
 		It("can manage multiple pipeline configurations", func() {

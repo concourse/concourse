@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
@@ -35,6 +36,7 @@ type BuildsDB interface {
 	GetAllBuilds() ([]db.Build, error)
 
 	CreateOneOffBuild() (db.Build, error)
+	GetConfigByBuildID(buildID int) (atc.Config, db.ConfigVersion, error)
 }
 
 func NewServer(

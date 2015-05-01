@@ -4,6 +4,7 @@ package fakes
 import (
 	"sync"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/db"
 )
@@ -41,6 +42,16 @@ type FakeBuildsDB struct {
 	createOneOffBuildReturns struct {
 		result1 db.Build
 		result2 error
+	}
+	GetConfigByBuildIDStub        func(buildID int) (atc.Config, db.ConfigVersion, error)
+	getConfigByBuildIDMutex       sync.RWMutex
+	getConfigByBuildIDArgsForCall []struct {
+		buildID int
+	}
+	getConfigByBuildIDReturns struct {
+		result1 atc.Config
+		result2 db.ConfigVersion
+		result3 error
 	}
 }
 
@@ -159,6 +170,40 @@ func (fake *FakeBuildsDB) CreateOneOffBuildReturns(result1 db.Build, result2 err
 		result1 db.Build
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeBuildsDB) GetConfigByBuildID(buildID int) (atc.Config, db.ConfigVersion, error) {
+	fake.getConfigByBuildIDMutex.Lock()
+	fake.getConfigByBuildIDArgsForCall = append(fake.getConfigByBuildIDArgsForCall, struct {
+		buildID int
+	}{buildID})
+	fake.getConfigByBuildIDMutex.Unlock()
+	if fake.GetConfigByBuildIDStub != nil {
+		return fake.GetConfigByBuildIDStub(buildID)
+	} else {
+		return fake.getConfigByBuildIDReturns.result1, fake.getConfigByBuildIDReturns.result2, fake.getConfigByBuildIDReturns.result3
+	}
+}
+
+func (fake *FakeBuildsDB) GetConfigByBuildIDCallCount() int {
+	fake.getConfigByBuildIDMutex.RLock()
+	defer fake.getConfigByBuildIDMutex.RUnlock()
+	return len(fake.getConfigByBuildIDArgsForCall)
+}
+
+func (fake *FakeBuildsDB) GetConfigByBuildIDArgsForCall(i int) int {
+	fake.getConfigByBuildIDMutex.RLock()
+	defer fake.getConfigByBuildIDMutex.RUnlock()
+	return fake.getConfigByBuildIDArgsForCall[i].buildID
+}
+
+func (fake *FakeBuildsDB) GetConfigByBuildIDReturns(result1 atc.Config, result2 db.ConfigVersion, result3 error) {
+	fake.GetConfigByBuildIDStub = nil
+	fake.getConfigByBuildIDReturns = struct {
+		result1 atc.Config
+		result2 db.ConfigVersion
+		result3 error
+	}{result1, result2, result3}
 }
 
 var _ buildserver.BuildsDB = new(FakeBuildsDB)

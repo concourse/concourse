@@ -97,7 +97,7 @@ func NewHandler(
 
 		atc.ListBuilds:  http.HandlerFunc(buildServer.ListBuilds),
 		atc.CreateBuild: validate(http.HandlerFunc(buildServer.CreateBuild)),
-		atc.BuildEvents: pipelineHandlerFactory.HandlerFor(buildServer.BuildEvents),
+		atc.BuildEvents: http.HandlerFunc(buildServer.BuildEvents),
 		atc.AbortBuild:  validate(http.HandlerFunc(buildServer.AbortBuild)),
 
 		atc.ListJobs:      pipelineHandlerFactory.HandlerFor(jobServer.ListJobs),
