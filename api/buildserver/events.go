@@ -33,13 +33,16 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 		}
 
 		config, _, err := s.configDB.GetConfig(atc.DefaultPipelineName)
+
 		if err != nil {
+			s.logger.Error("failed-to-get-config", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		public, err := config.JobIsPublic(build.JobName)
 		if err != nil {
+			s.logger.Error("failed-to-see-job-is-public", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
