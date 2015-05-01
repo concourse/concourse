@@ -49,10 +49,10 @@ resources/cf-resource.tar.gz:
     MGYyN2QzNzdiMjkwMTdlMTM4MTg2M2EyMGJmMTg0NjJiYmUxZDYyZQ==
   size: 12731951
 resources/github-release-resource.tar.gz:
-  object_id: bac6b719-74d5-44b4-a40f-237f6bff5022
+  object_id: 704f07cb-2425-41ed-bb7f-c0d7402d5a04
   sha: !binary |-
-    NzhiOTg2ZDE1OWMyYmEyNWEyOGQ4NGM3NWQxYWIwZGFkOTdlMDIzYw==
-  size: 8841271
+    YmNjMWQxZmI4NWQwM2RjNTI3ZGQ1M2ZlMDQ5NWVhODlmNzBmOWRkNg==
+  size: 8841286
 consul_0.5/consul:
   object_id: 97b99488-7553-47f0-8294-ad1f8533b164
   sha: f461a632165ce878045afaaf04de699510e53374
