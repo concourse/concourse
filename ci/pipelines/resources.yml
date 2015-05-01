@@ -80,7 +80,7 @@ jobs:
   - task: unit
     file: archive-resource/build.yml
   - put: archive-resource-image
-    params: {build: unit/archive-resource}
+    params: {build: unit/build-root}
   - aggregate:
     - get: resource-image
       resource: archive-resource-image
@@ -255,7 +255,7 @@ jobs:
   - task: unit
     file: tracker-resource/build.yml
   - put: tracker-resource-image
-    params: {build: gopath/src/github.com/concourse/tracker-resource}
+    params: {build: unit/build-root}
   - aggregate:
     - get: resource-image
       resource: tracker-resource-image
