@@ -245,6 +245,8 @@ var _ = Describe("Builds API", func() {
 			request, err = http.NewRequest("GET", server.URL+"/api/v1/pipelines/some-pipeline/builds/128/events", nil)
 			Ω(err).ShouldNot(HaveOccurred())
 
+			pipelineDB = new(dbfakes.FakePipelineDB)
+			pipelineDBFactory.BuildWithNameReturns(pipelineDB, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -254,21 +256,19 @@ var _ = Describe("Builds API", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
+		It("looks up the pipelineDB by name", func() {
+			Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+			pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+			Ω(pipelineName).Should(Equal("some-pipeline"))
+		})
+
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				pipelineDB = new(dbfakes.FakePipelineDB)
-				pipelineDBFactory.BuildWithNameReturns(pipelineDB, nil)
 			})
 
 			It("returns 200", func() {
 				Ω(response.StatusCode).Should(Equal(200))
-			})
-
-			It("looks up the pipelineDB by name", func() {
-				Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
-				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
-				Ω(pipelineName).Should(Equal("some-pipeline"))
 			})
 
 			It("serves the request via the event handler with no censor", func() {
@@ -288,9 +288,13 @@ var _ = Describe("Builds API", func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
 
+			It("looks up the config from the pipelineDB", func() {
+				Ω(pipelineDB.GetConfigCallCount()).Should(Equal(1))
+			})
+
 			Context("and the build is private", func() {
 				BeforeEach(func() {
-					configDB.GetConfigReturns(atc.Config{
+					pipelineDB.GetConfigReturns(atc.Config{
 						Jobs: atc.JobConfigs{
 							{Name: "some-job", Public: false},
 						},
@@ -304,7 +308,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("and the build is public", func() {
 				BeforeEach(func() {
-					configDB.GetConfigReturns(atc.Config{
+					pipelineDB.GetConfigReturns(atc.Config{
 						Jobs: atc.JobConfigs{
 							{Name: "some-job", Public: true},
 						},

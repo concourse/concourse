@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 )
@@ -34,7 +33,7 @@ func (s *Server) BuildEvents(pipelineDB db.PipelineDB) http.Handler {
 				return
 			}
 
-			config, _, err := s.configDB.GetConfig(atc.DefaultPipelineName)
+			config, _, err := pipelineDB.GetConfig()
 
 			if err != nil {
 				s.logger.Error("failed-to-get-config", err)
