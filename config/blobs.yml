@@ -62,10 +62,10 @@ golang_1.4/go1.4.2.src.tar.gz:
   sha: 460caac03379f746c473814a65223397e9c9a2f6
   size: 10921896
 resources/bosh-io-stemcell-resource.tar.gz:
-  object_id: 215c153d-3505-48e1-aa01-dfcfc34130f8
+  object_id: 6709e19c-369b-4d0d-bf25-f7d655024c9f
   sha: !binary |-
-    ZDUwMjEzYTU0Nzc4YmM1ODA3MDUyZGRjOTAyOTU5MTU5NDgyMjEyNQ==
-  size: 8407356
+    Y2E0OGFlMmRlM2EzYTQ2YzU4N2ZjNWNhZGYzYWY4Yzc1NGMyYzI0OA==
+  size: 8407988
 resources/bosh-io-release-resource.tar.gz:
   object_id: 8b247e46-8f37-4656-bda8-9fd65d05df98
   sha: !binary |-
