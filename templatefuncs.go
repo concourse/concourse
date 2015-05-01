@@ -87,8 +87,7 @@ func PathFor(route string, args ...interface{}) (string, error) {
 
 	case atc.BuildEvents:
 		return atc.Routes.CreatePathForRoute(route, rata.Params{
-			"pipeline_name": args[0].(string),
-			"build_id":      fmt.Sprintf("%d", args[1].(db.Build).ID),
+			"build_id": fmt.Sprintf("%d", args[0].(db.Build).ID),
 		})
 
 	case atc.EnableResourceVersion, atc.DisableResourceVersion:
