@@ -15,6 +15,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	dbfakes "github.com/concourse/atc/db/fakes"
 	enginefakes "github.com/concourse/atc/engine/fakes"
 )
 
@@ -227,22 +228,23 @@ var _ = Describe("Builds API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/builds/:build_id/events", func() {
+	Describe("GET /api/v1/pipelines/:pipeline_name/builds/:build_id/events", func() {
 		var (
-			request  *http.Request
-			response *http.Response
+			request    *http.Request
+			response   *http.Response
+			pipelineDB *dbfakes.FakePipelineDB
 		)
 
 		BeforeEach(func() {
 			var err error
-
 			buildsDB.GetBuildReturns(db.Build{
 				ID:      128,
 				JobName: "some-job",
 			}, nil)
 
-			request, err = http.NewRequest("GET", server.URL+"/api/v1/builds/128/events", nil)
+			request, err = http.NewRequest("GET", server.URL+"/api/v1/pipelines/some-pipeline/builds/128/events", nil)
 			Ω(err).ShouldNot(HaveOccurred())
+
 		})
 
 		JustBeforeEach(func() {
@@ -255,10 +257,18 @@ var _ = Describe("Builds API", func() {
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				pipelineDB = new(dbfakes.FakePipelineDB)
+				pipelineDBFactory.BuildWithNameReturns(pipelineDB, nil)
 			})
 
 			It("returns 200", func() {
 				Ω(response.StatusCode).Should(Equal(200))
+			})
+
+			It("looks up the pipelineDB by name", func() {
+				Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+				Ω(pipelineName).Should(Equal("some-pipeline"))
 			})
 
 			It("serves the request via the event handler with no censor", func() {

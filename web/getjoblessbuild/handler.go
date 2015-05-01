@@ -41,8 +41,9 @@ func NewHandler(logger lager.Logger, db BuildDB, configDB db.ConfigDB, template 
 }
 
 type TemplateData struct {
-	Build       db.Build
-	GroupStates []group.State
+	Build        db.Build
+	GroupStates  []group.State
+	PipelineName string
 }
 
 var ErrInvalidBuildID = errors.New("invalid build id")
@@ -64,8 +65,9 @@ func FetchTemplateData(buildID string, buildDB BuildDB, configDB db.ConfigDB) (T
 	}
 
 	return TemplateData{
-		Build:       build,
-		GroupStates: group.UnhighlightedStates(config.Groups),
+		Build:        build,
+		GroupStates:  group.UnhighlightedStates(config.Groups),
+		PipelineName: atc.DefaultPipelineName, // pipeline name will be ignored by the handler, but it needs to be set to avoid two endpoints for build events
 	}, nil
 }
 
