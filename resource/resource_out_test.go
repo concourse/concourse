@@ -99,6 +99,10 @@ var _ = Describe("Resource Out", func() {
 		outProcess = ifrit.Invoke(versionedSource)
 	})
 
+	AfterEach(func() {
+		Eventually(outProcess.Wait()).Should(Receive())
+	})
+
 	itCanStreamOut := func() {
 		Describe("streaming bits out", func() {
 			Context("when streaming out succeeds", func() {
