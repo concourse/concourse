@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web/group"
 	"github.com/pivotal-golang/lager"
@@ -58,14 +57,9 @@ func FetchTemplateData(buildID string, buildDB BuildDB, configDB db.ConfigDB) (T
 		return TemplateData{}, err
 	}
 
-	config, _, err := configDB.GetConfig(atc.DefaultPipelineName)
-	if err != nil {
-		return TemplateData{}, err
-	}
-
 	return TemplateData{
 		Build:       build,
-		GroupStates: group.UnhighlightedStates(config.Groups),
+		GroupStates: []group.State{},
 	}, nil
 }
 
