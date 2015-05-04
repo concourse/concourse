@@ -5,7 +5,7 @@ RUN apt-get update && \
         libxml2-dev libxslt-dev libcurl4-openssl-dev \
         build-essential zlib1g-dev libssl-dev libreadline6-dev libyaml-dev
 
-ADD https://github.com/cloudfoundry-incubator/spiff/releases/download/v1.0.3/spiff_linux_amd64.zip /tmp/
+ADD https://github.com/cloudfoundry-incubator/spiff/releases/download/v1.0.5/spiff_linux_amd64.zip /tmp/
 RUN unzip /tmp/spiff_linux_amd64.zip -d /usr/local/bin
 RUN rm /tmp/spiff_linux_amd64.zip
 
