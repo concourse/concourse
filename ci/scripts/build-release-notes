@@ -16,7 +16,8 @@ cd concourse-develop/
 
 echo v${version} > release-name
 
-raco scribble --dest-name notes.md --markdown \
+./docs/scripts/with-collects.sh \
+  raco scribble --dest-name notes.md --markdown \
   docs/release-notes/v${version}.scrbl
 
 if [ "$STRIP_HEADER" = "true" ]; then

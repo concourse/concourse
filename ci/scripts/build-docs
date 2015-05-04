@@ -15,7 +15,8 @@ site_id=${SITE_ID}
 
 cd concourse-develop/docs/
 
-raco scribble \
+./scripts/with-collects.sh \
+  raco scribble \
   ++arg --version ++arg "$version" \
   ++arg --analytics-id ++arg "$ANALYTICS_ID" \
   ++arg --gauges-id ++arg "$GAUGES_ID" \

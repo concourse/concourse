@@ -1,4 +1,4 @@
-#lang scribble/manual
+#lang concourse/docs
 
 @title[#:style '(quiet unnumbered)]{v0.43.0}
 
