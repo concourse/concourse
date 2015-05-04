@@ -1,4 +1,4 @@
-#lang scribble/manual
+#lang concourse/docs
 
 @(require "../common.rkt")
 

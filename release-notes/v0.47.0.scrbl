@@ -1,4 +1,4 @@
-#lang scribble/manual
+#lang concourse/docs
 
 @title[#:style '(quiet unnumbered)]{v0.47.0}
 
@@ -10,23 +10,17 @@
 @itemlist[
   @item{
     A single Concourse deployment can now be configured with multiple
-    pipelines. See the new docs for
-    @hyperlink["http://concourse.ci/fly-cli.html#%28part._fly-configure%29"]{@code{fly
-    configure}} for more information.
+    pipelines. See the new docs for @secref{fly-configure} for more information.
   }
 
   @item{
-    Fly now supports saving targets by name. See
-    @hyperlink["http://concourse.ci/fly-cli.html#%28part._fly-save-target%29"]{@code{fly
-    save-target}} for more information.
+    Fly now supports saving targets by name. See @secref{fly-save-target} for more information.
   }
 
   @item{
-    You can now run
-    @hyperlink["http://concourse.ci/fly-cli.html#%28part._fly-execute%29"]{@code{fly
-    execute}} against a deployment with multiple ATCs. Previously this would
-    fail when downloading the inputs.
-    
+    You can now run @secref{fly-execute} against a deployment with multiple
+    ATCs. Previously this would fail when downloading the inputs.
+
     With this change you should be able to scale up ATCs for high availability
     and everything should "just work." They already balance work across each
     other, this was just the last remaining thing preventing it from being

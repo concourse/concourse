@@ -6,5 +6,5 @@ install:
 	raco pkg install --auto -j 4 scribble || true
 
 build:
-	raco scribble ++arg --version ++arg ${VERSION} --htmls concourse.scrbl
+	./scripts/with-collects.sh raco scribble ++arg --version ++arg ${VERSION} --htmls concourse.scrbl
 
