@@ -50,6 +50,8 @@ type Notifier interface {
 	Close() error
 }
 
+//go:generate counterfeiter . PipelinesDB
+
 type PipelinesDB interface {
 	GetAllActivePipelines() ([]SavedPipeline, error)
 	GetPipelineByName(pipelineName string) (SavedPipeline, error)

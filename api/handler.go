@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/atc/api/hijackserver"
 	"github.com/concourse/atc/api/jobserver"
 	"github.com/concourse/atc/api/loglevelserver"
+	"github.com/concourse/atc/api/pipelineserver"
 	"github.com/concourse/atc/api/pipes"
 	"github.com/concourse/atc/api/resourceserver"
 	"github.com/concourse/atc/api/workerserver"
@@ -34,6 +35,7 @@ func NewHandler(
 	buildsDB buildserver.BuildsDB,
 	workerDB workerserver.WorkerDB,
 	pipeDB pipes.PipeDB,
+	pipelinesDB db.PipelinesDB,
 
 	configValidator configserver.ConfigValidator,
 	peerURL string,
@@ -74,6 +76,8 @@ func NewHandler(
 	resourceServer := resourceserver.NewServer(logger, validator)
 	pipeServer := pipes.NewServer(logger, peerURL, pipeDB)
 
+	pipelineServer := pipelineserver.NewServer(logger, pipelinesDB)
+
 	configServer := configserver.NewServer(logger, configDB, configValidator)
 
 	workerServer := workerserver.NewServer(logger, workerDB)
@@ -106,6 +110,8 @@ func NewHandler(
 		atc.GetJobBuild:   pipelineHandlerFactory.HandlerFor(jobServer.GetJobBuild),
 		atc.PauseJob:      validate(pipelineHandlerFactory.HandlerFor(jobServer.PauseJob)),
 		atc.UnpauseJob:    validate(pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob)),
+
+		atc.ListPipelines: http.HandlerFunc(pipelineServer.ListPipelines),
 
 		atc.ListResources:          pipelineHandlerFactory.HandlerFor(resourceServer.ListResources),
 		atc.EnableResourceVersion:  validate(pipelineHandlerFactory.HandlerFor(resourceServer.EnableResourceVersion)),

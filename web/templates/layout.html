@@ -3,17 +3,28 @@
   <head>
     <title>{{template "title" .}}</title>
     <link href="{{asset "main.css"}}" media="all" rel="stylesheet" type="text/css" />
-  </head>
-  <body>
-    <nav>
-      <ul class="groups"><li class="main"><a href="/"><i class="fa fa-home"></i></a></li>{{range .GroupStates}}<li{{if .Enabled}} class="active"{{end}}><a href="/?groups={{.Name}}">{{.Name}}</a></li>{{end}}</ul>
-      <ul class="nav-right">
-        <li class="nav-item"><a href="/builds"><i class="fa fa-tasks"></i></a></li>
-      </ul>
-    </nav>
 
-    <div id="content">
-    {{template "body" .}}
+  </head>
+  <body class="pipelinesNav-enabled">
+    <div class="js-pipelinesNav">
+      <div class="nav-container">
+        <ul class="pipelines js-pipelinesNav-list"></ul>
+      </div>
+
+      <div class="page-to-slide">
+        <nav>
+          <ul class="groups">
+            <li class="main"><span class="js-pipelinesNav-toggle btn-hamburger"><i class="fa fa-bars"></i></span></li><li class="main"><a href="/"><i class="fa fa-home"></i></a></li>{{range .GroupStates}}<li{{if .Enabled}} class="active"{{end}}><a href="/?groups={{.Name}}">{{.Name}}</a></li>{{end}}
+          </ul>
+          <ul class="nav-right">
+            <li class="nav-item"><a href="/builds"><i class="fa fa-tasks"></i></a></li>
+          </ul>
+        </nav>
+
+        <div id="content">
+        {{template "body" .}}
+        </div>
+      </div>
     </div>
   </body>
 </html>

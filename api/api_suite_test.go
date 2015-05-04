@@ -35,6 +35,7 @@ var (
 	workerDB            *workerserverfakes.FakeWorkerDB
 	pipeDB              *pipeserverfakes.FakePipeDB
 	pipelineDBFactory   *dbfakes.FakePipelineDBFactory
+	pipelinesDB         *dbfakes.FakePipelinesDB
 	configValidationErr error
 	peerAddr            string
 	drain               chan struct{}
@@ -77,6 +78,7 @@ var _ = BeforeEach(func() {
 	pipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 	workerDB = new(workerserverfakes.FakeWorkerDB)
 	pipeDB = new(pipeserverfakes.FakePipeDB)
+	pipelinesDB = new(dbfakes.FakePipelinesDB)
 
 	authValidator = new(authfakes.FakeValidator)
 	configValidationErr = nil
@@ -108,6 +110,7 @@ var _ = BeforeEach(func() {
 		buildsDB,
 		workerDB,
 		pipeDB,
+		pipelinesDB,
 
 		func(atc.Config) error { return configValidationErr },
 		peerAddr,

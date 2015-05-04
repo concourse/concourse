@@ -3,13 +3,19 @@
 {{define "body"}}
 <div id="page-header" class="{{.Build.Status}}">
   <div class="build-header js-build" data-build-id="{{.Build.ID}}">
-    <form class="trigger-build" method="post" action="{{url "TriggerBuild" .PipelineName .Job}}">
-      <button class="build-action fr"><i class="fa fa-plus-circle"></i></button>
-    </form>
 
-    {{if .Build.Abortable}}
-    <span class="build-action build-action-abort fr js-abortBuild"><i class="fa fa-times-circle"></i></span>
-    {{end}}
+
+    <div class="build-actions fr">
+
+      <form class="trigger-build" method="post" action="{{url "TriggerBuild" .PipelineName .Job}}">
+        <button class="build-action fr"><i class="fa fa-plus-circle"></i></button>
+      </form>
+
+
+      {{if .Build.Abortable}}
+      <span class="build-action build-action-abort js-abortBuild fr"><i class="fa fa-times-circle"></i></span>
+      {{end}}
+    </div>
 
     <h1><a href="{{url "GetJob" .PipelineName .Job}}">{{.Job.Name}} #{{.Build.Name}}</a></h1>
 

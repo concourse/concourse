@@ -1,0 +1,178 @@
+@import (reference) "_vars.less";
+
+@sidebarWidth: 200px;
+
+.pipelinesNav-enabled #pipeline {
+  left: 0;
+  transition: left 0.5s 0s;
+}
+
+.pipelinesNav-visible #pipeline {
+  left: @sidebarWidth + 5px;
+  transition: left 0.5s 0s;
+}
+
+
+.pipelinesNav-enabled .build-actions {
+  margin-right: 5px;
+
+  transition: margin-right 0.5s 0s;
+}
+
+.pipelinesNav-visible .build-actions {
+  margin-right:  @sidebarWidth + 5px;
+
+  transition: margin-right 0.5s 0s;
+}
+
+
+
+.pipelinesNav-enabled #pipeline .legend {
+  left: 1em;
+  transition: left 0.5s 0s;
+}
+
+.pipelinesNav-visible #pipeline .legend {
+  left:  @sidebarWidth + 5px;
+  transition: left 0.5s 0s;
+}
+
+
+
+.pipelinesNav-enabled #content{
+  margin-left: 0;
+  transition: margin-left 0.5s 0s, left 0.5s 0s;
+}
+
+.pipelinesNav-visible #content{
+  margin-left: @sidebarWidth;
+  transition: margin-left 0.5s 0s, left 0.5s 0s;
+}
+
+
+
+.pipelinesNav-enabled .pipelines {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  height: 100%;
+
+  width: @sidebarWidth;
+  background: @base00;
+
+  -webkit-transform: rotateY(-90deg);
+  transform: rotateY(-90deg);
+
+  -webkit-transform-origin: right center;
+  transform-origin: right center;
+
+
+  -webkit-transition: -webkit-transform 0.5s 0s;
+  transition: transform 0.5s 0s;
+  position: fixed;
+  top: 40px;
+}
+
+.pipelinesNav-visible .pipelines {
+  visibility: visible;
+  -webkit-transform: translateX(0);
+  transform: translateX(0);
+
+
+  -webkit-transition: -webkit-transform 0.5s 0s;
+  transition: transform 0.5s 0s, visibility 0.5s 0s;
+}
+
+.pipelinesNav-enabled .pipelines::after {
+  /* menu dark cover layer - to enhance perspective effect */
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: @sidebarWidth;
+  background: linear-gradient(to right, #000000, rgba(0,0,0,.1));
+  opacity: 1;
+  visibility: visible;
+
+  -webkit-transition: opacity 0.5s 0s, visibility 0.5s 0s;
+  -moz-transition: opacity 0.5s 0s, visibility 0.5s 0s;
+  transition: opacity 0.5s 0s, visibility 0.5s 0s;
+}
+
+.pipelinesNav-enabled .pipelines li {
+  padding: 0;
+  margin: 0;
+  text-align: right;
+  background: @base00;
+  border-bottom: 1px solid @base02;
+
+  &:hover {
+    background: @base01;
+  }
+
+  & a {
+    display: block;
+    padding: 10px;
+  }
+}
+
+.nav-container {
+  /* this is the 3D navigation container */
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+
+
+  width: @sidebarWidth;
+  background-color: @base00;
+
+  /* enable a 3D-space for children elements */
+  -webkit-perspective: 1000px;
+  perspective: 1000px;
+  -webkit-transform: translateX(-@sidebarWidth);
+  transform: translateX(-@sidebarWidth);
+
+
+  -webkit-transition: -webkit-transform 0.5s 0s;
+  transition: transform 0.5s 0s, visibility 0s 0.5s;
+}
+
+.pipelinesNav-visible .nav-container {
+  visibility: visible;
+
+  -webkit-transform: translateX(0);
+  transform: translateX(0);
+
+  -webkit-transition: -webkit-transform 0.5s 0s;
+  transition: transform 0.5s 0s, visibility 0.5s 0s;
+}
+
+.pipelinesNav-visible .pipelines {
+  background-color: @base00;
+  /* Force Hardware Acceleration */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+
+  -webkit-transform-origin: right center;
+  transform-origin: right center;
+
+  -webkit-transform: rotateY(0deg);
+  transform: rotateY(0deg);
+
+
+  -webkit-transition: -webkit-transform 0.5s;
+
+  transition: transform 0.5s;
+}
+
+.pipelinesNav-visible .pipelines::after {
+  /* menu cover layer - hide it when navigation is visible */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.5s 0s, visibility 0s 0.5s;
+}

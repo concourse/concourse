@@ -284,6 +284,7 @@ func main() {
 		db, // buildsDB buildserver.BuildsDB,
 		db, // workerDB workerserver.WorkerDB,
 		db, // pipeDB pipes.PipeDB,
+		db, // pipelinesDB db.PipelinesDB,
 
 		config.ValidateConfig,       // configValidator configserver.ConfigValidator,
 		callbacksURL.String(),       // peerURL string,
