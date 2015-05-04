@@ -801,7 +801,7 @@ var _ = Describe("GardenFactory", func() {
 
 			Context("when an exit status is already saved off", func() {
 				BeforeEach(func() {
-					fakeContainer.GetPropertyStub = func(name string) (string, error) {
+					fakeContainer.PropertyStub = func(name string) (string, error) {
 						switch name {
 						case "concourse:exit-status":
 							return "123", nil
@@ -848,7 +848,7 @@ var _ = Describe("GardenFactory", func() {
 
 			Context("when the process id can be found", func() {
 				BeforeEach(func() {
-					fakeContainer.GetPropertyStub = func(name string) (string, error) {
+					fakeContainer.PropertyStub = func(name string) (string, error) {
 						switch name {
 						case "concourse:task-process":
 							return "42", nil
@@ -909,7 +909,7 @@ var _ = Describe("GardenFactory", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					fakeContainer.GetPropertyReturns("", disaster)
+					fakeContainer.PropertyReturns("", disaster)
 				})
 
 				It("exits with the failure", func() {

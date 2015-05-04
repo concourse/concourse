@@ -579,7 +579,7 @@ var _ = Describe("Retryable", func() {
 		})
 	})
 
-	Describe("GetProperty", func() {
+	Describe("Property", func() {
 		handle := "suitcase"
 		property := "dfghjkl"
 
@@ -587,17 +587,17 @@ var _ = Describe("Retryable", func() {
 
 		itRetries(func() error {
 			var err error
-			gotValue, err = conn.GetProperty(handle, property)
+			gotValue, err = conn.Property(handle, property)
 			return err
 		}, func(err error) {
-			innerConnection.GetPropertyReturns("some-value", err)
+			innerConnection.PropertyReturns("some-value", err)
 		}, func() int {
-			return innerConnection.GetPropertyCallCount()
+			return innerConnection.PropertyCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.GetPropertyCallCount()).Should(Equal(1))
+				Ω(innerConnection.PropertyCallCount()).Should(Equal(1))
 
-				calledHandle, calledProperty := innerConnection.GetPropertyArgsForCall(0)
+				calledHandle, calledProperty := innerConnection.PropertyArgsForCall(0)
 				Ω(calledHandle).Should(Equal(handle))
 				Ω(calledProperty).Should(Equal(property))
 			})

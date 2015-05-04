@@ -176,7 +176,7 @@ var _ = Describe("Resource In", func() {
 
 	Context("when a result is already present on the container", func() {
 		BeforeEach(func() {
-			fakeContainer.GetPropertyStub = func(name string) (string, error) {
+			fakeContainer.PropertyStub = func(name string) (string, error) {
 				switch name {
 				case "concourse:resource-result":
 					return `{
@@ -216,7 +216,7 @@ var _ = Describe("Resource In", func() {
 
 	Context("when /in has already been spawned", func() {
 		BeforeEach(func() {
-			fakeContainer.GetPropertyStub = func(name string) (string, error) {
+			fakeContainer.PropertyStub = func(name string) (string, error) {
 				switch name {
 				case "concourse:resource-process":
 					return "42", nil
@@ -325,7 +325,7 @@ var _ = Describe("Resource In", func() {
 
 	Context("when /in has not yet been spawned", func() {
 		BeforeEach(func() {
-			fakeContainer.GetPropertyStub = func(name string) (string, error) {
+			fakeContainer.PropertyStub = func(name string) (string, error) {
 				switch name {
 				case "concourse:resource-process":
 					return "", errors.New("nope")

@@ -260,12 +260,12 @@ func (conn RetryableConnection) LimitMemory(handle string, limits garden.MemoryL
 	return resultingLimits, nil
 }
 
-func (conn RetryableConnection) GetProperty(handle string, name string) (string, error) {
+func (conn RetryableConnection) Property(handle string, name string) (string, error) {
 	var value string
 
 	err := conn.retry(func() error {
 		var err error
-		value, err = conn.Connection.GetProperty(handle, name)
+		value, err = conn.Connection.Property(handle, name)
 		return err
 	})
 	if err != nil {

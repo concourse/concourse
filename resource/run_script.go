@@ -57,7 +57,7 @@ func (resource *resource) runScript(
 		}
 
 		if recoverable {
-			result, err := resource.container.GetProperty(resourceResultPropertyName)
+			result, err := resource.container.Property(resourceResultPropertyName)
 			if err == nil {
 				return json.Unmarshal([]byte(result), &output)
 			}
@@ -81,7 +81,7 @@ func (resource *resource) runScript(
 
 		var processIDProp string
 		if recoverable {
-			processIDProp, err = resource.container.GetProperty(resourceProcessIDPropertyName)
+			processIDProp, err = resource.container.Property(resourceProcessIDPropertyName)
 			if err != nil {
 				processIDProp = ""
 			}

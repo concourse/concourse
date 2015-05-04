@@ -73,7 +73,7 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	if err == nil {
 		// container already exists; recover session
 
-		exitStatusProp, err := step.container.GetProperty(taskExitStatusPropertyName)
+		exitStatusProp, err := step.container.Property(taskExitStatusPropertyName)
 		if err == nil {
 			// process already completed; recover result
 
@@ -85,7 +85,7 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return nil
 		}
 
-		processIDProp, err := step.container.GetProperty(taskProcessPropertyName)
+		processIDProp, err := step.container.Property(taskProcessPropertyName)
 		if err != nil {
 			// rogue container? perhaps did not shut down cleanly.
 			return err
