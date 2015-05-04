@@ -32,7 +32,7 @@ import (
 func Hijack(c *cli.Context) {
 	target := returnTarget(c.GlobalString("target"))
 	insecure := c.GlobalBool("insecure")
-	privileged := c.Bool("privileged")
+	privileged := true
 	stepType := c.String("step-type")
 	stepName := c.String("step-name")
 	check := c.String("check")

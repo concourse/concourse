@@ -41,6 +41,11 @@ var privilegedFlag = cli.BoolFlag{
 	Usage: "run the build or command with root privileges",
 }
 
+var pipelineFlag = cli.StringFlag{
+	Name:  "pipeline, p",
+	Usage: "the name of the pipeline to act upon",
+}
+
 var checkFlag = cli.StringFlag{
 	Name:  "check, c",
 	Usage: "name of a resource's checking container to hijack",
@@ -147,6 +152,7 @@ func main() {
 			Flags: []cli.Flag{
 				buildFlag("watches"),
 				jobFlag("watches"),
+				pipelineFlag,
 			},
 			Action: commands.Watch,
 		},
@@ -203,7 +209,7 @@ func takeControl(commandName string) cli.Command {
 		Flags: []cli.Flag{
 			jobFlag(commandName + "s"),
 			buildFlag(commandName + "s"),
-			privilegedFlag,
+			pipelineFlag,
 			stepTypeFlag,
 			stepNameFlag,
 			checkFlag,

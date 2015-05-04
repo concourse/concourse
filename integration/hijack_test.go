@@ -158,15 +158,27 @@ var _ = Describe("Hijacking", func() {
 		})
 	})
 
+	Context("if you only specify a pipeline", func() {
+		It("returns an error", func() {
+			flyCmd := exec.Command(flyPath, "hijack", "-p", "pipeline-name")
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Eventually(sess).Should(gexec.Exit(1))
+
+			Ω(sess.Err).Should(gbytes.Say("job must be specified if pipeline is specified"))
+		})
+	})
+
 	Context("with a specific job", func() {
-		Context("when the job has a next build", func() {
+		Context("when the job has a next build and pipeline", func() {
 			BeforeEach(func() {
 				didHijack := make(chan struct{})
 				hijacked = didHijack
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/pipelines/main/jobs/some-job"),
+						ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/jobs/some-job"),
 						ghttp.RespondWithJSONEncoded(200, atc.Job{
 							NextBuild: &atc.Build{
 								ID:      3,
@@ -187,7 +199,7 @@ var _ = Describe("Hijacking", func() {
 			})
 
 			It("hijacks the job's next build", func() {
-				hijack("--job", "some-job")
+				hijack("--job", "some-job", "--pipeline", "some-pipeline")
 			})
 		})
 

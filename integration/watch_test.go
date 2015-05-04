@@ -114,7 +114,7 @@ var _ = Describe("Watching", func() {
 		})
 	})
 
-	Context("with a specific job", func() {
+	Context("with a specific job and pipeline", func() {
 		Context("when the job has a next build", func() {
 			BeforeEach(func() {
 				didStream := make(chan struct{})
@@ -122,7 +122,7 @@ var _ = Describe("Watching", func() {
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/pipelines/main/jobs/some-job"),
+						ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/jobs/some-job"),
 						ghttp.RespondWithJSONEncoded(200, atc.Job{
 							NextBuild: &atc.Build{
 								ID:      3,
@@ -143,7 +143,7 @@ var _ = Describe("Watching", func() {
 			})
 
 			It("watches the job's next build", func() {
-				watch("--job", "some-job")
+				watch("--job", "some-job", "--pipeline", "some-pipeline")
 			})
 		})
 

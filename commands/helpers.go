@@ -2,6 +2,7 @@ package commands
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -95,6 +96,16 @@ func userHomeDir() string {
 func getBuild(ctx *cli.Context, client *http.Client, reqGenerator *rata.RequestGenerator) atc.Build {
 	jobName := ctx.String("job")
 	buildName := ctx.String("build")
+	pipelineName := ctx.String("pipeline")
+
+	if pipelineName != "" && jobName == "" {
+		fmt.Fprintln(os.Stderr, "job must be specified if pipeline is specified")
+		os.Exit(1)
+	}
+
+	if pipelineName == "" {
+		pipelineName = atc.DefaultPipelineName
+	}
 
 	if jobName != "" && buildName != "" {
 		buildReq, err := reqGenerator.CreateRequest(
@@ -102,7 +113,7 @@ func getBuild(ctx *cli.Context, client *http.Client, reqGenerator *rata.RequestG
 			rata.Params{
 				"job_name":      jobName,
 				"build_name":    buildName,
-				"pipeline_name": atc.DefaultPipelineName,
+				"pipeline_name": pipelineName,
 			},
 			nil,
 		)
@@ -132,7 +143,7 @@ func getBuild(ctx *cli.Context, client *http.Client, reqGenerator *rata.RequestG
 	} else if jobName != "" {
 		jobReq, err := reqGenerator.CreateRequest(
 			atc.GetJob,
-			rata.Params{"job_name": ctx.String("job"), "pipeline_name": atc.DefaultPipelineName},
+			rata.Params{"job_name": jobName, "pipeline_name": pipelineName},
 			nil,
 		)
 		if err != nil {
