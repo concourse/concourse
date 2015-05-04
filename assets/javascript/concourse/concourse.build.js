@@ -17,7 +17,7 @@ concourse.Build.prototype.abort = function() {
 
   $.ajax({
     method: 'POST',
-    url: _this.abortEndpoint,
+    url: _this.abortEndpoint
   }).done(function (resp, jqxhr) {
     _this.$abortBtn.remove();
   }).error(function (resp) {
