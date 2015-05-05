@@ -74,7 +74,7 @@ Graph.prototype.layout = function() {
     var columnIdx = node.column();
     var column = columns[columnIdx];
     if (!column) {
-      column = new Column();
+      column = new Column(columnIdx);
       columns[columnIdx] = column;
     }
 
@@ -132,7 +132,8 @@ Graph.prototype.layout = function() {
   }
 }
 
-function Column() {
+function Column(idx) {
+  this.index = idx;
   this.nodes = [];
 
   this._spacing = 10;
@@ -142,9 +143,10 @@ Column.prototype.improve = function() {
   var nodes = this.nodes;
 
   var beforeCrossing = this.crossingLines();
+  var beforeStraight = this.straightLines();
   var beforeCost = this.cost();
 
-  for (var i = 0; i < nodes.length; i++) {
+  for (var i = nodes.length-1; i >= 0; i--) {
     var nodeIdx = i;
 
     for (var j = 0; j < nodes.length; j++) {
@@ -157,6 +159,7 @@ Column.prototype.improve = function() {
       this.swap(nodeIdx, j)
 
       var afterCrossing = this.crossingLines();
+      var afterStraight = this.straightLines();
       var afterCost = this.cost();
 
       var after = afterCrossing.inputs + afterCrossing.outputs;
@@ -169,11 +172,15 @@ Column.prototype.improve = function() {
         (after == before && afterCrossing.inputs < beforeCrossing.inputs) ||
 
         // same crossing but nodes are closer
-        (after == before && afterCost < beforeCost)
+        (after == before && afterCost < beforeCost) ||
+
+        // same crossing but more lines are straight
+        (after == before && afterStraight > beforeStraight)
       ) {
         nodeIdx = j;
 
         beforeCrossing = afterCrossing;
+        beforeStraight = afterStraight;
         beforeCost = afterCost;
       } else {
         this.swap(nodeIdx, j)
@@ -258,6 +265,19 @@ Column.prototype.crossingLines = function() {
     inputs: crossingEdges(this._allInEdges),
     outputs: crossingEdges(this._allOutEdges)
   }
+}
+
+Column.prototype.straightLines = function() {
+  var straightLines = 0;
+
+  var nodes = this.nodes,
+      totalNodes = nodes.length;
+
+  for (var i = 0; i < totalNodes; i++) {
+    straightLines += nodes[i].straightLines();
+  }
+
+  return straightLines;
 }
 
 Column.prototype._cacheEdges = function() {
@@ -352,6 +372,30 @@ Node.prototype.travel = function() {
   }
 
   return travel;
+}
+
+Node.prototype.straightLines = function() {
+  var straightLines = 0;
+
+  var inEdges = this._inEdges,
+      totalInEdges = inEdges.length;
+
+  var outEdges = this._outEdges,
+      totalOutEdges = outEdges.length;
+
+  for (var i = 0; i < totalInEdges; i++) {
+    if (inEdges[i].dy() == 0) {
+      straightLines += 1;
+    }
+  }
+
+  for (var i = 0; i < totalOutEdges; i++) {
+    if (outEdges[i].dy() == 0) {
+      straightLines += 1;
+    }
+  }
+
+  return straightLines;
 }
 
 Node.prototype.column = function() {
