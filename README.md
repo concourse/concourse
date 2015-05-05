@@ -12,10 +12,10 @@ Openstack or with Vagrant.
 
 ### Example
 
-Concourse's own CI pipeline lives at
-[ci.concourse.ci](http://ci.concourse.ci). Its configuration lives in this
-repo under
-[ci/pipeline.yml](https://github.com/concourse/concourse/blob/develop/ci/pipeline.yml).
+Concourse's own CI deployment lives at
+[ci.concourse.ci](http://ci.concourse.ci). Its pipeline configurations live in
+this repo under
+[ci/pipelines](https://github.com/concourse/concourse/blob/develop/ci/pipelines).
 
 
 ### Try it on Vagrant
