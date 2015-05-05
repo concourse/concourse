@@ -1,6 +1,7 @@
 package atc
 
 type Pipeline struct {
-	Name string `json:"name"`
-	URL  string `json:"url"`
+	Name   string `json:"name"`
+	URL    string `json:"url"`
+	Paused bool   `json:"paused"`
 }

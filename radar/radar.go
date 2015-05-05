@@ -22,6 +22,8 @@ type RadarDB interface {
 	GetPipelineName() string
 	ScopedName(string) string
 
+	IsPaused() (bool, error)
+
 	GetConfig() (atc.Config, db.ConfigVersion, error)
 
 	GetLatestVersionedResource(resource db.SavedResource) (db.SavedVersionedResource, error)
@@ -101,6 +103,17 @@ func (radar *Radar) Scan(logger lager.Logger, resourceName string) error {
 }
 
 func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
+	pipelinePaused, err := radar.db.IsPaused()
+	if err != nil {
+		logger.Error("failed-to-check-if-pipeline-paused", err)
+		return err
+	}
+
+	if pipelinePaused {
+		logger.Debug("pipeline-paused")
+		return nil
+	}
+
 	config, _, err := radar.db.GetConfig()
 	if err != nil {
 		logger.Error("failed-to-get-config", err)

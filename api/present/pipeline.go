@@ -17,7 +17,8 @@ func Pipeline(savedPipeline db.SavedPipeline) atc.Pipeline {
 	}
 
 	return atc.Pipeline{
-		Name: savedPipeline.Name,
-		URL:  pathForRoute,
+		Name:   savedPipeline.Name,
+		URL:    pathForRoute,
+		Paused: savedPipeline.Paused,
 	}
 }

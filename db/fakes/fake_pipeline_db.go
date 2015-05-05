@@ -23,6 +23,25 @@ type FakePipelineDB struct {
 	scopedNameReturns struct {
 		result1 string
 	}
+	PauseStub        func() error
+	pauseMutex       sync.RWMutex
+	pauseArgsForCall []struct{}
+	pauseReturns struct {
+		result1 error
+	}
+	UnpauseStub        func() error
+	unpauseMutex       sync.RWMutex
+	unpauseArgsForCall []struct{}
+	unpauseReturns struct {
+		result1 error
+	}
+	IsPausedStub        func() (bool, error)
+	isPausedMutex       sync.RWMutex
+	isPausedArgsForCall []struct{}
+	isPausedReturns struct {
+		result1 bool
+		result2 error
+	}
 	GetConfigStub        func() (atc.Config, db.ConfigVersion, error)
 	getConfigMutex       sync.RWMutex
 	getConfigArgsForCall []struct{}
@@ -335,6 +354,79 @@ func (fake *FakePipelineDB) ScopedNameReturns(result1 string) {
 	fake.scopedNameReturns = struct {
 		result1 string
 	}{result1}
+}
+
+func (fake *FakePipelineDB) Pause() error {
+	fake.pauseMutex.Lock()
+	fake.pauseArgsForCall = append(fake.pauseArgsForCall, struct{}{})
+	fake.pauseMutex.Unlock()
+	if fake.PauseStub != nil {
+		return fake.PauseStub()
+	} else {
+		return fake.pauseReturns.result1
+	}
+}
+
+func (fake *FakePipelineDB) PauseCallCount() int {
+	fake.pauseMutex.RLock()
+	defer fake.pauseMutex.RUnlock()
+	return len(fake.pauseArgsForCall)
+}
+
+func (fake *FakePipelineDB) PauseReturns(result1 error) {
+	fake.PauseStub = nil
+	fake.pauseReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipelineDB) Unpause() error {
+	fake.unpauseMutex.Lock()
+	fake.unpauseArgsForCall = append(fake.unpauseArgsForCall, struct{}{})
+	fake.unpauseMutex.Unlock()
+	if fake.UnpauseStub != nil {
+		return fake.UnpauseStub()
+	} else {
+		return fake.unpauseReturns.result1
+	}
+}
+
+func (fake *FakePipelineDB) UnpauseCallCount() int {
+	fake.unpauseMutex.RLock()
+	defer fake.unpauseMutex.RUnlock()
+	return len(fake.unpauseArgsForCall)
+}
+
+func (fake *FakePipelineDB) UnpauseReturns(result1 error) {
+	fake.UnpauseStub = nil
+	fake.unpauseReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipelineDB) IsPaused() (bool, error) {
+	fake.isPausedMutex.Lock()
+	fake.isPausedArgsForCall = append(fake.isPausedArgsForCall, struct{}{})
+	fake.isPausedMutex.Unlock()
+	if fake.IsPausedStub != nil {
+		return fake.IsPausedStub()
+	} else {
+		return fake.isPausedReturns.result1, fake.isPausedReturns.result2
+	}
+}
+
+func (fake *FakePipelineDB) IsPausedCallCount() int {
+	fake.isPausedMutex.RLock()
+	defer fake.isPausedMutex.RUnlock()
+	return len(fake.isPausedArgsForCall)
+}
+
+func (fake *FakePipelineDB) IsPausedReturns(result1 bool, result2 error) {
+	fake.IsPausedStub = nil
+	fake.isPausedReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakePipelineDB) GetConfig() (atc.Config, db.ConfigVersion, error) {

@@ -39,7 +39,7 @@ func NewSQL(
 
 func (db *SQLDB) GetPipelineByName(pipelineName string) (SavedPipeline, error) {
 	row := db.conn.QueryRow(`
-		SELECT id, name, config, version
+		SELECT id, name, config, version, paused
 		FROM pipelines
 		WHERE name = $1
 	`, pipelineName)
@@ -49,7 +49,7 @@ func (db *SQLDB) GetPipelineByName(pipelineName string) (SavedPipeline, error) {
 
 func (db *SQLDB) GetAllActivePipelines() ([]SavedPipeline, error) {
 	rows, err := db.conn.Query(`
-		SELECT id, name, config, version
+		SELECT id, name, config, version, paused
 		FROM pipelines
 	`)
 	if err != nil {
@@ -839,8 +839,9 @@ func scanPipeline(rows scannable) (SavedPipeline, error) {
 	var name string
 	var configBlob []byte
 	var version int
+	var paused bool
 
-	err := rows.Scan(&id, &name, &configBlob, &version)
+	err := rows.Scan(&id, &name, &configBlob, &version, &paused)
 	if err != nil {
 		return SavedPipeline{}, err
 	}
@@ -852,7 +853,8 @@ func scanPipeline(rows scannable) (SavedPipeline, error) {
 	}
 
 	return SavedPipeline{
-		ID: id,
+		ID:     id,
+		Paused: paused,
 		Pipeline: Pipeline{
 			Name:    name,
 			Config:  config,

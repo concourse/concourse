@@ -9,7 +9,8 @@ type Pipeline struct {
 }
 
 type SavedPipeline struct {
-	ID int
+	ID     int
+	Paused bool
 
 	Pipeline
 }

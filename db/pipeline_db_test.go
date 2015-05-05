@@ -153,6 +153,47 @@ var _ = Describe("PipelineDB", func() {
 		otherPipelineDB = pipelineDBFactory.Build(otherSavedPipeline)
 	})
 
+	Describe("Pausing and unpausing a pipeline", func() {
+		It("starts out as unpaused", func() {
+			pipeline, err := sqlDB.GetPipelineByName("a-pipeline-name")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(pipeline.Paused).Should(BeFalse())
+		})
+
+		It("can be paused", func() {
+			err := pipelineDB.Pause()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			pipelinePaused, err := pipelineDB.IsPaused()
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(pipelinePaused).Should(BeTrue())
+
+			otherPipelinePaused, err := otherPipelineDB.IsPaused()
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(otherPipelinePaused).Should(BeFalse())
+		})
+
+		It("can be unpaused", func() {
+			err := pipelineDB.Pause()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = otherPipelineDB.Pause()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = pipelineDB.Unpause()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			pipelinePaused, err := pipelineDB.IsPaused()
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(pipelinePaused).Should(BeFalse())
+
+			otherPipelinePaused, err := otherPipelineDB.IsPaused()
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(otherPipelinePaused).Should(BeTrue())
+		})
+	})
+
 	Describe("ScopedName", func() {
 		It("concatenates the pipeline name with the passed in name", func() {
 			pipelineDB := pipelineDBFactory.Build(db.SavedPipeline{
@@ -796,6 +837,21 @@ var _ = Describe("PipelineDB", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(firstBuild.Name).Should(Equal("1"))
 				Ω(firstBuild.Status).Should(Equal(db.StatusPending))
+			})
+
+			Context("and the pipeline is paused", func() {
+				BeforeEach(func() {
+					err := pipelineDB.Pause()
+					Ω(err).ShouldNot(HaveOccurred())
+				})
+
+				Describe("scheduling the build", func() {
+					It("fails", func() {
+						scheduled, err := pipelineDB.ScheduleBuild(firstBuild.ID, jobConfig)
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(scheduled).Should(BeFalse())
+					})
+				})
 			})
 
 			Context("and then errored", func() {

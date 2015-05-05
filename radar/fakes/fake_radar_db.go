@@ -24,6 +24,13 @@ type FakeRadarDB struct {
 	scopedNameReturns struct {
 		result1 string
 	}
+	IsPausedStub        func() (bool, error)
+	isPausedMutex       sync.RWMutex
+	isPausedArgsForCall []struct{}
+	isPausedReturns struct {
+		result1 bool
+		result2 error
+	}
 	GetConfigStub        func() (atc.Config, db.ConfigVersion, error)
 	getConfigMutex       sync.RWMutex
 	getConfigArgsForCall []struct{}
@@ -140,6 +147,31 @@ func (fake *FakeRadarDB) ScopedNameReturns(result1 string) {
 	fake.scopedNameReturns = struct {
 		result1 string
 	}{result1}
+}
+
+func (fake *FakeRadarDB) IsPaused() (bool, error) {
+	fake.isPausedMutex.Lock()
+	fake.isPausedArgsForCall = append(fake.isPausedArgsForCall, struct{}{})
+	fake.isPausedMutex.Unlock()
+	if fake.IsPausedStub != nil {
+		return fake.IsPausedStub()
+	} else {
+		return fake.isPausedReturns.result1, fake.isPausedReturns.result2
+	}
+}
+
+func (fake *FakeRadarDB) IsPausedCallCount() int {
+	fake.isPausedMutex.RLock()
+	defer fake.isPausedMutex.RUnlock()
+	return len(fake.isPausedArgsForCall)
+}
+
+func (fake *FakeRadarDB) IsPausedReturns(result1 bool, result2 error) {
+	fake.IsPausedStub = nil
+	fake.isPausedReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeRadarDB) GetConfig() (atc.Config, db.ConfigVersion, error) {

@@ -12,7 +12,12 @@
 
 /* highlight background */
 .steps .nest.odd { background: @base02; }
-.groups li.main a { background: @base00; }
+.groups li.main a {
+  background: @base00;
+  .paused&{
+    background: @base0D;
+  }
+}
 
 /* even more highlight background */
 .build-step.first-occurrence .header { background: @base03; }

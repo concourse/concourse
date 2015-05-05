@@ -18,6 +18,10 @@ type PipelineDB interface {
 	GetPipelineName() string
 	ScopedName(string) string
 
+	Pause() error
+	Unpause() error
+	IsPaused() (bool, error)
+
 	GetConfig() (atc.Config, ConfigVersion, error)
 
 	GetResource(resourceName string) (SavedResource, error)
@@ -71,6 +75,24 @@ func (pdb *pipelineDB) GetPipelineName() string {
 
 func (pdb *pipelineDB) ScopedName(name string) string {
 	return pdb.Name + ":" + name
+}
+
+func (pdb *pipelineDB) Unpause() error {
+	_, err := pdb.conn.Exec(`
+		UPDATE pipelines
+		SET paused = false
+		WHERE id = $1
+	`, pdb.ID)
+	return err
+}
+
+func (pdb *pipelineDB) Pause() error {
+	_, err := pdb.conn.Exec(`
+		UPDATE pipelines
+		SET paused = true
+		WHERE id = $1
+	`, pdb.ID)
+	return err
 }
 
 func (pdb *pipelineDB) GetConfig() (atc.Config, ConfigVersion, error) {
@@ -1109,6 +1131,23 @@ func (pdb *pipelineDB) getBuild(buildID int) (Build, error) {
 }
 
 func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool, error) {
+	pipelinePaused, err := pdb.IsPaused()
+	if err != nil {
+		pdb.logger.Error("build-did-not-schedule", err, lager.Data{
+			"reason":  "unexpected error",
+			"buildID": string(buildID),
+		})
+		return false, err
+	}
+
+	if pipelinePaused {
+		pdb.logger.Debug("build-did-not-schedule", lager.Data{
+			"reason":  "pipeline-paused",
+			"buildID": string(buildID),
+		})
+		return false, nil
+	}
+
 	build, err := pdb.getBuild(buildID)
 	if err != nil {
 		return false, err
@@ -1137,12 +1176,28 @@ func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool
 
 		return updated, nil
 	} else {
-		pdb.logger.Debug("Build did not schedule", lager.Data{
+		pdb.logger.Debug("build-did-not-schedule", lager.Data{
 			"reason":  reason,
 			"buildID": string(buildID),
 		})
 		return false, nil
 	}
+}
+
+func (pdb *pipelineDB) IsPaused() (bool, error) {
+	var paused bool
+
+	err := pdb.conn.QueryRow(`
+		SELECT paused
+		FROM pipelines
+		WHERE id = $1
+	`, pdb.ID).Scan(&paused)
+
+	if err != nil {
+		return false, err
+	}
+
+	return paused, nil
 }
 
 func (pdb *pipelineDB) updateBuildToScheduled(buildID int) (bool, error) {

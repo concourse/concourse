@@ -111,7 +111,9 @@ func NewHandler(
 		atc.PauseJob:      validate(pipelineHandlerFactory.HandlerFor(jobServer.PauseJob)),
 		atc.UnpauseJob:    validate(pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob)),
 
-		atc.ListPipelines: http.HandlerFunc(pipelineServer.ListPipelines),
+		atc.ListPipelines:   http.HandlerFunc(pipelineServer.ListPipelines),
+		atc.PausePipeline:   validate(pipelineHandlerFactory.HandlerFor(pipelineServer.PausePipeline)),
+		atc.UnpausePipeline: validate(pipelineHandlerFactory.HandlerFor(pipelineServer.UnpausePipeline)),
 
 		atc.ListResources:          pipelineHandlerFactory.HandlerFor(resourceServer.ListResources),
 		atc.EnableResourceVersion:  validate(pipelineHandlerFactory.HandlerFor(resourceServer.EnableResourceVersion)),

@@ -61,6 +61,10 @@
 
   streamLog({{url "BuildEvents" .Build | js}}, {{.Build.Status | js}})
 </script>
+
+<script>
+  window.pipelineName = {{.PipelineName}};
+</script>
 <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
 <script src="{{asset "concourse.js"}}"></script>
 {{end}}

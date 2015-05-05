@@ -258,6 +258,28 @@ var _ = Describe("Radar", func() {
 			})
 		})
 
+		Context("when the pipeline is paused", func() {
+			BeforeEach(func() {
+				fakeRadarDB.IsPausedReturns(true, nil)
+			})
+
+			It("exits the process", func() {
+				Consistently(times, 500*time.Millisecond).ShouldNot(Receive())
+			})
+		})
+
+		Context("when checking if the resource is paused fails", func() {
+			disaster := errors.New("disaster")
+
+			BeforeEach(func() {
+				fakeRadarDB.IsPausedReturns(false, disaster)
+			})
+
+			It("exits the process", func() {
+				Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+			})
+		})
+
 		Context("when the resource is paused", func() {
 			BeforeEach(func() {
 				fakeRadarDB.GetResourceReturns(db.SavedResource{
