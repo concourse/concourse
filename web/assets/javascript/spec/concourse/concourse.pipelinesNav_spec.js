@@ -2,7 +2,7 @@ describe("Pipelines Nav", function () {
   var pipelinesNav;
 
   beforeEach(function () {
-    window.pipelineName = "another-pipeline";
+    concourse.pipelineName = "another-pipeline";
 
     setFixtures(
       '<body><div class="js-pipelinesNav"><div class="js-groups"></div><ul class="js-pipelinesNav-list"></ul><span class="js-pipelinesNav-toggle"></span></div></body>'
@@ -14,7 +14,7 @@ describe("Pipelines Nav", function () {
   });
 
   afterEach(function() {
-    window.pipelineName = undefined;
+    concourse.pipelineName = undefined;
     jasmine.Ajax.uninstall();
   });
 
@@ -101,7 +101,7 @@ describe("Pipelines Nav", function () {
 
         expect($(".js-groups")).not.toHaveClass("paused");
 
-        window.pipelineName = "a-pipeline";
+        concourse.pipelineName = "a-pipeline";
         pipelinesNav.loadPipelines();
 
         respondWithSuccess();
