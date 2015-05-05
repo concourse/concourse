@@ -13,7 +13,7 @@
 
       <div class="page-to-slide">
         <nav>
-          <ul class="groups">
+          <ul class="js-groups groups">
             <li class="main"><span class="js-pipelinesNav-toggle btn-hamburger"><i class="fa fa-bars"></i></span></li><li class="main"><a href="/"><i class="fa fa-home"></i></a></li>
             {{range .GroupStates}}
               <li{{if .Enabled}} class="active"{{end}}><a href="/pipelines/{{$.PipelineName}}?groups={{.Name}}">{{.Name}}</a></li>

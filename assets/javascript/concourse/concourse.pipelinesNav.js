@@ -27,11 +27,39 @@ concourse.PipelinesNav.prototype.loadPipelines = function() {
   }).done(function(resp, jqxhr){
     $(resp).each( function(index, pipeline){
       var $pipelineListItem = $("<li>");
-      $pipelineListItem.html('<a href="' + pipeline.url + '">' + pipeline.name + '</a>');
+
+      var ed = pipeline.paused ? 'enabled' : 'disabled';
+      var icon = pipeline.paused ? 'play' : 'pause';
+
+      $pipelineListItem.html('<span class="btn-pause fl ' + ed + ' js-pauseUnpause"><i class="fa fa-fw fa-' + icon +  '"></i></span><a href="' + pipeline.url + '">' + pipeline.name + '</a>');
+      $pipelineListItem.data('endpoint', 'pipelines/' + pipeline.name);
+      $pipelineListItem.data('pipelineName', pipeline.name);
+      $pipelineListItem.addClass('clearfix');
+
 
       _this.$list.append($pipelineListItem);
+
+      _this.newPauseUnpause($pipelineListItem);
+
+      if(window.pipelineName === pipeline.name && pipeline.paused) {
+        _this.$el.find('.js-groups').addClass('paused');
+      }
     });
   });
+};
+
+concourse.PipelinesNav.prototype.newPauseUnpause = function($el) {
+  var _this = this;
+  var pauseUnpause = new concourse.PauseUnpause($el, function() {
+    if($el.data('pipelineName') === window.pipelineName) {
+      _this.$el.find('.js-groups').addClass('paused');
+    }
+  }, function() {
+    if($el.data('pipelineName') === window.pipelineName) {
+      _this.$el.find('.js-groups').removeClass('paused');
+    }
+  });
+  pauseUnpause.bindEvents();
 };
 
 $(function () {

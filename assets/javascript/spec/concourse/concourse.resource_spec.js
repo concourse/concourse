@@ -1,9 +1,8 @@
 describe("Resource", function () {
   var resource;
 
-  window.pipelineName = "some-pipeline";
-
   beforeEach(function () {
+    window.pipelineName = "some-pipeline";
 
     setFixtures(
       '<div class="js-resource" data-resource-name="a-resource"><span class="js-pauseResourceCheck disabled"><i class="fa-pause"></i></span><h3 class="js-resourceStatusText">checking successfully</h3></span></div>'
@@ -15,6 +14,7 @@ describe("Resource", function () {
   });
 
   afterEach(function() {
+    window.pipelineName = undefined;
     jasmine.Ajax.uninstall();
   });
 

@@ -106,6 +106,7 @@
   text-align: right;
   background: @base00;
   border-bottom: 1px solid @base02;
+  line-height: 28px;
 
   &:hover {
     background: @base01;
@@ -113,7 +114,13 @@
 
   & a {
     display: block;
-    padding: 10px;
+    padding-right: 10px;
+    // right-padding - pause button width - left padding
+    width: @sidebarWidth - 10px - 28px - 5px;
+    float: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
   }
 }
 

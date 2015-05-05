@@ -113,7 +113,7 @@ describe("Job", function () {
         expect($job.pauseBtn()).toHaveClass('errored');
       });
 
-      it('sets the button as errored when the unpaise fails', function () {
+      it('sets the button as errored when the unpause fails', function () {
         clickButton();
         respondWithSuccess();
 
