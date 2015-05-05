@@ -165,3 +165,4 @@
 [submodule "src/github.com/sclevine/agouti"]
 	path = src/github.com/sclevine/agouti
 	url = https://github.com/sclevine/agouti
+	branch = master
