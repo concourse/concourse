@@ -79,7 +79,7 @@ jobs:
   - name: db
     instances: 1
     resource_pool: databases
-    persistent_disk: 10240
+    persistent_disk_pool: database
     templates:
       - {release: concourse, name: consul-agent}
       - {release: concourse, name: postgresql}
@@ -109,6 +109,12 @@ jobs:
       consul:
         agent:
           servers: {lan: [*discovery_static_ip]}
+
+disk_pools:
+  - name: database
+    disk_size: 10240
+    cloud_properties:
+      type: gp2
 
 resource_pools:
   - name: web

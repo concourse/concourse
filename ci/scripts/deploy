@@ -15,7 +15,7 @@ set +x
   spiff diff --separator $'\f' \
     concourse/manifests/aws-vpc.yml \
     deployments/ci/deployments/concourse.yml | \
-    awk -v RS='\f' '!/pipeline|REPLACE|basic_auth|publicly_viewable|blackbox|consul-agent|password|username/' |
+    awk -v RS='\f' '!/pipeline|REPLACE|basic_auth|publicly_viewable|blackbox|consul-agent|password|username|authorized_keys|host_key|instances|instance_type|10.0.16.10|templates/' |
     tee /tmp/manifest-diff
 
   if [ -s /tmp/manifest-diff ]; then
