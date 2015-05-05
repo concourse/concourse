@@ -41,7 +41,7 @@ concourse.PipelinesNav.prototype.loadPipelines = function() {
 
       _this.newPauseUnpause($pipelineListItem);
 
-      if(window.pipelineName === pipeline.name && pipeline.paused) {
+      if(concourse.pipelineName === pipeline.name && pipeline.paused) {
         _this.$el.find('.js-groups').addClass('paused');
       }
     });
@@ -51,11 +51,11 @@ concourse.PipelinesNav.prototype.loadPipelines = function() {
 concourse.PipelinesNav.prototype.newPauseUnpause = function($el) {
   var _this = this;
   var pauseUnpause = new concourse.PauseUnpause($el, function() {
-    if($el.data('pipelineName') === window.pipelineName) {
+    if($el.data('pipelineName') === concourse.pipelineName) {
       _this.$el.find('.js-groups').addClass('paused');
     }
   }, function() {
-    if($el.data('pipelineName') === window.pipelineName) {
+    if($el.data('pipelineName') === concourse.pipelineName) {
       _this.$el.find('.js-groups').removeClass('paused');
     }
   });

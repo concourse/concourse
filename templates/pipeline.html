@@ -25,9 +25,6 @@
   <li><a href="{{url "DownloadCLI" "windows" "amd64"}}"><i class="fa fa-windows"></i></a></li>
   <li><a href="{{url "DownloadCLI" "linux" "amd64"}}"><i class="fa fa-linux"></i></a></li>
 </ul>
-
-<script>
-  window.pipelineName = {{.PipelineName}};
 </script>
 
 <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
@@ -37,6 +34,7 @@
 <script src="{{asset "index.js"}}"></script>
 
 <script>
+concourse.pipelineName = {{.PipelineName}};
 $(document).ready(function() {
   renderPipeline({{.Groups}});
 })
