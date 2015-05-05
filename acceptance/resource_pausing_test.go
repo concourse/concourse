@@ -101,7 +101,7 @@ var _ = Describe("Resource Pausing", func() {
 
 				Authenticate(page, "admin", "password")
 
-				Expect(page.Find(".js-pauseResourceCheck").Click()).To(Succeed())
+				Expect(page.Find(".js-pauseUnpause").Click()).To(Succeed())
 				Eventually(page.Find(".header h3")).Should(HaveText("checking paused"))
 
 				page.Refresh()

@@ -143,44 +143,6 @@ svg .job.node.started div,
 
 }
 
-.btn-pause {
-  display: inline-block;
-  color: @base07;
-
-  &:hover {
-    cursor: pointer;
-  }
-
-  &.enabled {
-    background-color: @base0D;
-
-    &:active {
-      &:extend(.btn-pause.disabled);
-    }
-  }
-
-  &.loading {
-    background-color: @base0D;
-  }
-
-  &.disabled {
-    background-color: @base03;
-
-    &:active {
-      &:extend(.btn-pause.enabled);
-    }
-  }
-}
-
-.btn-pause-large {
-  font-size: 25px;
-  text-align: center;
-}
-.btn-pause-large i {
-    line-height: 60px;
-    width: 60px;
-}
-
 .build-action.btn-pause i {
   font-size: 23px;
 }

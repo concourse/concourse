@@ -23,7 +23,44 @@
   color: @base07;
 }
 
+
 .btn-pause {
+  display: inline-block;
+  color: @base07;
   text-align: center;
   width: 28px;
+
+  &:hover {
+    cursor: pointer;
+  }
+
+  &.enabled {
+    background-color: @base0D;
+
+    &:active {
+      &:extend(.btn-pause.disabled);
+    }
+  }
+
+  &.loading {
+    background-color: @base0D;
+  }
+
+  &.disabled {
+    background-color: @base03;
+
+    &:active {
+      &:extend(.btn-pause.enabled);
+    }
+  }
+}
+
+.btn-large {
+  font-size: 25px;
+  text-align: center;
+  width: 60px;
+}
+.btn-large i {
+  line-height: 60px;
+  width: 60px;
 }

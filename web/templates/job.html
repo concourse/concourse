@@ -1,14 +1,14 @@
 {{define "title"}}{{.Job.Name}} - Concourse{{end}}
 
 {{define "body"}}
-<div class="js-job" data-job-name="{{.Job.Name}}">
+<div class="js-job" data-endpoint="pipelines/{{.PipelineName}}/jobs/{{.Job.Name}}">
   <div id="page-header">
     <div class="build-header {{.CurrentBuild.Status}}">
 
       {{if .DBJob.Paused}}
-        <span class="btn-pause btn-pause-large fl enabled js-pauseJobCheck"><i class="fa fa-fw fa-play"></i></span>
+        <span class="btn-pause btn-large fl enabled js-pauseUnpause"><i class="fa fa-fw fa-play"></i></span>
       {{else}}
-        <span class="btn-pause btn-pause-large fl disabled js-pauseJobCheck"><i class="fa fa-fw fa-pause"></i></span>
+        <span class="btn-pause btn-large fl disabled js-pauseUnpause"><i class="fa fa-fw fa-pause"></i></span>
       {{end}}
       <form class="trigger-build" method="post" action="{{url "TriggerBuild" .PipelineName .Job}}">
         <button class="build-action fr"><i class="fa fa-plus-circle"></i></button>

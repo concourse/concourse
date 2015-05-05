@@ -1,7 +1,7 @@
 concourse.PauseUnpause = function ($el, pauseCallback, unpauseCallback) {
   this.$el = $el;
-  this.pauseCallback = pauseCallback;
-  this.unpauseCallback = unpauseCallback;
+  this.pauseCallback = pauseCallback === undefined ? function(){} : pauseCallback;
+  this.unpauseCallback = unpauseCallback === undefined ? function(){} : unpauseCallback;
   this.pauseBtn = this.$el.find('.js-pauseUnpause').pausePlayBtn();
   this.pauseEndpoint = "/api/v1/" + this.$el.data('endpoint') + "/pause";
   this.unPauseEndpoint = "/api/v1/" + this.$el.data('endpoint') + "/unpause";
