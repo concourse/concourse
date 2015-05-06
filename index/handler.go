@@ -1,12 +1,10 @@
 package index
 
 import (
-	"database/sql"
 	"html/template"
 	"log"
 	"net/http"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 )
@@ -20,10 +18,9 @@ func NewHandler(
 	template *template.Template,
 ) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		pipelineDB, err := pipelineDBFactory.BuildWithName(atc.DefaultPipelineName)
+		pipelineDB, err := pipelineDBFactory.BuildDefault()
 		if err != nil {
-
-			if err == sql.ErrNoRows {
+			if err == db.ErrNoPipelines {
 				err = template.Execute(w, TemplateData{})
 				if err != nil {
 					log.Fatal("failed-to-task-template", err, lager.Data{})
