@@ -51,7 +51,7 @@ func (db *SQLDB) GetAllActivePipelines() ([]SavedPipeline, error) {
 	rows, err := db.conn.Query(`
 		SELECT id, name, config, version, paused
 		FROM pipelines
-		ORDER BY id
+		ORDER BY ordering
 	`)
 	if err != nil {
 		return nil, err
@@ -73,6 +73,49 @@ func (db *SQLDB) GetAllActivePipelines() ([]SavedPipeline, error) {
 	}
 
 	return pipelines, nil
+}
+
+func (db *SQLDB) OrderPipelines(pipelineNames []string) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	var pipelineCount int
+
+	err = tx.QueryRow(`
+			SELECT COUNT(1)
+			FROM pipelines
+	`).Scan(&pipelineCount)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		UPDATE pipelines
+		SET ordering = $1
+	`, pipelineCount+1)
+
+	if err != nil {
+		return err
+	}
+
+	for i, name := range pipelineNames {
+		_, err = tx.Exec(`
+			UPDATE pipelines
+			SET ordering = $1
+			WHERE name = $2
+		`, i, name)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (db *SQLDB) GetConfigByBuildID(buildID int) (atc.Config, ConfigVersion, error) {
@@ -168,8 +211,8 @@ func (db *SQLDB) SavePipeline(pipelineName string, config atc.Config, from Confi
 	if rows == 0 {
 		if existingConfig == 0 {
 			_, err := tx.Exec(`
-			INSERT INTO pipelines (name, config, version)
-			VALUES ($1, $2, nextval('config_version_seq'))
+			INSERT INTO pipelines (name, config, version, ordering)
+			VALUES ($1, $2, nextval('config_version_seq'), (SELECT COUNT(1) + 1 FROM pipelines))
 		`, pipelineName, payload)
 			if err != nil {
 				return err

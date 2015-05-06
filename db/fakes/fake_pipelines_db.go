@@ -24,6 +24,14 @@ type FakePipelinesDB struct {
 		result1 db.SavedPipeline
 		result2 error
 	}
+	OrderPipelinesStub        func([]string) error
+	orderPipelinesMutex       sync.RWMutex
+	orderPipelinesArgsForCall []struct {
+		arg1 []string
+	}
+	orderPipelinesReturns struct {
+		result1 error
+	}
 }
 
 func (fake *FakePipelinesDB) GetAllActivePipelines() ([]db.SavedPipeline, error) {
@@ -82,6 +90,38 @@ func (fake *FakePipelinesDB) GetPipelineByNameReturns(result1 db.SavedPipeline, 
 		result1 db.SavedPipeline
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakePipelinesDB) OrderPipelines(arg1 []string) error {
+	fake.orderPipelinesMutex.Lock()
+	fake.orderPipelinesArgsForCall = append(fake.orderPipelinesArgsForCall, struct {
+		arg1 []string
+	}{arg1})
+	fake.orderPipelinesMutex.Unlock()
+	if fake.OrderPipelinesStub != nil {
+		return fake.OrderPipelinesStub(arg1)
+	} else {
+		return fake.orderPipelinesReturns.result1
+	}
+}
+
+func (fake *FakePipelinesDB) OrderPipelinesCallCount() int {
+	fake.orderPipelinesMutex.RLock()
+	defer fake.orderPipelinesMutex.RUnlock()
+	return len(fake.orderPipelinesArgsForCall)
+}
+
+func (fake *FakePipelinesDB) OrderPipelinesArgsForCall(i int) []string {
+	fake.orderPipelinesMutex.RLock()
+	defer fake.orderPipelinesMutex.RUnlock()
+	return fake.orderPipelinesArgsForCall[i].arg1
+}
+
+func (fake *FakePipelinesDB) OrderPipelinesReturns(result1 error) {
+	fake.OrderPipelinesStub = nil
+	fake.orderPipelinesReturns = struct {
+		result1 error
+	}{result1}
 }
 
 var _ db.PipelinesDB = new(FakePipelinesDB)

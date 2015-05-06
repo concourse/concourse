@@ -40,4 +40,5 @@ var Migrations = []migration.Migrator{
 	AddPipelineIDToResources,
 	AddPipelineIDToJobs,
 	AddPausedToPipelines,
+	AddOrderingToPipelines,
 }

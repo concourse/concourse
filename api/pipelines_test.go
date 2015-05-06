@@ -1,14 +1,18 @@
 package api_test
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
 
-	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	dbfakes "github.com/concourse/atc/db/fakes"
+
+	"github.com/concourse/atc/db"
 )
 
 var _ = Describe("Pipelines API", func() {
@@ -206,4 +210,90 @@ var _ = Describe("Pipelines API", func() {
 		})
 	})
 
+	Describe("PUT /api/v1/pipelines/ordering", func() {
+		var response *http.Response
+		var body io.Reader
+
+		BeforeEach(func() {
+			body = bytes.NewBufferString(`
+				[
+					"a-pipeline",
+					"another-pipeline",
+					"yet-another-pipeline",
+					"one-final-pipeline",
+					"just-kidding"
+				]
+			`)
+		})
+
+		JustBeforeEach(func() {
+			var err error
+
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/ordering", body)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			response, err = client.Do(request)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			Context("with invalid json", func() {
+				BeforeEach(func() {
+					body = bytes.NewBufferString(`{}`)
+				})
+
+				It("returns 400", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+				})
+			})
+
+			Context("when ordering the pipelines succeeds", func() {
+				BeforeEach(func() {
+					pipelinesDB.OrderPipelinesReturns(nil)
+				})
+
+				It("orders the pipelines", func() {
+					Ω(pipelinesDB.OrderPipelinesCallCount()).Should(Equal(1))
+					pipelineNames := pipelinesDB.OrderPipelinesArgsForCall(0)
+					Ω(pipelineNames).Should(Equal(
+						[]string{
+							"a-pipeline",
+							"another-pipeline",
+							"yet-another-pipeline",
+							"one-final-pipeline",
+							"just-kidding",
+						},
+					))
+				})
+
+				It("returns 200", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				})
+			})
+
+			Context("when ordering the pipelines fails", func() {
+				BeforeEach(func() {
+					pipelinesDB.OrderPipelinesReturns(errors.New("welp"))
+				})
+
+				It("returns 500", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				})
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Unauthorized", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+			})
+		})
+	})
 })

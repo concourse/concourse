@@ -167,7 +167,102 @@ var _ = Describe("SQL DB", func() {
 			Ω(otherPipeline.ID).ShouldNot(Equal(0))
 		})
 
-		It("can get a list of all active pipelines ordered by id", func() {
+		It("can order pipelines", func() {
+			err := sqlDB.SaveConfig("pipeline-1", config, 0)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = sqlDB.SaveConfig("pipeline-2", config, 0)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = sqlDB.SaveConfig("pipeline-3", config, 0)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = sqlDB.SaveConfig("pipeline-4", config, 0)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = sqlDB.SaveConfig("pipeline-5", config, 0)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = sqlDB.OrderPipelines([]string{
+				"pipeline-4",
+				"pipeline-3",
+				"pipeline-5",
+				"pipeline-1",
+				"pipeline-2",
+				"bogus-pipeline-name", // does not affect it
+			})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = sqlDB.SaveConfig("pipeline-6", config, 0)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			pipelines, err := sqlDB.GetAllActivePipelines()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(pipelines).Should(Equal([]db.SavedPipeline{
+				{
+					ID: 5,
+					Pipeline: db.Pipeline{
+						Name:    "pipeline-4",
+						Config:  config,
+						Version: db.ConfigVersion(5),
+					},
+				},
+				{
+					ID: 4,
+					Pipeline: db.Pipeline{
+						Name:    "pipeline-3",
+						Config:  config,
+						Version: db.ConfigVersion(4),
+					},
+				},
+				{
+					ID: 6,
+					Pipeline: db.Pipeline{
+						Name:    "pipeline-5",
+						Config:  config,
+						Version: db.ConfigVersion(6),
+					},
+				},
+				{
+					ID: 2,
+					Pipeline: db.Pipeline{
+						Name:    "pipeline-1",
+						Config:  config,
+						Version: db.ConfigVersion(2),
+					},
+				},
+				{
+					ID: 3,
+					Pipeline: db.Pipeline{
+						Name:    "pipeline-2",
+						Config:  config,
+						Version: db.ConfigVersion(3),
+					},
+				},
+
+				// pipelines not mentioned are put at the bottom
+				{
+					ID: 1,
+					Pipeline: db.Pipeline{
+						Name:    "some-pipeline",
+						Version: db.ConfigVersion(1),
+					},
+				},
+
+				// newly added pipelines appear at the bottom
+				{
+					ID: 7,
+					Pipeline: db.Pipeline{
+						Name:    "pipeline-6",
+						Config:  config,
+						Version: db.ConfigVersion(7),
+					},
+				},
+			}))
+		})
+
+		It("can get a list of all active pipelines ordered by 'ordering'", func() {
 			pipelineName := "a-pipeline-name"
 			otherPipelineName := "an-other-pipeline-name"
 
@@ -177,9 +272,12 @@ var _ = Describe("SQL DB", func() {
 			err = sqlDB.SaveConfig(otherPipelineName, otherConfig, 0)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			outOfOrderPipelineDB, err := pipelineDBFactory.BuildWithName(pipelineName)
+			err = sqlDB.OrderPipelines([]string{
+				"some-pipeline",
+				pipelineName,
+				otherPipelineName,
+			})
 			Ω(err).ShouldNot(HaveOccurred())
-			outOfOrderPipelineDB.Unpause() // We are pausing this to change the postgres default ordering.
 
 			pipelines, err := sqlDB.GetAllActivePipelines()
 			Ω(err).ShouldNot(HaveOccurred())

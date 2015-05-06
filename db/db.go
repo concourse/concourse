@@ -55,6 +55,8 @@ type Notifier interface {
 type PipelinesDB interface {
 	GetAllActivePipelines() ([]SavedPipeline, error)
 	GetPipelineByName(pipelineName string) (SavedPipeline, error)
+
+	OrderPipelines([]string) error
 }
 
 //go:generate counterfeiter . ConfigDB
