@@ -20,6 +20,8 @@ describe("Pipelines Nav", function () {
 
   describe('#bindEvents', function () {
     it('binds on the click of .js-pipelinesNav-toggle', function () {
+      spyOn(Sortable, 'create');
+
       pipelinesNav.bindEvents();
 
       $(".js-pipelinesNav-toggle").trigger('click');
@@ -27,6 +29,10 @@ describe("Pipelines Nav", function () {
 
       $(".js-pipelinesNav-toggle").trigger('click');
       expect($('body')).not.toHaveClass('pipelinesNav-visible');
+
+      expect(Sortable.create).toHaveBeenCalledWith($(".js-pipelinesNav-list")[0], {
+        "onUpdate": jasmine.any(Function)
+      });
     });
 
     it('calls to load the pipelines', function() {
@@ -39,7 +45,7 @@ describe("Pipelines Nav", function () {
   });
 
   describe('#loadPipelines', function() {
-    var respondWithSuccess = function(request) {
+    var respondWithPipelines = function(request) {
       var successRequest = request || jasmine.Ajax.requests.mostRecent();
       var successJson = [
       {
@@ -75,7 +81,7 @@ describe("Pipelines Nav", function () {
       expect(request.url).toBe('/api/v1/pipelines');
       expect(request.method).toBe('GET');
 
-      respondWithSuccess(request);
+      respondWithPipelines(request);
     });
 
     describe('when the request is successful', function() {
@@ -84,7 +90,7 @@ describe("Pipelines Nav", function () {
 
         pipelinesNav.loadPipelines();
 
-        respondWithSuccess();
+        respondWithPipelines();
 
         expect($('.js-pipelinesNav-list li').length).toEqual(2);
 
@@ -104,7 +110,7 @@ describe("Pipelines Nav", function () {
         concourse.pipelineName = "a-pipeline";
         pipelinesNav.loadPipelines();
 
-        respondWithSuccess();
+        respondWithPipelines();
         expect($(".js-groups")).toHaveClass("paused");
       });
 
@@ -113,7 +119,7 @@ describe("Pipelines Nav", function () {
 
         pipelinesNav.loadPipelines();
 
-        respondWithSuccess();
+        respondWithPipelines();
 
         expect(pipelinesNav.newPauseUnpause).toHaveBeenCalled();
         expect(pipelinesNav.newPauseUnpause.calls.count()).toEqual(2);
@@ -131,6 +137,40 @@ describe("Pipelines Nav", function () {
 
         expect(concourse.PauseUnpause).toHaveBeenCalledWith(myEl, jasmine.any(Function), jasmine.any(Function));
         expect(pauseUnpauseSpy.bindEvents).toHaveBeenCalled();
+      });
+    });
+
+    describe('#onSort', function() {
+      beforeEach(function() {
+        pipelinesNav.bindEvents();
+        respondWithPipelines();
+      });
+
+      var respondWithSuccess = function(request) {
+        var successRequest = request || jasmine.Ajax.requests.mostRecent();
+        successRequest.respondWith({
+          "status": 200,
+          "contentType": "application/json",
+          "responseText":""
+        });
+      };
+
+      var respondWithError = function(request) {
+        var errorRequest = request || jasmine.Ajax.requests.mostRecent();
+        errorRequest.respondWith({
+          "status": 500,
+          "contentType": 'application/json'
+        });
+      };
+
+      it('calls the api endpoint to sort pipelines', function() {
+        pipelinesNav.onSort();
+
+        var request = jasmine.Ajax.requests.mostRecent();
+
+        expect(request.url).toEqual('/api/v1/pipelines/ordering');
+        expect(request.method).toEqual('PUT');
+        expect(request.data()).toEqual(["a-pipeline", "another-pipeline"]);
       });
     });
   });
