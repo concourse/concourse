@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -30,12 +31,22 @@ var _ = Describe("Fly CLI", func() {
 	Describe("checklist", func() {
 		var (
 			config atc.Config
+			home   string
 		)
 
 		BeforeEach(func() {
 			atcServer = ghttp.NewServer()
 
-			os.Setenv("ATC_URL", atcServer.URL())
+			var err error
+			home, err = ioutil.TempDir("", "fly-home")
+			Ω(err).ShouldNot(HaveOccurred())
+			os.Setenv("HOME", home)
+
+			flySaveCmd := exec.Command(flyPath, "save-target", "--api", atcServer.URL()+"/", "target-name")
+
+			sess, err := gexec.Start(flySaveCmd, GinkgoWriter, GinkgoWriter)
+			Ω(err).ShouldNot(HaveOccurred())
+			Eventually(sess).Should(gexec.Exit(0))
 
 			config = atc.Config{
 				Groups: atc.GroupConfigs{
@@ -57,7 +68,11 @@ var _ = Describe("Fly CLI", func() {
 					},
 				},
 			}
+		})
 
+		AfterEach(func() {
+			err := os.RemoveAll(home)
+			Ω(err).ShouldNot(HaveOccurred())
 		})
 
 		Context("when a pipeline name is not specified", func() {
@@ -71,7 +86,7 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("prints the config as yaml to stdout", func() {
-				flyCmd := exec.Command(flyPath, "checklist", "some-pipeline")
+				flyCmd := exec.Command(flyPath, "-t", "target-name", "checklist", "some-pipeline")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Ω(err).ShouldNot(HaveOccurred())
@@ -106,7 +121,7 @@ some-orphaned-job: concourse.check %s   some-pipeline some-orphaned-job
 			})
 
 			It("prints the config as yaml to stdout", func() {
-				flyCmd := exec.Command(flyPath, "checklist", "some-pipeline")
+				flyCmd := exec.Command(flyPath, "-t", "target-name", "checklist", "some-pipeline")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Ω(err).ShouldNot(HaveOccurred())

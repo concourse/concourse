@@ -50,14 +50,12 @@ func getConfig(pipelineName string, atcRequester *atcRequester) atc.Config {
 }
 
 func returnTarget(startingTarget string) string {
-	startingTarget = strings.TrimRight(startingTarget, "/")
-
 	target := lookupURLFromName(startingTarget)
 	if target == "" {
-		return startingTarget
+		target = startingTarget
 	}
 
-	return target
+	return strings.TrimRight(target, "/")
 }
 
 func lookupURLFromName(targetName string) string {
