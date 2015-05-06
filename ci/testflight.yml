@@ -1,6 +1,6 @@
 ---
 platform: linux
-image: docker:///concourse/testflight
+image: docker:///golang#1.4
 
 params:
   BOSH_LITE_IP:
