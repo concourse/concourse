@@ -27,7 +27,7 @@ var _ = Describe("Fly CLI", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 	})
 
-	Describe("configure", func() {
+	Describe("checklist", func() {
 		var (
 			config atc.Config
 		)
@@ -60,42 +60,7 @@ var _ = Describe("Fly CLI", func() {
 
 		})
 
-		Context("When a pipeline name is not specified", func() {
-			BeforeEach(func() {
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/pipelines/main/config"),
-						ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
-					),
-				)
-			})
-
-			It("prints the config as yaml to stdout", func() {
-				flyCmd := exec.Command(flyPath, "checklist")
-
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				<-sess.Exited
-				Ω(sess.ExitCode()).Should(Equal(0))
-
-				Ω(string(sess.Out.Contents())).Should(Equal(fmt.Sprintf(
-					`#- some-group
-job-1: concourse.check %s   job-1
-job-2: concourse.check %s   job-2
-
-#- some-other-group
-job-3: concourse.check %s   job-3
-job-4: concourse.check %s   job-4
-
-#- misc
-some-orphaned-job: concourse.check %s   some-orphaned-job
-
-`, atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL())))
-			})
-		})
-
-		Context("When a pipeline name is specified", func() {
+		Context("when a pipeline name is not specified", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -116,15 +81,50 @@ some-orphaned-job: concourse.check %s   some-orphaned-job
 
 				Ω(string(sess.Out.Contents())).Should(Equal(fmt.Sprintf(
 					`#- some-group
-job-1: concourse.check %s   job-1
-job-2: concourse.check %s   job-2
+job-1: concourse.check %s   some-pipeline job-1
+job-2: concourse.check %s   some-pipeline job-2
 
 #- some-other-group
-job-3: concourse.check %s   job-3
-job-4: concourse.check %s   job-4
+job-3: concourse.check %s   some-pipeline job-3
+job-4: concourse.check %s   some-pipeline job-4
 
 #- misc
-some-orphaned-job: concourse.check %s   some-orphaned-job
+some-orphaned-job: concourse.check %s   some-pipeline some-orphaned-job
+
+`, atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL())))
+			})
+		})
+
+		Context("when a pipeline name is specified", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/config"),
+						ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
+					),
+				)
+			})
+
+			It("prints the config as yaml to stdout", func() {
+				flyCmd := exec.Command(flyPath, "checklist", "some-pipeline")
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				<-sess.Exited
+				Ω(sess.ExitCode()).Should(Equal(0))
+
+				Ω(string(sess.Out.Contents())).Should(Equal(fmt.Sprintf(
+					`#- some-group
+job-1: concourse.check %s   some-pipeline job-1
+job-2: concourse.check %s   some-pipeline job-2
+
+#- some-other-group
+job-3: concourse.check %s   some-pipeline job-3
+job-4: concourse.check %s   some-pipeline job-4
+
+#- misc
+some-orphaned-job: concourse.check %s   some-pipeline some-orphaned-job
 
 `, atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL())))
 			})

@@ -21,24 +21,24 @@ func Checklist(c *cli.Context) {
 
 	atcRequester := newAtcRequester(rawTarget, insecure)
 
-	printCheckfile(getConfig(pipelineName, atcRequester), newTarget(rawTarget))
+	printCheckfile(pipelineName, getConfig(pipelineName, atcRequester), newTarget(rawTarget))
 }
 
-func printCheckfile(config atc.Config, au target) {
+func printCheckfile(pipelineName string, config atc.Config, au target) {
 	for _, group := range config.Groups {
-		printGroup(group, au)
+		printGroup(pipelineName, group, au)
 	}
 
 	miscJobs := orphanedJobs(config)
 	if len(miscJobs) > 0 {
-		printGroup(atc.GroupConfig{Name: "misc", Jobs: miscJobs}, au)
+		printGroup(pipelineName, atc.GroupConfig{Name: "misc", Jobs: miscJobs}, au)
 	}
 }
 
-func printGroup(group atc.GroupConfig, au target) {
+func printGroup(pipelineName string, group atc.GroupConfig, au target) {
 	fmt.Printf("#- %s\n", group.Name)
 	for _, job := range group.Jobs {
-		fmt.Printf("%s: concourse.check %s %s %s %s\n", job, au.url, au.username, au.password, job)
+		fmt.Printf("%s: concourse.check %s %s %s %s %s\n", job, au.url, au.username, au.password, pipelineName, job)
 	}
 	fmt.Println("")
 }
