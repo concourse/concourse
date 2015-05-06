@@ -51,6 +51,7 @@ func (db *SQLDB) GetAllActivePipelines() ([]SavedPipeline, error) {
 	rows, err := db.conn.Query(`
 		SELECT id, name, config, version, paused
 		FROM pipelines
+		ORDER BY id
 	`)
 	if err != nil {
 		return nil, err

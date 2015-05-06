@@ -20,6 +20,8 @@ type Locker interface {
 	AcquireReadLock([]db.NamedLock) (db.Lock, error)
 }
 
+//go:generate counterfeiter . RadarSchedulerFactory
+
 type RadarSchedulerFactory interface {
 	BuildRadar(pipelineDB db.PipelineDB) *radar.Radar
 	BuildScheduler(pipelineDB db.PipelineDB) *scheduler.Scheduler

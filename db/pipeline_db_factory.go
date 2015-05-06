@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 
 	"github.com/pivotal-golang/lager"
 )
@@ -11,6 +12,7 @@ import (
 type PipelineDBFactory interface {
 	Build(pipeline SavedPipeline) PipelineDB
 	BuildWithName(pipelineName string) (PipelineDB, error)
+	BuildDefault() (PipelineDB, error)
 }
 
 type pipelineDBFactory struct {
@@ -54,4 +56,26 @@ func (pdbf *pipelineDBFactory) Build(pipeline SavedPipeline) PipelineDB {
 
 		SavedPipeline: pipeline,
 	}
+}
+
+var ErrNoPipelines = errors.New("no pipelines configured")
+
+func (pdbf *pipelineDBFactory) BuildDefault() (PipelineDB, error) {
+	orderedPipelines, err := pdbf.pipelinesDB.GetAllActivePipelines()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(orderedPipelines) < 1 {
+		return nil, ErrNoPipelines
+	}
+
+	return &pipelineDB{
+		logger: pdbf.logger,
+
+		conn: pdbf.conn,
+		bus:  pdbf.bus,
+
+		SavedPipeline: orderedPipelines[0],
+	}, nil
 }

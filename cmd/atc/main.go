@@ -319,7 +319,6 @@ func main() {
 		configDB,
 		*templatesDir,
 		*publicDir,
-		drain,
 		engine,
 	)
 	if err != nil {

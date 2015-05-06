@@ -167,7 +167,7 @@ var _ = Describe("SQL DB", func() {
 			Ω(otherPipeline.ID).ShouldNot(Equal(0))
 		})
 
-		It("can get a list of all active pipelines", func() {
+		It("can get a list of all active pipelines ordered by id", func() {
 			pipelineName := "a-pipeline-name"
 			otherPipelineName := "an-other-pipeline-name"
 
@@ -177,18 +177,22 @@ var _ = Describe("SQL DB", func() {
 			err = sqlDB.SaveConfig(otherPipelineName, otherConfig, 0)
 			Ω(err).ShouldNot(HaveOccurred())
 
+			outOfOrderPipelineDB, err := pipelineDBFactory.BuildWithName(pipelineName)
+			Ω(err).ShouldNot(HaveOccurred())
+			outOfOrderPipelineDB.Unpause() // We are pausing this to change the postgres default ordering.
+
 			pipelines, err := sqlDB.GetAllActivePipelines()
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(pipelines).Should(ConsistOf(
-				db.SavedPipeline{
+			Ω(pipelines).Should(Equal([]db.SavedPipeline{
+				{
 					ID: 1,
 					Pipeline: db.Pipeline{
 						Name:    "some-pipeline",
 						Version: db.ConfigVersion(1),
 					},
 				},
-				db.SavedPipeline{
+				{
 					ID: 2,
 					Pipeline: db.Pipeline{
 						Name:    pipelineName,
@@ -196,7 +200,7 @@ var _ = Describe("SQL DB", func() {
 						Version: db.ConfigVersion(2),
 					},
 				},
-				db.SavedPipeline{
+				{
 					ID: 3,
 					Pipeline: db.Pipeline{
 						Name:    otherPipelineName,
@@ -204,7 +208,7 @@ var _ = Describe("SQL DB", func() {
 						Version: db.ConfigVersion(3),
 					},
 				},
-			))
+			}))
 		})
 
 		It("can lookup configs by build id", func() {

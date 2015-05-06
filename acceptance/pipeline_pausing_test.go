@@ -78,7 +78,7 @@ var _ = Describe("Pipeline Pausing", func() {
 			BeforeEach(func() {
 				var err error
 
-				Ω(sqlDB.SaveConfig("main", atc.Config{
+				Ω(sqlDB.SaveConfig("some-pipeline", atc.Config{
 					Jobs: []atc.JobConfig{
 						{Name: "some-job-name"},
 					},
@@ -90,7 +90,7 @@ var _ = Describe("Pipeline Pausing", func() {
 					},
 				}, db.ConfigVersion(1))).Should(Succeed())
 
-				pipelineDB, err = pipelineDBFactory.BuildWithName("main")
+				pipelineDB, err = pipelineDBFactory.BuildWithName("some-pipeline")
 				Ω(err).ShouldNot(HaveOccurred())
 
 				otherPipelineDB, err = pipelineDBFactory.BuildWithName("another-pipeline")
@@ -98,7 +98,7 @@ var _ = Describe("Pipeline Pausing", func() {
 
 			})
 
-			mainPipelineLink := ".js-pipelinesNav-list li:nth-of-type(1) a"
+			defaultPipelineLink := ".js-pipelinesNav-list li:nth-of-type(1) a"
 			anotherPipelineLink := ".js-pipelinesNav-list li:nth-of-type(2) a"
 			anotherPipelineItem := ".js-pipelinesNav-list li:nth-of-type(2)"
 
@@ -111,7 +111,7 @@ var _ = Describe("Pipeline Pausing", func() {
 
 				Expect(page.Find(".js-pipelinesNav-toggle").Click()).To(Succeed())
 
-				Expect(page.Find(mainPipelineLink)).To(HaveText("main"))
+				Expect(page.Find(defaultPipelineLink)).To(HaveText("some-pipeline"))
 				Expect(page.Find(anotherPipelineLink)).To(HaveText("another-pipeline"))
 
 				Expect(page.Find(anotherPipelineLink).Click()).To(Succeed())
@@ -119,7 +119,7 @@ var _ = Describe("Pipeline Pausing", func() {
 				Eventually(page).Should(HaveURL(withPath("/pipelines/another-pipeline")))
 
 				Expect(page.Find(".js-pipelinesNav-toggle").Click()).To(Succeed())
-				Eventually(page.Find(mainPipelineLink)).Should(HaveText("main"))
+				Eventually(page.Find(defaultPipelineLink)).Should(HaveText("some-pipeline"))
 				Eventually(page.Find("#pipeline").Text).Should(ContainSubstring("another-job-name"))
 
 				Eventually(page.Find(anotherPipelineItem + " .js-pauseUnpause")).Should(BeVisible())

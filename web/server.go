@@ -24,15 +24,21 @@ import (
 	"github.com/concourse/atc/web/triggerbuild"
 )
 
+//go:generate counterfeiter . WebDB
+
+type WebDB interface {
+	GetBuild(buildID int) (db.Build, error)
+	GetAllBuilds() ([]db.Build, error)
+}
+
 func NewHandler(
 	logger lager.Logger,
 	validator auth.Validator,
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
-	db db.DB,
+	db WebDB,
 	pipelineDBFactory db.PipelineDBFactory,
 	configDB db.ConfigDB,
 	templatesDir, publicDir string,
-	drain <-chan struct{},
 	engine engine.Engine,
 ) (http.Handler, error) {
 	tfuncs := &templateFuncs{
