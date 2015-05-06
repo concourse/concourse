@@ -41,7 +41,8 @@ var _ = Describe("Fly CLI", func() {
 		BeforeEach(func() {
 			atcServer = ghttp.NewServer()
 
-			os.Setenv("ATC_URL", atcServer.URL())
+			// make sure that we can handle trailing slashes
+			os.Setenv("ATC_URL", atcServer.URL()+"/")
 
 			config = atc.Config{
 				Groups: atc.GroupConfigs{

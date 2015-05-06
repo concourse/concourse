@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/codegangsta/cli"
 	"github.com/concourse/atc"
@@ -49,6 +50,8 @@ func getConfig(pipelineName string, atcRequester *atcRequester) atc.Config {
 }
 
 func returnTarget(startingTarget string) string {
+	startingTarget = strings.TrimRight(startingTarget, "/")
+
 	target := lookupURLFromName(startingTarget)
 	if target == "" {
 		return startingTarget
