@@ -130,7 +130,7 @@ var _ = Describe("Hijacking", func() {
 						{ID: 1, Name: "1", Status: "finished"},
 					}),
 				),
-				hijackHandler(didHijack, []string{"build-id=3&type=task&name=build"}, nil),
+				hijackHandler(didHijack, []string{"build-id=3&name=build"}, nil),
 			)
 		})
 
@@ -194,7 +194,7 @@ var _ = Describe("Hijacking", func() {
 							},
 						}),
 					),
-					hijackHandler(didHijack, []string{"build-id=3&type=task&name=build"}, nil),
+					hijackHandler(didHijack, []string{"build-id=3&name=build"}, nil),
 				)
 			})
 
@@ -221,7 +221,7 @@ var _ = Describe("Hijacking", func() {
 							},
 						}),
 					),
-					hijackHandler(didHijack, []string{"build-id=3&type=task&name=build"}, nil),
+					hijackHandler(didHijack, []string{"build-id=3&name=build"}, nil),
 				)
 			})
 
@@ -245,7 +245,7 @@ var _ = Describe("Hijacking", func() {
 							JobName: "some-job",
 						}),
 					),
-					hijackHandler(didHijack, []string{"build-id=3&type=task&name=build"}, nil),
+					hijackHandler(didHijack, []string{"build-id=3&name=build"}, nil),
 				)
 			})
 
@@ -269,7 +269,7 @@ var _ = Describe("Hijacking", func() {
 							{ID: 1, Name: "1", Status: "finished"},
 						}),
 					),
-					hijackHandler(didHijack, []string{"build-id=3&type=task&name=build"}, []string{"something went wrong"}),
+					hijackHandler(didHijack, []string{"build-id=3&name=build"}, []string{"something went wrong"}),
 				)
 			})
 

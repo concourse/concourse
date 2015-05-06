@@ -88,7 +88,9 @@ func Hijack(c *cli.Context) {
 	if check == "" {
 		build := getBuild(c, client, reqGenerator)
 		reqValues["build-id"] = []string{strconv.Itoa(build.ID)}
-		reqValues["type"] = []string{stepType}
+		if stepType != "" {
+			reqValues["type"] = []string{stepType}
+		}
 		reqValues["name"] = []string{stepName}
 	} else {
 		reqValues["type"] = []string{"check"}

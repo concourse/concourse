@@ -53,7 +53,6 @@ var checkFlag = cli.StringFlag{
 
 var stepTypeFlag = cli.StringFlag{
 	Name:  "step-type, t",
-	Value: "task",
 	Usage: "type of step to hijack. one of get, put, or task.",
 }
 
