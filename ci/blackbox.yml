@@ -1,6 +1,6 @@
 ---
 platform: linux
-image: docker:///mischief/docker-golang
+image: docker:///concourse/atc-ci
 
 inputs:
   - name: concourse
