@@ -113,6 +113,30 @@ var _ = Describe("Pipelines Syncer", func() {
 		})
 	})
 
+	Context("when a pipeline is deleted", func() {
+		It("exits the process", func() {
+
+			Ω(fakeRunner.RunCallCount()).Should(Equal(1))
+			Ω(otherFakeRunner.RunCallCount()).Should(Equal(1))
+
+			pipelinesDB.GetAllActivePipelinesReturns([]db.SavedPipeline{
+				{
+					ID: 2,
+					Pipeline: db.Pipeline{
+						Name: "other-pipeline",
+					},
+				},
+			}, nil)
+
+			syncer.Sync()
+
+			Ω(fakeRunner.RunCallCount()).Should(Equal(1))
+
+			signals, _ := fakeRunner.RunArgsForCall(0)
+			Eventually(signals).Should(Receive(Equal(os.Interrupt)))
+		})
+	})
+
 	Context("when the pipeline's process exits", func() {
 		BeforeEach(func() {
 			fakeRunnerExitChan <- nil

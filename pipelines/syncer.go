@@ -1,6 +1,8 @@
 package pipelines
 
 import (
+	"os"
+
 	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
@@ -57,6 +59,17 @@ func (syncer *Syncer) Sync() {
 		case <-runningPipeline.Exited:
 			syncer.removePipeline(name)
 		default:
+		}
+
+		var found bool
+		for _, pipeline := range pipelines {
+			if pipeline.Name == name {
+				found = true
+			}
+		}
+
+		if !found {
+			runningPipeline.Process.Signal(os.Interrupt)
 		}
 	}
 
