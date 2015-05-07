@@ -190,7 +190,7 @@ func diff(existingConfig atc.Config, newConfig atc.Config) {
 		}
 	}
 
-	if !askToConfirm() {
+	if !askToConfirm("apply configuration?") {
 		println("bailing out")
 		os.Exit(1)
 	}

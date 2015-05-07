@@ -142,6 +142,12 @@ func main() {
 			Flags:     executeFlags,
 			Action:    commands.Execute,
 		},
+		{
+			Name:      "destroy-pipeline",
+			ShortName: "d",
+			Usage:     "destroy a pipeline",
+			Action:    commands.DestroyPipeline,
+		},
 		takeControl("hijack"),
 		takeControl("intercept"),
 		{

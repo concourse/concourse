@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/term"
 )
 
-func askToConfirm() bool {
-	fmt.Printf("apply configuration? (y/n): ")
+func askToConfirm(prompt string) bool {
+	fmt.Printf("%s (y/n): ", prompt)
 
 	var in io.Reader
 

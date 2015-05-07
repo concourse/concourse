@@ -9,7 +9,7 @@ import (
 )
 
 func askToConfirm() bool {
-	fmt.Printf("apply configuration? (y/n): ")
+	fmt.Printf("%s (y/n): ", prompt)
 
 	var response string
 	_, err := fmt.Fscanf(os.Stdin, "%s\n", &response)
