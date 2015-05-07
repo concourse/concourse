@@ -82,6 +82,8 @@ var _ = Describe("PipelineDB", func() {
 
 				Serial: true,
 
+				SerialGroups: []string{"serial-group"},
+
 				InputConfigs: []atc.JobInputConfig{
 					{
 						RawName:  "some-input",
@@ -151,6 +153,62 @@ var _ = Describe("PipelineDB", func() {
 
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 		otherPipelineDB = pipelineDBFactory.Build(otherSavedPipeline)
+	})
+
+	Describe("destroying a pipeline", func() {
+		It("can be deleted", func() {
+			err := sqlDB.SavePipeline("a-pipeline-that-will-be-deleted", config, 0)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			fetchedPipeline, err := sqlDB.GetPipelineByName("a-pipeline-that-will-be-deleted")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			fetchedPipelineDB := pipelineDBFactory.Build(fetchedPipeline)
+
+			// resource tree
+			_, err = fetchedPipelineDB.GetResource("some-resource")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			resourceConfig, found := config.Resources.Lookup("some-resource")
+			Ω(found).Should(BeTrue())
+
+			fetchedPipelineDB.SaveResourceVersions(resourceConfig, []atc.Version{
+				{
+					"key": "value",
+				},
+			})
+
+			// job tree
+			_, err = fetchedPipelineDB.GetJob("some-job")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			build, err := fetchedPipelineDB.CreateJobBuild("some-job")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			_, err = fetchedPipelineDB.GetRunningBuildsBySerialGroup("some-job", []string{"serial-group"})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			fetchedPipelineDB.SaveBuildInput(build.ID, db.BuildInput{
+				Name: "build-input",
+			})
+
+			_, err = fetchedPipelineDB.SaveBuildOutput(build.ID, db.VersionedResource{
+				Resource:     "some-resource",
+				PipelineName: "a-pipeline-that-will-be-deleted",
+			})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = sqlDB.SaveBuildEvent(build.ID, event.StartTask{})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = fetchedPipelineDB.Destroy()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			pipelines, err := sqlDB.GetAllActivePipelines()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(pipelines).ShouldNot(ContainElement(fetchedPipeline))
+		})
 	})
 
 	Describe("Pausing and unpausing a pipeline", func() {

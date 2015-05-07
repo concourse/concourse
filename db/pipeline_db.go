@@ -22,6 +22,8 @@ type PipelineDB interface {
 	Unpause() error
 	IsPaused() (bool, error)
 
+	Destroy() error
+
 	GetConfig() (atc.Config, ConfigVersion, error)
 
 	GetResource(resourceName string) (SavedResource, error)
@@ -93,6 +95,100 @@ func (pdb *pipelineDB) Pause() error {
 		WHERE id = $1
 	`, pdb.ID)
 	return err
+}
+
+func (pdb *pipelineDB) Destroy() error {
+	tx, err := pdb.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	queries := []string{
+		`
+			DELETE FROM build_events
+			WHERE build_id IN (
+				SELECT id
+				FROM builds
+				WHERE job_id IN (
+					SELECT id
+					FROM jobs
+					WHERE pipeline_id = $1
+				)
+			)
+		`,
+		`
+			DELETE FROM build_outputs
+			WHERE build_id IN (
+				SELECT id
+				FROM builds
+				WHERE job_id IN (
+					SELECT id
+					FROM jobs
+					WHERE pipeline_id = $1
+				)
+			)
+		`,
+		`
+			DELETE FROM build_inputs
+			WHERE build_id IN (
+				SELECT id
+				FROM builds
+				WHERE job_id IN (
+					SELECT id
+					FROM jobs
+					WHERE pipeline_id = $1
+				)
+			)
+		`,
+		`
+			DELETE FROM jobs_serial_groups
+			WHERE job_id IN (
+				SELECT id
+				FROM jobs
+				WHERE pipeline_id = $1
+			)
+		`,
+		`
+			DELETE FROM builds
+			WHERE job_id IN (
+				SELECT id
+				FROM jobs
+				WHERE pipeline_id = $1
+			)
+		`,
+		`
+			DELETE FROM jobs
+			WHERE pipeline_id = $1
+		`,
+		`
+			DELETE FROM versioned_resources
+			WHERE resource_id IN (
+				SELECT id
+				FROM resources
+				WHERE pipeline_id = $1
+			)
+		`,
+		`
+			DELETE FROM resources
+			WHERE pipeline_id = $1
+		`,
+		`
+			DELETE FROM pipelines
+			WHERE id = $1;
+		`,
+	}
+
+	for _, query := range queries {
+		_, err = tx.Exec(query, pdb.ID)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (pdb *pipelineDB) GetConfig() (atc.Config, ConfigVersion, error) {
@@ -579,6 +675,10 @@ func (pdb *pipelineDB) GetJob(jobName string) (SavedJob, error) {
 	}
 
 	dbJob, err := pdb.getJob(tx, jobName)
+	if err != nil {
+		return SavedJob{}, err
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		return SavedJob{}, err

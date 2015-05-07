@@ -112,6 +112,7 @@ func NewHandler(
 		atc.UnpauseJob:    validate(pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob)),
 
 		atc.ListPipelines:   http.HandlerFunc(pipelineServer.ListPipelines),
+		atc.DeletePipeline:  validate(pipelineHandlerFactory.HandlerFor(pipelineServer.DeletePipeline)),
 		atc.OrderPipelines:  validate(http.HandlerFunc(pipelineServer.OrderPipelines)),
 		atc.PausePipeline:   validate(pipelineHandlerFactory.HandlerFor(pipelineServer.PausePipeline)),
 		atc.UnpausePipeline: validate(pipelineHandlerFactory.HandlerFor(pipelineServer.UnpausePipeline)),

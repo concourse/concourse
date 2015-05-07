@@ -42,6 +42,12 @@ type FakePipelineDB struct {
 		result1 bool
 		result2 error
 	}
+	DestroyStub        func() error
+	destroyMutex       sync.RWMutex
+	destroyArgsForCall []struct{}
+	destroyReturns struct {
+		result1 error
+	}
 	GetConfigStub        func() (atc.Config, db.ConfigVersion, error)
 	getConfigMutex       sync.RWMutex
 	getConfigArgsForCall []struct{}
@@ -427,6 +433,30 @@ func (fake *FakePipelineDB) IsPausedReturns(result1 bool, result2 error) {
 		result1 bool
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakePipelineDB) Destroy() error {
+	fake.destroyMutex.Lock()
+	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct{}{})
+	fake.destroyMutex.Unlock()
+	if fake.DestroyStub != nil {
+		return fake.DestroyStub()
+	} else {
+		return fake.destroyReturns.result1
+	}
+}
+
+func (fake *FakePipelineDB) DestroyCallCount() int {
+	fake.destroyMutex.RLock()
+	defer fake.destroyMutex.RUnlock()
+	return len(fake.destroyArgsForCall)
+}
+
+func (fake *FakePipelineDB) DestroyReturns(result1 error) {
+	fake.DestroyStub = nil
+	fake.destroyReturns = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakePipelineDB) GetConfig() (atc.Config, db.ConfigVersion, error) {

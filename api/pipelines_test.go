@@ -84,6 +84,69 @@ var _ = Describe("Pipelines API", func() {
 		})
 	})
 
+	Describe("DELETE /api/v1/pipelines/:pipeline_name", func() {
+		var response *http.Response
+		var pipelineDB *dbfakes.FakePipelineDB
+
+		BeforeEach(func() {
+			pipelineDB = new(dbfakes.FakePipelineDB)
+
+			pipelineDBFactory.BuildWithNameReturns(pipelineDB, nil)
+		})
+
+		JustBeforeEach(func() {
+			pipelineName := "a-pipeline-name"
+			req, err := http.NewRequest("DELETE", server.URL+"/api/v1/pipelines/"+pipelineName, nil)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			req.Header.Set("Content-Type", "application/json")
+
+			response, err = client.Do(req)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		Context("when the user is logged in", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			It("returns 204 No Content", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusNoContent))
+			})
+
+			It("injects the proper pipelineDB", func() {
+				Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+				Ω(pipelineName).Should(Equal("a-pipeline-name"))
+			})
+
+			It("deletes the named pipeline from the database", func() {
+				Ω(pipelineDB.DestroyCallCount()).Should(Equal(1))
+			})
+
+			Context("when an error occurs destroying the pipeline", func() {
+				BeforeEach(func() {
+					err := errors.New("disaster!")
+					pipelineDB.DestroyReturns(err)
+				})
+
+				It("returns a 500 Internal Server Error", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				})
+			})
+		})
+
+		Context("when the user is not logged in", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Unauthorized", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+			})
+		})
+	})
+
 	Describe("PUT /api/v1/pipelines/:pipeline_name/pause", func() {
 		var response *http.Response
 		var pipelineDB *dbfakes.FakePipelineDB
