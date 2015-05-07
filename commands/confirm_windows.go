@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-func askToConfirm() bool {
+func askToConfirm(prompt string) bool {
 	fmt.Printf("%s (y/n): ", prompt)
 
 	var response string
