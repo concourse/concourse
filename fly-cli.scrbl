@@ -216,6 +216,14 @@ If both @code{--var} and @code{--vars-from} are specified, the @code{--var}
 flags take precedence.
 
 
+@section[#:tag "fly-destroy-pipeline"]{@code{configure}@aux-elem{: Removing Pipelines}}
+
+Every now and then you just don't want a pipeline to be around anymore.
+Running @code{fly destroy-pipeline} will stop the pipeline activity and remove
+all data collected by the pipeline, including build history and collected
+versions.
+
+
 @section[#:tag "fly-intercept"]{@code{intercept}@aux-elem{: Accessing a running or recent build's steps}}
 
 Sometimes it's helpful to be on the same machine as your tasks so that you
