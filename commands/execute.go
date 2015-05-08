@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"io"
 	"time"
 
 	"crypto/tls"
@@ -172,7 +171,7 @@ func createBuild(
 
 	buildInputs := atc.AggregatePlan{}
 	for _, i := range inputs {
-		readPipe, err := atcRequester.CreateHTTPRequest(
+		readPipe, err := atcRequester.CreateRequest(
 			atc.ReadPipe,
 			rata.Params{"pipe_id": i.Pipe.ID},
 			nil,
@@ -331,22 +330,6 @@ func newAtcRequester(target string, insecure bool) *atcRequester {
 		rata.NewRequestGenerator(target, atc.Routes),
 		&http.Client{Transport: &http.Transport{TLSClientConfig: tlsClientConfig}},
 	}
-}
-
-func (ar *atcRequester) CreateHTTPRequest(
-	name string,
-	params rata.Params,
-	body io.Reader,
-) (*http.Request, error) {
-	request, err := ar.CreateRequest(name, params, body)
-	if err != nil {
-		return nil, err
-	}
-
-	url := request.URL
-	url.Scheme = "http"
-	request.URL = url
-	return request, nil
 }
 
 func getGitFiles(dir string) ([]string, error) {
