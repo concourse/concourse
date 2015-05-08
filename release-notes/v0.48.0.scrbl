@@ -57,4 +57,9 @@
     The @hyperlink["https://github.com/concourse/git-resource"]{Git resource}
     now copes with a repository being @code{push -f}ed.
   }
+
+  @item{
+    The home button now takes you to the current pipeline, rather than
+    @code{/}.
+  }
 ]
