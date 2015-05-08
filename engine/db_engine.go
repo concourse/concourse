@@ -141,7 +141,10 @@ func (build *dbBuild) Abort() error {
 	if model.Engine == "" {
 		// otherwise, CreateBuild had not yet tried to start the build, and so it
 		// will see the conflict when it tries to transition, and abort itself.
-		return nil
+		//
+		// finish the build so that the aborted event is put into the event stream
+		// even if the build has not started yet
+		return build.db.FinishBuild(build.id, db.StatusAborted)
 	}
 
 	buildEngine, found := build.engines.Lookup(model.Engine)

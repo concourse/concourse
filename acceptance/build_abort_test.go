@@ -123,8 +123,6 @@ var _ = Describe("Resource Pausing", func() {
 				Expect(page.Find(".js-abortBuild").Click()).To(Succeed())
 				Expect(page).Should(HaveURL(withPath(fmt.Sprintf("jobs/job-name/builds/%d", build.ID))))
 
-				Ω(sqlDB.FinishBuild(build.ID, db.StatusAborted)).Should(Succeed())
-
 				Eventually(page.Find("#page-header.aborted")).Should(BeFound())
 				Eventually(page.Find(".js-abortBuild")).ShouldNot(BeFound())
 			})

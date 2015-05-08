@@ -345,6 +345,14 @@ var _ = Describe("DBEngine", func() {
 						Ω(buildID).Should(Equal(model.ID))
 					})
 
+					It("finishes the build in the db so that the aborted event is emitted", func() {
+						Ω(fakeBuildDB.FinishBuildCallCount()).Should(Equal(1))
+
+						buildID, status := fakeBuildDB.FinishBuildArgsForCall(0)
+						Ω(buildID).Should(Equal(model.ID))
+						Ω(status).Should(Equal(db.StatusAborted))
+					})
+
 					It("releases the lock", func() {
 						Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
 					})
