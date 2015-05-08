@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/web/group"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -40,8 +39,7 @@ func NewHandler(logger lager.Logger, db BuildDB, configDB db.ConfigDB, template 
 }
 
 type TemplateData struct {
-	Build       db.Build
-	GroupStates []group.State
+	Build db.Build
 }
 
 var ErrInvalidBuildID = errors.New("invalid build id")
@@ -58,8 +56,7 @@ func FetchTemplateData(buildID string, buildDB BuildDB, configDB db.ConfigDB) (T
 	}
 
 	return TemplateData{
-		Build:       build,
-		GroupStates: []group.State{},
+		Build: build,
 	}, nil
 }
 

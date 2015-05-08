@@ -38,13 +38,6 @@ var _ = Describe("FetchTemplateData", func() {
 		Ω(templateData.Builds).Should(BeAssignableToTypeOf([]PresentedBuild{}))
 	})
 
-	It("sets the states to be empty", func() {
-		templateData, err := FetchTemplateData(fakeDB, fakeConfigDB)
-		Ω(err).ShouldNot(HaveOccurred())
-
-		Ω(templateData.GroupStates).Should(BeEmpty())
-	})
-
 	It("returns an error if fetching from the database fails", func() {
 		fakeDB.GetAllBuildsReturns(nil, errors.New("disaster"))
 

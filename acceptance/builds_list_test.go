@@ -78,6 +78,7 @@ var _ = Describe("One-off Builds", func() {
 		firstBuildNumber := ".table-row:nth-of-type(1) .build-number"
 		firstBuildLink := ".table-row:nth-of-type(1) a"
 		secondBuildLink := ".table-row:nth-of-type(2) a"
+		homeLink := ".js-groups li:nth-of-type(2) a"
 
 		Context("with a one off build", func() {
 			var oneOffBuild db.Build
@@ -153,6 +154,9 @@ var _ = Describe("One-off Builds", func() {
 
 				Ω(sqlDB.FinishBuild(oneOffBuild.ID, db.StatusSucceeded)).Should(Succeed())
 				Eventually(page.Find(".build-times").Text).Should(ContainSubstring("duration"))
+
+				Expect(page.Find(homeLink).Click()).To(Succeed())
+				Eventually(page).Should(HaveURL(withPath("/")))
 
 				// one off build detail -> build list
 				Expect(page.Find(allBuildsListIconLink).Click()).To(Succeed())

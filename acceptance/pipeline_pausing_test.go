@@ -98,6 +98,7 @@ var _ = Describe("Pipeline Pausing", func() {
 
 			})
 
+			homeLink := ".js-groups li:nth-of-type(2) a"
 			defaultPipelineLink := ".js-pipelinesNav-list li:nth-of-type(1) a"
 			anotherPipelineLink := ".js-pipelinesNav-list li:nth-of-type(2) a"
 			anotherPipelineItem := ".js-pipelinesNav-list li:nth-of-type(2)"
@@ -116,6 +117,8 @@ var _ = Describe("Pipeline Pausing", func() {
 
 				Expect(page.Find(anotherPipelineLink).Click()).To(Succeed())
 
+				Eventually(page).Should(HaveURL(withPath("/pipelines/another-pipeline")))
+				Expect(page.Find(homeLink).Click()).To(Succeed())
 				Eventually(page).Should(HaveURL(withPath("/pipelines/another-pipeline")))
 
 				Expect(page.Find(".js-pipelinesNav-toggle").Click()).To(Succeed())
