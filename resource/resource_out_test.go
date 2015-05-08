@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"regexp"
 
 	"github.com/cloudfoundry-incubator/garden"
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
@@ -110,7 +111,9 @@ var _ = Describe("Resource Out", func() {
 					fakeContainer.StreamOutStub = func(source string) (io.ReadCloser, error) {
 						streamOut := new(bytes.Buffer)
 
-						if source == "/tmp/build/src/some/subdir" {
+						match, err := regexp.MatchString(`/tmp/build/put/`+guidRegex+`/some/subdir`, source)
+						Ω(err).ShouldNot(HaveOccurred())
+						if match {
 							streamOut.WriteString("sup")
 						}
 
@@ -118,7 +121,7 @@ var _ = Describe("Resource Out", func() {
 					}
 				})
 
-				It("returns the output stream of /tmp/build/src/some-name/", func() {
+				It("returns the output stream of the resource", func() {
 					Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
 					inStream, err := versionedSource.StreamOut("some/subdir")
@@ -324,7 +327,7 @@ var _ = Describe("Resource Out", func() {
 		})
 	})
 
-	Context("when /in has not yet been spawned", func() {
+	Context("when /out has not yet been spawned", func() {
 		BeforeEach(func() {
 			fakeContainer.PropertyStub = func(name string) (string, error) {
 				switch name {
@@ -336,12 +339,32 @@ var _ = Describe("Resource Out", func() {
 			}
 		})
 
+		It("uses the same working directory for all actions", func() {
+			err := versionedSource.StreamIn("a/path", &bytes.Buffer{})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(fakeContainer.StreamInCallCount()).Should(Equal(1))
+			streamInPath, _ := fakeContainer.StreamInArgsForCall(0)
+
+			_, err = versionedSource.StreamOut("a/path")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(fakeContainer.StreamOutCallCount()).Should(Equal(1))
+			streamOutPath := fakeContainer.StreamOutArgsForCall(0)
+
+			Ω(fakeContainer.RunCallCount()).Should(Equal(1))
+			spec, _ := fakeContainer.RunArgsForCall(0)
+
+			Ω(streamInPath).Should(HavePrefix(spec.Args[0]))
+			Ω(streamInPath).Should(Equal(streamOutPath))
+		})
+
 		It("runs /opt/resource/out <source path> with the request on stdin", func() {
 			Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
 			spec, io := fakeContainer.RunArgsForCall(0)
 			Ω(spec.Path).Should(Equal("/opt/resource/out"))
-			Ω(spec.Args).Should(Equal([]string{"/tmp/build/src"}))
+			Ω(spec.Args).Should(ConsistOf(MatchRegexp(`/tmp/build/put/` + guidRegex)))
 			Ω(spec.Privileged).Should(BeTrue())
 
 			request, err := ioutil.ReadAll(io.Stdin)
@@ -374,7 +397,7 @@ var _ = Describe("Resource Out", func() {
 					fakeContainer.StreamInReturns(nil)
 				})
 
-				It("streams in to the path relative to /tmp/build/src", func() {
+				It("streams in to the path", func() {
 					buf := new(bytes.Buffer)
 
 					err := versionedSource.StreamIn("some-path", buf)
@@ -382,7 +405,8 @@ var _ = Describe("Resource Out", func() {
 
 					Ω(fakeContainer.StreamInCallCount()).Should(Equal(1))
 					dst, src := fakeContainer.StreamInArgsForCall(0)
-					Ω(dst).Should(Equal("/tmp/build/src/some-path"))
+
+					Ω(dst).Should(MatchRegexp(`/tmp/build/put/` + guidRegex + `/some-path`))
 					Ω(src).Should(Equal(buf))
 				})
 			})

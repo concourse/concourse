@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"regexp"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,6 +19,8 @@ import (
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/resource"
 )
+
+var guidRegex = "[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}"
 
 var _ = Describe("Resource In", func() {
 	var (
@@ -108,8 +111,9 @@ var _ = Describe("Resource In", func() {
 				BeforeEach(func() {
 					fakeContainer.StreamOutStub = func(source string) (io.ReadCloser, error) {
 						streamOut := new(bytes.Buffer)
-
-						if source == "/tmp/build/src/some/subdir" {
+						match, err := regexp.MatchString(`/tmp/build/get/`+guidRegex+`/some/subdir`, source)
+						Ω(err).ShouldNot(HaveOccurred())
+						if match {
 							streamOut.WriteString("sup")
 						}
 
@@ -117,7 +121,7 @@ var _ = Describe("Resource In", func() {
 					}
 				})
 
-				It("returns the output stream of /tmp/build/src/some-name/", func() {
+				It("returns the output stream of the resource directory", func() {
 					Eventually(inProcess.Wait()).Should(Receive(BeNil()))
 
 					inStream, err := versionedSource.StreamOut("some/subdir")
@@ -335,12 +339,33 @@ var _ = Describe("Resource In", func() {
 			}
 		})
 
+		It("uses the same working directory for all actions", func() {
+			err := versionedSource.StreamIn("a/path", &bytes.Buffer{})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(fakeContainer.StreamInCallCount()).Should(Equal(1))
+			streamInPath, _ := fakeContainer.StreamInArgsForCall(0)
+
+			_, err = versionedSource.StreamOut("a/path")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(fakeContainer.StreamOutCallCount()).Should(Equal(1))
+			streamOutPath := fakeContainer.StreamOutArgsForCall(0)
+
+			Ω(fakeContainer.RunCallCount()).Should(Equal(1))
+			spec, _ := fakeContainer.RunArgsForCall(0)
+
+			Ω(streamInPath).Should(HavePrefix(spec.Args[0]))
+			Ω(streamInPath).Should(Equal(streamOutPath))
+		})
+
 		It("runs /opt/resource/in <destination> with the request on stdin", func() {
 			Eventually(inProcess.Wait()).Should(Receive(BeNil()))
 
 			spec, io := fakeContainer.RunArgsForCall(0)
 			Ω(spec.Path).Should(Equal("/opt/resource/in"))
-			Ω(spec.Args).Should(Equal([]string{"/tmp/build/src"}))
+
+			Ω(spec.Args).Should(ConsistOf(MatchRegexp(`/tmp/build/get/` + guidRegex)))
 			Ω(spec.Privileged).Should(BeTrue())
 
 			request, err := ioutil.ReadAll(io.Stdin)

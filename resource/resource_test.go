@@ -55,4 +55,10 @@ var _ = Describe("Resource", func() {
 			Ω(resource.Type()).Should(Equal(ResourceType("some-type")))
 		})
 	})
+
+	Describe("ResourcesDir", func() {
+		It("returns a file path with a prefix", func() {
+			Ω(ResourcesDir("some-prefix")).Should(ContainSubstring("some-prefix"))
+		})
+	})
 })

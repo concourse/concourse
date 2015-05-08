@@ -13,14 +13,17 @@ type outRequest struct {
 }
 
 func (resource *resource) Put(ioConfig IOConfig, source atc.Source, params atc.Params, artifactSource ArtifactSource) VersionedSource {
+	resourceDir := ResourcesDir("put")
+
 	vs := &versionedSource{
-		container: resource.container,
+		container:   resource.container,
+		resourceDir: resourceDir,
 	}
 
 	vs.Runner = ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 		return resource.runScript(
 			"/opt/resource/out",
-			[]string{ResourcesDir},
+			[]string{resourceDir},
 			outRequest{
 				Params: params,
 				Source: source,

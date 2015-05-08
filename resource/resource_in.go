@@ -9,13 +9,16 @@ type inRequest struct {
 }
 
 func (resource *resource) Get(ioConfig IOConfig, source atc.Source, params atc.Params, version atc.Version) VersionedSource {
+	resourceDir := ResourcesDir("get")
+
 	vs := &versionedSource{
-		container: resource.container,
+		container:   resource.container,
+		resourceDir: resourceDir,
 	}
 
 	vs.Runner = resource.runScript(
 		"/opt/resource/in",
-		[]string{ResourcesDir},
+		[]string{resourceDir},
 		inRequest{source, params, version},
 		&vs.versionResult,
 		ioConfig.Stderr,

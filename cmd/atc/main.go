@@ -19,6 +19,7 @@ import (
 	httpmetrics "github.com/codahale/http-handlers/metrics"
 	_ "github.com/codahale/metrics/runtime"
 	"github.com/lib/pq"
+	"github.com/nu7hatch/gouuid"
 	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
@@ -251,7 +252,14 @@ func main() {
 	}
 
 	resourceTracker := resource.NewTracker(workerClient)
-	gardenFactory := exec.NewGardenFactory(workerClient, resourceTracker)
+	gardenFactory := exec.NewGardenFactory(workerClient, resourceTracker, func() string {
+		guid, err := uuid.NewV4()
+		if err != nil {
+			panic("not enough entropy to generate guid: " + err.Error())
+		}
+
+		return guid.String()
+	})
 	execEngine := engine.NewExecEngine(gardenFactory, engine.NewBuildDelegateFactory(db), db)
 
 	engine := engine.NewDBEngine(engine.Engines{execEngine}, db, db)

@@ -37,7 +37,7 @@ var _ = Describe("GardenFactory", func() {
 		fakeTracker = new(rfakes.FakeTracker)
 		fakeWorkerClient = new(wfakes.FakeClient)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTracker)
+		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, func() string { return "" })
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()

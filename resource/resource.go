@@ -2,10 +2,12 @@ package resource
 
 import (
 	"io"
+	"path/filepath"
 	"sync"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
+	"github.com/nu7hatch/gouuid"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -52,7 +54,22 @@ type VersionedSource interface {
 	StreamIn(string, io.Reader) error
 }
 
-const ResourcesDir = "/tmp/build/src"
+func guid() string {
+	guid, err := uuid.NewV4()
+	if err != nil {
+		panic("not enough entropy to generate guid: " + err.Error())
+	}
+
+	return guid.String()
+}
+
+func ResourcesDir(prefix ...string) string {
+	if len(prefix) == 0 {
+		return filepath.Join("/tmp", "build", guid())
+	} else {
+		return filepath.Join("/tmp", "build", prefix[0], guid())
+	}
+}
 
 type resource struct {
 	container worker.Container

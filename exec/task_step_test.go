@@ -43,7 +43,9 @@ var _ = Describe("GardenFactory", func() {
 		fakeTracker = new(rfakes.FakeTracker)
 		fakeWorkerClient = new(wfakes.FakeClient)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTracker)
+		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, func() string {
+			return "a-random-guid"
+		})
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -155,11 +157,11 @@ var _ = Describe("GardenFactory", func() {
 						}))
 					})
 
-					It("ensures /tmp/build/src exists by streaming in an empty payload", func() {
+					It("ensures artifacts root exists by streaming in an empty payload", func() {
 						Ω(fakeContainer.StreamInCallCount()).Should(Equal(1))
 
 						destination, stream := fakeContainer.StreamInArgsForCall(0)
-						Ω(destination).Should(Equal("/tmp/build/src"))
+						Ω(destination).Should(Equal("/tmp/build/a-random-guid"))
 
 						tarReader := tar.NewReader(stream)
 
@@ -167,18 +169,16 @@ var _ = Describe("GardenFactory", func() {
 						Ω(err).Should(Equal(io.EOF))
 					})
 
-					It("runs a process with the config's path and args, in /tmp/build/src", func() {
+					It("runs a process with the config's path and args, in the specified build directory", func() {
 						Ω(fakeContainer.RunCallCount()).Should(Equal(1))
 
 						spec, _ := fakeContainer.RunArgsForCall(0)
-						Ω(spec).Should(Equal(garden.ProcessSpec{
-							Path:       "ls",
-							Args:       []string{"some", "args"},
-							Env:        []string{"SOME=params"},
-							Dir:        "/tmp/build/src",
-							Privileged: false,
-							TTY:        &garden.TTYSpec{},
-						}))
+						Ω(spec.Path).Should(Equal("ls"))
+						Ω(spec.Args).Should(Equal([]string{"some", "args"}))
+						Ω(spec.Env).Should(Equal([]string{"SOME=params"}))
+						Ω(spec.Dir).Should(Equal("/tmp/build/a-random-guid"))
+						Ω(spec.Privileged).Should(BeFalse())
+						Ω(spec.TTY).Should(Equal(&garden.TTYSpec{}))
 					})
 
 					It("directs the process's stdout/stderr to the io config", func() {
@@ -226,7 +226,7 @@ var _ = Describe("GardenFactory", func() {
 								Path:       "ls",
 								Args:       []string{"some", "args"},
 								Env:        []string{"SOME=params"},
-								Dir:        "/tmp/build/src",
+								Dir:        "/tmp/build/a-random-guid",
 								Privileged: true,
 								TTY:        &garden.TTYSpec{},
 							}))
@@ -275,7 +275,7 @@ var _ = Describe("GardenFactory", func() {
 
 								Ω(fakeContainer.StreamInCallCount()).Should(Equal(initial + 1))
 								inDestination, source := fakeContainer.StreamInArgsForCall(initial)
-								Ω(inDestination).Should(Equal("/tmp/build/src/some-input-configured-path/foo"))
+								Ω(inDestination).Should(Equal("/tmp/build/a-random-guid/some-input-configured-path/foo"))
 								Ω(source).Should(Equal(streamIn))
 
 								Ω(otherInputSource.StreamToCallCount()).Should(Equal(1))
@@ -289,7 +289,7 @@ var _ = Describe("GardenFactory", func() {
 
 								Ω(fakeContainer.StreamInCallCount()).Should(Equal(initial + 1))
 								inDestination, source = fakeContainer.StreamInArgsForCall(initial)
-								Ω(inDestination).Should(Equal("/tmp/build/src/some-other-input/foo"))
+								Ω(inDestination).Should(Equal("/tmp/build/a-random-guid/some-other-input/foo"))
 								Ω(source).Should(Equal(streamIn))
 
 								Eventually(process.Wait()).Should(Receive(BeNil()))
@@ -409,7 +409,7 @@ var _ = Describe("GardenFactory", func() {
 										Ω(err).ShouldNot(HaveOccurred())
 
 										Ω(fakeContainer.StreamOutCallCount()).Should(Equal(1))
-										Ω(fakeContainer.StreamOutArgsForCall(0)).Should(Equal("/tmp/build/src/"))
+										Ω(fakeContainer.StreamOutArgsForCall(0)).Should(Equal("/tmp/build/a-random-guid/"))
 
 										Ω(fakeDestination.StreamInCallCount()).Should(Equal(1))
 										dest, src := fakeDestination.StreamInArgsForCall(0)
@@ -489,7 +489,7 @@ var _ = Describe("GardenFactory", func() {
 
 											Ω(ioutil.ReadAll(reader)).Should(Equal([]byte(fileContent)))
 
-											Ω(fakeContainer.StreamOutArgsForCall(0)).Should(Equal("/tmp/build/src/some-path"))
+											Ω(fakeContainer.StreamOutArgsForCall(0)).Should(Equal("/tmp/build/a-random-guid/some-path"))
 										})
 
 										Describe("closing the stream", func() {

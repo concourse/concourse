@@ -15,8 +15,6 @@ import (
 	"github.com/concourse/atc/worker"
 )
 
-const ArtifactsRoot = "/tmp/build/src"
-
 const taskProcessPropertyName = "concourse:task-process"
 const taskExitStatusPropertyName = "concourse:exit-status"
 
@@ -45,8 +43,9 @@ type taskStep struct {
 	prev Step
 	repo *SourceRepository
 
-	container worker.Container
-	process   garden.Process
+	container     worker.Container
+	process       garden.Process
+	artifactsRoot string
 
 	exitStatus int
 }
@@ -142,7 +141,7 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			Args: config.Run.Args,
 			Env:  step.envForParams(config.Params),
 
-			Dir: ArtifactsRoot,
+			Dir: step.artifactsRoot,
 
 			Privileged: bool(step.Privileged),
 
@@ -223,7 +222,7 @@ func (step *taskStep) Release() error {
 }
 
 func (step *taskStep) StreamFile(source string) (io.ReadCloser, error) {
-	out, err := step.container.StreamOut(path.Join(ArtifactsRoot, source))
+	out, err := step.container.StreamOut(path.Join(step.artifactsRoot, source))
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +241,7 @@ func (step *taskStep) StreamFile(source string) (io.ReadCloser, error) {
 }
 
 func (step *taskStep) StreamTo(destination ArtifactDestination) error {
-	out, err := step.container.StreamOut(ArtifactsRoot + "/")
+	out, err := step.container.StreamOut(step.artifactsRoot + "/")
 	if err != nil {
 		return err
 	}
@@ -258,7 +257,7 @@ func (step *taskStep) ensureBuildDirExists(container garden.Container) error {
 		return err
 	}
 
-	err = container.StreamIn(ArtifactsRoot, emptyTar)
+	err = container.StreamIn(step.artifactsRoot, emptyTar)
 	if err != nil {
 		return err
 	}
@@ -284,7 +283,7 @@ func (step *taskStep) collectInputs(inputs []atc.TaskInputConfig) error {
 
 		inputMappings = append(inputMappings, inputPair{
 			source:      source,
-			destination: newContainerDestination(step.container, input),
+			destination: newContainerDestination(step.artifactsRoot, step.container, input),
 		})
 	}
 
@@ -313,14 +312,16 @@ func (taskStep) envForParams(params map[string]string) []string {
 }
 
 type containerDestination struct {
-	container   garden.Container
-	inputConfig atc.TaskInputConfig
+	container     garden.Container
+	inputConfig   atc.TaskInputConfig
+	artifactsRoot string
 }
 
-func newContainerDestination(container garden.Container, inputConfig atc.TaskInputConfig) *containerDestination {
+func newContainerDestination(artifactsRoot string, container garden.Container, inputConfig atc.TaskInputConfig) *containerDestination {
 	return &containerDestination{
-		container:   container,
-		inputConfig: inputConfig,
+		container:     container,
+		inputConfig:   inputConfig,
+		artifactsRoot: artifactsRoot,
 	}
 }
 
@@ -330,5 +331,5 @@ func (dest *containerDestination) StreamIn(dst string, src io.Reader) error {
 		inputDst = dest.inputConfig.Name
 	}
 
-	return dest.container.StreamIn(ArtifactsRoot+"/"+inputDst+"/"+dst, src)
+	return dest.container.StreamIn(dest.artifactsRoot+"/"+inputDst+"/"+dst, src)
 }

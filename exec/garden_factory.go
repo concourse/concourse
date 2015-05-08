@@ -2,6 +2,7 @@ package exec
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/cloudfoundry-incubator/garden"
 
@@ -13,15 +14,20 @@ import (
 type gardenFactory struct {
 	workerClient    worker.Client
 	resourceTracker resource.Tracker
+	uuidGenerator   UUIDGenFunc
 }
+
+type UUIDGenFunc func() string
 
 func NewGardenFactory(
 	workerClient worker.Client,
 	resourceTracker resource.Tracker,
+	uuidGenerator UUIDGenFunc,
 ) Factory {
 	return &gardenFactory{
 		workerClient:    workerClient,
 		resourceTracker: resourceTracker,
+		uuidGenerator:   uuidGenerator,
 	}
 }
 
@@ -69,6 +75,9 @@ func (factory *gardenFactory) Put(id worker.Identifier, delegate PutDelegate, co
 }
 
 func (factory *gardenFactory) Task(sourceName SourceName, id worker.Identifier, delegate TaskDelegate, privileged Privileged, configSource TaskConfigSource) StepFactory {
+
+	artifactsRoot := filepath.Join("/tmp", "build", factory.uuidGenerator())
+
 	return taskStep{
 		SourceName: sourceName,
 
@@ -80,6 +89,8 @@ func (factory *gardenFactory) Task(sourceName SourceName, id worker.Identifier, 
 		ConfigSource: configSource,
 
 		WorkerClient: factory.workerClient,
+
+		artifactsRoot: artifactsRoot,
 	}
 }
 
