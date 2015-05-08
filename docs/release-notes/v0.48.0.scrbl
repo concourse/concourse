@@ -7,6 +7,9 @@
   v0.48.0!
 }
 
+This release polishes up the multiple pipelines support. Everything is
+backwards-compatible.
+
 @itemlist[
   @item{
     Pipelines can now be paused via the web UI. This acts like pausing all
@@ -25,8 +28,8 @@
   }
 
   @item{
-    The main view (@code{/}) now shows the first pipeline in order, rather
-    than @code{main}.
+    The main view (@code{/}) now shows the first pipeline, rather than
+    @code{main}.
   }
 
   @item{
