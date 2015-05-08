@@ -73,10 +73,12 @@ var _ = Describe("Builds API", func() {
 						fakeBuild = new(enginefakes.FakeBuild)
 
 						blockForever = new(sync.WaitGroup)
-						blockForever.Add(1)
+
+						forever := blockForever
+						forever.Add(1)
 
 						fakeBuild.ResumeStub = func(lager.Logger) {
-							blockForever.Wait()
+							forever.Wait()
 						}
 
 						fakeEngine.CreateBuildReturns(fakeBuild, nil)
