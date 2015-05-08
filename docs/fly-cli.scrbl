@@ -216,7 +216,7 @@ If both @code{--var} and @code{--vars-from} are specified, the @code{--var}
 flags take precedence.
 
 
-@section[#:tag "fly-destroy-pipeline"]{@code{configure}@aux-elem{: Removing Pipelines}}
+@section[#:tag "fly-destroy-pipeline"]{@code{destroy-pipeline}@aux-elem{: Removing Pipelines}}
 
 Every now and then you just don't want a pipeline to be around anymore.
 Running @code{fly destroy-pipeline} will stop the pipeline activity and remove
