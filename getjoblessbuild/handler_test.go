@@ -37,13 +37,6 @@ var _ = Describe("Handler", func() {
 			Ω(templateData.Build).Should(BeAssignableToTypeOf(db.Build{}))
 		})
 
-		It("sets the states to be empty", func() {
-			templateData, err := FetchTemplateData("2", fakeDB, fakeConfigDB)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			Ω(templateData.GroupStates).Should(BeEmpty())
-		})
-
 		It("errors if the db returns an error", func() {
 			fakeDB.GetBuildReturns(db.Build{}, errors.New("disaster"))
 

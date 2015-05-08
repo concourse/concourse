@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/web/group"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -38,8 +37,7 @@ func NewHandler(logger lager.Logger, db BuildsDB, configDB db.ConfigDB, template
 }
 
 type TemplateData struct {
-	Builds      []PresentedBuild
-	GroupStates []group.State
+	Builds []PresentedBuild
 }
 
 func FetchTemplateData(buildDB BuildsDB, configDB db.ConfigDB) (TemplateData, error) {
@@ -49,8 +47,7 @@ func FetchTemplateData(buildDB BuildsDB, configDB db.ConfigDB) (TemplateData, er
 	}
 
 	return TemplateData{
-		Builds:      PresentBuilds(builds),
-		GroupStates: []group.State{},
+		Builds: PresentBuilds(builds),
 	}, nil
 }
 
