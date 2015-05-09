@@ -10,7 +10,7 @@
 @itemlist[
   @item{
     @secref{fly-execute} once again works with https-only deployments. This
-    was a regression introduce in @secref{v0.48.0} as part of the
+    was a regression introduce in @secref{v0_47_0} as part of the
     highly-available @code{execute} work.
   }
 
