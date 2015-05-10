@@ -1,7 +1,14 @@
 var Fluxxor = require("fluxxor");
 var Immutable = require("immutable");
+var LogsModel = require("./logs_model");
+
+var tree = require("./tree");
+
+var EMIT_INTERVAL = 300;
 
 var constants = {
+  ADD_LOG: 'ADD_LOG',
+  ADD_ERROR: 'ADD_ERROR',
   SET_STEP_RUNNING: 'SET_STEP_RUNNING',
   SET_STEP_ERRORED: 'SET_STEP_ERRORED',
   SET_STEP_VERSION_INFO: 'SET_STEP_VERSION_INFO',
@@ -17,6 +24,8 @@ var Store = Fluxxor.createStore({
     this.preloadedInputs = Immutable.Map();
 
     this.bindActions(
+      constants.ADD_LOG, this.onAddLog,
+      constants.ADD_ERROR, this.onAddError,
       constants.SET_STEP_RUNNING, this.onSetStepRunning,
       constants.SET_STEP_ERRORED, this.onSetStepErrored,
       constants.SET_STEP_VERSION_INFO, this.onSetStepVersionInfo,
@@ -24,6 +33,8 @@ var Store = Fluxxor.createStore({
       constants.TOGGLE_STEP_LOGS, this.onToggleStepLogs,
       constants.PRELOAD_INPUT, this.onPreloadInput
     );
+
+    setInterval(this.emitChangedLogs.bind(this), EMIT_INTERVAL);
   },
 
   setStep: function(origin, changes) {
@@ -72,6 +83,44 @@ var Store = Fluxxor.createStore({
     this.setStep(data.origin, { showLogs: !step.isShowingLogs(), userToggled: true });
   },
 
+  onAddLog: function(data) {
+    var step = this.steps.getIn(data.origin.location);
+    if (step) {
+      step.logs().addLog(data.line);
+    }
+  },
+
+  onAddError: function(data) {
+    var step = this.steps.getIn(data.origin.location);
+    if (step) {
+      step.logs().addError(data.line);
+    }
+  },
+
+  emitChangedLogs: function() {
+    var stepsToUpdate = [];
+    var emitChange = false;
+    tree.walk(this.steps, function(step) {
+      var logs = step.logs();
+      if (logs.changed) {
+        stepsToUpdate.push(step);
+        emitChange = true;
+
+        // reset
+        logs.changed = false;
+      }
+    });
+
+    for (var i in stepsToUpdate) {
+      var step = stepsToUpdate[i];
+      this.steps = this.steps.setIn(step.origin().location, step.copy());
+    }
+
+    if (emitChange) {
+      this.emit("change");
+    }
+  },
+
   getState: function() {
     return this.steps;
   },
@@ -81,6 +130,7 @@ function StepModel(origin) {
   this._map = new Immutable.Map({
     origin: origin,
 
+    logs: new LogsModel(),
     showLogs: true,
     userToggled: false,
 
@@ -96,13 +146,28 @@ function StepModel(origin) {
   });
 
   this.merge = function(attrs) {
+    var newMap = this._map.merge(attrs);
+    if (newMap == this._map) {
+      return this;
+    }
+
     var newModel = new StepModel(this.origin());
-    newModel._map = this._map.merge(attrs);
+    newModel._map = newMap;
+    return newModel;
+  }
+
+  this.copy = function() {
+    var newModel = new StepModel(this.origin());
+    newModel._map = this._map;
     return newModel;
   }
 
   this.origin = function() {
     return this._map.get("origin");
+  }
+
+  this.logs = function() {
+    return this._map.get("logs");
   }
 
   this.isShowingLogs = function() {

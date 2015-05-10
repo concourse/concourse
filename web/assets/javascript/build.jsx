@@ -15,13 +15,12 @@ var tree = require("./tree");
 var Build = React.createClass({
   mixins: [
     ImmutableRenderMixin,
-    FluxMixin, StoreWatchMixin("LogsStore", "StepStore"),
+    FluxMixin, StoreWatchMixin("StepStore"),
   ],
 
   getStateFromFlux: function() {
     var flux = this.getFlux();
     return {
-      logs: flux.store("LogsStore").getState(),
       steps: flux.store("StepStore").getState(),
     };
   },
@@ -36,20 +35,13 @@ var Build = React.createClass({
     var containers = new tree.OrderedTree();
 
     var steps = this.state.steps;
-    var logs = this.state.logs;
     var autoscroll = this.state.autoscroll;
 
     tree.walk(steps, function(step) {
+      var stepLogs = step.logs();
+      var logLines = stepLogs.lines;
+
       var loc = step.origin().location;
-
-      var stepLogs = logs.getIn(loc);
-
-      var logLines;
-      if (stepLogs !== undefined) {
-        logLines = stepLogs.lines;
-      } else {
-        logLines = Immutable.List()
-      }
 
       containers.add(loc, <Step key={loc.toString()} depth={loc.length - 1} model={step} logs={logLines} autoscroll={autoscroll} />);
     });
