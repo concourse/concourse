@@ -1,71 +1,8 @@
-var Fluxxor = require('fluxxor');
 var Immutable = require('immutable');
 var Cursor = require('immutable/contrib/cursor');
 var AnsiParser = require('node-ansiparser');
 
-var tree = require("./tree");
-
 var BATCH_SIZE = 300;
-var EMIT_INTERVAL = 300;
-
-var constants = {
-  ADD_LOG: 'ADD_LOG',
-  ADD_ERROR: 'ADD_ERROR',
-};
-
-var Store = Fluxxor.createStore({
-  initialize: function() {
-    this.logs = Immutable.Map();
-
-    this.bindActions(
-      constants.ADD_LOG, this.onAddLog,
-      constants.ADD_ERROR, this.onAddError
-    );
-
-    setInterval(this.emitEvents.bind(this), EMIT_INTERVAL);
-  },
-
-  getLogs: function(origin) {
-    var logsModel = this.logs.getIn(origin.location);
-
-    if (logsModel === undefined) {
-      logsModel = new LogsModel();
-      this.logs = this.logs.setIn(origin.location, logsModel);
-    }
-
-    return logsModel;
-  },
-
-  onAddLog: function(data) {
-    this.getLogs(data.origin).addLog(data.line);
-  },
-
-  onAddError: function(data) {
-    this.getLogs(data.origin).addError(data.line);
-  },
-
-  emitEvents: function() {
-    var shouldEmit = false;
-    tree.walk(this.logs, function(logsModel) {
-      if (logsModel.changed) {
-        shouldEmit = true;
-        return false;
-      }
-    });
-
-    if (shouldEmit) {
-      this.emit("change");
-
-      tree.walk(this.logs, function(logsModel) {
-        logsModel.changed = false;
-      });
-    }
-  },
-
-  getState: function() {
-    return this.logs;
-  },
-});
 
 function LogsModel() {
   this.lines = Immutable.fromJS([[[]]]);
@@ -246,10 +183,4 @@ var styles = {
   4: 'underline'
 };
 
-module.exports = {
-  Store: Store
-};
-
-for (var k in constants) {
-  module.exports[k] = constants[k];
-}
+module.exports = LogsModel;

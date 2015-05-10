@@ -1,5 +1,4 @@
 var Fluxxor = require('fluxxor');
-var LogsStore = require("./logs_store");
 var StepStore = require("./step_store");
 
 var actions = {
@@ -13,11 +12,11 @@ var actions = {
   },
 
   addLog: function(origin, line) {
-    this.dispatch(LogsStore.ADD_LOG, { origin: origin, line: line });
+    this.dispatch(StepStore.ADD_LOG, { origin: origin, line: line });
   },
 
   addError: function(origin, line) {
-    this.dispatch(LogsStore.ADD_ERROR, { origin: origin, line: line });
+    this.dispatch(StepStore.ADD_ERROR, { origin: origin, line: line });
   },
 
   setStepVersionInfo: function(origin, version, metadata) {
@@ -42,7 +41,6 @@ var actions = {
 };
 
 var stores = {
-  "LogsStore": new LogsStore.Store(),
   "StepStore": new StepStore.Store(),
 };
 
