@@ -19,9 +19,12 @@ import (
 var _ = Describe("Flying", func() {
 	var tmpdir string
 	var fixture string
+	var atcURL string
 
 	BeforeEach(func() {
 		var err error
+
+		atcURL = "http://10.244.15.2:8080"
 
 		tmpdir, err = ioutil.TempDir("", "fly-test")
 		Ω(err).ShouldNot(HaveOccurred())
@@ -86,7 +89,7 @@ run:
 	}
 
 	It("works", func() {
-		fly := exec.Command(flyBin, "execute", "-c", "build.yml", "--", "SOME", "ARGS")
+		fly := exec.Command(flyBin, "-t", atcURL, "execute", "-c", "build.yml", "--", "SOME", "ARGS")
 		fly.Dir = fixture
 
 		session := start(fly)
@@ -111,14 +114,14 @@ cat < /tmp/fifo
 			)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			fly := exec.Command(flyBin, "execute")
+			fly := exec.Command(flyBin, "-t", atcURL, "execute")
 			fly.Dir = fixture
 
 			flyS := start(fly)
 
 			Eventually(flyS, 30*time.Second).Should(gbytes.Say("waiting"))
 
-			hijack := exec.Command(flyBin, "hijack", "--", "sh", "-c", "echo marco > /tmp/fifo")
+			hijack := exec.Command(flyBin, "-t", atcURL, "hijack", "--", "sh", "-c", "echo marco > /tmp/fifo")
 
 			hijackS := start(hijack)
 
@@ -144,7 +147,7 @@ wait
 			)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			fly := exec.Command(flyBin, "execute")
+			fly := exec.Command(flyBin, "-t", atcURL, "execute")
 			fly.Dir = fixture
 
 			flyS := start(fly)

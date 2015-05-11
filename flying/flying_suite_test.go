@@ -41,11 +41,7 @@ var _ = BeforeSuite(func() {
 
 	bosh.Deploy("noop.yml.tmpl", gardenLinuxDeploymentData)
 
-	atcURL := "http://10.244.15.2:8080"
-
-	os.Setenv("ATC_URL", atcURL)
-
-	Eventually(errorPolling(atcURL), 1*time.Minute).ShouldNot(HaveOccurred())
+	Eventually(errorPolling("http://10.244.15.2:8080"), 1*time.Minute).ShouldNot(HaveOccurred())
 })
 
 func TestFlying(t *testing.T) {
