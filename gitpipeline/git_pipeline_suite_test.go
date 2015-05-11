@@ -86,12 +86,11 @@ var _ = BeforeSuite(func() {
 
 	atcURL := "http://10.244.15.2:8080"
 
-	os.Setenv("ATC_URL", atcURL)
-
 	Eventually(errorPolling(atcURL), 1*time.Minute).ShouldNot(HaveOccurred())
 
 	configureCmd := exec.Command(
 		flyBin,
+		"-t", atcURL,
 		"configure",
 		"-c", "pipeline.yml",
 		"-v", "failure-git-server="+failureGitServer.URI(),
