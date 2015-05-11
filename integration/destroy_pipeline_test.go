@@ -3,7 +3,6 @@ package integration_test
 import (
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 
 	. "github.com/onsi/ginkgo"
@@ -29,12 +28,11 @@ var _ = Describe("Fly CLI", func() {
 	Describe("destroy-pipeline", func() {
 		BeforeEach(func() {
 			atcServer = ghttp.NewServer()
-			os.Setenv("ATC_URL", atcServer.URL())
 		})
 
 		Context("when a pipeline name is not specified", func() {
 			It("asks the user to specifiy a pipeline name", func() {
-				flyCmd := exec.Command(flyPath, "destroy-pipeline")
+				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "destroy-pipeline")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Ω(err).ShouldNot(HaveOccurred())
@@ -54,7 +52,7 @@ var _ = Describe("Fly CLI", func() {
 			JustBeforeEach(func() {
 				var err error
 
-				flyCmd := exec.Command(flyPath, "destroy-pipeline", "some-pipeline")
+				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "destroy-pipeline", "some-pipeline")
 				stdin, err = flyCmd.StdinPipe()
 				Ω(err).ShouldNot(HaveOccurred())
 

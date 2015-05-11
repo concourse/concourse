@@ -5,7 +5,6 @@ package integration_test
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 	"os/exec"
 
 	"github.com/concourse/atc"
@@ -26,7 +25,6 @@ var _ = Describe("Hijacking", func() {
 		atcServer = ghttp.NewServer()
 		hijacked = nil
 
-		os.Setenv("ATC_URL", atcServer.URL())
 	})
 
 	hijackHandler := func(didHijack chan<- struct{}, rawQuery []string, errorMessages []string) http.HandlerFunc {
@@ -90,7 +88,9 @@ var _ = Describe("Hijacking", func() {
 		pty, tty, err := pty.Open()
 		Ω(err).ShouldNot(HaveOccurred())
 
-		flyCmd := exec.Command(flyPath, append([]string{command}, args...)...)
+		commandWithArgs := append([]string{command}, args...)
+
+		flyCmd := exec.Command(flyPath, append([]string{"-t", atcServer.URL()}, commandWithArgs...)...)
 		flyCmd.Stdin = tty
 
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -160,7 +160,7 @@ var _ = Describe("Hijacking", func() {
 
 	Context("if you only specify a pipeline", func() {
 		It("returns an error", func() {
-			flyCmd := exec.Command(flyPath, "hijack", "-p", "pipeline-name")
+			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-p", "pipeline-name")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
 
@@ -277,7 +277,7 @@ var _ = Describe("Hijacking", func() {
 				pty, tty, err := pty.Open()
 				Ω(err).ShouldNot(HaveOccurred())
 
-				flyCmd := exec.Command(flyPath, "hijack")
+				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack")
 				flyCmd.Stdin = tty
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)

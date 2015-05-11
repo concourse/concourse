@@ -9,10 +9,9 @@ import (
 )
 
 var targetFlag = cli.StringFlag{
-	Name:   "target, t",
-	Value:  "http://192.168.100.4:8080",
-	Usage:  "named target you have saved to your .flyrc file",
-	EnvVar: "ATC_URL",
+	Name:  "target, t",
+	Value: "http://192.168.100.4:8080",
+	Usage: "named target you have saved to your .flyrc file",
 }
 
 var buildConfigFlag = cli.StringFlag{

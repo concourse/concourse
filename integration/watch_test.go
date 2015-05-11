@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"os/exec"
 
 	. "github.com/onsi/ginkgo"
@@ -28,7 +27,6 @@ var _ = Describe("Watching", func() {
 		streaming = make(chan struct{})
 		events = make(chan atc.Event)
 
-		os.Setenv("ATC_URL", atcServer.URL())
 	})
 
 	eventsHandler := func() http.HandlerFunc {
@@ -76,7 +74,9 @@ var _ = Describe("Watching", func() {
 	}
 
 	watch := func(args ...string) {
-		flyCmd := exec.Command(flyPath, append([]string{"watch"}, args...)...)
+		watchWithArgs := append([]string{"watch"}, args...)
+
+		flyCmd := exec.Command(flyPath, append([]string{"-t", atcServer.URL()}, watchWithArgs...)...)
 
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 		Ω(err).ShouldNot(HaveOccurred())

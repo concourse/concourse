@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
@@ -71,8 +70,6 @@ run:
 		Ω(err).ShouldNot(HaveOccurred())
 
 		atcServer = ghttp.NewServer()
-
-		os.Setenv("ATC_URL", atcServer.URL())
 
 		streaming = make(chan struct{})
 		events = make(chan atc.Event)
@@ -243,7 +240,7 @@ run:
 
 	It("flies with multiple passengers", func() {
 		flyCmd := exec.Command(
-			flyPath, "e",
+			flyPath, "-t", atcServer.URL(), "e",
 			"--input", fmt.Sprintf("buildDir=%s", buildDir), "--input", fmt.Sprintf("s3Asset=%s", s3AssetDir),
 			"--config", filepath.Join(buildDir, "build.yml"),
 		)

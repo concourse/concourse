@@ -41,9 +41,6 @@ var _ = Describe("Fly CLI", func() {
 		BeforeEach(func() {
 			atcServer = ghttp.NewServer()
 
-			// make sure that we can handle trailing slashes
-			os.Setenv("ATC_URL", atcServer.URL()+"/")
-
 			config = atc.Config{
 				Groups: atc.GroupConfigs{
 					{
@@ -160,7 +157,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("prints the config as yaml to stdout", func() {
-					flyCmd := exec.Command(flyPath, "configure")
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Ω(err).ShouldNot(HaveOccurred())
@@ -177,7 +174,7 @@ var _ = Describe("Fly CLI", func() {
 
 				Context("when -j is given", func() {
 					It("prints the config as json to stdout", func() {
-						flyCmd := exec.Command(flyPath, "configure", "-j")
+						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-j")
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Ω(err).ShouldNot(HaveOccurred())
@@ -208,7 +205,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("prints the config as yaml to stdout", func() {
-					flyCmd := exec.Command(flyPath, "configure", "some-pipeline")
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "some-pipeline")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Ω(err).ShouldNot(HaveOccurred())
@@ -225,7 +222,7 @@ var _ = Describe("Fly CLI", func() {
 
 				Context("when -j is given", func() {
 					It("prints the config as json to stdout", func() {
-						flyCmd := exec.Command(flyPath, "configure", "some-pipeline", "-j")
+						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "some-pipeline", "-j")
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Ω(err).ShouldNot(HaveOccurred())
@@ -312,7 +309,8 @@ var _ = Describe("Fly CLI", func() {
 
 				It("parses the config file and sends it to the ATC", func() {
 					flyCmd := exec.Command(
-						flyPath, "configure",
+						flyPath, "-t", atcServer.URL()+"/",
+						"configure",
 						"-c", "fixtures/testConfig.yml",
 						"-var", "resource-key=verysecret",
 						"-vars-from", "fixtures/vars.yml",
@@ -412,7 +410,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("parses the config file and sends it to the ATC", func() {
-					flyCmd := exec.Command(flyPath, "configure", "-c", configFile.Name())
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name())
 
 					stdin, err := flyCmd.StdinPipe()
 					Ω(err).ShouldNot(HaveOccurred())
@@ -460,7 +458,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("bails if the user rejects the diff", func() {
-					flyCmd := exec.Command(flyPath, "configure", "-c", configFile.Name())
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name())
 
 					stdin, err := flyCmd.StdinPipe()
 					Ω(err).ShouldNot(HaveOccurred())
@@ -489,7 +487,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("prints the error to stderr and exits 1", func() {
-					flyCmd := exec.Command(flyPath, "configure", "-c", configFile.Name())
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name())
 
 					stdin, err := flyCmd.StdinPipe()
 					Ω(err).ShouldNot(HaveOccurred())
@@ -521,7 +519,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("prints the error to stderr and exits 1", func() {
-					flyCmd := exec.Command(flyPath, "configure", "-c", configFile.Name())
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name())
 
 					stdin, err := flyCmd.StdinPipe()
 					Ω(err).ShouldNot(HaveOccurred())

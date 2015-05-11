@@ -69,7 +69,6 @@ var _ = Describe("Syncing", func() {
 		atcServer = ghttp.NewTLSServer()
 		atcServer.AppendHandlers(cliHandler())
 
-		os.Setenv("ATC_URL", atcServer.URL())
 	})
 
 	AfterEach(func() {
@@ -77,7 +76,7 @@ var _ = Describe("Syncing", func() {
 	})
 
 	It("downloads and replaces the currently running executable", func() {
-		flyCmd := exec.Command(newFlyPath, "-k", "sync")
+		flyCmd := exec.Command(newFlyPath, "-t", atcServer.URL(), "-k", "sync")
 
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 		Ω(err).ShouldNot(HaveOccurred())
