@@ -241,7 +241,7 @@ container:
 }
 
 @codeblock|{
-$ fly
+$ fly execute
 $ fly intercept
 }|
 
