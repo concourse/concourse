@@ -153,8 +153,11 @@ compilation:
   network: concourse
   reuse_compilation_vms: true
   cloud_properties:
-    instance_type: c3.large
+    instance_type: c4.large
     availability_zone: *az
+    ephemeral_disk:
+      size: 30000 # in MB
+      type: gp2
 
 update:
   canaries: 1
