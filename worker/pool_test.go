@@ -239,6 +239,39 @@ var _ = Describe("Pool", func() {
 					Ω(secondFakeContainer.ReleaseCallCount()).Should(Equal(1))
 				})
 			})
+
+			Context("when a worker locates multiple containers", func() {
+				var multiErr = MultipleContainersError{[]string{"a", "b"}}
+
+				BeforeEach(func() {
+					workerA.LookupContainerReturns(fakeContainer, nil)
+					workerB.LookupContainerReturns(nil, multiErr)
+				})
+
+				It("returns a MultipleContainersError including the other found container", func() {
+					Ω(lookupErr).Should(BeAssignableToTypeOf(MultipleContainersError{}))
+					Ω(lookupErr.(MultipleContainersError).Handles).Should(ConsistOf("a", "b", "fake-container"))
+				})
+
+				It("releases all returned containers", func() {
+					Ω(fakeContainer.ReleaseCallCount()).Should(Equal(1))
+				})
+			})
+
+			Context("when multiple workers locate multiple containers", func() {
+				var multiErrA = MultipleContainersError{[]string{"a", "b"}}
+				var multiErrB = MultipleContainersError{[]string{"c", "d"}}
+
+				BeforeEach(func() {
+					workerA.LookupContainerReturns(nil, multiErrA)
+					workerB.LookupContainerReturns(nil, multiErrB)
+				})
+
+				It("returns a MultipleContainersError including all found containers", func() {
+					Ω(lookupErr).Should(BeAssignableToTypeOf(MultipleContainersError{}))
+					Ω(lookupErr.(MultipleContainersError).Handles).Should(ConsistOf("a", "b", "c", "d"))
+				})
+			})
 		})
 
 		Context("with no workers", func() {

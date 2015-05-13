@@ -90,6 +90,7 @@ func (pool *Pool) LookupContainer(id Identifier) (Container, error) {
 	wg.Add(len(workers))
 
 	found := make(chan Container, len(workers))
+	multiErrs := make(chan MultipleContainersError, len(workers))
 
 	for _, worker := range workers {
 		go func(worker Worker) {
@@ -98,6 +99,8 @@ func (pool *Pool) LookupContainer(id Identifier) (Container, error) {
 			container, err := worker.LookupContainer(id)
 			if err == nil {
 				found <- container
+			} else if multi, ok := err.(MultipleContainersError); ok {
+				multiErrs <- multi
 			}
 		}(worker)
 	}
@@ -105,6 +108,25 @@ func (pool *Pool) LookupContainer(id Identifier) (Container, error) {
 	wg.Wait()
 
 	totalFound := len(found)
+	totalMulti := len(multiErrs)
+
+	if totalMulti != 0 {
+		allHandles := []string{}
+
+		for i := 0; i < totalMulti; i++ {
+			multiErr := <-multiErrs
+
+			allHandles = append(allHandles, multiErr.Handles...)
+		}
+
+		for i := 0; i < totalFound; i++ {
+			c := <-found
+			allHandles = append(allHandles, c.Handle())
+			c.Release()
+		}
+
+		return nil, MultipleContainersError{allHandles}
+	}
 
 	switch totalFound {
 	case 0:
