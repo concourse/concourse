@@ -252,8 +252,8 @@ You can also intercept builds that were run in your pipeline. By using the
 @code{-j} or @code{--job} and @code{-b} or @code{--build} you can pick out a
 specific job and build to intercept.
 
-The @code{-p} or @code{--privileged} flag is used to create a shell in a
-remote container that is running as the @code{root} user.
+The shell created on the remote container via @code{fly intercept} provides
+root user access by default.
 
 @margin-note{
   The command @code{fly hijack} is an alias of @code{fly intercept}. Both can
