@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/concourse/atc"
@@ -154,35 +155,65 @@ func validateJobs(c atc.Config) error {
 	return compositeErr(errorMessages)
 }
 
+type foundTypes struct {
+	identifier string
+	found      map[string]bool
+}
+
+func (ft *foundTypes) Find(name string) {
+	ft.found[name] = true
+}
+
+func (ft foundTypes) IsValid() (bool, string) {
+	if len(ft.found) == 0 {
+		return false, ft.identifier + " has no action specified"
+	}
+
+	allowedMultipleTypes := len(ft.found) == 2 && ft.found["get"] && ft.found["put"]
+
+	if len(ft.found) > 1 && !allowedMultipleTypes {
+		types := make([]string, 0, len(ft.found))
+
+		for typee, _ := range ft.found {
+			types = append(types, typee)
+		}
+
+		sort.Strings(types)
+
+		return false, fmt.Sprintf("%s has multiple actions specified (%s)", ft.identifier, strings.Join(types, ", "))
+	}
+
+	return true, ""
+}
+
 func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string {
-	foundTypes := []string{}
+	foundTypes := foundTypes{
+		identifier: identifier,
+		found:      make(map[string]bool),
+	}
 
 	if plan.Get != "" {
-		foundTypes = append(foundTypes, "get")
+		foundTypes.Find("get")
 	}
 
 	if plan.Put != "" {
-		foundTypes = append(foundTypes, "put")
+		foundTypes.Find("put")
 	}
 
 	if plan.Task != "" {
-		foundTypes = append(foundTypes, "task")
+		foundTypes.Find("task")
 	}
 
 	if plan.Do != nil {
-		foundTypes = append(foundTypes, "do")
+		foundTypes.Find("do")
 	}
 
 	if plan.Aggregate != nil {
-		foundTypes = append(foundTypes, "aggregate")
+		foundTypes.Find("aggregate")
 	}
 
-	if len(foundTypes) == 0 {
-		return []string{identifier + " has no action specified"}
-	}
-
-	if len(foundTypes) > 1 {
-		return []string{fmt.Sprintf("%s has multiple actions specified (%s)", identifier, strings.Join(foundTypes, ", "))}
+	if valid, message := foundTypes.IsValid(); !valid {
+		return []string{message}
 	}
 
 	switch {

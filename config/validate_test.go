@@ -309,23 +309,43 @@ var _ = Describe("ValidateConfig", func() {
 			})
 
 			Context("when multiple actions are specified in the same plan", func() {
-				BeforeEach(func() {
-					job.Plan = append(job.Plan, atc.PlanConfig{
-						Get:       "lol",
-						Put:       "lol",
-						Task:      "lol",
-						Do:        &atc.PlanSequence{},
-						Aggregate: &atc.PlanSequence{},
+				Context("when it's not just Get and Put", func() {
+					BeforeEach(func() {
+						job.Plan = append(job.Plan, atc.PlanConfig{
+							Get:       "lol",
+							Put:       "lol",
+							Task:      "lol",
+							Do:        &atc.PlanSequence{},
+							Aggregate: &atc.PlanSequence{},
+						})
+
+						config.Jobs = append(config.Jobs, job)
 					})
 
-					config.Jobs = append(config.Jobs, job)
+					It("returns an error", func() {
+						Ω(validateErr).Should(HaveOccurred())
+						Ω(validateErr.Error()).Should(ContainSubstring(
+							"jobs.some-other-job.plan[0] has multiple actions specified (aggregate, do, get, put, task)",
+						))
+					})
 				})
 
-				It("returns an error", func() {
-					Ω(validateErr).Should(HaveOccurred())
-					Ω(validateErr.Error()).Should(ContainSubstring(
-						"jobs.some-other-job.plan[0] has multiple actions specified (get, put, task, do, aggregate)",
-					))
+				Context("when it's just Get and Put", func() {
+					BeforeEach(func() {
+						job.Plan = append(job.Plan, atc.PlanConfig{
+							Get:       "lol",
+							Put:       "lol",
+							Task:      "",
+							Do:        nil,
+							Aggregate: nil,
+						})
+
+						config.Jobs = append(config.Jobs, job)
+					})
+
+					It("does not return an error (put commands can have a get directive)", func() {
+						Ω(validateErr).ShouldNot(HaveOccurred())
+					})
 				})
 			})
 

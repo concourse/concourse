@@ -27,12 +27,14 @@ type GetPlan struct {
 }
 
 type PutPlan struct {
-	Type     string `json:"type"`
-	Name     string `json:"name,omitempty"`
-	Resource string `json:"resource"`
-	Pipeline string `json:"pipeline"`
-	Source   Source `json:"source"`
-	Params   Params `json:"params,omitempty"`
+	Type      string `json:"type"`
+	Name      string `json:"name,omitempty"`
+	Resource  string `json:"resource"`
+	Pipeline  string `json:"pipeline"`
+	Source    Source `json:"source"`
+	Params    Params `json:"params,omitempty"`
+	GetName   string `json:"get,omitempty"`
+	GetParams Params `json:"get_params,omitempty"`
 }
 
 type TaskPlan struct {

@@ -116,6 +116,32 @@ func (factory *BuildFactory) constructPlanFromConfig(
 			inputs,
 		)
 
+	case planConfig.Put != "":
+		resourceName := planConfig.Resource
+		if resourceName == "" {
+			resourceName = planConfig.Put
+		}
+
+		getName := planConfig.Get
+		if getName == "" {
+			getName = planConfig.Put
+		}
+
+		resource, _ := resources.Lookup(resourceName)
+
+		plan = atc.Plan{
+			Put: &atc.PutPlan{
+				Type:      resource.Type,
+				Name:      planConfig.Put,
+				Pipeline:  factory.PipelineName,
+				Resource:  resourceName,
+				Source:    resource.Source,
+				Params:    planConfig.Params,
+				GetName:   getName,
+				GetParams: planConfig.GetParams,
+			},
+		}
+
 	case planConfig.Get != "":
 		resourceName := planConfig.Resource
 		if resourceName == "" {
@@ -142,25 +168,6 @@ func (factory *BuildFactory) constructPlanFromConfig(
 				Source:   resource.Source,
 				Params:   planConfig.Params,
 				Version:  atc.Version(version),
-			},
-		}
-
-	case planConfig.Put != "":
-		resourceName := planConfig.Resource
-		if resourceName == "" {
-			resourceName = planConfig.Put
-		}
-
-		resource, _ := resources.Lookup(resourceName)
-
-		plan = atc.Plan{
-			Put: &atc.PutPlan{
-				Type:     resource.Type,
-				Name:     planConfig.Put,
-				Pipeline: factory.PipelineName,
-				Resource: resourceName,
-				Source:   resource.Source,
-				Params:   planConfig.Params,
 			},
 		}
 

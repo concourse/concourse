@@ -159,6 +159,9 @@ type PlanConfig struct {
 
 	// used by Get and Put for specifying params to the resource
 	Params Params `yaml:"params,omitempty" json:"params,omitempty" mapstructure:"params"`
+
+	// used by Put to specify params for the subsequent Get
+	GetParams Params `yaml:"get_params,omitempty" json:"get_params,omitempty" mapstructure:"get_params"`
 }
 
 func (config PlanConfig) Name() string {
