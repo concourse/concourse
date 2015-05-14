@@ -98,4 +98,6 @@ builds:
     version: 0.48.0
   ac7071e3-1c34-4bfc-ab71-4c83063fea2d:
     version: 0.49.0
+  40dcc83a-b40f-4987-a9d3-c357332f63aa:
+    version: 0.50.0
 format-version: '2'
