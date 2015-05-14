@@ -12,7 +12,7 @@ Concourse (they won't build otherwise).
 - Each corresponding change should have an associated test to go along
 with it.  If you are having trouble testing, open an issue to discuss
 it.
-- Please don't forget to updadte the Concourse 
+- Please don't forget to update the Concourse 
 [documentation](https://github.com/concourse/concourse/tree/develop/docs) 
 if you make a change to any the behavior (especially in fly).
 - Double check that all of the tests you have written pass on the
@@ -62,7 +62,7 @@ through a deployment:
 - You may notice that Concourse ships with a .envrc file.  We use a tool 
 called direnv (mentioned above) to mange your ```$GOPATH```.
 - We make extensive use of submodules in this release, you will want to
-run ```git submodule update --init``` from the top-level directory
+run ```git submodule update --init``` within your Course clone.
 
 You should now be all set to bosh deploy Concourse.  A bosh-lite 
 manifest has been provided for you in the manifests directory.
@@ -83,9 +83,9 @@ directly to your bosh-lite, this requires a couple of things:
 (just don't push them)
 - Upload a garden-linux-release to your bosh-lite,
 you can grab it [here](https://github.com/concourse/concourse/releases)
-- cd to the top-level of tesflight (it's a submodule)
+- cd to the top-level of testflight (it's a submodule)
 and run ```./scripts/local-test```
-- Sit back and wait for the test-flight to pass
+- Sit back and wait for the testflight to pass
 
 ### Running ATC Suite
 
@@ -107,11 +107,8 @@ within the fly directory you just cloned
 
 ### Shipit
 
-Commit any changes to the various submodules back to your fork
-of that submodule.
-
 Do not attempt to bump any of the submodules while working
-within the concourse release.  You should make
+within the Concourse release.  You should make
 pull-requests to the various submodules from your fork(s) - the
 maintainers will figure out how to bump the submodules
 appropriately after that and create a new release.
