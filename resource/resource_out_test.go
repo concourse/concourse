@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"regexp"
 
 	"github.com/cloudfoundry-incubator/garden"
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
@@ -111,9 +110,7 @@ var _ = Describe("Resource Out", func() {
 					fakeContainer.StreamOutStub = func(source string) (io.ReadCloser, error) {
 						streamOut := new(bytes.Buffer)
 
-						match, err := regexp.MatchString(`/tmp/build/put/`+guidRegex+`/some/subdir`, source)
-						Ω(err).ShouldNot(HaveOccurred())
-						if match {
+						if source == "/tmp/build/put/some/subdir" {
 							streamOut.WriteString("sup")
 						}
 
@@ -364,7 +361,7 @@ var _ = Describe("Resource Out", func() {
 
 			spec, io := fakeContainer.RunArgsForCall(0)
 			Ω(spec.Path).Should(Equal("/opt/resource/out"))
-			Ω(spec.Args).Should(ConsistOf(MatchRegexp(`/tmp/build/put/` + guidRegex)))
+			Ω(spec.Args).Should(ConsistOf("/tmp/build/put"))
 			Ω(spec.Privileged).Should(BeTrue())
 
 			request, err := ioutil.ReadAll(io.Stdin)
@@ -406,7 +403,7 @@ var _ = Describe("Resource Out", func() {
 					Ω(fakeContainer.StreamInCallCount()).Should(Equal(1))
 					dst, src := fakeContainer.StreamInArgsForCall(0)
 
-					Ω(dst).Should(MatchRegexp(`/tmp/build/put/` + guidRegex + `/some-path`))
+					Ω(dst).Should(Equal("/tmp/build/put/some-path"))
 					Ω(src).Should(Equal(buf))
 				})
 			})

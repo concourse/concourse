@@ -7,7 +7,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
-	"github.com/nu7hatch/gouuid"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -54,21 +53,8 @@ type VersionedSource interface {
 	StreamIn(string, io.Reader) error
 }
 
-func guid() string {
-	guid, err := uuid.NewV4()
-	if err != nil {
-		panic("not enough entropy to generate guid: " + err.Error())
-	}
-
-	return guid.String()
-}
-
-func ResourcesDir(prefix ...string) string {
-	if len(prefix) == 0 {
-		return filepath.Join("/tmp", "build", guid())
-	} else {
-		return filepath.Join("/tmp", "build", prefix[0], guid())
-	}
+func ResourcesDir(suffix string) string {
+	return filepath.Join("/tmp", "build", suffix)
 }
 
 type resource struct {
