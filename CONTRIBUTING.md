@@ -67,7 +67,25 @@ run ```git submodule update --init``` from the top-level directory
 You should now be all set to bosh deploy Concourse.  A bosh-lite 
 manifest has been provided for you in the manifests directory.
 
+### Making Changes
+
+Any changes you would like to make should be done at the submodule
+level.  This will allow you to run a local testflight easily.
+
 ### Your First Testflight
+
+This is where your bosh-lite finally comes in handy.
+
+You're going to deploy your changes to the various submodules
+directly to your bosh-lite, this requires a couple of things:
+
+- Commit all of the changes directly to the submodules
+(just don't push them)
+- Upload a garden-linux-release to your bosh-lite,
+you can grab it [here](https://github.com/concourse/concourse/releases)
+- cd to the top-level of tesflight (it's a submodule)
+and run ```./scripts/local-test```
+- Sit back and wait for the test-flight to pass
 
 ### Running ATC Suite
 
@@ -88,7 +106,12 @@ After cloning fly run:
 within the fly directory you just cloned
 
 ### Shipit
-Do not attempt to bump any of the submodules if working within
-the concourse release.  You should individually make
-pull-requests to the individual submodules - the maintainers
-will figure out how to bump the submodules appropriately after that.
+
+Commit any changes to the various submodules back to your fork
+of that submodule.
+
+Do not attempt to bump any of the submodules while working
+within the concourse release.  You should make
+pull-requests to the various submodules from your fork(s) - the
+maintainers will figure out how to bump the submodules
+appropriately after that and create a new release.
