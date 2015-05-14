@@ -1,4 +1,4 @@
-Contributing In General
+# Contributing In General
 So, you've come here hoping to make Concourse better?  Great!
 Concourse welcomes pull-request on any one of the many open-source
 pieces we currently have within our
