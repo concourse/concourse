@@ -11,7 +11,7 @@ import (
 
 type Factory interface {
 	Get(SourceName, worker.Identifier, GetDelegate, atc.ResourceConfig, atc.Params, atc.Version) StepFactory
-	Put(SourceName, worker.Identifier, PutDelegate, atc.ResourceConfig, atc.Params, atc.Params) StepFactory
+	Put(worker.Identifier, PutDelegate, atc.ResourceConfig, atc.Params) StepFactory
 	// Delete(atc.ResourceConfig, atc.Params, atc.Version) Step
 	Task(SourceName, worker.Identifier, TaskDelegate, Privileged, TaskConfigSource) StepFactory
 }

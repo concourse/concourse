@@ -22,7 +22,6 @@ func (resource *resource) Check(source atc.Source, fromVersion atc.Version) ([]a
 		nil,
 		nil,
 		false,
-		"check",
 	))
 
 	err := <-checking.Wait()

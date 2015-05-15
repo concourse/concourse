@@ -25,7 +25,6 @@ func (resource *resource) Get(ioConfig IOConfig, source atc.Source, params atc.P
 		nil,
 		nil,
 		true,
-		"get",
 	)
 
 	return vs

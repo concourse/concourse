@@ -3,7 +3,6 @@ package exec_test
 import (
 	"bytes"
 	"errors"
-	"io"
 	"os"
 
 	"github.com/concourse/atc"
@@ -49,7 +48,6 @@ var _ = Describe("GardenFactory", func() {
 			putDelegate    *fakes.FakePutDelegate
 			resourceConfig atc.ResourceConfig
 			params         atc.Params
-			getParams      atc.Params
 
 			inStep *fakes.FakeStep
 			repo   *SourceRepository
@@ -72,7 +70,6 @@ var _ = Describe("GardenFactory", func() {
 			}
 
 			params = atc.Params{"some-param": "some-value"}
-			getParams = atc.Params{"some-param": "some-value"}
 
 			inStep = new(fakes.FakeStep)
 			repo = NewSourceRepository()
@@ -82,7 +79,7 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			step = factory.Put("put-source-name", identifier, putDelegate, resourceConfig, params, getParams).Using(inStep, repo)
+			step = factory.Put(identifier, putDelegate, resourceConfig, params).Using(inStep, repo)
 			process = ifrit.Invoke(step)
 		})
 
@@ -90,7 +87,6 @@ var _ = Describe("GardenFactory", func() {
 			var (
 				fakeResource        *rfakes.FakeResource
 				fakeVersionedSource *rfakes.FakeVersionedSource
-				gotPutPayload       io.ReadCloser
 			)
 
 			BeforeEach(func() {
@@ -100,9 +96,6 @@ var _ = Describe("GardenFactory", func() {
 				fakeVersionedSource = new(rfakes.FakeVersionedSource)
 				fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
 				fakeVersionedSource.MetadataReturns([]atc.MetadataField{{"some", "metadata"}})
-
-				gotPutPayload = gbytes.NewBuffer()
-				fakeVersionedSource.StreamOutReturns(gotPutPayload, nil)
 
 				fakeResource.PutReturns(fakeVersionedSource)
 			})
@@ -117,13 +110,12 @@ var _ = Describe("GardenFactory", func() {
 				Ω(typ).Should(Equal(resource.ResourceType("some-resource-type")))
 			})
 
-			It("puts the resource with the correct source and params, and the full repository as the artifact source and adds the get source to the repository", func() {
+			It("puts the resource with the correct source and params, and the full repository as the artifact source", func() {
 				Ω(fakeResource.PutCallCount()).Should(Equal(1))
 
-				_, putSource, putParams, putGetParams, putArtifactSource := fakeResource.PutArgsForCall(0)
+				_, putSource, putParams, putArtifactSource := fakeResource.PutArgsForCall(0)
 				Ω(putSource).Should(Equal(resourceConfig.Source))
 				Ω(putParams).Should(Equal(params))
-				Ω(putGetParams).Should(Equal(getParams))
 
 				dest := new(fakes.FakeArtifactDestination)
 
@@ -131,22 +123,16 @@ var _ = Describe("GardenFactory", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(fakeSource.StreamToCallCount()).Should(Equal(1))
+
 				sourceDest := fakeSource.StreamToArgsForCall(0)
-
-				Ω(dest.StreamInCallCount()).Should(Equal(1))
-
-				destPath, stream := dest.StreamInArgsForCall(0)
-				Ω(destPath).Should(Equal("put-source-name/."))
-				Ω(stream).Should(Equal(gotPutPayload))
 
 				someStream := new(bytes.Buffer)
 
 				err = sourceDest.StreamIn("foo", someStream)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(dest.StreamInCallCount()).Should(Equal(2))
-
-				destPath, stream = dest.StreamInArgsForCall(1)
+				Ω(dest.StreamInCallCount()).Should(Equal(1))
+				destPath, stream := dest.StreamInArgsForCall(0)
 				Ω(destPath).Should(Equal("some-source/foo"))
 				Ω(stream).Should(Equal(someStream))
 			})
@@ -154,7 +140,7 @@ var _ = Describe("GardenFactory", func() {
 			It("puts the resource with the io config forwarded", func() {
 				Ω(fakeResource.PutCallCount()).Should(Equal(1))
 
-				ioConfig, _, _, _, _ := fakeResource.PutArgsForCall(0)
+				ioConfig, _, _, _ := fakeResource.PutArgsForCall(0)
 				Ω(ioConfig.Stdout).Should(Equal(stdoutBuf))
 				Ω(ioConfig.Stderr).Should(Equal(stderrBuf))
 			})

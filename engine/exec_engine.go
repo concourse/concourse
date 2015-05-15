@@ -177,25 +177,6 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 		)
 	}
 
-	if plan.Put != nil {
-		logger = logger.Session("put", lager.Data{
-			"name": plan.Put.Resource,
-		})
-
-		return build.factory.Put(
-			exec.SourceName(plan.Put.GetName),
-			build.putIdentifier(plan.Put.Resource, location),
-			build.delegate.OutputDelegate(logger, *plan.Put, location),
-			atc.ResourceConfig{
-				Name:   plan.Put.Resource,
-				Type:   plan.Put.Type,
-				Source: plan.Put.Source,
-			},
-			plan.Put.Params,
-			plan.Put.GetParams,
-		)
-	}
-
 	if plan.Get != nil {
 		logger = logger.Session("get", lager.Data{
 			"name": plan.Get.Name,
@@ -212,6 +193,23 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 			},
 			plan.Get.Params,
 			plan.Get.Version,
+		)
+	}
+
+	if plan.Put != nil {
+		logger = logger.Session("put", lager.Data{
+			"name": plan.Put.Resource,
+		})
+
+		return build.factory.Put(
+			build.putIdentifier(plan.Put.Resource, location),
+			build.delegate.OutputDelegate(logger, *plan.Put, location),
+			atc.ResourceConfig{
+				Name:   plan.Put.Resource,
+				Type:   plan.Put.Type,
+				Source: plan.Put.Source,
+			},
+			plan.Put.Params,
 		)
 	}
 

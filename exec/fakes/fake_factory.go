@@ -23,15 +23,13 @@ type FakeFactory struct {
 	getReturns struct {
 		result1 exec.StepFactory
 	}
-	PutStub        func(exec.SourceName, worker.Identifier, exec.PutDelegate, atc.ResourceConfig, atc.Params, atc.Params) exec.StepFactory
+	PutStub        func(worker.Identifier, exec.PutDelegate, atc.ResourceConfig, atc.Params) exec.StepFactory
 	putMutex       sync.RWMutex
 	putArgsForCall []struct {
-		arg1 exec.SourceName
-		arg2 worker.Identifier
-		arg3 exec.PutDelegate
-		arg4 atc.ResourceConfig
-		arg5 atc.Params
-		arg6 atc.Params
+		arg1 worker.Identifier
+		arg2 exec.PutDelegate
+		arg3 atc.ResourceConfig
+		arg4 atc.Params
 	}
 	putReturns struct {
 		result1 exec.StepFactory
@@ -87,19 +85,17 @@ func (fake *FakeFactory) GetReturns(result1 exec.StepFactory) {
 	}{result1}
 }
 
-func (fake *FakeFactory) Put(arg1 exec.SourceName, arg2 worker.Identifier, arg3 exec.PutDelegate, arg4 atc.ResourceConfig, arg5 atc.Params, arg6 atc.Params) exec.StepFactory {
+func (fake *FakeFactory) Put(arg1 worker.Identifier, arg2 exec.PutDelegate, arg3 atc.ResourceConfig, arg4 atc.Params) exec.StepFactory {
 	fake.putMutex.Lock()
 	fake.putArgsForCall = append(fake.putArgsForCall, struct {
-		arg1 exec.SourceName
-		arg2 worker.Identifier
-		arg3 exec.PutDelegate
-		arg4 atc.ResourceConfig
-		arg5 atc.Params
-		arg6 atc.Params
-	}{arg1, arg2, arg3, arg4, arg5, arg6})
+		arg1 worker.Identifier
+		arg2 exec.PutDelegate
+		arg3 atc.ResourceConfig
+		arg4 atc.Params
+	}{arg1, arg2, arg3, arg4})
 	fake.putMutex.Unlock()
 	if fake.PutStub != nil {
-		return fake.PutStub(arg1, arg2, arg3, arg4, arg5, arg6)
+		return fake.PutStub(arg1, arg2, arg3, arg4)
 	} else {
 		return fake.putReturns.result1
 	}
@@ -111,10 +107,10 @@ func (fake *FakeFactory) PutCallCount() int {
 	return len(fake.putArgsForCall)
 }
 
-func (fake *FakeFactory) PutArgsForCall(i int) (exec.SourceName, worker.Identifier, exec.PutDelegate, atc.ResourceConfig, atc.Params, atc.Params) {
+func (fake *FakeFactory) PutArgsForCall(i int) (worker.Identifier, exec.PutDelegate, atc.ResourceConfig, atc.Params) {
 	fake.putMutex.RLock()
 	defer fake.putMutex.RUnlock()
-	return fake.putArgsForCall[i].arg1, fake.putArgsForCall[i].arg2, fake.putArgsForCall[i].arg3, fake.putArgsForCall[i].arg4, fake.putArgsForCall[i].arg5, fake.putArgsForCall[i].arg6
+	return fake.putArgsForCall[i].arg1, fake.putArgsForCall[i].arg2, fake.putArgsForCall[i].arg3, fake.putArgsForCall[i].arg4
 }
 
 func (fake *FakeFactory) PutReturns(result1 exec.StepFactory) {

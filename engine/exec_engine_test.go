@@ -95,12 +95,10 @@ var _ = Describe("ExecEngine", func() {
 				Conditions: atc.Conditions{atc.ConditionSuccess},
 				Plan: atc.Plan{
 					Put: &atc.PutPlan{
-						Resource:  "some-output-resource",
-						Type:      "some-type",
-						GetName:   "some-output-resource-get",
-						Source:    atc.Source{"some": "source"},
-						Params:    atc.Params{"some": "params"},
-						GetParams: atc.Params{"some-get": "params-get"},
+						Resource: "some-output-resource",
+						Type:     "some-type",
+						Source:   atc.Source{"some": "source"},
+						Params:   atc.Params{"some": "params"},
 					},
 				},
 			}
@@ -213,8 +211,7 @@ var _ = Describe("ExecEngine", func() {
 		It("constructs outputs correctly", func() {
 			Ω(fakeFactory.PutCallCount()).Should(Equal(1))
 
-			sourceName, workerID, delegate, resourceConfig, params, getParams := fakeFactory.PutArgsForCall(0)
-			Ω(sourceName).Should(Equal(exec.SourceName("some-output-resource-get")))
+			workerID, delegate, resourceConfig, params := fakeFactory.PutArgsForCall(0)
 			Ω(workerID).Should(Equal(worker.Identifier{
 				BuildID:      42,
 				Type:         worker.ContainerTypePut,
@@ -226,7 +223,6 @@ var _ = Describe("ExecEngine", func() {
 			Ω(resourceConfig.Type).Should(Equal("some-type"))
 			Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
 			Ω(params).Should(Equal(atc.Params{"some": "params"}))
-			Ω(getParams).Should(Equal(atc.Params{"some-get": "params-get"}))
 		})
 
 		Context("when the steps complete", func() {

@@ -14,13 +14,8 @@ import (
 
 var ErrAborted = errors.New("script aborted")
 
-func resourceProcessIDProperty(runType string) string {
-	return fmt.Sprintf("concourse:%s:resource-process", runType)
-}
-
-func resourceResultProperty(runType string) string {
-	return fmt.Sprintf("concourse:%s:resource-result", runType)
-}
+const resourceProcessIDPropertyName = "concourse:resource-process"
+const resourceResultPropertyName = "concourse:resource-result"
 
 type ErrResourceScriptFailed struct {
 	Path       string
@@ -54,20 +49,18 @@ func (resource *resource) runScript(
 	inputSource ArtifactSource,
 	inputDestination ArtifactDestination,
 	recoverable bool,
-	runType string,
 ) ifrit.Runner {
 	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+		request, err := json.Marshal(input)
+		if err != nil {
+			return err
+		}
+
 		if recoverable {
-			result, err := resource.container.Property(resourceResultProperty(runType))
+			result, err := resource.container.Property(resourceResultPropertyName)
 			if err == nil {
 				return json.Unmarshal([]byte(result), &output)
 			}
-		}
-
-		request, err := json.Marshal(input)
-		if err != nil {
-			fmt.Println("failed to marshal", err)
-			return err
 		}
 
 		stdout := new(bytes.Buffer)
@@ -88,7 +81,7 @@ func (resource *resource) runScript(
 
 		var processIDProp string
 		if recoverable {
-			processIDProp, err = resource.container.Property(resourceProcessIDProperty(runType))
+			processIDProp, err = resource.container.Property(resourceProcessIDPropertyName)
 			if err != nil {
 				processIDProp = ""
 			}
@@ -125,7 +118,7 @@ func (resource *resource) runScript(
 			if recoverable {
 				processIDValue := fmt.Sprintf("%d", process.ID())
 
-				err := resource.container.SetProperty(resourceProcessIDProperty(runType), processIDValue)
+				err := resource.container.SetProperty(resourceProcessIDPropertyName, processIDValue)
 				if err != nil {
 					return err
 				}
@@ -159,7 +152,7 @@ func (resource *resource) runScript(
 			}
 
 			if recoverable {
-				err := resource.container.SetProperty(resourceResultProperty(runType), stdout.String())
+				err := resource.container.SetProperty(resourceResultPropertyName, stdout.String())
 				if err != nil {
 					return err
 				}
