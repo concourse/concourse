@@ -35,6 +35,15 @@ case $1 in
       cat /var/vcap/packages/generated_tsa_host_key/id_rsa.pub
     } > /var/vcap/jobs/groundcrew/config/generated_tsa_known_hosts
 
+    KNOWN_HOSTS_FILE=${RUN_DIR}/known_hosts
+    <% if p("groundcrew.tsa.host_public_key") != "" %>
+    cp /var/vcap/jobs/groundcrew/config/known_hosts $KNOWN_HOSTS_FILE
+    <% else %>
+    cp /var/vcap/jobs/groundcrew/config/generated_tsa_known_hosts $KNOWN_HOSTS_FILE
+    <% end %>
+
+    chown vcap:vcap $KNOWN_HOSTS_FILE
+
     exec chpst -u vcap:vcap ssh \
       -p <%= p("groundcrew.tsa.port") %> <%= p("groundcrew.tsa.host") %> \
       <% if p("groundcrew.tsa.private_key") != "" %> \
@@ -42,11 +51,7 @@ case $1 in
       <% else %> \
       -i /var/vcap/packages/generated_worker_key/id_rsa \
       <% end %> \
-      <% if p("groundcrew.tsa.host_public_key") != "" %> \
-      -o UserKnownHostsFile=/var/vcap/jobs/groundcrew/config/known_hosts \
-      <% else %> \
-      -o UserKnownHostsFile=/var/vcap/jobs/groundcrew/config/generated_tsa_known_hosts \
-      <% end %> \
+      -o UserKnownHostsFile=${KNOWN_HOSTS_FILE} \
       <% if p("groundcrew.garden.forward_address", nil) %> \
         -R0.0.0.0:0:<%= p("groundcrew.garden.forward_address") %> \
         forward-worker \
