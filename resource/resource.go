@@ -16,7 +16,7 @@ type Resource interface {
 	Type() ResourceType
 
 	Get(IOConfig, atc.Source, atc.Params, atc.Version) VersionedSource
-	Put(IOConfig, atc.Source, atc.Params, ArtifactSource) VersionedSource
+	Put(IOConfig, atc.Source, atc.Params, atc.Params, ArtifactSource) VersionedSource
 
 	Check(atc.Source, atc.Version) ([]atc.Version, error)
 

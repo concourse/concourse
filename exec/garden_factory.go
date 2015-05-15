@@ -54,8 +54,9 @@ func (factory *gardenFactory) Get(sourceName SourceName, id worker.Identifier, d
 	}
 }
 
-func (factory *gardenFactory) Put(id worker.Identifier, delegate PutDelegate, config atc.ResourceConfig, params atc.Params) StepFactory {
+func (factory *gardenFactory) Put(sourceName SourceName, id worker.Identifier, delegate PutDelegate, config atc.ResourceConfig, params atc.Params, getParams atc.Params) StepFactory {
 	return resourceStep{
+		SourceName: sourceName,
 		Session: resource.Session{
 			ID: id,
 		},
@@ -69,7 +70,7 @@ func (factory *gardenFactory) Put(id worker.Identifier, delegate PutDelegate, co
 			return r.Put(resource.IOConfig{
 				Stdout: delegate.Stdout(),
 				Stderr: delegate.Stderr(),
-			}, config.Source, params, resourceSource{s})
+			}, config.Source, params, getParams, resourceSource{s})
 		},
 	}
 }

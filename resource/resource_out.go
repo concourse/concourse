@@ -12,29 +12,62 @@ type outRequest struct {
 	Params atc.Params `json:"params,omitempty"`
 }
 
-func (resource *resource) Put(ioConfig IOConfig, source atc.Source, params atc.Params, artifactSource ArtifactSource) VersionedSource {
-	resourceDir := ResourcesDir("put")
+func (resource *resource) Put(ioConfig IOConfig, source atc.Source, params atc.Params, getParams atc.Params, artifactSource ArtifactSource) VersionedSource {
+	putDir := ResourcesDir("put")
+	getDir := ResourcesDir("get")
 
-	vs := &versionedSource{
+	putVersionedSource := &versionedSource{
 		container:   resource.container,
-		resourceDir: resourceDir,
+		resourceDir: putDir,
 	}
 
-	vs.Runner = ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
-		return resource.runScript(
+	putVersionedSource.Runner = ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+		err := resource.runScript(
 			"/opt/resource/out",
-			[]string{resourceDir},
+			[]string{putDir},
 			outRequest{
 				Params: params,
 				Source: source,
 			},
-			&vs.versionResult,
+			&putVersionedSource.versionResult,
 			ioConfig.Stderr,
 			artifactSource,
-			vs,
+			putVersionedSource,
 			true,
+			"put",
 		).Run(signals, ready)
+		if err != nil {
+			return err
+		}
+
+		getVersionedSource := &versionedSource{
+			container:   resource.container,
+			resourceDir: getDir,
+		}
+
+		err = resource.runScript(
+			"/opt/resource/in",
+			[]string{getDir},
+			inRequest{
+				Source:  source,
+				Params:  getParams,
+				Version: putVersionedSource.Version(),
+			},
+			&getVersionedSource.versionResult,
+			ioConfig.Stderr,
+			nil,
+			nil,
+			true,
+			"get",
+		).Run(signals, make(chan struct{}))
+		if err != nil {
+			return err
+		}
+
+		putVersionedSource.resourceDir = getDir
+
+		return nil
 	})
 
-	return vs
+	return putVersionedSource
 }

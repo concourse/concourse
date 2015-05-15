@@ -26,13 +26,14 @@ type FakeResource struct {
 	getReturns struct {
 		result1 resource.VersionedSource
 	}
-	PutStub        func(resource.IOConfig, atc.Source, atc.Params, resource.ArtifactSource) resource.VersionedSource
+	PutStub        func(resource.IOConfig, atc.Source, atc.Params, atc.Params, resource.ArtifactSource) resource.VersionedSource
 	putMutex       sync.RWMutex
 	putArgsForCall []struct {
 		arg1 resource.IOConfig
 		arg2 atc.Source
 		arg3 atc.Params
-		arg4 resource.ArtifactSource
+		arg4 atc.Params
+		arg5 resource.ArtifactSource
 	}
 	putReturns struct {
 		result1 resource.VersionedSource
@@ -117,17 +118,18 @@ func (fake *FakeResource) GetReturns(result1 resource.VersionedSource) {
 	}{result1}
 }
 
-func (fake *FakeResource) Put(arg1 resource.IOConfig, arg2 atc.Source, arg3 atc.Params, arg4 resource.ArtifactSource) resource.VersionedSource {
+func (fake *FakeResource) Put(arg1 resource.IOConfig, arg2 atc.Source, arg3 atc.Params, arg4 atc.Params, arg5 resource.ArtifactSource) resource.VersionedSource {
 	fake.putMutex.Lock()
 	fake.putArgsForCall = append(fake.putArgsForCall, struct {
 		arg1 resource.IOConfig
 		arg2 atc.Source
 		arg3 atc.Params
-		arg4 resource.ArtifactSource
-	}{arg1, arg2, arg3, arg4})
+		arg4 atc.Params
+		arg5 resource.ArtifactSource
+	}{arg1, arg2, arg3, arg4, arg5})
 	fake.putMutex.Unlock()
 	if fake.PutStub != nil {
-		return fake.PutStub(arg1, arg2, arg3, arg4)
+		return fake.PutStub(arg1, arg2, arg3, arg4, arg5)
 	} else {
 		return fake.putReturns.result1
 	}
@@ -139,10 +141,10 @@ func (fake *FakeResource) PutCallCount() int {
 	return len(fake.putArgsForCall)
 }
 
-func (fake *FakeResource) PutArgsForCall(i int) (resource.IOConfig, atc.Source, atc.Params, resource.ArtifactSource) {
+func (fake *FakeResource) PutArgsForCall(i int) (resource.IOConfig, atc.Source, atc.Params, atc.Params, resource.ArtifactSource) {
 	fake.putMutex.RLock()
 	defer fake.putMutex.RUnlock()
-	return fake.putArgsForCall[i].arg1, fake.putArgsForCall[i].arg2, fake.putArgsForCall[i].arg3, fake.putArgsForCall[i].arg4
+	return fake.putArgsForCall[i].arg1, fake.putArgsForCall[i].arg2, fake.putArgsForCall[i].arg3, fake.putArgsForCall[i].arg4, fake.putArgsForCall[i].arg5
 }
 
 func (fake *FakeResource) PutReturns(result1 resource.VersionedSource) {
