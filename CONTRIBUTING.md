@@ -27,26 +27,26 @@ the project!
 - ruby
     - use system provided if you have it
 - bosh_cli (ruby-gem and all around bosh goodness)
-    - ```gem install bosh_cli bosh_cli_plugin_micro --no-ri --no-rdoc```
+    - `gem install bosh_cli bosh_cli_plugin_micro --no-ri --no-rdoc`
 - direnv (homebrew installed)
-     - ```brew install direnv```
+     - `brew install direnv`
 - fly (grab this from Concourse.ci)
     - [fly-binary-darwin](https://ci.concourse.ci/api/v1/cli?arch=amd64&platform=darwin)
     - [fly-binary-linux](https://ci.concourse.ci/api/v1/cli?arch=amd64&platform=linux)
 - go (you can install via homebrew)
-    - ```brew install go```
+    - `brew install go`
 - ginkgo (testing framework for go, assuming you grab go first)
-    - ```go get github.com/onsi/ginkgo/ginkgo```
+    - `go get github.com/onsi/ginkgo/ginkgo`
 - postgresql (you can also install this via homebrew)
-    - ```brew install postgresql```
+    - `brew install postgresql`
 - virtualbox
-    - [grab it here](https://www.virtualbox.org/wiki/Downloads)
+    - `brew install virtualbox`
 - vagrant
-    - [grab the latest version](https://www.vagrantup.com/downloads.html)
+    - `brew install vagrant`
 
 ### Setting Up a Bosh-lite
 Concourse is a bosh release, so you're probably going to want to setup a 
-bosh-litethat you can deploy concourse to before pushing your changes 
+bosh-lite that you can deploy concourse to before pushing your changes
 to the develop branch.
 
 Jump over to the bosh-lite [repo](https://github.com/cloudfoundry/bosh-lite) 
@@ -60,9 +60,9 @@ All set with bosh-lite?  Great!  Let's grab the concourse release
 through a deployment:
 
 - You may notice that Concourse ships with a .envrc file.  We use a tool 
-called direnv (mentioned above) to mange your ```$GOPATH```.
+called direnv (mentioned above) to mange your `$GOPATH`.
 - We make extensive use of submodules in this release, you will want to
-run ```git submodule update --init``` within your Course clone.
+run `git submodule update --init` within your Course clone.
 
 You should now be all set to bosh deploy Concourse.  A bosh-lite 
 manifest has been provided for you in the manifests directory.
@@ -84,7 +84,7 @@ directly to your bosh-lite, this requires a couple of things:
 - Upload a garden-linux-release to your bosh-lite,
 you can grab it [here](https://github.com/concourse/concourse/releases)
 - cd to the top-level of testflight (it's a submodule)
-and run ```./scripts/local-test```
+and run `./scripts/local-test`
 - Sit back and wait for the testflight to pass
 
 ### Running ATC Suite
@@ -93,7 +93,7 @@ ATC tests are shockingly simple to run (assuming you have
 ginkgo / postgresql already installed).
 
 After cloning ATC run:
-```ginkgo -p -r```
+`ginkgo -p -r`
 from the top-level ATC directory
 
 ### Fly Testing (What to watch for)
@@ -102,7 +102,7 @@ Again, relying on the fact that you have already installed
 ginkgo:
 
 After cloning fly run:
-```ginkgo -p -r```
+`ginkgo -p -r`
 within the fly directory you just cloned
 
 ### Shipit
