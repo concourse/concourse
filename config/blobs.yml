@@ -24,10 +24,10 @@ resources/s3-resource.tar.gz:
     MzVkYjMyOTBhZjFkOTBmYmIyNzdlMjcyOWRiZDUyMTgxZmM1ZmM3NA==
   size: 8839419
 resources/tracker-resource.tar.gz:
-  object_id: 747605a7-1729-4a54-b5c3-6afb8189ccc1
+  object_id: f1c43153-4eb9-4590-a7ae-2da9497e0368
   sha: !binary |-
-    NGM3N2JmYjc4ZWQzMGQ1MzE4M2U1ODdkY2I4MTNjYzIwODhiYTNjZg==
-  size: 10800985
+    N2E2YmNiMjg2MjhkZjc3MmUzZmE3NDA4NjE5ZThmMzc4ZDI3YzFkOA==
+  size: 11655491
 resources/git-resource.tar.gz:
   object_id: bb843d67-af78-4cea-b0b5-ac6f74b452b6
   sha: !binary |-
@@ -44,10 +44,10 @@ resources/vagrant-cloud-resource.tar.gz:
     OGNjZTZiOGU3NzJhNWU4MGYyNTExOTMwNDMwOWQ2Yzc3ZTBjYjg0NA==
   size: 8409188
 resources/cf-resource.tar.gz:
-  object_id: b82fe315-57cc-4620-9598-716539000626
+  object_id: 4cc3e474-aa62-4371-b4ac-d85348832553
   sha: !binary |-
-    YTM0ZGE3YjYyZWVmNmU0M2VkZGYyYzRkZWVjOGI3MTQyNmVkMWMwYg==
-  size: 12731742
+    N2RkODBiNmJhYzE0NTA4ODEyMzdhMjI0M2I5ZDI0MjU3NmU1YzAyMA==
+  size: 13379855
 resources/github-release-resource.tar.gz:
   object_id: 704f07cb-2425-41ed-bb7f-c0d7402d5a04
   sha: !binary |-
@@ -72,7 +72,7 @@ resources/bosh-io-release-resource.tar.gz:
     OTcyNThjMzAzOTVlMGQ4Y2YxYTdkMzZhNzE1MjMwZDBhZTg0MDVjYQ==
   size: 8409411
 resources/bosh-deployment-resource.tar.gz:
-  object_id: 9e23fc8f-14b9-41c2-944c-d2021389d6d3
+  object_id: 0f2f54c3-aba1-417d-9dc0-9ecc00937c68
   sha: !binary |-
-    NWJjNzVhZjk0MGZmYmU2MDI4OTc1MmUzMmU4MjhmNGM2Mjg4YzI3NQ==
-  size: 22129141
+    NWJiNDQ3NjA1MWY2OGNhZWI3NGVkYTIzMTYxZmYwMWM5YzY5M2UxNg==
+  size: 22174342
