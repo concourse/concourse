@@ -31,8 +31,8 @@ The resulting pipeline will look like this:
       resource type}.
     }
     @para{
-      The @code{git} resource requires two source parameters: @code{uri} and
-      @code{branch}. We're using a SSH URI, so we'll also need to specify
+      The @code{git} resource type requires two source parameters: @code{uri}
+      and @code{branch}. We're using a SSH URI, so we'll also need to specify
       @code{private_key}.
     }
     @para{
@@ -87,9 +87,10 @@ The resulting pipeline will look like this:
       resource type}.
     }
     @para{
-      The S3 resource is minimally configured with a @code{bucket} name and
-      a @code{regexp}, which will be used to match files in the bucket and
-      order them by the version number extracted by the first capture group.
+      The @code{s3} resource type is minimally configured with a @code{bucket}
+      name and a @code{regexp}, which will be used to match files in the
+      bucket and order them by the version number extracted by the first
+      capture group.
     }
     @para{
       Since we'll be writing objects into this bucket, we'll need to configure
@@ -124,7 +125,7 @@ The resulting pipeline will look like this:
   @literate-segment[
     @para{
       Now that we've got all our resources defined, let's move on define the
-      "functions" to apply to them, as represented by @code{jobs}
+      @emph{functions} to apply to them, as represented by @code{jobs}
     }
     @codeblock{
       @||jobs:
@@ -134,12 +135,13 @@ The resulting pipeline will look like this:
   @literate-segment[
     @para{
       Our first job will run the unit tests for our project. This job will
-      fetch the source code via the @code{my-product} resource, execute the
+      fetch the source code, using the @secref{get-step} step with the
+      @code{my-product} resource, and execute the
       @seclink["configuring-tasks"]{Task configuration file} living in the
-      repo repo under @code{ci/unit.yml}.
+      repo under @code{ci/unit.yml} using a @secref{task-step} step.
     }
     @para{
-      We set @code{trigger: true} on the @code{gett} step so that it
+      We set @code{trigger: true} on the @secref{get-step} step so that it
       automatically triggers a new @code{unit} build whenever new commits are
       pushed to the @code{my-product} repository.
     }
@@ -162,9 +164,9 @@ The resulting pipeline will look like this:
 
   @literate-segment[
     @para{
-      In this case, let's consider anything making it past the unit tests to
-      be a candidate for release. So, let's use the @code{version} resource to
-      autogenerate release candidate versions, and build an artifact!
+      Let's consider anything making it past the unit tests to be a candidate
+      for a new version to ship. We'll call the job that builds candidate
+      artifacts @code{build-rc}.
     }
     @para{
       Note that for jobs like this you'll want to specify @code{serial: true}
@@ -193,11 +195,16 @@ The resulting pipeline will look like this:
 
   @literate-segment[
     @para{
-      We'll also need a new release candidate version number. For this, we'll
-      use the @code{semver} resource's params to provide a bumped version to
-      our job. Specifying both @code{bump} and @code{pre} says "if the current
-      version is already a release candidate, add 1 to it, if not, generate
-      a release candidate for the next minor version".
+      We'll also need a new release candidate version number. For this, the
+      @hyperlink["https://github.com/concourse/semver-resource"]{@code{semver}}
+      resource type can be used to generate versions by specifying params in
+      the @secref{get-step}.
+    }
+    @para{
+      Specifying @code{bump: minor} and @code{pre: rc} makes it so that if the
+      current version is e.g. @code{1.2.3-rc.3}, we'll get @code{1.2.3-rc.4}.
+      If not, the version will receive a minor bump, and we'll get something
+      like @code{1.3.0-rc.1}.
     }
     @codeblock{
       @||  - get: version
@@ -208,19 +215,8 @@ The resulting pipeline will look like this:
   @literate-segment[
     @para{
       Now, we'll execute our @code{build-artifact} task configuration, which
-      we'll assume looks something like:
-    }
-    @codeblock{
-      inputs:
-      - name: my-product
-      - name: version
-
-      run:
-        path: my-product/scripts/build-artifact
-    }
-    @para{
-      ...assuming the @code{build-artifact} script produces a file named
-      @code{my-product-{VERSION}.tgz}.
+      we'll assume has two inputs (@code{my-product} and @code{version}) and
+      produces a file named @code{my-product-{VERSION}.tgz} when executed.
     }
     @codeblock{
       @||  - task: build-artifact
@@ -230,8 +226,9 @@ The resulting pipeline will look like this:
 
   @literate-segment[
     @para{
-      Now that we have a tarball built, let's @code{put} it up to the
-      artifacts S3 bucket via the @code{my-product-rc} resource defined above.
+      Now that we have a tarball built, let's @secref{put-step} it up to the
+      pipeline artifacts S3 bucket via the @code{my-product-rc} resource
+      defined above.
     }
     @para{
       Note that we refer to the task that generated the @code{.tgz} in the
@@ -291,8 +288,9 @@ The resulting pipeline will look like this:
     }
     @para{
       Note that this usage of @code{passed} guarantees that the two versions
-      of @code{my-product} and @code{my-product-rc} respectively came out
-      from the @emph{same build} of @code{build-rc}.
+      of @code{my-product} and @code{my-product-rc} respectively came out from
+      the @emph{same build} of @code{build-rc}. See @secref{get-step} for more
+      information.
     }
     @codeblock{
       @||  - get: my-product-rc
@@ -307,7 +305,8 @@ The resulting pipeline will look like this:
     @para{
       We'll now run the actual integration task. Since it has to talk to some
       external environment, we'll use @code{config.params} to forward
-      credentials along to the task.
+      credentials along to the task. See @secref{task-step} for more
+      information.
     }
     @para{
       Again we'll use @seclink["parameters"]{parameters} in the config file to
