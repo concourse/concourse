@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" version="1.0" width="100%" height="100%" viewBox="-20 -20 1193.875 150">
+    <defs>
+        <style type="text/css">
+          <![CDATA[
+svg {
+  background: #202020;
+  font-family: Courier, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.node rect {
+  shape-rendering: crispEdges;
+}
+
+.edge path {
+  stroke-width: 2px;
+  fill: none;
+}
+
+.node text {
+  fill: #fff;
+}
+
+.node.job text {
+  font-weight: bold;
+}
+
+.node.constrained-input {
+  opacity: 0.5;
+}
+
+.active path {
+  stroke-width: 4px;
+}
+
+.active.node rect {
+  filter: url(#embiggen);
+}
+
+.active.node text {
+  font-size: 1.06em;
+}
+
+.node rect { fill: #151515; }
+
+.cluster { fill: #303030; }
+
+.edge { stroke: #505050; }
+.gateway { fill: #505050; }
+.node.job.normal rect { fill: #505050; }
+
+.edge.pending { stroke: #b0b0b0; }
+.node.job.pending rect { fill: #b0b0b0; }
+
+.node.resource a { color: #e0e0e0; }
+
+.edgeLabel text { fill: #f5f5f5; }
+
+.edge.succeeded { stroke: @base0B; }
+.node.job.succeeded rect { fill: @base0B; }
+.edge.failed { stroke: #ac4142; }
+.node.job.failed rect { fill: #ac4142; }
+
+.edge.errored { stroke: #d28445; }
+.node.job.errored rect { fill: #d28445; }
+.node.input.failing rect { fill: #d28445; }
+
+.edge.aborted { stroke: #8f5536; }
+.node.job.aborted rect { fill: #8f5536; }
+          ]]>
+        </style>
+        <filter id="embiggen">
+            <feMorphology operator="dilate" radius="4"/>
+        </filter>
+    </defs>
+    <g>
+        <g class="edge pending">
+            <path d="M423.4375,70 C448.4375,70 448.4375,70 473.4375,70"/>
+        </g>
+        <g class="edge pending">
+            <path d="M423.4375,40 C459.3828125,40 459.3828125,40 495.328125,40"/>
+        </g>
+        <g class="edge pending">
+            <path d="M977.15625,100 C1002.15625,100 1002.15625,40 1027.15625,40"/>
+        </g>
+        <g class="edge pending">
+            <path d="M977.15625,70 C1018.5703125,70 1018.5703125,10 1059.984375,10"/>
+        </g>
+        <g class="edge pending">
+            <path d="M172.125,10 C197.125,10 197.125,10 222.125,10"/>
+        </g>
+        <g class="edge undefined">
+            <path d="M305.0625,10 C330.0625,10 330.0625,10 355.0625,10"/>
+        </g>
+        <g class="edge undefined">
+            <path d="M578.28125,70 C603.28125,70 603.28125,40 628.28125,40"/>
+        </g>
+        <g class="edge pending">
+            <path d="M423.4375,10 C453.9140625,10 453.9140625,10 484.390625,10"/>
+        </g>
+        <g class="edge undefined">
+            <path d="M567.328125,10 C597.8046875,10 597.8046875,10 628.28125,10"/>
+        </g>
+        <g class="edge pending">
+            <path d="M718.53125,40 C743.53125,40 743.53125,40 768.53125,40"/>
+        </g>
+        <g class="edge undefined">
+            <path d="M873.375,40 C898.375,40 898.375,40 923.375,40"/>
+        </g>
+        <g class="edge pending">
+            <path d="M718.53125,10 C749.0078125,10 749.0078125,10 779.484375,10"/>
+        </g>
+        <g class="edge undefined">
+            <path d="M862.421875,10 C892.8984375,10 892.8984375,10 923.375,10"/>
+        </g>
+        <g class="edge ">
+            <path d="M82.9375,10 C107.9375,10 107.9375,10 132.9375,10"/>
+        </g>
+        <g class="edge ">
+            <path d="M294.125,40 C324.59375,40 324.59375,40 355.0625,40"/>
+        </g>
+        <g class="edge ">
+            <path d="M851.484375,70 C887.4296875,70 887.4296875,70 923.375,70"/>
+        </g>
+        <g class="node job pending" transform="translate(132.9375, 0)">
+            <rect height="20" width="39.1875"/>
+            <text dominant-baseline="middle" text-anchor="middle" x="19.59375" y="10">unit</text>
+    </g>
+    <g class="node job pending" transform="translate(355.0625, 0)">
+        <rect height="80" width="68.375"/>
+        <text dominant-baseline="middle" text-anchor="middle" x="34.1875" y="40">build-rc</text>
+</g>
+<g class="node job pending" transform="translate(628.28125, 0)">
+    <rect height="50" width="90.25"/>
+    <text dominant-baseline="middle" text-anchor="middle" x="45.125" y="25">integration</text>
+</g>
+<g class="node job pending" transform="translate(923.375, 0)">
+    <rect height="110" width="53.78125"/>
+    <text dominant-baseline="middle" text-anchor="middle" x="26.890625" y="55">shipit</text>
+</g>
+<g class="node output" transform="translate(473.4375, 60)">
+    <rect height="20" width="104.84375"/>
+    <text dominant-baseline="middle" text-anchor="middle" x="52.421875" y="10">my-product-rc</text>
+</g>
+<g class="node output" transform="translate(495.328125, 30)">
+    <rect height="20" width="61.0625"/>
+    <text dominant-baseline="middle" text-anchor="middle" x="30.53125" y="10">version</text>
+</g>
+<g class="node output" transform="translate(1027.15625, 30)">
+    <rect height="20" width="126.71875"/>
+    <text dominant-baseline="middle" text-anchor="middle" x="63.359375" y="10">my-product-final</text>
+</g>
+<g class="node output" transform="translate(1059.984375, 0)">
+    <rect height="20" width="61.0625"/>
+    <text dominant-baseline="middle" text-anchor="middle" x="30.53125" y="10">version</text>
+</g>
+<g class="node constrained-input" transform="translate(222.125, 0)">
+    <rect height="20" width="82.9375"/>
+    <text dominant-baseline="middle" text-anchor="middle" x="41.46875" y="10">my-product</text>
+</g>
+<g class="node constrained-input" transform="translate(484.390625, 0)">
+    <rect height="20" width="82.9375"/>
+    <text dominant-baseline="middle" text-anchor="middle" x="41.46875" y="10">my-product</text>
+</g>
+<g class="node constrained-input" transform="translate(768.53125, 30)">
+    <rect height="20" width="104.84375"/>
+    <text dominant-baseline="middle" text-anchor="middle" x="52.421875" y="10">my-product-rc</text>
+</g>
+<g class="node constrained-input" transform="translate(779.484375, 0)">
+    <rect height="20" width="82.9375"/>
+    <text dominant-baseline="middle" text-anchor="middle" x="41.46875" y="10">my-product</text>
+</g>
+<g class="node input" transform="translate(0, 0)">
+    <rect height="20" width="82.9375"/>
+    <text dominant-baseline="middle" text-anchor="middle" x="41.46875" y="10">my-product</text>
+</g>
+<g class="node input" transform="translate(233.0625, 30)">
+    <rect height="20" width="61.0625"/>
+    <text dominant-baseline="middle" text-anchor="middle" x="30.53125" y="10">version</text>
+</g>
+<g class="node input" transform="translate(790.421875, 60)">
+    <rect height="20" width="61.0625"/>
+    <text dominant-baseline="middle" text-anchor="middle" x="30.53125" y="10">version</text>
+</g>
+</g>
+</svg>

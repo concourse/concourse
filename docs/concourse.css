@@ -5,3 +5,48 @@
 .break-word {
   word-wrap: break-word;
 }
+
+.literate {
+  list-style-type: none;
+}
+
+.literate .literateItem {
+  margin-left: 0;
+}
+
+.literate .para {
+  margin: 0;
+}
+
+@media (min-width: 1525px) {
+  .pipeline {
+    width: 1248px;
+  }
+
+  .literate {
+    display: table;
+    border-spacing: 0 1em;
+  }
+
+  .literate .literateItem {
+    display: table-row;
+  }
+
+  .literate .para {
+    display: table-cell;
+    padding-right: 25px;
+    min-width: 700px;
+  }
+
+  .literate .code {
+    display: table-cell;
+    background: #f5f5f5;
+    min-width: 500px;
+    padding: 1em 0;
+  }
+
+  .literate .code .SCodeFlow {
+    margin: 0;
+    border: 0;
+  }
+}
