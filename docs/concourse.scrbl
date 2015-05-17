@@ -15,6 +15,10 @@ To see a live example, check out
 
 Concourse is completely open source. All of the source code lives under the
 @hyperlink["https://github.com/concourse"]{Concourse organization} on GitHub.
+We deal with bugs and problems using GitHub Issues for each repo - please use
+@hyperlink["https://github.com/concourse/concourse/issues"]{Concourse Issues}
+if you're not sure. If you want to contribute patches, please use GitHub pull
+requests.
 
 For more information or if you need help: we're on IRC in the
 @hyperlink["irc://irc.freenode.net/concourse"]{#concourse} channel on Freenode.
