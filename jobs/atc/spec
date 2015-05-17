@@ -79,6 +79,10 @@ properties:
   atc.postgresql.role.password:
     description: "password to use when connecting"
 
+  atc.force_https:
+    description: "require client connections to use HTTPS"
+    default: false
+
   consul.agent.services.atc:
     description: "this property auto-registers ATC as a service"
     default: {}
