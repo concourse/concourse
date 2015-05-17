@@ -170,7 +170,7 @@ This will present a diff of the changes and ask you to confirm the changes.
 If you accept then Concourse's pipeline configuration will switch to the
 pipeline definition in the YAML file specified.
 
-@subsection{Parameters}
+@subsection[#:tag "parameters"]{Parameters}
 
 The pipeline configuration can contain templates in the form of
 @code{{{foo-bar}}}. They will be replaced with string values populated by

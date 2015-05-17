@@ -25,6 +25,7 @@ For more information or if you need help: we're on IRC in the
 @include-section{what-and-why.scrbl}
 @include-section{concepts.scrbl}
 @include-section{getting-started.scrbl}
+@include-section{examples.scrbl}
 @include-section{fly-cli.scrbl}
 @include-section{running-tasks.scrbl}
 @include-section{pipelines.scrbl}
