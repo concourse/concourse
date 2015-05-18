@@ -20,6 +20,10 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
+var identifier = worker.Identifier{
+	Name: "some-session-id",
+}
+
 var _ = Describe("GardenFactory", func() {
 	var (
 		fakeTracker      *rfakes.FakeTracker
@@ -47,14 +51,14 @@ var _ = Describe("GardenFactory", func() {
 		stderrBuf = gbytes.NewBuffer()
 	})
 
-	Describe("Get", func() {
+	Describe("DependentGet", func() {
 		var (
 			getDelegate    *fakes.FakeGetDelegate
 			resourceConfig atc.ResourceConfig
 			params         atc.Params
 			version        atc.Version
 
-			inStep Step
+			inStep *fakes.FakeStep
 			repo   *SourceRepository
 
 			step    Step
@@ -76,12 +80,25 @@ var _ = Describe("GardenFactory", func() {
 
 			version = atc.Version{"some-version": "some-value"}
 
-			inStep = &NoopStep{}
+			inStep = new(fakes.FakeStep)
+			inStep.ResultStub = func(x interface{}) bool {
+				switch v := x.(type) {
+				case *VersionInfo:
+					*v = VersionInfo{
+						Version: version,
+					}
+					return true
+
+				default:
+					return false
+				}
+			}
+
 			repo = NewSourceRepository()
 		})
 
 		JustBeforeEach(func() {
-			step = factory.Get(sourceName, identifier, getDelegate, resourceConfig, params, version).Using(inStep, repo)
+			step = factory.DependentGet(sourceName, identifier, getDelegate, resourceConfig, params).Using(inStep, repo)
 			process = ifrit.Invoke(step)
 		})
 

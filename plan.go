@@ -37,6 +37,17 @@ type PutPlan struct {
 	GetParams Params `json:"get_params,omitempty"`
 }
 
+func (plan PutPlan) GetPlan() GetPlan {
+	return GetPlan{
+		Type:     plan.Type,
+		Name:     plan.GetName,
+		Resource: plan.Resource,
+		Pipeline: plan.Pipeline,
+		Source:   plan.Source,
+		Params:   plan.GetParams,
+	}
+}
+
 type TaskPlan struct {
 	Name string `json:"name,omitempty"`
 

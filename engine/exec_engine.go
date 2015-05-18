@@ -201,15 +201,30 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 			"name": plan.Put.Resource,
 		})
 
-		return build.factory.Put(
-			build.putIdentifier(plan.Put.Resource, location),
-			build.delegate.OutputDelegate(logger, *plan.Put, location),
-			atc.ResourceConfig{
-				Name:   plan.Put.Resource,
-				Type:   plan.Put.Type,
-				Source: plan.Put.Source,
-			},
-			plan.Put.Params,
+		getPlan := plan.Put.GetPlan()
+
+		return exec.Compose(
+			build.factory.Put(
+				build.putIdentifier(plan.Put.Resource, location),
+				build.delegate.OutputDelegate(logger, *plan.Put, location),
+				atc.ResourceConfig{
+					Name:   plan.Put.Resource,
+					Type:   plan.Put.Type,
+					Source: plan.Put.Source,
+				},
+				plan.Put.Params,
+			),
+			build.factory.DependentGet(
+				exec.SourceName(getPlan.Name),
+				build.getIdentifier(getPlan.Name, location),
+				build.delegate.InputDelegate(logger, getPlan, location),
+				atc.ResourceConfig{
+					Name:   getPlan.Resource,
+					Type:   getPlan.Type,
+					Source: getPlan.Source,
+				},
+				getPlan.Params,
+			),
 		)
 	}
 

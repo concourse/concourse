@@ -46,6 +46,18 @@ type FakeFactory struct {
 	taskReturns struct {
 		result1 exec.StepFactory
 	}
+	DependentGetStub        func(exec.SourceName, worker.Identifier, exec.GetDelegate, atc.ResourceConfig, atc.Params) exec.StepFactory
+	dependentGetMutex       sync.RWMutex
+	dependentGetArgsForCall []struct {
+		arg1 exec.SourceName
+		arg2 worker.Identifier
+		arg3 exec.GetDelegate
+		arg4 atc.ResourceConfig
+		arg5 atc.Params
+	}
+	dependentGetReturns struct {
+		result1 exec.StepFactory
+	}
 }
 
 func (fake *FakeFactory) Get(arg1 exec.SourceName, arg2 worker.Identifier, arg3 exec.GetDelegate, arg4 atc.ResourceConfig, arg5 atc.Params, arg6 atc.Version) exec.StepFactory {
@@ -152,6 +164,42 @@ func (fake *FakeFactory) TaskArgsForCall(i int) (exec.SourceName, worker.Identif
 func (fake *FakeFactory) TaskReturns(result1 exec.StepFactory) {
 	fake.TaskStub = nil
 	fake.taskReturns = struct {
+		result1 exec.StepFactory
+	}{result1}
+}
+
+func (fake *FakeFactory) DependentGet(arg1 exec.SourceName, arg2 worker.Identifier, arg3 exec.GetDelegate, arg4 atc.ResourceConfig, arg5 atc.Params) exec.StepFactory {
+	fake.dependentGetMutex.Lock()
+	fake.dependentGetArgsForCall = append(fake.dependentGetArgsForCall, struct {
+		arg1 exec.SourceName
+		arg2 worker.Identifier
+		arg3 exec.GetDelegate
+		arg4 atc.ResourceConfig
+		arg5 atc.Params
+	}{arg1, arg2, arg3, arg4, arg5})
+	fake.dependentGetMutex.Unlock()
+	if fake.DependentGetStub != nil {
+		return fake.DependentGetStub(arg1, arg2, arg3, arg4, arg5)
+	} else {
+		return fake.dependentGetReturns.result1
+	}
+}
+
+func (fake *FakeFactory) DependentGetCallCount() int {
+	fake.dependentGetMutex.RLock()
+	defer fake.dependentGetMutex.RUnlock()
+	return len(fake.dependentGetArgsForCall)
+}
+
+func (fake *FakeFactory) DependentGetArgsForCall(i int) (exec.SourceName, worker.Identifier, exec.GetDelegate, atc.ResourceConfig, atc.Params) {
+	fake.dependentGetMutex.RLock()
+	defer fake.dependentGetMutex.RUnlock()
+	return fake.dependentGetArgsForCall[i].arg1, fake.dependentGetArgsForCall[i].arg2, fake.dependentGetArgsForCall[i].arg3, fake.dependentGetArgsForCall[i].arg4, fake.dependentGetArgsForCall[i].arg5
+}
+
+func (fake *FakeFactory) DependentGetReturns(result1 exec.StepFactory) {
+	fake.DependentGetStub = nil
+	fake.dependentGetReturns = struct {
 		result1 exec.StepFactory
 	}{result1}
 }

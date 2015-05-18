@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/fakes"
+	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
 	execfakes "github.com/concourse/atc/exec/fakes"
 	"github.com/concourse/atc/worker"
@@ -61,6 +62,9 @@ var _ = Describe("ExecEngine", func() {
 
 			outputStepFactory *execfakes.FakeStepFactory
 			outputStep        *execfakes.FakeStep
+
+			dependentStepFactory *execfakes.FakeStepFactory
+			dependentStep        *execfakes.FakeStep
 		)
 
 		BeforeEach(func() {
@@ -95,10 +99,12 @@ var _ = Describe("ExecEngine", func() {
 				Conditions: atc.Conditions{atc.ConditionSuccess},
 				Plan: atc.Plan{
 					Put: &atc.PutPlan{
-						Resource: "some-output-resource",
-						Type:     "some-type",
-						Source:   atc.Source{"some": "source"},
-						Params:   atc.Params{"some": "params"},
+						Resource:  "some-output-resource",
+						Type:      "some-type",
+						Source:    atc.Source{"some": "source"},
+						Params:    atc.Params{"some": "params"},
+						GetName:   "some-get",
+						GetParams: atc.Params{"another": "params"},
 					},
 				},
 			}
@@ -132,6 +138,11 @@ var _ = Describe("ExecEngine", func() {
 			outputStep = new(execfakes.FakeStep)
 			outputStepFactory.UsingReturns(outputStep)
 			fakeFactory.PutReturns(outputStepFactory)
+
+			dependentStepFactory = new(execfakes.FakeStepFactory)
+			dependentStep = new(execfakes.FakeStep)
+			dependentStepFactory.UsingReturns(dependentStep)
+			fakeFactory.DependentGetReturns(dependentStepFactory)
 		})
 
 		JustBeforeEach(func() {
@@ -208,21 +219,46 @@ var _ = Describe("ExecEngine", func() {
 			Ω(configSource).ShouldNot(BeNil())
 		})
 
-		It("constructs outputs correctly", func() {
-			Ω(fakeFactory.PutCallCount()).Should(Equal(1))
+		Context("constructing outputs", func() {
+			It("constructs the put correctly", func() {
+				Ω(fakeFactory.PutCallCount()).Should(Equal(1))
 
-			workerID, delegate, resourceConfig, params := fakeFactory.PutArgsForCall(0)
-			Ω(workerID).Should(Equal(worker.Identifier{
-				BuildID:      42,
-				Type:         worker.ContainerTypePut,
-				Name:         "some-output-resource",
-				StepLocation: []uint{2, 0},
-			}))
-			Ω(delegate).Should(Equal(fakeOutputDelegate))
-			Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
-			Ω(resourceConfig.Type).Should(Equal("some-type"))
-			Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
-			Ω(params).Should(Equal(atc.Params{"some": "params"}))
+				workerID, delegate, resourceConfig, params := fakeFactory.PutArgsForCall(0)
+				Ω(workerID).Should(Equal(worker.Identifier{
+					BuildID:      42,
+					Type:         worker.ContainerTypePut,
+					Name:         "some-output-resource",
+					StepLocation: []uint{2, 0},
+				}))
+				Ω(delegate).Should(Equal(fakeOutputDelegate))
+				Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
+				Ω(resourceConfig.Type).Should(Equal("some-type"))
+				Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
+				Ω(params).Should(Equal(atc.Params{"some": "params"}))
+			})
+
+			It("constructs the dependent get correctly", func() {
+				Ω(fakeFactory.DependentGetCallCount()).Should(Equal(1))
+
+				sourceName, workerID, delegate, resourceConfig, params := fakeFactory.DependentGetArgsForCall(0)
+				Ω(workerID).Should(Equal(worker.Identifier{
+					BuildID:      42,
+					Type:         worker.ContainerTypeGet,
+					Name:         "some-get",
+					StepLocation: []uint{2, 0},
+				}))
+
+				Ω(delegate).Should(Equal(fakeInputDelegate))
+				_, plan, location := fakeDelegate.InputDelegateArgsForCall(1)
+				Ω(plan).Should(Equal(outputPlan.Plan.Put.GetPlan()))
+				Ω(location).Should(Equal(event.OriginLocation{2, 0}))
+
+				Ω(sourceName).Should(Equal(exec.SourceName("some-get")))
+				Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
+				Ω(resourceConfig.Type).Should(Equal("some-type"))
+				Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
+				Ω(params).Should(Equal(atc.Params{"another": "params"}))
+			})
 		})
 
 		Context("when the steps complete", func() {

@@ -31,6 +31,29 @@ func NewGardenFactory(
 	}
 }
 
+func (factory *gardenFactory) DependentGet(sourceName SourceName, id worker.Identifier, delegate GetDelegate, config atc.ResourceConfig, params atc.Params) StepFactory {
+	return resourceStep{
+		SourceName: sourceName,
+
+		Session: resource.Session{
+			ID:        id,
+			Ephemeral: false,
+		},
+
+		Delegate: delegate,
+
+		Tracker: factory.resourceTracker,
+		Type:    resource.ResourceType(config.Type),
+
+		Action: func(r resource.Resource, s ArtifactSource, vi VersionInfo) resource.VersionedSource {
+			return r.Get(resource.IOConfig{
+				Stdout: delegate.Stdout(),
+				Stderr: delegate.Stderr(),
+			}, config.Source, params, vi.Version)
+		},
+	}
+}
+
 func (factory *gardenFactory) Get(sourceName SourceName, id worker.Identifier, delegate GetDelegate, config atc.ResourceConfig, params atc.Params, version atc.Version) StepFactory {
 	return resourceStep{
 		SourceName: sourceName,
@@ -45,7 +68,7 @@ func (factory *gardenFactory) Get(sourceName SourceName, id worker.Identifier, d
 		Tracker: factory.resourceTracker,
 		Type:    resource.ResourceType(config.Type),
 
-		Action: func(r resource.Resource, s ArtifactSource) resource.VersionedSource {
+		Action: func(r resource.Resource, s ArtifactSource, vi VersionInfo) resource.VersionedSource {
 			return r.Get(resource.IOConfig{
 				Stdout: delegate.Stdout(),
 				Stderr: delegate.Stderr(),
@@ -65,7 +88,7 @@ func (factory *gardenFactory) Put(id worker.Identifier, delegate PutDelegate, co
 		Tracker: factory.resourceTracker,
 		Type:    resource.ResourceType(config.Type),
 
-		Action: func(r resource.Resource, s ArtifactSource) resource.VersionedSource {
+		Action: func(r resource.Resource, s ArtifactSource, vi VersionInfo) resource.VersionedSource {
 			return r.Put(resource.IOConfig{
 				Stdout: delegate.Stdout(),
 				Stderr: delegate.Stderr(),

@@ -18,7 +18,7 @@ type resourceStep struct {
 	Tracker resource.Tracker
 	Type    resource.ResourceType
 
-	Action func(resource.Resource, ArtifactSource) resource.VersionedSource
+	Action func(resource.Resource, ArtifactSource, VersionInfo) resource.VersionedSource
 
 	PreviousStep Step
 	Repository   *SourceRepository
@@ -43,8 +43,12 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 		return err
 	}
 
+	var versionInfo VersionInfo
+
+	ras.PreviousStep.Result(&versionInfo)
+
 	ras.Resource = resource
-	ras.VersionedSource = ras.Action(resource, ras.Repository)
+	ras.VersionedSource = ras.Action(resource, ras.Repository, versionInfo)
 
 	err = ras.VersionedSource.Run(signals, ready)
 	if err != nil {

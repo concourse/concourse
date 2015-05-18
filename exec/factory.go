@@ -14,6 +14,8 @@ type Factory interface {
 	Put(worker.Identifier, PutDelegate, atc.ResourceConfig, atc.Params) StepFactory
 	// Delete(atc.ResourceConfig, atc.Params, atc.Version) Step
 	Task(SourceName, worker.Identifier, TaskDelegate, Privileged, TaskConfigSource) StepFactory
+
+	DependentGet(SourceName, worker.Identifier, GetDelegate, atc.ResourceConfig, atc.Params) StepFactory
 }
 
 //go:generate counterfeiter . TaskDelegate
