@@ -10,7 +10,7 @@ For example, the following plan fetches a version number via the
 @code{semver} resource, bumps it to the next release candidate, and
 @seclink["put-step"]{@code{put}}s it back.
 
-@codeblock|{
+@codeblock["yaml"]|{
 plan:
 - get: version
   params:
@@ -42,7 +42,7 @@ plan:
   constraints, all of the mentioned jobs are correlated. That is, with the
   following set of inputs:
 
-  @codeblock|{
+  @codeblock["yaml"]|{
   plan:
   - get: a
     passed: [a-unit, integration]

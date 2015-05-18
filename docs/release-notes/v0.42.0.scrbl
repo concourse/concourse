@@ -31,7 +31,7 @@
     this, colocate the Blackbox job on your web VMs (be sure to list it as
     the first job template), and set the following property:
 
-    @codeblock|{
+    @codeblock["yaml"]|{
       blackbox:
         expvar:
           datadog:

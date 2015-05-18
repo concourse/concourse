@@ -25,7 +25,7 @@ Once you've deployed Concourse you can tell @code{fly} to target it via the
 worry what this means just yet) while pointing at Concourse that you normally
 reach by going to @code{http://ci.example.com} then you could run:
 
-@codeblock|{
+@codeblock["sh"]|{
 $ fly --target 'http://ci.example.com' sync
 }|
 
@@ -39,7 +39,7 @@ The single quotes aren't always required, but if you need to put HTTP basic
 authentication credentials inline, then they can help by avoiding the need to
 escape special characters in passwords. For example:
 
-@codeblock|{
+@codeblock["sh"]|{
 $ fly --target 'http://username:p@$$w0rd@ci.example.com' sync
 }|
 
@@ -61,13 +61,13 @@ use them in the call specified.
 The @code{--api} flag and a target name are the only two properties required
 to save a target:
 
-@codeblock|{
+@codeblock["sh"]|{
 $ fly save-target --api https://example.com my-target
 }|
 
 The full set of properties can be specified as such:
 
-@codeblock|{
+@codeblock["sh"]|{
 $ fly save-target --api https://example.com --username my-user
 --password my-password my-target
 }|
@@ -85,7 +85,7 @@ task that only requires a single input, whose contents are in the current
 directory (e.g. most unit tests and simple integration tests) then you can
 just run:
 
-@codeblock|{
+@codeblock["sh"]|{
 $ fly execute
 }|
 
@@ -101,7 +101,7 @@ toolchains.
 If your task configuration is in a non-standard location then you can
 specify it using the @code{-c} or @code{--config} argument like so:
 
-@codeblock|{
+@codeblock["sh"]|{
 $ fly execute -c tests.yml
 }|
 
@@ -124,14 +124,14 @@ to the @seclink["configuring-tasks"]{configuring tasks} documentation). For
 @code{fly} to upload these inputs you can use the @code{-i} or
 @code{--input} arguments with name and path pairs. For example:
 
-@codeblock|{
+@codeblock["sh"]|{
 $ fly execute -i code=. -i stemcells=../stemcells
 }|
 
 This would work together with a @code{task.yml} if its @code{inputs:}
 section was as follows:
 
-@codeblock|{
+@codeblock["yaml"]|{
 inputs:
 - name: code
 - name: stemcells
@@ -151,7 +151,7 @@ is achieved by using the @code{configure} command. For example, to fetch the
 current configuration of your @code{my-pipeline} Concourse pipeline and print
 it on @code{STDOUT} run the following:
 
-@codeblock|{
+@codeblock["sh"]|{
 $ fly configure my-pipeline
 }|
 
@@ -162,7 +162,7 @@ argument. This can be useful when inspecting your config with
 To submit a pipeline configuration to Concourse from a file on your local disk
 you can use the @code{-c} or @code{--config} flag, like so:
 
-@codeblock|{
+@codeblock["sh"]|{
 $ fly configure --config pipeline.yml my-pipeline
 }|
 
@@ -181,7 +181,7 @@ safe to check in to a public repository or pass around.
 
 For example, if you have a @code{pipeline.yml} as follows:
 
-@verbatim|{
+@codeblock["yaml"]|{
 resources:
 - name: private-repo
   type: git
@@ -193,13 +193,13 @@ resources:
 
 ...you could then configure this pipeline like so:
 
-@codeblock|{
+@codeblock["sh"]|{
 $ fly configure --config pipeline.yml --var "private-repo-key=$(cat id_rsa)" my-pipeline
 }|
 
 Or, if you had a @code{credentials.yml} as follows:
 
-@verbatim|{
+@codeblock["yaml"]|{
 private-repo-key: |
   -----BEGIN RSA PRIVATE KEY-----
   ...
@@ -208,7 +208,7 @@ private-repo-key: |
 
 ...you could configure it like so:
 
-@codeblock|{
+@codeblock["sh"]|{
 $ fly configure --config pipeline.yml --vars-from credentials.yml my-pipeline
 }|
 
@@ -240,7 +240,7 @@ container:
   one-off builds then you may end up in a build that you did not expect!
 }
 
-@codeblock|{
+@codeblock["sh"]|{
 $ fly execute
 $ fly intercept
 }|
@@ -277,7 +277,7 @@ running the latest and greatest version that works with the Concourse you
 are targeting we provide a command called @code{sync} that will update your
 local @code{fly}. It can be used like so:
 
-@codeblock|{
+@codeblock["sh"]|{
 $ fly sync
 }|
 
@@ -294,7 +294,7 @@ and build to watch. For example, the following command will either show the
 archived logs for an old build if it has finished running or it will stream
 the current logs if the build is still in progress.
 
-@codeblock|{
+@codeblock["sh"]|{
 $ fly watch --job tests --build 52
 }|
 

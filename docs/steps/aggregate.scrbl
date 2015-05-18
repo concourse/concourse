@@ -13,7 +13,7 @@
   Similarly, when aggregating @seclink["task-step"]{@code{task}} steps, if any
   @emph{fail}, the aggregate step will fail. This is useful for build matrixes:
 
-  @codeblock|{
+  @codeblock["yaml"]|{
   plan:
   - get: some-repo
   - aggregate:
@@ -29,7 +29,7 @@
   parallel, for the sake of speeding up the build. It is often used to fetch
   all dependent resources together:
 
-  @codeblock|{
+  @codeblock["yaml"]|{
   plan:
   - aggregate:
     - get: component-a

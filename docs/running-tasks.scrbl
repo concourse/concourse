@@ -19,7 +19,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
 Conventionally a task's configuration is placed in the root of a repo as
 @code{task.yml}. It may look something like:
 
-@codeblock|{
+@codeblock["yaml"]|{
 ---
 platform: linux
 

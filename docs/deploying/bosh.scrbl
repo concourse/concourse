@@ -75,7 +75,7 @@ the @hyperlink["http://bosh.io/docs/stemcell.html"]{BOSH documentation}.
 To upload the latest AWS Trusty stemcell to your BOSH director, execute the
 following:
 
-@codeblock|{
+@codeblock["sh"]|{
 bosh upload stemcell https://bosh.io/d/stemcells/bosh-aws-xen-hvm-ubuntu-trusty-go_agent
 }|
 
@@ -95,7 +95,7 @@ Linux}, which it uses for container management.
 
 To upload the latest version of both releases, execute:
 
-@codeblock|{
+@codeblock["sh"]|{
 bosh upload release https://bosh.io/d/github.com/concourse/concourse
 bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release
 }|
@@ -215,7 +215,7 @@ persistent data persists, and things come up as they should.
 
 Once you have a deployment manifest, deploying Concourse should simply be:
 
-@codeblock|{
+@codeblock["sh"]|{
 $ bosh deployment path/to/manifest.yml
 $ bosh deploy
 }|

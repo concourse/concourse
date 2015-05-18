@@ -21,7 +21,7 @@ A pipeline is configured with two sections:
 @seclink["configuring-jobs"]{@code{jobs}}. For example, the configuration
 resulting in the above pipeline is as follows:
 
-@codeblock|{
+@codeblock["yaml"]|{
 resources:
   - name: controller
     type: git

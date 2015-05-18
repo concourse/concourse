@@ -20,10 +20,10 @@ will be available in the future.
 
 To spin up Concourse with Vagrant, run the following in any directory:
 
-@codeblock|{
-vagrant init concourse/lite ; # places Vagrantfile in current directory
-vagrant up                  ; # downloads the box and spins up the VM
-}|
+@codeblock["sh"]{
+vagrant init concourse/lite # places Vagrantfile in current directory
+vagrant up                  # downloads the box and spins up the VM
+}
 
 The web server will be running at @hyperlink["http://192.168.100.4:8080"]{192.168.100.4:8080}.
 
@@ -37,14 +37,14 @@ There are links to binaries for common platforms at the bottom right.
 
 The default pipeline configuration is blank. You can see the current configuration by running:
 
-@codeblock|{
+@codeblock["sh"]|{
 $ fly configure
 }|
 
 To configure a pipeline, fill in jobs and resources (see @secref{pipelines}),
 place the resulting config in a file, and run:
 
-@codeblock|{
+@codeblock["sh"]|{
 $ fly configure -c path/to/pipeline.yml
 }|
 

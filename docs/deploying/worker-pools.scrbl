@@ -34,7 +34,7 @@ worker API object as the payload.
 
 For example:
 
-@codeblock|{
+@codeblock["json"]|{
   {
     "platform": "linux",
     "tags": ["hetzner"],
@@ -162,7 +162,7 @@ deployment.
 
 So, to register a worker for direct access, you would run something like this:
 
-@verbatim|{
+@codeblock["sh"]|{
   ssh \
     -i path/to/private-key \
     -p 2222 some-atc.com \
@@ -182,7 +182,7 @@ behalf.
 For example, to securely register a local Garden server as a worker, you
 would run:
 
-@verbatim|{
+@codeblock["sh"]|{
   ssh \
     -i path/to/private-key \
     -R 0.0.0.0:0:127.0.0.1:7777 \
