@@ -18,7 +18,7 @@ to it.
 
 The following will perform the second task only if the first one fails:
 
-@codeblock|{
+@codeblock["yaml"]|{
 plan:
 - get: foo
 - task: unit
@@ -34,7 +34,7 @@ steps, are not executed.
 If you have multiple conditions you'd like to check, you can wrap them in an
 @seclink["aggregate-step"]{@code{aggregate} step}:
 
-@codeblock|{
+@codeblock["yaml"]|{
 plan:
 - get: foo
 - task: unit

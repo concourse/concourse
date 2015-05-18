@@ -42,7 +42,7 @@ recent version, @emph{not} every version since the resource's inception.
 
 For example, here's what the input for a @code{git} resource may look like:
 
-@codeblock|{
+@codeblock["json"]|{
 {
   "source": {
     "uri": "git://some-uri",
@@ -56,7 +56,7 @@ For example, here's what the input for a @code{git} resource may look like:
 Upon receiving this payload the @code{git} resource would probably do
 something like:
 
-@codeblock|{
+@codeblock["sh"]|{
 [ -d /tmp/repo ] || git clone git://some-uri /tmp/repo
 cd /tmp/repo
 git pull && git log 61cbef..HEAD
@@ -68,7 +68,7 @@ between checks, so that it can efficiently pull rather than cloning every time.
 And the output, assuming @code{d74e01} is the commit immediately after
 @code{61cbef}:
 
-@codeblock|{
+@codeblock["json"]|{
 [
   { "ref": "d74e01" },
   { "ref": "7154fe" }
@@ -96,7 +96,7 @@ be shown on the build's page.
 
 Example input, in this case for the @code{git} resource:
 
-@codeblock|{
+@codeblock["json"]|{
 {
   "source": {
     "uri": "git://some-uri",
@@ -112,7 +112,7 @@ Note that the @code{version} may be @code{null}.
 Upon receiving this payload the @code{git} resource would probably do
 something like:
 
-@codeblock|{
+@codeblock["sh"]|{
 git clone --branch develop git://some-uri $1
 cd $1
 git checkout 61cebf
@@ -120,7 +120,7 @@ git checkout 61cebf
 
 And output:
 
-@codeblock|{
+@codeblock["json"]|{
 {
   "version": { "ref": "61cebf" },
   "metadata": [
@@ -147,7 +147,7 @@ be shown on the build's page.
 
 Example input, in this case for the @code{git} resource:
 
-@codeblock|{
+@codeblock["json"]|{
 {
   "params": {
     "branch": "develop",
@@ -163,14 +163,14 @@ Example input, in this case for the @code{git} resource:
 Upon receiving this payload the @code{git} resource would probably do something
 like:
 
-@codeblock|{
+@codeblock["sh"]|{
 cd $1/some-repo
 git push origin develop
 }|
 
 And output:
 
-@codeblock|{
+@codeblock["json"]|{
 {
   "version": { "ref": "61cebf" },
   "metadata": [

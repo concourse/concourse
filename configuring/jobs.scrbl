@@ -11,7 +11,7 @@ listed under the @code{jobs} key in the pipeline configuration.
 The following example defines a simple unit-level job that will trigger
 whenever new code arrives at the @code{concourse} resource:
 
-@codeblock|{
+@codeblock["yaml"]|{
 jobs:
 - name: atc-unit
   plan:
@@ -40,7 +40,7 @@ Each configured job consists of the following attributes:
   This can be used to ensure that certain jobs do not run at the same time,
   like so:
 
-  @codeblock|{
+  @codeblock["yaml"]|{
   jobs:
   - name: job-a
     serial_groups: [some-tag]

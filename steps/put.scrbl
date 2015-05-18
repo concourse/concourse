@@ -11,7 +11,7 @@ For example, the following plan fetches a repo using
 @seclink["get-step"]{@code{get}} and pushes it to another repo (assuming
 @code{repo-a} and @code{repo-b} are defined as @code{git} resources):
 
-@codeblock|{
+@codeblock["yaml"]|{
 plan:
 - get: repo-a
 - put: repo-b

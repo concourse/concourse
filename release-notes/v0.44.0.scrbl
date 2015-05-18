@@ -68,7 +68,7 @@ set of primitives.
 
     So, if before you had a plan that looked like this:
 
-    @codeblock|{
+    @codeblock["yaml"]|{
     plan:
     - aggregate:
       - get: something
@@ -81,7 +81,7 @@ set of primitives.
 
     ...it would now look like this:
 
-    @codeblock|{
+    @codeblock["yaml"]|{
     plan:
     - get: something
     - task: generate-foo
@@ -99,7 +99,7 @@ set of primitives.
     Also, the @code{something/build.yml} task would now explicitly list its
     inputs, if it wasn't before. So that could mean changing:
 
-    @codeblock|{
+    @codeblock["yaml"]|{
     platform: linux
 
     image: docker:///busybox
@@ -110,7 +110,7 @@ set of primitives.
 
     ...to...
 
-    @codeblock|{
+    @codeblock["yaml"]|{
     platform: linux
 
     image: docker:///busybox

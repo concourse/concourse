@@ -12,7 +12,7 @@ on your pipeline.
 
 A simple grouping for the pipeline above may look like:
 
-@codeblock|{
+@codeblock["yaml"]|{
 groups:
 - name: tests
   jobs:

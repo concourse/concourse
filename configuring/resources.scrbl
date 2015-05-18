@@ -11,7 +11,7 @@ the pipeline configuration.
 The following example defines a resource representing Concourse's BOSH
 release repository:
 
-@codeblock|{
+@codeblock["yaml"]|{
 resources:
 - name: concourse
   type: git

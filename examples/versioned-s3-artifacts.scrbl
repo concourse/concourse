@@ -18,7 +18,7 @@ The resulting pipeline will look like this:
       our pipeline. The @code{resources} configuration simply enumerates each
       of their locations.
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||resources:
     }
   ]
@@ -39,7 +39,7 @@ The resulting pipeline will look like this:
       To avoid embedding credentials in the pipeline config, we'll use
       a @seclink["parameters"]{parameter}.
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||- name: my-product
       @||  type: git
       @||  source:
@@ -67,7 +67,7 @@ The resulting pipeline will look like this:
       @code{initial_version}. If not specified, the version will start as
       @code{0.0.0}.
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||- name: version
       @||  type: semver
       @||  source:
@@ -96,7 +96,7 @@ The resulting pipeline will look like this:
       Since we'll be writing objects into this bucket, we'll need to configure
       it with AWS credentials.
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||- name: my-product-rc
       @||  type: s3
       @||  source:
@@ -111,7 +111,7 @@ The resulting pipeline will look like this:
     @para{
       We'll need one more @code{s3} resource to represent shipped artifacts.
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||- name: my-product-final
       @||  type: s3
       @||  source:
@@ -127,7 +127,7 @@ The resulting pipeline will look like this:
       Now that we've got all our resources defined, let's move on define the
       @emph{functions} to apply to them, as represented by @code{jobs}
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||jobs:
     }
   ]
@@ -145,7 +145,7 @@ The resulting pipeline will look like this:
       automatically triggers a new @code{unit} build whenever new commits are
       pushed to the @code{my-product} repository.
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||- name: unit
       @||  plan:
       @||  - get: my-product
@@ -173,7 +173,7 @@ The resulting pipeline will look like this:
       to ensure you're not accidentally generating release candidates out of
       order.
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||- name: build-rc
       @||  serial: true
       @||  plan:
@@ -186,7 +186,7 @@ The resulting pipeline will look like this:
       have passed unit tests. Let's have new occurrences of these versions
       also trigger new builds, while we're at it.
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||  - get: my-product
       @||    passed: [unit]
       @||    trigger: true
@@ -206,19 +206,19 @@ The resulting pipeline will look like this:
       If not, the version will receive a minor bump, and we'll get something
       like @code{1.3.0-rc.1}.
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||  - get: version
       @||    params: {bump: minor, pre: rc}
     }
   ]
-  
+
   @literate-segment[
     @para{
       Now, we'll execute our @code{build-artifact} task configuration, which
       we'll assume has two inputs (@code{my-product} and @code{version}) and
       produces a file named @code{my-product-{VERSION}.tgz} when executed.
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||  - task: build-artifact
       @||    file: my-product/ci/build-artifact.yml
     }
@@ -234,7 +234,7 @@ The resulting pipeline will look like this:
       Note that we refer to the task that generated the @code{.tgz} in the
       path specified by the @code{from} param.
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||  - put: my-product-rc
       @||    params: {from: build-artifaact/my-product-.*.tgz}
     }
@@ -249,7 +249,7 @@ The resulting pipeline will look like this:
       Note that the @code{file} param points at the version created by the
       @code{version} step above.
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||  - put: version
       @||    params: {file: version/number}
     }
@@ -274,7 +274,7 @@ The resulting pipeline will look like this:
       some external environment, and so we'll also configure @code{serial}
       here to prevent concurrent builds from polluting each other.
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||- name: integration
       @||  serial: true
       @||  plan:
@@ -292,7 +292,7 @@ The resulting pipeline will look like this:
       the @emph{same build} of @code{build-rc}. See @secref{get-step} for more
       information.
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||  - get: my-product-rc
       @||    trigger: true
       @||    passed: [build-rc]
@@ -312,7 +312,7 @@ The resulting pipeline will look like this:
       Again we'll use @seclink["parameters"]{parameters} in the config file to
       prevent hardcoding them.
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||  - task: integration
       @||    file: my-product/ci/integration.yml
       @||    config:
@@ -336,7 +336,7 @@ The resulting pipeline will look like this:
       since it's mutating external resources. This won't matter too much in
       practice though, since the job will only ever be manually triggered.
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||- name: shipit
       @||  plan:
     }
@@ -353,7 +353,7 @@ The resulting pipeline will look like this:
       because with a typical release-candidate pipeline, the shipping stage is
       only ever manually kicked off.
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||  - get: my-product-rc
       @||    passed: [integration]
       @||  - get: my-product
@@ -371,7 +371,7 @@ The resulting pipeline will look like this:
       This time, we'll only specify @code{bump} as @code{final}. This means
       "take the version number and chop off the release candidate bit."
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||  - get: version
       @||    params: {bump: final}
     }
@@ -393,7 +393,7 @@ The resulting pipeline will look like this:
       @code{my-product-{VERSION}.tgz}, just as with the @code{build-rc} job
       before.
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||  - task: promote-to-final
       @||    file: my-product/ci/promote-to-final.yml
     }
@@ -403,7 +403,7 @@ The resulting pipeline will look like this:
     @para{
       And now for the actual shipping!
     }
-    @codeblock{
+    @codeblock["yaml"]{
       @||  - put: my-product-final
       @||    params: {from: promote-to-final/my-product-.*.tgz}
       @||  - put: version

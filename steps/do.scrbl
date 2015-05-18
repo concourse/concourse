@@ -11,7 +11,7 @@
   This can be used to perform multiple steps serially in the branch of an
   @seclink["aggregate-step"]{@code{aggregate}} step:
 
-  @codeblock|{
+  @codeblock["yaml"]|{
   plan:
   - aggregate:
     - task: unit

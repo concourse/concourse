@@ -20,7 +20,7 @@ appear as outputs.
 
 A simple unit test job may look something like:
 
-@codeblock|{
+@codeblock["yaml"]|{
 name: banana-unit
 plan:
 - get: banana
@@ -45,7 +45,7 @@ the above example into an integration suite with another @code{apple}
 component (pretending we also defined its @code{apple-unit} job), the
 configuration for the integration job may look something like:
 
-@codeblock|{
+@codeblock["yaml"]|{
 name: fruit-basket-integration
 plan:
 - aggregate:
@@ -72,7 +72,7 @@ whichever components pass @code{fruit-basket-integration}.
 To push artifacts, you would use a @seclink["put-step"]{@code{put}} step
 that targets the destination resource. For example:
 
-@codeblock|{
+@codeblock["yaml"]|{
 name: deliver-food
 plan:
 - aggregate:

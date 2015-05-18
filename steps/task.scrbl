@@ -16,7 +16,7 @@ For example, the following plan fetches a single repository and executes
 multiple tasks, using the @seclink["aggregate-step"]{@code{aggregate}} step,
 in a build matrix style configuration:
 
-@codeblock|{
+@codeblock["yaml"]|{
 plan:
 - get: my-repo
 - aggregate:
@@ -33,7 +33,7 @@ source named after the task. This allows subsequent steps to process the
 result of a task. For example, the follwing plan pulls down a repo, makes a
 commit to it, and pushes the commit to another repo:
 
-@codeblock|{
+@codeblock["yaml"]|{
 plan:
 - get: my-repo
 - task: commit
@@ -62,7 +62,7 @@ plan:
   For example, if in your plan you have the following
   @seclink["get-step"]{@code{get}} step:
 
-  @codeblock|{
+  @codeblock["yaml"]|{
     - get: something
   }|
 
