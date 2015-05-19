@@ -198,7 +198,7 @@ The resulting pipeline will look like this:
       We'll also need a new release candidate version number. For this, the
       @hyperlink["https://github.com/concourse/semver-resource"]{@code{semver}}
       resource type can be used to generate versions by specifying params in
-      the @secref{get-step}.
+      the @secref{get-step} step.
     }
     @para{
       Specifying @code{bump: minor} and @code{pre: rc} makes it so that if the
@@ -236,7 +236,7 @@ The resulting pipeline will look like this:
     }
     @codeblock["yaml"]{
       @||  - put: my-product-rc
-      @||    params: {from: build-artifaact/my-product-.*.tgz}
+      @||    params: {from: build-artifact/my-product-.*.tgz}
     }
   ]
 
@@ -270,9 +270,9 @@ The resulting pipeline will look like this:
       and balances before shipping actual versions.
     }
     @para{
-      In this case let's assume our @code{integration} task has to talk to
-      some external environment, and so we'll also configure @code{serial}
-      here to prevent concurrent builds from polluting each other.
+      Let's assume this suite has to talk to some external environment, and so
+      we'll configure the job with @code{serial: true} here to prevent
+      concurrent builds from polluting each other.
     }
     @codeblock["yaml"]{
       @||- name: integration
@@ -304,7 +304,7 @@ The resulting pipeline will look like this:
   @literate-segment[
     @para{
       We'll now run the actual integration task. Since it has to talk to some
-      external environment, we'll use @code{config.params} to forward
+      external environment, we'll use @code{config.params} to forward its
       credentials along to the task. See @secref{task-step} for more
       information.
     }
@@ -326,7 +326,8 @@ The resulting pipeline will look like this:
     @para{
       At this point in the pipeline we have artifacts that we're ready to
       ship. So let's define a job that, when manually triggered, takes the
-      latest candidate release and ships it to our S3 bucket.
+      latest candidate release artifact and publishes it to the S3 bucket
+      containing our shipped product versions.
     }
   ]
 
@@ -338,6 +339,7 @@ The resulting pipeline will look like this:
     }
     @codeblock["yaml"]{
       @||- name: shipit
+      @||  serial: true
       @||  plan:
     }
   ]
@@ -364,8 +366,8 @@ The resulting pipeline will look like this:
   @literate-segment[
     @para{
       Now we'll need to determine the final version number that we're about to
-      ship. This is once again done by @code{params} when fetching the
-      version.
+      ship. This is once again done by specifying @code{params} when fetching
+      the version.
     }
     @para{
       This time, we'll only specify @code{bump} as @code{final}. This means
