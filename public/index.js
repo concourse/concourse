@@ -331,14 +331,13 @@ function createGraph(svg, groups, jobs, resources) {
     }
 
     var node = graph.node(id);
-    var rank = node.rank();
 
     for (var j in job.inputs) {
       var input = job.inputs[j];
       var status = "";
 
       if (!input.passed || input.passed.length == 0) {
-        var inputId = inputNode(rank, input.resource);
+        var inputId = inputNode(job.name, input.resource+"-unconstrained");
 
         if (!graph.node(inputId)) {
           var classes = "input";
@@ -359,6 +358,7 @@ function createGraph(svg, groups, jobs, resources) {
             status: status,
             url: resourceURLs[input.resource],
             svg: svg,
+            equivalentBy: input.resource+"-unconstrained",
           }));
         }
 
@@ -366,6 +366,9 @@ function createGraph(svg, groups, jobs, resources) {
       }
     }
   }
+
+  graph.computeRanks();
+  graph.collapseEquivalentNodes();
 
   return graph;
 }
@@ -405,13 +408,13 @@ function jobNode(name) {
 }
 
 function gatewayNode(jobNames) {
-  return "gateway-"+jobNames.sort().join("-")
+  return "gateway-"+jobNames.sort().join("-");
 }
 
 function outputNode(jobName, resourceName) {
-  return "job-"+jobName+"-output-"+resourceName
+  return "job-"+jobName+"-output-"+resourceName;
 }
 
 function inputNode(jobName, resourceName) {
-  return "job-"+jobName+"-input-"+resourceName
+  return "job-"+jobName+"-input-"+resourceName;
 }
