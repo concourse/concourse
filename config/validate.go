@@ -294,7 +294,7 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 			badFields = append(badFields, "passed")
 		}
 
-		if plan.RawTrigger != nil {
+		if plan.Trigger {
 			badFields = append(badFields, "trigger")
 		}
 
@@ -340,7 +340,7 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 			badFields = append(badFields, "passed")
 		}
 
-		if plan.RawTrigger != nil {
+		if plan.Trigger {
 			badFields = append(badFields, "trigger")
 		}
 

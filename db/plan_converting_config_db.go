@@ -40,11 +40,11 @@ func (db PlanConvertingConfigDB) convertJobsToPlan(config atc.Config) atc.Config
 			}
 
 			inputAggregates[ii] = atc.PlanConfig{
-				Get:        name,
-				Resource:   resource,
-				RawTrigger: input.RawTrigger,
-				Passed:     input.Passed,
-				Params:     input.Params,
+				Get:      name,
+				Resource: resource,
+				Trigger:  input.Trigger,
+				Passed:   input.Passed,
+				Params:   input.Params,
 			}
 		}
 

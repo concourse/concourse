@@ -85,14 +85,14 @@ func (config JobConfig) Inputs() []JobInput {
 				Name:     config.Name(),
 				Resource: config.Resource,
 				Passed:   config.Passed,
-				Trigger:  config.Trigger(),
+				Trigger:  config.Trigger,
 			})
 		}
 
 		return inputs
 	}
 
-	return collectInputs(PlanConfig{Do: &config.Plan}, true)
+	return collectInputs(PlanConfig{Do: &config.Plan})
 }
 
 func (config JobConfig) Outputs() []JobOutput {
@@ -139,7 +139,7 @@ type PlanConfig struct {
 	// jobs that this resource must have made it through
 	Passed []string `yaml:"passed,omitempty" json:"passed,omitempty" mapstructure:"passed"`
 	// whether to trigger based on this resource changing
-	RawTrigger *bool `yaml:"trigger,omitempty" json:"trigger,omitempty" mapstructure:"trigger"`
+	Trigger bool `yaml:"trigger,omitempty" json:"trigger,omitempty" mapstructure:"trigger"`
 
 	// name of 'output', e.g. rootfs-tarball
 	Put string `yaml:"put,omitempty" json:"put,omitempty" mapstructure:"put"`
@@ -185,11 +185,11 @@ func (config PlanConfig) Name() string {
 }
 
 type JobInputConfig struct {
-	RawName    string   `yaml:"name,omitempty" json:"name,omitempty" mapstructure:"name"`
-	Resource   string   `yaml:"resource" json:"resource" mapstructure:"resource"`
-	Params     Params   `yaml:"params,omitempty" json:"params,omitempty" mapstructure:"params"`
-	Passed     []string `yaml:"passed,omitempty" json:"passed,omitempty" mapstructure:"passed"`
-	RawTrigger *bool    `yaml:"trigger" json:"trigger" mapstructure:"trigger"`
+	RawName  string   `yaml:"name,omitempty" json:"name,omitempty" mapstructure:"name"`
+	Resource string   `yaml:"resource" json:"resource" mapstructure:"resource"`
+	Params   Params   `yaml:"params,omitempty" json:"params,omitempty" mapstructure:"params"`
+	Passed   []string `yaml:"passed,omitempty" json:"passed,omitempty" mapstructure:"passed"`
+	Trigger  bool     `yaml:"trigger" json:"trigger" mapstructure:"trigger"`
 }
 
 func (config JobInputConfig) Name() string {
@@ -198,10 +198,6 @@ func (config JobInputConfig) Name() string {
 	}
 
 	return config.Resource
-}
-
-func (config JobInputConfig) Trigger() bool {
-	return config.RawTrigger == nil || *config.RawTrigger
 }
 
 type JobOutputConfig struct {
@@ -313,13 +309,12 @@ func (config Config) JobIsPublic(jobName string) (bool, error) {
 	return job.Public, nil
 }
 
-func collectInputs(plan PlanConfig, collectTriggers bool) []JobInput {
+func collectInputs(plan PlanConfig) []JobInput {
 	if plan.Do != nil {
 		var inputs []JobInput
 
 		for _, p := range *plan.Do {
-			inputs = append(inputs, collectInputs(p, collectTriggers)...)
-			collectTriggers = false
+			inputs = append(inputs, collectInputs(p)...)
 		}
 
 		return inputs
@@ -328,24 +323,9 @@ func collectInputs(plan PlanConfig, collectTriggers bool) []JobInput {
 	if plan.Get != "" {
 		get := plan.Get
 
-		if len(plan.Passed) == 0 && !collectTriggers {
-			// if there are no passed: constraints, and it's not in the first step,
-			// don't consider it an input
-			return []JobInput{}
-		}
-
 		resource := get
 		if plan.Resource != "" {
 			resource = plan.Resource
-		}
-
-		var shouldTrigger bool
-		if !collectTriggers {
-			shouldTrigger = false
-		} else if plan.RawTrigger == nil {
-			shouldTrigger = true
-		} else {
-			shouldTrigger = *plan.RawTrigger
 		}
 
 		return []JobInput{
@@ -353,7 +333,7 @@ func collectInputs(plan PlanConfig, collectTriggers bool) []JobInput {
 				Name:     get,
 				Resource: resource,
 				Passed:   plan.Passed,
-				Trigger:  shouldTrigger,
+				Trigger:  plan.Trigger,
 			},
 		}
 	}
@@ -362,7 +342,7 @@ func collectInputs(plan PlanConfig, collectTriggers bool) []JobInput {
 		var inputs []JobInput
 
 		for _, p := range *plan.Aggregate {
-			inputs = append(inputs, collectInputs(p, collectTriggers)...)
+			inputs = append(inputs, collectInputs(p)...)
 		}
 
 		return inputs

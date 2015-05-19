@@ -385,12 +385,11 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a task plan has invalid fields specified", func() {
 				BeforeEach(func() {
-					no := false
 					job.Plan = append(job.Plan, atc.PlanConfig{
-						Task:       "lol",
-						Resource:   "some-resource",
-						Passed:     []string{"hi"},
-						RawTrigger: &no,
+						Task:     "lol",
+						Resource: "some-resource",
+						Passed:   []string{"hi"},
+						Trigger:  true,
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -441,11 +440,10 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a put plan has invalid fields specified", func() {
 				BeforeEach(func() {
-					no := false
 					job.Plan = append(job.Plan, atc.PlanConfig{
 						Put:            "lol",
 						Passed:         []string{"get", "only"},
-						RawTrigger:     &no,
+						Trigger:        true,
 						Privileged:     true,
 						TaskConfigPath: "btaskyml",
 					})

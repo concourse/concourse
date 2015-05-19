@@ -8,9 +8,6 @@ import (
 )
 
 var _ = Describe("JobConfig", func() {
-	yes := true
-	no := false
-
 	Describe("Inputs", func() {
 		var (
 			jobConfig JobConfig
@@ -30,16 +27,16 @@ var _ = Describe("JobConfig", func() {
 			BeforeEach(func() {
 				jobConfig.InputConfigs = []JobInputConfig{
 					{
-						RawName:    "some-input",
-						Resource:   "some-resource",
-						Passed:     []string{"a", "b"},
-						RawTrigger: &yes,
+						RawName:  "some-input",
+						Resource: "some-resource",
+						Passed:   []string{"a", "b"},
+						Trigger:  true,
 					},
 					{
-						RawName:    "some-non-triggering-input",
-						Resource:   "some-resource",
-						Passed:     []string{"c", "d"},
-						RawTrigger: &no,
+						RawName:  "some-non-triggering-input",
+						Resource: "some-resource",
+						Passed:   []string{"c", "d"},
+						Trigger:  false,
 					},
 					{
 						RawName:  "some-implicitly-triggering-input",
@@ -65,7 +62,7 @@ var _ = Describe("JobConfig", func() {
 					{
 						Name:     "some-implicitly-triggering-input",
 						Resource: "some-resource",
-						Trigger:  true,
+						Trigger:  false,
 					},
 				}))
 			})
@@ -82,21 +79,21 @@ var _ = Describe("JobConfig", func() {
 				})
 			})
 
-			Context("with a single get as the first step of the plan", func() {
+			Context("with two serial gets", func() {
 				BeforeEach(func() {
 					jobConfig.Plan = PlanSequence{
 						{
-							Get:        "some-get-plan",
-							Passed:     []string{"a", "b"},
-							RawTrigger: &yes,
+							Get:     "some-get-plan",
+							Passed:  []string{"a", "b"},
+							Trigger: true,
 						},
 						{
-							Get: "some-non-input-get-plan",
+							Get: "some-other-get-plan",
 						},
 					}
 				})
 
-				It("uses it for the inputs", func() {
+				It("uses both for inputs", func() {
 					Ω(inputs).Should(Equal([]JobInput{
 						{
 							Name:     "some-get-plan",
@@ -104,28 +101,33 @@ var _ = Describe("JobConfig", func() {
 							Passed:   []string{"a", "b"},
 							Trigger:  true,
 						},
+						{
+							Name:     "some-other-get-plan",
+							Resource: "some-other-get-plan",
+							Trigger:  false,
+						},
 					}))
 				})
+			})
 
-				Context("when a resource is specified", func() {
-					BeforeEach(func() {
-						jobConfig.Plan = PlanSequence{
-							{
-								Get:      "some-get-plan",
-								Resource: "some-get-resource",
-							},
-						}
-					})
+			Context("when a resource is specified", func() {
+				BeforeEach(func() {
+					jobConfig.Plan = PlanSequence{
+						{
+							Get:      "some-get-plan",
+							Resource: "some-get-resource",
+						},
+					}
+				})
 
-					It("uses it as resource in the input config", func() {
-						Ω(inputs).Should(Equal([]JobInput{
-							{
-								Name:     "some-get-plan",
-								Resource: "some-get-resource",
-								Trigger:  true,
-							},
-						}))
-					})
+				It("uses it as resource in the input config", func() {
+					Ω(inputs).Should(Equal([]JobInput{
+						{
+							Name:     "some-get-plan",
+							Resource: "some-get-resource",
+							Trigger:  false,
+						},
+					}))
 				})
 			})
 
@@ -135,61 +137,31 @@ var _ = Describe("JobConfig", func() {
 						{
 							Aggregate: &PlanSequence{
 								{Get: "a"},
+								{Put: "x"},
 								{Get: "b", Resource: "some-resource", Passed: []string{"x"}},
-								{Get: "c", RawTrigger: &no},
+								{Get: "c", Trigger: true},
 							},
 						},
 					}
 				})
 
-				It("returns an input config for all of the get plans present", func() {
+				It("returns an input config for all get plans", func() {
 					Ω(inputs).Should(Equal([]JobInput{
 						{
 							Name:     "a",
 							Resource: "a",
-							Trigger:  true,
+							Trigger:  false,
 						},
 						{
 							Name:     "b",
 							Resource: "some-resource",
 							Passed:   []string{"x"},
-							Trigger:  true,
+							Trigger:  false,
 						},
 						{
 							Name:     "c",
 							Resource: "c",
-							Trigger:  false,
-						},
-					}))
-				})
-			})
-
-			Context("when a get step later in the plan has passed: constraints", func() {
-				BeforeEach(func() {
-					jobConfig.Plan = PlanSequence{
-						{Get: "a"},
-						{Put: "b"},
-						{
-							Aggregate: &PlanSequence{
-								{Get: "c", Passed: []string{"x"}},
-								{Get: "d"},
-							},
-						},
-					}
-				})
-
-				It("returns it as an input, with trigger as 'false'", func() {
-					Ω(inputs).Should(Equal([]JobInput{
-						{
-							Name:     "a",
-							Resource: "a",
 							Trigger:  true,
-						},
-						{
-							Name:     "c",
-							Resource: "c",
-							Passed:   []string{"x"},
-							Trigger:  false,
 						},
 					}))
 				})
@@ -206,7 +178,7 @@ var _ = Describe("JobConfig", func() {
 									},
 								},
 								{Get: "b", Resource: "some-resource", Passed: []string{"x"}},
-								{Get: "c", RawTrigger: &yes},
+								{Get: "c", Trigger: true},
 							},
 						},
 					}
@@ -217,13 +189,13 @@ var _ = Describe("JobConfig", func() {
 						{
 							Name:     "a",
 							Resource: "a",
-							Trigger:  true,
+							Trigger:  false,
 						},
 						{
 							Name:     "b",
 							Resource: "some-resource",
 							Passed:   []string{"x"},
-							Trigger:  true,
+							Trigger:  false,
 						},
 						{
 							Name:     "c",
@@ -234,7 +206,7 @@ var _ = Describe("JobConfig", func() {
 				})
 			})
 
-			Context("when the first step is not a get or an aggregate", func() {
+			Context("when there are not gets in the plan", func() {
 				BeforeEach(func() {
 					jobConfig.Plan = PlanSequence{
 						{

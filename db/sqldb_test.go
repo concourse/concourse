@@ -58,8 +58,6 @@ var _ = Describe("SQL DB", func() {
 	Describe("Can schedule builds with serial groups", serialGroupsBehavior(&dbSharedBehaviorInput))
 
 	Describe("config", func() {
-		yep := true
-
 		config := atc.Config{
 			Groups: atc.GroupConfigs{
 				{
@@ -101,8 +99,8 @@ var _ = Describe("SQL DB", func() {
 							Params: atc.Params{
 								"some-param": "some-value",
 							},
-							Passed:     []string{"job-1", "job-2"},
-							RawTrigger: &yep,
+							Passed:  []string{"job-1", "job-2"},
+							Trigger: true,
 						},
 					},
 

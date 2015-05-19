@@ -38,8 +38,6 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when getting the job config succeeds", func() {
 			BeforeEach(func() {
-				no := false
-
 				pipelineDB.GetConfigReturns(atc.Config{
 					Groups: []atc.GroupConfig{
 						{
@@ -60,11 +58,11 @@ var _ = Describe("Jobs API", func() {
 									Resource: "some-input",
 								},
 								{
-									RawName:    "some-name",
-									Resource:   "some-other-input",
-									Params:     atc.Params{"secret": "params"},
-									Passed:     []string{"a", "b"},
-									RawTrigger: &no,
+									RawName:  "some-name",
+									Resource: "some-other-input",
+									Params:   atc.Params{"secret": "params"},
+									Passed:   []string{"a", "b"},
+									Trigger:  true,
 								},
 							},
 							OutputConfigs: []atc.JobOutputConfig{
@@ -161,13 +159,13 @@ var _ = Describe("Jobs API", func() {
 								{
 									"name": "some-input",
 									"resource": "some-input",
-									"trigger": true
+									"trigger": false
 								},
 								{
 									"name": "some-name",
 									"resource": "some-other-input",
 									"passed": ["a", "b"],
-									"trigger": false
+									"trigger": true
 								}
 							],
 							"outputs": [
@@ -385,7 +383,7 @@ var _ = Describe("Jobs API", func() {
 									"status": "succeeded",
 									"url": "/pipelines/another-pipeline/jobs/job-1/builds/1"
 								},
-								"inputs": [{"name": "input-1", "resource": "input-1", "trigger": true}],
+								"inputs": [{"name": "input-1", "resource": "input-1", "trigger": false}],
 								"outputs": [{"name": "output-1", "resource": "output-1"}],
 								"groups": ["group-1", "group-2"]
 							},
@@ -401,7 +399,7 @@ var _ = Describe("Jobs API", func() {
 									"status": "succeeded",
 									"url": "/pipelines/another-pipeline/jobs/job-2/builds/1"
 								},
-								"inputs": [{"name": "input-2", "resource": "input-2", "trigger": true}],
+								"inputs": [{"name": "input-2", "resource": "input-2", "trigger": false}],
 								"outputs": [{"name": "output-2", "resource": "output-2"}],
 								"groups": ["group-2"]
 							},
@@ -411,7 +409,7 @@ var _ = Describe("Jobs API", func() {
 								"url": "/pipelines/another-pipeline/jobs/job-3",
 								"next_build": null,
 								"finished_build": null,
-								"inputs": [{"name": "input-3", "resource": "input-3", "trigger": true}],
+								"inputs": [{"name": "input-3", "resource": "input-3", "trigger": false}],
 								"outputs": [{"name": "output-3", "resource": "output-3"}],
 								"groups": []
 							}

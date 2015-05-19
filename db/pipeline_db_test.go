@@ -46,8 +46,6 @@ var _ = Describe("PipelineDB", func() {
 		postgresRunner.DropTestDB()
 	})
 
-	yep := true
-
 	config := atc.Config{
 		Groups: atc.GroupConfigs{
 			{
@@ -91,8 +89,8 @@ var _ = Describe("PipelineDB", func() {
 						Params: atc.Params{
 							"some-param": "some-value",
 						},
-						Passed:     []string{"job-1", "job-2"},
-						RawTrigger: &yep,
+						Passed:  []string{"job-1", "job-2"},
+						Trigger: true,
 					},
 				},
 

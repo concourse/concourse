@@ -11,7 +11,6 @@ import (
 )
 
 var _ = Describe("Config", func() {
-
 	Describe("JobConfig", func() {
 		Describe("IsSerial", func() {
 			It("returns true if Serial is true or SerialGroups has items in it", func() {
@@ -69,6 +68,7 @@ var _ = Describe("Config", func() {
 			})
 		})
 	})
+
 	Describe("JobInputConfig", func() {
 		It("defaults its name to the resource name", func() {
 			Ω(JobInputConfig{
@@ -79,16 +79,6 @@ var _ = Describe("Config", func() {
 				RawName:  "some-name",
 				Resource: "some-resource",
 			}.Name()).Should(Equal("some-name"))
-		})
-
-		It("defaults trigger to true", func() {
-			Ω(JobInputConfig{}.Trigger()).Should(BeTrue())
-
-			trigger := false
-			Ω(JobInputConfig{RawTrigger: &trigger}.Trigger()).Should(BeFalse())
-
-			trigger = true
-			Ω(JobInputConfig{RawTrigger: &trigger}.Trigger()).Should(BeTrue())
 		})
 	})
 

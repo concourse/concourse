@@ -59,7 +59,6 @@ var _ = Describe("Scheduler", func() {
 
 		logger = lagertest.NewTestLogger("test")
 
-		yes := true
 		job = atc.JobConfig{
 			Name: "some-job",
 
@@ -67,16 +66,16 @@ var _ = Describe("Scheduler", func() {
 
 			InputConfigs: []atc.JobInputConfig{
 				{
-					RawName:    "some-input",
-					Resource:   "some-resource",
-					Params:     atc.Params{"some": "params"},
-					RawTrigger: &yes,
+					RawName:  "some-input",
+					Resource: "some-resource",
+					Params:   atc.Params{"some": "params"},
+					Trigger:  true,
 				},
 				{
-					RawName:    "some-other-input",
-					Resource:   "some-other-resource",
-					Params:     atc.Params{"some": "params"},
-					RawTrigger: &yes,
+					RawName:  "some-other-input",
+					Resource: "some-other-resource",
+					Params:   atc.Params{"some": "params"},
+					Trigger:  true,
 				},
 			},
 		}
@@ -205,11 +204,9 @@ var _ = Describe("Scheduler", func() {
 
 			Context("and the job has inputs configured to not trigger when they change", func() {
 				BeforeEach(func() {
-					trigger := false
-
 					job.InputConfigs = append(job.InputConfigs, atc.JobInputConfig{
-						Resource:   "some-non-triggering-resource",
-						RawTrigger: &trigger,
+						Resource: "some-non-triggering-resource",
+						Trigger:  false,
 					})
 
 					foundInputsWithCheck := append(
@@ -240,11 +237,9 @@ var _ = Describe("Scheduler", func() {
 
 			Context("and all inputs are configured not to trigger", func() {
 				BeforeEach(func() {
-					trigger := false
-
 					for i, input := range job.InputConfigs {
 						noChecking := input
-						noChecking.RawTrigger = &trigger
+						noChecking.Trigger = false
 
 						job.InputConfigs[i] = noChecking
 					}
