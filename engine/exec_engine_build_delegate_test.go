@@ -29,6 +29,8 @@ var _ = Describe("BuildDelegate", func() {
 		logger *lagertest.TestLogger
 
 		location event.OriginLocation
+
+		substep bool
 	)
 
 	BeforeEach(func() {
@@ -41,6 +43,7 @@ var _ = Describe("BuildDelegate", func() {
 		logger = lagertest.NewTestLogger("test")
 
 		location = event.OriginLocation{0, 3, 1, 2}
+		substep = true
 	})
 
 	Describe("InputDelegate", func() {
@@ -61,7 +64,7 @@ var _ = Describe("BuildDelegate", func() {
 				Params:   atc.Params{"some": "params"},
 			}
 
-			inputDelegate = delegate.InputDelegate(logger, getPlan, location)
+			inputDelegate = delegate.InputDelegate(logger, getPlan, location, substep)
 		})
 
 		Describe("Completed", func() {
@@ -106,6 +109,7 @@ var _ = Describe("BuildDelegate", func() {
 						Type:     event.OriginTypeGet,
 						Name:     "some-input",
 						Location: location,
+						Substep:  substep,
 					},
 					Plan: event.GetPlan{
 						Name:     "some-input",
@@ -237,6 +241,7 @@ var _ = Describe("BuildDelegate", func() {
 						Type:     event.OriginTypeGet,
 						Name:     "some-input",
 						Location: location,
+						Substep:  substep,
 					},
 					Message: "nope",
 				}))
@@ -264,6 +269,7 @@ var _ = Describe("BuildDelegate", func() {
 						Name:     "some-input",
 						Source:   event.OriginSourceStdout,
 						Location: location,
+						Substep:  substep,
 					},
 					Payload: "some stdout",
 				}))
@@ -291,6 +297,7 @@ var _ = Describe("BuildDelegate", func() {
 						Name:     "some-input",
 						Source:   event.OriginSourceStderr,
 						Location: location,
+						Substep:  substep,
 					},
 					Payload: "some stderr",
 				}))

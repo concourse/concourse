@@ -185,7 +185,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 		return build.factory.Get(
 			exec.SourceName(plan.Get.Name),
 			build.getIdentifier(plan.Get.Name, location),
-			build.delegate.InputDelegate(logger, *plan.Get, location),
+			build.delegate.InputDelegate(logger, *plan.Get, location, false),
 			atc.ResourceConfig{
 				Name:   plan.Get.Resource,
 				Type:   plan.Get.Type,
@@ -222,7 +222,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 				build.factory.DependentGet(
 					exec.SourceName(getPlan.Name),
 					build.getIdentifier(getPlan.Name, getLocation),
-					build.delegate.InputDelegate(logger, getPlan, getLocation),
+					build.delegate.InputDelegate(logger, getPlan, getLocation, true),
 					atc.ResourceConfig{
 						Name:   getPlan.Resource,
 						Type:   getPlan.Type,

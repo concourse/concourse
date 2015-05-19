@@ -21,7 +21,7 @@ type implicitOutput struct {
 //go:generate counterfeiter . BuildDelegate
 
 type BuildDelegate interface {
-	InputDelegate(lager.Logger, atc.GetPlan, event.OriginLocation) exec.GetDelegate
+	InputDelegate(lager.Logger, atc.GetPlan, event.OriginLocation, bool) exec.GetDelegate
 	ExecutionDelegate(lager.Logger, atc.TaskPlan, event.OriginLocation) exec.TaskDelegate
 	OutputDelegate(lager.Logger, atc.PutPlan, event.OriginLocation) exec.PutDelegate
 
@@ -73,12 +73,13 @@ func newBuildDelegate(db EngineDB, buildID int) BuildDelegate {
 	}
 }
 
-func (delegate *delegate) InputDelegate(logger lager.Logger, plan atc.GetPlan, location event.OriginLocation) exec.GetDelegate {
+func (delegate *delegate) InputDelegate(logger lager.Logger, plan atc.GetPlan, location event.OriginLocation, substep bool) exec.GetDelegate {
 	return &inputDelegate{
 		logger:   logger,
 		plan:     plan,
 		location: location,
 		delegate: delegate,
+		substep:  substep,
 	}
 }
 
@@ -284,6 +285,7 @@ type inputDelegate struct {
 
 	plan     atc.GetPlan
 	location event.OriginLocation
+	substep  bool
 
 	delegate *delegate
 }
@@ -293,6 +295,7 @@ func (input *inputDelegate) Completed(info exec.VersionInfo) {
 		Type:     event.OriginTypeGet,
 		Name:     input.plan.Name,
 		Location: input.location,
+		Substep:  input.substep,
 	})
 	input.delegate.registerImplicitOutput(input.plan.Resource, implicitOutput{input.plan, info})
 	input.logger.Info("finished", lager.Data{"version-info": info})
@@ -303,6 +306,7 @@ func (input *inputDelegate) Failed(err error) {
 		Type:     event.OriginTypeGet,
 		Name:     input.plan.Name,
 		Location: input.location,
+		Substep:  input.substep,
 	})
 
 	input.logger.Error("errored", err)
@@ -314,6 +318,7 @@ func (input *inputDelegate) Stdout() io.Writer {
 		Name:     input.plan.Name,
 		Source:   event.OriginSourceStdout,
 		Location: input.location,
+		Substep:  input.substep,
 	})
 }
 
@@ -323,6 +328,7 @@ func (input *inputDelegate) Stderr() io.Writer {
 		Name:     input.plan.Name,
 		Source:   event.OriginSourceStderr,
 		Location: input.location,
+		Substep:  input.substep,
 	})
 }
 

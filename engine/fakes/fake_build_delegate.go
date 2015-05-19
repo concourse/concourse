@@ -12,12 +12,13 @@ import (
 )
 
 type FakeBuildDelegate struct {
-	InputDelegateStub        func(lager.Logger, atc.GetPlan, event.OriginLocation) exec.GetDelegate
+	InputDelegateStub        func(lager.Logger, atc.GetPlan, event.OriginLocation, bool) exec.GetDelegate
 	inputDelegateMutex       sync.RWMutex
 	inputDelegateArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 atc.GetPlan
 		arg3 event.OriginLocation
+		arg4 bool
 	}
 	inputDelegateReturns struct {
 		result1 exec.GetDelegate
@@ -55,16 +56,17 @@ type FakeBuildDelegate struct {
 	}
 }
 
-func (fake *FakeBuildDelegate) InputDelegate(arg1 lager.Logger, arg2 atc.GetPlan, arg3 event.OriginLocation) exec.GetDelegate {
+func (fake *FakeBuildDelegate) InputDelegate(arg1 lager.Logger, arg2 atc.GetPlan, arg3 event.OriginLocation, arg4 bool) exec.GetDelegate {
 	fake.inputDelegateMutex.Lock()
 	fake.inputDelegateArgsForCall = append(fake.inputDelegateArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 atc.GetPlan
 		arg3 event.OriginLocation
-	}{arg1, arg2, arg3})
+		arg4 bool
+	}{arg1, arg2, arg3, arg4})
 	fake.inputDelegateMutex.Unlock()
 	if fake.InputDelegateStub != nil {
-		return fake.InputDelegateStub(arg1, arg2, arg3)
+		return fake.InputDelegateStub(arg1, arg2, arg3, arg4)
 	} else {
 		return fake.inputDelegateReturns.result1
 	}
@@ -76,10 +78,10 @@ func (fake *FakeBuildDelegate) InputDelegateCallCount() int {
 	return len(fake.inputDelegateArgsForCall)
 }
 
-func (fake *FakeBuildDelegate) InputDelegateArgsForCall(i int) (lager.Logger, atc.GetPlan, event.OriginLocation) {
+func (fake *FakeBuildDelegate) InputDelegateArgsForCall(i int) (lager.Logger, atc.GetPlan, event.OriginLocation, bool) {
 	fake.inputDelegateMutex.RLock()
 	defer fake.inputDelegateMutex.RUnlock()
-	return fake.inputDelegateArgsForCall[i].arg1, fake.inputDelegateArgsForCall[i].arg2, fake.inputDelegateArgsForCall[i].arg3
+	return fake.inputDelegateArgsForCall[i].arg1, fake.inputDelegateArgsForCall[i].arg2, fake.inputDelegateArgsForCall[i].arg3, fake.inputDelegateArgsForCall[i].arg4
 }
 
 func (fake *FakeBuildDelegate) InputDelegateReturns(result1 exec.GetDelegate) {

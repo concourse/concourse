@@ -38,7 +38,8 @@ var Step = React.createClass({
     var classNames = cx({
       "build-step": true,
       "running": model.isRunning(),
-      "first-occurrence": model.isFirstOccurrence()
+      "first-occurrence": model.isFirstOccurrence() && !model.isSubStep(),
+      "substep": model.isSubStep(),
     });
 
     var displayLogs = model.isShowingLogs() ? 'block' : 'none';

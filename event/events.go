@@ -65,6 +65,7 @@ type Origin struct {
 	Type     OriginType     `json:"type"`
 	Source   OriginSource   `json:"source"`
 	Location OriginLocation `json:"location,omitempty"`
+	Substep  bool           `json:"substep"`
 }
 
 type OriginType string

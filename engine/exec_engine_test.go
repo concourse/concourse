@@ -199,7 +199,13 @@ var _ = Describe("ExecEngine", func() {
 				Name:         "some-input",
 				StepLocation: []uint{0, 0},
 			}))
+
 			Ω(delegate).Should(Equal(fakeInputDelegate))
+			_, plan, location, substep := fakeDelegate.InputDelegateArgsForCall(0)
+			Ω(plan).Should(Equal(*inputPlan))
+			Ω(location).Should(Equal(event.OriginLocation{0, 0}))
+			Ω(substep).Should(BeFalse())
+
 			Ω(resourceConfig.Name).Should(Equal("some-input-resource"))
 			Ω(resourceConfig.Type).Should(Equal("some-type"))
 			Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
@@ -253,9 +259,10 @@ var _ = Describe("ExecEngine", func() {
 				}))
 
 				Ω(delegate).Should(Equal(fakeInputDelegate))
-				_, plan, location := fakeDelegate.InputDelegateArgsForCall(1)
+				_, plan, location, substep := fakeDelegate.InputDelegateArgsForCall(1)
 				Ω(plan).Should(Equal(outputPlan.Plan.PutGet.Head.Put.GetPlan()))
 				Ω(location).Should(Equal(event.OriginLocation{2, 1}))
+				Ω(substep).Should(BeTrue())
 
 				Ω(sourceName).Should(Equal(exec.SourceName("some-get")))
 				Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
