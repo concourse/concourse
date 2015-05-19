@@ -24,10 +24,9 @@ jobs:
   - get: git-resource
   - put: git-resource-image
     params: {build: git-resource}
+    get: resource-image
+    get_params: {rootfs: true}
   - aggregate:
-    - get: resource-image
-      resource: git-resource-image
-      params: {rootfs: true}
     - get: deployments
     - get: concourse
   - task: bump-package
@@ -43,10 +42,9 @@ jobs:
   - get: docker-image-resource
   - put: docker-image-resource-image
     params: {build: docker-image-resource}
+    get: resource-image
+    get_params: {rootfs: true}
   - aggregate:
-    - get: resource-image
-      resource: docker-image-resource-image
-      params: {rootfs: true}
     - get: deployments
     - get: concourse
   - task: bump-package
@@ -64,10 +62,9 @@ jobs:
     file: time-resource/build.yml
   - put: time-resource-image
     params: {build: unit/gopath/src/github.com/concourse/time-resource}
+    get: resource-image
+    get_params: {rootfs: true}
   - aggregate:
-    - get: resource-image
-      resource: time-resource-image
-      params: {rootfs: true}
     - get: deployments
     - get: concourse
   - task: bump-package
@@ -85,10 +82,9 @@ jobs:
     file: archive-resource/build.yml
   - put: archive-resource-image
     params: {build: unit/build-root}
+    get: resource-image
+    get_params: {rootfs: true}
   - aggregate:
-    - get: resource-image
-      resource: archive-resource-image
-      params: {rootfs: true}
     - get: deployments
     - get: concourse
   - task: bump-package
@@ -106,10 +102,9 @@ jobs:
     file: bosh-deployment-resource/build.yml
   - put: bosh-deployment-resource-image
     params: {build: bosh-deployment-resource}
+    get: resource-image
+    get_params: {rootfs: true}
   - aggregate:
-    - get: resource-image
-      resource: bosh-deployment-resource-image
-      params: {rootfs: true}
     - get: deployments
     - get: concourse
   - task: bump-package
@@ -134,10 +129,9 @@ jobs:
     file: s3-resource/build.yml
   - put: s3-resource-image
     params: {build: unit/gopath/src/github.com/concourse/s3-resource}
+    get: resource-image
+    get_params: {rootfs: true}
   - aggregate:
-    - get: resource-image
-      resource: s3-resource-image
-      params: {rootfs: true}
     - get: deployments
     - get: concourse
   - task: bump-package
@@ -155,10 +149,9 @@ jobs:
     file: github-release-resource/build.yml
   - put: github-release-resource-image
     params: {build: unit/gopath/src/github.com/concourse/github-release-resource}
+    get: resource-image
+    get_params: {rootfs: true}
   - aggregate:
-    - get: resource-image
-      resource: github-release-resource-image
-      params: {rootfs: true}
     - get: deployments
     - get: concourse
   - task: bump-package
@@ -182,10 +175,9 @@ jobs:
       file: cf-resource/build.yml
   - put: cf-resource-image
     params: {build: resource-unit/gopath/src/github.com/concourse/cf-resource}
+    get: resource-image
+    get_params: {rootfs: true}
   - aggregate:
-    - get: resource-image
-      resource: cf-resource-image
-      params: {rootfs: true}
     - get: deployments
     - get: concourse
   - task: bump-package
@@ -209,10 +201,9 @@ jobs:
         SEMVER_TESTING_REGION: {{semver-region}}
   - put: semver-resource-image
     params: {build: unit/gopath/src/github.com/concourse/semver-resource}
+    get: resource-image
+    get_params: {rootfs: true}
   - aggregate:
-    - get: resource-image
-      resource: semver-resource-image
-      params: {rootfs: true}
     - get: deployments
     - get: concourse
   - task: bump-package
@@ -228,10 +219,9 @@ jobs:
   - get: bosh-io-release-resource
   - put: bosh-io-release-resource-image
     params: {build: bosh-io-release-resource}
+    get: resource-image
+    get_params: {rootfs: true}
   - aggregate:
-    - get: resource-image
-      resource: bosh-io-release-resource-image
-      params: {rootfs: true}
     - get: deployments
     - get: concourse
   - task: bump-package
@@ -247,10 +237,9 @@ jobs:
   - get: bosh-io-stemcell-resource
   - put: bosh-io-stemcell-resource-image
     params: {build: bosh-io-stemcell-resource}
+    get: resource-image
+    get_params: {rootfs: true}
   - aggregate:
-    - get: resource-image
-      resource: bosh-io-stemcell-resource-image
-      params: {rootfs: true}
     - get: deployments
     - get: concourse
   - task: bump-package
@@ -268,10 +257,9 @@ jobs:
     file: tracker-resource/build.yml
   - put: tracker-resource-image
     params: {build: unit/build-root}
+    get: resource-image
+    get_params: {rootfs: true}
   - aggregate:
-    - get: resource-image
-      resource: tracker-resource-image
-      params: {rootfs: true}
     - get: deployments
     - get: concourse
   - task: bump-package
@@ -287,10 +275,9 @@ jobs:
   - get: vagrant-cloud-resource
   - put: vagrant-cloud-resource-image
     params: {build: vagrant-cloud-resource}
+    get: resource-image
+    get_params: {rootfs: true}
   - aggregate:
-    - get: resource-image
-      resource: vagrant-cloud-resource-image
-      params: {rootfs: true}
     - get: deployments
     - get: concourse
   - task: bump-package
