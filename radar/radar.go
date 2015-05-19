@@ -169,6 +169,7 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 	}
 
 	if len(newVersions) == 0 {
+		logger.Debug("no-new-versions")
 		return nil
 	}
 
