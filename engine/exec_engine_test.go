@@ -98,13 +98,17 @@ var _ = Describe("ExecEngine", func() {
 			outputPlan = &atc.ConditionalPlan{
 				Conditions: atc.Conditions{atc.ConditionSuccess},
 				Plan: atc.Plan{
-					Put: &atc.PutPlan{
-						Resource:  "some-output-resource",
-						Type:      "some-type",
-						Source:    atc.Source{"some": "source"},
-						Params:    atc.Params{"some": "params"},
-						GetName:   "some-get",
-						GetParams: atc.Params{"another": "params"},
+					PutGet: &atc.PutGetPlan{
+						Head: atc.Plan{
+							Put: &atc.PutPlan{
+								Resource:  "some-output-resource",
+								Type:      "some-type",
+								Source:    atc.Source{"some": "source"},
+								Params:    atc.Params{"some": "params"},
+								GetName:   "some-get",
+								GetParams: atc.Params{"another": "params"},
+							},
+						},
 					},
 				},
 			}
@@ -245,13 +249,13 @@ var _ = Describe("ExecEngine", func() {
 					BuildID:      42,
 					Type:         worker.ContainerTypeGet,
 					Name:         "some-get",
-					StepLocation: []uint{2, 0},
+					StepLocation: []uint{2, 1},
 				}))
 
 				Ω(delegate).Should(Equal(fakeInputDelegate))
 				_, plan, location := fakeDelegate.InputDelegateArgsForCall(1)
-				Ω(plan).Should(Equal(outputPlan.Plan.Put.GetPlan()))
-				Ω(location).Should(Equal(event.OriginLocation{2, 0}))
+				Ω(plan).Should(Equal(outputPlan.Plan.PutGet.Head.Put.GetPlan()))
+				Ω(location).Should(Equal(event.OriginLocation{2, 1}))
 
 				Ω(sourceName).Should(Equal(exec.SourceName("some-get")))
 				Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
@@ -279,7 +283,7 @@ var _ = Describe("ExecEngine", func() {
 			It("releases all sources", func() {
 				Ω(inputStep.ReleaseCallCount()).Should(Equal(1))
 				Ω(taskStep.ReleaseCallCount()).Should(Equal(1))
-				Ω(outputStep.ReleaseCallCount()).Should(Equal(1))
+				Ω(outputStep.ReleaseCallCount()).Should(Equal(2)) // put + get
 			})
 		})
 

@@ -76,14 +76,18 @@ var _ = Describe("Factory", func() {
 											Conditional: &atc.ConditionalPlan{
 												Conditions: []atc.Condition{atc.ConditionSuccess},
 												Plan: atc.Plan{
-													Put: &atc.PutPlan{
-														Name:     "some-resource",
-														Resource: "some-resource",
-														GetName:  "some-resource",
-														Pipeline: "some-pipeline",
-														Type:     "git",
-														Params:   atc.Params{"foo": "bar"},
-														Source:   atc.Source{"uri": "git://some-resource"},
+													PutGet: &atc.PutGetPlan{
+														Head: atc.Plan{
+															Put: &atc.PutPlan{
+																Name:     "some-resource",
+																Resource: "some-resource",
+																GetName:  "some-resource",
+																Pipeline: "some-pipeline",
+																Type:     "git",
+																Params:   atc.Params{"foo": "bar"},
+																Source:   atc.Source{"uri": "git://some-resource"},
+															},
+														},
 													},
 												},
 											},
@@ -92,14 +96,18 @@ var _ = Describe("Factory", func() {
 											Conditional: &atc.ConditionalPlan{
 												Conditions: []atc.Condition{atc.ConditionFailure},
 												Plan: atc.Plan{
-													Put: &atc.PutPlan{
-														Name:     "some-other-resource",
-														Resource: "some-other-resource",
-														GetName:  "some-other-resource",
-														Pipeline: "some-pipeline",
-														Type:     "git",
-														Params:   atc.Params{"foo": "bar"},
-														Source:   atc.Source{"uri": "git://some-other-resource"},
+													PutGet: &atc.PutGetPlan{
+														Head: atc.Plan{
+															Put: &atc.PutPlan{
+																Name:     "some-other-resource",
+																Resource: "some-other-resource",
+																GetName:  "some-other-resource",
+																Pipeline: "some-pipeline",
+																Type:     "git",
+																Params:   atc.Params{"foo": "bar"},
+																Source:   atc.Source{"uri": "git://some-other-resource"},
+															},
+														},
 													},
 												},
 											},
@@ -108,14 +116,18 @@ var _ = Describe("Factory", func() {
 											Conditional: &atc.ConditionalPlan{
 												Conditions: []atc.Condition{},
 												Plan: atc.Plan{
-													Put: &atc.PutPlan{
-														Name:     "some-other-other-resource",
-														Resource: "some-other-other-resource",
-														GetName:  "some-other-other-resource",
-														Pipeline: "some-pipeline",
-														Type:     "git",
-														Params:   atc.Params{"foo": "bar"},
-														Source:   atc.Source{"uri": "git://some-other-other-resource"},
+													PutGet: &atc.PutGetPlan{
+														Head: atc.Plan{
+															Put: &atc.PutPlan{
+																Name:     "some-other-other-resource",
+																Resource: "some-other-other-resource",
+																GetName:  "some-other-other-resource",
+																Pipeline: "some-pipeline",
+																Type:     "git",
+																Params:   atc.Params{"foo": "bar"},
+																Source:   atc.Source{"uri": "git://some-other-other-resource"},
+															},
+														},
 													},
 												},
 											},
@@ -291,16 +303,7 @@ var _ = Describe("Factory", func() {
 		Context("when a get plan follows a task plan", func() {
 			Context("with no explicit condition", func() {
 				It("runs only on success", func() {
-					Ω(factory.Create(atc.JobConfig{
-						Plan: atc.PlanSequence{
-							{
-								Task: "those who resist our will",
-							},
-							{
-								Get: "money",
-							},
-						},
-					}, resources, nil)).Should(Equal(atc.Plan{
+					expectedPlan := atc.Plan{
 						Compose: &atc.ComposePlan{
 							A: atc.Plan{
 								Task: &atc.TaskPlan{
@@ -311,16 +314,54 @@ var _ = Describe("Factory", func() {
 								Conditional: &atc.ConditionalPlan{
 									Conditions: atc.Conditions{atc.ConditionSuccess},
 									Plan: atc.Plan{
-										Get: &atc.GetPlan{
-											Name:     "money",
-											Resource: "money",
-											Pipeline: "some-pipeline",
+										PutGet: &atc.PutGetPlan{
+											Head: atc.Plan{
+												Put: &atc.PutPlan{
+													Type:     "git",
+													Name:     "some-other-other-resource",
+													Resource: "some-other-other-resource",
+													Pipeline: "some-pipeline",
+													Source: atc.Source{
+														"uri": "git://some-other-other-resource",
+													},
+													Params:    nil,
+													GetName:   "some-other-other-resource",
+													GetParams: nil,
+												},
+											},
+											Rest: atc.Plan{
+												Conditional: &atc.ConditionalPlan{
+													Conditions: atc.Conditions{atc.ConditionSuccess},
+													Plan: atc.Plan{
+														Task: &atc.TaskPlan{
+															Name: "some-other-task",
+														},
+													},
+												},
+											},
 										},
 									},
 								},
 							},
 						},
-					}))
+					}
+
+					builtPlan, err := factory.Create(atc.JobConfig{
+						Plan: atc.PlanSequence{
+							{
+								Task: "those who resist our will",
+							},
+							{
+								Put: "some-other-other-resource",
+							},
+							{
+								Task: "some-other-task",
+							},
+						},
+					}, resources, nil)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(builtPlan).Should(Equal(expectedPlan))
 				})
 			})
 
@@ -388,14 +429,19 @@ var _ = Describe("Factory", func() {
 								Conditional: &atc.ConditionalPlan{
 									Conditions: atc.Conditions{atc.ConditionSuccess},
 									Plan: atc.Plan{
-										Put: &atc.PutPlan{
-											Name:     "money",
-											Resource: "money",
-											GetName:  "power",
-											Pipeline: "some-pipeline",
-											GetParams: atc.Params{
-												"world": "domination",
+										PutGet: &atc.PutGetPlan{
+											Head: atc.Plan{
+												Put: &atc.PutPlan{
+													Name:     "money",
+													Resource: "money",
+													GetName:  "power",
+													Pipeline: "some-pipeline",
+													GetParams: atc.Params{
+														"world": "domination",
+													},
+												},
 											},
+											Rest: atc.Plan{},
 										},
 									},
 								},
@@ -428,11 +474,51 @@ var _ = Describe("Factory", func() {
 								Conditional: &atc.ConditionalPlan{
 									Conditions: atc.Conditions{atc.ConditionFailure},
 									Plan: atc.Plan{
-										Put: &atc.PutPlan{
-											Name:     "money",
-											Resource: "money",
-											GetName:  "money",
-											Pipeline: "some-pipeline",
+										PutGet: &atc.PutGetPlan{
+											Head: atc.Plan{
+												Put: &atc.PutPlan{
+													Name:     "money",
+													Resource: "money",
+													GetName:  "money",
+													Pipeline: "some-pipeline",
+												},
+											},
+											Rest: atc.Plan{},
+										},
+									},
+								},
+							},
+						},
+					}))
+				})
+			})
+		})
+
+		Context("when a task plan follows a put plan", func() {
+			Context("with no explicit condition", func() {
+				It("runs only on success", func() {
+					Ω(factory.Create(atc.JobConfig{
+						Plan: atc.PlanSequence{
+							{
+								Task: "those who resist our will",
+							},
+							{
+								Task: "haters",
+							},
+						},
+					}, resources, nil)).Should(Equal(atc.Plan{
+						Compose: &atc.ComposePlan{
+							A: atc.Plan{
+								Task: &atc.TaskPlan{
+									Name: "those who resist our will",
+								},
+							},
+							B: atc.Plan{
+								Conditional: &atc.ConditionalPlan{
+									Conditions: atc.Conditions{atc.ConditionSuccess},
+									Plan: atc.Plan{
+										Task: &atc.TaskPlan{
+											Name: "haters",
 										},
 									},
 								},
@@ -549,11 +635,16 @@ var _ = Describe("Factory", func() {
 										Conditional: &atc.ConditionalPlan{
 											Conditions: atc.Conditions{atc.ConditionFailure},
 											Plan: atc.Plan{
-												Put: &atc.PutPlan{
-													Name:     "haters",
-													Resource: "haters",
-													GetName:  "haters",
-													Pipeline: "some-pipeline",
+												PutGet: &atc.PutGetPlan{
+													Head: atc.Plan{
+														Put: &atc.PutPlan{
+															Name:     "haters",
+															Resource: "haters",
+															GetName:  "haters",
+															Pipeline: "some-pipeline",
+														},
+													},
+													Rest: atc.Plan{},
 												},
 											},
 										},
@@ -562,11 +653,16 @@ var _ = Describe("Factory", func() {
 										Conditional: &atc.ConditionalPlan{
 											Conditions: atc.Conditions{atc.ConditionSuccess},
 											Plan: atc.Plan{
-												Put: &atc.PutPlan{
-													Name:     "gonna",
-													Resource: "gonna",
-													GetName:  "gonna",
-													Pipeline: "some-pipeline",
+												PutGet: &atc.PutGetPlan{
+													Head: atc.Plan{
+														Put: &atc.PutPlan{
+															Name:     "gonna",
+															Resource: "gonna",
+															GetName:  "gonna",
+															Pipeline: "some-pipeline",
+														},
+													},
+													Rest: atc.Plan{},
 												},
 											},
 										},
@@ -575,11 +671,16 @@ var _ = Describe("Factory", func() {
 										Conditional: &atc.ConditionalPlan{
 											Conditions: atc.Conditions{},
 											Plan: atc.Plan{
-												Put: &atc.PutPlan{
-													Name:     "hate",
-													Resource: "hate",
-													GetName:  "hate",
-													Pipeline: "some-pipeline",
+												PutGet: &atc.PutGetPlan{
+													Head: atc.Plan{
+														Put: &atc.PutPlan{
+															Name:     "hate",
+															Resource: "hate",
+															GetName:  "hate",
+															Pipeline: "some-pipeline",
+														},
+													},
+													Rest: atc.Plan{},
 												},
 											},
 										},
@@ -603,13 +704,13 @@ var _ = Describe("Factory", func() {
 							{
 								Do: &atc.PlanSequence{
 									{
-										Put: "haters",
+										Get: "haters",
 									},
 									{
-										Put: "gonna",
+										Get: "gonna",
 									},
 									{
-										Put:        "hate",
+										Get:        "hate",
 										Conditions: &atc.Conditions{},
 									},
 								},
@@ -628,10 +729,9 @@ var _ = Describe("Factory", func() {
 									Plan: atc.Plan{
 										Compose: &atc.ComposePlan{
 											A: atc.Plan{
-												Put: &atc.PutPlan{
+												Get: &atc.GetPlan{
 													Name:     "haters",
 													Resource: "haters",
-													GetName:  "haters",
 													Pipeline: "some-pipeline",
 												},
 											},
@@ -641,10 +741,9 @@ var _ = Describe("Factory", func() {
 													Plan: atc.Plan{
 														Compose: &atc.ComposePlan{
 															A: atc.Plan{
-																Put: &atc.PutPlan{
+																Get: &atc.GetPlan{
 																	Name:     "gonna",
 																	Resource: "gonna",
-																	GetName:  "gonna",
 																	Pipeline: "some-pipeline",
 																},
 															},
@@ -652,10 +751,9 @@ var _ = Describe("Factory", func() {
 																Conditional: &atc.ConditionalPlan{
 																	Conditions: atc.Conditions{},
 																	Plan: atc.Plan{
-																		Put: &atc.PutPlan{
+																		Get: &atc.GetPlan{
 																			Name:     "hate",
 																			Resource: "hate",
-																			GetName:  "hate",
 																			Pipeline: "some-pipeline",
 																		},
 																	},
@@ -684,14 +782,14 @@ var _ = Describe("Factory", func() {
 							{
 								Do: &atc.PlanSequence{
 									{
-										Put:        "haters",
+										Get:        "haters",
 										Conditions: &atc.Conditions{atc.ConditionFailure},
 									},
 									{
-										Put: "gonna",
+										Get: "gonna",
 									},
 									{
-										Put:        "hate",
+										Get:        "hate",
 										Conditions: &atc.Conditions{},
 									},
 								},
@@ -710,10 +808,9 @@ var _ = Describe("Factory", func() {
 									Plan: atc.Plan{
 										Compose: &atc.ComposePlan{
 											A: atc.Plan{
-												Put: &atc.PutPlan{
+												Get: &atc.GetPlan{
 													Name:     "haters",
 													Resource: "haters",
-													GetName:  "haters",
 													Pipeline: "some-pipeline",
 												},
 											},
@@ -723,10 +820,9 @@ var _ = Describe("Factory", func() {
 													Plan: atc.Plan{
 														Compose: &atc.ComposePlan{
 															A: atc.Plan{
-																Put: &atc.PutPlan{
+																Get: &atc.GetPlan{
 																	Name:     "gonna",
 																	Resource: "gonna",
-																	GetName:  "gonna",
 																	Pipeline: "some-pipeline",
 																},
 															},
@@ -734,10 +830,9 @@ var _ = Describe("Factory", func() {
 																Conditional: &atc.ConditionalPlan{
 																	Conditions: atc.Conditions{},
 																	Plan: atc.Plan{
-																		Put: &atc.PutPlan{
+																		Get: &atc.GetPlan{
 																			Name:     "hate",
 																			Resource: "hate",
-																			GetName:  "hate",
 																			Pipeline: "some-pipeline",
 																		},
 																	},

@@ -47,7 +47,7 @@ func (factory *BuildFactory) constructPlanSequenceBasedPlan(
 		plan = makeConditionalOnSuccess(plan)
 
 		// if the previous plan is conditional, make the entire following chain
-		// of composed steps conditional
+		// of composed steps conditional or get/put
 		plan = conditionallyCompose(prevPlan, plan)
 	}
 
@@ -78,23 +78,46 @@ func makeConditionalOnSuccess(plan atc.Plan) atc.Plan {
 
 func conditionallyCompose(prevPlan atc.Plan, plan atc.Plan) atc.Plan {
 	if prevPlan.Conditional != nil {
-		plan = atc.Plan{
-			Conditional: &atc.ConditionalPlan{
-				Conditions: prevPlan.Conditional.Conditions,
-				Plan: atc.Plan{
-					Compose: &atc.ComposePlan{
-						A: prevPlan.Conditional.Plan,
-						B: plan,
+		if prevPlan.Conditional.Plan.PutGet != nil {
+			plan = atc.Plan{
+				Conditional: &atc.ConditionalPlan{
+					Conditions: prevPlan.Conditional.Conditions,
+					Plan: atc.Plan{
+						PutGet: &atc.PutGetPlan{
+							Head: prevPlan.Conditional.Plan.PutGet.Head,
+							Rest: plan,
+						},
 					},
 				},
-			},
+			}
+		} else {
+			plan = atc.Plan{
+				Conditional: &atc.ConditionalPlan{
+					Conditions: prevPlan.Conditional.Conditions,
+					Plan: atc.Plan{
+						Compose: &atc.ComposePlan{
+							A: prevPlan.Conditional.Plan,
+							B: plan,
+						},
+					},
+				},
+			}
 		}
 	} else {
-		plan = atc.Plan{
-			Compose: &atc.ComposePlan{
-				A: prevPlan,
-				B: plan,
-			},
+		if prevPlan.PutGet != nil {
+			plan = atc.Plan{
+				PutGet: &atc.PutGetPlan{
+					Head: prevPlan.PutGet.Head,
+					Rest: plan,
+				},
+			}
+		} else {
+			plan = atc.Plan{
+				Compose: &atc.ComposePlan{
+					A: prevPlan,
+					B: plan,
+				},
+			}
 		}
 	}
 
@@ -129,16 +152,23 @@ func (factory *BuildFactory) constructPlanFromConfig(
 
 		resource, _ := resources.Lookup(resourceName)
 
+		putPlan := &atc.PutPlan{
+			Type:      resource.Type,
+			Name:      planConfig.Put,
+			Pipeline:  factory.PipelineName,
+			Resource:  resourceName,
+			Source:    resource.Source,
+			Params:    planConfig.Params,
+			GetName:   getName,
+			GetParams: planConfig.GetParams,
+		}
+
 		plan = atc.Plan{
-			Put: &atc.PutPlan{
-				Type:      resource.Type,
-				Name:      planConfig.Put,
-				Pipeline:  factory.PipelineName,
-				Resource:  resourceName,
-				Source:    resource.Source,
-				Params:    planConfig.Params,
-				GetName:   getName,
-				GetParams: planConfig.GetParams,
+			PutGet: &atc.PutGetPlan{
+				Head: atc.Plan{
+					Put: putPlan,
+				},
+				Rest: atc.Plan{},
 			},
 		}
 

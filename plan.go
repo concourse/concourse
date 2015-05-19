@@ -7,11 +7,17 @@ type Plan struct {
 	Put         *PutPlan         `json:"put,omitempty"`
 	Task        *TaskPlan        `json:"task,omitempty"`
 	Conditional *ConditionalPlan `json:"conditional,omitempty"`
+	PutGet      *PutGetPlan      `json:"putget,omitempty"`
 }
 
 type ComposePlan struct {
 	A Plan `json:"a"`
 	B Plan `json:"b"`
+}
+
+type PutGetPlan struct {
+	Head Plan `json:"put"`
+	Rest Plan `json:"rest"`
 }
 
 type AggregatePlan []Plan
