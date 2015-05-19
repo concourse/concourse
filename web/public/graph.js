@@ -7,6 +7,32 @@ Graph.prototype.setNode = function(id, value) {
   this._nodes[id] = value;
 };
 
+Graph.prototype.removeNode = function(id) {
+  var node = this._nodes[id];
+
+  for (var i in node._inEdges) {
+    var edge = node._inEdges[i];
+    var sourceNode = edge.source.node;
+    var idx = sourceNode._outEdges.indexOf(edge);
+    sourceNode._outEdges.splice(idx, 1);
+
+    var graphIdx = this._edges.indexOf(edge);
+    this._edges.splice(graphIdx, 1);
+  }
+
+  for (var i in node._outEdges) {
+    var edge = node._outEdges[i];
+    var targetNode = edge.target.node;
+    var idx = targetNode._inEdges.indexOf(edge);
+    targetNode._inEdges.splice(idx, 1);
+
+    var graphIdx = this._edges.indexOf(edge);
+    this._edges.splice(graphIdx, 1);
+  }
+
+  delete this._nodes[id];
+}
+
 Graph.prototype.addEdge = function(sourceId, targetId, key) {
   var source = this._nodes[sourceId];
   if (source === undefined) {
@@ -42,9 +68,6 @@ Graph.prototype.addEdge = function(sourceId, targetId, key) {
   target._inEdges.push(edge);
   source._outEdges.push(edge);
   this._edges.push(edge);
-
-  source._clearCaches();
-  target._clearCaches();
 }
 
 Graph.prototype.node = function(id) {
@@ -128,6 +151,127 @@ Graph.prototype.layout = function() {
   for (var i = 0; i < 10; i++) {
     for (var c in columns) {
       columns[c].improve();
+    }
+  }
+}
+
+Graph.prototype.computeRanks = function() {
+  var forwardNodes = {};
+
+  for (var n in this._nodes) {
+    var node = this._nodes[n];
+
+    if (node._inEdges.length == 0) {
+      node._cachedRank = 0;
+      forwardNodes[node.id] = node;
+    }
+  }
+
+  var bottomNodes = {};
+
+  // walk over all nodes from left to right and determine their rank
+  while (!objectIsEmpty(forwardNodes)) {
+    var nextNodes = {};
+
+    for (var n in forwardNodes) {
+      var node = forwardNodes[n];
+
+      if (node._outEdges.length == 0) {
+        bottomNodes[node.id] = node;
+      }
+
+      for (var e in node._outEdges) {
+        var nextNode = node._outEdges[e].target.node;
+
+        // careful: two edges may go to the same node but be from different
+        // ranks, so always destination nodes as far to the right as possible
+        nextNode._cachedRank = Math.max(nextNode._cachedRank, node._cachedRank + 1);
+
+        nextNodes[nextNode.id] = nextNode;
+      }
+    }
+
+    forwardNodes = nextNodes;
+  }
+
+  var backwardNodes = bottomNodes;
+
+  // walk over all nodes from right to left and bring upstream nodes as far
+  // to the right as possible, so that edges aren't passing through ranks
+  while (!objectIsEmpty(backwardNodes)) {
+    var prevNodes = {};
+
+    for (var n in backwardNodes) {
+      var node = backwardNodes[n];
+
+      // for all upstream nodes, determine rightmost possible column by taking
+      // the minimum rank of all downstream nodes and placing it in the rank
+      // immediately preceding it
+      for (var e in node._inEdges) {
+        var prevNode = node._inEdges[e].source.node;
+
+        var rightmostRank = prevNode.rightmostPossibleRank();
+        if (rightmostRank !== undefined) {
+          prevNode._cachedRank = rightmostRank;
+        }
+
+        prevNodes[prevNode.id] = prevNode;
+      }
+    }
+
+    backwardNodes = prevNodes;
+  }
+};
+
+Graph.prototype.collapseEquivalentNodes = function() {
+  var nodesByRank = [];
+
+  for (var n in this._nodes) {
+    var node = this._nodes[n];
+
+    var byRank = nodesByRank[node.rank()];
+    if (byRank === undefined) {
+      byRank = {};
+      nodesByRank[node.rank()] = byRank;
+    }
+
+    if (node.equivalentBy === undefined) {
+      continue;
+    }
+
+    byEqv = byRank[node.equivalentBy];
+    if (byEqv === undefined) {
+      byEqv = [];
+      byRank[node.equivalentBy] = byEqv;
+    }
+
+    byEqv.push(node);
+  }
+
+  for (var r in nodesByRank) {
+    var byEqv = nodesByRank[r];
+    for (var e in byEqv) {
+      var nodes = byEqv[e];
+      if (nodes.length == 1) {
+        continue;
+      }
+
+      var chosenOne = nodes[0];
+      for (var i = 1; i < nodes.length; i++) {
+        var loser = nodes[i];
+
+        for (var ie in loser._inEdges) {
+          var edge = loser._inEdges[ie];
+          this.addEdge(edge.source.node.id, chosenOne.id, edge.key);
+        }
+
+        for (var oe in loser._outEdges) {
+          var edge = loser._outEdges[oe];
+          this.addEdge(chosenOne.id, edge.target.node.id, edge.key);
+        }
+
+        this.removeNode(loser.id);
+      }
     }
   }
 }
@@ -301,6 +445,7 @@ function Node(opts) {
   this.key = opts.key;
   this.url = opts.url;
   this.svg = opts.svg;
+  this.equivalentBy = opts.equivalentBy;
 
   // DOM element
   this.label = undefined;
@@ -399,45 +544,28 @@ Node.prototype.straightLines = function() {
 }
 
 Node.prototype.column = function() {
-  if (this._inEdges.length == 0 || this.dependsOn(this, [])) {
-    var nextmostRank = Infinity;
-
-    for (var i in this._outEdges) {
-      nextmostRank = Math.min(nextmostRank, this._outEdges[i].target.node.rank() - 1)
-    }
-
-    if (nextmostRank == Infinity) {
-      return 0;
-    }
-
-    return nextmostRank;
-  }
-
   return this.rank();
 };
 
 Node.prototype.rank = function() {
-  if (this._cachedRank != -1) {
-    return this._cachedRank;
-  }
+  return this._cachedRank;
+}
 
-  var rank = -1;
+Node.prototype.rightmostPossibleRank = function() {
+  var rightmostRank;
 
-  for (var i in this._inEdges) {
-    var source = this._inEdges[i].source.node;
+  for (var o in this._outEdges) {
+    var prevTargetNode = this._outEdges[o].target.node;
+    var targetPrecedingRank = prevTargetNode.rank() - 1;
 
-    if (source.dependsOn(this, [])) {
-      continue;
+    if (rightmostRank === undefined) {
+      rightmostRank = targetPrecedingRank;
+    } else {
+      rightmostRank = Math.min(rightmostRank, targetPrecedingRank);
     }
-
-    rank = Math.max(rank, source.rank())
   }
 
-  rank = rank + 1;
-
-  this._cachedRank = rank;
-
-  return rank;
+  return rightmostRank;
 }
 
 Node.prototype.dependsOn = function(node, stack) {
@@ -460,11 +588,6 @@ Node.prototype.dependsOn = function(node, stack) {
   }
 
   return false;
-}
-
-Node.prototype._clearCaches = function() {
-  this._cachedRank = -1;
-  this._cachedPosition = undefined;
 }
 
 function Edge(source, target, key) {
