@@ -187,6 +187,10 @@ function StepModel(origin) {
     return this._map.get("errored");
   }
 
+  this.isSubStep = function() {
+    return !!this.origin().substep;
+  }
+
   this.isSuccessful = function() {
     return this._map.get("successful");
   }
