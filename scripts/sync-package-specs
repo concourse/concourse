@@ -14,7 +14,7 @@ for pkg in fly; do
   popd
 done
 
-for pkg in atc blackbox tsa jettison; do
+for pkg in atc blackbox jettison mattermaster tsa; do
   pushd packages/$pkg
     {
       cat spec | grep -v '# gosub'

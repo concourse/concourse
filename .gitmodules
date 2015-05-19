@@ -166,3 +166,7 @@
 	path = src/github.com/sclevine/agouti
 	url = https://github.com/sclevine/agouti
 	branch = master
+[submodule "src/github.com/concourse/mattermaster"]
+	path = src/github.com/concourse/mattermaster
+	url = https://github.com/concourse/mattermaster
+	branch = master

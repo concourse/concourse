@@ -1,0 +1,8 @@
+---
+name: mattermaster
+
+dependencies:
+  - golang
+
+files:
+  - github.com/concourse/mattermaster/cmd/mattermaster/*.go # gosub
