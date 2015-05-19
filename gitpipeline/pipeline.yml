@@ -28,6 +28,7 @@ jobs:
   - name: some-passing-job
     plan:
       - get: some-git-resource
+        trigger: true
       - task: curl-server
         config:
           platform: linux
@@ -47,6 +48,7 @@ jobs:
   - name: some-failing-job
     plan:
       - get: some-git-resource
+        trigger: true
       - task: curl-server
         config:
           platform: linux
@@ -69,6 +71,7 @@ jobs:
   - name: fancy-build-matrix
     plan:
       - get: some-git-resource
+        trigger: true
       - aggregate:
           - task: passing-unit-1
             config:
