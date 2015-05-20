@@ -31,6 +31,7 @@ jobs:
   public: true
   plan:
   - get: concourse
+    trigger: true
   - aggregate:
     - task: linux
       file: concourse/ci/fly-linux.yml
@@ -43,6 +44,7 @@ jobs:
   public: true
   plan:
   - get: concourse
+    trigger: true
   - task: build
     file: concourse/ci/atc.yml
 
@@ -50,6 +52,7 @@ jobs:
   public: true
   plan:
   - get: concourse
+    trigger: true
   - task: build
     file: concourse/ci/blackbox.yml
 
@@ -57,6 +60,7 @@ jobs:
   public: true
   plan:
   - get: concourse
+    trigger: true
   - task: build
     file: concourse/ci/jettison.yml
 
@@ -64,6 +68,7 @@ jobs:
   public: true
   plan:
   - get: concourse
+    trigger: true
   - task: build
     file: concourse/ci/tsa.yml
 
@@ -71,8 +76,10 @@ jobs:
   public: true
   plan:
   - get: concourse
+    trigger: true
     passed: [atc, fly, blackbox, tsa, jettison]
   - get: version
+    trigger: true
     params: {bump: minor, pre: rc}
   - put: version
     params: {file: version/number}
@@ -81,7 +88,6 @@ jobs:
   public: true
   plan:
   - get: version
-    trigger: false
     params: {bump: major}
   - put: version
     params: {file: version/number}
@@ -91,9 +97,7 @@ jobs:
   plan:
   - aggregate:
     - get: deployments
-      trigger: false
     - get: bosh-lite
-      trigger: false
   - task: build
     privileged: true
     file: deployments/lite/ci/provision-bosh-lite.yml
@@ -107,13 +111,15 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
+      trigger: true
       passed: [rc]
     - get: version
+      trigger: true
       passed: [rc]
     - get: garden-linux-release
+      trigger: true
       resource: garden-linux
     - get: lite-stemcell
-      trigger: false
   - task: build
     privileged: true
     file: concourse/ci/testflight.yml
@@ -124,17 +130,20 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
+      trigger: true
       passed: [testflight]
       params: {fetch: [master]}
     - get: version
+      trigger: true
       passed: [testflight]
     - get: garden-linux-release
+      trigger: true
       passed: [testflight]
       resource: garden-linux
     - get: bosh-stemcell
-      trigger: false
       resource: aws-stemcell
     - get: deployments
+      trigger: true
   - task: build-dev-release
     file: concourse/ci/deploy.yml
   - put: concourse-deployment
@@ -153,18 +162,14 @@ jobs:
   - aggregate:
     - get: concourse
       passed: [deploy]
-      trigger: false
       params: {fetch: [master]}
     - get: version
       passed: [deploy]
-      trigger: false
       params: {bump: final}
     - get: garden-linux-release
       passed: [deploy]
-      trigger: false
       resource: garden-linux
     - get: deployments
-      trigger: false
   - task: create-final-release
     file: concourse/ci/shipit.yml
   - aggregate:
@@ -184,25 +189,24 @@ jobs:
   plan:
   - aggregate:
     - get: final-release
+      trigger: true
       passed: [shipit]
     - get: garden-linux-release
+      trigger: true
       passed: [shipit]
       resource: garden-linux
-    - get: concourse-lite
-      trigger: false
     - get: version
+      trigger: true
       passed: [shipit]
+    - get: concourse-lite
     - get: deployments
-      trigger: false
   - task: build-box
     privileged: true
     file: deployments/buildbox/ci/build-boxes.yml
   - put: virtualbox-box
     params: {from: build-box/concourse-lite/concourse-virtualbox-ubuntu-trusty-(.*).box}
-  - aggregate:
-    - get: virtualbox-box
-    - get: concourse-develop
-      params: {submodules: none}
+  - get: concourse-develop
+    params: {submodules: none}
   - task: build-release-notes
     file: concourse-develop/ci/build-release-notes.yml
     config:
@@ -221,16 +225,17 @@ jobs:
   plan:
   - aggregate:
     - get: final-release
+      trigger: true
       passed: [shipit]
     - get: garden-linux-release
+      trigger: true
       passed: [shipit]
       resource: garden-linux
     - get: version
+      trigger: true
       passed: [shipit]
     - get: concourse-lite
-      trigger: false
     - get: deployments
-      trigger: false
   - task: build-box
     privileged: true
     file: concourse-lite/ci/build-aws.yml
@@ -240,10 +245,8 @@ jobs:
         AWS_SECRET_ACCESS_KEY: {{aws-box-secret-key}}
   - put: aws-box
     params: {from: build-box/concourse-lite/concourse-aws-ubuntu-trusty-(.*).box}
-  - aggregate:
-    - get: aws-box
-    - get: concourse-develop
-      params: {submodules: none}
+  - get: concourse-develop
+    params: {submodules: none}
   - task: build-release-notes
     file: concourse-develop/ci/build-release-notes.yml
     config:
@@ -262,9 +265,9 @@ jobs:
   plan:
   - aggregate:
     - get: version
+      trigger: true
       passed: [shipit]
     - get: concourse-develop
-      trigger: false
       params: {submodules: none}
   - task: build
     file: concourse-develop/ci/build-docs.yml
@@ -281,6 +284,7 @@ jobs:
   serial: true
   plan:
   - get: departures
+    trigger: true
   - put: departures-app
     params:
       current_app_name: departures
@@ -290,14 +294,16 @@ jobs:
   plan:
   - aggregate:
     - get: final-release
+      trigger: true
       passed: [shipit]
     - get: garden-linux
+      trigger: true
       passed: [shipit]
       resource: garden-linux
     - get: version
+      trigger: true
       passed: [shipit]
     - get: concourse-develop
-      trigger: false
       params: {submodules: none}
   - aggregate:
     - task: build-docs
@@ -322,12 +328,16 @@ jobs:
   plan:
   - aggregate:
     - get: p-concourse
+      trigger: true
     - get: final-release
+      trigger: true
       passed: [shipit]
     - get: garden-linux-release
+      trigger: true
       passed: [shipit]
       resource: garden-linux
     - get: version
+      trigger: true
       passed: [shipit]
     - get: vsphere-stemcell
   - task: build
@@ -339,12 +349,14 @@ jobs:
   public: true
   plan:
   - get: hangar
+    trigger: true
   - task: build
     file: hangar/build.yml
 
 - name: publish-houdini
   plan:
   - get: houdini
+    trigger: true
   - task: build-artifacts
     file: houdini/ci/build-artifacts.yml
   - put: houdini-artifacts
