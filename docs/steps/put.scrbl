@@ -19,8 +19,24 @@ plan:
     repository: repo-a
 }|
 
+When the @code{put} succeeds, the produced version of the resource will be
+immediately fetched via an implicit @secref{get-step} step. This is so that
+later steps in your plan can use the artifact that was produced. The source
+will be available under whatever name @code{put} specifies, just like as with
+@code{get}.
+
+So, if the logical name (whatever @code{put} specifies) differs from the
+concrete resource, you would specify @code{resource} as well, like so:
+
+@codeblock["yaml"]|{
+plan:
+- put: resource-image
+  resource: docker-image-resource
+}|
+
 @defthing[put string]{
-  @emph{Required.} The logical name of the resource being pushed.
+  @emph{Required.} The logical name of the resource being pushed. The pushed
+  resource will be available under this name after the push succeeds.
 }
 
 @defthing[resource string]{

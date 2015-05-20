@@ -11,8 +11,8 @@ A build plan is a sequence of @emph{steps} to execute. These steps may fetch
 down or update @seclink["resources"]{Resources}, or execute
 @seclink["tasks"]{Tasks}.
 
-A new build of the job is scheduled whenever any of the resources described
-by the first @seclink["get-step"]{@code{get}} steps have new versions.
+A new build of the job is scheduled whenever @secref{get-step} steps with
+@code{trigger: true} have new versions available.
 
 To visualize the job in the pipeline, resources that appear as @code{get}
 steps are drawn as inputs, and resources that appear in @code{put} steps
@@ -24,6 +24,7 @@ A simple unit test job may look something like:
 name: banana-unit
 plan:
 - get: banana
+  trigger: true
 - task: unit
   file: banana/task.yml
 }|
@@ -34,7 +35,7 @@ the configuration from the @code{task.yml} file fetched from the @code{banana}
 step.
 
 When new versions of @code{banana} are detected, a new build of
-@code{banana-unit} will be scheduled.
+@code{banana-unit} will be scheduled, because we've set @code{trigger: true}.
 
 Jobs can depend on resources that are produced by or pass through upstream
 jobs, by configuring @code{passed: [job-a, job-b]} on the
@@ -50,10 +51,13 @@ name: fruit-basket-integration
 plan:
 - aggregate:
   - get: banana
+    trigger: true
     passed: [banana-unit]
   - get: apple
+    trigger: true
     passed: [apple-unit]
   - get: integration-suite
+    trigger: true
 - task: integration
   file: integration-suite/task.yml
 }|
@@ -77,10 +81,13 @@ name: deliver-food
 plan:
 - aggregate:
   - get: banana
+    trigger: true
     passed: [fruit-basket-integration]
   - get: apple
+    trigger: true
     passed: [fruit-basket-integration]
   - get: baggy
+    trigger: true
 - task: shrink-wrap
   file: baggy/shrink-wrap.yml
 - put: bagged-food

@@ -4,7 +4,8 @@
 
 @title[#:version version #:tag "get-step"]{@code{get}@aux-elem{: fetch a resource}}
 
-Fetches a resource, making it available to subsequent steps via the given name.
+Fetches a resource, making it available to subsequent steps via the given
+name.
 
 For example, the following plan fetches a version number via the
 @code{semver} resource, bumps it to the next release candidate, and
