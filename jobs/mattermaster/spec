@@ -1,0 +1,30 @@
+---
+name: mattermaster
+
+templates:
+  mattermaster_ctl.erb: bin/mattermaster_ctl
+
+packages:
+  - pid_utils
+  - mattermaster
+
+properties:
+  mattermaster.volumes_directory:
+    description: "a path to a directory which should be used for volumes"
+    default: /var/vcap/store/mattermaster/volumes
+
+  mattermaster.listen_addr.address:
+    description: "the host or ip which mattermaster hosts its api on"
+    default: 0.0.0.0
+
+  mattermaster.listen_addr.port:
+    description: "the port which mattermaster hosts its api on"
+    default: 7788
+
+  blackbox.syslog.sources.mattermaster:
+    description: "files whose contents blackbox will emit to its syslog drain"
+    default:
+      - /var/vcap/sys/log/mattermaster/mattermaster.stdout.log
+      - /var/vcap/sys/log/mattermaster/mattermaster.stderr.log
+      - /var/vcap/sys/log/monit/mattermaster_ctl.out.log
+      - /var/vcap/sys/log/monit/mattermaster_ctl.err.log

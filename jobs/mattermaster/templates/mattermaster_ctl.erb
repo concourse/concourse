@@ -1,0 +1,45 @@
+#!/bin/bash
+# vim: set ft=sh
+
+RUN_DIR=/var/vcap/sys/run/mattermaster
+LOG_DIR=/var/vcap/sys/log/mattermaster
+PIDFILE=$RUN_DIR/mattermaster.pid
+
+source /var/vcap/packages/pid_utils/pid_utils.sh
+
+case $1 in
+
+  start)
+    pid_guard $PIDFILE "mattermaster"
+
+    mkdir -p $RUN_DIR
+    chown -R vcap:vcap $RUN_DIR
+
+    mkdir -p $LOG_DIR
+    chown -R vcap:vcap $LOG_DIR
+
+    mkdir -p <%= p("mattermaster.volumes_directory") %>
+    chown vcap:vcap <%= p("mattermaster.volumes_directory") %>
+
+    echo $$ > $PIDFILE
+
+    exec chpst -u vcap:vcap /var/vcap/packages/mattermaster/bin/mattermaster \
+      -volumeDir <%= p("mattermaster.volumes_directory") %> \
+      -listenAddress <%= p("mattermaster.listen_addr.address") %> \
+      -listenPort <%= p("mattermaster.listen_addr.port") %> \
+      1>>$LOG_DIR/mattermaster.stdout.log \
+      2>>$LOG_DIR/mattermaster.stderr.log
+
+    ;;
+
+  stop)
+    kill_and_wait $PIDFILE
+
+    ;;
+
+  *)
+    echo "Usage: $0 {start|stop}"
+
+    ;;
+
+esac
