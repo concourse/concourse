@@ -39,14 +39,13 @@ type PutPlan struct {
 	Pipeline  string `json:"pipeline"`
 	Source    Source `json:"source"`
 	Params    Params `json:"params,omitempty"`
-	GetName   string `json:"get,omitempty"`
 	GetParams Params `json:"get_params,omitempty"`
 }
 
 func (plan PutPlan) GetPlan() GetPlan {
 	return GetPlan{
 		Type:     plan.Type,
-		Name:     plan.GetName,
+		Name:     plan.Name,
 		Resource: plan.Resource,
 		Pipeline: plan.Pipeline,
 		Source:   plan.Source,

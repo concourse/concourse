@@ -21,7 +21,6 @@ var _ = Describe("Plan", func() {
 				Params: atc.Params{
 					"resource": "params",
 				},
-				GetName: "resource-getname",
 				GetParams: atc.Params{
 					"resource": "get-params",
 				},
@@ -29,7 +28,7 @@ var _ = Describe("Plan", func() {
 
 			getPlan := atc.GetPlan{
 				Type:     "resource-type",
-				Name:     "resource-getname",
+				Name:     "resource-name",
 				Resource: "resource-resource",
 				Pipeline: "resource-pipeline",
 				Source: atc.Source{

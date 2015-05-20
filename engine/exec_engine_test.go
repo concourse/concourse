@@ -101,11 +101,11 @@ var _ = Describe("ExecEngine", func() {
 					PutGet: &atc.PutGetPlan{
 						Head: atc.Plan{
 							Put: &atc.PutPlan{
+								Name:      "some-put",
 								Resource:  "some-output-resource",
 								Type:      "some-type",
 								Source:    atc.Source{"some": "source"},
 								Params:    atc.Params{"some": "params"},
-								GetName:   "some-get",
 								GetParams: atc.Params{"another": "params"},
 							},
 						},
@@ -254,7 +254,7 @@ var _ = Describe("ExecEngine", func() {
 				Ω(workerID).Should(Equal(worker.Identifier{
 					BuildID:      42,
 					Type:         worker.ContainerTypeGet,
-					Name:         "some-get",
+					Name:         "some-put",
 					StepLocation: []uint{2, 1},
 				}))
 
@@ -264,7 +264,7 @@ var _ = Describe("ExecEngine", func() {
 				Ω(location).Should(Equal(event.OriginLocation{2, 1}))
 				Ω(substep).Should(BeTrue())
 
-				Ω(sourceName).Should(Equal(exec.SourceName("some-get")))
+				Ω(sourceName).Should(Equal(exec.SourceName("some-put")))
 				Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
 				Ω(resourceConfig.Type).Should(Equal("some-type"))
 				Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))

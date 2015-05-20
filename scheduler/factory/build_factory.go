@@ -140,26 +140,22 @@ func (factory *BuildFactory) constructPlanFromConfig(
 		)
 
 	case planConfig.Put != "":
+		logicalName := planConfig.Put
+
 		resourceName := planConfig.Resource
 		if resourceName == "" {
-			resourceName = planConfig.Put
-		}
-
-		getName := planConfig.Get
-		if getName == "" {
-			getName = planConfig.Put
+			resourceName = logicalName
 		}
 
 		resource, _ := resources.Lookup(resourceName)
 
 		putPlan := &atc.PutPlan{
 			Type:      resource.Type,
-			Name:      planConfig.Put,
+			Name:      logicalName,
 			Pipeline:  factory.PipelineName,
 			Resource:  resourceName,
 			Source:    resource.Source,
 			Params:    planConfig.Params,
-			GetName:   getName,
 			GetParams: planConfig.GetParams,
 		}
 
