@@ -76,4 +76,10 @@ semantics of @secref{put-step} and @secref{get-step} within build plans.
     Note that, given the first change, this is the only way for new versions
     to appear in the middle of a build plan.
   }
+
+  @item{
+    The rendering of the pipeline graph has been improved; the algorithm now
+    closes gaps between jobs by shifting them as far to the right as possible.
+    This prevents input lines from meandering across the UI.
+  }
 ]
