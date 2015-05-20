@@ -5,6 +5,7 @@ groups:
   - blackbox
   - deploy
   - fly
+  - mattermaster
   - jettison
   - tsa
   - major
@@ -48,6 +49,14 @@ jobs:
   - task: build
     file: concourse/ci/atc.yml
 
+- name: mattermaster
+  public: true
+  plan:
+  - get: concourse
+    trigger: true
+  - task: build
+    file: concourse/ci/mattermaster.yml
+
 - name: blackbox
   public: true
   plan:
@@ -77,7 +86,7 @@ jobs:
   plan:
   - get: concourse
     trigger: true
-    passed: [atc, fly, blackbox, tsa, jettison]
+    passed: [atc, fly, blackbox, tsa, jettison, mattermaster]
   - get: version
     trigger: true
     params: {bump: minor, pre: rc}
