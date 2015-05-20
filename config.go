@@ -320,7 +320,7 @@ func collectInputs(plan PlanConfig) []JobInput {
 		return inputs
 	}
 
-	if plan.Get != "" {
+	if plan.Get != "" && plan.Put == "" {
 		get := plan.Get
 
 		resource := get

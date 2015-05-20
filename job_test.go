@@ -137,7 +137,7 @@ var _ = Describe("JobConfig", func() {
 						{
 							Aggregate: &PlanSequence{
 								{Get: "a"},
-								{Put: "x"},
+								{Put: "x", Get: "y"},
 								{Get: "b", Resource: "some-resource", Passed: []string{"x"}},
 								{Get: "c", Trigger: true},
 							},
