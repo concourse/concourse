@@ -22,9 +22,10 @@ jobs:
   public: true
   plan:
   - get: git-resource
-  - put: git-resource-image
+    trigger: true
+  - put: resource-image
+    resource: git-resource-image
     params: {build: git-resource}
-    get: resource-image
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -40,9 +41,10 @@ jobs:
   public: true
   plan:
   - get: docker-image-resource
-  - put: docker-image-resource-image
+    trigger: true
+  - put: resource-image
+    resource: docker-image-resource-image
     params: {build: docker-image-resource}
-    get: resource-image
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -58,11 +60,12 @@ jobs:
   public: true
   plan:
   - get: time-resource
+    trigger: true
   - task: unit
     file: time-resource/build.yml
-  - put: time-resource-image
+  - put: resource-image
+    resource: time-resource-image
     params: {build: unit/gopath/src/github.com/concourse/time-resource}
-    get: resource-image
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -78,11 +81,12 @@ jobs:
   public: true
   plan:
   - get: archive-resource
+    trigger: true
   - task: unit
     file: archive-resource/build.yml
-  - put: archive-resource-image
+  - put: resource-image
+    resource: archive-resource-image
     params: {build: unit/build-root}
-    get: resource-image
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -98,11 +102,12 @@ jobs:
   public: true
   plan:
   - get: bosh-deployment-resource
+    trigger: true
   - task: unit
     file: bosh-deployment-resource/build.yml
-  - put: bosh-deployment-resource-image
+  - put: resource-image
+    resource: bosh-deployment-resource-image
     params: {build: bosh-deployment-resource}
-    get: resource-image
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -117,6 +122,7 @@ jobs:
   serial: true
   plan:
   - get: broker-resource
+    trigger: true
   - task: unit
     file: broker-resource/build.yml
 
@@ -125,11 +131,12 @@ jobs:
   public: true
   plan:
   - get: s3-resource
+    trigger: true
   - task: unit
     file: s3-resource/build.yml
-  - put: s3-resource-image
+  - put: resource-image
+    resource: s3-resource-image
     params: {build: unit/gopath/src/github.com/concourse/s3-resource}
-    get: resource-image
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -145,11 +152,12 @@ jobs:
   public: true
   plan:
   - get: github-release-resource
+    trigger: true
   - task: unit
     file: github-release-resource/build.yml
-  - put: github-release-resource-image
+  - put: resource-image
+    resource: github-release-resource-image
     params: {build: unit/gopath/src/github.com/concourse/github-release-resource}
-    get: resource-image
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -166,16 +174,19 @@ jobs:
   plan:
   - aggregate:
     - get: cf-resource
+      trigger: true
     - get: cf-cli
+      trigger: true
     - get: autopilot
+      trigger: true
   - aggregate:
     - task: autopilot-unit
       file: autopilot/build.yml
     - task: resource-unit
       file: cf-resource/build.yml
-  - put: cf-resource-image
+  - put: resource-image
+    resource: cf-resource-image
     params: {build: resource-unit/gopath/src/github.com/concourse/cf-resource}
-    get: resource-image
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -191,6 +202,7 @@ jobs:
   public: false # easy to leak bucket params
   plan:
   - get: semver-resource
+    trigger: true
   - task: unit
     file: semver-resource/build.yml
     config:
@@ -199,9 +211,9 @@ jobs:
         SEMVER_TESTING_SECRET_ACCESS_KEY: {{semver-secret-key}}
         SEMVER_TESTING_BUCKET: {{semver-bucket}}
         SEMVER_TESTING_REGION: {{semver-region}}
-  - put: semver-resource-image
+  - put: resource-image
+    resource: semver-resource-image
     params: {build: unit/gopath/src/github.com/concourse/semver-resource}
-    get: resource-image
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -217,9 +229,10 @@ jobs:
   public: true
   plan:
   - get: bosh-io-release-resource
-  - put: bosh-io-release-resource-image
+    trigger: true
+  - put: resource-image
+    resource: bosh-io-release-resource-image
     params: {build: bosh-io-release-resource}
-    get: resource-image
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -235,9 +248,10 @@ jobs:
   public: true
   plan:
   - get: bosh-io-stemcell-resource
-  - put: bosh-io-stemcell-resource-image
+    trigger: true
+  - put: resource-image
+    resource: bosh-io-stemcell-resource-image
     params: {build: bosh-io-stemcell-resource}
-    get: resource-image
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -253,11 +267,12 @@ jobs:
   public: true
   plan:
   - get: tracker-resource
+    trigger: true
   - task: unit
     file: tracker-resource/build.yml
-  - put: tracker-resource-image
+  - put: resource-image
+    resource: tracker-resource-image
     params: {build: unit/build-root}
-    get: resource-image
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -273,9 +288,10 @@ jobs:
   public: true
   plan:
   - get: vagrant-cloud-resource
-  - put: vagrant-cloud-resource-image
+    trigger: true
+  - resource: resource-image
+    put: vagrant-cloud-resource-image
     params: {build: vagrant-cloud-resource}
-    get: resource-image
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
