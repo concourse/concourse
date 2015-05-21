@@ -27,8 +27,8 @@ vagrant up                  # downloads the box and spins up the VM
 
 The web server will be running at @hyperlink["http://192.168.100.4:8080"]{192.168.100.4:8080}.
 
-Next, download the Fly CLI from the @hyperlink["http://192.168.100.4:8080"]{main page}.
-There are links to binaries for common platforms at the bottom right.
+Next, download the Fly CLI from the @hyperlink["http://192.168.100.4:8080"]{main page} where 
+there are links to binaries for common platforms.
 
 @margin-note{
   If you're on Linux or OS X, you will have to @code{chmod +x} the downloaded
