@@ -459,25 +459,6 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			Context("when an aggregate step has a member who has no name", func() {
-				BeforeEach(func() {
-					job.Plan = append(job.Plan, atc.PlanConfig{
-						Aggregate: &atc.PlanSequence{
-							{Aggregate: &atc.PlanSequence{}},
-						},
-					})
-
-					config.Jobs = append(config.Jobs, job)
-				})
-
-				It("returns an error", func() {
-					Ω(validateErr).Should(HaveOccurred())
-					Ω(validateErr.Error()).Should(ContainSubstring(
-						"jobs.some-other-job.plan[0].aggregate[0] has no name",
-					))
-				})
-			})
-
 			Context("when a job's input's passed constraints reference a bogus job", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, atc.PlanConfig{

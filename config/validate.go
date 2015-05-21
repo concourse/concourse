@@ -233,10 +233,6 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 		for i, plan := range *plan.Aggregate {
 			subIdentifier := fmt.Sprintf("%s.aggregate[%d]", identifier, i)
 			errorMessages = append(errorMessages, validatePlan(c, subIdentifier, plan)...)
-
-			if plan.Name() == "" {
-				errorMessages = append(errorMessages, subIdentifier+" has no name")
-			}
 		}
 
 		return errorMessages
