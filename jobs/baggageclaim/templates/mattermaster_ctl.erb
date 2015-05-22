@@ -1,0 +1,45 @@
+#!/bin/bash
+# vim: set ft=sh
+
+RUN_DIR=/var/vcap/sys/run/baggageclaim
+LOG_DIR=/var/vcap/sys/log/baggageclaim
+PIDFILE=$RUN_DIR/baggageclaim.pid
+
+source /var/vcap/packages/pid_utils/pid_utils.sh
+
+case $1 in
+
+  start)
+    pid_guard $PIDFILE "baggageclaim"
+
+    mkdir -p $RUN_DIR
+    chown -R vcap:vcap $RUN_DIR
+
+    mkdir -p $LOG_DIR
+    chown -R vcap:vcap $LOG_DIR
+
+    mkdir -p <%= p("baggageclaim.volumes_directory") %>
+    chown vcap:vcap <%= p("baggageclaim.volumes_directory") %>
+
+    echo $$ > $PIDFILE
+
+    exec chpst -u vcap:vcap /var/vcap/packages/baggageclaim/bin/baggageclaim \
+      -volumeDir <%= p("baggageclaim.volumes_directory") %> \
+      -listenAddress <%= p("baggageclaim.listen_addr.address") %> \
+      -listenPort <%= p("baggageclaim.listen_addr.port") %> \
+      1>>$LOG_DIR/baggageclaim.stdout.log \
+      2>>$LOG_DIR/baggageclaim.stderr.log
+
+    ;;
+
+  stop)
+    kill_and_wait $PIDFILE
+
+    ;;
+
+  *)
+    echo "Usage: $0 {start|stop}"
+
+    ;;
+
+esac

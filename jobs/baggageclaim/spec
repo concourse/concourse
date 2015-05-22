@@ -1,0 +1,30 @@
+---
+name: baggageclaim
+
+templates:
+  baggageclaim_ctl.erb: bin/baggageclaim_ctl
+
+packages:
+  - pid_utils
+  - baggageclaim
+
+properties:
+  baggageclaim.volumes_directory:
+    description: "a path to a directory which should be used for volumes"
+    default: /var/vcap/store/baggageclaim/volumes
+
+  baggageclaim.listen_addr.address:
+    description: "the host or ip which baggageclaim hosts its api on"
+    default: 0.0.0.0
+
+  baggageclaim.listen_addr.port:
+    description: "the port which baggageclaim hosts its api on"
+    default: 7788
+
+  blackbox.syslog.sources.baggageclaim:
+    description: "files whose contents blackbox will emit to its syslog drain"
+    default:
+      - /var/vcap/sys/log/baggageclaim/baggageclaim.stdout.log
+      - /var/vcap/sys/log/baggageclaim/baggageclaim.stderr.log
+      - /var/vcap/sys/log/monit/baggageclaim_ctl.out.log
+      - /var/vcap/sys/log/monit/baggageclaim_ctl.err.log

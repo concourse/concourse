@@ -1,5 +1,0 @@
-check process mattermaster
-  with pidfile /var/vcap/sys/run/mattermaster/mattermaster.pid
-  start program "/var/vcap/jobs/mattermaster/bin/mattermaster_ctl start"
-  stop program "/var/vcap/jobs/mattermaster/bin/mattermaster_ctl stop"
-  group vcap

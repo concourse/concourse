@@ -1,0 +1,34 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -x
+
+export GOPATH=$PWD/concourse
+export PATH=$GOPATH/bin:$PATH
+
+go install github.com/onsi/ginkgo/ginkgo
+
+cd ${GOPATH}/src/github.com/concourse/baggageclaim
+
+# wire up virtualbox capabilities
+function containers_gone_wild() {
+  # disabled while we've switched to garden-systemd
+  # # permit usage of vboxdrv node by tacking it into our own cgroup
+  mkdir /tmp/devices-cgroup
+  mount -t cgroup -o devices none /tmp/devices-cgroup
+
+  echo 'a' > /tmp/devices-cgroup/instance-$(hostname)/devices.allow
+
+  # create loopback device
+  mknod -m 0660 /dev/loop64 b 7 64
+}
+
+function salt_earth() {
+  losetup -d /dev/loop64 > /dev/null 2>&1 || true
+}
+
+containers_gone_wild
+
+trap salt_earth EXIT
+
+ginkgo -r -race -p --failOnPending --randomizeAllSpecs "$@"
