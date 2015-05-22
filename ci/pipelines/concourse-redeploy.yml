@@ -46,7 +46,7 @@ jobs:
       trigger: false
   - put: concourse-deployment
     params:
-      manifest: {{concourse-config.manifest-location}}
+      manifest: {{concourse-config-manifest-location}}
       releases:
         - concourse-release/concourse-*.tgz
         - concourse-release/garden-linux-*.tgz
