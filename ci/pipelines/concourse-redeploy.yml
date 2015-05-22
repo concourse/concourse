@@ -25,10 +25,6 @@ resources:
   source:
     name: {{stemcell}}
 
-# A stemcell update will force the workers to restart
-# and will result in a failed build.
-# However, the bosh deploy will actually succeed.
-# Attempting it a second time should result in a (successful) no-op
 jobs:
 - name: deploy-concourse
   serial: true
