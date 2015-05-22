@@ -69,14 +69,12 @@ plan:
 }
 
 @defthing[trigger boolean]{
-  @emph{Optional. Default @code{true}.} Normally, when any of a job's
-  dependent resources have new versions, a new build of the job is triggered.
+  @emph{Optional. Default @code{false}.} Set to @code{true} to auto-trigger
+  new builds of the plan's job whenever this step has new versions available,
+  as specified by the @code{resource} and any @code{passed} constraints.
 
-  Setting this to @code{false} effectively makes it so that if the only
-  changed resource is this one (or other resources with @code{trigger}
-  disabled), the job should not trigger.
-
-  The job can still be manually triggered.
+  Otherwise, if no @code{get} steps set this to @code{true}, the job can only
+  be manually triggered.
 }
 
 @inject-analytics[]
