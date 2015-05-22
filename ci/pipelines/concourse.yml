@@ -55,6 +55,7 @@ jobs:
   - get: concourse
     trigger: true
   - task: build
+    privileged: true
     file: concourse/ci/baggageclaim.yml
 
 - name: blackbox
