@@ -1,14 +1,9 @@
-groups:
-- name: concourse
-  jobs:
-  - deploy-concourse
-
 resources:
 - name: concourse-config
   type: git
   source:
-    private_key: {{concourse_config_private_key}}
-    uri: {{concourse_config_git_url}}
+    private_key: {{concourse-config-private-key}}
+    uri: {{concourse-config-git-url}}
 
 - name: concourse-release
   type: github-release
@@ -19,16 +14,16 @@ resources:
 - name: concourse-deployment
   type: bosh-deployment
   source:
-    target: {{concourse_deployment_bosh_target}}
-    username: {{concourse_deployment_bosh_username}}
-    password: {{concourse_deployment_bosh_password}}
-    deployment: {{concourse_deployment_bosh_deployment}}
-    ignore_ssl: {{concourse_deployment_bosh_ignore_ssl}}
+    target: {{concourse-deployment-bosh-target}}
+    username: {{concourse-deployment-bosh-username}}
+    password: {{concourse-deployment-bosh-password}}
+    deployment: {{concourse-deployment-bosh-deployment}}
+    ignore_ssl: {{concourse-deployment-bosh-ignore-ssl}}
 
-- name: aws-stemcell
+- name: stemcell
   type: bosh-io-stemcell
   source:
-    name: bosh-aws-xen-hvm-ubuntu-trusty-go_agent
+    name: {{stemcell}}
 
 # A stemcell update will force the workers to restart
 # and will result in a failed build.
@@ -47,16 +42,13 @@ jobs:
         - garden-linux-*.tgz
     - get: concourse-config
       trigger: true
-    - get: aws-stemcell
+    - get: stemcell
       trigger: false
   - put: concourse-deployment
-    params: &concourse_deployment_params
-      manifest: {{concourse_config.manifest_location}}
+    params:
+      manifest: {{concourse-config.manifest-location}}
       releases:
         - concourse-release/concourse-*.tgz
         - concourse-release/garden-linux-*.tgz
       stemcells:
-        - aws-stemcell/*.tgz
-  - put: concourse-deployment
-    conditions: [failure]
-    params: *concourse_deployment_params
+        - stemcell/*.tgz
