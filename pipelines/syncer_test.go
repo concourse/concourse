@@ -29,8 +29,6 @@ var _ = Describe("Pipelines Syncer", func() {
 		otherFakeRunner    *fake_runner.FakeRunner
 
 		syncer *Syncer
-
-		// runningPipelines map[string]ifrit.Process
 	)
 
 	BeforeEach(func() {
@@ -106,6 +104,31 @@ var _ = Describe("Pipelines Syncer", func() {
 		Ω(otherFakeRunner.RunCallCount()).Should(Equal(1))
 	})
 
+	Context("when a pipeline is paused", func() {
+		BeforeEach(func() {
+			pipelinesDB.GetAllActivePipelinesReturns([]db.SavedPipeline{
+				{
+					ID: 1,
+					Pipeline: db.Pipeline{
+						Name: "pipeline",
+					},
+				},
+				{
+					ID:     2,
+					Paused: true,
+					Pipeline: db.Pipeline{
+						Name: "other-pipeline",
+					},
+				},
+			}, nil)
+		})
+
+		It("does not spawn a process for it", func() {
+			Ω(fakeRunner.RunCallCount()).Should(Equal(1))
+			Ω(otherFakeRunner.RunCallCount()).Should(Equal(0))
+		})
+	})
+
 	Context("when we sync again", func() {
 		It("does not spawn any processes again", func() {
 			syncer.Sync()
@@ -114,12 +137,41 @@ var _ = Describe("Pipelines Syncer", func() {
 	})
 
 	Context("when a pipeline is deleted", func() {
-		It("exits the process", func() {
-
+		It("stops the process", func() {
 			Ω(fakeRunner.RunCallCount()).Should(Equal(1))
 			Ω(otherFakeRunner.RunCallCount()).Should(Equal(1))
 
 			pipelinesDB.GetAllActivePipelinesReturns([]db.SavedPipeline{
+				{
+					ID: 2,
+					Pipeline: db.Pipeline{
+						Name: "other-pipeline",
+					},
+				},
+			}, nil)
+
+			syncer.Sync()
+
+			Ω(fakeRunner.RunCallCount()).Should(Equal(1))
+
+			signals, _ := fakeRunner.RunArgsForCall(0)
+			Eventually(signals).Should(Receive(Equal(os.Interrupt)))
+		})
+	})
+
+	Context("when a pipeline is paused", func() {
+		It("stops the process", func() {
+			Ω(fakeRunner.RunCallCount()).Should(Equal(1))
+			Ω(otherFakeRunner.RunCallCount()).Should(Equal(1))
+
+			pipelinesDB.GetAllActivePipelinesReturns([]db.SavedPipeline{
+				{
+					ID:     1,
+					Paused: true,
+					Pipeline: db.Pipeline{
+						Name: "pipeline",
+					},
+				},
 				{
 					ID: 2,
 					Pipeline: db.Pipeline{

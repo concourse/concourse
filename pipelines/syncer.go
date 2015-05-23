@@ -63,6 +63,10 @@ func (syncer *Syncer) Sync() {
 
 		var found bool
 		for _, pipeline := range pipelines {
+			if pipeline.Paused {
+				continue
+			}
+
 			if pipeline.Name == name {
 				found = true
 			}
@@ -74,7 +78,7 @@ func (syncer *Syncer) Sync() {
 	}
 
 	for _, pipeline := range pipelines {
-		if syncer.isPipelineRunning(pipeline.Name) {
+		if pipeline.Paused || syncer.isPipelineRunning(pipeline.Name) {
 			continue
 		}
 
