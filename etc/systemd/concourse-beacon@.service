@@ -4,6 +4,7 @@ Description=Concourse Beacon for %I
 [Service]
 ExecStart=/usr/sbin/concourse-beacon %I
 Restart=always
+StartLimitInterval=0
 
 [Install]
 WantedBy=multi-user.target
