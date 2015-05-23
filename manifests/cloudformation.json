@@ -101,30 +101,20 @@
             "IpProtocol": "tcp",
             "FromPort": "25555",
             "ToPort": "25555"
+          },
+          {
+            "SourceSecurityGroupId": { "Ref": "InternalSecurityGroup" },
+            "IpProtocol": "tcp",
+            "FromPort": "0",
+            "ToPort": "65535"
+          },
+          {
+            "SourceSecurityGroupId": { "Ref": "InternalSecurityGroup" },
+            "IpProtocol": "udp",
+            "FromPort": "0",
+            "ToPort": "65535"
           }
         ]
-      }
-    },
-
-    "BOSHSecurityGroupSelfTCPIngress": {
-      "Type": "AWS::EC2::SecurityGroupIngress",
-      "Properties": {
-        "GroupId": { "Ref": "BOSHSecurityGroup" },
-        "SourceSecurityGroupId": { "Ref": "BOSHSecurityGroup" },
-        "IpProtocol": "tcp",
-        "FromPort": "0",
-        "ToPort": "25555"
-      }
-    },
-
-    "BOSHSecurityGroupSelfUDPIngress": {
-      "Type": "AWS::EC2::SecurityGroupIngress",
-      "Properties": {
-        "GroupId": { "Ref": "BOSHSecurityGroup" },
-        "SourceSecurityGroupId": { "Ref": "BOSHSecurityGroup" },
-        "IpProtocol": "udp",
-        "FromPort": "0",
-        "ToPort": "25555"
       }
     },
 
