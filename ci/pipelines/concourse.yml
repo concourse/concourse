@@ -51,6 +51,7 @@ jobs:
 
 - name: baggageclaim
   public: true
+  serial: true
   plan:
   - get: concourse
     trigger: true
