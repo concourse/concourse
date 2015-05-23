@@ -82,4 +82,26 @@ semantics of @secref{put-step} and @secref{get-step} within build plans.
     closes gaps between jobs by shifting them as far to the right as possible.
     This prevents input lines from meandering across the UI.
   }
+
+  @item{
+    The
+    @hyperlink["https://github.com/concourse/docker-image-resource"]{Docker
+    Image resource} now supports tagging images from a file, rather than
+    a fixed tag. This is useful for creating images based on upstream
+    versioned artifacts.
+  }
+
+  @item{
+    The
+    @hyperlink["https://github.com/concourse/docker-image-resource"]{Docker
+    Image resource} can now be used to push to a private registry with no
+    auth.
+  }
+
+  @item{
+    The
+    @hyperlink["https://github.com/concourse/docker-image-resource"]{Docker
+    Image resource} can now be configured with @code{server_args}, to inject
+    arguments to the daemon, e.g. @code{--insecure-registry}.
+  }
 ]
