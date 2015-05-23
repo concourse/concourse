@@ -23,12 +23,8 @@ A resource type is implemented by a container image with three scripts:
 Distributing resource types as containers allows them to package their own
 dependencies. For example, the Git resource comes with @code{git} installed.
 
-If a resource will only ever be used for generating output (for example, code
-coverage), it's reasonable to only implement @code{out}. This will work just
-fine so long as no one tries to use it as an input.
-
-For use as an input, a resource should always implement @code{in} and
-@code{check} together.
+All resources must implement all three actions, though the actions can just be
+no-ops (which still must be correctly implemented as detailed below).
 
 @section{@code{check}@aux-elem{: Check for new versions.}}
 
@@ -80,19 +76,17 @@ The list may be empty, if the given version is already the latest.
 @section{@code{in}@aux-elem{: Fetch a given resource.}}
 
 The @code{in} script is passed a destination directory as @code{$1}, and
-is given on stdin the configured source and, optionally, a precise version of
-the resource to fetch.
+is given on stdin the configured source and a precise version of the resource
+to fetch.
 
 The script must fetch the resource and place it in the given directory.
 
-Because the input may not specify a version, the @code{in} script must print
-out the version that it fetched. This allows the upstream to not have to perform
-@code{check} before @code{in}, which can be slow (for git it implies two
-clones).
+If the desired resource version is unavailable (for example, if it was
+deleted), the script must error.
 
-Additionally, the script may emit metadata as a list of key-value pairs. This
-data is intended for public consumption and will make it upstream, intended to
-be shown on the build's page.
+The script must emit the fetched version, and may emit metadata as a list of
+key-value pairs. This data is intended for public consumption and will make it
+upstream, intended to be shown on the build's page.
 
 Example input, in this case for the @code{git} resource:
 
@@ -106,8 +100,6 @@ Example input, in this case for the @code{git} resource:
   "version": { "ref": "61cebf" }
 }
 }|
-
-Note that the @code{version} may be @code{null}.
 
 Upon receiving this payload the @code{git} resource would probably do
 something like:
@@ -135,8 +127,7 @@ And output:
 
 The @code{out} script is called with a path to the directory containing the
 build's full set of sources as the first argument, and is given on stdin the
-configured params and the resource's source information. The source directory
-is as it was at the end of the build.
+configured params and the resource's source configuration.
 
 The script must emit the resulting version of the resource. For example, the
 @code{git} resource emits the sha of the commit that it just pushed.
