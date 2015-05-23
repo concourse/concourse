@@ -19,6 +19,12 @@ var currentHighlight;
 
 function drawContinuously(svg, groups) {
   draw(groups, function(jobs, resources) {
+    // reset viewbox so calculations are done from a blank slate.
+    //
+    // without this text and boxes jump around on every redraw,
+    // in affected browsers (seemingly anything but Chrome + OS X).
+    d3.select(svg.node().parentNode).attr("viewBox", "")
+
     var graph = createGraph(svg, groups, jobs, resources);
 
     svg.selectAll("g.edge").remove();
