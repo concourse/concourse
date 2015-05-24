@@ -1,0 +1,16 @@
+# atc
+
+*air traffic control - web ui and build scheduler*
+
+![Air Traffic Control](https://farm6.staticflickr.com/5605/15405605898_7ba5062618_d.jpg)
+
+[by](https://creativecommons.org/licenses/by-nc-nd/2.0/) [NATS Press Office](https://www.flickr.com/photos/natspressoffice/)
+
+## about
+
+*atc* is the brain of Concourse. It's responsible for scheduling builds across
+the cluster of workers, providing the API for the system, as well as serving
+the web interface.
+
+It can be scaled horizontally behind a load balancer in order to scale the
+system.
