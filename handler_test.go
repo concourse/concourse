@@ -16,6 +16,14 @@ import (
 )
 
 var _ = Describe("BasicAuthHandler", func() {
+	username := "username"
+	password := "password"
+
+	var validator auth.Validator
+
+	var server *httptest.Server
+	var client *http.Client
+
 	simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		buffer := bytes.NewBufferString("simple ")
 
@@ -23,102 +31,118 @@ var _ = Describe("BasicAuthHandler", func() {
 		io.Copy(w, r.Body)
 	})
 
-	var server *httptest.Server
-	var client *http.Client
-	username := "username"
-	password := "password"
-
-	BeforeEach(func() {
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
-		Ω(err).ShouldNot(HaveOccurred())
-
-		authHandler := auth.Handler{
-			Handler: simpleHandler,
-			Validator: auth.BasicAuthHashedValidator{
-				Username:       username,
-				HashedPassword: string(hashedPassword),
-			},
-		}
-
-		server = httptest.NewServer(authHandler)
-
-		client = &http.Client{
-			Transport: &http.Transport{},
-		}
-	})
-
-	AfterEach(func() {
-		server.Close()
-	})
-
-	Context("with the correct credentials", func() {
-		var request *http.Request
-		var response *http.Response
-
+	itAuthenticates := func() {
 		BeforeEach(func() {
-			var err error
+			authHandler := auth.Handler{
+				Handler:   simpleHandler,
+				Validator: validator,
+			}
 
-			request, err = http.NewRequest("GET", server.URL, bytes.NewBufferString("hello"))
-			Ω(err).ShouldNot(HaveOccurred())
+			server = httptest.NewServer(authHandler)
+
+			client = &http.Client{
+				Transport: &http.Transport{},
+			}
 		})
 
-		JustBeforeEach(func() {
-			var err error
-
-			response, err = client.Do(request)
-			Ω(err).ShouldNot(HaveOccurred())
+		AfterEach(func() {
+			server.Close()
 		})
 
-		Context("via standard basic auth", func() {
+		Context("with the correct credentials", func() {
+			var request *http.Request
+			var response *http.Response
+
 			BeforeEach(func() {
-				request.SetBasicAuth(username, password)
+				var err error
+
+				request, err = http.NewRequest("GET", server.URL, bytes.NewBufferString("hello"))
+				Ω(err).ShouldNot(HaveOccurred())
 			})
 
-			It("returns 200", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+			JustBeforeEach(func() {
+				var err error
+
+				response, err = client.Do(request)
+				Ω(err).ShouldNot(HaveOccurred())
 			})
 
-			It("proxies to the handler", func() {
+			Context("via standard basic auth", func() {
+				BeforeEach(func() {
+					request.SetBasicAuth(username, password)
+				})
+
+				It("returns 200", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				})
+
+				It("proxies to the handler", func() {
+					responseBody, err := ioutil.ReadAll(response.Body)
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(string(responseBody)).Should(Equal("simple hello"))
+				})
+			})
+		})
+
+		Context("with incorrect credentials", func() {
+			It("returns 401", func() {
+				requestBody := bytes.NewBufferString("hello")
+				request, err := http.NewRequest("GET", server.URL, requestBody)
+				Ω(err).ShouldNot(HaveOccurred())
+				request.SetBasicAuth(username, "wrong")
+
+				response, err := client.Do(request)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Ω(response.Header.Get("WWW-Authenticate")).Should(Equal(`Basic realm="Restricted"`))
+
 				responseBody, err := ioutil.ReadAll(response.Body)
 				Ω(err).ShouldNot(HaveOccurred())
-				Ω(string(responseBody)).Should(Equal("simple hello"))
+				Ω(string(responseBody)).Should(Equal("not authorized"))
 			})
 		})
+
+		Context("with no credentials", func() {
+			It("returns 401", func() {
+				requestBody := bytes.NewBufferString("hello")
+				request, err := http.NewRequest("GET", server.URL, requestBody)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				response, err := client.Do(request)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Ω(response.Header.Get("WWW-Authenticate")).Should(Equal(`Basic realm="Restricted"`))
+
+				responseBody, err := ioutil.ReadAll(response.Body)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(string(responseBody)).Should(Equal("not authorized"))
+			})
+		})
+	}
+
+	Context("with a username + hashed password validator", func() {
+		BeforeEach(func() {
+			hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			validator = auth.BasicAuthHashedValidator{
+				Username:       username,
+				HashedPassword: string(hashedPassword),
+			}
+		})
+
+		itAuthenticates()
 	})
 
-	Context("with incorrect credentials", func() {
-		It("returns 401", func() {
-			requestBody := bytes.NewBufferString("hello")
-			request, err := http.NewRequest("GET", server.URL, requestBody)
-			Ω(err).ShouldNot(HaveOccurred())
-			request.SetBasicAuth(username, "wrong")
-
-			response, err := client.Do(request)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
-			Ω(response.Header.Get("WWW-Authenticate")).Should(Equal(`Basic realm="Restricted"`))
-
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(string(responseBody)).Should(Equal("not authorized"))
+	Context("with a username + plaintext password validator", func() {
+		BeforeEach(func() {
+			validator = auth.BasicAuthValidator{
+				Username: username,
+				Password: password,
+			}
 		})
-	})
 
-	Context("with no credentials", func() {
-		It("returns 401", func() {
-			requestBody := bytes.NewBufferString("hello")
-			request, err := http.NewRequest("GET", server.URL, requestBody)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			response, err := client.Do(request)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
-			Ω(response.Header.Get("WWW-Authenticate")).Should(Equal(`Basic realm="Restricted"`))
-
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(string(responseBody)).Should(Equal("not authorized"))
-		})
+		itAuthenticates()
 	})
 })
 
