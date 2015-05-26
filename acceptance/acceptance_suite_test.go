@@ -37,6 +37,8 @@ var sqlDB *db.SQLDB
 var agoutiDriver *agouti.WebDriver
 
 var _ = BeforeSuite(func() {
+	SetDefaultEventuallyTimeout(10 * time.Second)
+
 	postgresRunner = postgresrunner.Runner{
 		Port: 5432 + GinkgoParallelNode(),
 	}
