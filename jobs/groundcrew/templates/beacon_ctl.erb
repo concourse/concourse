@@ -44,23 +44,28 @@ case $1 in
 
     chown vcap:vcap $KNOWN_HOSTS_FILE
 
-    exec chpst -u vcap:vcap ssh \
-      -p <%= p("groundcrew.tsa.port") %> <%= p("groundcrew.tsa.host") %> \
-      <% if p("groundcrew.tsa.private_key") != "" %> \
-      -i /var/vcap/jobs/groundcrew/config/private_key \
-      <% else %> \
-      -i /var/vcap/packages/generated_worker_key/id_rsa \
-      <% end %> \
-      -o UserKnownHostsFile=${KNOWN_HOSTS_FILE} \
-      <% if p("groundcrew.garden.forward_address", nil) %> \
-        -R0.0.0.0:0:<%= p("groundcrew.garden.forward_address") %> \
-        forward-worker \
-      <% else %> \
-        register-worker \
-      <% end %> \
-      < /var/vcap/jobs/groundcrew/config/worker.json \
-      1>>$LOG_DIR/beacon.stdout.log \
-      2>>$LOG_DIR/beacon.stderr.log
+    while true; do
+      chpst -u vcap:vcap ssh \
+        -p <%= p("groundcrew.tsa.port") %> <%= p("groundcrew.tsa.host") %> \
+        <% if p("groundcrew.tsa.private_key") != "" %> \
+        -i /var/vcap/jobs/groundcrew/config/private_key \
+        <% else %> \
+        -i /var/vcap/packages/generated_worker_key/id_rsa \
+        <% end %> \
+        -o UserKnownHostsFile=${KNOWN_HOSTS_FILE} \
+        <% if p("groundcrew.garden.forward_address", nil) %> \
+          -R0.0.0.0:0:<%= p("groundcrew.garden.forward_address") %> \
+          forward-worker \
+        <% else %> \
+          register-worker \
+        <% end %> \
+        < /var/vcap/jobs/groundcrew/config/worker.json \
+        1>>$LOG_DIR/beacon.stdout.log \
+        2>>$LOG_DIR/beacon.stderr.log || \
+        true
+
+      sleep 1
+    done
 
     ;;
 
