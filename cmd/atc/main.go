@@ -138,10 +138,16 @@ var httpUsername = flag.String(
 	"basic auth username for the server",
 )
 
+var httpPassword = flag.String(
+	"httpPassword",
+	"",
+	"basic auth password for the server",
+)
+
 var httpHashedPassword = flag.String(
 	"httpHashedPassword",
 	"",
-	"basic auth password for the server",
+	"bcrypted basic auth password for the server",
 )
 
 var checkInterval = flag.Duration(
@@ -177,8 +183,8 @@ var cliDownloadsDir = flag.String(
 func main() {
 	flag.Parse()
 
-	if !*dev && (*httpUsername == "" || *httpHashedPassword == "") {
-		fatal(errors.New("must specify -httpUsername and -httpHashedPassword or turn on dev mode"))
+	if !*dev && (*httpUsername == "" || (*httpHashedPassword == "" && *httpPassword == "")) {
+		fatal(errors.New("must specify -httpUsername and -httpPassword or -httpHashedPassword or turn on dev mode"))
 	}
 
 	if _, err := os.Stat(*templatesDir); err != nil {
@@ -270,6 +276,11 @@ func main() {
 		webValidator = auth.BasicAuthHashedValidator{
 			Username:       *httpUsername,
 			HashedPassword: *httpHashedPassword,
+		}
+	} else if *httpUsername != "" && *httpPassword != "" {
+		webValidator = auth.BasicAuthValidator{
+			Username: *httpUsername,
+			Password: *httpPassword,
 		}
 	} else {
 		webValidator = auth.NoopValidator{}
