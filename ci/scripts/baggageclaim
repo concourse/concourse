@@ -19,16 +19,19 @@ function containers_gone_wild() {
 
   echo 'a' > /tmp/devices-cgroup/instance-$(hostname)/devices.allow
 
-  # create loopback device
-  mknod -m 0660 /dev/loop64 b 7 64
+  # create loopback devices
+  for i in $(seq 64 67); do
+    mknod -m 0660 /dev/loop$i b 7 $i
+  done
 }
 
 function salt_earth() {
-  losetup -d /dev/loop64 > /dev/null 2>&1 || true
+  for i in $(seq 64 67); do
+    losetup -d /dev/loop$i > /dev/null 2>&1 || true
+  done
 }
 
 containers_gone_wild
-
 trap salt_earth EXIT
 
-ginkgo -r -race -p --failOnPending --randomizeAllSpecs "$@"
+ginkgo -r -race -nodes 4 --failOnPending --randomizeAllSpecs "$@"
