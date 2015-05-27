@@ -1,7 +1,7 @@
 package radar
 
 import (
-	"errors"
+	"fmt"
 	"os"
 	"time"
 
@@ -14,7 +14,13 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-var errResourceNoLongerConfigured = errors.New("resource no longer configured")
+type resourceNotConfiguredError struct {
+	ResourceName string
+}
+
+func (err resourceNotConfiguredError) Error() string {
+	return fmt.Sprintf("resource '%s' was not found in config", err.ResourceName)
+}
 
 //go:generate counterfeiter . RadarDB
 
@@ -125,7 +131,7 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 	if !found {
 		logger.Info("resource-removed-from-configuration")
 		// return an error so that we exit
-		return errResourceNoLongerConfigured
+		return resourceNotConfiguredError{ResourceName: resourceName}
 	}
 
 	savedResource, err := radar.db.GetResource(resourceName)
