@@ -1,15 +1,18 @@
 #lang scheme/base
 
-(require (only-in scribble/core style itemization nested-flow
+(require racket/runtime-path
+         (only-in scribble/core style itemization nested-flow
                   compound-paragraph)
          (only-in racket/list split-at-right)
          (only-in scribble/html-properties css-addition))
 
 (provide literate-segment literate)
 
+(define-runtime-path literate.css "literate.css")
+
 (define (literate . segments)
   (itemization
-    (style "literate" (list (css-addition "concourse.css")))
+    (style "literate" (list (css-addition (path->string literate.css))))
     segments))
 
 (define (literate-segment . blocks)

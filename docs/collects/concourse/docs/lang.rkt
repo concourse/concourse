@@ -8,6 +8,7 @@
          concourse/docs/defthing
          concourse/docs/literate
          concourse/docs/pipeline-image
+         concourse/docs/prose
          concourse/docs/codeblock)
 
 (provide (except-out (all-from-out scribble/doclang) #%module-begin)
@@ -17,6 +18,7 @@
          (all-from-out concourse/docs/defthing)
          (all-from-out concourse/docs/literate)
          (all-from-out concourse/docs/pipeline-image)
+         (all-from-out concourse/docs/prose)
          (all-from-out concourse/docs/codeblock))
 
 (define-syntax-rule (module-begin id . body)
