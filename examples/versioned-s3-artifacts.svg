@@ -1,76 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml-stylesheet type="text/css" href="pipeline-svg.css" ?>
 <svg xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" version="1.0" width="100%" height="100%" viewBox="-20 -20 1193.875 150">
     <defs>
-        <style type="text/css">
-          <![CDATA[
-svg {
-  background: #202020;
-  font-family: Courier, monospace;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.node rect {
-  shape-rendering: crispEdges;
-}
-
-.edge path {
-  stroke-width: 2px;
-  fill: none;
-}
-
-.node text {
-  fill: #fff;
-}
-
-.node.job text {
-  font-weight: bold;
-}
-
-.node.constrained-input {
-  opacity: 0.5;
-}
-
-.active path {
-  stroke-width: 4px;
-}
-
-.active.node rect {
-  filter: url(#embiggen);
-}
-
-.active.node text {
-  font-size: 1.06em;
-}
-
-.node rect { fill: #151515; }
-
-.cluster { fill: #303030; }
-
-.edge { stroke: #505050; }
-.gateway { fill: #505050; }
-.node.job.normal rect { fill: #505050; }
-
-.edge.pending { stroke: #b0b0b0; }
-.node.job.pending rect { fill: #b0b0b0; }
-
-.node.resource a { color: #e0e0e0; }
-
-.edgeLabel text { fill: #f5f5f5; }
-
-.edge.succeeded { stroke: @base0B; }
-.node.job.succeeded rect { fill: @base0B; }
-.edge.failed { stroke: #ac4142; }
-.node.job.failed rect { fill: #ac4142; }
-
-.edge.errored { stroke: #d28445; }
-.node.job.errored rect { fill: #d28445; }
-.node.input.failing rect { fill: #d28445; }
-
-.edge.aborted { stroke: #8f5536; }
-.node.job.aborted rect { fill: #8f5536; }
-          ]]>
-        </style>
         <filter id="embiggen">
             <feMorphology operator="dilate" radius="4"/>
         </filter>
