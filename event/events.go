@@ -84,6 +84,13 @@ const (
 	OriginSourceStderr OriginSource = "stderr"
 )
 
+type OriginLocationIncrement uint
+
+const (
+	NoIncrement     OriginLocationIncrement = 0
+	SingleIncrement OriginLocationIncrement = 1
+)
+
 type OriginLocation []uint
 
 func (chain OriginLocation) Chain(id uint) OriginLocation {
@@ -93,10 +100,10 @@ func (chain OriginLocation) Chain(id uint) OriginLocation {
 	return chainedID
 }
 
-func (chain OriginLocation) Incr(by uint) OriginLocation {
+func (chain OriginLocation) Incr(by OriginLocationIncrement) OriginLocation {
 	incredID := make(OriginLocation, len(chain))
 	copy(incredID, chain)
-	incredID[len(chain)-1] += by
+	incredID[len(chain)-1] += uint(by)
 	return incredID
 }
 

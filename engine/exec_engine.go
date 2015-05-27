@@ -94,7 +94,7 @@ func (build *execBuild) Abort() error {
 }
 
 func (build *execBuild) Resume(logger lager.Logger) {
-	stepFactory := build.buildStepFactory(logger, build.metadata.Plan, event.OriginLocation{0})
+	stepFactory, _ := build.buildStepFactory(logger, build.metadata.Plan, event.OriginLocation{0})
 	source := stepFactory.Using(&exec.NoopStep{}, exec.NewSourceRepository())
 
 	defer source.Release()
@@ -119,25 +119,26 @@ func (build *execBuild) Resume(logger lager.Logger) {
 	}
 }
 
-func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, location event.OriginLocation) exec.StepFactory {
+func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, location event.OriginLocation) (exec.StepFactory, event.OriginLocationIncrement) {
 	if plan.Aggregate != nil {
 		logger = logger.Session("aggregate")
 
 		step := exec.Aggregate{}
 
-		var aID uint = 0
+		var aID event.OriginLocationIncrement = 0
 		for _, innerPlan := range *plan.Aggregate {
-			step = append(step, build.buildStepFactory(logger, innerPlan, location.Chain(aID)))
-			aID++
+			stepFactory, locationIncrement := build.buildStepFactory(logger, innerPlan, location.Chain(uint(aID)))
+			step = append(step, stepFactory)
+			aID = aID + locationIncrement
 		}
 
-		return step
+		return step, event.SingleIncrement
 	}
 
 	if plan.Compose != nil {
-		x := build.buildStepFactory(logger, plan.Compose.A, location)
-		y := build.buildStepFactory(logger, plan.Compose.B, location.Incr(1))
-		return exec.Compose(x, y)
+		x, xLocationIncrement := build.buildStepFactory(logger, plan.Compose.A, location)
+		y, yLocationIncrement := build.buildStepFactory(logger, plan.Compose.B, location.Incr(xLocationIncrement))
+		return exec.Compose(x, y), xLocationIncrement + yLocationIncrement
 	}
 
 	if plan.Conditional != nil {
@@ -145,10 +146,12 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 			"on": plan.Conditional.Conditions,
 		})
 
+		steps, locationIncrement := build.buildStepFactory(logger, plan.Conditional.Plan, location)
+
 		return exec.Conditional{
 			Conditions:  plan.Conditional.Conditions,
-			StepFactory: build.buildStepFactory(logger, plan.Conditional.Plan, location),
-		}
+			StepFactory: steps,
+		}, locationIncrement
 	}
 
 	if plan.Task != nil {
@@ -165,7 +168,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 		} else if plan.Task.ConfigPath != "" {
 			configSource = exec.FileConfigSource{plan.Task.ConfigPath}
 		} else {
-			return exec.Identity{}
+			return exec.Identity{}, event.NoIncrement
 		}
 
 		return build.factory.Task(
@@ -174,7 +177,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 			build.delegate.ExecutionDelegate(logger, *plan.Task, location),
 			exec.Privileged(plan.Task.Privileged),
 			configSource,
-		)
+		), event.SingleIncrement
 	}
 
 	if plan.Get != nil {
@@ -193,7 +196,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 			},
 			plan.Get.Params,
 			plan.Get.Version,
-		)
+		), event.SingleIncrement
 	}
 
 	if plan.PutGet != nil {
@@ -206,6 +209,8 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 
 		getLocation := location.Incr(1)
 		restLocation := location.Incr(2)
+
+		restOfSteps, restLocationIncrement := build.buildStepFactory(logger, plan.PutGet.Rest, restLocation)
 
 		return exec.Compose(
 			exec.Compose(
@@ -231,11 +236,11 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 					getPlan.Params,
 				),
 			),
-			build.buildStepFactory(logger, plan.PutGet.Rest, restLocation),
-		)
+			restOfSteps,
+		), event.OriginLocationIncrement(2) + restLocationIncrement
 	}
 
-	return exec.Identity{}
+	return exec.Identity{}, event.NoIncrement
 }
 
 func (build *execBuild) taskIdentifier(name string, location event.OriginLocation) worker.Identifier {
