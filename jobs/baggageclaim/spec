@@ -6,13 +6,10 @@ templates:
 
 packages:
   - pid_utils
+  - btrfs_tools
   - baggageclaim
 
 properties:
-  baggageclaim.volumes_directory:
-    description: "a path to a directory which should be used for volumes"
-    default: /var/vcap/store/baggageclaim/volumes
-
   baggageclaim.listen_addr.address:
     description: "the host or ip which baggageclaim hosts its api on"
     default: 0.0.0.0
@@ -26,5 +23,7 @@ properties:
     default:
       - /var/vcap/sys/log/baggageclaim/baggageclaim.stdout.log
       - /var/vcap/sys/log/baggageclaim/baggageclaim.stderr.log
+      - /var/vcap/sys/log/baggageclaim/fs_mounter.stdout.log
+      - /var/vcap/sys/log/baggageclaim/fs_mounter.stderr.log
       - /var/vcap/sys/log/monit/baggageclaim_ctl.out.log
       - /var/vcap/sys/log/monit/baggageclaim_ctl.err.log

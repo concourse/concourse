@@ -10,3 +10,4 @@ mkdir ${BOSH_INSTALL_TARGET}/src
 cp -a * ${BOSH_INSTALL_TARGET}/src
 
 go install ${REPO_NAME}/cmd/baggageclaim
+go install ${REPO_NAME}/cmd/fs_mounter

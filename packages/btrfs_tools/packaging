@@ -1,0 +1,6 @@
+set -e
+
+mkdir -p ${BOSH_INSTALL_TARGET}/sbin
+
+cp ./btrfs_tools_3.12/btrfs ${BOSH_INSTALL_TARGET}/sbin
+cp ./btrfs_tools_3.12/mkfs.btrfs ${BOSH_INSTALL_TARGET}/sbin

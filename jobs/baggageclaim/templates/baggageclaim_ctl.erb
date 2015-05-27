@@ -1,11 +1,36 @@
 #!/bin/bash
 # vim: set ft=sh
 
+set -e
+
 RUN_DIR=/var/vcap/sys/run/baggageclaim
 LOG_DIR=/var/vcap/sys/log/baggageclaim
 PIDFILE=$RUN_DIR/baggageclaim.pid
 
 source /var/vcap/packages/pid_utils/pid_utils.sh
+
+export PATH=$PATH:/var/vcap/packages/btrfs_tools/sbin
+
+# break out of bosh-lite device limitations
+function permit_device_control() {
+  local devices_mount_info=$(cat /proc/self/cgroup | grep devices)
+
+  if [ -z "$devices_mount_info" ]; then
+    # cgroups not set up; must not be in a container
+    return
+  fi
+
+  local devices_subsytems=$(echo $devices_mount_info | cut -d: -f2)
+  local devices_subdir=$(echo $devices_mount_info | cut -d: -f3)
+
+  if [ ! -e /tmp/devices-cgroup ]; then
+    mkdir /tmp/devices-cgroup
+    mount -t cgroup -o $devices_subsytems none /tmp/devices-cgroup
+  fi
+
+  # permit our cgroup to do everything with all devices
+  echo a > /tmp/devices-cgroup/${devices_subdir}/devices.allow
+}
 
 case $1 in
 
@@ -18,17 +43,41 @@ case $1 in
     mkdir -p $LOG_DIR
     chown -R vcap:vcap $LOG_DIR
 
-    mkdir -p <%= p("baggageclaim.volumes_directory") %>
-    chown vcap:vcap <%= p("baggageclaim.volumes_directory") %>
+    mkdir -p /var/vcap/store/baggageclaim/volumes
+
+    permit_device_control
+
+    for i in $(seq 0 64); do
+      if ! mknod -m 0660 /dev/loop$i b 7 $i; then
+        break
+      fi
+    done
+
+    /var/vcap/packages/baggageclaim/bin/fs_mounter \
+      -diskImage /var/vcap/store/baggageclaim/volumes.img \
+      -mountPath /var/vcap/store/baggageclaim/volumes \
+      -sizeInMegabytes 1024 \
+      1>>$LOG_DIR/fs_mounter.stdout.log \
+      2>>$LOG_DIR/fs_mounter.stderr.log
 
     echo $$ > $PIDFILE
 
-    exec chpst -u vcap:vcap /var/vcap/packages/baggageclaim/bin/baggageclaim \
-      -volumeDir <%= p("baggageclaim.volumes_directory") %> \
+    exec /var/vcap/packages/baggageclaim/bin/baggageclaim \
+      -volumeDir /var/vcap/store/baggageclaim/volumes \
       -listenAddress <%= p("baggageclaim.listen_addr.address") %> \
       -listenPort <%= p("baggageclaim.listen_addr.port") %> \
+      -driverType btrfs \
       1>>$LOG_DIR/baggageclaim.stdout.log \
       2>>$LOG_DIR/baggageclaim.stderr.log
+
+
+/var/vcap/packages/baggageclaim/bin/baggageclaim \
+  -volumeDir /var/vcap/store/baggageclaim/volumes \
+  -listenAddress 0.0.0.0 \
+  -listenPort 7789 \
+  -driverType btrfs \
+  1>>$LOG_DIR/baggageclaim.stdout.log \
+  2>>$LOG_DIR/baggageclaim.stderr.log
 
     ;;
 
