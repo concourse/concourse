@@ -1,11 +1,3 @@
-.strike {
-  text-decoration: line-through;
-}
-
-.break-word {
-  word-wrap: break-word;
-}
-
 .literate {
   list-style-type: none;
 }

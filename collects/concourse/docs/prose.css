@@ -1,0 +1,7 @@
+.strike {
+  text-decoration: line-through;
+}
+
+.break-word {
+  word-wrap: break-word;
+}
