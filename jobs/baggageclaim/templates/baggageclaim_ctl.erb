@@ -23,13 +23,19 @@ function permit_device_control() {
   local devices_subsytems=$(echo $devices_mount_info | cut -d: -f2)
   local devices_subdir=$(echo $devices_mount_info | cut -d: -f3)
 
+  if [ "$devices_subdir" = "/" ]; then
+    # we're in the root devices cgroup; must not be in a container
+    return
+  fi
+
   if [ ! -e /tmp/devices-cgroup ]; then
+    # mount our container's devices subsystem somewhere
     mkdir /tmp/devices-cgroup
     mount -t cgroup -o $devices_subsytems none /tmp/devices-cgroup
   fi
 
   # permit our cgroup to do everything with all devices
-  echo a > /tmp/devices-cgroup/${devices_subdir}/devices.allow
+  echo a > /tmp/devices-cgroup${devices_subdir}/devices.allow
 }
 
 case $1 in
