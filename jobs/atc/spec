@@ -28,6 +28,10 @@ properties:
     description: "username for http basic auth"
     default: ""
 
+  atc.basic_auth_password:
+    description: "plaintext password for http basic auth"
+    default: ""
+
   atc.basic_auth_encrypted_password:
     description: "bcrypt encrypted password for http basic auth"
     default: ""

@@ -62,6 +62,7 @@ case $1 in
       -webListenAddress=<%= p("atc.web_listen_address") %> \
       -sqlDataSource=<%= esc("postgres://#{p("atc.postgresql.role.name")}:#{p("atc.postgresql.role.password")}@#{p("atc.postgresql.address")}/#{p("atc.postgresql.database")}?sslmode=disable") %> \
       -httpUsername=<%= esc(p("atc.basic_auth_username")) %> \
+      -httpPassword=<%= esc(p("atc.basic_auth_password")) %> \
       -httpHashedPassword=<%= esc(p("atc.basic_auth_encrypted_password")) %> \
       -publiclyViewable=<%= p("atc.publicly_viewable").inspect %> \
       -dev=<%= p("atc.development_mode").inspect %> \
