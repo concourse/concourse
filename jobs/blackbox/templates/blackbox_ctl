@@ -1,6 +1,8 @@
 #!/bin/bash
 # vim: set ft=sh
 
+set -e
+
 RUN_DIR=/var/vcap/sys/run/blackbox
 LOG_DIR=/var/vcap/sys/log/blackbox
 PIDFILE=$RUN_DIR/blackbox.pid
