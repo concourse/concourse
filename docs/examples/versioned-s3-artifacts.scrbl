@@ -9,7 +9,7 @@ real-world use case of pushing tested artifacts into S3 buckets.
 
 The resulting pipeline will look like this:
 
-@image[#:style "pipeline" #:suffixes '(".svg") "examples/versioned-s3-artifacts"]{Rendered Pipeline}
+@pipeline-image["examples/versioned-s3-artifacts"]{Rendered Pipeline}
 
 @literate[
   @literate-segment[

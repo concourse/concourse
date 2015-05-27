@@ -50,6 +50,7 @@
   (values #f #f #f #f #f))
 
 (define-runtime-path pipe.py "pipe.py")
+(define-runtime-path pygments.css "pygments.css")
 
 (define start
   (let ([start-attempted? #f])
@@ -127,7 +128,7 @@
     [else (default code)]))
 
 (define (render-spans-as-table spans)
-  (nested-flow (style "pygmentized" (list (css-addition "concourse.css")))
+  (nested-flow (style "pygmentized" (list (css-addition (path->string pygments.css))))
     (let ([rendered (map render-elem spans)])
       (list (apply verbatim rendered)))))
 
