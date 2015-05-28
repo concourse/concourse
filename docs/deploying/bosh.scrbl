@@ -123,11 +123,11 @@ The Concourse repo contains a few example manifests:
 
 @itemlist[
   @item{
-    @hyperlink["https://github.com/concourse/concourse/blob/develop/manifests/bosh-lite.yml"]{BOSH Lite}
+    @hyperlink["https://github.com/concourse/concourse/blob/master/manifests/bosh-lite.yml"]{BOSH Lite}
   }
 
   @item{
-    @hyperlink["https://github.com/concourse/concourse/blob/develop/manifests/aws-vpc.yml"]{AWS VPC}
+    @hyperlink["https://github.com/concourse/concourse/blob/master/manifests/aws-vpc.yml"]{AWS VPC}
   }
 ]
 
