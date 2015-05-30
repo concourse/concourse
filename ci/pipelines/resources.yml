@@ -1,21 +1,3 @@
-groups:
-- name: resources
-  jobs:
-  - archive-resource
-  - bosh-deployment-resource
-  - bosh-io-release-resource
-  - bosh-io-stemcell-resource
-  - broker-resource
-  - cf-resource
-  - docker-image-resource
-  - git-resource
-  - github-release-resource
-  - s3-resource
-  - semver-resource
-  - time-resource
-  - tracker-resource
-  - vagrant-cloud-resource
-
 jobs:
 - name: git-resource
   serial: true
