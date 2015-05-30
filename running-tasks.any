@@ -11,7 +11,7 @@ tasks and executing them interactively from your terminal with the
 \reference{fly-cli}{Fly} commandline tool.
 
 Once you've figured out your tasks's configuration, you can reuse it for a
-\reference{jobs"]{Job} in your @seclink["pipelines}{Pipeline}.
+\reference{jobs}{Job} in your \reference{pipelines}{Pipeline}.
 
 
 \section{Configuring a Task}{configuring-tasks}{
