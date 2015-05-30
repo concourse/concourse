@@ -9,7 +9,6 @@ inputs:
 params:
   VERSION_FILE:
   ANALYTICS_ID:
-  GAUGES_ID:
 
 run:
   path: concourse-develop/ci/scripts/build-docs

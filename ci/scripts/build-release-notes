@@ -14,10 +14,8 @@ version=$(cat ${VERSION_FILE})
 
 cd concourse-develop/
 
-sanitized_version="$(echo $version | tr '.' '_')"
-
 echo v${version} > release-name
 
 cat > notes.md <<EOF
-See [v${version} release notes](http://concourse.ci/release-notes.html#%28part._v${sanitized_version}%29)
+See [v${version} release notes](http://concourse.ci/release-notes.html#v${version})
 EOF

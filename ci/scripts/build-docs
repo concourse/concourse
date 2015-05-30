@@ -10,15 +10,6 @@ function abort() {
 [ -n "$VERSION_FILE" ] || abort "must specify \$VERSION_FILE"
 [ -f "$VERSION_FILE" ] || abort "'$VERSION_FILE' does not exist"
 
-version=$(cat ${VERSION_FILE})
-site_id=${SITE_ID}
-
 cd concourse-develop/docs/
 
-./scripts/with-collects.sh \
-  raco scribble \
-  ++arg --version ++arg "$version" \
-  ++arg --analytics-id ++arg "$ANALYTICS_ID" \
-  ++arg --gauges-id ++arg "$GAUGES_ID" \
-  --htmls \
-  concourse.scrbl
+make
