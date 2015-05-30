@@ -1,0 +1,56 @@
+#language anatomy
+
+\use{anatomy/atomy}
+
+\title{\code{conditions}\aux{: conditionally perform a step}}{step-conditions}
+
+Any step can be made conditional by adding the \code{conditions} attribute
+to it.
+
+\define{conditions}{[string]}{
+  \italic{Optional. Default \code{[success]}.} The conditions under which to
+  perform this step.
+
+  \code{[failure]} causes the step to be performed if the previous step's
+  task(s) fail, while \code{[success, failure]} means the step will be
+  performed regardless of the result.
+}
+
+The following will perform the second task only if the first one fails:
+
+\codeblock{yaml}{
+plan:
+- get: foo
+- task: unit
+  file: foo/unit.yml
+- conditions: [failure]
+  task: alert
+  file: foo/alert.yml
+}
+
+If the condition does not match, the conditional step, and all subsequent
+steps, are not executed.
+
+If you have multiple conditions you'd like to check, you can wrap them in an
+\reference{aggregate-step}{\code{aggregate} step}:
+
+\codeblock{yaml}{
+plan:
+- get: foo
+- task: unit
+  file: foo/unit.yml
+- aggregate:
+  - conditions: [success]
+    task: update-status
+    file: foo/update-status.yml
+    params:
+      status: good
+  - conditions: [failure]
+    task: update-status
+    file: foo/update-status.yml
+    params:
+      status: bad
+}
+
+This will attempt both steps in series, and continue runing the steps after
+the \code{aggregate} step regardless.

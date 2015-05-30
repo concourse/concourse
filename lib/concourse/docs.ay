@@ -1,0 +1,39 @@
+use("atomy")
+
+data = require("anatomy/data")
+
+pipeline-image(asset-path) :=
+  data ResolveElement new(
+    [part]:
+      part assets << File expand-path(asset-path)
+      part css-additions << File expand-path("../pipeline-svg.css", _FILE)
+
+      data Block new(
+        data Element new(
+          ""
+          .svg(File basename(asset-path)))
+        .class("pipeline-image")))
+
+literate-segment(*paras, code) := do:
+  -- TODO can't do code = nil; treats it as first arg?
+
+  when(paras empty?):
+    paras = [code]
+    code = ""
+
+  data ResolveElement new(
+    [part]:
+      part css-additions << File expand-path("../literate.css", _FILE)
+
+      data Block new(
+        data Block new(
+          [
+            data Block new(
+              data Paragraph new(para) for para in paras
+              .class("prose"))
+            data Block new(
+              code
+              .class("code"))
+          ]
+          .class("literate-entry"))
+        .class("literate-segment")))
