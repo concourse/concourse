@@ -1,0 +1,48 @@
+#language anatomy
+
+\title{Provisioning with Vagrant}{deploying-with-vagrant}
+
+Before you go and spend money on hardware, you probably want to kick the tires a
+bit.
+
+The easiest way to get something up and running is to use the pre-built Vagrant
+boxes. This requires no BOSH experience, but is otherwise exactly the same as a
+BOSH deployment in terms of features.
+
+Currently, only VirtualBox is supported. Pre-built AWS and VMware Fusion boxes
+will be available in the future.
+
+To spin up Concourse with Vagrant, run the following in any directory:
+
+\codeblock{bash}{
+vagrant init concourse/lite # places Vagrantfile in current directory
+vagrant up                  # downloads the box and spins up the VM
+}
+
+The web server will be running at \hyperlink{http://192.168.100.4:8080}{192.168.100.4:8080}.
+
+Next, download the Fly CLI from the \hyperlink{http://192.168.100.4:8080}{main page} where
+there are links to binaries for common platforms.
+
+\margin-note{
+  If you're on Linux or OS X, you will have to \code{chmod +x} the downloaded
+  binary and put it in your \code{$PATH}.
+}
+
+The default pipeline configuration is blank. You can see the current configuration by running:
+
+\codeblock{bash}{
+$ fly configure
+}
+
+To configure a pipeline, fill in jobs and resources (see
+eference{pipelines}),
+place the resulting config in a file, and run:
+
+\codeblock{bash}{
+$ fly configure -c path/to/pipeline.yml
+}
+
+This will validate your pipeline config and immediately switch Concourse to it.
+
+To run arbitrary tasks against the Vagrant box, see \reference{running-tasks}.

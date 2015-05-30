@@ -1,0 +1,40 @@
+.literate-segment .prose p {
+  margin: 0 0 1em;
+}
+
+.literate-segment .code pre {
+  background: #e0e0e0;
+  padding: 1em;
+  margin: 1em;
+}
+
+@media (min-width: 1525px) {
+  .pipeline {
+    width: 1250px;
+  }
+
+  .literate-segment {
+    display: table;
+  }
+
+  .literate-entry {
+    display: table-row;
+  }
+
+  .literate-segment .prose {
+    display: table-cell;
+    padding-right: 25px;
+    min-width: 700px;
+    vertical-align: top;
+  }
+
+  .literate-segment .code {
+    display: table-cell;
+    min-width: 525px;
+    vertical-align: top;
+  }
+
+  .literate-segment .code pre {
+    margin: 0;
+  }
+}

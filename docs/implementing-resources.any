@@ -1,0 +1,163 @@
+#language anatomy
+
+\title{Implementing a Resource}{implementing-resources}
+
+A resource type is implemented by a container image with three scripts:
+
+\list{
+  \code{/opt/resource/check} for checking for new versions of the resource
+}{
+  \code{/opt/resource/in} for pulling a version of the resource down
+}{
+  \code{/opt/resource/out} for idempotently pushing a version up
+}
+
+Distributing resource types as containers allows them to package their own
+dependencies. For example, the Git resource comes with \code{git} installed.
+
+All resources must implement all three actions, though the actions can just be
+no-ops (which still must be correctly implemented as detailed below).
+
+\section{\code{check}\aux{: Check for new versions.}}{
+  A resource type's \code{check} script is invoked to detect new versions of
+  the resource. It is given the configured source and current version on stdin,
+  and must print the array of new versions, in chronological order, to stdout.
+
+  Note that the current version will be missing if this is the first time the
+  resource has been used. In this case, the script should emit only the most
+  recent version, \italic{not} every version since the resource's inception.
+
+  For example, here's what the input for a \code{git} resource may look like:
+
+  \codeblock{json}{
+  \{
+    "source": \{
+      "uri": "git://some-uri",
+      "branch": "develop",
+      "private_key": "..."
+    \},
+    "version": \{ "ref": "61cebf" \}
+  \}
+  }
+
+  Upon receiving this payload the \code{git} resource would probably do
+  something like:
+
+  \codeblock{bash}{
+  [ -d /tmp/repo ] || git clone git://some-uri /tmp/repo
+  cd /tmp/repo
+  git pull && git log 61cbef..HEAD
+  }
+
+  Note that it conditionally clones; the container for checking versions is reused
+  between checks, so that it can efficiently pull rather than cloning every time.
+
+  And the output, assuming \code{d74e01} is the commit immediately after
+  \code{61cbef}:
+
+  \codeblock{json}{
+  [
+    \{ "ref": "d74e01" \},
+    \{ "ref": "7154fe" \}
+  ]
+  }
+
+  The list may be empty, if the given version is already the latest.
+}
+
+\section{\code{in}\aux{: Fetch a given resource.}}{
+  The \code{in} script is passed a destination directory as \code{$1}, and
+  is given on stdin the configured source and a precise version of the resource
+  to fetch.
+
+  The script must fetch the resource and place it in the given directory.
+
+  If the desired resource version is unavailable (for example, if it was
+  deleted), the script must error.
+
+  The script must emit the fetched version, and may emit metadata as a list of
+  key-value pairs. This data is intended for public consumption and will make it
+  upstream, intended to be shown on the build's page.
+
+  Example input, in this case for the \code{git} resource:
+
+  \codeblock{json}{
+  \{
+    "source": \{
+      "uri": "git://some-uri",
+      "branch": "develop",
+      "private_key": "..."
+    \},
+    "version": \{ "ref": "61cebf" \}
+  \}
+  }
+
+  Upon receiving this payload the \code{git} resource would probably do
+  something like:
+
+  \codeblock{bash}{
+  git clone --branch develop git://some-uri $1
+  cd $1
+  git checkout 61cebf
+  }
+
+  And output:
+
+  \codeblock{json}{
+  \{
+    "version": \{ "ref": "61cebf" \},
+    "metadata": [
+      \{ "name": "commit", "value": "61cebf" \},
+      \{ "name": "author", "value": "Hulk Hogan" \}
+    ]
+  \}
+  }
+}
+
+\section{\code{out}\aux{: Update a resource.}}{
+  The \code{out} script is called with a path to the directory containing the
+  build's full set of sources as the first argument, and is given on stdin the
+  configured params and the resource's source configuration.
+
+  The script must emit the resulting version of the resource. For example, the
+  \code{git} resource emits the sha of the commit that it just pushed.
+
+  Additionally, the script may emit metadata as a list of key-value pairs. This
+  data is intended for public consumption and will make it upstream, intended to
+  be shown on the build's page.
+
+  Example input, in this case for the \code{git} resource:
+
+  \codeblock{json}{
+  \{
+    "params": \{
+      "branch": "develop",
+      "repo": "some-repo"
+    \},
+    "source": \{
+      "uri": "git@...",
+      "private_key": "..."
+    \}
+  \}
+  }
+
+  Upon receiving this payload the \code{git} resource would probably do something
+  like:
+
+  \codeblock{bash}{
+  cd $1/some-repo
+  git push origin develop
+  }
+
+  And output:
+
+  \codeblock{json}{
+  \{
+    "version": \{ "ref": "61cebf" \},
+    "metadata": [
+      \{ "name": "commit", "value": "61cebf" \},
+      \{ "name": "author", "value": "Mick Foley" \}
+    ]
+  \}
+  }
+}

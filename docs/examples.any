@@ -1,0 +1,7 @@
+#language anatomy
+
+\title{Examples}{examples}
+
+\include-section{examples/versioned-s3-artifacts.any}
+
+\table-of-contents
