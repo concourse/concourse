@@ -1,25 +1,47 @@
 ---
 resources:
+- name: concourse-rubinius
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse.git
+    branch: develop
+    paths: [ci/dockerfiles/rubinius]
+
+- name: concourse-rubinius-image
+  type: docker-image
+  source:
+    repository: concourse/rubinius
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
 - name: concourse-docs-ci
   type: git
   source:
     uri: https://github.com/concourse/concourse.git
     branch: develop
-    paths: [docs/Dockerfile]
+    paths: [ci/dockerfiles/docs-ci]
 
 - name: concourse-docs-ci-image
   type: docker-image
   source:
+    repository: concourse/docs-ci
     username: {{docker-username}}
     email: {{docker-email}}
     password: {{docker-password}}
-    repository: concourse/docs-ci
 
 jobs:
+- name: build-rubinius
+  plan:
+  - get: concourse-rubinius
+    params: {submodules: none}
+  - put: concourse-rubinius-image
+    params: {build: concourse-rubinius/ci/dockerfiles/rubinius}
+
 - name: build-docs-ci
   plan:
   - get: concourse-docs-ci
     params: {submodules: none}
   - put: concourse-docs-ci-image
-    params: {build: concourse-docs-ci/docs}
+    params: {build: concourse-docs-ci/ci/dockerfiles/docs-ci}
 
