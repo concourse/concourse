@@ -1,0 +1,25 @@
+---
+resources:
+- name: concourse-docs-ci
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse.git
+    branch: develop
+    paths: [docs/Dockerfile]
+
+- name: concourse-docs-ci-image
+  type: docker-image
+  source:
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+    repository: concourse/docs-ci
+
+jobs:
+- name: build-docs-ci
+  plan:
+  - get: concourse-docs-ci
+    params: {submodules: none}
+  - put: concourse-docs-ci-image
+    params: {build: concourse-docs-ci/docs}
+
