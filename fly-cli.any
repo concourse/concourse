@@ -169,7 +169,7 @@ common platforms in the bottom right hand corner of the main page.
 
   \section{Parameters}{parameters}{
     The pipeline configuration can contain templates in the form of
-    \code{{{foo-bar}}}. They will be replaced with string values populated by
+    \code{\{\{foo-bar\}\}}. They will be replaced with string values populated by
     repeated \code{--var} or \code{--vars-from} flags.
 
     This allows for credentials to be extracted from a pipeline config, making it
@@ -184,7 +184,7 @@ common platforms in the bottom right hand corner of the main page.
       source:
         uri: git@...
         branch: master
-        private_key: {{private-repo-key}}
+        private_key: \{\{private-repo-key\}\}
     }
 
     ...you could then configure this pipeline like so:
