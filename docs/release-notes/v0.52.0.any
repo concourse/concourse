@@ -30,4 +30,7 @@
   flowing through a build. There is no perceivable use of it in this
   release, but in the future it should make things much faster and more
   efficient.
+
+  So, don't add it to your deployment just yet (we may change things
+  around a bit). In fact, pretend I never said anything.
 }
