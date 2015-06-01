@@ -385,7 +385,7 @@ jobs:
       - get: concourse-master
         trigger: true
         params:
-          fetch: develop
+          fetch: [develop]
       - get: concourse # for build scripts
     - task: merge-to-develop
       file: concourse/ci/master-merge.yml
