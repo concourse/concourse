@@ -27,6 +27,9 @@ groups:
 - name: bosh-lite
   jobs: [provision]
 
+- name: junk-drawer
+  jobs: [master-merge]
+
 jobs:
 - name: fly
   public: true
@@ -375,6 +378,20 @@ jobs:
       name: build-artifacts/dist/release-name
       tag: build-artifacts/dist/release-name
       globs: [build-artifacts/dist/artifacts/*]
+
+- name: master-merge
+  plan:
+    - aggregate:
+      - get: concourse-master
+        trigger: true
+        params:
+          fetch: develop
+      - get: concourse # for build scripts
+    - task: merge-to-develop
+      file: concourse/ci/master-merge.yml
+    - put: concourse
+      params:
+        repository: concourse-master
 
 resources:
 - name: version

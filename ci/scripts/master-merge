@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -e -x
+
+export PATH=$GOPATH/bin:$PATH
+
+cd concourse-master
+
+git checkout develop
+git merge master
+
