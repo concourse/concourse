@@ -1,6 +1,6 @@
 ---
 platform: linux
-image: docker:///concourse/atc-ci
+image: docker:///concourse/git-resource
 
 inputs:
   - name: concourse-master
