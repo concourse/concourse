@@ -110,12 +110,18 @@ jobs:
 
 - name: s3-resource
   serial: true
-  public: true
   plan:
   - get: s3-resource
     trigger: true
   - task: unit
     file: s3-resource/build.yml
+    config:
+      params:
+        S3_TESTING_ACCESS_KEY_ID:  {{s3-resource-access-key}}
+        S3_TESTING_SECRET_ACCESS_KEY: {{s3-resource-secret-key}}
+        S3_TESTING_BUCKET: {{s3-resource-bucket}}
+        S3_VERSIONED_TESTING_BUCKET: {{s3-resource-versioned-bucket}}
+        S3_TESTING_REGION: {{s3-resource-region}}
   - put: resource-image
     resource: s3-resource-image
     params: {build: unit/gopath/src/github.com/concourse/s3-resource}
