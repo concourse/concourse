@@ -391,7 +391,7 @@ jobs:
       file: concourse/ci/master-merge.yml
     - put: concourse
       params:
-        repository: concourse-master
+        repository: merge-to-develop/concourse-master
 
 resources:
 - name: version
