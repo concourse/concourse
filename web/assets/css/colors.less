@@ -86,29 +86,49 @@ span.error { color: @base08; }
 .started { background: @base0A; }
 .legend dt.started rect { stroke: @base0A; }
 
+
 svg .job.node.started div,
 .legend dt.started {
   background-color: transparent;
   -webkit-animation: started-circles 1s linear infinite;
 }
 
-.generate-keyframes(@frame: 0%) when (@frame =< 100%) {
+.generate-keyframes(@frame: 0%, @color) when (@frame =< 100%) {
   @{frame} {
     background-image: repeating-radial-gradient(
       circle,
-      @base0A unit(@frame / 5, px),
-      @base0A unit(@frame / 5, px) + 5px,
+      @color unit(@frame / 5, px),
+      @color unit(@frame / 5, px) + 5px,
       transparent unit(@frame / 5, px) + 5px,
       transparent unit(@frame / 5, px) + 20px,
     );
   }
 
-  .generate-keyframes(@frame + 5%)
+  .generate-keyframes(@frame + 5%, @color)
 }
 
+
 @-webkit-keyframes started-circles {
-  .generate-keyframes(0%)
+  .generate-keyframes(0%, @base0A);
 }
+
+
+
+/* active */
+#page-header.pending-start { background: @base07; }
+.pending-start{ background: @base07; }
+.legend dt.pending-start rect { stroke: @base07; }
+
+svg .job.node.pending-start div,
+.legend dt.pending-start {
+  background-color: transparent;
+  -webkit-animation: pending-circles 1s linear infinite;
+}
+
+@-webkit-keyframes pending-circles {
+  .generate-keyframes(0%, @base07)
+}
+
 
 
 .build-number {
