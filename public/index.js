@@ -236,7 +236,7 @@ function createGraph(svg, groups, jobs, resources) {
     classes.push(status);
 
     if (job.next_build) {
-      classes.push("started");
+      job.next_build.status == "pending" ? classes.push("pending-start") : classes.push("started");
     }
 
     graph.setNode(id, new Node({
