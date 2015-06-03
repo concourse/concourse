@@ -194,15 +194,15 @@ func (state PipelinePausedState) Bool() *bool {
 	}
 }
 
-func (db *SQLDB) SaveConfig(pipelineName string, config atc.Config, from ConfigVersion, pausedState PipelinePausedState) error {
+func (db *SQLDB) SaveConfig(pipelineName string, config atc.Config, from ConfigVersion, pausedState PipelinePausedState) (bool, error) {
 	payload, err := json.Marshal(config)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	tx, err := db.conn.Begin()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	defer tx.Rollback()
@@ -214,7 +214,7 @@ func (db *SQLDB) SaveConfig(pipelineName string, config atc.Config, from ConfigV
 		WHERE name = $1
 	`, pipelineName).Scan(&existingConfig)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	var result sql.Result
@@ -236,13 +236,15 @@ func (db *SQLDB) SaveConfig(pipelineName string, config atc.Config, from ConfigV
 	}
 
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return false, err
 	}
+
+	created := false
 
 	if rows == 0 {
 		if existingConfig == 0 {
@@ -252,19 +254,21 @@ func (db *SQLDB) SaveConfig(pipelineName string, config atc.Config, from ConfigV
 				pausedState = PipelinePaused
 			}
 
+			created = true
+
 			_, err := tx.Exec(`
 			INSERT INTO pipelines (name, config, version, ordering, paused)
 			VALUES ($1, $2, nextval('config_version_seq'), (SELECT COUNT(1) + 1 FROM pipelines), $3)
 		`, pipelineName, payload, pausedState.Bool())
 			if err != nil {
-				return err
+				return false, err
 			}
 		} else {
-			return ErrConfigComparisonFailed
+			return false, ErrConfigComparisonFailed
 		}
 	}
 
-	return tx.Commit()
+	return created, tx.Commit()
 }
 
 func (db *SQLDB) CreatePipe(pipeGUID string, url string) error {

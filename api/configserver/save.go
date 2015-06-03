@@ -108,7 +108,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	session.Info("saving")
 
 	pipelineName := rata.Param(r, "pipeline_name")
-	err = s.db.SaveConfig(pipelineName, config, version, pausedState)
+	created, err := s.db.SaveConfig(pipelineName, config, version, pausedState)
 	if err != nil {
 		session.Error("failed-to-save-config", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -118,7 +118,11 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 
 	session.Info("saved")
 
-	w.WriteHeader(http.StatusOK)
+	if created {
+		w.WriteHeader(http.StatusCreated)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
 }
 
 func requestToConfig(contentType string, requestBody io.ReadCloser) (interface{}, db.PipelinePausedState, error) {

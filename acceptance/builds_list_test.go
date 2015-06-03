@@ -85,16 +85,15 @@ var _ = Describe("One-off Builds", func() {
 			var build db.Build
 
 			BeforeEach(func() {
-				var err error
-
 				location := event.OriginLocation{}.Chain(1)
 
 				// job build data
-				Ω(sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{
+				_, err := sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{
 					Jobs: []atc.JobConfig{
 						{Name: "job-name"},
 					},
-				}, db.ConfigVersion(1), db.PipelineUnpaused)).Should(Succeed())
+				}, db.ConfigVersion(1), db.PipelineUnpaused)
+				Ω(err).ShouldNot(HaveOccurred())
 
 				pipelineDB, err = pipelineDBFactory.BuildWithName(atc.DefaultPipelineName)
 				Ω(err).ShouldNot(HaveOccurred())

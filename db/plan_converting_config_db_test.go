@@ -150,7 +150,7 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 		})
 
 		JustBeforeEach(func() {
-			saveErr = configDB.SaveConfig(pipelineName, configToSave, versionToSave, pausedState)
+			_, saveErr = configDB.SaveConfig(pipelineName, configToSave, versionToSave, pausedState)
 		})
 
 		Context("when the given config contains jobs with inputs/outputs/build", func() {
@@ -176,7 +176,7 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 				disaster := errors.New("oh no!")
 
 				BeforeEach(func() {
-					nestedDB.SaveConfigReturns(disaster)
+					nestedDB.SaveConfigReturns(false, disaster)
 				})
 
 				It("returns the error", func() {
@@ -208,7 +208,7 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 				disaster := errors.New("oh no!")
 
 				BeforeEach(func() {
-					nestedDB.SaveConfigReturns(disaster)
+					nestedDB.SaveConfigReturns(false, disaster)
 				})
 
 				It("returns the error", func() {

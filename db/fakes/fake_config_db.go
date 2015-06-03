@@ -19,7 +19,7 @@ type FakeConfigDB struct {
 		result2 db.ConfigVersion
 		result3 error
 	}
-	SaveConfigStub        func(string, atc.Config, db.ConfigVersion, db.PipelinePausedState) error
+	SaveConfigStub        func(string, atc.Config, db.ConfigVersion, db.PipelinePausedState) (bool, error)
 	saveConfigMutex       sync.RWMutex
 	saveConfigArgsForCall []struct {
 		arg1 string
@@ -28,7 +28,8 @@ type FakeConfigDB struct {
 		arg4 db.PipelinePausedState
 	}
 	saveConfigReturns struct {
-		result1 error
+		result1 bool
+		result2 error
 	}
 }
 
@@ -66,7 +67,7 @@ func (fake *FakeConfigDB) GetConfigReturns(result1 atc.Config, result2 db.Config
 	}{result1, result2, result3}
 }
 
-func (fake *FakeConfigDB) SaveConfig(arg1 string, arg2 atc.Config, arg3 db.ConfigVersion, arg4 db.PipelinePausedState) error {
+func (fake *FakeConfigDB) SaveConfig(arg1 string, arg2 atc.Config, arg3 db.ConfigVersion, arg4 db.PipelinePausedState) (bool, error) {
 	fake.saveConfigMutex.Lock()
 	fake.saveConfigArgsForCall = append(fake.saveConfigArgsForCall, struct {
 		arg1 string
@@ -78,7 +79,7 @@ func (fake *FakeConfigDB) SaveConfig(arg1 string, arg2 atc.Config, arg3 db.Confi
 	if fake.SaveConfigStub != nil {
 		return fake.SaveConfigStub(arg1, arg2, arg3, arg4)
 	} else {
-		return fake.saveConfigReturns.result1
+		return fake.saveConfigReturns.result1, fake.saveConfigReturns.result2
 	}
 }
 
@@ -94,11 +95,12 @@ func (fake *FakeConfigDB) SaveConfigArgsForCall(i int) (string, atc.Config, db.C
 	return fake.saveConfigArgsForCall[i].arg1, fake.saveConfigArgsForCall[i].arg2, fake.saveConfigArgsForCall[i].arg3, fake.saveConfigArgsForCall[i].arg4
 }
 
-func (fake *FakeConfigDB) SaveConfigReturns(result1 error) {
+func (fake *FakeConfigDB) SaveConfigReturns(result1 bool, result2 error) {
 	fake.SaveConfigStub = nil
 	fake.saveConfigReturns = struct {
-		result1 error
-	}{result1}
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 var _ db.ConfigDB = new(FakeConfigDB)

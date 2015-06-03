@@ -63,7 +63,7 @@ type PipelinesDB interface {
 
 type ConfigDB interface {
 	GetConfig(pipelineName string) (atc.Config, ConfigVersion, error)
-	SaveConfig(string, atc.Config, ConfigVersion, PipelinePausedState) error
+	SaveConfig(string, atc.Config, ConfigVersion, PipelinePausedState) (bool, error)
 }
 
 // sequence identifier used for compare-and-swap

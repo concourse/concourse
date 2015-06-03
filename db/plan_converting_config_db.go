@@ -15,7 +15,7 @@ func (db PlanConvertingConfigDB) GetConfig(pipelineName string) (atc.Config, Con
 	return db.convertJobsToPlan(config), version, nil
 }
 
-func (db PlanConvertingConfigDB) SaveConfig(pipelineName string, config atc.Config, version ConfigVersion, pausedState PipelinePausedState) error {
+func (db PlanConvertingConfigDB) SaveConfig(pipelineName string, config atc.Config, version ConfigVersion, pausedState PipelinePausedState) (bool, error) {
 	return db.NestedDB.SaveConfig(pipelineName, db.convertJobsToPlan(config), version, pausedState)
 }
 

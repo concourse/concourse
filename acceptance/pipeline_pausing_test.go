@@ -76,19 +76,19 @@ var _ = Describe("Pipeline Pausing", func() {
 		Context("with a job in the configuration", func() {
 
 			BeforeEach(func() {
-				var err error
-
-				Ω(sqlDB.SaveConfig("some-pipeline", atc.Config{
+				_, err := sqlDB.SaveConfig("some-pipeline", atc.Config{
 					Jobs: []atc.JobConfig{
 						{Name: "some-job-name"},
 					},
-				}, db.ConfigVersion(1), db.PipelineUnpaused)).Should(Succeed())
+				}, db.ConfigVersion(1), db.PipelineUnpaused)
+				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(sqlDB.SaveConfig("another-pipeline", atc.Config{
+				_, err = sqlDB.SaveConfig("another-pipeline", atc.Config{
 					Jobs: []atc.JobConfig{
 						{Name: "another-job-name"},
 					},
-				}, db.ConfigVersion(1), db.PipelineUnpaused)).Should(Succeed())
+				}, db.ConfigVersion(1), db.PipelineUnpaused)
+				Ω(err).ShouldNot(HaveOccurred())
 
 				pipelineDB, err = pipelineDBFactory.BuildWithName("some-pipeline")
 				Ω(err).ShouldNot(HaveOccurred())

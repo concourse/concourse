@@ -250,7 +250,7 @@ var _ = Describe("Config API", func() {
 
 						Context("and saving it fails", func() {
 							BeforeEach(func() {
-								configDB.SaveConfigReturns(errors.New("oh no!"))
+								configDB.SaveConfigReturns(false, errors.New("oh no!"))
 							})
 
 							It("returns 500", func() {
@@ -259,6 +259,16 @@ var _ = Describe("Config API", func() {
 
 							It("returns the error in the response body", func() {
 								Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("failed to save config: oh no!")))
+							})
+						})
+
+						Context("when it's the first time the pipeline has been created", func() {
+							BeforeEach(func() {
+								configDB.SaveConfigReturns(true, nil)
+							})
+
+							It("returns 201", func() {
+								Ω(response.StatusCode).Should(Equal(http.StatusCreated))
 							})
 						})
 
@@ -363,9 +373,19 @@ jobs:
 							})
 						})
 
+						Context("when it's the first time the pipeline has been created", func() {
+							BeforeEach(func() {
+								configDB.SaveConfigReturns(true, nil)
+							})
+
+							It("returns 201", func() {
+								Ω(response.StatusCode).Should(Equal(http.StatusCreated))
+							})
+						})
+
 						Context("and saving it fails", func() {
 							BeforeEach(func() {
-								configDB.SaveConfigReturns(errors.New("oh no!"))
+								configDB.SaveConfigReturns(false, errors.New("oh no!"))
 							})
 
 							It("returns 500", func() {
@@ -444,9 +464,19 @@ jobs:
 								Ω(pipelineState).Should(Equal(expectedDBValue))
 							})
 
+							Context("when it's the first time the pipeline has been created", func() {
+								BeforeEach(func() {
+									configDB.SaveConfigReturns(true, nil)
+								})
+
+								It("returns 201", func() {
+									Ω(response.StatusCode).Should(Equal(http.StatusCreated))
+								})
+							})
+
 							Context("and saving it fails", func() {
 								BeforeEach(func() {
-									configDB.SaveConfigReturns(errors.New("oh no!"))
+									configDB.SaveConfigReturns(false, errors.New("oh no!"))
 								})
 
 								It("returns 500", func() {

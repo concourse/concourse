@@ -77,15 +77,15 @@ var _ = Describe("Resource Pausing", func() {
 			var build db.Build
 
 			BeforeEach(func() {
-				var err error
 				location := event.OriginLocation{}.Chain(1)
 
 				// job build data
-				Ω(sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{
+				_, err := sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{
 					Jobs: []atc.JobConfig{
 						{Name: "job-name"},
 					},
-				}, db.ConfigVersion(1), db.PipelineUnpaused)).Should(Succeed())
+				}, db.ConfigVersion(1), db.PipelineUnpaused)
+				Ω(err).ShouldNot(HaveOccurred())
 
 				dbPipeline, err := sqlDB.GetPipelineByName(atc.DefaultPipelineName)
 				Ω(err).ShouldNot(HaveOccurred())

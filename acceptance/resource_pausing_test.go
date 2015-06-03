@@ -72,7 +72,7 @@ var _ = Describe("Resource Pausing", func() {
 		Context("with a resource in the configuration", func() {
 			BeforeEach(func() {
 				// job build data
-				Ω(sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{
+				_, err := sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{
 					Jobs: atc.JobConfigs{
 						{
 							Name: "job-name",
@@ -86,7 +86,8 @@ var _ = Describe("Resource Pausing", func() {
 					Resources: atc.ResourceConfigs{
 						{Name: "resource-name"},
 					},
-				}, db.ConfigVersion(1), db.PipelineUnpaused)).Should(Succeed())
+				}, db.ConfigVersion(1), db.PipelineUnpaused)
+				Ω(err).ShouldNot(HaveOccurred())
 			})
 
 			It("can view the resource", func() {

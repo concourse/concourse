@@ -33,7 +33,8 @@ var _ = Describe("Auth", func() {
 		bus := db.NewNotificationsBus(dbListener)
 		sqlDB = db.NewSQL(logger, dbConn, bus)
 
-		Ω(sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)).Should(Succeed())
+		_, err := sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
+		Ω(err).ShouldNot(HaveOccurred())
 
 		atcBin, err := gexec.Build("github.com/concourse/atc/cmd/atc")
 		Ω(err).ShouldNot(HaveOccurred())
