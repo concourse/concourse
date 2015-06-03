@@ -147,7 +147,7 @@ var _ = Describe("SourceRepository", func() {
 					})
 
 					It("returns ErrFileNotFound", func() {
-						Ω(streamErr).Should(Equal(ErrFileNotFound))
+						Ω(streamErr).Should(MatchError(FileNotFoundError{Path: "bogus"}))
 					})
 				})
 

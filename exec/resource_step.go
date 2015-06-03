@@ -113,7 +113,7 @@ func (ras *resourceStep) StreamFile(path string) (io.ReadCloser, error) {
 
 	_, err = tarReader.Next()
 	if err != nil {
-		return nil, ErrFileNotFound
+		return nil, FileNotFoundError{Path: path}
 	}
 
 	return fileReadCloser{

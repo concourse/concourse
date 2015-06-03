@@ -1,7 +1,7 @@
 package exec
 
 import (
-	"errors"
+	"fmt"
 	"io"
 	"os"
 
@@ -9,7 +9,13 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
-var ErrFileNotFound = errors.New("file not found")
+type FileNotFoundError struct {
+	Path string
+}
+
+func (err FileNotFoundError) Error() string {
+	return fmt.Sprintf("file not found: %s", err.Path)
+}
 
 //go:generate counterfeiter . Step
 
@@ -60,6 +66,6 @@ func (NoopStep) StreamTo(ArtifactDestination) error {
 	return nil
 }
 
-func (NoopStep) StreamFile(string) (io.ReadCloser, error) {
-	return nil, ErrFileNotFound
+func (NoopStep) StreamFile(path string) (io.ReadCloser, error) {
+	return nil, FileNotFoundError{Path: path}
 }

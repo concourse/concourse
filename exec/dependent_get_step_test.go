@@ -354,7 +354,7 @@ var _ = Describe("GardenFactory", func() {
 						Context("but the stream is empty", func() {
 							It("returns ErrFileNotFound", func() {
 								_, err := artifactSource.StreamFile("some-path")
-								Ω(err).Should(Equal(ErrFileNotFound))
+								Ω(err).Should(MatchError(FileNotFoundError{Path: "some-path"}))
 							})
 						})
 					})

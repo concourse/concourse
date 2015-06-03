@@ -64,7 +64,7 @@ func (repo *SourceRepository) StreamFile(path string) (io.ReadCloser, error) {
 		}
 	}
 
-	return nil, ErrFileNotFound
+	return nil, FileNotFoundError{Path: path}
 }
 
 type subdirectoryDestination struct {
