@@ -139,12 +139,12 @@ var _ = Describe("PipelineDB", func() {
 	)
 
 	BeforeEach(func() {
-		err := sqlDB.SavePipeline("a-pipeline-name", config, 0)
+		err := sqlDB.SaveConfig("a-pipeline-name", config, 0, db.PipelineUnpaused)
 		Ω(err).ShouldNot(HaveOccurred())
 		savedPipeline, err := sqlDB.GetPipelineByName("a-pipeline-name")
 		Ω(err).ShouldNot(HaveOccurred())
 
-		err = sqlDB.SavePipeline("other-pipeline-name", otherConfig, 0)
+		err = sqlDB.SaveConfig("other-pipeline-name", otherConfig, 0, db.PipelineUnpaused)
 		Ω(err).ShouldNot(HaveOccurred())
 		otherSavedPipeline, err := sqlDB.GetPipelineByName("other-pipeline-name")
 		Ω(err).ShouldNot(HaveOccurred())
@@ -155,7 +155,7 @@ var _ = Describe("PipelineDB", func() {
 
 	Describe("destroying a pipeline", func() {
 		It("can be deleted", func() {
-			err := sqlDB.SavePipeline("a-pipeline-that-will-be-deleted", config, 0)
+			err := sqlDB.SaveConfig("a-pipeline-that-will-be-deleted", config, 0, db.PipelineUnpaused)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			fetchedPipeline, err := sqlDB.GetPipelineByName("a-pipeline-that-will-be-deleted")
@@ -304,9 +304,9 @@ var _ = Describe("PipelineDB", func() {
 			})
 
 			By("being able to update the config with a valid con")
-			err = sqlDB.SavePipeline("a-pipeline-name", updatedConfig, configVersion)
+			err = sqlDB.SaveConfig("a-pipeline-name", updatedConfig, configVersion, db.PipelineUnpaused)
 			Ω(err).ShouldNot(HaveOccurred())
-			err = sqlDB.SavePipeline("other-pipeline-name", updatedConfig, otherConfigVersion)
+			err = sqlDB.SaveConfig("other-pipeline-name", updatedConfig, otherConfigVersion, db.PipelineUnpaused)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			By("returning the updated config")

@@ -170,7 +170,31 @@ func (db *SQLDB) GetConfig(pipelineName string) (atc.Config, ConfigVersion, erro
 	return config, ConfigVersion(version), nil
 }
 
-func (db *SQLDB) SavePipeline(pipelineName string, config atc.Config, from ConfigVersion) error {
+type PipelinePausedState string
+
+const (
+	PipelinePaused   PipelinePausedState = "paused"
+	PipelineUnpaused PipelinePausedState = "unpaused"
+	PipelineNoChange PipelinePausedState = "nochange"
+)
+
+func (state PipelinePausedState) Bool() *bool {
+	yes := true
+	no := false
+
+	switch state {
+	case PipelinePaused:
+		return &yes
+	case PipelineUnpaused:
+		return &no
+	case PipelineNoChange:
+		return nil
+	default:
+		panic("unknown pipeline state")
+	}
+}
+
+func (db *SQLDB) SaveConfig(pipelineName string, config atc.Config, from ConfigVersion, pausedState PipelinePausedState) error {
 	payload, err := json.Marshal(config)
 	if err != nil {
 		return err
@@ -193,12 +217,24 @@ func (db *SQLDB) SavePipeline(pipelineName string, config atc.Config, from Confi
 		return err
 	}
 
-	result, err := tx.Exec(`
-		UPDATE pipelines
-		SET config = $1, version = nextval('config_version_seq')
-		WHERE name = $2
-			AND version = $3
-	`, payload, pipelineName, from)
+	var result sql.Result
+
+	if pausedState == PipelineNoChange {
+		result, err = tx.Exec(`
+				UPDATE pipelines
+				SET config = $1, version = nextval('config_version_seq')
+				WHERE name = $2
+					AND version = $3
+			`, payload, pipelineName, from)
+	} else {
+		result, err = tx.Exec(`
+				UPDATE pipelines
+				SET config = $1, version = nextval('config_version_seq'), paused = $2
+				WHERE name = $3
+					AND version = $4
+			`, payload, pausedState.Bool(), pipelineName, from)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -210,10 +246,16 @@ func (db *SQLDB) SavePipeline(pipelineName string, config atc.Config, from Confi
 
 	if rows == 0 {
 		if existingConfig == 0 {
+			// If there is no state to change from then start the pipeline out as
+			// paused.
+			if pausedState == PipelineNoChange {
+				pausedState = PipelinePaused
+			}
+
 			_, err := tx.Exec(`
-			INSERT INTO pipelines (name, config, version, ordering)
-			VALUES ($1, $2, nextval('config_version_seq'), (SELECT COUNT(1) + 1 FROM pipelines))
-		`, pipelineName, payload)
+			INSERT INTO pipelines (name, config, version, ordering, paused)
+			VALUES ($1, $2, nextval('config_version_seq'), (SELECT COUNT(1) + 1 FROM pipelines), $3)
+		`, pipelineName, payload, pausedState.Bool())
 			if err != nil {
 				return err
 			}
@@ -223,10 +265,6 @@ func (db *SQLDB) SavePipeline(pipelineName string, config atc.Config, from Confi
 	}
 
 	return tx.Commit()
-}
-
-func (db *SQLDB) SaveConfig(pipelineName string, config atc.Config, from ConfigVersion) error {
-	return db.SavePipeline(pipelineName, config, from)
 }
 
 func (db *SQLDB) CreatePipe(pipeGUID string, url string) error {

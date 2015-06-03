@@ -1,10 +1,14 @@
 package configserver
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"mime"
+	"mime/multipart"
 	"net/http"
 	"reflect"
 
@@ -15,6 +19,29 @@ import (
 	"github.com/tedsuo/rata"
 	"gopkg.in/yaml.v2"
 )
+
+var (
+	ErrStatusUnsupportedMediaType = errors.New("content-type is not supported")
+	ErrCannotParseContentType     = errors.New("content-type header could not be parsed")
+	ErrMalformedRequestPayload    = errors.New("data in body could not be decoded")
+	ErrFailedToConstructDecoder   = errors.New("decoder could not be constructed")
+	ErrCouldNotDecode             = errors.New("data could not be decoded into config structure")
+)
+
+type ExtraKeysError struct {
+	extraKeys []string
+}
+
+func (eke ExtraKeysError) Error() string {
+	msg := &bytes.Buffer{}
+
+	fmt.Fprintln(msg, "unknown/extra keys:")
+	for _, unusedKey := range eke.extraKeys {
+		fmt.Fprintf(msg, "  - %s\n", unusedKey)
+	}
+
+	return msg.String()
+}
 
 func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	session := s.logger.Session("set-config")
@@ -35,30 +62,125 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var configStructure interface{}
+	config, pausedState, err := saveConfigRequestUnmarshler(r)
 
-	contentType := r.Header.Get("Content-Type")
-	switch contentType {
-	case "application/json":
-		err = json.NewDecoder(r.Body).Decode(&configStructure)
-	case "application/x-yaml":
-		var body []byte
-		body, err = ioutil.ReadAll(r.Body)
-		if err == nil {
-			err = yaml.Unmarshal(body, &configStructure)
-		}
-	default:
+	switch err {
+	case ErrStatusUnsupportedMediaType:
 		w.WriteHeader(http.StatusUnsupportedMediaType)
 		return
-	}
-
-	if err != nil {
+	case ErrMalformedRequestPayload:
 		session.Error("malformed-request-payload", err, lager.Data{
-			"content-type": contentType,
+			"content-type": r.Header.Get("Content-Type"),
 		})
 
 		w.WriteHeader(http.StatusBadRequest)
 		return
+	case ErrFailedToConstructDecoder:
+		session.Error("failed-to-construct-decoder", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	case ErrCouldNotDecode:
+		session.Error("could-not-decode", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	default:
+		if err != nil {
+			if eke, ok := err.(ExtraKeysError); ok {
+				w.WriteHeader(http.StatusBadRequest)
+				fmt.Fprintln(w, eke)
+			} else {
+				session.Error("unexpected-error", err)
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+
+			return
+		}
+	}
+
+	err = s.validate(config)
+	if err != nil {
+		session.Error("ignoring-invalid-config", err)
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "%s", err)
+		return
+	}
+
+	session.Info("saving")
+
+	pipelineName := rata.Param(r, "pipeline_name")
+	err = s.db.SaveConfig(pipelineName, config, version, pausedState)
+	if err != nil {
+		session.Error("failed-to-save-config", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "failed to save config: %s", err)
+		return
+	}
+
+	session.Info("saved")
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func requestToConfig(contentType string, requestBody io.ReadCloser) (interface{}, db.PipelinePausedState, error) {
+	var err error
+	var configStructure interface{}
+	pausedState := db.PipelineNoChange
+
+	mediaType, params, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		return atc.Config{}, db.PipelineNoChange, ErrCannotParseContentType
+	}
+
+	switch mediaType {
+	case "application/json":
+		err = json.NewDecoder(requestBody).Decode(&configStructure)
+	case "application/x-yaml":
+		var body []byte
+		body, err = ioutil.ReadAll(requestBody)
+		if err == nil {
+			err = yaml.Unmarshal(body, &configStructure)
+		}
+	case "multipart/form-data":
+		multipartReader := multipart.NewReader(requestBody, params["boundary"])
+
+		for {
+			part, err := multipartReader.NextPart()
+
+			if err == io.EOF {
+				break
+			}
+
+			if err != nil {
+				return atc.Config{}, db.PipelineNoChange, err
+			}
+
+			if part.FormName() == "paused" {
+				pausedValue, err := ioutil.ReadAll(part)
+				if err != nil {
+					return atc.Config{}, db.PipelineNoChange, err
+				}
+
+				if string(pausedValue) == "true" {
+					pausedState = db.PipelinePaused
+				} else {
+					pausedState = db.PipelineUnpaused
+				}
+			} else {
+				partContentType := part.Header.Get("Content-type")
+				configStructure, _, err = requestToConfig(partContentType, part)
+			}
+		}
+	default:
+		return atc.Config{}, db.PipelineNoChange, ErrStatusUnsupportedMediaType
+	}
+
+	return configStructure, pausedState, nil
+}
+
+func saveConfigRequestUnmarshler(r *http.Request) (atc.Config, db.PipelinePausedState, error) {
+	configStructure, pausedState, err := requestToConfig(r.Header.Get("Content-Type"), r.Body)
+	if err != nil {
+		return atc.Config{}, db.PipelineNoChange, err
 	}
 
 	var config atc.Config
@@ -92,52 +214,18 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	decoder, err := mapstructure.NewDecoder(msConfig)
 	if err != nil {
-		session.Error("failed-to-construct-decoder", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return atc.Config{}, db.PipelineNoChange, ErrFailedToConstructDecoder
 	}
 
 	if err := decoder.Decode(configStructure); err != nil {
-		session.Error("could-not-decode", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		return atc.Config{}, db.PipelineNoChange, ErrCouldNotDecode
 	}
 
 	if len(md.Unused) != 0 {
-		session.Error("extra-keys", err, lager.Data{
-			"unused-keys": md.Unused,
-		})
-		w.WriteHeader(http.StatusBadRequest)
-
-		fmt.Fprintln(w, "unknown/extra keys:")
-		for _, unusedKey := range md.Unused {
-			fmt.Fprintf(w, "  - %s\n", unusedKey)
-		}
-		return
+		return atc.Config{}, db.PipelineNoChange, ExtraKeysError{extraKeys: md.Unused}
 	}
 
-	err = s.validate(config)
-	if err != nil {
-		session.Error("ignoring-invalid-config", err)
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "%s", err)
-		return
-	}
-
-	session.Info("saving")
-
-	pipelineName := rata.Param(r, "pipeline_name")
-	err = s.db.SaveConfig(pipelineName, config, version)
-	if err != nil {
-		session.Error("failed-to-save-config", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "failed to save config: %s", err)
-		return
-	}
-
-	session.Info("saved")
-
-	w.WriteHeader(http.StatusOK)
+	return config, pausedState, nil
 }
 
 func sanitize(root interface{}) (interface{}, error) {

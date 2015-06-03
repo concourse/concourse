@@ -139,16 +139,18 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 	Context("SaveConfig", func() {
 		var configToSave atc.Config
 		var versionToSave ConfigVersion
+		var pausedState PipelinePausedState
 
 		var saveErr error
 
 		BeforeEach(func() {
 			configToSave = atc.Config{}
 			versionToSave = 42
+			pausedState = PipelinePaused
 		})
 
 		JustBeforeEach(func() {
-			saveErr = configDB.SaveConfig(pipelineName, configToSave, versionToSave)
+			saveErr = configDB.SaveConfig(pipelineName, configToSave, versionToSave, pausedState)
 		})
 
 		Context("when the given config contains jobs with inputs/outputs/build", func() {
@@ -163,10 +165,11 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 			It("converts them to a plan before saving in the nested config db", func() {
 				Ω(nestedDB.SaveConfigCallCount()).Should(Equal(1))
 
-				name, savedConfig, savedID := nestedDB.SaveConfigArgsForCall(0)
+				name, savedConfig, savedID, savedPausedState := nestedDB.SaveConfigArgsForCall(0)
 				Ω(name).Should(Equal(pipelineName))
 				Ω(savedConfig).Should(Equal(planBasedConfig))
 				Ω(savedID).Should(Equal(ConfigVersion(42)))
+				Ω(savedPausedState).Should(Equal(PipelinePaused))
 			})
 
 			Context("when the nested config db fails to save", func() {
@@ -194,10 +197,11 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 			It("passes them through to the nested config db", func() {
 				Ω(nestedDB.SaveConfigCallCount()).Should(Equal(1))
 
-				savedName, savedConfig, savedID := nestedDB.SaveConfigArgsForCall(0)
+				savedName, savedConfig, savedID, savedPausedState := nestedDB.SaveConfigArgsForCall(0)
 				Ω(savedName).Should(Equal(pipelineName))
 				Ω(savedConfig).Should(Equal(planBasedConfig))
 				Ω(savedID).Should(Equal(ConfigVersion(42)))
+				Ω(savedPausedState).Should(Equal(PipelinePaused))
 			})
 
 			Context("when the nested config db fails to save", func() {

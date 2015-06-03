@@ -85,7 +85,7 @@ var _ = Describe("Resource Pausing", func() {
 					Jobs: []atc.JobConfig{
 						{Name: "job-name"},
 					},
-				}, db.ConfigVersion(1))).Should(Succeed())
+				}, db.ConfigVersion(1), db.PipelineUnpaused)).Should(Succeed())
 
 				dbPipeline, err := sqlDB.GetPipelineByName(atc.DefaultPipelineName)
 				Ω(err).ShouldNot(HaveOccurred())

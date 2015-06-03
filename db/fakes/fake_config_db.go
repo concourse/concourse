@@ -19,12 +19,13 @@ type FakeConfigDB struct {
 		result2 db.ConfigVersion
 		result3 error
 	}
-	SaveConfigStub        func(string, atc.Config, db.ConfigVersion) error
+	SaveConfigStub        func(string, atc.Config, db.ConfigVersion, db.PipelinePausedState) error
 	saveConfigMutex       sync.RWMutex
 	saveConfigArgsForCall []struct {
 		arg1 string
 		arg2 atc.Config
 		arg3 db.ConfigVersion
+		arg4 db.PipelinePausedState
 	}
 	saveConfigReturns struct {
 		result1 error
@@ -65,16 +66,17 @@ func (fake *FakeConfigDB) GetConfigReturns(result1 atc.Config, result2 db.Config
 	}{result1, result2, result3}
 }
 
-func (fake *FakeConfigDB) SaveConfig(arg1 string, arg2 atc.Config, arg3 db.ConfigVersion) error {
+func (fake *FakeConfigDB) SaveConfig(arg1 string, arg2 atc.Config, arg3 db.ConfigVersion, arg4 db.PipelinePausedState) error {
 	fake.saveConfigMutex.Lock()
 	fake.saveConfigArgsForCall = append(fake.saveConfigArgsForCall, struct {
 		arg1 string
 		arg2 atc.Config
 		arg3 db.ConfigVersion
-	}{arg1, arg2, arg3})
+		arg4 db.PipelinePausedState
+	}{arg1, arg2, arg3, arg4})
 	fake.saveConfigMutex.Unlock()
 	if fake.SaveConfigStub != nil {
-		return fake.SaveConfigStub(arg1, arg2, arg3)
+		return fake.SaveConfigStub(arg1, arg2, arg3, arg4)
 	} else {
 		return fake.saveConfigReturns.result1
 	}
@@ -86,10 +88,10 @@ func (fake *FakeConfigDB) SaveConfigCallCount() int {
 	return len(fake.saveConfigArgsForCall)
 }
 
-func (fake *FakeConfigDB) SaveConfigArgsForCall(i int) (string, atc.Config, db.ConfigVersion) {
+func (fake *FakeConfigDB) SaveConfigArgsForCall(i int) (string, atc.Config, db.ConfigVersion, db.PipelinePausedState) {
 	fake.saveConfigMutex.RLock()
 	defer fake.saveConfigMutex.RUnlock()
-	return fake.saveConfigArgsForCall[i].arg1, fake.saveConfigArgsForCall[i].arg2, fake.saveConfigArgsForCall[i].arg3
+	return fake.saveConfigArgsForCall[i].arg1, fake.saveConfigArgsForCall[i].arg2, fake.saveConfigArgsForCall[i].arg3, fake.saveConfigArgsForCall[i].arg4
 }
 
 func (fake *FakeConfigDB) SaveConfigReturns(result1 error) {

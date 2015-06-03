@@ -1,10 +1,13 @@
 package api_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -238,10 +241,11 @@ var _ = Describe("Config API", func() {
 						It("saves it", func() {
 							Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
 
-							name, config, id := configDB.SaveConfigArgsForCall(0)
+							name, config, id, pipelineState := configDB.SaveConfigArgsForCall(0)
 							Ω(name).Should(Equal("a-pipeline"))
 							Ω(config).Should(Equal(config))
 							Ω(id).Should(Equal(db.ConfigVersion(42)))
+							Ω(pipelineState).Should(Equal(db.PipelineNoChange))
 						})
 
 						Context("and saving it fails", func() {
@@ -294,16 +298,17 @@ var _ = Describe("Config API", func() {
 						It("saves it", func() {
 							Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
 
-							name, config, id := configDB.SaveConfigArgsForCall(0)
+							name, config, id, pipelineState := configDB.SaveConfigArgsForCall(0)
 							Ω(name).Should(Equal("a-pipeline"))
 							Ω(config).Should(Equal(config))
 							Ω(id).Should(Equal(db.ConfigVersion(42)))
+							Ω(pipelineState).Should(Equal(db.PipelineNoChange))
 						})
 
 						It("does not give the DB a map of empty interfaces to empty interfaces", func() {
 							Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
 
-							_, config, _ := configDB.SaveConfigArgsForCall(0)
+							_, config, _, _ := configDB.SaveConfigArgsForCall(0)
 							Ω(config).Should(Equal(config))
 
 							_, err := json.Marshal(config)
@@ -312,7 +317,7 @@ var _ = Describe("Config API", func() {
 
 						Context("when the payload contains suspicious types", func() {
 							BeforeEach(func() {
-								payload := []byte(`
+								payload := `
 jobs:
 - name: some-job
   config:
@@ -321,10 +326,9 @@ jobs:
     params:
       FOO: true
       BAR: 1
-      BAZ: 1.9
-`)
+      BAZ: 1.9`
 
-								request.Body = gbytes.BufferWithBytes(payload)
+								request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
 							})
 
 							It("returns 200", func() {
@@ -334,7 +338,7 @@ jobs:
 							It("saves it", func() {
 								Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
 
-								name, config, id := configDB.SaveConfigArgsForCall(0)
+								name, config, id, pipelineState := configDB.SaveConfigArgsForCall(0)
 								Ω(name).Should(Equal("a-pipeline"))
 								Ω(config).Should(Equal(atc.Config{
 									Jobs: atc.JobConfigs{
@@ -355,6 +359,7 @@ jobs:
 									},
 								}))
 								Ω(id).Should(Equal(db.ConfigVersion(42)))
+								Ω(pipelineState).Should(Equal(db.PipelineNoChange))
 							})
 						})
 
@@ -388,6 +393,115 @@ jobs:
 							It("does not save it", func() {
 								Ω(configDB.SaveConfigCallCount()).Should(BeZero())
 							})
+						})
+					})
+
+					Context("multi-part requests", func() {
+						var pausedValue string
+						var expectedDBValue db.PipelinePausedState
+
+						itSavesThePipeline := func() {
+							BeforeEach(func() {
+								body := &bytes.Buffer{}
+								writer := multipart.NewWriter(body)
+
+								yamlWriter, err := writer.CreatePart(
+									textproto.MIMEHeader{
+										"Content-type": {"application/x-yaml"},
+									},
+								)
+								Ω(err).ShouldNot(HaveOccurred())
+
+								yml, err := yaml.Marshal(config)
+								Ω(err).ShouldNot(HaveOccurred())
+
+								_, err = yamlWriter.Write(yml)
+
+								Ω(err).ShouldNot(HaveOccurred())
+
+								if pausedValue != "" {
+									err = writer.WriteField("paused", pausedValue)
+									Ω(err).ShouldNot(HaveOccurred())
+								}
+
+								writer.Close()
+
+								request.Header.Set("Content-Type", writer.FormDataContentType())
+								request.Body = gbytes.BufferWithBytes(body.Bytes())
+							})
+
+							It("returns 200", func() {
+								Ω(response.StatusCode).Should(Equal(http.StatusOK))
+							})
+
+							It("saves it", func() {
+								Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
+
+								name, config, id, pipelineState := configDB.SaveConfigArgsForCall(0)
+								Ω(name).Should(Equal("a-pipeline"))
+								Ω(config).Should(Equal(config))
+								Ω(id).Should(Equal(db.ConfigVersion(42)))
+								Ω(pipelineState).Should(Equal(expectedDBValue))
+							})
+
+							Context("and saving it fails", func() {
+								BeforeEach(func() {
+									configDB.SaveConfigReturns(errors.New("oh no!"))
+								})
+
+								It("returns 500", func() {
+									Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+								})
+
+								It("returns the error in the response body", func() {
+									Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("failed to save config: oh no!")))
+								})
+							})
+
+							Context("when the config is invalid", func() {
+								BeforeEach(func() {
+									configValidationErr = errors.New("totally invalid")
+								})
+
+								It("returns 400", func() {
+									Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+								})
+
+								It("returns the validation error in the response body", func() {
+									Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("totally invalid")))
+								})
+
+								It("does not save it", func() {
+									Ω(configDB.SaveConfigCallCount()).Should(BeZero())
+								})
+							})
+						}
+
+						Context("when paused is specified", func() {
+							BeforeEach(func() {
+								pausedValue = "true"
+								expectedDBValue = db.PipelinePaused
+							})
+
+							itSavesThePipeline()
+						})
+
+						Context("when unpaused is specified", func() {
+							BeforeEach(func() {
+								pausedValue = "false"
+								expectedDBValue = db.PipelineUnpaused
+							})
+
+							itSavesThePipeline()
+						})
+
+						Context("when neither paused or unpaused is specified", func() {
+							BeforeEach(func() {
+								pausedValue = ""
+								expectedDBValue = db.PipelineNoChange
+							})
+
+							itSavesThePipeline()
 						})
 					})
 				})

@@ -82,13 +82,13 @@ var _ = Describe("Pipeline Pausing", func() {
 					Jobs: []atc.JobConfig{
 						{Name: "some-job-name"},
 					},
-				}, db.ConfigVersion(1))).Should(Succeed())
+				}, db.ConfigVersion(1), db.PipelineUnpaused)).Should(Succeed())
 
 				Ω(sqlDB.SaveConfig("another-pipeline", atc.Config{
 					Jobs: []atc.JobConfig{
 						{Name: "another-job-name"},
 					},
-				}, db.ConfigVersion(1))).Should(Succeed())
+				}, db.ConfigVersion(1), db.PipelineUnpaused)).Should(Succeed())
 
 				pipelineDB, err = pipelineDBFactory.BuildWithName("some-pipeline")
 				Ω(err).ShouldNot(HaveOccurred())

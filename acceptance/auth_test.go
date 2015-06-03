@@ -33,7 +33,7 @@ var _ = Describe("Auth", func() {
 		bus := db.NewNotificationsBus(dbListener)
 		sqlDB = db.NewSQL(logger, dbConn, bus)
 
-		Ω(sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1))).Should(Succeed())
+		Ω(sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)).Should(Succeed())
 
 		atcBin, err := gexec.Build("github.com/concourse/atc/cmd/atc")
 		Ω(err).ShouldNot(HaveOccurred())
@@ -46,7 +46,7 @@ var _ = Describe("Auth", func() {
 			"-webListenPort", fmt.Sprintf("%d", atcPort),
 			"-debugListenPort", fmt.Sprintf("%d", debugPort),
 			"-httpUsername", "admin",
-			"-httpHashedPassword", "$2a$04$Cl3vCfrp01EM9NGekxL59uPusP/hBIM3toCkCuECK3saCbOAyrg/O", // "password"
+			"-httpPassword", "password",
 			"-templates", filepath.Join("..", "web", "templates"),
 			"-public", filepath.Join("..", "web", "public"),
 			"-sqlDataSource", postgresRunner.DataSourceName(),
