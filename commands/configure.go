@@ -34,7 +34,7 @@ func Configure(c *cli.Context) {
 	pipelineName := c.Args().First()
 
 	if pipelineName == "" {
-		pipelineName = atc.DefaultPipelineName
+		failf("please specify a pipeline name as an argument!")
 	}
 
 	apiRequester := newAtcRequester(target, insecure)

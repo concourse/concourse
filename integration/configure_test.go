@@ -188,50 +188,16 @@ var _ = Describe("Fly CLI", func() {
 
 		Describe("getting", func() {
 			Context("when not specifying a pipeline name", func() {
-				BeforeEach(func() {
-					path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "main"})
-					Ω(err).ShouldNot(HaveOccurred())
-
-					atcServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", path),
-							ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
-						),
-					)
-				})
-
-				It("prints the config as yaml to stdout", func() {
+				It("fails and says you should give a pipeline name", func() {
 					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					<-sess.Exited
-					Ω(sess.ExitCode()).Should(Equal(0))
+					Ω(sess.ExitCode()).Should(Equal(1))
 
-					var printedConfig atc.Config
-					err = yaml.Unmarshal(sess.Out.Contents(), &printedConfig)
-					Ω(err).ShouldNot(HaveOccurred())
-
-					Ω(printedConfig).Should(Equal(config))
-				})
-
-				Context("when -j is given", func() {
-					It("prints the config as json to stdout", func() {
-						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-j")
-
-						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						<-sess.Exited
-						Ω(sess.ExitCode()).Should(Equal(0))
-
-						var printedConfig atc.Config
-						err = json.Unmarshal(sess.Out.Contents(), &printedConfig)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						Ω(printedConfig).Should(Equal(config))
-					})
+					Ω(sess.Err).Should(gbytes.Say("please specify a pipeline name as an argument!"))
 				})
 			})
 
@@ -312,7 +278,7 @@ var _ = Describe("Fly CLI", func() {
 					Jobs: atc.JobConfigs{},
 				}
 
-				path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "main"})
+				path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				atcServer.RouteToHandler("GET", path,
@@ -328,7 +294,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				BeforeEach(func() {
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "main"})
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
 					Ω(err).ShouldNot(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
@@ -352,6 +318,7 @@ var _ = Describe("Fly CLI", func() {
 					flyCmd := exec.Command(
 						flyPath, "-t", atcServer.URL()+"/",
 						"configure",
+						"awesome-pipeline",
 						"-c", "fixtures/testConfig.yml",
 						"-var", "resource-key=verysecret",
 						"-vars-from", "fixtures/vars.yml",
@@ -391,7 +358,7 @@ var _ = Describe("Fly CLI", func() {
 
 				changedConfig = config
 
-				path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "main"})
+				path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				atcServer.RouteToHandler("GET", path,
@@ -417,6 +384,20 @@ var _ = Describe("Fly CLI", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 
+			Context("when not specifying a pipeline name", func() {
+				It("fails and says you should give a pipeline name", func() {
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name())
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					<-sess.Exited
+					Ω(sess.ExitCode()).Should(Equal(1))
+
+					Ω(sess.Err).Should(gbytes.Say("please specify a pipeline name as an argument!"))
+				})
+			})
+
 			Context("when configuring succeeds", func() {
 				BeforeEach(func() {
 					newGroup := changedConfig.Groups[1]
@@ -434,7 +415,7 @@ var _ = Describe("Fly CLI", func() {
 					changedConfig.Jobs[0].Serial = false
 					changedConfig.Jobs = append(changedConfig.Jobs[:1], newJob)
 
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "main"})
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
 					Ω(err).ShouldNot(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
@@ -451,7 +432,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("parses the config file and sends it to the ATC", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name(), "--paused=true")
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "awesome-pipeline", "-c", configFile.Name(), "--paused=true")
 
 					stdin, err := flyCmd.StdinPipe()
 					Ω(err).ShouldNot(HaveOccurred())
@@ -499,7 +480,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("bails if the user rejects the diff", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name())
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "awesome-pipeline", "-c", configFile.Name())
 
 					stdin, err := flyCmd.StdinPipe()
 					Ω(err).ShouldNot(HaveOccurred())
@@ -519,7 +500,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when configuring fails", func() {
 				BeforeEach(func() {
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "main"})
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
 					Ω(err).ShouldNot(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
@@ -528,7 +509,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("prints the error to stderr and exits 1", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name())
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name(), "awesome-pipeline")
 
 					stdin, err := flyCmd.StdinPipe()
 					Ω(err).ShouldNot(HaveOccurred())
@@ -550,7 +531,7 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("complains if the paused flag is invalid", func() {
-				flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name(), "--paused=this-is-not-a-bool")
+				flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "awesome-pipeline", "-c", configFile.Name(), "--paused=this-is-not-a-bool")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Ω(err).ShouldNot(HaveOccurred())
@@ -566,7 +547,7 @@ var _ = Describe("Fly CLI", func() {
 			Context("when the server says this is the first time it's creating the pipeline", func() {
 				Context("when the user doesn't mention paused", func() {
 					BeforeEach(func() {
-						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "main"})
+						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
 						Ω(err).ShouldNot(HaveOccurred())
 
 						atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
@@ -581,7 +562,7 @@ var _ = Describe("Fly CLI", func() {
 					})
 
 					It("succeeds and prints an error message to help the user", func() {
-						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name())
+						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "awesome-pipeline", "-c", configFile.Name())
 
 						stdin, err := flyCmd.StdinPipe()
 						Ω(err).ShouldNot(HaveOccurred())
@@ -592,7 +573,7 @@ var _ = Describe("Fly CLI", func() {
 						Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
 						fmt.Fprintln(stdin, "y")
 
-						pipelineURL := urljoiner.Join(atcServer.URL(), "pipelines", "main")
+						pipelineURL := urljoiner.Join(atcServer.URL(), "pipelines", "awesome-pipeline")
 
 						Eventually(sess).Should(gbytes.Say("pipeline created!"))
 						Eventually(sess).Should(gbytes.Say(fmt.Sprintf("you can view your pipeline here: %s", pipelineURL)))
@@ -610,7 +591,7 @@ var _ = Describe("Fly CLI", func() {
 
 				Context("when the user explicitly says paused true", func() {
 					BeforeEach(func() {
-						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "main"})
+						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
 						Ω(err).ShouldNot(HaveOccurred())
 
 						atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
@@ -625,7 +606,7 @@ var _ = Describe("Fly CLI", func() {
 					})
 
 					It("succeeds and prints an error message to help the user", func() {
-						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name(), "--paused=true")
+						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "awesome-pipeline", "-c", configFile.Name(), "--paused=true")
 
 						stdin, err := flyCmd.StdinPipe()
 						Ω(err).ShouldNot(HaveOccurred())
@@ -636,7 +617,7 @@ var _ = Describe("Fly CLI", func() {
 						Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
 						fmt.Fprintln(stdin, "y")
 
-						pipelineURL := urljoiner.Join(atcServer.URL(), "pipelines", "main")
+						pipelineURL := urljoiner.Join(atcServer.URL(), "pipelines", "awesome-pipeline")
 
 						Eventually(sess).Should(gbytes.Say("pipeline created!"))
 						Eventually(sess).Should(gbytes.Say(fmt.Sprintf("you can view your pipeline here: %s", pipelineURL)))
@@ -654,7 +635,7 @@ var _ = Describe("Fly CLI", func() {
 
 				Context("when the user explicitly says paused is false", func() {
 					BeforeEach(func() {
-						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "main"})
+						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
 						Ω(err).ShouldNot(HaveOccurred())
 
 						atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
@@ -669,7 +650,7 @@ var _ = Describe("Fly CLI", func() {
 					})
 
 					It("succeeds but doesn't show the help text", func() {
-						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name(), "--paused=false")
+						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "awesome-pipeline", "-c", configFile.Name(), "--paused=false")
 
 						stdin, err := flyCmd.StdinPipe()
 						Ω(err).ShouldNot(HaveOccurred())
@@ -680,7 +661,7 @@ var _ = Describe("Fly CLI", func() {
 						Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
 						fmt.Fprintln(stdin, "y")
 
-						pipelineURL := urljoiner.Join(atcServer.URL(), "pipelines", "main")
+						pipelineURL := urljoiner.Join(atcServer.URL(), "pipelines", "awesome-pipeline")
 
 						Eventually(sess).Should(gbytes.Say("pipeline created!"))
 						Eventually(sess).Should(gbytes.Say(fmt.Sprintf("you can view your pipeline here: %s", pipelineURL)))
@@ -697,7 +678,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when the server rejects the request", func() {
 				BeforeEach(func() {
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "main"})
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
 					Ω(err).ShouldNot(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path, func(w http.ResponseWriter, r *http.Request) {
@@ -706,7 +687,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("prints the error to stderr and exits 1", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name())
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name(), "awesome-pipeline")
 
 					stdin, err := flyCmd.StdinPipe()
 					Ω(err).ShouldNot(HaveOccurred())
