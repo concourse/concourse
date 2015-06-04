@@ -206,7 +206,12 @@ func setConfig(pipelineName string, apiRequester *atcRequester, webRequester *ra
 		)
 
 		fmt.Println("pipeline created!")
-		fmt.Printf("you can view your pipeline here: %s\n", pipelineWebReq.URL.String())
+
+		pipelineURL := pipelineWebReq.URL
+		// don't show username and password
+		pipelineURL.User = nil
+
+		fmt.Printf("you can view your pipeline here: %s\n", pipelineURL.String())
 
 		if paused == nil || *paused == true {
 			fmt.Println("")
