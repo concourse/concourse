@@ -37,17 +37,29 @@ func Configure(c *cli.Context) {
 	}
 
 	apiRequester := newAtcRequester(target, insecure)
-	webRequester := rata.NewRequestGenerator(target, atcroutes.Routes)
+	webRequestGenerator := rata.NewRequestGenerator(target, atcroutes.Routes)
+
+	atcConfig := ATCConfig{
+		pipelineName:        pipelineName,
+		apiRequester:        apiRequester,
+		webRequestGenerator: webRequestGenerator,
+	}
 
 	if configPath == "" {
-		dumpConfig(pipelineName, apiRequester, asJSON)
+		atcConfig.DumpConfig(asJSON)
 	} else {
-		setConfig(pipelineName, apiRequester, webRequester, paused, configPath, templateVariables, templateVariablesFile)
+		atcConfig.SetConfig(paused, configPath, templateVariables, templateVariablesFile)
 	}
 }
 
-func dumpConfig(pipelineName string, atcRequester *atcRequester, asJSON bool) {
-	config := getConfig(pipelineName, atcRequester)
+type ATCConfig struct {
+	pipelineName        string
+	apiRequester        *atcRequester
+	webRequestGenerator *rata.RequestGenerator
+}
+
+func (atcConfig ATCConfig) DumpConfig(asJSON bool) {
+	config := getConfig(atcConfig.pipelineName, atcConfig.apiRequester)
 
 	var payload []byte
 	var err error
@@ -65,26 +77,61 @@ func dumpConfig(pipelineName string, atcRequester *atcRequester, asJSON bool) {
 	fmt.Printf("%s", payload)
 }
 
-func setConfig(pipelineName string, apiRequester *atcRequester, webRequester *rata.RequestGenerator, pausedFlag string, configPath string, templateVariables []string, templateVariablesFile []string) {
-	var paused *bool
+type PipelineAction int
 
-	if pausedFlag != "" {
-		p, err := strconv.ParseBool(pausedFlag)
-		if err != nil {
-			log.Fatalln(fmt.Sprintf("paused value '%s' is not a boolean", pausedFlag))
-		}
+const (
+	PausePipeline PipelineAction = iota
+	UnpausePipeline
+	DoNotChangePipeline
+)
 
-		paused = &p
+func (atcConfig ATCConfig) shouldPausePipeline(pausedFlag string) PipelineAction {
+	if pausedFlag == "" {
+		return DoNotChangePipeline
 	}
 
+	p, err := strconv.ParseBool(pausedFlag)
+	if err != nil {
+		failf("paused value '%s' is not a boolean\n", pausedFlag)
+	}
+
+	if p {
+		return PausePipeline
+	} else {
+		return UnpausePipeline
+	}
+}
+
+func failf(message string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, message+"\n", args...)
+	os.Exit(1)
+}
+
+func failWithErrorf(message string, err error) {
+	failf(message + ": " + err.Error())
+}
+
+func (atcConfig ATCConfig) SetConfig(pausedFlag string, configPath string, templateVariables []string, templateVariablesFile []string) {
+	paused := atcConfig.shouldPausePipeline(pausedFlag)
+
+	newConfig, newRawConfig := atcConfig.newConfig(configPath, templateVariablesFile, templateVariables)
+	existingConfig, existingConfigVersion := atcConfig.existingConfig()
+
+	diff(existingConfig, newConfig)
+
+	resp := atcConfig.submitConfig(newRawConfig, paused, existingConfigVersion)
+	atcConfig.showHelpfulMessage(resp, paused)
+}
+
+func (atcConfig ATCConfig) newConfig(configPath string, templateVariablesFiles []string, templateVariables []string) (atc.Config, []byte) {
 	configFile, err := ioutil.ReadFile(configPath)
 	if err != nil {
-		log.Fatalln(err)
+		failWithErrorf("could not read config file", err)
 	}
 
 	var resultVars template.Variables
 
-	for _, path := range templateVariablesFile {
+	for _, path := range templateVariablesFiles {
 		fileVars, err := template.LoadVariablesFromFile(path)
 		if err != nil {
 			log.Fatalln(err)
@@ -111,16 +158,20 @@ func setConfig(pipelineName string, apiRequester *atcRequester, webRequester *ra
 		log.Fatalln(err)
 	}
 
-	getConfig, err := apiRequester.CreateRequest(
+	return newConfig, configFile
+}
+
+func (atcConfig ATCConfig) existingConfig() (atc.Config, string) {
+	getConfig, err := atcConfig.apiRequester.CreateRequest(
 		atc.GetConfig,
-		rata.Params{"pipeline_name": pipelineName},
+		rata.Params{"pipeline_name": atcConfig.pipelineName},
 		nil,
 	)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	resp, err := apiRequester.httpClient.Do(getConfig)
+	resp, err := atcConfig.apiRequester.httpClient.Do(getConfig)
 	if err != nil {
 		log.Println("failed to get config:", err, resp)
 		os.Exit(1)
@@ -140,8 +191,10 @@ func setConfig(pipelineName string, apiRequester *atcRequester, webRequester *ra
 		os.Exit(1)
 	}
 
-	diff(existingConfig, newConfig)
+	return existingConfig, version
+}
 
+func (atcConfig ATCConfig) submitConfig(configFile []byte, paused PipelineAction, existingConfigVersion string) *http.Response {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
@@ -162,10 +215,10 @@ func setConfig(pipelineName string, apiRequester *atcRequester, webRequester *ra
 		os.Exit(1)
 	}
 
-	if paused == nil {
-	} else if *paused == true {
+	switch paused {
+	case PausePipeline:
 		err = writer.WriteField("paused", "true")
-	} else if *paused == false {
+	case UnpausePipeline:
 		err = writer.WriteField("paused", "false")
 	}
 
@@ -175,9 +228,9 @@ func setConfig(pipelineName string, apiRequester *atcRequester, webRequester *ra
 
 	writer.Close()
 
-	setConfig, err := apiRequester.CreateRequest(
+	setConfig, err := atcConfig.apiRequester.CreateRequest(
 		atc.SaveConfig,
-		rata.Params{"pipeline_name": pipelineName},
+		rata.Params{"pipeline_name": atcConfig.pipelineName},
 		body,
 	)
 	if err != nil {
@@ -185,23 +238,27 @@ func setConfig(pipelineName string, apiRequester *atcRequester, webRequester *ra
 	}
 
 	setConfig.Header.Set("Content-Type", writer.FormDataContentType())
-	setConfig.Header.Set(atc.ConfigVersionHeader, version)
+	setConfig.Header.Set(atc.ConfigVersionHeader, existingConfigVersion)
 
-	resp, err = apiRequester.httpClient.Do(setConfig)
+	resp, err := atcConfig.apiRequester.httpClient.Do(setConfig)
 	if err != nil {
 		println("failed to update configuration: " + err.Error())
 		os.Exit(1)
 	}
 
+	return resp
+}
+
+func (atcConfig ATCConfig) showHelpfulMessage(resp *http.Response, paused PipelineAction) {
 	defer resp.Body.Close()
 
 	switch resp.StatusCode {
 	case http.StatusOK:
 		fmt.Println("configuration updated")
 	case http.StatusCreated:
-		pipelineWebReq, _ := webRequester.CreateRequest(
+		pipelineWebReq, _ := atcConfig.webRequestGenerator.CreateRequest(
 			atcroutes.Pipeline,
-			rata.Params{"pipeline_name": pipelineName},
+			rata.Params{"pipeline_name": atcConfig.pipelineName},
 			nil,
 		)
 
@@ -213,7 +270,7 @@ func setConfig(pipelineName string, apiRequester *atcRequester, webRequester *ra
 
 		fmt.Printf("you can view your pipeline here: %s\n", pipelineURL.String())
 
-		if paused == nil || *paused == true {
+		if paused == DoNotChangePipeline || paused == PausePipeline {
 			fmt.Println("")
 			fmt.Println("the pipeline is currently paused. to unpause, either:")
 			fmt.Println("  - run again with --paused=false")
