@@ -12,6 +12,7 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/concourse/atc"
+	atcroutes "github.com/concourse/atc/web/routes"
 	"github.com/concourse/fly/template"
 	"github.com/onsi/gomega/gexec"
 	"github.com/tedsuo/rata"
@@ -31,12 +32,13 @@ func Configure(c *cli.Context) {
 		pipelineName = atc.DefaultPipelineName
 	}
 
-	atcRequester := newAtcRequester(target, insecure)
+	apiRequester := newAtcRequester(target, insecure)
+	webRequester := rata.NewRequestGenerator(target, atcroutes.Routes)
 
 	if configPath == "" {
-		dumpConfig(pipelineName, atcRequester, asJSON)
+		dumpConfig(pipelineName, apiRequester, asJSON)
 	} else {
-		setConfig(pipelineName, atcRequester, configPath, templateVariables, templateVariablesFile)
+		setConfig(pipelineName, apiRequester, webRequester, configPath, templateVariables, templateVariablesFile)
 	}
 }
 
@@ -59,7 +61,7 @@ func dumpConfig(pipelineName string, atcRequester *atcRequester, asJSON bool) {
 	fmt.Printf("%s", payload)
 }
 
-func setConfig(pipelineName string, atcRequester *atcRequester, configPath string, templateVariables []string, templateVariablesFile []string) {
+func setConfig(pipelineName string, apiRequester *atcRequester, webRequester *rata.RequestGenerator, configPath string, templateVariables []string, templateVariablesFile []string) {
 	configFile, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		log.Fatalln(err)
@@ -94,7 +96,7 @@ func setConfig(pipelineName string, atcRequester *atcRequester, configPath strin
 		log.Fatalln(err)
 	}
 
-	getConfig, err := atcRequester.CreateRequest(
+	getConfig, err := apiRequester.CreateRequest(
 		atc.GetConfig,
 		rata.Params{"pipeline_name": pipelineName},
 		nil,
@@ -103,7 +105,7 @@ func setConfig(pipelineName string, atcRequester *atcRequester, configPath strin
 		log.Fatalln(err)
 	}
 
-	resp, err := atcRequester.httpClient.Do(getConfig)
+	resp, err := apiRequester.httpClient.Do(getConfig)
 	if err != nil {
 		log.Println("failed to get config:", err, resp)
 		os.Exit(1)
@@ -125,7 +127,7 @@ func setConfig(pipelineName string, atcRequester *atcRequester, configPath strin
 
 	diff(existingConfig, newConfig)
 
-	setConfig, err := atcRequester.CreateRequest(
+	setConfig, err := apiRequester.CreateRequest(
 		atc.SaveConfig,
 		rata.Params{"pipeline_name": pipelineName},
 		bytes.NewBuffer(configFile),
@@ -137,7 +139,7 @@ func setConfig(pipelineName string, atcRequester *atcRequester, configPath strin
 	setConfig.Header.Set("Content-Type", "application/x-yaml")
 	setConfig.Header.Set(atc.ConfigVersionHeader, version)
 
-	resp, err = atcRequester.httpClient.Do(setConfig)
+	resp, err = apiRequester.httpClient.Do(setConfig)
 	if err != nil {
 		println("failed to update configuration: " + err.Error())
 		os.Exit(1)
@@ -145,8 +147,25 @@ func setConfig(pipelineName string, atcRequester *atcRequester, configPath strin
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		println("failed to update configuration.")
+	switch resp.StatusCode {
+	case http.StatusOK:
+		fmt.Println("configuration updated")
+	case http.StatusCreated:
+		pipelineWebReq, _ := webRequester.CreateRequest(
+			atcroutes.Pipeline,
+			rata.Params{"pipeline_name": pipelineName},
+			nil,
+		)
+
+		fmt.Println("pipeline created!")
+		fmt.Printf("you can view your pipeline here: %s\n", pipelineWebReq.URL.String())
+		fmt.Println("")
+
+		fmt.Println("the pipeline is currently paused. to unpause, either:")
+		fmt.Println("  - run again with --unpause")
+		fmt.Println("  - click play next to the pipeline in the web ui")
+	default:
+		fmt.Fprintln(os.Stderr, "failed to update configuration.")
 
 		indent := gexec.NewPrefixedWriter("  ", os.Stderr)
 		fmt.Fprintf(indent, "response code: %s\n", resp.Status)
@@ -156,8 +175,6 @@ func setConfig(pipelineName string, atcRequester *atcRequester, configPath strin
 		io.Copy(indentAgain, resp.Body)
 		os.Exit(1)
 	}
-
-	fmt.Println("configuration updated")
 }
 
 func diff(existingConfig atc.Config, newConfig atc.Config) {

@@ -8,9 +8,11 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/mgutz/ansi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/cloudfoundry/gunk/urljoiner"
+	"github.com/mgutz/ansi"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
@@ -142,7 +144,6 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Describe("getting", func() {
-
 			Context("when not specifying a pipeline name", func() {
 				BeforeEach(func() {
 					path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "main"})
@@ -505,6 +506,49 @@ var _ = Describe("Fly CLI", func() {
 
 					<-sess.Exited
 					Ω(sess.ExitCode()).Should(Equal(1))
+				})
+			})
+
+			Context("when the server says this is the first time it's creating the pipeline", func() {
+				BeforeEach(func() {
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "main"})
+					Ω(err).ShouldNot(HaveOccurred())
+
+					atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
+						ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
+						ghttp.VerifyHeaderKV("Content-Type", "application/x-yaml"),
+						func(w http.ResponseWriter, r *http.Request) {
+							Ω(ioutil.ReadAll(r.Body)).Should(Equal(payload))
+						},
+						ghttp.RespondWith(201, ""),
+					))
+				})
+
+				It("prints the error to stderr and exits 1", func() {
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name())
+
+					stdin, err := flyCmd.StdinPipe()
+					Ω(err).ShouldNot(HaveOccurred())
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
+					fmt.Fprintln(stdin, "y")
+
+					pipelineURL := urljoiner.Join(atcServer.URL(), "pipelines", "main")
+
+					Eventually(sess).Should(gbytes.Say("pipeline created!"))
+					Eventually(sess).Should(gbytes.Say(fmt.Sprintf("you can view your pipeline here: %s", pipelineURL)))
+
+					Eventually(sess).Should(gbytes.Say("the pipeline is currently paused. to unpause, either:"))
+					Eventually(sess).Should(gbytes.Say("  - run again with --unpause"))
+					Eventually(sess).Should(gbytes.Say("  - click play next to the pipeline in the web ui"))
+
+					<-sess.Exited
+					Ω(sess.ExitCode()).Should(Equal(0))
+
+					Ω(atcServer.ReceivedRequests()).Should(HaveLen(2))
 				})
 			})
 
