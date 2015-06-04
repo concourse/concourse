@@ -533,6 +533,43 @@ jobs:
 
 							itSavesThePipeline()
 						})
+
+						Context("when a strange paused value is specified", func() {
+							BeforeEach(func() {
+								body := &bytes.Buffer{}
+								writer := multipart.NewWriter(body)
+
+								yamlWriter, err := writer.CreatePart(
+									textproto.MIMEHeader{
+										"Content-type": {"application/x-yaml"},
+									},
+								)
+								Ω(err).ShouldNot(HaveOccurred())
+
+								yml, err := yaml.Marshal(config)
+								Ω(err).ShouldNot(HaveOccurred())
+
+								_, err = yamlWriter.Write(yml)
+
+								Ω(err).ShouldNot(HaveOccurred())
+
+								err = writer.WriteField("paused", "junk")
+								Ω(err).ShouldNot(HaveOccurred())
+
+								writer.Close()
+
+								request.Header.Set("Content-Type", writer.FormDataContentType())
+								request.Body = gbytes.BufferWithBytes(body.Bytes())
+							})
+
+							It("returns 400", func() {
+								Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+							})
+
+							It("returns the validation error in the response body", func() {
+								Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("invalid paused value")))
+							})
+						})
 					})
 				})
 

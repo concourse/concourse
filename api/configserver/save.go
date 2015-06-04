@@ -26,6 +26,7 @@ var (
 	ErrMalformedRequestPayload    = errors.New("data in body could not be decoded")
 	ErrFailedToConstructDecoder   = errors.New("decoder could not be constructed")
 	ErrCouldNotDecode             = errors.New("data could not be decoded into config structure")
+	ErrInvalidPausedValue         = errors.New("invalid paused value")
 )
 
 type ExtraKeysError struct {
@@ -82,6 +83,11 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	case ErrCouldNotDecode:
 		session.Error("could-not-decode", err)
 		w.WriteHeader(http.StatusBadRequest)
+		return
+	case ErrInvalidPausedValue:
+		session.Error("invalid-paused-value", err)
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "invalid paused value")
 		return
 	default:
 		if err != nil {
@@ -166,8 +172,10 @@ func requestToConfig(contentType string, requestBody io.ReadCloser) (interface{}
 
 				if string(pausedValue) == "true" {
 					pausedState = db.PipelinePaused
-				} else {
+				} else if string(pausedValue) == "false" {
 					pausedState = db.PipelineUnpaused
+				} else {
+					return atc.Config{}, db.PipelineNoChange, ErrInvalidPausedValue
 				}
 			} else {
 				partContentType := part.Header.Get("Content-type")
