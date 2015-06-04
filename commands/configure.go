@@ -47,9 +47,9 @@ func Configure(c *cli.Context) {
 	}
 
 	if configPath == "" {
-		atcConfig.DumpConfig(asJSON)
+		atcConfig.Dump(asJSON)
 	} else {
-		atcConfig.SetConfig(paused, configPath, templateVariables, templateVariablesFile)
+		atcConfig.Set(paused, configPath, templateVariables, templateVariablesFile)
 	}
 }
 
@@ -59,7 +59,7 @@ type ATCConfig struct {
 	webRequestGenerator *rata.RequestGenerator
 }
 
-func (atcConfig ATCConfig) DumpConfig(asJSON bool) {
+func (atcConfig ATCConfig) Dump(asJSON bool) {
 	config := getConfig(atcConfig.pipelineName, atcConfig.apiRequester)
 
 	var payload []byte
@@ -113,7 +113,7 @@ func failWithErrorf(message string, err error, args ...interface{}) {
 	failf(templatedMessage + ": " + err.Error())
 }
 
-func (atcConfig ATCConfig) SetConfig(pausedFlag string, configPath string, templateVariables []string, templateVariablesFile []string) {
+func (atcConfig ATCConfig) Set(pausedFlag string, configPath string, templateVariables []string, templateVariablesFile []string) {
 	paused := atcConfig.shouldPausePipeline(pausedFlag)
 
 	newConfig, newRawConfig := atcConfig.newConfig(configPath, templateVariablesFile, templateVariables)
