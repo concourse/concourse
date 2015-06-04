@@ -7,8 +7,11 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"os"
+	"strconv"
 
 	"github.com/codegangsta/cli"
 	"github.com/concourse/atc"
@@ -23,6 +26,7 @@ func Configure(c *cli.Context) {
 	target := returnTarget(c.GlobalString("target"))
 	insecure := c.GlobalBool("insecure")
 	configPath := c.String("config")
+	paused := c.String("paused")
 	asJSON := c.Bool("json")
 	templateVariables := c.StringSlice("var")
 	templateVariablesFile := c.StringSlice("vars-from")
@@ -38,7 +42,7 @@ func Configure(c *cli.Context) {
 	if configPath == "" {
 		dumpConfig(pipelineName, apiRequester, asJSON)
 	} else {
-		setConfig(pipelineName, apiRequester, webRequester, configPath, templateVariables, templateVariablesFile)
+		setConfig(pipelineName, apiRequester, webRequester, paused, configPath, templateVariables, templateVariablesFile)
 	}
 }
 
@@ -61,7 +65,18 @@ func dumpConfig(pipelineName string, atcRequester *atcRequester, asJSON bool) {
 	fmt.Printf("%s", payload)
 }
 
-func setConfig(pipelineName string, apiRequester *atcRequester, webRequester *rata.RequestGenerator, configPath string, templateVariables []string, templateVariablesFile []string) {
+func setConfig(pipelineName string, apiRequester *atcRequester, webRequester *rata.RequestGenerator, pausedFlag string, configPath string, templateVariables []string, templateVariablesFile []string) {
+	var paused *bool
+
+	if pausedFlag != "" {
+		p, err := strconv.ParseBool(pausedFlag)
+		if err != nil {
+			log.Fatalln(fmt.Sprintf("paused value '%s' is not a boolean", pausedFlag))
+		}
+
+		paused = &p
+	}
+
 	configFile, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		log.Fatalln(err)
@@ -127,16 +142,49 @@ func setConfig(pipelineName string, apiRequester *atcRequester, webRequester *ra
 
 	diff(existingConfig, newConfig)
 
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	yamlWriter, err := writer.CreatePart(
+		textproto.MIMEHeader{
+			"Content-type": {"application/x-yaml"},
+		},
+	)
+
+	if err != nil {
+		log.Println("error building request:", err)
+		os.Exit(1)
+	}
+
+	_, err = yamlWriter.Write(configFile)
+	if err != nil {
+		log.Println("error building request:", err)
+		os.Exit(1)
+	}
+
+	if paused == nil {
+	} else if *paused == true {
+		err = writer.WriteField("paused", "true")
+	} else if *paused == false {
+		err = writer.WriteField("paused", "false")
+	}
+
+	if err != nil {
+		log.Fatalln("failed to write field:", err)
+	}
+
+	writer.Close()
+
 	setConfig, err := apiRequester.CreateRequest(
 		atc.SaveConfig,
 		rata.Params{"pipeline_name": pipelineName},
-		bytes.NewBuffer(configFile),
+		body,
 	)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("failed to set config:", err)
 	}
 
-	setConfig.Header.Set("Content-Type", "application/x-yaml")
+	setConfig.Header.Set("Content-Type", writer.FormDataContentType())
 	setConfig.Header.Set(atc.ConfigVersionHeader, version)
 
 	resp, err = apiRequester.httpClient.Do(setConfig)
@@ -159,11 +207,13 @@ func setConfig(pipelineName string, apiRequester *atcRequester, webRequester *ra
 
 		fmt.Println("pipeline created!")
 		fmt.Printf("you can view your pipeline here: %s\n", pipelineWebReq.URL.String())
-		fmt.Println("")
 
-		fmt.Println("the pipeline is currently paused. to unpause, either:")
-		fmt.Println("  - run again with --unpause")
-		fmt.Println("  - click play next to the pipeline in the web ui")
+		if paused == nil || *paused == true {
+			fmt.Println("")
+			fmt.Println("the pipeline is currently paused. to unpause, either:")
+			fmt.Println("  - run again with --paused=false")
+			fmt.Println("  - click play next to the pipeline in the web ui")
+		}
 	default:
 		fmt.Fprintln(os.Stderr, "failed to update configuration.")
 

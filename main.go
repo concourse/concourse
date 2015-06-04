@@ -104,6 +104,11 @@ var jsonFlag = cli.BoolFlag{
 	Usage: "print config as json instead of yaml",
 }
 
+var pausedFlag = cli.StringFlag{
+	Name:  "paused",
+	Usage: "should the pipeline start out as paused or unpaused (true/false)",
+}
+
 var apiFlag = cli.StringFlag{
 	Name:  "api",
 	Usage: "api url to target",
@@ -170,6 +175,7 @@ func main() {
 				jsonFlag,
 				varFlag,
 				varFileFlag,
+				pausedFlag,
 			},
 			Action: commands.Configure,
 		},

@@ -3,7 +3,10 @@ package integration_test
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"mime"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"os/exec"
@@ -21,6 +24,46 @@ import (
 
 	"github.com/concourse/atc"
 )
+
+func getConfigAndPausedState(r *http.Request) ([]byte, *bool) {
+	defer r.Body.Close()
+
+	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	Ω(err).ShouldNot(HaveOccurred())
+
+	reader := multipart.NewReader(r.Body, params["boundary"])
+
+	var payload []byte
+	var state *bool
+
+	yes := true
+	no := false
+
+	for {
+		part, err := reader.NextPart()
+		if err == io.EOF {
+			break
+		}
+		Ω(err).ShouldNot(HaveOccurred())
+
+		if part.FormName() == "paused" {
+			pausedValue, err := ioutil.ReadAll(part)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			if string(pausedValue) == "true" {
+				state = &yes
+			} else {
+				state = &no
+			}
+		} else {
+			payload, err = ioutil.ReadAll(part)
+		}
+
+		part.Close()
+	}
+
+	return payload, state
+}
 
 var _ = Describe("Fly CLI", func() {
 	var (
@@ -291,19 +334,16 @@ var _ = Describe("Fly CLI", func() {
 					atcServer.RouteToHandler("PUT", path,
 						ghttp.CombineHandlers(
 							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
-							ghttp.VerifyHeaderKV("Content-Type", "application/x-yaml"),
 							func(w http.ResponseWriter, r *http.Request) {
-								body, err := ioutil.ReadAll(r.Body)
-								Ω(err).ShouldNot(HaveOccurred())
+								bodyConfig, state := getConfigAndPausedState(r)
+								Ω(state).Should(BeNil())
 
 								receivedConfig := atc.Config{}
-
-								err = yaml.Unmarshal(body, &receivedConfig)
+								err = yaml.Unmarshal(bodyConfig, &receivedConfig)
 								Ω(err).ShouldNot(HaveOccurred())
 
 								Ω(receivedConfig).Should(Equal(config))
 							},
-							ghttp.RespondWith(200, ""),
 						),
 					)
 				})
@@ -333,7 +373,6 @@ var _ = Describe("Fly CLI", func() {
 					Ω(atcServer.ReceivedRequests()).Should(HaveLen(2))
 				})
 			})
-
 		})
 
 		Describe("setting", func() {
@@ -401,9 +440,10 @@ var _ = Describe("Fly CLI", func() {
 					atcServer.RouteToHandler("PUT", path,
 						ghttp.CombineHandlers(
 							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
-							ghttp.VerifyHeaderKV("Content-Type", "application/x-yaml"),
 							func(w http.ResponseWriter, r *http.Request) {
-								Ω(ioutil.ReadAll(r.Body)).Should(Equal(payload))
+								config, state := getConfigAndPausedState(r)
+								Ω(config).Should(Equal(payload))
+								Ω(*state).Should(BeTrue(), "paused was not set in the request")
 							},
 							ghttp.RespondWith(200, ""),
 						),
@@ -411,7 +451,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("parses the config file and sends it to the ATC", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name())
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name(), "--paused=true")
 
 					stdin, err := flyCmd.StdinPipe()
 					Ω(err).ShouldNot(HaveOccurred())
@@ -509,46 +549,149 @@ var _ = Describe("Fly CLI", func() {
 				})
 			})
 
-			Context("when the server says this is the first time it's creating the pipeline", func() {
-				BeforeEach(func() {
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "main"})
-					Ω(err).ShouldNot(HaveOccurred())
+			It("complains if the paused flag is invalid", func() {
+				flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name(), "--paused=this-is-not-a-bool")
 
-					atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
-						ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
-						ghttp.VerifyHeaderKV("Content-Type", "application/x-yaml"),
-						func(w http.ResponseWriter, r *http.Request) {
-							Ω(ioutil.ReadAll(r.Body)).Should(Equal(payload))
-						},
-						ghttp.RespondWith(201, ""),
-					))
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Eventually(sess.Err).Should(gbytes.Say("paused value 'this-is-not-a-bool' is not a boolean"))
+
+				<-sess.Exited
+				Ω(sess.ExitCode()).Should(Equal(1))
+
+				Ω(atcServer.ReceivedRequests()).Should(HaveLen(0))
+			})
+
+			Context("when the server says this is the first time it's creating the pipeline", func() {
+				Context("when the user doesn't mention paused", func() {
+					BeforeEach(func() {
+						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "main"})
+						Ω(err).ShouldNot(HaveOccurred())
+
+						atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
+							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
+							func(w http.ResponseWriter, r *http.Request) {
+								config, state := getConfigAndPausedState(r)
+								Ω(config).Should(Equal(payload))
+								Ω(state).Should(BeNil())
+							},
+							ghttp.RespondWith(201, ""),
+						))
+					})
+
+					It("succeeds and prints an error message to help the user", func() {
+						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name())
+
+						stdin, err := flyCmd.StdinPipe()
+						Ω(err).ShouldNot(HaveOccurred())
+
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
+						fmt.Fprintln(stdin, "y")
+
+						pipelineURL := urljoiner.Join(atcServer.URL(), "pipelines", "main")
+
+						Eventually(sess).Should(gbytes.Say("pipeline created!"))
+						Eventually(sess).Should(gbytes.Say(fmt.Sprintf("you can view your pipeline here: %s", pipelineURL)))
+
+						Eventually(sess).Should(gbytes.Say("the pipeline is currently paused. to unpause, either:"))
+						Eventually(sess).Should(gbytes.Say("  - run again with --paused=false"))
+						Eventually(sess).Should(gbytes.Say("  - click play next to the pipeline in the web ui"))
+
+						<-sess.Exited
+						Ω(sess.ExitCode()).Should(Equal(0))
+
+						Ω(atcServer.ReceivedRequests()).Should(HaveLen(2))
+					})
 				})
 
-				It("prints the error to stderr and exits 1", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name())
+				Context("when the user explicitly says paused true", func() {
+					BeforeEach(func() {
+						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "main"})
+						Ω(err).ShouldNot(HaveOccurred())
 
-					stdin, err := flyCmd.StdinPipe()
-					Ω(err).ShouldNot(HaveOccurred())
+						atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
+							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
+							func(w http.ResponseWriter, r *http.Request) {
+								config, state := getConfigAndPausedState(r)
+								Ω(config).Should(Equal(payload))
+								Ω(*state).Should(BeTrue())
+							},
+							ghttp.RespondWith(201, ""),
+						))
+					})
 
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Ω(err).ShouldNot(HaveOccurred())
+					It("succeeds and prints an error message to help the user", func() {
+						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name(), "--paused=true")
 
-					Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
-					fmt.Fprintln(stdin, "y")
+						stdin, err := flyCmd.StdinPipe()
+						Ω(err).ShouldNot(HaveOccurred())
 
-					pipelineURL := urljoiner.Join(atcServer.URL(), "pipelines", "main")
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Ω(err).ShouldNot(HaveOccurred())
 
-					Eventually(sess).Should(gbytes.Say("pipeline created!"))
-					Eventually(sess).Should(gbytes.Say(fmt.Sprintf("you can view your pipeline here: %s", pipelineURL)))
+						Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
+						fmt.Fprintln(stdin, "y")
 
-					Eventually(sess).Should(gbytes.Say("the pipeline is currently paused. to unpause, either:"))
-					Eventually(sess).Should(gbytes.Say("  - run again with --unpause"))
-					Eventually(sess).Should(gbytes.Say("  - click play next to the pipeline in the web ui"))
+						pipelineURL := urljoiner.Join(atcServer.URL(), "pipelines", "main")
 
-					<-sess.Exited
-					Ω(sess.ExitCode()).Should(Equal(0))
+						Eventually(sess).Should(gbytes.Say("pipeline created!"))
+						Eventually(sess).Should(gbytes.Say(fmt.Sprintf("you can view your pipeline here: %s", pipelineURL)))
 
-					Ω(atcServer.ReceivedRequests()).Should(HaveLen(2))
+						Eventually(sess).Should(gbytes.Say("the pipeline is currently paused. to unpause, either:"))
+						Eventually(sess).Should(gbytes.Say("  - run again with --paused=false"))
+						Eventually(sess).Should(gbytes.Say("  - click play next to the pipeline in the web ui"))
+
+						<-sess.Exited
+						Ω(sess.ExitCode()).Should(Equal(0))
+
+						Ω(atcServer.ReceivedRequests()).Should(HaveLen(2))
+					})
+				})
+
+				Context("when the user explicitly says paused is false", func() {
+					BeforeEach(func() {
+						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "main"})
+						Ω(err).ShouldNot(HaveOccurred())
+
+						atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
+							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
+							func(w http.ResponseWriter, r *http.Request) {
+								config, state := getConfigAndPausedState(r)
+								Ω(config).Should(Equal(payload))
+								Ω(*state).Should(BeFalse())
+							},
+							ghttp.RespondWith(201, ""),
+						))
+					})
+
+					It("succeeds but doesn't show the help text", func() {
+						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name(), "--paused=false")
+
+						stdin, err := flyCmd.StdinPipe()
+						Ω(err).ShouldNot(HaveOccurred())
+
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
+						fmt.Fprintln(stdin, "y")
+
+						pipelineURL := urljoiner.Join(atcServer.URL(), "pipelines", "main")
+
+						Eventually(sess).Should(gbytes.Say("pipeline created!"))
+						Eventually(sess).Should(gbytes.Say(fmt.Sprintf("you can view your pipeline here: %s", pipelineURL)))
+
+						<-sess.Exited
+						Ω(sess.ExitCode()).Should(Equal(0))
+
+						Ω(sess).ShouldNot(gbytes.Say("the pipeline is currently paused. to unpause, either:"))
+
+						Ω(atcServer.ReceivedRequests()).Should(HaveLen(2))
+					})
 				})
 			})
 
