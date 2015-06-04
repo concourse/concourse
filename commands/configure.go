@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -107,8 +108,9 @@ func failf(message string, args ...interface{}) {
 	os.Exit(1)
 }
 
-func failWithErrorf(message string, err error) {
-	failf(message + ": " + err.Error())
+func failWithErrorf(message string, err error, args ...interface{}) {
+	templatedMessage := fmt.Sprintf(message, args...)
+	failf(templatedMessage + ": " + err.Error())
 }
 
 func (atcConfig ATCConfig) SetConfig(pausedFlag string, configPath string, templateVariables []string, templateVariablesFile []string) {
@@ -134,7 +136,7 @@ func (atcConfig ATCConfig) newConfig(configPath string, templateVariablesFiles [
 	for _, path := range templateVariablesFiles {
 		fileVars, err := template.LoadVariablesFromFile(path)
 		if err != nil {
-			log.Fatalln(err)
+			failWithErrorf("failed to load variables from file (%s)", err, path)
 		}
 
 		resultVars = resultVars.Merge(fileVars)
@@ -142,20 +144,20 @@ func (atcConfig ATCConfig) newConfig(configPath string, templateVariablesFiles [
 
 	vars, err := template.LoadVariables(templateVariables)
 	if err != nil {
-		log.Fatalln(err)
+		failWithErrorf("could not load template variables", err)
 	}
 
 	resultVars = resultVars.Merge(vars)
 
 	configFile, err = template.Evaluate(configFile, resultVars)
 	if err != nil {
-		log.Fatalln(err)
+		failWithErrorf("failed to evaluate variables into template", err)
 	}
 
 	var newConfig atc.Config
 	err = yaml.Unmarshal(configFile, &newConfig)
 	if err != nil {
-		log.Fatalln(err)
+		failWithErrorf("failed to parse configuration file", err)
 	}
 
 	return newConfig, configFile
@@ -168,18 +170,16 @@ func (atcConfig ATCConfig) existingConfig() (atc.Config, string) {
 		nil,
 	)
 	if err != nil {
-		log.Fatalln(err)
+		failWithErrorf("failed to build request", err)
 	}
 
 	resp, err := atcConfig.apiRequester.httpClient.Do(getConfig)
 	if err != nil {
-		log.Println("failed to get config:", err, resp)
-		os.Exit(1)
+		failWithErrorf("failed to retrieve current configuration", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		log.Println("bad response when getting config:", resp.Status)
-		os.Exit(1)
+		failWithErrorf("bad response when getting config", errors.New(resp.Status))
 	}
 
 	version := resp.Header.Get(atc.ConfigVersionHeader)
@@ -187,8 +187,7 @@ func (atcConfig ATCConfig) existingConfig() (atc.Config, string) {
 	var existingConfig atc.Config
 	err = json.NewDecoder(resp.Body).Decode(&existingConfig)
 	if err != nil {
-		log.Println("invalid config from server:", err)
-		os.Exit(1)
+		failWithErrorf("invalid configuration from server", err)
 	}
 
 	return existingConfig, version
@@ -203,16 +202,13 @@ func (atcConfig ATCConfig) submitConfig(configFile []byte, paused PipelineAction
 			"Content-type": {"application/x-yaml"},
 		},
 	)
-
 	if err != nil {
-		log.Println("error building request:", err)
-		os.Exit(1)
+		failWithErrorf("error building request", err)
 	}
 
 	_, err = yamlWriter.Write(configFile)
 	if err != nil {
-		log.Println("error building request:", err)
-		os.Exit(1)
+		failWithErrorf("error building request", err)
 	}
 
 	switch paused {
@@ -221,9 +217,8 @@ func (atcConfig ATCConfig) submitConfig(configFile []byte, paused PipelineAction
 	case UnpausePipeline:
 		err = writer.WriteField("paused", "false")
 	}
-
 	if err != nil {
-		log.Fatalln("failed to write field:", err)
+		failWithErrorf("error building request", err)
 	}
 
 	writer.Close()
@@ -234,7 +229,7 @@ func (atcConfig ATCConfig) submitConfig(configFile []byte, paused PipelineAction
 		body,
 	)
 	if err != nil {
-		log.Fatalln("failed to set config:", err)
+		failWithErrorf("failed to build set config request", err)
 	}
 
 	setConfig.Header.Set("Content-Type", writer.FormDataContentType())
@@ -242,8 +237,7 @@ func (atcConfig ATCConfig) submitConfig(configFile []byte, paused PipelineAction
 
 	resp, err := atcConfig.apiRequester.httpClient.Do(setConfig)
 	if err != nil {
-		println("failed to update configuration: " + err.Error())
-		os.Exit(1)
+		failWithErrorf("failed to update configuration", err)
 	}
 
 	return resp
