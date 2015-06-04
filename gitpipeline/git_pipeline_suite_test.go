@@ -92,6 +92,7 @@ var _ = BeforeSuite(func() {
 		flyBin,
 		"-t", atcURL,
 		"configure",
+		"pipeline-name",
 		"-c", "pipeline.yml",
 		"-v", "failure-git-server="+failureGitServer.URI(),
 		"-v", "guid-server-curl-command="+guidserver.CurlCommand(),
