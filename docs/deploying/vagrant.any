@@ -36,8 +36,7 @@ $ fly configure
 }
 
 To configure a pipeline, fill in jobs and resources (see
-eference{pipelines}),
-place the resulting config in a file, and run:
+\reference{pipelines}), place the resulting config in a file, and run:
 
 \codeblock{bash}{
 $ fly configure -c path/to/pipeline.yml
