@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"net/textproto"
 	"os"
-	"strconv"
 
 	"github.com/codegangsta/cli"
 	"github.com/concourse/atc"
@@ -24,14 +23,25 @@ import (
 )
 
 func Configure(c *cli.Context) {
+	var paused PipelineAction
+
 	target := returnTarget(c.GlobalString("target"))
 	insecure := c.GlobalBool("insecure")
 	configPath := c.String("config")
-	paused := c.String("paused")
 	asJSON := c.Bool("json")
 	templateVariables := c.StringSlice("var")
 	templateVariablesFile := c.StringSlice("vars-from")
 	pipelineName := c.Args().First()
+
+	if c.IsSet("paused") {
+		if c.Bool("paused") {
+			paused = PausePipeline
+		} else {
+			paused = UnpausePipeline
+		}
+	} else {
+		paused = DoNotChangePipeline
+	}
 
 	if pipelineName == "" {
 		failf("please specify a pipeline name as an argument!")
@@ -86,23 +96,6 @@ const (
 	DoNotChangePipeline
 )
 
-func (atcConfig ATCConfig) shouldPausePipeline(pausedFlag string) PipelineAction {
-	if pausedFlag == "" {
-		return DoNotChangePipeline
-	}
-
-	p, err := strconv.ParseBool(pausedFlag)
-	if err != nil {
-		failf("paused value '%s' is not a boolean\n", pausedFlag)
-	}
-
-	if p {
-		return PausePipeline
-	} else {
-		return UnpausePipeline
-	}
-}
-
 func failf(message string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, message+"\n", args...)
 	os.Exit(1)
@@ -113,9 +106,7 @@ func failWithErrorf(message string, err error, args ...interface{}) {
 	failf(templatedMessage + ": " + err.Error())
 }
 
-func (atcConfig ATCConfig) Set(pausedFlag string, configPath string, templateVariables []string, templateVariablesFile []string) {
-	paused := atcConfig.shouldPausePipeline(pausedFlag)
-
+func (atcConfig ATCConfig) Set(paused PipelineAction, configPath string, templateVariables []string, templateVariablesFile []string) {
 	newConfig, newRawConfig := atcConfig.newConfig(configPath, templateVariablesFile, templateVariables)
 	existingConfig, existingConfigVersion := atcConfig.existingConfig()
 

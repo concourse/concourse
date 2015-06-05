@@ -104,7 +104,7 @@ var jsonFlag = cli.BoolFlag{
 	Usage: "print config as json instead of yaml",
 }
 
-var pausedFlag = cli.StringFlag{
+var pausedFlag = cli.BoolFlag{
 	Name:  "paused",
 	Usage: "should the pipeline start out as paused or unpaused (true/false)",
 }

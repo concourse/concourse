@@ -432,7 +432,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("parses the config file and sends it to the ATC", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "awesome-pipeline", "-c", configFile.Name(), "--paused=true")
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "awesome-pipeline", "-c", configFile.Name(), "--paused")
 
 					stdin, err := flyCmd.StdinPipe()
 					Ω(err).ShouldNot(HaveOccurred())
@@ -536,7 +536,7 @@ var _ = Describe("Fly CLI", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Eventually(sess.Err).Should(gbytes.Say("paused value 'this-is-not-a-bool' is not a boolean"))
+				Eventually(sess.Err).Should(gbytes.Say(`invalid boolean value "this-is-not-a-bool" for -paused`))
 
 				<-sess.Exited
 				Ω(sess.ExitCode()).Should(Equal(1))
