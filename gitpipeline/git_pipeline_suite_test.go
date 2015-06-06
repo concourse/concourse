@@ -100,7 +100,7 @@ var _ = BeforeSuite(func() {
 		"-v", "origin-git-server="+gitServer.URI(),
 		"-v", "success-git-server="+successGitServer.URI(),
 		"-v", "testflight-helper-image="+helperRootfs,
-		"--paused", "false",
+		"--paused=false",
 	)
 
 	stdin, err := configureCmd.StdinPipe()
