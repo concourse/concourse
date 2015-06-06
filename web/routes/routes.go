@@ -28,6 +28,7 @@ var Routes = rata.Routes{
 	{Path: "/pipelines/:pipeline_name/resources/:resource", Method: "GET", Name: GetResource},
 	{Path: "/public/:filename", Method: "GET", Name: Public},
 	{Path: "/public/fonts/:filename", Method: "GET", Name: Public},
+	{Path: "/public/favicons/:filename", Method: "GET", Name: Public},
 
 	// public jobs only
 	{Path: "/pipelines/:pipeline_name/jobs/:job/builds/:build", Method: "GET", Name: GetBuild},
