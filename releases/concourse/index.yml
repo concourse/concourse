@@ -104,4 +104,6 @@ builds:
     version: 0.51.0
   9281402b-4705-425e-8058-fb9d08abc590:
     version: 0.52.0
+  2e7299bb-d59b-4d3c-a485-044d7f53200a:
+    version: 0.53.0
 format-version: '2'
