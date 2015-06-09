@@ -252,7 +252,7 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 				errorMessages = append(
 					errorMessages,
 					fmt.Sprintf(
-						"%s refers to a resource that does not exist (%s)",
+						"%s refers to a resource that does not exist ('%s')",
 						subIdentifier,
 						plan.Resource,
 					),
@@ -326,7 +326,7 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 				errorMessages = append(
 					errorMessages,
 					fmt.Sprintf(
-						"%s refers to a resource that does not exist (%s)",
+						"%s refers to a resource that does not exist ('%s')",
 						subIdentifier,
 						plan.Resource,
 					),

@@ -538,7 +538,7 @@ var _ = Describe("ValidateConfig", func() {
 				It("does return an error", func() {
 					Ω(validateErr).Should(HaveOccurred())
 					Ω(validateErr.Error()).Should(ContainSubstring(
-						"jobs.some-other-job.plan[0].get.custom-name refers to a resource that does not exist (some-missing-resource)",
+						"jobs.some-other-job.plan[0].get.custom-name refers to a resource that does not exist ('some-missing-resource')",
 					))
 				})
 			})
@@ -571,7 +571,7 @@ var _ = Describe("ValidateConfig", func() {
 				It("does return an error", func() {
 					Ω(validateErr).Should(HaveOccurred())
 					Ω(validateErr.Error()).Should(ContainSubstring(
-						"jobs.some-other-job.plan[0].put.custom-name refers to a resource that does not exist (some-missing-resource)",
+						"jobs.some-other-job.plan[0].put.custom-name refers to a resource that does not exist ('some-missing-resource')",
 					))
 				})
 			})
@@ -601,7 +601,8 @@ var _ = Describe("ValidateConfig", func() {
 					config.Jobs[0].TaskConfig = nil
 					config.Jobs[0].TaskConfigPath = ""
 					config.Jobs[0].Plan = append(config.Jobs[0].Plan, atc.PlanConfig{
-						Put: "some-resource",
+						Put:      "custom-name",
+						Resource: "some-resource",
 					})
 
 					job.Plan = append(job.Plan, atc.PlanConfig{
