@@ -272,7 +272,7 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 		}
 
 		for _, job := range plan.Passed {
-			_, found := c.Jobs.Lookup(job)
+			jobConfig, found := c.Jobs.Lookup(job)
 			if !found {
 				errorMessages = append(
 					errorMessages,
@@ -282,6 +282,31 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 						job,
 					),
 				)
+			} else {
+				foundResource := false
+				for _, jobInput := range jobConfig.Inputs() {
+					if jobInput.Resource == plan.Get {
+						foundResource = true
+						break
+					}
+				}
+				for _, jobOutput := range jobConfig.Outputs() {
+					if jobOutput.Resource == plan.Get {
+						foundResource = true
+						break
+					}
+				}
+				if !foundResource {
+					errorMessages = append(
+						errorMessages,
+						fmt.Sprintf(
+							"%s.passed references a job ('%s') which doesn't interact with the resource ('%s')",
+							subIdentifier,
+							job,
+							plan.Get,
+						),
+					)
+				}
 			}
 		}
 

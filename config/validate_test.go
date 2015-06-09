@@ -71,6 +71,9 @@ var _ = Describe("ValidateConfig", func() {
 						},
 					},
 				},
+				{
+					Name: "some-empty-job",
+				},
 			},
 		}
 	})
@@ -201,7 +204,7 @@ var _ = Describe("ValidateConfig", func() {
 			It("returns an error", func() {
 				Ω(validateErr).Should(HaveOccurred())
 				Ω(validateErr.Error()).Should(ContainSubstring(
-					"jobs[1] has no name",
+					"jobs[2] has no name",
 				))
 			})
 		})
@@ -591,6 +594,64 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
+			Context("when a job's input's passed constraints references a valid job that has the resource as an output", func() {
+				BeforeEach(func() {
+					config.Jobs[0].InputConfigs = nil
+					config.Jobs[0].OutputConfigs = nil
+					config.Jobs[0].TaskConfig = nil
+					config.Jobs[0].TaskConfigPath = ""
+					config.Jobs[0].Plan = append(config.Jobs[0].Plan, atc.PlanConfig{
+						Put: "some-resource",
+					})
+
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Get:    "some-resource",
+						Passed: []string{"some-job"},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("does not return an error", func() {
+					Ω(validateErr).ShouldNot(HaveOccurred())
+				})
+			})
+
+			Context("when a job's input's passed constraints references a valid job that has the resource as an input", func() {
+				BeforeEach(func() {
+					config.Jobs[0].OutputConfigs = nil
+
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Get:    "some-resource",
+						Passed: []string{"some-job"},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("does not return an error", func() {
+					Ω(validateErr).ShouldNot(HaveOccurred())
+				})
+			})
+
+			Context("when a job's input's passed constraints references a valid job that does not have the resource as an input or output", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Get:    "some-resource",
+						Passed: []string{"some-empty-job"},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("does return an error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job.plan[0].get.some-resource.passed references a job ('some-empty-job') which doesn't interact with the resource ('some-resource')",
+					))
+				})
+			})
+
 			Context("when a man, a plan, a canal, panama are specified", func() {
 				BeforeEach(func() {
 					job.TaskConfig = &atc.TaskConfig{
@@ -620,7 +681,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			It("returns an error", func() {
 				Ω(validateErr).Should(HaveOccurred())
-				Ω(validateErr.Error()).Should(ContainSubstring("jobs[0] and jobs[1] have the same name ('some-job')"))
+				Ω(validateErr.Error()).Should(ContainSubstring("jobs[0] and jobs[2] have the same name ('some-job')"))
 			})
 		})
 	})
