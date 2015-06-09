@@ -140,11 +140,11 @@
 	branch = master
 [submodule "src/github.com/zachgersh/go-update"]
 	path = src/github.com/zachgersh/go-update
-	url = https://github.com/zachgersh/go-update.git
+	url = https://github.com/zachgersh/go-update
 	branch = take-http-client
 [submodule "src/github.com/concourse/tsa"]
 	path = src/github.com/concourse/tsa
-	url = https://github.com/concourse/tsa.git
+	url = https://github.com/concourse/tsa
 	branch = master
 [submodule "src/golang.org/x/crypto"]
 	path = src/golang.org/x/crypto
@@ -156,7 +156,7 @@
 	branch = master
 [submodule "src/github.com/concourse/jettison"]
 	path = src/github.com/concourse/jettison
-	url = git@github.com:concourse/jettison.git
+	url = https://github.com/concourse/jettison
 	branch = master
 [submodule "src/github.com/cloudfoundry/gunk"]
 	path = src/github.com/cloudfoundry/gunk
