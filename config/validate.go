@@ -236,33 +236,39 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 		}
 
 		return errorMessages
+
 	case plan.Get != "":
 		errorMessages := []string{}
 		subIdentifier := fmt.Sprintf("%s.get.%s", identifier, plan.Get)
 
-		badFields := []string{}
+		errorMessages = append(errorMessages, validateInapplicableFields(
+			[]string{"privileged", "config", "file"},
+			plan, subIdentifier)...,
+		)
 
-		if plan.Privileged {
-			badFields = append(badFields, "privileged")
-		}
-
-		if plan.TaskConfig != nil {
-			badFields = append(badFields, "config")
-		}
-
-		if plan.TaskConfigPath != "" {
-			badFields = append(badFields, "file")
-		}
-
-		if len(badFields) > 0 {
-			errorMessages = append(
-				errorMessages,
-				fmt.Sprintf(
-					"%s has invalid fields specified (%s)",
-					subIdentifier,
-					strings.Join(badFields, ", "),
-				),
-			)
+		if plan.Resource != "" {
+			_, found := c.Resources.Lookup(plan.Resource)
+			if !found {
+				errorMessages = append(
+					errorMessages,
+					fmt.Sprintf(
+						"%s refers to a resource that does not exist (%s)",
+						subIdentifier,
+						plan.Resource,
+					),
+				)
+			}
+		} else {
+			_, found := c.Resources.Lookup(plan.Get)
+			if !found {
+				errorMessages = append(
+					errorMessages,
+					fmt.Sprintf(
+						"%s refers to a resource that does not exist",
+						subIdentifier,
+					),
+				)
+			}
 		}
 
 		for _, job := range plan.Passed {
@@ -284,37 +290,34 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 		errorMessages := []string{}
 		subIdentifier := fmt.Sprintf("%s.put.%s", identifier, plan.Put)
 
-		badFields := []string{}
+		errorMessages = append(errorMessages, validateInapplicableFields(
+			[]string{"passed", "trigger", "privileged", "config", "file"},
+			plan, subIdentifier)...,
+		)
 
-		if len(plan.Passed) != 0 {
-			badFields = append(badFields, "passed")
-		}
-
-		if plan.Trigger {
-			badFields = append(badFields, "trigger")
-		}
-
-		if plan.Privileged {
-			badFields = append(badFields, "privileged")
-		}
-
-		if plan.TaskConfig != nil {
-			badFields = append(badFields, "config")
-		}
-
-		if plan.TaskConfigPath != "" {
-			badFields = append(badFields, "file")
-		}
-
-		if len(badFields) > 0 {
-			errorMessages = append(
-				errorMessages,
-				fmt.Sprintf(
-					"%s has invalid fields specified (%s)",
-					subIdentifier,
-					strings.Join(badFields, ", "),
-				),
-			)
+		if plan.Resource != "" {
+			_, found := c.Resources.Lookup(plan.Resource)
+			if !found {
+				errorMessages = append(
+					errorMessages,
+					fmt.Sprintf(
+						"%s refers to a resource that does not exist (%s)",
+						subIdentifier,
+						plan.Resource,
+					),
+				)
+			}
+		} else {
+			_, found := c.Resources.Lookup(plan.Put)
+			if !found {
+				errorMessages = append(
+					errorMessages,
+					fmt.Sprintf(
+						"%s refers to a resource that does not exist",
+						subIdentifier,
+					),
+				)
+			}
 		}
 
 		return errorMessages
@@ -326,39 +329,66 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 			errorMessages = append(errorMessages, subIdentifier+" does not specify any task configuration")
 		}
 
-		badFields := []string{}
-
-		if plan.Resource != "" {
-			badFields = append(badFields, "resource")
-		}
-
-		if len(plan.Passed) != 0 {
-			badFields = append(badFields, "passed")
-		}
-
-		if plan.Trigger {
-			badFields = append(badFields, "trigger")
-		}
+		errorMessages = append(errorMessages, validateInapplicableFields(
+			[]string{"resource", "passed", "trigger"},
+			plan, subIdentifier)...,
+		)
 
 		if plan.Params != nil {
 			errorMessages = append(errorMessages, subIdentifier+" specifies params, which should be config.params")
-		}
-
-		if len(badFields) > 0 {
-			errorMessages = append(
-				errorMessages,
-				fmt.Sprintf(
-					"%s has invalid fields specified (%s)",
-					subIdentifier,
-					strings.Join(badFields, ", "),
-				),
-			)
 		}
 
 		return errorMessages
 	}
 
 	return nil
+}
+
+func validateInapplicableFields(inapplicableFields []string, plan atc.PlanConfig, identifier string) []string {
+	errorMessages := []string{}
+	foundInapplicableFields := []string{}
+
+	for _, field := range inapplicableFields {
+		switch field {
+		case "resource":
+			if plan.Resource != "" {
+				foundInapplicableFields = append(foundInapplicableFields, field)
+			}
+		case "passed":
+			if len(plan.Passed) != 0 {
+				foundInapplicableFields = append(foundInapplicableFields, field)
+			}
+		case "trigger":
+			if plan.Trigger {
+				foundInapplicableFields = append(foundInapplicableFields, field)
+			}
+		case "privileged":
+			if plan.Privileged {
+				foundInapplicableFields = append(foundInapplicableFields, field)
+			}
+		case "config":
+			if plan.TaskConfig != nil {
+				foundInapplicableFields = append(foundInapplicableFields, field)
+			}
+		case "file":
+			if plan.TaskConfigPath != "" {
+				foundInapplicableFields = append(foundInapplicableFields, field)
+			}
+		}
+	}
+
+	if len(foundInapplicableFields) > 0 {
+		errorMessages = append(
+			errorMessages,
+			fmt.Sprintf(
+				"%s has invalid fields specified (%s)",
+				identifier,
+				strings.Join(foundInapplicableFields, ", "),
+			),
+		)
+	}
+
+	return errorMessages
 }
 
 func validateInputOutputConfig(c atc.Config, job atc.JobConfig, identifier string) []string {

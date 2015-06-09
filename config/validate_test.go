@@ -312,9 +312,9 @@ var _ = Describe("ValidateConfig", func() {
 				Context("when it's not just Get and Put", func() {
 					BeforeEach(func() {
 						job.Plan = append(job.Plan, atc.PlanConfig{
-							Get:       "lol",
-							Put:       "lol",
-							Task:      "lol",
+							Get:       "some-resource",
+							Put:       "some-resource",
+							Task:      "some-resource",
 							Do:        &atc.PlanSequence{},
 							Aggregate: &atc.PlanSequence{},
 						})
@@ -333,8 +333,8 @@ var _ = Describe("ValidateConfig", func() {
 				Context("when it's just Get and Put", func() {
 					BeforeEach(func() {
 						job.Plan = append(job.Plan, atc.PlanConfig{
-							Get:       "lol",
-							Put:       "lol",
+							Get:       "some-resource",
+							Put:       "some-resource",
 							Task:      "",
 							Do:        nil,
 							Aggregate: nil,
@@ -455,6 +455,120 @@ var _ = Describe("ValidateConfig", func() {
 					Ω(validateErr).Should(HaveOccurred())
 					Ω(validateErr.Error()).Should(ContainSubstring(
 						"jobs.some-other-job.plan[0].put.lol has invalid fields specified (passed, trigger, privileged, file)",
+					))
+				})
+			})
+
+			Context("when a put plan has refers to a resource that does exist", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Put: "some-resource",
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("does not return an error", func() {
+					Ω(validateErr).ShouldNot(HaveOccurred())
+				})
+			})
+
+			Context("when a get plan has refers to a resource that does not exist", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Get: "some-nonexistent-resource",
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job.plan[0].get.some-nonexistent-resource refers to a resource that does not exist",
+					))
+				})
+			})
+
+			Context("when a put plan has refers to a resource that does not exist", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Put: "some-nonexistent-resource",
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job.plan[0].put.some-nonexistent-resource refers to a resource that does not exist",
+					))
+				})
+			})
+
+			Context("when a get plan has a custom name but refers to a resource that does exist", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Get:      "custom-name",
+						Resource: "some-resource",
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("does not return an error", func() {
+					Ω(validateErr).ShouldNot(HaveOccurred())
+				})
+			})
+
+			Context("when a get plan has a custom name but refers to a resource that does not exist", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Get:      "custom-name",
+						Resource: "some-missing-resource",
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("does return an error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job.plan[0].get.custom-name refers to a resource that does not exist (some-missing-resource)",
+					))
+				})
+			})
+
+			Context("when a put plan has a custom name but refers to a resource that does exist", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Put:      "custom-name",
+						Resource: "some-resource",
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("does not return an error", func() {
+					Ω(validateErr).ShouldNot(HaveOccurred())
+				})
+			})
+
+			Context("when a put plan has a custom name but refers to a resource that does not exist", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Put:      "custom-name",
+						Resource: "some-missing-resource",
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("does return an error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job.plan[0].put.custom-name refers to a resource that does not exist (some-missing-resource)",
 					))
 				})
 			})
