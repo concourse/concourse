@@ -83,24 +83,19 @@ concepts, and how to bootstrap on various infrastructures.
     \hyperlink{http://github.com/cloudfoundry-incubator/garden-linux-release}{Garden
     Linux}, which it uses for container management.
 
-    To upload the latest version of both releases, execute:
+    These are two independently-versioned products, so your best bet for
+    deploying the correct version combination is to go to our
+    \hyperlink{https://github.com/concourse/concourse/releases/latest}{latest
+    GitHub release} and grab Concourse and Garden-Linux from the
+    \italic{Downloads} section.
+
+    For example, to upload v0.53.0 of Concourse with the appropriate Garden
+    Linux release, you would run:
 
     \codeblock{bash}{
-    bosh upload release https://bosh.io/d/github.com/concourse/concourse
-    bosh upload release https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release
+    bosh upload release https://github.com/concourse/concourse/releases/download/v0.53.0/concourse-0.53.0.tgz
+    bosh upload release https://github.com/concourse/concourse/releases/download/v0.53.0/garden-linux-0.205.0.tgz
     }
-
-    Note that as these are technically two separate releases, there is no
-    guarantee that they work together at all times. Concourse depends on Garden
-    Linux, and while each release does go through its own CI pipeline, there's
-    a chance that Garden Linux makes a backwards-incompatible change.
-
-    Currently the safest way to know which Garden Linux version to use is to go
-    to our
-    \hyperlink{https://github.com/concourse/concourse/releases/latest}{latest
-    GitHub release} and grab Concourse and Garden-Linux from the \italic{Downloads}
-    section. You can give these URLs directly to \code{bosh upload release} as
-    well.
   }
 
   \section{Configure & Deploy}{bosh-properties}{
