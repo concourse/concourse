@@ -68,7 +68,17 @@ func NewRadar(
 
 func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runner {
 	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
-		ticker := time.NewTicker(radar.interval)
+		var ticker *time.Ticker
+		resourceConfig, err := radar.getResourceConfig(logger, resourceName)
+		if err != nil {
+			return err
+		}
+
+		if resourceConfig.CheckEvery != 0 {
+			ticker = time.NewTicker(time.Duration(resourceConfig.CheckEvery))
+		} else {
+			ticker = time.NewTicker(radar.interval)
+		}
 
 		close(ready)
 
@@ -120,20 +130,6 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 		return nil
 	}
 
-	config, _, err := radar.db.GetConfig()
-	if err != nil {
-		logger.Error("failed-to-get-config", err)
-		// don't propagate error; we can just retry next tick
-		return nil
-	}
-
-	resourceConfig, found := config.Resources.Lookup(resourceName)
-	if !found {
-		logger.Info("resource-removed-from-configuration")
-		// return an error so that we exit
-		return resourceNotConfiguredError{ResourceName: resourceName}
-	}
-
 	savedResource, err := radar.db.GetResource(resourceName)
 	if err != nil {
 		return err
@@ -141,6 +137,11 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 
 	if savedResource.Paused {
 		return nil
+	}
+
+	resourceConfig, err := radar.getResourceConfig(logger, resourceName)
+	if err != nil {
+		return err
 	}
 
 	typ := resource.ResourceType(resourceConfig.Type)
@@ -196,6 +197,27 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 
 func (radar *Radar) checkLock(resourceName string) []db.NamedLock {
 	return []db.NamedLock{db.ResourceCheckingLock(resourceName)}
+}
+
+func (radar *Radar) getResourceConfig(logger lager.Logger, resourceName string) (atc.ResourceConfig, error) {
+	var found bool
+	var resourceConfig atc.ResourceConfig
+
+	config, _, err := radar.db.GetConfig()
+	if err != nil {
+		logger.Error("failed-to-get-config", err)
+		// don't propagate error; we can just retry next tick
+		return resourceConfig, err
+	}
+
+	resourceConfig, found = config.Resources.Lookup(resourceName)
+	if !found {
+		logger.Info("resource-removed-from-configuration")
+		// return an error so that we exit
+		return resourceConfig, resourceNotConfiguredError{ResourceName: resourceName}
+	}
+
+	return resourceConfig, nil
 }
 
 func checkIdentifier(pipelineName string, res atc.ResourceConfig) resource.Session {

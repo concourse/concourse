@@ -141,6 +141,35 @@ var _ = Describe("Radar", func() {
 			Ω(time2.Sub(time1)).Should(BeNumerically("~", interval, interval/4))
 		})
 
+		Context("when the resource config has a specified check interval", func() {
+			BeforeEach(func() {
+				resourceConfig = atc.ResourceConfig{
+					Name:       "some-resource",
+					Type:       "git",
+					Source:     atc.Source{"uri": "http://example.com"},
+					CheckEvery: atc.Duration(10 * time.Millisecond),
+				}
+
+				fakeRadarDB.GetConfigReturns(atc.Config{
+					Resources: atc.ResourceConfigs{
+						resourceConfig,
+					},
+				}, 1, nil)
+			})
+
+			It("should check using the specified interval instead of the default", func() {
+				var time1 time.Time
+				var time2 time.Time
+
+				Eventually(times).Should(Receive(&time1))
+				Eventually(times).Should(Receive(&time2))
+
+				check := time.Duration(resourceConfig.CheckEvery)
+
+				Ω(time2.Sub(time1)).Should(BeNumerically("~", check, check/2))
+			})
+		})
+
 		It("grabs a resource checking lock before checking, releases after done", func() {
 			Eventually(times).Should(Receive())
 
