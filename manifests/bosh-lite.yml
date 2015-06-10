@@ -7,7 +7,7 @@ releases:
   - name: concourse
     version: latest
   - name: garden-linux
-    version: latest
+    version: 0.205.0
 
 jobs:
   - name: web
