@@ -186,7 +186,7 @@ The resulting pipeline will look like this:
 }{
   \codeblock{yaml}{
     {}  - get: version
-    {}    params: {bump: minor, pre: rc}
+    {}    params: \{bump: minor, pre: rc\}
   }
 }
 
@@ -211,7 +211,7 @@ The resulting pipeline will look like this:
 }{
   \codeblock{yaml}{
     {}  - put: my-product-rc
-    {}    params: {from: build-artifact/my-product-.*.tgz}
+    {}    params: \{from: build-artifact/my-product-.*.tgz\}
   }
 }
 
@@ -224,7 +224,7 @@ The resulting pipeline will look like this:
 }{
   \codeblock{yaml}{
     {}  - put: version
-    {}    params: {file: version/number}
+    {}    params: \{file: version/number\}
   }
 }
 
@@ -333,7 +333,7 @@ The resulting pipeline will look like this:
 }{
   \codeblock{yaml}{
     {}  - get: version
-    {}    params: {bump: final}
+    {}    params: \{bump: final\}
   }
 }
 
@@ -361,8 +361,8 @@ The resulting pipeline will look like this:
 }{
   \codeblock{yaml}{
     {}  - put: my-product-final
-    {}    params: {from: promote-to-final/my-product-.*.tgz}
+    {}    params: \{from: promote-to-final/my-product-.*.tgz\}
     {}  - put: version
-    {}    params: {from: version/number}
+    {}    params: \{from: version/number\}
   }
 }
