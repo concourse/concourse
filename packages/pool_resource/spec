@@ -1,0 +1,5 @@
+---
+name: pool_resource
+
+files:
+  - resources/pool-resource.tar.gz

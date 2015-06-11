@@ -18,6 +18,27 @@ jobs:
   - put: concourse
     params: {repository: bump-package/concourse, rebase: true}
 
+- name: pool-resource
+  serial: true
+  public: true
+  plan:
+  - get: pool-resource
+    trigger: true
+  - task: unit
+    file: pool-resource/build.yml
+  - put: resource-image
+    resource: pool-resource-image
+    params: {build: unit/gopath/src/github.com/concourse/pool-resource}
+    get_params: {rootfs: true}
+  - aggregate:
+    - get: deployments
+    - get: concourse
+  - task: bump-package
+    file: concourse/ci/bump-resource-package.yml
+    config: {params: {RESOURCE_NAME: pool-resource}}
+  - put: concourse
+    params: {repository: bump-package/concourse, rebase: true}
+
 - name: docker-image-resource
   serial: true
   public: true
@@ -277,8 +298,8 @@ jobs:
   plan:
   - get: vagrant-cloud-resource
     trigger: true
-  - resource: resource-image
-    put: vagrant-cloud-resource-image
+  - put: resource-image
+    resource: vagrant-cloud-resource-image
     params: {build: vagrant-cloud-resource}
     get_params: {rootfs: true}
   - aggregate:
@@ -295,6 +316,12 @@ resources:
   type: git
   source:
     uri: https://github.com/concourse/git-resource.git
+    branch: master
+
+- name: pool-resource
+  type: git
+  source:
+    uri: https://github.com/concourse/pool-resource.git
     branch: master
 
 - name: docker-image-resource
@@ -384,6 +411,14 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
     repository: concourse/git-resource
+
+- name: pool-resource-image
+  type: docker-image
+  source:
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+    repository: concourse/pool-resource
 
 - name: docker-image-resource-image
   type: docker-image
@@ -506,4 +541,3 @@ resources:
     uri: git@github.com:concourse/deployments.git
     branch: master
     private_key: {{deployments-repo-private-key}}
-

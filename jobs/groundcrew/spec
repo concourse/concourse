@@ -26,6 +26,7 @@ packages:
   - docker_image_resource
   - git_resource
   - github_release_resource
+  - pool_resource
   - s3_resource
   - semver_resource
   - time_resource
@@ -81,6 +82,8 @@ properties:
         image: /var/vcap/packages/time_resource
       - type: tracker
         image: /var/vcap/packages/tracker_resource
+      - type: pool
+        image: /var/vcap/packages/pool_resource
       - type: vagrant-cloud
         image: /var/vcap/packages/vagrant_cloud_resource
       - type: github-release
