@@ -100,7 +100,6 @@ jobs:
       - {release: concourse, name: consul-agent}
       - {release: concourse, name: groundcrew}
       - {release: garden-linux, name: garden}
-      - {release: concourse, name: mattermaster}
     networks: [{name: concourse}]
     properties:
       garden:
