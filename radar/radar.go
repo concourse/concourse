@@ -48,8 +48,9 @@ type Radar struct {
 
 	interval time.Duration
 
-	locker Locker
-	db     RadarDB
+	locker             Locker
+	db                 RadarDB
+	updateIntervalChan chan time.Duration
 }
 
 func NewRadar(
@@ -59,26 +60,28 @@ func NewRadar(
 	db RadarDB,
 ) *Radar {
 	return &Radar{
-		tracker:  tracker,
-		interval: interval,
-		locker:   locker,
-		db:       db,
+		tracker:            tracker,
+		interval:           interval,
+		locker:             locker,
+		db:                 db,
+		updateIntervalChan: make(chan time.Duration, 1),
 	}
 }
 
 func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runner {
 	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
-		var ticker *time.Ticker
+		var timer *time.Timer
+
 		resourceConfig, err := radar.getResourceConfig(logger, resourceName)
 		if err != nil {
 			return err
 		}
 
 		if resourceConfig.CheckEvery != 0 {
-			ticker = time.NewTicker(time.Duration(resourceConfig.CheckEvery))
-		} else {
-			ticker = time.NewTicker(radar.interval)
+			radar.interval = time.Duration(resourceConfig.CheckEvery)
 		}
+
+		timer = time.NewTimer(radar.interval)
 
 		close(ready)
 
@@ -87,7 +90,10 @@ func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runn
 			case <-signals:
 				return nil
 
-			case <-ticker.C:
+			case newInterval := <-radar.updateIntervalChan:
+				radar.interval = newInterval
+
+			case <-timer.C:
 				lock := radar.checkLock(radar.db.ScopedName(resourceName))
 				resourceCheckingLock, err := radar.locker.AcquireWriteLockImmediately(lock)
 
@@ -102,6 +108,8 @@ func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runn
 				if err != nil {
 					return err
 				}
+
+				timer.Reset(radar.interval)
 			}
 		}
 	})
@@ -142,6 +150,10 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 	resourceConfig, err := radar.getResourceConfig(logger, resourceName)
 	if err != nil {
 		return err
+	}
+
+	if resourceConfig.CheckEvery != 0 {
+		radar.updateIntervalChan <- time.Duration(resourceConfig.CheckEvery)
 	}
 
 	typ := resource.ResourceType(resourceConfig.Type)
