@@ -138,30 +138,35 @@ func (worker *gardenWorker) Satisfies(spec ContainerSpec) bool {
 			}
 		}
 
+		return worker.tagsMatch(s.Tags)
 	case TaskContainerSpec:
 		if s.Platform != worker.platform {
 			return false
 		}
 
-		if len(worker.tags) > 0 && len(s.Tags) == 0 {
-			return false
-		}
-
-	insert_coin:
-		for _, stag := range s.Tags {
-			for _, wtag := range worker.tags {
-				if stag == wtag {
-					continue insert_coin
-				}
-			}
-
-			return false
-		}
-
-		return true
+		return worker.tagsMatch(s.Tags)
 	}
 
 	return false
+}
+
+func (worker *gardenWorker) tagsMatch(tags []string) bool {
+	if len(worker.tags) > 0 && len(tags) == 0 {
+		return false
+	}
+
+insert_coin:
+	for _, stag := range tags {
+		for _, wtag := range worker.tags {
+			if stag == wtag {
+				continue insert_coin
+			}
+		}
+
+		return false
+	}
+
+	return true
 }
 
 func (worker *gardenWorker) Description() string {

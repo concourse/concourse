@@ -176,6 +176,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 			build.taskIdentifier(plan.Task.Name, location),
 			build.delegate.ExecutionDelegate(logger, *plan.Task, location),
 			exec.Privileged(plan.Task.Privileged),
+			plan.Task.Tags,
 			configSource,
 		), event.SingleIncrement
 	}
@@ -195,6 +196,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 				Source: plan.Get.Source,
 			},
 			plan.Get.Params,
+			plan.Get.Tags,
 			plan.Get.Version,
 		), event.SingleIncrement
 	}
@@ -222,6 +224,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 						Type:   putPlan.Type,
 						Source: putPlan.Source,
 					},
+					putPlan.Tags,
 					putPlan.Params,
 				),
 				build.factory.DependentGet(
@@ -233,6 +236,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 						Type:   getPlan.Type,
 						Source: getPlan.Source,
 					},
+					getPlan.Tags,
 					getPlan.Params,
 				),
 			),

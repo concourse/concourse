@@ -23,23 +23,25 @@ type PutGetPlan struct {
 type AggregatePlan []Plan
 
 type GetPlan struct {
-	Type     string  `json:"type"`
-	Name     string  `json:"name,omitempty"`
-	Resource string  `json:"resource"`
-	Pipeline string  `json:"pipeline"`
-	Source   Source  `json:"source"`
-	Params   Params  `json:"params,omitempty"`
-	Version  Version `json:"version,omitempty"`
+	Type     string   `json:"type"`
+	Name     string   `json:"name,omitempty"`
+	Resource string   `json:"resource"`
+	Pipeline string   `json:"pipeline"`
+	Source   Source   `json:"source"`
+	Params   Params   `json:"params,omitempty"`
+	Version  Version  `json:"version,omitempty"`
+	Tags     []string `json:"tags,omitempty"`
 }
 
 type PutPlan struct {
-	Type      string `json:"type"`
-	Name      string `json:"name,omitempty"`
-	Resource  string `json:"resource"`
-	Pipeline  string `json:"pipeline"`
-	Source    Source `json:"source"`
-	Params    Params `json:"params,omitempty"`
-	GetParams Params `json:"get_params,omitempty"`
+	Type      string   `json:"type"`
+	Name      string   `json:"name,omitempty"`
+	Resource  string   `json:"resource"`
+	Pipeline  string   `json:"pipeline"`
+	Source    Source   `json:"source"`
+	Params    Params   `json:"params,omitempty"`
+	GetParams Params   `json:"get_params,omitempty"`
+	Tags      []string `json:"tags,omitempty"`
 }
 
 func (plan PutPlan) GetPlan() GetPlan {
@@ -50,13 +52,15 @@ func (plan PutPlan) GetPlan() GetPlan {
 		Pipeline: plan.Pipeline,
 		Source:   plan.Source,
 		Params:   plan.GetParams,
+		Tags:     plan.Tags,
 	}
 }
 
 type TaskPlan struct {
 	Name string `json:"name,omitempty"`
 
-	Privileged bool `json:"privileged"`
+	Privileged bool     `json:"privileged"`
+	Tags       []string `json:"tags,omitempty"`
 
 	ConfigPath string      `json:"config_path,omitempty"`
 	Config     *TaskConfig `json:"config,omitempty"`

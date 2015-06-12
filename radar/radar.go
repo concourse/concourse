@@ -145,7 +145,7 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 
 	typ := resource.ResourceType(resourceConfig.Type)
 
-	res, err := radar.tracker.Init(checkIdentifier(radar.db.GetPipelineName(), resourceConfig), typ)
+	res, err := radar.tracker.Init(checkIdentifier(radar.db.GetPipelineName(), resourceConfig), typ, []string{})
 	if err != nil {
 		logger.Error("failed-to-initialize-new-resource", err)
 		return err

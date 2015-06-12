@@ -74,6 +74,7 @@ var _ = Describe("ExecEngine", func() {
 
 			taskConfig = &atc.TaskConfig{
 				Image:  "some-image",
+				Tags:   []string{"some", "task", "tags"},
 				Params: map[string]string{"PARAM": "value"},
 				Run: atc.TaskRunConfig{
 					Path: "some-path",
@@ -90,6 +91,7 @@ var _ = Describe("ExecEngine", func() {
 				Name:     "some-input",
 				Resource: "some-input-resource",
 				Type:     "some-type",
+				Tags:     []string{"some", "get", "tags"},
 				Version:  atc.Version{"some": "version"},
 				Source:   atc.Source{"some": "source"},
 				Params:   atc.Params{"some": "params"},
@@ -103,6 +105,7 @@ var _ = Describe("ExecEngine", func() {
 							Put: &atc.PutPlan{
 								Name:      "some-put",
 								Resource:  "some-output-resource",
+								Tags:      []string{"some", "putget", "tags"},
 								Type:      "some-type",
 								Source:    atc.Source{"some": "source"},
 								Params:    atc.Params{"some": "params"},
@@ -241,26 +244,28 @@ var _ = Describe("ExecEngine", func() {
 				It("constructs the put correctly", func() {
 					Ω(fakeFactory.PutCallCount()).Should(Equal(2))
 
-					workerID, delegate, resourceConfig, params := fakeFactory.PutArgsForCall(0)
+					workerID, delegate, resourceConfig, tags, params := fakeFactory.PutArgsForCall(0)
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID:      42,
 						Type:         worker.ContainerTypePut,
 						Name:         "some-output-resource",
 						StepLocation: []uint{2, 0, 0},
 					}))
+					Ω(tags).Should(BeEmpty())
 					Ω(delegate).Should(Equal(fakeOutputDelegate))
 					Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
 					Ω(resourceConfig.Type).Should(Equal("some-type"))
 					Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
 					Ω(params).Should(Equal(atc.Params{"some": "params"}))
 
-					workerID, delegate, resourceConfig, params = fakeFactory.PutArgsForCall(1)
+					workerID, delegate, resourceConfig, tags, params = fakeFactory.PutArgsForCall(1)
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID:      42,
 						Type:         worker.ContainerTypePut,
 						Name:         "some-output-resource-2",
 						StepLocation: []uint{2, 0, 2},
 					}))
+					Ω(tags).Should(BeEmpty())
 					Ω(delegate).Should(Equal(fakeOutputDelegate))
 					Ω(resourceConfig.Name).Should(Equal("some-output-resource-2"))
 					Ω(resourceConfig.Type).Should(Equal("some-type-2"))
@@ -271,7 +276,7 @@ var _ = Describe("ExecEngine", func() {
 				It("constructs the dependent get correctly", func() {
 					Ω(fakeFactory.DependentGetCallCount()).Should(Equal(2))
 
-					sourceName, workerID, delegate, resourceConfig, params := fakeFactory.DependentGetArgsForCall(0)
+					sourceName, workerID, delegate, resourceConfig, tags, params := fakeFactory.DependentGetArgsForCall(0)
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID:      42,
 						Type:         worker.ContainerTypeGet,
@@ -279,6 +284,7 @@ var _ = Describe("ExecEngine", func() {
 						StepLocation: []uint{2, 0, 1},
 					}))
 
+					Ω(tags).Should(BeEmpty())
 					Ω(delegate).Should(Equal(fakeInputDelegate))
 					_, plan, location, substep := fakeDelegate.InputDelegateArgsForCall(1)
 					Ω(plan).Should(Equal((*outputPlan.Plan.Aggregate)[0].Conditional.Plan.PutGet.Head.Put.GetPlan()))
@@ -291,7 +297,7 @@ var _ = Describe("ExecEngine", func() {
 					Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
 					Ω(params).Should(Equal(atc.Params{"another": "params"}))
 
-					sourceName, workerID, delegate, resourceConfig, params = fakeFactory.DependentGetArgsForCall(1)
+					sourceName, workerID, delegate, resourceConfig, tags, params = fakeFactory.DependentGetArgsForCall(1)
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID:      42,
 						Type:         worker.ContainerTypeGet,
@@ -299,6 +305,7 @@ var _ = Describe("ExecEngine", func() {
 						StepLocation: []uint{2, 0, 3},
 					}))
 
+					Ω(tags).Should(BeEmpty())
 					Ω(delegate).Should(Equal(fakeInputDelegate))
 					_, plan, location, substep = fakeDelegate.InputDelegateArgsForCall(2)
 					Ω(plan).Should(Equal((*outputPlan.Plan.Aggregate)[1].Conditional.Plan.PutGet.Head.Put.GetPlan()))
@@ -318,7 +325,7 @@ var _ = Describe("ExecEngine", func() {
 		It("constructs inputs correctly", func() {
 			Ω(fakeFactory.GetCallCount()).Should(Equal(1))
 
-			sourceName, workerID, delegate, resourceConfig, params, version := fakeFactory.GetArgsForCall(0)
+			sourceName, workerID, delegate, resourceConfig, params, tags, version := fakeFactory.GetArgsForCall(0)
 			Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
 			Ω(workerID).Should(Equal(worker.Identifier{
 				BuildID:      42,
@@ -326,6 +333,7 @@ var _ = Describe("ExecEngine", func() {
 				Name:         "some-input",
 				StepLocation: []uint{0, 0},
 			}))
+			Ω(tags).Should(Equal([]string{"some", "get", "tags"}))
 
 			Ω(delegate).Should(Equal(fakeInputDelegate))
 			_, plan, location, substep := fakeDelegate.InputDelegateArgsForCall(0)
@@ -343,7 +351,7 @@ var _ = Describe("ExecEngine", func() {
 		It("constructs tasks correctly", func() {
 			Ω(fakeFactory.TaskCallCount()).Should(Equal(1))
 
-			sourceName, workerID, delegate, privileged, configSource := fakeFactory.TaskArgsForCall(0)
+			sourceName, workerID, delegate, privileged, tags, configSource := fakeFactory.TaskArgsForCall(0)
 			Ω(sourceName).Should(Equal(exec.SourceName("some-task")))
 			Ω(workerID).Should(Equal(worker.Identifier{
 				BuildID:      42,
@@ -353,6 +361,7 @@ var _ = Describe("ExecEngine", func() {
 			}))
 			Ω(delegate).Should(Equal(fakeExecutionDelegate))
 			Ω(privileged).Should(Equal(exec.Privileged(false)))
+			Ω(tags).Should(BeEmpty())
 			Ω(configSource).ShouldNot(BeNil())
 		})
 
@@ -360,7 +369,7 @@ var _ = Describe("ExecEngine", func() {
 			It("constructs the put correctly", func() {
 				Ω(fakeFactory.PutCallCount()).Should(Equal(1))
 
-				workerID, delegate, resourceConfig, params := fakeFactory.PutArgsForCall(0)
+				workerID, delegate, resourceConfig, tags, params := fakeFactory.PutArgsForCall(0)
 				Ω(workerID).Should(Equal(worker.Identifier{
 					BuildID:      42,
 					Type:         worker.ContainerTypePut,
@@ -371,19 +380,21 @@ var _ = Describe("ExecEngine", func() {
 				Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
 				Ω(resourceConfig.Type).Should(Equal("some-type"))
 				Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
+				Ω(tags).Should(Equal([]string{"some", "putget", "tags"}))
 				Ω(params).Should(Equal(atc.Params{"some": "params"}))
 			})
 
 			It("constructs the dependent get correctly", func() {
 				Ω(fakeFactory.DependentGetCallCount()).Should(Equal(1))
 
-				sourceName, workerID, delegate, resourceConfig, params := fakeFactory.DependentGetArgsForCall(0)
+				sourceName, workerID, delegate, resourceConfig, tags, params := fakeFactory.DependentGetArgsForCall(0)
 				Ω(workerID).Should(Equal(worker.Identifier{
 					BuildID:      42,
 					Type:         worker.ContainerTypeGet,
 					Name:         "some-put",
 					StepLocation: []uint{2, 1},
 				}))
+				Ω(tags).Should(Equal([]string{"some", "putget", "tags"}))
 
 				Ω(delegate).Should(Equal(fakeInputDelegate))
 				_, plan, location, substep := fakeDelegate.InputDelegateArgsForCall(1)
@@ -429,7 +440,7 @@ var _ = Describe("ExecEngine", func() {
 			It("constructs the task step privileged", func() {
 				Ω(fakeFactory.TaskCallCount()).Should(Equal(1))
 
-				_, _, _, privileged, _ := fakeFactory.TaskArgsForCall(0)
+				_, _, _, privileged, _, _ := fakeFactory.TaskArgsForCall(0)
 				Ω(privileged).Should(Equal(exec.Privileged(true)))
 			})
 		})

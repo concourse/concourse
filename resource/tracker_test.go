@@ -42,7 +42,7 @@ var _ = Describe("Tracker", func() {
 		})
 
 		JustBeforeEach(func() {
-			initResource, initErr = tracker.Init(session, initType)
+			initResource, initErr = tracker.Init(session, initType, []string{"resource", "tags"})
 		})
 
 		Context("when a container does not exist for the session", func() {
@@ -59,10 +59,11 @@ var _ = Describe("Tracker", func() {
 				id, spec := workerClient.CreateContainerArgsForCall(0)
 
 				Ω(id).Should(Equal(session.ID))
-				Ω(spec).Should(Equal(worker.ResourceTypeContainerSpec{
-					Type:      string(initType),
-					Ephemeral: true,
-				}))
+				resourceSpec := spec.(worker.ResourceTypeContainerSpec)
+
+				Ω(resourceSpec.Type).Should(Equal(string(initType)))
+				Ω(resourceSpec.Ephemeral).Should(Equal(true))
+				Ω(resourceSpec.Tags).Should(ConsistOf("resource", "tags"))
 			})
 
 			Context("when creating the container fails", func() {

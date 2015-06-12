@@ -36,6 +36,7 @@ type taskStep struct {
 	Delegate TaskDelegate
 
 	Privileged   Privileged
+	Tags         []string
 	ConfigSource TaskConfigSource
 
 	WorkerClient worker.Client
@@ -109,13 +110,15 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return err
 		}
 
+		tags := step.mergeTags(step.Tags, config.Tags)
+
 		step.Delegate.Initializing(config)
 
 		step.container, err = step.WorkerClient.CreateContainer(
 			step.WorkerID,
 			worker.TaskContainerSpec{
 				Platform:   config.Platform,
-				Tags:       config.Tags,
+				Tags:       tags,
 				Image:      config.Image,
 				Privileged: bool(step.Privileged),
 			},
@@ -299,6 +302,26 @@ func (step *taskStep) collectInputs(inputs []atc.TaskInputConfig) error {
 	}
 
 	return nil
+}
+
+func (taskStep) mergeTags(tagsOne []string, tagsTwo []string) []string {
+	var ret []string
+
+	uniq := map[string]struct{}{}
+
+	for _, tag := range tagsOne {
+		uniq[tag] = struct{}{}
+	}
+
+	for _, tag := range tagsTwo {
+		uniq[tag] = struct{}{}
+	}
+
+	for tag, _ := range uniq {
+		ret = append(ret, tag)
+	}
+
+	return ret
 }
 
 func (taskStep) envForParams(params map[string]string) []string {

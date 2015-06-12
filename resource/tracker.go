@@ -17,7 +17,7 @@ type Session struct {
 //go:generate counterfeiter . Tracker
 
 type Tracker interface {
-	Init(Session, ResourceType) (Resource, error)
+	Init(Session, ResourceType, []string) (Resource, error)
 }
 
 type tracker struct {
@@ -32,7 +32,7 @@ func NewTracker(workerClient worker.Client) Tracker {
 	}
 }
 
-func (tracker *tracker) Init(session Session, typ ResourceType) (Resource, error) {
+func (tracker *tracker) Init(session Session, typ ResourceType, tags []string) (Resource, error) {
 	container, err := tracker.workerClient.LookupContainer(session.ID)
 
 	switch err {
@@ -41,6 +41,7 @@ func (tracker *tracker) Init(session Session, typ ResourceType) (Resource, error
 		container, err = tracker.workerClient.CreateContainer(session.ID, worker.ResourceTypeContainerSpec{
 			Type:      string(typ),
 			Ephemeral: session.Ephemeral,
+			Tags:      tags,
 		})
 	}
 

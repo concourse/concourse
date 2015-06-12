@@ -157,6 +157,7 @@ func (factory *BuildFactory) constructPlanFromConfig(
 			Source:    resource.Source,
 			Params:    planConfig.Params,
 			GetParams: planConfig.GetParams,
+			Tags:      planConfig.Tags,
 		}
 
 		plan = atc.Plan{
@@ -194,6 +195,7 @@ func (factory *BuildFactory) constructPlanFromConfig(
 				Source:   resource.Source,
 				Params:   planConfig.Params,
 				Version:  atc.Version(version),
+				Tags:     planConfig.Tags,
 			},
 		}
 
@@ -204,6 +206,7 @@ func (factory *BuildFactory) constructPlanFromConfig(
 				Privileged: planConfig.Privileged,
 				Config:     planConfig.TaskConfig,
 				ConfigPath: planConfig.TaskConfigPath,
+				Tags:       planConfig.Tags,
 			},
 		}
 

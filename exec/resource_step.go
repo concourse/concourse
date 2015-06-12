@@ -17,6 +17,7 @@ type resourceStep struct {
 
 	Tracker resource.Tracker
 	Type    resource.ResourceType
+	Tags    []string
 
 	Action func(resource.Resource, ArtifactSource, VersionInfo) resource.VersionedSource
 
@@ -38,7 +39,7 @@ func (step resourceStep) Using(prev Step, repo *SourceRepository) Step {
 }
 
 func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	resource, err := ras.Tracker.Init(ras.Session, ras.Type)
+	resource, err := ras.Tracker.Init(ras.Session, ras.Type, ras.Tags)
 	if err != nil {
 		return err
 	}

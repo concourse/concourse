@@ -12,6 +12,7 @@ type ContainerSpec interface {
 type ResourceTypeContainerSpec struct {
 	Type      string
 	Ephemeral bool
+	Tags      []string
 }
 
 func (spec ResourceTypeContainerSpec) Description() string {

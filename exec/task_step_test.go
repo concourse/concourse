@@ -55,6 +55,7 @@ var _ = Describe("GardenFactory", func() {
 		var (
 			taskDelegate *fakes.FakeTaskDelegate
 			privileged   Privileged
+			tags         []string
 			configSource *fakes.FakeTaskConfigSource
 
 			inStep *fakes.FakeStep
@@ -70,6 +71,7 @@ var _ = Describe("GardenFactory", func() {
 			taskDelegate.StderrReturns(stderrBuf)
 
 			privileged = false
+			tags = []string{"step", "tags"}
 			configSource = new(fakes.FakeTaskConfigSource)
 
 			inStep = new(fakes.FakeStep)
@@ -77,7 +79,7 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			step = factory.Task(sourceName, identifier, taskDelegate, privileged, configSource).Using(inStep, repo)
+			step = factory.Task(sourceName, identifier, taskDelegate, privileged, tags, configSource).Using(inStep, repo)
 			process = ifrit.Invoke(step)
 		})
 
@@ -92,7 +94,7 @@ var _ = Describe("GardenFactory", func() {
 				BeforeEach(func() {
 					fetchedConfig = atc.TaskConfig{
 						Platform: "some-platform",
-						Tags:     []string{"some", "tags"},
+						Tags:     []string{"config", "tags"},
 						Image:    "some-image",
 						Params:   map[string]string{"SOME": "params"},
 						Run: atc.TaskRunConfig{
@@ -149,12 +151,13 @@ var _ = Describe("GardenFactory", func() {
 						Ω(fakeWorkerClient.CreateContainerCallCount()).Should(Equal(1))
 						createdIdentifier, spec := fakeWorkerClient.CreateContainerArgsForCall(0)
 						Ω(createdIdentifier).Should(Equal(identifier))
-						Ω(spec).Should(Equal(worker.TaskContainerSpec{
-							Platform:   "some-platform",
-							Tags:       []string{"some", "tags"},
-							Image:      "some-image",
-							Privileged: false,
-						}))
+
+						taskSpec := spec.(worker.TaskContainerSpec)
+						Ω(taskSpec.Platform).Should(Equal("some-platform"))
+						Ω(taskSpec.Tags).Should(ConsistOf("config", "step", "tags"))
+						Ω(taskSpec.Image).Should(Equal("some-image"))
+						Ω(taskSpec.Privileged).Should(BeFalse())
+
 					})
 
 					It("ensures artifacts root exists by streaming in an empty payload", func() {
@@ -210,12 +213,12 @@ var _ = Describe("GardenFactory", func() {
 							Ω(fakeWorkerClient.CreateContainerCallCount()).Should(Equal(1))
 							createdIdentifier, spec := fakeWorkerClient.CreateContainerArgsForCall(0)
 							Ω(createdIdentifier).Should(Equal(identifier))
-							Ω(spec).Should(Equal(worker.TaskContainerSpec{
-								Platform:   "some-platform",
-								Tags:       []string{"some", "tags"},
-								Image:      "some-image",
-								Privileged: true,
-							}))
+
+							taskSpec := spec.(worker.TaskContainerSpec)
+							Ω(taskSpec.Platform).Should(Equal("some-platform"))
+							Ω(taskSpec.Tags).Should(ConsistOf("config", "step", "tags"))
+							Ω(taskSpec.Image).Should(Equal("some-image"))
+							Ω(taskSpec.Privileged).Should(BeTrue())
 						})
 
 						It("runs the process privileged", func() {

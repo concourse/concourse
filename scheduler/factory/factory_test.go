@@ -37,6 +37,7 @@ var _ = Describe("Factory", func() {
 								Name:     "some-input",
 								Resource: "some-resource",
 								Pipeline: "some-pipeline",
+								Tags:     []string{"some", "tags"},
 								Source:   atc.Source{"uri": "git://some-resource"},
 								Params:   atc.Params{"some": "params"},
 							},
@@ -53,6 +54,7 @@ var _ = Describe("Factory", func() {
 										Name: "build",
 
 										Privileged: true,
+										Tags:       []string{"some", "tags"},
 
 										ConfigPath: "some-input/build.yml",
 										Config: &atc.TaskConfig{
@@ -83,6 +85,7 @@ var _ = Describe("Factory", func() {
 																Resource: "some-resource",
 																Pipeline: "some-pipeline",
 																Type:     "git",
+																Tags:     []string{"some", "tags"},
 																Params:   atc.Params{"foo": "bar"},
 																Source:   atc.Source{"uri": "git://some-resource"},
 															},
@@ -192,12 +195,14 @@ var _ = Describe("Factory", func() {
 							Get:      "some-input",
 							Resource: "some-resource",
 							Params:   atc.Params{"some": "params"},
+							Tags:     []string{"some", "tags"},
 						},
 					},
 				},
 				{
 					Task:           "build",
 					Privileged:     true,
+					Tags:           []string{"some", "tags"},
 					TaskConfigPath: "some-input/build.yml",
 					TaskConfig: &atc.TaskConfig{
 						Image: "some-image",
@@ -220,6 +225,7 @@ var _ = Describe("Factory", func() {
 								{
 									Put:    "some-resource",
 									Params: atc.Params{"foo": "bar"},
+									Tags:   []string{"some", "tags"},
 								},
 							},
 						},

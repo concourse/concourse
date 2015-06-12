@@ -114,7 +114,7 @@ var _ = Describe("Radar", func() {
 		It("constructs the resource of the correct type", func() {
 			Eventually(times).Should(Receive())
 
-			sessionID, typ := fakeTracker.InitArgsForCall(0)
+			sessionID, typ, tags := fakeTracker.InitArgsForCall(0)
 			Ω(sessionID).Should(Equal(resource.Session{
 				ID: worker.Identifier{
 					PipelineName: "some-pipeline-name",
@@ -128,6 +128,7 @@ var _ = Describe("Radar", func() {
 				Ephemeral: true,
 			}))
 			Ω(typ).Should(Equal(resource.ResourceType("git")))
+			Ω(tags).Should(BeEmpty()) // This allows the check to run on any worker
 		})
 
 		It("checks on a specified interval", func() {
@@ -422,7 +423,7 @@ var _ = Describe("Radar", func() {
 		})
 
 		It("constructs the resource of the correct type", func() {
-			sessionID, typ := fakeTracker.InitArgsForCall(0)
+			sessionID, typ, tags := fakeTracker.InitArgsForCall(0)
 			Ω(sessionID).Should(Equal(resource.Session{
 				ID: worker.Identifier{
 					PipelineName: "some-pipeline-name",
@@ -435,6 +436,7 @@ var _ = Describe("Radar", func() {
 				Ephemeral: true,
 			}))
 			Ω(typ).Should(Equal(resource.ResourceType("git")))
+			Ω(tags).Should(BeEmpty()) // This allows the check to run on any worker
 		})
 
 		It("grabs a resource checking lock before checking, releases after done", func() {

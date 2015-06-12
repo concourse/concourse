@@ -24,6 +24,7 @@ var _ = Describe("Plan", func() {
 				GetParams: atc.Params{
 					"resource": "get-params",
 				},
+				Tags: []string{"tags"},
 			}
 
 			getPlan := atc.GetPlan{
@@ -37,6 +38,7 @@ var _ = Describe("Plan", func() {
 				Params: atc.Params{
 					"resource": "get-params",
 				},
+				Tags: []string{"tags"},
 			}
 
 			Ω(putPlan.GetPlan()).Should(Equal(getPlan))

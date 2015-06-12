@@ -48,6 +48,7 @@ var _ = Describe("GardenFactory", func() {
 			putDelegate    *fakes.FakePutDelegate
 			resourceConfig atc.ResourceConfig
 			params         atc.Params
+			tags           []string
 
 			inStep *fakes.FakeStep
 			repo   *SourceRepository
@@ -70,6 +71,7 @@ var _ = Describe("GardenFactory", func() {
 			}
 
 			params = atc.Params{"some-param": "some-value"}
+			tags = []string{"some", "tags"}
 
 			inStep = new(fakes.FakeStep)
 			repo = NewSourceRepository()
@@ -79,7 +81,7 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			step = factory.Put(identifier, putDelegate, resourceConfig, params).Using(inStep, repo)
+			step = factory.Put(identifier, putDelegate, resourceConfig, tags, params).Using(inStep, repo)
 			process = ifrit.Invoke(step)
 		})
 
@@ -103,11 +105,12 @@ var _ = Describe("GardenFactory", func() {
 			It("initializes the resource with the correct type and session id", func() {
 				Ω(fakeTracker.InitCallCount()).Should(Equal(1))
 
-				sid, typ := fakeTracker.InitArgsForCall(0)
+				sid, typ, tags := fakeTracker.InitArgsForCall(0)
 				Ω(sid).Should(Equal(resource.Session{
 					ID: identifier,
 				}))
 				Ω(typ).Should(Equal(resource.ResourceType("some-resource-type")))
+				Ω(tags).Should(ConsistOf("some", "tags"))
 			})
 
 			It("puts the resource with the correct source and params, and the full repository as the artifact source", func() {

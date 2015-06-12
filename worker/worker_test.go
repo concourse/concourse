@@ -540,6 +540,36 @@ var _ = Describe("Worker", func() {
 					Ω(satisfies).Should(BeFalse())
 				})
 			})
+
+			Context("when all of the requested tags are present", func() {
+				BeforeEach(func() {
+					spec.Tags = []string{"some", "tags"}
+				})
+
+				It("returns true", func() {
+					Ω(satisfies).Should(BeTrue())
+				})
+			})
+
+			Context("when some of the requested tags are present", func() {
+				BeforeEach(func() {
+					spec.Tags = []string{"some"}
+				})
+
+				It("returns true", func() {
+					Ω(satisfies).Should(BeTrue())
+				})
+			})
+
+			Context("when any of the requested tags are not present", func() {
+				BeforeEach(func() {
+					spec.Tags = []string{"bogus", "tags"}
+				})
+
+				It("returns false", func() {
+					Ω(satisfies).Should(BeFalse())
+				})
+			})
 		})
 	})
 })

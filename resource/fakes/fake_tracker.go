@@ -8,11 +8,12 @@ import (
 )
 
 type FakeTracker struct {
-	InitStub        func(resource.Session, resource.ResourceType) (resource.Resource, error)
+	InitStub        func(resource.Session, resource.ResourceType, []string) (resource.Resource, error)
 	initMutex       sync.RWMutex
 	initArgsForCall []struct {
 		arg1 resource.Session
 		arg2 resource.ResourceType
+		arg3 []string
 	}
 	initReturns struct {
 		result1 resource.Resource
@@ -20,15 +21,16 @@ type FakeTracker struct {
 	}
 }
 
-func (fake *FakeTracker) Init(arg1 resource.Session, arg2 resource.ResourceType) (resource.Resource, error) {
+func (fake *FakeTracker) Init(arg1 resource.Session, arg2 resource.ResourceType, arg3 []string) (resource.Resource, error) {
 	fake.initMutex.Lock()
 	fake.initArgsForCall = append(fake.initArgsForCall, struct {
 		arg1 resource.Session
 		arg2 resource.ResourceType
-	}{arg1, arg2})
+		arg3 []string
+	}{arg1, arg2, arg3})
 	fake.initMutex.Unlock()
 	if fake.InitStub != nil {
-		return fake.InitStub(arg1, arg2)
+		return fake.InitStub(arg1, arg2, arg3)
 	} else {
 		return fake.initReturns.result1, fake.initReturns.result2
 	}
@@ -40,10 +42,10 @@ func (fake *FakeTracker) InitCallCount() int {
 	return len(fake.initArgsForCall)
 }
 
-func (fake *FakeTracker) InitArgsForCall(i int) (resource.Session, resource.ResourceType) {
+func (fake *FakeTracker) InitArgsForCall(i int) (resource.Session, resource.ResourceType, []string) {
 	fake.initMutex.RLock()
 	defer fake.initMutex.RUnlock()
-	return fake.initArgsForCall[i].arg1, fake.initArgsForCall[i].arg2
+	return fake.initArgsForCall[i].arg1, fake.initArgsForCall[i].arg2, fake.initArgsForCall[i].arg3
 }
 
 func (fake *FakeTracker) InitReturns(result1 resource.Resource, result2 error) {

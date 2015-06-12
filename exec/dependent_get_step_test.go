@@ -57,6 +57,7 @@ var _ = Describe("GardenFactory", func() {
 			resourceConfig atc.ResourceConfig
 			params         atc.Params
 			version        atc.Version
+			tags           []string
 
 			inStep *fakes.FakeStep
 			repo   *SourceRepository
@@ -80,6 +81,8 @@ var _ = Describe("GardenFactory", func() {
 
 			version = atc.Version{"some-version": "some-value"}
 
+			tags = []string{"some", "tags"}
+
 			inStep = new(fakes.FakeStep)
 			inStep.ResultStub = func(x interface{}) bool {
 				switch v := x.(type) {
@@ -98,7 +101,7 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			step = factory.DependentGet(sourceName, identifier, getDelegate, resourceConfig, params).Using(inStep, repo)
+			step = factory.DependentGet(sourceName, identifier, getDelegate, resourceConfig, tags, params).Using(inStep, repo)
 			process = ifrit.Invoke(step)
 		})
 
@@ -122,12 +125,14 @@ var _ = Describe("GardenFactory", func() {
 			It("initializes the resource with the correct type and session id, making sure that it is not ephemeral", func() {
 				Ω(fakeTracker.InitCallCount()).Should(Equal(1))
 
-				sid, typ := fakeTracker.InitArgsForCall(0)
+				sid, typ, tags := fakeTracker.InitArgsForCall(0)
+
 				Ω(sid).Should(Equal(resource.Session{
 					ID:        identifier,
 					Ephemeral: false,
 				}))
 				Ω(typ).Should(Equal(resource.ResourceType("some-resource-type")))
+				Ω(tags).Should(ConsistOf("some", "tags"))
 			})
 
 			It("gets the resource with the correct source, params, and version", func() {
