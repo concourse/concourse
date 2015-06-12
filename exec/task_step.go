@@ -36,7 +36,7 @@ type taskStep struct {
 	Delegate TaskDelegate
 
 	Privileged   Privileged
-	Tags         []string
+	Tags         atc.Tags
 	ConfigSource TaskConfigSource
 
 	WorkerClient worker.Client

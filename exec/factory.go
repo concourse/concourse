@@ -10,12 +10,12 @@ import (
 //go:generate counterfeiter . Factory
 
 type Factory interface {
-	Get(SourceName, worker.Identifier, GetDelegate, atc.ResourceConfig, atc.Params, []string, atc.Version) StepFactory
-	Put(worker.Identifier, PutDelegate, atc.ResourceConfig, []string, atc.Params) StepFactory
+	Get(SourceName, worker.Identifier, GetDelegate, atc.ResourceConfig, atc.Params, atc.Tags, atc.Version) StepFactory
+	Put(worker.Identifier, PutDelegate, atc.ResourceConfig, atc.Tags, atc.Params) StepFactory
 	// Delete(atc.ResourceConfig, atc.Params, atc.Version) Step
-	Task(SourceName, worker.Identifier, TaskDelegate, Privileged, []string, TaskConfigSource) StepFactory
+	Task(SourceName, worker.Identifier, TaskDelegate, Privileged, atc.Tags, TaskConfigSource) StepFactory
 
-	DependentGet(SourceName, worker.Identifier, GetDelegate, atc.ResourceConfig, []string, atc.Params) StepFactory
+	DependentGet(SourceName, worker.Identifier, GetDelegate, atc.ResourceConfig, atc.Tags, atc.Params) StepFactory
 }
 
 //go:generate counterfeiter . TaskDelegate

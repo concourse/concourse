@@ -10,7 +10,7 @@ import (
 )
 
 type FakeFactory struct {
-	GetStub        func(exec.SourceName, worker.Identifier, exec.GetDelegate, atc.ResourceConfig, atc.Params, []string, atc.Version) exec.StepFactory
+	GetStub        func(exec.SourceName, worker.Identifier, exec.GetDelegate, atc.ResourceConfig, atc.Params, atc.Tags, atc.Version) exec.StepFactory
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
 		arg1 exec.SourceName
@@ -18,45 +18,45 @@ type FakeFactory struct {
 		arg3 exec.GetDelegate
 		arg4 atc.ResourceConfig
 		arg5 atc.Params
-		arg6 []string
+		arg6 atc.Tags
 		arg7 atc.Version
 	}
 	getReturns struct {
 		result1 exec.StepFactory
 	}
-	PutStub        func(worker.Identifier, exec.PutDelegate, atc.ResourceConfig, []string, atc.Params) exec.StepFactory
+	PutStub        func(worker.Identifier, exec.PutDelegate, atc.ResourceConfig, atc.Tags, atc.Params) exec.StepFactory
 	putMutex       sync.RWMutex
 	putArgsForCall []struct {
 		arg1 worker.Identifier
 		arg2 exec.PutDelegate
 		arg3 atc.ResourceConfig
-		arg4 []string
+		arg4 atc.Tags
 		arg5 atc.Params
 	}
 	putReturns struct {
 		result1 exec.StepFactory
 	}
-	TaskStub        func(exec.SourceName, worker.Identifier, exec.TaskDelegate, exec.Privileged, []string, exec.TaskConfigSource) exec.StepFactory
+	TaskStub        func(exec.SourceName, worker.Identifier, exec.TaskDelegate, exec.Privileged, atc.Tags, exec.TaskConfigSource) exec.StepFactory
 	taskMutex       sync.RWMutex
 	taskArgsForCall []struct {
 		arg1 exec.SourceName
 		arg2 worker.Identifier
 		arg3 exec.TaskDelegate
 		arg4 exec.Privileged
-		arg5 []string
+		arg5 atc.Tags
 		arg6 exec.TaskConfigSource
 	}
 	taskReturns struct {
 		result1 exec.StepFactory
 	}
-	DependentGetStub        func(exec.SourceName, worker.Identifier, exec.GetDelegate, atc.ResourceConfig, []string, atc.Params) exec.StepFactory
+	DependentGetStub        func(exec.SourceName, worker.Identifier, exec.GetDelegate, atc.ResourceConfig, atc.Tags, atc.Params) exec.StepFactory
 	dependentGetMutex       sync.RWMutex
 	dependentGetArgsForCall []struct {
 		arg1 exec.SourceName
 		arg2 worker.Identifier
 		arg3 exec.GetDelegate
 		arg4 atc.ResourceConfig
-		arg5 []string
+		arg5 atc.Tags
 		arg6 atc.Params
 	}
 	dependentGetReturns struct {
@@ -64,7 +64,7 @@ type FakeFactory struct {
 	}
 }
 
-func (fake *FakeFactory) Get(arg1 exec.SourceName, arg2 worker.Identifier, arg3 exec.GetDelegate, arg4 atc.ResourceConfig, arg5 atc.Params, arg6 []string, arg7 atc.Version) exec.StepFactory {
+func (fake *FakeFactory) Get(arg1 exec.SourceName, arg2 worker.Identifier, arg3 exec.GetDelegate, arg4 atc.ResourceConfig, arg5 atc.Params, arg6 atc.Tags, arg7 atc.Version) exec.StepFactory {
 	fake.getMutex.Lock()
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
 		arg1 exec.SourceName
@@ -72,7 +72,7 @@ func (fake *FakeFactory) Get(arg1 exec.SourceName, arg2 worker.Identifier, arg3 
 		arg3 exec.GetDelegate
 		arg4 atc.ResourceConfig
 		arg5 atc.Params
-		arg6 []string
+		arg6 atc.Tags
 		arg7 atc.Version
 	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	fake.getMutex.Unlock()
@@ -89,7 +89,7 @@ func (fake *FakeFactory) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeFactory) GetArgsForCall(i int) (exec.SourceName, worker.Identifier, exec.GetDelegate, atc.ResourceConfig, atc.Params, []string, atc.Version) {
+func (fake *FakeFactory) GetArgsForCall(i int) (exec.SourceName, worker.Identifier, exec.GetDelegate, atc.ResourceConfig, atc.Params, atc.Tags, atc.Version) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	return fake.getArgsForCall[i].arg1, fake.getArgsForCall[i].arg2, fake.getArgsForCall[i].arg3, fake.getArgsForCall[i].arg4, fake.getArgsForCall[i].arg5, fake.getArgsForCall[i].arg6, fake.getArgsForCall[i].arg7
@@ -102,13 +102,13 @@ func (fake *FakeFactory) GetReturns(result1 exec.StepFactory) {
 	}{result1}
 }
 
-func (fake *FakeFactory) Put(arg1 worker.Identifier, arg2 exec.PutDelegate, arg3 atc.ResourceConfig, arg4 []string, arg5 atc.Params) exec.StepFactory {
+func (fake *FakeFactory) Put(arg1 worker.Identifier, arg2 exec.PutDelegate, arg3 atc.ResourceConfig, arg4 atc.Tags, arg5 atc.Params) exec.StepFactory {
 	fake.putMutex.Lock()
 	fake.putArgsForCall = append(fake.putArgsForCall, struct {
 		arg1 worker.Identifier
 		arg2 exec.PutDelegate
 		arg3 atc.ResourceConfig
-		arg4 []string
+		arg4 atc.Tags
 		arg5 atc.Params
 	}{arg1, arg2, arg3, arg4, arg5})
 	fake.putMutex.Unlock()
@@ -125,7 +125,7 @@ func (fake *FakeFactory) PutCallCount() int {
 	return len(fake.putArgsForCall)
 }
 
-func (fake *FakeFactory) PutArgsForCall(i int) (worker.Identifier, exec.PutDelegate, atc.ResourceConfig, []string, atc.Params) {
+func (fake *FakeFactory) PutArgsForCall(i int) (worker.Identifier, exec.PutDelegate, atc.ResourceConfig, atc.Tags, atc.Params) {
 	fake.putMutex.RLock()
 	defer fake.putMutex.RUnlock()
 	return fake.putArgsForCall[i].arg1, fake.putArgsForCall[i].arg2, fake.putArgsForCall[i].arg3, fake.putArgsForCall[i].arg4, fake.putArgsForCall[i].arg5
@@ -138,14 +138,14 @@ func (fake *FakeFactory) PutReturns(result1 exec.StepFactory) {
 	}{result1}
 }
 
-func (fake *FakeFactory) Task(arg1 exec.SourceName, arg2 worker.Identifier, arg3 exec.TaskDelegate, arg4 exec.Privileged, arg5 []string, arg6 exec.TaskConfigSource) exec.StepFactory {
+func (fake *FakeFactory) Task(arg1 exec.SourceName, arg2 worker.Identifier, arg3 exec.TaskDelegate, arg4 exec.Privileged, arg5 atc.Tags, arg6 exec.TaskConfigSource) exec.StepFactory {
 	fake.taskMutex.Lock()
 	fake.taskArgsForCall = append(fake.taskArgsForCall, struct {
 		arg1 exec.SourceName
 		arg2 worker.Identifier
 		arg3 exec.TaskDelegate
 		arg4 exec.Privileged
-		arg5 []string
+		arg5 atc.Tags
 		arg6 exec.TaskConfigSource
 	}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.taskMutex.Unlock()
@@ -162,7 +162,7 @@ func (fake *FakeFactory) TaskCallCount() int {
 	return len(fake.taskArgsForCall)
 }
 
-func (fake *FakeFactory) TaskArgsForCall(i int) (exec.SourceName, worker.Identifier, exec.TaskDelegate, exec.Privileged, []string, exec.TaskConfigSource) {
+func (fake *FakeFactory) TaskArgsForCall(i int) (exec.SourceName, worker.Identifier, exec.TaskDelegate, exec.Privileged, atc.Tags, exec.TaskConfigSource) {
 	fake.taskMutex.RLock()
 	defer fake.taskMutex.RUnlock()
 	return fake.taskArgsForCall[i].arg1, fake.taskArgsForCall[i].arg2, fake.taskArgsForCall[i].arg3, fake.taskArgsForCall[i].arg4, fake.taskArgsForCall[i].arg5, fake.taskArgsForCall[i].arg6
@@ -175,14 +175,14 @@ func (fake *FakeFactory) TaskReturns(result1 exec.StepFactory) {
 	}{result1}
 }
 
-func (fake *FakeFactory) DependentGet(arg1 exec.SourceName, arg2 worker.Identifier, arg3 exec.GetDelegate, arg4 atc.ResourceConfig, arg5 []string, arg6 atc.Params) exec.StepFactory {
+func (fake *FakeFactory) DependentGet(arg1 exec.SourceName, arg2 worker.Identifier, arg3 exec.GetDelegate, arg4 atc.ResourceConfig, arg5 atc.Tags, arg6 atc.Params) exec.StepFactory {
 	fake.dependentGetMutex.Lock()
 	fake.dependentGetArgsForCall = append(fake.dependentGetArgsForCall, struct {
 		arg1 exec.SourceName
 		arg2 worker.Identifier
 		arg3 exec.GetDelegate
 		arg4 atc.ResourceConfig
-		arg5 []string
+		arg5 atc.Tags
 		arg6 atc.Params
 	}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.dependentGetMutex.Unlock()
@@ -199,7 +199,7 @@ func (fake *FakeFactory) DependentGetCallCount() int {
 	return len(fake.dependentGetArgsForCall)
 }
 
-func (fake *FakeFactory) DependentGetArgsForCall(i int) (exec.SourceName, worker.Identifier, exec.GetDelegate, atc.ResourceConfig, []string, atc.Params) {
+func (fake *FakeFactory) DependentGetArgsForCall(i int) (exec.SourceName, worker.Identifier, exec.GetDelegate, atc.ResourceConfig, atc.Tags, atc.Params) {
 	fake.dependentGetMutex.RLock()
 	defer fake.dependentGetMutex.RUnlock()
 	return fake.dependentGetArgsForCall[i].arg1, fake.dependentGetArgsForCall[i].arg2, fake.dependentGetArgsForCall[i].arg3, fake.dependentGetArgsForCall[i].arg4, fake.dependentGetArgsForCall[i].arg5, fake.dependentGetArgsForCall[i].arg6

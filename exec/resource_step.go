@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/resource"
 )
 
@@ -17,7 +18,7 @@ type resourceStep struct {
 
 	Tracker resource.Tracker
 	Type    resource.ResourceType
-	Tags    []string
+	Tags    atc.Tags
 
 	Action func(resource.Resource, ArtifactSource, VersionInfo) resource.VersionedSource
 

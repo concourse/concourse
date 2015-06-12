@@ -3,6 +3,7 @@ package resource
 import (
 	"errors"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
 )
 
@@ -17,7 +18,7 @@ type Session struct {
 //go:generate counterfeiter . Tracker
 
 type Tracker interface {
-	Init(Session, ResourceType, []string) (Resource, error)
+	Init(Session, ResourceType, atc.Tags) (Resource, error)
 }
 
 type tracker struct {
@@ -32,7 +33,7 @@ func NewTracker(workerClient worker.Client) Tracker {
 	}
 }
 
-func (tracker *tracker) Init(session Session, typ ResourceType, tags []string) (Resource, error) {
+func (tracker *tracker) Init(session Session, typ ResourceType, tags atc.Tags) (Resource, error) {
 	container, err := tracker.workerClient.LookupContainer(session.ID)
 
 	switch err {

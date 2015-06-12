@@ -12,6 +12,7 @@ const DefaultPipelineName = "main"
 type Source map[string]interface{}
 type Params map[string]interface{}
 type Version map[string]interface{}
+type Tags []string
 
 type Config struct {
 	Groups    GroupConfigs    `yaml:"groups" json:"groups" mapstructure:"groups"`
@@ -163,7 +164,7 @@ type PlanConfig struct {
 	// used by Put to specify params for the subsequent Get
 	GetParams Params `yaml:"get_params,omitempty" json:"get_params,omitempty" mapstructure:"get_params"`
 
-	Tags []string `yaml:"tags,omitempty" json:"tags,omitempty" mapstructure:"tags"`
+	Tags Tags `yaml:"tags,omitempty" json:"tags,omitempty" mapstructure:"tags"`
 }
 
 func (config PlanConfig) Name() string {

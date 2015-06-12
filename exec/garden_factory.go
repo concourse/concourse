@@ -31,7 +31,7 @@ func NewGardenFactory(
 	}
 }
 
-func (factory *gardenFactory) DependentGet(sourceName SourceName, id worker.Identifier, delegate GetDelegate, config atc.ResourceConfig, tags []string, params atc.Params) StepFactory {
+func (factory *gardenFactory) DependentGet(sourceName SourceName, id worker.Identifier, delegate GetDelegate, config atc.ResourceConfig, tags atc.Tags, params atc.Params) StepFactory {
 	return resourceStep{
 		SourceName: sourceName,
 
@@ -55,7 +55,7 @@ func (factory *gardenFactory) DependentGet(sourceName SourceName, id worker.Iden
 	}
 }
 
-func (factory *gardenFactory) Get(sourceName SourceName, id worker.Identifier, delegate GetDelegate, config atc.ResourceConfig, params atc.Params, tags []string, version atc.Version) StepFactory {
+func (factory *gardenFactory) Get(sourceName SourceName, id worker.Identifier, delegate GetDelegate, config atc.ResourceConfig, params atc.Params, tags atc.Tags, version atc.Version) StepFactory {
 	return resourceStep{
 		SourceName: sourceName,
 
@@ -79,7 +79,7 @@ func (factory *gardenFactory) Get(sourceName SourceName, id worker.Identifier, d
 	}
 }
 
-func (factory *gardenFactory) Put(id worker.Identifier, delegate PutDelegate, config atc.ResourceConfig, tags []string, params atc.Params) StepFactory {
+func (factory *gardenFactory) Put(id worker.Identifier, delegate PutDelegate, config atc.ResourceConfig, tags atc.Tags, params atc.Params) StepFactory {
 	return resourceStep{
 		Session: resource.Session{
 			ID: id,
@@ -100,7 +100,7 @@ func (factory *gardenFactory) Put(id worker.Identifier, delegate PutDelegate, co
 	}
 }
 
-func (factory *gardenFactory) Task(sourceName SourceName, id worker.Identifier, delegate TaskDelegate, privileged Privileged, tags []string, configSource TaskConfigSource) StepFactory {
+func (factory *gardenFactory) Task(sourceName SourceName, id worker.Identifier, delegate TaskDelegate, privileged Privileged, tags atc.Tags, configSource TaskConfigSource) StepFactory {
 
 	artifactsRoot := filepath.Join("/tmp", "build", factory.uuidGenerator())
 

@@ -333,7 +333,7 @@ var _ = Describe("ExecEngine", func() {
 				Name:         "some-input",
 				StepLocation: []uint{0, 0},
 			}))
-			Ω(tags).Should(Equal([]string{"some", "get", "tags"}))
+			Ω(tags).Should(ConsistOf("some", "get", "tags"))
 
 			Ω(delegate).Should(Equal(fakeInputDelegate))
 			_, plan, location, substep := fakeDelegate.InputDelegateArgsForCall(0)
@@ -380,7 +380,7 @@ var _ = Describe("ExecEngine", func() {
 				Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
 				Ω(resourceConfig.Type).Should(Equal("some-type"))
 				Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
-				Ω(tags).Should(Equal([]string{"some", "putget", "tags"}))
+				Ω(tags).Should(ConsistOf("some", "putget", "tags"))
 				Ω(params).Should(Equal(atc.Params{"some": "params"}))
 			})
 
@@ -394,7 +394,7 @@ var _ = Describe("ExecEngine", func() {
 					Name:         "some-put",
 					StepLocation: []uint{2, 1},
 				}))
-				Ω(tags).Should(Equal([]string{"some", "putget", "tags"}))
+				Ω(tags).Should(ConsistOf("some", "putget", "tags"))
 
 				Ω(delegate).Should(Equal(fakeInputDelegate))
 				_, plan, location, substep := fakeDelegate.InputDelegateArgsForCall(1)
