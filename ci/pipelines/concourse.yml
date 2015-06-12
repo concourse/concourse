@@ -179,7 +179,6 @@ jobs:
 - name: unfudge
   plan:
   - get: bosh-lites
-    passed: [testflight]
   - put: bosh-lites
     params: {release: bosh-lites}
 
