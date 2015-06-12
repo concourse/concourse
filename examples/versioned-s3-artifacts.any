@@ -5,7 +5,15 @@
 \title{Versioned S3 Artifacts}{versioned-s3-artifacts}
 
 This document will guide you through a pipeline modeled on a fairly common
-real-world use case of pushing tested artifacts into S3 buckets.
+real-world use case of pushing tested artifacts into S3 buckets from Git 
+commits through a build and test lifecycle to a final artifact.
+
+The end-to-end scenario is to monitor a Git repository for commits, when new
+commits are detected, run the unit tests. If the unit tests pass, then create
+a new release candidate artifact with automated versioning and store the
+artifact in a S3 bucket. When a new release candidate is created, run
+integration tests. If the integration tests pass, create a final version with
+automated versioning, put the artifact in an S3 bucket and ship it.
 
 The resulting pipeline will look like this:
 
