@@ -38,5 +38,5 @@
   want a surprise. It will not be a good surprise. It's not your birthday.
 }{
   The \hyperlink{https://github.com/concourse/git-resource}{Git resource} will
-  now ignore any commits that contain the substring \code{[ci skip}].
+  now ignore any commits that contain the substring \code{[ci skip]}.
 }
