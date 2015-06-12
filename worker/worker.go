@@ -134,11 +134,12 @@ func (worker *gardenWorker) Satisfies(spec ContainerSpec) bool {
 	case ResourceTypeContainerSpec:
 		for _, t := range worker.resourceTypes {
 			if t.Type == s.Type {
-				return true
+				return worker.tagsMatch(s.Tags)
 			}
 		}
 
-		return worker.tagsMatch(s.Tags)
+		return false
+
 	case TaskContainerSpec:
 		if s.Platform != worker.platform {
 			return false

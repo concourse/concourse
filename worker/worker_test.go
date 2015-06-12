@@ -526,8 +526,34 @@ var _ = Describe("Worker", func() {
 					}
 				})
 
-				It("returns true", func() {
-					Ω(satisfies).Should(BeTrue())
+				Context("when all of the requested tags are present", func() {
+					BeforeEach(func() {
+						spec.Tags = []string{"some", "tags"}
+					})
+
+					It("returns true", func() {
+						Ω(satisfies).Should(BeTrue())
+					})
+				})
+
+				Context("when some of the requested tags are present", func() {
+					BeforeEach(func() {
+						spec.Tags = []string{"some"}
+					})
+
+					It("returns true", func() {
+						Ω(satisfies).Should(BeTrue())
+					})
+				})
+
+				Context("when any of the requested tags are not present", func() {
+					BeforeEach(func() {
+						spec.Tags = []string{"bogus", "tags"}
+					})
+
+					It("returns false", func() {
+						Ω(satisfies).Should(BeFalse())
+					})
 				})
 			})
 
@@ -536,38 +562,34 @@ var _ = Describe("Worker", func() {
 					spec.Type = "some-other-resource"
 				})
 
-				It("returns false", func() {
-					Ω(satisfies).Should(BeFalse())
-				})
-			})
+				Context("when all of the requested tags are present", func() {
+					BeforeEach(func() {
+						spec.Tags = []string{"some", "tags"}
+					})
 
-			Context("when all of the requested tags are present", func() {
-				BeforeEach(func() {
-					spec.Tags = []string{"some", "tags"}
-				})
-
-				It("returns true", func() {
-					Ω(satisfies).Should(BeTrue())
-				})
-			})
-
-			Context("when some of the requested tags are present", func() {
-				BeforeEach(func() {
-					spec.Tags = []string{"some"}
+					It("returns false", func() {
+						Ω(satisfies).Should(BeFalse())
+					})
 				})
 
-				It("returns true", func() {
-					Ω(satisfies).Should(BeTrue())
-				})
-			})
+				Context("when some of the requested tags are present", func() {
+					BeforeEach(func() {
+						spec.Tags = []string{"some"}
+					})
 
-			Context("when any of the requested tags are not present", func() {
-				BeforeEach(func() {
-					spec.Tags = []string{"bogus", "tags"}
+					It("returns true", func() {
+						Ω(satisfies).Should(BeFalse())
+					})
 				})
 
-				It("returns false", func() {
-					Ω(satisfies).Should(BeFalse())
+				Context("when any of the requested tags are not present", func() {
+					BeforeEach(func() {
+						spec.Tags = []string{"bogus", "tags"}
+					})
+
+					It("returns false", func() {
+						Ω(satisfies).Should(BeFalse())
+					})
 				})
 			})
 		})
