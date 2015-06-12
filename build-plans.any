@@ -111,5 +111,6 @@ For a reference on each type of step, read on.
 \include-section{steps/aggregate.any}
 \include-section{steps/do.any}
 \include-section{steps/conditions.any}
+\include-section{steps/tags.any}
 
 \table-of-contents
