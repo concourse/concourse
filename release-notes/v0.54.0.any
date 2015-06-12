@@ -1,6 +1,6 @@
 #language anatomy
 
-\title{v0.53.0}
+\title{v0.54.0}
 
 \list{
   \hyperlink{https://github.com/concourse/pool-resource}{Pool resource} is the
