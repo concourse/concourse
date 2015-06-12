@@ -44,13 +44,6 @@ Once you've figured out your tasks's configuration, you can reuse it for a
     provides Linux workers.
   }
 
-  \define{tags}{string}{
-    \italic{Optional.} A set of arbitrary tags to determine which workers the task
-    should run on. Tags can be omitted from task configuration files and
-    overridden by jobs, so that the task config can be reused and run in separate
-    environments.
-  }
-
   \define{image}{string}{
     \italic{Optional.} The base image of the container. For a Docker image, specify
     in the format \code{docker:///username/repo#tag} (rather than

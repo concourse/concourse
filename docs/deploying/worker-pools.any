@@ -8,7 +8,7 @@ Workers are
 \hyperlink{http://github.com/cloudfoundry-incubator/garden}{Garden} servers,
 continuously heartbeating their presence to the Concourse API. Workers have
 a statically configured \code{platform} and a set of \code{tags}, both of
-which determine where tasks are scheduled.
+which determine where tasks and resource actions are scheduled.
 
 The worker also advertises which resource types it supports. This is just
 a mapping from resource type (e.g. \code{git}) to the image URI (e.g.
@@ -22,7 +22,7 @@ For a given task, only workers with a \code{platform} that matches the task's
 \code{linux}, \code{windows}, or \code{darwin}, but this is just convention.
 
 If a worker specifies \code{tags}, it is taken out of the "default" placement
-pool, and tasks only run on the worker if they explicitly specify a common
+pool, and steps only run on the worker if they explicitly specify a common
 subset of the worker's tags. This can be done in the task's configuration
 directly (see \reference{configuring-tasks}) or by specifying them in the job
 that's running the task (see \reference{pipelines}).
@@ -54,8 +54,8 @@ The worker JSON object contains the following attributes:
 }
 
 \define{tags}{[string]}{
-  \italic{Optional.} A set of arbitrary tags. Only tasks matching a subset of
-  these tags will be placed on the worker.
+  \italic{Optional.} A set of arbitrary tags. Only steps specifying a matching
+  a subset of these tags will be placed on the worker.
 }
 
 \define{addr}{string}{
