@@ -11,7 +11,7 @@ go install github.com/onsi/ginkgo/ginkgo
 export BOSH_USER=admin
 export BOSH_PASSWORD=admin
 
-bosh target ${BOSH_LITE_IP}
+bosh target $(cat bosh-lites/metadata)
 
 # upload bosh stemcell
 bosh -n upload stemcell lite-stemcell/*.tgz --skip-if-exists

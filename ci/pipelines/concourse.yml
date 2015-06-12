@@ -27,8 +27,10 @@ groups:
 - name: bosh-lite
   jobs: [provision]
 
-- name: junk-drawer
-  jobs: [master-merge]
+- name: rubbish-bin
+  jobs:
+  - master-merge
+  - unfudge
 
 jobs:
 - name: fly
@@ -109,19 +111,17 @@ jobs:
 - name: provision
   serial: true
   plan:
-  - aggregate:
-    - get: deployments
-    - get: bosh-lite
-  - task: build
+  - get: deployments
+  - get: bosh-lite
+  - task: create-lock
     privileged: true
     file: deployments/lite/ci/provision-bosh-lite.yml
-  - conditions: [success, failure]
-    put: deployments
-    params: {repository: build/deployments, rebase: true}
+  - put: bosh-lites
+    params:
+      add: create-lock/lock
 
 - name: testflight
   public: true
-  serial: true
   plan:
   - aggregate:
     - get: concourse
@@ -134,10 +134,12 @@ jobs:
       trigger: true
       resource: garden-linux
     - get: lite-stemcell
+    - put: bosh-lites
+      params:
+        acquire: true
   - task: build
     privileged: true
     file: concourse/ci/testflight.yml
-    config: {params: {BOSH_LITE_IP: {{bosh-lite-ip}}}}
 
 - name: deploy
   serial: true
@@ -158,6 +160,8 @@ jobs:
       resource: aws-stemcell
     - get: deployments
       trigger: true
+    - get: bosh-lites
+      passed: [testflight]
   - task: build-dev-release
     file: concourse/ci/deploy.yml
   - put: concourse-deployment
@@ -167,8 +171,17 @@ jobs:
       releases:
         - garden-linux-release/*.tgz
         - build-dev-release/concourse/dev_releases/concourse/concourse-*.tgz
+  - put: bosh-lites
+    params: {release: bosh-lites}
   - put: tracker
     params: {repos: [concourse]}
+
+- name: unfudge
+  plan:
+  - get: bosh-lites
+    passed: [testflight]
+  - put: bosh-lites
+    params: {release: bosh-lites}
 
 - name: shipit
   serial: true
@@ -580,3 +593,11 @@ resources:
     user: vito
     repository: houdini
     access_token: {{houdini-github-release-access-token}}
+
+- name: bosh-lites
+  type: pool
+  source:
+    uri: git@github.com:concourse/locks.git
+    branch: master
+    pool: bosh-lites
+    private_key: {{locks-repo-private-key}}
