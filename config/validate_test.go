@@ -635,6 +635,24 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
+			Context("when a job's input's passed constraints references a valid job that has the resource (with a custom name) as an input", func() {
+				BeforeEach(func() {
+					config.Jobs[0].OutputConfigs = nil
+
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Get:      "custom-name",
+						Resource: "some-resource",
+						Passed:   []string{"some-job"},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("does not return an error", func() {
+					Ω(validateErr).ShouldNot(HaveOccurred())
+				})
+			})
+
 			Context("when a job's input's passed constraints references a valid job that does not have the resource as an input or output", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, atc.PlanConfig{

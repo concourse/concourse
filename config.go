@@ -187,6 +187,25 @@ func (config PlanConfig) Name() string {
 	return ""
 }
 
+func (config PlanConfig) ResourceName() string {
+	resourceName := config.Resource
+	if resourceName != "" {
+		return resourceName
+	}
+
+	resourceName = config.Get
+	if resourceName != "" {
+		return resourceName
+	}
+
+	resourceName = config.Put
+	if resourceName != "" {
+		return resourceName
+	}
+
+	panic("no resource name!")
+}
+
 type JobInputConfig struct {
 	RawName  string   `yaml:"name,omitempty" json:"name,omitempty" mapstructure:"name"`
 	Resource string   `yaml:"resource" json:"resource" mapstructure:"resource"`
