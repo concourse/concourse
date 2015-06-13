@@ -161,6 +161,7 @@ jobs:
     - get: deployments
       trigger: true
     - get: bosh-lites
+      trigger: true
       passed: [testflight]
   - task: build-dev-release
     file: concourse/ci/deploy.yml
