@@ -1,6 +1,6 @@
 #language anatomy
 
-\use{anatomy/atomy}
+\use{\require{anatomy/atomy}}
 
 \title{\code{tags}\aux{: perform a step on certain workers}}{step-tags}
 
