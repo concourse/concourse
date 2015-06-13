@@ -20,15 +20,15 @@ For more information or if you need help: we're on IRC in the
 \hyperlink{irc://irc.freenode.net/concourse}{#concourse} channel on Freenode.
 (\hyperlink{http://webchat.freenode.net/?channels=concourse}{Webchat})
 
-\include-section{what-and-why.any}
-\include-section{concepts.any}
-\include-section{getting-started.any}
-\include-section{examples.any}
-\include-section{fly-cli.any}
-\include-section{running-tasks.any}
-\include-section{pipelines.any}
-\include-section{build-plans.any}
-\include-section{implementing-resources.any}
-\include-section{release-notes.any}
+\include-section{./what-and-why.any}
+\include-section{./concepts.any}
+\include-section{./getting-started.any}
+\include-section{./examples.any}
+\include-section{./fly-cli.any}
+\include-section{./running-tasks.any}
+\include-section{./pipelines.any}
+\include-section{./build-plans.any}
+\include-section{./implementing-resources.any}
+\include-section{./release-notes.any}
 
 \table-of-contents

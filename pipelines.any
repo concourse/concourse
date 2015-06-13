@@ -99,8 +99,8 @@ jobs:
 
 To learn what the heck that means, read on.
 
-\include-section{configuring/resources.any}
-\include-section{configuring/jobs.any}
-\include-section{configuring/groups.any}
+\include-section{./configuring/resources.any}
+\include-section{./configuring/jobs.any}
+\include-section{./configuring/groups.any}
 
 \table-of-contents

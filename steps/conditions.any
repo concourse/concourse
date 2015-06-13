@@ -1,6 +1,6 @@
 #language anatomy
 
-\use{anatomy/atomy}
+\use{\require{anatomy/atomy}}
 
 \title{\code{conditions}\aux{: conditionally perform a step}}{step-conditions}
 

@@ -1,6 +1,6 @@
 #language anatomy
 
-\use{anatomy/atomy}
+\use{\require{anatomy/atomy}}
 
 \title{\code{groups}\aux{: Splitting up your pipeline into sections}}{configuring-groups}
 

@@ -105,12 +105,12 @@ This prevents bad apples or bruised bananas from being delivered. (I'm sorry.)
 
 For a reference on each type of step, read on.
 
-\include-section{steps/get.any}
-\include-section{steps/put.any}
-\include-section{steps/task.any}
-\include-section{steps/aggregate.any}
-\include-section{steps/do.any}
-\include-section{steps/conditions.any}
-\include-section{steps/tags.any}
+\include-section{./steps/get.any}
+\include-section{./steps/put.any}
+\include-section{./steps/task.any}
+\include-section{./steps/aggregate.any}
+\include-section{./steps/do.any}
+\include-section{./steps/conditions.any}
+\include-section{./steps/tags.any}
 
 \table-of-contents
