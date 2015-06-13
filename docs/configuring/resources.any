@@ -1,6 +1,6 @@
 #language anatomy
 
-\use{anatomy/atomy}
+\use{\require{anatomy/atomy}}
 
 \title{\code{resources}\aux{: Objects flowing through the pipeline}}{configuring-resources}
 

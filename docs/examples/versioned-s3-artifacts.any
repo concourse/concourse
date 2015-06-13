@@ -1,6 +1,6 @@
 #language anatomy
 
-\use{concourse/docs}
+\use{\require{concourse/docs}}
 
 \title{Versioned S3 Artifacts}{versioned-s3-artifacts}
 

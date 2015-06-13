@@ -2,6 +2,6 @@
 
 \title{Examples}{examples}
 
-\include-section{examples/versioned-s3-artifacts.any}
+\include-section{./examples/versioned-s3-artifacts.any}
 
 \table-of-contents

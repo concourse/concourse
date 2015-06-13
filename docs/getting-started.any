@@ -27,8 +27,8 @@ tires a bit. It's easy to switch between these two deployment schemes later.
 With Vagrant you'll get a single VM with everything on it, so it's very
 quick to bootstrap.
 
-\include-section{deploying/vagrant.any}
-\include-section{deploying/bosh.any}
-\include-section{deploying/worker-pools.any}
+\include-section{./deploying/vagrant.any}
+\include-section{./deploying/bosh.any}
+\include-section{./deploying/worker-pools.any}
 
 \table-of-contents

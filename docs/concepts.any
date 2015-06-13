@@ -16,8 +16,8 @@ fanning out and in, etc.).
 There are no more nooks and crannies of Concourse introduced as your pipeline
 becomes more involved.
 
-\include-section{concepts/tasks.any}
-\include-section{concepts/resources.any}
-\include-section{concepts/jobs.any}
+\include-section{./concepts/tasks.any}
+\include-section{./concepts/resources.any}
+\include-section{./concepts/jobs.any}
 
 \table-of-contents

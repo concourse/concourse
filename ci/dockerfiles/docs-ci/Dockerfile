@@ -1,14 +1,14 @@
 FROM concourse/rubinius
 
-ADD https://github.com/vito/atomy/archive/works.zip /tmp/atomy.zip
+ADD https://github.com/vito/atomy/archive/master.zip /tmp/atomy.zip
 
 ADD https://github.com/vito/broomhlda/archive/master.zip /tmp/broomhlda.zip
 
 ADD https://github.com/vito/anatomy/archive/master.zip /tmp/anatomy.zip
 
-RUN cd /tmp && unzip atomy.zip && rm atomy.zip && cd atomy-works && \
+RUN cd /tmp && unzip atomy.zip && rm atomy.zip && cd atomy-master && \
     gem build atomy.gemspec && gem install atomy-*.gem && \
-    cd .. && rm -rf atomy-works
+    cd .. && rm -rf atomy-master
 
 RUN cd /tmp && unzip broomhlda.zip && rm broomhlda.zip && cd broomhlda-master && \
     gem build broomhlda.gemspec && gem install broomhlda-*.gem && \
