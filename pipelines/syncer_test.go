@@ -66,9 +66,13 @@ var _ = Describe("Pipelines Syncer", func() {
 		}
 
 		fakeRunnerExitChan = make(chan error, 1)
+
+		// avoid data race
+		exitChan := fakeRunnerExitChan
+
 		fakeRunner.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
 			close(ready)
-			return <-fakeRunnerExitChan
+			return <-exitChan
 		}
 
 		pipelinesDB.GetAllActivePipelinesReturns([]db.SavedPipeline{
