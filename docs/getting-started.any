@@ -7,28 +7,79 @@ The \hyperlink{https://github.com/concourse/concourse}{Concourse repo} is a
 everything necessary to deploy to arbitrary infrastructures (or your laptop)
 with largely the same configuration.
 
-There are two ways to get started with Concourse:
+The easiest way to get a Concourse instance going so that you can learn the
+concepts first-hand is by using the pre-built Vagrant boxes.
 
-\list{
-  \reference{deploying-with-vagrant}{With Vagrant} - for a quick deploy with
-  familiar tooling.
-}{
-  \reference{deploying-with-bosh}{With BOSH} - for a scalable cluster, managed
-  by BOSH.
+To spin up Concourse with Vagrant, run the following in any directory:
+
+\codeblock{bash}{
+vagrant init concourse/lite # places Vagrantfile in current directory
+vagrant up                  # downloads the box and spins up the VM
 }
 
-There's no difference in Concourse's feature set between the two options.
-Deploying with BOSH is the full extent of configurability and scalability,
-but for just figuring out the semantics of your pipeline, or Concourse
-itself, Vagrant will do just fine.
+The web server will be running at
+\hyperlink{http://192.168.100.4:8080}{192.168.100.4:8080}.
 
-If you're not sure what you want yet, start with Vagrant while you kick the
-tires a bit. It's easy to switch between these two deployment schemes later.
-With Vagrant you'll get a single VM with everything on it, so it's very
-quick to bootstrap.
+Next, download the Fly CLI from the \hyperlink{http://192.168.100.4:8080}{main
+page} where there are links to binaries for common platforms.
 
-\include-section{./deploying/vagrant.any}
-\include-section{./deploying/bosh.any}
-\include-section{./deploying/worker-pools.any}
+\margin-note{
+  If you're on Linux or OS X, you will have to \code{chmod +x} the downloaded
+  binary and put it in your \code{$PATH}. This can be done in one fell swoop
+  with \code{install $DEST path/to/fly}.
+}
 
-\table-of-contents
+Out of the box, Concourse doesn't have any \reference{pipelines} configured.
+That's boring. Here, have this YAML!
+
+\codeblock{yaml}{
+jobs:
+- name: hello-world
+  plan:
+  - task: say-hello
+    config: \{image: docker:///busybox, run: echo, args: ["Hello, world!"]\}
+}
+
+Dump that into a \code{.yml} file somewhere, and run this random command on
+your machine:
+
+\codeblock{bash}{
+$ fly configure really-cool-pipeline -c somewhere.yml
+}
+
+If you refresh the \hyperlink{http://192.168.100.4:8080}{main page}, you should
+now see the world's tiniest \reference{pipelines}{pipeline}!
+
+Newly configured pipelines are paused by default, to prevent them from running
+freely when you're not sure what they do yet. To unpause it, you can either
+reveal the pipelines sidebar via the hamburger icon in the top left and press
+"play", or run:
+
+\codeblock{bash}{
+$ fly configure really-cool-pipeline -c somewhere.yml --pause=false
+}
+
+You can always fetch the current configuration of a pipeline by running:
+
+\codeblock{bash}{
+$ fly configure really-cool-pipeline
+}
+
+This pipeline configuration so far describes a single \reference{jobs}{job},
+whose \reference{build-plans}{\code{plan}} has a single
+\reference{running-tasks}{task}. The task simply boots up, prints \code{Hello,
+world!}, and completes successfully.
+
+Not very useful? Well, time to learn how to write your own. There are two ways
+to approach learning Concourse:
+
+\list{
+  \reference{running-tasks} - to learn how a task works, by running them
+  interactively with \reference{fly-execute}.
+}{
+  \reference{pipelines} - to learn how to continuously integrate resources
+  and tasks together.
+}
+
+After all that, if you want a proper Concourse deployment (not just a VM), put
+your game face on and head on over to \reference{getting-serious}.
