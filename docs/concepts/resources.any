@@ -17,3 +17,18 @@ This abstraction is immensely powerful, as it does not limit Concourse to
 whatever things its authors thought to integrate with. Instead, as a user of
 Concourse you can just reuse resource type implementations, or
 \reference{implementing-resources}{implement your own}.
+
+\section{What types are supported?}{
+  Right now your best bet is to
+  \hyperlink{https://github.com/concourse?query=resource}{search for
+  "resource"} at the Concourse GitHub organization. These resources are baked
+  in to the official Concourse distribution, so you'll have them out of the
+  box.
+
+  At some point we'd like to put together some sort of registry, and make it
+  easy to extend your own deployment with third-party resource types. We're not
+  there yet though.
+
+  Be sure to read the \code{README} file for a resource to know what it does
+  before using it!
+}
