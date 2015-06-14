@@ -2,6 +2,12 @@
 
 \title{Examples}{examples}
 
+It's pretty hard to get going without a point of reference. This section is
+listed pretty early on mostly to catch your eye: you're better off opening
+these examples in a background tab and coming back to them as you peruse the
+\reference{pipelines}{Pipelines} document. The examples will also link to new
+concepts as they go along, though.
+
 \include-section{./examples/versioned-s3-artifacts.any}
 
 \table-of-contents

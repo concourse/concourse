@@ -6,18 +6,18 @@ Once you start needing more workers and \italic{really} caring about your CI
 deployment, it's best to manage it with BOSH proper.
 
 Using BOSH gives you a self-healing, predictable environment, that can be
-scaled up or down by changing a single number.
+scaled up or down just by changing numbers in your deployment manifest.
 
 The \hyperlink{https://bosh.io/docs}{BOSH documentation} outlines the
 concepts, and how to bootstrap on various infrastructures.
 
 \section{Setting up the infrastructure}{
-  Step one is to pick your infrastructure. AWS, vSphere, and OpenStack are fully
-  supported by BOSH.
-  \hyperlink{https://github.com/cloudfoundry/bosh-lite}{BOSH-Lite} is
-  a pseudo-infrastructure that deploys everything within a single VM. It is
-  a great way to get started with Concourse and BOSH at the same time, with
-  a faster feedback loop.
+  Step one is to pick your infrastructure. AWS, vSphere, and OpenStack are
+  fully supported by BOSH.
+  \hyperlink{https://github.com/cloudfoundry/bosh-lite}{BOSH-Lite} is a
+  pseudo-infrastructure that deploys everything within a single VM. It is a
+  great way to get started with Concourse and BOSH at the same time, with a
+  faster feedback loop.
 
   Concourse's infrastructure requirements are fairly straightforward. For
   example, Concourse's own pipeline is deployed within an AWS VPC, with its web
@@ -29,39 +29,40 @@ concepts, and how to bootstrap on various infrastructures.
   way you can have 100 workers without having to configure them 100 times.
 
   \section{BOSH-Lite}{
-    Learning BOSH and your infrastructure at the same time will probably be hard.
-    If you're getting started with BOSH, you may want to check out
+    Learning BOSH and your infrastructure at the same time will probably be
+    hard.  If you're getting started with BOSH, you may want to check out
     \hyperlink{https://github.com/cloudfoundry/bosh-lite}{BOSH-Lite} first,
     which gives you a fairly BOSHy experience, in a single VM on your machine.
-    This is a good way to learn the BOSH tooling without having to pay hourly for
-    AWS instances.
+    This is a good way to learn the BOSH tooling without having to pay hourly
+    for AWS instances.
   }
 
   \section{AWS}{
     For AWS, it is recommended to deploy Concourse within a VPC, with the
-    \code{web} jobs sitting behind an ELB. Registering instances with the ELB is
-    automated by BOSH; you'll just have to create the ELB itself. This
-    configuration is more secure, as your CI system's internal jobs aren't exposed
-    to the outside world.
+    \code{web} jobs sitting behind an ELB. Registering instances with the ELB
+    is automated by BOSH; you'll just have to create the ELB itself. This
+    configuration is more secure, as your CI system's internal jobs aren't
+    exposed to the outside world.
   }
 
   \section{vSphere, OpenStack}{
-    Deploying to vSphere and OpenStack should look roughly the same as the rest,
-    but this configuration has so far not seen any mileage. You may want to
-    consult the \hyperlink{http://docs.cloudfoundry.org/bosh/}{BOSH
+    Deploying to vSphere and OpenStack should look roughly the same as the
+    rest, but this configuration has so far not seen any mileage. You may want
+    to consult the \hyperlink{http://docs.cloudfoundry.org/bosh/}{BOSH
     documentation} instead.
   }
 }
 
 
 \section{Deploying and upgrading Concourse}{
-  Once you've set up BOSH on your infrastructure, the following steps should get
-  you started:
+  Once you've set up BOSH on your infrastructure, the following steps should
+  get you started:
 
   \section{Upload the stemcell}{
     A stemcell is a base image for your VMs. It controls the kernel and OS
-    distribution, and the version of the BOSH agent. For more information, consult
-    the \hyperlink{http://bosh.io/docs/stemcell.html}{BOSH documentation}.
+    distribution, and the version of the BOSH agent. For more information,
+    consult the \hyperlink{http://bosh.io/docs/stemcell.html}{BOSH
+    documentation}.
 
     To upload the latest AWS Trusty stemcell to your BOSH director, execute the
     following:
@@ -89,12 +90,12 @@ concepts, and how to bootstrap on various infrastructures.
     GitHub release} and grab Concourse and Garden-Linux from the
     \italic{Downloads} section.
 
-    For example, to upload v0.53.0 of Concourse with the appropriate Garden
+    For example, to upload v0.54.0 of Concourse with the appropriate Garden
     Linux release, you would run:
 
     \codeblock{bash}{
-    bosh upload release https://github.com/concourse/concourse/releases/download/v0.53.0/concourse-0.53.0.tgz
-    bosh upload release https://github.com/concourse/concourse/releases/download/v0.53.0/garden-linux-0.205.0.tgz
+    bosh upload release https://github.com/concourse/concourse/releases/download/v0.54.0/concourse-0.54.0.tgz
+    bosh upload release https://github.com/concourse/concourse/releases/download/v0.54.0/garden-linux-0.205.0.tgz
     }
   }
 
@@ -135,11 +136,8 @@ concepts, and how to bootstrap on various infrastructures.
       information.
     }{
       \code{jobs.web.properties.atc.basic_auth_username},
-      \code{jobs.web.properties.atc.basic_auth_encrypted_password}: Basic auth
+      \code{jobs.web.properties.atc.basic_auth_password}: Basic auth
       credentials for the public web server.
-
-      The password must be a BCrypt-encrypted string. Note that higher encryption
-      costs may make the site less responsive.
     }{
       \code{jobs.web.properties.tsa.atc.username},
       \code{jobs.web.properties.tsa.atc.password}: Basic auth credentials to use when
@@ -169,9 +167,9 @@ concepts, and how to bootstrap on various infrastructures.
       instance type, the ELB to register your instances in, etc.
     }
 
-    You can change these values at any time and BOSH deploy again, and BOSH will do
-    The Right Thing™. It will tear down VMs as necessary, but always make sure
-    persistent data persists, and things come up as they should.
+    You can change these values at any time and BOSH deploy again, and BOSH
+    will do The Right Thing™. It will tear down VMs as necessary, but always
+    make sure persistent data persists, and things come up as they should.
 
     Once you have a deployment manifest, deploying Concourse should simply be:
 

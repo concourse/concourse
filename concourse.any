@@ -28,6 +28,7 @@ For more information or if you need help: we're on IRC in the
 \include-section{./running-tasks.any}
 \include-section{./pipelines.any}
 \include-section{./build-plans.any}
+\include-section{./getting-serious.any}
 \include-section{./implementing-resources.any}
 \include-section{./release-notes.any}
 

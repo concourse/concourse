@@ -2,7 +2,7 @@
 
 \use{\require{anatomy/atomy}}
 
-\title{Worker Pools}{worker-pools}
+\title{Managing Worker Pools}{worker-pools}
 
 Workers are
 \hyperlink{http://github.com/cloudfoundry-incubator/garden}{Garden} servers,
@@ -75,6 +75,11 @@ The worker JSON object contains the following attributes:
   given type, using the specified image URI.
 }
 
+There are various ways to deploy and register workers, depending on your use
+case:
+
+\table-of-contents
+
 \section{Windows and OS X Workers}{other-workers}{
   For Windows and OS X, a primitive Garden backend is available, called
   \hyperlink{http://github.com/vito/houdini}{Houdini}.
@@ -96,6 +101,12 @@ The worker JSON object contains the following attributes:
   By default, Houdini will place container data in \code{./containers}
   relative to wherever Houdini started from. To change this location, or see
   other settings, run Houdini with \code{--help}.
+}
+
+\section{External BOSH-deployed workers}{bosh-deployed-workers}{
+  If you have workers that must live in a separate deployment (perhaps to a
+  different infrastructure or a private network), you may want to check out
+  \hyperlink{https://github.com/cloudfoundry/bosh-init}{\code{bosh-init}}.
 }
 
 \section{Out-of-band Linux Workers}{linux-workers}{
