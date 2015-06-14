@@ -70,10 +70,13 @@ whose \reference{build-plans}{\code{plan}} has a single
 \reference{running-tasks}{task}. The task simply boots up, prints \code{Hello,
 world!}, and completes successfully.
 
-Not very useful? Well, time to learn how to write your own. There are two ways
-to approach learning Concourse:
+Not very useful? Well, time to learn how to write your own. There are a few
+ways to approach learning Concourse:
 
 \list{
+  \reference{concepts} - to learn a high-level picture of how Concourse thinks
+  CI should work.
+}{
   \reference{running-tasks} - to learn how a task works, by running them
   interactively with \reference{fly-execute}.
 }{

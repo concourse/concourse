@@ -21,8 +21,8 @@ For more information or if you need help: we're on IRC in the
 (\hyperlink{http://webchat.freenode.net/?channels=concourse}{Webchat})
 
 \include-section{./what-and-why.any}
-\include-section{./concepts.any}
 \include-section{./getting-started.any}
+\include-section{./concepts.any}
 \include-section{./examples.any}
 \include-section{./fly-cli.any}
 \include-section{./running-tasks.any}

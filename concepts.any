@@ -5,9 +5,10 @@
 Like files and pipes in Unix, the goal is to build an expressive system with as
 few distinct moving parts as possible.
 
-Concourse limits itself to three core concepts: tasks, jobs, and resources.
-Interesting features like timed triggers and locking resources are modeled in
-terms of these, rather than layers on top.
+Concourse limits itself to three core concepts: tasks, resources, and the jobs
+that compose them. Interesting features like timed triggers and synchronizing
+usage of external environments are modeled in terms of these, rather than as
+layers on top.
 
 With these primitives you can model any pipeline, from simple (unit →
 integration → deploy → ship) to complex (testing on multiple infrastructures,

@@ -2,7 +2,7 @@
 
 \use{\require{anatomy/atomy}}
 
-\title{Managing Worker Pools}{worker-pools}
+\title{Managing custom Worker Pools}{worker-pools}
 
 Workers are
 \hyperlink{http://github.com/cloudfoundry-incubator/garden}{Garden} servers,
