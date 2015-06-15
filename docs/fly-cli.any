@@ -13,9 +13,8 @@ common platforms in the bottom right hand corner of the main page.
 
 \section{Targeting your Concourse}{
   Fly works with an already deployed Concourse. If you don't already have one of
-  these you should follow the \reference{deploying-with-vagrant}{Deploying
-  with Vagrant} or \reference{deploying-with-bosh}{Deploying with BOSH} guides
-  to deploy a Concourse.
+  these you should follow the \reference{getting-started}{Getting Started}
+  guide to deploy a Concourse.
 
   Once you've deployed Concourse you can tell \code{fly} to target it via the
   \code{--target} flag. For example, if we wanted to run \code{fly sync} (don't
