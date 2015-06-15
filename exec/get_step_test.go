@@ -147,10 +147,21 @@ var _ = Describe("GardenFactory", func() {
 			It("completes via the delegate", func() {
 				Eventually(getDelegate.CompletedCallCount).Should(Equal(1))
 
-				Ω(getDelegate.CompletedArgsForCall(0)).Should(Equal(VersionInfo{
+				exitStatus, versionInfo := getDelegate.CompletedArgsForCall(0)
+
+				Ω(exitStatus).Should(Equal(ExitStatus(0)))
+				Ω(versionInfo).Should(Equal(VersionInfo{
 					Version:  atc.Version{"some": "version"},
 					Metadata: []atc.MetadataField{{"some", "metadata"}},
 				}))
+			})
+
+			It("is successful", func() {
+				Eventually(process.Wait()).Should(Receive(BeNil()))
+
+				var success Success
+				Ω(step.Result(&success)).Should(BeTrue())
+				Ω(bool(success)).Should(BeTrue())
 			})
 
 			Describe("signalling", func() {
@@ -192,6 +203,36 @@ var _ = Describe("GardenFactory", func() {
 
 					Ω(getDelegate.FailedCallCount()).Should(Equal(1))
 					Ω(getDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+				})
+
+				Context("with a resource script failure", func() {
+					var resourceScriptError resource.ErrResourceScriptFailed
+
+					BeforeEach(func() {
+						resourceScriptError = resource.ErrResourceScriptFailed{
+							ExitStatus: 1,
+						}
+
+						fakeVersionedSource.RunReturns(resourceScriptError)
+					})
+
+					It("invokes the delegate's Finished callback instead of failed", func() {
+						Eventually(process.Wait()).Should(Receive(BeNil()))
+
+						Ω(getDelegate.FailedCallCount()).Should(BeZero())
+
+						Ω(getDelegate.CompletedCallCount()).Should(Equal(1))
+					})
+
+					It("is not successful", func() {
+						Eventually(process.Wait()).Should(Receive(BeNil()))
+						Ω(getDelegate.CompletedCallCount()).Should(Equal(1))
+
+						var success Success
+
+						Ω(step.Result(&success)).Should(BeTrue())
+						Ω(bool(success)).Should(BeFalse())
+					})
 				})
 			})
 

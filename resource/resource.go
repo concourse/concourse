@@ -62,6 +62,8 @@ type resource struct {
 	typ       ResourceType
 
 	releaseOnce sync.Once
+
+	ScriptFailure bool
 }
 
 func NewResource(

@@ -193,7 +193,7 @@ func (delegate *delegate) saveErr(logger lager.Logger, errVal error, origin even
 	}
 }
 
-func (delegate *delegate) saveInput(logger lager.Logger, plan atc.GetPlan, info exec.VersionInfo, origin event.Origin) {
+func (delegate *delegate) saveInput(logger lager.Logger, status exec.ExitStatus, plan atc.GetPlan, info exec.VersionInfo, origin event.Origin) {
 	ev := event.FinishGet{
 		Origin: origin,
 		Plan: event.GetPlan{
@@ -204,6 +204,7 @@ func (delegate *delegate) saveInput(logger lager.Logger, plan atc.GetPlan, info 
 			Params:   plan.Params,
 			Version:  plan.Version,
 		},
+		ExitStatus:      int(status),
 		FetchedVersion:  info.Version,
 		FetchedMetadata: info.Metadata,
 	}
@@ -222,7 +223,7 @@ func (delegate *delegate) saveInput(logger lager.Logger, plan atc.GetPlan, info 
 	}
 }
 
-func (delegate *delegate) saveOutput(logger lager.Logger, plan atc.PutPlan, info exec.VersionInfo, origin event.Origin) {
+func (delegate *delegate) saveOutput(logger lager.Logger, status exec.ExitStatus, plan atc.PutPlan, info exec.VersionInfo, origin event.Origin) {
 	ev := event.FinishPut{
 		Origin: origin,
 		Plan: event.PutPlan{
@@ -232,6 +233,7 @@ func (delegate *delegate) saveOutput(logger lager.Logger, plan atc.PutPlan, info
 			Source:   plan.Source,
 			Params:   plan.Params,
 		},
+		ExitStatus:      int(status),
 		CreatedVersion:  info.Version,
 		CreatedMetadata: info.Metadata,
 	}
@@ -290,8 +292,12 @@ type inputDelegate struct {
 	delegate *delegate
 }
 
-func (input *inputDelegate) Completed(info exec.VersionInfo) {
-	input.delegate.saveInput(input.logger, input.plan, info, event.Origin{
+func (input *inputDelegate) Completed(status exec.ExitStatus, info exec.VersionInfo) {
+	if status != 0 {
+		input.delegate.successful = false
+	}
+
+	input.delegate.saveInput(input.logger, status, input.plan, info, event.Origin{
 		Type:     event.OriginTypeGet,
 		Name:     input.plan.Name,
 		Location: input.location,
@@ -341,9 +347,13 @@ type outputDelegate struct {
 	delegate *delegate
 }
 
-func (output *outputDelegate) Completed(info exec.VersionInfo) {
+func (output *outputDelegate) Completed(status exec.ExitStatus, info exec.VersionInfo) {
+	if status != 0 {
+		output.delegate.successful = false
+	}
+
 	output.delegate.unregisterImplicitOutput(output.plan.Resource)
-	output.delegate.saveOutput(output.logger, output.plan, info, event.Origin{
+	output.delegate.saveOutput(output.logger, status, output.plan, info, event.Origin{
 		Type:     event.OriginTypePut,
 		Name:     output.plan.Name,
 		Location: output.location,

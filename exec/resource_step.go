@@ -27,6 +27,8 @@ type resourceStep struct {
 
 	Resource        resource.Resource
 	VersionedSource resource.VersionedSource
+
+	exitStatus int
 }
 
 func (step resourceStep) Using(prev Step, repo *SourceRepository) Step {
@@ -40,7 +42,7 @@ func (step resourceStep) Using(prev Step, repo *SourceRepository) Step {
 }
 
 func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	resource, err := ras.Tracker.Init(ras.Session, ras.Type, ras.Tags)
+	trackedResource, err := ras.Tracker.Init(ras.Session, ras.Type, ras.Tags)
 	if err != nil {
 		return err
 	}
@@ -49,10 +51,17 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 	ras.PreviousStep.Result(&versionInfo)
 
-	ras.Resource = resource
-	ras.VersionedSource = ras.Action(resource, ras.Repository, versionInfo)
+	ras.Resource = trackedResource
+	ras.VersionedSource = ras.Action(trackedResource, ras.Repository, versionInfo)
 
 	err = ras.VersionedSource.Run(signals, ready)
+
+	if err, ok := err.(resource.ErrResourceScriptFailed); ok {
+		ras.exitStatus = err.ExitStatus
+		ras.Delegate.Completed(ExitStatus(err.ExitStatus), VersionInfo{})
+		return nil
+	}
+
 	if err != nil {
 		return err
 	}
@@ -61,7 +70,8 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 		ras.Repository.RegisterSource(ras.SourceName, ras)
 	}
 
-	ras.Delegate.Completed(VersionInfo{
+	ras.exitStatus = 0
+	ras.Delegate.Completed(ExitStatus(0), VersionInfo{
 		Version:  ras.VersionedSource.Version(),
 		Metadata: ras.VersionedSource.Metadata(),
 	})
@@ -79,6 +89,9 @@ func (ras *resourceStep) Release() error {
 
 func (ras *resourceStep) Result(x interface{}) bool {
 	switch v := x.(type) {
+	case *Success:
+		*v = ras.exitStatus == 0
+		return true
 	case *VersionInfo:
 		*v = VersionInfo{
 			Version:  ras.VersionedSource.Version(),

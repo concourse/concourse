@@ -138,6 +138,7 @@ var eventHandlers = {
       },
 
       "finish-get": function(data) {
+        flux.actions.setStepSuccessful(data.origin, data.exit_status == 0);
         flux.actions.setStepVersionInfo(data.origin, data.version, data.metadata);
         flux.actions.setStepRunning(data.origin, false);
       },

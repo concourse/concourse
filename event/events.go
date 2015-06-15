@@ -110,6 +110,7 @@ func (chain OriginLocation) Incr(by OriginLocationIncrement) OriginLocation {
 type FinishGet struct {
 	Origin          Origin              `json:"origin"`
 	Plan            GetPlan             `json:"plan"`
+	ExitStatus      int                 `json:"exit_status"`
 	FetchedVersion  atc.Version         `json:"version"`
 	FetchedMetadata []atc.MetadataField `json:"metadata,omitempty"`
 }
@@ -136,6 +137,7 @@ type FinishPut struct {
 	Plan            PutPlan             `json:"plan"`
 	CreatedVersion  atc.Version         `json:"version"`
 	CreatedMetadata []atc.MetadataField `json:"metadata,omitempty"`
+	ExitStatus      int                 `json:"exit_status"`
 }
 
 func (FinishPut) EventType() atc.EventType  { return EventTypeFinishPut }
