@@ -2,6 +2,8 @@
 
 \title{Deploying a cluster with BOSH}{deploying-with-bosh}
 
+\omit-children-from-table-of-contents
+
 Once you start needing more workers and \italic{really} caring about your CI
 deployment, it's best to manage it with BOSH proper.
 
@@ -10,6 +12,8 @@ scaled up or down just by changing numbers in your deployment manifest.
 
 The \hyperlink{https://bosh.io/docs}{BOSH documentation} outlines the
 concepts, and how to bootstrap on various infrastructures.
+
+\table-of-contents
 
 \section{Setting up the infrastructure}{
   Step one is to pick your infrastructure. AWS, vSphere, and OpenStack are
