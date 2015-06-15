@@ -69,133 +69,408 @@ The worker JSON object contains the following attributes:
   \italic{Optional.} The number of containers currently running on the worker.
 }
 
-\define{resource_types}{[\{type,\}\{image\}]}{
+\define{resource_types}{[\{type,image\}]}{
   \italic{Optional.} The set of resource types supported by the worker. If
   specified, the worker may be used for running resource containers of the
   given type, using the specified image URI.
 }
 
-There are various ways to deploy and register workers, depending on your use
-case:
+\section{Worker cluster topology}{
+  Registering a worker, whether internal to the deployment or external,
+  involves four components:
 
-\table-of-contents
-
-\section{Windows and OS X Workers}{other-workers}{
-  For Windows and OS X, a primitive Garden backend is available, called
-  \hyperlink{http://github.com/vito/houdini}{Houdini}.
-
-  \margin-note{
-    Containers running via Houdini are not isolated from each other. This is
-    much less safe than the Linux workers, but will do just fine if you trust
-    your builds.
-
-    A proper
-    \hyperlink{https://github.com/cloudfoundry-incubator/garden-windows}{Garden
-    Windows} implementation is in the works.
+  \list{
+    \hyperlink{https://github.com/concourse/tsa}{the TSA} - a custom,
+    stripped-down SSH server solely for registering workers externally
+  }{
+    \hyperlink{https://github.com/concourse/atc}{the ATC} - the component that
+    ultimately makes use of and keeps track of the registered workers
+  }{
+    \hyperlink{https://github.com/cloudfoundry-incubator/garden}{a Garden
+    server} - the worker itself, the goal being to make its API endpoint
+    accessible to the ATC
+  }{
+    an \code{ssh} client - for connecting to the TSA, and either directly
+    advertising an address, or reverse-tunneling the Garden server's address
+    the local network to the TSA
   }
 
-  To set up Houdini, download the appropriate binary from its
-  \hyperlink{https://github.com/vito/houdini/releases/latest}{latest GitHub
-  release}.
+  The primary difference from other systems is that the flow of registering
+  external workers is inverted. Rather that configuring your "master server"
+  (the ATC) to use slaves, and having to construct a VPN tunnel if they're in a
+  private network, workers instead register themselves with a Concourse
+  deployment via SSH.
 
-  By default, Houdini will place container data in \code{./containers}
-  relative to wherever Houdini started from. To change this location, or see
-  other settings, run Houdini with \code{--help}.
+  This removes the need for making your private cluster accessible to the
+  world: instead, your Concourse instance just has to be reachable by your
+  workers, which is much more likely. It also prevents any fishy
+  man-in-the-middle business by going over SSH.
 }
 
-\section{External BOSH-deployed workers}{bosh-deployed-workers}{
-  If you have workers that must live in a separate deployment (perhaps to a
-  different infrastructure or a private network), you may want to check out
-  \hyperlink{https://github.com/cloudfoundry/bosh-init}{\code{bosh-init}}.
-}
+\section{Configuring workers}{
+  A typical Concourse BOSH deployment includes Garden Linux, to deploy a set of
+  workers as part of the same deployment as the TSA and ATC.
 
-\section{Out-of-band Linux Workers}{linux-workers}{
-  A typical Concourse deployment includes Garden Linux, which is what provides
-  the default Linux workers.
+  If you're deploying everything together as one BOSH deployment, all worker
+  registration is automatic, and you can dynamically grow and shrink the worker
+  pool just by changing the instance count and redeploying.
 
-  If you're deploying with BOSH, all worker configuration is automatic, and
-  you can dynamically grow and shrink the worker pool just by changing the
-  instance count and redeploying.
+  However, sometimes your workers can't be automated by BOSH, or at least can't
+  be deployed with the rest of the cluster. Perhaps you have some managed
+  server, and you want to run builds on it.
 
-  However, sometimes your workers can't be automated by BOSH. Perhaps you have
-  some managed server, and you want to run builds on it.
+  There are various ways to deploy and register workers, depending on your use
+  case.
 
-  To do this, you'll probably want to provision Garden Linux to your machine
-  manually. This can be done with Vagrant via the
-  \hyperlink{https://github.com/tknerr/vagrant-managed-servers}{Vagrant
-  Managed Servers} provider and the
-  \hyperlink{https://github.com/cppforlife/vagrant-bosh}{Vagrant BOSH}
-  provisioner.
-}
+  \table-of-contents
 
-\section{Registering workers via the TSA}{tsa}{
-  The \hyperlink{https://github.com/concourse/tsa}{TSA} is a SSH server that
-  can register and heartbeat workers via two pseudo-commands:
-  \code{register-worker} and \code{forward-worker}.
+  \section{Configuring the TSA}{configuring-tsa}{
+    The TSA is the entryway for workers to join the cluster. For every new
+    worker key pair, the TSA will be told to authorize its public key, and the
+    workers must also know the TSA's public key ahead of time, so they know who
+    they're connecting to.
 
-  Both commands read a worker JSON payload from \code{stdin}. So long as the
-  SSH connection is live and the Garden server is responsive, the TSA will
-  register it with the ATC.
+    \section{Stabilizing the TSA's host key}{
+      Before you get started, though, you'll need to remove the "magic" from the
+      default deployment. By default, Concourse generates a key pair for the TSA,
+      and gives the public key to the workers so they can trust the connection.
+      This key occasionally gets cycled, which is fine so long as things are in one
+      deployment, but once you have external workers you would have to update them
+      all manually, which is annoying.
 
-  \section{Authenticating}{authorizing-with-tsa}{
-    The TSA authorizes connections via public key authentication only (no
-    passwords).
+      To fix this, generate a passwordless key pair via \code{ssh-keygen}, and
+      provide the following properties in your BOSH deployment manifest:
 
-    Concourse automatically generates and authorizes a keypair for all workers
-    within the BOSH deployment, so you don't have to do any extra
-    configuration to register internal workers.
+      \definitions{
+        \item{\code{tsa.host_key} on the \code{tsa} job template}{
+          the contents of the private key for the TSA server
+        }
+        \item{\code{groundcrew.tsa.host_public_key} on the \code{groundcrew} job template}{
+          the public key of the TSA, for the workers to use to verify the
+          connection
+        }
+      }
 
-    \margin-note{
-      In the event of a leak, the auto-generated keypair can be disabled by
-      setting the \code{tsa.authorize_generated_worker_key} property to
-      \code{false}.
+      For example (note that this manifest omits a bunch of stuff):
+
+      \codeblock{yaml}{
+      jobs:
+      - name: web
+        templates:
+        - ...
+        - \{release: concourse, name: tsa\}
+        - ...
+        properties:
+          tsa:
+            host_key: |
+              -----BEGIN RSA PRIVATE KEY-----
+              <a bunch of stuff>
+              -----END RSA PRIVATE KEY-----
+      - name: worker
+        templates:
+        - ...
+        - \{release: concourse, name: groundcrew\}
+        - ...
+        properties:
+          groundcrew:
+            tsa:
+              host_public_key: "ssh-rsa blahblahblah"
+      }
+
+      After setting these properties, be sure to run \code{bosh deploy}.
     }
 
-    To register an external worker using the TSA, however, you'll first need
-    to generate a private key, and then list it as an authorized key. For
-    a BOSH deployment, this can be done by listing the authorized public keys
-    under the \code{tsa.authorized_keys} property.
+    \section{Authorizing worker keys}{
+      We've left the worker keys auto-generated so far, which is fine for
+      workers deployed alongside the TSA, as it'll also automatically authorize
+      them.
+
+      External workers however will need their own private keys, and so the TSA
+      must be told to authorize them.
+
+      To do so, set the following properties:
+
+      \definitions{
+        \item{\code{tsa.authorized_keys} on the \code{tsa} job template}{
+          the array of public keys to authorize
+        }
+        \item{\code{groundcrew.tsa.private_key} on the \code{groundcrew} job template}{
+          the private key for the worker to use when accessing the TSA
+        }
+      }
+
+      Note that depending on your deployment scheme, the
+      \code{groundcrew.tsa.private_key} property may live in a separate
+      deployment, or even be manually used (if you're not deploying the worker
+      with BOSH).
+
+      Once again, after setting these properties run \code{bosh deploy} to make
+      the changes take place.
+    }
+
+    \section{Making the TSA reachable}{
+      Typically the TSA and ATC will both be colocated on the same job. This
+      way a single load balancer can be used with the following scheme:
+
+      \list{
+        expose port \code{443} to \code{8080} (ATC's HTTP port) via SSL
+      }{
+        expose port \code{2222} to \code{2222} (TSA's SSH port) via TCP
+      }
+
+      Be sure to update any relevant security group rules (or equivalent in
+      non-AWS environments) to permit both access from the outside world to
+      port \code{2222} on your load balancer, \italic{and} access from the load
+      balancer to port \code{2222} on your TSA + ATC instances.
+
+      The BOSH deployment manifest would then colocate both jobs together, like
+      so:
+
+      \codeblock{yaml}{
+      jobs:
+      - name: web
+        templates:
+        - \{template: concourse, name: atc\}
+        - \{template: concourse, name: tsa\}
+        resource_pool: web
+        # ...
+      }
+
+      In AWS, the \code{web} resource pool would then configure
+      \code{cloud_properties.elbs} to auto-register instances of \code{web}
+      with an ELB. This is done in the
+      \hyperlink{https://github.com/concourse/concourse/blob/master/manifests/aws-vpc.yml}{example
+      AWS VPC manifest}.
+    }
   }
 
-  \section{Registering a worker directly}{registering-via-tsa}{
-    The \code{register-worker} command is used when you have a Garden worker
-    accessible from within the private network. For example, registering
-    a Windows EC2 instance with the rest of your cluster, all within a VPC.
-    This is also the default registration mode for all Concourse workers
-    within the deployment.
+  \section{External BOSH-deployed workers}{bosh-deployed-workers}{
+    If you have some other environment separate from your primary Concourse
+    deployment, but still manageable by BOSH, configuration is done via
+    properties, pointing at the main deployment.
 
-    So, to register a worker for direct access, you would run something like
-    this:
-
-    \codeblock{bash}{
-      ssh \\
-        -i path/to/private-key \\
-        -p 2222 some-atc.com \\
-        register-worker < worker.json
+    \section{Deploying external workers via BOSH}{
+      To BOSH deploy your workers, follow largely the same instructions as in
+      \reference{deploying-with-bosh}, but you may strip things down a bit,
+      e.g. don't bother deploying \code{tsa}, \code{atc}, or \code{postgresql}
+      for your workers.
     }
 
-    ...where \code{worker.json} contains the worker JSON payload to advertise.
+    \section{Deploying via \code{bosh-init}}{
+      \hyperlink{https://github.com/cloudfoundry/bosh-init}{\code{bosh-init}}
+      is a newer tool that can be used to spin up single-instance BOSH
+      deployments on supported infrastructures.
+
+      Proper docs for this flow are
+      \hyperlink{https://www.pivotaltracker.com/n/projects/1059262/stories/96686614}{forthcoming}.
+    }
+
+    \section{Registering via Groundcrew}{
+      The Concourse release includes a job called \code{groundcrew}, which can
+      be configured to register a (usually colocated) worker with a TSA.
+
+      To configure Groundcrew, the following properties are used:
+
+      \definitions{
+        \item{\code{groundcrew.tags}}{
+          An array of tags to advertise for the worker. You'll probably want
+          to specify this, so that only steps explicitly targeting the worker
+          (via their own tags) run on it.
+        }
+
+        \item{\code{groundcrew.platform}}{
+          The platform to advertise for the worker. Defaults to \code{linux}.
+        }
+
+        \item{\code{groundcrew.resource_types}}{
+          The set of resource types supported by this worker. You may want to
+          set this to an empty array, if you want the worker to \italic{only}
+          be used for tasks targetting it. Its default is the full set of
+          resource types that Concourse comes with.
+        }
+
+        \item{\code{groundcrew.tsa.host}}{
+          The address of the TSA server. This will often be the ELB hostname.
+        }
+
+        \item{\code{groundcrew.tsa.port}}{
+          The port of the TSA server. Defaults to \code{2222}.
+        }
+
+        \item{\code{groundcrew.tsa.private_key}}{
+          The private key to use when authenticating with the TSA. This must
+          be authorized by the TSA in advance; see
+          \reference{configuring-tsa}.
+        }
+
+        \item{\code{groundcrew.tsa.host_public_key}}{
+          The public key to expect when connecting to the TSA.  See
+          \reference{configuring-tsa}.
+        }
+      }
+
+      Note that most properties have sane defaults. To see a full set of
+      properties and what a manifest may look like when specifying them, browse
+      around your version's jobs at
+      \hyperlink{http://bosh.io/releases/github.com/concourse/concourse}{bosh.io}.
+
+      With the above properties, we know what kind of worker we'll be
+      advertising, but not how the ATC will reach it. There are two options:
+      either directly advertising an address reachable by the ATC, or by
+      forwarding a local address via a reverse SSH tunnel to the TSA, who will
+      then advertise its tunnelled address to the ATC.
+
+      \section{Registering a worker directly}{
+        To directly advertise an address to the TSA, set the following
+        property:
+
+        \definitions{
+          \item{\code{groundcrew.garden.address}}{
+            The address of the Garden server to advertise to the TSA. Note that
+            this must be the external address. If omitted, Groundcrew will
+            automatically determine this address, so you probably won't need to
+            specify it.
+          }
+        }
+
+        You would do this if your worker is not reachable by the outside world,
+        but \italic{is} reachable by the ATC. For example, a separate
+        deployment within the same VPC. (Note: making a Garden server publicly
+        reachable is a very bad idea.)
+      }
+
+      \section{Forwarding a local Garden server}{
+        To forward a local Garden server through the TSA, set:
+
+        \definitions{
+          \item{\code{groundcrew.garden.forward_address}}{
+            The locally-reachable address to forward through the TSA, e.g.
+            \code{127.0.0.1:7777}.
+          }
+        }
+
+        You would do this if your worker lives in a private network (e.g. a
+        local cluster), but your TSA is publicly reachable (which is much
+        safer).
+      }
+    }
   }
 
-  \section{Forwarding a local Garden server}{forwarding-via-tsa}{
-    The \code{forward-worker} command is used when you want to tunnel
-    a locally-reachable Garden server (e.g. one listening on \code{127.0.0.1})
-    through the TSA, who will advertise the tunneled address on the client's
-    behalf.
+  \section{Manually provisioned workers}{
+    Sometimes BOSH can't manage your cluster. Maybe you're on some
+    custom-provisioned hardware, or BOSH just doesn't support your
+    infrastructure.
 
-    For example, to securely register a local Garden server as a worker, you
-    would run:
+    In this case you'll just need to manually spin up a Garden server (for
+    whatever platform is appropriate) and set up your own SSH client to
+    advertise it for you. Ideally both would be health monitored. Sometimes
+    that just means a while loop.
 
-    \codeblock{bash}{
-      ssh \\
-        -i path/to/private-key \\
-        -R 0.0.0.0:0:127.0.0.1:7777 \\
-        -p 2222 some-atc.com \\
-        forward-worker < worker.json
+    \section{Garden Linux}{linux-workers}{
+      To deploy Garden Linux, your most-supported route will be to provision
+      the
+      \hyperlink{https://github.com/cloudfoundry-incubator/garden-linux-release}{Garden
+        Linux release}, by using the
+      \hyperlink{https://github.com/tknerr/vagrant-managed-servers}{Vagrant
+        Managed Servers} provider and the
+      \hyperlink{https://github.com/cppforlife/vagrant-bosh}{Vagrant BOSH}
+      provisioner.
+
+      This will look the closest to a BOSH-deployed instance, while only
+      relying on SSH access to the machine.
     }
 
-    ...where \code{127.0.0.1:7777} is the address of the local Garden server,
-    and \code{worker.json} is a file containing the worker JSON payload (sans
-    \code{"addr"}).
+    \section{Garden on Windows and OS X}{other-workers}{
+      For Windows and OS X, a primitive Garden backend is available, called
+      \hyperlink{http://github.com/vito/houdini}{Houdini}.
+
+      Containers running via Houdini are not isolated from each other. This
+      is much less safe than the Linux workers, but will do just fine if you
+      trust your builds.
+
+      A proper
+      \hyperlink{https://github.com/cloudfoundry-incubator/garden-windows}{Garden
+        Windows} implementation is in the works.
+
+      To set up Houdini, download the appropriate binary from its
+      \hyperlink{https://github.com/vito/houdini/releases/latest}{latest GitHub
+      release}.
+
+      By default, Houdini will place container data in \code{./containers}
+      relative to wherever Houdini started from. To change this location, or see
+      other settings, run Houdini with \code{--help}.
+    }
+
+    \section{Registering via SSH}{
+      The \hyperlink{https://github.com/concourse/tsa}{TSA} is a SSH server that
+      can register and heartbeat workers via two pseudo-commands:
+      \code{register-worker} and \code{forward-worker}.
+
+      Both commands read a worker JSON payload from \code{stdin}. So long as the
+      SSH connection is live and the Garden server is responsive, the TSA will
+      register it with the ATC.
+
+      \section{Authenticating}{authorizing-with-tsa}{
+        The TSA authorizes connections via public key authentication only (no
+        passwords).
+
+        Concourse automatically generates and authorizes a keypair for all workers
+        within the BOSH deployment, so you don't have to do any extra
+        configuration to register internal workers.
+
+        \margin-note{
+          In the event of a leak, the auto-generated keypair can be disabled by
+          setting the \code{tsa.authorize_generated_worker_key} property to
+          \code{false}.
+        }
+
+        To register an external worker using the TSA, however, you'll first need
+        to generate a private key, and then list it as an authorized key. For
+        a BOSH deployment, this can be done by listing the authorized public keys
+        under the \code{tsa.authorized_keys} property.
+      }
+
+      \section{Registering a worker directly}{registering-via-tsa}{
+        The \code{register-worker} command is used when you have a Garden worker
+        accessible from within the private network. For example, registering
+        a Windows EC2 instance with the rest of your cluster, all within a VPC.
+        This is also the default registration mode for all Concourse workers
+        within the deployment.
+
+        So, to register a worker for direct access, you would run something like
+        this:
+
+        \codeblock{bash}{
+          ssh \\
+            -i path/to/private-key \\
+            -p 2222 some-atc.com \\
+            register-worker < worker.json
+        }
+
+        ...where \code{worker.json} contains the worker JSON payload to advertise.
+      }
+
+      \section{Forwarding a local Garden server}{forwarding-via-tsa}{
+        The \code{forward-worker} command is used when you want to tunnel
+        a locally-reachable Garden server (e.g. one listening on \code{127.0.0.1})
+        through the TSA, who will advertise the tunneled address on the client's
+        behalf.
+
+        For example, to securely register a local Garden server as a worker, you
+        would run:
+
+        \codeblock{bash}{
+          ssh \\
+            -i path/to/private-key \\
+            -R 0.0.0.0:0:127.0.0.1:7777 \\
+            -p 2222 some-atc.com \\
+            forward-worker < worker.json
+        }
+
+        ...where \code{127.0.0.1:7777} is the address of the local Garden server,
+        and \code{worker.json} is a file containing the worker JSON payload (sans
+        \code{"addr"}).
+      }
+    }
   }
 }
