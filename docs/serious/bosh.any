@@ -47,6 +47,11 @@ concepts, and how to bootstrap on various infrastructures.
     is automated by BOSH; you'll just have to create the ELB itself. This
     configuration is more secure, as your CI system's internal jobs aren't
     exposed to the outside world.
+
+    To get started, you may want to use this
+    \hyperlink{https://github.com/concourse/concourse/blob/master/manifests/cloudformation.json}{CloudFormation
+    template} - it'll set up a VPC with an ELB and an elastic IP for a BOSH
+    director, with appropriate security groups/subnets.
   }
 
   \section{vSphere, OpenStack}{
