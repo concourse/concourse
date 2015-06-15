@@ -4,8 +4,8 @@
 
 \title{\code{tags}\aux{: perform a step on certain workers}}{step-tags}
 
-Any step can be directed at a pool of workers for a given setof tags, by adding
-the \code{tags} attribute to it.
+Any step can be directed at a pool of workers for a given set of tags, by
+adding the \code{tags} attribute to it.
 
 \define{tags}{[string]}{
   \italic{Optional. Default \code{[]}.} The tags by which to match workers.
