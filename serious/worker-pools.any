@@ -4,11 +4,11 @@
 
 \title{Managing custom Worker Pools}{worker-pools}
 
-Workers are
-\hyperlink{http://github.com/cloudfoundry-incubator/garden}{Garden} servers,
-continuously heartbeating their presence to the Concourse API. Workers have
-a statically configured \code{platform} and a set of \code{tags}, both of
-which determine where tasks and resource actions are scheduled.
+Workers are \hyperlink{http://github.com/cloudfoundry-incubator/garden}{Garden}
+servers, continuously heartbeating their presence to the Concourse API. Workers
+have a statically configured \code{platform} and a set of \code{tags}, both of
+which determine where steps in a \reference{build-plans}{Build Plan} are
+scheduled.
 
 The worker also advertises which resource types it supports. This is just
 a mapping from resource type (e.g. \code{git}) to the image URI (e.g.
@@ -23,14 +23,12 @@ For a given task, only workers with a \code{platform} that matches the task's
 
 If a worker specifies \code{tags}, it is taken out of the "default" placement
 pool, and steps only run on the worker if they explicitly specify a common
-subset of the worker's tags. This can be done in the task's configuration
-directly (see \reference{configuring-tasks}) or by specifying them in the job
-that's running the task (see \reference{pipelines}).
+subset of the worker's tags, by setting \reference{step-tags}.
 
 Worker registration can be done directly via the ATC API, or through the
-\reference{tsa}{TSA}. You can see the current set of workers via \code{GET
-/api/v1/workers}, and register one via \code{POST /api/v1/workers} with
-a worker API object as the payload.
+\reference{configuring-tsa}{TSA}. You can see the current set of workers via
+\code{GET /api/v1/workers}, and register one via \code{POST /api/v1/workers}
+with a worker API object as the payload.
 
 For example:
 
@@ -62,7 +60,7 @@ The worker JSON object contains the following attributes:
   \italic{Required.} The address of the Garden server. Note that this address
   must be reachable by the ATC, and has no authentication. For this reason it
   should always be an address only reachable from within Concourse's private
-  network. To register external workers, see \reference{forwarding-via-tsa}.
+  network. To register external workers, see \reference{configuring-workers}.
 }
 
 \define{active_containers}{integer}{
