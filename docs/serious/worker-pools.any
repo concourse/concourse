@@ -283,10 +283,10 @@ The worker JSON object contains the following attributes:
         }
 
         \item{\code{groundcrew.resource_types}}{
-          The set of resource types supported by this worker. You may want to
-          set this to an empty array, if you want the worker to \italic{only}
-          be used for tasks targetting it. Its default is the full set of
-          resource types that Concourse comes with.
+          The set of resource types supported by this worker. Defaults to the
+          full set of resource types that Concourse comes with. Note that if
+          \code{groundcrew.tags} is specified, only resource steps that
+          explicitly specify \code{step-tags} will be placed on the worker.
         }
 
         \item{\code{groundcrew.tsa.host}}{
