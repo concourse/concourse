@@ -37,7 +37,12 @@ jobs:
 - name: hello-world
   plan:
   - task: say-hello
-    config: \{image: docker:///busybox, run: echo, args: ["Hello, world!"]\}
+    config:
+      platform: linux
+      image: "docker:///busybox"
+      run:
+        path: echo
+        args: ["Hello, world!"]
 }
 
 Dump that into a \code{.yml} file somewhere, and run this random command on
