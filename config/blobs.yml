@@ -75,7 +75,7 @@ btrfs_tools_3.12/mkfs.btrfs:
   sha: 80108e80d404d8fdd435703f8526ff8a44e4bbe2
   size: 171728
 resources/pool-resource.tar.gz:
-  object_id: 21a148e0-0dab-4785-b1c0-44963315ce32
+  object_id: 536f6548-d687-4449-9927-198816507b21
   sha: !binary |-
-    ZWIzYmU5ZDEwNjNmYzZhMGUyMTczNTIwMWNhMGQxZGNmNjdkMjYyNw==
-  size: 9253303
+    M2MwYjZkYzA4MWM4MTA0ZWZlM2E3YWJiMDYzOWRlMGU1ODU4YjU3Yg==
+  size: 9254234
