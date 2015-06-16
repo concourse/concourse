@@ -6,7 +6,8 @@
   "Parameters": {
     "KeyName": {
       "Description": "SSH Keypair to use for instances",
-      "Type": "AWS::EC2::KeyPair::KeyName"
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "Default": "bosh"
     },
     "HostedZoneName": {
       "Description": "Route53 Hosted Zone in which to register the ELB's DNS record.",
