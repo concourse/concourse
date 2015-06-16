@@ -4,6 +4,10 @@
   "Description": "Infrastructure for a MicroBOSH deployment with an ELB.",
 
   "Parameters": {
+    "KeyPair": {
+      "Description": "SSH Keypair to use for instances",
+      "Type": "AWS::EC2:KeyPair::KeyName"
+    },
     "HostedZoneName": {
       "Description": "Route53 Hosted Zone in which to register the ELB's DNS record.",
       "Type": "String"
@@ -233,7 +237,7 @@
         "ImageId" : {
           "Fn::FindInMap": ["AWSNATAMI", { "Ref" : "AWS::Region" }, "AMI"]
         },
-        "KeyName": "bosh",
+        "KeyName": { "Ref" : "KeyName" },
         "SecurityGroupIds": [{ "Ref": "NATSecurityGroup" }],
         "SourceDestCheck": false,
         "Tags": [{ "Key": "Name", "Value": "NAT" }]
