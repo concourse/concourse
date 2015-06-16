@@ -5,11 +5,13 @@
 
   "Parameters": {
     "HostedZoneName": {
-      "Description": "Route53 Hosted Zone in which to register the ELB's DNS record.",
+      "Description": "(Optional) Route53 Hosted Zone in which to register the ELB's DNS record.",
+      "Default": "",
       "Type": "String"
     },
     "ELBRecordSetName": {
-      "Description": "Route53 Record Set name for the ELB.",
+      "Description": "(Optional) Route53 Record Set name for the ELB.",
+      "Default": "",
       "Type": "String"
     },
 
@@ -56,6 +58,23 @@
       "ap-southeast-2": { "AMI": "ami-3bae3201" },
       "ap-northeast-1": { "AMI": "ami-cd43d9cc" },
       "sa-east-1":      { "AMI": "ami-d78325ca" }
+    }
+  },
+
+  "Conditions": {
+    "CreateRecordSet": {
+      "Fn::And": [
+        {
+          "Fn::Not": [
+            { "Fn::Equals": [{ "Ref": "HostedZoneName" }, ""] }
+          ]
+        },
+        {
+          "Fn::Not": [
+            { "Fn::Equals": [{ "Ref": "ELBRecordSetName" }, ""] }
+          ]
+        }
+      ]
     }
   },
 
@@ -369,6 +388,7 @@
 
     "WebELBRecordSet": {
       "Type": "AWS::Route53::RecordSetGroup",
+      "Condition": "CreateRecordSet",
       "Properties": {
         "HostedZoneName": { "Ref": "HostedZoneName" },
         "RecordSets": [
