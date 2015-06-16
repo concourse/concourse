@@ -33,12 +33,12 @@ concepts, and how to bootstrap on various infrastructures.
   way you can have 100 workers without having to configure them 100 times.
 
   \section{BOSH-Lite}{
-    Learning BOSH and your infrastructure at the same time will probably be
-    hard.  If you're getting started with BOSH, you may want to check out
+    Learning BOSH and Concourse at the same time will probably be hard. If
+    you're getting started with BOSH, you may want to check out
     \hyperlink{https://github.com/cloudfoundry/bosh-lite}{BOSH-Lite} first,
     which gives you a fairly BOSHy experience, in a single VM on your machine.
-    This is a good way to learn the BOSH tooling without having to pay hourly
-    for AWS instances.
+    This is a good way to learn the BOSH tooling without having to pay for
+    costly infrastructure.
   }
 
   \section{AWS}{
@@ -48,17 +48,20 @@ concepts, and how to bootstrap on various infrastructures.
     configuration is more secure, as your CI system's internal jobs aren't
     exposed to the outside world.
 
-    To get started, you may want to use this
+    To get this all set up, follow along with the
+    \hyperlink{http://bosh.io/docs/init-aws.html}{\code{bosh-init} AWS docs}.
+    You may also want to use our
     \hyperlink{https://github.com/concourse/concourse/blob/master/manifests/cloudformation.json}{CloudFormation
-    template} - it'll set up a VPC with an ELB and an elastic IP for a BOSH
+    template}, which will set up a VPC with an ELB and an elastic IP for a BOSH
     director, with appropriate security groups/subnets.
   }
 
-  \section{vSphere, OpenStack}{
-    Deploying to vSphere and OpenStack should look roughly the same as the
-    rest, but this configuration has so far not seen any mileage. You may want
-    to consult the \hyperlink{http://docs.cloudfoundry.org/bosh/}{BOSH
-    documentation} instead.
+  \section{vSphere, OpenStack, etc.}{
+    As long as BOSH supports your infrastructure, you should be able to deploy
+    Concourse to it, in largely the same way.
+
+    To get everything set up, reference the \code{bosh-init} bootstrapping docs
+    for your infrastructure at \hyperlink{http://bosh.io/docs}{bosh.io}.
   }
 }
 
