@@ -4,9 +4,9 @@
   "Description": "Infrastructure for a MicroBOSH deployment with an ELB.",
 
   "Parameters": {
-    "KeyPair": {
+    "KeyName": {
       "Description": "SSH Keypair to use for instances",
-      "Type": "AWS::EC2:KeyPair::KeyName"
+      "Type": "AWS::EC2::KeyPair::KeyName"
     },
     "HostedZoneName": {
       "Description": "Route53 Hosted Zone in which to register the ELB's DNS record.",
