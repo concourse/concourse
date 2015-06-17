@@ -148,11 +148,59 @@ func validateJobs(c atc.Config) error {
 			errorMessages = append(errorMessages, identifier+" has both a plan and inputs/outputs/build config specified")
 		}
 
+		errorMessages = append(errorMessages, validateConditionals(identifier+".plan", job.Plan)...)
 		errorMessages = append(errorMessages, validatePlan(c, identifier+".plan", atc.PlanConfig{Do: &job.Plan})...)
 		errorMessages = append(errorMessages, validateInputOutputConfig(c, job, identifier)...)
 	}
 
 	return compositeErr(errorMessages)
+}
+
+func validateConditionals(identifier string, planSequence atc.PlanSequence) []string {
+	hasConditionals := hasConditionals(planSequence)
+	hasHooks := hasHooks(planSequence)
+
+	if hasConditionals && hasHooks {
+		return []string{
+			fmt.Sprintf("%s has both conditions and hooks specified", identifier),
+		}
+	}
+
+	return []string{}
+}
+
+func hasConditionals(planSequence atc.PlanSequence) bool {
+	return doesAnyStepMatch(planSequence, func(step atc.PlanConfig) bool {
+		return step.Conditions != nil
+	})
+}
+
+func hasHooks(planSequence atc.PlanSequence) bool {
+	return doesAnyStepMatch(planSequence, func(step atc.PlanConfig) bool {
+		return step.Failure != nil || step.Ensure != nil || step.Success != nil
+	})
+}
+
+func doesAnyStepMatch(planSequence atc.PlanSequence, predicate func(step atc.PlanConfig) bool) bool {
+	for _, planStep := range planSequence {
+		if planStep.Aggregate != nil {
+			if doesAnyStepMatch(*planStep.Aggregate, predicate) {
+				return true
+			}
+		}
+
+		if planStep.Do != nil {
+			if doesAnyStepMatch(*planStep.Do, predicate) {
+				return true
+			}
+		}
+
+		if predicate(planStep) {
+			return true
+		}
+	}
+
+	return false
 }
 
 type foundTypes struct {

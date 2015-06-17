@@ -436,7 +436,7 @@ var _ = Describe("ExecEngine", func() {
 			It("releases all sources", func() {
 				Ω(inputStep.ReleaseCallCount()).Should(Equal(1))
 				Ω(taskStep.ReleaseCallCount()).Should(Equal(1))
-				Ω(outputStep.ReleaseCallCount()).Should(Equal(2)) // put + get
+				Ω(outputStep.ReleaseCallCount()).Should(Equal(3)) // put + get
 			})
 		})
 

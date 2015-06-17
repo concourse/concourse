@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"errors"
+
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 )
@@ -16,7 +18,87 @@ func (factory *BuildFactory) Create(
 	resources atc.ResourceConfigs,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
-	return factory.constructPlanSequenceBasedPlan(job.Plan, resources, inputs), nil
+
+	hasConditionals := factory.hasConditionals(job.Plan)
+	hasHooks := factory.hasHooks(job.Plan)
+
+	if hasHooks && hasConditionals {
+		return atc.Plan{}, errors.New("you cannot have a plan with hooks and conditionals")
+	}
+
+	if hasConditionals {
+		return factory.constructPlanSequenceBasedPlan(job.Plan, resources, inputs), nil
+	} else {
+		plan := factory.constructPlanHookBasedPlan(job.Plan, resources, inputs)
+		return plan, nil
+	}
+}
+
+func (factory *BuildFactory) hasConditionals(planSequence atc.PlanSequence) bool {
+	return factory.doesAnyStepMatch(planSequence, func(step atc.PlanConfig) bool {
+		return step.Conditions != nil
+	})
+}
+
+func (factory *BuildFactory) hasHooks(planSequence atc.PlanSequence) bool {
+	return factory.doesAnyStepMatch(planSequence, func(step atc.PlanConfig) bool {
+		return step.Failure != nil || step.Ensure != nil || step.Success != nil
+	})
+}
+
+func (factory *BuildFactory) doesAnyStepMatch(planSequence atc.PlanSequence, predicate func(step atc.PlanConfig) bool) bool {
+	for _, planStep := range planSequence {
+		if planStep.Aggregate != nil {
+			if factory.doesAnyStepMatch(*planStep.Aggregate, predicate) {
+				return true
+			}
+		}
+
+		if planStep.Do != nil {
+			if factory.doesAnyStepMatch(*planStep.Do, predicate) {
+				return true
+			}
+		}
+
+		if predicate(planStep) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (factory *BuildFactory) constructPlanHookBasedPlan(
+	planSequence atc.PlanSequence,
+	resources atc.ResourceConfigs,
+	inputs []db.BuildInput,
+) atc.Plan {
+	if len(planSequence) == 0 {
+		return atc.Plan{}
+	}
+
+	plan := factory.constructPlanFromConfig(
+		planSequence[0],
+		resources,
+		inputs,
+		true,
+	)
+
+	if len(planSequence) == 1 {
+		return plan
+	}
+
+	if plan.HookedCompose != nil {
+		plan.HookedCompose.Next = factory.constructPlanHookBasedPlan(planSequence[1:], resources, inputs)
+		return plan
+	} else {
+		return atc.Plan{
+			HookedCompose: &atc.HookedComposePlan{
+				Step: plan,
+				Next: factory.constructPlanHookBasedPlan(planSequence[1:], resources, inputs),
+			},
+		}
+	}
 }
 
 func (factory *BuildFactory) constructPlanSequenceBasedPlan(
@@ -33,6 +115,7 @@ func (factory *BuildFactory) constructPlanSequenceBasedPlan(
 		planSequence[len(planSequence)-1],
 		resources,
 		inputs,
+		false,
 	)
 
 	for i := len(planSequence) - 1; i > 0; i-- {
@@ -41,6 +124,7 @@ func (factory *BuildFactory) constructPlanSequenceBasedPlan(
 			planSequence[i-1],
 			resources,
 			inputs,
+			false,
 		)
 
 		// steps default to conditional on [success]
@@ -128,16 +212,25 @@ func (factory *BuildFactory) constructPlanFromConfig(
 	planConfig atc.PlanConfig,
 	resources atc.ResourceConfigs,
 	inputs []db.BuildInput,
+	hasHooks bool,
 ) atc.Plan {
 	var plan atc.Plan
 
 	switch {
 	case planConfig.Do != nil:
-		plan = factory.constructPlanSequenceBasedPlan(
-			*planConfig.Do,
-			resources,
-			inputs,
-		)
+		if hasHooks {
+			plan = factory.constructPlanHookBasedPlan(
+				*planConfig.Do,
+				resources,
+				inputs,
+			)
+		} else {
+			plan = factory.constructPlanSequenceBasedPlan(
+				*planConfig.Do,
+				resources,
+				inputs,
+			)
+		}
 
 	case planConfig.Put != "":
 		logicalName := planConfig.Put
@@ -218,6 +311,7 @@ func (factory *BuildFactory) constructPlanFromConfig(
 				planConfig,
 				resources,
 				inputs,
+				hasHooks,
 			))
 		}
 
@@ -231,6 +325,37 @@ func (factory *BuildFactory) constructPlanFromConfig(
 			Conditional: &atc.ConditionalPlan{
 				Conditions: *planConfig.Conditions,
 				Plan:       plan,
+			},
+		}
+	}
+
+	hooks := false
+	failurePlan := atc.Plan{}
+
+	if planConfig.Failure != nil {
+		hooks = true
+		failurePlan = factory.constructPlanFromConfig(*planConfig.Failure, resources, inputs, hasHooks)
+	}
+
+	ensurePlan := atc.Plan{}
+	if planConfig.Ensure != nil {
+		hooks = true
+		ensurePlan = factory.constructPlanFromConfig(*planConfig.Ensure, resources, inputs, hasHooks)
+	}
+
+	successPlan := atc.Plan{}
+	if planConfig.Success != nil {
+		hooks = true
+		successPlan = factory.constructPlanFromConfig(*planConfig.Success, resources, inputs, hasHooks)
+	}
+
+	if hooks {
+		plan = atc.Plan{
+			HookedCompose: &atc.HookedComposePlan{
+				Step:         plan,
+				OnFailure:    failurePlan,
+				OnCompletion: ensurePlan,
+				OnSuccess:    successPlan,
 			},
 		}
 	}

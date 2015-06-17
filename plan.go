@@ -1,18 +1,27 @@
 package atc
 
 type Plan struct {
-	Compose     *ComposePlan     `json:"compose,omitempty"`
-	Aggregate   *AggregatePlan   `json:"aggregate,omitempty"`
-	Get         *GetPlan         `json:"get,omitempty"`
-	Put         *PutPlan         `json:"put,omitempty"`
-	Task        *TaskPlan        `json:"task,omitempty"`
-	Conditional *ConditionalPlan `json:"conditional,omitempty"`
-	PutGet      *PutGetPlan      `json:"putget,omitempty"`
+	Compose       *ComposePlan       `json:"compose,omitempty"`
+	Aggregate     *AggregatePlan     `json:"aggregate,omitempty"`
+	Get           *GetPlan           `json:"get,omitempty"`
+	Put           *PutPlan           `json:"put,omitempty"`
+	Task          *TaskPlan          `json:"task,omitempty"`
+	Conditional   *ConditionalPlan   `json:"conditional,omitempty"`
+	PutGet        *PutGetPlan        `json:"putget,omitempty"`
+	HookedCompose *HookedComposePlan `json:"hooked_compose,omitempty"`
 }
 
 type ComposePlan struct {
 	A Plan `json:"a"`
 	B Plan `json:"b"`
+}
+
+type HookedComposePlan struct {
+	Step         Plan `json:"step"`
+	OnSuccess    Plan `json:"on_success"`
+	OnFailure    Plan `json:"on_failure"`
+	OnCompletion Plan `json:"on_completion"`
+	Next         Plan `json:"next"`
 }
 
 type PutGetPlan struct {

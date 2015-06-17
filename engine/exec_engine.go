@@ -135,6 +135,16 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 		return step, event.SingleIncrement
 	}
 
+	if plan.HookedCompose != nil {
+		step, stepIncrement := build.buildStepFactory(logger, plan.HookedCompose.Step, location)
+		failure, failureIncrement := build.buildStepFactory(logger, plan.HookedCompose.OnFailure, location.Incr(stepIncrement))
+		success, successIncrement := build.buildStepFactory(logger, plan.HookedCompose.OnSuccess, location.Incr(stepIncrement+failureIncrement))
+		ensure, ensureIncrement := build.buildStepFactory(logger, plan.HookedCompose.OnCompletion, location.Incr(stepIncrement+failureIncrement+successIncrement))
+
+		nextStep, nextStepIncrement := build.buildStepFactory(logger, plan.HookedCompose.Next, location.Incr(stepIncrement+failureIncrement+successIncrement+ensureIncrement))
+		return exec.HookedCompose(step, nextStep, failure, success, ensure), stepIncrement + failureIncrement + successIncrement + ensureIncrement + nextStepIncrement
+	}
+
 	if plan.Compose != nil {
 		x, xLocationIncrement := build.buildStepFactory(logger, plan.Compose.A, location)
 		y, yLocationIncrement := build.buildStepFactory(logger, plan.Compose.B, location.Incr(xLocationIncrement))
@@ -214,36 +224,33 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 
 		restOfSteps, restLocationIncrement := build.buildStepFactory(logger, plan.PutGet.Rest, restLocation)
 
-		return exec.Compose(
-			exec.Compose(
-				build.factory.Put(
-					build.putIdentifier(putPlan.Resource, location),
-					build.delegate.OutputDelegate(logger, *putPlan, location),
-					atc.ResourceConfig{
-						Name:   putPlan.Resource,
-						Type:   putPlan.Type,
-						Source: putPlan.Source,
-					},
-					putPlan.Tags,
-					putPlan.Params,
-				),
-				exec.Conditional{
-					Conditions: atc.Conditions{atc.ConditionSuccess},
-					StepFactory: build.factory.DependentGet(
-						exec.SourceName(getPlan.Name),
-						build.getIdentifier(getPlan.Name, getLocation),
-						build.delegate.InputDelegate(logger, getPlan, getLocation, true),
-						atc.ResourceConfig{
-							Name:   getPlan.Resource,
-							Type:   getPlan.Type,
-							Source: getPlan.Source,
-						},
-						getPlan.Tags,
-						getPlan.Params,
-					),
+		return exec.HookedCompose(
+			build.factory.Put(
+				build.putIdentifier(putPlan.Resource, location),
+				build.delegate.OutputDelegate(logger, *putPlan, location),
+				atc.ResourceConfig{
+					Name:   putPlan.Resource,
+					Type:   putPlan.Type,
+					Source: putPlan.Source,
 				},
+				putPlan.Tags,
+				putPlan.Params,
 			),
 			restOfSteps,
+			exec.Identity{},
+			build.factory.DependentGet(
+				exec.SourceName(getPlan.Name),
+				build.getIdentifier(getPlan.Name, getLocation),
+				build.delegate.InputDelegate(logger, getPlan, getLocation, true),
+				atc.ResourceConfig{
+					Name:   getPlan.Resource,
+					Type:   getPlan.Type,
+					Source: getPlan.Source,
+				},
+				getPlan.Tags,
+				getPlan.Params,
+			),
+			exec.Identity{},
 		), event.OriginLocationIncrement(2) + restLocationIncrement
 	}
 

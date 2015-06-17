@@ -311,6 +311,29 @@ var _ = Describe("ValidateConfig", func() {
 				job.OutputConfigs = nil
 			})
 
+			Context("when a plan contains conditionals and hooks", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Conditions: &atc.Conditions{atc.ConditionFailure},
+						Failure: &atc.PlanConfig{
+							Task:           "those who did not resist our will",
+							TaskConfigPath: "task.yml",
+						},
+						Task:           "some-resource",
+						TaskConfigPath: "task.yml",
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job.plan has both conditions and hooks specified",
+					))
+				})
+			})
+
 			Context("when multiple actions are specified in the same plan", func() {
 				Context("when it's not just Get and Put", func() {
 					BeforeEach(func() {
