@@ -3,14 +3,6 @@
 \title{v0.55.0}
 
 \list{
-  When a resource action completes with failure (nonzero exit status), we will
-  now consider it \italic{failed}, rather than \italic{errored}. This is to
-  reserve \italic{errored} for edge cases where things are actually broken in
-  Concourse. As resources got richer (e.g.
-  \hyperlink{https://github.com/concourse/bosh-deployment-resource}{BOSH
-  Deployment resource}), reporting their failures as errors became more
-  confusing than helpful.
-}{
   The \hyperlink{https://github.com/concourse/pool-resource}{Pool resource} now
   prevents double-acquiring the same lock in the same second. (Or: the
   \hyperlink{https://github.com/concourse/pool-resource}{Pool resource} now
