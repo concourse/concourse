@@ -9,15 +9,16 @@
       "Type": "AWS::EC2::KeyPair::KeyName",
       "Default": "bosh"
     },
+
     "HostedZoneName": {
       "Description": "(Optional) Route53 Hosted Zone in which to register the ELB's DNS record.",
-      "Default": "",
-      "Type": "String"
+      "Type": "String",
+      "Default": ""
     },
     "ELBRecordSetName": {
       "Description": "(Optional) Route53 Record Set name for the ELB.",
-      "Default": "",
-      "Type": "String"
+      "Type": "String",
+      "Default": ""
     },
 
     "BOSHInboundCIDR": {
@@ -160,6 +161,12 @@
             "IpProtocol": "udp",
             "FromPort": "0",
             "ToPort": "65535"
+          },
+          {
+            "CidrIp": "0.0.0.0/0",
+            "IpProtocol": "icmp",
+            "FromPort": "-1",
+            "ToPort": "-1"
           }
         ]
       }
@@ -355,22 +362,22 @@
 
         "Listeners": [
           {
-            "InstancePort": "8080",
+            "Protocol": "tcp",
             "LoadBalancerPort": "80",
-            "Protocol": "tcp",
-            "InstanceProtocol": "tcp"
-          },
-          {
-            "InstancePort": "2222",
-            "LoadBalancerPort": "2222",
-            "Protocol": "tcp",
-            "InstanceProtocol": "tcp"
-          },
-          {
-            "InstancePort" : "8080",
-            "LoadBalancerPort" : "443",
-            "Protocol" : "ssl",
             "InstanceProtocol": "tcp",
+            "InstancePort": "8080"
+          },
+          {
+            "Protocol": "tcp",
+            "LoadBalancerPort": "2222",
+            "InstanceProtocol": "tcp",
+            "InstancePort": "2222"
+          },
+          {
+            "Protocol" : "ssl",
+            "LoadBalancerPort" : "443",
+            "InstanceProtocol": "tcp",
+            "InstancePort" : "8080",
             "SSLCertificateId" : {
               "Fn::Join":[
                 "",
