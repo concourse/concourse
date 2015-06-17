@@ -227,18 +227,21 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 					putPlan.Tags,
 					putPlan.Params,
 				),
-				build.factory.DependentGet(
-					exec.SourceName(getPlan.Name),
-					build.getIdentifier(getPlan.Name, getLocation),
-					build.delegate.InputDelegate(logger, getPlan, getLocation, true),
-					atc.ResourceConfig{
-						Name:   getPlan.Resource,
-						Type:   getPlan.Type,
-						Source: getPlan.Source,
-					},
-					getPlan.Tags,
-					getPlan.Params,
-				),
+				exec.Conditional{
+					Conditions: atc.Conditions{atc.ConditionSuccess},
+					StepFactory: build.factory.DependentGet(
+						exec.SourceName(getPlan.Name),
+						build.getIdentifier(getPlan.Name, getLocation),
+						build.delegate.InputDelegate(logger, getPlan, getLocation, true),
+						atc.ResourceConfig{
+							Name:   getPlan.Resource,
+							Type:   getPlan.Type,
+							Source: getPlan.Source,
+						},
+						getPlan.Tags,
+						getPlan.Params,
+					),
+				},
 			),
 			restOfSteps,
 		), event.OriginLocationIncrement(2) + restLocationIncrement

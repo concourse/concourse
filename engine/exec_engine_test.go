@@ -164,21 +164,26 @@ var _ = Describe("ExecEngine", func() {
 						},
 					},
 					B: atc.Plan{
-						Compose: &atc.ComposePlan{
-							A: atc.Plan{
-								Task: &atc.TaskPlan{
-									Name: "some-task",
+						Conditional: &atc.ConditionalPlan{
+							Conditions: atc.Conditions{atc.ConditionSuccess},
+							Plan: atc.Plan{
+								Compose: &atc.ComposePlan{
+									A: atc.Plan{
+										Task: &atc.TaskPlan{
+											Name: "some-task",
 
-									Privileged: privileged,
+											Privileged: privileged,
 
-									Config:     taskConfig,
-									ConfigPath: taskConfigPath,
-								},
-							},
-							B: atc.Plan{
-								Aggregate: &atc.AggregatePlan{
-									atc.Plan{
-										Conditional: outputPlan,
+											Config:     taskConfig,
+											ConfigPath: taskConfigPath,
+										},
+									},
+									B: atc.Plan{
+										Aggregate: &atc.AggregatePlan{
+											atc.Plan{
+												Conditional: outputPlan,
+											},
+										},
 									},
 								},
 							},
@@ -640,7 +645,7 @@ var _ = Describe("ExecEngine", func() {
 						})
 					})
 
-					Context("when the output fails", func() {
+					Context("when the output errors", func() {
 						disaster := errors.New("oh no!")
 
 						BeforeEach(func() {
@@ -651,6 +656,17 @@ var _ = Describe("ExecEngine", func() {
 							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
 							_, cbErr := fakeDelegate.FinishArgsForCall(0)
 							Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
+						})
+					})
+
+					Context("when the output fails", func() {
+						BeforeEach(func() {
+							outputStep.RunReturns(nil)
+							outputStep.ResultStub = successResult(false)
+						})
+
+						It("does not run the dependent get", func() {
+							Ω(dependentStep.RunCallCount()).Should(Equal(0))
 						})
 					})
 				})
@@ -664,6 +680,17 @@ var _ = Describe("ExecEngine", func() {
 						Ω(outputStep.RunCallCount()).Should(BeZero())
 					})
 				})
+			})
+		})
+
+		Context("when the input fails", func() {
+			BeforeEach(func() {
+				inputStep.RunReturns(nil)
+				inputStep.ResultStub = successResult(false)
+			})
+
+			It("does not run the task", func() {
+				Ω(taskStep.RunCallCount()).Should(Equal(0))
 			})
 		})
 
