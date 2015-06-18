@@ -375,6 +375,7 @@ function createGraph(svg, groups, jobs, resources) {
 
   graph.computeRanks();
   graph.collapseEquivalentNodes();
+  graph.addSpacingNodes();
 
   return graph;
 }

@@ -70,6 +70,17 @@ Graph.prototype.addEdge = function(sourceId, targetId, key) {
   this._edges.push(edge);
 }
 
+Graph.prototype.removeEdge = function(edge) {
+  var inIdx = edge.target.node._inEdges.indexOf(edge);
+  edge.target.node._inEdges.splice(inIdx, 1);
+
+  var outIdx = edge.source.node._outEdges.indexOf(edge);
+  edge.source.node._outEdges.splice(outIdx, 1);
+
+  var graphIdx = this._edges.indexOf(edge);
+  this._edges.splice(graphIdx, 1);
+}
+
 Graph.prototype.node = function(id) {
   return this._nodes[id];
 };
@@ -276,6 +287,38 @@ Graph.prototype.collapseEquivalentNodes = function() {
   }
 }
 
+Graph.prototype.addSpacingNodes = function() {
+  var edgesToRemove = [];
+  for (var e in this._edges) {
+    var edge = this._edges[e];
+    var delta = edge.target.node.rank() - edge.source.node.rank();
+    if (delta > 1) {
+      var upstreamNode = edge.source.node;
+
+      for (var i = 0; i < (delta - 1); i++) {
+        var spacingNode = upstreamNode.copy();
+        spacingNode.id = upstreamNode.id + "-spacing-" + i;
+
+        spacingNode._cachedRank = upstreamNode.rank() + 1;
+
+        this.setNode(spacingNode.id, spacingNode);
+
+        this.addEdge(upstreamNode.id, spacingNode.id, edge.key);
+
+        upstreamNode = spacingNode;
+      }
+
+      this.addEdge(upstreamNode.id, edge.target.node.id, edge.key);
+
+      edgesToRemove.push(edge);
+    }
+  }
+
+  for (var e in edgesToRemove) {
+    this.removeEdge(edgesToRemove[e]);
+  }
+}
+
 function Column(idx) {
   this.index = idx;
   this.nodes = [];
@@ -469,6 +512,19 @@ function Node(opts) {
     y: 0
   };
 };
+
+Node.prototype.copy = function() {
+  return new Node({
+    id: this.id,
+    name: this.name,
+    class: this.class,
+    status: this.status,
+    key: this.key,
+    url: this.url,
+    svg: this.svg,
+    equivalentBy: this.equivalentBy
+  });
+}
 
 Node.prototype.width = function() {
   if (this._cachedWidth == 0) {
