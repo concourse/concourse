@@ -188,10 +188,10 @@ common platforms in the bottom right hand corner of the main page.
   If you accept then Concourse's pipeline configuration will switch to the
   pipeline definition in the YAML file specified.
 
-  \section{Parameters}{parameters}{
-    The pipeline configuration can contain templates in the form of
-    \code{\{\{foo-bar\}\}}. They will be replaced with string values populated by
-    repeated \code{--var} or \code{--vars-from} flags.
+  \section{Using \code{\{\{parameters\}\}}}{parameters}{
+    The pipeline configuration can contain template variable in the form of
+    \code{\{\{foo-bar\}\}}. They will be replaced with string values populated
+    by repeated \code{--var} or \code{--vars-from} flags.
 
     This allows for credentials to be extracted from a pipeline config, making it
     safe to check in to a public repository or pass around.
@@ -231,6 +231,10 @@ common platforms in the bottom right hand corner of the main page.
 
     If both \code{--var} and \code{--vars-from} are specified, the \code{--var}
     flags take precedence.
+
+    Note that only strings are supported for these values, so that
+    interpolating them into the template is trivial. Other types of values, and
+    features like concatenation, are not supported.
   }
 }
 
