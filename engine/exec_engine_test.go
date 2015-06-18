@@ -132,6 +132,7 @@ var _ = Describe("ExecEngine", func() {
 
 			inputStepFactory = new(execfakes.FakeStepFactory)
 			inputStep = new(execfakes.FakeStep)
+			inputStep.ResultStub = successResult(true)
 			inputStepFactory.UsingReturns(inputStep)
 			fakeFactory.GetReturns(inputStepFactory)
 
@@ -143,11 +144,13 @@ var _ = Describe("ExecEngine", func() {
 
 			outputStepFactory = new(execfakes.FakeStepFactory)
 			outputStep = new(execfakes.FakeStep)
+			outputStep.ResultStub = successResult(true)
 			outputStepFactory.UsingReturns(outputStep)
 			fakeFactory.PutReturns(outputStepFactory)
 
 			dependentStepFactory = new(execfakes.FakeStepFactory)
 			dependentStep = new(execfakes.FakeStep)
+			dependentStep.ResultStub = successResult(true)
 			dependentStepFactory.UsingReturns(dependentStep)
 			fakeFactory.DependentGetReturns(dependentStepFactory)
 		})

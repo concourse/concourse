@@ -28,10 +28,6 @@ func (c *Conditional) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	conditionMatched := false
 	if c.prev.Result(&succeeded) {
 		conditionMatched = c.Conditions.SatisfiedBy(bool(succeeded))
-	} else {
-		// if previous step cannot indicate success, presume that it succeeded
-		// for this step to be running in the first place.
-		conditionMatched = c.Conditions.SatisfiedBy(true)
 	}
 
 	if conditionMatched {

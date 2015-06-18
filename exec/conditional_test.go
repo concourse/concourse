@@ -174,7 +174,7 @@ var _ = Describe("Conditional", func() {
 				inStep.ResultReturns(false)
 			})
 
-			itDoesAThing()
+			itDoesNothing()
 		})
 	})
 
@@ -237,7 +237,7 @@ var _ = Describe("Conditional", func() {
 				inStep.ResultReturns(false)
 			})
 
-			itDoesAThing()
+			itDoesNothing()
 		})
 	})
 })
