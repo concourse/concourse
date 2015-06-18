@@ -85,7 +85,8 @@ var resourceTypes = flag.String(
 		{"type": "s3", "image": "docker:///concourse/s3-resource" },
 		{"type": "semver", "image": "docker:///concourse/semver-resource" },
 		{"type": "time", "image": "docker:///concourse/time-resource" },
-		{"type": "tracker", "image": "docker:///concourse/tracker-resource" }
+		{"type": "tracker", "image": "docker:///concourse/tracker-resource" },
+		{"type": "pool", "image": "docker:///concourse/pool-resource" }
 	]`,
 	"map of resource type to its rootfs",
 )
