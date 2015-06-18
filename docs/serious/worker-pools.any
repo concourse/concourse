@@ -2,7 +2,7 @@
 
 \use{\require{anatomy/atomy}}
 
-\title{Managing custom Worker Pools}{worker-pools}
+\title{Managing Worker Pools}{worker-pools}
 
 \omit-children-from-table-of-contents
 
@@ -27,72 +27,109 @@ If a worker specifies \code{tags}, it is taken out of the "default" placement
 pool, and steps only run on the worker if they explicitly specify a common
 subset of the worker's tags, by setting \reference{step-tags}.
 
-Worker registration can be done directly via the ATC API, or through the
-\reference{configuring-tsa}{TSA}. You can see the current set of workers via
-\code{GET /api/v1/workers}, and register one via \code{POST /api/v1/workers}
-with a worker API object as the payload.
+\table-of-contents
 
-For example:
+\section{The basic \code{/api/v1/workers} API}{worker-api}{
+  The most directy way to see existing workers and register new ones is via the
+  \code{/api/v1/workers} API endpoint provided by the ATC.
 
-\codeblock{json}{
-  \{
-    "platform": "linux",
-    "tags": ["hetzner"],
-    "addr": "10.0.16.10:8080",
-    "active_containers": 123,
-    "resource_types": [
-      \{"type": "git", "image": "/var/vcap/packages/git_resource"\}
-    ]
-  \}
+  It supports the following methods:
+
+  \definitions{
+    \item{\code{GET /api/v1/workers}}{
+      List the current worker pool.
+    }
+
+    \item{\code{POST /api/v1/workers[?ttl=30s]}}{
+      Register a worker, with an optional TTL.
+    }
+  }
+
+  For example, to register a worker for 10 seconds:
+
+  \codeblock{bash}{
+    curl -XPOST http://192.168.100.4:8080/api/v1/workers?ttl=10s -d '\{
+      "platform": "linux",
+      "tags": ["hetzner"],
+      "addr": "10.0.16.10:8080",
+      "active_containers": 123,
+      "resource_types": [
+        \{"type": "git", "image": "/var/vcap/packages/git_resource"\}
+      ]
+    \}'
+  }
+
+  The \code{?ttl=10s} means that the worker's registration will go away in 10
+  seconds. Workers should continuously heartbeat their presence, so that if/when
+  they go away the TTL will expire. Note that there is currently no way to
+  explicitly unregister a worker; instead you should just submit a low TTL
+  (e.g.\code{1s}).
+
+  The worker JSON object contains the following attributes:
+
+  \define{platform}{string}{
+    \italic{Required.} The platform supported by the worker, e.g. \code{linux},
+    \code{darwin}, or \code{windows}.
+  }
+
+  \define{tags}{[string]}{
+    \italic{Optional.} A set of arbitrary tags. Only steps specifying a matching
+    a subset of these tags will be placed on the worker.
+  }
+
+  \define{addr}{string}{
+    \italic{Required.} The address of the Garden server. Note that this address
+    must be reachable by the ATC, and has no authentication. For this reason it
+    should always be an address only reachable from within Concourse's private
+    network. To register external workers, see \reference{configuring-workers}.
+  }
+
+  \define{active_containers}{integer}{
+    \italic{Optional.} The number of containers currently running on the worker.
+  }
+
+  \define{resource_types}{[\{type,image\}]}{
+    \italic{Optional.} The set of resource types supported by the worker. If
+    specified, the worker may be used for running resource containers of the
+    given type, using the specified image URI.
+  }
 }
 
-The worker JSON object contains the following attributes:
+\section{Registration via the TSA}{registering-via-tsa}{
+  Using the \code{/api/v1/workers} API directly is a bit inconvenient. Your
+  workers need credentials for the ATC, and must advertise an address that the
+  ATC can reach. The API consumer would also have to continously heartbeat so
+  long as the server it's advertising is healthy.
 
-\define{platform}{string}{
-  \italic{Required.} The platform supported by the worker, e.g. \code{linux},
-  \code{darwin}, or \code{windows}.
-}
+  The Concourse BOSH release includes a component called
+  \hyperlink{https://github.com/concourse/tsa}{the TSA} to make this better.
+  The TSA is used to securely register workers, and continously health-check
+  and heartbeat them to the ATC. These workers can come from any network that
+  can reach the TSA.
 
-\define{tags}{[string]}{
-  \italic{Optional.} A set of arbitrary tags. Only steps specifying a matching
-  a subset of these tags will be placed on the worker.
-}
-
-\define{addr}{string}{
-  \italic{Required.} The address of the Garden server. Note that this address
-  must be reachable by the ATC, and has no authentication. For this reason it
-  should always be an address only reachable from within Concourse's private
-  network. To register external workers, see \reference{configuring-workers}.
-}
-
-\define{active_containers}{integer}{
-  \italic{Optional.} The number of containers currently running on the worker.
-}
-
-\define{resource_types}{[\{type,image\}]}{
-  \italic{Optional.} The set of resource types supported by the worker. If
-  specified, the worker may be used for running resource containers of the
-  given type, using the specified image URI.
-}
-
-\section{Worker cluster topology}{
   Registering a worker, whether internal to the deployment or external,
-  involves four components:
+  then involves four components:
 
-  \list{
-    \hyperlink{https://github.com/concourse/tsa}{the TSA} - a custom,
-    stripped-down SSH server solely for registering workers externally
-  }{
-    \hyperlink{https://github.com/concourse/atc}{the ATC} - the component that
-    ultimately makes use of and keeps track of the registered workers
-  }{
-    \hyperlink{https://github.com/cloudfoundry-incubator/garden}{a Garden
-    server} - the worker itself, the goal being to make its API endpoint
-    accessible to the ATC
-  }{
-    an \code{ssh} client - for connecting to the TSA, and either directly
-    advertising an address, or reverse-tunneling the Garden server's address
-    the local network to the TSA
+  \definitions{
+    \item{\hyperlink{https://github.com/concourse/tsa}{the TSA}}{
+      a custom, stripped-down SSH server solely for registering workers
+    }
+
+    \item{\hyperlink{https://github.com/concourse/atc}{the ATC}}{
+      the component that ultimately makes use of and keeps track of the
+      registered workers
+    }
+
+    \item{\hyperlink{https://github.com/cloudfoundry-incubator/garden}{a Garden server}}{
+      the worker itself, the goal being to make its API endpoint accessible to
+      the ATC
+    }
+
+    \item{an \code{ssh} client}{
+      for connecting to the TSA, and either directly advertising an address, or
+      reverse-tunneling the Garden server's address the local network to the
+      TSA
+    }
   }
 
   The primary difference from other systems is that the flow of registering
@@ -107,20 +144,22 @@ The worker JSON object contains the following attributes:
   man-in-the-middle business by going over SSH.
 }
 
-\section{Configuring workers}{
+\section{Standing up external workers}{external-workers}{
   A typical Concourse BOSH deployment includes Garden Linux, to deploy a set of
   workers as part of the same deployment as the TSA and ATC.
 
   If you're deploying everything together as one BOSH deployment, all worker
-  registration is automatic, and you can dynamically grow and shrink the worker
-  pool just by changing the instance count and redeploying.
+  registration is automatically configured, and you can dynamically grow and
+  shrink the worker pool just by changing the instance count and redeploying.
 
   However, sometimes your workers can't be automated by BOSH, or at least can't
   be deployed with the rest of the cluster. Perhaps you have some managed
   server, and you want to run builds on it.
 
-  There are various ways to deploy and register workers, depending on your use
-  case.
+  There are various ways to deploy and register these external workers,
+  depending on your use case. First you'll need to
+  \reference{configuring-tsa}{configure the TSA} to support them. For a quick
+  overview of what we'll be configuring, see \reference{registering-via-tsa}.
 
   \table-of-contents
 
@@ -244,7 +283,7 @@ The worker JSON object contains the following attributes:
     }
   }
 
-  \section{External BOSH-deployed workers}{bosh-deployed-workers}{
+  \section{Deploying external workers with BOSH}{bosh-deployed-workers}{
     If you have some other environment separate from your primary Concourse
     deployment, but still manageable by BOSH, configuration is done via
     properties, pointing at the main deployment.
@@ -356,7 +395,7 @@ The worker JSON object contains the following attributes:
     }
   }
 
-  \section{Manually provisioned workers}{
+  \section{Manually provisioning workers}{manual-workers}{
     Sometimes BOSH can't manage your cluster. Maybe you're on some
     custom-provisioned hardware, or BOSH just doesn't support your
     infrastructure.
@@ -430,7 +469,7 @@ The worker JSON object contains the following attributes:
         under the \code{tsa.authorized_keys} property.
       }
 
-      \section{Registering a worker directly}{registering-via-tsa}{
+      \section{Registering a worker directly}{
         The \code{register-worker} command is used when you have a Garden worker
         accessible from within the private network. For example, registering
         a Windows EC2 instance with the rest of your cluster, all within a VPC.
@@ -450,7 +489,7 @@ The worker JSON object contains the following attributes:
         ...where \code{worker.json} contains the worker JSON payload to advertise.
       }
 
-      \section{Forwarding a local Garden server}{forwarding-via-tsa}{
+      \section{Forwarding a local Garden server}{
         The \code{forward-worker} command is used when you want to tunnel
         a locally-reachable Garden server (e.g. one listening on \code{127.0.0.1})
         through the TSA, who will advertise the tunneled address on the client's
