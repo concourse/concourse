@@ -109,7 +109,7 @@ common platforms in the bottom right hand corner of the main page.
   If your task needs to run as \code{root} then you can specify the \code{-p}
   or \code{--privileged} flag.
 
-  \section{Multiple Inputs to Locally Submitted Tasks}{
+  \section{Multiple inputs with \code{-i}}{
     Tasks in Concourse can take multiple inputs. Up until now we've just been
     submitting a single input (our current working directory) that has the same
     name as the directory.
@@ -138,6 +138,28 @@ common platforms in the bottom right hand corner of the main page.
 
     This feature can be used to mimic other resources and try out combinations
     of input that would normally not be possible in a pipeline.
+  }
+
+  \section{Providing values for \code{params}}{
+    Any params listed in the task configuration can be specified by using
+    environment variables.
+
+    So, if you have a task with the following params:
+
+    \codeblock{yaml}{
+    params:
+      FOO: fizzbuzz
+      BAR:
+    }
+
+    ...and you run:
+
+    \codeblock{bash}{
+      BAR=hello fly execute
+    }
+
+    The task would then run with \code{BAR} as \code{"hello"}, and \code{FOO}
+    as \code{"fizzbuzz"} (its default value).
   }
 }
 
