@@ -122,6 +122,7 @@ jobs:
 
 - name: testflight
   public: true
+  serial: true
   plan:
   - aggregate:
     - get: concourse
