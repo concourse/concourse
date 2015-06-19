@@ -158,6 +158,16 @@ Graph.prototype.layout = function() {
         return 1;
       }
 
+      if (targetA && targetB) {
+        var introRankA = targetA.rankOfFirstAppearance();
+        var introRankB = targetB.rankOfFirstAppearance();
+        if(introRankA < introRankB) {
+          return -1;
+        } else if (introRankA > introRankB) {
+          return 1;
+        }
+      }
+
       return a.localeCompare(b);
     });
   }
@@ -757,6 +767,35 @@ EdgeTarget.prototype.width = function() {
 
 EdgeTarget.prototype.height = function() {
   return 0;
+}
+
+EdgeTarget.prototype.rankOfFirstAppearance = function() {
+  var inEdges = this.node._inEdges;
+  var minRank = Infinity;
+  for (var i in inEdges) {
+    var inEdge = inEdges[i];
+
+    if (inEdge.source.key == this.key) {
+      var upstreamNodeInEdges = inEdge.source.node._inEdges;
+
+      if (upstreamNodeInEdges.length == 0) {
+        return inEdge.source.node.rank();
+      }
+
+      for (var j in upstreamNodeInEdges) {
+        var upstreamEdge = upstreamNodeInEdges[j];
+
+        if (upstreamEdge.target.key == this.key) {
+          var rank = upstreamEdge.target.rankOfFirstAppearance()
+          if (rank < minRank) {
+            minRank = rank;
+          }
+        }
+      }
+    }
+  }
+
+  return minRank;
 }
 
 EdgeTarget.prototype.id = function() {
