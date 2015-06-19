@@ -176,7 +176,7 @@ Graph.prototype.layout = function() {
     columns[c].layout();
   }
 
-  for (var i = 0; i < 10; i++) {
+  for (var i = 0; i < 5; i++) {
     for (var c in columns) {
       columns[c].improve();
     }
