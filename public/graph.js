@@ -44,6 +44,13 @@ Graph.prototype.addEdge = function(sourceId, targetId, key) {
     throw "target node does not exist: " + targetId;
   }
 
+  for (var i in target._inEdges) {
+    if (target._inEdges[i].source.node.id == source.id) {
+      // edge already exists; skip
+      return;
+    }
+  }
+
   if (source._edgeKeys.indexOf(key) == -1) {
     source._edgeKeys.push(key);
   }

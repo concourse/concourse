@@ -263,14 +263,19 @@ function createGraph(svg, groups, jobs, resources) {
 
       var outputId = outputNode(job.name, output.resource);
 
-      graph.setNode(outputId, new Node({
-        id: outputId,
-        name: output.resource,
-        key: output.resource,
-        class: "output",
-        url: resourceURLs[output.resource],
-        svg: svg
-      }));
+      var jobOutputNode = graph.node(outputId);
+      if (!jobOutputNode) {
+        jobOutputNode = new Node({
+          id: outputId,
+          name: output.resource,
+          key: output.resource,
+          class: "output",
+          url: resourceURLs[output.resource],
+          svg: svg
+        });
+
+        graph.setNode(outputId, jobOutputNode);
+      }
 
       graph.addEdge(id, outputId, output.resource)
     }
