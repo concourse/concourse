@@ -140,31 +140,25 @@ Graph.prototype.layout = function() {
     node._position.x = columnOffset + ((columns[column].width() - node.width()) / 2);
 
     node._edgeKeys.sort(function(a, b) {
-      // var targetA = node._edgeTargets[a];
-      // var targetB = node._edgeTargets[b];
+      var targetA = node._edgeTargets[a];
+      var targetB = node._edgeTargets[b];
 
-      // if (targetA && !targetB) {
-      //   return -1;
-      // } else if (!targetA && targetB) {
-      //   return 1;
-      // }
+      if (targetA && !targetB) {
+        return -1;
+      } else if (!targetA && targetB) {
+        return 1;
+      }
 
-      // var aIsConnected = targetA && targetA.isConnected();
-      // var bIsConnected = targetB && targetB.isConnected();
+      var aIsConnected = targetA && targetA.isConnected();
+      var bIsConnected = targetB && targetB.isConnected();
 
-      // if (aIsConnected && !bIsConnected) {
-      //   return -1;
-      // } else if (!aIsConnected && bIsConnected) {
-      //   return 1;
-      // }
+      if (aIsConnected && !bIsConnected) {
+        return -1;
+      } else if (!aIsConnected && bIsConnected) {
+        return 1;
+      }
 
       return a.localeCompare(b);
-    });
-  }
-
-  for (var c in columns) {
-    columns[c].nodes.sort(function(a, b) {
-      return a.name.localeCompare(b.name);
     });
   }
 
