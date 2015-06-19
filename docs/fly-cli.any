@@ -268,9 +268,17 @@ common platforms in the bottom right hand corner of the main page.
   Containers are around for a short time after a build in order to allow
   people to intercept them.
 
-  You can also intercept builds that were run in your pipeline. By using the
-  \code{-j} or \code{--job} and \code{-b} or \code{--build} you can pick out a
-  specific job and build to intercept.
+  You can also intercept builds that were run in your pipeline. By using
+  \code{--pipeline}, \code{--job}, \code{--build}, and \code{--step-name} you
+  can intercept a specific step from a build of a job in your pipeline. These
+  flags also have short forms, like so:
+
+  \codeblock{bash}{
+  $ fly intercept -p some-pipeline -j some-job -b some-build -n some-step
+  }
+
+  Note that \code{--build} can be omitted, and will default to the most recent
+  build of the job.
 
   The shell created on the remote container via \code{fly intercept} provides
   root user access by default.
@@ -308,13 +316,13 @@ common platforms in the bottom right hand corner of the main page.
   processed by other commands).
 
   The \code{watch} command can be used to do just this. You can also view
-  builds that were run in your pipeline. By using the \code{-j} or
-  \code{--job} and \code{-b} or \code{--build} you can pick out a specific job
-  and build to watch. For example, the following command will either show the
+  builds that were run in your pipeline. By using the \code{--pipeline},
+  \code{--job}, and \code{--build} flags you can pick out a specific job and
+  build to watch. For example, the following command will either show the
   archived logs for an old build if it has finished running or it will stream
   the current logs if the build is still in progress.
 
   \codeblock{bash}{
-  $ fly watch --job tests --build 52
+  $ fly watch --pipeline my-pipeline --job tests --build 52
   }
 }
