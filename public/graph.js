@@ -297,12 +297,11 @@ Graph.prototype.addSpacingNodes = function() {
 
       for (var i = 0; i < (delta - 1); i++) {
         var spacingNode = upstreamNode.copy();
-        spacingNode.id = upstreamNode.id + "-spacing-" + i;
+        spacingNode.id = edge.id() + "-spacing-" + i;
 
         spacingNode._cachedRank = upstreamNode.rank() + 1;
 
         this.setNode(spacingNode.id, spacingNode);
-
         this.addEdge(upstreamNode.id, spacingNode.id, edge.key);
 
         upstreamNode = spacingNode;
