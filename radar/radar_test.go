@@ -372,27 +372,38 @@ var _ = Describe("Radar", func() {
 				})
 
 				It("checks using the new config", func() {
-					Eventually(times).Should(Receive())
+					var time1 time.Time
+					var time2 time.Time
+
+					Eventually(times).Should(Receive(&time1))
 
 					source, _ := fakeResource.CheckArgsForCall(0)
 					Ω(source).Should(Equal(newResource.Source))
+					check := interval
 
-					Eventually(times).Should(Receive())
+					Eventually(times).Should(Receive(&time2))
+					Ω(time2.Sub(time1)).Should(BeNumerically("~", check, check/2))
 
 					newResource = atc.ResourceConfig{
-						Name:   "some-resource",
-						Type:   "git",
-						Source: atc.Source{"uri": "http://example.com/another-updated-uri"},
+						Name:       "some-resource",
+						Type:       "git",
+						Source:     atc.Source{"uri": "http://example.com/another-updated-uri"},
+						CheckEvery: atc.Duration(20 * time.Millisecond),
 					}
 
 					newConfig = atc.Config{
 						Resources: atc.ResourceConfigs{newResource},
 					}
 
-					Eventually(times).Should(Receive())
+					Eventually(times).Should(Receive(&time1))
 
 					source, _ = fakeResource.CheckArgsForCall(2)
 					Ω(source).Should(Equal(atc.Source{"uri": "http://example.com/another-updated-uri"}))
+
+					Eventually(times).Should(Receive(&time2))
+
+					check = time.Duration(newResource.CheckEvery)
+					Ω(time2.Sub(time1)).Should(BeNumerically("~", check, check/2))
 				})
 			})
 
