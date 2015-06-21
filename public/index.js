@@ -109,6 +109,14 @@ function drawContinuously(svg, groups) {
 
     graph.layout()
 
+    nodeLink.attr("class", function(node) {
+      if (node.debugMarked) {
+        return "marked";
+      }
+
+      return "";
+    });
+
     svgNode.attr("transform", function(node) {
       var position = node.position();
       return "translate("+position.x+", "+position.y+")"
