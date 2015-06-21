@@ -443,17 +443,6 @@ function Node(opts) {
   };
 };
 
-Node.prototype.passesThroughAnyNextNode = function() {
-  for (var e in this._outEdges) {
-    var edge = this._outEdges[e];
-    if (edge.key in edge.target.node._edgeSources) {
-      return true;
-    }
-  }
-
-  return false;
-};
-
 Node.prototype.copy = function() {
   return new Node({
     id: this.id,
@@ -571,6 +560,17 @@ Node.prototype.highestDownstreamTarget = function() {
   }
 
   return minY;
+};
+
+Node.prototype.passesThroughAnyNextNode = function() {
+  for (var e in this._outEdges) {
+    var edge = this._outEdges[e];
+    if (edge.key in edge.target.node._edgeSources) {
+      return true;
+    }
+  }
+
+  return false;
 };
 
 function Edge(source, target, key) {
@@ -707,43 +707,6 @@ EdgeTarget.prototype.rankOfFirstAppearance = function() {
   }
 
   return minRank;
-}
-
-EdgeTarget.prototype.yOfFirstAppearance = function() {
-  var inEdges = this.node._inEdges;
-  var minY = Infinity;
-  for (var i in inEdges) {
-    var inEdge = inEdges[i];
-
-    if (inEdge.source.key == this.key) {
-      var upstreamNodeInEdges = inEdge.source.node._inEdges;
-
-      if (upstreamNodeInEdges.length == 0) {
-        return inEdge.source.node.position().y;
-      }
-
-      var foundUpstreamInEdge = false;
-      for (var j in upstreamNodeInEdges) {
-        var upstreamEdge = upstreamNodeInEdges[j];
-
-        if (upstreamEdge.target.key == this.key) {
-          foundUpstreamInEdge = true;
-
-          var y = upstreamEdge.target.yOfFirstAppearance()
-
-          if (y < minY) {
-            minY = y;
-          }
-        }
-      }
-
-      if (!foundUpstreamInEdge) {
-        return inEdge.source.node.position().y;
-      }
-    }
-  }
-
-  return minY;
 }
 
 EdgeTarget.prototype.id = function() {
