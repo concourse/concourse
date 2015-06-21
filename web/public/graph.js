@@ -160,11 +160,17 @@ Graph.prototype.layout = function() {
 
   // run twice so that second pass can use positioning from first pass in
   // output-based comparisons, since we process the columns left-to-right
-  for (i = 0; i < 2; i++) {
-    for (var c in columns) {
-      columns[c].sortNodes();
-      columns[c].layout();
+  for (var repeat = 0; repeat < 2; repeat++) {
+    for (var i in columns) {
+      columns[i].sortNodes();
+      columns[i].layout();
     }
+  }
+
+  // add spacing between nodes to align with upstream/downstream;
+  // walk the columns right-to-left
+  for (var i = columns.length - 1; i >= 0; i--) {
+    columns[i].pullDown()
   }
 }
 
@@ -329,6 +335,32 @@ function Column(idx) {
   this.nodes = [];
 
   this._spacing = 10;
+}
+
+Column.prototype.pullDown = function() {
+  for (var nodeIdx = 0; nodeIdx < this.nodes.length; nodeIdx++) {
+    var node = this.nodes[nodeIdx];
+
+    var delta = 0;
+
+    var downstreamY = node.deltaToHighestDownstreamTarget();
+    if (downstreamY !== undefined && downstreamY > 0) {
+      delta = downstreamY;
+    }
+
+    var upstreamY = node.deltaToHighestUpstreamSource();
+    if (upstreamY !== undefined && upstreamY > 0) {
+      delta = upstreamY;
+    }
+
+    if (delta == 0) {
+      continue;
+    }
+
+    for (var i = nodeIdx; i < this.nodes.length; i++) {
+      this.nodes[i]._position.y += delta;
+    }
+  }
 }
 
 Column.prototype.sortNodes = function() {
@@ -573,6 +605,46 @@ Node.prototype.highestDownstreamTarget = function() {
   }
 
   return minY;
+};
+
+Node.prototype.deltaToHighestUpstreamSource = function() {
+  var minY;
+  var highestUpstream;
+
+  var y;
+  for (var e in this._inEdges) {
+    var edge = this._inEdges[e];
+    y = edge.source.position().y;
+
+    if (minY === undefined || y < minY) {
+      minY = y;
+      highestUpstream = edge;
+    }
+  }
+
+  if (highestUpstream) {
+    return highestUpstream.source.position().y - highestUpstream.target.position().y;
+  }
+};
+
+Node.prototype.deltaToHighestDownstreamTarget = function() {
+  var minY;
+  var highestDownstream;
+
+  var y;
+  for (var e in this._outEdges) {
+    var edge = this._outEdges[e];
+    y = edge.target.position().y;
+
+    if (minY === undefined || y < minY) {
+      minY = y;
+      highestDownstream = edge;
+    }
+  }
+
+  if (highestDownstream) {
+    return highestDownstream.target.position().y - highestDownstream.source.position().y;
+  }
 };
 
 Node.prototype.passedThroughAnyPreviousNode = function() {
