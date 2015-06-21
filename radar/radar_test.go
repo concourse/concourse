@@ -375,12 +375,24 @@ var _ = Describe("Radar", func() {
 					Eventually(times).Should(Receive())
 
 					source, _ := fakeResource.CheckArgsForCall(0)
-					Ω(source).Should(Equal(resourceConfig.Source))
+					Ω(source).Should(Equal(newResource.Source))
 
 					Eventually(times).Should(Receive())
 
-					source, _ = fakeResource.CheckArgsForCall(1)
-					Ω(source).Should(Equal(atc.Source{"uri": "http://example.com/updated-uri"}))
+					newResource = atc.ResourceConfig{
+						Name:   "some-resource",
+						Type:   "git",
+						Source: atc.Source{"uri": "http://example.com/another-updated-uri"},
+					}
+
+					newConfig = atc.Config{
+						Resources: atc.ResourceConfigs{newResource},
+					}
+
+					Eventually(times).Should(Receive())
+
+					source, _ = fakeResource.CheckArgsForCall(2)
+					Ω(source).Should(Equal(atc.Source{"uri": "http://example.com/another-updated-uri"}))
 				})
 			})
 
@@ -391,13 +403,10 @@ var _ = Describe("Radar", func() {
 					}
 				})
 
-				It("exits", func() {
-					Eventually(times).Should(Receive())
-
-					source, _ := fakeResource.CheckArgsForCall(0)
-					Ω(source).Should(Equal(resourceConfig.Source))
-
-					Eventually(process.Wait()).Should(Receive())
+				It("exits with the correct error", func() {
+					var resourceRemovedError error
+					Eventually(process.Wait()).Should(Receive(&resourceRemovedError))
+					Expect(resourceRemovedError.Error()).To(Equal("resource 'some-resource' was not found in config"))
 				})
 			})
 		})

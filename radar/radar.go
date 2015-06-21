@@ -48,9 +48,9 @@ type Radar struct {
 
 	interval time.Duration
 
-	locker             Locker
-	db                 RadarDB
-	updateIntervalChan chan time.Duration
+	locker Locker
+	db     RadarDB
+	timer  *time.Timer
 }
 
 func NewRadar(
@@ -60,28 +60,21 @@ func NewRadar(
 	db RadarDB,
 ) *Radar {
 	return &Radar{
-		tracker:            tracker,
-		interval:           interval,
-		locker:             locker,
-		db:                 db,
-		updateIntervalChan: make(chan time.Duration, 1),
+		tracker:  tracker,
+		interval: interval,
+		locker:   locker,
+		db:       db,
 	}
 }
 
 func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runner {
 	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
-		var timer *time.Timer
-
 		resourceConfig, err := radar.getResourceConfig(logger, resourceName)
 		if err != nil {
 			return err
 		}
 
-		if resourceConfig.CheckEvery != 0 {
-			radar.interval = time.Duration(resourceConfig.CheckEvery)
-		}
-
-		timer = time.NewTimer(radar.interval)
+		radar.configureTimer(resourceConfig.CheckEvery)
 
 		close(ready)
 
@@ -90,10 +83,7 @@ func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runn
 			case <-signals:
 				return nil
 
-			case newInterval := <-radar.updateIntervalChan:
-				radar.interval = newInterval
-
-			case <-timer.C:
+			case <-radar.timer.C:
 				lock := radar.checkLock(radar.db.ScopedName(resourceName))
 				resourceCheckingLock, err := radar.locker.AcquireWriteLockImmediately(lock)
 
@@ -108,8 +98,6 @@ func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runn
 				if err != nil {
 					return err
 				}
-
-				timer.Reset(radar.interval)
 			}
 		}
 	})
@@ -152,9 +140,7 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 		return err
 	}
 
-	if resourceConfig.CheckEvery != 0 {
-		radar.updateIntervalChan <- time.Duration(resourceConfig.CheckEvery)
-	}
+	defer radar.configureTimer(resourceConfig.CheckEvery)
 
 	typ := resource.ResourceType(resourceConfig.Type)
 
@@ -211,6 +197,13 @@ func (radar *Radar) checkLock(resourceName string) []db.NamedLock {
 	return []db.NamedLock{db.ResourceCheckingLock(resourceName)}
 }
 
+func (radar *Radar) configureTimer(checkEvery atc.Duration) {
+	if checkEvery != 0 {
+		radar.interval = time.Duration(checkEvery)
+	}
+	radar.timer = time.NewTimer(radar.interval)
+}
+
 func (radar *Radar) getResourceConfig(logger lager.Logger, resourceName string) (atc.ResourceConfig, error) {
 	var found bool
 	var resourceConfig atc.ResourceConfig
@@ -218,7 +211,6 @@ func (radar *Radar) getResourceConfig(logger lager.Logger, resourceName string) 
 	config, _, err := radar.db.GetConfig()
 	if err != nil {
 		logger.Error("failed-to-get-config", err)
-		// don't propagate error; we can just retry next tick
 		return resourceConfig, err
 	}
 
