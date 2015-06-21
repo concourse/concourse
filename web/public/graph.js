@@ -367,10 +367,11 @@ Column.prototype.sortNodes = function() {
       }
     }
 
-    // place nodes with more out edges higher
-    var byOutEdges = b._outEdges.length - a._outEdges.length;
-    if (byOutEdges != 0) {
-      return byOutEdges;
+    // place nodes that threaded through upstream nodes higher
+    var aPassedThrough = a.passedThroughAnyPreviousNode();
+    var bPassedThrough = b.passedThroughAnyPreviousNode();
+    if (aPassedThrough && !bPassedThrough) {
+      return -1;
     }
 
     // place nodes that thread through downstream nodes higher
@@ -378,6 +379,12 @@ Column.prototype.sortNodes = function() {
     var bPassesThrough = b.passesThroughAnyNextNode();
     if (aPassesThrough && !bPassesThrough) {
       return -1;
+    }
+
+    // place nodes with more out edges higher
+    var byOutEdges = b._outEdges.length - a._outEdges.length;
+    if (byOutEdges != 0) {
+      return byOutEdges;
     }
 
     if (!aPassesThrough && bPassesThrough) {
@@ -566,6 +573,17 @@ Node.prototype.highestDownstreamTarget = function() {
   }
 
   return minY;
+};
+
+Node.prototype.passedThroughAnyPreviousNode = function() {
+  for (var e in this._inEdges) {
+    var edge = this._inEdges[e];
+    if (edge.key in edge.source.node._edgeTargets) {
+      return true;
+    }
+  }
+
+  return false;
 };
 
 Node.prototype.passesThroughAnyNextNode = function() {
