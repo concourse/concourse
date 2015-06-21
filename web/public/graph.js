@@ -107,7 +107,7 @@ Graph.prototype.edges = function() {
 };
 
 Graph.prototype.layout = function() {
-  var columns = {};
+  var columns = [];
 
   for (var i in this._nodes) {
     var node = this._nodes[i];
@@ -121,9 +121,6 @@ Graph.prototype.layout = function() {
 
     column.nodes.push(node);
   }
-
-  for (var c in columns)
-    columns[c]._cacheEdges()
 
   for (var i in this._nodes) {
     var node = this._nodes[i];
@@ -147,18 +144,7 @@ Graph.prototype.layout = function() {
         return -1;
       } else if (!targetA && targetB) {
         return 1;
-      }
-
-      var aIsConnected = targetA && targetA.isConnected();
-      var bIsConnected = targetB && targetB.isConnected();
-
-      if (aIsConnected && !bIsConnected) {
-        return -1;
-      } else if (!aIsConnected && bIsConnected) {
-        return 1;
-      }
-
-      if (targetA && targetB) {
+      } else if (targetA && targetB) {
         var introRankA = targetA.rankOfFirstAppearance();
         var introRankB = targetB.rankOfFirstAppearance();
         if(introRankA < introRankB) {
@@ -168,17 +154,16 @@ Graph.prototype.layout = function() {
         }
       }
 
-      return a.localeCompare(b);
+      return compareNames(a, b);
     });
   }
 
-  for (var c in columns) {
-    columns[c].layout();
-  }
-
-  for (var i = 0; i < 5; i++) {
+  // run twice so that second pass can use positioning from first pass in
+  // output-based comparisons, since we process the columns left-to-right
+  for (i = 0; i < 2; i++) {
     for (var c in columns) {
-      columns[c].improve();
+      columns[c].sortNodes();
+      columns[c].layout();
     }
   }
 }
@@ -346,75 +331,60 @@ function Column(idx) {
   this._spacing = 10;
 }
 
-Column.prototype.improve = function() {
+Column.prototype.sortNodes = function() {
   var nodes = this.nodes;
 
-  var beforeCrossing = this.crossingLines();
-  var beforeStraight = this.straightLines();
-  var beforeCost = this.cost();
+  nodes.sort(function(a, b) {
+    // a has upstream nodes but b doesn't; sort higher
+    if (a._inEdges.length && !b._inEdges.length) {
+      return -1;
+    }
 
-  for (var i = nodes.length-1; i >= 0; i--) {
-    var nodeIdx = i;
+    // b has upstream node but a doesn't; sort lower
+    if (!a._inEdges.length && b._inEdges.length) {
+      return 1;
+    }
 
-    for (var j = 0; j < nodes.length; j++) {
-      if (nodeIdx == j) {
-        continue;
-      }
-
-      var before = beforeCrossing.inputs + beforeCrossing.outputs;
-
-      this.swap(nodeIdx, j)
-
-      var afterCrossing = this.crossingLines();
-      var afterStraight = this.straightLines();
-      var afterCost = this.cost();
-
-      var after = afterCrossing.inputs + afterCrossing.outputs;
-
-      if (
-        // fewer crossing overall
-        after < before ||
-
-        // same crossing but fewer crossing inputs (next column may fix outputs)
-        (after == before && afterCrossing.inputs < beforeCrossing.inputs) ||
-
-        // same crossing but nodes are closer
-        (after == before && afterCost < beforeCost) ||
-
-        // same crossing but more lines are straight
-        (after == before && afterStraight > beforeStraight)
-      ) {
-        nodeIdx = j;
-
-        beforeCrossing = afterCrossing;
-        beforeStraight = afterStraight;
-        beforeCost = afterCost;
-      } else {
-        this.swap(nodeIdx, j)
+    if (a._inEdges.length && b._inEdges.length) {
+      // position nodes closer to their upstream sources
+      var byHighestSource = a.highestUpstreamSource() - b.highestUpstreamSource();
+      if (byHighestSource != 0) {
+        return byHighestSource;
       }
     }
-  }
-}
 
-Column.prototype.swap = function(a, b) {
-  var tmp = this.nodes[a];
-  this.nodes[a] = this.nodes[b];
-  this.nodes[b] = tmp;
+    if (a._outEdges.length && b._outEdges.length) {
+      // position nodes closer to their downstream targets
+      var byHighestTarget = a.highestDownstreamTarget() - b.highestDownstreamTarget();
+      if (byHighestTarget != 0) {
+        return byHighestTarget;
+      }
+    }
 
-  this.layout();
-}
+    // place nodes with more out edges higher
+    var byOutEdges = b._outEdges.length - a._outEdges.length;
+    if (byOutEdges != 0) {
+      return byOutEdges;
+    }
 
-Column.prototype.cost = function() {
-  var cost = 0;
+    // place nodes that thread through downstream nodes higher
+    var aPassesThrough = a.passesThroughAnyNextNode();
+    var bPassesThrough = b.passesThroughAnyNextNode();
+    if (aPassesThrough && !bPassesThrough) {
+      return -1;
+    }
 
-  var nodes = this.nodes,
-      totalNodes = nodes.length
+    if (!aPassesThrough && bPassesThrough) {
+      return 1;
+    }
 
-  for (var i = 0; i < totalNodes; i++) {
-    cost += nodes[i].travel();
-  }
+    // both are of equivalent; compare names so it's at least deterministic
 
-  return cost;
+    a.debugMarked = true; // to aid in debugging (adds .marked css class)
+    b.debugMarked = true;
+
+    return compareNames(a.name, b.name);
+  });
 }
 
 Column.prototype.width = function() {
@@ -436,66 +406,6 @@ Column.prototype.layout = function() {
     node._position.y = rollingOffset;
 
     rollingOffset += node.height() + this._spacing;
-  }
-}
-
-function crossingEdges(edges) {
-  var crossingLines = 0;
-
-  var totalEdges = edges.length;
-  for (var i = 0; i < totalEdges; i++) {
-    var edgeA = edges[i];
-    var edgeASourceY = edgeA.source.y();
-    var edgeATargetY = edgeA.target.y();
-
-    for (var j = 0; j < totalEdges; j++) {
-      var edgeB = edges[j];
-      var edgeBSourceY = edgeB.source.y();
-      var edgeBTargetY = edgeB.target.y();
-
-      if (edgesAreCrossing(edgeASourceY, edgeATargetY, edgeBSourceY, edgeBTargetY)) {
-        crossingLines++;
-      }
-    }
-  }
-
-  return crossingLines;
-}
-
-function edgesAreCrossing(edgeASourceY, edgeATargetY, edgeBSourceY, edgeBTargetY) {
-  return (edgeASourceY < edgeBSourceY && edgeATargetY > edgeBTargetY) ||
-         (edgeASourceY > edgeBSourceY && edgeATargetY < edgeBTargetY)
-}
-
-Column.prototype.crossingLines = function() {
-  return {
-    inputs: crossingEdges(this._allInEdges),
-    outputs: crossingEdges(this._allOutEdges)
-  }
-}
-
-Column.prototype.straightLines = function() {
-  var straightLines = 0;
-
-  var nodes = this.nodes,
-      totalNodes = nodes.length;
-
-  for (var i = 0; i < totalNodes; i++) {
-    straightLines += nodes[i].straightLines();
-  }
-
-  return straightLines;
-}
-
-Column.prototype._cacheEdges = function() {
-  this._allInEdges = [];
-  this._allOutEdges = [];
-
-  var nodes = this.nodes;
-  var totalNodes = this.nodes.length;
-  for (var i = 0; i < totalNodes; i++) {
-    this._allInEdges = this._allInEdges.concat(nodes[i]._inEdges);
-    this._allOutEdges = this._allOutEdges.concat(nodes[i]._outEdges);
   }
 }
 
@@ -533,6 +443,17 @@ function Node(opts) {
   };
 };
 
+Node.prototype.passesThroughAnyNextNode = function() {
+  for (var e in this._outEdges) {
+    var edge = this._outEdges[e];
+    if (edge.key in edge.target.node._edgeSources) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 Node.prototype.copy = function() {
   return new Node({
     id: this.id,
@@ -544,7 +465,7 @@ Node.prototype.copy = function() {
     svg: this.svg,
     equivalentBy: this.equivalentBy
   });
-}
+};
 
 Node.prototype.width = function() {
   if (this._cachedWidth == 0) {
@@ -573,50 +494,6 @@ Node.prototype.height = function() {
 
 Node.prototype.position = function() {
   return this._position;
-}
-
-Node.prototype.travel = function() {
-  var travel = 0;
-
-  var inEdges = this._inEdges,
-      totalInEdges = inEdges.length;
-
-  var outEdges = this._outEdges,
-      totalOutEdges = outEdges.length;
-
-  for (var i = 0; i < totalInEdges; i++) {
-    travel += Math.abs(inEdges[i].dy());
-  }
-
-  for (var i = 0; i < totalOutEdges; i++) {
-    travel += Math.abs(outEdges[i].dy());
-  }
-
-  return travel;
-}
-
-Node.prototype.straightLines = function() {
-  var straightLines = 0;
-
-  var inEdges = this._inEdges,
-      totalInEdges = inEdges.length;
-
-  var outEdges = this._outEdges,
-      totalOutEdges = outEdges.length;
-
-  for (var i = 0; i < totalInEdges; i++) {
-    if (inEdges[i].dy() == 0) {
-      straightLines += 1;
-    }
-  }
-
-  for (var i = 0; i < totalOutEdges; i++) {
-    if (outEdges[i].dy() == 0) {
-      straightLines += 1;
-    }
-  }
-
-  return straightLines;
 }
 
 Node.prototype.column = function() {
@@ -666,6 +543,36 @@ Node.prototype.dependsOn = function(node, stack) {
   return false;
 }
 
+Node.prototype.highestUpstreamSource = function() {
+  var minY;
+
+  var y;
+  for (var e in this._inEdges) {
+    y = this._inEdges[e].source.position().y;
+
+    if (minY === undefined || y < minY) {
+      minY = y;
+    }
+  }
+
+  return minY;
+};
+
+Node.prototype.highestDownstreamTarget = function() {
+  var minY;
+
+  var y;
+  for (var e in this._outEdges) {
+    y = this._outEdges[e].target.position().y;
+
+    if (minY === undefined || y < minY) {
+      minY = y;
+    }
+  }
+
+  return minY;
+};
+
 function Edge(source, target, key) {
   this.source = source;
   this.target = target;
@@ -674,10 +581,6 @@ function Edge(source, target, key) {
 
 Edge.prototype.id = function() {
   return this.source.id() + "-to-" + this.target.id();
-}
-
-Edge.prototype.dy = function() {
-  return this.source.y() - this.target.y();
 }
 
 Edge.prototype.path = function() {
@@ -782,15 +685,23 @@ EdgeTarget.prototype.rankOfFirstAppearance = function() {
         return inEdge.source.node.rank();
       }
 
+      var foundUpstreamInEdge = false;
       for (var j in upstreamNodeInEdges) {
         var upstreamEdge = upstreamNodeInEdges[j];
 
         if (upstreamEdge.target.key == this.key) {
+          foundUpstreamInEdge = true;
+
           var rank = upstreamEdge.target.rankOfFirstAppearance()
+
           if (rank < minRank) {
             minRank = rank;
           }
         }
+      }
+
+      if (!foundUpstreamInEdge) {
+        return inEdge.source.node.rank();
       }
     }
   }
@@ -798,23 +709,46 @@ EdgeTarget.prototype.rankOfFirstAppearance = function() {
   return minRank;
 }
 
-EdgeTarget.prototype.id = function() {
-  return this.node.id + "-" + this.key + "-target";
-}
+EdgeTarget.prototype.yOfFirstAppearance = function() {
+  var inEdges = this.node._inEdges;
+  var minY = Infinity;
+  for (var i in inEdges) {
+    var inEdge = inEdges[i];
 
-EdgeTarget.prototype.isConnected = function() {
-  var edges = this.node._inEdges;
+    if (inEdge.source.key == this.key) {
+      var upstreamNodeInEdges = inEdge.source.node._inEdges;
 
-  for (var i in edges) {
-    if (edges[i].source.key == this.key) {
-      if (edges[i].source.node._inEdges.length > 0) {
-        return true;
+      if (upstreamNodeInEdges.length == 0) {
+        return inEdge.source.node.position().y;
+      }
+
+      var foundUpstreamInEdge = false;
+      for (var j in upstreamNodeInEdges) {
+        var upstreamEdge = upstreamNodeInEdges[j];
+
+        if (upstreamEdge.target.key == this.key) {
+          foundUpstreamInEdge = true;
+
+          var y = upstreamEdge.target.yOfFirstAppearance()
+
+          if (y < minY) {
+            minY = y;
+          }
+        }
+      }
+
+      if (!foundUpstreamInEdge) {
+        return inEdge.source.node.position().y;
       }
     }
   }
 
-  return false;
-};
+  return minY;
+}
+
+EdgeTarget.prototype.id = function() {
+  return this.node.id + "-" + this.key + "-target";
+}
 
 EdgeTarget.prototype.position = function() {
   return {
@@ -828,4 +762,14 @@ EdgeTarget.prototype.y = function() {
   var index = this.node._edgeKeys.indexOf(this.key);
 
   return nodePosition.y + 10 + ((this.height() + this._spacing) * index)
+}
+
+function compareNames(a, b) {
+  var byLength = a.length - b.length;
+  if (byLength != 0) {
+    // place shorter names higher. pretty arbitrary but looks better.
+    return byLength;
+  }
+
+  return a.localeCompare(b);
 }
