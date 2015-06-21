@@ -335,16 +335,6 @@ Column.prototype.sortNodes = function() {
   var nodes = this.nodes;
 
   nodes.sort(function(a, b) {
-    // a has upstream nodes but b doesn't; sort higher
-    if (a._inEdges.length && !b._inEdges.length) {
-      return -1;
-    }
-
-    // b has upstream node but a doesn't; sort lower
-    if (!a._inEdges.length && b._inEdges.length) {
-      return 1;
-    }
-
     if (a._inEdges.length && b._inEdges.length) {
       // position nodes closer to their upstream sources
       var byHighestSource = a.highestUpstreamSource() - b.highestUpstreamSource();
@@ -358,6 +348,22 @@ Column.prototype.sortNodes = function() {
       var byHighestTarget = a.highestDownstreamTarget() - b.highestDownstreamTarget();
       if (byHighestTarget != 0) {
         return byHighestTarget;
+      }
+    }
+
+    if (a._inEdges.length && b._outEdges.length) {
+      // position nodes closer to their upstream sources or downstream targets
+      var compare = a.highestUpstreamSource() - b.highestDownstreamTarget();
+      if (compare != 0) {
+        return compare;
+      }
+    }
+
+    if (a._outEdges.length && b._inEdges.length) {
+      // position nodes closer to their upstream sources or downstream targets
+      var compare = a.highestDownstreamTarget() - b.highestUpstreamSource();
+      if (compare != 0) {
+        return compare;
       }
     }
 
