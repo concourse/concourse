@@ -167,10 +167,16 @@ Graph.prototype.layout = function() {
     }
   }
 
-  // add spacing between nodes to align with upstream/downstream;
-  // walk the columns right-to-left
-  for (var i = columns.length - 1; i >= 0; i--) {
-    columns[i].pullDown()
+  // add spacing between nodes to align with upstream/downstream
+  var changed = true;
+  while (changed) {
+    changed = false;
+
+    for (var i in columns) {
+      if (columns[i].pullDown()) {
+        changed = true;
+      }
+    }
   }
 }
 
@@ -338,6 +344,8 @@ function Column(idx) {
 }
 
 Column.prototype.pullDown = function() {
+  var pulledDown = false;
+
   for (var nodeIdx = 0; nodeIdx < this.nodes.length; nodeIdx++) {
     var node = this.nodes[nodeIdx];
 
@@ -357,6 +365,8 @@ Column.prototype.pullDown = function() {
       continue;
     }
 
+    pulledDown = true;
+
     node._position.y += delta;
 
     // shift nodes below this node down if necessary
@@ -374,6 +384,8 @@ Column.prototype.pullDown = function() {
       overlap = shiftingNode._position.y + shiftingNode.height() + this._spacing;
     }
   }
+
+  return pulledDown;
 }
 
 Column.prototype.sortNodes = function() {
