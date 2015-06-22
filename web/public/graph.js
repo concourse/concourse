@@ -357,8 +357,21 @@ Column.prototype.pullDown = function() {
       continue;
     }
 
-    for (var i = nodeIdx; i < this.nodes.length; i++) {
-      this.nodes[i]._position.y += delta;
+    node._position.y += delta;
+
+    // shift nodes below this node down if necessary
+    var overlap = node._position.y + node.height() + this._spacing;
+    for (var i = nodeIdx + 1; i < this.nodes.length; i++) {
+      var shiftingNode = this.nodes[i];
+
+      if (shiftingNode._position.y > overlap) {
+        // does not overlap with previously shifted node; stop here
+        break;
+      }
+
+      shiftingNode._position.y += delta;
+
+      overlap = shiftingNode._position.y + shiftingNode.height() + this._spacing;
     }
   }
 }
