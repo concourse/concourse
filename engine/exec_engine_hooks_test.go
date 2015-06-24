@@ -250,7 +250,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 				inputStep.ResultStub = successResult(false)
 			})
 
-			FIt("only run the failure hooks", func() {
+			It("only run the failure hooks", func() {
 				plan := atc.Plan{
 					HookedCompose: &atc.HookedComposePlan{
 						Step: atc.Plan{

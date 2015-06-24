@@ -18,14 +18,9 @@ type FakeTaskDelegate struct {
 	StartedStub        func()
 	startedMutex       sync.RWMutex
 	startedArgsForCall []struct{}
-	ResultStub        func(exec.ExitStatus)
-	resultMutex       sync.RWMutex
-	resultArgsForCall []struct {
-		arg1 exec.ExitStatus
-	}
-	FinishedStub        func(exec.ExitStatus)
-	finishedMutex       sync.RWMutex
-	finishedArgsForCall []struct {
+	ResultStub         func(exec.ExitStatus)
+	resultMutex        sync.RWMutex
+	resultArgsForCall  []struct {
 		arg1 exec.ExitStatus
 	}
 	FailedStub        func(error)
@@ -36,13 +31,13 @@ type FakeTaskDelegate struct {
 	StdoutStub        func() io.Writer
 	stdoutMutex       sync.RWMutex
 	stdoutArgsForCall []struct{}
-	stdoutReturns struct {
+	stdoutReturns     struct {
 		result1 io.Writer
 	}
 	StderrStub        func() io.Writer
 	stderrMutex       sync.RWMutex
 	stderrArgsForCall []struct{}
-	stderrReturns struct {
+	stderrReturns     struct {
 		result1 io.Writer
 	}
 }

@@ -12,7 +12,7 @@ type FakeResource struct {
 	TypeStub        func() resource.ResourceType
 	typeMutex       sync.RWMutex
 	typeArgsForCall []struct{}
-	typeReturns struct {
+	typeReturns     struct {
 		result1 resource.ResourceType
 	}
 	GetStub        func(resource.IOConfig, atc.Source, atc.Params, atc.Version) resource.VersionedSource
@@ -53,7 +53,7 @@ type FakeResource struct {
 	DestroyStub        func() error
 	destroyMutex       sync.RWMutex
 	destroyArgsForCall []struct{}
-	destroyReturns struct {
+	destroyReturns     struct {
 		result1 error
 	}
 }

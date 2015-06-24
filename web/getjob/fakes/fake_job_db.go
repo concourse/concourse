@@ -13,7 +13,7 @@ type FakeJobDB struct {
 	GetConfigStub        func() (atc.Config, db.ConfigVersion, error)
 	getConfigMutex       sync.RWMutex
 	getConfigArgsForCall []struct{}
-	getConfigReturns struct {
+	getConfigReturns     struct {
 		result1 atc.Config
 		result2 db.ConfigVersion
 		result3 error
@@ -48,7 +48,7 @@ type FakeJobDB struct {
 	GetPipelineNameStub        func() string
 	getPipelineNameMutex       sync.RWMutex
 	getPipelineNameArgsForCall []struct{}
-	getPipelineNameReturns struct {
+	getPipelineNameReturns     struct {
 		result1 string
 	}
 }

@@ -13,7 +13,7 @@ type FakeRadarDB struct {
 	GetPipelineNameStub        func() string
 	getPipelineNameMutex       sync.RWMutex
 	getPipelineNameArgsForCall []struct{}
-	getPipelineNameReturns struct {
+	getPipelineNameReturns     struct {
 		result1 string
 	}
 	ScopedNameStub        func(string) string
@@ -27,14 +27,14 @@ type FakeRadarDB struct {
 	IsPausedStub        func() (bool, error)
 	isPausedMutex       sync.RWMutex
 	isPausedArgsForCall []struct{}
-	isPausedReturns struct {
+	isPausedReturns     struct {
 		result1 bool
 		result2 error
 	}
 	GetConfigStub        func() (atc.Config, db.ConfigVersion, error)
 	getConfigMutex       sync.RWMutex
 	getConfigArgsForCall []struct{}
-	getConfigReturns struct {
+	getConfigReturns     struct {
 		result1 atc.Config
 		result2 db.ConfigVersion
 		result3 error
