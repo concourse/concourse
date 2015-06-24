@@ -30,9 +30,11 @@ var (
 
 	gitServer *gitserver.Server
 
-	successGitServer  *gitserver.Server
-	failureGitServer  *gitserver.Server
-	noUpdateGitServer *gitserver.Server
+	successGitServer       *gitserver.Server
+	failureGitServer       *gitserver.Server
+	noUpdateGitServer      *gitserver.Server
+	ensureSuccessGitServer *gitserver.Server
+	ensureFailureGitServer *gitserver.Server
 )
 
 type GardenLinuxDeploymentData struct {
@@ -76,6 +78,8 @@ var _ = BeforeSuite(func() {
 	successGitServer = gitserver.Start(helperRootfs, gardenClient)
 	failureGitServer = gitserver.Start(helperRootfs, gardenClient)
 	noUpdateGitServer = gitserver.Start(helperRootfs, gardenClient)
+	ensureSuccessGitServer = gitserver.Start(helperRootfs, gardenClient)
+	ensureFailureGitServer = gitserver.Start(helperRootfs, gardenClient)
 
 	templateData := GitPipelineTemplate{
 		DirectorUUID:              directorUUID,
@@ -99,6 +103,8 @@ var _ = BeforeSuite(func() {
 		"-v", "no-update-git-server="+noUpdateGitServer.URI(),
 		"-v", "origin-git-server="+gitServer.URI(),
 		"-v", "success-git-server="+successGitServer.URI(),
+		"-v", "ensure-success-git-server="+ensureSuccessGitServer.URI(),
+		"-v", "ensure-failure-git-server="+ensureFailureGitServer.URI(),
 		"-v", "testflight-helper-image="+helperRootfs,
 		"--paused=false",
 	)
@@ -123,6 +129,8 @@ var _ = AfterSuite(func() {
 	successGitServer.Stop()
 	failureGitServer.Stop()
 	noUpdateGitServer.Stop()
+	ensureSuccessGitServer.Stop()
+	ensureFailureGitServer.Stop()
 
 	guidserver.Stop(gardenClient)
 })

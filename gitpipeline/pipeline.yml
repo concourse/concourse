@@ -24,6 +24,18 @@ resources:
       uri: {{no-update-git-server}}
       branch: no-update
 
+  - name: some-git-resource-ensure-success
+    type: git
+    source:
+      uri: {{ensure-success-git-server}}
+      branch: ensure-success
+
+  - name: some-git-resource-ensure-failure
+    type: git
+    source:
+      uri: {{ensure-failure-git-server}}
+      branch: ensure-failure
+
 jobs:
   - name: some-passing-job
     plan:
@@ -41,9 +53,18 @@ jobs:
           run:
             path: bash
             args: ["-c", "tail -1 guids | $CURL_COMMAND"]
-      - put: some-git-resource-success
-        params:
-          repository: curl-server
+        ensure:
+          put: some-git-resource-ensure-success
+          params:
+            repository: curl-server
+        success:
+          put: some-git-resource-success
+          params:
+            repository: curl-server
+        failure:
+          put: some-git-resource-no-update
+          params:
+            repository: curl-server
 
   - name: some-failing-job
     plan:
@@ -59,14 +80,20 @@ jobs:
           run:
             path: bash
             args: ["-c", "exit 1"]
-      - aggregate:
-          - put: some-git-resource-no-update
-            params:
-              repository: curl-server
-          - put: some-git-resource-failure
-            conditions: [failure]
-            params:
-              repository: curl-server
+        ensure:
+          put: some-git-resource-ensure-failure
+          params:
+            repository: curl-server
+        success:
+          put: some-git-resource-no-update
+          params:
+            repository: curl-server
+        failure:
+          put: some-git-resource-failure
+          params:
+            repository: curl-server
+
+
 
   - name: fancy-build-matrix
     plan:
