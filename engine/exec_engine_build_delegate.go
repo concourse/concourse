@@ -423,11 +423,15 @@ func (execution *executionDelegate) Finished(status exec.ExitStatus) {
 		Location: execution.location,
 	})
 
+	execution.Result(status)
+}
+
+func (execution *executionDelegate) Result(status exec.ExitStatus) {
 	if status != 0 {
 		execution.delegate.successful = false
 	}
 
-	execution.logger.Info("finished", lager.Data{
+	execution.logger.Info("result", lager.Data{
 		"status":    status,
 		"succeeded": status == 0,
 	})

@@ -23,6 +23,8 @@ type Factory interface {
 type TaskDelegate interface {
 	Initializing(atc.TaskConfig)
 	Started()
+
+	Result(ExitStatus)
 	Finished(ExitStatus)
 	Failed(error)
 

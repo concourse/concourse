@@ -844,6 +844,19 @@ var _ = Describe("GardenFactory", func() {
 					Eventually(process.Wait()).Should(Receive(BeNil()))
 					Ω(taskDelegate.FinishedCallCount()).Should(BeZero())
 				})
+
+				It("invokes the delegate's Result callback", func() {
+					// If another build plan is resumed and sees that a task has already
+					// run it may encounter a race-condition where it assumes that the
+					// step was successful and carries on execution.
+					//
+					// Calling Result() will make sure that no false assumptions are made
+					// but it doesn't save a dupicate build event.
+
+					Eventually(process.Wait()).Should(Receive(BeNil()))
+					Ω(taskDelegate.ResultCallCount()).Should(Equal(1))
+					Ω(taskDelegate.ResultArgsForCall(0)).Should(Equal(ExitStatus(123)))
+				})
 			})
 
 			Context("when the process id can be found", func() {

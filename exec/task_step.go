@@ -82,6 +82,8 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 				return err
 			}
 
+			step.Delegate.Result(ExitStatus(step.exitStatus))
+
 			return nil
 		}
 

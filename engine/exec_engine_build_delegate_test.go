@@ -449,6 +449,126 @@ var _ = Describe("BuildDelegate", func() {
 			})
 		})
 
+		Describe("Result", func() {
+			var exitStatus exec.ExitStatus
+
+			BeforeEach(func() {
+				exitStatus = 0
+			})
+
+			JustBeforeEach(func() {
+				executionDelegate.Result(exitStatus)
+			})
+
+			Context("with a successful result", func() {
+				BeforeEach(func() {
+					exitStatus = 0
+				})
+
+				It("explicitly does not save a finish event", func() {
+					// the whole point of result is that we can idempotently
+					// report the status of a build without creating a finish event
+					Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(0))
+				})
+
+				Describe("Finish", func() {
+					var finishErr error
+
+					BeforeEach(func() {
+						finishErr = nil
+					})
+
+					JustBeforeEach(func() {
+						delegate.Finish(logger, finishErr)
+					})
+
+					Context("with success", func() {
+						BeforeEach(func() {
+							finishErr = nil
+						})
+
+						It("finishes with status 'succeeded'", func() {
+							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
+
+							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
+							Ω(buildID).Should(Equal(42))
+							Ω(savedStatus).Should(Equal(db.StatusSucceeded))
+						})
+					})
+
+					Context("with failure", func() {
+						disaster := errors.New("nope")
+
+						BeforeEach(func() {
+							finishErr = disaster
+						})
+
+						It("finishes with status 'errored'", func() {
+							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
+
+							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
+							Ω(buildID).Should(Equal(42))
+							Ω(savedStatus).Should(Equal(db.StatusErrored))
+						})
+					})
+				})
+			})
+
+			Context("with a failed result", func() {
+				BeforeEach(func() {
+					exitStatus = 1
+				})
+
+				It("does not save a finish event", func() {
+					// the whole point of result is that we can idempotently
+					// report the status of a build without creating a finish event
+					Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(0))
+				})
+
+				Describe("Finish", func() {
+					var finishErr error
+
+					BeforeEach(func() {
+						finishErr = nil
+					})
+
+					JustBeforeEach(func() {
+						delegate.Finish(logger, finishErr)
+					})
+
+					Context("with success", func() {
+						BeforeEach(func() {
+							finishErr = nil
+						})
+
+						It("finishes with status 'failed'", func() {
+							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
+
+							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
+							Ω(buildID).Should(Equal(42))
+							Ω(savedStatus).Should(Equal(db.StatusFailed))
+						})
+					})
+
+					Context("with failure", func() {
+						disaster := errors.New("nope")
+
+						BeforeEach(func() {
+							finishErr = disaster
+						})
+
+						It("finishes with status 'errored'", func() {
+							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
+
+							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
+							Ω(buildID).Should(Equal(42))
+							Ω(savedStatus).Should(Equal(db.StatusErrored))
+						})
+					})
+				})
+			})
+		})
+
 		Describe("Finished", func() {
 			var exitStatus exec.ExitStatus
 
