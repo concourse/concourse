@@ -847,8 +847,9 @@ var _ = Describe("GardenFactory", func() {
 
 				It("invokes the delegate's Result callback", func() {
 					// If another build plan is resumed and sees that a task has already
-					// run it may encounter a race-condition where it assumes that the
-					// step was successful and carries on execution.
+					// run it should restore the task's original exit status rather than
+					// just assuming everything was a-ok. Otherwise the plan is not
+					// re-entrant, idempotent, and (most importantly) not correct.
 					//
 					// Calling Result() will make sure that no false assumptions are made
 					// but it doesn't save a dupicate build event.
