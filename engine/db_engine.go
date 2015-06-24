@@ -182,6 +182,13 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 		return
 	}
 
+	if !model.IsRunning() {
+		logger.Info("build-already-finished", lager.Data{
+			"build-id": build.id,
+		})
+		return
+	}
+
 	buildEngine, found := build.engines.Lookup(model.Engine)
 	if !found {
 		logger.Error("unknown-build-engine", nil, lager.Data{

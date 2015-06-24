@@ -197,6 +197,7 @@ var _ = Describe("DBEngine", func() {
 			model = db.Build{
 				ID: 128,
 
+				Status: db.StatusStarted,
 				Engine: "fake-engine-b",
 			}
 
@@ -562,6 +563,22 @@ var _ = Describe("DBEngine", func() {
 				Context("when the build is not yet active", func() {
 					BeforeEach(func() {
 						model.Engine = ""
+						fakeBuildDB.GetBuildReturns(model, nil)
+					})
+
+					It("does not look up the build in the engine", func() {
+						Ω(fakeEngineB.LookupBuildCallCount()).Should(BeZero())
+					})
+
+					It("releases the lock", func() {
+						Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+					})
+				})
+
+				Context("when the build has already finished", func() {
+					BeforeEach(func() {
+						model.Engine = "fake-engine-b"
+						model.Status = db.StatusSucceeded
 						fakeBuildDB.GetBuildReturns(model, nil)
 					})
 

@@ -26,6 +26,38 @@ var _ = Describe("Build", func() {
 		})
 	})
 
+	Describe("IsRunning", func() {
+		It("returns true if the build is pending", func() {
+			build := db.Build{
+				Status: db.StatusPending,
+			}
+			Ω(build.Abortable()).Should(BeTrue())
+		})
+
+		It("returns true if the build is started", func() {
+			build := db.Build{
+				Status: db.StatusStarted,
+			}
+			Ω(build.Abortable()).Should(BeTrue())
+		})
+
+		It("returns false if in any other state", func() {
+			states := []db.Status{
+				db.StatusAborted,
+				db.StatusErrored,
+				db.StatusFailed,
+				db.StatusSucceeded,
+			}
+
+			for _, state := range states {
+				build := db.Build{
+					Status: state,
+				}
+				Ω(build.Abortable()).Should(BeFalse())
+			}
+		})
+	})
+
 	Describe("Abortable", func() {
 		It("returns true if the build is pending", func() {
 			build := db.Build{
