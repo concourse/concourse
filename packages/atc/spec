@@ -11,7 +11,6 @@ files:
   - code.google.com/p/go.crypto/bcrypt/*.go # gosub
   - code.google.com/p/go.crypto/blowfish/*.go # gosub
   - github.com/BurntSushi/migration/*.go # gosub
-  - github.com/augustoroman/multierror/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
   - github.com/cloudfoundry-incubator/garden/*.go # gosub
   - github.com/cloudfoundry-incubator/garden/client/*.go # gosub
