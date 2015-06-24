@@ -378,9 +378,6 @@ var _ = Describe("GardenFactory", func() {
 							Ω(status).Should(Equal(ExitStatus(0)))
 						})
 
-						It("registers the task as a source", func() {
-						})
-
 						Describe("the registered source", func() {
 							var artifactSource ArtifactSource
 
