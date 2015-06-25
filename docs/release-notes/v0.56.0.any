@@ -11,9 +11,10 @@
   Ooops. Sorry.
 }{
   The graph rendering algorithm was improved while flying at 30,000 feet in
-  true Concourse style. It's now a bazillion faster and the lines no longer
-  overlap with other nodes. The old genetic-algorithm-with-some-brute-force has
-  been naturally selected out of existence by some sweet new algorithms.
+  true Concourse style. It's now a bazillion times faster and the lines no
+  longer overlap with other nodes. The old
+  genetic-algorithm-with-some-brute-force has been naturally selected out of
+  existence by some sweet new algorithms.
 
   Consider submitting pull requests to Concourse while on a plane for
   guaranteed acceptance and merging.
