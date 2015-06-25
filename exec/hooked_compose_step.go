@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/augustoroman/multierror"
+	"github.com/hashicorp/go-multierror"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -83,7 +83,7 @@ func (hc *hookedCompose) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 		}(hook)
 	}
 
-	var errorMessages multierror.Accumulator
+	var errors error
 
 	var err error
 
@@ -91,7 +91,7 @@ func (hc *hookedCompose) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 		err = <-hookError
 
 		if err != nil {
-			errorMessages.Push(err)
+			errors = multierror.Append(errors, err)
 		}
 	}
 
@@ -110,11 +110,11 @@ func (hc *hookedCompose) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 	}
 
 	if firstStepError != nil {
-		errorMessages.Push(firstStepError)
+		errors = multierror.Append(errors, firstStepError)
 	}
 
-	if len(errorMessages) != 0 {
-		return errorMessages.Error()
+	if errors != nil {
+		return errors
 	}
 
 	if bool(succeeded) && bool(allHooksSuccessful) {

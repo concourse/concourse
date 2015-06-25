@@ -23,6 +23,11 @@ type FakeTaskDelegate struct {
 	resultArgsForCall  []struct {
 		arg1 exec.ExitStatus
 	}
+	FinishedStub        func(exec.ExitStatus)
+	finishedMutex       sync.RWMutex
+	finishedArgsForCall []struct {
+		arg1 exec.ExitStatus
+	}
 	FailedStub        func(error)
 	failedMutex       sync.RWMutex
 	failedArgsForCall []struct {

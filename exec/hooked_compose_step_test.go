@@ -271,7 +271,9 @@ var _ = Describe("Hooked Compose", func() {
 						})
 
 						It("exits with its error result", func() {
-							Eventually(process.Wait()).Should(Receive(ConsistOf(err)))
+							var receivedError error
+							Eventually(process.Wait()).Should(Receive(&receivedError))
+							Ω(receivedError.Error()).Should(ContainSubstring(err.Error()))
 						})
 
 						It("does not proceed to the next step", func() {
@@ -295,7 +297,10 @@ var _ = Describe("Hooked Compose", func() {
 						})
 
 						It("exits with a combined error result", func() {
-							Eventually(process.Wait()).Should(Receive(ConsistOf(errOne, errTwo)))
+							var receivedError error
+							Eventually(process.Wait()).Should(Receive(&receivedError))
+							Ω(receivedError.Error()).Should(ContainSubstring(errOne.Error()))
+							Ω(receivedError.Error()).Should(ContainSubstring(errTwo.Error()))
 						})
 
 						It("does not proceed to the next step", func() {
@@ -371,7 +376,9 @@ var _ = Describe("Hooked Compose", func() {
 
 					process.Signal(os.Interrupt)
 
-					Eventually(process.Wait()).Should(Receive(ConsistOf(ErrInterrupted)))
+					var receivedError error
+					Eventually(process.Wait()).Should(Receive(&receivedError))
+					Ω(receivedError.Error()).Should(ContainSubstring(ErrInterrupted.Error()))
 				})
 			})
 
@@ -392,7 +399,9 @@ var _ = Describe("Hooked Compose", func() {
 
 					process.Signal(os.Interrupt)
 
-					Eventually(process.Wait()).Should(Receive(ConsistOf(ErrInterrupted)))
+					var receivedError error
+					Eventually(process.Wait()).Should(Receive(&receivedError))
+					Ω(receivedError.Error()).Should(ContainSubstring(ErrInterrupted.Error()))
 				})
 			})
 
@@ -543,7 +552,9 @@ var _ = Describe("Hooked Compose", func() {
 					})
 
 					It("exits with its error result", func() {
-						Eventually(process.Wait()).Should(Receive(ConsistOf(disaster)))
+						var receivedError error
+						Eventually(process.Wait()).Should(Receive(&receivedError))
+						Ω(receivedError.Error()).Should(ContainSubstring(disaster.Error()))
 					})
 
 					Describe("releasing", func() {
@@ -591,7 +602,9 @@ var _ = Describe("Hooked Compose", func() {
 					})
 
 					It("exits with its error result", func() {
-						Eventually(process.Wait()).Should(Receive(ConsistOf(disaster)))
+						var receivedError error
+						Eventually(process.Wait()).Should(Receive(&receivedError))
+						Ω(receivedError.Error()).Should(ContainSubstring(disaster.Error()))
 					})
 
 					Describe("releasing", func() {
@@ -839,7 +852,9 @@ var _ = Describe("Hooked Compose", func() {
 						})
 
 						It("exits with its error result", func() {
-							Eventually(process.Wait()).Should(Receive(ConsistOf(disaster)))
+							var receivedError error
+							Eventually(process.Wait()).Should(Receive(&receivedError))
+							Ω(receivedError.Error()).Should(ContainSubstring(disaster.Error()))
 						})
 
 						Describe("releasing", func() {
@@ -894,7 +909,9 @@ var _ = Describe("Hooked Compose", func() {
 						})
 
 						It("exits with its error result", func() {
-							Eventually(process.Wait()).Should(Receive(ConsistOf(disaster)))
+							var receivedError error
+							Eventually(process.Wait()).Should(Receive(&receivedError))
+							Ω(receivedError.Error()).Should(ContainSubstring(disaster.Error()))
 						})
 
 						Describe("releasing", func() {
@@ -975,7 +992,9 @@ var _ = Describe("Hooked Compose", func() {
 
 				process.Signal(os.Interrupt)
 
-				Eventually(process.Wait()).Should(Receive(ConsistOf(ErrInterrupted)))
+				var receivedError error
+				Eventually(process.Wait()).Should(Receive(&receivedError))
+				Ω(receivedError.Error()).Should(ContainSubstring(ErrInterrupted.Error()))
 
 				Ω(fakeStepFactoryNextStep.UsingCallCount()).Should(BeZero())
 			})
@@ -991,8 +1010,9 @@ var _ = Describe("Hooked Compose", func() {
 
 				process.Signal(os.Interrupt)
 
-				Eventually(process.Wait()).Should(Receive(ConsistOf(ErrInterrupted)))
-
+				var receivedError error
+				Eventually(process.Wait()).Should(Receive(&receivedError))
+				Ω(receivedError.Error()).Should(ContainSubstring(ErrInterrupted.Error()))
 				Ω(fakeStepFactoryNextStep.UsingCallCount()).Should(BeZero())
 			})
 		})
@@ -1210,7 +1230,9 @@ var _ = Describe("Hooked Compose", func() {
 			})
 
 			It("exits with its error result", func() {
-				Eventually(process.Wait()).Should(Receive(ConsistOf(disaster)))
+				var receivedError error
+				Eventually(process.Wait()).Should(Receive(&receivedError))
+				Ω(receivedError.Error()).Should(ContainSubstring(disaster.Error()))
 			})
 
 			It("does not proceed to the next step", func() {
@@ -1256,7 +1278,9 @@ var _ = Describe("Hooked Compose", func() {
 			})
 
 			It("exits with its error result", func() {
-				Eventually(process.Wait()).Should(Receive(ConsistOf(disaster)))
+				var receivedError error
+				Eventually(process.Wait()).Should(Receive(&receivedError))
+				Ω(receivedError.Error()).Should(ContainSubstring(disaster.Error()))
 			})
 
 			It("does not proceed to the next step", func() {
