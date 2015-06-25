@@ -25,5 +25,11 @@
 
   Stay tuned for the next release when conditionals get upgraded and this
   change is even better.
+}{
+  The \hyperlink{https://github.com/concourse/cf-resource}{Cloud Foundry resource}
+  now allows environment variables to be specified in your \code{put:}
+  parameters.  These will be propagated to you applications when they're
+  pushed.  For more details, see the
+  \hyperlink{https://github.com/concourse/cf-resource/blob/master/README.md}{README}.
 }
 
