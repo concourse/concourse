@@ -170,3 +170,7 @@
 	path = src/github.com/concourse/baggageclaim
 	url = https://github.com/concourse/baggageclaim
 	branch = master
+[submodule "src/github.com/augustoroman/multierror"]
+	path = src/github.com/augustoroman/multierror
+	url = https://github.com/augustoroman/multierror
+	branch = master
