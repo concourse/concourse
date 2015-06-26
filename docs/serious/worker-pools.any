@@ -81,7 +81,7 @@ subset of the worker's tags, by setting \reference{step-tags}.
     \italic{Required.} The address of the Garden server. Note that this address
     must be reachable by the ATC, and has no authentication. For this reason it
     should always be an address only reachable from within Concourse's private
-    network. To register external workers, see \reference{configuring-workers}.
+    network. To register external workers, see \reference{external-workers}.
   }
 
   \define{active_containers}{integer}{
