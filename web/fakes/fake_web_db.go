@@ -21,7 +21,7 @@ type FakeWebDB struct {
 	GetAllBuildsStub        func() ([]db.Build, error)
 	getAllBuildsMutex       sync.RWMutex
 	getAllBuildsArgsForCall []struct{}
-	getAllBuildsReturns     struct {
+	getAllBuildsReturns struct {
 		result1 []db.Build
 		result2 error
 	}
