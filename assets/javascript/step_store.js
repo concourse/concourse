@@ -191,6 +191,18 @@ function StepModel(origin) {
     return !!this.origin().substep;
   }
 
+  this.isHook = function() {
+    return this.origin().hook != "" && this.origin().hook != "aggregate-";
+  }
+
+  this.hookName = function() {
+    return this.origin().hook;
+  }
+
+  this.hookClassName = function() {
+    return "hook-" + this.origin().hook;
+  }
+
   this.isSuccessful = function() {
     return this._map.get("successful");
   }

@@ -38,3 +38,32 @@
 .list-enableDisable .disabled {
   opacity: 0.5;
 }
+
+.hooks {
+  margin-left: 1em;
+  margin-top: -10px;
+}
+
+[class*="has-hook-aggregate-"]{
+  margin-left: 0px;
+  margin-top: 0px;
+}
+
+
+.hook-success, .hook-aggregate-success {
+  .hook-icon {
+    color: @base0B;
+  }
+}
+
+.hook-ensure, .hook-aggregate-ensure {
+  .hook-icon {
+    color: @base0E;
+  }
+}
+
+.hook-failure, .hook-aggregate-failure  {
+  .hook-icon {
+    color: @base08;
+  }
+}

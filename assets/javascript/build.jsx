@@ -60,6 +60,25 @@ var Build = React.createClass({
 
         var classes = ["nest"];
 
+
+        var hasHooks = false;
+        for(var i = 0; i <= ele.size - 1; i++){
+          if(ele.get(i) !== undefined && ele.get(i).props !== undefined) {
+            if(ele.get(i).props.model.isHook()){
+              var hookClassName = "has-" + ele.get(i).props.model.hookClassName();
+
+              if(classes.indexOf(hookClassName) == -1){
+                classes.push(hookClassName);
+              }
+              hasHooks = true;
+            }
+          }
+        }
+
+        if (hasHooks){
+          classes.push("hooks");
+        };
+
         if (key.length % 2 === 0) {
           classes.push("even");
         } else {
