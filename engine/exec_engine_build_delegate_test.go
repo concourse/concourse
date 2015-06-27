@@ -64,7 +64,7 @@ var _ = Describe("BuildDelegate", func() {
 				Params:   atc.Params{"some": "params"},
 			}
 
-			inputDelegate = delegate.InputDelegate(logger, getPlan, location, substep)
+			inputDelegate = delegate.InputDelegate(logger, getPlan, location, substep, "some-input-hook")
 		})
 
 		Describe("Completed", func() {
@@ -111,6 +111,7 @@ var _ = Describe("BuildDelegate", func() {
 							Name:     "some-input",
 							Location: location,
 							Substep:  substep,
+							Hook:     "some-input-hook",
 						},
 						Plan: event.GetPlan{
 							Name:     "some-input",
@@ -187,6 +188,7 @@ var _ = Describe("BuildDelegate", func() {
 							Name:     "some-input",
 							Location: location,
 							Substep:  substep,
+							Hook:     "some-input-hook",
 						},
 						Plan: event.GetPlan{
 							Name:     "some-input",
@@ -259,7 +261,7 @@ var _ = Describe("BuildDelegate", func() {
 							Params:   atc.Params{"some": "output-params"},
 						}
 
-						outputDelegate = delegate.OutputDelegate(logger, putPlan, location)
+						outputDelegate = delegate.OutputDelegate(logger, putPlan, location, "some-output-hook")
 					})
 
 					JustBeforeEach(func() {
@@ -319,6 +321,7 @@ var _ = Describe("BuildDelegate", func() {
 						Name:     "some-input",
 						Location: location,
 						Substep:  substep,
+						Hook:     "some-input-hook",
 					},
 					Message: "nope",
 				}))
@@ -347,6 +350,7 @@ var _ = Describe("BuildDelegate", func() {
 						Source:   event.OriginSourceStdout,
 						Location: location,
 						Substep:  substep,
+						Hook:     "some-input-hook",
 					},
 					Payload: "some stdout",
 				}))
@@ -375,6 +379,7 @@ var _ = Describe("BuildDelegate", func() {
 						Source:   event.OriginSourceStderr,
 						Location: location,
 						Substep:  substep,
+						Hook:     "some-input-hook",
 					},
 					Payload: "some stderr",
 				}))
@@ -395,7 +400,7 @@ var _ = Describe("BuildDelegate", func() {
 				ConfigPath: "/etc/concourse/config.yml",
 			}
 
-			executionDelegate = delegate.ExecutionDelegate(logger, taskPlan, location)
+			executionDelegate = delegate.ExecutionDelegate(logger, taskPlan, location, "some-task-hook")
 		})
 
 		Describe("Initializing", func() {
@@ -424,6 +429,7 @@ var _ = Describe("BuildDelegate", func() {
 						Type:     event.OriginTypeTask,
 						Name:     "some-task",
 						Location: location,
+						Hook:     "some-task-hook",
 					},
 				}))
 			})
@@ -445,6 +451,7 @@ var _ = Describe("BuildDelegate", func() {
 					Type:     event.OriginTypeTask,
 					Name:     "some-task",
 					Location: location,
+					Hook:     "some-task-hook",
 				}))
 			})
 		})
@@ -597,6 +604,7 @@ var _ = Describe("BuildDelegate", func() {
 						Type:     event.OriginTypeTask,
 						Name:     "some-task",
 						Location: location,
+						Hook:     "some-task-hook",
 					}))
 				})
 
@@ -660,6 +668,7 @@ var _ = Describe("BuildDelegate", func() {
 						Type:     event.OriginTypeTask,
 						Name:     "some-task",
 						Location: location,
+						Hook:     "some-task-hook",
 					}))
 				})
 
@@ -727,6 +736,7 @@ var _ = Describe("BuildDelegate", func() {
 						Type:     event.OriginTypeTask,
 						Name:     "some-task",
 						Location: location,
+						Hook:     "some-task-hook",
 					},
 				}))
 			})
@@ -753,6 +763,7 @@ var _ = Describe("BuildDelegate", func() {
 						Name:     "some-task",
 						Source:   event.OriginSourceStdout,
 						Location: location,
+						Hook:     "some-task-hook",
 					},
 					Payload: "some stdout",
 				}))
@@ -780,6 +791,7 @@ var _ = Describe("BuildDelegate", func() {
 						Name:     "some-task",
 						Source:   event.OriginSourceStderr,
 						Location: location,
+						Hook:     "some-task-hook",
 					},
 					Payload: "some stderr",
 				}))
@@ -804,7 +816,7 @@ var _ = Describe("BuildDelegate", func() {
 				Params:   atc.Params{"some": "params"},
 			}
 
-			outputDelegate = delegate.OutputDelegate(logger, putPlan, location)
+			outputDelegate = delegate.OutputDelegate(logger, putPlan, location, "some-output-hook")
 		})
 
 		Describe("Completed", func() {
@@ -847,6 +859,7 @@ var _ = Describe("BuildDelegate", func() {
 							Type:     event.OriginTypePut,
 							Name:     "some-output-name",
 							Location: location,
+							Hook:     "some-output-hook",
 						},
 						Plan: event.PutPlan{
 							Name:     "some-output-name",
@@ -892,6 +905,7 @@ var _ = Describe("BuildDelegate", func() {
 							Type:     event.OriginTypePut,
 							Name:     "some-output-name",
 							Location: location,
+							Hook:     "some-output-hook",
 						},
 						Plan: event.PutPlan{
 							Name:     "some-output-name",
@@ -953,6 +967,7 @@ var _ = Describe("BuildDelegate", func() {
 						Type:     event.OriginTypePut,
 						Name:     "some-output-name",
 						Location: location,
+						Hook:     "some-output-hook",
 					},
 					Message: "nope",
 				}))
@@ -980,6 +995,7 @@ var _ = Describe("BuildDelegate", func() {
 						Name:     "some-output-name",
 						Source:   event.OriginSourceStdout,
 						Location: location,
+						Hook:     "some-output-hook",
 					},
 					Payload: "some stdout",
 				}))
@@ -1007,6 +1023,7 @@ var _ = Describe("BuildDelegate", func() {
 						Name:     "some-output-name",
 						Source:   event.OriginSourceStderr,
 						Location: location,
+						Hook:     "some-output-hook",
 					},
 					Payload: "some stderr",
 				}))

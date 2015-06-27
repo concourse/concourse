@@ -35,13 +35,17 @@ var Step = React.createClass({
     }
 
     var cx = React.addons.classSet;
-    var classNames = cx({
+    var hookClassName = model.hookClassName();
+    var classSetClasses ={
       "build-step": true,
       "running": model.isRunning(),
       "first-occurrence": model.isFirstOccurrence() && !model.isSubStep(),
       "substep": model.isSubStep(),
-    });
+      "hook": model.isHook()
+    }
 
+    classSetClasses[hookClassName] = model.isHook();
+    var classNames = cx(classSetClasses);
     var displayLogs = model.isShowingLogs() ? 'block' : 'none';
 
     var classes = ["left", "fa", "fa-fw"];
@@ -55,6 +59,11 @@ var Step = React.createClass({
     case "task":
       classes.push("fa-terminal");
       break;
+    }
+
+    var hookIcon = "";
+    if(model.isHook()){
+      hookIcon = <i className="left fa fa-fw fa-link hook-icon"></i>
     }
 
     var status = "";
@@ -74,6 +83,7 @@ var Step = React.createClass({
       <div className={classNames}>
         <div className="header" onClick={this.toggleLogs}>
           {status}
+          {hookIcon}
 
           <i className={classes.join(" ")}></i>
 
@@ -82,6 +92,7 @@ var Step = React.createClass({
           <h3>{model.origin().name}</h3>
 
           <div style={{clear: 'both'}}></div>
+
         </div>
 
         <div className="step-body" style={{display: displayLogs}}>

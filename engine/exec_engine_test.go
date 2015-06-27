@@ -294,10 +294,11 @@ var _ = Describe("ExecEngine", func() {
 
 					Ω(tags).Should(BeEmpty())
 					Ω(delegate).Should(Equal(fakeInputDelegate))
-					_, plan, location, substep := fakeDelegate.InputDelegateArgsForCall(1)
+					_, plan, location, substep, hook := fakeDelegate.InputDelegateArgsForCall(1)
 					Ω(plan).Should(Equal((*outputPlan.Plan.Aggregate)[0].Conditional.Plan.PutGet.Head.Put.GetPlan()))
 					Ω(location).Should(Equal(event.OriginLocation{2, 0, 1}))
 					Ω(substep).Should(BeTrue())
+					Ω(hook).Should(Equal(""))
 
 					Ω(sourceName).Should(Equal(exec.SourceName("some-put")))
 					Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
@@ -315,10 +316,11 @@ var _ = Describe("ExecEngine", func() {
 
 					Ω(tags).Should(BeEmpty())
 					Ω(delegate).Should(Equal(fakeInputDelegate))
-					_, plan, location, substep = fakeDelegate.InputDelegateArgsForCall(2)
+					_, plan, location, substep, hook = fakeDelegate.InputDelegateArgsForCall(2)
 					Ω(plan).Should(Equal((*outputPlan.Plan.Aggregate)[1].Conditional.Plan.PutGet.Head.Put.GetPlan()))
 					Ω(location).Should(Equal(event.OriginLocation{2, 0, 3}))
 					Ω(substep).Should(BeTrue())
+					Ω(hook).Should(Equal(""))
 
 					Ω(sourceName).Should(Equal(exec.SourceName("some-put-2")))
 					Ω(resourceConfig.Name).Should(Equal("some-output-resource-2"))
@@ -344,10 +346,11 @@ var _ = Describe("ExecEngine", func() {
 			Ω(tags).Should(ConsistOf("some", "get", "tags"))
 
 			Ω(delegate).Should(Equal(fakeInputDelegate))
-			_, plan, location, substep := fakeDelegate.InputDelegateArgsForCall(0)
+			_, plan, location, substep, hook := fakeDelegate.InputDelegateArgsForCall(0)
 			Ω(plan).Should(Equal(*inputPlan))
 			Ω(location).Should(Equal(event.OriginLocation{0, 0}))
 			Ω(substep).Should(BeFalse())
+			Ω(hook).Should(Equal("aggregate-"))
 
 			Ω(resourceConfig.Name).Should(Equal("some-input-resource"))
 			Ω(resourceConfig.Type).Should(Equal("some-type"))
@@ -405,10 +408,11 @@ var _ = Describe("ExecEngine", func() {
 				Ω(tags).Should(ConsistOf("some", "putget", "tags"))
 
 				Ω(delegate).Should(Equal(fakeInputDelegate))
-				_, plan, location, substep := fakeDelegate.InputDelegateArgsForCall(1)
+				_, plan, location, substep, hook := fakeDelegate.InputDelegateArgsForCall(1)
 				Ω(plan).Should(Equal(outputPlan.Plan.PutGet.Head.Put.GetPlan()))
 				Ω(location).Should(Equal(event.OriginLocation{2, 1}))
 				Ω(substep).Should(BeTrue())
+				Ω(hook).Should(Equal(""))
 
 				Ω(sourceName).Should(Equal(exec.SourceName("some-put")))
 				Ω(resourceConfig.Name).Should(Equal("some-output-resource"))

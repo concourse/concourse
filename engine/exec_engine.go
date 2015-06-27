@@ -94,7 +94,7 @@ func (build *execBuild) Abort() error {
 }
 
 func (build *execBuild) Resume(logger lager.Logger) {
-	stepFactory, _ := build.buildStepFactory(logger, build.metadata.Plan, event.OriginLocation{0})
+	stepFactory, _ := build.buildStepFactory(logger, build.metadata.Plan, event.OriginLocation{0}, "")
 	source := stepFactory.Using(&exec.NoopStep{}, exec.NewSourceRepository())
 
 	defer source.Release()
@@ -119,7 +119,7 @@ func (build *execBuild) Resume(logger lager.Logger) {
 	}
 }
 
-func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, location event.OriginLocation) (exec.StepFactory, event.OriginLocationIncrement) {
+func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, location event.OriginLocation, hook string) (exec.StepFactory, event.OriginLocationIncrement) {
 	if plan.Aggregate != nil {
 		logger = logger.Session("aggregate")
 
@@ -127,7 +127,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 
 		var aID event.OriginLocationIncrement = 0
 		for _, innerPlan := range *plan.Aggregate {
-			stepFactory, locationIncrement := build.buildStepFactory(logger, innerPlan, location.Chain(uint(aID)))
+			stepFactory, locationIncrement := build.buildStepFactory(logger, innerPlan, location.Chain(uint(aID)), "aggregate-"+hook)
 			step = append(step, stepFactory)
 			aID = aID + locationIncrement
 		}
@@ -136,19 +136,18 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 	}
 
 	if plan.HookedCompose != nil {
-		step, stepIncrement := build.buildStepFactory(logger, plan.HookedCompose.Step, location)
-		location = location.Incr(stepIncrement)
-		failure, failureIncrement := build.buildStepFactory(logger, plan.HookedCompose.OnFailure, location.Chain(0))
-		success, successIncrement := build.buildStepFactory(logger, plan.HookedCompose.OnSuccess, location.Chain(uint(failureIncrement)))
-		ensure, _ := build.buildStepFactory(logger, plan.HookedCompose.OnCompletion, location.Chain(uint(failureIncrement+successIncrement)))
+		step, stepIncrement := build.buildStepFactory(logger, plan.HookedCompose.Step, location, hook)
+		ensure, ensureIncrement := build.buildStepFactory(logger, plan.HookedCompose.OnCompletion, location.Incr(stepIncrement).Chain(0), "ensure")
+		failure, failureIncrement := build.buildStepFactory(logger, plan.HookedCompose.OnFailure, location.Incr(stepIncrement).Chain(uint(ensureIncrement)), "failure")
+		success, successIncrement := build.buildStepFactory(logger, plan.HookedCompose.OnSuccess, location.Incr(stepIncrement).Chain(uint(ensureIncrement)), "success")
+		nextStep, nextStepIncrement := build.buildStepFactory(logger, plan.HookedCompose.Next, location.Incr(stepIncrement+1), hook)
 
-		nextStep, nextStepIncrement := build.buildStepFactory(logger, plan.HookedCompose.Next, location.Incr(stepIncrement))
-		return exec.HookedCompose(step, nextStep, failure, success, ensure), stepIncrement + nextStepIncrement
+		return exec.HookedCompose(step, nextStep, failure, success, ensure), stepIncrement + nextStepIncrement + ensureIncrement + failureIncrement + successIncrement + 1
 	}
 
 	if plan.Compose != nil {
-		x, xLocationIncrement := build.buildStepFactory(logger, plan.Compose.A, location)
-		y, yLocationIncrement := build.buildStepFactory(logger, plan.Compose.B, location.Incr(xLocationIncrement))
+		x, xLocationIncrement := build.buildStepFactory(logger, plan.Compose.A, location, "")
+		y, yLocationIncrement := build.buildStepFactory(logger, plan.Compose.B, location.Incr(xLocationIncrement), "")
 		return exec.Compose(x, y), xLocationIncrement + yLocationIncrement
 	}
 
@@ -157,7 +156,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 			"on": plan.Conditional.Conditions,
 		})
 
-		steps, locationIncrement := build.buildStepFactory(logger, plan.Conditional.Plan, location)
+		steps, locationIncrement := build.buildStepFactory(logger, plan.Conditional.Plan, location, "")
 
 		return exec.Conditional{
 			Conditions:  plan.Conditional.Conditions,
@@ -185,7 +184,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 		return build.factory.Task(
 			exec.SourceName(plan.Task.Name),
 			build.taskIdentifier(plan.Task.Name, location),
-			build.delegate.ExecutionDelegate(logger, *plan.Task, location),
+			build.delegate.ExecutionDelegate(logger, *plan.Task, location, hook),
 			exec.Privileged(plan.Task.Privileged),
 			plan.Task.Tags,
 			configSource,
@@ -200,7 +199,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 		return build.factory.Get(
 			exec.SourceName(plan.Get.Name),
 			build.getIdentifier(plan.Get.Name, location),
-			build.delegate.InputDelegate(logger, *plan.Get, location, false),
+			build.delegate.InputDelegate(logger, *plan.Get, location, false, hook),
 			atc.ResourceConfig{
 				Name:   plan.Get.Resource,
 				Type:   plan.Get.Type,
@@ -223,12 +222,12 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 		getLocation := location.Incr(1)
 		restLocation := location.Incr(2)
 
-		restOfSteps, restLocationIncrement := build.buildStepFactory(logger, plan.PutGet.Rest, restLocation)
+		restOfSteps, restLocationIncrement := build.buildStepFactory(logger, plan.PutGet.Rest, restLocation, "")
 
 		return exec.HookedCompose(
 			build.factory.Put(
 				build.putIdentifier(putPlan.Resource, location),
-				build.delegate.OutputDelegate(logger, *putPlan, location),
+				build.delegate.OutputDelegate(logger, *putPlan, location, hook),
 				atc.ResourceConfig{
 					Name:   putPlan.Resource,
 					Type:   putPlan.Type,
@@ -242,7 +241,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 			build.factory.DependentGet(
 				exec.SourceName(getPlan.Name),
 				build.getIdentifier(getPlan.Name, getLocation),
-				build.delegate.InputDelegate(logger, getPlan, getLocation, true),
+				build.delegate.InputDelegate(logger, getPlan, getLocation, true, hook),
 				atc.ResourceConfig{
 					Name:   getPlan.Resource,
 					Type:   getPlan.Type,

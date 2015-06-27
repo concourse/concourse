@@ -21,9 +21,9 @@ type implicitOutput struct {
 //go:generate counterfeiter . BuildDelegate
 
 type BuildDelegate interface {
-	InputDelegate(lager.Logger, atc.GetPlan, event.OriginLocation, bool) exec.GetDelegate
-	ExecutionDelegate(lager.Logger, atc.TaskPlan, event.OriginLocation) exec.TaskDelegate
-	OutputDelegate(lager.Logger, atc.PutPlan, event.OriginLocation) exec.PutDelegate
+	InputDelegate(lager.Logger, atc.GetPlan, event.OriginLocation, bool, string) exec.GetDelegate
+	ExecutionDelegate(lager.Logger, atc.TaskPlan, event.OriginLocation, string) exec.TaskDelegate
+	OutputDelegate(lager.Logger, atc.PutPlan, event.OriginLocation, string) exec.PutDelegate
 
 	Finish(lager.Logger, error)
 	Aborted(lager.Logger)
@@ -73,31 +73,34 @@ func newBuildDelegate(db EngineDB, buildID int) BuildDelegate {
 	}
 }
 
-func (delegate *delegate) InputDelegate(logger lager.Logger, plan atc.GetPlan, location event.OriginLocation, substep bool) exec.GetDelegate {
+func (delegate *delegate) InputDelegate(logger lager.Logger, plan atc.GetPlan, location event.OriginLocation, substep bool, hook string) exec.GetDelegate {
 	return &inputDelegate{
 		logger:   logger,
 		plan:     plan,
 		location: location,
 		delegate: delegate,
 		substep:  substep,
+		hook:     hook,
 	}
 }
 
-func (delegate *delegate) OutputDelegate(logger lager.Logger, plan atc.PutPlan, location event.OriginLocation) exec.PutDelegate {
+func (delegate *delegate) OutputDelegate(logger lager.Logger, plan atc.PutPlan, location event.OriginLocation, hook string) exec.PutDelegate {
 	return &outputDelegate{
 		logger:   logger,
 		plan:     plan,
 		location: location,
 		delegate: delegate,
+		hook:     hook,
 	}
 }
 
-func (delegate *delegate) ExecutionDelegate(logger lager.Logger, plan atc.TaskPlan, location event.OriginLocation) exec.TaskDelegate {
+func (delegate *delegate) ExecutionDelegate(logger lager.Logger, plan atc.TaskPlan, location event.OriginLocation, hook string) exec.TaskDelegate {
 	return &executionDelegate{
 		logger:   logger,
 		plan:     plan,
 		location: location,
 		delegate: delegate,
+		hook:     hook,
 	}
 }
 
@@ -288,7 +291,7 @@ type inputDelegate struct {
 	plan     atc.GetPlan
 	location event.OriginLocation
 	substep  bool
-
+	hook     string
 	delegate *delegate
 }
 
@@ -302,6 +305,7 @@ func (input *inputDelegate) Completed(status exec.ExitStatus, info exec.VersionI
 		Name:     input.plan.Name,
 		Location: input.location,
 		Substep:  input.substep,
+		Hook:     input.hook,
 	})
 	input.delegate.registerImplicitOutput(input.plan.Resource, implicitOutput{input.plan, info})
 	input.logger.Info("finished", lager.Data{"version-info": info})
@@ -313,6 +317,7 @@ func (input *inputDelegate) Failed(err error) {
 		Name:     input.plan.Name,
 		Location: input.location,
 		Substep:  input.substep,
+		Hook:     input.hook,
 	})
 
 	input.logger.Error("errored", err)
@@ -325,6 +330,7 @@ func (input *inputDelegate) Stdout() io.Writer {
 		Source:   event.OriginSourceStdout,
 		Location: input.location,
 		Substep:  input.substep,
+		Hook:     input.hook,
 	})
 }
 
@@ -335,6 +341,7 @@ func (input *inputDelegate) Stderr() io.Writer {
 		Source:   event.OriginSourceStderr,
 		Location: input.location,
 		Substep:  input.substep,
+		Hook:     input.hook,
 	})
 }
 
@@ -345,6 +352,7 @@ type outputDelegate struct {
 	location event.OriginLocation
 
 	delegate *delegate
+	hook     string
 }
 
 func (output *outputDelegate) Completed(status exec.ExitStatus, info exec.VersionInfo) {
@@ -357,6 +365,7 @@ func (output *outputDelegate) Completed(status exec.ExitStatus, info exec.Versio
 		Type:     event.OriginTypePut,
 		Name:     output.plan.Name,
 		Location: output.location,
+		Hook:     output.hook,
 	})
 	output.logger.Info("finished", lager.Data{"version-info": info})
 }
@@ -366,6 +375,7 @@ func (output *outputDelegate) Failed(err error) {
 		Type:     event.OriginTypePut,
 		Name:     output.plan.Name,
 		Location: output.location,
+		Hook:     output.hook,
 	})
 
 	output.logger.Error("errored", err)
@@ -377,6 +387,7 @@ func (output *outputDelegate) Stdout() io.Writer {
 		Name:     output.plan.Name,
 		Source:   event.OriginSourceStdout,
 		Location: output.location,
+		Hook:     output.hook,
 	})
 }
 
@@ -386,6 +397,7 @@ func (output *outputDelegate) Stderr() io.Writer {
 		Name:     output.plan.Name,
 		Source:   event.OriginSourceStderr,
 		Location: output.location,
+		Hook:     output.hook,
 	})
 }
 
@@ -396,6 +408,8 @@ type executionDelegate struct {
 	location event.OriginLocation
 
 	delegate *delegate
+
+	hook string
 }
 
 func (execution *executionDelegate) Initializing(config atc.TaskConfig) {
@@ -403,6 +417,7 @@ func (execution *executionDelegate) Initializing(config atc.TaskConfig) {
 		Type:     event.OriginTypeTask,
 		Name:     execution.plan.Name,
 		Location: execution.location,
+		Hook:     execution.hook,
 	})
 }
 
@@ -411,6 +426,7 @@ func (execution *executionDelegate) Started() {
 		Type:     event.OriginTypeTask,
 		Name:     execution.plan.Name,
 		Location: execution.location,
+		Hook:     execution.hook,
 	})
 
 	execution.logger.Info("started")
@@ -421,6 +437,7 @@ func (execution *executionDelegate) Finished(status exec.ExitStatus) {
 		Type:     event.OriginTypeTask,
 		Name:     execution.plan.Name,
 		Location: execution.location,
+		Hook:     execution.hook,
 	})
 
 	execution.Result(status)
@@ -442,6 +459,7 @@ func (execution *executionDelegate) Failed(err error) {
 		Type:     event.OriginTypeTask,
 		Name:     execution.plan.Name,
 		Location: execution.location,
+		Hook:     execution.hook,
 	})
 	execution.logger.Error("errored", err)
 }
@@ -452,6 +470,7 @@ func (execution *executionDelegate) Stdout() io.Writer {
 		Name:     execution.plan.Name,
 		Source:   event.OriginSourceStdout,
 		Location: execution.location,
+		Hook:     execution.hook,
 	})
 }
 
@@ -461,6 +480,7 @@ func (execution *executionDelegate) Stderr() io.Writer {
 		Name:     execution.plan.Name,
 		Source:   event.OriginSourceStderr,
 		Location: execution.location,
+		Hook:     execution.hook,
 	})
 }
 

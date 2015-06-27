@@ -50,6 +50,7 @@ func (hc hookedCompose) Using(prev Step, repo *SourceRepository) Step {
 
 func (hc *hookedCompose) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	hc.firstStep = hc.step.Using(hc.prev, hc.repo)
+	hc.nextStep = &NoopStep{}
 
 	firstStepError := hc.backgroundProcess(hc.firstStep, signals)
 
@@ -57,8 +58,7 @@ func (hc *hookedCompose) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 	// if whatever step I just ran cannot respond to success, we want to return a noop
 	if !hc.firstStep.Result(&succeeded) {
-		noop := &NoopStep{}
-		return noop.Run(signals, ready)
+		succeeded = false
 	}
 
 	hc.ensureStep = hc.ensure.Using(hc.firstStep, hc.repo)
@@ -119,8 +119,6 @@ func (hc *hookedCompose) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 	if bool(succeeded) && bool(allHooksSuccessful) {
 		hc.nextStep = hc.next.Using(hc.firstStep, hc.repo)
-	} else {
-		hc.nextStep = &NoopStep{}
 	}
 
 	return hc.nextStep.Run(signals, ready)
