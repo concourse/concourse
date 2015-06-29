@@ -137,9 +137,9 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 
 	if plan.HookedCompose != nil {
 		step, stepIncrement := build.buildStepFactory(logger, plan.HookedCompose.Step, location, hook)
-		ensure, ensureIncrement := build.buildStepFactory(logger, plan.HookedCompose.OnCompletion, location.Incr(stepIncrement).Chain(0), "ensure")
-		failure, failureIncrement := build.buildStepFactory(logger, plan.HookedCompose.OnFailure, location.Incr(stepIncrement).Chain(uint(ensureIncrement)), "failure")
-		success, successIncrement := build.buildStepFactory(logger, plan.HookedCompose.OnSuccess, location.Incr(stepIncrement).Chain(uint(ensureIncrement)), "success")
+		failure, failureIncrement := build.buildStepFactory(logger, plan.HookedCompose.OnFailure, location.Incr(stepIncrement).Chain(0), "failure")
+		success, successIncrement := build.buildStepFactory(logger, plan.HookedCompose.OnSuccess, location.Incr(stepIncrement).Chain(uint(failureIncrement)), "success")
+		ensure, ensureIncrement := build.buildStepFactory(logger, plan.HookedCompose.OnCompletion, location.Incr(stepIncrement).Chain(uint(successIncrement+failureIncrement)), "ensure")
 		nextStep, nextStepIncrement := build.buildStepFactory(logger, plan.HookedCompose.Next, location.Incr(stepIncrement+1), hook)
 
 		return exec.HookedCompose(step, nextStep, failure, success, ensure), stepIncrement + nextStepIncrement + ensureIncrement + failureIncrement + successIncrement + 1

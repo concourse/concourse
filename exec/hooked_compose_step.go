@@ -52,7 +52,7 @@ func (hc *hookedCompose) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 	hc.firstStep = hc.step.Using(hc.prev, hc.repo)
 	hc.nextStep = &NoopStep{}
 
-	firstStepError := hc.backgroundProcess(hc.firstStep, signals)
+	firstStepError := hc.executeProcess(hc.firstStep, signals)
 
 	var succeeded Success
 
@@ -61,8 +61,8 @@ func (hc *hookedCompose) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 		succeeded = false
 	}
 
-	hc.ensureStep = hc.ensure.Using(hc.firstStep, hc.repo)
-	hooks := []Step{hc.ensureStep}
+	var errors error
+	var hooks []Step
 
 	if firstStepError == nil {
 		if bool(succeeded) {
@@ -72,32 +72,21 @@ func (hc *hookedCompose) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 			hc.failureStep = hc.failure.Using(hc.firstStep, hc.repo)
 			hooks = append(hooks, hc.failureStep)
 		}
+	} else {
+		errors = multierror.Append(errors, firstStepError)
 	}
 
-	var hookError chan error
-	hookError = make(chan error)
-
-	for _, hook := range hooks {
-		go func(hookProcess ifrit.Runner) {
-			hookError <- hc.backgroundProcess(hookProcess, signals)
-		}(hook)
-	}
-
-	var errors error
-
-	var err error
-
-	for i := 0; i < len(hooks); i++ {
-		err = <-hookError
-
-		if err != nil {
-			errors = multierror.Append(errors, err)
-		}
-	}
+	hc.ensureStep = hc.ensure.Using(hc.firstStep, hc.repo)
+	hooks = append(hooks, hc.ensureStep)
 
 	var allHooksSuccessful Success
 	allHooksSuccessful = true
+
 	for _, hook := range hooks {
+		hookError := hc.executeProcess(hook, signals)
+		if hookError != nil {
+			errors = multierror.Append(errors, hookError)
+		}
 		var hookSuccessful Success
 
 		if !hook.Result(&hookSuccessful) {
@@ -107,10 +96,6 @@ func (hc *hookedCompose) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 		if !bool(hookSuccessful) {
 			allHooksSuccessful = false
 		}
-	}
-
-	if firstStepError != nil {
-		errors = multierror.Append(errors, firstStepError)
 	}
 
 	if errors != nil {
@@ -124,7 +109,7 @@ func (hc *hookedCompose) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 	return hc.nextStep.Run(signals, ready)
 }
 
-func (hc *hookedCompose) backgroundProcess(stepProcess ifrit.Runner, signals <-chan os.Signal) error {
+func (hc *hookedCompose) executeProcess(stepProcess ifrit.Runner, signals <-chan os.Signal) error {
 	var signalled bool
 	var waitErr error
 

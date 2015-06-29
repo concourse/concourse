@@ -175,41 +175,41 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 			It("constructs the completion hook correctly", func() {
 				Ω(fakeFactory.TaskCallCount()).Should(Equal(4))
-				sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(0)
+				sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(2)
 				Ω(sourceName).Should(Equal(exec.SourceName("some-completion-task")))
 				Ω(workerID).Should(Equal(worker.Identifier{
 					BuildID:      84,
 					Type:         worker.ContainerTypeTask,
 					Name:         "some-completion-task",
+					StepLocation: []uint{1, 2},
+				}))
+				Ω(delegate).Should(Equal(fakeExecutionDelegate))
+
+				_, _, location, hook := fakeDelegate.ExecutionDelegateArgsForCall(2)
+				Ω(location).Should(Equal(event.OriginLocation{1, 2}))
+				Ω(hook).Should(Equal("ensure"))
+			})
+
+			It("constructs the failure hook correctly", func() {
+				Ω(fakeFactory.TaskCallCount()).Should(Equal(4))
+				sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(0)
+				Ω(sourceName).Should(Equal(exec.SourceName("some-failure-task")))
+				Ω(workerID).Should(Equal(worker.Identifier{
+					BuildID:      84,
+					Type:         worker.ContainerTypeTask,
+					Name:         "some-failure-task",
 					StepLocation: []uint{1, 0},
 				}))
 				Ω(delegate).Should(Equal(fakeExecutionDelegate))
 
 				_, _, location, hook := fakeDelegate.ExecutionDelegateArgsForCall(0)
 				Ω(location).Should(Equal(event.OriginLocation{1, 0}))
-				Ω(hook).Should(Equal("ensure"))
-			})
-
-			It("constructs the failure hook correctly", func() {
-				Ω(fakeFactory.TaskCallCount()).Should(Equal(4))
-				sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(1)
-				Ω(sourceName).Should(Equal(exec.SourceName("some-failure-task")))
-				Ω(workerID).Should(Equal(worker.Identifier{
-					BuildID:      84,
-					Type:         worker.ContainerTypeTask,
-					Name:         "some-failure-task",
-					StepLocation: []uint{1, 1},
-				}))
-				Ω(delegate).Should(Equal(fakeExecutionDelegate))
-
-				_, _, location, hook := fakeDelegate.ExecutionDelegateArgsForCall(1)
-				Ω(location).Should(Equal(event.OriginLocation{1, 1}))
 				Ω(hook).Should(Equal("failure"))
 			})
 
 			It("constructs the success hook correctly", func() {
 				Ω(fakeFactory.TaskCallCount()).Should(Equal(4))
-				sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(2)
+				sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(1)
 				Ω(sourceName).Should(Equal(exec.SourceName("some-success-task")))
 				Ω(workerID).Should(Equal(worker.Identifier{
 					BuildID:      84,
@@ -219,7 +219,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 				}))
 				Ω(delegate).Should(Equal(fakeExecutionDelegate))
 
-				_, _, location, hook := fakeDelegate.ExecutionDelegateArgsForCall(2)
+				_, _, location, hook := fakeDelegate.ExecutionDelegateArgsForCall(1)
 				Ω(location).Should(Equal(event.OriginLocation{1, 1}))
 				Ω(hook).Should(Equal("success"))
 			})

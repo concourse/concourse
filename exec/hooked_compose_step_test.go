@@ -223,65 +223,70 @@ var _ = Describe("Hooked Compose", func() {
 						finishStep <- nil
 					})
 
-					It("executes the ensure step and success step in parallel", func() {
-						Eventually(fakeStepFactoryEnsureStep.UsingCallCount).Should(Equal(1))
-						Eventually(ensureStep.RunCallCount).Should(Equal(1))
-						step, repo := fakeStepFactoryEnsureStep.UsingArgsForCall(0)
-						Ω(step).Should(Equal(outStep))
-						Ω(repo).Should(Equal(repo))
-
+					It("executes the success step", func() {
 						Eventually(fakeStepFactorySuccessStep.UsingCallCount).Should(Equal(1))
 						Eventually(successStep.RunCallCount).Should(Equal(1))
 						step, repo = fakeStepFactorySuccessStep.UsingArgsForCall(0)
 						Ω(step).Should(Equal(outStep))
 						Ω(repo).Should(Equal(repo))
+
+						Eventually(ensureStep.RunCallCount).Should(Equal(0))
 					})
 
-					Context("and the ensure step cannot respond to success", func() {
-
+					Context("and the success step finishes successfully", func() {
 						BeforeEach(func() {
-							ensureStep.ResultReturns(false)
-
-							startEnsure <- nil
-							finishEnsure <- nil
-
 							startSuccess <- nil
 							finishSuccess <- nil
 						})
 
-						It("exits", func() {
-							Eventually(process.Wait()).Should(Receive(BeNil()))
+						It("executes the ensure step", func() {
+							Eventually(fakeStepFactoryEnsureStep.UsingCallCount).Should(Equal(1))
+							Eventually(ensureStep.RunCallCount).Should(Equal(1))
+							step, repo = fakeStepFactoryEnsureStep.UsingArgsForCall(0)
+							Ω(step).Should(Equal(outStep))
+							Ω(repo).Should(Equal(repo))
 						})
 
-						It("does not proceed to the next step", func() {
-							Consistently(fakeStepFactoryNextStep.UsingCallCount).Should(BeZero())
+						Context("and the ensure step cannot respond to success", func() {
+
+							BeforeEach(func() {
+								ensureStep.ResultReturns(false)
+
+								startEnsure <- nil
+								finishEnsure <- nil
+							})
+
+							It("exits", func() {
+								Eventually(process.Wait()).Should(Receive(BeNil()))
+							})
+
+							It("does not proceed to the next step", func() {
+								Consistently(fakeStepFactoryNextStep.UsingCallCount).Should(BeZero())
+							})
+						})
+
+						Context("and the ensure step exits with an error", func() {
+							var err error
+
+							BeforeEach(func() {
+								err = errors.New("disaster")
+								startEnsure <- nil
+								finishEnsure <- err
+							})
+
+							It("exits with its error result", func() {
+								var receivedError error
+								Eventually(process.Wait()).Should(Receive(&receivedError))
+								Ω(receivedError.Error()).Should(ContainSubstring(err.Error()))
+							})
+
+							It("does not proceed to the next step", func() {
+								Consistently(fakeStepFactoryNextStep.UsingCallCount).Should(BeZero())
+							})
 						})
 					})
 
-					Context("and the ensure step exits with an error", func() {
-						var err error
-
-						BeforeEach(func() {
-							err = errors.New("disaster")
-							startEnsure <- nil
-							finishEnsure <- err
-
-							startSuccess <- nil
-							finishSuccess <- nil
-						})
-
-						It("exits with its error result", func() {
-							var receivedError error
-							Eventually(process.Wait()).Should(Receive(&receivedError))
-							Ω(receivedError.Error()).Should(ContainSubstring(err.Error()))
-						})
-
-						It("does not proceed to the next step", func() {
-							Consistently(fakeStepFactoryNextStep.UsingCallCount).Should(BeZero())
-						})
-					})
-
-					Context("when the ensure step and the success step exits with an error", func() {
+					Context("when the success step and ensure step exits with an error", func() {
 						var errOne error
 						var errTwo error
 
@@ -812,31 +817,50 @@ var _ = Describe("Hooked Compose", func() {
 						finishStep <- nil
 					})
 
-					It("executes the ensure step and failure step in parallel", func() {
-						Eventually(fakeStepFactoryEnsureStep.UsingCallCount).Should(Equal(1))
-						Eventually(ensureStep.RunCallCount).Should(Equal(1))
-						step, repo := fakeStepFactoryEnsureStep.UsingArgsForCall(0)
-						Ω(step).Should(Equal(outStep))
-						Ω(repo).Should(Equal(repo))
-
+					It("executes the failure step", func() {
 						Eventually(fakeStepFactoryFailureStep.UsingCallCount).Should(Equal(1))
 						Eventually(failureStep.RunCallCount).Should(Equal(1))
 						step, repo = fakeStepFactoryFailureStep.UsingArgsForCall(0)
 						Ω(step).Should(Equal(outStep))
 						Ω(repo).Should(Equal(repo))
+
+						Consistently(ensureStep.RunCallCount).Should(Equal(0))
 					})
 
 					Context("and the failure hook exits successfully", func() {
 						BeforeEach(func() {
 							startFailure <- nil
 							finishFailure <- nil
-
-							startEnsure <- nil
-							finishEnsure <- nil
 						})
 
-						It("does not proceed to the next step", func() {
-							Consistently(fakeStepFactoryNextStep.UsingCallCount()).Should(BeZero())
+						It("executes the ensure step", func() {
+							Eventually(fakeStepFactoryEnsureStep.UsingCallCount).Should(Equal(1))
+							Eventually(ensureStep.RunCallCount).Should(Equal(1))
+							step, repo = fakeStepFactoryEnsureStep.UsingArgsForCall(0)
+							Ω(step).Should(Equal(outStep))
+							Ω(repo).Should(Equal(repo))
+						})
+
+						Context("and the ensure hook exits successfully", func() {
+							BeforeEach(func() {
+								startEnsure <- nil
+								finishEnsure <- nil
+							})
+
+							It("does not proceed to the next step", func() {
+								Consistently(fakeStepFactoryNextStep.UsingCallCount).Should(BeZero())
+							})
+						})
+
+						Context("and the ensure hook exits with an error", func() {
+							BeforeEach(func() {
+								startEnsure <- nil
+								finishEnsure <- errors.New("some-error")
+							})
+
+							It("does not proceed to the next step", func() {
+								Consistently(fakeStepFactoryNextStep.UsingCallCount).Should(BeZero())
+							})
 						})
 					})
 
@@ -846,53 +870,65 @@ var _ = Describe("Hooked Compose", func() {
 						BeforeEach(func() {
 							startFailure <- nil
 							finishFailure <- disaster
-
-							startEnsure <- nil
-							finishEnsure <- nil
 						})
 
-						It("exits with its error result", func() {
-							var receivedError error
-							Eventually(process.Wait()).Should(Receive(&receivedError))
-							Ω(receivedError.Error()).Should(ContainSubstring(disaster.Error()))
+						It("runs the ensure step", func() {
+							Eventually(fakeStepFactoryEnsureStep.UsingCallCount).Should(Equal(1))
+							Eventually(ensureStep.RunCallCount).Should(Equal(1))
+							step, repo = fakeStepFactoryEnsureStep.UsingArgsForCall(0)
+							Ω(step).Should(Equal(outStep))
+							Ω(repo).Should(Equal(repo))
 						})
 
-						Describe("releasing", func() {
-							It("releases the first source, failure source, and ensure source", func() {
-								Eventually(process.Wait()).Should(Receive())
-
-								err := step.Release()
-								Ω(err).ShouldNot(HaveOccurred())
-
-								Ω(outStep.ReleaseCallCount()).Should(Equal(1))
-								Ω(failureStep.ReleaseCallCount()).Should(Equal(1))
-								Ω(ensureStep.ReleaseCallCount()).Should(Equal(1))
-								Ω(nextStep.ReleaseCallCount()).Should(Equal(0))
+						Context("when the ensure step exits successfully", func() {
+							BeforeEach(func() {
+								startEnsure <- nil
+								finishEnsure <- nil
 							})
 
-							Context("when releasing the sources fails", func() {
-								disasterA := errors.New("nope A")
-								disasterB := errors.New("nope B")
-								disasterC := errors.New("nope C")
-								disasterD := errors.New("nope D")
+							It("exits with its error result", func() {
+								var receivedError error
+								Eventually(process.Wait()).Should(Receive(&receivedError))
+								Ω(receivedError.Error()).Should(ContainSubstring(disaster.Error()))
+							})
 
-								BeforeEach(func() {
-									outStep.ReleaseReturns(disasterA)
-									failureStep.ReleaseReturns(disasterB)
-									ensureStep.ReleaseReturns(disasterC)
-									nextStep.ReleaseReturns(disasterD)
-								})
-
-								It("returns an aggregate error", func() {
+							Describe("releasing", func() {
+								It("releases the first source, failure source, and ensure source", func() {
 									Eventually(process.Wait()).Should(Receive())
 
 									err := step.Release()
-									Ω(err).Should(HaveOccurred())
+									Ω(err).ShouldNot(HaveOccurred())
 
-									Ω(err.Error()).Should(ContainSubstring("first step: nope A"))
-									Ω(err.Error()).Should(ContainSubstring("failure step: nope B"))
-									Ω(err.Error()).Should(ContainSubstring("ensure step: nope C"))
-									Ω(err.Error()).ShouldNot(ContainSubstring("next step: nope D"))
+									Ω(outStep.ReleaseCallCount()).Should(Equal(1))
+									Ω(failureStep.ReleaseCallCount()).Should(Equal(1))
+									Ω(ensureStep.ReleaseCallCount()).Should(Equal(1))
+									Ω(nextStep.ReleaseCallCount()).Should(Equal(0))
+								})
+
+								Context("when releasing the sources fails", func() {
+									disasterA := errors.New("nope A")
+									disasterB := errors.New("nope B")
+									disasterC := errors.New("nope C")
+									disasterD := errors.New("nope D")
+
+									BeforeEach(func() {
+										outStep.ReleaseReturns(disasterA)
+										failureStep.ReleaseReturns(disasterB)
+										ensureStep.ReleaseReturns(disasterC)
+										nextStep.ReleaseReturns(disasterD)
+									})
+
+									It("returns an aggregate error", func() {
+										Eventually(process.Wait()).Should(Receive())
+
+										err := step.Release()
+										Ω(err).Should(HaveOccurred())
+
+										Ω(err.Error()).Should(ContainSubstring("first step: nope A"))
+										Ω(err.Error()).Should(ContainSubstring("failure step: nope B"))
+										Ω(err.Error()).Should(ContainSubstring("ensure step: nope C"))
+										Ω(err.Error()).ShouldNot(ContainSubstring("next step: nope D"))
+									})
 								})
 							})
 						})
