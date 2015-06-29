@@ -13,6 +13,21 @@ PIDFILE=$RUN_DIR/beacon.pid
 
 source /var/vcap/packages/pid_utils/pid_utils.sh
 
+kill_session_siblings_of() {
+  pidfile=$1
+
+  if [ -f "$pidfile" ]; then
+    pid=$(head -1 "$pidfile")
+
+    session=$(ps -p $pid -o sid=)
+    ps -s $session -o pid:1= | xargs kill
+
+    rm -f $pidfile
+  else
+    echo "Pidfile $pidfile doesn't exist!"
+  fi
+}
+
 case $1 in
 
   start)
@@ -72,7 +87,7 @@ case $1 in
     ;;
 
   stop)
-    kill_and_wait $PIDFILE
+    kill_session_siblings_of $PIDFILE
 
     ;;
 
