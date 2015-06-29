@@ -107,9 +107,9 @@ func (resource *resource) runScript(
 			}
 
 			process, err = resource.container.Run(garden.ProcessSpec{
-				Path:       path,
-				Args:       args,
-				Privileged: true,
+				Path: path,
+				Args: args,
+				User: "root",
 			}, processIO)
 			if err != nil {
 				return err

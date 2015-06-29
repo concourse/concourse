@@ -121,30 +121,6 @@ func (factory *gardenFactory) Task(sourceName SourceName, id worker.Identifier, 
 	}
 }
 
-func convertProcessSpec(spec atc.HijackProcessSpec) garden.ProcessSpec {
-	var tty *garden.TTYSpec
-	if spec.TTY != nil {
-		tty = &garden.TTYSpec{
-			WindowSize: &garden.WindowSize{
-				Columns: spec.TTY.WindowSize.Columns,
-				Rows:    spec.TTY.WindowSize.Rows,
-			},
-		}
-	}
-
-	return garden.ProcessSpec{
-		Path: spec.Path,
-		Args: spec.Args,
-		Env:  spec.Env,
-		Dir:  spec.Dir,
-
-		Privileged: spec.Privileged,
-		User:       spec.User,
-
-		TTY: tty,
-	}
-}
-
 type hijackedProcess struct {
 	process garden.Process
 }

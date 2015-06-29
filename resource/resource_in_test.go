@@ -362,7 +362,7 @@ var _ = Describe("Resource In", func() {
 			Ω(spec.Path).Should(Equal("/opt/resource/in"))
 
 			Ω(spec.Args).Should(ConsistOf("/tmp/build/get"))
-			Ω(spec.Privileged).Should(BeTrue())
+			Ω(spec.User).Should(Equal("root"))
 
 			request, err := ioutil.ReadAll(io.Stdin)
 			Ω(err).ShouldNot(HaveOccurred())
