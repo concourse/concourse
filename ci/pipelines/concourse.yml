@@ -136,11 +136,13 @@ jobs:
       resource: garden-linux
     - get: lite-stemcell
     - put: bosh-lites
-      params:
-        acquire: true
+      params: {acquire: true}
   - task: build
     privileged: true
     file: concourse/ci/testflight.yml
+    failure: &release-bosh-lites
+      put: bosh-lites
+      params: {release: bosh-lites}
 
 - name: deploy
   serial: true
