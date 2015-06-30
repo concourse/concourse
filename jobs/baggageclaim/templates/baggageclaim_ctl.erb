@@ -76,15 +76,6 @@ case $1 in
       1>>$LOG_DIR/baggageclaim.stdout.log \
       2>>$LOG_DIR/baggageclaim.stderr.log
 
-
-/var/vcap/packages/baggageclaim/bin/baggageclaim \
-  -volumeDir /var/vcap/store/baggageclaim/volumes \
-  -listenAddress 0.0.0.0 \
-  -listenPort 7789 \
-  -driverType btrfs \
-  1>>$LOG_DIR/baggageclaim.stdout.log \
-  2>>$LOG_DIR/baggageclaim.stderr.log
-
     ;;
 
   stop)
