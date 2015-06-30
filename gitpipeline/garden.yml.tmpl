@@ -26,8 +26,7 @@ jobs:
 
         allow_host_access: true
 
-        # keep this small so dd is fast
-        btrfs_store_size_mb: 200
+        mount_btrfs_loopback: false
 
 networks:
   - name: garden
