@@ -1,5 +1,7 @@
 # concourse
 
+[![Join the chat at https://gitter.im/concourse/concourse](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/concourse/concourse?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 A [BOSH](https://github.com/cloudfoundry/bosh) release for concourse. The
 easiest way to deploy your own instance of concourse on AWS, vSphere,
 Openstack or with Vagrant.
