@@ -24,7 +24,7 @@ var _ = Describe("Flying", func() {
 	BeforeEach(func() {
 		var err error
 
-		atcURL = "http://10.244.15.2:8080"
+		atcURL = "http://10.244.14.2:8080"
 
 		tmpdir, err = ioutil.TempDir("", "fly-test")
 		Ω(err).ShouldNot(HaveOccurred())

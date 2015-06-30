@@ -41,7 +41,7 @@ var _ = BeforeSuite(func() {
 
 	bosh.Deploy("noop.yml.tmpl", gardenLinuxDeploymentData)
 
-	Eventually(errorPolling("http://10.244.15.2:8080"), 1*time.Minute).ShouldNot(HaveOccurred())
+	Eventually(errorPolling("http://10.244.14.2:8080"), 1*time.Minute).ShouldNot(HaveOccurred())
 })
 
 func TestFlying(t *testing.T) {
