@@ -70,7 +70,6 @@ func Hijack(c *cli.Context) {
 		Path: path,
 		Args: args,
 		Env:  []string{"TERM=" + os.Getenv("TERM")},
-		User: "root",
 
 		Privileged: privileged,
 		TTY:        ttySpec,

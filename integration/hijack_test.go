@@ -35,15 +35,6 @@ var _ = Describe("Hijacking", func() {
 
 				w.WriteHeader(http.StatusOK)
 
-				body := json.NewDecoder(r.Body)
-				defer r.Body.Close()
-
-				var processSpec atc.HijackProcessSpec
-				err := body.Decode(&processSpec)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(processSpec.User).Should(Equal("root"))
-
 				sconn, sbr, err := w.(http.Hijacker).Hijack()
 				Ω(err).ShouldNot(HaveOccurred())
 
