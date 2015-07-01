@@ -56,7 +56,6 @@ func Start(helperRootfs string, gardenClient garden.Client) {
 	_, err = container.Run(garden.ProcessSpec{
 		Path: "ruby",
 		Args: []string{"-e", amazingRubyServer},
-		User: "root",
 	}, garden.ProcessIO{
 		Stdout: gexec.NewPrefixedWriter(
 			fmt.Sprintf("%s%s ", ansi.Color("[o]", "green"), ansi.Color("[guid server]", "magenta")),
@@ -78,7 +77,6 @@ func Start(helperRootfs string, gardenClient garden.Client) {
 		curl, err := container.Run(garden.ProcessSpec{
 			Path: "curl",
 			Args: []string{"-s", "-f", "http://127.0.0.1:8080/registrations"},
-			User: "root",
 		}, garden.ProcessIO{
 			Stdout: gexec.NewPrefixedWriter(
 				fmt.Sprintf("%s%s ", ansi.Color("[o]", "green"), ansi.Color("[guid server polling]", "magenta")),
@@ -112,7 +110,6 @@ func ReportingGuids() []string {
 	curl, err := container.Run(garden.ProcessSpec{
 		Path: "curl",
 		Args: []string{"-s", "-f", "http://127.0.0.1:8080/registrations"},
-		User: "root",
 	}, garden.ProcessIO{
 		Stdout: outBuf,
 		Stderr: gexec.NewPrefixedWriter(

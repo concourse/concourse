@@ -43,7 +43,6 @@ cd some-repo
 git init
 touch .git/git-daemon-export-ok
 `},
-		User: "root",
 	}, garden.ProcessIO{
 		Stdout: gexec.NewPrefixedWriter(
 			fmt.Sprintf("%s%s ", ansi.Color("[o]", "green"), ansi.Color("[git setup]", "green")),
@@ -68,7 +67,6 @@ touch .git/git-daemon-export-ok
 			"--detach",
 			".",
 		},
-		User: "root",
 	}, garden.ProcessIO{
 		Stdout: gexec.NewPrefixedWriter(
 			fmt.Sprintf("%s%s ", ansi.Color("[o]", "green"), ansi.Color("[git server]", "green")),
@@ -120,7 +118,6 @@ func (server *Server) Commit() string {
 				guid,
 			),
 		},
-		User: "root",
 	}, garden.ProcessIO{
 		Stdout: gexec.NewPrefixedWriter(
 			fmt.Sprintf("%s%s ", ansi.Color("[o]", "green"), ansi.Color("[git commit]", "green")),
@@ -143,17 +140,9 @@ func (server *Server) RevParse(ref string) string {
 	buf := new(bytes.Buffer)
 
 	process, err := server.container.Run(garden.ProcessSpec{
-		Path: "bash",
-		Args: []string{"-e", "-c",
-			fmt.Sprintf(
-				`
-					cd some-repo
-					git rev-parse -q --verify %s
-				`,
-				ref,
-			),
-		},
-		User: "root",
+		Path: "git",
+		Args: []string{"rev-parse", "-q", "--verify", ref},
+		Dir:  "some-repo",
 	}, garden.ProcessIO{
 		Stdout: buf,
 		Stderr: gexec.NewPrefixedWriter(
