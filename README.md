@@ -9,7 +9,6 @@ Openstack or with Vagrant.
 * Google Group: [Concourse Users](https://groups.google.com/forum/#!forum/concourse-ci)
 * Roadmap: [Pivotal Tracker](https://www.pivotaltracker.com/n/projects/1059262)
 
-
 ### Example
 
 Concourse's own CI deployment lives at
