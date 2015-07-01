@@ -101,7 +101,8 @@ func (s *Server) Hijack(w http.ResponseWriter, r *http.Request) {
 		Env:  processSpec.Env,
 		Dir:  processSpec.Dir,
 
-		User: processSpec.User,
+		Privileged: processSpec.Privileged,
+		User:       processSpec.User,
 
 		TTY: tty,
 	}, garden.ProcessIO{

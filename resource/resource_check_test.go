@@ -70,7 +70,7 @@ var _ = Describe("Resource Check", func() {
 		spec, io := fakeContainer.RunArgsForCall(0)
 		Ω(spec.Path).Should(Equal("/opt/resource/check"))
 		Ω(spec.Args).Should(BeEmpty())
-		Ω(spec.User).Should(Equal("root"))
+		Ω(spec.Privileged).Should(BeTrue())
 
 		request, err := ioutil.ReadAll(io.Stdin)
 		Ω(err).ShouldNot(HaveOccurred())
