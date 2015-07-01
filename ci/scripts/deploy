@@ -34,13 +34,4 @@ git config --global user.name "CI Bot"
 
 git merge --no-edit master
 
-# tar in bosh doesn't work since we are fake root but it thinks we are real root
-#
-# Avoids this error:
-#
-# tar: ./LICENSE.md: Cannot change ownership to uid 10001, gid 10001: Operation not permitted
-# tar: .: Cannot change ownership to uid 10001, gid 10001: Operation not permitted
-# tar: Exiting with failure status due to previous errors
-sed -e 's/tar /tar --no-same-owner /g' -i /var/lib/gems/1.9.1/gems/bosh_cli-1.3003.0/lib/cli/release_archiver.rb
-
 bosh -n create release --with-tarball --version "$VERSION"
