@@ -606,6 +606,114 @@ var _ = Describe("Factory Hooks", func() {
 				}
 				Ω(actual).Should(Equal(expected))
 			})
+
+			It("can build a job with a task then a do", func() {
+				actual, err := buildFactory.Create(atc.JobConfig{
+					Plan: atc.PlanSequence{
+						{
+							Task: "those who start resisting our will",
+						},
+						{
+							Do: &atc.PlanSequence{
+								{
+									Task: "those who resist our will",
+									Failure: &atc.PlanConfig{
+										Task: "some other task",
+									},
+									Success: &atc.PlanConfig{
+										Task: "some other success task",
+									},
+								},
+								{
+									Task: "those who used to resist our will",
+								},
+							},
+						},
+					},
+				}, resources, nil)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				expected := atc.Plan{
+					HookedCompose: &atc.HookedComposePlan{
+						Step: atc.Plan{
+							Task: &atc.TaskPlan{
+								Name: "those who start resisting our will",
+							},
+						},
+						Next: atc.Plan{
+							HookedCompose: &atc.HookedComposePlan{
+								Step: atc.Plan{
+									Task: &atc.TaskPlan{
+										Name: "those who resist our will",
+									},
+								},
+								OnFailure: atc.Plan{
+									Task: &atc.TaskPlan{
+										Name: "some other task",
+									},
+								},
+								OnSuccess: atc.Plan{
+									Task: &atc.TaskPlan{
+										Name: "some other success task",
+									},
+								},
+								Next: atc.Plan{
+									Task: &atc.TaskPlan{
+										Name: "those who used to resist our will",
+									},
+								},
+							},
+						},
+					},
+				}
+				Ω(actual).Should(Equal(expected))
+			})
+
+			It("can build a job with a do then a task", func() {
+				actual, err := buildFactory.Create(atc.JobConfig{
+					Plan: atc.PlanSequence{
+						{
+							Do: &atc.PlanSequence{
+								{
+									Task: "those who resist our will",
+								},
+								{
+									Task: "those who used to resist our will",
+								},
+							},
+						},
+						{
+							Task: "those who start resisting our will",
+						},
+					},
+				}, resources, nil)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				expected := atc.Plan{
+					HookedCompose: &atc.HookedComposePlan{
+						Step: atc.Plan{
+							HookedCompose: &atc.HookedComposePlan{
+								Step: atc.Plan{
+									Task: &atc.TaskPlan{
+										Name: "those who resist our will",
+									},
+								},
+								Next: atc.Plan{
+									Task: &atc.TaskPlan{
+										Name: "those who used to resist our will",
+									},
+								},
+							},
+						},
+						Next: atc.Plan{
+							Task: &atc.TaskPlan{
+								Name: "those who start resisting our will",
+							},
+						},
+					},
+				}
+				Ω(actual).Should(Equal(expected))
+			})
 		})
 	})
 })

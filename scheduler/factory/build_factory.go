@@ -88,7 +88,7 @@ func (factory *BuildFactory) constructPlanHookBasedPlan(
 		return plan
 	}
 
-	if plan.HookedCompose != nil {
+	if plan.HookedCompose != nil && (plan.HookedCompose.Next == atc.Plan{}) {
 		plan.HookedCompose.Next = factory.constructPlanHookBasedPlan(planSequence[1:], resources, inputs)
 		return plan
 	} else {
