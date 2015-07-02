@@ -57,11 +57,11 @@ jobs:
           put: some-git-resource-ensure-success
           params:
             repository: curl-server
-        success:
+        on_success:
           put: some-git-resource-success
           params:
             repository: curl-server
-        failure:
+        on_failure:
           put: some-git-resource-no-update
           params:
             repository: curl-server
@@ -84,11 +84,11 @@ jobs:
           put: some-git-resource-ensure-failure
           params:
             repository: curl-server
-        success:
+        on_success:
           put: some-git-resource-no-update
           params:
             repository: curl-server
-        failure:
+        on_failure:
           put: some-git-resource-failure
           params:
             repository: curl-server
