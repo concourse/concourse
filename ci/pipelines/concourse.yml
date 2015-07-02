@@ -140,7 +140,7 @@ jobs:
   - task: build
     privileged: true
     file: concourse/ci/testflight.yml
-    failure: &release-bosh-lites
+    on_failure: &release-bosh-lites
       put: bosh-lites
       params: {release: bosh-lites}
 
