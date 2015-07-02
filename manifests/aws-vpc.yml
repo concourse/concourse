@@ -62,7 +62,7 @@ jobs:
     properties:
       atc:
         basic_auth_username: ~
-        basic_auth_encrypted_password: ~
+        basic_auth_password: ~
         postgresql:
           database: *atc-db-name
           role: *atc-db-role
