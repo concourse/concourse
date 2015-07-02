@@ -66,7 +66,7 @@ The `worker.json` file should contain the following:
     "platform": "linux",
     "tags": [],
     "addr": "$GARDEN_ADDR",
-    "resource_types": [],
+    "resource_types": []
 }
 ```
 
@@ -98,7 +98,7 @@ The `worker.json` file should contain the following:
 {
     "platform": "linux",
     "tags": [],
-    "resource_types": [],
+    "resource_types": []
 }
 ```
 
