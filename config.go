@@ -168,13 +168,13 @@ type PlanConfig struct {
 	Tags Tags `yaml:"tags,omitempty" json:"tags,omitempty" mapstructure:"tags"`
 
 	// used by any step to run something when the step reports a failure
-	Failure *PlanConfig `yaml:"failure,omitempty" json:"failure,omitempty" mapstructure:"failure"`
+	Failure *PlanConfig `yaml:"on_failure,omitempty" json:"on_failure,omitempty" mapstructure:"on_failure"`
 
 	// used on any step to always execute regardless of the step's completed state
 	Ensure *PlanConfig `yaml:"ensure,omitempty" json:"ensure,omitempty" mapstructure:"ensure"`
 
 	// used on any step to execute on successful completion of the step
-	Success *PlanConfig `yaml:"success,omitempty" json:"success,omitempty" mapstructure:"success"`
+	Success *PlanConfig `yaml:"on_success,omitempty" json:"on_success,omitempty" mapstructure:"on_success"`
 }
 
 func (config PlanConfig) Name() string {
