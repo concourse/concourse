@@ -362,7 +362,7 @@ var _ = Describe("Resource Out", func() {
 			spec, io := fakeContainer.RunArgsForCall(0)
 			Ω(spec.Path).Should(Equal("/opt/resource/out"))
 			Ω(spec.Args).Should(ConsistOf("/tmp/build/put"))
-			Ω(spec.Privileged).Should(BeTrue())
+			Ω(spec.User).Should(Equal("root"))
 
 			request, err := ioutil.ReadAll(io.Stdin)
 			Ω(err).ShouldNot(HaveOccurred())

@@ -146,11 +146,9 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			Args: config.Run.Args,
 			Env:  step.envForParams(config.Params),
 
-			Dir: step.artifactsRoot,
-
-			Privileged: bool(step.Privileged),
-
-			TTY: &garden.TTYSpec{},
+			Dir:  step.artifactsRoot,
+			User: "root",
+			TTY:  &garden.TTYSpec{},
 		}, processIO)
 		if err != nil {
 			return err

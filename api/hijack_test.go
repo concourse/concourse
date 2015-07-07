@@ -39,7 +39,7 @@ var _ = Describe("Hijacking API", func() {
 		)
 
 		BeforeEach(func() {
-			requestPayload = `{"path":"ls"}`
+			requestPayload = `{"path":"ls", "user": "root"}`
 			buildID = "128"
 			stepType = "task"
 			stepName = "build"
@@ -126,6 +126,7 @@ var _ = Describe("Hijacking API", func() {
 						spec, io := fakeContainer.RunArgsForCall(0)
 						Ω(spec).Should(Equal(garden.ProcessSpec{
 							Path: "ls",
+							User: "root",
 						}))
 						Ω(io.Stdin).ShouldNot(BeNil())
 						Ω(io.Stdout).ShouldNot(BeNil())

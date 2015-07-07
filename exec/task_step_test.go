@@ -180,7 +180,7 @@ var _ = Describe("GardenFactory", func() {
 						Ω(spec.Args).Should(Equal([]string{"some", "args"}))
 						Ω(spec.Env).Should(Equal([]string{"SOME=params"}))
 						Ω(spec.Dir).Should(Equal("/tmp/build/a-random-guid"))
-						Ω(spec.Privileged).Should(BeFalse())
+						Ω(spec.User).Should(Equal("root"))
 						Ω(spec.TTY).Should(Equal(&garden.TTYSpec{}))
 					})
 
@@ -221,17 +221,17 @@ var _ = Describe("GardenFactory", func() {
 							Ω(taskSpec.Privileged).Should(BeTrue())
 						})
 
-						It("runs the process privileged", func() {
+						It("runs the process as root", func() {
 							Ω(fakeContainer.RunCallCount()).Should(Equal(1))
 
 							spec, _ := fakeContainer.RunArgsForCall(0)
 							Ω(spec).Should(Equal(garden.ProcessSpec{
-								Path:       "ls",
-								Args:       []string{"some", "args"},
-								Env:        []string{"SOME=params"},
-								Dir:        "/tmp/build/a-random-guid",
-								Privileged: true,
-								TTY:        &garden.TTYSpec{},
+								Path: "ls",
+								Args: []string{"some", "args"},
+								Env:  []string{"SOME=params"},
+								Dir:  "/tmp/build/a-random-guid",
+								User: "root",
+								TTY:  &garden.TTYSpec{},
 							}))
 						})
 					})
