@@ -374,12 +374,12 @@ Column.prototype.pullDown = function() {
     for (var i = nodeIdx + 1; i < this.nodes.length; i++) {
       var shiftingNode = this.nodes[i];
 
-      if (shiftingNode._position.y > overlap) {
+      if (shiftingNode._position.y >= overlap) {
         // does not overlap with previously shifted node; stop here
         break;
       }
 
-      shiftingNode._position.y += delta;
+      shiftingNode._position.y = overlap;
 
       overlap = shiftingNode._position.y + shiftingNode.height() + this._spacing;
     }
