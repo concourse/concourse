@@ -167,17 +167,46 @@ Graph.prototype.layout = function() {
     }
   }
 
-  // add spacing between nodes to align with upstream/downstream
-  var changed = true;
-  while (changed) {
-    changed = false;
+  this.pullNodesDown(columns, true);
+}
 
-    for (var i in columns) {
-      if (columns[i].pullDown()) {
-        changed = true;
+Graph.prototype.pullNodesDown = function(columns, reversed) {
+  var changed = false;
+
+  var j;
+
+  if (reversed) {
+    j = columns.length - 1;
+  } else {
+    j = 0;
+  }
+
+  while ((reversed && j >= 0) || (!reversed && j < columns.length)) {
+    if (columns[j].pullDown()) {
+      changed = true;
+
+      for (var prev = 0; prev < j; prev++) {
+        columns[prev].sortNodes();
+        columns[prev].layout();
       }
+
+      for (var next = j+1; next < columns.length; next++) {
+        columns[next].sortNodes();
+        columns[next].layout();
+      }
+
+      this.pullNodesDown(columns.slice(0, j), true);
+      this.pullNodesDown(columns.slice(j + 1, columns.length));
+    }
+
+    if (reversed) {
+      j--;
+    } else {
+      j++;
     }
   }
+
+  return changed;
 }
 
 Graph.prototype.computeRanks = function() {
