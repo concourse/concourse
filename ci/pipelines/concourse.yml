@@ -369,7 +369,6 @@ jobs:
     - get: version
       trigger: true
       passed: [shipit]
-    - get: vsphere-stemcell
   - task: build
     file: p-concourse/ci/build.yml
   - put: product
@@ -483,11 +482,6 @@ resources:
   type: bosh-io-stemcell
   source:
     name: bosh-aws-xen-hvm-ubuntu-trusty-go_agent
-
-- name: vsphere-stemcell
-  type: bosh-io-stemcell
-  source:
-    name: bosh-vsphere-esxi-ubuntu-trusty-go_agent
 
 - name: lite-stemcell
   type: bosh-io-stemcell
