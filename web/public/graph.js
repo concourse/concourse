@@ -496,6 +496,12 @@ Column.prototype.sortNodes = function() {
   });
 }
 
+Column.prototype.mark = function() {
+  for (var i in this.nodes) {
+    this.nodes[i].columnMarked = true;
+  }
+}
+
 Column.prototype.width = function() {
   var width = 0;
 
