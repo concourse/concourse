@@ -110,11 +110,17 @@ function drawContinuously(svg, groups) {
     graph.layout()
 
     nodeLink.attr("class", function(node) {
+      var classes = [];
+
       if (node.debugMarked) {
-        return "marked";
+        classes.push("marked");
       }
 
-      return "";
+      if (node.columnMarked) {
+        classes.push("column-marked");
+      }
+
+      return classes.join(" ");
     });
 
     svgNode.attr("transform", function(node) {
