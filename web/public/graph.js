@@ -423,17 +423,27 @@ Column.prototype.sortNodes = function() {
   nodes.sort(function(a, b) {
     if (a._inEdges.length && b._inEdges.length) {
       // position nodes closer to their upstream sources
-      var byHighestSource = a.highestUpstreamSource() - b.highestUpstreamSource();
-      if (byHighestSource != 0) {
-        return byHighestSource;
+      var compare = a.highestUpstreamSource() - b.highestUpstreamSource();
+      if (compare != 0) {
+        return compare;
+      }
+
+      var compare = a.nextHighestUpstreamSource() - b.nextHighestUpstreamSource();
+      if (compare != 0) {
+        return compare;
       }
     }
 
     if (a._outEdges.length && b._outEdges.length) {
       // position nodes closer to their downstream targets
-      var byHighestTarget = a.highestDownstreamTarget() - b.highestDownstreamTarget();
-      if (byHighestTarget != 0) {
-        return byHighestTarget;
+      var compare = a.highestDownstreamTarget() - b.highestDownstreamTarget();
+      if (compare != 0) {
+        return compare;
+      }
+
+      var compare = a.nextHighestDownstreamTarget() - b.nextHighestDownstreamTarget();
+      if (compare != 0) {
+        return compare;
       }
     }
 
@@ -646,6 +656,22 @@ Node.prototype.highestUpstreamSource = function() {
   return minY;
 };
 
+Node.prototype.nextHighestUpstreamSource = function() {
+  var minY, nextMinY;
+
+  var y;
+  for (var e in this._inEdges) {
+    y = this._inEdges[e].source.position().y;
+
+    if (minY === undefined || y < minY) {
+      nextMinY = minY;
+      minY = y;
+    }
+  }
+
+  return nextMinY;
+};
+
 Node.prototype.highestDownstreamTarget = function() {
   var minY;
 
@@ -659,6 +685,22 @@ Node.prototype.highestDownstreamTarget = function() {
   }
 
   return minY;
+};
+
+Node.prototype.nextHighestDownstreamTarget = function() {
+  var minY, nextMinY;
+
+  var y;
+  for (var e in this._outEdges) {
+    y = this._outEdges[e].target.position().y;
+
+    if (minY === undefined || y < minY) {
+      nextMinY = minY;
+      minY = y;
+    }
+  }
+
+  return nextMinY;
 };
 
 Node.prototype.deltaToHighestUpstreamSource = function() {
