@@ -158,16 +158,7 @@ Graph.prototype.layout = function() {
     });
   }
 
-  // run twice so that second pass can use positioning from first pass in
-  // output-based comparisons, since we process the columns left-to-right
-  for (var repeat = 0; repeat < 2; repeat++) {
-    for (var i in columns) {
-      columns[i].sortNodes();
-      columns[i].layout();
-    }
-  }
-
-  this.pullNodesDown(columns, true);
+  this.pullNodesDown(columns);
 }
 
 Graph.prototype.pullNodesDown = function(columns, reversed) {
@@ -185,7 +176,11 @@ Graph.prototype.pullNodesDown = function(columns, reversed) {
     if (columns[j].pullDown()) {
       changed = true;
 
-      for (var prev = 0; prev < j; prev++) {
+      columns[j].sortNodes();
+      columns[j].layout();
+      columns[j].pullDown();
+
+      for (var prev = j - 1; prev >= 0; prev--) {
         columns[prev].sortNodes();
         columns[prev].layout();
       }
@@ -427,11 +422,6 @@ Column.prototype.sortNodes = function() {
       if (compare != 0) {
         return compare;
       }
-
-      var compare = a.nextHighestUpstreamSource() - b.nextHighestUpstreamSource();
-      if (compare != 0) {
-        return compare;
-      }
     }
 
     if (a._outEdges.length && b._outEdges.length) {
@@ -440,15 +430,11 @@ Column.prototype.sortNodes = function() {
       if (compare != 0) {
         return compare;
       }
-
-      var compare = a.nextHighestDownstreamTarget() - b.nextHighestDownstreamTarget();
-      if (compare != 0) {
-        return compare;
-      }
     }
 
     if (a._inEdges.length && b._outEdges.length) {
-      // position nodes closer to their upstream sources or downstream targets
+      // position nodes closer to their sources than others that are just
+      // closer to their destinations
       var compare = a.highestUpstreamSource() - b.highestDownstreamTarget();
       if (compare != 0) {
         return compare;
@@ -456,7 +442,8 @@ Column.prototype.sortNodes = function() {
     }
 
     if (a._outEdges.length && b._inEdges.length) {
-      // position nodes closer to their upstream sources or downstream targets
+      // position nodes closer to their sources than others that are just
+      // closer to their destinations
       var compare = a.highestDownstreamTarget() - b.highestUpstreamSource();
       if (compare != 0) {
         return compare;
@@ -662,22 +649,6 @@ Node.prototype.highestUpstreamSource = function() {
   return minY;
 };
 
-Node.prototype.nextHighestUpstreamSource = function() {
-  var minY, nextMinY;
-
-  var y;
-  for (var e in this._inEdges) {
-    y = this._inEdges[e].source.position().y;
-
-    if (minY === undefined || y < minY) {
-      nextMinY = minY;
-      minY = y;
-    }
-  }
-
-  return nextMinY;
-};
-
 Node.prototype.highestDownstreamTarget = function() {
   var minY;
 
@@ -691,22 +662,6 @@ Node.prototype.highestDownstreamTarget = function() {
   }
 
   return minY;
-};
-
-Node.prototype.nextHighestDownstreamTarget = function() {
-  var minY, nextMinY;
-
-  var y;
-  for (var e in this._outEdges) {
-    y = this._outEdges[e].target.position().y;
-
-    if (minY === undefined || y < minY) {
-      nextMinY = minY;
-      minY = y;
-    }
-  }
-
-  return nextMinY;
 };
 
 Node.prototype.deltaToHighestUpstreamSource = function() {
