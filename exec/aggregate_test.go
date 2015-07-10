@@ -105,23 +105,21 @@ var _ = Describe("Aggregate", func() {
 			outStepA.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
 				close(ready)
 				receivedSignals <- <-signals
-				return nil
+				return ErrInterrupted
 			}
 
 			outStepB.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
 				close(ready)
 				receivedSignals <- <-signals
-				return nil
+				return ErrInterrupted
 			}
 		})
 
 		It("propagates to all sources", func() {
+			interruptedErr := errors.New("sources failed:\ninterrupted\ninterrupted")
 			process.Signal(os.Interrupt)
 
-			Eventually(process.Wait()).Should(Receive())
-
-			Ω(receivedSignals).Should(Receive(Equal(os.Interrupt)))
-			Ω(receivedSignals).Should(Receive(Equal(os.Interrupt)))
+			Eventually(process.Wait()).Should(Receive(Equal(interruptedErr)))
 		})
 	})
 
