@@ -180,16 +180,6 @@ Graph.prototype.pullNodesDown = function(columns, reversed) {
       columns[j].layout();
       columns[j].pullDown();
 
-      for (var prev = j - 1; prev >= 0; prev--) {
-        columns[prev].sortNodes();
-        columns[prev].layout();
-      }
-
-      for (var next = j+1; next < columns.length; next++) {
-        columns[next].sortNodes();
-        columns[next].layout();
-      }
-
       this.pullNodesDown(columns.slice(0, j), true);
       this.pullNodesDown(columns.slice(j + 1, columns.length));
     }
