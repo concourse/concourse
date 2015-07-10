@@ -110,7 +110,14 @@ For a reference on each type of step, read on.
 \include-section{./steps/task.any}
 \include-section{./steps/aggregate.any}
 \include-section{./steps/do.any}
-\include-section{./steps/conditions.any}
+\include-section{./steps/on_success.any}
+\include-section{./steps/on_failure.any}
+\include-section{./steps/ensure.any}
 \include-section{./steps/tags.any}
+
+\section{Deprecated}{
+  \table-of-contents
+  \include-section{./steps/conditions.any}
+}
 
 \table-of-contents
