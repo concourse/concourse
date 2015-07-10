@@ -589,5 +589,64 @@ var _ = Describe("Exec Engine With Hooks", func() {
 				Ω(outputStep.ReleaseCallCount()).Should(Equal(0))
 			})
 		})
+
+		Context("when a step in the aggregate fails the step fails", func() {
+			BeforeEach(func() {
+				inputStep.ResultStub = successResult(false)
+			})
+
+			It("only run the failure hooks", func() {
+				plan := atc.Plan{
+					HookedCompose: &atc.HookedComposePlan{
+						Step: atc.Plan{
+							Aggregate: &atc.AggregatePlan{
+								atc.Plan{
+									Task: &atc.TaskPlan{
+										Name:   "some-resource",
+										Config: &atc.TaskConfig{},
+									},
+								},
+								atc.Plan{
+									HookedCompose: &atc.HookedComposePlan{
+										Step: atc.Plan{
+											Get: &atc.GetPlan{
+												Name: "some-input",
+											},
+										},
+										OnFailure: atc.Plan{
+											Task: &atc.TaskPlan{
+												Name:   "some-resource",
+												Config: &atc.TaskConfig{},
+											},
+										},
+									},
+								},
+							},
+						},
+						Next: atc.Plan{
+							PutGet: &atc.PutGetPlan{
+								Head: atc.Plan{
+									Put: &atc.PutPlan{
+										Name: "some-put",
+									},
+								},
+							},
+						},
+					},
+				}
+
+				build, err := execEngine.CreateBuild(buildModel, plan)
+
+				Ω(err).ShouldNot(HaveOccurred())
+
+				build.Resume(logger)
+
+				Ω(inputStep.RunCallCount()).Should(Equal(1))
+
+				Ω(taskStep.RunCallCount()).Should(Equal(2))
+
+				Ω(outputStep.RunCallCount()).Should(Equal(0))
+			})
+		})
 	})
 })

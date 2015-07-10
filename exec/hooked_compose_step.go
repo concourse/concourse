@@ -50,7 +50,6 @@ func (hc hookedCompose) Using(prev Step, repo *SourceRepository) Step {
 
 func (hc *hookedCompose) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	hc.firstStep = hc.step.Using(hc.prev, hc.repo)
-	hc.nextStep = &NoopStep{}
 
 	firstStepError := hc.executeProcess(hc.firstStep, signals)
 
@@ -104,9 +103,12 @@ func (hc *hookedCompose) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 	if bool(succeeded) && bool(allHooksSuccessful) {
 		hc.nextStep = hc.next.Using(hc.firstStep, hc.repo)
+		return hc.nextStep.Run(signals, ready)
+	} else {
+		noop := &NoopStep{}
+		return noop.Run(signals, ready)
 	}
 
-	return hc.nextStep.Run(signals, ready)
 }
 
 func (hc *hookedCompose) executeProcess(stepProcess ifrit.Runner, signals <-chan os.Signal) error {
@@ -174,5 +176,17 @@ func (hc *hookedCompose) Release() error {
 }
 
 func (hc *hookedCompose) Result(x interface{}) bool {
-	return hc.nextStep.Result(x)
+	switch v := x.(type) {
+	case *Success:
+		if hc.nextStep == nil {
+			*v = false
+		} else {
+			if !hc.nextStep.Result(v) {
+				*v = false
+			}
+		}
+		return true
+	}
+
+	return false
 }
