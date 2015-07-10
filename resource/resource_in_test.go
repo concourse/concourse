@@ -106,10 +106,10 @@ var _ = Describe("Resource In", func() {
 		Describe("streaming bits out", func() {
 			Context("when streaming out succeeds", func() {
 				BeforeEach(func() {
-					fakeContainer.StreamOutStub = func(source string) (io.ReadCloser, error) {
+					fakeContainer.StreamOutStub = func(spec garden.StreamOutSpec) (io.ReadCloser, error) {
 						streamOut := new(bytes.Buffer)
 
-						if source == "/tmp/build/get/some/subdir" {
+						if spec.Path == "/tmp/build/get/some/subdir" {
 							streamOut.WriteString("sup")
 						}
 
@@ -340,19 +340,21 @@ var _ = Describe("Resource In", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Ω(fakeContainer.StreamInCallCount()).Should(Equal(1))
-			streamInPath, _ := fakeContainer.StreamInArgsForCall(0)
+			streamSpec := fakeContainer.StreamInArgsForCall(0)
+			Ω(streamSpec.User).Should(Equal("root"))
 
 			_, err = versionedSource.StreamOut("a/path")
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Ω(fakeContainer.StreamOutCallCount()).Should(Equal(1))
-			streamOutPath := fakeContainer.StreamOutArgsForCall(0)
+			streamOutSpec := fakeContainer.StreamOutArgsForCall(0)
+			Ω(streamOutSpec.User).Should(Equal("root"))
 
 			Ω(fakeContainer.RunCallCount()).Should(Equal(1))
 			spec, _ := fakeContainer.RunArgsForCall(0)
 
-			Ω(streamInPath).Should(HavePrefix(spec.Args[0]))
-			Ω(streamInPath).Should(Equal(streamOutPath))
+			Ω(streamSpec.Path).Should(HavePrefix(spec.Args[0]))
+			Ω(streamSpec.Path).Should(Equal(streamOutSpec.Path))
 		})
 
 		It("runs /opt/resource/in <destination> with the request on stdin", func() {

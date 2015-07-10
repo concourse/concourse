@@ -163,10 +163,11 @@ var _ = Describe("GardenFactory", func() {
 					It("ensures artifacts root exists by streaming in an empty payload", func() {
 						Ω(fakeContainer.StreamInCallCount()).Should(Equal(1))
 
-						destination, stream := fakeContainer.StreamInArgsForCall(0)
-						Ω(destination).Should(Equal("/tmp/build/a-random-guid"))
+						spec := fakeContainer.StreamInArgsForCall(0)
+						Ω(spec.Path).Should(Equal("/tmp/build/a-random-guid"))
+						Ω(spec.User).Should(Equal("root"))
 
-						tarReader := tar.NewReader(stream)
+						tarReader := tar.NewReader(spec.TarStream)
 
 						_, err := tarReader.Next()
 						Ω(err).Should(Equal(io.EOF))
@@ -277,9 +278,11 @@ var _ = Describe("GardenFactory", func() {
 								Ω(err).ShouldNot(HaveOccurred())
 
 								Ω(fakeContainer.StreamInCallCount()).Should(Equal(initial + 1))
-								inDestination, source := fakeContainer.StreamInArgsForCall(initial)
-								Ω(inDestination).Should(Equal("/tmp/build/a-random-guid/some-input-configured-path/foo"))
-								Ω(source).Should(Equal(streamIn))
+
+								spec := fakeContainer.StreamInArgsForCall(initial)
+								Ω(spec.Path).Should(Equal("/tmp/build/a-random-guid/some-input-configured-path/foo"))
+								Ω(spec.User).Should(Equal("root"))
+								Ω(spec.TarStream).Should(Equal(streamIn))
 
 								Ω(otherInputSource.StreamToCallCount()).Should(Equal(1))
 
@@ -291,9 +294,10 @@ var _ = Describe("GardenFactory", func() {
 								Ω(err).ShouldNot(HaveOccurred())
 
 								Ω(fakeContainer.StreamInCallCount()).Should(Equal(initial + 1))
-								inDestination, source = fakeContainer.StreamInArgsForCall(initial)
-								Ω(inDestination).Should(Equal("/tmp/build/a-random-guid/some-other-input/foo"))
-								Ω(source).Should(Equal(streamIn))
+								spec = fakeContainer.StreamInArgsForCall(initial)
+								Ω(spec.Path).Should(Equal("/tmp/build/a-random-guid/some-other-input/foo"))
+								Ω(spec.User).Should(Equal("root"))
+								Ω(spec.TarStream).Should(Equal(streamIn))
 
 								Eventually(process.Wait()).Should(Receive(BeNil()))
 							})
@@ -409,7 +413,9 @@ var _ = Describe("GardenFactory", func() {
 										Ω(err).ShouldNot(HaveOccurred())
 
 										Ω(fakeContainer.StreamOutCallCount()).Should(Equal(1))
-										Ω(fakeContainer.StreamOutArgsForCall(0)).Should(Equal("/tmp/build/a-random-guid/"))
+										spec := fakeContainer.StreamOutArgsForCall(0)
+										Ω(spec.Path).Should(Equal("/tmp/build/a-random-guid/"))
+										Ω(spec.User).Should(Equal("root"))
 
 										Ω(fakeDestination.StreamInCallCount()).Should(Equal(1))
 										dest, src := fakeDestination.StreamInArgsForCall(0)
@@ -489,7 +495,9 @@ var _ = Describe("GardenFactory", func() {
 
 											Ω(ioutil.ReadAll(reader)).Should(Equal([]byte(fileContent)))
 
-											Ω(fakeContainer.StreamOutArgsForCall(0)).Should(Equal("/tmp/build/a-random-guid/some-path"))
+											spec := fakeContainer.StreamOutArgsForCall(0)
+											Ω(spec.Path).Should(Equal("/tmp/build/a-random-guid/some-path"))
+											Ω(spec.User).Should(Equal("root"))
 										})
 
 										Describe("closing the stream", func() {

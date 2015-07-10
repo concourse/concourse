@@ -667,7 +667,11 @@ var _ = Describe("Retryable", func() {
 		reader := gbytes.NewBuffer()
 
 		itRetries(func() error {
-			return conn.StreamIn("beethoven", "/dev/sound", reader)
+			return conn.StreamIn("beethoven", garden.StreamInSpec{
+				Path:      "/dev/sound",
+				User:      "bach",
+				TarStream: reader,
+			})
 		}, func(err error) {
 			innerConnection.StreamInReturns(err)
 		}, func() int {
@@ -676,10 +680,11 @@ var _ = Describe("Retryable", func() {
 			It("calls through to garden", func() {
 				Ω(innerConnection.StreamInCallCount()).Should(Equal(1))
 
-				handle, dest, calledReader := innerConnection.StreamInArgsForCall(0)
+				handle, spec := innerConnection.StreamInArgsForCall(0)
 				Ω(handle).Should(Equal("beethoven"))
-				Ω(dest).Should(Equal("/dev/sound"))
-				Ω(calledReader).Should(Equal(reader))
+				Ω(spec.Path).Should(Equal("/dev/sound"))
+				Ω(spec.User).Should(Equal("bach"))
+				Ω(spec.TarStream).Should(Equal(reader))
 			})
 		})
 	})
@@ -691,7 +696,10 @@ var _ = Describe("Retryable", func() {
 
 		itRetries(func() error {
 			var err error
-			gotReader, err = conn.StreamOut(handle, "/etc/passwd")
+			gotReader, err = conn.StreamOut(handle, garden.StreamOutSpec{
+				Path: "/etc/passwd",
+				User: "admin",
+			})
 			return err
 		}, func(err error) {
 			innerConnection.StreamOutReturns(gbytes.NewBuffer(), err)
@@ -701,9 +709,10 @@ var _ = Describe("Retryable", func() {
 			It("calls through to garden", func() {
 				Ω(innerConnection.StreamOutCallCount()).Should(Equal(1))
 
-				calledHandle, calledSrcPath := innerConnection.StreamOutArgsForCall(0)
+				calledHandle, calledSpec := innerConnection.StreamOutArgsForCall(0)
 				Ω(calledHandle).Should(Equal(handle))
-				Ω(calledSrcPath).Should(Equal("/etc/passwd"))
+				Ω(calledSpec.Path).Should(Equal("/etc/passwd"))
+				Ω(calledSpec.User).Should(Equal("admin"))
 			})
 
 			It("returns the reader", func() {

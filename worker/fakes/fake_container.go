@@ -31,19 +31,18 @@ type FakeContainer struct {
 		result1 garden.ContainerInfo
 		result2 error
 	}
-	StreamInStub        func(dstPath string, tarStream io.Reader) error
+	StreamInStub        func(spec garden.StreamInSpec) error
 	streamInMutex       sync.RWMutex
 	streamInArgsForCall []struct {
-		dstPath   string
-		tarStream io.Reader
+		spec garden.StreamInSpec
 	}
 	streamInReturns struct {
 		result1 error
 	}
-	StreamOutStub        func(srcPath string) (io.ReadCloser, error)
+	StreamOutStub        func(spec garden.StreamOutSpec) (io.ReadCloser, error)
 	streamOutMutex       sync.RWMutex
 	streamOutArgsForCall []struct {
-		srcPath string
+		spec garden.StreamOutSpec
 	}
 	streamOutReturns struct {
 		result1 io.ReadCloser
@@ -280,15 +279,14 @@ func (fake *FakeContainer) InfoReturns(result1 garden.ContainerInfo, result2 err
 	}{result1, result2}
 }
 
-func (fake *FakeContainer) StreamIn(dstPath string, tarStream io.Reader) error {
+func (fake *FakeContainer) StreamIn(spec garden.StreamInSpec) error {
 	fake.streamInMutex.Lock()
 	fake.streamInArgsForCall = append(fake.streamInArgsForCall, struct {
-		dstPath   string
-		tarStream io.Reader
-	}{dstPath, tarStream})
+		spec garden.StreamInSpec
+	}{spec})
 	fake.streamInMutex.Unlock()
 	if fake.StreamInStub != nil {
-		return fake.StreamInStub(dstPath, tarStream)
+		return fake.StreamInStub(spec)
 	} else {
 		return fake.streamInReturns.result1
 	}
@@ -300,10 +298,10 @@ func (fake *FakeContainer) StreamInCallCount() int {
 	return len(fake.streamInArgsForCall)
 }
 
-func (fake *FakeContainer) StreamInArgsForCall(i int) (string, io.Reader) {
+func (fake *FakeContainer) StreamInArgsForCall(i int) garden.StreamInSpec {
 	fake.streamInMutex.RLock()
 	defer fake.streamInMutex.RUnlock()
-	return fake.streamInArgsForCall[i].dstPath, fake.streamInArgsForCall[i].tarStream
+	return fake.streamInArgsForCall[i].spec
 }
 
 func (fake *FakeContainer) StreamInReturns(result1 error) {
@@ -313,14 +311,14 @@ func (fake *FakeContainer) StreamInReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeContainer) StreamOut(srcPath string) (io.ReadCloser, error) {
+func (fake *FakeContainer) StreamOut(spec garden.StreamOutSpec) (io.ReadCloser, error) {
 	fake.streamOutMutex.Lock()
 	fake.streamOutArgsForCall = append(fake.streamOutArgsForCall, struct {
-		srcPath string
-	}{srcPath})
+		spec garden.StreamOutSpec
+	}{spec})
 	fake.streamOutMutex.Unlock()
 	if fake.StreamOutStub != nil {
-		return fake.StreamOutStub(srcPath)
+		return fake.StreamOutStub(spec)
 	} else {
 		return fake.streamOutReturns.result1, fake.streamOutReturns.result2
 	}
@@ -332,10 +330,10 @@ func (fake *FakeContainer) StreamOutCallCount() int {
 	return len(fake.streamOutArgsForCall)
 }
 
-func (fake *FakeContainer) StreamOutArgsForCall(i int) string {
+func (fake *FakeContainer) StreamOutArgsForCall(i int) garden.StreamOutSpec {
 	fake.streamOutMutex.RLock()
 	defer fake.streamOutMutex.RUnlock()
-	return fake.streamOutArgsForCall[i].srcPath
+	return fake.streamOutArgsForCall[i].spec
 }
 
 func (fake *FakeContainer) StreamOutReturns(result1 io.ReadCloser, result2 error) {

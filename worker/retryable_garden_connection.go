@@ -287,18 +287,18 @@ func (conn RetryableConnection) RemoveProperty(handle string, name string) error
 	})
 }
 
-func (conn RetryableConnection) StreamIn(handle string, dstPath string, reader io.Reader) error {
+func (conn RetryableConnection) StreamIn(handle string, spec garden.StreamInSpec) error {
 	return conn.retry(func() error {
-		return conn.Connection.StreamIn(handle, dstPath, reader)
+		return conn.Connection.StreamIn(handle, spec)
 	})
 }
 
-func (conn RetryableConnection) StreamOut(handle string, srcPath string) (io.ReadCloser, error) {
+func (conn RetryableConnection) StreamOut(handle string, spec garden.StreamOutSpec) (io.ReadCloser, error) {
 	var readCloser io.ReadCloser
 
 	err := conn.retry(func() error {
 		var err error
-		readCloser, err = conn.Connection.StreamOut(handle, srcPath)
+		readCloser, err = conn.Connection.StreamOut(handle, spec)
 		return err
 	})
 	if err != nil {
