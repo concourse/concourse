@@ -175,6 +175,9 @@ type PlanConfig struct {
 
 	// used on any step to execute on successful completion of the step
 	Success *PlanConfig `yaml:"on_success,omitempty" json:"on_success,omitempty" mapstructure:"on_success"`
+
+	// used on any step to swallow failures and errors
+	Try *PlanConfig `yaml:"try,omitempty" json:"try,omitempty" mapstructure:"try"`
 }
 
 func (config PlanConfig) Name() string {

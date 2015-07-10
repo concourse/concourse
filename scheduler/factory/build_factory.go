@@ -303,6 +303,18 @@ func (factory *BuildFactory) constructPlanFromConfig(
 			},
 		}
 
+	case planConfig.Try != nil:
+		plan = atc.Plan{
+			Try: &atc.TryPlan{
+				Step: factory.constructPlanFromConfig(
+					*planConfig.Try,
+					resources,
+					inputs,
+					hasHooks,
+				),
+			},
+		}
+
 	case planConfig.Aggregate != nil:
 		aggregate := atc.AggregatePlan{}
 

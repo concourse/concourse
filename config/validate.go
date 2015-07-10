@@ -16,7 +16,7 @@ type InvalidConfigError struct {
 }
 
 func (err InvalidConfigError) Error() string {
-	errorMsgs := []string{"invalid configration:"}
+	errorMsgs := []string{"invalid configuration:"}
 
 	if err.GroupsErr != nil {
 		errorMsgs = append(errorMsgs, indent(fmt.Sprintf("invalid groups:\n%s\n", indent(err.GroupsErr.Error()))))
@@ -258,6 +258,10 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 
 	if plan.Aggregate != nil {
 		foundTypes.Find("aggregate")
+	}
+
+	if plan.Try != nil {
+		foundTypes.Find("try")
 	}
 
 	if valid, message := foundTypes.IsValid(); !valid {

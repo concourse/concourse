@@ -9,6 +9,7 @@ type Plan struct {
 	Conditional   *ConditionalPlan   `json:"conditional,omitempty"`
 	PutGet        *PutGetPlan        `json:"putget,omitempty"`
 	HookedCompose *HookedComposePlan `json:"hooked_compose,omitempty"`
+	Try           *TryPlan           `json:"try,omitempty"`
 }
 
 type ComposePlan struct {
@@ -22,6 +23,10 @@ type HookedComposePlan struct {
 	OnFailure    Plan `json:"on_failure"`
 	OnCompletion Plan `json:"on_completion"`
 	Next         Plan `json:"next"`
+}
+
+type TryPlan struct {
+	Step Plan `json: "step"`
 }
 
 type PutGetPlan struct {
