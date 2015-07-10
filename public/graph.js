@@ -158,12 +158,16 @@ Graph.prototype.layout = function() {
     });
   }
 
+  // do an initial pass to get nodes optimally positioned
+  for (var c in columns) {
+    columns[c].sortNodes();
+    columns[c].layout();
+  }
+
   this.pullNodesDown(columns);
 }
 
 Graph.prototype.pullNodesDown = function(columns, reversed) {
-  var changed = false;
-
   var j;
 
   if (reversed) {
@@ -174,15 +178,27 @@ Graph.prototype.pullNodesDown = function(columns, reversed) {
 
   while ((reversed && j >= 0) || (!reversed && j < columns.length)) {
     if (columns[j].pullDown()) {
-      changed = true;
-
       columns[j].sortNodes();
       columns[j].layout();
       columns[j].pullDown();
 
-      this.pullNodesDown(columns.slice(0, j), true);
-      this.pullNodesDown(columns.slice(j + 1, columns.length));
+      if (reversed) {
+        this.pullNodesDown(columns.slice(j + 1, columns.length));
+      } else {
+        this.pullNodesDown(columns.slice(0, j), true);
+      }
+    } else if (columns[j].sortNodes()) {
+      columns[j].layout();
+
+      if (columns[j].pullDown()) {
+        if (reversed) {
+          this.pullNodesDown(columns.slice(j + 1, columns.length));
+        } else {
+          this.pullNodesDown(columns.slice(0, j), true);
+        }
+      }
     }
+
 
     if (reversed) {
       j--;
@@ -190,8 +206,6 @@ Graph.prototype.pullNodesDown = function(columns, reversed) {
       j++;
     }
   }
-
-  return changed;
 }
 
 Graph.prototype.computeRanks = function() {
@@ -405,6 +419,8 @@ Column.prototype.pullDown = function() {
 Column.prototype.sortNodes = function() {
   var nodes = this.nodes;
 
+  var before = this.nodes.slice();
+
   nodes.sort(function(a, b) {
     if (a._inEdges.length && b._inEdges.length) {
       // position nodes closer to their upstream sources
@@ -471,6 +487,16 @@ Column.prototype.sortNodes = function() {
 
     return compareNames(a.name, b.name);
   });
+
+  var changed = false;
+
+  for (var c in nodes) {
+    if (nodes[c] !== before[c]) {
+      changed = true;
+    }
+  }
+
+  return changed;
 }
 
 Column.prototype.mark = function() {
