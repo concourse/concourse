@@ -8,16 +8,14 @@ export PATH=/usr/lib/postgresql/9.3/bin:$PATH
 export GOPATH=$PWD/concourse
 export PATH=$GOPATH/bin:$PATH
 
-go install github.com/onsi/ginkgo/ginkgo
+# go
+pushd ${GOPATH}/src/github.com/concourse/atc
+  go install github.com/onsi/ginkgo/ginkgo
+  ginkgo -r -p -race "$@"
+popd
 
-cd ${GOPATH}/src/github.com/concourse/atc
-ginkgo -r -p -race "$@"
-
-mkdir ~/npm
-npm config set prefix ~/npm
-export PATH="$PATH:$HOME/npm/bin"
-
-cd web/assets
-npm install
-npm install -g gulp
-gulp jasmine-cli
+# javascript
+pushd ${GOPATH}/src/github.com/concourse/atc/web/assets
+  npm install
+  $(npm bin)/gulp jasmine-cli
+popd
