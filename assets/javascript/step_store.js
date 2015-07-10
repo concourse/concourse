@@ -19,7 +19,7 @@ var constants = {
 
 var Store = Fluxxor.createStore({
   initialize: function() {
-    this.steps = Immutable.Map();
+    this.steps = new concourse.StepData();
 
     this.preloadedInputs = Immutable.Map();
 
@@ -192,7 +192,7 @@ function StepModel(origin) {
   }
 
   this.isHook = function() {
-    return this.origin().hook != "" && this.origin().hook != "aggregate-";
+    return this.origin().hook != "" && !Array.isArray(this.origin().location);
   }
 
   this.hookName = function() {

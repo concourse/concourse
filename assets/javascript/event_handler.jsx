@@ -170,6 +170,39 @@ var eventHandlers = {
       "log": function(data) {
         processLogs(data);
       },
+
+      "error": function(data) {
+        processError(data);
+      },
+
+      "initialize-task": function(data) {
+        flux.actions.setStepRunning(data.origin, true);
+      },
+
+      "finish-task": function(data) {
+        flux.actions.setStepSuccessful(data.origin, data.exit_status == 0);
+        flux.actions.setStepRunning(data.origin, false);
+      },
+
+      "finish-get": function(data) {
+        flux.actions.setStepSuccessful(data.origin, data.exit_status == 0);
+        flux.actions.setStepVersionInfo(data.origin, data.version, data.metadata);
+        flux.actions.setStepRunning(data.origin, false);
+      },
+
+      "finish-put": function(data) {
+        flux.actions.setStepSuccessful(data.origin, data.exit_status == 0);
+        flux.actions.setStepVersionInfo(data.origin, data.version, data.metadata);
+        flux.actions.setStepRunning(data.origin, false);
+      }
+    }
+  },
+
+  "3": {
+    "*": {
+      "log": function(data) {
+        processLogs(data);
+      },
     }
   }
 }

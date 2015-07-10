@@ -32,66 +32,68 @@ var Build = React.createClass({
   },
 
   render: function() {
-    var containers = new tree.OrderedTree();
+    var containers = this.state.steps.getRenderableData();
 
     var steps = this.state.steps;
     var autoscroll = this.state.autoscroll;
 
-    tree.walk(steps, function(step) {
-      var stepLogs = step.logs();
-      var logLines = stepLogs.lines;
+    var rootSteps = []
 
-      var loc = step.origin().location;
+    for(var i = 0; i < containers.length; i++ ){
+      currentStep = containers[i]
 
-      containers.add(loc, <Step key={loc.toString()} depth={loc.length - 1} model={step} logs={logLines} autoscroll={autoscroll} />);
-    });
+      if (currentStep == undefined) {
+        continue;
+      }
 
-    function recurseList(list, key) {
-      return list.filterNot(function(e) {
-        return e === undefined;
-      }).map(function(e, i) {
-        return recurse(e, key.concat([i]));
-      }).toArray();
-    }
-
-    function recurse(ele, key) {
-      if (Immutable.List.isList(ele)) {
-        var childEles = recurseList(ele, key);
-
-        var classes = ["nest"];
-
-
-        var hasHooks = false;
-        for(var i = 0; i <= ele.size - 1; i++){
-          if(ele.get(i) !== undefined && ele.get(i).props !== undefined) {
-            if(ele.get(i).props.model.isHook()){
-              var hookClassName = "has-" + ele.get(i).props.model.hookClassName();
-
-              if(classes.indexOf(hookClassName) == -1){
-                classes.push(hookClassName);
-              }
-              hasHooks = true;
-            }
-          }
-        }
-
-        if (hasHooks){
-          classes.push("hooks");
-        };
-
-        if (key.length % 2 === 0) {
-          classes.push("even");
-        } else {
-          classes.push("odd");
-        }
-
-        return <div className={classes.join(" ")} key={key.toString()}>{childEles}</div>;
-      } else {
-        return <div className="seq" key={key.toString()}>{ele}</div>;
+      if(currentStep.location.parent_id === 0){
+        rootSteps.push(buildStep(currentStep));
       }
     }
 
-    return (<div className="steps">{ recurseList(containers.tree, []) }</div>);
+
+    function buildStep(step) {
+      var classes = ["seq"]
+      var childSteps = []
+
+      for(var i = 0; i <= step.children.length; i++){
+        childStep = step.children[i]
+
+        if(childStep == undefined){
+          continue
+        }
+
+        childSteps.push(buildStep(childStep))
+      }
+
+      if(step.step.isHook()){
+        classes.push("hook");
+        classes.push(step.step.hookClassName());
+      }
+
+      if(step.group){
+        var groupSteps = []
+        var aggregateClasses = ["aggregate"]
+
+        for(var i = 0; i <= step.groupSteps.length; i++){
+          groupStep = step.groupSteps[i]
+
+          if(groupStep == undefined){
+            continue
+          }
+
+          groupSteps.push(buildStep(groupStep))
+        }
+
+        return <div className={classes.join(' ')} key={step.key}><div className={aggregateClasses.join(' ')}>{groupSteps}</div> <div className="children">{childSteps}</div></div>
+      }
+
+      return <div className={classes.join(' ')} key={step.key}><Step key={step.key} model={step.step} logs={step.logLines} autoscroll={autoscroll} /><div className="children">{childSteps}</div></div>
+    }
+
+
+
+    return (<div className="steps">{rootSteps}</div>);
   },
 });
 

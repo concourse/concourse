@@ -44,7 +44,6 @@ var Step = React.createClass({
       "hook": model.isHook()
     }
 
-    classSetClasses[hookClassName] = model.isHook();
     var classNames = cx(classSetClasses);
     var displayLogs = model.isShowingLogs() ? 'block' : 'none';
 
@@ -61,10 +60,6 @@ var Step = React.createClass({
       break;
     }
 
-    var hookIcon = "";
-    if(model.isHook()){
-      hookIcon = <i className="left fa fa-fw fa-link hook-icon"></i>
-    }
 
     var status = "";
     if (model.isRunning()) {
@@ -83,7 +78,6 @@ var Step = React.createClass({
       <div className={classNames}>
         <div className="header" onClick={this.toggleLogs}>
           {status}
-          {hookIcon}
 
           <i className={classes.join(" ")}></i>
 

@@ -24,9 +24,9 @@
   <div id="build-logs"></div>
 </div>
 
-<script src="{{asset "build.js"}}"></script>
 <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
 <script src="{{asset "concourse.js"}}"></script>
+<script src="{{asset "build.js"}}"></script>
 <script type="text/javascript">
   streamLog({{url "BuildEvents" .Build | js}}, {{.Build.Status | js}})
 </script>
