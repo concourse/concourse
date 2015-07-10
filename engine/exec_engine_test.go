@@ -487,7 +487,7 @@ var _ = Describe("ExecEngine", func() {
 
 				It("finishes with error", func() {
 					Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
-					_, cbErr := fakeDelegate.FinishArgsForCall(0)
+					_, cbErr, _, _ := fakeDelegate.FinishArgsForCall(0)
 					Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
 				})
 			})
@@ -514,7 +514,7 @@ var _ = Describe("ExecEngine", func() {
 
 						It("finishes with success", func() {
 							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
-							_, cbErr := fakeDelegate.FinishArgsForCall(0)
+							_, cbErr, _, _ := fakeDelegate.FinishArgsForCall(0)
 							Ω(cbErr).ShouldNot(HaveOccurred())
 						})
 					})
@@ -528,7 +528,7 @@ var _ = Describe("ExecEngine", func() {
 
 						It("finishes with the error", func() {
 							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
-							_, cbErr := fakeDelegate.FinishArgsForCall(0)
+							_, cbErr, _, _ := fakeDelegate.FinishArgsForCall(0)
 							Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
 						})
 					})
@@ -560,7 +560,7 @@ var _ = Describe("ExecEngine", func() {
 
 						It("finishes with success", func() {
 							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
-							_, cbErr := fakeDelegate.FinishArgsForCall(0)
+							_, cbErr, _, _ := fakeDelegate.FinishArgsForCall(0)
 							Ω(cbErr).ShouldNot(HaveOccurred())
 						})
 					})
@@ -574,7 +574,7 @@ var _ = Describe("ExecEngine", func() {
 
 						It("finishes with the error", func() {
 							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
-							_, cbErr := fakeDelegate.FinishArgsForCall(0)
+							_, cbErr, _, _ := fakeDelegate.FinishArgsForCall(0)
 							Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
 						})
 					})
@@ -623,7 +623,7 @@ var _ = Describe("ExecEngine", func() {
 
 						It("finishes with success", func() {
 							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
-							_, cbErr := fakeDelegate.FinishArgsForCall(0)
+							_, cbErr, _, _ := fakeDelegate.FinishArgsForCall(0)
 							Ω(cbErr).ShouldNot(HaveOccurred())
 						})
 					})
@@ -637,7 +637,7 @@ var _ = Describe("ExecEngine", func() {
 
 						It("finishes with the error", func() {
 							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
-							_, cbErr := fakeDelegate.FinishArgsForCall(0)
+							_, cbErr, _, _ := fakeDelegate.FinishArgsForCall(0)
 							Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
 						})
 					})
@@ -659,7 +659,7 @@ var _ = Describe("ExecEngine", func() {
 
 						It("finishes with success", func() {
 							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
-							_, cbErr := fakeDelegate.FinishArgsForCall(0)
+							_, cbErr, _, _ := fakeDelegate.FinishArgsForCall(0)
 							Ω(cbErr).ShouldNot(HaveOccurred())
 						})
 					})
@@ -673,65 +673,54 @@ var _ = Describe("ExecEngine", func() {
 
 						It("finishes with the error", func() {
 							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
-							_, cbErr := fakeDelegate.FinishArgsForCall(0)
+							_, cbErr, _, _ := fakeDelegate.FinishArgsForCall(0)
 							Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
 						})
 					})
 
-					Context("when the output fails", func() {
+					Context("when the output has empty conditions", func() {
 						BeforeEach(func() {
-							outputStep.RunReturns(nil)
-							outputStep.ResultStub = successResult(false)
+							outputPlan.Conditions = atc.Conditions{}
 						})
 
-						It("does not run the dependent get", func() {
-							Ω(dependentStep.RunCallCount()).Should(Equal(0))
+						It("does not run the output", func() {
+							Ω(outputStep.RunCallCount()).Should(BeZero())
 						})
 					})
 				})
+			})
 
-				Context("when the output has empty conditions", func() {
-					BeforeEach(func() {
-						outputPlan.Conditions = atc.Conditions{}
-					})
+			Context("when the input fails", func() {
+				BeforeEach(func() {
+					inputStep.RunReturns(nil)
+					inputStep.ResultStub = successResult(false)
+				})
 
-					It("does not run the output", func() {
-						Ω(outputStep.RunCallCount()).Should(BeZero())
-					})
+				It("does not run the task", func() {
+					Ω(taskStep.RunCallCount()).Should(Equal(0))
 				})
 			})
-		})
 
-		Context("when the input fails", func() {
-			BeforeEach(func() {
-				inputStep.RunReturns(nil)
-				inputStep.ResultStub = successResult(false)
-			})
+			Context("when an input errors", func() {
+				disaster := errors.New("oh no!")
 
-			It("does not run the task", func() {
-				Ω(taskStep.RunCallCount()).Should(Equal(0))
-			})
-		})
+				BeforeEach(func() {
+					inputStep.RunReturns(disaster)
+				})
 
-		Context("when an input errors", func() {
-			disaster := errors.New("oh no!")
+				It("does not run the task", func() {
+					Ω(taskStep.RunCallCount()).Should(BeZero())
+				})
 
-			BeforeEach(func() {
-				inputStep.RunReturns(disaster)
-			})
+				It("does not run any outputs", func() {
+					Ω(outputStep.RunCallCount()).Should(BeZero())
+				})
 
-			It("does not run the task", func() {
-				Ω(taskStep.RunCallCount()).Should(BeZero())
-			})
-
-			It("does not run any outputs", func() {
-				Ω(outputStep.RunCallCount()).Should(BeZero())
-			})
-
-			It("finishes with the error", func() {
-				Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
-				_, cbErr := fakeDelegate.FinishArgsForCall(0)
-				Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
+				It("finishes with the error", func() {
+					Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
+					_, cbErr, _, _ := fakeDelegate.FinishArgsForCall(0)
+					Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
+				})
 			})
 		})
 	})

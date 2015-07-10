@@ -25,7 +25,7 @@ type BuildDelegate interface {
 	ExecutionDelegate(lager.Logger, atc.TaskPlan, event.OriginLocation, string) exec.TaskDelegate
 	OutputDelegate(lager.Logger, atc.PutPlan, event.OriginLocation, string) exec.PutDelegate
 
-	Finish(lager.Logger, error)
+	Finish(lager.Logger, error, exec.Success, bool)
 	Aborted(lager.Logger)
 }
 
@@ -103,8 +103,8 @@ func (delegate *delegate) ExecutionDelegate(logger lager.Logger, plan atc.TaskPl
 	}
 }
 
-func (delegate *delegate) Finish(logger lager.Logger, err error) {
-	if delegate.aborted {
+func (delegate *delegate) Finish(logger lager.Logger, err error, succeeded exec.Success, aborted bool) {
+	if aborted {
 		delegate.saveStatus(logger, atc.StatusAborted)
 
 		logger.Info("aborted")
@@ -112,7 +112,7 @@ func (delegate *delegate) Finish(logger lager.Logger, err error) {
 		delegate.saveStatus(logger, atc.StatusErrored)
 
 		logger.Error("errored", err)
-	} else if delegate.successful {
+	} else if bool(succeeded) {
 		delegate.saveStatus(logger, atc.StatusSucceeded)
 
 		implicits := logger.Session("implicit-outputs")

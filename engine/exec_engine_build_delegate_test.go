@@ -127,23 +127,29 @@ var _ = Describe("BuildDelegate", func() {
 					}))
 				})
 
-				Describe("Finish", func() {
-					var finishErr error
+			})
 
+			Describe("Finish", func() {
+				var (
+					finishErr error
+					aborted   bool
+					succeeded exec.Success
+				)
+
+				Context("without error", func() {
 					BeforeEach(func() {
 						finishErr = nil
 					})
 
-					JustBeforeEach(func() {
-						delegate.Finish(logger, finishErr)
-					})
-
-					Context("with success", func() {
+					Context("when it was told it failed", func() {
 						BeforeEach(func() {
-							finishErr = nil
+							succeeded = false
+							aborted = false
 						})
 
 						It("finishes with status 'failed'", func() {
+							delegate.Finish(logger, finishErr, succeeded, aborted)
+
 							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
 
 							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
@@ -151,70 +157,162 @@ var _ = Describe("BuildDelegate", func() {
 							Ω(savedStatus).Should(Equal(db.StatusFailed))
 						})
 					})
-				})
-			})
 
-			Context("when exit status is  0", func() {
-				JustBeforeEach(func() {
-					inputDelegate.Completed(exec.ExitStatus(0), versionInfo)
-				})
-
-				It("saves the build's input", func() {
-					Ω(fakeDB.SaveBuildInputCallCount()).Should(Equal(1))
-
-					buildID, savedInput := fakeDB.SaveBuildInputArgsForCall(0)
-					Ω(buildID).Should(Equal(42))
-					Ω(savedInput).Should(Equal(db.BuildInput{
-						Name: "some-input",
-						VersionedResource: db.VersionedResource{
-							PipelineName: "some-pipeline",
-							Resource:     "some-input-resource",
-							Type:         "some-type",
-							Source:       db.Source{"some": "source"},
-							Version:      db.Version{"result": "version"},
-							Metadata:     []db.MetadataField{{"result", "metadata"}},
-						},
-					}))
-				})
-
-				It("saves a finish-get event", func() {
-					Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(1))
-
-					buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
-					Ω(buildID).Should(Equal(42))
-					Ω(savedEvent).Should(Equal(event.FinishGet{
-						Origin: event.Origin{
-							Type:     event.OriginTypeGet,
-							Name:     "some-input",
-							Location: location,
-							Hook:     "some-input-hook",
-						},
-						Plan: event.GetPlan{
-							Name:     "some-input",
-							Resource: "some-input-resource",
-							Type:     "some-type",
-							Version:  atc.Version{"some": "version"},
-							Source:   atc.Source{"some": "source"},
-							Params:   atc.Params{"some": "params"},
-						},
-						FetchedVersion:  versionInfo.Version,
-						FetchedMetadata: versionInfo.Metadata,
-					}))
-				})
-				Context("when the resource only occurs as an input", func() {
-					Describe("Finish", func() {
-						var finishErr error
-
-						JustBeforeEach(func() {
-							delegate.Finish(logger, finishErr)
+					Context("when it was told it succeeded", func() {
+						BeforeEach(func() {
+							succeeded = true
 						})
 
-						Context("with success", func() {
-							BeforeEach(func() {
-								finishErr = nil
+						It("finishes with status 'succeeded'", func() {
+							delegate.Finish(logger, finishErr, succeeded, aborted)
+
+							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
+
+							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
+							Ω(buildID).Should(Equal(42))
+							Ω(savedStatus).Should(Equal(db.StatusSucceeded))
+						})
+					})
+				})
+
+				Context("when exit status is 0", func() {
+					BeforeEach(func() {
+						inputDelegate.Completed(exec.ExitStatus(0), versionInfo)
+					})
+
+					It("saves the build's input", func() {
+						Ω(fakeDB.SaveBuildInputCallCount()).Should(Equal(1))
+
+						buildID, savedInput := fakeDB.SaveBuildInputArgsForCall(0)
+						Ω(buildID).Should(Equal(42))
+						Ω(savedInput).Should(Equal(db.BuildInput{
+							Name: "some-input",
+							VersionedResource: db.VersionedResource{
+								PipelineName: "some-pipeline",
+								Resource:     "some-input-resource",
+								Type:         "some-type",
+								Source:       db.Source{"some": "source"},
+								Version:      db.Version{"result": "version"},
+								Metadata:     []db.MetadataField{{"result", "metadata"}},
+							},
+						}))
+					})
+
+					It("saves a finish-get event", func() {
+						Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(1))
+
+						buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
+						Ω(buildID).Should(Equal(42))
+						Ω(savedEvent).Should(Equal(event.FinishGet{
+							Origin: event.Origin{
+								Type:     event.OriginTypeGet,
+								Name:     "some-input",
+								Location: location,
+								Hook:     "some-input-hook",
+							},
+							Plan: event.GetPlan{
+								Name:     "some-input",
+								Resource: "some-input-resource",
+								Type:     "some-type",
+								Version:  atc.Version{"some": "version"},
+								Source:   atc.Source{"some": "source"},
+								Params:   atc.Params{"some": "params"},
+							},
+							FetchedVersion:  versionInfo.Version,
+							FetchedMetadata: versionInfo.Metadata,
+						}))
+					})
+
+					Context("when the resource only occurs as an input", func() {
+						Describe("Finish", func() {
+							var (
+								finishErr error
+								aborted   bool
+								succeeded exec.Success
+							)
+
+							Context("with success", func() {
+								BeforeEach(func() {
+									finishErr = nil
+									succeeded = true
+									aborted = false
+								})
+
+								It("saves the input as an implicit output", func() {
+									delegate.Finish(logger, finishErr, succeeded, aborted)
+
+									Ω(fakeDB.SaveBuildOutputCallCount()).Should(Equal(1))
+
+									buildID, savedOutput := fakeDB.SaveBuildOutputArgsForCall(0)
+									Ω(buildID).Should(Equal(42))
+									Ω(savedOutput).Should(Equal(db.VersionedResource{
+										PipelineName: "some-pipeline",
+										Resource:     "some-input-resource",
+										Type:         "some-type",
+										Source:       db.Source{"some": "source"},
+										Version:      db.Version{"result": "version"},
+										Metadata:     []db.MetadataField{{"result", "metadata"}},
+									}))
+								})
 							})
 
-							It("saves the input as an implicit output", func() {
+							Context("with failure", func() {
+								disaster := errors.New("nope")
+
+								BeforeEach(func() {
+									finishErr = disaster
+									succeeded = false
+								})
+
+								It("does not save the input as an implicit output", func() {
+									delegate.Finish(logger, finishErr, succeeded, aborted)
+
+									Ω(fakeDB.SaveBuildOutputCallCount()).Should(BeZero())
+								})
+							})
+						})
+					})
+
+					Context("when the same resource occurs as an explicit output", func() {
+						var (
+							putPlan atc.PutPlan
+
+							outputDelegate exec.PutDelegate
+						)
+
+						BeforeEach(func() {
+							putPlan = atc.PutPlan{
+								Pipeline: "some-pipeline",
+								Resource: "some-input-resource",
+								Type:     "some-type",
+								Source:   atc.Source{"some": "source"},
+								Params:   atc.Params{"some": "output-params"},
+							}
+
+							outputDelegate = delegate.OutputDelegate(logger, putPlan, location, "some-output-hook")
+						})
+
+						JustBeforeEach(func() {
+							outputDelegate.Completed(exec.ExitStatus(0), exec.VersionInfo{
+								Version:  atc.Version{"explicit": "version"},
+								Metadata: []atc.MetadataField{{"explicit", "metadata"}},
+							})
+						})
+
+						Describe("Finish", func() {
+							var (
+								finishErr error
+								succeeded exec.Success
+							)
+
+							BeforeEach(func() {
+								finishErr = nil
+								succeeded = true
+							})
+
+							It("only saves the explicit output", func() {
+								delegate.Finish(logger, finishErr, succeeded, aborted)
+
 								Ω(fakeDB.SaveBuildOutputCallCount()).Should(Equal(1))
 
 								buildID, savedOutput := fakeDB.SaveBuildOutputArgsForCall(0)
@@ -224,76 +322,10 @@ var _ = Describe("BuildDelegate", func() {
 									Resource:     "some-input-resource",
 									Type:         "some-type",
 									Source:       db.Source{"some": "source"},
-									Version:      db.Version{"result": "version"},
-									Metadata:     []db.MetadataField{{"result", "metadata"}},
+									Version:      db.Version{"explicit": "version"},
+									Metadata:     []db.MetadataField{{"explicit", "metadata"}},
 								}))
 							})
-						})
-
-						Context("with failure", func() {
-							disaster := errors.New("nope")
-
-							BeforeEach(func() {
-								finishErr = disaster
-							})
-
-							It("does not save the input as an implicit output", func() {
-								Ω(fakeDB.SaveBuildOutputCallCount()).Should(BeZero())
-							})
-						})
-					})
-				})
-
-				Context("when the same resource occurs as an explicit output", func() {
-					var (
-						putPlan atc.PutPlan
-
-						outputDelegate exec.PutDelegate
-					)
-
-					BeforeEach(func() {
-						putPlan = atc.PutPlan{
-							Pipeline: "some-pipeline",
-							Resource: "some-input-resource",
-							Type:     "some-type",
-							Source:   atc.Source{"some": "source"},
-							Params:   atc.Params{"some": "output-params"},
-						}
-
-						outputDelegate = delegate.OutputDelegate(logger, putPlan, location, "some-output-hook")
-					})
-
-					JustBeforeEach(func() {
-						outputDelegate.Completed(exec.ExitStatus(0), exec.VersionInfo{
-							Version:  atc.Version{"explicit": "version"},
-							Metadata: []atc.MetadataField{{"explicit", "metadata"}},
-						})
-					})
-
-					Describe("Finish", func() {
-						var finishErr error
-
-						BeforeEach(func() {
-							finishErr = nil
-						})
-
-						JustBeforeEach(func() {
-							delegate.Finish(logger, finishErr)
-						})
-
-						It("only saves the explicit output", func() {
-							Ω(fakeDB.SaveBuildOutputCallCount()).Should(Equal(1))
-
-							buildID, savedOutput := fakeDB.SaveBuildOutputArgsForCall(0)
-							Ω(buildID).Should(Equal(42))
-							Ω(savedOutput).Should(Equal(db.VersionedResource{
-								PipelineName: "some-pipeline",
-								Resource:     "some-input-resource",
-								Type:         "some-type",
-								Source:       db.Source{"some": "source"},
-								Version:      db.Version{"explicit": "version"},
-								Metadata:     []db.MetadataField{{"explicit", "metadata"}},
-							}))
 						})
 					})
 				})
@@ -455,10 +487,6 @@ var _ = Describe("BuildDelegate", func() {
 		Describe("Result", func() {
 			var exitStatus exec.ExitStatus
 
-			BeforeEach(func() {
-				exitStatus = 0
-			})
-
 			JustBeforeEach(func() {
 				executionDelegate.Result(exitStatus)
 			})
@@ -473,48 +501,6 @@ var _ = Describe("BuildDelegate", func() {
 					// report the status of a build without creating a finish event
 					Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(0))
 				})
-
-				Describe("Finish", func() {
-					var finishErr error
-
-					BeforeEach(func() {
-						finishErr = nil
-					})
-
-					JustBeforeEach(func() {
-						delegate.Finish(logger, finishErr)
-					})
-
-					Context("with success", func() {
-						BeforeEach(func() {
-							finishErr = nil
-						})
-
-						It("finishes with status 'succeeded'", func() {
-							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
-
-							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
-							Ω(buildID).Should(Equal(42))
-							Ω(savedStatus).Should(Equal(db.StatusSucceeded))
-						})
-					})
-
-					Context("with failure", func() {
-						disaster := errors.New("nope")
-
-						BeforeEach(func() {
-							finishErr = disaster
-						})
-
-						It("finishes with status 'errored'", func() {
-							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
-
-							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
-							Ω(buildID).Should(Equal(42))
-							Ω(savedStatus).Should(Equal(db.StatusErrored))
-						})
-					})
-				})
 			})
 
 			Context("with a failed result", func() {
@@ -527,24 +513,50 @@ var _ = Describe("BuildDelegate", func() {
 					// report the status of a build without creating a finish event
 					Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(0))
 				})
+			})
 
-				Describe("Finish", func() {
-					var finishErr error
+			Describe("Finish", func() {
+				var (
+					finishErr error
+					succeeded exec.Success
+					aborted   bool
+				)
 
+				BeforeEach(func() {
+					finishErr = nil
+					succeeded = true
+					aborted = false
+				})
+
+				Context("with success", func() {
 					BeforeEach(func() {
 						finishErr = nil
 					})
 
-					JustBeforeEach(func() {
-						delegate.Finish(logger, finishErr)
+					Context("when it was told it succeeded", func() {
+						BeforeEach(func() {
+							succeeded = true
+						})
+
+						It("finishes with status 'succeeded'", func() {
+							delegate.Finish(logger, finishErr, succeeded, aborted)
+
+							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
+
+							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
+							Ω(buildID).Should(Equal(42))
+							Ω(savedStatus).Should(Equal(db.StatusSucceeded))
+						})
 					})
 
-					Context("with success", func() {
+					Context("when it was told it failed", func() {
 						BeforeEach(func() {
-							finishErr = nil
+							succeeded = false
 						})
 
 						It("finishes with status 'failed'", func() {
+							delegate.Finish(logger, finishErr, succeeded, aborted)
+
 							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
 
 							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
@@ -552,21 +564,24 @@ var _ = Describe("BuildDelegate", func() {
 							Ω(savedStatus).Should(Equal(db.StatusFailed))
 						})
 					})
+				})
 
-					Context("with failure", func() {
-						disaster := errors.New("nope")
+				Context("with failure", func() {
+					disaster := errors.New("nope")
 
-						BeforeEach(func() {
-							finishErr = disaster
-						})
+					BeforeEach(func() {
+						finishErr = disaster
+						succeeded = false
+					})
 
-						It("finishes with status 'errored'", func() {
-							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
+					It("finishes with status 'errored'", func() {
+						delegate.Finish(logger, finishErr, succeeded, aborted)
 
-							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
-							Ω(buildID).Should(Equal(42))
-							Ω(savedStatus).Should(Equal(db.StatusErrored))
-						})
+						Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
+
+						buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
+						Ω(buildID).Should(Equal(42))
+						Ω(savedStatus).Should(Equal(db.StatusErrored))
 					})
 				})
 			})
@@ -575,9 +590,9 @@ var _ = Describe("BuildDelegate", func() {
 		Describe("Finished", func() {
 			var exitStatus exec.ExitStatus
 
-			BeforeEach(func() {
-				exitStatus = 0
-			})
+			// BeforeEach(func() {
+			// 	exitStatus = 0
+			// })
 
 			JustBeforeEach(func() {
 				executionDelegate.Finished(exitStatus)
@@ -605,22 +620,22 @@ var _ = Describe("BuildDelegate", func() {
 				})
 
 				Describe("Finish", func() {
-					var finishErr error
-
-					BeforeEach(func() {
-						finishErr = nil
-					})
-
-					JustBeforeEach(func() {
-						delegate.Finish(logger, finishErr)
-					})
+					var (
+						finishErr error
+						aborted   bool
+						succeeded exec.Success
+					)
 
 					Context("with success", func() {
 						BeforeEach(func() {
 							finishErr = nil
+							succeeded = true
+							aborted = false
 						})
 
 						It("finishes with status 'succeeded'", func() {
+							delegate.Finish(logger, finishErr, succeeded, aborted)
+
 							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
 
 							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
@@ -634,9 +649,12 @@ var _ = Describe("BuildDelegate", func() {
 
 						BeforeEach(func() {
 							finishErr = disaster
+							succeeded = false
 						})
 
 						It("finishes with status 'errored'", func() {
+							delegate.Finish(logger, finishErr, succeeded, aborted)
+
 							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
 
 							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
@@ -666,48 +684,6 @@ var _ = Describe("BuildDelegate", func() {
 						Location: location,
 						Hook:     "some-task-hook",
 					}))
-				})
-
-				Describe("Finish", func() {
-					var finishErr error
-
-					BeforeEach(func() {
-						finishErr = nil
-					})
-
-					JustBeforeEach(func() {
-						delegate.Finish(logger, finishErr)
-					})
-
-					Context("with success", func() {
-						BeforeEach(func() {
-							finishErr = nil
-						})
-
-						It("finishes with status 'failed'", func() {
-							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
-
-							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
-							Ω(buildID).Should(Equal(42))
-							Ω(savedStatus).Should(Equal(db.StatusFailed))
-						})
-					})
-
-					Context("with failure", func() {
-						disaster := errors.New("nope")
-
-						BeforeEach(func() {
-							finishErr = disaster
-						})
-
-						It("finishes with status 'errored'", func() {
-							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
-
-							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
-							Ω(buildID).Should(Equal(42))
-							Ω(savedStatus).Should(Equal(db.StatusErrored))
-						})
-					})
 				})
 			})
 		})
@@ -916,23 +892,45 @@ var _ = Describe("BuildDelegate", func() {
 					}))
 				})
 
-				Describe("Finish", func() {
-					var finishErr error
+			})
 
+			Describe("Finish", func() {
+				var (
+					finishErr error
+					aborted   bool
+					succeeded exec.Success
+				)
+
+				Context("without error", func() {
 					BeforeEach(func() {
 						finishErr = nil
 					})
 
-					JustBeforeEach(func() {
-						delegate.Finish(logger, finishErr)
-					})
-
-					Context("with success", func() {
+					Context("when it was told it succeeded", func() {
 						BeforeEach(func() {
-							finishErr = nil
+							succeeded = true
+							aborted = false
 						})
 
 						It("finishes with status 'failed'", func() {
+							delegate.Finish(logger, finishErr, succeeded, aborted)
+
+							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
+
+							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
+							Ω(buildID).Should(Equal(42))
+							Ω(savedStatus).Should(Equal(db.StatusSucceeded))
+						})
+					})
+
+					Context("when it was told it failed", func() {
+						BeforeEach(func() {
+							succeeded = false
+						})
+
+						It("finishes with status 'failed'", func() {
+							delegate.Finish(logger, finishErr, succeeded, aborted)
+
 							Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
 
 							buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
@@ -1028,27 +1026,29 @@ var _ = Describe("BuildDelegate", func() {
 	})
 
 	Describe("Aborted", func() {
+		var aborted bool
+
 		JustBeforeEach(func() {
-			delegate.Aborted(logger)
+			aborted = true
 		})
 
 		Describe("Finish", func() {
-			var finishErr error
-
-			BeforeEach(func() {
-				finishErr = nil
-			})
-
-			JustBeforeEach(func() {
-				delegate.Finish(logger, finishErr)
-			})
+			var (
+				finishErr error
+				succeeded exec.Success
+				// aborted   bool
+			)
 
 			Context("with success", func() {
 				BeforeEach(func() {
 					finishErr = nil
+					succeeded = true
+
 				})
 
 				It("finishes with status 'aborted'", func() {
+					delegate.Finish(logger, finishErr, succeeded, aborted)
+
 					Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
 
 					buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
@@ -1062,9 +1062,12 @@ var _ = Describe("BuildDelegate", func() {
 
 				BeforeEach(func() {
 					finishErr = disaster
+					succeeded = false
 				})
 
 				It("finishes with status 'aborted'", func() {
+					delegate.Finish(logger, finishErr, succeeded, aborted)
+
 					Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
 
 					buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)

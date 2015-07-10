@@ -45,11 +45,13 @@ type FakeBuildDelegate struct {
 	outputDelegateReturns struct {
 		result1 exec.PutDelegate
 	}
-	FinishStub        func(lager.Logger, error)
+	FinishStub        func(lager.Logger, error, exec.Success, bool)
 	finishMutex       sync.RWMutex
 	finishArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 error
+		arg3 exec.Success
+		arg4 bool
 	}
 	AbortedStub        func(lager.Logger)
 	abortedMutex       sync.RWMutex
@@ -163,15 +165,17 @@ func (fake *FakeBuildDelegate) OutputDelegateReturns(result1 exec.PutDelegate) {
 	}{result1}
 }
 
-func (fake *FakeBuildDelegate) Finish(arg1 lager.Logger, arg2 error) {
+func (fake *FakeBuildDelegate) Finish(arg1 lager.Logger, arg2 error, arg3 exec.Success, arg4 bool) {
 	fake.finishMutex.Lock()
 	fake.finishArgsForCall = append(fake.finishArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 error
-	}{arg1, arg2})
+		arg3 exec.Success
+		arg4 bool
+	}{arg1, arg2, arg3, arg4})
 	fake.finishMutex.Unlock()
 	if fake.FinishStub != nil {
-		fake.FinishStub(arg1, arg2)
+		fake.FinishStub(arg1, arg2, arg3, arg4)
 	}
 }
 
@@ -181,10 +185,10 @@ func (fake *FakeBuildDelegate) FinishCallCount() int {
 	return len(fake.finishArgsForCall)
 }
 
-func (fake *FakeBuildDelegate) FinishArgsForCall(i int) (lager.Logger, error) {
+func (fake *FakeBuildDelegate) FinishArgsForCall(i int) (lager.Logger, error, exec.Success, bool) {
 	fake.finishMutex.RLock()
 	defer fake.finishMutex.RUnlock()
-	return fake.finishArgsForCall[i].arg1, fake.finishArgsForCall[i].arg2
+	return fake.finishArgsForCall[i].arg1, fake.finishArgsForCall[i].arg2, fake.finishArgsForCall[i].arg3, fake.finishArgsForCall[i].arg4
 }
 
 func (fake *FakeBuildDelegate) Aborted(arg1 lager.Logger) {

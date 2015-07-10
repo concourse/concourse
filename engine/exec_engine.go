@@ -103,17 +103,25 @@ func (build *execBuild) Resume(logger lager.Logger) {
 
 	exited := process.Wait()
 
+	aborted := false
+	var succeeded exec.Success
+
 	for {
 		select {
 		case err := <-exited:
-			build.delegate.Finish(logger.Session("finish"), err)
+			if aborted {
+				succeeded = false
+			} else {
+				succeeded = true
+			}
+			build.delegate.Finish(logger.Session("finish"), err, succeeded, aborted)
 			return
 
 		case sig := <-build.signals:
 			process.Signal(sig)
 
 			if sig == os.Kill {
-				build.delegate.Aborted(logger)
+				aborted = true
 			}
 		}
 	}

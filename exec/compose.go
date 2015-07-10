@@ -81,5 +81,17 @@ func (step *composed) Release() error {
 }
 
 func (step *composed) Result(x interface{}) bool {
-	return step.secondStep.Result(x)
+	switch v := x.(type) {
+	case *Success:
+		if step.secondStep == nil {
+			*v = false
+		} else {
+			if !step.secondStep.Result(v) {
+				*v = false
+			}
+		}
+		return true
+	}
+
+	return false
 }
