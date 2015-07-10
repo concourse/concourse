@@ -341,14 +341,14 @@ var _ = Describe("Resource In", func() {
 
 			Ω(fakeContainer.StreamInCallCount()).Should(Equal(1))
 			streamSpec := fakeContainer.StreamInArgsForCall(0)
-			Ω(streamSpec.User).Should(Equal("root"))
+			Ω(streamSpec.User).Should(Equal("")) // use default
 
 			_, err = versionedSource.StreamOut("a/path")
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Ω(fakeContainer.StreamOutCallCount()).Should(Equal(1))
 			streamOutSpec := fakeContainer.StreamOutArgsForCall(0)
-			Ω(streamOutSpec.User).Should(Equal("root"))
+			Ω(streamOutSpec.User).Should(Equal("")) // use default
 
 			Ω(fakeContainer.RunCallCount()).Should(Equal(1))
 			spec, _ := fakeContainer.RunArgsForCall(0)

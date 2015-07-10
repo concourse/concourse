@@ -227,7 +227,6 @@ func (step *taskStep) Release() error {
 func (step *taskStep) StreamFile(source string) (io.ReadCloser, error) {
 	out, err := step.container.StreamOut(garden.StreamOutSpec{
 		Path: path.Join(step.artifactsRoot, source),
-		User: "root",
 	})
 
 	if err != nil {
@@ -250,7 +249,6 @@ func (step *taskStep) StreamFile(source string) (io.ReadCloser, error) {
 func (step *taskStep) StreamTo(destination ArtifactDestination) error {
 	out, err := step.container.StreamOut(garden.StreamOutSpec{
 		Path: step.artifactsRoot + "/",
-		User: "root",
 	})
 	if err != nil {
 		return err
@@ -269,7 +267,6 @@ func (step *taskStep) ensureBuildDirExists(container garden.Container) error {
 
 	err = container.StreamIn(garden.StreamInSpec{
 		Path:      step.artifactsRoot,
-		User:      "root",
 		TarStream: emptyTar,
 	})
 	if err != nil {
@@ -367,7 +364,6 @@ func (dest *containerDestination) StreamIn(dst string, src io.Reader) error {
 
 	return dest.container.StreamIn(garden.StreamInSpec{
 		Path:      dest.artifactsRoot + "/" + inputDst + "/" + dst,
-		User:      "root",
 		TarStream: src,
 	})
 }

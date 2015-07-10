@@ -342,7 +342,7 @@ var _ = Describe("Resource Out", func() {
 
 			Ω(fakeContainer.StreamInCallCount()).Should(Equal(1))
 			streamSpec := fakeContainer.StreamInArgsForCall(0)
-			Ω(streamSpec.User).Should(Equal("root"))
+			Ω(streamSpec.User).Should(Equal("")) // use default
 
 			_, err = versionedSource.StreamOut("a/path")
 			Ω(err).ShouldNot(HaveOccurred())
@@ -405,7 +405,7 @@ var _ = Describe("Resource Out", func() {
 					spec := fakeContainer.StreamInArgsForCall(0)
 
 					Ω(spec.Path).Should(Equal("/tmp/build/put/some-path"))
-					Ω(spec.User).Should(Equal("root"))
+					Ω(spec.User).Should(Equal("")) // use default
 					Ω(spec.TarStream).Should(Equal(buf))
 				})
 			})

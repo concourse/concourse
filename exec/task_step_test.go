@@ -165,7 +165,7 @@ var _ = Describe("GardenFactory", func() {
 
 						spec := fakeContainer.StreamInArgsForCall(0)
 						Ω(spec.Path).Should(Equal("/tmp/build/a-random-guid"))
-						Ω(spec.User).Should(Equal("root"))
+						Ω(spec.User).Should(Equal("")) // use default
 
 						tarReader := tar.NewReader(spec.TarStream)
 
@@ -281,7 +281,7 @@ var _ = Describe("GardenFactory", func() {
 
 								spec := fakeContainer.StreamInArgsForCall(initial)
 								Ω(spec.Path).Should(Equal("/tmp/build/a-random-guid/some-input-configured-path/foo"))
-								Ω(spec.User).Should(Equal("root"))
+								Ω(spec.User).Should(Equal("")) // use default
 								Ω(spec.TarStream).Should(Equal(streamIn))
 
 								Ω(otherInputSource.StreamToCallCount()).Should(Equal(1))
@@ -296,7 +296,7 @@ var _ = Describe("GardenFactory", func() {
 								Ω(fakeContainer.StreamInCallCount()).Should(Equal(initial + 1))
 								spec = fakeContainer.StreamInArgsForCall(initial)
 								Ω(spec.Path).Should(Equal("/tmp/build/a-random-guid/some-other-input/foo"))
-								Ω(spec.User).Should(Equal("root"))
+								Ω(spec.User).Should(Equal("")) // use default
 								Ω(spec.TarStream).Should(Equal(streamIn))
 
 								Eventually(process.Wait()).Should(Receive(BeNil()))
@@ -415,7 +415,7 @@ var _ = Describe("GardenFactory", func() {
 										Ω(fakeContainer.StreamOutCallCount()).Should(Equal(1))
 										spec := fakeContainer.StreamOutArgsForCall(0)
 										Ω(spec.Path).Should(Equal("/tmp/build/a-random-guid/"))
-										Ω(spec.User).Should(Equal("root"))
+										Ω(spec.User).Should(Equal("")) // use default
 
 										Ω(fakeDestination.StreamInCallCount()).Should(Equal(1))
 										dest, src := fakeDestination.StreamInArgsForCall(0)
@@ -497,7 +497,7 @@ var _ = Describe("GardenFactory", func() {
 
 											spec := fakeContainer.StreamOutArgsForCall(0)
 											Ω(spec.Path).Should(Equal("/tmp/build/a-random-guid/some-path"))
-											Ω(spec.User).Should(Equal("root"))
+											Ω(spec.User).Should(Equal("")) // use default
 										})
 
 										Describe("closing the stream", func() {

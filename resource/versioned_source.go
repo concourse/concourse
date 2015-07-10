@@ -37,14 +37,12 @@ func (vs *versionedSource) StreamOut(src string) (io.ReadCloser, error) {
 	return vs.container.StreamOut(garden.StreamOutSpec{
 		// don't use path.Join; it strips trailing slashes
 		Path: vs.resourceDir + "/" + src,
-		User: "root",
 	})
 }
 
 func (vs *versionedSource) StreamIn(dst string, src io.Reader) error {
 	return vs.container.StreamIn(garden.StreamInSpec{
 		Path:      path.Join(vs.resourceDir, dst),
-		User:      "root",
 		TarStream: src,
 	})
 }
