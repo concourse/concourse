@@ -187,8 +187,12 @@ function StepModel(origin) {
     return this._map.get("errored");
   }
 
-  this.isSubStep = function() {
-    return !!this.origin().substep;
+  this.isDependentGet = function() {
+    if (Array.isArray(this.origin().location)) {
+      return !!this.origin().substep;
+    }
+
+    return !this.isHook() && this.origin().location.parent_id != 0
   }
 
   this.isHook = function() {
