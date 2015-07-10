@@ -58,7 +58,6 @@ jobs:
     templates:
       - {release: concourse, name: consul-agent}
       - {release: garden-linux, name: garden}
-      - {release: concourse, name: baggageclaim}
       - {release: concourse, name: groundcrew}
     properties:
       garden:
