@@ -43,14 +43,14 @@ var _ = Describe("A pipeline with git resources", func() {
 		}, 10*time.Second, 1*time.Second).Should(BeEmpty())
 
 		By("always performs ensure on: [success]")
-		Consistently(func() string {
+		Eventually(func() string {
 			return ensureSuccessGitServer.RevParse("ensure-success")
-		}, 10*time.Second, 1*time.Second).Should(Equal(masterSHA))
+		}, 30*time.Second, 1*time.Second).Should(Equal(masterSHA))
 
 		By("always performs ensure on: [failure]")
-		Consistently(func() string {
+		Eventually(func() string {
 			return ensureFailureGitServer.RevParse("ensure-failure")
-		}, 10*time.Second, 1*time.Second).Should(Equal(masterSHA))
+		}, 30*time.Second, 1*time.Second).Should(Equal(masterSHA))
 	})
 
 	It("performs build matrixes correctly", func() {
