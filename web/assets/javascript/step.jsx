@@ -39,8 +39,8 @@ var Step = React.createClass({
     var classSetClasses ={
       "build-step": true,
       "running": model.isRunning(),
-      "first-occurrence": model.isFirstOccurrence() && !model.isSubStep(),
-      "substep": model.isSubStep(),
+      "first-occurrence": model.isFirstOccurrence() && !model.isDependentGet(),
+      "dependent-get": model.isDependentGet(),
       "hook": model.isHook()
     }
 

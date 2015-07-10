@@ -265,6 +265,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 		getPlan := putPlan.GetPlan()
 
 		getLocation := location.Incr(1).SetParentID(location.ID)
+		getLocation.ParallelGroup = 0
 		restLocation := location.Incr(2)
 
 		restOfSteps, restLocationIncrement := build.buildStepFactory(logger, plan.PutGet.Rest, restLocation, "")

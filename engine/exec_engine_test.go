@@ -299,7 +299,7 @@ var _ = Describe("ExecEngine", func() {
 					Ω(location).Should(Equal(event.OriginLocation{
 						ParentID:      6,
 						ID:            7,
-						ParallelGroup: 5,
+						ParallelGroup: 0,
 					}))
 					Ω(hook).Should(Equal(""))
 
@@ -324,7 +324,7 @@ var _ = Describe("ExecEngine", func() {
 					Ω(location).Should(Equal(event.OriginLocation{
 						ParentID:      8,
 						ID:            9,
-						ParallelGroup: 5,
+						ParallelGroup: 0,
 					}))
 					Ω(hook).Should(Equal(""))
 
@@ -422,7 +422,7 @@ var _ = Describe("ExecEngine", func() {
 				Ω(location).Should(Equal(event.OriginLocation{
 					ParentID:      5,
 					ID:            6,
-					ParallelGroup: 4,
+					ParallelGroup: 0,
 				}))
 				Ω(hook).Should(Equal(""))
 
