@@ -1,0 +1,36 @@
+#language anatomy
+
+\title{v0.57.0}
+
+\list{
+  Conditionals in build plans are now done by attaching
+  \reference{on-success-step} and \reference{on-failure-step} to the step to
+  switch on.
+
+  Previously this was done by listing another step with \code{conditions}
+  attached to it. This led to deeply nested build plans, and ended up
+  swallowing the original failure of the hook succeeded.
+
+  This release preserves support for the old \code{conditions} style, for
+  backwards-compatibility. You should switch to the new hooks as soon as
+  possible.
+}{
+  Similar to \code{on_success} and \code{on_failure}, a new hook called
+  \reference{ensure-step} has been introduced. This hook will execute
+  regardless of the result of the parent step, even if it errors or is aborted.
+  This is useful for emitting metadata or releasing resources.
+}{
+  We have upgraded our Garden Linux dependency. This may lead to weirdness when
+  updating the existing workers (due to backwards-incompatible changes in
+  Garden Linux) - if in doubt, \code{bosh recreate worker 0..N}.
+}{
+  We have fixed a leak involving restarts of the workers; previously they
+  wouldn't proper clean up the \code{ssh} process advertising the worker,
+  leading to duplicate advertisements and potentially intermittent changes in
+  metadata (if you had changed e.g. \code{resource_types} and deployed the
+  workers).
+}{
+  Fixed a sporadic hang in the
+  \hyperlink["https://github.com/concourse/pool-resource"]{Pool resource}.
+}
+

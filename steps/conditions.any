@@ -7,6 +7,9 @@
 Any step can be made conditional by adding the \code{conditions} attribute
 to it.
 
+\italic{Deprecated. Use \reference{on-failure-step} and
+\reference{on-success-step} instead.}
+
 \define{conditions}{[string]}{
   \italic{Optional. Default \code{[success]}.} The conditions under which to
   perform this step.
