@@ -21,7 +21,7 @@ type implicitOutput struct {
 //go:generate counterfeiter . BuildDelegate
 
 type BuildDelegate interface {
-	InputDelegate(lager.Logger, atc.GetPlan, event.OriginLocation, bool, string) exec.GetDelegate
+	InputDelegate(lager.Logger, atc.GetPlan, event.OriginLocation, string) exec.GetDelegate
 	ExecutionDelegate(lager.Logger, atc.TaskPlan, event.OriginLocation, string) exec.TaskDelegate
 	OutputDelegate(lager.Logger, atc.PutPlan, event.OriginLocation, string) exec.PutDelegate
 
@@ -73,13 +73,12 @@ func newBuildDelegate(db EngineDB, buildID int) BuildDelegate {
 	}
 }
 
-func (delegate *delegate) InputDelegate(logger lager.Logger, plan atc.GetPlan, location event.OriginLocation, substep bool, hook string) exec.GetDelegate {
+func (delegate *delegate) InputDelegate(logger lager.Logger, plan atc.GetPlan, location event.OriginLocation, hook string) exec.GetDelegate {
 	return &inputDelegate{
 		logger:   logger,
 		plan:     plan,
 		location: location,
 		delegate: delegate,
-		substep:  substep,
 		hook:     hook,
 	}
 }
@@ -290,7 +289,6 @@ type inputDelegate struct {
 
 	plan     atc.GetPlan
 	location event.OriginLocation
-	substep  bool
 	hook     string
 	delegate *delegate
 }
@@ -304,7 +302,6 @@ func (input *inputDelegate) Completed(status exec.ExitStatus, info exec.VersionI
 		Type:     event.OriginTypeGet,
 		Name:     input.plan.Name,
 		Location: input.location,
-		Substep:  input.substep,
 		Hook:     input.hook,
 	})
 	input.delegate.registerImplicitOutput(input.plan.Resource, implicitOutput{input.plan, info})
@@ -316,7 +313,6 @@ func (input *inputDelegate) Failed(err error) {
 		Type:     event.OriginTypeGet,
 		Name:     input.plan.Name,
 		Location: input.location,
-		Substep:  input.substep,
 		Hook:     input.hook,
 	})
 
@@ -329,7 +325,6 @@ func (input *inputDelegate) Stdout() io.Writer {
 		Name:     input.plan.Name,
 		Source:   event.OriginSourceStdout,
 		Location: input.location,
-		Substep:  input.substep,
 		Hook:     input.hook,
 	})
 }
@@ -340,7 +335,6 @@ func (input *inputDelegate) Stderr() io.Writer {
 		Name:     input.plan.Name,
 		Source:   event.OriginSourceStderr,
 		Location: input.location,
-		Substep:  input.substep,
 		Hook:     input.hook,
 	})
 }

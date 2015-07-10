@@ -66,6 +66,15 @@ func (LogV10) EventType() atc.EventType  { return "log" }
 func (LogV10) Version() atc.EventVersion { return "1.0" }
 func (e LogV10) Censored() atc.Event     { return e }
 
+type LogV20 struct {
+	Origin  OriginV20 `json:"origin"`
+	Payload string    `json:"payload"`
+}
+
+func (LogV20) EventType() atc.EventType  { return "log" }
+func (LogV20) Version() atc.EventVersion { return "2.0" }
+func (e LogV20) Censored() atc.Event     { return e }
+
 type OriginV10 struct {
 	Type OriginV10Type `json:"type"`
 	Name string        `json:"name"`
@@ -74,11 +83,45 @@ type OriginV10 struct {
 type OriginV10Type string
 
 const (
-	OriginV10TypeInvalid OriginType = ""
-	OriginV10TypeInput   OriginType = "input"
-	OriginV10TypeOutput  OriginType = "output"
-	OriginV10TypeRun     OriginType = "run"
+	OriginV10TypeInvalid OriginV10Type = ""
+	OriginV10TypeInput   OriginV10Type = "input"
+	OriginV10TypeOutput  OriginV10Type = "output"
+	OriginV10TypeRun     OriginV10Type = "run"
 )
+
+type OriginV20 struct {
+	Name     string            `json:"name"`
+	Type     OriginV20Type     `json:"type"`
+	Source   OriginV20Source   `json:"source"`
+	Location OriginV20Location `json:"location,omitempty"`
+	Substep  bool              `json:"substep"`
+	Hook     string            `json:"hook"`
+}
+
+type OriginV20Type string
+
+const (
+	OriginV20TypeInvalid OriginV20Type = ""
+	OriginV20TypeGet     OriginV20Type = "get"
+	OriginV20TypePut     OriginV20Type = "put"
+	OriginV20TypeTask    OriginV20Type = "task"
+)
+
+type OriginV20Source string
+
+const (
+	OriginV20SourceStdout OriginV20Source = "stdout"
+	OriginV20SourceStderr OriginV20Source = "stderr"
+)
+
+type OriginV20LocationIncrement uint
+
+const (
+	NoIncrementV10     OriginV20LocationIncrement = 0
+	SingleIncrementV10 OriginV20LocationIncrement = 1
+)
+
+type OriginV20Location []uint
 
 type FinishV10 struct {
 	Time       int64 `json:"time"`
@@ -89,13 +132,64 @@ func (FinishV10) EventType() atc.EventType  { return "finish" }
 func (FinishV10) Version() atc.EventVersion { return "1.0" }
 func (e FinishV10) Censored() atc.Event     { return e }
 
+type FinishTaskV10 struct {
+	Time       int64     `json:"time"`
+	ExitStatus int       `json:"exit_status"`
+	Origin     OriginV20 `json:"origin"`
+}
+
+func (FinishTaskV10) EventType() atc.EventType  { return "finish-task" }
+func (FinishTaskV10) Version() atc.EventVersion { return "1.0" }
+func (e FinishTaskV10) Censored() atc.Event     { return e }
+
 type StartV10 struct {
 	Time int64 `json:"time"`
+}
+
+type FinishGetV10 struct {
+	Origin          OriginV20           `json:"origin"`
+	Plan            GetPlan             `json:"plan"`
+	ExitStatus      int                 `json:"exit_status"`
+	FetchedVersion  atc.Version         `json:"version"`
+	FetchedMetadata []atc.MetadataField `json:"metadata,omitempty"`
+}
+
+func (FinishGetV10) EventType() atc.EventType  { return "finish-get" }
+func (FinishGetV10) Version() atc.EventVersion { return "1.0" }
+func (e FinishGetV10) Censored() atc.Event {
+	e.Plan.Source = nil
+	e.Plan.Params = nil
+	return e
+}
+
+type FinishPutV10 struct {
+	Origin          OriginV20           `json:"origin"`
+	Plan            PutPlan             `json:"plan"`
+	CreatedVersion  atc.Version         `json:"version"`
+	CreatedMetadata []atc.MetadataField `json:"metadata,omitempty"`
+	ExitStatus      int                 `json:"exit_status"`
+}
+
+func (FinishPutV10) EventType() atc.EventType  { return "finish-put" }
+func (FinishPutV10) Version() atc.EventVersion { return "1.0" }
+func (e FinishPutV10) Censored() atc.Event {
+	e.Plan.Source = nil
+	e.Plan.Params = nil
+	return e
 }
 
 func (StartV10) EventType() atc.EventType  { return "start" }
 func (StartV10) Version() atc.EventVersion { return "1.0" }
 func (e StartV10) Censored() atc.Event     { return e }
+
+type StartTaskV10 struct {
+	Time   int64     `json:"time"`
+	Origin OriginV20 `json:"origin"`
+}
+
+func (StartTaskV10) EventType() atc.EventType  { return "start-task" }
+func (StartTaskV10) Version() atc.EventVersion { return "1.0" }
+func (e StartTaskV10) Censored() atc.Event     { return e }
 
 type InitializeV10 struct {
 	TaskConfig atc.TaskConfig `json:"config"`
@@ -104,6 +198,18 @@ type InitializeV10 struct {
 func (InitializeV10) EventType() atc.EventType  { return "initialize" }
 func (InitializeV10) Version() atc.EventVersion { return "1.0" }
 func (e InitializeV10) Censored() atc.Event {
+	e.TaskConfig.Params = nil
+	return e
+}
+
+type InitializeTaskV10 struct {
+	TaskConfig atc.TaskConfig `json:"config"`
+	Origin     OriginV20      `json:"origin"`
+}
+
+func (InitializeTaskV10) EventType() atc.EventType  { return "initialize-task" }
+func (InitializeTaskV10) Version() atc.EventVersion { return "1.0" }
+func (e InitializeTaskV10) Censored() atc.Event {
 	e.TaskConfig.Params = nil
 	return e
 }
@@ -170,3 +276,12 @@ type OutputV20OutputPlan struct {
 	// arbitrary config for output
 	Params atc.Params `json:"params,omitempty"`
 }
+
+type ErrorV10 struct {
+	Message string    `json:"message"`
+	Origin  OriginV20 `json:"origin,omitempty"`
+}
+
+func (ErrorV10) EventType() atc.EventType  { return "error" }
+func (ErrorV10) Version() atc.EventVersion { return "1.0" }
+func (e ErrorV10) Censored() atc.Event     { return e }

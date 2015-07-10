@@ -85,7 +85,7 @@ var _ = Describe("One-off Builds", func() {
 			var build db.Build
 
 			BeforeEach(func() {
-				location := event.OriginLocation{}.Chain(1)
+				location := event.OriginLocation{ID: 1, ParentID: 0, ParallelGroup: 0}
 
 				// job build data
 				_, err := sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{

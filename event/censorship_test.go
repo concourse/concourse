@@ -28,7 +28,7 @@ var _ = Describe("Censorship", func() {
 			Origin: Origin{
 				Type:     OriginTypeTask,
 				Name:     "build",
-				Location: OriginLocation{1, 2},
+				Location: OriginLocation{ID: 1},
 			},
 		},
 		FinishTask{
@@ -37,7 +37,7 @@ var _ = Describe("Censorship", func() {
 			Origin: Origin{
 				Type:     OriginTypeTask,
 				Name:     "build",
-				Location: OriginLocation{1, 2},
+				Location: OriginLocation{ID: 1},
 			},
 		},
 		Error{

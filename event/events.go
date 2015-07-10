@@ -8,7 +8,7 @@ type Error struct {
 }
 
 func (Error) EventType() atc.EventType  { return EventTypeError }
-func (Error) Version() atc.EventVersion { return "1.0" }
+func (Error) Version() atc.EventVersion { return "2.0" }
 func (e Error) Censored() atc.Event     { return e }
 
 type FinishTask struct {
@@ -18,7 +18,7 @@ type FinishTask struct {
 }
 
 func (FinishTask) EventType() atc.EventType  { return EventTypeFinishTask }
-func (FinishTask) Version() atc.EventVersion { return "1.0" }
+func (FinishTask) Version() atc.EventVersion { return "2.0" }
 func (e FinishTask) Censored() atc.Event     { return e }
 
 type InitializeTask struct {
@@ -27,7 +27,7 @@ type InitializeTask struct {
 }
 
 func (InitializeTask) EventType() atc.EventType  { return EventTypeInitializeTask }
-func (InitializeTask) Version() atc.EventVersion { return "1.0" }
+func (InitializeTask) Version() atc.EventVersion { return "2.0" }
 func (e InitializeTask) Censored() atc.Event {
 	e.TaskConfig.Params = nil
 	return e
@@ -39,7 +39,7 @@ type StartTask struct {
 }
 
 func (StartTask) EventType() atc.EventType  { return EventTypeStartTask }
-func (StartTask) Version() atc.EventVersion { return "1.0" }
+func (StartTask) Version() atc.EventVersion { return "2.0" }
 func (e StartTask) Censored() atc.Event     { return e }
 
 type Status struct {
@@ -57,7 +57,7 @@ type Log struct {
 }
 
 func (Log) EventType() atc.EventType  { return EventTypeLog }
-func (Log) Version() atc.EventVersion { return "2.0" }
+func (Log) Version() atc.EventVersion { return "3.0" }
 func (e Log) Censored() atc.Event     { return e }
 
 type Origin struct {
@@ -65,7 +65,6 @@ type Origin struct {
 	Type     OriginType     `json:"type"`
 	Source   OriginSource   `json:"source"`
 	Location OriginLocation `json:"location,omitempty"`
-	Substep  bool           `json:"substep"`
 	Hook     string         `json:"hook"`
 }
 
@@ -85,28 +84,28 @@ const (
 	OriginSourceStderr OriginSource = "stderr"
 )
 
+type OriginLocation struct {
+	ParentID      uint `json:"parent_id"`
+	ID            uint `json:"id"`
+	ParallelGroup uint `json:"parallel_group"`
+}
+
+func (ol OriginLocation) Incr(by OriginLocationIncrement) OriginLocation {
+	ol.ID += uint(by)
+	return ol
+}
+
+func (ol OriginLocation) SetParentID(id uint) OriginLocation {
+	ol.ParentID = id
+	return ol
+}
+
 type OriginLocationIncrement uint
 
 const (
 	NoIncrement     OriginLocationIncrement = 0
 	SingleIncrement OriginLocationIncrement = 1
 )
-
-type OriginLocation []uint
-
-func (chain OriginLocation) Chain(id uint) OriginLocation {
-	chainedID := make(OriginLocation, len(chain))
-	copy(chainedID, chain)
-	chainedID = append(chainedID, id)
-	return chainedID
-}
-
-func (chain OriginLocation) Incr(by OriginLocationIncrement) OriginLocation {
-	incredID := make(OriginLocation, len(chain))
-	copy(incredID, chain)
-	incredID[len(chain)-1] += uint(by)
-	return incredID
-}
 
 type FinishGet struct {
 	Origin          Origin              `json:"origin"`
@@ -117,7 +116,7 @@ type FinishGet struct {
 }
 
 func (FinishGet) EventType() atc.EventType  { return EventTypeFinishGet }
-func (FinishGet) Version() atc.EventVersion { return "1.0" }
+func (FinishGet) Version() atc.EventVersion { return "2.0" }
 func (e FinishGet) Censored() atc.Event {
 	e.Plan.Source = nil
 	e.Plan.Params = nil
@@ -142,7 +141,7 @@ type FinishPut struct {
 }
 
 func (FinishPut) EventType() atc.EventType  { return EventTypeFinishPut }
-func (FinishPut) Version() atc.EventVersion { return "1.0" }
+func (FinishPut) Version() atc.EventVersion { return "2.0" }
 func (e FinishPut) Censored() atc.Event {
 	e.Plan.Source = nil
 	e.Plan.Params = nil

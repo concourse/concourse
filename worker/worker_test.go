@@ -62,7 +62,7 @@ var _ = Describe("Worker", func() {
 				PipelineName: "some-pipeline",
 				BuildID:      42,
 				Type:         ContainerTypeGet,
-				StepLocation: []uint{1, 2, 3},
+				StepLocation: 3,
 				CheckType:    "some-check-type",
 				CheckSource:  atc.Source{"some": "source"},
 			}
@@ -102,7 +102,7 @@ var _ = Describe("Worker", func() {
 							Properties: garden.Properties{
 								"concourse:type":          "get",
 								"concourse:pipeline-name": "some-pipeline",
-								"concourse:location":      "[1 2 3]",
+								"concourse:location":      "3",
 								"concourse:check-type":    "some-check-type",
 								"concourse:check-source":  "{\"some\":\"source\"}",
 								"concourse:name":          "some-name",
@@ -127,7 +127,7 @@ var _ = Describe("Worker", func() {
 								Properties: garden.Properties{
 									"concourse:type":          "get",
 									"concourse:pipeline-name": "some-pipeline",
-									"concourse:location":      "[1 2 3]",
+									"concourse:location":      "3",
 									"concourse:check-type":    "some-check-type",
 									"concourse:check-source":  "{\"some\":\"source\"}",
 									"concourse:name":          "some-name",
@@ -234,7 +234,7 @@ var _ = Describe("Worker", func() {
 						Properties: garden.Properties{
 							"concourse:type":          "get",
 							"concourse:pipeline-name": "some-pipeline",
-							"concourse:location":      "[1 2 3]",
+							"concourse:location":      "3",
 							"concourse:check-type":    "some-check-type",
 							"concourse:check-source":  "{\"some\":\"source\"}",
 							"concourse:name":          "some-name",

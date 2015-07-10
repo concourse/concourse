@@ -36,7 +36,7 @@ type Identifier struct {
 
 	Type ContainerType
 
-	StepLocation []uint
+	StepLocation uint
 
 	CheckType   string
 	CheckSource atc.Source
@@ -63,7 +63,7 @@ func (id Identifier) gardenProperties() garden.Properties {
 		props[propertyPrefix+"type"] = string(id.Type)
 	}
 
-	if id.StepLocation != nil {
+	if id.StepLocation != 0 {
 		props[propertyPrefix+"location"] = fmt.Sprintf("%v", id.StepLocation)
 	}
 

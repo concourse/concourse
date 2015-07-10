@@ -116,129 +116,282 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				fakeExecutionDelegate = new(execfakes.FakeTaskDelegate)
 				fakeDelegate.ExecutionDelegateReturns(fakeExecutionDelegate)
-
-				plan := atc.Plan{
-					HookedCompose: &atc.HookedComposePlan{
-						Step: atc.Plan{
-							Get: &atc.GetPlan{
-								Name: "some-input",
-							},
-						},
-						OnSuccess: atc.Plan{
-							Task: &atc.TaskPlan{
-								Name:   "some-success-task",
-								Config: &atc.TaskConfig{},
-							},
-						},
-						OnFailure: atc.Plan{
-							Task: &atc.TaskPlan{
-								Name:   "some-failure-task",
-								Config: &atc.TaskConfig{},
-							},
-						},
-						OnCompletion: atc.Plan{
-							Task: &atc.TaskPlan{
-								Name:   "some-completion-task",
-								Config: &atc.TaskConfig{},
-							},
-						},
-						Next: atc.Plan{
-							Task: &atc.TaskPlan{
-								Name:   "some-next-task",
-								Config: &atc.TaskConfig{},
-							},
-						},
-					},
-				}
-
-				build, err := execEngine.CreateBuild(buildModel, plan)
-				Ω(err).ShouldNot(HaveOccurred())
-				build.Resume(logger)
 			})
 
-			It("constructs the step correctly", func() {
-				Ω(fakeFactory.GetCallCount()).Should(Equal(1))
-				sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
-				Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
-				Ω(workerID).Should(Equal(worker.Identifier{
-					BuildID:      84,
-					Type:         worker.ContainerTypeGet,
-					Name:         "some-input",
-					StepLocation: []uint{0},
-				}))
+			Context("with nested aggregates in hooks", func() {
+				BeforeEach(func() {
+					plan := atc.Plan{
+						HookedCompose: &atc.HookedComposePlan{
+							Step: atc.Plan{
+								Get: &atc.GetPlan{
+									Name: "some-input",
+								},
+							},
+							OnSuccess: atc.Plan{
+								Aggregate: &atc.AggregatePlan{
+									atc.Plan{
+										HookedCompose: &atc.HookedComposePlan{
+											Step: atc.Plan{
+												Task: &atc.TaskPlan{
+													Name:   "some-success-task-1",
+													Config: &atc.TaskConfig{},
+												},
+											},
+											OnSuccess: atc.Plan{
+												Get: &atc.GetPlan{
+													Name: "some-input",
+												},
+											},
+										},
+									},
+									atc.Plan{
+										Aggregate: &atc.AggregatePlan{
+											atc.Plan{
+												Task: &atc.TaskPlan{
+													Name:   "some-success-task-2",
+													Config: &atc.TaskConfig{},
+												},
+											},
+										},
+									},
+									atc.Plan{
+										Task: &atc.TaskPlan{
+											Name:   "some-success-task-3",
+											Config: &atc.TaskConfig{},
+										},
+									},
+								},
+							},
+						},
+					}
 
-				Ω(delegate).Should(Equal(fakeInputDelegate))
-				_, _, location, _, hook := fakeDelegate.InputDelegateArgsForCall(0)
-				Ω(location).Should(Equal(event.OriginLocation{0}))
-				Ω(hook).Should(Equal(""))
+					build, err := execEngine.CreateBuild(buildModel, plan)
+					Ω(err).ShouldNot(HaveOccurred())
+					build.Resume(logger)
+				})
+
+				It("constructs the steps correctly", func() {
+					Ω(fakeFactory.TaskCallCount()).Should(Equal(3))
+					sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(0)
+					Ω(sourceName).Should(Equal(exec.SourceName("some-success-task-1")))
+					Ω(workerID).Should(Equal(worker.Identifier{
+						BuildID:      84,
+						Type:         worker.ContainerTypeTask,
+						Name:         "some-success-task-1",
+						StepLocation: 3,
+					}))
+					Ω(delegate).Should(Equal(fakeExecutionDelegate))
+
+					Ω(fakeFactory.GetCallCount()).Should(Equal(2))
+					sourceName, workerID, getDelegate, _, _, _, _ := fakeFactory.GetArgsForCall(1)
+					Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
+					Ω(workerID).Should(Equal(worker.Identifier{
+						BuildID:      84,
+						Type:         worker.ContainerTypeGet,
+						Name:         "some-input",
+						StepLocation: 4,
+					}))
+
+					Ω(getDelegate).Should(Equal(fakeInputDelegate))
+					_, _, location, hook := fakeDelegate.InputDelegateArgsForCall(1)
+					Ω(location).Should(Equal(event.OriginLocation{
+						ParentID:      3,
+						ID:            4,
+						ParallelGroup: 0,
+					}))
+					Ω(hook).Should(Equal("success"))
+
+					_, _, location, hook = fakeDelegate.ExecutionDelegateArgsForCall(0)
+					Ω(location).Should(Equal(event.OriginLocation{
+						ParentID:      1,
+						ID:            3,
+						ParallelGroup: 2,
+					}))
+					Ω(hook).Should(Equal("success"))
+
+					sourceName, workerID, delegate, _, _, _ = fakeFactory.TaskArgsForCall(1)
+					Ω(sourceName).Should(Equal(exec.SourceName("some-success-task-2")))
+					Ω(workerID).Should(Equal(worker.Identifier{
+						BuildID:      84,
+						Type:         worker.ContainerTypeTask,
+						Name:         "some-success-task-2",
+						StepLocation: 6,
+					}))
+					Ω(delegate).Should(Equal(fakeExecutionDelegate))
+
+					_, _, location, hook = fakeDelegate.ExecutionDelegateArgsForCall(1)
+					Ω(location).Should(Equal(event.OriginLocation{
+						ParentID:      2,
+						ID:            6,
+						ParallelGroup: 5,
+					}))
+					Ω(hook).Should(Equal(""))
+
+					sourceName, workerID, delegate, _, _, _ = fakeFactory.TaskArgsForCall(2)
+					Ω(sourceName).Should(Equal(exec.SourceName("some-success-task-3")))
+					Ω(workerID).Should(Equal(worker.Identifier{
+						BuildID:      84,
+						Type:         worker.ContainerTypeTask,
+						Name:         "some-success-task-3",
+						StepLocation: 7,
+					}))
+					Ω(delegate).Should(Equal(fakeExecutionDelegate))
+
+					_, _, location, hook = fakeDelegate.ExecutionDelegateArgsForCall(2)
+					Ω(location).Should(Equal(event.OriginLocation{
+						ParentID:      1,
+						ID:            7,
+						ParallelGroup: 2,
+					}))
+					Ω(hook).Should(Equal("success"))
+				})
 			})
 
-			It("constructs the completion hook correctly", func() {
-				Ω(fakeFactory.TaskCallCount()).Should(Equal(4))
-				sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(2)
-				Ω(sourceName).Should(Equal(exec.SourceName("some-completion-task")))
-				Ω(workerID).Should(Equal(worker.Identifier{
-					BuildID:      84,
-					Type:         worker.ContainerTypeTask,
-					Name:         "some-completion-task",
-					StepLocation: []uint{1, 2},
-				}))
-				Ω(delegate).Should(Equal(fakeExecutionDelegate))
+			Context("with all the hooks", func() {
+				BeforeEach(func() {
+					plan := atc.Plan{
+						HookedCompose: &atc.HookedComposePlan{
+							Step: atc.Plan{
+								Get: &atc.GetPlan{
+									Name: "some-input",
+								},
+							},
+							OnSuccess: atc.Plan{
+								Task: &atc.TaskPlan{
+									Name:   "some-success-task",
+									Config: &atc.TaskConfig{},
+								},
+							},
+							OnFailure: atc.Plan{
+								Task: &atc.TaskPlan{
+									Name:   "some-failure-task",
+									Config: &atc.TaskConfig{},
+								},
+							},
+							OnCompletion: atc.Plan{
+								Task: &atc.TaskPlan{
+									Name:   "some-completion-task",
+									Config: &atc.TaskConfig{},
+								},
+							},
+							Next: atc.Plan{
+								Task: &atc.TaskPlan{
+									Name:   "some-next-task",
+									Config: &atc.TaskConfig{},
+								},
+							},
+						},
+					}
 
-				_, _, location, hook := fakeDelegate.ExecutionDelegateArgsForCall(2)
-				Ω(location).Should(Equal(event.OriginLocation{1, 2}))
-				Ω(hook).Should(Equal("ensure"))
-			})
+					build, err := execEngine.CreateBuild(buildModel, plan)
+					Ω(err).ShouldNot(HaveOccurred())
+					build.Resume(logger)
+				})
 
-			It("constructs the failure hook correctly", func() {
-				Ω(fakeFactory.TaskCallCount()).Should(Equal(4))
-				sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(0)
-				Ω(sourceName).Should(Equal(exec.SourceName("some-failure-task")))
-				Ω(workerID).Should(Equal(worker.Identifier{
-					BuildID:      84,
-					Type:         worker.ContainerTypeTask,
-					Name:         "some-failure-task",
-					StepLocation: []uint{1, 0},
-				}))
-				Ω(delegate).Should(Equal(fakeExecutionDelegate))
+				It("constructs the step correctly", func() {
+					Ω(fakeFactory.GetCallCount()).Should(Equal(1))
+					sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+					Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
+					Ω(workerID).Should(Equal(worker.Identifier{
+						BuildID:      84,
+						Type:         worker.ContainerTypeGet,
+						Name:         "some-input",
+						StepLocation: 1,
+					}))
 
-				_, _, location, hook := fakeDelegate.ExecutionDelegateArgsForCall(0)
-				Ω(location).Should(Equal(event.OriginLocation{1, 0}))
-				Ω(hook).Should(Equal("failure"))
-			})
+					Ω(delegate).Should(Equal(fakeInputDelegate))
+					_, _, location, hook := fakeDelegate.InputDelegateArgsForCall(0)
+					Ω(location).Should(Equal(event.OriginLocation{
+						ParentID:      0,
+						ID:            1,
+						ParallelGroup: 0,
+					}))
+					Ω(hook).Should(Equal(""))
+				})
 
-			It("constructs the success hook correctly", func() {
-				Ω(fakeFactory.TaskCallCount()).Should(Equal(4))
-				sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(1)
-				Ω(sourceName).Should(Equal(exec.SourceName("some-success-task")))
-				Ω(workerID).Should(Equal(worker.Identifier{
-					BuildID:      84,
-					Type:         worker.ContainerTypeTask,
-					Name:         "some-success-task",
-					StepLocation: []uint{1, 1},
-				}))
-				Ω(delegate).Should(Equal(fakeExecutionDelegate))
+				It("constructs the completion hook correctly", func() {
+					Ω(fakeFactory.TaskCallCount()).Should(Equal(4))
+					sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(2)
+					Ω(sourceName).Should(Equal(exec.SourceName("some-completion-task")))
+					Ω(workerID).Should(Equal(worker.Identifier{
+						BuildID:      84,
+						Type:         worker.ContainerTypeTask,
+						Name:         "some-completion-task",
+						StepLocation: 4,
+					}))
+					Ω(delegate).Should(Equal(fakeExecutionDelegate))
 
-				_, _, location, hook := fakeDelegate.ExecutionDelegateArgsForCall(1)
-				Ω(location).Should(Equal(event.OriginLocation{1, 1}))
-				Ω(hook).Should(Equal("success"))
-			})
+					_, _, location, hook := fakeDelegate.ExecutionDelegateArgsForCall(2)
+					Ω(location).Should(Equal(event.OriginLocation{
+						ParentID:      1,
+						ID:            4,
+						ParallelGroup: 0,
+					}))
+					Ω(hook).Should(Equal("ensure"))
+				})
 
-			It("constructs the next step correctly", func() {
-				Ω(fakeFactory.TaskCallCount()).Should(Equal(4))
-				sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(3)
-				Ω(sourceName).Should(Equal(exec.SourceName("some-next-task")))
-				Ω(workerID).Should(Equal(worker.Identifier{
-					BuildID:      84,
-					Type:         worker.ContainerTypeTask,
-					Name:         "some-next-task",
-					StepLocation: []uint{2},
-				}))
-				Ω(delegate).Should(Equal(fakeExecutionDelegate))
+				It("constructs the failure hook correctly", func() {
+					Ω(fakeFactory.TaskCallCount()).Should(Equal(4))
+					sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(0)
+					Ω(sourceName).Should(Equal(exec.SourceName("some-failure-task")))
+					Ω(workerID).Should(Equal(worker.Identifier{
+						BuildID:      84,
+						Type:         worker.ContainerTypeTask,
+						Name:         "some-failure-task",
+						StepLocation: 2,
+					}))
+					Ω(delegate).Should(Equal(fakeExecutionDelegate))
 
-				_, _, location, hook := fakeDelegate.ExecutionDelegateArgsForCall(3)
-				Ω(location).Should(Equal(event.OriginLocation{2}))
-				Ω(hook).Should(Equal(""))
+					_, _, location, hook := fakeDelegate.ExecutionDelegateArgsForCall(0)
+					Ω(location).Should(Equal(event.OriginLocation{
+						ParentID:      1,
+						ID:            2,
+						ParallelGroup: 0,
+					}))
+					Ω(hook).Should(Equal("failure"))
+				})
+
+				It("constructs the success hook correctly", func() {
+					Ω(fakeFactory.TaskCallCount()).Should(Equal(4))
+					sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(1)
+					Ω(sourceName).Should(Equal(exec.SourceName("some-success-task")))
+					Ω(workerID).Should(Equal(worker.Identifier{
+						BuildID:      84,
+						Type:         worker.ContainerTypeTask,
+						Name:         "some-success-task",
+						StepLocation: 3,
+					}))
+					Ω(delegate).Should(Equal(fakeExecutionDelegate))
+
+					_, _, location, hook := fakeDelegate.ExecutionDelegateArgsForCall(1)
+					Ω(location).Should(Equal(event.OriginLocation{
+						ParentID:      1,
+						ID:            3,
+						ParallelGroup: 0,
+					}))
+					Ω(hook).Should(Equal("success"))
+				})
+
+				It("constructs the next step correctly", func() {
+					Ω(fakeFactory.TaskCallCount()).Should(Equal(4))
+					sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(3)
+					Ω(sourceName).Should(Equal(exec.SourceName("some-next-task")))
+					Ω(workerID).Should(Equal(worker.Identifier{
+						BuildID:      84,
+						Type:         worker.ContainerTypeTask,
+						Name:         "some-next-task",
+						StepLocation: 5,
+					}))
+					Ω(delegate).Should(Equal(fakeExecutionDelegate))
+					_, _, location, hook := fakeDelegate.ExecutionDelegateArgsForCall(3)
+					Ω(location).Should(Equal(event.OriginLocation{
+						ParentID:      0,
+						ID:            5,
+						ParallelGroup: 0,
+					}))
+
+					Ω(hook).Should(Equal(""))
+				})
 			})
 		})
 

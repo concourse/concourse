@@ -94,7 +94,7 @@ func (build *execBuild) Abort() error {
 }
 
 func (build *execBuild) Resume(logger lager.Logger) {
-	stepFactory, _ := build.buildStepFactory(logger, build.metadata.Plan, event.OriginLocation{0}, "")
+	stepFactory, _ := build.buildStepFactory(logger, build.metadata.Plan, event.OriginLocation{ID: 1}, "")
 	source := stepFactory.Using(&exec.NoopStep{}, exec.NewSourceRepository())
 
 	defer source.Release()
@@ -121,28 +121,73 @@ func (build *execBuild) Resume(logger lager.Logger) {
 
 func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, location event.OriginLocation, hook string) (exec.StepFactory, event.OriginLocationIncrement) {
 	if plan.Aggregate != nil {
+		if location.ParallelGroup != 0 {
+			location.ParentID = location.ParallelGroup
+		}
+
 		logger = logger.Session("aggregate")
 
 		step := exec.Aggregate{}
 
-		var aID event.OriginLocationIncrement = 0
+		var aID event.OriginLocationIncrement = 1
+		location.ParallelGroup = location.ID
 		for _, innerPlan := range *plan.Aggregate {
-			stepFactory, locationIncrement := build.buildStepFactory(logger, innerPlan, location.Chain(uint(aID)), "aggregate-"+hook)
+			var stepFactory exec.StepFactory
+			var locationIncrement event.OriginLocationIncrement
+
+			if innerPlan.Aggregate == nil {
+				stepFactory, locationIncrement = build.buildStepFactory(logger, innerPlan, location.Incr(aID), hook)
+			} else {
+				stepFactory, locationIncrement = build.buildStepFactory(logger, innerPlan, location.Incr(aID), "")
+			}
+
 			step = append(step, stepFactory)
 			aID = aID + locationIncrement
 		}
 
-		return step, event.SingleIncrement
+		return step, aID
 	}
 
 	if plan.HookedCompose != nil {
-		step, stepIncrement := build.buildStepFactory(logger, plan.HookedCompose.Step, location, hook)
-		failure, failureIncrement := build.buildStepFactory(logger, plan.HookedCompose.OnFailure, location.Incr(stepIncrement).Chain(0), "failure")
-		success, successIncrement := build.buildStepFactory(logger, plan.HookedCompose.OnSuccess, location.Incr(stepIncrement).Chain(uint(failureIncrement)), "success")
-		ensure, ensureIncrement := build.buildStepFactory(logger, plan.HookedCompose.OnCompletion, location.Incr(stepIncrement).Chain(uint(successIncrement+failureIncrement)), "ensure")
-		nextStep, nextStepIncrement := build.buildStepFactory(logger, plan.HookedCompose.Next, location.Incr(stepIncrement+1), hook)
 
-		return exec.HookedCompose(step, nextStep, failure, success, ensure), stepIncrement + nextStepIncrement + ensureIncrement + failureIncrement + successIncrement + 1
+		step, stepIncrement := build.buildStepFactory(
+			logger,
+			plan.HookedCompose.Step,
+			location,
+			hook,
+		)
+
+		location.ParallelGroup = 0
+
+		failure, failureIncrement := build.buildStepFactory(
+			logger,
+			plan.HookedCompose.OnFailure,
+			location.SetParentID(location.ID).Incr(stepIncrement),
+			"failure",
+		)
+
+		success, successIncrement := build.buildStepFactory(
+			logger,
+			plan.HookedCompose.OnSuccess,
+			location.SetParentID(location.ID).Incr(stepIncrement+failureIncrement),
+			"success",
+		)
+
+		ensure, ensureIncrement := build.buildStepFactory(
+			logger,
+			plan.HookedCompose.OnCompletion,
+			location.SetParentID(location.ID).Incr(stepIncrement+successIncrement+failureIncrement),
+			"ensure",
+		)
+
+		nextStep, nextStepIncrement := build.buildStepFactory(
+			logger,
+			plan.HookedCompose.Next,
+			location.Incr(stepIncrement+successIncrement+failureIncrement+ensureIncrement),
+			hook,
+		)
+
+		return exec.HookedCompose(step, nextStep, failure, success, ensure), stepIncrement + nextStepIncrement + ensureIncrement + failureIncrement + successIncrement
 	}
 
 	if plan.Compose != nil {
@@ -199,7 +244,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 		return build.factory.Get(
 			exec.SourceName(plan.Get.Name),
 			build.getIdentifier(plan.Get.Name, location),
-			build.delegate.InputDelegate(logger, *plan.Get, location, false, hook),
+			build.delegate.InputDelegate(logger, *plan.Get, location, hook),
 			atc.ResourceConfig{
 				Name:   plan.Get.Resource,
 				Type:   plan.Get.Type,
@@ -219,7 +264,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 
 		getPlan := putPlan.GetPlan()
 
-		getLocation := location.Incr(1)
+		getLocation := location.Incr(1).SetParentID(location.ID)
 		restLocation := location.Incr(2)
 
 		restOfSteps, restLocationIncrement := build.buildStepFactory(logger, plan.PutGet.Rest, restLocation, "")
@@ -241,7 +286,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 			build.factory.DependentGet(
 				exec.SourceName(getPlan.Name),
 				build.getIdentifier(getPlan.Name, getLocation),
-				build.delegate.InputDelegate(logger, getPlan, getLocation, true, hook),
+				build.delegate.InputDelegate(logger, getPlan, getLocation, hook),
 				atc.ResourceConfig{
 					Name:   getPlan.Resource,
 					Type:   getPlan.Type,
@@ -263,7 +308,7 @@ func (build *execBuild) taskIdentifier(name string, location event.OriginLocatio
 
 		Type:         "task",
 		Name:         name,
-		StepLocation: location,
+		StepLocation: location.ID,
 	}
 }
 
@@ -273,7 +318,7 @@ func (build *execBuild) getIdentifier(name string, location event.OriginLocation
 
 		Type:         "get",
 		Name:         name,
-		StepLocation: location,
+		StepLocation: location.ID,
 	}
 }
 
@@ -283,6 +328,6 @@ func (build *execBuild) putIdentifier(name string, location event.OriginLocation
 
 		Type:         "put",
 		Name:         name,
-		StepLocation: location,
+		StepLocation: location.ID,
 	}
 }

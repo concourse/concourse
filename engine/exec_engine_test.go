@@ -257,7 +257,7 @@ var _ = Describe("ExecEngine", func() {
 						BuildID:      42,
 						Type:         worker.ContainerTypePut,
 						Name:         "some-output-resource",
-						StepLocation: []uint{2, 0, 0},
+						StepLocation: 6,
 					}))
 					Ω(tags).Should(BeEmpty())
 					Ω(delegate).Should(Equal(fakeOutputDelegate))
@@ -271,7 +271,7 @@ var _ = Describe("ExecEngine", func() {
 						BuildID:      42,
 						Type:         worker.ContainerTypePut,
 						Name:         "some-output-resource-2",
-						StepLocation: []uint{2, 0, 2},
+						StepLocation: 8,
 					}))
 					Ω(tags).Should(BeEmpty())
 					Ω(delegate).Should(Equal(fakeOutputDelegate))
@@ -289,15 +289,18 @@ var _ = Describe("ExecEngine", func() {
 						BuildID:      42,
 						Type:         worker.ContainerTypeGet,
 						Name:         "some-put",
-						StepLocation: []uint{2, 0, 1},
+						StepLocation: 7,
 					}))
 
 					Ω(tags).Should(BeEmpty())
 					Ω(delegate).Should(Equal(fakeInputDelegate))
-					_, plan, location, substep, hook := fakeDelegate.InputDelegateArgsForCall(1)
+					_, plan, location, hook := fakeDelegate.InputDelegateArgsForCall(1)
 					Ω(plan).Should(Equal((*outputPlan.Plan.Aggregate)[0].Conditional.Plan.PutGet.Head.Put.GetPlan()))
-					Ω(location).Should(Equal(event.OriginLocation{2, 0, 1}))
-					Ω(substep).Should(BeTrue())
+					Ω(location).Should(Equal(event.OriginLocation{
+						ParentID:      6,
+						ID:            7,
+						ParallelGroup: 5,
+					}))
 					Ω(hook).Should(Equal(""))
 
 					Ω(sourceName).Should(Equal(exec.SourceName("some-put")))
@@ -311,15 +314,18 @@ var _ = Describe("ExecEngine", func() {
 						BuildID:      42,
 						Type:         worker.ContainerTypeGet,
 						Name:         "some-put-2",
-						StepLocation: []uint{2, 0, 3},
+						StepLocation: 9,
 					}))
 
 					Ω(tags).Should(BeEmpty())
 					Ω(delegate).Should(Equal(fakeInputDelegate))
-					_, plan, location, substep, hook = fakeDelegate.InputDelegateArgsForCall(2)
+					_, plan, location, hook = fakeDelegate.InputDelegateArgsForCall(2)
 					Ω(plan).Should(Equal((*outputPlan.Plan.Aggregate)[1].Conditional.Plan.PutGet.Head.Put.GetPlan()))
-					Ω(location).Should(Equal(event.OriginLocation{2, 0, 3}))
-					Ω(substep).Should(BeTrue())
+					Ω(location).Should(Equal(event.OriginLocation{
+						ParentID:      8,
+						ID:            9,
+						ParallelGroup: 5,
+					}))
 					Ω(hook).Should(Equal(""))
 
 					Ω(sourceName).Should(Equal(exec.SourceName("some-put-2")))
@@ -341,16 +347,19 @@ var _ = Describe("ExecEngine", func() {
 				BuildID:      42,
 				Type:         worker.ContainerTypeGet,
 				Name:         "some-input",
-				StepLocation: []uint{0, 0},
+				StepLocation: 2,
 			}))
 			Ω(tags).Should(ConsistOf("some", "get", "tags"))
 
 			Ω(delegate).Should(Equal(fakeInputDelegate))
-			_, plan, location, substep, hook := fakeDelegate.InputDelegateArgsForCall(0)
+			_, plan, location, hook := fakeDelegate.InputDelegateArgsForCall(0)
 			Ω(plan).Should(Equal(*inputPlan))
-			Ω(location).Should(Equal(event.OriginLocation{0, 0}))
-			Ω(substep).Should(BeFalse())
-			Ω(hook).Should(Equal("aggregate-"))
+			Ω(location).Should(Equal(event.OriginLocation{
+				ParentID:      0,
+				ID:            2,
+				ParallelGroup: 1,
+			}))
+			Ω(hook).Should(Equal(""))
 
 			Ω(resourceConfig.Name).Should(Equal("some-input-resource"))
 			Ω(resourceConfig.Type).Should(Equal("some-type"))
@@ -368,7 +377,7 @@ var _ = Describe("ExecEngine", func() {
 				BuildID:      42,
 				Type:         worker.ContainerTypeTask,
 				Name:         "some-task",
-				StepLocation: []uint{1},
+				StepLocation: 3,
 			}))
 			Ω(delegate).Should(Equal(fakeExecutionDelegate))
 			Ω(privileged).Should(Equal(exec.Privileged(false)))
@@ -385,7 +394,7 @@ var _ = Describe("ExecEngine", func() {
 					BuildID:      42,
 					Type:         worker.ContainerTypePut,
 					Name:         "some-output-resource",
-					StepLocation: []uint{2, 0},
+					StepLocation: 5,
 				}))
 				Ω(delegate).Should(Equal(fakeOutputDelegate))
 				Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
@@ -403,15 +412,18 @@ var _ = Describe("ExecEngine", func() {
 					BuildID:      42,
 					Type:         worker.ContainerTypeGet,
 					Name:         "some-put",
-					StepLocation: []uint{2, 1},
+					StepLocation: 6,
 				}))
 				Ω(tags).Should(ConsistOf("some", "putget", "tags"))
 
 				Ω(delegate).Should(Equal(fakeInputDelegate))
-				_, plan, location, substep, hook := fakeDelegate.InputDelegateArgsForCall(1)
+				_, plan, location, hook := fakeDelegate.InputDelegateArgsForCall(1)
 				Ω(plan).Should(Equal(outputPlan.Plan.PutGet.Head.Put.GetPlan()))
-				Ω(location).Should(Equal(event.OriginLocation{2, 1}))
-				Ω(substep).Should(BeTrue())
+				Ω(location).Should(Equal(event.OriginLocation{
+					ParentID:      5,
+					ID:            6,
+					ParallelGroup: 4,
+				}))
 				Ω(hook).Should(Equal(""))
 
 				Ω(sourceName).Should(Equal(exec.SourceName("some-put")))

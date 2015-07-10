@@ -77,7 +77,7 @@ var _ = Describe("Resource Pausing", func() {
 			var build db.Build
 
 			BeforeEach(func() {
-				location := event.OriginLocation{}.Chain(1)
+				location := event.OriginLocation{ID: 1}
 
 				// job build data
 				_, err := sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{

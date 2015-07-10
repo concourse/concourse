@@ -51,6 +51,13 @@ func init() {
 	registerEvent(InitializeV10{})
 	registerEvent(InputV20{})
 	registerEvent(OutputV20{})
+	registerEvent(ErrorV10{})
+	registerEvent(FinishTaskV10{})
+	registerEvent(InitializeTaskV10{})
+	registerEvent(StartTaskV10{})
+	registerEvent(LogV20{})
+	registerEvent(FinishGetV10{})
+	registerEvent(FinishPutV10{})
 }
 
 type Message struct {
