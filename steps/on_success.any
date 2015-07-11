@@ -5,7 +5,7 @@
 \title{\code{on_success}\aux{: perform a step when another succeeds}}{on-success-step}
 
 Any step can have \code{on_success} tacked onto it, whose value is a second
-step to execute only if the parent step fails.
+step to execute only if the parent step succeeds.
 
 \define{on_success}{step}{
   The step to execute when the parent step succeeds. If the attached step
