@@ -71,6 +71,10 @@ var Build = React.createClass({
         classes.push(step.step.hookClassName());
       }
 
+      if(step.step.isDependentGet()){
+        classes.push("seq-dependent-get");
+      }
+
       if(step.group){
         var groupSteps = []
         var aggregateClasses = ["aggregate"]
