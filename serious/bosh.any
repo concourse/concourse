@@ -189,6 +189,12 @@ concepts, and how to bootstrap on various infrastructures.
         a build.
       }
 
+      \item{\code{jobs.worker.properties.garden.btrfs_store_size_mv}}{
+        The amount of disk space to set aside for use by containers running on
+        the worker. If you're running low on disk, bump this number, deploy,
+        and recreate your workers.
+      }
+
       \item{\code{resource_pools}}{
         This is where you configure things like your EC2 instance type, the ELB
         to register your instances in, etc.
