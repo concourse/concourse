@@ -478,6 +478,9 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				Ω(dependentStep.RunCallCount()).Should(Equal(1))
 				Ω(dependentStep.ReleaseCallCount()).Should(Equal(1))
+
+				_, _, _, hook := fakeDelegate.InputDelegateArgsForCall(1)
+				Ω(hook).Should(Equal(""))
 			})
 
 			Context("when the success hook fails, and has a failure hook", func() {

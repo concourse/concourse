@@ -287,7 +287,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 			build.factory.DependentGet(
 				exec.SourceName(getPlan.Name),
 				build.getIdentifier(getPlan.Name, getLocation),
-				build.delegate.InputDelegate(logger, getPlan, getLocation, hook),
+				build.delegate.InputDelegate(logger, getPlan, getLocation, ""),
 				atc.ResourceConfig{
 					Name:   getPlan.Resource,
 					Type:   getPlan.Type,
