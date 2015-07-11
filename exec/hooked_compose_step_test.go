@@ -375,7 +375,7 @@ var _ = Describe("Hooked Compose", func() {
 				})
 
 				It("forwards the signal to the success step", func() {
-					Consistently(process.Ready()).ShouldNot(BeClosed())
+					Eventually(process.Ready()).Should(BeClosed())
 
 					Eventually(successStep.RunCallCount).Should(Equal(1))
 
@@ -1042,7 +1042,7 @@ var _ = Describe("Hooked Compose", func() {
 			})
 
 			It("forwards the signal to the first step and does not continue", func() {
-				Consistently(process.Ready()).ShouldNot(BeClosed())
+				Eventually(process.Ready()).Should(BeClosed())
 
 				process.Signal(os.Interrupt)
 
@@ -1060,7 +1060,7 @@ var _ = Describe("Hooked Compose", func() {
 			})
 
 			It("forwards the signal to the next step", func() {
-				Consistently(process.Ready()).ShouldNot(BeClosed())
+				Eventually(process.Ready()).Should(BeClosed())
 
 				Eventually(nextStep.RunCallCount).Should(Equal(1))
 

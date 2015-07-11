@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/tedsuo/ifrit"
 )
 
 type hookedCompose struct {
@@ -51,11 +50,10 @@ func (hc hookedCompose) Using(prev Step, repo *SourceRepository) Step {
 func (hc *hookedCompose) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	hc.firstStep = hc.step.Using(hc.prev, hc.repo)
 
-	firstStepError := hc.executeProcess(hc.firstStep, signals)
+	firstStepError := hc.firstStep.Run(signals, ready)
 
 	var succeeded Success
 
-	// if whatever step I just ran cannot respond to success, we want to return a noop
 	if !hc.firstStep.Result(&succeeded) {
 		succeeded = false
 	}
@@ -82,10 +80,11 @@ func (hc *hookedCompose) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 	allHooksSuccessful = true
 
 	for _, hook := range hooks {
-		hookError := hc.executeProcess(hook, signals)
+		hookError := hook.Run(signals, make(chan struct{}))
 		if hookError != nil {
 			errors = multierror.Append(errors, hookError)
 		}
+
 		var hookSuccessful Success
 
 		if !hook.Result(&hookSuccessful) {
@@ -103,37 +102,12 @@ func (hc *hookedCompose) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 	if bool(succeeded) && bool(allHooksSuccessful) {
 		hc.nextStep = hc.next.Using(hc.firstStep, hc.repo)
-		return hc.nextStep.Run(signals, ready)
+		return hc.nextStep.Run(signals, make(chan struct{}))
 	} else {
 		noop := &NoopStep{}
-		return noop.Run(signals, ready)
+		return noop.Run(signals, make(chan struct{}))
 	}
 
-}
-
-func (hc *hookedCompose) executeProcess(stepProcess ifrit.Runner, signals <-chan os.Signal) error {
-	var signalled bool
-	var waitErr error
-
-	process := ifrit.Background(stepProcess)
-
-dance:
-	for {
-		select {
-		case waitErr = <-process.Wait():
-			break dance
-
-		case sig := <-signals:
-			process.Signal(sig)
-			signalled = true
-		}
-	}
-
-	if signalled || waitErr != nil {
-		return waitErr
-	}
-
-	return nil
 }
 
 func (hc *hookedCompose) Release() error {
