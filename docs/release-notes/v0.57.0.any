@@ -31,6 +31,10 @@
   Once
   \hyperlink["https://www.pivotaltracker.com/story/show/94687240"]{#94687240}
   is done, we'll run as the user specified in your Docker images instead.
+
+  Note that you may need to set the \code{garden.btrfs_store_size_mb} property
+  to the total size you expect to use across builds on a given worker. The
+  default is \code{3000} which may be too small.
 }{
   We have fixed a leak involving restarts of the workers; previously they
   wouldn't proper clean up the \code{ssh} process advertising the worker,
