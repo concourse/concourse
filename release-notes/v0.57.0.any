@@ -32,5 +32,7 @@
 }{
   Fixed a sporadic hang in the
   \hyperlink["https://github.com/concourse/pool-resource"]{Pool resource}.
+}{
+  The rendering of the pipeline view has been improved once more, and a few
+  cases leading to browser crashes/hanging have been fixed.
 }
-
