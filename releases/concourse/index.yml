@@ -112,4 +112,6 @@ builds:
     version: 0.55.0
   cb153049-066c-4526-98a6-8503a2914577:
     version: 0.56.0
+  7265a7a9-2c81-4e7b-942a-36110a9024b5:
+    version: 0.57.0
 format-version: '2'
