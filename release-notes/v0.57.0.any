@@ -9,7 +9,7 @@
 
   Previously this was done by listing another step with \code{conditions}
   attached to it. This led to deeply nested build plans, and ended up
-  swallowing the original failure of the hook succeeded.
+  swallowing the original failure if the conditional step succeeded.
 
   This release preserves support for the old \code{conditions} style, for
   backwards-compatibility. You should switch to the new hooks as soon as
