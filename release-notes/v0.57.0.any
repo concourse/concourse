@@ -23,6 +23,14 @@
   We have upgraded our Garden Linux dependency. This may lead to weirdness when
   updating the existing workers (due to backwards-incompatible changes in
   Garden Linux) - if in doubt, \code{bosh recreate worker 0..N}.
+
+  As part of this upgrade, we will no longer run unprivileged tasks as the
+  \code{vcap} user. Newer versions of Garden Linux do not create this user
+  anymore, and so we'll run them as an unprivileged \code{root} user.
+
+  Once
+  \hyperlink["https://www.pivotaltracker.com/story/show/94687240"]{#94687240}
+  is done, we'll run as the user specified in your Docker images instead.
 }{
   We have fixed a leak involving restarts of the workers; previously they
   wouldn't proper clean up the \code{ssh} process advertising the worker,
