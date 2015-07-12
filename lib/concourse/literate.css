@@ -2,12 +2,6 @@
   margin: 0 0 1em;
 }
 
-.literate-segment .code pre {
-  background: #e0e0e0;
-  padding: 1em;
-  margin: 1em;
-}
-
 @media (min-width: 1525px) {
   .pipeline-image {
     width: 1250px;
@@ -34,7 +28,7 @@
     vertical-align: top;
   }
 
-  .literate-segment .code pre {
+  .literate-segment .code .highlight {
     margin: 0;
   }
 }
