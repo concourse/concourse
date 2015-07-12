@@ -36,12 +36,12 @@ jobs:
   - get: concourse-rubinius
     params: {submodules: none}
   - put: concourse-rubinius-image
-    params: {build: concourse-rubinius/ci/dockerfiles/rubinius}
+    params: {build: concourse-rubinius/ci/dockerfiles/rubinius, cache: false}
 
 - name: build-docs-ci
   plan:
   - get: concourse-docs-ci
     params: {submodules: none}
   - put: concourse-docs-ci-image
-    params: {build: concourse-docs-ci/ci/dockerfiles/docs-ci}
+    params: {build: concourse-docs-ci/ci/dockerfiles/docs-ci, cache: false}
 
