@@ -1,7 +1,12 @@
 #!/bin/sh
 
+MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+TESTFLIGHT_DIR="$( cd "${MY_DIR}/.." && pwd )"
+
 export GARDEN_LINUX_VERSION=latest
 
 bosh target 192.168.50.4
 
-ginkgo -r -v "$@"
+pushd "${TESTFLIGHT_DIR}"
+  ginkgo -r -v "$@"
+popd
