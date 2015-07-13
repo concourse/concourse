@@ -35,6 +35,8 @@ var (
 	noUpdateGitServer      *gitserver.Server
 	ensureSuccessGitServer *gitserver.Server
 	ensureFailureGitServer *gitserver.Server
+
+	atcURL string
 )
 
 type GardenLinuxDeploymentData struct {
@@ -88,7 +90,7 @@ var _ = BeforeSuite(func() {
 
 	bosh.Deploy("deployment.yml.tmpl", templateData)
 
-	atcURL := "http://10.244.15.2:8080"
+	atcURL = "http://10.244.15.2:8080"
 
 	Eventually(errorPolling(atcURL), 1*time.Minute).ShouldNot(HaveOccurred())
 

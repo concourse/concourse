@@ -93,8 +93,6 @@ jobs:
           params:
             repository: curl-server
 
-
-
   - name: fancy-build-matrix
     plan:
       - get: some-git-resource
@@ -154,3 +152,26 @@ jobs:
           run:
             path: bash
             args: ["-c", '{ echo failed $(tail -1 some-git-resource/guids); } | $CURL_COMMAND']
+
+  - name: try-job
+    plan:
+      - get: some-git-resource
+        trigger: true
+      - try:
+          task: failing-task
+          config:
+            platform: linux
+            image: {{testflight-helper-image}}
+            run:
+              path: bash
+              args: ["-c", "exit 1"]
+      - task: passing-task
+        config:
+          platform: linux
+          image: {{testflight-helper-image}}
+          inputs:
+            - name: some-git-resource
+              path: .
+          run:
+            path: bash
+            args: ["-c", "echo passing-task succeeded"]
