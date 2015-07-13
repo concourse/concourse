@@ -20,9 +20,10 @@
   regardless of the result of the parent step, even if it errors or is aborted.
   This is useful for emitting metadata or releasing resources.
 }{
-  We have upgraded our Garden Linux dependency. This may lead to weirdness when
-  updating the existing workers (due to backwards-incompatible changes in
-  Garden Linux) - if in doubt, \code{bosh recreate worker 0..N}.
+  We have upgraded our Garden Linux dependency. This may lead to workers losing
+  network connectivity when updating the existing workers (due to
+  backwards-incompatible changes in Garden Linux) - if in doubt, \code{bosh
+  recreate worker 0..N}.
 
   As part of this upgrade, we will no longer run unprivileged tasks as the
   \code{vcap} user. Newer versions of Garden Linux do not create this user
