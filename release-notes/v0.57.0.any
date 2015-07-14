@@ -48,4 +48,9 @@
 }{
   The rendering of the pipeline view has been improved once more, and a few
   cases leading to browser crashes/hanging have been fixed.
+}{
+  Fixed some funny business involving aborting builds that are in the middle of
+  running an aggregate. Previously it would never actually wait for all of the
+  steps to exit before continuing on and marking the build aborted. This
+  resulted in infinite activity indicators.
 }
