@@ -41,6 +41,8 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 		ttl, err = time.ParseDuration(ttlStr)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "malformed ttl")
+			return
 		}
 	}
 

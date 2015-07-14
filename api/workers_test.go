@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -114,7 +113,7 @@ var _ = Describe("Workers API", func() {
 	Describe("POST /api/v1/workers", func() {
 		var (
 			worker atc.Worker
-			ttl    time.Duration
+			ttl    string
 
 			response *http.Response
 		)
@@ -130,14 +129,14 @@ var _ = Describe("Workers API", func() {
 				Tags:     []string{"not", "a", "limerick"},
 			}
 
-			ttl = 30 * time.Second
+			ttl = "30s"
 		})
 
 		JustBeforeEach(func() {
 			payload, err := json.Marshal(worker)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			req, err := http.NewRequest("POST", server.URL+"/api/v1/workers?ttl="+ttl.String(), ioutil.NopCloser(bytes.NewBuffer(payload)))
+			req, err := http.NewRequest("POST", server.URL+"/api/v1/workers?ttl="+ttl, ioutil.NopCloser(bytes.NewBuffer(payload)))
 			Ω(err).ShouldNot(HaveOccurred())
 
 			response, err = client.Do(req)
@@ -167,7 +166,7 @@ var _ = Describe("Workers API", func() {
 						Platform: "haiku",
 						Tags:     []string{"not", "a", "limerick"},
 					}))
-					Ω(savedTTL).Should(Equal(ttl))
+					Ω(savedTTL.String()).Should(Equal(ttl))
 				})
 
 				Context("and saving it fails", func() {
@@ -178,6 +177,24 @@ var _ = Describe("Workers API", func() {
 					It("returns 500", func() {
 						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
 					})
+				})
+			})
+
+			Context("when the TTL is invalid", func() {
+				BeforeEach(func() {
+					ttl = "invalid-duration"
+				})
+
+				It("returns 400", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+				})
+
+				It("returns the validation error in the response body", func() {
+					Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("malformed ttl")))
+				})
+
+				It("does not save it", func() {
+					Ω(workerDB.SaveWorkerCallCount()).Should(BeZero())
 				})
 			})
 
