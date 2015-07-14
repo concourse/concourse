@@ -9,27 +9,25 @@
   <div class="resource-check-status">
     <div class="steps">
       <div class="build-step">
-        {{if .DBResource.FailingToCheck}}
-          <div class="header">
-            <i class="right errored fa fa-fw fa-exclamation-triangle"></i>
-            <h3>check failing</h3>
-          </div>
+        <div class="header">
+          {{if .DBResource.Paused}}
+            <span class="btn-pause fl enabled js-pauseUnpause"><i class="fa fa-fw fa-play"></i></span>
+          {{else}}
+            <span class="btn-pause fl disabled js-pauseUnpause"><i class="fa fa-fw fa-pause"></i></span>
+          {{end}}
 
-          {{if .DBResource.CheckError}}
+          {{if .DBResource.FailingToCheck}}
+            <h3 class="js-resourceStatusText" data-initial="checking failed">checking failed</h3>
+            <i class="fr errored fa fa-fw fa-exclamation-triangle"></i>
+          {{else}}
+            <h3 class="js-resourceStatusText" data-initial="checking successfully">checking successfully</h3>
+            <i class="fr succeeded fa fa-fw fa-check"></i>
+          {{end}}
+        </div>
+
+        {{if .DBResource.CheckError}}
           <div class="step-body">
             <pre>{{.DBResource.CheckError.Error}}</pre>
-          </div>
-          {{end}}
-        {{else}}
-          <div class="header">
-            <i class="fr succeeded fa fa-fw fa-check"></i>
-            {{if .DBResource.Paused}}
-              <span class="btn-pause fl enabled js-pauseUnpause"><i class="fa fa-fw fa-play"></i></span>
-              <h3 class="js-resourceStatusText">checking paused</h3>
-            {{else}}
-              <span class="btn-pause fl disabled js-pauseUnpause"><i class="fa fa-fw fa-pause"></i></span>
-              <h3 class="js-resourceStatusText">checking successfully</h3>
-            {{end}}
           </div>
         {{end}}
       </div>

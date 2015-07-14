@@ -1,6 +1,7 @@
 package acceptance_test
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 var _ = Describe("Resource Pausing", func() {
 	var atcProcess ifrit.Process
 	var dbListener *pq.Listener
+	var pipelineDBFactory db.PipelineDBFactory
 	var atcPort uint16
 
 	BeforeEach(func() {
@@ -34,8 +36,12 @@ var _ = Describe("Resource Pausing", func() {
 		dbConn = postgresRunner.Open()
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener)
+
 		sqlDB = db.NewSQL(dbLogger, dbConn, bus)
 		Ω(err).ShouldNot(HaveOccurred())
+
+		pipelineDBFactory = db.NewPipelineDBFactory(dbLogger, dbConn, bus, sqlDB)
+
 		atcProcess, atcPort = startATC(atcBin, 1)
 	})
 
@@ -70,6 +76,8 @@ var _ = Describe("Resource Pausing", func() {
 		}
 
 		Context("with a resource in the configuration", func() {
+			var pipelineDB db.PipelineDB
+
 			BeforeEach(func() {
 				// job build data
 				_, err := sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{
@@ -88,6 +96,9 @@ var _ = Describe("Resource Pausing", func() {
 					},
 				}, db.ConfigVersion(1), db.PipelineUnpaused)
 				Ω(err).ShouldNot(HaveOccurred())
+
+				pipelineDB, err = pipelineDBFactory.BuildDefault()
+				Ω(err).ShouldNot(HaveOccurred())
 			})
 
 			It("can view the resource", func() {
@@ -103,11 +114,22 @@ var _ = Describe("Resource Pausing", func() {
 				Authenticate(page, "admin", "password")
 
 				Expect(page.Find(".js-resource .js-pauseUnpause").Click()).To(Succeed())
-				Eventually(page.Find(".header h3")).Should(HaveText("checking paused"))
+				Eventually(page.Find(".header i.fa-play")).Should(BeFound())
 
 				page.Refresh()
 
-				Eventually(page.Find(".header h3")).Should(HaveText("checking paused"))
+				Eventually(page.Find(".header i.fa-play")).Should(BeFound())
+
+				resource, err := pipelineDB.GetResource("resource-name")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = pipelineDB.SetResourceCheckError(resource, errors.New("failed to foo the bar"))
+				Ω(err).ShouldNot(HaveOccurred())
+
+				page.Refresh()
+
+				Eventually(page.Find(".header h3")).Should(HaveText("checking failed"))
+				Eventually(page.Find(".build-step .step-body")).Should(HaveText("failed to foo the bar"))
 			})
 		})
 	})
