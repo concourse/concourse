@@ -268,29 +268,22 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 		return []string{message}
 	}
 
+	errorMessages := []string{}
+
 	switch {
 	case plan.Do != nil:
-		errorMessages := []string{}
-
 		for i, plan := range *plan.Do {
 			subIdentifier := fmt.Sprintf("%s[%d]", identifier, i)
 			errorMessages = append(errorMessages, validatePlan(c, subIdentifier, plan)...)
 		}
 
-		return errorMessages
-
 	case plan.Aggregate != nil:
-		errorMessages := []string{}
-
 		for i, plan := range *plan.Aggregate {
 			subIdentifier := fmt.Sprintf("%s.aggregate[%d]", identifier, i)
 			errorMessages = append(errorMessages, validatePlan(c, subIdentifier, plan)...)
 		}
 
-		return errorMessages
-
 	case plan.Get != "":
-		errorMessages := []string{}
 		subIdentifier := fmt.Sprintf("%s.get.%s", identifier, plan.Get)
 
 		errorMessages = append(errorMessages, validateInapplicableFields(
@@ -362,9 +355,7 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 			}
 		}
 
-		return errorMessages
 	case plan.Put != "":
-		errorMessages := []string{}
 		subIdentifier := fmt.Sprintf("%s.put.%s", identifier, plan.Put)
 
 		errorMessages = append(errorMessages, validateInapplicableFields(
@@ -397,9 +388,7 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 			}
 		}
 
-		return errorMessages
 	case plan.Task != "":
-		errorMessages := []string{}
 		subIdentifier := fmt.Sprintf("%s.task.%s", identifier, plan.Task)
 
 		if plan.TaskConfig == nil && plan.TaskConfigPath == "" {
@@ -415,10 +404,27 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 			errorMessages = append(errorMessages, subIdentifier+" specifies params, which should be config.params")
 		}
 
-		return errorMessages
+	case plan.Try != nil:
+		subIdentifier := fmt.Sprintf("%s.try", identifier)
+		errorMessages = append(errorMessages, validatePlan(c, subIdentifier, *plan.Try)...)
 	}
 
-	return nil
+	if plan.Ensure != nil {
+		subIdentifier := fmt.Sprintf("%s.ensure", identifier)
+		errorMessages = append(errorMessages, validatePlan(c, subIdentifier, *plan.Ensure)...)
+	}
+
+	if plan.Success != nil {
+		subIdentifier := fmt.Sprintf("%s.success", identifier)
+		errorMessages = append(errorMessages, validatePlan(c, subIdentifier, *plan.Success)...)
+	}
+
+	if plan.Failure != nil {
+		subIdentifier := fmt.Sprintf("%s.failure", identifier)
+		errorMessages = append(errorMessages, validatePlan(c, subIdentifier, *plan.Failure)...)
+	}
+
+	return errorMessages
 }
 
 func validateInapplicableFields(inapplicableFields []string, plan atc.PlanConfig, identifier string) []string {

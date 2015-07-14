@@ -580,7 +580,7 @@ var _ = Describe("ValidateConfig", func() {
 					Ω(validateErr).ShouldNot(HaveOccurred())
 				})
 			})
-			//***************************************************************************START
+
 			Context("when a get plan refers to a 'put' resource that exists in another job's hook", func() {
 				var (
 					job1 atc.JobConfig
@@ -710,6 +710,89 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("does not return an error", func() {
 					Ω(validateErr).ShouldNot(HaveOccurred())
+				})
+			})
+
+			Context("when a plan has an invalid step within an ensure", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Get: "some-resource",
+						Ensure: &atc.PlanConfig{
+							Put:      "custom-name",
+							Resource: "some-missing-resource",
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("throws a validation error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job.plan[0].ensure.put.custom-name refers to a resource that does not exist ('some-missing-resource')",
+					))
+				})
+			})
+
+			Context("when a plan has an invalid step within a success", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Get: "some-resource",
+						Success: &atc.PlanConfig{
+							Put:      "custom-name",
+							Resource: "some-missing-resource",
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("throws a validation error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job.plan[0].success.put.custom-name refers to a resource that does not exist ('some-missing-resource')",
+					))
+				})
+			})
+
+			Context("when a plan has an invalid step within a failure", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Get: "some-resource",
+						Failure: &atc.PlanConfig{
+							Put:      "custom-name",
+							Resource: "some-missing-resource",
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("throws a validation error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job.plan[0].failure.put.custom-name refers to a resource that does not exist ('some-missing-resource')",
+					))
+				})
+			})
+
+			Context("when a plan has an invalid step within a try", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Try: &atc.PlanConfig{
+							Put:      "custom-name",
+							Resource: "some-missing-resource",
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("throws a validation error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job.plan[0].try.put.custom-name refers to a resource that does not exist ('some-missing-resource')",
+					))
 				})
 			})
 
