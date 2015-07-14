@@ -345,10 +345,40 @@ func (config Config) JobIsPublic(jobName string) (bool, error) {
 }
 
 func collectInputs(plan PlanConfig) []JobInput {
-	if plan.Do != nil {
+	if plan.Success != nil || plan.Failure != nil || plan.Ensure != nil {
 		var inputs []JobInput
 
+		if plan.Success != nil {
+			inputs = append(inputs, collectInputs(*plan.Success)...)
+		}
+
+		if plan.Failure != nil {
+			inputs = append(inputs, collectInputs(*plan.Failure)...)
+		}
+
+		if plan.Ensure != nil {
+			inputs = append(inputs, collectInputs(*plan.Ensure)...)
+		}
+
+		return inputs
+	}
+
+	if plan.Try != nil {
+		return collectInputs(*plan.Try)
+	}
+
+	if plan.Do != nil {
+		var inputs []JobInput
 		for _, p := range *plan.Do {
+			inputs = append(inputs, collectInputs(p)...)
+		}
+		return inputs
+	}
+
+	if plan.Aggregate != nil {
+		var inputs []JobInput
+
+		for _, p := range *plan.Aggregate {
 			inputs = append(inputs, collectInputs(p)...)
 		}
 
@@ -372,21 +402,28 @@ func collectInputs(plan PlanConfig) []JobInput {
 			},
 		}
 	}
-
-	if plan.Aggregate != nil {
-		var inputs []JobInput
-
-		for _, p := range *plan.Aggregate {
-			inputs = append(inputs, collectInputs(p)...)
-		}
-
-		return inputs
-	}
-
 	return []JobInput{}
 }
 
 func collectOutputs(plan PlanConfig) []JobOutput {
+	if plan.Success != nil || plan.Failure != nil || plan.Ensure != nil {
+		var outputs []JobOutput
+		if plan.Success != nil {
+			outputs = append(outputs, collectOutputs(*plan.Success)...)
+		}
+		if plan.Failure != nil {
+			outputs = append(outputs, collectOutputs(*plan.Failure)...)
+		}
+		if plan.Ensure != nil {
+			outputs = append(outputs, collectOutputs(*plan.Ensure)...)
+		}
+		return outputs
+	}
+	if plan.Try != nil {
+		var outputs []JobOutput
+		outputs = append(outputs, collectOutputs(*plan.Try)...)
+		return outputs
+	}
 	if plan.Do != nil {
 		var outputs []JobOutput
 

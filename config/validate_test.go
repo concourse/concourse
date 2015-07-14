@@ -580,6 +580,138 @@ var _ = Describe("ValidateConfig", func() {
 					Ω(validateErr).ShouldNot(HaveOccurred())
 				})
 			})
+			//***************************************************************************START
+			Context("when a get plan refers to a 'put' resource that exists in another job's hook", func() {
+				var (
+					job1 atc.JobConfig
+					job2 atc.JobConfig
+				)
+				BeforeEach(func() {
+					job1 = atc.JobConfig{
+						Name: "job-one",
+					}
+					job2 = atc.JobConfig{
+						Name: "job-two",
+					}
+
+					job1.Plan = append(job1.Plan, atc.PlanConfig{
+						Task: "job-one",
+						Success: &atc.PlanConfig{
+							Put: "some-resource",
+						},
+						TaskConfigPath: "job-one-config-path",
+					})
+
+					job2.Plan = append(job2.Plan, atc.PlanConfig{
+						Get:    "some-resource",
+						Passed: []string{"job-one"},
+					})
+					config.Jobs = append(config.Jobs, job1, job2)
+				})
+
+				It("does not return an error", func() {
+					Ω(validateErr).ShouldNot(HaveOccurred())
+				})
+			})
+
+			Context("when a get plan refers to a 'get' resource that exists in another job's hook", func() {
+				var (
+					job1 atc.JobConfig
+					job2 atc.JobConfig
+				)
+				BeforeEach(func() {
+					job1 = atc.JobConfig{
+						Name: "job-one",
+					}
+					job2 = atc.JobConfig{
+						Name: "job-two",
+					}
+
+					job1.Plan = append(job1.Plan, atc.PlanConfig{
+						Task: "job-one",
+						Success: &atc.PlanConfig{
+							Get: "some-resource",
+						},
+						TaskConfigPath: "job-one-config-path",
+					})
+
+					job2.Plan = append(job2.Plan, atc.PlanConfig{
+						Get:    "some-resource",
+						Passed: []string{"job-one"},
+					})
+					config.Jobs = append(config.Jobs, job1, job2)
+				})
+
+				It("does not return an error", func() {
+					Ω(validateErr).ShouldNot(HaveOccurred())
+				})
+			})
+
+			Context("when a get plan refers to a 'put' resource that exists in another job's try-step", func() {
+				var (
+					job1 atc.JobConfig
+					job2 atc.JobConfig
+				)
+				BeforeEach(func() {
+					job1 = atc.JobConfig{
+						Name: "job-one",
+					}
+					job2 = atc.JobConfig{
+						Name: "job-two",
+					}
+
+					job1.Plan = append(job1.Plan, atc.PlanConfig{
+						Try: &atc.PlanConfig{
+							Put: "some-resource",
+						},
+						TaskConfigPath: "job-one-config-path",
+					})
+
+					job2.Plan = append(job2.Plan, atc.PlanConfig{
+						Get:    "some-resource",
+						Passed: []string{"job-one"},
+					})
+					config.Jobs = append(config.Jobs, job1, job2)
+
+				})
+
+				It("does not return an error", func() {
+					Ω(validateErr).ShouldNot(HaveOccurred())
+				})
+			})
+
+			Context("when a get plan refers to a 'get' resource that exists in another job's try-step", func() {
+				var (
+					job1 atc.JobConfig
+					job2 atc.JobConfig
+				)
+				BeforeEach(func() {
+					job1 = atc.JobConfig{
+						Name: "job-one",
+					}
+					job2 = atc.JobConfig{
+						Name: "job-two",
+					}
+
+					job1.Plan = append(job1.Plan, atc.PlanConfig{
+						Try: &atc.PlanConfig{
+							Get: "some-resource",
+						},
+						TaskConfigPath: "job-one-config-path",
+					})
+
+					job2.Plan = append(job2.Plan, atc.PlanConfig{
+						Get:    "some-resource",
+						Passed: []string{"job-one"},
+					})
+					config.Jobs = append(config.Jobs, job1, job2)
+
+				})
+
+				It("does not return an error", func() {
+					Ω(validateErr).ShouldNot(HaveOccurred())
+				})
+			})
 
 			Context("when a put plan has a custom name but refers to a resource that does not exist", func() {
 				BeforeEach(func() {

@@ -330,7 +330,6 @@ func (build *execBuild) taskIdentifier(name string, location event.OriginLocatio
 func (build *execBuild) getIdentifier(name string, location event.OriginLocation) worker.Identifier {
 	return worker.Identifier{
 		BuildID: build.buildID,
-
 		Type:         "get",
 		Name:         name,
 		StepLocation: location.ID,
