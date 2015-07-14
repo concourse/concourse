@@ -113,6 +113,10 @@ var _ = Describe("Resource Pausing", func() {
 				Expect(page.Navigate(homepage())).To(Succeed())
 				Authenticate(page, "admin", "password")
 
+				title, err := page.Title()
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(title).Should(Equal(fmt.Sprintf("%s - Concourse", atc.DefaultPipelineName)))
+
 				Eventually(page.FindByLink("job-name")).Should(BeFound())
 				Expect(page.FindByLink("job-name").Click()).To(Succeed())
 
