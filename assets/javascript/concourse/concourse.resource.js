@@ -1,10 +1,10 @@
 $(function () {
   if ($('.js-resource').length) {
-    var pauseUnpause = new concourse.PauseUnpause($('.js-resource'), function() {
-      $('.js-resource').find('.js-resourceStatusText').html("checking paused");
-    }, function() {
-      $('.js-resource').find('.js-resourceStatusText').html("checking successfully");
-    });
+    var pauseUnpause = new concourse.PauseUnpause(
+      $('.js-resource'),
+      function() {}, // on pause
+      function() {}  // on unpause
+    );
     pauseUnpause.bindEvents();
   }
 });
