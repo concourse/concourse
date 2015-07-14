@@ -590,6 +590,11 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				Ω(outputStep.RunCallCount()).Should(Equal(0))
 				Ω(outputStep.ReleaseCallCount()).Should(Equal(0))
+
+				_, cbErr, successful, aborted := fakeDelegate.FinishArgsForCall(0)
+				Ω(cbErr).ShouldNot(HaveOccurred())
+				Ω(successful).Should(Equal(exec.Success(false)))
+				Ω(aborted).Should(BeFalse())
 			})
 		})
 

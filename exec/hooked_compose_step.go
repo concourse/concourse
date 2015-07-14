@@ -154,11 +154,13 @@ func (hc *hookedCompose) Result(x interface{}) bool {
 	case *Success:
 		if hc.nextStep == nil {
 			*v = false
-		} else {
-			if !hc.nextStep.Result(v) {
-				*v = false
-			}
+			return true
 		}
+
+		if !hc.nextStep.Result(v) {
+			*v = false
+		}
+
 		return true
 	}
 

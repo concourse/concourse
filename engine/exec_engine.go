@@ -2,6 +2,7 @@ package engine
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 
 	"github.com/concourse/atc"
@@ -112,8 +113,12 @@ func (build *execBuild) Resume(logger lager.Logger) {
 			if aborted {
 				succeeded = false
 			} else {
-				succeeded = true
+				if !source.Result(&succeeded) {
+					logger.Error("step-had-no-result", errors.New("step failed to provide us with a result"))
+					succeeded = false
+				}
 			}
+
 			build.delegate.Finish(logger.Session("finish"), err, succeeded, aborted)
 			return
 
@@ -329,7 +334,7 @@ func (build *execBuild) taskIdentifier(name string, location event.OriginLocatio
 
 func (build *execBuild) getIdentifier(name string, location event.OriginLocation) worker.Identifier {
 	return worker.Identifier{
-		BuildID: build.buildID,
+		BuildID:      build.buildID,
 		Type:         "get",
 		Name:         name,
 		StepLocation: location.ID,

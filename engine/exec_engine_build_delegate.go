@@ -26,7 +26,6 @@ type BuildDelegate interface {
 	OutputDelegate(lager.Logger, atc.PutPlan, event.OriginLocation, string) exec.PutDelegate
 
 	Finish(lager.Logger, error, exec.Success, bool)
-	Aborted(lager.Logger)
 }
 
 //go:generate counterfeiter . BuildDelegateFactory
@@ -52,9 +51,6 @@ type delegate struct {
 
 	buildID int
 
-	successful bool
-	aborted    bool
-
 	implicitOutputs map[string]implicitOutput
 
 	lock sync.Mutex
@@ -65,9 +61,6 @@ func newBuildDelegate(db EngineDB, buildID int) BuildDelegate {
 		db: db,
 
 		buildID: buildID,
-
-		successful: true,
-		aborted:    false,
 
 		implicitOutputs: make(map[string]implicitOutput),
 	}
@@ -127,12 +120,6 @@ func (delegate *delegate) Finish(logger lager.Logger, err error, succeeded exec.
 
 		logger.Info("failed")
 	}
-}
-
-func (delegate *delegate) Aborted(logger lager.Logger) {
-	delegate.aborted = true
-
-	logger.Info("aborted")
 }
 
 func (delegate *delegate) registerImplicitOutput(resource string, output implicitOutput) {
@@ -294,10 +281,6 @@ type inputDelegate struct {
 }
 
 func (input *inputDelegate) Completed(status exec.ExitStatus, info exec.VersionInfo) {
-	if status != 0 {
-		input.delegate.successful = false
-	}
-
 	input.delegate.saveInput(input.logger, status, input.plan, info, event.Origin{
 		Type:     event.OriginTypeGet,
 		Name:     input.plan.Name,
@@ -350,10 +333,6 @@ type outputDelegate struct {
 }
 
 func (output *outputDelegate) Completed(status exec.ExitStatus, info exec.VersionInfo) {
-	if status != 0 {
-		output.delegate.successful = false
-	}
-
 	output.delegate.unregisterImplicitOutput(output.plan.Resource)
 	output.delegate.saveOutput(output.logger, status, output.plan, info, event.Origin{
 		Type:     event.OriginTypePut,
@@ -432,19 +411,6 @@ func (execution *executionDelegate) Finished(status exec.ExitStatus) {
 		Name:     execution.plan.Name,
 		Location: execution.location,
 		Hook:     execution.hook,
-	})
-
-	execution.Result(status)
-}
-
-func (execution *executionDelegate) Result(status exec.ExitStatus) {
-	if status != 0 {
-		execution.delegate.successful = false
-	}
-
-	execution.logger.Info("result", lager.Data{
-		"status":    status,
-		"succeeded": status == 0,
 	})
 }
 
