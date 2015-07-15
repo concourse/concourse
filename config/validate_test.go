@@ -356,7 +356,7 @@ var _ = Describe("ValidateConfig", func() {
 					})
 				})
 
-				Context("when it's just Get and Put", func() {
+				Context("when it's just Get and Put (this was valid at one point)", func() {
 					BeforeEach(func() {
 						job.Plan = append(job.Plan, atc.PlanConfig{
 							Get:       "some-resource",
@@ -370,7 +370,10 @@ var _ = Describe("ValidateConfig", func() {
 					})
 
 					It("does not return an error (put commands can have a get directive)", func() {
-						Ω(validateErr).ShouldNot(HaveOccurred())
+						Ω(validateErr).Should(HaveOccurred())
+						Ω(validateErr.Error()).Should(ContainSubstring(
+							"jobs.some-other-job.plan[0] has multiple actions specified (get, put)",
+						))
 					})
 				})
 			})

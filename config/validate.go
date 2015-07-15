@@ -217,9 +217,7 @@ func (ft foundTypes) IsValid() (bool, string) {
 		return false, ft.identifier + " has no action specified"
 	}
 
-	allowedMultipleTypes := len(ft.found) == 2 && ft.found["get"] && ft.found["put"]
-
-	if len(ft.found) > 1 && !allowedMultipleTypes {
+	if len(ft.found) > 1 {
 		types := make([]string, 0, len(ft.found))
 
 		for typee, _ := range ft.found {
