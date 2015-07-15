@@ -61,7 +61,7 @@ reveal the pipelines sidebar via the hamburger icon in the top left and press
 "play", or run:
 
 \codeblock{bash}{
-$ fly configure really-cool-pipeline -c somewhere.yml --pause=false
+$ fly configure really-cool-pipeline -c somewhere.yml --paused=false
 }
 
 You can always fetch the current configuration of a pipeline by running:
