@@ -369,7 +369,7 @@ var _ = Describe("ValidateConfig", func() {
 						config.Jobs = append(config.Jobs, job)
 					})
 
-					It("does not return an error (put commands can have a get directive)", func() {
+					It("does not return an error", func() {
 						Ω(validateErr).Should(HaveOccurred())
 						Ω(validateErr.Error()).Should(ContainSubstring(
 							"jobs.some-other-job.plan[0] has multiple actions specified (get, put)",
