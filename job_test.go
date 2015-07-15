@@ -110,6 +110,84 @@ var _ = Describe("JobConfig", func() {
 				})
 			})
 
+			Context("when a plan has an ensure hook on a get", func() {
+				BeforeEach(func() {
+					jobConfig.Plan = PlanSequence{
+						{
+							Get: "a",
+							Ensure: &PlanConfig{
+								Get: "b",
+							},
+						},
+					}
+				})
+
+				It("returns an input config for all get plans", func() {
+					Ω(inputs).Should(ConsistOf(
+						JobInput{
+							Name:     "a",
+							Resource: "a",
+						},
+						JobInput{
+							Name:     "b",
+							Resource: "b",
+						},
+					))
+				})
+			})
+
+			Context("when a plan has an success hook on a get", func() {
+				BeforeEach(func() {
+					jobConfig.Plan = PlanSequence{
+						{
+							Get: "a",
+							Success: &PlanConfig{
+								Get: "b",
+							},
+						},
+					}
+				})
+
+				It("returns an input config for all get plans", func() {
+					Ω(inputs).Should(ConsistOf(
+						JobInput{
+							Name:     "a",
+							Resource: "a",
+						},
+						JobInput{
+							Name:     "b",
+							Resource: "b",
+						},
+					))
+				})
+			})
+
+			Context("when a plan has an failure hook on a get", func() {
+				BeforeEach(func() {
+					jobConfig.Plan = PlanSequence{
+						{
+							Get: "a",
+							Failure: &PlanConfig{
+								Get: "b",
+							},
+						},
+					}
+				})
+
+				It("returns an input config for all get plans", func() {
+					Ω(inputs).Should(ConsistOf(
+						JobInput{
+							Name:     "a",
+							Resource: "a",
+						},
+						JobInput{
+							Name:     "b",
+							Resource: "b",
+						},
+					))
+				})
+			})
+
 			Context("when a resource is specified", func() {
 				BeforeEach(func() {
 					jobConfig.Plan = PlanSequence{
@@ -310,6 +388,84 @@ var _ = Describe("JobConfig", func() {
 							Resource: "c",
 						},
 					}))
+				})
+			})
+
+			Context("when a plan has an ensure on a put", func() {
+				BeforeEach(func() {
+					jobConfig.Plan = PlanSequence{
+						{
+							Put: "a",
+							Ensure: &PlanConfig{
+								Put: "b",
+							},
+						},
+					}
+				})
+
+				It("returns an output config for all put plans", func() {
+					Ω(outputs).Should(ConsistOf(
+						JobOutput{
+							Name:     "a",
+							Resource: "a",
+						},
+						JobOutput{
+							Name:     "b",
+							Resource: "b",
+						},
+					))
+				})
+			})
+
+			Context("when a plan has an success hook on a put", func() {
+				BeforeEach(func() {
+					jobConfig.Plan = PlanSequence{
+						{
+							Put: "a",
+							Success: &PlanConfig{
+								Put: "b",
+							},
+						},
+					}
+				})
+
+				It("returns an output config for all put plans", func() {
+					Ω(outputs).Should(ConsistOf(
+						JobOutput{
+							Name:     "a",
+							Resource: "a",
+						},
+						JobOutput{
+							Name:     "b",
+							Resource: "b",
+						},
+					))
+				})
+			})
+
+			Context("when a plan has an failure hook on a put", func() {
+				BeforeEach(func() {
+					jobConfig.Plan = PlanSequence{
+						{
+							Put: "a",
+							Failure: &PlanConfig{
+								Put: "b",
+							},
+						},
+					}
+				})
+
+				It("returns an output config for all put plans", func() {
+					Ω(outputs).Should(ConsistOf(
+						JobOutput{
+							Name:     "a",
+							Resource: "a",
+						},
+						JobOutput{
+							Name:     "b",
+							Resource: "b",
+						},
+					))
 				})
 			})
 
