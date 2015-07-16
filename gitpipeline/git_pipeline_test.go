@@ -69,7 +69,6 @@ var _ = Describe("A pipeline with git resources", func() {
 
 	Describe("try", func() {
 		It("proceeds with build plan if wrapped task fails", func() {
-			By("executing the build when a commit is made")
 			committedGuid := gitServer.Commit()
 			Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement(committedGuid))
 
@@ -84,10 +83,29 @@ var _ = Describe("A pipeline with git resources", func() {
 			flyS := start(fly)
 
 			Eventually(flyS, 30*time.Second).Should(gbytes.Say("initializing"))
-
 			Eventually(flyS, 30*time.Second).Should(gbytes.Say("passing-task succeeded"))
-
 			Eventually(flyS, 10*time.Second).Should(gexec.Exit(0))
+		})
+	})
+
+	Describe("a job with a failing task", func() {
+		It("causes the job to fail", func() {
+			committedGuid := gitServer.Commit()
+			Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement(committedGuid))
+
+			fly := exec.Command(
+				flyBin,
+				"-t", atcURL,
+				"watch",
+				"-p", "pipeline-name",
+				"-j", "failing-job",
+			)
+
+			flyS := start(fly)
+
+			Eventually(flyS, 30*time.Second).Should(gbytes.Say("initializing"))
+			Eventually(flyS, 30*time.Second).Should(gbytes.Say("failed"))
+			Eventually(flyS, 10*time.Second).Should(gexec.Exit(1))
 		})
 	})
 })

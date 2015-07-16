@@ -175,3 +175,15 @@ jobs:
           run:
             path: bash
             args: ["-c", "echo passing-task succeeded"]
+
+  - name: failing-job
+    plan:
+      - get: some-git-resource
+        trigger: true
+      - task: failing-task
+        config:
+          platform: linux
+          image: {{testflight-helper-image}}
+          run:
+            path: bash
+            args: ["-c", "exit 1"]
