@@ -172,7 +172,7 @@ var _ = Describe("GardenFactory", func() {
 
 				exitStatus, verionInfo := putDelegate.CompletedArgsForCall(0)
 				Ω(exitStatus).Should(Equal(ExitStatus(0)))
-				Ω(verionInfo).Should(Equal(VersionInfo{
+				Ω(verionInfo).Should(Equal(&VersionInfo{
 					Version:  atc.Version{"some": "version"},
 					Metadata: []atc.MetadataField{{"some", "metadata"}},
 				}))
@@ -236,6 +236,9 @@ var _ = Describe("GardenFactory", func() {
 						Ω(putDelegate.FailedCallCount()).Should(BeZero())
 
 						Ω(putDelegate.CompletedCallCount()).Should(Equal(1))
+						status, versionInfo := putDelegate.CompletedArgsForCall(0)
+						Ω(status).Should(Equal(ExitStatus(1)))
+						Ω(versionInfo).Should(BeNil())
 					})
 
 					It("is not successful", func() {

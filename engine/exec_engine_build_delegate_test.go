@@ -69,10 +69,10 @@ var _ = Describe("BuildDelegate", func() {
 		})
 
 		Describe("Completed", func() {
-			var versionInfo exec.VersionInfo
+			var versionInfo *exec.VersionInfo
 
 			BeforeEach(func() {
-				versionInfo = exec.VersionInfo{
+				versionInfo = &exec.VersionInfo{
 					Version:  atc.Version{"result": "version"},
 					Metadata: []atc.MetadataField{{"result", "metadata"}},
 				}
@@ -127,6 +127,42 @@ var _ = Describe("BuildDelegate", func() {
 					}))
 				})
 
+			})
+
+			Context("when the version is null", func() {
+				JustBeforeEach(func() {
+					inputDelegate.Completed(exec.ExitStatus(12), nil)
+				})
+
+				It("does not save the build's input", func() {
+					Ω(fakeDB.SaveBuildInputCallCount()).Should(Equal(0))
+				})
+
+				It("saves a finish-get event", func() {
+					Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(1))
+
+					buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
+					Ω(buildID).Should(Equal(42))
+					Ω(savedEvent).Should(Equal(event.FinishGet{
+						Origin: event.Origin{
+							Type:     event.OriginTypeGet,
+							Name:     "some-input",
+							Location: location,
+							Hook:     "some-input-hook",
+						},
+						Plan: event.GetPlan{
+							Name:     "some-input",
+							Resource: "some-input-resource",
+							Type:     "some-type",
+							Version:  atc.Version{"some": "version"},
+							Source:   atc.Source{"some": "source"},
+							Params:   atc.Params{"some": "params"},
+						},
+						ExitStatus:      12,
+						FetchedVersion:  nil,
+						FetchedMetadata: nil,
+					}))
+				})
 			})
 
 			Describe("Finish", func() {
@@ -293,7 +329,7 @@ var _ = Describe("BuildDelegate", func() {
 						})
 
 						JustBeforeEach(func() {
-							outputDelegate.Completed(exec.ExitStatus(0), exec.VersionInfo{
+							outputDelegate.Completed(exec.ExitStatus(0), &exec.VersionInfo{
 								Version:  atc.Version{"explicit": "version"},
 								Metadata: []atc.MetadataField{{"explicit", "metadata"}},
 							})
@@ -685,15 +721,49 @@ var _ = Describe("BuildDelegate", func() {
 		})
 
 		Describe("Completed", func() {
-			var versionInfo exec.VersionInfo
+			var versionInfo *exec.VersionInfo
 
 			BeforeEach(func() {
-				versionInfo = exec.VersionInfo{
+				versionInfo = &exec.VersionInfo{
 					Version:  atc.Version{"result": "version"},
 					Metadata: []atc.MetadataField{{"result", "metadata"}},
 				}
 			})
 
+			Context("when the version info is nil", func() {
+				JustBeforeEach(func() {
+					outputDelegate.Completed(exec.ExitStatus(0), nil)
+				})
+
+				It("does not save the build's output", func() {
+					Ω(fakeDB.SaveBuildOutputCallCount()).Should(Equal(0))
+				})
+
+				It("saves an output event", func() {
+					Ω(fakeDB.SaveBuildEventCallCount()).Should(Equal(1))
+
+					buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
+					Ω(buildID).Should(Equal(42))
+					Ω(savedEvent).Should(Equal(event.FinishPut{
+						Origin: event.Origin{
+							Type:     event.OriginTypePut,
+							Name:     "some-output-name",
+							Location: location,
+							Hook:     "some-output-hook",
+						},
+						Plan: event.PutPlan{
+							Name:     "some-output-name",
+							Resource: "some-output-resource",
+							Type:     "some-type",
+							Source:   atc.Source{"some": "source"},
+							Params:   atc.Params{"some": "params"},
+						},
+						ExitStatus:      0,
+						CreatedVersion:  nil,
+						CreatedMetadata: nil,
+					}))
+				})
+			})
 			Context("when exit status is 0", func() {
 				JustBeforeEach(func() {
 					outputDelegate.Completed(exec.ExitStatus(0), versionInfo)

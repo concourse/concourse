@@ -18,11 +18,6 @@ type FakeTaskDelegate struct {
 	StartedStub        func()
 	startedMutex       sync.RWMutex
 	startedArgsForCall []struct{}
-	ResultStub        func(exec.ExitStatus)
-	resultMutex       sync.RWMutex
-	resultArgsForCall []struct {
-		arg1 exec.ExitStatus
-	}
 	FinishedStub        func(exec.ExitStatus)
 	finishedMutex       sync.RWMutex
 	finishedArgsForCall []struct {
@@ -83,29 +78,6 @@ func (fake *FakeTaskDelegate) StartedCallCount() int {
 	fake.startedMutex.RLock()
 	defer fake.startedMutex.RUnlock()
 	return len(fake.startedArgsForCall)
-}
-
-func (fake *FakeTaskDelegate) Result(arg1 exec.ExitStatus) {
-	fake.resultMutex.Lock()
-	fake.resultArgsForCall = append(fake.resultArgsForCall, struct {
-		arg1 exec.ExitStatus
-	}{arg1})
-	fake.resultMutex.Unlock()
-	if fake.ResultStub != nil {
-		fake.ResultStub(arg1)
-	}
-}
-
-func (fake *FakeTaskDelegate) ResultCallCount() int {
-	fake.resultMutex.RLock()
-	defer fake.resultMutex.RUnlock()
-	return len(fake.resultArgsForCall)
-}
-
-func (fake *FakeTaskDelegate) ResultArgsForCall(i int) exec.ExitStatus {
-	fake.resultMutex.RLock()
-	defer fake.resultMutex.RUnlock()
-	return fake.resultArgsForCall[i].arg1
 }
 
 func (fake *FakeTaskDelegate) Finished(arg1 exec.ExitStatus) {

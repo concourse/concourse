@@ -9,11 +9,11 @@ import (
 )
 
 type FakePutDelegate struct {
-	CompletedStub        func(exec.ExitStatus, exec.VersionInfo)
+	CompletedStub        func(exec.ExitStatus, *exec.VersionInfo)
 	completedMutex       sync.RWMutex
 	completedArgsForCall []struct {
 		arg1 exec.ExitStatus
-		arg2 exec.VersionInfo
+		arg2 *exec.VersionInfo
 	}
 	FailedStub        func(error)
 	failedMutex       sync.RWMutex
@@ -34,11 +34,11 @@ type FakePutDelegate struct {
 	}
 }
 
-func (fake *FakePutDelegate) Completed(arg1 exec.ExitStatus, arg2 exec.VersionInfo) {
+func (fake *FakePutDelegate) Completed(arg1 exec.ExitStatus, arg2 *exec.VersionInfo) {
 	fake.completedMutex.Lock()
 	fake.completedArgsForCall = append(fake.completedArgsForCall, struct {
 		arg1 exec.ExitStatus
-		arg2 exec.VersionInfo
+		arg2 *exec.VersionInfo
 	}{arg1, arg2})
 	fake.completedMutex.Unlock()
 	if fake.CompletedStub != nil {
@@ -52,7 +52,7 @@ func (fake *FakePutDelegate) CompletedCallCount() int {
 	return len(fake.completedArgsForCall)
 }
 
-func (fake *FakePutDelegate) CompletedArgsForCall(i int) (exec.ExitStatus, exec.VersionInfo) {
+func (fake *FakePutDelegate) CompletedArgsForCall(i int) (exec.ExitStatus, *exec.VersionInfo) {
 	fake.completedMutex.RLock()
 	defer fake.completedMutex.RUnlock()
 	return fake.completedArgsForCall[i].arg1, fake.completedArgsForCall[i].arg2

@@ -32,7 +32,7 @@ type TaskDelegate interface {
 }
 
 type ResourceDelegate interface {
-	Completed(ExitStatus, VersionInfo)
+	Completed(ExitStatus, *VersionInfo)
 	Failed(error)
 
 	Stdout() io.Writer

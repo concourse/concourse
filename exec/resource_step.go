@@ -58,7 +58,7 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 	if err, ok := err.(resource.ErrResourceScriptFailed); ok {
 		ras.exitStatus = err.ExitStatus
-		ras.Delegate.Completed(ExitStatus(err.ExitStatus), VersionInfo{})
+		ras.Delegate.Completed(ExitStatus(err.ExitStatus), nil)
 		return nil
 	}
 
@@ -71,7 +71,7 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 	}
 
 	ras.exitStatus = 0
-	ras.Delegate.Completed(ExitStatus(0), VersionInfo{
+	ras.Delegate.Completed(ExitStatus(0), &VersionInfo{
 		Version:  ras.VersionedSource.Version(),
 		Metadata: ras.VersionedSource.Metadata(),
 	})

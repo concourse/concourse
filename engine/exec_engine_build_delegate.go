@@ -182,7 +182,15 @@ func (delegate *delegate) saveErr(logger lager.Logger, errVal error, origin even
 	}
 }
 
-func (delegate *delegate) saveInput(logger lager.Logger, status exec.ExitStatus, plan atc.GetPlan, info exec.VersionInfo, origin event.Origin) {
+func (delegate *delegate) saveInput(logger lager.Logger, status exec.ExitStatus, plan atc.GetPlan, info *exec.VersionInfo, origin event.Origin) {
+	var version atc.Version
+	var metadata []atc.MetadataField
+
+	if info != nil {
+		version = info.Version
+		metadata = info.Metadata
+	}
+
 	ev := event.FinishGet{
 		Origin: origin,
 		Plan: event.GetPlan{
@@ -194,8 +202,8 @@ func (delegate *delegate) saveInput(logger lager.Logger, status exec.ExitStatus,
 			Version:  plan.Version,
 		},
 		ExitStatus:      int(status),
-		FetchedVersion:  info.Version,
-		FetchedMetadata: info.Metadata,
+		FetchedVersion:  version,
+		FetchedMetadata: metadata,
 	}
 
 	err := delegate.db.SaveBuildEvent(delegate.buildID, ev)
@@ -203,16 +211,26 @@ func (delegate *delegate) saveInput(logger lager.Logger, status exec.ExitStatus,
 		logger.Error("failed-to-save-input-event", err)
 	}
 
-	_, err = delegate.db.SaveBuildInput(delegate.buildID, db.BuildInput{
-		Name:              plan.Name,
-		VersionedResource: vrFromInput(plan.Pipeline, ev),
-	})
-	if err != nil {
-		logger.Error("failed-to-save-input", err)
+	if info != nil {
+		_, err = delegate.db.SaveBuildInput(delegate.buildID, db.BuildInput{
+			Name:              plan.Name,
+			VersionedResource: vrFromInput(plan.Pipeline, ev),
+		})
+		if err != nil {
+			logger.Error("failed-to-save-input", err)
+		}
 	}
 }
 
-func (delegate *delegate) saveOutput(logger lager.Logger, status exec.ExitStatus, plan atc.PutPlan, info exec.VersionInfo, origin event.Origin) {
+func (delegate *delegate) saveOutput(logger lager.Logger, status exec.ExitStatus, plan atc.PutPlan, info *exec.VersionInfo, origin event.Origin) {
+	var version atc.Version
+	var metadata []atc.MetadataField
+
+	if info != nil {
+		version = info.Version
+		metadata = info.Metadata
+	}
+
 	ev := event.FinishPut{
 		Origin: origin,
 		Plan: event.PutPlan{
@@ -223,8 +241,8 @@ func (delegate *delegate) saveOutput(logger lager.Logger, status exec.ExitStatus
 			Params:   plan.Params,
 		},
 		ExitStatus:      int(status),
-		CreatedVersion:  info.Version,
-		CreatedMetadata: info.Metadata,
+		CreatedVersion:  version,
+		CreatedMetadata: metadata,
 	}
 
 	err := delegate.db.SaveBuildEvent(delegate.buildID, ev)
@@ -232,9 +250,11 @@ func (delegate *delegate) saveOutput(logger lager.Logger, status exec.ExitStatus
 		logger.Error("failed-to-save-output-event", err)
 	}
 
-	_, err = delegate.db.SaveBuildOutput(delegate.buildID, vrFromOutput(plan.Pipeline, ev))
-	if err != nil {
-		logger.Error("failed-to-save-output", err)
+	if info != nil {
+		_, err = delegate.db.SaveBuildOutput(delegate.buildID, vrFromOutput(plan.Pipeline, ev))
+		if err != nil {
+			logger.Error("failed-to-save-output", err)
+		}
 	}
 }
 
@@ -280,14 +300,18 @@ type inputDelegate struct {
 	delegate *delegate
 }
 
-func (input *inputDelegate) Completed(status exec.ExitStatus, info exec.VersionInfo) {
+func (input *inputDelegate) Completed(status exec.ExitStatus, info *exec.VersionInfo) {
 	input.delegate.saveInput(input.logger, status, input.plan, info, event.Origin{
 		Type:     event.OriginTypeGet,
 		Name:     input.plan.Name,
 		Location: input.location,
 		Hook:     input.hook,
 	})
-	input.delegate.registerImplicitOutput(input.plan.Resource, implicitOutput{input.plan, info})
+
+	if info != nil {
+		input.delegate.registerImplicitOutput(input.plan.Resource, implicitOutput{input.plan, *info})
+	}
+
 	input.logger.Info("finished", lager.Data{"version-info": info})
 }
 
@@ -332,7 +356,7 @@ type outputDelegate struct {
 	hook     string
 }
 
-func (output *outputDelegate) Completed(status exec.ExitStatus, info exec.VersionInfo) {
+func (output *outputDelegate) Completed(status exec.ExitStatus, info *exec.VersionInfo) {
 	output.delegate.unregisterImplicitOutput(output.plan.Resource)
 	output.delegate.saveOutput(output.logger, status, output.plan, info, event.Origin{
 		Type:     event.OriginTypePut,
@@ -340,6 +364,7 @@ func (output *outputDelegate) Completed(status exec.ExitStatus, info exec.Versio
 		Location: output.location,
 		Hook:     output.hook,
 	})
+
 	output.logger.Info("finished", lager.Data{"version-info": info})
 }
 

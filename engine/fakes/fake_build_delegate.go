@@ -53,11 +53,6 @@ type FakeBuildDelegate struct {
 		arg3 exec.Success
 		arg4 bool
 	}
-	AbortedStub        func(lager.Logger)
-	abortedMutex       sync.RWMutex
-	abortedArgsForCall []struct {
-		arg1 lager.Logger
-	}
 }
 
 func (fake *FakeBuildDelegate) InputDelegate(arg1 lager.Logger, arg2 atc.GetPlan, arg3 event.OriginLocation, arg4 string) exec.GetDelegate {
@@ -189,29 +184,6 @@ func (fake *FakeBuildDelegate) FinishArgsForCall(i int) (lager.Logger, error, ex
 	fake.finishMutex.RLock()
 	defer fake.finishMutex.RUnlock()
 	return fake.finishArgsForCall[i].arg1, fake.finishArgsForCall[i].arg2, fake.finishArgsForCall[i].arg3, fake.finishArgsForCall[i].arg4
-}
-
-func (fake *FakeBuildDelegate) Aborted(arg1 lager.Logger) {
-	fake.abortedMutex.Lock()
-	fake.abortedArgsForCall = append(fake.abortedArgsForCall, struct {
-		arg1 lager.Logger
-	}{arg1})
-	fake.abortedMutex.Unlock()
-	if fake.AbortedStub != nil {
-		fake.AbortedStub(arg1)
-	}
-}
-
-func (fake *FakeBuildDelegate) AbortedCallCount() int {
-	fake.abortedMutex.RLock()
-	defer fake.abortedMutex.RUnlock()
-	return len(fake.abortedArgsForCall)
-}
-
-func (fake *FakeBuildDelegate) AbortedArgsForCall(i int) lager.Logger {
-	fake.abortedMutex.RLock()
-	defer fake.abortedMutex.RUnlock()
-	return fake.abortedArgsForCall[i].arg1
 }
 
 var _ engine.BuildDelegate = new(FakeBuildDelegate)
