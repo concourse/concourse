@@ -288,9 +288,10 @@ func (conn RetryableConnection) RemoveProperty(handle string, name string) error
 }
 
 func (conn RetryableConnection) StreamIn(handle string, spec garden.StreamInSpec) error {
-	return conn.retry(func() error {
-		return conn.Connection.StreamIn(handle, spec)
-	})
+	// We don't retry StreamIn because the other end of the connection may have
+	// already started reading the body of our request and to send it again would
+	// leave things in an unknown state.
+	return conn.Connection.StreamIn(handle, spec)
 }
 
 func (conn RetryableConnection) StreamOut(handle string, spec garden.StreamOutSpec) (io.ReadCloser, error) {

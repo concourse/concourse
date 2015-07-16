@@ -1,6 +1,7 @@
 package worker_test
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -13,11 +14,10 @@ import (
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/fakes"
-	"github.com/pivotal-golang/lager"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-golang/lager/lagertest"
 )
 
 var _ = Describe("Retryable", func() {
@@ -36,7 +36,7 @@ var _ = Describe("Retryable", func() {
 
 		conn = worker.RetryableConnection{
 			Connection:  innerConnection,
-			Logger:      lager.NewLogger("dumb"),
+			Logger:      lagertest.NewTestLogger("retryable-connection"),
 			Sleeper:     sleeper,
 			RetryPolicy: retryPolicy,
 		}
@@ -665,28 +665,50 @@ var _ = Describe("Retryable", func() {
 	})
 
 	Describe("StreamIn", func() {
-		reader := gbytes.NewBuffer()
+		BeforeEach(func() {
+			durations := make(chan time.Duration, 1)
+			durations <- time.Second
+			close(durations)
 
-		itRetries(func() error {
-			return conn.StreamIn("beethoven", garden.StreamInSpec{
+			retryPolicy.DelayForStub = func(failedAttempts uint) (time.Duration, bool) {
+				select {
+				case d, ok := <-durations:
+					return d, ok
+				}
+			}
+		})
+
+		It("calls through to the inner connection", func() {
+			reader := &bytes.Buffer{}
+
+			err := conn.StreamIn("beethoven", garden.StreamInSpec{
 				Path:      "/dev/sound",
 				User:      "bach",
 				TarStream: reader,
 			})
-		}, func(err error) {
-			innerConnection.StreamInReturns(err)
-		}, func() int {
-			return innerConnection.StreamInCallCount()
-		}, func() {
-			It("calls through to garden", func() {
-				Ω(innerConnection.StreamInCallCount()).Should(Equal(1))
+			Ω(err).ShouldNot(HaveOccurred())
 
-				handle, spec := innerConnection.StreamInArgsForCall(0)
-				Ω(handle).Should(Equal("beethoven"))
-				Ω(spec.Path).Should(Equal("/dev/sound"))
-				Ω(spec.User).Should(Equal("bach"))
-				Ω(spec.TarStream).Should(Equal(reader))
+			Ω(innerConnection.StreamInCallCount()).Should(Equal(1))
+			handle, spec := innerConnection.StreamInArgsForCall(0)
+			Ω(handle).Should(Equal("beethoven"))
+			Ω(spec.Path).Should(Equal("/dev/sound"))
+			Ω(spec.User).Should(Equal("bach"))
+			Ω(spec.TarStream).Should(Equal(reader))
+		})
+
+		It("does not retry as the other end of the connection may have already started reading the body", func() {
+			reader := &bytes.Buffer{}
+
+			innerConnection.StreamInReturns(retryableErrors[0])
+
+			err := conn.StreamIn("beethoven", garden.StreamInSpec{
+				Path:      "/dev/sound",
+				User:      "bach",
+				TarStream: reader,
 			})
+			Ω(err).Should(MatchError(retryableErrors[0]))
+
+			Ω(innerConnection.StreamInCallCount()).Should(Equal(1))
 		})
 	})
 
