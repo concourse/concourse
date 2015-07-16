@@ -2,6 +2,7 @@ package worker_test
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"syscall"
 	"time"
@@ -758,7 +759,7 @@ var _ = Describe("Retryable", func() {
 				Describe("Wait", func() {
 					BeforeEach(func() {
 						errs := make(chan error, 1)
-						errs <- io.EOF
+						errs <- fmt.Errorf("connection: decode failed: %s", io.EOF)
 						close(errs)
 
 						fakeProcess.WaitStub = func() (int, error) {
@@ -772,7 +773,9 @@ var _ = Describe("Retryable", func() {
 					})
 
 					It("reattaches on EOF", func() {
-						Ω(process.Wait()).Should(Equal(42))
+						result, err := process.Wait()
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(result).Should(Equal(42))
 
 						Ω(innerConnection.AttachCallCount()).Should(Equal(2))
 						handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(1)

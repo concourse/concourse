@@ -426,7 +426,7 @@ func (process *retryableProcess) Wait() (int, error) {
 			return status, nil
 		}
 
-		if err != io.EOF {
+		if !strings.HasSuffix(err.Error(), io.EOF.Error()) {
 			return 0, err
 		}
 
