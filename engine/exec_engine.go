@@ -162,9 +162,8 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 	}
 
 	if plan.Try != nil {
-		step, stepIncrement := build.buildStepFactory(logger, plan.Try.Step, location.Incr(1), "")
-
-		return exec.Try(step), stepIncrement + 1
+		step, stepIncrement := build.buildStepFactory(logger, plan.Try.Step, location, "")
+		return exec.Try(step), stepIncrement
 	}
 
 	if plan.HookedCompose != nil {

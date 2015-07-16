@@ -111,14 +111,14 @@ var _ = Describe("Exec Engine with Try", func() {
 					BuildID:      84,
 					Type:         worker.ContainerTypeGet,
 					Name:         "some-input",
-					StepLocation: 2,
+					StepLocation: 1,
 				}))
 
 				Ω(delegate).Should(Equal(fakeInputDelegate))
 				_, _, location, hook := fakeDelegate.InputDelegateArgsForCall(0)
 				Ω(location).Should(Equal(event.OriginLocation{
 					ParentID:      0,
-					ID:            2,
+					ID:            1,
 					ParallelGroup: 0,
 				}))
 				Ω(hook).Should(Equal(""))
