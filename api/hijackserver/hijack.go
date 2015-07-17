@@ -14,9 +14,25 @@ import (
 )
 
 func (s *Server) Hijack(w http.ResponseWriter, r *http.Request) {
+	hijackRequest, err := s.parseRequest(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	s.hijack(w, hijackRequest)
+}
+
+type hijackRequest struct {
+	Worker  worker.Identifier
+	Process atc.HijackProcessSpec
+}
+
+func (s *Server) parseRequest(r *http.Request) (hijackRequest, error) {
 	workerIdentifier := worker.Identifier{
-		Type: worker.ContainerType(r.URL.Query().Get("type")),
-		Name: r.URL.Query().Get("name"),
+		Type:         worker.ContainerType(r.URL.Query().Get("type")),
+		Name:         r.URL.Query().Get("name"),
+		PipelineName: r.URL.Query().Get("pipeline"),
 	}
 
 	var err error
@@ -25,8 +41,7 @@ func (s *Server) Hijack(w http.ResponseWriter, r *http.Request) {
 	if len(buildIDParam) != 0 {
 		workerIdentifier.BuildID, err = strconv.Atoi(buildIDParam)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("malformed build ID: %s", err), http.StatusBadRequest)
-			return
+			return hijackRequest{}, fmt.Errorf("malformed build ID: %s", err)
 		}
 	}
 
@@ -38,11 +53,22 @@ func (s *Server) Hijack(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(r.Body).Decode(&processSpec)
 	if err != nil {
 		hLog.Error("malformed-process-spec", err)
-		http.Error(w, fmt.Sprintf("malformed process spec: %s", err), http.StatusBadRequest)
-		return
+		return hijackRequest{}, fmt.Errorf("malformed process spec: %s", err)
 	}
 
-	container, err := s.workerClient.LookupContainer(workerIdentifier)
+	return hijackRequest{
+		Worker:  workerIdentifier,
+		Process: processSpec,
+	}, nil
+}
+
+func (s *Server) hijack(w http.ResponseWriter, request hijackRequest) {
+	hLog := s.logger.Session("hijack", lager.Data{
+		"identifier": request.Worker,
+		"process":    request.Process,
+	})
+
+	container, err := s.workerClient.LookupContainer(request.Worker)
 	if err != nil {
 		hLog.Error("failed-to-get-container", err)
 		http.Error(w, fmt.Sprintf("failed to get container: %s", err), http.StatusNotFound)
@@ -86,22 +112,22 @@ func (s *Server) Hijack(w http.ResponseWriter, r *http.Request) {
 
 	var tty *garden.TTYSpec
 
-	if processSpec.TTY != nil {
+	if request.Process.TTY != nil {
 		tty = &garden.TTYSpec{
 			WindowSize: &garden.WindowSize{
-				Columns: processSpec.TTY.WindowSize.Columns,
-				Rows:    processSpec.TTY.WindowSize.Rows,
+				Columns: request.Process.TTY.WindowSize.Columns,
+				Rows:    request.Process.TTY.WindowSize.Rows,
 			},
 		}
 	}
 
 	process, err := container.Run(garden.ProcessSpec{
-		Path: processSpec.Path,
-		Args: processSpec.Args,
-		Env:  processSpec.Env,
-		Dir:  processSpec.Dir,
+		Path: request.Process.Path,
+		Args: request.Process.Args,
+		Env:  request.Process.Env,
+		Dir:  request.Process.Dir,
 
-		User: processSpec.User,
+		User: request.Process.User,
 
 		TTY: tty,
 	}, garden.ProcessIO{

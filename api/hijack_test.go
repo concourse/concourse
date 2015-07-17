@@ -28,6 +28,7 @@ var _ = Describe("Hijacking API", func() {
 			buildID        string
 			stepType       string
 			stepName       string
+			pipelineName   string
 
 			response *http.Response
 
@@ -59,6 +60,7 @@ var _ = Describe("Hijacking API", func() {
 				"build-id": []string{buildID},
 				"type":     []string{stepType},
 				"name":     []string{stepName},
+				"pipeline": []string{pipelineName},
 			}.Encode()
 
 			conn, err := net.Dial("tcp", server.Listener.Addr().String())
@@ -144,6 +146,25 @@ var _ = Describe("Hijacking API", func() {
 							Ω(fakeWorkerClient.LookupContainerArgsForCall(0)).Should(Equal(worker.Identifier{
 								Type: worker.ContainerType(stepType),
 								Name: stepName,
+							}))
+						})
+					})
+
+					Context("when the pipeline is specified for looking up a check container", func() {
+						BeforeEach(func() {
+							buildID = ""
+							stepType = "check"
+							stepName = ""
+							pipelineName = "a-pipeline"
+						})
+
+						It("looks up the container with pipeline name", func() {
+							Eventually(fakeContainer.RunCallCount).Should(Equal(1))
+
+							Ω(fakeWorkerClient.LookupContainerArgsForCall(0)).Should(Equal(worker.Identifier{
+								Type:         worker.ContainerType(stepType),
+								Name:         stepName,
+								PipelineName: "a-pipeline",
 							}))
 						})
 					})
