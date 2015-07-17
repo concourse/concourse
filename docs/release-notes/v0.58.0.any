@@ -38,4 +38,7 @@ build plan.
   Improved durability to Garden going down; we now re-attach to processes on
   \code{EOF} again. This would usually happen when deploying Concourse while
   builds are running.
+}{
+  Fixed a performance regression when viewing build output, introduced in
+  \reference{v0.57.0}.
 }
