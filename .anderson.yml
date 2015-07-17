@@ -1,0 +1,7 @@
+whitelist:
+- Apache-2.0
+- MIT
+- BSD
+- NewBSD
+- FreeBSD
+- LGPL-3.0
