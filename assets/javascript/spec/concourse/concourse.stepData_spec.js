@@ -15,6 +15,18 @@ describe("Step Data", function () {
       expect(stepData.getIn({id: 1})).toEqual(undefined);
     });
 
+    it("does not create a new object if no changes are made", function() {
+      before = stepData.updateIn({id: 1}, function(){
+        return "hello world";
+      });
+
+      after = before.updateIn({id: 1}, function(){
+        return "hello world";
+      });
+
+      expect(before).toBe(after);
+    });
+
     it("passes the value if found to the argument of the callback function", function() {
       helloStepData = stepData.updateIn({id: 1}, function(data){
         expect(data).toEqual(undefined);

@@ -12,12 +12,21 @@
 
   var stepDataProto = {
     updateIn: function(location, upsertFunction){
-      var newData =  jQuery.extend(true, {}, this.data);
+      var newData = jQuery.extend(true, {}, this.data);
+      var keyPath;
 
       if(Array.isArray(location)){
-        newData[location.join('.')] = upsertFunction(newData[location.join('.')]);
+        keyPath = location.join('.');
       } else {
-        newData[location.id] = upsertFunction(newData[location.id]);
+        keyPath = location.id;
+      }
+
+      var before = newData[keyPath];
+      newData[keyPath] = upsertFunction(newData[keyPath]);
+      var after = newData[keyPath];
+
+      if (before === after) {
+        return this;
       }
 
       return new concourse.StepData(newData);
