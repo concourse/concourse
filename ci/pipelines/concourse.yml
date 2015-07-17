@@ -95,7 +95,6 @@ jobs:
     trigger: true
     passed: [atc, fly, blackbox, tsa, jettison, baggageclaim]
   - get: version
-    trigger: true
     params: {bump: minor, pre: rc}
   - put: version
     params: {file: version/number}
