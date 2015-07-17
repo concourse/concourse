@@ -115,7 +115,7 @@ common platforms in the bottom right hand corner of the main page.
     name as the directory.
 
     Tasks must specify the inputs that they require (for more information, refer
-    to theeference{configuring-tasks}{configuring tasks} documentation). For
+    to the \reference{configuring-tasks}{configuring tasks} documentation). For
     \code{fly} to upload these inputs you can use the \code{-i} or
     \code{--input} arguments with name and path pairs. For example:
 
