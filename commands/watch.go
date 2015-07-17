@@ -18,9 +18,13 @@ func Watch(c *cli.Context) {
 	target := returnTarget(c.GlobalString("target"))
 	insecure := c.GlobalBool("insecure")
 
+	pipelineName := c.String("pipeline")
+	jobName := c.String("job")
+	buildName := c.String("build")
+
 	atcRequester := newAtcRequester(target, insecure)
 
-	build := getBuild(c, atcRequester.httpClient, atcRequester.RequestGenerator)
+	build := getBuild(atcRequester.httpClient, atcRequester.RequestGenerator, jobName, buildName, pipelineName)
 
 	eventSource, err := sse.Connect(atcRequester.httpClient, time.Second, func() *http.Request {
 		logOutput, err := atcRequester.CreateRequest(

@@ -12,7 +12,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/codegangsta/cli"
 	"github.com/concourse/atc"
 	"github.com/tedsuo/rata"
 	"gopkg.in/yaml.v2"
@@ -94,11 +93,7 @@ func userHomeDir() string {
 	return os.Getenv("HOME")
 }
 
-func getBuild(ctx *cli.Context, client *http.Client, reqGenerator *rata.RequestGenerator) atc.Build {
-	jobName := ctx.String("job")
-	buildName := ctx.String("build")
-	pipelineName := ctx.String("pipeline")
-
+func getBuild(client *http.Client, reqGenerator *rata.RequestGenerator, jobName string, buildName string, pipelineName string) atc.Build {
 	if pipelineName != "" && jobName == "" {
 		fmt.Fprintln(os.Stderr, "job must be specified if pipeline is specified")
 		os.Exit(1)

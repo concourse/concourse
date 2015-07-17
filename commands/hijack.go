@@ -29,18 +29,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func Hijack(c *cli.Context) {
-	target := returnTarget(c.GlobalString("target"))
-	insecure := c.GlobalBool("insecure")
-	privileged := true
-	stepType := c.String("step-type")
-	stepName := c.String("step-name")
-	check := c.String("check")
-
-	reqGenerator := rata.NewRequestGenerator(target, atc.Routes)
-
-	argv := c.Args()
-
+func remoteCommand(argv []string) (string, []string) {
 	var path string
 	var args []string
 
@@ -54,50 +43,80 @@ func Hijack(c *cli.Context) {
 		args = argv[1:]
 	}
 
-	var ttySpec *atc.HijackTTYSpec
+	return path, args
+}
 
-	rows, cols, err := pty.Getsize(os.Stdin)
-	if err == nil {
-		ttySpec = &atc.HijackTTYSpec{
-			WindowSize: atc.HijackWindowSize{
-				Columns: cols,
-				Rows:    rows,
-			},
-		}
-	}
+type containerLocator interface {
+	locate(containerFingerprint) url.Values
+}
 
-	spec := atc.HijackProcessSpec{
-		Path: path,
-		Args: args,
-		Env:  []string{"TERM=" + os.Getenv("TERM")},
-		User: "root",
+type stepContainerLocator struct {
+	client       *http.Client
+	reqGenerator *rata.RequestGenerator
+}
 
-		Privileged: privileged,
-		TTY:        ttySpec,
-	}
-
-	tlsConfig := &tls.Config{InsecureSkipVerify: insecure}
-
-	transport := &http.Transport{
-		TLSClientConfig: tlsConfig,
-	}
-
-	client := &http.Client{Transport: transport}
+func (locator stepContainerLocator) locate(fingerprint containerFingerprint) url.Values {
+	build := getBuild(
+		locator.client,
+		locator.reqGenerator,
+		fingerprint.jobName,
+		fingerprint.buildName,
+		fingerprint.pipelineName,
+	)
 
 	reqValues := url.Values{}
+	reqValues["build-id"] = []string{strconv.Itoa(build.ID)}
+	reqValues["name"] = []string{fingerprint.stepName}
 
-	if check == "" {
-		build := getBuild(c, client, reqGenerator)
-		reqValues["build-id"] = []string{strconv.Itoa(build.ID)}
-		if stepType != "" {
-			reqValues["type"] = []string{stepType}
-		}
-		reqValues["name"] = []string{stepName}
-	} else {
-		reqValues["type"] = []string{"check"}
-		reqValues["name"] = []string{check}
+	if fingerprint.stepType != "" {
+		reqValues["type"] = []string{fingerprint.stepType}
 	}
 
+	return reqValues
+}
+
+type checkContainerLocator struct{}
+
+func (locator checkContainerLocator) locate(fingerprint containerFingerprint) url.Values {
+	reqValues := url.Values{}
+
+	reqValues["type"] = []string{"check"}
+	reqValues["name"] = []string{fingerprint.checkName}
+
+	if fingerprint.pipelineName != "" {
+		reqValues["pipeline"] = []string{fingerprint.pipelineName}
+	}
+
+	return reqValues
+}
+
+type containerFingerprint struct {
+	pipelineName string
+	jobName      string
+	buildName    string
+
+	stepName string
+	stepType string
+
+	checkName string
+}
+
+func locateContainer(client *http.Client, reqGenerator *rata.RequestGenerator, fingerprint containerFingerprint) url.Values {
+	var locator containerLocator
+
+	if fingerprint.checkName == "" {
+		locator = stepContainerLocator{
+			client:       client,
+			reqGenerator: reqGenerator,
+		}
+	} else {
+		locator = checkContainerLocator{}
+	}
+
+	return locator.locate(fingerprint)
+}
+
+func constructRequest(reqGenerator *rata.RequestGenerator, spec atc.HijackProcessSpec, reqValues url.Values) *http.Request {
 	payload, err := json.Marshal(spec)
 	if err != nil {
 		log.Fatalln("failed to marshal process spec:", err)
@@ -119,6 +138,68 @@ func Hijack(c *cli.Context) {
 
 	hijackReq.URL.RawQuery = reqValues.Encode()
 
+	return hijackReq
+}
+
+func Hijack(c *cli.Context) {
+	target := returnTarget(c.GlobalString("target"))
+	insecure := c.GlobalBool("insecure")
+
+	stepType := c.String("step-type")
+	stepName := c.String("step-name")
+	check := c.String("check")
+	pipelineName := c.String("pipeline")
+	jobName := c.String("job")
+	buildName := c.String("build")
+
+	path, args := remoteCommand(c.Args())
+	privileged := true
+
+	fingerprint := containerFingerprint{
+		pipelineName: pipelineName,
+		jobName:      jobName,
+		buildName:    buildName,
+		stepName:     stepName,
+		stepType:     stepType,
+		checkName:    check,
+	}
+
+	reqGenerator := rata.NewRequestGenerator(target, atc.Routes)
+	tlsConfig := &tls.Config{InsecureSkipVerify: insecure}
+	transport := &http.Transport{
+		TLSClientConfig: tlsConfig,
+	}
+	client := &http.Client{Transport: transport}
+
+	reqValues := locateContainer(client, reqGenerator, fingerprint)
+
+	var ttySpec *atc.HijackTTYSpec
+	rows, cols, err := pty.Getsize(os.Stdin)
+	if err == nil {
+		ttySpec = &atc.HijackTTYSpec{
+			WindowSize: atc.HijackWindowSize{
+				Columns: cols,
+				Rows:    rows,
+			},
+		}
+	}
+
+	spec := atc.HijackProcessSpec{
+		Path: path,
+		Args: args,
+		Env:  []string{"TERM=" + os.Getenv("TERM")},
+		User: "root",
+
+		Privileged: privileged,
+		TTY:        ttySpec,
+	}
+
+	hijackReq := constructRequest(reqGenerator, spec, reqValues)
+	hijackResult := performHijack(hijackReq, tlsConfig)
+	os.Exit(hijackResult)
+}
+
+func performHijack(hijackReq *http.Request, tlsConfig *tls.Config) int {
 	conn, err := dialEndpoint(hijackReq.URL, tlsConfig)
 	if err != nil {
 		log.Fatalln("failed to dial hijack endpoint:", err)
@@ -138,7 +219,7 @@ func Hijack(c *cli.Context) {
 		os.Exit(1)
 	}
 
-	os.Exit(hijack(clientConn.Hijack()))
+	return hijack(clientConn.Hijack())
 }
 
 func hijack(conn net.Conn, br *bufio.Reader) int {

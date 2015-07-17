@@ -167,6 +167,21 @@ var _ = Describe("Hijacking", func() {
 		})
 	})
 
+	Context("hijacks with check container with a pipeline", func() {
+		BeforeEach(func() {
+			didHijack := make(chan struct{})
+			hijacked = didHijack
+
+			atcServer.AppendHandlers(
+				hijackHandler(didHijack, []string{"type=check&name=some-resource-name&pipeline=a-pipeline"}, nil),
+			)
+		})
+
+		It("can accept the check resources name and a pipeline", func() {
+			hijack("--check", "some-resource-name", "--pipeline", "a-pipeline")
+		})
+	})
+
 	Context("if you only specify a pipeline", func() {
 		It("returns an error", func() {
 			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-p", "pipeline-name")
