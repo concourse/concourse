@@ -51,7 +51,6 @@ var Build = React.createClass({
       }
     }
 
-
     function buildStep(step) {
       var classes = ["seq"]
       var childSteps = []
@@ -94,8 +93,6 @@ var Build = React.createClass({
 
       return <div className={classes.join(' ')} key={step.key}><Step key={step.key} model={step.step} logs={step.logLines} autoscroll={autoscroll} /><div className="children">{childSteps}</div></div>
     }
-
-
 
     return (<div className="steps">{rootSteps}</div>);
   },
