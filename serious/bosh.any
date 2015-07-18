@@ -189,7 +189,7 @@ concepts, and how to bootstrap on various infrastructures.
         a build.
       }
 
-      \item{\code{jobs.worker.properties.garden.btrfs_store_size_mv}}{
+      \item{\code{jobs.worker.properties.garden.btrfs_store_size_mb}}{
         The amount of disk space to set aside for use by containers running on
         the worker. If you're running low on disk, bump this number, deploy,
         and recreate your workers.
