@@ -41,4 +41,17 @@ build plan.
 }{
   Fixed a performance regression when viewing build output, introduced in
   \reference{v0.57.0}.
+}{
+  Fixed an increase in disk usage when using the
+  \hyperlink{https://github.com/concourse/docker-image-resource}{Docker Image
+  resource}, caused by the Garden upgrade in \reference{v0.57.0} leading Docker
+  to fall back on the \code{vfs} graph driver. It should now correctly use
+  \code{btrfs} now that the outer container filesystem is already \code{btrfs}.
+
+  As an upside, there is no longer an arbitrary limit on the amount of disk
+  available when building images.
+}{
+  The \hyperlink{https://github.com/concourse/docker-image-resource}{Docker
+  Image resource} no longer defaults to caching layers when building. This
+  feels like less surprising default behavior.
 }
