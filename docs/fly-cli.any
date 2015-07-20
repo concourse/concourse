@@ -280,6 +280,16 @@ common platforms in the bottom right hand corner of the main page.
   Note that \code{--build} can be omitted, and will default to the most recent
   build of the job.
 
+  Resource checking containers can also be intercepted with \code{--check} or
+  \code{-c}:
+
+  \codeblock{bash}{
+  $ fly intercept -p some-pipeline -c some-resource
+  }
+
+  Note that specifying the pipeline with \code{-p} is often required to
+  disambiguate, as pipelines may share common resource names.
+
   The shell created on the remote container via \code{fly intercept} provides
   root user access by default.
 
