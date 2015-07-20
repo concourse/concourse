@@ -19,6 +19,10 @@ build plan.
 }{
   Resources whose check is failing can now be paused.
 }{
+  When \reference{fly-intercept}{intercepting} a resource's checking container
+  with \code{-c resource-name}, the pipeline can now be specified via \code{-p
+  pipeline-name}. Previously this flag was ignored.
+}{
   Fixed a regression introduced in \reference{v0.56.0} that led to "empty"
   versions of resources being saved whenever a \reference{get-step} or
   \reference{put-step} failed.
