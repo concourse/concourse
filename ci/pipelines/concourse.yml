@@ -31,6 +31,7 @@ groups:
   jobs:
   - master-merge
   - unfudge
+  - tracksuit
 
 jobs:
 - name: fly
@@ -407,6 +408,21 @@ jobs:
       params:
         repository: merge-to-develop/concourse-master
 
+- name: tracksuit
+  serial: true
+  plan:
+  - get: periodic-tracksuit
+    trigger: true
+  - get: tracksuit
+  - task: tracksuit
+    file: tracksuit/run.yml
+    config:
+      params:
+        GITHUB_TOKEN: {{tracksuit-github-token}}
+        TRACKER_TOKEN: {{tracksuit-tracker-token}}
+        PROJECT_ID: 1059262
+        ORGANIZATION: concourse
+
 resources:
 - name: version
   type: semver
@@ -597,3 +613,13 @@ resources:
     branch: master
     pool: bosh-lites
     private_key: {{locks-repo-private-key}}
+
+- name: tracksuit
+  type: git
+  source:
+    uri: https://github.com/vito/tracksuit.git
+
+- name: periodic-tracksuit
+  type: time
+  source:
+    interval: 10m
