@@ -8,6 +8,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -328,6 +329,10 @@ var _ = Describe("Config API", func() {
 						Context("when the payload contains suspicious types", func() {
 							BeforeEach(func() {
 								payload := `
+resources:
+- name: some-resource
+  type: some-type
+  check_every: 10s
 jobs:
 - name: some-job
   config:
@@ -351,6 +356,14 @@ jobs:
 								name, config, id, pipelineState := configDB.SaveConfigArgsForCall(0)
 								Ω(name).Should(Equal("a-pipeline"))
 								Ω(config).Should(Equal(atc.Config{
+									Resources: []atc.ResourceConfig{
+										{
+											Name:       "some-resource",
+											Type:       "some-type",
+											Source:     nil,
+											CheckEvery: atc.Duration(10 * time.Second),
+										},
+									},
 									Jobs: atc.JobConfigs{
 										{
 											Name: "some-job",

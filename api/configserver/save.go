@@ -11,6 +11,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"reflect"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -151,6 +152,7 @@ func requestToConfig(contentType string, requestBody io.ReadCloser) (interface{}
 			err = yaml.Unmarshal(body, &configStructure)
 		}
 	case "multipart/form-data":
+		err = json.NewDecoder(requestBody).Decode(&configStructure)
 		multipartReader := multipart.NewReader(requestBody, params["boundary"])
 
 		for {
@@ -209,6 +211,13 @@ func saveConfigRequestUnmarshler(r *http.Request) (atc.Config, db.PipelinePaused
 			if valKind == reflect.Map {
 				if dataKind == reflect.Map {
 					return sanitize(data)
+				}
+			}
+
+			if dataKind == reflect.String {
+				val, err := time.ParseDuration(data.(string))
+				if err == nil {
+					return val, nil
 				}
 			}
 
