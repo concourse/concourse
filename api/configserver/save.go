@@ -273,6 +273,4 @@ func sanitize(root interface{}) (interface{}, error) {
 	default:
 		return rootVal, nil
 	}
-
-	return nil, errors.New(fmt.Sprintf("unknown type (%s) during sanitization: %#v\n", reflect.TypeOf(root).String(), root))
 }
