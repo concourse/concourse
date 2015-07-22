@@ -1,0 +1,28 @@
+PATH
+  remote: concourse-docs
+  specs:
+    concourse-docs (0.0.0)
+      anatomy (~> 0.1.3)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    anatomy (0.1.3)
+      atomy (~> 0.6.3)
+      broomhlda (~> 0.2.0)
+    atomy (0.6.5)
+      kpeg (~> 1.0)
+      rubinius-ast (~> 2.3)
+      rubinius-compiler (~> 2.3)
+    broomhlda (0.2.2)
+      atomy (~> 0.6.3)
+    kpeg (1.0.0)
+    rubinius-ast (2.3.2)
+    rubinius-compiler (2.3.1)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  anatomy (~> 0.1.3)
+  concourse-docs!

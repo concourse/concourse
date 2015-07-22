@@ -77,3 +77,8 @@ def(define-attributes(*whats, body)):
       body
     ]
     .class("definition"))
+
+def(slack-button):
+  data Element new(
+    [],
+    .async-script-src("http://slack.concourse.ci/slackin.js"))
