@@ -1,10 +1,10 @@
 #language anatomy
 
-\use{\require{anatomy/atomy}}
+\use{\require{concourse/docs}}
 
 \title{\code{do}\aux{: run steps in series}}{do-step}
 
-\define{do}{[step]}{
+\define-attribute{do: [step]}{
   Simply performs the given steps serially, with the same semantics as if they
   were at the top level step listing.
 

@@ -1,6 +1,6 @@
 #language anatomy
 
-\use{\require{anatomy/atomy}}
+\use{\require{concourse/docs}}
 
 \title{Managing Worker Pools}{worker-pools}
 
@@ -67,28 +67,28 @@ subset of the worker's tags, by setting \reference{step-tags}.
 
   The worker JSON object contains the following attributes:
 
-  \define{platform}{string}{
+  \define-attribute{platform: string}{
     \italic{Required.} The platform supported by the worker, e.g. \code{linux},
     \code{darwin}, or \code{windows}.
   }
 
-  \define{tags}{[string]}{
+  \define-attribute{tags: [string]}{
     \italic{Optional.} A set of arbitrary tags. Only steps specifying a matching
     a subset of these tags will be placed on the worker.
   }
 
-  \define{addr}{string}{
+  \define-attribute{addr: string}{
     \italic{Required.} The address of the Garden server. Note that this address
     must be reachable by the ATC, and has no authentication. For this reason it
     should always be an address only reachable from within Concourse's private
     network. To register external workers, see \reference{external-workers}.
   }
 
-  \define{active_containers}{integer}{
+  \define-attribute{active_containers: integer}{
     \italic{Optional.} The number of containers currently running on the worker.
   }
 
-  \define{resource_types}{[\{type,image\}]}{
+  \define-attribute{resource_types: [\{type,image\}]}{
     \italic{Optional.} The set of resource types supported by the worker. If
     specified, the worker may be used for running resource containers of the
     given type, using the specified image URI.

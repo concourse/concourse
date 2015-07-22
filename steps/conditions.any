@@ -1,6 +1,6 @@
 #language anatomy
 
-\use{\require{anatomy/atomy}}
+\use{\require{concourse/docs}}
 
 \title{\code{conditions}\aux{: conditionally perform a step}}{step-conditions}
 
@@ -10,7 +10,7 @@ to it.
 \italic{Deprecated. Use \reference{on-failure-step} and
 \reference{on-success-step} instead.}
 
-\define{conditions}{[string]}{
+\define-attribute{conditions: [string]}{
   \italic{Optional. Default \code{[success]}.} The conditions under which to
   perform this step.
 

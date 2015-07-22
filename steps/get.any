@@ -1,6 +1,6 @@
 #language anatomy
 
-\use{\require{anatomy/atomy}}
+\use{\require{concourse/docs}}
 
 \title{\code{get}\aux{: fetch a resource}}{get-step}
 
@@ -22,19 +22,19 @@ plan:
     version: version/number
 }
 
-\define{get}{string}{
+\define-attribute{get: string}{
   \italic{Required.} The logical name of the resource being fetched. This name
   satisfies logical inputs to a \reference{tasks}{Task}, and may be referenced
   within the plan itself (e.g. in the \code{file} attribute of a
   \reference{task-step}{\code{task}} step).
 }
 
-\define{resource}{string}{
+\define-attribute{resource: string}{
   \italic{Optional. Defaults to \code{name}.} The resource to fetch, as
   configured in \reference{configuring-resources}{\code{resources}}.
 }
 
-\define{passed}{[string]}{
+\define-attribute{passed: [string]}{
   \italic{Optional.} When specified, only the versions of the resource that
   made it through the given list of jobs will be considered when triggering
   and fetching.
@@ -62,13 +62,13 @@ plan:
   things progress through a pipeline.
 }
 
-\define{params}{object}{
+\define-attribute{params: object}{
   \italic{Optional.} A map of arbitrary configuration to forward to the
   resource. Refer to the resource type's documentation to see what it
   supports.
 }
 
-\define{trigger}{boolean}{
+\define-attribute{trigger: boolean}{
   \italic{Optional. Default \code{false}.} Set to \code{true} to auto-trigger
   new builds of the plan's job whenever this step has new versions available,
   as specified by the \code{resource} and any \code{passed} constraints.

@@ -1,10 +1,10 @@
 #language anatomy
 
-\use{\require{anatomy/atomy}}
+\use{\require{concourse/docs}}
 
 \title{\code{try}\aux{: permit failure of a step}}{try-step}
 
-\define{try}{step}{
+\define-attribute{try: step}{
   Performs the given step, swallowing any failure.
 
   This can be used when you want to perform some side-effect, but you don't

@@ -1,6 +1,6 @@
 #language anatomy
 
-\use{\require{anatomy/atomy}}
+\use{\require{concourse/docs}}
 
 \title{\code{put}\aux{: update a resource}}{put-step}
 
@@ -34,17 +34,17 @@ plan:
   resource: docker-image-resource
 }
 
-\define{put}{string}{
+\define-attribute{put: string}{
   \italic{Required.} The logical name of the resource being pushed. The pushed
   resource will be available under this name after the push succeeds.
 }
 
-\define{resource}{string}{
+\define-attribute{resource: string}{
   \italic{Optional. Defaults to \code{name}.} The resource to update,
   as configured in \reference{configuring-resources}{\code{resources}}.
 }
 
-\define{params}{object}{
+\define-attribute{params: object}{
   \italic{Optional.} A map of arbitrary configuration to forward to the
   resource. Refer to the resource type's documentation to see what it
   supports.

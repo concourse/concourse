@@ -2,6 +2,11 @@ use(require("atomy"))
 
 data = require("anatomy/data")
 
+hl = require("hl")
+yaml = hl load("yaml")
+
+base = require("anatomy/base")
+
 def(pipeline-image(asset-path)):
   data ResolveElement new(
     [part]:
@@ -35,3 +40,40 @@ def(literate-segment(*paras, code)):
           ]
           .class("literate-entry"))
         .class("literate-segment")))
+
+fn(format-inline(tokens, link-only = nil)):
+  tokens collect [t]:
+    data Element new(
+      -- constants, identifiers, and operators
+      if((link-only && link-only include?(t contents)) ||
+          (!link-only && ["no", "n", "o"] include?(t type tag)))
+        then:
+          data ResolveElement new(
+            [part]:
+              tag = part find-tag(t contents)
+              if(tag)
+                then: data Reference new(tag, t contents)
+                else: t contents)
+        else: t contents
+      .class(t type tag))
+
+def(define-attribute(what, body)):
+  define-attributes(what, body)
+
+def(define-attributes(*whats, body)):
+  attribute-names = whats collect [w]: w split(":") first
+
+  data Block new(
+    [ attribute-names collect [a]:
+        base target-element(a)
+
+      whats collect with-index [w, i]:
+        display = format-inline(yaml lex(w), attribute-names[i])
+
+        data Block new(
+          [data Block new([display], .tt)]
+          .class("thumb"))
+
+      body
+    ]
+    .class("definition"))
