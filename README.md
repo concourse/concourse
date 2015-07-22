@@ -1,6 +1,4 @@
-[![slack.concourse.ci](http://slack.concourse.ci/badge.svg)](http://slack.concourse.ci)
-
-# concourse
+# concourse [![slack.concourse.ci](http://slack.concourse.ci/badge.svg)](http://slack.concourse.ci)
 
 A [BOSH](https://github.com/cloudfoundry/bosh) release for concourse. The
 easiest way to deploy your own instance of concourse on AWS, vSphere,
