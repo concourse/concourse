@@ -1,3 +1,5 @@
+[![slack.concourse.ci](http://slack.concourse.ci/badge.svg)](http://slack.concourse.ci)
+
 # concourse
 
 A [BOSH](https://github.com/cloudfoundry/bosh) release for concourse. The
@@ -5,8 +7,8 @@ easiest way to deploy your own instance of concourse on AWS, vSphere,
 Openstack or with Vagrant.
 
 * Documentation: [concourse.ci](http://concourse.ci)
+* Slack: [slack.concourse.ci](http://slack.concourse.ci)
 * IRC: [#concourse](http://webchat.freenode.net/?channels=concourse) on Freenode
-* Google Group: [Concourse Users](https://groups.google.com/forum/#!forum/concourse-ci)
 * Roadmap: [Pivotal Tracker](https://www.pivotaltracker.com/n/projects/1059262)
 
 ### Example
