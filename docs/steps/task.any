@@ -1,6 +1,6 @@
 #language anatomy
 
-\use{\require{anatomy/atomy}}
+\use{\require{concourse/docs}}
 
 \title{\code{task}\aux{: execute a task}}{task-step}
 
@@ -43,12 +43,12 @@ plan:
     repository: commit/my-repo
 }
 
-\define{task}{string}{
+\define-attribute{task: string}{
   \italic{Required.} A freeform name for the task that's being executed. Common
   examples would be \code{unit} or \code{integration}.
 }
 
-\define{file | config}{string | object}{
+\define-attributes{file: string}{config: object}{
   \italic{At least one required.} The configuration for the task's running
   environment.
 
@@ -77,7 +77,7 @@ plan:
   the pipeline (i.e. for passing in secret credentials).
 }
 
-\define{privileged}{boolean}{
+\define-attribute{privileged: boolean}{
   \italic{Optional. Default \code{false}.} If set to \code{true}, the task will
   run as \code{root} with full capabilities. This is not part of the task
   configuration to prevent privilege escalation via pull requests.

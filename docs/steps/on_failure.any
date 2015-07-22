@@ -1,13 +1,13 @@
 #language anatomy
 
-\use{\require{anatomy/atomy}}
+\use{\require{concourse/docs}}
 
 \title{\code{on_failure}\aux{: perform a step when another fails}}{on-failure-step}
 
 Any step can have \code{on_failure} tacked onto it, whose value is a second
 step to execute only if the parent step fails.
 
-\define{on_failure}{step}{
+\define-attribute{on_failure: step}{
   The step to execute when the parent step fails. If the attached step
   succeeds, the entire step is still \code{failed}.
 }

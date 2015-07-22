@@ -1,10 +1,10 @@
 #language anatomy
 
-\use{\require{anatomy/atomy}}
+\use{\require{concourse/docs}}
 
 \title{\code{aggregate}\aux{: run steps in parallel}}{aggregate-step}
 
-\define{aggregate}{[step]}{
+\define-attribute{aggregate: [step]}{
   Performs the given steps in parallel.
 
   If any sub-steps in an aggregate result in an error, the aggregate step as a

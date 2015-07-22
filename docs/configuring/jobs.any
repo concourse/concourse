@@ -1,6 +1,6 @@
 #language anatomy
 
-\use{\require{anatomy/atomy}}
+\use{\require{concourse/docs}}
 
 \title{\code{jobs}\aux{: Plans to execute against resources}}{configuring-jobs}
 
@@ -22,17 +22,17 @@ jobs:
 
 Each configured job consists of the following attributes:
 
-\define{name}{string}{
+\define-attribute{name: string}{
   \italic{Required.} The name of the job. This should be short; it will show up
   in URLs.
 }
 
-\define{serial}{boolean}{
+\define-attribute{serial: boolean}{
   \italic{Optional. Default \code{false}.} If set to \code{true}, builds will
   queue up and execute one-by-one, rather than executing in parallel.
 }
 
-\define{serial_groups}{[string]}{
+\define-attribute{serial_groups: [string]}{
   \italic{Optional. Default \code{[]}.} When set to an array of arbitrary
   tag-like strings, builds of this job and other jobs referencing the same
   tags will be serialized.
@@ -57,7 +57,7 @@ Each configured job consists of the following attributes:
   common tags.
 }
 
-\define{public}{boolean}{
+\define-attribute{public: boolean}{
   \italic{Optional. Default \code{false}.} If set to \code{true}, the build log
   of this job will be viewable by unauthenticated users. Unauthenticated users
   will always be able to see the inputs, outputs, and build status history of a
@@ -65,6 +65,6 @@ Each configured job consists of the following attributes:
   showing sensitive information in the build log.
 }
 
-\define{plan}{[step]}{
+\define-attribute{plan: [step]}{
   \italic{Required.} The \reference{build-plans}{Build Plan} to execute.
 }

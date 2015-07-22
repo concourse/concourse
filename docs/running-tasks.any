@@ -1,6 +1,6 @@
 #language anatomy
 
-\use{\require{anatomy/atomy}}
+\use{\require{concourse/docs}}
 
 \title{Tasks}{running-tasks}
 
@@ -37,14 +37,14 @@ Once you've figured out your tasks's configuration, you can reuse it for a
 
   A task's configuration specifies the following:
 
-  \define{platform}{string}{
+  \define-attribute{platform: string}{
     \italic{Required.} The platform the task should run on. By convention,
     \code{windows}, \code{linux}, or \code{darwin} are specified. This determines
     the pool of workers that the task can run against. The base deployment
     provides Linux workers.
   }
 
-  \define{image}{string}{
+  \define-attribute{image: string}{
     \italic{Optional.} The base image of the container. For a Docker image, specify
     in the format \code{docker:///username/repo#tag} (rather than
     \code{username/repo:tag}). If you for whatever reason have an extracted
@@ -52,7 +52,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
     worker VM.
   }
 
-  \define{inputs}{[object]}{
+  \define-attribute{inputs: [object]}{
     \italic{Required.} The expected set of inputs for the task.
 
     This determines which artifacts will propagate into the task, as the
@@ -62,29 +62,29 @@ Once you've figured out your tasks's configuration, you can reuse it for a
     Each input has the following attributes:
 
     \inset{
-      \define{name}{string}{
+      \define-attribute{name: string}{
         \italic{Required.} The logical name of the input.
       }
 
-      \define{path}{string}{
+      \define-attribute{path: string}{
         \italic{Optional.} The path in the where the input will be placed. If not
         specified, the input's \code{name} is used.
       }
     }
   }
 
-  \define{run}{object}{
+  \define-attribute{run: object}{
     \italic{Required.} The command to execute in the container.
 
     \inset{
-      \define{path}{string}{
+      \define-attribute{path: string}{
         \italic{Required.} The command to execute, relative to the task's
         working directory. For a script living in a resource's repo, you must
         specify the full path to the resource, i.e.
         \code{my-resource/scripts/test}.
       }
 
-      \define{args}{[string]}{
+      \define-attribute{args: [string]}{
         \italic{Optional.} Arguments to pass to the command. Note that when
         executed with Fly, any arguments passed to Fly are appended to this
         array.
@@ -97,7 +97,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
     small.
   }
 
-  \define{params}{\{string: string\}}{
+  \define-attribute{params: \{string: string\}}{
     \italic{Optional.} A key-value mapping of values that are exposed to the
     task via environment variables.
 
