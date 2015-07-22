@@ -547,7 +547,7 @@ var _ = Describe("PipelineDB", func() {
 		})
 
 		It("initially has no pending build for a job", func() {
-			_, _, err := pipelineDB.GetNextPendingBuild("some-job")
+			_, err := pipelineDB.GetNextPendingBuild("some-job")
 			Ω(err).Should(Equal(db.ErrNoBuild))
 		})
 
@@ -615,6 +615,47 @@ var _ = Describe("PipelineDB", func() {
 				Ω(build.Name).Should(Equal("1"))
 				Ω(build.Status).Should(Equal(db.StatusPending))
 				Ω(build.Scheduled).Should(BeFalse())
+			})
+		})
+
+		Describe("CreateJobBuildIfNoBuildsPending", func() {
+			It("does not create a new build if one is already pending", func() {
+				build, created, err := pipelineDB.CreateJobBuildIfNoBuildsPending("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(created).Should(BeTrue())
+
+				Ω(build.ID).ShouldNot(BeZero())
+				Ω(build.JobID).ShouldNot(BeZero())
+				Ω(build.Name).Should(Equal("1"))
+				Ω(build.Status).Should(Equal(db.StatusPending))
+				Ω(build.Scheduled).Should(BeFalse())
+
+				_, created, err = pipelineDB.CreateJobBuildIfNoBuildsPending("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(created).Should(BeFalse())
+			})
+
+			It("does create a new build if one is already pending but it has a different name", func() {
+				_, created, err := pipelineDB.CreateJobBuildIfNoBuildsPending("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(created).Should(BeTrue())
+
+				_, created, err = pipelineDB.CreateJobBuildIfNoBuildsPending("some-other-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(created).Should(BeTrue())
+			})
+
+			It("does create a new build if one is already saved but it is not pending", func() {
+				build, created, err := pipelineDB.CreateJobBuildIfNoBuildsPending("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(created).Should(BeTrue())
+
+				err = sqlDB.FinishBuild(build.ID, db.StatusSucceeded)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, created, err = pipelineDB.CreateJobBuildIfNoBuildsPending("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(created).Should(BeTrue())
 			})
 		})
 
@@ -793,28 +834,6 @@ var _ = Describe("PipelineDB", func() {
 				Ω(inputs).Should(ConsistOf([]db.BuildInput{
 					{Name: "some-input", VersionedResource: withMetadata, FirstOccurrence: true},
 					{Name: "some-other-input", VersionedResource: withMetadata, FirstOccurrence: true},
-				}))
-			})
-
-			It("can be done on build creation", func() {
-				inputs := []db.BuildInput{
-					{Name: "first-input", VersionedResource: vr1},
-					{Name: "second-input", VersionedResource: vr2},
-				}
-
-				pending, err := pipelineDB.CreateJobBuildWithInputs("some-job", inputs)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				foundBuild, err := pipelineDB.GetJobBuildForInputs("some-job", inputs)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(foundBuild).Should(Equal(pending))
-
-				nextPending, pendingInputs, err := pipelineDB.GetNextPendingBuild("some-job")
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(nextPending).Should(Equal(pending))
-				Ω(pendingInputs).Should(ConsistOf([]db.BuildInput{
-					{Name: "first-input", VersionedResource: vr1, FirstOccurrence: true},
-					{Name: "second-input", VersionedResource: vr2, FirstOccurrence: true},
 				}))
 			})
 		})
@@ -1370,7 +1389,7 @@ var _ = Describe("PipelineDB", func() {
 			})
 
 			It("becomes the next pending build", func() {
-				nextPending, _, err := pipelineDB.GetNextPendingBuild("some-job")
+				nextPending, err := pipelineDB.GetNextPendingBuild("some-job")
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(nextPending).Should(Equal(build1))
 			})
@@ -1401,7 +1420,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 
 				It("does not change the next pending build", func() {
-					nextPending, _, err := pipelineDB.GetNextPendingBuild("some-job")
+					nextPending, err := pipelineDB.GetNextPendingBuild("some-job")
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(nextPending).Should(Equal(build1))
 				})
@@ -1426,7 +1445,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 
 				It("remains the next pending build", func() {
-					nextPending, _, err := pipelineDB.GetNextPendingBuild("some-job")
+					nextPending, err := pipelineDB.GetNextPendingBuild("some-job")
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(nextPending).Should(Equal(build1))
 				})
@@ -1497,7 +1516,7 @@ var _ = Describe("PipelineDB", func() {
 
 				Describe("the first build", func() {
 					It("remains the next pending build", func() {
-						nextPending, _, err := pipelineDB.GetNextPendingBuild("some-job")
+						nextPending, err := pipelineDB.GetNextPendingBuild("some-job")
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(nextPending).Should(Equal(build1))
 					})
@@ -1859,6 +1878,5 @@ var _ = Describe("PipelineDB", func() {
 			Ω(next.ID).Should(Equal(anotherRunningBuild.ID))
 			Ω(finished.ID).Should(Equal(nextBuild.ID))
 		})
-
 	})
 })

@@ -1,7 +1,6 @@
 package scheduler
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/pivotal-golang/lager"
@@ -11,15 +10,13 @@ import (
 	"github.com/concourse/atc/engine"
 )
 
-var ErrPredeterminedInputsDifferFromConfiguration = errors.New("predetermined build inputs out of sync with configuration")
-
 //go:generate counterfeiter . PipelineDB
 
 type PipelineDB interface {
 	CreateJobBuild(job string) (db.Build, error)
 	GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.Build, error)
-	CreateJobBuildWithInputs(job string, inputs []db.BuildInput) (db.Build, error)
-	GetNextPendingBuild(job string) (db.Build, []db.BuildInput, error)
+	CreateJobBuildIfNoBuildsPending(job string) (db.Build, bool, error)
+	GetNextPendingBuild(job string) (db.Build, error)
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 	GetLatestInputVersions([]atc.JobInput) ([]db.BuildInput, error)
 	ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool, error)
@@ -104,42 +101,22 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, job atc.JobConfig, re
 		return nil
 	}
 
-	build, err := s.PipelineDB.CreateJobBuildWithInputs(job.Name, latestInputs)
+	build, created, err := s.PipelineDB.CreateJobBuildIfNoBuildsPending(job.Name)
 	if err != nil {
 		logger.Error("failed-to-create-build", err)
 		return err
+	}
+
+	if !created {
+		logger.Info("did-not-create-build-as-it-already-is-pending")
+		return nil
 	}
 
 	logger = logger.WithData(lager.Data{"build": build.ID})
 
 	logger.Debug("created-build")
 
-	scheduled, err := s.PipelineDB.ScheduleBuild(build.ID, job)
-	if err != nil {
-		logger.Error("failed-to-scheduled-build", err)
-		return err
-	}
-
-	if !scheduled {
-		logger.Debug("build-could-not-be-scheduled")
-		return nil
-	}
-
-	plan, err := s.Factory.Create(job, resources, latestInputs)
-	if err != nil {
-		logger.Error("failed-to-create", err)
-		return err
-	}
-
-	createdBuild, err := s.Engine.CreateBuild(build, plan)
-	if err != nil {
-		logger.Error("failed-to-build", err)
-		return err
-	}
-
-	logger.Info("building")
-
-	go createdBuild.Resume(logger)
+	s.TryNextPendingBuild(logger, job, resources).Wait()
 
 	return nil
 }
@@ -151,7 +128,7 @@ func (s *Scheduler) TryNextPendingBuild(logger lager.Logger, job atc.JobConfig, 
 
 	wg.Add(1)
 	go func() {
-		build, inputs, err := s.PipelineDB.GetNextPendingBuild(job.Name)
+		build, err := s.PipelineDB.GetNextPendingBuild(job.Name)
 		if err != nil {
 			if err == db.ErrNoBuild {
 				wg.Done()
@@ -166,7 +143,7 @@ func (s *Scheduler) TryNextPendingBuild(logger lager.Logger, job atc.JobConfig, 
 			return
 		}
 
-		createdBuild := s.scheduleAndResumePendingBuild(logger, build, inputs, job, resources)
+		createdBuild := s.scheduleAndResumePendingBuild(logger, build, job, resources)
 
 		wg.Done()
 
@@ -189,7 +166,7 @@ func (s *Scheduler) TriggerImmediately(logger lager.Logger, job atc.JobConfig, r
 	}
 
 	go func() {
-		createdBuild := s.scheduleAndResumePendingBuild(logger, build, nil, job, resources)
+		createdBuild := s.scheduleAndResumePendingBuild(logger, build, job, resources)
 		if createdBuild != nil {
 			logger.Info("building")
 			createdBuild.Resume(logger)
@@ -199,7 +176,7 @@ func (s *Scheduler) TriggerImmediately(logger lager.Logger, job atc.JobConfig, r
 	return build, nil
 }
 
-func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, build db.Build, inputs []db.BuildInput, job atc.JobConfig, resources atc.ResourceConfigs) engine.Build {
+func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, build db.Build, job atc.JobConfig, resources atc.ResourceConfigs) engine.Build {
 	logger = logger.WithData(lager.Data{"build": build.ID})
 
 	scheduled, err := s.PipelineDB.ScheduleBuild(build.ID, job)
@@ -215,44 +192,30 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, build db.
 
 	buildInputs := job.Inputs()
 
-	if len(inputs) == 0 {
-		for _, input := range buildInputs {
-			scanLog := logger.Session("scan", lager.Data{
-				"input":    input.Name,
-				"resource": input.Resource,
-			})
-
-			err := s.Scanner.Scan(scanLog, input.Resource)
-			if err != nil {
-				scanLog.Error("failed-to-scan", err)
-
-				err := s.BuildsDB.ErrorBuild(build.ID, err)
-				if err != nil {
-					logger.Error("failed-to-mark-build-as-errored", err)
-				}
-
-				return nil
-			}
-
-			scanLog.Info("done")
-		}
-
-		inputs, err = s.PipelineDB.GetLatestInputVersions(buildInputs)
-		if err != nil {
-			logger.Error("failed-to-get-latest-input-versions", err)
-			return nil
-		}
-	} else if len(inputs) != len(buildInputs) {
-		logger.Error("input-configuration-mismatch", nil, lager.Data{
-			"build-inputs": inputs,
-			"job-inputs":   buildInputs,
+	for _, input := range buildInputs {
+		scanLog := logger.Session("scan", lager.Data{
+			"input":    input.Name,
+			"resource": input.Resource,
 		})
 
-		err := s.BuildsDB.ErrorBuild(build.ID, ErrPredeterminedInputsDifferFromConfiguration)
+		err := s.Scanner.Scan(scanLog, input.Resource)
 		if err != nil {
-			logger.Error("failed-to-mark-build-as-errored", err)
+			scanLog.Error("failed-to-scan", err)
+
+			err := s.BuildsDB.ErrorBuild(build.ID, err)
+			if err != nil {
+				logger.Error("failed-to-mark-build-as-errored", err)
+			}
+
+			return nil
 		}
 
+		scanLog.Info("done")
+	}
+
+	inputs, err := s.PipelineDB.GetLatestInputVersions(buildInputs)
+	if err != nil {
+		logger.Error("failed-to-get-latest-input-versions", err)
 		return nil
 	}
 
