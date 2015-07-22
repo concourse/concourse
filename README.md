@@ -13,11 +13,12 @@ Openstack or with Vagrant.
 
 ### Example
 
-Concourse's own CI deployment lives at
-[ci.concourse.ci](https://ci.concourse.ci). Its pipeline configurations live in
-this repo under
-[ci/pipelines](https://github.com/concourse/concourse/blob/develop/ci/pipelines).
+Concourse's own CI deployment lives at [ci.concourse.ci][concourse-pipeline].
+Its pipeline configurations live in this repo under
+[ci/pipelines][concourse-config].
 
+[concourse-pipeline]: https://ci.concourse.ci
+[concourse-config]: https://github.com/concourse/concourse/blob/develop/ci/pipelines
 
 ### Try it on Vagrant
 
