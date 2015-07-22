@@ -7,10 +7,7 @@ function abort() {
   exit 1
 }
 
-[ -n "$VERSION_FILE" ] || abort "must specify \$VERSION_FILE"
-[ -f "$VERSION_FILE" ] || abort "'$VERSION_FILE' does not exist"
-
-cd concourse-develop/docs/
+cd concourse/docs/
 
 bundle install
 bundle exec anatomy -i concourse.any -o out

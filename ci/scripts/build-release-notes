@@ -12,7 +12,7 @@ function abort() {
 
 version=$(cat ${VERSION_FILE})
 
-cd concourse-develop/
+cd concourse/
 
 echo v${version} > release-name
 

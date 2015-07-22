@@ -3,8 +3,8 @@ platform: linux
 image: docker:///concourse/docs-ci
 
 inputs:
-  - name: concourse-develop
+  - name: concourse
   - name: garden-linux
 
 run:
-  path: concourse-develop/ci/scripts/rename-release
+  path: concourse/ci/scripts/rename-release

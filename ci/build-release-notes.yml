@@ -3,7 +3,7 @@ platform: linux
 image: docker:///concourse/docs-ci
 
 inputs:
-  - name: concourse-develop
+  - name: concourse
   - name: version
 
 params:
@@ -11,4 +11,4 @@ params:
   STRIP_HEADER: false
 
 run:
-  path: concourse-develop/ci/scripts/build-release-notes
+  path: concourse/ci/scripts/build-release-notes
