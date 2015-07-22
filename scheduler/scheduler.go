@@ -116,7 +116,12 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, job atc.JobConfig, re
 
 	logger.Debug("created-build")
 
-	s.TryNextPendingBuild(logger, job, resources).Wait()
+	createdBuild := s.scheduleAndResumePendingBuild(logger, build, job, resources)
+
+	if createdBuild != nil {
+		logger.Info("building")
+		go createdBuild.Resume(logger)
+	}
 
 	return nil
 }
