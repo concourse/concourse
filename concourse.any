@@ -1,5 +1,7 @@
 #language anatomy
 
+\use{\require{concourse/docs}}
+
 \title{Concourse: CI that scales with your project}{index}
 
 Concourse is a CI system composed of simple tools and ideas. It can express
@@ -9,16 +11,16 @@ execute one-off tasks, either locally or in another CI system.
 To see a live example, check out
 \hyperlink{https://ci.concourse.ci}{Concourse's own CI pipeline}.
 
+We use Slack for public discussions and support. To chit chat, ask for help, or
+offer your own, join us in the
+\hyperlink{https://concourseci.slack.com}{Concourse team}: \slack-button
+
 Concourse is completely open source. All of the source code lives under the
 \hyperlink{https://github.com/concourse}{Concourse organization} on GitHub.
 We deal with bugs and problems using GitHub Issues for each repo - please use
 \hyperlink{https://github.com/concourse/concourse/issues}{Concourse Issues}
 if you're not sure. If you want to contribute patches, please use GitHub pull
 requests.
-
-For more information or if you need help: we're on IRC in the
-\hyperlink{irc://irc.freenode.net/concourse}{#concourse} channel on Freenode.
-(\hyperlink{http://webchat.freenode.net/?channels=concourse}{Webchat})
 
 \include-section{./what-and-why.any}
 \include-section{./getting-started.any}
