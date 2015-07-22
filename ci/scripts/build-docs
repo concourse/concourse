@@ -12,4 +12,5 @@ function abort() {
 
 cd concourse-develop/docs/
 
-make
+bundle install
+bundle exec anatomy -i concourse.any -o out
