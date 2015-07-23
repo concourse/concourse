@@ -1,6 +1,8 @@
 package factory_test
 
 import (
+	"time"
+
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/scheduler/factory"
 
@@ -315,6 +317,49 @@ var _ = Describe("Factory Hooks", func() {
 							Pipeline: "some-pipeline",
 							Source: atc.Source{
 								"uri": "git://some-resource",
+							},
+						},
+					},
+				},
+			}
+
+			Ω(actual).Should(Equal(expected))
+		})
+
+		It("can build a job with one failure hook that has a timeout", func() {
+			actual, err := buildFactory.Create(atc.JobConfig{
+				Plan: atc.PlanSequence{
+					{
+						Task: "those who resist our will",
+						Failure: &atc.PlanConfig{
+							Get:     "some-resource",
+							Timeout: atc.Duration(10 * time.Second),
+						},
+					},
+				},
+			}, resources, nil)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			expected := atc.Plan{
+				HookedCompose: &atc.HookedComposePlan{
+					Step: atc.Plan{
+						Task: &atc.TaskPlan{
+							Name: "those who resist our will",
+						},
+					},
+					OnFailure: atc.Plan{
+						Timeout: &atc.TimeoutPlan{
+							Duration: atc.Duration(10 * time.Second),
+							Step: atc.Plan{
+								Get: &atc.GetPlan{
+									Name:     "some-resource",
+									Type:     "git",
+									Resource: "some-resource",
+									Pipeline: "some-pipeline",
+									Source: atc.Source{
+										"uri": "git://some-resource",
+									},
+								},
 							},
 						},
 					},

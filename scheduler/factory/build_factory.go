@@ -341,6 +341,15 @@ func (factory *BuildFactory) constructPlanFromConfig(
 		}
 	}
 
+	if planConfig.Timeout != 0 {
+		plan = atc.Plan{
+			Timeout: &atc.TimeoutPlan{
+				Duration: planConfig.Timeout,
+				Step:     plan,
+			},
+		}
+	}
+
 	hooks := false
 	failurePlan := atc.Plan{}
 

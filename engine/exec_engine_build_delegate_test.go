@@ -1040,4 +1040,30 @@ var _ = Describe("BuildDelegate", func() {
 			})
 		})
 	})
+
+	Describe("Timed out", func() {
+		Describe("Finish", func() {
+			var (
+				timeoutErr error
+				succeeded  exec.Success
+			)
+
+			Context("With only a timeout error", func() {
+				BeforeEach(func() {
+					timeoutErr = exec.ErrStepTimedOut
+					succeeded = false
+				})
+
+				It("finishes with status 'failed'", func() {
+					delegate.Finish(logger, timeoutErr, succeeded, false)
+
+					Ω(fakeDB.FinishBuildCallCount()).Should(Equal(1))
+
+					buildID, savedStatus := fakeDB.FinishBuildArgsForCall(0)
+					Ω(buildID).Should(Equal(42))
+					Ω(savedStatus).Should(Equal(db.StatusFailed))
+				})
+			})
+		})
+	})
 })

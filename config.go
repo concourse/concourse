@@ -178,6 +178,9 @@ type PlanConfig struct {
 
 	// used on any step to swallow failures and errors
 	Try *PlanConfig `yaml:"try,omitempty" json:"try,omitempty" mapstructure:"try"`
+
+	// used on any step to interrupt the step after a given duration
+	Timeout Duration `yaml:"timeout,omitempty" json:"timeout,omitempty" mapstructure:"timeout"`
 }
 
 func (config PlanConfig) Name() string {

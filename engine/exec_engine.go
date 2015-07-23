@@ -3,6 +3,8 @@ package engine
 import (
 	"encoding/json"
 	"errors"
+	"strings"
+
 	"os"
 
 	"github.com/concourse/atc"
@@ -110,7 +112,7 @@ func (build *execBuild) Resume(logger lager.Logger) {
 	for {
 		select {
 		case err := <-exited:
-			if aborted {
+			if aborted || (err != nil && strings.Contains(err.Error(), exec.ErrStepTimedOut.Error())) {
 				succeeded = false
 			} else {
 				if !source.Result(&succeeded) {
@@ -164,6 +166,11 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan, loc
 	if plan.Try != nil {
 		step, stepIncrement := build.buildStepFactory(logger, plan.Try.Step, location, "")
 		return exec.Try(step), stepIncrement
+	}
+
+	if plan.Timeout != nil {
+		step, stepIncrement := build.buildStepFactory(logger, plan.Timeout.Step, location, "")
+		return exec.Timeout(step, plan.Timeout.Duration), stepIncrement
 	}
 
 	if plan.HookedCompose != nil {

@@ -10,6 +10,7 @@ type Plan struct {
 	PutGet        *PutGetPlan        `json:"putget,omitempty"`
 	HookedCompose *HookedComposePlan `json:"hooked_compose,omitempty"`
 	Try           *TryPlan           `json:"try,omitempty"`
+	Timeout       *TimeoutPlan       `json:"timeout,omitempty"`
 }
 
 type ComposePlan struct {
@@ -29,6 +30,11 @@ type TryPlan struct {
 	Step Plan `json: "step"`
 }
 
+type TimeoutPlan struct {
+	Step     Plan     `json: "step"`
+	Duration Duration `json:"duration"`
+}
+
 type PutGetPlan struct {
 	Head Plan `json:"put"`
 	Rest Plan `json:"rest"`
@@ -37,25 +43,27 @@ type PutGetPlan struct {
 type AggregatePlan []Plan
 
 type GetPlan struct {
-	Type     string  `json:"type"`
-	Name     string  `json:"name,omitempty"`
-	Resource string  `json:"resource"`
-	Pipeline string  `json:"pipeline"`
-	Source   Source  `json:"source"`
-	Params   Params  `json:"params,omitempty"`
-	Version  Version `json:"version,omitempty"`
-	Tags     Tags    `json:"tags,omitempty"`
+	Type     string   `json:"type"`
+	Name     string   `json:"name,omitempty"`
+	Resource string   `json:"resource"`
+	Pipeline string   `json:"pipeline"`
+	Source   Source   `json:"source"`
+	Params   Params   `json:"params,omitempty"`
+	Version  Version  `json:"version,omitempty"`
+	Tags     Tags     `json:"tags,omitempty"`
+	Timeout  Duration `json:"timeout,omitempty"`
 }
 
 type PutPlan struct {
-	Type      string `json:"type"`
-	Name      string `json:"name,omitempty"`
-	Resource  string `json:"resource"`
-	Pipeline  string `json:"pipeline"`
-	Source    Source `json:"source"`
-	Params    Params `json:"params,omitempty"`
-	GetParams Params `json:"get_params,omitempty"`
-	Tags      Tags   `json:"tags,omitempty"`
+	Type      string   `json:"type"`
+	Name      string   `json:"name,omitempty"`
+	Resource  string   `json:"resource"`
+	Pipeline  string   `json:"pipeline"`
+	Source    Source   `json:"source"`
+	Params    Params   `json:"params,omitempty"`
+	GetParams Params   `json:"get_params,omitempty"`
+	Tags      Tags     `json:"tags,omitempty"`
+	Timeout   Duration `json:"timeout,omitempty"`
 }
 
 func (plan PutPlan) GetPlan() GetPlan {
@@ -67,14 +75,16 @@ func (plan PutPlan) GetPlan() GetPlan {
 		Source:   plan.Source,
 		Params:   plan.GetParams,
 		Tags:     plan.Tags,
+		Timeout:  plan.Timeout,
 	}
 }
 
 type TaskPlan struct {
 	Name string `json:"name,omitempty"`
 
-	Privileged bool `json:"privileged"`
-	Tags       Tags `json:"tags,omitempty"`
+	Privileged bool     `json:"privileged"`
+	Tags       Tags     `json:"tags,omitempty"`
+	Timeout    Duration `json:"timeout,omitempty"`
 
 	ConfigPath string      `json:"config_path,omitempty"`
 	Config     *TaskConfig `json:"config,omitempty"`
