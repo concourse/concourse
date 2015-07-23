@@ -5,7 +5,7 @@ easiest way to deploy your own instance of concourse on AWS, vSphere,
 Openstack or with Vagrant.
 
 * Documentation: [concourse.ci](http://concourse.ci)
-* Slack: [slack.concourse.ci](http://slack.concourse.ci)
+* Slack: [concourseci.slack.com](https://concourseci.slack.com) (get an invite at [slack.concourse.ci](http://slack.concourse.ci))
 * IRC: [#concourse](http://webchat.freenode.net/?channels=concourse) on Freenode
 * Roadmap: [Pivotal Tracker](https://www.pivotaltracker.com/n/projects/1059262)
 
