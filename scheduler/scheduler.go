@@ -14,12 +14,15 @@ import (
 
 type PipelineDB interface {
 	CreateJobBuild(job string) (db.Build, error)
-	GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.Build, error)
-	CreateJobBuildIfNoBuildsPending(job string) (db.Build, bool, error)
-	GetNextPendingBuild(job string) (db.Build, error)
-	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
-	GetLatestInputVersions([]atc.JobInput) ([]db.BuildInput, error)
+	CreateJobBuildForCandidateInputs(job string) (db.Build, bool, error)
 	ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool, error)
+
+	GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.Build, error)
+	GetNextPendingBuild(job string) (db.Build, error)
+
+	GetLatestInputVersions([]atc.JobInput) ([]db.BuildInput, error)
+	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
+	UseInputsForBuild(buildID int, inputs []db.BuildInput) error
 }
 
 //go:generate counterfeiter . BuildsDB
@@ -101,14 +104,14 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, job atc.JobConfig, re
 		return nil
 	}
 
-	build, created, err := s.PipelineDB.CreateJobBuildIfNoBuildsPending(job.Name)
+	build, created, err := s.PipelineDB.CreateJobBuildForCandidateInputs(job.Name)
 	if err != nil {
 		logger.Error("failed-to-create-build", err)
 		return err
 	}
 
 	if !created {
-		logger.Info("did-not-create-build-as-it-already-is-pending")
+		logger.Debug("did-not-create-build-as-it-already-is-pending")
 		return nil
 	}
 
@@ -221,6 +224,12 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, build db.
 	inputs, err := s.PipelineDB.GetLatestInputVersions(buildInputs)
 	if err != nil {
 		logger.Error("failed-to-get-latest-input-versions", err)
+		return nil
+	}
+
+	err = s.PipelineDB.UseInputsForBuild(build.ID, inputs)
+	if err != nil {
+		logger.Error("failed-to-use-inputs-for-build", err)
 		return nil
 	}
 

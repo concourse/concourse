@@ -46,7 +46,9 @@ type PipelineDB interface {
 	GetAllJobBuilds(job string) ([]Build, error)
 	GetJobBuild(job string, build string) (Build, error)
 	CreateJobBuild(job string) (Build, error)
-	CreateJobBuildIfNoBuildsPending(job string) (Build, bool, error)
+	CreateJobBuildForCandidateInputs(job string) (Build, bool, error)
+
+	UseInputsForBuild(buildID int, inputs []BuildInput) error
 
 	GetLatestInputVersions([]atc.JobInput) ([]BuildInput, error)
 	GetJobBuildForInputs(job string, inputs []BuildInput) (Build, error)
@@ -721,7 +723,7 @@ func (pdb *pipelineDB) GetJobBuild(job string, name string) (Build, error) {
 	return build, nil
 }
 
-func (pdb *pipelineDB) CreateJobBuildIfNoBuildsPending(jobName string) (Build, bool, error) {
+func (pdb *pipelineDB) CreateJobBuildForCandidateInputs(jobName string) (Build, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return Build{}, false, err
@@ -736,7 +738,7 @@ func (pdb *pipelineDB) CreateJobBuildIfNoBuildsPending(jobName string) (Build, b
 			INNER JOIN jobs j ON b.job_id = j.id
 			INNER JOIN pipelines p ON j.pipeline_id = p.id
 		WHERE j.name = $1
-			AND b.status = 'pending'
+			AND b.inputs_determined = false
 	`, jobName).Scan(&x)
 
 	if err == sql.ErrNoRows {
@@ -756,6 +758,42 @@ func (pdb *pipelineDB) CreateJobBuildIfNoBuildsPending(jobName string) (Build, b
 	err = tx.Commit()
 
 	return Build{}, false, err
+}
+
+func (pdb *pipelineDB) UseInputsForBuild(buildID int, inputs []BuildInput) error {
+	tx, err := pdb.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	for _, input := range inputs {
+		_, err := pdb.saveBuildInput(tx, buildID, input)
+		if err != nil {
+			return err
+		}
+	}
+
+	result, err := tx.Exec(`
+		UPDATE builds b
+		SET inputs_determined = true
+		WHERE b.id = $1
+	`, buildID)
+	if err != nil {
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows != 1 {
+		return errors.New("multiple rows affected but expected only one when determining inputs")
+	}
+
+	return tx.Commit()
 }
 
 func (pdb *pipelineDB) CreateJobBuild(jobName string) (Build, error) {
@@ -840,6 +878,20 @@ func (pdb *pipelineDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersi
 
 	defer tx.Rollback()
 
+	svr, err := pdb.saveBuildInput(tx, buildID, input)
+	if err != nil {
+		return SavedVersionedResource{}, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return SavedVersionedResource{}, err
+	}
+
+	return svr, nil
+}
+
+func (pdb *pipelineDB) saveBuildInput(tx *sql.Tx, buildID int, input BuildInput) (SavedVersionedResource, error) {
 	svr, err := pdb.saveVersionedResource(tx, input.VersionedResource)
 	if err != nil {
 		return SavedVersionedResource{}, err
@@ -856,11 +908,6 @@ func (pdb *pipelineDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersi
 			AND name = $3
 		)
 	`, buildID, svr.ID, input.Name)
-	if err != nil {
-		return SavedVersionedResource{}, err
-	}
-
-	err = tx.Commit()
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}

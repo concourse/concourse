@@ -19,6 +19,26 @@ type FakePipelineDB struct {
 		result1 db.Build
 		result2 error
 	}
+	CreateJobBuildForCandidateInputsStub        func(job string) (db.Build, bool, error)
+	createJobBuildIfNoBuildsPendingMutex       sync.RWMutex
+	createJobBuildIfNoBuildsPendingArgsForCall []struct {
+		job string
+	}
+	createJobBuildIfNoBuildsPendingReturns struct {
+		result1 db.Build
+		result2 bool
+		result3 error
+	}
+	ScheduleBuildStub        func(buildID int, jobConfig atc.JobConfig) (bool, error)
+	scheduleBuildMutex       sync.RWMutex
+	scheduleBuildArgsForCall []struct {
+		buildID   int
+		jobConfig atc.JobConfig
+	}
+	scheduleBuildReturns struct {
+		result1 bool
+		result2 error
+	}
 	GetJobBuildForInputsStub        func(job string, inputs []db.BuildInput) (db.Build, error)
 	getJobBuildForInputsMutex       sync.RWMutex
 	getJobBuildForInputsArgsForCall []struct {
@@ -29,16 +49,6 @@ type FakePipelineDB struct {
 		result1 db.Build
 		result2 error
 	}
-	CreateJobBuildIfNoBuildsPendingStub        func(job string) (db.Build, bool, error)
-	createJobBuildIfNoBuildsPendingMutex       sync.RWMutex
-	createJobBuildIfNoBuildsPendingArgsForCall []struct {
-		job string
-	}
-	createJobBuildIfNoBuildsPendingReturns struct {
-		result1 db.Build
-		result2 bool
-		result3 error
-	}
 	GetNextPendingBuildStub        func(job string) (db.Build, error)
 	getNextPendingBuildMutex       sync.RWMutex
 	getNextPendingBuildArgsForCall []struct {
@@ -46,6 +56,15 @@ type FakePipelineDB struct {
 	}
 	getNextPendingBuildReturns struct {
 		result1 db.Build
+		result2 error
+	}
+	GetLatestInputVersionsStub        func([]atc.JobInput) ([]db.BuildInput, error)
+	getLatestInputVersionsMutex       sync.RWMutex
+	getLatestInputVersionsArgsForCall []struct {
+		arg1 []atc.JobInput
+	}
+	getLatestInputVersionsReturns struct {
+		result1 []db.BuildInput
 		result2 error
 	}
 	SaveResourceVersionsStub        func(atc.ResourceConfig, []atc.Version) error
@@ -57,24 +76,14 @@ type FakePipelineDB struct {
 	saveResourceVersionsReturns struct {
 		result1 error
 	}
-	GetLatestInputVersionsStub        func([]atc.JobInput) ([]db.BuildInput, error)
-	getLatestInputVersionsMutex       sync.RWMutex
-	getLatestInputVersionsArgsForCall []struct {
-		arg1 []atc.JobInput
+	UseInputsForBuildStub        func(buildID int, inputs []db.BuildInput) error
+	useInputsForBuildMutex       sync.RWMutex
+	useInputsForBuildArgsForCall []struct {
+		buildID int
+		inputs  []db.BuildInput
 	}
-	getLatestInputVersionsReturns struct {
-		result1 []db.BuildInput
-		result2 error
-	}
-	ScheduleBuildStub        func(buildID int, jobConfig atc.JobConfig) (bool, error)
-	scheduleBuildMutex       sync.RWMutex
-	scheduleBuildArgsForCall []struct {
-		buildID   int
-		jobConfig atc.JobConfig
-	}
-	scheduleBuildReturns struct {
-		result1 bool
-		result2 error
+	useInputsForBuildReturns struct {
+		result1 error
 	}
 }
 
@@ -107,6 +116,74 @@ func (fake *FakePipelineDB) CreateJobBuildReturns(result1 db.Build, result2 erro
 	fake.CreateJobBuildStub = nil
 	fake.createJobBuildReturns = struct {
 		result1 db.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipelineDB) CreateJobBuildForCandidateInputs(job string) (db.Build, bool, error) {
+	fake.createJobBuildIfNoBuildsPendingMutex.Lock()
+	fake.createJobBuildIfNoBuildsPendingArgsForCall = append(fake.createJobBuildIfNoBuildsPendingArgsForCall, struct {
+		job string
+	}{job})
+	fake.createJobBuildIfNoBuildsPendingMutex.Unlock()
+	if fake.CreateJobBuildForCandidateInputsStub != nil {
+		return fake.CreateJobBuildForCandidateInputsStub(job)
+	} else {
+		return fake.createJobBuildIfNoBuildsPendingReturns.result1, fake.createJobBuildIfNoBuildsPendingReturns.result2, fake.createJobBuildIfNoBuildsPendingReturns.result3
+	}
+}
+
+func (fake *FakePipelineDB) CreateJobBuildForCandidateInputsCallCount() int {
+	fake.createJobBuildIfNoBuildsPendingMutex.RLock()
+	defer fake.createJobBuildIfNoBuildsPendingMutex.RUnlock()
+	return len(fake.createJobBuildIfNoBuildsPendingArgsForCall)
+}
+
+func (fake *FakePipelineDB) CreateJobBuildForCandidateInputsArgsForCall(i int) string {
+	fake.createJobBuildIfNoBuildsPendingMutex.RLock()
+	defer fake.createJobBuildIfNoBuildsPendingMutex.RUnlock()
+	return fake.createJobBuildIfNoBuildsPendingArgsForCall[i].job
+}
+
+func (fake *FakePipelineDB) CreateJobBuildForCandidateInputsReturns(result1 db.Build, result2 bool, result3 error) {
+	fake.CreateJobBuildForCandidateInputsStub = nil
+	fake.createJobBuildIfNoBuildsPendingReturns = struct {
+		result1 db.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakePipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool, error) {
+	fake.scheduleBuildMutex.Lock()
+	fake.scheduleBuildArgsForCall = append(fake.scheduleBuildArgsForCall, struct {
+		buildID   int
+		jobConfig atc.JobConfig
+	}{buildID, jobConfig})
+	fake.scheduleBuildMutex.Unlock()
+	if fake.ScheduleBuildStub != nil {
+		return fake.ScheduleBuildStub(buildID, jobConfig)
+	} else {
+		return fake.scheduleBuildReturns.result1, fake.scheduleBuildReturns.result2
+	}
+}
+
+func (fake *FakePipelineDB) ScheduleBuildCallCount() int {
+	fake.scheduleBuildMutex.RLock()
+	defer fake.scheduleBuildMutex.RUnlock()
+	return len(fake.scheduleBuildArgsForCall)
+}
+
+func (fake *FakePipelineDB) ScheduleBuildArgsForCall(i int) (int, atc.JobConfig) {
+	fake.scheduleBuildMutex.RLock()
+	defer fake.scheduleBuildMutex.RUnlock()
+	return fake.scheduleBuildArgsForCall[i].buildID, fake.scheduleBuildArgsForCall[i].jobConfig
+}
+
+func (fake *FakePipelineDB) ScheduleBuildReturns(result1 bool, result2 error) {
+	fake.ScheduleBuildStub = nil
+	fake.scheduleBuildReturns = struct {
+		result1 bool
 		result2 error
 	}{result1, result2}
 }
@@ -145,40 +222,6 @@ func (fake *FakePipelineDB) GetJobBuildForInputsReturns(result1 db.Build, result
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) CreateJobBuildIfNoBuildsPending(job string) (db.Build, bool, error) {
-	fake.createJobBuildIfNoBuildsPendingMutex.Lock()
-	fake.createJobBuildIfNoBuildsPendingArgsForCall = append(fake.createJobBuildIfNoBuildsPendingArgsForCall, struct {
-		job string
-	}{job})
-	fake.createJobBuildIfNoBuildsPendingMutex.Unlock()
-	if fake.CreateJobBuildIfNoBuildsPendingStub != nil {
-		return fake.CreateJobBuildIfNoBuildsPendingStub(job)
-	} else {
-		return fake.createJobBuildIfNoBuildsPendingReturns.result1, fake.createJobBuildIfNoBuildsPendingReturns.result2, fake.createJobBuildIfNoBuildsPendingReturns.result3
-	}
-}
-
-func (fake *FakePipelineDB) CreateJobBuildIfNoBuildsPendingCallCount() int {
-	fake.createJobBuildIfNoBuildsPendingMutex.RLock()
-	defer fake.createJobBuildIfNoBuildsPendingMutex.RUnlock()
-	return len(fake.createJobBuildIfNoBuildsPendingArgsForCall)
-}
-
-func (fake *FakePipelineDB) CreateJobBuildIfNoBuildsPendingArgsForCall(i int) string {
-	fake.createJobBuildIfNoBuildsPendingMutex.RLock()
-	defer fake.createJobBuildIfNoBuildsPendingMutex.RUnlock()
-	return fake.createJobBuildIfNoBuildsPendingArgsForCall[i].job
-}
-
-func (fake *FakePipelineDB) CreateJobBuildIfNoBuildsPendingReturns(result1 db.Build, result2 bool, result3 error) {
-	fake.CreateJobBuildIfNoBuildsPendingStub = nil
-	fake.createJobBuildIfNoBuildsPendingReturns = struct {
-		result1 db.Build
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakePipelineDB) GetNextPendingBuild(job string) (db.Build, error) {
 	fake.getNextPendingBuildMutex.Lock()
 	fake.getNextPendingBuildArgsForCall = append(fake.getNextPendingBuildArgsForCall, struct {
@@ -208,6 +251,39 @@ func (fake *FakePipelineDB) GetNextPendingBuildReturns(result1 db.Build, result2
 	fake.GetNextPendingBuildStub = nil
 	fake.getNextPendingBuildReturns = struct {
 		result1 db.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipelineDB) GetLatestInputVersions(arg1 []atc.JobInput) ([]db.BuildInput, error) {
+	fake.getLatestInputVersionsMutex.Lock()
+	fake.getLatestInputVersionsArgsForCall = append(fake.getLatestInputVersionsArgsForCall, struct {
+		arg1 []atc.JobInput
+	}{arg1})
+	fake.getLatestInputVersionsMutex.Unlock()
+	if fake.GetLatestInputVersionsStub != nil {
+		return fake.GetLatestInputVersionsStub(arg1)
+	} else {
+		return fake.getLatestInputVersionsReturns.result1, fake.getLatestInputVersionsReturns.result2
+	}
+}
+
+func (fake *FakePipelineDB) GetLatestInputVersionsCallCount() int {
+	fake.getLatestInputVersionsMutex.RLock()
+	defer fake.getLatestInputVersionsMutex.RUnlock()
+	return len(fake.getLatestInputVersionsArgsForCall)
+}
+
+func (fake *FakePipelineDB) GetLatestInputVersionsArgsForCall(i int) []atc.JobInput {
+	fake.getLatestInputVersionsMutex.RLock()
+	defer fake.getLatestInputVersionsMutex.RUnlock()
+	return fake.getLatestInputVersionsArgsForCall[i].arg1
+}
+
+func (fake *FakePipelineDB) GetLatestInputVersionsReturns(result1 []db.BuildInput, result2 error) {
+	fake.GetLatestInputVersionsStub = nil
+	fake.getLatestInputVersionsReturns = struct {
+		result1 []db.BuildInput
 		result2 error
 	}{result1, result2}
 }
@@ -245,71 +321,37 @@ func (fake *FakePipelineDB) SaveResourceVersionsReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakePipelineDB) GetLatestInputVersions(arg1 []atc.JobInput) ([]db.BuildInput, error) {
-	fake.getLatestInputVersionsMutex.Lock()
-	fake.getLatestInputVersionsArgsForCall = append(fake.getLatestInputVersionsArgsForCall, struct {
-		arg1 []atc.JobInput
-	}{arg1})
-	fake.getLatestInputVersionsMutex.Unlock()
-	if fake.GetLatestInputVersionsStub != nil {
-		return fake.GetLatestInputVersionsStub(arg1)
+func (fake *FakePipelineDB) UseInputsForBuild(buildID int, inputs []db.BuildInput) error {
+	fake.useInputsForBuildMutex.Lock()
+	fake.useInputsForBuildArgsForCall = append(fake.useInputsForBuildArgsForCall, struct {
+		buildID int
+		inputs  []db.BuildInput
+	}{buildID, inputs})
+	fake.useInputsForBuildMutex.Unlock()
+	if fake.UseInputsForBuildStub != nil {
+		return fake.UseInputsForBuildStub(buildID, inputs)
 	} else {
-		return fake.getLatestInputVersionsReturns.result1, fake.getLatestInputVersionsReturns.result2
+		return fake.useInputsForBuildReturns.result1
 	}
 }
 
-func (fake *FakePipelineDB) GetLatestInputVersionsCallCount() int {
-	fake.getLatestInputVersionsMutex.RLock()
-	defer fake.getLatestInputVersionsMutex.RUnlock()
-	return len(fake.getLatestInputVersionsArgsForCall)
+func (fake *FakePipelineDB) UseInputsForBuildCallCount() int {
+	fake.useInputsForBuildMutex.RLock()
+	defer fake.useInputsForBuildMutex.RUnlock()
+	return len(fake.useInputsForBuildArgsForCall)
 }
 
-func (fake *FakePipelineDB) GetLatestInputVersionsArgsForCall(i int) []atc.JobInput {
-	fake.getLatestInputVersionsMutex.RLock()
-	defer fake.getLatestInputVersionsMutex.RUnlock()
-	return fake.getLatestInputVersionsArgsForCall[i].arg1
+func (fake *FakePipelineDB) UseInputsForBuildArgsForCall(i int) (int, []db.BuildInput) {
+	fake.useInputsForBuildMutex.RLock()
+	defer fake.useInputsForBuildMutex.RUnlock()
+	return fake.useInputsForBuildArgsForCall[i].buildID, fake.useInputsForBuildArgsForCall[i].inputs
 }
 
-func (fake *FakePipelineDB) GetLatestInputVersionsReturns(result1 []db.BuildInput, result2 error) {
-	fake.GetLatestInputVersionsStub = nil
-	fake.getLatestInputVersionsReturns = struct {
-		result1 []db.BuildInput
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakePipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool, error) {
-	fake.scheduleBuildMutex.Lock()
-	fake.scheduleBuildArgsForCall = append(fake.scheduleBuildArgsForCall, struct {
-		buildID   int
-		jobConfig atc.JobConfig
-	}{buildID, jobConfig})
-	fake.scheduleBuildMutex.Unlock()
-	if fake.ScheduleBuildStub != nil {
-		return fake.ScheduleBuildStub(buildID, jobConfig)
-	} else {
-		return fake.scheduleBuildReturns.result1, fake.scheduleBuildReturns.result2
-	}
-}
-
-func (fake *FakePipelineDB) ScheduleBuildCallCount() int {
-	fake.scheduleBuildMutex.RLock()
-	defer fake.scheduleBuildMutex.RUnlock()
-	return len(fake.scheduleBuildArgsForCall)
-}
-
-func (fake *FakePipelineDB) ScheduleBuildArgsForCall(i int) (int, atc.JobConfig) {
-	fake.scheduleBuildMutex.RLock()
-	defer fake.scheduleBuildMutex.RUnlock()
-	return fake.scheduleBuildArgsForCall[i].buildID, fake.scheduleBuildArgsForCall[i].jobConfig
-}
-
-func (fake *FakePipelineDB) ScheduleBuildReturns(result1 bool, result2 error) {
-	fake.ScheduleBuildStub = nil
-	fake.scheduleBuildReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
+func (fake *FakePipelineDB) UseInputsForBuildReturns(result1 error) {
+	fake.UseInputsForBuildStub = nil
+	fake.useInputsForBuildReturns = struct {
+		result1 error
+	}{result1}
 }
 
 var _ scheduler.PipelineDB = new(FakePipelineDB)

@@ -196,7 +196,7 @@ type FakePipelineDB struct {
 		result1 db.Build
 		result2 error
 	}
-	CreateJobBuildIfNoBuildsPendingStub        func(job string) (db.Build, bool, error)
+	CreateJobBuildForCandidateInputsStub        func(job string) (db.Build, bool, error)
 	createJobBuildIfNoBuildsPendingMutex       sync.RWMutex
 	createJobBuildIfNoBuildsPendingArgsForCall []struct {
 		job string
@@ -205,6 +205,15 @@ type FakePipelineDB struct {
 		result1 db.Build
 		result2 bool
 		result3 error
+	}
+	UseInputsForBuildStub        func(buildID int, inputs []db.BuildInput) error
+	useInputsForBuildMutex       sync.RWMutex
+	useInputsForBuildArgsForCall []struct {
+		buildID int
+		inputs  []db.BuildInput
+	}
+	useInputsForBuildReturns struct {
+		result1 error
 	}
 	GetLatestInputVersionsStub        func([]atc.JobInput) ([]db.BuildInput, error)
 	getLatestInputVersionsMutex       sync.RWMutex
@@ -1008,38 +1017,71 @@ func (fake *FakePipelineDB) CreateJobBuildReturns(result1 db.Build, result2 erro
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) CreateJobBuildIfNoBuildsPending(job string) (db.Build, bool, error) {
+func (fake *FakePipelineDB) CreateJobBuildForCandidateInputs(job string) (db.Build, bool, error) {
 	fake.createJobBuildIfNoBuildsPendingMutex.Lock()
 	fake.createJobBuildIfNoBuildsPendingArgsForCall = append(fake.createJobBuildIfNoBuildsPendingArgsForCall, struct {
 		job string
 	}{job})
 	fake.createJobBuildIfNoBuildsPendingMutex.Unlock()
-	if fake.CreateJobBuildIfNoBuildsPendingStub != nil {
-		return fake.CreateJobBuildIfNoBuildsPendingStub(job)
+	if fake.CreateJobBuildForCandidateInputsStub != nil {
+		return fake.CreateJobBuildForCandidateInputsStub(job)
 	} else {
 		return fake.createJobBuildIfNoBuildsPendingReturns.result1, fake.createJobBuildIfNoBuildsPendingReturns.result2, fake.createJobBuildIfNoBuildsPendingReturns.result3
 	}
 }
 
-func (fake *FakePipelineDB) CreateJobBuildIfNoBuildsPendingCallCount() int {
+func (fake *FakePipelineDB) CreateJobBuildForCandidateInputsCallCount() int {
 	fake.createJobBuildIfNoBuildsPendingMutex.RLock()
 	defer fake.createJobBuildIfNoBuildsPendingMutex.RUnlock()
 	return len(fake.createJobBuildIfNoBuildsPendingArgsForCall)
 }
 
-func (fake *FakePipelineDB) CreateJobBuildIfNoBuildsPendingArgsForCall(i int) string {
+func (fake *FakePipelineDB) CreateJobBuildForCandidateInputsArgsForCall(i int) string {
 	fake.createJobBuildIfNoBuildsPendingMutex.RLock()
 	defer fake.createJobBuildIfNoBuildsPendingMutex.RUnlock()
 	return fake.createJobBuildIfNoBuildsPendingArgsForCall[i].job
 }
 
-func (fake *FakePipelineDB) CreateJobBuildIfNoBuildsPendingReturns(result1 db.Build, result2 bool, result3 error) {
-	fake.CreateJobBuildIfNoBuildsPendingStub = nil
+func (fake *FakePipelineDB) CreateJobBuildForCandidateInputsReturns(result1 db.Build, result2 bool, result3 error) {
+	fake.CreateJobBuildForCandidateInputsStub = nil
 	fake.createJobBuildIfNoBuildsPendingReturns = struct {
 		result1 db.Build
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakePipelineDB) UseInputsForBuild(buildID int, inputs []db.BuildInput) error {
+	fake.useInputsForBuildMutex.Lock()
+	fake.useInputsForBuildArgsForCall = append(fake.useInputsForBuildArgsForCall, struct {
+		buildID int
+		inputs  []db.BuildInput
+	}{buildID, inputs})
+	fake.useInputsForBuildMutex.Unlock()
+	if fake.UseInputsForBuildStub != nil {
+		return fake.UseInputsForBuildStub(buildID, inputs)
+	} else {
+		return fake.useInputsForBuildReturns.result1
+	}
+}
+
+func (fake *FakePipelineDB) UseInputsForBuildCallCount() int {
+	fake.useInputsForBuildMutex.RLock()
+	defer fake.useInputsForBuildMutex.RUnlock()
+	return len(fake.useInputsForBuildArgsForCall)
+}
+
+func (fake *FakePipelineDB) UseInputsForBuildArgsForCall(i int) (int, []db.BuildInput) {
+	fake.useInputsForBuildMutex.RLock()
+	defer fake.useInputsForBuildMutex.RUnlock()
+	return fake.useInputsForBuildArgsForCall[i].buildID, fake.useInputsForBuildArgsForCall[i].inputs
+}
+
+func (fake *FakePipelineDB) UseInputsForBuildReturns(result1 error) {
+	fake.UseInputsForBuildStub = nil
+	fake.useInputsForBuildReturns = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakePipelineDB) GetLatestInputVersions(arg1 []atc.JobInput) ([]db.BuildInput, error) {

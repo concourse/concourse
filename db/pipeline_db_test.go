@@ -618,9 +618,49 @@ var _ = Describe("PipelineDB", func() {
 			})
 		})
 
-		Describe("CreateJobBuildIfNoBuildsPending", func() {
-			It("does not create a new build if one is already pending", func() {
-				build, created, err := pipelineDB.CreateJobBuildIfNoBuildsPending("some-job")
+		Describe("saving builds for scheduling", func() {
+			buildMetadata := []db.MetadataField{
+				{
+					Name:  "meta1",
+					Value: "value1",
+				},
+				{
+					Name:  "meta2",
+					Value: "value2",
+				},
+			}
+
+			vr1 := db.VersionedResource{
+				PipelineName: "a-pipeline-name",
+				Resource:     "some-resource",
+				Type:         "some-type",
+				Source:       db.Source{"some": "source"},
+				Version:      db.Version{"ver": "1"},
+				Metadata:     buildMetadata,
+			}
+
+			vr2 := db.VersionedResource{
+				PipelineName: "a-pipeline-name",
+				Resource:     "some-other-resource",
+				Type:         "some-type",
+				Source:       db.Source{"some": "other-source"},
+				Version:      db.Version{"ver": "2"},
+			}
+
+			input1 := db.BuildInput{
+				Name:              "some-input",
+				VersionedResource: vr1,
+			}
+
+			input2 := db.BuildInput{
+				Name:              "some-other-input",
+				VersionedResource: vr2,
+			}
+
+			inputs := []db.BuildInput{input1, input2}
+
+			It("does not create a new build if one is already running that does not have determined inputs ", func() {
+				build, created, err := pipelineDB.CreateJobBuildForCandidateInputs("some-job")
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(created).Should(BeTrue())
 
@@ -630,32 +670,48 @@ var _ = Describe("PipelineDB", func() {
 				Ω(build.Status).Should(Equal(db.StatusPending))
 				Ω(build.Scheduled).Should(BeFalse())
 
-				_, created, err = pipelineDB.CreateJobBuildIfNoBuildsPending("some-job")
+				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-job")
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(created).Should(BeFalse())
 			})
 
-			It("does create a new build if one is already pending but it has a different name", func() {
-				_, created, err := pipelineDB.CreateJobBuildIfNoBuildsPending("some-job")
+			It("does create a new build if one does not have determined inputs but it has a different name", func() {
+				_, created, err := pipelineDB.CreateJobBuildForCandidateInputs("some-job")
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(created).Should(BeTrue())
 
-				_, created, err = pipelineDB.CreateJobBuildIfNoBuildsPending("some-other-job")
+				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-other-job")
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(created).Should(BeTrue())
 			})
 
 			It("does create a new build if one is already saved but it is not pending", func() {
-				build, created, err := pipelineDB.CreateJobBuildIfNoBuildsPending("some-job")
+				build, created, err := pipelineDB.CreateJobBuildForCandidateInputs("some-job")
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(created).Should(BeTrue())
 
-				err = sqlDB.FinishBuild(build.ID, db.StatusSucceeded)
+				err = pipelineDB.UseInputsForBuild(build.ID, inputs)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				_, created, err = pipelineDB.CreateJobBuildIfNoBuildsPending("some-job")
+				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-job")
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(created).Should(BeTrue())
+			})
+
+			It("saves all the build inputs", func() {
+				build, created, err := pipelineDB.CreateJobBuildForCandidateInputs("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(created).Should(BeTrue())
+
+				err = pipelineDB.UseInputsForBuild(build.ID, inputs)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				foundBuild, err := pipelineDB.GetJobBuildForInputs("some-job", []db.BuildInput{
+					input1,
+					input2,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(foundBuild).Should(Equal(build))
 			})
 		})
 
