@@ -3,7 +3,6 @@ package atc
 type Event interface {
 	EventType() EventType
 	Version() EventVersion
-	Censored() Event
 }
 
 type EventType string

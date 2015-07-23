@@ -17,7 +17,7 @@ import (
 const ProtocolVersionHeader = "X-ATC-Stream-Version"
 const CurrentProtocolVersion = "2.0"
 
-func NewEventHandler(buildsDB BuildsDB, buildID int, censor bool) http.Handler {
+func NewEventHandler(buildsDB BuildsDB, buildID int) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		flusher := w.(http.Flusher)
 		closed := w.(http.CloseNotifier).CloseNotify()
@@ -82,10 +82,6 @@ func NewEventHandler(buildsDB BuildsDB, buildID int, censor bool) http.Handler {
 		for {
 			select {
 			case ev := <-es:
-				if censor {
-					ev = ev.Censored()
-				}
-
 				payload, err := json.Marshal(event.Message{ev})
 				if err != nil {
 					return

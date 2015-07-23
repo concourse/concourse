@@ -9,7 +9,6 @@ type Error struct {
 
 func (Error) EventType() atc.EventType  { return EventTypeError }
 func (Error) Version() atc.EventVersion { return "2.0" }
-func (e Error) Censored() atc.Event     { return e }
 
 type FinishTask struct {
 	Time       int64  `json:"time"`
@@ -19,19 +18,56 @@ type FinishTask struct {
 
 func (FinishTask) EventType() atc.EventType  { return EventTypeFinishTask }
 func (FinishTask) Version() atc.EventVersion { return "2.0" }
-func (e FinishTask) Censored() atc.Event     { return e }
 
 type InitializeTask struct {
-	TaskConfig atc.TaskConfig `json:"config"`
-	Origin     Origin         `json:"origin"`
+	TaskConfig TaskConfig `json:"config"`
+	Origin     Origin     `json:"origin"`
+}
+
+// shadow the real atc.TaskConfig
+type TaskConfig struct {
+	Platform string   `json:"platform"`
+	Tags     []string `json:"tags"`
+	Image    string   `json:"image"`
+
+	Run    TaskRunConfig     `json:"run"`
+	Inputs []TaskInputConfig `json:"inputs"`
+}
+
+type TaskRunConfig struct {
+	Path string   `json:"path"`
+	Args []string `json:"args"`
+}
+
+type TaskInputConfig struct {
+	Name string `json:"name"`
+	Path string `json:"path"`
+}
+
+func ShadowTaskConfig(config atc.TaskConfig) TaskConfig {
+	var inputConfigs []TaskInputConfig
+
+	for _, input := range config.Inputs {
+		inputConfigs = append(inputConfigs, TaskInputConfig{
+			Name: input.Name,
+			Path: input.Path,
+		})
+	}
+
+	return TaskConfig{
+		Platform: config.Platform,
+		Tags:     config.Tags,
+		Image:    config.Image,
+		Run: TaskRunConfig{
+			Path: config.Run.Path,
+			Args: config.Run.Args,
+		},
+		Inputs: inputConfigs,
+	}
 }
 
 func (InitializeTask) EventType() atc.EventType  { return EventTypeInitializeTask }
 func (InitializeTask) Version() atc.EventVersion { return "2.0" }
-func (e InitializeTask) Censored() atc.Event {
-	e.TaskConfig.Params = nil
-	return e
-}
 
 type StartTask struct {
 	Time   int64  `json:"time"`
@@ -40,7 +76,6 @@ type StartTask struct {
 
 func (StartTask) EventType() atc.EventType  { return EventTypeStartTask }
 func (StartTask) Version() atc.EventVersion { return "2.0" }
-func (e StartTask) Censored() atc.Event     { return e }
 
 type Status struct {
 	Status atc.BuildStatus `json:"status"`
@@ -49,7 +84,6 @@ type Status struct {
 
 func (Status) EventType() atc.EventType  { return EventTypeStatus }
 func (Status) Version() atc.EventVersion { return "1.0" }
-func (e Status) Censored() atc.Event     { return e }
 
 type Log struct {
 	Origin  Origin `json:"origin"`
@@ -58,7 +92,6 @@ type Log struct {
 
 func (Log) EventType() atc.EventType  { return EventTypeLog }
 func (Log) Version() atc.EventVersion { return "3.0" }
-func (e Log) Censored() atc.Event     { return e }
 
 type Origin struct {
 	Name     string         `json:"name"`
@@ -117,18 +150,11 @@ type FinishGet struct {
 
 func (FinishGet) EventType() atc.EventType  { return EventTypeFinishGet }
 func (FinishGet) Version() atc.EventVersion { return "2.0" }
-func (e FinishGet) Censored() atc.Event {
-	e.Plan.Source = nil
-	e.Plan.Params = nil
-	return e
-}
 
 type GetPlan struct {
 	Name     string      `json:"name"`
 	Resource string      `json:"resource"`
 	Type     string      `json:"type"`
-	Source   atc.Source  `json:"source"`
-	Params   atc.Params  `json:"params"`
 	Version  atc.Version `json:"version"`
 }
 
@@ -142,16 +168,9 @@ type FinishPut struct {
 
 func (FinishPut) EventType() atc.EventType  { return EventTypeFinishPut }
 func (FinishPut) Version() atc.EventVersion { return "2.0" }
-func (e FinishPut) Censored() atc.Event {
-	e.Plan.Source = nil
-	e.Plan.Params = nil
-	return e
-}
 
 type PutPlan struct {
-	Name     string     `json:"name"`
-	Resource string     `json:"resource"`
-	Type     string     `json:"type"`
-	Source   atc.Source `json:"source"`
-	Params   atc.Params `json:"params"`
+	Name     string `json:"name"`
+	Resource string `json:"resource"`
+	Type     string `json:"type"`
 }

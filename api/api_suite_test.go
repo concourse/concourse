@@ -50,7 +50,6 @@ var (
 type fakeEventHandlerFactory struct {
 	db      buildserver.BuildsDB
 	buildID int
-	censor  bool
 
 	lock sync.Mutex
 }
@@ -58,12 +57,10 @@ type fakeEventHandlerFactory struct {
 func (f *fakeEventHandlerFactory) Construct(
 	db buildserver.BuildsDB,
 	buildID int,
-	censor bool,
 ) http.Handler {
 	f.lock.Lock()
 	f.db = db
 	f.buildID = buildID
-	f.censor = censor
 	f.lock.Unlock()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

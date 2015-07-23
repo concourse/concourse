@@ -20,11 +20,11 @@ type FakePipelineDB struct {
 		result2 error
 	}
 	CreateJobBuildForCandidateInputsStub        func(job string) (db.Build, bool, error)
-	createJobBuildIfNoBuildsPendingMutex       sync.RWMutex
-	createJobBuildIfNoBuildsPendingArgsForCall []struct {
+	createJobBuildForCandidateInputsMutex       sync.RWMutex
+	createJobBuildForCandidateInputsArgsForCall []struct {
 		job string
 	}
-	createJobBuildIfNoBuildsPendingReturns struct {
+	createJobBuildForCandidateInputsReturns struct {
 		result1 db.Build
 		result2 bool
 		result3 error
@@ -121,33 +121,33 @@ func (fake *FakePipelineDB) CreateJobBuildReturns(result1 db.Build, result2 erro
 }
 
 func (fake *FakePipelineDB) CreateJobBuildForCandidateInputs(job string) (db.Build, bool, error) {
-	fake.createJobBuildIfNoBuildsPendingMutex.Lock()
-	fake.createJobBuildIfNoBuildsPendingArgsForCall = append(fake.createJobBuildIfNoBuildsPendingArgsForCall, struct {
+	fake.createJobBuildForCandidateInputsMutex.Lock()
+	fake.createJobBuildForCandidateInputsArgsForCall = append(fake.createJobBuildForCandidateInputsArgsForCall, struct {
 		job string
 	}{job})
-	fake.createJobBuildIfNoBuildsPendingMutex.Unlock()
+	fake.createJobBuildForCandidateInputsMutex.Unlock()
 	if fake.CreateJobBuildForCandidateInputsStub != nil {
 		return fake.CreateJobBuildForCandidateInputsStub(job)
 	} else {
-		return fake.createJobBuildIfNoBuildsPendingReturns.result1, fake.createJobBuildIfNoBuildsPendingReturns.result2, fake.createJobBuildIfNoBuildsPendingReturns.result3
+		return fake.createJobBuildForCandidateInputsReturns.result1, fake.createJobBuildForCandidateInputsReturns.result2, fake.createJobBuildForCandidateInputsReturns.result3
 	}
 }
 
 func (fake *FakePipelineDB) CreateJobBuildForCandidateInputsCallCount() int {
-	fake.createJobBuildIfNoBuildsPendingMutex.RLock()
-	defer fake.createJobBuildIfNoBuildsPendingMutex.RUnlock()
-	return len(fake.createJobBuildIfNoBuildsPendingArgsForCall)
+	fake.createJobBuildForCandidateInputsMutex.RLock()
+	defer fake.createJobBuildForCandidateInputsMutex.RUnlock()
+	return len(fake.createJobBuildForCandidateInputsArgsForCall)
 }
 
 func (fake *FakePipelineDB) CreateJobBuildForCandidateInputsArgsForCall(i int) string {
-	fake.createJobBuildIfNoBuildsPendingMutex.RLock()
-	defer fake.createJobBuildIfNoBuildsPendingMutex.RUnlock()
-	return fake.createJobBuildIfNoBuildsPendingArgsForCall[i].job
+	fake.createJobBuildForCandidateInputsMutex.RLock()
+	defer fake.createJobBuildForCandidateInputsMutex.RUnlock()
+	return fake.createJobBuildForCandidateInputsArgsForCall[i].job
 }
 
 func (fake *FakePipelineDB) CreateJobBuildForCandidateInputsReturns(result1 db.Build, result2 bool, result3 error) {
 	fake.CreateJobBuildForCandidateInputsStub = nil
-	fake.createJobBuildIfNoBuildsPendingReturns = struct {
+	fake.createJobBuildForCandidateInputsReturns = struct {
 		result1 db.Build
 		result2 bool
 		result3 error

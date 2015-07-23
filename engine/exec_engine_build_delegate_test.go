@@ -94,7 +94,6 @@ var _ = Describe("BuildDelegate", func() {
 							PipelineName: "some-pipeline",
 							Resource:     "some-input-resource",
 							Type:         "some-type",
-							Source:       db.Source{"some": "source"},
 							Version:      db.Version{"result": "version"},
 							Metadata:     []db.MetadataField{{"result", "metadata"}},
 						},
@@ -118,8 +117,6 @@ var _ = Describe("BuildDelegate", func() {
 							Resource: "some-input-resource",
 							Type:     "some-type",
 							Version:  atc.Version{"some": "version"},
-							Source:   atc.Source{"some": "source"},
-							Params:   atc.Params{"some": "params"},
 						},
 						ExitStatus:      12,
 						FetchedVersion:  versionInfo.Version,
@@ -155,8 +152,6 @@ var _ = Describe("BuildDelegate", func() {
 							Resource: "some-input-resource",
 							Type:     "some-type",
 							Version:  atc.Version{"some": "version"},
-							Source:   atc.Source{"some": "source"},
-							Params:   atc.Params{"some": "params"},
 						},
 						ExitStatus:      12,
 						FetchedVersion:  nil,
@@ -227,7 +222,6 @@ var _ = Describe("BuildDelegate", func() {
 								PipelineName: "some-pipeline",
 								Resource:     "some-input-resource",
 								Type:         "some-type",
-								Source:       db.Source{"some": "source"},
 								Version:      db.Version{"result": "version"},
 								Metadata:     []db.MetadataField{{"result", "metadata"}},
 							},
@@ -251,8 +245,6 @@ var _ = Describe("BuildDelegate", func() {
 								Resource: "some-input-resource",
 								Type:     "some-type",
 								Version:  atc.Version{"some": "version"},
-								Source:   atc.Source{"some": "source"},
-								Params:   atc.Params{"some": "params"},
 							},
 							FetchedVersion:  versionInfo.Version,
 							FetchedMetadata: versionInfo.Metadata,
@@ -357,7 +349,6 @@ var _ = Describe("BuildDelegate", func() {
 									PipelineName: "some-pipeline",
 									Resource:     "some-input-resource",
 									Type:         "some-type",
-									Source:       db.Source{"some": "source"},
 									Version:      db.Version{"explicit": "version"},
 									Metadata:     []db.MetadataField{{"explicit", "metadata"}},
 								}))
@@ -488,7 +479,11 @@ var _ = Describe("BuildDelegate", func() {
 				buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
 				Ω(buildID).Should(Equal(42))
 				Ω(savedEvent).Should(Equal(event.InitializeTask{
-					TaskConfig: taskConfig,
+					TaskConfig: event.TaskConfig{
+						Run: event.TaskRunConfig{
+							Path: "ls",
+						},
+					},
 					Origin: event.Origin{
 						Type:     event.OriginTypeTask,
 						Name:     "some-task",
@@ -755,8 +750,6 @@ var _ = Describe("BuildDelegate", func() {
 							Name:     "some-output-name",
 							Resource: "some-output-resource",
 							Type:     "some-type",
-							Source:   atc.Source{"some": "source"},
-							Params:   atc.Params{"some": "params"},
 						},
 						ExitStatus:      0,
 						CreatedVersion:  nil,
@@ -778,7 +771,6 @@ var _ = Describe("BuildDelegate", func() {
 						PipelineName: "some-other-pipeline",
 						Resource:     "some-output-resource",
 						Type:         "some-type",
-						Source:       db.Source{"some": "source"},
 						Version:      db.Version{"result": "version"},
 						Metadata:     []db.MetadataField{{"result", "metadata"}},
 					}))
@@ -800,8 +792,6 @@ var _ = Describe("BuildDelegate", func() {
 							Name:     "some-output-name",
 							Resource: "some-output-resource",
 							Type:     "some-type",
-							Source:   atc.Source{"some": "source"},
-							Params:   atc.Params{"some": "params"},
 						},
 						CreatedVersion:  versionInfo.Version,
 						CreatedMetadata: versionInfo.Metadata,
@@ -824,7 +814,6 @@ var _ = Describe("BuildDelegate", func() {
 						PipelineName: "some-other-pipeline",
 						Resource:     "some-output-resource",
 						Type:         "some-type",
-						Source:       db.Source{"some": "source"},
 						Version:      db.Version{"result": "version"},
 						Metadata:     []db.MetadataField{{"result", "metadata"}},
 					}))
@@ -846,8 +835,6 @@ var _ = Describe("BuildDelegate", func() {
 							Name:     "some-output-name",
 							Resource: "some-output-resource",
 							Type:     "some-type",
-							Source:   atc.Source{"some": "source"},
-							Params:   atc.Params{"some": "params"},
 						},
 						CreatedVersion:  versionInfo.Version,
 						CreatedMetadata: versionInfo.Metadata,

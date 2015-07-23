@@ -141,7 +141,7 @@ func (delegate *delegate) unregisterImplicitOutput(resource string) {
 
 func (delegate *delegate) saveInitialize(logger lager.Logger, taskConfig atc.TaskConfig, origin event.Origin) {
 	err := delegate.db.SaveBuildEvent(delegate.buildID, event.InitializeTask{
-		TaskConfig: taskConfig,
+		TaskConfig: event.ShadowTaskConfig(taskConfig),
 		Origin:     origin,
 	})
 	if err != nil {
@@ -202,8 +202,6 @@ func (delegate *delegate) saveInput(logger lager.Logger, status exec.ExitStatus,
 			Name:     plan.Name,
 			Resource: plan.Resource,
 			Type:     plan.Type,
-			Source:   plan.Source,
-			Params:   plan.Params,
 			Version:  plan.Version,
 		},
 		ExitStatus:      int(status),
@@ -242,8 +240,6 @@ func (delegate *delegate) saveOutput(logger lager.Logger, status exec.ExitStatus
 			Name:     plan.Name,
 			Resource: plan.Resource,
 			Type:     plan.Type,
-			Source:   plan.Source,
-			Params:   plan.Params,
 		},
 		ExitStatus:      int(status),
 		CreatedVersion:  version,
@@ -515,7 +511,6 @@ func vrFromInput(pipelineName string, got event.FinishGet) db.VersionedResource 
 		Resource:     got.Plan.Resource,
 		PipelineName: pipelineName,
 		Type:         got.Plan.Type,
-		Source:       db.Source(got.Plan.Source),
 		Version:      db.Version(got.FetchedVersion),
 		Metadata:     metadata,
 	}
@@ -534,7 +529,6 @@ func vrFromOutput(pipelineName string, putted event.FinishPut) db.VersionedResou
 		Resource:     putted.Plan.Resource,
 		PipelineName: pipelineName,
 		Type:         putted.Plan.Type,
-		Source:       db.Source(putted.Plan.Source),
 		Version:      db.Version(putted.CreatedVersion),
 		Metadata:     metadata,
 	}

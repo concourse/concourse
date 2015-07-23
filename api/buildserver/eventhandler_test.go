@@ -22,10 +22,6 @@ type fakeEvent struct {
 
 func (e fakeEvent) EventType() atc.EventType { return "fake" }
 func (fakeEvent) Version() atc.EventVersion  { return "42.0" }
-func (e fakeEvent) Censored() atc.Event {
-	e.Value = "censored " + e.Value
-	return e
-}
 
 var _ = Describe("Handler", func() {
 	var (
@@ -38,7 +34,7 @@ var _ = Describe("Handler", func() {
 	BeforeEach(func() {
 		buildsDB = new(fakes.FakeBuildsDB)
 
-		server = httptest.NewServer(NewEventHandler(buildsDB, 128, false))
+		server = httptest.NewServer(NewEventHandler(buildsDB, 128))
 
 		client = &http.Client{
 			Transport: &http.Transport{},
@@ -141,39 +137,6 @@ var _ = Describe("Handler", func() {
 
 			It("closes the event source", func() {
 				Eventually(fakeEventSource.CloseCallCount).Should(Equal(1))
-			})
-
-			Context("when told to censor", func() {
-				BeforeEach(func() {
-					server.Config.Handler = NewEventHandler(buildsDB, 128, true)
-				})
-
-				It("filters the events through it", func() {
-					reader := sse.NewReadCloser(response.Body)
-
-					Ω(reader.Next()).Should(Equal(sse.Event{
-						ID:   "0",
-						Name: "event",
-						Data: []byte(`{"data":{"value":"censored e1"},"event":"fake","version":"42.0"}`),
-					}))
-
-					Ω(reader.Next()).Should(Equal(sse.Event{
-						ID:   "1",
-						Name: "event",
-						Data: []byte(`{"data":{"value":"censored e2"},"event":"fake","version":"42.0"}`),
-					}))
-
-					Ω(reader.Next()).Should(Equal(sse.Event{
-						ID:   "2",
-						Name: "event",
-						Data: []byte(`{"data":{"value":"censored e3"},"event":"fake","version":"42.0"}`),
-					}))
-
-					Ω(reader.Next()).Should(Equal(sse.Event{
-						Name: "end",
-						Data: []byte{},
-					}))
-				})
 			})
 
 			Context("when the Last-Event-ID header is given", func() {

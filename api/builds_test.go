@@ -262,7 +262,7 @@ var _ = Describe("Builds API", func() {
 				Ω(response.StatusCode).Should(Equal(200))
 			})
 
-			It("serves the request via the event handler with no censor", func() {
+			It("serves the request via the event handler", func() {
 				body, err := ioutil.ReadAll(response.Body)
 				Ω(err).ShouldNot(HaveOccurred())
 
@@ -270,7 +270,6 @@ var _ = Describe("Builds API", func() {
 
 				Ω(constructedEventHandler.db).Should(Equal(buildsDB))
 				Ω(constructedEventHandler.buildID).Should(Equal(128))
-				Ω(constructedEventHandler.censor).Should(BeFalse())
 			})
 		})
 
@@ -312,7 +311,7 @@ var _ = Describe("Builds API", func() {
 					Ω(response.StatusCode).Should(Equal(200))
 				})
 
-				It("serves the request via the event handler with a censor", func() {
+				It("serves the request via the event handler", func() {
 					body, err := ioutil.ReadAll(response.Body)
 					Ω(err).ShouldNot(HaveOccurred())
 
@@ -320,7 +319,6 @@ var _ = Describe("Builds API", func() {
 
 					Ω(constructedEventHandler.db).Should(Equal(buildsDB))
 					Ω(constructedEventHandler.buildID).Should(Equal(128))
-					Ω(constructedEventHandler.censor).Should(BeTrue())
 				})
 			})
 		})

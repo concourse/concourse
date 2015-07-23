@@ -22,10 +22,7 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	censor := false
 	if !s.fallback.IsAuthenticated(r) {
-		censor = true
-
 		if build.OneOff() {
 			auth.Unauthorized(w)
 			return
@@ -56,7 +53,7 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		defer close(streamDone)
-		s.eventHandlerFactory(s.db, buildID, censor).ServeHTTP(w, r)
+		s.eventHandlerFactory(s.db, buildID).ServeHTTP(w, r)
 	}()
 
 	select {
