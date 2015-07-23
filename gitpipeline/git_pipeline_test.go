@@ -108,6 +108,46 @@ var _ = Describe("A pipeline with git resources", func() {
 			Eventually(flyS, 10*time.Second).Should(gexec.Exit(1))
 		})
 	})
+
+	Describe("duration", func() {
+		It("does not effect tasks that run successfully before the duration is up", func() {
+			committedGuid := gitServer.Commit()
+			Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement(committedGuid))
+
+			fly := exec.Command(
+				flyBin,
+				"-t", atcURL,
+				"watch",
+				"-p", "pipeline-name",
+				"-j", "duration-successful-job",
+			)
+
+			flyS := start(fly)
+
+			Eventually(flyS, 30*time.Second).Should(gbytes.Say("initializing"))
+			Eventually(flyS, 30*time.Second).Should(gbytes.Say("passing-task succeeded"))
+			Eventually(flyS, 10*time.Second).Should(gexec.Exit(0))
+		})
+
+		It("interrupts a task if it goes longer then the duration", func() {
+			committedGuid := gitServer.Commit()
+			Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement(committedGuid))
+
+			fly := exec.Command(
+				flyBin,
+				"-t", atcURL,
+				"watch",
+				"-p", "pipeline-name",
+				"-j", "duration-fail-job",
+			)
+
+			flyS := start(fly)
+
+			Eventually(flyS, 30*time.Second).Should(gbytes.Say("initializing"))
+			Eventually(flyS, 30*time.Second).Should(gbytes.Say("interrupted"))
+			Eventually(flyS, 10*time.Second).Should(gexec.Exit(1))
+		})
+	})
 })
 
 func start(cmd *exec.Cmd) *gexec.Session {

@@ -187,3 +187,30 @@ jobs:
           run:
             path: bash
             args: ["-c", "exit 1"]
+
+  - name: duration-successful-job
+    plan:
+      - get: some-git-resource
+        trigger: true
+      - task: passing-task
+        timeout: 10m
+        config:
+          platform: linux
+          image: {{testflight-helper-image}}
+          run:
+            path: bash
+            args: ["-c", "echo passing-task succeeded"]
+
+  - name: duration-fail-job
+    plan:
+      - get: some-git-resource
+        trigger: true
+      - task: timeout-task
+        timeout: 5s
+        config:
+          platform: linux
+          image: {{testflight-helper-image}}
+          run:
+            path: bash
+            args: ["-c", "sleep 10"]
+
