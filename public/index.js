@@ -210,13 +210,13 @@ function createGraph(svg, groups, jobs, resources) {
   var graph = new Graph();
 
   var resourceURLs = {};
-  var resourceCheckErrors = {};
+  var resourceFailing = {};
   var resourcePaused = {};
 
   for (var i in resources) {
     var resource = resources[i];
     resourceURLs[resource.name] = resource.url;
-    resourceCheckErrors[resource.name] = resource.check_error;
+    resourceFailing[resource.name] = resource.failing_to_check;
     resourcePaused[resource.name] = resource.paused;
   }
 
@@ -366,7 +366,7 @@ function createGraph(svg, groups, jobs, resources) {
 
         if (!graph.node(inputId)) {
           var classes = "input";
-          if (resourceCheckErrors[input.resource]) {
+          if (resourceFailing[input.resource]) {
             classes += " failing";
           }
 
