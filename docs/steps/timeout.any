@@ -1,0 +1,30 @@
+#language anatomy
+
+\use{\require{concourse/docs}}
+
+\title{\code{timeout}\aux{: enforce a time limit on a step}}{timeout-step}
+
+Any step can have a hard time limit enforced by attaching \code{timeout} and
+the number of seconds to limit it to.
+
+\define-attribute{timeout: integer}{
+  The amount of seconds to limit the step's execution time to. When exceeded,
+  the step will be interrupted, with the same semantics as aborting the build
+  (except the build will be \code{failed}, not \code{aborted}, to distinguish
+  between human intervention and timeouts being inforced).
+
+  Note that YAML supports "base 60 notation", often useful for inputting
+  human-friendly time intervals. For example, \code{3:15} means three hours and
+  fifteen minutes, and parses as its number of seconds, \code{11700}.
+}
+
+The following will run the task, and cancel it if it takes longer than 1 hour
+and 30 minutes:
+
+\codeblock{yaml}{
+plan:
+- get: foo
+- task: unit
+  file: foo/unit.yml
+  timeout: 1:30
+}

@@ -1,0 +1,28 @@
+#language anatomy
+
+\title{v0.59.0}
+
+\margin-note{
+  Run \reference{fly-sync}{\code{fly sync}} to upgrade Fly after deploying
+  v0.59.0!
+}
+
+\list{
+  Auto-scheduled builds (from \reference{get-step} steps with \code{trigger:
+  true}) will no longer queue up if a build is already enqueued. Previously a
+  job with \code{serial: true} that took a while to run would back up if enough
+  code was pushed.
+}{
+  The \hyperlink{https://github.com/concourse/pool-resource}{Pool resource}
+  will now fail early if the lock it's fetching is no longer acquired. This
+  could happen if manually triggering jobs \code{B} or \code{C} in a pipeline
+  \code{A -> B -> C} where \code{A} acquires and \code{C} releases.
+}{
+  Any step in a build plan can now have \reference{timeout-step} configured on
+  it.  If the step takes longer than the given duration (in seconds), the step
+  will be aborted in the build will fail.
+}{
+  We've bumped our Garden Linux dependency, which should fix hanging when
+  checking for new versions of \code{git} resources. This would previously
+  result in builds getting stuck in the pending state.
+}
