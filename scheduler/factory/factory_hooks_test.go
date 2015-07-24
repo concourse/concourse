@@ -1,8 +1,6 @@
 package factory_test
 
 import (
-	"time"
-
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/scheduler/factory"
 
@@ -333,7 +331,7 @@ var _ = Describe("Factory Hooks", func() {
 						Task: "those who resist our will",
 						Failure: &atc.PlanConfig{
 							Get:     "some-resource",
-							Timeout: atc.Duration(10 * time.Second),
+							Timeout: 10,
 						},
 					},
 				},
@@ -349,7 +347,7 @@ var _ = Describe("Factory Hooks", func() {
 					},
 					OnFailure: atc.Plan{
 						Timeout: &atc.TimeoutPlan{
-							Duration: atc.Duration(10 * time.Second),
+							Duration: 10,
 							Step: atc.Plan{
 								Get: &atc.GetPlan{
 									Name:     "some-resource",

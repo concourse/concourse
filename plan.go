@@ -31,8 +31,8 @@ type TryPlan struct {
 }
 
 type TimeoutPlan struct {
-	Step     Plan     `json: "step"`
-	Duration Duration `json:"duration"`
+	Step     Plan `json: "step"`
+	Duration int  `json:"duration"`
 }
 
 type PutGetPlan struct {
@@ -43,27 +43,27 @@ type PutGetPlan struct {
 type AggregatePlan []Plan
 
 type GetPlan struct {
-	Type     string   `json:"type"`
-	Name     string   `json:"name,omitempty"`
-	Resource string   `json:"resource"`
-	Pipeline string   `json:"pipeline"`
-	Source   Source   `json:"source"`
-	Params   Params   `json:"params,omitempty"`
-	Version  Version  `json:"version,omitempty"`
-	Tags     Tags     `json:"tags,omitempty"`
-	Timeout  Duration `json:"timeout,omitempty"`
+	Type     string  `json:"type"`
+	Name     string  `json:"name,omitempty"`
+	Resource string  `json:"resource"`
+	Pipeline string  `json:"pipeline"`
+	Source   Source  `json:"source"`
+	Params   Params  `json:"params,omitempty"`
+	Version  Version `json:"version,omitempty"`
+	Tags     Tags    `json:"tags,omitempty"`
+	Timeout  int     `json:"timeout,omitempty"`
 }
 
 type PutPlan struct {
-	Type      string   `json:"type"`
-	Name      string   `json:"name,omitempty"`
-	Resource  string   `json:"resource"`
-	Pipeline  string   `json:"pipeline"`
-	Source    Source   `json:"source"`
-	Params    Params   `json:"params,omitempty"`
-	GetParams Params   `json:"get_params,omitempty"`
-	Tags      Tags     `json:"tags,omitempty"`
-	Timeout   Duration `json:"timeout,omitempty"`
+	Type      string `json:"type"`
+	Name      string `json:"name,omitempty"`
+	Resource  string `json:"resource"`
+	Pipeline  string `json:"pipeline"`
+	Source    Source `json:"source"`
+	Params    Params `json:"params,omitempty"`
+	GetParams Params `json:"get_params,omitempty"`
+	Tags      Tags   `json:"tags,omitempty"`
+	Timeout   int    `json:"timeout,omitempty"`
 }
 
 func (plan PutPlan) GetPlan() GetPlan {
@@ -82,9 +82,9 @@ func (plan PutPlan) GetPlan() GetPlan {
 type TaskPlan struct {
 	Name string `json:"name,omitempty"`
 
-	Privileged bool     `json:"privileged"`
-	Tags       Tags     `json:"tags,omitempty"`
-	Timeout    Duration `json:"timeout,omitempty"`
+	Privileged bool `json:"privileged"`
+	Tags       Tags `json:"tags,omitempty"`
+	Timeout    int  `json:"timeout,omitempty"`
 
 	ConfigPath string      `json:"config_path,omitempty"`
 	Config     *TaskConfig `json:"config,omitempty"`

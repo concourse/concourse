@@ -1,10 +1,6 @@
 package atc
 
-import (
-	"errors"
-	"fmt"
-	"time"
-)
+import "fmt"
 
 const ConfigVersionHeader = "X-Concourse-Config-Version"
 const DefaultPipelineName = "main"
@@ -180,7 +176,7 @@ type PlanConfig struct {
 	Try *PlanConfig `yaml:"try,omitempty" json:"try,omitempty" mapstructure:"try"`
 
 	// used on any step to interrupt the step after a given duration
-	Timeout Duration `yaml:"timeout,omitempty" json:"timeout,omitempty" mapstructure:"timeout"`
+	Timeout int `yaml:"timeout,omitempty" json:"timeout,omitempty" mapstructure:"timeout"`
 }
 
 func (config PlanConfig) Name() string {
@@ -286,30 +282,6 @@ func (c *Condition) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	default:
 		return fmt.Errorf("unknown condition: %s (must be success/failure)", str)
 	}
-
-	return nil
-}
-
-type Duration time.Duration
-
-func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var num int64
-	if err := unmarshal(&num); err == nil {
-		*d = Duration(num)
-		return nil
-	}
-
-	var str string
-	if err := unmarshal(&str); err != nil {
-		return errors.New("invalid duration; must be string or number")
-	}
-
-	duration, err := time.ParseDuration(str)
-	if err != nil {
-		return err
-	}
-
-	*d = Duration(duration)
 
 	return nil
 }

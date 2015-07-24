@@ -1,8 +1,6 @@
 package factory_test
 
 import (
-	"time"
-
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/scheduler/factory"
 
@@ -27,7 +25,7 @@ var _ = Describe("Factory Timeout Step", func() {
 				Plan: atc.PlanSequence{
 					{
 						Task:    "first task",
-						Timeout: atc.Duration(10 * time.Second),
+						Timeout: 10,
 					},
 				},
 			}, nil, nil)
@@ -36,7 +34,7 @@ var _ = Describe("Factory Timeout Step", func() {
 
 			expected := atc.Plan{
 				Timeout: &atc.TimeoutPlan{
-					Duration: atc.Duration(10 * time.Second),
+					Duration: 10,
 					Step: atc.Plan{
 						Task: &atc.TaskPlan{
 							Name: "first task",

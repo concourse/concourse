@@ -11,7 +11,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"reflect"
-	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -210,13 +209,6 @@ func saveConfigRequestUnmarshler(r *http.Request) (atc.Config, db.PipelinePaused
 			if valKind == reflect.Map {
 				if dataKind == reflect.Map {
 					return sanitize(data)
-				}
-			}
-
-			if dataKind == reflect.String {
-				val, err := time.ParseDuration(data.(string))
-				if err == nil {
-					return val, nil
 				}
 			}
 

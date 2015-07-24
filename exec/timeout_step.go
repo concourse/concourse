@@ -5,14 +5,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/concourse/atc"
 	"github.com/tedsuo/ifrit"
 )
 
 type timeout struct {
 	step     StepFactory
 	runStep  Step
-	duration atc.Duration
+	duration time.Duration
 	timedOut bool
 }
 
@@ -20,11 +19,11 @@ var ErrStepTimedOut = errors.New("process-exceeded-timeout-limit")
 
 func Timeout(
 	step StepFactory,
-	duration atc.Duration,
+	duration int,
 ) StepFactory {
 	return timeout{
 		step:     step,
-		duration: duration,
+		duration: time.Duration(duration),
 	}
 }
 
@@ -37,7 +36,9 @@ func (ts timeout) Using(prev Step, repo *SourceRepository) Step {
 func (ts *timeout) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	runProcess := ifrit.Invoke(ts.runStep)
 
-	timer := time.NewTimer(time.Duration(ts.duration))
+	close(ready)
+
+	timer := time.NewTimer(ts.duration * time.Second)
 
 	var runErr error
 	var timeoutErr error
