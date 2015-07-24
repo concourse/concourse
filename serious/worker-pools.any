@@ -30,7 +30,7 @@ subset of the worker's tags, by setting \reference{step-tags}.
 \table-of-contents
 
 \section{The basic \code{/api/v1/workers} API}{worker-api}{
-  The most directy way to see existing workers and register new ones is via the
+  The most direct way to see existing workers and register new ones is via the
   \code{/api/v1/workers} API endpoint provided by the ATC.
 
   It supports the following methods:
