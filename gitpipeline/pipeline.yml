@@ -193,7 +193,7 @@ jobs:
       - get: some-git-resource
         trigger: true
       - task: passing-task
-        timeout: 10m
+        timeout: 10
         config:
           platform: linux
           image: {{testflight-helper-image}}
@@ -206,7 +206,7 @@ jobs:
       - get: some-git-resource
         trigger: true
       - task: timeout-task
-        timeout: 5s
+        timeout: 5
         config:
           platform: linux
           image: {{testflight-helper-image}}
