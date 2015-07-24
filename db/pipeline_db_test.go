@@ -685,12 +685,25 @@ var _ = Describe("PipelineDB", func() {
 				Ω(created).Should(BeTrue())
 			})
 
-			It("does create a new build if one is already saved but it is not pending", func() {
+			It("does create a new build if one is already saved but it has already locked down its inputs", func() {
 				build, created, err := pipelineDB.CreateJobBuildForCandidateInputs("some-job")
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(created).Should(BeTrue())
 
 				err = pipelineDB.UseInputsForBuild(build.ID, inputs)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(created).Should(BeTrue())
+			})
+
+			It("does create a new build if one is already saved but does not have determined inputs but is not running (errored)", func() {
+				build, created, err := pipelineDB.CreateJobBuildForCandidateInputs("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(created).Should(BeTrue())
+
+				err = sqlDB.ErrorBuild(build.ID, errors.New("disaster"))
 				Ω(err).ShouldNot(HaveOccurred())
 
 				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-job")
