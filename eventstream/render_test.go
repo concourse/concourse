@@ -73,9 +73,9 @@ var _ = Describe("V1.0 Renderer", func() {
 	Context("when an InitializeTask event is received", func() {
 		BeforeEach(func() {
 			receivedEvents <- event.InitializeTask{
-				TaskConfig: atc.TaskConfig{
+				TaskConfig: event.TaskConfig{
 					Image: "some-image",
-					Run: atc.TaskRunConfig{
+					Run: event.TaskRunConfig{
 						Path: "/some/script",
 						Args: []string{"arg1", "arg2"},
 					},

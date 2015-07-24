@@ -5,13 +5,12 @@ import (
 	"io"
 	"strings"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/event"
 	"github.com/mgutz/ansi"
 )
 
 func Render(dst io.Writer, src EventStream) int {
-	var buildConfig atc.TaskConfig
+	var buildConfig event.TaskConfig
 
 	exitStatus := 0
 
