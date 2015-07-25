@@ -30,6 +30,21 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
 
+- name: concourse-concourse-ci
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse.git
+    branch: develop
+    paths: [ci/dockerfiles/concourse-ci]
+
+- name: concourse-concourse-ci-image
+  type: docker-image
+  source:
+    repository: concourse/concourse-ci
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
 jobs:
 - name: build-rubinius
   plan:
@@ -45,3 +60,9 @@ jobs:
   - put: concourse-docs-ci-image
     params: {build: concourse-docs-ci/ci/dockerfiles/docs-ci}
 
+- name: build-concourse-ci
+  plan:
+  - get: concourse-concourse-ci
+    params: {submodules: none}
+  - put: concourse-concourse-ci-image
+    params: {build: concourse-concourse-ci/ci/dockerfiles/concourse-ci}
