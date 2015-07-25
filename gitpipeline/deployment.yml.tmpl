@@ -18,7 +18,6 @@ jobs:
     persistent_disk: 10240
     resource_pool: concourse
     templates:
-      - {release: concourse, name: consul-agent}
       - {release: concourse, name: atc}
       - {release: concourse, name: tsa}
       - {release: concourse, name: groundcrew}
@@ -32,22 +31,30 @@ jobs:
         default_check_interval: 1s
 
         postgresql:
+          address: 127.0.0.1:5432
           role: &atc-role
             name: atc
             password: dummy-password
+
+      tsa:
+        atc:
+          address: 127.0.0.1:8080
 
       postgresql:
         databases: [{name: atc}]
         roles:
           - *atc-role
 
+      groundcrew:
+        tsa:
+          host: 127.0.0.1
+
+        garden:
+          address: 127.0.0.1:7777
+
       garden:
         listen_network: tcp
         listen_address: 0.0.0.0:7777
-
-        # cannot enforce quotas in bosh-lite
-        disk_quota_enabled: false
-
         allow_host_access: true
 
       consul:
