@@ -25,4 +25,14 @@
   We've bumped our Garden Linux dependency, which should fix hanging when
   checking for new versions of \code{git} resources. This would previously
   result in builds getting stuck in the pending state.
+}{
+  Resources that are failing to check for new versions will now show up as the
+  warning color even if you aren't logged in. The output from the check script
+  is still only shown to authenticated users.
+}{
+  The GitHub release resource now allows you to set the commitish to use for the
+  release tag. See the
+  \hyperlink{https://github.com/concourse/github-release-resource}{README} for
+  details.
 }
+
