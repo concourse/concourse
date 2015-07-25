@@ -49,6 +49,9 @@ type DeploymentTemplateData struct {
 }
 
 var _ = BeforeSuite(func() {
+	SetDefaultEventuallyTimeout(time.Minute)
+	SetDefaultEventuallyPollingInterval(time.Second)
+
 	gardenLinuxVersion := os.Getenv("GARDEN_LINUX_VERSION")
 	Ω(gardenLinuxVersion).ShouldNot(BeEmpty(), "must set $GARDEN_LINUX_VERSION")
 
@@ -69,7 +72,7 @@ var _ = BeforeSuite(func() {
 	bosh.Deploy("deployment.yml.tmpl", deploymentData)
 
 	gardenClient = client.New(connection.New("tcp", "10.244.15.2:7777"))
-	Eventually(gardenClient.Ping, 10*time.Second).ShouldNot(HaveOccurred())
+	Eventually(gardenClient.Ping).ShouldNot(HaveOccurred())
 
 	guidserver.Start(guidServerRootfs, gardenClient)
 
@@ -82,7 +85,7 @@ var _ = BeforeSuite(func() {
 
 	atcURL = "http://10.244.15.2:8080"
 
-	Eventually(errorPolling(atcURL), 1*time.Minute).ShouldNot(HaveOccurred())
+	Eventually(errorPolling(atcURL)).ShouldNot(HaveOccurred())
 
 	configureCmd := exec.Command(
 		flyBin,
@@ -109,11 +112,11 @@ var _ = BeforeSuite(func() {
 	configure, err := gexec.Start(configureCmd, GinkgoWriter, GinkgoWriter)
 	Ω(err).ShouldNot(HaveOccurred())
 
-	Eventually(configure, 10).Should(gbytes.Say("apply configuration?"))
+	Eventually(configure).Should(gbytes.Say("apply configuration?"))
 
 	fmt.Fprintln(stdin, "y")
 
-	Eventually(configure, 10).Should(gexec.Exit(0))
+	Eventually(configure).Should(gexec.Exit(0))
 })
 
 func TestGitPipeline(t *testing.T) {

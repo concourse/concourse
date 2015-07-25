@@ -3,7 +3,6 @@ package git_pipeline_test
 import (
 	"fmt"
 	"os/exec"
-	"time"
 
 	"github.com/concourse/testflight/guidserver"
 	"github.com/mgutz/ansi"
@@ -17,17 +16,17 @@ var _ = Describe("A pipeline with git resources", func() {
 	It("triggers when the repo changes", func() {
 		By("building the initial commit")
 		guid1 := gitServer.Commit()
-		Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement(guid1))
+		Eventually(guidserver.ReportingGuids).Should(ContainElement(guid1))
 
 		By("building another commit")
 		guid2 := gitServer.Commit()
-		Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement(guid2))
+		Eventually(guidserver.ReportingGuids).Should(ContainElement(guid2))
 	})
 
 	It("performs output conditions correctly", func() {
 		By("executing the build when a commit is made")
 		committedGuid := gitServer.Commit()
-		Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement(committedGuid))
+		Eventually(guidserver.ReportingGuids).Should(ContainElement(committedGuid))
 
 		masterSHA := gitServer.RevParse("master")
 		Ω(masterSHA).ShouldNot(BeEmpty())
@@ -35,42 +34,42 @@ var _ = Describe("A pipeline with git resources", func() {
 		By("performing on_success outputs on success")
 		Eventually(func() string {
 			return successGitServer.RevParse("success")
-		}, 30*time.Second, 1*time.Second).Should(Equal(masterSHA))
+		}).Should(Equal(masterSHA))
 
 		By("performing on_failure steps on failure")
 		Eventually(func() string {
 			return failureGitServer.RevParse("failure")
-		}, 30*time.Second, 1*time.Second).Should(Equal(masterSHA))
+		}).Should(Equal(masterSHA))
 
 		By("not performing on_success steps on failure or on_failure steps on success")
 		Consistently(func() string {
 			return noUpdateGitServer.RevParse("no-update")
-		}, 10*time.Second, 1*time.Second).Should(BeEmpty())
+		}).Should(BeEmpty())
 
 		By("performing ensure steps on success")
 		Eventually(func() string {
 			return ensureSuccessGitServer.RevParse("ensure-success")
-		}, 30*time.Second, 1*time.Second).Should(Equal(masterSHA))
+		}).Should(Equal(masterSHA))
 
 		By("peforming ensure steps on failure")
 		Eventually(func() string {
 			return ensureFailureGitServer.RevParse("ensure-failure")
-		}, 30*time.Second, 1*time.Second).Should(Equal(masterSHA))
+		}).Should(Equal(masterSHA))
 	})
 
 	It("performs build matrixes correctly", func() {
 		By("executing the build when a commit is made")
 		committedGuid := gitServer.Commit()
 
-		Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement("passing-unit-1/file passing-unit-2/file " + committedGuid))
+		Eventually(guidserver.ReportingGuids).Should(ContainElement("passing-unit-1/file passing-unit-2/file " + committedGuid))
 
-		Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement("failed " + committedGuid))
+		Eventually(guidserver.ReportingGuids).Should(ContainElement("failed " + committedGuid))
 	})
 
 	Describe("try", func() {
 		It("proceeds with build plan if wrapped task fails", func() {
 			committedGuid := gitServer.Commit()
-			Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement(committedGuid))
+			Eventually(guidserver.ReportingGuids).Should(ContainElement(committedGuid))
 
 			fly := exec.Command(
 				flyBin,
@@ -82,16 +81,16 @@ var _ = Describe("A pipeline with git resources", func() {
 
 			flyS := start(fly)
 
-			Eventually(flyS, 30*time.Second).Should(gbytes.Say("initializing"))
-			Eventually(flyS, 30*time.Second).Should(gbytes.Say("passing-task succeeded"))
-			Eventually(flyS, 10*time.Second).Should(gexec.Exit(0))
+			Eventually(flyS).Should(gbytes.Say("initializing"))
+			Eventually(flyS).Should(gbytes.Say("passing-task succeeded"))
+			Eventually(flyS).Should(gexec.Exit(0))
 		})
 	})
 
 	Describe("a job with a failing task", func() {
 		It("causes the job to fail", func() {
 			committedGuid := gitServer.Commit()
-			Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement(committedGuid))
+			Eventually(guidserver.ReportingGuids).Should(ContainElement(committedGuid))
 
 			fly := exec.Command(
 				flyBin,
@@ -103,16 +102,16 @@ var _ = Describe("A pipeline with git resources", func() {
 
 			flyS := start(fly)
 
-			Eventually(flyS, 30*time.Second).Should(gbytes.Say("initializing"))
-			Eventually(flyS, 30*time.Second).Should(gbytes.Say("failed"))
-			Eventually(flyS, 10*time.Second).Should(gexec.Exit(1))
+			Eventually(flyS).Should(gbytes.Say("initializing"))
+			Eventually(flyS).Should(gbytes.Say("failed"))
+			Eventually(flyS).Should(gexec.Exit(1))
 		})
 	})
 
 	Describe("a timeout on a task", func() {
 		It("does not effect the task if it finishes before the timeout", func() {
 			committedGuid := gitServer.Commit()
-			Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement(committedGuid))
+			Eventually(guidserver.ReportingGuids).Should(ContainElement(committedGuid))
 
 			fly := exec.Command(
 				flyBin,
@@ -124,14 +123,14 @@ var _ = Describe("A pipeline with git resources", func() {
 
 			flyS := start(fly)
 
-			Eventually(flyS, 30*time.Second).Should(gbytes.Say("initializing"))
-			Eventually(flyS, 30*time.Second).Should(gbytes.Say("passing-task succeeded"))
-			Eventually(flyS, 10*time.Second).Should(gexec.Exit(0))
+			Eventually(flyS).Should(gbytes.Say("initializing"))
+			Eventually(flyS).Should(gbytes.Say("passing-task succeeded"))
+			Eventually(flyS).Should(gexec.Exit(0))
 		})
 
 		It("interrupts the task if it takes longer than the timeout", func() {
 			committedGuid := gitServer.Commit()
-			Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement(committedGuid))
+			Eventually(guidserver.ReportingGuids).Should(ContainElement(committedGuid))
 
 			fly := exec.Command(
 				flyBin,
@@ -143,9 +142,9 @@ var _ = Describe("A pipeline with git resources", func() {
 
 			flyS := start(fly)
 
-			Eventually(flyS, 30*time.Second).Should(gbytes.Say("initializing"))
-			Eventually(flyS, 30*time.Second).Should(gbytes.Say("interrupted"))
-			Eventually(flyS, 10*time.Second).Should(gexec.Exit(1))
+			Eventually(flyS).Should(gbytes.Say("initializing"))
+			Eventually(flyS).Should(gbytes.Say("interrupted"))
+			Eventually(flyS).Should(gexec.Exit(1))
 		})
 	})
 })

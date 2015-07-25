@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"syscall"
-	"time"
 
 	"github.com/mgutz/ansi"
 	. "github.com/onsi/ginkgo"
@@ -94,7 +93,7 @@ run:
 
 		session := start(fly)
 
-		Eventually(session, 30*time.Second).Should(gexec.Exit(0))
+		Eventually(session).Should(gexec.Exit(0))
 
 		Ω(session).Should(gbytes.Say("some output"))
 		Ω(session).Should(gbytes.Say("FOO is 1"))
@@ -119,17 +118,17 @@ cat < /tmp/fifo
 
 			flyS := start(fly)
 
-			Eventually(flyS, 30*time.Second).Should(gbytes.Say("waiting"))
+			Eventually(flyS).Should(gbytes.Say("waiting"))
 
 			hijack := exec.Command(flyBin, "-t", atcURL, "hijack", "--", "sh", "-c", "echo marco > /tmp/fifo")
 
 			hijackS := start(hijack)
 
-			Eventually(flyS, 15*time.Second).Should(gbytes.Say("marco"))
+			Eventually(flyS).Should(gbytes.Say("marco"))
 
-			Eventually(hijackS, 5*time.Second).Should(gexec.Exit())
+			Eventually(hijackS).Should(gexec.Exit())
 
-			Eventually(flyS, 10*time.Second).Should(gexec.Exit(0))
+			Eventually(flyS).Should(gexec.Exit(0))
 		})
 	})
 
@@ -152,14 +151,14 @@ wait
 
 			flyS := start(fly)
 
-			Eventually(flyS, 30*time.Second).Should(gbytes.Say("waiting"))
+			Eventually(flyS).Should(gbytes.Say("waiting"))
 
 			flyS.Signal(syscall.SIGTERM)
 
-			Eventually(flyS, 10*time.Second).Should(gbytes.Say("task got sigterm"))
+			Eventually(flyS).Should(gbytes.Say("task got sigterm"))
 
 			// build should have been aborted
-			Eventually(flyS, 10*time.Second).Should(gexec.Exit(3))
+			Eventually(flyS).Should(gexec.Exit(3))
 		})
 	})
 })

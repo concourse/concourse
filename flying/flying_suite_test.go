@@ -22,6 +22,9 @@ type GardenLinuxDeploymentData struct {
 }
 
 var _ = BeforeSuite(func() {
+	SetDefaultEventuallyTimeout(time.Minute)
+	SetDefaultEventuallyPollingInterval(time.Second)
+
 	var err error
 
 	gardenLinuxVersion := os.Getenv("GARDEN_LINUX_VERSION")
@@ -41,7 +44,7 @@ var _ = BeforeSuite(func() {
 
 	bosh.Deploy("noop.yml.tmpl", gardenLinuxDeploymentData)
 
-	Eventually(errorPolling("http://10.244.14.2:8080"), 1*time.Minute).ShouldNot(HaveOccurred())
+	Eventually(errorPolling("http://10.244.14.2:8080")).ShouldNot(HaveOccurred())
 })
 
 func TestFlying(t *testing.T) {
