@@ -1,0 +1,9 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -x
+
+pushd ${GOPATH}/src/github.com/concourse/atc/web/assets
+  npm install
+  $(npm bin)/gulp jasmine-cli
+popd

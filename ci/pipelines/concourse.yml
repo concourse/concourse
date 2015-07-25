@@ -52,8 +52,11 @@ jobs:
   plan:
   - get: concourse
     trigger: true
-  - task: build
-    file: concourse/ci/atc.yml
+  - aggregate:
+    - task: go-unit
+      file: concourse/ci/atc-go.yml
+    - task: js-unit
+      file: concourse/ci/atc-js.yml
 
 - name: baggageclaim
   public: true

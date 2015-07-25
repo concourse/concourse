@@ -1,0 +1,9 @@
+---
+platform: linux
+image: docker:///concourse/atc-ci
+
+inputs:
+- name: concourse
+
+run:
+  path: concourse/ci/scripts/atc-js

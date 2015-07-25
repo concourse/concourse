@@ -3,7 +3,7 @@ platform: linux
 image: docker:///concourse/atc-ci
 
 inputs:
-  - name: concourse
+- name: concourse
 
 run:
-  path: concourse/ci/scripts/atc
+  path: concourse/ci/scripts/atc-go
