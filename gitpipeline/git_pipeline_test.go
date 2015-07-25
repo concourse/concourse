@@ -32,27 +32,27 @@ var _ = Describe("A pipeline with git resources", func() {
 		masterSHA := gitServer.RevParse("master")
 		Ω(masterSHA).ShouldNot(BeEmpty())
 
-		By("performing on: [success] outputs on success")
+		By("performing on_success outputs on success")
 		Eventually(func() string {
 			return successGitServer.RevParse("success")
 		}, 30*time.Second, 1*time.Second).Should(Equal(masterSHA))
 
-		By("performing on: [failure] outputs on failure")
+		By("performing on_failure steps on failure")
 		Eventually(func() string {
 			return failureGitServer.RevParse("failure")
 		}, 30*time.Second, 1*time.Second).Should(Equal(masterSHA))
 
-		By("not performing on: [success] outputs on failure")
+		By("not performing on_success steps on failure or on_failure steps on success")
 		Consistently(func() string {
 			return noUpdateGitServer.RevParse("no-update")
 		}, 10*time.Second, 1*time.Second).Should(BeEmpty())
 
-		By("always performs ensure on: [success]")
+		By("performing ensure steps on success")
 		Eventually(func() string {
 			return ensureSuccessGitServer.RevParse("ensure-success")
 		}, 30*time.Second, 1*time.Second).Should(Equal(masterSHA))
 
-		By("always performs ensure on: [failure]")
+		By("peforming ensure steps on failure")
 		Eventually(func() string {
 			return ensureFailureGitServer.RevParse("ensure-failure")
 		}, 30*time.Second, 1*time.Second).Should(Equal(masterSHA))
@@ -109,8 +109,8 @@ var _ = Describe("A pipeline with git resources", func() {
 		})
 	})
 
-	Describe("duration", func() {
-		It("does not effect tasks that run successfully before the duration is up", func() {
+	Describe("a timeout on a task", func() {
+		It("does not effect the task if it finishes before the timeout", func() {
 			committedGuid := gitServer.Commit()
 			Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement(committedGuid))
 
@@ -129,7 +129,7 @@ var _ = Describe("A pipeline with git resources", func() {
 			Eventually(flyS, 10*time.Second).Should(gexec.Exit(0))
 		})
 
-		It("interrupts a task if it goes longer then the duration", func() {
+		It("interrupts the task if it takes longer than the timeout", func() {
 			committedGuid := gitServer.Commit()
 			Eventually(guidserver.ReportingGuids, 5*time.Minute, 10*time.Second).Should(ContainElement(committedGuid))
 
