@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web/group"
@@ -32,9 +33,8 @@ func NewServer(logger lager.Logger, template *template.Template, validator auth.
 }
 
 type TemplateData struct {
-	Resource   atc.ResourceConfig
-	DBResource db.SavedResource
-	History    []*db.VersionHistory
+	Resource atc.Resource
+	History  []*db.VersionHistory
 
 	FailingToCheck bool
 	CheckError     error
@@ -54,7 +54,7 @@ type ResourcesDB interface {
 
 var ErrResourceConfigNotFound = errors.New("could not find resource")
 
-func FetchTemplateData(resourceDB ResourcesDB, resourceName string) (TemplateData, error) {
+func FetchTemplateData(resourceDB ResourcesDB, authenticated bool, resourceName string) (TemplateData, error) {
 	config, _, err := resourceDB.GetConfig()
 	if err != nil {
 		return TemplateData{}, err
@@ -70,14 +70,15 @@ func FetchTemplateData(resourceDB ResourcesDB, resourceName string) (TemplateDat
 		return TemplateData{}, err
 	}
 
-	resource, err := resourceDB.GetResource(configResource.Name)
+	dbResource, err := resourceDB.GetResource(configResource.Name)
 	if err != nil {
 		return TemplateData{}, err
 	}
 
+	resource := present.Resource(configResource, config.Groups, dbResource, authenticated)
+
 	templateData := TemplateData{
-		Resource:     configResource,
-		DBResource:   resource,
+		Resource:     resource,
 		History:      history,
 		PipelineName: resourceDB.GetPipelineName(),
 		GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
@@ -97,7 +98,8 @@ func FetchTemplateData(resourceDB ResourcesDB, resourceName string) (TemplateDat
 func (server *server) GetResource(pipelineDB db.PipelineDB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resourceName := r.FormValue(":resource")
-		templateData, err := FetchTemplateData(pipelineDB, resourceName)
+		authenticated := server.validator.IsAuthenticated(r)
+		templateData, err := FetchTemplateData(pipelineDB, authenticated, resourceName)
 
 		switch err {
 		case ErrResourceConfigNotFound:

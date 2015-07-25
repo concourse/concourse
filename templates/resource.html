@@ -10,13 +10,13 @@
     <div class="steps">
       <div class="build-step">
         <div class="header">
-          {{if .DBResource.Paused}}
+          {{if .Resource.Paused}}
             <span class="btn-pause fl enabled js-pauseUnpause"><i class="fa fa-fw fa-play"></i></span>
           {{else}}
             <span class="btn-pause fl disabled js-pauseUnpause"><i class="fa fa-fw fa-pause"></i></span>
           {{end}}
 
-          {{if .DBResource.FailingToCheck}}
+          {{if .Resource.FailingToCheck}}
             <h3 class="js-resourceStatusText" data-initial="checking failed">checking failed</h3>
             <i class="fr errored fa fa-fw fa-exclamation-triangle"></i>
           {{else}}
@@ -25,9 +25,9 @@
           {{end}}
         </div>
 
-        {{if .DBResource.CheckError}}
+        {{if .Resource.FailingToCheck}}
           <div class="step-body">
-            <pre>{{.DBResource.CheckError.Error}}</pre>
+            <pre>{{.Resource.CheckError}}</pre>
           </div>
         {{end}}
       </div>
