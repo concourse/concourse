@@ -27,7 +27,7 @@ var _ = Describe("FetchTemplateData", func() {
 		})
 
 		It("returns an error if the config could not be loaded", func() {
-			_, err := FetchTemplateData(fakeDB, "resource-name")
+			_, err := FetchTemplateData(fakeDB, false, "resource-name")
 			Ω(err).Should(HaveOccurred())
 		})
 	})
@@ -57,7 +57,7 @@ var _ = Describe("FetchTemplateData", func() {
 		})
 
 		It("returns not found if the resource cannot be found in the config", func() {
-			_, err := FetchTemplateData(fakeDB, "not-a-resource-name")
+			_, err := FetchTemplateData(fakeDB, false, "not-a-resource-name")
 			Ω(err).Should(HaveOccurred())
 			Ω(err).Should(MatchError(ErrResourceConfigNotFound))
 		})
@@ -68,20 +68,19 @@ var _ = Describe("FetchTemplateData", func() {
 			})
 
 			It("returns an error if the resource's history could not be retreived", func() {
-				_, err := FetchTemplateData(fakeDB, "resource-name")
+				_, err := FetchTemplateData(fakeDB, false, "resource-name")
 				Ω(err).Should(HaveOccurred())
 			})
 		})
 
 		Context("when the resource history lookup returns history", func() {
-
 			Context("when the resource lookup returns an error", func() {
 				BeforeEach(func() {
 					fakeDB.GetResourceReturns(db.SavedResource{}, errors.New("disaster"))
 				})
 
 				It("returns an error if the resource's history could not be retreived", func() {
-					_, err := FetchTemplateData(fakeDB, "resource-name")
+					_, err := FetchTemplateData(fakeDB, false, "resource-name")
 					Ω(err).Should(HaveOccurred())
 				})
 			})
@@ -92,8 +91,9 @@ var _ = Describe("FetchTemplateData", func() {
 
 				BeforeEach(func() {
 					resource = db.SavedResource{
-						CheckError: nil,
-						Paused:     false,
+						CheckError:   errors.New("a disaster!"),
+						Paused:       false,
+						PipelineName: "pipeline",
 						Resource: db.Resource{
 							Name: "resource-name",
 						},
@@ -114,24 +114,62 @@ var _ = Describe("FetchTemplateData", func() {
 					fakeDB.GetResourceHistoryReturns(history, nil)
 				})
 
-				It("has the correct template data", func() {
-					templateData, err := FetchTemplateData(fakeDB, "resource-name")
-					Ω(err).ShouldNot(HaveOccurred())
+				Context("when we are logged in", func() {
+					authenticated := true
 
-					Ω(templateData.GroupStates).Should(ConsistOf([]group.State{
-						{
-							Name:    "group-with-resource",
-							Enabled: true,
-						},
-						{
-							Name:    "group-without-resource",
-							Enabled: false,
-						},
-					}))
+					It("has the correct template data", func() {
+						templateData, err := FetchTemplateData(fakeDB, authenticated, "resource-name")
+						Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(templateData.History).Should(Equal(history))
-					Ω(templateData.Resource).Should(Equal(configResource))
-					Ω(templateData.DBResource).Should(Equal(resource))
+						Ω(templateData.GroupStates).Should(ConsistOf([]group.State{
+							{
+								Name:    "group-with-resource",
+								Enabled: true,
+							},
+							{
+								Name:    "group-without-resource",
+								Enabled: false,
+							},
+						}))
+
+						Ω(templateData.History).Should(Equal(history))
+						Ω(templateData.Resource).Should(Equal(atc.Resource{
+							Name:           "resource-name",
+							URL:            "/pipelines/pipeline/resources/resource-name",
+							Groups:         []string{"group-with-resource"},
+							FailingToCheck: true,
+							CheckError:     "a disaster!",
+						}))
+					})
+				})
+
+				Context("when we are not logged in", func() {
+					authenticated := false
+
+					It("has the correct template data", func() {
+						templateData, err := FetchTemplateData(fakeDB, authenticated, "resource-name")
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Ω(templateData.GroupStates).Should(ConsistOf([]group.State{
+							{
+								Name:    "group-with-resource",
+								Enabled: true,
+							},
+							{
+								Name:    "group-without-resource",
+								Enabled: false,
+							},
+						}))
+
+						Ω(templateData.History).Should(Equal(history))
+						Ω(templateData.Resource).Should(Equal(atc.Resource{
+							Name:           "resource-name",
+							URL:            "/pipelines/pipeline/resources/resource-name",
+							Groups:         []string{"group-with-resource"},
+							FailingToCheck: true,
+							CheckError:     "",
+						}))
+					})
 				})
 			})
 		})
