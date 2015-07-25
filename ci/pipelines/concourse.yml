@@ -330,15 +330,19 @@ jobs:
   plan:
   - aggregate:
     - get: final-release
-      trigger: true
       passed: [shipit]
-    - get: garden-linux
       trigger: true
+    - get: garden-linux
       passed: [shipit]
       resource: garden-linux
-    - get: version
       trigger: true
+    - get: version
       passed: [shipit]
+      trigger: true
+    - get: concourse-master
+      passed: [shipit]
+      params: {submodules: none}
+      trigger: true
     - get: concourse
       resource: concourse-develop
       params: {submodules: none}
@@ -351,11 +355,27 @@ jobs:
           VERSION_FILE: version/number
     - task: rename-release
       file: concourse/ci/rename-release.yml
+    - task: generate-commitish
+      config:
+        platform: linux
+
+        image: docker:///concourse/git-resource
+
+        inputs:
+        - name: concourse-master
+
+        run:
+          path: sh
+          args:
+          - -c
+          - |
+            git -C concourse-master rev-parse HEAD > commitish
   - put: github-release
     params:
       name: build-docs/concourse/release-name
       tag: build-docs/concourse/release-name
       body: build-docs/concourse/notes.md
+      commitish: generate-commitish/commitish
       globs:
       - final-release/*.tgz
       - rename-release/garden-linux/garden-linux-*.tgz
