@@ -68,7 +68,7 @@ var _ = BeforeSuite(func() {
 
 	bosh.Deploy("deployment.yml.tmpl", deploymentData)
 
-	gardenClient = client.New(connection.New("tcp", "10.244.16.2:7777"))
+	gardenClient = client.New(connection.New("tcp", "10.244.15.2:7777"))
 	Eventually(gardenClient.Ping, 10*time.Second).ShouldNot(HaveOccurred())
 
 	guidserver.Start(guidServerRootfs, gardenClient)
