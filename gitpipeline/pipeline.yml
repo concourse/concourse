@@ -51,7 +51,7 @@ jobs:
           params:
             CURL_COMMAND: {{guid-server-curl-command}}
           run:
-            path: bash
+            path: sh
             args: ["-c", "tail -1 guids | $CURL_COMMAND"]
         ensure:
           put: some-git-resource-ensure-success
@@ -70,28 +70,27 @@ jobs:
     plan:
       - get: some-git-resource
         trigger: true
-      - task: curl-server
+      - task: fail
         config:
           platform: linux
-          image: {{testflight-helper-image}}
           inputs:
             - name: some-git-resource
               path: .
           run:
-            path: bash
+            path: sh
             args: ["-c", "exit 1"]
         ensure:
           put: some-git-resource-ensure-failure
           params:
-            repository: curl-server
+            repository: fail
         on_success:
           put: some-git-resource-no-update
           params:
-            repository: curl-server
+            repository: fail
         on_failure:
           put: some-git-resource-failure
           params:
-            repository: curl-server
+            repository: fail
 
   - name: fancy-build-matrix
     plan:
@@ -101,14 +100,12 @@ jobs:
           - task: passing-unit-1
             config:
               platform: linux
-              image: {{testflight-helper-image}}
               run:
                 path: touch
                 args: [file]
           - task: passing-unit-2
             config:
               platform: linux
-              image: {{testflight-helper-image}}
               run:
                 path: touch
                 args: [file]
@@ -123,20 +120,18 @@ jobs:
           params:
             CURL_COMMAND: {{guid-server-curl-command}}
           run:
-            path: bash
+            path: sh
             args: ["-c", '{ echo $(ls passing-unit-*/file) $(tail -1 some-git-resource/guids); } | $CURL_COMMAND']
       - aggregate:
           - task: second-passing-unit-1
             config:
               platform: linux
-              image: {{testflight-helper-image}}
               run:
                 path: sh
                 args: [-c, exit 0]
           - task: second-failing-unit-2
             config:
               platform: linux
-              image: {{testflight-helper-image}}
               run:
                 path: sh
                 args: [-c, exit 1]
@@ -150,7 +145,7 @@ jobs:
           params:
             CURL_COMMAND: {{guid-server-curl-command}}
           run:
-            path: bash
+            path: sh
             args: ["-c", '{ echo failed $(tail -1 some-git-resource/guids); } | $CURL_COMMAND']
 
   - name: try-job
@@ -161,19 +156,17 @@ jobs:
           task: failing-task
           config:
             platform: linux
-            image: {{testflight-helper-image}}
             run:
-              path: bash
+              path: sh
               args: ["-c", "exit 1"]
       - task: passing-task
         config:
           platform: linux
-          image: {{testflight-helper-image}}
           inputs:
             - name: some-git-resource
               path: .
           run:
-            path: bash
+            path: sh
             args: ["-c", "echo passing-task succeeded"]
 
   - name: failing-job
@@ -183,9 +176,8 @@ jobs:
       - task: failing-task
         config:
           platform: linux
-          image: {{testflight-helper-image}}
           run:
-            path: bash
+            path: sh
             args: ["-c", "exit 1"]
 
   - name: duration-successful-job
@@ -196,9 +188,8 @@ jobs:
         timeout: 10
         config:
           platform: linux
-          image: {{testflight-helper-image}}
           run:
-            path: bash
+            path: sh
             args: ["-c", "echo passing-task succeeded"]
 
   - name: duration-fail-job
@@ -209,8 +200,7 @@ jobs:
         timeout: 5
         config:
           platform: linux
-          image: {{testflight-helper-image}}
           run:
-            path: bash
+            path: sh
             args: ["-c", "sleep 10"]
 

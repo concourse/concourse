@@ -21,7 +21,11 @@ import (
 	"time"
 )
 
-const helperRootfs = "docker:///concourse/testflight-helper"
+// has ruby, curl
+const guidServerRootfs = "/var/vcap/packages/bosh_deployment_resource"
+
+// has git, curl
+const gitServerRootfs = "/var/vcap/packages/git_resource"
 
 var flyBin string
 
@@ -39,15 +43,9 @@ var (
 	atcURL string
 )
 
-type GardenLinuxDeploymentData struct {
-	DirectorUUID string
-
+type DeploymentTemplateData struct {
+	DirectorUUID       string
 	GardenLinuxVersion string
-}
-
-type GitPipelineTemplate struct {
-	DirectorUUID string
-	GardenLinuxDeploymentData
 }
 
 var _ = BeforeSuite(func() {
@@ -61,34 +59,26 @@ var _ = BeforeSuite(func() {
 
 	directorUUID := bosh.DirectorUUID()
 
-	bosh.DeleteDeployment("garden-testflight")
 	bosh.DeleteDeployment("concourse-testflight")
 
-	gardenLinuxDeploymentData := GardenLinuxDeploymentData{
+	deploymentData := DeploymentTemplateData{
 		DirectorUUID:       directorUUID,
 		GardenLinuxVersion: gardenLinuxVersion,
 	}
 
-	bosh.Deploy("garden.yml.tmpl", gardenLinuxDeploymentData)
+	bosh.Deploy("deployment.yml.tmpl", deploymentData)
 
 	gardenClient = client.New(connection.New("tcp", "10.244.16.2:7777"))
 	Eventually(gardenClient.Ping, 10*time.Second).ShouldNot(HaveOccurred())
 
-	guidserver.Start(helperRootfs, gardenClient)
+	guidserver.Start(guidServerRootfs, gardenClient)
 
-	gitServer = gitserver.Start(helperRootfs, gardenClient)
-	successGitServer = gitserver.Start(helperRootfs, gardenClient)
-	failureGitServer = gitserver.Start(helperRootfs, gardenClient)
-	noUpdateGitServer = gitserver.Start(helperRootfs, gardenClient)
-	ensureSuccessGitServer = gitserver.Start(helperRootfs, gardenClient)
-	ensureFailureGitServer = gitserver.Start(helperRootfs, gardenClient)
-
-	templateData := GitPipelineTemplate{
-		DirectorUUID:              directorUUID,
-		GardenLinuxDeploymentData: gardenLinuxDeploymentData,
-	}
-
-	bosh.Deploy("deployment.yml.tmpl", templateData)
+	gitServer = gitserver.Start(gitServerRootfs, gardenClient)
+	successGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+	failureGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+	noUpdateGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+	ensureSuccessGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+	ensureFailureGitServer = gitserver.Start(gitServerRootfs, gardenClient)
 
 	atcURL = "http://10.244.15.2:8080"
 
@@ -107,7 +97,7 @@ var _ = BeforeSuite(func() {
 		"-v", "success-git-server="+successGitServer.URI(),
 		"-v", "ensure-success-git-server="+ensureSuccessGitServer.URI(),
 		"-v", "ensure-failure-git-server="+ensureFailureGitServer.URI(),
-		"-v", "testflight-helper-image="+helperRootfs,
+		"-v", "testflight-helper-image="+guidServerRootfs,
 		"--paused=false",
 	)
 

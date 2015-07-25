@@ -14,7 +14,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-const gardenDeploymentIP = "10.244.16.2"
+const gardenDeploymentIP = "10.244.15.2"
 
 type Server struct {
 	gardenClient garden.Client
@@ -33,7 +33,7 @@ func Start(helperRootfs string, gardenClient garden.Client) *Server {
 	Ω(err).ShouldNot(HaveOccurred())
 
 	process, err := container.Run(garden.ProcessSpec{
-		Path: "bash",
+		Path: "sh",
 		Args: []string{"-c", `
 git config --global user.email dummy@example.com
 git config --global user.name "Dummy User"
@@ -105,7 +105,7 @@ func (server *Server) Commit() string {
 	Ω(err).ShouldNot(HaveOccurred())
 
 	process, err := server.container.Run(garden.ProcessSpec{
-		Path: "bash",
+		Path: "sh",
 		Args: []string{
 			"-c",
 			fmt.Sprintf(
@@ -143,7 +143,7 @@ func (server *Server) RevParse(ref string) string {
 	buf := new(bytes.Buffer)
 
 	process, err := server.container.Run(garden.ProcessSpec{
-		Path: "bash",
+		Path: "sh",
 		Args: []string{"-e", "-c",
 			fmt.Sprintf(
 				`

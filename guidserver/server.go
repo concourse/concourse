@@ -13,7 +13,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-const gardenDeploymentIP = "10.244.16.2"
+const gardenDeploymentIP = "10.244.15.2"
 
 const amazingRubyServer = `
 require 'webrick'
