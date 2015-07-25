@@ -116,17 +116,6 @@ var _ = BeforeSuite(func() {
 	Eventually(configure, 10).Should(gexec.Exit(0))
 })
 
-var _ = AfterSuite(func() {
-	gitServer.Stop()
-	successGitServer.Stop()
-	failureGitServer.Stop()
-	noUpdateGitServer.Stop()
-	ensureSuccessGitServer.Stop()
-	ensureFailureGitServer.Stop()
-
-	guidserver.Stop(gardenClient)
-})
-
 func TestGitPipeline(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Git Pipeline Suite")
