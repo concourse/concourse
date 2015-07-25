@@ -3,7 +3,7 @@
 
 set -e -x
 
-pushd ${GOPATH}/src/github.com/concourse/atc/web/assets
+pushd concourse/src/github.com/concourse/atc/web/assets
   npm install
   $(npm bin)/gulp jasmine-cli
 popd
