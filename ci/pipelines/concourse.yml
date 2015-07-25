@@ -490,7 +490,6 @@ resources:
     username: {{bosh-username}}
     password: {{bosh-password}}
     deployment: {{bosh-deployment}}
-    ignore_ssl: yes
 
 - name: virtualbox-box-cloud
   type: vagrant-cloud
