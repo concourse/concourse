@@ -28,9 +28,6 @@ case "$1" in
     mkdir -p $RUN_DIR
     chown vcap:vcap $RUN_DIR
 
-    echo $$ > $PIDFILE
-    chown vcap:vcap $PIDFILE
-    
     sysctl -w "kernel.shmmax=284934144"
 
     if [ ! -d $LOG_DIR ]; then
