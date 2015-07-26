@@ -235,15 +235,16 @@ jobs:
   plan:
   - aggregate:
     - get: final-release
-      trigger: true
       passed: [shipit]
-    - get: garden-linux-release
       trigger: true
+    - get: garden-linux-release
       passed: [shipit]
       resource: garden-linux
-    - get: version
       trigger: true
+    - get: concourse
       passed: [shipit]
+      params: {submodules: none}
+      trigger: true
     - get: concourse-lite
     - get: deployments
   - task: build-box
@@ -251,18 +252,11 @@ jobs:
     file: deployments/buildbox/ci/build-boxes.yml
   - put: virtualbox-box
     params: {from: build-box/concourse-lite/concourse-virtualbox-ubuntu-trusty-(.*).box}
-  - get: concourse
-    resource: concourse-develop
-    params: {submodules: none}
   - task: build-release-notes
     file: concourse/ci/build-release-notes.yml
-    config:
-      params:
-        STRIP_HEADER: true
-        VERSION_FILE: version/number
   - put: virtualbox-box-cloud
     params:
-      description: build-release-notes/concourse/notes.md
+      description: build-release-notes/notes.md
       release: true
       url: virtualbox-box/url
       version: virtualbox-box/version
@@ -272,17 +266,17 @@ jobs:
   plan:
   - aggregate:
     - get: final-release
-      trigger: true
       passed: [shipit]
-    - get: garden-linux-release
       trigger: true
+    - get: garden-linux-release
       passed: [shipit]
       resource: garden-linux
-    - get: version
       trigger: true
+    - get: concourse
       passed: [shipit]
+      params: {submodules: none}
+      trigger: true
     - get: concourse-lite
-    - get: deployments
   - task: build-box
     privileged: true
     file: concourse-lite/ci/build-aws.yml
@@ -292,18 +286,11 @@ jobs:
         AWS_SECRET_ACCESS_KEY: {{aws-box-secret-key}}
   - put: aws-box
     params: {from: build-box/concourse-lite/concourse-aws-ubuntu-trusty-(.*).box}
-  - get: concourse
-    resource: concourse-develop
-    params: {submodules: none}
   - task: build-release-notes
     file: concourse/ci/build-release-notes.yml
-    config:
-      params:
-        STRIP_HEADER: true
-        VERSION_FILE: version/number
   - put: aws-box-cloud
     params:
-      description: build-release-notes/concourse/notes.md
+      description: build-release-notes/notes.md
       release: true
       url: aws-box/url
       version: aws-box/version
@@ -347,25 +334,18 @@ jobs:
       trigger: true
     - get: garden-linux
       passed: [shipit]
-      resource: garden-linux
       trigger: true
-    - get: version
+    - get: concourse
       passed: [shipit]
+      params: {submodules: none}
       trigger: true
     - get: concourse-master
       passed: [shipit]
       params: {submodules: none}
       trigger: true
-    - get: concourse
-      resource: concourse-develop
-      params: {submodules: none}
   - aggregate:
-    - task: build-docs
+    - task: build-release-notes
       file: concourse/ci/build-release-notes.yml
-      config:
-        params:
-          STRIP_HEADER: true
-          VERSION_FILE: version/number
     - task: rename-release
       file: concourse/ci/rename-release.yml
     - task: generate-commitish
@@ -385,9 +365,9 @@ jobs:
             git -C concourse-master rev-parse HEAD > commitish
   - put: github-release
     params:
-      name: build-docs/concourse/release-name
-      tag: build-docs/concourse/release-name
-      body: build-docs/concourse/notes.md
+      name: build-release-notes/release-name
+      tag: build-release-notes/release-name
+      body: build-release-notes/notes.md
       commitish: generate-commitish/commitish
       globs:
       - final-release/*.tgz
@@ -400,12 +380,12 @@ jobs:
     - get: p-concourse
       trigger: true
     - get: final-release
-      trigger: true
       passed: [shipit]
-    - get: garden-linux-release
       trigger: true
+    - get: garden-linux-release
       passed: [shipit]
       resource: garden-linux
+      trigger: true
     - get: version
       trigger: true
       passed: [shipit]

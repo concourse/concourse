@@ -4,11 +4,7 @@ image: docker:///concourse/docs-ci
 
 inputs:
   - name: concourse
-  - name: version
-
-params:
-  VERSION_FILE:
-  STRIP_HEADER: false
+  - name: final-release
 
 run:
   path: concourse/ci/scripts/build-release-notes
