@@ -42,9 +42,9 @@ server.start
 
 type Server struct {
 	gardenClient garden.Client
-	container    garden.Container
 
-	addr string
+	container garden.Container
+	addr      string
 }
 
 func Start(helperRootfs string, gardenClient garden.Client) *Server {
@@ -97,7 +97,9 @@ func Start(helperRootfs string, gardenClient garden.Client) *Server {
 
 	return &Server{
 		gardenClient: gardenClient,
-		addr:         addr,
+
+		container: container,
+		addr:      addr,
 	}
 }
 
