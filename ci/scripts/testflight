@@ -9,4 +9,4 @@ export PATH=${PWD}/concourse/bin:$PATH
 go install github.com/onsi/ginkgo/ginkgo
 
 cd concourse/src/github.com/concourse/testflight/
-ginkgo -v -r -race -nodes 3 "$@"
+ginkgo -v -r -race -nodes 4 "$@"
