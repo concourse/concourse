@@ -100,6 +100,10 @@ jobs:
     passed: [atc, fly, blackbox, tsa, jettison, baggageclaim]
   - get: version
     params: {bump: minor, pre: rc}
+  - task: create-candidate-release
+    file: concourse/ci/create-candidate-release.yml
+  - put: candidate-release
+    params: {from: create-candidate-release/concourse-(.*).tgz}
   - put: version
     params: {file: version/number}
 
@@ -127,22 +131,34 @@ jobs:
   public: true
   serial: true
   plan:
-  - aggregate:
-    - get: concourse
-      trigger: true
-      passed: [rc]
-    - get: version
-      trigger: true
-      passed: [rc]
-    - get: garden-linux-release
-      trigger: true
-      resource: garden-linux
-    - get: lite-stemcell
-    - put: bosh-lites
-      params: {acquire: true}
-  - task: build
-    privileged: true
-    file: concourse/ci/testflight.yml
+  - put: bosh-lites
+    params: {acquire: true}
+  - do:
+    - aggregate:
+      - get: concourse
+        passed: [rc]
+        trigger: true
+      - get: candidate-release
+        passed: [rc]
+        trigger: true
+      - get: version
+        passed: [rc]
+        trigger: true
+      - get: garden-linux-release
+        trigger: true
+        resource: garden-linux
+      - get: lite-stemcell
+    - put: lite-deployment
+      params:
+        target_file: bosh-lites/metadata
+        manifest: concourse/src/github.com/concourse/testflight/deployment.yml
+        stemcells: [lite-stemcell/*.tgz]
+        releases:
+          - garden-linux-release/*.tgz
+          - candidate-release/concourse-*.tgz
+    - task: build
+      privileged: true
+      file: concourse/ci/testflight.yml
     on_failure: &release-bosh-lites
       put: bosh-lites
       params: {release: bosh-lites}
@@ -152,32 +168,32 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      trigger: true
       passed: [testflight]
-      params: {fetch: [master]}
+      trigger: true
+    - get: candidate-release
+      passed: [testflight]
+      trigger: true
     - get: version
-      trigger: true
       passed: [testflight]
+      trigger: true
     - get: garden-linux-release
-      trigger: true
-      passed: [testflight]
       resource: garden-linux
+      passed: [testflight]
+      trigger: true
+    - get: bosh-lites
+      passed: [testflight]
+      trigger: true
     - get: bosh-stemcell
       resource: aws-stemcell
     - get: deployments
       trigger: true
-    - get: bosh-lites
-      trigger: true
-      passed: [testflight]
-  - task: build-dev-release
-    file: concourse/ci/deploy.yml
-  - put: concourse-deployment
+  - put: aws-deployment
     params:
       manifest: deployments/ci/deployments/concourse.yml
       stemcells: [bosh-stemcell/*.tgz]
       releases:
         - garden-linux-release/*.tgz
-        - build-dev-release/concourse/dev_releases/concourse/concourse-*.tgz
+        - candidate-release/concourse-*.tgz
   - put: bosh-lites
     params: {release: bosh-lites}
   - put: tracker
@@ -196,6 +212,8 @@ jobs:
     - get: concourse
       passed: [deploy]
       params: {fetch: [master]}
+    - get: candidate-release
+      passed: [deploy]
     - get: version
       passed: [deploy]
       params: {bump: final}
@@ -203,18 +221,18 @@ jobs:
       passed: [deploy]
       resource: garden-linux
     - get: deployments
-  - task: create-final-release
-    file: concourse/ci/shipit.yml
+  - task: finalize-release
+    file: concourse/ci/finalize-release.yml
   - aggregate:
     - put: version
       params: {file: version/number}
     - put: concourse-master
       params:
-        repository: create-final-release/concourse
+        repository: finalize-release/concourse
         tag: version/number
         tag_prefix: v
     - put: final-release
-      params: {from: create-final-release/concourse/releases/concourse/concourse-(.*).tgz}
+      params: {from: finalize-release/concourse-(.*).tgz}
 
 - name: virtualbox-box
   public: true
@@ -467,6 +485,14 @@ resources:
     access_key_id: {{pipeline-bucket-access-key}}
     secret_access_key: {{pipeline-bucket-secret-key}}
 
+- name: candidate-release
+  type: s3
+  source:
+    bucket: concourse-release-candidates
+    regexp: concourse-(.*).tgz
+    access_key_id: {{pipeline-bucket-access-key}}
+    secret_access_key: {{pipeline-bucket-secret-key}}
+
 - name: virtualbox-box
   type: s3
   source:
@@ -483,13 +509,20 @@ resources:
     access_key_id: {{pipeline-bucket-access-key}}
     secret_access_key: {{pipeline-bucket-secret-key}}
 
-- name: concourse-deployment
+- name: aws-deployment
   type: bosh-deployment
   source:
     target: {{bosh-target}}
     username: {{bosh-username}}
     password: {{bosh-password}}
     deployment: {{bosh-deployment}}
+
+- name: lite-deployment
+  type: bosh-deployment
+  source:
+    username: admin
+    password: admin
+    deployment: concourse-testflight
 
 - name: virtualbox-box-cloud
   type: vagrant-cloud

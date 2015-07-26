@@ -22,9 +22,7 @@ git config --global user.name "CI Bot"
 
 git merge --no-edit master
 
-bosh target ${BOSH_TARGET}
-
-bosh -n create release --final --with-tarball --version "$VERSION"
+bosh -n finalize release --version "$VERSION" candidate-release/concourse-*.tgz
 
 git add -A
 git commit -m "release v${VERSION}"

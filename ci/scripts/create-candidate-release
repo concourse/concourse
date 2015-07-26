@@ -1,0 +1,12 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e
+
+ROOT="$PWD"
+VERSION="$(cat version/number)"
+
+pushd concourse/
+  bosh -n create release --with-tarball --name concourse --version "$VERSION"
+  mv dev_releases/concourse/concourse-*.tgz "$ROOT"
+popd

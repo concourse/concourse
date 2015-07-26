@@ -1,0 +1,11 @@
+---
+platform: linux
+
+image: docker:///concourse/concourse-ci
+
+inputs:
+  - name: concourse
+  - name: version
+
+run:
+  path: concourse/ci/scripts/create-candidate-release

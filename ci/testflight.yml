@@ -4,9 +4,6 @@ image: docker:///concourse/testflight
 
 inputs:
   - name: concourse
-  - name: garden-linux-release
-  - name: lite-stemcell
-  - name: bosh-lites
 
 run:
   path: concourse/ci/scripts/testflight

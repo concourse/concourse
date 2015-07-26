@@ -8,23 +8,5 @@ export PATH=${PWD}/concourse/bin:$PATH
 
 go install github.com/onsi/ginkgo/ginkgo
 
-export BOSH_USER=admin
-export BOSH_PASSWORD=admin
-
-bosh target $(cat bosh-lites/metadata)
-
-# upload bosh stemcell
-bosh -n upload stemcell lite-stemcell/*.tgz --skip-if-exists
-
-# upload garden linux release
-bosh -n upload release garden-linux-release/*.tgz --skip-if-exists
-export GARDEN_LINUX_VERSION=$(cat garden-linux-release/version)
-
-# create and upload concourse release
-pushd concourse/
-  bosh -n create release
-  bosh -n upload release --rebase || true
-popd
-
 cd concourse/src/github.com/concourse/testflight/
 ginkgo -v -r -race "$@"
