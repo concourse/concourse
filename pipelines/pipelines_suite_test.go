@@ -62,7 +62,27 @@ func TestGitPipeline(t *testing.T) {
 	RunSpecs(t, "Pipelines Suite")
 }
 
+func destroyPipeline() {
+	destroyCmd := exec.Command("fly", "destroy-pipeline", pipelineName)
+
+	stdin, err := destroyCmd.StdinPipe()
+	Ω(err).ShouldNot(HaveOccurred())
+
+	defer stdin.Close()
+
+	destroy, err := gexec.Start(destroyCmd, GinkgoWriter, GinkgoWriter)
+	Ω(err).ShouldNot(HaveOccurred())
+
+	Eventually(destroy).Should(gbytes.Say("are you sure?"))
+
+	fmt.Fprintln(stdin, "y")
+
+	Eventually(destroy).Should(gexec.Exit(0))
+}
+
 func configurePipeline(argv ...string) {
+	destroyPipeline()
+
 	args := append([]string{
 		"-t", atcURL,
 		"configure",
