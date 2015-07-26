@@ -3,13 +3,11 @@ package git_pipeline_test
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"os/exec"
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/cloudfoundry-incubator/garden/client"
 	"github.com/cloudfoundry-incubator/garden/client/connection"
-	"github.com/concourse/testflight/bosh"
 	"github.com/concourse/testflight/gitserver"
 	"github.com/concourse/testflight/guidserver"
 	. "github.com/onsi/ginkgo"
@@ -43,11 +41,6 @@ var (
 	atcURL string
 )
 
-type DeploymentTemplateData struct {
-	DirectorUUID       string
-	GardenLinuxVersion string
-}
-
 var _ = BeforeSuite(func() {
 	// observed jobs taking ~1m30s, so set the timeout pretty high
 	SetDefaultEventuallyTimeout(5 * time.Minute)
@@ -55,24 +48,10 @@ var _ = BeforeSuite(func() {
 	// poll less frequently
 	SetDefaultEventuallyPollingInterval(time.Second)
 
-	gardenLinuxVersion := os.Getenv("GARDEN_LINUX_VERSION")
-	Ω(gardenLinuxVersion).ShouldNot(BeEmpty(), "must set $GARDEN_LINUX_VERSION")
-
 	var err error
 
 	flyBin, err = gexec.Build("github.com/concourse/fly", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
-
-	directorUUID := bosh.DirectorUUID()
-
-	bosh.DeleteDeployment("concourse-testflight")
-
-	deploymentData := DeploymentTemplateData{
-		DirectorUUID:       directorUUID,
-		GardenLinuxVersion: gardenLinuxVersion,
-	}
-
-	bosh.Deploy("deployment.yml.tmpl", deploymentData)
 
 	gardenClient = client.New(connection.New("tcp", "10.244.15.2:7777"))
 	Eventually(gardenClient.Ping).ShouldNot(HaveOccurred())
