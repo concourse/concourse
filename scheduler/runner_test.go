@@ -101,7 +101,7 @@ var _ = Describe("Runner", func() {
 		Ω(job).Should(Equal([]db.NamedLock{db.JobSchedulingLock("pipeline:some-other-job")}))
 	})
 
-	Context("whe it can't get the lock for the first job", func() {
+	Context("when it can't get the lock for the first job", func() {
 		BeforeEach(func() {
 			locker.AcquireWriteLockImmediatelyStub = func(locks []db.NamedLock) (db.Lock, error) {
 				if locker.AcquireWriteLockImmediatelyCallCount() == 1 {
@@ -152,6 +152,40 @@ var _ = Describe("Runner", func() {
 		It("does not start scheduling builds", func() {
 			Consistently(scheduler.TryNextPendingBuildCallCount).Should(Equal(0))
 			Consistently(scheduler.BuildLatestInputsCallCount).Should(Equal(0))
+		})
+	})
+
+	failingGetConfigStubWith := func(err error) func() (atc.Config, db.ConfigVersion, error) {
+		calls := 0
+
+		return func() (atc.Config, db.ConfigVersion, error) {
+			if calls == 1 {
+				return atc.Config{}, 0, db.ErrPipelineNotFound
+			}
+
+			calls += 1
+
+			return initialConfig, 1, nil
+		}
+	}
+
+	Context("when the pipeline is destroyed", func() {
+		BeforeEach(func() {
+			pipelineDB.GetConfigStub = failingGetConfigStubWith(db.ErrPipelineNotFound)
+		})
+
+		It("exits", func() {
+			Eventually(process.Wait()).Should(Receive())
+		})
+	})
+
+	Context("when getting the config fails for some other reason", func() {
+		BeforeEach(func() {
+			pipelineDB.GetConfigStub = failingGetConfigStubWith(errors.New("idk lol"))
+		})
+
+		It("keeps on truckin'", func() {
+			Eventually(pipelineDB.GetConfigCallCount).Should(BeNumerically(">=", 2))
 		})
 	})
 })

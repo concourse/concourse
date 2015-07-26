@@ -206,6 +206,9 @@ var _ = Describe("PipelineDB", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Ω(pipelines).ShouldNot(ContainElement(fetchedPipeline))
+
+			_, _, err = fetchedPipelineDB.GetConfig()
+			Ω(err).Should(Equal(db.ErrPipelineNotFound))
 		})
 	})
 

@@ -64,6 +64,8 @@ type PipelineDB interface {
 	GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error)
 }
 
+var ErrPipelineNotFound = errors.New("pipeline not found")
+
 type pipelineDB struct {
 	logger lager.Logger
 
@@ -203,6 +205,10 @@ func (pdb *pipelineDB) GetConfig() (atc.Config, ConfigVersion, error) {
 			WHERE id = $1
 		`, pdb.ID).Scan(&configBlob, &version)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return atc.Config{}, 0, ErrPipelineNotFound
+		}
+
 		return atc.Config{}, 0, err
 	}
 

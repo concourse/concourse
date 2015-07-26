@@ -53,7 +53,10 @@ func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 dance:
 	for {
-		runner.tick(runner.Logger.Session("tick"))
+		err := runner.tick(runner.Logger.Session("tick"))
+		if err != nil {
+			return err
+		}
 
 		select {
 		case <-time.After(runner.Interval):
@@ -65,18 +68,23 @@ dance:
 	return nil
 }
 
-func (runner *Runner) tick(logger lager.Logger) {
+func (runner *Runner) tick(logger lager.Logger) error {
 	logger.Info("start")
 	defer logger.Info("done")
 
 	config, _, err := runner.DB.GetConfig()
 	if err != nil {
+		if err == db.ErrPipelineNotFound {
+			return err
+		}
+
 		logger.Error("failed-to-get-config", err)
-		return
+
+		return nil
 	}
 
 	if runner.Noop {
-		return
+		return nil
 	}
 
 	for _, job := range config.Jobs {
@@ -94,6 +102,8 @@ func (runner *Runner) tick(logger lager.Logger) {
 
 		jobCheckingLock.Release()
 	}
+
+	return nil
 }
 
 func (runner *Runner) schedule(logger lager.Logger, job atc.JobConfig, resources atc.ResourceConfigs) {
