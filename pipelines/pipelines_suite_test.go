@@ -38,17 +38,19 @@ var (
 	pipelineName string
 )
 
-var _ = BeforeSuite(func() {
+var _ = SynchronizedBeforeSuite(func() []byte {
+	flyBinPath, err := gexec.Build("github.com/concourse/fly", "-race")
+	Ω(err).ShouldNot(HaveOccurred())
+
+	return []byte(flyBinPath)
+}, func(flyBinPath []byte) {
+	flyBin = string(flyBinPath)
+
 	// observed jobs taking ~1m30s, so set the timeout pretty high
 	SetDefaultEventuallyTimeout(5 * time.Minute)
 
 	// poll less frequently
 	SetDefaultEventuallyPollingInterval(time.Second)
-
-	var err error
-
-	flyBin, err = gexec.Build("github.com/concourse/fly", "-race")
-	Ω(err).ShouldNot(HaveOccurred())
 
 	logger := lagertest.NewTestLogger("testflight")
 
