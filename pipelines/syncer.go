@@ -29,7 +29,7 @@ type Syncer struct {
 	pipelineDBFactory     db.PipelineDBFactory
 	pipelineRunnerFactory PipelineRunnerFactory
 
-	runningPipelines map[string]runningProcess
+	runningPipelines map[int]runningProcess
 }
 
 func NewSyncer(
@@ -44,20 +44,22 @@ func NewSyncer(
 		pipelineDBFactory:     pipelineDBFactory,
 		pipelineRunnerFactory: pipelineRunnerFactory,
 
-		runningPipelines: map[string]runningProcess{},
+		runningPipelines: map[int]runningProcess{},
 	}
 }
 
 func (syncer *Syncer) Sync() {
 	pipelines, err := syncer.pipelinesDB.GetAllActivePipelines()
 	if err != nil {
+		syncer.logger.Error("failed-to-get-active-pipelines", err)
 		return
 	}
 
-	for name, runningPipeline := range syncer.runningPipelines {
+	for id, runningPipeline := range syncer.runningPipelines {
 		select {
 		case <-runningPipeline.Exited:
-			syncer.removePipeline(name)
+			syncer.logger.Debug("pipeline-exited", lager.Data{"pipeline-id": id})
+			syncer.removePipeline(id)
 		default:
 		}
 
@@ -67,38 +69,41 @@ func (syncer *Syncer) Sync() {
 				continue
 			}
 
-			if pipeline.Name == name {
+			if pipeline.ID == id {
 				found = true
 			}
 		}
 
 		if !found {
+			syncer.logger.Debug("stopping-pipeline", lager.Data{"pipeline-id": id})
 			runningPipeline.Process.Signal(os.Interrupt)
 		}
 	}
 
 	for _, pipeline := range pipelines {
-		if pipeline.Paused || syncer.isPipelineRunning(pipeline.Name) {
+		if pipeline.Paused || syncer.isPipelineRunning(pipeline.ID) {
 			continue
 		}
 
 		pipelineDB := syncer.pipelineDBFactory.Build(pipeline)
 		runner := syncer.pipelineRunnerFactory(pipelineDB)
 
+		syncer.logger.Debug("starting-pipeline", lager.Data{"pipeline": pipeline.Name})
+
 		process := ifrit.Invoke(runner)
 
-		syncer.runningPipelines[pipeline.Name] = runningProcess{
+		syncer.runningPipelines[pipeline.ID] = runningProcess{
 			Process: process,
 			Exited:  process.Wait(),
 		}
 	}
 }
 
-func (syncer *Syncer) removePipeline(pipelineName string) {
-	delete(syncer.runningPipelines, pipelineName)
+func (syncer *Syncer) removePipeline(pipelineID int) {
+	delete(syncer.runningPipelines, pipelineID)
 }
 
-func (syncer *Syncer) isPipelineRunning(pipelineName string) bool {
-	_, found := syncer.runningPipelines[pipelineName]
+func (syncer *Syncer) isPipelineRunning(pipelineID int) bool {
+	_, found := syncer.runningPipelines[pipelineID]
 	return found
 }

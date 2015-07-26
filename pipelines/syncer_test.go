@@ -161,6 +161,35 @@ var _ = Describe("Pipelines Syncer", func() {
 			signals, _ := fakeRunner.RunArgsForCall(0)
 			Eventually(signals).Should(Receive(Equal(os.Interrupt)))
 		})
+
+		Context("when another is configured with the same name", func() {
+			It("stops the process", func() {
+				Ω(fakeRunner.RunCallCount()).Should(Equal(1))
+				Ω(otherFakeRunner.RunCallCount()).Should(Equal(1))
+
+				pipelinesDB.GetAllActivePipelinesReturns([]db.SavedPipeline{
+					{
+						ID: 2,
+						Pipeline: db.Pipeline{
+							Name: "other-pipeline",
+						},
+					},
+					{
+						ID: 3,
+						Pipeline: db.Pipeline{
+							Name: "pipeline",
+						},
+					},
+				}, nil)
+
+				syncer.Sync()
+
+				Ω(fakeRunner.RunCallCount()).Should(Equal(2))
+
+				signals, _ := fakeRunner.RunArgsForCall(0)
+				Eventually(signals).Should(Receive(Equal(os.Interrupt)))
+			})
+		})
 	})
 
 	Context("when a pipeline is paused", func() {
