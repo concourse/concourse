@@ -73,7 +73,12 @@ func TestGitPipeline(t *testing.T) {
 }
 
 func destroyPipeline() {
-	destroyCmd := exec.Command("fly", "destroy-pipeline", pipelineName)
+	destroyCmd := exec.Command(
+		flyBin,
+		"-t", atcURL,
+		"destroy-pipeline",
+		pipelineName,
+	)
 
 	stdin, err := destroyCmd.StdinPipe()
 	Ω(err).ShouldNot(HaveOccurred())
