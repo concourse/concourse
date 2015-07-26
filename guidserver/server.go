@@ -93,7 +93,7 @@ func Start(helperRootfs string, gardenClient garden.Client) *Server {
 		Ω(err).ShouldNot(HaveOccurred())
 
 		return curl.Wait()
-	}, 2).Should(Equal(0))
+	}).Should(Equal(0))
 
 	return &Server{
 		gardenClient: gardenClient,
