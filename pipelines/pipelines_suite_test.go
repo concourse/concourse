@@ -9,11 +9,14 @@ import (
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/cloudfoundry-incubator/garden/client"
 	"github.com/cloudfoundry-incubator/garden/client/connection"
+	"github.com/concourse/atc/worker"
 	"github.com/mgutz/ansi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"github.com/pivotal-golang/clock"
+	"github.com/pivotal-golang/lager/lagertest"
 
 	"testing"
 	"time"
@@ -47,7 +50,14 @@ var _ = BeforeSuite(func() {
 	flyBin, err = gexec.Build("github.com/concourse/fly", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
-	gardenClient = client.New(connection.New("tcp", "10.244.15.2:7777"))
+	logger := lagertest.NewTestLogger("testflight")
+
+	gardenClient = client.New(worker.RetryableConnection{
+		Connection:  connection.New("tcp", "10.244.15.2:7777"),
+		Logger:      logger.Session("garden-client"),
+		Sleeper:     clock.NewClock(),
+		RetryPolicy: worker.ExponentialRetryPolicy{Timeout: 5 * time.Minute},
+	})
 	Eventually(gardenClient.Ping).ShouldNot(HaveOccurred())
 
 	atcURL = "http://10.244.15.2:8080"
