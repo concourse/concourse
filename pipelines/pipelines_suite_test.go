@@ -95,7 +95,7 @@ func destroyPipeline() {
 	<-destroy.Exited
 
 	if destroy.ExitCode() == 1 {
-		if !strings.Contains(string(destroy.Err.Contents()), "does not exist") {
+		if strings.Contains(string(destroy.Err.Contents()), "does not exist") {
 			return
 		}
 	}
