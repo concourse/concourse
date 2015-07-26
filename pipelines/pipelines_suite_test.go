@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"net/http"
 	"os/exec"
+	"strings"
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/cloudfoundry-incubator/garden/client"
 	"github.com/cloudfoundry-incubator/garden/client/connection"
-	"github.com/concourse/testflight/gitserver"
-	"github.com/concourse/testflight/guidserver"
+	"github.com/mgutz/ansi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -30,15 +30,9 @@ var flyBin string
 var (
 	gardenClient garden.Client
 
-	gitServer *gitserver.Server
-
-	successGitServer       *gitserver.Server
-	failureGitServer       *gitserver.Server
-	noUpdateGitServer      *gitserver.Server
-	ensureSuccessGitServer *gitserver.Server
-	ensureFailureGitServer *gitserver.Server
-
 	atcURL string
+
+	pipelineName string
 )
 
 var _ = BeforeSuite(func() {
@@ -56,35 +50,27 @@ var _ = BeforeSuite(func() {
 	gardenClient = client.New(connection.New("tcp", "10.244.15.2:7777"))
 	Eventually(gardenClient.Ping).ShouldNot(HaveOccurred())
 
-	guidserver.Start(guidServerRootfs, gardenClient)
-
-	gitServer = gitserver.Start(gitServerRootfs, gardenClient)
-	successGitServer = gitserver.Start(gitServerRootfs, gardenClient)
-	failureGitServer = gitserver.Start(gitServerRootfs, gardenClient)
-	noUpdateGitServer = gitserver.Start(gitServerRootfs, gardenClient)
-	ensureSuccessGitServer = gitserver.Start(gitServerRootfs, gardenClient)
-	ensureFailureGitServer = gitserver.Start(gitServerRootfs, gardenClient)
-
 	atcURL = "http://10.244.15.2:8080"
 
 	Eventually(errorPolling(atcURL)).ShouldNot(HaveOccurred())
 
-	configureCmd := exec.Command(
-		flyBin,
+	pipelineName = fmt.Sprintf("test-pipeline-%d", GinkgoParallelNode())
+})
+
+func TestGitPipeline(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Pipelines Suite")
+}
+
+func configurePipeline(argv ...string) {
+	args := append([]string{
 		"-t", atcURL,
 		"configure",
-		"pipeline-name",
-		"-c", "pipeline.yml",
-		"-v", "failure-git-server="+failureGitServer.URI(),
-		"-v", "guid-server-curl-command="+guidserver.CurlCommand(),
-		"-v", "no-update-git-server="+noUpdateGitServer.URI(),
-		"-v", "origin-git-server="+gitServer.URI(),
-		"-v", "success-git-server="+successGitServer.URI(),
-		"-v", "ensure-success-git-server="+ensureSuccessGitServer.URI(),
-		"-v", "ensure-failure-git-server="+ensureFailureGitServer.URI(),
-		"-v", "testflight-helper-image="+guidServerRootfs,
+		pipelineName,
 		"--paused=false",
-	)
+	}, argv...)
+
+	configureCmd := exec.Command(flyBin, args...)
 
 	stdin, err := configureCmd.StdinPipe()
 	Ω(err).ShouldNot(HaveOccurred())
@@ -99,11 +85,6 @@ var _ = BeforeSuite(func() {
 	fmt.Fprintln(stdin, "y")
 
 	Eventually(configure).Should(gexec.Exit(0))
-})
-
-func TestGitPipeline(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Git Pipeline Suite")
 }
 
 func errorPolling(url string) func() error {
@@ -115,4 +96,46 @@ func errorPolling(url string) func() error {
 
 		return err
 	}
+}
+
+func flyWatch(jobName string) *gexec.Session {
+	for {
+		session := start(exec.Command(
+			flyBin,
+			"-t", atcURL,
+			"watch",
+			"-p", pipelineName,
+			"-j", jobName,
+		))
+
+		<-session.Exited
+
+		if session.ExitCode() == 1 {
+			output := strings.TrimSpace(string(session.Err.Contents()))
+			if output == "job has no builds" {
+				// build hasn't started yet; keep polling
+				time.Sleep(time.Second)
+				continue
+			}
+		}
+
+		return session
+	}
+}
+
+func start(cmd *exec.Cmd) *gexec.Session {
+	session, err := gexec.Start(
+		cmd,
+		gexec.NewPrefixedWriter(
+			fmt.Sprintf("%s%s ", ansi.Color("[o]", "green"), ansi.Color("[fly]", "blue")),
+			GinkgoWriter,
+		),
+		gexec.NewPrefixedWriter(
+			fmt.Sprintf("%s%s ", ansi.Color("[e]", "red+bright"), ansi.Color("[fly]", "blue")),
+			GinkgoWriter,
+		),
+	)
+	Ω(err).ShouldNot(HaveOccurred())
+
+	return session
 }

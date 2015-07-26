@@ -1,0 +1,29 @@
+---
+resources:
+  - name: some-git-resource
+    type: git
+    source:
+      uri: {{origin-git-server}}
+      branch: master
+
+jobs:
+  - name: try-job
+    plan:
+      - get: some-git-resource
+        trigger: true
+      - try:
+          task: failing-task
+          config:
+            platform: linux
+            run:
+              path: sh
+              args: ["-c", "exit 1"]
+      - task: passing-task
+        config:
+          platform: linux
+          inputs:
+            - name: some-git-resource
+              path: .
+          run:
+            path: sh
+            args: ["-c", "echo passing-task succeeded"]

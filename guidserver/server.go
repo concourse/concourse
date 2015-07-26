@@ -40,14 +40,15 @@ trap('INT') {
 server.start
 `
 
-var container garden.Container
+type Server struct {
+	gardenClient garden.Client
+	container    garden.Container
 
-var addr string
+	addr string
+}
 
-func Start(helperRootfs string, gardenClient garden.Client) {
-	var err error
-
-	container, err = gardenClient.Create(garden.ContainerSpec{
+func Start(helperRootfs string, gardenClient garden.Client) *Server {
+	container, err := gardenClient.Create(garden.ContainerSpec{
 		RootFSPath: helperRootfs,
 		GraceTime:  time.Hour,
 	})
@@ -72,7 +73,7 @@ func Start(helperRootfs string, gardenClient garden.Client) {
 	hostPort, _, err := container.NetIn(0, 8080)
 	Ω(err).ShouldNot(HaveOccurred())
 
-	addr = fmt.Sprintf("%s:%d", gardenDeploymentIP, hostPort)
+	addr := fmt.Sprintf("%s:%d", gardenDeploymentIP, hostPort)
 
 	Eventually(func() (int, error) {
 		curl, err := container.Run(garden.ProcessSpec{
@@ -93,23 +94,25 @@ func Start(helperRootfs string, gardenClient garden.Client) {
 
 		return curl.Wait()
 	}, 2).Should(Equal(0))
+
+	return &Server{
+		gardenClient: gardenClient,
+		addr:         addr,
+	}
 }
 
-func Stop(gardenClient garden.Client) {
-	gardenClient.Destroy(container.Handle())
-
-	container = nil
-	addr = ""
+func (server *Server) Stop() {
+	server.gardenClient.Destroy(server.container.Handle())
 }
 
-func CurlCommand() string {
-	return fmt.Sprintf("curl -XPOST http://%s/register -d @-", addr)
+func (server *Server) CurlCommand() string {
+	return fmt.Sprintf("curl -XPOST http://%s/register -d @-", server.addr)
 }
 
-func ReportingGuids() []string {
+func (server *Server) ReportingGuids() []string {
 	outBuf := new(bytes.Buffer)
 
-	curl, err := container.Run(garden.ProcessSpec{
+	curl, err := server.container.Run(garden.ProcessSpec{
 		Path: "curl",
 		Args: []string{"-s", "-f", "http://127.0.0.1:8080/registrations"},
 		User: "root",

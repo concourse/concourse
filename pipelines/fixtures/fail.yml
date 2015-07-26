@@ -1,0 +1,19 @@
+---
+resources:
+  - name: some-git-resource
+    type: git
+    source:
+      uri: {{origin-git-server}}
+      branch: master
+
+jobs:
+  - name: failing-job
+    plan:
+      - get: some-git-resource
+        trigger: true
+      - task: failing-task
+        config:
+          platform: linux
+          run:
+            path: sh
+            args: ["-c", "exit 1"]

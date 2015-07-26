@@ -1,0 +1,33 @@
+---
+resources:
+  - name: some-git-resource
+    type: git
+    source:
+      uri: {{origin-git-server}}
+      branch: master
+
+jobs:
+  - name: duration-successful-job
+    plan:
+      - get: some-git-resource
+        trigger: true
+      - task: passing-task
+        timeout: 10
+        config:
+          platform: linux
+          run:
+            path: sh
+            args: ["-c", "echo passing-task succeeded"]
+
+  - name: duration-fail-job
+    plan:
+      - get: some-git-resource
+        trigger: true
+      - task: timeout-task
+        timeout: 5
+        config:
+          platform: linux
+          run:
+            path: sh
+            args: ["-c", "sleep 10"]
+
