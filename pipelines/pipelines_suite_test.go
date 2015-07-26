@@ -92,7 +92,15 @@ func destroyPipeline() {
 
 	fmt.Fprintln(stdin, "y")
 
-	Eventually(destroy).Should(gexec.Exit(0))
+	<-destroy.Exited
+
+	if destroy.ExitCode() == 1 {
+		if !strings.Contains(string(destroy.Err.Contents()), "does not exist") {
+			return
+		}
+	}
+
+	Ω(destroy).Should(gexec.Exit(0))
 }
 
 func configurePipeline(argv ...string) {
