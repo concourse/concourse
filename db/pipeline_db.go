@@ -203,11 +203,7 @@ func (pdb *pipelineDB) GetConfig() (atc.Config, ConfigVersion, error) {
 			WHERE id = $1
 		`, pdb.ID).Scan(&configBlob, &version)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return atc.Config{}, 0, nil
-		} else {
-			return atc.Config{}, 0, err
-		}
+		return atc.Config{}, 0, err
 	}
 
 	var config atc.Config
