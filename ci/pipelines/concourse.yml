@@ -159,7 +159,7 @@ jobs:
     - task: build
       privileged: true
       file: concourse/ci/testflight.yml
-    on_failure: &release-bosh-lites
+    ensure:
       put: bosh-lites
       params: {release: bosh-lites}
 
@@ -180,9 +180,6 @@ jobs:
       resource: garden-linux
       passed: [testflight]
       trigger: true
-    - get: bosh-lites
-      passed: [testflight]
-      trigger: true
     - get: bosh-stemcell
       resource: aws-stemcell
     - get: deployments
@@ -194,8 +191,6 @@ jobs:
       releases:
         - garden-linux-release/*.tgz
         - candidate-release/concourse-*.tgz
-  - put: bosh-lites
-    params: {release: bosh-lites}
   - put: tracker
     params: {repos: [concourse]}
 
