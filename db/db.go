@@ -9,6 +9,8 @@ import (
 	"github.com/concourse/atc"
 )
 
+//go:generate counterfeiter . Conn
+
 type Conn interface {
 	Begin() (*sql.Tx, error)
 	Close() error
