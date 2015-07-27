@@ -12,7 +12,7 @@ jobs:
       - get: some-git-resource
         trigger: true
       - task: passing-task
-        timeout: 10
+        timeout: 10s
         config:
           platform: linux
           run:
@@ -24,7 +24,7 @@ jobs:
       - get: some-git-resource
         trigger: true
       - task: timeout-task
-        timeout: 5
+        timeout: 5s
         config:
           platform: linux
           run:
