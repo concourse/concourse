@@ -284,6 +284,7 @@ function createGraph(svg, groups, jobs, resources) {
           name: output.resource,
           key: output.resource,
           class: "output",
+          repeatable: true,
           url: resourceURLs[output.resource],
           svg: svg
         });
@@ -326,6 +327,7 @@ function createGraph(svg, groups, jobs, resources) {
                 name: input.resource,
                 key: input.resource,
                 class: "constrained-input",
+                repeatable: true,
                 url: resourceURLs[input.resource],
                 svg: svg
               }));
@@ -381,6 +383,7 @@ function createGraph(svg, groups, jobs, resources) {
             key: input.resource,
             class: classes,
             status: status,
+            repeatable: true,
             url: resourceURLs[input.resource],
             svg: svg,
             equivalentBy: input.resource+"-unconstrained",
