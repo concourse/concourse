@@ -13,14 +13,19 @@ import (
 
 var flyBin string
 
-var _ = BeforeSuite(func() {
-	SetDefaultEventuallyTimeout(time.Minute)
-	SetDefaultEventuallyPollingInterval(time.Second)
-
-	var err error
-
-	flyBin, err = gexec.Build("github.com/concourse/fly", "-race")
+var _ = SynchronizedBeforeSuite(func() []byte {
+	flyBinPath, err := gexec.Build("github.com/concourse/fly", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
+
+	return []byte(flyBinPath)
+}, func(flyBinPath []byte) {
+	flyBin = string(flyBinPath)
+
+	// observed jobs taking ~1m30s, so set the timeout pretty high
+	SetDefaultEventuallyTimeout(5 * time.Minute)
+
+	// poll less frequently
+	SetDefaultEventuallyPollingInterval(time.Second)
 
 	Eventually(errorPolling("http://10.244.15.2:8080")).ShouldNot(HaveOccurred())
 })
