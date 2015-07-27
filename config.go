@@ -176,7 +176,7 @@ type PlanConfig struct {
 	Try *PlanConfig `yaml:"try,omitempty" json:"try,omitempty" mapstructure:"try"`
 
 	// used on any step to interrupt the step after a given duration
-	Timeout int `yaml:"timeout,omitempty" json:"timeout,omitempty" mapstructure:"timeout"`
+	Timeout string `yaml:"timeout,omitempty" json:"timeout,omitempty" mapstructure:"timeout"`
 }
 
 func (config PlanConfig) Name() string {

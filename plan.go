@@ -31,8 +31,8 @@ type TryPlan struct {
 }
 
 type TimeoutPlan struct {
-	Step     Plan `json: "step"`
-	Duration int  `json:"duration"`
+	Step     Plan   `json: "step"`
+	Duration string `json:"duration"`
 }
 
 type PutGetPlan struct {
@@ -51,7 +51,7 @@ type GetPlan struct {
 	Params   Params  `json:"params,omitempty"`
 	Version  Version `json:"version,omitempty"`
 	Tags     Tags    `json:"tags,omitempty"`
-	Timeout  int     `json:"timeout,omitempty"`
+	Timeout  string  `json:"timeout,omitempty"`
 }
 
 type PutPlan struct {
@@ -63,7 +63,7 @@ type PutPlan struct {
 	Params    Params `json:"params,omitempty"`
 	GetParams Params `json:"get_params,omitempty"`
 	Tags      Tags   `json:"tags,omitempty"`
-	Timeout   int    `json:"timeout,omitempty"`
+	Timeout   string `json:"timeout,omitempty"`
 }
 
 func (plan PutPlan) GetPlan() GetPlan {
@@ -82,9 +82,9 @@ func (plan PutPlan) GetPlan() GetPlan {
 type TaskPlan struct {
 	Name string `json:"name,omitempty"`
 
-	Privileged bool `json:"privileged"`
-	Tags       Tags `json:"tags,omitempty"`
-	Timeout    int  `json:"timeout,omitempty"`
+	Privileged bool   `json:"privileged"`
+	Tags       Tags   `json:"tags,omitempty"`
+	Timeout    string `json:"timeout,omitempty"`
 
 	ConfigPath string      `json:"config_path,omitempty"`
 	Config     *TaskConfig `json:"config,omitempty"`

@@ -331,7 +331,7 @@ var _ = Describe("Factory Hooks", func() {
 						Task: "those who resist our will",
 						Failure: &atc.PlanConfig{
 							Get:     "some-resource",
-							Timeout: 10,
+							Timeout: "10s",
 						},
 					},
 				},
@@ -347,7 +347,7 @@ var _ = Describe("Factory Hooks", func() {
 					},
 					OnFailure: atc.Plan{
 						Timeout: &atc.TimeoutPlan{
-							Duration: 10,
+							Duration: "10s",
 							Step: atc.Plan{
 								Get: &atc.GetPlan{
 									Name:     "some-resource",

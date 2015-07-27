@@ -25,7 +25,7 @@ var _ = Describe("Factory Timeout Step", func() {
 				Plan: atc.PlanSequence{
 					{
 						Task:    "first task",
-						Timeout: 10,
+						Timeout: "10s",
 					},
 				},
 			}, nil, nil)
@@ -34,7 +34,7 @@ var _ = Describe("Factory Timeout Step", func() {
 
 			expected := atc.Plan{
 				Timeout: &atc.TimeoutPlan{
-					Duration: 10,
+					Duration: "10s",
 					Step: atc.Plan{
 						Task: &atc.TaskPlan{
 							Name: "first task",

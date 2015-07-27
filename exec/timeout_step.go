@@ -11,7 +11,7 @@ import (
 type timeout struct {
 	step     StepFactory
 	runStep  Step
-	duration time.Duration
+	duration string
 	timedOut bool
 }
 
@@ -19,11 +19,11 @@ var ErrStepTimedOut = errors.New("process-exceeded-timeout-limit")
 
 func Timeout(
 	step StepFactory,
-	duration int,
+	duration string,
 ) StepFactory {
 	return timeout{
 		step:     step,
-		duration: time.Duration(duration),
+		duration: duration,
 	}
 }
 
@@ -38,7 +38,12 @@ func (ts *timeout) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 
 	close(ready)
 
-	timer := time.NewTimer(ts.duration * time.Second)
+	parsedDuration, err := time.ParseDuration(ts.duration)
+	if err != nil {
+		return err
+	}
+
+	timer := time.NewTimer(parsedDuration)
 
 	var runErr error
 	var timeoutErr error

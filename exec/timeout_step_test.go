@@ -26,7 +26,7 @@ var _ = Describe("Timeout Step", func() {
 		startStep chan error
 		process   ifrit.Process
 
-		timeoutDuration int
+		timeoutDuration string
 	)
 
 	BeforeEach(func() {
@@ -47,6 +47,16 @@ var _ = Describe("Timeout Step", func() {
 		})
 	})
 
+	Context("when we pass an invalid duration", func() {
+		It("errors", func() {
+			timeout = Timeout(fakeStepFactoryStep, "nope")
+			step = timeout.Using(nil, nil)
+			ready := make(chan struct{})
+			err := step.Run(nil, ready)
+			Ω(err).Should(HaveOccurred())
+		})
+	})
+
 	Context("when the process is invoked with background", func() {
 		JustBeforeEach(func() {
 			timeout = Timeout(fakeStepFactoryStep, timeoutDuration)
@@ -57,7 +67,7 @@ var _ = Describe("Timeout Step", func() {
 		Context("when the process goes beyond the duration", func() {
 			BeforeEach(func() {
 				runStep.ResultStub = successResult(true)
-				timeoutDuration = 1
+				timeoutDuration = "1s"
 
 				runStep.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
 					close(ready)
@@ -80,7 +90,7 @@ var _ = Describe("Timeout Step", func() {
 
 			Context("when the process is signaled", func() {
 				BeforeEach(func() {
-					timeoutDuration = 10
+					timeoutDuration = "10s"
 				})
 
 				It("the process should be interrupted", func() {

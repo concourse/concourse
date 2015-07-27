@@ -341,7 +341,7 @@ func (factory *BuildFactory) constructPlanFromConfig(
 		}
 	}
 
-	if planConfig.Timeout != 0 {
+	if planConfig.Timeout != "" {
 		plan = atc.Plan{
 			Timeout: &atc.TimeoutPlan{
 				Duration: planConfig.Timeout,

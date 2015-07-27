@@ -75,7 +75,7 @@ var _ = Describe("Exec Engine with Timeout", func() {
 			var (
 				fakeDelegate      *fakes.FakeBuildDelegate
 				fakeInputDelegate *execfakes.FakeGetDelegate
-				timeout           int
+				timeout           string
 			)
 
 			BeforeEach(func() {
@@ -139,7 +139,7 @@ var _ = Describe("Exec Engine with Timeout", func() {
 					HookedCompose: &atc.HookedComposePlan{
 						Step: atc.Plan{
 							Timeout: &atc.TimeoutPlan{
-								Duration: 2,
+								Duration: "2s",
 								Step: atc.Plan{
 									Get: &atc.GetPlan{
 										Name: "some-input",
@@ -163,7 +163,7 @@ var _ = Describe("Exec Engine with Timeout", func() {
 				build.Resume(logger)
 
 				Ω(inputStep.RunCallCount()).Should(Equal(1))
-				Ω(inputStep.ReleaseCallCount()).Should(Equal(2))
+				Ω(inputStep.ReleaseCallCount()).Should((BeNumerically(">", 0)))
 
 				Ω(taskStep.RunCallCount()).Should(Equal(0))
 
