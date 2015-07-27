@@ -19,8 +19,8 @@
   \code{A -> B -> C} where \code{A} acquires and \code{C} releases.
 }{
   Any step in a build plan can now have \reference{timeout-step} configured on
-  it.  If the step takes longer than the given duration (in seconds), the step
-  will be aborted in the build will fail.
+  it. If the step takes longer than the given duration, the step will be
+  aborted in the build will fail.
 }{
   We've bumped our Garden Linux dependency, which should fix hanging when
   checking for new versions of \code{git} resources. This would previously
@@ -30,9 +30,27 @@
   warning color even if you aren't logged in. The output from the check script
   is still only shown to authenticated users.
 }{
-  The GitHub release resource now allows you to set the commitish to use for the
-  release tag. See the
-  \hyperlink{https://github.com/concourse/github-release-resource}{README} for
-  details.
+  The \hyperlink{https://github.com/concourse/github-release-resource}{GitHub
+  release resource} now allows you to set the commitish to use for the release
+  tag.
+}{
+  The \hyperlink{BOSH deployment
+  resource}{https://github.com/concourse/bosh-deployment-resource} no longer
+  requires a full \code{https://} URI, and now supports whatever the
+  \code{bosh} CLI supports.
+}{
+  The \hyperlink{BOSH deployment
+  resource}{https://github.com/concourse/bosh-deployment-resource} can now read
+  the target address from a file, which is pretty useful for deploying to a
+  random environment acquired from a \hyperlink{Pool
+  resource}{https://github.com/concourse/pool-resource}.
+}{
+  The \hyperlink{BOSH deployment
+  resource}{https://github.com/concourse/bosh-deployment-resource} will now
+  fill in \code{director_uuid} if not present in the manifest. Similar to the
+  above point, this is mainly useful when using a single manifest against
+  arbitrary environments. You probably don't want this in production.
+}{
+  We've given up on the fancy schmancy spacing logic in the pipeline view. For
+  now. It broke too many things.
 }
-
