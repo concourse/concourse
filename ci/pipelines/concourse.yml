@@ -25,7 +25,7 @@ groups:
   - virtualbox-box
 
 - name: bosh-lite
-  jobs: [provision]
+  jobs: [provision, teardown]
 
 - name: rubbish-bin
   jobs:
@@ -120,12 +120,27 @@ jobs:
   plan:
   - get: deployments
   - get: bosh-lite
-  - task: create-lock
-    privileged: true
+  - task: provision
     file: deployments/lite/ci/provision-bosh-lite.yml
   - put: bosh-lites
     params:
-      add: create-lock/lock
+      add: provision/lock
+
+- name: teardown
+  serial: true
+  plan:
+  - put: bosh-lites
+    params: {acquire: true}
+  - do:
+    - get: deployments
+    - task: teardown
+      file: deployments/lite/ci/teardown-bosh-lite.yml
+    on_success:
+      put: bosh-lites
+      params: {remove: bosh-lites}
+    on_failure:
+      put: bosh-lites
+      params: {release: bosh-lites}
 
 - name: testflight
   public: true
