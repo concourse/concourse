@@ -1,7 +1,6 @@
 package db
 
 import (
-	"database/sql"
 	"errors"
 
 	"github.com/pivotal-golang/lager"
@@ -18,14 +17,14 @@ type PipelineDBFactory interface {
 type pipelineDBFactory struct {
 	logger lager.Logger
 
-	conn        *sql.DB
+	conn        Conn
 	bus         *notificationsBus
 	pipelinesDB PipelinesDB
 }
 
 func NewPipelineDBFactory(
 	logger lager.Logger,
-	sqldbConnection *sql.DB,
+	sqldbConnection Conn,
 	bus *notificationsBus,
 	pipelinesDB PipelinesDB,
 ) *pipelineDBFactory {

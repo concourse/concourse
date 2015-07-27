@@ -1,11 +1,26 @@
 package db
 
 import (
+	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"time"
 
 	"github.com/concourse/atc"
 )
+
+type Conn interface {
+	Begin() (*sql.Tx, error)
+	Close() error
+	Driver() driver.Driver
+	Exec(query string, args ...interface{}) (sql.Result, error)
+	Ping() error
+	Prepare(query string) (*sql.Stmt, error)
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+	QueryRow(query string, args ...interface{}) *sql.Row
+	SetMaxIdleConns(n int)
+	SetMaxOpenConns(n int)
+}
 
 type DB interface {
 	GetBuild(buildID int) (Build, error)

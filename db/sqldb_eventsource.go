@@ -1,7 +1,6 @@
 package db
 
 import (
-	"database/sql"
 	"sync"
 
 	"github.com/concourse/atc"
@@ -10,7 +9,7 @@ import (
 
 func newSQLDBBuildEventSource(
 	buildID int,
-	conn *sql.DB,
+	conn Conn,
 	notifier Notifier,
 	from uint,
 ) *sqldbBuildEventSource {
@@ -37,7 +36,7 @@ func newSQLDBBuildEventSource(
 type sqldbBuildEventSource struct {
 	buildID int
 
-	conn     *sql.DB
+	conn     Conn
 	notifier Notifier
 
 	events chan atc.Event

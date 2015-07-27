@@ -17,7 +17,7 @@ import (
 type SQLDB struct {
 	logger lager.Logger
 
-	conn *sql.DB
+	conn Conn
 	bus  *notificationsBus
 }
 
@@ -26,7 +26,7 @@ const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.status, b.scheduled, b.
 
 func NewSQL(
 	logger lager.Logger,
-	sqldbConnection *sql.DB,
+	sqldbConnection Conn,
 	bus *notificationsBus,
 ) *SQLDB {
 	return &SQLDB{

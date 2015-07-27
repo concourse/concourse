@@ -69,7 +69,7 @@ var ErrPipelineNotFound = errors.New("pipeline not found")
 type pipelineDB struct {
 	logger lager.Logger
 
-	conn *sql.DB
+	conn Conn
 	bus  *notificationsBus
 
 	SavedPipeline
