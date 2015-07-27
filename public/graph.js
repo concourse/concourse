@@ -336,13 +336,21 @@ Graph.prototype.addSpacingNodes = function() {
     var delta = edge.target.node.rank() - edge.source.node.rank();
     if (delta > 1) {
       var upstreamNode = edge.source.node;
+      var downstreamNode = edge.target.node;
+
+      var repeatedNode;
+      if (edge.source.node.repeatable) {
+        repeatedNode = upstreamNode;
+      } else {
+        repeatedNode = downstreamNode;
+      }
 
       for (var i = 0; i < (delta - 1); i++) {
         var spacerID = edge.source.node.id + "-spacing-" + i;
 
         var spacingNode = this.node(spacerID);
         if (!spacingNode) {
-          spacingNode = upstreamNode.copy();
+          spacingNode = repeatedNode.copy();
           spacingNode.id = spacerID;
           spacingNode._cachedRank = upstreamNode.rank() + 1;
           this.setNode(spacingNode.id, spacingNode);
@@ -533,6 +541,7 @@ function Node(opts) {
   this.name = opts.name;
   this.class = opts.class;
   this.status = opts.status;
+  this.repeatable = opts.repeatable;
   this.key = opts.key;
   this.url = opts.url;
   this.svg = opts.svg;
