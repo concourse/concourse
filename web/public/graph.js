@@ -158,52 +158,12 @@ Graph.prototype.layout = function() {
     });
   }
 
-  // do an initial pass to get nodes optimally positioned
-  for (var c in columns) {
-    columns[c].sortNodes();
-    columns[c].layout();
-  }
-
-  this.pullNodesDown(columns);
-}
-
-Graph.prototype.pullNodesDown = function(columns, reversed) {
-  var j;
-
-  if (reversed) {
-    j = columns.length - 1;
-  } else {
-    j = 0;
-  }
-
-  while ((reversed && j >= 0) || (!reversed && j < columns.length)) {
-    if (columns[j].pullDown()) {
-      columns[j].sortNodes();
-      columns[j].layout();
-      columns[j].pullDown();
-
-      if (reversed) {
-        this.pullNodesDown(columns.slice(j + 1, columns.length));
-      } else {
-        this.pullNodesDown(columns.slice(0, j), true);
-      }
-    } else if (columns[j].sortNodes()) {
-      columns[j].layout();
-
-      if (columns[j].pullDown()) {
-        if (reversed) {
-          this.pullNodesDown(columns.slice(j + 1, columns.length));
-        } else {
-          this.pullNodesDown(columns.slice(0, j), true);
-        }
-      }
-    }
-
-
-    if (reversed) {
-      j--;
-    } else {
-      j++;
+  // first pass: initial rough sorting and layout
+  // second pass: detangle now that we know downstream positioning
+  for (var repeat = 0; repeat < 2; repeat++) {
+    for (var c in columns) {
+      columns[c].sortNodes();
+      columns[c].layout();
     }
   }
 }
@@ -377,51 +337,6 @@ function Column(idx) {
   this.nodes = [];
 
   this._spacing = 10;
-}
-
-Column.prototype.pullDown = function() {
-  var pulledDown = false;
-
-  for (var nodeIdx = 0; nodeIdx < this.nodes.length; nodeIdx++) {
-    var node = this.nodes[nodeIdx];
-
-    var delta = 0;
-
-    var downstreamY = node.deltaToHighestDownstreamTarget();
-    if (downstreamY !== undefined && downstreamY > 0) {
-      delta = downstreamY;
-    }
-
-    var upstreamY = node.deltaToHighestUpstreamSource();
-    if (upstreamY !== undefined && upstreamY > 0) {
-      delta = upstreamY;
-    }
-
-    if (delta == 0) {
-      continue;
-    }
-
-    pulledDown = true;
-
-    node._position.y += delta;
-
-    // shift nodes below this node down if necessary
-    var overlap = node._position.y + node.height() + this._spacing;
-    for (var i = nodeIdx + 1; i < this.nodes.length; i++) {
-      var shiftingNode = this.nodes[i];
-
-      if (shiftingNode._position.y >= overlap) {
-        // does not overlap with previously shifted node; stop here
-        break;
-      }
-
-      shiftingNode._position.y = overlap;
-
-      overlap = shiftingNode._position.y + shiftingNode.height() + this._spacing;
-    }
-  }
-
-  return pulledDown;
 }
 
 Column.prototype.sortNodes = function() {
@@ -687,46 +602,6 @@ Node.prototype.highestDownstreamTarget = function() {
   }
 
   return minY;
-};
-
-Node.prototype.deltaToHighestUpstreamSource = function() {
-  var minY;
-  var highestUpstream;
-
-  var y;
-  for (var e in this._inEdges) {
-    var edge = this._inEdges[e];
-    y = edge.source.position().y;
-
-    if (minY === undefined || y < minY) {
-      minY = y;
-      highestUpstream = edge;
-    }
-  }
-
-  if (highestUpstream) {
-    return highestUpstream.source.position().y - highestUpstream.target.position().y;
-  }
-};
-
-Node.prototype.deltaToHighestDownstreamTarget = function() {
-  var minY;
-  var highestDownstream;
-
-  var y;
-  for (var e in this._outEdges) {
-    var edge = this._outEdges[e];
-    y = edge.target.position().y;
-
-    if (minY === undefined || y < minY) {
-      minY = y;
-      highestDownstream = edge;
-    }
-  }
-
-  if (highestDownstream) {
-    return highestDownstream.target.position().y - highestDownstream.source.position().y;
-  }
 };
 
 Node.prototype.passedThroughAnyPreviousNode = function() {
