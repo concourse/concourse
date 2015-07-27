@@ -779,6 +779,24 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
+			Context("when a plan has an invalid timeout in a step", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Get:     "some-resource",
+						Timeout: "nope",
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("throws a validation error", func() {
+					Ω(validateErr).Should(HaveOccurred())
+					Ω(validateErr.Error()).Should(ContainSubstring(
+						"jobs.some-other-job.plan[0].timeout refers to a duration that could not be parsed ('nope')",
+					))
+				})
+			})
+
 			Context("when a plan has an invalid step within a try", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, atc.PlanConfig{

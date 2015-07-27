@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/concourse/atc"
 )
@@ -420,6 +421,14 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 	if plan.Failure != nil {
 		subIdentifier := fmt.Sprintf("%s.failure", identifier)
 		errorMessages = append(errorMessages, validatePlan(c, subIdentifier, *plan.Failure)...)
+	}
+
+	if plan.Timeout != "" {
+		_, err := time.ParseDuration(plan.Timeout)
+		if err != nil {
+			subIdentifier := fmt.Sprintf("%s.timeout", identifier)
+			errorMessages = append(errorMessages, subIdentifier+fmt.Sprintf(" refers to a duration that could not be parsed ('%s')", plan.Timeout))
+		}
 	}
 
 	return errorMessages
