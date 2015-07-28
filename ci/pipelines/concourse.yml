@@ -151,6 +151,7 @@ jobs:
   - do:
     - aggregate:
       - get: concourse
+        params: {submodules: none}
         passed: [rc]
         trigger: true
       - get: candidate-release
@@ -183,6 +184,7 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
+      params: {submodules: none}
       passed: [testflight]
       trigger: true
     - get: candidate-release
@@ -221,7 +223,7 @@ jobs:
   - aggregate:
     - get: concourse
       passed: [deploy]
-      params: {fetch: [master]}
+      params: {submodules: none, fetch: [master]}
     - get: candidate-release
       passed: [deploy]
     - get: version
@@ -257,8 +259,8 @@ jobs:
       resource: garden-linux
       trigger: true
     - get: concourse
-      passed: [shipit]
       params: {submodules: none}
+      passed: [shipit]
       trigger: true
     - get: concourse-lite
     - get: deployments
@@ -288,8 +290,8 @@ jobs:
       resource: garden-linux
       trigger: true
     - get: concourse
-      passed: [shipit]
       params: {submodules: none}
+      passed: [shipit]
       trigger: true
     - get: concourse-lite
   - task: build-box
@@ -318,8 +320,8 @@ jobs:
       trigger: true
       passed: [shipit]
     - get: concourse
-      resource: concourse-develop
       params: {submodules: none}
+      resource: concourse-develop
   - task: build
     file: concourse/ci/build-docs.yml
     config:
@@ -351,12 +353,12 @@ jobs:
       passed: [shipit]
       trigger: true
     - get: concourse
-      passed: [shipit]
       params: {submodules: none}
+      passed: [shipit]
       trigger: true
     - get: concourse-master
-      passed: [shipit]
       params: {submodules: none}
+      passed: [shipit]
       trigger: true
   - aggregate:
     - task: build-release-notes
@@ -433,10 +435,10 @@ jobs:
   plan:
     - aggregate:
       - get: concourse-master
+        params: {submodules: none, fetch: [develop]}
         trigger: true
-        params:
-          fetch: [develop]
       - get: concourse # for build scripts
+        params: {submodules: none}
     - task: merge-to-develop
       file: concourse/ci/master-merge.yml
     - put: concourse
