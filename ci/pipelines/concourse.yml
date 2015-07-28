@@ -151,7 +151,6 @@ jobs:
   - do:
     - aggregate:
       - get: concourse
-        params: {submodules: none}
         passed: [rc]
         trigger: true
       - get: candidate-release
