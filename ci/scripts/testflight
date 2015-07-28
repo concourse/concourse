@@ -9,8 +9,4 @@ export PATH=${PWD}/concourse/bin:$PATH
 go install github.com/onsi/ginkgo/ginkgo
 
 cd concourse/src/github.com/concourse/testflight/
-
-# fly suite is not currently parallelizable due to hijack test
-ginkgo -v -r -race -nodes 1 flying
-
-ginkgo -v -r -race -nodes 3 pipelines
+ginkgo -v -r -race -nodes 3 "$@"
