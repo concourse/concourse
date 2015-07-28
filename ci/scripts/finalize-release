@@ -7,6 +7,7 @@ source ./deployments/ci/bosh_environment
 
 set -x
 
+ROOT_DIR=$PWD
 CANDIDATE_DIR=$PWD/candidate-release
 
 VERSION=$(cat ./version/number)
@@ -24,7 +25,17 @@ git config --global user.name "CI Bot"
 
 git merge --no-edit master
 
-bosh -n finalize release --version "$VERSION" ${CANDIDATE_DIR}/concourse-*.tgz
+RELEASE_YML=$PWD/releases/concourse/concourse-${VERSION}.yml
+RELEASE_TGZ=$PWD/releases/concourse/concourse-${VERSION}.tgz
 
-git add -A
-git commit -m "release v${VERSION}"
+if [ -e ${RELEASE_YML} ]; then
+  echo "release already created; making tarball..."
+  bosh -n create release --with-tarball ${RELEASE_YML}
+else
+  echo "finalizing release"
+  bosh -n finalize release --version "$VERSION" ${CANDIDATE_DIR}/concourse-*.tgz
+  git add -A
+  git commit -m "release v${VERSION}"
+fi
+
+mv ${RELEASE_TGZ} ${ROOT_DIR}
