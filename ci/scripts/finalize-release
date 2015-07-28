@@ -7,6 +7,8 @@ source ./deployments/ci/bosh_environment
 
 set -x
 
+CANDIDATE_DIR=$PWD/candidate-release
+
 VERSION=$(cat ./version/number)
 if [ -z "$VERSION" ]; then
   echo "missing version number"
@@ -22,7 +24,7 @@ git config --global user.name "CI Bot"
 
 git merge --no-edit master
 
-bosh -n finalize release --version "$VERSION" candidate-release/concourse-*.tgz
+bosh -n finalize release --version "$VERSION" ${CANDIDATE_DIR}/concourse-*.tgz
 
 git add -A
 git commit -m "release v${VERSION}"
