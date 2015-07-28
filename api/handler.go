@@ -99,6 +99,7 @@ func NewHandler(
 
 		atc.Hijack: validate(http.HandlerFunc(hijackServer.Hijack)),
 
+		atc.GetBuild:    http.HandlerFunc(buildServer.GetBuild),
 		atc.ListBuilds:  http.HandlerFunc(buildServer.ListBuilds),
 		atc.CreateBuild: validate(http.HandlerFunc(buildServer.CreateBuild)),
 		atc.BuildEvents: http.HandlerFunc(buildServer.BuildEvents),

@@ -8,6 +8,7 @@ const (
 
 	Hijack = "Hijack"
 
+	GetBuild    = "GetBuild"
 	CreateBuild = "CreateBuild"
 	ListBuilds  = "ListBuilds"
 	BuildEvents = "BuildEvents"
@@ -49,6 +50,7 @@ var Routes = rata.Routes{
 	{Path: "/api/v1/pipelines/:pipeline_name/config", Method: "PUT", Name: SaveConfig},
 	{Path: "/api/v1/pipelines/:pipeline_name/config", Method: "GET", Name: GetConfig},
 
+	{Path: "/api/v1/builds/:build_id", Method: "GET", Name: GetBuild},
 	{Path: "/api/v1/builds", Method: "POST", Name: CreateBuild},
 	{Path: "/api/v1/builds", Method: "GET", Name: ListBuilds},
 	{Path: "/api/v1/builds/:build_id/events", Method: "GET", Name: BuildEvents},

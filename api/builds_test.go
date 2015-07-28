@@ -161,6 +161,75 @@ var _ = Describe("Builds API", func() {
 		})
 	})
 
+	Describe("GET /api/v1/builds/:build_id", func() {
+		var response *http.Response
+
+		Context("when parsing the build_id fails", func() {
+			BeforeEach(func() {
+				var err error
+
+				response, err = client.Get(server.URL + "/api/v1/builds/nope")
+				Ω(err).ShouldNot(HaveOccurred())
+			})
+
+			It("returns 500 Internal Server Error", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+			})
+		})
+
+		Context("when parsing the build_id succeeds", func() {
+			JustBeforeEach(func() {
+				var err error
+
+				response, err = client.Get(server.URL + "/api/v1/builds/1")
+				Ω(err).ShouldNot(HaveOccurred())
+			})
+
+			Context("when calling the database fails", func() {
+				BeforeEach(func() {
+					buildsDB.GetBuildReturns(db.Build{}, errors.New("disaster"))
+				})
+
+				It("returns 500 Internal Server Error", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("when calling the database succeeds", func() {
+				BeforeEach(func() {
+					buildsDB.GetBuildReturns(db.Build{
+						ID:           1,
+						Name:         "1",
+						JobName:      "job1",
+						PipelineName: "some-pipeline",
+						Status:       db.StatusSucceeded,
+					}, nil)
+				})
+
+				It("returns 200 OK", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				})
+
+				It("returns the build with the given build_id", func() {
+					Ω(buildsDB.GetBuildCallCount()).Should(Equal(1))
+					buildID := buildsDB.GetBuildArgsForCall(0)
+					Ω(buildID).Should(Equal(1))
+
+					body, err := ioutil.ReadAll(response.Body)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(body).Should(MatchJSON(`{
+						"id": 1,
+						"name": "1",
+						"status": "succeeded",
+						"job_name": "job1",
+						"url": "/pipelines/some-pipeline/jobs/job1/builds/1"
+					}`))
+				})
+			})
+		})
+	})
+
 	Describe("GET /api/v1/builds", func() {
 		var response *http.Response
 
