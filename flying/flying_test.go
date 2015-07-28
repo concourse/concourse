@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"syscall"
 
 	"github.com/mgutz/ansi"
@@ -114,13 +115,20 @@ cat < /tmp/fifo
 			Ω(err).ShouldNot(HaveOccurred())
 
 			fly := exec.Command(flyBin, "-t", atcURL, "execute")
+
 			fly.Dir = fixture
 
 			flyS := start(fly)
 
+			Eventually(flyS).Should(gbytes.Say("executing build"))
+
+			buildRegex := regexp.MustCompile(`executing build (\d+)`)
+			matches := buildRegex.FindSubmatch(flyS.Out.Contents())
+			buildID := string(matches[1])
+
 			Eventually(flyS).Should(gbytes.Say("waiting"))
 
-			hijack := exec.Command(flyBin, "-t", atcURL, "hijack", "--", "sh", "-c", "echo marco > /tmp/fifo")
+			hijack := exec.Command(flyBin, "-t", atcURL, "hijack", "-b", buildID, "--", "sh", "-c", "echo marco > /tmp/fifo")
 
 			hijackS := start(hijack)
 
