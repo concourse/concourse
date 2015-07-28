@@ -197,9 +197,9 @@ func (radar *Radar) checkLock(resourceName string) []db.NamedLock {
 	return []db.NamedLock{db.ResourceCheckingLock(resourceName)}
 }
 
-func (radar *Radar) configureTimer(checkEvery atc.Duration) {
-	if checkEvery != 0 {
-		radar.interval = time.Duration(checkEvery)
+func (radar *Radar) configureTimer(checkEvery string) {
+	if checkEvery != "" {
+		radar.interval, _ = time.ParseDuration(checkEvery)
 	}
 	radar.timer = time.NewTimer(radar.interval)
 }

@@ -147,7 +147,7 @@ var _ = Describe("Radar", func() {
 					Name:       "some-resource",
 					Type:       "git",
 					Source:     atc.Source{"uri": "http://example.com"},
-					CheckEvery: atc.Duration(10 * time.Millisecond),
+					CheckEvery: "10ms",
 				}
 
 				fakeRadarDB.GetConfigReturns(atc.Config{
@@ -164,7 +164,8 @@ var _ = Describe("Radar", func() {
 				Eventually(times).Should(Receive(&time1))
 				Eventually(times).Should(Receive(&time2))
 
-				check := time.Duration(resourceConfig.CheckEvery)
+				check, err := time.ParseDuration(resourceConfig.CheckEvery)
+				Ω(err).NotTo(HaveOccurred())
 
 				Ω(time2.Sub(time1)).Should(BeNumerically("~", check, check/2))
 			})
@@ -388,7 +389,7 @@ var _ = Describe("Radar", func() {
 						Name:       "some-resource",
 						Type:       "git",
 						Source:     atc.Source{"uri": "http://example.com/another-updated-uri"},
-						CheckEvery: atc.Duration(20 * time.Millisecond),
+						CheckEvery: "20ms",
 					}
 
 					newConfig = atc.Config{
@@ -402,7 +403,9 @@ var _ = Describe("Radar", func() {
 
 					Eventually(times).Should(Receive(&time2))
 
-					check = time.Duration(newResource.CheckEvery)
+					var err error
+					check, err = time.ParseDuration(newResource.CheckEvery)
+					Ω(err).NotTo(HaveOccurred())
 					Ω(time2.Sub(time1)).Should(BeNumerically("~", check, check/2))
 				})
 			})

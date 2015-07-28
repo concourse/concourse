@@ -37,9 +37,9 @@ func (groups GroupConfigs) Lookup(name string) (GroupConfig, bool) {
 type ResourceConfig struct {
 	Name string `yaml:"name" json:"name" mapstructure:"name"`
 
-	Type       string   `yaml:"type" json:"type" mapstructure:"type"`
-	Source     Source   `yaml:"source" json:"source" mapstructure:"source"`
-	CheckEvery Duration `yaml:"check_every,omitempty" json:"check_every" mapstructure:"check_every"`
+	Type       string `yaml:"type" json:"type" mapstructure:"type"`
+	Source     Source `yaml:"source" json:"source" mapstructure:"source"`
+	CheckEvery string `yaml:"check_every,omitempty" json:"check_every" mapstructure:"check_every"`
 }
 
 type JobConfig struct {

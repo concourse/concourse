@@ -8,7 +8,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
-	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -361,7 +360,7 @@ jobs:
 											Name:       "some-resource",
 											Type:       "some-type",
 											Source:     nil,
-											CheckEvery: atc.Duration(10 * time.Second),
+											CheckEvery: "10s",
 										},
 									},
 									Jobs: atc.JobConfigs{
