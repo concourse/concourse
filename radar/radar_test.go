@@ -169,6 +169,27 @@ var _ = Describe("Radar", func() {
 
 				Ω(time2.Sub(time1)).Should(BeNumerically("~", check, check/2))
 			})
+
+			Context("when the interval cannot be parsed", func() {
+				BeforeEach(func() {
+					resourceConfig = atc.ResourceConfig{
+						Name:       "some-resource",
+						Type:       "git",
+						Source:     atc.Source{"uri": "http://example.com"},
+						CheckEvery: "bad-value",
+					}
+
+					fakeRadarDB.GetConfigReturns(atc.Config{
+						Resources: atc.ResourceConfigs{
+							resourceConfig,
+						},
+					}, 1, nil)
+				})
+
+				It("should exit with an error", func() {
+					Eventually(process.Wait()).Should(Receive(MatchError("time: invalid duration bad-value")))
+				})
+			})
 		})
 
 		It("grabs a resource checking lock before checking, releases after done", func() {
@@ -407,6 +428,23 @@ var _ = Describe("Radar", func() {
 					check, err = time.ParseDuration(newResource.CheckEvery)
 					Ω(err).NotTo(HaveOccurred())
 					Ω(time2.Sub(time1)).Should(BeNumerically("~", check, check/2))
+				})
+
+				Context("when the interval cannot be parsed", func() {
+					It("returns an error", func() {
+						newResource = atc.ResourceConfig{
+							Name:       "some-resource",
+							Type:       "git",
+							Source:     atc.Source{"uri": "http://example.com/another-updated-uri"},
+							CheckEvery: "bad-interval",
+						}
+
+						newConfig = atc.Config{
+							Resources: atc.ResourceConfigs{newResource},
+						}
+
+						Eventually(process.Wait()).Should(Receive(MatchError("time: invalid duration bad-interval")))
+					})
 				})
 			})
 

@@ -74,7 +74,18 @@ func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runn
 			return err
 		}
 
-		radar.configureTimer(resourceConfig.CheckEvery)
+		err = func() (err error) {
+			if resourceConfig.CheckEvery != "" {
+				radar.interval, err = time.ParseDuration(resourceConfig.CheckEvery)
+			}
+
+			radar.timer = time.NewTimer(radar.interval)
+
+			return
+		}()
+		if err != nil {
+			return err
+		}
 
 		close(ready)
 
@@ -114,40 +125,48 @@ func (radar *Radar) Scan(logger lager.Logger, resourceName string) error {
 	return radar.scan(logger, resourceName)
 }
 
-func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
+func (radar *Radar) scan(logger lager.Logger, resourceName string) (err error) {
 	pipelinePaused, err := radar.db.IsPaused()
 	if err != nil {
 		logger.Error("failed-to-check-if-pipeline-paused", err)
-		return err
+		return
 	}
 
 	if pipelinePaused {
 		logger.Debug("pipeline-paused")
-		return nil
+		return
 	}
 
 	savedResource, err := radar.db.GetResource(resourceName)
 	if err != nil {
-		return err
+		return
 	}
 
 	if savedResource.Paused {
-		return nil
+		return
 	}
 
 	resourceConfig, err := radar.getResourceConfig(logger, resourceName)
 	if err != nil {
-		return err
+		return
 	}
 
-	defer radar.configureTimer(resourceConfig.CheckEvery)
+	defer func() {
+		if resourceConfig.CheckEvery != "" {
+			radar.interval, err = time.ParseDuration(resourceConfig.CheckEvery)
+		}
+
+		radar.timer = time.NewTimer(radar.interval)
+
+		return
+	}()
 
 	typ := resource.ResourceType(resourceConfig.Type)
 
 	res, err := radar.tracker.Init(checkIdentifier(radar.db.GetPipelineName(), resourceConfig), typ, []string{})
 	if err != nil {
 		logger.Error("failed-to-initialize-new-resource", err)
-		return err
+		return
 	}
 
 	defer res.Release()
@@ -169,13 +188,12 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 
 	if err != nil {
 		logger.Error("failed-to-check", err)
-
-		return err
+		return
 	}
 
 	if len(newVersions) == 0 {
 		logger.Debug("no-new-versions")
-		return nil
+		return
 	}
 
 	logger.Info("versions-found", lager.Data{
@@ -190,18 +208,11 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 		})
 	}
 
-	return nil
+	return
 }
 
 func (radar *Radar) checkLock(resourceName string) []db.NamedLock {
 	return []db.NamedLock{db.ResourceCheckingLock(resourceName)}
-}
-
-func (radar *Radar) configureTimer(checkEvery string) {
-	if checkEvery != "" {
-		radar.interval, _ = time.ParseDuration(checkEvery)
-	}
-	radar.timer = time.NewTimer(radar.interval)
 }
 
 func (radar *Radar) getResourceConfig(logger lager.Logger, resourceName string) (atc.ResourceConfig, error) {
