@@ -34,22 +34,20 @@
   release resource} now allows you to set the commitish to use for the release
   tag.
 }{
-  The \hyperlink{BOSH deployment
-  resource}{https://github.com/concourse/bosh-deployment-resource} no longer
-  requires a full \code{https://} URI, and now supports whatever the
-  \code{bosh} CLI supports.
+  The \hyperlink{https://github.com/concourse/bosh-deployment-resource}{BOSH
+  deployment resource} no longer requires a full \code{https://} URI, and now
+  supports whatever the \code{bosh} CLI supports.
 }{
-  The \hyperlink{BOSH deployment
-  resource}{https://github.com/concourse/bosh-deployment-resource} can now read
-  the target address from a file, which is pretty useful for deploying to a
-  random environment acquired from a \hyperlink{Pool
-  resource}{https://github.com/concourse/pool-resource}.
+  The \hyperlink{https://github.com/concourse/bosh-deployment-resource}{BOSH
+  deployment resource} can now read the target address from a file, which is
+  pretty useful for deploying to a random environment acquired from a
+  \hyperlink{Pool resource}{https://github.com/concourse/pool-resource}.
 }{
-  The \hyperlink{BOSH deployment
-  resource}{https://github.com/concourse/bosh-deployment-resource} will now
-  fill in \code{director_uuid} if not present in the manifest. Similar to the
-  above point, this is mainly useful when using a single manifest against
-  arbitrary environments. You probably don't want this in production.
+  The \hyperlink{https://github.com/concourse/bosh-deployment-resource}{BOSH
+  deployment resource} will now fill in \code{director_uuid} if not present in
+  the manifest. Similar to the above point, this is mainly useful when using a
+  single manifest against arbitrary environments. You probably don't want this
+  in production.
 }{
   We've given up on the fancy schmancy spacing logic in the pipeline view. For
   now. It broke too many things.
