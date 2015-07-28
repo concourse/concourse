@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"crypto/tls"
@@ -86,6 +87,8 @@ func Execute(c *cli.Context) {
 		inputs,
 		config.LoadTaskConfig(absConfig, c.Args()),
 	)
+
+	fmt.Fprintf(os.Stdout, "executing build %d\n", build.ID)
 
 	terminate := make(chan os.Signal, 1)
 

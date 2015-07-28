@@ -103,16 +103,28 @@ func getBuild(client *http.Client, reqGenerator *rata.RequestGenerator, jobName 
 		pipelineName = atc.DefaultPipelineName
 	}
 
-	if jobName != "" && buildName != "" {
-		buildReq, err := reqGenerator.CreateRequest(
-			atc.GetJobBuild,
-			rata.Params{
-				"job_name":      jobName,
-				"build_name":    buildName,
-				"pipeline_name": pipelineName,
-			},
-			nil,
-		)
+	if buildName != "" {
+		var buildReq *http.Request
+		var err error
+
+		if jobName != "" {
+			buildReq, err = reqGenerator.CreateRequest(
+				atc.GetJobBuild,
+				rata.Params{
+					"job_name":      jobName,
+					"build_name":    buildName,
+					"pipeline_name": pipelineName,
+				},
+				nil,
+			)
+		} else {
+			buildReq, err = reqGenerator.CreateRequest(
+				atc.GetBuild,
+				rata.Params{"build_id": buildName},
+				nil,
+			)
+		}
+
 		if err != nil {
 			log.Fatalln("failed to create request", err)
 		}

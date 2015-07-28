@@ -194,6 +194,29 @@ var _ = Describe("Hijacking", func() {
 		})
 	})
 
+	Context("with a specific build id", func() {
+		BeforeEach(func() {
+			didHijack := make(chan struct{})
+			hijacked = didHijack
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/builds/2"),
+					ghttp.RespondWithJSONEncoded(200, atc.Build{
+						ID:     2,
+						Name:   "1",
+						Status: "started",
+					}),
+				),
+				hijackHandler(didHijack, []string{"build-id=2&name=build"}, nil),
+			)
+		})
+
+		It("hijacks the most recent one-off build", func() {
+			hijack("-b", "2")
+		})
+	})
+
 	Context("with a specific job", func() {
 		Context("when the job has a next build and pipeline", func() {
 			BeforeEach(func() {

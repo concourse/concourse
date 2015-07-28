@@ -205,6 +205,7 @@ run:
 		Ω(err).ShouldNot(HaveOccurred())
 
 		Eventually(streaming).Should(BeClosed())
+		Eventually(sess.Out).Should(gbytes.Say("executing build 128"))
 
 		events <- event.Log{Payload: "sup"}
 
