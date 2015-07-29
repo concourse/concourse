@@ -89,13 +89,13 @@ span.error { color: @base08; }
 
 svg .job.node.started div,
 .legend dt.started {
-  background: @base0A;
+  background-color: transparent;
   -webkit-animation: started-circles 1s linear infinite;
 }
 
 .generate-keyframes(@frame: 0%, @color) when (@frame =< 100%) {
   @{frame} {
-    background: repeating-radial-gradient(
+    background-image: repeating-radial-gradient(
       circle,
       @color unit(@frame / 5, px),
       @color unit(@frame / 5, px) + 5px,
@@ -121,7 +121,7 @@ svg .job.node.started div,
 
 svg .job.node.pending-start div,
 .legend dt.pending-start {
-  background: @base07;
+  background-color: transparent;
   -webkit-animation: pending-circles 1s linear infinite;
 }
 
