@@ -17,6 +17,9 @@ function draw(groups, renderFn, completeFn) {
 
 var currentHighlight;
 
+/* spacing required for firefox to not clip ripple border animation */
+var animationRadius = 10;
+
 function drawContinuously(svg, groups) {
   draw(groups, function(jobs, resources) {
     // reset viewbox so calculations are done from a blank slate.
@@ -90,10 +93,18 @@ function drawContinuously(svg, groups) {
       .attr("height", function(node) { return node.height() })
 
     var animatableBackground = nodeLink.append("foreignObject")
-      .attr("height", function(node) { return node.height() })
+      .attr("height", function(node) { return node.height() + (2 * animationRadius) })
+      .attr("x", -animationRadius)
+      .attr("y", -animationRadius)
 
-    var animationTarget = animatableBackground.append("xhtml:div")
+    var animationPadding = animatableBackground.append("xhtml:div")
+      .style("padding", animationRadius + "px")
 
+    animationPadding.style("height", function(node) { return node.height() + "px" })
+
+    var animationTarget = animationPadding.append("xhtml:div")
+
+    animationTarget.attr("class", "animation")
     animationTarget.style("height", function(node) { return node.height() + "px" })
 
     nodeLink.append("text")
@@ -104,8 +115,9 @@ function drawContinuously(svg, groups) {
       .attr("y", function(node) { return node.height() / 2 })
 
     jobStatusBackground.attr("width", function(node) { return node.width() })
-    animatableBackground.attr("width", function(node) { return node.width() })
+    animatableBackground.attr("width", function(node) { return node.width() + (2 * animationRadius) })
     animationTarget.style("width", function(node) { return node.width() + "px" })
+    animationPadding.style("width", function(node) { return node.width() + "px" })
 
     graph.layout()
 
