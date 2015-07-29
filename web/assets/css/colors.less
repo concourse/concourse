@@ -45,6 +45,26 @@
 .legend dt.pending { background: @base04; }
 #build-requires-auth input:hover { background: @base04; }
 
+svg .job.node.pending-start .animation {
+  border-radius: 1px;
+  animation: pending-ripples 1s linear infinite;
+}
+
+@keyframes pending-ripples {
+  0% {
+    box-shadow: 0 0 0 -2px @base01, 0 0 0 0px @base04, 0 0 0 2px @base01, 0 0 0 4px @base04;
+  }
+
+  50% {
+    box-shadow: 0 0 0 0px @base01, 0 0 0 2px @base04, 0 0 0 4px @base01, 0 0 0 6px @base04;
+  }
+
+  100% {
+    box-shadow: 0 0 0 2px @base01, 0 0 0 4px @base04, 0 0 0 6px @base01, 0 0 0 8px transparent;
+  }
+}
+
+
 /* highlight foreground */
 .build-step .header .version { color: @base06; }
 #build-requires-auth input { color: @base06; }
@@ -103,31 +123,6 @@ svg .job.node.started .animation,
 
   100% {
     box-shadow: 0 0 0 2px @base01, 0 0 0 4px @base0A, 0 0 0 6px @base01, 0 0 0 8px transparent;
-  }
-}
-
-/* pending */
-#page-header.pending-start { background: @base07; }
-.pending-start{ background: @base07; }
-.legend dt.pending-start rect { stroke: @base07; }
-
-svg .job.node.pending-start .animation,
-.legend dt.pending-start {
-  border-radius: 1px;
-  animation: pending-ripples 1s linear infinite;
-}
-
-@keyframes pending-ripples {
-  0% {
-    box-shadow: 0 0 0 -2px @base01, 0 0 0 0px @base07, 0 0 0 2px @base01, 0 0 0 4px @base07;
-  }
-
-  50% {
-    box-shadow: 0 0 0 0px @base01, 0 0 0 2px @base07, 0 0 0 4px @base01, 0 0 0 6px @base07;
-  }
-
-  100% {
-    box-shadow: 0 0 0 2px @base01, 0 0 0 4px @base07, 0 0 0 6px @base01, 0 0 0 8px transparent;
   }
 }
 
