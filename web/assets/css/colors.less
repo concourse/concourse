@@ -86,47 +86,49 @@ span.error { color: @base08; }
 .started { background: @base0A; }
 .legend dt.started rect { stroke: @base0A; }
 
-
 svg .job.node.started div,
 .legend dt.started {
-  background-color: transparent;
-  -webkit-animation: started-circles 1s linear infinite;
+  border-radius: 1px;
+  animation: started-ripples 1s linear infinite;
 }
 
-.generate-keyframes(@frame: 0%, @color) when (@frame =< 100%) {
-  @{frame} {
-    background-image: repeating-radial-gradient(
-      circle,
-      @color unit(@frame / 5, px),
-      @color unit(@frame / 5, px) + 5px,
-      transparent unit(@frame / 5, px) + 5px,
-      transparent unit(@frame / 5, px) + 20px,
-    );
+@keyframes started-ripples {
+  0% {
+    box-shadow: 0 0 0 -2px @base01, 0 0 0 0px @base0A, 0 0 0 2px @base01, 0 0 0 4px #f4bf75;
   }
 
-  .generate-keyframes(@frame + 5%, @color)
+  50% {
+    box-shadow: 0 0 0 0px @base01, 0 0 0 2px @base0A, 0 0 0 4px #202020, 0 0 0 6px #f4bf75;
+  }
+
+  100% {
+    box-shadow: 0 0 0 2px @base01, 0 0 0 4px @base0A, 0 0 0 6px #202020, 0 0 0 8px transparent;
+  }
 }
 
-
-@-webkit-keyframes started-circles {
-  .generate-keyframes(0%, @base0A);
-}
-
-
-
-/* active */
+/* pending */
 #page-header.pending-start { background: @base07; }
 .pending-start{ background: @base07; }
 .legend dt.pending-start rect { stroke: @base07; }
 
 svg .job.node.pending-start div,
 .legend dt.pending-start {
-  background-color: transparent;
-  -webkit-animation: pending-circles 1s linear infinite;
+  border-radius: 1px;
+  animation: pending-ripples 1s linear infinite;
 }
 
-@-webkit-keyframes pending-circles {
-  .generate-keyframes(0%, @base04)
+@keyframes pending-ripples {
+  0% {
+    box-shadow: 0 0 0 -2px @base01, 0 0 0 0px @base07, 0 0 0 2px @base01, 0 0 0 4px #f4bf75;
+  }
+
+  50% {
+    box-shadow: 0 0 0 0px @base01, 0 0 0 2px @base07, 0 0 0 4px #202020, 0 0 0 6px #f4bf75;
+  }
+
+  100% {
+    box-shadow: 0 0 0 2px @base01, 0 0 0 4px @base07, 0 0 0 6px #202020, 0 0 0 8px transparent;
+  }
 }
 
 
