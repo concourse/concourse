@@ -110,21 +110,16 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, job atc.JobConfig, re
 		return err
 	}
 
-	logger = logger.WithData(lager.Data{"build": build.ID})
-
 	if !created {
-		logger.Debug("did-not-create-build-as-it-already-is-pending")
+		logger.Debug("waiting-for-existing-build-to-determine-inputs", lager.Data{
+			"existing-build": build.ID,
+		})
 		return nil
 	}
 
-	logger.Debug("created-build")
+	logger.Debug("created-build", lager.Data{"build": build.ID})
 
-	createdBuild := s.scheduleAndResumePendingBuild(logger, build, job, resources)
-
-	if createdBuild != nil {
-		logger.Info("building")
-		go createdBuild.Resume(logger)
-	}
+	s.scheduleAndResumePendingBuild(logger, build, job, resources)
 
 	return nil
 }
@@ -136,31 +131,20 @@ func (s *Scheduler) TryNextPendingBuild(logger lager.Logger, job atc.JobConfig, 
 
 	wg.Add(1)
 	go func() {
+		defer wg.Done()
+
 		build, err := s.PipelineDB.GetNextPendingBuild(job.Name)
 		if err != nil {
 			if err == db.ErrNoBuild {
-				wg.Done()
-
 				return
 			}
 
 			logger.Error("failed-to-get-next-pending-build", err)
 
-			wg.Done()
-
 			return
 		}
 
-		logger = logger.WithData(lager.Data{"build": build.ID})
-
-		createdBuild := s.scheduleAndResumePendingBuild(logger, build, job, resources)
-
-		wg.Done()
-
-		if createdBuild != nil {
-			logger.Info("building")
-			createdBuild.Resume(logger)
-		}
+		s.scheduleAndResumePendingBuild(logger, build, job, resources)
 	}()
 
 	return wg
@@ -175,20 +159,15 @@ func (s *Scheduler) TriggerImmediately(logger lager.Logger, job atc.JobConfig, r
 		return db.Build{}, err
 	}
 
-	logger = logger.WithData(lager.Data{"build": build.ID})
-
-	go func() {
-		createdBuild := s.scheduleAndResumePendingBuild(logger, build, job, resources)
-		if createdBuild != nil {
-			logger.Info("building")
-			createdBuild.Resume(logger)
-		}
-	}()
+	// do not block request on scanning input versions
+	go s.scheduleAndResumePendingBuild(logger, build, job, resources)
 
 	return build, nil
 }
 
 func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, build db.Build, job atc.JobConfig, resources atc.ResourceConfigs) engine.Build {
+	logger = logger.WithData(lager.Data{"build": build.ID})
+
 	scheduled, err := s.PipelineDB.ScheduleBuild(build.ID, job)
 	if err != nil {
 		logger.Error("failed-to-schedule-build", err)
@@ -245,6 +224,11 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, build db.
 	if err != nil {
 		logger.Error("failed-to-create-build", err)
 		return nil
+	}
+
+	if createdBuild != nil {
+		logger.Info("building")
+		go createdBuild.Resume(logger)
 	}
 
 	return createdBuild
