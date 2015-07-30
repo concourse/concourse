@@ -119,6 +119,9 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, job atc.JobConfig, re
 
 	logger.Debug("created-build", lager.Data{"build": build.ID})
 
+	// NOTE: this is intentionally serial within a scheduler tick, so that
+	// multiple ATCs don't do redundant work to determine a build's inputs.
+
 	s.scheduleAndResumePendingBuild(logger, build, job, resources)
 
 	return nil
