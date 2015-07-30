@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -208,7 +207,7 @@ func main() {
 
 	var err error
 
-	var dbConn *sql.DB
+	var dbConn Db.Conn
 
 	for {
 		dbConn, err = migration.Open(*sqlDriver, *sqlDataSource, migrations.Migrations)
@@ -224,6 +223,8 @@ func main() {
 
 		break
 	}
+
+	dbConn = Db.Explain(logger, dbConn, 500*time.Millisecond)
 
 	listener := pq.NewListener(*sqlDataSource, time.Second, time.Minute, nil)
 	bus := Db.NewNotificationsBus(listener)
