@@ -714,6 +714,45 @@ var _ = Describe("PipelineDB", func() {
 				Ω(created).Should(BeTrue())
 			})
 
+			It("does create a new build if one is already saved but does not have determined inputs but is not running (aborted)", func() {
+				build, created, err := pipelineDB.CreateJobBuildForCandidateInputs("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(created).Should(BeTrue())
+
+				err = sqlDB.AbortBuild(build.ID)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(created).Should(BeTrue())
+			})
+
+			It("does create a new build if one is already saved but does not have determined inputs but is not running (succeeded)", func() {
+				build, created, err := pipelineDB.CreateJobBuildForCandidateInputs("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(created).Should(BeTrue())
+
+				err = sqlDB.FinishBuild(build.ID, db.StatusSucceeded)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(created).Should(BeTrue())
+			})
+
+			It("does create a new build if one is already saved but does not have determined inputs but is not running (failed)", func() {
+				build, created, err := pipelineDB.CreateJobBuildForCandidateInputs("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(created).Should(BeTrue())
+
+				err = sqlDB.FinishBuild(build.ID, db.StatusFailed)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(created).Should(BeTrue())
+			})
+
 			It("saves all the build inputs", func() {
 				build, created, err := pipelineDB.CreateJobBuildForCandidateInputs("some-job")
 				Ω(err).ShouldNot(HaveOccurred())

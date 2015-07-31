@@ -741,7 +741,7 @@ func (pdb *pipelineDB) CreateJobBuildForCandidateInputs(jobName string) (Build, 
 			INNER JOIN pipelines p ON j.pipeline_id = p.id
 		WHERE j.name = $1
 			AND b.inputs_determined = false
-			AND b.status != 'errored'
+			AND b.status IN ('pending', 'started')
 	`, jobName).Scan(&x)
 
 	if err == sql.ErrNoRows {
