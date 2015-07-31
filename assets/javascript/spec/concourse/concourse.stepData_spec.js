@@ -326,13 +326,15 @@ describe("Step Data", function () {
       var thirdStep = getFakeStep(4, 1, 2, "success");
 
       stepData = stepData.
-        updateIn({id:2}, function(){return firstStep;}).
-        updateIn({id:3}, function(){return secondStep;});
+        updateIn({id:1}, function(){return firstStep;}).
+        updateIn({id:3}, function(){return secondStep;}).
+        updateIn({id:4}, function(){return thirdStep;});
 
       renderableData = stepData.getRenderableData();
       expect(renderableData[1].step).toEqual(firstStep);
       expect(renderableData[1].children[2].group).toBe(true);
       expect(renderableData[1].children[2].groupSteps[3].step).toEqual(secondStep);
+      expect(renderableData[1].children[2].groupSteps[4].step).toEqual(thirdStep);
     });
   });
 

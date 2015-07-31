@@ -192,19 +192,25 @@ function StepModel(origin) {
       return !!this.origin().substep;
     }
 
-    return !this.isHook() && this.origin().location.parent_id != 0
+    return !this.isHook() && this.origin().location.parent_id != 0 && this.origin().location.parallel_group == 0
   }
 
   this.isHook = function() {
+    if(this.origin().location.hook != ""){
+      return this.origin().location.hook != ""
+    }
     return this.origin().hook != "" && !Array.isArray(this.origin().location);
   }
 
   this.hookName = function() {
+    if(this.origin().location.hook != ""){
+      return this.origin().location.hook;
+    }
     return this.origin().hook;
   }
 
   this.hookClassName = function() {
-    return "hook-" + this.origin().hook;
+    return "hook-" + this.hookName();
   }
 
   this.isSuccessful = function() {
