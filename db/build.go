@@ -11,7 +11,6 @@ const (
 	StatusSucceeded Status = "succeeded"
 	StatusFailed    Status = "failed"
 	StatusErrored   Status = "errored"
-	StatusPaused    Status = "paused"
 )
 
 type Build struct {
