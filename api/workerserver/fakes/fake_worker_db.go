@@ -22,7 +22,7 @@ type FakeWorkerDB struct {
 	WorkersStub        func() ([]db.WorkerInfo, error)
 	workersMutex       sync.RWMutex
 	workersArgsForCall []struct{}
-	workersReturns struct {
+	workersReturns     struct {
 		result1 []db.WorkerInfo
 		result2 error
 	}

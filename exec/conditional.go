@@ -39,8 +39,8 @@ func (c *Conditional) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	return c.result.Run(signals, ready)
 }
 
-func (c *Conditional) Release() error {
-	return c.result.Release()
+func (c *Conditional) Release() {
+	c.result.Release()
 }
 
 func (c *Conditional) Result(x interface{}) bool {

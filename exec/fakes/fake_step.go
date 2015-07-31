@@ -18,15 +18,12 @@ type FakeStep struct {
 	runReturns struct {
 		result1 error
 	}
-	ReleaseStub        func() error
+	ReleaseStub        func()
 	releaseMutex       sync.RWMutex
 	releaseArgsForCall []struct{}
-	releaseReturns struct {
-		result1 error
-	}
-	ResultStub        func(interface{}) bool
-	resultMutex       sync.RWMutex
-	resultArgsForCall []struct {
+	ResultStub         func(interface{}) bool
+	resultMutex        sync.RWMutex
+	resultArgsForCall  []struct {
 		arg1 interface{}
 	}
 	resultReturns struct {
@@ -67,14 +64,12 @@ func (fake *FakeStep) RunReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeStep) Release() error {
+func (fake *FakeStep) Release() {
 	fake.releaseMutex.Lock()
 	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct{}{})
 	fake.releaseMutex.Unlock()
 	if fake.ReleaseStub != nil {
-		return fake.ReleaseStub()
-	} else {
-		return fake.releaseReturns.result1
+		fake.ReleaseStub()
 	}
 }
 
@@ -82,13 +77,6 @@ func (fake *FakeStep) ReleaseCallCount() int {
 	fake.releaseMutex.RLock()
 	defer fake.releaseMutex.RUnlock()
 	return len(fake.releaseArgsForCall)
-}
-
-func (fake *FakeStep) ReleaseReturns(result1 error) {
-	fake.ReleaseStub = nil
-	fake.releaseReturns = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeStep) Result(arg1 interface{}) bool {

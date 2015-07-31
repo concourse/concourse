@@ -27,9 +27,17 @@ func (factory *BuildFactory) Create(
 	}
 
 	if hasConditionals {
-		return factory.constructPlanSequenceBasedPlan(job.Plan, resources, inputs), nil
+		return factory.constructPlanSequenceBasedPlan(
+			job.Plan,
+			resources,
+			inputs), nil
 	} else {
-		plan := factory.constructPlanHookBasedPlan(job.Plan, resources, inputs)
+		populateLocations(&job.Plan)
+
+		plan := factory.constructPlanHookBasedPlan(
+			job.Plan,
+			resources,
+			inputs)
 		return plan, nil
 	}
 }
@@ -88,17 +96,140 @@ func (factory *BuildFactory) constructPlanHookBasedPlan(
 		return plan
 	}
 
-	if plan.HookedCompose != nil && (plan.HookedCompose.Next == atc.Plan{}) {
-		plan.HookedCompose.Next = factory.constructPlanHookBasedPlan(planSequence[1:], resources, inputs)
+	if plan.OnSuccess != nil && (plan.OnSuccess.Next == atc.Plan{}) {
+		plan.OnSuccess.Next = factory.constructPlanHookBasedPlan(
+			planSequence[1:],
+			resources,
+			inputs,
+		)
 		return plan
 	} else {
 		return atc.Plan{
-			HookedCompose: &atc.HookedComposePlan{
+			OnSuccess: &atc.OnSuccessPlan{
 				Step: plan,
-				Next: factory.constructPlanHookBasedPlan(planSequence[1:], resources, inputs),
+				Next: factory.constructPlanHookBasedPlan(
+					planSequence[1:],
+					resources,
+					inputs,
+				),
 			},
 		}
 	}
+}
+
+func populateLocations(planSequence *atc.PlanSequence) {
+	p := *planSequence
+	stepCount := uint(1)
+
+	for i := 0; i < len(p); i++ {
+		plan := p[i]
+		location := &atc.Location{
+			ID:            stepCount,
+			ParentID:      0,
+			ParallelGroup: 0,
+		}
+		stepCount = stepCount + populatePlanLocations(&plan, location)
+		p[i] = plan
+	}
+}
+
+func populatePlanLocations(planConfig *atc.PlanConfig, location *atc.Location) uint {
+	var stepCount uint
+	var parentID uint
+
+	parentID = location.ID
+	switch {
+	case planConfig.Put != "":
+		planConfig.Location = location
+		// offset by one for the dependent get that will be added
+		stepCount = stepCount + 1
+
+	case planConfig.Do != nil:
+		children := *planConfig.Do
+		parentID = location.ID + 1
+		for i := 0; i < len(children); i++ {
+			child := children[i]
+			childLocation := &atc.Location{
+				ID:            location.ID + stepCount + 1,
+				ParentID:      location.ParentID,
+				ParallelGroup: 0,
+				Hook:          location.Hook,
+			}
+
+			stepCount = stepCount + populatePlanLocations(&child, childLocation)
+			children[i] = child
+		}
+
+	case planConfig.Try != nil:
+		childLocation := &atc.Location{
+			ID:            location.ID + stepCount + 1,
+			ParentID:      location.ParentID,
+			ParallelGroup: 0,
+			Hook:          location.Hook,
+		}
+		stepCount = stepCount + populatePlanLocations(planConfig.Try, childLocation)
+
+	case planConfig.Aggregate != nil:
+		parallelGroup := location.ID + 1
+		stepCount += 1
+
+		if location.ParallelGroup != 0 {
+			location.ParentID = location.ParallelGroup
+		}
+
+		children := *planConfig.Aggregate
+		for i := 0; i < len(children); i++ {
+			child := children[i]
+			childLocation := &atc.Location{
+				ID:            location.ID + stepCount + 1,
+				ParentID:      location.ParentID,
+				ParallelGroup: parallelGroup,
+			}
+
+			if child.Aggregate == nil {
+				childLocation.Hook = location.Hook
+			}
+
+			stepCount = stepCount + populatePlanLocations(&child, childLocation)
+			children[i] = child
+		}
+
+		parentID = parallelGroup
+	default:
+		planConfig.Location = location
+	}
+
+	if planConfig.Failure != nil {
+		child := planConfig.Failure
+		childLocation := &atc.Location{
+			ID:            location.ID + stepCount + 1,
+			ParentID:      parentID,
+			ParallelGroup: 0,
+			Hook:          "failure",
+		}
+		stepCount = stepCount + populatePlanLocations(child, childLocation)
+	}
+	if planConfig.Success != nil {
+		child := planConfig.Success
+		childLocation := &atc.Location{
+			ID:            location.ID + stepCount + 1,
+			ParentID:      parentID,
+			ParallelGroup: 0,
+			Hook:          "success",
+		}
+		stepCount = stepCount + populatePlanLocations(child, childLocation)
+	}
+	if planConfig.Ensure != nil {
+		child := planConfig.Ensure
+		childLocation := &atc.Location{
+			ID:            location.ID + stepCount + 1,
+			ParentID:      parentID,
+			ParallelGroup: 0,
+			Hook:          "ensure",
+		}
+		stepCount = stepCount + populatePlanLocations(child, childLocation)
+	}
+	return stepCount + 1
 }
 
 func (factory *BuildFactory) constructPlanSequenceBasedPlan(
@@ -109,6 +240,8 @@ func (factory *BuildFactory) constructPlanSequenceBasedPlan(
 	if len(planSequence) == 0 {
 		return atc.Plan{}
 	}
+
+	// Walk each plan in the plan sequence to determine the locations
 
 	// work backwards to simplify conditional wrapping
 	plan := factory.constructPlanFromConfig(
@@ -162,46 +295,23 @@ func makeConditionalOnSuccess(plan atc.Plan) atc.Plan {
 
 func conditionallyCompose(prevPlan atc.Plan, plan atc.Plan) atc.Plan {
 	if prevPlan.Conditional != nil {
-		if prevPlan.Conditional.Plan.PutGet != nil {
-			plan = atc.Plan{
-				Conditional: &atc.ConditionalPlan{
-					Conditions: prevPlan.Conditional.Conditions,
-					Plan: atc.Plan{
-						PutGet: &atc.PutGetPlan{
-							Head: prevPlan.Conditional.Plan.PutGet.Head,
-							Rest: plan,
-						},
+		plan = atc.Plan{
+			Conditional: &atc.ConditionalPlan{
+				Conditions: prevPlan.Conditional.Conditions,
+				Plan: atc.Plan{
+					Compose: &atc.ComposePlan{
+						A: prevPlan.Conditional.Plan,
+						B: plan,
 					},
 				},
-			}
-		} else {
-			plan = atc.Plan{
-				Conditional: &atc.ConditionalPlan{
-					Conditions: prevPlan.Conditional.Conditions,
-					Plan: atc.Plan{
-						Compose: &atc.ComposePlan{
-							A: prevPlan.Conditional.Plan,
-							B: plan,
-						},
-					},
-				},
-			}
+			},
 		}
 	} else {
-		if prevPlan.PutGet != nil {
-			plan = atc.Plan{
-				PutGet: &atc.PutGetPlan{
-					Head: prevPlan.PutGet.Head,
-					Rest: plan,
-				},
-			}
-		} else {
-			plan = atc.Plan{
-				Compose: &atc.ComposePlan{
-					A: prevPlan,
-					B: plan,
-				},
-			}
+		plan = atc.Plan{
+			Compose: &atc.ComposePlan{
+				A: prevPlan,
+				B: plan,
+			},
 		}
 	}
 
@@ -231,6 +341,9 @@ func (factory *BuildFactory) constructPlanFromConfig(
 				inputs,
 			)
 		}
+		if plan.Location == nil {
+			plan.Location = planConfig.Location
+		}
 
 	case planConfig.Put != "":
 		logicalName := planConfig.Put
@@ -243,22 +356,52 @@ func (factory *BuildFactory) constructPlanFromConfig(
 		resource, _ := resources.Lookup(resourceName)
 
 		putPlan := &atc.PutPlan{
-			Type:      resource.Type,
-			Name:      logicalName,
-			Pipeline:  factory.PipelineName,
-			Resource:  resourceName,
-			Source:    resource.Source,
-			Params:    planConfig.Params,
-			GetParams: planConfig.GetParams,
-			Tags:      planConfig.Tags,
+			Type:     resource.Type,
+			Name:     logicalName,
+			Pipeline: factory.PipelineName,
+			Resource: resourceName,
+			Source:   resource.Source,
+			Params:   planConfig.Params,
+			Tags:     planConfig.Tags,
+		}
+
+		dependentGetPlan := &atc.DependentGetPlan{
+			Type:     resource.Type,
+			Name:     logicalName,
+			Pipeline: factory.PipelineName,
+			Resource: resourceName,
+			Params:   planConfig.GetParams,
+			Tags:     planConfig.Tags,
+		}
+
+		stepLocation := &atc.Location{}
+		nextLocation := &atc.Location{}
+
+		if planConfig.Location != nil {
+			stepLocation.ID = planConfig.Location.ID
+			stepLocation.Hook = planConfig.Location.Hook
+
+			if planConfig.Location.ParallelGroup != 0 {
+				stepLocation.ParallelGroup = planConfig.Location.ParallelGroup
+			} else {
+				stepLocation.ParentID = planConfig.Location.ParentID
+			}
+
+			nextLocation.ID = stepLocation.ID + 1
+			nextLocation.ParentID = stepLocation.ID
 		}
 
 		plan = atc.Plan{
-			PutGet: &atc.PutGetPlan{
-				Head: atc.Plan{
-					Put: putPlan,
+			// Location: planConfig.Location,
+			OnSuccess: &atc.OnSuccessPlan{
+				Step: atc.Plan{
+					Location: stepLocation,
+					Put:      putPlan,
 				},
-				Rest: atc.Plan{},
+				Next: atc.Plan{
+					Location:     nextLocation,
+					DependentGet: dependentGetPlan,
+				},
 			},
 		}
 
@@ -280,6 +423,7 @@ func (factory *BuildFactory) constructPlanFromConfig(
 		}
 
 		plan = atc.Plan{
+			Location: planConfig.Location,
 			Get: &atc.GetPlan{
 				Type:     resource.Type,
 				Name:     name,
@@ -294,6 +438,7 @@ func (factory *BuildFactory) constructPlanFromConfig(
 
 	case planConfig.Task != "":
 		plan = atc.Plan{
+			Location: planConfig.Location,
 			Task: &atc.TaskPlan{
 				Name:       planConfig.Task,
 				Privileged: planConfig.Privileged,
@@ -304,14 +449,16 @@ func (factory *BuildFactory) constructPlanFromConfig(
 		}
 
 	case planConfig.Try != nil:
+		nextStep := factory.constructPlanFromConfig(
+			*planConfig.Try,
+			resources,
+			inputs,
+			hasHooks)
+
 		plan = atc.Plan{
+			Location: planConfig.Location,
 			Try: &atc.TryPlan{
-				Step: factory.constructPlanFromConfig(
-					*planConfig.Try,
-					resources,
-					inputs,
-					hasHooks,
-				),
+				Step: nextStep,
 			},
 		}
 
@@ -319,15 +466,17 @@ func (factory *BuildFactory) constructPlanFromConfig(
 		aggregate := atc.AggregatePlan{}
 
 		for _, planConfig := range *planConfig.Aggregate {
-			aggregate = append(aggregate, factory.constructPlanFromConfig(
+			nextStep := factory.constructPlanFromConfig(
 				planConfig,
 				resources,
 				inputs,
-				hasHooks,
-			))
+				hasHooks)
+
+			aggregate = append(aggregate, nextStep)
 		}
 
 		plan = atc.Plan{
+			Location:  planConfig.Location,
 			Aggregate: &aggregate,
 		}
 	}
@@ -350,36 +499,79 @@ func (factory *BuildFactory) constructPlanFromConfig(
 		}
 	}
 
-	hooks := false
-	failurePlan := atc.Plan{}
+	constructionParams := factory.ensureIfPresent(factory.successIfPresent(factory.failureIfPresent(
+		constructionParams{
+			plan:       plan,
+			planConfig: planConfig,
+			resources:  resources,
+			inputs:     inputs,
+			hasHooks:   hasHooks,
+		})),
+	)
 
-	if planConfig.Failure != nil {
-		hooks = true
-		failurePlan = factory.constructPlanFromConfig(*planConfig.Failure, resources, inputs, hasHooks)
+	return constructionParams.plan
+}
+
+type constructionParams struct {
+	plan       atc.Plan
+	planConfig atc.PlanConfig
+	resources  atc.ResourceConfigs
+	inputs     []db.BuildInput
+	hasHooks   bool
+}
+
+func (factory *BuildFactory) successIfPresent(constructionParams constructionParams) constructionParams {
+	if constructionParams.planConfig.Success != nil {
+
+		nextPlan := factory.constructPlanFromConfig(
+			*constructionParams.planConfig.Success,
+			constructionParams.resources,
+			constructionParams.inputs,
+			constructionParams.hasHooks)
+
+		constructionParams.plan = atc.Plan{
+			OnSuccess: &atc.OnSuccessPlan{
+				Step: constructionParams.plan,
+				Next: nextPlan,
+			},
+		}
 	}
+	return constructionParams
+}
 
-	ensurePlan := atc.Plan{}
-	if planConfig.Ensure != nil {
-		hooks = true
-		ensurePlan = factory.constructPlanFromConfig(*planConfig.Ensure, resources, inputs, hasHooks)
-	}
+func (factory *BuildFactory) failureIfPresent(constructionParams constructionParams) constructionParams {
+	if constructionParams.planConfig.Failure != nil {
+		nextPlan := factory.constructPlanFromConfig(
+			*constructionParams.planConfig.Failure,
+			constructionParams.resources,
+			constructionParams.inputs,
+			constructionParams.hasHooks)
 
-	successPlan := atc.Plan{}
-	if planConfig.Success != nil {
-		hooks = true
-		successPlan = factory.constructPlanFromConfig(*planConfig.Success, resources, inputs, hasHooks)
-	}
-
-	if hooks {
-		plan = atc.Plan{
-			HookedCompose: &atc.HookedComposePlan{
-				Step:         plan,
-				OnFailure:    failurePlan,
-				OnCompletion: ensurePlan,
-				OnSuccess:    successPlan,
+		constructionParams.plan = atc.Plan{
+			OnFailure: &atc.OnFailurePlan{
+				Step: constructionParams.plan,
+				Next: nextPlan,
 			},
 		}
 	}
 
-	return plan
+	return constructionParams
+}
+
+func (factory *BuildFactory) ensureIfPresent(constructionParams constructionParams) constructionParams {
+	if constructionParams.planConfig.Ensure != nil {
+		nextPlan := factory.constructPlanFromConfig(
+			*constructionParams.planConfig.Ensure,
+			constructionParams.resources,
+			constructionParams.inputs,
+			constructionParams.hasHooks)
+
+		constructionParams.plan = atc.Plan{
+			Ensure: &atc.EnsurePlan{
+				Step: constructionParams.plan,
+				Next: nextPlan,
+			},
+		}
+	}
+	return constructionParams
 }

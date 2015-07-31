@@ -257,9 +257,7 @@ var _ = Describe("GardenFactory", func() {
 				It("releases the resource", func() {
 					Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
 
-					err := step.Release()
-					Ω(err).ShouldNot(HaveOccurred())
-
+					step.Release()
 					Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
 				})
 			})
@@ -283,17 +281,6 @@ var _ = Describe("GardenFactory", func() {
 
 				Ω(putDelegate.FailedCallCount()).Should(Equal(1))
 				Ω(putDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
-			})
-
-			Describe("releasing", func() {
-				JustBeforeEach(func() {
-					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-				})
-
-				It("succeeds", func() {
-					err := step.Release()
-					Ω(err).ShouldNot(HaveOccurred())
-				})
 			})
 		})
 	})

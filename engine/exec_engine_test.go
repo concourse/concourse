@@ -8,7 +8,6 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/fakes"
-	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
 	execfakes "github.com/concourse/atc/exec/fakes"
 	"github.com/concourse/atc/worker"
@@ -100,16 +99,28 @@ var _ = Describe("ExecEngine", func() {
 			outputPlan = &atc.ConditionalPlan{
 				Conditions: atc.Conditions{atc.ConditionSuccess},
 				Plan: atc.Plan{
-					PutGet: &atc.PutGetPlan{
-						Head: atc.Plan{
+					Location: &atc.Location{},
+					OnSuccess: &atc.OnSuccessPlan{
+						Step: atc.Plan{
+							Location: &atc.Location{},
 							Put: &atc.PutPlan{
-								Name:      "some-put",
-								Resource:  "some-output-resource",
-								Tags:      []string{"some", "putget", "tags"},
-								Type:      "some-type",
-								Source:    atc.Source{"some": "source"},
-								Params:    atc.Params{"some": "params"},
-								GetParams: atc.Params{"another": "params"},
+								Name:     "some-put",
+								Resource: "some-output-resource",
+								Tags:     []string{"some", "putget", "tags"},
+								Type:     "some-type",
+								Source:   atc.Source{"some": "source"},
+								Params:   atc.Params{"some": "params"},
+							},
+						},
+						Next: atc.Plan{
+							Location: &atc.Location{},
+							DependentGet: &atc.DependentGetPlan{
+								Name:     "some-put",
+								Resource: "some-output-resource",
+								Tags:     []string{"some", "putget", "tags"},
+								Type:     "some-type",
+								Source:   atc.Source{"some": "source"},
+								Params:   atc.Params{"another": "params"},
 							},
 						},
 					},
@@ -156,22 +167,27 @@ var _ = Describe("ExecEngine", func() {
 		})
 
 		JustBeforeEach(func() {
-			var err error
-			build, err = execEngine.CreateBuild(buildModel, atc.Plan{
+			input := atc.Plan{
+				Location: &atc.Location{},
 				Compose: &atc.ComposePlan{
 					A: atc.Plan{
+						Location: &atc.Location{},
 						Aggregate: &atc.AggregatePlan{
 							atc.Plan{
-								Get: inputPlan,
+								Location: &atc.Location{},
+								Get:      inputPlan,
 							},
 						},
 					},
 					B: atc.Plan{
+						Location: &atc.Location{},
 						Conditional: &atc.ConditionalPlan{
 							Conditions: atc.Conditions{atc.ConditionSuccess},
 							Plan: atc.Plan{
+								Location: &atc.Location{},
 								Compose: &atc.ComposePlan{
 									A: atc.Plan{
+										Location: &atc.Location{},
 										Task: &atc.TaskPlan{
 											Name: "some-task",
 
@@ -182,8 +198,10 @@ var _ = Describe("ExecEngine", func() {
 										},
 									},
 									B: atc.Plan{
+										Location: &atc.Location{},
 										Aggregate: &atc.AggregatePlan{
 											atc.Plan{
+												Location:    &atc.Location{},
 												Conditional: outputPlan,
 											},
 										},
@@ -193,7 +211,10 @@ var _ = Describe("ExecEngine", func() {
 						},
 					},
 				},
-			})
+			}
+
+			var err error
+			build, err = execEngine.CreateBuild(buildModel, input)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			build.Resume(logger)
@@ -204,20 +225,32 @@ var _ = Describe("ExecEngine", func() {
 				outputPlan = &atc.ConditionalPlan{
 					Conditions: atc.Conditions{atc.ConditionSuccess},
 					Plan: atc.Plan{
+						Location: &atc.Location{},
 						Aggregate: &atc.AggregatePlan{
 							atc.Plan{
+								Location: &atc.Location{},
 								Conditional: &atc.ConditionalPlan{
 									Conditions: []atc.Condition{atc.ConditionSuccess},
 									Plan: atc.Plan{
-										PutGet: &atc.PutGetPlan{
-											Head: atc.Plan{
+										OnSuccess: &atc.OnSuccessPlan{
+											Step: atc.Plan{
+												Location: &atc.Location{},
 												Put: &atc.PutPlan{
-													Name:      "some-put",
-													Resource:  "some-output-resource",
-													Type:      "some-type",
-													Source:    atc.Source{"some": "source"},
-													Params:    atc.Params{"some": "params"},
-													GetParams: atc.Params{"another": "params"},
+													Name:     "some-put",
+													Resource: "some-output-resource",
+													Type:     "some-type",
+													Source:   atc.Source{"some": "source"},
+													Params:   atc.Params{"some": "params"},
+												},
+											},
+											Next: atc.Plan{
+												Location: &atc.Location{},
+												DependentGet: &atc.DependentGetPlan{
+													Name:     "some-put",
+													Resource: "some-output-resource",
+													Type:     "some-type",
+													Source:   atc.Source{"some": "source"},
+													Params:   atc.Params{"another": "params"},
 												},
 											},
 										},
@@ -225,18 +258,30 @@ var _ = Describe("ExecEngine", func() {
 								},
 							},
 							atc.Plan{
+								Location: &atc.Location{},
 								Conditional: &atc.ConditionalPlan{
 									Conditions: []atc.Condition{atc.ConditionSuccess},
 									Plan: atc.Plan{
-										PutGet: &atc.PutGetPlan{
-											Head: atc.Plan{
+										Location: &atc.Location{},
+										OnSuccess: &atc.OnSuccessPlan{
+											Step: atc.Plan{
+												Location: &atc.Location{},
 												Put: &atc.PutPlan{
-													Name:      "some-put-2",
-													Resource:  "some-output-resource-2",
-													Type:      "some-type-2",
-													Source:    atc.Source{"some": "source-2"},
-													Params:    atc.Params{"some": "params-2"},
-													GetParams: atc.Params{"another": "params-2"},
+													Name:     "some-put-2",
+													Resource: "some-output-resource-2",
+													Type:     "some-type-2",
+													Source:   atc.Source{"some": "source-2"},
+													Params:   atc.Params{"some": "params-2"},
+												},
+											},
+											Next: atc.Plan{
+												Location: &atc.Location{},
+												DependentGet: &atc.DependentGetPlan{
+													Name:     "some-put-2",
+													Resource: "some-output-resource-2",
+													Type:     "some-type-2",
+													Source:   atc.Source{"some": "source-2"},
+													Params:   atc.Params{"another": "params-2"},
 												},
 											},
 										},
@@ -254,10 +299,9 @@ var _ = Describe("ExecEngine", func() {
 
 					workerID, delegate, resourceConfig, tags, params := fakeFactory.PutArgsForCall(0)
 					Ω(workerID).Should(Equal(worker.Identifier{
-						BuildID:      42,
-						Type:         worker.ContainerTypePut,
-						Name:         "some-output-resource",
-						StepLocation: 6,
+						BuildID: 42,
+						Type:    worker.ContainerTypePut,
+						Name:    "some-put",
 					}))
 					Ω(tags).Should(BeEmpty())
 					Ω(delegate).Should(Equal(fakeOutputDelegate))
@@ -268,10 +312,9 @@ var _ = Describe("ExecEngine", func() {
 
 					workerID, delegate, resourceConfig, tags, params = fakeFactory.PutArgsForCall(1)
 					Ω(workerID).Should(Equal(worker.Identifier{
-						BuildID:      42,
-						Type:         worker.ContainerTypePut,
-						Name:         "some-output-resource-2",
-						StepLocation: 8,
+						BuildID: 42,
+						Type:    worker.ContainerTypePut,
+						Name:    "some-put-2",
 					}))
 					Ω(tags).Should(BeEmpty())
 					Ω(delegate).Should(Equal(fakeOutputDelegate))
@@ -286,22 +329,16 @@ var _ = Describe("ExecEngine", func() {
 
 					sourceName, workerID, delegate, resourceConfig, tags, params := fakeFactory.DependentGetArgsForCall(0)
 					Ω(workerID).Should(Equal(worker.Identifier{
-						BuildID:      42,
-						Type:         worker.ContainerTypeGet,
-						Name:         "some-put",
-						StepLocation: 7,
+						BuildID: 42,
+						Type:    worker.ContainerTypeGet,
+						Name:    "some-put",
 					}))
 
 					Ω(tags).Should(BeEmpty())
 					Ω(delegate).Should(Equal(fakeInputDelegate))
-					_, plan, location, hook := fakeDelegate.InputDelegateArgsForCall(1)
-					Ω(plan).Should(Equal((*outputPlan.Plan.Aggregate)[0].Conditional.Plan.PutGet.Head.Put.GetPlan()))
-					Ω(location).Should(Equal(event.OriginLocation{
-						ParentID:      6,
-						ID:            7,
-						ParallelGroup: 0,
-					}))
-					Ω(hook).Should(Equal(""))
+					_, plan, location := fakeDelegate.InputDelegateArgsForCall(1)
+					Ω(plan).Should(Equal((*outputPlan.Plan.Aggregate)[0].Conditional.Plan.OnSuccess.Next.DependentGet.GetPlan()))
+					Ω(location).ShouldNot(BeNil())
 
 					Ω(sourceName).Should(Equal(exec.SourceName("some-put")))
 					Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
@@ -311,29 +348,22 @@ var _ = Describe("ExecEngine", func() {
 
 					sourceName, workerID, delegate, resourceConfig, tags, params = fakeFactory.DependentGetArgsForCall(1)
 					Ω(workerID).Should(Equal(worker.Identifier{
-						BuildID:      42,
-						Type:         worker.ContainerTypeGet,
-						Name:         "some-put-2",
-						StepLocation: 9,
+						BuildID: 42,
+						Type:    worker.ContainerTypeGet,
+						Name:    "some-put-2",
 					}))
 
 					Ω(tags).Should(BeEmpty())
 					Ω(delegate).Should(Equal(fakeInputDelegate))
-					_, plan, location, hook = fakeDelegate.InputDelegateArgsForCall(2)
-					Ω(plan).Should(Equal((*outputPlan.Plan.Aggregate)[1].Conditional.Plan.PutGet.Head.Put.GetPlan()))
-					Ω(location).Should(Equal(event.OriginLocation{
-						ParentID:      8,
-						ID:            9,
-						ParallelGroup: 0,
-					}))
-					Ω(hook).Should(Equal(""))
+					_, plan, location = fakeDelegate.InputDelegateArgsForCall(2)
+					Ω(plan).Should(Equal((*outputPlan.Plan.Aggregate)[1].Conditional.Plan.OnSuccess.Next.DependentGet.GetPlan()))
+					Ω(location).ShouldNot(BeNil())
 
 					Ω(sourceName).Should(Equal(exec.SourceName("some-put-2")))
 					Ω(resourceConfig.Name).Should(Equal("some-output-resource-2"))
 					Ω(resourceConfig.Type).Should(Equal("some-type-2"))
 					Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source-2"}))
 					Ω(params).Should(Equal(atc.Params{"another": "params-2"}))
-
 				})
 			})
 		})
@@ -344,22 +374,16 @@ var _ = Describe("ExecEngine", func() {
 			sourceName, workerID, delegate, resourceConfig, params, tags, version := fakeFactory.GetArgsForCall(0)
 			Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
 			Ω(workerID).Should(Equal(worker.Identifier{
-				BuildID:      42,
-				Type:         worker.ContainerTypeGet,
-				Name:         "some-input",
-				StepLocation: 2,
+				BuildID: 42,
+				Type:    worker.ContainerTypeGet,
+				Name:    "some-input",
 			}))
 			Ω(tags).Should(ConsistOf("some", "get", "tags"))
 
 			Ω(delegate).Should(Equal(fakeInputDelegate))
-			_, plan, location, hook := fakeDelegate.InputDelegateArgsForCall(0)
+			_, plan, location := fakeDelegate.InputDelegateArgsForCall(0)
 			Ω(plan).Should(Equal(*inputPlan))
-			Ω(location).Should(Equal(event.OriginLocation{
-				ParentID:      0,
-				ID:            2,
-				ParallelGroup: 1,
-			}))
-			Ω(hook).Should(Equal(""))
+			Ω(location).ShouldNot(BeNil())
 
 			Ω(resourceConfig.Name).Should(Equal("some-input-resource"))
 			Ω(resourceConfig.Type).Should(Equal("some-type"))
@@ -374,10 +398,9 @@ var _ = Describe("ExecEngine", func() {
 			sourceName, workerID, delegate, privileged, tags, configSource := fakeFactory.TaskArgsForCall(0)
 			Ω(sourceName).Should(Equal(exec.SourceName("some-task")))
 			Ω(workerID).Should(Equal(worker.Identifier{
-				BuildID:      42,
-				Type:         worker.ContainerTypeTask,
-				Name:         "some-task",
-				StepLocation: 3,
+				BuildID: 42,
+				Type:    worker.ContainerTypeTask,
+				Name:    "some-task",
 			}))
 			Ω(delegate).Should(Equal(fakeExecutionDelegate))
 			Ω(privileged).Should(Equal(exec.Privileged(false)))
@@ -391,10 +414,9 @@ var _ = Describe("ExecEngine", func() {
 
 				workerID, delegate, resourceConfig, tags, params := fakeFactory.PutArgsForCall(0)
 				Ω(workerID).Should(Equal(worker.Identifier{
-					BuildID:      42,
-					Type:         worker.ContainerTypePut,
-					Name:         "some-output-resource",
-					StepLocation: 5,
+					BuildID: 42,
+					Type:    worker.ContainerTypePut,
+					Name:    "some-put",
 				}))
 				Ω(delegate).Should(Equal(fakeOutputDelegate))
 				Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
@@ -409,28 +431,20 @@ var _ = Describe("ExecEngine", func() {
 
 				sourceName, workerID, delegate, resourceConfig, tags, params := fakeFactory.DependentGetArgsForCall(0)
 				Ω(workerID).Should(Equal(worker.Identifier{
-					BuildID:      42,
-					Type:         worker.ContainerTypeGet,
-					Name:         "some-put",
-					StepLocation: 6,
+					BuildID: 42,
+					Type:    worker.ContainerTypeGet,
+					Name:    "some-put",
 				}))
 				Ω(tags).Should(ConsistOf("some", "putget", "tags"))
-
-				Ω(delegate).Should(Equal(fakeInputDelegate))
-				_, plan, location, hook := fakeDelegate.InputDelegateArgsForCall(1)
-				Ω(plan).Should(Equal(outputPlan.Plan.PutGet.Head.Put.GetPlan()))
-				Ω(location).Should(Equal(event.OriginLocation{
-					ParentID:      5,
-					ID:            6,
-					ParallelGroup: 0,
-				}))
-				Ω(hook).Should(Equal(""))
-
 				Ω(sourceName).Should(Equal(exec.SourceName("some-put")))
 				Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
 				Ω(resourceConfig.Type).Should(Equal("some-type"))
 				Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
 				Ω(params).Should(Equal(atc.Params{"another": "params"}))
+
+				Ω(delegate).Should(Equal(fakeInputDelegate))
+				_, _, location := fakeDelegate.InputDelegateArgsForCall(1)
+				Ω(location).ShouldNot(BeNil())
 			})
 		})
 
@@ -452,7 +466,7 @@ var _ = Describe("ExecEngine", func() {
 			It("releases all sources", func() {
 				Ω(inputStep.ReleaseCallCount()).Should(Equal(1))
 				Ω(taskStep.ReleaseCallCount()).Should(Equal(1))
-				Ω(outputStep.ReleaseCallCount()).Should(Equal(3)) // put + get
+				Ω(outputStep.ReleaseCallCount()).Should(BeNumerically(">", 0))
 			})
 		})
 

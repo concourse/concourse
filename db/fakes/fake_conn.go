@@ -13,20 +13,20 @@ type FakeConn struct {
 	BeginStub        func() (*sql.Tx, error)
 	beginMutex       sync.RWMutex
 	beginArgsForCall []struct{}
-	beginReturns struct {
+	beginReturns     struct {
 		result1 *sql.Tx
 		result2 error
 	}
 	CloseStub        func() error
 	closeMutex       sync.RWMutex
 	closeArgsForCall []struct{}
-	closeReturns struct {
+	closeReturns     struct {
 		result1 error
 	}
 	DriverStub        func() driver.Driver
 	driverMutex       sync.RWMutex
 	driverArgsForCall []struct{}
-	driverReturns struct {
+	driverReturns     struct {
 		result1 driver.Driver
 	}
 	ExecStub        func(query string, args ...interface{}) (sql.Result, error)
@@ -42,7 +42,7 @@ type FakeConn struct {
 	PingStub        func() error
 	pingMutex       sync.RWMutex
 	pingArgsForCall []struct{}
-	pingReturns struct {
+	pingReturns     struct {
 		result1 error
 	}
 	PrepareStub        func(query string) (*sql.Stmt, error)

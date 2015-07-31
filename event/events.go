@@ -117,10 +117,20 @@ const (
 	OriginSourceStderr OriginSource = "stderr"
 )
 
+func OriginLocationFrom(location atc.Location) OriginLocation {
+	return OriginLocation{
+		ParentID:      location.ParentID,
+		ParallelGroup: location.ParallelGroup,
+		ID:            location.ID,
+		Hook:          location.Hook,
+	}
+}
+
 type OriginLocation struct {
-	ParentID      uint `json:"parent_id"`
-	ID            uint `json:"id"`
-	ParallelGroup uint `json:"parallel_group"`
+	ParentID      uint   `json:"parent_id"`
+	ID            uint   `json:"id"`
+	ParallelGroup uint   `json:"parallel_group"`
+	Hook          string `json:"hook"`
 }
 
 func (ol OriginLocation) Incr(by OriginLocationIncrement) OriginLocation {

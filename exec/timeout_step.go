@@ -74,8 +74,8 @@ dance:
 	return nil
 }
 
-func (ts *timeout) Release() error {
-	return ts.runStep.Release()
+func (ts *timeout) Release() {
+	ts.runStep.Release()
 }
 
 func (ts *timeout) Result(x interface{}) bool {

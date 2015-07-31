@@ -79,12 +79,10 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 	return nil
 }
 
-func (ras *resourceStep) Release() error {
+func (ras *resourceStep) Release() {
 	if ras.Resource != nil {
 		ras.Resource.Release()
 	}
-
-	return nil
 }
 
 func (ras *resourceStep) Result(x interface{}) bool {

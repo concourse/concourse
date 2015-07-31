@@ -26,8 +26,8 @@ func (ts *try) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	return nil
 }
 
-func (ts *try) Release() error {
-	return ts.runStep.Release()
+func (ts *try) Release() {
+	ts.runStep.Release()
 }
 
 func (ts *try) Result(x interface{}) bool {

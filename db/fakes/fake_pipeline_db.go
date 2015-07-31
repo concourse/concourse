@@ -12,7 +12,7 @@ type FakePipelineDB struct {
 	GetPipelineNameStub        func() string
 	getPipelineNameMutex       sync.RWMutex
 	getPipelineNameArgsForCall []struct{}
-	getPipelineNameReturns struct {
+	getPipelineNameReturns     struct {
 		result1 string
 	}
 	ScopedNameStub        func(string) string
@@ -26,32 +26,32 @@ type FakePipelineDB struct {
 	PauseStub        func() error
 	pauseMutex       sync.RWMutex
 	pauseArgsForCall []struct{}
-	pauseReturns struct {
+	pauseReturns     struct {
 		result1 error
 	}
 	UnpauseStub        func() error
 	unpauseMutex       sync.RWMutex
 	unpauseArgsForCall []struct{}
-	unpauseReturns struct {
+	unpauseReturns     struct {
 		result1 error
 	}
 	IsPausedStub        func() (bool, error)
 	isPausedMutex       sync.RWMutex
 	isPausedArgsForCall []struct{}
-	isPausedReturns struct {
+	isPausedReturns     struct {
 		result1 bool
 		result2 error
 	}
 	DestroyStub        func() error
 	destroyMutex       sync.RWMutex
 	destroyArgsForCall []struct{}
-	destroyReturns struct {
+	destroyReturns     struct {
 		result1 error
 	}
 	GetConfigStub        func() (atc.Config, db.ConfigVersion, error)
 	getConfigMutex       sync.RWMutex
 	getConfigArgsForCall []struct{}
-	getConfigReturns struct {
+	getConfigReturns     struct {
 		result1 atc.Config
 		result2 db.ConfigVersion
 		result3 error

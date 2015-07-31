@@ -8,9 +8,9 @@ import (
 )
 
 var _ = Describe("Plan", func() {
-	Describe("PutPlan", func() {
+	Describe("DependentGetPlan", func() {
 		It("can convert itself to a GetPlan", func() {
-			putPlan := atc.PutPlan{
+			dependentGetPlan := atc.DependentGetPlan{
 				Type:     "resource-type",
 				Name:     "resource-name",
 				Resource: "resource-resource",
@@ -20,9 +20,6 @@ var _ = Describe("Plan", func() {
 				},
 				Params: atc.Params{
 					"resource": "params",
-				},
-				GetParams: atc.Params{
-					"resource": "get-params",
 				},
 				Tags: []string{"tags"},
 			}
@@ -36,12 +33,12 @@ var _ = Describe("Plan", func() {
 					"resource": "source",
 				},
 				Params: atc.Params{
-					"resource": "get-params",
+					"resource": "params",
 				},
 				Tags: []string{"tags"},
 			}
 
-			Ω(putPlan.GetPlan()).Should(Equal(getPlan))
+			Ω(dependentGetPlan.GetPlan()).Should(Equal(getPlan))
 		})
 	})
 })

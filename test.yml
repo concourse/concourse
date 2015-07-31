@@ -1,0 +1,13 @@
+jobs:
+  - name: test-1
+    plan:
+      - task: test-1-task-1
+        config: {
+          platform: linux, run: {
+          path: 'bash',
+          args: 
+            - '-c'
+            - 'echo 1'
+          }
+        }
+        

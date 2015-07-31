@@ -214,12 +214,10 @@ func (step *taskStep) Result(x interface{}) bool {
 	}
 }
 
-func (step *taskStep) Release() error {
+func (step *taskStep) Release() {
 	if step.container != nil {
 		step.container.Release()
 	}
-
-	return nil
 }
 
 func (step *taskStep) StreamFile(source string) (io.ReadCloser, error) {

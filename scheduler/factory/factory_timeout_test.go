@@ -36,6 +36,11 @@ var _ = Describe("Factory Timeout Step", func() {
 				Timeout: &atc.TimeoutPlan{
 					Duration: "10s",
 					Step: atc.Plan{
+						Location: &atc.Location{
+							ParentID: 0,
+							ID:       1,
+							Hook:     "",
+						},
 						Task: &atc.TaskPlan{
 							Name: "first task",
 						},

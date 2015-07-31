@@ -1,8 +1,6 @@
 package exec_test
 
 import (
-	"errors"
-
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/fakes"
@@ -98,22 +96,8 @@ var _ = Describe("Conditional", func() {
 
 		Describe("releasing", func() {
 			It("releases the output source", func() {
-				err := step.Release()
-				Ω(err).ShouldNot(HaveOccurred())
-
+				step.Release()
 				Ω(outStep.ReleaseCallCount()).Should(Equal(1))
-			})
-
-			Context("when releasing the output source fails", func() {
-				disaster := errors.New("nope")
-
-				BeforeEach(func() {
-					outStep.ReleaseReturns(disaster)
-				})
-
-				It("returns the error", func() {
-					Ω(step.Release()).Should(Equal(disaster))
-				})
 			})
 		})
 	}

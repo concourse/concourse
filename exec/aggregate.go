@@ -71,21 +71,11 @@ dance:
 	return nil
 }
 
-func (source aggregateStep) Release() error {
-	var errorMessages []string
+func (source aggregateStep) Release() {
 
 	for _, src := range source {
-		err := src.Release()
-		if err != nil {
-			errorMessages = append(errorMessages, err.Error())
-		}
+		src.Release()
 	}
-
-	if len(errorMessages) > 0 {
-		return fmt.Errorf("sources failed to release:\n%s", strings.Join(errorMessages, "\n"))
-	}
-
-	return nil
 }
 
 func (source aggregateStep) Result(x interface{}) bool {

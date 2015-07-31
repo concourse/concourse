@@ -1,9 +1,7 @@
 package exec
 
 import (
-	"fmt"
 	"os"
-	"strings"
 
 	"github.com/tedsuo/ifrit"
 )
@@ -58,26 +56,14 @@ dance:
 	return step.secondStep.Run(signals, ready)
 }
 
-func (step *composed) Release() error {
-	errorMessages := []string{}
-
+func (step *composed) Release() {
 	if step.firstStep != nil {
-		if err := step.firstStep.Release(); err != nil {
-			errorMessages = append(errorMessages, "first step: "+err.Error())
-		}
+		step.firstStep.Release()
 	}
 
 	if step.secondStep != nil {
-		if err := step.secondStep.Release(); err != nil {
-			errorMessages = append(errorMessages, "second step: "+err.Error())
-		}
+		step.secondStep.Release()
 	}
-
-	if len(errorMessages) > 0 {
-		return fmt.Errorf("sources failed to release:\n%s", strings.Join(errorMessages, "\n"))
-	}
-
-	return nil
 }
 
 func (step *composed) Result(x interface{}) bool {

@@ -213,32 +213,9 @@ var _ = Describe("Compose", func() {
 			Describe("releasing", func() {
 				It("releases both sources", func() {
 					Eventually(process.Wait()).Should(Receive(BeNil()))
-
-					err := step.Release()
-					Ω(err).ShouldNot(HaveOccurred())
-
+					step.Release()
 					Ω(outStepA.ReleaseCallCount()).Should(Equal(1))
 					Ω(outStepB.ReleaseCallCount()).Should(Equal(1))
-				})
-
-				Context("when releasing the sources fails", func() {
-					disasterA := errors.New("nope A")
-					disasterB := errors.New("nope B")
-
-					BeforeEach(func() {
-						outStepA.ReleaseReturns(disasterA)
-						outStepB.ReleaseReturns(disasterB)
-					})
-
-					It("returns an aggregate error", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
-
-						err := step.Release()
-						Ω(err).Should(HaveOccurred())
-
-						Ω(err.Error()).Should(ContainSubstring("first step: nope A"))
-						Ω(err.Error()).Should(ContainSubstring("second step: nope B"))
-					})
 				})
 			})
 
@@ -273,31 +250,9 @@ var _ = Describe("Compose", func() {
 				It("releases both sources", func() {
 					Eventually(process.Wait()).Should(Receive())
 
-					err := step.Release()
-					Ω(err).ShouldNot(HaveOccurred())
-
+					step.Release()
 					Ω(outStepA.ReleaseCallCount()).Should(Equal(1))
 					Ω(outStepB.ReleaseCallCount()).Should(Equal(1))
-				})
-
-				Context("when releasing the sources fails", func() {
-					disasterA := errors.New("nope A")
-					disasterB := errors.New("nope B")
-
-					BeforeEach(func() {
-						outStepA.ReleaseReturns(disasterA)
-						outStepB.ReleaseReturns(disasterB)
-					})
-
-					It("returns an aggregate error", func() {
-						Eventually(process.Wait()).Should(Receive())
-
-						err := step.Release()
-						Ω(err).Should(HaveOccurred())
-
-						Ω(err.Error()).Should(ContainSubstring("first step: nope A"))
-						Ω(err.Error()).Should(ContainSubstring("second step: nope B"))
-					})
 				})
 			})
 		})
@@ -317,31 +272,9 @@ var _ = Describe("Compose", func() {
 				It("releases both sources", func() {
 					Eventually(process.Wait()).Should(Receive())
 
-					err := step.Release()
-					Ω(err).ShouldNot(HaveOccurred())
-
+					step.Release()
 					Ω(outStepA.ReleaseCallCount()).Should(Equal(1))
 					Ω(outStepB.ReleaseCallCount()).Should(Equal(1))
-				})
-
-				Context("when releasing the sources fails", func() {
-					disasterA := errors.New("nope A")
-					disasterB := errors.New("nope B")
-
-					BeforeEach(func() {
-						outStepA.ReleaseReturns(disasterA)
-						outStepB.ReleaseReturns(disasterB)
-					})
-
-					It("returns an aggregate error", func() {
-						Eventually(process.Wait()).Should(Receive())
-
-						err := step.Release()
-						Ω(err).Should(HaveOccurred())
-
-						Ω(err.Error()).Should(ContainSubstring("first step: nope A"))
-						Ω(err.Error()).Should(ContainSubstring("second step: nope B"))
-					})
 				})
 			})
 		})
@@ -366,28 +299,9 @@ var _ = Describe("Compose", func() {
 			It("releases the first source", func() {
 				Eventually(process.Wait()).Should(Receive())
 
-				err := step.Release()
-				Ω(err).ShouldNot(HaveOccurred())
-
+				step.Release()
 				Ω(outStepA.ReleaseCallCount()).Should(Equal(1))
 				Ω(outStepB.ReleaseCallCount()).Should(BeZero())
-			})
-
-			Context("when releasing the source fails", func() {
-				disaster := errors.New("nope")
-
-				BeforeEach(func() {
-					outStepA.ReleaseReturns(disaster)
-				})
-
-				It("returns an aggregate error", func() {
-					Eventually(process.Wait()).Should(Receive())
-
-					err := step.Release()
-					Ω(err).Should(HaveOccurred())
-
-					Ω(err.Error()).Should(ContainSubstring("first step: nope"))
-				})
 			})
 		})
 	})
@@ -412,28 +326,9 @@ var _ = Describe("Compose", func() {
 			It("releases the first source", func() {
 				Eventually(process.Wait()).Should(Receive())
 
-				err := step.Release()
-				Ω(err).ShouldNot(HaveOccurred())
-
+				step.Release()
 				Ω(outStepA.ReleaseCallCount()).Should(Equal(1))
 				Ω(outStepB.ReleaseCallCount()).Should(BeZero())
-			})
-
-			Context("when releasing the source fails", func() {
-				disaster := errors.New("nope")
-
-				BeforeEach(func() {
-					outStepA.ReleaseReturns(disaster)
-				})
-
-				It("returns an aggregate error", func() {
-					Eventually(process.Wait()).Should(Receive())
-
-					err := step.Release()
-					Ω(err).Should(HaveOccurred())
-
-					Ω(err.Error()).Should(ContainSubstring("first step: nope"))
-				})
 			})
 		})
 	})

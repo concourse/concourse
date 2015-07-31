@@ -22,7 +22,9 @@ func (err FileNotFoundError) Error() string {
 type Step interface {
 	ifrit.Runner
 
-	Release() error
+	Release()
+	// Implementers of this method MUST not mutate the given pointer if they
+	// are unable to respond (i.e. returning false from this function).
 	Result(interface{}) bool
 }
 
@@ -56,7 +58,7 @@ func (NoopStep) Run(<-chan os.Signal, chan<- struct{}) error {
 	return nil
 }
 
-func (NoopStep) Release() error { return nil }
+func (NoopStep) Release() {}
 
 func (NoopStep) Result(interface{}) bool {
 	return false

@@ -1,16 +1,37 @@
 package atc
 
 type Plan struct {
-	Compose       *ComposePlan       `json:"compose,omitempty"`
-	Aggregate     *AggregatePlan     `json:"aggregate,omitempty"`
-	Get           *GetPlan           `json:"get,omitempty"`
-	Put           *PutPlan           `json:"put,omitempty"`
-	Task          *TaskPlan          `json:"task,omitempty"`
-	Conditional   *ConditionalPlan   `json:"conditional,omitempty"`
-	PutGet        *PutGetPlan        `json:"putget,omitempty"`
-	HookedCompose *HookedComposePlan `json:"hooked_compose,omitempty"`
-	Try           *TryPlan           `json:"try,omitempty"`
-	Timeout       *TimeoutPlan       `json:"timeout,omitempty"`
+	Compose      *ComposePlan      `json:"compose,omitempty"`
+	Aggregate    *AggregatePlan    `json:"aggregate,omitempty"`
+	Get          *GetPlan          `json:"get,omitempty"`
+	Put          *PutPlan          `json:"put,omitempty"`
+	Task         *TaskPlan         `json:"task,omitempty"`
+	Conditional  *ConditionalPlan  `json:"conditional,omitempty"`
+	Ensure       *EnsurePlan       `json:"ensure,omitempty"`
+	OnSuccess    *OnSuccessPlan    `json:"on_success,omitempty"`
+	OnFailure    *OnFailurePlan    `json:"on_failure,omitempty"`
+	Try          *TryPlan          `json:"try,omitempty"`
+	Location     *Location         `json:"location,omitempty"`
+	DependentGet *DependentGetPlan `json:"dependent_get,omitempty"`
+	Timeout      *TimeoutPlan      `json:"timeout,omitempty"`
+}
+
+type DependentGetPlan struct {
+	Type     string `json:"type"`
+	Name     string `json:"name,omitempty"`
+	Resource string `json:"resource"`
+	Pipeline string `json:"pipeline"`
+	Params   Params `json:"params,omitempty"`
+	Tags     Tags   `json:"tags,omitempty"`
+	Source   Source `json:"source"`
+	Timeout  string `json:"timeout,omitempty"`
+}
+
+type Location struct {
+	ParentID      uint `json:"parent_id,omitempty"`
+	ParallelGroup uint `json:"parallel_group,omitempty"`
+	ID            uint `json:"id,omitempty"`
+	Hook          string
 }
 
 type ComposePlan struct {
@@ -18,16 +39,17 @@ type ComposePlan struct {
 	B Plan `json:"b"`
 }
 
-type HookedComposePlan struct {
-	Step         Plan `json:"step"`
-	OnSuccess    Plan `json:"on_success"`
-	OnFailure    Plan `json:"on_failure"`
-	OnCompletion Plan `json:"on_completion"`
-	Next         Plan `json:"next"`
-}
-
-type TryPlan struct {
+type OnFailurePlan struct {
 	Step Plan `json: "step"`
+	Next Plan `json: "on_failure"`
+}
+type EnsurePlan struct {
+	Step Plan `json: "step"`
+	Next Plan `json: "ensure"`
+}
+type OnSuccessPlan struct {
+	Step Plan `json: "step"`
+	Next Plan `json: "on_success"`
 }
 
 type TimeoutPlan struct {
@@ -35,9 +57,8 @@ type TimeoutPlan struct {
 	Duration string `json:"duration"`
 }
 
-type PutGetPlan struct {
-	Head Plan `json:"put"`
-	Rest Plan `json:"rest"`
+type TryPlan struct {
+	Step Plan `json: "step"`
 }
 
 type AggregatePlan []Plan
@@ -55,27 +76,26 @@ type GetPlan struct {
 }
 
 type PutPlan struct {
-	Type      string `json:"type"`
-	Name      string `json:"name,omitempty"`
-	Resource  string `json:"resource"`
-	Pipeline  string `json:"pipeline"`
-	Source    Source `json:"source"`
-	Params    Params `json:"params,omitempty"`
-	GetParams Params `json:"get_params,omitempty"`
-	Tags      Tags   `json:"tags,omitempty"`
-	Timeout   string `json:"timeout,omitempty"`
+	Type     string `json:"type"`
+	Name     string `json:"name,omitempty"`
+	Resource string `json:"resource"`
+	Pipeline string `json:"pipeline"`
+	Source   Source `json:"source"`
+	Params   Params `json:"params,omitempty"`
+	Tags     Tags   `json:"tags,omitempty"`
+	Timeout  string `json:"timeout,omitempty"`
 }
 
-func (plan PutPlan) GetPlan() GetPlan {
+func (plan DependentGetPlan) GetPlan() GetPlan {
 	return GetPlan{
 		Type:     plan.Type,
 		Name:     plan.Name,
 		Resource: plan.Resource,
 		Pipeline: plan.Pipeline,
 		Source:   plan.Source,
-		Params:   plan.GetParams,
 		Tags:     plan.Tags,
 		Timeout:  plan.Timeout,
+		Params:   plan.Params,
 	}
 }
 

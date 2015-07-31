@@ -44,6 +44,7 @@ var _ = Describe("BuildDelegate", func() {
 			ParentID:      0,
 			ID:            3,
 			ParallelGroup: 1,
+			Hook:          "some-hook",
 		}
 	})
 
@@ -65,7 +66,7 @@ var _ = Describe("BuildDelegate", func() {
 				Params:   atc.Params{"some": "params"},
 			}
 
-			inputDelegate = delegate.InputDelegate(logger, getPlan, location, "some-input-hook")
+			inputDelegate = delegate.InputDelegate(logger, getPlan, location)
 		})
 
 		Describe("Completed", func() {
@@ -110,7 +111,6 @@ var _ = Describe("BuildDelegate", func() {
 							Type:     event.OriginTypeGet,
 							Name:     "some-input",
 							Location: location,
-							Hook:     "some-input-hook",
 						},
 						Plan: event.GetPlan{
 							Name:     "some-input",
@@ -145,7 +145,6 @@ var _ = Describe("BuildDelegate", func() {
 							Type:     event.OriginTypeGet,
 							Name:     "some-input",
 							Location: location,
-							Hook:     "some-input-hook",
 						},
 						Plan: event.GetPlan{
 							Name:     "some-input",
@@ -238,7 +237,6 @@ var _ = Describe("BuildDelegate", func() {
 								Type:     event.OriginTypeGet,
 								Name:     "some-input",
 								Location: location,
-								Hook:     "some-input-hook",
 							},
 							Plan: event.GetPlan{
 								Name:     "some-input",
@@ -317,7 +315,7 @@ var _ = Describe("BuildDelegate", func() {
 								Params:   atc.Params{"some": "output-params"},
 							}
 
-							outputDelegate = delegate.OutputDelegate(logger, putPlan, location, "some-output-hook")
+							outputDelegate = delegate.OutputDelegate(logger, putPlan, location)
 						})
 
 						JustBeforeEach(func() {
@@ -378,7 +376,6 @@ var _ = Describe("BuildDelegate", func() {
 						Type:     event.OriginTypeGet,
 						Name:     "some-input",
 						Location: location,
-						Hook:     "some-input-hook",
 					},
 					Message: "nope",
 				}))
@@ -406,7 +403,6 @@ var _ = Describe("BuildDelegate", func() {
 						Name:     "some-input",
 						Source:   event.OriginSourceStdout,
 						Location: location,
-						Hook:     "some-input-hook",
 					},
 					Payload: "some stdout",
 				}))
@@ -434,7 +430,6 @@ var _ = Describe("BuildDelegate", func() {
 						Name:     "some-input",
 						Source:   event.OriginSourceStderr,
 						Location: location,
-						Hook:     "some-input-hook",
 					},
 					Payload: "some stderr",
 				}))
@@ -455,7 +450,7 @@ var _ = Describe("BuildDelegate", func() {
 				ConfigPath: "/etc/concourse/config.yml",
 			}
 
-			executionDelegate = delegate.ExecutionDelegate(logger, taskPlan, location, "some-task-hook")
+			executionDelegate = delegate.ExecutionDelegate(logger, taskPlan, location)
 		})
 
 		Describe("Initializing", func() {
@@ -488,7 +483,6 @@ var _ = Describe("BuildDelegate", func() {
 						Type:     event.OriginTypeTask,
 						Name:     "some-task",
 						Location: location,
-						Hook:     "some-task-hook",
 					},
 				}))
 			})
@@ -510,7 +504,6 @@ var _ = Describe("BuildDelegate", func() {
 					Type:     event.OriginTypeTask,
 					Name:     "some-task",
 					Location: location,
-					Hook:     "some-task-hook",
 				}))
 			})
 		})
@@ -539,7 +532,6 @@ var _ = Describe("BuildDelegate", func() {
 						Type:     event.OriginTypeTask,
 						Name:     "some-task",
 						Location: location,
-						Hook:     "some-task-hook",
 					}))
 				})
 
@@ -606,7 +598,6 @@ var _ = Describe("BuildDelegate", func() {
 						Type:     event.OriginTypeTask,
 						Name:     "some-task",
 						Location: location,
-						Hook:     "some-task-hook",
 					}))
 				})
 			})
@@ -632,7 +623,6 @@ var _ = Describe("BuildDelegate", func() {
 						Type:     event.OriginTypeTask,
 						Name:     "some-task",
 						Location: location,
-						Hook:     "some-task-hook",
 					},
 				}))
 			})
@@ -659,7 +649,6 @@ var _ = Describe("BuildDelegate", func() {
 						Name:     "some-task",
 						Source:   event.OriginSourceStdout,
 						Location: location,
-						Hook:     "some-task-hook",
 					},
 					Payload: "some stdout",
 				}))
@@ -687,7 +676,6 @@ var _ = Describe("BuildDelegate", func() {
 						Name:     "some-task",
 						Source:   event.OriginSourceStderr,
 						Location: location,
-						Hook:     "some-task-hook",
 					},
 					Payload: "some stderr",
 				}))
@@ -712,7 +700,7 @@ var _ = Describe("BuildDelegate", func() {
 				Params:   atc.Params{"some": "params"},
 			}
 
-			outputDelegate = delegate.OutputDelegate(logger, putPlan, location, "some-output-hook")
+			outputDelegate = delegate.OutputDelegate(logger, putPlan, location)
 		})
 
 		Describe("Completed", func() {
@@ -744,7 +732,6 @@ var _ = Describe("BuildDelegate", func() {
 							Type:     event.OriginTypePut,
 							Name:     "some-output-name",
 							Location: location,
-							Hook:     "some-output-hook",
 						},
 						Plan: event.PutPlan{
 							Name:     "some-output-name",
@@ -786,7 +773,6 @@ var _ = Describe("BuildDelegate", func() {
 							Type:     event.OriginTypePut,
 							Name:     "some-output-name",
 							Location: location,
-							Hook:     "some-output-hook",
 						},
 						Plan: event.PutPlan{
 							Name:     "some-output-name",
@@ -829,7 +815,6 @@ var _ = Describe("BuildDelegate", func() {
 							Type:     event.OriginTypePut,
 							Name:     "some-output-name",
 							Location: location,
-							Hook:     "some-output-hook",
 						},
 						Plan: event.PutPlan{
 							Name:     "some-output-name",
@@ -911,7 +896,6 @@ var _ = Describe("BuildDelegate", func() {
 						Type:     event.OriginTypePut,
 						Name:     "some-output-name",
 						Location: location,
-						Hook:     "some-output-hook",
 					},
 					Message: "nope",
 				}))
@@ -939,7 +923,6 @@ var _ = Describe("BuildDelegate", func() {
 						Name:     "some-output-name",
 						Source:   event.OriginSourceStdout,
 						Location: location,
-						Hook:     "some-output-hook",
 					},
 					Payload: "some stdout",
 				}))
@@ -967,7 +950,6 @@ var _ = Describe("BuildDelegate", func() {
 						Name:     "some-output-name",
 						Source:   event.OriginSourceStderr,
 						Location: location,
-						Hook:     "some-output-hook",
 					},
 					Payload: "some stderr",
 				}))

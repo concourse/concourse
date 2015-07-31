@@ -143,29 +143,10 @@ var _ = Describe("Aggregate", func() {
 
 	Describe("releasing", func() {
 		It("releases all sources", func() {
-			err := step.Release()
-			Ω(err).ShouldNot(HaveOccurred())
+			step.Release()
 
 			Ω(outStepA.ReleaseCallCount()).Should(Equal(1))
 			Ω(outStepB.ReleaseCallCount()).Should(Equal(1))
-		})
-
-		Context("when the sources fail to release", func() {
-			disasterA := errors.New("nope A")
-			disasterB := errors.New("nope B")
-
-			BeforeEach(func() {
-				outStepA.ReleaseReturns(disasterA)
-				outStepB.ReleaseReturns(disasterB)
-			})
-
-			It("returns an error describing the failures", func() {
-				err := step.Release()
-				Ω(err).Should(HaveOccurred())
-
-				Ω(err.Error()).Should(ContainSubstring("nope A"))
-				Ω(err.Error()).Should(ContainSubstring("nope B"))
-			})
 		})
 	})
 

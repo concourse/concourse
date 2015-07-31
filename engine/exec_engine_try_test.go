@@ -5,7 +5,6 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/fakes"
-	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
 	. "github.com/onsi/ginkgo"
@@ -86,8 +85,10 @@ var _ = Describe("Exec Engine with Try", func() {
 				fakeDelegate.ExecutionDelegateReturns(fakeExecutionDelegate)
 
 				plan := atc.Plan{
+					Location: &atc.Location{},
 					Try: &atc.TryPlan{
 						Step: atc.Plan{
+							Location: &atc.Location{},
 							Get: &atc.GetPlan{
 								Name: "some-input",
 							},
@@ -108,20 +109,14 @@ var _ = Describe("Exec Engine with Try", func() {
 				sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
 				Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
 				Ω(workerID).Should(Equal(worker.Identifier{
-					BuildID:      84,
-					Type:         worker.ContainerTypeGet,
-					Name:         "some-input",
-					StepLocation: 1,
+					BuildID: 84,
+					Type:    worker.ContainerTypeGet,
+					Name:    "some-input",
 				}))
 
 				Ω(delegate).Should(Equal(fakeInputDelegate))
-				_, _, location, hook := fakeDelegate.InputDelegateArgsForCall(0)
-				Ω(location).Should(Equal(event.OriginLocation{
-					ParentID:      0,
-					ID:            1,
-					ParallelGroup: 0,
-				}))
-				Ω(hook).Should(Equal(""))
+				_, _, location := fakeDelegate.InputDelegateArgsForCall(0)
+				Ω(location).ShouldNot(BeNil())
 			})
 		})
 
@@ -132,10 +127,13 @@ var _ = Describe("Exec Engine with Try", func() {
 
 			It("runs the next step", func() {
 				plan := atc.Plan{
-					HookedCompose: &atc.HookedComposePlan{
+					Location: &atc.Location{},
+					OnSuccess: &atc.OnSuccessPlan{
 						Step: atc.Plan{
+							Location: &atc.Location{},
 							Try: &atc.TryPlan{
 								Step: atc.Plan{
+									Location: &atc.Location{},
 									Get: &atc.GetPlan{
 										Name: "some-input",
 									},
@@ -143,6 +141,7 @@ var _ = Describe("Exec Engine with Try", func() {
 							},
 						},
 						Next: atc.Plan{
+							Location: &atc.Location{},
 							Task: &atc.TaskPlan{
 								Name:   "some-resource",
 								Config: &atc.TaskConfig{},
@@ -158,10 +157,10 @@ var _ = Describe("Exec Engine with Try", func() {
 				build.Resume(logger)
 
 				Ω(inputStep.RunCallCount()).Should(Equal(1))
-				Ω(inputStep.ReleaseCallCount()).Should(Equal(3))
+				Ω(inputStep.ReleaseCallCount()).Should(BeNumerically(">", 0))
 
 				Ω(taskStep.RunCallCount()).Should(Equal(1))
-				Ω(taskStep.ReleaseCallCount()).Should(Equal(1))
+				Ω(inputStep.ReleaseCallCount()).Should(BeNumerically(">", 0))
 			})
 		})
 	})
