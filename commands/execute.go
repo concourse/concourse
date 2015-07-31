@@ -173,10 +173,10 @@ func createBuild(
 	buffer := &bytes.Buffer{}
 
 	buildInputs := atc.AggregatePlan{}
-	for _, i := range inputs {
+	for i, input := range inputs {
 		readPipe, err := atcRequester.CreateRequest(
 			atc.ReadPipe,
-			rata.Params{"pipe_id": i.Pipe.ID},
+			rata.Params{"pipe_id": input.Pipe.ID},
 			nil,
 		)
 		if err != nil {
@@ -184,8 +184,14 @@ func createBuild(
 		}
 
 		buildInputs = append(buildInputs, atc.Plan{
+			Location: &atc.Location{
+				// offset by 2 because aggregate gets parallelgroup ID 1
+				ID:            uint(i) + 2,
+				ParentID:      0,
+				ParallelGroup: 1,
+			},
 			Get: &atc.GetPlan{
-				Name: i.Name,
+				Name: input.Name,
 				Type: "archive",
 				Source: atc.Source{
 					"uri": readPipe.URL.String(),
@@ -200,6 +206,11 @@ func createBuild(
 				Aggregate: &buildInputs,
 			},
 			B: atc.Plan{
+				Location: &atc.Location{
+					// offset by 1 because aggregate gets parallelgroup ID 1
+					ID:       uint(len(inputs)) + 2,
+					ParentID: 0,
+				},
 				Task: &atc.TaskPlan{
 					Name:       "build",
 					Privileged: privileged,

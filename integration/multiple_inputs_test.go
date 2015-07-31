@@ -81,7 +81,11 @@ run:
 				A: atc.Plan{
 					Aggregate: &atc.AggregatePlan{
 						atc.Plan{
-							Get: &atc.GetPlan{
+							Location: &atc.Location{
+								ParallelGroup: 1,
+								ParentID:      0,
+								ID:            2,
+							}, Get: &atc.GetPlan{
 								Name: "buildDir",
 								Type: "archive",
 								Source: atc.Source{
@@ -90,7 +94,11 @@ run:
 							},
 						},
 						atc.Plan{
-							Get: &atc.GetPlan{
+							Location: &atc.Location{
+								ParallelGroup: 1,
+								ParentID:      0,
+								ID:            3,
+							}, Get: &atc.GetPlan{
 								Name: "s3Asset",
 								Type: "archive",
 								Source: atc.Source{
@@ -101,6 +109,11 @@ run:
 					},
 				},
 				B: atc.Plan{
+					Location: &atc.Location{
+						ParallelGroup: 0,
+						ParentID:      0,
+						ID:            4,
+					},
 					Task: &atc.TaskPlan{
 						Name: "build",
 						Config: &atc.TaskConfig{

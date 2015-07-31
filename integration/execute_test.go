@@ -75,6 +75,11 @@ run:
 				A: atc.Plan{
 					Aggregate: &atc.AggregatePlan{
 						atc.Plan{
+							Location: &atc.Location{
+								ParallelGroup: 1,
+								ParentID:      0,
+								ID:            2,
+							},
 							Get: &atc.GetPlan{
 								Name: filepath.Base(buildDir),
 								Type: "archive",
@@ -86,6 +91,11 @@ run:
 					},
 				},
 				B: atc.Plan{
+					Location: &atc.Location{
+						ParallelGroup: 0,
+						ParentID:      0,
+						ID:            3,
+					},
 					Task: &atc.TaskPlan{
 						Name: "build",
 						Config: &atc.TaskConfig{
