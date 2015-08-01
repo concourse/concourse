@@ -371,6 +371,7 @@ var _ = Describe("PipelineDB", func() {
 
 		Describe("enabling and disabling versioned resources", func() {
 			var resource db.SavedResource
+
 			BeforeEach(func() {
 				var err error
 				resource, err = pipelineDB.GetResource("some-resource")
@@ -420,6 +421,106 @@ var _ = Describe("PipelineDB", func() {
 				Ω(pipelineDB.GetLatestVersionedResource(resource)).Should(Equal(enabledVR))
 			})
 
+			It("prevents the resource version from being eligible as a previous set of inputs", func() {
+				err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				savedVR1, err := pipelineDB.GetLatestVersionedResource(resource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				otherResource, err := pipelineDB.GetResource("some-other-resource")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-other-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				otherSavedVR1, err := pipelineDB.GetLatestVersionedResource(otherResource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "2"}})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				savedVR2, err := pipelineDB.GetLatestVersionedResource(resource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-other-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "2"}})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				otherSavedVR2, err := pipelineDB.GetLatestVersionedResource(otherResource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				jobBuildInputs := []atc.JobInput{
+					{
+						Name:     "some-input-name",
+						Resource: "some-resource",
+					},
+					{
+						Name:     "some-other-input-name",
+						Resource: "some-other-resource",
+					},
+				}
+
+				build1, err := pipelineDB.CreateJobBuild("a-job")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildInput(build1.ID, db.BuildInput{
+					Name:              "some-input-name",
+					VersionedResource: savedVR1.VersionedResource,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildInput(build1.ID, db.BuildInput{
+					Name:              "some-other-input-name",
+					VersionedResource: otherSavedVR1.VersionedResource,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				build2, err := pipelineDB.CreateJobBuild("a-job")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildInput(build2.ID, db.BuildInput{
+					Name:              "some-input-name",
+					VersionedResource: savedVR2.VersionedResource,
+				})
+
+				Ω(err).ShouldNot(HaveOccurred())
+				_, err = pipelineDB.SaveBuildInput(build2.ID, db.BuildInput{
+					Name:              "some-other-input-name",
+					VersionedResource: otherSavedVR2.VersionedResource,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = pipelineDB.DisableVersionedResource(savedVR2.ID)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(pipelineDB.GetLatestInputVersions("a-job", jobBuildInputs)).Should(Equal([]db.BuildInput{
+					{
+						Name:              "some-input-name",
+						VersionedResource: savedVR1.VersionedResource,
+					},
+					{
+						Name:              "some-other-input-name",
+						VersionedResource: otherSavedVR2.VersionedResource,
+					},
+				}))
+			})
+
 			It("prevents the resource version from being a candidate for build inputs", func() {
 				err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
 					Name:   "some-resource",
@@ -448,7 +549,7 @@ var _ = Describe("PipelineDB", func() {
 					},
 				}
 
-				Ω(pipelineDB.GetLatestInputVersions(jobBuildInputs)).Should(Equal([]db.BuildInput{
+				Ω(pipelineDB.GetLatestInputVersions("a-job", jobBuildInputs)).Should(Equal([]db.BuildInput{
 					{
 						Name:              "some-input-name",
 						VersionedResource: savedVR2.VersionedResource,
@@ -458,7 +559,7 @@ var _ = Describe("PipelineDB", func() {
 				err = pipelineDB.DisableVersionedResource(savedVR2.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(pipelineDB.GetLatestInputVersions(jobBuildInputs)).Should(Equal([]db.BuildInput{
+				Ω(pipelineDB.GetLatestInputVersions("a-job", jobBuildInputs)).Should(Equal([]db.BuildInput{
 					{
 						Name:              "some-input-name",
 						VersionedResource: savedVR1.VersionedResource,
@@ -469,13 +570,13 @@ var _ = Describe("PipelineDB", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 
 				// no versions
-				_, err = pipelineDB.GetLatestInputVersions(jobBuildInputs)
+				_, err = pipelineDB.GetLatestInputVersions("a-job", jobBuildInputs)
 				Ω(err).Should(HaveOccurred())
 
 				err = pipelineDB.EnableVersionedResource(savedVR1.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(pipelineDB.GetLatestInputVersions(jobBuildInputs)).Should(Equal([]db.BuildInput{
+				Ω(pipelineDB.GetLatestInputVersions("a-job", jobBuildInputs)).Should(Equal([]db.BuildInput{
 					{
 						Name:              "some-input-name",
 						VersionedResource: savedVR1.VersionedResource,
@@ -485,7 +586,7 @@ var _ = Describe("PipelineDB", func() {
 				err = pipelineDB.EnableVersionedResource(savedVR2.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(pipelineDB.GetLatestInputVersions(jobBuildInputs)).Should(Equal([]db.BuildInput{
+				Ω(pipelineDB.GetLatestInputVersions("a-job", jobBuildInputs)).Should(Equal([]db.BuildInput{
 					{
 						Name:              "some-input-name",
 						VersionedResource: savedVR2.VersionedResource,
@@ -1665,6 +1766,154 @@ var _ = Describe("PipelineDB", func() {
 		})
 
 		Describe("determining the inputs for a job", func() {
+			It("ensures that when scanning for previous inputs versions it only considers those from the same job", func() {
+				resource, err := pipelineDB.GetResource("some-resource")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				savedVR1, err := pipelineDB.GetLatestVersionedResource(resource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				otherResource, err := pipelineDB.GetResource("some-other-resource")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-other-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				otherSavedVR1, err := pipelineDB.GetLatestVersionedResource(otherResource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "2"}})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				savedVR2, err := pipelineDB.GetLatestVersionedResource(resource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-other-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "2"}})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				otherSavedVR2, err := pipelineDB.GetLatestVersionedResource(otherResource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "3"}})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				savedVR3, err := pipelineDB.GetLatestVersionedResource(resource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-other-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "3"}})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				otherSavedVR3, err := pipelineDB.GetLatestVersionedResource(otherResource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				build1, err := pipelineDB.CreateJobBuild("a-job")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildInput(build1.ID, db.BuildInput{
+					Name:              "some-input-name",
+					VersionedResource: savedVR1.VersionedResource,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildOutput(build1.ID, savedVR1.VersionedResource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildInput(build1.ID, db.BuildInput{
+					Name:              "some-other-input-name",
+					VersionedResource: otherSavedVR1.VersionedResource,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildOutput(build1.ID, otherSavedVR1.VersionedResource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				otherBuild2, err := pipelineDB.CreateJobBuild("other-job")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildInput(otherBuild2.ID, db.BuildInput{
+					Name:              "some-input-name",
+					VersionedResource: savedVR2.VersionedResource,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildOutput(otherBuild2.ID, savedVR2.VersionedResource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildInput(otherBuild2.ID, db.BuildInput{
+					Name:              "some-other-input-name",
+					VersionedResource: otherSavedVR2.VersionedResource,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildOutput(otherBuild2.ID, otherSavedVR2.VersionedResource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				build3, err := pipelineDB.CreateJobBuild("a-job")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildInput(build3.ID, db.BuildInput{
+					Name:              "some-input-name",
+					VersionedResource: savedVR3.VersionedResource,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildInput(build3.ID, db.BuildInput{
+					Name:              "some-other-input-name",
+					VersionedResource: otherSavedVR3.VersionedResource,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				jobBuildInputs := []atc.JobInput{
+					{
+						Name:     "some-input-name",
+						Resource: "some-resource",
+						Passed:   []string{"a-job"},
+					},
+					{
+						Name:     "some-other-input-name",
+						Resource: "some-other-resource",
+					},
+				}
+
+				Ω(pipelineDB.GetLatestInputVersions("third-job", jobBuildInputs)).Should(Equal([]db.BuildInput{
+					{
+						Name:              "some-input-name",
+						VersionedResource: savedVR1.VersionedResource,
+					},
+					{
+						Name:              "some-other-input-name",
+						VersionedResource: otherSavedVR3.VersionedResource,
+					},
+				}))
+			})
+
 			It("ensures that versions from jobs mentioned in two input's 'passed' sections came from the same builds", func() {
 				j1b1, err := pipelineDB.CreateJobBuild("job-1")
 				Ω(err).ShouldNot(HaveOccurred())
@@ -1684,7 +1933,7 @@ var _ = Describe("PipelineDB", func() {
 				_, err = otherPipelineDB.CreateJobBuild("shared-job")
 				Ω(err).ShouldNot(HaveOccurred())
 
-				_, err = pipelineDB.GetLatestInputVersions([]atc.JobInput{
+				_, err = pipelineDB.GetLatestInputVersions("a-job", []atc.JobInput{
 					{
 						Name:     "input-1",
 						Resource: "resource-1",
@@ -1753,7 +2002,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(pipelineDB.GetLatestInputVersions([]atc.JobInput{
+				Ω(pipelineDB.GetLatestInputVersions("a-job", []atc.JobInput{
 					{
 						Name:     "input-1",
 						Resource: "resource-1",
@@ -1807,7 +2056,7 @@ var _ = Describe("PipelineDB", func() {
 
 				// do NOT save resource-2 as an output of job-2
 
-				Ω(pipelineDB.GetLatestInputVersions([]atc.JobInput{
+				Ω(pipelineDB.GetLatestInputVersions("a-job", []atc.JobInput{
 					{
 						Name:     "input-1",
 						Resource: "resource-1",
@@ -1837,7 +2086,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(pipelineDB.GetLatestInputVersions([]atc.JobInput{
+				Ω(pipelineDB.GetLatestInputVersions("a-job", []atc.JobInput{
 					{
 						Name:     "input-1",
 						Resource: "resource-1",
@@ -1891,7 +2140,7 @@ var _ = Describe("PipelineDB", func() {
 					})
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(pipelineDB.GetLatestInputVersions([]atc.JobInput{
+					Ω(pipelineDB.GetLatestInputVersions("a-job", []atc.JobInput{
 						{
 							Name:     "input-1",
 							Resource: "resource-1",

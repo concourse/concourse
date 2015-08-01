@@ -182,7 +182,9 @@ var _ = Describe("Scheduler", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(fakePipelineDB.GetLatestInputVersionsCallCount()).Should(Equal(1))
-				Ω(fakePipelineDB.GetLatestInputVersionsArgsForCall(0)).Should(Equal([]atc.JobInput{
+				jobName, inputs := fakePipelineDB.GetLatestInputVersionsArgsForCall(0)
+				Ω(jobName).Should(Equal(job.Name))
+				Ω(inputs).Should(Equal([]atc.JobInput{
 					{
 						Name:     "some-input",
 						Resource: "some-resource",
@@ -473,7 +475,8 @@ var _ = Describe("Scheduler", func() {
 						Ω(resourceName).Should(Equal("some-other-resource"))
 
 						Ω(fakePipelineDB.GetLatestInputVersionsCallCount()).Should(Equal(1))
-						inputConfigs := fakePipelineDB.GetLatestInputVersionsArgsForCall(0)
+						jobName, inputConfigs := fakePipelineDB.GetLatestInputVersionsArgsForCall(0)
+						Ω(jobName).Should(Equal(job.Name))
 						Ω(inputConfigs).Should(Equal([]atc.JobInput{
 							{
 								Name:     "some-input",

@@ -13,14 +13,14 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var dbConn *sql.DB
-var listener *pq.Listener
-
-var pipelineDBFactory db.PipelineDBFactory
-
-var pipelinesDB *fakes.FakePipelinesDB
-
 var _ = Describe("PipelineDBFactory", func() {
+	var dbConn *sql.DB
+	var listener *pq.Listener
+
+	var pipelineDBFactory db.PipelineDBFactory
+
+	var pipelinesDB *fakes.FakePipelinesDB
+
 	BeforeEach(func() {
 		postgresRunner.CreateTestDB()
 

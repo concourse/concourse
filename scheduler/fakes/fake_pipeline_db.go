@@ -58,10 +58,11 @@ type FakePipelineDB struct {
 		result1 db.Build
 		result2 error
 	}
-	GetLatestInputVersionsStub        func([]atc.JobInput) ([]db.BuildInput, error)
+	GetLatestInputVersionsStub        func(job string, inputs []atc.JobInput) ([]db.BuildInput, error)
 	getLatestInputVersionsMutex       sync.RWMutex
 	getLatestInputVersionsArgsForCall []struct {
-		arg1 []atc.JobInput
+		job    string
+		inputs []atc.JobInput
 	}
 	getLatestInputVersionsReturns struct {
 		result1 []db.BuildInput
@@ -255,14 +256,15 @@ func (fake *FakePipelineDB) GetNextPendingBuildReturns(result1 db.Build, result2
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) GetLatestInputVersions(arg1 []atc.JobInput) ([]db.BuildInput, error) {
+func (fake *FakePipelineDB) GetLatestInputVersions(job string, inputs []atc.JobInput) ([]db.BuildInput, error) {
 	fake.getLatestInputVersionsMutex.Lock()
 	fake.getLatestInputVersionsArgsForCall = append(fake.getLatestInputVersionsArgsForCall, struct {
-		arg1 []atc.JobInput
-	}{arg1})
+		job    string
+		inputs []atc.JobInput
+	}{job, inputs})
 	fake.getLatestInputVersionsMutex.Unlock()
 	if fake.GetLatestInputVersionsStub != nil {
-		return fake.GetLatestInputVersionsStub(arg1)
+		return fake.GetLatestInputVersionsStub(job, inputs)
 	} else {
 		return fake.getLatestInputVersionsReturns.result1, fake.getLatestInputVersionsReturns.result2
 	}
@@ -274,10 +276,10 @@ func (fake *FakePipelineDB) GetLatestInputVersionsCallCount() int {
 	return len(fake.getLatestInputVersionsArgsForCall)
 }
 
-func (fake *FakePipelineDB) GetLatestInputVersionsArgsForCall(i int) []atc.JobInput {
+func (fake *FakePipelineDB) GetLatestInputVersionsArgsForCall(i int) (string, []atc.JobInput) {
 	fake.getLatestInputVersionsMutex.RLock()
 	defer fake.getLatestInputVersionsMutex.RUnlock()
-	return fake.getLatestInputVersionsArgsForCall[i].arg1
+	return fake.getLatestInputVersionsArgsForCall[i].job, fake.getLatestInputVersionsArgsForCall[i].inputs
 }
 
 func (fake *FakePipelineDB) GetLatestInputVersionsReturns(result1 []db.BuildInput, result2 error) {
