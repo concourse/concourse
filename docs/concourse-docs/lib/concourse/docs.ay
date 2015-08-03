@@ -63,15 +63,14 @@ def(define-attribute(what, body)):
 def(define-attributes(*whats, body)):
   attribute-names = whats collect [w]: w split(":") first
 
-  data Block new(
-    [ attribute-names collect [a]:
-        base target-element(a)
+  targets = attribute-names collect [a]: base target-element(a)
 
-      whats collect with-index [w, i]:
+  data Block new(
+    [ whats collect with-index [w, i]:
         display = format-inline(yaml lex(w), attribute-names[i])
 
         data Block new(
-          [data Block new([display], .tt)]
+          [data Block new([targets, display], .tt)]
           .class("thumb"))
 
       body
