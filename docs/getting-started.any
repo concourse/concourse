@@ -13,7 +13,7 @@ concepts first-hand is by using the pre-built Vagrant boxes.
 To spin up Concourse with Vagrant, run the following in any directory:
 
 \codeblock{bash}{
-vagrant init concourse/lite # places Vagrantfile in current directory
+vagrant init concourse/lite # creates ./Vagrantfile
 vagrant up                  # downloads the box and spins up the VM
 }
 
