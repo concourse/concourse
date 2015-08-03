@@ -1,8 +1,6 @@
 #language anatomy
 
-\title{Deploying a cluster with BOSH}{deploying-with-bosh}
-
-\omit-children-from-table-of-contents
+\title{Deploying with BOSH}{deploying-with-bosh}
 
 Once you start needing more workers and \italic{really} caring about your CI
 deployment, it's best to manage it with BOSH proper.
@@ -66,7 +64,7 @@ concepts, and how to bootstrap on various infrastructures.
 }
 
 
-\section{Deploying and upgrading Concourse}{
+\section{Deploying Concourse}{
   Once you've set up BOSH on your infrastructure, the following steps should
   get you started:
 
@@ -84,7 +82,7 @@ concepts, and how to bootstrap on various infrastructures.
     }
   }
 
-  \section{Upload the Concourse & Garden releases}{
+  \section{Upload the releases}{
     A release is a curated distribution of all of the source bits and
     configuration necessary to deploy and scale a product. To learn more about
     BOSH releases, refer to the
@@ -201,19 +199,58 @@ concepts, and how to bootstrap on various infrastructures.
       }
     }
 
-    You can change these values at any time and BOSH deploy again, and BOSH
-    will do The Right Thing™. It will tear down VMs as necessary, but always
-    make sure persistent data persists, and things come up as they should.
-
     Once you have a deployment manifest, deploying Concourse should simply be:
 
     \codeblock{bash}{
     $ bosh deployment path/to/manifest.yml
     $ bosh deploy
     }
+  }
+}
 
+\section{Upgrading & Maintenance}{
+  Compared to other deployment schemes, the main strength of BOSH its its
+  ability to upgrade arbitrary clusters and keep them healthy after the initial
+  deploy, even as your infrastructure may be experiencing some turbulence.
+
+  \section{Updating the BOSH deployment}{
     When new Concourse versions come out, upgrading should simply be a matter of
-    uploading the new releases and deploying again. BOSH will then kick off a
-    rolling deploy of your cluster.
+    uploading the new releases
+    \hyperlink{https://github.com/concourse/concourse/releases/latest}{from
+      GitHub} and \code{bosh deploy}ing again. BOSH will then kick off a rolling
+    deploy of your cluster. Be sure to read the \reference{release-notes} first
+    though!
+
+    You can change the values in your manifest (such as the number of workers)
+    at any time and \code{bosh deploy}, and BOSH will do The Right Thing™. It
+    will tear down VMs as necessary, but always make sure any persistent data
+    persists, and that everything's in its right place at the end.
+  }
+
+  \section{Self-upgrading Concourse}{
+    You can also use Concourse to upgrade itself, using the
+    \hyperlink{https://github.com/concourse/concourse/blob/master/ci/pipelines/concourse-redeploy.yml}{concourse-redeploy}
+    pipeline configuration. Note that the build that's deploying Concourse from
+    itself may fail or error, as it may literally tear down the VM running the
+    deploy. But don't worry - all the real work is being done by the BOSH
+    director, so just keep an eye on it using \code{bosh task}!
+  }
+
+  \section{Dealing with turbulence}{
+    Things go wrong all the time. BOSH is built to be durable to things like
+    faulty VMs or infrastructure-level failures, and should be able to bring
+    your cluster back into the desired state.
+
+    This is often done automatically since BOSH health monitors its VMs and
+    will resurrect them (if that's enabled). If you see something wrong and
+    want to take action on it immediately, you can run \code{bosh cck} to look
+    for errors and fix them. You can also run \code{bosh recreate} to tear down
+    an instance and bring up a new one, if you suspect it's gone awry.
+
+    If all else fails, the stateless nature of Concourse should make it pretty
+    easy to just nuke the site from orbit (\code{bosh delete deployment}) and
+    deploy it all over again. You'll lose build history if you're using the
+    built-in \code{postgres} server, but everything should start up again once
+    things are back.
   }
 }
