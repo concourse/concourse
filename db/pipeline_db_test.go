@@ -326,9 +326,9 @@ var _ = Describe("PipelineDB", func() {
 	})
 
 	Context("Resources", func() {
-		Describe("pausing and unpausing resources", func() {
-			resource := "some-resource"
+		resource := "some-resource"
 
+		Describe("pausing and unpausing resources", func() {
 			It("starts out as unpaused", func() {
 				resource, err := pipelineDB.GetResource(resource)
 				Ω(err).ShouldNot(HaveOccurred())
@@ -698,6 +698,164 @@ var _ = Describe("PipelineDB", func() {
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(returnedResource.CheckError).Should(BeNil())
+				})
+			})
+		})
+
+		Describe("GetResourceHistoryMaxID", func() {
+			BeforeEach(func() {
+				for i := 0; i < 10; i++ {
+					err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+						Name:   "some-resource",
+						Type:   "some-type",
+						Source: atc.Source{"some": "source"},
+					}, []atc.Version{{"version": i}})
+					Ω(err).ShouldNot(HaveOccurred())
+				}
+
+				for i := 0; i < 5; i++ {
+					err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+						Name:   "other-resource",
+						Type:   "some-type",
+						Source: atc.Source{"some": "source"},
+					}, []atc.Version{{"version": i}})
+					Ω(err).ShouldNot(HaveOccurred())
+				}
+
+				err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "another-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{})
+				Ω(err).ShouldNot(HaveOccurred())
+			})
+
+			Context("when the resource that doesn't have any versions", func() {
+				It("returns 0", func() {
+					savedResource, err := pipelineDB.GetResource("another-resource")
+					Ω(err).ShouldNot(HaveOccurred())
+					id, err := pipelineDB.GetResourceHistoryMaxID(savedResource.ID)
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(id).Should(Equal(0))
+				})
+			})
+
+			Context("when the resource exists and has versions", func() {
+				It("gets the max version id for the given resource", func() {
+					savedResource, err := pipelineDB.GetResource("some-resource")
+					Ω(err).ShouldNot(HaveOccurred())
+					maxID, err := pipelineDB.GetResourceHistoryMaxID(savedResource.ID)
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(maxID).Should(Equal(10))
+
+					savedResource, err = pipelineDB.GetResource("other-resource")
+					Ω(err).ShouldNot(HaveOccurred())
+					maxID, err = pipelineDB.GetResourceHistoryMaxID(savedResource.ID)
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(maxID).Should(Equal(15))
+				})
+			})
+		})
+
+		Describe("GetResourceHistoryCursor", func() {
+			BeforeEach(func() {
+				for i := 1; i <= 20; i++ {
+					err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+						Name:   "some-resource",
+						Type:   "some-type",
+						Source: atc.Source{"some": "source"},
+					}, []atc.Version{{"version": i}})
+					Ω(err).ShouldNot(HaveOccurred())
+				}
+				for i := 1; i <= 10; i++ {
+					err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+						Name:   "other-resource",
+						Type:   "some-type",
+						Source: atc.Source{"some": "source"},
+					}, []atc.Version{{"version": i}})
+					Ω(err).ShouldNot(HaveOccurred())
+				}
+				for i := 21; i <= 30; i++ {
+					err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+						Name:   "some-resource",
+						Type:   "some-type",
+						Source: atc.Source{"some": "source"},
+					}, []atc.Version{{"version": i}})
+					Ω(err).ShouldNot(HaveOccurred())
+				}
+
+				err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "another-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{})
+				Ω(err).ShouldNot(HaveOccurred())
+			})
+
+			Context("when greaterThanStartingID is false", func() {
+				greaterThanStartingID := false
+
+				Context("when numResults is greater than the number of versions to return", func() {
+					It("should return a slice of the VersionHistorys in descending order from the startingID", func() {
+						versionHistories, hasNext, err := pipelineDB.GetResourceHistoryCursor("some-resource", 35, greaterThanStartingID, 50)
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(hasNext).Should(BeFalse())
+						numResults := len(versionHistories)
+						Ω(numResults).Should(Equal(25))
+						firstID := versionHistories[0].VersionedResource.ID
+						Ω(firstID).Should(Equal(35))
+						Ω(firstID).Should(BeNumerically(">", versionHistories[numResults-1].VersionedResource.ID))
+					})
+				})
+
+				Context("when numResults is less than the number of versions to return", func() {
+					It("should return a limited slice of the VersionHistories", func() {
+						versionHistories, hasNext, err := pipelineDB.GetResourceHistoryCursor("some-resource", 30, greaterThanStartingID, 17)
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(len(versionHistories)).Should(Equal(17))
+						Ω(hasNext).Should(BeTrue())
+					})
+				})
+
+				Context("when numResults is 0", func() {
+					It("returns all the rows", func() {
+						versionHistories, hasNext, err := pipelineDB.GetResourceHistoryCursor("some-resource", 100, greaterThanStartingID, 0)
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(len(versionHistories)).Should(Equal(30))
+						Ω(hasNext).Should(BeFalse())
+					})
+				})
+			})
+
+			Context("when greaterThanStartingID is true", func() {
+				greaterThanStartingID := true
+
+				Context("when numResults is greater than the number of versions to return", func() {
+					It("should return a slice of the VersionHistorys in descending order from that are greater then or equal to the startingID", func() {
+						versionHistories, hasNext, err := pipelineDB.GetResourceHistoryCursor("some-resource", 15, greaterThanStartingID, 7)
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(hasNext).Should(BeTrue())
+
+						numResults := len(versionHistories)
+						Ω(numResults).Should(Equal(7))
+
+						lastID := versionHistories[numResults-1].VersionedResource.ID
+						Ω(lastID).Should(Equal(15))
+
+						firstID := versionHistories[0].VersionedResource.ID
+						Ω(firstID).Should(Equal(31))
+
+						Ω(firstID).Should(BeNumerically(">", lastID))
+					})
+				})
+
+				Context("when numResults is 0", func() {
+					It("returns all the rows", func() {
+						versionHistories, hasNext, err := pipelineDB.GetResourceHistoryCursor("some-resource", 0, greaterThanStartingID, 0)
+						Ω(err).ShouldNot(HaveOccurred())
+						Ω(len(versionHistories)).Should(Equal(30))
+						Ω(hasNext).Should(BeFalse())
+					})
 				})
 			})
 		})

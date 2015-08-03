@@ -7,10 +7,12 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/web/getresource"
 	"github.com/concourse/atc/web/routes"
 	"github.com/tedsuo/rata"
 )
@@ -65,6 +67,27 @@ func PathFor(route string, args ...interface{}) (string, error) {
 			"pipeline_name": args[0].(string),
 			"job":           jobName(args[1]),
 		})
+
+	case routes.GetResource:
+		baseResourceURL, err := routes.Routes.CreatePathForRoute(route, rata.Params{
+			"pipeline_name": args[0].(string),
+			"resource":      args[1].(string),
+		})
+
+		if err != nil {
+			return "", err
+		}
+
+		newer := args[3].(bool)
+		paginationData := args[2].(getresource.PaginationData)
+
+		if newer {
+			baseResourceURL += "?id=" + strconv.Itoa(paginationData.NewerStartID) + "&newer=true"
+		} else {
+			baseResourceURL += "?id=" + strconv.Itoa(paginationData.OlderStartID) + "&newer=false"
+		}
+
+		return baseResourceURL, nil
 
 	case routes.GetBuild:
 		build := args[1].(db.Build)

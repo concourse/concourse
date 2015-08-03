@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
@@ -41,6 +42,16 @@ type TemplateData struct {
 
 	GroupStates  []group.State
 	PipelineName string
+
+	PaginationData PaginationData
+}
+
+type PaginationData struct {
+	HasPagination bool
+	HasOlder      bool
+	HasNewer      bool
+	OlderStartID  int
+	NewerStartID  int
 }
 
 //go:generate counterfeiter . ResourcesDB
@@ -49,12 +60,13 @@ type ResourcesDB interface {
 	GetPipelineName() string
 	GetConfig() (atc.Config, db.ConfigVersion, error)
 	GetResource(string) (db.SavedResource, error)
-	GetResourceHistory(string) ([]*db.VersionHistory, error)
+	GetResourceHistoryCursor(string, int, bool, int) ([]*db.VersionHistory, bool, error)
+	GetResourceHistoryMaxID(int) (int, error)
 }
 
 var ErrResourceConfigNotFound = errors.New("could not find resource")
 
-func FetchTemplateData(resourceDB ResourcesDB, authenticated bool, resourceName string) (TemplateData, error) {
+func FetchTemplateData(resourceDB ResourcesDB, authenticated bool, resourceName string, id int, newerResourceVersions bool) (TemplateData, error) {
 	config, _, err := resourceDB.GetConfig()
 	if err != nil {
 		return TemplateData{}, err
@@ -65,21 +77,54 @@ func FetchTemplateData(resourceDB ResourcesDB, authenticated bool, resourceName 
 		return TemplateData{}, ErrResourceConfigNotFound
 	}
 
-	history, err := resourceDB.GetResourceHistory(configResource.Name)
+	dbResource, err := resourceDB.GetResource(configResource.Name)
 	if err != nil {
 		return TemplateData{}, err
 	}
 
-	dbResource, err := resourceDB.GetResource(configResource.Name)
+	maxID, err := resourceDB.GetResourceHistoryMaxID(dbResource.ID)
+	if err != nil {
+		return TemplateData{}, err
+	}
+
+	startingID := maxID
+
+	if id < maxID && id != 0 {
+		startingID = id
+	}
+
+	history, hasNext, err := resourceDB.GetResourceHistoryCursor(configResource.Name, startingID, newerResourceVersions, 100)
 	if err != nil {
 		return TemplateData{}, err
 	}
 
 	resource := present.Resource(configResource, config.Groups, dbResource, authenticated)
 
+	maxIDFromResults := maxID
+	var olderStartID int
+	var newerStartID int
+
+	if len(history) > 0 {
+		maxIDFromResults = history[0].VersionedResource.ID
+		minIDFromResults := history[len(history)-1].VersionedResource.ID
+		olderStartID = minIDFromResults - 1
+		newerStartID = maxIDFromResults + 1
+	}
+
+	hasNewer := maxID > maxIDFromResults
+	hasOlder := newerResourceVersions || hasNext
+	hasPagination := hasOlder || hasNewer
+
 	templateData := TemplateData{
-		Resource:     resource,
-		History:      history,
+		Resource: resource,
+		History:  history,
+		PaginationData: PaginationData{
+			HasPagination: hasPagination,
+			HasOlder:      hasOlder,
+			HasNewer:      hasNewer,
+			OlderStartID:  olderStartID,
+			NewerStartID:  newerStartID,
+		},
 		PipelineName: resourceDB.GetPipelineName(),
 		GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
 			for _, groupResource := range g.Resources {
@@ -97,9 +142,24 @@ func FetchTemplateData(resourceDB ResourcesDB, authenticated bool, resourceName 
 
 func (server *server) GetResource(pipelineDB db.PipelineDB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		server.logger.Session("get-resource")
+
 		resourceName := r.FormValue(":resource")
+
+		id, parseErr := strconv.Atoi(r.FormValue("id"))
+		if parseErr != nil {
+			server.logger.Info("cannot-parse-id-to-int", lager.Data{"id": r.FormValue("id")})
+			id = 0
+		}
+
+		newerResourceVersions, parseErr := strconv.ParseBool(r.FormValue("newer"))
+		if parseErr != nil {
+			newerResourceVersions = false
+			server.logger.Info("cannot-parse-newer-to-bool", lager.Data{"newer": r.FormValue("newer")})
+		}
+
 		authenticated := server.validator.IsAuthenticated(r)
-		templateData, err := FetchTemplateData(pipelineDB, authenticated, resourceName)
+		templateData, err := FetchTemplateData(pipelineDB, authenticated, resourceName, id, newerResourceVersions)
 
 		switch err {
 		case ErrResourceConfigNotFound:

@@ -28,6 +28,8 @@ type PipelineDB interface {
 
 	GetResource(resourceName string) (SavedResource, error)
 	GetResourceHistory(resource string) ([]*VersionHistory, error)
+	GetResourceHistoryCursor(resource string, startingID int, searchUpwards bool, numResults int) ([]*VersionHistory, bool, error)
+	GetResourceHistoryMaxID(resourceID int) (int, error)
 	PauseResource(resourceName string) error
 	UnpauseResource(resourceName string) error
 
@@ -247,8 +249,12 @@ func (pdb *pipelineDB) GetResource(resourceName string) (SavedResource, error) {
 	return resource, nil
 }
 
-// function moved over without tests since there were no tests before. Need to backfill later
-func (pdb *pipelineDB) GetResourceHistory(resource string) ([]*VersionHistory, error) {
+func (pdb *pipelineDB) GetResourceHistory(resourceName string) ([]*VersionHistory, error) {
+	versionHistories, _, err := pdb.GetResourceHistoryCursor(resourceName, 0, true, 0)
+	return versionHistories, err
+}
+
+func (pdb *pipelineDB) GetResourceHistoryCursor(resourceName string, startingID int, greaterThanStartingID bool, numResults int) ([]*VersionHistory, bool, error) {
 	hs := []*VersionHistory{}
 	vhs := map[int]*VersionHistory{}
 
@@ -256,20 +262,50 @@ func (pdb *pipelineDB) GetResourceHistory(resource string) ([]*VersionHistory, e
 	outputHs := map[int]map[string]*JobHistory{}
 	seenInputs := map[int]map[int]bool{}
 
-	dbResource, err := pdb.GetResource(resource)
+	dbResource, err := pdb.GetResource(resourceName)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	vrRows, err := pdb.conn.Query(`
-		SELECT v.id, v.enabled, v.type, v.version, v.source, v.metadata, r.name
-		FROM versioned_resources v
-		INNER JOIN resources r ON v.resource_id = r.id
-		WHERE v.resource_id = $1
-		ORDER BY v.id DESC
-	`, dbResource.ID)
+	var vrRows *sql.Rows
+	var limitQuery string
+	params := []interface{}{}
+	params = append(params, dbResource.ID)
+	params = append(params, startingID)
+
+	if numResults != 0 {
+		limitQuery = "LIMIT $3"
+		params = append(params, numResults+1)
+	}
+
+	if greaterThanStartingID {
+		vrRows, err = pdb.conn.Query(fmt.Sprintf(`
+		SELECT sub.*
+		FROM (
+			SELECT v.id, v.enabled, v.type, v.version, v.source, v.metadata, r.name
+			FROM versioned_resources v
+			INNER JOIN resources r ON v.resource_id = r.id
+			WHERE v.resource_id = $1
+				AND v.id >= $2
+			ORDER BY v.id ASC
+			%s
+		) sub
+		ORDER BY sub.ID DESC
+	`, limitQuery), params...)
+	} else {
+		vrRows, err = pdb.conn.Query(fmt.Sprintf(`
+			SELECT v.id, v.enabled, v.type, v.version, v.source, v.metadata, r.name
+			FROM versioned_resources v
+			INNER JOIN resources r ON v.resource_id = r.id
+			WHERE v.resource_id = $1
+				AND v.id <= $2
+			ORDER BY v.id DESC
+			%s
+		`, limitQuery), params...)
+	}
+
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	defer vrRows.Close()
@@ -281,22 +317,22 @@ func (pdb *pipelineDB) GetResourceHistory(resource string) ([]*VersionHistory, e
 
 		err := vrRows.Scan(&svr.ID, &svr.Enabled, &svr.Type, &versionString, &sourceString, &metadataString, &svr.Resource)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 
 		err = json.Unmarshal([]byte(sourceString), &svr.Source)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 
 		err = json.Unmarshal([]byte(versionString), &svr.Version)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 
 		err = json.Unmarshal([]byte(metadataString), &svr.Metadata)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 
 		vhs[svr.ID] = &VersionHistory{
@@ -310,6 +346,17 @@ func (pdb *pipelineDB) GetResourceHistory(resource string) ([]*VersionHistory, e
 		seenInputs[svr.ID] = map[int]bool{}
 	}
 
+	var hasMoreResults bool
+
+	if len(hs) > numResults && numResults != 0 {
+		if greaterThanStartingID {
+			hs = hs[1:]
+		} else {
+			hs = hs[0:numResults]
+		}
+		hasMoreResults = true
+	}
+
 	for id, vh := range vhs {
 		inRows, err := pdb.conn.Query(`
 			SELECT `+qualifiedBuildColumns+`
@@ -321,7 +368,7 @@ func (pdb *pipelineDB) GetResourceHistory(resource string) ([]*VersionHistory, e
 			ORDER BY b.id ASC
 		`, id)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 
 		defer inRows.Close()
@@ -336,7 +383,7 @@ func (pdb *pipelineDB) GetResourceHistory(resource string) ([]*VersionHistory, e
 			ORDER BY b.id ASC
 		`, id)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 
 		defer outRows.Close()
@@ -344,7 +391,7 @@ func (pdb *pipelineDB) GetResourceHistory(resource string) ([]*VersionHistory, e
 		for inRows.Next() {
 			inBuild, err := pdb.scanBuild(inRows)
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 
 			seenInputs[id][inBuild.ID] = true
@@ -366,7 +413,7 @@ func (pdb *pipelineDB) GetResourceHistory(resource string) ([]*VersionHistory, e
 		for outRows.Next() {
 			outBuild, err := pdb.scanBuild(outRows)
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 
 			if seenInputs[id][outBuild.ID] {
@@ -389,7 +436,20 @@ func (pdb *pipelineDB) GetResourceHistory(resource string) ([]*VersionHistory, e
 		}
 	}
 
-	return hs, nil
+	return hs, hasMoreResults, nil
+}
+
+func (pdb *pipelineDB) GetResourceHistoryMaxID(resourceID int) (int, error) {
+
+	var id int
+
+	err := pdb.conn.QueryRow(`
+		SELECT COALESCE(MAX(id), 0) as id
+		FROM versioned_resources		
+		WHERE resource_id = $1
+		`, resourceID).Scan(&id)
+
+	return id, err
 }
 
 func (pdb *pipelineDB) getResource(tx *sql.Tx, name string) (SavedResource, error) {
