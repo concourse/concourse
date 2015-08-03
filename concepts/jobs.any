@@ -2,6 +2,8 @@
 
 \title{Jobs}{jobs}
 
+\omit-children-from-table-of-contents
+
 At a high level, a job describes some actions to perform when dependent
 resources change (or when manually triggered). For example, you may define a
 job that runs your unit tests whenever new code is pushed to a repository.

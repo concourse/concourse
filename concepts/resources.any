@@ -2,6 +2,8 @@
 
 \title{Resources}{resources}
 
+\omit-children-from-table-of-contents
+
 A resource is any entity that can be checked for new versions, pulled down
 at a specific version, and/or pushed up to idempotently create new versions.
 A common example would be a git repository, but it can also represent more
