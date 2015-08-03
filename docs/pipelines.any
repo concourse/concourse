@@ -1,12 +1,14 @@
 #language anatomy
 
+\use{\require{concourse/docs}}
+
 \title{Pipelines}{pipelines}
 
 Together, jobs and resources form a pipeline.
 
 Here's an example of a fairly standard unit → integration → deploy pipeline:
 
-\image{images/example-pipeline.png}
+\pipeline-image{images/example-pipeline.svg}
 
 Above, the black boxes are \reference{resources}{resources}, and the colored
 boxes are \reference{jobs}{jobs}, whose color indicates the status of their
