@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web"
+	"github.com/concourse/atc/web/getresource"
 	"github.com/concourse/atc/web/routes"
 )
 
@@ -60,6 +61,30 @@ var _ = Describe("URLs", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Ω(path).Should(Equal("/pipelines/another-pipeline/jobs/some-job"))
+		})
+	})
+
+	Describe("Resources Path", func() {
+		Context("older links", func() {
+			It("can generate them", func() {
+				paginationData := getresource.PaginationData{OlderStartID: 25}
+
+				path, err := web.PathFor(routes.GetResource, "another-pipeline", "some-resource", paginationData, false)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(path).Should(Equal("/pipelines/another-pipeline/resources/some-resource?id=25&newer=false"))
+			})
+		})
+
+		Context("newer links", func() {
+			It("can generate them", func() {
+				paginationData := getresource.PaginationData{NewerStartID: 25}
+
+				path, err := web.PathFor(routes.GetResource, "another-pipeline", "some-resource", paginationData, true)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(path).Should(Equal("/pipelines/another-pipeline/resources/some-resource?id=25&newer=true"))
+			})
 		})
 	})
 })

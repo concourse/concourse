@@ -6,7 +6,6 @@
 .cr {clear:right;}
 .w100 {width: 100%;}
 
-
 .table {
   font-size: 1.2em;
   color: @base04;
@@ -33,9 +32,12 @@
 
 
 .clearfix:after {
-  content: "";
-  display: table;
-  clear: both;
+	 visibility: hidden;
+	 display: block;
+	 font-size: 0;
+	 content: " ";
+	 clear: both;
+	 height: 0;
 }
 
 

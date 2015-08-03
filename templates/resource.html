@@ -6,7 +6,7 @@
 </div>
 
 <div class="js-resource" data-endpoint="pipelines/{{.PipelineName}}/resources/{{.Resource.Name}}">
-  <div class="resource-check-status">
+  <div class="resource-check-status mbm">
     <div class="steps">
       <div class="build-step">
         <div class="header">
@@ -35,7 +35,23 @@
   </div>
 </div>
 
-<ul class="list list-collapsable list-enableDisable mhm">
+
+{{if .PaginationData.HasPagination}}
+	<div class="pagination mam clearfix">
+		{{if .PaginationData.HasNewer}}
+		<div class="fl ">
+			<a href="{{url "GetResource" .PipelineName .Resource.Name .PaginationData true}}" class="pagination-handle"><i class="fa fa-arrow-left"></i></a>
+		</div>
+		{{end}}
+		{{if .PaginationData.HasOlder}}
+		<div class="fr">
+			<a href="{{url "GetResource" .PipelineName .Resource.Name .PaginationData false}}" class="pagination-handle"><i class="fa fa-arrow-right"></i></a>
+		</div>
+		{{end}}
+	</div>
+{{end}}
+
+<ul class="list list-collapsable list-enableDisable mhm resource-versions">
   {{$pipelineName := .PipelineName}}
   {{range .History}}
     <li class="list-collapsable-item clearfix {{if .VersionedResource.Enabled}}enabled{{else}}disabled{{end}}">
@@ -92,6 +108,22 @@
     </li>
   {{end}}
 </ul>
+
+{{if .PaginationData.HasPagination}}
+	<div class="pagination mam clearfix">
+		{{if .PaginationData.HasNewer}}
+		<div class="fl pagination-handle">
+			<a href="{{url "GetResource" .PipelineName .Resource.Name .PaginationData true}}"><i class="fa fa-arrow-left"></i></a>
+		</div>
+		{{end}}
+		{{if .PaginationData.HasOlder}}
+		<div class="fr pagination-handle">
+			<a href="{{url "GetResource" .PipelineName .Resource.Name .PaginationData false}}"><i class="fa fa-arrow-right"></i></a>
+		</div>
+		{{end}}
+	</div>
+{{end}}
+
 
 
 

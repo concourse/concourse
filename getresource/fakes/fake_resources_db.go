@@ -33,13 +33,26 @@ type FakeResourcesDB struct {
 		result1 db.SavedResource
 		result2 error
 	}
-	GetResourceHistoryStub        func(string) ([]*db.VersionHistory, error)
-	getResourceHistoryMutex       sync.RWMutex
-	getResourceHistoryArgsForCall []struct {
+	GetResourceHistoryCursorStub        func(string, int, bool, int) ([]*db.VersionHistory, bool, error)
+	getResourceHistoryCursorMutex       sync.RWMutex
+	getResourceHistoryCursorArgsForCall []struct {
 		arg1 string
+		arg2 int
+		arg3 bool
+		arg4 int
 	}
-	getResourceHistoryReturns struct {
+	getResourceHistoryCursorReturns struct {
 		result1 []*db.VersionHistory
+		result2 bool
+		result3 error
+	}
+	GetResourceHistoryMaxIDStub        func(int) (int, error)
+	getResourceHistoryMaxIDMutex       sync.RWMutex
+	getResourceHistoryMaxIDArgsForCall []struct {
+		arg1 int
+	}
+	getResourceHistoryMaxIDReturns struct {
+		result1 int
 		result2 error
 	}
 }
@@ -127,35 +140,72 @@ func (fake *FakeResourcesDB) GetResourceReturns(result1 db.SavedResource, result
 	}{result1, result2}
 }
 
-func (fake *FakeResourcesDB) GetResourceHistory(arg1 string) ([]*db.VersionHistory, error) {
-	fake.getResourceHistoryMutex.Lock()
-	fake.getResourceHistoryArgsForCall = append(fake.getResourceHistoryArgsForCall, struct {
+func (fake *FakeResourcesDB) GetResourceHistoryCursor(arg1 string, arg2 int, arg3 bool, arg4 int) ([]*db.VersionHistory, bool, error) {
+	fake.getResourceHistoryCursorMutex.Lock()
+	fake.getResourceHistoryCursorArgsForCall = append(fake.getResourceHistoryCursorArgsForCall, struct {
 		arg1 string
-	}{arg1})
-	fake.getResourceHistoryMutex.Unlock()
-	if fake.GetResourceHistoryStub != nil {
-		return fake.GetResourceHistoryStub(arg1)
+		arg2 int
+		arg3 bool
+		arg4 int
+	}{arg1, arg2, arg3, arg4})
+	fake.getResourceHistoryCursorMutex.Unlock()
+	if fake.GetResourceHistoryCursorStub != nil {
+		return fake.GetResourceHistoryCursorStub(arg1, arg2, arg3, arg4)
 	} else {
-		return fake.getResourceHistoryReturns.result1, fake.getResourceHistoryReturns.result2
+		return fake.getResourceHistoryCursorReturns.result1, fake.getResourceHistoryCursorReturns.result2, fake.getResourceHistoryCursorReturns.result3
 	}
 }
 
-func (fake *FakeResourcesDB) GetResourceHistoryCallCount() int {
-	fake.getResourceHistoryMutex.RLock()
-	defer fake.getResourceHistoryMutex.RUnlock()
-	return len(fake.getResourceHistoryArgsForCall)
+func (fake *FakeResourcesDB) GetResourceHistoryCursorCallCount() int {
+	fake.getResourceHistoryCursorMutex.RLock()
+	defer fake.getResourceHistoryCursorMutex.RUnlock()
+	return len(fake.getResourceHistoryCursorArgsForCall)
 }
 
-func (fake *FakeResourcesDB) GetResourceHistoryArgsForCall(i int) string {
-	fake.getResourceHistoryMutex.RLock()
-	defer fake.getResourceHistoryMutex.RUnlock()
-	return fake.getResourceHistoryArgsForCall[i].arg1
+func (fake *FakeResourcesDB) GetResourceHistoryCursorArgsForCall(i int) (string, int, bool, int) {
+	fake.getResourceHistoryCursorMutex.RLock()
+	defer fake.getResourceHistoryCursorMutex.RUnlock()
+	return fake.getResourceHistoryCursorArgsForCall[i].arg1, fake.getResourceHistoryCursorArgsForCall[i].arg2, fake.getResourceHistoryCursorArgsForCall[i].arg3, fake.getResourceHistoryCursorArgsForCall[i].arg4
 }
 
-func (fake *FakeResourcesDB) GetResourceHistoryReturns(result1 []*db.VersionHistory, result2 error) {
-	fake.GetResourceHistoryStub = nil
-	fake.getResourceHistoryReturns = struct {
+func (fake *FakeResourcesDB) GetResourceHistoryCursorReturns(result1 []*db.VersionHistory, result2 bool, result3 error) {
+	fake.GetResourceHistoryCursorStub = nil
+	fake.getResourceHistoryCursorReturns = struct {
 		result1 []*db.VersionHistory
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeResourcesDB) GetResourceHistoryMaxID(arg1 int) (int, error) {
+	fake.getResourceHistoryMaxIDMutex.Lock()
+	fake.getResourceHistoryMaxIDArgsForCall = append(fake.getResourceHistoryMaxIDArgsForCall, struct {
+		arg1 int
+	}{arg1})
+	fake.getResourceHistoryMaxIDMutex.Unlock()
+	if fake.GetResourceHistoryMaxIDStub != nil {
+		return fake.GetResourceHistoryMaxIDStub(arg1)
+	} else {
+		return fake.getResourceHistoryMaxIDReturns.result1, fake.getResourceHistoryMaxIDReturns.result2
+	}
+}
+
+func (fake *FakeResourcesDB) GetResourceHistoryMaxIDCallCount() int {
+	fake.getResourceHistoryMaxIDMutex.RLock()
+	defer fake.getResourceHistoryMaxIDMutex.RUnlock()
+	return len(fake.getResourceHistoryMaxIDArgsForCall)
+}
+
+func (fake *FakeResourcesDB) GetResourceHistoryMaxIDArgsForCall(i int) int {
+	fake.getResourceHistoryMaxIDMutex.RLock()
+	defer fake.getResourceHistoryMaxIDMutex.RUnlock()
+	return fake.getResourceHistoryMaxIDArgsForCall[i].arg1
+}
+
+func (fake *FakeResourcesDB) GetResourceHistoryMaxIDReturns(result1 int, result2 error) {
+	fake.GetResourceHistoryMaxIDStub = nil
+	fake.getResourceHistoryMaxIDReturns = struct {
+		result1 int
 		result2 error
 	}{result1, result2}
 }
