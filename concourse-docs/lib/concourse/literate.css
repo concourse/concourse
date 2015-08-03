@@ -3,10 +3,6 @@
 }
 
 @media (min-width: 1525px) {
-  .pipeline-image {
-    width: 1250px;
-  }
-
   .literate-segment {
     display: table;
   }
@@ -31,8 +27,4 @@
   .literate-segment .code .highlight {
     margin: 0;
   }
-}
-
-.__slackin {
-  vertical-align: middle;
 }
