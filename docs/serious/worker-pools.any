@@ -4,8 +4,6 @@
 
 \title{Managing Worker Pools}{worker-pools}
 
-\omit-children-from-table-of-contents
-
 Workers are \hyperlink{http://github.com/cloudfoundry-incubator/garden}{Garden}
 servers, continuously heartbeating their presence to the Concourse API. Workers
 have a statically configured \code{platform} and a set of \code{tags}, both of

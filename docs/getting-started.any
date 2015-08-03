@@ -89,5 +89,5 @@ ways to approach learning Concourse:
   and tasks together.
 }
 
-After all that, if you want a proper Concourse deployment (not just a VM), put
-your game face on and head on over to \reference{getting-serious}.
+After all that, if you want a proper Concourse deployment (not just a local
+VM), put your game face on and head over to \reference{deploying-with-bosh}.
