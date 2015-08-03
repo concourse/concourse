@@ -1,6 +1,6 @@
 svg {
   background: #202020;
-  font-family: Courier, monospace;
+  font-family: monospace;
   font-size: 12px;
   line-height: 1.4;
 }
@@ -64,3 +64,86 @@ svg {
 
 .edge.aborted { stroke: #8f5536; }
 .node.job.aborted rect { fill: #8f5536; }
+
+.node rect {
+  fill: #151515;
+}
+.cluster {
+  fill: #303030;
+}
+.edge {
+  stroke: #505050;
+}
+.gateway {
+  fill: #505050;
+}
+.node.job.normal rect {
+  fill: #505050;
+}
+.edge.pending {
+  stroke: #b0b0b0;
+}
+.node.job.pending rect {
+  fill: #b0b0b0;
+}
+.node.resource a {
+  color: #e0e0e0;
+}
+.edgeLabel text {
+  fill: #f5f5f5;
+}
+.edge.succeeded {
+  stroke: #90a959;
+}
+.node.job.succeeded rect {
+  fill: #90a959;
+}
+.edge.failed {
+  stroke: #ac4142;
+}
+.node.job.failed rect {
+  fill: #ac4142;
+}
+.edge.errored {
+  stroke: #d28445;
+}
+.node.job.errored rect {
+  fill: #d28445;
+}
+.node.input.failing rect {
+  fill: #d28445;
+}
+.edge.aborted {
+  stroke: #8f5536;
+}
+.node.job.aborted rect {
+  fill: #8f5536;
+}
+
+.job.node.started .animation {
+  border-radius: 1px;
+  -webkit-animation: started-ripples 1s linear infinite;
+  animation: started-ripples 1s linear infinite;
+}
+@-webkit-keyframes started-ripples {
+  0% {
+    box-shadow: 0 0 0 -2px #202020, 0 0 0 0px #f4bf75, 0 0 0 2px #202020, 0 0 0 4px #f4bf75;
+  }
+  50% {
+    box-shadow: 0 0 0 0px #202020, 0 0 0 2px #f4bf75, 0 0 0 4px #202020, 0 0 0 6px rgba(244, 191, 117, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 0 2px #202020, 0 0 0 4px #f4bf75, 0 0 0 6px #202020, 0 0 0 8px transparent;
+  }
+}
+@keyframes started-ripples {
+  0% {
+    box-shadow: 0 0 0 -2px #202020, 0 0 0 0px #f4bf75, 0 0 0 2px #202020, 0 0 0 4px #f4bf75;
+  }
+  50% {
+    box-shadow: 0 0 0 0px #202020, 0 0 0 2px #f4bf75, 0 0 0 4px #202020, 0 0 0 6px rgba(244, 191, 117, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 0 2px #202020, 0 0 0 4px #f4bf75, 0 0 0 6px #202020, 0 0 0 8px transparent;
+  }
+}

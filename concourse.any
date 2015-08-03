@@ -2,7 +2,9 @@
 
 \use{\require{concourse/docs}}
 
-\title{Concourse: CI that scales with your project}{index}
+\title{Concourse\aux{: CI that scales with your project}}{index}
+
+\pipeline-image{images/example-pipeline.svg}
 
 Concourse is a CI system composed of simple tools and ideas. It can express
 entire pipelines, integrating with arbitrary resources, or it can be used to
