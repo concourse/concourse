@@ -70,6 +70,8 @@ common platforms in the bottom right hand corner of the main page.
 }
 
 \section{\code{execute}\aux{: Submitting Local Tasks}}{fly-execute}{
+  \omit-children-from-table-of-contents
+
   One of the most common use cases of \code{fly} is taking a local project on
   your computer and submitting it up with a task configuration to be run
   inside a container in Concourse. This is useful to build Linux projects on
@@ -164,6 +166,8 @@ common platforms in the bottom right hand corner of the main page.
 }
 
 \section{\code{configure}\aux{: Configuring Pipelines}}{fly-configure}{
+  \omit-children-from-table-of-contents
+
   Fly can be used to fetch and update the configuration for your pipelines. This
   is achieved by using the \code{configure} command. For example, to fetch the
   current configuration of your \code{my-pipeline} Concourse pipeline and print
