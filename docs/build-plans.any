@@ -116,10 +116,6 @@ For a reference on each type of step, read on.
 \include-section{./steps/tags.any}
 \include-section{./steps/try.any}
 \include-section{./steps/timeout.any}
-
-\section{Deprecated}{
-  \table-of-contents
-  \include-section{./steps/conditions.any}
-}
+\include-section{./steps/conditions.any}
 
 \table-of-contents
