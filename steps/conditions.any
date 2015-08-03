@@ -2,7 +2,7 @@
 
 \use{\require{concourse/docs}}
 
-\title{\code{conditions}\aux{: conditionally perform a step}}{step-conditions}
+\title{\code{conditions}\aux{: conditionally perform a step} (deprecated)}{step-conditions}
 
 Any step can be made conditional by adding the \code{conditions} attribute
 to it.
