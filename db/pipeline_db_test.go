@@ -1924,6 +1924,13 @@ var _ = Describe("PipelineDB", func() {
 		})
 
 		Describe("determining the inputs for a job", func() {
+			It("can still be scheduled with no inputs", func() {
+				buildInputs, err := pipelineDB.GetLatestInputVersions("third-job", []atc.JobInput{})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(buildInputs).Should(Equal([]db.BuildInput{}))
+			})
+
 			It("ensures that when scanning for previous inputs versions it only considers those from the same job", func() {
 				resource, err := pipelineDB.GetResource("some-resource")
 				Ω(err).ShouldNot(HaveOccurred())

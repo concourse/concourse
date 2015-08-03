@@ -1481,6 +1481,10 @@ func (pdb *pipelineDB) GetCurrentBuild(job string) (Build, error) {
 
 // buckle up
 func (pdb *pipelineDB) GetLatestInputVersions(jobName string, inputs []atc.JobInput) ([]BuildInput, error) {
+	if len(inputs) == 0 {
+		return []BuildInput{}, nil
+	}
+
 	job, err := pdb.GetJob(jobName)
 	if err != nil {
 		return []BuildInput{}, err
