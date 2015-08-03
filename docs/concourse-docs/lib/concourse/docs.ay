@@ -11,7 +11,7 @@ def(pipeline-image(asset-path)):
   data ResolveElement new(
     [part]:
       part assets << File expand-path(asset-path)
-      part css-additions << File expand-path("../pipeline-svg.css", __FILE__)
+      part css-additions << File expand-path("../flex-pipeline-image.css", __FILE__)
 
       data Block new(
         data Element new(
@@ -79,6 +79,10 @@ def(define-attributes(*whats, body)):
     .class("definition"))
 
 def(slack-button):
-  data Element new(
-    [],
-    .async-script-src("http://slack.concourse.ci/slackin.js"))
+  data ResolveElement new(
+    [part]:
+      part css-additions << File expand-path("../slack.css", __FILE__)
+
+      data Element new(
+        [],
+        .async-script-src("http://slack.concourse.ci/slackin.js")))
