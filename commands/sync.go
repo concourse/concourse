@@ -9,8 +9,8 @@ import (
 	"runtime"
 
 	"github.com/codegangsta/cli"
+	"github.com/inconshreveable/go-update"
 	"github.com/tedsuo/rata"
-	"github.com/zachgersh/go-update"
 
 	"github.com/concourse/atc"
 )
