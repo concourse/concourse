@@ -1603,6 +1603,10 @@ func (pdb *pipelineDB) GetLatestInputVersions(jobName string, inputs []atc.JobIn
 				params = append(params, dbJob.ID)
 				jobIDParam := len(params)
 				conditions = append(conditions, fmt.Sprintf("b%d.job_id = $%d", idx+1, jobIDParam))
+
+				params = append(params, string(StatusSucceeded))
+				buildStatusParam := len(params)
+				conditions = append(conditions, fmt.Sprintf("b%d.status = $%d", idx+1, buildStatusParam))
 			}
 
 			fromAliases = append(fromAliases, fmt.Sprintf("build_outputs v%db%d", i+1, idx+1))

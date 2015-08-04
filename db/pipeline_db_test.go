@@ -2055,6 +2055,13 @@ var _ = Describe("PipelineDB", func() {
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
+				err = sqlDB.FinishBuild(build1.ID, db.StatusSucceeded)
+				Ω(err).ShouldNot(HaveOccurred())
+				err = sqlDB.FinishBuild(otherBuild2.ID, db.StatusSucceeded)
+				Ω(err).ShouldNot(HaveOccurred())
+				err = sqlDB.FinishBuild(build3.ID, db.StatusSucceeded)
+				Ω(err).ShouldNot(HaveOccurred())
+
 				jobBuildInputs := []atc.JobInput{
 					{
 						Name:     "some-input-name",
@@ -2079,7 +2086,7 @@ var _ = Describe("PipelineDB", func() {
 				}))
 			})
 
-			It("ensures that versions from jobs mentioned in two input's 'passed' sections came from the same builds", func() {
+			It("ensures that versions from jobs mentioned in two input's 'passed' sections came from the same successful builds", func() {
 				j1b1, err := pipelineDB.CreateJobBuild("job-1")
 				Ω(err).ShouldNot(HaveOccurred())
 
@@ -2166,6 +2173,12 @@ var _ = Describe("PipelineDB", func() {
 					Version:  db.Version{"v": "r2-common-to-shared-and-j2"},
 				})
 				Ω(err).ShouldNot(HaveOccurred())
+				err = sqlDB.FinishBuild(sb1.ID, db.StatusSucceeded)
+				Ω(err).ShouldNot(HaveOccurred())
+				err = sqlDB.FinishBuild(j1b1.ID, db.StatusSucceeded)
+				Ω(err).ShouldNot(HaveOccurred())
+				err = sqlDB.FinishBuild(j2b1.ID, db.StatusSucceeded)
+				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(pipelineDB.GetLatestInputVersions("a-job", []atc.JobInput{
 					{
@@ -2251,6 +2264,13 @@ var _ = Describe("PipelineDB", func() {
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
+				err = sqlDB.FinishBuild(sb2.ID, db.StatusSucceeded)
+				Ω(err).ShouldNot(HaveOccurred())
+				err = sqlDB.FinishBuild(j1b2.ID, db.StatusSucceeded)
+				Ω(err).ShouldNot(HaveOccurred())
+				err = sqlDB.FinishBuild(j2b2.ID, db.StatusSucceeded)
+				Ω(err).ShouldNot(HaveOccurred())
+
 				Ω(pipelineDB.GetLatestInputVersions("a-job", []atc.JobInput{
 					{
 						Name:     "input-1",
@@ -2267,6 +2287,34 @@ var _ = Describe("PipelineDB", func() {
 						Name:              "input-1",
 						VersionedResource: savedCommonVR1.VersionedResource,
 					},
+					{
+						Name:              "input-2",
+						VersionedResource: savedCommonVR2.VersionedResource,
+					},
+				}))
+
+				j2b3, err := pipelineDB.CreateJobBuild("job-2")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildOutput(j2b3.ID, db.VersionedResource{
+					Resource: "resource-2",
+					Type:     "some-type",
+					Version:  db.Version{"v": "should-not-be-emitted-because-of-failure"},
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				// Fail the 3rd build of the 2nd job, this should put the versions back to the previous set
+
+				err = sqlDB.FinishBuild(j2b3.ID, db.StatusFailed)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(pipelineDB.GetLatestInputVersions("a-job", []atc.JobInput{
+					{
+						Name:     "input-2",
+						Resource: "resource-2",
+						Passed:   []string{"job-2"},
+					},
+				})).Should(Equal([]db.BuildInput{
 					{
 						Name:              "input-2",
 						VersionedResource: savedCommonVR2.VersionedResource,
