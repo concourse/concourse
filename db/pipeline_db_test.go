@@ -947,6 +947,15 @@ var _ = Describe("PipelineDB", func() {
 				Ω(created).Should(BeTrue())
 			})
 
+			It("does create a new build if one does not have determined inputs but in a different pipeline", func() {
+				_, err := otherPipelineDB.CreateJobBuild("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, created, err := pipelineDB.CreateJobBuildForCandidateInputs("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(created).Should(BeTrue())
+			})
+
 			It("does create a new build if one is already saved but it has already locked down its inputs", func() {
 				build, created, err := pipelineDB.CreateJobBuildForCandidateInputs("some-job")
 				Ω(err).ShouldNot(HaveOccurred())
