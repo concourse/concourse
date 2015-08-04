@@ -138,10 +138,6 @@
 	path = src/github.com/codahale/hdrhistogram
 	url = https://github.com/codahale/hdrhistogram
 	branch = master
-[submodule "src/github.com/zachgersh/go-update"]
-	path = src/github.com/zachgersh/go-update
-	url = https://github.com/zachgersh/go-update.git
-	branch = take-http-client
 [submodule "src/github.com/concourse/tsa"]
 	path = src/github.com/concourse/tsa
 	url = git@github.com:concourse/tsa.git
@@ -169,4 +165,8 @@
 [submodule "src/github.com/concourse/baggageclaim"]
 	path = src/github.com/concourse/baggageclaim
 	url = https://github.com/concourse/baggageclaim
+	branch = master
+[submodule "src/github.com/inconshreveable/go-update"]
+	path = src/github.com/inconshreveable/go-update
+	url = https://github.com/inconshreveable/go-update
 	branch = master
