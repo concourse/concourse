@@ -1527,6 +1527,7 @@ func (pdb *pipelineDB) GetLatestInputVersions(jobName string, inputs []atc.JobIn
 		inputFromAliases = append(inputFromAliases, fmt.Sprintf("build_inputs i%d", i+1))
 		inputFromAliases = append(inputFromAliases, fmt.Sprintf("versioned_resources vr%d", i+1))
 		inputSelects = append(inputSelects, fmt.Sprintf("vr%d.enabled", i+1))
+		inputOrders = append(inputOrders, fmt.Sprintf("vr%d.id ASC", i+1))
 
 		inputParams = append(inputParams, input.Name)
 		inputNameParam := len(inputParams)
@@ -1577,7 +1578,7 @@ func (pdb *pipelineDB) GetLatestInputVersions(jobName string, inputs []atc.JobIn
 			index := i * 2
 
 			if *scannedValues[index+1].(*bool) {
-				params = append(params, scannedValues[index])
+				params = append(params, *(scannedValues[index].(*int)))
 				paramIndex := len(params)
 
 				conditions = append(conditions, fmt.Sprintf("v%d.id >= $%d", i+1, paramIndex))
@@ -1631,8 +1632,7 @@ func (pdb *pipelineDB) GetLatestInputVersions(jobName string, inputs []atc.JobIn
 		var id int
 		ids = append(ids, &id)
 	}
-
-	err = pdb.conn.QueryRow(fmt.Sprintf(
+	qurey := fmt.Sprintf(
 		`
 				SELECT %s
 				FROM %s
@@ -1644,7 +1644,10 @@ func (pdb *pipelineDB) GetLatestInputVersions(jobName string, inputs []atc.JobIn
 		strings.Join(fromAliases, ", "),
 		strings.Join(conditions, "\nAND "),
 		strings.Join(orderBy, ", "),
-	), params...).Scan(ids...)
+	)
+
+	err = pdb.conn.QueryRow(qurey, params...).Scan(ids...)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNoVersions
