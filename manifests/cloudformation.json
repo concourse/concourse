@@ -87,7 +87,10 @@
   "Resources": {
     "VPC": {
       "Type": "AWS::EC2::VPC",
-      "Properties": { "CidrBlock": { "Ref": "VPCCIDR" } }
+      "Properties": {
+        "CidrBlock": { "Ref": "VPCCIDR" },
+        "Tags": [ { "Value": "concourse", "Key": "Name" } ]
+      }
     },
 
     "VPCGatewayInternetGateway": {
