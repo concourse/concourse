@@ -18,7 +18,6 @@
   could happen if manually triggering jobs \code{B} or \code{C} in a pipeline
   \code{A -> B -> C} where \code{A} acquires and \code{C} releases.
 }{
-}{
   The \hyperlink{https://github.com/concourse/pool-resource}{Pool resource} now
   supports removing locks from the pool. This can be used to transition
   environments from one pool to another through your pipeline, by removing from
