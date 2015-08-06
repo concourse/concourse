@@ -41,7 +41,7 @@ func (o *ensure) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	// The contract of the Result method is such that it does not change the value
 	// of the provided pointer if it is not able to respond.
 	// Therefore there is no need to check the return value here.
-	o.ensure = o.ensureFactory.Using(o.prev, o.repo)
+	o.ensure = o.ensureFactory.Using(o.step, o.repo)
 	err := o.ensure.Run(signals, make(chan struct{})) // TODO test
 	return err
 }

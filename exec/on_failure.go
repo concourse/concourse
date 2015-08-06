@@ -46,7 +46,7 @@ func (o *onFailure) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	_ = o.step.Result(&success)
 
 	if !success {
-		o.failure = o.failureFactory.Using(o.prev, o.repo)
+		o.failure = o.failureFactory.Using(o.step, o.repo)
 		err := o.failure.Run(signals, make(chan struct{})) // TODO test
 		return err
 	}

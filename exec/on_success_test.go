@@ -67,6 +67,21 @@ var _ = Describe("On Success Step", func() {
 		Eventually(process.Wait()).Should(Receive(noError()))
 	})
 
+	It("provides the step as the previous step to the hook", func(){
+		step.ResultStub = successResult(true)
+
+		process := ifrit.Background(onSuccessStep)
+
+		Eventually(step.RunCallCount).Should(Equal(1))
+		Eventually(successFactory.UsingCallCount).Should(Equal(1))
+
+		argsPrev, argsRepo := successFactory.UsingArgsForCall(0)
+		Ω(argsPrev).Should(Equal(step))
+		Ω(argsRepo).Should(Equal(repo))
+
+		Eventually(process.Wait()).Should(Receive(noError()))
+	})
+
 	It("does not run the success hook if the step errors", func() {
 		step.RunReturns(errors.New("disaster"))
 

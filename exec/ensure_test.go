@@ -69,6 +69,19 @@ var _ = Describe("Ensure Step", func() {
 		Eventually(process.Wait()).Should(Receive(noError()))
 	})
 
+	It("provides the step as the previous step to the hook", func(){
+		process := ifrit.Background(ensureStep)
+
+		Eventually(step.RunCallCount).Should(Equal(1))
+		Eventually(hookFactory.UsingCallCount).Should(Equal(1))
+
+		argsPrev, argsRepo := hookFactory.UsingArgsForCall(0)
+		Ω(argsPrev).Should(Equal(step))
+		Ω(argsRepo).Should(Equal(repo))
+
+		Eventually(process.Wait()).Should(Receive(noError()))
+	})
+
 	It("does not run the ensure hook if the step errors", func() {
 		step.RunReturns(errors.New("disaster"))
 
