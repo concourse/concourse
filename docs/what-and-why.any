@@ -75,7 +75,7 @@ If these principles align with yours, it's worth a shot.
 \section{Flexible}{
   Features that other systems implement in the core of the product, Concourse
   implements in "userland", as \reference{resources}{resources}. This keeps
-  the core of Concourse small and simple, and proves out the exensibility
+  the core of Concourse small and simple, and proves out the extensibility
   introduced by this simple interface.
 
   The following are features implemented entirely as resources, in the same
