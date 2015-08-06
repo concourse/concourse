@@ -178,25 +178,6 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan) exe
 		return exec.Ensure(step, next)
 	}
 
-	if plan.Compose != nil {
-		x := build.buildStepFactory(logger, plan.Compose.A)
-		y := build.buildStepFactory(logger, plan.Compose.B)
-		return exec.Compose(x, y)
-	}
-
-	if plan.Conditional != nil {
-		logger = logger.Session("conditional", lager.Data{
-			"on": plan.Conditional.Conditions,
-		})
-
-		steps := build.buildStepFactory(logger, plan.Conditional.Plan)
-
-		return exec.Conditional{
-			Conditions:  plan.Conditional.Conditions,
-			StepFactory: steps,
-		}
-	}
-
 	if plan.Task != nil {
 		logger = logger.Session("task")
 

@@ -754,44 +754,6 @@ var _ = Describe("Factory Hooks", func() {
 		})
 	})
 
-	// Context("when I have conditionals in my plan", func() {
-	// 	It("builds a plan with conditionals", func() {
-	// 		actual, err := buildFactory.Create(atc.JobConfig{
-	// 			Plan: atc.PlanSequence{
-	// 				{
-	// 					Task: "those who resist our will",
-	// 				},
-	// 				{
-	// 					Task:       "some other failure",
-	// 					Conditions: &atc.Conditions{atc.ConditionFailure},
-	// 				},
-	// 			},
-	// 		}, resources, nil)
-	// 		Ω(err).ShouldNot(HaveOccurred())
-
-	// 		expected := atc.Plan{
-	// 			Compose: &atc.ComposePlan{
-	// 				A: atc.Plan{
-	// 					Task: &atc.TaskPlan{
-	// 						Name: "those who resist our will",
-	// 					},
-	// 				},
-	// 				B: atc.Plan{
-	// 					Conditional: &atc.ConditionalPlan{
-	// 						Conditions: atc.Conditions{atc.ConditionFailure},
-	// 						Plan: atc.Plan{
-	// 							Task: &atc.TaskPlan{
-	// 								Name: "some other failure",
-	// 							},
-	// 						},
-	// 					},
-	// 				},
-	// 			},
-	// 		}
-	// 		Ω(actual).Should(Equal(expected))
-	// 	})
-	// })
-
 	Context("when I have hooks in my plan", func() {
 		It("can build a job with one failure hook", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{

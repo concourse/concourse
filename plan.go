@@ -1,12 +1,10 @@
 package atc
 
 type Plan struct {
-	Compose      *ComposePlan      `json:"compose,omitempty"`
 	Aggregate    *AggregatePlan    `json:"aggregate,omitempty"`
 	Get          *GetPlan          `json:"get,omitempty"`
 	Put          *PutPlan          `json:"put,omitempty"`
 	Task         *TaskPlan         `json:"task,omitempty"`
-	Conditional  *ConditionalPlan  `json:"conditional,omitempty"`
 	Ensure       *EnsurePlan       `json:"ensure,omitempty"`
 	OnSuccess    *OnSuccessPlan    `json:"on_success,omitempty"`
 	OnFailure    *OnFailurePlan    `json:"on_failure,omitempty"`
@@ -33,11 +31,6 @@ type Location struct {
 	SerialGroup   uint `json:"serial_group,omitempty"`
 	ID            uint `json:"id,omitempty"`
 	Hook          string
-}
-
-type ComposePlan struct {
-	A Plan `json:"a"`
-	B Plan `json:"b"`
 }
 
 type OnFailurePlan struct {
@@ -109,9 +102,4 @@ type TaskPlan struct {
 
 	ConfigPath string      `json:"config_path,omitempty"`
 	Config     *TaskConfig `json:"config,omitempty"`
-}
-
-type ConditionalPlan struct {
-	Conditions Conditions `json:"conditions"`
-	Plan       Plan       `json:"plan"`
 }

@@ -1,7 +1,6 @@
 package engine_test
 
 import (
-	"errors"
 	"os"
 
 	"github.com/concourse/atc"
@@ -43,13 +42,12 @@ var _ = Describe("ExecEngine", func() {
 			buildModel db.Build
 
 			inputPlan  *atc.GetPlan
-			outputPlan *atc.ConditionalPlan
+			outputPlan atc.Plan
 			privileged bool
 			taskConfig *atc.TaskConfig
 
+			build          engine.Build
 			taskConfigPath string
-
-			build engine.Build
 
 			logger *lagertest.TestLogger
 
@@ -96,32 +94,29 @@ var _ = Describe("ExecEngine", func() {
 				Params:   atc.Params{"some": "params"},
 			}
 
-			outputPlan = &atc.ConditionalPlan{
-				Conditions: atc.Conditions{atc.ConditionSuccess},
-				Plan: atc.Plan{
-					Location: &atc.Location{},
-					OnSuccess: &atc.OnSuccessPlan{
-						Step: atc.Plan{
-							Location: &atc.Location{},
-							Put: &atc.PutPlan{
-								Name:     "some-put",
-								Resource: "some-output-resource",
-								Tags:     []string{"some", "putget", "tags"},
-								Type:     "some-type",
-								Source:   atc.Source{"some": "source"},
-								Params:   atc.Params{"some": "params"},
-							},
+			outputPlan = atc.Plan{
+				Location: &atc.Location{},
+				OnSuccess: &atc.OnSuccessPlan{
+					Step: atc.Plan{
+						Location: &atc.Location{},
+						Put: &atc.PutPlan{
+							Name:     "some-put",
+							Resource: "some-output-resource",
+							Tags:     []string{"some", "putget", "tags"},
+							Type:     "some-type",
+							Source:   atc.Source{"some": "source"},
+							Params:   atc.Params{"some": "params"},
 						},
-						Next: atc.Plan{
-							Location: &atc.Location{},
-							DependentGet: &atc.DependentGetPlan{
-								Name:     "some-put",
-								Resource: "some-output-resource",
-								Tags:     []string{"some", "putget", "tags"},
-								Type:     "some-type",
-								Source:   atc.Source{"some": "source"},
-								Params:   atc.Params{"another": "params"},
-							},
+					},
+					Next: atc.Plan{
+						Location: &atc.Location{},
+						DependentGet: &atc.DependentGetPlan{
+							Name:     "some-put",
+							Resource: "some-output-resource",
+							Tags:     []string{"some", "putget", "tags"},
+							Type:     "some-type",
+							Source:   atc.Source{"some": "source"},
+							Params:   atc.Params{"another": "params"},
 						},
 					},
 				},
@@ -164,137 +159,75 @@ var _ = Describe("ExecEngine", func() {
 			dependentStep.ResultStub = successResult(true)
 			dependentStepFactory.UsingReturns(dependentStep)
 			fakeFactory.DependentGetReturns(dependentStepFactory)
-		})
 
-		JustBeforeEach(func() {
-			input := atc.Plan{
-				Location: &atc.Location{},
-				Compose: &atc.ComposePlan{
-					A: atc.Plan{
-						Location: &atc.Location{},
-						Aggregate: &atc.AggregatePlan{
-							atc.Plan{
-								Location: &atc.Location{},
-								Get:      inputPlan,
-							},
-						},
-					},
-					B: atc.Plan{
-						Location: &atc.Location{},
-						Conditional: &atc.ConditionalPlan{
-							Conditions: atc.Conditions{atc.ConditionSuccess},
-							Plan: atc.Plan{
-								Location: &atc.Location{},
-								Compose: &atc.ComposePlan{
-									A: atc.Plan{
-										Location: &atc.Location{},
-										Task: &atc.TaskPlan{
-											Name: "some-task",
-
-											Privileged: privileged,
-
-											Config:     taskConfig,
-											ConfigPath: taskConfigPath,
-										},
-									},
-									B: atc.Plan{
-										Location: &atc.Location{},
-										Aggregate: &atc.AggregatePlan{
-											atc.Plan{
-												Location:    &atc.Location{},
-												Conditional: outputPlan,
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			}
-
-			var err error
-			build, err = execEngine.CreateBuild(buildModel, input)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			build.Resume(logger)
 		})
 
 		Describe("with a putget in an aggregate", func() {
 			BeforeEach(func() {
-				outputPlan = &atc.ConditionalPlan{
-					Conditions: atc.Conditions{atc.ConditionSuccess},
-					Plan: atc.Plan{
-						Location: &atc.Location{},
+				outputPlan =
+					atc.Plan{
 						Aggregate: &atc.AggregatePlan{
 							atc.Plan{
 								Location: &atc.Location{},
-								Conditional: &atc.ConditionalPlan{
-									Conditions: []atc.Condition{atc.ConditionSuccess},
-									Plan: atc.Plan{
-										OnSuccess: &atc.OnSuccessPlan{
-											Step: atc.Plan{
-												Location: &atc.Location{},
-												Put: &atc.PutPlan{
-													Name:     "some-put",
-													Resource: "some-output-resource",
-													Type:     "some-type",
-													Source:   atc.Source{"some": "source"},
-													Params:   atc.Params{"some": "params"},
-												},
-											},
-											Next: atc.Plan{
-												Location: &atc.Location{},
-												DependentGet: &atc.DependentGetPlan{
-													Name:     "some-put",
-													Resource: "some-output-resource",
-													Type:     "some-type",
-													Source:   atc.Source{"some": "source"},
-													Params:   atc.Params{"another": "params"},
-												},
-											},
+								OnSuccess: &atc.OnSuccessPlan{
+									Step: atc.Plan{
+										Location: &atc.Location{},
+										Put: &atc.PutPlan{
+											Name:     "some-put",
+											Resource: "some-output-resource",
+											Type:     "some-type",
+											Source:   atc.Source{"some": "source"},
+											Params:   atc.Params{"some": "params"},
+										},
+									},
+									Next: atc.Plan{
+										Location: &atc.Location{},
+										DependentGet: &atc.DependentGetPlan{
+											Name:     "some-put",
+											Resource: "some-output-resource",
+											Type:     "some-type",
+											Source:   atc.Source{"some": "source"},
+											Params:   atc.Params{"another": "params"},
 										},
 									},
 								},
 							},
 							atc.Plan{
 								Location: &atc.Location{},
-								Conditional: &atc.ConditionalPlan{
-									Conditions: []atc.Condition{atc.ConditionSuccess},
-									Plan: atc.Plan{
+								OnSuccess: &atc.OnSuccessPlan{
+									Step: atc.Plan{
 										Location: &atc.Location{},
-										OnSuccess: &atc.OnSuccessPlan{
-											Step: atc.Plan{
-												Location: &atc.Location{},
-												Put: &atc.PutPlan{
-													Name:     "some-put-2",
-													Resource: "some-output-resource-2",
-													Type:     "some-type-2",
-													Source:   atc.Source{"some": "source-2"},
-													Params:   atc.Params{"some": "params-2"},
-												},
-											},
-											Next: atc.Plan{
-												Location: &atc.Location{},
-												DependentGet: &atc.DependentGetPlan{
-													Name:     "some-put-2",
-													Resource: "some-output-resource-2",
-													Type:     "some-type-2",
-													Source:   atc.Source{"some": "source-2"},
-													Params:   atc.Params{"another": "params-2"},
-												},
-											},
+										Put: &atc.PutPlan{
+											Name:     "some-put-2",
+											Resource: "some-output-resource-2",
+											Type:     "some-type-2",
+											Source:   atc.Source{"some": "source-2"},
+											Params:   atc.Params{"some": "params-2"},
+										},
+									},
+									Next: atc.Plan{
+										Location: &atc.Location{},
+										DependentGet: &atc.DependentGetPlan{
+											Name:     "some-put-2",
+											Resource: "some-output-resource-2",
+											Type:     "some-type-2",
+											Source:   atc.Source{"some": "source-2"},
+											Params:   atc.Params{"another": "params-2"},
 										},
 									},
 								},
 							},
 						},
-					},
-				}
+					}
 			})
 
 			Context("constructing outputs", func() {
 				It("constructs the put correctly", func() {
+					var err error
+					build, err = execEngine.CreateBuild(buildModel, outputPlan)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					build.Resume(logger)
 					Ω(fakeFactory.PutCallCount()).Should(Equal(2))
 
 					workerID, delegate, resourceConfig, tags, params := fakeFactory.PutArgsForCall(0)
@@ -323,8 +256,12 @@ var _ = Describe("ExecEngine", func() {
 					Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source-2"}))
 					Ω(params).Should(Equal(atc.Params{"some": "params-2"}))
 				})
-
 				It("constructs the dependent get correctly", func() {
+					var err error
+					build, err = execEngine.CreateBuild(buildModel, outputPlan)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					build.Resume(logger)
 					Ω(fakeFactory.DependentGetCallCount()).Should(Equal(2))
 
 					sourceName, workerID, delegate, resourceConfig, tags, params := fakeFactory.DependentGetArgsForCall(0)
@@ -336,8 +273,8 @@ var _ = Describe("ExecEngine", func() {
 
 					Ω(tags).Should(BeEmpty())
 					Ω(delegate).Should(Equal(fakeInputDelegate))
-					_, plan, location := fakeDelegate.InputDelegateArgsForCall(1)
-					Ω(plan).Should(Equal((*outputPlan.Plan.Aggregate)[0].Conditional.Plan.OnSuccess.Next.DependentGet.GetPlan()))
+					_, plan, location := fakeDelegate.InputDelegateArgsForCall(0)
+					Ω(plan).Should(Equal((*outputPlan.Aggregate)[0].OnSuccess.Next.DependentGet.GetPlan()))
 					Ω(location).ShouldNot(BeNil())
 
 					Ω(sourceName).Should(Equal(exec.SourceName("some-put")))
@@ -345,7 +282,6 @@ var _ = Describe("ExecEngine", func() {
 					Ω(resourceConfig.Type).Should(Equal("some-type"))
 					Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
 					Ω(params).Should(Equal(atc.Params{"another": "params"}))
-
 					sourceName, workerID, delegate, resourceConfig, tags, params = fakeFactory.DependentGetArgsForCall(1)
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID: 42,
@@ -355,8 +291,8 @@ var _ = Describe("ExecEngine", func() {
 
 					Ω(tags).Should(BeEmpty())
 					Ω(delegate).Should(Equal(fakeInputDelegate))
-					_, plan, location = fakeDelegate.InputDelegateArgsForCall(2)
-					Ω(plan).Should(Equal((*outputPlan.Plan.Aggregate)[1].Conditional.Plan.OnSuccess.Next.DependentGet.GetPlan()))
+					_, plan, location = fakeDelegate.InputDelegateArgsForCall(1)
+					Ω(plan).Should(Equal((*outputPlan.Aggregate)[1].OnSuccess.Next.DependentGet.GetPlan()))
 					Ω(location).ShouldNot(BeNil())
 
 					Ω(sourceName).Should(Equal(exec.SourceName("some-put-2")))
@@ -368,375 +304,240 @@ var _ = Describe("ExecEngine", func() {
 			})
 		})
 
-		It("constructs inputs correctly", func() {
-			Ω(fakeFactory.GetCallCount()).Should(Equal(1))
+		Context("with a basic plan", func() {
+			Context("that contains inputs", func() {
 
-			sourceName, workerID, delegate, resourceConfig, params, tags, version := fakeFactory.GetArgsForCall(0)
-			Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
-			Ω(workerID).Should(Equal(worker.Identifier{
-				BuildID: 42,
-				Type:    worker.ContainerTypeGet,
-				Name:    "some-input",
-			}))
-			Ω(tags).Should(ConsistOf("some", "get", "tags"))
-
-			Ω(delegate).Should(Equal(fakeInputDelegate))
-			_, plan, location := fakeDelegate.InputDelegateArgsForCall(0)
-			Ω(plan).Should(Equal(*inputPlan))
-			Ω(location).ShouldNot(BeNil())
-
-			Ω(resourceConfig.Name).Should(Equal("some-input-resource"))
-			Ω(resourceConfig.Type).Should(Equal("some-type"))
-			Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
-			Ω(params).Should(Equal(atc.Params{"some": "params"}))
-			Ω(version).Should(Equal(atc.Version{"some": "version"}))
-		})
-
-		It("constructs tasks correctly", func() {
-			Ω(fakeFactory.TaskCallCount()).Should(Equal(1))
-
-			sourceName, workerID, delegate, privileged, tags, configSource := fakeFactory.TaskArgsForCall(0)
-			Ω(sourceName).Should(Equal(exec.SourceName("some-task")))
-			Ω(workerID).Should(Equal(worker.Identifier{
-				BuildID: 42,
-				Type:    worker.ContainerTypeTask,
-				Name:    "some-task",
-			}))
-			Ω(delegate).Should(Equal(fakeExecutionDelegate))
-			Ω(privileged).Should(Equal(exec.Privileged(false)))
-			Ω(tags).Should(BeEmpty())
-			Ω(configSource).ShouldNot(BeNil())
-		})
-
-		Context("constructing outputs", func() {
-			It("constructs the put correctly", func() {
-				Ω(fakeFactory.PutCallCount()).Should(Equal(1))
-
-				workerID, delegate, resourceConfig, tags, params := fakeFactory.PutArgsForCall(0)
-				Ω(workerID).Should(Equal(worker.Identifier{
-					BuildID: 42,
-					Type:    worker.ContainerTypePut,
-					Name:    "some-put",
-				}))
-				Ω(delegate).Should(Equal(fakeOutputDelegate))
-				Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
-				Ω(resourceConfig.Type).Should(Equal("some-type"))
-				Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
-				Ω(tags).Should(ConsistOf("some", "putget", "tags"))
-				Ω(params).Should(Equal(atc.Params{"some": "params"}))
-			})
-
-			It("constructs the dependent get correctly", func() {
-				Ω(fakeFactory.DependentGetCallCount()).Should(Equal(1))
-
-				sourceName, workerID, delegate, resourceConfig, tags, params := fakeFactory.DependentGetArgsForCall(0)
-				Ω(workerID).Should(Equal(worker.Identifier{
-					BuildID: 42,
-					Type:    worker.ContainerTypeGet,
-					Name:    "some-put",
-				}))
-				Ω(tags).Should(ConsistOf("some", "putget", "tags"))
-				Ω(sourceName).Should(Equal(exec.SourceName("some-put")))
-				Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
-				Ω(resourceConfig.Type).Should(Equal("some-type"))
-				Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
-				Ω(params).Should(Equal(atc.Params{"another": "params"}))
-
-				Ω(delegate).Should(Equal(fakeInputDelegate))
-				_, _, location := fakeDelegate.InputDelegateArgsForCall(1)
-				Ω(location).ShouldNot(BeNil())
-			})
-		})
-
-		Context("when the steps complete", func() {
-			BeforeEach(func() {
-				assertNotReleased := func(signals <-chan os.Signal, ready chan<- struct{}) error {
-					defer GinkgoRecover()
-					Consistently(inputStep.ReleaseCallCount).Should(BeZero())
-					Consistently(taskStep.ReleaseCallCount).Should(BeZero())
-					Consistently(outputStep.ReleaseCallCount).Should(BeZero())
-					return nil
+				getPlan := &atc.GetPlan{
+					Name:     "some-input",
+					Resource: "some-input-resource",
+					Type:     "some-type",
+					Tags:     []string{"some", "get", "tags"},
+					Version:  atc.Version{"some": "version"},
+					Source:   atc.Source{"some": "source"},
+					Params:   atc.Params{"some": "params"},
 				}
 
-				inputStep.RunStub = assertNotReleased
-				taskStep.RunStub = assertNotReleased
-				outputStep.RunStub = assertNotReleased
+				plan := atc.Plan{
+					Get: getPlan,
+				}
+
+				It("constructs inputs correctly", func() {
+					var err error
+					build, err := execEngine.CreateBuild(buildModel, plan)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					build.Resume(logger)
+					Ω(fakeFactory.GetCallCount()).Should(Equal(1))
+
+					sourceName, workerID, delegate, resourceConfig, params, tags, version := fakeFactory.GetArgsForCall(0)
+					Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
+					Ω(workerID).Should(Equal(worker.Identifier{
+						BuildID: 42,
+						Type:    worker.ContainerTypeGet,
+						Name:    "some-input",
+					}))
+					Ω(tags).Should(ConsistOf("some", "get", "tags"))
+
+					Ω(delegate).Should(Equal(fakeInputDelegate))
+					_, plan, location := fakeDelegate.InputDelegateArgsForCall(0)
+					Ω(plan).Should(Equal(*inputPlan))
+					Ω(location).ShouldNot(BeNil())
+
+					Ω(resourceConfig.Name).Should(Equal("some-input-resource"))
+					Ω(resourceConfig.Type).Should(Equal("some-type"))
+					Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
+					Ω(params).Should(Equal(atc.Params{"some": "params"}))
+					Ω(version).Should(Equal(atc.Version{"some": "version"}))
+
+				})
+
+				It("releases inputs correctly", func() {
+					inputStep.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+						defer GinkgoRecover()
+						Consistently(inputStep.ReleaseCallCount).Should(BeZero())
+						return nil
+					}
+					var err error
+					build, err = execEngine.CreateBuild(buildModel, plan)
+					Ω(err).ShouldNot(HaveOccurred())
+					build.Resume(logger)
+
+					Ω(inputStep.ReleaseCallCount()).Should(Equal(1))
+				})
 			})
 
-			It("releases all sources", func() {
-				Ω(inputStep.ReleaseCallCount()).Should(Equal(1))
-				Ω(taskStep.ReleaseCallCount()).Should(Equal(1))
-				Ω(outputStep.ReleaseCallCount()).Should(BeNumerically(">", 0))
+			Context("that contains tasks", func() {
+				privileged = false
+
+				taskConfig = &atc.TaskConfig{
+					Image:  "some-image",
+					Tags:   []string{"some", "task", "tags"},
+					Params: map[string]string{"PARAM": "value"},
+					Run: atc.TaskRunConfig{
+						Path: "some-path",
+						Args: []string{"some", "args"},
+					},
+					Inputs: []atc.TaskInputConfig{
+						{Name: "some-input"},
+					},
+				}
+
+				taskConfigPath = "some-input/build.yml"
+
+				taskPlan := &atc.TaskPlan{
+					Name:       "some-task",
+					Config:     taskConfig,
+					ConfigPath: taskConfigPath,
+					Privileged: privileged,
+				}
+				plan := atc.Plan{
+					Task: taskPlan,
+				}
+				It("constructs tasks correctly", func() {
+					var err error
+					build, err = execEngine.CreateBuild(buildModel, plan)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					build.Resume(logger)
+					Ω(fakeFactory.TaskCallCount()).Should(Equal(1))
+
+					sourceName, workerID, delegate, privileged, tags, configSource := fakeFactory.TaskArgsForCall(0)
+					Ω(sourceName).Should(Equal(exec.SourceName("some-task")))
+					Ω(workerID).Should(Equal(worker.Identifier{
+						BuildID: 42,
+						Type:    worker.ContainerTypeTask,
+						Name:    "some-task",
+					}))
+					Ω(delegate).Should(Equal(fakeExecutionDelegate))
+					Ω(privileged).Should(Equal(exec.Privileged(false)))
+					Ω(tags).Should(BeEmpty())
+					Ω(configSource).ShouldNot(BeNil())
+				})
+				It("releases the tasks correctly", func() {
+					taskStep.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+						defer GinkgoRecover()
+						Consistently(taskStep.ReleaseCallCount).Should(BeZero())
+						return nil
+					}
+					var err error
+					build, err = execEngine.CreateBuild(buildModel, plan)
+					Ω(err).ShouldNot(HaveOccurred())
+					build.Resume(logger)
+
+					Ω(taskStep.ReleaseCallCount()).Should(Equal(1))
+
+				})
+
+				Context("when the task is privileged", func() {
+					BeforeEach(func() {
+						taskPlan.Privileged = true
+					})
+
+					It("constructs the task step privileged", func() {
+						var err error
+						build, err = execEngine.CreateBuild(buildModel, plan)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						build.Resume(logger)
+						Ω(fakeFactory.TaskCallCount()).Should(Equal(1))
+
+						_, _, _, privileged, _, _ := fakeFactory.TaskArgsForCall(0)
+						Ω(privileged).Should(Equal(exec.Privileged(true)))
+					})
+				})
+
+			})
+
+			Context("that contains outputs", func() {
+				plan := atc.Plan{
+					Location: &atc.Location{},
+					OnSuccess: &atc.OnSuccessPlan{
+						Step: atc.Plan{
+							Location: &atc.Location{},
+							Put: &atc.PutPlan{
+								Name:     "some-put",
+								Resource: "some-output-resource",
+								Tags:     []string{"some", "putget", "tags"},
+								Type:     "some-type",
+								Source:   atc.Source{"some": "source"},
+								Params:   atc.Params{"some": "params"},
+							},
+						},
+						Next: atc.Plan{
+							Location: &atc.Location{},
+							DependentGet: &atc.DependentGetPlan{
+								Name:     "some-put",
+								Resource: "some-output-resource",
+								Tags:     []string{"some", "putget", "tags"},
+								Type:     "some-type",
+								Source:   atc.Source{"some": "source"},
+								Params:   atc.Params{"another": "params"},
+							},
+						},
+					},
+				}
+
+				It("constructs the put correctly", func() {
+					var err error
+					build, err = execEngine.CreateBuild(buildModel, plan)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					build.Resume(logger)
+					Ω(fakeFactory.PutCallCount()).Should(Equal(1))
+
+					workerID, delegate, resourceConfig, tags, params := fakeFactory.PutArgsForCall(0)
+					Ω(workerID).Should(Equal(worker.Identifier{
+						BuildID: 42,
+						Type:    worker.ContainerTypePut,
+						Name:    "some-put",
+					}))
+					Ω(delegate).Should(Equal(fakeOutputDelegate))
+					Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
+					Ω(resourceConfig.Type).Should(Equal("some-type"))
+					Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
+					Ω(tags).Should(ConsistOf("some", "putget", "tags"))
+					Ω(params).Should(Equal(atc.Params{"some": "params"}))
+				})
+
+				It("constructs the dependent get correctly", func() {
+					var err error
+					build, err = execEngine.CreateBuild(buildModel, plan)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					build.Resume(logger)
+					Ω(fakeFactory.DependentGetCallCount()).Should(Equal(1))
+
+					sourceName, workerID, delegate, resourceConfig, tags, params := fakeFactory.DependentGetArgsForCall(0)
+					Ω(workerID).Should(Equal(worker.Identifier{
+						BuildID: 42,
+						Type:    worker.ContainerTypeGet,
+						Name:    "some-put",
+					}))
+					Ω(tags).Should(ConsistOf("some", "putget", "tags"))
+					Ω(sourceName).Should(Equal(exec.SourceName("some-put")))
+					Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
+					Ω(resourceConfig.Type).Should(Equal("some-type"))
+					Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
+					Ω(params).Should(Equal(atc.Params{"another": "params"}))
+
+					Ω(delegate).Should(Equal(fakeInputDelegate))
+					_, _, location := fakeDelegate.InputDelegateArgsForCall(0)
+					Ω(location).ShouldNot(BeNil())
+				})
+				It("releases all sources", func() {
+					var err error
+					build, err = execEngine.CreateBuild(buildModel, plan)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					build.Resume(logger)
+					Ω(outputStep.ReleaseCallCount()).Should(Equal(1))
+					Ω(dependentStep.ReleaseCallCount()).Should(Equal(1))
+
+				})
+
 			})
 		})
 
-		Context("when the task is privileged", func() {
-			BeforeEach(func() {
-				privileged = true
-			})
-
-			It("constructs the task step privileged", func() {
-				Ω(fakeFactory.TaskCallCount()).Should(Equal(1))
-
-				_, _, _, privileged, _, _ := fakeFactory.TaskArgsForCall(0)
-				Ω(privileged).Should(Equal(exec.Privileged(true)))
-			})
-		})
-
-		Context("when the input succeeds", func() {
-			BeforeEach(func() {
-				inputStep.RunReturns(nil)
-			})
-
-			Context("when executing the task errors", func() {
-				disaster := errors.New("oh no!")
-
-				BeforeEach(func() {
-					taskStep.RunReturns(disaster)
-				})
-
-				It("does not run any outputs", func() {
-					Ω(outputStep.RunCallCount()).Should(BeZero())
-				})
-
-				It("finishes with error", func() {
-					Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
-					_, cbErr, _, _ := fakeDelegate.FinishArgsForCall(0)
-					Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
-				})
-			})
-
-			Context("when executing the task succeeds", func() {
-				BeforeEach(func() {
-					taskStep.RunReturns(nil)
-					taskStep.ResultStub = successResult(true)
-				})
-
-				Context("when the output should perform on success", func() {
-					BeforeEach(func() {
-						outputPlan.Conditions = atc.Conditions{atc.ConditionSuccess}
-					})
-
-					It("runs the output", func() {
-						Ω(outputStep.RunCallCount()).Should(Equal(1))
-					})
-
-					Context("when the output succeeds", func() {
-						BeforeEach(func() {
-							outputStep.RunReturns(nil)
-						})
-
-						It("finishes with success", func() {
-							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
-							_, cbErr, _, _ := fakeDelegate.FinishArgsForCall(0)
-							Ω(cbErr).ShouldNot(HaveOccurred())
-						})
-					})
-
-					Context("when the output fails", func() {
-						disaster := errors.New("oh no!")
-
-						BeforeEach(func() {
-							outputStep.RunReturns(disaster)
-						})
-
-						It("finishes with the error", func() {
-							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
-							_, cbErr, _, _ := fakeDelegate.FinishArgsForCall(0)
-							Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
-						})
-					})
-				})
-
-				Context("when the output should perform on failure", func() {
-					BeforeEach(func() {
-						outputPlan.Conditions = atc.Conditions{atc.ConditionFailure}
-					})
-
-					It("does not run the output", func() {
-						Ω(outputStep.RunCallCount()).Should(BeZero())
-					})
-				})
-
-				Context("when the output should perform on success or failure", func() {
-					BeforeEach(func() {
-						outputPlan.Conditions = atc.Conditions{atc.ConditionSuccess, atc.ConditionFailure}
-					})
-
-					It("runs the output", func() {
-						Ω(outputStep.RunCallCount()).Should(Equal(1))
-					})
-
-					Context("when the output succeeds", func() {
-						BeforeEach(func() {
-							outputStep.RunReturns(nil)
-						})
-
-						It("finishes with success", func() {
-							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
-							_, cbErr, _, _ := fakeDelegate.FinishArgsForCall(0)
-							Ω(cbErr).ShouldNot(HaveOccurred())
-						})
-					})
-
-					Context("when the output fails", func() {
-						disaster := errors.New("oh no!")
-
-						BeforeEach(func() {
-							outputStep.RunReturns(disaster)
-						})
-
-						It("finishes with the error", func() {
-							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
-							_, cbErr, _, _ := fakeDelegate.FinishArgsForCall(0)
-							Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
-						})
-					})
-				})
-
-				Context("when the output has empty conditions", func() {
-					BeforeEach(func() {
-						outputPlan.Conditions = atc.Conditions{}
-					})
-
-					It("does not run the output", func() {
-						Ω(outputStep.RunCallCount()).Should(BeZero())
-					})
-				})
-			})
-
-			Context("when executing the task fails", func() {
-				BeforeEach(func() {
-					taskStep.RunReturns(nil)
-					taskStep.ResultStub = successResult(false)
-				})
-
-				Context("when the output should perform on success", func() {
-					BeforeEach(func() {
-						outputPlan.Conditions = atc.Conditions{atc.ConditionSuccess}
-					})
-
-					It("does not run the output", func() {
-						Ω(outputStep.RunCallCount()).Should(BeZero())
-					})
-				})
-
-				Context("when the output should perform on failure", func() {
-					BeforeEach(func() {
-						outputPlan.Conditions = atc.Conditions{atc.ConditionFailure}
-					})
-
-					It("runs the output", func() {
-						Ω(outputStep.RunCallCount()).Should(Equal(1))
-					})
-
-					Context("when the output succeeds", func() {
-						BeforeEach(func() {
-							outputStep.RunReturns(nil)
-						})
-
-						It("finishes with success", func() {
-							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
-							_, cbErr, _, _ := fakeDelegate.FinishArgsForCall(0)
-							Ω(cbErr).ShouldNot(HaveOccurred())
-						})
-					})
-
-					Context("when the output fails", func() {
-						disaster := errors.New("oh no!")
-
-						BeforeEach(func() {
-							outputStep.RunReturns(disaster)
-						})
-
-						It("finishes with the error", func() {
-							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
-							_, cbErr, _, _ := fakeDelegate.FinishArgsForCall(0)
-							Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
-						})
-					})
-				})
-
-				Context("when the output should perform on success or failure", func() {
-					BeforeEach(func() {
-						outputPlan.Conditions = atc.Conditions{atc.ConditionSuccess, atc.ConditionFailure}
-					})
-
-					It("runs the output", func() {
-						Ω(outputStep.RunCallCount()).Should(Equal(1))
-					})
-
-					Context("when the output succeeds", func() {
-						BeforeEach(func() {
-							outputStep.RunReturns(nil)
-						})
-
-						It("finishes with success", func() {
-							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
-							_, cbErr, _, _ := fakeDelegate.FinishArgsForCall(0)
-							Ω(cbErr).ShouldNot(HaveOccurred())
-						})
-					})
-
-					Context("when the output errors", func() {
-						disaster := errors.New("oh no!")
-
-						BeforeEach(func() {
-							outputStep.RunReturns(disaster)
-						})
-
-						It("finishes with the error", func() {
-							Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
-							_, cbErr, _, _ := fakeDelegate.FinishArgsForCall(0)
-							Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
-						})
-					})
-
-					Context("when the output has empty conditions", func() {
-						BeforeEach(func() {
-							outputPlan.Conditions = atc.Conditions{}
-						})
-
-						It("does not run the output", func() {
-							Ω(outputStep.RunCallCount()).Should(BeZero())
-						})
-					})
-				})
-			})
-
-			Context("when the input fails", func() {
-				BeforeEach(func() {
-					inputStep.RunReturns(nil)
-					inputStep.ResultStub = successResult(false)
-				})
-
-				It("does not run the task", func() {
-					Ω(taskStep.RunCallCount()).Should(Equal(0))
-				})
-			})
-
-			Context("when an input errors", func() {
-				disaster := errors.New("oh no!")
-
-				BeforeEach(func() {
-					inputStep.RunReturns(disaster)
-				})
-
-				It("does not run the task", func() {
-					Ω(taskStep.RunCallCount()).Should(BeZero())
-				})
-
-				It("does not run any outputs", func() {
-					Ω(outputStep.RunCallCount()).Should(BeZero())
-				})
-
-				It("finishes with the error", func() {
-					Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
-					_, cbErr, _, _ := fakeDelegate.FinishArgsForCall(0)
-					Ω(cbErr).Should(MatchError(ContainSubstring(disaster.Error())))
-				})
-			})
-		})
 	})
 })
 

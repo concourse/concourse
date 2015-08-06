@@ -72,7 +72,7 @@ var _ = Describe("On Failure Step", func() {
 
 		Eventually(process.Wait()).Should(Receive(noError()))
 	})
-	
+
 	It("does not run the failure hook if the step errors", func() {
 		step.RunReturns(errors.New("disaster"))
 

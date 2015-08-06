@@ -287,60 +287,6 @@ var _ = Describe("Factory Put", func() {
 				Ω(actual).Should(Equal(expected))
 			})
 		})
-
-		// Context("when it has an explicit condition", func() {
-		// 	It("runs with the given condition", func() {
-		// 		input := atc.JobConfig{
-		// 			Plan: atc.PlanSequence{
-		// 				{
-		// 					Task: "those who resist our will",
-		// 				},
-		// 				{
-		// 					Put:        "money",
-		// 					Conditions: &atc.Conditions{atc.ConditionFailure},
-		// 				},
-		// 			},
-		// 		}
-
-		// 		expected := atc.Plan{
-		// 			Compose: &atc.ComposePlan{
-		// 				A: atc.Plan{
-		// 					Task: &atc.TaskPlan{
-		// 						Name: "those who resist our will",
-		// 					},
-		// 				},
-		// 				B: atc.Plan{
-		// 					Conditional: &atc.ConditionalPlan{
-		// 						Conditions: atc.Conditions{atc.ConditionFailure},
-		// 						Plan: atc.Plan{
-		// 							OnSuccess: &atc.OnSuccessPlan{
-		// 								Step: atc.Plan{
-		// 									Put: &atc.PutPlan{
-		// 										Name:     "money",
-		// 										Resource: "money",
-		// 										Pipeline: "some-pipeline",
-		// 									},
-		// 								},
-		// 								Next: atc.Plan{
-		// 									DependentGet: &atc.DependentGetPlan{
-		// 										Name:     "money",
-		// 										Resource: "money",
-		// 										Pipeline: "some-pipeline",
-		// 									},
-		// 								},
-		// 							},
-		// 						},
-		// 					},
-		// 				},
-		// 			},
-		// 		}
-
-		// 		actual, err := buildFactory.Create(input, resources, nil)
-		// 		Ω(err).NotTo(HaveOccurred())
-
-		// 		Ω(actual).Should(Equal(expected))
-		// 	})
-		// })
 	})
 
 	Context("when a put plan follows a task plan", func() {

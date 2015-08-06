@@ -20,37 +20,23 @@ func (factory *BuildFactory) Create(
 ) (atc.Plan, error) {
 
 	hasConditionals := factory.hasConditionals(job.Plan)
-	hasHooks := factory.hasHooks(job.Plan)
-
-	if hasHooks && hasConditionals {
-		return atc.Plan{}, errors.New("you cannot have a plan with hooks and conditionals")
-	}
 
 	if hasConditionals {
-		return factory.constructPlanSequenceBasedPlan(
-			job.Plan,
-			resources,
-			inputs), nil
-	} else {
-		populateLocations(&job.Plan)
-
-		plan := factory.constructPlanHookBasedPlan(
-			job.Plan,
-			resources,
-			inputs)
-		return plan, nil
+		return atc.Plan{}, errors.New("Conditionals are no longer supported in build plans. Use success/failure hooks instead.")
 	}
+
+	populateLocations(&job.Plan)
+
+	plan := factory.constructPlanHookBasedPlan(
+		job.Plan,
+		resources,
+		inputs)
+	return plan, nil
 }
 
 func (factory *BuildFactory) hasConditionals(planSequence atc.PlanSequence) bool {
 	return factory.doesAnyStepMatch(planSequence, func(step atc.PlanConfig) bool {
 		return step.Conditions != nil
-	})
-}
-
-func (factory *BuildFactory) hasHooks(planSequence atc.PlanSequence) bool {
-	return factory.doesAnyStepMatch(planSequence, func(step atc.PlanConfig) bool {
-		return step.Failure != nil || step.Ensure != nil || step.Success != nil
 	})
 }
 
@@ -263,78 +249,17 @@ func (factory *BuildFactory) constructPlanSequenceBasedPlan(
 		return atc.Plan{}
 	}
 
+	var plan atc.Plan
 	// Walk each plan in the plan sequence to determine the locations
-
-	// work backwards to simplify conditional wrapping
-	plan := factory.constructPlanFromConfig(
-		planSequence[len(planSequence)-1],
-		resources,
-		inputs,
-		false,
-	)
-
-	for i := len(planSequence) - 1; i > 0; i-- {
+	for i := 0; i < len(planSequence); i++ {
 		// plan preceding the current one in the sequence
-		prevPlan := factory.constructPlanFromConfig(
-			planSequence[i-1],
+		plan = factory.constructPlanFromConfig(
+			planSequence[i],
 			resources,
 			inputs,
 			false,
 		)
 
-		// steps default to conditional on [success]
-		plan = makeConditionalOnSuccess(plan)
-
-		// if the previous plan is conditional, make the entire following chain
-		// of composed steps conditional or get/put
-		plan = conditionallyCompose(prevPlan, plan)
-	}
-
-	return plan
-}
-
-func makeConditionalOnSuccess(plan atc.Plan) atc.Plan {
-	if plan.Conditional != nil {
-		return plan
-	} else if plan.Aggregate != nil {
-		conditionaled := atc.AggregatePlan{}
-		for _, plan := range *plan.Aggregate {
-			conditionaled = append(conditionaled, makeConditionalOnSuccess(plan))
-		}
-
-		plan.Aggregate = &conditionaled
-	} else {
-		plan = atc.Plan{
-			Conditional: &atc.ConditionalPlan{
-				Conditions: atc.Conditions{atc.ConditionSuccess},
-				Plan:       plan,
-			},
-		}
-	}
-
-	return plan
-}
-
-func conditionallyCompose(prevPlan atc.Plan, plan atc.Plan) atc.Plan {
-	if prevPlan.Conditional != nil {
-		plan = atc.Plan{
-			Conditional: &atc.ConditionalPlan{
-				Conditions: prevPlan.Conditional.Conditions,
-				Plan: atc.Plan{
-					Compose: &atc.ComposePlan{
-						A: prevPlan.Conditional.Plan,
-						B: plan,
-					},
-				},
-			},
-		}
-	} else {
-		plan = atc.Plan{
-			Compose: &atc.ComposePlan{
-				A: prevPlan,
-				B: plan,
-			},
-		}
 	}
 
 	return plan
@@ -501,15 +426,6 @@ func (factory *BuildFactory) constructPlanFromConfig(
 		plan = atc.Plan{
 			Location:  planConfig.Location,
 			Aggregate: &aggregate,
-		}
-	}
-
-	if planConfig.Conditions != nil {
-		plan = atc.Plan{
-			Conditional: &atc.ConditionalPlan{
-				Conditions: *planConfig.Conditions,
-				Plan:       plan,
-			},
 		}
 	}
 
