@@ -18,6 +18,12 @@
   could happen if manually triggering jobs \code{B} or \code{C} in a pipeline
   \code{A -> B -> C} where \code{A} acquires and \code{C} releases.
 }{
+}{
+  The \hyperlink{https://github.com/concourse/pool-resource}{Pool resource} now
+  supports removing locks from the pool. This can be used to transition
+  environments from one pool to another through your pipeline, by removing from
+  pool \code{A} and adding to pool \code{B}.
+}{
   Any step in a build plan can now have \reference{timeout-step} configured on
   it. If the step takes longer than the given duration, the step will be
   aborted in the build will fail.
