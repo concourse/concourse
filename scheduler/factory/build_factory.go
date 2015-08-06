@@ -372,6 +372,7 @@ func (factory *BuildFactory) constructPlanFromConfig(
 			Resource: resourceName,
 			Params:   planConfig.GetParams,
 			Tags:     planConfig.Tags,
+			Source:   resource.Source,
 		}
 
 		stepLocation := &atc.Location{}

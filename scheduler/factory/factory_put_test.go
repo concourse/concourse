@@ -35,7 +35,8 @@ var _ = Describe("Factory Put", func() {
 			input = atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
-						Put: "some-put",
+						Put:      "some-put",
+						Resource: "some-resource",
 					},
 				},
 			}
@@ -54,9 +55,13 @@ var _ = Describe("Factory Put", func() {
 							ParallelGroup: 0,
 						},
 						Put: &atc.PutPlan{
+							Type:     "git",
 							Name:     "some-put",
-							Resource: "some-put",
+							Resource: "some-resource",
 							Pipeline: "some-pipeline",
+							Source: atc.Source{
+								"uri": "git://some-resource",
+							},
 						},
 					},
 					Next: atc.Plan{
@@ -66,9 +71,13 @@ var _ = Describe("Factory Put", func() {
 							ParallelGroup: 0,
 						},
 						DependentGet: &atc.DependentGetPlan{
+							Type:     "git",
 							Name:     "some-put",
-							Resource: "some-put",
+							Resource: "some-resource",
 							Pipeline: "some-pipeline",
+							Source: atc.Source{
+								"uri": "git://some-resource",
+							},
 						},
 					},
 				},
