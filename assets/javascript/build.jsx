@@ -76,7 +76,13 @@ var Build = React.createClass({
 
       if(step.group){
         var groupSteps = []
-        var aggregateClasses = ["aggregate"]
+        var groupClasses = []
+
+        if (step.aggregate) {
+          groupClasses.push("aggregate")
+        } else {
+          groupClasses.push("serial")
+        }
 
         for(var i = 0; i <= step.groupSteps.length; i++){
           groupStep = step.groupSteps[i]
@@ -88,7 +94,7 @@ var Build = React.createClass({
           groupSteps.push(buildStep(groupStep))
         }
 
-        return <div className={classes.join(' ')} key={step.key}><div className={aggregateClasses.join(' ')}>{groupSteps}</div> <div className="children">{childSteps}</div></div>
+        return <div className={classes.join(' ')} key={step.key}><div className={groupClasses.join(' ')}>{groupSteps}</div> <div className="children">{childSteps}</div></div>
       }
 
       return <div className={classes.join(' ')} key={step.key}><Step key={step.key} model={step.step} logs={step.logLines} autoscroll={autoscroll} /><div className="children">{childSteps}</div></div>

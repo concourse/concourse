@@ -146,6 +146,13 @@
         var location = _this.translateLocation(step.origin().location, step.origin().substep);
         var stepLogs = step.logs();
         var logLines = stepLogs.lines;
+        var groupID;
+
+        if(typeof location.serial_group !== "undefined" && location.serial_group !== 0){
+          groupID = location.serial_group;
+        } else {
+          groupID = location.parallel_group;
+        }
 
         var render = {
           key: location.id,
@@ -161,33 +168,34 @@
           allObjects[location.parent_id] = {hold: true, groupSteps: [], children: []};
         }
 
-        if(location.parallel_group !== 0) {
+        if(groupID !== 0) {
           renderGroup = {
             group: true,
+            aggregate: location.parallel_group !== 0,
             step: step,
             location: location,
-            key: location.parallel_group,
+            key: groupID,
             groupSteps: [],
             children: []
           };
 
-          if(allObjects[location.parallel_group] === undefined){
-            allObjects[location.parallel_group] = renderGroup;
-          } else if (allObjects[location.parallel_group].hold) {
-            renderGroup.groupSteps = allObjects[location.parallel_group].groupSteps;
-            renderGroup.children = allObjects[location.parallel_group].children;
-            allObjects[location.parallel_group] = renderGroup;
+          if(allObjects[groupID] === undefined){
+            allObjects[groupID] = renderGroup;
+          } else if (allObjects[groupID].hold) {
+            renderGroup.groupSteps = allObjects[groupID].groupSteps;
+            renderGroup.children = allObjects[groupID].children;
+            allObjects[groupID] = renderGroup;
           }
 
-          ret[location.parallel_group] = allObjects[location.parallel_group];
+          ret[groupID] = allObjects[groupID];
 
-          allObjects[location.parallel_group].groupSteps[location.id] = allObjects[location.id];
+          allObjects[groupID].groupSteps[location.id] = allObjects[location.id];
 
           if (location.parent_id !== 0) {
             if(step.isHook()){
-              allObjects[location.parent_id].children[location.parallel_group] = allObjects[location.parallel_group];
+              allObjects[location.parent_id].children[groupID] = allObjects[groupID];
             } else {
-              allObjects[location.parent_id].groupSteps[location.parallel_group] = allObjects[location.parallel_group];
+              allObjects[location.parent_id].groupSteps[groupID] = allObjects[groupID];
             }
           }
         } else {
