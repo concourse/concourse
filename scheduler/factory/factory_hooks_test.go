@@ -29,6 +29,98 @@ var _ = Describe("Factory Hooks", func() {
 		}
 	})
 
+	Context("when there is a do with three steps with a hook", func() {
+		var input atc.JobConfig
+
+		BeforeEach(func() {
+			input = atc.JobConfig{
+				Plan: atc.PlanSequence{
+					{
+						Do: &atc.PlanSequence{
+							{
+								Task: "those who resist our will",
+							},
+							{
+								Task: "those who also resist our will",
+							},
+							{
+								Task: "third task",
+							},
+						},
+						Failure: &atc.PlanConfig{
+							Task: "some other failure",
+						},
+					},
+				},
+			}
+		})
+
+		It("builds the plan correctly", func() {
+			actual, err := buildFactory.Create(input, resources, nil)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			expected := atc.Plan{
+				OnFailure: &atc.OnFailurePlan{
+					Step: atc.Plan{
+						OnSuccess: &atc.OnSuccessPlan{
+							Step: atc.Plan{
+								Location: &atc.Location{
+									ParentID:      0,
+									ID:            3,
+									ParallelGroup: 0,
+									SerialGroup:   2,
+								},
+								Task: &atc.TaskPlan{
+									Name: "those who resist our will",
+								},
+							},
+							Next: atc.Plan{
+								OnSuccess: &atc.OnSuccessPlan{
+									Step: atc.Plan{
+										Location: &atc.Location{
+											ParentID:      0,
+											ID:            4,
+											ParallelGroup: 0,
+											SerialGroup:   2,
+										},
+										Task: &atc.TaskPlan{
+											Name: "those who also resist our will",
+										},
+									},
+									Next: atc.Plan{
+										Location: &atc.Location{
+											ParentID:      0,
+											ID:            5,
+											ParallelGroup: 0,
+											SerialGroup:   2,
+										},
+										Task: &atc.TaskPlan{
+											Name: "third task",
+										},
+									},
+								},
+							},
+						},
+					},
+					Next: atc.Plan{
+						Location: &atc.Location{
+							ParentID:      2,
+							ID:            6,
+							ParallelGroup: 0,
+							SerialGroup:   0,
+							Hook:          "failure",
+						},
+						Task: &atc.TaskPlan{
+							Name: "some other failure",
+						},
+					},
+				},
+			}
+
+			Ω(actual).Should(Equal(expected))
+		})
+	})
+
 	Context("when there is a do with a hook", func() {
 		var input atc.JobConfig
 
@@ -63,8 +155,9 @@ var _ = Describe("Factory Hooks", func() {
 							Step: atc.Plan{
 								Location: &atc.Location{
 									ParentID:      0,
-									ID:            2,
+									ID:            3,
 									ParallelGroup: 0,
+									SerialGroup:   2,
 								},
 								Task: &atc.TaskPlan{
 									Name: "those who resist our will",
@@ -73,8 +166,9 @@ var _ = Describe("Factory Hooks", func() {
 							Next: atc.Plan{
 								Location: &atc.Location{
 									ParentID:      0,
-									ID:            3,
+									ID:            4,
 									ParallelGroup: 0,
+									SerialGroup:   2,
 								},
 								Task: &atc.TaskPlan{
 									Name: "those who also resist our will",
@@ -85,8 +179,9 @@ var _ = Describe("Factory Hooks", func() {
 					Next: atc.Plan{
 						Location: &atc.Location{
 							ParentID:      2,
-							ID:            4,
+							ID:            5,
 							ParallelGroup: 0,
+							SerialGroup:   0,
 							Hook:          "failure",
 						},
 						Task: &atc.TaskPlan{
@@ -429,6 +524,7 @@ var _ = Describe("Factory Hooks", func() {
 							ParentID:      0,
 							ID:            1,
 							ParallelGroup: 0,
+							SerialGroup:   0,
 						},
 						Task: &atc.TaskPlan{
 							Name: "some-task",
@@ -437,12 +533,128 @@ var _ = Describe("Factory Hooks", func() {
 					Next: atc.Plan{
 						Location: &atc.Location{
 							ParentID:      1,
-							ID:            3,
+							ID:            4,
 							ParallelGroup: 0,
+							SerialGroup:   3,
 							Hook:          "success",
 						},
 						Task: &atc.TaskPlan{
 							Name: "do-task-1",
+						},
+					},
+				},
+			}
+
+			Ω(actual).To(Equal(expected))
+		})
+	})
+
+	Context("when I have multiple nested do steps in hooks", func() {
+		var input atc.JobConfig
+
+		BeforeEach(func() {
+			input = atc.JobConfig{
+				Plan: atc.PlanSequence{
+					{
+						Task: "some-task",
+						Success: &atc.PlanConfig{
+							Do: &atc.PlanSequence{
+								{
+									Task: "do-task-1",
+								},
+								{
+									Do: &atc.PlanSequence{
+										{
+											Task: "do-task-2",
+										},
+										{
+											Task: "do-task-3",
+											Success: &atc.PlanConfig{
+												Task: "do-task-4",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+		})
+
+		It("builds correctly", func() {
+			actual, err := buildFactory.Create(input, resources, nil)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			expected := atc.Plan{
+				OnSuccess: &atc.OnSuccessPlan{
+					Step: atc.Plan{
+						Location: &atc.Location{
+							ParentID:      0,
+							ID:            1,
+							ParallelGroup: 0,
+							SerialGroup:   0,
+						},
+						Task: &atc.TaskPlan{
+							Name: "some-task",
+						},
+					},
+					Next: atc.Plan{
+						OnSuccess: &atc.OnSuccessPlan{
+							Step: atc.Plan{
+								Location: &atc.Location{
+									ParentID:      1,
+									ID:            4,
+									ParallelGroup: 0,
+									SerialGroup:   3,
+									Hook:          "success",
+								},
+								Task: &atc.TaskPlan{
+									Name: "do-task-1",
+								},
+							},
+							Next: atc.Plan{
+								OnSuccess: &atc.OnSuccessPlan{
+									Step: atc.Plan{
+										Location: &atc.Location{
+											ParentID:      3,
+											ID:            7,
+											ParallelGroup: 0,
+											SerialGroup:   6,
+										},
+										Task: &atc.TaskPlan{
+											Name: "do-task-2",
+										},
+									},
+									Next: atc.Plan{
+										OnSuccess: &atc.OnSuccessPlan{
+											Step: atc.Plan{
+												Location: &atc.Location{
+													ParentID:      3,
+													ID:            8,
+													ParallelGroup: 0,
+													SerialGroup:   6,
+												},
+												Task: &atc.TaskPlan{
+													Name: "do-task-3",
+												},
+											},
+											Next: atc.Plan{
+												Location: &atc.Location{
+													ParentID:      8,
+													ID:            9,
+													ParallelGroup: 0,
+													SerialGroup:   0,
+													Hook:          "success",
+												},
+												Task: &atc.TaskPlan{
+													Name: "do-task-4",
+												},
+											},
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -1113,6 +1325,7 @@ var _ = Describe("Factory Hooks", func() {
 								ID:            1,
 								ParentID:      0,
 								ParallelGroup: 0,
+								SerialGroup:   0,
 							},
 							Task: &atc.TaskPlan{
 								Name: "those who start resisting our will",
@@ -1126,9 +1339,10 @@ var _ = Describe("Factory Hooks", func() {
 											OnFailure: &atc.OnFailurePlan{
 												Step: atc.Plan{
 													Location: &atc.Location{
-														ID:            3,
+														ID:            4,
 														ParentID:      0,
 														ParallelGroup: 0,
+														SerialGroup:   3,
 													},
 													Task: &atc.TaskPlan{
 														Name: "those who resist our will",
@@ -1136,9 +1350,10 @@ var _ = Describe("Factory Hooks", func() {
 												},
 												Next: atc.Plan{
 													Location: &atc.Location{
-														ID:            4,
-														ParentID:      3,
+														ID:            5,
+														ParentID:      4,
 														ParallelGroup: 0,
+														SerialGroup:   0,
 														Hook:          "failure",
 													},
 													Task: &atc.TaskPlan{
@@ -1149,9 +1364,10 @@ var _ = Describe("Factory Hooks", func() {
 										},
 										Next: atc.Plan{
 											Location: &atc.Location{
-												ID:            5,
-												ParentID:      3,
+												ID:            6,
+												ParentID:      4,
 												ParallelGroup: 0,
+												SerialGroup:   0,
 												Hook:          "success",
 											},
 											Task: &atc.TaskPlan{
@@ -1162,9 +1378,10 @@ var _ = Describe("Factory Hooks", func() {
 								},
 								Next: atc.Plan{
 									Location: &atc.Location{
-										ID:            6,
+										ID:            7,
 										ParentID:      0,
 										ParallelGroup: 0,
+										SerialGroup:   3,
 									},
 									Task: &atc.TaskPlan{
 										Name: "those who used to resist our will",
@@ -1203,9 +1420,10 @@ var _ = Describe("Factory Hooks", func() {
 							OnSuccess: &atc.OnSuccessPlan{
 								Step: atc.Plan{
 									Location: &atc.Location{
-										ID:            2,
+										ID:            3,
 										ParentID:      0,
 										ParallelGroup: 0,
+										SerialGroup:   2,
 									},
 									Task: &atc.TaskPlan{
 										Name: "those who resist our will",
@@ -1213,9 +1431,10 @@ var _ = Describe("Factory Hooks", func() {
 								},
 								Next: atc.Plan{
 									Location: &atc.Location{
-										ID:            3,
+										ID:            4,
 										ParentID:      0,
 										ParallelGroup: 0,
+										SerialGroup:   2,
 									},
 									Task: &atc.TaskPlan{
 										Name: "those who used to resist our will",
@@ -1226,9 +1445,10 @@ var _ = Describe("Factory Hooks", func() {
 
 						Next: atc.Plan{
 							Location: &atc.Location{
-								ID:            4,
+								ID:            5,
 								ParentID:      0,
 								ParallelGroup: 0,
+								SerialGroup:   0,
 							},
 							Task: &atc.TaskPlan{
 								Name: "those who start resisting our will",

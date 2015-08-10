@@ -192,7 +192,7 @@ function StepModel(origin) {
       return !!this.origin().substep;
     }
 
-    return !this.isHook() && this.origin().location.parent_id != 0 && this.origin().location.parallel_group == 0
+    return !this.isHook() && this.origin().location.parent_id != 0 && this.origin().location.parallel_group == 0 && this.origin().location.serial_group == 0
   }
 
   this.isHook = function() {

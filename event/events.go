@@ -123,6 +123,7 @@ func OriginLocationFrom(location atc.Location) OriginLocation {
 		ParallelGroup: location.ParallelGroup,
 		ID:            location.ID,
 		Hook:          location.Hook,
+		SerialGroup:   location.SerialGroup,
 	}
 }
 
@@ -130,6 +131,7 @@ type OriginLocation struct {
 	ParentID      uint   `json:"parent_id"`
 	ID            uint   `json:"id"`
 	ParallelGroup uint   `json:"parallel_group"`
+	SerialGroup   uint   `json:"serial_group"`
 	Hook          string `json:"hook"`
 }
 

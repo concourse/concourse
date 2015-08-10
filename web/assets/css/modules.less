@@ -71,22 +71,44 @@
 .aggregate  {
   padding: 1em;
   background: @base02;
+  & > .seq {
+    margin-bottom: .5em;
+    border-top:1px solid @base03;
+    padding-top:.5em;
+    &:first-child {
+      border-top: none;
+      padding-top: 0;
+    }
+  }
 }
 
 .aggregate .aggregate  {
   background: @base03;
+  & > .seq {
+    border-color: @base02;
+  }
 }
 
 .aggregate .aggregate .aggregate  {
   background: @base02;
+  & > .seq {
+    border-color: @base03;
+  }
 }
 
 .aggregate .aggregate .aggregate .aggregate  {
   background: @base03;
+  & > .seq {
+    border-color: @base02;
+  }
 }
 
 .aggregate .aggregate .aggregate .aggregate .aggregate {
   background: #f0f;
+  & > .seq {
+    border-color: #ff9b07;
+    border-width: 10px;
+  }
 }
 
 

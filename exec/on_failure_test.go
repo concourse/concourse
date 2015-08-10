@@ -58,7 +58,7 @@ var _ = Describe("On Failure Step", func() {
 		Eventually(process.Wait()).Should(Receive(noError()))
 	})
 
-	It("provides the step as the previous step to the hook", func(){
+	It("provides the step as the previous step to the hook", func() {
 		step.ResultStub = successResult(false)
 
 		process := ifrit.Background(onFailureStep)

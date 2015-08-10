@@ -30,6 +30,7 @@ type DependentGetPlan struct {
 type Location struct {
 	ParentID      uint `json:"parent_id,omitempty"`
 	ParallelGroup uint `json:"parallel_group,omitempty"`
+	SerialGroup   uint `json:"serial_group,omitempty"`
 	ID            uint `json:"id,omitempty"`
 	Hook          string
 }

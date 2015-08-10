@@ -145,20 +145,37 @@ func populatePlanLocations(planConfig *atc.PlanConfig, location *atc.Location) u
 		stepCount = stepCount + 1
 
 	case planConfig.Do != nil:
+		// TODO: Do we actually need to increment these two here? See aggregate location.
+		serialGroup := location.ID + 1
+		stepCount += 1
+
+		if location.ParallelGroup != 0 {
+			location.ParentID = location.ParallelGroup
+		}
+		if location.SerialGroup != 0 {
+			location.ParentID = location.SerialGroup
+		}
+
 		children := *planConfig.Do
-		parentID = location.ID + 1
 		for i := 0; i < len(children); i++ {
 			child := children[i]
 			childLocation := &atc.Location{
 				ID:            location.ID + stepCount + 1,
 				ParentID:      location.ParentID,
 				ParallelGroup: 0,
-				Hook:          location.Hook,
+				SerialGroup:   serialGroup,
+			}
+
+			// planConfig.Location = location
+			if child.Do == nil {
+				childLocation.Hook = location.Hook
 			}
 
 			stepCount = stepCount + populatePlanLocations(&child, childLocation)
 			children[i] = child
 		}
+
+		parentID = serialGroup
 
 	case planConfig.Try != nil:
 		childLocation := &atc.Location{
@@ -170,11 +187,15 @@ func populatePlanLocations(planConfig *atc.PlanConfig, location *atc.Location) u
 		stepCount = stepCount + populatePlanLocations(planConfig.Try, childLocation)
 
 	case planConfig.Aggregate != nil:
+		// TODO: Do we actually need to increment these two here? See do location.
 		parallelGroup := location.ID + 1
 		stepCount += 1
 
 		if location.ParallelGroup != 0 {
 			location.ParentID = location.ParallelGroup
+		}
+		if location.SerialGroup != 0 {
+			location.ParentID = location.SerialGroup
 		}
 
 		children := *planConfig.Aggregate
@@ -184,9 +205,10 @@ func populatePlanLocations(planConfig *atc.PlanConfig, location *atc.Location) u
 				ID:            location.ID + stepCount + 1,
 				ParentID:      location.ParentID,
 				ParallelGroup: parallelGroup,
+				// TODO: handle serial group here
 			}
 
-			if child.Aggregate == nil {
+			if child.Aggregate == nil && child.Do == nil {
 				childLocation.Hook = location.Hook
 			}
 
