@@ -106,3 +106,42 @@
 	display: block;
 	line-height: 25px;
 }
+
+.inputs .resource-name{
+	font-weight: bold;
+}
+
+.jobs-builds-list .resource {
+	background-color: @base00;
+}
+
+
+.jobs-builds-list{
+	* {
+		box-sizing: border-box;
+	}
+
+ .build-times {
+	 float: left;
+	 width: 15%;
+ }
+ .inputs, .outputs {
+	 float: left;
+	 width: 40%;
+	 .resource-version {
+		 float: left;
+	 }
+ }
+
+ @media (max-width: 1120px) {
+	 .inputs, .resource, .outputs, .build-times{
+		 width: 100%;
+	 }
+	 .inputs, .outputs {
+		 .resource-version {
+			 float: right;
+		 }
+	 }
+ }
+}
+

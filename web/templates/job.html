@@ -23,11 +23,54 @@
   <div id="build-body">
     <div class="section">
       <h2>builds</h2>
-      <ul class="builds-list">
+      <ul class="jobs-builds-list builds-list">
         {{$job := .Job}}
         {{$currentName := .CurrentBuild.Name}}
         {{range .Builds}}
-        <li class="{{.Status}}{{if eq .Name $currentName}} current {{end}}" data-job-status="{{.Status}}"><a href="{{url "GetBuild" $job .}}">{{.Name}}</a></li>
+        <li class="js-build" data-status="{{.Build.Status}}">
+          <a  class="{{.Build.Status}}{{if eq .Build.Name $currentName}} current {{end}}" href="{{url "GetBuild" $job .Build}}">&#35;{{.Build.Name}}</a>
+
+					<div class="pam clearfix">
+
+						<div class="js-build-times build-times mbm" data-start-time="{{.Build.StartTime.Unix}}" data-end-time={{.Build.EndTime.Unix}}></div>
+
+						<div class="inputs mrl" >
+							<div class="resource-title pbs"><i class="fa fa-fw fa-arrow-down prs"></i>inputs </div>
+							<div class="build-resources">
+								{{range .Inputs}}
+									<div class="mbs pas resource fl clearfix">
+										<div class="fl resource-name mrm">
+											{{.VersionedResource.Resource}}
+										</div>
+										<div class="resource-version">
+											{{range $name, $val := .VersionedResource.Version}}
+											{{$name}}: {{$val}}
+											{{end}}
+										</div>
+									</div>
+								{{end}}
+							</div>
+						</div>
+
+						<div class="outputs mrl">
+							<div class="resource-title pbs"><i class="fa fa-fw fa-arrow-up prs"></i>outputs</div>
+							<div class="build-resources">
+								{{range .Outputs}}
+									<div class="mbs pas resource fl clearfix">
+										<div class="fl resource-name mrm">
+											{{.VersionedResource.Resource}}
+										</div>
+										<div class="resource-version">
+											{{range $name, $val := .VersionedResource.Version}}
+											{{$name}}: {{$val}}
+											{{end}}
+										</div>
+									</div>
+								{{end}}
+							</div>
+						</div>
+					</div>
+        </li>
         {{end}}
       </ul>
     </div>
@@ -35,6 +78,8 @@
 </div>
 
 <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
+<script src="{{asset "moment.min.js"}}"></script>
+<script src="{{asset "moment-duration-format.js"}}"></script>
 <script src="{{asset "concourse.js"}}"></script>
 <script>
   concourse.pipelineName = {{.PipelineName}};

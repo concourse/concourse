@@ -12,6 +12,7 @@ type PresentedBuild struct {
 	JobName      string
 	PipelineName string
 	Status       string
+	BuildName    string
 
 	StartTime string
 	EndTime   string

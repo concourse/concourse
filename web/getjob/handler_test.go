@@ -2,6 +2,7 @@ package getjob_test
 
 import (
 	"errors"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -74,15 +75,26 @@ var _ = Describe("FetchTemplateData", func() {
 			})
 
 			Context("when the job builds lookup returns a build", func() {
+				var buildsWithResources []BuildWithInputsOutputs
 				var builds []db.Build
 
 				BeforeEach(func() {
+					endTime := time.Now()
+
 					builds = []db.Build{
 						{
-							ID:      1,
-							Name:    "1",
-							JobName: "job-name",
-							Status:  db.StatusSucceeded,
+							ID:        1,
+							Name:      "1",
+							JobName:   "job-name",
+							Status:    db.StatusSucceeded,
+							StartTime: endTime.Add(-24 * time.Second),
+							EndTime:   endTime,
+						},
+					}
+
+					buildsWithResources = []BuildWithInputsOutputs{
+						{
+							Build: builds[0],
 						},
 					}
 
@@ -90,10 +102,68 @@ var _ = Describe("FetchTemplateData", func() {
 				})
 
 				Context("when the get job lookup returns an error", func() {
-					It("returns an ", func() {
+					It("returns an error", func() {
 						fakeDB.GetJobReturns(db.SavedJob{}, errors.New("disaster"))
 						_, err := FetchTemplateData(fakeDB, "job-name")
 						Ω(err).Should(HaveOccurred())
+					})
+
+					Context("when getting inputs and outputs for a build", func() {
+						var inputs []db.BuildInput
+						var outputs []db.BuildOutput
+
+						BeforeEach(func() {
+							inputs = []db.BuildInput{
+								{
+									Name: "input1",
+								},
+							}
+							outputs = []db.BuildOutput{
+								{
+									db.VersionedResource{
+										Resource: "some-resource",
+									},
+								},
+							}
+
+							buildsWithResources = []BuildWithInputsOutputs{
+								{
+									Build:   builds[0],
+									Inputs:  inputs,
+									Outputs: outputs,
+								},
+							}
+
+						})
+
+						Context("when get build resources returns an error", func() {
+							BeforeEach(func() {
+								fakeDB.GetBuildResourcesReturns([]db.BuildInput{}, []db.BuildOutput{}, errors.New("some-error"))
+							})
+
+							It("returns an error", func() {
+								templateData, err := FetchTemplateData(fakeDB, "job-name")
+								Ω(err).Should(HaveOccurred())
+								Ω(templateData).Should(Equal(TemplateData{}))
+							})
+						})
+
+						Context("when we get inputs and outputs", func() {
+							BeforeEach(func() {
+								fakeDB.GetBuildResourcesReturns(inputs, outputs, nil)
+							})
+
+							It("populates the inputs and outputs for the builds returned", func() {
+								templateData, err := FetchTemplateData(fakeDB, "job-name")
+								Ω(err).ShouldNot(HaveOccurred())
+								Ω(fakeDB.GetBuildResourcesCallCount()).Should(Equal(1))
+
+								calledBuildID := fakeDB.GetBuildResourcesArgsForCall(0)
+								Ω(calledBuildID).Should(Equal(1))
+
+								Ω(templateData.Builds).Should(Equal(buildsWithResources))
+							})
+						})
 					})
 
 					Context("when the get job lookup returns a job", func() {
@@ -134,7 +204,7 @@ var _ = Describe("FetchTemplateData", func() {
 								Ω(templateData.GroupStates).Should(ConsistOf(groupStates))
 								Ω(templateData.Job).Should(Equal(job))
 								Ω(templateData.DBJob).Should(Equal(dbJob))
-								Ω(templateData.Builds).Should(Equal(builds))
+								Ω(templateData.Builds).Should(Equal(buildsWithResources))
 								Ω(templateData.CurrentBuild).Should(Equal(db.Build{
 									Status: db.StatusPending,
 								}))
@@ -164,7 +234,7 @@ var _ = Describe("FetchTemplateData", func() {
 								Ω(templateData.GroupStates).Should(ConsistOf(groupStates))
 								Ω(templateData.Job).Should(Equal(job))
 								Ω(templateData.DBJob).Should(Equal(dbJob))
-								Ω(templateData.Builds).Should(Equal(builds))
+								Ω(templateData.Builds).Should(Equal(buildsWithResources))
 								Ω(templateData.CurrentBuild).Should(Equal(currentBuild))
 							})
 
@@ -186,7 +256,7 @@ var _ = Describe("FetchTemplateData", func() {
 									Ω(templateData.GroupStates).Should(ConsistOf(groupStates))
 									Ω(templateData.Job).Should(Equal(job))
 									Ω(templateData.DBJob).Should(Equal(dbJob))
-									Ω(templateData.Builds).Should(Equal(builds))
+									Ω(templateData.Builds).Should(Equal(buildsWithResources))
 									Ω(templateData.CurrentBuild).Should(Equal(currentBuild))
 								})
 							})

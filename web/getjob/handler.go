@@ -12,6 +12,12 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
+type BuildWithInputsOutputs struct {
+	Build   db.Build
+	Inputs  []db.BuildInput
+	Outputs []db.BuildOutput
+}
+
 type server struct {
 	logger lager.Logger
 
@@ -32,7 +38,7 @@ func NewServer(logger lager.Logger, template *template.Template) *server {
 type TemplateData struct {
 	Job    atc.JobConfig
 	DBJob  db.SavedJob
-	Builds []db.Build
+	Builds []BuildWithInputsOutputs
 
 	GroupStates []group.State
 
@@ -48,6 +54,7 @@ type JobDB interface {
 	GetAllJobBuilds(job string) ([]db.Build, error)
 	GetCurrentBuild(job string) (db.Build, error)
 	GetPipelineName() string
+	GetBuildResources(buildID int) ([]db.BuildInput, []db.BuildOutput, error)
 }
 
 var ErrJobConfigNotFound = errors.New("could not find job")
@@ -69,6 +76,21 @@ func FetchTemplateData(jobDB JobDB, jobName string) (TemplateData, error) {
 		return TemplateData{}, err
 	}
 
+	var bsr []BuildWithInputsOutputs
+
+	for _, build := range bs {
+		inputs, outputs, err := jobDB.GetBuildResources(build.ID)
+		if err != nil {
+			return TemplateData{}, err
+		}
+
+		bsr = append(bsr, BuildWithInputsOutputs{
+			Build:   build,
+			Inputs:  inputs,
+			Outputs: outputs,
+		})
+	}
+
 	currentBuild, err := jobDB.GetCurrentBuild(job.Name)
 	if err != nil {
 		currentBuild.Status = db.StatusPending
@@ -82,7 +104,7 @@ func FetchTemplateData(jobDB JobDB, jobName string) (TemplateData, error) {
 	return TemplateData{
 		Job:    job,
 		DBJob:  dbJob,
-		Builds: bs,
+		Builds: bsr,
 
 		GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
 			for _, groupJob := range g.Jobs {
