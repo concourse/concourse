@@ -156,7 +156,6 @@ var _ = Describe("Job Pausing", func() {
 				Expect(buildTimes).To(ContainSubstring("succeeded"))
 				Expect(buildTimes).To(ContainSubstring("a few seconds ago"))
 				Expect(buildTimes).To(ContainSubstring("duration"))
-				Expect(buildTimes).To(ContainSubstring("0s"))
 
 				Expect(page.Find(".builds-list li:first-child .inputs")).Should(BeFound())
 				Expect(page.Find(".builds-list li:first-child .inputs .resource-name")).To(HaveText("my-resource"))
