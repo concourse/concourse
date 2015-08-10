@@ -51,6 +51,16 @@ type FakeJobDB struct {
 	getPipelineNameReturns     struct {
 		result1 string
 	}
+	GetBuildResourcesStub        func(buildID int) ([]db.BuildInput, []db.BuildOutput, error)
+	getBuildResourcesMutex       sync.RWMutex
+	getBuildResourcesArgsForCall []struct {
+		buildID int
+	}
+	getBuildResourcesReturns struct {
+		result1 []db.BuildInput
+		result2 []db.BuildOutput
+		result3 error
+	}
 }
 
 func (fake *FakeJobDB) GetConfig() (atc.Config, db.ConfigVersion, error) {
@@ -200,6 +210,40 @@ func (fake *FakeJobDB) GetPipelineNameReturns(result1 string) {
 	fake.getPipelineNameReturns = struct {
 		result1 string
 	}{result1}
+}
+
+func (fake *FakeJobDB) GetBuildResources(buildID int) ([]db.BuildInput, []db.BuildOutput, error) {
+	fake.getBuildResourcesMutex.Lock()
+	fake.getBuildResourcesArgsForCall = append(fake.getBuildResourcesArgsForCall, struct {
+		buildID int
+	}{buildID})
+	fake.getBuildResourcesMutex.Unlock()
+	if fake.GetBuildResourcesStub != nil {
+		return fake.GetBuildResourcesStub(buildID)
+	} else {
+		return fake.getBuildResourcesReturns.result1, fake.getBuildResourcesReturns.result2, fake.getBuildResourcesReturns.result3
+	}
+}
+
+func (fake *FakeJobDB) GetBuildResourcesCallCount() int {
+	fake.getBuildResourcesMutex.RLock()
+	defer fake.getBuildResourcesMutex.RUnlock()
+	return len(fake.getBuildResourcesArgsForCall)
+}
+
+func (fake *FakeJobDB) GetBuildResourcesArgsForCall(i int) int {
+	fake.getBuildResourcesMutex.RLock()
+	defer fake.getBuildResourcesMutex.RUnlock()
+	return fake.getBuildResourcesArgsForCall[i].buildID
+}
+
+func (fake *FakeJobDB) GetBuildResourcesReturns(result1 []db.BuildInput, result2 []db.BuildOutput, result3 error) {
+	fake.GetBuildResourcesStub = nil
+	fake.getBuildResourcesReturns = struct {
+		result1 []db.BuildInput
+		result2 []db.BuildOutput
+		result3 error
+	}{result1, result2, result3}
 }
 
 var _ getjob.JobDB = new(FakeJobDB)

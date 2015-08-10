@@ -100,6 +100,25 @@
   margin: 5px;
 }
 
+.jobs-builds-list {
+	background: none;
+}
+
+.jobs-builds-list li{
+	background-color: @base02;
+	width:100%;
+  float: none;
+  margin: 0px;
+  margin-bottom: 10px;
+}
+
+#build-body .jobs-builds-list.builds-list li a {
+	text-align: left;
+  font-size: 20px;
+	padding: 5px;
+	color: @base07;
+}
+
 #builds li {
   opacity: .8;
   display: inline-block;
@@ -142,6 +161,10 @@
 
 #build-body .builds-list {
   padding: 20px;
+}
+
+#build-body .jobs-builds-list {
+  padding: 0;
 }
 
 #build-body .builds-list a {

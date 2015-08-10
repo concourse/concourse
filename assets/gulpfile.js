@@ -37,17 +37,18 @@ gulp.task('compile-build', function () {
 });
 
 gulp.task('compile-concourse', function () {
-   var stream = gulp.src(["javascript/concourse/concourse.js", "javascript/concourse/concourse.*.js", "javascript/concourse/jquery.*.js"])
-    .pipe(jshint())
-    .pipe(jshint.reporter('jshint-stylish'))
-    .pipe(addsrc("javascript/lib/**/*.js"))
-    .pipe(concat('concourse.js'))
+	var stream = gulp.src(["javascript/concourse/concourse.js","javascript/concourse/jquery.*.js"])
+		.pipe(addsrc("javascript/concourse/concourse.*.js"))
+		.pipe(jshint())
+		.pipe(jshint.reporter('jshint-stylish'))
+		.pipe(addsrc("javascript/lib/**/*.js"))
+		.pipe(concat('concourse.js'))
 
-    if (production) {
-      stream = stream.pipe(buffer()).pipe(uglify());
-    }
+	if (production) {
+		stream = stream.pipe(buffer()).pipe(uglify());
+	}
 
-    return stream.pipe(gulp.dest(publicDir));
+	return stream.pipe(gulp.dest(publicDir));
 });
 
 // jasmine stuff
