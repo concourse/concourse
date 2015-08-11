@@ -139,6 +139,10 @@ var _ = Describe("Timeout Step", func() {
 
 		Context("result", func() {
 			Context("when the process does not time out", func() {
+				BeforeEach(func() {
+					timeoutDuration = "10s"
+				})
+
 				Context("and the step is successful", func() {
 					BeforeEach(func() {
 						runStep.ResultStub = successResult(true)
