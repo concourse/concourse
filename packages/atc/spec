@@ -60,6 +60,7 @@ files:
   - github.com/concourse/atc/web/routes/*.go # gosub
   - github.com/concourse/atc/web/triggerbuild/*.go # gosub
   - github.com/concourse/atc/worker/*.go # gosub
+  - github.com/hashicorp/go-multierror/*.go # gosub
   - github.com/lib/pq/*.go # gosub
   - github.com/lib/pq/oid/*.go # gosub
   - github.com/mitchellh/mapstructure/*.go # gosub
