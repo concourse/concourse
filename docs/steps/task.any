@@ -8,9 +8,9 @@ Executes a \reference{tasks}{Task}, either from a file fetched via the
 preceding steps, or with inlined configuration.
 
 If any task in the build plan fails, the build will complete with failure. By
-default, any subsequent steps will not be performed. This can be configured by
-explicitly setting \reference{step-conditions}{\code{conditions}} on the step
-after the task.
+default, any subsequent steps will not be performed. You can perform additional
+steps after failure by adding a \reference{on-failure-step}{\code{on_failure}}
+or \reference{ensure-step}{\code{ensure}} step.
 
 For example, the following plan fetches a single repository and executes
 multiple tasks, using the \reference{aggregate-step}{\code{aggregate}} step,

@@ -1,0 +1,45 @@
+#language anatomy
+
+\title{v0.60.0}
+
+\margin-note{
+  Run \reference{fly-sync}{\code{fly sync}} to upgrade Fly after deploying
+  v0.60.0!
+}
+
+\list{
+  Conditions have been removed from plans. You can't use them anymore.
+
+  Hooks (\code{on_success}, \code{on_failure}, and \code{ensure}) are better in
+  every way. Use them.
+}{
+  Fly now supports hijacking into any one-off build rather than just the most
+  recent one. Supplying the \code{-b} flag will hijack into the build with that
+  ID. You can find the build IDs on the build list page.
+}{
+  We've sped up the calculation of build input versions. You should see builds
+  with lots of input constraints are faster to schedule. We're still not
+  completely done with this work so you may want to keep your interim jobs in
+  place for now.
+}{
+  There was a bug that caused builds which were cancelled before all of their
+  inputs were determined not to ever trigger again. They now trigger again.
+}{
+  The \hyperlink{https://github.com/concourse/docker-image-resource}{Docker
+  image resource} now supports private registries. See the README for details
+  on how to use it.
+}{
+  The \hyperlink{https://github.com/concourse/github-release-resource}{GitHub
+  release resource} now supports fetching assets from private releases.
+}{
+  The \hyperlink{https://github.com/concourse/git-resource}{Git resource} will
+  now warn you if you try and use a key that has a passphrase.
+}{
+  The \hyperlink{https://github.com/concourse/git-resource}{Git resource} has a
+  new source parameter that will let you clone your repository to a certain
+  depth rather than the entire history. This should provide a speedup for large
+  repositories. Details on how to use this parameter are in the README.
+}{
+  The job detail page has been improved to actually be useful. It will show a
+  history of the job along with the inputs and outputs from each of the builds.
+}

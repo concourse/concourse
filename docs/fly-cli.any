@@ -282,7 +282,8 @@ common platforms in the bottom right hand corner of the main page.
   }
 
   Note that \code{--build} can be omitted, and will default to the most recent
-  build of the job.
+  build of the job. One-off builds can be reached by passing in their build ID
+  to \code{--build} which can be found on the build list page.
 
   Resource checking containers can also be intercepted with \code{--check} or
   \code{-c}:
