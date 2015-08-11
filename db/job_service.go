@@ -46,7 +46,7 @@ func (s JobService) CanBuildBeScheduled(build Build) (bool, string, error) {
 			return false, "db-failed", err
 		}
 
-		if uint(len(builds)) >= maxInFlight {
+		if len(builds) >= maxInFlight {
 			return false, "max-in-flight-reached", nil
 		}
 

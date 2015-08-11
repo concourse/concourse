@@ -47,7 +47,7 @@ type JobConfig struct {
 
 	Serial         bool     `yaml:"serial,omitempty" json:"serial,omitempty" mapstructure:"serial"`
 	SerialGroups   []string `yaml:"serial_groups,omitempty" json:"serial_groups,omitempty" mapstructure:"serial_groups"`
-	RawMaxInFlight uint     `yaml:"max_in_flight,omitempty" json:"max_in_flight,omitempty" mapstructure:"max_in_flight"`
+	RawMaxInFlight int      `yaml:"max_in_flight,omitempty" json:"max_in_flight,omitempty" mapstructure:"max_in_flight"`
 
 	Privileged     bool        `yaml:"privileged,omitempty" json:"privileged,omitempty" mapstructure:"privileged"`
 	TaskConfigPath string      `yaml:"build,omitempty" json:"build,omitempty" mapstructure:"build"`
@@ -59,7 +59,7 @@ type JobConfig struct {
 	Plan PlanSequence `yaml:"plan,omitempty" json:"plan,omitempty" mapstructure:"plan"`
 }
 
-func (config JobConfig) MaxInFlight() uint {
+func (config JobConfig) MaxInFlight() int {
 	if config.RawMaxInFlight != 0 {
 		return config.RawMaxInFlight
 	}
