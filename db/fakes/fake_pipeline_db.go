@@ -315,11 +315,12 @@ type FakePipelineDB struct {
 		result1 db.SavedVersionedResource
 		result2 error
 	}
-	SaveBuildOutputStub        func(buildID int, vr db.VersionedResource) (db.SavedVersionedResource, error)
+	SaveBuildOutputStub        func(buildID int, vr db.VersionedResource, explicit bool) (db.SavedVersionedResource, error)
 	saveBuildOutputMutex       sync.RWMutex
 	saveBuildOutputArgsForCall []struct {
-		buildID int
-		vr      db.VersionedResource
+		buildID  int
+		vr       db.VersionedResource
+		explicit bool
 	}
 	saveBuildOutputReturns struct {
 		result1 db.SavedVersionedResource
@@ -1447,15 +1448,16 @@ func (fake *FakePipelineDB) SaveBuildInputReturns(result1 db.SavedVersionedResou
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) SaveBuildOutput(buildID int, vr db.VersionedResource) (db.SavedVersionedResource, error) {
+func (fake *FakePipelineDB) SaveBuildOutput(buildID int, vr db.VersionedResource, explicit bool) (db.SavedVersionedResource, error) {
 	fake.saveBuildOutputMutex.Lock()
 	fake.saveBuildOutputArgsForCall = append(fake.saveBuildOutputArgsForCall, struct {
-		buildID int
-		vr      db.VersionedResource
-	}{buildID, vr})
+		buildID  int
+		vr       db.VersionedResource
+		explicit bool
+	}{buildID, vr, explicit})
 	fake.saveBuildOutputMutex.Unlock()
 	if fake.SaveBuildOutputStub != nil {
-		return fake.SaveBuildOutputStub(buildID, vr)
+		return fake.SaveBuildOutputStub(buildID, vr, explicit)
 	} else {
 		return fake.saveBuildOutputReturns.result1, fake.saveBuildOutputReturns.result2
 	}
@@ -1467,10 +1469,10 @@ func (fake *FakePipelineDB) SaveBuildOutputCallCount() int {
 	return len(fake.saveBuildOutputArgsForCall)
 }
 
-func (fake *FakePipelineDB) SaveBuildOutputArgsForCall(i int) (int, db.VersionedResource) {
+func (fake *FakePipelineDB) SaveBuildOutputArgsForCall(i int) (int, db.VersionedResource, bool) {
 	fake.saveBuildOutputMutex.RLock()
 	defer fake.saveBuildOutputMutex.RUnlock()
-	return fake.saveBuildOutputArgsForCall[i].buildID, fake.saveBuildOutputArgsForCall[i].vr
+	return fake.saveBuildOutputArgsForCall[i].buildID, fake.saveBuildOutputArgsForCall[i].vr, fake.saveBuildOutputArgsForCall[i].explicit
 }
 
 func (fake *FakePipelineDB) SaveBuildOutputReturns(result1 db.SavedVersionedResource, result2 error) {

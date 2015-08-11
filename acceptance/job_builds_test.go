@@ -128,7 +128,7 @@ var _ = Describe("Job Pausing", func() {
 					Version: db.Version{
 						"thing": "output-version",
 					},
-				})
+				}, true)
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 

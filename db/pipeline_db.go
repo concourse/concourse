@@ -62,7 +62,7 @@ type PipelineDB interface {
 
 	ScheduleBuild(buildID int, job atc.JobConfig) (bool, error)
 	SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error)
-	SaveBuildOutput(buildID int, vr VersionedResource) (SavedVersionedResource, error)
+	SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error)
 	GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error)
 }
 
@@ -260,7 +260,6 @@ func (pdb *pipelineDB) GetResourceHistoryCursor(resourceName string, startingID 
 
 	inputHs := map[int]map[string]*JobHistory{}
 	outputHs := map[int]map[string]*JobHistory{}
-	seenInputs := map[int]map[int]bool{}
 
 	dbResource, err := pdb.GetResource(resourceName)
 	if err != nil {
@@ -343,7 +342,6 @@ func (pdb *pipelineDB) GetResourceHistoryCursor(resourceName string, startingID 
 
 		inputHs[svr.ID] = map[string]*JobHistory{}
 		outputHs[svr.ID] = map[string]*JobHistory{}
-		seenInputs[svr.ID] = map[int]bool{}
 	}
 
 	var hasMoreResults bool
@@ -380,6 +378,7 @@ func (pdb *pipelineDB) GetResourceHistoryCursor(resourceName string, startingID 
 			INNER JOIN jobs j ON b.job_id = j.id
 			INNER JOIN pipelines p ON j.pipeline_id = p.id
 			WHERE o.versioned_resource_id = $1
+			AND o.explicit
 			ORDER BY b.id ASC
 		`, id)
 		if err != nil {
@@ -393,8 +392,6 @@ func (pdb *pipelineDB) GetResourceHistoryCursor(resourceName string, startingID 
 			if err != nil {
 				return nil, false, err
 			}
-
-			seenInputs[id][inBuild.ID] = true
 
 			inputH, found := inputHs[id][inBuild.JobName]
 			if !found {
@@ -414,11 +411,6 @@ func (pdb *pipelineDB) GetResourceHistoryCursor(resourceName string, startingID 
 			outBuild, err := pdb.scanBuild(outRows)
 			if err != nil {
 				return nil, false, err
-			}
-
-			if seenInputs[id][outBuild.ID] {
-				// don't show implicit outputs
-				continue
 			}
 
 			outputH, found := outputHs[id][outBuild.JobName]
@@ -979,7 +971,7 @@ func (pdb *pipelineDB) saveBuildInput(tx *sql.Tx, buildID int, input BuildInput)
 	return svr, nil
 }
 
-func (pdb *pipelineDB) SaveBuildOutput(buildID int, vr VersionedResource) (SavedVersionedResource, error) {
+func (pdb *pipelineDB) SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return SavedVersionedResource{}, err
@@ -993,9 +985,9 @@ func (pdb *pipelineDB) SaveBuildOutput(buildID int, vr VersionedResource) (Saved
 	}
 
 	_, err = tx.Exec(`
-		INSERT INTO build_outputs (build_id, versioned_resource_id)
-		VALUES ($1, $2)
-	`, buildID, svr.ID)
+		INSERT INTO build_outputs (build_id, versioned_resource_id, explicit)
+		VALUES ($1, $2, $3)
+	`, buildID, svr.ID, explicit)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
@@ -1131,6 +1123,13 @@ func (pdb *pipelineDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutp
 		AND i.build_id = b.id
 		AND i.versioned_resource_id = v.id
     AND r.id = v.resource_id
+		AND NOT EXISTS (
+			SELECT 1
+			FROM build_outputs o
+			WHERE o.versioned_resource_id = v.id
+			AND o.build_id = i.build_id
+			AND o.explicit
+		)
 	`, buildID)
 	if err != nil {
 		return nil, nil, err
@@ -1180,12 +1179,7 @@ func (pdb *pipelineDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutp
 		AND o.build_id = b.id
 		AND o.versioned_resource_id = v.id
     AND r.id = v.resource_id
-		AND NOT EXISTS (
-			SELECT 1
-			FROM build_inputs
-			WHERE versioned_resource_id = v.id
-			AND build_id = b.id
-		)
+		AND o.explicit
 	`, buildID)
 	if err != nil {
 		return nil, nil, err
@@ -1216,6 +1210,8 @@ func (pdb *pipelineDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutp
 		if err != nil {
 			return nil, nil, err
 		}
+
+		vr.PipelineName = pdb.Name
 
 		outputs = append(outputs, BuildOutput{
 			VersionedResource: vr,

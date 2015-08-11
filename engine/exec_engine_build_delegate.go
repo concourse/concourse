@@ -249,7 +249,7 @@ func (delegate *delegate) saveOutput(logger lager.Logger, status exec.ExitStatus
 	}
 
 	if info != nil {
-		_, err = delegate.db.SaveBuildOutput(delegate.buildID, vrFromOutput(plan.Pipeline, ev))
+		_, err = delegate.db.SaveBuildOutput(delegate.buildID, vrFromOutput(plan.Pipeline, ev), true)
 		if err != nil {
 			logger.Error("failed-to-save-output", err)
 		}
@@ -272,7 +272,7 @@ func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.GetPl
 		Source:       db.Source(plan.Source),
 		Version:      db.Version(info.Version),
 		Metadata:     metadata,
-	})
+	}, false)
 	if err != nil {
 		logger.Error("failed-to-save", err)
 		return

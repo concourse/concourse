@@ -269,7 +269,7 @@ var _ = Describe("BuildDelegate", func() {
 
 									Ω(fakeDB.SaveBuildOutputCallCount()).Should(Equal(1))
 
-									buildID, savedOutput := fakeDB.SaveBuildOutputArgsForCall(0)
+									buildID, savedOutput, explicit := fakeDB.SaveBuildOutputArgsForCall(0)
 									Ω(buildID).Should(Equal(42))
 									Ω(savedOutput).Should(Equal(db.VersionedResource{
 										PipelineName: "some-pipeline",
@@ -279,6 +279,7 @@ var _ = Describe("BuildDelegate", func() {
 										Version:      db.Version{"result": "version"},
 										Metadata:     []db.MetadataField{{"result", "metadata"}},
 									}))
+									Ω(explicit).Should(BeFalse())
 								})
 							})
 
@@ -341,7 +342,7 @@ var _ = Describe("BuildDelegate", func() {
 
 								Ω(fakeDB.SaveBuildOutputCallCount()).Should(Equal(1))
 
-								buildID, savedOutput := fakeDB.SaveBuildOutputArgsForCall(0)
+								buildID, savedOutput, explicit := fakeDB.SaveBuildOutputArgsForCall(0)
 								Ω(buildID).Should(Equal(42))
 								Ω(savedOutput).Should(Equal(db.VersionedResource{
 									PipelineName: "some-pipeline",
@@ -350,6 +351,7 @@ var _ = Describe("BuildDelegate", func() {
 									Version:      db.Version{"explicit": "version"},
 									Metadata:     []db.MetadataField{{"explicit", "metadata"}},
 								}))
+								Ω(explicit).Should(BeTrue())
 							})
 						})
 					})
@@ -744,6 +746,7 @@ var _ = Describe("BuildDelegate", func() {
 					}))
 				})
 			})
+
 			Context("when exit status is 0", func() {
 				JustBeforeEach(func() {
 					outputDelegate.Completed(exec.ExitStatus(0), versionInfo)
@@ -752,7 +755,7 @@ var _ = Describe("BuildDelegate", func() {
 				It("saves the build's output", func() {
 					Ω(fakeDB.SaveBuildOutputCallCount()).Should(Equal(1))
 
-					buildID, savedOutput := fakeDB.SaveBuildOutputArgsForCall(0)
+					buildID, savedOutput, explicit := fakeDB.SaveBuildOutputArgsForCall(0)
 					Ω(buildID).Should(Equal(42))
 					Ω(savedOutput).Should(Equal(db.VersionedResource{
 						PipelineName: "some-other-pipeline",
@@ -761,6 +764,7 @@ var _ = Describe("BuildDelegate", func() {
 						Version:      db.Version{"result": "version"},
 						Metadata:     []db.MetadataField{{"result", "metadata"}},
 					}))
+					Ω(explicit).Should(BeTrue())
 				})
 
 				It("saves an output event", func() {
@@ -794,7 +798,7 @@ var _ = Describe("BuildDelegate", func() {
 				It("saves the build's output", func() {
 					Ω(fakeDB.SaveBuildOutputCallCount()).Should(Equal(1))
 
-					buildID, savedOutput := fakeDB.SaveBuildOutputArgsForCall(0)
+					buildID, savedOutput, explicit := fakeDB.SaveBuildOutputArgsForCall(0)
 					Ω(buildID).Should(Equal(42))
 					Ω(savedOutput).Should(Equal(db.VersionedResource{
 						PipelineName: "some-other-pipeline",
@@ -803,6 +807,7 @@ var _ = Describe("BuildDelegate", func() {
 						Version:      db.Version{"result": "version"},
 						Metadata:     []db.MetadataField{{"result", "metadata"}},
 					}))
+					Ω(explicit).Should(BeTrue())
 				})
 
 				It("saves an output event", func() {

@@ -193,7 +193,7 @@ var _ = Describe("PipelineDB", func() {
 			_, err = fetchedPipelineDB.SaveBuildOutput(build.ID, db.VersionedResource{
 				Resource:     "some-resource",
 				PipelineName: "a-pipeline-that-will-be-deleted",
-			})
+			}, false)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			err = sqlDB.SaveBuildEvent(build.ID, event.StartTask{})
@@ -1217,6 +1217,64 @@ var _ = Describe("PipelineDB", func() {
 			})
 		})
 
+		Describe("saving inputs, implicit outputs, and explicit outputs", func() {
+			vr1 := db.VersionedResource{
+				PipelineName: "a-pipeline-name",
+				Resource:     "some-resource",
+				Type:         "some-type",
+				Source:       db.Source{"some": "source"},
+				Version:      db.Version{"ver": "1"},
+			}
+
+			vr2 := db.VersionedResource{
+				PipelineName: "a-pipeline-name",
+				Resource:     "some-other-resource",
+				Type:         "some-type",
+				Source:       db.Source{"some": "other-source"},
+				Version:      db.Version{"ver": "2"},
+			}
+
+			It("correctly distinguishes them", func() {
+				build, err := pipelineDB.CreateJobBuild("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				// save a normal 'get'
+				_, err = sqlDB.SaveBuildInput(build.ID, db.BuildInput{
+					Name:              "some-input",
+					VersionedResource: vr1,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				// save implicit output from 'get'
+				_, err = sqlDB.SaveBuildOutput(build.ID, vr1, false)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				// save explicit output from 'put'
+				_, err = sqlDB.SaveBuildOutput(build.ID, vr2, true)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				// save the dependent get
+				_, err = sqlDB.SaveBuildInput(build.ID, db.BuildInput{
+					Name:              "some-dependent-input",
+					VersionedResource: vr2,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				// save the dependent 'get's implicit output
+				_, err = sqlDB.SaveBuildOutput(build.ID, vr2, false)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				inputs, outputs, err := pipelineDB.GetBuildResources(build.ID)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(inputs).Should(ConsistOf([]db.BuildInput{
+					{Name: "some-input", VersionedResource: vr1, FirstOccurrence: true},
+				}))
+				Ω(outputs).Should(ConsistOf([]db.BuildOutput{
+					{VersionedResource: vr2},
+				}))
+			})
+		})
+
 		Describe("pausing and unpausing jobs", func() {
 			job := "some-job"
 
@@ -2016,7 +2074,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				_, err = pipelineDB.SaveBuildOutput(build1.ID, savedVR1.VersionedResource)
+				_, err = pipelineDB.SaveBuildOutput(build1.ID, savedVR1.VersionedResource, false)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				_, err = pipelineDB.SaveBuildInput(build1.ID, db.BuildInput{
@@ -2025,7 +2083,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				_, err = pipelineDB.SaveBuildOutput(build1.ID, otherSavedVR1.VersionedResource)
+				_, err = pipelineDB.SaveBuildOutput(build1.ID, otherSavedVR1.VersionedResource, false)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				otherBuild2, err := pipelineDB.CreateJobBuild("other-job")
@@ -2037,7 +2095,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				_, err = pipelineDB.SaveBuildOutput(otherBuild2.ID, savedVR2.VersionedResource)
+				_, err = pipelineDB.SaveBuildOutput(otherBuild2.ID, savedVR2.VersionedResource, false)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				_, err = pipelineDB.SaveBuildInput(otherBuild2.ID, db.BuildInput{
@@ -2046,7 +2104,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				_, err = pipelineDB.SaveBuildOutput(otherBuild2.ID, otherSavedVR2.VersionedResource)
+				_, err = pipelineDB.SaveBuildOutput(otherBuild2.ID, otherSavedVR2.VersionedResource, false)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				build3, err := pipelineDB.CreateJobBuild("a-job")
@@ -2132,56 +2190,58 @@ var _ = Describe("PipelineDB", func() {
 					Resource: "resource-1",
 					Type:     "some-type",
 					Version:  db.Version{"v": "r1-common-to-shared-and-j1"},
-				})
+				}, false)
 				Ω(err).ShouldNot(HaveOccurred())
+
 				_, err = otherPipelineDB.SaveBuildOutput(sb1.ID, db.VersionedResource{
 					Resource: "resource-1",
 					Type:     "some-type",
 					Version:  db.Version{"v": "r1-common-to-shared-and-j1"},
-				})
+				}, false)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				_, err = pipelineDB.SaveBuildOutput(sb1.ID, db.VersionedResource{
 					Resource: "resource-2",
 					Type:     "some-type",
 					Version:  db.Version{"v": "r2-common-to-shared-and-j2"},
-				})
+				}, false)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				_, err = otherPipelineDB.SaveBuildOutput(sb1.ID, db.VersionedResource{
 					Resource: "resource-2",
 					Type:     "some-type",
 					Version:  db.Version{"v": "r2-common-to-shared-and-j2"},
-				})
+				}, false)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				savedVR1, err := pipelineDB.SaveBuildOutput(j1b1.ID, db.VersionedResource{
 					Resource: "resource-1",
 					Type:     "some-type",
 					Version:  db.Version{"v": "r1-common-to-shared-and-j1"},
-				})
+				}, false)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				_, err = otherPipelineDB.SaveBuildOutput(j1b1.ID, db.VersionedResource{
 					Resource: "resource-1",
 					Type:     "some-type",
 					Version:  db.Version{"v": "r1-common-to-shared-and-j1"},
-				})
+				}, false)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				savedVR2, err := pipelineDB.SaveBuildOutput(j2b1.ID, db.VersionedResource{
 					Resource: "resource-2",
 					Type:     "some-type",
 					Version:  db.Version{"v": "r2-common-to-shared-and-j2"},
-				})
+				}, false)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				_, err = otherPipelineDB.SaveBuildOutput(j2b1.ID, db.VersionedResource{
 					Resource: "resource-2",
 					Type:     "some-type",
 					Version:  db.Version{"v": "r2-common-to-shared-and-j2"},
-				})
+				}, false)
 				Ω(err).ShouldNot(HaveOccurred())
+
 				err = sqlDB.FinishBuild(sb1.ID, db.StatusSucceeded)
 				Ω(err).ShouldNot(HaveOccurred())
 				err = sqlDB.FinishBuild(j1b1.ID, db.StatusSucceeded)
@@ -2224,21 +2284,21 @@ var _ = Describe("PipelineDB", func() {
 					Resource: "resource-1",
 					Type:     "some-type",
 					Version:  db.Version{"v": "new-r1-common-to-shared-and-j1"},
-				})
+				}, false)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				_, err = pipelineDB.SaveBuildOutput(sb2.ID, db.VersionedResource{
 					Resource: "resource-2",
 					Type:     "some-type",
 					Version:  db.Version{"v": "new-r2-common-to-shared-and-j2"},
-				})
+				}, false)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				savedCommonVR1, err = pipelineDB.SaveBuildOutput(j1b2.ID, db.VersionedResource{
 					Resource: "resource-1",
 					Type:     "some-type",
 					Version:  db.Version{"v": "new-r1-common-to-shared-and-j1"},
-				})
+				}, false)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				// do NOT save resource-2 as an output of job-2
@@ -2270,7 +2330,7 @@ var _ = Describe("PipelineDB", func() {
 					Resource: "resource-2",
 					Type:     "some-type",
 					Version:  db.Version{"v": "new-r2-common-to-shared-and-j2"},
-				})
+				}, false)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				err = sqlDB.FinishBuild(sb2.ID, db.StatusSucceeded)
@@ -2309,7 +2369,7 @@ var _ = Describe("PipelineDB", func() {
 					Resource: "resource-2",
 					Type:     "some-type",
 					Version:  db.Version{"v": "should-not-be-emitted-because-of-failure"},
-				})
+				}, false)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				// Fail the 3rd build of the 2nd job, this should put the versions back to the previous set
@@ -2338,28 +2398,28 @@ var _ = Describe("PipelineDB", func() {
 						Resource: "resource-1",
 						Type:     "some-type",
 						Version:  db.Version{"v": version + "-r1-common-to-shared-and-j1"},
-					})
+					}, false)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					savedCommonVR2, err := pipelineDB.SaveBuildOutput(sb1.ID, db.VersionedResource{
 						Resource: "resource-2",
 						Type:     "some-type",
 						Version:  db.Version{"v": version + "-r2-common-to-shared-and-j2"},
-					})
+					}, false)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					savedCommonVR1, err = pipelineDB.SaveBuildOutput(j1b1.ID, db.VersionedResource{
 						Resource: "resource-1",
 						Type:     "some-type",
 						Version:  db.Version{"v": version + "-r1-common-to-shared-and-j1"},
-					})
+					}, false)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					savedCommonVR2, err = pipelineDB.SaveBuildOutput(j2b1.ID, db.VersionedResource{
 						Resource: "resource-2",
 						Type:     "some-type",
 						Version:  db.Version{"v": version + "-r2-common-to-shared-and-j2"},
-					})
+					}, false)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(pipelineDB.GetLatestInputVersions("a-job", []atc.JobInput{

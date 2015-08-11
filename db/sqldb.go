@@ -537,14 +537,14 @@ func (db *SQLDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersionedRe
 	return pipelineDB.SaveBuildInput(buildID, input)
 }
 
-func (db *SQLDB) SaveBuildOutput(buildID int, vr VersionedResource) (SavedVersionedResource, error) {
+func (db *SQLDB) SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error) {
 	pipelineDBFactory := NewPipelineDBFactory(db.logger, db.conn, db.bus, db)
 	pipelineDB, err := pipelineDBFactory.BuildWithName(vr.PipelineName)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
 
-	return pipelineDB.SaveBuildOutput(buildID, vr)
+	return pipelineDB.SaveBuildOutput(buildID, vr, explicit)
 }
 
 func (db *SQLDB) SaveBuildEngineMetadata(buildID int, engineMetadata string) error {

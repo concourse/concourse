@@ -39,7 +39,7 @@ type DB interface {
 	ErrorBuild(buildID int, cause error) error
 
 	SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error)
-	SaveBuildOutput(buildID int, vr VersionedResource) (SavedVersionedResource, error)
+	SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error)
 
 	GetBuildEvents(buildID int, from uint) (EventSource, error)
 	SaveBuildEvent(buildID int, event atc.Event) error

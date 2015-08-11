@@ -42,4 +42,5 @@ var Migrations = []migration.Migrator{
 	AddPausedToPipelines,
 	AddOrderingToPipelines,
 	AddInputsDeterminedToBuilds,
+	AddExplicitToBuildOutputs,
 }
