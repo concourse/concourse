@@ -177,7 +177,7 @@ var _ = Describe("Factory Do", func() {
 	})
 
 	Context("when i have a do inside an aggregate inside a hook", func() {
-		FIt("returns the correct plan", func() {
+		It("returns the correct plan", func() {
 
 			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
