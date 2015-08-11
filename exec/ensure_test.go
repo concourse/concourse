@@ -82,14 +82,15 @@ var _ = Describe("Ensure Step", func() {
 		Eventually(process.Wait()).Should(Receive(noError()))
 	})
 
-	It("does not run the ensure hook if the step errors", func() {
+	It("runs the ensured hook even if the step errors", func() {
 		step.RunReturns(errors.New("disaster"))
 
 		process := ifrit.Background(ensureStep)
 
 		Eventually(step.RunCallCount).Should(Equal(1))
-		Eventually(process.Wait()).Should(Receive(errorMatching("disaster")))
-		Ω(hook.RunCallCount()).Should(Equal(0))
+		Eventually(process.Wait()).Should(Receive(errorMatching(ContainSubstring("disaster"))))
+
+		Ω(hook.RunCallCount()).Should(Equal(1))
 	})
 
 	It("propagates signals to the first step when first step is running", func() {
@@ -105,8 +106,9 @@ var _ = Describe("Ensure Step", func() {
 		process.Signal(os.Kill)
 
 		Eventually(step.RunCallCount).Should(Equal(1))
-		Eventually(process.Wait()).Should(Receive(errorMatching("interrupted")))
-		Ω(hook.RunCallCount()).Should(Equal(0))
+		Eventually(process.Wait()).Should(Receive(errorMatching(ContainSubstring("interrupted"))))
+
+		Ω(hook.RunCallCount()).Should(Equal(1))
 	})
 
 	It("propagates signals to the hook when the hook is running", func() {
@@ -122,7 +124,8 @@ var _ = Describe("Ensure Step", func() {
 		process.Signal(os.Kill)
 
 		Eventually(step.RunCallCount).Should(Equal(1))
-		Eventually(process.Wait()).Should(Receive(errorMatching("interrupted")))
+		Eventually(process.Wait()).Should(Receive(errorMatching(ContainSubstring("interrupted"))))
+
 		Ω(hook.RunCallCount()).Should(Equal(1))
 	})
 

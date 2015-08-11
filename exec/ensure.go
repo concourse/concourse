@@ -1,6 +1,10 @@
 package exec
 
-import "os"
+import (
+	"os"
+
+	"github.com/hashicorp/go-multierror"
+)
 
 type ensure struct {
 	stepFactory   StepFactory
@@ -32,18 +36,24 @@ func (o ensure) Using(prev Step, repo *SourceRepository) Step {
 }
 
 func (o *ensure) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	stepRunErr := o.step.Run(signals, ready)
+	var errors error
 
-	if stepRunErr != nil {
-		return stepRunErr
+	originalErr := o.step.Run(signals, ready) // don't care about the error
+	if originalErr != nil {
+		errors = multierror.Append(errors, originalErr)
 	}
 
 	// The contract of the Result method is such that it does not change the value
 	// of the provided pointer if it is not able to respond.
 	// Therefore there is no need to check the return value here.
 	o.ensure = o.ensureFactory.Using(o.step, o.repo)
-	err := o.ensure.Run(signals, make(chan struct{})) // TODO test
-	return err
+
+	hookErr := o.ensure.Run(signals, make(chan struct{})) // TODO test
+	if hookErr != nil {
+		errors = multierror.Append(errors, hookErr)
+	}
+
+	return errors
 }
 
 func (o *ensure) Result(x interface{}) bool {
