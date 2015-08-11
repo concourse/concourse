@@ -145,10 +145,149 @@ func jobService(database *dbSharedBehaviorInput) func() {
 								}, nil)
 							})
 
-							It("returns false", func() {
+							It("returns false and the error", func() {
 								canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
 								Ω(err).ShouldNot(HaveOccurred())
-								Ω(reason).Should(Equal("other-builds-running"))
+								Ω(reason).Should(Equal("max-in-flight-reached"))
+								Ω(canBuildBeScheduled).Should(BeFalse())
+							})
+						})
+
+						Context("When no other builds are running", func() {
+							BeforeEach(func() {
+								fakeDB.GetRunningBuildsBySerialGroupReturns([]db.Build{}, nil)
+							})
+
+							Context("When the call to get next pending build fails", func() {
+								BeforeEach(func() {
+									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{}, errors.New("disaster"))
+								})
+
+								It("returns false and the error", func() {
+									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
+									Ω(err).Should(HaveOccurred())
+									Ω(reason).Should(Equal("db-failed"))
+									Ω(canBuildBeScheduled).Should(BeFalse())
+								})
+							})
+
+							Context("When it is not the next most pending build", func() {
+								BeforeEach(func() {
+									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{ID: 3}, nil)
+								})
+
+								It("returns false", func() {
+									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
+									Ω(err).ShouldNot(HaveOccurred())
+									Ω(reason).Should(Equal("not-next-most-pending"))
+									Ω(canBuildBeScheduled).Should(BeFalse())
+								})
+							})
+
+							Context("When it is the next most pending build", func() {
+								BeforeEach(func() {
+									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{ID: dbBuild.ID}, nil)
+								})
+
+								It("returns true", func() {
+									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
+
+									Ω(err).ShouldNot(HaveOccurred())
+									Ω(reason).Should(Equal("can-be-scheduled"))
+									Ω(canBuildBeScheduled).Should(BeTrue())
+								})
+							})
+						})
+					})
+
+					Context("When the job is serial", func() {
+						var service db.JobService
+						var dbBuild db.Build
+
+						BeforeEach(func() {
+							var err error
+							service, err = db.NewJobService(atc.JobConfig{
+								RawMaxInFlight: 3,
+							}, fakeDB)
+
+							Ω(err).ShouldNot(HaveOccurred())
+							dbBuild = db.Build{
+								Status: db.StatusPending,
+							}
+						})
+
+						Context("When the call to get running builds throws an error", func() {
+							BeforeEach(func() {
+								fakeDB.GetRunningBuildsBySerialGroupReturns([]db.Build{}, errors.New("disaster"))
+							})
+
+							It("returns the error", func() {
+								canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
+								Ω(err).Should(HaveOccurred())
+								Ω(reason).Should(Equal("db-failed"))
+								Ω(canBuildBeScheduled).Should(BeFalse())
+							})
+						})
+
+						Context("When another build with the same job is running", func() {
+							BeforeEach(func() {
+								fakeDB.GetRunningBuildsBySerialGroupReturns([]db.Build{
+									{
+										Name: "Some-build",
+									},
+								}, nil)
+							})
+
+							It("returns true", func() {
+								canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
+
+								Ω(err).ShouldNot(HaveOccurred())
+								Ω(reason).Should(Equal("can-be-scheduled"))
+								Ω(canBuildBeScheduled).Should(BeTrue())
+							})
+						})
+
+						Context("When another build with the same job is running", func() {
+							BeforeEach(func() {
+								fakeDB.GetRunningBuildsBySerialGroupReturns([]db.Build{
+									{
+										Name: "Some-build",
+									},
+									{
+										Name: "Some-other-build",
+									},
+								}, nil)
+							})
+
+							It("returns true", func() {
+								canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
+
+								Ω(err).ShouldNot(HaveOccurred())
+								Ω(reason).Should(Equal("can-be-scheduled"))
+								Ω(canBuildBeScheduled).Should(BeTrue())
+							})
+						})
+
+						Context("When another build with the same job is running", func() {
+							BeforeEach(func() {
+								fakeDB.GetRunningBuildsBySerialGroupReturns([]db.Build{
+									{
+										Name: "Some-build",
+									},
+									{
+										Name: "Some-other-build",
+									},
+									{
+										Name: "Some-other-other-build",
+									},
+								}, nil)
+							})
+
+							It("returns false and the error", func() {
+								canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
+
+								Ω(err).ShouldNot(HaveOccurred())
+								Ω(reason).Should(Equal("max-in-flight-reached"))
 								Ω(canBuildBeScheduled).Should(BeFalse())
 							})
 						})

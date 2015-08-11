@@ -38,14 +38,16 @@ func (s JobService) CanBuildBeScheduled(build Build) (bool, string, error) {
 		return false, "build-not-pending", nil
 	}
 
-	if s.JobConfig.IsSerial() {
+	maxInFlight := s.JobConfig.MaxInFlight()
+
+	if maxInFlight > 0 {
 		builds, err := s.DB.GetRunningBuildsBySerialGroup(s.DBJob.Name, s.JobConfig.GetSerialGroups())
 		if err != nil {
 			return false, "db-failed", err
 		}
 
-		if len(builds) > 0 {
-			return false, "other-builds-running", nil
+		if uint(len(builds)) >= maxInFlight {
+			return false, "max-in-flight-reached", nil
 		}
 
 		nextMostPendingBuild, err := s.DB.GetNextPendingBuildBySerialGroup(s.DBJob.Name, s.JobConfig.GetSerialGroups())

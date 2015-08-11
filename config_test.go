@@ -10,31 +10,40 @@ import (
 
 var _ = Describe("Config", func() {
 	Describe("JobConfig", func() {
-		Describe("IsSerial", func() {
-			It("returns true if Serial is true or SerialGroups has items in it", func() {
+		Describe("MaxInFlight", func() {
+			It("returns the raw MaxInFlight if set", func() {
+				jobConfig := JobConfig{
+					Serial:         true,
+					RawMaxInFlight: 42,
+				}
+
+				Ω(jobConfig.MaxInFlight()).Should(Equal(42))
+			})
+
+			It("returns 1 if Serial is true or SerialGroups has items in it", func() {
 				jobConfig := JobConfig{
 					Serial:       true,
 					SerialGroups: []string{},
 				}
 
-				Ω(jobConfig.IsSerial()).Should(BeTrue())
+				Ω(jobConfig.MaxInFlight()).Should(Equal(1))
 
 				jobConfig.SerialGroups = []string{
 					"one",
 				}
-				Ω(jobConfig.IsSerial()).Should(BeTrue())
+				Ω(jobConfig.MaxInFlight()).Should(Equal(1))
 
 				jobConfig.Serial = false
-				Ω(jobConfig.IsSerial()).Should(BeTrue())
+				Ω(jobConfig.MaxInFlight()).Should(Equal(1))
 			})
 
-			It("returns false if Serial is false and SerialGroups is empty", func() {
+			It("returns 0 if MaxInFlight is not set, Serial is false, and SerialGroups is empty", func() {
 				jobConfig := JobConfig{
 					Serial:       false,
 					SerialGroups: []string{},
 				}
 
-				Ω(jobConfig.IsSerial()).Should(BeFalse())
+				Ω(jobConfig.MaxInFlight()).Should(Equal(0))
 			})
 		})
 
@@ -47,7 +56,7 @@ var _ = Describe("Config", func() {
 				Ω(jobConfig.GetSerialGroups()).Should(Equal([]string{"one", "two"}))
 			})
 
-			It("Returns the job name if the SerialGroups are not specified", func() {
+			It("Returns the job name if Serial but SerialGroups are not specified", func() {
 				jobConfig := JobConfig{
 					Name:   "some-job",
 					Serial: true,
@@ -56,7 +65,16 @@ var _ = Describe("Config", func() {
 				Ω(jobConfig.GetSerialGroups()).Should(Equal([]string{"some-job"}))
 			})
 
-			It("returns an empty slice of strings if there are no groups and it is not serial", func() {
+			It("Returns the job name if MaxInFlight but SerialGroups are not specified", func() {
+				jobConfig := JobConfig{
+					Name:           "some-job",
+					RawMaxInFlight: 1,
+				}
+
+				Ω(jobConfig.GetSerialGroups()).Should(Equal([]string{"some-job"}))
+			})
+
+			It("returns an empty slice of strings if there are no groups and it is not serial and has no max-in-flight", func() {
 				jobConfig := JobConfig{
 					Name:   "some-job",
 					Serial: false,

@@ -42,10 +42,12 @@ type ResourceConfig struct {
 }
 
 type JobConfig struct {
-	Name         string   `yaml:"name" json:"name" mapstructure:"name"`
-	Public       bool     `yaml:"public,omitempty" json:"public,omitempty" mapstructure:"public"`
-	Serial       bool     `yaml:"serial,omitempty" json:"serial,omitempty" mapstructure:"serial"`
-	SerialGroups []string `yaml:"serial_groups,omitempty" json:"serial_groups,omitempty" mapstructure:"serial_groups"`
+	Name   string `yaml:"name" json:"name" mapstructure:"name"`
+	Public bool   `yaml:"public,omitempty" json:"public,omitempty" mapstructure:"public"`
+
+	Serial         bool     `yaml:"serial,omitempty" json:"serial,omitempty" mapstructure:"serial"`
+	SerialGroups   []string `yaml:"serial_groups,omitempty" json:"serial_groups,omitempty" mapstructure:"serial_groups"`
+	RawMaxInFlight uint     `yaml:"max_in_flight,omitempty" json:"max_in_flight,omitempty" mapstructure:"max_in_flight"`
 
 	Privileged     bool        `yaml:"privileged,omitempty" json:"privileged,omitempty" mapstructure:"privileged"`
 	TaskConfigPath string      `yaml:"build,omitempty" json:"build,omitempty" mapstructure:"build"`
@@ -57,8 +59,16 @@ type JobConfig struct {
 	Plan PlanSequence `yaml:"plan,omitempty" json:"plan,omitempty" mapstructure:"plan"`
 }
 
-func (config JobConfig) IsSerial() bool {
-	return config.Serial || len(config.SerialGroups) > 0
+func (config JobConfig) MaxInFlight() uint {
+	if config.RawMaxInFlight != 0 {
+		return config.RawMaxInFlight
+	}
+
+	if config.Serial || len(config.SerialGroups) > 0 {
+		return 1
+	}
+
+	return 0
 }
 
 func (config JobConfig) GetSerialGroups() []string {
@@ -66,7 +76,7 @@ func (config JobConfig) GetSerialGroups() []string {
 		return config.SerialGroups
 	}
 
-	if config.IsSerial() {
+	if config.Serial || config.RawMaxInFlight > 0 {
 		return []string{config.Name}
 	}
 
