@@ -260,6 +260,7 @@ func (pdb *pipelineDB) GetResourceHistoryCursor(resourceName string, startingID 
 
 	inputHs := map[int]map[string]*JobHistory{}
 	outputHs := map[int]map[string]*JobHistory{}
+	seenOutputs := map[int]map[int]bool{}
 
 	dbResource, err := pdb.GetResource(resourceName)
 	if err != nil {
@@ -342,6 +343,7 @@ func (pdb *pipelineDB) GetResourceHistoryCursor(resourceName string, startingID 
 
 		inputHs[svr.ID] = map[string]*JobHistory{}
 		outputHs[svr.ID] = map[string]*JobHistory{}
+		seenOutputs[svr.ID] = map[int]bool{}
 	}
 
 	var hasMoreResults bool
@@ -387,10 +389,37 @@ func (pdb *pipelineDB) GetResourceHistoryCursor(resourceName string, startingID 
 
 		defer outRows.Close()
 
+		for outRows.Next() {
+			outBuild, err := pdb.scanBuild(outRows)
+			if err != nil {
+				return nil, false, err
+			}
+
+			seenOutputs[id][outBuild.ID] = true
+
+			outputH, found := outputHs[id][outBuild.JobName]
+			if !found {
+				outputH = &JobHistory{
+					JobName: outBuild.JobName,
+				}
+
+				vh.OutputsOf = append(vh.OutputsOf, outputH)
+
+				outputHs[id][outBuild.JobName] = outputH
+			}
+
+			outputH.Builds = append(outputH.Builds, outBuild)
+		}
+
 		for inRows.Next() {
 			inBuild, err := pdb.scanBuild(inRows)
 			if err != nil {
 				return nil, false, err
+			}
+
+			if seenOutputs[id][inBuild.ID] {
+				// don't show explicit outputs
+				continue
 			}
 
 			inputH, found := inputHs[id][inBuild.JobName]
@@ -405,26 +434,6 @@ func (pdb *pipelineDB) GetResourceHistoryCursor(resourceName string, startingID 
 			}
 
 			inputH.Builds = append(inputH.Builds, inBuild)
-		}
-
-		for outRows.Next() {
-			outBuild, err := pdb.scanBuild(outRows)
-			if err != nil {
-				return nil, false, err
-			}
-
-			outputH, found := outputHs[id][outBuild.JobName]
-			if !found {
-				outputH = &JobHistory{
-					JobName: outBuild.JobName,
-				}
-
-				vh.OutputsOf = append(vh.OutputsOf, outputH)
-
-				outputHs[id][outBuild.JobName] = outputH
-			}
-
-			outputH.Builds = append(outputH.Builds, outBuild)
 		}
 	}
 
