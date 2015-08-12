@@ -201,11 +201,11 @@ func createBuild(
 	}
 
 	plan := atc.Plan{
-		Compose: &atc.ComposePlan{
-			A: atc.Plan{
+		OnSuccess: &atc.OnSuccessPlan{
+			Step: atc.Plan{
 				Aggregate: &buildInputs,
 			},
-			B: atc.Plan{
+			Next: atc.Plan{
 				Location: &atc.Location{
 					// offset by 1 because aggregate gets parallelgroup ID 1
 					ID:       uint(len(inputs)) + 2,

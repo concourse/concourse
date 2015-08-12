@@ -77,8 +77,8 @@ run:
 		events = make(chan atc.Event)
 
 		expectedPlan = atc.Plan{
-			Compose: &atc.ComposePlan{
-				A: atc.Plan{
+			OnSuccess: &atc.OnSuccessPlan{
+				Step: atc.Plan{
 					Aggregate: &atc.AggregatePlan{
 						atc.Plan{
 							Location: &atc.Location{
@@ -108,7 +108,7 @@ run:
 						},
 					},
 				},
-				B: atc.Plan{
+				Next: atc.Plan{
 					Location: &atc.Location{
 						ParallelGroup: 0,
 						ParentID:      0,

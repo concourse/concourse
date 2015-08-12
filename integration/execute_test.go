@@ -71,8 +71,8 @@ run:
 		events = make(chan atc.Event)
 
 		expectedPlan = atc.Plan{
-			Compose: &atc.ComposePlan{
-				A: atc.Plan{
+			OnSuccess: &atc.OnSuccessPlan{
+				Step: atc.Plan{
 					Aggregate: &atc.AggregatePlan{
 						atc.Plan{
 							Location: &atc.Location{
@@ -90,7 +90,7 @@ run:
 						},
 					},
 				},
-				B: atc.Plan{
+				Next: atc.Plan{
 					Location: &atc.Location{
 						ParallelGroup: 0,
 						ParentID:      0,
@@ -256,7 +256,7 @@ run: {}
 
 	Context("when arguments are passed through", func() {
 		BeforeEach(func() {
-			expectedPlan.Compose.B.Task.Config.Run.Args = []string{".", "-name", `foo "bar" baz`}
+			expectedPlan.OnSuccess.Next.Task.Config.Run.Args = []string{".", "-name", `foo "bar" baz`}
 		})
 
 		It("inserts them into the config template", func() {
@@ -280,7 +280,7 @@ run: {}
 
 	Context("when running with --privileged", func() {
 		BeforeEach(func() {
-			expectedPlan.Compose.B.Task.Privileged = true
+			expectedPlan.OnSuccess.Next.Task.Privileged = true
 		})
 
 		It("inserts them into the config template", func() {
@@ -320,7 +320,7 @@ run: {}
 
 	Context("when parameters are specified in the environment", func() {
 		BeforeEach(func() {
-			expectedPlan.Compose.B.Task.Config.Params = map[string]string{
+			expectedPlan.OnSuccess.Next.Task.Config.Params = map[string]string{
 				"FOO": "newbar",
 				"BAZ": "buzz",
 				"X":   "",
