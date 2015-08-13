@@ -199,7 +199,7 @@ describe("Step Data", function () {
         updateIn({id:3}, function(){return secondStep;});
 
       renderableData = stepData.getRenderableData();
-      expect(renderableData[1].group).toBe(true);
+      expect(renderableData[1].aggregate).toBe(true);
       expect(renderableData[1].step).toEqual(firstStep);
       expect(renderableData[1].groupSteps[2]).toEqual({
         key: 2,
@@ -229,8 +229,7 @@ describe("Step Data", function () {
         updateIn({id:3}, function(){return secondStep;});
 
       renderableData = stepData.getRenderableData();
-      expect(renderableData[1].group).toBe(true);
-      expect(renderableData[1].aggregate).toBe(false);
+      expect(renderableData[1].serial).toBe(true);
       expect(renderableData[1].step).toEqual(firstStep);
       expect(renderableData[1].groupSteps[2]).toEqual({
         key: 2,
@@ -244,6 +243,128 @@ describe("Step Data", function () {
         key: 3,
         step: secondStep,
         location: {id: 3, parent_id: 0, parallel_group: 0, serial_group: 1},
+        logLines: true,
+        children: [],
+      });
+    });
+
+    it("can build render data for steps with a serial group inside a parallel group", function(){
+      var renderableData;
+      var firstStep = getFakeStep(2, 0, 1, 0, "");
+      var secondStep = getFakeStep(4, 0, 1, 3, "");
+
+      stepData = stepData.
+        updateIn({id:2}, function(){return firstStep;}).
+        updateIn({id:4}, function(){return secondStep;});
+
+      renderableData = stepData.getRenderableData();
+      expect(renderableData[1].aggregate).toBe(true);
+      expect(renderableData[1].groupSteps[2]).toEqual({
+        key: 2,
+        step: firstStep,
+        location: {id: 2, parent_id: 0, parallel_group: 1, serial_group: 0},
+        logLines: true,
+        children: [],
+      });
+
+
+      expect(renderableData[1].groupSteps[3].serial).toBe(true);
+      expect(renderableData[1].groupSteps[3].groupSteps[4]).toEqual({
+        key: 4,
+        step: secondStep,
+        location: {id: 4, parent_id: 0, parallel_group: 1, serial_group: 3},
+        logLines: true,
+        children: [],
+      });
+    });
+
+    it("can build render data for steps with a parallel group inside a serial group", function(){
+      var renderableData;
+      var firstStep = getFakeStep(2, 0, 0, 1, "");
+      var secondStep = getFakeStep(4, 0, 3, 1, "");
+
+      stepData = stepData.
+        updateIn({id:2}, function(){return firstStep;}).
+        updateIn({id:4}, function(){return secondStep;});
+
+      renderableData = stepData.getRenderableData();
+      expect(renderableData[1].serial).toBe(true);
+      expect(renderableData[1].groupSteps[2]).toEqual({
+        key: 2,
+        step: firstStep,
+        location: {id: 2, parent_id: 0, parallel_group: 0, serial_group: 1},
+        logLines: true,
+        children: [],
+      });
+
+
+      expect(renderableData[1].groupSteps[3].aggregate).toBe(true);
+      expect(renderableData[1].groupSteps[3].groupSteps[4]).toEqual({
+        key: 4,
+        step: secondStep,
+        location: {id: 4, parent_id: 0, parallel_group: 3, serial_group: 1},
+        logLines: true,
+        children: [],
+      });
+    });
+
+    it("can build render data for only serial groups in a parallel group", function(){
+      var renderableData;
+      var firstStep = getFakeStep(2, 0, 3, 1, "");
+      var secondStep = getFakeStep(4, 0, 3, 1, "");
+
+      stepData = stepData.
+        updateIn({id:2}, function(){return firstStep;}).
+        updateIn({id:4}, function(){return secondStep;});
+
+      renderableData = stepData.getRenderableData();
+      expect(renderableData[1].serial).toBe(true);
+      expect(renderableData[1].groupSteps[2]).toBe(undefined);
+      expect(renderableData[1].groupSteps[4]).toBe(undefined);
+
+      expect(renderableData[1].groupSteps[3].groupSteps[2]).toEqual({
+        key: 2,
+        step: firstStep,
+        location: {id: 2, parent_id: 0, parallel_group: 3, serial_group: 1},
+        logLines: true,
+        children: [],
+      });
+
+      expect(renderableData[1].groupSteps[3].groupSteps[4]).toEqual({
+        key: 4,
+        step: secondStep,
+        location: {id: 4, parent_id: 0, parallel_group: 3, serial_group: 1},
+        logLines: true,
+        children: [],
+      });
+    });
+
+    it("can build render data for only parallel groups in a serial group", function(){
+      var renderableData;
+      var firstStep = getFakeStep(2, 0, 1, 3, "");
+      var secondStep = getFakeStep(4, 0, 1, 3, "");
+
+      stepData = stepData.
+        updateIn({id:2}, function(){return firstStep;}).
+        updateIn({id:4}, function(){return secondStep;});
+
+      renderableData = stepData.getRenderableData();
+      expect(renderableData[1].aggregate).toBe(true);
+      expect(renderableData[1].groupSteps[2]).toBe(undefined);
+      expect(renderableData[1].groupSteps[4]).toBe(undefined);
+
+      expect(renderableData[1].groupSteps[3].groupSteps[2]).toEqual({
+        key: 2,
+        step: firstStep,
+        location: {id: 2, parent_id: 0, parallel_group: 1, serial_group: 3},
+        logLines: true,
+        children: [],
+      });
+
+      expect(renderableData[1].groupSteps[3].groupSteps[4]).toEqual({
+        key: 4,
+        step: secondStep,
+        location: {id: 4, parent_id: 0, parallel_group: 1, serial_group: 3},
         logLines: true,
         children: [],
       });
@@ -290,7 +411,7 @@ describe("Step Data", function () {
 
       renderableData = stepData.getRenderableData();
 
-      expect(renderableData[1].group).toBe(true);
+      expect(renderableData[1].aggregate).toBe(true);
       expect(renderableData[1].step).toEqual(firstStep);
       expect(renderableData[1].groupSteps[2]).toEqual({
         key: 2,
@@ -309,7 +430,7 @@ describe("Step Data", function () {
       });
 
       var innerParallelGroup = renderableData[1].groupSteps[3];
-      expect(innerParallelGroup.group).toBe(true);
+      expect(innerParallelGroup.aggregate).toBe(true);
       expect(innerParallelGroup.step).toEqual(thirdStep);
       expect(innerParallelGroup.groupSteps[4]).toEqual({
         key: 4,
@@ -344,10 +465,9 @@ describe("Step Data", function () {
       renderableData = stepData.getRenderableData();
 
       expect(renderableData[1].hold).toBe(undefined);
-      expect(renderableData[1].group).toBe(true);
       expect(renderableData[1].aggregate).toBe(true);
       expect(renderableData[1].groupSteps[2].step).toEqual(thirdStep);
-      expect(renderableData[1].groupSteps[3].group).toBe(true);
+      expect(renderableData[1].groupSteps[3].aggregate).toBe(true);
       expect(renderableData[1].groupSteps[3].groupSteps[4].step).toEqual(firstStep);
       expect(renderableData[1].groupSteps[3].groupSteps[5].step).toEqual(secondStep);
     });
@@ -365,7 +485,7 @@ describe("Step Data", function () {
 
       renderableData = stepData.getRenderableData();
       expect(renderableData[1].step).toEqual(firstStep);
-      expect(renderableData[1].children[2].group).toBe(true);
+      expect(renderableData[1].children[2].aggregate).toBe(true);
       expect(renderableData[1].children[2].groupSteps[3].step).toEqual(secondStep);
       expect(renderableData[1].children[2].groupSteps[4].step).toEqual(thirdStep);
     });
