@@ -140,19 +140,38 @@
           allObjects = [],
           sortedData = _this.getSorted();
 
+      var addStepToGroup = function(primaryGroupID, secondaryGroupID, parentID, renderGroup){
+        if(allObjects[primaryGroupID] === undefined){
+          allObjects[primaryGroupID] = renderGroup;
+        } else if (allObjects[primaryGroupID].hold) {
+          renderGroup.groupSteps = allObjects[primaryGroupID].groupSteps;
+          renderGroup.children = allObjects[primaryGroupID].children;
+          allObjects[primaryGroupID] = renderGroup;
+        }
+
+
+        if(secondaryGroupID < primaryGroupID) {
+          allObjects[primaryGroupID].groupSteps[location.id] = allObjects[location.id];
+        }
+
+        if (secondaryGroupID !== 0 && secondaryGroupID < primaryGroupID) {
+          allObjects[secondaryGroupID].groupSteps[primaryGroupID] = allObjects[primaryGroupID];
+        }
+
+        if (parentID !== 0) {
+          if(step.isHook()){
+            allObjects[parentID].children[primaryGroupID] = allObjects[primaryGroupID];
+          } else {
+            allObjects[parentID].groupSteps[primaryGroupID] = allObjects[primaryGroupID];
+          }
+        }
+      };
 
       for(var i = 0; i < sortedData.length; i++){
         var step = sortedData[i];
         var location = _this.translateLocation(step.origin().location, step.origin().substep);
         var stepLogs = step.logs();
         var logLines = stepLogs.lines;
-        var groupID;
-
-        if(typeof location.serial_group !== "undefined" && location.serial_group !== 0){
-          groupID = location.serial_group;
-        } else {
-          groupID = location.parallel_group;
-        }
 
         var render = {
           key: location.id,
@@ -168,36 +187,43 @@
           allObjects[location.parent_id] = {hold: true, groupSteps: [], children: []};
         }
 
-        if(groupID !== 0) {
-          renderGroup = {
-            group: true,
-            aggregate: location.parallel_group !== 0,
+        if (location.parallel_group !== 0 && allObjects[location.parallel_group] === undefined) {
+          allObjects[location.parallel_group] = {hold: true, groupSteps: [], children: []};
+        }
+
+        if(location.serial_group !== 0) {
+          renderSerialGroup = {
+            serial: true,
             step: step,
             location: location,
-            key: groupID,
+            key: location.serial_group,
             groupSteps: [],
             children: []
           };
 
-          if(allObjects[groupID] === undefined){
-            allObjects[groupID] = renderGroup;
-          } else if (allObjects[groupID].hold) {
-            renderGroup.groupSteps = allObjects[groupID].groupSteps;
-            renderGroup.children = allObjects[groupID].children;
-            allObjects[groupID] = renderGroup;
-          }
+          addStepToGroup(location.serial_group, location.parallel_group, location.parent_id, renderSerialGroup);
+        }
 
-          ret[groupID] = allObjects[groupID];
+        if(location.parallel_group !== 0) {
+          renderParallelGroup = {
+            aggregate: true,
+            step: step,
+            location: location,
+            key: location.parallel_group,
+            groupSteps: [],
+            children: []
+          };
 
-          allObjects[groupID].groupSteps[location.id] = allObjects[location.id];
+          addStepToGroup(location.parallel_group, location.serial_group, location.parent_id, renderParallelGroup);
+        }
 
-          if (location.parent_id !== 0) {
-            if(step.isHook()){
-              allObjects[location.parent_id].children[groupID] = allObjects[groupID];
-            } else {
-              allObjects[location.parent_id].groupSteps[groupID] = allObjects[groupID];
-            }
-          }
+
+        if (location.parallel_group !== 0 &&
+          (location.serial_group === 0 || location.serial_group > location.parallel_group)
+        ) {
+          ret[location.parallel_group] = allObjects[location.parallel_group];
+        } else if (location.serial_group !== 0) {
+          ret[location.serial_group] = allObjects[location.serial_group];
         } else {
           ret[location.id] = allObjects[location.id];
 

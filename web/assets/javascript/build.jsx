@@ -74,14 +74,15 @@ var Build = React.createClass({
         classes.push("seq-dependent-get");
       }
 
-      if(step.group){
+
+      if(step.aggregate || step.serial){
         var groupSteps = []
         var groupClasses = []
 
-        if (step.aggregate) {
-          groupClasses.push("aggregate")
-        } else {
+        if(step.serial){
           groupClasses.push("serial")
+        } else {
+          groupClasses.push("aggregate")
         }
 
         for(var i = 0; i <= step.groupSteps.length; i++){

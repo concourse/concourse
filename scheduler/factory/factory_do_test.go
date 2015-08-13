@@ -146,10 +146,10 @@ var _ = Describe("Factory Do", func() {
 								Aggregate: &atc.AggregatePlan{
 									{
 										Location: &atc.Location{
-											ParentID:      2,
+											ParentID:      0,
 											ID:            6,
 											ParallelGroup: 5,
-											SerialGroup:   0,
+											SerialGroup:   2,
 										},
 										Task: &atc.TaskPlan{
 											Name: "some other thing",
@@ -231,9 +231,9 @@ var _ = Describe("Factory Do", func() {
 							},
 							{
 								Location: &atc.Location{
-									ParentID:      3,
+									ParentID:      1,
 									ID:            7,
-									ParallelGroup: 0,
+									ParallelGroup: 3,
 									SerialGroup:   6,
 								},
 								Task: &atc.TaskPlan{
@@ -295,9 +295,9 @@ var _ = Describe("Factory Do", func() {
 						OnSuccess: &atc.OnSuccessPlan{
 							Step: atc.Plan{
 								Location: &atc.Location{
-									ParentID:      2,
+									ParentID:      0,
 									ID:            6,
-									ParallelGroup: 0,
+									ParallelGroup: 2,
 									SerialGroup:   5,
 								},
 								Task: &atc.TaskPlan{
@@ -306,9 +306,9 @@ var _ = Describe("Factory Do", func() {
 							},
 							Next: atc.Plan{
 								Location: &atc.Location{
-									ParentID:      2,
+									ParentID:      0,
 									ID:            7,
-									ParallelGroup: 0,
+									ParallelGroup: 2,
 									SerialGroup:   5,
 								},
 								Task: &atc.TaskPlan{

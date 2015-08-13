@@ -135,9 +135,6 @@ func populatePlanLocations(planConfig *atc.PlanConfig, location *atc.Location) u
 		serialGroup := location.ID + 1
 		stepCount += 1
 
-		if location.ParallelGroup != 0 {
-			location.ParentID = location.ParallelGroup
-		}
 		if location.SerialGroup != 0 {
 			location.ParentID = location.SerialGroup
 		}
@@ -148,11 +145,10 @@ func populatePlanLocations(planConfig *atc.PlanConfig, location *atc.Location) u
 			childLocation := &atc.Location{
 				ID:            location.ID + stepCount + 1,
 				ParentID:      location.ParentID,
-				ParallelGroup: 0,
+				ParallelGroup: location.ParallelGroup,
 				SerialGroup:   serialGroup,
 			}
 
-			// planConfig.Location = location
 			if child.Do == nil {
 				childLocation.Hook = location.Hook
 			}
@@ -180,9 +176,6 @@ func populatePlanLocations(planConfig *atc.PlanConfig, location *atc.Location) u
 		if location.ParallelGroup != 0 {
 			location.ParentID = location.ParallelGroup
 		}
-		if location.SerialGroup != 0 {
-			location.ParentID = location.SerialGroup
-		}
 
 		children := *planConfig.Aggregate
 		for i := 0; i < len(children); i++ {
@@ -191,7 +184,7 @@ func populatePlanLocations(planConfig *atc.PlanConfig, location *atc.Location) u
 				ID:            location.ID + stepCount + 1,
 				ParentID:      location.ParentID,
 				ParallelGroup: parallelGroup,
-				// TODO: handle serial group here
+				SerialGroup:   location.SerialGroup,
 			}
 
 			if child.Aggregate == nil && child.Do == nil {
@@ -328,6 +321,7 @@ func (factory *BuildFactory) constructPlanFromConfig(
 		if planConfig.Location != nil {
 			stepLocation.ID = planConfig.Location.ID
 			stepLocation.Hook = planConfig.Location.Hook
+			stepLocation.SerialGroup = planConfig.Location.SerialGroup
 
 			if planConfig.Location.ParallelGroup != 0 {
 				stepLocation.ParallelGroup = planConfig.Location.ParallelGroup
