@@ -31,11 +31,6 @@
   think we can do much better in the future. You may want to keep your
   workaround interim jobs in place for now.
 }{
-  There was a really nasty bug that caused jobs with builds that were cancelled
-  before all of their inputs were determined to never trigger again.
-  
-  They now trigger again.
-}{
   The \hyperlink{https://github.com/concourse/docker-image-resource}{Docker
   image resource} now supports pushing and pulling from private registries. See
   the
