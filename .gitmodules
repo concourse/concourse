@@ -9,7 +9,7 @@
 [submodule "src/github.com/concourse/atc"]
 	path = src/github.com/concourse/atc
 	url = https://github.com/concourse/atc
-	branch = master
+	branch = scheduler-fixes
 [submodule "src/github.com/lib/pq"]
 	path = src/github.com/lib/pq
 	url = https://github.com/lib/pq
@@ -49,7 +49,7 @@
 [submodule "src/github.com/concourse/fly"]
 	path = src/github.com/concourse/fly
 	url = https://github.com/concourse/fly
-	branch = master
+	branch = no-broken-submodules
 [submodule "src/github.com/kr/pty"]
 	path = src/github.com/kr/pty
 	url = https://github.com/kr/pty
@@ -138,10 +138,10 @@
 	path = src/github.com/codahale/hdrhistogram
 	url = https://github.com/codahale/hdrhistogram
 	branch = master
-[submodule "src/github.com/zachgersh/go-update"]
-	path = src/github.com/zachgersh/go-update
-	url = https://github.com/zachgersh/go-update
-	branch = take-http-client
+[submodule "src/github.com/inconshreveable/go-update"]
+	path = src/github.com/inconshreveable/go-update
+	url = https://github.com/inconshreveable/go-update
+	branch = master
 [submodule "src/github.com/concourse/tsa"]
 	path = src/github.com/concourse/tsa
 	url = https://github.com/concourse/tsa
