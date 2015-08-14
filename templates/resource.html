@@ -83,16 +83,14 @@
         <div class="fl prm" style="width:33%">
           <div class="list-collapsable-title">outputs of</div>
           {{range .OutputsOf}}
-          {{$job := .JobName}}
-          <h3>{{.JobName}}</h3>
-
-          <ul class="builds-list">
-            {{range .Builds}}
-            <li class="{{.Status}}"><a href="{{url "GetBuild" $job .}}">#{{.Name}}</a></li>
-            {{end}}
-          </ul>
+            {{$job := .JobName}}
+              <h3 class="man pas ansi-bright-black-bg">{{.JobName}}</h3>
+              <ul class="builds-list">
+                  {{range .Builds}}
+                  <li class="{{.Status}}"><a href="{{url "GetBuild" $job .}}">#{{.Name}}</a></li>
+                  {{end}}
+               </ul>
           {{end}}
-
         </div>
 
         <div class="fl" style="width:33%">
