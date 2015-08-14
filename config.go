@@ -128,7 +128,6 @@ type PlanSequence []PlanConfig
 type PlanConfig struct {
 	// makes the Plan conditional
 	// conditions on which to perform a nested sequence
-	Conditions *Conditions `yaml:"conditions,omitempty" json:"conditions,omitempty" mapstructure:"conditions"`
 
 	// compose a nested sequence of plans
 	// name of the nested 'do'
@@ -258,49 +257,9 @@ type JobOutputConfig struct {
 	RawPerformOn []Condition `yaml:"perform_on,omitempty" json:"perform_on,omitempty" mapstructure:"perform_on"`
 }
 
-func (config JobOutputConfig) PerformOn() []Condition {
-	if config.RawPerformOn == nil { // NOT len(0)
-		return []Condition{"success"}
-	}
-
-	return config.RawPerformOn
-}
-
 type Conditions []Condition
 
-func (cs Conditions) SatisfiedBy(successful bool) bool {
-	for _, status := range cs {
-		if (status == ConditionSuccess && successful) ||
-			(status == ConditionFailure && !successful) {
-			return true
-		}
-	}
-
-	return false
-}
-
 type Condition string
-
-const (
-	ConditionSuccess Condition = "success"
-	ConditionFailure Condition = "failure"
-)
-
-func (c *Condition) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var str string
-	if err := unmarshal(&str); err != nil {
-		return fmt.Errorf("invalid condition: %s", err)
-	}
-
-	switch Condition(str) {
-	case ConditionSuccess, ConditionFailure:
-		*c = Condition(str)
-	default:
-		return fmt.Errorf("unknown condition: %s (must be success/failure)", str)
-	}
-
-	return nil
-}
 
 type ResourceConfigs []ResourceConfig
 

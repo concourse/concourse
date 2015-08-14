@@ -65,16 +65,10 @@ func (db PlanConvertingConfigDB) convertJobsToPlan(config atc.Config) atc.Config
 
 		outputAggregates := make(atc.PlanSequence, len(job.OutputConfigs))
 		for oi, output := range job.OutputConfigs {
-			var conditions *atc.Conditions
-			if output.RawPerformOn != nil { // NOT len(0)
-				conditionsCasted := atc.Conditions(output.RawPerformOn)
-				conditions = &conditionsCasted
-			}
 
 			outputAggregates[oi] = atc.PlanConfig{
-				Put:        output.Resource,
-				Conditions: conditions,
-				Params:     output.Params,
+				Put:    output.Resource,
+				Params: output.Params,
 			}
 		}
 

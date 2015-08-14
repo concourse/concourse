@@ -2,7 +2,6 @@ package atc_test
 
 import (
 	. "github.com/concourse/atc"
-	"gopkg.in/yaml.v2"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -98,41 +97,4 @@ var _ = Describe("Config", func() {
 		})
 	})
 
-	Describe("JobOutputConfig", func() {
-		It("defaults PerformOn to [success]", func() {
-			Ω(JobOutputConfig{}.PerformOn()).Should(Equal([]Condition{"success"}))
-
-			Ω(JobOutputConfig{
-				RawPerformOn: []Condition{},
-			}.PerformOn()).Should(Equal([]Condition{}))
-
-			Ω(JobOutputConfig{
-				RawPerformOn: []Condition{"failure"},
-			}.PerformOn()).Should(Equal([]Condition{"failure"}))
-		})
-	})
-
-	Describe("Condition", func() {
-		It("can be unmarshalled from YAML as the string 'success'", func() {
-			var condition Condition
-			err := yaml.Unmarshal([]byte("success"), &condition)
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(condition).To(Equal(ConditionSuccess))
-		})
-
-		It("can be unmarshalled from YAML as the string 'failure'", func() {
-			var condition Condition
-			err := yaml.Unmarshal([]byte("failure"), &condition)
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(condition).To(Equal(ConditionFailure))
-		})
-
-		It("fails to unmarshal other strings", func() {
-			var condition Condition
-			err := yaml.Unmarshal([]byte("bogus"), &condition)
-			Expect(err).To(HaveOccurred())
-		})
-	})
 })

@@ -220,6 +220,7 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, build db.
 	plan, err := s.Factory.Create(job, resources, inputs)
 	if err != nil {
 		logger.Error("failed-to-create-build-plan", err)
+		s.BuildsDB.ErrorBuild(build.ID, err)
 		return nil
 	}
 

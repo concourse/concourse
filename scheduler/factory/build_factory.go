@@ -1,8 +1,6 @@
 package factory
 
 import (
-	"errors"
-
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 )
@@ -19,12 +17,6 @@ func (factory *BuildFactory) Create(
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
 
-	hasConditionals := factory.hasConditionals(job.Plan)
-
-	if hasConditionals {
-		return atc.Plan{}, errors.New("Conditionals are no longer supported in build plans. Use success/failure hooks instead.")
-	}
-
 	populateLocations(&job.Plan)
 
 	plan := factory.constructPlanHookBasedPlan(
@@ -32,12 +24,6 @@ func (factory *BuildFactory) Create(
 		resources,
 		inputs)
 	return plan, nil
-}
-
-func (factory *BuildFactory) hasConditionals(planSequence atc.PlanSequence) bool {
-	return factory.doesAnyStepMatch(planSequence, func(step atc.PlanConfig) bool {
-		return step.Conditions != nil
-	})
 }
 
 func (factory *BuildFactory) doesAnyStepMatch(planSequence atc.PlanSequence, predicate func(step atc.PlanConfig) bool) bool {
