@@ -9,6 +9,8 @@ groups:
   - jettison
   - tsa
   - major
+  - minor
+  - patch
   - rc
   - shipit
   - testflight
@@ -94,12 +96,13 @@ jobs:
 
 - name: rc
   public: true
+  serial_groups: [version]
   plan:
   - get: concourse
     trigger: true
     passed: [atc, fly, blackbox, tsa, jettison, baggageclaim]
   - get: version
-    params: {bump: minor, pre: rc}
+    params: {pre: rc}
   - task: create-candidate-release
     file: concourse/ci/create-candidate-release.yml
   - put: candidate-release
@@ -109,9 +112,30 @@ jobs:
 
 - name: major
   public: true
+  serial_groups: [version]
   plan:
   - get: version
     params: {bump: major}
+  - put: version
+    params: {file: version/number}
+
+- name: minor
+  public: true
+  serial_groups: [version]
+  plan:
+  - get: version
+    params: {bump: minor}
+  - put: version
+    params: {file: version/number}
+
+- name: patch
+  public: true
+  serial_groups: [version]
+  plan:
+  - get: version
+    passed: [shipit]
+    params: {bump: patch}
+    trigger: true
   - put: version
     params: {file: version/number}
 
@@ -217,7 +241,7 @@ jobs:
     params: {release: bosh-lites}
 
 - name: shipit
-  serial: true
+  serial_groups: [version]
   plan:
   - aggregate:
     - get: concourse
