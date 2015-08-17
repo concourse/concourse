@@ -25,15 +25,15 @@
       <h2>builds</h2>
 
       {{if .PaginationData.HasPagination}}
-      <div class="pagination clearfix">
+      <div class="pagination mbs clearfix">
         {{if .PaginationData.HasNewer}}
         <div class="fl">
-          <a href="{{url "GetJob" .PipelineName .Job .PaginationData true}}" class="pagination-handle"><i class="fa fa-arrow-left"></i></a>
+          <a href="{{url "GetJob" .PipelineName .Job .PaginationData true}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-left"></i></a>
         </div>
         {{end}}
         {{if .PaginationData.HasOlder}}
         <div class="fr">
-          <a href="{{url "GetJob" .PipelineName .Job .PaginationData false}}" class="pagination-handle"><i class="fa fa-arrow-right"></i></a>
+          <a href="{{url "GetJob" .PipelineName .Job .PaginationData false}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-right"></i></a>
         </div>
         {{end}}
       </div>
@@ -89,6 +89,21 @@
         </li>
         {{end}}
       </ul>
+
+      {{if .PaginationData.HasPagination}}
+      <div class="pagination mts mbm clearfix">
+        {{if .PaginationData.HasNewer}}
+        <div class="fl">
+          <a href="{{url "GetJob" .PipelineName .Job .PaginationData true}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-left"></i></a>
+        </div>
+        {{end}}
+        {{if .PaginationData.HasOlder}}
+        <div class="fr">
+          <a href="{{url "GetJob" .PipelineName .Job .PaginationData false}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-right"></i></a>
+        </div>
+        {{end}}
+      </div>
+      {{end}}
     </div>
   </div>
 </div>
