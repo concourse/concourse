@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -44,6 +45,8 @@ type TemplateData struct {
 
 	CurrentBuild db.Build
 	PipelineName string
+
+	PaginationData PaginationData
 }
 
 //go:generate counterfeiter . JobDB
@@ -51,16 +54,21 @@ type TemplateData struct {
 type JobDB interface {
 	GetConfig() (atc.Config, db.ConfigVersion, error)
 	GetJob(string) (db.SavedJob, error)
-	GetAllJobBuilds(job string) ([]db.Build, error)
 	GetCurrentBuild(job string) (db.Build, error)
 	GetPipelineName() string
 	GetBuildResources(buildID int) ([]db.BuildInput, []db.BuildOutput, error)
 }
 
+//go:generate counterfeiter . JobBuildsPaginator
+
+type JobBuildsPaginator interface {
+	PaginateJobBuilds(job string, startingJobBuildID int, newerJobBuilds bool) ([]db.Build, PaginationData, error)
+}
+
 var ErrJobConfigNotFound = errors.New("could not find job")
 var Err = errors.New("could not find job")
 
-func FetchTemplateData(jobDB JobDB, jobName string) (TemplateData, error) {
+func FetchTemplateData(jobDB JobDB, paginator JobBuildsPaginator, jobName string, startingJobBuildID int, resultsGreaterThanStartingID bool) (TemplateData, error) {
 	config, _, err := jobDB.GetConfig()
 	if err != nil {
 		return TemplateData{}, err
@@ -71,7 +79,7 @@ func FetchTemplateData(jobDB JobDB, jobName string) (TemplateData, error) {
 		return TemplateData{}, ErrJobConfigNotFound
 	}
 
-	bs, err := jobDB.GetAllJobBuilds(job.Name)
+	bs, paginationData, err := paginator.PaginateJobBuilds(job.Name, startingJobBuildID, resultsGreaterThanStartingID)
 	if err != nil {
 		return TemplateData{}, err
 	}
@@ -102,9 +110,10 @@ func FetchTemplateData(jobDB JobDB, jobName string) (TemplateData, error) {
 	}
 
 	return TemplateData{
-		Job:    job,
-		DBJob:  dbJob,
-		Builds: bsr,
+		Job:            job,
+		DBJob:          dbJob,
+		Builds:         bsr,
+		PaginationData: paginationData,
 
 		GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
 			for _, groupJob := range g.Jobs {
@@ -128,8 +137,27 @@ func (server *server) GetJob(pipelineDB db.PipelineDB) http.Handler {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		startingID, parseErr := strconv.Atoi(r.FormValue("startingID"))
+		if parseErr != nil {
+			server.logger.Info("cannot-parse-startingID-to-int", lager.Data{"startingID": r.FormValue("startingID")})
+			startingID = 0
+		}
 
-		templateData, err := FetchTemplateData(pipelineDB, jobName)
+		resultsGreaterThanStartingID, parseErr := strconv.ParseBool(r.FormValue("resultsGreaterThanStartingID"))
+		if parseErr != nil {
+			resultsGreaterThanStartingID = false
+			server.logger.Info("cannot-parse-resultsGreaterThanStartingID-to-bool", lager.Data{"resultsGreaterThanStartingID": r.FormValue("resultsGreaterThanStartingID")})
+		}
+
+		templateData, err := FetchTemplateData(
+			pipelineDB,
+			Paginator{
+				PaginatorDB: pipelineDB,
+			},
+			jobName,
+			startingID,
+			resultsGreaterThanStartingID,
+		)
 		switch err {
 		case ErrJobConfigNotFound:
 			server.logger.Error("could-not-find-job-in-config", ErrJobConfigNotFound, lager.Data{

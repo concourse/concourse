@@ -27,15 +27,6 @@ type FakeJobDB struct {
 		result1 db.SavedJob
 		result2 error
 	}
-	GetAllJobBuildsStub        func(job string) ([]db.Build, error)
-	getAllJobBuildsMutex       sync.RWMutex
-	getAllJobBuildsArgsForCall []struct {
-		job string
-	}
-	getAllJobBuildsReturns struct {
-		result1 []db.Build
-		result2 error
-	}
 	GetCurrentBuildStub        func(job string) (db.Build, error)
 	getCurrentBuildMutex       sync.RWMutex
 	getCurrentBuildArgsForCall []struct {
@@ -118,39 +109,6 @@ func (fake *FakeJobDB) GetJobReturns(result1 db.SavedJob, result2 error) {
 	fake.GetJobStub = nil
 	fake.getJobReturns = struct {
 		result1 db.SavedJob
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeJobDB) GetAllJobBuilds(job string) ([]db.Build, error) {
-	fake.getAllJobBuildsMutex.Lock()
-	fake.getAllJobBuildsArgsForCall = append(fake.getAllJobBuildsArgsForCall, struct {
-		job string
-	}{job})
-	fake.getAllJobBuildsMutex.Unlock()
-	if fake.GetAllJobBuildsStub != nil {
-		return fake.GetAllJobBuildsStub(job)
-	} else {
-		return fake.getAllJobBuildsReturns.result1, fake.getAllJobBuildsReturns.result2
-	}
-}
-
-func (fake *FakeJobDB) GetAllJobBuildsCallCount() int {
-	fake.getAllJobBuildsMutex.RLock()
-	defer fake.getAllJobBuildsMutex.RUnlock()
-	return len(fake.getAllJobBuildsArgsForCall)
-}
-
-func (fake *FakeJobDB) GetAllJobBuildsArgsForCall(i int) string {
-	fake.getAllJobBuildsMutex.RLock()
-	defer fake.getAllJobBuildsMutex.RUnlock()
-	return fake.getAllJobBuildsArgsForCall[i].job
-}
-
-func (fake *FakeJobDB) GetAllJobBuildsReturns(result1 []db.Build, result2 error) {
-	fake.GetAllJobBuildsStub = nil
-	fake.getAllJobBuildsReturns = struct {
-		result1 []db.Build
 		result2 error
 	}{result1, result2}
 }

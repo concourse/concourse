@@ -12,6 +12,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/web/getjob"
 	"github.com/concourse/atc/web/getresource"
 	"github.com/concourse/atc/web/routes"
 	"github.com/tedsuo/rata"
@@ -103,10 +104,27 @@ func PathFor(route string, args ...interface{}) (string, error) {
 		})
 
 	case routes.GetJob:
-		return routes.Routes.CreatePathForRoute(route, rata.Params{
+
+		baseJobURL, err := routes.Routes.CreatePathForRoute(route, rata.Params{
 			"pipeline_name": args[0].(string),
 			"job":           args[1].(atc.JobConfig).Name,
 		})
+		if err != nil {
+			return "", err
+		}
+
+		if len(args) > 2 {
+			paginationData := args[2].(getjob.PaginationData)
+			resultsGreaterThanStartingID := args[3].(bool)
+
+			if resultsGreaterThanStartingID {
+				baseJobURL += "?startingID=" + strconv.Itoa(paginationData.NewerStartID()) + "&resultsGreaterThanStartingID=true"
+			} else {
+				baseJobURL += "?startingID=" + strconv.Itoa(paginationData.OlderStartID()) + "&resultsGreaterThanStartingID=false"
+			}
+		}
+
+		return baseJobURL, nil
 
 	case atc.BuildEvents:
 		return atc.Routes.CreatePathForRoute(route, rata.Params{
