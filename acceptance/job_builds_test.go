@@ -132,6 +132,41 @@ var _ = Describe("Job Pausing", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 
+			Context("with more then 100 job builds", func() {
+				var testBuilds []db.Build
+
+				BeforeEach(func() {
+
+					for i := 0; i < 103; i++ {
+						build, err := pipelineDB.CreateJobBuild("job-name")
+						Ω(err).ShouldNot(HaveOccurred())
+						testBuilds = append(testBuilds, build)
+					}
+				})
+
+				It("can have paginated results", func() {
+					// homepage -> job detail w/build info
+					Expect(page.Navigate(homepage())).To(Succeed())
+					// we will need to authenticate later to prove it is working for our page
+					Authenticate(page, "admin", "password")
+					Eventually(page.FindByLink("job-name")).Should(BeFound())
+					Expect(page.FindByLink("job-name").Click()).To(Succeed())
+
+					// job detail w/build info -> job detail
+					Expect(page.Find("h1 a").Click()).To(Succeed())
+					Expect(page).Should(HaveURL(withPath("jobs/job-name")))
+					Expect(page.All(".js-build").Count()).Should(Equal(100))
+
+					Expect(page.Find(".pagination .fa-arrow-left")).ShouldNot(BeFound())
+					Expect(page.First(".pagination .fa-arrow-right").Click()).To(Succeed())
+					Expect(page.All(".js-build").Count()).Should(Equal(4))
+
+					Expect(page.Find(".pagination .fa-arrow-right")).ShouldNot(BeFound())
+					Expect(page.First(".pagination .fa-arrow-left").Click()).To(Succeed())
+					Expect(page.All(".js-build").Count()).Should(Equal(100))
+				})
+			})
+
 			It("can view the resource information of a job build", func() {
 				// homepage -> job detail w/build info
 				Expect(page.Navigate(homepage())).To(Succeed())

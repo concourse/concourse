@@ -45,6 +45,8 @@ type PipelineDB interface {
 
 	GetJobFinishedAndNextBuild(job string) (*Build, *Build, error)
 
+	GetJobBuildsCursor(jobName string, startingID int, resultsGreaterThanStartingID bool, limit int) ([]Build, bool, error)
+	GetJobBuildsMaxID(jobName string) (int, error)
 	GetAllJobBuilds(job string) ([]Build, error)
 	GetJobBuild(job string, build string) (Build, error)
 	CreateJobBuild(job string) (Build, error)
@@ -1746,6 +1748,85 @@ func (pdb *pipelineDB) updatePausedJob(job string, pause bool) error {
 	}
 
 	return tx.Commit()
+}
+
+func (pdb *pipelineDB) GetJobBuildsMaxID(jobName string) (int, error) {
+	var id int
+
+	err := pdb.conn.QueryRow(`
+		SELECT COALESCE(MAX(b.id), 0) as id
+		FROM builds b
+		INNER JOIN jobs j ON b.job_id = j.id
+		WHERE j.name = $1
+			AND j.pipeline_id = $2
+		`, jobName, pdb.ID).Scan(&id)
+
+	return id, err
+}
+
+func (pdb *pipelineDB) GetJobBuildsCursor(jobName string, startingID int, resultsGreaterThanStartingID bool, limit int) ([]Build, bool, error) {
+	var rows *sql.Rows
+	var err error
+
+	if resultsGreaterThanStartingID {
+		rows, err = pdb.conn.Query(`
+			SELECT sub.*
+			FROM (
+				SELECT `+qualifiedBuildColumns+`
+				FROM builds b
+				INNER JOIN jobs j ON b.job_id = j.id
+				INNER JOIN pipelines p ON j.pipeline_id = p.id
+				WHERE j.name = $1
+					AND j.pipeline_id = $2
+					AND b.id >= $3
+				ORDER BY b.id ASC
+				LIMIT $4
+			) sub
+			ORDER BY sub.id DESC
+		`, jobName, pdb.ID, startingID, limit+1)
+	} else {
+		rows, err = pdb.conn.Query(`
+			SELECT `+qualifiedBuildColumns+`
+			FROM builds b
+			INNER JOIN jobs j ON b.job_id = j.id
+			INNER JOIN pipelines p ON j.pipeline_id = p.id
+			WHERE j.name = $1
+				AND j.pipeline_id = $2
+				AND b.id <= $3
+			ORDER BY b.id DESC
+			LIMIT $4
+		`, jobName, pdb.ID, startingID, limit+1)
+	}
+
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer rows.Close()
+
+	bs := []Build{}
+
+	for rows.Next() {
+		build, err := pdb.scanBuild(rows)
+		if err != nil {
+			return nil, false, err
+		}
+
+		bs = append(bs, build)
+	}
+
+	var moreResultsInGivenDirection bool
+
+	if len(bs) > limit && limit != 0 {
+		if resultsGreaterThanStartingID {
+			bs = bs[1:]
+		} else {
+			bs = bs[0:limit]
+		}
+		moreResultsInGivenDirection = true
+	}
+
+	return bs, moreResultsInGivenDirection, nil
 }
 
 func (pdb *pipelineDB) GetAllJobBuilds(job string) ([]Build, error) {

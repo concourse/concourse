@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web"
+	"github.com/concourse/atc/web/getjob"
 	"github.com/concourse/atc/web/getresource"
 	"github.com/concourse/atc/web/routes"
 )
@@ -52,15 +53,39 @@ var _ = Describe("URLs", func() {
 	})
 
 	Describe("Jobs Patch", func() {
-		It("returns the correct URL", func() {
-			job := atc.JobConfig{
-				Name: "some-job",
-			}
 
-			path, err := web.PathFor(routes.GetJob, "another-pipeline", job)
-			Ω(err).ShouldNot(HaveOccurred())
+		Context("without pagination data", func() {
+			It("returns the correct URL", func() {
+				job := atc.JobConfig{
+					Name: "some-job",
+				}
 
-			Ω(path).Should(Equal("/pipelines/another-pipeline/jobs/some-job"))
+				path, err := web.PathFor(routes.GetJob, "another-pipeline", job)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(path).Should(Equal("/pipelines/another-pipeline/jobs/some-job"))
+
+			})
+		})
+
+		Context("with pagination data", func() {
+			It("returns the correct URL", func() {
+				paginationData := getjob.NewPaginationData(false, false, 0, 29, 21)
+				job := atc.JobConfig{
+					Name: "some-job",
+				}
+
+				path, err := web.PathFor(routes.GetJob, "another-pipeline", job, paginationData, false)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(path).Should(Equal("/pipelines/another-pipeline/jobs/some-job?startingID=20&resultsGreaterThanStartingID=false"))
+
+				path, err = web.PathFor(routes.GetJob, "another-pipeline", job, paginationData, true)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(path).Should(Equal("/pipelines/another-pipeline/jobs/some-job?startingID=30&resultsGreaterThanStartingID=true"))
+			})
+
 		})
 	})
 
