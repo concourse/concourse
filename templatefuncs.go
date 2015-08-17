@@ -12,8 +12,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/web/getjob"
-	"github.com/concourse/atc/web/getresource"
+	"github.com/concourse/atc/web/pagination"
 	"github.com/concourse/atc/web/routes"
 	"github.com/tedsuo/rata"
 )
@@ -80,12 +79,12 @@ func PathFor(route string, args ...interface{}) (string, error) {
 		}
 
 		newer := args[3].(bool)
-		paginationData := args[2].(getresource.PaginationData)
+		paginationData := args[2].(pagination.PaginationData)
 
 		if newer {
-			baseResourceURL += "?id=" + strconv.Itoa(paginationData.NewerStartID) + "&newer=true"
+			baseResourceURL += "?id=" + strconv.Itoa(paginationData.NewerStartID()) + "&newer=true"
 		} else {
-			baseResourceURL += "?id=" + strconv.Itoa(paginationData.OlderStartID) + "&newer=false"
+			baseResourceURL += "?id=" + strconv.Itoa(paginationData.OlderStartID()) + "&newer=false"
 		}
 
 		return baseResourceURL, nil
@@ -114,7 +113,7 @@ func PathFor(route string, args ...interface{}) (string, error) {
 		}
 
 		if len(args) > 2 {
-			paginationData := args[2].(getjob.PaginationData)
+			paginationData := args[2].(pagination.PaginationData)
 			resultsGreaterThanStartingID := args[3].(bool)
 
 			if resultsGreaterThanStartingID {

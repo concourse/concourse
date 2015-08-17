@@ -9,8 +9,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web"
-	"github.com/concourse/atc/web/getjob"
-	"github.com/concourse/atc/web/getresource"
+	"github.com/concourse/atc/web/pagination"
 	"github.com/concourse/atc/web/routes"
 )
 
@@ -70,7 +69,7 @@ var _ = Describe("URLs", func() {
 
 		Context("with pagination data", func() {
 			It("returns the correct URL", func() {
-				paginationData := getjob.NewPaginationData(false, false, 0, 29, 21)
+				paginationData := pagination.NewPaginationData(false, false, 0, 29, 21)
 				job := atc.JobConfig{
 					Name: "some-job",
 				}
@@ -92,23 +91,23 @@ var _ = Describe("URLs", func() {
 	Describe("Resources Path", func() {
 		Context("older links", func() {
 			It("can generate them", func() {
-				paginationData := getresource.PaginationData{OlderStartID: 25}
+				paginationData := pagination.NewPaginationData(false, false, 0, 29, 21)
 
 				path, err := web.PathFor(routes.GetResource, "another-pipeline", "some-resource", paginationData, false)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(path).Should(Equal("/pipelines/another-pipeline/resources/some-resource?id=25&newer=false"))
+				Ω(path).Should(Equal("/pipelines/another-pipeline/resources/some-resource?id=20&newer=false"))
 			})
 		})
 
 		Context("newer links", func() {
 			It("can generate them", func() {
-				paginationData := getresource.PaginationData{NewerStartID: 25}
+				paginationData := pagination.NewPaginationData(false, false, 0, 29, 21)
 
 				path, err := web.PathFor(routes.GetResource, "another-pipeline", "some-resource", paginationData, true)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(path).Should(Equal("/pipelines/another-pipeline/resources/some-resource?id=25&newer=true"))
+				Ω(path).Should(Equal("/pipelines/another-pipeline/resources/some-resource?id=30&newer=true"))
 			})
 		})
 	})

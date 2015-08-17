@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web/group"
+	"github.com/concourse/atc/web/pagination"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -46,7 +47,7 @@ type TemplateData struct {
 	CurrentBuild db.Build
 	PipelineName string
 
-	PaginationData PaginationData
+	PaginationData pagination.PaginationData
 }
 
 //go:generate counterfeiter . JobDB
@@ -62,7 +63,7 @@ type JobDB interface {
 //go:generate counterfeiter . JobBuildsPaginator
 
 type JobBuildsPaginator interface {
-	PaginateJobBuilds(job string, startingJobBuildID int, newerJobBuilds bool) ([]db.Build, PaginationData, error)
+	PaginateJobBuilds(job string, startingJobBuildID int, newerJobBuilds bool) ([]db.Build, pagination.PaginationData, error)
 }
 
 var ErrJobConfigNotFound = errors.New("could not find job")

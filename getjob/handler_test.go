@@ -13,6 +13,7 @@ import (
 
 	. "github.com/concourse/atc/web/getjob"
 	"github.com/concourse/atc/web/getjob/fakes"
+	"github.com/concourse/atc/web/pagination"
 )
 
 var _ = Describe("FetchTemplateData", func() {
@@ -81,7 +82,7 @@ var _ = Describe("FetchTemplateData", func() {
 
 			Context("when the job builds lookup returns an error", func() {
 				It("returns an error if the jobs's builds could not be retreived", func() {
-					fakePaginator.PaginateJobBuildsReturns([]db.Build{}, PaginationData{}, errors.New("disaster"))
+					fakePaginator.PaginateJobBuildsReturns([]db.Build{}, pagination.PaginationData{}, errors.New("disaster"))
 					_, err := FetchTemplateData(fakeDB, fakePaginator, "job-name", 0, false)
 					Ω(err).Should(HaveOccurred())
 				})
@@ -90,7 +91,7 @@ var _ = Describe("FetchTemplateData", func() {
 			Context("when the job builds lookup returns a build", func() {
 				var buildsWithResources []BuildWithInputsOutputs
 				var builds []db.Build
-				var paginationData PaginationData
+				var paginationData pagination.PaginationData
 
 				BeforeEach(func() {
 					endTime := time.Now()
@@ -112,7 +113,7 @@ var _ = Describe("FetchTemplateData", func() {
 						},
 					}
 
-					paginationData = NewPaginationData(true, false, 0, 0, 0)
+					paginationData = pagination.NewPaginationData(true, false, 0, 0, 0)
 					fakePaginator.PaginateJobBuildsReturns(builds, paginationData, nil)
 				})
 

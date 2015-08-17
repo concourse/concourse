@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web/group"
+	"github.com/concourse/atc/web/pagination"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -43,15 +44,7 @@ type TemplateData struct {
 	GroupStates  []group.State
 	PipelineName string
 
-	PaginationData PaginationData
-}
-
-type PaginationData struct {
-	HasPagination bool
-	HasOlder      bool
-	HasNewer      bool
-	OlderStartID  int
-	NewerStartID  int
+	PaginationData pagination.PaginationData
 }
 
 //go:generate counterfeiter . ResourcesDB
@@ -66,7 +59,7 @@ type ResourcesDB interface {
 
 var ErrResourceConfigNotFound = errors.New("could not find resource")
 
-func FetchTemplateData(resourceDB ResourcesDB, authenticated bool, resourceName string, id int, newerResourceVersions bool) (TemplateData, error) {
+func FetchTemplateData(resourceDB ResourcesDB, authenticated bool, resourceName string, startingID int, resultsGreaterThanStartingID bool) (TemplateData, error) {
 	config, _, err := resourceDB.GetConfig()
 	if err != nil {
 		return TemplateData{}, err
@@ -87,45 +80,36 @@ func FetchTemplateData(resourceDB ResourcesDB, authenticated bool, resourceName 
 		return TemplateData{}, err
 	}
 
-	startingID := maxID
-
-	if id < maxID && id != 0 {
-		startingID = id
+	if startingID == 0 && !resultsGreaterThanStartingID {
+		startingID = maxID
 	}
 
-	history, hasNext, err := resourceDB.GetResourceHistoryCursor(configResource.Name, startingID, newerResourceVersions, 100)
+	history, moreResultsInGivenDirection, err := resourceDB.GetResourceHistoryCursor(configResource.Name, startingID, resultsGreaterThanStartingID, 100)
 	if err != nil {
 		return TemplateData{}, err
 	}
 
-	resource := present.Resource(configResource, config.Groups, dbResource, authenticated)
-
-	maxIDFromResults := maxID
-	var olderStartID int
-	var newerStartID int
+	var paginationData pagination.PaginationData
 
 	if len(history) > 0 {
-		maxIDFromResults = history[0].VersionedResource.ID
-		minIDFromResults := history[len(history)-1].VersionedResource.ID
-		olderStartID = minIDFromResults - 1
-		newerStartID = maxIDFromResults + 1
+		paginationData = pagination.NewPaginationData(
+			resultsGreaterThanStartingID,
+			moreResultsInGivenDirection,
+			maxID,
+			history[0].VersionedResource.ID,
+			history[len(history)-1].VersionedResource.ID,
+		)
+	} else {
+		paginationData = pagination.PaginationData{}
 	}
 
-	hasNewer := maxID > maxIDFromResults
-	hasOlder := newerResourceVersions || hasNext
-	hasPagination := hasOlder || hasNewer
+	resource := present.Resource(configResource, config.Groups, dbResource, authenticated)
 
 	templateData := TemplateData{
-		Resource: resource,
-		History:  history,
-		PaginationData: PaginationData{
-			HasPagination: hasPagination,
-			HasOlder:      hasOlder,
-			HasNewer:      hasNewer,
-			OlderStartID:  olderStartID,
-			NewerStartID:  newerStartID,
-		},
-		PipelineName: resourceDB.GetPipelineName(),
+		Resource:       resource,
+		History:        history,
+		PaginationData: paginationData,
+		PipelineName:   resourceDB.GetPipelineName(),
 		GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
 			for _, groupResource := range g.Resources {
 				if groupResource == configResource.Name {
@@ -146,20 +130,20 @@ func (server *server) GetResource(pipelineDB db.PipelineDB) http.Handler {
 
 		resourceName := r.FormValue(":resource")
 
-		id, parseErr := strconv.Atoi(r.FormValue("id"))
+		startingID, parseErr := strconv.Atoi(r.FormValue("id"))
 		if parseErr != nil {
 			server.logger.Info("cannot-parse-id-to-int", lager.Data{"id": r.FormValue("id")})
-			id = 0
+			startingID = 0
 		}
 
-		newerResourceVersions, parseErr := strconv.ParseBool(r.FormValue("newer"))
+		resultsGreaterThanStartingID, parseErr := strconv.ParseBool(r.FormValue("newer"))
 		if parseErr != nil {
-			newerResourceVersions = false
+			resultsGreaterThanStartingID = false
 			server.logger.Info("cannot-parse-newer-to-bool", lager.Data{"newer": r.FormValue("newer")})
 		}
 
 		authenticated := server.validator.IsAuthenticated(r)
-		templateData, err := FetchTemplateData(pipelineDB, authenticated, resourceName, id, newerResourceVersions)
+		templateData, err := FetchTemplateData(pipelineDB, authenticated, resourceName, startingID, resultsGreaterThanStartingID)
 
 		switch err {
 		case ErrResourceConfigNotFound:

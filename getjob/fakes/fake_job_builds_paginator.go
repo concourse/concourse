@@ -6,10 +6,11 @@ import (
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web/getjob"
+	"github.com/concourse/atc/web/pagination"
 )
 
 type FakeJobBuildsPaginator struct {
-	PaginateJobBuildsStub        func(job string, startingJobBuildID int, newerJobBuilds bool) ([]db.Build, getjob.PaginationData, error)
+	PaginateJobBuildsStub        func(job string, startingJobBuildID int, newerJobBuilds bool) ([]db.Build, pagination.PaginationData, error)
 	paginateJobBuildsMutex       sync.RWMutex
 	paginateJobBuildsArgsForCall []struct {
 		job                string
@@ -18,12 +19,12 @@ type FakeJobBuildsPaginator struct {
 	}
 	paginateJobBuildsReturns struct {
 		result1 []db.Build
-		result2 getjob.PaginationData
+		result2 pagination.PaginationData
 		result3 error
 	}
 }
 
-func (fake *FakeJobBuildsPaginator) PaginateJobBuilds(job string, startingJobBuildID int, newerJobBuilds bool) ([]db.Build, getjob.PaginationData, error) {
+func (fake *FakeJobBuildsPaginator) PaginateJobBuilds(job string, startingJobBuildID int, newerJobBuilds bool) ([]db.Build, pagination.PaginationData, error) {
 	fake.paginateJobBuildsMutex.Lock()
 	fake.paginateJobBuildsArgsForCall = append(fake.paginateJobBuildsArgsForCall, struct {
 		job                string
@@ -50,11 +51,11 @@ func (fake *FakeJobBuildsPaginator) PaginateJobBuildsArgsForCall(i int) (string,
 	return fake.paginateJobBuildsArgsForCall[i].job, fake.paginateJobBuildsArgsForCall[i].startingJobBuildID, fake.paginateJobBuildsArgsForCall[i].newerJobBuilds
 }
 
-func (fake *FakeJobBuildsPaginator) PaginateJobBuildsReturns(result1 []db.Build, result2 getjob.PaginationData, result3 error) {
+func (fake *FakeJobBuildsPaginator) PaginateJobBuildsReturns(result1 []db.Build, result2 pagination.PaginationData, result3 error) {
 	fake.PaginateJobBuildsStub = nil
 	fake.paginateJobBuildsReturns = struct {
 		result1 []db.Build
-		result2 getjob.PaginationData
+		result2 pagination.PaginationData
 		result3 error
 	}{result1, result2, result3}
 }
