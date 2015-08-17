@@ -2,6 +2,7 @@ package getjob
 
 import (
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/web/pagination"
 )
 
 type Paginator struct {
@@ -14,8 +15,8 @@ type JobPaginatorDB interface {
 	GetJobBuildsMaxID(jobName string) (int, error)
 }
 
-func (p Paginator) PaginateJobBuilds(jobName string, startingJobBuildID int, resultsGreaterThanStartingID bool) ([]db.Build, PaginationData, error) {
-	var paginationData PaginationData
+func (p Paginator) PaginateJobBuilds(jobName string, startingJobBuildID int, resultsGreaterThanStartingID bool) ([]db.Build, pagination.PaginationData, error) {
+	var paginationData pagination.PaginationData
 
 	maxID, _ := p.PaginatorDB.GetJobBuildsMaxID(jobName)
 
@@ -25,11 +26,11 @@ func (p Paginator) PaginateJobBuilds(jobName string, startingJobBuildID int, res
 
 	builds, moreResultsInGivenDirection, err := p.PaginatorDB.GetJobBuildsCursor(jobName, startingJobBuildID, resultsGreaterThanStartingID, 100)
 	if err != nil {
-		return []db.Build{}, PaginationData{}, err
+		return []db.Build{}, pagination.PaginationData{}, err
 	}
 
 	if len(builds) > 0 {
-		paginationData = NewPaginationData(
+		paginationData = pagination.NewPaginationData(
 			resultsGreaterThanStartingID,
 			moreResultsInGivenDirection,
 			maxID,
@@ -37,52 +38,8 @@ func (p Paginator) PaginateJobBuilds(jobName string, startingJobBuildID int, res
 			builds[len(builds)-1].ID,
 		)
 	} else {
-		paginationData = PaginationData{}
+		paginationData = pagination.PaginationData{}
 	}
 
 	return builds, paginationData, nil
-}
-
-func NewPaginationData(
-	resultsGreaterThanStartingID bool,
-	moreResultsInGivenDirection bool,
-	dbMaxID int,
-	maxIDFromResults int,
-	minIDFromResults int,
-) PaginationData {
-	return PaginationData{
-		resultsGreaterThanStartingID: resultsGreaterThanStartingID,
-		moreResultsInGivenDirection:  moreResultsInGivenDirection,
-		dbMaxID:                      dbMaxID,
-		maxIDFromResults:             maxIDFromResults,
-		minIDFromResults:             minIDFromResults,
-	}
-}
-
-type PaginationData struct {
-	resultsGreaterThanStartingID bool
-	moreResultsInGivenDirection  bool
-	dbMaxID                      int
-	maxIDFromResults             int
-	minIDFromResults             int
-}
-
-func (pd PaginationData) HasOlder() bool {
-	return pd.resultsGreaterThanStartingID || pd.moreResultsInGivenDirection
-}
-
-func (pd PaginationData) HasNewer() bool {
-	return pd.dbMaxID > pd.maxIDFromResults
-}
-
-func (pd PaginationData) HasPagination() bool {
-	return pd.HasNewer() || pd.HasOlder()
-}
-
-func (pd PaginationData) NewerStartID() int {
-	return pd.maxIDFromResults + 1
-}
-
-func (pd PaginationData) OlderStartID() int {
-	return pd.minIDFromResults - 1
 }

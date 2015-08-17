@@ -117,49 +117,6 @@ var _ = Describe("FetchTemplateData", func() {
 					})
 
 					Context("when looking up the max id succeeds", func() {
-
-						Context("when there are less than 100 results", func() {
-							BeforeEach(func() {
-								fakeDB.GetResourceHistoryMaxIDReturns(90, nil)
-
-								history = []*db.VersionHistory{
-									&db.VersionHistory{
-										VersionedResource: db.SavedVersionedResource{
-											ID: 90,
-											VersionedResource: db.VersionedResource{
-												Resource: "resource-name",
-											},
-										},
-									},
-									&db.VersionHistory{
-										VersionedResource: db.SavedVersionedResource{
-											ID: 1,
-											VersionedResource: db.VersionedResource{
-												Resource: "resource-name",
-											},
-										},
-									},
-								}
-
-								fakeDB.GetResourceHistoryCursorReturns(history, false, nil)
-							})
-
-							It("does not have pagination", func() {
-								templateData, err := FetchTemplateData(fakeDB, false, "resource-name", 0, false)
-								Ω(err).ShouldNot(HaveOccurred())
-
-								Ω(fakeDB.GetResourceHistoryCursorCallCount()).Should(Equal(1))
-								resourceName, startingID, searchUpwards, numResults := fakeDB.GetResourceHistoryCursorArgsForCall(0)
-								Ω(resourceName).Should(Equal("resource-name"))
-								Ω(startingID).Should(Equal(90))
-								Ω(searchUpwards).Should(BeFalse())
-								Ω(numResults).Should(Equal(100))
-								Ω(templateData.PaginationData.HasPagination).Should(BeFalse())
-								Ω(templateData.PaginationData.HasOlder).Should(BeFalse())
-								Ω(templateData.PaginationData.HasNewer).Should(BeFalse())
-							})
-						})
-
 						Context("when there are more than 100 results", func() {
 							const MaxID int = 150
 
@@ -199,122 +156,7 @@ var _ = Describe("FetchTemplateData", func() {
 									Ω(startingID).Should(Equal(MaxID))
 									Ω(searchUpwards).Should(BeFalse())
 									Ω(numResults).Should(Equal(100))
-									Ω(templateData.PaginationData.HasPagination).Should(BeTrue())
-								})
-							})
-
-							Context("when the passed in id is greater than the max id", func() {
-								It("uses the max id to pull history", func() {
-									templateData, err := FetchTemplateData(fakeDB, false, "resource-name", MaxID+1, false)
-									Ω(err).ShouldNot(HaveOccurred())
-
-									Ω(fakeDB.GetResourceHistoryCursorCallCount()).Should(Equal(1))
-									resourceName, startingID, searchUpwards, numResults := fakeDB.GetResourceHistoryCursorArgsForCall(0)
-									Ω(resourceName).Should(Equal("resource-name"))
-									Ω(startingID).Should(Equal(MaxID))
-									Ω(searchUpwards).Should(BeFalse())
-									Ω(numResults).Should(Equal(100))
-									Ω(templateData.PaginationData.HasPagination).Should(BeTrue())
-								})
-							})
-
-							Context("when there is a non-0 id less than the max id is passed in", func() {
-
-								Context("when returning results decreasing from the passed in id", func() {
-									BeforeEach(func() {
-										history = []*db.VersionHistory{
-											&db.VersionHistory{
-												VersionedResource: db.SavedVersionedResource{
-													ID: 123,
-													VersionedResource: db.VersionedResource{
-														Resource: "resource-name",
-													},
-												},
-											},
-											&db.VersionHistory{
-												VersionedResource: db.SavedVersionedResource{
-													ID: 24,
-													VersionedResource: db.VersionedResource{
-														Resource: "resource-name",
-													},
-												},
-											},
-										}
-
-										fakeDB.GetResourceHistoryCursorReturns(history, true, nil)
-									})
-
-									It("uses the passed in id and direction to pull history", func() {
-										templateData, err := FetchTemplateData(fakeDB, false, "resource-name", 123, false)
-										Ω(err).ShouldNot(HaveOccurred())
-
-										Ω(fakeDB.GetResourceHistoryCursorCallCount()).Should(Equal(1))
-										resourceName, startingID, searchUpwards, numResults := fakeDB.GetResourceHistoryCursorArgsForCall(0)
-										Ω(resourceName).Should(Equal("resource-name"))
-										Ω(startingID).Should(Equal(123))
-										Ω(searchUpwards).Should(BeFalse())
-										Ω(numResults).Should(Equal(100))
-										Ω(templateData.PaginationData.HasPagination).Should(BeTrue())
-										Ω(templateData.PaginationData.HasNewer).Should(BeTrue())
-										Ω(templateData.PaginationData.NewerStartID).Should(Equal(124))
-										Ω(templateData.PaginationData.HasOlder).Should(BeTrue())
-										Ω(templateData.PaginationData.OlderStartID).Should(Equal(23))
-									})
-								})
-
-								Context("when returning results increasing from the passed in id", func() {
-									BeforeEach(func() {
-										history = []*db.VersionHistory{
-											&db.VersionHistory{
-												VersionedResource: db.SavedVersionedResource{
-													ID: 150,
-													VersionedResource: db.VersionedResource{
-														Resource: "resource-name",
-													},
-												},
-											},
-											&db.VersionHistory{
-												VersionedResource: db.SavedVersionedResource{
-													ID: 123,
-													VersionedResource: db.VersionedResource{
-														Resource: "resource-name",
-													},
-												},
-											},
-										}
-
-										fakeDB.GetResourceHistoryCursorReturns(history, false, nil)
-									})
-
-									It("uses the passed in id and direction to pull history", func() {
-										templateData, err := FetchTemplateData(fakeDB, false, "resource-name", 123, true)
-										Ω(err).ShouldNot(HaveOccurred())
-
-										Ω(fakeDB.GetResourceHistoryCursorCallCount()).Should(Equal(1))
-										resourceName, startingID, searchUpwards, numResults := fakeDB.GetResourceHistoryCursorArgsForCall(0)
-										Ω(resourceName).Should(Equal("resource-name"))
-										Ω(startingID).Should(Equal(123))
-										Ω(searchUpwards).Should(BeTrue())
-										Ω(numResults).Should(Equal(100))
-										Ω(templateData.PaginationData.HasPagination).Should(BeTrue())
-										Ω(templateData.PaginationData.HasNewer).Should(BeFalse())
-										Ω(templateData.PaginationData.HasOlder).Should(BeTrue())
-										Ω(templateData.PaginationData.OlderStartID).Should(Equal(122))
-									})
-								})
-							})
-
-							Context("when there are older results still to display", func() {
-								BeforeEach(func() {
-									fakeDB.GetResourceHistoryCursorReturns(history, true, nil)
-								})
-
-								It("indicates there is a next page in pagination", func() {
-									templateData, err := FetchTemplateData(fakeDB, false, "resource-name", 123, false)
-									Ω(err).ShouldNot(HaveOccurred())
-
-									Ω(templateData.PaginationData.HasPagination).Should(BeTrue())
-									Ω(templateData.PaginationData.HasOlder).Should(BeTrue())
+									Ω(templateData.PaginationData.HasPagination()).Should(BeTrue())
 								})
 							})
 
@@ -341,7 +183,7 @@ var _ = Describe("FetchTemplateData", func() {
 									FailingToCheck: true,
 									CheckError:     "a disaster!",
 								}))
-								Ω(templateData.PaginationData.HasPagination).Should(BeTrue())
+								Ω(templateData.PaginationData.HasPagination()).Should(BeTrue())
 							})
 						})
 					})
