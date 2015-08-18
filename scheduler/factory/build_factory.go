@@ -7,17 +7,35 @@ import (
 
 const defaultTaskName = "build"
 
-type BuildFactory struct {
-	PipelineName string
+//go:generate counterfeiter . BuildFactory
+
+type BuildFactory interface {
+	Create(atc.JobConfig,
+		atc.ResourceConfigs,
+		[]db.BuildInput,
+	) (atc.Plan, error)
 }
 
-func (factory *BuildFactory) Create(
+type buildFactory struct {
+	PipelineName      string
+	LocationPopulator LocationPopulator
+}
+
+func NewBuildFactory(pipelineName string, lp LocationPopulator) BuildFactory {
+	return &buildFactory{
+		PipelineName: pipelineName,
+		// LocationPopulator: NewLocationPopulator(),
+		LocationPopulator: lp,
+	}
+}
+
+func (factory *buildFactory) Create(
 	job atc.JobConfig,
 	resources atc.ResourceConfigs,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
 
-	populateLocations(&job.Plan)
+	factory.LocationPopulator.PopulateLocations(&job.Plan)
 
 	plan := factory.constructPlanHookBasedPlan(
 		job.Plan,
@@ -26,7 +44,7 @@ func (factory *BuildFactory) Create(
 	return plan, nil
 }
 
-func (factory *BuildFactory) doesAnyStepMatch(planSequence atc.PlanSequence, predicate func(step atc.PlanConfig) bool) bool {
+func (factory *buildFactory) doesAnyStepMatch(planSequence atc.PlanSequence, predicate func(step atc.PlanConfig) bool) bool {
 	for _, planStep := range planSequence {
 		if planStep.Aggregate != nil {
 			if factory.doesAnyStepMatch(*planStep.Aggregate, predicate) {
@@ -48,7 +66,7 @@ func (factory *BuildFactory) doesAnyStepMatch(planSequence atc.PlanSequence, pre
 	return false
 }
 
-func (factory *BuildFactory) constructPlanHookBasedPlan(
+func (factory *buildFactory) constructPlanHookBasedPlan(
 	planSequence atc.PlanSequence,
 	resources atc.ResourceConfigs,
 	inputs []db.BuildInput,
@@ -89,137 +107,7 @@ func (factory *BuildFactory) constructPlanHookBasedPlan(
 	}
 }
 
-func populateLocations(planSequence *atc.PlanSequence) {
-	p := *planSequence
-	stepCount := uint(1)
-
-	for i := 0; i < len(p); i++ {
-		plan := p[i]
-		location := &atc.Location{
-			ID:            stepCount,
-			ParentID:      0,
-			ParallelGroup: 0,
-		}
-		stepCount = stepCount + populatePlanLocations(&plan, location)
-		p[i] = plan
-	}
-}
-
-func populatePlanLocations(planConfig *atc.PlanConfig, location *atc.Location) uint {
-	var stepCount uint
-	var parentID uint
-
-	parentID = location.ID
-	switch {
-	case planConfig.Put != "":
-		planConfig.Location = location
-		// offset by one for the dependent get that will be added
-		stepCount = stepCount + 1
-
-	case planConfig.Do != nil:
-		// TODO: Do we actually need to increment these two here? See aggregate location.
-		serialGroup := location.ID + 1
-		stepCount += 1
-
-		if location.SerialGroup != 0 {
-			location.ParentID = location.SerialGroup
-		}
-
-		children := *planConfig.Do
-		for i := 0; i < len(children); i++ {
-			child := children[i]
-			childLocation := &atc.Location{
-				ID:            location.ID + stepCount + 1,
-				ParentID:      location.ParentID,
-				ParallelGroup: location.ParallelGroup,
-				SerialGroup:   serialGroup,
-			}
-
-			if child.Do == nil {
-				childLocation.Hook = location.Hook
-			}
-
-			stepCount = stepCount + populatePlanLocations(&child, childLocation)
-			children[i] = child
-		}
-
-		parentID = serialGroup
-
-	case planConfig.Try != nil:
-		childLocation := &atc.Location{
-			ID:            location.ID + stepCount + 1,
-			ParentID:      location.ParentID,
-			ParallelGroup: 0,
-			Hook:          location.Hook,
-		}
-		stepCount = stepCount + populatePlanLocations(planConfig.Try, childLocation)
-
-	case planConfig.Aggregate != nil:
-		// TODO: Do we actually need to increment these two here? See do location.
-		parallelGroup := location.ID + 1
-		stepCount += 1
-
-		if location.ParallelGroup != 0 {
-			location.ParentID = location.ParallelGroup
-		}
-
-		children := *planConfig.Aggregate
-		for i := 0; i < len(children); i++ {
-			child := children[i]
-			childLocation := &atc.Location{
-				ID:            location.ID + stepCount + 1,
-				ParentID:      location.ParentID,
-				ParallelGroup: parallelGroup,
-				SerialGroup:   location.SerialGroup,
-			}
-
-			if child.Aggregate == nil && child.Do == nil {
-				childLocation.Hook = location.Hook
-			}
-
-			stepCount = stepCount + populatePlanLocations(&child, childLocation)
-			children[i] = child
-		}
-
-		parentID = parallelGroup
-	default:
-		planConfig.Location = location
-	}
-
-	if planConfig.Failure != nil {
-		child := planConfig.Failure
-		childLocation := &atc.Location{
-			ID:            location.ID + stepCount + 1,
-			ParentID:      parentID,
-			ParallelGroup: 0,
-			Hook:          "failure",
-		}
-		stepCount = stepCount + populatePlanLocations(child, childLocation)
-	}
-	if planConfig.Success != nil {
-		child := planConfig.Success
-		childLocation := &atc.Location{
-			ID:            location.ID + stepCount + 1,
-			ParentID:      parentID,
-			ParallelGroup: 0,
-			Hook:          "success",
-		}
-		stepCount = stepCount + populatePlanLocations(child, childLocation)
-	}
-	if planConfig.Ensure != nil {
-		child := planConfig.Ensure
-		childLocation := &atc.Location{
-			ID:            location.ID + stepCount + 1,
-			ParentID:      parentID,
-			ParallelGroup: 0,
-			Hook:          "ensure",
-		}
-		stepCount = stepCount + populatePlanLocations(child, childLocation)
-	}
-	return stepCount + 1
-}
-
-func (factory *BuildFactory) constructPlanSequenceBasedPlan(
+func (factory *buildFactory) constructPlanSequenceBasedPlan(
 	planSequence atc.PlanSequence,
 	resources atc.ResourceConfigs,
 	inputs []db.BuildInput,
@@ -244,7 +132,7 @@ func (factory *BuildFactory) constructPlanSequenceBasedPlan(
 	return plan
 }
 
-func (factory *BuildFactory) constructPlanFromConfig(
+func (factory *buildFactory) constructPlanFromConfig(
 	planConfig atc.PlanConfig,
 	resources atc.ResourceConfigs,
 	inputs []db.BuildInput,
@@ -439,7 +327,7 @@ type constructionParams struct {
 	hasHooks   bool
 }
 
-func (factory *BuildFactory) successIfPresent(constructionParams constructionParams) constructionParams {
+func (factory *buildFactory) successIfPresent(constructionParams constructionParams) constructionParams {
 	if constructionParams.planConfig.Success != nil {
 
 		nextPlan := factory.constructPlanFromConfig(
@@ -458,7 +346,7 @@ func (factory *BuildFactory) successIfPresent(constructionParams constructionPar
 	return constructionParams
 }
 
-func (factory *BuildFactory) failureIfPresent(constructionParams constructionParams) constructionParams {
+func (factory *buildFactory) failureIfPresent(constructionParams constructionParams) constructionParams {
 	if constructionParams.planConfig.Failure != nil {
 		nextPlan := factory.constructPlanFromConfig(
 			*constructionParams.planConfig.Failure,
@@ -477,7 +365,7 @@ func (factory *BuildFactory) failureIfPresent(constructionParams constructionPar
 	return constructionParams
 }
 
-func (factory *BuildFactory) ensureIfPresent(constructionParams constructionParams) constructionParams {
+func (factory *buildFactory) ensureIfPresent(constructionParams constructionParams) constructionParams {
 	if constructionParams.planConfig.Ensure != nil {
 		nextPlan := factory.constructPlanFromConfig(
 			*constructionParams.planConfig.Ensure,

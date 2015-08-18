@@ -60,7 +60,7 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB) *sche
 	return &scheduler.Scheduler{
 		PipelineDB: pipelineDB,
 		BuildsDB:   rsf.db,
-		Factory:    &factory.BuildFactory{PipelineName: pipelineDB.GetPipelineName()},
+		Factory:    factory.NewBuildFactory(pipelineDB.GetPipelineName(), factory.NewLocationPopulator()),
 		Engine:     rsf.engine,
 		Scanner:    radar,
 	}

@@ -2,7 +2,8 @@ package factory_test
 
 import (
 	"github.com/concourse/atc"
-	. "github.com/concourse/atc/scheduler/factory"
+	"github.com/concourse/atc/scheduler/factory"
+	"github.com/concourse/atc/scheduler/factory/fakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -10,15 +11,19 @@ import (
 
 var _ = Describe("Factory Hooks", func() {
 	var (
-		buildFactory *BuildFactory
+		fakeLocationPopulator *fakes.FakeLocationPopulator
+		buildFactory          factory.BuildFactory
 
 		resources atc.ResourceConfigs
 	)
 
 	BeforeEach(func() {
-		buildFactory = &BuildFactory{
-			PipelineName: "some-pipeline",
-		}
+		fakeLocationPopulator = &fakes.FakeLocationPopulator{}
+
+		buildFactory = factory.NewBuildFactory(
+			"some-pipeline",
+			fakeLocationPopulator,
+		)
 
 		resources = atc.ResourceConfigs{
 			{
@@ -64,12 +69,6 @@ var _ = Describe("Factory Hooks", func() {
 					Step: atc.Plan{
 						OnSuccess: &atc.OnSuccessPlan{
 							Step: atc.Plan{
-								Location: &atc.Location{
-									ParentID:      0,
-									ID:            3,
-									ParallelGroup: 0,
-									SerialGroup:   2,
-								},
 								Task: &atc.TaskPlan{
 									Name: "those who resist our will",
 								},
@@ -77,23 +76,11 @@ var _ = Describe("Factory Hooks", func() {
 							Next: atc.Plan{
 								OnSuccess: &atc.OnSuccessPlan{
 									Step: atc.Plan{
-										Location: &atc.Location{
-											ParentID:      0,
-											ID:            4,
-											ParallelGroup: 0,
-											SerialGroup:   2,
-										},
 										Task: &atc.TaskPlan{
 											Name: "those who also resist our will",
 										},
 									},
 									Next: atc.Plan{
-										Location: &atc.Location{
-											ParentID:      0,
-											ID:            5,
-											ParallelGroup: 0,
-											SerialGroup:   2,
-										},
 										Task: &atc.TaskPlan{
 											Name: "third task",
 										},
@@ -103,13 +90,6 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 					Next: atc.Plan{
-						Location: &atc.Location{
-							ParentID:      2,
-							ID:            6,
-							ParallelGroup: 0,
-							SerialGroup:   0,
-							Hook:          "failure",
-						},
 						Task: &atc.TaskPlan{
 							Name: "some other failure",
 						},
@@ -153,23 +133,11 @@ var _ = Describe("Factory Hooks", func() {
 					Step: atc.Plan{
 						OnSuccess: &atc.OnSuccessPlan{
 							Step: atc.Plan{
-								Location: &atc.Location{
-									ParentID:      0,
-									ID:            3,
-									ParallelGroup: 0,
-									SerialGroup:   2,
-								},
 								Task: &atc.TaskPlan{
 									Name: "those who resist our will",
 								},
 							},
 							Next: atc.Plan{
-								Location: &atc.Location{
-									ParentID:      0,
-									ID:            4,
-									ParallelGroup: 0,
-									SerialGroup:   2,
-								},
 								Task: &atc.TaskPlan{
 									Name: "those who also resist our will",
 								},
@@ -177,13 +145,6 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 					Next: atc.Plan{
-						Location: &atc.Location{
-							ParentID:      2,
-							ID:            5,
-							ParallelGroup: 0,
-							SerialGroup:   0,
-							Hook:          "failure",
-						},
 						Task: &atc.TaskPlan{
 							Name: "some other failure",
 						},
@@ -239,11 +200,6 @@ var _ = Describe("Factory Hooks", func() {
 			expected := atc.Plan{
 				OnSuccess: &atc.OnSuccessPlan{
 					Step: atc.Plan{
-						Location: &atc.Location{
-							ParentID:      0,
-							ID:            1,
-							ParallelGroup: 0,
-						},
 						Task: &atc.TaskPlan{
 							Name: "some-task",
 						},
@@ -251,12 +207,6 @@ var _ = Describe("Factory Hooks", func() {
 					Next: atc.Plan{
 						Aggregate: &atc.AggregatePlan{
 							{
-								Location: &atc.Location{
-									ParentID:      1,
-									ID:            4,
-									ParallelGroup: 3,
-									Hook:          "success",
-								},
 								Task: &atc.TaskPlan{
 									Name: "agg-task-1",
 								},
@@ -264,11 +214,6 @@ var _ = Describe("Factory Hooks", func() {
 							{
 								Aggregate: &atc.AggregatePlan{
 									{
-										Location: &atc.Location{
-											ParentID:      3,
-											ID:            7,
-											ParallelGroup: 6,
-										},
 										Task: &atc.TaskPlan{
 											Name: "agg-agg-task-1",
 										},
@@ -311,24 +256,11 @@ var _ = Describe("Factory Hooks", func() {
 			expected := atc.Plan{
 				OnSuccess: &atc.OnSuccessPlan{
 					Step: atc.Plan{
-						Location: &atc.Location{
-							ParentID:      0,
-							ID:            1,
-							ParallelGroup: 0,
-							SerialGroup:   0,
-						},
 						Task: &atc.TaskPlan{
 							Name: "some-task",
 						},
 					},
 					Next: atc.Plan{
-						Location: &atc.Location{
-							ParentID:      1,
-							ID:            4,
-							ParallelGroup: 0,
-							SerialGroup:   3,
-							Hook:          "success",
-						},
 						Task: &atc.TaskPlan{
 							Name: "do-task-1",
 						},
@@ -380,12 +312,6 @@ var _ = Describe("Factory Hooks", func() {
 			expected := atc.Plan{
 				OnSuccess: &atc.OnSuccessPlan{
 					Step: atc.Plan{
-						Location: &atc.Location{
-							ParentID:      0,
-							ID:            1,
-							ParallelGroup: 0,
-							SerialGroup:   0,
-						},
 						Task: &atc.TaskPlan{
 							Name: "some-task",
 						},
@@ -393,13 +319,6 @@ var _ = Describe("Factory Hooks", func() {
 					Next: atc.Plan{
 						OnSuccess: &atc.OnSuccessPlan{
 							Step: atc.Plan{
-								Location: &atc.Location{
-									ParentID:      1,
-									ID:            4,
-									ParallelGroup: 0,
-									SerialGroup:   3,
-									Hook:          "success",
-								},
 								Task: &atc.TaskPlan{
 									Name: "do-task-1",
 								},
@@ -407,12 +326,6 @@ var _ = Describe("Factory Hooks", func() {
 							Next: atc.Plan{
 								OnSuccess: &atc.OnSuccessPlan{
 									Step: atc.Plan{
-										Location: &atc.Location{
-											ParentID:      3,
-											ID:            7,
-											ParallelGroup: 0,
-											SerialGroup:   6,
-										},
 										Task: &atc.TaskPlan{
 											Name: "do-task-2",
 										},
@@ -420,24 +333,11 @@ var _ = Describe("Factory Hooks", func() {
 									Next: atc.Plan{
 										OnSuccess: &atc.OnSuccessPlan{
 											Step: atc.Plan{
-												Location: &atc.Location{
-													ParentID:      3,
-													ID:            8,
-													ParallelGroup: 0,
-													SerialGroup:   6,
-												},
 												Task: &atc.TaskPlan{
 													Name: "do-task-3",
 												},
 											},
 											Next: atc.Plan{
-												Location: &atc.Location{
-													ParentID:      8,
-													ID:            9,
-													ParallelGroup: 0,
-													SerialGroup:   0,
-													Hook:          "success",
-												},
 												Task: &atc.TaskPlan{
 													Name: "do-task-4",
 												},
@@ -488,11 +388,6 @@ var _ = Describe("Factory Hooks", func() {
 			expected := atc.Plan{
 				OnSuccess: &atc.OnSuccessPlan{
 					Step: atc.Plan{
-						Location: &atc.Location{
-							ParentID:      0,
-							ID:            1,
-							ParallelGroup: 0,
-						},
 						Task: &atc.TaskPlan{
 							Name: "some-task",
 						},
@@ -502,23 +397,11 @@ var _ = Describe("Factory Hooks", func() {
 							{
 								OnSuccess: &atc.OnSuccessPlan{
 									Step: atc.Plan{
-										Location: &atc.Location{
-											ParentID:      1,
-											ID:            4,
-											ParallelGroup: 3,
-											Hook:          "success",
-										},
 										Task: &atc.TaskPlan{
 											Name: "agg-task-1",
 										},
 									},
 									Next: atc.Plan{
-										Location: &atc.Location{
-											ParentID:      4,
-											ID:            5,
-											ParallelGroup: 0,
-											Hook:          "success",
-										},
 										Task: &atc.TaskPlan{
 											Name: "agg-task-1-success",
 										},
@@ -526,12 +409,6 @@ var _ = Describe("Factory Hooks", func() {
 								},
 							},
 							{
-								Location: &atc.Location{
-									ParentID:      1,
-									ID:            6,
-									ParallelGroup: 3,
-									Hook:          "success",
-								},
 								Task: &atc.TaskPlan{
 									Name: "agg-task-2",
 								},
@@ -565,12 +442,6 @@ var _ = Describe("Factory Hooks", func() {
 						Task: &atc.TaskPlan{
 							Name: "those who resist our will",
 						},
-						Location: &atc.Location{
-							ID:            1,
-							ParallelGroup: 0,
-							ParentID:      0,
-							Hook:          "",
-						},
 					},
 					Next: atc.Plan{
 						Get: &atc.GetPlan{
@@ -581,12 +452,6 @@ var _ = Describe("Factory Hooks", func() {
 							Source: atc.Source{
 								"uri": "git://some-resource",
 							},
-						},
-						Location: &atc.Location{
-							ID:            2,
-							ParallelGroup: 0,
-							ParentID:      1,
-							Hook:          "failure",
 						},
 					},
 				},
@@ -613,11 +478,6 @@ var _ = Describe("Factory Hooks", func() {
 			expected := atc.Plan{
 				OnFailure: &atc.OnFailurePlan{
 					Step: atc.Plan{
-						Location: &atc.Location{
-							ParentID: 0,
-							ID:       1,
-							Hook:     "",
-						},
 						Task: &atc.TaskPlan{
 							Name: "those who resist our will",
 						},
@@ -626,11 +486,6 @@ var _ = Describe("Factory Hooks", func() {
 						Timeout: &atc.TimeoutPlan{
 							Duration: "10s",
 							Step: atc.Plan{
-								Location: &atc.Location{
-									ParentID: 1,
-									ID:       2,
-									Hook:     "failure",
-								},
 								Get: &atc.GetPlan{
 									Name:     "some-resource",
 									Type:     "git",
@@ -668,11 +523,6 @@ var _ = Describe("Factory Hooks", func() {
 			expected := atc.Plan{
 				OnFailure: &atc.OnFailurePlan{
 					Step: atc.Plan{
-						Location: &atc.Location{
-							ID:            1,
-							ParentID:      0,
-							ParallelGroup: 0,
-						},
 						Task: &atc.TaskPlan{
 							Name: "those who resist our will",
 						},
@@ -680,12 +530,6 @@ var _ = Describe("Factory Hooks", func() {
 					Next: atc.Plan{
 						OnFailure: &atc.OnFailurePlan{
 							Step: atc.Plan{
-								Location: &atc.Location{
-									ID:            2,
-									ParentID:      1,
-									ParallelGroup: 0,
-									Hook:          "failure",
-								},
 								Get: &atc.GetPlan{
 									Name:     "some-resource",
 									Type:     "git",
@@ -697,12 +541,6 @@ var _ = Describe("Factory Hooks", func() {
 								},
 							},
 							Next: atc.Plan{
-								Location: &atc.Location{
-									ID:            3,
-									ParentID:      2,
-									ParallelGroup: 0,
-									Hook:          "failure",
-								},
 								Task: &atc.TaskPlan{
 									Name: "those who still resist our will",
 								},
@@ -734,11 +572,6 @@ var _ = Describe("Factory Hooks", func() {
 			expected := atc.Plan{
 				OnFailure: &atc.OnFailurePlan{
 					Step: atc.Plan{
-						Location: &atc.Location{
-							ID:            1,
-							ParentID:      0,
-							ParallelGroup: 0,
-						},
 						Task: &atc.TaskPlan{
 							Name: "those who resist our will",
 						},
@@ -746,12 +579,6 @@ var _ = Describe("Factory Hooks", func() {
 					Next: atc.Plan{
 						Ensure: &atc.EnsurePlan{
 							Step: atc.Plan{
-								Location: &atc.Location{
-									ID:            2,
-									ParentID:      1,
-									ParallelGroup: 0,
-									Hook:          "failure",
-								},
 								Get: &atc.GetPlan{
 									Name:     "some-resource",
 									Type:     "git",
@@ -763,12 +590,6 @@ var _ = Describe("Factory Hooks", func() {
 								},
 							},
 							Next: atc.Plan{
-								Location: &atc.Location{
-									ID:            3,
-									ParentID:      2,
-									ParallelGroup: 0,
-									Hook:          "ensure",
-								},
 								Task: &atc.TaskPlan{
 									Name: "those who still resist our will",
 								},
@@ -807,22 +628,11 @@ var _ = Describe("Factory Hooks", func() {
 							Step: atc.Plan{
 								OnFailure: &atc.OnFailurePlan{
 									Step: atc.Plan{
-										Location: &atc.Location{
-											ID:            1,
-											ParentID:      0,
-											ParallelGroup: 0,
-										},
 										Task: &atc.TaskPlan{
 											Name: "those who resist our will",
 										},
 									},
 									Next: atc.Plan{
-										Location: &atc.Location{
-											ID:            2,
-											ParentID:      1,
-											ParallelGroup: 0,
-											Hook:          "failure",
-										},
 										Task: &atc.TaskPlan{
 											Name: "those who failed to resist our will",
 										},
@@ -830,12 +640,6 @@ var _ = Describe("Factory Hooks", func() {
 								},
 							},
 							Next: atc.Plan{
-								Location: &atc.Location{
-									ID:            3,
-									ParentID:      1,
-									ParallelGroup: 0,
-									Hook:          "success",
-								},
 								Task: &atc.TaskPlan{
 									Name: "those who successfully resisted our will",
 								},
@@ -843,12 +647,6 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 					Next: atc.Plan{
-						Location: &atc.Location{
-							ID:            4,
-							ParentID:      1,
-							ParallelGroup: 0,
-							Hook:          "ensure",
-						},
 						Task: &atc.TaskPlan{
 							Name: "those who always resist our will",
 						},
@@ -883,11 +681,6 @@ var _ = Describe("Factory Hooks", func() {
 					Step: atc.Plan{
 						OnFailure: &atc.OnFailurePlan{
 							Step: atc.Plan{
-								Location: &atc.Location{
-									ID:            1,
-									ParentID:      0,
-									ParallelGroup: 0,
-								},
 								Task: &atc.TaskPlan{
 									Name: "those who resist our will",
 								},
@@ -895,12 +688,6 @@ var _ = Describe("Factory Hooks", func() {
 							Next: atc.Plan{
 								Ensure: &atc.EnsurePlan{
 									Step: atc.Plan{
-										Location: &atc.Location{
-											ID:            2,
-											ParentID:      1,
-											ParallelGroup: 0,
-											Hook:          "failure",
-										},
 										Get: &atc.GetPlan{
 											Name:     "some-resource",
 											Type:     "git",
@@ -912,12 +699,6 @@ var _ = Describe("Factory Hooks", func() {
 										},
 									},
 									Next: atc.Plan{
-										Location: &atc.Location{
-											ID:            3,
-											ParentID:      2,
-											ParallelGroup: 0,
-											Hook:          "ensure",
-										},
 										Task: &atc.TaskPlan{
 											Name: "those who still resist our will",
 										},
@@ -927,12 +708,6 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 					Next: atc.Plan{
-						Location: &atc.Location{
-							ID:            4,
-							ParentID:      1,
-							ParallelGroup: 0,
-							Hook:          "success",
-						},
 						Get: &atc.GetPlan{
 							Name:     "some-resource",
 							Type:     "git",
@@ -979,22 +754,11 @@ var _ = Describe("Factory Hooks", func() {
 								Step: atc.Plan{
 									OnFailure: &atc.OnFailurePlan{
 										Step: atc.Plan{
-											Location: &atc.Location{
-												ID:            1,
-												ParentID:      0,
-												ParallelGroup: 0,
-											},
 											Task: &atc.TaskPlan{
 												Name: "those who resist our will",
 											},
 										},
 										Next: atc.Plan{
-											Location: &atc.Location{
-												ID:            2,
-												ParentID:      1,
-												ParallelGroup: 0,
-												Hook:          "failure",
-											},
 											Task: &atc.TaskPlan{
 												Name: "some other task",
 											},
@@ -1002,12 +766,6 @@ var _ = Describe("Factory Hooks", func() {
 									},
 								},
 								Next: atc.Plan{
-									Location: &atc.Location{
-										ID:            3,
-										ParentID:      1,
-										ParallelGroup: 0,
-										Hook:          "success",
-									},
 									Task: &atc.TaskPlan{
 										Name: "some other success task",
 									},
@@ -1017,23 +775,11 @@ var _ = Describe("Factory Hooks", func() {
 						Next: atc.Plan{
 							OnSuccess: &atc.OnSuccessPlan{
 								Step: atc.Plan{
-									Location: &atc.Location{
-										ID:            4,
-										ParentID:      0,
-										ParallelGroup: 0,
-										Hook:          "",
-									},
 									Task: &atc.TaskPlan{
 										Name: "those who still resist our will",
 									},
 								},
 								Next: atc.Plan{
-									Location: &atc.Location{
-										ID:            5,
-										ParentID:      0,
-										ParallelGroup: 0,
-										Hook:          "",
-									},
 									Task: &atc.TaskPlan{
 										Name: "shall be defeated",
 									},
@@ -1074,12 +820,6 @@ var _ = Describe("Factory Hooks", func() {
 				expected := atc.Plan{
 					OnSuccess: &atc.OnSuccessPlan{
 						Step: atc.Plan{
-							Location: &atc.Location{
-								ID:            1,
-								ParentID:      0,
-								ParallelGroup: 0,
-								SerialGroup:   0,
-							},
 							Task: &atc.TaskPlan{
 								Name: "those who start resisting our will",
 							},
@@ -1091,24 +831,11 @@ var _ = Describe("Factory Hooks", func() {
 										Step: atc.Plan{
 											OnFailure: &atc.OnFailurePlan{
 												Step: atc.Plan{
-													Location: &atc.Location{
-														ID:            4,
-														ParentID:      0,
-														ParallelGroup: 0,
-														SerialGroup:   3,
-													},
 													Task: &atc.TaskPlan{
 														Name: "those who resist our will",
 													},
 												},
 												Next: atc.Plan{
-													Location: &atc.Location{
-														ID:            5,
-														ParentID:      4,
-														ParallelGroup: 0,
-														SerialGroup:   0,
-														Hook:          "failure",
-													},
 													Task: &atc.TaskPlan{
 														Name: "some other task",
 													},
@@ -1116,13 +843,6 @@ var _ = Describe("Factory Hooks", func() {
 											},
 										},
 										Next: atc.Plan{
-											Location: &atc.Location{
-												ID:            6,
-												ParentID:      4,
-												ParallelGroup: 0,
-												SerialGroup:   0,
-												Hook:          "success",
-											},
 											Task: &atc.TaskPlan{
 												Name: "some other success task",
 											},
@@ -1130,12 +850,6 @@ var _ = Describe("Factory Hooks", func() {
 									},
 								},
 								Next: atc.Plan{
-									Location: &atc.Location{
-										ID:            7,
-										ParentID:      0,
-										ParallelGroup: 0,
-										SerialGroup:   3,
-									},
 									Task: &atc.TaskPlan{
 										Name: "those who used to resist our will",
 									},
@@ -1172,23 +886,11 @@ var _ = Describe("Factory Hooks", func() {
 						Step: atc.Plan{
 							OnSuccess: &atc.OnSuccessPlan{
 								Step: atc.Plan{
-									Location: &atc.Location{
-										ID:            3,
-										ParentID:      0,
-										ParallelGroup: 0,
-										SerialGroup:   2,
-									},
 									Task: &atc.TaskPlan{
 										Name: "those who resist our will",
 									},
 								},
 								Next: atc.Plan{
-									Location: &atc.Location{
-										ID:            4,
-										ParentID:      0,
-										ParallelGroup: 0,
-										SerialGroup:   2,
-									},
 									Task: &atc.TaskPlan{
 										Name: "those who used to resist our will",
 									},
@@ -1197,12 +899,6 @@ var _ = Describe("Factory Hooks", func() {
 						},
 
 						Next: atc.Plan{
-							Location: &atc.Location{
-								ID:            5,
-								ParentID:      0,
-								ParallelGroup: 0,
-								SerialGroup:   0,
-							},
 							Task: &atc.TaskPlan{
 								Name: "those who start resisting our will",
 							},

@@ -3,21 +3,25 @@ package factory_test
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/scheduler/factory"
+	"github.com/concourse/atc/scheduler/factory/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Factory Aggregate", func() {
 	var (
-		buildFactory *factory.BuildFactory
+		fakeLocationPopulator *fakes.FakeLocationPopulator
+		buildFactory          factory.BuildFactory
 
 		resources atc.ResourceConfigs
 	)
 
 	BeforeEach(func() {
-		buildFactory = &factory.BuildFactory{
-			PipelineName: "some-pipeline",
-		}
+		fakeLocationPopulator = &fakes.FakeLocationPopulator{}
+		buildFactory = factory.NewBuildFactory(
+			"some-pipeline",
+			fakeLocationPopulator,
+		)
 
 		resources = atc.ResourceConfigs{
 			{
@@ -49,21 +53,11 @@ var _ = Describe("Factory Aggregate", func() {
 			expected := atc.Plan{
 				Aggregate: &atc.AggregatePlan{
 					{
-						Location: &atc.Location{
-							ParentID:      0,
-							ID:            3,
-							ParallelGroup: 2,
-						},
 						Task: &atc.TaskPlan{
 							Name: "some thing",
 						},
 					},
 					{
-						Location: &atc.Location{
-							ParentID:      0,
-							ID:            4,
-							ParallelGroup: 2,
-						},
 						Task: &atc.TaskPlan{
 							Name: "some other thing",
 						},
@@ -102,11 +96,6 @@ var _ = Describe("Factory Aggregate", func() {
 			expected := atc.Plan{
 				Aggregate: &atc.AggregatePlan{
 					{
-						Location: &atc.Location{
-							ParentID:      0,
-							ID:            3,
-							ParallelGroup: 2,
-						},
 						Task: &atc.TaskPlan{
 							Name: "some thing",
 						},
@@ -114,21 +103,11 @@ var _ = Describe("Factory Aggregate", func() {
 					{
 						Aggregate: &atc.AggregatePlan{
 							{
-								Location: &atc.Location{
-									ParentID:      2,
-									ID:            6,
-									ParallelGroup: 5,
-								},
 								Task: &atc.TaskPlan{
 									Name: "some nested thing",
 								},
 							},
 							{
-								Location: &atc.Location{
-									ParentID:      2,
-									ID:            7,
-									ParallelGroup: 5,
-								},
 								Task: &atc.TaskPlan{
 									Name: "some nested other thing",
 								},
@@ -164,22 +143,11 @@ var _ = Describe("Factory Aggregate", func() {
 					{
 						OnSuccess: &atc.OnSuccessPlan{
 							Step: atc.Plan{
-								Location: &atc.Location{
-									ParentID:      0,
-									ID:            3,
-									ParallelGroup: 2,
-								},
 								Task: &atc.TaskPlan{
 									Name: "some thing",
 								},
 							},
 							Next: atc.Plan{
-								Location: &atc.Location{
-									ParentID:      3,
-									ID:            4,
-									ParallelGroup: 0,
-									Hook:          "success",
-								},
 								Task: &atc.TaskPlan{
 									Name: "some success hook",
 								},
@@ -215,11 +183,6 @@ var _ = Describe("Factory Aggregate", func() {
 					Step: atc.Plan{
 						Aggregate: &atc.AggregatePlan{
 							{
-								Location: &atc.Location{
-									ParentID:      0,
-									ID:            3,
-									ParallelGroup: 2,
-								},
 								Task: &atc.TaskPlan{
 									Name: "some thing",
 								},
@@ -227,12 +190,6 @@ var _ = Describe("Factory Aggregate", func() {
 						},
 					},
 					Next: atc.Plan{
-						Location: &atc.Location{
-							ParentID:      2,
-							ID:            4,
-							ParallelGroup: 0,
-							Hook:          "success",
-						},
 						Task: &atc.TaskPlan{
 							Name: "some success hook",
 						},

@@ -2,7 +2,8 @@ package factory_test
 
 import (
 	"github.com/concourse/atc"
-	. "github.com/concourse/atc/scheduler/factory"
+	"github.com/concourse/atc/scheduler/factory"
+	"github.com/concourse/atc/scheduler/factory/fakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -10,13 +11,17 @@ import (
 
 var _ = Describe("Factory Try Step", func() {
 	var (
-		buildFactory *BuildFactory
+		fakeLocationPopulator *fakes.FakeLocationPopulator
+		buildFactory          factory.BuildFactory
 	)
 
 	BeforeEach(func() {
-		buildFactory = &BuildFactory{
-			PipelineName: "some-pipeline",
-		}
+		fakeLocationPopulator = &fakes.FakeLocationPopulator{}
+
+		buildFactory = factory.NewBuildFactory(
+			"some-pipeline",
+			fakeLocationPopulator,
+		)
 	})
 
 	Context("When there is a task wrapped in a try", func() {
@@ -41,11 +46,6 @@ var _ = Describe("Factory Try Step", func() {
 					Step: atc.Plan{
 						Try: &atc.TryPlan{
 							Step: atc.Plan{
-								Location: &atc.Location{
-									ID:            2,
-									ParentID:      0,
-									ParallelGroup: 0,
-								},
 								Task: &atc.TaskPlan{
 									Name: "first task",
 								},
@@ -53,11 +53,6 @@ var _ = Describe("Factory Try Step", func() {
 						},
 					},
 					Next: atc.Plan{
-						Location: &atc.Location{
-							ID:            3,
-							ParentID:      0,
-							ParallelGroup: 0,
-						},
 						Task: &atc.TaskPlan{
 							Name: "second task",
 						},
@@ -89,11 +84,6 @@ var _ = Describe("Factory Try Step", func() {
 			expected := atc.Plan{
 				OnSuccess: &atc.OnSuccessPlan{
 					Step: atc.Plan{
-						Location: &atc.Location{
-							ID:            1,
-							ParentID:      0,
-							ParallelGroup: 0,
-						},
 						Task: &atc.TaskPlan{
 							Name: "first task",
 						},
@@ -101,12 +91,6 @@ var _ = Describe("Factory Try Step", func() {
 					Next: atc.Plan{
 						Try: &atc.TryPlan{
 							Step: atc.Plan{
-								Location: &atc.Location{
-									ID:            3,
-									ParentID:      1,
-									ParallelGroup: 0,
-									Hook:          "success",
-								},
 								Task: &atc.TaskPlan{
 									Name: "second task",
 								},

@@ -3,6 +3,7 @@ package factory_test
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/scheduler/factory"
+	"github.com/concourse/atc/scheduler/factory/fakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -10,15 +11,19 @@ import (
 
 var _ = Describe("Factory Do", func() {
 	var (
-		buildFactory *factory.BuildFactory
+		fakeLocationPopulator *fakes.FakeLocationPopulator
+		buildFactory          factory.BuildFactory
 
 		resources atc.ResourceConfigs
 	)
 
 	BeforeEach(func() {
-		buildFactory = &factory.BuildFactory{
-			PipelineName: "some-pipeline",
-		}
+		fakeLocationPopulator = &fakes.FakeLocationPopulator{}
+
+		buildFactory = factory.NewBuildFactory(
+			"some-pipeline",
+			fakeLocationPopulator,
+		)
 
 		resources = atc.ResourceConfigs{
 			{
@@ -58,12 +63,6 @@ var _ = Describe("Factory Do", func() {
 			expected := atc.Plan{
 				OnSuccess: &atc.OnSuccessPlan{
 					Step: atc.Plan{
-						Location: &atc.Location{
-							ParentID:      0,
-							ID:            3,
-							ParallelGroup: 0,
-							SerialGroup:   2,
-						},
 						Task: &atc.TaskPlan{
 							Name: "some thing",
 						},
@@ -71,23 +70,11 @@ var _ = Describe("Factory Do", func() {
 					Next: atc.Plan{
 						OnSuccess: &atc.OnSuccessPlan{
 							Step: atc.Plan{
-								Location: &atc.Location{
-									ParentID:      0,
-									ID:            4,
-									ParallelGroup: 0,
-									SerialGroup:   2,
-								},
 								Task: &atc.TaskPlan{
 									Name: "some thing-2",
 								},
 							},
 							Next: atc.Plan{
-								Location: &atc.Location{
-									ParentID:      2,
-									ID:            7,
-									ParallelGroup: 0,
-									SerialGroup:   6,
-								},
 								Task: &atc.TaskPlan{
 									Name: "some other thing",
 								},
@@ -129,12 +116,6 @@ var _ = Describe("Factory Do", func() {
 			expected := atc.Plan{
 				OnSuccess: &atc.OnSuccessPlan{
 					Step: atc.Plan{
-						Location: &atc.Location{
-							ParentID:      0,
-							ID:            3,
-							ParallelGroup: 0,
-							SerialGroup:   2,
-						},
 						Task: &atc.TaskPlan{
 							Name: "some thing",
 						},
@@ -145,12 +126,6 @@ var _ = Describe("Factory Do", func() {
 
 								Aggregate: &atc.AggregatePlan{
 									{
-										Location: &atc.Location{
-											ParentID:      0,
-											ID:            6,
-											ParallelGroup: 5,
-											SerialGroup:   2,
-										},
 										Task: &atc.TaskPlan{
 											Name: "some other thing",
 										},
@@ -158,12 +133,6 @@ var _ = Describe("Factory Do", func() {
 								},
 							},
 							Next: atc.Plan{
-								Location: &atc.Location{
-									ParentID:      0,
-									ID:            7,
-									ParallelGroup: 0,
-									SerialGroup:   2,
-								},
 								Task: &atc.TaskPlan{
 									Name: "some thing-2",
 								},
@@ -205,12 +174,6 @@ var _ = Describe("Factory Do", func() {
 			expected := atc.Plan{
 				OnSuccess: &atc.OnSuccessPlan{
 					Step: atc.Plan{
-						Location: &atc.Location{
-							ParentID:      0,
-							ID:            1,
-							ParallelGroup: 0,
-							SerialGroup:   0,
-						},
 						Task: &atc.TaskPlan{
 							Name: "starting-task",
 						},
@@ -218,24 +181,11 @@ var _ = Describe("Factory Do", func() {
 					Next: atc.Plan{
 						Aggregate: &atc.AggregatePlan{
 							{
-								Location: &atc.Location{
-									ParentID:      1,
-									ID:            4,
-									ParallelGroup: 3,
-									SerialGroup:   0,
-									Hook:          "success",
-								},
 								Task: &atc.TaskPlan{
 									Name: "some thing",
 								},
 							},
 							{
-								Location: &atc.Location{
-									ParentID:      1,
-									ID:            7,
-									ParallelGroup: 3,
-									SerialGroup:   6,
-								},
 								Task: &atc.TaskPlan{
 									Name: "some other thing",
 								},
@@ -281,12 +231,6 @@ var _ = Describe("Factory Do", func() {
 			expected := atc.Plan{
 				Aggregate: &atc.AggregatePlan{
 					{
-						Location: &atc.Location{
-							ParentID:      0,
-							ID:            3,
-							ParallelGroup: 2,
-							SerialGroup:   0,
-						},
 						Task: &atc.TaskPlan{
 							Name: "some thing",
 						},
@@ -294,23 +238,11 @@ var _ = Describe("Factory Do", func() {
 					{
 						OnSuccess: &atc.OnSuccessPlan{
 							Step: atc.Plan{
-								Location: &atc.Location{
-									ParentID:      0,
-									ID:            6,
-									ParallelGroup: 2,
-									SerialGroup:   5,
-								},
 								Task: &atc.TaskPlan{
 									Name: "some other thing",
 								},
 							},
 							Next: atc.Plan{
-								Location: &atc.Location{
-									ParentID:      0,
-									ID:            7,
-									ParallelGroup: 2,
-									SerialGroup:   5,
-								},
 								Task: &atc.TaskPlan{
 									Name: "some other thing-2",
 								},
@@ -318,12 +250,6 @@ var _ = Describe("Factory Do", func() {
 						},
 					},
 					{
-						Location: &atc.Location{
-							ParentID:      0,
-							ID:            8,
-							ParallelGroup: 2,
-							SerialGroup:   0,
-						},
 						Task: &atc.TaskPlan{
 							Name: "some thing-2",
 						},

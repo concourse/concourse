@@ -2,7 +2,8 @@ package factory_test
 
 import (
 	"github.com/concourse/atc"
-	. "github.com/concourse/atc/scheduler/factory"
+	"github.com/concourse/atc/scheduler/factory"
+	"github.com/concourse/atc/scheduler/factory/fakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -10,13 +11,17 @@ import (
 
 var _ = Describe("Factory Timeout Step", func() {
 	var (
-		buildFactory *BuildFactory
+		fakeLocationPopulator *fakes.FakeLocationPopulator
+		buildFactory          factory.BuildFactory
 	)
 
 	BeforeEach(func() {
-		buildFactory = &BuildFactory{
-			PipelineName: "some-pipeline",
-		}
+		fakeLocationPopulator = &fakes.FakeLocationPopulator{}
+
+		buildFactory = factory.NewBuildFactory(
+			"some-pipeline",
+			fakeLocationPopulator,
+		)
 	})
 
 	Context("When there is a task with a timeout", func() {
@@ -36,11 +41,6 @@ var _ = Describe("Factory Timeout Step", func() {
 				Timeout: &atc.TimeoutPlan{
 					Duration: "10s",
 					Step: atc.Plan{
-						Location: &atc.Location{
-							ParentID: 0,
-							ID:       1,
-							Hook:     "",
-						},
 						Task: &atc.TaskPlan{
 							Name: "first task",
 						},
