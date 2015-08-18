@@ -3,7 +3,6 @@ package getjoblessbuild
 import (
 	"errors"
 	"html/template"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -61,12 +60,13 @@ func FetchTemplateData(buildID string, buildDB BuildDB, configDB db.ConfigDB) (T
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log := handler.logger.Session("jobless-build")
 	templateData, err := FetchTemplateData(r.FormValue(":build_id"), handler.db, handler.configDB)
-	// if err != nil {
-	// 	handler.logger.Error("failed-to-build-template-data", err)
-	// 	http.Error(w, "failed to fetch builds", http.StatusInternalServerError)
-	// 	return
-	// }
+	if err != nil {
+		log.Error("failed-to-build-template-data", err)
+		http.Error(w, "failed to fetch builds", http.StatusInternalServerError)
+		return
+	}
 
 	err = handler.template.Execute(w, templateData)
 	if err != nil {
