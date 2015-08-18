@@ -24,6 +24,11 @@
   recent one. Supplying the \code{-b} or \code{--build} flag will hijack into
   the build with that ID. You can find the build IDs on the build list page.
 }{
+  The rendering of ensure steps was a little off. Under some conditions they
+  would attach to an incorrect step.
+
+  Under some conditions they now attach to the correct step.
+}{
   We've sped up the calculation of build input versions. You should see builds
   with lots of input constraints are now faster to schedule.
   
