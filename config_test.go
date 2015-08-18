@@ -12,7 +12,6 @@ var _ = Describe("Config", func() {
 		Describe("MaxInFlight", func() {
 			It("returns the raw MaxInFlight if set", func() {
 				jobConfig := JobConfig{
-					Serial:         true,
 					RawMaxInFlight: 42,
 				}
 
@@ -23,6 +22,24 @@ var _ = Describe("Config", func() {
 				jobConfig := JobConfig{
 					Serial:       true,
 					SerialGroups: []string{},
+				}
+
+				Ω(jobConfig.MaxInFlight()).Should(Equal(1))
+
+				jobConfig.SerialGroups = []string{
+					"one",
+				}
+				Ω(jobConfig.MaxInFlight()).Should(Equal(1))
+
+				jobConfig.Serial = false
+				Ω(jobConfig.MaxInFlight()).Should(Equal(1))
+			})
+
+			It("returns 1 if Serial is true or SerialGroups has items in it, even if raw MaxInFlight is set", func() {
+				jobConfig := JobConfig{
+					Serial:         true,
+					SerialGroups:   []string{},
+					RawMaxInFlight: 3,
 				}
 
 				Ω(jobConfig.MaxInFlight()).Should(Equal(1))

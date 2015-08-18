@@ -60,12 +60,12 @@ type JobConfig struct {
 }
 
 func (config JobConfig) MaxInFlight() int {
-	if config.RawMaxInFlight != 0 {
-		return config.RawMaxInFlight
-	}
-
 	if config.Serial || len(config.SerialGroups) > 0 {
 		return 1
+	}
+
+	if config.RawMaxInFlight != 0 {
+		return config.RawMaxInFlight
 	}
 
 	return 0
