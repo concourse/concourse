@@ -341,3 +341,16 @@ common platforms in the bottom right hand corner of the main page.
   $ fly watch --pipeline my-pipeline --job tests --build 52
   }
 }
+
+\section{\code{checklist}\aux{: Generate Checkman definition files}}{fly-checklist}{
+  \hyperlink{https://github.com/cppforlife/checkman}{Checkman} supports
+  retrieving build status from Concourse. If you would like to set this up
+  yourself then there is documentation in the
+  \hyperlink{https://github.com/cppforlife/checkman#included-check-scripts}{Checkman
+  README} about the syntax required. However, \code{fly} can generate the
+  Checkman files based on your pipelines using the command below.
+
+  \codeblock{bash}{
+  $ fly checklist my-pipeline > ~/Checkman/my-pipeline
+  }
+}
