@@ -59,6 +59,14 @@ type LogV20 struct {
 func (LogV20) EventType() atc.EventType  { return "log" }
 func (LogV20) Version() atc.EventVersion { return "2.0" }
 
+type LogV30 struct {
+	Origin  OriginV30 `json:"origin"`
+	Payload string    `json:"payload"`
+}
+
+func (LogV30) EventType() atc.EventType  { return "log" }
+func (LogV30) Version() atc.EventVersion { return "3.0" }
+
 type OriginV10 struct {
 	Type OriginV10Type `json:"type"`
 	Name string        `json:"name"`
@@ -107,6 +115,45 @@ const (
 
 type OriginV20Location []uint
 
+type OriginV30 struct {
+	Name     string            `json:"name"`
+	Type     OriginV30Type     `json:"type"`
+	Source   OriginV30Source   `json:"source"`
+	Location OriginV30Location `json:"location,omitempty"`
+	Hook     string            `json:"hook"`
+}
+
+type OriginV30Type string
+
+const (
+	OriginV30TypeInvalid OriginV30Type = ""
+	OriginV30TypeGet     OriginV30Type = "get"
+	OriginV30TypePut     OriginV30Type = "put"
+	OriginV30TypeTask    OriginV30Type = "task"
+)
+
+type OriginV30Source string
+
+const (
+	OriginV30SourceStdout OriginV30Source = "stdout"
+	OriginV30SourceStderr OriginV30Source = "stderr"
+)
+
+type OriginV30Location struct {
+	ParentID      uint   `json:"parent_id"`
+	ID            uint   `json:"id"`
+	ParallelGroup uint   `json:"parallel_group"`
+	SerialGroup   uint   `json:"serial_group"`
+	Hook          string `json:"hook"`
+}
+
+type OriginV30LocationIncrement uint
+
+const (
+	NoIncrementV20     OriginV30LocationIncrement = 0
+	SingleIncrementV20 OriginV30LocationIncrement = 1
+)
+
 type FinishV10 struct {
 	Time       int64 `json:"time"`
 	ExitStatus int   `json:"exit_status"`
@@ -124,6 +171,15 @@ type FinishTaskV10 struct {
 func (FinishTaskV10) EventType() atc.EventType  { return "finish-task" }
 func (FinishTaskV10) Version() atc.EventVersion { return "1.0" }
 
+type FinishTaskV20 struct {
+	Time       int64     `json:"time"`
+	ExitStatus int       `json:"exit_status"`
+	Origin     OriginV30 `json:"origin"`
+}
+
+func (FinishTaskV20) EventType() atc.EventType  { return "finish-task" }
+func (FinishTaskV20) Version() atc.EventVersion { return "2.0" }
+
 type StartV10 struct {
 	Time int64 `json:"time"`
 }
@@ -139,6 +195,17 @@ type FinishGetV10 struct {
 func (FinishGetV10) EventType() atc.EventType  { return "finish-get" }
 func (FinishGetV10) Version() atc.EventVersion { return "1.0" }
 
+type FinishGetV20 struct {
+	Origin          OriginV30           `json:"origin"`
+	Plan            GetPlan             `json:"plan"`
+	ExitStatus      int                 `json:"exit_status"`
+	FetchedVersion  atc.Version         `json:"version"`
+	FetchedMetadata []atc.MetadataField `json:"metadata,omitempty"`
+}
+
+func (FinishGetV20) EventType() atc.EventType  { return "finish-get" }
+func (FinishGetV20) Version() atc.EventVersion { return "2.0" }
+
 type FinishPutV10 struct {
 	Origin          OriginV20           `json:"origin"`
 	Plan            PutPlan             `json:"plan"`
@@ -150,6 +217,17 @@ type FinishPutV10 struct {
 func (FinishPutV10) EventType() atc.EventType  { return "finish-put" }
 func (FinishPutV10) Version() atc.EventVersion { return "1.0" }
 
+type FinishPutV20 struct {
+	Origin          OriginV30           `json:"origin"`
+	Plan            PutPlan             `json:"plan"`
+	CreatedVersion  atc.Version         `json:"version"`
+	CreatedMetadata []atc.MetadataField `json:"metadata,omitempty"`
+	ExitStatus      int                 `json:"exit_status"`
+}
+
+func (FinishPutV20) EventType() atc.EventType  { return "finish-put" }
+func (FinishPutV20) Version() atc.EventVersion { return "2.0" }
+
 func (StartV10) EventType() atc.EventType  { return "start" }
 func (StartV10) Version() atc.EventVersion { return "1.0" }
 
@@ -160,6 +238,14 @@ type StartTaskV10 struct {
 
 func (StartTaskV10) EventType() atc.EventType  { return "start-task" }
 func (StartTaskV10) Version() atc.EventVersion { return "1.0" }
+
+type StartTaskV20 struct {
+	Time   int64     `json:"time"`
+	Origin OriginV30 `json:"origin"`
+}
+
+func (StartTaskV20) EventType() atc.EventType  { return "start-task" }
+func (StartTaskV20) Version() atc.EventVersion { return "2.0" }
 
 type InitializeV10 struct {
 	TaskConfig TaskConfig `json:"config"`
@@ -175,6 +261,14 @@ type InitializeTaskV10 struct {
 
 func (InitializeTaskV10) EventType() atc.EventType  { return "initialize-task" }
 func (InitializeTaskV10) Version() atc.EventVersion { return "1.0" }
+
+type InitializeTaskV20 struct {
+	TaskConfig TaskConfig `json:"config"`
+	Origin     OriginV30  `json:"origin"`
+}
+
+func (InitializeTaskV20) EventType() atc.EventType  { return "initialize-task" }
+func (InitializeTaskV20) Version() atc.EventVersion { return "2.0" }
 
 type InputV20 struct {
 	Plan            InputV20InputPlan   `json:"plan"`
@@ -224,3 +318,11 @@ type ErrorV10 struct {
 
 func (ErrorV10) EventType() atc.EventType  { return "error" }
 func (ErrorV10) Version() atc.EventVersion { return "1.0" }
+
+type ErrorV20 struct {
+	Message string    `json:"message"`
+	Origin  OriginV30 `json:"origin,omitempty"`
+}
+
+func (ErrorV20) EventType() atc.EventType  { return "error" }
+func (ErrorV20) Version() atc.EventVersion { return "2.0" }
