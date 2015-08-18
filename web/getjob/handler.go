@@ -3,7 +3,6 @@ package getjob
 import (
 	"errors"
 	"html/template"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -133,6 +132,7 @@ func FetchTemplateData(jobDB JobDB, paginator JobBuildsPaginator, jobName string
 
 func (server *server) GetJob(pipelineDB db.PipelineDB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log := server.logger.Session("job")
 		jobName := r.FormValue(":job")
 		if len(jobName) == 0 {
 			w.WriteHeader(http.StatusBadRequest)
@@ -140,14 +140,14 @@ func (server *server) GetJob(pipelineDB db.PipelineDB) http.Handler {
 		}
 		startingID, parseErr := strconv.Atoi(r.FormValue("startingID"))
 		if parseErr != nil {
-			server.logger.Info("cannot-parse-startingID-to-int", lager.Data{"startingID": r.FormValue("startingID")})
+			log.Info("cannot-parse-startingID-to-int", lager.Data{"startingID": r.FormValue("startingID")})
 			startingID = 0
 		}
 
 		resultsGreaterThanStartingID, parseErr := strconv.ParseBool(r.FormValue("resultsGreaterThanStartingID"))
 		if parseErr != nil {
 			resultsGreaterThanStartingID = false
-			server.logger.Info("cannot-parse-resultsGreaterThanStartingID-to-bool", lager.Data{"resultsGreaterThanStartingID": r.FormValue("resultsGreaterThanStartingID")})
+			log.Info("cannot-parse-resultsGreaterThanStartingID-to-bool", lager.Data{"resultsGreaterThanStartingID": r.FormValue("resultsGreaterThanStartingID")})
 		}
 
 		templateData, err := FetchTemplateData(
@@ -161,7 +161,7 @@ func (server *server) GetJob(pipelineDB db.PipelineDB) http.Handler {
 		)
 		switch err {
 		case ErrJobConfigNotFound:
-			server.logger.Error("could-not-find-job-in-config", ErrJobConfigNotFound, lager.Data{
+			log.Error("could-not-find-job-in-config", ErrJobConfigNotFound, lager.Data{
 				"job": jobName,
 			})
 			w.WriteHeader(http.StatusNotFound)
@@ -169,7 +169,7 @@ func (server *server) GetJob(pipelineDB db.PipelineDB) http.Handler {
 		case nil:
 			break
 		default:
-			server.logger.Error("failed-to-build-template-data", err, lager.Data{
+			log.Error("failed-to-build-template-data", err, lager.Data{
 				"job": jobName,
 			})
 			http.Error(w, "failed to fetch job", http.StatusInternalServerError)

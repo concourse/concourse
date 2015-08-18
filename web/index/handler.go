@@ -2,7 +2,6 @@ package index
 
 import (
 	"html/template"
-	"log"
 	"net/http"
 
 	"github.com/concourse/atc/db"
@@ -18,6 +17,7 @@ func NewHandler(
 	template *template.Template,
 ) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log := logger.Session("index")
 		pipelineDB, err := pipelineDBFactory.BuildDefault()
 		if err != nil {
 			if err == db.ErrNoPipelines {
@@ -28,7 +28,7 @@ func NewHandler(
 				return
 			}
 
-			logger.Error("failed-to-load-pipelinedb", err)
+			log.Error("failed-to-load-pipelinedb", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

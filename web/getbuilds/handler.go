@@ -2,7 +2,6 @@ package getbuilds
 
 import (
 	"html/template"
-	"log"
 	"net/http"
 
 	"github.com/concourse/atc/db"
@@ -52,9 +51,11 @@ func FetchTemplateData(buildDB BuildsDB, configDB db.ConfigDB) (TemplateData, er
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log := handler.logger.Session("builds")
+
 	templateData, err := FetchTemplateData(handler.db, handler.configDB)
 	if err != nil {
-		handler.logger.Error("failed-to-build-template-data", err)
+		log.Error("failed-to-build-template-data", err)
 		http.Error(w, "failed to fetch builds", http.StatusInternalServerError)
 		return
 	}

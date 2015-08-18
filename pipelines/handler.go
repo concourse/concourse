@@ -11,7 +11,7 @@ type PipelineHandlerFactory struct {
 	pipelineDBFactory db.PipelineDBFactory
 }
 
-func (pdbh *PipelineHandlerFactory) HandlerFor(handlerFunc func(db.PipelineDB) http.Handler) http.HandlerFunc {
+func (pdbh *PipelineHandlerFactory) HandlerFor(pipelineScopedHandler func(db.PipelineDB) http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		pipelineName := r.FormValue(":pipeline_name")
 		pipelineDB, err := pdbh.pipelineDBFactory.BuildWithName(pipelineName)
@@ -24,7 +24,7 @@ func (pdbh *PipelineHandlerFactory) HandlerFor(handlerFunc func(db.PipelineDB) h
 			return
 		}
 
-		handlerFunc(pipelineDB).ServeHTTP(w, r)
+		pipelineScopedHandler(pipelineDB).ServeHTTP(w, r)
 	}
 }
 

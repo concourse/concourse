@@ -3,7 +3,6 @@ package getresource
 import (
 	"errors"
 	"html/template"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -126,20 +125,20 @@ func FetchTemplateData(resourceDB ResourcesDB, authenticated bool, resourceName 
 
 func (server *server) GetResource(pipelineDB db.PipelineDB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		server.logger.Session("get-resource")
+		session := server.logger.Session("get-resource")
 
 		resourceName := r.FormValue(":resource")
 
 		startingID, parseErr := strconv.Atoi(r.FormValue("id"))
 		if parseErr != nil {
-			server.logger.Info("cannot-parse-id-to-int", lager.Data{"id": r.FormValue("id")})
+			session.Info("cannot-parse-id-to-int", lager.Data{"id": r.FormValue("id")})
 			startingID = 0
 		}
 
 		resultsGreaterThanStartingID, parseErr := strconv.ParseBool(r.FormValue("newer"))
 		if parseErr != nil {
 			resultsGreaterThanStartingID = false
-			server.logger.Info("cannot-parse-newer-to-bool", lager.Data{"newer": r.FormValue("newer")})
+			session.Info("cannot-parse-newer-to-bool", lager.Data{"newer": r.FormValue("newer")})
 		}
 
 		authenticated := server.validator.IsAuthenticated(r)
@@ -147,7 +146,7 @@ func (server *server) GetResource(pipelineDB db.PipelineDB) http.Handler {
 
 		switch err {
 		case ErrResourceConfigNotFound:
-			server.logger.Error("could-not-find-resource-in-config", ErrResourceConfigNotFound, lager.Data{
+			session.Error("could-not-find-resource-in-config", ErrResourceConfigNotFound, lager.Data{
 				"resource": resourceName,
 			})
 			w.WriteHeader(http.StatusNotFound)
@@ -155,7 +154,7 @@ func (server *server) GetResource(pipelineDB db.PipelineDB) http.Handler {
 		case nil:
 			break
 		default:
-			server.logger.Error("failed-to-build-template-data", err, lager.Data{
+			session.Error("failed-to-build-template-data", err, lager.Data{
 				"resource": resourceName,
 			})
 			http.Error(w, "failed to fetch resources", http.StatusInternalServerError)
@@ -164,7 +163,7 @@ func (server *server) GetResource(pipelineDB db.PipelineDB) http.Handler {
 
 		err = server.template.Execute(w, templateData)
 		if err != nil {
-			log.Fatal("failed-to-task-template", err, lager.Data{
+			session.Fatal("failed-to-task-template", err, lager.Data{
 				"template-data": templateData,
 			})
 		}
