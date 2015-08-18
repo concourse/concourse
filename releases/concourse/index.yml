@@ -120,4 +120,6 @@ builds:
     version: 0.59.0
   ccb1b732-3195-4193-b7e8-2931ac75265d:
     version: 0.59.1
+  0f6bf695-44b6-4bf8-8220-0370034e653a:
+    version: 0.60.0
 format-version: '2'
