@@ -32,6 +32,12 @@
   workaround interim jobs in place for now.
 }{
   The \hyperlink{https://github.com/concourse/docker-image-resource}{Docker
+  image resource} now supports skipping the download of the large image if you
+  don't need it. Please see the
+  \hyperlink{https://github.com/concourse/docker-image-resource/blob/master/README.md}{README}
+  for details on how to use it.
+}{
+  The \hyperlink{https://github.com/concourse/docker-image-resource}{Docker
   image resource} now supports pushing and pulling from private registries. See
   the
   \hyperlink{https://github.com/concourse/docker-image-resource/blob/master/README.md}{README}
