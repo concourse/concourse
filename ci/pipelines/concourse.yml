@@ -132,6 +132,10 @@ jobs:
   public: true
   serial_groups: [version]
   plan:
+  - get: concourse
+    passed: [shipit]
+    params: {submodules: none}
+    trigger: true
   - get: version
     passed: [shipit]
     params: {bump: patch}
