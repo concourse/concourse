@@ -6,8 +6,9 @@
   We've upgraded our Garden dependency back to the latest and greatest. We've
   heard that there's some leaks plugged and bugs squashed.
 }{
-  ATC used to crash if you clicked links to quickly. This was apparently
-  "undesirable behaviour".
+  ATC would crash if you clicked links too quickly. This was apparently
+  "undesirable
+  behaviour"\hyperlink{http://www.thepunctuationguide.com/british-versus-american-style.html}{.}
 
-  The behaviour is now desirable.
+  We have changed the behaviour so it is more desirable.
 }
