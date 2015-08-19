@@ -1,0 +1,13 @@
+#language anatomy
+
+\title{v0.60.1}
+
+\list{
+  We've upgraded our Garden dependency back to the latest and greatest. We've
+  heard that there's some leaks plugged and bugs squashed.
+}{
+  ATC used to crash if you clicked links to quickly. This was apparently
+  "undesirable behaviour".
+
+  The behaviour is now desirable.
+}
