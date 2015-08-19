@@ -35,6 +35,12 @@ resources:
     source:
       uri: {{ensure-failure-git-server}}
       branch: ensure-failure
+  
+  - name: some-git-resource-ensure-abort
+    type: git
+    source:
+        uri: {{ensure-abort-git-server}}
+        branch: ensure-abort
 
 jobs:
   - name: some-passing-job
@@ -91,3 +97,22 @@ jobs:
           put: some-git-resource-failure
           params:
             repository: fail
+
+  - name: some-aborted-job
+    plan:
+      - get: some-git-resource
+        trigger: true
+      - task: ensure
+        config:
+          platform: linux
+          inputs:
+            - name: some-git-resource
+              path: .
+          run:
+            path: sh
+            args: ["-c", "sleep 5"]
+        ensure:
+          put: some-git-resource-ensure-abort
+          params:
+            repository: ensure
+       

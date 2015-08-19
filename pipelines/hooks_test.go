@@ -17,6 +17,7 @@ var _ = Describe("A pipeline containing jobs with hooks", func() {
 		noUpdateGitServer      *gitserver.Server
 		ensureSuccessGitServer *gitserver.Server
 		ensureFailureGitServer *gitserver.Server
+		ensureAbortGitServer   *gitserver.Server
 	)
 
 	BeforeEach(func() {
@@ -28,6 +29,7 @@ var _ = Describe("A pipeline containing jobs with hooks", func() {
 		noUpdateGitServer = gitserver.Start(gitServerRootfs, gardenClient)
 		ensureSuccessGitServer = gitserver.Start(gitServerRootfs, gardenClient)
 		ensureFailureGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+		ensureAbortGitServer = gitserver.Start(gitServerRootfs, gardenClient)
 
 		configurePipeline(
 			"-c", "fixtures/hooks.yml",
@@ -39,6 +41,7 @@ var _ = Describe("A pipeline containing jobs with hooks", func() {
 			"-v", "no-update-git-server="+noUpdateGitServer.URI(),
 			"-v", "ensure-success-git-server="+ensureSuccessGitServer.URI(),
 			"-v", "ensure-failure-git-server="+ensureFailureGitServer.URI(),
+			"-v", "ensure-abort-git-server="+ensureAbortGitServer.URI(),
 		)
 	})
 
@@ -51,6 +54,7 @@ var _ = Describe("A pipeline containing jobs with hooks", func() {
 		noUpdateGitServer.Stop()
 		ensureSuccessGitServer.Stop()
 		ensureFailureGitServer.Stop()
+		ensureAbortGitServer.Stop()
 	})
 
 	It("performs hooks under the right conditions", func() {
@@ -84,6 +88,13 @@ var _ = Describe("A pipeline containing jobs with hooks", func() {
 		By("peforming ensure steps on failure")
 		Eventually(func() string {
 			return ensureFailureGitServer.RevParse("ensure-failure")
+		}).Should(Equal(masterSHA))
+
+		By("performing ensure steps on abort")
+		watch := flyWatch("some-aborted-job")
+		watch.Kill()
+		Eventually(func() string {
+			return ensureAbortGitServer.RevParse("ensure-abort")
 		}).Should(Equal(masterSHA))
 	})
 })
