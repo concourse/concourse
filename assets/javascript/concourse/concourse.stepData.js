@@ -191,7 +191,9 @@
           allObjects[location.parallel_group] = {hold: true, groupSteps: [], children: []};
         }
 
-        if(location.serial_group !== 0) {
+        location.serial_group = location.serial_group ? location.serial_group : 0;
+
+        if (location.serial_group !== 0) {
           renderSerialGroup = {
             serial: true,
             step: step,
