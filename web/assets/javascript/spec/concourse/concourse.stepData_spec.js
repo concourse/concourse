@@ -472,6 +472,29 @@ describe("Step Data", function () {
       expect(renderableData[1].groupSteps[3].groupSteps[5].step).toEqual(secondStep);
     });
 
+    it("can build render data for parallel groups even if serial groups pass in as undefined (older events)", function(){
+      var renderableData;
+      var firstStep = getFakeStep(4, 1, 3, undefined, "");
+      var secondStep = getFakeStep(5, 1, 3, undefined, "");
+
+      stepData = stepData.updateIn({id: 4}, function(){return firstStep;});
+      stepData = stepData.updateIn({id: 5}, function(){return secondStep;});
+      renderableData = stepData.getRenderableData();
+
+      expect(renderableData[1]).toBe(undefined);
+
+      var thirdStep = getFakeStep(2, 0, 1, 0, "");
+      stepData = stepData.updateIn({id: 2}, function(){return thirdStep;});
+      renderableData = stepData.getRenderableData();
+
+      expect(renderableData[1].hold).toBe(undefined);
+      expect(renderableData[1].aggregate).toBe(true);
+      expect(renderableData[1].groupSteps[2].step).toEqual(thirdStep);
+      expect(renderableData[1].groupSteps[3].aggregate).toBe(true);
+      expect(renderableData[1].groupSteps[3].groupSteps[4].step).toEqual(firstStep);
+      expect(renderableData[1].groupSteps[3].groupSteps[5].step).toEqual(secondStep);
+    });
+
     it("can build render data with hooks that are aggregates", function(){
       var renderableData;
       var firstStep = getFakeStep(1, 0, 0, 0, "");
