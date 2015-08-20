@@ -66,7 +66,6 @@ type GetPlan struct {
 	Params   Params  `json:"params,omitempty"`
 	Version  Version `json:"version,omitempty"`
 	Tags     Tags    `json:"tags,omitempty"`
-	Timeout  string  `json:"timeout,omitempty"`
 }
 
 type PutPlan struct {
@@ -77,10 +76,10 @@ type PutPlan struct {
 	Source   Source `json:"source"`
 	Params   Params `json:"params,omitempty"`
 	Tags     Tags   `json:"tags,omitempty"`
-	Timeout  string `json:"timeout,omitempty"`
 }
 
 func (plan DependentGetPlan) GetPlan() GetPlan {
+
 	return GetPlan{
 		Type:     plan.Type,
 		Name:     plan.Name,
@@ -88,7 +87,6 @@ func (plan DependentGetPlan) GetPlan() GetPlan {
 		Pipeline: plan.Pipeline,
 		Source:   plan.Source,
 		Tags:     plan.Tags,
-		Timeout:  plan.Timeout,
 		Params:   plan.Params,
 	}
 }
@@ -96,9 +94,8 @@ func (plan DependentGetPlan) GetPlan() GetPlan {
 type TaskPlan struct {
 	Name string `json:"name,omitempty"`
 
-	Privileged bool   `json:"privileged"`
-	Tags       Tags   `json:"tags,omitempty"`
-	Timeout    string `json:"timeout,omitempty"`
+	Privileged bool `json:"privileged"`
+	Tags       Tags `json:"tags,omitempty"`
 
 	ConfigPath string      `json:"config_path,omitempty"`
 	Config     *TaskConfig `json:"config,omitempty"`

@@ -54,6 +54,17 @@ var _ = Describe("Exec Engine with Timeout", func() {
 
 			inputStepFactory *execfakes.FakeStepFactory
 			inputStep        *execfakes.FakeStep
+
+			outputStepFactory *execfakes.FakeStepFactory
+			outputStep        *execfakes.FakeStep
+
+			dependentGetStepFactory *execfakes.FakeStepFactory
+			dependentGetStep        *execfakes.FakeStep
+
+			fakeDelegate       *fakes.FakeBuildDelegate
+			fakeInputDelegate  *execfakes.FakeGetDelegate
+			fakeOutputDelegate *execfakes.FakePutDelegate
+			timeout            string
 		)
 
 		BeforeEach(func() {
@@ -68,107 +79,261 @@ var _ = Describe("Exec Engine with Timeout", func() {
 			inputStep.ResultStub = successResult(true)
 			inputStepFactory.UsingReturns(inputStep)
 			fakeFactory.GetReturns(inputStepFactory)
+
+			outputStepFactory = new(execfakes.FakeStepFactory)
+			outputStep = new(execfakes.FakeStep)
+			outputStep.ResultStub = successResult(true)
+			outputStepFactory.UsingReturns(outputStep)
+			fakeFactory.PutReturns(outputStepFactory)
+
+			dependentGetStepFactory = new(execfakes.FakeStepFactory)
+			dependentGetStep = new(execfakes.FakeStep)
+			dependentGetStep.ResultStub = successResult(true)
+			dependentGetStepFactory.UsingReturns(dependentGetStep)
+			fakeFactory.DependentGetReturns(dependentGetStepFactory)
+
+			fakeDelegate = new(fakes.FakeBuildDelegate)
+			fakeDelegateFactory.DelegateReturns(fakeDelegate)
+
+			fakeInputDelegate = new(execfakes.FakeGetDelegate)
+			fakeDelegate.InputDelegateReturns(fakeInputDelegate)
+
+			fakeOutputDelegate = new(execfakes.FakePutDelegate)
+			fakeDelegate.OutputDelegateReturns(fakeOutputDelegate)
+
 		})
 
-		Context("constructing steps", func() {
-			var (
-				fakeDelegate      *fakes.FakeBuildDelegate
-				fakeInputDelegate *execfakes.FakeGetDelegate
-				timeout           string
-			)
+		Context("put", func() {
 
-			BeforeEach(func() {
-				fakeDelegate = new(fakes.FakeBuildDelegate)
-				fakeDelegateFactory.DelegateReturns(fakeDelegate)
+			Context("constructing steps", func() {
 
-				fakeInputDelegate = new(execfakes.FakeGetDelegate)
-				fakeDelegate.InputDelegateReturns(fakeInputDelegate)
-
-				plan := atc.Plan{
-					Timeout: &atc.TimeoutPlan{
-						Duration: timeout,
-						Step: atc.Plan{
-							Location: &atc.Location{},
-							Get: &atc.GetPlan{
-								Name: "some-input",
+				It("constructs the step correctly", func() {
+					plan := atc.Plan{
+						OnSuccess: &atc.OnSuccessPlan{
+							Step: atc.Plan{
+								Location: &atc.Location{
+									ParentID:      0,
+									ID:            1,
+									ParallelGroup: 0,
+								},
+								Put: &atc.PutPlan{
+									Type:     "git",
+									Name:     "some-put",
+									Resource: "some-resource",
+									Pipeline: "some-pipeline",
+									Source: atc.Source{
+										"uri": "git://some-resource",
+									},
+								},
 							},
-						},
-					},
-				}
-
-				build, err := execEngine.CreateBuild(buildModel, plan)
-				Ω(err).ShouldNot(HaveOccurred())
-				build.Resume(logger)
-			})
-
-			It("constructs the step correctly", func() {
-				Ω(fakeFactory.GetCallCount()).Should(Equal(1))
-				sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
-				Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
-				Ω(workerID).Should(Equal(worker.Identifier{
-					BuildID: 84,
-					Type:    worker.ContainerTypeGet,
-					Name:    "some-input",
-				}))
-
-				Ω(delegate).Should(Equal(fakeInputDelegate))
-				_, _, location := fakeDelegate.InputDelegateArgsForCall(0)
-				Ω(location).ShouldNot(BeNil())
-			})
-		})
-
-		Context("when the step times out", func() {
-			BeforeEach(func() {
-				inputStep.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
-					close(ready)
-
-					time.Sleep(4 * time.Second)
-
-					return nil
-				}
-			})
-
-			It("does not run the next step", func() {
-				plan := atc.Plan{
-					OnSuccess: &atc.OnSuccessPlan{
-						Step: atc.Plan{
-							Timeout: &atc.TimeoutPlan{
-								Duration: "2s",
-								Step: atc.Plan{
-									Location: &atc.Location{},
-									Get: &atc.GetPlan{
-										Name: "some-input",
+							Next: atc.Plan{
+								Location: &atc.Location{
+									ParentID:      1,
+									ID:            2,
+									ParallelGroup: 0,
+								},
+								DependentGet: &atc.DependentGetPlan{
+									Type:     "git",
+									Name:     "some-put",
+									Resource: "some-resource",
+									Pipeline: "some-pipeline",
+									Source: atc.Source{
+										"uri": "git://some-resource",
 									},
 								},
 							},
 						},
-						Next: atc.Plan{
-							Location: &atc.Location{},
-							Task: &atc.TaskPlan{
-								Name:   "some-resource",
-								Config: &atc.TaskConfig{},
+					}
+					build, err := execEngine.CreateBuild(buildModel, plan)
+					Ω(err).ShouldNot(HaveOccurred())
+					build.Resume(logger)
+					Ω(fakeFactory.PutCallCount()).Should(Equal(1))
+					workerID, delegate, resourceConfig, _, _ := fakeFactory.PutArgsForCall(0)
+					Ω(workerID).Should(Equal(worker.Identifier{
+						BuildID:      84,
+						Type:         worker.ContainerTypePut,
+						Name:         "some-put",
+						StepLocation: 1,
+					}))
+
+					Ω(resourceConfig).Should(Equal(atc.ResourceConfig{
+						Name: "some-resource",
+						Type: "git",
+						Source: atc.Source{
+							"uri": "git://some-resource",
+						},
+					}))
+
+					Ω(delegate).Should(Equal(fakeOutputDelegate))
+					_, _, location := fakeDelegate.OutputDelegateArgsForCall(0)
+					Ω(location).ShouldNot(BeNil())
+				})
+
+				Context("when the step times out", func() {
+					BeforeEach(func() {
+						outputStep.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+							close(ready)
+
+							time.Sleep(2 * time.Second)
+
+							return nil
+						}
+
+						dependentGetStep.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+							close(ready)
+
+							time.Sleep(2 * time.Second)
+
+							return nil
+						}
+					})
+					It("does not run the next step", func() {
+						plan := atc.Plan{
+							OnSuccess: &atc.OnSuccessPlan{
+								Step: atc.Plan{
+									Timeout: &atc.TimeoutPlan{
+										Duration: "3s",
+										Step: atc.Plan{
+											OnSuccess: &atc.OnSuccessPlan{
+												Step: atc.Plan{
+													Put: &atc.PutPlan{
+														Name: "some-put",
+													},
+												},
+												Next: atc.Plan{
+													DependentGet: &atc.DependentGetPlan{
+														Name: "some-dependent-get",
+													},
+												},
+											},
+										},
+									},
+								},
+								Next: atc.Plan{
+									Task: &atc.TaskPlan{
+										Name:   "some-resource",
+										Config: &atc.TaskConfig{},
+									},
+								},
+							},
+						}
+
+						build, err := execEngine.CreateBuild(buildModel, plan)
+						Ω(err).ShouldNot(HaveOccurred())
+						build.Resume(logger)
+						Ω(build).Should(Equal(build))
+
+						Ω(outputStep.RunCallCount()).Should(Equal(1))
+						Ω(outputStep.ReleaseCallCount()).Should((BeNumerically(">", 0)))
+
+						Ω(dependentGetStep.RunCallCount()).Should(Equal(1))
+						Ω(dependentGetStep.ReleaseCallCount()).Should((BeNumerically(">", 0)))
+
+						Ω(taskStep.RunCallCount()).Should(Equal(0))
+
+						Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
+
+						_, err, succeeded, aborted := fakeDelegate.FinishArgsForCall(0)
+						Ω(err).ShouldNot(BeNil())
+						Ω(err.Error()).Should(ContainSubstring(exec.ErrStepTimedOut.Error()))
+						Ω(succeeded).Should(Equal(exec.Success(false)))
+						Ω(aborted).Should(BeFalse())
+					})
+				})
+			})
+
+		})
+
+		Context("get", func() {
+			Context("constructing steps", func() {
+
+				BeforeEach(func() {
+					plan := atc.Plan{
+						Timeout: &atc.TimeoutPlan{
+							Duration: timeout,
+							Step: atc.Plan{
+								Location: &atc.Location{},
+								Get: &atc.GetPlan{
+									Name: "some-input",
+								},
 							},
 						},
-					},
-				}
+					}
 
-				build, err := execEngine.CreateBuild(buildModel, plan)
+					build, err := execEngine.CreateBuild(buildModel, plan)
+					Ω(err).ShouldNot(HaveOccurred())
+					build.Resume(logger)
+				})
 
-				Ω(err).ShouldNot(HaveOccurred())
+				It("constructs the step correctly", func() {
+					Ω(fakeFactory.GetCallCount()).Should(Equal(1))
+					sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+					Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
+					Ω(workerID).Should(Equal(worker.Identifier{
+						BuildID: 84,
+						Type:    worker.ContainerTypeGet,
+						Name:    "some-input",
+					}))
 
-				build.Resume(logger)
+					Ω(delegate).Should(Equal(fakeInputDelegate))
+					_, _, location := fakeDelegate.InputDelegateArgsForCall(0)
+					Ω(location).ShouldNot(BeNil())
+				})
+			})
 
-				Ω(inputStep.RunCallCount()).Should(Equal(1))
-				Ω(inputStep.ReleaseCallCount()).Should((BeNumerically(">", 0)))
+			Context("when the step times out", func() {
+				BeforeEach(func() {
+					inputStep.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+						close(ready)
 
-				Ω(taskStep.RunCallCount()).Should(Equal(0))
+						time.Sleep(4 * time.Second)
 
-				Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
+						return nil
+					}
+				})
 
-				_, err, succeeded, aborted := fakeDelegate.FinishArgsForCall(0)
-				Ω(err.Error()).Should(ContainSubstring(exec.ErrStepTimedOut.Error()))
-				Ω(succeeded).Should(Equal(exec.Success(false)))
-				Ω(aborted).Should(BeFalse())
+				It("does not run the next step", func() {
+					plan := atc.Plan{
+						OnSuccess: &atc.OnSuccessPlan{
+							Step: atc.Plan{
+								Timeout: &atc.TimeoutPlan{
+									Duration: "2s",
+									Step: atc.Plan{
+										Location: &atc.Location{},
+										Get: &atc.GetPlan{
+											Name: "some-input",
+										},
+									},
+								},
+							},
+							Next: atc.Plan{
+								Location: &atc.Location{},
+								Task: &atc.TaskPlan{
+									Name:   "some-resource",
+									Config: &atc.TaskConfig{},
+								},
+							},
+						},
+					}
+
+					build, err := execEngine.CreateBuild(buildModel, plan)
+
+					Ω(err).ShouldNot(HaveOccurred())
+
+					build.Resume(logger)
+
+					Ω(inputStep.RunCallCount()).Should(Equal(1))
+					Ω(inputStep.ReleaseCallCount()).Should((BeNumerically(">", 0)))
+
+					Ω(taskStep.RunCallCount()).Should(Equal(0))
+
+					Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
+
+					_, err, succeeded, aborted := fakeDelegate.FinishArgsForCall(0)
+					Ω(err.Error()).Should(ContainSubstring(exec.ErrStepTimedOut.Error()))
+					Ω(succeeded).Should(Equal(exec.Success(false)))
+					Ω(aborted).Should(BeFalse())
+				})
 			})
 		})
 	})
