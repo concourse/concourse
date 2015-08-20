@@ -5,3 +5,18 @@ dependencies:
   - golang
 
 files:
+  - github.com/concourse/baggageclaim/cmd/baggageclaim/*.go # gosub
+  - github.com/concourse/baggageclaim/cmd/fs_mounter/*.go # gosub
+  - github.com/bmizerany/pat/*.go # gosub
+  - github.com/concourse/baggageclaim/*.go # gosub
+  - github.com/concourse/baggageclaim/api/*.go # gosub
+  - github.com/concourse/baggageclaim/fs/*.go # gosub
+  - github.com/concourse/baggageclaim/volume/*.go # gosub
+  - github.com/concourse/baggageclaim/volume/driver/*.go # gosub
+  - github.com/nu7hatch/gouuid/*.go # gosub
+  - github.com/pivotal-golang/lager/*.go # gosub
+  - github.com/tedsuo/ifrit/*.go # gosub
+  - github.com/tedsuo/ifrit/grouper/*.go # gosub
+  - github.com/tedsuo/ifrit/http_server/*.go # gosub
+  - github.com/tedsuo/ifrit/sigmon/*.go # gosub
+  - github.com/tedsuo/rata/*.go # gosub

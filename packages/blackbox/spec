@@ -5,3 +5,19 @@ dependencies:
   - golang
 
 files:
+  - github.com/concourse/blackbox/cmd/blackbox/*.go # gosub
+  - github.com/ActiveState/tail/*.go # gosub
+  - github.com/ActiveState/tail/ratelimiter/*.go # gosub
+  - github.com/ActiveState/tail/util/*.go # gosub
+  - github.com/ActiveState/tail/watch/*.go # gosub
+  - github.com/concourse/blackbox/*.go # gosub
+  - github.com/concourse/blackbox/datadog/*.go # gosub
+  - github.com/concourse/blackbox/expvar/*.go # gosub
+  - github.com/concourse/blackbox/syslog/*.go # gosub
+  - github.com/howeyc/fsnotify/*.go # gosub
+  - github.com/papertrail/remote_syslog2/syslog/*.go # gosub
+  - github.com/tedsuo/ifrit/*.go # gosub
+  - github.com/tedsuo/ifrit/grouper/*.go # gosub
+  - github.com/tedsuo/ifrit/sigmon/*.go # gosub
+  - gopkg.in/tomb.v1/*.go # gosub
+  - gopkg.in/yaml.v2/*.go # gosub
