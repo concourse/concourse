@@ -5,16 +5,3 @@ dependencies:
   - golang
 
 files:
-  - github.com/concourse/tsa/cmd/tsa/*.go # gosub
-  - github.com/bmizerany/pat/*.go # gosub
-  - github.com/cloudfoundry-incubator/garden/*.go # gosub
-  - github.com/cloudfoundry-incubator/garden/client/*.go # gosub
-  - github.com/cloudfoundry-incubator/garden/client/connection/*.go # gosub
-  - github.com/cloudfoundry-incubator/garden/routes/*.go # gosub
-  - github.com/cloudfoundry-incubator/garden/transport/*.go # gosub
-  - github.com/concourse/atc/*.go # gosub
-  - github.com/concourse/tsa/*.go # gosub
-  - github.com/pivotal-golang/lager/*.go # gosub
-  - github.com/tedsuo/ifrit/*.go # gosub
-  - github.com/tedsuo/rata/*.go # gosub
-  - golang.org/x/crypto/ssh/*.go # gosub
