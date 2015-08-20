@@ -1487,198 +1487,99 @@ func (pdb *pipelineDB) GetCurrentBuild(job string) (Build, error) {
 	return Build{}, ErrNoBuild
 }
 
-// buckle up
-func (pdb *pipelineDB) GetLatestInputVersions(jobName string, inputs []atc.JobInput) ([]BuildInput, error) {
-	if len(inputs) == 0 {
+func (pdb *pipelineDB) GetLatestInputVersions(jobName string, jobInputs []atc.JobInput) ([]BuildInput, error) {
+	if len(jobInputs) == 0 {
 		return []BuildInput{}, nil
 	}
 
-	job, err := pdb.GetJob(jobName)
-	if err != nil {
-		return []BuildInput{}, err
-	}
+	var buildInputs []BuildInput
 
-	scannedValues := []interface{}{}
-	for _ = range inputs {
-		var id int
-		scannedValues = append(scannedValues, &id)
-		var enabled bool
-		scannedValues = append(scannedValues, &enabled)
-	}
-
-	dbResources := map[string]SavedResource{}
-
-	inputSelects := []string{}
-	inputFromAliases := []string{"builds b"}
-	inputWheres := []string{}
-	inputOrders := []string{"b.id DESC"}
-	inputParams := []interface{}{}
-
-	inputParams = append(inputParams, job.ID)
-	jobIdParam := len(inputParams)
-	inputWheres = append(inputWheres, fmt.Sprintf("b.job_id = $%d", jobIdParam))
-
-	for i, input := range inputs {
-		dbResource, found := dbResources[input.Resource]
-		if !found {
-			var err error
-			dbResource, err = pdb.GetResource(input.Resource)
-			if err != nil {
-				return []BuildInput{}, err
-			}
-
-			dbResources[input.Resource] = dbResource
-		}
-
-		inputSelects = append(inputSelects, fmt.Sprintf("i%d.versioned_resource_id", i+1))
-		inputFromAliases = append(inputFromAliases, fmt.Sprintf("build_inputs i%d", i+1))
-		inputFromAliases = append(inputFromAliases, fmt.Sprintf("versioned_resources vr%d", i+1))
-		inputSelects = append(inputSelects, fmt.Sprintf("vr%d.enabled", i+1))
-		inputOrders = append(inputOrders, fmt.Sprintf("vr%d.id ASC", i+1))
-
-		inputParams = append(inputParams, input.Name)
-		inputNameParam := len(inputParams)
-		inputWheres = append(inputWheres, fmt.Sprintf("i%d.name = $%d", i+1, inputNameParam))
-
-		inputParams = append(inputParams, dbResource.ID)
-		resourceIDParam := len(inputParams)
-		inputWheres = append(inputWheres, fmt.Sprintf("vr%d.resource_id = $%d", i+1, resourceIDParam))
-
-		inputWheres = append(inputWheres, fmt.Sprintf("b.id = i%d.build_id", i+1))
-		inputWheres = append(inputWheres, fmt.Sprintf("vr%d.id = i%d.versioned_resource_id", i+1, i+1))
-	}
-
-	inputsQuery := fmt.Sprintf(
-		`
-			SELECT %s
-			FROM %s
-			WHERE %s
-			ORDER BY %s
-			LIMIT 1
-		`,
-		strings.Join(inputSelects, ", "),
-		strings.Join(inputFromAliases, ", "),
-		strings.Join(inputWheres, "\nAND "),
-		strings.Join(inputOrders, ", "),
-	)
-
-	err = pdb.conn.QueryRow(inputsQuery, inputParams...).Scan(scannedValues...)
-	if err != nil && err != sql.ErrNoRows {
-		return []BuildInput{}, err
-	}
-
-	// get latest build inputs (ensure all have same build id)
-	// append WHERE id >= existing_id for each input
-
-	selectIds := []string{}
-	orderBy := []string{}
-	fromAliases := []string{}
-	conditions := []string{}
-	params := []interface{}{}
-
-	passedJobs := map[string]int{}
-
-	for i, input := range inputs {
-		fromAliases = append(fromAliases, fmt.Sprintf("versioned_resources v%d", i+1))
-
-		if len(scannedValues) != 0 {
-			index := i * 2
-
-			if *scannedValues[index+1].(*bool) {
-				params = append(params, *(scannedValues[index].(*int)))
-				paramIndex := len(params)
-
-				conditions = append(conditions, fmt.Sprintf("v%d.id >= $%d", i+1, paramIndex))
-			}
-		}
-
-		params = append(params, dbResources[input.Resource].ID)
-		resourceIDParam := len(params)
-		conditions = append(conditions, fmt.Sprintf("v%d.resource_id = $%d", i+1, resourceIDParam))
-
-		for _, name := range input.Passed {
-			idx, found := passedJobs[name]
-			if !found {
-				idx = len(passedJobs)
-				passedJobs[name] = idx
-
-				fromAliases = append(fromAliases, fmt.Sprintf("builds b%d", idx+1))
-
-				dbJob, err := pdb.GetJob(name)
-				if err != nil {
-					return []BuildInput{}, err
-				}
-
-				params = append(params, dbJob.ID)
-				jobIDParam := len(params)
-				conditions = append(conditions, fmt.Sprintf("b%d.job_id = $%d", idx+1, jobIDParam))
-
-				params = append(params, string(StatusSucceeded))
-				buildStatusParam := len(params)
-				conditions = append(conditions, fmt.Sprintf("b%d.status = $%d", idx+1, buildStatusParam))
-			}
-
-			fromAliases = append(fromAliases, fmt.Sprintf("build_outputs v%db%d", i+1, idx+1))
-
-			conditions = append(conditions, fmt.Sprintf("v%db%d.versioned_resource_id = v%d.id", i+1, idx+1, i+1))
-
-			conditions = append(conditions, fmt.Sprintf("v%db%d.build_id = b%d.id", i+1, idx+1, idx+1))
-		}
-
-		conditions = append(conditions, fmt.Sprintf("v%d.enabled", i+1))
-
-		selectIds = append(selectIds, fmt.Sprintf("v%d.id", i+1))
-
-		orderBy = append(orderBy, fmt.Sprintf("v%d.id DESC", i+1))
-	}
-
-	buildInputs := []BuildInput{}
-
-	ids := []interface{}{}
-	for _ = range inputs {
-		var id int
-		ids = append(ids, &id)
-	}
-	qurey := fmt.Sprintf(
-		`
-				SELECT %s
-				FROM %s
-				WHERE %s
-				ORDER BY %s
-				LIMIT 1
-			`,
-		strings.Join(selectIds, ", "),
-		strings.Join(fromAliases, ", "),
-		strings.Join(conditions, "\nAND "),
-		strings.Join(orderBy, ", "),
-	)
-
-	err = pdb.conn.QueryRow(qurey, params...).Scan(ids...)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrNoVersions
-		}
-
-		return nil, err
-	}
-
-	for i, idPtr := range ids {
-		id := *(idPtr.(*int))
-		svr := SavedVersionedResource{
-			ID:      id,
-			Enabled: true, // this is inherent with the following query
-		}
-
+	for _, jobInput := range jobInputs {
 		var source, version, metadata string
+		var err error
 
-		err := pdb.conn.QueryRow(`
-			SELECT r.name, vr.type, vr.source, vr.version, vr.metadata
-			FROM versioned_resources vr, resources r
-			WHERE vr.id = $1
-				AND vr.resource_id = r.id
-		`, id).Scan(&svr.Resource, &svr.Type, &source, &version, &metadata)
+		resource, err := pdb.GetResource(jobInput.Resource)
 		if err != nil {
+			return []BuildInput{}, err
+		}
+
+		svr := SavedVersionedResource{
+			Enabled: true,
+			VersionedResource: VersionedResource{
+				Resource: resource.Name,
+			},
+		}
+
+		if len(jobInput.Passed) > 0 {
+			passedConstraints := []string{}
+
+			params := []interface{}{}
+
+			params = append(params, "succeeded")
+			params = append(params, resource.Name)
+
+			for _, passedConstraint := range jobInput.Passed {
+				params = append(params, passedConstraint)
+				nextParam := len(params)
+				passedConstraints = append(passedConstraints, fmt.Sprintf("j.name = $%d", nextParam))
+			}
+
+			params = append(params, len(passedConstraints))
+			lastParamIndex := len(params)
+
+			queryString := fmt.Sprintf(`
+					SELECT vr.id,
+						r.name,
+						vr.type,
+						vr.source,
+						vr.version,
+						vr.metadata
+					FROM jobs j
+					INNER JOIN builds b on j.id = b.job_id
+						AND b.status = $1
+					INNER JOIN build_outputs bo ON b.id = bo.build_id
+					INNER JOIN versioned_resources vr on bo.versioned_resource_id = vr.id
+					INNER JOIN resources r on vr.resource_id = r.id
+					WHERE r.name = $2
+						AND vr.enabled = true
+						AND (
+							%s
+						)
+					GROUP BY vr.id,
+						r.name,
+						vr.type,
+						vr.source,
+						vr.version,
+						vr.metadata
+					HAVING count(distinct(j.id)) = $%d
+					ORDER BY vr.id desc
+					LIMIT 1
+					`, strings.Join(passedConstraints, " OR "), lastParamIndex)
+
+			err = pdb.conn.QueryRow(queryString, params...).Scan(
+				&svr.ID,
+				&svr.Resource,
+				&svr.Type,
+				&source,
+				&version,
+				&metadata,
+			)
+		} else {
+			err = pdb.conn.QueryRow(`
+					SELECT id, enabled, type, source, version, metadata
+					FROM versioned_resources
+					WHERE resource_id = $1
+						AND enabled = true
+					ORDER BY id DESC
+					LIMIT 1
+				`, resource.ID).Scan(&svr.ID, &svr.Enabled, &svr.Type, &source, &version, &metadata)
+		}
+
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, ErrNoVersions
+			}
+
 			return nil, err
 		}
 
@@ -1698,7 +1599,7 @@ func (pdb *pipelineDB) GetLatestInputVersions(jobName string, inputs []atc.JobIn
 		}
 
 		buildInputs = append(buildInputs, BuildInput{
-			Name:              inputs[i].Name,
+			Name:              jobInput.Name,
 			VersionedResource: svr.VersionedResource,
 		})
 	}

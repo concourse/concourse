@@ -1998,6 +1998,175 @@ var _ = Describe("PipelineDB", func() {
 				Ω(buildInputs).Should(Equal([]db.BuildInput{}))
 			})
 
+			It("gets the latest versions of resources for a set of inputs with no passed constraints", func() {
+				err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "2"}})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-other-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-other-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "2"}})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-other-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "3"}})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				jobBuildInputs := []atc.JobInput{
+					{
+						Name:     "some-input-name",
+						Resource: "some-resource",
+					},
+					{
+						Name:     "some-other-input-name",
+						Resource: "some-other-resource",
+					},
+				}
+
+				Ω(pipelineDB.GetLatestInputVersions("a-random-job", jobBuildInputs)).Should(Equal([]db.BuildInput{
+					{
+						Name: "some-input-name",
+						VersionedResource: db.VersionedResource{
+							Resource: "some-resource",
+							Type:     "some-type",
+							Source:   db.Source{"some": "source"},
+							Version:  db.Version{"version": "2"},
+						},
+					},
+					{
+						Name: "some-other-input-name",
+						VersionedResource: db.VersionedResource{
+							Resource: "some-other-resource",
+							Type:     "some-type",
+							Source:   db.Source{"some": "source"},
+							Version:  db.Version{"version": "3"},
+						},
+					},
+				}))
+			})
+
+			It("if I kick off multiple builds of jobs present in the passed constraint, i should still get inputs", func() {
+				resource, err := pipelineDB.GetResource("some-resource")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				savedVR1, err := pipelineDB.GetLatestVersionedResource(resource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				otherResource, err := pipelineDB.GetResource("some-other-resource")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-other-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				otherSavedVR1, err := pipelineDB.GetLatestVersionedResource(otherResource)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				build1, err := pipelineDB.CreateJobBuild("a-job")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildInput(build1.ID, db.BuildInput{
+					Name:              "some-input-name",
+					VersionedResource: savedVR1.VersionedResource,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildOutput(build1.ID, savedVR1.VersionedResource, false)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildInput(build1.ID, db.BuildInput{
+					Name:              "some-other-input-name",
+					VersionedResource: otherSavedVR1.VersionedResource,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildOutput(build1.ID, otherSavedVR1.VersionedResource, false)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				build2, err := pipelineDB.CreateJobBuild("a-job")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildInput(build2.ID, db.BuildInput{
+					Name:              "some-input-name",
+					VersionedResource: savedVR1.VersionedResource,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildInput(build2.ID, db.BuildInput{
+					Name:              "some-other-input-name",
+					VersionedResource: otherSavedVR1.VersionedResource,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildOutput(build2.ID, savedVR1.VersionedResource, false)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = pipelineDB.SaveBuildOutput(build2.ID, otherSavedVR1.VersionedResource, false)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = sqlDB.FinishBuild(build1.ID, db.StatusSucceeded)
+				Ω(err).ShouldNot(HaveOccurred())
+				err = sqlDB.FinishBuild(build2.ID, db.StatusSucceeded)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				jobBuildInputs := []atc.JobInput{
+					{
+						Name:     "some-input-name",
+						Resource: "some-resource",
+						Passed:   []string{"a-job"},
+					},
+					{
+						Name:     "some-other-input-name",
+						Resource: "some-other-resource",
+					},
+				}
+
+				gottenVersions, err := pipelineDB.GetLatestInputVersions("third-job", jobBuildInputs)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(gottenVersions).Should(Equal([]db.BuildInput{
+					{
+						Name:              "some-input-name",
+						VersionedResource: savedVR1.VersionedResource,
+					},
+					{
+						Name:              "some-other-input-name",
+						VersionedResource: otherSavedVR1.VersionedResource,
+					},
+				}))
+			})
+
 			It("ensures that when scanning for previous inputs versions it only considers those from the same job", func() {
 				resource, err := pipelineDB.GetResource("some-resource")
 				Ω(err).ShouldNot(HaveOccurred())
@@ -2325,14 +2494,6 @@ var _ = Describe("PipelineDB", func() {
 					},
 				}))
 
-				// now save the output of resource-2 job-2
-				savedCommonVR2, err := pipelineDB.SaveBuildOutput(j2b2.ID, db.VersionedResource{
-					Resource: "resource-2",
-					Type:     "some-type",
-					Version:  db.Version{"v": "new-r2-common-to-shared-and-j2"},
-				}, false)
-				Ω(err).ShouldNot(HaveOccurred())
-
 				err = sqlDB.FinishBuild(sb2.ID, db.StatusSucceeded)
 				Ω(err).ShouldNot(HaveOccurred())
 				err = sqlDB.FinishBuild(j1b2.ID, db.StatusSucceeded)
@@ -2358,7 +2519,7 @@ var _ = Describe("PipelineDB", func() {
 					},
 					{
 						Name:              "input-2",
-						VersionedResource: savedCommonVR2.VersionedResource,
+						VersionedResource: savedVR2.VersionedResource,
 					},
 				}))
 
@@ -2386,7 +2547,7 @@ var _ = Describe("PipelineDB", func() {
 				})).Should(Equal([]db.BuildInput{
 					{
 						Name:              "input-2",
-						VersionedResource: savedCommonVR2.VersionedResource,
+						VersionedResource: savedVR2.VersionedResource,
 					},
 				}))
 
