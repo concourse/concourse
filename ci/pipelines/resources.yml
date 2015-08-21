@@ -279,6 +279,7 @@ jobs:
     trigger: true
   - task: unit
     file: tracker-resource/build.yml
+    config: {params: {TRACKER_TOKEN: {{tracker-testing-token}}}}
   - put: resource-image
     resource: tracker-resource-image
     params: {build: unit/build-root}
