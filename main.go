@@ -133,7 +133,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "fly"
 	app.Usage = "Concourse CLI"
-	app.Version = "0.0.1"
+	app.Version = `¯\_(ツ)_/¯ (run "fly -t <target> sync")`
 	app.Flags = []cli.Flag{
 		insecureFlag,
 		targetFlag,
