@@ -564,7 +564,7 @@ describe("Step Data", function () {
       expect(stepData.translateLocation([8], true)).toEqual({id:35, parallel_group: 0, parent_id:34});
 
       expect(stepData.translateLocation([9,0], false)).toEqual({id:37, parallel_group: 36, parent_id:0});
-      expect(stepData.translateLocation([9,1], true)).toEqual({id:38, parallel_group: 36, parent_id:37});
+      expect(stepData.translateLocation([9,1], true)).toEqual({id:38, parallel_group: 0, parent_id:37});
     });
   });
 });

@@ -124,6 +124,7 @@
 
       if(substep){
         parent_id = id - 1;
+        parallel_group = 0;
       }
 
 
