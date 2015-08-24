@@ -14,6 +14,7 @@ files:
   - github.com/cloudfoundry-incubator/garden/transport/*.go # gosub
   - github.com/concourse/atc/*.go # gosub
   - github.com/concourse/tsa/*.go # gosub
+  - github.com/felixge/tcpkeepalive/*.go # gosub
   - github.com/pivotal-golang/lager/*.go # gosub
   - github.com/tedsuo/ifrit/*.go # gosub
   - github.com/tedsuo/rata/*.go # gosub
