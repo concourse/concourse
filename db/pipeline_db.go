@@ -448,7 +448,7 @@ func (pdb *pipelineDB) GetResourceHistoryMaxID(resourceID int) (int, error) {
 
 	err := pdb.conn.QueryRow(`
 		SELECT COALESCE(MAX(id), 0) as id
-		FROM versioned_resources		
+		FROM versioned_resources
 		WHERE resource_id = $1
 		`, resourceID).Scan(&id)
 
@@ -761,6 +761,7 @@ func (pdb *pipelineDB) GetJobBuild(job string, name string) (Build, error) {
 	}
 
 	defer tx.Rollback()
+
 	err = pdb.registerJob(tx, job)
 	if err != nil {
 		return Build{}, err
@@ -783,7 +784,10 @@ func (pdb *pipelineDB) GetJobBuild(job string, name string) (Build, error) {
 		return Build{}, err
 	}
 
-	tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return Build{}, err
+	}
 
 	return build, nil
 }
@@ -820,11 +824,16 @@ func (pdb *pipelineDB) CreateJobBuildForCandidateInputs(jobName string) (Build, 
 		}
 
 		return build, true, nil
+	} else if err != nil {
+		return Build{}, false, err
 	}
 
 	err = tx.Commit()
+	if err != nil {
+		return Build{}, false, err
+	}
 
-	return Build{}, false, err
+	return Build{}, false, nil
 }
 
 func (pdb *pipelineDB) UseInputsForBuild(buildID int, inputs []BuildInput) error {
@@ -891,6 +900,9 @@ func (pdb *pipelineDB) createJobBuild(jobName string, tx *sql.Tx) (Build, error)
 	}
 
 	dbJob, err := pdb.getJob(tx, jobName)
+	if err != nil {
+		return Build{}, err
+	}
 
 	var name string
 
@@ -1017,6 +1029,8 @@ func (pdb *pipelineDB) GetJobBuildForInputs(job string, inputs []BuildInput) (Bu
 		return Build{}, err
 	}
 
+	defer tx.Rollback()
+
 	err = pdb.registerJob(tx, job)
 	if err != nil {
 		return Build{}, err
@@ -1026,7 +1040,11 @@ func (pdb *pipelineDB) GetJobBuildForInputs(job string, inputs []BuildInput) (Bu
 	if err != nil {
 		return Build{}, err
 	}
-	tx.Commit()
+
+	err = tx.Commit()
+	if err != nil {
+		return Build{}, err
+	}
 
 	from := []string{"builds b"}
 	from = append(from, "jobs j")
@@ -1087,6 +1105,9 @@ func (pdb *pipelineDB) GetNextPendingBuild(job string) (Build, error) {
 	if err != nil {
 		return Build{}, err
 	}
+
+	defer tx.Rollback()
+
 	err = pdb.registerJob(tx, job)
 	if err != nil {
 		return Build{}, err
@@ -1096,7 +1117,11 @@ func (pdb *pipelineDB) GetNextPendingBuild(job string) (Build, error) {
 	if err != nil {
 		return Build{}, err
 	}
-	tx.Commit()
+
+	err = tx.Commit()
+	if err != nil {
+		return Build{}, err
+	}
 
 	build, err := pdb.scanBuild(pdb.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
@@ -1629,6 +1654,9 @@ func (pdb *pipelineDB) updatePausedJob(job string, pause bool) error {
 	}
 
 	dbJob, err := pdb.getJob(tx, job)
+	if err != nil {
+		return err
+	}
 
 	result, err := tx.Exec(`
 		UPDATE jobs
