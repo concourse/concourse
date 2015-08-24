@@ -18,12 +18,21 @@ type WorkerDB interface {
 }
 
 type dbProvider struct {
-	db     WorkerDB
 	logger lager.Logger
+	db     WorkerDB
+	dialer gconn.DialerFunc
 }
 
-func NewDBWorkerProvider(db WorkerDB, logger lager.Logger) WorkerProvider {
-	return &dbProvider{db, logger}
+func NewDBWorkerProvider(
+	logger lager.Logger,
+	db WorkerDB,
+	dialer gconn.DialerFunc,
+) WorkerProvider {
+	return &dbProvider{
+		logger: logger,
+		db:     db,
+		dialer: dialer,
+	}
 }
 
 func (provider *dbProvider) Workers() ([]Worker, error) {
@@ -42,7 +51,7 @@ func (provider *dbProvider) Workers() ([]Worker, error) {
 
 		gardenConn := RetryableConnection{
 			Logger:     workerLog,
-			Connection: gconn.NewWithLogger("tcp", info.Addr, workerLog.Session("garden-connection")),
+			Connection: gconn.NewWithDialerAndLogger("tcp", info.Addr, provider.dialer, workerLog.Session("garden-connection")),
 			Sleeper:    tikTok,
 			RetryPolicy: ExponentialRetryPolicy{
 				Timeout: 5 * time.Minute,

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"net/url"
@@ -17,6 +18,7 @@ import (
 	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
 	httpmetrics "github.com/codahale/http-handlers/metrics"
 	_ "github.com/codahale/metrics/runtime"
+	"github.com/felixge/tcpkeepalive"
 	"github.com/lib/pq"
 	"github.com/nu7hatch/gouuid"
 	"github.com/pivotal-golang/clock"
@@ -43,6 +45,35 @@ import (
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/worker"
 )
+
+func keepaliveDialer(network string, address string) (net.Conn, error) {
+	conn, err := net.DialTimeout(network, address, 5*time.Second)
+	if err != nil {
+		return nil, err
+	}
+
+	kac, err := tcpkeepalive.EnableKeepAlive(conn)
+	if err != nil {
+		println("failed to enable connection keepalive: " + err.Error())
+	}
+
+	err = kac.SetKeepAliveIdle(10 * time.Second)
+	if err != nil {
+		println("failed to set keepalive idle threshold: " + err.Error())
+	}
+
+	err = kac.SetKeepAliveCount(3)
+	if err != nil {
+		println("failed to set keepalive count: " + err.Error())
+	}
+
+	err = kac.SetKeepAliveInterval(5 * time.Second)
+	if err != nil {
+		println("failed to set keepalive interval: " + err.Error())
+	}
+
+	return conn, nil
+}
 
 var pipelinePath = flag.String(
 	"pipeline",
@@ -244,9 +275,10 @@ func main() {
 	var workerClient worker.Client
 	if *gardenAddr != "" {
 		workerClient = worker.NewGardenWorker(
-			gclient.New(gconn.NewWithLogger(
+			gclient.New(gconn.NewWithDialerAndLogger(
 				*gardenNetwork,
 				*gardenAddr,
+				keepaliveDialer,
 				logger.Session("garden-connection"),
 			)),
 			clock.NewClock(),
@@ -256,7 +288,7 @@ func main() {
 			[]string{},
 		)
 	} else {
-		workerClient = worker.NewPool(worker.NewDBWorkerProvider(db, logger))
+		workerClient = worker.NewPool(worker.NewDBWorkerProvider(logger, db, keepaliveDialer))
 	}
 
 	resourceTracker := resource.NewTracker(workerClient)
