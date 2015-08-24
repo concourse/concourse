@@ -33,7 +33,7 @@
 [submodule "src/github.com/cloudfoundry-incubator/garden"]
 	path = src/github.com/cloudfoundry-incubator/garden
 	url = https://github.com/cloudfoundry-incubator/garden
-	branch = master
+	branch = inject-dialer
 [submodule "src/github.com/onsi/ginkgo"]
 	path = src/github.com/onsi/ginkgo
 	url = https://github.com/onsi/ginkgo
@@ -169,4 +169,8 @@
 [submodule "src/github.com/inconshreveable/go-update"]
 	path = src/github.com/inconshreveable/go-update
 	url = https://github.com/inconshreveable/go-update
+	branch = master
+[submodule "src/github.com/felixge/tcpkeepalive"]
+	path = src/github.com/felixge/tcpkeepalive
+	url = https://github.com/felixge/tcpkeepalive
 	branch = master
