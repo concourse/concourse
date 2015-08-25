@@ -15,7 +15,7 @@ properties:
 
   blackbox.syslog.destination.transport:
     description: "transport protocol for syslog drain (udp/tcp/tls)"
-    default: udp
+    default: tls
 
   blackbox.syslog.sources:
     description: >
