@@ -446,7 +446,7 @@ Column.prototype.layout = function() {
 
     node._position.y = rollingOffset;
 
-    rollingOffset += node.height() + this._spacing;
+    rollingOffset += node.height() + this._spacing + node.offset;
   }
 }
 
@@ -461,6 +461,11 @@ function Node(opts) {
   this.url = opts.url;
   this.svg = opts.svg;
   this.equivalentBy = opts.equivalentBy;
+	if (typeof opts.offset !== 'undefined') {
+		this.offset = opts.offset;
+	} else {
+		this.offset = 0;
+	}
 
   // DOM element
   this.label = undefined;

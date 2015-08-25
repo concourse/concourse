@@ -271,7 +271,8 @@ function createGraph(svg, groups, jobs, resources) {
       class: classes.join(" "),
       status: status,
       url: url,
-      svg: svg
+      svg: svg,
+			offset: 35
     }));
   }
 
