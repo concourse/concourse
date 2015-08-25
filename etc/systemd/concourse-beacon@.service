@@ -1,8 +1,8 @@
 [Unit]
-Description=Concourse Beacon for %I
+Description=Concourse Beacon for %i
 
 [Service]
-ExecStart=/usr/sbin/concourse-beacon %I
+ExecStart=/usr/sbin/concourse-beacon %i
 Restart=always
 StartLimitInterval=0
 
