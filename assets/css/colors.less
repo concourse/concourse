@@ -124,38 +124,42 @@ span.error { color: @base08; }
 svg .job.node.started .animation,
 .legend dt.started {
   border-radius: 1px;
-  -webkit-animation: started-ripples 1s linear infinite;
-  animation: started-ripples 1s linear infinite;
+	.ripple-animation('small-ripple', 2px);
 }
 
-@-webkit-keyframes started-ripples {
-  0% {
-    box-shadow: 0 0 0 -2px @base01, 0 0 0 0px @base0A, 0 0 0 2px @base01, 0 0 0 4px @base0A;
-  }
+.ripple-animation(@name, @ripple-factor) {
+  -webkit-animation: @name 1s linear infinite;
+  animation: @name 1s linear infinite;
 
-  50% {
-    box-shadow: 0 0 0 0px @base01, 0 0 0 2px @base0A, 0 0 0 4px @base01, 0 0 0 6px fade(@base0A, 50%);
-  }
+	@-webkit-keyframes @name {
+		0% {
+			box-shadow: 0 0 0 -@ripple-factor @base01, 0 0 0 0px @base0A, 0 0 0 @ripple-factor @base01, 0 0 0 @ripple-factor * 2 @base0A;
+		}
 
-  100% {
-    box-shadow: 0 0 0 2px @base01, 0 0 0 4px @base0A, 0 0 0 6px @base01, 0 0 0 8px transparent;
-  }
+		50% {
+			box-shadow: 0 0 0 0px @base01, 0 0 0 @ripple-factor @base0A, 0 0 0 @ripple-factor * 2  @base01, 0 0 0 @ripple-factor * 3 fade(@base0A, 50%);
+		}
+
+		100% {
+			box-shadow: 0 0 0 @ripple-factor @base01, 0 0 0 @ripple-factor * 2  @base0A, 0 0 0 @ripple-factor * 3 @base01, 0 0 0 @ripple-factor * 4 transparent;
+		}
+	}
+
+
+	@keyframes @name {
+		0% {
+			box-shadow: 0 0 0 -@ripple-factor @base01, 0 0 0 0px @base0A, 0 0 0 @ripple-factor @base01, 0 0 0 @ripple-factor * 2 @base0A;
+		}
+
+		50% {
+			box-shadow: 0 0 0 0px @base01, 0 0 0 @ripple-factor @base0A, 0 0 0 @ripple-factor * 2  @base01, 0 0 0 @ripple-factor * 3 fade(@base0A, 50%);
+		}
+
+		100% {
+			box-shadow: 0 0 0 @ripple-factor @base01, 0 0 0 @ripple-factor * 2  @base0A, 0 0 0 @ripple-factor * 3 @base01, 0 0 0 @ripple-factor * 4 transparent;
+		}
+	}
 }
-
-@keyframes started-ripples {
-  0% {
-    box-shadow: 0 0 0 -2px @base01, 0 0 0 0px @base0A, 0 0 0 2px @base01, 0 0 0 4px @base0A;
-  }
-
-  50% {
-    box-shadow: 0 0 0 0px @base01, 0 0 0 2px @base0A, 0 0 0 4px @base01, 0 0 0 6px fade(@base0A, 50%);
-  }
-
-  100% {
-    box-shadow: 0 0 0 2px @base01, 0 0 0 4px @base0A, 0 0 0 6px @base01, 0 0 0 8px transparent;
-  }
-}
-
 
 
 .build-number {
