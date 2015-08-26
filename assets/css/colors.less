@@ -87,8 +87,8 @@ span.error { color: @base08; }
 .started { background: @base0A; }
 .legend dt.started rect { stroke: @base0A; }
 
-.job.node.started .animation,
-.job.node.pending-start .animation,
+.job-animation-node .animation,
+.job-animation-node .animation,
 .legend dt.started {
   border-radius: 1px;
 }
@@ -96,7 +96,7 @@ span.error { color: @base08; }
   .ripple-animation('small-ripple', 2px, @base0A);
 }
 
-.job.node {
+.job-animation-node {
   &.pending-start .animation-xlarge{.ripple-animation('xlarge-pending-ripples', 20px, @base04);}
   &.started .animation-xlarge{.ripple-animation('xlarge-started-ripples', 20px, @base0A);}
 

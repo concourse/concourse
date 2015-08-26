@@ -154,6 +154,10 @@ function drawContinuously(svg, groups) {
     var jobAnimations = $jobs.clone();
     var largestEdge = Math.max(bbox.width, bbox.height);
 
+		jobAnimations.each(function(i, el){
+			$(el).attr('class', $(el).attr('class').replace('job', 'job-animation-node'));
+		});
+		jobAnimations.find("text").remove();
     $jobs.find('.js-animation-wrapper').remove();
     $("svg > g").prepend(jobAnimations);
 
