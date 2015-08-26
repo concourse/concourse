@@ -18,7 +18,7 @@ function draw(groups, renderFn, completeFn) {
 var currentHighlight;
 
 /* spacing required for firefox to not clip ripple border animation */
-var animationRadius = 10;
+var animationRadius = 70;
 
 function drawContinuously(svg, groups) {
   draw(groups, function(jobs, resources) {
