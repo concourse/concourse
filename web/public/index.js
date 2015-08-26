@@ -93,6 +93,7 @@ function drawContinuously(svg, groups) {
       .attr("height", function(node) { return node.height() })
 
     var animatableBackground = nodeLink.append("foreignObject")
+      .attr("class", "js-animation-wrapper")
       .attr("height", function(node) { return node.height() + (2 * animationRadius) })
       .attr("x", -animationRadius)
       .attr("y", -animationRadius)
@@ -148,6 +149,25 @@ function drawContinuously(svg, groups) {
     var bbox = svg.node().getBBox();
     d3.select(svg.node().parentNode)
       .attr("viewBox", "" + (bbox.x - 20) + " " + (bbox.y - 20) + " " + (bbox.width + 40) + " " + (bbox.height + 40))
+
+    var $jobs = $(".job")
+    var jobAnimations = $jobs.clone();
+    var largestEdge = Math.max(bbox.width, bbox.height);
+
+    $jobs.find('.js-animation-wrapper').remove();
+    $("svg > g").prepend(jobAnimations);
+
+
+    if (largestEdge < 500) {
+      $(".animation").addClass("animation-small");
+    } else if (largestEdge < 1500) {
+      $(".animation").addClass("animation-medium");
+    } else if (largestEdge < 3000) {
+      $(".animation").addClass("animation-large");
+    } else {
+      $(".animation").addClass("animation-xlarge");
+    }
+
 
     if (currentHighlight) {
       svgNodes.each(function(node) {
@@ -272,7 +292,6 @@ function createGraph(svg, groups, jobs, resources) {
       status: status,
       url: url,
       svg: svg,
-			offset: 35
     }));
   }
 

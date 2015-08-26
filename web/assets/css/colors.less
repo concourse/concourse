@@ -45,40 +45,6 @@
 .legend dt.pending { background: @base04; }
 #build-requires-auth input:hover { background: @base04; }
 
-svg .job.node.pending-start .animation {
-  border-radius: 1px;
-  -webkit-animation: pending-ripples 1s linear infinite;
-  animation: pending-ripples 1s linear infinite;
-}
-
-@-webkit-keyframes pending-ripples {
-  0% {
-    box-shadow: 0 0 0 -2px @base01, 0 0 0 0px @base04, 0 0 0 2px @base01, 0 0 0 4px @base04;
-  }
-
-  50% {
-    box-shadow: 0 0 0 0px @base01, 0 0 0 2px @base04, 0 0 0 4px @base01, 0 0 0 6px fade(@base04, 50%);
-  }
-
-  100% {
-    box-shadow: 0 0 0 2px @base01, 0 0 0 4px @base04, 0 0 0 6px @base01, 0 0 0 8px transparent;
-  }
-}
-
-@keyframes pending-ripples {
-  0% {
-    box-shadow: 0 0 0 -2px @base01, 0 0 0 0px @base04, 0 0 0 2px @base01, 0 0 0 4px @base04;
-  }
-
-  50% {
-    box-shadow: 0 0 0 0px @base01, 0 0 0 2px @base04, 0 0 0 4px @base01, 0 0 0 6px fade(@base04, 50%);
-  }
-
-  100% {
-    box-shadow: 0 0 0 2px @base01, 0 0 0 4px @base04, 0 0 0 6px @base01, 0 0 0 8px transparent;
-  }
-}
-
 
 /* highlight foreground */
 .build-step .header .version { color: @base06; }
@@ -121,44 +87,64 @@ span.error { color: @base08; }
 .started { background: @base0A; }
 .legend dt.started rect { stroke: @base0A; }
 
-svg .job.node.started .animation,
+.job.node.started .animation,
+.job.node.pending-start .animation,
 .legend dt.started {
   border-radius: 1px;
-	.ripple-animation('small-ripple', 2px);
+}
+.legend dt.started {
+  .ripple-animation('small-ripple', 2px, @base0A);
 }
 
-.ripple-animation(@name, @ripple-factor) {
+.job.node {
+  &.pending-start .animation-xlarge{.ripple-animation('xlarge-pending-ripples', 20px, @base04);}
+  &.started .animation-xlarge{.ripple-animation('xlarge-started-ripples', 20px, @base0A);}
+
+  &.pending-start .animation-large{.ripple-animation('large-pending-ripples', 15px, @base04);}
+  &.started .animation-large{.ripple-animation('large-started-ripples', 15px, @base0A);}
+
+  &.pending-start .animation-medium{.ripple-animation('medium-pending-ripples', 7px, @base04);}
+  &.started .animation-medium{.ripple-animation('medium-started-ripples', 7px, @base0A);}
+
+  &.pending-start .animation-small{.ripple-animation('small-pending-ripples', 3px, @base04);}
+  &.started .animation-small{.ripple-animation('small-started-ripples', 3px, @base0A);}
+}
+
+
+
+
+.ripple-animation(@name, @ripple-factor, @ripple-color) {
   -webkit-animation: @name 1s linear infinite;
   animation: @name 1s linear infinite;
 
-	@-webkit-keyframes @name {
-		0% {
-			box-shadow: 0 0 0 -@ripple-factor @base01, 0 0 0 0px @base0A, 0 0 0 @ripple-factor @base01, 0 0 0 @ripple-factor * 2 @base0A;
-		}
+  @-webkit-keyframes @name {
+    0% {
+      box-shadow: 0 0 0 -@ripple-factor @base01, 0 0 0 0px @ripple-color, 0 0 0 @ripple-factor @base01, 0 0 0 @ripple-factor * 2 @ripple-color;
+    }
 
-		50% {
-			box-shadow: 0 0 0 0px @base01, 0 0 0 @ripple-factor @base0A, 0 0 0 @ripple-factor * 2  @base01, 0 0 0 @ripple-factor * 3 fade(@base0A, 50%);
-		}
+    50% {
+      box-shadow: 0 0 0 0px @base01, 0 0 0 @ripple-factor @ripple-color, 0 0 0 @ripple-factor * 2  @base01, 0 0 0 @ripple-factor * 3 fade(@ripple-color, 50%);
+    }
 
-		100% {
-			box-shadow: 0 0 0 @ripple-factor @base01, 0 0 0 @ripple-factor * 2  @base0A, 0 0 0 @ripple-factor * 3 @base01, 0 0 0 @ripple-factor * 4 transparent;
-		}
-	}
+    100% {
+      box-shadow: 0 0 0 @ripple-factor @base01, 0 0 0 @ripple-factor * 2  @ripple-color, 0 0 0 @ripple-factor * 3 @base01, 0 0 0 @ripple-factor * 4 transparent;
+    }
+  }
 
 
-	@keyframes @name {
-		0% {
-			box-shadow: 0 0 0 -@ripple-factor @base01, 0 0 0 0px @base0A, 0 0 0 @ripple-factor @base01, 0 0 0 @ripple-factor * 2 @base0A;
-		}
+  @keyframes @name {
+    0% {
+      box-shadow: 0 0 0 -@ripple-factor @base01, 0 0 0 0px @ripple-color, 0 0 0 @ripple-factor @base01, 0 0 0 @ripple-factor * 2 @ripple-color;
+    }
 
-		50% {
-			box-shadow: 0 0 0 0px @base01, 0 0 0 @ripple-factor @base0A, 0 0 0 @ripple-factor * 2  @base01, 0 0 0 @ripple-factor * 3 fade(@base0A, 50%);
-		}
+    50% {
+      box-shadow: 0 0 0 0px @base01, 0 0 0 @ripple-factor @ripple-color, 0 0 0 @ripple-factor * 2  @base01, 0 0 0 @ripple-factor * 3 fade(@ripple-color, 50%);
+    }
 
-		100% {
-			box-shadow: 0 0 0 @ripple-factor @base01, 0 0 0 @ripple-factor * 2  @base0A, 0 0 0 @ripple-factor * 3 @base01, 0 0 0 @ripple-factor * 4 transparent;
-		}
-	}
+    100% {
+      box-shadow: 0 0 0 @ripple-factor @base01, 0 0 0 @ripple-factor * 2  @ripple-color, 0 0 0 @ripple-factor * 3 @base01, 0 0 0 @ripple-factor * 4 transparent;
+    }
+  }
 }
 
 
