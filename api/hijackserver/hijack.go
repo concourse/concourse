@@ -24,7 +24,8 @@ func (s *Server) Hijack(w http.ResponseWriter, r *http.Request) {
 }
 
 type hijackRequest struct {
-	Worker  worker.Identifier
+	Worker worker.Identifier // TODO: remove this
+	// ContainerHandle: string,
 	Process atc.HijackProcessSpec
 }
 
@@ -48,7 +49,6 @@ func (s *Server) parseRequest(r *http.Request) (hijackRequest, error) {
 	hLog := s.logger.Session("hijack", lager.Data{
 		"identifier": workerIdentifier,
 	})
-
 	var processSpec atc.HijackProcessSpec
 	err = json.NewDecoder(r.Body).Decode(&processSpec)
 	if err != nil {
@@ -56,8 +56,13 @@ func (s *Server) parseRequest(r *http.Request) (hijackRequest, error) {
 		return hijackRequest{}, fmt.Errorf("malformed process spec: %s", err)
 	}
 
+	// Get the handle from the url
+	// either /containers/:handle/hijack or /hijack/:handle
+	// depending on which URL format we decide to use.
+
 	return hijackRequest{
-		Worker:  workerIdentifier,
+		Worker: workerIdentifier, // TODO: remove this
+		// ContainerHandle: containerHandle,
 		Process: processSpec,
 	}, nil
 }
@@ -68,7 +73,8 @@ func (s *Server) hijack(w http.ResponseWriter, request hijackRequest) {
 		"process":    request.Process,
 	})
 
-	container, err := s.workerClient.LookupContainer(request.Worker)
+	container, err := s.workerClient.FindContainerForIdentifier(request.Worker)
+	// container, err := s.workerClient.Container(handle)
 	if err != nil {
 		hLog.Error("failed-to-get-container", err)
 		http.Error(w, fmt.Sprintf("failed to get container: %s", err), http.StatusNotFound)

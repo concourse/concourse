@@ -310,7 +310,7 @@ var _ = Describe("Worker", func() {
 		})
 
 		JustBeforeEach(func() {
-			foundContainer, lookupErr = worker.LookupContainer(id)
+			foundContainer, lookupErr = worker.FindContainerForIdentifier(id)
 		})
 
 		Context("when the container can be found", func() {

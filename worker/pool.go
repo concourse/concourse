@@ -76,7 +76,7 @@ func (pool *Pool) CreateContainer(id Identifier, spec ContainerSpec) (Container,
 	return randomWorker.CreateContainer(id, spec)
 }
 
-func (pool *Pool) LookupContainer(id Identifier) (Container, error) {
+func (pool *Pool) FindContainerForIdentifier(id Identifier) (Container, error) {
 	workers, err := pool.provider.Workers()
 	if err != nil {
 		return nil, err
@@ -96,7 +96,7 @@ func (pool *Pool) LookupContainer(id Identifier) (Container, error) {
 		go func(worker Worker) {
 			defer wg.Done()
 
-			container, err := worker.LookupContainer(id)
+			container, err := worker.FindContainerForIdentifier(id)
 			if err == nil {
 				found <- container
 			} else if multi, ok := err.(MultipleContainersError); ok {
@@ -148,7 +148,7 @@ func (pool *Pool) LookupContainer(id Identifier) (Container, error) {
 	}
 }
 
-func (pool *Pool) LookupContainers(id Identifier) ([]Container, error) {
+func (pool *Pool) FindContainersForIdentifier(id Identifier) ([]Container, error) {
 	return nil, nil
 }
 

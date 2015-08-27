@@ -34,7 +34,7 @@ func NewTracker(workerClient worker.Client) Tracker {
 }
 
 func (tracker *tracker) Init(session Session, typ ResourceType, tags atc.Tags) (Resource, error) {
-	container, err := tracker.workerClient.LookupContainer(session.ID)
+	container, err := tracker.workerClient.FindContainerForIdentifier(session.ID)
 
 	switch err {
 	case nil:

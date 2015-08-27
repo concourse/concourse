@@ -17,7 +17,7 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	containers, _ := s.workerClient.LookupContainers(workerIdentifier)
+	containers, _ := s.workerClient.FindContainersForIdentifier(workerIdentifier)
 
 	presentedContainers := make([]present.PresentedContainer, len(containers))
 	for i := 0; i < len(containers); i++ {

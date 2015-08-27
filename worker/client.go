@@ -14,8 +14,8 @@ import (
 
 type Client interface {
 	CreateContainer(Identifier, ContainerSpec) (Container, error)
-	LookupContainer(Identifier) (Container, error)
-	LookupContainers(Identifier) ([]Container, error)
+	FindContainerForIdentifier(Identifier) (Container, error)
+	FindContainersForIdentifier(Identifier) ([]Container, error)
 }
 
 //go:generate counterfeiter . Container

@@ -72,7 +72,7 @@ func (fake *FakeClient) CreateContainerReturns(result1 worker.Container, result2
 	}{result1, result2}
 }
 
-func (fake *FakeClient) LookupContainer(arg1 worker.Identifier) (worker.Container, error) {
+func (fake *FakeClient) FindContainerForIdentifier(arg1 worker.Identifier) (worker.Container, error) {
 	fake.lookupContainerMutex.Lock()
 	fake.lookupContainerArgsForCall = append(fake.lookupContainerArgsForCall, struct {
 		arg1 worker.Identifier
@@ -105,7 +105,7 @@ func (fake *FakeClient) LookupContainerReturns(result1 worker.Container, result2
 	}{result1, result2}
 }
 
-func (fake *FakeClient) LookupContainers(arg1 worker.Identifier) ([]worker.Container, error) {
+func (fake *FakeClient) FindContainersForIdentifier(arg1 worker.Identifier) ([]worker.Container, error) {
 	fake.lookupContainersMutex.Lock()
 	fake.lookupContainersArgsForCall = append(fake.lookupContainersArgsForCall, struct {
 		arg1 worker.Identifier

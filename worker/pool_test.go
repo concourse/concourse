@@ -164,7 +164,7 @@ var _ = Describe("Pool", func() {
 		})
 
 		JustBeforeEach(func() {
-			foundContainer, lookupErr = pool.LookupContainer(id)
+			foundContainer, lookupErr = pool.FindContainerForIdentifier(id)
 		})
 
 		Context("with multiple workers", func() {
