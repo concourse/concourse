@@ -1,0 +1,115 @@
+#language anatomy
+
+\title{Concourse vs.}{concourse-vs}
+
+Concourse was dreampt up and built while working on the Cloud Foundry project
+and experiencing the interesting CI and CD challenges that it has. Cloud Foundry
+projects and their tests needed to run on different architectures, different
+platforms, against varying underlying IaaSs before being tested that they could
+be deployed fresh while also remaining compatible with upgrades from previous
+versions. Finally, these projects need to be packaged up in various ways to
+create multiple derivitave end products.
+
+We went through various different generations of our CI infrastructure and were
+never completely happy with one (or in some cases many) aspects of each
+attempt.
+
+\section{Jenkins}{
+  We started with Jenkins: the big and ubiquitous player in the CI world. Each
+  team would maintain their own deployment and add builds as required. Standard.
+
+  After a while cracks began to show.
+
+  \list{
+    Jenkins servers become snowflakes. More and more important shell script gets
+    pasted into those little textboxes, plugins get installed, packages are
+    installed on the box. It's possible to try and store this state but Jenkins
+    servers are extremely resistant to being declaritively configured.
+
+    Concourse does not allow any configuration to enter the server that cannot
+    be easily saved away in version control. Deleting your Concourse server and
+    bringing it back somewhere else is not and should not be a big deal. Builds
+    run inside their own containers so that installing packages on the build
+    machine doesn't pollute other builds.
+  }{
+    Jenkins has no first class support for pipelines. There are plugins that
+    add some of this functionality but they never seemed to work perfectly. You
+    can set jobs to run before or after others but this becomes error prone and
+    confusing to perform more complex sequence changes.
+
+    Concourse is built on the assumption that you will be building pipelines.
+    However, instead of making you explicitly say the order in which jobs should be
+    run, Concourse just asks that you say which are valid inputs for each of the
+    jobs in your pipeline and uses this to calculate the pipeline itself.
+  }{
+    Trying to find the build output log for a failed build in Jenkins can be up
+    to 3 clicks from the home page.
+
+    The Concourse UI is build and designed around making that sort of
+    information as quick to get to as possible. Getting to the most recent build
+    log is a single click.
+  }
+}
+
+\section{Travis CI and other Hosted Offerings}{
+  We began using Travis CI in order to open up our builds and their results to
+  the open source community. Travis gets a lot of things right. They don't let
+  you have any snowflake configuration outside of your \code{.travis.yml} file.
+  Builds are run inside a container to avoid pollution.
+
+  Unfortunately it still doesn't have support for pipelines and only very simple
+  builds are possible. It also brings the frustration that if something doesn't
+  pass in CI you normatlly need to send up lots of little debugging commits to
+  work out why it's behaving differently. Concourse lets you submit your local
+  working directory up to the server to be run in exactly the same manner as CI.
+}
+
+\section{GoCD}{
+  We were excited for the release of GoCD. Finally, someone was bringing
+  pipelines as a first class citizen to CI! CF decided to switch and unify the
+  disparate CI approaches to form a unified pipeline.
+  
+  Unfortunately there were significant problems with some of the GoCD design
+  decisions that, in our opinion, make it very difficult to use.
+
+  \list{
+    Finding how to configure something is very difficult. There are two distinct
+    sides of the application: watching jobs run and configuring the jobs. You
+    cannot be viewing a job run and easily get to the configuration of the same
+    job. Everything is hidden in endless menus.
+
+    As mentioned above, Concourse optimises for getting to the information you
+    want quickly and keeps all configuration in a seperate versionable file.
+  }{
+    The execution hierarchy is deep and complex. Pipelines have stages which
+    have jobs which have tasks. Some of these run in parallel and some of them
+    run in serial. Artifacts from some are avaliable in others. These concepts
+    make sense eventually but ramping new developers up on how to use it was
+    very difficult.
+
+    What may be multiple pipelines in GoCD often conceptually maps to a single
+    pipeline in GoCD. A concourse pipeline just has isolated jobs that you can
+    look at without needing to understand the entire pipeline. The flow of
+    resources inside jobs in Concourse is explicit and user-defined. There are
+    no suprises about when or where you'll have a resource avaliable.
+  }{
+    Our biggest frustration with GoCD was that it didn't bring anything new to
+    the world of CI. This may sound like an extremely boring (but well tested)
+    world but since nearly all software developers need to use it we should
+    always be trying to make it better.
+
+    If you'll indulge us running our own build for a second: we feel that
+    Concourse brings some interesting new ideas to the table:
+
+    \list{
+      Pluggable Resource Interface
+    }{
+      Running builds in Containers Natively
+    }{
+      Zero Snowflake-able Configuration
+    }{
+      Submitting builds from the local filesystem up to run in CI
+    }
+  }
+}
+

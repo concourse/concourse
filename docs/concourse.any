@@ -25,6 +25,7 @@ if you're not sure. If you want to contribute patches, please use GitHub pull
 requests.
 
 \include-section{./what-and-why.any}
+\include-section{./concourse-vs.any}
 \include-section{./getting-started.any}
 \include-section{./concepts.any}
 \include-section{./examples.any}
