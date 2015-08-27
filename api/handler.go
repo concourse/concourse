@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/api/cliserver"
 	"github.com/concourse/atc/api/configserver"
+	"github.com/concourse/atc/api/containerserver"
 	"github.com/concourse/atc/api/hijackserver"
 	"github.com/concourse/atc/api/jobserver"
 	"github.com/concourse/atc/api/loglevelserver"
@@ -86,6 +87,8 @@ func NewHandler(
 
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
 
+	containerServer := containerserver.NewServer(logger, workerClient)
+
 	validate := func(handler http.Handler) http.Handler {
 		return auth.Handler{
 			Handler:   handler,
@@ -135,6 +138,8 @@ func NewHandler(
 		atc.GetLogLevel: http.HandlerFunc(logLevelServer.GetMinLevel),
 
 		atc.DownloadCLI: http.HandlerFunc(cliServer.Download),
+
+		atc.ListContainers: http.HandlerFunc(containerServer.ListContainers),
 	}
 
 	return rata.NewRouter(atc.Routes, handlers)

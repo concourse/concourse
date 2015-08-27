@@ -126,6 +126,10 @@ func (worker *gardenWorker) LookupContainer(id Identifier) (Container, error) {
 	}
 }
 
+func (worker *gardenWorker) LookupContainers(id Identifier) ([]Container, error) {
+	return nil, nil
+}
+
 func (worker *gardenWorker) ActiveContainers() int {
 	return worker.activeContainers
 }
@@ -229,6 +233,10 @@ func (container *gardenWorkerContainer) Release() {
 		trackedContainers.Add(-1)
 		metric.TrackedContainers.Dec()
 	})
+}
+
+func (container *gardenWorkerContainer) IdentifierFromProperties() Identifier {
+	return Identifier{}
 }
 
 func (container *gardenWorkerContainer) heartbeat(pacemaker clock.Ticker) {

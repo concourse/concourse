@@ -27,6 +27,15 @@ type FakeWorker struct {
 		result1 worker.Container
 		result2 error
 	}
+	LookupContainersStub        func(worker.Identifier) ([]worker.Container, error)
+	lookupContainersMutex       sync.RWMutex
+	lookupContainersArgsForCall []struct {
+		arg1 worker.Identifier
+	}
+	lookupContainersReturns struct {
+		result1 []worker.Container
+		result2 error
+	}
 	ActiveContainersStub        func() int
 	activeContainersMutex       sync.RWMutex
 	activeContainersArgsForCall []struct{}
@@ -112,6 +121,39 @@ func (fake *FakeWorker) LookupContainerReturns(result1 worker.Container, result2
 	fake.LookupContainerStub = nil
 	fake.lookupContainerReturns = struct {
 		result1 worker.Container
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeWorker) LookupContainers(arg1 worker.Identifier) ([]worker.Container, error) {
+	fake.lookupContainersMutex.Lock()
+	fake.lookupContainersArgsForCall = append(fake.lookupContainersArgsForCall, struct {
+		arg1 worker.Identifier
+	}{arg1})
+	fake.lookupContainersMutex.Unlock()
+	if fake.LookupContainersStub != nil {
+		return fake.LookupContainersStub(arg1)
+	} else {
+		return fake.lookupContainersReturns.result1, fake.lookupContainersReturns.result2
+	}
+}
+
+func (fake *FakeWorker) LookupContainersCallCount() int {
+	fake.lookupContainersMutex.RLock()
+	defer fake.lookupContainersMutex.RUnlock()
+	return len(fake.lookupContainersArgsForCall)
+}
+
+func (fake *FakeWorker) LookupContainersArgsForCall(i int) worker.Identifier {
+	fake.lookupContainersMutex.RLock()
+	defer fake.lookupContainersMutex.RUnlock()
+	return fake.lookupContainersArgsForCall[i].arg1
+}
+
+func (fake *FakeWorker) LookupContainersReturns(result1 []worker.Container, result2 error) {
+	fake.LookupContainersStub = nil
+	fake.lookupContainersReturns = struct {
+		result1 []worker.Container
 		result2 error
 	}{result1, result2}
 }
