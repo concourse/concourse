@@ -527,6 +527,15 @@ Node.prototype.position = function() {
   return this._position;
 }
 
+/* spacing required for firefox to not clip ripple border animation */
+Node.prototype.animationRadius = function() {
+  if(this.class.search('job') > -1) {
+    return 70
+  }
+
+  return 0
+}
+
 Node.prototype.column = function() {
   return this.rank();
 };

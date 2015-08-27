@@ -17,9 +17,6 @@ function draw(groups, renderFn, completeFn) {
 
 var currentHighlight;
 
-/* spacing required for firefox to not clip ripple border animation */
-var animationRadius = 70;
-
 function drawContinuously(svg, groups) {
   draw(groups, function(jobs, resources) {
     // reset viewbox so calculations are done from a blank slate.
@@ -92,14 +89,17 @@ function drawContinuously(svg, groups) {
     var jobStatusBackground = nodeLink.append("rect")
       .attr("height", function(node) { return node.height() })
 
+
     var animatableBackground = nodeLink.append("foreignObject")
       .attr("class", "js-animation-wrapper")
-      .attr("height", function(node) { return node.height() + (2 * animationRadius) })
-      .attr("x", -animationRadius)
-      .attr("y", -animationRadius)
+      .attr("height", function(node) { return node.height() + (2 * node.animationRadius()) })
+      .attr("x", function(node) { return -node.animationRadius()})
+      .attr("y", function(node) { return -node.animationRadius()})
 
     var animationPadding = animatableBackground.append("xhtml:div")
-      .style("padding", animationRadius + "px")
+      .style("padding", function(node) {
+        return node.animationRadius() + "px";
+      })
 
     animationPadding.style("height", function(node) { return node.height() + "px" })
 
@@ -116,7 +116,7 @@ function drawContinuously(svg, groups) {
       .attr("y", function(node) { return node.height() / 2 })
 
     jobStatusBackground.attr("width", function(node) { return node.width() })
-    animatableBackground.attr("width", function(node) { return node.width() + (2 * animationRadius) })
+    animatableBackground.attr("width", function(node) { return node.width() + (2 * node.animationRadius()) })
     animationTarget.style("width", function(node) { return node.width() + "px" })
     animationPadding.style("width", function(node) { return node.width() + "px" })
 
@@ -154,10 +154,14 @@ function drawContinuously(svg, groups) {
     var jobAnimations = $jobs.clone();
     var largestEdge = Math.max(bbox.width, bbox.height);
 
-		jobAnimations.each(function(i, el){
-			$(el).attr('class', $(el).attr('class').replace('job', 'job-animation-node'));
-		});
-		jobAnimations.find("text").remove();
+    jobAnimations.each(function(i, el){
+      var $el = $(el);
+      var $foreignObject = $el.find('foreignObject').detach();
+      $el.attr('class', $el.attr('class').replace('job', 'job-animation-node'));
+      $el.find('a').remove();
+      $el.append($foreignObject);
+    });
+    jobAnimations.find("text").remove();
     $jobs.find('.js-animation-wrapper').remove();
     $("svg > g").prepend(jobAnimations);
 
