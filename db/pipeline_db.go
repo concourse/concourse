@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db/algorithm"
 	"github.com/lib/pq"
 	"github.com/pivotal-golang/lager"
 )
@@ -1512,184 +1513,90 @@ func (pdb *pipelineDB) GetCurrentBuild(job string) (Build, error) {
 	return Build{}, ErrNoBuild
 }
 
-// buckle up
 func (pdb *pipelineDB) GetLatestInputVersions(jobName string, inputs []atc.JobInput) ([]BuildInput, error) {
 	if len(inputs) == 0 {
 		return []BuildInput{}, nil
 	}
 
-	job, err := pdb.GetJob(jobName)
+	var outputs []algorithm.BuildOutput
+
+	rows, err := pdb.conn.Query(`
+    SELECT v.id, r.id, o.build_id, j.id
+    FROM build_outputs o, builds b, versioned_resources v, jobs j, resources r
+    WHERE v.id = o.versioned_resource_id
+    AND b.id = o.build_id
+    AND j.id = b.job_id
+    AND r.id = v.resource_id
+    AND v.enabled
+		AND b.status = 'succeeded'
+  `)
 	if err != nil {
-		return []BuildInput{}, err
-	}
-
-	scannedValues := []interface{}{}
-	for _ = range inputs {
-		var id int
-		scannedValues = append(scannedValues, &id)
-		var enabled bool
-		scannedValues = append(scannedValues, &enabled)
-	}
-
-	dbResources := map[string]SavedResource{}
-
-	inputSelects := []string{}
-	inputFromAliases := []string{"builds b"}
-	inputWheres := []string{}
-	inputOrders := []string{"b.id DESC"}
-	inputParams := []interface{}{}
-
-	inputParams = append(inputParams, job.ID)
-	jobIdParam := len(inputParams)
-	inputWheres = append(inputWheres, fmt.Sprintf("b.job_id = $%d", jobIdParam))
-
-	for i, input := range inputs {
-		dbResource, found := dbResources[input.Resource]
-		if !found {
-			var err error
-			dbResource, err = pdb.GetResource(input.Resource)
-			if err != nil {
-				return []BuildInput{}, err
-			}
-
-			dbResources[input.Resource] = dbResource
-		}
-
-		inputSelects = append(inputSelects, fmt.Sprintf("i%d.versioned_resource_id", i+1))
-		inputFromAliases = append(inputFromAliases, fmt.Sprintf("build_inputs i%d", i+1))
-		inputFromAliases = append(inputFromAliases, fmt.Sprintf("versioned_resources vr%d", i+1))
-		inputSelects = append(inputSelects, fmt.Sprintf("vr%d.enabled", i+1))
-		inputOrders = append(inputOrders, fmt.Sprintf("vr%d.id ASC", i+1))
-
-		inputParams = append(inputParams, input.Name)
-		inputNameParam := len(inputParams)
-		inputWheres = append(inputWheres, fmt.Sprintf("i%d.name = $%d", i+1, inputNameParam))
-
-		inputParams = append(inputParams, dbResource.ID)
-		resourceIDParam := len(inputParams)
-		inputWheres = append(inputWheres, fmt.Sprintf("vr%d.resource_id = $%d", i+1, resourceIDParam))
-
-		inputWheres = append(inputWheres, fmt.Sprintf("b.id = i%d.build_id", i+1))
-		inputWheres = append(inputWheres, fmt.Sprintf("vr%d.id = i%d.versioned_resource_id", i+1, i+1))
-	}
-
-	inputsQuery := fmt.Sprintf(
-		`
-			SELECT %s
-			FROM %s
-			WHERE %s
-			ORDER BY %s
-			LIMIT 1
-		`,
-		strings.Join(inputSelects, ", "),
-		strings.Join(inputFromAliases, ", "),
-		strings.Join(inputWheres, "\nAND "),
-		strings.Join(inputOrders, ", "),
-	)
-
-	err = pdb.conn.QueryRow(inputsQuery, inputParams...).Scan(scannedValues...)
-	if err != nil && err != sql.ErrNoRows {
-		return []BuildInput{}, err
-	}
-
-	// get latest build inputs (ensure all have same build id)
-	// append WHERE id >= existing_id for each input
-
-	selectIds := []string{}
-	orderBy := []string{}
-	fromAliases := []string{}
-	conditions := []string{}
-	params := []interface{}{}
-
-	passedJobs := map[string]int{}
-
-	for i, input := range inputs {
-		fromAliases = append(fromAliases, fmt.Sprintf("versioned_resources v%d", i+1))
-
-		if len(scannedValues) != 0 {
-			index := i * 2
-
-			if *scannedValues[index+1].(*bool) {
-				params = append(params, *(scannedValues[index].(*int)))
-				paramIndex := len(params)
-
-				conditions = append(conditions, fmt.Sprintf("v%d.id >= $%d", i+1, paramIndex))
-			}
-		}
-
-		params = append(params, dbResources[input.Resource].ID)
-		resourceIDParam := len(params)
-		conditions = append(conditions, fmt.Sprintf("v%d.resource_id = $%d", i+1, resourceIDParam))
-
-		for _, name := range input.Passed {
-			idx, found := passedJobs[name]
-			if !found {
-				idx = len(passedJobs)
-				passedJobs[name] = idx
-
-				fromAliases = append(fromAliases, fmt.Sprintf("builds b%d", idx+1))
-
-				dbJob, err := pdb.GetJob(name)
-				if err != nil {
-					return []BuildInput{}, err
-				}
-
-				params = append(params, dbJob.ID)
-				jobIDParam := len(params)
-				conditions = append(conditions, fmt.Sprintf("b%d.job_id = $%d", idx+1, jobIDParam))
-
-				params = append(params, string(StatusSucceeded))
-				buildStatusParam := len(params)
-				conditions = append(conditions, fmt.Sprintf("b%d.status = $%d", idx+1, buildStatusParam))
-			}
-
-			fromAliases = append(fromAliases, fmt.Sprintf("build_outputs v%db%d", i+1, idx+1))
-
-			conditions = append(conditions, fmt.Sprintf("v%db%d.versioned_resource_id = v%d.id", i+1, idx+1, i+1))
-
-			conditions = append(conditions, fmt.Sprintf("v%db%d.build_id = b%d.id", i+1, idx+1, idx+1))
-		}
-
-		conditions = append(conditions, fmt.Sprintf("v%d.enabled", i+1))
-
-		selectIds = append(selectIds, fmt.Sprintf("v%d.id", i+1))
-
-		orderBy = append(orderBy, fmt.Sprintf("v%d.id DESC", i+1))
-	}
-
-	buildInputs := []BuildInput{}
-
-	ids := []interface{}{}
-	for _ = range inputs {
-		var id int
-		ids = append(ids, &id)
-	}
-	qurey := fmt.Sprintf(
-		`
-				SELECT %s
-				FROM %s
-				WHERE %s
-				ORDER BY %s
-				LIMIT 1
-			`,
-		strings.Join(selectIds, ", "),
-		strings.Join(fromAliases, ", "),
-		strings.Join(conditions, "\nAND "),
-		strings.Join(orderBy, ", "),
-	)
-
-	err = pdb.conn.QueryRow(qurey, params...).Scan(ids...)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrNoVersions
-		}
-
 		return nil, err
 	}
 
-	for i, idPtr := range ids {
-		id := *(idPtr.(*int))
+	for rows.Next() {
+		var output algorithm.BuildOutput
+		err := rows.Scan(&output.VersionID, &output.ResourceID, &output.BuildID, &output.JobID)
+		if err != nil {
+			return nil, err
+		}
+
+		outputs = append(outputs, output)
+	}
+
+	rows, err = pdb.conn.Query(`
+    SELECT v.id, r.id
+    FROM versioned_resources v, resources r
+    WHERE r.id = v.resource_id
+    AND v.enabled
+  `)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var output algorithm.BuildOutput
+		err := rows.Scan(&output.VersionID, &output.ResourceID)
+		if err != nil {
+			return nil, err
+		}
+
+		outputs = append(outputs, output)
+	}
+
+	var inputConfigs algorithm.InputConfigs
+
+	for _, input := range inputs {
+		resource, err := pdb.GetResource(input.Resource)
+		if err != nil {
+			return nil, err
+		}
+
+		jobs := algorithm.JobSet{}
+		for _, jobName := range input.Passed {
+			job, err := pdb.GetJob(jobName)
+			if err != nil {
+				return nil, err
+			}
+
+			jobs[job.ID] = struct{}{}
+		}
+
+		inputConfigs = append(inputConfigs, algorithm.InputConfig{
+			Name:       input.Name,
+			ResourceID: resource.ID,
+			Passed:     jobs,
+		})
+	}
+
+	resolved, ok := inputConfigs.Resolve(outputs)
+	if !ok {
+		return nil, ErrNoVersions
+	}
+
+	var buildInputs []BuildInput
+
+	for name, id := range resolved {
 		svr := SavedVersionedResource{
 			ID:      id,
 			Enabled: true, // this is inherent with the following query
@@ -1723,7 +1630,7 @@ func (pdb *pipelineDB) GetLatestInputVersions(jobName string, inputs []atc.JobIn
 		}
 
 		buildInputs = append(buildInputs, BuildInput{
-			Name:              inputs[i].Name,
+			Name:              name,
 			VersionedResource: svr.VersionedResource,
 		})
 	}

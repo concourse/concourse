@@ -509,7 +509,7 @@ var _ = Describe("PipelineDB", func() {
 				err = pipelineDB.DisableVersionedResource(savedVR2.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(pipelineDB.GetLatestInputVersions("a-job", jobBuildInputs)).Should(Equal([]db.BuildInput{
+				Ω(pipelineDB.GetLatestInputVersions("a-job", jobBuildInputs)).Should(ConsistOf([]db.BuildInput{
 					{
 						Name:              "some-input-name",
 						VersionedResource: savedVR1.VersionedResource,
@@ -549,7 +549,7 @@ var _ = Describe("PipelineDB", func() {
 					},
 				}
 
-				Ω(pipelineDB.GetLatestInputVersions("a-job", jobBuildInputs)).Should(Equal([]db.BuildInput{
+				Ω(pipelineDB.GetLatestInputVersions("a-job", jobBuildInputs)).Should(ConsistOf([]db.BuildInput{
 					{
 						Name:              "some-input-name",
 						VersionedResource: savedVR2.VersionedResource,
@@ -559,7 +559,7 @@ var _ = Describe("PipelineDB", func() {
 				err = pipelineDB.DisableVersionedResource(savedVR2.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(pipelineDB.GetLatestInputVersions("a-job", jobBuildInputs)).Should(Equal([]db.BuildInput{
+				Ω(pipelineDB.GetLatestInputVersions("a-job", jobBuildInputs)).Should(ConsistOf([]db.BuildInput{
 					{
 						Name:              "some-input-name",
 						VersionedResource: savedVR1.VersionedResource,
@@ -576,7 +576,7 @@ var _ = Describe("PipelineDB", func() {
 				err = pipelineDB.EnableVersionedResource(savedVR1.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(pipelineDB.GetLatestInputVersions("a-job", jobBuildInputs)).Should(Equal([]db.BuildInput{
+				Ω(pipelineDB.GetLatestInputVersions("a-job", jobBuildInputs)).Should(ConsistOf([]db.BuildInput{
 					{
 						Name:              "some-input-name",
 						VersionedResource: savedVR1.VersionedResource,
@@ -586,7 +586,7 @@ var _ = Describe("PipelineDB", func() {
 				err = pipelineDB.EnableVersionedResource(savedVR2.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(pipelineDB.GetLatestInputVersions("a-job", jobBuildInputs)).Should(Equal([]db.BuildInput{
+				Ω(pipelineDB.GetLatestInputVersions("a-job", jobBuildInputs)).Should(ConsistOf([]db.BuildInput{
 					{
 						Name:              "some-input-name",
 						VersionedResource: savedVR2.VersionedResource,
@@ -2141,7 +2141,7 @@ var _ = Describe("PipelineDB", func() {
 					},
 				}
 
-				Ω(pipelineDB.GetLatestInputVersions("third-job", jobBuildInputs)).Should(Equal([]db.BuildInput{
+				Ω(pipelineDB.GetLatestInputVersions("third-job", jobBuildInputs)).Should(ConsistOf([]db.BuildInput{
 					{
 						Name:              "some-input-name",
 						VersionedResource: savedVR1.VersionedResource,
@@ -2260,7 +2260,7 @@ var _ = Describe("PipelineDB", func() {
 						Resource: "resource-2",
 						Passed:   []string{"shared-job", "job-2"},
 					},
-				})).Should(Equal([]db.BuildInput{
+				})).Should(ConsistOf([]db.BuildInput{
 					{
 						Name:              "input-1",
 						VersionedResource: savedVR1.VersionedResource,
@@ -2314,7 +2314,7 @@ var _ = Describe("PipelineDB", func() {
 						Resource: "resource-2",
 						Passed:   []string{"shared-job", "job-2"},
 					},
-				})).Should(Equal([]db.BuildInput{
+				})).Should(ConsistOf([]db.BuildInput{
 					{
 						Name:              "input-1",
 						VersionedResource: savedVR1.VersionedResource,
@@ -2351,7 +2351,7 @@ var _ = Describe("PipelineDB", func() {
 						Resource: "resource-2",
 						Passed:   []string{"shared-job", "job-2"},
 					},
-				})).Should(Equal([]db.BuildInput{
+				})).Should(ConsistOf([]db.BuildInput{
 					{
 						Name:              "input-1",
 						VersionedResource: savedCommonVR1.VersionedResource,
@@ -2383,7 +2383,7 @@ var _ = Describe("PipelineDB", func() {
 						Resource: "resource-2",
 						Passed:   []string{"job-2"},
 					},
-				})).Should(Equal([]db.BuildInput{
+				})).Should(ConsistOf([]db.BuildInput{
 					{
 						Name:              "input-2",
 						VersionedResource: savedCommonVR2.VersionedResource,
@@ -2433,7 +2433,7 @@ var _ = Describe("PipelineDB", func() {
 							Resource: "resource-2",
 							Passed:   []string{"shared-job", "job-2"},
 						},
-					})).Should(Equal([]db.BuildInput{
+					})).Should(ConsistOf([]db.BuildInput{
 						{
 							Name:              "input-1",
 							VersionedResource: savedCommonVR1.VersionedResource,
