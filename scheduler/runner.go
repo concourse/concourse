@@ -73,7 +73,7 @@ func (runner *Runner) tick(logger lager.Logger) error {
 
 	logger.Info("start")
 	defer func() {
-		logger.Info("done", lager.Data{"took": time.Since(start)})
+		logger.Info("done", lager.Data{"took": time.Since(start).String()})
 	}()
 
 	config, _, err := runner.DB.GetConfig()
