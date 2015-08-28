@@ -152,6 +152,10 @@ func (pool *Pool) FindContainersForIdentifier(id Identifier) ([]Container, error
 	return nil, nil
 }
 
+func (pool *Pool) LookupContainer(handle string) (Container, error) {
+	return nil, nil
+}
+
 type byActiveContainers []Worker
 
 func (cs byActiveContainers) Len() int { return len(cs) }

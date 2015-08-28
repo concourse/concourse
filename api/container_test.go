@@ -26,15 +26,37 @@ const (
 var _ = Describe("Pipelines API", func() {
 	var (
 		req *http.Request
+
+		fakeContainer1              *workerfakes.FakeContainer
+		expectedPresentedContainer1 present.PresentedContainer
 	)
+
+	BeforeEach(func() {
+		fakeContainer1 = &workerfakes.FakeContainer{}
+		fakeContainer1.IdentifierFromPropertiesReturns(
+			worker.Identifier{
+				PipelineName: pipelineName1,
+				Type:         type1,
+				Name:         name1,
+				BuildID:      buildID1,
+			})
+
+		fakeContainer1.HandleReturns(containerID1)
+
+		expectedPresentedContainer1 = present.PresentedContainer{
+			ID:           containerID1,
+			PipelineName: pipelineName1,
+			Type:         type1,
+			Name:         name1,
+			BuildID:      buildID1,
+		}
+	})
 
 	Describe("GET /api/v1/containers", func() {
 		var (
-			fakeContainer1 *workerfakes.FakeContainer
 			fakeContainer2 *workerfakes.FakeContainer
 			fakeContainers []worker.Container
 
-			expectedPresentedContainer1 present.PresentedContainer
 			expectedPresentedContainer2 present.PresentedContainer
 			expectedPresentedContainers []present.PresentedContainer
 		)
@@ -65,14 +87,6 @@ var _ = Describe("Pipelines API", func() {
 				fakeContainer2,
 			}
 
-			expectedPresentedContainer1 = present.PresentedContainer{
-				ID:           containerID1,
-				PipelineName: pipelineName1,
-				Type:         type1,
-				Name:         name1,
-				BuildID:      buildID1,
-			}
-
 			expectedPresentedContainer2 = present.PresentedContainer{
 				ID:           "cfvwser",
 				PipelineName: "pipeline-2",
@@ -86,7 +100,7 @@ var _ = Describe("Pipelines API", func() {
 				expectedPresentedContainer2,
 			}
 
-			fakeWorkerClient.LookupContainersReturns(fakeContainers, nil)
+			fakeWorkerClient.FindContainersForIdentifierReturns(fakeContainers, nil)
 
 			var err error
 			req, err = http.NewRequest("GET", server.URL+"/api/v1/containers", nil)
@@ -118,6 +132,7 @@ var _ = Describe("Pipelines API", func() {
 
 				var actualPresentedContainers []present.PresentedContainer
 				err = json.Unmarshal(b, &actualPresentedContainers)
+				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(len(actualPresentedContainers)).To(Equal(len(expectedPresentedContainers)))
 				for i, _ := range actualPresentedContainers {
@@ -150,15 +165,15 @@ var _ = Describe("Pipelines API", func() {
 				}.Encode()
 			})
 
-			It("calls LookupContainers with the queried pipeline name", func() {
+			It("calls FindContainersForIdentifier with the queried pipeline name", func() {
 				_, err := client.Do(req)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				expectedArgs := worker.Identifier{
 					PipelineName: pipelineName1,
 				}
-				Ω(fakeWorkerClient.LookupContainersCallCount()).Should(Equal(1))
-				Ω(fakeWorkerClient.LookupContainersArgsForCall(0)).Should(Equal(expectedArgs))
+				Ω(fakeWorkerClient.FindContainersForIdentifierCallCount()).Should(Equal(1))
+				Ω(fakeWorkerClient.FindContainersForIdentifierArgsForCall(0)).Should(Equal(expectedArgs))
 			})
 		})
 
@@ -169,15 +184,15 @@ var _ = Describe("Pipelines API", func() {
 				}.Encode()
 			})
 
-			It("calls LookupContainers with the queried type", func() {
+			It("calls FindContainersForIdentifier with the queried type", func() {
 				_, err := client.Do(req)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				expectedArgs := worker.Identifier{
 					Type: type1,
 				}
-				Ω(fakeWorkerClient.LookupContainersCallCount()).Should(Equal(1))
-				Ω(fakeWorkerClient.LookupContainersArgsForCall(0)).Should(Equal(expectedArgs))
+				Ω(fakeWorkerClient.FindContainersForIdentifierCallCount()).Should(Equal(1))
+				Ω(fakeWorkerClient.FindContainersForIdentifierArgsForCall(0)).Should(Equal(expectedArgs))
 			})
 		})
 
@@ -188,15 +203,15 @@ var _ = Describe("Pipelines API", func() {
 				}.Encode()
 			})
 
-			It("calls LookupContainers with the queried name", func() {
+			It("calls FindContainersForIdentifier with the queried name", func() {
 				_, err := client.Do(req)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				expectedArgs := worker.Identifier{
 					Name: name1,
 				}
-				Ω(fakeWorkerClient.LookupContainersCallCount()).Should(Equal(1))
-				Ω(fakeWorkerClient.LookupContainersArgsForCall(0)).Should(Equal(expectedArgs))
+				Ω(fakeWorkerClient.FindContainersForIdentifierCallCount()).Should(Equal(1))
+				Ω(fakeWorkerClient.FindContainersForIdentifierArgsForCall(0)).Should(Equal(expectedArgs))
 			})
 		})
 
@@ -210,15 +225,15 @@ var _ = Describe("Pipelines API", func() {
 					}.Encode()
 				})
 
-				It("calls LookupContainers with the queried build id", func() {
+				It("calls FindContainersForIdentifier with the queried build id", func() {
 					_, err := client.Do(req)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					expectedArgs := worker.Identifier{
 						BuildID: buildID1,
 					}
-					Ω(fakeWorkerClient.LookupContainersCallCount()).Should(Equal(1))
-					Ω(fakeWorkerClient.LookupContainersArgsForCall(0)).Should(Equal(expectedArgs))
+					Ω(fakeWorkerClient.FindContainersForIdentifierCallCount()).Should(Equal(1))
+					Ω(fakeWorkerClient.FindContainersForIdentifierArgsForCall(0)).Should(Equal(expectedArgs))
 				})
 			})
 
@@ -237,8 +252,91 @@ var _ = Describe("Pipelines API", func() {
 				It("does not lookup containers", func() {
 					client.Do(req)
 
-					Ω(fakeWorkerClient.LookupContainersCallCount()).Should(Equal(0))
+					Ω(fakeWorkerClient.FindContainersForIdentifierCallCount()).Should(Equal(0))
 				})
+			})
+		})
+	})
+
+	Describe("GET /api/v1/containers/:id", func() {
+		const (
+			containerID = "23sxrfu"
+		)
+
+		BeforeEach(func() {
+			fakeWorkerClient.LookupContainerReturns(fakeContainer1, nil)
+
+			var err error
+			req, err = http.NewRequest("GET", server.URL+"/api/v1/containers/"+containerID, nil)
+			Ω(err).ShouldNot(HaveOccurred())
+			req.Header.Set("Content-Type", "application/json")
+		})
+
+		Context("when the container is not found", func() {
+			BeforeEach(func() {
+				fakeWorkerClient.LookupContainerReturns(fakeContainer1, worker.ErrContainerNotFound)
+			})
+
+			It("returns 404 Not Found", func() {
+				response, err := client.Do(req)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+			})
+		})
+
+		Context("when the container is found", func() {
+			BeforeEach(func() {
+				fakeWorkerClient.LookupContainerReturns(fakeContainer1, nil)
+			})
+
+			It("returns 200 OK", func() {
+				response, err := client.Do(req)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+			})
+
+			It("returns Content-Type application/json", func() {
+				response, err := client.Do(req)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(response.Header.Get("Content-Type")).Should(Equal("application/json"))
+			})
+
+			It("performs lookup by id", func() {
+				_, err := client.Do(req)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(fakeWorkerClient.LookupContainerCallCount()).Should(Equal(1))
+				Ω(fakeWorkerClient.LookupContainerArgsForCall(0)).Should(Equal(containerID))
+			})
+
+			It("returns the container", func() {
+				response, err := client.Do(req)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				b, err := ioutil.ReadAll(response.Body)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				var actual present.PresentedContainer
+				err = json.Unmarshal(b, &actual)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				expected := expectedPresentedContainer1
+
+				Ω(actual.PipelineName).To(Equal(expected.PipelineName))
+				Ω(actual.Type).To(Equal(expected.Type))
+				Ω(actual.Name).To(Equal(expected.Name))
+				Ω(actual.BuildID).To(Equal(expected.BuildID))
+				Ω(actual.ID).To(Equal(expected.ID))
+			})
+
+			It("releases the container", func() {
+				_, err := client.Do(req)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(fakeContainer1.ReleaseCallCount()).Should(Equal(1))
 			})
 		})
 	})

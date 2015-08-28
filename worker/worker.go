@@ -130,6 +130,10 @@ func (worker *gardenWorker) FindContainersForIdentifier(id Identifier) ([]Contai
 	return nil, nil
 }
 
+func (worker *gardenWorker) LookupContainer(handle string) (Container, error) {
+	return nil, nil
+}
+
 func (worker *gardenWorker) ActiveContainers() int {
 	return worker.activeContainers
 }

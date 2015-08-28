@@ -16,6 +16,10 @@ type Client interface {
 	CreateContainer(Identifier, ContainerSpec) (Container, error)
 	FindContainerForIdentifier(Identifier) (Container, error)
 	FindContainersForIdentifier(Identifier) ([]Container, error)
+
+	// LookupContainer performs a lookup for a container with the provided handle.
+	// Returns error and nil Container if no container is found for the provided handle.
+	LookupContainer(string) (Container, error)
 }
 
 //go:generate counterfeiter . Container

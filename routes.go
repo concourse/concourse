@@ -46,6 +46,7 @@ const (
 	DownloadCLI = "DownloadCLI"
 
 	ListContainers = "ListContainers"
+	GetContainer   = "GetContainer"
 )
 
 var Routes = rata.Routes{
@@ -57,7 +58,7 @@ var Routes = rata.Routes{
 	{Path: "/api/v1/builds", Method: "GET", Name: ListBuilds},
 	{Path: "/api/v1/builds/:build_id/events", Method: "GET", Name: BuildEvents},
 	{Path: "/api/v1/builds/:build_id/abort", Method: "POST", Name: AbortBuild},
-	{Path: "/api/v1/hijack", Method: "POST", Name: Hijack},
+	{Path: "/api/v1/hijack/:handle", Method: "POST", Name: Hijack},
 
 	{Path: "/api/v1/pipelines/:pipeline_name/jobs", Method: "GET", Name: ListJobs},
 	{Path: "/api/v1/pipelines/:pipeline_name/jobs/:job_name", Method: "GET", Name: GetJob},
@@ -91,4 +92,5 @@ var Routes = rata.Routes{
 	{Path: "/api/v1/cli", Method: "GET", Name: DownloadCLI},
 
 	{Path: "/api/v1/containers", Method: "GET", Name: ListContainers},
+	{Path: "/api/v1/containers/:id", Method: "GET", Name: GetContainer},
 }

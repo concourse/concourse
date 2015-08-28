@@ -22,9 +22,10 @@ import (
 )
 
 var _ = Describe("Hijacking API", func() {
-	Describe("POST /api/v1/hijack", func() {
+	Describe("POST /api/v1/hijack/:handle", func() {
 		var (
 			requestPayload string
+			handle         string
 			buildID        string
 			stepType       string
 			stepName       string
@@ -40,6 +41,7 @@ var _ = Describe("Hijacking API", func() {
 		)
 
 		BeforeEach(func() {
+			handle = "sdfwer8"
 			requestPayload = `{"path":"ls", "user": "root"}`
 			buildID = "128"
 			stepType = "task"
@@ -51,7 +53,7 @@ var _ = Describe("Hijacking API", func() {
 
 			hijackReq, err := http.NewRequest(
 				"POST",
-				server.URL+"/api/v1/hijack",
+				server.URL+"/api/v1/hijack/"+handle,
 				bytes.NewBufferString(requestPayload),
 			)
 			Ω(err).ShouldNot(HaveOccurred())
@@ -118,12 +120,7 @@ var _ = Describe("Hijacking API", func() {
 					It("hijacks the build", func() {
 						Eventually(fakeContainer.RunCallCount).Should(Equal(1))
 
-						Ω(fakeWorkerClient.LookupContainerArgsForCall(0)).Should(Equal(worker.Identifier{
-							BuildID: 128,
-
-							Type: worker.ContainerType(stepType),
-							Name: stepName,
-						}))
+						Ω(fakeWorkerClient.LookupContainerArgsForCall(0)).Should(Equal(handle))
 
 						spec, io := fakeContainer.RunArgsForCall(0)
 						Ω(spec).Should(Equal(garden.ProcessSpec{
@@ -133,40 +130,6 @@ var _ = Describe("Hijacking API", func() {
 						Ω(io.Stdin).ShouldNot(BeNil())
 						Ω(io.Stdout).ShouldNot(BeNil())
 						Ω(io.Stderr).ShouldNot(BeNil())
-					})
-
-					Context("when the build ID is unspecified", func() {
-						BeforeEach(func() {
-							buildID = ""
-						})
-
-						It("does not look up by build ID", func() {
-							Eventually(fakeContainer.RunCallCount).Should(Equal(1))
-
-							Ω(fakeWorkerClient.LookupContainerArgsForCall(0)).Should(Equal(worker.Identifier{
-								Type: worker.ContainerType(stepType),
-								Name: stepName,
-							}))
-						})
-					})
-
-					Context("when the pipeline is specified for looking up a check container", func() {
-						BeforeEach(func() {
-							buildID = ""
-							stepType = "check"
-							stepName = ""
-							pipelineName = "a-pipeline"
-						})
-
-						It("looks up the container with pipeline name", func() {
-							Eventually(fakeContainer.RunCallCount).Should(Equal(1))
-
-							Ω(fakeWorkerClient.LookupContainerArgsForCall(0)).Should(Equal(worker.Identifier{
-								Type:         worker.ContainerType(stepType),
-								Name:         stepName,
-								PipelineName: "a-pipeline",
-							}))
-						})
 					})
 
 					Context("when stdin is sent over the API", func() {
@@ -320,7 +283,7 @@ var _ = Describe("Hijacking API", func() {
 					requestPayload = "ß"
 				})
 
-				It("returns Bad Request", func() {
+				It("returns 400 Bad Request", func() {
 					Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
 				})
 			})
@@ -331,7 +294,7 @@ var _ = Describe("Hijacking API", func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 401", func() {
+			It("returns 401 Unauthorized", func() {
 				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
 			})
 

@@ -140,6 +140,7 @@ func NewHandler(
 		atc.DownloadCLI: http.HandlerFunc(cliServer.Download),
 
 		atc.ListContainers: http.HandlerFunc(containerServer.ListContainers),
+		atc.GetContainer:   http.HandlerFunc(containerServer.GetContainer),
 	}
 
 	return rata.NewRouter(atc.Routes, handlers)

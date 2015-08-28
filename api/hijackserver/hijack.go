@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -24,57 +22,37 @@ func (s *Server) Hijack(w http.ResponseWriter, r *http.Request) {
 }
 
 type hijackRequest struct {
-	Worker worker.Identifier // TODO: remove this
-	// ContainerHandle: string,
-	Process atc.HijackProcessSpec
+	ContainerHandle string
+	Process         atc.HijackProcessSpec
 }
 
 func (s *Server) parseRequest(r *http.Request) (hijackRequest, error) {
-	workerIdentifier := worker.Identifier{
-		Type:         worker.ContainerType(r.URL.Query().Get("type")),
-		Name:         r.URL.Query().Get("name"),
-		PipelineName: r.URL.Query().Get("pipeline"),
-	}
-
-	var err error
-
-	buildIDParam := r.URL.Query().Get("build-id")
-	if len(buildIDParam) != 0 {
-		workerIdentifier.BuildID, err = strconv.Atoi(buildIDParam)
-		if err != nil {
-			return hijackRequest{}, fmt.Errorf("malformed build ID: %s", err)
-		}
-	}
+	handle := r.FormValue(":handle")
 
 	hLog := s.logger.Session("hijack", lager.Data{
-		"identifier": workerIdentifier,
+		"handle": handle,
 	})
+
 	var processSpec atc.HijackProcessSpec
-	err = json.NewDecoder(r.Body).Decode(&processSpec)
+	err := json.NewDecoder(r.Body).Decode(&processSpec)
 	if err != nil {
 		hLog.Error("malformed-process-spec", err)
 		return hijackRequest{}, fmt.Errorf("malformed process spec: %s", err)
 	}
 
-	// Get the handle from the url
-	// either /containers/:handle/hijack or /hijack/:handle
-	// depending on which URL format we decide to use.
-
 	return hijackRequest{
-		Worker: workerIdentifier, // TODO: remove this
-		// ContainerHandle: containerHandle,
-		Process: processSpec,
+		ContainerHandle: handle,
+		Process:         processSpec,
 	}, nil
 }
 
 func (s *Server) hijack(w http.ResponseWriter, request hijackRequest) {
 	hLog := s.logger.Session("hijack", lager.Data{
-		"identifier": request.Worker,
-		"process":    request.Process,
+		"handle":  request.ContainerHandle,
+		"process": request.Process,
 	})
 
-	container, err := s.workerClient.FindContainerForIdentifier(request.Worker)
-	// container, err := s.workerClient.Container(handle)
+	container, err := s.workerClient.LookupContainer(request.ContainerHandle)
 	if err != nil {
 		hLog.Error("failed-to-get-container", err)
 		http.Error(w, fmt.Sprintf("failed to get container: %s", err), http.StatusNotFound)
