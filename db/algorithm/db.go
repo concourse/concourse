@@ -3,6 +3,8 @@ package algorithm
 type VersionsDB struct {
 	ResourceVersions []ResourceVersion
 	BuildOutputs     []BuildOutput
+	JobIDs           map[string]int
+	ResourceIDs      map[string]int
 }
 
 type ResourceVersion struct {

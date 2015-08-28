@@ -1515,7 +1515,12 @@ func (pdb *pipelineDB) GetCurrentBuild(job string) (Build, error) {
 }
 
 func (pdb *pipelineDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
-	var outputs []algorithm.BuildOutput
+	db := &algorithm.VersionsDB{
+		BuildOutputs:     []algorithm.BuildOutput{},
+		ResourceVersions: []algorithm.ResourceVersion{},
+		JobIDs:           map[string]int{},
+		ResourceIDs:      map[string]int{},
+	}
 
 	rows, err := pdb.conn.Query(`
     SELECT v.id, r.id, o.build_id, j.id
@@ -1539,10 +1544,8 @@ func (pdb *pipelineDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 			return nil, err
 		}
 
-		outputs = append(outputs, output)
+		db.BuildOutputs = append(db.BuildOutputs, output)
 	}
-
-	var versions []algorithm.ResourceVersion
 
 	rows, err = pdb.conn.Query(`
     SELECT v.id, r.id
@@ -1562,16 +1565,53 @@ func (pdb *pipelineDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 			return nil, err
 		}
 
-		versions = append(versions, output)
+		db.ResourceVersions = append(db.ResourceVersions, output)
 	}
 
-	return &algorithm.VersionsDB{
-		BuildOutputs:     outputs,
-		ResourceVersions: versions,
-	}, nil
+	rows, err = pdb.conn.Query(`
+    SELECT j.name, j.id
+    FROM jobs j
+    WHERE j.pipeline_id = $1
+  `, pdb.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var name string
+		var id int
+		err := rows.Scan(&name, &id)
+		if err != nil {
+			return nil, err
+		}
+
+		db.JobIDs[name] = id
+	}
+
+	rows, err = pdb.conn.Query(`
+    SELECT r.name, r.id
+    FROM resources r
+    WHERE r.pipeline_id = $1
+  `, pdb.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var name string
+		var id int
+		err := rows.Scan(&name, &id)
+		if err != nil {
+			return nil, err
+		}
+
+		db.ResourceIDs[name] = id
+	}
+
+	return db, nil
 }
 
-func (pdb *pipelineDB) GetLatestInputVersions(versions *algorithm.VersionsDB, jobName string, inputs []atc.JobInput) ([]BuildInput, error) {
+func (pdb *pipelineDB) GetLatestInputVersions(db *algorithm.VersionsDB, jobName string, inputs []atc.JobInput) ([]BuildInput, error) {
 	if len(inputs) == 0 {
 		return []BuildInput{}, nil
 	}
@@ -1579,29 +1619,19 @@ func (pdb *pipelineDB) GetLatestInputVersions(versions *algorithm.VersionsDB, jo
 	var inputConfigs algorithm.InputConfigs
 
 	for _, input := range inputs {
-		resource, err := pdb.GetResource(input.Resource)
-		if err != nil {
-			return nil, err
-		}
-
 		jobs := algorithm.JobSet{}
 		for _, jobName := range input.Passed {
-			job, err := pdb.GetJob(jobName)
-			if err != nil {
-				return nil, err
-			}
-
-			jobs[job.ID] = struct{}{}
+			jobs[db.JobIDs[jobName]] = struct{}{}
 		}
 
 		inputConfigs = append(inputConfigs, algorithm.InputConfig{
 			Name:       input.Name,
-			ResourceID: resource.ID,
+			ResourceID: db.ResourceIDs[input.Resource],
 			Passed:     jobs,
 		})
 	}
 
-	resolved, ok := inputConfigs.Resolve(versions)
+	resolved, ok := inputConfigs.Resolve(db)
 	if !ok {
 		return nil, ErrNoVersions
 	}
