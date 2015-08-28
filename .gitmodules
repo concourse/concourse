@@ -174,3 +174,11 @@
 	path = src/github.com/felixge/tcpkeepalive
 	url = https://github.com/felixge/tcpkeepalive
 	branch = master
+[submodule "src/github.com/yeller/yeller-golang"]
+	path = src/github.com/yeller/yeller-golang
+	url = https://github.com/yeller/yeller-golang
+	branch = master
+[submodule "src/github.com/xoebus/zest"]
+	path = src/github.com/xoebus/zest
+	url = https://github.com/xoebus/zest
+	branch = master

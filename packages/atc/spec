@@ -76,4 +76,6 @@ files:
   - github.com/tedsuo/ifrit/sigmon/*.go # gosub
   - github.com/tedsuo/rata/*.go # gosub
   - github.com/vito/go-sse/sse/*.go # gosub
+  - github.com/xoebus/zest/*.go # gosub
+  - github.com/yeller/yeller-golang/*.go # gosub
   - gopkg.in/yaml.v2/*.go # gosub
