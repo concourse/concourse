@@ -1,4 +1,4 @@
-package hijackserver
+package containerserver
 
 import (
 	"encoding/json"
@@ -11,8 +11,8 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-func (s *Server) Hijack(w http.ResponseWriter, r *http.Request) {
-	hijackRequest, err := s.parseRequest(r)
+func (s *Server) HijackContainer(w http.ResponseWriter, r *http.Request) {
+	hijackRequest, err := s.parseHijackRequest(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -26,8 +26,8 @@ type hijackRequest struct {
 	Process         atc.HijackProcessSpec
 }
 
-func (s *Server) parseRequest(r *http.Request) (hijackRequest, error) {
-	handle := r.FormValue(":handle")
+func (s *Server) parseHijackRequest(r *http.Request) (hijackRequest, error) {
+	handle := r.FormValue(":id")
 
 	hLog := s.logger.Session("hijack", lager.Data{
 		"handle": handle,

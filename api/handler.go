@@ -12,7 +12,6 @@ import (
 	"github.com/concourse/atc/api/cliserver"
 	"github.com/concourse/atc/api/configserver"
 	"github.com/concourse/atc/api/containerserver"
-	"github.com/concourse/atc/api/hijackserver"
 	"github.com/concourse/atc/api/jobserver"
 	"github.com/concourse/atc/api/loglevelserver"
 	"github.com/concourse/atc/api/pipelineserver"
@@ -68,11 +67,6 @@ func NewHandler(
 		validator,
 	)
 
-	hijackServer := hijackserver.NewServer(
-		logger,
-		workerClient,
-	)
-
 	jobServer := jobserver.NewServer(logger)
 	resourceServer := resourceserver.NewServer(logger, validator)
 	pipeServer := pipes.NewServer(logger, peerURL, pipeDB)
@@ -99,8 +93,6 @@ func NewHandler(
 	handlers := map[string]http.Handler{
 		atc.GetConfig:  validate(http.HandlerFunc(configServer.GetConfig)),
 		atc.SaveConfig: validate(http.HandlerFunc(configServer.SaveConfig)),
-
-		atc.Hijack: validate(http.HandlerFunc(hijackServer.Hijack)),
 
 		atc.GetBuild:    http.HandlerFunc(buildServer.GetBuild),
 		atc.ListBuilds:  http.HandlerFunc(buildServer.ListBuilds),
@@ -139,8 +131,9 @@ func NewHandler(
 
 		atc.DownloadCLI: http.HandlerFunc(cliServer.Download),
 
-		atc.ListContainers: http.HandlerFunc(containerServer.ListContainers),
-		atc.GetContainer:   http.HandlerFunc(containerServer.GetContainer),
+		atc.ListContainers:  http.HandlerFunc(containerServer.ListContainers),
+		atc.GetContainer:    http.HandlerFunc(containerServer.GetContainer),
+		atc.HijackContainer: validate(http.HandlerFunc(containerServer.HijackContainer)),
 	}
 
 	return rata.NewRouter(atc.Routes, handlers)
