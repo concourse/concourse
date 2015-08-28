@@ -148,12 +148,74 @@ func (pool *Pool) FindContainerForIdentifier(id Identifier) (Container, error) {
 	}
 }
 
+type workerErrorInfo struct {
+	workerName string
+	err        error
+}
+
 func (pool *Pool) FindContainersForIdentifier(id Identifier) ([]Container, error) {
-	return nil, nil
+	workers, err := pool.provider.Workers()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(workers) == 0 {
+		return nil, ErrNoWorkers
+	}
+
+	wg := new(sync.WaitGroup)
+	wg.Add(len(workers))
+
+	found := make(chan []Container, len(workers))
+	errors := make(chan workerErrorInfo, len(workers))
+
+	for _, worker := range workers {
+		go func(worker Worker) {
+			defer wg.Done()
+
+			containers, err := worker.FindContainersForIdentifier(id)
+			found <- containers
+			if err != nil {
+				errors <- workerErrorInfo{
+					workerName: worker.Name(),
+					err:        err,
+				}
+			}
+		}(worker)
+	}
+
+	wg.Wait()
+
+	totalFound := len(found)
+
+	containers := []Container{}
+	for i := 0; i < totalFound; i++ {
+		foundContainers := <-found
+		for _, c := range foundContainers {
+			containers = append(containers, c)
+		}
+	}
+
+	totalErr := len(errors)
+	if len(errors) > 0 {
+		multiWorkerError := MultiWorkerError{}
+
+		for i := 0; i < totalErr; i++ {
+			e := <-errors
+			multiWorkerError.AddError(e.workerName, e.err)
+		}
+		return containers, multiWorkerError
+	}
+
+	return containers, nil
 }
 
 func (pool *Pool) LookupContainer(handle string) (Container, error) {
 	return nil, nil
+}
+
+func (pool *Pool) Name() string {
+	return ""
 }
 
 type byActiveContainers []Worker

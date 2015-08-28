@@ -151,7 +151,207 @@ var _ = Describe("Pool", func() {
 		})
 	})
 
-	Describe("LookupContainer", func() {
+	Describe("FindContainersForIdentifier", func() {
+		var (
+			id Identifier
+		)
+
+		BeforeEach(func() {
+			id = Identifier{Name: "some-name"}
+		})
+
+		Context("with multiple workers", func() {
+			var (
+				workerA *fakes.FakeWorker
+				workerB *fakes.FakeWorker
+
+				fakeContainer  *fakes.FakeContainer
+				fakeContainers []Container
+			)
+
+			BeforeEach(func() {
+				workerA = new(fakes.FakeWorker)
+				workerB = new(fakes.FakeWorker)
+
+				workerA.ActiveContainersReturns(3)
+				workerB.ActiveContainersReturns(2)
+
+				fakeContainer = new(fakes.FakeContainer)
+				fakeContainer.HandleReturns("fake-container")
+
+				fakeProvider.WorkersReturns([]Worker{workerA, workerB}, nil)
+
+				fakeContainers = []Container{fakeContainer}
+			})
+
+			Context("when a worker can locate matching containers", func() {
+				BeforeEach(func() {
+					workerA.FindContainersForIdentifierReturns(fakeContainers, nil)
+					workerB.FindContainersForIdentifierReturns(nil, nil)
+				})
+
+				It("returns the container", func() {
+					foundContainers, err := pool.FindContainersForIdentifier(id)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(len(foundContainers)).Should(Equal(1))
+					Ω(foundContainers[0]).Should(Equal(fakeContainer))
+				})
+
+				It("looks up by the given identifier", func() {
+					_, err := pool.FindContainersForIdentifier(id)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(workerA.FindContainersForIdentifierCallCount()).Should(Equal(1))
+					Ω(workerB.FindContainersForIdentifierCallCount()).Should(Equal(1))
+
+					Ω(workerA.FindContainersForIdentifierArgsForCall(0)).Should(Equal(id))
+					Ω(workerB.FindContainersForIdentifierArgsForCall(0)).Should(Equal(id))
+				})
+			})
+
+			Context("when no workers can locate any containers", func() {
+				BeforeEach(func() {
+					workerA.FindContainersForIdentifierReturns(nil, nil)
+					workerB.FindContainersForIdentifierReturns(nil, nil)
+				})
+
+				It("returns empty array of containers", func() {
+					foundContainers, err := pool.FindContainersForIdentifier(id)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(len(foundContainers)).Should(Equal(0))
+				})
+			})
+
+			Context("when multiple workers locate containers", func() {
+				var (
+					secondFakeContainer  *fakes.FakeContainer
+					thirdFakeContainer   *fakes.FakeContainer
+					secondFakeContainers []Container
+				)
+
+				BeforeEach(func() {
+					secondFakeContainer = new(fakes.FakeContainer)
+					secondFakeContainer.HandleReturns("second-fake-container")
+
+					thirdFakeContainer = new(fakes.FakeContainer)
+					thirdFakeContainer.HandleReturns("third-fake-container")
+
+					secondFakeContainers = []Container{secondFakeContainer, thirdFakeContainer}
+				})
+
+				Context("without error", func() {
+					BeforeEach(func() {
+						workerA.FindContainersForIdentifierReturns(fakeContainers, nil)
+						workerB.FindContainersForIdentifierReturns(secondFakeContainers, nil)
+					})
+
+					It("returns all containers without error", func() {
+						foundContainers, err := pool.FindContainersForIdentifier(id)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Ω(foundContainers).Should(ConsistOf(fakeContainer, secondFakeContainer, thirdFakeContainer))
+					})
+				})
+
+				Context("when a worker reports an error", func() {
+					var (
+						workerBName      string
+						workerBErrString string
+					)
+
+					BeforeEach(func() {
+						workerBName = "worker b"
+						workerBErrString = "some error"
+
+						workerA.FindContainersForIdentifierReturns(fakeContainers, nil)
+						workerB.FindContainersForIdentifierReturns(secondFakeContainers, errors.New(workerBErrString))
+
+						workerB.NameReturns(workerBName)
+					})
+
+					It("returns all containers", func() {
+						foundContainers, _ := pool.FindContainersForIdentifier(id)
+						Ω(foundContainers).Should(ConsistOf(fakeContainer, secondFakeContainer, thirdFakeContainer))
+					})
+
+					It("returns an error identifing which worker errored", func() {
+						_, err := pool.FindContainersForIdentifier(id)
+
+						Ω(err.Error()).Should(ContainSubstring(workerBName))
+						Ω(err.Error()).Should(ContainSubstring(workerBErrString))
+					})
+				})
+
+				Context("when multiple workers report an error", func() {
+					var (
+						workerAName      string
+						workerAErrString string
+
+						workerBName      string
+						workerBErrString string
+					)
+
+					BeforeEach(func() {
+						workerAName = "worker a"
+						workerAErrString = "some error a"
+
+						workerBName = "worker b"
+						workerBErrString = "some error b"
+
+						workerA.NameReturns(workerAName)
+						workerB.NameReturns(workerBName)
+
+						workerA.FindContainersForIdentifierReturns(fakeContainers, errors.New(workerAErrString))
+						workerB.FindContainersForIdentifierReturns(secondFakeContainers, errors.New(workerBErrString))
+					})
+
+					It("returns all containers", func() {
+						foundContainers, _ := pool.FindContainersForIdentifier(id)
+						Ω(foundContainers).Should(ConsistOf(fakeContainer, secondFakeContainer, thirdFakeContainer))
+					})
+
+					It("returns an error identifing which workers errored", func() {
+						_, err := pool.FindContainersForIdentifier(id)
+
+						Ω(err.Error()).Should(ContainSubstring(workerAName))
+						Ω(err.Error()).Should(ContainSubstring(workerAErrString))
+						Ω(err.Error()).Should(ContainSubstring(workerBName))
+						Ω(err.Error()).Should(ContainSubstring(workerBErrString))
+					})
+				})
+			})
+		})
+
+		Context("with no workers", func() {
+			BeforeEach(func() {
+				fakeProvider.WorkersReturns([]Worker{}, nil)
+			})
+
+			It("returns ErrNoWorkers", func() {
+				_, err := pool.FindContainersForIdentifier(id)
+
+				Ω(err).Should(Equal(ErrNoWorkers))
+			})
+		})
+
+		Context("when getting the workers fails", func() {
+			disaster := errors.New("nope")
+
+			BeforeEach(func() {
+				fakeProvider.WorkersReturns(nil, disaster)
+			})
+
+			It("returns the error", func() {
+				_, err := pool.FindContainersForIdentifier(id)
+
+				Ω(err).Should(Equal(disaster))
+			})
+		})
+	})
+
+	Describe("FindContainerForIdentifier", func() {
 		var (
 			id Identifier
 
@@ -190,8 +390,8 @@ var _ = Describe("Pool", func() {
 
 			Context("when a worker can locate the container", func() {
 				BeforeEach(func() {
-					workerA.LookupContainerReturns(fakeContainer, nil)
-					workerB.LookupContainerReturns(nil, ErrContainerNotFound)
+					workerA.FindContainerForIdentifierReturns(fakeContainer, nil)
+					workerB.FindContainerForIdentifierReturns(nil, ErrContainerNotFound)
 				})
 
 				It("returns the container", func() {
@@ -199,18 +399,18 @@ var _ = Describe("Pool", func() {
 				})
 
 				It("looks up by the given identifier", func() {
-					Ω(workerA.LookupContainerCallCount()).Should(Equal(1))
-					Ω(workerB.LookupContainerCallCount()).Should(Equal(1))
+					Ω(workerA.FindContainerForIdentifierCallCount()).Should(Equal(1))
+					Ω(workerB.FindContainerForIdentifierCallCount()).Should(Equal(1))
 
-					Ω(workerA.LookupContainerArgsForCall(0)).Should(Equal(id))
-					Ω(workerB.LookupContainerArgsForCall(0)).Should(Equal(id))
+					Ω(workerA.FindContainerForIdentifierArgsForCall(0)).Should(Equal(id))
+					Ω(workerB.FindContainerForIdentifierArgsForCall(0)).Should(Equal(id))
 				})
 			})
 
 			Context("when no workers can locate the container", func() {
 				BeforeEach(func() {
-					workerA.LookupContainerReturns(nil, ErrContainerNotFound)
-					workerB.LookupContainerReturns(nil, ErrContainerNotFound)
+					workerA.FindContainerForIdentifierReturns(nil, ErrContainerNotFound)
+					workerB.FindContainerForIdentifierReturns(nil, ErrContainerNotFound)
 				})
 
 				It("returns ErrContainerNotFound", func() {
@@ -225,8 +425,8 @@ var _ = Describe("Pool", func() {
 					secondFakeContainer = new(fakes.FakeContainer)
 					secondFakeContainer.HandleReturns("second-fake-container")
 
-					workerA.LookupContainerReturns(fakeContainer, nil)
-					workerB.LookupContainerReturns(secondFakeContainer, nil)
+					workerA.FindContainerForIdentifierReturns(fakeContainer, nil)
+					workerB.FindContainerForIdentifierReturns(secondFakeContainer, nil)
 				})
 
 				It("returns a MultipleContainersError", func() {
@@ -244,8 +444,8 @@ var _ = Describe("Pool", func() {
 				var multiErr = MultipleContainersError{[]string{"a", "b"}}
 
 				BeforeEach(func() {
-					workerA.LookupContainerReturns(fakeContainer, nil)
-					workerB.LookupContainerReturns(nil, multiErr)
+					workerA.FindContainerForIdentifierReturns(fakeContainer, nil)
+					workerB.FindContainerForIdentifierReturns(nil, multiErr)
 				})
 
 				It("returns a MultipleContainersError including the other found container", func() {
@@ -263,8 +463,8 @@ var _ = Describe("Pool", func() {
 				var multiErrB = MultipleContainersError{[]string{"c", "d"}}
 
 				BeforeEach(func() {
-					workerA.LookupContainerReturns(nil, multiErrA)
-					workerB.LookupContainerReturns(nil, multiErrB)
+					workerA.FindContainerForIdentifierReturns(nil, multiErrA)
+					workerB.FindContainerForIdentifierReturns(nil, multiErrB)
 				})
 
 				It("returns a MultipleContainersError including all found containers", func() {

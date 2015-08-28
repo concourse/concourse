@@ -196,11 +196,12 @@ type FakeContainer struct {
 	ReleaseStub                         func()
 	releaseMutex                        sync.RWMutex
 	releaseArgsForCall                  []struct{}
-	IdentifierFromPropertiesStub        func() worker.Identifier
+	IdentifierFromPropertiesStub        func() (worker.Identifier, error)
 	identifierFromPropertiesMutex       sync.RWMutex
 	identifierFromPropertiesArgsForCall []struct{}
 	identifierFromPropertiesReturns     struct {
 		result1 worker.Identifier
+		result2 error
 	}
 }
 
@@ -900,14 +901,14 @@ func (fake *FakeContainer) ReleaseCallCount() int {
 	return len(fake.releaseArgsForCall)
 }
 
-func (fake *FakeContainer) IdentifierFromProperties() worker.Identifier {
+func (fake *FakeContainer) IdentifierFromProperties() (worker.Identifier, error) {
 	fake.identifierFromPropertiesMutex.Lock()
 	fake.identifierFromPropertiesArgsForCall = append(fake.identifierFromPropertiesArgsForCall, struct{}{})
 	fake.identifierFromPropertiesMutex.Unlock()
 	if fake.IdentifierFromPropertiesStub != nil {
 		return fake.IdentifierFromPropertiesStub()
 	} else {
-		return fake.identifierFromPropertiesReturns.result1
+		return fake.identifierFromPropertiesReturns.result1, fake.identifierFromPropertiesReturns.result2
 	}
 }
 
@@ -917,11 +918,12 @@ func (fake *FakeContainer) IdentifierFromPropertiesCallCount() int {
 	return len(fake.identifierFromPropertiesArgsForCall)
 }
 
-func (fake *FakeContainer) IdentifierFromPropertiesReturns(result1 worker.Identifier) {
+func (fake *FakeContainer) IdentifierFromPropertiesReturns(result1 worker.Identifier, result2 error) {
 	fake.IdentifierFromPropertiesStub = nil
 	fake.identifierFromPropertiesReturns = struct {
 		result1 worker.Identifier
-	}{result1}
+		result2 error
+	}{result1, result2}
 }
 
 var _ worker.Container = new(FakeContainer)

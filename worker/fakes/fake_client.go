@@ -45,6 +45,12 @@ type FakeClient struct {
 		result1 worker.Container
 		result2 error
 	}
+	NameStub        func() string
+	nameMutex       sync.RWMutex
+	nameArgsForCall []struct{}
+	nameReturns     struct {
+		result1 string
+	}
 }
 
 func (fake *FakeClient) CreateContainer(arg1 worker.Identifier, arg2 worker.ContainerSpec) (worker.Container, error) {
@@ -178,6 +184,30 @@ func (fake *FakeClient) LookupContainerReturns(result1 worker.Container, result2
 		result1 worker.Container
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeClient) Name() string {
+	fake.nameMutex.Lock()
+	fake.nameArgsForCall = append(fake.nameArgsForCall, struct{}{})
+	fake.nameMutex.Unlock()
+	if fake.NameStub != nil {
+		return fake.NameStub()
+	} else {
+		return fake.nameReturns.result1
+	}
+}
+
+func (fake *FakeClient) NameCallCount() int {
+	fake.nameMutex.RLock()
+	defer fake.nameMutex.RUnlock()
+	return len(fake.nameArgsForCall)
+}
+
+func (fake *FakeClient) NameReturns(result1 string) {
+	fake.NameStub = nil
+	fake.nameReturns = struct {
+		result1 string
+	}{result1}
 }
 
 var _ worker.Client = new(FakeClient)

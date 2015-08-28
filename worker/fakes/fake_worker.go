@@ -45,6 +45,12 @@ type FakeWorker struct {
 		result1 worker.Container
 		result2 error
 	}
+	NameStub        func() string
+	nameMutex       sync.RWMutex
+	nameArgsForCall []struct{}
+	nameReturns     struct {
+		result1 string
+	}
 	ActiveContainersStub        func() int
 	activeContainersMutex       sync.RWMutex
 	activeContainersArgsForCall []struct{}
@@ -198,6 +204,30 @@ func (fake *FakeWorker) LookupContainerReturns(result1 worker.Container, result2
 		result1 worker.Container
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeWorker) Name() string {
+	fake.nameMutex.Lock()
+	fake.nameArgsForCall = append(fake.nameArgsForCall, struct{}{})
+	fake.nameMutex.Unlock()
+	if fake.NameStub != nil {
+		return fake.NameStub()
+	} else {
+		return fake.nameReturns.result1
+	}
+}
+
+func (fake *FakeWorker) NameCallCount() int {
+	fake.nameMutex.RLock()
+	defer fake.nameMutex.RUnlock()
+	return len(fake.nameArgsForCall)
+}
+
+func (fake *FakeWorker) NameReturns(result1 string) {
+	fake.NameStub = nil
+	fake.nameReturns = struct {
+		result1 string
+	}{result1}
 }
 
 func (fake *FakeWorker) ActiveContainers() int {

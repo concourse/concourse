@@ -2,6 +2,7 @@ package worker_test
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
@@ -298,6 +299,97 @@ var _ = Describe("Worker", func() {
 	})
 
 	Describe("LookupContainer", func() {
+		var handle string
+
+		BeforeEach(func() {
+			handle = "we98lsv"
+		})
+
+		Context("when the gardenClient returns a container and no error", func() {
+			var (
+				fakeContainer *gfakes.FakeContainer
+			)
+
+			BeforeEach(func() {
+				fakeContainer = new(gfakes.FakeContainer)
+				fakeContainer.HandleReturns("some-handle")
+
+				fakeGardenClient.LookupReturns(fakeContainer, nil)
+			})
+
+			It("returns the container and no error", func() {
+				foundContainer, err := worker.LookupContainer(handle)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(foundContainer.Handle()).Should(Equal(fakeContainer.Handle()))
+			})
+		})
+
+		Context("when the gardenClient returns an error", func() {
+			var expectedErr error
+
+			BeforeEach(func() {
+				expectedErr = fmt.Errorf("container not found")
+				fakeGardenClient.LookupReturns(nil, expectedErr)
+			})
+
+			It("returns nil and forwards the error", func() {
+				foundContainer, err := worker.LookupContainer(handle)
+				Ω(err).Should(Equal(expectedErr))
+
+				Ω(foundContainer).Should(BeNil())
+			})
+		})
+	})
+
+	Describe("FindContainersForIdentifiers", func() {
+		var (
+			id Identifier
+		)
+
+		BeforeEach(func() {
+			id = Identifier{Name: "some-name"}
+		})
+
+		Context("when finding the containers succeeds", func() {
+			var (
+				fakeContainer *gfakes.FakeContainer
+			)
+
+			BeforeEach(func() {
+				fakeContainer = new(gfakes.FakeContainer)
+				fakeContainer.HandleReturns("some-handle")
+				fakeContainers := []garden.Container{fakeContainer}
+
+				fakeGardenClient.ContainersReturns(fakeContainers, nil)
+			})
+
+			It("returns the containers without error", func() {
+				foundContainers, err := worker.FindContainersForIdentifier(id)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(len(foundContainers)).Should(Equal(1))
+				Ω(foundContainers[0].Handle()).Should(Equal(fakeContainer.Handle()))
+			})
+		})
+
+		Context("when finding the containers fails", func() {
+			expectedErr := errors.New("nope")
+
+			BeforeEach(func() {
+				fakeGardenClient.ContainersReturns(nil, expectedErr)
+			})
+
+			It("returns nil and forwards the error", func() {
+				foundContainers, err := worker.FindContainersForIdentifier(id)
+
+				Ω(err).Should(Equal(expectedErr))
+				Ω(foundContainers).Should(BeNil())
+			})
+		})
+	})
+
+	Describe("FindContainerForIdentifier", func() {
 		var (
 			id Identifier
 
@@ -314,13 +406,18 @@ var _ = Describe("Worker", func() {
 		})
 
 		Context("when the container can be found", func() {
-			var fakeContainer *gfakes.FakeContainer
+			var (
+				fakeContainer *gfakes.FakeContainer
+				name          string
+			)
 
 			BeforeEach(func() {
 				fakeContainer = new(gfakes.FakeContainer)
 				fakeContainer.HandleReturns("some-handle")
 
 				fakeGardenClient.ContainersReturns([]garden.Container{fakeContainer}, nil)
+
+				name = "some-name"
 			})
 
 			It("succeeds", func() {
@@ -330,7 +427,7 @@ var _ = Describe("Worker", func() {
 			It("looks for containers with matching properties via the Garden client", func() {
 				Ω(fakeGardenClient.ContainersCallCount()).Should(Equal(1))
 				Ω(fakeGardenClient.ContainersArgsForCall(0)).Should(Equal(garden.Properties{
-					"concourse:name": "some-name",
+					"concourse:name": name,
 				}))
 			})
 
@@ -375,6 +472,40 @@ var _ = Describe("Worker", func() {
 				It("can be released multiple times", func() {
 					foundContainer.Release()
 					Ω(foundContainer.Release).ShouldNot(Panic())
+				})
+
+				Describe("providing its Identifier", func() {
+					Context("when obtaining its properties succeeds", func() {
+						var properties garden.Properties
+						BeforeEach(func() {
+							properties = make(garden.Properties)
+							properties["concourse:name"] = name
+
+							fakeContainer.PropertiesReturns(properties, nil)
+						})
+
+						It("can provide its Identifier without error", func() {
+							identifier, err := foundContainer.IdentifierFromProperties()
+
+							Ω(err).NotTo(HaveOccurred())
+							Ω(identifier.Name).Should(Equal(name))
+						})
+					})
+
+					Context("when obtaining its properties fails", func() {
+						var expectedErr error
+
+						BeforeEach(func() {
+							expectedErr = errors.New("failed to get properties")
+
+							fakeContainer.PropertiesReturns(nil, expectedErr)
+						})
+
+						It("forwards the error", func() {
+							_, err := foundContainer.IdentifierFromProperties()
+							Ω(err).To(Equal(expectedErr))
+						})
+					})
 				})
 			})
 		})

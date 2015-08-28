@@ -1,9 +1,11 @@
 package worker
 
 import (
+	"encoding/json"
 	"errors"
 	"expvar"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -127,11 +129,25 @@ func (worker *gardenWorker) FindContainerForIdentifier(id Identifier) (Container
 }
 
 func (worker *gardenWorker) FindContainersForIdentifier(id Identifier) ([]Container, error) {
-	return nil, nil
+	containers, err := worker.gardenClient.Containers(id.gardenProperties())
+	if err != nil {
+		return nil, err
+	}
+
+	gardenContainers := make([]Container, len(containers))
+	for i, c := range containers {
+		gardenContainers[i] = newGardenWorkerContainer(c, worker.gardenClient, worker.clock)
+	}
+
+	return gardenContainers, nil
 }
 
 func (worker *gardenWorker) LookupContainer(handle string) (Container, error) {
-	return nil, nil
+	container, err := worker.gardenClient.Lookup(handle)
+	if err != nil {
+		return nil, err
+	}
+	return newGardenWorkerContainer(container, worker.gardenClient, worker.clock), nil
 }
 
 func (worker *gardenWorker) ActiveContainers() int {
@@ -191,6 +207,10 @@ func (worker *gardenWorker) Description() string {
 	return strings.Join(messages, ", ")
 }
 
+func (worker *gardenWorker) Name() string {
+	return ""
+}
+
 type gardenWorkerContainer struct {
 	garden.Container
 
@@ -239,8 +259,62 @@ func (container *gardenWorkerContainer) Release() {
 	})
 }
 
-func (container *gardenWorkerContainer) IdentifierFromProperties() Identifier {
-	return Identifier{}
+func (container *gardenWorkerContainer) IdentifierFromProperties() (Identifier, error) {
+	properties, err := container.Properties()
+	if err != nil {
+		return Identifier{}, err
+	}
+
+	propertyPrefix := "concourse:"
+	identifier := Identifier{}
+
+	nameKey := propertyPrefix + "name"
+	if properties[nameKey] != "" {
+		identifier.Name = properties[nameKey]
+	}
+
+	pipelineKey := propertyPrefix + "pipeline-name"
+	if properties[pipelineKey] != "" {
+		identifier.PipelineName = properties[pipelineKey]
+	}
+
+	buildIDKey := propertyPrefix + "build-id"
+	if properties[buildIDKey] != "" {
+		identifier.BuildID, err = strconv.Atoi(properties[buildIDKey])
+		if err != nil {
+			return Identifier{}, nil
+		}
+	}
+
+	typeKey := propertyPrefix + "type"
+	if properties[typeKey] != "" {
+		identifier.Type = ContainerType(properties[typeKey])
+	}
+
+	stepLocationKey := propertyPrefix + "location"
+	if properties[stepLocationKey] != "" {
+		StepLocationUint, err := strconv.Atoi(properties[stepLocationKey])
+		if err != nil {
+			return Identifier{}, nil
+		}
+		identifier.StepLocation = uint(StepLocationUint)
+	}
+
+	checkTypeKey := propertyPrefix + "check-type"
+	if properties[checkTypeKey] != "" {
+		identifier.CheckType = properties[checkTypeKey]
+	}
+
+	checkSourceKey := propertyPrefix + "check-source"
+	if properties[checkSourceKey] != "" {
+		checkSourceString := properties[checkSourceKey]
+		err := json.Unmarshal([]byte(checkSourceString), &identifier.CheckSource)
+		if err != nil {
+			return Identifier{}, err
+		}
+	}
+
+	return identifier, nil
 }
 
 func (container *gardenWorkerContainer) heartbeat(pacemaker clock.Ticker) {
