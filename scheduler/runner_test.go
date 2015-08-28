@@ -31,7 +31,7 @@ var _ = Describe("Runner", func() {
 
 		initialConfig atc.Config
 
-		someVersions algorithm.VersionsDB
+		someVersions *algorithm.VersionsDB
 
 		process ifrit.Process
 	)
@@ -43,13 +43,30 @@ var _ = Describe("Runner", func() {
 		scheduler = new(fakes.FakeBuildScheduler)
 		noop = false
 
-		someVersions = []algorithm.BuildOutput{
-			{VersionID: 1, ResourceID: 2, BuildID: 3, JobID: 4},
-			{VersionID: 5, ResourceID: 6, BuildID: 7, JobID: 8},
+		someVersions = &algorithm.VersionsDB{
+			BuildOutputs: []algorithm.BuildOutput{
+				{
+					ResourceVersion: algorithm.ResourceVersion{
+						VersionID:  1,
+						ResourceID: 2,
+					},
+					BuildID: 3,
+					JobID:   4,
+				},
+				{
+					ResourceVersion: algorithm.ResourceVersion{
+						VersionID:  1,
+						ResourceID: 2,
+					},
+					BuildID: 7,
+					JobID:   8,
+				},
+			},
 		}
+
 		pipelineDB.LoadVersionsDBReturns(someVersions, nil)
 
-		scheduler.TryNextPendingBuildStub = func(lager.Logger, algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) Waiter {
+		scheduler.TryNextPendingBuildStub = func(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) Waiter {
 			return new(sync.WaitGroup)
 		}
 
@@ -141,7 +158,7 @@ var _ = Describe("Runner", func() {
 			concurrent = new(sync.WaitGroup)
 			concurrent.Add(2)
 
-			scheduler.TryNextPendingBuildStub = func(lager.Logger, algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) Waiter {
+			scheduler.TryNextPendingBuildStub = func(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) Waiter {
 				concurrent.Done()
 				concurrent.Wait()
 				return new(sync.WaitGroup)
@@ -174,7 +191,7 @@ var _ = Describe("Runner", func() {
 			concurrent = new(sync.WaitGroup)
 			concurrent.Add(2)
 
-			scheduler.BuildLatestInputsStub = func(lager.Logger, algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) error {
+			scheduler.BuildLatestInputsStub = func(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) error {
 				concurrent.Done()
 				concurrent.Wait()
 				return nil

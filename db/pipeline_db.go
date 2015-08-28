@@ -55,8 +55,8 @@ type PipelineDB interface {
 
 	UseInputsForBuild(buildID int, inputs []BuildInput) error
 
-	LoadVersionsDB() (algorithm.VersionsDB, error)
-	GetLatestInputVersions(versions algorithm.VersionsDB, job string, inputs []atc.JobInput) ([]BuildInput, error)
+	LoadVersionsDB() (*algorithm.VersionsDB, error)
+	GetLatestInputVersions(versions *algorithm.VersionsDB, job string, inputs []atc.JobInput) ([]BuildInput, error)
 	GetJobBuildForInputs(job string, inputs []BuildInput) (Build, error)
 	GetNextPendingBuild(job string) (Build, error)
 
@@ -1514,8 +1514,8 @@ func (pdb *pipelineDB) GetCurrentBuild(job string) (Build, error) {
 	return Build{}, ErrNoBuild
 }
 
-func (pdb *pipelineDB) LoadVersionsDB() (algorithm.VersionsDB, error) {
-	var versions []algorithm.BuildOutput
+func (pdb *pipelineDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
+	var outputs []algorithm.BuildOutput
 
 	rows, err := pdb.conn.Query(`
     SELECT v.id, r.id, o.build_id, j.id
@@ -1539,8 +1539,10 @@ func (pdb *pipelineDB) LoadVersionsDB() (algorithm.VersionsDB, error) {
 			return nil, err
 		}
 
-		versions = append(versions, output)
+		outputs = append(outputs, output)
 	}
+
+	var versions []algorithm.ResourceVersion
 
 	rows, err = pdb.conn.Query(`
     SELECT v.id, r.id
@@ -1554,7 +1556,7 @@ func (pdb *pipelineDB) LoadVersionsDB() (algorithm.VersionsDB, error) {
 	}
 
 	for rows.Next() {
-		var output algorithm.BuildOutput
+		var output algorithm.ResourceVersion
 		err := rows.Scan(&output.VersionID, &output.ResourceID)
 		if err != nil {
 			return nil, err
@@ -1563,10 +1565,13 @@ func (pdb *pipelineDB) LoadVersionsDB() (algorithm.VersionsDB, error) {
 		versions = append(versions, output)
 	}
 
-	return versions, nil
+	return &algorithm.VersionsDB{
+		BuildOutputs:     outputs,
+		ResourceVersions: versions,
+	}, nil
 }
 
-func (pdb *pipelineDB) GetLatestInputVersions(versions algorithm.VersionsDB, jobName string, inputs []atc.JobInput) ([]BuildInput, error) {
+func (pdb *pipelineDB) GetLatestInputVersions(versions *algorithm.VersionsDB, jobName string, inputs []atc.JobInput) ([]BuildInput, error) {
 	if len(inputs) == 0 {
 		return []BuildInput{}, nil
 	}

@@ -96,16 +96,22 @@ func runExample(example Example) {
 		}
 	}
 
-	db := make(VersionsDB, len(example.DB))
-	for i, row := range example.DB {
-		db[i] = BuildOutput{
+	db := &VersionsDB{}
+
+	for _, row := range example.DB {
+		version := ResourceVersion{
 			VersionID:  versionIDs.ID(row.Version),
 			ResourceID: resourceIDs.ID(row.Resource),
-			BuildID:    row.BuildID,
 		}
 
 		if row.Job != "" {
-			db[i].JobID = jobIDs.ID(row.Job)
+			db.BuildOutputs = append(db.BuildOutputs, BuildOutput{
+				ResourceVersion: version,
+				BuildID:         row.BuildID,
+				JobID:           jobIDs.ID(row.Job),
+			})
+		} else {
+			db.ResourceVersions = append(db.ResourceVersions, version)
 		}
 	}
 

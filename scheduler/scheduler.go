@@ -22,8 +22,8 @@ type PipelineDB interface {
 	GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.Build, error)
 	GetNextPendingBuild(job string) (db.Build, error)
 
-	LoadVersionsDB() (algorithm.VersionsDB, error)
-	GetLatestInputVersions(versions algorithm.VersionsDB, job string, inputs []atc.JobInput) ([]db.BuildInput, error)
+	LoadVersionsDB() (*algorithm.VersionsDB, error)
+	GetLatestInputVersions(versions *algorithm.VersionsDB, job string, inputs []atc.JobInput) ([]db.BuildInput, error)
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 	UseInputsForBuild(buildID int, inputs []db.BuildInput) error
 }
@@ -59,7 +59,7 @@ type Scheduler struct {
 	Scanner    Scanner
 }
 
-func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions algorithm.VersionsDB, job atc.JobConfig, resources atc.ResourceConfigs) error {
+func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.VersionsDB, job atc.JobConfig, resources atc.ResourceConfigs) error {
 	logger = logger.Session("build-latest")
 
 	inputs := job.Inputs()
@@ -130,7 +130,7 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions algorithm.Ve
 	return nil
 }
 
-func (s *Scheduler) TryNextPendingBuild(logger lager.Logger, versions algorithm.VersionsDB, job atc.JobConfig, resources atc.ResourceConfigs) Waiter {
+func (s *Scheduler) TryNextPendingBuild(logger lager.Logger, versions *algorithm.VersionsDB, job atc.JobConfig, resources atc.ResourceConfigs) Waiter {
 	logger = logger.Session("try-next-pending")
 
 	wg := new(sync.WaitGroup)
@@ -177,7 +177,7 @@ func (s *Scheduler) TriggerImmediately(logger lager.Logger, job atc.JobConfig, r
 	return build, wg, nil
 }
 
-func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions algorithm.VersionsDB, build db.Build, job atc.JobConfig, resources atc.ResourceConfigs) engine.Build {
+func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions *algorithm.VersionsDB, build db.Build, job atc.JobConfig, resources atc.ResourceConfigs) engine.Build {
 	logger = logger.WithData(lager.Data{"build": build.ID})
 
 	scheduled, err := s.PipelineDB.ScheduleBuild(build.ID, job)

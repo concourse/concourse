@@ -23,8 +23,8 @@ type Locker interface {
 //go:generate counterfeiter . BuildScheduler
 
 type BuildScheduler interface {
-	TryNextPendingBuild(lager.Logger, algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) Waiter
-	BuildLatestInputs(lager.Logger, algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) error
+	TryNextPendingBuild(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) Waiter
+	BuildLatestInputs(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) error
 }
 
 type Runner struct {
@@ -142,7 +142,7 @@ func (runner *Runner) tick(logger lager.Logger) error {
 	return nil
 }
 
-func (runner *Runner) schedule(logger lager.Logger, versions algorithm.VersionsDB, job atc.JobConfig, resources atc.ResourceConfigs) {
+func (runner *Runner) schedule(logger lager.Logger, versions *algorithm.VersionsDB, job atc.JobConfig, resources atc.ResourceConfigs) {
 	runner.Scheduler.TryNextPendingBuild(logger, versions, job, resources).Wait()
 
 	err := runner.Scheduler.BuildLatestInputs(logger, versions, job, resources)

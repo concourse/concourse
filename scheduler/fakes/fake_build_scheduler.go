@@ -11,22 +11,22 @@ import (
 )
 
 type FakeBuildScheduler struct {
-	TryNextPendingBuildStub        func(lager.Logger, algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) scheduler.Waiter
+	TryNextPendingBuildStub        func(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) scheduler.Waiter
 	tryNextPendingBuildMutex       sync.RWMutex
 	tryNextPendingBuildArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 algorithm.VersionsDB
+		arg2 *algorithm.VersionsDB
 		arg3 atc.JobConfig
 		arg4 atc.ResourceConfigs
 	}
 	tryNextPendingBuildReturns struct {
 		result1 scheduler.Waiter
 	}
-	BuildLatestInputsStub        func(lager.Logger, algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) error
+	BuildLatestInputsStub        func(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) error
 	buildLatestInputsMutex       sync.RWMutex
 	buildLatestInputsArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 algorithm.VersionsDB
+		arg2 *algorithm.VersionsDB
 		arg3 atc.JobConfig
 		arg4 atc.ResourceConfigs
 	}
@@ -35,11 +35,11 @@ type FakeBuildScheduler struct {
 	}
 }
 
-func (fake *FakeBuildScheduler) TryNextPendingBuild(arg1 lager.Logger, arg2 algorithm.VersionsDB, arg3 atc.JobConfig, arg4 atc.ResourceConfigs) scheduler.Waiter {
+func (fake *FakeBuildScheduler) TryNextPendingBuild(arg1 lager.Logger, arg2 *algorithm.VersionsDB, arg3 atc.JobConfig, arg4 atc.ResourceConfigs) scheduler.Waiter {
 	fake.tryNextPendingBuildMutex.Lock()
 	fake.tryNextPendingBuildArgsForCall = append(fake.tryNextPendingBuildArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 algorithm.VersionsDB
+		arg2 *algorithm.VersionsDB
 		arg3 atc.JobConfig
 		arg4 atc.ResourceConfigs
 	}{arg1, arg2, arg3, arg4})
@@ -57,7 +57,7 @@ func (fake *FakeBuildScheduler) TryNextPendingBuildCallCount() int {
 	return len(fake.tryNextPendingBuildArgsForCall)
 }
 
-func (fake *FakeBuildScheduler) TryNextPendingBuildArgsForCall(i int) (lager.Logger, algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) {
+func (fake *FakeBuildScheduler) TryNextPendingBuildArgsForCall(i int) (lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) {
 	fake.tryNextPendingBuildMutex.RLock()
 	defer fake.tryNextPendingBuildMutex.RUnlock()
 	return fake.tryNextPendingBuildArgsForCall[i].arg1, fake.tryNextPendingBuildArgsForCall[i].arg2, fake.tryNextPendingBuildArgsForCall[i].arg3, fake.tryNextPendingBuildArgsForCall[i].arg4
@@ -70,11 +70,11 @@ func (fake *FakeBuildScheduler) TryNextPendingBuildReturns(result1 scheduler.Wai
 	}{result1}
 }
 
-func (fake *FakeBuildScheduler) BuildLatestInputs(arg1 lager.Logger, arg2 algorithm.VersionsDB, arg3 atc.JobConfig, arg4 atc.ResourceConfigs) error {
+func (fake *FakeBuildScheduler) BuildLatestInputs(arg1 lager.Logger, arg2 *algorithm.VersionsDB, arg3 atc.JobConfig, arg4 atc.ResourceConfigs) error {
 	fake.buildLatestInputsMutex.Lock()
 	fake.buildLatestInputsArgsForCall = append(fake.buildLatestInputsArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 algorithm.VersionsDB
+		arg2 *algorithm.VersionsDB
 		arg3 atc.JobConfig
 		arg4 atc.ResourceConfigs
 	}{arg1, arg2, arg3, arg4})
@@ -92,7 +92,7 @@ func (fake *FakeBuildScheduler) BuildLatestInputsCallCount() int {
 	return len(fake.buildLatestInputsArgsForCall)
 }
 
-func (fake *FakeBuildScheduler) BuildLatestInputsArgsForCall(i int) (lager.Logger, algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) {
+func (fake *FakeBuildScheduler) BuildLatestInputsArgsForCall(i int) (lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) {
 	fake.buildLatestInputsMutex.RLock()
 	defer fake.buildLatestInputsMutex.RUnlock()
 	return fake.buildLatestInputsArgsForCall[i].arg1, fake.buildLatestInputsArgsForCall[i].arg2, fake.buildLatestInputsArgsForCall[i].arg3, fake.buildLatestInputsArgsForCall[i].arg4

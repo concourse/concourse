@@ -1,12 +1,19 @@
 package algorithm
 
-type VersionsDB []BuildOutput
+type VersionsDB struct {
+	ResourceVersions []ResourceVersion
+	BuildOutputs     []BuildOutput
+}
 
-type BuildOutput struct {
+type ResourceVersion struct {
 	VersionID  int
 	ResourceID int
-	BuildID    int
-	JobID      int
+}
+
+type BuildOutput struct {
+	ResourceVersion
+	BuildID int
+	JobID   int
 }
 
 func (db VersionsDB) VersionsOfResourcePassedJobs(resourceID int, passed JobSet) VersionCandidates {
@@ -31,7 +38,7 @@ func (db VersionsDB) VersionsOfResourcePassedJobs(resourceID int, passed JobSet)
 func (db VersionsDB) versionsOfResourcePassedJob(resourceID int, job int) VersionCandidates {
 	var versions []VersionCandidate
 
-	for _, output := range db {
+	for _, output := range db.BuildOutputs {
 		if output.ResourceID == resourceID && output.JobID == job {
 			versions = append(versions, VersionCandidate{
 				VersionID: output.VersionID,
@@ -45,6 +52,15 @@ func (db VersionsDB) versionsOfResourcePassedJob(resourceID int, job int) Versio
 }
 
 func (db VersionsDB) versionsOfResource(resourceID int) VersionCandidates {
-	// 0 = no job; a versioned resource unrelated to build outputs
-	return db.versionsOfResourcePassedJob(resourceID, 0)
+	var versions []VersionCandidate
+
+	for _, output := range db.ResourceVersions {
+		if output.ResourceID == resourceID {
+			versions = append(versions, VersionCandidate{
+				VersionID: output.VersionID,
+			})
+		}
+	}
+
+	return versions
 }

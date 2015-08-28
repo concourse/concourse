@@ -30,7 +30,7 @@ var _ = Describe("Scheduler", func() {
 
 		scheduler *Scheduler
 
-		someVersions algorithm.VersionsDB
+		someVersions *algorithm.VersionsDB
 
 		logger *lagertest.TestLogger
 	)
@@ -42,9 +42,25 @@ var _ = Describe("Scheduler", func() {
 		fakeEngine = new(enginefakes.FakeEngine)
 		fakeScanner = new(fakes.FakeScanner)
 
-		someVersions = []algorithm.BuildOutput{
-			{VersionID: 1, ResourceID: 2, BuildID: 3, JobID: 4},
-			{VersionID: 5, ResourceID: 6, BuildID: 7, JobID: 8},
+		someVersions = &algorithm.VersionsDB{
+			BuildOutputs: []algorithm.BuildOutput{
+				{
+					ResourceVersion: algorithm.ResourceVersion{
+						VersionID:  1,
+						ResourceID: 2,
+					},
+					BuildID: 3,
+					JobID:   4,
+				},
+				{
+					ResourceVersion: algorithm.ResourceVersion{
+						VersionID:  1,
+						ResourceID: 2,
+					},
+					BuildID: 7,
+					JobID:   8,
+				},
+			},
 		}
 
 		createdPlan = atc.Plan{

@@ -8,7 +8,7 @@ type InputConfig struct {
 	ResourceID int
 }
 
-func (configs InputConfigs) Resolve(db VersionsDB) (InputMapping, bool) {
+func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
 	jobs := JobSet{}
 	inputCandidates := InputCandidates{}
 	for _, inputConfig := range configs {

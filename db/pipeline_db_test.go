@@ -432,7 +432,7 @@ var _ = Describe("PipelineDB", func() {
 			})
 
 			It("can load up versioned resources relevant to scheduling", func() {
-				Ω(pipelineDB.LoadVersionsDB()).Should(BeEmpty())
+				Ω(pipelineDB.LoadVersionsDB()).Should(Equal(&algorithm.VersionsDB{}))
 
 				By("including saved versioned resources of the current pipeline")
 				err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
@@ -455,10 +455,13 @@ var _ = Describe("PipelineDB", func() {
 				savedVR2, err := pipelineDB.GetLatestVersionedResource(resource)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(pipelineDB.LoadVersionsDB()).Should(ConsistOf(algorithm.VersionsDB{
+				versions, err := pipelineDB.LoadVersionsDB()
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(versions.ResourceVersions).Should(ConsistOf([]algorithm.ResourceVersion{
 					{VersionID: savedVR1.ID, ResourceID: resource.ID},
 					{VersionID: savedVR2.ID, ResourceID: resource.ID},
 				}))
+				Ω(versions.BuildOutputs).Should(BeEmpty())
 
 				By("not including saved versioned resources of other pipelines")
 				otherPipelineResource, err := otherPipelineDB.GetResource("some-other-pipeline-resource")
@@ -474,10 +477,13 @@ var _ = Describe("PipelineDB", func() {
 				otherPipelineSavedVR, err := otherPipelineDB.GetLatestVersionedResource(otherPipelineResource)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(pipelineDB.LoadVersionsDB()).Should(ConsistOf(algorithm.VersionsDB{
+				versions, err = pipelineDB.LoadVersionsDB()
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(versions.ResourceVersions).Should(ConsistOf([]algorithm.ResourceVersion{
 					{VersionID: savedVR1.ID, ResourceID: resource.ID},
 					{VersionID: savedVR2.ID, ResourceID: resource.ID},
 				}))
+				Ω(versions.BuildOutputs).Should(BeEmpty())
 
 				By("including outputs of successful builds")
 				build1, err := pipelineDB.CreateJobBuild("a-job")
@@ -489,11 +495,21 @@ var _ = Describe("PipelineDB", func() {
 				err = sqlDB.FinishBuild(build1.ID, db.StatusSucceeded)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(pipelineDB.LoadVersionsDB()).Should(ConsistOf(algorithm.VersionsDB{
+				versions, err = pipelineDB.LoadVersionsDB()
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(versions.ResourceVersions).Should(ConsistOf([]algorithm.ResourceVersion{
 					{VersionID: savedVR1.ID, ResourceID: resource.ID},
 					{VersionID: savedVR2.ID, ResourceID: resource.ID},
-
-					{VersionID: savedVR1.ID, ResourceID: resource.ID, JobID: build1.JobID, BuildID: build1.ID},
+				}))
+				Ω(versions.BuildOutputs).Should(ConsistOf([]algorithm.BuildOutput{
+					{
+						ResourceVersion: algorithm.ResourceVersion{
+							VersionID:  savedVR1.ID,
+							ResourceID: resource.ID,
+						},
+						JobID:   build1.JobID,
+						BuildID: build1.ID,
+					},
 				}))
 
 				By("not including outputs of failed builds")
@@ -506,11 +522,21 @@ var _ = Describe("PipelineDB", func() {
 				err = sqlDB.FinishBuild(build2.ID, db.StatusFailed)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(pipelineDB.LoadVersionsDB()).Should(ConsistOf(algorithm.VersionsDB{
+				versions, err = pipelineDB.LoadVersionsDB()
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(versions.ResourceVersions).Should(ConsistOf([]algorithm.ResourceVersion{
 					{VersionID: savedVR1.ID, ResourceID: resource.ID},
 					{VersionID: savedVR2.ID, ResourceID: resource.ID},
-
-					{VersionID: savedVR1.ID, ResourceID: resource.ID, JobID: build1.JobID, BuildID: build1.ID},
+				}))
+				Ω(versions.BuildOutputs).Should(ConsistOf([]algorithm.BuildOutput{
+					{
+						ResourceVersion: algorithm.ResourceVersion{
+							VersionID:  savedVR1.ID,
+							ResourceID: resource.ID,
+						},
+						JobID:   build1.JobID,
+						BuildID: build1.ID,
+					},
 				}))
 
 				By("not including outputs of builds in other pipelines")
@@ -523,11 +549,21 @@ var _ = Describe("PipelineDB", func() {
 				err = sqlDB.FinishBuild(otherPipelineBuild.ID, db.StatusSucceeded)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(pipelineDB.LoadVersionsDB()).Should(ConsistOf(algorithm.VersionsDB{
+				versions, err = pipelineDB.LoadVersionsDB()
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(versions.ResourceVersions).Should(ConsistOf([]algorithm.ResourceVersion{
 					{VersionID: savedVR1.ID, ResourceID: resource.ID},
 					{VersionID: savedVR2.ID, ResourceID: resource.ID},
-
-					{VersionID: savedVR1.ID, ResourceID: resource.ID, JobID: build1.JobID, BuildID: build1.ID},
+				}))
+				Ω(versions.BuildOutputs).Should(ConsistOf([]algorithm.BuildOutput{
+					{
+						ResourceVersion: algorithm.ResourceVersion{
+							VersionID:  savedVR1.ID,
+							ResourceID: resource.ID,
+						},
+						JobID:   build1.JobID,
+						BuildID: build1.ID,
+					},
 				}))
 			})
 
