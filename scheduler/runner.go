@@ -91,20 +91,25 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		return nil
 	}
 
-	for _, job := range config.Jobs {
-		lock := []db.NamedLock{db.JobSchedulingLock(runner.DB.ScopedName(job.Name))}
-		jobCheckingLock, err := runner.Locker.AcquireWriteLockImmediately(lock)
-		if err != nil {
-			continue
-		}
+	lockName := []db.NamedLock{db.PipelineSchedulingLock(runner.DB.GetPipelineName())}
+	schedulingLock, err := runner.Locker.AcquireWriteLockImmediately(lockName)
+	if err == db.ErrLockNotAvailable {
+		return nil
+	}
 
+	if err != nil {
+		logger.Error("failed-to-acquire-scheduling-lock", err)
+		return nil
+	}
+
+	defer schedulingLock.Release()
+
+	for _, job := range config.Jobs {
 		sLog := logger.Session("scheduling", lager.Data{
 			"job": job.Name,
 		})
 
 		runner.schedule(sLog, job, config.Resources)
-
-		jobCheckingLock.Release()
 	}
 
 	return nil

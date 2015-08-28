@@ -36,6 +36,7 @@ var _ = Describe("Runner", func() {
 	BeforeEach(func() {
 		locker = new(fakes.FakeLocker)
 		pipelineDB = new(dbfakes.FakePipelineDB)
+		pipelineDB.GetPipelineNameReturns("some-pipeline")
 		scheduler = new(fakes.FakeBuildScheduler)
 		noop = false
 
@@ -67,9 +68,6 @@ var _ = Describe("Runner", func() {
 			},
 		}
 
-		pipelineDB.ScopedNameStub = func(thing string) string {
-			return "pipeline:" + thing
-		}
 		pipelineDB.GetConfigReturns(initialConfig, 1, nil)
 
 		lock = new(dbfakes.FakeLock)
@@ -91,32 +89,25 @@ var _ = Describe("Runner", func() {
 		ginkgomon.Interrupt(process)
 	})
 
-	It("acquires the build scheduling lock for each job", func() {
-		Eventually(locker.AcquireWriteLockImmediatelyCallCount).Should(Equal(2))
+	It("acquires the build scheduling lock for the pipeline", func() {
+		Eventually(locker.AcquireWriteLockImmediatelyCallCount).Should(BeNumerically(">=", 1))
 
-		job := locker.AcquireWriteLockImmediatelyArgsForCall(0)
-		Ω(job).Should(Equal([]db.NamedLock{db.JobSchedulingLock("pipeline:some-job")}))
-
-		job = locker.AcquireWriteLockImmediatelyArgsForCall(1)
-		Ω(job).Should(Equal([]db.NamedLock{db.JobSchedulingLock("pipeline:some-other-job")}))
+		lock := locker.AcquireWriteLockImmediatelyArgsForCall(0)
+		Ω(lock).Should(Equal([]db.NamedLock{db.PipelineSchedulingLock("some-pipeline")}))
 	})
 
-	Context("when it can't get the lock for the first job", func() {
+	Context("when it can't get the lock", func() {
 		BeforeEach(func() {
 			locker.AcquireWriteLockImmediatelyStub = func(locks []db.NamedLock) (db.Lock, error) {
-				if locker.AcquireWriteLockImmediatelyCallCount() == 1 {
-					return nil, errors.New("can't aqcuire lock")
-				}
-				return lock, nil
+				return nil, errors.New("can't aqcuire lock")
 			}
 		})
 
-		It("follows on to the next job", func() {
+		It("does not do any scheduling", func() {
 			Eventually(locker.AcquireWriteLockImmediatelyCallCount).Should(Equal(2))
 
-			_, job, resources := scheduler.TryNextPendingBuildArgsForCall(0)
-			Ω(job).Should(Equal(atc.JobConfig{Name: "some-other-job"}))
-			Ω(resources).Should(Equal(initialConfig.Resources))
+			Ω(scheduler.TryNextPendingBuildCallCount()).Should(BeZero())
+			Ω(scheduler.BuildLatestInputsCallCount()).Should(BeZero())
 		})
 	})
 

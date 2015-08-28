@@ -8,18 +8,18 @@ type NamedLock interface {
 
 type ResourceCheckingLock string
 
-func (resourceCheckingLock ResourceCheckingLock) Name() string {
-	return "resourceChecking: " + string(resourceCheckingLock)
+func (namespacedResourceName ResourceCheckingLock) Name() string {
+	return "checking:" + string(namespacedResourceName)
 }
 
-type JobSchedulingLock string
+type PipelineSchedulingLock string
 
-func (jobSchedulingLock JobSchedulingLock) Name() string {
-	return "jobScheduling: " + string(jobSchedulingLock)
+func (pipelineName PipelineSchedulingLock) Name() string {
+	return "scheduling:" + string(pipelineName)
 }
 
 type BuildTrackingLock int
 
-func (buildTrackingLock BuildTrackingLock) Name() string {
-	return fmt.Sprintf("buildTracking: %d", int(buildTrackingLock))
+func (buildID BuildTrackingLock) Name() string {
+	return fmt.Sprintf("tracking:%d", int(buildID))
 }
