@@ -69,8 +69,12 @@ dance:
 }
 
 func (runner *Runner) tick(logger lager.Logger) error {
+	start := time.Now()
+
 	logger.Info("start")
-	defer logger.Info("done")
+	defer func() {
+		logger.Info("done", lager.Data{"took": time.Since(start)})
+	}()
 
 	config, _, err := runner.DB.GetConfig()
 	if err != nil {
