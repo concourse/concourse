@@ -7,7 +7,7 @@ RUN apt-get -y update && apt-get -y install build-essential bison ruby \
 RUN gem install bundler
 
 RUN apt-get -y install wget && \
-    wget http://releases.rubini.us/rubinius-2.5.5.tar.bz2 \
+    wget http://releases.rubini.us/rubinius-2.5.8.tar.bz2 \
          -O /tmp/rubinius.tar.bz2
 
 RUN locale-gen en_US.UTF-8
