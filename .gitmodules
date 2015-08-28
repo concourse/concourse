@@ -176,7 +176,7 @@
 	branch = master
 [submodule "src/github.com/yeller/yeller-golang"]
 	path = src/github.com/yeller/yeller-golang
-	url = https://github.com/yeller/yeller-golang
+	url = https://github.com/concourse/yeller-golang
 	branch = master
 [submodule "src/github.com/xoebus/zest"]
 	path = src/github.com/xoebus/zest
