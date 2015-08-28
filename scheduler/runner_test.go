@@ -140,67 +140,29 @@ var _ = Describe("Runner", func() {
 	It("schedules pending builds", func() {
 		Eventually(scheduler.TryNextPendingBuildCallCount).Should(Equal(2))
 
-		_, versions, firstJob, resources := scheduler.TryNextPendingBuildArgsForCall(0)
+		_, versions, job, resources := scheduler.TryNextPendingBuildArgsForCall(0)
 		Ω(versions).Should(Equal(someVersions))
+		Ω(job).Should(Equal(atc.JobConfig{Name: "some-job"}))
 		Ω(resources).Should(Equal(initialConfig.Resources))
 
-		_, versions, secondJob, resources := scheduler.TryNextPendingBuildArgsForCall(1)
+		_, versions, job, resources = scheduler.TryNextPendingBuildArgsForCall(1)
 		Ω(versions).Should(Equal(someVersions))
+		Ω(job).Should(Equal(atc.JobConfig{Name: "some-other-job"}))
 		Ω(resources).Should(Equal(initialConfig.Resources))
-
-		Ω([]string{firstJob.Name, secondJob.Name}).Should(ConsistOf([]string{"some-job", "some-other-job"}))
-	})
-
-	Context("when pending builds are being tried", func() {
-		var concurrent *sync.WaitGroup
-
-		BeforeEach(func() {
-			concurrent = new(sync.WaitGroup)
-			concurrent.Add(2)
-
-			scheduler.TryNextPendingBuildStub = func(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) Waiter {
-				concurrent.Done()
-				concurrent.Wait()
-				return new(sync.WaitGroup)
-			}
-		})
-
-		It("tries in parallel with others", func() {
-			concurrent.Wait()
-		})
 	})
 
 	It("schedules builds for new inputs using the given versions dataset", func() {
 		Eventually(scheduler.BuildLatestInputsCallCount).Should(Equal(2))
 
-		_, versions, firstJob, resources := scheduler.BuildLatestInputsArgsForCall(0)
+		_, versions, job, resources := scheduler.BuildLatestInputsArgsForCall(0)
 		Ω(versions).Should(Equal(someVersions))
+		Ω(job).Should(Equal(atc.JobConfig{Name: "some-job"}))
 		Ω(resources).Should(Equal(initialConfig.Resources))
 
-		_, versions, secondJob, resources := scheduler.BuildLatestInputsArgsForCall(1)
+		_, versions, job, resources = scheduler.BuildLatestInputsArgsForCall(1)
 		Ω(versions).Should(Equal(someVersions))
+		Ω(job).Should(Equal(atc.JobConfig{Name: "some-other-job"}))
 		Ω(resources).Should(Equal(initialConfig.Resources))
-
-		Ω([]string{firstJob.Name, secondJob.Name}).Should(ConsistOf([]string{"some-job", "some-other-job"}))
-	})
-
-	Context("when latest inputs are being built", func() {
-		var concurrent *sync.WaitGroup
-
-		BeforeEach(func() {
-			concurrent = new(sync.WaitGroup)
-			concurrent.Add(2)
-
-			scheduler.BuildLatestInputsStub = func(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) error {
-				concurrent.Done()
-				concurrent.Wait()
-				return nil
-			}
-		})
-
-		It("tries in parallel with others", func() {
-			concurrent.Wait()
-		})
 	})
 
 	Context("when in noop mode", func() {
