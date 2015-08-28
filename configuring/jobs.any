@@ -57,6 +57,12 @@ Each configured job consists of the following attributes:
   common tags.
 }
 
+\define-attribute{max_in_flight: integer}{
+  \italic{Optional.} If set, specifies a maximum number of builds to run at a
+  time. If \code{serial} or \code{serial_groups} are set, they take precedence
+  and force this value to be \code{1}.
+}
+
 \define-attribute{public: boolean}{
   \italic{Optional. Default \code{false}.} If set to \code{true}, the build log
   of this job will be viewable by unauthenticated users. Unauthenticated users
