@@ -1,11 +1,7 @@
 #!/bin/bash
 # vim: set ft=sh
 
-set -e
-
-source ./deployments/ci/bosh_environment
-
-set -x
+set -e -x
 
 ROOT_DIR=$PWD
 CANDIDATE_DIR=$PWD/candidate-release
