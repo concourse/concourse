@@ -27,6 +27,7 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
+	"github.com/xoebus/zest"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
@@ -211,6 +212,18 @@ var cliDownloadsDir = flag.String(
 	"directory containing CLI binaries to serve",
 )
 
+var yellerAPIKey = flag.String(
+	"yellerAPIKey",
+	"",
+	"API token to output error logs to Yeller",
+)
+
+var yellerEnvironment = flag.String(
+	"yellerEnvironment",
+	"development",
+	"environment label for Yeller",
+)
+
 func main() {
 	flag.Parse()
 
@@ -235,6 +248,11 @@ func main() {
 
 	sink := lager.NewReconfigurableSink(lager.NewWriterSink(os.Stdout, lager.DEBUG), logLevel)
 	logger.RegisterSink(sink)
+
+	if *yellerAPIKey != "" {
+		yellerSink := zest.NewYellerSink(*yellerAPIKey, *yellerEnvironment)
+		logger.RegisterSink(yellerSink)
+	}
 
 	var err error
 
