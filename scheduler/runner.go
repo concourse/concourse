@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"os"
+	"sync"
 	"time"
 
 	"github.com/concourse/atc"
@@ -70,13 +71,6 @@ dance:
 }
 
 func (runner *Runner) tick(logger lager.Logger) error {
-	start := time.Now()
-
-	logger.Info("start")
-	defer func() {
-		logger.Info("done", lager.Data{"took": time.Since(start).String()})
-	}()
-
 	config, _, err := runner.DB.GetConfig()
 	if err != nil {
 		if err == db.ErrPipelineNotFound {
@@ -105,19 +99,45 @@ func (runner *Runner) tick(logger lager.Logger) error {
 
 	defer schedulingLock.Release()
 
+	start := time.Now()
+
+	logger.Info("start")
+	defer func() {
+		logger.Info("done", lager.Data{"took": time.Since(start).String()})
+	}()
+
 	versions, err := runner.DB.LoadVersionsDB()
 	if err != nil {
 		logger.Error("failed-to-load-versions-db", err)
 		return err
 	}
 
+	logger.Info("loaded-versions", lager.Data{"took": time.Since(start).String()})
+
+	wg := new(sync.WaitGroup)
+	wg.Add(len(config.Jobs))
+
 	for _, job := range config.Jobs {
+		job := job
+
 		sLog := logger.Session("scheduling", lager.Data{
 			"job": job.Name,
 		})
 
-		runner.schedule(sLog, versions, job, config.Resources)
+		jobStart := time.Now()
+		sLog.Debug("start")
+
+		go func() {
+			defer wg.Done()
+			defer func() {
+				sLog.Debug("done", lager.Data{"took": time.Since(jobStart).String()})
+			}()
+
+			runner.schedule(sLog, versions, job, config.Resources)
+		}()
 	}
+
+	wg.Wait()
 
 	return nil
 }
