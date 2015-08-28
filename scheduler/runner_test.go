@@ -7,6 +7,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/algorithm"
 	dbfakes "github.com/concourse/atc/db/fakes"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/fakes"
@@ -30,6 +31,8 @@ var _ = Describe("Runner", func() {
 
 		initialConfig atc.Config
 
+		someVersions algorithm.VersionsDB
+
 		process ifrit.Process
 	)
 
@@ -40,7 +43,13 @@ var _ = Describe("Runner", func() {
 		scheduler = new(fakes.FakeBuildScheduler)
 		noop = false
 
-		scheduler.TryNextPendingBuildStub = func(lager.Logger, atc.JobConfig, atc.ResourceConfigs) Waiter {
+		someVersions = []algorithm.BuildOutput{
+			{VersionID: 1, ResourceID: 2, BuildID: 3, JobID: 4},
+			{VersionID: 5, ResourceID: 6, BuildID: 7, JobID: 8},
+		}
+		pipelineDB.LoadVersionsDBReturns(someVersions, nil)
+
+		scheduler.TryNextPendingBuildStub = func(lager.Logger, algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) Waiter {
 			return new(sync.WaitGroup)
 		}
 
@@ -114,23 +123,27 @@ var _ = Describe("Runner", func() {
 	It("schedules pending builds", func() {
 		Eventually(scheduler.TryNextPendingBuildCallCount).Should(Equal(2))
 
-		_, job, resources := scheduler.TryNextPendingBuildArgsForCall(0)
+		_, versions, job, resources := scheduler.TryNextPendingBuildArgsForCall(0)
+		Ω(versions).Should(Equal(someVersions))
 		Ω(job).Should(Equal(atc.JobConfig{Name: "some-job"}))
 		Ω(resources).Should(Equal(initialConfig.Resources))
 
-		_, job, resources = scheduler.TryNextPendingBuildArgsForCall(1)
+		_, versions, job, resources = scheduler.TryNextPendingBuildArgsForCall(1)
+		Ω(versions).Should(Equal(someVersions))
 		Ω(job).Should(Equal(atc.JobConfig{Name: "some-other-job"}))
 		Ω(resources).Should(Equal(initialConfig.Resources))
 	})
 
-	It("schedules builds for new inputs", func() {
+	It("schedules builds for new inputs using the given versions dataset", func() {
 		Eventually(scheduler.BuildLatestInputsCallCount).Should(Equal(2))
 
-		_, job, resources := scheduler.BuildLatestInputsArgsForCall(0)
+		_, versions, job, resources := scheduler.BuildLatestInputsArgsForCall(0)
+		Ω(versions).Should(Equal(someVersions))
 		Ω(job).Should(Equal(atc.JobConfig{Name: "some-job"}))
 		Ω(resources).Should(Equal(initialConfig.Resources))
 
-		_, job, resources = scheduler.BuildLatestInputsArgsForCall(1)
+		_, versions, job, resources = scheduler.BuildLatestInputsArgsForCall(1)
+		Ω(versions).Should(Equal(someVersions))
 		Ω(job).Should(Equal(atc.JobConfig{Name: "some-other-job"}))
 		Ω(resources).Should(Equal(initialConfig.Resources))
 	})

@@ -50,7 +50,7 @@ func (server *server) TriggerBuild(pipelineDB db.PipelineDB) http.Handler {
 
 		scheduler := server.radarSchedulerFactory.BuildScheduler(pipelineDB)
 
-		build, err := scheduler.TriggerImmediately(log, job, config.Resources)
+		build, _, err := scheduler.TriggerImmediately(log, job, config.Resources)
 		if err != nil {
 			log.Error("failed-to-trigger", err)
 			w.WriteHeader(http.StatusInternalServerError)

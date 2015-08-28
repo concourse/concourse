@@ -21,9 +21,9 @@ type FakeStep struct {
 	ReleaseStub        func()
 	releaseMutex       sync.RWMutex
 	releaseArgsForCall []struct{}
-	ResultStub         func(interface{}) bool
-	resultMutex        sync.RWMutex
-	resultArgsForCall  []struct {
+	ResultStub        func(interface{}) bool
+	resultMutex       sync.RWMutex
+	resultArgsForCall []struct {
 		arg1 interface{}
 	}
 	resultReturns struct {

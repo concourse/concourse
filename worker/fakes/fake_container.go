@@ -13,7 +13,7 @@ type FakeContainer struct {
 	HandleStub        func() string
 	handleMutex       sync.RWMutex
 	handleArgsForCall []struct{}
-	handleReturns     struct {
+	handleReturns struct {
 		result1 string
 	}
 	StopStub        func(kill bool) error
@@ -27,7 +27,7 @@ type FakeContainer struct {
 	InfoStub        func() (garden.ContainerInfo, error)
 	infoMutex       sync.RWMutex
 	infoArgsForCall []struct{}
-	infoReturns     struct {
+	infoReturns struct {
 		result1 garden.ContainerInfo
 		result2 error
 	}
@@ -59,7 +59,7 @@ type FakeContainer struct {
 	CurrentBandwidthLimitsStub        func() (garden.BandwidthLimits, error)
 	currentBandwidthLimitsMutex       sync.RWMutex
 	currentBandwidthLimitsArgsForCall []struct{}
-	currentBandwidthLimitsReturns     struct {
+	currentBandwidthLimitsReturns struct {
 		result1 garden.BandwidthLimits
 		result2 error
 	}
@@ -74,7 +74,7 @@ type FakeContainer struct {
 	CurrentCPULimitsStub        func() (garden.CPULimits, error)
 	currentCPULimitsMutex       sync.RWMutex
 	currentCPULimitsArgsForCall []struct{}
-	currentCPULimitsReturns     struct {
+	currentCPULimitsReturns struct {
 		result1 garden.CPULimits
 		result2 error
 	}
@@ -89,7 +89,7 @@ type FakeContainer struct {
 	CurrentDiskLimitsStub        func() (garden.DiskLimits, error)
 	currentDiskLimitsMutex       sync.RWMutex
 	currentDiskLimitsArgsForCall []struct{}
-	currentDiskLimitsReturns     struct {
+	currentDiskLimitsReturns struct {
 		result1 garden.DiskLimits
 		result2 error
 	}
@@ -104,7 +104,7 @@ type FakeContainer struct {
 	CurrentMemoryLimitsStub        func() (garden.MemoryLimits, error)
 	currentMemoryLimitsMutex       sync.RWMutex
 	currentMemoryLimitsArgsForCall []struct{}
-	currentMemoryLimitsReturns     struct {
+	currentMemoryLimitsReturns struct {
 		result1 garden.MemoryLimits
 		result2 error
 	}
@@ -150,14 +150,14 @@ type FakeContainer struct {
 	MetricsStub        func() (garden.Metrics, error)
 	metricsMutex       sync.RWMutex
 	metricsArgsForCall []struct{}
-	metricsReturns     struct {
+	metricsReturns struct {
 		result1 garden.Metrics
 		result2 error
 	}
 	PropertiesStub        func() (garden.Properties, error)
 	propertiesMutex       sync.RWMutex
 	propertiesArgsForCall []struct{}
-	propertiesReturns     struct {
+	propertiesReturns struct {
 		result1 garden.Properties
 		result2 error
 	}
@@ -190,7 +190,7 @@ type FakeContainer struct {
 	DestroyStub        func() error
 	destroyMutex       sync.RWMutex
 	destroyArgsForCall []struct{}
-	destroyReturns     struct {
+	destroyReturns struct {
 		result1 error
 	}
 	ReleaseStub        func()

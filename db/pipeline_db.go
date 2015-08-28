@@ -55,7 +55,8 @@ type PipelineDB interface {
 
 	UseInputsForBuild(buildID int, inputs []BuildInput) error
 
-	GetLatestInputVersions(job string, inputs []atc.JobInput) ([]BuildInput, error)
+	LoadVersionsDB() (algorithm.VersionsDB, error)
+	GetLatestInputVersions(versions algorithm.VersionsDB, job string, inputs []atc.JobInput) ([]BuildInput, error)
 	GetJobBuildForInputs(job string, inputs []BuildInput) (Build, error)
 	GetNextPendingBuild(job string) (Build, error)
 
@@ -1513,12 +1514,8 @@ func (pdb *pipelineDB) GetCurrentBuild(job string) (Build, error) {
 	return Build{}, ErrNoBuild
 }
 
-func (pdb *pipelineDB) GetLatestInputVersions(jobName string, inputs []atc.JobInput) ([]BuildInput, error) {
-	if len(inputs) == 0 {
-		return []BuildInput{}, nil
-	}
-
-	var outputs []algorithm.BuildOutput
+func (pdb *pipelineDB) LoadVersionsDB() (algorithm.VersionsDB, error) {
+	var versions []algorithm.BuildOutput
 
 	rows, err := pdb.conn.Query(`
     SELECT v.id, r.id, o.build_id, j.id
@@ -1529,7 +1526,8 @@ func (pdb *pipelineDB) GetLatestInputVersions(jobName string, inputs []atc.JobIn
     AND r.id = v.resource_id
     AND v.enabled
 		AND b.status = 'succeeded'
-  `)
+		AND r.pipeline_id = $1
+  `, pdb.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -1541,7 +1539,7 @@ func (pdb *pipelineDB) GetLatestInputVersions(jobName string, inputs []atc.JobIn
 			return nil, err
 		}
 
-		outputs = append(outputs, output)
+		versions = append(versions, output)
 	}
 
 	rows, err = pdb.conn.Query(`
@@ -1549,7 +1547,8 @@ func (pdb *pipelineDB) GetLatestInputVersions(jobName string, inputs []atc.JobIn
     FROM versioned_resources v, resources r
     WHERE r.id = v.resource_id
     AND v.enabled
-  `)
+		AND r.pipeline_id = $1
+  `, pdb.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -1561,7 +1560,15 @@ func (pdb *pipelineDB) GetLatestInputVersions(jobName string, inputs []atc.JobIn
 			return nil, err
 		}
 
-		outputs = append(outputs, output)
+		versions = append(versions, output)
+	}
+
+	return versions, nil
+}
+
+func (pdb *pipelineDB) GetLatestInputVersions(versions algorithm.VersionsDB, jobName string, inputs []atc.JobInput) ([]BuildInput, error) {
+	if len(inputs) == 0 {
+		return []BuildInput{}, nil
 	}
 
 	var inputConfigs algorithm.InputConfigs
@@ -1589,7 +1596,7 @@ func (pdb *pipelineDB) GetLatestInputVersions(jobName string, inputs []atc.JobIn
 		})
 	}
 
-	resolved, ok := inputConfigs.Resolve(outputs)
+	resolved, ok := inputConfigs.Resolve(versions)
 	if !ok {
 		return nil, ErrNoVersions
 	}

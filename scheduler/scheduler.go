@@ -2,11 +2,13 @@ package scheduler
 
 import (
 	"sync"
+	"time"
 
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/engine"
 )
 
@@ -20,7 +22,8 @@ type PipelineDB interface {
 	GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.Build, error)
 	GetNextPendingBuild(job string) (db.Build, error)
 
-	GetLatestInputVersions(job string, inputs []atc.JobInput) ([]db.BuildInput, error)
+	LoadVersionsDB() (algorithm.VersionsDB, error)
+	GetLatestInputVersions(versions algorithm.VersionsDB, job string, inputs []atc.JobInput) ([]db.BuildInput, error)
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 	UseInputsForBuild(buildID int, inputs []db.BuildInput) error
 }
@@ -56,7 +59,7 @@ type Scheduler struct {
 	Scanner    Scanner
 }
 
-func (s *Scheduler) BuildLatestInputs(logger lager.Logger, job atc.JobConfig, resources atc.ResourceConfigs) error {
+func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions algorithm.VersionsDB, job atc.JobConfig, resources atc.ResourceConfigs) error {
 	logger = logger.Session("build-latest")
 
 	inputs := job.Inputs()
@@ -66,7 +69,7 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, job atc.JobConfig, re
 		return nil
 	}
 
-	latestInputs, err := s.PipelineDB.GetLatestInputVersions(job.Name, inputs)
+	latestInputs, err := s.PipelineDB.GetLatestInputVersions(versions, job.Name, inputs)
 	if err != nil {
 		if err == db.ErrNoVersions {
 			logger.Debug("no-input-versions-available")
@@ -122,12 +125,12 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, job atc.JobConfig, re
 	// NOTE: this is intentionally serial within a scheduler tick, so that
 	// multiple ATCs don't do redundant work to determine a build's inputs.
 
-	s.scheduleAndResumePendingBuild(logger, build, job, resources)
+	s.scheduleAndResumePendingBuild(logger, versions, build, job, resources)
 
 	return nil
 }
 
-func (s *Scheduler) TryNextPendingBuild(logger lager.Logger, job atc.JobConfig, resources atc.ResourceConfigs) Waiter {
+func (s *Scheduler) TryNextPendingBuild(logger lager.Logger, versions algorithm.VersionsDB, job atc.JobConfig, resources atc.ResourceConfigs) Waiter {
 	logger = logger.Session("try-next-pending")
 
 	wg := new(sync.WaitGroup)
@@ -147,28 +150,34 @@ func (s *Scheduler) TryNextPendingBuild(logger lager.Logger, job atc.JobConfig, 
 			return
 		}
 
-		s.scheduleAndResumePendingBuild(logger, build, job, resources)
+		s.scheduleAndResumePendingBuild(logger, versions, build, job, resources)
 	}()
 
 	return wg
 }
 
-func (s *Scheduler) TriggerImmediately(logger lager.Logger, job atc.JobConfig, resources atc.ResourceConfigs) (db.Build, error) {
+func (s *Scheduler) TriggerImmediately(logger lager.Logger, job atc.JobConfig, resources atc.ResourceConfigs) (db.Build, Waiter, error) {
 	logger = logger.Session("trigger-immediately")
 
 	build, err := s.PipelineDB.CreateJobBuild(job.Name)
 	if err != nil {
 		logger.Error("failed-to-create-build", err)
-		return db.Build{}, err
+		return db.Build{}, nil, err
 	}
 
-	// do not block request on scanning input versions
-	go s.scheduleAndResumePendingBuild(logger, build, job, resources)
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
 
-	return build, nil
+	// do not block request on scanning input versions
+	go func() {
+		defer wg.Done()
+		s.scheduleAndResumePendingBuild(logger, nil, build, job, resources)
+	}()
+
+	return build, wg, nil
 }
 
-func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, build db.Build, job atc.JobConfig, resources atc.ResourceConfigs) engine.Build {
+func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions algorithm.VersionsDB, build db.Build, job atc.JobConfig, resources atc.ResourceConfigs) engine.Build {
 	logger = logger.WithData(lager.Data{"build": build.ID})
 
 	scheduled, err := s.PipelineDB.ScheduleBuild(build.ID, job)
@@ -184,28 +193,43 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, build db.
 
 	buildInputs := job.Inputs()
 
-	for _, input := range buildInputs {
-		scanLog := logger.Session("scan", lager.Data{
-			"input":    input.Name,
-			"resource": input.Resource,
-		})
+	if versions == nil {
+		for _, input := range buildInputs {
+			scanLog := logger.Session("scan", lager.Data{
+				"input":    input.Name,
+				"resource": input.Resource,
+			})
 
-		err := s.Scanner.Scan(scanLog, input.Resource)
-		if err != nil {
-			scanLog.Error("failed-to-scan", err)
-
-			err := s.BuildsDB.ErrorBuild(build.ID, err)
+			err := s.Scanner.Scan(scanLog, input.Resource)
 			if err != nil {
-				logger.Error("failed-to-mark-build-as-errored", err)
+				scanLog.Error("failed-to-scan", err)
+
+				err := s.BuildsDB.ErrorBuild(build.ID, err)
+				if err != nil {
+					logger.Error("failed-to-mark-build-as-errored", err)
+				}
+
+				return nil
 			}
 
+			scanLog.Info("done")
+		}
+
+		loadStart := time.Now()
+
+		vLog := logger.Session("loading-versions")
+		vLog.Info("start")
+
+		versions, err = s.PipelineDB.LoadVersionsDB()
+		if err != nil {
+			vLog.Error("failed", err)
 			return nil
 		}
 
-		scanLog.Info("done")
+		vLog.Info("done", lager.Data{"took": time.Since(loadStart).String()})
 	}
 
-	inputs, err := s.PipelineDB.GetLatestInputVersions(job.Name, buildInputs)
+	inputs, err := s.PipelineDB.GetLatestInputVersions(versions, job.Name, buildInputs)
 	if err != nil {
 		logger.Error("failed-to-get-latest-input-versions", err)
 		return nil

@@ -6,13 +6,14 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/algorithm"
 )
 
 type FakePipelineDB struct {
 	GetPipelineNameStub        func() string
 	getPipelineNameMutex       sync.RWMutex
 	getPipelineNameArgsForCall []struct{}
-	getPipelineNameReturns     struct {
+	getPipelineNameReturns struct {
 		result1 string
 	}
 	ScopedNameStub        func(string) string
@@ -26,32 +27,32 @@ type FakePipelineDB struct {
 	PauseStub        func() error
 	pauseMutex       sync.RWMutex
 	pauseArgsForCall []struct{}
-	pauseReturns     struct {
+	pauseReturns struct {
 		result1 error
 	}
 	UnpauseStub        func() error
 	unpauseMutex       sync.RWMutex
 	unpauseArgsForCall []struct{}
-	unpauseReturns     struct {
+	unpauseReturns struct {
 		result1 error
 	}
 	IsPausedStub        func() (bool, error)
 	isPausedMutex       sync.RWMutex
 	isPausedArgsForCall []struct{}
-	isPausedReturns     struct {
+	isPausedReturns struct {
 		result1 bool
 		result2 error
 	}
 	DestroyStub        func() error
 	destroyMutex       sync.RWMutex
 	destroyArgsForCall []struct{}
-	destroyReturns     struct {
+	destroyReturns struct {
 		result1 error
 	}
 	GetConfigStub        func() (atc.Config, db.ConfigVersion, error)
 	getConfigMutex       sync.RWMutex
 	getConfigArgsForCall []struct{}
-	getConfigReturns     struct {
+	getConfigReturns struct {
 		result1 atc.Config
 		result2 db.ConfigVersion
 		result3 error
@@ -259,11 +260,19 @@ type FakePipelineDB struct {
 	useInputsForBuildReturns struct {
 		result1 error
 	}
-	GetLatestInputVersionsStub        func(job string, inputs []atc.JobInput) ([]db.BuildInput, error)
+	LoadVersionsDBStub        func() (algorithm.VersionsDB, error)
+	loadVersionsDBMutex       sync.RWMutex
+	loadVersionsDBArgsForCall []struct{}
+	loadVersionsDBReturns struct {
+		result1 algorithm.VersionsDB
+		result2 error
+	}
+	GetLatestInputVersionsStub        func(versions algorithm.VersionsDB, job string, inputs []atc.JobInput) ([]db.BuildInput, error)
 	getLatestInputVersionsMutex       sync.RWMutex
 	getLatestInputVersionsArgsForCall []struct {
-		job    string
-		inputs []atc.JobInput
+		versions algorithm.VersionsDB
+		job      string
+		inputs   []atc.JobInput
 	}
 	getLatestInputVersionsReturns struct {
 		result1 []db.BuildInput
@@ -1270,15 +1279,41 @@ func (fake *FakePipelineDB) UseInputsForBuildReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakePipelineDB) GetLatestInputVersions(job string, inputs []atc.JobInput) ([]db.BuildInput, error) {
+func (fake *FakePipelineDB) LoadVersionsDB() (algorithm.VersionsDB, error) {
+	fake.loadVersionsDBMutex.Lock()
+	fake.loadVersionsDBArgsForCall = append(fake.loadVersionsDBArgsForCall, struct{}{})
+	fake.loadVersionsDBMutex.Unlock()
+	if fake.LoadVersionsDBStub != nil {
+		return fake.LoadVersionsDBStub()
+	} else {
+		return fake.loadVersionsDBReturns.result1, fake.loadVersionsDBReturns.result2
+	}
+}
+
+func (fake *FakePipelineDB) LoadVersionsDBCallCount() int {
+	fake.loadVersionsDBMutex.RLock()
+	defer fake.loadVersionsDBMutex.RUnlock()
+	return len(fake.loadVersionsDBArgsForCall)
+}
+
+func (fake *FakePipelineDB) LoadVersionsDBReturns(result1 algorithm.VersionsDB, result2 error) {
+	fake.LoadVersionsDBStub = nil
+	fake.loadVersionsDBReturns = struct {
+		result1 algorithm.VersionsDB
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipelineDB) GetLatestInputVersions(versions algorithm.VersionsDB, job string, inputs []atc.JobInput) ([]db.BuildInput, error) {
 	fake.getLatestInputVersionsMutex.Lock()
 	fake.getLatestInputVersionsArgsForCall = append(fake.getLatestInputVersionsArgsForCall, struct {
-		job    string
-		inputs []atc.JobInput
-	}{job, inputs})
+		versions algorithm.VersionsDB
+		job      string
+		inputs   []atc.JobInput
+	}{versions, job, inputs})
 	fake.getLatestInputVersionsMutex.Unlock()
 	if fake.GetLatestInputVersionsStub != nil {
-		return fake.GetLatestInputVersionsStub(job, inputs)
+		return fake.GetLatestInputVersionsStub(versions, job, inputs)
 	} else {
 		return fake.getLatestInputVersionsReturns.result1, fake.getLatestInputVersionsReturns.result2
 	}
@@ -1290,10 +1325,10 @@ func (fake *FakePipelineDB) GetLatestInputVersionsCallCount() int {
 	return len(fake.getLatestInputVersionsArgsForCall)
 }
 
-func (fake *FakePipelineDB) GetLatestInputVersionsArgsForCall(i int) (string, []atc.JobInput) {
+func (fake *FakePipelineDB) GetLatestInputVersionsArgsForCall(i int) (algorithm.VersionsDB, string, []atc.JobInput) {
 	fake.getLatestInputVersionsMutex.RLock()
 	defer fake.getLatestInputVersionsMutex.RUnlock()
-	return fake.getLatestInputVersionsArgsForCall[i].job, fake.getLatestInputVersionsArgsForCall[i].inputs
+	return fake.getLatestInputVersionsArgsForCall[i].versions, fake.getLatestInputVersionsArgsForCall[i].job, fake.getLatestInputVersionsArgsForCall[i].inputs
 }
 
 func (fake *FakePipelineDB) GetLatestInputVersionsReturns(result1 []db.BuildInput, result2 error) {

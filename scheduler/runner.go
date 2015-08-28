@@ -6,6 +6,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/algorithm"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -21,8 +22,8 @@ type Locker interface {
 //go:generate counterfeiter . BuildScheduler
 
 type BuildScheduler interface {
-	TryNextPendingBuild(lager.Logger, atc.JobConfig, atc.ResourceConfigs) Waiter
-	BuildLatestInputs(lager.Logger, atc.JobConfig, atc.ResourceConfigs) error
+	TryNextPendingBuild(lager.Logger, algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) Waiter
+	BuildLatestInputs(lager.Logger, algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) error
 }
 
 type Runner struct {
@@ -104,21 +105,27 @@ func (runner *Runner) tick(logger lager.Logger) error {
 
 	defer schedulingLock.Release()
 
+	versions, err := runner.DB.LoadVersionsDB()
+	if err != nil {
+		logger.Error("failed-to-load-versions-db", err)
+		return err
+	}
+
 	for _, job := range config.Jobs {
 		sLog := logger.Session("scheduling", lager.Data{
 			"job": job.Name,
 		})
 
-		runner.schedule(sLog, job, config.Resources)
+		runner.schedule(sLog, versions, job, config.Resources)
 	}
 
 	return nil
 }
 
-func (runner *Runner) schedule(logger lager.Logger, job atc.JobConfig, resources atc.ResourceConfigs) {
-	runner.Scheduler.TryNextPendingBuild(logger, job, resources).Wait()
+func (runner *Runner) schedule(logger lager.Logger, versions algorithm.VersionsDB, job atc.JobConfig, resources atc.ResourceConfigs) {
+	runner.Scheduler.TryNextPendingBuild(logger, versions, job, resources).Wait()
 
-	err := runner.Scheduler.BuildLatestInputs(logger, job, resources)
+	err := runner.Scheduler.BuildLatestInputs(logger, versions, job, resources)
 	if err != nil {
 		logger.Error("failed-to-build-from-latest-inputs", err)
 	}

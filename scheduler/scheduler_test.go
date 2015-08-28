@@ -5,6 +5,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/algorithm"
 	enginefakes "github.com/concourse/atc/engine/fakes"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/fakes"
@@ -29,6 +30,8 @@ var _ = Describe("Scheduler", func() {
 
 		scheduler *Scheduler
 
+		someVersions algorithm.VersionsDB
+
 		logger *lagertest.TestLogger
 	)
 
@@ -38,6 +41,11 @@ var _ = Describe("Scheduler", func() {
 		factory = new(fakes.FakeBuildFactory)
 		fakeEngine = new(enginefakes.FakeEngine)
 		fakeScanner = new(fakes.FakeScanner)
+
+		someVersions = []algorithm.BuildOutput{
+			{VersionID: 1, ResourceID: 2, BuildID: 3, JobID: 4},
+			{VersionID: 5, ResourceID: 6, BuildID: 7, JobID: 8},
+		}
 
 		createdPlan = atc.Plan{
 			Task: &atc.TaskPlan{
@@ -123,13 +131,12 @@ var _ = Describe("Scheduler", func() {
 			})
 
 			It("returns the error", func() {
-				err := scheduler.BuildLatestInputs(logger, job, resources)
+				err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
 				Ω(err).Should(Equal(disaster))
 			})
 
 			It("does not trigger a build", func() {
-				scheduler.BuildLatestInputs(logger, job, resources)
-
+				scheduler.BuildLatestInputs(logger, someVersions, job, resources)
 				Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 			})
 		})
@@ -140,18 +147,24 @@ var _ = Describe("Scheduler", func() {
 			})
 
 			It("succeeds", func() {
-				err := scheduler.BuildLatestInputs(logger, job, resources)
+				err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 
+			It("does not load the versions database, as it was given one", func() {
+				scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+
+				Ω(fakePipelineDB.LoadVersionsDBCallCount()).Should(Equal(0))
+			})
+
 			It("does not try to fetch inputs from the database", func() {
-				scheduler.BuildLatestInputs(logger, job, resources)
+				scheduler.BuildLatestInputs(logger, someVersions, job, resources)
 
 				Ω(fakePipelineDB.GetLatestInputVersionsCallCount()).Should(BeZero())
 			})
 
 			It("does not trigger a build", func() {
-				scheduler.BuildLatestInputs(logger, job, resources)
+				scheduler.BuildLatestInputs(logger, someVersions, job, resources)
 
 				Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 			})
@@ -177,12 +190,19 @@ var _ = Describe("Scheduler", func() {
 				fakePipelineDB.GetLatestInputVersionsReturns(newInputs, nil)
 			})
 
+			It("does not load the versions database, as it was given one", func() {
+				scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+
+				Ω(fakePipelineDB.LoadVersionsDBCallCount()).Should(Equal(0))
+			})
+
 			It("checks if they are already used for a build", func() {
-				err := scheduler.BuildLatestInputs(logger, job, resources)
+				err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(fakePipelineDB.GetLatestInputVersionsCallCount()).Should(Equal(1))
-				jobName, inputs := fakePipelineDB.GetLatestInputVersionsArgsForCall(0)
+				versions, jobName, inputs := fakePipelineDB.GetLatestInputVersionsArgsForCall(0)
+				Ω(versions).Should(Equal(someVersions))
 				Ω(jobName).Should(Equal(job.Name))
 				Ω(inputs).Should(Equal([]atc.JobInput{
 					{
@@ -226,7 +246,7 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("excludes them from the inputs when checking for a build", func() {
-					err := scheduler.BuildLatestInputs(logger, job, resources)
+					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(fakePipelineDB.GetJobBuildForInputsCallCount()).Should(Equal(1))
@@ -248,21 +268,21 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("does not check for builds for the inputs", func() {
-					err := scheduler.BuildLatestInputs(logger, job, resources)
+					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(fakePipelineDB.GetJobBuildForInputsCallCount()).Should(Equal(0))
 				})
 
 				It("does not create a build", func() {
-					err := scheduler.BuildLatestInputs(logger, job, resources)
+					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(fakePipelineDB.CreateJobBuildForCandidateInputsCallCount()).Should(Equal(0))
 				})
 
 				It("does not trigger a build", func() {
-					err := scheduler.BuildLatestInputs(logger, job, resources)
+					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
@@ -275,7 +295,7 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("creates a build with the found inputs", func() {
-					err := scheduler.BuildLatestInputs(logger, job, resources)
+					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(fakePipelineDB.CreateJobBuildForCandidateInputsCallCount()).Should(Equal(1))
@@ -317,7 +337,7 @@ var _ = Describe("Scheduler", func() {
 							})
 
 							It("triggers a build of the job with the found inputs", func() {
-								err := scheduler.BuildLatestInputs(logger, job, resources)
+								err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
 								Ω(err).ShouldNot(HaveOccurred())
 
 								Ω(fakePipelineDB.ScheduleBuildCallCount()).Should(Equal(1))
@@ -343,7 +363,7 @@ var _ = Describe("Scheduler", func() {
 							})
 
 							It("immediately resumes the build", func() {
-								err := scheduler.BuildLatestInputs(logger, job, resources)
+								err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
 								Ω(err).ShouldNot(HaveOccurred())
 
 								Eventually(createdBuild.ResumeCallCount).Should(Equal(1))
@@ -357,7 +377,7 @@ var _ = Describe("Scheduler", func() {
 						})
 
 						It("does not start a build", func() {
-							err := scheduler.BuildLatestInputs(logger, job, resources)
+							err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
 							Ω(err).ShouldNot(HaveOccurred())
 
 							Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
@@ -373,12 +393,12 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("returns the error", func() {
-						err := scheduler.BuildLatestInputs(logger, job, resources)
+						err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
 						Ω(err).Should(Equal(disaster))
 					})
 
 					It("does not start a build", func() {
-						scheduler.BuildLatestInputs(logger, job, resources)
+						scheduler.BuildLatestInputs(logger, someVersions, job, resources)
 						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 					})
 				})
@@ -389,12 +409,12 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("exits without error", func() {
-						err := scheduler.BuildLatestInputs(logger, job, resources)
+						err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
 						Ω(err).ShouldNot(HaveOccurred())
 					})
 
 					It("does not start a build", func() {
-						scheduler.BuildLatestInputs(logger, job, resources)
+						scheduler.BuildLatestInputs(logger, someVersions, job, resources)
 						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 					})
 				})
@@ -406,7 +426,7 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("does not trigger a build", func() {
-					err := scheduler.BuildLatestInputs(logger, job, resources)
+					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
@@ -417,7 +437,11 @@ var _ = Describe("Scheduler", func() {
 
 	Describe("TryNextPendingBuild", func() {
 		JustBeforeEach(func() {
-			scheduler.TryNextPendingBuild(logger, job, resources).Wait()
+			scheduler.TryNextPendingBuild(logger, someVersions, job, resources).Wait()
+		})
+
+		It("does not load the versions database, as it was given one", func() {
+			Ω(fakePipelineDB.LoadVersionsDBCallCount()).Should(Equal(0))
 		})
 
 		Context("when a pending build is found", func() {
@@ -465,17 +489,12 @@ var _ = Describe("Scheduler", func() {
 						Eventually(createdBuild.ResumeCallCount).Should(Equal(1))
 					})
 
-					It("scans for new versions for each input, and queries for the latest job inputs", func() {
-						Ω(fakeScanner.ScanCallCount()).Should(Equal(2))
-
-						_, resourceName := fakeScanner.ScanArgsForCall(0)
-						Ω(resourceName).Should(Equal("some-resource"))
-
-						_, resourceName = fakeScanner.ScanArgsForCall(1)
-						Ω(resourceName).Should(Equal("some-other-resource"))
+					It("does not scan for new versions, and queries for the latest job inputs using the given versions dataset", func() {
+						Ω(fakeScanner.ScanCallCount()).Should(Equal(0))
 
 						Ω(fakePipelineDB.GetLatestInputVersionsCallCount()).Should(Equal(1))
-						jobName, inputConfigs := fakePipelineDB.GetLatestInputVersionsArgsForCall(0)
+						versions, jobName, inputConfigs := fakePipelineDB.GetLatestInputVersionsArgsForCall(0)
+						Ω(versions).Should(Equal(someVersions))
 						Ω(jobName).Should(Equal(job.Name))
 						Ω(inputConfigs).Should(Equal([]atc.JobInput{
 							{
@@ -505,22 +524,6 @@ var _ = Describe("Scheduler", func() {
 						builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
 						Ω(builtBuild).Should(Equal(pendingBuild))
 						Ω(plan).Should(Equal(createdPlan))
-					})
-
-					Context("when scanning fails", func() {
-						disaster := errors.New("nope")
-
-						BeforeEach(func() {
-							fakeScanner.ScanReturns(disaster)
-						})
-
-						It("errors the build", func() {
-							Ω(fakeBuildsDB.ErrorBuildCallCount()).Should(Equal(1))
-
-							buildID, err := fakeBuildsDB.ErrorBuildArgsForCall(0)
-							Ω(buildID).Should(Equal(128))
-							Ω(err).Should(Equal(disaster))
-						})
 					})
 				})
 			})
@@ -552,7 +555,7 @@ var _ = Describe("Scheduler", func() {
 			})
 
 			It("does not start a build", func() {
-				scheduler.TryNextPendingBuild(logger, job, resources)
+				scheduler.TryNextPendingBuild(logger, someVersions, job, resources)
 				Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 			})
 		})
@@ -565,7 +568,7 @@ var _ = Describe("Scheduler", func() {
 			})
 
 			It("does not start a build", func() {
-				scheduler.TryNextPendingBuild(logger, job, resources)
+				scheduler.TryNextPendingBuild(logger, someVersions, job, resources)
 				Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 			})
 		})
@@ -573,7 +576,7 @@ var _ = Describe("Scheduler", func() {
 
 	Describe("TriggerImmediately", func() {
 		It("creates a build without any specific inputs", func() {
-			_, err := scheduler.TriggerImmediately(logger, job, resources)
+			_, _, err := scheduler.TriggerImmediately(logger, job, resources)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Ω(fakePipelineDB.GetLatestInputVersionsCallCount()).Should(Equal(0))
@@ -585,8 +588,27 @@ var _ = Describe("Scheduler", func() {
 		})
 
 		Context("when creating the build succeeds", func() {
+			createdDBBuild := db.Build{ID: 128, Name: "42"}
+
+			pendingInputs := []db.BuildInput{
+				{
+					Name: "some-input",
+					VersionedResource: db.VersionedResource{
+						Resource: "some-resource", Version: db.Version{"version": "1"},
+					},
+				},
+				{
+					Name: "some-other-input",
+					VersionedResource: db.VersionedResource{
+						Resource: "some-other-resource", Version: db.Version{"version": "2"},
+					},
+				},
+			}
+
 			BeforeEach(func() {
-				fakePipelineDB.CreateJobBuildReturns(db.Build{ID: 128, Name: "42"}, nil)
+				fakePipelineDB.CreateJobBuildReturns(createdDBBuild, nil)
+				fakePipelineDB.GetLatestInputVersionsReturns(pendingInputs, nil)
+				fakePipelineDB.LoadVersionsDBReturns(someVersions, nil)
 			})
 
 			Context("and it can be scheduled", func() {
@@ -602,37 +624,134 @@ var _ = Describe("Scheduler", func() {
 						fakeEngine.CreateBuildReturns(createdBuild, nil)
 					})
 
+					It("scans for new versions for each input, and queries for the latest job inputs", func() {
+						_, w, err := scheduler.TriggerImmediately(logger, job, resources)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						w.Wait()
+
+						Ω(fakeScanner.ScanCallCount()).Should(Equal(2))
+
+						_, resourceName := fakeScanner.ScanArgsForCall(0)
+						Ω(resourceName).Should(Equal("some-resource"))
+
+						_, resourceName = fakeScanner.ScanArgsForCall(1)
+						Ω(resourceName).Should(Equal("some-other-resource"))
+
+						Ω(fakePipelineDB.GetLatestInputVersionsCallCount()).Should(Equal(1))
+						versions, jobName, inputConfigs := fakePipelineDB.GetLatestInputVersionsArgsForCall(0)
+						Ω(versions).Should(Equal(someVersions))
+						Ω(jobName).Should(Equal(job.Name))
+						Ω(inputConfigs).Should(Equal([]atc.JobInput{
+							{
+								Name:     "some-input",
+								Resource: "some-resource",
+								Trigger:  true,
+							},
+							{
+								Name:     "some-other-input",
+								Resource: "some-other-resource",
+								Trigger:  true,
+							},
+						}))
+
+						Ω(fakePipelineDB.UseInputsForBuildCallCount()).Should(Equal(1))
+						usedBuildID, usedInputs := fakePipelineDB.UseInputsForBuildArgsForCall(0)
+						Ω(usedBuildID).Should(Equal(128))
+						Ω(usedInputs).Should(Equal(pendingInputs))
+
+						Ω(factory.CreateCallCount()).Should(Equal(1))
+						createJob, createResources, createInputs := factory.CreateArgsForCall(0)
+						Ω(createJob).Should(Equal(job))
+						Ω(createResources).Should(Equal(resources))
+						Ω(createInputs).Should(Equal(pendingInputs))
+
+						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
+						builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
+						Ω(builtBuild).Should(Equal(createdDBBuild))
+						Ω(plan).Should(Equal(createdPlan))
+					})
+
+					Context("when scanning fails", func() {
+						disaster := errors.New("nope")
+
+						BeforeEach(func() {
+							fakeScanner.ScanReturns(disaster)
+						})
+
+						It("errors the build", func() {
+							_, w, err := scheduler.TriggerImmediately(logger, job, resources)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							w.Wait()
+
+							Ω(fakeBuildsDB.ErrorBuildCallCount()).Should(Equal(1))
+
+							buildID, err := fakeBuildsDB.ErrorBuildArgsForCall(0)
+							Ω(buildID).Should(Equal(128))
+							Ω(err).Should(Equal(disaster))
+						})
+					})
+
+					Context("when loading the versions dataset fails", func() {
+						BeforeEach(func() {
+							fakePipelineDB.LoadVersionsDBReturns(nil, errors.New("oh no!"))
+						})
+
+						It("does not run the build", func() {
+							_, w, err := scheduler.TriggerImmediately(logger, job, resources)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							w.Wait()
+
+							Ω(fakePipelineDB.GetLatestInputVersionsCallCount()).Should(Equal(0))
+						})
+
+						It("does not error the build, as it may have been an ephemeral database issue", func() {
+							_, w, err := scheduler.TriggerImmediately(logger, job, resources)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							w.Wait()
+
+							Ω(fakeBuildsDB.ErrorBuildCallCount()).Should(Equal(0))
+						})
+					})
+
 					It("triggers a build of the job with the found inputs", func() {
-						build, err := scheduler.TriggerImmediately(logger, job, resources)
+						build, w, err := scheduler.TriggerImmediately(logger, job, resources)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(build).Should(Equal(db.Build{ID: 128, Name: "42"}))
 
-						Eventually(fakePipelineDB.ScheduleBuildCallCount).Should(Equal(1))
+						w.Wait()
+
+						Ω(fakePipelineDB.ScheduleBuildCallCount()).Should(Equal(1))
 						scheduledBuildID, jobConfig := fakePipelineDB.ScheduleBuildArgsForCall(0)
 						Ω(scheduledBuildID).Should(Equal(128))
 						Ω(jobConfig).Should(Equal(job))
 
-						Eventually(fakePipelineDB.UseInputsForBuildCallCount).Should(Equal(1))
+						Ω(fakePipelineDB.UseInputsForBuildCallCount()).Should(Equal(1))
 						usedBuildID, usedInputs := fakePipelineDB.UseInputsForBuildArgsForCall(0)
 						Ω(usedBuildID).Should(Equal(128))
-						Ω(usedInputs).Should(BeZero())
+						Ω(usedInputs).Should(Equal(pendingInputs))
 
-						Eventually(factory.CreateCallCount).Should(Equal(1))
+						Ω(factory.CreateCallCount()).Should(Equal(1))
 						createJob, createResources, createInputs := factory.CreateArgsForCall(0)
 						Ω(createJob).Should(Equal(job))
 						Ω(createResources).Should(Equal(resources))
-						Ω(createInputs).Should(BeZero())
+						Ω(createInputs).Should(Equal(pendingInputs))
 
-						Eventually(fakeEngine.CreateBuildCallCount).Should(Equal(1))
+						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
 						builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
 						Ω(builtBuild).Should(Equal(db.Build{ID: 128, Name: "42"}))
 						Ω(plan).Should(Equal(createdPlan))
 					})
 
 					It("immediately resumes the build", func() {
-						build, err := scheduler.TriggerImmediately(logger, job, resources)
+						build, w, err := scheduler.TriggerImmediately(logger, job, resources)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(build).Should(Equal(db.Build{ID: 128, Name: "42"}))
+
+						w.Wait()
 
 						Eventually(createdBuild.ResumeCallCount).Should(Equal(1))
 					})
@@ -645,7 +764,7 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("does not start a build", func() {
-					_, err := scheduler.TriggerImmediately(logger, job, resources)
+					_, _, err := scheduler.TriggerImmediately(logger, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
@@ -661,7 +780,7 @@ var _ = Describe("Scheduler", func() {
 			})
 
 			It("returns the error", func() {
-				_, err := scheduler.TriggerImmediately(logger, job, resources)
+				_, _, err := scheduler.TriggerImmediately(logger, job, resources)
 				Ω(err).Should(Equal(disaster))
 			})
 

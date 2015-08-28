@@ -28,7 +28,7 @@ type FakePipelineDBFactory struct {
 	BuildDefaultStub        func() (db.PipelineDB, error)
 	buildDefaultMutex       sync.RWMutex
 	buildDefaultArgsForCall []struct{}
-	buildDefaultReturns     struct {
+	buildDefaultReturns struct {
 		result1 db.PipelineDB
 		result2 error
 	}
