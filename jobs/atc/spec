@@ -68,6 +68,14 @@ properties:
     description: "how often to check for new versions of resources. keep rate limiting in mind."
     default: 1m
 
+  atc.yeller.api_key:
+    description: "api key from yeller to output errors from concourse to yeller"
+    default: ""
+
+  atc.yeller.environment_name:
+    description: "environment name you wish to group errors under in yeller"
+    default: ""
+
   atc.postgresql.address:
     description: "address of the PostgreSQL server"
     default: postgresql.service.dc1.consul:5432
