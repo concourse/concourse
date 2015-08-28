@@ -11,6 +11,7 @@ files:
   - github.com/codegangsta/cli/*.go # gosub
   - github.com/concourse/atc/*.go # gosub
   - github.com/concourse/atc/db/*.go # gosub
+  - github.com/concourse/atc/db/algorithm/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
   - github.com/concourse/atc/web/routes/*.go # gosub
   - github.com/concourse/fly/commands/*.go # gosub
