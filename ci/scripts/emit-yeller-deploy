@@ -1,0 +1,8 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -x
+
+cd concourse
+
+curl -X POST "https://api.yellerapp.com/$YELLER_API_KEY/deploys?user=$YELLER_USER&revision=$(git rev-parse HEAD)&environment=$YELLER_ENVIRONMENT"
