@@ -697,6 +697,10 @@ func (db *SQLDB) acquireLock(lockType string, locks []NamedLock) (Lock, error) {
 func (db *SQLDB) acquireLockLoop(lockType string, lock []NamedLock) (Lock, error) {
 	for {
 		lock, err := db.acquireLock(lockType, lock)
+		if pgErr, ok := err.(*pq.Error); ok && pgErr.Code == "55P03" { // lock not available
+			return nil, ErrLockNotAvailable
+		}
+
 		if err != ErrLockRowNotPresentOrAlreadyDeleted {
 			return lock, err
 		}

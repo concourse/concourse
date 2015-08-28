@@ -304,7 +304,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				Ω(err).ShouldNot(HaveOccurred())
 
 				secondLock, err := database.AcquireWriteLockImmediately([]db.NamedLock{db.ResourceCheckingLock("a-name")})
-				Ω(err).Should(HaveOccurred())
+				Ω(err).Should(Equal(db.ErrLockNotAvailable))
 				Ω(secondLock).Should(BeNil())
 
 				err = lock.Release()
