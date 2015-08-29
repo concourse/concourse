@@ -72,11 +72,6 @@ dance:
 func (runner *Runner) tick(logger lager.Logger) error {
 	start := time.Now()
 
-	logger.Info("start")
-	defer func() {
-		logger.Info("done", lager.Data{"took": time.Since(start).String()})
-	}()
-
 	config, _, err := runner.DB.GetConfig()
 	if err != nil {
 		if err == db.ErrPipelineNotFound {
@@ -105,11 +100,18 @@ func (runner *Runner) tick(logger lager.Logger) error {
 
 	defer schedulingLock.Release()
 
+	logger.Info("start")
+	defer func() {
+		logger.Info("done", lager.Data{"took": time.Since(start).String()})
+	}()
+
 	versions, err := runner.DB.LoadVersionsDB()
 	if err != nil {
 		logger.Error("failed-to-load-versions-db", err)
 		return err
 	}
+
+	logger.Info("loaded-versions", lager.Data{"took": time.Since(start).String()})
 
 	for _, job := range config.Jobs {
 		sLog := logger.Session("scheduling", lager.Data{
