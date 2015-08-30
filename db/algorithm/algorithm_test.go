@@ -1,22 +1,3 @@
-// apples with colored, numbered stamps
-// variety of apple = resource
-//
-// granny smiths having a greeen and oraange stamp
-// fujis having a greeen stamp
-//
-// granny smith 1 and fuji 1 both get greeen stamp #1
-// granny smith 1 gets oraange stamp #2
-//
-// granny smith 2 and fuji 2 both get greeen stamp #3
-//
-// - get: granny-smiths passed: [greeen, oraange] -- [#1: 1]
-// - get: fuji passed: [greeen] [#1: 1, #3: 2]
-//
-// -> remove disjoin stamps
-//
-// - get: granny-smiths passed: [greeen, oraange] -- [#1: 1]
-// - get: fuji passed: [greeen] [#1: 1]
-
 package algorithm_test
 
 import (
