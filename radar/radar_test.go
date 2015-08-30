@@ -186,8 +186,14 @@ var _ = Describe("Radar", func() {
 					}, 1, nil)
 				})
 
-				It("should exit with an error", func() {
-					Eventually(process.Wait()).Should(Receive(MatchError("time: invalid duration bad-value")))
+				It("should continue to use the original internval", func() {
+					var time1 time.Time
+					var time2 time.Time
+
+					Eventually(times).Should(Receive(&time1))
+					Eventually(times).Should(Receive(&time2))
+
+					Ω(time2.Sub(time1)).Should(BeNumerically("~", interval, interval/4))
 				})
 			})
 		})
@@ -431,7 +437,7 @@ var _ = Describe("Radar", func() {
 				})
 
 				Context("when the interval cannot be parsed", func() {
-					It("returns an error", func() {
+					It("should continue to use the previous interval", func() {
 						newResource = atc.ResourceConfig{
 							Name:       "some-resource",
 							Type:       "git",
@@ -443,7 +449,13 @@ var _ = Describe("Radar", func() {
 							Resources: atc.ResourceConfigs{newResource},
 						}
 
-						Eventually(process.Wait()).Should(Receive(MatchError("time: invalid duration bad-interval")))
+						var time1 time.Time
+						var time2 time.Time
+
+						Eventually(times).Should(Receive(&time1))
+						Eventually(times, 2).Should(Receive(&time2))
+
+						Ω(time2.Sub(time1)).Should(BeNumerically("~", interval, interval/2))
 					})
 				})
 			})
