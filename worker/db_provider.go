@@ -65,6 +65,7 @@ func (provider *dbProvider) Workers() ([]Worker, error) {
 			info.ResourceTypes,
 			info.Platform,
 			info.Tags,
+			info.Addr,
 		)
 	}
 

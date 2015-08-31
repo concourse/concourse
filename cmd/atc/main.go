@@ -315,6 +315,7 @@ func main() {
 			resourceTypesNG,
 			"linux",
 			[]string{},
+			*gardenAddr,
 		)
 	} else {
 		workerClient = worker.NewPool(worker.NewDBWorkerProvider(logger, db, keepaliveDialer))

@@ -44,6 +44,7 @@ type gardenWorker struct {
 	resourceTypes    []atc.WorkerResourceType
 	platform         string
 	tags             []string
+	name             string
 }
 
 func NewGardenWorker(
@@ -53,6 +54,7 @@ func NewGardenWorker(
 	resourceTypes []atc.WorkerResourceType,
 	platform string,
 	tags []string,
+	name string,
 ) Worker {
 	return &gardenWorker{
 		gardenClient: gardenClient,
@@ -62,6 +64,7 @@ func NewGardenWorker(
 		resourceTypes:    resourceTypes,
 		platform:         platform,
 		tags:             tags,
+		name:             name,
 	}
 }
 
@@ -208,7 +211,7 @@ func (worker *gardenWorker) Description() string {
 }
 
 func (worker *gardenWorker) Name() string {
-	return ""
+	return worker.name
 }
 
 type gardenWorkerContainer struct {

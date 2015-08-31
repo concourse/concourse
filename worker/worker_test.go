@@ -22,6 +22,7 @@ var _ = Describe("Worker", func() {
 		resourceTypes    []atc.WorkerResourceType
 		platform         string
 		tags             []string
+		name             string
 
 		worker Worker
 	)
@@ -35,6 +36,7 @@ var _ = Describe("Worker", func() {
 		}
 		platform = "some-platform"
 		tags = []string{"some", "tags"}
+		name = "my-garden-worker"
 	})
 
 	JustBeforeEach(func() {
@@ -45,6 +47,7 @@ var _ = Describe("Worker", func() {
 			resourceTypes,
 			platform,
 			tags,
+			name,
 		)
 	})
 
@@ -723,6 +726,12 @@ var _ = Describe("Worker", func() {
 					})
 				})
 			})
+		})
+	})
+
+	Describe("Name", func() {
+		It("responds correctly", func() {
+			Ω(worker.Name()).To(Equal(name))
 		})
 	})
 })
