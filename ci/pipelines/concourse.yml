@@ -235,6 +235,13 @@ jobs:
       releases:
         - garden-linux-release/*.tgz
         - candidate-release/concourse-*.tgz
+  - task: emit-yeller-deploy
+    file: concourse/ci/emit-yeller-deploy.yml
+    config:
+      params:
+        YELLER_API_KEY: {{yeller-api-key}}
+        YELLER_USER: {{yeller-user}}
+        YELLER_ENVIRONMENT: {{yeller-environment-name}}
   - put: tracker
     params: {repos: [concourse]}
 
