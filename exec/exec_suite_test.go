@@ -14,7 +14,11 @@ func TestExec(t *testing.T) {
 	RunSpecs(t, "Exec Suite")
 }
 func successResult(result Success) func(dest interface{}) bool {
+	defer GinkgoRecover()
+
 	return func(dest interface{}) bool {
+		defer GinkgoRecover()
+
 		switch x := dest.(type) {
 		case *Success:
 			*x = result

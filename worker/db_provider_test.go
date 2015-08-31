@@ -129,6 +129,7 @@ var _ = Describe("DBProvider", func() {
 				fakeContainer.HandleReturns("created-handle")
 
 				workerA.CreateReturns(fakeContainer, nil)
+				workerA.LookupReturns(fakeContainer, nil)
 
 				container, err := workers[0].CreateContainer(id, spec)
 				Ω(err).ShouldNot(HaveOccurred())
@@ -154,6 +155,7 @@ var _ = Describe("DBProvider", func() {
 				fakeContainer.HandleReturns("some-handle")
 
 				workerA.ContainersReturns([]garden.Container{fakeContainer}, nil)
+				workerA.LookupReturns(fakeContainer, nil)
 
 				container, err := workers[0].FindContainerForIdentifier(Identifier{Name: "some-name"})
 				Ω(err).ShouldNot(HaveOccurred())

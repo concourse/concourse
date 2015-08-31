@@ -33,7 +33,7 @@ type Container interface {
 
 	Release()
 
-	IdentifierFromProperties() (Identifier, error)
+	IdentifierFromProperties() Identifier
 }
 
 type Identifier struct {

@@ -44,6 +44,8 @@ var _ = Describe("GardenFactory", func() {
 		fakeWorkerClient = new(wfakes.FakeClient)
 
 		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, func() string {
+			defer GinkgoRecover()
+
 			return "a-random-guid"
 		})
 
@@ -79,13 +81,20 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			step = factory.Task(sourceName, identifier, taskDelegate, privileged, tags, configSource).Using(inStep, repo)
+			step = factory.Task(
+				sourceName,
+				identifier,
+				taskDelegate,
+				privileged,
+				tags,
+				configSource,
+			).Using(inStep, repo)
 			process = ifrit.Invoke(step)
 		})
 
 		Context("when the container does not yet exist", func() {
 			BeforeEach(func() {
-				fakeWorkerClient.LookupContainerReturns(nil, errors.New("nope"))
+				fakeWorkerClient.FindContainerForIdentifierReturns(nil, errors.New("nope"))
 			})
 
 			Context("when the getting the config works", func() {
@@ -139,7 +148,7 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					It("looked up the container via the session ID", func() {
-						Ω(fakeWorkerClient.LookupContainerArgsForCall(0)).Should(Equal(identifier))
+						Ω(fakeWorkerClient.FindContainerForIdentifierArgsForCall(0)).Should(Equal(identifier))
 					})
 
 					It("gets the config from the input artifact soruce", func() {
@@ -541,6 +550,8 @@ var _ = Describe("GardenFactory", func() {
 						Describe("before saving the exit status property", func() {
 							BeforeEach(func() {
 								taskDelegate.FinishedStub = func(ExitStatus) {
+									defer GinkgoRecover()
+
 									callCount := fakeContainer.SetPropertyCallCount()
 
 									for i := 0; i < callCount; i++ {
@@ -563,6 +574,8 @@ var _ = Describe("GardenFactory", func() {
 
 							BeforeEach(func() {
 								fakeContainer.SetPropertyStub = func(name string, value string) error {
+									defer GinkgoRecover()
+
 									if name == "concourse:exit-status" {
 										return disaster
 									}
@@ -617,6 +630,8 @@ var _ = Describe("GardenFactory", func() {
 						Describe("before saving the exit status property", func() {
 							BeforeEach(func() {
 								taskDelegate.FinishedStub = func(ExitStatus) {
+									defer GinkgoRecover()
+
 									callCount := fakeContainer.SetPropertyCallCount()
 
 									for i := 0; i < callCount; i++ {
@@ -639,6 +654,8 @@ var _ = Describe("GardenFactory", func() {
 
 							BeforeEach(func() {
 								fakeContainer.SetPropertyStub = func(name string, value string) error {
+									defer GinkgoRecover()
+
 									if name == "concourse:exit-status" {
 										return disaster
 									}
@@ -702,11 +719,15 @@ var _ = Describe("GardenFactory", func() {
 							stopped = make(chan struct{})
 
 							fakeProcess.WaitStub = func() (int, error) {
+								defer GinkgoRecover()
+
 								<-stopped
 								return 128 + 15, nil
 							}
 
 							fakeContainer.StopStub = func(bool) error {
+								defer GinkgoRecover()
+
 								close(stopped)
 								return nil
 							}
@@ -791,12 +812,14 @@ var _ = Describe("GardenFactory", func() {
 
 			BeforeEach(func() {
 				fakeContainer = new(wfakes.FakeContainer)
-				fakeWorkerClient.LookupContainerReturns(fakeContainer, nil)
+				fakeWorkerClient.FindContainerForIdentifierReturns(fakeContainer, nil)
 			})
 
 			Context("when an exit status is already saved off", func() {
 				BeforeEach(func() {
 					fakeContainer.PropertyStub = func(name string) (string, error) {
+						defer GinkgoRecover()
+
 						switch name {
 						case "concourse:exit-status":
 							return "123", nil
@@ -844,6 +867,8 @@ var _ = Describe("GardenFactory", func() {
 			Context("when the process id can be found", func() {
 				BeforeEach(func() {
 					fakeContainer.PropertyStub = func(name string) (string, error) {
+						defer GinkgoRecover()
+
 						switch name {
 						case "concourse:task-process":
 							return "42", nil

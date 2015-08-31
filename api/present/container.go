@@ -3,13 +3,13 @@ package present
 import "github.com/concourse/atc/worker"
 
 func Container(container worker.Container) PresentedContainer {
-	properties := container.IdentifierFromProperties()
+	identifier := container.IdentifierFromProperties()
 	return PresentedContainer{
 		ID:           container.Handle(),
-		PipelineName: properties.PipelineName,
-		Type:         properties.Type,
-		Name:         properties.Name,
-		BuildID:      properties.BuildID,
+		PipelineName: identifier.PipelineName,
+		Type:         identifier.Type,
+		Name:         identifier.Name,
+		BuildID:      identifier.BuildID,
 	}
 }
 

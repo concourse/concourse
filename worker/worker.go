@@ -104,7 +104,7 @@ dance:
 		return nil, err
 	}
 
-	return newGardenWorkerContainer(gardenContainer, worker.gardenClient, worker.clock), nil
+	return newGardenWorkerContainer(gardenContainer, worker.gardenClient, worker.clock)
 }
 
 func (worker *gardenWorker) FindContainerForIdentifier(id Identifier) (Container, error) {
@@ -117,7 +117,7 @@ func (worker *gardenWorker) FindContainerForIdentifier(id Identifier) (Container
 	case 0:
 		return nil, ErrContainerNotFound
 	case 1:
-		return newGardenWorkerContainer(containers[0], worker.gardenClient, worker.clock), nil
+		return newGardenWorkerContainer(containers[0], worker.gardenClient, worker.clock)
 	default:
 		handles := []string{}
 
@@ -139,7 +139,10 @@ func (worker *gardenWorker) FindContainersForIdentifier(id Identifier) ([]Contai
 
 	gardenContainers := make([]Container, len(containers))
 	for i, c := range containers {
-		gardenContainers[i] = newGardenWorkerContainer(c, worker.gardenClient, worker.clock)
+		gardenContainers[i], err = newGardenWorkerContainer(c, worker.gardenClient, worker.clock)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return gardenContainers, nil
@@ -150,7 +153,7 @@ func (worker *gardenWorker) LookupContainer(handle string) (Container, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newGardenWorkerContainer(container, worker.gardenClient, worker.clock), nil
+	return newGardenWorkerContainer(container, worker.gardenClient, worker.clock)
 }
 
 func (worker *gardenWorker) ActiveContainers() int {
@@ -225,9 +228,11 @@ type gardenWorkerContainer struct {
 	heartbeating     *sync.WaitGroup
 
 	releaseOnce sync.Once
+
+	identifier Identifier
 }
 
-func newGardenWorkerContainer(container garden.Container, gardenClient garden.Client, clock clock.Clock) Container {
+func newGardenWorkerContainer(container garden.Container, gardenClient garden.Client, clock clock.Clock) (Container, error) {
 	workerContainer := &gardenWorkerContainer{
 		Container: container,
 
@@ -245,7 +250,12 @@ func newGardenWorkerContainer(container garden.Container, gardenClient garden.Cl
 	trackedContainers.Add(1)
 	metric.TrackedContainers.Inc()
 
-	return workerContainer
+	err := workerContainer.initializeIdentifier()
+	if err != nil {
+		workerContainer.Release()
+		return nil, err
+	}
+	return workerContainer, nil
 }
 
 func (container *gardenWorkerContainer) Destroy() error {
@@ -262,10 +272,11 @@ func (container *gardenWorkerContainer) Release() {
 	})
 }
 
-func (container *gardenWorkerContainer) IdentifierFromProperties() (Identifier, error) {
+func (container *gardenWorkerContainer) initializeIdentifier() error {
 	properties, err := container.Properties()
 	if err != nil {
-		return Identifier{}, err
+		fmt.Println("ERROR HERE")
+		return err
 	}
 
 	propertyPrefix := "concourse:"
@@ -285,7 +296,7 @@ func (container *gardenWorkerContainer) IdentifierFromProperties() (Identifier, 
 	if properties[buildIDKey] != "" {
 		identifier.BuildID, err = strconv.Atoi(properties[buildIDKey])
 		if err != nil {
-			return Identifier{}, nil
+			return err
 		}
 	}
 
@@ -298,7 +309,7 @@ func (container *gardenWorkerContainer) IdentifierFromProperties() (Identifier, 
 	if properties[stepLocationKey] != "" {
 		StepLocationUint, err := strconv.Atoi(properties[stepLocationKey])
 		if err != nil {
-			return Identifier{}, nil
+			return err
 		}
 		identifier.StepLocation = uint(StepLocationUint)
 	}
@@ -313,11 +324,16 @@ func (container *gardenWorkerContainer) IdentifierFromProperties() (Identifier, 
 		checkSourceString := properties[checkSourceKey]
 		err := json.Unmarshal([]byte(checkSourceString), &identifier.CheckSource)
 		if err != nil {
-			return Identifier{}, err
+			return err
 		}
 	}
 
-	return identifier, nil
+	container.identifier = identifier
+	return nil
+}
+
+func (container *gardenWorkerContainer) IdentifierFromProperties() Identifier {
+	return container.identifier
 }
 
 func (container *gardenWorkerContainer) heartbeat(pacemaker clock.Ticker) {

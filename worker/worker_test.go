@@ -421,6 +421,9 @@ var _ = Describe("Worker", func() {
 				fakeGardenClient.ContainersReturns([]garden.Container{fakeContainer}, nil)
 
 				name = "some-name"
+				fakeContainer.PropertiesReturns(garden.Properties{
+					"concourse:name": name,
+				}, nil)
 			})
 
 			It("succeeds", func() {
@@ -478,36 +481,10 @@ var _ = Describe("Worker", func() {
 				})
 
 				Describe("providing its Identifier", func() {
-					Context("when obtaining its properties succeeds", func() {
-						var properties garden.Properties
-						BeforeEach(func() {
-							properties = make(garden.Properties)
-							properties["concourse:name"] = name
+					It("can provide its Identifier", func() {
+						identifier := foundContainer.IdentifierFromProperties()
 
-							fakeContainer.PropertiesReturns(properties, nil)
-						})
-
-						It("can provide its Identifier without error", func() {
-							identifier, err := foundContainer.IdentifierFromProperties()
-
-							Ω(err).NotTo(HaveOccurred())
-							Ω(identifier.Name).Should(Equal(name))
-						})
-					})
-
-					Context("when obtaining its properties fails", func() {
-						var expectedErr error
-
-						BeforeEach(func() {
-							expectedErr = errors.New("failed to get properties")
-
-							fakeContainer.PropertiesReturns(nil, expectedErr)
-						})
-
-						It("forwards the error", func() {
-							_, err := foundContainer.IdentifierFromProperties()
-							Ω(err).To(Equal(expectedErr))
-						})
+						Ω(identifier.Name).Should(Equal(name))
 					})
 				})
 			})
