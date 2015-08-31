@@ -1,7 +1,7 @@
 ---
 platform: linux
 
-image: docker:///concourse/atc-ci
+image: docker:///concourse/git-resource
 
 params:
   YELLER_API_KEY:
