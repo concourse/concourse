@@ -18,7 +18,7 @@ type Client interface {
 	FindContainersForIdentifier(Identifier) ([]Container, error)
 
 	// LookupContainer performs a lookup for a container with the provided handle.
-	// Returns error and nil Container if no container is found for the provided handle.
+	// Returns (nil, garden.ContainerNotFoundError) if no container is found for the provided handle.
 	LookupContainer(string) (Container, error)
 
 	Name() string
@@ -96,6 +96,14 @@ const (
 	ContainerTypePut   ContainerType = "put"
 	ContainerTypeTask  ContainerType = "task"
 )
+
+type MultipleWorkersFoundContainerError struct {
+	Names []string
+}
+
+func (err MultipleWorkersFoundContainerError) Error() string {
+	return fmt.Sprintf("multiple workers found specified container, expected one: %s", strings.Join(err.Names, ", "))
+}
 
 type MultipleContainersError struct {
 	Handles []string

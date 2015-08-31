@@ -6,6 +6,8 @@ import (
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/cloudfoundry-incubator/garden"
 )
 
 //go:generate counterfeiter . WorkerProvider
@@ -210,8 +212,86 @@ func (pool *Pool) FindContainersForIdentifier(id Identifier) ([]Container, error
 	return containers, nil
 }
 
+type foundContainer struct {
+	workerName string
+	container  Container
+}
+
 func (pool *Pool) LookupContainer(handle string) (Container, error) {
-	return nil, nil
+	workers, err := pool.provider.Workers()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(workers) == 0 {
+		return nil, ErrNoWorkers
+	}
+
+	wg := new(sync.WaitGroup)
+	wg.Add(len(workers))
+
+	found := make(chan foundContainer, len(workers))
+	errors := make(chan workerErrorInfo, len(workers))
+
+	for _, worker := range workers {
+		go func(worker Worker) {
+			defer wg.Done()
+
+			container, err := worker.LookupContainer(handle)
+			if container != nil {
+				found <- foundContainer{
+					workerName: worker.Name(),
+					container:  container,
+				}
+			}
+			if err != nil {
+				_, ok := err.(garden.ContainerNotFoundError)
+				if !ok {
+					errors <- workerErrorInfo{
+						workerName: worker.Name(),
+						err:        err,
+					}
+				}
+			}
+		}(worker)
+	}
+
+	wg.Wait()
+
+	totalErrors := len(errors)
+
+	var multiWorkerError *MultiWorkerError
+	if totalErrors != 0 {
+		allErrors := make(map[string]error, totalErrors)
+
+		for i := 0; i < totalErrors; i++ {
+			e := <-errors
+
+			allErrors[e.workerName] = e.err
+		}
+
+		multiWorkerError = &MultiWorkerError{allErrors}
+	}
+
+	totalFound := len(found)
+	switch totalFound {
+	case 0:
+		return nil, garden.ContainerNotFoundError{}
+	case 1:
+		return (<-found).container, multiWorkerError
+	default:
+		names := make([]string, totalFound)
+
+		for i := 0; i < totalFound; i++ {
+			c := <-found
+			names[i] = c.workerName
+			if c.container != nil {
+				c.container.Release()
+			}
+		}
+
+		return nil, MultipleWorkersFoundContainerError{Names: names}
+	}
 }
 
 func (pool *Pool) Name() string {

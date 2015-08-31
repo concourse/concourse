@@ -3,6 +3,7 @@ package worker_test
 import (
 	"errors"
 
+	"github.com/cloudfoundry-incubator/garden"
 	. "github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/fakes"
 
@@ -147,6 +148,158 @@ var _ = Describe("Pool", func() {
 
 			It("returns the error", func() {
 				Ω(createErr).Should(Equal(disaster))
+			})
+		})
+	})
+
+	Describe("LookupContainer", func() {
+		var (
+			handle string
+		)
+
+		Context("with no workers", func() {
+			BeforeEach(func() {
+				fakeProvider.WorkersReturns([]Worker{}, nil)
+			})
+
+			It("returns ErrNoWorkers", func() {
+				_, err := pool.LookupContainer(handle)
+
+				Ω(err).Should(Equal(ErrNoWorkers))
+			})
+		})
+
+		Context("when getting the workers fails", func() {
+			disaster := errors.New("nope")
+
+			BeforeEach(func() {
+				fakeProvider.WorkersReturns(nil, disaster)
+			})
+
+			It("returns the error", func() {
+				_, err := pool.LookupContainer(handle)
+
+				Ω(err).Should(Equal(disaster))
+			})
+		})
+
+		Context("with multiple workers", func() {
+			var (
+				workerA *fakes.FakeWorker
+				workerB *fakes.FakeWorker
+
+				fakeContainer *fakes.FakeContainer
+			)
+
+			BeforeEach(func() {
+				workerA = new(fakes.FakeWorker)
+				workerB = new(fakes.FakeWorker)
+
+				// TODO: why do we need to set these?
+				workerA.ActiveContainersReturns(3)
+				workerB.ActiveContainersReturns(2)
+
+				fakeContainer = new(fakes.FakeContainer)
+				fakeContainer.HandleReturns("fake-container")
+
+				fakeProvider.WorkersReturns([]Worker{workerA, workerB}, nil)
+			})
+
+			Context("when a worker can locate the container", func() {
+				BeforeEach(func() {
+					workerA.LookupContainerReturns(fakeContainer, nil)
+					workerB.LookupContainerReturns(nil, garden.ContainerNotFoundError{})
+				})
+
+				It("returns the container", func() {
+					foundContainer, err := pool.LookupContainer(handle)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(foundContainer).Should(Equal(fakeContainer))
+				})
+
+				It("looks up by the given identifier", func() {
+					_, err := pool.LookupContainer(handle)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(workerA.LookupContainerCallCount()).Should(Equal(1))
+					Ω(workerB.LookupContainerCallCount()).Should(Equal(1))
+
+					Ω(workerA.LookupContainerArgsForCall(0)).Should(Equal(handle))
+					Ω(workerB.LookupContainerArgsForCall(0)).Should(Equal(handle))
+				})
+			})
+
+			Context("when a worker fails for a reason other than it cannot find a container", func() {
+				var (
+					workerBName      string
+					workerBErrString string
+				)
+
+				BeforeEach(func() {
+					workerBName = "worker-b"
+					workerBErrString = "some error from worker B"
+
+					workerB.NameReturns(workerBName)
+
+					workerA.LookupContainerReturns(fakeContainer, nil)
+					workerB.LookupContainerReturns(nil, errors.New(workerBErrString))
+				})
+
+				It("returns the container", func() {
+					foundContainer, _ := pool.LookupContainer(handle)
+
+					Ω(foundContainer).Should(Equal(fakeContainer))
+				})
+
+				It("returns an error identifing which worker errored", func() {
+					_, err := pool.LookupContainer(handle)
+					Ω(err).NotTo(BeNil())
+
+					Ω(err.Error()).Should(ContainSubstring(workerBName))
+					Ω(err.Error()).Should(ContainSubstring(workerBErrString))
+				})
+			})
+
+			Context("when no workers can locate the container", func() {
+				BeforeEach(func() {
+					workerA.LookupContainerReturns(nil, garden.ContainerNotFoundError{})
+					workerB.LookupContainerReturns(nil, garden.ContainerNotFoundError{})
+				})
+
+				It("returns ErrContainerNotFound", func() {
+					_, err := pool.LookupContainer(handle)
+					Ω(err).Should(Equal(garden.ContainerNotFoundError{}))
+				})
+			})
+
+			Context("when multiple workers can locate the container", func() {
+				var secondFakeContainer *fakes.FakeContainer
+
+				BeforeEach(func() {
+					secondFakeContainer = new(fakes.FakeContainer)
+					secondFakeContainer.HandleReturns("second-fake-container")
+
+					workerA.LookupContainerReturns(fakeContainer, nil)
+					workerB.LookupContainerReturns(secondFakeContainer, nil)
+
+					workerA.NameReturns("worker-a")
+					workerB.NameReturns("worker-b")
+				})
+
+				It("returns a MultipleWorkersFoundContainerError", func() {
+					_, err := pool.LookupContainer(handle)
+
+					Ω(err).Should(BeAssignableToTypeOf(MultipleWorkersFoundContainerError{}))
+					Ω(err.(MultipleWorkersFoundContainerError).Names).Should(ConsistOf("worker-a", "worker-b"))
+				})
+
+				It("releases all returned containers", func() {
+					_, _ = pool.LookupContainer(handle)
+
+					Ω(fakeContainer.ReleaseCallCount()).Should(Equal(1))
+					Ω(secondFakeContainer.ReleaseCallCount()).Should(Equal(1))
+				})
 			})
 		})
 	})
