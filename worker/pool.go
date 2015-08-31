@@ -295,7 +295,7 @@ func (pool *Pool) LookupContainer(handle string) (Container, error) {
 }
 
 func (pool *Pool) Name() string {
-	return ""
+	return "pool"
 }
 
 type byActiveContainers []Worker

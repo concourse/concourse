@@ -649,4 +649,9 @@ var _ = Describe("Pool", func() {
 			})
 		})
 	})
+	Describe("Name", func() {
+		It("responds correctly", func() {
+			Ω(pool.Name()).To(Equal("pool"))
+		})
+	})
 })
