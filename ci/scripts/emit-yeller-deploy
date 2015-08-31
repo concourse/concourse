@@ -4,6 +4,6 @@
 set -e
 set -x
 
-pushd concourse
-  curl -X POST "https://api.yellerapp.com/$YELLER_API_KEY/deploys?user=$YELLER_USER&revision=$(git rev-parse HEAD)&environment=$YELLER_ENVIRONMENT"
-popd
+cd concourse
+
+curl -X POST "https://api.yellerapp.com/$YELLER_API_KEY/deploys?user=$YELLER_USER&revision=$(git rev-parse HEAD)&environment=$YELLER_ENVIRONMENT"
