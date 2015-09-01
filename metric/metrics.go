@@ -1,7 +1,6 @@
 package metric
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/bigdatadev/goryman"
@@ -29,9 +28,10 @@ func (event SchedulingFullDuration) Emit(logger lager.Logger) {
 
 	emit(eventEmission{
 		event: goryman.Event{
-			Service: fmt.Sprintf("scheduling: full duration (ms, pipeline: %s)", event.PipelineName),
+			Service: "scheduling: full duration (ms)",
 			Metric:  ms(event.Duration),
 			State:   state,
+			Tags:    []string{"pipeline:" + event.PipelineName},
 		},
 
 		logger: logger.Session("full-scheduling-duration", lager.Data{
@@ -56,9 +56,10 @@ func (event SchedulingLoadVersionsDuration) Emit(logger lager.Logger) {
 
 	emit(eventEmission{
 		event: goryman.Event{
-			Service: fmt.Sprintf("scheduling: loading versions duration (ms, pipeline: %s)", event.PipelineName),
+			Service: "scheduling: loading versions duration (ms)",
 			Metric:  ms(event.Duration),
 			State:   state,
+			Tags:    []string{"pipeline:" + event.PipelineName},
 		},
 
 		logger: logger.Session("loading-versions-duration", lager.Data{
@@ -84,9 +85,10 @@ func (event SchedulingJobDuration) Emit(logger lager.Logger) {
 
 	emit(eventEmission{
 		event: goryman.Event{
-			Service: fmt.Sprintf("scheduling: job duration (ms, pipeline: %s, job: %s)", event.PipelineName, event.JobName),
+			Service: "scheduling: job duration (ms)",
 			Metric:  ms(event.Duration),
 			State:   state,
+			Tags:    []string{"pipeline:" + event.PipelineName, "job:" + event.JobName},
 		},
 
 		logger: logger.Session("job-scheduling-duration", lager.Data{
