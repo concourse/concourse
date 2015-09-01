@@ -256,8 +256,10 @@ var _ = Describe("Pool", func() {
 					_, err := pool.LookupContainer(handle)
 					Ω(err).NotTo(BeNil())
 
-					Ω(err.Error()).Should(ContainSubstring(workerBName))
-					Ω(err.Error()).Should(ContainSubstring(workerBErrString))
+					mwe, ok := err.(MultiWorkerError)
+					Ω(ok).To(BeTrue())
+					Ω(mwe.Errors()).To(Equal(map[string]error{
+						workerBName: errors.New(workerBErrString)}))
 				})
 			})
 
@@ -434,6 +436,11 @@ var _ = Describe("Pool", func() {
 
 						Ω(err.Error()).Should(ContainSubstring(workerBName))
 						Ω(err.Error()).Should(ContainSubstring(workerBErrString))
+
+						mwe, ok := err.(MultiWorkerError)
+						Ω(ok).To(BeTrue())
+						Ω(mwe.Errors()).To(Equal(map[string]error{
+							workerBName: errors.New(workerBErrString)}))
 					})
 				})
 
