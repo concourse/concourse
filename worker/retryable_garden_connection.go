@@ -365,11 +365,6 @@ func (conn *RetryableConnection) retry(action func() error) error {
 		}
 
 		if !conn.retryable(err) {
-			retryLogger.Error("non-retryable-error", err, lager.Data{
-				"failed-attempts": failedAttempts,
-				"ran-for":         time.Now().Sub(startTime).String(),
-			})
-
 			break
 		}
 
@@ -377,7 +372,7 @@ func (conn *RetryableConnection) retry(action func() error) error {
 
 		delay, keepRetrying := conn.RetryPolicy.DelayFor(failedAttempts)
 		if !keepRetrying {
-			retryLogger.Info("giving-up", lager.Data{
+			retryLogger.Error("giving-up", lager.Data{
 				"total-failed-attempts": failedAttempts,
 				"ran-for":               time.Now().Sub(startTime).String(),
 			})
@@ -385,7 +380,7 @@ func (conn *RetryableConnection) retry(action func() error) error {
 			break
 		}
 
-		retryLogger.Error("retrying", err, lager.Data{
+		retryLogger.Info("retrying", lager.Data{
 			"failed-attempts": failedAttempts,
 			"next-attempt-in": delay.String(),
 			"ran-for":         time.Now().Sub(startTime).String(),

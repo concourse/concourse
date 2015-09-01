@@ -102,7 +102,7 @@ func (delegate *delegate) Finish(logger lager.Logger, err error, succeeded exec.
 	} else if err != nil && !strings.Contains(err.Error(), exec.ErrStepTimedOut.Error()) {
 		delegate.saveStatus(logger, atc.StatusErrored)
 
-		logger.Error("errored", err)
+		logger.Info("errored", lager.Data{"error": err.Error()})
 	} else if bool(succeeded) {
 		delegate.saveStatus(logger, atc.StatusSucceeded)
 

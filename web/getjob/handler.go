@@ -161,7 +161,7 @@ func (server *server) GetJob(pipelineDB db.PipelineDB) http.Handler {
 		)
 		switch err {
 		case ErrJobConfigNotFound:
-			log.Error("could-not-find-job-in-config", ErrJobConfigNotFound, lager.Data{
+			log.Info("could-not-find-job-in-config", lager.Data{
 				"job": jobName,
 			})
 			w.WriteHeader(http.StatusNotFound)
