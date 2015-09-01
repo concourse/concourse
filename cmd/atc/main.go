@@ -240,7 +240,7 @@ func main() {
 
 	if *riemannAddr != "" {
 		host := *riemannHost
-		if host != "" {
+		if host == "" {
 			host, _ = os.Hostname()
 		}
 
