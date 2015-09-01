@@ -39,6 +39,7 @@ import (
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/exec"
+	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/pipelines"
 	rdr "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/resource"
@@ -46,35 +47,6 @@ import (
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/worker"
 )
-
-func keepaliveDialer(network string, address string) (net.Conn, error) {
-	conn, err := net.DialTimeout(network, address, 5*time.Second)
-	if err != nil {
-		return nil, err
-	}
-
-	kac, err := tcpkeepalive.EnableKeepAlive(conn)
-	if err != nil {
-		println("failed to enable connection keepalive: " + err.Error())
-	}
-
-	err = kac.SetKeepAliveIdle(10 * time.Second)
-	if err != nil {
-		println("failed to set keepalive idle threshold: " + err.Error())
-	}
-
-	err = kac.SetKeepAliveCount(3)
-	if err != nil {
-		println("failed to set keepalive count: " + err.Error())
-	}
-
-	err = kac.SetKeepAliveInterval(5 * time.Second)
-	if err != nil {
-		println("failed to set keepalive interval: " + err.Error())
-	}
-
-	return conn, nil
-}
 
 var pipelinePath = flag.String(
 	"pipeline",
@@ -224,6 +196,18 @@ var yellerEnvironment = flag.String(
 	"environment label for Yeller",
 )
 
+var riemannAddr = flag.String(
+	"riemannAddr",
+	"",
+	"Address of a Riemann server to emit metrics to.",
+)
+
+var riemannHost = flag.String(
+	"riemannHost",
+	"",
+	"Host name to associate with metrics emitted.",
+)
+
 func main() {
 	flag.Parse()
 
@@ -252,6 +236,15 @@ func main() {
 	if *yellerAPIKey != "" {
 		yellerSink := zest.NewYellerSink(*yellerAPIKey, *yellerEnvironment)
 		logger.RegisterSink(yellerSink)
+	}
+
+	if *riemannAddr != "" {
+		host := *riemannHost
+		if host != "" {
+			host, _ = os.Hostname()
+		}
+
+		metric.Initialize(*riemannAddr, host)
 	}
 
 	var err error
@@ -510,4 +503,33 @@ func main() {
 func fatal(err error) {
 	println(err.Error())
 	os.Exit(1)
+}
+
+func keepaliveDialer(network string, address string) (net.Conn, error) {
+	conn, err := net.DialTimeout(network, address, 5*time.Second)
+	if err != nil {
+		return nil, err
+	}
+
+	kac, err := tcpkeepalive.EnableKeepAlive(conn)
+	if err != nil {
+		println("failed to enable connection keepalive: " + err.Error())
+	}
+
+	err = kac.SetKeepAliveIdle(10 * time.Second)
+	if err != nil {
+		println("failed to set keepalive idle threshold: " + err.Error())
+	}
+
+	err = kac.SetKeepAliveCount(3)
+	if err != nil {
+		println("failed to set keepalive count: " + err.Error())
+	}
+
+	err = kac.SetKeepAliveInterval(5 * time.Second)
+	if err != nil {
+		println("failed to set keepalive interval: " + err.Error())
+	}
+
+	return conn, nil
 }

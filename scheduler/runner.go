@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
+	"github.com/concourse/atc/metric"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -70,8 +71,6 @@ dance:
 }
 
 func (runner *Runner) tick(logger lager.Logger) error {
-	start := time.Now()
-
 	config, _, err := runner.DB.GetConfig()
 	if err != nil {
 		if err == db.ErrPipelineNotFound {
@@ -100,9 +99,13 @@ func (runner *Runner) tick(logger lager.Logger) error {
 
 	defer schedulingLock.Release()
 
-	logger.Info("start")
+	start := time.Now()
+
 	defer func() {
-		logger.Info("done", lager.Data{"took": time.Since(start).String()})
+		metric.SchedulingFullDuration{
+			PipelineName: runner.DB.GetPipelineName(),
+			Duration:     time.Since(start),
+		}.Emit(logger)
 	}()
 
 	versions, err := runner.DB.LoadVersionsDB()
@@ -111,14 +114,25 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		return err
 	}
 
-	logger.Info("loaded-versions", lager.Data{"took": time.Since(start).String()})
+	metric.SchedulingLoadVersionsDuration{
+		PipelineName: runner.DB.GetPipelineName(),
+		Duration:     time.Since(start),
+	}.Emit(logger)
 
 	for _, job := range config.Jobs {
 		sLog := logger.Session("scheduling", lager.Data{
 			"job": job.Name,
 		})
 
+		jStart := time.Now()
+
 		runner.schedule(sLog, versions, job, config.Resources)
+
+		metric.SchedulingJobDuration{
+			PipelineName: runner.DB.GetPipelineName(),
+			JobName:      job.Name,
+			Duration:     time.Since(jStart),
+		}.Emit(sLog)
 	}
 
 	return nil
