@@ -18,7 +18,7 @@ func (s *Server) GetContainer(w http.ResponseWriter, r *http.Request) {
 
 	container, err := s.workerClient.LookupContainer(handle)
 	if err != nil {
-		hLog.Error("failed-to-get-container", err)
+		hLog.Info("failed-to-get-container", lager.Data{"error": err})
 		http.Error(w, fmt.Sprintf("failed to get container: %s", err), http.StatusNotFound)
 		return
 	}

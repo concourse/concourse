@@ -8,7 +8,13 @@ import (
 
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/worker"
+	"github.com/pivotal-golang/lager"
 )
+
+type listContainersReturn struct {
+	Containers []present.PresentedContainer
+	Errors     []string
+}
 
 func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 	workerIdentifier, err := s.parseRequest(r)
@@ -17,7 +23,24 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	containers, _ := s.workerClient.FindContainersForIdentifier(workerIdentifier)
+	w.Header().Set("Content-Type", "application/json")
+
+	var errors []string
+	containers, err := s.workerClient.FindContainersForIdentifier(workerIdentifier)
+	if err != nil {
+		// If MulitWorkerError then iterate over each error and append workerName: error: etc
+		if mwe, ok := err.(worker.MultiWorkerError); ok {
+			for workerName, workerErr := range mwe.Errors() {
+				errors = append(errors, fmt.Sprintf("workerName: %s, error: %s",
+					workerName, workerErr.Error()))
+			}
+		} else {
+			errors = make([]string, 1)
+			errors[0] = err.Error()
+		}
+		s.logger.Info("failed-to-get-container", lager.Data{"error": err})
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 
 	presentedContainers := make([]present.PresentedContainer, len(containers))
 	for i := 0; i < len(containers); i++ {
@@ -26,9 +49,11 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 		container.Release()
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-
-	json.NewEncoder(w).Encode(presentedContainers)
+	returnBody := listContainersReturn{
+		Containers: presentedContainers,
+		Errors:     errors,
+	}
+	json.NewEncoder(w).Encode(returnBody)
 }
 
 func (s *Server) parseRequest(r *http.Request) (worker.Identifier, error) {
