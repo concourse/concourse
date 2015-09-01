@@ -53,7 +53,7 @@ func emitLoop() {
 			err := riemannClient.Connect()
 			if err != nil {
 				emission.logger.Error("connection-failed", err)
-				return
+				continue
 			}
 
 			clientConnected = true
