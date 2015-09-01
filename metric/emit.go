@@ -2,7 +2,6 @@ package metric
 
 import (
 	"errors"
-	"sync"
 	"time"
 
 	"github.com/bigdatadev/goryman"
@@ -15,11 +14,9 @@ type eventEmission struct {
 }
 
 var riemannClient *goryman.GorymanClient
+var eventHost string
 
 var clientConnected bool
-var connectionL *sync.Mutex
-
-var host string
 var emissions = make(chan eventEmission, 1000)
 
 var errQueueFull = errors.New("event queue is full")
@@ -28,7 +25,7 @@ func Initialize(riemannAddr string, host string) {
 	client := goryman.NewGorymanClient(riemannAddr)
 
 	riemannClient = client
-	connectionL = new(sync.Mutex)
+	eventHost = host
 
 	go emitLoop()
 }
@@ -40,7 +37,7 @@ func emit(emission eventEmission) {
 		return
 	}
 
-	emission.event.Host = host
+	emission.event.Host = eventHost
 	emission.event.Time = time.Now().Unix()
 
 	select {
