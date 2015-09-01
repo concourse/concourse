@@ -140,7 +140,7 @@
 	branch = master
 [submodule "src/github.com/concourse/tsa"]
 	path = src/github.com/concourse/tsa
-	url = https://github.com/concourse/tsa
+	url = git@github.com:concourse/tsa.git
 	branch = master
 [submodule "src/golang.org/x/crypto"]
 	path = src/golang.org/x/crypto
@@ -152,7 +152,7 @@
 	branch = master
 [submodule "src/github.com/concourse/jettison"]
 	path = src/github.com/concourse/jettison
-	url = https://github.com/concourse/jettison
+	url = git@github.com:concourse/jettison.git
 	branch = master
 [submodule "src/github.com/cloudfoundry/gunk"]
 	path = src/github.com/cloudfoundry/gunk
