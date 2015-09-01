@@ -105,7 +105,7 @@ type WorkerContainers struct {
 func (event WorkerContainers) Emit(logger lager.Logger) {
 	emit(eventEmission{
 		event: goryman.Event{
-			Service: "scheduling: job duration (ms)",
+			Service: "worker containers",
 			Metric:  event.Containers,
 			State:   "ok",
 			Tags:    []string{"worker:" + event.WorkerAddr},
