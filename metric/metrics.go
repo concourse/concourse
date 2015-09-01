@@ -16,8 +16,6 @@ type SchedulingFullDuration struct {
 	Duration     time.Duration
 }
 
-const msConversion = 1000000
-
 func (event SchedulingFullDuration) Emit(logger lager.Logger) {
 	state := "ok"
 	if event.Duration > time.Second {
@@ -95,6 +93,27 @@ func (event SchedulingJobDuration) Emit(logger lager.Logger) {
 			"pipeline": event.PipelineName,
 			"job":      event.JobName,
 			"duration": event.Duration.String(),
+		}),
+	})
+}
+
+type WorkerContainers struct {
+	WorkerAddr string
+	Containers int
+}
+
+func (event WorkerContainers) Emit(logger lager.Logger) {
+	emit(eventEmission{
+		event: goryman.Event{
+			Service: "scheduling: job duration (ms)",
+			Metric:  event.Containers,
+			State:   "ok",
+			Tags:    []string{"worker:" + event.WorkerAddr},
+		},
+
+		logger: logger.Session("worker-containers", lager.Data{
+			"worker":     event.WorkerAddr,
+			"containers": event.Containers,
 		}),
 	})
 }
