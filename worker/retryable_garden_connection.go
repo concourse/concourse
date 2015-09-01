@@ -372,7 +372,7 @@ func (conn *RetryableConnection) retry(action func() error) error {
 
 		delay, keepRetrying := conn.RetryPolicy.DelayFor(failedAttempts)
 		if !keepRetrying {
-			retryLogger.Error("giving-up", lager.Data{
+			retryLogger.Error("giving-up", errors.New("giving up"), lager.Data{
 				"total-failed-attempts": failedAttempts,
 				"ran-for":               time.Now().Sub(startTime).String(),
 			})
