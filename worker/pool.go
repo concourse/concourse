@@ -276,14 +276,13 @@ func (pool *Pool) LookupContainer(handle string) (Container, error) {
 	totalFound := len(found)
 	switch totalFound {
 	case 0:
-		return nil, garden.ContainerNotFoundError{}
-	case 1:
-		foundContainer := (<-found).container
 		if multiWorkerError != nil {
-			return foundContainer, *multiWorkerError
+			return nil, *multiWorkerError
 		} else {
-			return foundContainer, nil
+			return nil, garden.ContainerNotFoundError{}
 		}
+	case 1:
+		return (<-found).container, nil
 	default:
 		names := make([]string, totalFound)
 

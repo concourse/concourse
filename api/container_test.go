@@ -434,7 +434,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when the container is not found", func() {
 			BeforeEach(func() {
-				fakeWorkerClient.LookupContainerReturns(fakeContainer1, worker.ErrContainerNotFound)
+				fakeWorkerClient.LookupContainerReturns(fakeContainer1, garden.ContainerNotFoundError{})
 			})
 
 			It("returns 404 Not Found", func() {
@@ -497,6 +497,69 @@ var _ = Describe("Pipelines API", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(fakeContainer1.ReleaseCallCount()).Should(Equal(1))
+			})
+		})
+
+		Context("when a worker fails", func() {
+			Context("when a container is not found", func() {
+				var (
+					workerName      string
+					workerErrorText string
+				)
+				BeforeEach(func() {
+					fakeErr := new(worker.MultiWorkerError)
+					workerName = "worker1"
+					workerErrorText = "bad things afoot"
+					fakeErr.AddError(workerName, errors.New(workerErrorText))
+					fakeWorkerClient.LookupContainerReturns(nil, *fakeErr)
+				})
+				It("returns 500 internal error", func() {
+					response, err := client.Do(req)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				})
+				It("Returns an error containing the worker name and the error message", func() {
+					response, err := client.Do(req)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					b, err := ioutil.ReadAll(response.Body)
+					body := string(b)
+					Ω(body).To(ContainSubstring(workerName))
+					Ω(body).To(ContainSubstring(workerErrorText))
+				})
+			})
+			Context("when a container is found", func() {
+				BeforeEach(func() {
+					fakeWorkerClient.LookupContainerReturns(fakeContainer1, nil)
+				})
+
+				It("returns 200 OK", func() {
+					response, err := client.Do(req)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				})
+
+				It("Returns the container", func() {
+					response, err := client.Do(req)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					b, err := ioutil.ReadAll(response.Body)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					var actual present.PresentedContainer
+					err = json.Unmarshal(b, &actual)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					expected := expectedPresentedContainer1
+
+					Ω(actual.PipelineName).To(Equal(expected.PipelineName))
+					Ω(actual.Type).To(Equal(expected.Type))
+					Ω(actual.Name).To(Equal(expected.Name))
+					Ω(actual.BuildID).To(Equal(expected.BuildID))
+					Ω(actual.ID).To(Equal(expected.ID))
+				})
 			})
 		})
 	})

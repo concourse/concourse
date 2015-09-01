@@ -235,31 +235,46 @@ var _ = Describe("Pool", func() {
 					workerBName      string
 					workerBErrString string
 				)
-
 				BeforeEach(func() {
 					workerBName = "worker-b"
 					workerBErrString = "some error from worker B"
 
 					workerB.NameReturns(workerBName)
-
-					workerA.LookupContainerReturns(fakeContainer, nil)
 					workerB.LookupContainerReturns(nil, errors.New(workerBErrString))
 				})
 
-				It("returns the container", func() {
-					foundContainer, _ := pool.LookupContainer(handle)
+				Context("when another worker finds a container", func() {
+					BeforeEach(func() {
+						workerA.LookupContainerReturns(fakeContainer, nil)
+					})
 
-					Ω(foundContainer).Should(Equal(fakeContainer))
+					It("returns the container", func() {
+						foundContainer, _ := pool.LookupContainer(handle)
+
+						Ω(foundContainer).Should(Equal(fakeContainer))
+					})
+
+					It("doesn't return an error", func() {
+						_, err := pool.LookupContainer(handle)
+						Ω(err).To(BeNil())
+					})
 				})
 
-				It("returns an error identifing which worker errored", func() {
-					_, err := pool.LookupContainer(handle)
-					Ω(err).NotTo(BeNil())
+				Context("when no worker finds a container", func() {
+					BeforeEach(func() {
+						workerA.LookupContainerReturns(nil, garden.ContainerNotFoundError{})
+					})
 
-					mwe, ok := err.(MultiWorkerError)
-					Ω(ok).To(BeTrue())
-					Ω(mwe.Errors()).To(Equal(map[string]error{
-						workerBName: errors.New(workerBErrString)}))
+					It("returns an error identifing which worker errored", func() {
+						_, err := pool.LookupContainer(handle)
+						Ω(err).NotTo(BeNil())
+
+						mwe, ok := err.(MultiWorkerError)
+						Ω(ok).To(BeTrue())
+						Ω(mwe.Errors()).To(Equal(map[string]error{
+							workerBName: errors.New(workerBErrString)}))
+					})
+
 				})
 			})
 
