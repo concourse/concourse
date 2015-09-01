@@ -76,6 +76,10 @@ properties:
     description: "environment name you wish to group errors under in yeller"
     default: ""
 
+  atc.riemann.address:
+    description: "address of a Riemann server to emit events to"
+    default: ""
+
   atc.postgresql.address:
     description: "address of the PostgreSQL server"
     default: postgresql.service.dc1.consul:5432

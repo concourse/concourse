@@ -182,3 +182,11 @@
 	path = src/github.com/xoebus/zest
 	url = https://github.com/xoebus/zest
 	branch = master
+[submodule "src/github.com/bigdatadev/goryman"]
+	path = src/github.com/bigdatadev/goryman
+	url = https://github.com/bigdatadev/goryman
+	branch = master
+[submodule "src/github.com/golang/protobuf"]
+	path = src/github.com/golang/protobuf
+	url = https://github.com/golang/protobuf
+	branch = master

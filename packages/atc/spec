@@ -11,6 +11,8 @@ files:
   - code.google.com/p/go.crypto/bcrypt/*.go # gosub
   - code.google.com/p/go.crypto/blowfish/*.go # gosub
   - github.com/BurntSushi/migration/*.go # gosub
+  - github.com/bigdatadev/goryman/*.go # gosub
+  - github.com/bigdatadev/goryman/proto/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
   - github.com/cloudfoundry-incubator/garden/*.go # gosub
   - github.com/cloudfoundry-incubator/garden/client/*.go # gosub
@@ -43,6 +45,7 @@ files:
   - github.com/concourse/atc/engine/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
   - github.com/concourse/atc/exec/*.go # gosub
+  - github.com/concourse/atc/metric/*.go # gosub
   - github.com/concourse/atc/pipelines/*.go # gosub
   - github.com/concourse/atc/radar/*.go # gosub
   - github.com/concourse/atc/resource/*.go # gosub
@@ -63,6 +66,7 @@ files:
   - github.com/concourse/atc/web/triggerbuild/*.go # gosub
   - github.com/concourse/atc/worker/*.go # gosub
   - github.com/felixge/tcpkeepalive/*.go # gosub
+  - github.com/golang/protobuf/proto/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
   - github.com/lib/pq/*.go # gosub
   - github.com/lib/pq/oid/*.go # gosub

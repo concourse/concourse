@@ -72,6 +72,8 @@ case $1 in
       -cliDownloadsDir=/var/vcap/packages/fly \
       -yellerAPIKey=<%= esc(p("atc.yeller.api_key")) %> \
       -yellerEnvironment=<%= esc(p("atc.yeller.environment_name")) %> \
+      -riemannAddr=<%= esc(p("atc.riemann.address")) %> \
+      -riemannHost=<%= name %>-<%= index %> \
       1>>$LOG_DIR/atc.stdout.log \
       2>>$LOG_DIR/atc.stderr.log
 
