@@ -772,6 +772,31 @@ var _ = Describe("Pipelines API", func() {
 				})
 			})
 
+			Context("when a worker fails", func() {
+				Context("when a container is not found", func() {
+					var (
+						workerName      string
+						workerErrorText string
+					)
+					BeforeEach(func() {
+						fakeErr := new(worker.MultiWorkerError)
+						workerName = "worker1"
+						workerErrorText = "bad things afoot"
+						fakeErr.AddError(workerName, errors.New(workerErrorText))
+						fakeWorkerClient.LookupContainerReturns(nil, *fakeErr)
+					})
+					It("returns 500 internal error", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					})
+					It("Returns an error containing the worker name and the error message", func() {
+						b, _ := ioutil.ReadAll(response.Body)
+						body := string(b)
+						Ω(body).To(ContainSubstring(workerName))
+						Ω(body).To(ContainSubstring(workerErrorText))
+					})
+				})
+			})
+
 			Context("when the request payload is invalid", func() {
 				BeforeEach(func() {
 					requestPayload = "ß"

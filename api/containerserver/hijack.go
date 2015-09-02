@@ -55,7 +55,11 @@ func (s *Server) hijack(w http.ResponseWriter, request hijackRequest) {
 	container, err := s.workerClient.LookupContainer(request.ContainerHandle)
 	if err != nil {
 		hLog.Error("failed-to-get-container", err)
-		http.Error(w, fmt.Sprintf("failed to get container: %s", err), http.StatusNotFound)
+		if _, ok := err.(garden.ContainerNotFoundError); ok {
+			http.Error(w, fmt.Sprintf("failed to get container: %s", err), http.StatusNotFound)
+		} else {
+			http.Error(w, fmt.Sprintf("failed to get container: %s", err), http.StatusInternalServerError)
+		}
 		return
 	}
 
