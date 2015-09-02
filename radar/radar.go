@@ -169,9 +169,13 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 	}
 
 	if err != nil {
-		if _, ok := err.(resource.ErrResourceScriptFailed); !ok {
-			logger.Error("failed-to-check", err)
+		if rErr, ok := err.(resource.ErrResourceScriptFailed); ok {
+			logger.Info("check-failed", lager.Data{"exit-status": rErr.ExitStatus})
+			return nil
 		}
+
+		logger.Error("failed-to-check", err)
+
 		return err
 	}
 

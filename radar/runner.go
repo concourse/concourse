@@ -90,9 +90,15 @@ dance:
 			break dance
 
 		case exited := <-exits:
-			runner.logger.Error("scanner-exited", exited.Err, lager.Data{
-				"member": exited.Member.Name,
-			})
+			if exited.Err != nil {
+				runner.logger.Error("scanner-failed", exited.Err, lager.Data{
+					"member": exited.Member.Name,
+				})
+			} else {
+				runner.logger.Info("scanner-exited", lager.Data{
+					"member": exited.Member.Name,
+				})
+			}
 
 			delete(scanning, exited.Member.Name)
 
