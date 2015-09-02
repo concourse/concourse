@@ -16,18 +16,20 @@ type eventEmission struct {
 var riemannClient *goryman.GorymanClient
 var eventHost string
 var eventTags []string
+var eventAttributes map[string]string
 
 var clientConnected bool
 var emissions = make(chan eventEmission, 1000)
 
 var errQueueFull = errors.New("event queue is full")
 
-func Initialize(riemannAddr string, host string, tags []string) {
+func Initialize(riemannAddr string, host string, tags []string, attributes map[string]string) {
 	client := goryman.NewGorymanClient(riemannAddr)
 
 	riemannClient = client
 	eventHost = host
 	eventTags = tags
+	eventAttributes = attributes
 
 	go emitLoop()
 }
@@ -42,6 +44,19 @@ func emit(emission eventEmission) {
 	emission.event.Host = eventHost
 	emission.event.Time = time.Now().Unix()
 	emission.event.Tags = append(emission.event.Tags, eventTags...)
+
+	mergedAttributes := map[string]string{}
+	for k, v := range eventAttributes {
+		mergedAttributes[k] = v
+	}
+
+	if emission.event.Attributes != nil {
+		for k, v := range emission.event.Attributes {
+			mergedAttributes[k] = v
+		}
+	}
+
+	emission.event.Attributes = mergedAttributes
 
 	select {
 	case emissions <- emission:

@@ -211,7 +211,13 @@ var riemannHost = flag.String(
 var riemannTags = flag.String(
 	"riemannTags",
 	"",
-	"Comma-separated list of tags to attach to all emitted metrics.",
+	"Comma-separated list of tags to attach to all emitted metrics, e.g. tag-1,tag-2.",
+)
+
+var riemannAttributes = flag.String(
+	"riemannAttributes",
+	"",
+	"Comma-separated list of key-value pairs to attach to all emitted metrics, e.g. a=b,c=d.",
 )
 
 func main() {
@@ -250,7 +256,12 @@ func main() {
 			host, _ = os.Hostname()
 		}
 
-		metric.Initialize(*riemannAddr, host, strings.Split(*riemannTags, ","))
+		metric.Initialize(
+			*riemannAddr,
+			host,
+			strings.Split(*riemannTags, ","),
+			parseAttributes(logger, *riemannAttributes),
+		)
 	}
 
 	var err error
@@ -509,6 +520,20 @@ func main() {
 func fatal(err error) {
 	println(err.Error())
 	os.Exit(1)
+}
+
+func parseAttributes(logger lager.Logger, pairs string) map[string]string {
+	attributes := map[string]string{}
+	for _, pair := range strings.Split(*riemannAttributes, ",") {
+		segs := strings.SplitN(pair, "=", 2)
+		if len(segs) != 2 {
+			logger.Fatal("malformed-key-value-pair", nil, lager.Data{"pair": pair})
+		}
+
+		attributes[segs[0]] = attributes[segs[1]]
+	}
+
+	return attributes
 }
 
 func keepaliveDialer(network string, address string) (net.Conn, error) {
