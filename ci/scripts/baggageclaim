@@ -34,4 +34,4 @@ function salt_earth() {
 containers_gone_wild
 trap salt_earth EXIT
 
-ginkgo -r -race -nodes 4 --failOnPending --randomizeAllSpecs "$@"
+ginkgo -r -race -nodes 4 --failOnPending --randomizeAllSpecs --keepGoing "$@"
