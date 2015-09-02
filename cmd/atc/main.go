@@ -208,6 +208,12 @@ var riemannHost = flag.String(
 	"Host name to associate with metrics emitted.",
 )
 
+var riemannTags = flag.String(
+	"riemannTags",
+	"",
+	"Comma-separated list of tags to attach to all emitted metrics.",
+)
+
 func main() {
 	flag.Parse()
 
@@ -244,7 +250,7 @@ func main() {
 			host, _ = os.Hostname()
 		}
 
-		metric.Initialize(*riemannAddr, host)
+		metric.Initialize(*riemannAddr, host, strings.Split(*riemannTags, ","))
 	}
 
 	var err error
