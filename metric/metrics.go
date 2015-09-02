@@ -29,7 +29,9 @@ func (event SchedulingFullDuration) Emit(logger lager.Logger) {
 			Service: "scheduling: full duration (ms)",
 			Metric:  ms(event.Duration),
 			State:   state,
-			Tags:    []string{"pipeline:" + event.PipelineName},
+			Attributes: map[string]string{
+				"pipeline": event.PipelineName,
+			},
 		},
 
 		logger: logger.Session("full-scheduling-duration", lager.Data{
@@ -57,7 +59,9 @@ func (event SchedulingLoadVersionsDuration) Emit(logger lager.Logger) {
 			Service: "scheduling: loading versions duration (ms)",
 			Metric:  ms(event.Duration),
 			State:   state,
-			Tags:    []string{"pipeline:" + event.PipelineName},
+			Attributes: map[string]string{
+				"pipeline": event.PipelineName,
+			},
 		},
 
 		logger: logger.Session("loading-versions-duration", lager.Data{
@@ -86,7 +90,10 @@ func (event SchedulingJobDuration) Emit(logger lager.Logger) {
 			Service: "scheduling: job duration (ms)",
 			Metric:  ms(event.Duration),
 			State:   state,
-			Tags:    []string{"pipeline:" + event.PipelineName, "job:" + event.JobName},
+			Attributes: map[string]string{
+				"pipeline": event.PipelineName,
+				"job":      event.JobName,
+			},
 		},
 
 		logger: logger.Session("job-scheduling-duration", lager.Data{
@@ -108,7 +115,9 @@ func (event WorkerContainers) Emit(logger lager.Logger) {
 			Service: "worker containers",
 			Metric:  event.Containers,
 			State:   "ok",
-			Tags:    []string{"worker:" + event.WorkerAddr},
+			Attributes: map[string]string{
+				"worker": event.WorkerAddr,
+			},
 		},
 
 		logger: logger.Session("worker-containers", lager.Data{
