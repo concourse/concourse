@@ -10,6 +10,8 @@ files:
   - github.com/bmizerany/pat/*.go # gosub
   - github.com/concourse/baggageclaim/*.go # gosub
   - github.com/concourse/baggageclaim/api/*.go # gosub
+  - github.com/concourse/baggageclaim/bomberman/*.go # gosub
+  - github.com/concourse/baggageclaim/bomberman/timebomb/*.go # gosub
   - github.com/concourse/baggageclaim/fs/*.go # gosub
   - github.com/concourse/baggageclaim/volume/*.go # gosub
   - github.com/concourse/baggageclaim/volume/driver/*.go # gosub
