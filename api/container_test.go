@@ -523,42 +523,10 @@ var _ = Describe("Pipelines API", func() {
 					response, err := client.Do(req)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					b, err := ioutil.ReadAll(response.Body)
+					b, _ := ioutil.ReadAll(response.Body)
 					body := string(b)
 					Ω(body).To(ContainSubstring(workerName))
 					Ω(body).To(ContainSubstring(workerErrorText))
-				})
-			})
-			Context("when a container is found", func() {
-				BeforeEach(func() {
-					fakeWorkerClient.LookupContainerReturns(fakeContainer1, nil)
-				})
-
-				It("returns 200 OK", func() {
-					response, err := client.Do(req)
-					Ω(err).ShouldNot(HaveOccurred())
-
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
-				})
-
-				It("Returns the container", func() {
-					response, err := client.Do(req)
-					Ω(err).ShouldNot(HaveOccurred())
-
-					b, err := ioutil.ReadAll(response.Body)
-					Ω(err).ShouldNot(HaveOccurred())
-
-					var actual present.PresentedContainer
-					err = json.Unmarshal(b, &actual)
-					Ω(err).ShouldNot(HaveOccurred())
-
-					expected := expectedPresentedContainer1
-
-					Ω(actual.PipelineName).To(Equal(expected.PipelineName))
-					Ω(actual.Type).To(Equal(expected.Type))
-					Ω(actual.Name).To(Equal(expected.Name))
-					Ω(actual.BuildID).To(Equal(expected.BuildID))
-					Ω(actual.ID).To(Equal(expected.ID))
 				})
 			})
 		})
@@ -796,7 +764,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when the container cannot be found", func() {
 				BeforeEach(func() {
-					fakeWorkerClient.LookupContainerReturns(nil, worker.ErrContainerNotFound)
+					fakeWorkerClient.LookupContainerReturns(nil, garden.ContainerNotFoundError{})
 				})
 
 				It("returns 404 Not Found", func() {

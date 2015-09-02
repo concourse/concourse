@@ -17,6 +17,11 @@ type listContainersReturn struct {
 }
 
 func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
+	params := r.URL.RawQuery
+	hLog := s.logger.Session("hijack", lager.Data{
+		"params": params,
+	})
+
 	workerIdentifier, err := s.parseRequest(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -38,7 +43,7 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 			errors = make([]string, 1)
 			errors[0] = err.Error()
 		}
-		s.logger.Info("failed-to-get-container", lager.Data{"error": err})
+		hLog.Info("failed-to-get-container", lager.Data{"error": err})
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 
