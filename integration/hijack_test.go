@@ -4,6 +4,7 @@ package integration_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os/exec"
 
@@ -27,9 +28,9 @@ var _ = Describe("Hijacking", func() {
 
 	})
 
-	hijackHandler := func(didHijack chan<- struct{}, rawQuery []string, errorMessages []string) http.HandlerFunc {
+	hijackHandler := func(id string, didHijack chan<- struct{}, errorMessages []string) http.HandlerFunc {
 		return ghttp.CombineHandlers(
-			ghttp.VerifyRequest("POST", "/api/v1/hijack", rawQuery...),
+			ghttp.VerifyRequest("POST", fmt.Sprintf("/api/v1/containers/%s/hijack", id)),
 			func(w http.ResponseWriter, r *http.Request) {
 				defer GinkgoRecover()
 
@@ -139,7 +140,16 @@ var _ = Describe("Hijacking", func() {
 						{ID: 1, Name: "1", Status: "finished"},
 					}),
 				),
-				hijackHandler(didHijack, []string{"build-id=3&name=build"}, nil),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&name=build"),
+					ghttp.RespondWithJSONEncoded(200, atc.ListContainersReturn{
+						Containers: []atc.PresentedContainer{
+							{ID: "container-id-1", PipelineName: "pipeline-name-1", Type: "task", Name: "build", BuildID: 3},
+						},
+						Errors: nil,
+					}),
+				),
+				hijackHandler("container-id-1", didHijack, nil),
 			)
 		})
 
@@ -158,7 +168,17 @@ var _ = Describe("Hijacking", func() {
 			hijacked = didHijack
 
 			atcServer.AppendHandlers(
-				hijackHandler(didHijack, []string{"type=check&name=some-resource-name"}, nil),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "type=check&name=some-resource-name"),
+					ghttp.RespondWithJSONEncoded(200, atc.ListContainersReturn{
+						Containers: []atc.PresentedContainer{
+							{ID: "container-id-1", PipelineName: "pipeline-name-1", Type: "check", Name: "some-resource-name", BuildID: 6},
+							{ID: "container-id-2", PipelineName: "pipeline-name-2", Type: "check", Name: "some-resource-name", BuildID: 5},
+						},
+						Errors: nil,
+					}),
+				),
+				hijackHandler("container-id-1", didHijack, nil),
 			)
 		})
 
@@ -173,7 +193,17 @@ var _ = Describe("Hijacking", func() {
 			hijacked = didHijack
 
 			atcServer.AppendHandlers(
-				hijackHandler(didHijack, []string{"type=check&name=some-resource-name&pipeline=a-pipeline"}, nil),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "type=check&name=some-resource-name&pipeline=a-pipeline"),
+					ghttp.RespondWithJSONEncoded(200, atc.ListContainersReturn{
+						Containers: []atc.PresentedContainer{
+							{ID: "container-id-1", PipelineName: "a-pipeline", Type: "check", Name: "some-resource-name", BuildID: 6},
+							{ID: "container-id-2", PipelineName: "a-pipeline", Type: "check", Name: "some-resource-name", BuildID: 5},
+						},
+						Errors: nil,
+					}),
+				),
+				hijackHandler("container-id-1", didHijack, nil),
 			)
 		})
 
@@ -208,7 +238,16 @@ var _ = Describe("Hijacking", func() {
 						Status: "started",
 					}),
 				),
-				hijackHandler(didHijack, []string{"build-id=2&name=build"}, nil),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=2&name=build"),
+					ghttp.RespondWithJSONEncoded(200, atc.ListContainersReturn{
+						Containers: []atc.PresentedContainer{
+							{ID: "container-id-1", PipelineName: "a-pipeline", Type: "task", Name: "build", BuildID: 2},
+						},
+						Errors: nil,
+					}),
+				),
+				hijackHandler("container-id-1", didHijack, nil),
 			)
 		})
 
@@ -241,7 +280,16 @@ var _ = Describe("Hijacking", func() {
 							},
 						}),
 					),
-					hijackHandler(didHijack, []string{"build-id=3&name=build"}, nil),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&name=build"),
+						ghttp.RespondWithJSONEncoded(200, atc.ListContainersReturn{
+							Containers: []atc.PresentedContainer{
+								{ID: "container-id-1", PipelineName: "some-pipeline", Type: "task", Name: "build", BuildID: 3},
+							},
+							Errors: nil,
+						}),
+					),
+					hijackHandler("container-id-1", didHijack, nil),
 				)
 			})
 
@@ -268,7 +316,16 @@ var _ = Describe("Hijacking", func() {
 							},
 						}),
 					),
-					hijackHandler(didHijack, []string{"build-id=3&name=build"}, nil),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&name=build"),
+						ghttp.RespondWithJSONEncoded(200, atc.ListContainersReturn{
+							Containers: []atc.PresentedContainer{
+								{ID: "container-id-1", PipelineName: "a-pipeline", Type: "task", Name: "build", BuildID: 3},
+							},
+							Errors: nil,
+						}),
+					),
+					hijackHandler("container-id-1", didHijack, nil),
 				)
 			})
 
@@ -292,7 +349,16 @@ var _ = Describe("Hijacking", func() {
 							JobName: "some-job",
 						}),
 					),
-					hijackHandler(didHijack, []string{"build-id=3&name=build"}, nil),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&name=build"),
+						ghttp.RespondWithJSONEncoded(200, atc.ListContainersReturn{
+							Containers: []atc.PresentedContainer{
+								{ID: "container-id-1", PipelineName: "a-pipeline", Type: "task", Name: "build", BuildID: 3},
+							},
+							Errors: nil,
+						}),
+					),
+					hijackHandler("container-id-1", didHijack, nil),
 				)
 			})
 
@@ -316,7 +382,16 @@ var _ = Describe("Hijacking", func() {
 							{ID: 1, Name: "1", Status: "finished"},
 						}),
 					),
-					hijackHandler(didHijack, []string{"build-id=3&name=build"}, []string{"something went wrong"}),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&name=build"),
+						ghttp.RespondWithJSONEncoded(200, atc.ListContainersReturn{
+							Containers: []atc.PresentedContainer{
+								{ID: "container-id-1", PipelineName: "a-pipeline", Type: "task", Name: "build", BuildID: 3},
+							},
+							Errors: nil,
+						}),
+					),
+					hijackHandler("container-id-1", didHijack, []string{"something went wrong"}),
 				)
 			})
 
@@ -361,7 +436,16 @@ var _ = Describe("Hijacking", func() {
 						{ID: 1, Name: "1", Status: "finished"},
 					}),
 				),
-				hijackHandler(didHijack, []string{"build-id=3&type=get&name=money"}, nil),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&type=get&name=money"),
+					ghttp.RespondWithJSONEncoded(200, atc.ListContainersReturn{
+						Containers: []atc.PresentedContainer{
+							{ID: "container-id-1", PipelineName: "a-pipeline", Type: "get", Name: "money", BuildID: 3},
+						},
+						Errors: nil,
+					}),
+				),
+				hijackHandler("container-id-1", didHijack, nil),
 			)
 		})
 

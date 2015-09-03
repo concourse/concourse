@@ -116,15 +116,15 @@ func locateContainer(client *http.Client, reqGenerator *rata.RequestGenerator, f
 	return locator.locate(fingerprint)
 }
 
-func constructRequest(reqGenerator *rata.RequestGenerator, spec atc.HijackProcessSpec, reqValues url.Values) *http.Request {
+func constructRequest(reqGenerator *rata.RequestGenerator, spec atc.HijackProcessSpec, id string) *http.Request {
 	payload, err := json.Marshal(spec)
 	if err != nil {
 		log.Fatalln("failed to marshal process spec:", err)
 	}
 
 	hijackReq, err := reqGenerator.CreateRequest(
-		atc.Hijack,
-		rata.Params{},
+		atc.HijackContainer,
+		rata.Params{"id": id},
 		bytes.NewBuffer(payload),
 	)
 	if err != nil {
@@ -136,24 +136,21 @@ func constructRequest(reqGenerator *rata.RequestGenerator, spec atc.HijackProces
 		hijackReq.URL.User = nil
 	}
 
-	hijackReq.URL.RawQuery = reqValues.Encode()
-
 	return hijackReq
 }
 
-func Hijack(c *cli.Context) {
+func getContainerIDs(c *cli.Context) []string {
+	containerIDs := []string{}
+
 	target := returnTarget(c.GlobalString("target"))
 	insecure := c.GlobalBool("insecure")
 
-	stepType := c.String("step-type")
-	stepName := c.String("step-name")
-	check := c.String("check")
 	pipelineName := c.String("pipeline")
 	jobName := c.String("job")
 	buildName := c.String("build")
-
-	path, args := remoteCommand(c.Args())
-	privileged := true
+	stepName := c.String("step-name")
+	stepType := c.String("step-type")
+	check := c.String("check")
 
 	fingerprint := containerFingerprint{
 		pipelineName: pipelineName,
@@ -170,8 +167,45 @@ func Hijack(c *cli.Context) {
 		TLSClientConfig: tlsConfig,
 	}
 	client := &http.Client{Transport: transport}
-
 	reqValues := locateContainer(client, reqGenerator, fingerprint)
+
+	listContainersReq, err := reqGenerator.CreateRequest(
+		atc.ListContainers,
+		rata.Params{},
+		nil,
+	)
+	if err != nil {
+		log.Fatalln("failed to create containers list request:", err)
+	}
+	listContainersReq.URL.RawQuery = reqValues.Encode()
+
+	resp, err := client.Do(listContainersReq)
+	if err != nil {
+		log.Fatalln("failed to get containers:", err)
+	}
+
+	var listContainers atc.ListContainersReturn
+	err = json.NewDecoder(resp.Body).Decode(&listContainers)
+	if err != nil {
+		log.Fatalln("failed to decode containers:", err)
+	}
+
+	containerIDs = append(containerIDs, listContainers.Containers[0].ID)
+	return containerIDs
+}
+
+func Hijack(c *cli.Context) {
+	target := returnTarget(c.GlobalString("target"))
+	insecure := c.GlobalBool("insecure")
+
+	containerIDs := getContainerIDs(c)
+	id := containerIDs[0]
+
+	path, args := remoteCommand(c.Args())
+	privileged := true
+
+	reqGenerator := rata.NewRequestGenerator(target, atc.Routes)
+	tlsConfig := &tls.Config{InsecureSkipVerify: insecure}
 
 	var ttySpec *atc.HijackTTYSpec
 	rows, cols, err := pty.Getsize(os.Stdin)
@@ -194,7 +228,7 @@ func Hijack(c *cli.Context) {
 		TTY:        ttySpec,
 	}
 
-	hijackReq := constructRequest(reqGenerator, spec, reqValues)
+	hijackReq := constructRequest(reqGenerator, spec, id)
 	hijackResult := performHijack(hijackReq, tlsConfig)
 	os.Exit(hijackResult)
 }
