@@ -234,6 +234,16 @@ var _ = Describe("Hijacking", func() {
 			Eventually(sess.Out).Should(gbytes.Say("2. pipeline:pipeline-name-2, type:check, name:some-resource-name, build_id:5"))
 			Eventually(sess.Out).Should(gbytes.Say("Choose a container: "))
 
+			_, err = pty.WriteString("ghfdhf\n")
+			Ω(err).ShouldNot(HaveOccurred())
+			Eventually(sess.Out).Should(gbytes.Say("invalid selection"))
+			Eventually(sess.Out).Should(gbytes.Say("Choose a container: "))
+
+			_, err = pty.WriteString("3\n")
+			Ω(err).ShouldNot(HaveOccurred())
+			Eventually(sess.Out).Should(gbytes.Say("invalid selection"))
+			Eventually(sess.Out).Should(gbytes.Say("Choose a container: "))
+
 			_, err = pty.WriteString("2\n")
 			Ω(err).ShouldNot(HaveOccurred())
 

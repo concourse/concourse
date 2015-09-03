@@ -210,8 +210,10 @@ func Hijack(c *cli.Context) {
 
 		fmt.Printf("Choose a container: ")
 		_, err := fmt.Scanf("%d", &selection)
-		if err != nil {
-			log.Fatalln("invalid selection: ", err)
+		for err != nil || selection > len(containers) || selection < 1 {
+			fmt.Println("invalid selection")
+			fmt.Printf("Choose a container: ")
+			_, err = fmt.Scanf("%d", &selection)
 		}
 
 		id = containers[selection-1].ID
