@@ -65,9 +65,9 @@ func (server *server) TriggerBuild(pipelineDB db.PipelineDB) http.Handler {
 		})
 		if err != nil {
 			log.Fatal("failed-to-construct-redirect-uri", err, lager.Data{
-				"pipeline": pipelineDB.GetPipelineName(),
-				"job":      job.Name,
-				"build":    build.Name,
+				"pipeline_name": pipelineDB.GetPipelineName(),
+				"job":           job.Name,
+				"build":         build.Name,
 			})
 		}
 
