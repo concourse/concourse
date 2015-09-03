@@ -16,7 +16,6 @@ import (
 	"github.com/cloudfoundry-incubator/garden"
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/worker"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -33,7 +32,7 @@ const (
 )
 
 type listContainersReturn struct {
-	Containers []present.PresentedContainer
+	Containers []atc.PresentedContainer
 	Errors     []string
 }
 
@@ -42,7 +41,7 @@ var _ = Describe("Pipelines API", func() {
 		req *http.Request
 
 		fakeContainer1              *workerfakes.FakeContainer
-		expectedPresentedContainer1 present.PresentedContainer
+		expectedPresentedContainer1 atc.PresentedContainer
 	)
 
 	BeforeEach(func() {
@@ -57,10 +56,10 @@ var _ = Describe("Pipelines API", func() {
 
 		fakeContainer1.HandleReturns(containerID1)
 
-		expectedPresentedContainer1 = present.PresentedContainer{
+		expectedPresentedContainer1 = atc.PresentedContainer{
 			ID:           containerID1,
 			PipelineName: pipelineName1,
-			Type:         type1,
+			Type:         type1.ToString(),
 			Name:         name1,
 			BuildID:      buildID1,
 		}
@@ -70,7 +69,7 @@ var _ = Describe("Pipelines API", func() {
 		var (
 			fakeContainer2 *workerfakes.FakeContainer
 
-			expectedPresentedContainer2 present.PresentedContainer
+			expectedPresentedContainer2 atc.PresentedContainer
 		)
 
 		BeforeEach(func() {
@@ -94,10 +93,10 @@ var _ = Describe("Pipelines API", func() {
 				})
 			fakeContainer2.HandleReturns("cfvwser")
 
-			expectedPresentedContainer2 = present.PresentedContainer{
+			expectedPresentedContainer2 = atc.PresentedContainer{
 				ID:           "cfvwser",
 				PipelineName: "pipeline-2",
-				Type:         worker.ContainerTypePut,
+				Type:         worker.ContainerTypePut.ToString(),
 				Name:         "name-2",
 				BuildID:      4321,
 			}
@@ -113,14 +112,14 @@ var _ = Describe("Pipelines API", func() {
 			Context("when no errors are returned", func() {
 				var (
 					fakeContainers              []worker.Container
-					expectedPresentedContainers []present.PresentedContainer
+					expectedPresentedContainers []atc.PresentedContainer
 				)
 				BeforeEach(func() {
 					fakeContainers = []worker.Container{
 						fakeContainer1,
 						fakeContainer2,
 					}
-					expectedPresentedContainers = []present.PresentedContainer{
+					expectedPresentedContainers = []atc.PresentedContainer{
 						expectedPresentedContainer1,
 						expectedPresentedContainer2,
 					}
@@ -225,7 +224,7 @@ var _ = Describe("Pipelines API", func() {
 			Context("When there is a MultiWorkerError and some containers are found", func() {
 				var (
 					fakeContainers              []worker.Container
-					expectedPresentedContainers []present.PresentedContainer
+					expectedPresentedContainers []atc.PresentedContainer
 					expectedErr                 worker.MultiWorkerError
 				)
 
@@ -235,7 +234,7 @@ var _ = Describe("Pipelines API", func() {
 					fakeContainers = []worker.Container{
 						fakeContainer2,
 					}
-					expectedPresentedContainers = []present.PresentedContainer{
+					expectedPresentedContainers = []atc.PresentedContainer{
 						expectedPresentedContainer2,
 					}
 					fakeWorkerClient.FindContainersForIdentifierReturns(fakeContainers, expectedErr)
@@ -479,7 +478,7 @@ var _ = Describe("Pipelines API", func() {
 				b, err := ioutil.ReadAll(response.Body)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				var actual present.PresentedContainer
+				var actual atc.PresentedContainer
 				err = json.Unmarshal(b, &actual)
 				Ω(err).ShouldNot(HaveOccurred())
 

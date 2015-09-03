@@ -90,6 +90,10 @@ func (id Identifier) gardenProperties() garden.Properties {
 
 type ContainerType string
 
+func (containerType ContainerType) ToString() string {
+	return string(containerType)
+}
+
 const (
 	ContainerTypeCheck ContainerType = "check"
 	ContainerTypeGet   ContainerType = "get"

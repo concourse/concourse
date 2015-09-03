@@ -6,15 +6,11 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager"
 )
-
-type listContainersReturn struct {
-	Containers []present.PresentedContainer
-	Errors     []string
-}
 
 func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.RawQuery
@@ -47,14 +43,14 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 
-	presentedContainers := make([]present.PresentedContainer, len(containers))
+	presentedContainers := make([]atc.PresentedContainer, len(containers))
 	for i := 0; i < len(containers); i++ {
 		container := containers[i]
 		presentedContainers[i] = present.Container(container)
 		container.Release()
 	}
 
-	returnBody := listContainersReturn{
+	returnBody := atc.ListContainersReturn{
 		Containers: presentedContainers,
 		Errors:     errors,
 	}

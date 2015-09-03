@@ -1,22 +1,17 @@
 package present
 
-import "github.com/concourse/atc/worker"
+import (
+	"github.com/concourse/atc"
+	"github.com/concourse/atc/worker"
+)
 
-func Container(container worker.Container) PresentedContainer {
+func Container(container worker.Container) atc.PresentedContainer {
 	identifier := container.IdentifierFromProperties()
-	return PresentedContainer{
+	return atc.PresentedContainer{
 		ID:           container.Handle(),
 		PipelineName: identifier.PipelineName,
-		Type:         identifier.Type,
+		Type:         identifier.Type.ToString(),
 		Name:         identifier.Name,
 		BuildID:      identifier.BuildID,
 	}
-}
-
-type PresentedContainer struct {
-	ID           string
-	PipelineName string
-	Type         worker.ContainerType
-	Name         string
-	BuildID      int
 }
