@@ -320,7 +320,7 @@ var _ = Describe("Pipelines API", func() {
 		Describe("querying with pipeline name", func() {
 			BeforeEach(func() {
 				req.URL.RawQuery = url.Values{
-					"pipeline": []string{pipelineName1},
+					"pipeline_name": []string{pipelineName1},
 				}.Encode()
 			})
 

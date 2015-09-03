@@ -59,7 +59,7 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) parseRequest(r *http.Request) (worker.Identifier, error) {
 	workerIdentifier := worker.Identifier{
-		PipelineName: r.URL.Query().Get("pipeline"),
+		PipelineName: r.URL.Query().Get("pipeline_name"),
 		Type:         worker.ContainerType(r.URL.Query().Get("type")),
 		Name:         r.URL.Query().Get("name"),
 	}
