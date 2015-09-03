@@ -81,8 +81,9 @@ func (locator checkContainerLocator) locate(fingerprint containerFingerprint) ur
 	reqValues := url.Values{}
 
 	reqValues["type"] = []string{"check"}
-	reqValues["name"] = []string{fingerprint.checkName}
-
+	if fingerprint.checkName != "" {
+		reqValues["name"] = []string{fingerprint.checkName}
+	}
 	if fingerprint.pipelineName != "" {
 		reqValues["pipeline"] = []string{fingerprint.pipelineName}
 	}
@@ -104,7 +105,7 @@ type containerFingerprint struct {
 func locateContainer(client *http.Client, reqGenerator *rata.RequestGenerator, fingerprint containerFingerprint) url.Values {
 	var locator containerLocator
 
-	if fingerprint.checkName == "" {
+	if fingerprint.checkName == "" && fingerprint.stepType != "check" {
 		locator = stepContainerLocator{
 			client:       client,
 			reqGenerator: reqGenerator,
@@ -139,9 +140,7 @@ func constructRequest(reqGenerator *rata.RequestGenerator, spec atc.HijackProces
 	return hijackReq
 }
 
-func getContainerIDs(c *cli.Context) []string {
-	containerIDs := []string{}
-
+func getContainerIDs(c *cli.Context) []atc.PresentedContainer {
 	target := returnTarget(c.GlobalString("target"))
 	insecure := c.GlobalBool("insecure")
 
@@ -190,16 +189,35 @@ func getContainerIDs(c *cli.Context) []string {
 		log.Fatalln("failed to decode containers:", err)
 	}
 
-	containerIDs = append(containerIDs, listContainers.Containers[0].ID)
-	return containerIDs
+	return listContainers.Containers
 }
 
 func Hijack(c *cli.Context) {
 	target := returnTarget(c.GlobalString("target"))
 	insecure := c.GlobalBool("insecure")
 
-	containerIDs := getContainerIDs(c)
-	id := containerIDs[0]
+	containers := getContainerIDs(c)
+
+	var id string
+	var selection int
+	if len(containers) == 0 {
+		log.Fatalln("no containers matched your search parameters! they may have expired if your build hasn't recently finished")
+	} else if len(containers) > 1 {
+
+		for i, container := range containers {
+			fmt.Printf("%d. pipeline:%s, type:%s, name:%s, build_id:%d\n", i+1, container.PipelineName, container.Type, container.Name, container.BuildID)
+		}
+
+		fmt.Printf("Choose a container: ")
+		_, err := fmt.Scanf("%d", &selection)
+		if err != nil {
+			log.Fatalln("invalid selection: ", err)
+		}
+
+		id = containers[selection-1].ID
+	} else {
+		id = containers[0].ID
+	}
 
 	path, args := remoteCommand(c.Args())
 	privileged := true

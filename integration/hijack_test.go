@@ -28,6 +28,10 @@ var _ = Describe("Hijacking", func() {
 
 	})
 
+	AfterEach(func() {
+		atcServer.Close()
+	})
+
 	hijackHandler := func(id string, didHijack chan<- struct{}, errorMessages []string) http.HandlerFunc {
 		return ghttp.CombineHandlers(
 			ghttp.VerifyRequest("POST", fmt.Sprintf("/api/v1/containers/%s/hijack", id)),
@@ -162,7 +166,41 @@ var _ = Describe("Hijacking", func() {
 		})
 	})
 
-	Context("hijacks with check container", func() {
+	Context("when no containers are found", func() {
+		BeforeEach(func() {
+			didHijack := make(chan struct{})
+			hijacked = didHijack
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/builds"),
+					ghttp.RespondWithJSONEncoded(200, []atc.Build{
+						{ID: 1, Name: "1", Status: "finished"},
+					}),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=1&name=build"),
+					ghttp.RespondWithJSONEncoded(200, atc.ListContainersReturn{
+						Containers: []atc.PresentedContainer{},
+						Errors:     nil,
+					}),
+				),
+				hijackHandler("container-id-1", didHijack, nil),
+			)
+		})
+
+		It("return a friendly error message", func() {
+			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack")
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Eventually(sess).Should(gexec.Exit(1))
+
+			Ω(sess.Err).Should(gbytes.Say("no containers matched your search parameters! they may have expired if your build hasn't recently finished"))
+		})
+	})
+
+	Context("when multiple containers are found", func() {
 		BeforeEach(func() {
 			didHijack := make(chan struct{})
 			hijacked = didHijack
@@ -174,6 +212,58 @@ var _ = Describe("Hijacking", func() {
 						Containers: []atc.PresentedContainer{
 							{ID: "container-id-1", PipelineName: "pipeline-name-1", Type: "check", Name: "some-resource-name", BuildID: 6},
 							{ID: "container-id-2", PipelineName: "pipeline-name-2", Type: "check", Name: "some-resource-name", BuildID: 5},
+						},
+						Errors: nil,
+					}),
+				),
+				hijackHandler("container-id-2", didHijack, nil),
+			)
+		})
+
+		It("asks the user to select the container from a menu", func() {
+			pty, tty, err := pty.Open()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-c", "some-resource-name")
+			flyCmd.Stdin = tty
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Eventually(sess.Out).Should(gbytes.Say("1. pipeline:pipeline-name-1, type:check, name:some-resource-name, build_id:6"))
+			Eventually(sess.Out).Should(gbytes.Say("2. pipeline:pipeline-name-2, type:check, name:some-resource-name, build_id:5"))
+			Eventually(sess.Out).Should(gbytes.Say("Choose a container: "))
+
+			_, err = pty.WriteString("2\n")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Eventually(hijacked).Should(BeClosed())
+
+			_, err = pty.WriteString("some stdin")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Eventually(sess.Out).Should(gbytes.Say("some stdout"))
+			Eventually(sess.Err).Should(gbytes.Say("some stderr"))
+
+			err = pty.Close()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			<-sess.Exited
+			Ω(sess.ExitCode()).Should(Equal(123))
+		})
+	})
+
+	Context("hijacks with check container", func() {
+		BeforeEach(func() {
+			didHijack := make(chan struct{})
+			hijacked = didHijack
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "type=check&name=some-resource-name"),
+					ghttp.RespondWithJSONEncoded(200, atc.ListContainersReturn{
+						Containers: []atc.PresentedContainer{
+							{ID: "container-id-1", PipelineName: "pipeline-name-1", Type: "check", Name: "some-resource-name", BuildID: 6},
 						},
 						Errors: nil,
 					}),
@@ -198,7 +288,6 @@ var _ = Describe("Hijacking", func() {
 					ghttp.RespondWithJSONEncoded(200, atc.ListContainersReturn{
 						Containers: []atc.PresentedContainer{
 							{ID: "container-id-1", PipelineName: "a-pipeline", Type: "check", Name: "some-resource-name", BuildID: 6},
-							{ID: "container-id-2", PipelineName: "a-pipeline", Type: "check", Name: "some-resource-name", BuildID: 5},
 						},
 						Errors: nil,
 					}),
@@ -451,6 +540,30 @@ var _ = Describe("Hijacking", func() {
 
 		It("hijacks the given type and name", func() {
 			hijack("-t", "get", "-n", "money")
+		})
+	})
+
+	Context("when a step type 'check' is specified", func() {
+		BeforeEach(func() {
+			didHijack := make(chan struct{})
+			hijacked = didHijack
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "type=check"),
+					ghttp.RespondWithJSONEncoded(200, atc.ListContainersReturn{
+						Containers: []atc.PresentedContainer{
+							{ID: "container-id-1", PipelineName: "a-pipeline", Type: "check", Name: "sum", BuildID: 3},
+						},
+						Errors: nil,
+					}),
+				),
+				hijackHandler("container-id-1", didHijack, nil),
+			)
+		})
+
+		It("should not consult the /builds endpoint", func() {
+			hijack("-t", "check")
 		})
 	})
 })
