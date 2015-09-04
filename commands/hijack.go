@@ -160,15 +160,10 @@ func getContainerIDs(c *cli.Context) []atc.PresentedContainer {
 		checkName:    check,
 	}
 
-	reqGenerator := rata.NewRequestGenerator(target, atc.Routes)
-	tlsConfig := &tls.Config{InsecureSkipVerify: insecure}
-	transport := &http.Transport{
-		TLSClientConfig: tlsConfig,
-	}
-	client := &http.Client{Transport: transport}
-	reqValues := locateContainer(client, reqGenerator, fingerprint)
+	atcRequester := newAtcRequester(target, insecure)
+	reqValues := locateContainer(atcRequester.httpClient, atcRequester.RequestGenerator, fingerprint)
 
-	listContainersReq, err := reqGenerator.CreateRequest(
+	listContainersReq, err := atcRequester.RequestGenerator.CreateRequest(
 		atc.ListContainers,
 		rata.Params{},
 		nil,
@@ -178,7 +173,7 @@ func getContainerIDs(c *cli.Context) []atc.PresentedContainer {
 	}
 	listContainersReq.URL.RawQuery = reqValues.Encode()
 
-	resp, err := client.Do(listContainersReq)
+	resp, err := atcRequester.httpClient.Do(listContainersReq)
 	if err != nil {
 		log.Fatalln("failed to get containers:", err)
 	}
