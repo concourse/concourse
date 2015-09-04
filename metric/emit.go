@@ -23,7 +23,7 @@ var emissions = make(chan eventEmission, 1000)
 
 var errQueueFull = errors.New("event queue is full")
 
-func Initialize(riemannAddr string, host string, tags []string, attributes map[string]string) {
+func Initialize(logger lager.Logger, riemannAddr string, host string, tags []string, attributes map[string]string) {
 	client := goryman.NewGorymanClient(riemannAddr)
 
 	riemannClient = client
@@ -32,7 +32,7 @@ func Initialize(riemannAddr string, host string, tags []string, attributes map[s
 	eventAttributes = attributes
 
 	go emitLoop()
-	go periodicallyEmit(10 * time.Second)
+	go periodicallyEmit(logger.Session("periodic"), 10*time.Second)
 }
 
 func emit(emission eventEmission) {

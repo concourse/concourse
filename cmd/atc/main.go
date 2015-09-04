@@ -257,6 +257,7 @@ func main() {
 		}
 
 		metric.Initialize(
+			logger.Session("metrics"),
 			*riemannAddr,
 			host,
 			strings.Split(*riemannTags, ","),
