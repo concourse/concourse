@@ -14,14 +14,10 @@ func periodicallyEmit(logger lager.Logger, interval time.Duration) {
 	for range ticker.C {
 		tLog := logger.Session("tick")
 
-		emit(eventEmission{
-			logger: tLog,
-
-			event: goryman.Event{
-				Service: "tracked containers",
-				Metric:  TrackedContainers.Max(),
-				State:   "ok",
-			},
+		emit(tLog, goryman.Event{
+			Service: "tracked containers",
+			Metric:  TrackedContainers.Max(),
+			State:   "ok",
 		})
 	}
 }

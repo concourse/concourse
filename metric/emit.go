@@ -35,34 +35,34 @@ func Initialize(logger lager.Logger, riemannAddr string, host string, tags []str
 	go periodicallyEmit(logger.Session("periodic"), 10*time.Second)
 }
 
-func emit(emission eventEmission) {
-	emission.logger.Debug("emit")
+func emit(logger lager.Logger, event goryman.Event) {
+	logger.Debug("emit")
 
 	if riemannClient == nil {
 		return
 	}
 
-	emission.event.Host = eventHost
-	emission.event.Time = time.Now().Unix()
-	emission.event.Tags = append(emission.event.Tags, eventTags...)
+	event.Host = eventHost
+	event.Time = time.Now().Unix()
+	event.Tags = append(event.Tags, eventTags...)
 
 	mergedAttributes := map[string]string{}
 	for k, v := range eventAttributes {
 		mergedAttributes[k] = v
 	}
 
-	if emission.event.Attributes != nil {
-		for k, v := range emission.event.Attributes {
+	if event.Attributes != nil {
+		for k, v := range event.Attributes {
 			mergedAttributes[k] = v
 		}
 	}
 
-	emission.event.Attributes = mergedAttributes
+	event.Attributes = mergedAttributes
 
 	select {
-	case emissions <- emission:
+	case emissions <- eventEmission{logger: logger, event: event}:
 	default:
-		emission.logger.Error("queue-full", nil)
+		logger.Error("queue-full", nil)
 	}
 }
 

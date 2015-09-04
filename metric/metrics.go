@@ -26,8 +26,13 @@ func (event SchedulingFullDuration) Emit(logger lager.Logger) {
 		state = "critical"
 	}
 
-	emit(eventEmission{
-		event: goryman.Event{
+	emit(
+		logger.Session("full-scheduling-duration", lager.Data{
+			"pipeline": event.PipelineName,
+			"duration": event.Duration.String(),
+		}),
+
+		goryman.Event{
 			Service: "scheduling: full duration (ms)",
 			Metric:  ms(event.Duration),
 			State:   state,
@@ -35,12 +40,7 @@ func (event SchedulingFullDuration) Emit(logger lager.Logger) {
 				"pipeline": event.PipelineName,
 			},
 		},
-
-		logger: logger.Session("full-scheduling-duration", lager.Data{
-			"pipeline": event.PipelineName,
-			"duration": event.Duration.String(),
-		}),
-	})
+	)
 }
 
 type SchedulingLoadVersionsDuration struct {
@@ -56,8 +56,12 @@ func (event SchedulingLoadVersionsDuration) Emit(logger lager.Logger) {
 		state = "critical"
 	}
 
-	emit(eventEmission{
-		event: goryman.Event{
+	emit(
+		logger.Session("loading-versions-duration", lager.Data{
+			"pipeline": event.PipelineName,
+			"duration": event.Duration.String(),
+		}),
+		goryman.Event{
 			Service: "scheduling: loading versions duration (ms)",
 			Metric:  ms(event.Duration),
 			State:   state,
@@ -65,12 +69,7 @@ func (event SchedulingLoadVersionsDuration) Emit(logger lager.Logger) {
 				"pipeline": event.PipelineName,
 			},
 		},
-
-		logger: logger.Session("loading-versions-duration", lager.Data{
-			"pipeline": event.PipelineName,
-			"duration": event.Duration.String(),
-		}),
-	})
+	)
 }
 
 type SchedulingJobDuration struct {
@@ -87,8 +86,13 @@ func (event SchedulingJobDuration) Emit(logger lager.Logger) {
 		state = "critical"
 	}
 
-	emit(eventEmission{
-		event: goryman.Event{
+	emit(
+		logger.Session("job-scheduling-duration", lager.Data{
+			"pipeline": event.PipelineName,
+			"job":      event.JobName,
+			"duration": event.Duration.String(),
+		}),
+		goryman.Event{
 			Service: "scheduling: job duration (ms)",
 			Metric:  ms(event.Duration),
 			State:   state,
@@ -97,13 +101,7 @@ func (event SchedulingJobDuration) Emit(logger lager.Logger) {
 				"job":      event.JobName,
 			},
 		},
-
-		logger: logger.Session("job-scheduling-duration", lager.Data{
-			"pipeline": event.PipelineName,
-			"job":      event.JobName,
-			"duration": event.Duration.String(),
-		}),
-	})
+	)
 }
 
 type WorkerContainers struct {
@@ -112,8 +110,12 @@ type WorkerContainers struct {
 }
 
 func (event WorkerContainers) Emit(logger lager.Logger) {
-	emit(eventEmission{
-		event: goryman.Event{
+	emit(
+		logger.Session("worker-containers", lager.Data{
+			"worker":     event.WorkerAddr,
+			"containers": event.Containers,
+		}),
+		goryman.Event{
 			Service: "worker containers",
 			Metric:  event.Containers,
 			State:   "ok",
@@ -121,12 +123,7 @@ func (event WorkerContainers) Emit(logger lager.Logger) {
 				"worker": event.WorkerAddr,
 			},
 		},
-
-		logger: logger.Session("worker-containers", lager.Data{
-			"worker":     event.WorkerAddr,
-			"containers": event.Containers,
-		}),
-	})
+	)
 }
 
 func ms(duration time.Duration) float64 {
