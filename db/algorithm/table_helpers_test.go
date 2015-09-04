@@ -17,8 +17,6 @@ type DBRow struct {
 }
 
 type Example struct {
-	FIt    string
-	It     string
 	DB     DB
 	Inputs Inputs
 	Result Result
@@ -56,7 +54,7 @@ func (mapping StringMapping) Name(id int) string {
 	panic(fmt.Sprintf("no name found for %d", id))
 }
 
-func runExample(example Example) {
+func (example Example) Run() {
 	jobIDs := StringMapping{}
 	resourceIDs := StringMapping{}
 	versionIDs := StringMapping{}
