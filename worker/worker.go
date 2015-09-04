@@ -10,6 +10,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/metric"
 	"github.com/pivotal-golang/clock"
 )
 
@@ -211,6 +212,7 @@ func newGardenWorkerContainer(container garden.Container, gardenClient garden.Cl
 	go workerContainer.heartbeat(clock.NewTicker(containerKeepalive))
 
 	trackedContainers.Add(1)
+	metric.TrackedContainers.Inc()
 
 	return workerContainer
 }
@@ -225,6 +227,7 @@ func (container *gardenWorkerContainer) Release() {
 		close(container.stopHeartbeating)
 		container.heartbeating.Wait()
 		trackedContainers.Add(-1)
+		metric.TrackedContainers.Dec()
 	})
 }
 

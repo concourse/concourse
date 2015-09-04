@@ -11,6 +11,8 @@ type Event interface {
 	Emit(lager.Logger)
 }
 
+var TrackedContainers = &Counter{}
+
 type SchedulingFullDuration struct {
 	PipelineName string
 	Duration     time.Duration

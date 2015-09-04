@@ -32,6 +32,7 @@ func Initialize(riemannAddr string, host string, tags []string, attributes map[s
 	eventAttributes = attributes
 
 	go emitLoop()
+	go periodicallyEmit(10 * time.Second)
 }
 
 func emit(emission eventEmission) {
