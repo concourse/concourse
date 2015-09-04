@@ -9,6 +9,6 @@ type PresentedContainer struct {
 }
 
 type ListContainersReturn struct {
-	Containers []PresentedContainer
-	Errors     []string
+	Containers []PresentedContainer `json:"containers"`
+	Errors     []string             `json:"errors"`
 }
