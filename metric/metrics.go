@@ -1,6 +1,7 @@
 package metric
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/bigdatadev/goryman"
@@ -121,6 +122,59 @@ func (event WorkerContainers) Emit(logger lager.Logger) {
 			State:   "ok",
 			Attributes: map[string]string{
 				"worker": event.WorkerAddr,
+			},
+		},
+	)
+}
+
+type BuildStarted struct {
+	PipelineName string
+	JobName      string
+	BuildID      int
+}
+
+func (event BuildStarted) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("build-started", lager.Data{
+			"pipeline": event.PipelineName,
+			"job":      event.JobName,
+			"build":    event.BuildID,
+		}),
+		goryman.Event{
+			Service: "build started",
+			Metric:  event.BuildID,
+			State:   "ok",
+			Attributes: map[string]string{
+				"pipeline": event.PipelineName,
+				"job":      event.JobName,
+				"build":    strconv.Itoa(event.BuildID),
+			},
+		},
+	)
+}
+
+type BuildFinished struct {
+	PipelineName string
+	JobName      string
+	BuildID      int
+	Duration     time.Duration
+}
+
+func (event BuildFinished) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("build-finished", lager.Data{
+			"pipeline": event.PipelineName,
+			"job":      event.JobName,
+			"build":    event.BuildID,
+		}),
+		goryman.Event{
+			Service: "build finished",
+			Metric:  ms(event.Duration),
+			State:   "ok",
+			Attributes: map[string]string{
+				"pipeline": event.PipelineName,
+				"job":      event.JobName,
+				"build":    strconv.Itoa(event.BuildID),
 			},
 		},
 	)

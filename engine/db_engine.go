@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/metric"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -229,7 +231,20 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 		}
 	}()
 
+	metric.BuildStarted{
+		PipelineName: model.PipelineName,
+		JobName:      model.JobName,
+		BuildID:      model.ID,
+	}.Emit(logger)
+
 	engineBuild.Resume(logger)
+
+	metric.BuildFinished{
+		PipelineName: model.PipelineName,
+		JobName:      model.JobName,
+		BuildID:      model.ID,
+		Duration:     time.Since(model.StartTime),
+	}.Emit(logger)
 }
 
 func (build *dbBuild) finishWithError(buildID int, logger lager.Logger) {
