@@ -18,7 +18,6 @@ type dbSharedBehaviorInput struct {
 
 func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 	return func() {
-
 		Describe("CreatePipe", func() {
 			It("saves a pipe to the db", func() {
 				myGuid, err := uuid.NewV4()

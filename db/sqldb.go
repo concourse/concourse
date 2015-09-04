@@ -708,14 +708,26 @@ func (db *SQLDB) acquireLockLoop(lockType string, locks []NamedLock) (Lock, erro
 }
 
 func (db *SQLDB) AcquireWriteLockImmediately(lock []NamedLock) (Lock, error) {
+	db.logger.Debug("acquiring-exclusive-immediate-lock", lager.Data{
+		"locks": lock,
+	})
+
 	return db.acquireLockLoop("UPDATE NOWAIT", lock)
 }
 
 func (db *SQLDB) AcquireWriteLock(lock []NamedLock) (Lock, error) {
+	db.logger.Debug("acquiring-exclusive-lock", lager.Data{
+		"locks": lock,
+	})
+
 	return db.acquireLockLoop("UPDATE", lock)
 }
 
 func (db *SQLDB) AcquireReadLock(lock []NamedLock) (Lock, error) {
+	db.logger.Debug("acquiring-shared-lock", lager.Data{
+		"locks": lock,
+	})
+
 	return db.acquireLockLoop("SHARE", lock)
 }
 
@@ -867,6 +879,10 @@ type txLock struct {
 }
 
 func (lock *txLock) release() error {
+	lock.db.logger.Debug("releasing-locks", lager.Data{
+		"locks": lock.namedLocks,
+	})
+
 	return lock.tx.Commit()
 }
 
