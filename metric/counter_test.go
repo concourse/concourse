@@ -22,7 +22,7 @@ var _ = Describe("Counter", func() {
 		counter.Inc()
 		counter.Dec()
 
-		Expect(counter.Max()).To(Equal(int64(2)))
+		Expect(counter.Max()).To(Equal(2))
 	})
 
 	It("deals with concurrent increments correctly", func() {
@@ -42,7 +42,7 @@ var _ = Describe("Counter", func() {
 
 		wg.Wait()
 
-		Expect(counter.Max()).To(Equal(int64(totalIncs)))
+		Expect(counter.Max()).To(Equal(totalIncs))
 	})
 
 	It("resets the max to the current value when observed", func() {
@@ -50,8 +50,8 @@ var _ = Describe("Counter", func() {
 		counter.Inc()
 		counter.Dec()
 
-		Expect(counter.Max()).To(Equal(int64(2)))
+		Expect(counter.Max()).To(Equal(2))
 
-		Expect(counter.Max()).To(Equal(int64(1)))
+		Expect(counter.Max()).To(Equal(1))
 	})
 })
