@@ -131,8 +131,8 @@ func NewHandler(
 
 		atc.DownloadCLI: http.HandlerFunc(cliServer.Download),
 
-		atc.ListContainers:  http.HandlerFunc(containerServer.ListContainers),
-		atc.GetContainer:    http.HandlerFunc(containerServer.GetContainer),
+		atc.ListContainers:  validate(http.HandlerFunc(containerServer.ListContainers)),
+		atc.GetContainer:    validate(http.HandlerFunc(containerServer.GetContainer)),
 		atc.HijackContainer: validate(http.HandlerFunc(containerServer.HijackContainer)),
 	}
 
