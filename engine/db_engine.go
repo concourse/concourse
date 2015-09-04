@@ -234,6 +234,7 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 	metric.BuildStarted{
 		PipelineName: model.PipelineName,
 		JobName:      model.JobName,
+		BuildName:    model.Name,
 		BuildID:      model.ID,
 	}.Emit(logger)
 
@@ -242,6 +243,7 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 	metric.BuildFinished{
 		PipelineName: model.PipelineName,
 		JobName:      model.JobName,
+		BuildName:    model.Name,
 		BuildID:      model.ID,
 		Duration:     time.Since(model.StartTime),
 	}.Emit(logger)
