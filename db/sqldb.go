@@ -694,9 +694,9 @@ func (db *SQLDB) acquireLock(lockType string, locks []NamedLock) (Lock, error) {
 	return &txLock{tx, db, locks}, nil
 }
 
-func (db *SQLDB) acquireLockLoop(lockType string, lock []NamedLock) (Lock, error) {
+func (db *SQLDB) acquireLockLoop(lockType string, locks []NamedLock) (Lock, error) {
 	for {
-		lock, err := db.acquireLock(lockType, lock)
+		lock, err := db.acquireLock(lockType, locks)
 		if pgErr, ok := err.(*pq.Error); ok && pgErr.Code == "55P03" { // lock not available
 			return nil, ErrLockNotAvailable
 		}
