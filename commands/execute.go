@@ -144,9 +144,7 @@ func createPipe(atcRequester *atcRequester) atc.Pipe {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusCreated {
-		log.Println("bad response when creating pipe:", response)
-		response.Write(os.Stderr)
-		os.Exit(1)
+		handleBadResponse("creating pipe", response)
 	}
 
 	var pipe atc.Pipe
@@ -240,9 +238,7 @@ func createBuild(
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusCreated {
-		log.Println("bad response when creating build:", response)
-		response.Write(os.Stderr)
-		os.Exit(1)
+		handleBadResponse("creating build", response)
 	}
 
 	var build atc.Build
@@ -326,9 +322,7 @@ func upload(input Input, excludeIgnored bool, atcRequester *atcRequester) {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		log.Println("bad response when uploading bits:", response)
-		response.Write(os.Stderr)
-		os.Exit(1)
+		handleBadResponse("uploading bits", response)
 	}
 }
 

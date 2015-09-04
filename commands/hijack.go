@@ -267,10 +267,7 @@ func performHijack(hijackReq *http.Request, tlsConfig *tls.Config) int {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		log.Println("bad response when hijacking:")
-		resp.Body.Close()
-		resp.Write(os.Stderr)
-		os.Exit(1)
+		handleBadResponse("hijacking", resp)
 	}
 
 	return hijack(clientConn.Hijack())

@@ -93,6 +93,15 @@ func userHomeDir() string {
 	return os.Getenv("HOME")
 }
 
+func handleBadResponse(process string, resp *http.Response) {
+	b, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		log.Fatalln("failed to read response when %s:", process, err)
+	}
+	log.Fatalf("bad response when %s:\n%s\n%s", process, resp.Status, b)
+}
+
 func getBuild(client *http.Client, reqGenerator *rata.RequestGenerator, jobName string, buildName string, pipelineName string) atc.Build {
 	if pipelineName != "" && jobName == "" {
 		fmt.Fprintln(os.Stderr, "job must be specified if pipeline is specified")
@@ -135,10 +144,7 @@ func getBuild(client *http.Client, reqGenerator *rata.RequestGenerator, jobName 
 		}
 
 		if buildResp.StatusCode != http.StatusOK {
-			log.Println("bad response when getting build:")
-			buildResp.Body.Close()
-			buildResp.Write(os.Stderr)
-			os.Exit(1)
+			handleBadResponse("getting build", buildResp)
 		}
 
 		var build atc.Build
@@ -164,10 +170,7 @@ func getBuild(client *http.Client, reqGenerator *rata.RequestGenerator, jobName 
 		}
 
 		if jobResp.StatusCode != http.StatusOK {
-			log.Println("bad response when getting job:")
-			jobResp.Body.Close()
-			jobResp.Write(os.Stderr)
-			os.Exit(1)
+			handleBadResponse("getting job", jobResp)
 		}
 
 		var job atc.Job
@@ -200,10 +203,7 @@ func getBuild(client *http.Client, reqGenerator *rata.RequestGenerator, jobName 
 		}
 
 		if buildsResp.StatusCode != http.StatusOK {
-			log.Println("bad response when getting builds:")
-			buildsResp.Body.Close()
-			buildsResp.Write(os.Stderr)
-			os.Exit(1)
+			handleBadResponse("getting builds", buildsResp)
 		}
 
 		var builds []atc.Build

@@ -576,4 +576,38 @@ var _ = Describe("Hijacking", func() {
 			hijack("-t", "check")
 		})
 	})
+
+	Context("when no builds are found", func() {
+		BeforeEach(func() {
+			didHijack := make(chan struct{})
+			hijacked = didHijack
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/builds/0"),
+					ghttp.RespondWithJSONEncoded(404, ""),
+				),
+			)
+		})
+
+		It("logs an error message and response status/body", func() {
+			pty, tty, err := pty.Open()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-b", "0")
+			flyCmd.Stdin = tty
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Eventually(sess.Err.Contents).Should(ContainSubstring("bad response when getting build"))
+			Eventually(sess.Err.Contents).Should(ContainSubstring("404 Not Found"))
+
+			err = pty.Close()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			<-sess.Exited
+			Ω(sess.ExitCode()).Should(Equal(1))
+		})
+	})
 })
