@@ -41,5 +41,11 @@ func periodicallyEmit(logger lager.Logger, interval time.Duration) {
 			Metric:  int(memStats.Frees),
 			State:   "ok",
 		})
+
+		emit(tLog, goryman.Event{
+			Service: "goroutines",
+			Metric:  int(runtime.NumGoroutine()),
+			State:   "ok",
+		})
 	}
 }
