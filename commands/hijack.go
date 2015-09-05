@@ -196,19 +196,41 @@ func Hijack(c *cli.Context) {
 	var id string
 	var selection int
 	if len(containers) == 0 {
-		log.Fatalln("no containers matched your search parameters! they may have expired if your build hasn't recently finished")
+		fmt.Fprintln(os.Stderr, "no containers matched your search parameters! they may have expired if your build hasn't recently finished")
+		os.Exit(1)
 	} else if len(containers) > 1 {
-
 		for i, container := range containers {
-			fmt.Printf("%d. pipeline:%s, type:%s, name:%s, build_id:%d\n", i+1, container.PipelineName, container.Type, container.Name, container.BuildID)
+			fmt.Printf("%d. ", i+1)
+
+			if container.PipelineName != "" {
+				fmt.Printf("pipeline: %s, ", container.PipelineName)
+			}
+
+			if container.BuildID != 0 {
+				fmt.Printf("build id: %d, ", container.BuildID)
+			}
+
+			fmt.Printf("type: %s, ", container.Type)
+			fmt.Printf("name: %s", container.Name)
+
+			fmt.Printf("\n")
 		}
 
-		fmt.Printf("Choose a container: ")
-		_, err := fmt.Scanf("%d", &selection)
-		for err != nil || selection > len(containers) || selection < 1 {
-			fmt.Println("invalid selection")
-			fmt.Printf("Choose a container: ")
-			_, err = fmt.Scanf("%d", &selection)
+		for {
+			fmt.Printf("choose a container: ")
+
+			_, err := fmt.Scanf("%d", &selection)
+
+			if err == io.EOF {
+				os.Exit(0)
+			}
+
+			if err != nil || selection > len(containers) || selection < 1 {
+				fmt.Println("invalid selection", err)
+				continue
+			}
+
+			break
 		}
 
 		id = containers[selection-1].ID

@@ -276,19 +276,19 @@ var _ = Describe("Hijacking", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Eventually(sess.Out).Should(gbytes.Say("1. pipeline:pipeline-name-1, type:check, name:some-resource-name, build_id:6"))
-			Eventually(sess.Out).Should(gbytes.Say("2. pipeline:pipeline-name-2, type:check, name:some-resource-name, build_id:5"))
-			Eventually(sess.Out).Should(gbytes.Say("Choose a container: "))
+			Eventually(sess.Out).Should(gbytes.Say("1. pipeline: pipeline-name-1, build id: 6, type: check, name: some-resource-name"))
+			Eventually(sess.Out).Should(gbytes.Say("2. pipeline: pipeline-name-2, build id: 5, type: check, name: some-resource-name"))
+			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
 
 			_, err = pty.WriteString("ghfdhf\n")
 			Ω(err).ShouldNot(HaveOccurred())
 			Eventually(sess.Out).Should(gbytes.Say("invalid selection"))
-			Eventually(sess.Out).Should(gbytes.Say("Choose a container: "))
+			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
 
 			_, err = pty.WriteString("3\n")
 			Ω(err).ShouldNot(HaveOccurred())
 			Eventually(sess.Out).Should(gbytes.Say("invalid selection"))
-			Eventually(sess.Out).Should(gbytes.Say("Choose a container: "))
+			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
 
 			_, err = pty.WriteString("2\n")
 			Ω(err).ShouldNot(HaveOccurred())
@@ -306,6 +306,26 @@ var _ = Describe("Hijacking", func() {
 
 			<-sess.Exited
 			Ω(sess.ExitCode()).Should(Equal(123))
+		})
+
+		It("exits when the user ends the input stream (Ctrl+D)", func() {
+			pty, tty, err := pty.Open()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-c", "some-resource-name")
+			flyCmd.Stdin = tty
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Eventually(sess.Out).Should(gbytes.Say("1. pipeline: pipeline-name-1, build id: 6, type: check, name: some-resource-name"))
+			Eventually(sess.Out).Should(gbytes.Say("2. pipeline: pipeline-name-2, build id: 5, type: check, name: some-resource-name"))
+			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
+
+			pty.Close()
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(0))
 		})
 	})
 
