@@ -26,7 +26,7 @@ var _ = Describe("A job with a task that always fails", func() {
 		originGitServer.Stop()
 	})
 
-	It("proceeds through the plan even if the step fails", func() {
+	It("causes the build to fail", func() {
 		watch := flyWatch("failing-job")
 		Ω(watch).Should(gbytes.Say("initializing"))
 		Ω(watch).Should(gbytes.Say("failed"))
