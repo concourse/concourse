@@ -103,6 +103,7 @@ func NewHandler(
 		atc.ListJobs:      pipelineHandlerFactory.HandlerFor(jobServer.ListJobs),
 		atc.GetJob:        pipelineHandlerFactory.HandlerFor(jobServer.GetJob),
 		atc.ListJobBuilds: pipelineHandlerFactory.HandlerFor(jobServer.ListJobBuilds),
+		atc.ListJobInputs: validate(pipelineHandlerFactory.HandlerFor(jobServer.ListJobInputs)),
 		atc.GetJobBuild:   pipelineHandlerFactory.HandlerFor(jobServer.GetJobBuild),
 		atc.PauseJob:      validate(pipelineHandlerFactory.HandlerFor(jobServer.PauseJob)),
 		atc.UnpauseJob:    validate(pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob)),

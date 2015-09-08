@@ -11,6 +11,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/algorithm"
 	dbfakes "github.com/concourse/atc/db/fakes"
 )
 
@@ -515,6 +516,206 @@ var _ = Describe("Jobs API", func() {
 
 			It("returns 404 Not Found", func() {
 				Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+			})
+		})
+	})
+
+	Describe("GET /api/v1/pipelines/:pipeline_name/jobs/:job_name/inputs", func() {
+		var response *http.Response
+
+		JustBeforeEach(func() {
+			var err error
+
+			response, err = client.Get(server.URL + "/api/v1/pipelines/some-pipeline/jobs/some-job/inputs")
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			It("looked up the proper pipeline", func() {
+				Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+				Ω(pipelineName).Should(Equal("some-pipeline"))
+			})
+
+			Context("when getting the config succeeds", func() {
+				Context("when it contains the requested job", func() {
+					someJob := atc.JobConfig{
+						Name: "some-job",
+						Plan: atc.PlanSequence{
+							{
+								Get:      "some-input",
+								Resource: "some-resource",
+								Passed:   []string{"job-a", "job-b"},
+								Params:   atc.Params{"some": "params"},
+							},
+							{
+								Get:      "some-other-input",
+								Resource: "some-other-resource",
+								Passed:   []string{"job-c", "job-d"},
+								Params:   atc.Params{"some": "other-params"},
+							},
+						},
+					}
+
+					BeforeEach(func() {
+						pipelineDB.GetConfigReturns(atc.Config{
+							Jobs: atc.JobConfigs{
+								someJob,
+							},
+						}, 42, nil)
+					})
+
+					Context("when the versions can be loaded", func() {
+						versionsDB := &algorithm.VersionsDB{}
+
+						BeforeEach(func() {
+							pipelineDB.LoadVersionsDBReturns(versionsDB, nil)
+						})
+
+						Context("when the input versions for the job can be determined", func() {
+							BeforeEach(func() {
+								pipelineDB.GetLatestInputVersionsReturns([]db.BuildInput{
+									{
+										Name: "some-input",
+										VersionedResource: db.VersionedResource{
+											Resource:     "some-resource",
+											Type:         "some-type",
+											Source:       db.Source{"some": "source"},
+											Version:      db.Version{"some": "version"},
+											PipelineName: "some-pipeline",
+										},
+									},
+									{
+										Name: "some-other-input",
+										VersionedResource: db.VersionedResource{
+											Resource:     "some-other-resource",
+											Type:         "some-other-type",
+											Source:       db.Source{"some": "other-source"},
+											Version:      db.Version{"some": "other-version"},
+											PipelineName: "some-pipeline",
+										},
+									},
+								}, nil)
+							})
+
+							It("returns 200 OK", func() {
+								Ω(response.StatusCode).Should(Equal(http.StatusOK))
+							})
+
+							It("determined the inputs with the correct versions DB, job name, and inputs", func() {
+								receivedVersionsDB, receivedJob, receivedInputs := pipelineDB.GetLatestInputVersionsArgsForCall(0)
+								Expect(receivedVersionsDB).To(Equal(versionsDB))
+								Expect(receivedJob).To(Equal("some-job"))
+								Expect(receivedInputs).To(Equal(someJob.Inputs()))
+							})
+
+							It("returns the inputs", func() {
+								body, err := ioutil.ReadAll(response.Body)
+								Ω(err).ShouldNot(HaveOccurred())
+
+								Ω(body).Should(MatchJSON(`[
+								{
+									"name": "some-input",
+									"resource": "some-resource",
+									"type": "some-type",
+									"source": {"some": "source"},
+									"version": {"some": "version"}
+								},
+								{
+									"name": "some-other-input",
+									"resource": "some-other-resource",
+									"type": "some-other-type",
+									"source": {"some": "other-source"},
+									"version": {"some": "other-version"}
+								}
+							]`))
+							})
+						})
+
+						Context("when the job has no input versions available", func() {
+							BeforeEach(func() {
+								pipelineDB.GetLatestInputVersionsReturns(nil, db.ErrNoVersions)
+							})
+
+							It("returns 404", func() {
+								Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+							})
+						})
+
+						Context("when the input versions for the job can not be determined", func() {
+							BeforeEach(func() {
+								pipelineDB.GetLatestInputVersionsReturns(nil, errors.New("oh no!"))
+							})
+
+							It("returns 500", func() {
+								Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+							})
+						})
+					})
+
+					Context("when the versions can not be loaded", func() {
+						BeforeEach(func() {
+							pipelineDB.LoadVersionsDBReturns(nil, errors.New("oh no!"))
+						})
+
+						It("returns 500", func() {
+							Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+						})
+					})
+				})
+
+				Context("when it does not contain the requested job", func() {
+					BeforeEach(func() {
+						pipelineDB.GetConfigReturns(atc.Config{
+							Jobs: atc.JobConfigs{
+								{
+									Name: "some-bogus-job",
+									Plan: atc.PlanSequence{},
+								},
+							},
+						}, 42, nil)
+					})
+
+					It("returns 404 Not Found", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+					})
+				})
+			})
+
+			Context("when getting the config fails", func() {
+				Context("with ErrPipelineNotFound", func() {
+					BeforeEach(func() {
+						pipelineDB.GetConfigReturns(atc.Config{}, 0, db.ErrPipelineNotFound)
+					})
+
+					It("returns 404", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("with an unknown error", func() {
+					BeforeEach(func() {
+						pipelineDB.GetConfigReturns(atc.Config{}, 0, errors.New("oh no!"))
+					})
+
+					It("returns 500", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					})
+				})
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Unauthorized", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
 			})
 		})
 	})

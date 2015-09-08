@@ -24,3 +24,11 @@ type JobOutput struct {
 	Name     string `json:"name"`
 	Resource string `json:"resource"`
 }
+
+type BuildInput struct {
+	Name     string  `json:"name"`
+	Resource string  `json:"resource"`
+	Type     string  `json:"type"`
+	Source   Source  `json:"source"`
+	Version  Version `json:"version"`
+}
