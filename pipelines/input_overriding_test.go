@@ -22,7 +22,9 @@ var _ = Describe("A job with multiple inputs", func() {
 		firstGuidA string
 		firstGuidB string
 
-		tmpdir string
+		tmpdir           string
+		taskConfig       string
+		localGitRepoBDir string
 	)
 
 	BeforeEach(func() {
@@ -51,12 +53,25 @@ inputs:
 - name: git-repo-b
 run:
   path: sh
-  args: 
+  args:
     - -c
     - |
       echo a has $(cat git-repo-a/guids)
       echo b has $(cat git-repo-b/guids)
 `),
+			0644,
+		)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		taskConfig = filepath.Join(tmpdir, "task.yml")
+		localGitRepoBDir = filepath.Join(tmpdir, "git-repo-b")
+
+		err = os.Mkdir(localGitRepoBDir, 0755)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		err = ioutil.WriteFile(
+			filepath.Join(localGitRepoBDir, "guids"),
+			[]byte("some-overridden-guid"),
 			0644,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
@@ -70,6 +85,7 @@ run:
 	})
 
 	It("can have its inputs used as the basis for a one-off build", func() {
+		By("waiting for an initial build so the job has inputs")
 		watch := flyWatch("some-job")
 		Ω(watch).Should(gbytes.Say("initializing"))
 		Ω(watch).Should(gbytes.Say("a has " + firstGuidA))
@@ -77,15 +93,16 @@ run:
 		Ω(watch).Should(gbytes.Say("succeeded"))
 		Ω(watch).Should(gexec.Exit(0))
 
+		By("running a one-off with the same inputs and no local inputs")
 		fly := exec.Command(
 			flyBin,
 			"-t", atcURL,
 			"execute",
-			"-c", "task.yml",
+			"-c", taskConfig,
 			"--inputs-from-pipeline", pipelineName,
 			"--inputs-from-job", "some-job",
 		)
-		fly.Dir = tmpdir
+		fly.Dir = localGitRepoBDir
 
 		execute := helpers.StartFly(fly)
 		<-execute.Exited
@@ -95,23 +112,17 @@ run:
 		Ω(execute).Should(gbytes.Say("succeeded"))
 		Ω(execute).Should(gexec.Exit(0))
 
-		err := ioutil.WriteFile(
-			filepath.Join(tmpdir, "guids"),
-			[]byte("some-overridden-guid"),
-			0644,
-		)
-		Ω(err).ShouldNot(HaveOccurred())
-
+		By("running a one-off with one of the inputs overridden")
 		fly = exec.Command(
 			flyBin,
 			"-t", atcURL,
 			"execute",
-			"-c", "task.yml",
+			"-c", taskConfig,
 			"--inputs-from-pipeline", pipelineName,
 			"--inputs-from-job", "some-job",
-			"--input", "git-repo-b="+tmpdir,
+			"--input", "git-repo-b="+localGitRepoBDir,
 		)
-		fly.Dir = tmpdir
+		fly.Dir = localGitRepoBDir
 
 		execute = helpers.StartFly(fly)
 		<-execute.Exited
