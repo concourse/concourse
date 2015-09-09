@@ -31,7 +31,6 @@ var _ = Describe("Fly CLI", func() {
 	var events chan atc.Event
 	var uploadingBits <-chan struct{}
 	var uploading chan struct{}
-	var uploadingTwo chan struct{}
 
 	var expectedPlan atc.Plan
 
@@ -103,11 +102,12 @@ run:
 								ParentID:      0,
 								ID:            3,
 							}, Get: &atc.GetPlan{
-								Name: "some-other-input",
-								Type: "archive",
-								Source: atc.Source{
-									"uri": atcServer.URL() + "/api/v1/pipes/some-other-pipe-id",
-								},
+								Name:    "some-other-input",
+								Type:    "git",
+								Source:  atc.Source{"uri": "https://example.com"},
+								Params:  atc.Params{"some": "other-params"},
+								Version: atc.Version{"some": "other-version"},
+								Tags:    atc.Tags{"tag-1", "tag-2"},
 							},
 						},
 					},
@@ -145,7 +145,6 @@ run:
 
 	JustBeforeEach(func() {
 		uploading = make(chan struct{})
-		uploadingTwo = make(chan struct{})
 		uploadingBits = uploading
 
 		atcServer.AppendHandlers(
@@ -156,9 +155,26 @@ run:
 				}),
 			),
 			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("POST", "/api/v1/pipes"),
-				ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Pipe{
-					ID: "some-other-pipe-id",
+				ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/jobs/some-job/inputs"),
+				ghttp.RespondWithJSONEncoded(http.StatusOK, []atc.BuildInput{
+					{
+						Name:     "some-input",
+						Type:     "git",
+						Resource: "some-resource",
+						Source:   atc.Source{"uri": "https://internet.com"},
+						Params:   atc.Params{"some": "params"},
+						Version:  atc.Version{"some": "version"},
+						Tags:     atc.Tags{"tag-1", "tag-2"},
+					},
+					{
+						Name:     "some-other-input",
+						Type:     "git",
+						Resource: "some-other-resource",
+						Source:   atc.Source{"uri": "https://example.com"},
+						Params:   atc.Params{"some": "other-params"},
+						Version:  atc.Version{"some": "other-version"},
+						Tags:     atc.Tags{"tag-1", "tag-2"},
+					},
 				}),
 			),
 			ghttp.CombineHandlers(
@@ -237,35 +253,15 @@ run:
 				},
 				ghttp.RespondWith(200, ""),
 			),
-			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("PUT", "/api/v1/pipes/some-other-pipe-id"),
-				func(w http.ResponseWriter, req *http.Request) {
-					close(uploadingTwo)
-
-					gr, err := gzip.NewReader(req.Body)
-					Ω(err).ShouldNot(HaveOccurred())
-
-					tr := tar.NewReader(gr)
-
-					hdr, err := tr.Next()
-					Ω(err).ShouldNot(HaveOccurred())
-
-					Ω(hdr.Name).Should(Equal("./"))
-
-					hdr, err = tr.Next()
-					Ω(err).ShouldNot(HaveOccurred())
-
-					Ω(hdr.Name).Should(MatchRegexp("(./)?s3-asset-file$"))
-				},
-				ghttp.RespondWith(200, ""),
-			),
 		)
 	})
 
-	It("flies with multiple passengers", func() {
+	It("can base inputs on a job in the pipeline", func() {
 		flyCmd := exec.Command(
 			flyPath, "-t", atcServer.URL(), "e",
-			"--input", fmt.Sprintf("some-input=%s", buildDir), "--input", fmt.Sprintf("some-other-input=%s", otherInputDir),
+			"--inputs-from-pipeline", "some-pipeline",
+			"--inputs-from-job", "some-job",
+			"--input", fmt.Sprintf("some-input=%s", buildDir),
 			"--config", filepath.Join(buildDir, "build.yml"),
 		)
 
@@ -274,7 +270,6 @@ run:
 
 		Eventually(streaming).Should(BeClosed())
 		Eventually(uploading).Should(BeClosed())
-		Eventually(uploadingTwo).Should(BeClosed())
 
 		events <- event.Log{Payload: "sup"}
 		close(events)

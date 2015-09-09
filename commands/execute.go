@@ -291,6 +291,8 @@ func createBuild(
 				Type:    input.BuildInput.Type,
 				Source:  input.BuildInput.Source,
 				Version: input.BuildInput.Version,
+				Params:  input.BuildInput.Params,
+				Tags:    input.BuildInput.Tags,
 			}
 		}
 
