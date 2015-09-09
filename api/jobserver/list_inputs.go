@@ -2,7 +2,6 @@ package jobserver
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/concourse/atc"
@@ -50,11 +49,10 @@ func (s *Server) ListJobInputs(pipelineDB db.PipelineDB) http.Handler {
 			return
 		}
 
-		log.Println("FETCHED VERSION", inputVersions)
-
 		buildInputs := make([]atc.BuildInput, len(inputVersions))
 		for i, input := range inputVersions {
-			buildInputs[i] = present.BuildInput(input)
+			resource, _ := config.Resources.Lookup(input.Resource)
+			buildInputs[i] = present.BuildInput(input, resource.Source)
 		}
 
 		json.NewEncoder(w).Encode(buildInputs)

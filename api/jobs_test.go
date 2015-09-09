@@ -566,6 +566,17 @@ var _ = Describe("Jobs API", func() {
 							Jobs: atc.JobConfigs{
 								someJob,
 							},
+
+							Resources: atc.ResourceConfigs{
+								{
+									Name:   "some-resource",
+									Source: atc.Source{"some": "source"},
+								},
+								{
+									Name:   "some-other-resource",
+									Source: atc.Source{"some": "other-source"},
+								},
+							},
 						}, 42, nil)
 					})
 
@@ -584,7 +595,6 @@ var _ = Describe("Jobs API", func() {
 										VersionedResource: db.VersionedResource{
 											Resource:     "some-resource",
 											Type:         "some-type",
-											Source:       db.Source{"some": "source"},
 											Version:      db.Version{"some": "version"},
 											PipelineName: "some-pipeline",
 										},
@@ -594,7 +604,6 @@ var _ = Describe("Jobs API", func() {
 										VersionedResource: db.VersionedResource{
 											Resource:     "some-other-resource",
 											Type:         "some-other-type",
-											Source:       db.Source{"some": "other-source"},
 											Version:      db.Version{"some": "other-version"},
 											PipelineName: "some-pipeline",
 										},

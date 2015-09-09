@@ -5,12 +5,12 @@ import (
 	"github.com/concourse/atc/db"
 )
 
-func BuildInput(input db.BuildInput) atc.BuildInput {
+func BuildInput(input db.BuildInput, source atc.Source) atc.BuildInput {
 	return atc.BuildInput{
 		Name:     input.Name,
 		Resource: input.Resource,
 		Type:     input.Type,
-		Source:   atc.Source(input.Source),
+		Source:   source,
 		Version:  atc.Version(input.Version),
 	}
 }
