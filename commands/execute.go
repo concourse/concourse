@@ -144,7 +144,7 @@ func determineInputs(
 	fromPipeline string,
 	fromJob string,
 ) []Input {
-	if len(inputMappings) == 0 {
+	if len(inputMappings) == 0 && fromPipeline == "" && fromJob == "" {
 		wd, err := os.Getwd()
 		if err != nil {
 			log.Fatalln(err)
