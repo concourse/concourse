@@ -4,7 +4,7 @@ image: docker:///concourse/concourse-ci
 
 inputs:
   - name: concourse
-  - name: bosh-lites
+#  - name: bosh-lites
 
 params:
   BOSH_USER:
