@@ -26,35 +26,35 @@ type DependentGetPlan struct {
 }
 
 type Location struct {
-	ParentID      uint `json:"parent_id,omitempty"`
-	ParallelGroup uint `json:"parallel_group,omitempty"`
-	SerialGroup   uint `json:"serial_group,omitempty"`
-	ID            uint `json:"id,omitempty"`
-	Hook          string
+	ParentID      uint   `json:"parent_id,omitempty"`
+	ParallelGroup uint   `json:"parallel_group,omitempty"`
+	SerialGroup   uint   `json:"serial_group,omitempty"`
+	ID            uint   `json:"id,omitempty"`
+	Hook          string `json:"hook,omitempty"`
 }
 
 type OnFailurePlan struct {
-	Step Plan `json: "step"`
-	Next Plan `json: "on_failure"`
+	Step Plan `json:"step"`
+	Next Plan `json:"on_failure"`
 }
 
 type EnsurePlan struct {
-	Step Plan `json: "step"`
-	Next Plan `json: "ensure"`
+	Step Plan `json:"step"`
+	Next Plan `json:"ensure"`
 }
 
 type OnSuccessPlan struct {
-	Step Plan `json: "step"`
-	Next Plan `json: "on_success"`
+	Step Plan `json:"step"`
+	Next Plan `json:"on_success"`
 }
 
 type TimeoutPlan struct {
-	Step     Plan   `json: "step"`
+	Step     Plan   `json:"step"`
 	Duration string `json:"duration"`
 }
 
 type TryPlan struct {
-	Step Plan `json: "step"`
+	Step Plan `json:"step"`
 }
 
 type AggregatePlan []Plan
@@ -81,7 +81,6 @@ type PutPlan struct {
 }
 
 func (plan DependentGetPlan) GetPlan() GetPlan {
-
 	return GetPlan{
 		Type:     plan.Type,
 		Name:     plan.Name,
