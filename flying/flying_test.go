@@ -1,7 +1,6 @@
 package flying_test
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -9,7 +8,7 @@ import (
 	"regexp"
 	"syscall"
 
-	"github.com/mgutz/ansi"
+	"github.com/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -71,28 +70,11 @@ run:
 		os.RemoveAll(tmpdir)
 	})
 
-	start := func(cmd *exec.Cmd) *gexec.Session {
-		session, err := gexec.Start(
-			cmd,
-			gexec.NewPrefixedWriter(
-				fmt.Sprintf("%s%s ", ansi.Color("[o]", "green"), ansi.Color("[fly]", "blue")),
-				GinkgoWriter,
-			),
-			gexec.NewPrefixedWriter(
-				fmt.Sprintf("%s%s ", ansi.Color("[e]", "red+bright"), ansi.Color("[fly]", "blue")),
-				GinkgoWriter,
-			),
-		)
-		Ω(err).ShouldNot(HaveOccurred())
-
-		return session
-	}
-
 	It("works", func() {
 		fly := exec.Command(flyBin, "-t", atcURL, "execute", "-c", "build.yml", "--", "SOME", "ARGS")
 		fly.Dir = fixture
 
-		session := start(fly)
+		session := helpers.StartFly(fly)
 
 		Eventually(session).Should(gexec.Exit(0))
 
@@ -118,7 +100,7 @@ cat < /tmp/fifo
 
 			fly.Dir = fixture
 
-			flyS := start(fly)
+			flyS := helpers.StartFly(fly)
 
 			Eventually(flyS).Should(gbytes.Say("executing build"))
 
@@ -130,7 +112,7 @@ cat < /tmp/fifo
 
 			hijack := exec.Command(flyBin, "-t", atcURL, "hijack", "-b", buildID, "--", "sh", "-c", "echo marco > /tmp/fifo")
 
-			hijackS := start(hijack)
+			hijackS := helpers.StartFly(hijack)
 
 			Eventually(flyS).Should(gbytes.Say("marco"))
 
@@ -157,7 +139,7 @@ wait
 			fly := exec.Command(flyBin, "-t", atcURL, "execute")
 			fly.Dir = fixture
 
-			flyS := start(fly)
+			flyS := helpers.StartFly(fly)
 
 			Eventually(flyS).Should(gbytes.Say("waiting"))
 
