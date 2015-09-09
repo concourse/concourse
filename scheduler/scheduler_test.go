@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
 	enginefakes "github.com/concourse/atc/engine/fakes"
@@ -220,7 +221,7 @@ var _ = Describe("Scheduler", func() {
 				versions, jobName, inputs := fakePipelineDB.GetLatestInputVersionsArgsForCall(0)
 				Ω(versions).Should(Equal(someVersions))
 				Ω(jobName).Should(Equal(job.Name))
-				Ω(inputs).Should(Equal([]atc.JobInput{
+				Ω(inputs).Should(Equal([]config.JobInput{
 					{
 						Name:     "some-input",
 						Resource: "some-resource",
@@ -512,7 +513,7 @@ var _ = Describe("Scheduler", func() {
 						versions, jobName, inputConfigs := fakePipelineDB.GetLatestInputVersionsArgsForCall(0)
 						Ω(versions).Should(Equal(someVersions))
 						Ω(jobName).Should(Equal(job.Name))
-						Ω(inputConfigs).Should(Equal([]atc.JobInput{
+						Ω(inputConfigs).Should(Equal([]config.JobInput{
 							{
 								Name:     "some-input",
 								Resource: "some-resource",
@@ -658,7 +659,7 @@ var _ = Describe("Scheduler", func() {
 						versions, jobName, inputConfigs := fakePipelineDB.GetLatestInputVersionsArgsForCall(0)
 						Ω(versions).Should(Equal(someVersions))
 						Ω(jobName).Should(Equal(job.Name))
-						Ω(inputConfigs).Should(Equal([]atc.JobInput{
+						Ω(inputConfigs).Should(Equal([]config.JobInput{
 							{
 								Name:     "some-input",
 								Resource: "some-resource",

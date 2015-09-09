@@ -37,10 +37,12 @@ type OnFailurePlan struct {
 	Step Plan `json: "step"`
 	Next Plan `json: "on_failure"`
 }
+
 type EnsurePlan struct {
 	Step Plan `json: "step"`
 	Next Plan `json: "ensure"`
 }
+
 type OnSuccessPlan struct {
 	Step Plan `json: "step"`
 	Next Plan `json: "on_success"`

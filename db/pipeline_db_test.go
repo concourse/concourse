@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/event"
@@ -47,7 +48,7 @@ var _ = Describe("PipelineDB", func() {
 		postgresRunner.DropTestDB()
 	})
 
-	config := atc.Config{
+	pipelineConfig := atc.Config{
 		Groups: atc.GroupConfigs{
 			{
 				Name:      "some-group",
@@ -108,7 +109,7 @@ var _ = Describe("PipelineDB", func() {
 		},
 	}
 
-	otherConfig := atc.Config{
+	otherPipelineConfig := atc.Config{
 		Groups: atc.GroupConfigs{
 			{
 				Name:      "some-group",
@@ -140,12 +141,12 @@ var _ = Describe("PipelineDB", func() {
 	)
 
 	BeforeEach(func() {
-		_, err := sqlDB.SaveConfig("a-pipeline-name", config, 0, db.PipelineUnpaused)
+		_, err := sqlDB.SaveConfig("a-pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
 		Ω(err).ShouldNot(HaveOccurred())
 		savedPipeline, err := sqlDB.GetPipelineByName("a-pipeline-name")
 		Ω(err).ShouldNot(HaveOccurred())
 
-		_, err = sqlDB.SaveConfig("other-pipeline-name", otherConfig, 0, db.PipelineUnpaused)
+		_, err = sqlDB.SaveConfig("other-pipeline-name", otherPipelineConfig, 0, db.PipelineUnpaused)
 		Ω(err).ShouldNot(HaveOccurred())
 		otherSavedPipeline, err := sqlDB.GetPipelineByName("other-pipeline-name")
 		Ω(err).ShouldNot(HaveOccurred())
@@ -154,7 +155,7 @@ var _ = Describe("PipelineDB", func() {
 		otherPipelineDB = pipelineDBFactory.Build(otherSavedPipeline)
 	})
 
-	loadAndGetLatestInputVersions := func(jobName string, inputs []atc.JobInput) ([]db.BuildInput, error) {
+	loadAndGetLatestInputVersions := func(jobName string, inputs []config.JobInput) ([]db.BuildInput, error) {
 		versions, err := pipelineDB.LoadVersionsDB()
 		if err != nil {
 			return nil, err
@@ -165,7 +166,7 @@ var _ = Describe("PipelineDB", func() {
 
 	Describe("destroying a pipeline", func() {
 		It("can be deleted", func() {
-			_, err := sqlDB.SaveConfig("a-pipeline-that-will-be-deleted", config, 0, db.PipelineUnpaused)
+			_, err := sqlDB.SaveConfig("a-pipeline-that-will-be-deleted", pipelineConfig, 0, db.PipelineUnpaused)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			fetchedPipeline, err := sqlDB.GetPipelineByName("a-pipeline-that-will-be-deleted")
@@ -177,7 +178,7 @@ var _ = Describe("PipelineDB", func() {
 			_, err = fetchedPipelineDB.GetResource("some-resource")
 			Ω(err).ShouldNot(HaveOccurred())
 
-			resourceConfig, found := config.Resources.Lookup("some-resource")
+			resourceConfig, found := pipelineConfig.Resources.Lookup("some-resource")
 			Ω(found).Should(BeTrue())
 
 			fetchedPipelineDB.SaveResourceVersions(resourceConfig, []atc.Version{
@@ -279,22 +280,22 @@ var _ = Describe("PipelineDB", func() {
 			By("returning the saved config to later gets")
 			returnedConfig, configVersion, err := pipelineDB.GetConfig()
 			Ω(err).ShouldNot(HaveOccurred())
-			Ω(returnedConfig).Should(Equal(config))
+			Ω(returnedConfig).Should(Equal(pipelineConfig))
 			Ω(configVersion).ShouldNot(Equal(db.ConfigVersion(0)))
 
 			otherReturnedConfig, otherConfigVersion, err := otherPipelineDB.GetConfig()
 			Ω(err).ShouldNot(HaveOccurred())
-			Ω(otherReturnedConfig).Should(Equal(otherConfig))
+			Ω(otherReturnedConfig).Should(Equal(otherPipelineConfig))
 			Ω(otherConfigVersion).ShouldNot(Equal(db.ConfigVersion(0)))
 
-			updatedConfig := config
+			updatedConfig := pipelineConfig
 
-			updatedConfig.Groups = append(config.Groups, atc.GroupConfig{
+			updatedConfig.Groups = append(pipelineConfig.Groups, atc.GroupConfig{
 				Name: "new-group",
 				Jobs: []string{"new-job-1", "new-job-2"},
 			})
 
-			updatedConfig.Resources = append(config.Resources, atc.ResourceConfig{
+			updatedConfig.Resources = append(pipelineConfig.Resources, atc.ResourceConfig{
 				Name: "new-resource",
 				Type: "new-type",
 				Source: atc.Source{
@@ -302,7 +303,7 @@ var _ = Describe("PipelineDB", func() {
 				},
 			})
 
-			updatedConfig.Jobs = append(config.Jobs, atc.JobConfig{
+			updatedConfig.Jobs = append(pipelineConfig.Jobs, atc.JobConfig{
 				Name:           "some-resource",
 				TaskConfigPath: "new/config/path.yml",
 				InputConfigs: []atc.JobInputConfig{
@@ -644,7 +645,7 @@ var _ = Describe("PipelineDB", func() {
 				otherSavedVR2, err := pipelineDB.GetLatestVersionedResource(otherResource)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				jobBuildInputs := []atc.JobInput{
+				jobBuildInputs := []config.JobInput{
 					{
 						Name:     "some-input-name",
 						Resource: "some-resource",
@@ -721,7 +722,7 @@ var _ = Describe("PipelineDB", func() {
 				savedVR2, err := pipelineDB.GetLatestVersionedResource(resource)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				jobBuildInputs := []atc.JobInput{
+				jobBuildInputs := []config.JobInput{
 					{
 						Name:     "some-input-name",
 						Resource: "some-resource",
@@ -2171,7 +2172,7 @@ var _ = Describe("PipelineDB", func() {
 
 		Describe("determining the inputs for a job", func() {
 			It("can still be scheduled with no inputs", func() {
-				buildInputs, err := loadAndGetLatestInputVersions("third-job", []atc.JobInput{})
+				buildInputs, err := loadAndGetLatestInputVersions("third-job", []config.JobInput{})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(buildInputs).Should(Equal([]db.BuildInput{}))
@@ -2308,7 +2309,7 @@ var _ = Describe("PipelineDB", func() {
 				err = sqlDB.FinishBuild(build3.ID, db.StatusSucceeded)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				jobBuildInputs := []atc.JobInput{
+				jobBuildInputs := []config.JobInput{
 					{
 						Name:     "some-input-name",
 						Resource: "some-resource",
@@ -2351,7 +2352,7 @@ var _ = Describe("PipelineDB", func() {
 				_, err = otherPipelineDB.CreateJobBuild("shared-job")
 				Ω(err).ShouldNot(HaveOccurred())
 
-				_, err = loadAndGetLatestInputVersions("a-job", []atc.JobInput{
+				_, err = loadAndGetLatestInputVersions("a-job", []config.JobInput{
 					{
 						Name:     "input-1",
 						Resource: "resource-1",
@@ -2428,7 +2429,7 @@ var _ = Describe("PipelineDB", func() {
 				err = sqlDB.FinishBuild(j2b1.ID, db.StatusSucceeded)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(loadAndGetLatestInputVersions("a-job", []atc.JobInput{
+				Ω(loadAndGetLatestInputVersions("a-job", []config.JobInput{
 					{
 						Name:     "input-1",
 						Resource: "resource-1",
@@ -2482,7 +2483,7 @@ var _ = Describe("PipelineDB", func() {
 
 				// do NOT save resource-2 as an output of job-2
 
-				Ω(loadAndGetLatestInputVersions("a-job", []atc.JobInput{
+				Ω(loadAndGetLatestInputVersions("a-job", []config.JobInput{
 					{
 						Name:     "input-1",
 						Resource: "resource-1",
@@ -2519,7 +2520,7 @@ var _ = Describe("PipelineDB", func() {
 				err = sqlDB.FinishBuild(j2b2.ID, db.StatusSucceeded)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(loadAndGetLatestInputVersions("a-job", []atc.JobInput{
+				Ω(loadAndGetLatestInputVersions("a-job", []config.JobInput{
 					{
 						Name:     "input-1",
 						Resource: "resource-1",
@@ -2556,7 +2557,7 @@ var _ = Describe("PipelineDB", func() {
 				err = sqlDB.FinishBuild(j2b3.ID, db.StatusFailed)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(loadAndGetLatestInputVersions("a-job", []atc.JobInput{
+				Ω(loadAndGetLatestInputVersions("a-job", []config.JobInput{
 					{
 						Name:     "input-2",
 						Resource: "resource-2",
@@ -2601,7 +2602,7 @@ var _ = Describe("PipelineDB", func() {
 					}, false)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(loadAndGetLatestInputVersions("a-job", []atc.JobInput{
+					Ω(loadAndGetLatestInputVersions("a-job", []config.JobInput{
 						{
 							Name:     "input-1",
 							Resource: "resource-1",

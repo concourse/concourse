@@ -2,6 +2,7 @@ package present
 
 import (
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web/routes"
 	"github.com/tedsuo/rata"
@@ -40,6 +41,24 @@ func Job(dbJob db.SavedJob, job atc.JobConfig, groups atc.GroupConfigs, finished
 		}
 	}
 
+	sanitizedInputs := []atc.JobInput{}
+	for _, input := range config.JobInputs(job) {
+		sanitizedInputs = append(sanitizedInputs, atc.JobInput{
+			Name:     input.Name,
+			Resource: input.Resource,
+			Passed:   input.Passed,
+			Trigger:  input.Trigger,
+		})
+	}
+
+	sanitizedOutputs := []atc.JobOutput{}
+	for _, output := range config.JobOutputs(job) {
+		sanitizedOutputs = append(sanitizedOutputs, atc.JobOutput{
+			Name:     output.Name,
+			Resource: output.Resource,
+		})
+	}
+
 	return atc.Job{
 		Name:          job.Name,
 		URL:           req.URL.String(),
@@ -47,8 +66,8 @@ func Job(dbJob db.SavedJob, job atc.JobConfig, groups atc.GroupConfigs, finished
 		FinishedBuild: presentedFinishedBuild,
 		NextBuild:     presentedNextBuild,
 
-		Inputs:  job.Inputs(),
-		Outputs: job.Outputs(),
+		Inputs:  sanitizedInputs,
+		Outputs: sanitizedOutputs,
 
 		Groups: groupNames,
 	}

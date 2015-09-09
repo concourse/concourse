@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
 	dbfakes "github.com/concourse/atc/db/fakes"
@@ -557,6 +558,7 @@ var _ = Describe("Jobs API", func() {
 								Resource: "some-other-resource",
 								Passed:   []string{"job-c", "job-d"},
 								Params:   atc.Params{"some": "other-params"},
+								Tags:     []string{"some-tag"},
 							},
 						},
 					}
@@ -619,7 +621,7 @@ var _ = Describe("Jobs API", func() {
 								receivedVersionsDB, receivedJob, receivedInputs := pipelineDB.GetLatestInputVersionsArgsForCall(0)
 								Expect(receivedVersionsDB).To(Equal(versionsDB))
 								Expect(receivedJob).To(Equal("some-job"))
-								Expect(receivedInputs).To(Equal(someJob.Inputs()))
+								Expect(receivedInputs).To(Equal(config.JobInputs(someJob)))
 							})
 
 							It("returns the inputs", func() {
@@ -627,21 +629,24 @@ var _ = Describe("Jobs API", func() {
 								Ω(err).ShouldNot(HaveOccurred())
 
 								Ω(body).Should(MatchJSON(`[
-								{
-									"name": "some-input",
-									"resource": "some-resource",
-									"type": "some-type",
-									"source": {"some": "source"},
-									"version": {"some": "version"}
-								},
-								{
-									"name": "some-other-input",
-									"resource": "some-other-resource",
-									"type": "some-other-type",
-									"source": {"some": "other-source"},
-									"version": {"some": "other-version"}
-								}
-							]`))
+									{
+										"name": "some-input",
+										"resource": "some-resource",
+										"type": "some-type",
+										"source": {"some": "source"},
+										"version": {"some": "version"},
+										"params": {"some": "params"}
+									},
+									{
+										"name": "some-other-input",
+										"resource": "some-other-resource",
+										"type": "some-other-type",
+										"source": {"some": "other-source"},
+										"version": {"some": "other-version"},
+										"params": {"some": "other-params"},
+										"tags": ["some-tag"]
+									}
+								]`))
 							})
 						})
 

@@ -7,6 +7,7 @@ import (
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/engine"
@@ -23,7 +24,7 @@ type PipelineDB interface {
 	GetNextPendingBuild(job string) (db.Build, error)
 
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
-	GetLatestInputVersions(versions *algorithm.VersionsDB, job string, inputs []atc.JobInput) ([]db.BuildInput, error)
+	GetLatestInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, error)
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 	UseInputsForBuild(buildID int, inputs []db.BuildInput) error
 }
@@ -62,7 +63,7 @@ type Scheduler struct {
 func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.VersionsDB, job atc.JobConfig, resources atc.ResourceConfigs) error {
 	logger = logger.Session("build-latest")
 
-	inputs := job.Inputs()
+	inputs := config.JobInputs(job)
 
 	if len(inputs) == 0 {
 		// no inputs; no-op
@@ -191,7 +192,7 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions 
 		return nil
 	}
 
-	buildInputs := job.Inputs()
+	buildInputs := config.JobInputs(job)
 
 	if versions == nil {
 		for _, input := range buildInputs {

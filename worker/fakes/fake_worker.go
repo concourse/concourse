@@ -48,7 +48,7 @@ type FakeWorker struct {
 	NameStub        func() string
 	nameMutex       sync.RWMutex
 	nameArgsForCall []struct{}
-	nameReturns     struct {
+	nameReturns struct {
 		result1 string
 	}
 	ActiveContainersStub        func() int

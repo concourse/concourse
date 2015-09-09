@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/lib/pq"
 	"github.com/pivotal-golang/lager"
@@ -56,7 +57,7 @@ type PipelineDB interface {
 	UseInputsForBuild(buildID int, inputs []BuildInput) error
 
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
-	GetLatestInputVersions(versions *algorithm.VersionsDB, job string, inputs []atc.JobInput) ([]BuildInput, error)
+	GetLatestInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]BuildInput, error)
 	GetJobBuildForInputs(job string, inputs []BuildInput) (Build, error)
 	GetNextPendingBuild(job string) (Build, error)
 
@@ -1611,7 +1612,7 @@ func (pdb *pipelineDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	return db, nil
 }
 
-func (pdb *pipelineDB) GetLatestInputVersions(db *algorithm.VersionsDB, jobName string, inputs []atc.JobInput) ([]BuildInput, error) {
+func (pdb *pipelineDB) GetLatestInputVersions(db *algorithm.VersionsDB, jobName string, inputs []config.JobInput) ([]BuildInput, error) {
 	if len(inputs) == 0 {
 		return []BuildInput{}, nil
 	}

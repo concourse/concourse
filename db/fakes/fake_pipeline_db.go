@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
 )
@@ -267,12 +268,12 @@ type FakePipelineDB struct {
 		result1 *algorithm.VersionsDB
 		result2 error
 	}
-	GetLatestInputVersionsStub        func(versions *algorithm.VersionsDB, job string, inputs []atc.JobInput) ([]db.BuildInput, error)
+	GetLatestInputVersionsStub        func(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, error)
 	getLatestInputVersionsMutex       sync.RWMutex
 	getLatestInputVersionsArgsForCall []struct {
 		versions *algorithm.VersionsDB
 		job      string
-		inputs   []atc.JobInput
+		inputs   []config.JobInput
 	}
 	getLatestInputVersionsReturns struct {
 		result1 []db.BuildInput
@@ -1304,12 +1305,12 @@ func (fake *FakePipelineDB) LoadVersionsDBReturns(result1 *algorithm.VersionsDB,
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) GetLatestInputVersions(versions *algorithm.VersionsDB, job string, inputs []atc.JobInput) ([]db.BuildInput, error) {
+func (fake *FakePipelineDB) GetLatestInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, error) {
 	fake.getLatestInputVersionsMutex.Lock()
 	fake.getLatestInputVersionsArgsForCall = append(fake.getLatestInputVersionsArgsForCall, struct {
 		versions *algorithm.VersionsDB
 		job      string
-		inputs   []atc.JobInput
+		inputs   []config.JobInput
 	}{versions, job, inputs})
 	fake.getLatestInputVersionsMutex.Unlock()
 	if fake.GetLatestInputVersionsStub != nil {
@@ -1325,7 +1326,7 @@ func (fake *FakePipelineDB) GetLatestInputVersionsCallCount() int {
 	return len(fake.getLatestInputVersionsArgsForCall)
 }
 
-func (fake *FakePipelineDB) GetLatestInputVersionsArgsForCall(i int) (*algorithm.VersionsDB, string, []atc.JobInput) {
+func (fake *FakePipelineDB) GetLatestInputVersionsArgsForCall(i int) (*algorithm.VersionsDB, string, []config.JobInput) {
 	fake.getLatestInputVersionsMutex.RLock()
 	defer fake.getLatestInputVersionsMutex.RUnlock()
 	return fake.getLatestInputVersionsArgsForCall[i].versions, fake.getLatestInputVersionsArgsForCall[i].job, fake.getLatestInputVersionsArgsForCall[i].inputs

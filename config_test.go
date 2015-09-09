@@ -113,5 +113,4 @@ var _ = Describe("Config", func() {
 			}.Name()).Should(Equal("some-name"))
 		})
 	})
-
 })

@@ -302,18 +302,21 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 				)
 			} else {
 				foundResource := false
-				for _, jobInput := range jobConfig.Inputs() {
+
+				for _, jobInput := range JobInputs(jobConfig) {
 					if jobInput.Resource == plan.ResourceName() {
 						foundResource = true
 						break
 					}
 				}
-				for _, jobOutput := range jobConfig.Outputs() {
+
+				for _, jobOutput := range JobOutputs(jobConfig) {
 					if jobOutput.Resource == plan.ResourceName() {
 						foundResource = true
 						break
 					}
 				}
+
 				if !foundResource {
 					errorMessages = append(
 						errorMessages,

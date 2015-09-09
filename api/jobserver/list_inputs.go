@@ -6,6 +6,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
+	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 )
 
@@ -13,7 +14,7 @@ func (s *Server) ListJobInputs(pipelineDB db.PipelineDB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jobName := r.FormValue(":job_name")
 
-		config, _, err := pipelineDB.GetConfig()
+		pipelineConfig, _, err := pipelineDB.GetConfig()
 		switch err {
 		case db.ErrPipelineNotFound:
 			w.WriteHeader(http.StatusNotFound)
@@ -24,7 +25,7 @@ func (s *Server) ListJobInputs(pipelineDB db.PipelineDB) http.Handler {
 			return
 		}
 
-		jobConfig, found := config.Jobs.Lookup(jobName)
+		jobConfig, found := pipelineConfig.Jobs.Lookup(jobName)
 		if !found {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -36,7 +37,7 @@ func (s *Server) ListJobInputs(pipelineDB db.PipelineDB) http.Handler {
 			return
 		}
 
-		jobInputs := jobConfig.Inputs()
+		jobInputs := config.JobInputs(jobConfig)
 
 		inputVersions, err := pipelineDB.GetLatestInputVersions(versionsDB, jobName, jobInputs)
 		switch err {
@@ -51,8 +52,17 @@ func (s *Server) ListJobInputs(pipelineDB db.PipelineDB) http.Handler {
 
 		buildInputs := make([]atc.BuildInput, len(inputVersions))
 		for i, input := range inputVersions {
-			resource, _ := config.Resources.Lookup(input.Resource)
-			buildInputs[i] = present.BuildInput(input, resource.Source)
+			resource, _ := pipelineConfig.Resources.Lookup(input.Resource)
+
+			var config config.JobInput
+			for _, jobInput := range jobInputs {
+				if jobInput.Name == input.Name {
+					config = jobInput
+					break
+				}
+			}
+
+			buildInputs[i] = present.BuildInput(input, config, resource.Source)
 		}
 
 		json.NewEncoder(w).Encode(buildInputs)

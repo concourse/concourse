@@ -193,13 +193,13 @@ type FakeContainer struct {
 	destroyReturns struct {
 		result1 error
 	}
-	ReleaseStub                         func()
-	releaseMutex                        sync.RWMutex
-	releaseArgsForCall                  []struct{}
+	ReleaseStub        func()
+	releaseMutex       sync.RWMutex
+	releaseArgsForCall []struct{}
 	IdentifierFromPropertiesStub        func() worker.Identifier
 	identifierFromPropertiesMutex       sync.RWMutex
 	identifierFromPropertiesArgsForCall []struct{}
-	identifierFromPropertiesReturns     struct {
+	identifierFromPropertiesReturns struct {
 		result1 worker.Identifier
 	}
 }
