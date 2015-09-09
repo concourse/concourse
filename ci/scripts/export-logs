@@ -3,8 +3,7 @@
 
 set -e -x
 
-#bosh target $(cat bosh-lites/metadata)
-bosh target 10.0.22.106
+bosh target $(cat bosh-lites/metadata)
 
 director_uuid=$(bosh status --uuid)
 
