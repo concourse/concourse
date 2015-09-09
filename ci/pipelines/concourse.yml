@@ -205,6 +205,17 @@ jobs:
     ensure:
       put: bosh-lites
       params: {release: bosh-lites}
+    on_failure:
+      do:
+        - task: export-bosh-logs
+          file: concourse/ci/export-bosh-logs.yml
+          config:
+            params:
+              BOSH_USER: admin
+              BOSH_PASSWORD: admin
+        - put: s3-bosh-logs-bucket
+          params:
+            from: concourse\.(.*).tgz
 
 - name: deploy
   serial: true
@@ -708,3 +719,11 @@ resources:
   type: time
   source:
     interval: 10m
+  
+- name: s3-bosh-logs-bucket
+  type: s3
+  source:
+    bucket: concourse-testflight-bosh-logs
+    access_key_id: {{s3-testflight-log-access-key}}
+    secret_access_key: {{s3-testflight-log-secret-key}}
+    versioned_file: bosh-logs
