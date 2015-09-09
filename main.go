@@ -25,6 +25,16 @@ var inputFlag = cli.StringSliceFlag{
 	Value: &cli.StringSlice{},
 }
 
+var inputsFromPipelineFlag = cli.StringFlag{
+	Name:  "inputs-from-pipeline, ifp",
+	Usage: "pipeline whose job the task will base its inputs on",
+}
+
+var inputsFromJobFlag = cli.StringFlag{
+	Name:  "inputs-from-job, ifj",
+	Usage: "job the task will base its inputs on",
+}
+
 var insecureFlag = cli.BoolFlag{
 	Name:  "insecure, k",
 	Usage: "allow insecure SSL connections and transfers",
@@ -78,6 +88,8 @@ var executeFlags = []cli.Flag{
 	inputFlag,
 	excludeIgnoredFlag,
 	privilegedFlag,
+	inputsFromPipelineFlag,
+	inputsFromJobFlag,
 }
 
 func jobFlag(verb string) cli.StringFlag {

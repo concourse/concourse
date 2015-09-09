@@ -27,6 +27,7 @@ import (
 
 var _ = Describe("Fly CLI", func() {
 	var flyPath string
+	var tmpdir string
 	var buildDir string
 
 	var atcServer *ghttp.Server
@@ -42,7 +43,12 @@ var _ = Describe("Fly CLI", func() {
 		flyPath, err = gexec.Build("github.com/concourse/fly")
 		Ω(err).ShouldNot(HaveOccurred())
 
-		buildDir, err = ioutil.TempDir("", "fly-build-dir")
+		tmpdir, err = ioutil.TempDir("", "fly-build-dir")
+		Ω(err).ShouldNot(HaveOccurred())
+
+		buildDir = filepath.Join(tmpdir, "fixture")
+
+		err = os.Mkdir(buildDir, 0755)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		err = ioutil.WriteFile(
@@ -51,6 +57,9 @@ var _ = Describe("Fly CLI", func() {
 platform: some-platform
 
 image: ubuntu
+
+inputs:
+- name: fixture
 
 params:
   FOO: bar
@@ -101,6 +110,9 @@ run:
 						Config: &atc.TaskConfig{
 							Platform: "some-platform",
 							Image:    "ubuntu",
+							Inputs: []atc.TaskInputConfig{
+								{Name: "fixture"},
+							},
 							Params: map[string]string{
 								"FOO": "bar",
 								"BAZ": "buzz",
@@ -115,6 +127,10 @@ run:
 				},
 			},
 		}
+	})
+
+	AfterEach(func() {
+		os.RemoveAll(tmpdir)
 	})
 
 	JustBeforeEach(func() {

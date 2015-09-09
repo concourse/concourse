@@ -28,8 +28,11 @@ import (
 
 type Input struct {
 	Name string
+
 	Path string
 	Pipe atc.Pipe
+
+	BuildInput atc.BuildInput
 }
 
 func Execute(c *cli.Context) {
@@ -40,52 +43,27 @@ func Execute(c *cli.Context) {
 
 	atcRequester := newAtcRequester(target, insecure)
 
-	inputMappings := c.StringSlice("input")
-	if len(inputMappings) == 0 {
-		wd, err := os.Getwd()
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		inputMappings = append(inputMappings, filepath.Base(wd)+"="+wd)
-	}
-
-	inputs := []Input{}
-	for _, i := range inputMappings {
-		segs := strings.SplitN(i, "=", 2)
-		if len(segs) < 2 {
-			log.Println("malformed input:", i)
-			os.Exit(1)
-		}
-
-		inputName := segs[0]
-
-		absPath, err := filepath.Abs(segs[1])
-		if err != nil {
-			log.Printf("could not locate input %s: %s\n", inputName, err)
-			os.Exit(1)
-		}
-
-		pipe := createPipe(atcRequester)
-
-		inputs = append(inputs, Input{
-			Name: inputName,
-			Path: absPath,
-			Pipe: pipe,
-		})
-	}
-
 	absConfig, err := filepath.Abs(buildConfig)
 	if err != nil {
 		log.Println("could not locate config file:", err)
 		os.Exit(1)
 	}
 
+	taskConfig := config.LoadTaskConfig(absConfig, c.Args())
+
+	inputs := determineInputs(
+		atcRequester,
+		taskConfig.Inputs,
+		c.StringSlice("input"),
+		c.String("inputs-from-pipeline"),
+		c.String("inputs-from-job"),
+	)
+
 	build := createBuild(
 		atcRequester,
 		c.Bool("privileged"),
 		inputs,
-		config.LoadTaskConfig(absConfig, c.Args()),
+		taskConfig,
 	)
 
 	fmt.Fprintf(os.Stdout, "executing build %d\n", build.ID)
@@ -115,7 +93,9 @@ func Execute(c *cli.Context) {
 
 	go func() {
 		for _, i := range inputs {
-			upload(i, excludeIgnored, atcRequester)
+			if i.Path != "" {
+				upload(i, excludeIgnored, atcRequester)
+			}
 		}
 	}()
 
@@ -157,6 +137,121 @@ func createPipe(atcRequester *atcRequester) atc.Pipe {
 	return pipe
 }
 
+func determineInputs(
+	atcRequester *atcRequester,
+	taskInputs []atc.TaskInputConfig,
+	inputMappings []string,
+	fromPipeline string,
+	fromJob string,
+) []Input {
+	if len(inputMappings) == 0 {
+		wd, err := os.Getwd()
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		inputMappings = append(inputMappings, filepath.Base(wd)+"="+wd)
+	}
+
+	inputsFromLocal := generateLocalInputs(atcRequester, inputMappings)
+	inputsFromJob := fetchInputsFromJob(atcRequester, fromPipeline, fromJob)
+
+	inputs := []Input{}
+	for _, taskInput := range taskInputs {
+		input, found := inputsFromLocal[taskInput.Name]
+		if !found {
+			input, found = inputsFromJob[taskInput.Name]
+			if !found {
+				continue
+			}
+		}
+
+		inputs = append(inputs, input)
+	}
+
+	return inputs
+}
+
+func generateLocalInputs(
+	atcRequester *atcRequester,
+	inputMappings []string,
+) map[string]Input {
+	kvMap := map[string]Input{}
+
+	for _, i := range inputMappings {
+		segs := strings.SplitN(i, "=", 2)
+		if len(segs) < 2 {
+			log.Println("malformed input:", i)
+			os.Exit(1)
+		}
+
+		inputName := segs[0]
+
+		absPath, err := filepath.Abs(segs[1])
+		if err != nil {
+			log.Printf("could not locate input %s: %s\n", inputName, err)
+			os.Exit(1)
+		}
+
+		pipe := createPipe(atcRequester)
+		kvMap[inputName] = Input{
+			Name: inputName,
+			Path: absPath,
+			Pipe: pipe,
+		}
+	}
+
+	return kvMap
+}
+
+func fetchInputsFromJob(
+	atcRequester *atcRequester,
+	fromPipeline string,
+	fromJob string,
+) map[string]Input {
+	kvMap := map[string]Input{}
+	if fromPipeline == "" && fromJob == "" {
+		return kvMap
+	}
+
+	listJobInputsRequest, err := atcRequester.CreateRequest(
+		atc.ListJobInputs,
+		rata.Params{"pipeline_name": fromPipeline, "job_name": fromJob},
+		nil,
+	)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	response, err := atcRequester.httpClient.Do(listJobInputsRequest)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "failed to fetch job inputs:", err)
+		os.Exit(1)
+	}
+
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		handleBadResponse("getting job inputs", response)
+	}
+
+	var buildInputs []atc.BuildInput
+	err = json.NewDecoder(response.Body).Decode(&buildInputs)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "malformed job inputs:", err)
+		os.Exit(1)
+	}
+
+	for _, buildInput := range buildInputs {
+		kvMap[buildInput.Name] = Input{
+			Name:       buildInput.Name,
+			BuildInput: buildInput,
+		}
+	}
+
+	return kvMap
+}
+
 func createBuild(
 	atcRequester *atcRequester,
 	privileged bool,
@@ -172,13 +267,31 @@ func createBuild(
 
 	buildInputs := atc.AggregatePlan{}
 	for i, input := range inputs {
-		readPipe, err := atcRequester.CreateRequest(
-			atc.ReadPipe,
-			rata.Params{"pipe_id": input.Pipe.ID},
-			nil,
-		)
-		if err != nil {
-			log.Fatalln(err)
+		var getPlan atc.GetPlan
+		if input.Path != "" {
+			readPipe, err := atcRequester.CreateRequest(
+				atc.ReadPipe,
+				rata.Params{"pipe_id": input.Pipe.ID},
+				nil,
+			)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			getPlan = atc.GetPlan{
+				Name: input.Name,
+				Type: "archive",
+				Source: atc.Source{
+					"uri": readPipe.URL.String(),
+				},
+			}
+		} else {
+			getPlan = atc.GetPlan{
+				Name:    input.Name,
+				Type:    input.BuildInput.Type,
+				Source:  input.BuildInput.Source,
+				Version: input.BuildInput.Version,
+			}
 		}
 
 		buildInputs = append(buildInputs, atc.Plan{
@@ -188,13 +301,7 @@ func createBuild(
 				ParentID:      0,
 				ParallelGroup: 1,
 			},
-			Get: &atc.GetPlan{
-				Name: input.Name,
-				Type: "archive",
-				Source: atc.Source{
-					"uri": readPipe.URL.String(),
-				},
-			},
+			Get: &getPlan,
 		})
 	}
 

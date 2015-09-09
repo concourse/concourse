@@ -51,6 +51,10 @@ platform: some-platform
 
 image: ubuntu
 
+inputs:
+- name: buildDir
+- name: s3Asset
+
 params:
   FOO: bar
   BAZ: buzz
@@ -119,6 +123,10 @@ run:
 						Config: &atc.TaskConfig{
 							Platform: "some-platform",
 							Image:    "ubuntu",
+							Inputs: []atc.TaskInputConfig{
+								{Name: "buildDir"},
+								{Name: "s3Asset"},
+							},
 							Params: map[string]string{
 								"FOO": "bar",
 								"BAZ": "buzz",
