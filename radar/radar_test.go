@@ -32,7 +32,6 @@ var _ = Describe("Radar", func() {
 		savedResource  db.SavedResource
 
 		locker               *fakes.FakeLocker
-		readLock             *dbfakes.FakeLock
 		writeLock            *dbfakes.FakeLock
 		writeImmediatelyLock *dbfakes.FakeLock
 
@@ -72,9 +71,6 @@ var _ = Describe("Radar", func() {
 		}
 
 		fakeRadarDB.GetResourceReturns(savedResource, nil)
-
-		readLock = new(dbfakes.FakeLock)
-		locker.AcquireReadLockReturns(readLock, nil)
 
 		writeLock = new(dbfakes.FakeLock)
 		locker.AcquireWriteLockReturns(writeLock, nil)

@@ -63,7 +63,7 @@ type FakePipelineDB struct {
 	LoadVersionsDBStub        func() (*algorithm.VersionsDB, error)
 	loadVersionsDBMutex       sync.RWMutex
 	loadVersionsDBArgsForCall []struct{}
-	loadVersionsDBReturns struct {
+	loadVersionsDBReturns     struct {
 		result1 *algorithm.VersionsDB
 		result2 error
 	}

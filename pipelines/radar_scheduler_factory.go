@@ -16,8 +16,6 @@ import (
 type Locker interface {
 	AcquireWriteLock([]db.NamedLock) (db.Lock, error)
 	AcquireWriteLockImmediately([]db.NamedLock) (db.Lock, error)
-
-	AcquireReadLock([]db.NamedLock) (db.Lock, error)
 }
 
 //go:generate counterfeiter . RadarSchedulerFactory

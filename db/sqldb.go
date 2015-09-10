@@ -723,14 +723,6 @@ func (db *SQLDB) AcquireWriteLock(lock []NamedLock) (Lock, error) {
 	return db.acquireLockLoop("UPDATE", lock)
 }
 
-func (db *SQLDB) AcquireReadLock(lock []NamedLock) (Lock, error) {
-	db.logger.Debug("acquiring-shared-lock", lager.Data{
-		"locks": lock,
-	})
-
-	return db.acquireLockLoop("SHARE", lock)
-}
-
 func (db *SQLDB) ListLocks() ([]string, error) {
 	rows, err := db.conn.Query("SELECT name FROM locks")
 	if err != nil {

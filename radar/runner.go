@@ -14,7 +14,6 @@ import (
 
 type Locker interface {
 	AcquireWriteLockImmediately(lock []db.NamedLock) (db.Lock, error)
-	AcquireReadLock(lock []db.NamedLock) (db.Lock, error)
 	AcquireWriteLock(lock []db.NamedLock) (db.Lock, error)
 }
 

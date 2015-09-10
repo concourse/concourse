@@ -11,7 +11,7 @@ type FakePipelinesDB struct {
 	GetAllActivePipelinesStub        func() ([]db.SavedPipeline, error)
 	getAllActivePipelinesMutex       sync.RWMutex
 	getAllActivePipelinesArgsForCall []struct{}
-	getAllActivePipelinesReturns struct {
+	getAllActivePipelinesReturns     struct {
 		result1 []db.SavedPipeline
 		result2 error
 	}

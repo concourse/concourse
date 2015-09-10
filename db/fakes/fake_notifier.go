@@ -11,13 +11,13 @@ type FakeNotifier struct {
 	NotifyStub        func() <-chan struct{}
 	notifyMutex       sync.RWMutex
 	notifyArgsForCall []struct{}
-	notifyReturns struct {
+	notifyReturns     struct {
 		result1 <-chan struct{}
 	}
 	CloseStub        func() error
 	closeMutex       sync.RWMutex
 	closeArgsForCall []struct{}
-	closeReturns struct {
+	closeReturns     struct {
 		result1 error
 	}
 }
