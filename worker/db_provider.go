@@ -51,7 +51,7 @@ func (provider *dbProvider) Workers() ([]Worker, error) {
 
 		gardenConn := RetryableConnection{
 			Logger:     workerLog,
-			Connection: gconn.NewWithLogger("tcp", info.Addr, workerLog.Session("garden-connection")),
+			Connection: gconn.NewWithDialerAndLogger("tcp", info.Addr, provider.dialer, workerLog.Session("garden-connection")),
 			Sleeper:    tikTok,
 			RetryPolicy: ExponentialRetryPolicy{
 				Timeout: 5 * time.Minute,

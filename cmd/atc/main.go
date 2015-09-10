@@ -305,6 +305,8 @@ func main() {
 	if *gardenAddr != "" {
 		workerClient = worker.NewGardenWorker(
 			gclient.New(gconn.NewWithDialerAndLogger(
+				*gardenNetwork,
+				*gardenAddr,
 				keepaliveDialer,
 				logger.Session("garden-connection"),
 			)),
