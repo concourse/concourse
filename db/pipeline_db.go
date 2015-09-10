@@ -72,6 +72,7 @@ type PipelineDB interface {
 }
 
 var ErrPipelineNotFound = errors.New("pipeline not found")
+var ErrBuildNotFound = errors.New("build not found")
 
 type pipelineDB struct {
 	logger lager.Logger

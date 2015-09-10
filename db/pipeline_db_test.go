@@ -1273,7 +1273,7 @@ var _ = Describe("PipelineDB", func() {
 					input1,
 					input2,
 				})
-				Ω(err).Should(HaveOccurred())
+				Ω(err).Should(Equal(db.ErrBuildNotFound))
 
 				_, err = sqlDB.SaveBuildInput(build.ID, otherInput)
 				Ω(err).ShouldNot(HaveOccurred())
@@ -1282,7 +1282,7 @@ var _ = Describe("PipelineDB", func() {
 					input1,
 					input2,
 				})
-				Ω(err).Should(HaveOccurred())
+				Ω(err).Should(Equal(db.ErrBuildNotFound))
 
 				_, err = sqlDB.SaveBuildInput(build.ID, input2)
 				Ω(err).ShouldNot(HaveOccurred())

@@ -306,9 +306,9 @@ var _ = Describe("Scheduler", func() {
 				})
 			})
 
-			Context("and they are not used for a build", func() {
+			Context("when they are not used for a build", func() {
 				BeforeEach(func() {
-					fakePipelineDB.GetJobBuildForInputsReturns(db.Build{}, errors.New("no build"))
+					fakePipelineDB.GetJobBuildForInputsReturns(db.Build{}, db.ErrBuildNotFound)
 				})
 
 				It("creates a build with the found inputs", func() {
@@ -437,15 +437,32 @@ var _ = Describe("Scheduler", func() {
 				})
 			})
 
-			Context("but they are already used for a build", func() {
+			Context("when they are already used for a build", func() {
 				BeforeEach(func() {
 					fakePipelineDB.GetJobBuildForInputsReturns(db.Build{ID: 128, Name: "42"}, nil)
 				})
 
-				It("does not trigger a build", func() {
+				It("does not enqueue or trigger a build", func() {
 					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
 					Ω(err).ShouldNot(HaveOccurred())
 
+					Ω(fakePipelineDB.CreateJobBuildForCandidateInputsCallCount()).Should(Equal(0))
+					Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
+				})
+			})
+
+			Context("when we cannot determine if they are already used for a build", func() {
+				disaster := errors.New("db fell over")
+
+				BeforeEach(func() {
+					fakePipelineDB.GetJobBuildForInputsReturns(db.Build{}, disaster)
+				})
+
+				It("does not enqueue or a build", func() {
+					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+					Ω(err).Should(Equal(disaster))
+
+					Ω(fakePipelineDB.CreateJobBuildForCandidateInputsCallCount()).Should(Equal(0))
 					Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
 				})
 			})

@@ -108,6 +108,11 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 		return nil
 	}
 
+	if err != db.ErrBuildNotFound {
+		logger.Error("could-not-determine-if-inputs-are-already-used", err)
+		return err
+	}
+
 	build, created, err := s.PipelineDB.CreateJobBuildForCandidateInputs(job.Name)
 	if err != nil {
 		logger.Error("failed-to-create-build", err)
