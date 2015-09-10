@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"net"
 	"time"
 
 	gclient "github.com/cloudfoundry-incubator/garden/client"
@@ -49,9 +50,22 @@ func (provider *dbProvider) Workers() ([]Worker, error) {
 			"addr": info.Addr,
 		})
 
+		connLog := workerLog.Session("garden-connection")
+
+		var connection gconn.Connection
+
+		if provider.dialer == nil {
+			connection = gconn.NewWithLogger("tcp", info.Addr, connLog)
+		} else {
+			dialer := func(string, string) (net.Conn, error) {
+				return provider.dialer("tcp", info.Addr)
+			}
+			connection = gconn.NewWithDialerAndLogger(dialer, connLog)
+		}
+
 		gardenConn := RetryableConnection{
 			Logger:     workerLog,
-			Connection: gconn.NewWithLogger("tcp", info.Addr, workerLog.Session("garden-connection")),
+			Connection: connection,
 			Sleeper:    tikTok,
 			RetryPolicy: ExponentialRetryPolicy{
 				Timeout: 5 * time.Minute,

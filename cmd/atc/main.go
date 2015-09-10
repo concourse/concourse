@@ -305,7 +305,7 @@ func main() {
 	if *gardenAddr != "" {
 		workerClient = worker.NewGardenWorker(
 			gclient.New(gconn.NewWithDialerAndLogger(
-				keepaliveDialer,
+				keepaliveDialerFactory(*gardenNetwork, *gardenAddr),
 				logger.Session("garden-connection"),
 			)),
 			clock.NewClock(),
@@ -534,6 +534,37 @@ func parseAttributes(logger lager.Logger, pairs string) map[string]string {
 	}
 
 	return attributes
+}
+
+func keepaliveDialerFactory(network string, address string) gconn.DialerFunc {
+	return func(string, string) (net.Conn, error) {
+		conn, err := net.DialTimeout(network, address, 5*time.Second)
+		if err != nil {
+			return nil, err
+		}
+
+		kac, err := tcpkeepalive.EnableKeepAlive(conn)
+		if err != nil {
+			println("failed to enable connection keepalive: " + err.Error())
+		}
+
+		err = kac.SetKeepAliveIdle(10 * time.Second)
+		if err != nil {
+			println("failed to set keepalive idle threshold: " + err.Error())
+		}
+
+		err = kac.SetKeepAliveCount(3)
+		if err != nil {
+			println("failed to set keepalive count: " + err.Error())
+		}
+
+		err = kac.SetKeepAliveInterval(5 * time.Second)
+		if err != nil {
+			println("failed to set keepalive interval: " + err.Error())
+		}
+
+		return conn, nil
+	}
 }
 
 func keepaliveDialer(network string, address string) (net.Conn, error) {
