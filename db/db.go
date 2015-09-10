@@ -46,7 +46,6 @@ type DB interface {
 
 	AcquireWriteLockImmediately(locks []NamedLock) (Lock, error)
 	AcquireWriteLock(locks []NamedLock) (Lock, error)
-	ListLocks() ([]string, error)
 
 	SaveBuildEngineMetadata(buildID int, engineMetadata string) error
 
