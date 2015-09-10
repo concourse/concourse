@@ -108,7 +108,7 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 		return nil
 	}
 
-	if err != db.ErrBuildNotFound {
+	if err != db.ErrNoBuild {
 		logger.Error("could-not-determine-if-inputs-are-already-used", err)
 		return err
 	}

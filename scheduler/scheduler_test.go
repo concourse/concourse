@@ -308,7 +308,7 @@ var _ = Describe("Scheduler", func() {
 
 			Context("when they are not used for a build", func() {
 				BeforeEach(func() {
-					fakePipelineDB.GetJobBuildForInputsReturns(db.Build{}, db.ErrBuildNotFound)
+					fakePipelineDB.GetJobBuildForInputsReturns(db.Build{}, db.ErrNoBuild)
 				})
 
 				It("creates a build with the found inputs", func() {
