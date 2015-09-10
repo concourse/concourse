@@ -10,12 +10,13 @@ files:
   - github.com/bmizerany/pat/*.go # gosub
   - github.com/concourse/baggageclaim/*.go # gosub
   - github.com/concourse/baggageclaim/api/*.go # gosub
-  - github.com/concourse/baggageclaim/bomberman/*.go # gosub
-  - github.com/concourse/baggageclaim/bomberman/timebomb/*.go # gosub
   - github.com/concourse/baggageclaim/fs/*.go # gosub
+  - github.com/concourse/baggageclaim/reaper/*.go # gosub
   - github.com/concourse/baggageclaim/volume/*.go # gosub
   - github.com/concourse/baggageclaim/volume/driver/*.go # gosub
+  - github.com/hashicorp/go-multierror/*.go # gosub
   - github.com/nu7hatch/gouuid/*.go # gosub
+  - github.com/pivotal-golang/clock/*.go # gosub
   - github.com/pivotal-golang/lager/*.go # gosub
   - github.com/tedsuo/ifrit/*.go # gosub
   - github.com/tedsuo/ifrit/grouper/*.go # gosub
