@@ -3,6 +3,7 @@ package db
 import (
 	"bytes"
 	"database/sql"
+	"strings"
 	"time"
 
 	"github.com/pivotal-golang/lager"
@@ -106,6 +107,10 @@ func (e *explainConn) Exec(query string, args ...interface{}) (sql.Result, error
 }
 
 func (e *explainConn) explainQuery(query string, args ...interface{}) {
+	if strings.HasPrefix(query, "NOTIFY") {
+		return
+	}
+
 	logger := e.logger.WithData(lager.Data{
 		"query": query,
 		"args":  args,

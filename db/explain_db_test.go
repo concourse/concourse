@@ -160,6 +160,16 @@ var _ = Describe("Explain", func() {
 				Ω(args).Should(Equal(varargs(1)))
 			})
 
+			It("ignores NOTIFY queries", func() {
+				_, err := explainConn.Query("NOTIFY abc")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(underlyingConn.QueryCallCount()).Should(Equal(1))
+
+				query, _ := underlyingConn.QueryArgsForCall(0)
+				Ω(query).Should(Equal("NOTIFY abc"))
+			})
+
 			It("logs the output of the explain", func() {
 				rows, err := explainConn.Query("SELECT $1::int", 1)
 				Ω(err).ShouldNot(HaveOccurred())
@@ -191,6 +201,17 @@ var _ = Describe("Explain", func() {
 				Ω(args).Should(Equal(varargs(1)))
 			})
 
+			It("ignores NOTIFY queries", func() {
+				err := explainConn.QueryRow("NOTIFY abc")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(underlyingConn.QueryRowCallCount()).Should(Equal(1))
+				Ω(underlyingConn.QueryCallCount()).Should(Equal(0))
+
+				query, _ := underlyingConn.QueryRowArgsForCall(0)
+				Ω(query).Should(Equal("NOTIFY abc"))
+			})
+
 			It("logs the output of the explain", func() {
 				var i int
 				err := explainConn.QueryRow("SELECT $1::int", 1).Scan(&i)
@@ -217,6 +238,17 @@ var _ = Describe("Explain", func() {
 				query, args = underlyingConn.QueryArgsForCall(0)
 				Ω(query).Should(Equal("EXPLAIN SELECT $1::int"))
 				Ω(args).Should(Equal(varargs(1)))
+			})
+
+			It("ignores NOTIFY queries", func() {
+				_, err := explainConn.Exec("NOTIFY abc")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(underlyingConn.ExecCallCount()).Should(Equal(1))
+				Ω(underlyingConn.QueryCallCount()).Should(Equal(0))
+
+				query, _ := underlyingConn.ExecArgsForCall(0)
+				Ω(query).Should(Equal("NOTIFY abc"))
 			})
 
 			It("logs the output of the explain", func() {
