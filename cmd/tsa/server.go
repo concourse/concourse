@@ -21,33 +21,35 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func keepaliveDialer(network string, address string) (net.Conn, error) {
-	conn, err := net.DialTimeout(network, address, 5*time.Second)
-	if err != nil {
-		return nil, err
-	}
+func keepaliveDialerFactory(network string, address string) gconn.DialerFunc {
+	return func(string, string) (net.Conn, error) {
+		conn, err := net.DialTimeout(network, address, 5*time.Second)
+		if err != nil {
+			return nil, err
+		}
 
-	kac, err := tcpkeepalive.EnableKeepAlive(conn)
-	if err != nil {
-		println("failed to enable connection keepalive: " + err.Error())
-	}
+		kac, err := tcpkeepalive.EnableKeepAlive(conn)
+		if err != nil {
+			println("failed to enable connection keepalive: " + err.Error())
+		}
 
-	err = kac.SetKeepAliveIdle(10 * time.Second)
-	if err != nil {
-		println("failed to set keepalive idle threshold: " + err.Error())
-	}
+		err = kac.SetKeepAliveIdle(10 * time.Second)
+		if err != nil {
+			println("failed to set keepalive idle threshold: " + err.Error())
+		}
 
-	err = kac.SetKeepAliveCount(3)
-	if err != nil {
-		println("failed to set keepalive count: " + err.Error())
-	}
+		err = kac.SetKeepAliveCount(3)
+		if err != nil {
+			println("failed to set keepalive count: " + err.Error())
+		}
 
-	err = kac.SetKeepAliveInterval(5 * time.Second)
-	if err != nil {
-		println("failed to set keepalive interval: " + err.Error())
-	}
+		err = kac.SetKeepAliveInterval(5 * time.Second)
+		if err != nil {
+			println("failed to set keepalive interval: " + err.Error())
+		}
 
-	return conn, nil
+		return conn, nil
+	}
 }
 
 type registrarSSHServer struct {
@@ -247,7 +249,7 @@ func (server *registrarSSHServer) heartbeatWorker(logger lager.Logger, worker at
 	return ifrit.Background(tsa.NewHeartbeater(
 		logger,
 		server.heartbeatInterval,
-		gclient.New(gconn.NewWithDialerAndLogger("tcp", worker.Addr, keepaliveDialer, logger.Session("garden-connection"))),
+		gclient.New(gconn.NewWithDialerAndLogger(keepaliveDialerFactory("tcp", worker.Addr), logger.Session("garden-connection"))),
 		server.atcEndpoint,
 		worker,
 		channel,
