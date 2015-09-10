@@ -71,9 +71,6 @@ type PipelineDB interface {
 	GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error)
 }
 
-var ErrPipelineNotFound = errors.New("pipeline not found")
-var ErrBuildNotFound = errors.New("build not found")
-
 type pipelineDB struct {
 	logger lager.Logger
 
@@ -1079,6 +1076,10 @@ func (pdb *pipelineDB) GetJobBuildForInputs(job string, inputs []BuildInput) (Bu
 			AND type = $2
 			AND version = $3
 		`, dbResource.ID, vr.Type, string(versionBytes)).Scan(&id)
+		if err == sql.ErrNoRows {
+			return Build{}, ErrNoBuild
+		}
+
 		if err != nil {
 			return Build{}, err
 		}
@@ -1093,7 +1094,7 @@ func (pdb *pipelineDB) GetJobBuildForInputs(job string, inputs []BuildInput) (Bu
 		)
 	}
 
-	return pdb.scanBuild(pdb.conn.QueryRow(fmt.Sprintf(`
+	build, err := pdb.scanBuild(pdb.conn.QueryRow(fmt.Sprintf(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM %s
 		WHERE %s
@@ -1102,6 +1103,11 @@ func (pdb *pipelineDB) GetJobBuildForInputs(job string, inputs []BuildInput) (Bu
 		strings.Join(conditions, "\nAND ")),
 		params...,
 	))
+	if err == sql.ErrNoRows {
+		return Build{}, ErrNoBuild
+	}
+
+	return build, err
 }
 
 func (pdb *pipelineDB) GetNextPendingBuild(job string) (Build, error) {
