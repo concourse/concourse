@@ -46,8 +46,11 @@ func (provider *dbProvider) Workers() ([]Worker, error) {
 
 	workers := make([]Worker, len(workerInfos))
 	for i, info := range workerInfos {
+		// this is very important (to prevent closures capturing last value)
+		addr := info.Addr
+
 		workerLog := provider.logger.Session("worker-connection", lager.Data{
-			"addr": info.Addr,
+			"addr": addr,
 		})
 
 		connLog := workerLog.Session("garden-connection")
@@ -55,11 +58,12 @@ func (provider *dbProvider) Workers() ([]Worker, error) {
 		var connection gconn.Connection
 
 		if provider.dialer == nil {
-			connection = gconn.NewWithLogger("tcp", info.Addr, connLog)
+			connection = gconn.NewWithLogger("tcp", addr, connLog)
 		} else {
 			dialer := func(string, string) (net.Conn, error) {
-				return provider.dialer("tcp", info.Addr)
+				return provider.dialer("tcp", addr)
 			}
+
 			connection = gconn.NewWithDialerAndLogger(dialer, connLog)
 		}
 
