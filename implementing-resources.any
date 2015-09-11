@@ -63,6 +63,11 @@ no-ops (which still must be correctly implemented as detailed below).
   }
 
   The list may be empty, if the given version is already the latest.
+
+  Note that if the given version is no longer available, you should still
+  return all versions newer than the given version. If your resource is unable
+  to determine which versions are newer then the given version, then return the
+  newest version of your resource.
 }
 
 \section{\code{in}\aux{: Fetch a given resource.}}{
