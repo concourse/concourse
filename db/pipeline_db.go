@@ -1393,7 +1393,7 @@ func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool
 	if err != nil {
 		pdb.logger.Error("build-did-not-schedule", err, lager.Data{
 			"reason":  "unexpected error",
-			"buildID": string(buildID),
+			"buildID": buildID,
 		})
 		return false, err
 	}
@@ -1401,7 +1401,7 @@ func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool
 	if pipelinePaused {
 		pdb.logger.Debug("build-did-not-schedule", lager.Data{
 			"reason":  "pipeline-paused",
-			"buildID": string(buildID),
+			"buildID": buildID,
 		})
 		return false, nil
 	}
@@ -1436,7 +1436,7 @@ func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool
 	} else {
 		pdb.logger.Debug("build-did-not-schedule", lager.Data{
 			"reason":  reason,
-			"buildID": string(buildID),
+			"buildID": buildID,
 		})
 		return false, nil
 	}
