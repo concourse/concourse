@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"hash/crc32"
 	"strings"
 	"time"
 
@@ -643,17 +642,26 @@ func (err nonOneRowAffectedError) Error() string {
 	return fmt.Sprintf("expected 1 row to be updated; got %d", err.RowsAffected)
 }
 
-func (db *SQLDB) acquireLock(wait bool, locks []NamedLock) (Lock, error) {
+func (db *SQLDB) acquireLock(lockType string, locks []NamedLock) (Lock, error) {
 	params := []interface{}{}
-	lockSelects := []string{}
+	refs := []string{}
 	for i, lock := range locks {
-		name := lock.Name()
-		hash32 := crc32.Checksum([]byte(name), crc32.MakeTable(crc32.IEEE))
-		params = append(params, hash32)
-		if wait {
-			lockSelects = append(lockSelects, fmt.Sprintf("pg_advisory_xact_lock($%d)", i+1))
-		} else {
-			lockSelects = append(lockSelects, fmt.Sprintf("pg_try_advisory_xact_lock($%d)", i+1))
+		params = append(params, lock.Name())
+		refs = append(refs, fmt.Sprintf("$%d", i+1))
+
+		_, err := db.conn.Exec(`
+			INSERT INTO locks (name)
+			VALUES ($1)
+		`, lock.Name())
+		if err != nil {
+			if pqErr, ok := err.(*pq.Error); ok {
+				if pqErr.Code.Class().Name() == "integrity_constraint_violation" {
+					// unique violation is ok; no way to atomically upsert
+					continue
+				}
+			}
+
+			return nil, err
 		}
 	}
 
@@ -661,35 +669,42 @@ func (db *SQLDB) acquireLock(wait bool, locks []NamedLock) (Lock, error) {
 	if err != nil {
 		return nil, err
 	}
-	results := make([]bool, len(locks))
-	valuePtrs := make([]interface{}, len(locks))
 
-	for i, _ := range locks {
-		valuePtrs[i] = &results[i]
-	}
-
-	// TODO: multiple selects using the multiple names
-	err = tx.QueryRow(fmt.Sprintf(`
-	SELECT %s
-	`, strings.Join(lockSelects, ",")), params...).Scan(valuePtrs...)
-
-	expectedMsg := `sql/driver: couldn't convert "" into type bool`
+	result, err := tx.Exec(`
+		SELECT 1 FROM locks
+		WHERE name IN (`+strings.Join(refs, ",")+`)
+		FOR `+lockType+`
+	`, params...)
 	if err != nil {
-		if wait && strings.Contains(err.Error(), expectedMsg) {
-			return &txLock{tx, db, locks}, nil
-		}
 		tx.Commit()
 		return nil, err
 	}
 
-	for _, result := range results {
-		if !result {
-			tx.Commit()
-			return nil, ErrLockNotAvailable
-		}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		tx.Commit()
+		return nil, err
+	}
+
+	if rowsAffected == 0 {
+		tx.Commit()
+		return nil, ErrLockRowNotPresentOrAlreadyDeleted
 	}
 
 	return &txLock{tx, db, locks}, nil
+}
+
+func (db *SQLDB) acquireLockLoop(lockType string, locks []NamedLock) (Lock, error) {
+	for {
+		lock, err := db.acquireLock(lockType, locks)
+		if pgErr, ok := err.(*pq.Error); ok && pgErr.Code == "55P03" { // lock not available
+			return nil, ErrLockNotAvailable
+		}
+
+		if err != ErrLockRowNotPresentOrAlreadyDeleted {
+			return lock, err
+		}
+	}
 }
 
 func (db *SQLDB) AcquireWriteLockImmediately(lock []NamedLock) (Lock, error) {
@@ -697,8 +712,7 @@ func (db *SQLDB) AcquireWriteLockImmediately(lock []NamedLock) (Lock, error) {
 		"locks": lock,
 	})
 
-	wait := false
-	return db.acquireLock(wait, lock)
+	return db.acquireLockLoop("UPDATE NOWAIT", lock)
 }
 
 func (db *SQLDB) AcquireWriteLock(lock []NamedLock) (Lock, error) {
@@ -706,8 +720,30 @@ func (db *SQLDB) AcquireWriteLock(lock []NamedLock) (Lock, error) {
 		"locks": lock,
 	})
 
-	wait := true
-	return db.acquireLock(wait, lock)
+	return db.acquireLockLoop("UPDATE", lock)
+}
+
+func (db *SQLDB) ListLocks() ([]string, error) {
+	rows, err := db.conn.Query("SELECT name FROM locks")
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	locks := []string{}
+
+	for rows.Next() {
+		var name string
+		err := rows.Scan(&name)
+		if err != nil {
+			return nil, err
+		}
+
+		locks = append(locks, name)
+	}
+
+	return locks, nil
 }
 
 func (db *SQLDB) SaveWorker(info WorkerInfo, ttl time.Duration) error {
@@ -834,12 +870,45 @@ type txLock struct {
 	namedLocks []NamedLock
 }
 
-func (lock *txLock) Release() error {
+func (lock *txLock) release() error {
 	lock.db.logger.Debug("releasing-locks", lager.Data{
 		"locks": lock.namedLocks,
 	})
 
 	return lock.tx.Commit()
+}
+
+func (lock *txLock) cleanup() error {
+	lockNames := []interface{}{}
+	refs := []string{}
+	for i, l := range lock.namedLocks {
+		lockNames = append(lockNames, l.Name())
+		refs = append(refs, fmt.Sprintf("$%d", i+1))
+	}
+
+	cleanupLock, err := lock.db.acquireLock("UPDATE NOWAIT", lock.namedLocks)
+	if err != nil {
+		return nil
+	}
+
+	// acquireLock cannot return *txLock as that is a non-nil interface type when it fails
+	internalLock := cleanupLock.(*txLock)
+
+	_, err = internalLock.tx.Exec(`
+		DELETE FROM locks
+		WHERE name IN (`+strings.Join(refs, ",")+`)
+	`, lockNames...)
+
+	return internalLock.release()
+}
+
+func (lock *txLock) Release() error {
+	err := lock.release()
+	if err != nil {
+		return err
+	}
+
+	return lock.cleanup()
 }
 
 func (db *SQLDB) saveBuildEvent(tx *sql.Tx, buildID int, event atc.Event) error {
