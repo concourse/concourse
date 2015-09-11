@@ -645,16 +645,11 @@ func (err nonOneRowAffectedError) Error() string {
 
 func (db *SQLDB) acquireLock(wait bool, locks []NamedLock) (Lock, error) {
 	params := []interface{}{}
-	names := []string{}
 	lockSelects := []string{}
-
 	for i, lock := range locks {
 		name := lock.Name()
-		names = append(names, name)
-
 		hash32 := crc32.Checksum([]byte(name), crc32.MakeTable(crc32.IEEE))
 		params = append(params, hash32)
-
 		if wait {
 			lockSelects = append(lockSelects, fmt.Sprintf("pg_advisory_xact_lock($%d)", i+1))
 		} else {
@@ -662,31 +657,24 @@ func (db *SQLDB) acquireLock(wait bool, locks []NamedLock) (Lock, error) {
 		}
 	}
 
-	querystring := fmt.Sprintf(`
-	SELECT %s
-	`, strings.Join(lockSelects, ","))
-
-	db.logger.Debug("executing-lock-query", lager.Data{
-		"query":  querystring,
-		"params": params,
-		"names":  names,
-	})
-
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return nil, err
 	}
-
-	locksAcquired := make([]bool, len(locks))
+	results := make([]bool, len(locks))
 	valuePtrs := make([]interface{}, len(locks))
 
 	for i, _ := range locks {
-		valuePtrs[i] = &locksAcquired[i]
+		valuePtrs[i] = &results[i]
 	}
 
-	err = tx.QueryRow(querystring, params...).Scan(valuePtrs...)
+	// TODO: multiple selects using the multiple names
+	err = tx.QueryRow(fmt.Sprintf(`
+	SELECT %s
+	`, strings.Join(lockSelects, ",")), params...).Scan(valuePtrs...)
+
+	expectedMsg := `sql/driver: couldn't convert "" into type bool`
 	if err != nil {
-		expectedMsg := `sql/driver: couldn't convert "" into type bool`
 		if wait && strings.Contains(err.Error(), expectedMsg) {
 			return &txLock{tx, db, locks}, nil
 		}
@@ -694,8 +682,8 @@ func (db *SQLDB) acquireLock(wait bool, locks []NamedLock) (Lock, error) {
 		return nil, err
 	}
 
-	for _, lockAcquired := range locksAcquired {
-		if !lockAcquired {
+	for _, result := range results {
+		if !result {
 			tx.Commit()
 			return nil, ErrLockNotAvailable
 		}
