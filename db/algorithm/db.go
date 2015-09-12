@@ -23,15 +23,19 @@ func (db VersionsDB) VersionsOfResourcePassedJobs(resourceID int, passed JobSet)
 		return db.versionsOfResource(resourceID)
 	}
 
+	firstTick := true
+
 	var candidates VersionCandidates
 
 	for jobID, _ := range passed {
 		passedJob := db.versionsOfResourcePassedJob(resourceID, jobID)
-		if candidates == nil {
+		if firstTick {
 			candidates = passedJob
 		} else {
 			candidates = candidates.IntersectByVersion(passedJob)
 		}
+
+		firstTick = false
 	}
 
 	return candidates

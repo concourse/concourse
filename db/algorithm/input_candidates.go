@@ -74,6 +74,8 @@ func (candidates InputCandidates) pruneToCommonBuilds(jobs JobSet) InputCandidat
 }
 
 func (candidates InputCandidates) commonBuildIDs(jobID int) BuildSet {
+	firstTick := true
+
 	var commonBuildIDs BuildSet
 
 	for _, set := range candidates {
@@ -82,11 +84,13 @@ func (candidates InputCandidates) commonBuildIDs(jobID int) BuildSet {
 			continue
 		}
 
-		if commonBuildIDs == nil {
+		if firstTick {
 			commonBuildIDs = setBuildIDs
 		} else {
 			commonBuildIDs = commonBuildIDs.Intersect(setBuildIDs)
 		}
+
+		firstTick = false
 	}
 
 	return commonBuildIDs

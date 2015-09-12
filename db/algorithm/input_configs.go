@@ -19,6 +19,10 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
 			inputConfig.Passed,
 		)
 
+		if len(candidateSet) == 0 {
+			return nil, false
+		}
+
 		inputCandidates[inputConfig.Name] = InputVersionCandidates{
 			VersionCandidates: candidateSet,
 			Passed:            inputConfig.Passed,
