@@ -137,6 +137,63 @@ var _ = Describe("Radar", func() {
 			Ω(time2.Sub(time1)).Should(BeNumerically("~", interval, interval/4))
 		})
 
+		Context("when the resource config has a specified check interval", func() {
+			BeforeEach(func() {
+				resourceConfig = atc.ResourceConfig{
+					Name:       "some-resource",
+					Type:       "git",
+					Source:     atc.Source{"uri": "http://example.com"},
+					CheckEvery: "10ms",
+				}
+
+				fakeRadarDB.GetConfigReturns(atc.Config{
+					Resources: atc.ResourceConfigs{
+						resourceConfig,
+					},
+				}, 1, nil)
+			})
+
+			It("should check using the specified interval instead of the default", func() {
+				var time1 time.Time
+				var time2 time.Time
+
+				Eventually(times).Should(Receive(&time1))
+				Eventually(times).Should(Receive(&time2))
+
+				check, err := time.ParseDuration(resourceConfig.CheckEvery)
+				Ω(err).NotTo(HaveOccurred())
+
+				Ω(time2.Sub(time1)).Should(BeNumerically("~", check, check/2))
+			})
+
+			Context("when the interval cannot be parsed", func() {
+				BeforeEach(func() {
+					resourceConfig = atc.ResourceConfig{
+						Name:       "some-resource",
+						Type:       "git",
+						Source:     atc.Source{"uri": "http://example.com"},
+						CheckEvery: "bad-value",
+					}
+
+					fakeRadarDB.GetConfigReturns(atc.Config{
+						Resources: atc.ResourceConfigs{
+							resourceConfig,
+						},
+					}, 1, nil)
+				})
+
+				It("should continue to use the original internval", func() {
+					var time1 time.Time
+					var time2 time.Time
+
+					Eventually(times).Should(Receive(&time1))
+					Eventually(times).Should(Receive(&time2))
+
+					Ω(time2.Sub(time1)).Should(BeNumerically("~", interval, interval/4))
+				})
+			})
+		})
+
 		It("grabs a resource checking lock before checking, releases after done", func() {
 			Eventually(times).Should(Receive())
 
@@ -339,15 +396,63 @@ var _ = Describe("Radar", func() {
 				})
 
 				It("checks using the new config", func() {
-					Eventually(times).Should(Receive())
+					var time1 time.Time
+					var time2 time.Time
+
+					Eventually(times).Should(Receive(&time1))
 
 					source, _ := fakeResource.CheckArgsForCall(0)
-					Ω(source).Should(Equal(resourceConfig.Source))
+					Ω(source).Should(Equal(newResource.Source))
+					check := interval
 
-					Eventually(times).Should(Receive())
+					Eventually(times).Should(Receive(&time2))
+					Ω(time2.Sub(time1)).Should(BeNumerically("~", check, check/2))
 
-					source, _ = fakeResource.CheckArgsForCall(1)
-					Ω(source).Should(Equal(atc.Source{"uri": "http://example.com/updated-uri"}))
+					newResource = atc.ResourceConfig{
+						Name:       "some-resource",
+						Type:       "git",
+						Source:     atc.Source{"uri": "http://example.com/another-updated-uri"},
+						CheckEvery: "20ms",
+					}
+
+					newConfig = atc.Config{
+						Resources: atc.ResourceConfigs{newResource},
+					}
+
+					Eventually(times).Should(Receive(&time1))
+
+					source, _ = fakeResource.CheckArgsForCall(2)
+					Ω(source).Should(Equal(atc.Source{"uri": "http://example.com/another-updated-uri"}))
+
+					Eventually(times).Should(Receive(&time2))
+
+					var err error
+					check, err = time.ParseDuration(newResource.CheckEvery)
+					Ω(err).NotTo(HaveOccurred())
+					Ω(time2.Sub(time1)).Should(BeNumerically("~", check, check/2))
+				})
+
+				Context("when the interval cannot be parsed", func() {
+					It("should continue to use the previous interval", func() {
+						newResource = atc.ResourceConfig{
+							Name:       "some-resource",
+							Type:       "git",
+							Source:     atc.Source{"uri": "http://example.com/another-updated-uri"},
+							CheckEvery: "bad-interval",
+						}
+
+						newConfig = atc.Config{
+							Resources: atc.ResourceConfigs{newResource},
+						}
+
+						var time1 time.Time
+						var time2 time.Time
+
+						Eventually(times).Should(Receive(&time1))
+						Eventually(times, 2).Should(Receive(&time2))
+
+						Ω(time2.Sub(time1)).Should(BeNumerically("~", interval, interval/2))
+					})
 				})
 			})
 
@@ -358,13 +463,10 @@ var _ = Describe("Radar", func() {
 					}
 				})
 
-				It("exits", func() {
-					Eventually(times).Should(Receive())
-
-					source, _ := fakeResource.CheckArgsForCall(0)
-					Ω(source).Should(Equal(resourceConfig.Source))
-
-					Eventually(process.Wait()).Should(Receive())
+				It("exits with the correct error", func() {
+					var resourceRemovedError error
+					Eventually(process.Wait()).Should(Receive(&resourceRemovedError))
+					Expect(resourceRemovedError.Error()).To(Equal("resource 'some-resource' was not found in config"))
 				})
 			})
 		})

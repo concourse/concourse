@@ -50,6 +50,7 @@ type Radar struct {
 
 	locker Locker
 	db     RadarDB
+	timer  *time.Timer
 }
 
 func NewRadar(
@@ -68,7 +69,12 @@ func NewRadar(
 
 func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runner {
 	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
-		ticker := time.NewTicker(radar.interval)
+		resourceConfig, err := radar.getResourceConfig(logger, resourceName)
+		if err != nil {
+			return err
+		}
+
+		radar.setCheckInterval(resourceConfig)
 
 		close(ready)
 
@@ -77,7 +83,7 @@ func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runn
 			case <-signals:
 				return nil
 
-			case <-ticker.C:
+			case <-radar.timer.C:
 				lock := radar.checkLock(radar.db.ScopedName(resourceName))
 				resourceCheckingLock, err := radar.locker.AcquireWriteLockImmediately(lock)
 
@@ -120,20 +126,6 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 		return nil
 	}
 
-	config, _, err := radar.db.GetConfig()
-	if err != nil {
-		logger.Error("failed-to-get-config", err)
-		// don't propagate error; we can just retry next tick
-		return nil
-	}
-
-	resourceConfig, found := config.Resources.Lookup(resourceName)
-	if !found {
-		logger.Info("resource-removed-from-configuration")
-		// return an error so that we exit
-		return resourceNotConfiguredError{ResourceName: resourceName}
-	}
-
 	savedResource, err := radar.db.GetResource(resourceName)
 	if err != nil {
 		return err
@@ -142,6 +134,13 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 	if savedResource.Paused {
 		return nil
 	}
+
+	resourceConfig, err := radar.getResourceConfig(logger, resourceName)
+	if err != nil {
+		return err
+	}
+
+	defer radar.setCheckInterval(resourceConfig)
 
 	typ := resource.ResourceType(resourceConfig.Type)
 
@@ -175,13 +174,12 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 		}
 
 		logger.Error("failed-to-check", err)
-
 		return err
 	}
 
 	if len(newVersions) == 0 {
 		logger.Debug("no-new-versions")
-		return nil
+		return err
 	}
 
 	logger.Info("versions-found", lager.Data{
@@ -201,6 +199,41 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 
 func (radar *Radar) checkLock(resourceName string) []db.NamedLock {
 	return []db.NamedLock{db.ResourceCheckingLock(resourceName)}
+}
+
+func (radar *Radar) setCheckInterval(resourceConfig atc.ResourceConfig) {
+	startingInterval := radar.interval
+
+	if resourceConfig.CheckEvery != "" {
+		var err error
+
+		radar.interval, err = time.ParseDuration(resourceConfig.CheckEvery)
+		if err != nil {
+			radar.interval = startingInterval
+		}
+	}
+
+	radar.timer = time.NewTimer(radar.interval)
+}
+
+func (radar *Radar) getResourceConfig(logger lager.Logger, resourceName string) (atc.ResourceConfig, error) {
+	var found bool
+	var resourceConfig atc.ResourceConfig
+
+	config, _, err := radar.db.GetConfig()
+	if err != nil {
+		logger.Error("failed-to-get-config", err)
+		return resourceConfig, err
+	}
+
+	resourceConfig, found = config.Resources.Lookup(resourceName)
+	if !found {
+		logger.Info("resource-removed-from-configuration")
+		// return an error so that we exit
+		return resourceConfig, resourceNotConfiguredError{ResourceName: resourceName}
+	}
+
+	return resourceConfig, nil
 }
 
 func checkIdentifier(pipelineName string, res atc.ResourceConfig) resource.Session {

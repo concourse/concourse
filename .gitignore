@@ -1,1 +1,3 @@
-*.test.DS_Store/README.html
+*.test
+.DS_Store
+/README.html
