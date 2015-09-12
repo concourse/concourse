@@ -69,35 +69,54 @@ func NewRadar(
 
 func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runner {
 	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
-		resourceConfig, err := radar.getResourceConfig(logger, resourceName)
-		if err != nil {
-			return err
-		}
-
-		radar.setCheckInterval(resourceConfig)
+		radar.timer = time.NewTimer(0) // do an immediate initial check
 
 		close(ready)
 
 		for {
+			var resourceConfig atc.ResourceConfig
+			var savedResource db.SavedResource
+
 			select {
 			case <-signals:
 				return nil
 
 			case <-radar.timer.C:
-				lock := radar.checkLock(radar.db.ScopedName(resourceName))
-				resourceCheckingLock, err := radar.locker.AcquireWriteLockImmediately(lock)
+				var err error
 
+				resourceConfig, err = radar.getResourceConfig(logger, resourceName)
 				if err != nil {
-					continue
+					return err
 				}
 
-				err = radar.scan(logger.Session("tick"), resourceName)
+				savedResource, err = radar.db.GetResource(resourceConfig.Name)
+				if err != nil {
+					return err
+				}
+
+				lock := radar.checkLock(radar.db.ScopedName(resourceName))
+				resourceCheckingLock, err := radar.locker.AcquireWriteLockImmediately(lock)
+				if err != nil {
+					break
+				}
+
+				err = radar.scan(logger.Session("tick"), resourceConfig, savedResource)
 
 				resourceCheckingLock.Release()
 
 				if err != nil {
 					return err
 				}
+			}
+
+			err := radar.setCheckInterval(resourceConfig)
+			if err != nil {
+				setErr := radar.db.SetResourceCheckError(savedResource, err)
+				if setErr != nil {
+					logger.Error("failed-to-set-check-error", err)
+				}
+
+				return err
 			}
 		}
 	})
@@ -111,10 +130,20 @@ func (radar *Radar) Scan(logger lager.Logger, resourceName string) error {
 
 	defer lock.Release()
 
-	return radar.scan(logger, resourceName)
+	resourceConfig, err := radar.getResourceConfig(logger, resourceName)
+	if err != nil {
+		return err
+	}
+
+	savedResource, err := radar.db.GetResource(resourceConfig.Name)
+	if err != nil {
+		return err
+	}
+
+	return radar.scan(logger, resourceConfig, savedResource)
 }
 
-func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
+func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig, savedResource db.SavedResource) error {
 	pipelinePaused, err := radar.db.IsPaused()
 	if err != nil {
 		logger.Error("failed-to-check-if-pipeline-paused", err)
@@ -126,21 +155,9 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 		return nil
 	}
 
-	savedResource, err := radar.db.GetResource(resourceName)
-	if err != nil {
-		return err
-	}
-
 	if savedResource.Paused {
 		return nil
 	}
-
-	resourceConfig, err := radar.getResourceConfig(logger, resourceName)
-	if err != nil {
-		return err
-	}
-
-	defer radar.setCheckInterval(resourceConfig)
 
 	typ := resource.ResourceType(resourceConfig.Type)
 
@@ -179,7 +196,7 @@ func (radar *Radar) scan(logger lager.Logger, resourceName string) error {
 
 	if len(newVersions) == 0 {
 		logger.Debug("no-new-versions")
-		return err
+		return nil
 	}
 
 	logger.Info("versions-found", lager.Data{
@@ -201,19 +218,19 @@ func (radar *Radar) checkLock(resourceName string) []db.NamedLock {
 	return []db.NamedLock{db.ResourceCheckingLock(resourceName)}
 }
 
-func (radar *Radar) setCheckInterval(resourceConfig atc.ResourceConfig) {
-	startingInterval := radar.interval
-
+func (radar *Radar) setCheckInterval(resourceConfig atc.ResourceConfig) error {
 	if resourceConfig.CheckEvery != "" {
-		var err error
-
-		radar.interval, err = time.ParseDuration(resourceConfig.CheckEvery)
+		configuredInterval, err := time.ParseDuration(resourceConfig.CheckEvery)
 		if err != nil {
-			radar.interval = startingInterval
+			return err
 		}
+
+		radar.interval = configuredInterval
 	}
 
 	radar.timer = time.NewTimer(radar.interval)
+
+	return nil
 }
 
 func (radar *Radar) getResourceConfig(logger lager.Logger, resourceName string) (atc.ResourceConfig, error) {

@@ -139,12 +139,7 @@ var _ = Describe("Radar", func() {
 
 		Context("when the resource config has a specified check interval", func() {
 			BeforeEach(func() {
-				resourceConfig = atc.ResourceConfig{
-					Name:       "some-resource",
-					Type:       "git",
-					Source:     atc.Source{"uri": "http://example.com"},
-					CheckEvery: "10ms",
-				}
+				resourceConfig.CheckEvery = "10ms"
 
 				fakeRadarDB.GetConfigReturns(atc.Config{
 					Resources: atc.ResourceConfigs{
@@ -160,20 +155,12 @@ var _ = Describe("Radar", func() {
 				Eventually(times).Should(Receive(&time1))
 				Eventually(times).Should(Receive(&time2))
 
-				check, err := time.ParseDuration(resourceConfig.CheckEvery)
-				Ω(err).NotTo(HaveOccurred())
-
-				Ω(time2.Sub(time1)).Should(BeNumerically("~", check, check/2))
+				Ω(time2.Sub(time1)).Should(BeNumerically("~", 10*time.Millisecond, 5*time.Millisecond))
 			})
 
 			Context("when the interval cannot be parsed", func() {
 				BeforeEach(func() {
-					resourceConfig = atc.ResourceConfig{
-						Name:       "some-resource",
-						Type:       "git",
-						Source:     atc.Source{"uri": "http://example.com"},
-						CheckEvery: "bad-value",
-					}
+					resourceConfig.CheckEvery = "bad-value"
 
 					fakeRadarDB.GetConfigReturns(atc.Config{
 						Resources: atc.ResourceConfigs{
@@ -182,14 +169,17 @@ var _ = Describe("Radar", func() {
 					}, 1, nil)
 				})
 
-				It("should continue to use the original internval", func() {
-					var time1 time.Time
-					var time2 time.Time
+				It("sets the check error and exits with the error", func() {
+					Expect(<-process.Wait()).To(HaveOccurred())
+					Expect(fakeRadarDB.SetResourceCheckErrorCallCount()).To(Equal(2))
 
-					Eventually(times).Should(Receive(&time1))
-					Eventually(times).Should(Receive(&time2))
+					resourceName, resourceErr := fakeRadarDB.SetResourceCheckErrorArgsForCall(0)
+					Expect(resourceName).To(Equal(savedResource))
+					Expect(resourceErr).ToNot(HaveOccurred())
 
-					Ω(time2.Sub(time1)).Should(BeNumerically("~", interval, interval/4))
+					resourceName, resourceErr = fakeRadarDB.SetResourceCheckErrorArgsForCall(1)
+					Expect(resourceName).To(Equal(savedResource))
+					Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
 				})
 			})
 		})
@@ -396,62 +386,73 @@ var _ = Describe("Radar", func() {
 				})
 
 				It("checks using the new config", func() {
+					Eventually(times).Should(Receive())
+
+					source, _ := fakeResource.CheckArgsForCall(0)
+					Ω(source).Should(Equal(resourceConfig.Source))
+
+					Eventually(times).Should(Receive())
+
+					source, _ = fakeResource.CheckArgsForCall(1)
+					Ω(source).Should(Equal(atc.Source{"uri": "http://example.com/updated-uri"}))
+				})
+			})
+
+			Context("with a new interval", func() {
+				var (
+					newInterval time.Duration
+					newResource atc.ResourceConfig
+				)
+
+				BeforeEach(func() {
+					newInterval = 20 * time.Millisecond
+					newResource = resourceConfig
+					newResource.CheckEvery = newInterval.String()
+
+					newConfig = atc.Config{
+						Resources: atc.ResourceConfigs{newResource},
+					}
+				})
+
+				It("checks on the new interval", func() {
 					var time1 time.Time
 					var time2 time.Time
+
+					Eventually(times).Should(Receive()) // ignore immediate first check
 
 					Eventually(times).Should(Receive(&time1))
 
 					source, _ := fakeResource.CheckArgsForCall(0)
 					Ω(source).Should(Equal(newResource.Source))
-					check := interval
 
 					Eventually(times).Should(Receive(&time2))
-					Ω(time2.Sub(time1)).Should(BeNumerically("~", check, check/2))
-
-					newResource = atc.ResourceConfig{
-						Name:       "some-resource",
-						Type:       "git",
-						Source:     atc.Source{"uri": "http://example.com/another-updated-uri"},
-						CheckEvery: "20ms",
-					}
-
-					newConfig = atc.Config{
-						Resources: atc.ResourceConfigs{newResource},
-					}
-
-					Eventually(times).Should(Receive(&time1))
-
-					source, _ = fakeResource.CheckArgsForCall(2)
-					Ω(source).Should(Equal(atc.Source{"uri": "http://example.com/another-updated-uri"}))
-
-					Eventually(times).Should(Receive(&time2))
-
-					var err error
-					check, err = time.ParseDuration(newResource.CheckEvery)
-					Ω(err).NotTo(HaveOccurred())
-					Ω(time2.Sub(time1)).Should(BeNumerically("~", check, check/2))
+					Ω(time2.Sub(time1)).Should(BeNumerically("~", newInterval, newInterval/2))
 				})
 
 				Context("when the interval cannot be parsed", func() {
-					It("should continue to use the previous interval", func() {
-						newResource = atc.ResourceConfig{
-							Name:       "some-resource",
-							Type:       "git",
-							Source:     atc.Source{"uri": "http://example.com/another-updated-uri"},
-							CheckEvery: "bad-interval",
-						}
+					BeforeEach(func() {
+						newResource.CheckEvery = "bad-value"
 
 						newConfig = atc.Config{
 							Resources: atc.ResourceConfigs{newResource},
 						}
+					})
 
-						var time1 time.Time
-						var time2 time.Time
+					It("sets the check error and exits with the error", func() {
+						Expect(<-process.Wait()).To(HaveOccurred())
+						Expect(fakeRadarDB.SetResourceCheckErrorCallCount()).To(Equal(3))
 
-						Eventually(times).Should(Receive(&time1))
-						Eventually(times, 2).Should(Receive(&time2))
+						resourceName, resourceErr := fakeRadarDB.SetResourceCheckErrorArgsForCall(0)
+						Expect(resourceName).To(Equal(savedResource))
+						Expect(resourceErr).ToNot(HaveOccurred())
 
-						Ω(time2.Sub(time1)).Should(BeNumerically("~", interval, interval/2))
+						resourceName, resourceErr = fakeRadarDB.SetResourceCheckErrorArgsForCall(1)
+						Expect(resourceName).To(Equal(savedResource))
+						Expect(resourceErr).ToNot(HaveOccurred())
+
+						resourceName, resourceErr = fakeRadarDB.SetResourceCheckErrorArgsForCall(2)
+						Expect(resourceName).To(Equal(savedResource))
+						Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
 					})
 				})
 			})
