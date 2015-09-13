@@ -149,8 +149,8 @@ func (event BuildStarted) Emit(logger lager.Logger) {
 			Attributes: map[string]string{
 				"pipeline":   event.PipelineName,
 				"job":        event.JobName,
-				"build-name": event.BuildName,
-				"build-id":   strconv.Itoa(event.BuildID),
+				"build_name": event.BuildName,
+				"build_id":   strconv.Itoa(event.BuildID),
 			},
 		},
 	)
@@ -179,8 +179,8 @@ func (event BuildFinished) Emit(logger lager.Logger) {
 			Attributes: map[string]string{
 				"pipeline":   event.PipelineName,
 				"job":        event.JobName,
-				"build-name": event.BuildName,
-				"build-id":   strconv.Itoa(event.BuildID),
+				"build_name": event.BuildName,
+				"build_id":   strconv.Itoa(event.BuildID),
 			},
 		},
 	)
