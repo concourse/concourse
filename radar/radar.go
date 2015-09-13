@@ -219,16 +219,17 @@ func (radar *Radar) checkLock(resourceName string) []db.NamedLock {
 }
 
 func (radar *Radar) setCheckInterval(resourceConfig atc.ResourceConfig) error {
+	interval := radar.interval
 	if resourceConfig.CheckEvery != "" {
 		configuredInterval, err := time.ParseDuration(resourceConfig.CheckEvery)
 		if err != nil {
 			return err
 		}
 
-		radar.interval = configuredInterval
+		interval = configuredInterval
 	}
 
-	radar.timer = time.NewTimer(radar.interval)
+	radar.timer = time.NewTimer(interval)
 
 	return nil
 }

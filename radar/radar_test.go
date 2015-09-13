@@ -352,13 +352,16 @@ var _ = Describe("Radar", func() {
 		})
 
 		Context("when the config changes", func() {
+			var configsToReturn chan<- atc.Config
 			var newConfig atc.Config
 
 			BeforeEach(func() {
-				configs := make(chan atc.Config, 1)
+				configs := make(chan atc.Config, 2)
 				configs <- atc.Config{
 					Resources: atc.ResourceConfigs{resourceConfig},
 				}
+
+				configsToReturn = configs
 
 				fakeRadarDB.GetConfigStub = func() (atc.Config, db.ConfigVersion, error) {
 					select {
@@ -453,6 +456,35 @@ var _ = Describe("Radar", func() {
 						resourceName, resourceErr = fakeRadarDB.SetResourceCheckErrorArgsForCall(2)
 						Expect(resourceName).To(Equal(savedResource))
 						Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
+					})
+				})
+
+				Context("when the interval is removed", func() {
+					BeforeEach(func() {
+						configsToReturn <- newConfig
+
+						newResource.CheckEvery = ""
+
+						newConfig = atc.Config{
+							Resources: atc.ResourceConfigs{newResource},
+						}
+					})
+
+					It("goes back to the default interval", func() {
+						var time0 time.Time
+						Eventually(times).Should(Receive(&time0)) // ignore immediate first check
+
+						var time1 time.Time
+						Eventually(times).Should(Receive(&time1))
+						Ω(time1.Sub(time0)).Should(BeNumerically("~", interval, interval/2))
+
+						var time2 time.Time
+						Eventually(times).Should(Receive(&time2))
+						Ω(time2.Sub(time1)).Should(BeNumerically("~", newInterval, newInterval/2))
+
+						var time3 time.Time
+						Eventually(times).Should(Receive(&time3))
+						Ω(time3.Sub(time2)).Should(BeNumerically("~", interval, interval/2))
 					})
 				})
 			})
