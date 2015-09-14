@@ -32,7 +32,7 @@ const (
 )
 
 type listContainersReturn struct {
-	Containers []atc.PresentedContainer
+	Containers []atc.Container
 	Errors     []string
 }
 
@@ -41,7 +41,7 @@ var _ = Describe("Pipelines API", func() {
 		req *http.Request
 
 		fakeContainer1              *workerfakes.FakeContainer
-		expectedPresentedContainer1 atc.PresentedContainer
+		expectedPresentedContainer1 atc.Container
 	)
 
 	BeforeEach(func() {
@@ -56,7 +56,7 @@ var _ = Describe("Pipelines API", func() {
 
 		fakeContainer1.HandleReturns(containerID1)
 
-		expectedPresentedContainer1 = atc.PresentedContainer{
+		expectedPresentedContainer1 = atc.Container{
 			ID:           containerID1,
 			PipelineName: pipelineName1,
 			Type:         type1.ToString(),
@@ -90,7 +90,7 @@ var _ = Describe("Pipelines API", func() {
 			var (
 				fakeContainer2 *workerfakes.FakeContainer
 
-				expectedPresentedContainer2 atc.PresentedContainer
+				expectedPresentedContainer2 atc.Container
 			)
 
 			BeforeEach(func() {
@@ -116,7 +116,7 @@ var _ = Describe("Pipelines API", func() {
 					})
 				fakeContainer2.HandleReturns("cfvwser")
 
-				expectedPresentedContainer2 = atc.PresentedContainer{
+				expectedPresentedContainer2 = atc.Container{
 					ID:           "cfvwser",
 					PipelineName: "pipeline-2",
 					Type:         worker.ContainerTypePut.ToString(),
@@ -130,14 +130,14 @@ var _ = Describe("Pipelines API", func() {
 				Context("when no errors are returned", func() {
 					var (
 						fakeContainers              []worker.Container
-						expectedPresentedContainers []atc.PresentedContainer
+						expectedPresentedContainers []atc.Container
 					)
 					BeforeEach(func() {
 						fakeContainers = []worker.Container{
 							fakeContainer1,
 							fakeContainer2,
 						}
-						expectedPresentedContainers = []atc.PresentedContainer{
+						expectedPresentedContainers = []atc.Container{
 							expectedPresentedContainer1,
 							expectedPresentedContainer2,
 						}
@@ -242,7 +242,7 @@ var _ = Describe("Pipelines API", func() {
 				Context("When there is a MultiWorkerError and some containers are found", func() {
 					var (
 						fakeContainers              []worker.Container
-						expectedPresentedContainers []atc.PresentedContainer
+						expectedPresentedContainers []atc.Container
 						expectedErr                 worker.MultiWorkerError
 					)
 
@@ -252,7 +252,7 @@ var _ = Describe("Pipelines API", func() {
 						fakeContainers = []worker.Container{
 							fakeContainer2,
 						}
-						expectedPresentedContainers = []atc.PresentedContainer{
+						expectedPresentedContainers = []atc.Container{
 							expectedPresentedContainer2,
 						}
 						fakeWorkerClient.FindContainersForIdentifierReturns(fakeContainers, expectedErr)
@@ -515,7 +515,7 @@ var _ = Describe("Pipelines API", func() {
 					b, err := ioutil.ReadAll(response.Body)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					var actual atc.PresentedContainer
+					var actual atc.Container
 					err = json.Unmarshal(b, &actual)
 					Ω(err).ShouldNot(HaveOccurred())
 

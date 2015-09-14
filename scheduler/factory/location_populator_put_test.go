@@ -10,14 +10,13 @@ import (
 var _ = Describe("The Location Populator: put", func() {
 	var (
 		locationPopulator factory.LocationPopulator
-		buildFactory      factory.BuildFactory
 
 		testSeq *atc.PlanSequence
 	)
 
 	BeforeEach(func() {
 		locationPopulator = factory.NewLocationPopulator()
-		buildFactory = factory.NewBuildFactory("pipeline", locationPopulator)
+		_ = factory.NewBuildFactory("pipeline", locationPopulator)
 	})
 
 	Context("with a put at the top-level", func() {

@@ -1501,7 +1501,6 @@ var _ = Describe("PipelineDB", func() {
 			var job db.SavedJob
 			var jobConfig atc.JobConfig
 			var serialJobConfig atc.JobConfig
-			var serialGroupsJobConfig atc.JobConfig
 
 			BeforeEach(func() {
 				var err error
@@ -1514,13 +1513,6 @@ var _ = Describe("PipelineDB", func() {
 				serialJobConfig = atc.JobConfig{
 					Name:   "some-job",
 					Serial: true,
-				}
-				serialGroupsJobConfig = atc.JobConfig{
-					Name: "some-job",
-					SerialGroups: []string{
-						"group-one",
-						"group-two",
-					},
 				}
 
 				Ω(err).ShouldNot(HaveOccurred())
@@ -1935,14 +1927,12 @@ var _ = Describe("PipelineDB", func() {
 		})
 
 		Describe("GetRunningBuildsBySerialGroup", func() {
-			var pendingBuild db.Build
 			var startedBuild db.Build
 			var scheduledBuild db.Build
-			var anotherBuild db.Build
 
 			BeforeEach(func() {
 				var err error
-				pendingBuild, err = pipelineDB.CreateJobBuild("matching-job")
+				_, err = pipelineDB.CreateJobBuild("matching-job")
 				Ω(err).ShouldNot(HaveOccurred())
 
 				startedBuild, err = pipelineDB.CreateJobBuild("matching-job")
@@ -1957,7 +1947,7 @@ var _ = Describe("PipelineDB", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(scheduled).Should(BeTrue())
 
-				anotherBuild, err = pipelineDB.CreateJobBuild("not-matching-job")
+				_, err = pipelineDB.CreateJobBuild("not-matching-job")
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 

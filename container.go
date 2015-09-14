@@ -1,6 +1,6 @@
 package atc
 
-type PresentedContainer struct {
+type Container struct {
 	ID           string `json:"id"`
 	PipelineName string `json:"pipeline_name"`
 	Type         string `json:"type"`
@@ -9,6 +9,6 @@ type PresentedContainer struct {
 }
 
 type ListContainersReturn struct {
-	Containers []PresentedContainer `json:"containers"`
-	Errors     []string             `json:"errors"`
+	Containers []Container `json:"containers"`
+	Errors     []string    `json:"errors"`
 }

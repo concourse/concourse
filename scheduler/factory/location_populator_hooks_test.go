@@ -11,14 +11,13 @@ import (
 var _ = Describe("The Location Populator: hooks", func() {
 	var (
 		locationPopulator factory.LocationPopulator
-		buildFactory      factory.BuildFactory
 
 		testSeq *atc.PlanSequence
 	)
 
 	BeforeEach(func() {
 		locationPopulator = factory.NewLocationPopulator()
-		buildFactory = factory.NewBuildFactory("pipeline", locationPopulator)
+		_ = factory.NewBuildFactory("pipeline", locationPopulator)
 	})
 
 	Context("with a plan that has hooks", func() {

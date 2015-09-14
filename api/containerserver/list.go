@@ -43,7 +43,7 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 
-	presentedContainers := make([]atc.PresentedContainer, len(containers))
+	presentedContainers := make([]atc.Container, len(containers))
 	for i := 0; i < len(containers); i++ {
 		container := containers[i]
 		presentedContainers[i] = present.Container(container)

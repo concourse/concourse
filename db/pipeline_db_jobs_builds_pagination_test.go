@@ -60,16 +60,19 @@ var _ = Describe("Jobs Builds", func() {
 
 	Context("GetJobBuildsMaxID", func() {
 		var (
-			build1 db.Build
 			build2 db.Build
-			build3 db.Build
 			err    error
 		)
 
 		BeforeEach(func() {
-			build1, err = pipelineDB.CreateJobBuild("job-name")
+			_, err = pipelineDB.CreateJobBuild("job-name")
+			Ω(err).ShouldNot(HaveOccurred())
+
 			build2, err = pipelineDB.CreateJobBuild("job-name")
-			build3, err = pipelineDB.CreateJobBuild("other-job-name")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			_, err = pipelineDB.CreateJobBuild("other-job-name")
+			Ω(err).ShouldNot(HaveOccurred())
 		})
 
 		It("returns the max id from the builds table by job name, scoped to the pipeline", func() {
@@ -85,21 +88,24 @@ var _ = Describe("Jobs Builds", func() {
 
 	Context("GetJobBuildsCursor", func() {
 		var (
-			build1 db.Build
 			build2 db.Build
 			build3 db.Build
 			err    error
 		)
 
 		BeforeEach(func() {
-			build1, err = pipelineDB.CreateJobBuild("job-name")
+			_, err = pipelineDB.CreateJobBuild("job-name")
 			Ω(err).ShouldNot(HaveOccurred())
+
 			build2, err = pipelineDB.CreateJobBuild("job-name")
 			Ω(err).ShouldNot(HaveOccurred())
+
 			_, err = pipelineDB.CreateJobBuild("other-name") // add in another test verifying this record doesn't fuck shit up
 			Ω(err).ShouldNot(HaveOccurred())
+
 			build3, err = pipelineDB.CreateJobBuild("job-name")
 			Ω(err).ShouldNot(HaveOccurred())
+
 			_, err = pipelineDB.CreateJobBuild("job-name")
 			Ω(err).ShouldNot(HaveOccurred())
 		})

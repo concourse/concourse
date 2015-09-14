@@ -233,7 +233,6 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 		Describe("GetAllStartedBuilds", func() {
 			var build1 db.Build
 			var build2 db.Build
-			var build3 db.Build
 			BeforeEach(func() {
 				var err error
 
@@ -243,7 +242,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				build2, err = database.PipelineDB.CreateJobBuild("some-job")
 				Ω(err).ShouldNot(HaveOccurred())
 
-				build3, err = database.CreateOneOffBuild()
+				_, err = database.CreateOneOffBuild()
 				Ω(err).ShouldNot(HaveOccurred())
 
 				started, err := database.StartBuild(build1.ID, "some-engine", "so-meta")

@@ -5,9 +5,9 @@ import (
 	"github.com/concourse/atc/worker"
 )
 
-func Container(container worker.Container) atc.PresentedContainer {
+func Container(container worker.Container) atc.Container {
 	identifier := container.IdentifierFromProperties()
-	return atc.PresentedContainer{
+	return atc.Container{
 		ID:           container.Handle(),
 		PipelineName: identifier.PipelineName,
 		Type:         identifier.Type.ToString(),

@@ -25,8 +25,6 @@ var _ = Describe("Pipeline Pausing", func() {
 	var dbListener *pq.Listener
 	var atcPort uint16
 	var pipelineDBFactory db.PipelineDBFactory
-	var pipelineDB db.PipelineDB
-	var otherPipelineDB db.PipelineDB
 
 	BeforeEach(func() {
 		var err error
@@ -90,10 +88,10 @@ var _ = Describe("Pipeline Pausing", func() {
 				}, db.ConfigVersion(1), db.PipelineUnpaused)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				pipelineDB, err = pipelineDBFactory.BuildWithName("some-pipeline")
+				_, err = pipelineDBFactory.BuildWithName("some-pipeline")
 				Ω(err).ShouldNot(HaveOccurred())
 
-				otherPipelineDB, err = pipelineDBFactory.BuildWithName("another-pipeline")
+				_, err = pipelineDBFactory.BuildWithName("another-pipeline")
 				Ω(err).ShouldNot(HaveOccurred())
 
 			})
