@@ -140,7 +140,7 @@ func constructRequest(reqGenerator *rata.RequestGenerator, spec atc.HijackProces
 	return hijackReq
 }
 
-func getContainerIDs(c *cli.Context) []atc.PresentedContainer {
+func getContainerIDs(c *cli.Context) []atc.Container {
 	target := returnTarget(c.GlobalString("target"))
 	insecure := c.GlobalBool("insecure")
 
