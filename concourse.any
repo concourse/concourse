@@ -36,6 +36,7 @@ requests.
 \include-section{./serious/bosh.any}
 \include-section{./serious/worker-pools.any}
 \include-section{./implementing-resources.any}
+\include-section{./metrics.any}
 \include-section{./release-notes.any}
 
 \table-of-contents
