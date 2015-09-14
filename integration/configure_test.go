@@ -251,10 +251,6 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Describe("templating", func() {
-			var (
-				payload []byte
-			)
-
 			BeforeEach(func() {
 				config = atc.Config{
 					Groups: atc.GroupConfigs{},
@@ -287,12 +283,6 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			Context("when configuring with templated keys succeeds", func() {
-				JustBeforeEach(func() {
-					var err error
-					payload, err = yaml.Marshal(config)
-					Ω(err).ShouldNot(HaveOccurred())
-				})
-
 				BeforeEach(func() {
 					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
 					Ω(err).ShouldNot(HaveOccurred())

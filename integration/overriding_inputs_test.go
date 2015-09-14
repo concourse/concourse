@@ -29,7 +29,6 @@ var _ = Describe("Fly CLI", func() {
 	var atcServer *ghttp.Server
 	var streaming chan struct{}
 	var events chan atc.Event
-	var uploadingBits <-chan struct{}
 	var uploading chan struct{}
 
 	var expectedPlan atc.Plan
@@ -145,7 +144,6 @@ run:
 
 	JustBeforeEach(func() {
 		uploading = make(chan struct{})
-		uploadingBits = uploading
 
 		atcServer.AppendHandlers(
 			ghttp.CombineHandlers(
