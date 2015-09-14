@@ -379,37 +379,6 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				err = thirdLock.Release()
 				Ω(err).ShouldNot(HaveOccurred())
 			})
-
-			It("cleans up after releasing", func() {
-				lock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceCheckingLock("a-name")})
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(database.ListLocks()).Should(ContainElement(db.ResourceCheckingLock("a-name").Name()))
-
-				secondLockCh := make(chan db.Lock, 1)
-
-				go func() {
-					defer GinkgoRecover()
-
-					secondLock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceCheckingLock("a-name")})
-					Ω(err).ShouldNot(HaveOccurred())
-
-					secondLockCh <- secondLock
-				}()
-
-				Consistently(secondLockCh).ShouldNot(Receive())
-
-				err = lock.Release()
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(database.ListLocks()).Should(ContainElement(db.ResourceCheckingLock("a-name").Name()))
-
-				var secondLock db.Lock
-				Eventually(secondLockCh).Should(Receive(&secondLock))
-
-				err = secondLock.Release()
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(database.ListLocks()).Should(BeEmpty())
-			})
 		})
 	}
 }
