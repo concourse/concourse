@@ -111,11 +111,8 @@ var _ = Describe("Heartbeater", func() {
 	})
 
 	Context("when Garden returns containers", func() {
-		var returnedContainers chan<- []garden.Container
-
 		BeforeEach(func() {
 			containers := make(chan []garden.Container, 2)
-			returnedContainers = containers
 
 			containers <- []garden.Container{
 				new(gfakes.FakeContainer),

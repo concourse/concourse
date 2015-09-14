@@ -88,8 +88,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 			userKnownHostsFile string
 
-			userKey    string
-			userKeyPub string
+			userKey string
 		)
 
 		BeforeEach(func() {
@@ -126,7 +125,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 			_, err = io.Copy(userKnownHosts, pub)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			userKey, userKeyPub = generateSSHKeypair()
+			userKey, _ = generateSSHKeypair()
 
 			authorizedKeys, err := ioutil.TempFile("", "authorized-keys")
 			Ω(err).ShouldNot(HaveOccurred())
