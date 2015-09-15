@@ -261,6 +261,15 @@ func (pdb *pipelineDB) LeaseCheck(resourceName string, interval time.Duration) (
 		logger: pdb.logger.Session("lease", lager.Data{
 			"resource": resourceName,
 		}),
+		attemptSignFunc: func(tx *sql.Tx) (sql.Result, error) {
+			return tx.Exec(`
+				UPDATE resources
+				SET last_checked = now()
+				WHERE name = $1
+					AND pipeline_id = $2
+					AND now() - last_checked > ($3 || ' SECONDS')::INTERVAL
+			`, resourceName, pdb.ID, interval.Seconds())
+		},
 	}
 
 	renewed, err := lease.AttemptSign(resourceName, interval)

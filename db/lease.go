@@ -1,6 +1,7 @@
 package db
 
 import (
+	"database/sql"
 	"sync"
 	"time"
 
@@ -18,25 +19,21 @@ type lease struct {
 	resourceName string
 	logger       lager.Logger
 
+	attemptSignFunc func(*sql.Tx) (sql.Result, error)
+
 	breakChan chan struct{}
 	running   *sync.WaitGroup
 }
 
-func (c *lease) AttemptSign(resourceName string, interval time.Duration) (bool, error) {
-	tx, err := c.pdb.conn.Begin()
+func (l *lease) AttemptSign(resourceName string, interval time.Duration) (bool, error) {
+	tx, err := l.pdb.conn.Begin()
 	if err != nil {
 		return false, err
 	}
 
 	defer tx.Rollback()
 
-	result, err := tx.Exec(`
-		UPDATE resources
-		SET last_checked = now()
-		WHERE name = $1
-			AND pipeline_id = $2
-			AND now() - last_checked > ($3 || ' SECONDS')::INTERVAL
-	`, resourceName, c.pdb.ID, interval.Seconds())
+	result, err := l.attemptSignFunc(tx)
 	if err != nil {
 		return false, err
 	}
@@ -58,12 +55,12 @@ func (c *lease) AttemptSign(resourceName string, interval time.Duration) (bool, 
 	return true, nil
 }
 
-func (c *lease) KeepSigned(interval time.Duration) {
-	c.breakChan = make(chan struct{})
-	c.running = &sync.WaitGroup{}
-	c.running.Add(1)
+func (l *lease) KeepSigned(interval time.Duration) {
+	l.breakChan = make(chan struct{})
+	l.running = &sync.WaitGroup{}
+	l.running.Add(1)
 
-	go c.keepLeased(interval)
+	go l.keepLeased(interval)
 }
 
 func (c *lease) Break() {
@@ -71,8 +68,8 @@ func (c *lease) Break() {
 	c.running.Wait()
 }
 
-func (c *lease) keepLeased(interval time.Duration) {
-	defer c.running.Done()
+func (l *lease) keepLeased(interval time.Duration) {
+	defer l.running.Done()
 
 	ticker := time.NewTicker(interval / 2)
 	defer ticker.Stop()
@@ -81,19 +78,19 @@ dance:
 	for {
 		select {
 		case <-ticker.C:
-			renewed, err := c.AttemptSign(c.resourceName, interval)
+			renewed, err := l.AttemptSign(l.resourceName, interval)
 			if err != nil {
-				c.logger.Error("failed-to-renew-lease", err)
+				l.logger.Error("failed-to-renew-lease", err)
 				break
 			}
 
 			if !renewed {
-				c.logger.Debug("lease-was-already-renewed-recently")
+				l.logger.Debug("lease-was-already-renewed-recently")
 				break
 			}
 
-			c.logger.Debug("renewed-the-lease")
-		case <-c.breakChan:
+			l.logger.Debug("renewed-the-lease")
+		case <-l.breakChan:
 			break dance
 		}
 	}
