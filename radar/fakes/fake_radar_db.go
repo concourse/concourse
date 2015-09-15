@@ -3,6 +3,7 @@ package fakes
 
 import (
 	"sync"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -90,6 +91,17 @@ type FakeRadarDB struct {
 	}
 	setResourceCheckErrorReturns struct {
 		result1 error
+	}
+	LeaseCheckStub        func(resource string, interval time.Duration) (db.Contract, bool, error)
+	leaseCheckMutex       sync.RWMutex
+	leaseCheckArgsForCall []struct {
+		resource string
+		interval time.Duration
+	}
+	leaseCheckReturns struct {
+		result1 db.Contract
+		result2 bool
+		result3 error
 	}
 }
 
@@ -394,6 +406,41 @@ func (fake *FakeRadarDB) SetResourceCheckErrorReturns(result1 error) {
 	fake.setResourceCheckErrorReturns = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeRadarDB) LeaseCheck(resource string, interval time.Duration) (db.Contract, bool, error) {
+	fake.leaseCheckMutex.Lock()
+	fake.leaseCheckArgsForCall = append(fake.leaseCheckArgsForCall, struct {
+		resource string
+		interval time.Duration
+	}{resource, interval})
+	fake.leaseCheckMutex.Unlock()
+	if fake.LeaseCheckStub != nil {
+		return fake.LeaseCheckStub(resource, interval)
+	} else {
+		return fake.leaseCheckReturns.result1, fake.leaseCheckReturns.result2, fake.leaseCheckReturns.result3
+	}
+}
+
+func (fake *FakeRadarDB) LeaseCheckCallCount() int {
+	fake.leaseCheckMutex.RLock()
+	defer fake.leaseCheckMutex.RUnlock()
+	return len(fake.leaseCheckArgsForCall)
+}
+
+func (fake *FakeRadarDB) LeaseCheckArgsForCall(i int) (string, time.Duration) {
+	fake.leaseCheckMutex.RLock()
+	defer fake.leaseCheckMutex.RUnlock()
+	return fake.leaseCheckArgsForCall[i].resource, fake.leaseCheckArgsForCall[i].interval
+}
+
+func (fake *FakeRadarDB) LeaseCheckReturns(result1 db.Contract, result2 bool, result3 error) {
+	fake.LeaseCheckStub = nil
+	fake.leaseCheckReturns = struct {
+		result1 db.Contract
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 var _ radar.RadarDB = new(FakeRadarDB)

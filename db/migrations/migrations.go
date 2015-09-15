@@ -43,4 +43,5 @@ var Migrations = []migration.Migrator{
 	AddOrderingToPipelines,
 	AddInputsDeterminedToBuilds,
 	AddExplicitToBuildOutputs,
+	AddLastCheckedToResources,
 }

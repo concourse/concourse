@@ -39,6 +39,7 @@ type RadarDB interface {
 
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 	SetResourceCheckError(resource db.SavedResource, err error) error
+	LeaseCheck(resource string, interval time.Duration) (db.Contract, bool, error)
 }
 
 type Radar struct {
@@ -48,21 +49,18 @@ type Radar struct {
 
 	interval time.Duration
 
-	locker Locker
-	db     RadarDB
-	timer  *time.Timer
+	db    RadarDB
+	timer *time.Timer
 }
 
 func NewRadar(
 	tracker resource.Tracker,
 	interval time.Duration,
-	locker Locker,
 	db RadarDB,
 ) *Radar {
 	return &Radar{
 		tracker:  tracker,
 		interval: interval,
-		locker:   locker,
 		db:       db,
 	}
 }
@@ -89,20 +87,32 @@ func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runn
 					return err
 				}
 
+				leaseLogger := logger.Session("lease", lager.Data{
+					"resource": resourceName,
+				})
+
 				savedResource, err = radar.db.GetResource(resourceConfig.Name)
 				if err != nil {
 					return err
 				}
 
-				lock := radar.checkLock(radar.db.ScopedName(resourceName))
-				resourceCheckingLock, err := radar.locker.AcquireWriteLockImmediately(lock)
+				contract, leased, err := radar.db.LeaseCheck(resourceName, radar.interval)
+
 				if err != nil {
+					leaseLogger.Error("failed-to-get-lease", err, lager.Data{
+						"resource": resourceName,
+					})
+					break
+				}
+
+				if !leased {
+					leaseLogger.Debug("did-not-get-lease")
 					break
 				}
 
 				err = radar.scan(logger.Session("tick"), resourceConfig, savedResource)
 
-				resourceCheckingLock.Release()
+				contract.Break()
 
 				if err != nil {
 					return err
@@ -123,12 +133,26 @@ func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runn
 }
 
 func (radar *Radar) Scan(logger lager.Logger, resourceName string) error {
-	lock, err := radar.locker.AcquireWriteLock(radar.checkLock(radar.db.ScopedName(resourceName)))
+	leaseLogger := logger.Session("lease", lager.Data{
+		"resource": resourceName,
+	})
+
+	contract, leased, err := radar.db.LeaseCheck(resourceName, radar.interval)
+
 	if err != nil {
+		leaseLogger.Error("failed-to-get-lease", err, lager.Data{
+			"resource": resourceName,
+		})
+
 		return err
 	}
 
-	defer lock.Release()
+	if !leased {
+		leaseLogger.Debug("did-not-get-lease")
+		return nil
+	}
+
+	defer contract.Break()
 
 	resourceConfig, err := radar.getResourceConfig(logger, resourceName)
 	if err != nil {

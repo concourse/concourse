@@ -11,13 +11,6 @@ import (
 	"github.com/concourse/atc/scheduler/factory"
 )
 
-//go:generate counterfeiter . Locker
-
-type Locker interface {
-	AcquireWriteLock([]db.NamedLock) (db.Lock, error)
-	AcquireWriteLockImmediately([]db.NamedLock) (db.Lock, error)
-}
-
 //go:generate counterfeiter . RadarSchedulerFactory
 
 type RadarSchedulerFactory interface {
@@ -28,7 +21,6 @@ type RadarSchedulerFactory interface {
 type radarSchedulerFactory struct {
 	tracker  resource.Tracker
 	interval time.Duration
-	locker   Locker
 	engine   engine.Engine
 	db       db.DB
 }
@@ -36,21 +28,19 @@ type radarSchedulerFactory struct {
 func NewRadarSchedulerFactory(
 	tracker resource.Tracker,
 	interval time.Duration,
-	locker Locker,
 	engine engine.Engine,
 	db db.DB,
 ) RadarSchedulerFactory {
 	return &radarSchedulerFactory{
 		tracker:  tracker,
 		interval: interval,
-		locker:   locker,
 		engine:   engine,
 		db:       db,
 	}
 }
 
 func (rsf *radarSchedulerFactory) BuildRadar(pipelineDB db.PipelineDB) *radar.Radar {
-	return radar.NewRadar(rsf.tracker, rsf.interval, rsf.locker, pipelineDB)
+	return radar.NewRadar(rsf.tracker, rsf.interval, pipelineDB)
 }
 
 func (rsf *radarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB) *scheduler.Scheduler {

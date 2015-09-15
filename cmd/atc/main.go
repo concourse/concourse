@@ -386,7 +386,6 @@ func main() {
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		resourceTracker,
 		*checkInterval,
-		db,
 		engine,
 		db,
 	)
