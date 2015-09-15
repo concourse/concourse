@@ -4,6 +4,8 @@ Gem::Specification.new do |s|
   s.authors  = ["Alex Suraci"]
   s.email    = ["suraci.alex@gmail.com"]
 
+  s.summary = "helpers for our docs"
+
   s.files         = Dir["{lib,bin,public}/**/*"]
   s.require_paths = ["lib"]
 
