@@ -24,21 +24,16 @@ type BuildDB interface {
 	AbortBuild(int) error
 	AbortNotifier(int) (db.Notifier, error)
 
+	LeaseTrack(buildID int, interval time.Duration) (db.Lease, bool, error)
+
 	FinishBuild(int, db.Status) error
 }
 
-//go:generate counterfeiter . BuildLocker
-
-type BuildLocker interface {
-	AcquireWriteLockImmediately([]db.NamedLock) (db.Lock, error)
-}
-
-func NewDBEngine(engines Engines, buildDB BuildDB, locker BuildLocker) Engine {
+func NewDBEngine(engines Engines, buildDB BuildDB) Engine {
 	return &dbEngine{
 		engines: engines,
 
-		db:     buildDB,
-		locker: locker,
+		db: buildDB,
 	}
 }
 
@@ -53,8 +48,7 @@ func (err UnknownEngineError) Error() string {
 type dbEngine struct {
 	engines Engines
 
-	db     BuildDB
-	locker BuildLocker
+	db BuildDB
 }
 
 func (*dbEngine) Name() string {
@@ -83,8 +77,7 @@ func (engine *dbEngine) CreateBuild(build db.Build, plan atc.Plan) (Build, error
 
 		engines: engine.engines,
 
-		db:     engine.db,
-		locker: engine.locker,
+		db: engine.db,
 	}, nil
 }
 
@@ -94,8 +87,7 @@ func (engine *dbEngine) LookupBuild(build db.Build) (Build, error) {
 
 		engines: engine.engines,
 
-		db:     engine.db,
-		locker: engine.locker,
+		db: engine.db,
 	}, nil
 }
 
@@ -104,8 +96,7 @@ type dbBuild struct {
 
 	engines Engines
 
-	db     BuildDB
-	locker BuildLocker
+	db BuildDB
 }
 
 func (build *dbBuild) Metadata() string {
@@ -115,13 +106,18 @@ func (build *dbBuild) Metadata() string {
 func (build *dbBuild) Abort() error {
 	// the order below is very important to avoid races with build creation.
 
-	lock, err := build.locker.AcquireWriteLockImmediately([]db.NamedLock{db.BuildTrackingLock(build.id)})
+	lease, leased, err := build.db.LeaseTrack(build.id, time.Minute)
+
 	if err != nil {
+		return err
+	}
+
+	if !leased {
 		// someone else is tracking the build; abort it, which will notify them
 		return build.db.AbortBuild(build.id)
 	}
 
-	defer lock.Release()
+	defer lease.Break()
 
 	// no one is tracking the build; abort it ourselves
 
@@ -165,13 +161,19 @@ func (build *dbBuild) Abort() error {
 }
 
 func (build *dbBuild) Resume(logger lager.Logger) {
-	lock, err := build.locker.AcquireWriteLockImmediately([]db.NamedLock{db.BuildTrackingLock(build.id)})
+	lease, leased, err := build.db.LeaseTrack(build.id, time.Minute)
+
 	if err != nil {
+		logger.Error("failed-to-get-lease", err)
+		return
+	}
+
+	if !leased {
 		// already being tracked somewhere; short-circuit
 		return
 	}
 
-	defer lock.Release()
+	defer lease.Break()
 
 	model, err := build.db.GetBuild(build.id)
 	if err != nil {

@@ -2,6 +2,7 @@ package engine_test
 
 import (
 	"errors"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -20,7 +21,6 @@ var _ = Describe("DBEngine", func() {
 		fakeEngineA *fakes.FakeEngine
 		fakeEngineB *fakes.FakeEngine
 		fakeBuildDB *fakes.FakeBuildDB
-		fakeLocker  *fakes.FakeBuildLocker
 
 		dbEngine Engine
 	)
@@ -33,9 +33,8 @@ var _ = Describe("DBEngine", func() {
 		fakeEngineB.NameReturns("fake-engine-b")
 
 		fakeBuildDB = new(fakes.FakeBuildDB)
-		fakeLocker = new(fakes.FakeBuildLocker)
 
-		dbEngine = NewDBEngine(Engines{fakeEngineA, fakeEngineB}, fakeBuildDB, fakeLocker)
+		dbEngine = NewDBEngine(Engines{fakeEngineA, fakeEngineB}, fakeBuildDB)
 	})
 
 	Describe("CreateBuild", func() {
@@ -167,12 +166,12 @@ var _ = Describe("DBEngine", func() {
 				abortErr = foundBuild.Abort()
 			})
 
-			Context("when acquiring the lock succeeds", func() {
-				var fakeLock *dbfakes.FakeLock
+			Context("when acquiring the lease succeeds", func() {
+				var fakeLease *dbfakes.FakeLease
 
 				BeforeEach(func() {
-					fakeLock = new(dbfakes.FakeLock)
-					fakeLocker.AcquireWriteLockImmediatelyReturns(fakeLock, nil)
+					fakeLease = new(dbfakes.FakeLease)
+					fakeBuildDB.LeaseTrackReturns(fakeLease, true, nil)
 				})
 
 				It("succeeds", func() {
@@ -182,6 +181,41 @@ var _ = Describe("DBEngine", func() {
 				It("marks the build as aborted", func() {
 					Ω(fakeBuildDB.AbortBuildCallCount()).Should(Equal(1))
 					Ω(fakeBuildDB.AbortBuildArgsForCall(0)).Should(Equal(build.ID))
+				})
+			})
+
+			Context("when acquiring the lease fails", func() {
+				var fakeLease *dbfakes.FakeLease
+
+				BeforeEach(func() {
+					fakeLease = new(dbfakes.FakeLease)
+					fakeBuildDB.LeaseTrackReturns(nil, false, nil)
+				})
+
+				It("succeeds", func() {
+					Ω(abortErr).ShouldNot(HaveOccurred())
+				})
+
+				It("marks the build as aborted", func() {
+					Ω(fakeBuildDB.AbortBuildCallCount()).Should(Equal(1))
+					Ω(fakeBuildDB.AbortBuildArgsForCall(0)).Should(Equal(build.ID))
+				})
+			})
+
+			Context("when acquiring the lease errors", func() {
+				var fakeLease *dbfakes.FakeLease
+
+				BeforeEach(func() {
+					fakeLease = new(dbfakes.FakeLease)
+					fakeBuildDB.LeaseTrackReturns(nil, false, errors.New("bad bad bad"))
+				})
+
+				It("fails", func() {
+					Ω(abortErr).Should(HaveOccurred())
+				})
+
+				It("does not mark the build as aborted", func() {
+					Ω(fakeBuildDB.AbortBuildCallCount()).Should(Equal(0))
 				})
 			})
 		})
@@ -214,11 +248,11 @@ var _ = Describe("DBEngine", func() {
 			})
 
 			Context("when acquiring the lock succeeds", func() {
-				var fakeLock *dbfakes.FakeLock
+				var fakeLease *dbfakes.FakeLease
 
 				BeforeEach(func() {
-					fakeLock = new(dbfakes.FakeLock)
-					fakeLocker.AcquireWriteLockImmediatelyReturns(fakeLock, nil)
+					fakeLease = new(dbfakes.FakeLease)
+					fakeBuildDB.LeaseTrackReturns(fakeLease, true, nil)
 				})
 
 				Context("when the build is active", func() {
@@ -228,12 +262,13 @@ var _ = Describe("DBEngine", func() {
 						fakeBuildDB.GetBuildReturns(model, nil)
 
 						fakeBuildDB.AbortBuildStub = func(int) error {
-							Ω(fakeLocker.AcquireWriteLockImmediatelyCallCount()).Should(Equal(1))
+							Ω(fakeBuildDB.LeaseTrackCallCount()).Should(Equal(1))
 
-							lockedBuild := fakeLocker.AcquireWriteLockImmediatelyArgsForCall(0)
-							Ω(lockedBuild).Should(Equal([]db.NamedLock{db.BuildTrackingLock(model.ID)}))
+							lockedBuild, interval := fakeBuildDB.LeaseTrackArgsForCall(0)
+							Ω(lockedBuild).Should(Equal(model.ID))
+							Ω(interval).Should(Equal(time.Minute))
 
-							Ω(fakeLock.ReleaseCallCount()).Should(BeZero())
+							Ω(fakeLease.BreakCallCount()).Should(BeZero())
 
 							return nil
 						}
@@ -258,8 +293,8 @@ var _ = Describe("DBEngine", func() {
 								Ω(abortErr).ShouldNot(HaveOccurred())
 							})
 
-							It("releases the lock", func() {
-								Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+							It("breaks the lease", func() {
+								Ω(fakeLease.BreakCallCount()).Should(Equal(1))
 							})
 
 							It("aborts the build via the db", func() {
@@ -289,8 +324,8 @@ var _ = Describe("DBEngine", func() {
 								Ω(realBuild.AbortCallCount()).Should(BeZero())
 							})
 
-							It("releases the lock", func() {
-								Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+							It("releases the lease", func() {
+								Ω(fakeLease.BreakCallCount()).Should(Equal(1))
 							})
 						})
 
@@ -306,7 +341,7 @@ var _ = Describe("DBEngine", func() {
 							})
 
 							It("releases the lock", func() {
-								Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+								Ω(fakeLease.BreakCallCount()).Should(Equal(1))
 							})
 						})
 					})
@@ -323,8 +358,8 @@ var _ = Describe("DBEngine", func() {
 							Ω(abortErr).Should(Equal(disaster))
 						})
 
-						It("releases the lock", func() {
-							Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+						It("breaks the lease", func() {
+							Ω(fakeLease.BreakCallCount()).Should(Equal(1))
 						})
 					})
 				})
@@ -354,15 +389,29 @@ var _ = Describe("DBEngine", func() {
 						Ω(status).Should(Equal(db.StatusAborted))
 					})
 
-					It("releases the lock", func() {
-						Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+					It("breaks the lease", func() {
+						Ω(fakeLease.BreakCallCount()).Should(Equal(1))
 					})
+				})
+			})
+
+			Context("when acquiring the lock errors", func() {
+				BeforeEach(func() {
+					fakeBuildDB.LeaseTrackReturns(nil, false, errors.New("bad bad bad"))
+				})
+
+				It("errors", func() {
+					Ω(abortErr).Should(HaveOccurred())
+				})
+
+				It("does not abort the build in the db", func() {
+					Ω(fakeBuildDB.AbortBuildCallCount()).Should(Equal(0))
 				})
 			})
 
 			Context("when acquiring the lock fails", func() {
 				BeforeEach(func() {
-					fakeLocker.AcquireWriteLockImmediatelyReturns(nil, errors.New("no lock for you"))
+					fakeBuildDB.LeaseTrackReturns(nil, false, nil)
 				})
 
 				Context("when aborting the build in the db succeeds", func() {
@@ -411,11 +460,11 @@ var _ = Describe("DBEngine", func() {
 			})
 
 			Context("when acquiring the lock succeeds", func() {
-				var fakeLock *dbfakes.FakeLock
+				var fakeLease *dbfakes.FakeLease
 
 				BeforeEach(func() {
-					fakeLock = new(dbfakes.FakeLock)
-					fakeLocker.AcquireWriteLockImmediatelyReturns(fakeLock, nil)
+					fakeLease = new(dbfakes.FakeLease)
+					fakeBuildDB.LeaseTrackReturns(fakeLease, true, nil)
 				})
 
 				Context("when the build is active", func() {
@@ -434,12 +483,13 @@ var _ = Describe("DBEngine", func() {
 							fakeEngineB.LookupBuildReturns(realBuild, nil)
 
 							realBuild.ResumeStub = func(lager.Logger) {
-								Ω(fakeLocker.AcquireWriteLockImmediatelyCallCount()).Should(Equal(1))
+								Ω(fakeBuildDB.LeaseTrackCallCount()).Should(Equal(1))
 
-								lockedBuild := fakeLocker.AcquireWriteLockImmediatelyArgsForCall(0)
-								Ω(lockedBuild).Should(Equal([]db.NamedLock{db.BuildTrackingLock(model.ID)}))
+								lockedBuild, interval := fakeBuildDB.LeaseTrackArgsForCall(0)
+								Ω(lockedBuild).Should(Equal(model.ID))
+								Ω(interval).Should(Equal(time.Minute))
 
-								Ω(fakeLock.ReleaseCallCount()).Should(BeZero())
+								Ω(fakeLease.BreakCallCount()).Should(BeZero())
 							}
 						})
 
@@ -468,8 +518,8 @@ var _ = Describe("DBEngine", func() {
 								Ω(realBuild.ResumeCallCount()).Should(Equal(1))
 							})
 
-							It("releases the lock", func() {
-								Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+							It("breaks the lease", func() {
+								Ω(fakeLease.BreakCallCount()).Should(Equal(1))
 							})
 
 							It("closes the notifier", func() {
@@ -498,8 +548,8 @@ var _ = Describe("DBEngine", func() {
 									Ω(realBuild.AbortCallCount()).Should(Equal(1))
 								})
 
-								It("releases the lock", func() {
-									Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+								It("breaks the lease", func() {
+									Ω(fakeLease.BreakCallCount()).Should(Equal(1))
 								})
 
 								It("closes the notifier", func() {
@@ -519,8 +569,8 @@ var _ = Describe("DBEngine", func() {
 								Ω(realBuild.ResumeCallCount()).Should(BeZero())
 							})
 
-							It("releases the lock", func() {
-								Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+							It("breaks the lease", func() {
+								Ω(fakeLease.BreakCallCount()).Should(Equal(1))
 							})
 						})
 					})
@@ -533,8 +583,8 @@ var _ = Describe("DBEngine", func() {
 							fakeEngineB.LookupBuildReturns(nil, disaster)
 						})
 
-						It("releases the lock", func() {
-							Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+						It("breaks the lease", func() {
+							Ω(fakeLease.BreakCallCount()).Should(Equal(1))
 						})
 
 						It("marks the build as errored", func() {
@@ -570,8 +620,8 @@ var _ = Describe("DBEngine", func() {
 						Ω(fakeEngineB.LookupBuildCallCount()).Should(BeZero())
 					})
 
-					It("releases the lock", func() {
-						Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+					It("breaks the lease", func() {
+						Ω(fakeLease.BreakCallCount()).Should(Equal(1))
 					})
 				})
 
@@ -586,15 +636,15 @@ var _ = Describe("DBEngine", func() {
 						Ω(fakeEngineB.LookupBuildCallCount()).Should(BeZero())
 					})
 
-					It("releases the lock", func() {
-						Ω(fakeLock.ReleaseCallCount()).Should(Equal(1))
+					It("breaks the lease", func() {
+						Ω(fakeLease.BreakCallCount()).Should(Equal(1))
 					})
 				})
 			})
 
 			Context("when acquiring the lock fails", func() {
 				BeforeEach(func() {
-					fakeLocker.AcquireWriteLockImmediatelyReturns(nil, errors.New("no lock for you"))
+					fakeBuildDB.LeaseTrackReturns(nil, false, errors.New("no lease for you"))
 				})
 
 				It("does not look up the build", func() {

@@ -3,6 +3,7 @@ package fakes
 
 import (
 	"sync"
+	"time"
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
@@ -55,6 +56,17 @@ type FakeBuildDB struct {
 	abortNotifierReturns struct {
 		result1 db.Notifier
 		result2 error
+	}
+	LeaseTrackStub        func(buildID int, interval time.Duration) (db.Lease, bool, error)
+	leaseTrackMutex       sync.RWMutex
+	leaseTrackArgsForCall []struct {
+		buildID  int
+		interval time.Duration
+	}
+	leaseTrackReturns struct {
+		result1 db.Lease
+		result2 bool
+		result3 error
 	}
 	FinishBuildStub        func(int, db.Status) error
 	finishBuildMutex       sync.RWMutex
@@ -232,6 +244,41 @@ func (fake *FakeBuildDB) AbortNotifierReturns(result1 db.Notifier, result2 error
 		result1 db.Notifier
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeBuildDB) LeaseTrack(buildID int, interval time.Duration) (db.Lease, bool, error) {
+	fake.leaseTrackMutex.Lock()
+	fake.leaseTrackArgsForCall = append(fake.leaseTrackArgsForCall, struct {
+		buildID  int
+		interval time.Duration
+	}{buildID, interval})
+	fake.leaseTrackMutex.Unlock()
+	if fake.LeaseTrackStub != nil {
+		return fake.LeaseTrackStub(buildID, interval)
+	} else {
+		return fake.leaseTrackReturns.result1, fake.leaseTrackReturns.result2, fake.leaseTrackReturns.result3
+	}
+}
+
+func (fake *FakeBuildDB) LeaseTrackCallCount() int {
+	fake.leaseTrackMutex.RLock()
+	defer fake.leaseTrackMutex.RUnlock()
+	return len(fake.leaseTrackArgsForCall)
+}
+
+func (fake *FakeBuildDB) LeaseTrackArgsForCall(i int) (int, time.Duration) {
+	fake.leaseTrackMutex.RLock()
+	defer fake.leaseTrackMutex.RUnlock()
+	return fake.leaseTrackArgsForCall[i].buildID, fake.leaseTrackArgsForCall[i].interval
+}
+
+func (fake *FakeBuildDB) LeaseTrackReturns(result1 db.Lease, result2 bool, result3 error) {
+	fake.LeaseTrackStub = nil
+	fake.leaseTrackReturns = struct {
+		result1 db.Lease
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeBuildDB) FinishBuild(arg1 int, arg2 db.Status) error {

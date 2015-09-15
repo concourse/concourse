@@ -330,7 +330,7 @@ func main() {
 	})
 	execEngine := engine.NewExecEngine(gardenFactory, engine.NewBuildDelegateFactory(db), db)
 
-	engine := engine.NewDBEngine(engine.Engines{execEngine}, db, db)
+	engine := engine.NewDBEngine(engine.Engines{execEngine}, db)
 
 	var webValidator auth.Validator
 
