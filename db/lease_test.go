@@ -114,4 +114,54 @@ var _ = Describe("Leases", func() {
 			})
 		})
 	})
+
+	Describe("taking out a lease on build tracking", func() {
+		var buildID int
+
+		BeforeEach(func() {
+			build, err := sqlDB.CreateOneOffBuild()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			buildID = build.ID
+		})
+
+		Context("when something has been tracking it recently", func() {
+			It("does not get the lease", func() {
+				lease, leased, err := sqlDB.LeaseTrack(buildID, 1*time.Second)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(leased).Should(BeTrue())
+
+				lease.Break()
+
+				_, leased, err = sqlDB.LeaseTrack(buildID, 1*time.Second)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(leased).Should(BeFalse())
+			})
+		})
+
+		Context("when there has not been any tracking recently", func() {
+			It("gets and keeps the lease and stops others from getting it", func() {
+				lease, leased, err := sqlDB.LeaseTrack(buildID, 1*time.Second)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(leased).Should(BeTrue())
+
+				Consistently(func() bool {
+					_, leased, err = sqlDB.LeaseTrack(buildID, 1*time.Second)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					return leased
+				}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
+
+				lease.Break()
+
+				time.Sleep(time.Second)
+
+				newLease, leased, err := sqlDB.LeaseTrack(buildID, 1*time.Second)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(leased).Should(BeTrue())
+
+				newLease.Break()
+			})
+		})
+	})
 })

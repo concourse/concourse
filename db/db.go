@@ -34,6 +34,8 @@ type DB interface {
 
 	CreateOneOffBuild() (Build, error)
 
+	LeaseTrack(buildID int, interval time.Duration) (Lease, bool, error)
+
 	StartBuild(buildID int, engineName, engineMetadata string) (bool, error)
 	FinishBuild(buildID int, status Status) error
 	ErrorBuild(buildID int, cause error) error
