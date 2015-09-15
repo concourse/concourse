@@ -15,7 +15,7 @@ type Lease interface {
 }
 
 type lease struct {
-	pdb          *pipelineDB
+	conn         Conn
 	resourceName string
 	logger       lager.Logger
 
@@ -26,7 +26,7 @@ type lease struct {
 }
 
 func (l *lease) AttemptSign(resourceName string, interval time.Duration) (bool, error) {
-	tx, err := l.pdb.conn.Begin()
+	tx, err := l.conn.Begin()
 	if err != nil {
 		return false, err
 	}
