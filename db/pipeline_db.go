@@ -254,52 +254,7 @@ func (pdb *pipelineDB) GetResource(resourceName string) (SavedResource, error) {
 	return resource, nil
 }
 
-func (pdb *pipelineDB) renewLease(resourceName string, interval time.Duration) (bool, error) {
-	tx, err := pdb.conn.Begin()
-	if err != nil {
-		return false, err
-	}
-
-	defer tx.Rollback()
-
-	result, err := tx.Exec(`
-		UPDATE resources
-		SET last_checked = now()
-		WHERE name = $1
-			AND pipeline_id = $2
-			AND now() - last_checked > ($3 || ' SECONDS')::INTERVAL
-	`, resourceName, pdb.ID, interval.Seconds())
-	if err != nil {
-		return false, err
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return false, err
-	}
-
-	if rows == 0 {
-		return false, nil
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
-
 func (pdb *pipelineDB) LeaseCheck(resourceName string, interval time.Duration) (Contract, bool, error) {
-	renewed, err := pdb.renewLease(resourceName, interval)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !renewed {
-		return nil, renewed, nil
-	}
-
 	contract := &contract{
 		pdb:          pdb,
 		resourceName: resourceName,
@@ -308,7 +263,16 @@ func (pdb *pipelineDB) LeaseCheck(resourceName string, interval time.Duration) (
 		}),
 	}
 
-	contract.Sign(interval)
+	renewed, err := contract.AttemptSign(resourceName, interval)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !renewed {
+		return nil, renewed, nil
+	}
+
+	contract.KeepSigned(interval)
 
 	return contract, true, nil
 }

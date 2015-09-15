@@ -22,7 +22,43 @@ type contract struct {
 	running   *sync.WaitGroup
 }
 
-func (c *contract) Sign(interval time.Duration) {
+func (c *contract) AttemptSign(resourceName string, interval time.Duration) (bool, error) {
+	tx, err := c.pdb.conn.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	defer tx.Rollback()
+
+	result, err := tx.Exec(`
+		UPDATE resources
+		SET last_checked = now()
+		WHERE name = $1
+			AND pipeline_id = $2
+			AND now() - last_checked > ($3 || ' SECONDS')::INTERVAL
+	`, resourceName, c.pdb.ID, interval.Seconds())
+	if err != nil {
+		return false, err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+
+	if rows == 0 {
+		return false, nil
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (c *contract) KeepSigned(interval time.Duration) {
 	c.breakChan = make(chan struct{})
 	c.running = &sync.WaitGroup{}
 	c.running.Add(1)
@@ -45,7 +81,7 @@ dance:
 	for {
 		select {
 		case <-ticker.C:
-			renewed, err := c.pdb.renewLease(c.resourceName, interval)
+			renewed, err := c.AttemptSign(c.resourceName, interval)
 			if err != nil {
 				c.logger.Error("failed-to-renew-lease", err)
 				break
