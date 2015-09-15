@@ -46,9 +46,6 @@ type DB interface {
 	GetBuildEvents(buildID int, from uint) (EventSource, error)
 	SaveBuildEvent(buildID int, event atc.Event) error
 
-	AcquireWriteLockImmediately(locks []NamedLock) (Lock, error)
-	AcquireWriteLock(locks []NamedLock) (Lock, error)
-
 	SaveBuildEngineMetadata(buildID int, engineMetadata string) error
 
 	AbortBuild(buildID int) error

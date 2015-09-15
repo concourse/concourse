@@ -29,6 +29,8 @@ type PipelineDB interface {
 
 	GetConfig() (atc.Config, ConfigVersion, error)
 
+	LeaseScheduling(time.Duration) (Lease, bool, error)
+
 	GetResource(resourceName string) (SavedResource, error)
 	GetResourceHistory(resource string) ([]*VersionHistory, error)
 	GetResourceHistoryCursor(resource string, startingID int, searchUpwards bool, numResults int) ([]*VersionHistory, bool, error)
@@ -276,6 +278,43 @@ func (pdb *pipelineDB) LeaseCheck(resourceName string, interval time.Duration) (
 				WHERE name = $1
 					AND pipeline_id = $2
 			`, resourceName, pdb.ID)
+		},
+	}
+
+	renewed, err := lease.AttemptSign(interval)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !renewed {
+		return nil, renewed, nil
+	}
+
+	lease.KeepSigned(interval)
+
+	return lease, true, nil
+}
+
+func (pdb *pipelineDB) LeaseScheduling(interval time.Duration) (Lease, bool, error) {
+	lease := &lease{
+		conn: pdb.conn,
+		logger: pdb.logger.Session("lease", lager.Data{
+			"pipeline": pdb.Name,
+		}),
+		attemptSignFunc: func(tx *sql.Tx) (sql.Result, error) {
+			return tx.Exec(`
+				UPDATE pipelines
+				SET last_scheduled = now()
+				WHERE id = $1
+					AND now() - last_scheduled > ($2 || ' SECONDS')::INTERVAL
+			`, pdb.ID, interval.Seconds())
+		},
+		heartbeatFunc: func(tx *sql.Tx) (sql.Result, error) {
+			return tx.Exec(`
+				UPDATE pipelines
+				SET last_scheduled = now()
+				WHERE id = $1
+			`, pdb.ID)
 		},
 	}
 

@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"hash/crc32"
-	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -680,73 +678,6 @@ func (err nonOneRowAffectedError) Error() string {
 	return fmt.Sprintf("expected 1 row to be updated; got %d", err.RowsAffected)
 }
 
-func (db *SQLDB) acquireLock(wait bool, locks []NamedLock) (Lock, error) {
-	params := []interface{}{}
-	lockSelects := []string{}
-	for i, lock := range locks {
-		name := lock.Name()
-		hash32 := crc32.Checksum([]byte(name), crc32.MakeTable(crc32.IEEE))
-		params = append(params, hash32)
-		if wait {
-			lockSelects = append(lockSelects, fmt.Sprintf("pg_advisory_xact_lock($%d)", i+1))
-		} else {
-			lockSelects = append(lockSelects, fmt.Sprintf("pg_try_advisory_xact_lock($%d)", i+1))
-		}
-	}
-
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-	results := make([]bool, len(locks))
-	valuePtrs := make([]interface{}, len(locks))
-
-	for i, _ := range locks {
-		valuePtrs[i] = &results[i]
-	}
-
-	// TODO: multiple selects using the multiple names
-	err = tx.QueryRow(fmt.Sprintf(`
-	SELECT %s
-	`, strings.Join(lockSelects, ",")), params...).Scan(valuePtrs...)
-
-	expectedMsg := `sql/driver: couldn't convert "" into type bool`
-	if err != nil {
-		if wait && strings.Contains(err.Error(), expectedMsg) {
-			return &txLock{tx, db, locks}, nil
-		}
-		tx.Commit()
-		return nil, err
-	}
-
-	for _, result := range results {
-		if !result {
-			tx.Commit()
-			return nil, ErrLockNotAvailable
-		}
-	}
-
-	return &txLock{tx, db, locks}, nil
-}
-
-func (db *SQLDB) AcquireWriteLockImmediately(lock []NamedLock) (Lock, error) {
-	db.logger.Debug("acquiring-exclusive-immediate-lock", lager.Data{
-		"locks": lock,
-	})
-
-	wait := false
-	return db.acquireLock(wait, lock)
-}
-
-func (db *SQLDB) AcquireWriteLock(lock []NamedLock) (Lock, error) {
-	db.logger.Debug("acquiring-exclusive-lock", lager.Data{
-		"locks": lock,
-	})
-
-	wait := true
-	return db.acquireLock(wait, lock)
-}
-
 func (db *SQLDB) SaveWorker(info WorkerInfo, ttl time.Duration) error {
 	resourceTypes, err := json.Marshal(info.ResourceTypes)
 	if err != nil {
@@ -863,20 +794,6 @@ func (db *SQLDB) Workers() ([]WorkerInfo, error) {
 	}
 
 	return infos, nil
-}
-
-type txLock struct {
-	tx         *sql.Tx
-	db         *SQLDB
-	namedLocks []NamedLock
-}
-
-func (lock *txLock) Release() error {
-	lock.db.logger.Debug("releasing-locks", lager.Data{
-		"locks": lock.namedLocks,
-	})
-
-	return lock.tx.Commit()
 }
 
 func (db *SQLDB) saveBuildEvent(tx *sql.Tx, buildID int, event atc.Event) error {

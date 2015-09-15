@@ -11,13 +11,6 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-//go:generate counterfeiter . Locker
-
-type Locker interface {
-	AcquireWriteLock([]db.NamedLock) (db.Lock, error)
-	AcquireWriteLockImmediately([]db.NamedLock) (db.Lock, error)
-}
-
 //go:generate counterfeiter . BuildScheduler
 
 type BuildScheduler interface {
@@ -28,8 +21,7 @@ type BuildScheduler interface {
 type Runner struct {
 	Logger lager.Logger
 
-	Locker Locker
-	DB     db.PipelineDB
+	DB db.PipelineDB
 
 	Scheduler BuildScheduler
 
@@ -84,18 +76,17 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		return nil
 	}
 
-	lockName := []db.NamedLock{db.PipelineSchedulingLock(runner.DB.GetPipelineName())}
-	schedulingLock, err := runner.Locker.AcquireWriteLockImmediately(lockName)
-	if err == db.ErrLockNotAvailable {
-		return nil
-	}
-
+	schedulingLease, leased, err := runner.DB.LeaseScheduling(runner.Interval)
 	if err != nil {
-		logger.Error("failed-to-acquire-scheduling-lock", err)
+		logger.Error("failed-to-acquire-scheduling-lease", err)
 		return nil
 	}
 
-	defer schedulingLock.Release()
+	if !leased {
+		return nil
+	}
+
+	defer schedulingLease.Break()
 
 	start := time.Now()
 

@@ -59,6 +59,16 @@ type FakePipelineDB struct {
 		result2 db.ConfigVersion
 		result3 error
 	}
+	LeaseSchedulingStub        func(time.Duration) (db.Lease, bool, error)
+	leaseSchedulingMutex       sync.RWMutex
+	leaseSchedulingArgsForCall []struct {
+		arg1 time.Duration
+	}
+	leaseSchedulingReturns struct {
+		result1 db.Lease
+		result2 bool
+		result3 error
+	}
 	GetResourceStub        func(resourceName string) (db.SavedResource, error)
 	getResourceMutex       sync.RWMutex
 	getResourceArgsForCall []struct {
@@ -557,6 +567,40 @@ func (fake *FakePipelineDB) GetConfigReturns(result1 atc.Config, result2 db.Conf
 	fake.getConfigReturns = struct {
 		result1 atc.Config
 		result2 db.ConfigVersion
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakePipelineDB) LeaseScheduling(arg1 time.Duration) (db.Lease, bool, error) {
+	fake.leaseSchedulingMutex.Lock()
+	fake.leaseSchedulingArgsForCall = append(fake.leaseSchedulingArgsForCall, struct {
+		arg1 time.Duration
+	}{arg1})
+	fake.leaseSchedulingMutex.Unlock()
+	if fake.LeaseSchedulingStub != nil {
+		return fake.LeaseSchedulingStub(arg1)
+	} else {
+		return fake.leaseSchedulingReturns.result1, fake.leaseSchedulingReturns.result2, fake.leaseSchedulingReturns.result3
+	}
+}
+
+func (fake *FakePipelineDB) LeaseSchedulingCallCount() int {
+	fake.leaseSchedulingMutex.RLock()
+	defer fake.leaseSchedulingMutex.RUnlock()
+	return len(fake.leaseSchedulingArgsForCall)
+}
+
+func (fake *FakePipelineDB) LeaseSchedulingArgsForCall(i int) time.Duration {
+	fake.leaseSchedulingMutex.RLock()
+	defer fake.leaseSchedulingMutex.RUnlock()
+	return fake.leaseSchedulingArgsForCall[i].arg1
+}
+
+func (fake *FakePipelineDB) LeaseSchedulingReturns(result1 db.Lease, result2 bool, result3 error) {
+	fake.LeaseSchedulingStub = nil
+	fake.leaseSchedulingReturns = struct {
+		result1 db.Lease
+		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }

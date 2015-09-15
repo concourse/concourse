@@ -69,6 +69,47 @@ var _ = Describe("Leases", func() {
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 	})
 
+	Describe("taking out a lease on pipeline scheduling", func() {
+		Context("when it has been scheduled recently", func() {
+			It("does not get the lease", func() {
+				lease, leased, err := pipelineDB.LeaseScheduling(1 * time.Second)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(leased).Should(BeTrue())
+
+				lease.Break()
+
+				_, leased, err = pipelineDB.LeaseScheduling(1 * time.Second)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(leased).Should(BeFalse())
+			})
+		})
+
+		Context("when there has not been any scheduling recently", func() {
+			It("gets and keeps the lease and stops others from getting it", func() {
+				lease, leased, err := pipelineDB.LeaseScheduling(1 * time.Second)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(leased).Should(BeTrue())
+
+				Consistently(func() bool {
+					_, leased, err = pipelineDB.LeaseScheduling(1 * time.Second)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					return leased
+				}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
+
+				lease.Break()
+
+				time.Sleep(time.Second)
+
+				newLease, leased, err := pipelineDB.LeaseScheduling(1 * time.Second)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(leased).Should(BeTrue())
+
+				newLease.Break()
+			})
+		})
+	})
+
 	Describe("taking out a lease on resource checking", func() {
 		BeforeEach(func() {
 			_, err := pipelineDB.GetResource("some-resource")

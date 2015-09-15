@@ -22,12 +22,11 @@ import (
 
 var _ = Describe("Runner", func() {
 	var (
-		locker     *fakes.FakeLocker
 		pipelineDB *dbfakes.FakePipelineDB
 		scheduler  *fakes.FakeBuildScheduler
 		noop       bool
 
-		lock *dbfakes.FakeLock
+		lease *dbfakes.FakeLease
 
 		initialConfig atc.Config
 
@@ -37,7 +36,6 @@ var _ = Describe("Runner", func() {
 	)
 
 	BeforeEach(func() {
-		locker = new(fakes.FakeLocker)
 		pipelineDB = new(dbfakes.FakePipelineDB)
 		pipelineDB.GetPipelineNameReturns("some-pipeline")
 		scheduler = new(fakes.FakeBuildScheduler)
@@ -96,14 +94,13 @@ var _ = Describe("Runner", func() {
 
 		pipelineDB.GetConfigReturns(initialConfig, 1, nil)
 
-		lock = new(dbfakes.FakeLock)
-		locker.AcquireWriteLockImmediatelyReturns(lock, nil)
+		lease = new(dbfakes.FakeLease)
+		pipelineDB.LeaseSchedulingReturns(lease, true, nil)
 	})
 
 	JustBeforeEach(func() {
 		process = ginkgomon.Invoke(&Runner{
 			Logger:    lagertest.NewTestLogger("test"),
-			Locker:    locker,
 			DB:        pipelineDB,
 			Scheduler: scheduler,
 			Noop:      noop,
@@ -115,22 +112,33 @@ var _ = Describe("Runner", func() {
 		ginkgomon.Interrupt(process)
 	})
 
-	It("acquires the build scheduling lock for the pipeline", func() {
-		Eventually(locker.AcquireWriteLockImmediatelyCallCount).Should(BeNumerically(">=", 1))
+	It("signs the scheduling lease for the pipeline", func() {
+		Eventually(pipelineDB.LeaseSchedulingCallCount).Should(BeNumerically(">=", 1))
 
-		lock := locker.AcquireWriteLockImmediatelyArgsForCall(0)
-		Ω(lock).Should(Equal([]db.NamedLock{db.PipelineSchedulingLock("some-pipeline")}))
+		duration := pipelineDB.LeaseSchedulingArgsForCall(0)
+		Ω(duration).Should(Equal(100 * time.Millisecond))
 	})
 
-	Context("when it can't get the lock", func() {
+	Context("when it can't get the lease", func() {
 		BeforeEach(func() {
-			locker.AcquireWriteLockImmediatelyStub = func(locks []db.NamedLock) (db.Lock, error) {
-				return nil, errors.New("can't aqcuire lock")
-			}
+			pipelineDB.LeaseSchedulingReturns(nil, false, nil)
 		})
 
 		It("does not do any scheduling", func() {
-			Eventually(locker.AcquireWriteLockImmediatelyCallCount).Should(Equal(2))
+			Eventually(pipelineDB.LeaseSchedulingCallCount).Should(Equal(2))
+
+			Ω(scheduler.TryNextPendingBuildCallCount()).Should(BeZero())
+			Ω(scheduler.BuildLatestInputsCallCount()).Should(BeZero())
+		})
+	})
+
+	Context("when getting the lease blows up", func() {
+		BeforeEach(func() {
+			pipelineDB.LeaseSchedulingReturns(nil, false, errors.New(":3"))
+		})
+
+		It("does not do any scheduling", func() {
+			Eventually(pipelineDB.LeaseSchedulingCallCount).Should(Equal(2))
 
 			Ω(scheduler.TryNextPendingBuildCallCount()).Should(BeZero())
 			Ω(scheduler.BuildLatestInputsCallCount()).Should(BeZero())

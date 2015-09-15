@@ -451,8 +451,7 @@ func main() {
 					&sched.Runner{
 						Logger: logger.Session(pipelineDB.ScopedName("scheduler")),
 
-						Locker: db,
-						DB:     pipelineDB,
+						DB: pipelineDB,
 
 						Scheduler: radarSchedulerFactory.BuildScheduler(pipelineDB),
 
