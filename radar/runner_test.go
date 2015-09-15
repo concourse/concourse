@@ -20,7 +20,6 @@ import (
 
 var _ = Describe("Runner", func() {
 	var (
-		locker         *fakes.FakeLocker
 		pipelineDB     *dbfakes.FakePipelineDB
 		scannerFactory *fakes.FakeScannerFactory
 		noop           bool
@@ -32,7 +31,6 @@ var _ = Describe("Runner", func() {
 	)
 
 	BeforeEach(func() {
-		locker = new(fakes.FakeLocker)
 		scannerFactory = new(fakes.FakeScannerFactory)
 		pipelineDB = new(dbfakes.FakePipelineDB)
 		noop = false
@@ -67,7 +65,6 @@ var _ = Describe("Runner", func() {
 		process = ginkgomon.Invoke(NewRunner(
 			lagertest.NewTestLogger("test"),
 			noop,
-			locker,
 			scannerFactory,
 			pipelineDB,
 			syncInterval,

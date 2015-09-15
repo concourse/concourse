@@ -386,5 +386,5 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 type someLock string
 
 func (lock someLock) Name() string {
-	return "some-lock:" + lock
+	return "some-lock:" + string(lock)
 }
