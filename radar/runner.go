@@ -10,13 +10,6 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 )
 
-//go:generate counterfeiter . Locker
-
-type Locker interface {
-	AcquireWriteLockImmediately(lock []db.NamedLock) (db.Lock, error)
-	AcquireWriteLock(lock []db.NamedLock) (db.Lock, error)
-}
-
 //go:generate counterfeiter . ScannerFactory
 
 type ScannerFactory interface {
@@ -28,7 +21,6 @@ type Runner struct {
 
 	noop bool
 
-	locker            Locker
 	scannerFactory    ScannerFactory
 	db                db.PipelineDB
 	pipelineDBFactory db.PipelineDBFactory
@@ -38,7 +30,6 @@ type Runner struct {
 func NewRunner(
 	logger lager.Logger,
 	noop bool,
-	locker Locker,
 	scannerFactory ScannerFactory,
 	db db.PipelineDB,
 	syncInterval time.Duration,
@@ -46,7 +37,6 @@ func NewRunner(
 	return &Runner{
 		logger:         logger,
 		noop:           noop,
-		locker:         locker,
 		scannerFactory: scannerFactory,
 		db:             db,
 		syncInterval:   syncInterval,

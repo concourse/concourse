@@ -441,7 +441,6 @@ func main() {
 					rdr.NewRunner(
 						logger.Session(pipelineDB.ScopedName("radar")),
 						*noop,
-						db,
 						radarSchedulerFactory.BuildRadar(pipelineDB),
 						pipelineDB,
 						1*time.Minute,
