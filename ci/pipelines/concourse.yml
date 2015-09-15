@@ -727,4 +727,4 @@ resources:
     access_key_id: {{s3-testflight-log-access-key}}
     secret_access_key: {{s3-testflight-log-secret-key}}
     versioned_file: bosh-logs
-    region: us-west-1
+    region_name: us-west-1
