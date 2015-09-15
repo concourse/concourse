@@ -54,11 +54,11 @@ type VolumeMount struct {
 }
 
 func (tracker *tracker) Init(metadata Metadata, session Session, typ ResourceType, tags atc.Tags, mount VolumeMount) (Resource, error) {
-	container, err := tracker.workerClient.FindContainerForIdentifier(session.ID)
-
-	switch err {
-	case nil:
-	case worker.ErrContainerNotFound:
+	container, found, err := tracker.workerClient.FindContainerForIdentifier(session.ID)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
 		container, err = tracker.workerClient.CreateContainer(session.ID, worker.ResourceTypeContainerSpec{
 			Type:      string(typ),
 			Ephemeral: session.Ephemeral,
@@ -67,11 +67,9 @@ func (tracker *tracker) Init(metadata Metadata, session Session, typ ResourceTyp
 			Volume:    mount.Volume,
 			MountPath: mount.MountPath,
 		})
+		if err != nil {
+			return nil, err
+		}
 	}
-
-	if err != nil {
-		return nil, err
-	}
-
 	return NewResource(container, typ), nil
 }

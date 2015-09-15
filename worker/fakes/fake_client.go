@@ -18,32 +18,25 @@ type FakeClient struct {
 		result1 worker.Container
 		result2 error
 	}
-	FindContainerForIdentifierStub        func(worker.Identifier) (worker.Container, error)
+	FindContainerForIdentifierStub        func(worker.Identifier) (worker.Container, bool, error)
 	findContainerForIdentifierMutex       sync.RWMutex
 	findContainerForIdentifierArgsForCall []struct {
 		arg1 worker.Identifier
 	}
 	findContainerForIdentifierReturns struct {
 		result1 worker.Container
-		result2 error
+		result2 bool
+		result3 error
 	}
-	FindContainersForIdentifierStub        func(worker.Identifier) ([]worker.Container, error)
-	findContainersForIdentifierMutex       sync.RWMutex
-	findContainersForIdentifierArgsForCall []struct {
-		arg1 worker.Identifier
-	}
-	findContainersForIdentifierReturns struct {
-		result1 []worker.Container
-		result2 error
-	}
-	LookupContainerStub        func(string) (worker.Container, error)
+	LookupContainerStub        func(handle string) (worker.Container, bool, error)
 	lookupContainerMutex       sync.RWMutex
 	lookupContainerArgsForCall []struct {
-		arg1 string
+		handle string
 	}
 	lookupContainerReturns struct {
 		result1 worker.Container
-		result2 error
+		result2 bool
+		result3 error
 	}
 	NameStub        func() string
 	nameMutex       sync.RWMutex
@@ -96,7 +89,7 @@ func (fake *FakeClient) CreateContainerReturns(result1 worker.Container, result2
 	}{result1, result2}
 }
 
-func (fake *FakeClient) FindContainerForIdentifier(arg1 worker.Identifier) (worker.Container, error) {
+func (fake *FakeClient) FindContainerForIdentifier(arg1 worker.Identifier) (worker.Container, bool, error) {
 	fake.findContainerForIdentifierMutex.Lock()
 	fake.findContainerForIdentifierArgsForCall = append(fake.findContainerForIdentifierArgsForCall, struct {
 		arg1 worker.Identifier
@@ -105,7 +98,7 @@ func (fake *FakeClient) FindContainerForIdentifier(arg1 worker.Identifier) (work
 	if fake.FindContainerForIdentifierStub != nil {
 		return fake.FindContainerForIdentifierStub(arg1)
 	} else {
-		return fake.findContainerForIdentifierReturns.result1, fake.findContainerForIdentifierReturns.result2
+		return fake.findContainerForIdentifierReturns.result1, fake.findContainerForIdentifierReturns.result2, fake.findContainerForIdentifierReturns.result3
 	}
 }
 
@@ -121,57 +114,25 @@ func (fake *FakeClient) FindContainerForIdentifierArgsForCall(i int) worker.Iden
 	return fake.findContainerForIdentifierArgsForCall[i].arg1
 }
 
-func (fake *FakeClient) FindContainerForIdentifierReturns(result1 worker.Container, result2 error) {
+func (fake *FakeClient) FindContainerForIdentifierReturns(result1 worker.Container, result2 bool, result3 error) {
 	fake.FindContainerForIdentifierStub = nil
 	fake.findContainerForIdentifierReturns = struct {
 		result1 worker.Container
-		result2 error
-	}{result1, result2}
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
-func (fake *FakeClient) FindContainersForIdentifier(arg1 worker.Identifier) ([]worker.Container, error) {
-	fake.findContainersForIdentifierMutex.Lock()
-	fake.findContainersForIdentifierArgsForCall = append(fake.findContainersForIdentifierArgsForCall, struct {
-		arg1 worker.Identifier
-	}{arg1})
-	fake.findContainersForIdentifierMutex.Unlock()
-	if fake.FindContainersForIdentifierStub != nil {
-		return fake.FindContainersForIdentifierStub(arg1)
-	} else {
-		return fake.findContainersForIdentifierReturns.result1, fake.findContainersForIdentifierReturns.result2
-	}
-}
-
-func (fake *FakeClient) FindContainersForIdentifierCallCount() int {
-	fake.findContainersForIdentifierMutex.RLock()
-	defer fake.findContainersForIdentifierMutex.RUnlock()
-	return len(fake.findContainersForIdentifierArgsForCall)
-}
-
-func (fake *FakeClient) FindContainersForIdentifierArgsForCall(i int) worker.Identifier {
-	fake.findContainersForIdentifierMutex.RLock()
-	defer fake.findContainersForIdentifierMutex.RUnlock()
-	return fake.findContainersForIdentifierArgsForCall[i].arg1
-}
-
-func (fake *FakeClient) FindContainersForIdentifierReturns(result1 []worker.Container, result2 error) {
-	fake.FindContainersForIdentifierStub = nil
-	fake.findContainersForIdentifierReturns = struct {
-		result1 []worker.Container
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeClient) LookupContainer(arg1 string) (worker.Container, error) {
+func (fake *FakeClient) LookupContainer(handle string) (worker.Container, bool, error) {
 	fake.lookupContainerMutex.Lock()
 	fake.lookupContainerArgsForCall = append(fake.lookupContainerArgsForCall, struct {
-		arg1 string
-	}{arg1})
+		handle string
+	}{handle})
 	fake.lookupContainerMutex.Unlock()
 	if fake.LookupContainerStub != nil {
-		return fake.LookupContainerStub(arg1)
+		return fake.LookupContainerStub(handle)
 	} else {
-		return fake.lookupContainerReturns.result1, fake.lookupContainerReturns.result2
+		return fake.lookupContainerReturns.result1, fake.lookupContainerReturns.result2, fake.lookupContainerReturns.result3
 	}
 }
 
@@ -184,15 +145,16 @@ func (fake *FakeClient) LookupContainerCallCount() int {
 func (fake *FakeClient) LookupContainerArgsForCall(i int) string {
 	fake.lookupContainerMutex.RLock()
 	defer fake.lookupContainerMutex.RUnlock()
-	return fake.lookupContainerArgsForCall[i].arg1
+	return fake.lookupContainerArgsForCall[i].handle
 }
 
-func (fake *FakeClient) LookupContainerReturns(result1 worker.Container, result2 error) {
+func (fake *FakeClient) LookupContainerReturns(result1 worker.Container, result2 bool, result3 error) {
 	fake.LookupContainerStub = nil
 	fake.lookupContainerReturns = struct {
 		result1 worker.Container
-		result2 error
-	}{result1, result2}
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeClient) Name() string {

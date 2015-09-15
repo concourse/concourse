@@ -257,6 +257,7 @@ func (factory *buildFactory) constructPlanFromConfig(
 			Location: planConfig.Location,
 			Task: &atc.TaskPlan{
 				Name:       planConfig.Task,
+				Pipeline:   factory.PipelineName,
 				Privileged: planConfig.Privileged,
 				Config:     planConfig.TaskConfig,
 				ConfigPath: planConfig.TaskConfigPath,

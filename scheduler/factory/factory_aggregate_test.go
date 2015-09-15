@@ -54,12 +54,14 @@ var _ = Describe("Factory Aggregate", func() {
 				Aggregate: &atc.AggregatePlan{
 					{
 						Task: &atc.TaskPlan{
-							Name: "some thing",
+							Name:     "some thing",
+							Pipeline: "some-pipeline",
 						},
 					},
 					{
 						Task: &atc.TaskPlan{
-							Name: "some other thing",
+							Name:     "some other thing",
+							Pipeline: "some-pipeline",
 						},
 					},
 				},
@@ -97,19 +99,22 @@ var _ = Describe("Factory Aggregate", func() {
 				Aggregate: &atc.AggregatePlan{
 					{
 						Task: &atc.TaskPlan{
-							Name: "some thing",
+							Name:     "some thing",
+							Pipeline: "some-pipeline",
 						},
 					},
 					{
 						Aggregate: &atc.AggregatePlan{
 							{
 								Task: &atc.TaskPlan{
-									Name: "some nested thing",
+									Name:     "some nested thing",
+									Pipeline: "some-pipeline",
 								},
 							},
 							{
 								Task: &atc.TaskPlan{
-									Name: "some nested other thing",
+									Name:     "some nested other thing",
+									Pipeline: "some-pipeline",
 								},
 							},
 						},
@@ -144,12 +149,14 @@ var _ = Describe("Factory Aggregate", func() {
 						OnSuccess: &atc.OnSuccessPlan{
 							Step: atc.Plan{
 								Task: &atc.TaskPlan{
-									Name: "some thing",
+									Name:     "some thing",
+									Pipeline: "some-pipeline",
 								},
 							},
 							Next: atc.Plan{
 								Task: &atc.TaskPlan{
-									Name: "some success hook",
+									Name:     "some success hook",
+									Pipeline: "some-pipeline",
 								},
 							},
 						},
@@ -184,14 +191,16 @@ var _ = Describe("Factory Aggregate", func() {
 						Aggregate: &atc.AggregatePlan{
 							{
 								Task: &atc.TaskPlan{
-									Name: "some thing",
+									Name:     "some thing",
+									Pipeline: "some-pipeline",
 								},
 							},
 						},
 					},
 					Next: atc.Plan{
 						Task: &atc.TaskPlan{
-							Name: "some success hook",
+							Name:     "some success hook",
+							Pipeline: "some-pipeline",
 						},
 					},
 				},

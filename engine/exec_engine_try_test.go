@@ -125,7 +125,7 @@ var _ = Describe("Exec Engine with Try", func() {
 				Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
 				Ω(workerID).Should(Equal(worker.Identifier{
 					BuildID: 84,
-					Type:    worker.ContainerTypeGet,
+					Type:    db.ContainerTypeGet,
 					Name:    "some-input",
 				}))
 

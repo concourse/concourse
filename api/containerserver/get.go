@@ -2,10 +2,8 @@ package containerserver
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
-	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc/api/present"
 	"github.com/pivotal-golang/lager"
 )
@@ -17,19 +15,21 @@ func (s *Server) GetContainer(w http.ResponseWriter, r *http.Request) {
 		"handle": handle,
 	})
 
-	container, err := s.workerClient.LookupContainer(handle)
+	container, found, err := s.db.GetContainerInfo(handle)
 	if err != nil {
-		hLog.Info("failed-to-get-container", lager.Data{"error": err})
-		if _, ok := err.(garden.ContainerNotFoundError); ok {
-			http.Error(w, fmt.Sprintf("failed to get container: %s", err), http.StatusNotFound)
-		} else {
-			http.Error(w, fmt.Sprintf("failed to get container: %s", err), http.StatusInternalServerError)
-		}
+		hLog.Error("Failed to lookup container", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if !found {
+		hLog.Info("Failed to find container")
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
 	presentedContainer := present.Container(container)
-	container.Release()
+
+	hLog.Info("Found container", lager.Data{"container": presentedContainer})
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(presentedContainer)

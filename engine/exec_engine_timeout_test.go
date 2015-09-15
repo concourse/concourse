@@ -166,9 +166,10 @@ var _ = Describe("Exec Engine with Timeout", func() {
 					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID:      84,
-						Type:         worker.ContainerTypePut,
+						Type:         db.ContainerTypePut,
 						Name:         "some-put",
 						StepLocation: 1,
+						PipelineName: "some-pipeline",
 					}))
 
 					Ω(resourceConfig).Should(Equal(atc.ResourceConfig{
@@ -288,7 +289,7 @@ var _ = Describe("Exec Engine with Timeout", func() {
 					Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID: 84,
-						Type:    worker.ContainerTypeGet,
+						Type:    db.ContainerTypeGet,
 						Name:    "some-input",
 					}))
 

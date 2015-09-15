@@ -191,7 +191,8 @@ var _ = Describe("Factory Put", func() {
 					OnSuccess: &atc.OnSuccessPlan{
 						Step: atc.Plan{
 							Task: &atc.TaskPlan{
-								Name: "some-task",
+								Name:     "some-task",
+								Pipeline: "some-pipeline",
 							},
 						},
 
@@ -247,7 +248,8 @@ var _ = Describe("Factory Put", func() {
 					Aggregate: &atc.AggregatePlan{
 						{
 							Task: &atc.TaskPlan{
-								Name: "some thing",
+								Name:     "some thing",
+								Pipeline: "some-pipeline",
 							},
 						},
 						{
@@ -299,7 +301,8 @@ var _ = Describe("Factory Put", func() {
 					OnSuccess: &atc.OnSuccessPlan{
 						Step: atc.Plan{
 							Task: &atc.TaskPlan{
-								Name: "some-task",
+								Name:     "some-task",
+								Pipeline: "some-pipeline",
 							},
 						},
 						Next: atc.Plan{
@@ -351,7 +354,8 @@ var _ = Describe("Factory Put", func() {
 					OnSuccess: &atc.OnSuccessPlan{
 						Step: atc.Plan{
 							Task: &atc.TaskPlan{
-								Name: "those who resist our will",
+								Name:     "those who resist our will",
+								Pipeline: "some-pipeline",
 							},
 						},
 						Next: atc.Plan{
@@ -379,7 +383,8 @@ var _ = Describe("Factory Put", func() {
 								},
 								Next: atc.Plan{
 									Task: &atc.TaskPlan{
-										Name: "some-other-task",
+										Name:     "some-other-task",
+										Pipeline: "some-pipeline",
 									},
 								},
 							},

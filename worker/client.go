@@ -8,6 +8,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/baggageclaim"
 )
 
@@ -15,14 +16,8 @@ import (
 
 type Client interface {
 	CreateContainer(Identifier, ContainerSpec) (Container, error)
-	FindContainerForIdentifier(Identifier) (Container, error)
-	FindContainersForIdentifier(Identifier) ([]Container, error)
-
-	// LookupContainer performs a lookup for a container with the provided handle.
-	// Returns (nil, garden.ContainerNotFoundError) if no container is found for the provided handle.
-	LookupContainer(string) (Container, error)
-
-	Name() string
+	FindContainerForIdentifier(Identifier) (Container, bool, error)
+	LookupContainer(handle string) (Container, bool, error)
 
 	Satisfying(WorkerSpec) (Worker, error)
 }
@@ -48,12 +43,14 @@ type Identifier struct {
 
 	BuildID int
 
-	Type ContainerType
+	Type db.ContainerType
 
 	StepLocation uint
 
 	CheckType   string
 	CheckSource atc.Source
+
+	WorkerName string
 }
 
 const propertyPrefix = "concourse:"
@@ -92,19 +89,6 @@ func (id Identifier) gardenProperties() garden.Properties {
 
 	return props
 }
-
-type ContainerType string
-
-func (containerType ContainerType) ToString() string {
-	return string(containerType)
-}
-
-const (
-	ContainerTypeCheck ContainerType = "check"
-	ContainerTypeGet   ContainerType = "get"
-	ContainerTypePut   ContainerType = "put"
-	ContainerTypeTask  ContainerType = "task"
-)
 
 type MultipleWorkersFoundContainerError struct {
 	Names []string

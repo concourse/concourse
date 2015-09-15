@@ -127,13 +127,15 @@ func (build *execBuild) Resume(logger lager.Logger) {
 	for {
 		select {
 		case err := <-exited:
-			if aborted || (err != nil && strings.Contains(err.Error(), exec.ErrStepTimedOut.Error())) {
+			var receivedTimeoutError bool
+			if err != nil {
+				receivedTimeoutError = strings.Contains(err.Error(), exec.ErrStepTimedOut.Error())
+			}
+			if aborted || receivedTimeoutError {
 				succeeded = false
-			} else {
-				if !source.Result(&succeeded) {
-					logger.Error("step-had-no-result", errors.New("step failed to provide us with a result"))
-					succeeded = false
-				}
+			} else if !source.Result(&succeeded) {
+				logger.Error("step-had-no-result", errors.New("step failed to provide us with a result"))
+				succeeded = false
 			}
 
 			build.delegate.Finish(logger.Session("finish"), err, succeeded, aborted)
@@ -193,29 +195,32 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan) exe
 	return exec.Identity{}
 }
 
-func (build *execBuild) taskIdentifier(name string, location event.OriginLocation) worker.Identifier {
+func (build *execBuild) taskIdentifier(name string, location event.OriginLocation, pipelineName string) worker.Identifier {
 	return worker.Identifier{
 		BuildID:      build.buildID,
 		Type:         "task",
 		Name:         name,
 		StepLocation: location.ID,
+		PipelineName: pipelineName,
 	}
 }
 
-func (build *execBuild) getIdentifier(name string, location event.OriginLocation) worker.Identifier {
+func (build *execBuild) getIdentifier(name string, location event.OriginLocation, pipelineName string) worker.Identifier {
 	return worker.Identifier{
 		BuildID:      build.buildID,
 		Type:         "get",
 		Name:         name,
 		StepLocation: location.ID,
+		PipelineName: pipelineName,
 	}
 }
 
-func (build *execBuild) putIdentifier(name string, location event.OriginLocation) worker.Identifier {
+func (build *execBuild) putIdentifier(name string, location event.OriginLocation, pipelineName string) worker.Identifier {
 	return worker.Identifier{
 		BuildID:      build.buildID,
 		Type:         "put",
 		Name:         name,
 		StepLocation: location.ID,
+		PipelineName: pipelineName,
 	}
 }

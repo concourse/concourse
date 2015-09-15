@@ -100,4 +100,6 @@ type TaskPlan struct {
 
 	ConfigPath string      `json:"config_path,omitempty"`
 	Config     *TaskConfig `json:"config,omitempty"`
+
+	Pipeline string `json:"pipeline"`
 }

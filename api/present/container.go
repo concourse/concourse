@@ -2,16 +2,16 @@ package present
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/worker"
+	"github.com/concourse/atc/db"
 )
 
-func Container(container worker.Container) atc.Container {
-	identifier := container.IdentifierFromProperties()
+func Container(container db.ContainerInfo) atc.Container {
 	return atc.Container{
-		ID:           container.Handle(),
-		PipelineName: identifier.PipelineName,
-		Type:         identifier.Type.ToString(),
-		Name:         identifier.Name,
-		BuildID:      identifier.BuildID,
+		ID:           container.Handle,
+		PipelineName: container.PipelineName,
+		Type:         container.Type.ToString(),
+		Name:         container.Name,
+		BuildID:      container.BuildID,
+		WorkerName:   container.WorkerName,
 	}
 }

@@ -16,45 +16,36 @@ import (
 	"github.com/cloudfoundry-incubator/garden"
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/worker"
+	"github.com/concourse/atc/db"
+	workerfakes "github.com/concourse/atc/worker/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	workerfakes "github.com/concourse/atc/worker/fakes"
 )
 
 const (
 	pipelineName1 = "pipeline-1"
-	type1         = worker.ContainerTypeCheck
+	type1         = db.ContainerTypeCheck
 	name1         = "name-1"
 	buildID1      = 1234
 	containerID1  = "dh93mvi"
 )
 
-type listContainersReturn struct {
-	Containers []atc.Container
-	Errors     []string
-}
-
 var _ = Describe("Pipelines API", func() {
 	var (
 		req *http.Request
 
-		fakeContainer1              *workerfakes.FakeContainer
+		fakeContainer1              db.ContainerInfo
 		expectedPresentedContainer1 atc.Container
 	)
 
 	BeforeEach(func() {
-		fakeContainer1 = &workerfakes.FakeContainer{}
-		fakeContainer1.IdentifierFromPropertiesReturns(
-			worker.Identifier{
-				PipelineName: pipelineName1,
-				Type:         type1,
-				Name:         name1,
-				BuildID:      buildID1,
-			})
-
-		fakeContainer1.HandleReturns(containerID1)
+		fakeContainer1 = db.ContainerInfo{
+			Handle:       containerID1,
+			PipelineName: pipelineName1,
+			Type:         type1,
+			Name:         name1,
+			BuildID:      buildID1,
+		}
 
 		expectedPresentedContainer1 = atc.Container{
 			ID:           containerID1,
@@ -88,7 +79,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when authenticated", func() {
 			var (
-				fakeContainer2 *workerfakes.FakeContainer
+				fakeContainer2 db.ContainerInfo
 
 				expectedPresentedContainer2 atc.Container
 			)
@@ -96,30 +87,26 @@ var _ = Describe("Pipelines API", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
 
-				fakeContainer1 = &workerfakes.FakeContainer{}
-				fakeContainer1.IdentifierFromPropertiesReturns(
-					worker.Identifier{
-						PipelineName: pipelineName1,
-						Type:         type1,
-						Name:         name1,
-						BuildID:      buildID1,
-					})
-				fakeContainer1.HandleReturns(containerID1)
+				fakeContainer1 = db.ContainerInfo{
+					Handle:       containerID1,
+					PipelineName: pipelineName1,
+					Type:         type1,
+					Name:         name1,
+					BuildID:      buildID1,
+				}
 
-				fakeContainer2 = &workerfakes.FakeContainer{}
-				fakeContainer2.IdentifierFromPropertiesReturns(
-					worker.Identifier{
-						PipelineName: "pipeline-2",
-						Type:         worker.ContainerTypePut,
-						Name:         "name-2",
-						BuildID:      4321,
-					})
-				fakeContainer2.HandleReturns("cfvwser")
+				fakeContainer2 = db.ContainerInfo{
+					Handle:       "cfvwser",
+					PipelineName: "pipeline-2",
+					Type:         db.ContainerTypePut,
+					Name:         "name-2",
+					BuildID:      4321,
+				}
 
 				expectedPresentedContainer2 = atc.Container{
 					ID:           "cfvwser",
 					PipelineName: "pipeline-2",
-					Type:         worker.ContainerTypePut.ToString(),
+					Type:         db.ContainerTypePut.ToString(),
 					Name:         "name-2",
 					BuildID:      4321,
 				}
@@ -129,11 +116,11 @@ var _ = Describe("Pipelines API", func() {
 
 				Context("when no errors are returned", func() {
 					var (
-						fakeContainers              []worker.Container
+						fakeContainers              []db.ContainerInfo
 						expectedPresentedContainers []atc.Container
 					)
 					BeforeEach(func() {
-						fakeContainers = []worker.Container{
+						fakeContainers = []db.ContainerInfo{
 							fakeContainer1,
 							fakeContainer2,
 						}
@@ -141,7 +128,7 @@ var _ = Describe("Pipelines API", func() {
 							expectedPresentedContainer1,
 							expectedPresentedContainer2,
 						}
-						fakeWorkerClient.FindContainersForIdentifierReturns(fakeContainers, nil)
+						containerDB.FindContainerInfosByIdentifierReturns(fakeContainers, true, nil)
 					})
 
 					It("returns 200", func() {
@@ -165,14 +152,14 @@ var _ = Describe("Pipelines API", func() {
 						b, err := ioutil.ReadAll(response.Body)
 						Ω(err).ShouldNot(HaveOccurred())
 
-						var returned listContainersReturn
+						var returned []atc.Container
 						err = json.Unmarshal(b, &returned)
 						Ω(err).ShouldNot(HaveOccurred())
 
-						Ω(len(returned.Containers)).To(Equal(len(expectedPresentedContainers)))
-						for i, _ := range returned.Containers {
+						Ω(len(returned)).To(Equal(len(expectedPresentedContainers)))
+						for i, _ := range returned {
 							expected := expectedPresentedContainers[i]
-							actual := returned.Containers[i]
+							actual := returned[i]
 
 							Ω(actual.PipelineName).To(Equal(expected.PipelineName))
 							Ω(actual.Type).To(Equal(expected.Type))
@@ -181,157 +168,37 @@ var _ = Describe("Pipelines API", func() {
 							Ω(actual.ID).To(Equal(expected.ID))
 						}
 					})
-
-					It("releases all containers", func() {
-						_, err := client.Do(req)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						for _, c := range fakeContainers {
-							fc := c.(*workerfakes.FakeContainer)
-							Ω(fc.ReleaseCallCount()).Should(Equal(1))
-						}
-					})
 				})
 
-				Context("when there is a MultiWorkerError and no containers are found", func() {
-					var (
-						fakeContainers []worker.Container
-						expectedErr    worker.MultiWorkerError
-					)
-
+				Context("when no containers are found", func() {
 					BeforeEach(func() {
-						expectedErr = worker.MultiWorkerError{}
-						expectedErr.AddError("worker1", errors.New("worker-1-error"))
-						expectedErr.AddError("worker2", errors.New("worker-2-error"))
-						fakeContainers = []worker.Container{}
-						fakeWorkerClient.FindContainersForIdentifierReturns(fakeContainers, expectedErr)
+						containerDB.FindContainerInfosByIdentifierReturns([]db.ContainerInfo{}, false, nil)
 					})
 
-					It("returns all the errors in the MultiWorkerError", func() {
+					It("returns 404", func() {
 						response, err := client.Do(req)
 						Ω(err).ShouldNot(HaveOccurred())
 
-						b, err := ioutil.ReadAll(response.Body)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						var returned listContainersReturn
-						err = json.Unmarshal(b, &returned)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						Ω(returned.Errors).Should(ConsistOf(
-							"workerName: worker1, error: worker-1-error",
-							"workerName: worker2, error: worker-2-error"))
-					})
-
-					It("returns status code 500", func() {
-						response, err := client.Do(req)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
-					})
-
-					It("returns content-type application/json", func() {
-						response, err := client.Do(req)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						Ω(response.Header.Get("Content-Type")).Should(Equal("application/json"))
-
+						Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
 					})
 				})
 
-				Context("When there is a MultiWorkerError and some containers are found", func() {
+				Context("when there is an error", func() {
 					var (
-						fakeContainers              []worker.Container
-						expectedPresentedContainers []atc.Container
-						expectedErr                 worker.MultiWorkerError
+						expectedErr error
 					)
 
-					BeforeEach(func() {
-						expectedErr = worker.MultiWorkerError{}
-						expectedErr.AddError("worker1", errors.New("worker-1-error"))
-						fakeContainers = []worker.Container{
-							fakeContainer2,
-						}
-						expectedPresentedContainers = []atc.Container{
-							expectedPresentedContainer2,
-						}
-						fakeWorkerClient.FindContainersForIdentifierReturns(fakeContainers, expectedErr)
-					})
-					It("Returns both containers and errors", func() {
-						response, err := client.Do(req)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						b, err := ioutil.ReadAll(response.Body)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						var returned listContainersReturn
-						err = json.Unmarshal(b, &returned)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						Ω(returned.Errors).Should(ConsistOf(
-							"workerName: worker1, error: worker-1-error"))
-
-						Ω(len(returned.Containers)).To(Equal(len(expectedPresentedContainers)))
-						for i, _ := range returned.Containers {
-							expected := expectedPresentedContainers[i]
-							actual := returned.Containers[i]
-
-							Ω(actual.PipelineName).To(Equal(expected.PipelineName))
-							Ω(actual.Type).To(Equal(expected.Type))
-							Ω(actual.Name).To(Equal(expected.Name))
-							Ω(actual.BuildID).To(Equal(expected.BuildID))
-							Ω(actual.ID).To(Equal(expected.ID))
-						}
-					})
-
-					It("returns status code 500", func() {
-						response, err := client.Do(req)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
-					})
-				})
-
-				Context("when there is an error other than ContainersNotFound", func() {
-					var (
-						fakeContainers []worker.Container
-						expectedErr    error
-					)
 					BeforeEach(func() {
 						expectedErr = errors.New("some error")
-						fakeContainers = nil
-						fakeWorkerClient.FindContainersForIdentifierReturns(fakeContainers, expectedErr)
+						containerDB.FindContainerInfosByIdentifierReturns([]db.ContainerInfo{}, false, expectedErr)
 					})
 
-					It("returns the error in the json body", func() {
+					It("returns 500", func() {
 						response, err := client.Do(req)
 						Ω(err).ShouldNot(HaveOccurred())
 
-						b, err := ioutil.ReadAll(response.Body)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						var returned listContainersReturn
-						err = json.Unmarshal(b, &returned)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						Ω(returned.Errors).Should(ConsistOf(expectedErr.Error()))
+						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
 					})
-
-					It("returns all containers", func() {
-						response, err := client.Do(req)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						b, err := ioutil.ReadAll(response.Body)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						var returned listContainersReturn
-						err = json.Unmarshal(b, &returned)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						actualPresentedContainers := returned.Containers
-						Ω(len(actualPresentedContainers)).To(Equal(0))
-					})
-
 				})
 			})
 
@@ -342,15 +209,15 @@ var _ = Describe("Pipelines API", func() {
 					}.Encode()
 				})
 
-				It("calls FindContainersForIdentifier with the queried pipeline name", func() {
+				It("calls db.Containers with the queried pipeline name", func() {
 					_, err := client.Do(req)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					expectedArgs := worker.Identifier{
+					expectedArgs := db.ContainerIdentifier{
 						PipelineName: pipelineName1,
 					}
-					Ω(fakeWorkerClient.FindContainersForIdentifierCallCount()).Should(Equal(1))
-					Ω(fakeWorkerClient.FindContainersForIdentifierArgsForCall(0)).Should(Equal(expectedArgs))
+					Ω(containerDB.FindContainerInfosByIdentifierCallCount()).Should(Equal(1))
+					Ω(containerDB.FindContainerInfosByIdentifierArgsForCall(0)).Should(Equal(expectedArgs))
 				})
 			})
 
@@ -361,15 +228,15 @@ var _ = Describe("Pipelines API", func() {
 					}.Encode()
 				})
 
-				It("calls FindContainersForIdentifier with the queried type", func() {
+				It("calls db.Containers with the queried type", func() {
 					_, err := client.Do(req)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					expectedArgs := worker.Identifier{
+					expectedArgs := db.ContainerIdentifier{
 						Type: type1,
 					}
-					Ω(fakeWorkerClient.FindContainersForIdentifierCallCount()).Should(Equal(1))
-					Ω(fakeWorkerClient.FindContainersForIdentifierArgsForCall(0)).Should(Equal(expectedArgs))
+					Ω(containerDB.FindContainerInfosByIdentifierCallCount()).Should(Equal(1))
+					Ω(containerDB.FindContainerInfosByIdentifierArgsForCall(0)).Should(Equal(expectedArgs))
 				})
 			})
 
@@ -380,15 +247,15 @@ var _ = Describe("Pipelines API", func() {
 					}.Encode()
 				})
 
-				It("calls FindContainersForIdentifier with the queried name", func() {
+				It("calls db.Containers with the queried name", func() {
 					_, err := client.Do(req)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					expectedArgs := worker.Identifier{
+					expectedArgs := db.ContainerIdentifier{
 						Name: name1,
 					}
-					Ω(fakeWorkerClient.FindContainersForIdentifierCallCount()).Should(Equal(1))
-					Ω(fakeWorkerClient.FindContainersForIdentifierArgsForCall(0)).Should(Equal(expectedArgs))
+					Ω(containerDB.FindContainerInfosByIdentifierCallCount()).Should(Equal(1))
+					Ω(containerDB.FindContainerInfosByIdentifierArgsForCall(0)).Should(Equal(expectedArgs))
 				})
 			})
 
@@ -402,34 +269,34 @@ var _ = Describe("Pipelines API", func() {
 						}.Encode()
 					})
 
-					It("calls FindContainersForIdentifier with the queried build id", func() {
+					It("calls db.Containers with the queried build id", func() {
 						_, err := client.Do(req)
 						Ω(err).ShouldNot(HaveOccurred())
 
-						expectedArgs := worker.Identifier{
+						expectedArgs := db.ContainerIdentifier{
 							BuildID: buildID1,
 						}
-						Ω(fakeWorkerClient.FindContainersForIdentifierCallCount()).Should(Equal(1))
-						Ω(fakeWorkerClient.FindContainersForIdentifierArgsForCall(0)).Should(Equal(expectedArgs))
-					})
-				})
-
-				Context("when the buildID fails to be parsed as an int", func() {
-					BeforeEach(func() {
-						req.URL.RawQuery = url.Values{
-							"build-id": []string{"not-an-int"},
-						}.Encode()
+						Ω(containerDB.FindContainerInfosByIdentifierCallCount()).Should(Equal(1))
+						Ω(containerDB.FindContainerInfosByIdentifierArgsForCall(0)).Should(Equal(expectedArgs))
 					})
 
-					It("returns 400 Bad Request", func() {
-						response, _ := client.Do(req)
-						Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
-					})
+					Context("when the buildID fails to be parsed as an int", func() {
+						BeforeEach(func() {
+							req.URL.RawQuery = url.Values{
+								"build-id": []string{"not-an-int"},
+							}.Encode()
+						})
 
-					It("does not lookup containers", func() {
-						client.Do(req)
+						It("returns 400 Bad Request", func() {
+							response, _ := client.Do(req)
+							Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+						})
 
-						Ω(fakeWorkerClient.FindContainersForIdentifierCallCount()).Should(Equal(0))
+						It("does not lookup containers", func() {
+							client.Do(req)
+
+							Ω(containerDB.FindContainerInfosByIdentifierCallCount()).Should(Equal(0))
+						})
 					})
 				})
 			})
@@ -442,7 +309,7 @@ var _ = Describe("Pipelines API", func() {
 		)
 
 		BeforeEach(func() {
-			fakeWorkerClient.LookupContainerReturns(fakeContainer1, nil)
+			containerDB.GetContainerInfoReturns(fakeContainer1, true, nil)
 
 			var err error
 			req, err = http.NewRequest("GET", server.URL+"/api/v1/containers/"+containerID, nil)
@@ -470,7 +337,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when the container is not found", func() {
 				BeforeEach(func() {
-					fakeWorkerClient.LookupContainerReturns(fakeContainer1, garden.ContainerNotFoundError{})
+					containerDB.GetContainerInfoReturns(db.ContainerInfo{}, false, nil)
 				})
 
 				It("returns 404 Not Found", func() {
@@ -483,7 +350,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when the container is found", func() {
 				BeforeEach(func() {
-					fakeWorkerClient.LookupContainerReturns(fakeContainer1, nil)
+					containerDB.GetContainerInfoReturns(fakeContainer1, true, nil)
 				})
 
 				It("returns 200 OK", func() {
@@ -504,8 +371,8 @@ var _ = Describe("Pipelines API", func() {
 					_, err := client.Do(req)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(fakeWorkerClient.LookupContainerCallCount()).Should(Equal(1))
-					Ω(fakeWorkerClient.LookupContainerArgsForCall(0)).Should(Equal(containerID))
+					Ω(containerDB.GetContainerInfoCallCount()).Should(Equal(1))
+					Ω(containerDB.GetContainerInfoArgsForCall(0)).Should(Equal(containerID))
 				})
 
 				It("returns the container", func() {
@@ -528,42 +395,22 @@ var _ = Describe("Pipelines API", func() {
 					Ω(actual.ID).To(Equal(expected.ID))
 				})
 
-				It("releases the container", func() {
-					_, err := client.Do(req)
+			})
+			Context("when there is an error", func() {
+				var (
+					expectedErr error
+				)
+
+				BeforeEach(func() {
+					expectedErr = errors.New("some error")
+					containerDB.GetContainerInfoReturns(db.ContainerInfo{}, false, expectedErr)
+				})
+
+				It("returns 500", func() {
+					response, err := client.Do(req)
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(fakeContainer1.ReleaseCallCount()).Should(Equal(1))
-				})
-			})
-
-			Context("when a worker fails", func() {
-				Context("when a container is not found", func() {
-					var (
-						workerName      string
-						workerErrorText string
-					)
-					BeforeEach(func() {
-						fakeErr := new(worker.MultiWorkerError)
-						workerName = "worker1"
-						workerErrorText = "bad things afoot"
-						fakeErr.AddError(workerName, errors.New(workerErrorText))
-						fakeWorkerClient.LookupContainerReturns(nil, *fakeErr)
-					})
-					It("returns 500 internal error", func() {
-						response, err := client.Do(req)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
-					})
-					It("Returns an error containing the worker name and the error message", func() {
-						response, err := client.Do(req)
-						Ω(err).ShouldNot(HaveOccurred())
-
-						b, _ := ioutil.ReadAll(response.Body)
-						body := string(b)
-						Ω(body).To(ContainSubstring(workerName))
-						Ω(body).To(ContainSubstring(workerErrorText))
-					})
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -620,11 +467,17 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			Context("and the worker client returns a container", func() {
-				var fakeContainer *workerfakes.FakeContainer
+				var (
+					fakeContainerInfo db.ContainerInfo
+					fakeContainer     *workerfakes.FakeContainer
+				)
 
 				BeforeEach(func() {
+					fakeContainerInfo = db.ContainerInfo{}
+					containerDB.GetContainerInfoReturns(fakeContainerInfo, true, nil)
+
 					fakeContainer = new(workerfakes.FakeContainer)
-					fakeWorkerClient.LookupContainerReturns(fakeContainer, nil)
+					fakeWorkerClient.LookupContainerReturns(fakeContainer, true, nil)
 				})
 
 				Context("when running the process succeeds", func() {
@@ -801,37 +654,24 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when the container cannot be found", func() {
 				BeforeEach(func() {
-					fakeWorkerClient.LookupContainerReturns(nil, garden.ContainerNotFoundError{})
+					containerDB.GetContainerInfoReturns(db.ContainerInfo{}, false, nil)
 				})
 
 				It("returns 404 Not Found", func() {
 					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+					Ω(fakeWorkerClient.LookupContainerCallCount()).Should(Equal(0))
 				})
 			})
 
-			Context("when a worker fails", func() {
-				Context("when a container is not found", func() {
-					var (
-						workerName      string
-						workerErrorText string
-					)
-					BeforeEach(func() {
-						fakeErr := new(worker.MultiWorkerError)
-						workerName = "worker1"
-						workerErrorText = "bad things afoot"
-						fakeErr.AddError(workerName, errors.New(workerErrorText))
-						fakeWorkerClient.LookupContainerReturns(nil, *fakeErr)
-					})
-					It("returns 500 internal error", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
-					})
-					It("Returns an error containing the worker name and the error message", func() {
-						b, _ := ioutil.ReadAll(response.Body)
-						body := string(b)
-						Ω(body).To(ContainSubstring(workerName))
-						Ω(body).To(ContainSubstring(workerErrorText))
-					})
+			Context("when the db request fails", func() {
+				BeforeEach(func() {
+					fakeErr := errors.New("error")
+					containerDB.GetContainerInfoReturns(db.ContainerInfo{}, false, fakeErr)
 				})
+				It("returns 500 internal error", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				})
+
 			})
 
 			Context("when the request payload is invalid", func() {

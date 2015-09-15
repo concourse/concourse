@@ -105,6 +105,7 @@ var _ = Describe("ExecEngine", func() {
 				Version:  atc.Version{"some": "version"},
 				Source:   atc.Source{"some": "source"},
 				Params:   atc.Params{"some": "params"},
+				Pipeline: "some-pipeline",
 			}
 
 			outputPlan = atc.Plan{
@@ -119,6 +120,7 @@ var _ = Describe("ExecEngine", func() {
 							Type:     "some-type",
 							Source:   atc.Source{"some": "source"},
 							Params:   atc.Params{"some": "params"},
+							Pipeline: "some-pipeline",
 						},
 					},
 					Next: atc.Plan{
@@ -191,6 +193,7 @@ var _ = Describe("ExecEngine", func() {
 											Type:     "some-type",
 											Source:   atc.Source{"some": "source"},
 											Params:   atc.Params{"some": "params"},
+											Pipeline: "some-pipeline",
 										},
 									},
 									Next: atc.Plan{
@@ -201,6 +204,7 @@ var _ = Describe("ExecEngine", func() {
 											Type:     "some-type",
 											Source:   atc.Source{"some": "source"},
 											Params:   atc.Params{"another": "params"},
+											Pipeline: "some-pipeline",
 										},
 									},
 								},
@@ -216,6 +220,7 @@ var _ = Describe("ExecEngine", func() {
 											Type:     "some-type-2",
 											Source:   atc.Source{"some": "source-2"},
 											Params:   atc.Params{"some": "params-2"},
+											Pipeline: "some-pipeline",
 										},
 									},
 									Next: atc.Plan{
@@ -226,6 +231,7 @@ var _ = Describe("ExecEngine", func() {
 											Type:     "some-type-2",
 											Source:   atc.Source{"some": "source-2"},
 											Params:   atc.Params{"another": "params-2"},
+											Pipeline: "some-pipeline",
 										},
 									},
 								},
@@ -247,9 +253,10 @@ var _ = Describe("ExecEngine", func() {
 					Ω(logger).ShouldNot(BeNil())
 					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(workerID).Should(Equal(worker.Identifier{
-						BuildID: 42,
-						Type:    worker.ContainerTypePut,
-						Name:    "some-put",
+						BuildID:      42,
+						Type:         db.ContainerTypePut,
+						Name:         "some-put",
+						PipelineName: "some-pipeline",
 					}))
 					Ω(tags).Should(BeEmpty())
 					Ω(delegate).Should(Equal(fakeOutputDelegate))
@@ -262,9 +269,10 @@ var _ = Describe("ExecEngine", func() {
 					Ω(logger).ShouldNot(BeNil())
 					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(workerID).Should(Equal(worker.Identifier{
-						BuildID: 42,
-						Type:    worker.ContainerTypePut,
-						Name:    "some-put-2",
+						BuildID:      42,
+						Type:         db.ContainerTypePut,
+						Name:         "some-put-2",
+						PipelineName: "some-pipeline",
 					}))
 					Ω(tags).Should(BeEmpty())
 					Ω(delegate).Should(Equal(fakeOutputDelegate))
@@ -285,9 +293,10 @@ var _ = Describe("ExecEngine", func() {
 					Ω(logger).ShouldNot(BeNil())
 					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(workerID).Should(Equal(worker.Identifier{
-						BuildID: 42,
-						Type:    worker.ContainerTypeGet,
-						Name:    "some-put",
+						BuildID:      42,
+						Type:         db.ContainerTypeGet,
+						Name:         "some-put",
+						PipelineName: "some-pipeline",
 					}))
 
 					Ω(tags).Should(BeEmpty())
@@ -305,9 +314,10 @@ var _ = Describe("ExecEngine", func() {
 					Ω(logger).ShouldNot(BeNil())
 					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(workerID).Should(Equal(worker.Identifier{
-						BuildID: 42,
-						Type:    worker.ContainerTypeGet,
-						Name:    "some-put-2",
+						BuildID:      42,
+						Type:         db.ContainerTypeGet,
+						Name:         "some-put-2",
+						PipelineName: "some-pipeline",
 					}))
 
 					Ω(tags).Should(BeEmpty())
@@ -336,6 +346,7 @@ var _ = Describe("ExecEngine", func() {
 					Version:  atc.Version{"some": "version"},
 					Source:   atc.Source{"some": "source"},
 					Params:   atc.Params{"some": "params"},
+					Pipeline: "some-pipeline",
 				}
 
 				plan := atc.Plan{
@@ -365,9 +376,10 @@ var _ = Describe("ExecEngine", func() {
 					Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID:      42,
-						Type:         worker.ContainerTypeGet,
+						Type:         db.ContainerTypeGet,
 						Name:         "some-input",
 						StepLocation: 145,
+						PipelineName: "some-pipeline",
 					}))
 					Ω(tags).Should(ConsistOf("some", "get", "tags"))
 					Ω(resourceConfig.Name).Should(Equal("some-input-resource"))
@@ -377,8 +389,7 @@ var _ = Describe("ExecEngine", func() {
 					Ω(version).Should(Equal(atc.Version{"some": "version"}))
 
 					Ω(delegate).Should(Equal(fakeInputDelegate))
-					_, plan, location := fakeDelegate.InputDelegateArgsForCall(0)
-					Ω(plan).Should(Equal(*inputPlan))
+					_, _, location := fakeDelegate.InputDelegateArgsForCall(0)
 					Ω(location).ShouldNot(BeNil())
 					Ω(location.ID).Should(Equal(uint(145)))
 					Ω(location.ParentID).Should(Equal(uint(1)))
@@ -426,6 +437,7 @@ var _ = Describe("ExecEngine", func() {
 					Config:     taskConfig,
 					ConfigPath: taskConfigPath,
 					Privileged: privileged,
+					Pipeline:   "some-pipeline",
 				}
 				plan := atc.Plan{
 					Location: &atc.Location{
@@ -452,9 +464,10 @@ var _ = Describe("ExecEngine", func() {
 					Ω(sourceName).Should(Equal(exec.SourceName("some-task")))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID:      42,
-						Type:         worker.ContainerTypeTask,
+						Type:         db.ContainerTypeTask,
 						Name:         "some-task",
 						StepLocation: 123,
+						PipelineName: "some-pipeline",
 					}))
 					Ω(privileged).Should(Equal(exec.Privileged(false)))
 					Ω(tags).Should(BeEmpty())
@@ -538,6 +551,7 @@ var _ = Describe("ExecEngine", func() {
 								Type:     "some-type",
 								Source:   atc.Source{"some": "source"},
 								Params:   atc.Params{"some": "params"},
+								Pipeline: "some-pipeline",
 							},
 						},
 						Next: atc.Plan{
@@ -558,6 +572,7 @@ var _ = Describe("ExecEngine", func() {
 								Type:     "some-type",
 								Source:   atc.Source{"some": "source"},
 								Params:   atc.Params{"another": "params"},
+								Pipeline: "some-pipeline",
 							},
 						},
 					},
@@ -576,9 +591,10 @@ var _ = Describe("ExecEngine", func() {
 					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID:      42,
-						Type:         worker.ContainerTypePut,
+						Type:         db.ContainerTypePut,
 						Name:         "some-put",
 						StepLocation: 51,
+						PipelineName: "some-pipeline",
 					}))
 					Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
 					Ω(resourceConfig.Type).Should(Equal("some-type"))
@@ -610,9 +626,10 @@ var _ = Describe("ExecEngine", func() {
 					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID:      42,
-						Type:         worker.ContainerTypeGet,
+						Type:         db.ContainerTypeGet,
 						Name:         "some-put",
 						StepLocation: 512,
+						PipelineName: "some-pipeline",
 					}))
 					Ω(tags).Should(ConsistOf("some", "putget", "tags"))
 					Ω(sourceName).Should(Equal(exec.SourceName("some-put")))

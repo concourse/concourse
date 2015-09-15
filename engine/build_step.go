@@ -70,10 +70,12 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 		location = event.OriginLocationFrom(*plan.Location)
 	}
 
+	pipelineName := plan.Task.Pipeline
+
 	return build.factory.Task(
 		logger,
 		exec.SourceName(plan.Task.Name),
-		build.taskIdentifier(plan.Task.Name, location),
+		build.taskIdentifier(plan.Task.Name, location, pipelineName),
 		build.delegate.ExecutionDelegate(logger, *plan.Task, location),
 		exec.Privileged(plan.Task.Privileged),
 		plan.Task.Tags,
@@ -91,11 +93,13 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 		location = event.OriginLocationFrom(*plan.Location)
 	}
 
+	pipelineName := plan.Get.Pipeline
+
 	return build.factory.Get(
 		logger,
 		build.stepMetadata,
 		exec.SourceName(plan.Get.Name),
-		build.getIdentifier(plan.Get.Name, location),
+		build.getIdentifier(plan.Get.Name, location, pipelineName),
 		build.delegate.InputDelegate(logger, *plan.Get, location),
 		atc.ResourceConfig{
 			Name:   plan.Get.Resource,
@@ -118,10 +122,12 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 		location = event.OriginLocationFrom(*plan.Location)
 	}
 
+	pipelineName := plan.Put.Pipeline
+
 	return build.factory.Put(
 		logger,
 		build.stepMetadata,
-		build.putIdentifier(plan.Put.Name, location),
+		build.putIdentifier(plan.Put.Name, location, pipelineName),
 		build.delegate.OutputDelegate(logger, *plan.Put, location),
 		atc.ResourceConfig{
 			Name:   plan.Put.Resource,
@@ -143,12 +149,14 @@ func (build *execBuild) buildDependentGetStep(logger lager.Logger, plan atc.Plan
 		location = event.OriginLocationFrom(*plan.Location)
 	}
 
+	pipelineName := plan.DependentGet.Pipeline
+
 	getPlan := plan.DependentGet.GetPlan()
 	return build.factory.DependentGet(
 		logger,
 		build.stepMetadata,
 		exec.SourceName(getPlan.Name),
-		build.getIdentifier(getPlan.Name, location),
+		build.getIdentifier(getPlan.Name, location, pipelineName),
 		build.delegate.InputDelegate(logger, getPlan, location),
 		atc.ResourceConfig{
 			Name:   getPlan.Resource,

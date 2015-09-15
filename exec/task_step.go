@@ -80,15 +80,15 @@ func (step taskStep) Using(prev Step, repo *SourceRepository) Step {
 
 func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	var err error
+	var found bool
 
 	processIO := garden.ProcessIO{
 		Stdout: step.delegate.Stdout(),
 		Stderr: step.delegate.Stderr(),
 	}
 
-	step.container, err = step.workerPool.FindContainerForIdentifier(step.containerID)
-	if err == nil {
-		// container already exists; recover session
+	step.container, found, err = step.workerPool.FindContainerForIdentifier(step.containerID)
+	if err == nil && found {
 
 		exitStatusProp, err := step.container.Property(taskExitStatusPropertyName)
 		if err == nil {

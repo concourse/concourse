@@ -8,7 +8,9 @@ import (
 	"github.com/cloudfoundry-incubator/garden"
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/worker"
+	wfakes "github.com/concourse/atc/worker/fakes"
 	"github.com/concourse/baggageclaim"
 	bfakes "github.com/concourse/baggageclaim/fakes"
 	. "github.com/onsi/ginkgo"
@@ -20,6 +22,7 @@ var _ = Describe("Worker", func() {
 	var (
 		fakeGardenClient       *gfakes.FakeClient
 		fakeBaggageclaimClient *bfakes.FakeClient
+		fakeGardenWorkerDB     *wfakes.FakeGardenWorkerDB
 		fakeClock              *fakeclock.FakeClock
 		activeContainers       int
 		resourceTypes          []atc.WorkerResourceType
@@ -33,6 +36,7 @@ var _ = Describe("Worker", func() {
 	BeforeEach(func() {
 		fakeGardenClient = new(gfakes.FakeClient)
 		fakeBaggageclaimClient = new(bfakes.FakeClient)
+		fakeGardenWorkerDB = new(wfakes.FakeGardenWorkerDB)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		activeContainers = 42
 		resourceTypes = []atc.WorkerResourceType{
@@ -47,6 +51,7 @@ var _ = Describe("Worker", func() {
 		worker = NewGardenWorker(
 			fakeGardenClient,
 			fakeBaggageclaimClient,
+			fakeGardenWorkerDB,
 			fakeClock,
 			activeContainers,
 			resourceTypes,
@@ -65,6 +70,7 @@ var _ = Describe("Worker", func() {
 			volumeManager, hasVolumeManager = NewGardenWorker(
 				fakeGardenClient,
 				baggageclaimClient,
+				fakeGardenWorkerDB,
 				fakeClock,
 				activeContainers,
 				resourceTypes,
@@ -111,7 +117,7 @@ var _ = Describe("Worker", func() {
 				Name:         "some-name",
 				PipelineName: "some-pipeline",
 				BuildID:      42,
-				Type:         ContainerTypeGet,
+				Type:         db.ContainerTypeGet,
 				StepLocation: 3,
 				CheckType:    "some-check-type",
 				CheckSource:  atc.Source{"some": "source"},
@@ -130,7 +136,7 @@ var _ = Describe("Worker", func() {
 					}
 				})
 
-				Context("when creating works", func() {
+				Context("when creating the garden container works", func() {
 					var fakeContainer *gfakes.FakeContainer
 
 					BeforeEach(func() {
@@ -159,6 +165,36 @@ var _ = Describe("Worker", func() {
 								"concourse:build-id":      "42",
 							},
 						}))
+					})
+
+					It("creates the container info in the database", func() {
+						containerInfo := db.ContainerInfo{
+							Handle:       "some-handle",
+							Name:         "some-name",
+							PipelineName: "some-pipeline",
+							BuildID:      42,
+							Type:         db.ContainerTypeGet,
+							WorkerName:   "my-garden-worker",
+						}
+
+						Ω(fakeGardenWorkerDB.CreateContainerInfoCallCount()).Should(Equal(1))
+						actualContainerInfo, ttl := fakeGardenWorkerDB.CreateContainerInfoArgsForCall(0)
+						Ω(actualContainerInfo).Should(Equal(containerInfo))
+						Ω(ttl).Should(Equal(5 * time.Minute))
+					})
+
+					Context("when creating the container info in the db fails", func() {
+						disaster := errors.New("bad")
+
+						BeforeEach(func() {
+							fakeGardenWorkerDB.CreateContainerInfoReturns(disaster)
+						})
+
+						It("returns the error", func() {
+
+							Ω(createErr).Should(Equal(disaster))
+						})
+
 					})
 
 					Context("when env vars are provided", func() {
@@ -377,6 +413,7 @@ var _ = Describe("Worker", func() {
 
 					It("is kept alive by continuously setting a keepalive property until released", func() {
 						Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(0))
+						Ω(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).Should(Equal(0))
 
 						fakeClock.Increment(30 * time.Second)
 
@@ -385,12 +422,22 @@ var _ = Describe("Worker", func() {
 						Ω(name).Should(Equal("keepalive"))
 						Ω(value).Should(Equal("153")) // unix timestamp
 
+						Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).Should(Equal(1))
+						handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(0)
+						Ω(handle).Should(Equal("some-handle"))
+						Ω(interval).Should(Equal(5 * time.Minute))
+
 						fakeClock.Increment(30 * time.Second)
 
 						Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(2))
 						name, value = fakeContainer.SetPropertyArgsForCall(1)
 						Ω(name).Should(Equal("keepalive"))
 						Ω(value).Should(Equal("183")) // unix timestamp
+
+						Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).Should(Equal(2))
+						handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(1)
+						Ω(handle).Should(Equal("some-handle"))
+						Ω(interval).Should(Equal(5 * time.Minute))
 
 						createdContainer.Release()
 
@@ -435,8 +482,9 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("returns the container and no error", func() {
-				foundContainer, err := worker.LookupContainer(handle)
+				foundContainer, found, err := worker.LookupContainer(handle)
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 
 				Ω(foundContainer.Handle()).Should(Equal(fakeContainer.Handle()))
 			})
@@ -446,7 +494,7 @@ var _ = Describe("Worker", func() {
 
 				JustBeforeEach(func() {
 					var err error
-					foundContainer, err = worker.LookupContainer(handle)
+					foundContainer, _, err = worker.LookupContainer(handle)
 					Ω(err).ShouldNot(HaveOccurred())
 				})
 
@@ -528,57 +576,10 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("returns nil and forwards the error", func() {
-				foundContainer, err := worker.LookupContainer(handle)
+				foundContainer, _, err := worker.LookupContainer(handle)
 				Ω(err).Should(Equal(expectedErr))
 
 				Ω(foundContainer).Should(BeNil())
-			})
-		})
-	})
-
-	Describe("FindContainersForIdentifiers", func() {
-		var (
-			id Identifier
-		)
-
-		BeforeEach(func() {
-			id = Identifier{Name: "some-name"}
-		})
-
-		Context("when finding the containers succeeds", func() {
-			var (
-				fakeContainer *gfakes.FakeContainer
-			)
-
-			BeforeEach(func() {
-				fakeContainer = new(gfakes.FakeContainer)
-				fakeContainer.HandleReturns("some-handle")
-				fakeContainers := []garden.Container{fakeContainer}
-
-				fakeGardenClient.ContainersReturns(fakeContainers, nil)
-			})
-
-			It("returns the containers without error", func() {
-				foundContainers, err := worker.FindContainersForIdentifier(id)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(len(foundContainers)).Should(Equal(1))
-				Ω(foundContainers[0].Handle()).Should(Equal(fakeContainer.Handle()))
-			})
-		})
-
-		Context("when finding the containers fails", func() {
-			expectedErr := errors.New("nope")
-
-			BeforeEach(func() {
-				fakeGardenClient.ContainersReturns(nil, expectedErr)
-			})
-
-			It("returns nil and forwards the error", func() {
-				foundContainers, err := worker.FindContainersForIdentifier(id)
-
-				Ω(err).Should(Equal(expectedErr))
-				Ω(foundContainers).Should(BeNil())
 			})
 		})
 	})
@@ -588,6 +589,7 @@ var _ = Describe("Worker", func() {
 			id Identifier
 
 			foundContainer Container
+			found          bool
 			lookupErr      error
 		)
 
@@ -596,7 +598,7 @@ var _ = Describe("Worker", func() {
 		})
 
 		JustBeforeEach(func() {
-			foundContainer, lookupErr = worker.FindContainerForIdentifier(id)
+			foundContainer, found, lookupErr = worker.FindContainerForIdentifier(id)
 		})
 
 		Context("when the container can be found", func() {
@@ -708,7 +710,7 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("returns ErrContainerNotFound", func() {
-				Ω(lookupErr).Should(Equal(ErrContainerNotFound))
+				Ω(found).Should(BeFalse())
 			})
 		})
 
@@ -741,6 +743,7 @@ var _ = Describe("Worker", func() {
 			worker = NewGardenWorker(
 				fakeGardenClient,
 				fakeBaggageclaimClient,
+				fakeGardenWorkerDB,
 				fakeClock,
 				activeContainers,
 				resourceTypes,
@@ -908,12 +911,6 @@ var _ = Describe("Worker", func() {
 					Ω(satisfyingErr).Should(Equal(ErrUnsupportedResourceType))
 				})
 			})
-		})
-	})
-
-	Describe("Name", func() {
-		It("responds correctly", func() {
-			Ω(worker.Name()).To(Equal(name))
 		})
 	})
 })

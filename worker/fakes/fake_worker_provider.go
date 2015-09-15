@@ -4,6 +4,7 @@ package fakes
 import (
 	"sync"
 
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
 
@@ -14,6 +15,36 @@ type FakeWorkerProvider struct {
 	workersReturns     struct {
 		result1 []worker.Worker
 		result2 error
+	}
+	GetWorkerStub        func(string) (worker.Worker, bool, error)
+	getWorkerMutex       sync.RWMutex
+	getWorkerArgsForCall []struct {
+		arg1 string
+	}
+	getWorkerReturns struct {
+		result1 worker.Worker
+		result2 bool
+		result3 error
+	}
+	FindContainerInfoForIdentifierStub        func(worker.Identifier) (db.ContainerInfo, bool, error)
+	findContainerInfoForIdentifierMutex       sync.RWMutex
+	findContainerInfoForIdentifierArgsForCall []struct {
+		arg1 worker.Identifier
+	}
+	findContainerInfoForIdentifierReturns struct {
+		result1 db.ContainerInfo
+		result2 bool
+		result3 error
+	}
+	GetContainerInfoStub        func(string) (db.ContainerInfo, bool, error)
+	getContainerInfoMutex       sync.RWMutex
+	getContainerInfoArgsForCall []struct {
+		arg1 string
+	}
+	getContainerInfoReturns struct {
+		result1 db.ContainerInfo
+		result2 bool
+		result3 error
 	}
 }
 
@@ -40,6 +71,108 @@ func (fake *FakeWorkerProvider) WorkersReturns(result1 []worker.Worker, result2 
 		result1 []worker.Worker
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeWorkerProvider) GetWorker(arg1 string) (worker.Worker, bool, error) {
+	fake.getWorkerMutex.Lock()
+	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.getWorkerMutex.Unlock()
+	if fake.GetWorkerStub != nil {
+		return fake.GetWorkerStub(arg1)
+	} else {
+		return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2, fake.getWorkerReturns.result3
+	}
+}
+
+func (fake *FakeWorkerProvider) GetWorkerCallCount() int {
+	fake.getWorkerMutex.RLock()
+	defer fake.getWorkerMutex.RUnlock()
+	return len(fake.getWorkerArgsForCall)
+}
+
+func (fake *FakeWorkerProvider) GetWorkerArgsForCall(i int) string {
+	fake.getWorkerMutex.RLock()
+	defer fake.getWorkerMutex.RUnlock()
+	return fake.getWorkerArgsForCall[i].arg1
+}
+
+func (fake *FakeWorkerProvider) GetWorkerReturns(result1 worker.Worker, result2 bool, result3 error) {
+	fake.GetWorkerStub = nil
+	fake.getWorkerReturns = struct {
+		result1 worker.Worker
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeWorkerProvider) FindContainerInfoForIdentifier(arg1 worker.Identifier) (db.ContainerInfo, bool, error) {
+	fake.findContainerInfoForIdentifierMutex.Lock()
+	fake.findContainerInfoForIdentifierArgsForCall = append(fake.findContainerInfoForIdentifierArgsForCall, struct {
+		arg1 worker.Identifier
+	}{arg1})
+	fake.findContainerInfoForIdentifierMutex.Unlock()
+	if fake.FindContainerInfoForIdentifierStub != nil {
+		return fake.FindContainerInfoForIdentifierStub(arg1)
+	} else {
+		return fake.findContainerInfoForIdentifierReturns.result1, fake.findContainerInfoForIdentifierReturns.result2, fake.findContainerInfoForIdentifierReturns.result3
+	}
+}
+
+func (fake *FakeWorkerProvider) FindContainerInfoForIdentifierCallCount() int {
+	fake.findContainerInfoForIdentifierMutex.RLock()
+	defer fake.findContainerInfoForIdentifierMutex.RUnlock()
+	return len(fake.findContainerInfoForIdentifierArgsForCall)
+}
+
+func (fake *FakeWorkerProvider) FindContainerInfoForIdentifierArgsForCall(i int) worker.Identifier {
+	fake.findContainerInfoForIdentifierMutex.RLock()
+	defer fake.findContainerInfoForIdentifierMutex.RUnlock()
+	return fake.findContainerInfoForIdentifierArgsForCall[i].arg1
+}
+
+func (fake *FakeWorkerProvider) FindContainerInfoForIdentifierReturns(result1 db.ContainerInfo, result2 bool, result3 error) {
+	fake.FindContainerInfoForIdentifierStub = nil
+	fake.findContainerInfoForIdentifierReturns = struct {
+		result1 db.ContainerInfo
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeWorkerProvider) GetContainerInfo(arg1 string) (db.ContainerInfo, bool, error) {
+	fake.getContainerInfoMutex.Lock()
+	fake.getContainerInfoArgsForCall = append(fake.getContainerInfoArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.getContainerInfoMutex.Unlock()
+	if fake.GetContainerInfoStub != nil {
+		return fake.GetContainerInfoStub(arg1)
+	} else {
+		return fake.getContainerInfoReturns.result1, fake.getContainerInfoReturns.result2, fake.getContainerInfoReturns.result3
+	}
+}
+
+func (fake *FakeWorkerProvider) GetContainerInfoCallCount() int {
+	fake.getContainerInfoMutex.RLock()
+	defer fake.getContainerInfoMutex.RUnlock()
+	return len(fake.getContainerInfoArgsForCall)
+}
+
+func (fake *FakeWorkerProvider) GetContainerInfoArgsForCall(i int) string {
+	fake.getContainerInfoMutex.RLock()
+	defer fake.getContainerInfoMutex.RUnlock()
+	return fake.getContainerInfoArgsForCall[i].arg1
+}
+
+func (fake *FakeWorkerProvider) GetContainerInfoReturns(result1 db.ContainerInfo, result2 bool, result3 error) {
+	fake.GetContainerInfoStub = nil
+	fake.getContainerInfoReturns = struct {
+		result1 db.ContainerInfo
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 var _ worker.WorkerProvider = new(FakeWorkerProvider)

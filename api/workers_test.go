@@ -156,21 +156,58 @@ var _ = Describe("Workers API", func() {
 					Ω(response.StatusCode).Should(Equal(http.StatusOK))
 				})
 
-				It("saves it", func() {
-					Ω(workerDB.SaveWorkerCallCount()).Should(Equal(1))
+				Context("when the name is not provided", func() {
+					It("saves it", func() {
+						Ω(workerDB.SaveWorkerCallCount()).Should(Equal(1))
 
-					savedInfo, savedTTL := workerDB.SaveWorkerArgsForCall(0)
-					Ω(savedInfo).Should(Equal(db.WorkerInfo{
-						GardenAddr:       "1.2.3.4:7777",
-						BaggageclaimURL:  "5.6.7.8:7788",
-						ActiveContainers: 2,
-						ResourceTypes: []atc.WorkerResourceType{
-							{Type: "some-resource", Image: "some-resource-image"},
-						},
-						Platform: "haiku",
-						Tags:     []string{"not", "a", "limerick"},
-					}))
-					Ω(savedTTL.String()).Should(Equal(ttl))
+						savedInfo, savedTTL := workerDB.SaveWorkerArgsForCall(0)
+						Ω(savedInfo).Should(Equal(db.WorkerInfo{
+							GardenAddr:       "1.2.3.4:7777",
+							Name:             "1.2.3.4:7777",
+							BaggageclaimURL:  "5.6.7.8:7788",
+							ActiveContainers: 2,
+							ResourceTypes: []atc.WorkerResourceType{
+								{Type: "some-resource", Image: "some-resource-image"},
+							},
+							Platform: "haiku",
+							Tags:     []string{"not", "a", "limerick"},
+						}))
+						Ω(savedTTL.String()).Should(Equal(ttl))
+					})
+				})
+
+				Context("when the name is provided", func() {
+					BeforeEach(func() {
+						worker = atc.Worker{
+							GardenAddr:       "1.2.3.4:7777",
+							BaggageclaimURL:  "5.6.7.8:7788",
+							ActiveContainers: 2,
+							ResourceTypes: []atc.WorkerResourceType{
+								{Type: "some-resource", Image: "some-resource-image"},
+							},
+							Platform: "haiku",
+							Tags:     []string{"not", "a", "limerick"},
+							Name:     "poem",
+						}
+					})
+
+					It("saves it", func() {
+						Ω(workerDB.SaveWorkerCallCount()).Should(Equal(1))
+
+						savedInfo, savedTTL := workerDB.SaveWorkerArgsForCall(0)
+						Ω(savedInfo).Should(Equal(db.WorkerInfo{
+							GardenAddr:       "1.2.3.4:7777",
+							Name:             "poem",
+							BaggageclaimURL:  "5.6.7.8:7788",
+							ActiveContainers: 2,
+							ResourceTypes: []atc.WorkerResourceType{
+								{Type: "some-resource", Image: "some-resource-image"},
+							},
+							Platform: "haiku",
+							Tags:     []string{"not", "a", "limerick"},
+						}))
+						Ω(savedTTL.String()).Should(Equal(ttl))
+					})
 				})
 
 				Context("and saving it fails", func() {

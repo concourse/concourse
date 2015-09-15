@@ -50,6 +50,10 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 		Containers: registration.ActiveContainers,
 	}.Emit(s.logger)
 
+	if registration.Name == "" {
+		registration.Name = registration.GardenAddr
+	}
+
 	err = s.db.SaveWorker(db.WorkerInfo{
 		GardenAddr:       registration.GardenAddr,
 		BaggageclaimURL:  registration.BaggageclaimURL,
@@ -57,6 +61,7 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 		ResourceTypes:    registration.ResourceTypes,
 		Platform:         registration.Platform,
 		Tags:             registration.Tags,
+		Name:             registration.Name,
 	}, ttl)
 	if err != nil {
 		logger.Error("failed-to-save-worker", err)

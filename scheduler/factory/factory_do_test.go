@@ -36,7 +36,6 @@ var _ = Describe("Factory Do", func() {
 
 	Context("when I have a nested do ", func() {
 		It("returns the correct plan", func() {
-
 			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
@@ -64,19 +63,22 @@ var _ = Describe("Factory Do", func() {
 				OnSuccess: &atc.OnSuccessPlan{
 					Step: atc.Plan{
 						Task: &atc.TaskPlan{
-							Name: "some thing",
+							Name:     "some thing",
+							Pipeline: "some-pipeline",
 						},
 					},
 					Next: atc.Plan{
 						OnSuccess: &atc.OnSuccessPlan{
 							Step: atc.Plan{
 								Task: &atc.TaskPlan{
-									Name: "some thing-2",
+									Name:     "some thing-2",
+									Pipeline: "some-pipeline",
 								},
 							},
 							Next: atc.Plan{
 								Task: &atc.TaskPlan{
-									Name: "some other thing",
+									Name:     "some other thing",
+									Pipeline: "some-pipeline",
 								},
 							},
 						},
@@ -117,7 +119,8 @@ var _ = Describe("Factory Do", func() {
 				OnSuccess: &atc.OnSuccessPlan{
 					Step: atc.Plan{
 						Task: &atc.TaskPlan{
-							Name: "some thing",
+							Name:     "some thing",
+							Pipeline: "some-pipeline",
 						},
 					},
 					Next: atc.Plan{
@@ -127,14 +130,16 @@ var _ = Describe("Factory Do", func() {
 								Aggregate: &atc.AggregatePlan{
 									{
 										Task: &atc.TaskPlan{
-											Name: "some other thing",
+											Name:     "some other thing",
+											Pipeline: "some-pipeline",
 										},
 									},
 								},
 							},
 							Next: atc.Plan{
 								Task: &atc.TaskPlan{
-									Name: "some thing-2",
+									Name:     "some thing-2",
+									Pipeline: "some-pipeline",
 								},
 							},
 						},
@@ -175,19 +180,22 @@ var _ = Describe("Factory Do", func() {
 				OnSuccess: &atc.OnSuccessPlan{
 					Step: atc.Plan{
 						Task: &atc.TaskPlan{
-							Name: "starting-task",
+							Name:     "starting-task",
+							Pipeline: "some-pipeline",
 						},
 					},
 					Next: atc.Plan{
 						Aggregate: &atc.AggregatePlan{
 							{
 								Task: &atc.TaskPlan{
-									Name: "some thing",
+									Name:     "some thing",
+									Pipeline: "some-pipeline",
 								},
 							},
 							{
 								Task: &atc.TaskPlan{
-									Name: "some other thing",
+									Name:     "some other thing",
+									Pipeline: "some-pipeline",
 								},
 							},
 						},
@@ -232,26 +240,30 @@ var _ = Describe("Factory Do", func() {
 				Aggregate: &atc.AggregatePlan{
 					{
 						Task: &atc.TaskPlan{
-							Name: "some thing",
+							Name:     "some thing",
+							Pipeline: "some-pipeline",
 						},
 					},
 					{
 						OnSuccess: &atc.OnSuccessPlan{
 							Step: atc.Plan{
 								Task: &atc.TaskPlan{
-									Name: "some other thing",
+									Name:     "some other thing",
+									Pipeline: "some-pipeline",
 								},
 							},
 							Next: atc.Plan{
 								Task: &atc.TaskPlan{
-									Name: "some other thing-2",
+									Name:     "some other thing-2",
+									Pipeline: "some-pipeline",
 								},
 							},
 						},
 					},
 					{
 						Task: &atc.TaskPlan{
-							Name: "some thing-2",
+							Name:     "some thing-2",
+							Pipeline: "some-pipeline",
 						},
 					},
 				},

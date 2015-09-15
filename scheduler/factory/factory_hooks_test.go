@@ -70,19 +70,22 @@ var _ = Describe("Factory Hooks", func() {
 						OnSuccess: &atc.OnSuccessPlan{
 							Step: atc.Plan{
 								Task: &atc.TaskPlan{
-									Name: "those who resist our will",
+									Name:     "those who resist our will",
+									Pipeline: "some-pipeline",
 								},
 							},
 							Next: atc.Plan{
 								OnSuccess: &atc.OnSuccessPlan{
 									Step: atc.Plan{
 										Task: &atc.TaskPlan{
-											Name: "those who also resist our will",
+											Name:     "those who also resist our will",
+											Pipeline: "some-pipeline",
 										},
 									},
 									Next: atc.Plan{
 										Task: &atc.TaskPlan{
-											Name: "third task",
+											Name:     "third task",
+											Pipeline: "some-pipeline",
 										},
 									},
 								},
@@ -91,7 +94,8 @@ var _ = Describe("Factory Hooks", func() {
 					},
 					Next: atc.Plan{
 						Task: &atc.TaskPlan{
-							Name: "some other failure",
+							Name:     "some other failure",
+							Pipeline: "some-pipeline",
 						},
 					},
 				},
@@ -134,19 +138,22 @@ var _ = Describe("Factory Hooks", func() {
 						OnSuccess: &atc.OnSuccessPlan{
 							Step: atc.Plan{
 								Task: &atc.TaskPlan{
-									Name: "those who resist our will",
+									Name:     "those who resist our will",
+									Pipeline: "some-pipeline",
 								},
 							},
 							Next: atc.Plan{
 								Task: &atc.TaskPlan{
-									Name: "those who also resist our will",
+									Name:     "those who also resist our will",
+									Pipeline: "some-pipeline",
 								},
 							},
 						},
 					},
 					Next: atc.Plan{
 						Task: &atc.TaskPlan{
-							Name: "some other failure",
+							Name:     "some other failure",
+							Pipeline: "some-pipeline",
 						},
 					},
 				},
@@ -201,21 +208,24 @@ var _ = Describe("Factory Hooks", func() {
 				OnSuccess: &atc.OnSuccessPlan{
 					Step: atc.Plan{
 						Task: &atc.TaskPlan{
-							Name: "some-task",
+							Name:     "some-task",
+							Pipeline: "some-pipeline",
 						},
 					},
 					Next: atc.Plan{
 						Aggregate: &atc.AggregatePlan{
 							{
 								Task: &atc.TaskPlan{
-									Name: "agg-task-1",
+									Name:     "agg-task-1",
+									Pipeline: "some-pipeline",
 								},
 							},
 							{
 								Aggregate: &atc.AggregatePlan{
 									{
 										Task: &atc.TaskPlan{
-											Name: "agg-agg-task-1",
+											Name:     "agg-agg-task-1",
+											Pipeline: "some-pipeline",
 										},
 									},
 								},
@@ -257,12 +267,14 @@ var _ = Describe("Factory Hooks", func() {
 				OnSuccess: &atc.OnSuccessPlan{
 					Step: atc.Plan{
 						Task: &atc.TaskPlan{
-							Name: "some-task",
+							Name:     "some-task",
+							Pipeline: "some-pipeline",
 						},
 					},
 					Next: atc.Plan{
 						Task: &atc.TaskPlan{
-							Name: "do-task-1",
+							Name:     "do-task-1",
+							Pipeline: "some-pipeline",
 						},
 					},
 				},
@@ -313,33 +325,38 @@ var _ = Describe("Factory Hooks", func() {
 				OnSuccess: &atc.OnSuccessPlan{
 					Step: atc.Plan{
 						Task: &atc.TaskPlan{
-							Name: "some-task",
+							Name:     "some-task",
+							Pipeline: "some-pipeline",
 						},
 					},
 					Next: atc.Plan{
 						OnSuccess: &atc.OnSuccessPlan{
 							Step: atc.Plan{
 								Task: &atc.TaskPlan{
-									Name: "do-task-1",
+									Name:     "do-task-1",
+									Pipeline: "some-pipeline",
 								},
 							},
 							Next: atc.Plan{
 								OnSuccess: &atc.OnSuccessPlan{
 									Step: atc.Plan{
 										Task: &atc.TaskPlan{
-											Name: "do-task-2",
+											Name:     "do-task-2",
+											Pipeline: "some-pipeline",
 										},
 									},
 									Next: atc.Plan{
 										OnSuccess: &atc.OnSuccessPlan{
 											Step: atc.Plan{
 												Task: &atc.TaskPlan{
-													Name: "do-task-3",
+													Name:     "do-task-3",
+													Pipeline: "some-pipeline",
 												},
 											},
 											Next: atc.Plan{
 												Task: &atc.TaskPlan{
-													Name: "do-task-4",
+													Name:     "do-task-4",
+													Pipeline: "some-pipeline",
 												},
 											},
 										},
@@ -389,7 +406,8 @@ var _ = Describe("Factory Hooks", func() {
 				OnSuccess: &atc.OnSuccessPlan{
 					Step: atc.Plan{
 						Task: &atc.TaskPlan{
-							Name: "some-task",
+							Name:     "some-task",
+							Pipeline: "some-pipeline",
 						},
 					},
 					Next: atc.Plan{
@@ -398,19 +416,22 @@ var _ = Describe("Factory Hooks", func() {
 								OnSuccess: &atc.OnSuccessPlan{
 									Step: atc.Plan{
 										Task: &atc.TaskPlan{
-											Name: "agg-task-1",
+											Name:     "agg-task-1",
+											Pipeline: "some-pipeline",
 										},
 									},
 									Next: atc.Plan{
 										Task: &atc.TaskPlan{
-											Name: "agg-task-1-success",
+											Name:     "agg-task-1-success",
+											Pipeline: "some-pipeline",
 										},
 									},
 								},
 							},
 							{
 								Task: &atc.TaskPlan{
-									Name: "agg-task-2",
+									Name:     "agg-task-2",
+									Pipeline: "some-pipeline",
 								},
 							},
 						},
@@ -440,7 +461,8 @@ var _ = Describe("Factory Hooks", func() {
 				OnFailure: &atc.OnFailurePlan{
 					Step: atc.Plan{
 						Task: &atc.TaskPlan{
-							Name: "those who resist our will",
+							Name:     "those who resist our will",
+							Pipeline: "some-pipeline",
 						},
 					},
 					Next: atc.Plan{
@@ -479,7 +501,8 @@ var _ = Describe("Factory Hooks", func() {
 				OnFailure: &atc.OnFailurePlan{
 					Step: atc.Plan{
 						Task: &atc.TaskPlan{
-							Name: "those who resist our will",
+							Name:     "those who resist our will",
+							Pipeline: "some-pipeline",
 						},
 					},
 					Next: atc.Plan{
@@ -524,7 +547,8 @@ var _ = Describe("Factory Hooks", func() {
 				OnFailure: &atc.OnFailurePlan{
 					Step: atc.Plan{
 						Task: &atc.TaskPlan{
-							Name: "those who resist our will",
+							Name:     "those who resist our will",
+							Pipeline: "some-pipeline",
 						},
 					},
 					Next: atc.Plan{
@@ -542,7 +566,8 @@ var _ = Describe("Factory Hooks", func() {
 							},
 							Next: atc.Plan{
 								Task: &atc.TaskPlan{
-									Name: "those who still resist our will",
+									Name:     "those who still resist our will",
+									Pipeline: "some-pipeline",
 								},
 							},
 						},
@@ -573,7 +598,8 @@ var _ = Describe("Factory Hooks", func() {
 				OnFailure: &atc.OnFailurePlan{
 					Step: atc.Plan{
 						Task: &atc.TaskPlan{
-							Name: "those who resist our will",
+							Name:     "those who resist our will",
+							Pipeline: "some-pipeline",
 						},
 					},
 					Next: atc.Plan{
@@ -591,7 +617,8 @@ var _ = Describe("Factory Hooks", func() {
 							},
 							Next: atc.Plan{
 								Task: &atc.TaskPlan{
-									Name: "those who still resist our will",
+									Name:     "those who still resist our will",
+									Pipeline: "some-pipeline",
 								},
 							},
 						},
@@ -629,26 +656,30 @@ var _ = Describe("Factory Hooks", func() {
 								OnFailure: &atc.OnFailurePlan{
 									Step: atc.Plan{
 										Task: &atc.TaskPlan{
-											Name: "those who resist our will",
+											Name:     "those who resist our will",
+											Pipeline: "some-pipeline",
 										},
 									},
 									Next: atc.Plan{
 										Task: &atc.TaskPlan{
-											Name: "those who failed to resist our will",
+											Name:     "those who failed to resist our will",
+											Pipeline: "some-pipeline",
 										},
 									},
 								},
 							},
 							Next: atc.Plan{
 								Task: &atc.TaskPlan{
-									Name: "those who successfully resisted our will",
+									Name:     "those who successfully resisted our will",
+									Pipeline: "some-pipeline",
 								},
 							},
 						},
 					},
 					Next: atc.Plan{
 						Task: &atc.TaskPlan{
-							Name: "those who always resist our will",
+							Name:     "those who always resist our will",
+							Pipeline: "some-pipeline",
 						},
 					},
 				},
@@ -682,7 +713,8 @@ var _ = Describe("Factory Hooks", func() {
 						OnFailure: &atc.OnFailurePlan{
 							Step: atc.Plan{
 								Task: &atc.TaskPlan{
-									Name: "those who resist our will",
+									Name:     "those who resist our will",
+									Pipeline: "some-pipeline",
 								},
 							},
 							Next: atc.Plan{
@@ -700,7 +732,8 @@ var _ = Describe("Factory Hooks", func() {
 									},
 									Next: atc.Plan{
 										Task: &atc.TaskPlan{
-											Name: "those who still resist our will",
+											Name:     "those who still resist our will",
+											Pipeline: "some-pipeline",
 										},
 									},
 								},
@@ -755,19 +788,22 @@ var _ = Describe("Factory Hooks", func() {
 									OnFailure: &atc.OnFailurePlan{
 										Step: atc.Plan{
 											Task: &atc.TaskPlan{
-												Name: "those who resist our will",
+												Name:     "those who resist our will",
+												Pipeline: "some-pipeline",
 											},
 										},
 										Next: atc.Plan{
 											Task: &atc.TaskPlan{
-												Name: "some other task",
+												Name:     "some other task",
+												Pipeline: "some-pipeline",
 											},
 										},
 									},
 								},
 								Next: atc.Plan{
 									Task: &atc.TaskPlan{
-										Name: "some other success task",
+										Name:     "some other success task",
+										Pipeline: "some-pipeline",
 									},
 								},
 							},
@@ -776,12 +812,14 @@ var _ = Describe("Factory Hooks", func() {
 							OnSuccess: &atc.OnSuccessPlan{
 								Step: atc.Plan{
 									Task: &atc.TaskPlan{
-										Name: "those who still resist our will",
+										Name:     "those who still resist our will",
+										Pipeline: "some-pipeline",
 									},
 								},
 								Next: atc.Plan{
 									Task: &atc.TaskPlan{
-										Name: "shall be defeated",
+										Name:     "shall be defeated",
+										Pipeline: "some-pipeline",
 									},
 								},
 							},
@@ -821,7 +859,8 @@ var _ = Describe("Factory Hooks", func() {
 					OnSuccess: &atc.OnSuccessPlan{
 						Step: atc.Plan{
 							Task: &atc.TaskPlan{
-								Name: "those who start resisting our will",
+								Name:     "those who start resisting our will",
+								Pipeline: "some-pipeline",
 							},
 						},
 						Next: atc.Plan{
@@ -832,26 +871,30 @@ var _ = Describe("Factory Hooks", func() {
 											OnFailure: &atc.OnFailurePlan{
 												Step: atc.Plan{
 													Task: &atc.TaskPlan{
-														Name: "those who resist our will",
+														Name:     "those who resist our will",
+														Pipeline: "some-pipeline",
 													},
 												},
 												Next: atc.Plan{
 													Task: &atc.TaskPlan{
-														Name: "some other task",
+														Name:     "some other task",
+														Pipeline: "some-pipeline",
 													},
 												},
 											},
 										},
 										Next: atc.Plan{
 											Task: &atc.TaskPlan{
-												Name: "some other success task",
+												Name:     "some other success task",
+												Pipeline: "some-pipeline",
 											},
 										},
 									},
 								},
 								Next: atc.Plan{
 									Task: &atc.TaskPlan{
-										Name: "those who used to resist our will",
+										Name:     "those who used to resist our will",
+										Pipeline: "some-pipeline",
 									},
 								},
 							},
@@ -887,12 +930,14 @@ var _ = Describe("Factory Hooks", func() {
 							OnSuccess: &atc.OnSuccessPlan{
 								Step: atc.Plan{
 									Task: &atc.TaskPlan{
-										Name: "those who resist our will",
+										Name:     "those who resist our will",
+										Pipeline: "some-pipeline",
 									},
 								},
 								Next: atc.Plan{
 									Task: &atc.TaskPlan{
-										Name: "those who used to resist our will",
+										Name:     "those who used to resist our will",
+										Pipeline: "some-pipeline",
 									},
 								},
 							},
@@ -900,7 +945,8 @@ var _ = Describe("Factory Hooks", func() {
 
 						Next: atc.Plan{
 							Task: &atc.TaskPlan{
-								Name: "those who start resisting our will",
+								Name:     "those who start resisting our will",
+								Pipeline: "some-pipeline",
 							},
 						},
 					},

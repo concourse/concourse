@@ -17,6 +17,7 @@ func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
 	}
 
 	build, err := s.db.CreateOneOffBuild()
+
 	if err != nil {
 		s.logger.Error("failed-to-create-one-off-build", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -29,7 +30,6 @@ func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
 	go engineBuild.Resume(s.logger)
 
 	w.WriteHeader(http.StatusCreated)

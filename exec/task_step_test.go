@@ -98,7 +98,7 @@ var _ = Describe("GardenFactory", func() {
 
 		Context("when the container does not yet exist", func() {
 			BeforeEach(func() {
-				fakeWorkerClient.FindContainerForIdentifierReturns(nil, errors.New("nope"))
+				fakeWorkerClient.FindContainerForIdentifierReturns(nil, false, errors.New("nope"))
 			})
 
 			Context("when the getting the config works", func() {
@@ -815,7 +815,7 @@ var _ = Describe("GardenFactory", func() {
 
 			BeforeEach(func() {
 				fakeContainer = new(wfakes.FakeContainer)
-				fakeWorkerClient.FindContainerForIdentifierReturns(fakeContainer, nil)
+				fakeWorkerClient.FindContainerForIdentifierReturns(fakeContainer, true, nil)
 			})
 
 			Context("when an exit status is already saved off", func() {

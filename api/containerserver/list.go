@@ -8,59 +8,54 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/worker"
+	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 )
 
 func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.RawQuery
-	hLog := s.logger.Session("hijack", lager.Data{
+	hLog := s.logger.Session("list-containers", lager.Data{
 		"params": params,
 	})
 
-	workerIdentifier, err := s.parseRequest(r)
+	hLog.Info("listing containers")
+
+	containerIdentifier, err := s.parseRequest(r)
 	if err != nil {
+		hLog.Error("Failed to parse request", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 
-	var errors []string
-	containers, err := s.workerClient.FindContainersForIdentifier(workerIdentifier)
+	containers, found, err := s.db.FindContainerInfosByIdentifier(containerIdentifier)
 	if err != nil {
-		// If MulitWorkerError then iterate over each error and append workerName: error: etc
-		if mwe, ok := err.(worker.MultiWorkerError); ok {
-			for workerName, workerErr := range mwe.Errors() {
-				errors = append(errors, fmt.Sprintf("workerName: %s, error: %s",
-					workerName, workerErr.Error()))
-			}
-		} else {
-			errors = make([]string, 1)
-			errors[0] = err.Error()
-		}
-		hLog.Info("failed-to-get-container", lager.Data{"error": err})
+		hLog.Error("Failed to lookup containers", err)
 		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if !found {
+		hLog.Info("Failed to find any containers")
+		w.WriteHeader(http.StatusNotFound)
+		return
 	}
 
 	presentedContainers := make([]atc.Container, len(containers))
 	for i := 0; i < len(containers); i++ {
 		container := containers[i]
 		presentedContainers[i] = present.Container(container)
-		container.Release()
 	}
 
-	returnBody := atc.ListContainersReturn{
-		Containers: presentedContainers,
-		Errors:     errors,
-	}
-	json.NewEncoder(w).Encode(returnBody)
+	hLog.Info("Found containers", lager.Data{"containers": presentedContainers})
+	json.NewEncoder(w).Encode(presentedContainers)
 }
 
-func (s *Server) parseRequest(r *http.Request) (worker.Identifier, error) {
-	workerIdentifier := worker.Identifier{
+func (s *Server) parseRequest(r *http.Request) (db.ContainerIdentifier, error) {
+	containerIdentifier := db.ContainerIdentifier{
 		PipelineName: r.URL.Query().Get("pipeline_name"),
-		Type:         worker.ContainerType(r.URL.Query().Get("type")),
+		Type:         db.ContainerType(r.URL.Query().Get("type")),
 		Name:         r.URL.Query().Get("name"),
 	}
 
@@ -68,10 +63,10 @@ func (s *Server) parseRequest(r *http.Request) (worker.Identifier, error) {
 
 	if len(buildIDParam) != 0 {
 		var err error
-		workerIdentifier.BuildID, err = strconv.Atoi(buildIDParam)
+		containerIdentifier.BuildID, err = strconv.Atoi(buildIDParam)
 		if err != nil {
-			return worker.Identifier{}, fmt.Errorf("malformed build ID: %s", err)
+			return db.ContainerIdentifier{}, fmt.Errorf("malformed build ID: %s", err)
 		}
 	}
-	return workerIdentifier, nil
+	return containerIdentifier, nil
 }

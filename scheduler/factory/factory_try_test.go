@@ -47,14 +47,16 @@ var _ = Describe("Factory Try Step", func() {
 						Try: &atc.TryPlan{
 							Step: atc.Plan{
 								Task: &atc.TaskPlan{
-									Name: "first task",
+									Name:     "first task",
+									Pipeline: "some-pipeline",
 								},
 							},
 						},
 					},
 					Next: atc.Plan{
 						Task: &atc.TaskPlan{
-							Name: "second task",
+							Name:     "second task",
+							Pipeline: "some-pipeline",
 						},
 					},
 				},
@@ -85,14 +87,16 @@ var _ = Describe("Factory Try Step", func() {
 				OnSuccess: &atc.OnSuccessPlan{
 					Step: atc.Plan{
 						Task: &atc.TaskPlan{
-							Name: "first task",
+							Name:     "first task",
+							Pipeline: "some-pipeline",
 						},
 					},
 					Next: atc.Plan{
 						Try: &atc.TryPlan{
 							Step: atc.Plan{
 								Task: &atc.TaskPlan{
-									Name: "second task",
+									Name:     "second task",
+									Pipeline: "some-pipeline",
 								},
 							},
 						},

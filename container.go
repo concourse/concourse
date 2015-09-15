@@ -6,9 +6,5 @@ type Container struct {
 	Type         string `json:"type"`
 	Name         string `json:"name"`
 	BuildID      int    `json:"build_id"`
-}
-
-type ListContainersReturn struct {
-	Containers []Container `json:"containers"`
-	Errors     []string    `json:"errors"`
+	WorkerName   string `json:"worker_name"`
 }

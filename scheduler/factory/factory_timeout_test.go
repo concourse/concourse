@@ -42,7 +42,8 @@ var _ = Describe("Factory Timeout Step", func() {
 					Duration: "10s",
 					Step: atc.Plan{
 						Task: &atc.TaskPlan{
-							Name: "first task",
+							Name:     "first task",
+							Pipeline: "some-pipeline",
 						},
 					},
 				},

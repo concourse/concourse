@@ -68,10 +68,6 @@ var _ = Describe("DBProvider", func() {
 		provider = NewDBWorkerProvider(logger, fakeDB, nil)
 	})
 
-	JustBeforeEach(func() {
-		workers, workersErr = provider.Workers()
-	})
-
 	AfterEach(func() {
 		workerAServer.Stop()
 		workerBServer.Stop()
@@ -95,109 +91,142 @@ var _ = Describe("DBProvider", func() {
 		}).Should(HaveOccurred())
 	})
 
-	Context("when the database yields workers", func() {
-		BeforeEach(func() {
-			fakeDB.WorkersReturns([]db.WorkerInfo{
-				{
-					GardenAddr:       workerAAddr,
-					BaggageclaimURL:  workerABaggageclaimURL,
-					ActiveContainers: 2,
-					ResourceTypes: []atc.WorkerResourceType{
-						{Type: "some-resource-a", Image: "some-image-a"},
+	Context("when we call to get multiple workers", func() {
+		JustBeforeEach(func() {
+			workers, workersErr = provider.Workers()
+		})
+
+		Context("when the database yields workers", func() {
+			BeforeEach(func() {
+				fakeDB.WorkersReturns([]db.WorkerInfo{
+					{
+						GardenAddr:       workerAAddr,
+						BaggageclaimURL:  workerABaggageclaimURL,
+						ActiveContainers: 2,
+						ResourceTypes: []atc.WorkerResourceType{
+							{Type: "some-resource-a", Image: "some-image-a"},
+						},
 					},
-				},
-				{
-					GardenAddr:       workerBAddr,
-					BaggageclaimURL:  workerBBaggageclaimURL,
-					ActiveContainers: 2,
-					ResourceTypes: []atc.WorkerResourceType{
-						{Type: "some-resource-b", Image: "some-image-b"},
+					{
+						GardenAddr:       workerAAddr,
+						ActiveContainers: 2,
+						ResourceTypes: []atc.WorkerResourceType{
+							{Type: "some-resource-b", Image: "some-image-b"},
+						},
 					},
-				},
-			}, nil)
-		})
+				}, nil)
+			})
 
-		It("succeeds", func() {
-			Ω(workersErr).ShouldNot(HaveOccurred())
-		})
+			It("succeeds", func() {
+				Ω(workersErr).ShouldNot(HaveOccurred())
+			})
 
-		It("returns a worker for each one", func() {
-			Ω(workers).Should(HaveLen(2))
-		})
+			It("returns a worker for each one", func() {
+				Ω(workers).Should(HaveLen(2))
+			})
 
-		It("constructs workers with baggageclaim clients if they had addresses", func() {
-			vm, ok := workers[0].VolumeManager()
-			Ω(ok).Should(BeTrue())
-			Ω(vm).ShouldNot(BeNil())
+			It("constructs workers with baggageclaim clients if they had addresses", func() {
+				vm, ok := workers[0].VolumeManager()
+				Ω(ok).Should(BeTrue())
+				Ω(vm).ShouldNot(BeNil())
 
-			vm, ok = workers[1].VolumeManager()
-			Ω(ok).Should(BeFalse())
-			Ω(vm).Should(BeNil())
-		})
+				vm, ok = workers[1].VolumeManager()
+				Ω(ok).Should(BeFalse())
+				Ω(vm).Should(BeNil())
+			})
 
-		Describe("a created container", func() {
-			It("calls through to garden", func() {
-				id := Identifier{Name: "some-name"}
+			Describe("a created container", func() {
+				It("calls through to garden", func() {
+					id := Identifier{Name: "some-name"}
 
-				spec := ResourceTypeContainerSpec{
-					Type: "some-resource-a",
-				}
+					spec := ResourceTypeContainerSpec{
+						Type: "some-resource-a",
+					}
 
-				fakeContainer := new(gfakes.FakeContainer)
-				fakeContainer.HandleReturns("created-handle")
+					fakeContainer := new(gfakes.FakeContainer)
+					fakeContainer.HandleReturns("created-handle")
 
-				workerA.CreateReturns(fakeContainer, nil)
-				workerA.LookupReturns(fakeContainer, nil)
+					workerA.CreateReturns(fakeContainer, nil)
+					workerA.LookupReturns(fakeContainer, nil)
 
-				container, err := workers[0].CreateContainer(id, spec)
-				Ω(err).ShouldNot(HaveOccurred())
+					container, err := workers[0].CreateContainer(id, spec)
+					Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(container.Handle()).Should(Equal("created-handle"))
+					Ω(container.Handle()).Should(Equal("created-handle"))
 
-				Ω(workerA.CreateCallCount()).Should(Equal(1))
-				Ω(workerA.CreateArgsForCall(0).Properties).Should(Equal(garden.Properties{
-					"concourse:name": "some-name",
-				}))
+					Ω(workerA.CreateCallCount()).Should(Equal(1))
+					Ω(workerA.CreateArgsForCall(0).Properties).Should(Equal(garden.Properties{
+						"concourse:name": "some-name",
+					}))
 
-				err = container.Destroy()
-				Ω(err).ShouldNot(HaveOccurred())
+					err = container.Destroy()
+					Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(workerA.DestroyCallCount()).Should(Equal(1))
-				Ω(workerA.DestroyArgsForCall(0)).Should(Equal("created-handle"))
+					Ω(workerA.DestroyCallCount()).Should(Equal(1))
+					Ω(workerA.DestroyArgsForCall(0)).Should(Equal("created-handle"))
+				})
+			})
+
+			Describe("a looked-up container", func() {
+				It("calls through to garden", func() {
+					fakeContainer := new(gfakes.FakeContainer)
+					fakeContainer.HandleReturns("some-handle")
+
+					workerA.ContainersReturns([]garden.Container{fakeContainer}, nil)
+					workerA.LookupReturns(fakeContainer, nil)
+
+					container, found, err := workers[0].FindContainerForIdentifier(Identifier{Name: "some-name"})
+					Ω(err).ShouldNot(HaveOccurred())
+					Ω(found).Should(BeTrue())
+
+					Ω(container.Handle()).Should(Equal("some-handle"))
+
+					err = container.Destroy()
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Ω(workerA.DestroyCallCount()).Should(Equal(1))
+					Ω(workerA.DestroyArgsForCall(0)).Should(Equal("some-handle"))
+				})
 			})
 		})
 
-		Describe("a looked-up container", func() {
-			It("calls through to garden", func() {
-				fakeContainer := new(gfakes.FakeContainer)
-				fakeContainer.HandleReturns("some-handle")
+		Context("when the database fails to return workers", func() {
+			disaster := errors.New("nope")
 
-				workerA.ContainersReturns([]garden.Container{fakeContainer}, nil)
-				workerA.LookupReturns(fakeContainer, nil)
+			BeforeEach(func() {
+				fakeDB.WorkersReturns(nil, disaster)
+			})
 
-				container, err := workers[0].FindContainerForIdentifier(Identifier{Name: "some-name"})
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(container.Handle()).Should(Equal("some-handle"))
-
-				err = container.Destroy()
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(workerA.DestroyCallCount()).Should(Equal(1))
-				Ω(workerA.DestroyArgsForCall(0)).Should(Equal("some-handle"))
+			It("returns the error", func() {
+				Ω(workersErr).Should(Equal(disaster))
 			})
 		})
 	})
 
-	Context("when the database fails to return workers", func() {
-		disaster := errors.New("nope")
+	Context("when we call to get a single worker", func() {
+		var found bool
+		var worker Worker
 
-		BeforeEach(func() {
-			fakeDB.WorkersReturns(nil, disaster)
+		Context("when looking up workers returns an error", func() {
+			It("returns an error", func() {
+				fakeDB.GetWorkerReturns(db.WorkerInfo{}, true, errors.New("disaster"))
+
+				worker, found, workersErr = provider.GetWorker("some-name")
+				Ω(workersErr).Should(HaveOccurred())
+				Ω(worker).Should(BeNil())
+				Ω(found).Should(BeFalse())
+			})
 		})
 
-		It("returns the error", func() {
-			Ω(workersErr).Should(Equal(disaster))
+		Context("when we find no workers", func() {
+			It("returns found as false", func() {
+				fakeDB.GetWorkerReturns(db.WorkerInfo{}, false, nil)
+
+				worker, found, workersErr = provider.GetWorker("some-name")
+				Ω(workersErr).ShouldNot(HaveOccurred())
+				Ω(worker).Should(BeNil())
+				Ω(found).Should(BeFalse())
+			})
 		})
 	})
 })

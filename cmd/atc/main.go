@@ -303,6 +303,7 @@ func main() {
 				logger.Session("garden-connection"),
 			)),
 			bclient.New(*baggageclaimURL),
+			db,
 			clock.NewClock(),
 			-1,
 			resourceTypesNG,
@@ -311,7 +312,7 @@ func main() {
 			*gardenAddr,
 		)
 	} else {
-		workerClient = worker.NewPool(worker.NewDBWorkerProvider(logger, db, keepaliveDialer))
+		workerClient = worker.NewPool(worker.NewDBWorkerProvider(logger, db, keepaliveDialer), logger)
 	}
 
 	trackerFactory := resource.TrackerFactory{}
@@ -360,6 +361,7 @@ func main() {
 
 		db, // buildsDB buildserver.BuildsDB,
 		db, // workerDB workerserver.WorkerDB,
+		db, // containerDB containerServer.ContainerDB,
 		db, // pipeDB pipes.PipeDB,
 		db, // pipelinesDB db.PipelinesDB,
 

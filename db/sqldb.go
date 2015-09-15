@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -612,10 +613,10 @@ func (db *SQLDB) GetBuildEvents(buildID int, from uint) (EventSource, error) {
 
 func (db *SQLDB) AbortBuild(buildID int) error {
 	_, err := db.conn.Exec(`
-		UPDATE builds
-		SET status = 'aborted'
-		WHERE id = $1
-	`, buildID)
+   UPDATE builds
+   SET status = 'aborted'
+   WHERE id = $1
+ `, buildID)
 	if err != nil {
 		return err
 	}
@@ -689,9 +690,9 @@ func (db *SQLDB) SaveWorker(info WorkerInfo, ttl time.Duration) error {
 	if ttl == 0 {
 		result, err := db.conn.Exec(`
 			UPDATE workers
-			SET expires = NULL, active_containers = $2, resource_types = $3, platform = $4, tags = $5, baggageclaim_url = $6
+			SET expires = NULL, active_containers = $2, resource_types = $3, platform = $4, tags = $5, baggageclaim_url = $6, name = $7
 			WHERE addr = $1
-		`, info.GardenAddr, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL)
+		`, info.GardenAddr, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL, info.Name)
 		if err != nil {
 			return err
 		}
@@ -703,9 +704,9 @@ func (db *SQLDB) SaveWorker(info WorkerInfo, ttl time.Duration) error {
 
 		if affected == 0 {
 			_, err := db.conn.Exec(`
-				INSERT INTO workers (addr, expires, active_containers, resource_types, platform, tags, baggageclaim_url)
-				VALUES ($1, NULL, $2, $3, $4, $5, $6)
-			`, info.GardenAddr, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL)
+				INSERT INTO workers (addr, expires, active_containers, resource_types, platform, tags, baggageclaim_url, name)
+				VALUES ($1, NULL, $2, $3, $4, $5, $6, $7)
+			`, info.GardenAddr, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL, info.Name)
 			if err != nil {
 				return err
 			}
@@ -717,9 +718,9 @@ func (db *SQLDB) SaveWorker(info WorkerInfo, ttl time.Duration) error {
 
 		result, err := db.conn.Exec(`
 			UPDATE workers
-			SET expires = NOW() + $2::INTERVAL, active_containers = $3, resource_types = $4, platform = $5, tags = $6, baggageclaim_url = $7
+			SET expires = NOW() + $2::INTERVAL, active_containers = $3, resource_types = $4, platform = $5, tags = $6, baggageclaim_url = $7, name = $8
 			WHERE addr = $1
-		`, info.GardenAddr, interval, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL)
+		`, info.GardenAddr, interval, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL, info.Name)
 		if err != nil {
 			return err
 		}
@@ -731,9 +732,9 @@ func (db *SQLDB) SaveWorker(info WorkerInfo, ttl time.Duration) error {
 
 		if affected == 0 {
 			_, err := db.conn.Exec(`
-				INSERT INTO workers (addr, expires, active_containers, resource_types, platform, tags, baggageclaim_url)
-				VALUES ($1, NOW() + $2::INTERVAL, $3, $4, $5, $6, $7)
-			`, info.GardenAddr, interval, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL)
+				INSERT INTO workers (addr, expires, active_containers, resource_types, platform, tags, baggageclaim_url, name)
+				VALUES ($1, NOW() + $2::INTERVAL, $3, $4, $5, $6, $7, $8)
+			`, info.GardenAddr, interval, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL, info.Name)
 			if err != nil {
 				return err
 			}
@@ -756,7 +757,7 @@ func (db *SQLDB) Workers() ([]WorkerInfo, error) {
 
 	// select remaining workers
 	rows, err := db.conn.Query(`
-		SELECT addr, active_containers, resource_types, platform, tags, baggageclaim_url
+		SELECT addr, active_containers, resource_types, platform, tags, baggageclaim_url, name
 		FROM workers
 	`)
 	if err != nil {
@@ -772,7 +773,7 @@ func (db *SQLDB) Workers() ([]WorkerInfo, error) {
 		var resourceTypes []byte
 		var tags []byte
 
-		err := rows.Scan(&info.GardenAddr, &info.ActiveContainers, &resourceTypes, &info.Platform, &tags, &info.BaggageclaimURL)
+		err := rows.Scan(&info.GardenAddr, &info.ActiveContainers, &resourceTypes, &info.Platform, &tags, &info.BaggageclaimURL, &info.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -791,6 +792,240 @@ func (db *SQLDB) Workers() ([]WorkerInfo, error) {
 	}
 
 	return infos, nil
+}
+
+func (db *SQLDB) GetWorker(name string) (WorkerInfo, bool, error) {
+	// reap expired workers
+	_, err := db.conn.Exec(`
+		DELETE FROM workers
+		WHERE expires IS NOT NULL
+		AND expires < NOW()
+	`)
+	if err != nil {
+		return WorkerInfo{}, false, err
+	}
+
+	var info WorkerInfo
+	var resourceTypes []byte
+	var tags []byte
+
+	err = db.conn.QueryRow(`
+		SELECT addr, active_containers, resource_types, platform, tags, name
+		FROM workers
+		WHERE name = $1
+	`, name).Scan(&info.GardenAddr, &info.ActiveContainers, &resourceTypes, &info.Platform, &tags, &info.Name)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return WorkerInfo{}, false, nil
+		}
+
+		return WorkerInfo{}, false, err
+	}
+
+	err = json.Unmarshal(resourceTypes, &info.ResourceTypes)
+	if err != nil {
+		return WorkerInfo{}, false, err
+	}
+
+	err = json.Unmarshal(tags, &info.Tags)
+	if err != nil {
+		return WorkerInfo{}, false, err
+	}
+
+	return info, true, nil
+}
+
+func (db *SQLDB) DeleteContainerInfo(handle string) error {
+	_, err := db.conn.Exec(`
+		DELETE FROM containers
+		WHERE handle = $1
+	`, handle)
+	return err
+}
+
+func (db *SQLDB) FindContainerInfosByIdentifier(id ContainerIdentifier) ([]ContainerInfo, bool, error) {
+	_, err := db.conn.Exec(`
+		DELETE FROM containers
+		WHERE expires_at IS NOT NULL
+		AND expires_at < NOW()
+	`)
+	if err != nil {
+		return nil, false, err
+	}
+
+	whereCriteria := []string{}
+	params := []interface{}{}
+
+	if id.Name != "" {
+		whereCriteria = append(whereCriteria, fmt.Sprintf("name = $%d", len(params)+1))
+		params = append(params, id.Name)
+	}
+
+	if id.PipelineName != "" {
+		whereCriteria = append(whereCriteria, fmt.Sprintf("pipeline_name = $%d", len(params)+1))
+		params = append(params, id.PipelineName)
+	}
+
+	if id.BuildID != 0 {
+		whereCriteria = append(whereCriteria, fmt.Sprintf("build_id = $%d", len(params)+1))
+		params = append(params, id.BuildID)
+	}
+
+	if id.Type != "" {
+		whereCriteria = append(whereCriteria, fmt.Sprintf("type = $%d", len(params)+1))
+		params = append(params, id.Type.ToString())
+	}
+
+	if id.WorkerName != "" {
+		whereCriteria = append(whereCriteria, fmt.Sprintf("worker_name = $%d", len(params)+1))
+		params = append(params, id.WorkerName)
+	}
+
+	var rows *sql.Rows
+	if len(whereCriteria) > 0 {
+		rows, err = db.conn.Query(
+			fmt.Sprintf(`
+				SELECT handle, pipeline_name, type, name, build_id, worker_name
+				FROM containers
+				WHERE %s
+			`, strings.Join(whereCriteria, " AND ")),
+			params...)
+	} else {
+		rows, err = db.conn.Query(`
+		SELECT handle, pipeline_name, type, name, build_id, worker_name
+		FROM containers
+	`)
+	}
+
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer rows.Close()
+
+	infos := []ContainerInfo{}
+	for rows.Next() {
+		info := ContainerInfo{}
+		var infoType string
+
+		err := rows.Scan(&info.Handle, &info.PipelineName, &infoType, &info.Name, &info.BuildID, &info.WorkerName)
+		if err != nil {
+			return nil, false, err
+		}
+
+		info.Type, err = containerTypeFromString(infoType)
+		if err != nil {
+			return nil, false, err
+		}
+
+		infos = append(infos, info)
+	}
+
+	if len(infos) == 0 {
+		return nil, false, nil
+	}
+
+	return infos, true, nil
+}
+
+func (db *SQLDB) FindContainerInfoByIdentifier(id ContainerIdentifier) (ContainerInfo, bool, error) {
+	containers, found, err := db.FindContainerInfosByIdentifier(id)
+	if err != nil {
+		return ContainerInfo{}, false, err
+	}
+
+	if !found {
+		return ContainerInfo{}, false, nil
+	}
+
+	if len(containers) != 1 {
+		return ContainerInfo{}, false, ErrMultipleContainersFound
+	}
+
+	return containers[0], true, nil
+}
+
+func (db *SQLDB) GetContainerInfo(handle string) (ContainerInfo, bool, error) {
+	info := ContainerInfo{}
+	var infoType string
+
+	err := db.conn.QueryRow(`
+		SELECT handle, pipeline_name, type, name, build_id, worker_name, expires_at
+		FROM containers c
+		WHERE c.handle = $1
+	`, handle).Scan(&info.Handle, &info.PipelineName, &infoType, &info.Name, &info.BuildID, &info.WorkerName, &info.ExpiresAt)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return ContainerInfo{}, false, nil
+		}
+		return ContainerInfo{}, false, err
+	}
+
+	info.Type, err = containerTypeFromString(infoType)
+	if err != nil {
+		return ContainerInfo{}, false, err
+	}
+
+	return info, true, nil
+}
+
+func (db *SQLDB) CreateContainerInfo(containerInfo ContainerInfo, ttl time.Duration) error {
+	tx, err := db.conn.Begin()
+
+	if err != nil {
+		return err
+	}
+
+	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
+
+	defer tx.Rollback()
+
+	_, err = tx.Exec(`
+		INSERT INTO containers (handle, name, pipeline_name, build_id, type, worker_name, expires_at)
+		VALUES ($1, $2, $3, $4, $5, $6,  NOW() + $7::INTERVAL)
+		`,
+		containerInfo.Handle,
+		containerInfo.Name,
+		containerInfo.PipelineName,
+		containerInfo.BuildID,
+		containerInfo.Type.ToString(),
+		containerInfo.WorkerName,
+		interval,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (db *SQLDB) UpdateExpiresAtOnContainerInfo(handle string, ttl time.Duration) error {
+	tx, err := db.conn.Begin()
+
+	if err != nil {
+		return err
+	}
+
+	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
+
+	defer tx.Rollback()
+
+	_, err = tx.Exec(`
+		UPDATE containers SET expires_at = NOW() + $2::INTERVAL
+		WHERE handle = $1
+		`,
+		handle,
+		interval,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (db *SQLDB) saveBuildEvent(tx *sql.Tx, buildID int, event atc.Event) error {
