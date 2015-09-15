@@ -213,7 +213,7 @@ jobs:
             params:
               BOSH_USER: admin
               BOSH_PASSWORD: admin
-        - put: s3-bosh-logs-bucket
+        - put: testflight-logs
           params:
             from: concourse\.(.*).tgz
 
@@ -719,11 +719,12 @@ resources:
   type: time
   source:
     interval: 10m
-  
-- name: s3-bosh-logs-bucket
+
+- name: testflight-logs
   type: s3
   source:
     bucket: concourse-testflight-bosh-logs
     access_key_id: {{s3-testflight-log-access-key}}
     secret_access_key: {{s3-testflight-log-secret-key}}
     versioned_file: bosh-logs
+    region: us-west-1
