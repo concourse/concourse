@@ -271,7 +271,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 		Describe("locking", func() {
 			It("can be done generically with a unique name", func() {
-				lock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceCheckingLock("a-name")})
+				lock, err := database.AcquireWriteLock([]db.NamedLock{someLock("a-name")})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				secondLockCh := make(chan db.Lock, 1)
@@ -279,7 +279,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				go func() {
 					defer GinkgoRecover()
 
-					secondLock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceCheckingLock("a-name")})
+					secondLock, err := database.AcquireWriteLock([]db.NamedLock{someLock("a-name")})
 					Ω(err).ShouldNot(HaveOccurred())
 
 					secondLockCh <- secondLock
@@ -298,10 +298,10 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 
 			It("can be done without waiting", func() {
-				lock, err := database.AcquireWriteLockImmediately([]db.NamedLock{db.ResourceCheckingLock("a-name")})
+				lock, err := database.AcquireWriteLockImmediately([]db.NamedLock{someLock("a-name")})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				secondLock, err := database.AcquireWriteLockImmediately([]db.NamedLock{db.ResourceCheckingLock("a-name")})
+				secondLock, err := database.AcquireWriteLockImmediately([]db.NamedLock{someLock("a-name")})
 				Ω(err).Should(Equal(db.ErrLockNotAvailable))
 				Ω(secondLock).Should(BeNil())
 
@@ -310,7 +310,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 
 			It("can be done multiple times if using different locks", func() {
-				lock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceCheckingLock("name-1")})
+				lock, err := database.AcquireWriteLock([]db.NamedLock{someLock("name-1")})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				var secondLock db.Lock
@@ -319,7 +319,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				go func() {
 					defer GinkgoRecover()
 
-					secondLock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceCheckingLock("name-2")})
+					secondLock, err := database.AcquireWriteLock([]db.NamedLock{someLock("name-2")})
 					Ω(err).ShouldNot(HaveOccurred())
 
 					secondLockCh <- secondLock
@@ -335,7 +335,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 
 			It("can be done for multiple locks at a time", func() {
-				lock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceCheckingLock("name-1"), db.ResourceCheckingLock("name-2")})
+				lock, err := database.AcquireWriteLock([]db.NamedLock{someLock("name-1"), someLock("name-2")})
 				Ω(err).ShouldNot(HaveOccurred())
 
 				secondLockCh := make(chan db.Lock, 1)
@@ -343,7 +343,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				go func() {
 					defer GinkgoRecover()
 
-					secondLock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceCheckingLock("name-1")})
+					secondLock, err := database.AcquireWriteLock([]db.NamedLock{someLock("name-1")})
 					Ω(err).ShouldNot(HaveOccurred())
 
 					secondLockCh <- secondLock
@@ -356,7 +356,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				go func() {
 					defer GinkgoRecover()
 
-					thirdLock, err := database.AcquireWriteLock([]db.NamedLock{db.ResourceCheckingLock("name-2")})
+					thirdLock, err := database.AcquireWriteLock([]db.NamedLock{someLock("name-2")})
 					Ω(err).ShouldNot(HaveOccurred())
 
 					thirdLockCh <- thirdLock
@@ -381,4 +381,10 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 		})
 	}
+}
+
+type someLock string
+
+func (lock someLock) Name() string {
+	return "some-lock:" + lock
 }

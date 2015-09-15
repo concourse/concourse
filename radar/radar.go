@@ -238,10 +238,6 @@ func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig,
 	return nil
 }
 
-func (radar *Radar) checkLock(resourceName string) []db.NamedLock {
-	return []db.NamedLock{db.ResourceCheckingLock(resourceName)}
-}
-
 func (radar *Radar) setCheckInterval(resourceConfig atc.ResourceConfig) error {
 	interval := radar.interval
 	if resourceConfig.CheckEvery != "" {

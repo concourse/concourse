@@ -6,12 +6,6 @@ type NamedLock interface {
 	Name() string
 }
 
-type ResourceCheckingLock string
-
-func (namespacedResourceName ResourceCheckingLock) Name() string {
-	return "checking:" + string(namespacedResourceName)
-}
-
 type PipelineSchedulingLock string
 
 func (pipelineName PipelineSchedulingLock) Name() string {
