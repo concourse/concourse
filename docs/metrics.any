@@ -156,7 +156,7 @@ shared by everything in the Riemann community but we find that it works well.
 
   \define-metric{build finished}{
     This event is emitted when a build ends. Its value is the duration of the
-    build in milliseconds. You can use this metric in conjuntion with
+    build in milliseconds. You can use this metric in conjunction with
     \code{build started} to annotate your metrics with when builds started and
     stopped.
 
@@ -165,23 +165,23 @@ shared by everything in the Riemann community but we find that it works well.
       \item{
         \code{pipeline}
       }{
-        The pipeline which contains the build being started.
+        The pipeline which contains the build that finished.
       }
       \item{
         \code{job}
       }{
-        The job which configured the build being started.
+        The job which configured the build that finished.
       }
       \item{
         \code{build_name}
       }{
-        The name of the build being started. (Remember that build numbers in
+        The name of the build that finished. (Remember that build numbers in
         Concourse are actually names and are strings).
       }
       \item{
         \code{build_id}
       }{
-        The ID of the build being started.
+        The ID of the build that finished.
       }
     }
   }
@@ -194,4 +194,3 @@ shared by everything in the Riemann community but we find that it works well.
   \hyperlink{https://github.com/aphyr/riemann-tools}{riemann-tools} gem. We use
   \code{riemann-health}, \code{riemann-aws-rds-status}, and \code{riemann-net}.
 }
-
