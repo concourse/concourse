@@ -256,8 +256,7 @@ func (pdb *pipelineDB) GetResource(resourceName string) (SavedResource, error) {
 
 func (pdb *pipelineDB) LeaseCheck(resourceName string, interval time.Duration) (Lease, bool, error) {
 	lease := &lease{
-		conn:         pdb.conn,
-		resourceName: resourceName,
+		conn: pdb.conn,
 		logger: pdb.logger.Session("lease", lager.Data{
 			"resource": resourceName,
 		}),
@@ -280,7 +279,7 @@ func (pdb *pipelineDB) LeaseCheck(resourceName string, interval time.Duration) (
 		},
 	}
 
-	renewed, err := lease.AttemptSign(resourceName, interval)
+	renewed, err := lease.AttemptSign(interval)
 	if err != nil {
 		return nil, false, err
 	}

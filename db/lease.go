@@ -16,9 +16,8 @@ type Lease interface {
 }
 
 type lease struct {
-	conn         Conn
-	resourceName string
-	logger       lager.Logger
+	conn   Conn
+	logger lager.Logger
 
 	attemptSignFunc func(*sql.Tx) (sql.Result, error)
 	heartbeatFunc   func(*sql.Tx) (sql.Result, error)
@@ -27,7 +26,7 @@ type lease struct {
 	running   *sync.WaitGroup
 }
 
-func (l *lease) AttemptSign(resourceName string, interval time.Duration) (bool, error) {
+func (l *lease) AttemptSign(interval time.Duration) (bool, error) {
 	tx, err := l.conn.Begin()
 	if err != nil {
 		return false, err
