@@ -270,6 +270,14 @@ func (pdb *pipelineDB) LeaseCheck(resourceName string, interval time.Duration) (
 					AND now() - last_checked > ($3 || ' SECONDS')::INTERVAL
 			`, resourceName, pdb.ID, interval.Seconds())
 		},
+		heartbeatFunc: func(tx *sql.Tx) (sql.Result, error) {
+			return tx.Exec(`
+				UPDATE resources
+				SET last_checked = now()
+				WHERE name = $1
+					AND pipeline_id = $2
+			`, resourceName, pdb.ID)
+		},
 	}
 
 	renewed, err := lease.AttemptSign(resourceName, interval)

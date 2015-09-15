@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"sync"
 	"time"
 
@@ -20,6 +21,7 @@ type lease struct {
 	logger       lager.Logger
 
 	attemptSignFunc func(*sql.Tx) (sql.Result, error)
+	heartbeatFunc   func(*sql.Tx) (sql.Result, error)
 
 	breakChan chan struct{}
 	running   *sync.WaitGroup
@@ -68,6 +70,36 @@ func (c *lease) Break() {
 	c.running.Wait()
 }
 
+func (l *lease) extend() error {
+	tx, err := l.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	result, err := l.heartbeatFunc(tx)
+	if err != nil {
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return errors.New("lease not found")
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (l *lease) keepLeased(interval time.Duration) {
 	defer l.running.Done()
 
@@ -78,14 +110,9 @@ dance:
 	for {
 		select {
 		case <-ticker.C:
-			renewed, err := l.AttemptSign(l.resourceName, interval)
+			err := l.extend()
 			if err != nil {
 				l.logger.Error("failed-to-renew-lease", err)
-				break
-			}
-
-			if !renewed {
-				l.logger.Debug("lease-was-already-renewed-recently")
 				break
 			}
 

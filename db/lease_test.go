@@ -104,7 +104,7 @@ var _ = Describe("Leases", func() {
 
 				lease.Break()
 
-				time.Sleep(600 * time.Millisecond)
+				time.Sleep(time.Second)
 
 				newLease, leased, err := pipelineDB.LeaseCheck("some-resource", 1*time.Second)
 				Ω(err).ShouldNot(HaveOccurred())
