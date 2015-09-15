@@ -31,7 +31,7 @@ var _ = Describe("Radar", func() {
 		resourceConfig atc.ResourceConfig
 		savedResource  db.SavedResource
 
-		fakeContract *dbfakes.FakeContract
+		fakeLease *dbfakes.FakeLease
 
 		process ifrit.Process
 	)
@@ -67,7 +67,7 @@ var _ = Describe("Radar", func() {
 			Paused: false,
 		}
 
-		fakeContract = &dbfakes.FakeContract{}
+		fakeLease = &dbfakes.FakeLease{}
 
 		fakeRadarDB.GetResourceReturns(savedResource, nil)
 	})
@@ -105,14 +105,14 @@ var _ = Describe("Radar", func() {
 				fakeRadarDB.LeaseCheckReturns(nil, false, nil)
 			})
 
-			It("grabs a resource checking contract before checking, breaks contract after done", func() {
+			It("grabs a resource checking lease before checking, breaks lease after done", func() {
 				Consistently(times, 500*time.Millisecond).ShouldNot(Receive())
 			})
 		})
 
 		Context("if the lease can be acquired", func() {
 			BeforeEach(func() {
-				fakeRadarDB.LeaseCheckReturns(fakeContract, true, nil)
+				fakeRadarDB.LeaseCheckReturns(fakeLease, true, nil)
 			})
 
 			It("constructs the resource of the correct type", func() {
@@ -192,7 +192,7 @@ var _ = Describe("Radar", func() {
 				})
 			})
 
-			It("grabs a resource checking contract before checking, breaks contract after done", func() {
+			It("grabs a resource checking lease before checking, breaks lease after done", func() {
 				Eventually(times).Should(Receive())
 
 				Ω(fakeRadarDB.LeaseCheckCallCount()).Should(Equal(1))
@@ -201,7 +201,7 @@ var _ = Describe("Radar", func() {
 				Ω(resourceName).Should(Equal("some-resource"))
 				Ω(leaseInterval).Should(Equal(interval))
 
-				Ω(fakeContract.BreakCallCount()).Should(Equal(1))
+				Ω(fakeLease.BreakCallCount()).Should(Equal(1))
 			})
 
 			It("releases after checking", func() {
@@ -562,7 +562,7 @@ var _ = Describe("Radar", func() {
 
 		Context("if the lease can be acquired", func() {
 			BeforeEach(func() {
-				fakeRadarDB.LeaseCheckReturns(fakeContract, true, nil)
+				fakeRadarDB.LeaseCheckReturns(fakeLease, true, nil)
 			})
 
 			It("succeeds", func() {
@@ -586,14 +586,14 @@ var _ = Describe("Radar", func() {
 				Ω(tags).Should(BeEmpty()) // This allows the check to run on any worker
 			})
 
-			It("grabs a resource checking contract before checking, breaks contract after done", func() {
+			It("grabs a resource checking lease before checking, breaks lease after done", func() {
 				Ω(fakeRadarDB.LeaseCheckCallCount()).Should(Equal(1))
 
 				resourceName, leaseInterval := fakeRadarDB.LeaseCheckArgsForCall(0)
 				Ω(resourceName).Should(Equal("some-resource"))
 				Ω(leaseInterval).Should(Equal(interval))
 
-				Ω(fakeContract.BreakCallCount()).Should(Equal(1))
+				Ω(fakeLease.BreakCallCount()).Should(Equal(1))
 			})
 
 			It("releases the resource", func() {

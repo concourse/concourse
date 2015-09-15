@@ -7,13 +7,13 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-//go:generate counterfeiter . Contract
+//go:generate counterfeiter . Lease
 
-type Contract interface {
+type Lease interface {
 	Break()
 }
 
-type contract struct {
+type lease struct {
 	pdb          *pipelineDB
 	resourceName string
 	logger       lager.Logger
@@ -22,7 +22,7 @@ type contract struct {
 	running   *sync.WaitGroup
 }
 
-func (c *contract) AttemptSign(resourceName string, interval time.Duration) (bool, error) {
+func (c *lease) AttemptSign(resourceName string, interval time.Duration) (bool, error) {
 	tx, err := c.pdb.conn.Begin()
 	if err != nil {
 		return false, err
@@ -58,7 +58,7 @@ func (c *contract) AttemptSign(resourceName string, interval time.Duration) (boo
 	return true, nil
 }
 
-func (c *contract) KeepSigned(interval time.Duration) {
+func (c *lease) KeepSigned(interval time.Duration) {
 	c.breakChan = make(chan struct{})
 	c.running = &sync.WaitGroup{}
 	c.running.Add(1)
@@ -66,12 +66,12 @@ func (c *contract) KeepSigned(interval time.Duration) {
 	go c.keepLeased(interval)
 }
 
-func (c *contract) Break() {
+func (c *lease) Break() {
 	close(c.breakChan)
 	c.running.Wait()
 }
 
-func (c *contract) keepLeased(interval time.Duration) {
+func (c *lease) keepLeased(interval time.Duration) {
 	defer c.running.Done()
 
 	ticker := time.NewTicker(interval / 2)

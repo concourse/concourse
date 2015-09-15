@@ -158,14 +158,14 @@ type FakePipelineDB struct {
 	setResourceCheckErrorReturns struct {
 		result1 error
 	}
-	LeaseCheckStub        func(resource string, length time.Duration) (db.Contract, bool, error)
+	LeaseCheckStub        func(resource string, length time.Duration) (db.Lease, bool, error)
 	leaseCheckMutex       sync.RWMutex
 	leaseCheckArgsForCall []struct {
 		resource string
 		length   time.Duration
 	}
 	leaseCheckReturns struct {
-		result1 db.Contract
+		result1 db.Lease
 		result2 bool
 		result3 error
 	}
@@ -924,7 +924,7 @@ func (fake *FakePipelineDB) SetResourceCheckErrorReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakePipelineDB) LeaseCheck(resource string, length time.Duration) (db.Contract, bool, error) {
+func (fake *FakePipelineDB) LeaseCheck(resource string, length time.Duration) (db.Lease, bool, error) {
 	fake.leaseCheckMutex.Lock()
 	fake.leaseCheckArgsForCall = append(fake.leaseCheckArgsForCall, struct {
 		resource string
@@ -950,10 +950,10 @@ func (fake *FakePipelineDB) LeaseCheckArgsForCall(i int) (string, time.Duration)
 	return fake.leaseCheckArgsForCall[i].resource, fake.leaseCheckArgsForCall[i].length
 }
 
-func (fake *FakePipelineDB) LeaseCheckReturns(result1 db.Contract, result2 bool, result3 error) {
+func (fake *FakePipelineDB) LeaseCheckReturns(result1 db.Lease, result2 bool, result3 error) {
 	fake.LeaseCheckStub = nil
 	fake.leaseCheckReturns = struct {
-		result1 db.Contract
+		result1 db.Lease
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

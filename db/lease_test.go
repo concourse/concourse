@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Contracts", func() {
+var _ = Describe("Leases", func() {
 	var (
 		dbConn   *sql.DB
 		listener *pq.Listener
@@ -76,12 +76,12 @@ var _ = Describe("Contracts", func() {
 		})
 
 		Context("when there has been a check recently", func() {
-			It("does not get the contract", func() {
-				contract, leased, err := pipelineDB.LeaseCheck("some-resource", 1*time.Second)
+			It("does not get the lease", func() {
+				lease, leased, err := pipelineDB.LeaseCheck("some-resource", 1*time.Second)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(leased).Should(BeTrue())
 
-				contract.Break()
+				lease.Break()
 
 				_, leased, err = pipelineDB.LeaseCheck("some-resource", 1*time.Second)
 				Ω(err).ShouldNot(HaveOccurred())
@@ -90,8 +90,8 @@ var _ = Describe("Contracts", func() {
 		})
 
 		Context("when there has not been a check recently", func() {
-			It("gets and keeps the contract and stops others from getting it", func() {
-				contract, leased, err := pipelineDB.LeaseCheck("some-resource", 1*time.Second)
+			It("gets and keeps the lease and stops others from getting it", func() {
+				lease, leased, err := pipelineDB.LeaseCheck("some-resource", 1*time.Second)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(leased).Should(BeTrue())
 
@@ -102,15 +102,15 @@ var _ = Describe("Contracts", func() {
 					return leased
 				}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
 
-				contract.Break()
+				lease.Break()
 
 				time.Sleep(600 * time.Millisecond)
 
-				newContract, leased, err := pipelineDB.LeaseCheck("some-resource", 1*time.Second)
+				newLease, leased, err := pipelineDB.LeaseCheck("some-resource", 1*time.Second)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(leased).Should(BeTrue())
 
-				newContract.Break()
+				newLease.Break()
 			})
 		})
 	})

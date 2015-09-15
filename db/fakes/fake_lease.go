@@ -7,13 +7,13 @@ import (
 	"github.com/concourse/atc/db"
 )
 
-type FakeContract struct {
+type FakeLease struct {
 	BreakStub        func()
 	breakMutex       sync.RWMutex
 	breakArgsForCall []struct{}
 }
 
-func (fake *FakeContract) Break() {
+func (fake *FakeLease) Break() {
 	fake.breakMutex.Lock()
 	fake.breakArgsForCall = append(fake.breakArgsForCall, struct{}{})
 	fake.breakMutex.Unlock()
@@ -22,10 +22,10 @@ func (fake *FakeContract) Break() {
 	}
 }
 
-func (fake *FakeContract) BreakCallCount() int {
+func (fake *FakeLease) BreakCallCount() int {
 	fake.breakMutex.RLock()
 	defer fake.breakMutex.RUnlock()
 	return len(fake.breakArgsForCall)
 }
 
-var _ db.Contract = new(FakeContract)
+var _ db.Lease = new(FakeLease)

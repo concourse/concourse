@@ -41,7 +41,7 @@ type PipelineDB interface {
 	EnableVersionedResource(resourceID int) error
 	DisableVersionedResource(resourceID int) error
 	SetResourceCheckError(resource SavedResource, err error) error
-	LeaseCheck(resource string, length time.Duration) (Contract, bool, error)
+	LeaseCheck(resource string, length time.Duration) (Lease, bool, error)
 
 	GetJob(job string) (SavedJob, error)
 	PauseJob(job string) error
@@ -254,16 +254,16 @@ func (pdb *pipelineDB) GetResource(resourceName string) (SavedResource, error) {
 	return resource, nil
 }
 
-func (pdb *pipelineDB) LeaseCheck(resourceName string, interval time.Duration) (Contract, bool, error) {
-	contract := &contract{
+func (pdb *pipelineDB) LeaseCheck(resourceName string, interval time.Duration) (Lease, bool, error) {
+	lease := &lease{
 		pdb:          pdb,
 		resourceName: resourceName,
-		logger: pdb.logger.Session("contract", lager.Data{
+		logger: pdb.logger.Session("lease", lager.Data{
 			"resource": resourceName,
 		}),
 	}
 
-	renewed, err := contract.AttemptSign(resourceName, interval)
+	renewed, err := lease.AttemptSign(resourceName, interval)
 	if err != nil {
 		return nil, false, err
 	}
@@ -272,9 +272,9 @@ func (pdb *pipelineDB) LeaseCheck(resourceName string, interval time.Duration) (
 		return nil, renewed, nil
 	}
 
-	contract.KeepSigned(interval)
+	lease.KeepSigned(interval)
 
-	return contract, true, nil
+	return lease, true, nil
 }
 
 func (pdb *pipelineDB) GetResourceHistory(resourceName string) ([]*VersionHistory, error) {
