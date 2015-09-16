@@ -48,4 +48,5 @@ var Migrations = []migration.Migrator{
 	AddLastScheduledToPipelines,
 	AddCheckingToResources,
 	AddUniqueConstraintToResources,
+	RemoveSourceFromVersionedResources,
 }

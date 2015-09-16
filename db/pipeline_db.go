@@ -387,7 +387,7 @@ func (pdb *pipelineDB) GetResourceHistoryCursor(resourceName string, startingID 
 		vrRows, err = pdb.conn.Query(fmt.Sprintf(`
 		SELECT sub.*
 		FROM (
-			SELECT v.id, v.enabled, v.type, v.version, v.source, v.metadata, r.name
+			SELECT v.id, v.enabled, v.type, v.version, v.metadata, r.name
 			FROM versioned_resources v
 			INNER JOIN resources r ON v.resource_id = r.id
 			WHERE v.resource_id = $1
@@ -399,7 +399,7 @@ func (pdb *pipelineDB) GetResourceHistoryCursor(resourceName string, startingID 
 	`, limitQuery), params...)
 	} else {
 		vrRows, err = pdb.conn.Query(fmt.Sprintf(`
-			SELECT v.id, v.enabled, v.type, v.version, v.source, v.metadata, r.name
+			SELECT v.id, v.enabled, v.type, v.version, v.metadata, r.name
 			FROM versioned_resources v
 			INNER JOIN resources r ON v.resource_id = r.id
 			WHERE v.resource_id = $1
@@ -418,14 +418,9 @@ func (pdb *pipelineDB) GetResourceHistoryCursor(resourceName string, startingID 
 	for vrRows.Next() {
 		var svr SavedVersionedResource
 
-		var versionString, sourceString, metadataString string
+		var versionString, metadataString string
 
-		err := vrRows.Scan(&svr.ID, &svr.Enabled, &svr.Type, &versionString, &sourceString, &metadataString, &svr.Resource)
-		if err != nil {
-			return nil, false, err
-		}
-
-		err = json.Unmarshal([]byte(sourceString), &svr.Source)
+		err := vrRows.Scan(&svr.ID, &svr.Enabled, &svr.Type, &versionString, &metadataString, &svr.Resource)
 		if err != nil {
 			return nil, false, err
 		}
@@ -636,7 +631,6 @@ func (pdb *pipelineDB) SaveResourceVersions(config atc.ResourceConfig, versions 
 		_, err := pdb.saveVersionedResource(tx, VersionedResource{
 			Resource: config.Name,
 			Type:     config.Type,
-			Source:   Source(config.Source),
 			Version:  Version(version),
 		})
 		if err != nil {
@@ -697,7 +691,7 @@ func (pdb *pipelineDB) EnableVersionedResource(resourceID int) error {
 }
 
 func (pdb *pipelineDB) GetLatestVersionedResource(resource SavedResource) (SavedVersionedResource, error) {
-	var sourceBytes, versionBytes, metadataBytes string
+	var versionBytes, metadataBytes string
 
 	svr := SavedVersionedResource{
 		VersionedResource: VersionedResource{
@@ -706,17 +700,12 @@ func (pdb *pipelineDB) GetLatestVersionedResource(resource SavedResource) (Saved
 	}
 
 	err := pdb.conn.QueryRow(`
-		SELECT id, enabled, type, source, version, metadata
+		SELECT id, enabled, type, version, metadata
 		FROM versioned_resources
 		WHERE resource_id = $1
 		ORDER BY id DESC
 		LIMIT 1
-	`, resource.ID).Scan(&svr.ID, &svr.Enabled, &svr.Type, &sourceBytes, &versionBytes, &metadataBytes)
-	if err != nil {
-		return SavedVersionedResource{}, err
-	}
-
-	err = json.Unmarshal([]byte(sourceBytes), &svr.Source)
+	`, resource.ID).Scan(&svr.ID, &svr.Enabled, &svr.Type, &versionBytes, &metadataBytes)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
@@ -781,11 +770,6 @@ func (pdb *pipelineDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (
 		return SavedVersionedResource{}, err
 	}
 
-	sourceJSON, err := json.Marshal(vr.Source)
-	if err != nil {
-		return SavedVersionedResource{}, err
-	}
-
 	metadataJSON, err := json.Marshal(vr.Metadata)
 	if err != nil {
 		return SavedVersionedResource{}, err
@@ -795,8 +779,8 @@ func (pdb *pipelineDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (
 	var enabled bool
 
 	_, err = tx.Exec(`
-		INSERT INTO versioned_resources (resource_id, type, version, source, metadata)
-		SELECT $1, $2, $3, $4, $5
+		INSERT INTO versioned_resources (resource_id, type, version, metadata)
+		SELECT $1, $2, $3, $4
 		WHERE NOT EXISTS (
 			SELECT 1
 			FROM versioned_resources
@@ -804,7 +788,7 @@ func (pdb *pipelineDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (
 			AND type = $2
 			AND version = $3
 		)
-	`, savedResource.ID, vr.Type, string(versionJSON), string(sourceJSON), string(metadataJSON))
+	`, savedResource.ID, vr.Type, string(versionJSON), string(metadataJSON))
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
@@ -812,12 +796,12 @@ func (pdb *pipelineDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (
 	// separate from above, as it conditionally inserts (can't use RETURNING)
 	err = tx.QueryRow(`
 		UPDATE versioned_resources
-		SET source = $4, metadata = $5
+		SET metadata = $4
 		WHERE resource_id = $1
 		AND type = $2
 		AND version = $3
 		RETURNING id, enabled
-	`, savedResource.ID, vr.Type, string(versionJSON), string(sourceJSON), string(metadataJSON)).Scan(&id, &enabled)
+	`, savedResource.ID, vr.Type, string(versionJSON), string(metadataJSON)).Scan(&id, &enabled)
 
 	if err != nil {
 		return SavedVersionedResource{}, err
@@ -1257,7 +1241,7 @@ func (pdb *pipelineDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutp
 	outputs := []BuildOutput{}
 
 	rows, err := pdb.conn.Query(`
-		SELECT i.name, r.name, v.type, v.source, v.version, v.metadata,
+		SELECT i.name, r.name, v.type, v.version, v.metadata,
 		NOT EXISTS (
 			SELECT 1
 			FROM build_inputs ci, builds cb
@@ -1290,13 +1274,8 @@ func (pdb *pipelineDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutp
 		var vr VersionedResource
 		var firstOccurrence bool
 
-		var source, version, metadata string
-		err := rows.Scan(&inputName, &vr.Resource, &vr.Type, &source, &version, &metadata, &firstOccurrence)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		err = json.Unmarshal([]byte(source), &vr.Source)
+		var version, metadata string
+		err := rows.Scan(&inputName, &vr.Resource, &vr.Type, &version, &metadata, &firstOccurrence)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1321,7 +1300,7 @@ func (pdb *pipelineDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutp
 	}
 
 	rows, err = pdb.conn.Query(`
-		SELECT r.name, v.type, v.source, v.version, v.metadata
+		SELECT r.name, v.type, v.version, v.metadata
 		FROM versioned_resources v, build_outputs o, builds b, resources r
 		WHERE b.id = $1
 		AND o.build_id = b.id
@@ -1338,13 +1317,8 @@ func (pdb *pipelineDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutp
 	for rows.Next() {
 		var vr VersionedResource
 
-		var source, version, metadata string
-		err := rows.Scan(&vr.Resource, &vr.Type, &source, &version, &metadata)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		err = json.Unmarshal([]byte(source), &vr.Source)
+		var version, metadata string
+		err := rows.Scan(&vr.Resource, &vr.Type, &version, &metadata)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1754,19 +1728,14 @@ func (pdb *pipelineDB) GetLatestInputVersions(db *algorithm.VersionsDB, jobName 
 			Enabled: true, // this is inherent with the following query
 		}
 
-		var source, version, metadata string
+		var version, metadata string
 
 		err := pdb.conn.QueryRow(`
-			SELECT r.name, vr.type, vr.source, vr.version, vr.metadata
+			SELECT r.name, vr.type, vr.version, vr.metadata
 			FROM versioned_resources vr, resources r
 			WHERE vr.id = $1
 				AND vr.resource_id = r.id
-		`, id).Scan(&svr.Resource, &svr.Type, &source, &version, &metadata)
-		if err != nil {
-			return nil, err
-		}
-
-		err = json.Unmarshal([]byte(source), &svr.Source)
+		`, id).Scan(&svr.Resource, &svr.Type, &version, &metadata)
 		if err != nil {
 			return nil, err
 		}

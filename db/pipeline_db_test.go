@@ -580,7 +580,6 @@ var _ = Describe("PipelineDB", func() {
 				Ω(savedVR.VersionedResource).Should(Equal(db.VersionedResource{
 					Resource: "some-resource",
 					Type:     "some-type",
-					Source:   db.Source{"some": "source"},
 					Version:  db.Version{"version": "1"},
 				}))
 
@@ -796,7 +795,6 @@ var _ = Describe("PipelineDB", func() {
 				Ω(savedVR.VersionedResource).Should(Equal(db.VersionedResource{
 					Resource: "some-resource",
 					Type:     "some-type",
-					Source:   db.Source{"some": "source"},
 					Version:  db.Version{"version": "1"},
 				}))
 
@@ -813,7 +811,6 @@ var _ = Describe("PipelineDB", func() {
 				Ω(savedVR.VersionedResource).Should(Equal(db.VersionedResource{
 					Resource: "some-resource",
 					Type:     "some-type",
-					Source:   db.Source{"some": "source"},
 					Version:  db.Version{"version": "3"},
 				}))
 			})
@@ -1076,7 +1073,6 @@ var _ = Describe("PipelineDB", func() {
 				PipelineName: "a-pipeline-name",
 				Resource:     "some-resource",
 				Type:         "some-type",
-				Source:       db.Source{"some": "source"},
 				Version:      db.Version{"ver": "1"},
 				Metadata:     buildMetadata,
 			}
@@ -1085,7 +1081,6 @@ var _ = Describe("PipelineDB", func() {
 				PipelineName: "a-pipeline-name",
 				Resource:     "some-other-resource",
 				Type:         "some-type",
-				Source:       db.Source{"some": "other-source"},
 				Version:      db.Version{"ver": "2"},
 			}
 
@@ -1234,7 +1229,6 @@ var _ = Describe("PipelineDB", func() {
 				PipelineName: "a-pipeline-name",
 				Resource:     "some-resource",
 				Type:         "some-type",
-				Source:       db.Source{"some": "source"},
 				Version:      db.Version{"ver": "1"},
 				Metadata:     buildMetadata,
 			}
@@ -1243,7 +1237,6 @@ var _ = Describe("PipelineDB", func() {
 				PipelineName: "a-pipeline-name",
 				Resource:     "some-other-resource",
 				Type:         "some-type",
-				Source:       db.Source{"some": "other-source"},
 				Version:      db.Version{"ver": "2"},
 			}
 
@@ -1402,7 +1395,6 @@ var _ = Describe("PipelineDB", func() {
 				PipelineName: "a-pipeline-name",
 				Resource:     "some-resource",
 				Type:         "some-type",
-				Source:       db.Source{"some": "source"},
 				Version:      db.Version{"ver": "1"},
 			}
 
@@ -1410,7 +1402,6 @@ var _ = Describe("PipelineDB", func() {
 				PipelineName: "a-pipeline-name",
 				Resource:     "some-other-resource",
 				Type:         "some-type",
-				Source:       db.Source{"some": "other-source"},
 				Version:      db.Version{"ver": "2"},
 			}
 

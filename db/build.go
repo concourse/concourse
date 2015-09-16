@@ -66,7 +66,6 @@ func (r SavedResource) FailingToCheck() bool {
 type VersionedResource struct {
 	Resource     string
 	Type         string
-	Source       Source
 	Version      Version
 	Metadata     []MetadataField
 	PipelineName string
@@ -103,8 +102,6 @@ func (vrs SavedVersionedResources) Lookup(name string) (SavedVersionedResource, 
 
 	return SavedVersionedResource{}, false
 }
-
-type Source map[string]interface{}
 
 type Version map[string]interface{}
 
