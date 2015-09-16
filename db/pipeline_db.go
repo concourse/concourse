@@ -43,7 +43,7 @@ type PipelineDB interface {
 	EnableVersionedResource(resourceID int) error
 	DisableVersionedResource(resourceID int) error
 	SetResourceCheckError(resource SavedResource, err error) error
-	LeaseCheck(resource string, length time.Duration) (Lease, bool, error)
+	LeaseCheck(resource string, length time.Duration, immediate bool) (Lease, bool, error)
 
 	GetJob(job string) (SavedJob, error)
 	PauseJob(job string) error
@@ -256,20 +256,31 @@ func (pdb *pipelineDB) GetResource(resourceName string) (SavedResource, error) {
 	return resource, nil
 }
 
-func (pdb *pipelineDB) LeaseCheck(resourceName string, interval time.Duration) (Lease, bool, error) {
+func (pdb *pipelineDB) LeaseCheck(resourceName string, interval time.Duration, immediate bool) (Lease, bool, error) {
+	logger := pdb.logger.Session("lease", lager.Data{
+		"resource": resourceName,
+	})
+
 	lease := &lease{
-		conn: pdb.conn,
-		logger: pdb.logger.Session("lease", lager.Data{
-			"resource": resourceName,
-		}),
+		conn:   pdb.conn,
+		logger: logger,
 		attemptSignFunc: func(tx *sql.Tx) (sql.Result, error) {
+			params := []interface{}{resourceName, pdb.ID}
+
+			condition := ""
+			if immediate {
+				condition = "NOT checking"
+			} else {
+				condition = "now() - last_checked > ($3 || ' SECONDS')::INTERVAL"
+				params = append(params, interval.Seconds())
+			}
+
 			return tx.Exec(`
 				UPDATE resources
-				SET last_checked = now()
+				SET last_checked = now(), checking = true
 				WHERE name = $1
 					AND pipeline_id = $2
-					AND now() - last_checked > ($3 || ' SECONDS')::INTERVAL
-			`, resourceName, pdb.ID, interval.Seconds())
+					AND `+condition, params...)
 		},
 		heartbeatFunc: func(tx *sql.Tx) (sql.Result, error) {
 			return tx.Exec(`
@@ -278,6 +289,17 @@ func (pdb *pipelineDB) LeaseCheck(resourceName string, interval time.Duration) (
 				WHERE name = $1
 					AND pipeline_id = $2
 			`, resourceName, pdb.ID)
+		},
+		breakFunc: func() {
+			_, err := pdb.conn.Exec(`
+				UPDATE resources
+				SET checking = false
+				WHERE name = $1
+				  AND pipeline_id = $2
+			`, resourceName, pdb.ID)
+			if err != nil {
+				logger.Error("failed-to-reset-checking-state", err)
+			}
 		},
 	}
 

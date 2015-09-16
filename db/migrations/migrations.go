@@ -46,4 +46,5 @@ var Migrations = []migration.Migrator{
 	AddLastCheckedToResources,
 	AddLastTrackedToBuilds,
 	AddLastScheduledToPipelines,
+	AddCheckingToResources,
 }

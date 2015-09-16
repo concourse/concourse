@@ -39,7 +39,7 @@ type RadarDB interface {
 
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 	SetResourceCheckError(resource db.SavedResource, err error) error
-	LeaseCheck(resource string, interval time.Duration) (db.Lease, bool, error)
+	LeaseCheck(resource string, interval time.Duration, immediate bool) (db.Lease, bool, error)
 }
 
 type Radar struct {
@@ -96,7 +96,7 @@ func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runn
 					return err
 				}
 
-				lease, leased, err := radar.db.LeaseCheck(resourceName, radar.interval)
+				lease, leased, err := radar.db.LeaseCheck(resourceName, radar.interval, false)
 
 				if err != nil {
 					leaseLogger.Error("failed-to-get-lease", err, lager.Data{
@@ -137,22 +137,26 @@ func (radar *Radar) Scan(logger lager.Logger, resourceName string) error {
 		"resource": resourceName,
 	})
 
-	lease, leased, err := radar.db.LeaseCheck(resourceName, radar.interval)
+	for {
+		lease, leased, err := radar.db.LeaseCheck(resourceName, radar.interval, true)
+		if err != nil {
+			leaseLogger.Error("failed-to-get-lease", err, lager.Data{
+				"resource": resourceName,
+			})
 
-	if err != nil {
-		leaseLogger.Error("failed-to-get-lease", err, lager.Data{
-			"resource": resourceName,
-		})
+			return err
+		}
 
-		return err
+		if !leased {
+			leaseLogger.Debug("did-not-get-lease")
+			time.Sleep(time.Second)
+			continue
+		}
+
+		defer lease.Break()
+
+		break
 	}
-
-	if !leased {
-		leaseLogger.Debug("did-not-get-lease")
-		return nil
-	}
-
-	defer lease.Break()
 
 	resourceConfig, err := radar.getResourceConfig(logger, resourceName)
 	if err != nil {
@@ -203,6 +207,7 @@ func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig,
 	})
 
 	newVersions, err := res.Check(resourceConfig.Source, atc.Version(from))
+
 	setErr := radar.db.SetResourceCheckError(savedResource, err)
 	if setErr != nil {
 		logger.Error("failed-to-set-check-error", err)

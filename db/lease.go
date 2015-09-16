@@ -21,6 +21,7 @@ type lease struct {
 
 	attemptSignFunc func(*sql.Tx) (sql.Result, error)
 	heartbeatFunc   func(*sql.Tx) (sql.Result, error)
+	breakFunc       func()
 
 	breakChan chan struct{}
 	running   *sync.WaitGroup
@@ -64,9 +65,13 @@ func (l *lease) KeepSigned(interval time.Duration) {
 	go l.keepLeased(interval)
 }
 
-func (c *lease) Break() {
-	close(c.breakChan)
-	c.running.Wait()
+func (l *lease) Break() {
+	close(l.breakChan)
+	l.running.Wait()
+
+	if l.breakFunc != nil {
+		l.breakFunc()
+	}
 }
 
 func (l *lease) extend() error {

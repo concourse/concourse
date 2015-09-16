@@ -168,11 +168,12 @@ type FakePipelineDB struct {
 	setResourceCheckErrorReturns struct {
 		result1 error
 	}
-	LeaseCheckStub        func(resource string, length time.Duration) (db.Lease, bool, error)
+	LeaseCheckStub        func(resource string, length time.Duration, immediate bool) (db.Lease, bool, error)
 	leaseCheckMutex       sync.RWMutex
 	leaseCheckArgsForCall []struct {
-		resource string
-		length   time.Duration
+		resource  string
+		length    time.Duration
+		immediate bool
 	}
 	leaseCheckReturns struct {
 		result1 db.Lease
@@ -968,15 +969,16 @@ func (fake *FakePipelineDB) SetResourceCheckErrorReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakePipelineDB) LeaseCheck(resource string, length time.Duration) (db.Lease, bool, error) {
+func (fake *FakePipelineDB) LeaseCheck(resource string, length time.Duration, immediate bool) (db.Lease, bool, error) {
 	fake.leaseCheckMutex.Lock()
 	fake.leaseCheckArgsForCall = append(fake.leaseCheckArgsForCall, struct {
-		resource string
-		length   time.Duration
-	}{resource, length})
+		resource  string
+		length    time.Duration
+		immediate bool
+	}{resource, length, immediate})
 	fake.leaseCheckMutex.Unlock()
 	if fake.LeaseCheckStub != nil {
-		return fake.LeaseCheckStub(resource, length)
+		return fake.LeaseCheckStub(resource, length, immediate)
 	} else {
 		return fake.leaseCheckReturns.result1, fake.leaseCheckReturns.result2, fake.leaseCheckReturns.result3
 	}
@@ -988,10 +990,10 @@ func (fake *FakePipelineDB) LeaseCheckCallCount() int {
 	return len(fake.leaseCheckArgsForCall)
 }
 
-func (fake *FakePipelineDB) LeaseCheckArgsForCall(i int) (string, time.Duration) {
+func (fake *FakePipelineDB) LeaseCheckArgsForCall(i int) (string, time.Duration, bool) {
 	fake.leaseCheckMutex.RLock()
 	defer fake.leaseCheckMutex.RUnlock()
-	return fake.leaseCheckArgsForCall[i].resource, fake.leaseCheckArgsForCall[i].length
+	return fake.leaseCheckArgsForCall[i].resource, fake.leaseCheckArgsForCall[i].length, fake.leaseCheckArgsForCall[i].immediate
 }
 
 func (fake *FakePipelineDB) LeaseCheckReturns(result1 db.Lease, result2 bool, result3 error) {

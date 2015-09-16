@@ -192,14 +192,15 @@ var _ = Describe("Radar", func() {
 				})
 			})
 
-			It("grabs a resource checking lease before checking, breaks lease after done", func() {
+			It("grabs a periodic resource checking lease before checking, breaks lease after done", func() {
 				Eventually(times).Should(Receive())
 
 				Ω(fakeRadarDB.LeaseCheckCallCount()).Should(Equal(1))
 
-				resourceName, leaseInterval := fakeRadarDB.LeaseCheckArgsForCall(0)
+				resourceName, leaseInterval, immediate := fakeRadarDB.LeaseCheckArgsForCall(0)
 				Ω(resourceName).Should(Equal("some-resource"))
 				Ω(leaseInterval).Should(Equal(interval))
+				Ω(immediate).Should(BeFalse())
 
 				Ω(fakeLease.BreakCallCount()).Should(Equal(1))
 			})
@@ -586,14 +587,55 @@ var _ = Describe("Radar", func() {
 				Ω(tags).Should(BeEmpty()) // This allows the check to run on any worker
 			})
 
-			It("grabs a resource checking lease before checking, breaks lease after done", func() {
+			It("grabs an immediate resource checking lease before checking, breaks lease after done", func() {
 				Ω(fakeRadarDB.LeaseCheckCallCount()).Should(Equal(1))
 
-				resourceName, leaseInterval := fakeRadarDB.LeaseCheckArgsForCall(0)
+				resourceName, leaseInterval, immediate := fakeRadarDB.LeaseCheckArgsForCall(0)
 				Ω(resourceName).Should(Equal("some-resource"))
 				Ω(leaseInterval).Should(Equal(interval))
+				Ω(immediate).Should(BeTrue())
 
 				Ω(fakeLease.BreakCallCount()).Should(Equal(1))
+			})
+
+			Context("when the lease is not immediately available", func() {
+				BeforeEach(func() {
+					results := make(chan bool, 4)
+					results <- false
+					results <- false
+					results <- true
+					results <- true
+					close(results)
+
+					fakeRadarDB.LeaseCheckStub = func(resourceName string, interval time.Duration, immediate bool) (db.Lease, bool, error) {
+						if <-results {
+							return fakeLease, true, nil
+						} else {
+							return nil, false, nil
+						}
+					}
+				})
+
+				It("retries until it is", func() {
+					Ω(fakeRadarDB.LeaseCheckCallCount()).Should(Equal(3))
+
+					resourceName, leaseInterval, immediate := fakeRadarDB.LeaseCheckArgsForCall(0)
+					Ω(resourceName).Should(Equal("some-resource"))
+					Ω(leaseInterval).Should(Equal(interval))
+					Ω(immediate).Should(BeTrue())
+
+					resourceName, leaseInterval, immediate = fakeRadarDB.LeaseCheckArgsForCall(1)
+					Ω(resourceName).Should(Equal("some-resource"))
+					Ω(leaseInterval).Should(Equal(interval))
+					Ω(immediate).Should(BeTrue())
+
+					resourceName, leaseInterval, immediate = fakeRadarDB.LeaseCheckArgsForCall(2)
+					Ω(resourceName).Should(Equal("some-resource"))
+					Ω(leaseInterval).Should(Equal(interval))
+					Ω(immediate).Should(BeTrue())
+
+					Ω(fakeLease.BreakCallCount()).Should(Equal(1))
+				})
 			})
 
 			It("releases the resource", func() {
