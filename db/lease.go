@@ -112,7 +112,7 @@ dance:
 			err := l.extend()
 			if err != nil {
 				l.logger.Error("failed-to-renew-lease", err)
-				break
+				break dance
 			}
 
 			l.logger.Debug("renewed-the-lease")
