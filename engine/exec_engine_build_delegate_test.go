@@ -275,7 +275,6 @@ var _ = Describe("BuildDelegate", func() {
 										PipelineName: "some-pipeline",
 										Resource:     "some-input-resource",
 										Type:         "some-type",
-										Source:       db.Source{"some": "source"},
 										Version:      db.Version{"result": "version"},
 										Metadata:     []db.MetadataField{{"result", "metadata"}},
 									}))

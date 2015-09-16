@@ -269,7 +269,6 @@ func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.GetPl
 		PipelineName: plan.Pipeline,
 		Resource:     plan.Resource,
 		Type:         plan.Type,
-		Source:       db.Source(plan.Source),
 		Version:      db.Version(info.Version),
 		Metadata:     metadata,
 	}, false)
