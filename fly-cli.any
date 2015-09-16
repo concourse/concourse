@@ -142,6 +142,31 @@ common platforms in the bottom right hand corner of the main page.
     of input that would normally not be possible in a pipeline.
   }
 
+  \section{Basing inputs on a job in your pipeline}{
+    If the \code{--inputs-from-pipeline} and \code{--inputs-from-job} flags are
+    given (\code{-ifp} and \code{-ifj} for short), the specified job will be
+    looked up in the pipeline, and the one-off build will base its inputs on
+    those currently configured for the job.
+
+    If any \code{-i} flags are given (see above), they will override the base
+    set of inputs.
+
+    For example:
+
+    \codeblock{bash}{
+    $ fly execute -c task.yml -ifp main -ifj integration -i foo=./foo
+    }
+
+    This will trigger a one-off-build using the \code{task.yml} task
+    config, basing its inputs on the latest candidates for the
+    \code{integration} job in the \code{main} pipeline, with the \code{foo}
+    input overridden to specify local code to run.
+
+    This can be used to more closely replicate the state in CI when weeding out
+    flakiness, or as a shortcut for local development so that you don't have to
+    upload every single resource from your local machine.
+  }
+
   \section{Providing values for \code{params}}{
     Any params listed in the task configuration can be specified by using
     environment variables.
