@@ -77,7 +77,8 @@ def(define-attribute(what, body)):
 def(define-attributes(*whats, body)):
   attribute-names = whats collect [w]: w split(":") first
 
-  targets = attribute-names collect [a]: base target-element(a)
+  targets = attribute-names collect [a]:
+    base target-element(a, base code(format-inline(yaml lex(a), [])))
 
   data Block new(
     [ whats collect with-index [w, i]:
