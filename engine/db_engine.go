@@ -242,12 +242,19 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 
 	engineBuild.Resume(logger)
 
+	doneModel, err := build.db.GetBuild(build.id)
+	if err != nil {
+		logger.Error("failed-to-load-build-from-db", err)
+		return
+	}
+
 	metric.BuildFinished{
-		PipelineName: model.PipelineName,
-		JobName:      model.JobName,
-		BuildName:    model.Name,
-		BuildID:      model.ID,
-		Duration:     time.Since(model.StartTime),
+		PipelineName:  model.PipelineName,
+		JobName:       model.JobName,
+		BuildName:     model.Name,
+		BuildID:       model.ID,
+		BuildStatus:   doneModel.Status,
+		BuildDuration: doneModel.EndTime.Sub(doneModel.StartTime),
 	}.Emit(logger)
 }
 

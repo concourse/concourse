@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/bigdatadev/goryman"
+	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -157,30 +158,33 @@ func (event BuildStarted) Emit(logger lager.Logger) {
 }
 
 type BuildFinished struct {
-	PipelineName string
-	JobName      string
-	BuildName    string
-	BuildID      int
-	Duration     time.Duration
+	PipelineName  string
+	JobName       string
+	BuildName     string
+	BuildID       int
+	BuildStatus   db.Status
+	BuildDuration time.Duration
 }
 
 func (event BuildFinished) Emit(logger lager.Logger) {
 	emit(
 		logger.Session("build-finished", lager.Data{
-			"pipeline":   event.PipelineName,
-			"job":        event.JobName,
-			"build-name": event.BuildName,
-			"build-id":   event.BuildID,
+			"pipeline":     event.PipelineName,
+			"job":          event.JobName,
+			"build-name":   event.BuildName,
+			"build-id":     event.BuildID,
+			"build-status": event.BuildStatus,
 		}),
 		goryman.Event{
 			Service: "build finished",
-			Metric:  ms(event.Duration),
+			Metric:  ms(event.BuildDuration),
 			State:   "ok",
 			Attributes: map[string]string{
-				"pipeline":   event.PipelineName,
-				"job":        event.JobName,
-				"build_name": event.BuildName,
-				"build_id":   strconv.Itoa(event.BuildID),
+				"pipeline":     event.PipelineName,
+				"job":          event.JobName,
+				"build_name":   event.BuildName,
+				"build_id":     strconv.Itoa(event.BuildID),
+				"build_status": string(event.BuildStatus),
 			},
 		},
 	)
