@@ -183,6 +183,12 @@ shared by everything in the Riemann community but we find that it works well.
       }{
         The ID of the build that finished.
       }
+      \item{
+        \code{build_status}
+      }{
+        The resulting status of the build; one of "succeeded", "failed",
+        "errored", or "aborted".
+      }
     }
   }
 }
