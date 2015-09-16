@@ -20,19 +20,24 @@
   \hyperlink{https://www.youtube.com/watch?v=3m5qxZm_JqM}{the front falls off}.
 
   After much debugging and trying to reduce the problem smaller and smaller, it
-  ultimately came down to this: if, while a lock is held, a ton of other locks
-  are acquired and released, over time the CPU usage grows until the original
-  lock is released. This is pretty much always going to be what happens, since
-  we hold a lock for the duration of a build, and acquire and release a lock
-  every time we check. So, for every resource, every minute, a lock would be
+  ultimately came down to this: if, while a lock is held, other locks are
+  acquired and released, over time the CPU usage grows until the original lock
+  is released. This is pretty much always going to be what happens, since
+  Concourse holds a lock for the duration of a build, and when checking for new
+  versions of a resource. So, for every resource, every minute, a lock would be
   acquired and released.
 
   The first thing we tried was to switch to
   \hyperlink{http://www.postgresql.org/docs/9.4/static/explicit-locking.html#ADVISORY-LOCKS}{Postgres Advisory Locks},
   thinking it may have something to do with the earliest transaction having to
   keep the state of the \code{locks} table in its head in the event of a
-  rollback. This made the implementation much simpler, but the problem still
-  existed, albeit with a much more gradual increase in CPU usage.
+  rollback. This made the implementation much simpler, and fixed at least that
+  portion of the problem (extended isolated testing showed no CPU increase with
+  this approach).
+
+  Concourse's overall DB CPU still slowly crawls up in some scenarios, but
+  \italic{very} slowly (we're talking 0.8% over a month if you have a resource
+  with new versions every minute). We'll tackle these remaining issues next.
 
   At the end of the day we ended up switching our approach altogether. Rather
   than holding a transaction open the entire time, we now heartbeat to the
@@ -47,12 +52,12 @@
   both go down and be a lot more stable. Yay!
 }{
   We've fixed a bug in the new scheduling algorithm that led to churning CPU
-  and never resolving the inputs.
+  and taking forever to determine that a job has no available inputs.
 }{
-  We've fixed a bug that led to extra builds being queued up with the database
+  We've fixed a bug that led to extra builds being queued up if the database
   was falling over.
 }{
-  The \reference{fly-execute} command now accepts flags
+  The \reference{fly-execute} command now accepts the flags
   (\code{--inputs-from-pipeline} and \code{--inputs-from-job}) for running a
   task with its inputs based on resources from a job in your pipeline.
 }{
