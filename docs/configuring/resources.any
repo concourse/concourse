@@ -59,3 +59,8 @@ Each configured resource consists of the following attributes:
   \hyperlink{https://github.com/concourse?query=-resource}{Concourse GitHub
     organization}.
 }
+
+\define-attribute{check_every: string}{
+  \italic{Optional. Default \code{1m}.} The interval on which to check for new
+  versions of the resource.
+}
