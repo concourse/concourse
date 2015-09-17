@@ -284,13 +284,13 @@ function createGraph(svg, groups, jobs, resources) {
     } else if (job.finished_build) {
       status = job.finished_build.status
     } else {
-      status = "pending";
+      status = "no-builds";
     }
 
     classes.push(status);
 
     if (job.next_build) {
-      job.next_build.status == "pending" ? classes.push("pending-start") : classes.push("started");
+      classes.push(job.next_build.status);
     }
 
     graph.setNode(id, new Node({
