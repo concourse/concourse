@@ -23,6 +23,13 @@
 .build-step.first-occurrence .header { background: @base03; }
 .groups li.active a { background: @base03; }
 
+.legend dt.pending { background: @base04; }
+.legend dt.started { background: @base0A; }
+.legend dt.succeeded { background: @base0B; }
+.legend dt.failed { background: @base08; }
+.legend dt.errored { background: @base09; }
+.legend dt.aborted { background: @base0F; }
+
 /* order here matters >:( */
 .build-action {background-color: transparent;}
 .build-action i { color: @base07; }
@@ -42,7 +49,6 @@
 /* dim */
 #page-header.pending .build-header { background: @base04; }
 .pending { background: @base04; }
-.legend dt.pending { background: @base04; }
 #build-requires-auth input:hover { background: @base04; }
 
 
@@ -62,51 +68,52 @@
 /* good */
 #page-header.succeeded { background: @base0B; }
 .succeeded { background: @base0B; }
-.legend dt.succeeded { background: @base0B; }
 
 
 /* bad */
 #page-header.failed { background: @base08; }
 .failed { background: @base08; }
-.legend dt.failed { background: @base08; }
 span.error { color: @base08; }
 .resource-check-status pre { color: @base08; }
 
 /* like, really bad */
 #page-header.errored { background: @base09; }
 .errored { background: @base09; }
-.legend dt.errored { background: @base09; }
 
 /* not so bad */
 #page-header.aborted { background: @base0F; }
 .aborted { background: @base0F; }
-.legend dt.aborted { background: @base0F; }
 
 /* active */
 #page-header.started { background: @base0A; }
 .started { background: @base0A; }
-.legend dt.started rect { stroke: @base0A; }
 
 .job-animation-node .animation,
 .job-animation-node .animation,
-.legend dt.started {
+.legend dt.started,
+.legend dt.pending {
   border-radius: 1px;
 }
+
 .legend dt.started {
-  .ripple-animation('small-ripple', 2px, @base0A);
+  .ripple-animation('small-started-ripple', 2px, @base0A);
+}
+
+.legend dt.pending {
+  .ripple-animation('small-pending-ripple', 2px, @base04);
 }
 
 .job-animation-node {
-  &.pending-start .animation-xlarge{.ripple-animation('xlarge-pending-ripples', 20px, @base04);}
+  &.pending .animation-xlarge{.ripple-animation('xlarge-pending-ripples', 20px, @base04);}
   &.started .animation-xlarge{.ripple-animation('xlarge-started-ripples', 20px, @base0A);}
 
-  &.pending-start .animation-large{.ripple-animation('large-pending-ripples', 15px, @base04);}
+  &.pending .animation-large{.ripple-animation('large-pending-ripples', 15px, @base04);}
   &.started .animation-large{.ripple-animation('large-started-ripples', 15px, @base0A);}
 
-  &.pending-start .animation-medium{.ripple-animation('medium-pending-ripples', 7px, @base04);}
+  &.pending .animation-medium{.ripple-animation('medium-pending-ripples', 7px, @base04);}
   &.started .animation-medium{.ripple-animation('medium-started-ripples', 7px, @base0A);}
 
-  &.pending-start .animation-small{.ripple-animation('small-pending-ripples', 3px, @base04);}
+  &.pending .animation-small{.ripple-animation('small-pending-ripples', 3px, @base04);}
   &.started .animation-small{.ripple-animation('small-started-ripples', 3px, @base0A);}
 }
 
