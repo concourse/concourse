@@ -75,29 +75,11 @@ jobs:
 
 networks:
   - name: concourse
+    type: manual
     subnets:
-      # network with static ip used for web
-      - range: 10.244.8.0/30
-        reserved: [10.244.8.1]
-        static: [10.244.8.2]
-        cloud_properties: {}
-
-      # networks for dynamic ips (db, workers, compilation vms)
-      - range: 10.244.8.4/30
-        reserved: [10.244.8.5]
-        cloud_properties: {}
-      - range: 10.244.8.8/30
-        reserved: [10.244.8.9]
-        cloud_properties: {}
-      - range: 10.244.8.12/30
-        reserved: [10.244.8.13]
-        cloud_properties: {}
-      - range: 10.244.8.16/30
-        reserved: [10.244.8.17]
-        cloud_properties: {}
-      - range: 10.244.8.20/30
-        reserved: [10.244.8.21]
-        cloud_properties: {}
+      - range: 10.244.8.0/24
+        gateway: 10.244.8.1
+        static: *web-ips
 
 resource_pools:
   - name: concourse
