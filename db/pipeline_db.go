@@ -896,7 +896,7 @@ func (pdb *pipelineDB) CreateJobBuildForCandidateInputs(jobName string) (Build, 
 		WHERE j.name = $1
 			AND p.id = $2
 			AND b.inputs_determined = false
-			AND b.status IN ('pending', 'started')
+			AND NOT b.completed
 	`, jobName, pdb.ID).Scan(&x)
 
 	if err == sql.ErrNoRows {
@@ -1924,9 +1924,9 @@ func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (*Build, *Build, e
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN pipelines p ON j.pipeline_id = p.id
- 		WHERE j.name = $1
+		WHERE j.name = $1
 		AND j.pipeline_id = $2
-	 	AND b.status NOT IN ('pending', 'started')
+		AND b.completed
 		ORDER BY b.id DESC
 		LIMIT 1
 	`, job, pdb.ID))
@@ -1941,9 +1941,9 @@ func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (*Build, *Build, e
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN pipelines p ON j.pipeline_id = p.id
- 		WHERE j.name = $1
+		WHERE j.name = $1
 		AND j.pipeline_id = $2
-		AND status IN ('pending', 'started')
+		AND NOT b.completed
 		ORDER BY b.id ASC
 		LIMIT 1
 	`, job, pdb.ID))
