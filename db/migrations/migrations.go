@@ -49,4 +49,5 @@ var Migrations = []migration.Migrator{
 	AddCheckingToResources,
 	AddUniqueConstraintToResources,
 	RemoveSourceFromVersionedResources,
+	AddIndexesToABunchOfStuff,
 }
