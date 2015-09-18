@@ -1165,9 +1165,6 @@ var _ = Describe("PipelineDB", func() {
 				err = sqlDB.AbortBuild(build.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				err = sqlDB.FinishBuild(build.ID, db.StatusAborted)
-				Ω(err).ShouldNot(HaveOccurred())
-
 				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-job")
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(created).Should(BeTrue())
