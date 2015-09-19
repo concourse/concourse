@@ -1,8 +1,8 @@
 SCRIPT=$(basename $0)
 mkdir -p /var/vcap/sys/log/monit
 
-exec 1>> /var/vcap/sys/log/monit/$SCRIPT.out.log
-exec 2>> /var/vcap/sys/log/monit/$SCRIPT.err.log
+exec 1>> /var/vcap/sys/log/monit/$SCRIPT.log
+exec 2>> /var/vcap/sys/log/monit/$SCRIPT.log
 
 pid_guard() {
   pidfile=$1
