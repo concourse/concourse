@@ -28,14 +28,19 @@ function permit_device_control() {
     return
   fi
 
-  if [ ! -e /tmp/devices-cgroup ]; then
+  cgroup_dir=${RUN_DIR}/devices-cgroup
+
+  if [ ! -e ${cgroup_dir} ]; then
     # mount our container's devices subsystem somewhere
-    mkdir /tmp/devices-cgroup
-    mount -t cgroup -o $devices_subsytems none /tmp/devices-cgroup
+    mkdir ${cgroup_dir}
+  fi
+
+  if ! mountpoint -q ${cgroup_dir}; then
+    mount -t cgroup -o $devices_subsytems none ${cgroup_dir}
   fi
 
   # permit our cgroup to do everything with all devices
-  echo a > /tmp/devices-cgroup${devices_subdir}/devices.allow
+  echo a > ${cgroup_dir}${devices_subdir}/devices.allow
 }
 
 case $1 in
