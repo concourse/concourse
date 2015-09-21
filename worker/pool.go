@@ -36,20 +36,20 @@ func (err NoCompatibleWorkersError) Error() string {
 	)
 }
 
-type Pool struct {
+type pool struct {
 	provider WorkerProvider
 
 	rand *rand.Rand
 }
 
 func NewPool(provider WorkerProvider) Client {
-	return &Pool{
+	return &pool{
 		provider: provider,
 		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
-func (pool *Pool) CreateContainer(id Identifier, spec ContainerSpec) (Container, error) {
+func (pool *pool) CreateContainer(id Identifier, spec ContainerSpec) (Container, error) {
 	workers, err := pool.provider.Workers()
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func (pool *Pool) CreateContainer(id Identifier, spec ContainerSpec) (Container,
 	return randomWorker.CreateContainer(id, spec)
 }
 
-func (pool *Pool) FindContainerForIdentifier(id Identifier) (Container, error) {
+func (pool *pool) FindContainerForIdentifier(id Identifier) (Container, error) {
 	workers, err := pool.provider.Workers()
 	if err != nil {
 		return nil, err
@@ -155,7 +155,7 @@ type workerErrorInfo struct {
 	err        error
 }
 
-func (pool *Pool) FindContainersForIdentifier(id Identifier) ([]Container, error) {
+func (pool *pool) FindContainersForIdentifier(id Identifier) ([]Container, error) {
 	workers, err := pool.provider.Workers()
 	if err != nil {
 		return nil, err
@@ -217,7 +217,7 @@ type foundContainer struct {
 	container  Container
 }
 
-func (pool *Pool) LookupContainer(handle string) (Container, error) {
+func (pool *pool) LookupContainer(handle string) (Container, error) {
 	workers, err := pool.provider.Workers()
 	if err != nil {
 		return nil, err
@@ -298,7 +298,7 @@ func (pool *Pool) LookupContainer(handle string) (Container, error) {
 	}
 }
 
-func (pool *Pool) Name() string {
+func (pool *pool) Name() string {
 	return "pool"
 }
 
