@@ -21,7 +21,11 @@ type PresentedBuild struct {
 	Path     string
 }
 
-func formatDate(date time.Time) string {
+func formatTime(date time.Time) string {
+	if date.IsZero() {
+		return "n/a"
+	}
+
 	const layout = "2006-01-02 15:04:05 (MST)"
 	return date.Format(layout)
 }
@@ -33,7 +37,6 @@ func PresentBuilds(builds []db.Build) []PresentedBuild {
 		var cssClass string
 		var jobName string
 		var pipelineName string
-		var startTime string
 
 		if build.OneOff() {
 			jobName = "[one off]"
@@ -44,19 +47,12 @@ func PresentBuilds(builds []db.Build) []PresentedBuild {
 			pipelineName = build.PipelineName
 		}
 
-		nilTime := time.Time{}
-		if build.StartTime == nilTime {
-			startTime = "failed to start"
-		} else {
-			startTime = formatDate(build.StartTime)
-		}
-
 		presentedBuilds = append(presentedBuilds, PresentedBuild{
 			ID:           build.ID,
 			JobName:      jobName,
 			PipelineName: pipelineName,
-			StartTime:    startTime,
-			EndTime:      formatDate(build.EndTime),
+			StartTime:    formatTime(build.StartTime),
+			EndTime:      formatTime(build.EndTime),
 			CSSClass:     cssClass,
 			Status:       string(build.Status),
 			Path:         routes.PathForBuild(build),
