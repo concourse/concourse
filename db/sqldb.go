@@ -321,7 +321,7 @@ func (db *SQLDB) GetPipe(pipeGUID string) (Pipe, error) {
 	return pipe, nil
 }
 
-func (db *SQLDB) LeaseTrack(buildID int, interval time.Duration) (Lease, bool, error) {
+func (db *SQLDB) LeaseBuildTracking(buildID int, interval time.Duration) (Lease, bool, error) {
 	lease := &lease{
 		conn: db.conn,
 		logger: db.logger.Session("lease", lager.Data{

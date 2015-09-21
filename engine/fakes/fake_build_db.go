@@ -57,13 +57,13 @@ type FakeBuildDB struct {
 		result1 db.Notifier
 		result2 error
 	}
-	LeaseTrackStub        func(buildID int, interval time.Duration) (db.Lease, bool, error)
-	leaseTrackMutex       sync.RWMutex
-	leaseTrackArgsForCall []struct {
+	LeaseBuildTrackingStub        func(buildID int, interval time.Duration) (db.Lease, bool, error)
+	LeaseBuildTrackingMutex       sync.RWMutex
+	LeaseBuildTrackingArgsForCall []struct {
 		buildID  int
 		interval time.Duration
 	}
-	leaseTrackReturns struct {
+	LeaseBuildTrackingReturns struct {
 		result1 db.Lease
 		result2 bool
 		result3 error
@@ -246,35 +246,35 @@ func (fake *FakeBuildDB) AbortNotifierReturns(result1 db.Notifier, result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeBuildDB) LeaseTrack(buildID int, interval time.Duration) (db.Lease, bool, error) {
-	fake.leaseTrackMutex.Lock()
-	fake.leaseTrackArgsForCall = append(fake.leaseTrackArgsForCall, struct {
+func (fake *FakeBuildDB) LeaseBuildTracking(buildID int, interval time.Duration) (db.Lease, bool, error) {
+	fake.LeaseBuildTrackingMutex.Lock()
+	fake.LeaseBuildTrackingArgsForCall = append(fake.LeaseBuildTrackingArgsForCall, struct {
 		buildID  int
 		interval time.Duration
 	}{buildID, interval})
-	fake.leaseTrackMutex.Unlock()
-	if fake.LeaseTrackStub != nil {
-		return fake.LeaseTrackStub(buildID, interval)
+	fake.LeaseBuildTrackingMutex.Unlock()
+	if fake.LeaseBuildTrackingStub != nil {
+		return fake.LeaseBuildTrackingStub(buildID, interval)
 	} else {
-		return fake.leaseTrackReturns.result1, fake.leaseTrackReturns.result2, fake.leaseTrackReturns.result3
+		return fake.LeaseBuildTrackingReturns.result1, fake.LeaseBuildTrackingReturns.result2, fake.LeaseBuildTrackingReturns.result3
 	}
 }
 
-func (fake *FakeBuildDB) LeaseTrackCallCount() int {
-	fake.leaseTrackMutex.RLock()
-	defer fake.leaseTrackMutex.RUnlock()
-	return len(fake.leaseTrackArgsForCall)
+func (fake *FakeBuildDB) LeaseBuildTrackingCallCount() int {
+	fake.LeaseBuildTrackingMutex.RLock()
+	defer fake.LeaseBuildTrackingMutex.RUnlock()
+	return len(fake.LeaseBuildTrackingArgsForCall)
 }
 
-func (fake *FakeBuildDB) LeaseTrackArgsForCall(i int) (int, time.Duration) {
-	fake.leaseTrackMutex.RLock()
-	defer fake.leaseTrackMutex.RUnlock()
-	return fake.leaseTrackArgsForCall[i].buildID, fake.leaseTrackArgsForCall[i].interval
+func (fake *FakeBuildDB) LeaseBuildTrackingArgsForCall(i int) (int, time.Duration) {
+	fake.LeaseBuildTrackingMutex.RLock()
+	defer fake.LeaseBuildTrackingMutex.RUnlock()
+	return fake.LeaseBuildTrackingArgsForCall[i].buildID, fake.LeaseBuildTrackingArgsForCall[i].interval
 }
 
-func (fake *FakeBuildDB) LeaseTrackReturns(result1 db.Lease, result2 bool, result3 error) {
-	fake.LeaseTrackStub = nil
-	fake.leaseTrackReturns = struct {
+func (fake *FakeBuildDB) LeaseBuildTrackingReturns(result1 db.Lease, result2 bool, result3 error) {
+	fake.LeaseBuildTrackingStub = nil
+	fake.LeaseBuildTrackingReturns = struct {
 		result1 db.Lease
 		result2 bool
 		result3 error

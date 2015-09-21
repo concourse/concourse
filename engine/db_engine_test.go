@@ -171,7 +171,7 @@ var _ = Describe("DBEngine", func() {
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					fakeBuildDB.LeaseTrackReturns(fakeLease, true, nil)
+					fakeBuildDB.LeaseBuildTrackingReturns(fakeLease, true, nil)
 				})
 
 				It("succeeds", func() {
@@ -189,7 +189,7 @@ var _ = Describe("DBEngine", func() {
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					fakeBuildDB.LeaseTrackReturns(nil, false, nil)
+					fakeBuildDB.LeaseBuildTrackingReturns(nil, false, nil)
 				})
 
 				It("succeeds", func() {
@@ -207,7 +207,7 @@ var _ = Describe("DBEngine", func() {
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					fakeBuildDB.LeaseTrackReturns(nil, false, errors.New("bad bad bad"))
+					fakeBuildDB.LeaseBuildTrackingReturns(nil, false, errors.New("bad bad bad"))
 				})
 
 				It("fails", func() {
@@ -252,7 +252,7 @@ var _ = Describe("DBEngine", func() {
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					fakeBuildDB.LeaseTrackReturns(fakeLease, true, nil)
+					fakeBuildDB.LeaseBuildTrackingReturns(fakeLease, true, nil)
 				})
 
 				Context("when the build is active", func() {
@@ -262,9 +262,9 @@ var _ = Describe("DBEngine", func() {
 						fakeBuildDB.GetBuildReturns(model, nil)
 
 						fakeBuildDB.AbortBuildStub = func(int) error {
-							Ω(fakeBuildDB.LeaseTrackCallCount()).Should(Equal(1))
+							Ω(fakeBuildDB.LeaseBuildTrackingCallCount()).Should(Equal(1))
 
-							lockedBuild, interval := fakeBuildDB.LeaseTrackArgsForCall(0)
+							lockedBuild, interval := fakeBuildDB.LeaseBuildTrackingArgsForCall(0)
 							Ω(lockedBuild).Should(Equal(model.ID))
 							Ω(interval).Should(Equal(time.Minute))
 
@@ -397,7 +397,7 @@ var _ = Describe("DBEngine", func() {
 
 			Context("when acquiring the lock errors", func() {
 				BeforeEach(func() {
-					fakeBuildDB.LeaseTrackReturns(nil, false, errors.New("bad bad bad"))
+					fakeBuildDB.LeaseBuildTrackingReturns(nil, false, errors.New("bad bad bad"))
 				})
 
 				It("errors", func() {
@@ -411,7 +411,7 @@ var _ = Describe("DBEngine", func() {
 
 			Context("when acquiring the lock fails", func() {
 				BeforeEach(func() {
-					fakeBuildDB.LeaseTrackReturns(nil, false, nil)
+					fakeBuildDB.LeaseBuildTrackingReturns(nil, false, nil)
 				})
 
 				Context("when aborting the build in the db succeeds", func() {
@@ -464,7 +464,7 @@ var _ = Describe("DBEngine", func() {
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					fakeBuildDB.LeaseTrackReturns(fakeLease, true, nil)
+					fakeBuildDB.LeaseBuildTrackingReturns(fakeLease, true, nil)
 				})
 
 				Context("when the build is active", func() {
@@ -483,9 +483,9 @@ var _ = Describe("DBEngine", func() {
 							fakeEngineB.LookupBuildReturns(realBuild, nil)
 
 							realBuild.ResumeStub = func(lager.Logger) {
-								Ω(fakeBuildDB.LeaseTrackCallCount()).Should(Equal(1))
+								Ω(fakeBuildDB.LeaseBuildTrackingCallCount()).Should(Equal(1))
 
-								lockedBuild, interval := fakeBuildDB.LeaseTrackArgsForCall(0)
+								lockedBuild, interval := fakeBuildDB.LeaseBuildTrackingArgsForCall(0)
 								Ω(lockedBuild).Should(Equal(model.ID))
 								Ω(interval).Should(Equal(time.Minute))
 
@@ -644,7 +644,7 @@ var _ = Describe("DBEngine", func() {
 
 			Context("when acquiring the lock fails", func() {
 				BeforeEach(func() {
-					fakeBuildDB.LeaseTrackReturns(nil, false, errors.New("no lease for you"))
+					fakeBuildDB.LeaseBuildTrackingReturns(nil, false, errors.New("no lease for you"))
 				})
 
 				It("does not look up the build", func() {
