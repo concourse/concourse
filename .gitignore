@@ -1,3 +1,4 @@
 *.test
 .DS_Store
 /README.html
+cmd/atc/atc
