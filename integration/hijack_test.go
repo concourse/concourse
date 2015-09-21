@@ -145,10 +145,10 @@ var _ = Describe("Hijacking", func() {
 					}),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&name=build"),
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, atc.ListContainersReturn{
 						Containers: []atc.Container{
-							{ID: "container-id-1", PipelineName: "pipeline-name-1", Type: "task", Name: "build", BuildID: 3},
+							{ID: "container-id-1", PipelineName: "pipeline-name-1", Type: "task", Name: "some-step", BuildID: 3},
 						},
 						Errors: nil,
 					}),
@@ -158,11 +158,11 @@ var _ = Describe("Hijacking", func() {
 		})
 
 		It("hijacks the most recent one-off build", func() {
-			hijack()
+			hijack("-n", "some-step")
 		})
 
 		It("hijacks the most recent one-off build with a more politically correct command", func() {
-			fly("intercept")
+			fly("intercept", "-n", "some-step")
 		})
 	})
 
@@ -179,7 +179,7 @@ var _ = Describe("Hijacking", func() {
 					}),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=1&name=build"),
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=1&name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, atc.ListContainersReturn{
 						Containers: []atc.Container{},
 						Errors:     nil,
@@ -190,7 +190,7 @@ var _ = Describe("Hijacking", func() {
 		})
 
 		It("return a friendly error message", func() {
-			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack")
+			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-n", "some-step")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
 
@@ -329,7 +329,7 @@ var _ = Describe("Hijacking", func() {
 		})
 	})
 
-	Context("When hijack returns a single container", func() {
+	Context("when hijack returns a single container", func() {
 		var (
 			containerArguments string
 			stepType           string
@@ -387,9 +387,9 @@ var _ = Describe("Hijacking", func() {
 		Context("when called with a specific build id", func() {
 
 			BeforeEach(func() {
-				containerArguments = "build-id=2&name=build"
+				containerArguments = "build-id=2&name=some-step"
 				stepType = "task"
-				stepName = "build"
+				stepName = "some-step"
 				buildID = 2
 
 				atcServer.AppendHandlers(
@@ -405,15 +405,15 @@ var _ = Describe("Hijacking", func() {
 			})
 
 			It("hijacks the most recent one-off build", func() {
-				hijack("-b", "2")
+				hijack("-b", "2", "-n", "some-step")
 			})
 		})
 
 		Context("when called with a specific job", func() {
 			BeforeEach(func() {
-				containerArguments = "build-id=3&name=build"
+				containerArguments = "build-id=3&name=some-step"
 				stepType = "task"
-				stepName = "build"
+				stepName = "some-step"
 				buildID = 3
 			})
 
@@ -441,7 +441,7 @@ var _ = Describe("Hijacking", func() {
 				})
 
 				It("hijacks the job's next build", func() {
-					hijack("--job", "some-job", "--pipeline", "some-pipeline")
+					hijack("--job", "some-job", "--pipeline", "some-pipeline", "--step-name", "some-step")
 				})
 			})
 
@@ -464,7 +464,7 @@ var _ = Describe("Hijacking", func() {
 				})
 
 				It("hijacks the job's finished build", func() {
-					hijack("--job", "some-job")
+					hijack("--job", "some-job", "--step-name", "some-step")
 				})
 			})
 
@@ -484,7 +484,7 @@ var _ = Describe("Hijacking", func() {
 				})
 
 				It("hijacks the given build", func() {
-					hijack("--job", "some-job", "--build", "3")
+					hijack("--job", "some-job", "--build", "3", "--step-name", "some-step")
 				})
 			})
 
@@ -509,7 +509,7 @@ var _ = Describe("Hijacking", func() {
 					pty, tty, err := pty.Open()
 					Ω(err).ShouldNot(HaveOccurred())
 
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack")
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "--step-name", "some-step")
 					flyCmd.Stdin = tty
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)

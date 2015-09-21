@@ -29,6 +29,7 @@ var _ = Describe("Fly CLI", func() {
 	var flyPath string
 	var tmpdir string
 	var buildDir string
+	var taskConfigPath string
 
 	var atcServer *ghttp.Server
 	var streaming chan struct{}
@@ -51,8 +52,10 @@ var _ = Describe("Fly CLI", func() {
 		err = os.Mkdir(buildDir, 0755)
 		Ω(err).ShouldNot(HaveOccurred())
 
+		taskConfigPath = filepath.Join(buildDir, "task.yml")
+
 		err = ioutil.WriteFile(
-			filepath.Join(buildDir, "build.yml"),
+			taskConfigPath,
 			[]byte(`---
 platform: some-platform
 
@@ -106,7 +109,7 @@ run:
 						ID:            3,
 					},
 					Task: &atc.TaskPlan{
-						Name: "build",
+						Name: "one-off",
 						Config: &atc.TaskConfig{
 							Platform: "some-platform",
 							Image:    "ubuntu",
@@ -216,7 +219,7 @@ run:
 					hdr, err = tr.Next()
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(hdr.Name).Should(MatchRegexp("(./)?build.yml$"))
+					Ω(hdr.Name).Should(MatchRegexp("(./)?task.yml$"))
 				},
 				ghttp.RespondWith(200, ""),
 			),
@@ -224,7 +227,7 @@ run:
 	})
 
 	It("creates a build, streams output, uploads the bits, and polls until completion", func() {
-		flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e")
+		flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath)
 		flyCmd.Dir = buildDir
 
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -247,7 +250,7 @@ run:
 		BeforeEach(func() {
 			// missing platform and run path
 			err := ioutil.WriteFile(
-				filepath.Join(buildDir, "build.yml"),
+				filepath.Join(buildDir, "task.yml"),
 				[]byte(`---
 run: {}
 `),
@@ -257,7 +260,7 @@ run: {}
 		})
 
 		It("prints the failure and exits 1", func() {
-			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e")
+			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath)
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -278,7 +281,7 @@ run: {}
 		It("inserts them into the config template", func() {
 			atcServer.AllowUnhandledRequests = true
 
-			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "--", "-name", "foo \"bar\" baz")
+			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath, "--", "-name", "foo \"bar\" baz")
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -302,7 +305,7 @@ run: {}
 		It("inserts them into the config template", func() {
 			atcServer.AllowUnhandledRequests = true
 
-			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "--privileged")
+			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath, "--privileged")
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -320,7 +323,7 @@ run: {}
 
 	Context("when running with bogus flags", func() {
 		It("exits 1", func() {
-			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "--bogus-flag")
+			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath, "--bogus-flag")
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -343,10 +346,10 @@ run: {}
 			}
 		})
 
-		It("overrides the build's paramter values", func() {
+		It("overrides the build's parameter values", func() {
 			atcServer.AllowUnhandledRequests = true
 
-			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e")
+			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath)
 			flyCmd.Dir = buildDir
 			flyCmd.Env = append(os.Environ(), "FOO=newbar", "X=")
 
@@ -382,7 +385,7 @@ run: {}
 		if runtime.GOOS != "windows" {
 			Describe("with SIGINT", func() {
 				It("aborts the build and exits nonzero", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e")
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath)
 					flyCmd.Dir = buildDir
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -406,7 +409,7 @@ run: {}
 
 			Describe("with SIGTERM", func() {
 				It("aborts the build and exits nonzero", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e")
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath)
 					flyCmd.Dir = buildDir
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -432,7 +435,7 @@ run: {}
 
 	Context("when the build succeeds", func() {
 		It("exits 0", func() {
-			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e")
+			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath)
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -450,7 +453,7 @@ run: {}
 
 	Context("when the build fails", func() {
 		It("exits 1", func() {
-			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e")
+			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath)
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -468,7 +471,7 @@ run: {}
 
 	Context("when the build errors", func() {
 		It("exits 2", func() {
-			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e")
+			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath)
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)

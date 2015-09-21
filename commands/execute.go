@@ -319,7 +319,7 @@ func createBuild(
 					ParentID: 0,
 				},
 				Task: &atc.TaskPlan{
-					Name:       "build",
+					Name:       "one-off",
 					Privileged: privileged,
 					Config:     &config,
 				},

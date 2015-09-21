@@ -43,7 +43,7 @@ var _ = Describe("Fly CLI", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 
 		err = ioutil.WriteFile(
-			filepath.Join(buildDir, "build.yml"),
+			filepath.Join(buildDir, "task.yml"),
 			[]byte(`---
 platform: some-platform
 
@@ -118,7 +118,7 @@ run:
 						ID:            4,
 					},
 					Task: &atc.TaskPlan{
-						Name: "build",
+						Name: "one-off",
 						Config: &atc.TaskConfig{
 							Platform: "some-platform",
 							Image:    "ubuntu",
@@ -247,7 +247,7 @@ run:
 					hdr, err = tr.Next()
 					Ω(err).ShouldNot(HaveOccurred())
 
-					Ω(hdr.Name).Should(MatchRegexp("(./)?build.yml$"))
+					Ω(hdr.Name).Should(MatchRegexp("(./)?task.yml$"))
 				},
 				ghttp.RespondWith(200, ""),
 			),
@@ -260,7 +260,7 @@ run:
 			"--inputs-from-pipeline", "some-pipeline",
 			"--inputs-from-job", "some-job",
 			"--input", fmt.Sprintf("some-input=%s", buildDir),
-			"--config", filepath.Join(buildDir, "build.yml"),
+			"--config", filepath.Join(buildDir, "task.yml"),
 		)
 
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)

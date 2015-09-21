@@ -14,10 +14,9 @@ var targetFlag = cli.StringFlag{
 	Usage: "named target you have saved to your .flyrc file",
 }
 
-var buildConfigFlag = cli.StringFlag{
+var taskConfigFlag = cli.StringFlag{
 	Name:  "config, c",
-	Value: "build.yml",
-	Usage: "build configuration file",
+	Usage: "task configuration file",
 }
 
 var inputFlag = cli.StringSliceFlag{
@@ -47,7 +46,7 @@ var excludeIgnoredFlag = cli.BoolFlag{
 
 var privilegedFlag = cli.BoolFlag{
 	Name:  "privileged, p",
-	Usage: "run the build or command with root privileges",
+	Usage: "run the task with full privileges",
 }
 
 var pipelineFlag = cli.StringFlag{
@@ -67,7 +66,6 @@ var stepTypeFlag = cli.StringFlag{
 
 var stepNameFlag = cli.StringFlag{
 	Name:  "step-name, n",
-	Value: "build",
 	Usage: "name of step to hijack (e.g. build, unit, resource name)",
 }
 
@@ -84,7 +82,7 @@ var varFileFlag = cli.StringSliceFlag{
 }
 
 var executeFlags = []cli.Flag{
-	buildConfigFlag,
+	taskConfigFlag,
 	inputFlag,
 	excludeIgnoredFlag,
 	privilegedFlag,
