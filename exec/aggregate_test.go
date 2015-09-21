@@ -212,6 +212,17 @@ var _ = Describe("Aggregate", func() {
 					Ω(result).Should(Equal(Success(false)))
 				})
 			})
+
+			Context("when there are no branches", func() {
+				BeforeEach(func() {
+					aggregate = Aggregate{}
+				})
+
+				It("returns true", func() {
+					Ω(step.Result(&result)).Should(BeTrue())
+					Ω(result).Should(Equal(Success(true)))
+				})
+			})
 		})
 	})
 })

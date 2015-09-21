@@ -80,6 +80,11 @@ func (source aggregateStep) Release() {
 
 func (source aggregateStep) Result(x interface{}) bool {
 	if success, ok := x.(*Success); ok {
+		if len(source) == 0 {
+			*success = Success(true)
+			return true
+		}
+
 		succeeded := true
 		anyIndicated := false
 		for _, src := range source {
