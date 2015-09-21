@@ -3,14 +3,11 @@
 #build-requires-auth input { background: @base01; }
 .steps .nest.even { background: @base01; }
 
-
-/* dark */
 #builds { background: @base00; }
 .builds-list { background: @base00; }
 .build-step .header { background: @base00; }
 .groups { background: @base00; }
 
-/* highlight background */
 .steps .nest.odd { background: @base02; }
 .groups li.main a {
   background: @base00;
@@ -19,7 +16,6 @@
   }
 }
 
-/* even more highlight background */
 .build-step.first-occurrence .header { background: @base03; }
 .groups li.active a { background: @base03; }
 
@@ -30,8 +26,7 @@
 .legend dt.errored { background: @base09; }
 .legend dt.aborted { background: @base0F; }
 
-/* order here matters >:( */
-.build-action {background-color: transparent;}
+.build-action { background-color: transparent; }
 .build-action i { color: @base07; }
 .build-action i:hover { background: @base02; }
 .build-action i:active { background: @base04; }
@@ -46,16 +41,23 @@
 .build-step i.succeeded { color: @base07; background: @base0B; }
 .build-step i.errored   { color: @base07; background: @base09; }
 
-/* dim */
-#page-header.pending .build-header { background: @base04; }
+.no-builds { background: @base03; }
 .pending { background: @base04; }
+.succeeded { background: @base0B; }
+.failed { background: @base08; }
+.errored { background: @base09; }
+.aborted { background: @base0F; }
+.started { background: @base0A; }
+
+span.error { color: @base08; }
+.resource-check-status pre { color: @base08; }
+
 #build-requires-auth input:hover { background: @base04; }
+#page-header.failed { background: @base08; }
 
-
-/* highlight foreground */
 .build-step .header .version { color: @base06; }
 #build-requires-auth input { color: @base06; }
-/* emphasis */
+
 .build-header .build-times { color: @base07; }
 .resource-header h1 { color: @base07; }
 
@@ -63,30 +65,6 @@
 #builds li a { color: @base07; }
 .groups li a { color: @base07; }
 #cli-downloads a { color: @base07; }
-
-
-/* good */
-#page-header.succeeded { background: @base0B; }
-.succeeded { background: @base0B; }
-
-
-/* bad */
-#page-header.failed { background: @base08; }
-.failed { background: @base08; }
-span.error { color: @base08; }
-.resource-check-status pre { color: @base08; }
-
-/* like, really bad */
-#page-header.errored { background: @base09; }
-.errored { background: @base09; }
-
-/* not so bad */
-#page-header.aborted { background: @base0F; }
-.aborted { background: @base0F; }
-
-/* active */
-#page-header.started { background: @base0A; }
-.started { background: @base0A; }
 
 .job-animation-node .animation,
 .job-animation-node .animation,
@@ -117,9 +95,6 @@ span.error { color: @base08; }
   &.started .animation-small{.ripple-animation('small-started-ripples', 3px, @base0A);}
 }
 
-
-
-
 .ripple-animation(@name, @ripple-factor, @ripple-color) {
   -webkit-animation: @name 1s linear infinite;
   animation: @name 1s linear infinite;
@@ -138,7 +113,6 @@ span.error { color: @base08; }
     }
   }
 
-
   @keyframes @name {
     0% {
       box-shadow: 0 0 0 -@ripple-factor @base01, 0 0 0 0px @ripple-color, 0 0 0 @ripple-factor @base01, 0 0 0 @ripple-factor * 2 @ripple-color;
@@ -154,7 +128,6 @@ span.error { color: @base08; }
   }
 }
 
-
 .build-number {
   font-size: 2em;
   color: @base07;
@@ -165,15 +138,9 @@ span.error { color: @base08; }
   font-weight: bold;
 }
 
-
-
 .build-one-off {
   background-color: @base03;
 }
-
-
-// svg .node.input
-// svg .paused rect { fill: @base0D; }
 
 .paused {
   background-color: @base0D;
@@ -184,7 +151,6 @@ span.error { color: @base08; }
   svg .edge& {
     stroke: @base0D;
   }
-
 }
 
 .build-action.btn-pause i {

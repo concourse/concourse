@@ -27,7 +27,7 @@ import (
 //go:generate counterfeiter . WebDB
 
 type WebDB interface {
-	GetBuild(buildID int) (db.Build, error)
+	GetBuild(buildID int) (db.Build, bool, error)
 	GetAllBuilds() ([]db.Build, error)
 }
 

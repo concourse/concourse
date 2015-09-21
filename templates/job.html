@@ -2,9 +2,8 @@
 
 {{define "body"}}
 <div class="js-job" data-endpoint="pipelines/{{.PipelineName}}/jobs/{{.Job.Name}}">
-  <div id="page-header">
-    <div class="build-header {{.CurrentBuild.Status}}">
-
+  <div id="page-header" class="{{if .CurrentBuild}}{{.CurrentBuild.Status}}{{else}}no-builds{{end}}">
+    <div class="build-header">
       {{if .DBJob.Paused}}
         <span class="btn-pause btn-large fl enabled js-pauseUnpause"><i class="fa fa-fw fa-play"></i></span>
       {{else}}
@@ -14,9 +13,7 @@
         <button class="build-action fr"><i class="fa fa-plus-circle"></i></button>
       </form>
 
-
       <h1>{{.Job.Name}}</h1>
-
     </div>
   </div>
 
@@ -41,13 +38,11 @@
 
       <ul class="jobs-builds-list builds-list">
         {{$job := .Job}}
-        {{$currentName := .CurrentBuild.Name}}
         {{range .Builds}}
         <li class="js-build" data-status="{{.Build.Status}}">
-          <a  class="{{.Build.Status}}{{if eq .Build.Name $currentName}} current {{end}}" href="{{url "GetBuild" $job .Build}}">&#35;{{.Build.Name}}</a>
+          <a class="{{.Build.Status}}" href="{{url "GetBuild" $job .Build}}">&#35;{{.Build.Name}}</a>
 
 					<div class="pam clearfix">
-
 						<div class="js-build-times build-times mbm" data-start-time="{{.Build.StartTime.Unix}}" data-end-time={{.Build.EndTime.Unix}}></div>
 
 						<div class="inputs mrl" >

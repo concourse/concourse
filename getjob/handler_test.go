@@ -209,10 +209,12 @@ var _ = Describe("FetchTemplateData", func() {
 							fakeDB.GetPipelineNameReturns("some-pipeline")
 						})
 
-						Context("when the current build lookup returns an error", func() {
-							It("has the correct template data and sets the current build status to pending", func() {
-								fakeDB.GetCurrentBuildReturns(db.Build{}, errors.New("No current build"))
+						Context("when there is no current build", func() {
+							BeforeEach(func() {
+								fakeDB.GetCurrentBuildReturns(db.Build{}, false, nil)
+							})
 
+							It("has the correct template data with no current build", func() {
 								templateData, err := FetchTemplateData(fakeDB, fakePaginator, "job-name", 0, false)
 								Ω(err).ShouldNot(HaveOccurred())
 
@@ -220,13 +222,10 @@ var _ = Describe("FetchTemplateData", func() {
 								Ω(templateData.Job).Should(Equal(job))
 								Ω(templateData.DBJob).Should(Equal(dbJob))
 								Ω(templateData.Builds).Should(Equal(buildsWithResources))
-								Ω(templateData.CurrentBuild).Should(Equal(db.Build{
-									Status: db.StatusPending,
-								}))
+								Ω(templateData.CurrentBuild).Should(BeNil())
 								Ω(templateData.PipelineName).Should(Equal("some-pipeline"))
 								Ω(templateData.PaginationData.HasPagination()).Should(BeTrue())
 							})
-
 						})
 
 						Context("when the current build is found", func() {
@@ -240,7 +239,7 @@ var _ = Describe("FetchTemplateData", func() {
 									Status:  db.StatusSucceeded,
 								}
 
-								fakeDB.GetCurrentBuildReturns(currentBuild, nil)
+								fakeDB.GetCurrentBuildReturns(currentBuild, true, nil)
 							})
 
 							It("has the correct template data", func() {
@@ -251,7 +250,7 @@ var _ = Describe("FetchTemplateData", func() {
 								Ω(templateData.Job).Should(Equal(job))
 								Ω(templateData.DBJob).Should(Equal(dbJob))
 								Ω(templateData.Builds).Should(Equal(buildsWithResources))
-								Ω(templateData.CurrentBuild).Should(Equal(currentBuild))
+								Ω(templateData.CurrentBuild).Should(Equal(&currentBuild))
 							})
 
 							Context("when the job is paused", func() {
@@ -273,15 +272,13 @@ var _ = Describe("FetchTemplateData", func() {
 									Ω(templateData.Job).Should(Equal(job))
 									Ω(templateData.DBJob).Should(Equal(dbJob))
 									Ω(templateData.Builds).Should(Equal(buildsWithResources))
-									Ω(templateData.CurrentBuild).Should(Equal(currentBuild))
+									Ω(templateData.CurrentBuild).Should(Equal(&currentBuild))
 								})
 							})
 						})
 					})
 				})
-
 			})
 		})
-
 	})
 })

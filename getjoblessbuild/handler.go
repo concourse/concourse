@@ -22,7 +22,7 @@ type handler struct {
 //go:generate counterfeiter . BuildDB
 
 type BuildDB interface {
-	GetBuild(int) (db.Build, error)
+	GetBuild(int) (db.Build, bool, error)
 }
 
 func NewHandler(logger lager.Logger, db BuildDB, configDB db.ConfigDB, template *template.Template) http.Handler {
@@ -49,9 +49,13 @@ func FetchTemplateData(buildID string, buildDB BuildDB, configDB db.ConfigDB) (T
 		return TemplateData{}, ErrInvalidBuildID
 	}
 
-	build, err := buildDB.GetBuild(id)
+	build, found, err := buildDB.GetBuild(id)
 	if err != nil {
 		return TemplateData{}, err
+	}
+
+	if !found {
+		return TemplateData{}, nil
 	}
 
 	return TemplateData{

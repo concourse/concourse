@@ -28,7 +28,7 @@ var _ = Describe("Handler", func() {
 				ID: 3,
 			}
 
-			fakeDB.GetBuildReturns(build, nil)
+			fakeDB.GetBuildReturns(build, true, nil)
 
 			templateData, err := FetchTemplateData("3", fakeDB, fakeConfigDB)
 			Ω(err).ShouldNot(HaveOccurred())
@@ -38,7 +38,7 @@ var _ = Describe("Handler", func() {
 		})
 
 		It("errors if the db returns an error", func() {
-			fakeDB.GetBuildReturns(db.Build{}, errors.New("disaster"))
+			fakeDB.GetBuildReturns(db.Build{}, false, errors.New("disaster"))
 
 			_, err := FetchTemplateData("1", fakeDB, fakeConfigDB)
 			Ω(err).Should(HaveOccurred())
