@@ -365,8 +365,9 @@ var _ = Describe("PipelineDB", func() {
 			}, []atc.Version{{"version": "1"}})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			savedVR1, err := pipelineDB.GetLatestVersionedResource(resource)
+			savedVR1, found, err := pipelineDB.GetLatestVersionedResource(resource)
 			Ω(err).ShouldNot(HaveOccurred())
+			Ω(found).Should(BeTrue())
 
 			err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
 				Name:   resource.Name,
@@ -375,8 +376,9 @@ var _ = Describe("PipelineDB", func() {
 			}, []atc.Version{{"version": "2"}})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			savedVR2, err := pipelineDB.GetLatestVersionedResource(resource)
+			savedVR2, found, err := pipelineDB.GetLatestVersionedResource(resource)
 			Ω(err).ShouldNot(HaveOccurred())
+			Ω(found).Should(BeTrue())
 
 			versions, err = pipelineDB.LoadVersionsDB()
 			Ω(err).ShouldNot(HaveOccurred())
@@ -401,8 +403,9 @@ var _ = Describe("PipelineDB", func() {
 			}, []atc.Version{{"version": "1"}})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			otherPipelineSavedVR, err := otherPipelineDB.GetLatestVersionedResource(otherPipelineResource)
+			otherPipelineSavedVR, found, err := otherPipelineDB.GetLatestVersionedResource(otherPipelineResource)
 			Ω(err).ShouldNot(HaveOccurred())
+			Ω(found).Should(BeTrue())
 
 			versions, err = pipelineDB.LoadVersionsDB()
 			Ω(err).ShouldNot(HaveOccurred())
@@ -574,8 +577,9 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "1"}})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				savedVR, err := pipelineDB.GetLatestVersionedResource(resource)
+				savedVR, found, err := pipelineDB.GetLatestVersionedResource(resource)
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 
 				Ω(savedVR.VersionedResource).Should(Equal(db.VersionedResource{
 					Resource: "some-resource",
@@ -589,7 +593,9 @@ var _ = Describe("PipelineDB", func() {
 				disabledVR := savedVR
 				disabledVR.Enabled = false
 
-				Ω(pipelineDB.GetLatestVersionedResource(resource)).Should(Equal(disabledVR))
+				latestVR, found, err := pipelineDB.GetLatestVersionedResource(resource)
+				Ω(found).Should(BeTrue())
+				Ω(latestVR).Should(Equal(disabledVR))
 
 				err = pipelineDB.EnableVersionedResource(savedVR.ID)
 				Ω(err).ShouldNot(HaveOccurred())
@@ -597,7 +603,9 @@ var _ = Describe("PipelineDB", func() {
 				enabledVR := savedVR
 				enabledVR.Enabled = true
 
-				Ω(pipelineDB.GetLatestVersionedResource(resource)).Should(Equal(enabledVR))
+				latestVR, found, err = pipelineDB.GetLatestVersionedResource(resource)
+				Ω(found).Should(BeTrue())
+				Ω(latestVR).Should(Equal(enabledVR))
 			})
 
 			It("prevents the resource version from being eligible as a previous set of inputs", func() {
@@ -608,8 +616,9 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "1"}})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				savedVR1, err := pipelineDB.GetLatestVersionedResource(resource)
+				savedVR1, found, err := pipelineDB.GetLatestVersionedResource(resource)
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 
 				otherResource, err := pipelineDB.GetResource("some-other-resource")
 				Ω(err).ShouldNot(HaveOccurred())
@@ -621,8 +630,9 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "1"}})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				otherSavedVR1, err := pipelineDB.GetLatestVersionedResource(otherResource)
+				otherSavedVR1, found, err := pipelineDB.GetLatestVersionedResource(otherResource)
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 
 				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
 					Name:   "some-resource",
@@ -631,8 +641,9 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "2"}})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				savedVR2, err := pipelineDB.GetLatestVersionedResource(resource)
+				savedVR2, found, err := pipelineDB.GetLatestVersionedResource(resource)
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 
 				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
 					Name:   "some-other-resource",
@@ -641,8 +652,9 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "2"}})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				otherSavedVR2, err := pipelineDB.GetLatestVersionedResource(otherResource)
+				otherSavedVR2, found, err := pipelineDB.GetLatestVersionedResource(otherResource)
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 
 				jobBuildInputs := []config.JobInput{
 					{
@@ -708,8 +720,9 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "1"}})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				savedVR1, err := pipelineDB.GetLatestVersionedResource(resource)
+				savedVR1, found, err := pipelineDB.GetLatestVersionedResource(resource)
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 
 				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
 					Name:   "some-resource",
@@ -718,8 +731,9 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "2"}})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				savedVR2, err := pipelineDB.GetLatestVersionedResource(resource)
+				savedVR2, found, err := pipelineDB.GetLatestVersionedResource(resource)
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 
 				jobBuildInputs := []config.JobInput{
 					{
@@ -748,9 +762,8 @@ var _ = Describe("PipelineDB", func() {
 				err = pipelineDB.DisableVersionedResource(savedVR1.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				// no versions
 				_, err = loadAndGetLatestInputVersions("a-job", jobBuildInputs)
-				Ω(err).Should(HaveOccurred())
+				Ω(err).Should(Equal(db.ErrNoVersions))
 
 				err = pipelineDB.EnableVersionedResource(savedVR1.ID)
 				Ω(err).ShouldNot(HaveOccurred())
@@ -789,8 +802,9 @@ var _ = Describe("PipelineDB", func() {
 				savedResource, err := pipelineDB.GetResource("some-resource")
 				Ω(err).ShouldNot(HaveOccurred())
 
-				savedVR, err := pipelineDB.GetLatestVersionedResource(savedResource)
+				savedVR, found, err := pipelineDB.GetLatestVersionedResource(savedResource)
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 
 				Ω(savedVR.VersionedResource).Should(Equal(db.VersionedResource{
 					Resource: "some-resource",
@@ -805,8 +819,9 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "2"}, {"version": "3"}})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				savedVR, err = pipelineDB.GetLatestVersionedResource(savedResource)
+				savedVR, found, err = pipelineDB.GetLatestVersionedResource(savedResource)
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 
 				Ω(savedVR.VersionedResource).Should(Equal(db.VersionedResource{
 					Resource: "some-resource",
@@ -2204,8 +2219,9 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "1"}})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				savedVR1, err := pipelineDB.GetLatestVersionedResource(resource)
+				savedVR1, found, err := pipelineDB.GetLatestVersionedResource(resource)
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 
 				otherResource, err := pipelineDB.GetResource("some-other-resource")
 				Ω(err).ShouldNot(HaveOccurred())
@@ -2217,8 +2233,9 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "1"}})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				otherSavedVR1, err := pipelineDB.GetLatestVersionedResource(otherResource)
+				otherSavedVR1, found, err := pipelineDB.GetLatestVersionedResource(otherResource)
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 
 				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
 					Name:   "some-resource",
@@ -2227,8 +2244,9 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "2"}})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				savedVR2, err := pipelineDB.GetLatestVersionedResource(resource)
+				savedVR2, found, err := pipelineDB.GetLatestVersionedResource(resource)
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 
 				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
 					Name:   "some-other-resource",
@@ -2237,8 +2255,9 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "2"}})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				otherSavedVR2, err := pipelineDB.GetLatestVersionedResource(otherResource)
+				otherSavedVR2, found, err := pipelineDB.GetLatestVersionedResource(otherResource)
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 
 				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
 					Name:   "some-resource",
@@ -2247,8 +2266,9 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "3"}})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				savedVR3, err := pipelineDB.GetLatestVersionedResource(resource)
+				savedVR3, found, err := pipelineDB.GetLatestVersionedResource(resource)
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 
 				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
 					Name:   "some-other-resource",
@@ -2257,8 +2277,9 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "3"}})
 				Ω(err).ShouldNot(HaveOccurred())
 
-				otherSavedVR3, err := pipelineDB.GetLatestVersionedResource(otherResource)
+				otherSavedVR3, found, err := pipelineDB.GetLatestVersionedResource(otherResource)
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 
 				build1, err := pipelineDB.CreateJobBuild("a-job")
 				Ω(err).ShouldNot(HaveOccurred())

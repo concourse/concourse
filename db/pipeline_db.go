@@ -39,7 +39,7 @@ type PipelineDB interface {
 	UnpauseResource(resourceName string) error
 
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
-	GetLatestVersionedResource(resource SavedResource) (SavedVersionedResource, error)
+	GetLatestVersionedResource(resource SavedResource) (SavedVersionedResource, bool, error)
 	EnableVersionedResource(resourceID int) error
 	DisableVersionedResource(resourceID int) error
 	SetResourceCheckError(resource SavedResource, err error) error
@@ -690,7 +690,7 @@ func (pdb *pipelineDB) EnableVersionedResource(resourceID int) error {
 	return nil
 }
 
-func (pdb *pipelineDB) GetLatestVersionedResource(resource SavedResource) (SavedVersionedResource, error) {
+func (pdb *pipelineDB) GetLatestVersionedResource(resource SavedResource) (SavedVersionedResource, bool, error) {
 	var versionBytes, metadataBytes string
 
 	svr := SavedVersionedResource{
@@ -707,20 +707,25 @@ func (pdb *pipelineDB) GetLatestVersionedResource(resource SavedResource) (Saved
 		LIMIT 1
 	`, resource.ID).Scan(&svr.ID, &svr.Enabled, &svr.Type, &versionBytes, &metadataBytes)
 	if err != nil {
-		return SavedVersionedResource{}, err
+		if err == sql.ErrNoRows {
+			panic("TESTME")
+			return SavedVersionedResource{}, false, nil
+		}
+
+		return SavedVersionedResource{}, false, err
 	}
 
 	err = json.Unmarshal([]byte(versionBytes), &svr.Version)
 	if err != nil {
-		return SavedVersionedResource{}, err
+		return SavedVersionedResource{}, false, err
 	}
 
 	err = json.Unmarshal([]byte(metadataBytes), &svr.Metadata)
 	if err != nil {
-		return SavedVersionedResource{}, err
+		return SavedVersionedResource{}, false, err
 	}
 
-	return svr, nil
+	return svr, true, nil
 }
 
 func (pdb *pipelineDB) SetResourceCheckError(resource SavedResource, cause error) error {

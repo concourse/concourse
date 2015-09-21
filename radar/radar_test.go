@@ -230,7 +230,7 @@ var _ = Describe("Radar", func() {
 									"version": "1",
 								},
 							},
-						}, nil)
+						}, true, nil)
 				})
 
 				It("checks from it", func() {
@@ -242,7 +242,7 @@ var _ = Describe("Radar", func() {
 					fakeRadarDB.GetLatestVersionedResourceReturns(db.SavedVersionedResource{
 						ID:                2,
 						VersionedResource: db.VersionedResource{Version: db.Version{"version": "2"}},
-					}, nil)
+					}, true, nil)
 
 					Eventually(times).Should(Receive())
 
@@ -651,9 +651,29 @@ var _ = Describe("Radar", func() {
 			})
 
 			Context("when there is no current version", func() {
+				BeforeEach(func() {
+					fakeRadarDB.GetLatestVersionedResourceReturns(db.SavedVersionedResource{}, false, nil)
+				})
+
 				It("checks from nil", func() {
 					_, version := fakeResource.CheckArgsForCall(0)
 					Ω(version).Should(BeNil())
+				})
+			})
+
+			Context("when getting the current version fails", func() {
+				disaster := errors.New("nope")
+
+				BeforeEach(func() {
+					fakeRadarDB.GetLatestVersionedResourceReturns(db.SavedVersionedResource{}, false, disaster)
+				})
+
+				It("returns the error", func() {
+					Ω(scanErr).Should(Equal(disaster))
+				})
+
+				It("does not check", func() {
+					Ω(fakeResource.CheckCallCount()).Should(Equal(0))
 				})
 			})
 
@@ -667,7 +687,7 @@ var _ = Describe("Radar", func() {
 									"version": "1",
 								},
 							},
-						}, nil)
+						}, true, nil)
 				})
 
 				It("checks from it", func() {

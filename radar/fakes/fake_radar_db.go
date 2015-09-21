@@ -40,14 +40,15 @@ type FakeRadarDB struct {
 		result2 db.ConfigVersion
 		result3 error
 	}
-	GetLatestVersionedResourceStub        func(resource db.SavedResource) (db.SavedVersionedResource, error)
+	GetLatestVersionedResourceStub        func(resource db.SavedResource) (db.SavedVersionedResource, bool, error)
 	getLatestVersionedResourceMutex       sync.RWMutex
 	getLatestVersionedResourceArgsForCall []struct {
 		resource db.SavedResource
 	}
 	getLatestVersionedResourceReturns struct {
 		result1 db.SavedVersionedResource
-		result2 error
+		result2 bool
+		result3 error
 	}
 	GetResourceStub        func(resourceName string) (db.SavedResource, error)
 	getResourceMutex       sync.RWMutex
@@ -93,13 +94,13 @@ type FakeRadarDB struct {
 		result1 error
 	}
 	LeaseResourceCheckingStub        func(resource string, interval time.Duration, immediate bool) (db.Lease, bool, error)
-	LeaseResourceCheckingMutex       sync.RWMutex
-	LeaseResourceCheckingArgsForCall []struct {
+	leaseResourceCheckingMutex       sync.RWMutex
+	leaseResourceCheckingArgsForCall []struct {
 		resource  string
 		interval  time.Duration
 		immediate bool
 	}
-	LeaseResourceCheckingReturns struct {
+	leaseResourceCheckingReturns struct {
 		result1 db.Lease
 		result2 bool
 		result3 error
@@ -213,7 +214,7 @@ func (fake *FakeRadarDB) GetConfigReturns(result1 atc.Config, result2 db.ConfigV
 	}{result1, result2, result3}
 }
 
-func (fake *FakeRadarDB) GetLatestVersionedResource(resource db.SavedResource) (db.SavedVersionedResource, error) {
+func (fake *FakeRadarDB) GetLatestVersionedResource(resource db.SavedResource) (db.SavedVersionedResource, bool, error) {
 	fake.getLatestVersionedResourceMutex.Lock()
 	fake.getLatestVersionedResourceArgsForCall = append(fake.getLatestVersionedResourceArgsForCall, struct {
 		resource db.SavedResource
@@ -222,7 +223,7 @@ func (fake *FakeRadarDB) GetLatestVersionedResource(resource db.SavedResource) (
 	if fake.GetLatestVersionedResourceStub != nil {
 		return fake.GetLatestVersionedResourceStub(resource)
 	} else {
-		return fake.getLatestVersionedResourceReturns.result1, fake.getLatestVersionedResourceReturns.result2
+		return fake.getLatestVersionedResourceReturns.result1, fake.getLatestVersionedResourceReturns.result2, fake.getLatestVersionedResourceReturns.result3
 	}
 }
 
@@ -238,12 +239,13 @@ func (fake *FakeRadarDB) GetLatestVersionedResourceArgsForCall(i int) db.SavedRe
 	return fake.getLatestVersionedResourceArgsForCall[i].resource
 }
 
-func (fake *FakeRadarDB) GetLatestVersionedResourceReturns(result1 db.SavedVersionedResource, result2 error) {
+func (fake *FakeRadarDB) GetLatestVersionedResourceReturns(result1 db.SavedVersionedResource, result2 bool, result3 error) {
 	fake.GetLatestVersionedResourceStub = nil
 	fake.getLatestVersionedResourceReturns = struct {
 		result1 db.SavedVersionedResource
-		result2 error
-	}{result1, result2}
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeRadarDB) GetResource(resourceName string) (db.SavedResource, error) {
@@ -410,35 +412,35 @@ func (fake *FakeRadarDB) SetResourceCheckErrorReturns(result1 error) {
 }
 
 func (fake *FakeRadarDB) LeaseResourceChecking(resource string, interval time.Duration, immediate bool) (db.Lease, bool, error) {
-	fake.LeaseResourceCheckingMutex.Lock()
-	fake.LeaseResourceCheckingArgsForCall = append(fake.LeaseResourceCheckingArgsForCall, struct {
+	fake.leaseResourceCheckingMutex.Lock()
+	fake.leaseResourceCheckingArgsForCall = append(fake.leaseResourceCheckingArgsForCall, struct {
 		resource  string
 		interval  time.Duration
 		immediate bool
 	}{resource, interval, immediate})
-	fake.LeaseResourceCheckingMutex.Unlock()
+	fake.leaseResourceCheckingMutex.Unlock()
 	if fake.LeaseResourceCheckingStub != nil {
 		return fake.LeaseResourceCheckingStub(resource, interval, immediate)
 	} else {
-		return fake.LeaseResourceCheckingReturns.result1, fake.LeaseResourceCheckingReturns.result2, fake.LeaseResourceCheckingReturns.result3
+		return fake.leaseResourceCheckingReturns.result1, fake.leaseResourceCheckingReturns.result2, fake.leaseResourceCheckingReturns.result3
 	}
 }
 
 func (fake *FakeRadarDB) LeaseResourceCheckingCallCount() int {
-	fake.LeaseResourceCheckingMutex.RLock()
-	defer fake.LeaseResourceCheckingMutex.RUnlock()
-	return len(fake.LeaseResourceCheckingArgsForCall)
+	fake.leaseResourceCheckingMutex.RLock()
+	defer fake.leaseResourceCheckingMutex.RUnlock()
+	return len(fake.leaseResourceCheckingArgsForCall)
 }
 
 func (fake *FakeRadarDB) LeaseResourceCheckingArgsForCall(i int) (string, time.Duration, bool) {
-	fake.LeaseResourceCheckingMutex.RLock()
-	defer fake.LeaseResourceCheckingMutex.RUnlock()
-	return fake.LeaseResourceCheckingArgsForCall[i].resource, fake.LeaseResourceCheckingArgsForCall[i].interval, fake.LeaseResourceCheckingArgsForCall[i].immediate
+	fake.leaseResourceCheckingMutex.RLock()
+	defer fake.leaseResourceCheckingMutex.RUnlock()
+	return fake.leaseResourceCheckingArgsForCall[i].resource, fake.leaseResourceCheckingArgsForCall[i].interval, fake.leaseResourceCheckingArgsForCall[i].immediate
 }
 
 func (fake *FakeRadarDB) LeaseResourceCheckingReturns(result1 db.Lease, result2 bool, result3 error) {
 	fake.LeaseResourceCheckingStub = nil
-	fake.LeaseResourceCheckingReturns = struct {
+	fake.leaseResourceCheckingReturns = struct {
 		result1 db.Lease
 		result2 bool
 		result3 error

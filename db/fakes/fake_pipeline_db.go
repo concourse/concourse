@@ -134,14 +134,15 @@ type FakePipelineDB struct {
 	saveResourceVersionsReturns struct {
 		result1 error
 	}
-	GetLatestVersionedResourceStub        func(resource db.SavedResource) (db.SavedVersionedResource, error)
+	GetLatestVersionedResourceStub        func(resource db.SavedResource) (db.SavedVersionedResource, bool, error)
 	getLatestVersionedResourceMutex       sync.RWMutex
 	getLatestVersionedResourceArgsForCall []struct {
 		resource db.SavedResource
 	}
 	getLatestVersionedResourceReturns struct {
 		result1 db.SavedVersionedResource
-		result2 error
+		result2 bool
+		result3 error
 	}
 	EnableVersionedResourceStub        func(resourceID int) error
 	enableVersionedResourceMutex       sync.RWMutex
@@ -169,13 +170,13 @@ type FakePipelineDB struct {
 		result1 error
 	}
 	LeaseResourceCheckingStub        func(resource string, length time.Duration, immediate bool) (db.Lease, bool, error)
-	LeaseResourceCheckingMutex       sync.RWMutex
-	LeaseResourceCheckingArgsForCall []struct {
+	leaseResourceCheckingMutex       sync.RWMutex
+	leaseResourceCheckingArgsForCall []struct {
 		resource  string
 		length    time.Duration
 		immediate bool
 	}
-	LeaseResourceCheckingReturns struct {
+	leaseResourceCheckingReturns struct {
 		result1 db.Lease
 		result2 bool
 		result3 error
@@ -844,7 +845,7 @@ func (fake *FakePipelineDB) SaveResourceVersionsReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakePipelineDB) GetLatestVersionedResource(resource db.SavedResource) (db.SavedVersionedResource, error) {
+func (fake *FakePipelineDB) GetLatestVersionedResource(resource db.SavedResource) (db.SavedVersionedResource, bool, error) {
 	fake.getLatestVersionedResourceMutex.Lock()
 	fake.getLatestVersionedResourceArgsForCall = append(fake.getLatestVersionedResourceArgsForCall, struct {
 		resource db.SavedResource
@@ -853,7 +854,7 @@ func (fake *FakePipelineDB) GetLatestVersionedResource(resource db.SavedResource
 	if fake.GetLatestVersionedResourceStub != nil {
 		return fake.GetLatestVersionedResourceStub(resource)
 	} else {
-		return fake.getLatestVersionedResourceReturns.result1, fake.getLatestVersionedResourceReturns.result2
+		return fake.getLatestVersionedResourceReturns.result1, fake.getLatestVersionedResourceReturns.result2, fake.getLatestVersionedResourceReturns.result3
 	}
 }
 
@@ -869,12 +870,13 @@ func (fake *FakePipelineDB) GetLatestVersionedResourceArgsForCall(i int) db.Save
 	return fake.getLatestVersionedResourceArgsForCall[i].resource
 }
 
-func (fake *FakePipelineDB) GetLatestVersionedResourceReturns(result1 db.SavedVersionedResource, result2 error) {
+func (fake *FakePipelineDB) GetLatestVersionedResourceReturns(result1 db.SavedVersionedResource, result2 bool, result3 error) {
 	fake.GetLatestVersionedResourceStub = nil
 	fake.getLatestVersionedResourceReturns = struct {
 		result1 db.SavedVersionedResource
-		result2 error
-	}{result1, result2}
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakePipelineDB) EnableVersionedResource(resourceID int) error {
@@ -975,35 +977,35 @@ func (fake *FakePipelineDB) SetResourceCheckErrorReturns(result1 error) {
 }
 
 func (fake *FakePipelineDB) LeaseResourceChecking(resource string, length time.Duration, immediate bool) (db.Lease, bool, error) {
-	fake.LeaseResourceCheckingMutex.Lock()
-	fake.LeaseResourceCheckingArgsForCall = append(fake.LeaseResourceCheckingArgsForCall, struct {
+	fake.leaseResourceCheckingMutex.Lock()
+	fake.leaseResourceCheckingArgsForCall = append(fake.leaseResourceCheckingArgsForCall, struct {
 		resource  string
 		length    time.Duration
 		immediate bool
 	}{resource, length, immediate})
-	fake.LeaseResourceCheckingMutex.Unlock()
+	fake.leaseResourceCheckingMutex.Unlock()
 	if fake.LeaseResourceCheckingStub != nil {
 		return fake.LeaseResourceCheckingStub(resource, length, immediate)
 	} else {
-		return fake.LeaseResourceCheckingReturns.result1, fake.LeaseResourceCheckingReturns.result2, fake.LeaseResourceCheckingReturns.result3
+		return fake.leaseResourceCheckingReturns.result1, fake.leaseResourceCheckingReturns.result2, fake.leaseResourceCheckingReturns.result3
 	}
 }
 
 func (fake *FakePipelineDB) LeaseResourceCheckingCallCount() int {
-	fake.LeaseResourceCheckingMutex.RLock()
-	defer fake.LeaseResourceCheckingMutex.RUnlock()
-	return len(fake.LeaseResourceCheckingArgsForCall)
+	fake.leaseResourceCheckingMutex.RLock()
+	defer fake.leaseResourceCheckingMutex.RUnlock()
+	return len(fake.leaseResourceCheckingArgsForCall)
 }
 
 func (fake *FakePipelineDB) LeaseResourceCheckingArgsForCall(i int) (string, time.Duration, bool) {
-	fake.LeaseResourceCheckingMutex.RLock()
-	defer fake.LeaseResourceCheckingMutex.RUnlock()
-	return fake.LeaseResourceCheckingArgsForCall[i].resource, fake.LeaseResourceCheckingArgsForCall[i].length, fake.LeaseResourceCheckingArgsForCall[i].immediate
+	fake.leaseResourceCheckingMutex.RLock()
+	defer fake.leaseResourceCheckingMutex.RUnlock()
+	return fake.leaseResourceCheckingArgsForCall[i].resource, fake.leaseResourceCheckingArgsForCall[i].length, fake.leaseResourceCheckingArgsForCall[i].immediate
 }
 
 func (fake *FakePipelineDB) LeaseResourceCheckingReturns(result1 db.Lease, result2 bool, result3 error) {
 	fake.LeaseResourceCheckingStub = nil
-	fake.LeaseResourceCheckingReturns = struct {
+	fake.leaseResourceCheckingReturns = struct {
 		result1 db.Lease
 		result2 bool
 		result3 error

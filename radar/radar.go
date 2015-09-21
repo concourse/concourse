@@ -32,7 +32,7 @@ type RadarDB interface {
 
 	GetConfig() (atc.Config, db.ConfigVersion, error)
 
-	GetLatestVersionedResource(resource db.SavedResource) (db.SavedVersionedResource, error)
+	GetLatestVersionedResource(resource db.SavedResource) (db.SavedVersionedResource, bool, error)
 	GetResource(resourceName string) (db.SavedResource, error)
 	PauseResource(resourceName string) error
 	UnpauseResource(resourceName string) error
@@ -197,8 +197,14 @@ func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig,
 
 	defer res.Release()
 
+	vr, found, err := radar.db.GetLatestVersionedResource(savedResource)
+	if err != nil {
+		logger.Error("failed-to-get-current-version", err)
+		return err
+	}
+
 	var from db.Version
-	if vr, err := radar.db.GetLatestVersionedResource(savedResource); err == nil {
+	if found {
 		from = vr.Version
 	}
 
