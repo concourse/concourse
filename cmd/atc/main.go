@@ -284,13 +284,12 @@ func main() {
 		break
 	}
 
-	dbConn = Db.Explain(logger, dbConn, 500*time.Millisecond)
-
 	listener := pq.NewListener(*sqlDataSource, time.Second, time.Minute, nil)
-	bus := Db.NewNotificationsBus(listener)
+	bus := Db.NewNotificationsBus(listener, dbConn)
 
-	db := Db.NewSQL(logger.Session("db"), dbConn, bus)
-	pipelineDBFactory := Db.NewPipelineDBFactory(logger.Session("db"), dbConn, bus, db)
+	explainDBConn := Db.Explain(logger, dbConn, 500*time.Millisecond)
+	db := Db.NewSQL(logger.Session("db"), explainDBConn, bus)
+	pipelineDBFactory := Db.NewPipelineDBFactory(logger.Session("db"), explainDBConn, bus, db)
 
 	var configDB Db.ConfigDB
 	configDB = Db.PlanConvertingConfigDB{db}

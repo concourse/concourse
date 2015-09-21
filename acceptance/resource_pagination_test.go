@@ -35,7 +35,7 @@ var _ = Describe("Resource Pagination", func() {
 		postgresRunner.CreateTestDB()
 		dbConn = postgresRunner.Open()
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
-		bus := db.NewNotificationsBus(dbListener)
+		bus := db.NewNotificationsBus(dbListener, dbConn)
 
 		sqlDB = db.NewSQL(dbLogger, dbConn, bus)
 		Ω(err).ShouldNot(HaveOccurred())

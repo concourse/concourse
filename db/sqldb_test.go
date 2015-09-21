@@ -29,7 +29,7 @@ var _ = Describe("SQL DB", func() {
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
-		bus := db.NewNotificationsBus(listener)
+		bus := db.NewNotificationsBus(listener, dbConn)
 
 		sqlDB = db.NewSQL(lagertest.NewTestLogger("test"), dbConn, bus)
 

@@ -30,7 +30,7 @@ var _ = Describe("Jobs Builds", func() {
 
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
-		bus := db.NewNotificationsBus(listener)
+		bus := db.NewNotificationsBus(listener, dbConn)
 
 		sqlDB = db.NewSQL(lagertest.NewTestLogger("test"), dbConn, bus)
 		pipelineDBFactory = db.NewPipelineDBFactory(lagertest.NewTestLogger("test"), dbConn, bus, sqlDB)

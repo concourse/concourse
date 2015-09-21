@@ -494,8 +494,7 @@ func (db *SQLDB) StartBuild(buildID int, engine, metadata string) (bool, error) 
 		return false, err
 	}
 
-	// doesn't really need to be in transaction
-	_, err = db.conn.Exec("NOTIFY " + buildEventsChannel(buildID))
+	err = db.bus.Notify(buildEventsChannel(buildID))
 	if err != nil {
 		return false, err
 	}
@@ -543,8 +542,7 @@ func (db *SQLDB) FinishBuild(buildID int, status Status) error {
 		return err
 	}
 
-	// doesn't really need to be in transaction
-	_, err = db.conn.Exec("NOTIFY " + buildEventsChannel(buildID))
+	err = db.bus.Notify(buildEventsChannel(buildID))
 	if err != nil {
 		return err
 	}
@@ -622,7 +620,7 @@ func (db *SQLDB) AbortBuild(buildID int) error {
 		return err
 	}
 
-	_, err = db.conn.Exec("NOTIFY " + buildAbortChannel(buildID))
+	err = db.bus.Notify(buildAbortChannel(buildID))
 	if err != nil {
 		return err
 	}
@@ -661,8 +659,7 @@ func (db *SQLDB) SaveBuildEvent(buildID int, event atc.Event) error {
 		return err
 	}
 
-	// doesn't really need to be in transaction
-	_, err = db.conn.Exec("NOTIFY " + buildEventsChannel(buildID))
+	err = db.bus.Notify(buildEventsChannel(buildID))
 	if err != nil {
 		return err
 	}

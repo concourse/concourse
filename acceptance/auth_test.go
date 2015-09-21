@@ -30,7 +30,7 @@ var _ = Describe("Auth", func() {
 		postgresRunner.CreateTestDB()
 		dbConn = postgresRunner.Open()
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
-		bus := db.NewNotificationsBus(dbListener)
+		bus := db.NewNotificationsBus(dbListener, dbConn)
 		sqlDB = db.NewSQL(logger, dbConn, bus)
 
 		_, err := sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)

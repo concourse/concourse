@@ -8,14 +8,16 @@ import (
 
 type notificationsBus struct {
 	listener *pq.Listener
+	conn     Conn
 
 	notifications  map[string]map[chan bool]struct{}
 	notificationsL sync.Mutex
 }
 
-func NewNotificationsBus(listener *pq.Listener) *notificationsBus {
+func NewNotificationsBus(listener *pq.Listener, conn Conn) *notificationsBus {
 	bus := &notificationsBus{
 		listener: listener,
+		conn:     conn,
 
 		notifications: make(map[string]map[chan bool]struct{}),
 	}
@@ -51,6 +53,11 @@ func (bus *notificationsBus) Listen(channel string) (chan bool, error) {
 	bus.notificationsL.Unlock()
 
 	return notify, nil
+}
+
+func (bus *notificationsBus) Notify(channel string) error {
+	_, err := bus.conn.Exec("NOTIFY " + channel)
+	return err
 }
 
 func (bus *notificationsBus) Unlisten(channel string, notify chan bool) error {
