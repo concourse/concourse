@@ -92,14 +92,14 @@ type FakeRadarDB struct {
 	setResourceCheckErrorReturns struct {
 		result1 error
 	}
-	LeaseCheckStub        func(resource string, interval time.Duration, immediate bool) (db.Lease, bool, error)
-	leaseCheckMutex       sync.RWMutex
-	leaseCheckArgsForCall []struct {
+	LeaseResourceCheckingStub        func(resource string, interval time.Duration, immediate bool) (db.Lease, bool, error)
+	LeaseResourceCheckingMutex       sync.RWMutex
+	LeaseResourceCheckingArgsForCall []struct {
 		resource  string
 		interval  time.Duration
 		immediate bool
 	}
-	leaseCheckReturns struct {
+	LeaseResourceCheckingReturns struct {
 		result1 db.Lease
 		result2 bool
 		result3 error
@@ -409,36 +409,36 @@ func (fake *FakeRadarDB) SetResourceCheckErrorReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeRadarDB) LeaseCheck(resource string, interval time.Duration, immediate bool) (db.Lease, bool, error) {
-	fake.leaseCheckMutex.Lock()
-	fake.leaseCheckArgsForCall = append(fake.leaseCheckArgsForCall, struct {
+func (fake *FakeRadarDB) LeaseResourceChecking(resource string, interval time.Duration, immediate bool) (db.Lease, bool, error) {
+	fake.LeaseResourceCheckingMutex.Lock()
+	fake.LeaseResourceCheckingArgsForCall = append(fake.LeaseResourceCheckingArgsForCall, struct {
 		resource  string
 		interval  time.Duration
 		immediate bool
 	}{resource, interval, immediate})
-	fake.leaseCheckMutex.Unlock()
-	if fake.LeaseCheckStub != nil {
-		return fake.LeaseCheckStub(resource, interval, immediate)
+	fake.LeaseResourceCheckingMutex.Unlock()
+	if fake.LeaseResourceCheckingStub != nil {
+		return fake.LeaseResourceCheckingStub(resource, interval, immediate)
 	} else {
-		return fake.leaseCheckReturns.result1, fake.leaseCheckReturns.result2, fake.leaseCheckReturns.result3
+		return fake.LeaseResourceCheckingReturns.result1, fake.LeaseResourceCheckingReturns.result2, fake.LeaseResourceCheckingReturns.result3
 	}
 }
 
-func (fake *FakeRadarDB) LeaseCheckCallCount() int {
-	fake.leaseCheckMutex.RLock()
-	defer fake.leaseCheckMutex.RUnlock()
-	return len(fake.leaseCheckArgsForCall)
+func (fake *FakeRadarDB) LeaseResourceCheckingCallCount() int {
+	fake.LeaseResourceCheckingMutex.RLock()
+	defer fake.LeaseResourceCheckingMutex.RUnlock()
+	return len(fake.LeaseResourceCheckingArgsForCall)
 }
 
-func (fake *FakeRadarDB) LeaseCheckArgsForCall(i int) (string, time.Duration, bool) {
-	fake.leaseCheckMutex.RLock()
-	defer fake.leaseCheckMutex.RUnlock()
-	return fake.leaseCheckArgsForCall[i].resource, fake.leaseCheckArgsForCall[i].interval, fake.leaseCheckArgsForCall[i].immediate
+func (fake *FakeRadarDB) LeaseResourceCheckingArgsForCall(i int) (string, time.Duration, bool) {
+	fake.LeaseResourceCheckingMutex.RLock()
+	defer fake.LeaseResourceCheckingMutex.RUnlock()
+	return fake.LeaseResourceCheckingArgsForCall[i].resource, fake.LeaseResourceCheckingArgsForCall[i].interval, fake.LeaseResourceCheckingArgsForCall[i].immediate
 }
 
-func (fake *FakeRadarDB) LeaseCheckReturns(result1 db.Lease, result2 bool, result3 error) {
-	fake.LeaseCheckStub = nil
-	fake.leaseCheckReturns = struct {
+func (fake *FakeRadarDB) LeaseResourceCheckingReturns(result1 db.Lease, result2 bool, result3 error) {
+	fake.LeaseResourceCheckingStub = nil
+	fake.LeaseResourceCheckingReturns = struct {
 		result1 db.Lease
 		result2 bool
 		result3 error

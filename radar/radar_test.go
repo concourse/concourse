@@ -102,7 +102,7 @@ var _ = Describe("Radar", func() {
 
 		Context("if the lease cannot be acquired", func() {
 			BeforeEach(func() {
-				fakeRadarDB.LeaseCheckReturns(nil, false, nil)
+				fakeRadarDB.LeaseResourceCheckingReturns(nil, false, nil)
 			})
 
 			It("grabs a resource checking lease before checking, breaks lease after done", func() {
@@ -112,7 +112,7 @@ var _ = Describe("Radar", func() {
 
 		Context("if the lease can be acquired", func() {
 			BeforeEach(func() {
-				fakeRadarDB.LeaseCheckReturns(fakeLease, true, nil)
+				fakeRadarDB.LeaseResourceCheckingReturns(fakeLease, true, nil)
 			})
 
 			It("constructs the resource of the correct type", func() {
@@ -195,9 +195,9 @@ var _ = Describe("Radar", func() {
 			It("grabs a periodic resource checking lease before checking, breaks lease after done", func() {
 				Eventually(times).Should(Receive())
 
-				Ω(fakeRadarDB.LeaseCheckCallCount()).Should(Equal(1))
+				Ω(fakeRadarDB.LeaseResourceCheckingCallCount()).Should(Equal(1))
 
-				resourceName, leaseInterval, immediate := fakeRadarDB.LeaseCheckArgsForCall(0)
+				resourceName, leaseInterval, immediate := fakeRadarDB.LeaseResourceCheckingArgsForCall(0)
 				Ω(resourceName).Should(Equal("some-resource"))
 				Ω(leaseInterval).Should(Equal(interval))
 				Ω(immediate).Should(BeFalse())
@@ -563,7 +563,7 @@ var _ = Describe("Radar", func() {
 
 		Context("if the lease can be acquired", func() {
 			BeforeEach(func() {
-				fakeRadarDB.LeaseCheckReturns(fakeLease, true, nil)
+				fakeRadarDB.LeaseResourceCheckingReturns(fakeLease, true, nil)
 			})
 
 			It("succeeds", func() {
@@ -588,9 +588,9 @@ var _ = Describe("Radar", func() {
 			})
 
 			It("grabs an immediate resource checking lease before checking, breaks lease after done", func() {
-				Ω(fakeRadarDB.LeaseCheckCallCount()).Should(Equal(1))
+				Ω(fakeRadarDB.LeaseResourceCheckingCallCount()).Should(Equal(1))
 
-				resourceName, leaseInterval, immediate := fakeRadarDB.LeaseCheckArgsForCall(0)
+				resourceName, leaseInterval, immediate := fakeRadarDB.LeaseResourceCheckingArgsForCall(0)
 				Ω(resourceName).Should(Equal("some-resource"))
 				Ω(leaseInterval).Should(Equal(interval))
 				Ω(immediate).Should(BeTrue())
@@ -607,7 +607,7 @@ var _ = Describe("Radar", func() {
 					results <- true
 					close(results)
 
-					fakeRadarDB.LeaseCheckStub = func(resourceName string, interval time.Duration, immediate bool) (db.Lease, bool, error) {
+					fakeRadarDB.LeaseResourceCheckingStub = func(resourceName string, interval time.Duration, immediate bool) (db.Lease, bool, error) {
 						if <-results {
 							return fakeLease, true, nil
 						} else {
@@ -617,19 +617,19 @@ var _ = Describe("Radar", func() {
 				})
 
 				It("retries until it is", func() {
-					Ω(fakeRadarDB.LeaseCheckCallCount()).Should(Equal(3))
+					Ω(fakeRadarDB.LeaseResourceCheckingCallCount()).Should(Equal(3))
 
-					resourceName, leaseInterval, immediate := fakeRadarDB.LeaseCheckArgsForCall(0)
+					resourceName, leaseInterval, immediate := fakeRadarDB.LeaseResourceCheckingArgsForCall(0)
 					Ω(resourceName).Should(Equal("some-resource"))
 					Ω(leaseInterval).Should(Equal(interval))
 					Ω(immediate).Should(BeTrue())
 
-					resourceName, leaseInterval, immediate = fakeRadarDB.LeaseCheckArgsForCall(1)
+					resourceName, leaseInterval, immediate = fakeRadarDB.LeaseResourceCheckingArgsForCall(1)
 					Ω(resourceName).Should(Equal("some-resource"))
 					Ω(leaseInterval).Should(Equal(interval))
 					Ω(immediate).Should(BeTrue())
 
-					resourceName, leaseInterval, immediate = fakeRadarDB.LeaseCheckArgsForCall(2)
+					resourceName, leaseInterval, immediate = fakeRadarDB.LeaseResourceCheckingArgsForCall(2)
 					Ω(resourceName).Should(Equal("some-resource"))
 					Ω(leaseInterval).Should(Equal(interval))
 					Ω(immediate).Should(BeTrue())

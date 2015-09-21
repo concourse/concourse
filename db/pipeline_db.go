@@ -43,7 +43,7 @@ type PipelineDB interface {
 	EnableVersionedResource(resourceID int) error
 	DisableVersionedResource(resourceID int) error
 	SetResourceCheckError(resource SavedResource, err error) error
-	LeaseCheck(resource string, length time.Duration, immediate bool) (Lease, bool, error)
+	LeaseResourceChecking(resource string, length time.Duration, immediate bool) (Lease, bool, error)
 
 	GetJob(job string) (SavedJob, error)
 	PauseJob(job string) error
@@ -256,7 +256,7 @@ func (pdb *pipelineDB) GetResource(resourceName string) (SavedResource, error) {
 	return resource, nil
 }
 
-func (pdb *pipelineDB) LeaseCheck(resourceName string, interval time.Duration, immediate bool) (Lease, bool, error) {
+func (pdb *pipelineDB) LeaseResourceChecking(resourceName string, interval time.Duration, immediate bool) (Lease, bool, error) {
 	logger := pdb.logger.Session("lease", lager.Data{
 		"resource": resourceName,
 	})

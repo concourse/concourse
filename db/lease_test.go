@@ -119,13 +119,13 @@ var _ = Describe("Leases", func() {
 		Context("when there has been a check recently", func() {
 			Context("when acquiring immediately", func() {
 				It("gets the lease", func() {
-					lease, leased, err := pipelineDB.LeaseCheck("some-resource", 1*time.Second, false)
+					lease, leased, err := pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, false)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(leased).Should(BeTrue())
 
 					lease.Break()
 
-					lease, leased, err = pipelineDB.LeaseCheck("some-resource", 1*time.Second, true)
+					lease, leased, err = pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, true)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(leased).Should(BeTrue())
 
@@ -135,13 +135,13 @@ var _ = Describe("Leases", func() {
 
 			Context("when not acquiring immediately", func() {
 				It("does not get the lease", func() {
-					lease, leased, err := pipelineDB.LeaseCheck("some-resource", 1*time.Second, false)
+					lease, leased, err := pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, false)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(leased).Should(BeTrue())
 
 					lease.Break()
 
-					_, leased, err = pipelineDB.LeaseCheck("some-resource", 1*time.Second, false)
+					_, leased, err = pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, false)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(leased).Should(BeFalse())
 				})
@@ -151,12 +151,12 @@ var _ = Describe("Leases", func() {
 		Context("when there has not been a check recently", func() {
 			Context("when acquiring immediately", func() {
 				It("gets and keeps the lease and stops others from periodically getting it", func() {
-					lease, leased, err := pipelineDB.LeaseCheck("some-resource", 1*time.Second, true)
+					lease, leased, err := pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, true)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(leased).Should(BeTrue())
 
 					Consistently(func() bool {
-						_, leased, err = pipelineDB.LeaseCheck("some-resource", 1*time.Second, false)
+						_, leased, err = pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, false)
 						Ω(err).ShouldNot(HaveOccurred())
 
 						return leased
@@ -166,7 +166,7 @@ var _ = Describe("Leases", func() {
 
 					time.Sleep(time.Second)
 
-					newLease, leased, err := pipelineDB.LeaseCheck("some-resource", 1*time.Second, true)
+					newLease, leased, err := pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, true)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(leased).Should(BeTrue())
 
@@ -174,12 +174,12 @@ var _ = Describe("Leases", func() {
 				})
 
 				It("gets and keeps the lease and stops others from immediately getting it", func() {
-					lease, leased, err := pipelineDB.LeaseCheck("some-resource", 1*time.Second, true)
+					lease, leased, err := pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, true)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(leased).Should(BeTrue())
 
 					Consistently(func() bool {
-						_, leased, err = pipelineDB.LeaseCheck("some-resource", 1*time.Second, true)
+						_, leased, err = pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, true)
 						Ω(err).ShouldNot(HaveOccurred())
 
 						return leased
@@ -189,7 +189,7 @@ var _ = Describe("Leases", func() {
 
 					time.Sleep(time.Second)
 
-					newLease, leased, err := pipelineDB.LeaseCheck("some-resource", 1*time.Second, true)
+					newLease, leased, err := pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, true)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(leased).Should(BeTrue())
 
@@ -199,12 +199,12 @@ var _ = Describe("Leases", func() {
 
 			Context("when not acquiring immediately", func() {
 				It("gets and keeps the lease and stops others from periodically getting it", func() {
-					lease, leased, err := pipelineDB.LeaseCheck("some-resource", 1*time.Second, false)
+					lease, leased, err := pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, false)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(leased).Should(BeTrue())
 
 					Consistently(func() bool {
-						_, leased, err = pipelineDB.LeaseCheck("some-resource", 1*time.Second, false)
+						_, leased, err = pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, false)
 						Ω(err).ShouldNot(HaveOccurred())
 
 						return leased
@@ -214,7 +214,7 @@ var _ = Describe("Leases", func() {
 
 					time.Sleep(time.Second)
 
-					newLease, leased, err := pipelineDB.LeaseCheck("some-resource", 1*time.Second, false)
+					newLease, leased, err := pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, false)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(leased).Should(BeTrue())
 
@@ -222,12 +222,12 @@ var _ = Describe("Leases", func() {
 				})
 
 				It("gets and keeps the lease and stops others from immediately getting it", func() {
-					lease, leased, err := pipelineDB.LeaseCheck("some-resource", 1*time.Second, false)
+					lease, leased, err := pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, false)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(leased).Should(BeTrue())
 
 					Consistently(func() bool {
-						_, leased, err = pipelineDB.LeaseCheck("some-resource", 1*time.Second, true)
+						_, leased, err = pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, true)
 						Ω(err).ShouldNot(HaveOccurred())
 
 						return leased
@@ -237,7 +237,7 @@ var _ = Describe("Leases", func() {
 
 					time.Sleep(time.Second)
 
-					newLease, leased, err := pipelineDB.LeaseCheck("some-resource", 1*time.Second, false)
+					newLease, leased, err := pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, false)
 					Ω(err).ShouldNot(HaveOccurred())
 					Ω(leased).Should(BeTrue())
 
