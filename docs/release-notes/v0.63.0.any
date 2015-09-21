@@ -51,6 +51,14 @@
   As a net effect, database CPU usage and number of open connections should
   both go down and be a lot more stable. Yay!
 }{
+  We've cleaned up some database indexing/unique constraints. As part of this
+  there's a migration to clear out old redundant data; on some environments
+  we've seen this query run for quite a while, so be prepared to have worst-case
+  ~20 mins of downtime during your deploy. Sorry about that.
+
+  If your Concourse instance hasn't been around for very long (or if you're just
+  lucky like us) the migration shouldn't take as long.
+}{
   We've fixed a bug in the new scheduling algorithm that led to churning CPU
   and taking forever to determine that a job has no available inputs.
 }{
