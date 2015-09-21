@@ -141,10 +141,26 @@ var _ = Describe("Scheduler", func() {
 
 	Describe("BuildLatestInputs", func() {
 		Context("when no inputs are available", func() {
+			BeforeEach(func() {
+				fakePipelineDB.GetLatestInputVersionsReturns(nil, false, nil)
+			})
+
+			It("returns no error", func() {
+				err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+				Ω(err).ShouldNot(HaveOccurred())
+			})
+
+			It("does not trigger a build", func() {
+				scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+				Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(0))
+			})
+		})
+
+		Context("when the inputs cannot be deteremined", func() {
 			disaster := errors.New("oh no!")
 
 			BeforeEach(func() {
-				fakePipelineDB.GetLatestInputVersionsReturns(nil, disaster)
+				fakePipelineDB.GetLatestInputVersionsReturns(nil, false, disaster)
 			})
 
 			It("returns the error", func() {
@@ -204,7 +220,7 @@ var _ = Describe("Scheduler", func() {
 			}
 
 			BeforeEach(func() {
-				fakePipelineDB.GetLatestInputVersionsReturns(newInputs, nil)
+				fakePipelineDB.GetLatestInputVersionsReturns(newInputs, true, nil)
 			})
 
 			It("does not load the versions database, as it was given one", func() {
@@ -259,7 +275,7 @@ var _ = Describe("Scheduler", func() {
 						},
 					)
 
-					fakePipelineDB.GetLatestInputVersionsReturns(foundInputsWithCheck, nil)
+					fakePipelineDB.GetLatestInputVersionsReturns(foundInputsWithCheck, true, nil)
 				})
 
 				It("excludes them from the inputs when checking for a build", func() {
@@ -503,7 +519,7 @@ var _ = Describe("Scheduler", func() {
 
 			BeforeEach(func() {
 				fakePipelineDB.GetNextPendingBuildReturns(pendingBuild, true, nil)
-				fakePipelineDB.GetLatestInputVersionsReturns(pendingInputs, nil)
+				fakePipelineDB.GetLatestInputVersionsReturns(pendingInputs, true, nil)
 			})
 
 			Context("and it can be scheduled", func() {
@@ -641,7 +657,7 @@ var _ = Describe("Scheduler", func() {
 
 			BeforeEach(func() {
 				fakePipelineDB.CreateJobBuildReturns(createdDBBuild, nil)
-				fakePipelineDB.GetLatestInputVersionsReturns(pendingInputs, nil)
+				fakePipelineDB.GetLatestInputVersionsReturns(pendingInputs, true, nil)
 				fakePipelineDB.LoadVersionsDBReturns(someVersions, nil)
 			})
 

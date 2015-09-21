@@ -39,14 +39,14 @@ func (s *Server) ListJobInputs(pipelineDB db.PipelineDB) http.Handler {
 
 		jobInputs := config.JobInputs(jobConfig)
 
-		inputVersions, err := pipelineDB.GetLatestInputVersions(versionsDB, jobName, jobInputs)
-		switch err {
-		case db.ErrNoVersions:
-			w.WriteHeader(http.StatusNotFound)
-			return
-		case nil:
-		default:
+		inputVersions, found, err := pipelineDB.GetLatestInputVersions(versionsDB, jobName, jobInputs)
+		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !found {
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 

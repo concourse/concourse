@@ -24,7 +24,7 @@ type PipelineDB interface {
 	GetNextPendingBuild(job string) (db.Build, bool, error)
 
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
-	GetLatestInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, error)
+	GetLatestInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, bool, error)
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 	UseInputsForBuild(buildID int, inputs []db.BuildInput) error
 }
@@ -70,15 +70,15 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 		return nil
 	}
 
-	latestInputs, err := s.PipelineDB.GetLatestInputVersions(versions, job.Name, inputs)
+	latestInputs, found, err := s.PipelineDB.GetLatestInputVersions(versions, job.Name, inputs)
 	if err != nil {
-		if err == db.ErrNoVersions {
-			logger.Debug("no-input-versions-available")
-			return nil
-		}
-
 		logger.Error("failed-to-get-latest-input-versions", err)
 		return err
+	}
+
+	if !found {
+		logger.Debug("no-input-versions-available")
+		return nil
 	}
 
 	checkInputs := []db.BuildInput{}
@@ -234,9 +234,14 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions 
 		vLog.Info("done", lager.Data{"took": time.Since(loadStart).String()})
 	}
 
-	inputs, err := s.PipelineDB.GetLatestInputVersions(versions, job.Name, buildInputs)
+	inputs, found, err := s.PipelineDB.GetLatestInputVersions(versions, job.Name, buildInputs)
 	if err != nil {
 		logger.Error("failed-to-get-latest-input-versions", err)
+		return nil
+	}
+
+	if !found {
+		logger.Debug("no-input-versions-available")
 		return nil
 	}
 

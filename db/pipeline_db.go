@@ -61,7 +61,7 @@ type PipelineDB interface {
 	UseInputsForBuild(buildID int, inputs []BuildInput) error
 
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
-	GetLatestInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]BuildInput, error)
+	GetLatestInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]BuildInput, bool, error)
 	GetJobBuildForInputs(job string, inputs []BuildInput) (Build, bool, error)
 	GetNextPendingBuild(job string) (Build, bool, error)
 
@@ -1691,9 +1691,9 @@ func (pdb *pipelineDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	return db, nil
 }
 
-func (pdb *pipelineDB) GetLatestInputVersions(db *algorithm.VersionsDB, jobName string, inputs []config.JobInput) ([]BuildInput, error) {
+func (pdb *pipelineDB) GetLatestInputVersions(db *algorithm.VersionsDB, jobName string, inputs []config.JobInput) ([]BuildInput, bool, error) {
 	if len(inputs) == 0 {
-		return []BuildInput{}, nil
+		return []BuildInput{}, true, nil
 	}
 
 	var inputConfigs algorithm.InputConfigs
@@ -1713,7 +1713,7 @@ func (pdb *pipelineDB) GetLatestInputVersions(db *algorithm.VersionsDB, jobName 
 
 	resolved, ok := inputConfigs.Resolve(db)
 	if !ok {
-		return nil, ErrNoVersions
+		return nil, false, nil
 	}
 
 	var buildInputs []BuildInput
@@ -1733,17 +1733,17 @@ func (pdb *pipelineDB) GetLatestInputVersions(db *algorithm.VersionsDB, jobName 
 				AND vr.resource_id = r.id
 		`, id).Scan(&svr.Resource, &svr.Type, &version, &metadata)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 
 		err = json.Unmarshal([]byte(version), &svr.Version)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 
 		err = json.Unmarshal([]byte(metadata), &svr.Metadata)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 
 		buildInputs = append(buildInputs, BuildInput{
@@ -1752,7 +1752,7 @@ func (pdb *pipelineDB) GetLatestInputVersions(db *algorithm.VersionsDB, jobName 
 		})
 	}
 
-	return buildInputs, nil
+	return buildInputs, true, nil
 }
 
 func (pdb *pipelineDB) PauseJob(job string) error {

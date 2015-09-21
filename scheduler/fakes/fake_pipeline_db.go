@@ -69,7 +69,7 @@ type FakePipelineDB struct {
 		result1 *algorithm.VersionsDB
 		result2 error
 	}
-	GetLatestInputVersionsStub        func(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, error)
+	GetLatestInputVersionsStub        func(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, bool, error)
 	getLatestInputVersionsMutex       sync.RWMutex
 	getLatestInputVersionsArgsForCall []struct {
 		versions *algorithm.VersionsDB
@@ -78,7 +78,8 @@ type FakePipelineDB struct {
 	}
 	getLatestInputVersionsReturns struct {
 		result1 []db.BuildInput
-		result2 error
+		result2 bool
+		result3 error
 	}
 	SaveResourceVersionsStub        func(atc.ResourceConfig, []atc.Version) error
 	saveResourceVersionsMutex       sync.RWMutex
@@ -295,7 +296,7 @@ func (fake *FakePipelineDB) LoadVersionsDBReturns(result1 *algorithm.VersionsDB,
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) GetLatestInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, error) {
+func (fake *FakePipelineDB) GetLatestInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, bool, error) {
 	fake.getLatestInputVersionsMutex.Lock()
 	fake.getLatestInputVersionsArgsForCall = append(fake.getLatestInputVersionsArgsForCall, struct {
 		versions *algorithm.VersionsDB
@@ -306,7 +307,7 @@ func (fake *FakePipelineDB) GetLatestInputVersions(versions *algorithm.VersionsD
 	if fake.GetLatestInputVersionsStub != nil {
 		return fake.GetLatestInputVersionsStub(versions, job, inputs)
 	} else {
-		return fake.getLatestInputVersionsReturns.result1, fake.getLatestInputVersionsReturns.result2
+		return fake.getLatestInputVersionsReturns.result1, fake.getLatestInputVersionsReturns.result2, fake.getLatestInputVersionsReturns.result3
 	}
 }
 
@@ -322,12 +323,13 @@ func (fake *FakePipelineDB) GetLatestInputVersionsArgsForCall(i int) (*algorithm
 	return fake.getLatestInputVersionsArgsForCall[i].versions, fake.getLatestInputVersionsArgsForCall[i].job, fake.getLatestInputVersionsArgsForCall[i].inputs
 }
 
-func (fake *FakePipelineDB) GetLatestInputVersionsReturns(result1 []db.BuildInput, result2 error) {
+func (fake *FakePipelineDB) GetLatestInputVersionsReturns(result1 []db.BuildInput, result2 bool, result3 error) {
 	fake.GetLatestInputVersionsStub = nil
 	fake.getLatestInputVersionsReturns = struct {
 		result1 []db.BuildInput
-		result2 error
-	}{result1, result2}
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakePipelineDB) SaveResourceVersions(arg1 atc.ResourceConfig, arg2 []atc.Version) error {

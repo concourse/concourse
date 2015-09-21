@@ -155,10 +155,10 @@ var _ = Describe("PipelineDB", func() {
 		otherPipelineDB = pipelineDBFactory.Build(otherSavedPipeline)
 	})
 
-	loadAndGetLatestInputVersions := func(jobName string, inputs []config.JobInput) ([]db.BuildInput, error) {
+	loadAndGetLatestInputVersions := func(jobName string, inputs []config.JobInput) ([]db.BuildInput, bool, error) {
 		versions, err := pipelineDB.LoadVersionsDB()
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 
 		return pipelineDB.GetLatestInputVersions(versions, jobName, inputs)
@@ -762,13 +762,17 @@ var _ = Describe("PipelineDB", func() {
 				err = pipelineDB.DisableVersionedResource(savedVR1.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				_, err = loadAndGetLatestInputVersions("a-job", jobBuildInputs)
-				Ω(err).Should(Equal(db.ErrNoVersions))
+				_, found, err = loadAndGetLatestInputVersions("a-job", jobBuildInputs)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeFalse())
 
 				err = pipelineDB.EnableVersionedResource(savedVR1.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(loadAndGetLatestInputVersions("a-job", jobBuildInputs)).Should(ConsistOf([]db.BuildInput{
+				versions, found, err := loadAndGetLatestInputVersions("a-job", jobBuildInputs)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeFalse())
+				Ω(versions).Should(ConsistOf([]db.BuildInput{
 					{
 						Name:              "some-input-name",
 						VersionedResource: savedVR1.VersionedResource,
@@ -778,7 +782,10 @@ var _ = Describe("PipelineDB", func() {
 				err = pipelineDB.EnableVersionedResource(savedVR2.ID)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(loadAndGetLatestInputVersions("a-job", jobBuildInputs)).Should(ConsistOf([]db.BuildInput{
+				versions, found, err = loadAndGetLatestInputVersions("a-job", jobBuildInputs)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeFalse())
+				Ω(versions).Should(ConsistOf([]db.BuildInput{
 					{
 						Name:              "some-input-name",
 						VersionedResource: savedVR2.VersionedResource,
@@ -2202,8 +2209,9 @@ var _ = Describe("PipelineDB", func() {
 
 		Describe("determining the inputs for a job", func() {
 			It("can still be scheduled with no inputs", func() {
-				buildInputs, err := loadAndGetLatestInputVersions("third-job", []config.JobInput{})
+				buildInputs, found, err := loadAndGetLatestInputVersions("third-job", []config.JobInput{})
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 
 				Ω(buildInputs).Should(Equal([]db.BuildInput{}))
 			})
@@ -2388,7 +2396,7 @@ var _ = Describe("PipelineDB", func() {
 				_, err = otherPipelineDB.CreateJobBuild("shared-job")
 				Ω(err).ShouldNot(HaveOccurred())
 
-				_, err = loadAndGetLatestInputVersions("a-job", []config.JobInput{
+				_, found, err := loadAndGetLatestInputVersions("a-job", []config.JobInput{
 					{
 						Name:     "input-1",
 						Resource: "resource-1",
@@ -2400,7 +2408,8 @@ var _ = Describe("PipelineDB", func() {
 						Passed:   []string{"shared-job", "job-2"},
 					},
 				})
-				Ω(err).Should(Equal(db.ErrNoVersions))
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeFalse())
 
 				_, err = pipelineDB.SaveBuildOutput(sb1.ID, db.VersionedResource{
 					Resource: "resource-1",
