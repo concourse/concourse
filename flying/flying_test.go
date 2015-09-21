@@ -46,7 +46,7 @@ exit 0
 		Ω(err).ShouldNot(HaveOccurred())
 
 		err = ioutil.WriteFile(
-			filepath.Join(fixture, "build.yml"),
+			filepath.Join(fixture, "task.yml"),
 			[]byte(`---
 platform: linux
 
@@ -71,7 +71,7 @@ run:
 	})
 
 	It("works", func() {
-		fly := exec.Command(flyBin, "-t", atcURL, "execute", "-c", "build.yml", "--", "SOME", "ARGS")
+		fly := exec.Command(flyBin, "-t", atcURL, "execute", "-c", "task.yml", "--", "SOME", "ARGS")
 		fly.Dir = fixture
 
 		session := helpers.StartFly(fly)
@@ -96,8 +96,7 @@ cat < /tmp/fifo
 			)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			fly := exec.Command(flyBin, "-t", atcURL, "execute")
-
+			fly := exec.Command(flyBin, "-t", atcURL, "execute", "-c", "task.yml")
 			fly.Dir = fixture
 
 			flyS := helpers.StartFly(fly)
@@ -110,7 +109,7 @@ cat < /tmp/fifo
 
 			Eventually(flyS).Should(gbytes.Say("waiting"))
 
-			hijack := exec.Command(flyBin, "-t", atcURL, "hijack", "-b", buildID, "--", "sh", "-c", "echo marco > /tmp/fifo")
+			hijack := exec.Command(flyBin, "-t", atcURL, "hijack", "-b", buildID, "-n", "one-off", "--", "sh", "-c", "echo marco > /tmp/fifo")
 
 			hijackS := helpers.StartFly(hijack)
 
@@ -136,7 +135,7 @@ wait
 			)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			fly := exec.Command(flyBin, "-t", atcURL, "execute")
+			fly := exec.Command(flyBin, "-t", atcURL, "execute", "-c", "task.yml")
 			fly.Dir = fixture
 
 			flyS := helpers.StartFly(fly)
