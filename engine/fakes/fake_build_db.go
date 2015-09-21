@@ -10,24 +10,15 @@ import (
 )
 
 type FakeBuildDB struct {
-	GetBuildStub        func(int) (db.Build, error)
+	GetBuildStub        func(int) (db.Build, bool, error)
 	getBuildMutex       sync.RWMutex
 	getBuildArgsForCall []struct {
 		arg1 int
 	}
 	getBuildReturns struct {
 		result1 db.Build
-		result2 error
-	}
-	GetBuildEventsStub        func(int, uint) (db.EventSource, error)
-	getBuildEventsMutex       sync.RWMutex
-	getBuildEventsArgsForCall []struct {
-		arg1 int
-		arg2 uint
-	}
-	getBuildEventsReturns struct {
-		result1 db.EventSource
-		result2 error
+		result2 bool
+		result3 error
 	}
 	StartBuildStub        func(int, string, string) (bool, error)
 	startBuildMutex       sync.RWMutex
@@ -58,12 +49,12 @@ type FakeBuildDB struct {
 		result2 error
 	}
 	LeaseBuildTrackingStub        func(buildID int, interval time.Duration) (db.Lease, bool, error)
-	LeaseBuildTrackingMutex       sync.RWMutex
-	LeaseBuildTrackingArgsForCall []struct {
+	leaseBuildTrackingMutex       sync.RWMutex
+	leaseBuildTrackingArgsForCall []struct {
 		buildID  int
 		interval time.Duration
 	}
-	LeaseBuildTrackingReturns struct {
+	leaseBuildTrackingReturns struct {
 		result1 db.Lease
 		result2 bool
 		result3 error
@@ -79,7 +70,7 @@ type FakeBuildDB struct {
 	}
 }
 
-func (fake *FakeBuildDB) GetBuild(arg1 int) (db.Build, error) {
+func (fake *FakeBuildDB) GetBuild(arg1 int) (db.Build, bool, error) {
 	fake.getBuildMutex.Lock()
 	fake.getBuildArgsForCall = append(fake.getBuildArgsForCall, struct {
 		arg1 int
@@ -88,7 +79,7 @@ func (fake *FakeBuildDB) GetBuild(arg1 int) (db.Build, error) {
 	if fake.GetBuildStub != nil {
 		return fake.GetBuildStub(arg1)
 	} else {
-		return fake.getBuildReturns.result1, fake.getBuildReturns.result2
+		return fake.getBuildReturns.result1, fake.getBuildReturns.result2, fake.getBuildReturns.result3
 	}
 }
 
@@ -104,46 +95,13 @@ func (fake *FakeBuildDB) GetBuildArgsForCall(i int) int {
 	return fake.getBuildArgsForCall[i].arg1
 }
 
-func (fake *FakeBuildDB) GetBuildReturns(result1 db.Build, result2 error) {
+func (fake *FakeBuildDB) GetBuildReturns(result1 db.Build, result2 bool, result3 error) {
 	fake.GetBuildStub = nil
 	fake.getBuildReturns = struct {
 		result1 db.Build
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeBuildDB) GetBuildEvents(arg1 int, arg2 uint) (db.EventSource, error) {
-	fake.getBuildEventsMutex.Lock()
-	fake.getBuildEventsArgsForCall = append(fake.getBuildEventsArgsForCall, struct {
-		arg1 int
-		arg2 uint
-	}{arg1, arg2})
-	fake.getBuildEventsMutex.Unlock()
-	if fake.GetBuildEventsStub != nil {
-		return fake.GetBuildEventsStub(arg1, arg2)
-	} else {
-		return fake.getBuildEventsReturns.result1, fake.getBuildEventsReturns.result2
-	}
-}
-
-func (fake *FakeBuildDB) GetBuildEventsCallCount() int {
-	fake.getBuildEventsMutex.RLock()
-	defer fake.getBuildEventsMutex.RUnlock()
-	return len(fake.getBuildEventsArgsForCall)
-}
-
-func (fake *FakeBuildDB) GetBuildEventsArgsForCall(i int) (int, uint) {
-	fake.getBuildEventsMutex.RLock()
-	defer fake.getBuildEventsMutex.RUnlock()
-	return fake.getBuildEventsArgsForCall[i].arg1, fake.getBuildEventsArgsForCall[i].arg2
-}
-
-func (fake *FakeBuildDB) GetBuildEventsReturns(result1 db.EventSource, result2 error) {
-	fake.GetBuildEventsStub = nil
-	fake.getBuildEventsReturns = struct {
-		result1 db.EventSource
-		result2 error
-	}{result1, result2}
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeBuildDB) StartBuild(arg1 int, arg2 string, arg3 string) (bool, error) {
@@ -247,34 +205,34 @@ func (fake *FakeBuildDB) AbortNotifierReturns(result1 db.Notifier, result2 error
 }
 
 func (fake *FakeBuildDB) LeaseBuildTracking(buildID int, interval time.Duration) (db.Lease, bool, error) {
-	fake.LeaseBuildTrackingMutex.Lock()
-	fake.LeaseBuildTrackingArgsForCall = append(fake.LeaseBuildTrackingArgsForCall, struct {
+	fake.leaseBuildTrackingMutex.Lock()
+	fake.leaseBuildTrackingArgsForCall = append(fake.leaseBuildTrackingArgsForCall, struct {
 		buildID  int
 		interval time.Duration
 	}{buildID, interval})
-	fake.LeaseBuildTrackingMutex.Unlock()
+	fake.leaseBuildTrackingMutex.Unlock()
 	if fake.LeaseBuildTrackingStub != nil {
 		return fake.LeaseBuildTrackingStub(buildID, interval)
 	} else {
-		return fake.LeaseBuildTrackingReturns.result1, fake.LeaseBuildTrackingReturns.result2, fake.LeaseBuildTrackingReturns.result3
+		return fake.leaseBuildTrackingReturns.result1, fake.leaseBuildTrackingReturns.result2, fake.leaseBuildTrackingReturns.result3
 	}
 }
 
 func (fake *FakeBuildDB) LeaseBuildTrackingCallCount() int {
-	fake.LeaseBuildTrackingMutex.RLock()
-	defer fake.LeaseBuildTrackingMutex.RUnlock()
-	return len(fake.LeaseBuildTrackingArgsForCall)
+	fake.leaseBuildTrackingMutex.RLock()
+	defer fake.leaseBuildTrackingMutex.RUnlock()
+	return len(fake.leaseBuildTrackingArgsForCall)
 }
 
 func (fake *FakeBuildDB) LeaseBuildTrackingArgsForCall(i int) (int, time.Duration) {
-	fake.LeaseBuildTrackingMutex.RLock()
-	defer fake.LeaseBuildTrackingMutex.RUnlock()
-	return fake.LeaseBuildTrackingArgsForCall[i].buildID, fake.LeaseBuildTrackingArgsForCall[i].interval
+	fake.leaseBuildTrackingMutex.RLock()
+	defer fake.leaseBuildTrackingMutex.RUnlock()
+	return fake.leaseBuildTrackingArgsForCall[i].buildID, fake.leaseBuildTrackingArgsForCall[i].interval
 }
 
 func (fake *FakeBuildDB) LeaseBuildTrackingReturns(result1 db.Lease, result2 bool, result3 error) {
 	fake.LeaseBuildTrackingStub = nil
-	fake.LeaseBuildTrackingReturns = struct {
+	fake.leaseBuildTrackingReturns = struct {
 		result1 db.Lease
 		result2 bool
 		result3 error

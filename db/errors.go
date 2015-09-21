@@ -3,7 +3,6 @@ package db
 import "errors"
 
 var ErrNoVersions = errors.New("no versions found")
-var ErrNoBuild = errors.New("no build found")
 
 var ErrPipelineNotFound = errors.New("pipeline not found")
 

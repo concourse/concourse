@@ -68,10 +68,15 @@ func (server *server) GetBuild(pipelineDB db.PipelineDB) http.Handler {
 			"build": buildName,
 		})
 
-		build, err := pipelineDB.GetJobBuild(jobName, buildName)
+		build, found, err := pipelineDB.GetJobBuild(jobName, buildName)
 		if err != nil {
 			log.Error("get-build-failed", err)
 			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !found {
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 

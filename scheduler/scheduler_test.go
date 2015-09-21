@@ -308,7 +308,7 @@ var _ = Describe("Scheduler", func() {
 
 			Context("when they are not used for a build", func() {
 				BeforeEach(func() {
-					fakePipelineDB.GetJobBuildForInputsReturns(db.Build{}, db.ErrNoBuild)
+					fakePipelineDB.GetJobBuildForInputsReturns(db.Build{}, false, nil)
 				})
 
 				It("creates a build with the found inputs", func() {
@@ -336,6 +336,7 @@ var _ = Describe("Scheduler", func() {
 								ID:   128,
 								Name: "42",
 							},
+							true,
 							nil,
 						)
 					})
@@ -439,7 +440,7 @@ var _ = Describe("Scheduler", func() {
 
 			Context("when they are already used for a build", func() {
 				BeforeEach(func() {
-					fakePipelineDB.GetJobBuildForInputsReturns(db.Build{ID: 128, Name: "42"}, nil)
+					fakePipelineDB.GetJobBuildForInputsReturns(db.Build{ID: 128, Name: "42"}, true, nil)
 				})
 
 				It("does not enqueue or trigger a build", func() {
@@ -455,7 +456,7 @@ var _ = Describe("Scheduler", func() {
 				disaster := errors.New("db fell over")
 
 				BeforeEach(func() {
-					fakePipelineDB.GetJobBuildForInputsReturns(db.Build{}, disaster)
+					fakePipelineDB.GetJobBuildForInputsReturns(db.Build{}, false, disaster)
 				})
 
 				It("does not enqueue or a build", func() {
@@ -501,8 +502,7 @@ var _ = Describe("Scheduler", func() {
 			}
 
 			BeforeEach(func() {
-				fakePipelineDB.GetNextPendingBuildReturns(pendingBuild, nil)
-
+				fakePipelineDB.GetNextPendingBuildReturns(pendingBuild, true, nil)
 				fakePipelineDB.GetLatestInputVersionsReturns(pendingInputs, nil)
 			})
 
@@ -573,7 +573,7 @@ var _ = Describe("Scheduler", func() {
 
 				Context("and the build's inputs are not determined", func() {
 					BeforeEach(func() {
-						fakePipelineDB.GetNextPendingBuildReturns(pendingBuild, nil)
+						fakePipelineDB.GetNextPendingBuildReturns(pendingBuild, true, nil)
 					})
 
 					It("does not perform any scans", func() {
@@ -585,7 +585,7 @@ var _ = Describe("Scheduler", func() {
 
 		Context("when a pending build is not found", func() {
 			BeforeEach(func() {
-				fakePipelineDB.GetNextPendingBuildReturns(db.Build{}, db.ErrNoBuild)
+				fakePipelineDB.GetNextPendingBuildReturns(db.Build{}, false, nil)
 			})
 
 			It("does not start a build", func() {
@@ -598,7 +598,7 @@ var _ = Describe("Scheduler", func() {
 			disaster := errors.New("oh no!")
 
 			BeforeEach(func() {
-				fakePipelineDB.GetNextPendingBuildReturns(db.Build{}, disaster)
+				fakePipelineDB.GetNextPendingBuildReturns(db.Build{}, false, disaster)
 			})
 
 			It("does not start a build", func() {

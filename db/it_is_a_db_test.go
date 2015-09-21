@@ -124,8 +124,9 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(started).Should(BeTrue())
 
-			startedBuild, err := database.GetBuild(build.ID)
+			startedBuild, found, err := database.GetBuild(build.ID)
 			Ω(err).ShouldNot(HaveOccurred())
+			Ω(found).Should(BeTrue())
 
 			Ω(events.Next()).Should(Equal(event.Status{
 				Status: atc.StatusStarted,
@@ -136,8 +137,9 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			err = database.FinishBuild(build.ID, db.StatusSucceeded)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			finishedBuild, err := database.GetBuild(build.ID)
+			finishedBuild, found, err := database.GetBuild(build.ID)
 			Ω(err).ShouldNot(HaveOccurred())
+			Ω(found).Should(BeTrue())
 
 			Ω(events.Next()).Should(Equal(event.Status{
 				Status: atc.StatusSucceeded,
@@ -209,8 +211,9 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Ω(oneOff.Name).Should(Equal("1"))
 			Ω(oneOff.Status).Should(Equal(db.StatusPending))
 
-			oneOffGot, err := database.GetBuild(oneOff.ID)
+			oneOffGot, found, err := database.GetBuild(oneOff.ID)
 			Ω(err).ShouldNot(HaveOccurred())
+			Ω(found).Should(BeTrue())
 			Ω(oneOffGot).Should(Equal(oneOff))
 
 			jobBuild, err := database.PipelineDB.CreateJobBuild("some-other-job")
@@ -260,10 +263,12 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 				Ω(len(builds)).Should(Equal(2))
 
-				build1, err := database.GetBuild(build1.ID)
+				build1, found, err := database.GetBuild(build1.ID)
 				Ω(err).ShouldNot(HaveOccurred())
-				build2, err := database.GetBuild(build2.ID)
+				Ω(found).Should(BeTrue())
+				build2, found, err := database.GetBuild(build2.ID)
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 
 				Ω(builds).Should(ConsistOf(build1, build2))
 			})

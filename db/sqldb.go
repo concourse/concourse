@@ -375,7 +375,7 @@ func (db *SQLDB) GetAllBuilds() ([]Build, error) {
 	bs := []Build{}
 
 	for rows.Next() {
-		build, err := scanBuild(rows)
+		build, _, err := scanBuild(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -403,7 +403,7 @@ func (db *SQLDB) GetAllStartedBuilds() ([]Build, error) {
 	bs := []Build{}
 
 	for rows.Next() {
-		build, err := scanBuild(rows)
+		build, _, err := scanBuild(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -414,7 +414,7 @@ func (db *SQLDB) GetAllStartedBuilds() ([]Build, error) {
 	return bs, nil
 }
 
-func (db *SQLDB) GetBuild(buildID int) (Build, error) {
+func (db *SQLDB) GetBuild(buildID int) (Build, bool, error) {
 	return scanBuild(db.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
@@ -432,7 +432,7 @@ func (db *SQLDB) CreateOneOffBuild() (Build, error) {
 
 	defer tx.Rollback()
 
-	build, err := scanBuild(tx.QueryRow(`
+	build, _, err := scanBuild(tx.QueryRow(`
 		INSERT INTO builds (name, status)
 		VALUES (nextval('one_off_name'), 'pending')
 		RETURNING ` + buildColumns + `, null, null
@@ -843,7 +843,7 @@ func scanPipeline(rows scannable) (SavedPipeline, error) {
 	}, nil
 }
 
-func scanBuild(row scannable) (Build, error) {
+func scanBuild(row scannable) (Build, bool, error) {
 	var id int
 	var name string
 	var jobID sql.NullInt64
@@ -856,10 +856,10 @@ func scanBuild(row scannable) (Build, error) {
 	err := row.Scan(&id, &name, &jobID, &status, &scheduled, &engine, &engineMetadata, &startTime, &endTime, &jobName, &pipelineName)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return Build{}, ErrNoBuild
+			return Build{}, false, nil
 		}
 
-		return Build{}, err
+		return Build{}, false, err
 	}
 
 	build := Build{
@@ -881,7 +881,7 @@ func scanBuild(row scannable) (Build, error) {
 		build.PipelineName = pipelineName.String
 	}
 
-	return build, nil
+	return build, true, nil
 }
 
 func buildEventsChannel(buildID int) string {

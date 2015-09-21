@@ -157,7 +157,7 @@ var _ = Describe("Handler", func() {
 			})
 
 			It("returns 404", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+				Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
 			})
 		})
 	})

@@ -18,9 +18,14 @@ func (s *Server) AbortBuild(w http.ResponseWriter, r *http.Request) {
 		"build": buildID,
 	})
 
-	build, err := s.db.GetBuild(buildID)
+	build, found, err := s.db.GetBuild(buildID)
 	if err != nil {
 		aLog.Error("failed-to-get-build", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if !found {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}

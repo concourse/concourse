@@ -172,8 +172,8 @@ var _ = Describe("Builds API", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 
-			It("returns 500 Internal Server Error", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+			It("returns Bad Request", func() {
+				Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
 			})
 		})
 
@@ -187,7 +187,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when calling the database fails", func() {
 				BeforeEach(func() {
-					buildsDB.GetBuildReturns(db.Build{}, errors.New("disaster"))
+					buildsDB.GetBuildReturns(db.Build{}, false, errors.New("disaster"))
 				})
 
 				It("returns 500 Internal Server Error", func() {
@@ -195,7 +195,17 @@ var _ = Describe("Builds API", func() {
 				})
 			})
 
-			Context("when calling the database succeeds", func() {
+			Context("when the build cannot be found", func() {
+				BeforeEach(func() {
+					buildsDB.GetBuildReturns(db.Build{}, false, nil)
+				})
+
+				It("returns Not Found", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("when the build can be found", func() {
 				BeforeEach(func() {
 					buildsDB.GetBuildReturns(db.Build{
 						ID:           1,
@@ -203,7 +213,7 @@ var _ = Describe("Builds API", func() {
 						JobName:      "job1",
 						PipelineName: "some-pipeline",
 						Status:       db.StatusSucceeded,
-					}, nil)
+					}, true, nil)
 				})
 
 				It("returns 200 OK", func() {
@@ -306,10 +316,6 @@ var _ = Describe("Builds API", func() {
 
 		BeforeEach(func() {
 			var err error
-			buildsDB.GetBuildReturns(db.Build{
-				ID:      128,
-				JobName: "some-job",
-			}, nil)
 
 			request, err = http.NewRequest("GET", server.URL+"/api/v1/builds/128/events", nil)
 			Ω(err).ShouldNot(HaveOccurred())
@@ -327,53 +333,12 @@ var _ = Describe("Builds API", func() {
 				authValidator.IsAuthenticatedReturns(true)
 			})
 
-			It("returns 200", func() {
-				Ω(response.StatusCode).Should(Equal(200))
-			})
-
-			It("serves the request via the event handler", func() {
-				body, err := ioutil.ReadAll(response.Body)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				Ω(string(body)).Should(Equal("fake event handler factory was here"))
-
-				Ω(constructedEventHandler.db).Should(Equal(buildsDB))
-				Ω(constructedEventHandler.buildID).Should(Equal(128))
-			})
-		})
-
-		Context("when not authenticated", func() {
-			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
-			})
-
-			It("looks up the config from the buildsDB", func() {
-				Ω(buildsDB.GetConfigByBuildIDCallCount()).Should(Equal(1))
-				buildID := buildsDB.GetConfigByBuildIDArgsForCall(0)
-				Ω(buildID).Should(Equal(128))
-			})
-
-			Context("and the build is private", func() {
+			Context("when the build can be found", func() {
 				BeforeEach(func() {
-					buildsDB.GetConfigByBuildIDReturns(atc.Config{
-						Jobs: atc.JobConfigs{
-							{Name: "some-job", Public: false},
-						},
-					}, 1, nil)
-				})
-
-				It("returns 401", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
-				})
-			})
-
-			Context("and the build is public", func() {
-				BeforeEach(func() {
-					buildsDB.GetConfigByBuildIDReturns(atc.Config{
-						Jobs: atc.JobConfigs{
-							{Name: "some-job", Public: true},
-						},
-					}, 1, nil)
+					buildsDB.GetBuildReturns(db.Build{
+						ID:      128,
+						JobName: "some-job",
+					}, true, nil)
 				})
 
 				It("returns 200", func() {
@@ -388,6 +353,105 @@ var _ = Describe("Builds API", func() {
 
 					Ω(constructedEventHandler.db).Should(Equal(buildsDB))
 					Ω(constructedEventHandler.buildID).Should(Equal(128))
+				})
+			})
+
+			Context("when the build can not be found", func() {
+				BeforeEach(func() {
+					buildsDB.GetBuildReturns(db.Build{}, false, nil)
+				})
+
+				It("returns Not Found", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("when calling the database fails", func() {
+				BeforeEach(func() {
+					buildsDB.GetBuildReturns(db.Build{}, false, errors.New("nope"))
+				})
+
+				It("returns Internal Server Error", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				})
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			Context("when the build can be found", func() {
+				BeforeEach(func() {
+					buildsDB.GetBuildReturns(db.Build{
+						ID:      128,
+						JobName: "some-job",
+					}, true, nil)
+				})
+
+				It("looks up the config from the buildsDB", func() {
+					Ω(buildsDB.GetConfigByBuildIDCallCount()).Should(Equal(1))
+					buildID := buildsDB.GetConfigByBuildIDArgsForCall(0)
+					Ω(buildID).Should(Equal(128))
+				})
+
+				Context("and the build is private", func() {
+					BeforeEach(func() {
+						buildsDB.GetConfigByBuildIDReturns(atc.Config{
+							Jobs: atc.JobConfigs{
+								{Name: "some-job", Public: false},
+							},
+						}, 1, nil)
+					})
+
+					It("returns 401", func() {
+						Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+					})
+				})
+
+				Context("and the build is public", func() {
+					BeforeEach(func() {
+						buildsDB.GetConfigByBuildIDReturns(atc.Config{
+							Jobs: atc.JobConfigs{
+								{Name: "some-job", Public: true},
+							},
+						}, 1, nil)
+					})
+
+					It("returns 200", func() {
+						Ω(response.StatusCode).Should(Equal(200))
+					})
+
+					It("serves the request via the event handler", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						Ω(string(body)).Should(Equal("fake event handler factory was here"))
+
+						Ω(constructedEventHandler.db).Should(Equal(buildsDB))
+						Ω(constructedEventHandler.buildID).Should(Equal(128))
+					})
+				})
+			})
+
+			Context("when the build can not be found", func() {
+				BeforeEach(func() {
+					buildsDB.GetBuildReturns(db.Build{}, false, nil)
+				})
+
+				It("returns Not Found", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("when calling the database fails", func() {
+				BeforeEach(func() {
+					buildsDB.GetBuildReturns(db.Build{}, false, errors.New("nope"))
+				})
+
+				It("returns Internal Server Error", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -406,11 +470,6 @@ var _ = Describe("Builds API", func() {
 			abortTarget.AppendHandlers(
 				ghttp.VerifyRequest("POST", "/builds/some-guid/abort"),
 			)
-
-			buildsDB.GetBuildReturns(db.Build{
-				ID:     128,
-				Status: db.StatusStarted,
-			}, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -432,45 +491,74 @@ var _ = Describe("Builds API", func() {
 				authValidator.IsAuthenticatedReturns(true)
 			})
 
-			Context("and the engine returns a build", func() {
-				var fakeBuild *enginefakes.FakeBuild
-
+			Context("when the build can be found", func() {
 				BeforeEach(func() {
-					fakeBuild = new(enginefakes.FakeBuild)
-					fakeEngine.LookupBuildReturns(fakeBuild, nil)
+					buildsDB.GetBuildReturns(db.Build{
+						ID:     128,
+						Status: db.StatusStarted,
+					}, true, nil)
 				})
 
-				It("aborts the build", func() {
-					Ω(fakeBuild.AbortCallCount()).Should(Equal(1))
-				})
+				Context("when the engine returns a build", func() {
+					var fakeBuild *enginefakes.FakeBuild
 
-				Context("and aborting succeeds", func() {
 					BeforeEach(func() {
-						fakeBuild.AbortReturns(nil)
+						fakeBuild = new(enginefakes.FakeBuild)
+						fakeEngine.LookupBuildReturns(fakeBuild, nil)
 					})
 
-					It("returns 204", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusNoContent))
+					It("aborts the build", func() {
+						Ω(fakeBuild.AbortCallCount()).Should(Equal(1))
+					})
+
+					Context("when aborting succeeds", func() {
+						BeforeEach(func() {
+							fakeBuild.AbortReturns(nil)
+						})
+
+						It("returns 204", func() {
+							Ω(response.StatusCode).Should(Equal(http.StatusNoContent))
+						})
+					})
+
+					Context("when aborting fails", func() {
+						BeforeEach(func() {
+							fakeBuild.AbortReturns(errors.New("oh no!"))
+						})
+
+						It("returns 500", func() {
+							Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+						})
 					})
 				})
 
-				Context("and aborting fails", func() {
+				Context("when the engine returns no build", func() {
 					BeforeEach(func() {
-						fakeBuild.AbortReturns(errors.New("oh no!"))
+						fakeEngine.LookupBuildReturns(nil, errors.New("oh no!"))
 					})
 
-					It("returns 500", func() {
+					It("returns Internal Server Error", func() {
 						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
 					})
 				})
 			})
 
-			Context("and the engine returns no build", func() {
+			Context("when the build can not be found", func() {
 				BeforeEach(func() {
-					fakeEngine.LookupBuildReturns(nil, errors.New("oh no!"))
+					buildsDB.GetBuildReturns(db.Build{}, false, nil)
 				})
 
-				It("returns 500", func() {
+				It("returns Not Found", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("when calling the database fails", func() {
+				BeforeEach(func() {
+					buildsDB.GetBuildReturns(db.Build{}, false, errors.New("nope"))
+				})
+
+				It("returns Internal Server Error", func() {
 					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
 				})
 			})

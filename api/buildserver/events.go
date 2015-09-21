@@ -16,8 +16,14 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	build, err := s.db.GetBuild(buildID)
+	build, found, err := s.db.GetBuild(buildID)
 	if err != nil {
+		s.logger.Error("failed-to-get-build", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if !found {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -29,7 +35,6 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 		}
 
 		config, _, err := s.db.GetConfigByBuildID(build.ID)
-
 		if err != nil {
 			s.logger.Error("failed-to-get-config", err)
 			w.WriteHeader(http.StatusInternalServerError)

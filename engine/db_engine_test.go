@@ -162,6 +162,10 @@ var _ = Describe("DBEngine", func() {
 		Describe("Abort", func() {
 			var abortErr error
 
+			BeforeEach(func() {
+				fakeBuildDB.GetBuildReturns(build, true, nil)
+			})
+
 			JustBeforeEach(func() {
 				abortErr = foundBuild.Abort()
 			})
@@ -259,7 +263,7 @@ var _ = Describe("DBEngine", func() {
 					BeforeEach(func() {
 						model.Engine = "fake-engine-b"
 
-						fakeBuildDB.GetBuildReturns(model, nil)
+						fakeBuildDB.GetBuildReturns(model, true, nil)
 
 						fakeBuildDB.AbortBuildStub = func(int) error {
 							Ω(fakeBuildDB.LeaseBuildTrackingCallCount()).Should(Equal(1))
@@ -278,7 +282,7 @@ var _ = Describe("DBEngine", func() {
 						var realBuild *fakes.FakeBuild
 
 						BeforeEach(func() {
-							fakeBuildDB.GetBuildReturns(model, nil)
+							fakeBuildDB.GetBuildReturns(model, true, nil)
 
 							realBuild = new(fakes.FakeBuild)
 							fakeEngineB.LookupBuildReturns(realBuild, nil)
@@ -350,7 +354,7 @@ var _ = Describe("DBEngine", func() {
 						disaster := errors.New("nope")
 
 						BeforeEach(func() {
-							fakeBuildDB.GetBuildReturns(model, nil)
+							fakeBuildDB.GetBuildReturns(model, true, nil)
 							fakeEngineB.LookupBuildReturns(nil, disaster)
 						})
 
@@ -367,7 +371,7 @@ var _ = Describe("DBEngine", func() {
 				Context("when the build is not yet active", func() {
 					BeforeEach(func() {
 						model.Engine = ""
-						fakeBuildDB.GetBuildReturns(model, nil)
+						fakeBuildDB.GetBuildReturns(model, true, nil)
 					})
 
 					It("succeeds", func() {
@@ -387,6 +391,31 @@ var _ = Describe("DBEngine", func() {
 						buildID, status := fakeBuildDB.FinishBuildArgsForCall(0)
 						Ω(buildID).Should(Equal(model.ID))
 						Ω(status).Should(Equal(db.StatusAborted))
+					})
+
+					It("breaks the lease", func() {
+						Ω(fakeLease.BreakCallCount()).Should(Equal(1))
+					})
+				})
+
+				Context("when the build is no longer in the database", func() {
+					BeforeEach(func() {
+						fakeBuildDB.GetBuildReturns(db.Build{}, false, nil)
+					})
+
+					It("succeeds", func() {
+						Ω(abortErr).ShouldNot(HaveOccurred())
+					})
+
+					It("aborts the build in the db", func() {
+						Ω(fakeBuildDB.AbortBuildCallCount()).Should(Equal(1))
+
+						buildID := fakeBuildDB.AbortBuildArgsForCall(0)
+						Ω(buildID).Should(Equal(model.ID))
+					})
+
+					It("does not finish the build", func() {
+						Ω(fakeBuildDB.FinishBuildCallCount()).Should(Equal(0))
 					})
 
 					It("breaks the lease", func() {
@@ -470,14 +499,14 @@ var _ = Describe("DBEngine", func() {
 				Context("when the build is active", func() {
 					BeforeEach(func() {
 						model.Engine = "fake-engine-b"
-						fakeBuildDB.GetBuildReturns(model, nil)
+						fakeBuildDB.GetBuildReturns(model, true, nil)
 					})
 
 					Context("when the engine build exists", func() {
 						var realBuild *fakes.FakeBuild
 
 						BeforeEach(func() {
-							fakeBuildDB.GetBuildReturns(model, nil)
+							fakeBuildDB.GetBuildReturns(model, true, nil)
 
 							realBuild = new(fakes.FakeBuild)
 							fakeEngineB.LookupBuildReturns(realBuild, nil)
@@ -579,7 +608,7 @@ var _ = Describe("DBEngine", func() {
 						disaster := errors.New("nope")
 
 						BeforeEach(func() {
-							fakeBuildDB.GetBuildReturns(model, nil)
+							fakeBuildDB.GetBuildReturns(model, true, nil)
 							fakeEngineB.LookupBuildReturns(nil, disaster)
 						})
 
@@ -599,7 +628,7 @@ var _ = Describe("DBEngine", func() {
 				Context("when the build's engine is unknown", func() {
 					BeforeEach(func() {
 						model.Engine = "bogus"
-						fakeBuildDB.GetBuildReturns(model, nil)
+						fakeBuildDB.GetBuildReturns(model, true, nil)
 					})
 
 					It("marks the build as errored", func() {
@@ -613,7 +642,7 @@ var _ = Describe("DBEngine", func() {
 				Context("when the build is not yet active", func() {
 					BeforeEach(func() {
 						model.Engine = ""
-						fakeBuildDB.GetBuildReturns(model, nil)
+						fakeBuildDB.GetBuildReturns(model, true, nil)
 					})
 
 					It("does not look up the build in the engine", func() {
@@ -629,7 +658,21 @@ var _ = Describe("DBEngine", func() {
 					BeforeEach(func() {
 						model.Engine = "fake-engine-b"
 						model.Status = db.StatusSucceeded
-						fakeBuildDB.GetBuildReturns(model, nil)
+						fakeBuildDB.GetBuildReturns(model, true, nil)
+					})
+
+					It("does not look up the build in the engine", func() {
+						Ω(fakeEngineB.LookupBuildCallCount()).Should(BeZero())
+					})
+
+					It("breaks the lease", func() {
+						Ω(fakeLease.BreakCallCount()).Should(Equal(1))
+					})
+				})
+
+				Context("when the build is no longer in the database", func() {
+					BeforeEach(func() {
+						fakeBuildDB.GetBuildReturns(db.Build{}, false, nil)
 					})
 
 					It("does not look up the build in the engine", func() {

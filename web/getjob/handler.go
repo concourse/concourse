@@ -43,7 +43,7 @@ type TemplateData struct {
 
 	GroupStates []group.State
 
-	CurrentBuild db.Build
+	CurrentBuild *db.Build
 	PipelineName string
 
 	PaginationData pagination.PaginationData
@@ -54,7 +54,7 @@ type TemplateData struct {
 type JobDB interface {
 	GetConfig() (atc.Config, db.ConfigVersion, error)
 	GetJob(string) (db.SavedJob, error)
-	GetCurrentBuild(job string) (db.Build, error)
+	GetCurrentBuild(job string) (db.Build, bool, error)
 	GetPipelineName() string
 	GetBuildResources(buildID int) ([]db.BuildInput, []db.BuildOutput, error)
 }
@@ -99,9 +99,15 @@ func FetchTemplateData(jobDB JobDB, paginator JobBuildsPaginator, jobName string
 		})
 	}
 
-	currentBuild, err := jobDB.GetCurrentBuild(job.Name)
+	var currentBuild *db.Build
+
+	current, found, err := jobDB.GetCurrentBuild(job.Name)
 	if err != nil {
-		currentBuild.Status = db.StatusPending
+		return TemplateData{}, err
+	}
+
+	if found {
+		currentBuild = &current
 	}
 
 	dbJob, err := jobDB.GetJob(job.Name)
@@ -110,6 +116,7 @@ func FetchTemplateData(jobDB JobDB, paginator JobBuildsPaginator, jobName string
 	}
 
 	return TemplateData{
+		PipelineName:   jobDB.GetPipelineName(),
 		Job:            job,
 		DBJob:          dbJob,
 		Builds:         bsr,
@@ -126,7 +133,6 @@ func FetchTemplateData(jobDB JobDB, paginator JobBuildsPaginator, jobName string
 		}),
 
 		CurrentBuild: currentBuild,
-		PipelineName: jobDB.GetPipelineName(),
 	}, nil
 }
 

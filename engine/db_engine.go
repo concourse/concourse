@@ -17,8 +17,7 @@ var ErrBuildNotActive = errors.New("build not yet active")
 //go:generate counterfeiter . BuildDB
 
 type BuildDB interface {
-	GetBuild(int) (db.Build, error)
-	GetBuildEvents(int, uint) (db.EventSource, error)
+	GetBuild(int) (db.Build, bool, error)
 	StartBuild(int, string, string) (bool, error)
 
 	AbortBuild(int) error
@@ -130,9 +129,13 @@ func (build *dbBuild) Abort() error {
 
 	// reload the model *after* saving the status for the following check to see
 	// if it was already started
-	model, err := build.db.GetBuild(build.id)
+	model, found, err := build.db.GetBuild(build.id)
 	if err != nil {
 		return err
+	}
+
+	if !found {
+		return nil
 	}
 
 	// if there's an engine, there's a real build to abort
@@ -175,9 +178,13 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 
 	defer lease.Break()
 
-	model, err := build.db.GetBuild(build.id)
+	model, found, err := build.db.GetBuild(build.id)
 	if err != nil {
 		logger.Error("failed-to-load-build-from-db", err)
+		return
+	}
+
+	if !found {
 		return
 	}
 
@@ -242,9 +249,13 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 
 	engineBuild.Resume(logger)
 
-	doneModel, err := build.db.GetBuild(build.id)
+	doneModel, found, err := build.db.GetBuild(build.id)
 	if err != nil {
 		logger.Error("failed-to-load-build-from-db", err)
+		return
+	}
+
+	if !found {
 		return
 	}
 

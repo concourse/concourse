@@ -160,7 +160,7 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 							Context("When the call to get next pending build fails", func() {
 								BeforeEach(func() {
-									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{}, errors.New("disaster"))
+									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{}, false, errors.New("disaster"))
 								})
 
 								It("returns false and the error", func() {
@@ -173,7 +173,7 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 							Context("When it is not the next most pending build", func() {
 								BeforeEach(func() {
-									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{ID: 3}, nil)
+									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{ID: 3}, true, nil)
 								})
 
 								It("returns false", func() {
@@ -184,9 +184,22 @@ func jobService(database *dbSharedBehaviorInput) func() {
 								})
 							})
 
+							Context("When there is no pending build", func() {
+								BeforeEach(func() {
+									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{}, false, nil)
+								})
+
+								It("returns false", func() {
+									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
+									Ω(err).ShouldNot(HaveOccurred())
+									Ω(reason).Should(Equal("no-pending-build"))
+									Ω(canBuildBeScheduled).Should(BeFalse())
+								})
+							})
+
 							Context("When it is the next most pending build", func() {
 								BeforeEach(func() {
-									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{ID: dbBuild.ID}, nil)
+									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{ID: dbBuild.ID}, true, nil)
 								})
 
 								It("returns true", func() {
@@ -200,7 +213,7 @@ func jobService(database *dbSharedBehaviorInput) func() {
 						})
 					})
 
-					Context("When the job is serial", func() {
+					Context("When the job has a max-in-flight of 3", func() {
 						var service db.JobService
 						var dbBuild db.Build
 
@@ -229,7 +242,7 @@ func jobService(database *dbSharedBehaviorInput) func() {
 							})
 						})
 
-						Context("When another build with the same job is running", func() {
+						Context("When 1 build is running", func() {
 							BeforeEach(func() {
 								fakeDB.GetRunningBuildsBySerialGroupReturns([]db.Build{
 									{
@@ -238,16 +251,48 @@ func jobService(database *dbSharedBehaviorInput) func() {
 								}, nil)
 							})
 
-							It("returns true", func() {
-								canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
+							Context("when the build is the next in line", func() {
+								BeforeEach(func() {
+									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{ID: dbBuild.ID}, true, nil)
+								})
 
-								Ω(err).ShouldNot(HaveOccurred())
-								Ω(reason).Should(Equal("can-be-scheduled"))
-								Ω(canBuildBeScheduled).Should(BeTrue())
+								It("returns true", func() {
+									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
+
+									Ω(err).ShouldNot(HaveOccurred())
+									Ω(reason).Should(Equal("can-be-scheduled"))
+									Ω(canBuildBeScheduled).Should(BeTrue())
+								})
+							})
+
+							Context("when the build is not next in line", func() {
+								BeforeEach(func() {
+									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{ID: dbBuild.ID - 1}, true, nil)
+								})
+
+								It("returns false", func() {
+									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
+									Ω(err).ShouldNot(HaveOccurred())
+									Ω(reason).Should(Equal("not-next-most-pending"))
+									Ω(canBuildBeScheduled).Should(BeFalse())
+								})
+							})
+
+							Context("When there is no pending build", func() {
+								BeforeEach(func() {
+									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{}, false, nil)
+								})
+
+								It("returns false", func() {
+									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
+									Ω(err).ShouldNot(HaveOccurred())
+									Ω(reason).Should(Equal("no-pending-build"))
+									Ω(canBuildBeScheduled).Should(BeFalse())
+								})
 							})
 						})
 
-						Context("When another build with the same job is running", func() {
+						Context("When 2 builds are running", func() {
 							BeforeEach(func() {
 								fakeDB.GetRunningBuildsBySerialGroupReturns([]db.Build{
 									{
@@ -259,16 +304,48 @@ func jobService(database *dbSharedBehaviorInput) func() {
 								}, nil)
 							})
 
-							It("returns true", func() {
-								canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
+							Context("when the build is the next in line", func() {
+								BeforeEach(func() {
+									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{ID: dbBuild.ID}, true, nil)
+								})
 
-								Ω(err).ShouldNot(HaveOccurred())
-								Ω(reason).Should(Equal("can-be-scheduled"))
-								Ω(canBuildBeScheduled).Should(BeTrue())
+								It("returns true", func() {
+									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
+
+									Ω(err).ShouldNot(HaveOccurred())
+									Ω(reason).Should(Equal("can-be-scheduled"))
+									Ω(canBuildBeScheduled).Should(BeTrue())
+								})
+							})
+
+							Context("when the build is not next in line", func() {
+								BeforeEach(func() {
+									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{ID: dbBuild.ID - 1}, true, nil)
+								})
+
+								It("returns false", func() {
+									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
+									Ω(err).ShouldNot(HaveOccurred())
+									Ω(reason).Should(Equal("not-next-most-pending"))
+									Ω(canBuildBeScheduled).Should(BeFalse())
+								})
+							})
+
+							Context("When there is no pending build", func() {
+								BeforeEach(func() {
+									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{}, false, nil)
+								})
+
+								It("returns false", func() {
+									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
+									Ω(err).ShouldNot(HaveOccurred())
+									Ω(reason).Should(Equal("no-pending-build"))
+									Ω(canBuildBeScheduled).Should(BeFalse())
+								})
 							})
 						})
 
-						Context("When another build with the same job is running", func() {
+						Context("When the max-in-flight is already reached", func() {
 							BeforeEach(func() {
 								fakeDB.GetRunningBuildsBySerialGroupReturns([]db.Build{
 									{
@@ -299,7 +376,7 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 							Context("When the call to get next pending build fails", func() {
 								BeforeEach(func() {
-									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{}, errors.New("disaster"))
+									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{}, false, errors.New("disaster"))
 								})
 
 								It("returns false and the error", func() {
@@ -312,7 +389,7 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 							Context("When it is not the next most pending build", func() {
 								BeforeEach(func() {
-									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{ID: 3}, nil)
+									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{ID: 3}, true, nil)
 								})
 
 								It("returns false", func() {
@@ -323,9 +400,22 @@ func jobService(database *dbSharedBehaviorInput) func() {
 								})
 							})
 
+							Context("When there is no pending build", func() {
+								BeforeEach(func() {
+									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{}, false, nil)
+								})
+
+								It("returns false", func() {
+									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
+									Ω(err).ShouldNot(HaveOccurred())
+									Ω(reason).Should(Equal("no-pending-build"))
+									Ω(canBuildBeScheduled).Should(BeFalse())
+								})
+							})
+
 							Context("When it is the next most pending build", func() {
 								BeforeEach(func() {
-									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{ID: dbBuild.ID}, nil)
+									fakeDB.GetNextPendingBuildBySerialGroupReturns(db.Build{ID: dbBuild.ID}, true, nil)
 								})
 
 								It("returns true", func() {

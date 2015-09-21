@@ -10,16 +10,19 @@ import (
 
 func (s *Server) GetBuild(w http.ResponseWriter, r *http.Request) {
 	buildID, err := strconv.Atoi(r.FormValue(":build_id"))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
+	dbBuild, found, err := s.db.GetBuild(buildID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	dbBuild, err := s.db.GetBuild(buildID)
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+	if !found {
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 

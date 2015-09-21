@@ -54,7 +54,7 @@ func NewEventHandler(buildsDB BuildsDB, buildID int) http.Handler {
 
 		events, err := buildsDB.GetBuildEvents(buildID, start)
 		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 

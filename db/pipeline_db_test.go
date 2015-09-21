@@ -823,13 +823,15 @@ var _ = Describe("PipelineDB", func() {
 		})
 
 		It("initially has no current build for a job", func() {
-			_, err := pipelineDB.GetCurrentBuild("some-job")
-			Ω(err).Should(Equal(db.ErrNoBuild))
+			_, found, err := pipelineDB.GetCurrentBuild("some-job")
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(found).Should(BeFalse())
 		})
 
 		It("initially has no pending build for a job", func() {
-			_, err := pipelineDB.GetNextPendingBuild("some-job")
-			Ω(err).Should(Equal(db.ErrNoBuild))
+			_, found, err := pipelineDB.GetNextPendingBuild("some-job")
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(found).Should(BeFalse())
 		})
 
 		Describe("marking resource checks as errored", func() {
@@ -1204,11 +1206,12 @@ var _ = Describe("PipelineDB", func() {
 				err = pipelineDB.UseInputsForBuild(build.ID, inputs)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				foundBuild, err := pipelineDB.GetJobBuildForInputs("some-job", []db.BuildInput{
+				foundBuild, found, err := pipelineDB.GetJobBuildForInputs("some-job", []db.BuildInput{
 					input1,
 					input2,
 				})
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 				Ω(foundBuild).Should(Equal(build))
 			})
 		})
@@ -1262,29 +1265,32 @@ var _ = Describe("PipelineDB", func() {
 				_, err = sqlDB.SaveBuildInput(build.ID, input1)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				_, err = pipelineDB.GetJobBuildForInputs("some-job", []db.BuildInput{
+				_, found, err := pipelineDB.GetJobBuildForInputs("some-job", []db.BuildInput{
 					input1,
 					input2,
 				})
-				Ω(err).Should(Equal(db.ErrNoBuild))
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeFalse())
 
 				_, err = sqlDB.SaveBuildInput(build.ID, otherInput)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				_, err = pipelineDB.GetJobBuildForInputs("some-job", []db.BuildInput{
+				_, found, err = pipelineDB.GetJobBuildForInputs("some-job", []db.BuildInput{
 					input1,
 					input2,
 				})
-				Ω(err).Should(Equal(db.ErrNoBuild))
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeFalse())
 
 				_, err = sqlDB.SaveBuildInput(build.ID, input2)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				foundBuild, err := pipelineDB.GetJobBuildForInputs("some-job", []db.BuildInput{
+				foundBuild, found, err := pipelineDB.GetJobBuildForInputs("some-job", []db.BuildInput{
 					input1,
 					input2,
 				})
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 				Ω(foundBuild).Should(Equal(build))
 
 				modifiedVR2 := vr2
@@ -1537,8 +1543,9 @@ var _ = Describe("PipelineDB", func() {
 				})
 
 				It("changes the state to errored", func() {
-					build, err := pipelineDB.GetJobBuild(job.Name, firstBuild.Name)
+					build, found, err := pipelineDB.GetJobBuild(job.Name, firstBuild.Name)
 					Ω(err).ShouldNot(HaveOccurred())
+					Ω(found).Should(BeTrue())
 					Ω(build.Status).Should(Equal(db.StatusErrored))
 				})
 
@@ -1567,8 +1574,9 @@ var _ = Describe("PipelineDB", func() {
 				})
 
 				It("changes the state to aborted", func() {
-					build, err := pipelineDB.GetJobBuild(job.Name, firstBuild.Name)
+					build, found, err := pipelineDB.GetJobBuild(job.Name, firstBuild.Name)
 					Ω(err).ShouldNot(HaveOccurred())
+					Ω(found).Should(BeTrue())
 					Ω(build.Status).Should(Equal(db.StatusAborted))
 				})
 
@@ -1610,8 +1618,9 @@ var _ = Describe("PipelineDB", func() {
 					})
 
 					It("changes the state to aborted", func() {
-						build, err := pipelineDB.GetJobBuild(job.Name, firstBuild.Name)
+						build, found, err := pipelineDB.GetJobBuild(job.Name, firstBuild.Name)
 						Ω(err).ShouldNot(HaveOccurred())
+						Ω(found).Should(BeTrue())
 						Ω(build.Status).Should(Equal(db.StatusAborted))
 					})
 
@@ -1853,11 +1862,13 @@ var _ = Describe("PipelineDB", func() {
 				otherBuildThree, err := otherPipelineDB.CreateJobBuild(jobOneTwoConfig.Name)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				build, err := pipelineDB.GetNextPendingBuildBySerialGroup("job-one", []string{"one"})
+				build, found, err := pipelineDB.GetNextPendingBuildBySerialGroup("job-one", []string{"one"})
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 				Ω(build.ID).Should(Equal(buildOne.ID))
-				build, err = pipelineDB.GetNextPendingBuildBySerialGroup("job-one-two", []string{"one", "two"})
+				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup("job-one-two", []string{"one", "two"})
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 				Ω(build.ID).Should(Equal(buildOne.ID))
 
 				scheduled, err := pipelineDB.ScheduleBuild(buildOne.ID, jobOneConfig)
@@ -1865,11 +1876,13 @@ var _ = Describe("PipelineDB", func() {
 				Ω(scheduled).Should(BeTrue())
 				Ω(sqlDB.FinishBuild(buildOne.ID, db.StatusSucceeded)).Should(Succeed())
 
-				build, err = pipelineDB.GetNextPendingBuildBySerialGroup("job-one", []string{"one"})
+				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup("job-one", []string{"one"})
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 				Ω(build.ID).Should(Equal(buildTwo.ID))
-				build, err = pipelineDB.GetNextPendingBuildBySerialGroup("job-one-two", []string{"one", "two"})
+				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup("job-one-two", []string{"one", "two"})
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 				Ω(build.ID).Should(Equal(buildTwo.ID))
 
 				scheduled, err = pipelineDB.ScheduleBuild(buildTwo.ID, jobOneConfig)
@@ -1877,11 +1890,13 @@ var _ = Describe("PipelineDB", func() {
 				Ω(scheduled).Should(BeTrue())
 				Ω(sqlDB.FinishBuild(buildTwo.ID, db.StatusSucceeded)).Should(Succeed())
 
-				build, err = otherPipelineDB.GetNextPendingBuildBySerialGroup("job-one", []string{"one"})
+				build, found, err = otherPipelineDB.GetNextPendingBuildBySerialGroup("job-one", []string{"one"})
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 				Ω(build.ID).Should(Equal(otherBuildOne.ID))
-				build, err = otherPipelineDB.GetNextPendingBuildBySerialGroup("job-one-two", []string{"one", "two"})
+				build, found, err = otherPipelineDB.GetNextPendingBuildBySerialGroup("job-one-two", []string{"one", "two"})
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 				Ω(build.ID).Should(Equal(otherBuildOne.ID))
 
 				scheduled, err = otherPipelineDB.ScheduleBuild(otherBuildOne.ID, jobOneConfig)
@@ -1889,11 +1904,13 @@ var _ = Describe("PipelineDB", func() {
 				Ω(scheduled).Should(BeTrue())
 				Ω(sqlDB.FinishBuild(otherBuildOne.ID, db.StatusSucceeded)).Should(Succeed())
 
-				build, err = otherPipelineDB.GetNextPendingBuildBySerialGroup("job-one", []string{"one"})
+				build, found, err = otherPipelineDB.GetNextPendingBuildBySerialGroup("job-one", []string{"one"})
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 				Ω(build.ID).Should(Equal(otherBuildTwo.ID))
-				build, err = otherPipelineDB.GetNextPendingBuildBySerialGroup("job-one-two", []string{"one", "two"})
+				build, found, err = otherPipelineDB.GetNextPendingBuildBySerialGroup("job-one-two", []string{"one", "two"})
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 				Ω(build.ID).Should(Equal(otherBuildTwo.ID))
 
 				scheduled, err = otherPipelineDB.ScheduleBuild(otherBuildTwo.ID, jobOneConfig)
@@ -1901,18 +1918,22 @@ var _ = Describe("PipelineDB", func() {
 				Ω(scheduled).Should(BeTrue())
 				Ω(sqlDB.FinishBuild(otherBuildTwo.ID, db.StatusSucceeded)).Should(Succeed())
 
-				build, err = otherPipelineDB.GetNextPendingBuildBySerialGroup("job-one", []string{"one"})
+				build, found, err = otherPipelineDB.GetNextPendingBuildBySerialGroup("job-one", []string{"one"})
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 				Ω(build.ID).Should(Equal(otherBuildThree.ID))
-				build, err = otherPipelineDB.GetNextPendingBuildBySerialGroup("job-one-two", []string{"one", "two"})
+				build, found, err = otherPipelineDB.GetNextPendingBuildBySerialGroup("job-one-two", []string{"one", "two"})
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 				Ω(build.ID).Should(Equal(otherBuildThree.ID))
 
-				build, err = pipelineDB.GetNextPendingBuildBySerialGroup("job-one", []string{"one"})
+				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup("job-one", []string{"one"})
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 				Ω(build.ID).Should(Equal(buildThree.ID))
-				build, err = pipelineDB.GetNextPendingBuildBySerialGroup("job-one-two", []string{"one", "two"})
+				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup("job-one-two", []string{"one", "two"})
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 				Ω(build.ID).Should(Equal(buildThree.ID))
 			})
 		})
@@ -1975,20 +1996,23 @@ var _ = Describe("PipelineDB", func() {
 			})
 
 			It("can be read back as the same object", func() {
-				gotBuild, err := sqlDB.GetBuild(build1.ID)
+				gotBuild, found, err := sqlDB.GetBuild(build1.ID)
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 				Ω(gotBuild).Should(Equal(build1))
 			})
 
 			It("becomes the current build", func() {
-				currentBuild, err := pipelineDB.GetCurrentBuild("some-job")
+				currentBuild, found, err := pipelineDB.GetCurrentBuild("some-job")
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 				Ω(currentBuild).Should(Equal(build1))
 			})
 
 			It("becomes the next pending build", func() {
-				nextPending, err := pipelineDB.GetNextPendingBuild("some-job")
+				nextPending, found, err := pipelineDB.GetNextPendingBuild("some-job")
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 				Ω(nextPending).Should(Equal(build1))
 			})
 
@@ -2012,14 +2036,16 @@ var _ = Describe("PipelineDB", func() {
 				})
 
 				It("does not change the current build", func() {
-					currentBuild, err := pipelineDB.GetCurrentBuild("some-job")
+					currentBuild, found, err := pipelineDB.GetCurrentBuild("some-job")
 					Ω(err).ShouldNot(HaveOccurred())
+					Ω(found).Should(BeTrue())
 					Ω(currentBuild).Should(Equal(build1))
 				})
 
 				It("does not change the next pending build", func() {
-					nextPending, err := pipelineDB.GetNextPendingBuild("some-job")
+					nextPending, found, err := pipelineDB.GetNextPendingBuild("some-job")
 					Ω(err).ShouldNot(HaveOccurred())
+					Ω(found).Should(BeTrue())
 					Ω(nextPending).Should(Equal(build1))
 				})
 
@@ -2037,14 +2063,16 @@ var _ = Describe("PipelineDB", func() {
 				})
 
 				It("remains the current build", func() {
-					currentBuild, err := pipelineDB.GetCurrentBuild("some-job")
+					currentBuild, found, err := pipelineDB.GetCurrentBuild("some-job")
 					Ω(err).ShouldNot(HaveOccurred())
+					Ω(found).Should(BeTrue())
 					Ω(currentBuild).Should(Equal(build1))
 				})
 
 				It("remains the next pending build", func() {
-					nextPending, err := pipelineDB.GetNextPendingBuild("some-job")
+					nextPending, found, err := pipelineDB.GetNextPendingBuild("some-job")
 					Ω(err).ShouldNot(HaveOccurred())
+					Ω(found).Should(BeTrue())
 					Ω(nextPending).Should(Equal(build1))
 				})
 			})
@@ -2057,16 +2085,18 @@ var _ = Describe("PipelineDB", func() {
 				})
 
 				It("saves the updated status, and the engine and engine metadata", func() {
-					currentBuild, err := pipelineDB.GetCurrentBuild("some-job")
+					currentBuild, found, err := pipelineDB.GetCurrentBuild("some-job")
 					Ω(err).ShouldNot(HaveOccurred())
+					Ω(found).Should(BeTrue())
 					Ω(currentBuild.Status).Should(Equal(db.StatusStarted))
 					Ω(currentBuild.Engine).Should(Equal("some-engine"))
 					Ω(currentBuild.EngineMetadata).Should(Equal("some-metadata"))
 				})
 
 				It("saves the build's start time", func() {
-					currentBuild, err := pipelineDB.GetCurrentBuild("some-job")
+					currentBuild, found, err := pipelineDB.GetCurrentBuild("some-job")
 					Ω(err).ShouldNot(HaveOccurred())
+					Ω(found).Should(BeTrue())
 					Ω(currentBuild.StartTime.Unix()).Should(BeNumerically("~", time.Now().Unix(), 3))
 				})
 			})
@@ -2078,8 +2108,9 @@ var _ = Describe("PipelineDB", func() {
 				})
 
 				It("sets the build's status and end time", func() {
-					currentBuild, err := pipelineDB.GetCurrentBuild("some-job")
+					currentBuild, found, err := pipelineDB.GetCurrentBuild("some-job")
 					Ω(err).ShouldNot(HaveOccurred())
+					Ω(found).Should(BeTrue())
 					Ω(currentBuild.Status).Should(Equal(db.StatusSucceeded))
 					Ω(currentBuild.EndTime.Unix()).Should(BeNumerically("~", time.Now().Unix(), 3))
 				})
@@ -2100,8 +2131,9 @@ var _ = Describe("PipelineDB", func() {
 				})
 
 				It("can also be read back as the same object", func() {
-					gotBuild, err := sqlDB.GetBuild(build2.ID)
+					gotBuild, found, err := sqlDB.GetBuild(build2.ID)
 					Ω(err).ShouldNot(HaveOccurred())
+					Ω(found).Should(BeTrue())
 					Ω(gotBuild).Should(Equal(build2))
 				})
 
@@ -2114,14 +2146,16 @@ var _ = Describe("PipelineDB", func() {
 
 				Describe("the first build", func() {
 					It("remains the next pending build", func() {
-						nextPending, err := pipelineDB.GetNextPendingBuild("some-job")
+						nextPending, found, err := pipelineDB.GetNextPendingBuild("some-job")
 						Ω(err).ShouldNot(HaveOccurred())
+						Ω(found).Should(BeTrue())
 						Ω(nextPending).Should(Equal(build1))
 					})
 
 					It("remains the current build", func() {
-						currentBuild, err := pipelineDB.GetCurrentBuild("some-job")
+						currentBuild, found, err := pipelineDB.GetCurrentBuild("some-job")
 						Ω(err).ShouldNot(HaveOccurred())
+						Ω(found).Should(BeTrue())
 						Ω(currentBuild).Should(Equal(build1))
 					})
 				})

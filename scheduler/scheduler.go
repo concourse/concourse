@@ -20,8 +20,8 @@ type PipelineDB interface {
 	CreateJobBuildForCandidateInputs(job string) (db.Build, bool, error)
 	ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool, error)
 
-	GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.Build, error)
-	GetNextPendingBuild(job string) (db.Build, error)
+	GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.Build, bool, error)
+	GetNextPendingBuild(job string) (db.Build, bool, error)
 
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
 	GetLatestInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, error)
@@ -99,18 +99,18 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 		return nil
 	}
 
-	existingBuild, err := s.PipelineDB.GetJobBuildForInputs(job.Name, checkInputs)
-	if err == nil {
+	existingBuild, found, err := s.PipelineDB.GetJobBuildForInputs(job.Name, checkInputs)
+	if err != nil {
+		logger.Error("could-not-determine-if-inputs-are-already-used", err)
+		return err
+	}
+
+	if found {
 		logger.Debug("build-already-exists-for-inputs", lager.Data{
 			"existing-build": existingBuild.ID,
 		})
 
 		return nil
-	}
-
-	if err != db.ErrNoBuild {
-		logger.Error("could-not-determine-if-inputs-are-already-used", err)
-		return err
 	}
 
 	build, created, err := s.PipelineDB.CreateJobBuildForCandidateInputs(job.Name)
@@ -145,14 +145,13 @@ func (s *Scheduler) TryNextPendingBuild(logger lager.Logger, versions *algorithm
 	go func() {
 		defer wg.Done()
 
-		build, err := s.PipelineDB.GetNextPendingBuild(job.Name)
+		build, found, err := s.PipelineDB.GetNextPendingBuild(job.Name)
 		if err != nil {
-			if err == db.ErrNoBuild {
-				return
-			}
-
 			logger.Error("failed-to-get-next-pending-build", err)
+			return
+		}
 
+		if !found {
 			return
 		}
 

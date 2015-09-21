@@ -13,8 +13,13 @@ func (s *Server) GetJobBuild(pipelineDB db.PipelineDB) http.Handler {
 		jobName := r.FormValue(":job_name")
 		buildName := r.FormValue(":build_name")
 
-		build, err := pipelineDB.GetJobBuild(jobName, buildName)
+		build, found, err := pipelineDB.GetJobBuild(jobName, buildName)
 		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !found {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
@@ -22,6 +27,5 @@ func (s *Server) GetJobBuild(pipelineDB db.PipelineDB) http.Handler {
 		w.WriteHeader(http.StatusOK)
 
 		json.NewEncoder(w).Encode(present.Build(build))
-
 	})
 }
