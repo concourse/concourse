@@ -1,6 +1,7 @@
 package radar
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -30,7 +31,7 @@ type RadarDB interface {
 
 	IsPaused() (bool, error)
 
-	GetConfig() (atc.Config, db.ConfigVersion, error)
+	GetConfig() (atc.Config, db.ConfigVersion, bool, error)
 
 	GetLatestVersionedResource(resource db.SavedResource) (db.SavedVersionedResource, bool, error)
 	GetResource(resourceName string) (db.SavedResource, error)
@@ -265,17 +266,21 @@ func (radar *Radar) setCheckInterval(resourceConfig atc.ResourceConfig) error {
 	return nil
 }
 
-func (radar *Radar) getResourceConfig(logger lager.Logger, resourceName string) (atc.ResourceConfig, error) {
-	var found bool
-	var resourceConfig atc.ResourceConfig
+var errPipelineRemoved = errors.New("pipeline removed")
 
-	config, _, err := radar.db.GetConfig()
+func (radar *Radar) getResourceConfig(logger lager.Logger, resourceName string) (atc.ResourceConfig, error) {
+	config, _, found, err := radar.db.GetConfig()
 	if err != nil {
 		logger.Error("failed-to-get-config", err)
-		return resourceConfig, err
+		return atc.ResourceConfig{}, err
 	}
 
-	resourceConfig, found = config.Resources.Lookup(resourceName)
+	if !found {
+		logger.Info("pipeline-removed")
+		return atc.ResourceConfig{}, errPipelineRemoved
+	}
+
+	resourceConfig, found := config.Resources.Lookup(resourceName)
 	if !found {
 		logger.Info("resource-removed-from-configuration")
 		// return an error so that we exit

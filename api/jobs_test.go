@@ -79,7 +79,7 @@ var _ = Describe("Jobs API", func() {
 							},
 						},
 					},
-				}, 1, nil)
+				}, 1, true, nil)
 			})
 
 			Context("when getting the build succeeds", func() {
@@ -217,7 +217,7 @@ var _ = Describe("Jobs API", func() {
 						Jobs: []atc.JobConfig{
 							{Name: "other-job"},
 						},
-					}, 1, nil)
+					}, 1, true, nil)
 				})
 
 				It("returns 404", func() {
@@ -227,12 +227,24 @@ var _ = Describe("Jobs API", func() {
 		})
 
 		Context("when getting the job config fails", func() {
-			BeforeEach(func() {
-				pipelineDB.GetConfigReturns(atc.Config{}, 0, errors.New("oh no!"))
+			Context("when the pipeline is no longer configured", func() {
+				BeforeEach(func() {
+					pipelineDB.GetConfigReturns(atc.Config{}, 0, false, nil)
+				})
+
+				It("returns 404", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+				})
 			})
 
-			It("returns 500", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+			Context("with an unknown error", func() {
+				BeforeEach(func() {
+					pipelineDB.GetConfigReturns(atc.Config{}, 0, false, errors.New("oh no!"))
+				})
+
+				It("returns 500", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				})
 			})
 		})
 	})
@@ -282,7 +294,7 @@ var _ = Describe("Jobs API", func() {
 							OutputConfigs: []atc.JobOutputConfig{{Resource: "output-3"}},
 						},
 					},
-				}, 1, nil)
+				}, 1, true, nil)
 			})
 
 			Context("when getting each job's builds succeeds", func() {
@@ -432,12 +444,24 @@ var _ = Describe("Jobs API", func() {
 		})
 
 		Context("when getting the job config fails", func() {
-			BeforeEach(func() {
-				pipelineDB.GetConfigReturns(atc.Config{}, 0, errors.New("oh no!"))
+			Context("when the pipeline is no longer configured", func() {
+				BeforeEach(func() {
+					pipelineDB.GetConfigReturns(atc.Config{}, 0, false, nil)
+				})
+
+				It("returns 404", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+				})
 			})
 
-			It("returns 500", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+			Context("with an unknown error", func() {
+				BeforeEach(func() {
+					pipelineDB.GetConfigReturns(atc.Config{}, 0, false, errors.New("oh no!"))
+				})
+
+				It("returns 500", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				})
 			})
 		})
 	})
@@ -579,7 +603,7 @@ var _ = Describe("Jobs API", func() {
 									Source: atc.Source{"some": "other-source"},
 								},
 							},
-						}, 42, nil)
+						}, 42, true, nil)
 					})
 
 					Context("when the versions can be loaded", func() {
@@ -691,7 +715,7 @@ var _ = Describe("Jobs API", func() {
 									Plan: atc.PlanSequence{},
 								},
 							},
-						}, 42, nil)
+						}, 42, true, nil)
 					})
 
 					It("returns 404 Not Found", func() {
@@ -701,9 +725,9 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			Context("when getting the config fails", func() {
-				Context("with ErrPipelineNotFound", func() {
+				Context("when the pipeline is no longer configured", func() {
 					BeforeEach(func() {
-						pipelineDB.GetConfigReturns(atc.Config{}, 0, db.ErrPipelineNotFound)
+						pipelineDB.GetConfigReturns(atc.Config{}, 0, false, nil)
 					})
 
 					It("returns 404", func() {
@@ -713,7 +737,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("with an unknown error", func() {
 					BeforeEach(func() {
-						pipelineDB.GetConfigReturns(atc.Config{}, 0, errors.New("oh no!"))
+						pipelineDB.GetConfigReturns(atc.Config{}, 0, false, errors.New("oh no!"))
 					})
 
 					It("returns 500", func() {

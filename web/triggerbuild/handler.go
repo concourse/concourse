@@ -29,10 +29,15 @@ func NewServer(
 
 func (server *server) TriggerBuild(pipelineDB db.PipelineDB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		config, _, err := pipelineDB.GetConfig()
+		config, _, found, err := pipelineDB.GetConfig()
 		if err != nil {
 			server.logger.Error("failed-to-load-config", err)
 			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !found {
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 

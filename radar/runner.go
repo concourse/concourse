@@ -100,9 +100,14 @@ dance:
 }
 
 func (runner *Runner) tick(scanning map[string]bool, insertScanner chan<- grouper.Member) {
-	config, _, err := runner.db.GetConfig()
+	config, _, found, err := runner.db.GetConfig()
 	if err != nil {
 		runner.logger.Error("failed-to-get-config", err)
+		return
+	}
+
+	if !found {
+		runner.logger.Info("pipeline-removed")
 		return
 	}
 

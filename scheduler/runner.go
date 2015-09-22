@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"errors"
 	"os"
 	"time"
 
@@ -17,6 +18,8 @@ type BuildScheduler interface {
 	TryNextPendingBuild(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) Waiter
 	BuildLatestInputs(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) error
 }
+
+var errPipelineRemoved = errors.New("pipeline removed")
 
 type Runner struct {
 	Logger lager.Logger
@@ -61,15 +64,14 @@ dance:
 }
 
 func (runner *Runner) tick(logger lager.Logger) error {
-	config, _, err := runner.DB.GetConfig()
+	config, _, found, err := runner.DB.GetConfig()
 	if err != nil {
-		if err == db.ErrPipelineNotFound {
-			return err
-		}
-
 		logger.Error("failed-to-get-config", err)
-
 		return nil
+	}
+
+	if !found {
+		return errPipelineRemoved
 	}
 
 	if runner.Noop {

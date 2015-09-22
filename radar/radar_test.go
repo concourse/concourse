@@ -58,7 +58,7 @@ var _ = Describe("Radar", func() {
 			Resources: atc.ResourceConfigs{
 				resourceConfig,
 			},
-		}, 1, nil)
+		}, 1, true, nil)
 
 		savedResource = db.SavedResource{
 			Resource: db.Resource{
@@ -153,7 +153,7 @@ var _ = Describe("Radar", func() {
 						Resources: atc.ResourceConfigs{
 							resourceConfig,
 						},
-					}, 1, nil)
+					}, 1, true, nil)
 				})
 
 				It("should check using the specified interval instead of the default", func() {
@@ -174,7 +174,7 @@ var _ = Describe("Radar", func() {
 							Resources: atc.ResourceConfigs{
 								resourceConfig,
 							},
-						}, 1, nil)
+						}, 1, true, nil)
 					})
 
 					It("sets the check error and exits with the error", func() {
@@ -373,12 +373,12 @@ var _ = Describe("Radar", func() {
 
 					configsToReturn = configs
 
-					fakeRadarDB.GetConfigStub = func() (atc.Config, db.ConfigVersion, error) {
+					fakeRadarDB.GetConfigStub = func() (atc.Config, db.ConfigVersion, bool, error) {
 						select {
 						case c := <-configs:
-							return c, 1, nil
+							return c, 1, true, nil
 						default:
-							return newConfig, 2, nil
+							return newConfig, 2, true, nil
 						}
 					}
 				})

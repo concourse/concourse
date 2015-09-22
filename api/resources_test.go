@@ -54,7 +54,7 @@ var _ = Describe("Resources API", func() {
 						{Name: "resource-2", Type: "type-2"},
 						{Name: "resource-3", Type: "type-3"},
 					},
-				}, 1, nil)
+				}, 1, true, nil)
 			})
 
 			Context("when getting the check error succeeds", func() {
@@ -172,12 +172,24 @@ var _ = Describe("Resources API", func() {
 		})
 
 		Context("when getting the resource config fails", func() {
-			BeforeEach(func() {
-				pipelineDB.GetConfigReturns(atc.Config{}, 0, errors.New("oh no!"))
+			Context("when the pipeline is no longer configured", func() {
+				BeforeEach(func() {
+					pipelineDB.GetConfigReturns(atc.Config{}, 0, false, nil)
+				})
+
+				It("returns 404", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+				})
 			})
 
-			It("returns 500", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+			Context("with an unknown error", func() {
+				BeforeEach(func() {
+					pipelineDB.GetConfigReturns(atc.Config{}, 0, false, errors.New("oh no!"))
+				})
+
+				It("returns 500", func() {
+					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				})
 			})
 		})
 	})

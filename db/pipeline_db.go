@@ -27,7 +27,7 @@ type PipelineDB interface {
 
 	Destroy() error
 
-	GetConfig() (atc.Config, ConfigVersion, error)
+	GetConfig() (atc.Config, ConfigVersion, bool, error)
 
 	LeaseScheduling(time.Duration) (Lease, bool, error)
 
@@ -204,7 +204,7 @@ func (pdb *pipelineDB) Destroy() error {
 	return tx.Commit()
 }
 
-func (pdb *pipelineDB) GetConfig() (atc.Config, ConfigVersion, error) {
+func (pdb *pipelineDB) GetConfig() (atc.Config, ConfigVersion, bool, error) {
 	var configBlob []byte
 	var version int
 
@@ -215,19 +215,19 @@ func (pdb *pipelineDB) GetConfig() (atc.Config, ConfigVersion, error) {
 		`, pdb.ID).Scan(&configBlob, &version)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return atc.Config{}, 0, ErrPipelineNotFound
+			return atc.Config{}, 0, false, nil
 		}
 
-		return atc.Config{}, 0, err
+		return atc.Config{}, 0, false, err
 	}
 
 	var config atc.Config
 	err = json.Unmarshal(configBlob, &config)
 	if err != nil {
-		return atc.Config{}, 0, err
+		return atc.Config{}, 0, false, err
 	}
 
-	return config, ConfigVersion(version), nil
+	return config, ConfigVersion(version), true, nil
 }
 
 func (pdb *pipelineDB) GetResource(resourceName string) (SavedResource, error) {
@@ -708,7 +708,6 @@ func (pdb *pipelineDB) GetLatestVersionedResource(resource SavedResource) (Saved
 	`, resource.ID).Scan(&svr.ID, &svr.Enabled, &svr.Type, &versionBytes, &metadataBytes)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			panic("TESTME")
 			return SavedVersionedResource{}, false, nil
 		}
 

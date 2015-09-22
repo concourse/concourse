@@ -32,13 +32,14 @@ type FakeRadarDB struct {
 		result1 bool
 		result2 error
 	}
-	GetConfigStub        func() (atc.Config, db.ConfigVersion, error)
+	GetConfigStub        func() (atc.Config, db.ConfigVersion, bool, error)
 	getConfigMutex       sync.RWMutex
 	getConfigArgsForCall []struct{}
 	getConfigReturns     struct {
 		result1 atc.Config
 		result2 db.ConfigVersion
-		result3 error
+		result3 bool
+		result4 error
 	}
 	GetLatestVersionedResourceStub        func(resource db.SavedResource) (db.SavedVersionedResource, bool, error)
 	getLatestVersionedResourceMutex       sync.RWMutex
@@ -188,14 +189,14 @@ func (fake *FakeRadarDB) IsPausedReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeRadarDB) GetConfig() (atc.Config, db.ConfigVersion, error) {
+func (fake *FakeRadarDB) GetConfig() (atc.Config, db.ConfigVersion, bool, error) {
 	fake.getConfigMutex.Lock()
 	fake.getConfigArgsForCall = append(fake.getConfigArgsForCall, struct{}{})
 	fake.getConfigMutex.Unlock()
 	if fake.GetConfigStub != nil {
 		return fake.GetConfigStub()
 	} else {
-		return fake.getConfigReturns.result1, fake.getConfigReturns.result2, fake.getConfigReturns.result3
+		return fake.getConfigReturns.result1, fake.getConfigReturns.result2, fake.getConfigReturns.result3, fake.getConfigReturns.result4
 	}
 }
 
@@ -205,13 +206,14 @@ func (fake *FakeRadarDB) GetConfigCallCount() int {
 	return len(fake.getConfigArgsForCall)
 }
 
-func (fake *FakeRadarDB) GetConfigReturns(result1 atc.Config, result2 db.ConfigVersion, result3 error) {
+func (fake *FakeRadarDB) GetConfigReturns(result1 atc.Config, result2 db.ConfigVersion, result3 bool, result4 error) {
 	fake.GetConfigStub = nil
 	fake.getConfigReturns = struct {
 		result1 atc.Config
 		result2 db.ConfigVersion
-		result3 error
-	}{result1, result2, result3}
+		result3 bool
+		result4 error
+	}{result1, result2, result3, result4}
 }
 
 func (fake *FakeRadarDB) GetLatestVersionedResource(resource db.SavedResource) (db.SavedVersionedResource, bool, error) {

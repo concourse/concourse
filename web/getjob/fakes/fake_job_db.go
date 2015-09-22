@@ -10,13 +10,14 @@ import (
 )
 
 type FakeJobDB struct {
-	GetConfigStub        func() (atc.Config, db.ConfigVersion, error)
+	GetConfigStub        func() (atc.Config, db.ConfigVersion, bool, error)
 	getConfigMutex       sync.RWMutex
 	getConfigArgsForCall []struct{}
 	getConfigReturns     struct {
 		result1 atc.Config
 		result2 db.ConfigVersion
-		result3 error
+		result3 bool
+		result4 error
 	}
 	GetJobStub        func(string) (db.SavedJob, error)
 	getJobMutex       sync.RWMutex
@@ -55,14 +56,14 @@ type FakeJobDB struct {
 	}
 }
 
-func (fake *FakeJobDB) GetConfig() (atc.Config, db.ConfigVersion, error) {
+func (fake *FakeJobDB) GetConfig() (atc.Config, db.ConfigVersion, bool, error) {
 	fake.getConfigMutex.Lock()
 	fake.getConfigArgsForCall = append(fake.getConfigArgsForCall, struct{}{})
 	fake.getConfigMutex.Unlock()
 	if fake.GetConfigStub != nil {
 		return fake.GetConfigStub()
 	} else {
-		return fake.getConfigReturns.result1, fake.getConfigReturns.result2, fake.getConfigReturns.result3
+		return fake.getConfigReturns.result1, fake.getConfigReturns.result2, fake.getConfigReturns.result3, fake.getConfigReturns.result4
 	}
 }
 
@@ -72,13 +73,14 @@ func (fake *FakeJobDB) GetConfigCallCount() int {
 	return len(fake.getConfigArgsForCall)
 }
 
-func (fake *FakeJobDB) GetConfigReturns(result1 atc.Config, result2 db.ConfigVersion, result3 error) {
+func (fake *FakeJobDB) GetConfigReturns(result1 atc.Config, result2 db.ConfigVersion, result3 bool, result4 error) {
 	fake.GetConfigStub = nil
 	fake.getConfigReturns = struct {
 		result1 atc.Config
 		result2 db.ConfigVersion
-		result3 error
-	}{result1, result2, result3}
+		result3 bool
+		result4 error
+	}{result1, result2, result3, result4}
 }
 
 func (fake *FakeJobDB) GetJob(arg1 string) (db.SavedJob, error) {

@@ -14,14 +14,14 @@ func (s *Server) ListJobInputs(pipelineDB db.PipelineDB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jobName := r.FormValue(":job_name")
 
-		pipelineConfig, _, err := pipelineDB.GetConfig()
-		switch err {
-		case db.ErrPipelineNotFound:
-			w.WriteHeader(http.StatusNotFound)
-			return
-		case nil:
-		default:
+		pipelineConfig, _, found, err := pipelineDB.GetConfig()
+		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !found {
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 

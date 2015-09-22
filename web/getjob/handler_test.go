@@ -27,7 +27,18 @@ var _ = Describe("FetchTemplateData", func() {
 
 	Context("when the config database returns an error", func() {
 		BeforeEach(func() {
-			fakeDB.GetConfigReturns(atc.Config{}, db.ConfigVersion(1), errors.New("disaster"))
+			fakeDB.GetConfigReturns(atc.Config{}, 0, false, errors.New("disaster"))
+		})
+
+		It("returns an error if the config could not be loaded", func() {
+			_, err := FetchTemplateData(fakeDB, fakePaginator, "job-name", 0, false)
+			Ω(err).Should(HaveOccurred())
+		})
+	})
+
+	Context("when the config database returns no config", func() {
+		BeforeEach(func() {
+			fakeDB.GetConfigReturns(atc.Config{}, 0, false, nil)
 		})
 
 		It("returns an error if the config could not be loaded", func() {
@@ -58,7 +69,7 @@ var _ = Describe("FetchTemplateData", func() {
 				},
 			}
 
-			fakeDB.GetConfigReturns(config, db.ConfigVersion(1), nil)
+			fakeDB.GetConfigReturns(config, db.ConfigVersion(1), true, nil)
 		})
 
 		It("returns not found if the job cannot be found in the config", func() {
