@@ -1,17 +1,13 @@
 package db
 
-import (
-	"errors"
-
-	"github.com/pivotal-golang/lager"
-)
+import "github.com/pivotal-golang/lager"
 
 //go:generate counterfeiter . PipelineDBFactory
 
 type PipelineDBFactory interface {
 	Build(pipeline SavedPipeline) PipelineDB
 	BuildWithName(pipelineName string) (PipelineDB, error)
-	BuildDefault() (PipelineDB, error)
+	BuildDefault() (PipelineDB, bool, error)
 }
 
 type pipelineDBFactory struct {
@@ -57,16 +53,14 @@ func (pdbf *pipelineDBFactory) Build(pipeline SavedPipeline) PipelineDB {
 	}
 }
 
-var ErrNoPipelines = errors.New("no pipelines configured")
-
-func (pdbf *pipelineDBFactory) BuildDefault() (PipelineDB, error) {
+func (pdbf *pipelineDBFactory) BuildDefault() (PipelineDB, bool, error) {
 	orderedPipelines, err := pdbf.pipelinesDB.GetAllActivePipelines()
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	if len(orderedPipelines) < 1 {
-		return nil, ErrNoPipelines
+		return nil, false, nil
 	}
 
 	return &pipelineDB{
@@ -76,5 +70,5 @@ func (pdbf *pipelineDBFactory) BuildDefault() (PipelineDB, error) {
 		bus:  pdbf.bus,
 
 		SavedPipeline: orderedPipelines[0],
-	}, nil
+	}, true, nil
 }

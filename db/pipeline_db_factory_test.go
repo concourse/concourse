@@ -66,8 +66,9 @@ var _ = Describe("PipelineDBFactory", func() {
 				savedPipelineTwo,
 			}, nil)
 
-			defaultPipelineDB, err := pipelineDBFactory.BuildDefault()
+			defaultPipelineDB, found, err := pipelineDBFactory.BuildDefault()
 			Ω(err).ShouldNot(HaveOccurred())
+			Ω(found).Should(BeTrue())
 
 			Ω(defaultPipelineDB.GetPipelineName()).Should(Equal("a-pipeline"))
 		})
@@ -78,8 +79,9 @@ var _ = Describe("PipelineDBFactory", func() {
 			})
 
 			It("returns a useful error if there are no pipelines", func() {
-				_, err := pipelineDBFactory.BuildDefault()
-				Ω(err).Should(MatchError(db.ErrNoPipelines))
+				_, found, err := pipelineDBFactory.BuildDefault()
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeFalse())
 			})
 		})
 	})

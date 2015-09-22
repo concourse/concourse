@@ -97,8 +97,10 @@ var _ = Describe("Resource Pagination", func() {
 				}, db.ConfigVersion(1), db.PipelineUnpaused)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				pipelineDB, err = pipelineDBFactory.BuildDefault()
+				var found bool
+				pipelineDB, found, err = pipelineDBFactory.BuildDefault()
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 
 				resourceConfig := atc.ResourceConfig{
 					Name:   "resource-name",
@@ -160,8 +162,10 @@ var _ = Describe("Resource Pagination", func() {
 				}, db.ConfigVersion(1), db.PipelineUnpaused)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				pipelineDB, err = pipelineDBFactory.BuildDefault()
+				var found bool
+				pipelineDB, found, err = pipelineDBFactory.BuildDefault()
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(found).Should(BeTrue())
 
 				resourceConfig := atc.ResourceConfig{
 					Name:   "resource-name",
