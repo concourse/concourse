@@ -294,15 +294,15 @@ func (step *taskStep) collectInputs(inputs []atc.TaskInputConfig) error {
 		})
 	}
 
+	if len(missingInputs) > 0 {
+		return MissingInputsError{missingInputs}
+	}
+
 	for _, pair := range inputMappings {
 		err := pair.source.StreamTo(pair.destination)
 		if err != nil {
 			return err
 		}
-	}
-
-	if len(missingInputs) > 0 {
-		return MissingInputsError{missingInputs}
 	}
 
 	return nil
