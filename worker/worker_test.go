@@ -115,7 +115,34 @@ var _ = Describe("Worker", func() {
 						}))
 					})
 
-					Context("if the container is marked as ephemeral", func() {
+					Context("when env vars are provided", func() {
+						BeforeEach(func() {
+							spec = ResourceTypeContainerSpec{
+								Type: "some-resource",
+								Env:  []string{"a=1", "b=2"},
+							}
+						})
+
+						It("creates the container with the given env vars", func() {
+							Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
+							Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
+								RootFSPath: "some-resource-image",
+								Privileged: true,
+								Properties: garden.Properties{
+									"concourse:type":          "get",
+									"concourse:pipeline-name": "some-pipeline",
+									"concourse:location":      "3",
+									"concourse:check-type":    "some-check-type",
+									"concourse:check-source":  "{\"some\":\"source\"}",
+									"concourse:name":          "some-name",
+									"concourse:build-id":      "42",
+								},
+								Env: []string{"a=1", "b=2"},
+							}))
+						})
+					})
+
+					Context("when the container is marked as ephemeral", func() {
 						BeforeEach(func() {
 							spec = ResourceTypeContainerSpec{
 								Type:      "some-resource",

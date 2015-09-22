@@ -18,8 +18,16 @@ type Session struct {
 //go:generate counterfeiter . Tracker
 
 type Tracker interface {
-	Init(Session, ResourceType, atc.Tags) (Resource, error)
+	Init(Metadata, Session, ResourceType, atc.Tags) (Resource, error)
 }
+
+type Metadata interface {
+	Env() []string
+}
+
+type EmptyMetadata struct{}
+
+func (m EmptyMetadata) Env() []string { return nil }
 
 type tracker struct {
 	workerClient worker.Client
@@ -33,7 +41,7 @@ func NewTracker(workerClient worker.Client) Tracker {
 	}
 }
 
-func (tracker *tracker) Init(session Session, typ ResourceType, tags atc.Tags) (Resource, error) {
+func (tracker *tracker) Init(metadata Metadata, session Session, typ ResourceType, tags atc.Tags) (Resource, error) {
 	container, err := tracker.workerClient.FindContainerForIdentifier(session.ID)
 
 	switch err {
@@ -43,6 +51,7 @@ func (tracker *tracker) Init(session Session, typ ResourceType, tags atc.Tags) (
 			Type:      string(typ),
 			Ephemeral: session.Ephemeral,
 			Tags:      tags,
+			Env:       metadata.Env(),
 		})
 	}
 

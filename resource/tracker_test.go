@@ -11,6 +11,10 @@ import (
 	. "github.com/concourse/atc/resource"
 )
 
+type testMetadata []string
+
+func (m testMetadata) Env() []string { return m }
+
 var _ = Describe("Tracker", func() {
 	var (
 		tracker Tracker
@@ -31,6 +35,8 @@ var _ = Describe("Tracker", func() {
 
 	Describe("Init", func() {
 		var (
+			metadata Metadata = testMetadata{"a=1", "b=2"}
+
 			initType ResourceType
 
 			initResource Resource
@@ -42,7 +48,7 @@ var _ = Describe("Tracker", func() {
 		})
 
 		JustBeforeEach(func() {
-			initResource, initErr = tracker.Init(session, initType, []string{"resource", "tags"})
+			initResource, initErr = tracker.Init(metadata, session, initType, []string{"resource", "tags"})
 		})
 
 		Context("when a container does not exist for the session", func() {
@@ -55,13 +61,14 @@ var _ = Describe("Tracker", func() {
 				Ω(initResource).ShouldNot(BeNil())
 			})
 
-			It("creates a container with the resource's type, ephemeral information, and the session as the handle", func() {
+			It("creates a container with the resource's type, env, ephemeral information, and the session as the handle", func() {
 				id, spec := workerClient.CreateContainerArgsForCall(0)
 
 				Ω(id).Should(Equal(session.ID))
 				resourceSpec := spec.(worker.ResourceTypeContainerSpec)
 
 				Ω(resourceSpec.Type).Should(Equal(string(initType)))
+				Ω(resourceSpec.Env).Should(Equal([]string{"a=1", "b=2"}))
 				Ω(resourceSpec.Ephemeral).Should(Equal(true))
 				Ω(resourceSpec.Tags).Should(ConsistOf("resource", "tags"))
 			})

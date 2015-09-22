@@ -13,6 +13,7 @@ func TestExec(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Exec Suite")
 }
+
 func successResult(result Success) func(dest interface{}) bool {
 	defer GinkgoRecover()
 
@@ -29,3 +30,7 @@ func successResult(result Success) func(dest interface{}) bool {
 		}
 	}
 }
+
+type testMetadata []string
+
+func (m testMetadata) Env() []string { return m }

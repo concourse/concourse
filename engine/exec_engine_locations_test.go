@@ -23,8 +23,9 @@ var _ = Describe("Exec Engine Locations", func() {
 
 		execEngine engine.Engine
 
-		buildModel db.Build
-		logger     *lagertest.TestLogger
+		buildModel       db.Build
+		expectedMetadata engine.StepMetadata
+		logger           *lagertest.TestLogger
 
 		fakeDelegate *fakes.FakeBuildDelegate
 	)
@@ -41,7 +42,19 @@ var _ = Describe("Exec Engine Locations", func() {
 		fakeDelegate = new(fakes.FakeBuildDelegate)
 		fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-		buildModel = db.Build{ID: 84}
+		buildModel = db.Build{
+			ID:           84,
+			Name:         "42",
+			JobName:      "some-job",
+			PipelineName: "some-pipeline",
+		}
+
+		expectedMetadata = engine.StepMetadata{
+			BuildID:      84,
+			BuildName:    "42",
+			JobName:      "some-job",
+			PipelineName: "some-pipeline",
+		}
 	})
 
 	Describe("Resume", func() {
@@ -83,7 +96,8 @@ var _ = Describe("Exec Engine Locations", func() {
 				build.Resume(logger)
 
 				Ω(fakeFactory.GetCallCount()).Should(Equal(1))
-				sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+				metadata, sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+				Ω(metadata).Should(Equal(expectedMetadata))
 				Ω(sourceName).Should(Equal(exec.SourceName("some input")))
 				Ω(workerID).Should(Equal(worker.Identifier{
 					BuildID: 84,
@@ -135,7 +149,8 @@ var _ = Describe("Exec Engine Locations", func() {
 				build.Resume(logger)
 
 				Ω(fakeFactory.PutCallCount()).Should(Equal(1))
-				workerID, delegate, _, _, _ := fakeFactory.PutArgsForCall(0)
+				metadata, workerID, delegate, _, _, _ := fakeFactory.PutArgsForCall(0)
+				Ω(metadata).Should(Equal(expectedMetadata))
 				Ω(workerID).Should(Equal(worker.Identifier{
 					BuildID: 84,
 					Type:    worker.ContainerTypePut,
@@ -239,7 +254,8 @@ var _ = Describe("Exec Engine Locations", func() {
 				build.Resume(logger)
 
 				Ω(fakeFactory.DependentGetCallCount()).Should(Equal(1))
-				sourceName, workerID, delegate, _, _, _ := fakeFactory.DependentGetArgsForCall(0)
+				metadata, sourceName, workerID, delegate, _, _, _ := fakeFactory.DependentGetArgsForCall(0)
+				Ω(metadata).Should(Equal(expectedMetadata))
 				Ω(sourceName).Should(Equal(exec.SourceName("some input")))
 				Ω(workerID).Should(Equal(worker.Identifier{
 					BuildID: 84,

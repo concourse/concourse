@@ -40,7 +40,9 @@ func (engine *execEngine) Name() string {
 
 func (engine *execEngine) CreateBuild(model db.Build, plan atc.Plan) (Build, error) {
 	return &execBuild{
-		buildID:  model.ID,
+		buildID:      model.ID,
+		stepMetadata: buildMetadata(model),
+
 		db:       engine.db,
 		factory:  engine.factory,
 		delegate: engine.delegateFactory.Delegate(model.ID),
@@ -60,7 +62,9 @@ func (engine *execEngine) LookupBuild(model db.Build) (Build, error) {
 	}
 
 	return &execBuild{
-		buildID:  model.ID,
+		buildID:      model.ID,
+		stepMetadata: buildMetadata(model),
+
 		db:       engine.db,
 		factory:  engine.factory,
 		delegate: engine.delegateFactory.Delegate(model.ID),
@@ -70,9 +74,20 @@ func (engine *execEngine) LookupBuild(model db.Build) (Build, error) {
 	}, nil
 }
 
+func buildMetadata(model db.Build) StepMetadata {
+	return StepMetadata{
+		BuildID:      model.ID,
+		BuildName:    model.Name,
+		JobName:      model.JobName,
+		PipelineName: model.PipelineName,
+	}
+}
+
 type execBuild struct {
-	buildID int
-	db      EngineDB
+	buildID      int
+	stepMetadata StepMetadata
+
+	db EngineDB
 
 	factory  exec.Factory
 	delegate BuildDelegate
@@ -180,8 +195,7 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan) exe
 
 func (build *execBuild) taskIdentifier(name string, location event.OriginLocation) worker.Identifier {
 	return worker.Identifier{
-		BuildID: build.buildID,
-
+		BuildID:      build.buildID,
 		Type:         "task",
 		Name:         name,
 		StepLocation: location.ID,
@@ -199,8 +213,7 @@ func (build *execBuild) getIdentifier(name string, location event.OriginLocation
 
 func (build *execBuild) putIdentifier(name string, location event.OriginLocation) worker.Identifier {
 	return worker.Identifier{
-		BuildID: build.buildID,
-
+		BuildID:      build.buildID,
 		Type:         "put",
 		Name:         name,
 		StepLocation: location.ID,

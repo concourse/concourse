@@ -19,6 +19,7 @@ func (build *execBuild) buildAggregateStep(logger lager.Logger, plan atc.Plan) e
 
 	return step
 }
+
 func (build *execBuild) buildTimeoutStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
 	step := build.buildStepFactory(logger, plan.Timeout.Step)
 	return exec.Timeout(step, plan.Timeout.Duration)
@@ -90,6 +91,7 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 	}
 
 	return build.factory.Get(
+		build.stepMetadata,
 		exec.SourceName(plan.Get.Name),
 		build.getIdentifier(plan.Get.Name, location),
 		build.delegate.InputDelegate(logger, *plan.Get, location),
@@ -102,7 +104,6 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 		plan.Get.Tags,
 		plan.Get.Version,
 	)
-
 }
 
 func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
@@ -116,6 +117,7 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 	}
 
 	return build.factory.Put(
+		build.stepMetadata,
 		build.putIdentifier(plan.Put.Name, location),
 		build.delegate.OutputDelegate(logger, *plan.Put, location),
 		atc.ResourceConfig{
@@ -140,6 +142,7 @@ func (build *execBuild) buildDependentGetStep(logger lager.Logger, plan atc.Plan
 
 	getPlan := plan.DependentGet.GetPlan()
 	return build.factory.DependentGet(
+		build.stepMetadata,
 		exec.SourceName(getPlan.Name),
 		build.getIdentifier(getPlan.Name, location),
 		build.delegate.InputDelegate(logger, getPlan, location),

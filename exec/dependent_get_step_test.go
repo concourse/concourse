@@ -38,6 +38,8 @@ var _ = Describe("GardenFactory", func() {
 			Name: "some-session-id",
 		}
 
+		stepMetadata testMetadata = []string{"a=1", "b=2"}
+
 		sourceName SourceName = "some-source-name"
 	)
 
@@ -101,7 +103,7 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			step = factory.DependentGet(sourceName, identifier, getDelegate, resourceConfig, tags, params).Using(inStep, repo)
+			step = factory.DependentGet(stepMetadata, sourceName, identifier, getDelegate, resourceConfig, tags, params).Using(inStep, repo)
 			process = ifrit.Invoke(step)
 		})
 
@@ -125,8 +127,8 @@ var _ = Describe("GardenFactory", func() {
 			It("initializes the resource with the correct type and session id, making sure that it is not ephemeral", func() {
 				Ω(fakeTracker.InitCallCount()).Should(Equal(1))
 
-				sid, typ, tags := fakeTracker.InitArgsForCall(0)
-
+				sm, sid, typ, tags := fakeTracker.InitArgsForCall(0)
+				Ω(sm).Should(Equal(stepMetadata))
 				Ω(sid).Should(Equal(resource.Session{
 					ID:        identifier,
 					Ephemeral: false,

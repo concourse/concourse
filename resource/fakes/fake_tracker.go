@@ -9,12 +9,13 @@ import (
 )
 
 type FakeTracker struct {
-	InitStub        func(resource.Session, resource.ResourceType, atc.Tags) (resource.Resource, error)
+	InitStub        func(resource.Metadata, resource.Session, resource.ResourceType, atc.Tags) (resource.Resource, error)
 	initMutex       sync.RWMutex
 	initArgsForCall []struct {
-		arg1 resource.Session
-		arg2 resource.ResourceType
-		arg3 atc.Tags
+		arg1 resource.Metadata
+		arg2 resource.Session
+		arg3 resource.ResourceType
+		arg4 atc.Tags
 	}
 	initReturns struct {
 		result1 resource.Resource
@@ -22,16 +23,17 @@ type FakeTracker struct {
 	}
 }
 
-func (fake *FakeTracker) Init(arg1 resource.Session, arg2 resource.ResourceType, arg3 atc.Tags) (resource.Resource, error) {
+func (fake *FakeTracker) Init(arg1 resource.Metadata, arg2 resource.Session, arg3 resource.ResourceType, arg4 atc.Tags) (resource.Resource, error) {
 	fake.initMutex.Lock()
 	fake.initArgsForCall = append(fake.initArgsForCall, struct {
-		arg1 resource.Session
-		arg2 resource.ResourceType
-		arg3 atc.Tags
-	}{arg1, arg2, arg3})
+		arg1 resource.Metadata
+		arg2 resource.Session
+		arg3 resource.ResourceType
+		arg4 atc.Tags
+	}{arg1, arg2, arg3, arg4})
 	fake.initMutex.Unlock()
 	if fake.InitStub != nil {
-		return fake.InitStub(arg1, arg2, arg3)
+		return fake.InitStub(arg1, arg2, arg3, arg4)
 	} else {
 		return fake.initReturns.result1, fake.initReturns.result2
 	}
@@ -43,10 +45,10 @@ func (fake *FakeTracker) InitCallCount() int {
 	return len(fake.initArgsForCall)
 }
 
-func (fake *FakeTracker) InitArgsForCall(i int) (resource.Session, resource.ResourceType, atc.Tags) {
+func (fake *FakeTracker) InitArgsForCall(i int) (resource.Metadata, resource.Session, resource.ResourceType, atc.Tags) {
 	fake.initMutex.RLock()
 	defer fake.initMutex.RUnlock()
-	return fake.initArgsForCall[i].arg1, fake.initArgsForCall[i].arg2, fake.initArgsForCall[i].arg3
+	return fake.initArgsForCall[i].arg1, fake.initArgsForCall[i].arg2, fake.initArgsForCall[i].arg3, fake.initArgsForCall[i].arg4
 }
 
 func (fake *FakeTracker) InitReturns(result1 resource.Resource, result2 error) {

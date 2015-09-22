@@ -25,8 +25,9 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 		execEngine engine.Engine
 
-		buildModel db.Build
-		logger     *lagertest.TestLogger
+		buildModel       db.Build
+		expectedMetadata engine.StepMetadata
+		logger           *lagertest.TestLogger
 
 		fakeDelegate *fakes.FakeBuildDelegate
 	)
@@ -43,7 +44,19 @@ var _ = Describe("Exec Engine With Hooks", func() {
 		fakeDelegate = new(fakes.FakeBuildDelegate)
 		fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-		buildModel = db.Build{ID: 84}
+		buildModel = db.Build{
+			ID:           84,
+			Name:         "42",
+			JobName:      "some-job",
+			PipelineName: "some-pipeline",
+		}
+
+		expectedMetadata = engine.StepMetadata{
+			BuildID:      84,
+			BuildName:    "42",
+			JobName:      "some-job",
+			PipelineName: "some-pipeline",
+		}
 	})
 
 	Context("running hooked composes", func() {
@@ -196,7 +209,8 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Ω(delegate).Should(Equal(fakeExecutionDelegate))
 
 					Ω(fakeFactory.GetCallCount()).Should(Equal(2))
-					sourceName, workerID, getDelegate, _, _, _, _ := fakeFactory.GetArgsForCall(1)
+					metadata, sourceName, workerID, getDelegate, _, _, _, _ := fakeFactory.GetArgsForCall(1)
+					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID: 84,
@@ -304,7 +318,8 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the step correctly", func() {
 					Ω(fakeFactory.GetCallCount()).Should(Equal(1))
-					sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+					metadata, sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID: 84,

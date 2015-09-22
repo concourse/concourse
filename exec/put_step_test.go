@@ -28,6 +28,8 @@ var _ = Describe("GardenFactory", func() {
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
 
+		stepMetadata testMetadata = []string{"a=1", "b=2"}
+
 		identifier = worker.Identifier{
 			Name: "some-session-id",
 		}
@@ -81,7 +83,7 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			step = factory.Put(identifier, putDelegate, resourceConfig, tags, params).Using(inStep, repo)
+			step = factory.Put(stepMetadata, identifier, putDelegate, resourceConfig, tags, params).Using(inStep, repo)
 			process = ifrit.Invoke(step)
 		})
 
@@ -105,7 +107,8 @@ var _ = Describe("GardenFactory", func() {
 			It("initializes the resource with the correct type and session id", func() {
 				Ω(fakeTracker.InitCallCount()).Should(Equal(1))
 
-				sid, typ, tags := fakeTracker.InitArgsForCall(0)
+				sm, sid, typ, tags := fakeTracker.InitArgsForCall(0)
+				Ω(sm).Should(Equal(stepMetadata))
 				Ω(sid).Should(Equal(resource.Session{
 					ID: identifier,
 				}))

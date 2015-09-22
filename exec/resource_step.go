@@ -10,6 +10,8 @@ import (
 )
 
 type resourceStep struct {
+	StepMetadata StepMetadata
+
 	SourceName SourceName
 
 	Session resource.Session
@@ -42,7 +44,7 @@ func (step resourceStep) Using(prev Step, repo *SourceRepository) Step {
 }
 
 func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	trackedResource, err := ras.Tracker.Init(ras.Session, ras.Type, ras.Tags)
+	trackedResource, err := ras.Tracker.Init(ras.StepMetadata, ras.Session, ras.Type, ras.Tags)
 	if err != nil {
 		return err
 	}

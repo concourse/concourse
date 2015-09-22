@@ -26,8 +26,9 @@ var _ = Describe("Exec Engine with Timeout", func() {
 
 		execEngine engine.Engine
 
-		buildModel db.Build
-		logger     *lagertest.TestLogger
+		buildModel       db.Build
+		expectedMetadata engine.StepMetadata
+		logger           *lagertest.TestLogger
 
 		fakeDelegate *fakes.FakeBuildDelegate
 	)
@@ -44,7 +45,19 @@ var _ = Describe("Exec Engine with Timeout", func() {
 		fakeDelegate = new(fakes.FakeBuildDelegate)
 		fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-		buildModel = db.Build{ID: 84}
+		buildModel = db.Build{
+			ID:           84,
+			Name:         "42",
+			JobName:      "some-job",
+			PipelineName: "some-pipeline",
+		}
+
+		expectedMetadata = engine.StepMetadata{
+			BuildID:      84,
+			BuildName:    "42",
+			JobName:      "some-job",
+			PipelineName: "some-pipeline",
+		}
 	})
 
 	Context("running timeout steps", func() {
@@ -148,7 +161,8 @@ var _ = Describe("Exec Engine with Timeout", func() {
 					Ω(err).ShouldNot(HaveOccurred())
 					build.Resume(logger)
 					Ω(fakeFactory.PutCallCount()).Should(Equal(1))
-					workerID, delegate, resourceConfig, _, _ := fakeFactory.PutArgsForCall(0)
+					metadata, workerID, delegate, resourceConfig, _, _ := fakeFactory.PutArgsForCall(0)
+					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID:      84,
 						Type:         worker.ContainerTypePut,
@@ -267,7 +281,8 @@ var _ = Describe("Exec Engine with Timeout", func() {
 
 				It("constructs the step correctly", func() {
 					Ω(fakeFactory.GetCallCount()).Should(Equal(1))
-					sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+					metadata, sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID: 84,

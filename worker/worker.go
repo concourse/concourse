@@ -78,6 +78,8 @@ dance:
 	case ResourceTypeContainerSpec:
 		gardenSpec.Privileged = true
 
+		gardenSpec.Env = s.Env
+
 		if s.Ephemeral {
 			gardenSpec.Properties[ephemeralPropertyName] = "true"
 		}

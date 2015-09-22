@@ -13,6 +13,7 @@ type ResourceTypeContainerSpec struct {
 	Type      string
 	Ephemeral bool
 	Tags      []string
+	Env       []string
 }
 
 func (spec ResourceTypeContainerSpec) Description() string {
@@ -20,11 +21,10 @@ func (spec ResourceTypeContainerSpec) Description() string {
 }
 
 type TaskContainerSpec struct {
-	Platform string
-	Tags     []string
-
+	Platform   string
 	Image      string
 	Privileged bool
+	Tags       []string
 }
 
 func (spec TaskContainerSpec) Description() string {

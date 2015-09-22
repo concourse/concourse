@@ -31,8 +31,10 @@ func NewGardenFactory(
 	}
 }
 
-func (factory *gardenFactory) DependentGet(sourceName SourceName, id worker.Identifier, delegate GetDelegate, config atc.ResourceConfig, tags atc.Tags, params atc.Params) StepFactory {
+func (factory *gardenFactory) DependentGet(stepMetadata StepMetadata, sourceName SourceName, id worker.Identifier, delegate GetDelegate, config atc.ResourceConfig, tags atc.Tags, params atc.Params) StepFactory {
 	return resourceStep{
+		StepMetadata: stepMetadata,
+
 		SourceName: sourceName,
 
 		Session: resource.Session{
@@ -55,8 +57,10 @@ func (factory *gardenFactory) DependentGet(sourceName SourceName, id worker.Iden
 	}
 }
 
-func (factory *gardenFactory) Get(sourceName SourceName, id worker.Identifier, delegate GetDelegate, config atc.ResourceConfig, params atc.Params, tags atc.Tags, version atc.Version) StepFactory {
+func (factory *gardenFactory) Get(stepMetadata StepMetadata, sourceName SourceName, id worker.Identifier, delegate GetDelegate, config atc.ResourceConfig, params atc.Params, tags atc.Tags, version atc.Version) StepFactory {
 	return resourceStep{
+		StepMetadata: stepMetadata,
+
 		SourceName: sourceName,
 
 		Session: resource.Session{
@@ -79,8 +83,10 @@ func (factory *gardenFactory) Get(sourceName SourceName, id worker.Identifier, d
 	}
 }
 
-func (factory *gardenFactory) Put(id worker.Identifier, delegate PutDelegate, config atc.ResourceConfig, tags atc.Tags, params atc.Params) StepFactory {
+func (factory *gardenFactory) Put(stepMetadata StepMetadata, id worker.Identifier, delegate PutDelegate, config atc.ResourceConfig, tags atc.Tags, params atc.Params) StepFactory {
 	return resourceStep{
+		StepMetadata: stepMetadata,
+
 		Session: resource.Session{
 			ID: id,
 		},
