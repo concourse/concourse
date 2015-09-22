@@ -188,7 +188,7 @@ func (server *server) GetJob(pipelineDB db.PipelineDB) http.Handler {
 
 		err = server.template.Execute(w, templateData)
 		if err != nil {
-			log.Fatal("failed-to-task-template", err, lager.Data{
+			log.Fatal("failed-to-build-template", err, lager.Data{
 				"template-data": templateData,
 			})
 		}

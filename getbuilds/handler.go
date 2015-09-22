@@ -62,6 +62,6 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	err = handler.template.Execute(w, templateData)
 	if err != nil {
-		log.Fatal("failed-to-task-template", err)
+		log.Fatal("failed-to-build-template", err)
 	}
 }

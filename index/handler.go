@@ -18,18 +18,19 @@ func NewHandler(
 ) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log := logger.Session("index")
-		pipelineDB, err := pipelineDBFactory.BuildDefault()
+		pipelineDB, found, err := pipelineDBFactory.BuildDefault()
 		if err != nil {
-			if err == db.ErrNoPipelines {
-				err = template.Execute(w, TemplateData{})
-				if err != nil {
-					log.Fatal("failed-to-task-template", err, lager.Data{})
-				}
-				return
-			}
-
 			log.Error("failed-to-load-pipelinedb", err)
 			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !found {
+			err = template.Execute(w, TemplateData{})
+			if err != nil {
+				log.Fatal("failed-to-build-template", err, lager.Data{})
+			}
+
 			return
 		}
 

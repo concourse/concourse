@@ -71,7 +71,7 @@ func (server *server) GetPipeline(pipelineDB db.PipelineDB) http.Handler {
 
 		err = server.template.Execute(w, data)
 		if err != nil {
-			log.Fatal("failed-to-task-template", err, lager.Data{
+			log.Fatal("failed-to-build-template", err, lager.Data{
 				"template-data": data,
 			})
 		}

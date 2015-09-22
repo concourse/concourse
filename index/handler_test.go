@@ -61,7 +61,7 @@ var _ = Describe("Handler", func() {
 	Context("when the pipeline lookup fails", func() {
 		Context("when there is an unexpected error", func() {
 			BeforeEach(func() {
-				pipelineDBFactory.BuildDefaultReturns(nil, errors.New("nope"))
+				pipelineDBFactory.BuildDefaultReturns(nil, false, errors.New("nope"))
 			})
 
 			It("returns an internal server error", func() {
@@ -71,7 +71,7 @@ var _ = Describe("Handler", func() {
 
 		Context("because there are no pipelines", func() {
 			BeforeEach(func() {
-				pipelineDBFactory.BuildDefaultReturns(nil, db.ErrNoPipelines)
+				pipelineDBFactory.BuildDefaultReturns(nil, false, nil)
 			})
 
 			It("is successful", func() {
@@ -88,7 +88,7 @@ var _ = Describe("Handler", func() {
 		BeforeEach(func() {
 			pipelineDB := new(dbfakes.FakePipelineDB)
 			pipelineDB.GetConfigReturns(atc.Config{}, db.ConfigVersion(1), true, nil)
-			pipelineDBFactory.BuildDefaultReturns(pipelineDB, nil)
+			pipelineDBFactory.BuildDefaultReturns(pipelineDB, true, nil)
 		})
 
 		It("is successful", func() {
