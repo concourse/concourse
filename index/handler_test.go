@@ -10,6 +10,7 @@ import (
 
 	"github.com/pivotal-golang/lager/lagertest"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	dbfakes "github.com/concourse/atc/db/fakes"
 	enginefakes "github.com/concourse/atc/engine/fakes"
@@ -86,6 +87,7 @@ var _ = Describe("Handler", func() {
 	Context("when there is a pipeline", func() {
 		BeforeEach(func() {
 			pipelineDB := new(dbfakes.FakePipelineDB)
+			pipelineDB.GetConfigReturns(atc.Config{}, db.ConfigVersion(1), true, nil)
 			pipelineDBFactory.BuildDefaultReturns(pipelineDB, nil)
 		})
 

@@ -50,7 +50,7 @@ type TemplateData struct {
 
 type ResourcesDB interface {
 	GetPipelineName() string
-	GetConfig() (atc.Config, db.ConfigVersion, error)
+	GetConfig() (atc.Config, db.ConfigVersion, bool, error)
 	GetResource(string) (db.SavedResource, error)
 	GetResourceHistoryCursor(string, int, bool, int) ([]*db.VersionHistory, bool, error)
 	GetResourceHistoryMaxID(int) (int, error)
@@ -59,9 +59,13 @@ type ResourcesDB interface {
 var ErrResourceConfigNotFound = errors.New("could not find resource")
 
 func FetchTemplateData(resourceDB ResourcesDB, authenticated bool, resourceName string, startingID int, resultsGreaterThanStartingID bool) (TemplateData, error) {
-	config, _, err := resourceDB.GetConfig()
+	config, _, found, err := resourceDB.GetConfig()
 	if err != nil {
 		return TemplateData{}, err
+	}
+
+	if !found {
+		return TemplateData{}, ErrResourceConfigNotFound
 	}
 
 	configResource, found := config.Resources.Lookup(resourceName)
