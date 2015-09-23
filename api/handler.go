@@ -21,6 +21,7 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
+	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/pipelines"
 	"github.com/concourse/atc/worker"
 )
@@ -90,50 +91,54 @@ func NewHandler(
 		}
 	}
 
+	measure := func(route string, handler http.Handler) http.Handler {
+		return metric.WrapHandler(route, handler, logger)
+	}
+
 	handlers := map[string]http.Handler{
-		atc.GetConfig:  validate(http.HandlerFunc(configServer.GetConfig)),
-		atc.SaveConfig: validate(http.HandlerFunc(configServer.SaveConfig)),
+		atc.GetConfig:  measure(atc.GetConfig, validate(http.HandlerFunc(configServer.GetConfig))),
+		atc.SaveConfig: measure(atc.SaveConfig, validate(http.HandlerFunc(configServer.SaveConfig))),
 
-		atc.GetBuild:    http.HandlerFunc(buildServer.GetBuild),
-		atc.ListBuilds:  http.HandlerFunc(buildServer.ListBuilds),
-		atc.CreateBuild: validate(http.HandlerFunc(buildServer.CreateBuild)),
+		atc.GetBuild:    measure(atc.GetBuild, http.HandlerFunc(buildServer.GetBuild)),
+		atc.ListBuilds:  measure(atc.ListBuilds, http.HandlerFunc(buildServer.ListBuilds)),
+		atc.CreateBuild: measure(atc.CreateBuild, validate(http.HandlerFunc(buildServer.CreateBuild))),
 		atc.BuildEvents: http.HandlerFunc(buildServer.BuildEvents),
-		atc.AbortBuild:  validate(http.HandlerFunc(buildServer.AbortBuild)),
+		atc.AbortBuild:  measure(atc.AbortBuild, validate(http.HandlerFunc(buildServer.AbortBuild))),
 
-		atc.ListJobs:      pipelineHandlerFactory.HandlerFor(jobServer.ListJobs),
-		atc.GetJob:        pipelineHandlerFactory.HandlerFor(jobServer.GetJob),
-		atc.ListJobBuilds: pipelineHandlerFactory.HandlerFor(jobServer.ListJobBuilds),
-		atc.ListJobInputs: validate(pipelineHandlerFactory.HandlerFor(jobServer.ListJobInputs)),
-		atc.GetJobBuild:   pipelineHandlerFactory.HandlerFor(jobServer.GetJobBuild),
-		atc.PauseJob:      validate(pipelineHandlerFactory.HandlerFor(jobServer.PauseJob)),
-		atc.UnpauseJob:    validate(pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob)),
+		atc.ListJobs:      measure(atc.ListJobs, pipelineHandlerFactory.HandlerFor(jobServer.ListJobs)),
+		atc.GetJob:        measure(atc.GetJob, pipelineHandlerFactory.HandlerFor(jobServer.GetJob)),
+		atc.ListJobBuilds: measure(atc.ListJobBuilds, pipelineHandlerFactory.HandlerFor(jobServer.ListJobBuilds)),
+		atc.ListJobInputs: measure(atc.ListJobInputs, validate(pipelineHandlerFactory.HandlerFor(jobServer.ListJobInputs))),
+		atc.GetJobBuild:   measure(atc.GetJobBuild, pipelineHandlerFactory.HandlerFor(jobServer.GetJobBuild)),
+		atc.PauseJob:      measure(atc.PauseJob, validate(pipelineHandlerFactory.HandlerFor(jobServer.PauseJob))),
+		atc.UnpauseJob:    measure(atc.UnpauseJob, validate(pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob))),
 
-		atc.ListPipelines:   http.HandlerFunc(pipelineServer.ListPipelines),
-		atc.DeletePipeline:  validate(pipelineHandlerFactory.HandlerFor(pipelineServer.DeletePipeline)),
-		atc.OrderPipelines:  validate(http.HandlerFunc(pipelineServer.OrderPipelines)),
-		atc.PausePipeline:   validate(pipelineHandlerFactory.HandlerFor(pipelineServer.PausePipeline)),
-		atc.UnpausePipeline: validate(pipelineHandlerFactory.HandlerFor(pipelineServer.UnpausePipeline)),
+		atc.ListPipelines:   measure(atc.ListPipelines, http.HandlerFunc(pipelineServer.ListPipelines)),
+		atc.DeletePipeline:  measure(atc.DeletePipeline, validate(pipelineHandlerFactory.HandlerFor(pipelineServer.DeletePipeline))),
+		atc.OrderPipelines:  measure(atc.OrderPipelines, validate(http.HandlerFunc(pipelineServer.OrderPipelines))),
+		atc.PausePipeline:   measure(atc.PausePipeline, validate(pipelineHandlerFactory.HandlerFor(pipelineServer.PausePipeline))),
+		atc.UnpausePipeline: measure(atc.UnpausePipeline, validate(pipelineHandlerFactory.HandlerFor(pipelineServer.UnpausePipeline))),
 
-		atc.ListResources:          pipelineHandlerFactory.HandlerFor(resourceServer.ListResources),
-		atc.EnableResourceVersion:  validate(pipelineHandlerFactory.HandlerFor(resourceServer.EnableResourceVersion)),
-		atc.DisableResourceVersion: validate(pipelineHandlerFactory.HandlerFor(resourceServer.DisableResourceVersion)),
-		atc.PauseResource:          validate(pipelineHandlerFactory.HandlerFor(resourceServer.PauseResource)),
-		atc.UnpauseResource:        validate(pipelineHandlerFactory.HandlerFor(resourceServer.UnpauseResource)),
+		atc.ListResources:          measure(atc.ListResources, pipelineHandlerFactory.HandlerFor(resourceServer.ListResources)),
+		atc.EnableResourceVersion:  measure(atc.EnableResourceVersion, validate(pipelineHandlerFactory.HandlerFor(resourceServer.EnableResourceVersion))),
+		atc.DisableResourceVersion: measure(atc.DisableResourceVersion, validate(pipelineHandlerFactory.HandlerFor(resourceServer.DisableResourceVersion))),
+		atc.PauseResource:          measure(atc.PauseResource, validate(pipelineHandlerFactory.HandlerFor(resourceServer.PauseResource))),
+		atc.UnpauseResource:        measure(atc.UnpauseResource, validate(pipelineHandlerFactory.HandlerFor(resourceServer.UnpauseResource))),
 
 		atc.CreatePipe: validate(http.HandlerFunc(pipeServer.CreatePipe)),
 		atc.WritePipe:  validate(http.HandlerFunc(pipeServer.WritePipe)),
 		atc.ReadPipe:   validate(http.HandlerFunc(pipeServer.ReadPipe)),
 
-		atc.ListWorkers:    validate(http.HandlerFunc(workerServer.ListWorkers)),
-		atc.RegisterWorker: validate(http.HandlerFunc(workerServer.RegisterWorker)),
+		atc.ListWorkers:    measure(atc.ListWorkers, validate(http.HandlerFunc(workerServer.ListWorkers))),
+		atc.RegisterWorker: measure(atc.RegisterWorker, validate(http.HandlerFunc(workerServer.RegisterWorker))),
 
-		atc.SetLogLevel: validate(http.HandlerFunc(logLevelServer.SetMinLevel)),
-		atc.GetLogLevel: http.HandlerFunc(logLevelServer.GetMinLevel),
+		atc.SetLogLevel: measure(atc.SetLogLevel, validate(http.HandlerFunc(logLevelServer.SetMinLevel))),
+		atc.GetLogLevel: measure(atc.GetLogLevel, http.HandlerFunc(logLevelServer.GetMinLevel)),
 
 		atc.DownloadCLI: http.HandlerFunc(cliServer.Download),
 
-		atc.ListContainers:  validate(http.HandlerFunc(containerServer.ListContainers)),
-		atc.GetContainer:    validate(http.HandlerFunc(containerServer.GetContainer)),
+		atc.ListContainers:  measure(atc.ListContainers, validate(http.HandlerFunc(containerServer.ListContainers))),
+		atc.GetContainer:    measure(atc.GetContainer, validate(http.HandlerFunc(containerServer.GetContainer))),
 		atc.HijackContainer: validate(http.HandlerFunc(containerServer.HijackContainer)),
 	}
 

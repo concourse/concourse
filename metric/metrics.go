@@ -22,9 +22,12 @@ type SchedulingFullDuration struct {
 
 func (event SchedulingFullDuration) Emit(logger lager.Logger) {
 	state := "ok"
+
 	if event.Duration > time.Second {
 		state = "warning"
-	} else if event.Duration > 5*time.Second {
+	}
+
+	if event.Duration > 5*time.Second {
 		state = "critical"
 	}
 
@@ -52,9 +55,12 @@ type SchedulingLoadVersionsDuration struct {
 
 func (event SchedulingLoadVersionsDuration) Emit(logger lager.Logger) {
 	state := "ok"
+
 	if event.Duration > time.Second {
 		state = "warning"
-	} else if event.Duration > 5*time.Second {
+	}
+
+	if event.Duration > 5*time.Second {
 		state = "critical"
 	}
 
@@ -82,9 +88,12 @@ type SchedulingJobDuration struct {
 
 func (event SchedulingJobDuration) Emit(logger lager.Logger) {
 	state := "ok"
+
 	if event.Duration > time.Second {
 		state = "warning"
-	} else if event.Duration > 5*time.Second {
+	}
+
+	if event.Duration > 5*time.Second {
 		state = "critical"
 	}
 
@@ -192,4 +201,38 @@ func (event BuildFinished) Emit(logger lager.Logger) {
 
 func ms(duration time.Duration) float64 {
 	return float64(duration) / 1000000
+}
+
+type HTTPReponseTime struct {
+	Route    string
+	Path     string
+	Duration time.Duration
+}
+
+func (event HTTPReponseTime) Emit(logger lager.Logger) {
+	state := "ok"
+
+	if event.Duration > 100*time.Millisecond {
+		state = "warning"
+	}
+
+	if event.Duration > 1*time.Second {
+		state = "critical"
+	}
+
+	emit(
+		logger.Session("http-response-time", lager.Data{
+			"route": event.Route,
+			"path":  event.Path,
+		}),
+		goryman.Event{
+			Service: "http response time",
+			Metric:  ms(event.Duration),
+			State:   state,
+			Attributes: map[string]string{
+				"route": event.Route,
+				"path":  event.Path,
+			},
+		},
+	)
 }

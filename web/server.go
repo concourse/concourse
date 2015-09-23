@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
+	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/pipelines"
 	"github.com/concourse/atc/web/getbuild"
 	"github.com/concourse/atc/web/getbuilds"
@@ -122,6 +123,10 @@ func NewHandler(
 			Handler:   pipelineHandlerFactory.HandlerFor(triggerBuildServer.TriggerBuild),
 			Validator: validator,
 		},
+	}
+
+	for route, handler := range handlers {
+		handlers[route] = metric.WrapHandler(route, handler, logger)
 	}
 
 	return rata.NewRouter(routes.Routes, handlers)
