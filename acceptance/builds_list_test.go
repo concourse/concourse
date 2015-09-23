@@ -135,6 +135,9 @@ var _ = Describe("One-off Builds", func() {
 				// homepage -> build list
 				Expect(page.Navigate(homepage() + "/pipelines/main")).To(Succeed())
 				Eventually(page.Find(allBuildsListIcon)).Should(BeFound())
+
+				Authenticate(page, "admin", "password")
+
 				Expect(page.Find(allBuildsListIconLink).Click()).To(Succeed())
 
 				// build list -> one off build detail
@@ -145,10 +148,6 @@ var _ = Describe("One-off Builds", func() {
 
 				// one off build detail
 				Expect(page.Find("h1")).To(HaveText(fmt.Sprintf("build #%d", oneOffBuild.ID)))
-				Consistently(page.Find("#build-logs").Text).ShouldNot(ContainSubstring("hello this is a payload"))
-
-				Authenticate(page, "admin", "password")
-
 				Eventually(page.Find("#build-logs").Text).Should(ContainSubstring("hello this is a payload"))
 
 				Ω(sqlDB.FinishBuild(oneOffBuild.ID, db.StatusSucceeded)).Should(Succeed())
