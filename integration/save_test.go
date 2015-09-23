@@ -8,13 +8,16 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/concourse/atc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
+
 	"gopkg.in/yaml.v2"
+
+	"github.com/concourse/atc"
 )
 
 var _ = Describe("Fly CLI", func() {
@@ -125,7 +128,7 @@ targets:
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Ω(err).ShouldNot(HaveOccurred())
 				Eventually(sess).Should(gexec.Exit(0))
-				Eventually(sess).Should(gbytes.Say("successfully saved target some-update-target"))
+				Eventually(sess).Should(gbytes.Say("successfully saved target some-update-target\n"))
 
 				flyrcBytes, err := ioutil.ReadFile(flyrc)
 				Ω(err).ShouldNot(HaveOccurred())
@@ -182,7 +185,7 @@ targets:
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Eventually(sess).Should(gexec.Exit(0))
-			Eventually(sess).Should(gbytes.Say("successfully saved target some-target"))
+			Eventually(sess).Should(gbytes.Say("successfully saved target some-target\n"))
 
 			flyrcBytes, err := ioutil.ReadFile(flyrc)
 			Ω(err).ShouldNot(HaveOccurred())

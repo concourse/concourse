@@ -36,7 +36,7 @@ func SaveTarget(c *cli.Context) {
 		updateTargets(flyrc, c)
 	}
 
-	fmt.Printf("successfully saved target %s", c.Args().First())
+	fmt.Printf("successfully saved target %s\n", c.Args().First())
 }
 
 func createTargets(location string, c *cli.Context) {
