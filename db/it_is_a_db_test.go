@@ -155,7 +155,8 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Ω(database.Workers()).Should(BeEmpty())
 
 			infoA := db.WorkerInfo{
-				Addr:             "1.2.3.4:7777",
+				GardenAddr:       "1.2.3.4:7777",
+				BaggageclaimURL:  "5.6.7.8:7788",
 				ActiveContainers: 42,
 				ResourceTypes: []atc.WorkerResourceType{
 					{Type: "some-resource-a", Image: "some-image-a"},
@@ -165,7 +166,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			}
 
 			infoB := db.WorkerInfo{
-				Addr:             "1.2.3.4:8888",
+				GardenAddr:       "1.2.3.4:8888",
 				ActiveContainers: 42,
 				ResourceTypes: []atc.WorkerResourceType{
 					{Type: "some-resource-b", Image: "some-image-b"},

@@ -6,6 +6,8 @@ import (
 
 	gclient "github.com/cloudfoundry-incubator/garden/client"
 	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
+	"github.com/concourse/baggageclaim"
+	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 
@@ -47,7 +49,7 @@ func (provider *dbProvider) Workers() ([]Worker, error) {
 	workers := make([]Worker, len(workerInfos))
 	for i, info := range workerInfos {
 		// this is very important (to prevent closures capturing last value)
-		addr := info.Addr
+		addr := info.GardenAddr
 
 		workerLog := provider.logger.Session("worker-connection", lager.Data{
 			"addr": addr,
@@ -76,14 +78,20 @@ func (provider *dbProvider) Workers() ([]Worker, error) {
 			},
 		}
 
+		var bClient baggageclaim.Client
+		if info.BaggageclaimURL != "" {
+			bClient = bclient.New(info.BaggageclaimURL)
+		}
+
 		workers[i] = NewGardenWorker(
 			gclient.New(gardenConn),
+			bClient,
 			tikTok,
 			info.ActiveContainers,
 			info.ResourceTypes,
 			info.Platform,
 			info.Tags,
-			info.Addr,
+			info.GardenAddr,
 		)
 	}
 

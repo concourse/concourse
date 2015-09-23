@@ -125,7 +125,8 @@ type JobHistory struct {
 }
 
 type WorkerInfo struct {
-	Addr string
+	GardenAddr      string
+	BaggageclaimURL string
 
 	ActiveContainers int
 	ResourceTypes    []atc.WorkerResourceType

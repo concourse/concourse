@@ -9,6 +9,8 @@ import (
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/worker"
+	"github.com/concourse/baggageclaim"
+	bfakes "github.com/concourse/baggageclaim/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/clock/fakeclock"
@@ -16,19 +18,21 @@ import (
 
 var _ = Describe("Worker", func() {
 	var (
-		fakeGardenClient *gfakes.FakeClient
-		fakeClock        *fakeclock.FakeClock
-		activeContainers int
-		resourceTypes    []atc.WorkerResourceType
-		platform         string
-		tags             []string
-		name             string
+		fakeGardenClient   *gfakes.FakeClient
+		baggageclaimClient baggageclaim.Client
+		fakeClock          *fakeclock.FakeClock
+		activeContainers   int
+		resourceTypes      []atc.WorkerResourceType
+		platform           string
+		tags               []string
+		name               string
 
 		worker Worker
 	)
 
 	BeforeEach(func() {
 		fakeGardenClient = new(gfakes.FakeClient)
+		baggageclaimClient = nil
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		activeContainers = 42
 		resourceTypes = []atc.WorkerResourceType{
@@ -42,6 +46,7 @@ var _ = Describe("Worker", func() {
 	JustBeforeEach(func() {
 		worker = NewGardenWorker(
 			fakeGardenClient,
+			baggageclaimClient,
 			fakeClock,
 			activeContainers,
 			resourceTypes,
@@ -49,6 +54,37 @@ var _ = Describe("Worker", func() {
 			tags,
 			name,
 		)
+	})
+
+	Describe("VolumeManager", func() {
+		var volumeManager baggageclaim.Client
+		var hasVolumeManager bool
+
+		JustBeforeEach(func() {
+			volumeManager, hasVolumeManager = worker.VolumeManager()
+		})
+
+		Context("when there is no baggageclaim client", func() {
+			BeforeEach(func() {
+				baggageclaimClient = nil
+			})
+
+			It("returns nil and false", func() {
+				Ω(volumeManager).Should(BeNil())
+				Ω(hasVolumeManager).Should(BeFalse())
+			})
+		})
+
+		Context("when there is a baggageclaim client", func() {
+			BeforeEach(func() {
+				baggageclaimClient = new(bfakes.FakeClient)
+			})
+
+			It("returns the client and true", func() {
+				Ω(volumeManager).Should(Equal(baggageclaimClient))
+				Ω(hasVolumeManager).Should(BeTrue())
+			})
+		})
 	})
 
 	Describe("CreateContainer", func() {

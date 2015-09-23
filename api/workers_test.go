@@ -36,7 +36,8 @@ var _ = Describe("Workers API", func() {
 				BeforeEach(func() {
 					workerDB.WorkersReturns([]db.WorkerInfo{
 						{
-							Addr:             "1.2.3.4:7777",
+							GardenAddr:       "1.2.3.4:7777",
+							BaggageclaimURL:  "5.6.7.8:7788",
 							ActiveContainers: 1,
 							ResourceTypes: []atc.WorkerResourceType{
 								{Type: "some-resource", Image: "some-resource-image"},
@@ -45,7 +46,7 @@ var _ = Describe("Workers API", func() {
 							Tags:     []string{"demon"},
 						},
 						{
-							Addr:             "1.2.3.4:8888",
+							GardenAddr:       "1.2.3.4:8888",
 							ActiveContainers: 2,
 							ResourceTypes: []atc.WorkerResourceType{
 								{Type: "some-resource", Image: "some-resource-image"},
@@ -67,7 +68,8 @@ var _ = Describe("Workers API", func() {
 
 					Ω(returnedWorkers).Should(Equal([]atc.Worker{
 						{
-							Addr:             "1.2.3.4:7777",
+							GardenAddr:       "1.2.3.4:7777",
+							BaggageclaimURL:  "5.6.7.8:7788",
 							ActiveContainers: 1,
 							ResourceTypes: []atc.WorkerResourceType{
 								{Type: "some-resource", Image: "some-resource-image"},
@@ -76,7 +78,7 @@ var _ = Describe("Workers API", func() {
 							Tags:     []string{"demon"},
 						},
 						{
-							Addr:             "1.2.3.4:8888",
+							GardenAddr:       "1.2.3.4:8888",
 							ActiveContainers: 2,
 							ResourceTypes: []atc.WorkerResourceType{
 								{Type: "some-resource", Image: "some-resource-image"},
@@ -120,7 +122,8 @@ var _ = Describe("Workers API", func() {
 
 		BeforeEach(func() {
 			worker = atc.Worker{
-				Addr:             "1.2.3.4:7777",
+				GardenAddr:       "1.2.3.4:7777",
+				BaggageclaimURL:  "5.6.7.8:7788",
 				ActiveContainers: 2,
 				ResourceTypes: []atc.WorkerResourceType{
 					{Type: "some-resource", Image: "some-resource-image"},
@@ -158,7 +161,8 @@ var _ = Describe("Workers API", func() {
 
 					savedInfo, savedTTL := workerDB.SaveWorkerArgsForCall(0)
 					Ω(savedInfo).Should(Equal(db.WorkerInfo{
-						Addr:             "1.2.3.4:7777",
+						GardenAddr:       "1.2.3.4:7777",
+						BaggageclaimURL:  "5.6.7.8:7788",
 						ActiveContainers: 2,
 						ResourceTypes: []atc.WorkerResourceType{
 							{Type: "some-resource", Image: "some-resource-image"},
@@ -200,7 +204,7 @@ var _ = Describe("Workers API", func() {
 
 			Context("when the worker has no address", func() {
 				BeforeEach(func() {
-					worker.Addr = ""
+					worker.GardenAddr = ""
 				})
 
 				It("returns 400", func() {

@@ -1,7 +1,10 @@
 package atc
 
 type Worker struct {
-	Addr string `json:"addr"`
+	// not garden_addr, for backwards-compatibility
+	GardenAddr string `json:"addr"`
+
+	BaggageclaimURL string `json:"baggageclaim_url"`
 
 	ActiveContainers int `json:"active_containers"`
 

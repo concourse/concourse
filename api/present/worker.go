@@ -7,7 +7,8 @@ import (
 
 func Worker(workerInfo db.WorkerInfo) atc.Worker {
 	return atc.Worker{
-		Addr:             workerInfo.Addr,
+		GardenAddr:       workerInfo.GardenAddr,
+		BaggageclaimURL:  workerInfo.BaggageclaimURL,
 		ActiveContainers: workerInfo.ActiveContainers,
 		ResourceTypes:    workerInfo.ResourceTypes,
 		Platform:         workerInfo.Platform,

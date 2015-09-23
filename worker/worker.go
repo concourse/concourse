@@ -13,6 +13,7 @@ import (
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/metric"
+	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/clock"
 )
 
@@ -34,11 +35,15 @@ type Worker interface {
 	Satisfies(ContainerSpec) bool
 
 	Description() string
+
+	VolumeManager() (baggageclaim.Client, bool)
 }
 
 type gardenWorker struct {
-	gardenClient garden.Client
-	clock        clock.Clock
+	gardenClient       garden.Client
+	baggageclaimClient baggageclaim.Client
+
+	clock clock.Clock
 
 	activeContainers int
 	resourceTypes    []atc.WorkerResourceType
@@ -49,6 +54,7 @@ type gardenWorker struct {
 
 func NewGardenWorker(
 	gardenClient garden.Client,
+	baggageclaimClient baggageclaim.Client,
 	clock clock.Clock,
 	activeContainers int,
 	resourceTypes []atc.WorkerResourceType,
@@ -57,14 +63,23 @@ func NewGardenWorker(
 	name string,
 ) Worker {
 	return &gardenWorker{
-		gardenClient: gardenClient,
-		clock:        clock,
+		gardenClient:       gardenClient,
+		baggageclaimClient: baggageclaimClient,
+		clock:              clock,
 
 		activeContainers: activeContainers,
 		resourceTypes:    resourceTypes,
 		platform:         platform,
 		tags:             tags,
 		name:             name,
+	}
+}
+
+func (worker *gardenWorker) VolumeManager() (baggageclaim.Client, bool) {
+	if worker.baggageclaimClient != nil {
+		return worker.baggageclaimClient, true
+	} else {
+		return nil, false
 	}
 }
 

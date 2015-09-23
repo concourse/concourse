@@ -18,6 +18,7 @@ import (
 	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
 	httpmetrics "github.com/codahale/http-handlers/metrics"
 	_ "github.com/codahale/metrics/runtime"
+	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/felixge/tcpkeepalive"
 	"github.com/lib/pq"
 	"github.com/nu7hatch/gouuid"
@@ -76,6 +77,12 @@ var gardenAddr = flag.String(
 	"gardenAddr",
 	"",
 	"garden API network address (host:port or socket path). leave empty for dynamic registration.",
+)
+
+var baggageclaimURL = flag.String(
+	"baggageclaimURL",
+	"",
+	"baggageclaim API endpoint. leave empty for dynamic registration.",
 )
 
 var resourceTypes = flag.String(
@@ -307,6 +314,7 @@ func main() {
 				keepaliveDialerFactory(*gardenNetwork, *gardenAddr),
 				logger.Session("garden-connection"),
 			)),
+			bclient.New(*baggageclaimURL),
 			clock.NewClock(),
 			-1,
 			resourceTypesNG,

@@ -26,7 +26,7 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(registration.Addr) == 0 {
+	if len(registration.GardenAddr) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "missing address")
 		return
@@ -45,12 +45,13 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 	}
 
 	metric.WorkerContainers{
-		WorkerAddr: registration.Addr,
+		WorkerAddr: registration.GardenAddr,
 		Containers: registration.ActiveContainers,
 	}.Emit(s.logger)
 
 	err = s.db.SaveWorker(db.WorkerInfo{
-		Addr:             registration.Addr,
+		GardenAddr:       registration.GardenAddr,
+		BaggageclaimURL:  registration.BaggageclaimURL,
 		ActiveContainers: registration.ActiveContainers,
 		ResourceTypes:    registration.ResourceTypes,
 		Platform:         registration.Platform,

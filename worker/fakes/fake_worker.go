@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/worker"
+	"github.com/concourse/baggageclaim"
 )
 
 type FakeWorker struct {
@@ -70,6 +71,13 @@ type FakeWorker struct {
 	descriptionArgsForCall []struct{}
 	descriptionReturns     struct {
 		result1 string
+	}
+	VolumeManagerStub        func() (baggageclaim.Client, bool)
+	volumeManagerMutex       sync.RWMutex
+	volumeManagerArgsForCall []struct{}
+	volumeManagerReturns     struct {
+		result1 baggageclaim.Client
+		result2 bool
 	}
 }
 
@@ -308,6 +316,31 @@ func (fake *FakeWorker) DescriptionReturns(result1 string) {
 	fake.descriptionReturns = struct {
 		result1 string
 	}{result1}
+}
+
+func (fake *FakeWorker) VolumeManager() (baggageclaim.Client, bool) {
+	fake.volumeManagerMutex.Lock()
+	fake.volumeManagerArgsForCall = append(fake.volumeManagerArgsForCall, struct{}{})
+	fake.volumeManagerMutex.Unlock()
+	if fake.VolumeManagerStub != nil {
+		return fake.VolumeManagerStub()
+	} else {
+		return fake.volumeManagerReturns.result1, fake.volumeManagerReturns.result2
+	}
+}
+
+func (fake *FakeWorker) VolumeManagerCallCount() int {
+	fake.volumeManagerMutex.RLock()
+	defer fake.volumeManagerMutex.RUnlock()
+	return len(fake.volumeManagerArgsForCall)
+}
+
+func (fake *FakeWorker) VolumeManagerReturns(result1 baggageclaim.Client, result2 bool) {
+	fake.VolumeManagerStub = nil
+	fake.volumeManagerReturns = struct {
+		result1 baggageclaim.Client
+		result2 bool
+	}{result1, result2}
 }
 
 var _ worker.Worker = new(FakeWorker)

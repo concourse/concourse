@@ -30,6 +30,9 @@ var _ = Describe("DBProvider", func() {
 		workerAAddr string
 		workerBAddr string
 
+		workerABaggageclaimURL string
+		workerBBaggageclaimURL string
+
 		workerAServer *server.GardenServer
 		workerBServer *server.GardenServer
 
@@ -49,6 +52,9 @@ var _ = Describe("DBProvider", func() {
 
 		workerAAddr = fmt.Sprintf("0.0.0.0:%d", 8888+GinkgoParallelNode())
 		workerBAddr = fmt.Sprintf("0.0.0.0:%d", 9999+GinkgoParallelNode())
+
+		workerABaggageclaimURL = "http://1.2.3.4:7788"
+		workerBBaggageclaimURL = ""
 
 		workerAServer = server.New("tcp", workerAAddr, 0, workerA, logger)
 		workerBServer = server.New("tcp", workerBAddr, 0, workerB, logger)
@@ -93,14 +99,16 @@ var _ = Describe("DBProvider", func() {
 		BeforeEach(func() {
 			fakeDB.WorkersReturns([]db.WorkerInfo{
 				{
-					Addr:             workerAAddr,
+					GardenAddr:       workerAAddr,
+					BaggageclaimURL:  workerABaggageclaimURL,
 					ActiveContainers: 2,
 					ResourceTypes: []atc.WorkerResourceType{
 						{Type: "some-resource-a", Image: "some-image-a"},
 					},
 				},
 				{
-					Addr:             workerBAddr,
+					GardenAddr:       workerBAddr,
+					BaggageclaimURL:  workerBBaggageclaimURL,
 					ActiveContainers: 2,
 					ResourceTypes: []atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"},
@@ -115,6 +123,16 @@ var _ = Describe("DBProvider", func() {
 
 		It("returns a worker for each one", func() {
 			Ω(workers).Should(HaveLen(2))
+		})
+
+		It("constructs workers with baggageclaim clients if they had addresses", func() {
+			vm, ok := workers[0].VolumeManager()
+			Ω(ok).Should(BeTrue())
+			Ω(vm).ShouldNot(BeNil())
+
+			vm, ok = workers[1].VolumeManager()
+			Ω(ok).Should(BeFalse())
+			Ω(vm).Should(BeNil())
 		})
 
 		Describe("a created container", func() {

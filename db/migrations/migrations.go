@@ -51,4 +51,5 @@ var Migrations = []migration.Migrator{
 	RemoveSourceFromVersionedResources,
 	AddIndexesToABunchOfStuff,
 	DropLocks,
+	AddBaggageclaimURLToWorkers,
 }
