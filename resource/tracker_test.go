@@ -5,6 +5,7 @@ import (
 
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
+	bfakes "github.com/concourse/baggageclaim/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -37,7 +38,8 @@ var _ = Describe("Tracker", func() {
 		var (
 			metadata Metadata = testMetadata{"a=1", "b=2"}
 
-			initType ResourceType
+			initType    ResourceType
+			volumeMount VolumeMount
 
 			initResource Resource
 			initErr      error
@@ -45,10 +47,14 @@ var _ = Describe("Tracker", func() {
 
 		BeforeEach(func() {
 			initType = "type1"
+			volumeMount = VolumeMount{
+				Volume:    new(bfakes.FakeVolume),
+				MountPath: "/some/mount/path",
+			}
 		})
 
 		JustBeforeEach(func() {
-			initResource, initErr = tracker.Init(metadata, session, initType, []string{"resource", "tags"})
+			initResource, initErr = tracker.Init(metadata, session, initType, []string{"resource", "tags"}, volumeMount)
 		})
 
 		Context("when a container does not exist for the session", func() {
@@ -71,6 +77,8 @@ var _ = Describe("Tracker", func() {
 				Ω(resourceSpec.Env).Should(Equal([]string{"a=1", "b=2"}))
 				Ω(resourceSpec.Ephemeral).Should(Equal(true))
 				Ω(resourceSpec.Tags).Should(ConsistOf("resource", "tags"))
+				Ω(resourceSpec.Volume).Should(Equal(volumeMount.Volume))
+				Ω(resourceSpec.MountPath).Should(Equal(volumeMount.MountPath))
 			})
 
 			Context("when creating the container fails", func() {

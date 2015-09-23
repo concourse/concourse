@@ -9,13 +9,14 @@ import (
 )
 
 type FakeTracker struct {
-	InitStub        func(resource.Metadata, resource.Session, resource.ResourceType, atc.Tags) (resource.Resource, error)
+	InitStub        func(resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.VolumeMount) (resource.Resource, error)
 	initMutex       sync.RWMutex
 	initArgsForCall []struct {
 		arg1 resource.Metadata
 		arg2 resource.Session
 		arg3 resource.ResourceType
 		arg4 atc.Tags
+		arg5 resource.VolumeMount
 	}
 	initReturns struct {
 		result1 resource.Resource
@@ -23,17 +24,18 @@ type FakeTracker struct {
 	}
 }
 
-func (fake *FakeTracker) Init(arg1 resource.Metadata, arg2 resource.Session, arg3 resource.ResourceType, arg4 atc.Tags) (resource.Resource, error) {
+func (fake *FakeTracker) Init(arg1 resource.Metadata, arg2 resource.Session, arg3 resource.ResourceType, arg4 atc.Tags, arg5 resource.VolumeMount) (resource.Resource, error) {
 	fake.initMutex.Lock()
 	fake.initArgsForCall = append(fake.initArgsForCall, struct {
 		arg1 resource.Metadata
 		arg2 resource.Session
 		arg3 resource.ResourceType
 		arg4 atc.Tags
-	}{arg1, arg2, arg3, arg4})
+		arg5 resource.VolumeMount
+	}{arg1, arg2, arg3, arg4, arg5})
 	fake.initMutex.Unlock()
 	if fake.InitStub != nil {
-		return fake.InitStub(arg1, arg2, arg3, arg4)
+		return fake.InitStub(arg1, arg2, arg3, arg4, arg5)
 	} else {
 		return fake.initReturns.result1, fake.initReturns.result2
 	}
@@ -45,10 +47,10 @@ func (fake *FakeTracker) InitCallCount() int {
 	return len(fake.initArgsForCall)
 }
 
-func (fake *FakeTracker) InitArgsForCall(i int) (resource.Metadata, resource.Session, resource.ResourceType, atc.Tags) {
+func (fake *FakeTracker) InitArgsForCall(i int) (resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.VolumeMount) {
 	fake.initMutex.RLock()
 	defer fake.initMutex.RUnlock()
-	return fake.initArgsForCall[i].arg1, fake.initArgsForCall[i].arg2, fake.initArgsForCall[i].arg3, fake.initArgsForCall[i].arg4
+	return fake.initArgsForCall[i].arg1, fake.initArgsForCall[i].arg2, fake.initArgsForCall[i].arg3, fake.initArgsForCall[i].arg4, fake.initArgsForCall[i].arg5
 }
 
 func (fake *FakeTracker) InitReturns(result1 resource.Resource, result2 error) {

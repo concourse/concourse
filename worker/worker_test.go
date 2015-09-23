@@ -178,6 +178,45 @@ var _ = Describe("Worker", func() {
 						})
 					})
 
+					Context("when a volume mount is provided", func() {
+						var volume *bfakes.FakeVolume
+
+						BeforeEach(func() {
+							volume = new(bfakes.FakeVolume)
+							volume.PathReturns("/some/src/path")
+
+							spec = ResourceTypeContainerSpec{
+								Type:      "some-resource",
+								Volume:    volume,
+								MountPath: "/some/dst/path",
+							}
+						})
+
+						It("creates the container with a read-write bind-mount", func() {
+							Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
+							Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
+								RootFSPath: "some-resource-image",
+								Privileged: true,
+								Properties: garden.Properties{
+									"concourse:type":          "get",
+									"concourse:pipeline-name": "some-pipeline",
+									"concourse:location":      "3",
+									"concourse:check-type":    "some-check-type",
+									"concourse:check-source":  "{\"some\":\"source\"}",
+									"concourse:name":          "some-name",
+									"concourse:build-id":      "42",
+								},
+								BindMounts: []garden.BindMount{
+									{
+										SrcPath: "/some/src/path",
+										DstPath: "/some/dst/path",
+										Mode:    garden.BindMountModeRW,
+									},
+								},
+							}))
+						})
+					})
+
 					Context("when the container is marked as ephemeral", func() {
 						BeforeEach(func() {
 							spec = ResourceTypeContainerSpec{

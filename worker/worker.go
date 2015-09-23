@@ -100,6 +100,16 @@ dance:
 			gardenSpec.Properties[ephemeralPropertyName] = "true"
 		}
 
+		if s.Volume != nil && s.MountPath != "" {
+			gardenSpec.BindMounts = []garden.BindMount{
+				{
+					SrcPath: s.Volume.Path(),
+					DstPath: s.MountPath,
+					Mode:    garden.BindMountModeRW,
+				},
+			}
+		}
+
 		for _, t := range worker.resourceTypes {
 			if t.Type == s.Type {
 				gardenSpec.RootFSPath = t.Image

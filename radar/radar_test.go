@@ -118,7 +118,7 @@ var _ = Describe("Radar", func() {
 			It("constructs the resource of the correct type", func() {
 				Eventually(times).Should(Receive())
 
-				metadata, sessionID, typ, tags := fakeTracker.InitArgsForCall(0)
+				metadata, sessionID, typ, tags, vol := fakeTracker.InitArgsForCall(0)
 				Ω(metadata).Should(Equal(resource.EmptyMetadata{}))
 				Ω(sessionID).Should(Equal(resource.Session{
 					ID: worker.Identifier{
@@ -134,6 +134,7 @@ var _ = Describe("Radar", func() {
 				}))
 				Ω(typ).Should(Equal(resource.ResourceType("git")))
 				Ω(tags).Should(BeEmpty()) // This allows the check to run on any worker
+				Ω(vol).Should(BeZero())
 			})
 
 			It("checks on a specified interval", func() {
@@ -572,7 +573,7 @@ var _ = Describe("Radar", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				metadata, sessionID, typ, tags := fakeTracker.InitArgsForCall(0)
+				metadata, sessionID, typ, tags, vol := fakeTracker.InitArgsForCall(0)
 				Ω(metadata).Should(Equal(resource.EmptyMetadata{}))
 				Ω(sessionID).Should(Equal(resource.Session{
 					ID: worker.Identifier{
@@ -587,6 +588,7 @@ var _ = Describe("Radar", func() {
 				}))
 				Ω(typ).Should(Equal(resource.ResourceType("git")))
 				Ω(tags).Should(BeEmpty()) // This allows the check to run on any worker
+				Ω(vol).Should(BeZero())
 			})
 
 			It("grabs an immediate resource checking lease before checking, breaks lease after done", func() {

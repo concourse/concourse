@@ -326,8 +326,9 @@ func main() {
 		workerClient = worker.NewPool(worker.NewDBWorkerProvider(logger, db, keepaliveDialer))
 	}
 
-	resourceTracker := resource.NewTracker(workerClient)
-	gardenFactory := exec.NewGardenFactory(workerClient, resourceTracker, func() string {
+	trackerFactory := resource.TrackerFactory{}
+
+	gardenFactory := exec.NewGardenFactory(workerClient, trackerFactory, func() string {
 		guid, err := uuid.NewV4()
 		if err != nil {
 			panic("not enough entropy to generate guid: " + err.Error())
@@ -391,7 +392,7 @@ func main() {
 	}
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
-		resourceTracker,
+		trackerFactory.TrackerFor(workerClient),
 		*checkInterval,
 		engine,
 		db,

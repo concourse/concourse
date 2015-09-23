@@ -5,6 +5,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
+	"github.com/concourse/baggageclaim"
 )
 
 type ResourceType string
@@ -18,7 +19,7 @@ type Session struct {
 //go:generate counterfeiter . Tracker
 
 type Tracker interface {
-	Init(Metadata, Session, ResourceType, atc.Tags) (Resource, error)
+	Init(Metadata, Session, ResourceType, atc.Tags, VolumeMount) (Resource, error)
 }
 
 type Metadata interface {
@@ -35,13 +36,24 @@ type tracker struct {
 
 var ErrUnknownResourceType = errors.New("unknown resource type")
 
+type TrackerFactory struct{}
+
+func (TrackerFactory) TrackerFor(client worker.Client) Tracker {
+	return NewTracker(client)
+}
+
 func NewTracker(workerClient worker.Client) Tracker {
 	return &tracker{
 		workerClient: workerClient,
 	}
 }
 
-func (tracker *tracker) Init(metadata Metadata, session Session, typ ResourceType, tags atc.Tags) (Resource, error) {
+type VolumeMount struct {
+	Volume    baggageclaim.Volume
+	MountPath string
+}
+
+func (tracker *tracker) Init(metadata Metadata, session Session, typ ResourceType, tags atc.Tags, mount VolumeMount) (Resource, error) {
 	container, err := tracker.workerClient.FindContainerForIdentifier(session.ID)
 
 	switch err {
@@ -52,6 +64,8 @@ func (tracker *tracker) Init(metadata Metadata, session Session, typ ResourceTyp
 			Ephemeral: session.Ephemeral,
 			Tags:      tags,
 			Env:       metadata.Env(),
+			Volume:    mount.Volume,
+			MountPath: mount.MountPath,
 		})
 	}
 

@@ -11,28 +11,39 @@ import (
 	"github.com/concourse/atc/worker"
 )
 
+//go:generate counterfeiter . TrackerFactory
+
+type TrackerFactory interface {
+	TrackerFor(worker.Client) resource.Tracker
+}
+
 type gardenFactory struct {
-	workerClient    worker.Client
-	resourceTracker resource.Tracker
-	uuidGenerator   UUIDGenFunc
+	workerClient   worker.Client
+	trackerFactory TrackerFactory
+	uuidGenerator  UUIDGenFunc
 }
 
 type UUIDGenFunc func() string
 
 func NewGardenFactory(
 	workerClient worker.Client,
-	resourceTracker resource.Tracker,
+	trackerFactory TrackerFactory,
 	uuidGenerator UUIDGenFunc,
 ) Factory {
 	return &gardenFactory{
-		workerClient:    workerClient,
-		resourceTracker: resourceTracker,
-		uuidGenerator:   uuidGenerator,
+		workerClient:   workerClient,
+		trackerFactory: trackerFactory,
+		uuidGenerator:  uuidGenerator,
 	}
 }
 
 func (factory *gardenFactory) DependentGet(stepMetadata StepMetadata, sourceName SourceName, id worker.Identifier, delegate GetDelegate, config atc.ResourceConfig, tags atc.Tags, params atc.Params) StepFactory {
 	return resourceStep{
+		ResourceConfig: config,
+
+		TrackerFactory: factory.trackerFactory,
+		WorkerClient:   factory.workerClient,
+
 		StepMetadata: stepMetadata,
 
 		SourceName: sourceName,
@@ -44,9 +55,8 @@ func (factory *gardenFactory) DependentGet(stepMetadata StepMetadata, sourceName
 
 		Delegate: delegate,
 
-		Tracker: factory.resourceTracker,
-		Type:    resource.ResourceType(config.Type),
-		Tags:    tags,
+		Type: resource.ResourceType(config.Type),
+		Tags: tags,
 
 		Action: func(r resource.Resource, s ArtifactSource, vi VersionInfo) resource.VersionedSource {
 			return r.Get(resource.IOConfig{
@@ -57,8 +67,23 @@ func (factory *gardenFactory) DependentGet(stepMetadata StepMetadata, sourceName
 	}
 }
 
-func (factory *gardenFactory) Get(stepMetadata StepMetadata, sourceName SourceName, id worker.Identifier, delegate GetDelegate, config atc.ResourceConfig, params atc.Params, tags atc.Tags, version atc.Version) StepFactory {
+func (factory *gardenFactory) Get(
+	stepMetadata StepMetadata,
+	sourceName SourceName,
+	id worker.Identifier,
+	delegate GetDelegate,
+	config atc.ResourceConfig,
+	params atc.Params,
+	tags atc.Tags,
+	version atc.Version,
+) StepFactory {
 	return resourceStep{
+		ResourceConfig: config,
+		Version:        version,
+
+		TrackerFactory: factory.trackerFactory,
+		WorkerClient:   factory.workerClient,
+
 		StepMetadata: stepMetadata,
 
 		SourceName: sourceName,
@@ -70,9 +95,8 @@ func (factory *gardenFactory) Get(stepMetadata StepMetadata, sourceName SourceNa
 
 		Delegate: delegate,
 
-		Tracker: factory.resourceTracker,
-		Type:    resource.ResourceType(config.Type),
-		Tags:    tags,
+		Type: resource.ResourceType(config.Type),
+		Tags: tags,
 
 		Action: func(r resource.Resource, s ArtifactSource, vi VersionInfo) resource.VersionedSource {
 			return r.Get(resource.IOConfig{
@@ -85,6 +109,11 @@ func (factory *gardenFactory) Get(stepMetadata StepMetadata, sourceName SourceNa
 
 func (factory *gardenFactory) Put(stepMetadata StepMetadata, id worker.Identifier, delegate PutDelegate, config atc.ResourceConfig, tags atc.Tags, params atc.Params) StepFactory {
 	return resourceStep{
+		ResourceConfig: config,
+
+		TrackerFactory: factory.trackerFactory,
+		WorkerClient:   factory.workerClient,
+
 		StepMetadata: stepMetadata,
 
 		Session: resource.Session{
@@ -93,9 +122,8 @@ func (factory *gardenFactory) Put(stepMetadata StepMetadata, id worker.Identifie
 
 		Delegate: delegate,
 
-		Tracker: factory.resourceTracker,
-		Type:    resource.ResourceType(config.Type),
-		Tags:    tags,
+		Type: resource.ResourceType(config.Type),
+		Tags: tags,
 
 		Action: func(r resource.Resource, s ArtifactSource, vi VersionInfo) resource.VersionedSource {
 			return r.Put(resource.IOConfig{
@@ -107,7 +135,6 @@ func (factory *gardenFactory) Put(stepMetadata StepMetadata, id worker.Identifie
 }
 
 func (factory *gardenFactory) Task(sourceName SourceName, id worker.Identifier, delegate TaskDelegate, privileged Privileged, tags atc.Tags, configSource TaskConfigSource) StepFactory {
-
 	artifactsRoot := filepath.Join("/tmp", "build", factory.uuidGenerator())
 
 	return taskStep{

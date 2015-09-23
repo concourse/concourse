@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"time"
 
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/exec"
@@ -14,16 +15,21 @@ import (
 	rfakes "github.com/concourse/atc/resource/fakes"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
+	"github.com/concourse/baggageclaim"
+	bfakes "github.com/concourse/baggageclaim/fakes"
+	"github.com/concourse/baggageclaim/volume"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-golang/clock"
 	"github.com/tedsuo/ifrit"
 )
 
 var _ = Describe("GardenFactory", func() {
 	var (
-		fakeTracker      *rfakes.FakeTracker
-		fakeWorkerClient *wfakes.FakeClient
+		fakeTrackerFactory *fakes.FakeTrackerFactory
+		fakeTracker        *rfakes.FakeTracker
+		fakeWorkerClient   *wfakes.FakeClient
 
 		factory Factory
 
@@ -40,10 +46,14 @@ var _ = Describe("GardenFactory", func() {
 	)
 
 	BeforeEach(func() {
+		fakeTrackerFactory = new(fakes.FakeTrackerFactory)
+
 		fakeTracker = new(rfakes.FakeTracker)
+		fakeTrackerFactory.TrackerForReturns(fakeTracker)
+
 		fakeWorkerClient = new(wfakes.FakeClient)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, func() string { return "" })
+		factory = NewGardenFactory(fakeWorkerClient, fakeTrackerFactory, func() string { return "" })
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -57,6 +67,8 @@ var _ = Describe("GardenFactory", func() {
 			version        atc.Version
 			tags           []string
 
+			satisfiedWorker *wfakes.FakeWorker
+
 			inStep Step
 			repo   *SourceRepository
 
@@ -68,6 +80,9 @@ var _ = Describe("GardenFactory", func() {
 			getDelegate = new(fakes.FakeGetDelegate)
 			getDelegate.StdoutReturns(stdoutBuf)
 			getDelegate.StderrReturns(stderrBuf)
+
+			satisfiedWorker = new(wfakes.FakeWorker)
+			fakeWorkerClient.SatisfyingReturns(satisfiedWorker, nil)
 
 			resourceConfig = atc.ResourceConfig{
 				Name:   "some-resource",
@@ -106,38 +121,309 @@ var _ = Describe("GardenFactory", func() {
 				fakeResource.GetReturns(fakeVersionedSource)
 			})
 
-			It("initializes the resource with the correct type and session id, making sure that it is not ephemeral", func() {
-				Ω(fakeTracker.InitCallCount()).Should(Equal(1))
-
-				sm, sid, typ, tags := fakeTracker.InitArgsForCall(0)
-				Ω(sm).Should(Equal(stepMetadata))
-				Ω(sid).Should(Equal(resource.Session{
-					ID:        identifier,
-					Ephemeral: false,
+			It("selects a worker satisfying the resource type and tags", func() {
+				Ω(fakeWorkerClient.SatisfyingCallCount()).Should(Equal(1))
+				Ω(fakeWorkerClient.SatisfyingArgsForCall(0)).Should(Equal(worker.WorkerSpec{
+					ResourceType: "some-resource-type",
+					Tags:         []string{"some", "tags"},
 				}))
-				Ω(typ).Should(Equal(resource.ResourceType("some-resource-type")))
-				Ω(tags).Should(ConsistOf("some", "tags"))
 			})
 
-			It("gets the resource with the correct source, params, and version", func() {
-				Ω(fakeResource.GetCallCount()).Should(Equal(1))
+			Context("when no workers satisfy the spec", func() {
+				disaster := errors.New("nope")
 
-				_, gotSource, gotParams, gotVersion := fakeResource.GetArgsForCall(0)
-				Ω(gotSource).Should(Equal(resourceConfig.Source))
-				Ω(gotParams).Should(Equal(params))
-				Ω(gotVersion).Should(Equal(version))
+				BeforeEach(func() {
+					fakeWorkerClient.SatisfyingReturns(nil, disaster)
+				})
+
+				It("exits with the error", func() {
+					Ω(<-process.Wait()).Should(Equal(disaster))
+				})
 			})
 
-			It("gets the resource with the io config forwarded", func() {
-				Ω(fakeResource.GetCallCount()).Should(Equal(1))
+			Context("when the worker supports volumes", func() {
+				var fakeBaggageclaimClient *bfakes.FakeClient
 
-				ioConfig, _, _, _ := fakeResource.GetArgsForCall(0)
-				Ω(ioConfig.Stdout).Should(Equal(stdoutBuf))
-				Ω(ioConfig.Stderr).Should(Equal(stderrBuf))
+				BeforeEach(func() {
+					fakeBaggageclaimClient = new(bfakes.FakeClient)
+					satisfiedWorker.VolumeManagerReturns(fakeBaggageclaimClient, true)
+				})
+
+				Context("when a volume for the resource is already present", func() {
+					var foundVolume *bfakes.FakeVolume
+
+					BeforeEach(func() {
+						foundVolume = new(bfakes.FakeVolume)
+						fakeBaggageclaimClient.FindVolumesReturns([]baggageclaim.Volume{foundVolume}, nil)
+					})
+
+					It("looked up the volume with the correct properties", func() {
+						Ω(fakeBaggageclaimClient.FindVolumesArgsForCall(0)).Should(Equal(baggageclaim.VolumeProperties{
+							"resource-type":    "some-resource-type",
+							"resource-version": `{"some-version":"some-value"}`,
+							"resource-source":  `{"some":"source"}`,
+							"initialized":      "yep",
+						}))
+					})
+
+					It("starts heartbeating to the volume", func() {
+						Ω(foundVolume.HeartbeatCallCount()).Should(Equal(1))
+						interval, hClock := foundVolume.HeartbeatArgsForCall(0)
+						Ω(interval).Should(Equal(time.Minute))
+						Ω(hClock).Should(Equal(clock.NewClock()))
+					})
+
+					It("initializes the tracker with the chosen worker", func() {
+						Ω(fakeTrackerFactory.TrackerForCallCount()).Should(Equal(1))
+						Ω(fakeTrackerFactory.TrackerForArgsForCall(0)).Should(Equal(satisfiedWorker))
+					})
+
+					It("initializes the resource with the volume", func() {
+						Ω(fakeTracker.InitCallCount()).Should(Equal(1))
+						sm, sid, typ, tags, vol := fakeTracker.InitArgsForCall(0)
+						Ω(sm).Should(Equal(stepMetadata))
+						Ω(sid).Should(Equal(resource.Session{
+							ID:        identifier,
+							Ephemeral: false,
+						}))
+						Ω(typ).Should(Equal(resource.ResourceType("some-resource-type")))
+						Ω(tags).Should(ConsistOf("some", "tags"))
+						Ω(vol).Should(Equal(resource.VolumeMount{
+							Volume:    foundVolume,
+							MountPath: "/tmp/build/get",
+						}))
+					})
+
+					It("gets the resource with the correct source, params, and version", func() {
+						Ω(fakeResource.GetCallCount()).Should(Equal(1))
+
+						_, gotSource, gotParams, gotVersion := fakeResource.GetArgsForCall(0)
+						Ω(gotSource).Should(Equal(resourceConfig.Source))
+						Ω(gotParams).Should(Equal(params))
+						Ω(gotVersion).Should(Equal(version))
+					})
+
+					It("gets the resource with the io config forwarded", func() {
+						Ω(fakeResource.GetCallCount()).Should(Equal(1))
+
+						ioConfig, _, _, _ := fakeResource.GetArgsForCall(0)
+						Ω(ioConfig.Stdout).Should(Equal(stdoutBuf))
+						Ω(ioConfig.Stderr).Should(Equal(stderrBuf))
+					})
+
+					It("does not run the get resource action", func() {
+						Ω(fakeVersionedSource.RunCallCount()).Should(Equal(0))
+					})
+
+					Describe("releasing", func() {
+						It("releases the volume and the resource", func() {
+							Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
+							Ω(foundVolume.ReleaseCallCount()).Should(BeZero())
+
+							step.Release()
+
+							Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
+							Ω(foundVolume.ReleaseCallCount()).Should(Equal(1))
+						})
+					})
+				})
+
+				Context("when a volume for the resource is not already present", func() {
+					var createdVolume *bfakes.FakeVolume
+
+					BeforeEach(func() {
+						createdVolume = new(bfakes.FakeVolume)
+						createdVolume.HandleReturns("created-volume-handle")
+
+						fakeBaggageclaimClient.CreateEmptyVolumeReturns(createdVolume, nil)
+					})
+
+					It("created the volume with the correct properties (notably, without 'initialized')", func() {
+						Ω(fakeBaggageclaimClient.CreateEmptyVolumeArgsForCall(0)).Should(Equal(baggageclaim.VolumeSpec{
+							Properties: volume.Properties{
+								"resource-type":    "some-resource-type",
+								"resource-version": `{"some-version":"some-value"}`,
+								"resource-source":  `{"some":"source"}`,
+							},
+							TTLInSeconds: 60 * 60 * 24,
+						}))
+					})
+
+					It("starts heartbeating to the volume", func() {
+						Ω(createdVolume.HeartbeatCallCount()).Should(Equal(1))
+						interval, hClock := createdVolume.HeartbeatArgsForCall(0)
+						Ω(interval).Should(Equal(time.Minute))
+						Ω(hClock).Should(Equal(clock.NewClock()))
+					})
+
+					It("initializes the resource with the volume", func() {
+						Ω(fakeTracker.InitCallCount()).Should(Equal(1))
+						sm, sid, typ, tags, vol := fakeTracker.InitArgsForCall(0)
+						Ω(sm).Should(Equal(stepMetadata))
+						Ω(sid).Should(Equal(resource.Session{
+							ID:        identifier,
+							Ephemeral: false,
+						}))
+						Ω(typ).Should(Equal(resource.ResourceType("some-resource-type")))
+						Ω(tags).Should(ConsistOf("some", "tags"))
+						Ω(vol).Should(Equal(resource.VolumeMount{
+							Volume:    createdVolume,
+							MountPath: "/tmp/build/get",
+						}))
+					})
+
+					It("gets the resource with the correct source, params, and version", func() {
+						Ω(fakeResource.GetCallCount()).Should(Equal(1))
+
+						_, gotSource, gotParams, gotVersion := fakeResource.GetArgsForCall(0)
+						Ω(gotSource).Should(Equal(resourceConfig.Source))
+						Ω(gotParams).Should(Equal(params))
+						Ω(gotVersion).Should(Equal(version))
+					})
+
+					It("gets the resource with the io config forwarded", func() {
+						Ω(fakeResource.GetCallCount()).Should(Equal(1))
+
+						ioConfig, _, _, _ := fakeResource.GetArgsForCall(0)
+						Ω(ioConfig.Stdout).Should(Equal(stdoutBuf))
+						Ω(ioConfig.Stderr).Should(Equal(stderrBuf))
+					})
+
+					It("runs the get resource action", func() {
+						Ω(fakeVersionedSource.RunCallCount()).Should(Equal(1))
+					})
+
+					Context("after the 'get' action completes", func() {
+						BeforeEach(func() {
+							fakeVersionedSource.RunReturns(nil)
+						})
+
+						It("marks the volume as initialized after the 'get' action completes", func() {
+							Ω(fakeBaggageclaimClient.SetPropertyCallCount()).Should(Equal(1))
+							handle, name, value := fakeBaggageclaimClient.SetPropertyArgsForCall(0)
+							Ω(handle).Should(Equal("created-volume-handle"))
+							Ω(name).Should(Equal("initialized"))
+							Ω(value).Should(Equal("yep"))
+						})
+					})
+
+					Context("after the 'get' action fails", func() {
+						BeforeEach(func() {
+							fakeVersionedSource.RunReturns(errors.New("nope"))
+						})
+
+						It("does not mark the volume as initialized", func() {
+							Ω(fakeBaggageclaimClient.SetPropertyCallCount()).Should(Equal(0))
+						})
+					})
+
+					Describe("releasing", func() {
+						It("releases the volume and the resource", func() {
+							Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
+							Ω(createdVolume.ReleaseCallCount()).Should(BeZero())
+
+							step.Release()
+
+							Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
+							Ω(createdVolume.ReleaseCallCount()).Should(Equal(1))
+						})
+					})
+				})
 			})
 
-			It("runs the get resource action", func() {
-				Ω(fakeVersionedSource.RunCallCount()).Should(Equal(1))
+			Context("when the worker does not support volumes", func() {
+				BeforeEach(func() {
+					satisfiedWorker.VolumeManagerReturns(nil, false)
+				})
+
+				It("initializes the resource with the correct type and session id, making sure that it is not ephemeral, and with no volume", func() {
+					Ω(fakeTracker.InitCallCount()).Should(Equal(1))
+
+					sm, sid, typ, tags, vol := fakeTracker.InitArgsForCall(0)
+					Ω(sm).Should(Equal(stepMetadata))
+					Ω(sid).Should(Equal(resource.Session{
+						ID:        identifier,
+						Ephemeral: false,
+					}))
+					Ω(typ).Should(Equal(resource.ResourceType("some-resource-type")))
+					Ω(tags).Should(ConsistOf("some", "tags"))
+					Ω(vol).Should(BeZero())
+				})
+
+				It("gets the resource with the correct source, params, and version", func() {
+					Ω(fakeResource.GetCallCount()).Should(Equal(1))
+
+					_, gotSource, gotParams, gotVersion := fakeResource.GetArgsForCall(0)
+					Ω(gotSource).Should(Equal(resourceConfig.Source))
+					Ω(gotParams).Should(Equal(params))
+					Ω(gotVersion).Should(Equal(version))
+				})
+
+				It("gets the resource with the io config forwarded", func() {
+					Ω(fakeResource.GetCallCount()).Should(Equal(1))
+
+					ioConfig, _, _, _ := fakeResource.GetArgsForCall(0)
+					Ω(ioConfig.Stdout).Should(Equal(stdoutBuf))
+					Ω(ioConfig.Stderr).Should(Equal(stderrBuf))
+				})
+
+				It("runs the get resource action", func() {
+					Ω(fakeVersionedSource.RunCallCount()).Should(Equal(1))
+				})
+
+				Context("when fetching fails", func() {
+					disaster := errors.New("nope")
+
+					BeforeEach(func() {
+						fakeVersionedSource.RunReturns(disaster)
+					})
+
+					It("exits with the failure", func() {
+						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+					})
+
+					It("invokes the delegate's Failed callback without completing", func() {
+						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+
+						Ω(getDelegate.CompletedCallCount()).Should(BeZero())
+
+						Ω(getDelegate.FailedCallCount()).Should(Equal(1))
+						Ω(getDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+					})
+
+					Context("with a resource script failure", func() {
+						var resourceScriptError resource.ErrResourceScriptFailed
+
+						BeforeEach(func() {
+							resourceScriptError = resource.ErrResourceScriptFailed{
+								ExitStatus: 1,
+							}
+
+							fakeVersionedSource.RunReturns(resourceScriptError)
+						})
+
+						It("invokes the delegate's Finished callback instead of failed", func() {
+							Eventually(process.Wait()).Should(Receive(BeNil()))
+
+							Ω(getDelegate.FailedCallCount()).Should(BeZero())
+
+							Ω(getDelegate.CompletedCallCount()).Should(Equal(1))
+							status, versionInfo := getDelegate.CompletedArgsForCall(0)
+							Ω(status).Should(Equal(ExitStatus(1)))
+							Ω(versionInfo).Should(BeNil())
+						})
+
+						It("is not successful", func() {
+							Eventually(process.Wait()).Should(Receive(BeNil()))
+							Ω(getDelegate.CompletedCallCount()).Should(Equal(1))
+
+							var success Success
+
+							Ω(step.Result(&success)).Should(BeTrue())
+							Ω(bool(success)).Should(BeFalse())
+						})
+					})
+				})
 			})
 
 			It("reports the fetched version info", func() {
@@ -185,60 +471,6 @@ var _ = Describe("GardenFactory", func() {
 					process.Signal(os.Interrupt)
 					Eventually(receivedSignals).Should(Receive(Equal(os.Interrupt)))
 					Eventually(process.Wait()).Should(Receive())
-				})
-			})
-
-			Context("when fetching fails", func() {
-				disaster := errors.New("nope")
-
-				BeforeEach(func() {
-					fakeVersionedSource.RunReturns(disaster)
-				})
-
-				It("exits with the failure", func() {
-					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-				})
-
-				It("invokes the delegate's Failed callback without completing", func() {
-					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-
-					Ω(getDelegate.CompletedCallCount()).Should(BeZero())
-
-					Ω(getDelegate.FailedCallCount()).Should(Equal(1))
-					Ω(getDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
-				})
-
-				Context("with a resource script failure", func() {
-					var resourceScriptError resource.ErrResourceScriptFailed
-
-					BeforeEach(func() {
-						resourceScriptError = resource.ErrResourceScriptFailed{
-							ExitStatus: 1,
-						}
-
-						fakeVersionedSource.RunReturns(resourceScriptError)
-					})
-
-					It("invokes the delegate's Finished callback instead of failed", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
-
-						Ω(getDelegate.FailedCallCount()).Should(BeZero())
-
-						Ω(getDelegate.CompletedCallCount()).Should(Equal(1))
-						status, versionInfo := getDelegate.CompletedArgsForCall(0)
-						Ω(status).Should(Equal(ExitStatus(1)))
-						Ω(versionInfo).Should(BeNil())
-					})
-
-					It("is not successful", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
-						Ω(getDelegate.CompletedCallCount()).Should(Equal(1))
-
-						var success Success
-
-						Ω(step.Result(&success)).Should(BeTrue())
-						Ω(bool(success)).Should(BeFalse())
-					})
 				})
 			})
 

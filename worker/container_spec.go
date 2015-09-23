@@ -41,6 +41,7 @@ type ResourceTypeContainerSpec struct {
 	Tags      []string
 	Env       []string
 	Volume    baggageclaim.Volume
+	MountPath string
 }
 
 func (spec ResourceTypeContainerSpec) WorkerSpec() WorkerSpec {
