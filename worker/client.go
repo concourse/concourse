@@ -22,6 +22,8 @@ type Client interface {
 	LookupContainer(string) (Container, error)
 
 	Name() string
+
+	Satisfying(WorkerSpec) (Worker, error)
 }
 
 //go:generate counterfeiter . Container

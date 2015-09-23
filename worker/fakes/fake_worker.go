@@ -52,19 +52,20 @@ type FakeWorker struct {
 	nameReturns     struct {
 		result1 string
 	}
+	SatisfyingStub        func(worker.WorkerSpec) (worker.Worker, error)
+	satisfyingMutex       sync.RWMutex
+	satisfyingArgsForCall []struct {
+		arg1 worker.WorkerSpec
+	}
+	satisfyingReturns struct {
+		result1 worker.Worker
+		result2 error
+	}
 	ActiveContainersStub        func() int
 	activeContainersMutex       sync.RWMutex
 	activeContainersArgsForCall []struct{}
 	activeContainersReturns     struct {
 		result1 int
-	}
-	SatisfiesStub        func(worker.ContainerSpec) bool
-	satisfiesMutex       sync.RWMutex
-	satisfiesArgsForCall []struct {
-		arg1 worker.ContainerSpec
-	}
-	satisfiesReturns struct {
-		result1 bool
 	}
 	DescriptionStub        func() string
 	descriptionMutex       sync.RWMutex
@@ -238,6 +239,39 @@ func (fake *FakeWorker) NameReturns(result1 string) {
 	}{result1}
 }
 
+func (fake *FakeWorker) Satisfying(arg1 worker.WorkerSpec) (worker.Worker, error) {
+	fake.satisfyingMutex.Lock()
+	fake.satisfyingArgsForCall = append(fake.satisfyingArgsForCall, struct {
+		arg1 worker.WorkerSpec
+	}{arg1})
+	fake.satisfyingMutex.Unlock()
+	if fake.SatisfyingStub != nil {
+		return fake.SatisfyingStub(arg1)
+	} else {
+		return fake.satisfyingReturns.result1, fake.satisfyingReturns.result2
+	}
+}
+
+func (fake *FakeWorker) SatisfyingCallCount() int {
+	fake.satisfyingMutex.RLock()
+	defer fake.satisfyingMutex.RUnlock()
+	return len(fake.satisfyingArgsForCall)
+}
+
+func (fake *FakeWorker) SatisfyingArgsForCall(i int) worker.WorkerSpec {
+	fake.satisfyingMutex.RLock()
+	defer fake.satisfyingMutex.RUnlock()
+	return fake.satisfyingArgsForCall[i].arg1
+}
+
+func (fake *FakeWorker) SatisfyingReturns(result1 worker.Worker, result2 error) {
+	fake.SatisfyingStub = nil
+	fake.satisfyingReturns = struct {
+		result1 worker.Worker
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeWorker) ActiveContainers() int {
 	fake.activeContainersMutex.Lock()
 	fake.activeContainersArgsForCall = append(fake.activeContainersArgsForCall, struct{}{})
@@ -259,38 +293,6 @@ func (fake *FakeWorker) ActiveContainersReturns(result1 int) {
 	fake.ActiveContainersStub = nil
 	fake.activeContainersReturns = struct {
 		result1 int
-	}{result1}
-}
-
-func (fake *FakeWorker) Satisfies(arg1 worker.ContainerSpec) bool {
-	fake.satisfiesMutex.Lock()
-	fake.satisfiesArgsForCall = append(fake.satisfiesArgsForCall, struct {
-		arg1 worker.ContainerSpec
-	}{arg1})
-	fake.satisfiesMutex.Unlock()
-	if fake.SatisfiesStub != nil {
-		return fake.SatisfiesStub(arg1)
-	} else {
-		return fake.satisfiesReturns.result1
-	}
-}
-
-func (fake *FakeWorker) SatisfiesCallCount() int {
-	fake.satisfiesMutex.RLock()
-	defer fake.satisfiesMutex.RUnlock()
-	return len(fake.satisfiesArgsForCall)
-}
-
-func (fake *FakeWorker) SatisfiesArgsForCall(i int) worker.ContainerSpec {
-	fake.satisfiesMutex.RLock()
-	defer fake.satisfiesMutex.RUnlock()
-	return fake.satisfiesArgsForCall[i].arg1
-}
-
-func (fake *FakeWorker) SatisfiesReturns(result1 bool) {
-	fake.SatisfiesStub = nil
-	fake.satisfiesReturns = struct {
-		result1 bool
 	}{result1}
 }
 

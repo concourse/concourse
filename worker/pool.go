@@ -19,7 +19,7 @@ type WorkerProvider interface {
 var ErrNoWorkers = errors.New("no workers")
 
 type NoCompatibleWorkersError struct {
-	Spec    ContainerSpec
+	Spec    WorkerSpec
 	Workers []Worker
 }
 
@@ -49,7 +49,7 @@ func NewPool(provider WorkerProvider) Client {
 	}
 }
 
-func (pool *pool) CreateContainer(id Identifier, spec ContainerSpec) (Container, error) {
+func (pool *pool) Satisfying(spec WorkerSpec) (Worker, error) {
 	workers, err := pool.provider.Workers()
 	if err != nil {
 		return nil, err
@@ -61,8 +61,9 @@ func (pool *pool) CreateContainer(id Identifier, spec ContainerSpec) (Container,
 
 	compatibleWorkers := []Worker{}
 	for _, worker := range workers {
-		if worker.Satisfies(spec) {
-			compatibleWorkers = append(compatibleWorkers, worker)
+		satisfyingWorker, err := worker.Satisfying(spec)
+		if err == nil {
+			compatibleWorkers = append(compatibleWorkers, satisfyingWorker)
 		}
 	}
 
@@ -75,7 +76,16 @@ func (pool *pool) CreateContainer(id Identifier, spec ContainerSpec) (Container,
 
 	randomWorker := compatibleWorkers[pool.rand.Intn(len(compatibleWorkers))]
 
-	return randomWorker.CreateContainer(id, spec)
+	return randomWorker, nil
+}
+
+func (pool *pool) CreateContainer(id Identifier, spec ContainerSpec) (Container, error) {
+	worker, err := pool.Satisfying(spec.WorkerSpec())
+	if err != nil {
+		return nil, err
+	}
+
+	return worker.CreateContainer(id, spec)
 }
 
 func (pool *pool) FindContainerForIdentifier(id Identifier) (Container, error) {

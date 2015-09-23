@@ -597,173 +597,176 @@ var _ = Describe("Worker", func() {
 		})
 	})
 
-	Describe("Satisfies", func() {
-		Context("with a TaskContainerSpec", func() {
-			var (
-				spec      TaskContainerSpec
-				satisfies bool
-			)
+	Describe("Satisfying", func() {
+		var (
+			spec WorkerSpec
 
+			satisfyingWorker Worker
+			satisfyingErr    error
+		)
+
+		BeforeEach(func() {
+			spec = WorkerSpec{}
+		})
+
+		JustBeforeEach(func() {
+			satisfyingWorker, satisfyingErr = worker.Satisfying(spec)
+		})
+
+		Context("when the platform is compatible", func() {
 			BeforeEach(func() {
-				spec = TaskContainerSpec{}
+				spec.Platform = "some-platform"
 			})
 
-			JustBeforeEach(func() {
-				satisfies = worker.Satisfies(spec)
-			})
-
-			Context("when the platform is compatible", func() {
+			Context("when no tags are specified", func() {
 				BeforeEach(func() {
-					spec.Platform = "some-platform"
+					spec.Tags = nil
 				})
 
-				Context("when no tags are specified", func() {
-					BeforeEach(func() {
-						spec.Tags = nil
-					})
-
-					It("returns false", func() {
-						Ω(satisfies).Should(BeFalse())
-					})
-				})
-
-				Context("when the worker has no tags", func() {
-					BeforeEach(func() {
-						tags = []string{}
-					})
-
-					It("returns true", func() {
-						Ω(satisfies).Should(BeTrue())
-					})
-				})
-
-				Context("when all of the requested tags are present", func() {
-					BeforeEach(func() {
-						spec.Tags = []string{"some", "tags"}
-					})
-
-					It("returns true", func() {
-						Ω(satisfies).Should(BeTrue())
-					})
-				})
-
-				Context("when some of the requested tags are present", func() {
-					BeforeEach(func() {
-						spec.Tags = []string{"some"}
-					})
-
-					It("returns true", func() {
-						Ω(satisfies).Should(BeTrue())
-					})
-				})
-
-				Context("when any of the requested tags are not present", func() {
-					BeforeEach(func() {
-						spec.Tags = []string{"bogus", "tags"}
-					})
-
-					It("returns false", func() {
-						Ω(satisfies).Should(BeFalse())
-					})
+				It("returns ErrIncompatiblePlatform", func() {
+					Ω(satisfyingErr).Should(Equal(ErrMismatchedTags))
 				})
 			})
 
-			Context("when the platform is incompatible", func() {
+			Context("when the worker has no tags", func() {
 				BeforeEach(func() {
-					spec.Platform = "some-bogus-platform"
+					tags = []string{}
 				})
 
-				It("returns false", func() {
-					Ω(satisfies).Should(BeFalse())
+				It("returns the worker", func() {
+					Ω(satisfyingWorker).Should(Equal(worker))
+				})
+
+				It("returns no error", func() {
+					Ω(satisfyingErr).ShouldNot(HaveOccurred())
+				})
+			})
+
+			Context("when all of the requested tags are present", func() {
+				BeforeEach(func() {
+					spec.Tags = []string{"some", "tags"}
+				})
+
+				It("returns the worker", func() {
+					Ω(satisfyingWorker).Should(Equal(worker))
+				})
+
+				It("returns no error", func() {
+					Ω(satisfyingErr).ShouldNot(HaveOccurred())
+				})
+			})
+
+			Context("when some of the requested tags are present", func() {
+				BeforeEach(func() {
+					spec.Tags = []string{"some"}
+				})
+
+				It("returns the worker", func() {
+					Ω(satisfyingWorker).Should(Equal(worker))
+				})
+
+				It("returns no error", func() {
+					Ω(satisfyingErr).ShouldNot(HaveOccurred())
+				})
+			})
+
+			Context("when any of the requested tags are not present", func() {
+				BeforeEach(func() {
+					spec.Tags = []string{"bogus", "tags"}
+				})
+
+				It("returns ErrMismatchedTags", func() {
+					Ω(satisfyingErr).Should(Equal(ErrMismatchedTags))
 				})
 			})
 		})
 
-		Context("with a ResourceTypeContainerSpec", func() {
-			var (
-				spec      ResourceTypeContainerSpec
-				satisfies bool
-			)
-
+		Context("when the platform is incompatible", func() {
 			BeforeEach(func() {
-				spec = ResourceTypeContainerSpec{}
+				spec.Platform = "some-bogus-platform"
 			})
 
-			JustBeforeEach(func() {
-				satisfies = worker.Satisfies(spec)
+			It("returns ErrIncompatiblePlatform", func() {
+				Ω(satisfyingErr).Should(Equal(ErrIncompatiblePlatform))
+			})
+		})
+
+		Context("when the resource type is supported by the worker", func() {
+			BeforeEach(func() {
+				spec.ResourceType = "some-resource"
 			})
 
-			Context("when the type is supported by the worker", func() {
+			Context("when all of the requested tags are present", func() {
 				BeforeEach(func() {
-					spec = ResourceTypeContainerSpec{
-						Type: "some-resource",
-					}
+					spec.Tags = []string{"some", "tags"}
 				})
 
-				Context("when all of the requested tags are present", func() {
-					BeforeEach(func() {
-						spec.Tags = []string{"some", "tags"}
-					})
-
-					It("returns true", func() {
-						Ω(satisfies).Should(BeTrue())
-					})
+				It("returns the worker", func() {
+					Ω(satisfyingWorker).Should(Equal(worker))
 				})
 
-				Context("when some of the requested tags are present", func() {
-					BeforeEach(func() {
-						spec.Tags = []string{"some"}
-					})
-
-					It("returns true", func() {
-						Ω(satisfies).Should(BeTrue())
-					})
-				})
-
-				Context("when any of the requested tags are not present", func() {
-					BeforeEach(func() {
-						spec.Tags = []string{"bogus", "tags"}
-					})
-
-					It("returns false", func() {
-						Ω(satisfies).Should(BeFalse())
-					})
+				It("returns no error", func() {
+					Ω(satisfyingErr).ShouldNot(HaveOccurred())
 				})
 			})
 
-			Context("when the type is not supported by the worker", func() {
+			Context("when some of the requested tags are present", func() {
 				BeforeEach(func() {
-					spec.Type = "some-other-resource"
+					spec.Tags = []string{"some"}
 				})
 
-				Context("when all of the requested tags are present", func() {
-					BeforeEach(func() {
-						spec.Tags = []string{"some", "tags"}
-					})
-
-					It("returns false", func() {
-						Ω(satisfies).Should(BeFalse())
-					})
+				It("returns the worker", func() {
+					Ω(satisfyingWorker).Should(Equal(worker))
 				})
 
-				Context("when some of the requested tags are present", func() {
-					BeforeEach(func() {
-						spec.Tags = []string{"some"}
-					})
+				It("returns no error", func() {
+					Ω(satisfyingErr).ShouldNot(HaveOccurred())
+				})
+			})
 
-					It("returns true", func() {
-						Ω(satisfies).Should(BeFalse())
-					})
+			Context("when any of the requested tags are not present", func() {
+				BeforeEach(func() {
+					spec.Tags = []string{"bogus", "tags"}
 				})
 
-				Context("when any of the requested tags are not present", func() {
-					BeforeEach(func() {
-						spec.Tags = []string{"bogus", "tags"}
-					})
+				It("returns ErrMismatchedTags", func() {
+					Ω(satisfyingErr).Should(Equal(ErrMismatchedTags))
+				})
+			})
+		})
 
-					It("returns false", func() {
-						Ω(satisfies).Should(BeFalse())
-					})
+		Context("when the type is not supported by the worker", func() {
+			BeforeEach(func() {
+				spec.ResourceType = "some-other-resource"
+			})
+
+			Context("when all of the requested tags are present", func() {
+				BeforeEach(func() {
+					spec.Tags = []string{"some", "tags"}
+				})
+
+				It("returns ErrUnsupportedResourceType", func() {
+					Ω(satisfyingErr).Should(Equal(ErrUnsupportedResourceType))
+				})
+			})
+
+			Context("when some of the requested tags are present", func() {
+				BeforeEach(func() {
+					spec.Tags = []string{"some"}
+				})
+
+				It("returns ErrUnsupportedResourceType", func() {
+					Ω(satisfyingErr).Should(Equal(ErrUnsupportedResourceType))
+				})
+			})
+
+			Context("when any of the requested tags are not present", func() {
+				BeforeEach(func() {
+					spec.Tags = []string{"bogus", "tags"}
+				})
+
+				It("returns ErrUnsupportedResourceType", func() {
+					Ω(satisfyingErr).Should(Equal(ErrUnsupportedResourceType))
 				})
 			})
 		})

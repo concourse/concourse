@@ -3,10 +3,36 @@ package worker
 import (
 	"fmt"
 	"strings"
+
+	"github.com/concourse/baggageclaim"
 )
 
 type ContainerSpec interface {
-	Description() string
+	WorkerSpec() WorkerSpec
+}
+
+type WorkerSpec struct {
+	Platform     string
+	ResourceType string
+	Tags         []string
+}
+
+func (spec WorkerSpec) Description() string {
+	var attrs []string
+
+	if spec.ResourceType != "" {
+		attrs = append(attrs, fmt.Sprintf("resource type '%s'", spec.ResourceType))
+	}
+
+	if spec.Platform != "" {
+		attrs = append(attrs, fmt.Sprintf("platform '%s'", spec.Platform))
+	}
+
+	for _, tag := range spec.Tags {
+		attrs = append(attrs, fmt.Sprintf("tag '%s'", tag))
+	}
+
+	return strings.Join(attrs, ", ")
 }
 
 type ResourceTypeContainerSpec struct {
@@ -14,10 +40,14 @@ type ResourceTypeContainerSpec struct {
 	Ephemeral bool
 	Tags      []string
 	Env       []string
+	Volume    baggageclaim.Volume
 }
 
-func (spec ResourceTypeContainerSpec) Description() string {
-	return fmt.Sprintf("resource type '%s'", spec.Type)
+func (spec ResourceTypeContainerSpec) WorkerSpec() WorkerSpec {
+	return WorkerSpec{
+		ResourceType: spec.Type,
+		Tags:         spec.Tags,
+	}
 }
 
 type TaskContainerSpec struct {
@@ -27,14 +57,9 @@ type TaskContainerSpec struct {
 	Tags       []string
 }
 
-func (spec TaskContainerSpec) Description() string {
-	messages := []string{
-		fmt.Sprintf("platform '%s'", spec.Platform),
+func (spec TaskContainerSpec) WorkerSpec() WorkerSpec {
+	return WorkerSpec{
+		Platform: spec.Platform,
+		Tags:     spec.Tags,
 	}
-
-	for _, tag := range spec.Tags {
-		messages = append(messages, fmt.Sprintf("tag '%s'", tag))
-	}
-
-	return strings.Join(messages, ", ")
 }

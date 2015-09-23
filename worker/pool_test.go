@@ -59,8 +59,9 @@ var _ = Describe("Pool", func() {
 				workerA.ActiveContainersReturns(3)
 				workerB.ActiveContainersReturns(2)
 
-				workerA.SatisfiesReturns(true)
-				workerB.SatisfiesReturns(true)
+				workerA.SatisfyingReturns(workerA, nil)
+				workerB.SatisfyingReturns(workerB, nil)
+				workerC.SatisfyingReturns(nil, errors.New("nope"))
 
 				fakeContainer = new(fakes.FakeContainer)
 				workerA.CreateContainerReturns(fakeContainer, nil)
@@ -79,14 +80,14 @@ var _ = Describe("Pool", func() {
 			})
 
 			It("checks that the workers satisfy the given spec", func() {
-				Ω(workerA.SatisfiesCallCount()).Should(Equal(1))
-				Ω(workerA.SatisfiesArgsForCall(0)).Should(Equal(spec))
+				Ω(workerA.SatisfyingCallCount()).Should(Equal(1))
+				Ω(workerA.SatisfyingArgsForCall(0)).Should(Equal(spec.WorkerSpec()))
 
-				Ω(workerB.SatisfiesCallCount()).Should(Equal(1))
-				Ω(workerB.SatisfiesArgsForCall(0)).Should(Equal(spec))
+				Ω(workerB.SatisfyingCallCount()).Should(Equal(1))
+				Ω(workerB.SatisfyingArgsForCall(0)).Should(Equal(spec.WorkerSpec()))
 
-				Ω(workerC.SatisfiesCallCount()).Should(Equal(1))
-				Ω(workerC.SatisfiesArgsForCall(0)).Should(Equal(spec))
+				Ω(workerC.SatisfyingCallCount()).Should(Equal(1))
+				Ω(workerC.SatisfyingArgsForCall(0)).Should(Equal(spec.WorkerSpec()))
 			})
 
 			It("creates using a random worker", func() {
@@ -115,14 +116,14 @@ var _ = Describe("Pool", func() {
 
 			Context("when no workers satisfy the spec", func() {
 				BeforeEach(func() {
-					workerA.SatisfiesReturns(false)
-					workerB.SatisfiesReturns(false)
-					workerC.SatisfiesReturns(false)
+					workerA.SatisfyingReturns(nil, errors.New("nope"))
+					workerB.SatisfyingReturns(nil, errors.New("nope"))
+					workerC.SatisfyingReturns(nil, errors.New("nope"))
 				})
 
 				It("returns a NoCompatibleWorkersError", func() {
 					Ω(createErr).Should(Equal(NoCompatibleWorkersError{
-						Spec:    spec,
+						Spec:    spec.WorkerSpec(),
 						Workers: []Worker{workerA, workerB, workerC},
 					}))
 				})

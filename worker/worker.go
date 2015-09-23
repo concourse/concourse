@@ -19,6 +19,8 @@ import (
 
 var ErrContainerNotFound = errors.New("container not found")
 var ErrUnsupportedResourceType = errors.New("unsupported resource type")
+var ErrIncompatiblePlatform = errors.New("incompatible platform")
+var ErrMismatchedTags = errors.New("mismatched tags")
 
 const containerKeepalive = 30 * time.Second
 
@@ -32,7 +34,6 @@ type Worker interface {
 	Client
 
 	ActiveContainers() int
-	Satisfies(ContainerSpec) bool
 
 	Description() string
 
@@ -177,26 +178,32 @@ func (worker *gardenWorker) ActiveContainers() int {
 	return worker.activeContainers
 }
 
-func (worker *gardenWorker) Satisfies(spec ContainerSpec) bool {
-	switch s := spec.(type) {
-	case ResourceTypeContainerSpec:
+func (worker *gardenWorker) Satisfying(spec WorkerSpec) (Worker, error) {
+	if spec.ResourceType != "" {
+		matchedType := false
 		for _, t := range worker.resourceTypes {
-			if t.Type == s.Type {
-				return worker.tagsMatch(s.Tags)
+			if t.Type == spec.ResourceType {
+				matchedType = true
+				break
 			}
 		}
 
-		return false
-
-	case TaskContainerSpec:
-		if s.Platform != worker.platform {
-			return false
+		if !matchedType {
+			return nil, ErrUnsupportedResourceType
 		}
-
-		return worker.tagsMatch(s.Tags)
 	}
 
-	return false
+	if spec.Platform != "" {
+		if spec.Platform != worker.platform {
+			return nil, ErrIncompatiblePlatform
+		}
+	}
+
+	if !worker.tagsMatch(spec.Tags) {
+		return nil, ErrMismatchedTags
+	}
+
+	return worker, nil
 }
 
 func (worker *gardenWorker) tagsMatch(tags []string) bool {
