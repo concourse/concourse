@@ -50,4 +50,5 @@ var Migrations = []migration.Migrator{
 	AddUniqueConstraintToResources,
 	RemoveSourceFromVersionedResources,
 	AddIndexesToABunchOfStuff,
+	DropLocks,
 }
