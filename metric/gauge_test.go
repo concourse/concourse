@@ -10,19 +10,19 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Counter", func() {
-	var counter *Counter
+var _ = Describe("Gauge", func() {
+	var gauge *Gauge
 
 	BeforeEach(func() {
-		counter = &Counter{}
+		gauge = &Gauge{}
 	})
 
 	It("tracks the maximum value seen since last checked", func() {
-		counter.Inc()
-		counter.Inc()
-		counter.Dec()
+		gauge.Inc()
+		gauge.Inc()
+		gauge.Dec()
 
-		Expect(counter.Max()).To(Equal(2))
+		Expect(gauge.Max()).To(Equal(2))
 	})
 
 	It("deals with concurrent increments correctly", func() {
@@ -35,23 +35,23 @@ var _ = Describe("Counter", func() {
 
 		for i := 0; i < totalIncs; i++ {
 			go func() {
-				counter.Inc()
+				gauge.Inc()
 				wg.Done()
 			}()
 		}
 
 		wg.Wait()
 
-		Expect(counter.Max()).To(Equal(totalIncs))
+		Expect(gauge.Max()).To(Equal(totalIncs))
 	})
 
 	It("resets the max to the current value when observed", func() {
-		counter.Inc()
-		counter.Inc()
-		counter.Dec()
+		gauge.Inc()
+		gauge.Inc()
+		gauge.Dec()
 
-		Expect(counter.Max()).To(Equal(2))
+		Expect(gauge.Max()).To(Equal(2))
 
-		Expect(counter.Max()).To(Equal(1))
+		Expect(gauge.Max()).To(Equal(1))
 	})
 })

@@ -2,12 +2,12 @@ package metric
 
 import "sync/atomic"
 
-type Counter struct {
+type Gauge struct {
 	cur int64
 	max int64
 }
 
-func (c *Counter) Inc() {
+func (c *Gauge) Inc() {
 	cur := atomic.AddInt64(&c.cur, 1)
 
 	for {
@@ -22,11 +22,11 @@ func (c *Counter) Inc() {
 	}
 }
 
-func (c *Counter) Dec() {
+func (c *Gauge) Dec() {
 	atomic.AddInt64(&c.cur, -1)
 }
 
-func (c *Counter) Max() int {
+func (c *Gauge) Max() int {
 	cur := atomic.LoadInt64(&c.cur)
 	max := atomic.SwapInt64(&c.max, -1)
 
