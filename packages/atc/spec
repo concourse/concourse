@@ -65,6 +65,10 @@ files:
   - github.com/concourse/atc/web/routes/*.go # gosub
   - github.com/concourse/atc/web/triggerbuild/*.go # gosub
   - github.com/concourse/atc/worker/*.go # gosub
+  - github.com/concourse/baggageclaim/*.go # gosub
+  - github.com/concourse/baggageclaim/api/*.go # gosub
+  - github.com/concourse/baggageclaim/client/*.go # gosub
+  - github.com/concourse/baggageclaim/volume/*.go # gosub
   - github.com/felixge/tcpkeepalive/*.go # gosub
   - github.com/golang/protobuf/proto/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
