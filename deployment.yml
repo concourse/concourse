@@ -22,6 +22,7 @@ jobs:
       - {release: concourse, name: tsa}
       - {release: concourse, name: groundcrew}
       - {release: concourse, name: postgresql}
+      - {release: concourse, name: baggageclaim}
       - {release: garden-linux, name: garden}
     properties:
       atc:
@@ -104,5 +105,5 @@ update:
   canaries: 1
   max_in_flight: 3
   serial: false
-  canary_watch_time: 1000-600000
-  update_watch_time: 1000-600000
+  canary_watch_time: 1000-300000
+  update_watch_time: 1000-300000

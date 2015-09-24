@@ -143,21 +143,26 @@ func errorPolling(url string) func() error {
 	}
 }
 
-func flyWatch(jobName string) *gexec.Session {
+func flyWatch(jobName string, buildName ...string) *gexec.Session {
+	args := []string{
+		"-t", atcURL,
+		"watch",
+		"-p", pipelineName,
+		"-j", jobName,
+	}
+
+	if len(buildName) > 0 {
+		args = append(args, "-b", buildName[0])
+	}
+
 	for {
-		session := start(exec.Command(
-			flyBin,
-			"-t", atcURL,
-			"watch",
-			"-p", pipelineName,
-			"-j", jobName,
-		))
+		session := start(exec.Command(flyBin, args...))
 
 		<-session.Exited
 
 		if session.ExitCode() == 1 {
 			output := strings.TrimSpace(string(session.Err.Contents()))
-			if output == "job has no builds" {
+			if output == "job has no builds" || output == "build not found" {
 				// build hasn't started yet; keep polling
 				time.Sleep(time.Second)
 				continue
