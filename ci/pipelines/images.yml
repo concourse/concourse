@@ -45,6 +45,63 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
 
+- name: concourse-atc-ci
+  type: git
+  source:
+    uri: https://github.com/concourse/atc.git
+    paths: [Dockerfile]
+
+- name: concourse-atc-ci-image
+  type: docker-image
+  source:
+    repository: concourse/atc-ci
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
+- name: concourse-tsa-ci
+  type: git
+  source:
+    uri: https://github.com/concourse/tsa.git
+    paths: [Dockerfile]
+
+- name: concourse-tsa-ci-image
+  type: docker-image
+  source:
+    repository: concourse/tsa-ci
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
+- name: concourse-baggageclaim-ci
+  type: git
+  source:
+    uri: https://github.com/concourse/baggageclaim.git
+    paths: [Dockerfile]
+
+- name: concourse-baggageclaim-ci-image
+  type: docker-image
+  source:
+    repository: concourse/baggageclaim-ci
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
+- name: concourse-testflight
+  type: git
+  source:
+    uri: https://github.com/concourse/testflight.git
+    paths: [Dockerfile]
+
+- name: concourse-testflight-image
+  type: docker-image
+  source:
+    repository: concourse/testflight
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
+
 jobs:
 - name: build-rubinius
   plan:
@@ -66,3 +123,28 @@ jobs:
     params: {submodules: none}
   - put: concourse-concourse-ci-image
     params: {build: concourse-concourse-ci/ci/dockerfiles/concourse-ci}
+
+- name: build-atc-ci
+  plan:
+  - get: concourse-atc-ci
+  - put: concourse-atc-ci-image
+    params: {build: concourse-atc-ci}
+
+- name: build-tsa-ci
+  plan:
+  - get: concourse-tsa-ci
+  - put: concourse-tsa-ci-image
+    params: {build: concourse-tsa-ci}
+
+- name: build-baggageclaim-ci
+  plan:
+  - get: concourse-baggageclaim-ci
+  - put: concourse-baggageclaim-ci-image
+    params: {build: concourse-baggageclaim-ci}
+
+- name: build-testflight
+  plan:
+  - get: concourse-testflight
+  - put: concourse-testflight-image
+    params: {build: concourse-testflight}
+

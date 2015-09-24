@@ -13,7 +13,8 @@ for platform in linux darwin windows; do
   mkdir -p ${BOSH_INSTALL_TARGET}/${platform}/amd64
 
   GOOS=${platform} GOARCH=amd64 \
-    go build -a -tags netgo -installsuffix netgo \
+    CGO_ENABLED=0 \
+    go build \
     -o ${BOSH_INSTALL_TARGET}/${platform}/amd64/fly \
     ${REPO_NAME}
 done
