@@ -57,7 +57,7 @@ var _ = Describe("Heartbeater", func() {
 		}
 
 		expectedWorker = atc.Worker{
-			Addr:             addrToRegister,
+			GardenAddr:       addrToRegister,
 			ActiveContainers: 2,
 			ResourceTypes:    resourceTypes,
 			Platform:         "some-platform",
@@ -96,7 +96,7 @@ var _ = Describe("Heartbeater", func() {
 				fakeGardenClient,
 				atcEndpoint,
 				atc.Worker{
-					Addr:          addrToRegister,
+					GardenAddr:    addrToRegister,
 					ResourceTypes: resourceTypes,
 					Platform:      "some-platform",
 					Tags:          []string{"some", "tags"},

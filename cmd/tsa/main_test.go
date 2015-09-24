@@ -229,7 +229,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 						BeforeEach(func() {
 							workerPayload = atc.Worker{
-								Addr: gardenAddr,
+								GardenAddr: gardenAddr,
 
 								Platform: "linux",
 								Tags:     []string{"some", "tags"},
@@ -431,7 +431,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 						It("forwards garden API calls through the tunnel", func() {
 							registration := <-registered
-							addr := registration.worker.Addr
+							addr := registration.worker.GardenAddr
 
 							client := gclient.New(gconn.New("tcp", addr))
 
@@ -450,11 +450,11 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 							// shortcut for equality w/out checking addr
 							expectedWorkerPayload := workerPayload
-							expectedWorkerPayload.Addr = registration.worker.Addr
+							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
 							expectedWorkerPayload.ActiveContainers = 3
 							Ω(registration.worker).Should(Equal(expectedWorkerPayload))
 
-							host, _, err := net.SplitHostPort(registration.worker.Addr)
+							host, _, err := net.SplitHostPort(registration.worker.GardenAddr)
 							Ω(err).ShouldNot(HaveOccurred())
 							Ω(host).Should(Equal(forwardHost))
 
@@ -464,11 +464,11 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 							// shortcut for equality w/out checking addr
 							expectedWorkerPayload = workerPayload
-							expectedWorkerPayload.Addr = registration.worker.Addr
+							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
 							expectedWorkerPayload.ActiveContainers = 2
 							Ω(registration.worker).Should(Equal(expectedWorkerPayload))
 
-							host, _, err = net.SplitHostPort(registration.worker.Addr)
+							host, _, err = net.SplitHostPort(registration.worker.GardenAddr)
 							Ω(err).ShouldNot(HaveOccurred())
 							Ω(host).Should(Equal(forwardHost))
 
@@ -482,11 +482,11 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 							// shortcut for equality w/out checking addr
 							expectedWorkerPayload = workerPayload
-							expectedWorkerPayload.Addr = registration.worker.Addr
+							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
 							expectedWorkerPayload.ActiveContainers = 1
 							Ω(registration.worker).Should(Equal(expectedWorkerPayload))
 
-							host, _, err = net.SplitHostPort(registration.worker.Addr)
+							host, _, err = net.SplitHostPort(registration.worker.GardenAddr)
 							Ω(err).ShouldNot(HaveOccurred())
 							Ω(host).Should(Equal(forwardHost))
 
