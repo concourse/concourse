@@ -191,6 +191,26 @@ shared by everything in the Riemann community but we find that it works well.
       }
     }
   }
+
+  \define-metric{http response time}{
+    This metric is emitted for each HTTP request to an ATC (both API and web
+    requests). It contains the duration (in milliseconds) for each request and
+    is useful for finding slow requests.
+
+    \larger{Attributes}
+    \definitions{
+      \item{
+        \code{route}
+      }{
+        The route which the HTTP request matched. i.e. /builds/:id
+      }
+      \item{
+        \code{path}
+      }{
+        The literal path of the HTTP request. i.e. /builds/1234
+      }
+    }
+  }
 }
 
 \section{Service and Infrastructure Metrics}{
