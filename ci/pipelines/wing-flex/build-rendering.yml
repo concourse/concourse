@@ -1,0 +1,397 @@
+groups: []
+
+resources:
+- name: repo
+  type: git
+  source:
+    branch: master
+    uri: {{repo-uri}}
+    private_key: {{repo-key}}
+
+jobs:
+- name: do-in-agg
+  plan:
+  - aggregate:
+    - do:
+      - task: agg-do-1
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1;exit 0;
+      - task: agg-do-2
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1;exit 0;
+    - task: agg-1
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+    - task: agg-2
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1; exit 0;
+    - task: agg-3
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1; exit 0;
+    ensure:
+      task: agg-ensure
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+
+- name: putgets
+  plan:
+  - aggregate:
+    - do:
+      - get: repo
+      - task: make-a-commit
+        config:
+          platform: linux
+          image: docker:///concourse/pool-resource-test
+          run:
+            path: sh
+            args:
+            - -c
+            - cd  repo; touch `date +%s`; git config --global user.email
+              "derp@herp.com"; git config --global user.name "ci derpin herps"; git
+              add .; git commit -m 'makein a commit yo';
+          inputs:
+          - name: repo
+            path: ""
+      ensure:
+        task: do-ensure
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1;exit 0;
+    - task: agg-1
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+    - task: agg-2
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1; exit 0;
+    - task: agg-3
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1; exit 0;
+  - put: repo
+    params:
+      repository: make-a-commit/repo
+
+- name: agg-in-do
+  plan:
+  - do:
+    - task: do-2
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+    - aggregate:
+      - task: do-agg-1
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1;exit 0;
+      - task: do-agg-2
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1; exit 0;
+      - task: do-agg-3
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1; exit 0;
+    - task: do-3
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+    - do:
+      - task: do-do-1
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1;exit 0;
+      - task: do-do-2
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1;exit 0;
+    ensure:
+      task: do-ensure
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+
+- name: all-the-things
+  plan:
+  - aggregate:
+    - task: vanilla-agg-1
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+    - task: vanilla-agg-2
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+    ensure:
+      task: agg-ensure
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+  - do:
+    - task: vanilla-do-1
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+    - task: vanilla-do-2
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+  - do:
+    - task: do-1
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+    - aggregate:
+      - task: do-agg-1
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1;exit 0;
+      - task: do-agg-2
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1; exit 0;
+      ensure:
+        task: agg-ensure
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1;exit 0;
+    - task: do-2
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+    ensure:
+      task: do-ensure
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+  - do:
+    - aggregate:
+      - task: agg-first-do-agg-1
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1;exit 0;
+      - task: agg-first-do-agg-2
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1; exit 0;
+      ensure:
+        task: agg-ensure
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1;exit 0;
+    - task: agg-first-do-1
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+    - task: agg-first-do-2
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+    ensure:
+      task: do-ensure
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+  - aggregate:
+    - task: agg-1
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+    - do:
+      - task: agg-do-1
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1;exit 0;
+      - task: agg-do-2
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1; exit 0;
+    - task: agg-2
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+  - aggregate:
+    - do:
+      - task: do-first-agg-do-1
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1;exit 0;
+      - task: do-first-agg-do-2
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1; exit 0;
+    - task: do-first-agg-1
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+    - task: do-first-agg-2
+      config:
+        run:
+          path: sh
+          args:
+          - -c
+          - sleep 1;exit 0;
+  - aggregate:
+    - do:
+      - task: agg-with-do-only-1-do-1
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1;exit 0;
+      - task: agg-with-do-only-1-do-2
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1; exit 0;
+    - do:
+      - task: agg-with-do-only-2-do-1
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1;exit 0;
+      - task: agg-with-do-only-2-do-2
+        config:
+          run:
+            path: sh
+            args:
+            - -c
+            - sleep 1; exit 0;
