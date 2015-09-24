@@ -109,6 +109,8 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 		var cachedVolume baggageclaim.Volume
 		if len(cachedVolumes) == 0 {
+			ras.Logger.Debug("no-cache-found")
+
 			shouldRunGet = true
 
 			cachedVolume, err = vm.CreateEmptyVolume(baggageclaim.VolumeSpec{
@@ -123,8 +125,12 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 			if err != nil {
 				return err
 			}
+
+			ras.Logger.Info("initializing-cache", lager.Data{"handle": cachedVolume.Handle()})
 		} else {
 			cachedVolume = cachedVolumes[0]
+
+			ras.Logger.Info("found-cache", lager.Data{"handle": cachedVolume.Handle()})
 		}
 
 		ras.Volume = cachedVolume
@@ -168,13 +174,17 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 			}
 
 			if len(mountedVolumes) > 0 {
-				// this is to handle the upgrade path where the container won't
-				// initially have a volume mounted to it; the cache won't be populated,
-				// so we should just ignore it
+				ras.Logger.Info("cache-initialized")
+
 				err = vm.SetProperty(mount.Volume.Handle(), "initialized", "yep")
 				if err != nil {
 					return err
 				}
+			} else {
+				// this is to handle the upgrade path where the container won't
+				// initially have a volume mounted to it; the cache won't be populated,
+				// so we should just ignore it
+				ras.Logger.Info("ignoring-unpopulated-cache")
 			}
 		}
 	} else {
