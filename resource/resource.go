@@ -22,6 +22,8 @@ type Resource interface {
 
 	Release()
 	Destroy() error
+
+	VolumeHandles() ([]string, error)
 }
 
 type IOConfig struct {
@@ -92,4 +94,8 @@ func (resource *resource) Destroy() error {
 	})
 
 	return err
+}
+
+func (resource *resource) VolumeHandles() ([]string, error) {
+	return resource.container.VolumeHandles()
 }

@@ -43,7 +43,7 @@ var _ = Describe("Worker", func() {
 		name = "my-garden-worker"
 	})
 
-	JustBeforeEach(func() {
+	BeforeEach(func() {
 		worker = NewGardenWorker(
 			fakeGardenClient,
 			baggageclaimClient,
@@ -61,7 +61,16 @@ var _ = Describe("Worker", func() {
 		var hasVolumeManager bool
 
 		JustBeforeEach(func() {
-			volumeManager, hasVolumeManager = worker.VolumeManager()
+			volumeManager, hasVolumeManager = NewGardenWorker(
+				fakeGardenClient,
+				baggageclaimClient,
+				fakeClock,
+				activeContainers,
+				resourceTypes,
+				platform,
+				tags,
+				name,
+			).VolumeManager()
 		})
 
 		Context("when there is no baggageclaim client", func() {
@@ -183,6 +192,7 @@ var _ = Describe("Worker", func() {
 
 						BeforeEach(func() {
 							volume = new(bfakes.FakeVolume)
+							volume.HandleReturns("some-volume")
 							volume.PathReturns("/some/src/path")
 
 							spec = ResourceTypeContainerSpec{
@@ -202,9 +212,10 @@ var _ = Describe("Worker", func() {
 									"concourse:pipeline-name": "some-pipeline",
 									"concourse:location":      "3",
 									"concourse:check-type":    "some-check-type",
-									"concourse:check-source":  "{\"some\":\"source\"}",
+									"concourse:check-source":  `{"some":"source"}`,
 									"concourse:name":          "some-name",
 									"concourse:build-id":      "42",
+									"concourse:volumes":       `["some-volume"]`,
 								},
 								BindMounts: []garden.BindMount{
 									{
@@ -428,6 +439,52 @@ var _ = Describe("Worker", func() {
 
 				Ω(foundContainer.Handle()).Should(Equal(fakeContainer.Handle()))
 			})
+
+			Describe("the container", func() {
+				var foundContainer Container
+
+				JustBeforeEach(func() {
+					var err error
+					foundContainer, err = worker.LookupContainer(handle)
+					Ω(err).ShouldNot(HaveOccurred())
+				})
+
+				Describe("VolumeHandles", func() {
+					Context("when the concourse:volumes property is present", func() {
+						BeforeEach(func() {
+							fakeContainer.PropertyReturns(`["handle-1", "handle-2"]`, nil)
+						})
+
+						It("returns all bound volumes based on properties on the container", func() {
+							fakeContainer.PropertyReturns(`["handle-1", "handle-2"]`, nil)
+							volumes, err := foundContainer.VolumeHandles()
+							Ω(err).ShouldNot(HaveOccurred())
+
+							Ω(fakeContainer.PropertyCallCount()).Should(Equal(1))
+							Ω(fakeContainer.PropertyArgsForCall(0)).Should(Equal("concourse:volumes"))
+
+							Ω(volumes).Should(Equal([]string{"handle-1", "handle-2"}))
+						})
+					})
+
+					Context("when the concourse:volumes property is not present", func() {
+						BeforeEach(func() {
+							// TODO: #85476532
+							fakeContainer.PropertyReturns("", errors.New("nope"))
+						})
+
+						It("returns an empty slice", func() {
+							volumes, err := foundContainer.VolumeHandles()
+							Ω(err).ShouldNot(HaveOccurred())
+
+							Ω(fakeContainer.PropertyCallCount()).Should(Equal(1))
+							Ω(fakeContainer.PropertyArgsForCall(0)).Should(Equal("concourse:volumes"))
+
+							Ω(volumes).Should(Equal([]string{}))
+						})
+					})
+				})
+			})
 		})
 
 		Context("when the gardenClient returns an error", func() {
@@ -649,6 +706,17 @@ var _ = Describe("Worker", func() {
 		})
 
 		JustBeforeEach(func() {
+			worker = NewGardenWorker(
+				fakeGardenClient,
+				baggageclaimClient,
+				fakeClock,
+				activeContainers,
+				resourceTypes,
+				platform,
+				tags,
+				name,
+			)
+
 			satisfyingWorker, satisfyingErr = worker.Satisfying(spec)
 		})
 

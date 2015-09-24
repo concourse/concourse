@@ -56,6 +56,13 @@ type FakeResource struct {
 	destroyReturns     struct {
 		result1 error
 	}
+	VolumeHandlesStub        func() ([]string, error)
+	volumeHandlesMutex       sync.RWMutex
+	volumeHandlesArgsForCall []struct{}
+	volumeHandlesReturns     struct {
+		result1 []string
+		result2 error
+	}
 }
 
 func (fake *FakeResource) Type() resource.ResourceType {
@@ -223,6 +230,31 @@ func (fake *FakeResource) DestroyReturns(result1 error) {
 	fake.destroyReturns = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeResource) VolumeHandles() ([]string, error) {
+	fake.volumeHandlesMutex.Lock()
+	fake.volumeHandlesArgsForCall = append(fake.volumeHandlesArgsForCall, struct{}{})
+	fake.volumeHandlesMutex.Unlock()
+	if fake.VolumeHandlesStub != nil {
+		return fake.VolumeHandlesStub()
+	} else {
+		return fake.volumeHandlesReturns.result1, fake.volumeHandlesReturns.result2
+	}
+}
+
+func (fake *FakeResource) VolumeHandlesCallCount() int {
+	fake.volumeHandlesMutex.RLock()
+	defer fake.volumeHandlesMutex.RUnlock()
+	return len(fake.volumeHandlesArgsForCall)
+}
+
+func (fake *FakeResource) VolumeHandlesReturns(result1 []string, result2 error) {
+	fake.VolumeHandlesStub = nil
+	fake.volumeHandlesReturns = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
 }
 
 var _ resource.Resource = new(FakeResource)

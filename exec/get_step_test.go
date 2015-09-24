@@ -304,12 +304,28 @@ var _ = Describe("GardenFactory", func() {
 							fakeVersionedSource.RunReturns(nil)
 						})
 
-						It("marks the volume as initialized after the 'get' action completes", func() {
-							Ω(fakeBaggageclaimClient.SetPropertyCallCount()).Should(Equal(1))
-							handle, name, value := fakeBaggageclaimClient.SetPropertyArgsForCall(0)
-							Ω(handle).Should(Equal("created-volume-handle"))
-							Ω(name).Should(Equal("initialized"))
-							Ω(value).Should(Equal("yep"))
+						Context("when the resource has volumes (to deal with upgrade path)", func() {
+							BeforeEach(func() {
+								fakeResource.VolumeHandlesReturns([]string{"created-volume-handle"}, nil)
+							})
+
+							It("marks the volume as initialized after the 'get' action completes", func() {
+								Ω(fakeBaggageclaimClient.SetPropertyCallCount()).Should(Equal(1))
+								handle, name, value := fakeBaggageclaimClient.SetPropertyArgsForCall(0)
+								Ω(handle).Should(Equal("created-volume-handle"))
+								Ω(name).Should(Equal("initialized"))
+								Ω(value).Should(Equal("yep"))
+							})
+						})
+
+						Context("when the resource does not have volumes (to deal with upgrade path)", func() {
+							BeforeEach(func() {
+								fakeResource.VolumeHandlesReturns([]string{}, nil)
+							})
+
+							It("does not mark the volume as initialized", func() {
+								Ω(fakeBaggageclaimClient.SetPropertyCallCount()).Should(Equal(0))
+							})
 						})
 					})
 

@@ -159,9 +159,19 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 		}
 
 		if mount.Volume != nil {
-			err = vm.SetProperty(mount.Volume.Handle(), "initialized", "yep")
+			mountedVolumes, err := ras.Resource.VolumeHandles()
 			if err != nil {
 				return err
+			}
+
+			if len(mountedVolumes) > 0 {
+				// this is to handle the upgrade path where the container won't
+				// initially have a volume mounted to it; the cache won't be populated,
+				// so we should just ignore it
+				err = vm.SetProperty(mount.Volume.Handle(), "initialized", "yep")
+				if err != nil {
+					return err
+				}
 			}
 		}
 	} else {

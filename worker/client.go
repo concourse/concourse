@@ -36,6 +36,8 @@ type Container interface {
 	Release()
 
 	IdentifierFromProperties() Identifier
+
+	VolumeHandles() ([]string, error)
 }
 
 type Identifier struct {

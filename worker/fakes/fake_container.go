@@ -202,6 +202,13 @@ type FakeContainer struct {
 	identifierFromPropertiesReturns     struct {
 		result1 worker.Identifier
 	}
+	VolumeHandlesStub        func() ([]string, error)
+	volumeHandlesMutex       sync.RWMutex
+	volumeHandlesArgsForCall []struct{}
+	volumeHandlesReturns     struct {
+		result1 []string
+		result2 error
+	}
 }
 
 func (fake *FakeContainer) Handle() string {
@@ -922,6 +929,31 @@ func (fake *FakeContainer) IdentifierFromPropertiesReturns(result1 worker.Identi
 	fake.identifierFromPropertiesReturns = struct {
 		result1 worker.Identifier
 	}{result1}
+}
+
+func (fake *FakeContainer) VolumeHandles() ([]string, error) {
+	fake.volumeHandlesMutex.Lock()
+	fake.volumeHandlesArgsForCall = append(fake.volumeHandlesArgsForCall, struct{}{})
+	fake.volumeHandlesMutex.Unlock()
+	if fake.VolumeHandlesStub != nil {
+		return fake.VolumeHandlesStub()
+	} else {
+		return fake.volumeHandlesReturns.result1, fake.volumeHandlesReturns.result2
+	}
+}
+
+func (fake *FakeContainer) VolumeHandlesCallCount() int {
+	fake.volumeHandlesMutex.RLock()
+	defer fake.volumeHandlesMutex.RUnlock()
+	return len(fake.volumeHandlesArgsForCall)
+}
+
+func (fake *FakeContainer) VolumeHandlesReturns(result1 []string, result2 error) {
+	fake.VolumeHandlesStub = nil
+	fake.volumeHandlesReturns = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
 }
 
 var _ worker.Container = new(FakeContainer)

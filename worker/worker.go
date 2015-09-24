@@ -108,6 +108,13 @@ dance:
 					Mode:    garden.BindMountModeRW,
 				},
 			}
+
+			volumesJSON, err := json.Marshal([]string{s.Volume.Handle()})
+			if err != nil {
+				return nil, err
+			}
+
+			gardenSpec.Properties["concourse:volumes"] = string(volumesJSON)
 		}
 
 		for _, t := range worker.resourceTypes {
@@ -367,6 +374,21 @@ func (container *gardenWorkerContainer) initializeIdentifier() error {
 
 func (container *gardenWorkerContainer) IdentifierFromProperties() Identifier {
 	return container.identifier
+}
+
+func (container *gardenWorkerContainer) VolumeHandles() ([]string, error) {
+	handlesJSON, err := container.Property("concourse:volumes")
+	if err != nil {
+		return []string{}, nil
+	}
+
+	var handles []string
+	err = json.Unmarshal([]byte(handlesJSON), &handles)
+	if err != nil {
+		return nil, err
+	}
+
+	return handles, nil
 }
 
 func (container *gardenWorkerContainer) heartbeat(pacemaker clock.Ticker) {

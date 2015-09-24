@@ -50,6 +50,36 @@ var _ = Describe("Resource", func() {
 		})
 	})
 
+	Describe("VolumeHandles", func() {
+		Context("when the concourse-volumes property is present", func() {
+			BeforeEach(func() {
+				fakeContainer.VolumeHandlesReturns([]string{"handle-1", "handle-2"}, nil)
+			})
+
+			It("returns the container's volume handles", func() {
+				volumes, err := resource.VolumeHandles()
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(fakeContainer.VolumeHandlesCallCount()).Should(Equal(1))
+
+				Ω(volumes).Should(Equal([]string{"handle-1", "handle-2"}))
+			})
+		})
+
+		Context("when getting the volumes fails", func() {
+			disaster := errors.New("nope")
+
+			BeforeEach(func() {
+				fakeContainer.VolumeHandlesReturns(nil, disaster)
+			})
+
+			It("returns the error", func() {
+				_, err := resource.VolumeHandles()
+				Ω(err).Should(Equal(disaster))
+			})
+		})
+	})
+
 	Describe("Type", func() {
 		It("returns the resource's type", func() {
 			Ω(resource.Type()).Should(Equal(ResourceType("some-type")))
