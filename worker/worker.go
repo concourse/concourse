@@ -309,7 +309,6 @@ func (container *gardenWorkerContainer) Release() {
 func (container *gardenWorkerContainer) initializeIdentifier() error {
 	properties, err := container.Properties()
 	if err != nil {
-		fmt.Println("ERROR HERE")
 		return err
 	}
 
