@@ -14,9 +14,12 @@ import (
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/baggageclaim/volume"
 	"github.com/pivotal-golang/clock"
+	"github.com/pivotal-golang/lager"
 )
 
 type resourceStep struct {
+	Logger lager.Logger
+
 	WorkerClient worker.Client
 
 	ResourceConfig atc.ResourceConfig
@@ -129,7 +132,7 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 		mount.Volume = cachedVolume
 		mount.MountPath = resource.ResourcesDir("get")
 
-		cachedVolume.Heartbeat(time.Minute, clock.NewClock())
+		cachedVolume.Heartbeat(ras.Logger, time.Minute, clock.NewClock())
 	} else {
 		shouldRunGet = true
 	}

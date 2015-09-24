@@ -119,7 +119,8 @@ var _ = Describe("Exec Engine with Try", func() {
 
 			It("constructs the step correctly", func() {
 				Ω(fakeFactory.GetCallCount()).Should(Equal(1))
-				metadata, sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+				logger, metadata, sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+				Ω(logger).ShouldNot(BeNil())
 				Ω(metadata).Should(Equal(expectedMetadata))
 				Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
 				Ω(workerID).Should(Equal(worker.Identifier{

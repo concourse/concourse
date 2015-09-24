@@ -199,7 +199,8 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the steps correctly", func() {
 					Ω(fakeFactory.TaskCallCount()).Should(Equal(3))
-					sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(0)
+					logger, sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(0)
+					Ω(logger).ShouldNot(BeNil())
 					Ω(sourceName).Should(Equal(exec.SourceName("some-success-task-1")))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID: 84,
@@ -209,7 +210,8 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Ω(delegate).Should(Equal(fakeExecutionDelegate))
 
 					Ω(fakeFactory.GetCallCount()).Should(Equal(2))
-					metadata, sourceName, workerID, getDelegate, _, _, _, _ := fakeFactory.GetArgsForCall(1)
+					logger, metadata, sourceName, workerID, getDelegate, _, _, _, _ := fakeFactory.GetArgsForCall(1)
+					Ω(logger).ShouldNot(BeNil())
 					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
 					Ω(workerID).Should(Equal(worker.Identifier{
@@ -225,7 +227,8 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					_, _, location = fakeDelegate.ExecutionDelegateArgsForCall(0)
 					Ω(location).ShouldNot(BeNil())
 
-					sourceName, workerID, delegate, _, _, _ = fakeFactory.TaskArgsForCall(1)
+					logger, sourceName, workerID, delegate, _, _, _ = fakeFactory.TaskArgsForCall(1)
+					Ω(logger).ShouldNot(BeNil())
 					Ω(sourceName).Should(Equal(exec.SourceName("some-success-task-2")))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID: 84,
@@ -237,7 +240,8 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					_, _, location = fakeDelegate.ExecutionDelegateArgsForCall(1)
 					Ω(location).ShouldNot(BeNil())
 
-					sourceName, workerID, delegate, _, _, _ = fakeFactory.TaskArgsForCall(2)
+					logger, sourceName, workerID, delegate, _, _, _ = fakeFactory.TaskArgsForCall(2)
+					Ω(logger).ShouldNot(BeNil())
 					Ω(sourceName).Should(Equal(exec.SourceName("some-success-task-3")))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID: 84,
@@ -318,7 +322,8 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the step correctly", func() {
 					Ω(fakeFactory.GetCallCount()).Should(Equal(1))
-					metadata, sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+					logger, metadata, sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+					Ω(logger).ShouldNot(BeNil())
 					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
 					Ω(workerID).Should(Equal(worker.Identifier{
@@ -334,7 +339,8 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the completion hook correctly", func() {
 					Ω(fakeFactory.TaskCallCount()).Should(Equal(4))
-					sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(2)
+					logger, sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(2)
+					Ω(logger).ShouldNot(BeNil())
 					Ω(sourceName).Should(Equal(exec.SourceName("some-completion-task")))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID: 84,
@@ -349,7 +355,8 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the failure hook correctly", func() {
 					Ω(fakeFactory.TaskCallCount()).Should(Equal(4))
-					sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(0)
+					logger, sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(0)
+					Ω(logger).ShouldNot(BeNil())
 					Ω(sourceName).Should(Equal(exec.SourceName("some-failure-task")))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID: 84,
@@ -364,7 +371,8 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the success hook correctly", func() {
 					Ω(fakeFactory.TaskCallCount()).Should(Equal(4))
-					sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(1)
+					logger, sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(1)
+					Ω(logger).ShouldNot(BeNil())
 					Ω(sourceName).Should(Equal(exec.SourceName("some-success-task")))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID: 84,
@@ -379,7 +387,8 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the next step correctly", func() {
 					Ω(fakeFactory.TaskCallCount()).Should(Equal(4))
-					sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(3)
+					logger, sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(3)
+					Ω(logger).ShouldNot(BeNil())
 					Ω(sourceName).Should(Equal(exec.SourceName("some-next-task")))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID: 84,

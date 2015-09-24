@@ -243,7 +243,8 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Ω(fakeFactory.PutCallCount()).Should(Equal(2))
 
-					metadata, workerID, delegate, resourceConfig, tags, params := fakeFactory.PutArgsForCall(0)
+					logger, metadata, workerID, delegate, resourceConfig, tags, params := fakeFactory.PutArgsForCall(0)
+					Ω(logger).ShouldNot(BeNil())
 					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID: 42,
@@ -257,7 +258,8 @@ var _ = Describe("ExecEngine", func() {
 					Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
 					Ω(params).Should(Equal(atc.Params{"some": "params"}))
 
-					metadata, workerID, delegate, resourceConfig, tags, params = fakeFactory.PutArgsForCall(1)
+					logger, metadata, workerID, delegate, resourceConfig, tags, params = fakeFactory.PutArgsForCall(1)
+					Ω(logger).ShouldNot(BeNil())
 					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID: 42,
@@ -279,7 +281,8 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Ω(fakeFactory.DependentGetCallCount()).Should(Equal(2))
 
-					metadata, sourceName, workerID, delegate, resourceConfig, tags, params := fakeFactory.DependentGetArgsForCall(0)
+					logger, metadata, sourceName, workerID, delegate, resourceConfig, tags, params := fakeFactory.DependentGetArgsForCall(0)
+					Ω(logger).ShouldNot(BeNil())
 					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID: 42,
@@ -298,7 +301,8 @@ var _ = Describe("ExecEngine", func() {
 					Ω(resourceConfig.Type).Should(Equal("some-type"))
 					Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
 					Ω(params).Should(Equal(atc.Params{"another": "params"}))
-					metadata, sourceName, workerID, delegate, resourceConfig, tags, params = fakeFactory.DependentGetArgsForCall(1)
+					logger, metadata, sourceName, workerID, delegate, resourceConfig, tags, params = fakeFactory.DependentGetArgsForCall(1)
+					Ω(logger).ShouldNot(BeNil())
 					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID: 42,
@@ -355,7 +359,8 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Ω(fakeFactory.GetCallCount()).Should(Equal(1))
 
-					metadata, sourceName, workerID, delegate, resourceConfig, params, tags, version := fakeFactory.GetArgsForCall(0)
+					logger, metadata, sourceName, workerID, delegate, resourceConfig, params, tags, version := fakeFactory.GetArgsForCall(0)
+					Ω(logger).ShouldNot(BeNil())
 					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
 					Ω(workerID).Should(Equal(worker.Identifier{
@@ -442,7 +447,8 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Ω(fakeFactory.TaskCallCount()).Should(Equal(1))
 
-					sourceName, workerID, delegate, privileged, tags, configSource := fakeFactory.TaskArgsForCall(0)
+					logger, sourceName, workerID, delegate, privileged, tags, configSource := fakeFactory.TaskArgsForCall(0)
+					Ω(logger).ShouldNot(BeNil())
 					Ω(sourceName).Should(Equal(exec.SourceName("some-task")))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID:      42,
@@ -493,7 +499,7 @@ var _ = Describe("ExecEngine", func() {
 						build.Resume(logger)
 						Ω(fakeFactory.TaskCallCount()).Should(Equal(1))
 
-						_, _, _, privileged, _, _ := fakeFactory.TaskArgsForCall(0)
+						_, _, _, _, privileged, _, _ := fakeFactory.TaskArgsForCall(0)
 						Ω(privileged).Should(Equal(exec.Privileged(true)))
 					})
 				})
@@ -565,7 +571,8 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Ω(fakeFactory.PutCallCount()).Should(Equal(1))
 
-					metadata, workerID, delegate, resourceConfig, tags, params := fakeFactory.PutArgsForCall(0)
+					logger, metadata, workerID, delegate, resourceConfig, tags, params := fakeFactory.PutArgsForCall(0)
+					Ω(logger).ShouldNot(BeNil())
 					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID:      42,
@@ -598,7 +605,8 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Ω(fakeFactory.DependentGetCallCount()).Should(Equal(1))
 
-					metadata, sourceName, workerID, delegate, resourceConfig, tags, params := fakeFactory.DependentGetArgsForCall(0)
+					logger, metadata, sourceName, workerID, delegate, resourceConfig, tags, params := fakeFactory.DependentGetArgsForCall(0)
+					Ω(logger).ShouldNot(BeNil())
 					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID:      42,

@@ -71,6 +71,7 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 	}
 
 	return build.factory.Task(
+		logger,
 		exec.SourceName(plan.Task.Name),
 		build.taskIdentifier(plan.Task.Name, location),
 		build.delegate.ExecutionDelegate(logger, *plan.Task, location),
@@ -91,6 +92,7 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 	}
 
 	return build.factory.Get(
+		logger,
 		build.stepMetadata,
 		exec.SourceName(plan.Get.Name),
 		build.getIdentifier(plan.Get.Name, location),
@@ -117,6 +119,7 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 	}
 
 	return build.factory.Put(
+		logger,
 		build.stepMetadata,
 		build.putIdentifier(plan.Put.Name, location),
 		build.delegate.OutputDelegate(logger, *plan.Put, location),
@@ -142,6 +145,7 @@ func (build *execBuild) buildDependentGetStep(logger lager.Logger, plan atc.Plan
 
 	getPlan := plan.DependentGet.GetPlan()
 	return build.factory.DependentGet(
+		logger,
 		build.stepMetadata,
 		exec.SourceName(getPlan.Name),
 		build.getIdentifier(getPlan.Name, location),

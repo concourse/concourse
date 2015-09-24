@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/cloudfoundry-incubator/garden"
+	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/resource"
@@ -37,8 +38,19 @@ func NewGardenFactory(
 	}
 }
 
-func (factory *gardenFactory) DependentGet(stepMetadata StepMetadata, sourceName SourceName, id worker.Identifier, delegate GetDelegate, config atc.ResourceConfig, tags atc.Tags, params atc.Params) StepFactory {
+func (factory *gardenFactory) DependentGet(
+	logger lager.Logger,
+	stepMetadata StepMetadata,
+	sourceName SourceName,
+	id worker.Identifier,
+	delegate GetDelegate,
+	config atc.ResourceConfig,
+	tags atc.Tags,
+	params atc.Params,
+) StepFactory {
 	return resourceStep{
+		Logger: logger,
+
 		ResourceConfig: config,
 
 		TrackerFactory: factory.trackerFactory,
@@ -68,6 +80,7 @@ func (factory *gardenFactory) DependentGet(stepMetadata StepMetadata, sourceName
 }
 
 func (factory *gardenFactory) Get(
+	logger lager.Logger,
 	stepMetadata StepMetadata,
 	sourceName SourceName,
 	id worker.Identifier,
@@ -78,6 +91,8 @@ func (factory *gardenFactory) Get(
 	version atc.Version,
 ) StepFactory {
 	return resourceStep{
+		Logger: logger,
+
 		ResourceConfig: config,
 		Version:        version,
 		Params:         params,
@@ -108,8 +123,18 @@ func (factory *gardenFactory) Get(
 	}
 }
 
-func (factory *gardenFactory) Put(stepMetadata StepMetadata, id worker.Identifier, delegate PutDelegate, config atc.ResourceConfig, tags atc.Tags, params atc.Params) StepFactory {
+func (factory *gardenFactory) Put(
+	logger lager.Logger,
+	stepMetadata StepMetadata,
+	id worker.Identifier,
+	delegate PutDelegate,
+	config atc.ResourceConfig,
+	tags atc.Tags,
+	params atc.Params,
+) StepFactory {
 	return resourceStep{
+		Logger: logger,
+
 		ResourceConfig: config,
 
 		TrackerFactory: factory.trackerFactory,
@@ -135,7 +160,15 @@ func (factory *gardenFactory) Put(stepMetadata StepMetadata, id worker.Identifie
 	}
 }
 
-func (factory *gardenFactory) Task(sourceName SourceName, id worker.Identifier, delegate TaskDelegate, privileged Privileged, tags atc.Tags, configSource TaskConfigSource) StepFactory {
+func (factory *gardenFactory) Task(
+	logger lager.Logger,
+	sourceName SourceName,
+	id worker.Identifier,
+	delegate TaskDelegate,
+	privileged Privileged,
+	tags atc.Tags,
+	configSource TaskConfigSource,
+) StepFactory {
 	artifactsRoot := filepath.Join("/tmp", "build", factory.uuidGenerator())
 
 	return taskStep{

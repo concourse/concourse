@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-golang/clock"
+	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -100,7 +101,18 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			step = factory.Get(stepMetadata, sourceName, identifier, getDelegate, resourceConfig, params, tags, version).Using(inStep, repo)
+			step = factory.Get(
+				lagertest.NewTestLogger("test"),
+				stepMetadata,
+				sourceName,
+				identifier,
+				getDelegate,
+				resourceConfig,
+				params,
+				tags,
+				version,
+			).Using(inStep, repo)
+
 			process = ifrit.Invoke(step)
 		})
 
@@ -169,7 +181,8 @@ var _ = Describe("GardenFactory", func() {
 
 					It("starts heartbeating to the volume", func() {
 						Ω(foundVolume.HeartbeatCallCount()).Should(Equal(1))
-						interval, hClock := foundVolume.HeartbeatArgsForCall(0)
+						logger, interval, hClock := foundVolume.HeartbeatArgsForCall(0)
+						Ω(logger).ShouldNot(BeNil())
 						Ω(interval).Should(Equal(time.Minute))
 						Ω(hClock).Should(Equal(clock.NewClock()))
 					})
@@ -257,7 +270,8 @@ var _ = Describe("GardenFactory", func() {
 
 					It("starts heartbeating to the volume", func() {
 						Ω(createdVolume.HeartbeatCallCount()).Should(Equal(1))
-						interval, hClock := createdVolume.HeartbeatArgsForCall(0)
+						logger, interval, hClock := createdVolume.HeartbeatArgsForCall(0)
+						Ω(logger).ShouldNot(BeNil())
 						Ω(interval).Should(Equal(time.Minute))
 						Ω(hClock).Should(Equal(clock.NewClock()))
 					})

@@ -161,7 +161,8 @@ var _ = Describe("Exec Engine with Timeout", func() {
 					Ω(err).ShouldNot(HaveOccurred())
 					build.Resume(logger)
 					Ω(fakeFactory.PutCallCount()).Should(Equal(1))
-					metadata, workerID, delegate, resourceConfig, _, _ := fakeFactory.PutArgsForCall(0)
+					logger, metadata, workerID, delegate, resourceConfig, _, _ := fakeFactory.PutArgsForCall(0)
+					Ω(logger).ShouldNot(BeNil())
 					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(workerID).Should(Equal(worker.Identifier{
 						BuildID:      84,
@@ -281,7 +282,8 @@ var _ = Describe("Exec Engine with Timeout", func() {
 
 				It("constructs the step correctly", func() {
 					Ω(fakeFactory.GetCallCount()).Should(Equal(1))
-					metadata, sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+					logger, metadata, sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+					Ω(logger).ShouldNot(BeNil())
 					Ω(metadata).Should(Equal(expectedMetadata))
 					Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
 					Ω(workerID).Should(Equal(worker.Identifier{

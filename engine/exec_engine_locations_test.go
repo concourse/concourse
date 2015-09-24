@@ -96,7 +96,8 @@ var _ = Describe("Exec Engine Locations", func() {
 				build.Resume(logger)
 
 				Ω(fakeFactory.GetCallCount()).Should(Equal(1))
-				metadata, sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+				logger, metadata, sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+				Ω(logger).ShouldNot(BeNil())
 				Ω(metadata).Should(Equal(expectedMetadata))
 				Ω(sourceName).Should(Equal(exec.SourceName("some input")))
 				Ω(workerID).Should(Equal(worker.Identifier{
@@ -149,7 +150,8 @@ var _ = Describe("Exec Engine Locations", func() {
 				build.Resume(logger)
 
 				Ω(fakeFactory.PutCallCount()).Should(Equal(1))
-				metadata, workerID, delegate, _, _, _ := fakeFactory.PutArgsForCall(0)
+				logger, metadata, workerID, delegate, _, _, _ := fakeFactory.PutArgsForCall(0)
+				Ω(logger).ShouldNot(BeNil())
 				Ω(metadata).Should(Equal(expectedMetadata))
 				Ω(workerID).Should(Equal(worker.Identifier{
 					BuildID: 84,
@@ -202,7 +204,8 @@ var _ = Describe("Exec Engine Locations", func() {
 				build.Resume(logger)
 
 				Ω(fakeFactory.TaskCallCount()).Should(Equal(1))
-				sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(0)
+				logger, sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(0)
+				Ω(logger).ShouldNot(BeNil())
 				Ω(sourceName).Should(Equal(exec.SourceName("some task")))
 				Ω(workerID).Should(Equal(worker.Identifier{
 					BuildID: 84,
@@ -254,7 +257,8 @@ var _ = Describe("Exec Engine Locations", func() {
 				build.Resume(logger)
 
 				Ω(fakeFactory.DependentGetCallCount()).Should(Equal(1))
-				metadata, sourceName, workerID, delegate, _, _, _ := fakeFactory.DependentGetArgsForCall(0)
+				logger, metadata, sourceName, workerID, delegate, _, _, _ := fakeFactory.DependentGetArgsForCall(0)
+				Ω(logger).ShouldNot(BeNil())
 				Ω(metadata).Should(Equal(expectedMetadata))
 				Ω(sourceName).Should(Equal(exec.SourceName("some input")))
 				Ω(workerID).Should(Equal(worker.Identifier{

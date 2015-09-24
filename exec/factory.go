@@ -5,16 +5,17 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
+	"github.com/pivotal-golang/lager"
 )
 
 //go:generate counterfeiter . Factory
 
 type Factory interface {
-	Get(StepMetadata, SourceName, worker.Identifier, GetDelegate, atc.ResourceConfig, atc.Params, atc.Tags, atc.Version) StepFactory
-	Put(StepMetadata, worker.Identifier, PutDelegate, atc.ResourceConfig, atc.Tags, atc.Params) StepFactory
-	DependentGet(StepMetadata, SourceName, worker.Identifier, GetDelegate, atc.ResourceConfig, atc.Tags, atc.Params) StepFactory
+	Get(lager.Logger, StepMetadata, SourceName, worker.Identifier, GetDelegate, atc.ResourceConfig, atc.Params, atc.Tags, atc.Version) StepFactory
+	Put(lager.Logger, StepMetadata, worker.Identifier, PutDelegate, atc.ResourceConfig, atc.Tags, atc.Params) StepFactory
+	DependentGet(lager.Logger, StepMetadata, SourceName, worker.Identifier, GetDelegate, atc.ResourceConfig, atc.Tags, atc.Params) StepFactory
 
-	Task(SourceName, worker.Identifier, TaskDelegate, Privileged, atc.Tags, TaskConfigSource) StepFactory
+	Task(lager.Logger, SourceName, worker.Identifier, TaskDelegate, Privileged, atc.Tags, TaskConfigSource) StepFactory
 }
 
 type StepMetadata interface {
