@@ -5,7 +5,7 @@ RUN apt-get update && apt-get -y install build-essential curl
 
 # Go
 RUN echo "deb http://mirror.anl.gov/pub/ubuntu trusty main universe" >> /etc/apt/sources.list
-RUN curl https://storage.googleapis.com/golang/go1.4.2.linux-amd64.tar.gz | tar -C /usr/local -xzf -
+RUN curl https://storage.googleapis.com/golang/go1.5.1.linux-amd64.tar.gz | tar -C /usr/local -xzf -
 ENV PATH $PATH:/usr/local/go/bin
 
 # PostgreSQL
