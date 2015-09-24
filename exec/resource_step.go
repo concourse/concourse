@@ -3,6 +3,7 @@ package exec
 import (
 	"archive/tar"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"time"
@@ -154,6 +155,9 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 				return err
 			}
 		}
+	} else {
+		fmt.Fprintf(ras.Delegate.Stdout(), "using version of resource found in cache\n")
+		close(ready)
 	}
 
 	if ras.SourceName != "" {

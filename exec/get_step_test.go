@@ -215,6 +215,10 @@ var _ = Describe("GardenFactory", func() {
 						Ω(fakeVersionedSource.RunCallCount()).Should(Equal(0))
 					})
 
+					It("logs a helpful message", func() {
+						Ω(stdoutBuf).Should(gbytes.Say("using version of resource found in cache\n"))
+					})
+
 					Describe("releasing", func() {
 						It("releases the volume and the resource", func() {
 							Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
