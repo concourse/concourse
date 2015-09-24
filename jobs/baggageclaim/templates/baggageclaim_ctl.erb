@@ -40,7 +40,9 @@ function permit_device_control() {
   fi
 
   # permit our cgroup to do everything with all devices
-  echo a > ${cgroup_dir}${devices_subdir}/devices.allow
+  # ignore failure in case something has already done this; echo appears to
+  # return EINVAL, possibly because devices this affects are already in use
+  echo a > ${cgroup_dir}${devices_subdir}/devices.allow || true
 }
 
 case $1 in
