@@ -80,6 +80,7 @@ func (factory *gardenFactory) Get(
 	return resourceStep{
 		ResourceConfig: config,
 		Version:        version,
+		Params:         params,
 
 		TrackerFactory: factory.trackerFactory,
 		WorkerClient:   factory.workerClient,

@@ -162,6 +162,7 @@ var _ = Describe("GardenFactory", func() {
 							"resource-type":    "some-resource-type",
 							"resource-version": `{"some-version":"some-value"}`,
 							"resource-source":  `{"some":"source"}`,
+							"resource-params":  `{"some-param":"some-value"}`,
 							"initialized":      "yep",
 						}))
 					})
@@ -248,6 +249,7 @@ var _ = Describe("GardenFactory", func() {
 								"resource-type":    "some-resource-type",
 								"resource-version": `{"some-version":"some-value"}`,
 								"resource-source":  `{"some":"source"}`,
+								"resource-params":  `{"some-param":"some-value"}`,
 							},
 							TTLInSeconds: 60 * 60 * 24,
 						}))

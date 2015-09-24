@@ -17,9 +17,11 @@ import (
 )
 
 type resourceStep struct {
-	WorkerClient   worker.Client
+	WorkerClient worker.Client
+
 	ResourceConfig atc.ResourceConfig
 	Version        atc.Version
+	Params         atc.Params
 
 	StepMetadata StepMetadata
 
@@ -86,10 +88,16 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 			return err
 		}
 
+		params, err := json.Marshal(ras.Params)
+		if err != nil {
+			return err
+		}
+
 		cachedVolumes, err := vm.FindVolumes(baggageclaim.VolumeProperties{
 			"resource-type":    ras.ResourceConfig.Type,
 			"resource-version": string(version),
 			"resource-source":  string(source),
+			"resource-params":  string(params),
 			"initialized":      "yep",
 		})
 		if err != nil {
@@ -105,6 +113,7 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 					"resource-type":    ras.ResourceConfig.Type,
 					"resource-version": string(version),
 					"resource-source":  string(source),
+					"resource-params":  string(params),
 				},
 				TTLInSeconds: 60 * 60 * 24,
 			})
