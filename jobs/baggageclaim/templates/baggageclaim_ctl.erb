@@ -56,7 +56,13 @@ case $1 in
     mkdir -p $LOG_DIR
     chown -R vcap:vcap $LOG_DIR
 
-    mkdir -p /var/vcap/store/baggageclaim/volumes
+    if mountpoint -q /var/vcap/store; then
+      VOLUMES_DIR=/var/vcap/store/baggageclaim
+    else
+      VOLUMES_DIR=/var/vcap/data/baggageclaim
+    fi
+
+    mkdir -p ${VOLUMES_DIR}/volumes
 
     permit_device_control
 
@@ -67,16 +73,16 @@ case $1 in
     done
 
     /var/vcap/packages/baggageclaim/bin/fs_mounter \
-      -diskImage /var/vcap/store/baggageclaim/volumes.img \
-      -mountPath /var/vcap/store/baggageclaim/volumes \
-      -sizeInMegabytes 1024 \
+      -diskImage ${VOLUMES_DIR}/volumes.img \
+      -mountPath ${VOLUMES_DIR}/volumes \
+      -sizeInMegabytes $(df -m ${VOLUMES_DIR} | tail -n1 | awk '{print $2}') \
       1>>$LOG_DIR/fs_mounter.stdout.log \
       2>>$LOG_DIR/fs_mounter.stderr.log
 
     echo $$ > $PIDFILE
 
     exec /var/vcap/packages/baggageclaim/bin/baggageclaim \
-      -volumeDir /var/vcap/store/baggageclaim/volumes \
+      -volumeDir ${VOLUMES_DIR}/volumes \
       -listenAddress <%= p("baggageclaim.listen_addr.address") %> \
       -listenPort <%= p("baggageclaim.listen_addr.port") %> \
       -driverType btrfs \
