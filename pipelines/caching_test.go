@@ -30,7 +30,7 @@ var _ = Describe("We shouldn't reclone cached resources", func() {
 		cachedGitServer.Stop()
 	})
 
-	FIt("does not reclone on new commits", func() {
+	It("does not reclone on new commits", func() {
 		// We expect to see cloning twice - once for each resource
 		watch := flyWatch("some-passing-job", "1")
 		Ω(watch).Should(gbytes.Say("Cloning into"))
