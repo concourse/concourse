@@ -797,16 +797,32 @@ func (pdb *pipelineDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (
 		return SavedVersionedResource{}, err
 	}
 
-	// separate from above, as it conditionally inserts (can't use RETURNING)
-	err = tx.QueryRow(`
-		UPDATE versioned_resources
-		SET metadata = $4
-		WHERE resource_id = $1
-		AND type = $2
-		AND version = $3
-		RETURNING id, enabled
-	`, savedResource.ID, vr.Type, string(versionJSON), string(metadataJSON)).Scan(&id, &enabled)
+	var savedMetadata string
 
+	// separate from above, as it conditionally inserts (can't use RETURNING)
+	if len(vr.Metadata) > 0 {
+		err = tx.QueryRow(`
+			UPDATE versioned_resources
+			SET metadata = $4
+			WHERE resource_id = $1
+			AND type = $2
+			AND version = $3
+			RETURNING id, enabled, metadata
+		`, savedResource.ID, vr.Type, string(versionJSON), string(metadataJSON)).Scan(&id, &enabled, &savedMetadata)
+	} else {
+		err = tx.QueryRow(`
+			SELECT id, enabled, metadata
+			FROM versioned_resources
+			WHERE resource_id = $1
+			AND type = $2
+			AND version = $3
+		`, savedResource.ID, vr.Type, string(versionJSON)).Scan(&id, &enabled, &savedMetadata)
+	}
+	if err != nil {
+		return SavedVersionedResource{}, err
+	}
+
+	err = json.Unmarshal([]byte(savedMetadata), &vr.Metadata)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}

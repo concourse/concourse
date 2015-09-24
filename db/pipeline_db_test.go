@@ -197,9 +197,10 @@ var _ = Describe("PipelineDB", func() {
 			_, err = fetchedPipelineDB.GetRunningBuildsBySerialGroup("some-job", []string{"serial-group"})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			fetchedPipelineDB.SaveBuildInput(build.ID, db.BuildInput{
+			_, err = fetchedPipelineDB.SaveBuildInput(build.ID, db.BuildInput{
 				Name: "build-input",
 			})
+			Ω(err).ShouldNot(HaveOccurred())
 
 			_, err = fetchedPipelineDB.SaveBuildOutput(build.ID, db.VersionedResource{
 				Resource:     "some-resource",
@@ -1390,7 +1391,7 @@ var _ = Describe("PipelineDB", func() {
 				}))
 			})
 
-			It("updates metadata of existing inputs resources", func() {
+			It("updates metadata of existing versioned resources", func() {
 				build, err := pipelineDB.CreateJobBuild("some-job")
 				Ω(err).ShouldNot(HaveOccurred())
 
@@ -1427,6 +1428,44 @@ var _ = Describe("PipelineDB", func() {
 					VersionedResource: withMetadata,
 				})
 				Ω(err).ShouldNot(HaveOccurred())
+
+				inputs, _, err = pipelineDB.GetBuildResources(build.ID)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(inputs).Should(ConsistOf([]db.BuildInput{
+					{Name: "some-input", VersionedResource: withMetadata, FirstOccurrence: true},
+					{Name: "some-other-input", VersionedResource: withMetadata, FirstOccurrence: true},
+				}))
+			})
+
+			It("does not clobber metadata of existing versioned resources", func() {
+				build, err := pipelineDB.CreateJobBuild("some-job")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				withMetadata := vr2
+				withMetadata.Metadata = buildMetadata
+
+				withoutMetadata := vr2
+				withoutMetadata.Metadata = nil
+
+				savedVR, err := sqlDB.SaveBuildInput(build.ID, db.BuildInput{
+					Name:              "some-input",
+					VersionedResource: withMetadata,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(savedVR.Metadata).Should(Equal(buildMetadata))
+
+				inputs, _, err := pipelineDB.GetBuildResources(build.ID)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(inputs).Should(ConsistOf([]db.BuildInput{
+					{Name: "some-input", VersionedResource: withMetadata, FirstOccurrence: true},
+				}))
+
+				savedVR, err = sqlDB.SaveBuildInput(build.ID, db.BuildInput{
+					Name:              "some-other-input",
+					VersionedResource: withoutMetadata,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(savedVR.Metadata).Should(Equal(buildMetadata))
 
 				inputs, _, err = pipelineDB.GetBuildResources(build.ID)
 				Ω(err).ShouldNot(HaveOccurred())

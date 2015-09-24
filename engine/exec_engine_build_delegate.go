@@ -189,8 +189,16 @@ func (delegate *delegate) saveInput(logger lager.Logger, status exec.ExitStatus,
 	var metadata []atc.MetadataField
 
 	if info != nil {
-		version = info.Version
-		metadata = info.Metadata
+		savedVR, err := delegate.db.SaveBuildInput(delegate.buildID, db.BuildInput{
+			Name:              plan.Name,
+			VersionedResource: vrFromInput(plan, *info),
+		})
+		if err != nil {
+			logger.Error("failed-to-save-input", err)
+		}
+
+		version = atc.Version(savedVR.Version)
+		metadata = dbMetadataToATCMetadata(savedVR.Metadata)
 	}
 
 	ev := event.FinishGet{
@@ -209,16 +217,6 @@ func (delegate *delegate) saveInput(logger lager.Logger, status exec.ExitStatus,
 	err := delegate.db.SaveBuildEvent(delegate.buildID, ev)
 	if err != nil {
 		logger.Error("failed-to-save-input-event", err)
-	}
-
-	if info != nil {
-		_, err = delegate.db.SaveBuildInput(delegate.buildID, db.BuildInput{
-			Name:              plan.Name,
-			VersionedResource: vrFromInput(plan.Pipeline, ev),
-		})
-		if err != nil {
-			logger.Error("failed-to-save-input", err)
-		}
 	}
 }
 
@@ -479,38 +477,46 @@ func (writer *dbEventWriter) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
-func vrFromInput(pipelineName string, got event.FinishGet) db.VersionedResource {
-	metadata := make([]db.MetadataField, len(got.FetchedMetadata))
-	for i, md := range got.FetchedMetadata {
-		metadata[i] = db.MetadataField{
-			Name:  md.Name,
-			Value: md.Value,
-		}
-	}
-
+func vrFromInput(plan atc.GetPlan, fetchedInfo exec.VersionInfo) db.VersionedResource {
 	return db.VersionedResource{
-		Resource:     got.Plan.Resource,
-		PipelineName: pipelineName,
-		Type:         got.Plan.Type,
-		Version:      db.Version(got.FetchedVersion),
-		Metadata:     metadata,
+		Resource:     plan.Resource,
+		PipelineName: plan.Pipeline,
+		Type:         plan.Type,
+		Version:      db.Version(fetchedInfo.Version),
+		Metadata:     atcMetadataToDBMetadata(fetchedInfo.Metadata),
 	}
 }
 
 func vrFromOutput(pipelineName string, putted event.FinishPut) db.VersionedResource {
-	metadata := make([]db.MetadataField, len(putted.CreatedMetadata))
-	for i, md := range putted.CreatedMetadata {
-		metadata[i] = db.MetadataField{
-			Name:  md.Name,
-			Value: md.Value,
-		}
-	}
-
 	return db.VersionedResource{
 		Resource:     putted.Plan.Resource,
 		PipelineName: pipelineName,
 		Type:         putted.Plan.Type,
 		Version:      db.Version(putted.CreatedVersion),
-		Metadata:     metadata,
+		Metadata:     atcMetadataToDBMetadata(putted.CreatedMetadata),
 	}
+}
+
+func dbMetadataToATCMetadata(dbm []db.MetadataField) []atc.MetadataField {
+	metadata := make([]atc.MetadataField, len(dbm))
+	for i, md := range dbm {
+		metadata[i] = atc.MetadataField{
+			Name:  md.Name,
+			Value: md.Value,
+		}
+	}
+
+	return metadata
+}
+
+func atcMetadataToDBMetadata(atcm []atc.MetadataField) []db.MetadataField {
+	metadata := make([]db.MetadataField, len(atcm))
+	for i, md := range atcm {
+		metadata[i] = db.MetadataField{
+			Name:  md.Name,
+			Value: md.Value,
+		}
+	}
+
+	return metadata
 }

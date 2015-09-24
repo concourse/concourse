@@ -81,24 +81,11 @@ var _ = Describe("BuildDelegate", func() {
 
 			Context("when exit status is not 0", func() {
 				JustBeforeEach(func() {
-					inputDelegate.Completed(exec.ExitStatus(12), versionInfo)
+					inputDelegate.Completed(exec.ExitStatus(12), nil)
 				})
 
-				It("saves the build's input", func() {
-					Ω(fakeDB.SaveBuildInputCallCount()).Should(Equal(1))
-
-					buildID, savedInput := fakeDB.SaveBuildInputArgsForCall(0)
-					Ω(buildID).Should(Equal(42))
-					Ω(savedInput).Should(Equal(db.BuildInput{
-						Name: "some-input",
-						VersionedResource: db.VersionedResource{
-							PipelineName: "some-pipeline",
-							Resource:     "some-input-resource",
-							Type:         "some-type",
-							Version:      db.Version{"result": "version"},
-							Metadata:     []db.MetadataField{{"result", "metadata"}},
-						},
-					}))
+				It("does not save the build's input", func() {
+					Ω(fakeDB.SaveBuildInputCallCount()).Should(Equal(0))
 				})
 
 				It("saves a finish-get event", func() {
@@ -118,12 +105,9 @@ var _ = Describe("BuildDelegate", func() {
 							Type:     "some-type",
 							Version:  atc.Version{"some": "version"},
 						},
-						ExitStatus:      12,
-						FetchedVersion:  versionInfo.Version,
-						FetchedMetadata: versionInfo.Metadata,
+						ExitStatus: 12,
 					}))
 				})
-
 			})
 
 			Context("when the version is null", func() {
@@ -207,6 +191,17 @@ var _ = Describe("BuildDelegate", func() {
 
 				Context("when exit status is 0", func() {
 					BeforeEach(func() {
+						fakeDB.SaveBuildInputReturns(db.SavedVersionedResource{
+							ID: 42,
+							VersionedResource: db.VersionedResource{
+								PipelineName: "some-pipeline",
+								Resource:     "some-input-resource",
+								Type:         "some-type",
+								Version:      db.Version{"result": "version"},
+								Metadata:     []db.MetadataField{{"saved", "metadata"}},
+							},
+						}, nil)
+
 						inputDelegate.Completed(exec.ExitStatus(0), versionInfo)
 					})
 
@@ -245,7 +240,7 @@ var _ = Describe("BuildDelegate", func() {
 								Version:  atc.Version{"some": "version"},
 							},
 							FetchedVersion:  versionInfo.Version,
-							FetchedMetadata: versionInfo.Metadata,
+							FetchedMetadata: []atc.MetadataField{{"saved", "metadata"}},
 						}))
 					})
 
