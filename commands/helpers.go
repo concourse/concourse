@@ -143,6 +143,11 @@ func getBuild(client *http.Client, reqGenerator *rata.RequestGenerator, jobName 
 			log.Fatalln("failed to get builds:", err)
 		}
 
+		if buildResp.StatusCode == http.StatusNotFound {
+			fmt.Fprintln(os.Stderr, "build not found")
+			os.Exit(1)
+		}
+
 		if buildResp.StatusCode != http.StatusOK {
 			handleBadResponse("getting build", buildResp)
 		}

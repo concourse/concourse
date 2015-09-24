@@ -223,8 +223,7 @@ var _ = Describe("Hijacking", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Eventually(sess.Err.Contents).Should(ContainSubstring("bad response when getting build"))
-			Eventually(sess.Err.Contents).Should(ContainSubstring("404 Not Found"))
+			Eventually(sess.Err.Contents).Should(ContainSubstring("build not found"))
 
 			err = pty.Close()
 			Ω(err).ShouldNot(HaveOccurred())
