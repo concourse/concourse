@@ -76,7 +76,7 @@ func (heartbeater *heartbeater) Run(signals <-chan os.Signal, ready chan<- struc
 func (heartbeater *heartbeater) register(logger lager.Logger) bool {
 	heartbeatData := lager.Data{
 		"worker-platform": heartbeater.registration.Platform,
-		"worker-address":  heartbeater.registration.Addr,
+		"worker-address":  heartbeater.registration.GardenAddr,
 		"worker-tags":     strings.Join(heartbeater.registration.Tags, ","),
 	}
 

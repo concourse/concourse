@@ -240,7 +240,7 @@ func (server *registrarSSHServer) continuouslyRegisterForwardedWorker(
 		return nil, err
 	}
 
-	worker.Addr = fmt.Sprintf("%s:%d", server.forwardHost, boundPort)
+	worker.GardenAddr = fmt.Sprintf("%s:%d", server.forwardHost, boundPort)
 
 	return server.heartbeatWorker(logger, worker, channel), nil
 }
@@ -249,7 +249,7 @@ func (server *registrarSSHServer) heartbeatWorker(logger lager.Logger, worker at
 	return ifrit.Background(tsa.NewHeartbeater(
 		logger,
 		server.heartbeatInterval,
-		gclient.New(gconn.NewWithDialerAndLogger(keepaliveDialerFactory("tcp", worker.Addr), logger.Session("garden-connection"))),
+		gclient.New(gconn.NewWithDialerAndLogger(keepaliveDialerFactory("tcp", worker.GardenAddr), logger.Session("garden-connection"))),
 		server.atcEndpoint,
 		worker,
 		channel,
