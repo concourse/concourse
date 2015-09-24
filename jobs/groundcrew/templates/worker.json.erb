@@ -20,11 +20,17 @@
   garden_addr = p("groundcrew.garden.address", nil)
   garden_addr ||= "#{discover_external_ip}:7777"
 
+  baggageclaim_url = p("groundcrew.baggageclaim.url", "")
+  if baggageclaim_url.empty? && spec.job.templates.collect(&:name).include?("baggageclaim")
+    baggageclaim_url = "http://#{discover_external_ip}:7788"
+  end
+
   {
     "platform" => p("groundcrew.platform"),
     "tags" => p("groundcrew.tags"),
 
     "addr" => garden_addr,
+    "baggageclaim_url" => baggageclaim_url,
 
     "resource_types" => p("groundcrew.resource_types"),
   }.to_json
