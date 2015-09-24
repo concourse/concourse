@@ -246,6 +246,46 @@ var _ = Describe("GardenFactory", func() {
 					})
 				})
 
+				Context("when multiple volumes for the resource are already present", func() {
+					var aVolume *bfakes.FakeVolume
+					var bVolume *bfakes.FakeVolume
+
+					BeforeEach(func() {
+						aVolume = new(bfakes.FakeVolume)
+						aVolume.HandleReturns("a")
+						bVolume = new(bfakes.FakeVolume)
+						bVolume.HandleReturns("b")
+					})
+
+					Context("with a, b order", func() {
+						BeforeEach(func() {
+							fakeBaggageclaimClient.FindVolumesReturns([]baggageclaim.Volume{aVolume, bVolume}, nil)
+						})
+
+						It("selects the volume based on the lowest alphabetical name", func() {
+							Ω(aVolume.HeartbeatCallCount()).Should(Equal(1))
+							logger, interval, hClock := aVolume.HeartbeatArgsForCall(0)
+							Ω(logger).ShouldNot(BeNil())
+							Ω(interval).Should(Equal(time.Minute))
+							Ω(hClock).Should(Equal(clock.NewClock()))
+						})
+					})
+
+					Context("with b, a order", func() {
+						BeforeEach(func() {
+							fakeBaggageclaimClient.FindVolumesReturns([]baggageclaim.Volume{bVolume, aVolume}, nil)
+						})
+
+						It("selects the volume based on the lowest alphabetical name", func() {
+							Ω(aVolume.HeartbeatCallCount()).Should(Equal(1))
+							logger, interval, hClock := aVolume.HeartbeatArgsForCall(0)
+							Ω(logger).ShouldNot(BeNil())
+							Ω(interval).Should(Equal(time.Minute))
+							Ω(hClock).Should(Equal(clock.NewClock()))
+						})
+					})
+				})
+
 				Context("when a volume for the resource is not already present", func() {
 					var createdVolume *bfakes.FakeVolume
 

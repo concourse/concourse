@@ -128,7 +128,7 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 			ras.Logger.Info("initializing-cache", lager.Data{"handle": cachedVolume.Handle()})
 		} else {
-			cachedVolume = cachedVolumes[0]
+			cachedVolume = selectLowestAlphabeticalVolume(cachedVolumes)
 
 			ras.Logger.Info("found-cache", lager.Data{"handle": cachedVolume.Handle()})
 		}
@@ -269,4 +269,18 @@ func (ras *resourceStep) StreamFile(path string) (io.ReadCloser, error) {
 		Reader: tarReader,
 		Closer: out,
 	}, nil
+}
+
+func selectLowestAlphabeticalVolume(volumes []baggageclaim.Volume) baggageclaim.Volume {
+	var lowestVolume baggageclaim.Volume
+
+	for _, v := range volumes {
+		if lowestVolume == nil {
+			lowestVolume = v
+		} else if v.Handle() < lowestVolume.Handle() {
+			lowestVolume = v
+		}
+	}
+
+	return lowestVolume
 }
