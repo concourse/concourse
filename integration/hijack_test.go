@@ -146,11 +146,8 @@ var _ = Describe("Hijacking", func() {
 				),
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&name=some-step"),
-					ghttp.RespondWithJSONEncoded(200, atc.ListContainersReturn{
-						Containers: []atc.Container{
-							{ID: "container-id-1", PipelineName: "pipeline-name-1", Type: "task", Name: "some-step", BuildID: 3},
-						},
-						Errors: nil,
+					ghttp.RespondWithJSONEncoded(200, []atc.Container{
+						{ID: "container-id-1", PipelineName: "pipeline-name-1", Type: "task", Name: "some-step", BuildID: 3},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, nil),
@@ -180,10 +177,7 @@ var _ = Describe("Hijacking", func() {
 				),
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=1&name=some-step"),
-					ghttp.RespondWithJSONEncoded(200, atc.ListContainersReturn{
-						Containers: []atc.Container{},
-						Errors:     nil,
-					}),
+					ghttp.RespondWithJSONEncoded(200, []atc.Container{}),
 				),
 				hijackHandler("container-id-1", didHijack, nil),
 			)
@@ -253,12 +247,9 @@ var _ = Describe("Hijacking", func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/containers", "type=check&name=some-resource-name"),
-					ghttp.RespondWithJSONEncoded(200, atc.ListContainersReturn{
-						Containers: []atc.Container{
-							{ID: "container-id-1", PipelineName: "pipeline-name-1", Type: "check", Name: "some-resource-name", BuildID: 6},
-							{ID: "container-id-2", PipelineName: "pipeline-name-2", Type: "check", Name: "some-resource-name", BuildID: 5},
-						},
-						Errors: nil,
+					ghttp.RespondWithJSONEncoded(200, []atc.Container{
+						{ID: "container-id-1", PipelineName: "pipeline-name-1", Type: "check", Name: "some-resource-name", BuildID: 6},
+						{ID: "container-id-2", PipelineName: "pipeline-name-2", Type: "check", Name: "some-resource-name", BuildID: 5},
 					}),
 				),
 				hijackHandler("container-id-2", didHijack, nil),
@@ -347,11 +338,8 @@ var _ = Describe("Hijacking", func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/containers", containerArguments),
-					ghttp.RespondWithJSONEncoded(200, atc.ListContainersReturn{
-						Containers: []atc.Container{
-							{ID: "container-id-1", PipelineName: "a-pipeline", Type: stepType, Name: stepName, BuildID: buildID},
-						},
-						Errors: nil,
+					ghttp.RespondWithJSONEncoded(200, []atc.Container{
+						{ID: "container-id-1", PipelineName: "a-pipeline", Type: stepType, Name: stepName, BuildID: buildID},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, hijackHandlerError),

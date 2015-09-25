@@ -178,13 +178,13 @@ func getContainerIDs(c *cli.Context) []atc.Container {
 		log.Fatalln("failed to get containers:", err)
 	}
 
-	var listContainers atc.ListContainersReturn
-	err = json.NewDecoder(resp.Body).Decode(&listContainers)
+	var containers []atc.Container
+	err = json.NewDecoder(resp.Body).Decode(&containers)
 	if err != nil {
 		log.Fatalln("failed to decode containers:", err)
 	}
 
-	return listContainers.Containers
+	return containers
 }
 
 func Hijack(c *cli.Context) {
