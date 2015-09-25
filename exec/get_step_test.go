@@ -171,9 +171,9 @@ var _ = Describe("GardenFactory", func() {
 					It("looked up the volume with the correct properties", func() {
 						Ω(fakeBaggageclaimClient.ListVolumesArgsForCall(0)).Should(Equal(baggageclaim.VolumeProperties{
 							"resource-type":    "some-resource-type",
-							"resource-version": `{"some-version":"some-value"}`,
-							"resource-source":  `{"some":"source"}`,
-							"resource-params":  `{"some-param":"some-value"}`,
+							"resource-version": "6cb92cb8b58003eac3b426c4de8cdeee423f347c",
+							"resource-source":  "caf1953d52beb98221542271ee634316e6f366d5",
+							"resource-params":  "f4061a97a024867544dba8c2f1e9aa336647579d",
 							"initialized":      "yep",
 						}))
 					})
@@ -360,9 +360,9 @@ var _ = Describe("GardenFactory", func() {
 						Ω(fakeBaggageclaimClient.CreateVolumeArgsForCall(0)).Should(Equal(baggageclaim.VolumeSpec{
 							Properties: baggageclaim.VolumeProperties{
 								"resource-type":    "some-resource-type",
-								"resource-version": `{"some-version":"some-value"}`,
-								"resource-source":  `{"some":"source"}`,
-								"resource-params":  `{"some-param":"some-value"}`,
+								"resource-version": "6cb92cb8b58003eac3b426c4de8cdeee423f347c",
+								"resource-source":  "caf1953d52beb98221542271ee634316e6f366d5",
+								"resource-params":  "f4061a97a024867544dba8c2f1e9aa336647579d",
 							},
 							TTLInSeconds: 60 * 60 * 24,
 						}))

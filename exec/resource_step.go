@@ -2,6 +2,7 @@ package exec
 
 import (
 	"archive/tar"
+	"crypto/sha1"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -81,28 +82,9 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 	var cachedVolume baggageclaim.Volume
 	if hasVM && ras.Version != nil {
-		source, err := json.Marshal(ras.ResourceConfig.Source)
-		if err != nil {
-			return err
-		}
+		volumeProperties := ras.volumeProperties()
 
-		version, err := json.Marshal(ras.Version)
-		if err != nil {
-			return err
-		}
-
-		params, err := json.Marshal(ras.Params)
-		if err != nil {
-			return err
-		}
-
-		cachedVolumes, err := vm.ListVolumes(baggageclaim.VolumeProperties{
-			"resource-type":    ras.ResourceConfig.Type,
-			"resource-version": string(version),
-			"resource-source":  string(source),
-			"resource-params":  string(params),
-			"initialized":      "yep",
-		})
+		cachedVolumes, err := vm.ListVolumes(withInitialized(volumeProperties))
 		if err != nil {
 			return err
 		}
@@ -113,12 +95,7 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 			shouldRunGet = true
 
 			cachedVolume, err = vm.CreateVolume(baggageclaim.VolumeSpec{
-				Properties: baggageclaim.VolumeProperties{
-					"resource-type":    ras.ResourceConfig.Type,
-					"resource-version": string(version),
-					"resource-source":  string(source),
-					"resource-params":  string(params),
-				},
+				Properties:   volumeProperties,
 				TTLInSeconds: resourceTTLInSeconds,
 			})
 			if err != nil {
@@ -274,6 +251,36 @@ func (ras *resourceStep) StreamFile(path string) (io.ReadCloser, error) {
 		Reader: tarReader,
 		Closer: out,
 	}, nil
+}
+
+func (ras *resourceStep) volumeProperties() baggageclaim.VolumeProperties {
+	source, _ := json.Marshal(ras.ResourceConfig.Source)
+
+	version, _ := json.Marshal(ras.Version)
+
+	params, _ := json.Marshal(ras.Params)
+
+	return baggageclaim.VolumeProperties{
+		"resource-type":    ras.ResourceConfig.Type,
+		"resource-version": sha1str(version),
+		"resource-source":  sha1str(source),
+		"resource-params":  sha1str(params),
+	}
+}
+
+func withInitialized(props baggageclaim.VolumeProperties) baggageclaim.VolumeProperties {
+	newProps := baggageclaim.VolumeProperties{}
+	for k, v := range props {
+		newProps[k] = v
+	}
+
+	newProps["initialized"] = "yep"
+
+	return newProps
+}
+
+func sha1str(b []byte) string {
+	return fmt.Sprintf("%x", sha1.Sum(b))
 }
 
 func selectLowestAlphabeticalVolume(volumes []baggageclaim.Volume) baggageclaim.Volume {
