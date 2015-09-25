@@ -57,10 +57,6 @@ consul_0.5/consul:
   object_id: 97b99488-7553-47f0-8294-ad1f8533b164
   sha: f461a632165ce878045afaaf04de699510e53374
   size: 17734417
-golang_1.4/go1.4.2.src.tar.gz:
-  object_id: 774af869-61a5-47ec-955c-41b00a96e941
-  sha: 460caac03379f746c473814a65223397e9c9a2f6
-  size: 10921896
 resources/bosh-io-stemcell-resource.tar.gz:
   object_id: be0933a0-c0be-4ac7-a59c-bae77fa16705
   sha: !binary |-
@@ -88,10 +84,6 @@ resources/pool-resource.tar.gz:
   object_id: b49136bf-e4a6-4a70-908a-e4747bb7ef37
   sha: 519d9b3dd2a48e551a1eb27ff871791fcfc6e2ae
   size: 9611452
-golang_1.5/go1.5.1.src.tar.gz:
-  object_id: 1e442c8c-5fea-471e-9b96-86a7a515cd27
-  sha: 0df564746d105f4180c2b576a1553ebca9d9a124
-  size: 12049701
 golang_1.5/go1.5.1.linux-amd64.tar.gz:
   object_id: 6fe7cb89-c844-4191-a791-01a1625526ab
   sha: 46eecd290d8803887dec718c691cc243f2175fe0
