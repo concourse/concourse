@@ -19,6 +19,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 )
@@ -163,6 +164,7 @@ var _ = Describe("GardenFactory", func() {
 
 					BeforeEach(func() {
 						foundVolume = new(bfakes.FakeVolume)
+						foundVolume.HandleReturns("found-volume-handle")
 						fakeBaggageclaimClient.ListVolumesReturns([]baggageclaim.Volume{foundVolume}, nil)
 					})
 
@@ -229,15 +231,79 @@ var _ = Describe("GardenFactory", func() {
 						Ω(stdoutBuf).Should(gbytes.Say("using version of resource found in cache\n"))
 					})
 
-					Describe("releasing", func() {
-						It("releases the volume and the resource", func() {
-							Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
-							Ω(foundVolume.ReleaseCallCount()).Should(BeZero())
+					Context("when the resource has a cached volume", func() {
+						var mountedVolume *bfakes.FakeVolume
 
-							step.Release()
+						BeforeEach(func() {
+							mountedVolume = new(bfakes.FakeVolume)
+							fakeResource.CacheVolumeReturns(mountedVolume, true, nil)
+						})
 
-							Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
-							Ω(foundVolume.ReleaseCallCount()).Should(Equal(1))
+						Context("when it differs from the created volume", func() {
+							BeforeEach(func() {
+								mountedVolume.HandleReturns("some-other-handle")
+							})
+
+							It("heartbeats to the mounted volume", func() {
+								Ω(mountedVolume.HeartbeatCallCount()).Should(Equal(1))
+								logger, ttl := mountedVolume.HeartbeatArgsForCall(0)
+								Ω(logger).ShouldNot(BeNil())
+								Ω(ttl).Should(Equal(uint(60 * 60 * 24)))
+							})
+
+							Context("before we run the get", func() {
+								BeforeEach(func() {
+									mountedVolume.HeartbeatStub = func(lager.Logger, uint) {
+										Ω(fakeVersionedSource.RunCallCount()).Should(BeZero())
+									}
+								})
+
+								It("starts heartbeating", func() {
+									Ω(mountedVolume.HeartbeatCallCount()).Should(Equal(1))
+								})
+							})
+
+							It("stops heartbeating to the created volume", func() {
+								Ω(foundVolume.ReleaseCallCount()).Should(Equal(1))
+							})
+
+							Describe("releasing", func() {
+								It("releases the volume found on the resource", func() {
+									Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
+									Ω(mountedVolume.ReleaseCallCount()).Should(BeZero())
+
+									step.Release()
+
+									Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
+									Ω(mountedVolume.ReleaseCallCount()).Should(Equal(1))
+								})
+							})
+						})
+
+						Context("when it is the same as the created volume", func() {
+							BeforeEach(func() {
+								mountedVolume.HandleReturns("found-volume-handle")
+							})
+
+							It("does not heartbeat to the mounted volume", func() {
+								Ω(mountedVolume.HeartbeatCallCount()).Should(Equal(0))
+							})
+
+							It("does not stop heartbeating", func() {
+								Ω(foundVolume.ReleaseCallCount()).Should(Equal(0))
+							})
+
+							Describe("releasing", func() {
+								It("releases the volume and the resource", func() {
+									Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
+									Ω(foundVolume.ReleaseCallCount()).Should(BeZero())
+
+									step.Release()
+
+									Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
+									Ω(foundVolume.ReleaseCallCount()).Should(Equal(1))
+								})
+							})
 						})
 					})
 				})
@@ -325,6 +391,82 @@ var _ = Describe("GardenFactory", func() {
 						}))
 					})
 
+					Context("when the resource has a cached volume", func() {
+						var mountedVolume *bfakes.FakeVolume
+
+						BeforeEach(func() {
+							mountedVolume = new(bfakes.FakeVolume)
+							fakeResource.CacheVolumeReturns(mountedVolume, true, nil)
+						})
+
+						Context("when it differs from the created volume", func() {
+							BeforeEach(func() {
+								mountedVolume.HandleReturns("some-other-handle")
+							})
+
+							It("heartbeats to the mounted volume", func() {
+								Ω(mountedVolume.HeartbeatCallCount()).Should(Equal(1))
+								logger, ttl := mountedVolume.HeartbeatArgsForCall(0)
+								Ω(logger).ShouldNot(BeNil())
+								Ω(ttl).Should(Equal(uint(60 * 60 * 24)))
+							})
+
+							Context("before we run the get", func() {
+								BeforeEach(func() {
+									mountedVolume.HeartbeatStub = func(lager.Logger, uint) {
+										Ω(fakeVersionedSource.RunCallCount()).Should(BeZero())
+									}
+								})
+
+								It("starts heartbeating", func() {
+									Ω(mountedVolume.HeartbeatCallCount()).Should(Equal(1))
+								})
+							})
+
+							It("stops heartbeating to the created volume", func() {
+								Ω(createdVolume.ReleaseCallCount()).Should(Equal(1))
+							})
+
+							Describe("releasing", func() {
+								It("releases the volume found on the resource", func() {
+									Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
+									Ω(mountedVolume.ReleaseCallCount()).Should(BeZero())
+
+									step.Release()
+
+									Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
+									Ω(mountedVolume.ReleaseCallCount()).Should(Equal(1))
+								})
+							})
+						})
+
+						Context("when it is the same as the created volume", func() {
+							BeforeEach(func() {
+								mountedVolume.HandleReturns("created-volume-handle")
+							})
+
+							It("does not heartbeat to the mounted volume", func() {
+								Ω(mountedVolume.HeartbeatCallCount()).Should(Equal(0))
+							})
+
+							It("does not stop heartbeating", func() {
+								Ω(createdVolume.ReleaseCallCount()).Should(Equal(0))
+							})
+
+							Describe("releasing", func() {
+								It("releases the volume and the resource", func() {
+									Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
+									Ω(createdVolume.ReleaseCallCount()).Should(BeZero())
+
+									step.Release()
+
+									Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
+									Ω(createdVolume.ReleaseCallCount()).Should(Equal(1))
+								})
+							})
+						})
+					})
+
 					It("gets the resource with the correct source, params, and version", func() {
 						Ω(fakeResource.GetCallCount()).Should(Equal(1))
 
@@ -366,7 +508,7 @@ var _ = Describe("GardenFactory", func() {
 								Ω(value).Should(Equal("yep"))
 							})
 
-							It("does NOT mark the created container as initialized, as it may be different (e.g. ATC crash)", func() {
+							It("does NOT mark the created volume as initialized, as it may be different (e.g. ATC crash)", func() {
 								Ω(createdVolume.SetPropertyCallCount()).Should(Equal(0))
 							})
 						})
@@ -401,18 +543,6 @@ var _ = Describe("GardenFactory", func() {
 
 						It("does not mark the volume as initialized", func() {
 							Ω(createdVolume.SetPropertyCallCount()).Should(Equal(0))
-						})
-					})
-
-					Describe("releasing", func() {
-						It("releases the volume and the resource", func() {
-							Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
-							Ω(createdVolume.ReleaseCallCount()).Should(BeZero())
-
-							step.Release()
-
-							Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
-							Ω(createdVolume.ReleaseCallCount()).Should(Equal(1))
 						})
 					})
 				})

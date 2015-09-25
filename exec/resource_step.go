@@ -79,6 +79,7 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 	vm, hasVM := chosenWorker.VolumeManager()
 
+	var cachedVolume baggageclaim.Volume
 	if hasVM && ras.Version != nil {
 		source, err := json.Marshal(ras.ResourceConfig.Source)
 		if err != nil {
@@ -106,7 +107,6 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 			return err
 		}
 
-		var cachedVolume baggageclaim.Volume
 		if len(cachedVolumes) == 0 {
 			ras.Logger.Debug("no-cache-found")
 
@@ -132,8 +132,6 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 			ras.Logger.Info("found-cache", lager.Data{"handle": cachedVolume.Handle()})
 		}
 
-		ras.Volume = cachedVolume
-
 		mount.Volume = cachedVolume
 		mount.MountPath = resource.ResourcesDir("get")
 
@@ -147,10 +145,25 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 		return err
 	}
 
+	realCachedVolume, hasCachedVolume, err := trackedResource.CacheVolume()
+	if err != nil {
+		return err
+	}
+
+	if hasCachedVolume && realCachedVolume.Handle() != mount.Volume.Handle() {
+		// volume differs; probably due to ATC going down and coming back
+		mount.Volume.Release()
+		realCachedVolume.Heartbeat(ras.Logger, resourceTTLInSeconds)
+		ras.Volume = realCachedVolume
+	} else {
+		ras.Volume = cachedVolume
+	}
+
+	ras.Resource = trackedResource
+
 	var versionInfo VersionInfo
 	ras.PreviousStep.Result(&versionInfo)
 
-	ras.Resource = trackedResource
 	ras.VersionedSource = ras.Action(trackedResource, ras.Repository, versionInfo)
 
 	if shouldRunGet {
@@ -166,25 +179,18 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 			return err
 		}
 
-		if mount.Volume != nil {
-			realCachedVolume, found, err := ras.Resource.CacheVolume()
+		if hasCachedVolume {
+			ras.Logger.Info("cache-initialized")
+
+			err = realCachedVolume.SetProperty("initialized", "yep")
 			if err != nil {
 				return err
 			}
-
-			if found {
-				ras.Logger.Info("cache-initialized")
-
-				err = realCachedVolume.SetProperty("initialized", "yep")
-				if err != nil {
-					return err
-				}
-			} else {
-				// this is to handle the upgrade path where the container won't
-				// initially have a volume mounted to it; the cache won't be populated,
-				// so we should just ignore it
-				ras.Logger.Info("ignoring-unpopulated-cache")
-			}
+		} else {
+			// this is to handle the upgrade path where the container won't
+			// initially have a volume mounted to it; the cache won't be populated,
+			// so we should just ignore it
+			ras.Logger.Info("ignoring-unpopulated-cache")
 		}
 	} else {
 		fmt.Fprintf(ras.Delegate.Stdout(), "using version of resource found in cache\n")
