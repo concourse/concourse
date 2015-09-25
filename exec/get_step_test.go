@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"time"
 
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/exec"
@@ -17,11 +16,9 @@ import (
 	wfakes "github.com/concourse/atc/worker/fakes"
 	"github.com/concourse/baggageclaim"
 	bfakes "github.com/concourse/baggageclaim/fakes"
-	"github.com/concourse/baggageclaim/volume"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 )
@@ -166,11 +163,11 @@ var _ = Describe("GardenFactory", func() {
 
 					BeforeEach(func() {
 						foundVolume = new(bfakes.FakeVolume)
-						fakeBaggageclaimClient.FindVolumesReturns([]baggageclaim.Volume{foundVolume}, nil)
+						fakeBaggageclaimClient.ListVolumesReturns([]baggageclaim.Volume{foundVolume}, nil)
 					})
 
 					It("looked up the volume with the correct properties", func() {
-						Ω(fakeBaggageclaimClient.FindVolumesArgsForCall(0)).Should(Equal(baggageclaim.VolumeProperties{
+						Ω(fakeBaggageclaimClient.ListVolumesArgsForCall(0)).Should(Equal(baggageclaim.VolumeProperties{
 							"resource-type":    "some-resource-type",
 							"resource-version": `{"some-version":"some-value"}`,
 							"resource-source":  `{"some":"source"}`,
@@ -181,10 +178,9 @@ var _ = Describe("GardenFactory", func() {
 
 					It("starts heartbeating to the volume", func() {
 						Ω(foundVolume.HeartbeatCallCount()).Should(Equal(1))
-						logger, interval, hClock := foundVolume.HeartbeatArgsForCall(0)
+						logger, ttl := foundVolume.HeartbeatArgsForCall(0)
 						Ω(logger).ShouldNot(BeNil())
-						Ω(interval).Should(Equal(time.Minute))
-						Ω(hClock).Should(Equal(clock.NewClock()))
+						Ω(ttl).Should(Equal(uint(60 * 60 * 24)))
 					})
 
 					It("initializes the tracker with the chosen worker", func() {
@@ -259,29 +255,27 @@ var _ = Describe("GardenFactory", func() {
 
 					Context("with a, b order", func() {
 						BeforeEach(func() {
-							fakeBaggageclaimClient.FindVolumesReturns([]baggageclaim.Volume{aVolume, bVolume}, nil)
+							fakeBaggageclaimClient.ListVolumesReturns([]baggageclaim.Volume{aVolume, bVolume}, nil)
 						})
 
 						It("selects the volume based on the lowest alphabetical name", func() {
 							Ω(aVolume.HeartbeatCallCount()).Should(Equal(1))
-							logger, interval, hClock := aVolume.HeartbeatArgsForCall(0)
+							logger, ttl := aVolume.HeartbeatArgsForCall(0)
 							Ω(logger).ShouldNot(BeNil())
-							Ω(interval).Should(Equal(time.Minute))
-							Ω(hClock).Should(Equal(clock.NewClock()))
+							Ω(ttl).Should(Equal(uint(60 * 60 * 24)))
 						})
 					})
 
 					Context("with b, a order", func() {
 						BeforeEach(func() {
-							fakeBaggageclaimClient.FindVolumesReturns([]baggageclaim.Volume{bVolume, aVolume}, nil)
+							fakeBaggageclaimClient.ListVolumesReturns([]baggageclaim.Volume{bVolume, aVolume}, nil)
 						})
 
 						It("selects the volume based on the lowest alphabetical name", func() {
 							Ω(aVolume.HeartbeatCallCount()).Should(Equal(1))
-							logger, interval, hClock := aVolume.HeartbeatArgsForCall(0)
+							logger, ttl := aVolume.HeartbeatArgsForCall(0)
 							Ω(logger).ShouldNot(BeNil())
-							Ω(interval).Should(Equal(time.Minute))
-							Ω(hClock).Should(Equal(clock.NewClock()))
+							Ω(ttl).Should(Equal(uint(60 * 60 * 24)))
 						})
 					})
 				})
@@ -293,12 +287,12 @@ var _ = Describe("GardenFactory", func() {
 						createdVolume = new(bfakes.FakeVolume)
 						createdVolume.HandleReturns("created-volume-handle")
 
-						fakeBaggageclaimClient.CreateEmptyVolumeReturns(createdVolume, nil)
+						fakeBaggageclaimClient.CreateVolumeReturns(createdVolume, nil)
 					})
 
 					It("created the volume with the correct properties (notably, without 'initialized')", func() {
-						Ω(fakeBaggageclaimClient.CreateEmptyVolumeArgsForCall(0)).Should(Equal(baggageclaim.VolumeSpec{
-							Properties: volume.Properties{
+						Ω(fakeBaggageclaimClient.CreateVolumeArgsForCall(0)).Should(Equal(baggageclaim.VolumeSpec{
+							Properties: baggageclaim.VolumeProperties{
 								"resource-type":    "some-resource-type",
 								"resource-version": `{"some-version":"some-value"}`,
 								"resource-source":  `{"some":"source"}`,
@@ -310,10 +304,9 @@ var _ = Describe("GardenFactory", func() {
 
 					It("starts heartbeating to the volume", func() {
 						Ω(createdVolume.HeartbeatCallCount()).Should(Equal(1))
-						logger, interval, hClock := createdVolume.HeartbeatArgsForCall(0)
+						logger, ttl := createdVolume.HeartbeatArgsForCall(0)
 						Ω(logger).ShouldNot(BeNil())
-						Ω(interval).Should(Equal(time.Minute))
-						Ω(hClock).Should(Equal(clock.NewClock()))
+						Ω(ttl).Should(Equal(uint(60 * 60 * 24)))
 					})
 
 					It("initializes the resource with the volume", func() {
@@ -364,9 +357,8 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							It("marks the volume as initialized after the 'get' action completes", func() {
-								Ω(fakeBaggageclaimClient.SetPropertyCallCount()).Should(Equal(1))
-								handle, name, value := fakeBaggageclaimClient.SetPropertyArgsForCall(0)
-								Ω(handle).Should(Equal("created-volume-handle"))
+								Ω(createdVolume.SetPropertyCallCount()).Should(Equal(1))
+								name, value := createdVolume.SetPropertyArgsForCall(0)
 								Ω(name).Should(Equal("initialized"))
 								Ω(value).Should(Equal("yep"))
 							})
@@ -378,7 +370,7 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							It("does not mark the volume as initialized", func() {
-								Ω(fakeBaggageclaimClient.SetPropertyCallCount()).Should(Equal(0))
+								Ω(createdVolume.SetPropertyCallCount()).Should(Equal(0))
 							})
 						})
 					})
@@ -389,7 +381,7 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("does not mark the volume as initialized", func() {
-							Ω(fakeBaggageclaimClient.SetPropertyCallCount()).Should(Equal(0))
+							Ω(createdVolume.SetPropertyCallCount()).Should(Equal(0))
 						})
 					})
 

@@ -6,16 +6,15 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
-	"github.com/concourse/baggageclaim/volume"
-	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 )
+
+const resourceTTLInSeconds = 60 * 60 * 24
 
 type resourceStep struct {
 	Logger lager.Logger
@@ -96,7 +95,7 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 			return err
 		}
 
-		cachedVolumes, err := vm.FindVolumes(baggageclaim.VolumeProperties{
+		cachedVolumes, err := vm.ListVolumes(baggageclaim.VolumeProperties{
 			"resource-type":    ras.ResourceConfig.Type,
 			"resource-version": string(version),
 			"resource-source":  string(source),
@@ -113,14 +112,14 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 			shouldRunGet = true
 
-			cachedVolume, err = vm.CreateEmptyVolume(baggageclaim.VolumeSpec{
-				Properties: volume.Properties{ // TODO this should live under baggageclaim
+			cachedVolume, err = vm.CreateVolume(baggageclaim.VolumeSpec{
+				Properties: baggageclaim.VolumeProperties{
 					"resource-type":    ras.ResourceConfig.Type,
 					"resource-version": string(version),
 					"resource-source":  string(source),
 					"resource-params":  string(params),
 				},
-				TTLInSeconds: 60 * 60 * 24,
+				TTLInSeconds: resourceTTLInSeconds,
 			})
 			if err != nil {
 				return err
@@ -138,7 +137,7 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 		mount.Volume = cachedVolume
 		mount.MountPath = resource.ResourcesDir("get")
 
-		cachedVolume.Heartbeat(ras.Logger, time.Minute, clock.NewClock())
+		cachedVolume.Heartbeat(ras.Logger, resourceTTLInSeconds)
 	} else {
 		shouldRunGet = true
 	}
@@ -176,7 +175,7 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 			if len(mountedVolumes) > 0 {
 				ras.Logger.Info("cache-initialized")
 
-				err = vm.SetProperty(mount.Volume.Handle(), "initialized", "yep")
+				err = mount.Volume.SetProperty("initialized", "yep")
 				if err != nil {
 					return err
 				}
