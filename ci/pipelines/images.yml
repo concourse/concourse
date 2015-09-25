@@ -101,7 +101,7 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
 
-- name: static-golang
+- name: concourse-static-golang
   type: git
   source:
     uri: https://github.com/concourse/static-golang.git
@@ -171,7 +171,7 @@ jobs:
 
 - name: build-static-golang
   plan:
-  - get: static-golang
+  - get: concourse-static-golang
     trigger: true
   - put: concourse-static-golang-image
     params: {build: concourse-static-golang}
