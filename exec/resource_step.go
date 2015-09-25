@@ -262,7 +262,7 @@ func (ras *resourceStep) volumeProperties() baggageclaim.VolumeProperties {
 
 	return baggageclaim.VolumeProperties{
 		"resource-type":    ras.ResourceConfig.Type,
-		"resource-version": sha1str(version),
+		"resource-version": string(version),
 		"resource-source":  sha1str(source),
 		"resource-params":  sha1str(params),
 	}
