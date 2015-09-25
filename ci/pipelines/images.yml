@@ -101,11 +101,11 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
 
-
 jobs:
 - name: build-rubinius
   plan:
   - get: concourse-rubinius
+    trigger: true
     params: {submodules: none}
   - put: concourse-rubinius-image
     params: {build: concourse-rubinius/ci/dockerfiles/rubinius}
@@ -113,6 +113,7 @@ jobs:
 - name: build-docs-ci
   plan:
   - get: concourse-docs-ci
+    trigger: true
     params: {submodules: none}
   - put: concourse-docs-ci-image
     params: {build: concourse-docs-ci/ci/dockerfiles/docs-ci}
@@ -120,6 +121,7 @@ jobs:
 - name: build-concourse-ci
   plan:
   - get: concourse-concourse-ci
+    trigger: true
     params: {submodules: none}
   - put: concourse-concourse-ci-image
     params: {build: concourse-concourse-ci/ci/dockerfiles/concourse-ci}
@@ -127,24 +129,28 @@ jobs:
 - name: build-atc-ci
   plan:
   - get: concourse-atc-ci
+    trigger: true
   - put: concourse-atc-ci-image
     params: {build: concourse-atc-ci}
 
 - name: build-tsa-ci
   plan:
   - get: concourse-tsa-ci
+    trigger: true
   - put: concourse-tsa-ci-image
     params: {build: concourse-tsa-ci}
 
 - name: build-baggageclaim-ci
   plan:
   - get: concourse-baggageclaim-ci
+    trigger: true
   - put: concourse-baggageclaim-ci-image
     params: {build: concourse-baggageclaim-ci}
 
 - name: build-testflight
   plan:
   - get: concourse-testflight
+    trigger: true
   - put: concourse-testflight-image
     params: {build: concourse-testflight}
 
