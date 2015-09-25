@@ -2,7 +2,7 @@ package exec
 
 import (
 	"archive/tar"
-	"crypto/sha1"
+	"crypto/sha512"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -263,8 +263,8 @@ func (ras *resourceStep) volumeProperties() baggageclaim.VolumeProperties {
 	return baggageclaim.VolumeProperties{
 		"resource-type":    ras.ResourceConfig.Type,
 		"resource-version": string(version),
-		"resource-source":  sha1str(source),
-		"resource-params":  sha1str(params),
+		"resource-source":  shastr(source),
+		"resource-params":  shastr(params),
 	}
 }
 
@@ -279,8 +279,8 @@ func withInitialized(props baggageclaim.VolumeProperties) baggageclaim.VolumePro
 	return newProps
 }
 
-func sha1str(b []byte) string {
-	return fmt.Sprintf("%x", sha1.Sum(b))
+func shastr(b []byte) string {
+	return fmt.Sprintf("%x", sha512.Sum512(b))
 }
 
 func selectLowestAlphabeticalVolume(volumes []baggageclaim.Volume) baggageclaim.Volume {
