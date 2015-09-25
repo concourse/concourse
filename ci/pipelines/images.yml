@@ -101,6 +101,20 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
 
+- name: static-golang
+  type: git
+  source:
+    uri: https://github.com/concourse/static-golang.git
+    paths: [Dockerfile]
+
+- name: concourse-static-golang-image
+  type: docker-image
+  source:
+    repository: concourse/static-golang
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
 jobs:
 - name: build-rubinius
   plan:
@@ -154,3 +168,10 @@ jobs:
   - put: concourse-testflight-image
     params: {build: concourse-testflight}
 
+
+- name: build-static-golang
+  plan:
+  - get: static-golang
+    trigger: true
+  - put: concourse-static-golang-image
+    params: {build: concourse-static-golang}
