@@ -92,6 +92,7 @@ var _ = Describe("GardenFactory", func() {
 				tags,
 				configSource,
 			).Using(inStep, repo)
+
 			process = ifrit.Invoke(step)
 		})
 
@@ -169,7 +170,6 @@ var _ = Describe("GardenFactory", func() {
 						Ω(taskSpec.Tags).Should(ConsistOf("config", "step", "tags"))
 						Ω(taskSpec.Image).Should(Equal("some-image"))
 						Ω(taskSpec.Privileged).Should(BeFalse())
-
 					})
 
 					It("ensures artifacts root exists by streaming in an empty payload", func() {
@@ -206,7 +206,7 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					It("saves the process ID as a property", func() {
-						Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(1))
+						Ω(fakeContainer.SetPropertyCallCount()).ShouldNot(Equal(0))
 
 						name, value := fakeContainer.SetPropertyArgsForCall(0)
 						Ω(name).Should(Equal("concourse:task-process"))
