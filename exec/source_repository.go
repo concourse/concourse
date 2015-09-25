@@ -4,6 +4,9 @@ import (
 	"io"
 	"strings"
 	"sync"
+
+	"github.com/concourse/atc/worker"
+	"github.com/concourse/baggageclaim"
 )
 
 type SourceRepository struct {
@@ -65,6 +68,10 @@ func (repo *SourceRepository) StreamFile(path string) (io.ReadCloser, error) {
 	}
 
 	return nil, FileNotFoundError{Path: path}
+}
+
+func (repo *SourceRepository) VolumeOn(worker worker.Worker) (baggageclaim.Volume, bool, error) {
+	return nil, false, nil
 }
 
 type subdirectoryDestination struct {

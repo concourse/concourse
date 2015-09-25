@@ -13,6 +13,7 @@ import (
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
+	"github.com/concourse/baggageclaim"
 )
 
 const taskProcessPropertyName = "concourse:task-process"
@@ -267,6 +268,10 @@ func (step *taskStep) StreamTo(destination ArtifactDestination) error {
 	}
 
 	return destination.StreamIn(".", out)
+}
+
+func (step *taskStep) VolumeOn(worker worker.Worker) (baggageclaim.Volume, bool, error) {
+	return nil, false, nil
 }
 
 func (step *taskStep) ensureBuildDirExists(container garden.Container) error {

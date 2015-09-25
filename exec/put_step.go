@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
+	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -142,6 +143,10 @@ func (step *putStep) Result(x interface{}) bool {
 	default:
 		return false
 	}
+}
+
+func (step *putStep) VolumeOn(worker.Worker) (baggageclaim.Volume, bool, error) {
+	return nil, false, nil
 }
 
 func (step *putStep) StreamTo(destination ArtifactDestination) error {

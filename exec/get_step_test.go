@@ -852,6 +852,123 @@ var _ = Describe("GardenFactory", func() {
 						})
 					})
 				})
+
+				Describe("getting a volume from a worker", func() {
+					var fakeWorker *wfakes.FakeWorker
+
+					BeforeEach(func() {
+						fakeWorker = new(wfakes.FakeWorker)
+					})
+
+					Context("when the worker has a volume manager", func() {
+						var fakeBaggageclaimClient *bfakes.FakeClient
+
+						BeforeEach(func() {
+							fakeBaggageclaimClient = new(bfakes.FakeClient)
+							fakeWorker.VolumeManagerReturns(fakeBaggageclaimClient, true)
+						})
+
+						Context("when the worker has the volume", func() {
+							var foundVolume *bfakes.FakeVolume
+
+							BeforeEach(func() {
+								foundVolume = new(bfakes.FakeVolume)
+								foundVolume.HandleReturns("found-volume-handle")
+								fakeBaggageclaimClient.ListVolumesReturns([]baggageclaim.Volume{foundVolume}, nil)
+							})
+
+							It("returns the volume and true", func() {
+								volume, found, err := artifactSource.VolumeOn(fakeWorker)
+								Ω(err).ShouldNot(HaveOccurred())
+								Ω(found).Should(BeTrue())
+								Ω(volume).Should(Equal(foundVolume))
+
+								Ω(fakeBaggageclaimClient.ListVolumesArgsForCall(0)).Should(Equal(baggageclaim.VolumeProperties{
+									"resource-type":    "some-resource-type",
+									"resource-version": `{"some-version":"some-value"}`,
+									"resource-source":  "968e27f71617a029e58a09fb53895f1e1875b51bdaa11293ddc2cb335960875cb42c19ae8bc696caec88d55221f33c2bcc3278a7d15e8d13f23782d1a05564f1",
+									"resource-params":  "7cee8d669e89dee0c318bd9d2788c513bab8a900322ae593247fedd95bffa23b5be71f54326dffd9c2e65e13ca995fca9037d162232b9264a394e8d65ce8de79",
+									"initialized":      "yep",
+								}))
+							})
+						})
+
+						Context("when the worker has multiple volumes", func() {
+							var aVolume *bfakes.FakeVolume
+							var bVolume *bfakes.FakeVolume
+
+							BeforeEach(func() {
+								aVolume = new(bfakes.FakeVolume)
+								aVolume.HandleReturns("a")
+								bVolume = new(bfakes.FakeVolume)
+								bVolume.HandleReturns("b")
+							})
+
+							Context("with a, b order", func() {
+								BeforeEach(func() {
+									fakeBaggageclaimClient.ListVolumesReturns([]baggageclaim.Volume{aVolume, bVolume}, nil)
+								})
+
+								It("selects the volume based on the lowest alphabetical name", func() {
+									volume, found, err := artifactSource.VolumeOn(fakeWorker)
+									Ω(err).ShouldNot(HaveOccurred())
+									Ω(found).Should(BeTrue())
+									Ω(volume).Should(Equal(aVolume))
+								})
+							})
+
+							Context("with b, a order", func() {
+								BeforeEach(func() {
+									fakeBaggageclaimClient.ListVolumesReturns([]baggageclaim.Volume{bVolume, aVolume}, nil)
+								})
+
+								It("selects the volume based on the lowest alphabetical name", func() {
+									volume, found, err := artifactSource.VolumeOn(fakeWorker)
+									Ω(err).ShouldNot(HaveOccurred())
+									Ω(found).Should(BeTrue())
+									Ω(volume).Should(Equal(aVolume))
+								})
+							})
+						})
+
+						Context("when the worker does not have the volume", func() {
+							BeforeEach(func() {
+								fakeBaggageclaimClient.ListVolumesReturns([]baggageclaim.Volume{}, nil)
+							})
+
+							It("returns false", func() {
+								_, found, err := artifactSource.VolumeOn(fakeWorker)
+								Ω(err).ShouldNot(HaveOccurred())
+								Ω(found).Should(BeFalse())
+							})
+						})
+
+						Context("when looking up the volume fails", func() {
+							disaster := errors.New("nope")
+
+							BeforeEach(func() {
+								fakeBaggageclaimClient.ListVolumesReturns(nil, disaster)
+							})
+
+							It("returns the error", func() {
+								_, _, err := artifactSource.VolumeOn(fakeWorker)
+								Ω(err).Should(Equal(disaster))
+							})
+						})
+					})
+
+					Context("when the worker does not have a volume manager", func() {
+						BeforeEach(func() {
+							fakeWorker.VolumeManagerReturns(nil, false)
+						})
+
+						It("returns false", func() {
+							_, found, err := artifactSource.VolumeOn(fakeWorker)
+							Ω(err).ShouldNot(HaveOccurred())
+							Ω(found).Should(BeFalse())
+						})
+					})
+				})
 			})
 		})
 

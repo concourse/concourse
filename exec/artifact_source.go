@@ -6,6 +6,8 @@ import (
 	"os"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/worker"
+	"github.com/concourse/baggageclaim"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -35,6 +37,8 @@ type SourceName string
 type ArtifactSource interface {
 	StreamTo(ArtifactDestination) error
 	StreamFile(path string) (io.ReadCloser, error)
+
+	VolumeOn(worker.Worker) (baggageclaim.Volume, bool, error)
 }
 
 //go:generate counterfeiter . ArtifactDestination

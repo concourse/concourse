@@ -98,20 +98,21 @@ func (step *getStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 
 	var cachedVolume baggageclaim.Volume
 	if hasVM {
-		volumeProperties := step.volumeProperties()
-
-		cachedVolumes, err := vm.ListVolumes(withInitialized(volumeProperties))
+		var workerAlreadyHasCache bool
+		cachedVolume, workerAlreadyHasCache, err = step.VolumeOn(chosenWorker)
 		if err != nil {
 			return err
 		}
 
-		if len(cachedVolumes) == 0 {
+		if workerAlreadyHasCache {
+			step.logger.Info("found-cache", lager.Data{"handle": cachedVolume.Handle()})
+		} else {
 			step.logger.Debug("no-cache-found")
 
 			shouldRunGet = true
 
 			cachedVolume, err = vm.CreateVolume(baggageclaim.VolumeSpec{
-				Properties:   volumeProperties,
+				Properties:   step.volumeProperties(),
 				TTLInSeconds: resourceTTLInSeconds,
 			})
 			if err != nil {
@@ -119,10 +120,6 @@ func (step *getStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 			}
 
 			step.logger.Info("initializing-cache", lager.Data{"handle": cachedVolume.Handle()})
-		} else {
-			cachedVolume = selectLowestAlphabeticalVolume(cachedVolumes)
-
-			step.logger.Info("found-cache", lager.Data{"handle": cachedVolume.Handle()})
 		}
 
 		mount.Volume = cachedVolume
@@ -242,6 +239,25 @@ func (step *getStep) Result(x interface{}) bool {
 
 	default:
 		return false
+	}
+}
+
+func (step *getStep) VolumeOn(worker worker.Worker) (baggageclaim.Volume, bool, error) {
+	vm, hasVM := worker.VolumeManager()
+
+	if !hasVM {
+		return nil, false, nil
+	}
+
+	foundVolumes, err := vm.ListVolumes(withInitialized(step.volumeProperties()))
+	if err != nil {
+		return nil, false, err
+	}
+
+	if len(foundVolumes) == 0 {
+		return nil, false, nil
+	} else {
+		return selectLowestAlphabeticalVolume(foundVolumes), true, nil
 	}
 }
 
