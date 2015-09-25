@@ -8,6 +8,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
+	"github.com/concourse/baggageclaim"
 )
 
 //go:generate counterfeiter . Client
@@ -37,7 +38,7 @@ type Container interface {
 
 	IdentifierFromProperties() Identifier
 
-	VolumeHandles() ([]string, error)
+	Volumes() ([]baggageclaim.Volume, error)
 }
 
 type Identifier struct {

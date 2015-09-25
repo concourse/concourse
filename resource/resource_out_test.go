@@ -382,7 +382,7 @@ var _ = Describe("Resource Out", func() {
 		})
 
 		It("saves the process ID as a property", func() {
-			Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(1))
+			Ω(fakeContainer.SetPropertyCallCount()).ShouldNot(BeZero())
 
 			name, value := fakeContainer.SetPropertyArgsForCall(0)
 			Ω(name).Should(Equal("concourse:resource-process"))

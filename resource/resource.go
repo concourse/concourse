@@ -1,14 +1,18 @@
 package resource
 
 import (
+	"errors"
 	"io"
 	"path/filepath"
 	"sync"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
+	"github.com/concourse/baggageclaim"
 	"github.com/tedsuo/ifrit"
 )
+
+var ErrMultipleVolumes = errors.New("multiple volumes mounted; expected 1 or 0")
 
 //go:generate counterfeiter . Resource
 
@@ -23,7 +27,7 @@ type Resource interface {
 	Release()
 	Destroy() error
 
-	VolumeHandles() ([]string, error)
+	CacheVolume() (baggageclaim.Volume, bool, error)
 }
 
 type IOConfig struct {
@@ -96,6 +100,18 @@ func (resource *resource) Destroy() error {
 	return err
 }
 
-func (resource *resource) VolumeHandles() ([]string, error) {
-	return resource.container.VolumeHandles()
+func (resource *resource) CacheVolume() (baggageclaim.Volume, bool, error) {
+	volumes, err := resource.container.Volumes()
+	if err != nil {
+		return nil, false, err
+	}
+
+	switch len(volumes) {
+	case 0:
+		return nil, false, nil
+	case 1:
+		return volumes[0], true, nil
+	default:
+		return nil, false, ErrMultipleVolumes
+	}
 }

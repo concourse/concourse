@@ -18,21 +18,21 @@ import (
 
 var _ = Describe("Worker", func() {
 	var (
-		fakeGardenClient   *gfakes.FakeClient
-		baggageclaimClient baggageclaim.Client
-		fakeClock          *fakeclock.FakeClock
-		activeContainers   int
-		resourceTypes      []atc.WorkerResourceType
-		platform           string
-		tags               []string
-		name               string
+		fakeGardenClient       *gfakes.FakeClient
+		fakeBaggageclaimClient *bfakes.FakeClient
+		fakeClock              *fakeclock.FakeClock
+		activeContainers       int
+		resourceTypes          []atc.WorkerResourceType
+		platform               string
+		tags                   []string
+		name                   string
 
 		worker Worker
 	)
 
 	BeforeEach(func() {
 		fakeGardenClient = new(gfakes.FakeClient)
-		baggageclaimClient = nil
+		fakeBaggageclaimClient = new(bfakes.FakeClient)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		activeContainers = 42
 		resourceTypes = []atc.WorkerResourceType{
@@ -46,7 +46,7 @@ var _ = Describe("Worker", func() {
 	BeforeEach(func() {
 		worker = NewGardenWorker(
 			fakeGardenClient,
-			baggageclaimClient,
+			fakeBaggageclaimClient,
 			fakeClock,
 			activeContainers,
 			resourceTypes,
@@ -57,6 +57,7 @@ var _ = Describe("Worker", func() {
 	})
 
 	Describe("VolumeManager", func() {
+		var baggageclaimClient baggageclaim.Client
 		var volumeManager baggageclaim.Client
 		var hasVolumeManager bool
 
@@ -451,19 +452,50 @@ var _ = Describe("Worker", func() {
 
 				Describe("VolumeHandles", func() {
 					Context("when the concourse:volumes property is present", func() {
+						var handle1Volume *bfakes.FakeVolume
+						var handle2Volume *bfakes.FakeVolume
+
 						BeforeEach(func() {
+							handle1Volume = new(bfakes.FakeVolume)
+							handle2Volume = new(bfakes.FakeVolume)
+
 							fakeContainer.PropertyReturns(`["handle-1", "handle-2"]`, nil)
+
+							fakeBaggageclaimClient.LookupVolumeStub = func(handle string) (baggageclaim.Volume, error) {
+								if handle == "handle-1" {
+									return handle1Volume, nil
+								} else if handle == "handle-2" {
+									return handle2Volume, nil
+								} else {
+									panic("unknown handle: " + handle)
+								}
+							}
 						})
 
 						It("returns all bound volumes based on properties on the container", func() {
 							fakeContainer.PropertyReturns(`["handle-1", "handle-2"]`, nil)
-							volumes, err := foundContainer.VolumeHandles()
+
+							volumes, err := foundContainer.Volumes()
 							Ω(err).ShouldNot(HaveOccurred())
 
 							Ω(fakeContainer.PropertyCallCount()).Should(Equal(1))
 							Ω(fakeContainer.PropertyArgsForCall(0)).Should(Equal("concourse:volumes"))
 
-							Ω(volumes).Should(Equal([]string{"handle-1", "handle-2"}))
+							Ω(volumes).Should(Equal([]baggageclaim.Volume{handle1Volume, handle2Volume}))
+						})
+
+						Context("when LookupVolume returns an error", func() {
+							disaster := errors.New("nope")
+
+							BeforeEach(func() {
+								fakeBaggageclaimClient.LookupVolumeReturns(nil, disaster)
+							})
+
+							It("returns the error", func() {
+								volumes, err := foundContainer.Volumes()
+								Ω(err).Should(Equal(disaster))
+								Ω(volumes).Should(BeEmpty())
+							})
 						})
 					})
 
@@ -474,13 +506,13 @@ var _ = Describe("Worker", func() {
 						})
 
 						It("returns an empty slice", func() {
-							volumes, err := foundContainer.VolumeHandles()
+							volumes, err := foundContainer.Volumes()
 							Ω(err).ShouldNot(HaveOccurred())
 
 							Ω(fakeContainer.PropertyCallCount()).Should(Equal(1))
 							Ω(fakeContainer.PropertyArgsForCall(0)).Should(Equal("concourse:volumes"))
 
-							Ω(volumes).Should(Equal([]string{}))
+							Ω(volumes).Should(BeEmpty())
 						})
 					})
 				})
@@ -708,7 +740,7 @@ var _ = Describe("Worker", func() {
 		JustBeforeEach(func() {
 			worker = NewGardenWorker(
 				fakeGardenClient,
-				baggageclaimClient,
+				fakeBaggageclaimClient,
 				fakeClock,
 				activeContainers,
 				resourceTypes,

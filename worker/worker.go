@@ -139,7 +139,7 @@ dance:
 		return nil, err
 	}
 
-	return newGardenWorkerContainer(gardenContainer, worker.gardenClient, worker.clock)
+	return newGardenWorkerContainer(gardenContainer, worker.gardenClient, worker.baggageclaimClient, worker.clock)
 }
 
 func (worker *gardenWorker) FindContainerForIdentifier(id Identifier) (Container, error) {
@@ -152,7 +152,7 @@ func (worker *gardenWorker) FindContainerForIdentifier(id Identifier) (Container
 	case 0:
 		return nil, ErrContainerNotFound
 	case 1:
-		return newGardenWorkerContainer(containers[0], worker.gardenClient, worker.clock)
+		return newGardenWorkerContainer(containers[0], worker.gardenClient, worker.baggageclaimClient, worker.clock)
 	default:
 		handles := []string{}
 
@@ -174,7 +174,7 @@ func (worker *gardenWorker) FindContainersForIdentifier(id Identifier) ([]Contai
 
 	gardenContainers := make([]Container, len(containers))
 	for i, c := range containers {
-		gardenContainers[i], err = newGardenWorkerContainer(c, worker.gardenClient, worker.clock)
+		gardenContainers[i], err = newGardenWorkerContainer(c, worker.gardenClient, worker.baggageclaimClient, worker.clock)
 		if err != nil {
 			return nil, err
 		}
@@ -188,7 +188,7 @@ func (worker *gardenWorker) LookupContainer(handle string) (Container, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newGardenWorkerContainer(container, worker.gardenClient, worker.clock)
+	return newGardenWorkerContainer(container, worker.gardenClient, worker.baggageclaimClient, worker.clock)
 }
 
 func (worker *gardenWorker) ActiveContainers() int {
@@ -261,7 +261,8 @@ func (worker *gardenWorker) Name() string {
 type gardenWorkerContainer struct {
 	garden.Container
 
-	gardenClient garden.Client
+	gardenClient       garden.Client
+	baggageclaimClient baggageclaim.Client
 
 	clock clock.Clock
 
@@ -273,11 +274,17 @@ type gardenWorkerContainer struct {
 	identifier Identifier
 }
 
-func newGardenWorkerContainer(container garden.Container, gardenClient garden.Client, clock clock.Clock) (Container, error) {
+func newGardenWorkerContainer(
+	container garden.Container,
+	gardenClient garden.Client,
+	baggageclaimClient baggageclaim.Client,
+	clock clock.Clock,
+) (Container, error) {
 	workerContainer := &gardenWorkerContainer{
 		Container: container,
 
-		gardenClient: gardenClient,
+		gardenClient:       gardenClient,
+		baggageclaimClient: baggageclaimClient,
 
 		clock: clock,
 
@@ -376,10 +383,10 @@ func (container *gardenWorkerContainer) IdentifierFromProperties() Identifier {
 	return container.identifier
 }
 
-func (container *gardenWorkerContainer) VolumeHandles() ([]string, error) {
+func (container *gardenWorkerContainer) Volumes() ([]baggageclaim.Volume, error) {
 	handlesJSON, err := container.Property("concourse:volumes")
 	if err != nil {
-		return []string{}, nil
+		return nil, nil
 	}
 
 	var handles []string
@@ -388,7 +395,17 @@ func (container *gardenWorkerContainer) VolumeHandles() ([]string, error) {
 		return nil, err
 	}
 
-	return handles, nil
+	volumes := []baggageclaim.Volume{}
+	for _, h := range handles {
+		volume, err := container.baggageclaimClient.LookupVolume(h)
+		if err != nil {
+			return nil, err
+		}
+
+		volumes = append(volumes, volume)
+	}
+
+	return volumes, nil
 }
 
 func (container *gardenWorkerContainer) heartbeat(pacemaker clock.Ticker) {

@@ -351,26 +351,45 @@ var _ = Describe("GardenFactory", func() {
 							fakeVersionedSource.RunReturns(nil)
 						})
 
-						Context("when the resource has volumes (to deal with upgrade path)", func() {
+						Context("when the resource has a cached volume", func() {
+							var mountedVolume *bfakes.FakeVolume
+
 							BeforeEach(func() {
-								fakeResource.VolumeHandlesReturns([]string{"created-volume-handle"}, nil)
+								mountedVolume = new(bfakes.FakeVolume)
+								fakeResource.CacheVolumeReturns(mountedVolume, true, nil)
 							})
 
 							It("marks the volume as initialized after the 'get' action completes", func() {
-								Ω(createdVolume.SetPropertyCallCount()).Should(Equal(1))
-								name, value := createdVolume.SetPropertyArgsForCall(0)
+								Ω(mountedVolume.SetPropertyCallCount()).Should(Equal(1))
+								name, value := mountedVolume.SetPropertyArgsForCall(0)
 								Ω(name).Should(Equal("initialized"))
 								Ω(value).Should(Equal("yep"))
 							})
+
+							It("does NOT mark the created container as initialized, as it may be different (e.g. ATC crash)", func() {
+								Ω(createdVolume.SetPropertyCallCount()).Should(Equal(0))
+							})
 						})
 
-						Context("when the resource does not have volumes (to deal with upgrade path)", func() {
+						Context("when the resource does not have a cached volume (to deal with upgrade path)", func() {
 							BeforeEach(func() {
-								fakeResource.VolumeHandlesReturns([]string{}, nil)
+								fakeResource.CacheVolumeReturns(nil, false, nil)
 							})
 
 							It("does not mark the volume as initialized", func() {
 								Ω(createdVolume.SetPropertyCallCount()).Should(Equal(0))
+							})
+						})
+
+						Context("when getting the resource's cached volume fails", func() {
+							disaster := errors.New("nope")
+
+							BeforeEach(func() {
+								fakeResource.CacheVolumeReturns(nil, false, disaster)
+							})
+
+							It("returns the error", func() {
+								Ω(<-process.Wait()).Should(Equal(disaster))
 							})
 						})
 					})

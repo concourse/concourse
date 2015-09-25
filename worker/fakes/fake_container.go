@@ -7,6 +7,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc/worker"
+	"github.com/concourse/baggageclaim"
 )
 
 type FakeContainer struct {
@@ -202,11 +203,11 @@ type FakeContainer struct {
 	identifierFromPropertiesReturns     struct {
 		result1 worker.Identifier
 	}
-	VolumeHandlesStub        func() ([]string, error)
-	volumeHandlesMutex       sync.RWMutex
-	volumeHandlesArgsForCall []struct{}
-	volumeHandlesReturns     struct {
-		result1 []string
+	VolumesStub        func() ([]baggageclaim.Volume, error)
+	volumesMutex       sync.RWMutex
+	volumesArgsForCall []struct{}
+	volumesReturns     struct {
+		result1 []baggageclaim.Volume
 		result2 error
 	}
 }
@@ -931,27 +932,27 @@ func (fake *FakeContainer) IdentifierFromPropertiesReturns(result1 worker.Identi
 	}{result1}
 }
 
-func (fake *FakeContainer) VolumeHandles() ([]string, error) {
-	fake.volumeHandlesMutex.Lock()
-	fake.volumeHandlesArgsForCall = append(fake.volumeHandlesArgsForCall, struct{}{})
-	fake.volumeHandlesMutex.Unlock()
-	if fake.VolumeHandlesStub != nil {
-		return fake.VolumeHandlesStub()
+func (fake *FakeContainer) Volumes() ([]baggageclaim.Volume, error) {
+	fake.volumesMutex.Lock()
+	fake.volumesArgsForCall = append(fake.volumesArgsForCall, struct{}{})
+	fake.volumesMutex.Unlock()
+	if fake.VolumesStub != nil {
+		return fake.VolumesStub()
 	} else {
-		return fake.volumeHandlesReturns.result1, fake.volumeHandlesReturns.result2
+		return fake.volumesReturns.result1, fake.volumesReturns.result2
 	}
 }
 
-func (fake *FakeContainer) VolumeHandlesCallCount() int {
-	fake.volumeHandlesMutex.RLock()
-	defer fake.volumeHandlesMutex.RUnlock()
-	return len(fake.volumeHandlesArgsForCall)
+func (fake *FakeContainer) VolumesCallCount() int {
+	fake.volumesMutex.RLock()
+	defer fake.volumesMutex.RUnlock()
+	return len(fake.volumesArgsForCall)
 }
 
-func (fake *FakeContainer) VolumeHandlesReturns(result1 []string, result2 error) {
-	fake.VolumeHandlesStub = nil
-	fake.volumeHandlesReturns = struct {
-		result1 []string
+func (fake *FakeContainer) VolumesReturns(result1 []baggageclaim.Volume, result2 error) {
+	fake.VolumesStub = nil
+	fake.volumesReturns = struct {
+		result1 []baggageclaim.Volume
 		result2 error
 	}{result1, result2}
 }

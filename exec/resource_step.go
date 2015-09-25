@@ -167,15 +167,15 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 		}
 
 		if mount.Volume != nil {
-			mountedVolumes, err := ras.Resource.VolumeHandles()
+			realCachedVolume, found, err := ras.Resource.CacheVolume()
 			if err != nil {
 				return err
 			}
 
-			if len(mountedVolumes) > 0 {
+			if found {
 				ras.Logger.Info("cache-initialized")
 
-				err = mount.Volume.SetProperty("initialized", "yep")
+				err = realCachedVolume.SetProperty("initialized", "yep")
 				if err != nil {
 					return err
 				}

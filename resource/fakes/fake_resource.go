@@ -6,6 +6,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/resource"
+	"github.com/concourse/baggageclaim"
 )
 
 type FakeResource struct {
@@ -56,12 +57,13 @@ type FakeResource struct {
 	destroyReturns     struct {
 		result1 error
 	}
-	VolumeHandlesStub        func() ([]string, error)
-	volumeHandlesMutex       sync.RWMutex
-	volumeHandlesArgsForCall []struct{}
-	volumeHandlesReturns     struct {
-		result1 []string
-		result2 error
+	CacheVolumeStub        func() (baggageclaim.Volume, bool, error)
+	cacheVolumeMutex       sync.RWMutex
+	cacheVolumeArgsForCall []struct{}
+	cacheVolumeReturns     struct {
+		result1 baggageclaim.Volume
+		result2 bool
+		result3 error
 	}
 }
 
@@ -232,29 +234,30 @@ func (fake *FakeResource) DestroyReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeResource) VolumeHandles() ([]string, error) {
-	fake.volumeHandlesMutex.Lock()
-	fake.volumeHandlesArgsForCall = append(fake.volumeHandlesArgsForCall, struct{}{})
-	fake.volumeHandlesMutex.Unlock()
-	if fake.VolumeHandlesStub != nil {
-		return fake.VolumeHandlesStub()
+func (fake *FakeResource) CacheVolume() (baggageclaim.Volume, bool, error) {
+	fake.cacheVolumeMutex.Lock()
+	fake.cacheVolumeArgsForCall = append(fake.cacheVolumeArgsForCall, struct{}{})
+	fake.cacheVolumeMutex.Unlock()
+	if fake.CacheVolumeStub != nil {
+		return fake.CacheVolumeStub()
 	} else {
-		return fake.volumeHandlesReturns.result1, fake.volumeHandlesReturns.result2
+		return fake.cacheVolumeReturns.result1, fake.cacheVolumeReturns.result2, fake.cacheVolumeReturns.result3
 	}
 }
 
-func (fake *FakeResource) VolumeHandlesCallCount() int {
-	fake.volumeHandlesMutex.RLock()
-	defer fake.volumeHandlesMutex.RUnlock()
-	return len(fake.volumeHandlesArgsForCall)
+func (fake *FakeResource) CacheVolumeCallCount() int {
+	fake.cacheVolumeMutex.RLock()
+	defer fake.cacheVolumeMutex.RUnlock()
+	return len(fake.cacheVolumeArgsForCall)
 }
 
-func (fake *FakeResource) VolumeHandlesReturns(result1 []string, result2 error) {
-	fake.VolumeHandlesStub = nil
-	fake.volumeHandlesReturns = struct {
-		result1 []string
-		result2 error
-	}{result1, result2}
+func (fake *FakeResource) CacheVolumeReturns(result1 baggageclaim.Volume, result2 bool, result3 error) {
+	fake.CacheVolumeStub = nil
+	fake.cacheVolumeReturns = struct {
+		result1 baggageclaim.Volume
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 var _ resource.Resource = new(FakeResource)
