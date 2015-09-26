@@ -44,39 +44,25 @@ func (factory *gardenFactory) DependentGet(
 	sourceName SourceName,
 	id worker.Identifier,
 	delegate GetDelegate,
-	config atc.ResourceConfig,
+	resourceConfig atc.ResourceConfig,
 	tags atc.Tags,
 	params atc.Params,
 ) StepFactory {
-	return resourceStep{
-		Logger: logger,
-
-		ResourceConfig: config,
-
-		TrackerFactory: factory.trackerFactory,
-		WorkerClient:   factory.workerClient,
-
-		StepMetadata: stepMetadata,
-
-		SourceName: sourceName,
-
-		Session: resource.Session{
+	return newDependentGetStep(
+		logger,
+		sourceName,
+		factory.workerClient,
+		resourceConfig,
+		params,
+		stepMetadata,
+		resource.Session{
 			ID:        id,
 			Ephemeral: false,
 		},
-
-		Delegate: delegate,
-
-		Type: resource.ResourceType(config.Type),
-		Tags: tags,
-
-		Action: func(r resource.Resource, s ArtifactSource, vi VersionInfo) resource.VersionedSource {
-			return r.Get(resource.IOConfig{
-				Stdout: delegate.Stdout(),
-				Stderr: delegate.Stderr(),
-			}, config.Source, params, vi.Version)
-		},
-	}
+		tags,
+		delegate,
+		factory.trackerFactory,
+	)
 }
 
 func (factory *gardenFactory) Get(
@@ -85,42 +71,27 @@ func (factory *gardenFactory) Get(
 	sourceName SourceName,
 	id worker.Identifier,
 	delegate GetDelegate,
-	config atc.ResourceConfig,
+	resourceConfig atc.ResourceConfig,
 	params atc.Params,
 	tags atc.Tags,
 	version atc.Version,
 ) StepFactory {
-	return resourceStep{
-		Logger: logger,
-
-		ResourceConfig: config,
-		Version:        version,
-		Params:         params,
-
-		TrackerFactory: factory.trackerFactory,
-		WorkerClient:   factory.workerClient,
-
-		StepMetadata: stepMetadata,
-
-		SourceName: sourceName,
-
-		Session: resource.Session{
+	return newGetStep(
+		logger,
+		sourceName,
+		factory.workerClient,
+		resourceConfig,
+		version,
+		params,
+		stepMetadata,
+		resource.Session{
 			ID:        id,
 			Ephemeral: false,
 		},
-
-		Delegate: delegate,
-
-		Type: resource.ResourceType(config.Type),
-		Tags: tags,
-
-		Action: func(r resource.Resource, s ArtifactSource, vi VersionInfo) resource.VersionedSource {
-			return r.Get(resource.IOConfig{
-				Stdout: delegate.Stdout(),
-				Stderr: delegate.Stderr(),
-			}, config.Source, params, version)
-		},
-	}
+		tags,
+		delegate,
+		factory.trackerFactory,
+	)
 }
 
 func (factory *gardenFactory) Put(
@@ -128,36 +99,24 @@ func (factory *gardenFactory) Put(
 	stepMetadata StepMetadata,
 	id worker.Identifier,
 	delegate PutDelegate,
-	config atc.ResourceConfig,
+	resourceConfig atc.ResourceConfig,
 	tags atc.Tags,
 	params atc.Params,
 ) StepFactory {
-	return resourceStep{
-		Logger: logger,
-
-		ResourceConfig: config,
-
-		TrackerFactory: factory.trackerFactory,
-		WorkerClient:   factory.workerClient,
-
-		StepMetadata: stepMetadata,
-
-		Session: resource.Session{
-			ID: id,
+	return newPutStep(
+		logger,
+		factory.workerClient,
+		resourceConfig,
+		params,
+		stepMetadata,
+		resource.Session{
+			ID:        id,
+			Ephemeral: false,
 		},
-
-		Delegate: delegate,
-
-		Type: resource.ResourceType(config.Type),
-		Tags: tags,
-
-		Action: func(r resource.Resource, s ArtifactSource, vi VersionInfo) resource.VersionedSource {
-			return r.Put(resource.IOConfig{
-				Stdout: delegate.Stdout(),
-				Stderr: delegate.Stderr(),
-			}, config.Source, params, resourceSource{s})
-		},
-	}
+		tags,
+		delegate,
+		factory.trackerFactory,
+	)
 }
 
 func (factory *gardenFactory) Task(
