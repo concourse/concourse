@@ -59,6 +59,7 @@ jobs:
       - {release: concourse, name: consul-agent}
       - {release: garden-linux, name: garden}
       - {release: concourse, name: groundcrew}
+      - {release: concourse, name: baggageclaim}
     properties:
       garden:
         # cannot enforce quotas in bosh-lite
