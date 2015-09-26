@@ -34,7 +34,7 @@ username=$(lpass show Shared-Concourse/CI --username)
 password=$(lpass show Shared-Concourse/CI --password)
 url="https://$username:$password@ci.concourse.ci"
 
-pipelines_path=$(realpath -L $(dirname $(realpath $0))/../ci/pipelines)
+pipelines_path=$(cd $(dirname $0)/../ci/pipelines && pwd)
 
 configure_pipeline main \
   $url \
