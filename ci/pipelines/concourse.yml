@@ -176,7 +176,10 @@ jobs:
   plan:
   - put: bosh-lites
     params: {acquire: true}
-  - do:
+  - ensure:
+      put: bosh-lites
+      params: {release: bosh-lites}
+    do:
     - aggregate:
       - get: concourse
         passed: [rc]
@@ -202,9 +205,7 @@ jobs:
     - task: build
       privileged: true
       file: concourse/ci/testflight.yml
-    ensure:
-      put: bosh-lites
-      params: {release: bosh-lites}
+      timeout: 30m
     on_failure:
       do:
         - task: export-bosh-logs
