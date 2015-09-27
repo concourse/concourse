@@ -171,3 +171,11 @@ func (step *putStep) StreamFile(path string) (io.ReadCloser, error) {
 		Closer: out,
 	}, nil
 }
+
+type resourceSource struct {
+	ArtifactSource
+}
+
+func (source resourceSource) StreamTo(dest resource.ArtifactDestination) error {
+	return source.ArtifactSource.StreamTo(resource.ArtifactDestination(dest))
+}

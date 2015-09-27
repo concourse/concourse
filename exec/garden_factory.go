@@ -1,10 +1,8 @@
 package exec
 
 import (
-	"os"
 	"path/filepath"
 
-	"github.com/cloudfoundry-incubator/garden"
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc"
@@ -138,44 +136,4 @@ func (factory *gardenFactory) Task(
 		factory.workerClient,
 		filepath.Join("/tmp", "build", factory.uuidGenerator()),
 	)
-}
-
-type hijackedProcess struct {
-	process garden.Process
-}
-
-func (p hijackedProcess) Wait() (int, error) {
-	return p.process.Wait()
-}
-
-func (p hijackedProcess) SetTTY(spec atc.HijackTTYSpec) error {
-	return p.process.SetTTY(garden.TTYSpec{
-		WindowSize: &garden.WindowSize{
-			Columns: spec.WindowSize.Columns,
-			Rows:    spec.WindowSize.Rows,
-		},
-	})
-}
-
-type failureReporter struct {
-	Step
-
-	ReportFailure func(error)
-}
-
-func (reporter failureReporter) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	err := reporter.Step.Run(signals, ready)
-	if err != nil {
-		reporter.ReportFailure(err)
-	}
-
-	return err
-}
-
-type resourceSource struct {
-	ArtifactSource
-}
-
-func (source resourceSource) StreamTo(dest resource.ArtifactDestination) error {
-	return source.ArtifactSource.StreamTo(resource.ArtifactDestination(dest))
 }
