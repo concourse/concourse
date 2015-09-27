@@ -128,23 +128,16 @@ func (factory *gardenFactory) Task(
 	tags atc.Tags,
 	configSource TaskConfigSource,
 ) StepFactory {
-	artifactsRoot := filepath.Join("/tmp", "build", factory.uuidGenerator())
-
-	return taskStep{
-		SourceName: sourceName,
-
-		WorkerID: id,
-		Tags:     tags,
-
-		Delegate: delegate,
-
-		Privileged:   privileged,
-		ConfigSource: configSource,
-
-		WorkerClient: factory.workerClient,
-
-		artifactsRoot: artifactsRoot,
-	}
+	return newTaskStep(
+		sourceName,
+		id,
+		tags,
+		delegate,
+		privileged,
+		configSource,
+		factory.workerClient,
+		filepath.Join("/tmp", "build", factory.uuidGenerator()),
+	)
 }
 
 type hijackedProcess struct {

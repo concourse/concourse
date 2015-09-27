@@ -29,35 +29,51 @@ func (err MissingInputsError) Error() string {
 }
 
 type taskStep struct {
-	SourceName SourceName
+	sourceName    SourceName
+	containerID   worker.Identifier
+	tags          atc.Tags
+	delegate      TaskDelegate
+	privileged    Privileged
+	configSource  TaskConfigSource
+	workerPool    worker.Client
+	artifactsRoot string
 
-	WorkerID worker.Identifier
-
-	Delegate TaskDelegate
-
-	Privileged   Privileged
-	Tags         atc.Tags
-	ConfigSource TaskConfigSource
-
-	WorkerClient worker.Client
-
-	prev Step
 	repo *SourceRepository
 
-	container     worker.Container
-	process       garden.Process
-	artifactsRoot string
+	container worker.Container
+	process   garden.Process
 
 	exitStatus int
 }
 
+func newTaskStep(
+	sourceName SourceName,
+	containerID worker.Identifier,
+	tags atc.Tags,
+	delegate TaskDelegate,
+	privileged Privileged,
+	configSource TaskConfigSource,
+	workerPool worker.Client,
+	artifactsRoot string,
+) taskStep {
+	return taskStep{
+		sourceName:    sourceName,
+		containerID:   containerID,
+		tags:          tags,
+		delegate:      delegate,
+		privileged:    privileged,
+		configSource:  configSource,
+		workerPool:    workerPool,
+		artifactsRoot: artifactsRoot,
+	}
+}
+
 func (step taskStep) Using(prev Step, repo *SourceRepository) Step {
-	step.prev = prev
 	step.repo = repo
 
 	return failureReporter{
 		Step:          &step,
-		ReportFailure: step.Delegate.Failed,
+		ReportFailure: step.delegate.Failed,
 	}
 }
 
@@ -65,11 +81,11 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	var err error
 
 	processIO := garden.ProcessIO{
-		Stdout: step.Delegate.Stdout(),
-		Stderr: step.Delegate.Stderr(),
+		Stdout: step.delegate.Stdout(),
+		Stderr: step.delegate.Stderr(),
 	}
 
-	step.container, err = step.WorkerClient.FindContainerForIdentifier(step.WorkerID)
+	step.container, err = step.workerPool.FindContainerForIdentifier(step.containerID)
 	if err == nil {
 		// container already exists; recover session
 
@@ -105,22 +121,22 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	} else {
 		// container does not exist; new session
 
-		config, err := step.ConfigSource.FetchConfig(step.repo)
+		config, err := step.configSource.FetchConfig(step.repo)
 		if err != nil {
 			return err
 		}
 
-		tags := step.mergeTags(step.Tags, config.Tags)
+		tags := step.mergeTags(step.tags, config.Tags)
 
-		step.Delegate.Initializing(config)
+		step.delegate.Initializing(config)
 
-		step.container, err = step.WorkerClient.CreateContainer(
-			step.WorkerID,
+		step.container, err = step.workerPool.CreateContainer(
+			step.containerID,
 			worker.TaskContainerSpec{
 				Platform:   config.Platform,
 				Tags:       tags,
 				Image:      config.Image,
-				Privileged: bool(step.Privileged),
+				Privileged: bool(step.privileged),
 			},
 		)
 		if err != nil {
@@ -137,7 +153,7 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return err
 		}
 
-		step.Delegate.Started()
+		step.delegate.Started()
 
 		step.process, err = step.container.Run(garden.ProcessSpec{
 			Path: config.Run.Path,
@@ -179,11 +195,11 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		return ErrInterrupted
 
 	case status := <-waitExitStatus:
-		step.repo.RegisterSource(step.SourceName, step)
+		step.repo.RegisterSource(step.sourceName, step)
 
 		step.exitStatus = status
 
-		step.Delegate.Finished(ExitStatus(status))
+		step.delegate.Finished(ExitStatus(status))
 
 		statusValue := fmt.Sprintf("%d", status)
 
