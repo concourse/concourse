@@ -131,7 +131,17 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 		step.delegate.Initializing(config)
 
-		step.container, err = step.workerPool.CreateContainer(
+		workerSpec := worker.WorkerSpec{
+			Platform: config.Platform,
+			Tags:     step.tags,
+		}
+
+		chosenWorker, err := step.workerPool.Satisfying(workerSpec)
+		if err != nil {
+			return err
+		}
+
+		step.container, err = chosenWorker.CreateContainer(
 			step.containerID,
 			worker.TaskContainerSpec{
 				Platform:   config.Platform,
