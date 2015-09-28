@@ -1,14 +1,11 @@
 package exec
 
 import (
-	"archive/tar"
-	"io"
 	"os"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
-	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -143,38 +140,6 @@ func (step *putStep) Result(x interface{}) bool {
 	default:
 		return false
 	}
-}
-
-func (step *putStep) VolumeOn(worker.Worker) (baggageclaim.Volume, bool, error) {
-	return nil, false, nil
-}
-
-func (step *putStep) StreamTo(destination ArtifactDestination) error {
-	out, err := step.versionedSource.StreamOut(".")
-	if err != nil {
-		return err
-	}
-
-	return destination.StreamIn(".", out)
-}
-
-func (step *putStep) StreamFile(path string) (io.ReadCloser, error) {
-	out, err := step.versionedSource.StreamOut(path)
-	if err != nil {
-		return nil, err
-	}
-
-	tarReader := tar.NewReader(out)
-
-	_, err = tarReader.Next()
-	if err != nil {
-		return nil, FileNotFoundError{Path: path}
-	}
-
-	return fileReadCloser{
-		Reader: tarReader,
-		Closer: out,
-	}, nil
 }
 
 type resourceSource struct {
