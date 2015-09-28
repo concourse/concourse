@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/BurntSushi/migration"
 	gclient "github.com/cloudfoundry-incubator/garden/client"
 	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
 	httpmetrics "github.com/codahale/http-handlers/metrics"
@@ -275,20 +274,9 @@ func main() {
 	var err error
 
 	var dbConn Db.Conn
-
-	for {
-		dbConn, err = migration.Open(*sqlDriver, *sqlDataSource, migrations.Migrations)
-		if err != nil {
-			if strings.Contains(err.Error(), " dial ") {
-				logger.Error("failed-to-open-db", err)
-				time.Sleep(5 * time.Second)
-				continue
-			}
-
-			fatal(err)
-		}
-
-		break
+	dbConn, err = migrations.LockDBAndMigrate(logger.Session("db.migrations"), *sqlDriver, *sqlDataSource)
+	if err != nil {
+		panic("could not lock db and migrate: " + err.Error())
 	}
 
 	listener := pq.NewListener(*sqlDataSource, time.Second, time.Minute, nil)
