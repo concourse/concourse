@@ -132,6 +132,11 @@ jobs:
   public: true
   serial_groups: [version]
   plan:
+  # another trigger input is needed because patch versions will already be
+  # inputs to this job, since our versioning flow is final -> rc1..N -> final
+  #
+  # real fix would be to have the final versions not precede the candidates in
+  # history
   - get: concourse
     passed: [shipit]
     params: {submodules: none}
