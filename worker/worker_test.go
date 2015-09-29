@@ -396,12 +396,13 @@ var _ = Describe("Worker", func() {
 						cowOtherInputVolume.PathReturns("/some/other/cow/src/path")
 
 						fakeBaggageclaimClient.CreateVolumeStub = func(logger lager.Logger, spec baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
-							if reflect.DeepEqual(spec.Strategy, baggageclaim.COWStrategy{volume1}) {
+							if reflect.DeepEqual(spec.Strategy, baggageclaim.COWStrategy{Parent: volume1, Privileged: true}) {
 								return cowInputVolume, nil
-							} else if reflect.DeepEqual(spec.Strategy, baggageclaim.COWStrategy{volume2}) {
+							} else if reflect.DeepEqual(spec.Strategy, baggageclaim.COWStrategy{Parent: volume2, Privileged: true}) {
 								return cowOtherInputVolume, nil
 							} else {
-								return nil, fmt.Errorf("unknown strategy: %#v", spec.Strategy)
+								Fail(fmt.Sprintf("unknown strategy: %#v", spec.Strategy))
+								return nil, nil
 							}
 						}
 

@@ -132,7 +132,10 @@ dance:
 
 		for _, input := range s.Inputs {
 			cow, err := worker.baggageclaimClient.CreateVolume(logger, baggageclaim.VolumeSpec{
-				Strategy:     baggageclaim.COWStrategy{Parent: input.Volume},
+				Strategy: baggageclaim.COWStrategy{
+					Parent:     input.Volume,
+					Privileged: s.Privileged,
+				},
 				TTLInSeconds: inputVolumeTTL,
 			})
 			if err != nil {
