@@ -52,4 +52,5 @@ var Migrations = []migration.Migrator{
 	AddIndexesToABunchOfStuff,
 	DropLocks,
 	AddBaggageclaimURLToWorkers,
+	AddLastScheduledToBuilds,
 }

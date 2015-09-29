@@ -3,12 +3,24 @@ package fakes
 
 import (
 	"sync"
+	"time"
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/scheduler"
 )
 
 type FakeBuildsDB struct {
+	LeaseBuildSchedulingStub        func(buildID int, interval time.Duration) (db.Lease, bool, error)
+	leaseBuildSchedulingMutex       sync.RWMutex
+	leaseBuildSchedulingArgsForCall []struct {
+		buildID  int
+		interval time.Duration
+	}
+	leaseBuildSchedulingReturns struct {
+		result1 db.Lease
+		result2 bool
+		result3 error
+	}
 	GetAllStartedBuildsStub        func() ([]db.Build, error)
 	getAllStartedBuildsMutex       sync.RWMutex
 	getAllStartedBuildsArgsForCall []struct{}
@@ -25,6 +37,41 @@ type FakeBuildsDB struct {
 	errorBuildReturns struct {
 		result1 error
 	}
+}
+
+func (fake *FakeBuildsDB) LeaseBuildScheduling(buildID int, interval time.Duration) (db.Lease, bool, error) {
+	fake.leaseBuildSchedulingMutex.Lock()
+	fake.leaseBuildSchedulingArgsForCall = append(fake.leaseBuildSchedulingArgsForCall, struct {
+		buildID  int
+		interval time.Duration
+	}{buildID, interval})
+	fake.leaseBuildSchedulingMutex.Unlock()
+	if fake.LeaseBuildSchedulingStub != nil {
+		return fake.LeaseBuildSchedulingStub(buildID, interval)
+	} else {
+		return fake.leaseBuildSchedulingReturns.result1, fake.leaseBuildSchedulingReturns.result2, fake.leaseBuildSchedulingReturns.result3
+	}
+}
+
+func (fake *FakeBuildsDB) LeaseBuildSchedulingCallCount() int {
+	fake.leaseBuildSchedulingMutex.RLock()
+	defer fake.leaseBuildSchedulingMutex.RUnlock()
+	return len(fake.leaseBuildSchedulingArgsForCall)
+}
+
+func (fake *FakeBuildsDB) LeaseBuildSchedulingArgsForCall(i int) (int, time.Duration) {
+	fake.leaseBuildSchedulingMutex.RLock()
+	defer fake.leaseBuildSchedulingMutex.RUnlock()
+	return fake.leaseBuildSchedulingArgsForCall[i].buildID, fake.leaseBuildSchedulingArgsForCall[i].interval
+}
+
+func (fake *FakeBuildsDB) LeaseBuildSchedulingReturns(result1 db.Lease, result2 bool, result3 error) {
+	fake.LeaseBuildSchedulingStub = nil
+	fake.leaseBuildSchedulingReturns = struct {
+		result1 db.Lease
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeBuildsDB) GetAllStartedBuilds() ([]db.Build, error) {
