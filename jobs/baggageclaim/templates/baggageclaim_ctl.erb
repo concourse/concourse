@@ -56,13 +56,22 @@ case $1 in
     mkdir -p $LOG_DIR
     chown -R vcap:vcap $LOG_DIR
 
-    if mountpoint -q /var/vcap/store; then
-      VOLUMES_DIR=/var/vcap/store/baggageclaim
-    else
-      VOLUMES_DIR=/var/vcap/data/baggageclaim
-    fi
+    # NB: when the mount path lives on the persistent disk, it seems to
+    # disappear as soon as a privileged container is created. seems to be a
+    # kernel bug or something. so, put the backing file on the persistent disk,
+    # but always mount on the ephemeral disk.
 
-    mkdir -p ${VOLUMES_DIR}/volumes
+    if mountpoint -q /var/vcap/store; then
+      IMAGE_PATH=/var/vcap/store/baggageclaim/volumes.img
+      IMAGE_SIZE=$(df -m /var/vcap/store | tail -n1 | awk '{print $2}')
+    else
+      IMAGE_PATH=/var/vcap/data/baggageclaim/volumes.img
+      IMAGE_SIZE=$(df -m /var/vcap/data | tail -n1 | awk '{print $2}')
+    fi
+    mkdir -p $(dirname ${IMAGE_PATH})
+
+    VOLUMES_DIR=/var/vcap/data/baggageclaim/volumes
+    mkdir -p ${VOLUMES_DIR}
 
     permit_device_control
 
@@ -73,16 +82,16 @@ case $1 in
     done
 
     /var/vcap/packages/baggageclaim/bin/fs_mounter \
-      -diskImage ${VOLUMES_DIR}/volumes.img \
-      -mountPath ${VOLUMES_DIR}/volumes \
-      -sizeInMegabytes $(df -m ${VOLUMES_DIR} | tail -n1 | awk '{print $2}') \
+      -diskImage ${IMAGE_PATH} \
+      -mountPath ${VOLUMES_DIR} \
+      -sizeInMegabytes ${IMAGE_SIZE} \
       1>>$LOG_DIR/fs_mounter.stdout.log \
       2>>$LOG_DIR/fs_mounter.stderr.log
 
     echo $$ > $PIDFILE
 
     exec /var/vcap/packages/baggageclaim/bin/baggageclaim \
-      -volumeDir ${VOLUMES_DIR}/volumes \
+      -volumeDir ${VOLUMES_DIR} \
       -listenAddress <%= p("baggageclaim.listen_addr.address") %> \
       -listenPort <%= p("baggageclaim.listen_addr.port") %> \
       -driverType btrfs \
