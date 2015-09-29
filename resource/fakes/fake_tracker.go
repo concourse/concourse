@@ -6,17 +6,19 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/resource"
+	"github.com/pivotal-golang/lager"
 )
 
 type FakeTracker struct {
-	InitStub        func(resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.VolumeMount) (resource.Resource, error)
+	InitStub        func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.VolumeMount) (resource.Resource, error)
 	initMutex       sync.RWMutex
 	initArgsForCall []struct {
-		arg1 resource.Metadata
-		arg2 resource.Session
-		arg3 resource.ResourceType
-		arg4 atc.Tags
-		arg5 resource.VolumeMount
+		arg1 lager.Logger
+		arg2 resource.Metadata
+		arg3 resource.Session
+		arg4 resource.ResourceType
+		arg5 atc.Tags
+		arg6 resource.VolumeMount
 	}
 	initReturns struct {
 		result1 resource.Resource
@@ -24,18 +26,19 @@ type FakeTracker struct {
 	}
 }
 
-func (fake *FakeTracker) Init(arg1 resource.Metadata, arg2 resource.Session, arg3 resource.ResourceType, arg4 atc.Tags, arg5 resource.VolumeMount) (resource.Resource, error) {
+func (fake *FakeTracker) Init(arg1 lager.Logger, arg2 resource.Metadata, arg3 resource.Session, arg4 resource.ResourceType, arg5 atc.Tags, arg6 resource.VolumeMount) (resource.Resource, error) {
 	fake.initMutex.Lock()
 	fake.initArgsForCall = append(fake.initArgsForCall, struct {
-		arg1 resource.Metadata
-		arg2 resource.Session
-		arg3 resource.ResourceType
-		arg4 atc.Tags
-		arg5 resource.VolumeMount
-	}{arg1, arg2, arg3, arg4, arg5})
+		arg1 lager.Logger
+		arg2 resource.Metadata
+		arg3 resource.Session
+		arg4 resource.ResourceType
+		arg5 atc.Tags
+		arg6 resource.VolumeMount
+	}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.initMutex.Unlock()
 	if fake.InitStub != nil {
-		return fake.InitStub(arg1, arg2, arg3, arg4, arg5)
+		return fake.InitStub(arg1, arg2, arg3, arg4, arg5, arg6)
 	} else {
 		return fake.initReturns.result1, fake.initReturns.result2
 	}
@@ -47,10 +50,10 @@ func (fake *FakeTracker) InitCallCount() int {
 	return len(fake.initArgsForCall)
 }
 
-func (fake *FakeTracker) InitArgsForCall(i int) (resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.VolumeMount) {
+func (fake *FakeTracker) InitArgsForCall(i int) (lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.VolumeMount) {
 	fake.initMutex.RLock()
 	defer fake.initMutex.RUnlock()
-	return fake.initArgsForCall[i].arg1, fake.initArgsForCall[i].arg2, fake.initArgsForCall[i].arg3, fake.initArgsForCall[i].arg4, fake.initArgsForCall[i].arg5
+	return fake.initArgsForCall[i].arg1, fake.initArgsForCall[i].arg2, fake.initArgsForCall[i].arg3, fake.initArgsForCall[i].arg4, fake.initArgsForCall[i].arg5, fake.initArgsForCall[i].arg6
 }
 
 func (fake *FakeTracker) InitReturns(result1 resource.Resource, result2 error) {

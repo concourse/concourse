@@ -27,7 +27,7 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	var errors []string
-	containers, err := s.workerClient.FindContainersForIdentifier(workerIdentifier)
+	containers, err := s.workerClient.FindContainersForIdentifier(hLog, workerIdentifier)
 	if err != nil {
 		// If MulitWorkerError then iterate over each error and append workerName: error: etc
 		if mwe, ok := err.(worker.MultiWorkerError); ok {

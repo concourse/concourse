@@ -76,6 +76,7 @@ func (step *putStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	tracker := step.trackerFactory.TrackerFor(chosenWorker)
 
 	trackedResource, err := tracker.Init(
+		step.logger,
 		step.stepMetadata,
 		step.session,
 		resource.ResourceType(step.resourceConfig.Type),

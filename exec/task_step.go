@@ -8,12 +8,14 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
+	"github.com/pivotal-golang/lager"
 )
 
 const taskProcessPropertyName = "concourse:task-process"
@@ -30,6 +32,7 @@ func (err MissingInputsError) Error() string {
 }
 
 type taskStep struct {
+	logger        lager.Logger
 	sourceName    SourceName
 	containerID   worker.Identifier
 	tags          atc.Tags
@@ -48,6 +51,7 @@ type taskStep struct {
 }
 
 func newTaskStep(
+	logger lager.Logger,
 	sourceName SourceName,
 	containerID worker.Identifier,
 	tags atc.Tags,
@@ -58,6 +62,7 @@ func newTaskStep(
 	artifactsRoot string,
 ) taskStep {
 	return taskStep{
+		logger:        logger,
 		sourceName:    sourceName,
 		containerID:   containerID,
 		tags:          tags,
@@ -86,7 +91,7 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		Stderr: step.delegate.Stderr(),
 	}
 
-	step.container, err = step.workerPool.FindContainerForIdentifier(step.containerID)
+	step.container, err = step.workerPool.FindContainerForIdentifier(step.logger, step.containerID)
 	if err == nil {
 		// container already exists; recover session
 
@@ -141,17 +146,30 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return err
 		}
 
+		inputMounts, inputsToStream, err := step.inputsOn(config.Inputs, chosenWorker)
+		if err != nil {
+			return err
+		}
+
 		step.container, err = chosenWorker.CreateContainer(
+			step.logger,
 			step.containerID,
 			worker.TaskContainerSpec{
 				Platform:   config.Platform,
 				Tags:       tags,
 				Image:      config.Image,
 				Privileged: bool(step.privileged),
+				Inputs:     inputMounts,
 			},
 		)
 		if err != nil {
 			return err
+		}
+
+		for _, mount := range inputMounts {
+			// stop heartbeating ourselves now that container has picked up the
+			// volumes
+			mount.Volume.Release()
 		}
 
 		err = step.ensureBuildDirExists(step.container)
@@ -159,7 +177,7 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return err
 		}
 
-		err = step.collectInputs(config.Inputs)
+		err = step.streamInputs(inputsToStream)
 		if err != nil {
 			return err
 		}
@@ -284,6 +302,58 @@ func (step *taskStep) VolumeOn(worker worker.Worker) (baggageclaim.Volume, bool,
 	return nil, false, nil
 }
 
+type inputPair struct {
+	input  atc.TaskInputConfig
+	source ArtifactSource
+}
+
+func (step *taskStep) inputsOn(inputs []atc.TaskInputConfig, chosenWorker worker.Worker) ([]worker.VolumeMount, []inputPair, error) {
+	var mounts []worker.VolumeMount
+	var inputPairs []inputPair
+
+	var missingInputs []string
+
+	for _, input := range inputs {
+		source, found := step.repo.SourceFor(SourceName(input.Name))
+		if !found {
+			missingInputs = append(missingInputs, input.Name)
+			continue
+		}
+
+		volume, existsOnWorker, err := source.VolumeOn(chosenWorker)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if existsOnWorker {
+			mounts = append(mounts, worker.VolumeMount{
+				Volume:    volume,
+				MountPath: step.inputDestination(input),
+			})
+		} else {
+			inputPairs = append(inputPairs, inputPair{
+				input:  input,
+				source: source,
+			})
+		}
+	}
+
+	if len(missingInputs) > 0 {
+		return nil, nil, MissingInputsError{missingInputs}
+	}
+
+	return mounts, inputPairs, nil
+}
+
+func (step *taskStep) inputDestination(config atc.TaskInputConfig) string {
+	subdir := config.Path
+	if config.Path == "" {
+		subdir = config.Name
+	}
+
+	return filepath.Join(step.artifactsRoot, subdir)
+}
+
 func (step *taskStep) ensureBuildDirExists(container garden.Container) error {
 	emptyTar := new(bytes.Buffer)
 
@@ -303,34 +373,15 @@ func (step *taskStep) ensureBuildDirExists(container garden.Container) error {
 	return nil
 }
 
-func (step *taskStep) collectInputs(inputs []atc.TaskInputConfig) error {
-	type inputPair struct {
-		source      ArtifactSource
-		destination ArtifactDestination
-	}
+func (step *taskStep) streamInputs(inputPairs []inputPair) error {
+	for _, pair := range inputPairs {
+		destination := newContainerDestination(
+			step.artifactsRoot,
+			step.container,
+			pair.input,
+		)
 
-	inputMappings := []inputPair{}
-
-	var missingInputs []string
-	for _, input := range inputs {
-		source, found := step.repo.SourceFor(SourceName(input.Name))
-		if !found {
-			missingInputs = append(missingInputs, input.Name)
-			continue
-		}
-
-		inputMappings = append(inputMappings, inputPair{
-			source:      source,
-			destination: newContainerDestination(step.artifactsRoot, step.container, input),
-		})
-	}
-
-	if len(missingInputs) > 0 {
-		return MissingInputsError{missingInputs}
-	}
-
-	for _, pair := range inputMappings {
-		err := pair.source.StreamTo(pair.destination)
+		err := pair.source.StreamTo(destination)
 		if err != nil {
 			return err
 		}

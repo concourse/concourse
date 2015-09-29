@@ -127,6 +127,7 @@ func (factory *gardenFactory) Task(
 	configSource TaskConfigSource,
 ) StepFactory {
 	return newTaskStep(
+		logger,
 		sourceName,
 		id,
 		tags,

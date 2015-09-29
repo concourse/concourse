@@ -118,7 +118,7 @@ var _ = Describe("Radar", func() {
 			It("constructs the resource of the correct type", func() {
 				Eventually(times).Should(Receive())
 
-				metadata, sessionID, typ, tags, vol := fakeTracker.InitArgsForCall(0)
+				_, metadata, sessionID, typ, tags, vol := fakeTracker.InitArgsForCall(0)
 				Ω(metadata).Should(Equal(resource.EmptyMetadata{}))
 				Ω(sessionID).Should(Equal(resource.Session{
 					ID: worker.Identifier{
@@ -573,7 +573,7 @@ var _ = Describe("Radar", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				metadata, sessionID, typ, tags, vol := fakeTracker.InitArgsForCall(0)
+				_, metadata, sessionID, typ, tags, vol := fakeTracker.InitArgsForCall(0)
 				Ω(metadata).Should(Equal(resource.EmptyMetadata{}))
 				Ω(sessionID).Should(Equal(resource.Session{
 					ID: worker.Identifier{

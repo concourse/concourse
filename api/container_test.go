@@ -350,7 +350,9 @@ var _ = Describe("Pipelines API", func() {
 						PipelineName: pipelineName1,
 					}
 					Ω(fakeWorkerClient.FindContainersForIdentifierCallCount()).Should(Equal(1))
-					Ω(fakeWorkerClient.FindContainersForIdentifierArgsForCall(0)).Should(Equal(expectedArgs))
+
+					_, findID := fakeWorkerClient.FindContainersForIdentifierArgsForCall(0)
+					Ω(findID).Should(Equal(expectedArgs))
 				})
 			})
 
@@ -369,7 +371,9 @@ var _ = Describe("Pipelines API", func() {
 						Type: type1,
 					}
 					Ω(fakeWorkerClient.FindContainersForIdentifierCallCount()).Should(Equal(1))
-					Ω(fakeWorkerClient.FindContainersForIdentifierArgsForCall(0)).Should(Equal(expectedArgs))
+
+					_, findID := fakeWorkerClient.FindContainersForIdentifierArgsForCall(0)
+					Ω(findID).Should(Equal(expectedArgs))
 				})
 			})
 
@@ -388,7 +392,9 @@ var _ = Describe("Pipelines API", func() {
 						Name: name1,
 					}
 					Ω(fakeWorkerClient.FindContainersForIdentifierCallCount()).Should(Equal(1))
-					Ω(fakeWorkerClient.FindContainersForIdentifierArgsForCall(0)).Should(Equal(expectedArgs))
+
+					_, findID := fakeWorkerClient.FindContainersForIdentifierArgsForCall(0)
+					Ω(findID).Should(Equal(expectedArgs))
 				})
 			})
 
@@ -410,7 +416,9 @@ var _ = Describe("Pipelines API", func() {
 							BuildID: buildID1,
 						}
 						Ω(fakeWorkerClient.FindContainersForIdentifierCallCount()).Should(Equal(1))
-						Ω(fakeWorkerClient.FindContainersForIdentifierArgsForCall(0)).Should(Equal(expectedArgs))
+
+						_, findID := fakeWorkerClient.FindContainersForIdentifierArgsForCall(0)
+						Ω(findID).Should(Equal(expectedArgs))
 					})
 				})
 
@@ -505,7 +513,8 @@ var _ = Describe("Pipelines API", func() {
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(fakeWorkerClient.LookupContainerCallCount()).Should(Equal(1))
-					Ω(fakeWorkerClient.LookupContainerArgsForCall(0)).Should(Equal(containerID))
+					_, lookedUpID := fakeWorkerClient.LookupContainerArgsForCall(0)
+					Ω(lookedUpID).Should(Equal(containerID))
 				})
 
 				It("returns the container", func() {
@@ -651,7 +660,8 @@ var _ = Describe("Pipelines API", func() {
 					It("hijacks the build", func() {
 						Eventually(fakeContainer.RunCallCount).Should(Equal(1))
 
-						Ω(fakeWorkerClient.LookupContainerArgsForCall(0)).Should(Equal(containerID1))
+						_, lookedUpID := fakeWorkerClient.LookupContainerArgsForCall(0)
+						Ω(lookedUpID).Should(Equal(containerID1))
 
 						spec, io := fakeContainer.RunArgsForCall(0)
 						Ω(spec).Should(Equal(garden.ProcessSpec{

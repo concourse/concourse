@@ -52,7 +52,7 @@ func (s *Server) hijack(w http.ResponseWriter, request hijackRequest) {
 		"process": request.Process,
 	})
 
-	container, err := s.workerClient.LookupContainer(request.ContainerHandle)
+	container, err := s.workerClient.LookupContainer(hLog, request.ContainerHandle)
 	if err != nil {
 		hLog.Error("failed-to-get-container", err)
 		if _, ok := err.(garden.ContainerNotFoundError); ok {

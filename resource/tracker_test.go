@@ -8,6 +8,7 @@ import (
 	bfakes "github.com/concourse/baggageclaim/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/concourse/atc/resource"
 )
@@ -36,6 +37,7 @@ var _ = Describe("Tracker", func() {
 
 	Describe("Init", func() {
 		var (
+			logger   *lagertest.TestLogger
 			metadata Metadata = testMetadata{"a=1", "b=2"}
 
 			initType    ResourceType
@@ -46,6 +48,7 @@ var _ = Describe("Tracker", func() {
 		)
 
 		BeforeEach(func() {
+			logger = lagertest.NewTestLogger("test")
 			initType = "type1"
 			volumeMount = VolumeMount{
 				Volume:    new(bfakes.FakeVolume),
@@ -54,7 +57,7 @@ var _ = Describe("Tracker", func() {
 		})
 
 		JustBeforeEach(func() {
-			initResource, initErr = tracker.Init(metadata, session, initType, []string{"resource", "tags"}, volumeMount)
+			initResource, initErr = tracker.Init(logger, metadata, session, initType, []string{"resource", "tags"}, volumeMount)
 		})
 
 		Context("when a container does not exist for the session", func() {
@@ -68,7 +71,7 @@ var _ = Describe("Tracker", func() {
 			})
 
 			It("creates a container with the resource's type, env, ephemeral information, and the session as the handle", func() {
-				id, spec := workerClient.CreateContainerArgsForCall(0)
+				_, id, spec := workerClient.CreateContainerArgsForCall(0)
 
 				Ω(id).Should(Equal(session.ID))
 				resourceSpec := spec.(worker.ResourceTypeContainerSpec)
@@ -77,8 +80,8 @@ var _ = Describe("Tracker", func() {
 				Ω(resourceSpec.Env).Should(Equal([]string{"a=1", "b=2"}))
 				Ω(resourceSpec.Ephemeral).Should(Equal(true))
 				Ω(resourceSpec.Tags).Should(ConsistOf("resource", "tags"))
-				Ω(resourceSpec.Volume).Should(Equal(volumeMount.Volume))
-				Ω(resourceSpec.MountPath).Should(Equal(volumeMount.MountPath))
+				Ω(resourceSpec.Cache.Volume).Should(Equal(volumeMount.Volume))
+				Ω(resourceSpec.Cache.MountPath).Should(Equal(volumeMount.MountPath))
 			})
 
 			Context("when creating the container fails", func() {

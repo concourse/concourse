@@ -101,10 +101,7 @@ func (resource *resource) Destroy() error {
 }
 
 func (resource *resource) CacheVolume() (baggageclaim.Volume, bool, error) {
-	volumes, err := resource.container.Volumes()
-	if err != nil {
-		return nil, false, err
-	}
+	volumes := resource.container.Volumes()
 
 	switch len(volumes) {
 	case 0:

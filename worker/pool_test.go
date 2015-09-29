@@ -6,6 +6,8 @@ import (
 	"github.com/cloudfoundry-incubator/garden"
 	. "github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/fakes"
+	"github.com/pivotal-golang/lager"
+	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -13,12 +15,14 @@ import (
 
 var _ = Describe("Pool", func() {
 	var (
+		logger       *lagertest.TestLogger
 		fakeProvider *fakes.FakeWorkerProvider
 
 		pool Client
 	)
 
 	BeforeEach(func() {
+		logger = lagertest.NewTestLogger("test")
 		fakeProvider = new(fakes.FakeWorkerProvider)
 
 		pool = NewPool(fakeProvider)
@@ -26,20 +30,22 @@ var _ = Describe("Pool", func() {
 
 	Describe("Create", func() {
 		var (
-			id   Identifier
-			spec ContainerSpec
+			logger lager.Logger
+			id     Identifier
+			spec   ContainerSpec
 
 			createdContainer Container
 			createErr        error
 		)
 
 		BeforeEach(func() {
+			logger = lagertest.NewTestLogger("test")
 			id = Identifier{Name: "some-name"}
 			spec = ResourceTypeContainerSpec{Type: "some-type"}
 		})
 
 		JustBeforeEach(func() {
-			createdContainer, createErr = pool.CreateContainer(id, spec)
+			createdContainer, createErr = pool.CreateContainer(logger, id, spec)
 		})
 
 		Context("with multiple workers", func() {
@@ -92,7 +98,7 @@ var _ = Describe("Pool", func() {
 
 			It("creates using a random worker", func() {
 				for i := 1; i < 100; i++ { // account for initial create in JustBefore
-					createdContainer, createErr := pool.CreateContainer(id, spec)
+					createdContainer, createErr := pool.CreateContainer(logger, id, spec)
 					Ω(createErr).ShouldNot(HaveOccurred())
 					Ω(createdContainer).Should(Equal(fakeContainer))
 				}
@@ -164,7 +170,7 @@ var _ = Describe("Pool", func() {
 			})
 
 			It("returns ErrNoWorkers", func() {
-				_, err := pool.LookupContainer(handle)
+				_, err := pool.LookupContainer(logger, handle)
 
 				Ω(err).Should(Equal(ErrNoWorkers))
 			})
@@ -178,7 +184,7 @@ var _ = Describe("Pool", func() {
 			})
 
 			It("returns the error", func() {
-				_, err := pool.LookupContainer(handle)
+				_, err := pool.LookupContainer(logger, handle)
 
 				Ω(err).Should(Equal(disaster))
 			})
@@ -213,21 +219,24 @@ var _ = Describe("Pool", func() {
 				})
 
 				It("returns the container", func() {
-					foundContainer, err := pool.LookupContainer(handle)
+					foundContainer, err := pool.LookupContainer(logger, handle)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(foundContainer).Should(Equal(fakeContainer))
 				})
 
 				It("looks up by the given identifier", func() {
-					_, err := pool.LookupContainer(handle)
+					_, err := pool.LookupContainer(logger, handle)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(workerA.LookupContainerCallCount()).Should(Equal(1))
 					Ω(workerB.LookupContainerCallCount()).Should(Equal(1))
 
-					Ω(workerA.LookupContainerArgsForCall(0)).Should(Equal(handle))
-					Ω(workerB.LookupContainerArgsForCall(0)).Should(Equal(handle))
+					_, lookedUpHandle := workerA.LookupContainerArgsForCall(0)
+					Ω(lookedUpHandle).Should(Equal(handle))
+
+					_, lookedUpHandle = workerB.LookupContainerArgsForCall(0)
+					Ω(lookedUpHandle).Should(Equal(handle))
 				})
 			})
 
@@ -250,13 +259,13 @@ var _ = Describe("Pool", func() {
 					})
 
 					It("returns the container", func() {
-						foundContainer, _ := pool.LookupContainer(handle)
+						foundContainer, _ := pool.LookupContainer(logger, handle)
 
 						Ω(foundContainer).Should(Equal(fakeContainer))
 					})
 
 					It("doesn't return an error", func() {
-						_, err := pool.LookupContainer(handle)
+						_, err := pool.LookupContainer(logger, handle)
 						Ω(err).To(BeNil())
 					})
 				})
@@ -267,7 +276,7 @@ var _ = Describe("Pool", func() {
 					})
 
 					It("returns an error identifing which worker errored", func() {
-						_, err := pool.LookupContainer(handle)
+						_, err := pool.LookupContainer(logger, handle)
 						Ω(err).NotTo(BeNil())
 
 						mwe, ok := err.(MultiWorkerError)
@@ -286,7 +295,7 @@ var _ = Describe("Pool", func() {
 				})
 
 				It("returns ErrContainerNotFound", func() {
-					_, err := pool.LookupContainer(handle)
+					_, err := pool.LookupContainer(logger, handle)
 					Ω(err).Should(Equal(garden.ContainerNotFoundError{}))
 				})
 			})
@@ -306,14 +315,14 @@ var _ = Describe("Pool", func() {
 				})
 
 				It("returns a MultipleWorkersFoundContainerError", func() {
-					_, err := pool.LookupContainer(handle)
+					_, err := pool.LookupContainer(logger, handle)
 
 					Ω(err).Should(BeAssignableToTypeOf(MultipleWorkersFoundContainerError{}))
 					Ω(err.(MultipleWorkersFoundContainerError).Names).Should(ConsistOf("worker-a", "worker-b"))
 				})
 
 				It("releases all returned containers", func() {
-					_, _ = pool.LookupContainer(handle)
+					_, _ = pool.LookupContainer(logger, handle)
 
 					Ω(fakeContainer.ReleaseCallCount()).Should(Equal(1))
 					Ω(secondFakeContainer.ReleaseCallCount()).Should(Equal(1))
@@ -362,7 +371,7 @@ var _ = Describe("Pool", func() {
 				})
 
 				It("returns the container", func() {
-					foundContainers, err := pool.FindContainersForIdentifier(id)
+					foundContainers, err := pool.FindContainersForIdentifier(logger, id)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(len(foundContainers)).Should(Equal(1))
@@ -370,14 +379,17 @@ var _ = Describe("Pool", func() {
 				})
 
 				It("looks up by the given identifier", func() {
-					_, err := pool.FindContainersForIdentifier(id)
+					_, err := pool.FindContainersForIdentifier(logger, id)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(workerA.FindContainersForIdentifierCallCount()).Should(Equal(1))
 					Ω(workerB.FindContainersForIdentifierCallCount()).Should(Equal(1))
 
-					Ω(workerA.FindContainersForIdentifierArgsForCall(0)).Should(Equal(id))
-					Ω(workerB.FindContainersForIdentifierArgsForCall(0)).Should(Equal(id))
+					_, lookedUpID := workerA.FindContainersForIdentifierArgsForCall(0)
+					Ω(lookedUpID).Should(Equal(id))
+
+					_, lookedUpID = workerB.FindContainersForIdentifierArgsForCall(0)
+					Ω(lookedUpID).Should(Equal(id))
 				})
 			})
 
@@ -388,7 +400,7 @@ var _ = Describe("Pool", func() {
 				})
 
 				It("returns empty array of containers", func() {
-					foundContainers, err := pool.FindContainersForIdentifier(id)
+					foundContainers, err := pool.FindContainersForIdentifier(logger, id)
 					Ω(err).ShouldNot(HaveOccurred())
 
 					Ω(len(foundContainers)).Should(Equal(0))
@@ -419,7 +431,7 @@ var _ = Describe("Pool", func() {
 					})
 
 					It("returns all containers without error", func() {
-						foundContainers, err := pool.FindContainersForIdentifier(id)
+						foundContainers, err := pool.FindContainersForIdentifier(logger, id)
 						Ω(err).ShouldNot(HaveOccurred())
 
 						Ω(foundContainers).Should(ConsistOf(fakeContainer, secondFakeContainer, thirdFakeContainer))
@@ -443,12 +455,12 @@ var _ = Describe("Pool", func() {
 					})
 
 					It("returns all containers", func() {
-						foundContainers, _ := pool.FindContainersForIdentifier(id)
+						foundContainers, _ := pool.FindContainersForIdentifier(logger, id)
 						Ω(foundContainers).Should(ConsistOf(fakeContainer, secondFakeContainer, thirdFakeContainer))
 					})
 
 					It("returns an error identifing which worker errored", func() {
-						_, err := pool.FindContainersForIdentifier(id)
+						_, err := pool.FindContainersForIdentifier(logger, id)
 
 						Ω(err.Error()).Should(ContainSubstring(workerBName))
 						Ω(err.Error()).Should(ContainSubstring(workerBErrString))
@@ -484,12 +496,12 @@ var _ = Describe("Pool", func() {
 					})
 
 					It("returns all containers", func() {
-						foundContainers, _ := pool.FindContainersForIdentifier(id)
+						foundContainers, _ := pool.FindContainersForIdentifier(logger, id)
 						Ω(foundContainers).Should(ConsistOf(fakeContainer, secondFakeContainer, thirdFakeContainer))
 					})
 
 					It("returns an error identifing which workers errored", func() {
-						_, err := pool.FindContainersForIdentifier(id)
+						_, err := pool.FindContainersForIdentifier(logger, id)
 
 						Ω(err.Error()).Should(ContainSubstring(workerAName))
 						Ω(err.Error()).Should(ContainSubstring(workerAErrString))
@@ -506,7 +518,7 @@ var _ = Describe("Pool", func() {
 			})
 
 			It("returns ErrNoWorkers", func() {
-				_, err := pool.FindContainersForIdentifier(id)
+				_, err := pool.FindContainersForIdentifier(logger, id)
 
 				Ω(err).Should(Equal(ErrNoWorkers))
 			})
@@ -520,7 +532,7 @@ var _ = Describe("Pool", func() {
 			})
 
 			It("returns the error", func() {
-				_, err := pool.FindContainersForIdentifier(id)
+				_, err := pool.FindContainersForIdentifier(logger, id)
 
 				Ω(err).Should(Equal(disaster))
 			})
@@ -540,7 +552,7 @@ var _ = Describe("Pool", func() {
 		})
 
 		JustBeforeEach(func() {
-			foundContainer, lookupErr = pool.FindContainerForIdentifier(id)
+			foundContainer, lookupErr = pool.FindContainerForIdentifier(logger, id)
 		})
 
 		Context("with multiple workers", func() {
@@ -578,8 +590,11 @@ var _ = Describe("Pool", func() {
 					Ω(workerA.FindContainerForIdentifierCallCount()).Should(Equal(1))
 					Ω(workerB.FindContainerForIdentifierCallCount()).Should(Equal(1))
 
-					Ω(workerA.FindContainerForIdentifierArgsForCall(0)).Should(Equal(id))
-					Ω(workerB.FindContainerForIdentifierArgsForCall(0)).Should(Equal(id))
+					_, lookedUpID := workerA.FindContainerForIdentifierArgsForCall(0)
+					Ω(lookedUpID).Should(Equal(id))
+
+					_, lookedUpID = workerB.FindContainerForIdentifierArgsForCall(0)
+					Ω(lookedUpID).Should(Equal(id))
 				})
 			})
 

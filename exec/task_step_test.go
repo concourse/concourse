@@ -18,6 +18,7 @@ import (
 	rfakes "github.com/concourse/atc/resource/fakes"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
+	bfakes "github.com/concourse/baggageclaim/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -135,9 +136,13 @@ var _ = Describe("GardenFactory", func() {
 
 				Context("when a worker can be located", func() {
 					var fakeWorker *wfakes.FakeWorker
+					var fakeBaggageclaimClient *bfakes.FakeClient
 
 					BeforeEach(func() {
 						fakeWorker = new(wfakes.FakeWorker)
+
+						fakeBaggageclaimClient = new(bfakes.FakeClient)
+						fakeWorker.VolumeManagerReturns(fakeBaggageclaimClient, true)
 
 						expectedSpec := worker.WorkerSpec{
 							Platform: "some-platform",
@@ -186,7 +191,8 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("looked up the container via the session ID across the entire pool", func() {
-							Ω(fakeWorkerClient.FindContainerForIdentifierArgsForCall(0)).Should(Equal(identifier))
+							_, findID := fakeWorkerClient.FindContainerForIdentifierArgsForCall(0)
+							Ω(findID).Should(Equal(identifier))
 						})
 
 						It("gets the config from the input artifact soruce", func() {
@@ -196,7 +202,7 @@ var _ = Describe("GardenFactory", func() {
 
 						It("creates a container with the config's image and the session ID as the handle", func() {
 							Ω(fakeWorker.CreateContainerCallCount()).Should(Equal(1))
-							createdIdentifier, spec := fakeWorker.CreateContainerArgsForCall(0)
+							_, createdIdentifier, spec := fakeWorker.CreateContainerArgsForCall(0)
 							Ω(createdIdentifier).Should(Equal(identifier))
 
 							taskSpec := spec.(worker.TaskContainerSpec)
@@ -258,7 +264,7 @@ var _ = Describe("GardenFactory", func() {
 
 							It("creates the container privileged", func() {
 								Ω(fakeWorker.CreateContainerCallCount()).Should(Equal(1))
-								createdIdentifier, spec := fakeWorker.CreateContainerArgsForCall(0)
+								_, createdIdentifier, spec := fakeWorker.CreateContainerArgsForCall(0)
 								Ω(createdIdentifier).Should(Equal(identifier))
 
 								taskSpec := spec.(worker.TaskContainerSpec)
@@ -347,6 +353,47 @@ var _ = Describe("GardenFactory", func() {
 									Ω(spec.TarStream).Should(Equal(streamIn))
 
 									Eventually(process.Wait()).Should(Receive(BeNil()))
+								})
+
+								Context("when the inputs have volumes on the chosen worker", func() {
+									var inputVolume *bfakes.FakeVolume
+									var otherInputVolume *bfakes.FakeVolume
+
+									BeforeEach(func() {
+										inputVolume = new(bfakes.FakeVolume)
+										inputVolume.HandleReturns("input-volume")
+
+										otherInputVolume = new(bfakes.FakeVolume)
+										otherInputVolume.HandleReturns("other-input-volume")
+
+										inputSource.VolumeOnReturns(inputVolume, true, nil)
+										otherInputSource.VolumeOnReturns(otherInputVolume, true, nil)
+									})
+
+									It("bind-mounts copy-on-write volumes to their destinations in the container", func() {
+										_, _, spec := fakeWorker.CreateContainerArgsForCall(0)
+										taskSpec := spec.(worker.TaskContainerSpec)
+										Expect(taskSpec.Inputs).To(Equal([]worker.VolumeMount{
+											{
+												Volume:    inputVolume,
+												MountPath: "/tmp/build/a-random-guid/some-input-configured-path",
+											},
+											{
+												Volume:    otherInputVolume,
+												MountPath: "/tmp/build/a-random-guid/some-other-input",
+											},
+										}))
+									})
+
+									It("releases the volumes given to the worker", func() {
+										Expect(inputVolume.ReleaseCallCount()).To(Equal(1))
+										Expect(otherInputVolume.ReleaseCallCount()).To(Equal(1))
+									})
+
+									It("does not stream inputs that had volumes", func() {
+										Ω(inputSource.StreamToCallCount()).Should(Equal(0))
+										Ω(otherInputSource.StreamToCallCount()).Should(Equal(0))
+									})
 								})
 
 								Context("when streaming the bits in to the container fails", func() {

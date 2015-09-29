@@ -58,7 +58,7 @@ var _ = Describe("Resource", func() {
 
 			BeforeEach(func() {
 				vol1 = new(bfakes.FakeVolume)
-				fakeContainer.VolumesReturns([]baggageclaim.Volume{vol1}, nil)
+				fakeContainer.VolumesReturns([]baggageclaim.Volume{vol1})
 			})
 
 			It("returns the volume and true", func() {
@@ -79,7 +79,7 @@ var _ = Describe("Resource", func() {
 			BeforeEach(func() {
 				vol1 = new(bfakes.FakeVolume)
 				vol2 = new(bfakes.FakeVolume)
-				fakeContainer.VolumesReturns([]baggageclaim.Volume{vol1, vol2}, nil)
+				fakeContainer.VolumesReturns([]baggageclaim.Volume{vol1, vol2})
 			})
 
 			It("returns ErrMultipleVolumes", func() {
@@ -90,7 +90,7 @@ var _ = Describe("Resource", func() {
 
 		Context("when the container has no volumes", func() {
 			BeforeEach(func() {
-				fakeContainer.VolumesReturns([]baggageclaim.Volume{}, nil)
+				fakeContainer.VolumesReturns([]baggageclaim.Volume{})
 			})
 
 			It("returns no volume and false", func() {
@@ -98,19 +98,6 @@ var _ = Describe("Resource", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(found).Should(BeFalse())
 				Ω(volume).Should(BeNil())
-			})
-		})
-
-		Context("when getting the volumes fails", func() {
-			disaster := errors.New("nope")
-
-			BeforeEach(func() {
-				fakeContainer.VolumesReturns(nil, disaster)
-			})
-
-			It("returns the error", func() {
-				_, _, err := resource.CacheVolume()
-				Ω(err).Should(Equal(disaster))
 			})
 		})
 	})

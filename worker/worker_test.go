@@ -3,6 +3,7 @@ package worker_test
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
@@ -14,10 +15,13 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/clock/fakeclock"
+	"github.com/pivotal-golang/lager"
+	"github.com/pivotal-golang/lager/lagertest"
 )
 
 var _ = Describe("Worker", func() {
 	var (
+		logger                 *lagertest.TestLogger
 		fakeGardenClient       *gfakes.FakeClient
 		fakeBaggageclaimClient *bfakes.FakeClient
 		fakeClock              *fakeclock.FakeClock
@@ -31,6 +35,7 @@ var _ = Describe("Worker", func() {
 	)
 
 	BeforeEach(func() {
+		logger = lagertest.NewTestLogger("test")
 		fakeGardenClient = new(gfakes.FakeClient)
 		fakeBaggageclaimClient = new(bfakes.FakeClient)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
@@ -99,14 +104,17 @@ var _ = Describe("Worker", func() {
 
 	Describe("CreateContainer", func() {
 		var (
-			id   Identifier
-			spec ContainerSpec
+			logger lager.Logger
+			id     Identifier
+			spec   ContainerSpec
 
 			createdContainer Container
 			createErr        error
 		)
 
 		BeforeEach(func() {
+			logger = lagertest.NewTestLogger("test")
+
 			id = Identifier{
 				Name:         "some-name",
 				PipelineName: "some-pipeline",
@@ -119,7 +127,7 @@ var _ = Describe("Worker", func() {
 		})
 
 		JustBeforeEach(func() {
-			createdContainer, createErr = worker.CreateContainer(id, spec)
+			createdContainer, createErr = worker.CreateContainer(logger, id, spec)
 		})
 
 		Context("with a resource type container spec", func() {
@@ -197,9 +205,11 @@ var _ = Describe("Worker", func() {
 							volume.PathReturns("/some/src/path")
 
 							spec = ResourceTypeContainerSpec{
-								Type:      "some-resource",
-								Volume:    volume,
-								MountPath: "/some/dst/path",
+								Type: "some-resource",
+								Cache: VolumeMount{
+									Volume:    volume,
+									MountPath: "/some/dst/path",
+								},
 							}
 						})
 
@@ -322,7 +332,7 @@ var _ = Describe("Worker", func() {
 			})
 		})
 
-		Context("with a resource type container spec", func() {
+		Context("with a task container spec", func() {
 			BeforeEach(func() {
 				spec = TaskContainerSpec{
 					Image:      "some-image",
@@ -359,6 +369,98 @@ var _ = Describe("Worker", func() {
 							"concourse:build-id":      "42",
 						},
 					}))
+				})
+
+				Context("when inputs are provided", func() {
+					var volume1 *bfakes.FakeVolume
+					var volume2 *bfakes.FakeVolume
+
+					var cowInputVolume *bfakes.FakeVolume
+					var cowOtherInputVolume *bfakes.FakeVolume
+
+					BeforeEach(func() {
+						volume1 = new(bfakes.FakeVolume)
+						volume1.HandleReturns("some-volume")
+						volume1.PathReturns("/some/src/path")
+
+						volume2 = new(bfakes.FakeVolume)
+						volume2.HandleReturns("some-other-volume")
+						volume2.PathReturns("/some/other/src/path")
+
+						cowInputVolume = new(bfakes.FakeVolume)
+						cowInputVolume.HandleReturns("cow-input-volume")
+						cowInputVolume.PathReturns("/some/cow/src/path")
+
+						cowOtherInputVolume = new(bfakes.FakeVolume)
+						cowOtherInputVolume.HandleReturns("cow-other-input-volume")
+						cowOtherInputVolume.PathReturns("/some/other/cow/src/path")
+
+						fakeBaggageclaimClient.CreateVolumeStub = func(logger lager.Logger, spec baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
+							if reflect.DeepEqual(spec.Strategy, baggageclaim.COWStrategy{volume1}) {
+								return cowInputVolume, nil
+							} else if reflect.DeepEqual(spec.Strategy, baggageclaim.COWStrategy{volume2}) {
+								return cowOtherInputVolume, nil
+							} else {
+								return nil, fmt.Errorf("unknown strategy: %#v", spec.Strategy)
+							}
+						}
+
+						taskSpec := spec.(TaskContainerSpec)
+						taskSpec.Inputs = []VolumeMount{
+							{
+								Volume:    volume1,
+								MountPath: "/some/dst/path",
+							},
+							{
+								Volume:    volume2,
+								MountPath: "/some/other/dst/path",
+							},
+						}
+
+						spec = taskSpec
+					})
+
+					It("creates the container with read-write copy-on-write bind-mounts for each input", func() {
+						Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
+						Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
+							RootFSPath: "some-image",
+							Privileged: true,
+							Properties: garden.Properties{
+								"concourse:type":          "get",
+								"concourse:pipeline-name": "some-pipeline",
+								"concourse:location":      "3",
+								"concourse:check-type":    "some-check-type",
+								"concourse:check-source":  `{"some":"source"}`,
+								"concourse:name":          "some-name",
+								"concourse:build-id":      "42",
+								"concourse:volumes":       `["cow-input-volume","cow-other-input-volume"]`,
+							},
+							BindMounts: []garden.BindMount{
+								{
+									SrcPath: "/some/cow/src/path",
+									DstPath: "/some/dst/path",
+									Mode:    garden.BindMountModeRW,
+								},
+								{
+									SrcPath: "/some/other/cow/src/path",
+									DstPath: "/some/other/dst/path",
+									Mode:    garden.BindMountModeRW,
+								},
+							},
+						}))
+					})
+
+					Context("when creating the copy-on-write volumes fails", func() {
+						disaster := errors.New("nope")
+
+						BeforeEach(func() {
+							fakeBaggageclaimClient.CreateVolumeReturns(nil, disaster)
+						})
+
+						It("returns the error", func() {
+							Expect(createErr).To(Equal(disaster))
+						})
+					})
 				})
 
 				Describe("the created container", func() {
@@ -435,7 +537,7 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("returns the container and no error", func() {
-				foundContainer, err := worker.LookupContainer(handle)
+				foundContainer, err := worker.LookupContainer(logger, handle)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(foundContainer.Handle()).Should(Equal(fakeContainer.Handle()))
@@ -443,45 +545,39 @@ var _ = Describe("Worker", func() {
 
 			Describe("the container", func() {
 				var foundContainer Container
+				var findErr error
 
 				JustBeforeEach(func() {
-					var err error
-					foundContainer, err = worker.LookupContainer(handle)
-					Ω(err).ShouldNot(HaveOccurred())
+					foundContainer, findErr = worker.LookupContainer(logger, handle)
 				})
 
-				Describe("VolumeHandles", func() {
-					Context("when the concourse:volumes property is present", func() {
-						var handle1Volume *bfakes.FakeVolume
-						var handle2Volume *bfakes.FakeVolume
+				Context("when the concourse:volumes property is present", func() {
+					var handle1Volume *bfakes.FakeVolume
+					var handle2Volume *bfakes.FakeVolume
 
-						BeforeEach(func() {
-							handle1Volume = new(bfakes.FakeVolume)
-							handle2Volume = new(bfakes.FakeVolume)
+					BeforeEach(func() {
+						handle1Volume = new(bfakes.FakeVolume)
+						handle2Volume = new(bfakes.FakeVolume)
 
-							fakeContainer.PropertyReturns(`["handle-1", "handle-2"]`, nil)
+						fakeContainer.PropertiesReturns(garden.Properties{
+							"concourse:name":    name,
+							"concourse:volumes": `["handle-1","handle-2"]`,
+						}, nil)
 
-							fakeBaggageclaimClient.LookupVolumeStub = func(handle string) (baggageclaim.Volume, error) {
-								if handle == "handle-1" {
-									return handle1Volume, nil
-								} else if handle == "handle-2" {
-									return handle2Volume, nil
-								} else {
-									panic("unknown handle: " + handle)
-								}
+						fakeBaggageclaimClient.LookupVolumeStub = func(logger lager.Logger, handle string) (baggageclaim.Volume, error) {
+							if handle == "handle-1" {
+								return handle1Volume, nil
+							} else if handle == "handle-2" {
+								return handle2Volume, nil
+							} else {
+								panic("unknown handle: " + handle)
 							}
-						})
+						}
+					})
 
+					Describe("Volumes", func() {
 						It("returns all bound volumes based on properties on the container", func() {
-							fakeContainer.PropertyReturns(`["handle-1", "handle-2"]`, nil)
-
-							volumes, err := foundContainer.Volumes()
-							Ω(err).ShouldNot(HaveOccurred())
-
-							Ω(fakeContainer.PropertyCallCount()).Should(Equal(1))
-							Ω(fakeContainer.PropertyArgsForCall(0)).Should(Equal("concourse:volumes"))
-
-							Ω(volumes).Should(Equal([]baggageclaim.Volume{handle1Volume, handle2Volume}))
+							Ω(foundContainer.Volumes()).Should(Equal([]baggageclaim.Volume{handle1Volume, handle2Volume}))
 						})
 
 						Context("when LookupVolume returns an error", func() {
@@ -491,28 +587,35 @@ var _ = Describe("Worker", func() {
 								fakeBaggageclaimClient.LookupVolumeReturns(nil, disaster)
 							})
 
-							It("returns the error", func() {
-								volumes, err := foundContainer.Volumes()
-								Ω(err).Should(Equal(disaster))
-								Ω(volumes).Should(BeEmpty())
+							It("returns the error on lookup", func() {
+								Expect(findErr).To(Equal(disaster))
 							})
 						})
 					})
 
-					Context("when the concourse:volumes property is not present", func() {
-						BeforeEach(func() {
-							// TODO: #85476532
-							fakeContainer.PropertyReturns("", errors.New("nope"))
+					Describe("Release", func() {
+						It("releases the container's volumes once and only once", func() {
+							foundContainer.Release()
+							Expect(handle1Volume.ReleaseCallCount()).To(Equal(1))
+							Expect(handle2Volume.ReleaseCallCount()).To(Equal(1))
+
+							foundContainer.Release()
+							Expect(handle1Volume.ReleaseCallCount()).To(Equal(1))
+							Expect(handle2Volume.ReleaseCallCount()).To(Equal(1))
 						})
+					})
+				})
 
+				Context("when the concourse:volumes property is not present", func() {
+					BeforeEach(func() {
+						fakeContainer.PropertiesReturns(garden.Properties{
+							"concourse:name": name,
+						}, nil)
+					})
+
+					Describe("Volumes", func() {
 						It("returns an empty slice", func() {
-							volumes, err := foundContainer.Volumes()
-							Ω(err).ShouldNot(HaveOccurred())
-
-							Ω(fakeContainer.PropertyCallCount()).Should(Equal(1))
-							Ω(fakeContainer.PropertyArgsForCall(0)).Should(Equal("concourse:volumes"))
-
-							Ω(volumes).Should(BeEmpty())
+							Expect(foundContainer.Volumes()).To(BeEmpty())
 						})
 					})
 				})
@@ -528,7 +631,7 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("returns nil and forwards the error", func() {
-				foundContainer, err := worker.LookupContainer(handle)
+				foundContainer, err := worker.LookupContainer(logger, handle)
 				Ω(err).Should(Equal(expectedErr))
 
 				Ω(foundContainer).Should(BeNil())
@@ -559,7 +662,7 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("returns the containers without error", func() {
-				foundContainers, err := worker.FindContainersForIdentifier(id)
+				foundContainers, err := worker.FindContainersForIdentifier(logger, id)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(len(foundContainers)).Should(Equal(1))
@@ -575,7 +678,7 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("returns nil and forwards the error", func() {
-				foundContainers, err := worker.FindContainersForIdentifier(id)
+				foundContainers, err := worker.FindContainersForIdentifier(logger, id)
 
 				Ω(err).Should(Equal(expectedErr))
 				Ω(foundContainers).Should(BeNil())
@@ -596,7 +699,7 @@ var _ = Describe("Worker", func() {
 		})
 
 		JustBeforeEach(func() {
-			foundContainer, lookupErr = worker.FindContainerForIdentifier(id)
+			foundContainer, lookupErr = worker.FindContainerForIdentifier(logger, id)
 		})
 
 		Context("when the container can be found", func() {

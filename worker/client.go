@@ -9,18 +9,19 @@ import (
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
 	"github.com/concourse/baggageclaim"
+	"github.com/pivotal-golang/lager"
 )
 
 //go:generate counterfeiter . Client
 
 type Client interface {
-	CreateContainer(Identifier, ContainerSpec) (Container, error)
-	FindContainerForIdentifier(Identifier) (Container, error)
-	FindContainersForIdentifier(Identifier) ([]Container, error)
+	CreateContainer(lager.Logger, Identifier, ContainerSpec) (Container, error)
+	FindContainerForIdentifier(lager.Logger, Identifier) (Container, error)
+	FindContainersForIdentifier(lager.Logger, Identifier) ([]Container, error)
 
 	// LookupContainer performs a lookup for a container with the provided handle.
 	// Returns (nil, garden.ContainerNotFoundError) if no container is found for the provided handle.
-	LookupContainer(string) (Container, error)
+	LookupContainer(lager.Logger, string) (Container, error)
 
 	Name() string
 
@@ -38,7 +39,7 @@ type Container interface {
 
 	IdentifierFromProperties() Identifier
 
-	Volumes() ([]baggageclaim.Volume, error)
+	Volumes() []baggageclaim.Volume
 }
 
 type Identifier struct {

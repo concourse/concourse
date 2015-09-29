@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
+	"github.com/pivotal-golang/lager"
 )
 
 //go:generate counterfeiter . WorkerProvider
@@ -79,16 +80,16 @@ func (pool *pool) Satisfying(spec WorkerSpec) (Worker, error) {
 	return randomWorker, nil
 }
 
-func (pool *pool) CreateContainer(id Identifier, spec ContainerSpec) (Container, error) {
+func (pool *pool) CreateContainer(logger lager.Logger, id Identifier, spec ContainerSpec) (Container, error) {
 	worker, err := pool.Satisfying(spec.WorkerSpec())
 	if err != nil {
 		return nil, err
 	}
 
-	return worker.CreateContainer(id, spec)
+	return worker.CreateContainer(logger, id, spec)
 }
 
-func (pool *pool) FindContainerForIdentifier(id Identifier) (Container, error) {
+func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier) (Container, error) {
 	workers, err := pool.provider.Workers()
 	if err != nil {
 		return nil, err
@@ -108,7 +109,7 @@ func (pool *pool) FindContainerForIdentifier(id Identifier) (Container, error) {
 		go func(worker Worker) {
 			defer wg.Done()
 
-			container, err := worker.FindContainerForIdentifier(id)
+			container, err := worker.FindContainerForIdentifier(logger, id)
 			if err == nil {
 				found <- container
 			} else if multi, ok := err.(MultipleContainersError); ok {
@@ -165,7 +166,7 @@ type workerErrorInfo struct {
 	err        error
 }
 
-func (pool *pool) FindContainersForIdentifier(id Identifier) ([]Container, error) {
+func (pool *pool) FindContainersForIdentifier(logger lager.Logger, id Identifier) ([]Container, error) {
 	workers, err := pool.provider.Workers()
 	if err != nil {
 		return nil, err
@@ -185,7 +186,7 @@ func (pool *pool) FindContainersForIdentifier(id Identifier) ([]Container, error
 		go func(worker Worker) {
 			defer wg.Done()
 
-			containers, err := worker.FindContainersForIdentifier(id)
+			containers, err := worker.FindContainersForIdentifier(logger, id)
 			found <- containers
 			if err != nil {
 				errors <- workerErrorInfo{
@@ -227,7 +228,7 @@ type foundContainer struct {
 	container  Container
 }
 
-func (pool *pool) LookupContainer(handle string) (Container, error) {
+func (pool *pool) LookupContainer(logger lager.Logger, handle string) (Container, error) {
 	workers, err := pool.provider.Workers()
 	if err != nil {
 		return nil, err
@@ -247,7 +248,7 @@ func (pool *pool) LookupContainer(handle string) (Container, error) {
 		go func(worker Worker) {
 			defer wg.Done()
 
-			container, err := worker.LookupContainer(handle)
+			container, err := worker.LookupContainer(logger, handle)
 			if container != nil {
 				found <- foundContainer{
 					workerName: worker.Name(),

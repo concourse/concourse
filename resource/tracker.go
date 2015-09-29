@@ -6,6 +6,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
+	"github.com/pivotal-golang/lager"
 )
 
 type ResourceType string
@@ -19,7 +20,7 @@ type Session struct {
 //go:generate counterfeiter . Tracker
 
 type Tracker interface {
-	Init(Metadata, Session, ResourceType, atc.Tags, VolumeMount) (Resource, error)
+	Init(lager.Logger, Metadata, Session, ResourceType, atc.Tags, VolumeMount) (Resource, error)
 }
 
 type Metadata interface {
@@ -53,19 +54,18 @@ type VolumeMount struct {
 	MountPath string
 }
 
-func (tracker *tracker) Init(metadata Metadata, session Session, typ ResourceType, tags atc.Tags, mount VolumeMount) (Resource, error) {
-	container, err := tracker.workerClient.FindContainerForIdentifier(session.ID)
+func (tracker *tracker) Init(logger lager.Logger, metadata Metadata, session Session, typ ResourceType, tags atc.Tags, mount VolumeMount) (Resource, error) {
+	container, err := tracker.workerClient.FindContainerForIdentifier(logger, session.ID)
 
 	switch err {
 	case nil:
 	case worker.ErrContainerNotFound:
-		container, err = tracker.workerClient.CreateContainer(session.ID, worker.ResourceTypeContainerSpec{
+		container, err = tracker.workerClient.CreateContainer(logger, session.ID, worker.ResourceTypeContainerSpec{
 			Type:      string(typ),
 			Ephemeral: session.Ephemeral,
 			Tags:      tags,
 			Env:       metadata.Env(),
-			Volume:    mount.Volume,
-			MountPath: mount.MountPath,
+			Cache:     worker.VolumeMount(mount),
 		})
 	}
 
