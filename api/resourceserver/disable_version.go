@@ -9,6 +9,7 @@ import (
 )
 
 func (s *Server) DisableResourceVersion(pipelineDB db.PipelineDB) http.Handler {
+	logger := s.logger.Session("disable-resource-version")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resourceID, err := strconv.Atoi(rata.Param(r, "resource_version_id"))
 		if err != nil {
@@ -18,6 +19,7 @@ func (s *Server) DisableResourceVersion(pipelineDB db.PipelineDB) http.Handler {
 
 		err = pipelineDB.DisableVersionedResource(resourceID)
 		if err != nil {
+			logger.Error("failed-to-disable-versioned-resource", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

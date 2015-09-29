@@ -19,6 +19,7 @@ func (i IntMetric) String() string {
 }
 
 func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
+	logger := s.logger.Session("register-worker")
 	var registration atc.Worker
 	err := json.NewDecoder(r.Body).Decode(&registration)
 	if err != nil {
@@ -58,6 +59,7 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 		Tags:             registration.Tags,
 	}, ttl)
 	if err != nil {
+		logger.Error("failed-to-save-worker", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

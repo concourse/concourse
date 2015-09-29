@@ -9,8 +9,10 @@ import (
 )
 
 func (s *Server) ListPipelines(w http.ResponseWriter, r *http.Request) {
+	logger := s.logger.Session("list-pipelines")
 	pipelines, err := s.db.GetAllActivePipelines()
 	if err != nil {
+		logger.Error("failed-to-get-all-active-pipelines", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

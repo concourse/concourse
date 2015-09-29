@@ -11,6 +11,7 @@ import (
 )
 
 func (s *Server) CreatePipe(w http.ResponseWriter, r *http.Request) {
+	logger := s.logger.Session("create-pipe")
 	guid, err := uuid.NewV4()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -19,6 +20,7 @@ func (s *Server) CreatePipe(w http.ResponseWriter, r *http.Request) {
 
 	err = s.db.CreatePipe(guid.String(), s.url)
 	if err != nil {
+		logger.Error("failed-to-create-pipe", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

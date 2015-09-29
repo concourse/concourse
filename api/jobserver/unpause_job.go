@@ -8,11 +8,13 @@ import (
 )
 
 func (s *Server) UnpauseJob(pipelineDB db.PipelineDB) http.Handler {
+	logger := s.logger.Session("unpause-job")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jobName := rata.Param(r, "job_name")
 
 		err := pipelineDB.UnpauseJob(jobName)
 		if err != nil {
+			logger.Error("failed-to-unpause-job", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

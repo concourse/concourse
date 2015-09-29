@@ -11,11 +11,13 @@ import (
 )
 
 func (s *Server) ListJobInputs(pipelineDB db.PipelineDB) http.Handler {
+	logger := s.logger.Session("list-job-inputs")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jobName := r.FormValue(":job_name")
 
 		pipelineConfig, _, found, err := pipelineDB.GetConfig()
 		if err != nil {
+			logger.Error("failed-to-get-config", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -33,6 +35,7 @@ func (s *Server) ListJobInputs(pipelineDB db.PipelineDB) http.Handler {
 
 		versionsDB, err := pipelineDB.LoadVersionsDB()
 		if err != nil {
+			logger.Error("failed-to-load-version-db", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -41,6 +44,7 @@ func (s *Server) ListJobInputs(pipelineDB db.PipelineDB) http.Handler {
 
 		inputVersions, found, err := pipelineDB.GetLatestInputVersions(versionsDB, jobName, jobInputs)
 		if err != nil {
+			logger.Error("failed-to-get-latest-input-versions", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

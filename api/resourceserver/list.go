@@ -10,11 +10,13 @@ import (
 )
 
 func (s *Server) ListResources(pipelineDB db.PipelineDB) http.Handler {
+	logger := s.logger.Session("list-resources")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var resources []atc.Resource
 
 		config, _, found, err := pipelineDB.GetConfig()
 		if err != nil {
+			logger.Error("failed-to-get-config", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -29,6 +31,7 @@ func (s *Server) ListResources(pipelineDB db.PipelineDB) http.Handler {
 		for _, resource := range config.Resources {
 			dbResource, err := pipelineDB.GetResource(resource.Name)
 			if err != nil {
+				logger.Error("failed-to-get-resource", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}

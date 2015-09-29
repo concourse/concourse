@@ -9,8 +9,10 @@ import (
 )
 
 func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
+	logger := s.logger.Session("list-builds")
 	builds, err := s.db.GetAllBuilds()
 	if err != nil {
+		logger.Error("failed-to-get-all-builds", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

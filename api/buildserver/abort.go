@@ -32,6 +32,7 @@ func (s *Server) AbortBuild(w http.ResponseWriter, r *http.Request) {
 
 	engineBuild, err := s.engine.LookupBuild(build)
 	if err != nil {
+		aLog.Error("failed-to-lookup-build", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

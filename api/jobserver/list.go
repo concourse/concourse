@@ -10,10 +10,12 @@ import (
 )
 
 func (s *Server) ListJobs(pipelineDB db.PipelineDB) http.Handler {
+	logger := s.logger.Session("list-jobs")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var jobs []atc.Job
 		config, _, found, err := pipelineDB.GetConfig()
 		if err != nil {
+			logger.Error("failed-to-get-config", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -26,12 +28,14 @@ func (s *Server) ListJobs(pipelineDB db.PipelineDB) http.Handler {
 		for _, job := range config.Jobs {
 			finished, next, err := pipelineDB.GetJobFinishedAndNextBuild(job.Name)
 			if err != nil {
+				logger.Error("failed-to-get-job-finished-and-next-build", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
 			dbJob, err := pipelineDB.GetJob(job.Name)
 			if err != nil {
+				logger.Error("failed-to-get-job", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}

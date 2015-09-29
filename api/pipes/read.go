@@ -8,10 +8,12 @@ import (
 )
 
 func (s *Server) ReadPipe(w http.ResponseWriter, r *http.Request) {
+	logger := s.logger.Session("read-pipe")
 	pipeID := r.FormValue(":pipe_id")
 
 	dbPipe, err := s.db.GetPipe(pipeID)
 	if err != nil {
+		logger.Error("failed-to-get-pipe", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -55,6 +57,7 @@ func (s *Server) ReadPipe(w http.ResponseWriter, r *http.Request) {
 	} else {
 		response, err := s.forwardRequest(w, r, dbPipe.URL, atc.ReadPipe, dbPipe.ID)
 		if err != nil {
+			logger.Error("failed-to-forward-request", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
