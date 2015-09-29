@@ -312,6 +312,7 @@ var _ = Describe("GardenFactory", func() {
 								"resource-params":  "7cee8d669e89dee0c318bd9d2788c513bab8a900322ae593247fedd95bffa23b5be71f54326dffd9c2e65e13ca995fca9037d162232b9264a394e8d65ce8de79",
 							},
 							TTLInSeconds: 60 * 60 * 24,
+							Privileged:   true,
 						}))
 					})
 

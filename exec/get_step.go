@@ -113,6 +113,7 @@ func (step *getStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 			cachedVolume, err = vm.CreateVolume(step.logger, baggageclaim.VolumeSpec{
 				Properties:   step.volumeProperties(),
 				TTLInSeconds: resourceTTLInSeconds,
+				Privileged:   true,
 			})
 			if err != nil {
 				return err
