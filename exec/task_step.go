@@ -151,6 +151,11 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return err
 		}
 
+		rootVolume, err := step.createRootVolume(chosenWorker)
+		if err != nil {
+			return err
+		}
+
 		step.container, err = chosenWorker.CreateContainer(
 			step.logger,
 			step.containerID,
@@ -159,6 +164,7 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 				Tags:       tags,
 				Image:      config.Image,
 				Privileged: bool(step.privileged),
+				Root:       rootVolume,
 				Inputs:     inputMounts,
 			},
 		)
@@ -170,6 +176,10 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			// stop heartbeating ourselves now that container has picked up the
 			// volumes
 			mount.Volume.Release()
+		}
+
+		if rootVolume.Volume != nil {
+			rootVolume.Volume.Release()
 		}
 
 		err = step.ensureBuildDirExists(step.container)
@@ -307,8 +317,30 @@ type inputPair struct {
 	source ArtifactSource
 }
 
+func (step *taskStep) createRootVolume(chosenWorker worker.Worker) (worker.VolumeMount, error) {
+	vm, hasVM := chosenWorker.VolumeManager()
+	if hasVM {
+		rootVolume, err := vm.CreateVolume(step.logger, baggageclaim.VolumeSpec{
+			Strategy:     baggageclaim.EmptyStrategy{},
+			TTLInSeconds: 60 * 5,
+			Privileged:   bool(step.privileged),
+		})
+		if err != nil {
+			return worker.VolumeMount{}, err
+		}
+
+		return worker.VolumeMount{
+			Volume:    rootVolume,
+			MountPath: step.artifactsRoot,
+		}, nil
+	} else {
+		return worker.VolumeMount{}, nil
+	}
+}
+
 func (step *taskStep) inputsOn(inputs []atc.TaskInputConfig, chosenWorker worker.Worker) ([]worker.VolumeMount, []inputPair, error) {
 	var mounts []worker.VolumeMount
+
 	var inputPairs []inputPair
 
 	var missingInputs []string

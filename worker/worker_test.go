@@ -371,7 +371,9 @@ var _ = Describe("Worker", func() {
 					}))
 				})
 
-				Context("when inputs are provided", func() {
+				Context("when a root volume and inputs are provided", func() {
+					var rootVolume *bfakes.FakeVolume
+
 					var volume1 *bfakes.FakeVolume
 					var volume2 *bfakes.FakeVolume
 
@@ -379,6 +381,10 @@ var _ = Describe("Worker", func() {
 					var cowOtherInputVolume *bfakes.FakeVolume
 
 					BeforeEach(func() {
+						rootVolume = new(bfakes.FakeVolume)
+						rootVolume.HandleReturns("root-volume")
+						rootVolume.PathReturns("/some/root/src/path")
+
 						volume1 = new(bfakes.FakeVolume)
 						volume1.HandleReturns("some-volume")
 						volume1.PathReturns("/some/src/path")
@@ -396,9 +402,11 @@ var _ = Describe("Worker", func() {
 						cowOtherInputVolume.PathReturns("/some/other/cow/src/path")
 
 						fakeBaggageclaimClient.CreateVolumeStub = func(logger lager.Logger, spec baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
-							if reflect.DeepEqual(spec.Strategy, baggageclaim.COWStrategy{Parent: volume1, Privileged: true}) {
+							Expect(spec.Privileged).To(BeTrue())
+
+							if reflect.DeepEqual(spec.Strategy, baggageclaim.COWStrategy{Parent: volume1}) {
 								return cowInputVolume, nil
-							} else if reflect.DeepEqual(spec.Strategy, baggageclaim.COWStrategy{Parent: volume2, Privileged: true}) {
+							} else if reflect.DeepEqual(spec.Strategy, baggageclaim.COWStrategy{Parent: volume2}) {
 								return cowOtherInputVolume, nil
 							} else {
 								Fail(fmt.Sprintf("unknown strategy: %#v", spec.Strategy))
@@ -407,6 +415,12 @@ var _ = Describe("Worker", func() {
 						}
 
 						taskSpec := spec.(TaskContainerSpec)
+
+						taskSpec.Root = VolumeMount{
+							Volume:    rootVolume,
+							MountPath: "/some/root/dst/path",
+						}
+
 						taskSpec.Inputs = []VolumeMount{
 							{
 								Volume:    volume1,
@@ -434,9 +448,14 @@ var _ = Describe("Worker", func() {
 								"concourse:check-source":  `{"some":"source"}`,
 								"concourse:name":          "some-name",
 								"concourse:build-id":      "42",
-								"concourse:volumes":       `["cow-input-volume","cow-other-input-volume"]`,
+								"concourse:volumes":       `["root-volume","cow-input-volume","cow-other-input-volume"]`,
 							},
 							BindMounts: []garden.BindMount{
+								{
+									SrcPath: "/some/root/src/path",
+									DstPath: "/some/root/dst/path",
+									Mode:    garden.BindMountModeRW,
+								},
 								{
 									SrcPath: "/some/cow/src/path",
 									DstPath: "/some/dst/path",

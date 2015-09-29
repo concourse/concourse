@@ -130,12 +130,22 @@ dance:
 		gardenSpec.RootFSPath = s.Image
 		gardenSpec.Privileged = s.Privileged
 
+		if s.Root.Volume != nil && s.Root.MountPath != "" {
+			gardenSpec.BindMounts = append(gardenSpec.BindMounts, garden.BindMount{
+				SrcPath: s.Root.Volume.Path(),
+				DstPath: s.Root.MountPath,
+				Mode:    garden.BindMountModeRW,
+			})
+
+			volumeHandles = append(volumeHandles, s.Root.Volume.Handle())
+		}
+
 		for _, input := range s.Inputs {
 			cow, err := worker.baggageclaimClient.CreateVolume(logger, baggageclaim.VolumeSpec{
 				Strategy: baggageclaim.COWStrategy{
-					Parent:     input.Volume,
-					Privileged: s.Privileged,
+					Parent: input.Volume,
 				},
+				Privileged:   s.Privileged,
 				TTLInSeconds: inputVolumeTTL,
 			})
 			if err != nil {
