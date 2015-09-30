@@ -175,7 +175,6 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				},
 				Platform: "plan9",
 				Tags:     []string{"russ", "cox", "was", "here"},
-				Name:     "workerName2",
 			}
 
 			By("persisting workers with no TTLs")
@@ -195,6 +194,8 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			err = database.SaveWorker(infoB, ttl)
 			Ω(err).ShouldNot(HaveOccurred())
+
+			infoB.Name = "1.2.3.4:8888"
 
 			Consistently(database.Workers, ttl/2).Should(ConsistOf(infoA, infoB))
 			Eventually(database.Workers, 2*ttl).Should(ConsistOf(infoA))
@@ -237,10 +238,23 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				Name:     "workerName2",
 			}
 
+			infoC := db.WorkerInfo{
+				GardenAddr:       "1.2.3.5:8888",
+				ActiveContainers: 42,
+				ResourceTypes: []atc.WorkerResourceType{
+					{Type: "some-resource-b", Image: "some-image-b"},
+				},
+				Platform: "plan9",
+				Tags:     []string{"russ", "cox", "was", "here"},
+			}
+
 			err = database.SaveWorker(infoA, 0)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			err = database.SaveWorker(infoB, 0)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = database.SaveWorker(infoC, 0)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			By("returning one workerinfo by worker name")
@@ -248,6 +262,12 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(found).Should(BeTrue())
 			Ω(workerInfo).Should(Equal(infoB))
+
+			By("returning one workerinfo by addr if name is null")
+			workerInfo, found, err = database.GetWorker("1.2.3.5:8888")
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(found).Should(BeTrue())
+			Ω(workerInfo.Name).Should(Equal("1.2.3.5:8888"))
 
 			By("expiring TTLs")
 			ttl := 1 * time.Second
