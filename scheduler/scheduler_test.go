@@ -2,11 +2,13 @@ package scheduler_test
 
 import (
 	"errors"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
+	dbfakes "github.com/concourse/atc/db/fakes"
 	enginefakes "github.com/concourse/atc/engine/fakes"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/fakes"
@@ -23,6 +25,8 @@ var _ = Describe("Scheduler", func() {
 		factory        *fakes.FakeBuildFactory
 		fakeEngine     *enginefakes.FakeEngine
 		fakeScanner    *fakes.FakeScanner
+
+		lease *dbfakes.FakeLease
 
 		createdPlan atc.Plan
 
@@ -137,6 +141,9 @@ var _ = Describe("Scheduler", func() {
 				Source: atc.Source{"uri": "git://some-named-resource"},
 			},
 		}
+
+		lease = new(dbfakes.FakeLease)
+		fakeBuildsDB.LeaseBuildSchedulingReturns(lease, true, nil)
 	})
 
 	Describe("BuildLatestInputs", func() {
@@ -522,12 +529,25 @@ var _ = Describe("Scheduler", func() {
 				fakePipelineDB.GetLatestInputVersionsReturns(pendingInputs, true, nil)
 			})
 
-			Context("and it can be scheduled", func() {
+			Context("when the scheduling lease cannot be acquired", func() {
+				BeforeEach(func() {
+					fakeBuildsDB.LeaseBuildSchedulingReturns(nil, false, nil)
+				})
+
+				It("does not schedule the build", func() {
+					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					Expect(fakePipelineDB.ScheduleBuildCallCount()).To(Equal(0))
+				})
+			})
+
+			Context("when it can be scheduled", func() {
 				BeforeEach(func() {
 					fakePipelineDB.ScheduleBuildReturns(true, nil)
 				})
 
-				Context("and creating the engine build succeeds", func() {
+				Context("when creating the engine build succeeds", func() {
 					var createdBuild *enginefakes.FakeBuild
 
 					BeforeEach(func() {
@@ -537,6 +557,13 @@ var _ = Describe("Scheduler", func() {
 
 					It("immediately resumes the build", func() {
 						Eventually(createdBuild.ResumeCallCount).Should(Equal(1))
+					})
+
+					It("breaks the scheduling lease", func() {
+						leasedBuildID, interval := fakeBuildsDB.LeaseBuildSchedulingArgsForCall(0)
+						Expect(leasedBuildID).To(Equal(128))
+						Expect(interval).To(Equal(10 * time.Second))
+						Expect(lease.BreakCallCount()).To(Equal(1))
 					})
 
 					It("does not scan for new versions, and queries for the latest job inputs using the given versions dataset", func() {

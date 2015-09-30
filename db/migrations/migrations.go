@@ -54,4 +54,5 @@ var Migrations = []migration.Migrator{
 	AddBaggageclaimURLToWorkers,
 	AddContainers,
 	AddNameToWorkers,
+	AddLastScheduledToBuilds,
 }

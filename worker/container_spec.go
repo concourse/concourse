@@ -35,13 +35,17 @@ func (spec WorkerSpec) Description() string {
 	return strings.Join(attrs, ", ")
 }
 
+type VolumeMount struct {
+	Volume    baggageclaim.Volume
+	MountPath string
+}
+
 type ResourceTypeContainerSpec struct {
 	Type      string
 	Ephemeral bool
 	Tags      []string
 	Env       []string
-	Volume    baggageclaim.Volume
-	MountPath string
+	Cache     VolumeMount
 }
 
 func (spec ResourceTypeContainerSpec) WorkerSpec() WorkerSpec {
@@ -56,6 +60,8 @@ type TaskContainerSpec struct {
 	Image      string
 	Privileged bool
 	Tags       []string
+	Root       VolumeMount
+	Inputs     []VolumeMount
 }
 
 func (spec TaskContainerSpec) WorkerSpec() WorkerSpec {

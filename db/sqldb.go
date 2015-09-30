@@ -359,6 +359,43 @@ func (db *SQLDB) LeaseBuildTracking(buildID int, interval time.Duration) (Lease,
 	return lease, true, nil
 }
 
+func (db *SQLDB) LeaseBuildScheduling(buildID int, interval time.Duration) (Lease, bool, error) {
+	lease := &lease{
+		conn: db.conn,
+		logger: db.logger.Session("lease", lager.Data{
+			"build_id": buildID,
+		}),
+		attemptSignFunc: func(tx *sql.Tx) (sql.Result, error) {
+			return tx.Exec(`
+				UPDATE builds
+				SET last_scheduled = now()
+				WHERE id = $1
+					AND now() - last_scheduled > ($2 || ' SECONDS')::INTERVAL
+			`, buildID, interval.Seconds())
+		},
+		heartbeatFunc: func(tx *sql.Tx) (sql.Result, error) {
+			return tx.Exec(`
+				UPDATE builds
+				SET last_scheduled = now()
+				WHERE id = $1
+			`, buildID)
+		},
+	}
+
+	renewed, err := lease.AttemptSign(interval)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !renewed {
+		return nil, renewed, nil
+	}
+
+	lease.KeepSigned(interval)
+
+	return lease, true, nil
+}
+
 func (db *SQLDB) GetAllBuilds() ([]Build, error) {
 	rows, err := db.conn.Query(`
 		SELECT ` + qualifiedBuildColumns + `

@@ -312,7 +312,7 @@ func main() {
 			*gardenAddr,
 		)
 	} else {
-		workerClient = worker.NewPool(worker.NewDBWorkerProvider(logger, db, keepaliveDialer), logger)
+		workerClient = worker.NewPool(worker.NewDBWorkerProvider(logger, db, keepaliveDialer))
 	}
 
 	trackerFactory := resource.TrackerFactory{}
@@ -325,6 +325,7 @@ func main() {
 
 		return guid.String()
 	})
+
 	execEngine := engine.NewExecEngine(gardenFactory, engine.NewBuildDelegateFactory(db), db)
 
 	engine := engine.NewDBEngine(engine.Engines{execEngine}, db)

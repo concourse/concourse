@@ -168,7 +168,7 @@ var _ = Describe("GardenFactory", func() {
 			It("initializes the resource with the correct type and session id, making sure that it is not ephemeral", func() {
 				Ω(fakeTracker.InitCallCount()).Should(Equal(1))
 
-				sm, sid, typ, tags, vol := fakeTracker.InitArgsForCall(0)
+				_, sm, sid, typ, tags, vol := fakeTracker.InitArgsForCall(0)
 				Ω(sm).Should(Equal(stepMetadata))
 				Ω(sid).Should(Equal(resource.Session{
 					ID:        identifier,

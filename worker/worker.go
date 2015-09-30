@@ -16,6 +16,7 @@ import (
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/clock"
+	"github.com/pivotal-golang/lager"
 )
 
 var ErrUnsupportedResourceType = errors.New("unsupported resource type")
@@ -24,6 +25,8 @@ var ErrMismatchedTags = errors.New("mismatched tags")
 
 const containerKeepalive = 30 * time.Second
 const containerTTL = 5 * time.Minute
+
+const inputVolumeTTL = 60 * 5
 
 const ephemeralPropertyName = "concourse:ephemeral"
 
@@ -95,10 +98,12 @@ func (worker *gardenWorker) VolumeManager() (baggageclaim.Client, bool) {
 	}
 }
 
-func (worker *gardenWorker) CreateContainer(id Identifier, spec ContainerSpec) (Container, error) {
+func (worker *gardenWorker) CreateContainer(logger lager.Logger, id Identifier, spec ContainerSpec) (Container, error) {
 	gardenSpec := garden.ContainerSpec{
 		Properties: id.gardenProperties(),
 	}
+
+	var volumeHandles []string
 
 dance:
 	switch s := spec.(type) {
@@ -111,21 +116,16 @@ dance:
 			gardenSpec.Properties[ephemeralPropertyName] = "true"
 		}
 
-		if s.Volume != nil && s.MountPath != "" {
+		if s.Cache.Volume != nil && s.Cache.MountPath != "" {
 			gardenSpec.BindMounts = []garden.BindMount{
 				{
-					SrcPath: s.Volume.Path(),
-					DstPath: s.MountPath,
+					SrcPath: s.Cache.Volume.Path(),
+					DstPath: s.Cache.MountPath,
 					Mode:    garden.BindMountModeRW,
 				},
 			}
 
-			volumesJSON, err := json.Marshal([]string{s.Volume.Handle()})
-			if err != nil {
-				return nil, err
-			}
-
-			gardenSpec.Properties["concourse:volumes"] = string(volumesJSON)
+			volumeHandles = append(volumeHandles, s.Cache.Volume.Handle())
 		}
 
 		for _, t := range worker.resourceTypes {
@@ -141,8 +141,48 @@ dance:
 		gardenSpec.RootFSPath = s.Image
 		gardenSpec.Privileged = s.Privileged
 
+		if s.Root.Volume != nil && s.Root.MountPath != "" {
+			gardenSpec.BindMounts = append(gardenSpec.BindMounts, garden.BindMount{
+				SrcPath: s.Root.Volume.Path(),
+				DstPath: s.Root.MountPath,
+				Mode:    garden.BindMountModeRW,
+			})
+
+			volumeHandles = append(volumeHandles, s.Root.Volume.Handle())
+		}
+
+		for _, input := range s.Inputs {
+			cow, err := worker.baggageclaimClient.CreateVolume(logger, baggageclaim.VolumeSpec{
+				Strategy: baggageclaim.COWStrategy{
+					Parent: input.Volume,
+				},
+				Privileged:   s.Privileged,
+				TTLInSeconds: inputVolumeTTL,
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			gardenSpec.BindMounts = append(gardenSpec.BindMounts, garden.BindMount{
+				SrcPath: cow.Path(),
+				DstPath: input.MountPath,
+				Mode:    garden.BindMountModeRW,
+			})
+
+			volumeHandles = append(volumeHandles, cow.Handle())
+		}
+
 	default:
 		return nil, fmt.Errorf("unknown container spec type: %T (%#v)", s, s)
+	}
+
+	if len(volumeHandles) > 0 {
+		volumesJSON, err := json.Marshal(volumeHandles)
+		if err != nil {
+			return nil, err
+		}
+
+		gardenSpec.Properties["concourse:volumes"] = string(volumesJSON)
 	}
 
 	gardenContainer, err := worker.gardenClient.Create(gardenSpec)
@@ -163,10 +203,10 @@ dance:
 		return nil, err
 	}
 
-	return newGardenWorkerContainer(gardenContainer, worker.gardenClient, worker.baggageclaimClient, worker.db, worker.clock)
+	return newGardenWorkerContainer(logger, gardenContainer, worker.gardenClient, worker.baggageclaimClient, worker.db, worker.clock)
 }
 
-func (worker *gardenWorker) FindContainerForIdentifier(id Identifier) (Container, bool, error) {
+func (worker *gardenWorker) FindContainerForIdentifier(logger lager.Logger, id Identifier) (Container, bool, error) {
 	containers, err := worker.gardenClient.Containers(id.gardenProperties())
 	if err != nil {
 		return nil, false, err
@@ -176,7 +216,7 @@ func (worker *gardenWorker) FindContainerForIdentifier(id Identifier) (Container
 	case 0:
 		return nil, false, nil
 	case 1:
-		container, err := newGardenWorkerContainer(containers[0], worker.gardenClient, worker.baggageclaimClient, worker.db, worker.clock)
+		container, err := newGardenWorkerContainer(logger, containers[0], worker.gardenClient, worker.baggageclaimClient, worker.db, worker.clock)
 		return container, true, err
 	default:
 		handles := []string{}
@@ -191,7 +231,7 @@ func (worker *gardenWorker) FindContainerForIdentifier(id Identifier) (Container
 	}
 }
 
-func (worker *gardenWorker) LookupContainer(handle string) (Container, bool, error) {
+func (worker *gardenWorker) LookupContainer(logger lager.Logger, handle string) (Container, bool, error) {
 	gardenContainer, err := worker.gardenClient.Lookup(handle)
 	if err != nil {
 		return nil, false, err
@@ -201,7 +241,7 @@ func (worker *gardenWorker) LookupContainer(handle string) (Container, bool, err
 		return nil, false, nil
 	}
 
-	container, err := newGardenWorkerContainer(gardenContainer, worker.gardenClient, worker.baggageclaimClient, worker.db, worker.clock)
+	container, err := newGardenWorkerContainer(logger, gardenContainer, worker.gardenClient, worker.baggageclaimClient, worker.db, worker.clock)
 	return container, true, err
 }
 
@@ -271,9 +311,10 @@ func (worker *gardenWorker) Description() string {
 type gardenWorkerContainer struct {
 	garden.Container
 
-	gardenClient       garden.Client
-	baggageclaimClient baggageclaim.Client
-	db                 GardenWorkerDB
+	gardenClient garden.Client
+	db           GardenWorkerDB
+
+	volumes []baggageclaim.Volume
 
 	clock clock.Clock
 
@@ -286,6 +327,7 @@ type gardenWorkerContainer struct {
 }
 
 func newGardenWorkerContainer(
+	logger lager.Logger,
 	container garden.Container,
 	gardenClient garden.Client,
 	baggageclaimClient baggageclaim.Client,
@@ -295,9 +337,8 @@ func newGardenWorkerContainer(
 	workerContainer := &gardenWorkerContainer{
 		Container: container,
 
-		gardenClient:       gardenClient,
-		baggageclaimClient: baggageclaimClient,
-		db:                 db,
+		gardenClient: gardenClient,
+		db:           db,
 
 		clock: clock,
 
@@ -311,11 +352,23 @@ func newGardenWorkerContainer(
 	trackedContainers.Add(1)
 	metric.TrackedContainers.Inc()
 
-	err := workerContainer.initializeIdentifier()
+	properties, err := workerContainer.Properties()
+	if err != nil {
+		return nil, err
+	}
+
+	err = workerContainer.initializeIdentifier(properties)
 	if err != nil {
 		workerContainer.Release()
 		return nil, err
 	}
+
+	err = workerContainer.initializeVolumes(logger, properties, baggageclaimClient)
+	if err != nil {
+		workerContainer.Release()
+		return nil, err
+	}
+
 	return workerContainer, nil
 }
 
@@ -330,14 +383,55 @@ func (container *gardenWorkerContainer) Release() {
 		container.heartbeating.Wait()
 		trackedContainers.Add(-1)
 		metric.TrackedContainers.Dec()
+
+		for _, v := range container.volumes {
+			v.Release()
+		}
 	})
 }
 
-func (container *gardenWorkerContainer) initializeIdentifier() error {
-	properties, err := container.Properties()
+func (container *gardenWorkerContainer) IdentifierFromProperties() Identifier {
+	return container.identifier
+}
+
+func (container *gardenWorkerContainer) Volumes() []baggageclaim.Volume {
+	return container.volumes
+}
+
+func (container *gardenWorkerContainer) initializeVolumes(
+	logger lager.Logger,
+	properties garden.Properties,
+	baggageclaimClient baggageclaim.Client,
+) error {
+	handlesJSON, found := properties["concourse:volumes"]
+	if !found {
+		container.volumes = []baggageclaim.Volume{}
+		return nil
+	}
+
+	var handles []string
+	err := json.Unmarshal([]byte(handlesJSON), &handles)
 	if err != nil {
 		return err
 	}
+
+	volumes := []baggageclaim.Volume{}
+	for _, h := range handles {
+		volume, err := baggageclaimClient.LookupVolume(logger, h)
+		if err != nil {
+			return err
+		}
+
+		volumes = append(volumes, volume)
+	}
+
+	container.volumes = volumes
+
+	return nil
+}
+
+func (container *gardenWorkerContainer) initializeIdentifier(properties garden.Properties) error {
+	var err error
 
 	propertyPrefix := "concourse:"
 	identifier := Identifier{}
@@ -390,35 +484,6 @@ func (container *gardenWorkerContainer) initializeIdentifier() error {
 
 	container.identifier = identifier
 	return nil
-}
-
-func (container *gardenWorkerContainer) IdentifierFromProperties() Identifier {
-	return container.identifier
-}
-
-func (container *gardenWorkerContainer) Volumes() ([]baggageclaim.Volume, error) {
-	handlesJSON, err := container.Property("concourse:volumes")
-	if err != nil {
-		return nil, nil
-	}
-
-	var handles []string
-	err = json.Unmarshal([]byte(handlesJSON), &handles)
-	if err != nil {
-		return nil, err
-	}
-
-	volumes := []baggageclaim.Volume{}
-	for _, h := range handles {
-		volume, err := container.baggageclaimClient.LookupVolume(h)
-		if err != nil {
-			return nil, err
-		}
-
-		volumes = append(volumes, volume)
-	}
-
-	return volumes, nil
 }
 
 func (container *gardenWorkerContainer) heartbeat(pacemaker clock.Ticker) {

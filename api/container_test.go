@@ -504,7 +504,8 @@ var _ = Describe("Pipelines API", func() {
 					It("hijacks the build", func() {
 						Eventually(fakeContainer.RunCallCount).Should(Equal(1))
 
-						Ω(fakeWorkerClient.LookupContainerArgsForCall(0)).Should(Equal(containerID1))
+						_, lookedUpID := fakeWorkerClient.LookupContainerArgsForCall(0)
+						Ω(lookedUpID).Should(Equal(containerID1))
 
 						spec, io := fakeContainer.RunArgsForCall(0)
 						Ω(spec).Should(Equal(garden.ProcessSpec{

@@ -19,7 +19,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 )
@@ -169,20 +168,14 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					It("looked up the volume with the correct properties", func() {
-						Ω(fakeBaggageclaimClient.ListVolumesArgsForCall(0)).Should(Equal(baggageclaim.VolumeProperties{
+						_, spec := fakeBaggageclaimClient.ListVolumesArgsForCall(0)
+						Ω(spec).Should(Equal(baggageclaim.VolumeProperties{
 							"resource-type":    "some-resource-type",
 							"resource-version": `{"some-version":"some-value"}`,
 							"resource-source":  "968e27f71617a029e58a09fb53895f1e1875b51bdaa11293ddc2cb335960875cb42c19ae8bc696caec88d55221f33c2bcc3278a7d15e8d13f23782d1a05564f1",
 							"resource-params":  "7cee8d669e89dee0c318bd9d2788c513bab8a900322ae593247fedd95bffa23b5be71f54326dffd9c2e65e13ca995fca9037d162232b9264a394e8d65ce8de79",
 							"initialized":      "yep",
 						}))
-					})
-
-					It("starts heartbeating to the volume", func() {
-						Ω(foundVolume.HeartbeatCallCount()).Should(Equal(1))
-						logger, ttl := foundVolume.HeartbeatArgsForCall(0)
-						Ω(logger).ShouldNot(BeNil())
-						Ω(ttl).Should(Equal(uint(60 * 60 * 24)))
 					})
 
 					It("initializes the tracker with the chosen worker", func() {
@@ -192,7 +185,7 @@ var _ = Describe("GardenFactory", func() {
 
 					It("initializes the resource with the volume", func() {
 						Ω(fakeTracker.InitCallCount()).Should(Equal(1))
-						sm, sid, typ, tags, vol := fakeTracker.InitArgsForCall(0)
+						_, sm, sid, typ, tags, vol := fakeTracker.InitArgsForCall(0)
 						Ω(sm).Should(Equal(stepMetadata))
 						Ω(sid).Should(Equal(resource.Session{
 							ID:        identifier,
@@ -244,39 +237,8 @@ var _ = Describe("GardenFactory", func() {
 								mountedVolume.HandleReturns("some-other-handle")
 							})
 
-							It("heartbeats to the mounted volume", func() {
-								Ω(mountedVolume.HeartbeatCallCount()).Should(Equal(1))
-								logger, ttl := mountedVolume.HeartbeatArgsForCall(0)
-								Ω(logger).ShouldNot(BeNil())
-								Ω(ttl).Should(Equal(uint(60 * 60 * 24)))
-							})
-
-							Context("before we run the get", func() {
-								BeforeEach(func() {
-									mountedVolume.HeartbeatStub = func(lager.Logger, uint) {
-										Ω(fakeVersionedSource.RunCallCount()).Should(BeZero())
-									}
-								})
-
-								It("starts heartbeating", func() {
-									Ω(mountedVolume.HeartbeatCallCount()).Should(Equal(1))
-								})
-							})
-
 							It("stops heartbeating to the created volume", func() {
 								Ω(foundVolume.ReleaseCallCount()).Should(Equal(1))
-							})
-
-							Describe("releasing", func() {
-								It("releases the volume found on the resource", func() {
-									Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
-									Ω(mountedVolume.ReleaseCallCount()).Should(BeZero())
-
-									step.Release()
-
-									Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
-									Ω(mountedVolume.ReleaseCallCount()).Should(Equal(1))
-								})
 							})
 						})
 
@@ -285,24 +247,8 @@ var _ = Describe("GardenFactory", func() {
 								mountedVolume.HandleReturns("found-volume-handle")
 							})
 
-							It("does not heartbeat to the mounted volume", func() {
-								Ω(mountedVolume.HeartbeatCallCount()).Should(Equal(0))
-							})
-
-							It("does not stop heartbeating", func() {
-								Ω(foundVolume.ReleaseCallCount()).Should(Equal(0))
-							})
-
-							Describe("releasing", func() {
-								It("releases the volume and the resource", func() {
-									Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
-									Ω(foundVolume.ReleaseCallCount()).Should(BeZero())
-
-									step.Release()
-
-									Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
-									Ω(foundVolume.ReleaseCallCount()).Should(Equal(1))
-								})
+							It("stops heartbeating as the container heartbeats for us", func() {
+								Ω(foundVolume.ReleaseCallCount()).Should(Equal(1))
 							})
 						})
 					})
@@ -325,10 +271,10 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("selects the volume based on the lowest alphabetical name", func() {
-							Ω(aVolume.HeartbeatCallCount()).Should(Equal(1))
-							logger, ttl := aVolume.HeartbeatArgsForCall(0)
-							Ω(logger).ShouldNot(BeNil())
-							Ω(ttl).Should(Equal(uint(60 * 60 * 24)))
+							Ω(aVolume.SetTTLCallCount()).Should(Equal(0))
+							Ω(bVolume.ReleaseCallCount()).Should(Equal(1))
+							Ω(bVolume.SetTTLCallCount()).Should(Equal(1))
+							Ω(bVolume.SetTTLArgsForCall(0)).Should(Equal(uint(60)))
 						})
 					})
 
@@ -338,10 +284,10 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("selects the volume based on the lowest alphabetical name", func() {
-							Ω(aVolume.HeartbeatCallCount()).Should(Equal(1))
-							logger, ttl := aVolume.HeartbeatArgsForCall(0)
-							Ω(logger).ShouldNot(BeNil())
-							Ω(ttl).Should(Equal(uint(60 * 60 * 24)))
+							Ω(aVolume.SetTTLCallCount()).Should(Equal(0))
+							Ω(bVolume.ReleaseCallCount()).Should(Equal(1))
+							Ω(bVolume.SetTTLCallCount()).Should(Equal(1))
+							Ω(bVolume.SetTTLArgsForCall(0)).Should(Equal(uint(60)))
 						})
 					})
 				})
@@ -357,7 +303,8 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					It("created the volume with the correct properties (notably, without 'initialized')", func() {
-						Ω(fakeBaggageclaimClient.CreateVolumeArgsForCall(0)).Should(Equal(baggageclaim.VolumeSpec{
+						_, spec := fakeBaggageclaimClient.CreateVolumeArgsForCall(0)
+						Ω(spec).Should(Equal(baggageclaim.VolumeSpec{
 							Properties: baggageclaim.VolumeProperties{
 								"resource-type":    "some-resource-type",
 								"resource-version": `{"some-version":"some-value"}`,
@@ -365,19 +312,13 @@ var _ = Describe("GardenFactory", func() {
 								"resource-params":  "7cee8d669e89dee0c318bd9d2788c513bab8a900322ae593247fedd95bffa23b5be71f54326dffd9c2e65e13ca995fca9037d162232b9264a394e8d65ce8de79",
 							},
 							TTLInSeconds: 60 * 60 * 24,
+							Privileged:   true,
 						}))
-					})
-
-					It("starts heartbeating to the volume", func() {
-						Ω(createdVolume.HeartbeatCallCount()).Should(Equal(1))
-						logger, ttl := createdVolume.HeartbeatArgsForCall(0)
-						Ω(logger).ShouldNot(BeNil())
-						Ω(ttl).Should(Equal(uint(60 * 60 * 24)))
 					})
 
 					It("initializes the resource with the volume", func() {
 						Ω(fakeTracker.InitCallCount()).Should(Equal(1))
-						sm, sid, typ, tags, vol := fakeTracker.InitArgsForCall(0)
+						_, sm, sid, typ, tags, vol := fakeTracker.InitArgsForCall(0)
 						Ω(sm).Should(Equal(stepMetadata))
 						Ω(sid).Should(Equal(resource.Session{
 							ID:        identifier,
@@ -404,39 +345,8 @@ var _ = Describe("GardenFactory", func() {
 								mountedVolume.HandleReturns("some-other-handle")
 							})
 
-							It("heartbeats to the mounted volume", func() {
-								Ω(mountedVolume.HeartbeatCallCount()).Should(Equal(1))
-								logger, ttl := mountedVolume.HeartbeatArgsForCall(0)
-								Ω(logger).ShouldNot(BeNil())
-								Ω(ttl).Should(Equal(uint(60 * 60 * 24)))
-							})
-
-							Context("before we run the get", func() {
-								BeforeEach(func() {
-									mountedVolume.HeartbeatStub = func(lager.Logger, uint) {
-										Ω(fakeVersionedSource.RunCallCount()).Should(BeZero())
-									}
-								})
-
-								It("starts heartbeating", func() {
-									Ω(mountedVolume.HeartbeatCallCount()).Should(Equal(1))
-								})
-							})
-
 							It("stops heartbeating to the created volume", func() {
 								Ω(createdVolume.ReleaseCallCount()).Should(Equal(1))
-							})
-
-							Describe("releasing", func() {
-								It("releases the volume found on the resource", func() {
-									Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
-									Ω(mountedVolume.ReleaseCallCount()).Should(BeZero())
-
-									step.Release()
-
-									Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
-									Ω(mountedVolume.ReleaseCallCount()).Should(Equal(1))
-								})
 							})
 						})
 
@@ -445,24 +355,8 @@ var _ = Describe("GardenFactory", func() {
 								mountedVolume.HandleReturns("created-volume-handle")
 							})
 
-							It("does not heartbeat to the mounted volume", func() {
-								Ω(mountedVolume.HeartbeatCallCount()).Should(Equal(0))
-							})
-
-							It("does not stop heartbeating", func() {
-								Ω(createdVolume.ReleaseCallCount()).Should(Equal(0))
-							})
-
-							Describe("releasing", func() {
-								It("releases the volume and the resource", func() {
-									Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
-									Ω(createdVolume.ReleaseCallCount()).Should(BeZero())
-
-									step.Release()
-
-									Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
-									Ω(createdVolume.ReleaseCallCount()).Should(Equal(1))
-								})
+							It("stops heartbeating as the container heartbeats for us", func() {
+								Ω(createdVolume.ReleaseCallCount()).Should(Equal(1))
 							})
 						})
 					})
@@ -556,7 +450,7 @@ var _ = Describe("GardenFactory", func() {
 				It("initializes the resource with the correct type and session id, making sure that it is not ephemeral, and with no volume", func() {
 					Ω(fakeTracker.InitCallCount()).Should(Equal(1))
 
-					sm, sid, typ, tags, vol := fakeTracker.InitArgsForCall(0)
+					_, sm, sid, typ, tags, vol := fakeTracker.InitArgsForCall(0)
 					Ω(sm).Should(Equal(stepMetadata))
 					Ω(sid).Should(Equal(resource.Session{
 						ID:        identifier,
@@ -883,7 +777,8 @@ var _ = Describe("GardenFactory", func() {
 								Ω(found).Should(BeTrue())
 								Ω(volume).Should(Equal(foundVolume))
 
-								Ω(fakeBaggageclaimClient.ListVolumesArgsForCall(0)).Should(Equal(baggageclaim.VolumeProperties{
+								_, props := fakeBaggageclaimClient.ListVolumesArgsForCall(0)
+								Ω(props).Should(Equal(baggageclaim.VolumeProperties{
 									"resource-type":    "some-resource-type",
 									"resource-version": `{"some-version":"some-value"}`,
 									"resource-source":  "968e27f71617a029e58a09fb53895f1e1875b51bdaa11293ddc2cb335960875cb42c19ae8bc696caec88d55221f33c2bcc3278a7d15e8d13f23782d1a05564f1",

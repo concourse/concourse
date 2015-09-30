@@ -44,16 +44,14 @@ func (err NoCompatibleWorkersError) Error() string {
 
 type pool struct {
 	provider WorkerProvider
-	logger   lager.Logger
 
 	rand *rand.Rand
 }
 
-func NewPool(provider WorkerProvider, logger lager.Logger) Client {
+func NewPool(provider WorkerProvider) Client {
 	return &pool{
 		provider: provider,
 		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
-		logger:   logger,
 	}
 }
 
@@ -87,13 +85,13 @@ func (pool *pool) Satisfying(spec WorkerSpec) (Worker, error) {
 	return randomWorker, nil
 }
 
-func (pool *pool) CreateContainer(id Identifier, spec ContainerSpec) (Container, error) {
+func (pool *pool) CreateContainer(logger lager.Logger, id Identifier, spec ContainerSpec) (Container, error) {
 	worker, err := pool.Satisfying(spec.WorkerSpec())
 	if err != nil {
 		return nil, err
 	}
 
-	container, err := worker.CreateContainer(id, spec)
+	container, err := worker.CreateContainer(logger, id, spec)
 	if err != nil {
 		return nil, err
 	}
@@ -101,37 +99,43 @@ func (pool *pool) CreateContainer(id Identifier, spec ContainerSpec) (Container,
 	return container, nil
 }
 
-func (pool *pool) FindContainerForIdentifier(id Identifier) (Container, bool, error) {
-	pool.logger.Info("finding container for identifier", lager.Data{"identifier": id})
+func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier) (Container, bool, error) {
+	logger.Info("finding-container-for-identifer", lager.Data{"identifier": id})
 
 	containerInfo, found, err := pool.provider.FindContainerInfoForIdentifier(id)
 	if err != nil {
 		return nil, false, err
 	}
+
 	if !found {
 		return nil, found, nil
 	}
 
 	worker, found, err := pool.provider.GetWorker(containerInfo.WorkerName)
-
 	if err != nil {
 		return nil, found, err
 	}
+
 	if !found {
 		err = ErrDBGardenMismatch
-		pool.logger.Error("found container belonging to worker that does not exist in the db",
-			err, lager.Data{"workerName": containerInfo.WorkerName})
+		logger.Error("found-container-for-missing-worker", err, lager.Data{
+			"container-handle": containerInfo.Handle,
+			"worker-name":      containerInfo.WorkerName,
+		})
 		return nil, false, err
 	}
 
-	container, found, err := worker.LookupContainer(containerInfo.Handle)
+	container, found, err := worker.LookupContainer(logger, containerInfo.Handle)
 	if err != nil {
 		return nil, false, err
 	}
+
 	if !found {
 		err = ErrDBGardenMismatch
-		pool.logger.Error("found container in db that does not exist in garden",
-			err, lager.Data{"containerName": containerInfo.Name})
+		logger.Error("found-container-in-db-but-not-on-worker", err, lager.Data{
+			"container-handle": containerInfo.Handle,
+			"worker-name":      containerInfo.WorkerName,
+		})
 		return nil, false, err
 	}
 
@@ -148,8 +152,8 @@ type foundContainer struct {
 	container  Container
 }
 
-func (pool *pool) LookupContainer(handle string) (Container, bool, error) {
-	pool.logger.Info("looking up container", lager.Data{"handle": handle})
+func (pool *pool) LookupContainer(logger lager.Logger, handle string) (Container, bool, error) {
+	logger.Info("looking-up-container", lager.Data{"handle": handle})
 
 	containerInfo, found, err := pool.provider.GetContainerInfo(handle)
 	if err != nil {
@@ -165,20 +169,24 @@ func (pool *pool) LookupContainer(handle string) (Container, bool, error) {
 	}
 	if !found {
 		err = ErrDBGardenMismatch
-		pool.logger.Error("found container belonging to worker that does not exist in the db",
-			err, lager.Data{"workerName": containerInfo.WorkerName})
+		logger.Error("found-container-for-missing-worker", err, lager.Data{
+			"container-handle": containerInfo.Handle,
+			"worker-name":      containerInfo.WorkerName,
+		})
 		return nil, false, err
 	}
 
-	container, found, err := worker.LookupContainer(handle)
+	container, found, err := worker.LookupContainer(logger, handle)
 	if err != nil {
 		return nil, false, err
 	}
 
 	if !found {
 		err = ErrDBGardenMismatch
-		pool.logger.Error("found container in db that does not exist in garden",
-			err, lager.Data{"containerName": containerInfo.Name})
+		logger.Error("found-container-in-db-but-not-on-worker", err, lager.Data{
+			"container-handle": containerInfo.Handle,
+			"worker-name":      containerInfo.WorkerName,
+		})
 		return nil, false, err
 	}
 

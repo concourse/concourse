@@ -10,14 +10,15 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/baggageclaim"
+	"github.com/pivotal-golang/lager"
 )
 
 //go:generate counterfeiter . Client
 
 type Client interface {
-	CreateContainer(Identifier, ContainerSpec) (Container, error)
-	FindContainerForIdentifier(Identifier) (Container, bool, error)
-	LookupContainer(handle string) (Container, bool, error)
+	CreateContainer(lager.Logger, Identifier, ContainerSpec) (Container, error)
+	FindContainerForIdentifier(lager.Logger, Identifier) (Container, bool, error)
+	LookupContainer(lager.Logger, string) (Container, bool, error)
 
 	Satisfying(WorkerSpec) (Worker, error)
 }
@@ -33,7 +34,7 @@ type Container interface {
 
 	IdentifierFromProperties() Identifier
 
-	Volumes() ([]baggageclaim.Volume, error)
+	Volumes() []baggageclaim.Volume
 }
 
 type Identifier struct {

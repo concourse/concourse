@@ -203,12 +203,11 @@ type FakeContainer struct {
 	identifierFromPropertiesReturns     struct {
 		result1 worker.Identifier
 	}
-	VolumesStub        func() ([]baggageclaim.Volume, error)
+	VolumesStub        func() []baggageclaim.Volume
 	volumesMutex       sync.RWMutex
 	volumesArgsForCall []struct{}
 	volumesReturns     struct {
 		result1 []baggageclaim.Volume
-		result2 error
 	}
 }
 
@@ -932,14 +931,14 @@ func (fake *FakeContainer) IdentifierFromPropertiesReturns(result1 worker.Identi
 	}{result1}
 }
 
-func (fake *FakeContainer) Volumes() ([]baggageclaim.Volume, error) {
+func (fake *FakeContainer) Volumes() []baggageclaim.Volume {
 	fake.volumesMutex.Lock()
 	fake.volumesArgsForCall = append(fake.volumesArgsForCall, struct{}{})
 	fake.volumesMutex.Unlock()
 	if fake.VolumesStub != nil {
 		return fake.VolumesStub()
 	} else {
-		return fake.volumesReturns.result1, fake.volumesReturns.result2
+		return fake.volumesReturns.result1
 	}
 }
 
@@ -949,12 +948,11 @@ func (fake *FakeContainer) VolumesCallCount() int {
 	return len(fake.volumesArgsForCall)
 }
 
-func (fake *FakeContainer) VolumesReturns(result1 []baggageclaim.Volume, result2 error) {
+func (fake *FakeContainer) VolumesReturns(result1 []baggageclaim.Volume) {
 	fake.VolumesStub = nil
 	fake.volumesReturns = struct {
 		result1 []baggageclaim.Volume
-		result2 error
-	}{result1, result2}
+	}{result1}
 }
 
 var _ worker.Container = new(FakeContainer)

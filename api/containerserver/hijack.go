@@ -59,7 +59,7 @@ func (s *Server) hijack(w http.ResponseWriter, request hijackRequest, hLog lager
 		"process": request.Process,
 	})
 
-	container, found, err := s.workerClient.LookupContainer(request.ContainerHandle)
+	container, found, err := s.workerClient.LookupContainer(hLog, request.ContainerHandle)
 	if err != nil {
 		hLog.Error("failed-to-get-container", err)
 		http.Error(w, fmt.Sprintf("failed to get container: %s", err), http.StatusInternalServerError)

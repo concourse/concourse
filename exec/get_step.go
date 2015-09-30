@@ -33,7 +33,6 @@ type getStep struct {
 	repository *SourceRepository
 
 	resource resource.Resource
-	volume   baggageclaim.Volume
 
 	versionedSource resource.VersionedSource
 
@@ -111,9 +110,10 @@ func (step *getStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 
 			shouldRunGet = true
 
-			cachedVolume, err = vm.CreateVolume(baggageclaim.VolumeSpec{
+			cachedVolume, err = vm.CreateVolume(step.logger, baggageclaim.VolumeSpec{
 				Properties:   step.volumeProperties(),
 				TTLInSeconds: resourceTTLInSeconds,
+				Privileged:   true,
 			})
 			if err != nil {
 				return err
@@ -124,13 +124,12 @@ func (step *getStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 
 		mount.Volume = cachedVolume
 		mount.MountPath = resource.ResourcesDir("get")
-
-		cachedVolume.Heartbeat(step.logger, resourceTTLInSeconds)
 	} else {
 		shouldRunGet = true
 	}
 
 	trackedResource, err := tracker.Init(
+		step.logger,
 		step.stepMetadata,
 		step.session,
 		resource.ResourceType(step.resourceConfig.Type),
@@ -146,13 +145,11 @@ func (step *getStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		return err
 	}
 
-	if hasCachedVolume && realCachedVolume.Handle() != mount.Volume.Handle() {
-		// volume differs; probably due to ATC going down and coming back
+	// release our volume now that the container will keep the correct one alive
+	// (which may be a different volume in the event that we've restarted and
+	// reattached)
+	if mount.Volume != nil {
 		mount.Volume.Release()
-		realCachedVolume.Heartbeat(step.logger, resourceTTLInSeconds)
-		step.volume = realCachedVolume
-	} else {
-		step.volume = cachedVolume
 	}
 
 	step.resource = trackedResource
@@ -219,10 +216,6 @@ func (step *getStep) Release() {
 	if step.resource != nil {
 		step.resource.Release()
 	}
-
-	if step.volume != nil {
-		step.volume.Release()
-	}
 }
 
 func (step *getStep) Result(x interface{}) bool {
@@ -249,7 +242,7 @@ func (step *getStep) VolumeOn(worker worker.Worker) (baggageclaim.Volume, bool, 
 		return nil, false, nil
 	}
 
-	foundVolumes, err := vm.ListVolumes(withInitialized(step.volumeProperties()))
+	foundVolumes, err := vm.ListVolumes(step.logger, withInitialized(step.volumeProperties()))
 	if err != nil {
 		return nil, false, err
 	}
@@ -327,6 +320,15 @@ func selectLowestAlphabeticalVolume(volumes []baggageclaim.Volume) baggageclaim.
 			lowestVolume = v
 		} else if v.Handle() < lowestVolume.Handle() {
 			lowestVolume = v
+		}
+	}
+
+	for _, v := range volumes {
+		if v != lowestVolume {
+			v.Release()
+
+			// setting TTL here is best-effort; don't worry about failure
+			_ = v.SetTTL(60)
 		}
 	}
 

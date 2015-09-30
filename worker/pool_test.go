@@ -14,17 +14,17 @@ import (
 
 var _ = Describe("Pool", func() {
 	var (
+		logger       *lagertest.TestLogger
 		fakeProvider *fakes.FakeWorkerProvider
 
-		pool   Client
-		logger *lagertest.TestLogger
+		pool Client
 	)
 
 	BeforeEach(func() {
-		fakeProvider = new(fakes.FakeWorkerProvider)
 		logger = lagertest.NewTestLogger("test")
+		fakeProvider = new(fakes.FakeWorkerProvider)
 
-		pool = NewPool(fakeProvider, logger)
+		pool = NewPool(fakeProvider)
 	})
 
 	Describe("Create", func() {
@@ -42,7 +42,7 @@ var _ = Describe("Pool", func() {
 		})
 
 		JustBeforeEach(func() {
-			createdContainer, createErr = pool.CreateContainer(id, spec)
+			createdContainer, createErr = pool.CreateContainer(logger, id, spec)
 		})
 
 		Context("with multiple workers", func() {
@@ -95,7 +95,7 @@ var _ = Describe("Pool", func() {
 
 			It("creates using a random worker", func() {
 				for i := 1; i < 100; i++ { // account for initial create in JustBefore
-					createdContainer, createErr := pool.CreateContainer(id, spec)
+					createdContainer, createErr := pool.CreateContainer(logger, id, spec)
 					Ω(createErr).ShouldNot(HaveOccurred())
 					Ω(createdContainer).Should(Equal(fakeContainer))
 				}
@@ -158,10 +158,12 @@ var _ = Describe("Pool", func() {
 
 	Describe("LookupContainer", func() {
 		Context("when looking up the container info contains an error", func() {
-			It("returns the error", func() {
+			BeforeEach(func() {
 				fakeProvider.GetContainerInfoReturns(db.ContainerInfo{}, false, errors.New("disaster"))
+			})
 
-				containerInfo, found, err := pool.LookupContainer("some-handle")
+			It("returns the error", func() {
+				containerInfo, found, err := pool.LookupContainer(logger, "some-handle")
 				Ω(err).Should(HaveOccurred())
 				Ω(containerInfo).Should(BeNil())
 				Ω(found).Should(BeFalse())
@@ -169,10 +171,12 @@ var _ = Describe("Pool", func() {
 		})
 
 		Context("when looking up the container info does not find the container info", func() {
-			It("returns that it was not found", func() {
+			BeforeEach(func() {
 				fakeProvider.GetContainerInfoReturns(db.ContainerInfo{}, false, nil)
+			})
 
-				containerInfo, found, err := pool.LookupContainer("some-handle")
+			It("returns that it was not found", func() {
+				containerInfo, found, err := pool.LookupContainer(logger, "some-handle")
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(containerInfo).Should(BeNil())
 				Ω(found).Should(BeFalse())
@@ -191,7 +195,7 @@ var _ = Describe("Pool", func() {
 			})
 
 			It("calls to lookup the worker by name", func() {
-				pool.LookupContainer("some-handle")
+				pool.LookupContainer(logger, "some-handle")
 
 				Ω(fakeProvider.GetWorkerCallCount()).Should(Equal(1))
 
@@ -200,10 +204,12 @@ var _ = Describe("Pool", func() {
 			})
 
 			Context("when looking up the worker returns an error", func() {
-				It("returns the error", func() {
+				BeforeEach(func() {
 					fakeProvider.GetWorkerReturns(nil, false, errors.New("disaster"))
+				})
 
-					containerInfo, found, err := pool.LookupContainer("some-handle")
+				It("returns the error", func() {
+					containerInfo, found, err := pool.LookupContainer(logger, "some-handle")
 					Ω(err).Should(HaveOccurred())
 					Ω(containerInfo).Should(BeNil())
 					Ω(found).Should(BeFalse())
@@ -211,10 +217,12 @@ var _ = Describe("Pool", func() {
 			})
 
 			Context("when we cannot find the worker from the container info", func() {
-				It("returns ErrDBGardenMismatch", func() {
+				BeforeEach(func() {
 					fakeProvider.GetWorkerReturns(nil, false, nil)
+				})
 
-					containerInfo, found, err := pool.LookupContainer("some-handle")
+				It("returns ErrDBGardenMismatch", func() {
+					containerInfo, found, err := pool.LookupContainer(logger, "some-handle")
 					Ω(err).Should(Equal(ErrDBGardenMismatch))
 					Ω(containerInfo).Should(BeNil())
 					Ω(found).Should(BeFalse())
@@ -223,16 +231,18 @@ var _ = Describe("Pool", func() {
 
 			Context("when looking up the worker is successful", func() {
 				var fakeWorker *fakes.FakeWorker
+
 				BeforeEach(func() {
 					fakeWorker = new(fakes.FakeWorker)
 					fakeProvider.GetWorkerReturns(fakeWorker, true, nil)
 				})
+
 				It("calls to lookup the container on the worker", func() {
-					pool.LookupContainer("some-handle")
+					pool.LookupContainer(logger, "some-handle")
 
 					Ω(fakeWorker.LookupContainerCallCount()).Should(Equal(1))
 
-					handleArg := fakeWorker.LookupContainerArgsForCall(0)
+					_, handleArg := fakeWorker.LookupContainerArgsForCall(0)
 					Ω(handleArg).Should(Equal("some-handle"))
 				})
 
@@ -240,7 +250,7 @@ var _ = Describe("Pool", func() {
 					It("returns the error", func() {
 						fakeWorker.LookupContainerReturns(nil, false, errors.New("disaster"))
 
-						containerInfo, found, err := pool.LookupContainer("some-handle")
+						containerInfo, found, err := pool.LookupContainer(logger, "some-handle")
 						Ω(err).Should(HaveOccurred())
 						Ω(containerInfo).Should(BeNil())
 						Ω(found).Should(BeFalse())
@@ -248,10 +258,12 @@ var _ = Describe("Pool", func() {
 				})
 
 				Context("when the container cannot be found on the worker", func() {
-					It("returns ErrDBGardenMismatch", func() {
+					BeforeEach(func() {
 						fakeWorker.LookupContainerReturns(nil, false, nil)
+					})
 
-						containerInfo, found, err := pool.LookupContainer("some-handle")
+					It("returns ErrDBGardenMismatch", func() {
+						containerInfo, found, err := pool.LookupContainer(logger, "some-handle")
 						Ω(err).Should(Equal(ErrDBGardenMismatch))
 						Ω(containerInfo).Should(BeNil())
 						Ω(found).Should(BeFalse())
@@ -265,7 +277,7 @@ var _ = Describe("Pool", func() {
 
 						fakeWorker.LookupContainerReturns(fakeContainer, true, nil)
 
-						foundContainer, found, err := pool.LookupContainer("some-handle")
+						foundContainer, found, err := pool.LookupContainer(logger, "some-handle")
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(found).Should(BeTrue())
 						Ω(foundContainer).Should(Equal(fakeContainer))
@@ -286,10 +298,12 @@ var _ = Describe("Pool", func() {
 		})
 
 		Context("when looking up the container info contains an error", func() {
-			It("returns the error", func() {
+			BeforeEach(func() {
 				fakeProvider.FindContainerInfoForIdentifierReturns(db.ContainerInfo{}, false, errors.New("disaster"))
+			})
 
-				containerInfo, found, err := pool.FindContainerForIdentifier(identifier)
+			It("returns the error", func() {
+				containerInfo, found, err := pool.FindContainerForIdentifier(logger, identifier)
 				Ω(err).Should(HaveOccurred())
 				Ω(containerInfo).Should(BeNil())
 				Ω(found).Should(BeFalse())
@@ -297,10 +311,12 @@ var _ = Describe("Pool", func() {
 		})
 
 		Context("when looking up the container info does not find the container info", func() {
-			It("returns that it was not found", func() {
+			BeforeEach(func() {
 				fakeProvider.FindContainerInfoForIdentifierReturns(db.ContainerInfo{}, false, nil)
+			})
 
-				containerInfo, found, err := pool.FindContainerForIdentifier(identifier)
+			It("returns that it was not found", func() {
+				containerInfo, found, err := pool.FindContainerForIdentifier(logger, identifier)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(containerInfo).Should(BeNil())
 				Ω(found).Should(BeFalse())
@@ -319,7 +335,7 @@ var _ = Describe("Pool", func() {
 			})
 
 			It("calls to lookup the worker by name", func() {
-				pool.FindContainerForIdentifier(identifier)
+				pool.FindContainerForIdentifier(logger, identifier)
 
 				Ω(fakeProvider.GetWorkerCallCount()).Should(Equal(1))
 
@@ -331,7 +347,7 @@ var _ = Describe("Pool", func() {
 				It("returns the error", func() {
 					fakeProvider.GetWorkerReturns(nil, false, errors.New("disaster"))
 
-					containerInfo, found, err := pool.FindContainerForIdentifier(identifier)
+					containerInfo, found, err := pool.FindContainerForIdentifier(logger, identifier)
 					Ω(err).Should(HaveOccurred())
 					Ω(containerInfo).Should(BeNil())
 					Ω(found).Should(BeFalse())
@@ -342,7 +358,7 @@ var _ = Describe("Pool", func() {
 				It("returns ErrDBGardenMismatch", func() {
 					fakeProvider.GetWorkerReturns(nil, false, nil)
 
-					containerInfo, found, err := pool.FindContainerForIdentifier(identifier)
+					containerInfo, found, err := pool.FindContainerForIdentifier(logger, identifier)
 					Ω(err).Should(Equal(ErrDBGardenMismatch))
 					Ω(containerInfo).Should(BeNil())
 					Ω(found).Should(BeFalse())
@@ -351,16 +367,18 @@ var _ = Describe("Pool", func() {
 
 			Context("when looking up the worker is successful", func() {
 				var fakeWorker *fakes.FakeWorker
+
 				BeforeEach(func() {
 					fakeWorker = new(fakes.FakeWorker)
 					fakeProvider.GetWorkerReturns(fakeWorker, true, nil)
 				})
+
 				It("calls to lookup the container on the worker", func() {
-					pool.FindContainerForIdentifier(identifier)
+					pool.FindContainerForIdentifier(logger, identifier)
 
 					Ω(fakeWorker.LookupContainerCallCount()).Should(Equal(1))
 
-					handleArg := fakeWorker.LookupContainerArgsForCall(0)
+					_, handleArg := fakeWorker.LookupContainerArgsForCall(0)
 					Ω(handleArg).Should(Equal("some-container-handle"))
 				})
 
@@ -368,7 +386,7 @@ var _ = Describe("Pool", func() {
 					It("returns the error", func() {
 						fakeWorker.LookupContainerReturns(nil, false, errors.New("disaster"))
 
-						containerInfo, found, err := pool.FindContainerForIdentifier(identifier)
+						containerInfo, found, err := pool.FindContainerForIdentifier(logger, identifier)
 						Ω(err).Should(HaveOccurred())
 						Ω(containerInfo).Should(BeNil())
 						Ω(found).Should(BeFalse())
@@ -379,7 +397,7 @@ var _ = Describe("Pool", func() {
 					It("returns ErrDBGardenMismatch", func() {
 						fakeWorker.LookupContainerReturns(nil, false, nil)
 
-						containerInfo, found, err := pool.FindContainerForIdentifier(identifier)
+						containerInfo, found, err := pool.FindContainerForIdentifier(logger, identifier)
 						Ω(err).Should(Equal(ErrDBGardenMismatch))
 						Ω(containerInfo).Should(BeNil())
 						Ω(found).Should(BeFalse())
@@ -393,7 +411,7 @@ var _ = Describe("Pool", func() {
 
 						fakeWorker.LookupContainerReturns(fakeContainer, true, nil)
 
-						foundContainer, found, err := pool.FindContainerForIdentifier(identifier)
+						foundContainer, found, err := pool.FindContainerForIdentifier(logger, identifier)
 						Ω(err).ShouldNot(HaveOccurred())
 						Ω(found).Should(BeTrue())
 						Ω(foundContainer).Should(Equal(fakeContainer))
