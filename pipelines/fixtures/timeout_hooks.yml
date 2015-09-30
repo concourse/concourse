@@ -1,0 +1,63 @@
+---
+resources:
+  - name: some-git-resource
+    type: git
+    source:
+      uri: {{origin-git-server}}
+      branch: master
+
+  - name: some-git-resource-success
+    type: git
+    source:
+      uri: {{success-git-server}}
+      branch: success
+
+  - name: some-git-resource-failure
+    type: git
+    source:
+      uri: {{failure-git-server}}
+      branch: failure
+
+  - name: some-git-resource-ensure
+    type: git
+    source:
+      uri: {{ensure-git-server}}
+      branch: ensure
+
+
+jobs:
+  - name: duration-fail-job
+    plan:
+      - get: some-git-resource
+        trigger: true
+      - task: curl-server
+        config:
+          platform: linux
+          image: {{testflight-helper-image}}
+          inputs:
+            - name: some-git-resource
+              path: .
+          params:
+            CURL_COMMAND: {{guid-server-curl-command}}
+          run:
+            path: sh
+            args: ["-c", "tail -1 guids | $CURL_COMMAND"]
+      - task: timeout-task
+        timeout: 5s
+        config:
+          platform: linux
+          run:
+            path: sh
+            args: ["-c", "sleep 10"]
+        on_success:
+          put: some-git-resource-success
+          params:
+            repository: curl-server
+        on_failure:
+          put: some-git-resource-failure
+          params:
+            repository: curl-server
+        ensure:
+          put: some-git-resource-ensure
+          params:
+            repository: curl-server
