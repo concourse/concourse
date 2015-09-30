@@ -34,7 +34,7 @@ func (o onFailure) Using(prev Step, repo *SourceRepository) Step {
 func (o *onFailure) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	stepRunErr := o.step.Run(signals, ready)
 
-	if stepRunErr != nil {
+	if stepRunErr != nil && stepRunErr != ErrStepTimedOut {
 		return stepRunErr
 	}
 
@@ -47,7 +47,7 @@ func (o *onFailure) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 
 	if !success {
 		o.failure = o.failureFactory.Using(o.step, o.repo)
-		err := o.failure.Run(signals, make(chan struct{})) // TODO test
+		err := o.failure.Run(signals, make(chan struct{}))
 		return err
 	}
 	return nil

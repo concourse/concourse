@@ -38,17 +38,14 @@ func (o ensure) Using(prev Step, repo *SourceRepository) Step {
 func (o *ensure) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	var errors error
 
-	originalErr := o.step.Run(signals, ready) // don't care about the error
+	originalErr := o.step.Run(signals, ready)
 	if originalErr != nil {
 		errors = multierror.Append(errors, originalErr)
 	}
 
-	// The contract of the Result method is such that it does not change the value
-	// of the provided pointer if it is not able to respond.
-	// Therefore there is no need to check the return value here.
 	o.ensure = o.ensureFactory.Using(o.step, o.repo)
 
-	hookErr := o.ensure.Run(signals, make(chan struct{})) // TODO test
+	hookErr := o.ensure.Run(signals, make(chan struct{}))
 	if hookErr != nil {
 		errors = multierror.Append(errors, hookErr)
 	}

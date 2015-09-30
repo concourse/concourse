@@ -209,8 +209,7 @@ var _ = Describe("Radar", func() {
 
 			It("releases after checking", func() {
 				Eventually(times).Should(Receive())
-
-				Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
+				Eventually(fakeResource.ReleaseCallCount).Should(Equal(1))
 			})
 
 			Context("when there is no current version", func() {
