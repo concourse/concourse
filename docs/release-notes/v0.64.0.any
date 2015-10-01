@@ -46,6 +46,16 @@
   a ton of data. For now you'll only see the boost if you get lucky with the
   container placement.
 }{
+  We've moved ATC's knowledge of containers into the database. Previously the
+  ATC would fan-out to all the workers when looking for a container; now it's a
+  simple database lookup. This should drastically improve the performance of
+  \reference{fly-hijack}, and pretty much everything else related to builds
+  running.
+
+  This will also make us more durable to workers dropping out of the pool, and
+  prevent the \code{multiple containers} error from happening. More
+  improvements to handling flaky workers are forthcoming.
+}{
   We no longer reuse the pending color for jobs that have no builds. A new
   darker shade of grey has been selected for your viewing pleasure.
 }{
