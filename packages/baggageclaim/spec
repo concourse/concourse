@@ -12,6 +12,7 @@ files:
   - github.com/concourse/baggageclaim/api/*.go # gosub
   - github.com/concourse/baggageclaim/fs/*.go # gosub
   - github.com/concourse/baggageclaim/reaper/*.go # gosub
+  - github.com/concourse/baggageclaim/uidjunk/*.go # gosub
   - github.com/concourse/baggageclaim/volume/*.go # gosub
   - github.com/concourse/baggageclaim/volume/driver/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
