@@ -44,6 +44,9 @@ func LockDBAndMigrate(logger lager.Logger, sqlDriver string, sqlDataSource strin
 		logger.Info("migration-lock-acquired")
 
 		dbConn, err = migration.Open(sqlDriver, sqlDataSource, Migrations)
+		if err != nil {
+			logger.Fatal("failed-to-run-migrations", err)
+		}
 
 		_, err = dbLockConn.Exec(`select pg_advisory_unlock($1)`, lockName)
 		if err != nil {
