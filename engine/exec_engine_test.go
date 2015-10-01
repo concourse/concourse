@@ -417,7 +417,7 @@ var _ = Describe("ExecEngine", func() {
 				It("releases inputs correctly", func() {
 					inputStep.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
 						defer GinkgoRecover()
-						Consistently(inputStep.ReleaseCallCount).To(BeZero())
+						Consistently(inputStep.ReleaseCallCount).Should(BeZero())
 						return nil
 					}
 					var err error
@@ -505,7 +505,7 @@ var _ = Describe("ExecEngine", func() {
 				It("releases the tasks correctly", func() {
 					taskStep.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
 						defer GinkgoRecover()
-						Consistently(taskStep.ReleaseCallCount).To(BeZero())
+						Consistently(taskStep.ReleaseCallCount).Should(BeZero())
 						return nil
 					}
 					var err error
@@ -514,7 +514,6 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 
 					Expect(taskStep.ReleaseCallCount()).To(Equal(1))
-
 				})
 
 				Context("when the task is privileged", func() {

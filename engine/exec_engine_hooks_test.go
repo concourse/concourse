@@ -17,7 +17,6 @@ import (
 )
 
 var _ = Describe("Exec Engine With Hooks", func() {
-
 	var (
 		fakeFactory         *execfakes.FakeFactory
 		fakeDelegateFactory *fakes.FakeBuildDelegateFactory
@@ -101,9 +100,9 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 			assertNotReleased := func(signals <-chan os.Signal, ready chan<- struct{}) error {
 				defer GinkgoRecover()
-				Consistently(inputStep.ReleaseCallCount).To(BeZero())
-				Consistently(taskStep.ReleaseCallCount).To(BeZero())
-				Consistently(outputStep.ReleaseCallCount).To(BeZero())
+				Consistently(inputStep.ReleaseCallCount).Should(BeZero())
+				Consistently(taskStep.ReleaseCallCount).Should(BeZero())
+				Consistently(outputStep.ReleaseCallCount).Should(BeZero())
 				return nil
 			}
 
