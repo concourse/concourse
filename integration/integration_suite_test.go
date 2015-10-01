@@ -17,7 +17,7 @@ var _ = BeforeSuite(func() {
 	var err error
 
 	flyPath, err = gexec.Build("github.com/concourse/fly")
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 })
 
 var _ = AfterSuite(gexec.CleanupBuildArtifacts)

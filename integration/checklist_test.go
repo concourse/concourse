@@ -25,7 +25,7 @@ var _ = Describe("Fly CLI", func() {
 		var err error
 
 		flyPath, err = gexec.Build("github.com/concourse/fly")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	Describe("checklist", func() {
@@ -39,13 +39,13 @@ var _ = Describe("Fly CLI", func() {
 
 			var err error
 			home, err = ioutil.TempDir("", "fly-home")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 			os.Setenv("HOME", home)
 
 			flySaveCmd := exec.Command(flyPath, "save-target", "--api", atcServer.URL()+"/", "target-name")
 
 			sess, err := gexec.Start(flySaveCmd, GinkgoWriter, GinkgoWriter)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 			Eventually(sess).Should(gexec.Exit(0))
 
 			config = atc.Config{
@@ -72,7 +72,7 @@ var _ = Describe("Fly CLI", func() {
 
 		AfterEach(func() {
 			err := os.RemoveAll(home)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when a pipeline name is not specified", func() {
@@ -89,12 +89,12 @@ var _ = Describe("Fly CLI", func() {
 				flyCmd := exec.Command(flyPath, "-t", "target-name", "checklist", "some-pipeline")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				<-sess.Exited
-				Ω(sess.ExitCode()).Should(Equal(0))
+				Expect(sess.ExitCode()).To(Equal(0))
 
-				Ω(string(sess.Out.Contents())).Should(Equal(fmt.Sprintf(
+				Expect(string(sess.Out.Contents())).To(Equal(fmt.Sprintf(
 					`#- some-group
 job-1: concourse.check %s   some-pipeline job-1
 job-2: concourse.check %s   some-pipeline job-2
@@ -107,6 +107,7 @@ job-4: concourse.check %s   some-pipeline job-4
 some-orphaned-job: concourse.check %s   some-pipeline some-orphaned-job
 
 `, atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL())))
+
 			})
 		})
 
@@ -124,12 +125,12 @@ some-orphaned-job: concourse.check %s   some-pipeline some-orphaned-job
 				flyCmd := exec.Command(flyPath, "-t", "target-name", "checklist", "some-pipeline")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				<-sess.Exited
-				Ω(sess.ExitCode()).Should(Equal(0))
+				Expect(sess.ExitCode()).To(Equal(0))
 
-				Ω(string(sess.Out.Contents())).Should(Equal(fmt.Sprintf(
+				Expect(string(sess.Out.Contents())).To(Equal(fmt.Sprintf(
 					`#- some-group
 job-1: concourse.check %s   some-pipeline job-1
 job-2: concourse.check %s   some-pipeline job-2
@@ -142,6 +143,7 @@ job-4: concourse.check %s   some-pipeline job-4
 some-orphaned-job: concourse.check %s   some-pipeline some-orphaned-job
 
 `, atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL())))
+
 			})
 		})
 	})

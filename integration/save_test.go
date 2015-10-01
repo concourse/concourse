@@ -51,7 +51,7 @@ targets:
 		)
 
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		Eventually(sess).Should(gexec.Exit(1))
 	})
@@ -100,16 +100,16 @@ targets:
 			)
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 			Eventually(sess).Should(gexec.Exit(0))
 
 			flyCmd = exec.Command(flyPath, "-t", targetURL, "checklist")
 
 			sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			<-sess.Exited
-			Ω(sess.ExitCode()).Should(Equal(0))
+			Expect(sess.ExitCode()).To(Equal(0))
 		})
 	})
 
@@ -117,7 +117,7 @@ targets:
 		Context("and the target does not exist", func() {
 			It("should append content to .flyrc", func() {
 				err := ioutil.WriteFile(flyrc, []byte(stockYAML), os.ModePerm)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				flyCmd := exec.Command(flyPath, "save-target", "--api",
 					"http://some-target", "--username", "some-username",
@@ -126,18 +126,18 @@ targets:
 				)
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 				Eventually(sess).Should(gexec.Exit(0))
 				Eventually(sess).Should(gbytes.Say("successfully saved target some-update-target\n"))
 
 				flyrcBytes, err := ioutil.ReadFile(flyrc)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				re := regexp.MustCompile("targets")
-				Ω(re.FindAllString(string(flyrcBytes), -1)).Should(HaveLen(1))
+				Expect(re.FindAllString(string(flyrcBytes), -1)).To(HaveLen(1))
 
-				Ω(string(flyrcBytes)).To(ContainSubstring("some-existing-text"))
-				Ω(string(flyrcBytes)).To(ContainSubstring("http://some-target"))
+				Expect(string(flyrcBytes)).To(ContainSubstring("some-existing-text"))
+				Expect(string(flyrcBytes)).To(ContainSubstring("http://some-target"))
 			})
 		})
 
@@ -150,7 +150,7 @@ targets:
 				)
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 				Eventually(sess).Should(gexec.Exit(0))
 
 				flyCmd = exec.Command(flyPath, "save-target", "--api",
@@ -160,15 +160,15 @@ targets:
 				)
 
 				sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 				Eventually(sess).Should(gexec.Exit(0))
 
 				flyrcBytes, err := ioutil.ReadFile(flyrc)
 				re := regexp.MustCompile("some-update-target")
-				Ω(re.FindAllString(string(flyrcBytes), -1)).Should(HaveLen(1))
-				Ω(string(flyrcBytes)).To(ContainSubstring("password: stuff"))
-				Ω(string(flyrcBytes)).To(ContainSubstring("api: http://a-different-target"))
-				Ω(string(flyrcBytes)).To(ContainSubstring("cert: ~/path/to/different/cert"))
+				Expect(re.FindAllString(string(flyrcBytes), -1)).To(HaveLen(1))
+				Expect(string(flyrcBytes)).To(ContainSubstring("password: stuff"))
+				Expect(string(flyrcBytes)).To(ContainSubstring("api: http://a-different-target"))
+				Expect(string(flyrcBytes)).To(ContainSubstring("cert: ~/path/to/different/cert"))
 			})
 		})
 	})
@@ -182,13 +182,13 @@ targets:
 			)
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(sess).Should(gexec.Exit(0))
 			Eventually(sess).Should(gbytes.Say("successfully saved target some-target\n"))
 
 			flyrcBytes, err := ioutil.ReadFile(flyrc)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			type tempYAML struct {
 				Targets map[string]yaml.MapSlice
@@ -197,12 +197,13 @@ targets:
 			var flyYAML *tempYAML
 			yaml.Unmarshal(flyrcBytes, &flyYAML)
 
-			Ω(flyYAML.Targets["some-target"]).To(ConsistOf([]yaml.MapItem{
+			Expect(flyYAML.Targets["some-target"]).To(ConsistOf([]yaml.MapItem{
 				{Key: "api", Value: "http://some-target"},
 				{Key: "username", Value: "some-username"},
 				{Key: "password", Value: "some-password"},
 				{Key: "cert", Value: "~/path/to/cert"},
 			}))
+
 		})
 	})
 })

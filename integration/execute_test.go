@@ -42,15 +42,15 @@ var _ = Describe("Fly CLI", func() {
 		var err error
 
 		flyPath, err = gexec.Build("github.com/concourse/fly")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		tmpdir, err = ioutil.TempDir("", "fly-build-dir")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		buildDir = filepath.Join(tmpdir, "fixture")
 
 		err = os.Mkdir(buildDir, 0755)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		taskConfigPath = filepath.Join(buildDir, "task.yml")
 
@@ -75,7 +75,7 @@ run:
 `),
 			0644,
 		)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		atcServer = ghttp.NewServer()
 
@@ -179,7 +179,7 @@ run:
 
 					for e := range events {
 						payload, err := json.Marshal(event.Message{e})
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						event := sse.Event{
 							ID:   fmt.Sprintf("%d", id),
@@ -188,7 +188,7 @@ run:
 						}
 
 						err = event.Write(w)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						flusher.Flush()
 
@@ -198,7 +198,7 @@ run:
 					err := sse.Event{
 						Name: "end",
 					}.Write(w)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 				},
 			),
 			ghttp.CombineHandlers(
@@ -207,19 +207,19 @@ run:
 					close(uploading)
 
 					gr, err := gzip.NewReader(req.Body)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					tr := tar.NewReader(gr)
 
 					hdr, err := tr.Next()
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(hdr.Name).Should(Equal("./"))
+					Expect(hdr.Name).To(Equal("./"))
 
 					hdr, err = tr.Next()
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(hdr.Name).Should(MatchRegexp("(./)?task.yml$"))
+					Expect(hdr.Name).To(MatchRegexp("(./)?task.yml$"))
 				},
 				ghttp.RespondWith(200, ""),
 			),
@@ -231,7 +231,7 @@ run:
 		flyCmd.Dir = buildDir
 
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		Eventually(streaming).Should(BeClosed())
 		Eventually(sess.Out).Should(gbytes.Say("executing build 128"))
@@ -243,7 +243,7 @@ run:
 		close(events)
 
 		<-sess.Exited
-		Ω(sess.ExitCode()).Should(Equal(0))
+		Expect(sess.ExitCode()).To(Equal(0))
 	})
 
 	Context("when the build config is invalid", func() {
@@ -256,7 +256,7 @@ run: {}
 `),
 				0644,
 			)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("prints the failure and exits 1", func() {
@@ -264,12 +264,12 @@ run: {}
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(sess.Err).Should(gbytes.Say("missing"))
 
 			<-sess.Exited
-			Ω(sess.ExitCode()).Should(Equal(1))
+			Expect(sess.ExitCode()).To(Equal(1))
 		})
 	})
 
@@ -285,7 +285,7 @@ run: {}
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			// sync with after create
 			Eventually(streaming, 5.0).Should(BeClosed())
@@ -293,7 +293,7 @@ run: {}
 			close(events)
 
 			<-sess.Exited
-			Ω(sess.ExitCode()).Should(Equal(0))
+			Expect(sess.ExitCode()).To(Equal(0))
 		})
 	})
 
@@ -309,7 +309,7 @@ run: {}
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			// sync with after create
 			Eventually(streaming, 5.0).Should(BeClosed())
@@ -317,7 +317,7 @@ run: {}
 			close(events)
 
 			<-sess.Exited
-			Ω(sess.ExitCode()).Should(Equal(0))
+			Expect(sess.ExitCode()).To(Equal(0))
 		})
 	})
 
@@ -327,13 +327,13 @@ run: {}
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(sess).Should(gbytes.Say("Incorrect Usage."))
 			Eventually(sess.Err).Should(gbytes.Say("bogus-flag"))
 
 			<-sess.Exited
-			Ω(sess.ExitCode()).Should(Equal(1))
+			Expect(sess.ExitCode()).To(Equal(1))
 		})
 	})
 
@@ -354,7 +354,7 @@ run: {}
 			flyCmd.Env = append(os.Environ(), "FOO=newbar", "X=")
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			// sync with after create
 			Eventually(streaming, 5.0).Should(BeClosed())
@@ -362,7 +362,7 @@ run: {}
 			close(events)
 
 			<-sess.Exited
-			Ω(sess.ExitCode()).Should(Equal(0))
+			Expect(sess.ExitCode()).To(Equal(0))
 		})
 	})
 
@@ -403,7 +403,7 @@ run: {}
 					close(events)
 
 					<-sess.Exited
-					Ω(sess.ExitCode()).Should(Equal(2))
+					Expect(sess.ExitCode()).To(Equal(2))
 				})
 			})
 
@@ -427,7 +427,7 @@ run: {}
 					close(events)
 
 					<-sess.Exited
-					Ω(sess.ExitCode()).Should(Equal(2))
+					Expect(sess.ExitCode()).To(Equal(2))
 				})
 			})
 		}
@@ -447,7 +447,7 @@ run: {}
 			close(events)
 
 			<-sess.Exited
-			Ω(sess.ExitCode()).Should(Equal(0))
+			Expect(sess.ExitCode()).To(Equal(0))
 		})
 	})
 
@@ -465,7 +465,7 @@ run: {}
 			close(events)
 
 			<-sess.Exited
-			Ω(sess.ExitCode()).Should(Equal(1))
+			Expect(sess.ExitCode()).To(Equal(1))
 		})
 	})
 
@@ -483,7 +483,7 @@ run: {}
 			close(events)
 
 			<-sess.Exited
-			Ω(sess.ExitCode()).Should(Equal(2))
+			Expect(sess.ExitCode()).To(Equal(2))
 		})
 	})
 })

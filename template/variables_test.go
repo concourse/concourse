@@ -19,10 +19,11 @@ var _ = Describe("Variables", func() {
 
 			result := a.Merge(b)
 
-			Ω(result).Should(Equal(template.Variables{
+			Expect(result).To(Equal(template.Variables{
 				"a": "foo",
 				"b": "bar",
 			}))
+
 		})
 
 		It("does not affect the original sets", func() {
@@ -35,9 +36,10 @@ var _ = Describe("Variables", func() {
 
 			a.Merge(b)
 
-			Ω(a).Should(Equal(template.Variables{
+			Expect(a).To(Equal(template.Variables{
 				"a": "foo",
 			}))
+
 		})
 
 		It("overwrites the LHS with the RHS", func() {
@@ -51,10 +53,11 @@ var _ = Describe("Variables", func() {
 
 			result := a.Merge(b)
 
-			Ω(result).Should(Equal(template.Variables{
+			Expect(result).To(Equal(template.Variables{
 				"a": "foo",
 				"b": "new",
 			}))
+
 		})
 	})
 
@@ -71,9 +74,9 @@ var _ = Describe("Variables", func() {
 			}
 
 			loadedVariables, err := template.LoadVariables(input)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(loadedVariables).Should(Equal(variables))
+			Expect(loadedVariables).To(Equal(variables))
 		})
 
 		It("allows values to have an = sign in them", func() {
@@ -86,9 +89,9 @@ var _ = Describe("Variables", func() {
 			}
 
 			loadedVariables, err := template.LoadVariables(input)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(loadedVariables).Should(Equal(variables))
+			Expect(loadedVariables).To(Equal(variables))
 		})
 
 		It("allows unicode values", func() {
@@ -101,9 +104,9 @@ var _ = Describe("Variables", func() {
 			}
 
 			loadedVariables, err := template.LoadVariables(input)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(loadedVariables).Should(Equal(variables))
+			Expect(loadedVariables).To(Equal(variables))
 		})
 
 		It("errors if the input is invalid", func() {
@@ -112,28 +115,29 @@ var _ = Describe("Variables", func() {
 			}
 
 			_, err := template.LoadVariables(input)
-			Ω(err).Should(HaveOccurred())
-			Ω(err).Should(MatchError("input has incorrect format (should be key=value): 'key'"))
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError("input has incorrect format (should be key=value): 'key'"))
 		})
 	})
 
 	Describe("loading variables from a file", func() {
 		It("can load them from a file", func() {
 			variables, err := template.LoadVariablesFromFile("fixtures/vars.yml")
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(variables).Should(Equal(template.Variables{
+			Expect(err).NotTo(HaveOccurred())
+			Expect(variables).To(Equal(template.Variables{
 				"hello": "world",
 			}))
+
 		})
 
 		It("returns an error if the file does not exist", func() {
 			_, err := template.LoadVariablesFromFile("fixtures/missing.yml")
-			Ω(err).Should(HaveOccurred())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("returns an error if the file is in an invalid format", func() {
 			_, err := template.LoadVariablesFromFile("fixtures/invalid_vars.yml")
-			Ω(err).Should(HaveOccurred())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

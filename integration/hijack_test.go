@@ -45,12 +45,12 @@ var _ = Describe("Hijacking", func() {
 
 				var processSpec atc.HijackProcessSpec
 				err := body.Decode(&processSpec)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(processSpec.User).Should(Equal("root"))
+				Expect(processSpec.User).To(Equal("root"))
 
 				sconn, sbr, err := w.(http.Hijacker).Hijack()
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				defer sconn.Close()
 
@@ -62,28 +62,28 @@ var _ = Describe("Hijacking", func() {
 				var payload atc.HijackInput
 
 				err = decoder.Decode(&payload)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(payload).Should(Equal(atc.HijackInput{
+				Expect(payload).To(Equal(atc.HijackInput{
 					Stdin: []byte("some stdin"),
 				}))
 
 				err = encoder.Encode(atc.HijackOutput{
 					Stdout: []byte("some stdout"),
 				})
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				err = encoder.Encode(atc.HijackOutput{
 					Stderr: []byte("some stderr"),
 				})
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				if len(errorMessages) > 0 {
 					for _, msg := range errorMessages {
 						err := encoder.Encode(atc.HijackOutput{
 							Error: msg,
 						})
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 					}
 
 					return
@@ -93,14 +93,14 @@ var _ = Describe("Hijacking", func() {
 				err = encoder.Encode(atc.HijackOutput{
 					ExitStatus: &exitStatus,
 				})
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			},
 		)
 	}
 
 	fly := func(command string, args ...string) {
 		pty, tty, err := pty.Open()
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		commandWithArgs := append([]string{command}, args...)
 
@@ -108,21 +108,21 @@ var _ = Describe("Hijacking", func() {
 		flyCmd.Stdin = tty
 
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		Eventually(hijacked).Should(BeClosed())
 
 		_, err = pty.WriteString("some stdin")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		Eventually(sess.Out).Should(gbytes.Say("some stdout"))
 		Eventually(sess.Err).Should(gbytes.Say("some stderr"))
 
 		err = pty.Close()
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		<-sess.Exited
-		Ω(sess.ExitCode()).Should(Equal(123))
+		Expect(sess.ExitCode()).To(Equal(123))
 	}
 
 	hijack := func(args ...string) {
@@ -186,11 +186,11 @@ var _ = Describe("Hijacking", func() {
 		It("return a friendly error message", func() {
 			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-n", "some-step")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(sess).Should(gexec.Exit(1))
 
-			Ω(sess.Err).Should(gbytes.Say("no containers matched your search parameters! they may have expired if your build hasn't recently finished"))
+			Expect(sess.Err).To(gbytes.Say("no containers matched your search parameters! they may have expired if your build hasn't recently finished"))
 		})
 	})
 
@@ -209,21 +209,21 @@ var _ = Describe("Hijacking", func() {
 
 		It("logs an error message and response status/body", func() {
 			pty, tty, err := pty.Open()
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-b", "0")
 			flyCmd.Stdin = tty
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(sess.Err.Contents).Should(ContainSubstring("build not found"))
 
 			err = pty.Close()
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			<-sess.Exited
-			Ω(sess.ExitCode()).Should(Equal(1))
+			Expect(sess.ExitCode()).To(Equal(1))
 		})
 	})
 
@@ -231,11 +231,11 @@ var _ = Describe("Hijacking", func() {
 		It("returns an error", func() {
 			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-p", "pipeline-name")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(sess).Should(gexec.Exit(1))
 
-			Ω(sess.Err).Should(gbytes.Say("job must be specified if pipeline is specified"))
+			Expect(sess.Err).To(gbytes.Say("job must be specified if pipeline is specified"))
 		})
 	})
 
@@ -258,55 +258,55 @@ var _ = Describe("Hijacking", func() {
 
 		It("asks the user to select the container from a menu", func() {
 			pty, tty, err := pty.Open()
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-c", "some-resource-name")
 			flyCmd.Stdin = tty
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(sess.Out).Should(gbytes.Say("1. pipeline: pipeline-name-1, build id: 6, type: check, name: some-resource-name"))
 			Eventually(sess.Out).Should(gbytes.Say("2. pipeline: pipeline-name-2, build id: 5, type: check, name: some-resource-name"))
 			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
 
 			_, err = pty.WriteString("ghfdhf\n")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 			Eventually(sess.Out).Should(gbytes.Say("invalid selection"))
 			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
 
 			_, err = pty.WriteString("3\n")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 			Eventually(sess.Out).Should(gbytes.Say("invalid selection"))
 			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
 
 			_, err = pty.WriteString("2\n")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(hijacked).Should(BeClosed())
 
 			_, err = pty.WriteString("some stdin")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(sess.Out).Should(gbytes.Say("some stdout"))
 			Eventually(sess.Err).Should(gbytes.Say("some stderr"))
 
 			err = pty.Close()
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			<-sess.Exited
-			Ω(sess.ExitCode()).Should(Equal(123))
+			Expect(sess.ExitCode()).To(Equal(123))
 		})
 
 		It("exits when the user ends the input stream (Ctrl+D)", func() {
 			pty, tty, err := pty.Open()
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-c", "some-resource-name")
 			flyCmd.Stdin = tty
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(sess.Out).Should(gbytes.Say("1. pipeline: pipeline-name-1, build id: 6, type: check, name: some-resource-name"))
 			Eventually(sess.Out).Should(gbytes.Say("2. pipeline: pipeline-name-2, build id: 5, type: check, name: some-resource-name"))
@@ -494,26 +494,26 @@ var _ = Describe("Hijacking", func() {
 
 				It("prints it to stderr and exits 255", func() {
 					pty, tty, err := pty.Open()
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "--step-name", "some-step")
 					flyCmd.Stdin = tty
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(hijacked).Should(BeClosed())
 
 					_, err = pty.WriteString("some stdin")
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(sess.Err.Contents).Should(ContainSubstring(ansi.Color("something went wrong", "red+b") + "\n"))
 
 					err = pty.Close()
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					<-sess.Exited
-					Ω(sess.ExitCode()).Should(Equal(255))
+					Expect(sess.ExitCode()).To(Equal(255))
 				})
 			})
 		})

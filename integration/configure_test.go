@@ -29,7 +29,7 @@ func getConfigAndPausedState(r *http.Request) ([]byte, *bool) {
 	defer r.Body.Close()
 
 	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	reader := multipart.NewReader(r.Body, params["boundary"])
 
@@ -44,11 +44,11 @@ func getConfigAndPausedState(r *http.Request) ([]byte, *bool) {
 		if err == io.EOF {
 			break
 		}
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		if part.FormName() == "paused" {
 			pausedValue, err := ioutil.ReadAll(part)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			if string(pausedValue) == "true" {
 				state = &yes
@@ -75,7 +75,7 @@ var _ = Describe("Fly CLI", func() {
 		var err error
 
 		flyPath, err = gexec.Build("github.com/concourse/fly")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	Describe("configure", func() {
@@ -192,19 +192,19 @@ var _ = Describe("Fly CLI", func() {
 					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					<-sess.Exited
-					Ω(sess.ExitCode()).Should(Equal(1))
+					Expect(sess.ExitCode()).To(Equal(1))
 
-					Ω(sess.Err).Should(gbytes.Say("please specify a pipeline name as an argument!"))
+					Expect(sess.Err).To(gbytes.Say("please specify a pipeline name as an argument!"))
 				})
 			})
 
 			Context("when specifying a pipeline name", func() {
 				BeforeEach(func() {
 					path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "some-pipeline"})
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
@@ -218,16 +218,16 @@ var _ = Describe("Fly CLI", func() {
 					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "some-pipeline")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					<-sess.Exited
-					Ω(sess.ExitCode()).Should(Equal(0))
+					Expect(sess.ExitCode()).To(Equal(0))
 
 					var printedConfig atc.Config
 					err = yaml.Unmarshal(sess.Out.Contents(), &printedConfig)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(printedConfig).Should(Equal(config))
+					Expect(printedConfig).To(Equal(config))
 				})
 
 				Context("when -j is given", func() {
@@ -235,16 +235,16 @@ var _ = Describe("Fly CLI", func() {
 						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "some-pipeline", "-j")
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						<-sess.Exited
-						Ω(sess.ExitCode()).Should(Equal(0))
+						Expect(sess.ExitCode()).To(Equal(0))
 
 						var printedConfig atc.Config
 						err = json.Unmarshal(sess.Out.Contents(), &printedConfig)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
-						Ω(printedConfig).Should(Equal(config))
+						Expect(printedConfig).To(Equal(config))
 					})
 				})
 			})
@@ -275,7 +275,7 @@ var _ = Describe("Fly CLI", func() {
 				}
 
 				path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				atcServer.RouteToHandler("GET", path,
 					ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
@@ -285,20 +285,20 @@ var _ = Describe("Fly CLI", func() {
 			Context("when configuring with templated keys succeeds", func() {
 				BeforeEach(func() {
 					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
 						ghttp.CombineHandlers(
 							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 							func(w http.ResponseWriter, r *http.Request) {
 								bodyConfig, state := getConfigAndPausedState(r)
-								Ω(state).Should(BeNil())
+								Expect(state).To(BeNil())
 
 								receivedConfig := atc.Config{}
 								err = yaml.Unmarshal(bodyConfig, &receivedConfig)
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
-								Ω(receivedConfig).Should(Equal(config))
+								Expect(receivedConfig).To(Equal(config))
 							},
 						),
 					)
@@ -315,19 +315,19 @@ var _ = Describe("Fly CLI", func() {
 					)
 
 					stdin, err := flyCmd.StdinPipe()
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
 					fmt.Fprintln(stdin, "y")
 					Eventually(sess).Should(gbytes.Say("configuration updated"))
 
 					<-sess.Exited
-					Ω(sess.ExitCode()).Should(Equal(0))
+					Expect(sess.ExitCode()).To(Equal(0))
 
-					Ω(atcServer.ReceivedRequests()).Should(HaveLen(2))
+					Expect(atcServer.ReceivedRequests()).To(HaveLen(2))
 				})
 			})
 		})
@@ -344,12 +344,12 @@ var _ = Describe("Fly CLI", func() {
 				var err error
 
 				configFile, err = ioutil.TempFile("", "fly-config-file")
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				changedConfig = config
 
 				path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				atcServer.RouteToHandler("GET", path,
 					ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
@@ -360,18 +360,18 @@ var _ = Describe("Fly CLI", func() {
 				var err error
 
 				payload, err = yaml.Marshal(changedConfig)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				_, err = configFile.Write(payload)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				err = configFile.Close()
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			AfterEach(func() {
 				err := os.RemoveAll(configFile.Name())
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			Context("when not specifying a pipeline name", func() {
@@ -379,12 +379,12 @@ var _ = Describe("Fly CLI", func() {
 					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name())
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					<-sess.Exited
-					Ω(sess.ExitCode()).Should(Equal(1))
+					Expect(sess.ExitCode()).To(Equal(1))
 
-					Ω(sess.Err).Should(gbytes.Say("please specify a pipeline name as an argument!"))
+					Expect(sess.Err).To(gbytes.Say("please specify a pipeline name as an argument!"))
 				})
 			})
 
@@ -406,15 +406,15 @@ var _ = Describe("Fly CLI", func() {
 					changedConfig.Jobs = append(changedConfig.Jobs[:1], newJob)
 
 					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
 						ghttp.CombineHandlers(
 							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 							func(w http.ResponseWriter, r *http.Request) {
 								config, state := getConfigAndPausedState(r)
-								Ω(config).Should(Equal(payload))
-								Ω(*state).Should(BeTrue(), "paused was not set in the request")
+								Expect(config).To(Equal(payload))
+								Expect(*state).To(BeTrue(), "paused was not set in the request")
 							},
 							ghttp.RespondWith(200, ""),
 						),
@@ -425,10 +425,10 @@ var _ = Describe("Fly CLI", func() {
 					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "awesome-pipeline", "-c", configFile.Name(), "--paused")
 
 					stdin, err := flyCmd.StdinPipe()
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(sess).Should(gbytes.Say("group some-group has changed"))
 					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("- some-new-job", "green")))
@@ -464,34 +464,34 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess).Should(gbytes.Say("configuration updated"))
 
 					<-sess.Exited
-					Ω(sess.ExitCode()).Should(Equal(0))
+					Expect(sess.ExitCode()).To(Equal(0))
 
-					Ω(atcServer.ReceivedRequests()).Should(HaveLen(2))
+					Expect(atcServer.ReceivedRequests()).To(HaveLen(2))
 				})
 
 				It("bails if the user rejects the diff", func() {
 					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "awesome-pipeline", "-c", configFile.Name())
 
 					stdin, err := flyCmd.StdinPipe()
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
 					fmt.Fprintln(stdin, "n")
 
 					<-sess.Exited
-					Ω(sess.ExitCode()).Should(Equal(1))
+					Expect(sess.ExitCode()).To(Equal(1))
 
-					Ω(atcServer.ReceivedRequests()).Should(HaveLen(1))
+					Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
 
 			Context("when configuring fails", func() {
 				BeforeEach(func() {
 					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
 						ghttp.RespondWith(400, "nope"),
@@ -502,10 +502,10 @@ var _ = Describe("Fly CLI", func() {
 					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name(), "awesome-pipeline")
 
 					stdin, err := flyCmd.StdinPipe()
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
 					fmt.Fprintln(stdin, "y")
@@ -516,7 +516,7 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Err).Should(gbytes.Say("    nope"))
 
 					<-sess.Exited
-					Ω(sess.ExitCode()).Should(Equal(1))
+					Expect(sess.ExitCode()).To(Equal(1))
 				})
 			})
 
@@ -524,28 +524,28 @@ var _ = Describe("Fly CLI", func() {
 				flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "awesome-pipeline", "-c", configFile.Name(), "--paused=this-is-not-a-bool")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				Eventually(sess.Err).Should(gbytes.Say(`invalid boolean value "this-is-not-a-bool" for -paused`))
 
 				<-sess.Exited
-				Ω(sess.ExitCode()).Should(Equal(1))
+				Expect(sess.ExitCode()).To(Equal(1))
 
-				Ω(atcServer.ReceivedRequests()).Should(HaveLen(0))
+				Expect(atcServer.ReceivedRequests()).To(HaveLen(0))
 			})
 
 			Context("when the server says this is the first time it's creating the pipeline", func() {
 				Context("when the user doesn't mention paused", func() {
 					BeforeEach(func() {
 						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
 							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 							func(w http.ResponseWriter, r *http.Request) {
 								config, state := getConfigAndPausedState(r)
-								Ω(config).Should(Equal(payload))
-								Ω(state).Should(BeNil())
+								Expect(config).To(Equal(payload))
+								Expect(state).To(BeNil())
 							},
 							ghttp.RespondWith(201, ""),
 						))
@@ -555,10 +555,10 @@ var _ = Describe("Fly CLI", func() {
 						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "awesome-pipeline", "-c", configFile.Name())
 
 						stdin, err := flyCmd.StdinPipe()
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
 						fmt.Fprintln(stdin, "y")
@@ -573,23 +573,23 @@ var _ = Describe("Fly CLI", func() {
 						Eventually(sess).Should(gbytes.Say("  - click play next to the pipeline in the web ui"))
 
 						<-sess.Exited
-						Ω(sess.ExitCode()).Should(Equal(0))
+						Expect(sess.ExitCode()).To(Equal(0))
 
-						Ω(atcServer.ReceivedRequests()).Should(HaveLen(2))
+						Expect(atcServer.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
 
 				Context("when the user explicitly says paused true", func() {
 					BeforeEach(func() {
 						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
 							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 							func(w http.ResponseWriter, r *http.Request) {
 								config, state := getConfigAndPausedState(r)
-								Ω(config).Should(Equal(payload))
-								Ω(*state).Should(BeTrue())
+								Expect(config).To(Equal(payload))
+								Expect(*state).To(BeTrue())
 							},
 							ghttp.RespondWith(201, ""),
 						))
@@ -599,10 +599,10 @@ var _ = Describe("Fly CLI", func() {
 						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "awesome-pipeline", "-c", configFile.Name(), "--paused=true")
 
 						stdin, err := flyCmd.StdinPipe()
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
 						fmt.Fprintln(stdin, "y")
@@ -617,23 +617,23 @@ var _ = Describe("Fly CLI", func() {
 						Eventually(sess).Should(gbytes.Say("  - click play next to the pipeline in the web ui"))
 
 						<-sess.Exited
-						Ω(sess.ExitCode()).Should(Equal(0))
+						Expect(sess.ExitCode()).To(Equal(0))
 
-						Ω(atcServer.ReceivedRequests()).Should(HaveLen(2))
+						Expect(atcServer.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
 
 				Context("when the user explicitly says paused is false", func() {
 					BeforeEach(func() {
 						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
 							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 							func(w http.ResponseWriter, r *http.Request) {
 								config, state := getConfigAndPausedState(r)
-								Ω(config).Should(Equal(payload))
-								Ω(*state).Should(BeFalse())
+								Expect(config).To(Equal(payload))
+								Expect(*state).To(BeFalse())
 							},
 							ghttp.RespondWith(201, ""),
 						))
@@ -643,10 +643,10 @@ var _ = Describe("Fly CLI", func() {
 						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "awesome-pipeline", "-c", configFile.Name(), "--paused=false")
 
 						stdin, err := flyCmd.StdinPipe()
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
 						fmt.Fprintln(stdin, "y")
@@ -657,11 +657,11 @@ var _ = Describe("Fly CLI", func() {
 						Eventually(sess).Should(gbytes.Say(fmt.Sprintf("you can view your pipeline here: %s", pipelineURL)))
 
 						<-sess.Exited
-						Ω(sess.ExitCode()).Should(Equal(0))
+						Expect(sess.ExitCode()).To(Equal(0))
 
-						Ω(sess).ShouldNot(gbytes.Say("the pipeline is currently paused. to unpause, either:"))
+						Expect(sess).NotTo(gbytes.Say("the pipeline is currently paused. to unpause, either:"))
 
-						Ω(atcServer.ReceivedRequests()).Should(HaveLen(2))
+						Expect(atcServer.ReceivedRequests()).To(HaveLen(2))
 					})
 				})
 			})
@@ -669,7 +669,7 @@ var _ = Describe("Fly CLI", func() {
 			Context("when the server rejects the request", func() {
 				BeforeEach(func() {
 					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path, func(w http.ResponseWriter, r *http.Request) {
 						atcServer.CloseClientConnections()
@@ -680,10 +680,10 @@ var _ = Describe("Fly CLI", func() {
 					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name(), "awesome-pipeline")
 
 					stdin, err := flyCmd.StdinPipe()
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
 					fmt.Fprintln(stdin, "y")
@@ -691,7 +691,7 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Err).Should(gbytes.Say("failed to update configuration: Put"))
 
 					<-sess.Exited
-					Ω(sess.ExitCode()).Should(Equal(1))
+					Expect(sess.ExitCode()).To(Equal(1))
 				})
 			})
 		})

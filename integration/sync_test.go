@@ -47,24 +47,24 @@ var _ = Describe("Syncing", func() {
 		var err error
 
 		newFlyDir, err = ioutil.TempDir("", "fly-sync")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		newFlyPath = filepath.Join(newFlyDir, "new-fly.exe.tga.bat.legit.notavirus")
 
 		newFly, err := os.Create(newFlyPath)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		oldFly, err := os.Open(flyPath)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		_, err = io.Copy(newFly, oldFly)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		newFly.Close()
 		oldFly.Close()
 
 		err = os.Chmod(newFlyPath, 0755)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		atcServer = ghttp.NewTLSServer()
 		atcServer.AppendHandlers(cliHandler())
@@ -79,13 +79,13 @@ var _ = Describe("Syncing", func() {
 		flyCmd := exec.Command(newFlyPath, "-t", atcServer.URL(), "-k", "sync")
 
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		<-sess.Exited
-		Ω(sess.ExitCode()).Should(Equal(0))
+		Expect(sess.ExitCode()).To(Equal(0))
 
 		contents, err := ioutil.ReadFile(newFlyPath)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		// don't let ginkgo try and output the entire binary as ascii
 		//
@@ -93,6 +93,6 @@ var _ = Describe("Syncing", func() {
 		contents = contents[:8]
 
 		expected := []byte("this will totally execute")
-		Ω(contents).Should(Equal(expected[:8]))
+		Expect(contents).To(Equal(expected[:8]))
 	})
 })

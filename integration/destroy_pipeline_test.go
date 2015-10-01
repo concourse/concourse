@@ -22,7 +22,7 @@ var _ = Describe("Fly CLI", func() {
 		var err error
 
 		flyPath, err = gexec.Build("github.com/concourse/fly")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	Describe("destroy-pipeline", func() {
@@ -35,11 +35,11 @@ var _ = Describe("Fly CLI", func() {
 				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "destroy-pipeline")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				Eventually(sess).Should(gexec.Exit(1))
 
-				Ω(sess.Err).Should(gbytes.Say("you must specify a pipeline name"))
+				Expect(sess.Err).To(gbytes.Say("you must specify a pipeline name"))
 			})
 		})
 
@@ -54,10 +54,10 @@ var _ = Describe("Fly CLI", func() {
 
 				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "destroy-pipeline", "some-pipeline")
 				stdin, err = flyCmd.StdinPipe()
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 				Eventually(sess).Should(gbytes.Say("!!! this will remove all data for pipeline `some-pipeline`"))
 				Eventually(sess).Should(gbytes.Say(`are you sure\? \(y\/n\): `))
 			})

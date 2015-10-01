@@ -54,7 +54,7 @@ var _ = Describe("V1.0 Renderer", func() {
 		})
 
 		It("prints its payload", func() {
-			Ω(out).Should(gbytes.Say("hello"))
+			Expect(out).To(gbytes.Say("hello"))
 		})
 	})
 
@@ -66,7 +66,7 @@ var _ = Describe("V1.0 Renderer", func() {
 		})
 
 		It("prints its message in bold red, followed by a linebreak", func() {
-			Ω(out.Contents()).Should(ContainSubstring(ansi.Color("oh no!", "red+b") + "\n"))
+			Expect(out.Contents()).To(ContainSubstring(ansi.Color("oh no!", "red+b") + "\n"))
 		})
 	})
 
@@ -84,7 +84,7 @@ var _ = Describe("V1.0 Renderer", func() {
 		})
 
 		It("prints the build's container", func() {
-			Ω(out.Contents()).Should(ContainSubstring("\x1b[1minitializing with some-image\x1b[0m\n"))
+			Expect(out.Contents()).To(ContainSubstring("\x1b[1minitializing with some-image\x1b[0m\n"))
 		})
 
 		Context("and a StartExecute event is received", func() {
@@ -95,7 +95,7 @@ var _ = Describe("V1.0 Renderer", func() {
 			})
 
 			It("prints the build's run script", func() {
-				Ω(out.Contents()).Should(ContainSubstring("\x1b[1mrunning /some/script arg1 arg2\x1b[0m\n"))
+				Expect(out.Contents()).To(ContainSubstring("\x1b[1mrunning /some/script arg1 arg2\x1b[0m\n"))
 			})
 		})
 	})
@@ -108,7 +108,7 @@ var _ = Describe("V1.0 Renderer", func() {
 		})
 
 		It("returns its exit status", func() {
-			Ω(exitStatus).Should(Equal(42))
+			Expect(exitStatus).To(Equal(42))
 		})
 
 		Context("and a Status event is received", func() {
@@ -119,11 +119,11 @@ var _ = Describe("V1.0 Renderer", func() {
 			})
 
 			It("still processes it", func() {
-				Ω(out.Contents()).Should(ContainSubstring("succeeded"))
+				Expect(out.Contents()).To(ContainSubstring("succeeded"))
 			})
 
 			It("exits with the status from the FinishTask event", func() {
-				Ω(exitStatus).Should(Equal(42))
+				Expect(exitStatus).To(Equal(42))
 			})
 		})
 	})
@@ -137,11 +137,11 @@ var _ = Describe("V1.0 Renderer", func() {
 			})
 
 			It("prints it in green", func() {
-				Ω(out.Contents()).Should(ContainSubstring(ansi.Color("succeeded", "green") + "\n"))
+				Expect(out.Contents()).To(ContainSubstring(ansi.Color("succeeded", "green") + "\n"))
 			})
 
 			It("exits 0", func() {
-				Ω(exitStatus).Should(Equal(0))
+				Expect(exitStatus).To(Equal(0))
 			})
 		})
 
@@ -153,11 +153,11 @@ var _ = Describe("V1.0 Renderer", func() {
 			})
 
 			It("prints it in red", func() {
-				Ω(out.Contents()).Should(ContainSubstring(ansi.Color("failed", "red") + "\n"))
+				Expect(out.Contents()).To(ContainSubstring(ansi.Color("failed", "red") + "\n"))
 			})
 
 			It("exits 1", func() {
-				Ω(exitStatus).Should(Equal(1))
+				Expect(exitStatus).To(Equal(1))
 			})
 		})
 
@@ -169,11 +169,11 @@ var _ = Describe("V1.0 Renderer", func() {
 			})
 
 			It("prints it in magenta", func() {
-				Ω(out.Contents()).Should(ContainSubstring(ansi.Color("errored", "magenta") + "\n"))
+				Expect(out.Contents()).To(ContainSubstring(ansi.Color("errored", "magenta") + "\n"))
 			})
 
 			It("exits 2", func() {
-				Ω(exitStatus).Should(Equal(2))
+				Expect(exitStatus).To(Equal(2))
 			})
 		})
 
@@ -185,11 +185,11 @@ var _ = Describe("V1.0 Renderer", func() {
 			})
 
 			It("prints it in yellow", func() {
-				Ω(out.Contents()).Should(ContainSubstring(ansi.Color("aborted", "yellow") + "\n"))
+				Expect(out.Contents()).To(ContainSubstring(ansi.Color("aborted", "yellow") + "\n"))
 			})
 
 			It("exits 3", func() {
-				Ω(exitStatus).Should(Equal(3))
+				Expect(exitStatus).To(Equal(3))
 			})
 		})
 	})

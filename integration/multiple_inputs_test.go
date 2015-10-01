@@ -38,10 +38,10 @@ var _ = Describe("Fly CLI", func() {
 		var err error
 
 		buildDir, err = ioutil.TempDir("", "fly-build-dir")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		otherInputDir, err = ioutil.TempDir("", "fly-s3-asset-dir")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		err = ioutil.WriteFile(
 			filepath.Join(buildDir, "task.yml"),
@@ -65,14 +65,14 @@ run:
 `),
 			0644,
 		)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		err = ioutil.WriteFile(
 			filepath.Join(otherInputDir, "s3-asset-file"),
 			[]byte(`blob`),
 			0644,
 		)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		atcServer = ghttp.NewServer()
 
@@ -191,7 +191,7 @@ run:
 
 					for e := range events {
 						payload, err := json.Marshal(event.Message{e})
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						event := sse.Event{
 							ID:   fmt.Sprintf("%d", id),
@@ -200,7 +200,7 @@ run:
 						}
 
 						err = event.Write(w)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						flusher.Flush()
 
@@ -210,7 +210,7 @@ run:
 					err := sse.Event{
 						Name: "end",
 					}.Write(w)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 				},
 			),
 			ghttp.CombineHandlers(
@@ -219,19 +219,19 @@ run:
 					close(uploading)
 
 					gr, err := gzip.NewReader(req.Body)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					tr := tar.NewReader(gr)
 
 					hdr, err := tr.Next()
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(hdr.Name).Should(Equal("./"))
+					Expect(hdr.Name).To(Equal("./"))
 
 					hdr, err = tr.Next()
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(hdr.Name).Should(MatchRegexp("(./)?task.yml$"))
+					Expect(hdr.Name).To(MatchRegexp("(./)?task.yml$"))
 				},
 				ghttp.RespondWith(200, ""),
 			),
@@ -241,19 +241,19 @@ run:
 					close(uploadingTwo)
 
 					gr, err := gzip.NewReader(req.Body)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					tr := tar.NewReader(gr)
 
 					hdr, err := tr.Next()
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(hdr.Name).Should(Equal("./"))
+					Expect(hdr.Name).To(Equal("./"))
 
 					hdr, err = tr.Next()
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(hdr.Name).Should(MatchRegexp("(./)?s3-asset-file$"))
+					Expect(hdr.Name).To(MatchRegexp("(./)?s3-asset-file$"))
 				},
 				ghttp.RespondWith(200, ""),
 			),
@@ -268,7 +268,7 @@ run:
 		)
 
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		Eventually(streaming).Should(BeClosed())
 		Eventually(uploading).Should(BeClosed())

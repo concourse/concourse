@@ -49,7 +49,7 @@ var _ = Describe("Watching", func() {
 
 				for e := range events {
 					payload, err := json.Marshal(event.Message{e})
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					event := sse.Event{
 						ID:   fmt.Sprintf("%d", id),
@@ -58,7 +58,7 @@ var _ = Describe("Watching", func() {
 					}
 
 					err = event.Write(w)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					flusher.Flush()
 
@@ -68,7 +68,7 @@ var _ = Describe("Watching", func() {
 				err := sse.Event{
 					Name: "end",
 				}.Write(w)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			},
 		)
 	}
@@ -79,7 +79,7 @@ var _ = Describe("Watching", func() {
 		flyCmd := exec.Command(flyPath, append([]string{"-t", atcServer.URL()}, watchWithArgs...)...)
 
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		Eventually(streaming).Should(BeClosed())
 
@@ -90,7 +90,7 @@ var _ = Describe("Watching", func() {
 		close(events)
 
 		<-sess.Exited
-		Ω(sess.ExitCode()).Should(Equal(0))
+		Expect(sess.ExitCode()).To(Equal(0))
 	}
 
 	Context("with no arguments", func() {
