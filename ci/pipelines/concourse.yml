@@ -210,7 +210,7 @@ jobs:
     - task: build
       privileged: true
       file: concourse/ci/testflight.yml
-      timeout: 15m
+      timeout: 1h
     on_failure:
       do:
         - task: export-bosh-logs
