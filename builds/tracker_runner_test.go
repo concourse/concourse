@@ -16,12 +16,20 @@ import (
 var _ = Describe("TrackerRunner", func() {
 	var fakeTracker *fakes.FakeBuildTracker
 	var fakeClock *fakeclock.FakeClock
+	var tracked <-chan struct{}
 	var trackerRunner TrackerRunner
 	var process ifrit.Process
 	var interval = 10 * time.Second
 
 	BeforeEach(func() {
 		fakeTracker = new(fakes.FakeBuildTracker)
+
+		t := make(chan struct{}, 1)
+		tracked = t
+		fakeTracker.TrackStub = func() {
+			t <- struct{}{}
+		}
+
 		fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
 
 		trackerRunner = TrackerRunner{
@@ -37,33 +45,33 @@ var _ = Describe("TrackerRunner", func() {
 
 	AfterEach(func() {
 		process.Signal(os.Interrupt)
-		Eventually(process.Wait()).Should(Receive())
+		<-process.Wait()
 	})
 
 	It("tracks immediately", func() {
-		Eventually(fakeTracker.TrackCallCount).Should(Equal(1))
+		<-tracked
 	})
 
 	Context("when the interval elapses", func() {
 		JustBeforeEach(func() {
-			Eventually(fakeTracker.TrackCallCount).Should(Equal(1))
+			<-tracked
 			fakeClock.Increment(interval)
 		})
 
 		It("tracks", func() {
-			Eventually(fakeTracker.TrackCallCount).Should(Equal(2))
-			Consistently(fakeTracker.TrackCallCount).Should(Equal(2))
+			<-tracked
+			Consistently(tracked).ShouldNot(Receive())
 		})
 
 		Context("when the interval elapses", func() {
 			JustBeforeEach(func() {
-				Eventually(fakeTracker.TrackCallCount).Should(Equal(2))
+				<-tracked
 				fakeClock.Increment(interval)
 			})
 
 			It("tracks again", func() {
-				Eventually(fakeTracker.TrackCallCount).Should(Equal(3))
-				Consistently(fakeTracker.TrackCallCount).Should(Equal(3))
+				<-tracked
+				Consistently(tracked).ShouldNot(Receive())
 			})
 		})
 	})
