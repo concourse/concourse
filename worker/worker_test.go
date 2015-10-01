@@ -122,13 +122,15 @@ var _ = Describe("Worker", func() {
 			logger = lagertest.NewTestLogger("test")
 
 			id = Identifier{
-				Name:         "some-name",
-				PipelineName: "some-pipeline",
-				BuildID:      42,
-				Type:         db.ContainerTypeGet,
+				ContainerIdentifier: db.ContainerIdentifier{
+					Name:         "some-name",
+					PipelineName: "some-pipeline",
+					BuildID:      42,
+					Type:         db.ContainerTypeGet,
+					CheckType:    "some-check-type",
+					CheckSource:  atc.Source{"some": "source"},
+				},
 				StepLocation: 3,
-				CheckType:    "some-check-type",
-				CheckSource:  atc.Source{"some": "source"},
 			}
 		})
 
@@ -745,7 +747,11 @@ var _ = Describe("Worker", func() {
 		)
 
 		BeforeEach(func() {
-			id = Identifier{Name: "some-name"}
+			id = Identifier{
+				ContainerIdentifier: db.ContainerIdentifier{
+					Name: "some-name",
+				},
+			}
 		})
 
 		JustBeforeEach(func() {

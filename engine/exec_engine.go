@@ -197,30 +197,36 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan) exe
 
 func (build *execBuild) taskIdentifier(name string, location event.OriginLocation, pipelineName string) worker.Identifier {
 	return worker.Identifier{
-		BuildID:      build.buildID,
-		Type:         "task",
-		Name:         name,
+		ContainerIdentifier: db.ContainerIdentifier{
+			BuildID:      build.buildID,
+			Type:         "task",
+			Name:         name,
+			PipelineName: pipelineName,
+		},
 		StepLocation: location.ID,
-		PipelineName: pipelineName,
 	}
 }
 
 func (build *execBuild) getIdentifier(name string, location event.OriginLocation, pipelineName string) worker.Identifier {
 	return worker.Identifier{
-		BuildID:      build.buildID,
-		Type:         "get",
-		Name:         name,
+		ContainerIdentifier: db.ContainerIdentifier{
+			BuildID:      build.buildID,
+			Type:         "get",
+			Name:         name,
+			PipelineName: pipelineName,
+		},
 		StepLocation: location.ID,
-		PipelineName: pipelineName,
 	}
 }
 
 func (build *execBuild) putIdentifier(name string, location event.OriginLocation, pipelineName string) worker.Identifier {
 	return worker.Identifier{
-		BuildID:      build.buildID,
-		Type:         "put",
-		Name:         name,
+		ContainerIdentifier: db.ContainerIdentifier{
+			BuildID:      build.buildID,
+			Type:         "put",
+			Name:         name,
+			PipelineName: pipelineName,
+		},
 		StepLocation: location.ID,
-		PipelineName: pipelineName,
 	}
 }

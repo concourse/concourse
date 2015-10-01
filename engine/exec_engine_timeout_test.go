@@ -165,11 +165,13 @@ var _ = Describe("Exec Engine with Timeout", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID:      84,
-						Type:         db.ContainerTypePut,
-						Name:         "some-put",
+						ContainerIdentifier: db.ContainerIdentifier{
+							BuildID:      84,
+							Type:         db.ContainerTypePut,
+							Name:         "some-put",
+							PipelineName: "some-pipeline",
+						},
 						StepLocation: 1,
-						PipelineName: "some-pipeline",
 					}))
 
 					Expect(resourceConfig).To(Equal(atc.ResourceConfig{
@@ -288,9 +290,11 @@ var _ = Describe("Exec Engine with Timeout", func() {
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(sourceName).To(Equal(exec.SourceName("some-input")))
 					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 84,
-						Type:    db.ContainerTypeGet,
-						Name:    "some-input",
+						ContainerIdentifier: db.ContainerIdentifier{
+							BuildID: 84,
+							Type:    db.ContainerTypeGet,
+							Name:    "some-input",
+						},
 					}))
 
 					Expect(delegate).To(Equal(fakeInputDelegate))

@@ -101,9 +101,9 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 			assertNotReleased := func(signals <-chan os.Signal, ready chan<- struct{}) error {
 				defer GinkgoRecover()
-				Consistently(inputStep.ReleaseCallCount).Should(BeZero())
-				Consistently(taskStep.ReleaseCallCount).Should(BeZero())
-				Consistently(outputStep.ReleaseCallCount).Should(BeZero())
+				Consistently(inputStep.ReleaseCallCount).To(BeZero())
+				Consistently(taskStep.ReleaseCallCount).To(BeZero())
+				Consistently(outputStep.ReleaseCallCount).To(BeZero())
 				return nil
 			}
 
@@ -203,9 +203,11 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-success-task-1")))
 					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 84,
-						Type:    db.ContainerTypeTask,
-						Name:    "some-success-task-1",
+						ContainerIdentifier: db.ContainerIdentifier{
+							BuildID: 84,
+							Type:    db.ContainerTypeTask,
+							Name:    "some-success-task-1",
+						},
 					}))
 
 					Expect(delegate).To(Equal(fakeExecutionDelegate))
@@ -216,9 +218,11 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(sourceName).To(Equal(exec.SourceName("some-input")))
 					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 84,
-						Type:    db.ContainerTypeGet,
-						Name:    "some-input",
+						ContainerIdentifier: db.ContainerIdentifier{
+							BuildID: 84,
+							Type:    db.ContainerTypeGet,
+							Name:    "some-input",
+						},
 					}))
 
 					Expect(getDelegate).To(Equal(fakeInputDelegate))
@@ -232,9 +236,11 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-success-task-2")))
 					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 84,
-						Type:    db.ContainerTypeTask,
-						Name:    "some-success-task-2",
+						ContainerIdentifier: db.ContainerIdentifier{
+							BuildID: 84,
+							Type:    db.ContainerTypeTask,
+							Name:    "some-success-task-2",
+						},
 					}))
 
 					Expect(delegate).To(Equal(fakeExecutionDelegate))
@@ -246,9 +252,11 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-success-task-3")))
 					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 84,
-						Type:    db.ContainerTypeTask,
-						Name:    "some-success-task-3",
+						ContainerIdentifier: db.ContainerIdentifier{
+							BuildID: 84,
+							Type:    db.ContainerTypeTask,
+							Name:    "some-success-task-3",
+						},
 					}))
 
 					Expect(delegate).To(Equal(fakeExecutionDelegate))
@@ -330,9 +338,11 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(sourceName).To(Equal(exec.SourceName("some-input")))
 					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 84,
-						Type:    db.ContainerTypeGet,
-						Name:    "some-input",
+						ContainerIdentifier: db.ContainerIdentifier{
+							BuildID: 84,
+							Type:    db.ContainerTypeGet,
+							Name:    "some-input",
+						},
 					}))
 
 					Expect(delegate).To(Equal(fakeInputDelegate))
@@ -346,9 +356,11 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-completion-task")))
 					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 84,
-						Type:    db.ContainerTypeTask,
-						Name:    "some-completion-task",
+						ContainerIdentifier: db.ContainerIdentifier{
+							BuildID: 84,
+							Type:    db.ContainerTypeTask,
+							Name:    "some-completion-task",
+						},
 					}))
 
 					Expect(delegate).To(Equal(fakeExecutionDelegate))
@@ -363,9 +375,11 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-failure-task")))
 					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 84,
-						Type:    db.ContainerTypeTask,
-						Name:    "some-failure-task",
+						ContainerIdentifier: db.ContainerIdentifier{
+							BuildID: 84,
+							Type:    db.ContainerTypeTask,
+							Name:    "some-failure-task",
+						},
 					}))
 
 					Expect(delegate).To(Equal(fakeExecutionDelegate))
@@ -380,9 +394,11 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-success-task")))
 					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 84,
-						Type:    db.ContainerTypeTask,
-						Name:    "some-success-task",
+						ContainerIdentifier: db.ContainerIdentifier{
+							BuildID: 84,
+							Type:    db.ContainerTypeTask,
+							Name:    "some-success-task",
+						},
 					}))
 
 					Expect(delegate).To(Equal(fakeExecutionDelegate))
@@ -397,9 +413,11 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-next-task")))
 					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 84,
-						Type:    db.ContainerTypeTask,
-						Name:    "some-next-task",
+						ContainerIdentifier: db.ContainerIdentifier{
+							BuildID: 84,
+							Type:    db.ContainerTypeTask,
+							Name:    "some-next-task",
+						},
 					}))
 
 					Expect(delegate).To(Equal(fakeExecutionDelegate))

@@ -124,9 +124,11 @@ var _ = Describe("Exec Engine with Try", func() {
 				Expect(metadata).To(Equal(expectedMetadata))
 				Expect(sourceName).To(Equal(exec.SourceName("some-input")))
 				Expect(workerID).To(Equal(worker.Identifier{
-					BuildID: 84,
-					Type:    db.ContainerTypeGet,
-					Name:    "some-input",
+					ContainerIdentifier: db.ContainerIdentifier{
+						BuildID: 84,
+						Type:    db.ContainerTypeGet,
+						Name:    "some-input",
+					},
 				}))
 
 				Expect(delegate).To(Equal(fakeInputDelegate))

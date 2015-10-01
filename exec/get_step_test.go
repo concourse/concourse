@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/fakes"
 	"github.com/concourse/atc/resource"
@@ -35,7 +36,9 @@ var _ = Describe("GardenFactory", func() {
 		stderrBuf *gbytes.Buffer
 
 		identifier = worker.Identifier{
-			Name: "some-session-id",
+			ContainerIdentifier: db.ContainerIdentifier{
+				Name: "some-session-id",
+			},
 		}
 
 		stepMetadata testMetadata = []string{"a=1", "b=2"}

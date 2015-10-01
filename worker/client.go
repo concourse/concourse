@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/cloudfoundry-incubator/garden"
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
@@ -38,20 +37,9 @@ type Container interface {
 }
 
 type Identifier struct {
-	Name string
-
-	PipelineName string
-
-	BuildID int
-
-	Type db.ContainerType
+	db.ContainerIdentifier
 
 	StepLocation uint
-
-	CheckType   string
-	CheckSource atc.Source
-
-	WorkerName string
 }
 
 const propertyPrefix = "concourse:"

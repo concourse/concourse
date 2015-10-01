@@ -253,10 +253,12 @@ var _ = Describe("ExecEngine", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID:      42,
-						Type:         db.ContainerTypePut,
-						Name:         "some-put",
-						PipelineName: "some-pipeline",
+						ContainerIdentifier: db.ContainerIdentifier{
+							BuildID:      42,
+							Type:         db.ContainerTypePut,
+							Name:         "some-put",
+							PipelineName: "some-pipeline",
+						},
 					}))
 
 					Expect(tags).To(BeEmpty())
@@ -270,10 +272,12 @@ var _ = Describe("ExecEngine", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID:      42,
-						Type:         db.ContainerTypePut,
-						Name:         "some-put-2",
-						PipelineName: "some-pipeline",
+						ContainerIdentifier: db.ContainerIdentifier{
+							BuildID:      42,
+							Type:         db.ContainerTypePut,
+							Name:         "some-put-2",
+							PipelineName: "some-pipeline",
+						},
 					}))
 
 					Expect(tags).To(BeEmpty())
@@ -283,6 +287,7 @@ var _ = Describe("ExecEngine", func() {
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source-2"}))
 					Expect(params).To(Equal(atc.Params{"some": "params-2"}))
 				})
+
 				It("constructs the dependent get correctly", func() {
 					var err error
 					build, err = execEngine.CreateBuild(buildModel, outputPlan)
@@ -295,10 +300,12 @@ var _ = Describe("ExecEngine", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID:      42,
-						Type:         db.ContainerTypeGet,
-						Name:         "some-put",
-						PipelineName: "some-pipeline",
+						ContainerIdentifier: db.ContainerIdentifier{
+							BuildID:      42,
+							Type:         db.ContainerTypeGet,
+							Name:         "some-put",
+							PipelineName: "some-pipeline",
+						},
 					}))
 
 					Expect(tags).To(BeEmpty())
@@ -312,14 +319,17 @@ var _ = Describe("ExecEngine", func() {
 					Expect(resourceConfig.Type).To(Equal("some-type"))
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
 					Expect(params).To(Equal(atc.Params{"another": "params"}))
+
 					logger, metadata, sourceName, workerID, delegate, resourceConfig, tags, params = fakeFactory.DependentGetArgsForCall(1)
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID:      42,
-						Type:         db.ContainerTypeGet,
-						Name:         "some-put-2",
-						PipelineName: "some-pipeline",
+						ContainerIdentifier: db.ContainerIdentifier{
+							BuildID:      42,
+							Type:         db.ContainerTypeGet,
+							Name:         "some-put-2",
+							PipelineName: "some-pipeline",
+						},
 					}))
 
 					Expect(tags).To(BeEmpty())
@@ -377,11 +387,13 @@ var _ = Describe("ExecEngine", func() {
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(sourceName).To(Equal(exec.SourceName("some-input")))
 					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID:      42,
-						Type:         db.ContainerTypeGet,
-						Name:         "some-input",
+						ContainerIdentifier: db.ContainerIdentifier{
+							BuildID:      42,
+							Type:         db.ContainerTypeGet,
+							Name:         "some-input",
+							PipelineName: "some-pipeline",
+						},
 						StepLocation: 145,
-						PipelineName: "some-pipeline",
 					}))
 
 					Expect(tags).To(ConsistOf("some", "get", "tags"))
@@ -405,7 +417,7 @@ var _ = Describe("ExecEngine", func() {
 				It("releases inputs correctly", func() {
 					inputStep.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
 						defer GinkgoRecover()
-						Consistently(inputStep.ReleaseCallCount).Should(BeZero())
+						Consistently(inputStep.ReleaseCallCount).To(BeZero())
 						return nil
 					}
 					var err error
@@ -466,11 +478,13 @@ var _ = Describe("ExecEngine", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-task")))
 					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID:      42,
-						Type:         db.ContainerTypeTask,
-						Name:         "some-task",
+						ContainerIdentifier: db.ContainerIdentifier{
+							BuildID:      42,
+							Type:         db.ContainerTypeTask,
+							Name:         "some-task",
+							PipelineName: "some-pipeline",
+						},
 						StepLocation: 123,
-						PipelineName: "some-pipeline",
 					}))
 
 					Expect(privileged).To(Equal(exec.Privileged(false)))
@@ -491,7 +505,7 @@ var _ = Describe("ExecEngine", func() {
 				It("releases the tasks correctly", func() {
 					taskStep.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
 						defer GinkgoRecover()
-						Consistently(taskStep.ReleaseCallCount).Should(BeZero())
+						Consistently(taskStep.ReleaseCallCount).To(BeZero())
 						return nil
 					}
 					var err error
@@ -594,11 +608,13 @@ var _ = Describe("ExecEngine", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID:      42,
-						Type:         db.ContainerTypePut,
-						Name:         "some-put",
+						ContainerIdentifier: db.ContainerIdentifier{
+							BuildID:      42,
+							Type:         db.ContainerTypePut,
+							Name:         "some-put",
+							PipelineName: "some-pipeline",
+						},
 						StepLocation: 51,
-						PipelineName: "some-pipeline",
 					}))
 
 					Expect(resourceConfig.Name).To(Equal("some-output-resource"))
@@ -630,11 +646,13 @@ var _ = Describe("ExecEngine", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID:      42,
-						Type:         db.ContainerTypeGet,
-						Name:         "some-put",
+						ContainerIdentifier: db.ContainerIdentifier{
+							BuildID:      42,
+							Type:         db.ContainerTypeGet,
+							Name:         "some-put",
+							PipelineName: "some-pipeline",
+						},
 						StepLocation: 512,
-						PipelineName: "some-pipeline",
 					}))
 
 					Expect(tags).To(ConsistOf("some", "putget", "tags"))

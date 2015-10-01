@@ -97,13 +97,15 @@ var _ = Describe("Exec Engine Locations", func() {
 
 				Expect(fakeFactory.GetCallCount()).To(Equal(1))
 				logger, metadata, sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
-				Expect(logger).NotTo(BeNil())
+				Expect(logger).ToNot(BeNil())
 				Expect(metadata).To(Equal(expectedMetadata))
 				Expect(sourceName).To(Equal(exec.SourceName("some input")))
 				Expect(workerID).To(Equal(worker.Identifier{
-					BuildID: 84,
-					Type:    db.ContainerTypeGet,
-					Name:    "some input",
+					ContainerIdentifier: db.ContainerIdentifier{
+						BuildID: 84,
+						Type:    db.ContainerTypeGet,
+						Name:    "some input",
+					},
 				}))
 
 				Expect(delegate).To(Equal(fakeGetDelegate))
@@ -151,12 +153,14 @@ var _ = Describe("Exec Engine Locations", func() {
 
 				Expect(fakeFactory.PutCallCount()).To(Equal(1))
 				logger, metadata, workerID, delegate, _, _, _ := fakeFactory.PutArgsForCall(0)
-				Expect(logger).NotTo(BeNil())
+				Expect(logger).ToNot(BeNil())
 				Expect(metadata).To(Equal(expectedMetadata))
 				Expect(workerID).To(Equal(worker.Identifier{
-					BuildID: 84,
-					Type:    db.ContainerTypePut,
-					Name:    "some output",
+					ContainerIdentifier: db.ContainerIdentifier{
+						BuildID: 84,
+						Type:    db.ContainerTypePut,
+						Name:    "some output",
+					},
 				}))
 
 				Expect(delegate).To(Equal(fakePutDelegate))
@@ -205,12 +209,14 @@ var _ = Describe("Exec Engine Locations", func() {
 
 				Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 				logger, sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(0)
-				Expect(logger).NotTo(BeNil())
+				Expect(logger).ToNot(BeNil())
 				Expect(sourceName).To(Equal(exec.SourceName("some task")))
 				Expect(workerID).To(Equal(worker.Identifier{
-					BuildID: 84,
-					Type:    db.ContainerTypeTask,
-					Name:    "some task",
+					ContainerIdentifier: db.ContainerIdentifier{
+						BuildID: 84,
+						Type:    db.ContainerTypeTask,
+						Name:    "some task",
+					},
 				}))
 
 				Expect(delegate).To(Equal(fakeExecutionDelegate))
@@ -258,13 +264,15 @@ var _ = Describe("Exec Engine Locations", func() {
 
 				Expect(fakeFactory.DependentGetCallCount()).To(Equal(1))
 				logger, metadata, sourceName, workerID, delegate, _, _, _ := fakeFactory.DependentGetArgsForCall(0)
-				Expect(logger).NotTo(BeNil())
+				Expect(logger).ToNot(BeNil())
 				Expect(metadata).To(Equal(expectedMetadata))
 				Expect(sourceName).To(Equal(exec.SourceName("some input")))
 				Expect(workerID).To(Equal(worker.Identifier{
-					BuildID: 84,
-					Type:    db.ContainerTypeGet,
-					Name:    "some input",
+					ContainerIdentifier: db.ContainerIdentifier{
+						BuildID: 84,
+						Type:    db.ContainerTypeGet,
+						Name:    "some input",
+					},
 				}))
 
 				Expect(delegate).To(Equal(fakeGetDelegate))
