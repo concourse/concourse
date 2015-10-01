@@ -158,13 +158,13 @@ var _ = Describe("Exec Engine with Timeout", func() {
 						},
 					}
 					build, err := execEngine.CreateBuild(buildModel, plan)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 					build.Resume(logger)
-					Ω(fakeFactory.PutCallCount()).Should(Equal(1))
+					Expect(fakeFactory.PutCallCount()).To(Equal(1))
 					logger, metadata, workerID, delegate, resourceConfig, _, _ := fakeFactory.PutArgsForCall(0)
-					Ω(logger).ShouldNot(BeNil())
-					Ω(metadata).Should(Equal(expectedMetadata))
-					Ω(workerID).Should(Equal(worker.Identifier{
+					Expect(logger).NotTo(BeNil())
+					Expect(metadata).To(Equal(expectedMetadata))
+					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID:      84,
 						Type:         db.ContainerTypePut,
 						Name:         "some-put",
@@ -172,7 +172,7 @@ var _ = Describe("Exec Engine with Timeout", func() {
 						PipelineName: "some-pipeline",
 					}))
 
-					Ω(resourceConfig).Should(Equal(atc.ResourceConfig{
+					Expect(resourceConfig).To(Equal(atc.ResourceConfig{
 						Name: "some-resource",
 						Type: "git",
 						Source: atc.Source{
@@ -180,9 +180,9 @@ var _ = Describe("Exec Engine with Timeout", func() {
 						},
 					}))
 
-					Ω(delegate).Should(Equal(fakeOutputDelegate))
+					Expect(delegate).To(Equal(fakeOutputDelegate))
 					_, _, location := fakeDelegate.OutputDelegateArgsForCall(0)
-					Ω(location).ShouldNot(BeNil())
+					Expect(location).NotTo(BeNil())
 				})
 
 				Context("when the step times out", func() {
@@ -235,25 +235,25 @@ var _ = Describe("Exec Engine with Timeout", func() {
 						}
 
 						build, err := execEngine.CreateBuild(buildModel, plan)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 						build.Resume(logger)
-						Ω(build).Should(Equal(build))
+						Expect(build).To(Equal(build))
 
-						Ω(outputStep.RunCallCount()).Should(Equal(1))
-						Ω(outputStep.ReleaseCallCount()).Should((BeNumerically(">", 0)))
+						Expect(outputStep.RunCallCount()).To(Equal(1))
+						Expect(outputStep.ReleaseCallCount()).To((BeNumerically(">", 0)))
 
-						Ω(dependentGetStep.RunCallCount()).Should(Equal(1))
-						Ω(dependentGetStep.ReleaseCallCount()).Should((BeNumerically(">", 0)))
+						Expect(dependentGetStep.RunCallCount()).To(Equal(1))
+						Expect(dependentGetStep.ReleaseCallCount()).To((BeNumerically(">", 0)))
 
-						Ω(taskStep.RunCallCount()).Should(Equal(0))
+						Expect(taskStep.RunCallCount()).To(Equal(0))
 
-						Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
+						Expect(fakeDelegate.FinishCallCount()).To(Equal(1))
 
 						_, err, succeeded, aborted := fakeDelegate.FinishArgsForCall(0)
-						Ω(err).ShouldNot(BeNil())
-						Ω(err.Error()).Should(ContainSubstring(exec.ErrStepTimedOut.Error()))
-						Ω(succeeded).Should(Equal(exec.Success(false)))
-						Ω(aborted).Should(BeFalse())
+						Expect(err).NotTo(BeNil())
+						Expect(err.Error()).To(ContainSubstring(exec.ErrStepTimedOut.Error()))
+						Expect(succeeded).To(Equal(exec.Success(false)))
+						Expect(aborted).To(BeFalse())
 					})
 				})
 			})
@@ -277,25 +277,25 @@ var _ = Describe("Exec Engine with Timeout", func() {
 					}
 
 					build, err := execEngine.CreateBuild(buildModel, plan)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 					build.Resume(logger)
 				})
 
 				It("constructs the step correctly", func() {
-					Ω(fakeFactory.GetCallCount()).Should(Equal(1))
+					Expect(fakeFactory.GetCallCount()).To(Equal(1))
 					logger, metadata, sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
-					Ω(logger).ShouldNot(BeNil())
-					Ω(metadata).Should(Equal(expectedMetadata))
-					Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
-					Ω(workerID).Should(Equal(worker.Identifier{
+					Expect(logger).NotTo(BeNil())
+					Expect(metadata).To(Equal(expectedMetadata))
+					Expect(sourceName).To(Equal(exec.SourceName("some-input")))
+					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 84,
 						Type:    db.ContainerTypeGet,
 						Name:    "some-input",
 					}))
 
-					Ω(delegate).Should(Equal(fakeInputDelegate))
+					Expect(delegate).To(Equal(fakeInputDelegate))
 					_, _, location := fakeDelegate.InputDelegateArgsForCall(0)
-					Ω(location).ShouldNot(BeNil())
+					Expect(location).NotTo(BeNil())
 				})
 			})
 
@@ -336,21 +336,21 @@ var _ = Describe("Exec Engine with Timeout", func() {
 
 					build, err := execEngine.CreateBuild(buildModel, plan)
 
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
 
-					Ω(inputStep.RunCallCount()).Should(Equal(1))
-					Ω(inputStep.ReleaseCallCount()).Should((BeNumerically(">", 0)))
+					Expect(inputStep.RunCallCount()).To(Equal(1))
+					Expect(inputStep.ReleaseCallCount()).To((BeNumerically(">", 0)))
 
-					Ω(taskStep.RunCallCount()).Should(Equal(0))
+					Expect(taskStep.RunCallCount()).To(Equal(0))
 
-					Ω(fakeDelegate.FinishCallCount()).Should(Equal(1))
+					Expect(fakeDelegate.FinishCallCount()).To(Equal(1))
 
 					_, err, succeeded, aborted := fakeDelegate.FinishArgsForCall(0)
-					Ω(err.Error()).Should(ContainSubstring(exec.ErrStepTimedOut.Error()))
-					Ω(succeeded).Should(Equal(exec.Success(false)))
-					Ω(aborted).Should(BeFalse())
+					Expect(err.Error()).To(ContainSubstring(exec.ErrStepTimedOut.Error()))
+					Expect(succeeded).To(Equal(exec.Success(false)))
+					Expect(aborted).To(BeFalse())
 				})
 			})
 		})

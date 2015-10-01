@@ -26,34 +26,34 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	defer ginkgo.GinkgoRecover()
 
 	tmpdir, err := ioutil.TempDir("", "postgres")
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	currentUser, err := user.Current()
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	var initCmd, startCmd *exec.Cmd
 
 	initdbPath, err := exec.LookPath("initdb")
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	postgresPath, err := exec.LookPath("postgres")
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	initdb := initdbPath + " -U postgres -D " + tmpdir
 	postgres := fmt.Sprintf("%s -d 2 -D %s -h 127.0.0.1 -p %d", postgresPath, tmpdir, runner.Port)
 
 	if currentUser.Uid == "0" {
 		pgUser, err := user.Lookup("postgres")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		uid, err := strconv.Atoi(pgUser.Uid)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		gid, err := strconv.Atoi(pgUser.Gid)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		err = os.Chown(tmpdir, uid, gid)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		initCmd = exec.Command("su", "postgres", "-c", initdb)
 		startCmd = exec.Command("su", "postgres", "-c", postgres)
@@ -67,7 +67,7 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		gexec.NewPrefixedWriter("[o][initdb] ", ginkgo.GinkgoWriter),
 		gexec.NewPrefixedWriter("[e][initdb] ", ginkgo.GinkgoWriter),
 	)
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	Eventually(session, 60*time.Second).Should(gexec.Exit(0))
 
@@ -90,7 +90,7 @@ func (runner *Runner) Open() *sql.DB {
 		runner.DataSourceName(),
 		migrations.Migrations,
 	)
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	return dbConn
 }
@@ -103,7 +103,7 @@ func (runner *Runner) CreateTestDB() {
 	createdb := exec.Command("createdb", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
 
 	createS, err := gexec.Start(createdb, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	status := createS.Wait(10 * time.Second)
 	if status.ExitCode() != 0 {
@@ -111,7 +111,7 @@ func (runner *Runner) CreateTestDB() {
 
 		createdb := exec.Command("createdb", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
 		createS, err = gexec.Start(createdb, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 	}
 
 	Eventually(createS, 10*time.Second).Should(gexec.Exit(0))
@@ -120,6 +120,6 @@ func (runner *Runner) CreateTestDB() {
 func (runner *Runner) DropTestDB() {
 	dropdb := exec.Command("dropdb", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
 	dropS, err := gexec.Start(dropdb, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 	Eventually(dropS, 10*time.Second).Should(gexec.Exit(0))
 }

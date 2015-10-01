@@ -39,10 +39,10 @@ var _ = Describe("Leases", func() {
 
 	AfterEach(func() {
 		err := dbConn.Close()
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		err = listener.Close()
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		postgresRunner.DropTestDB()
 	})
@@ -61,10 +61,10 @@ var _ = Describe("Leases", func() {
 
 	BeforeEach(func() {
 		_, err := sqlDB.SaveConfig("pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		savedPipeline, err := sqlDB.GetPipelineByName("pipeline-name")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 	})
@@ -73,26 +73,26 @@ var _ = Describe("Leases", func() {
 		Context("when it has been scheduled recently", func() {
 			It("does not get the lease", func() {
 				lease, leased, err := pipelineDB.LeaseScheduling(1 * time.Second)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(leased).Should(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(leased).To(BeTrue())
 
 				lease.Break()
 
 				_, leased, err = pipelineDB.LeaseScheduling(1 * time.Second)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(leased).Should(BeFalse())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(leased).To(BeFalse())
 			})
 		})
 
 		Context("when there has not been any scheduling recently", func() {
 			It("gets and keeps the lease and stops others from getting it", func() {
 				lease, leased, err := pipelineDB.LeaseScheduling(1 * time.Second)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(leased).Should(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(leased).To(BeTrue())
 
 				Consistently(func() bool {
 					_, leased, err = pipelineDB.LeaseScheduling(1 * time.Second)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					return leased
 				}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
@@ -102,8 +102,8 @@ var _ = Describe("Leases", func() {
 				time.Sleep(time.Second)
 
 				newLease, leased, err := pipelineDB.LeaseScheduling(1 * time.Second)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(leased).Should(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(leased).To(BeTrue())
 
 				newLease.Break()
 			})
@@ -113,21 +113,21 @@ var _ = Describe("Leases", func() {
 	Describe("taking out a lease on resource checking", func() {
 		BeforeEach(func() {
 			_, err := pipelineDB.GetResource("some-resource")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when there has been a check recently", func() {
 			Context("when acquiring immediately", func() {
 				It("gets the lease", func() {
 					lease, leased, err := pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, false)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(leased).Should(BeTrue())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
 
 					lease.Break()
 
 					lease, leased, err = pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, true)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(leased).Should(BeTrue())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
 
 					lease.Break()
 				})
@@ -136,14 +136,14 @@ var _ = Describe("Leases", func() {
 			Context("when not acquiring immediately", func() {
 				It("does not get the lease", func() {
 					lease, leased, err := pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, false)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(leased).Should(BeTrue())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
 
 					lease.Break()
 
 					_, leased, err = pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, false)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(leased).Should(BeFalse())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeFalse())
 				})
 			})
 		})
@@ -152,12 +152,12 @@ var _ = Describe("Leases", func() {
 			Context("when acquiring immediately", func() {
 				It("gets and keeps the lease and stops others from periodically getting it", func() {
 					lease, leased, err := pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, true)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(leased).Should(BeTrue())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
 
 					Consistently(func() bool {
 						_, leased, err = pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, false)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						return leased
 					}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
@@ -167,20 +167,20 @@ var _ = Describe("Leases", func() {
 					time.Sleep(time.Second)
 
 					newLease, leased, err := pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, true)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(leased).Should(BeTrue())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
 
 					newLease.Break()
 				})
 
 				It("gets and keeps the lease and stops others from immediately getting it", func() {
 					lease, leased, err := pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, true)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(leased).Should(BeTrue())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
 
 					Consistently(func() bool {
 						_, leased, err = pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, true)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						return leased
 					}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
@@ -190,8 +190,8 @@ var _ = Describe("Leases", func() {
 					time.Sleep(time.Second)
 
 					newLease, leased, err := pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, true)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(leased).Should(BeTrue())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
 
 					newLease.Break()
 				})
@@ -200,12 +200,12 @@ var _ = Describe("Leases", func() {
 			Context("when not acquiring immediately", func() {
 				It("gets and keeps the lease and stops others from periodically getting it", func() {
 					lease, leased, err := pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, false)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(leased).Should(BeTrue())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
 
 					Consistently(func() bool {
 						_, leased, err = pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, false)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						return leased
 					}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
@@ -215,20 +215,20 @@ var _ = Describe("Leases", func() {
 					time.Sleep(time.Second)
 
 					newLease, leased, err := pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, false)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(leased).Should(BeTrue())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
 
 					newLease.Break()
 				})
 
 				It("gets and keeps the lease and stops others from immediately getting it", func() {
 					lease, leased, err := pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, false)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(leased).Should(BeTrue())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
 
 					Consistently(func() bool {
 						_, leased, err = pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, true)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						return leased
 					}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
@@ -238,8 +238,8 @@ var _ = Describe("Leases", func() {
 					time.Sleep(time.Second)
 
 					newLease, leased, err := pipelineDB.LeaseResourceChecking("some-resource", 1*time.Second, false)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(leased).Should(BeTrue())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
 
 					newLease.Break()
 				})
@@ -252,7 +252,7 @@ var _ = Describe("Leases", func() {
 
 		BeforeEach(func() {
 			build, err := sqlDB.CreateOneOffBuild()
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			buildID = build.ID
 		})
@@ -260,26 +260,26 @@ var _ = Describe("Leases", func() {
 		Context("when something has been scheduling it recently", func() {
 			It("does not get the lease", func() {
 				lease, leased, err := sqlDB.LeaseBuildScheduling(buildID, 1*time.Second)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(leased).Should(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(leased).To(BeTrue())
 
 				lease.Break()
 
 				_, leased, err = sqlDB.LeaseBuildScheduling(buildID, 1*time.Second)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(leased).Should(BeFalse())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(leased).To(BeFalse())
 			})
 		})
 
 		Context("when there has not been any scheduling recently", func() {
 			It("gets and keeps the lease and stops others from getting it", func() {
 				lease, leased, err := sqlDB.LeaseBuildScheduling(buildID, 1*time.Second)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(leased).Should(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(leased).To(BeTrue())
 
 				Consistently(func() bool {
 					_, leased, err = sqlDB.LeaseBuildScheduling(buildID, 1*time.Second)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					return leased
 				}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
@@ -289,8 +289,8 @@ var _ = Describe("Leases", func() {
 				time.Sleep(time.Second)
 
 				newLease, leased, err := sqlDB.LeaseBuildScheduling(buildID, 1*time.Second)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(leased).Should(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(leased).To(BeTrue())
 
 				newLease.Break()
 			})
@@ -302,7 +302,7 @@ var _ = Describe("Leases", func() {
 
 		BeforeEach(func() {
 			build, err := sqlDB.CreateOneOffBuild()
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			buildID = build.ID
 		})
@@ -310,26 +310,26 @@ var _ = Describe("Leases", func() {
 		Context("when something has been tracking it recently", func() {
 			It("does not get the lease", func() {
 				lease, leased, err := sqlDB.LeaseBuildTracking(buildID, 1*time.Second)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(leased).Should(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(leased).To(BeTrue())
 
 				lease.Break()
 
 				_, leased, err = sqlDB.LeaseBuildTracking(buildID, 1*time.Second)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(leased).Should(BeFalse())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(leased).To(BeFalse())
 			})
 		})
 
 		Context("when there has not been any tracking recently", func() {
 			It("gets and keeps the lease and stops others from getting it", func() {
 				lease, leased, err := sqlDB.LeaseBuildTracking(buildID, 1*time.Second)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(leased).Should(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(leased).To(BeTrue())
 
 				Consistently(func() bool {
 					_, leased, err = sqlDB.LeaseBuildTracking(buildID, 1*time.Second)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					return leased
 				}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
@@ -339,8 +339,8 @@ var _ = Describe("Leases", func() {
 				time.Sleep(time.Second)
 
 				newLease, leased, err := sqlDB.LeaseBuildTracking(buildID, 1*time.Second)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(leased).Should(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(leased).To(BeTrue())
 
 				newLease.Break()
 			})

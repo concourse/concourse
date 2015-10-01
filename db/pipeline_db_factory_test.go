@@ -37,10 +37,10 @@ var _ = Describe("PipelineDBFactory", func() {
 
 	AfterEach(func() {
 		err := dbConn.Close()
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		err = listener.Close()
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		postgresRunner.DropTestDB()
 	})
@@ -67,10 +67,10 @@ var _ = Describe("PipelineDBFactory", func() {
 			}, nil)
 
 			defaultPipelineDB, found, err := pipelineDBFactory.BuildDefault()
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(found).Should(BeTrue())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-			Ω(defaultPipelineDB.GetPipelineName()).Should(Equal("a-pipeline"))
+			Expect(defaultPipelineDB.GetPipelineName()).To(Equal("a-pipeline"))
 		})
 
 		Context("when there are no pipelines", func() {
@@ -80,8 +80,8 @@ var _ = Describe("PipelineDBFactory", func() {
 
 			It("returns a useful error if there are no pipelines", func() {
 				_, found, err := pipelineDBFactory.BuildDefault()
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(found).Should(BeFalse())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
 			})
 		})
 	})

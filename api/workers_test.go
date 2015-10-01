@@ -21,10 +21,10 @@ var _ = Describe("Workers API", func() {
 
 		JustBeforeEach(func() {
 			req, err := http.NewRequest("GET", server.URL+"/api/v1/workers", nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(req)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when authenticated", func() {
@@ -58,15 +58,15 @@ var _ = Describe("Workers API", func() {
 				})
 
 				It("returns 200", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
 				It("returns the workers", func() {
 					var returnedWorkers []atc.Worker
 					err := json.NewDecoder(response.Body).Decode(&returnedWorkers)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(returnedWorkers).Should(Equal([]atc.Worker{
+					Expect(returnedWorkers).To(Equal([]atc.Worker{
 						{
 							GardenAddr:       "1.2.3.4:7777",
 							BaggageclaimURL:  "5.6.7.8:7788",
@@ -87,6 +87,7 @@ var _ = Describe("Workers API", func() {
 							Tags:     []string{"best", "os", "ever", "rip"},
 						},
 					}))
+
 				})
 			})
 
@@ -96,7 +97,7 @@ var _ = Describe("Workers API", func() {
 				})
 
 				It("returns 500", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -107,7 +108,7 @@ var _ = Describe("Workers API", func() {
 			})
 
 			It("returns 401", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -137,13 +138,13 @@ var _ = Describe("Workers API", func() {
 
 		JustBeforeEach(func() {
 			payload, err := json.Marshal(worker)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			req, err := http.NewRequest("POST", server.URL+"/api/v1/workers?ttl="+ttl, ioutil.NopCloser(bytes.NewBuffer(payload)))
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(req)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when authenticated", func() {
@@ -153,15 +154,15 @@ var _ = Describe("Workers API", func() {
 
 			Context("when the worker is valid", func() {
 				It("returns 200", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
 				Context("when the name is not provided", func() {
 					It("saves it", func() {
-						Ω(workerDB.SaveWorkerCallCount()).Should(Equal(1))
+						Expect(workerDB.SaveWorkerCallCount()).To(Equal(1))
 
 						savedInfo, savedTTL := workerDB.SaveWorkerArgsForCall(0)
-						Ω(savedInfo).Should(Equal(db.WorkerInfo{
+						Expect(savedInfo).To(Equal(db.WorkerInfo{
 							GardenAddr:       "1.2.3.4:7777",
 							Name:             "1.2.3.4:7777",
 							BaggageclaimURL:  "5.6.7.8:7788",
@@ -172,7 +173,8 @@ var _ = Describe("Workers API", func() {
 							Platform: "haiku",
 							Tags:     []string{"not", "a", "limerick"},
 						}))
-						Ω(savedTTL.String()).Should(Equal(ttl))
+
+						Expect(savedTTL.String()).To(Equal(ttl))
 					})
 				})
 
@@ -192,10 +194,10 @@ var _ = Describe("Workers API", func() {
 					})
 
 					It("saves it", func() {
-						Ω(workerDB.SaveWorkerCallCount()).Should(Equal(1))
+						Expect(workerDB.SaveWorkerCallCount()).To(Equal(1))
 
 						savedInfo, savedTTL := workerDB.SaveWorkerArgsForCall(0)
-						Ω(savedInfo).Should(Equal(db.WorkerInfo{
+						Expect(savedInfo).To(Equal(db.WorkerInfo{
 							GardenAddr:       "1.2.3.4:7777",
 							Name:             "poem",
 							BaggageclaimURL:  "5.6.7.8:7788",
@@ -206,7 +208,8 @@ var _ = Describe("Workers API", func() {
 							Platform: "haiku",
 							Tags:     []string{"not", "a", "limerick"},
 						}))
-						Ω(savedTTL.String()).Should(Equal(ttl))
+
+						Expect(savedTTL.String()).To(Equal(ttl))
 					})
 				})
 
@@ -216,7 +219,7 @@ var _ = Describe("Workers API", func() {
 					})
 
 					It("returns 500", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
 			})
@@ -227,15 +230,15 @@ var _ = Describe("Workers API", func() {
 				})
 
 				It("returns 400", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 				})
 
 				It("returns the validation error in the response body", func() {
-					Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("malformed ttl")))
+					Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("malformed ttl")))
 				})
 
 				It("does not save it", func() {
-					Ω(workerDB.SaveWorkerCallCount()).Should(BeZero())
+					Expect(workerDB.SaveWorkerCallCount()).To(BeZero())
 				})
 			})
 
@@ -245,15 +248,15 @@ var _ = Describe("Workers API", func() {
 				})
 
 				It("returns 400", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 				})
 
 				It("returns the validation error in the response body", func() {
-					Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("missing address")))
+					Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("missing address")))
 				})
 
 				It("does not save it", func() {
-					Ω(workerDB.SaveWorkerCallCount()).Should(BeZero())
+					Expect(workerDB.SaveWorkerCallCount()).To(BeZero())
 				})
 			})
 		})
@@ -264,11 +267,11 @@ var _ = Describe("Workers API", func() {
 			})
 
 			It("returns 401", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 
 			It("does not save the config", func() {
-				Ω(workerDB.SaveWorkerCallCount()).Should(BeZero())
+				Expect(workerDB.SaveWorkerCallCount()).To(BeZero())
 			})
 		})
 	})

@@ -29,9 +29,9 @@ var _ = Describe("URLs", func() {
 			}
 
 			path, err := web.PathFor(atc.EnableResourceVersion, "some-pipeline", versionedResource)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(path).Should(Equal("/api/v1/pipelines/some-pipeline/resources/resource-name/versions/123/enable"))
+			Expect(path).To(Equal("/api/v1/pipelines/some-pipeline/resources/resource-name/versions/123/enable"))
 		})
 	})
 
@@ -45,9 +45,9 @@ var _ = Describe("URLs", func() {
 			}
 
 			path, err := web.PathFor(atc.DisableResourceVersion, "some-pipeline", versionedResource)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(path).Should(Equal("/api/v1/pipelines/some-pipeline/resources/resource-name/versions/123/disable"))
+			Expect(path).To(Equal("/api/v1/pipelines/some-pipeline/resources/resource-name/versions/123/disable"))
 		})
 	})
 
@@ -60,9 +60,9 @@ var _ = Describe("URLs", func() {
 				}
 
 				path, err := web.PathFor(routes.GetJob, "another-pipeline", job)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(path).Should(Equal("/pipelines/another-pipeline/jobs/some-job"))
+				Expect(path).To(Equal("/pipelines/another-pipeline/jobs/some-job"))
 
 			})
 		})
@@ -75,14 +75,14 @@ var _ = Describe("URLs", func() {
 				}
 
 				path, err := web.PathFor(routes.GetJob, "another-pipeline", job, paginationData, false)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(path).Should(Equal("/pipelines/another-pipeline/jobs/some-job?startingID=20&resultsGreaterThanStartingID=false"))
+				Expect(path).To(Equal("/pipelines/another-pipeline/jobs/some-job?startingID=20&resultsGreaterThanStartingID=false"))
 
 				path, err = web.PathFor(routes.GetJob, "another-pipeline", job, paginationData, true)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(path).Should(Equal("/pipelines/another-pipeline/jobs/some-job?startingID=30&resultsGreaterThanStartingID=true"))
+				Expect(path).To(Equal("/pipelines/another-pipeline/jobs/some-job?startingID=30&resultsGreaterThanStartingID=true"))
 			})
 
 		})
@@ -94,9 +94,9 @@ var _ = Describe("URLs", func() {
 				paginationData := pagination.NewPaginationData(false, false, 0, 29, 21)
 
 				path, err := web.PathFor(routes.GetResource, "another-pipeline", "some-resource", paginationData, false)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(path).Should(Equal("/pipelines/another-pipeline/resources/some-resource?id=20&newer=false"))
+				Expect(path).To(Equal("/pipelines/another-pipeline/resources/some-resource?id=20&newer=false"))
 			})
 		})
 
@@ -105,9 +105,9 @@ var _ = Describe("URLs", func() {
 				paginationData := pagination.NewPaginationData(false, false, 0, 29, 21)
 
 				path, err := web.PathFor(routes.GetResource, "another-pipeline", "some-resource", paginationData, true)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(path).Should(Equal("/pipelines/another-pipeline/resources/some-resource?id=30&newer=true"))
+				Expect(path).To(Equal("/pipelines/another-pipeline/resources/some-resource?id=30&newer=true"))
 			})
 		})
 	})

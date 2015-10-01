@@ -16,33 +16,33 @@ import (
 var _ = Describe("Pipes API", func() {
 	createPipe := func() atc.Pipe {
 		req, err := http.NewRequest("POST", server.URL+"/api/v1/pipes", nil)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		response, err := client.Do(req)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
-		Ω(response.StatusCode).Should(Equal(http.StatusCreated))
+		Expect(response.StatusCode).To(Equal(http.StatusCreated))
 
 		var pipe atc.Pipe
 		err = json.NewDecoder(response.Body).Decode(&pipe)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		return pipe
 	}
 
 	readPipe := func(id string) *http.Response {
 		response, err := http.Get(server.URL + "/api/v1/pipes/" + id)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		return response
 	}
 
 	writePipe := func(id string, body io.Reader) *http.Response {
 		req, err := http.NewRequest("PUT", server.URL+"/api/v1/pipes/"+id, body)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		response, err := client.Do(req)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		return response
 	}
@@ -65,11 +65,11 @@ var _ = Describe("Pipes API", func() {
 
 			It("returns unique pipe IDs", func() {
 				anotherPipe := createPipe()
-				Ω(anotherPipe.ID).ShouldNot(Equal(pipe.ID))
+				Expect(anotherPipe.ID).NotTo(Equal(pipe.ID))
 			})
 
 			It("saves it", func() {
-				Ω(pipeDB.CreatePipeCallCount()).Should(Equal(1))
+				Expect(pipeDB.CreatePipeCallCount()).To(Equal(1))
 			})
 
 			Describe("GET /api/v1/pipes/:pipe", func() {
@@ -84,7 +84,7 @@ var _ = Describe("Pipes API", func() {
 				})
 
 				It("responds with 200", func() {
-					Ω(readRes.StatusCode).Should(Equal(http.StatusOK))
+					Expect(readRes.StatusCode).To(Equal(http.StatusOK))
 				})
 
 				Describe("PUT /api/v1/pipes/:pipe", func() {
@@ -99,11 +99,11 @@ var _ = Describe("Pipes API", func() {
 					})
 
 					It("responds with 200", func() {
-						Ω(writeRes.StatusCode).Should(Equal(http.StatusOK))
+						Expect(writeRes.StatusCode).To(Equal(http.StatusOK))
 					})
 
 					It("streams the data to the reader", func() {
-						Ω(ioutil.ReadAll(readRes.Body)).Should(Equal([]byte("some data")))
+						Expect(ioutil.ReadAll(readRes.Body)).To(Equal([]byte("some data")))
 					})
 
 					It("reaps the pipe", func() {
@@ -137,12 +137,12 @@ var _ = Describe("Pipes API", func() {
 					readRes := readPipe("bogus-id")
 					defer readRes.Body.Close()
 
-					Ω(readRes.StatusCode).Should(Equal(http.StatusNotFound))
+					Expect(readRes.StatusCode).To(Equal(http.StatusNotFound))
 
 					writeRes := writePipe("bogus-id", nil)
 					defer writeRes.Body.Close()
 
-					Ω(writeRes.StatusCode).Should(Equal(http.StatusNotFound))
+					Expect(writeRes.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 		})
@@ -158,10 +158,10 @@ var _ = Describe("Pipes API", func() {
 
 			BeforeEach(func() {
 				req, err := http.NewRequest("POST", server.URL+"/api/v1/pipes", nil)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				response, err = client.Do(req)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			AfterEach(func() {
@@ -169,7 +169,7 @@ var _ = Describe("Pipes API", func() {
 			})
 
 			It("returns 401", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 
@@ -178,10 +178,10 @@ var _ = Describe("Pipes API", func() {
 
 			BeforeEach(func() {
 				req, err := http.NewRequest("GET", server.URL+"/api/v1/pipes/some-guid", nil)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				response, err = client.Do(req)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			AfterEach(func() {
@@ -189,7 +189,7 @@ var _ = Describe("Pipes API", func() {
 			})
 
 			It("returns 401", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})

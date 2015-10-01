@@ -75,33 +75,33 @@ var _ = Describe("Pool", func() {
 			})
 
 			It("succeeds", func() {
-				Ω(createErr).ShouldNot(HaveOccurred())
+				Expect(createErr).NotTo(HaveOccurred())
 			})
 
 			It("returns the created container", func() {
-				Ω(createdContainer).Should(Equal(fakeContainer))
+				Expect(createdContainer).To(Equal(fakeContainer))
 			})
 
 			It("checks that the workers satisfy the given spec", func() {
-				Ω(workerA.SatisfyingCallCount()).Should(Equal(1))
-				Ω(workerA.SatisfyingArgsForCall(0)).Should(Equal(spec.WorkerSpec()))
+				Expect(workerA.SatisfyingCallCount()).To(Equal(1))
+				Expect(workerA.SatisfyingArgsForCall(0)).To(Equal(spec.WorkerSpec()))
 
-				Ω(workerB.SatisfyingCallCount()).Should(Equal(1))
-				Ω(workerB.SatisfyingArgsForCall(0)).Should(Equal(spec.WorkerSpec()))
+				Expect(workerB.SatisfyingCallCount()).To(Equal(1))
+				Expect(workerB.SatisfyingArgsForCall(0)).To(Equal(spec.WorkerSpec()))
 
-				Ω(workerC.SatisfyingCallCount()).Should(Equal(1))
-				Ω(workerC.SatisfyingArgsForCall(0)).Should(Equal(spec.WorkerSpec()))
+				Expect(workerC.SatisfyingCallCount()).To(Equal(1))
+				Expect(workerC.SatisfyingArgsForCall(0)).To(Equal(spec.WorkerSpec()))
 			})
 
 			It("creates using a random worker", func() {
 				for i := 1; i < 100; i++ { // account for initial create in JustBefore
 					createdContainer, createErr := pool.CreateContainer(logger, id, spec)
-					Ω(createErr).ShouldNot(HaveOccurred())
-					Ω(createdContainer).Should(Equal(fakeContainer))
+					Expect(createErr).NotTo(HaveOccurred())
+					Expect(createdContainer).To(Equal(fakeContainer))
 				}
 
-				Ω(workerA.CreateContainerCallCount()).Should(BeNumerically("~", workerB.CreateContainerCallCount(), 50))
-				Ω(workerC.CreateContainerCallCount()).Should(BeZero())
+				Expect(workerA.CreateContainerCallCount()).To(BeNumerically("~", workerB.CreateContainerCallCount(), 50))
+				Expect(workerC.CreateContainerCallCount()).To(BeZero())
 			})
 
 			Context("when creating the container fails", func() {
@@ -113,7 +113,7 @@ var _ = Describe("Pool", func() {
 				})
 
 				It("returns the error", func() {
-					Ω(createErr).Should(Equal(disaster))
+					Expect(createErr).To(Equal(disaster))
 				})
 			})
 
@@ -125,10 +125,11 @@ var _ = Describe("Pool", func() {
 				})
 
 				It("returns a NoCompatibleWorkersError", func() {
-					Ω(createErr).Should(Equal(NoCompatibleWorkersError{
+					Expect(createErr).To(Equal(NoCompatibleWorkersError{
 						Spec:    spec.WorkerSpec(),
 						Workers: []Worker{workerA, workerB, workerC},
 					}))
+
 				})
 			})
 		})
@@ -139,7 +140,7 @@ var _ = Describe("Pool", func() {
 			})
 
 			It("returns ErrNoWorkers", func() {
-				Ω(createErr).Should(Equal(ErrNoWorkers))
+				Expect(createErr).To(Equal(ErrNoWorkers))
 			})
 		})
 
@@ -151,7 +152,7 @@ var _ = Describe("Pool", func() {
 			})
 
 			It("returns the error", func() {
-				Ω(createErr).Should(Equal(disaster))
+				Expect(createErr).To(Equal(disaster))
 			})
 		})
 	})
@@ -164,9 +165,9 @@ var _ = Describe("Pool", func() {
 
 			It("returns the error", func() {
 				containerInfo, found, err := pool.LookupContainer(logger, "some-handle")
-				Ω(err).Should(HaveOccurred())
-				Ω(containerInfo).Should(BeNil())
-				Ω(found).Should(BeFalse())
+				Expect(err).To(HaveOccurred())
+				Expect(containerInfo).To(BeNil())
+				Expect(found).To(BeFalse())
 			})
 		})
 
@@ -177,9 +178,9 @@ var _ = Describe("Pool", func() {
 
 			It("returns that it was not found", func() {
 				containerInfo, found, err := pool.LookupContainer(logger, "some-handle")
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(containerInfo).Should(BeNil())
-				Ω(found).Should(BeFalse())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(containerInfo).To(BeNil())
+				Expect(found).To(BeFalse())
 			})
 		})
 
@@ -197,10 +198,10 @@ var _ = Describe("Pool", func() {
 			It("calls to lookup the worker by name", func() {
 				pool.LookupContainer(logger, "some-handle")
 
-				Ω(fakeProvider.GetWorkerCallCount()).Should(Equal(1))
+				Expect(fakeProvider.GetWorkerCallCount()).To(Equal(1))
 
 				workerName := fakeProvider.GetWorkerArgsForCall(0)
-				Ω(workerName).Should(Equal("some-worker"))
+				Expect(workerName).To(Equal("some-worker"))
 			})
 
 			Context("when looking up the worker returns an error", func() {
@@ -210,9 +211,9 @@ var _ = Describe("Pool", func() {
 
 				It("returns the error", func() {
 					containerInfo, found, err := pool.LookupContainer(logger, "some-handle")
-					Ω(err).Should(HaveOccurred())
-					Ω(containerInfo).Should(BeNil())
-					Ω(found).Should(BeFalse())
+					Expect(err).To(HaveOccurred())
+					Expect(containerInfo).To(BeNil())
+					Expect(found).To(BeFalse())
 				})
 			})
 
@@ -223,9 +224,9 @@ var _ = Describe("Pool", func() {
 
 				It("returns ErrDBGardenMismatch", func() {
 					containerInfo, found, err := pool.LookupContainer(logger, "some-handle")
-					Ω(err).Should(Equal(ErrDBGardenMismatch))
-					Ω(containerInfo).Should(BeNil())
-					Ω(found).Should(BeFalse())
+					Expect(err).To(Equal(ErrDBGardenMismatch))
+					Expect(containerInfo).To(BeNil())
+					Expect(found).To(BeFalse())
 				})
 			})
 
@@ -240,10 +241,10 @@ var _ = Describe("Pool", func() {
 				It("calls to lookup the container on the worker", func() {
 					pool.LookupContainer(logger, "some-handle")
 
-					Ω(fakeWorker.LookupContainerCallCount()).Should(Equal(1))
+					Expect(fakeWorker.LookupContainerCallCount()).To(Equal(1))
 
 					_, handleArg := fakeWorker.LookupContainerArgsForCall(0)
-					Ω(handleArg).Should(Equal("some-handle"))
+					Expect(handleArg).To(Equal("some-handle"))
 				})
 
 				Context("when looking up the container contains an error", func() {
@@ -251,9 +252,9 @@ var _ = Describe("Pool", func() {
 						fakeWorker.LookupContainerReturns(nil, false, errors.New("disaster"))
 
 						containerInfo, found, err := pool.LookupContainer(logger, "some-handle")
-						Ω(err).Should(HaveOccurred())
-						Ω(containerInfo).Should(BeNil())
-						Ω(found).Should(BeFalse())
+						Expect(err).To(HaveOccurred())
+						Expect(containerInfo).To(BeNil())
+						Expect(found).To(BeFalse())
 					})
 				})
 
@@ -264,9 +265,9 @@ var _ = Describe("Pool", func() {
 
 					It("returns ErrDBGardenMismatch", func() {
 						containerInfo, found, err := pool.LookupContainer(logger, "some-handle")
-						Ω(err).Should(Equal(ErrDBGardenMismatch))
-						Ω(containerInfo).Should(BeNil())
-						Ω(found).Should(BeFalse())
+						Expect(err).To(Equal(ErrDBGardenMismatch))
+						Expect(containerInfo).To(BeNil())
+						Expect(found).To(BeFalse())
 					})
 				})
 
@@ -278,9 +279,9 @@ var _ = Describe("Pool", func() {
 						fakeWorker.LookupContainerReturns(fakeContainer, true, nil)
 
 						foundContainer, found, err := pool.LookupContainer(logger, "some-handle")
-						Ω(err).ShouldNot(HaveOccurred())
-						Ω(found).Should(BeTrue())
-						Ω(foundContainer).Should(Equal(fakeContainer))
+						Expect(err).NotTo(HaveOccurred())
+						Expect(found).To(BeTrue())
+						Expect(foundContainer).To(Equal(fakeContainer))
 					})
 				})
 			})
@@ -304,9 +305,9 @@ var _ = Describe("Pool", func() {
 
 			It("returns the error", func() {
 				containerInfo, found, err := pool.FindContainerForIdentifier(logger, identifier)
-				Ω(err).Should(HaveOccurred())
-				Ω(containerInfo).Should(BeNil())
-				Ω(found).Should(BeFalse())
+				Expect(err).To(HaveOccurred())
+				Expect(containerInfo).To(BeNil())
+				Expect(found).To(BeFalse())
 			})
 		})
 
@@ -317,9 +318,9 @@ var _ = Describe("Pool", func() {
 
 			It("returns that it was not found", func() {
 				containerInfo, found, err := pool.FindContainerForIdentifier(logger, identifier)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(containerInfo).Should(BeNil())
-				Ω(found).Should(BeFalse())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(containerInfo).To(BeNil())
+				Expect(found).To(BeFalse())
 			})
 		})
 
@@ -337,10 +338,10 @@ var _ = Describe("Pool", func() {
 			It("calls to lookup the worker by name", func() {
 				pool.FindContainerForIdentifier(logger, identifier)
 
-				Ω(fakeProvider.GetWorkerCallCount()).Should(Equal(1))
+				Expect(fakeProvider.GetWorkerCallCount()).To(Equal(1))
 
 				workerName := fakeProvider.GetWorkerArgsForCall(0)
-				Ω(workerName).Should(Equal("some-worker"))
+				Expect(workerName).To(Equal("some-worker"))
 			})
 
 			Context("when looking up the worker returns an error", func() {
@@ -348,9 +349,9 @@ var _ = Describe("Pool", func() {
 					fakeProvider.GetWorkerReturns(nil, false, errors.New("disaster"))
 
 					containerInfo, found, err := pool.FindContainerForIdentifier(logger, identifier)
-					Ω(err).Should(HaveOccurred())
-					Ω(containerInfo).Should(BeNil())
-					Ω(found).Should(BeFalse())
+					Expect(err).To(HaveOccurred())
+					Expect(containerInfo).To(BeNil())
+					Expect(found).To(BeFalse())
 				})
 			})
 
@@ -359,9 +360,9 @@ var _ = Describe("Pool", func() {
 					fakeProvider.GetWorkerReturns(nil, false, nil)
 
 					containerInfo, found, err := pool.FindContainerForIdentifier(logger, identifier)
-					Ω(err).Should(Equal(ErrDBGardenMismatch))
-					Ω(containerInfo).Should(BeNil())
-					Ω(found).Should(BeFalse())
+					Expect(err).To(Equal(ErrDBGardenMismatch))
+					Expect(containerInfo).To(BeNil())
+					Expect(found).To(BeFalse())
 				})
 			})
 
@@ -376,10 +377,10 @@ var _ = Describe("Pool", func() {
 				It("calls to lookup the container on the worker", func() {
 					pool.FindContainerForIdentifier(logger, identifier)
 
-					Ω(fakeWorker.LookupContainerCallCount()).Should(Equal(1))
+					Expect(fakeWorker.LookupContainerCallCount()).To(Equal(1))
 
 					_, handleArg := fakeWorker.LookupContainerArgsForCall(0)
-					Ω(handleArg).Should(Equal("some-container-handle"))
+					Expect(handleArg).To(Equal("some-container-handle"))
 				})
 
 				Context("when looking up the container contains an error", func() {
@@ -387,9 +388,9 @@ var _ = Describe("Pool", func() {
 						fakeWorker.LookupContainerReturns(nil, false, errors.New("disaster"))
 
 						containerInfo, found, err := pool.FindContainerForIdentifier(logger, identifier)
-						Ω(err).Should(HaveOccurred())
-						Ω(containerInfo).Should(BeNil())
-						Ω(found).Should(BeFalse())
+						Expect(err).To(HaveOccurred())
+						Expect(containerInfo).To(BeNil())
+						Expect(found).To(BeFalse())
 					})
 				})
 
@@ -398,9 +399,9 @@ var _ = Describe("Pool", func() {
 						fakeWorker.LookupContainerReturns(nil, false, nil)
 
 						containerInfo, found, err := pool.FindContainerForIdentifier(logger, identifier)
-						Ω(err).Should(Equal(ErrDBGardenMismatch))
-						Ω(containerInfo).Should(BeNil())
-						Ω(found).Should(BeFalse())
+						Expect(err).To(Equal(ErrDBGardenMismatch))
+						Expect(containerInfo).To(BeNil())
+						Expect(found).To(BeFalse())
 					})
 				})
 
@@ -412,9 +413,9 @@ var _ = Describe("Pool", func() {
 						fakeWorker.LookupContainerReturns(fakeContainer, true, nil)
 
 						foundContainer, found, err := pool.FindContainerForIdentifier(logger, identifier)
-						Ω(err).ShouldNot(HaveOccurred())
-						Ω(found).Should(BeTrue())
-						Ω(foundContainer).Should(Equal(fakeContainer))
+						Expect(err).NotTo(HaveOccurred())
+						Expect(found).To(BeTrue())
+						Expect(foundContainer).To(Equal(fakeContainer))
 					})
 				})
 			})

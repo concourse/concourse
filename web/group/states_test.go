@@ -17,10 +17,11 @@ var _ = Describe("States", func() {
 			}
 			states := UnhighlightedStates(config)
 
-			Ω(states).Should(ConsistOf(
+			Expect(states).To(ConsistOf(
 				State{"first-group", false},
 				State{"second-group", false},
 			))
+
 		})
 	})
 })

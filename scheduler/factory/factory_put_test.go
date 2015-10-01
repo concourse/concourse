@@ -52,7 +52,7 @@ var _ = Describe("Factory Put", func() {
 
 			It("returns the correct plan", func() {
 				actual, err := buildFactory.Create(input, resources, nil)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				expected := atc.Plan{
 					OnSuccess: &atc.OnSuccessPlan{
@@ -90,7 +90,7 @@ var _ = Describe("Factory Put", func() {
 						},
 					},
 				}
-				Ω(actual).Should(Equal(expected))
+				Expect(actual).To(Equal(expected))
 			})
 		})
 	})
@@ -135,7 +135,7 @@ var _ = Describe("Factory Put", func() {
 
 			It("returns the correct plan", func() {
 				actual, err := buildFactory.Create(input, resources, nil)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				expected := atc.Plan{
 					OnSuccess: &atc.OnSuccessPlan{
@@ -165,7 +165,7 @@ var _ = Describe("Factory Put", func() {
 						},
 					},
 				}
-				Ω(actual).Should(Equal(expected))
+				Expect(actual).To(Equal(expected))
 			})
 		})
 
@@ -185,7 +185,7 @@ var _ = Describe("Factory Put", func() {
 
 			It("returns the correct plan", func() {
 				actual, err := buildFactory.Create(input, resources, nil)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				expected := atc.Plan{
 					OnSuccess: &atc.OnSuccessPlan{
@@ -218,7 +218,7 @@ var _ = Describe("Factory Put", func() {
 						},
 					},
 				}
-				Ω(actual).Should(Equal(expected))
+				Expect(actual).To(Equal(expected))
 			})
 		})
 
@@ -242,7 +242,7 @@ var _ = Describe("Factory Put", func() {
 
 			It("returns the correct plan", func() {
 				actual, err := buildFactory.Create(input, resources, nil)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				expected := atc.Plan{
 					Aggregate: &atc.AggregatePlan{
@@ -274,7 +274,7 @@ var _ = Describe("Factory Put", func() {
 						},
 					},
 				}
-				Ω(actual).Should(Equal(expected))
+				Expect(actual).To(Equal(expected))
 			})
 		})
 
@@ -295,7 +295,7 @@ var _ = Describe("Factory Put", func() {
 
 			It("returns the correct plan", func() {
 				actual, err := buildFactory.Create(input, resources, nil)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				expected := atc.Plan{
 					OnSuccess: &atc.OnSuccessPlan{
@@ -328,7 +328,7 @@ var _ = Describe("Factory Put", func() {
 					},
 				}
 
-				Ω(actual).Should(Equal(expected))
+				Expect(actual).To(Equal(expected))
 			})
 		})
 
@@ -393,9 +393,9 @@ var _ = Describe("Factory Put", func() {
 				}
 
 				builtPlan, err := buildFactory.Create(input, resources, nil)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(builtPlan).Should(Equal(expectedPlan))
+				Expect(builtPlan).To(Equal(expectedPlan))
 			})
 		})
 	})

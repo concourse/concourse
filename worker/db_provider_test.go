@@ -60,10 +60,10 @@ var _ = Describe("DBProvider", func() {
 		workerBServer = server.New("tcp", workerBAddr, 0, workerB, logger)
 
 		err := workerAServer.Start()
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		err = workerBServer.Start()
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		provider = NewDBWorkerProvider(logger, fakeDB, nil)
 	})
@@ -118,21 +118,21 @@ var _ = Describe("DBProvider", func() {
 			})
 
 			It("succeeds", func() {
-				Ω(workersErr).ShouldNot(HaveOccurred())
+				Expect(workersErr).NotTo(HaveOccurred())
 			})
 
 			It("returns a worker for each one", func() {
-				Ω(workers).Should(HaveLen(2))
+				Expect(workers).To(HaveLen(2))
 			})
 
 			It("constructs workers with baggageclaim clients if they had addresses", func() {
 				vm, ok := workers[0].VolumeManager()
-				Ω(ok).Should(BeTrue())
-				Ω(vm).ShouldNot(BeNil())
+				Expect(ok).To(BeTrue())
+				Expect(vm).NotTo(BeNil())
 
 				vm, ok = workers[1].VolumeManager()
-				Ω(ok).Should(BeFalse())
-				Ω(vm).Should(BeNil())
+				Expect(ok).To(BeFalse())
+				Expect(vm).To(BeNil())
 			})
 
 			Describe("a created container", func() {
@@ -150,20 +150,20 @@ var _ = Describe("DBProvider", func() {
 					workerA.LookupReturns(fakeContainer, nil)
 
 					container, err := workers[0].CreateContainer(logger, id, spec)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(container.Handle()).Should(Equal("created-handle"))
+					Expect(container.Handle()).To(Equal("created-handle"))
 
-					Ω(workerA.CreateCallCount()).Should(Equal(1))
-					Ω(workerA.CreateArgsForCall(0).Properties).Should(Equal(garden.Properties{
+					Expect(workerA.CreateCallCount()).To(Equal(1))
+					Expect(workerA.CreateArgsForCall(0).Properties).To(Equal(garden.Properties{
 						"concourse:name": "some-name",
 					}))
 
 					err = container.Destroy()
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(workerA.DestroyCallCount()).Should(Equal(1))
-					Ω(workerA.DestroyArgsForCall(0)).Should(Equal("created-handle"))
+					Expect(workerA.DestroyCallCount()).To(Equal(1))
+					Expect(workerA.DestroyArgsForCall(0)).To(Equal("created-handle"))
 				})
 			})
 
@@ -176,16 +176,16 @@ var _ = Describe("DBProvider", func() {
 					workerA.LookupReturns(fakeContainer, nil)
 
 					container, found, err := workers[0].FindContainerForIdentifier(logger, Identifier{Name: "some-name"})
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(found).Should(BeTrue())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
 
-					Ω(container.Handle()).Should(Equal("some-handle"))
+					Expect(container.Handle()).To(Equal("some-handle"))
 
 					err = container.Destroy()
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(workerA.DestroyCallCount()).Should(Equal(1))
-					Ω(workerA.DestroyArgsForCall(0)).Should(Equal("some-handle"))
+					Expect(workerA.DestroyCallCount()).To(Equal(1))
+					Expect(workerA.DestroyArgsForCall(0)).To(Equal("some-handle"))
 				})
 			})
 		})
@@ -198,7 +198,7 @@ var _ = Describe("DBProvider", func() {
 			})
 
 			It("returns the error", func() {
-				Ω(workersErr).Should(Equal(disaster))
+				Expect(workersErr).To(Equal(disaster))
 			})
 		})
 	})
@@ -212,9 +212,9 @@ var _ = Describe("DBProvider", func() {
 				fakeDB.GetWorkerReturns(db.WorkerInfo{}, true, errors.New("disaster"))
 
 				worker, found, workersErr = provider.GetWorker("some-name")
-				Ω(workersErr).Should(HaveOccurred())
-				Ω(worker).Should(BeNil())
-				Ω(found).Should(BeFalse())
+				Expect(workersErr).To(HaveOccurred())
+				Expect(worker).To(BeNil())
+				Expect(found).To(BeFalse())
 			})
 		})
 
@@ -223,9 +223,9 @@ var _ = Describe("DBProvider", func() {
 				fakeDB.GetWorkerReturns(db.WorkerInfo{}, false, nil)
 
 				worker, found, workersErr = provider.GetWorker("some-name")
-				Ω(workersErr).ShouldNot(HaveOccurred())
-				Ω(worker).Should(BeNil())
-				Ω(found).Should(BeFalse())
+				Expect(workersErr).NotTo(HaveOccurred())
+				Expect(worker).To(BeNil())
+				Expect(found).To(BeFalse())
 			})
 		})
 	})

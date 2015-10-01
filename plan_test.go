@@ -38,7 +38,7 @@ var _ = Describe("Plan", func() {
 				Tags: []string{"tags"},
 			}
 
-			Ω(dependentGetPlan.GetPlan()).Should(Equal(getPlan))
+			Expect(dependentGetPlan.GetPlan()).To(Equal(getPlan))
 		})
 	})
 })

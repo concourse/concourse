@@ -35,7 +35,7 @@ var _ = Describe("Factory Timeout Step", func() {
 				},
 			}, nil, nil)
 
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				Timeout: &atc.TimeoutPlan{
@@ -49,7 +49,7 @@ var _ = Describe("Factory Timeout Step", func() {
 				},
 			}
 
-			Ω(actual).Should(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 	})
 })

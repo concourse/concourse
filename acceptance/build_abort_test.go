@@ -29,7 +29,7 @@ var _ = Describe("Resource Pausing", func() {
 
 	BeforeEach(func() {
 		atcBin, err := gexec.Build("github.com/concourse/atc/cmd/atc")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		dbLogger := lagertest.NewTestLogger("test")
 		postgresRunner.CreateTestDB()
@@ -45,8 +45,8 @@ var _ = Describe("Resource Pausing", func() {
 	AfterEach(func() {
 		ginkgomon.Interrupt(atcProcess)
 
-		Ω(dbConn.Close()).Should(Succeed())
-		Ω(dbListener.Close()).Should(Succeed())
+		Expect(dbConn.Close()).To(Succeed())
+		Expect(dbListener.Close()).To(Succeed())
 
 		postgresRunner.DropTestDB()
 	})
@@ -85,17 +85,17 @@ var _ = Describe("Resource Pausing", func() {
 						{Name: "job-name"},
 					},
 				}, db.ConfigVersion(1), db.PipelineUnpaused)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				dbPipeline, err := sqlDB.GetPipelineByName(atc.DefaultPipelineName)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 				pipelineDB = pipelineDBFactory.Build(dbPipeline)
 
 				build, err = pipelineDB.CreateJobBuild("job-name")
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				_, err = sqlDB.StartBuild(build.ID, "", "")
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				sqlDB.SaveBuildEvent(build.ID, event.Log{
 					Origin: event.Origin{
@@ -114,8 +114,8 @@ var _ = Describe("Resource Pausing", func() {
 				Authenticate(page, "admin", "password")
 
 				title, err := page.Title()
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(title).Should(Equal(fmt.Sprintf("%s - Concourse", atc.DefaultPipelineName)))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(title).To(Equal(fmt.Sprintf("%s - Concourse", atc.DefaultPipelineName)))
 
 				Eventually(page.FindByLink("job-name")).Should(BeFound())
 				Expect(page.FindByLink("job-name").Click()).To(Succeed())

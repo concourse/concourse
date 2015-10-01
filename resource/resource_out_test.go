@@ -73,10 +73,10 @@ var _ = Describe("Resource Out", func() {
 			}
 
 			_, err := io.Stdout.Write([]byte(outScriptStdout))
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = io.Stderr.Write([]byte(outScriptStderr))
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			return outScriptProcess, nil
 		}
@@ -87,10 +87,10 @@ var _ = Describe("Resource Out", func() {
 			}
 
 			_, err := io.Stdout.Write([]byte(outScriptStdout))
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = io.Stderr.Write([]byte(outScriptStderr))
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			return outScriptProcess, nil
 		}
@@ -122,11 +122,11 @@ var _ = Describe("Resource Out", func() {
 					Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
 					inStream, err := versionedSource.StreamOut("some/subdir")
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					contents, err := ioutil.ReadAll(inStream)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(string(contents)).Should(Equal("sup"))
+					Expect(err).NotTo(HaveOccurred())
+					Expect(string(contents)).To(Equal("sup"))
 				})
 			})
 
@@ -141,7 +141,7 @@ var _ = Describe("Resource Out", func() {
 					Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
 					_, err := versionedSource.StreamOut("some/subdir")
-					Ω(err).Should(Equal(disaster))
+					Expect(err).To(Equal(disaster))
 				})
 			})
 		})
@@ -168,7 +168,7 @@ var _ = Describe("Resource Out", func() {
 				Eventually(fakeContainer.StopCallCount).Should(Equal(1))
 
 				kill := fakeContainer.StopArgsForCall(0)
-				Ω(kill).Should(BeFalse())
+				Expect(kill).To(BeFalse())
 
 				close(waited)
 			})
@@ -200,18 +200,19 @@ var _ = Describe("Resource Out", func() {
 		It("does not run or attach to anything", func() {
 			Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
-			Ω(fakeContainer.RunCallCount()).Should(BeZero())
-			Ω(fakeContainer.AttachCallCount()).Should(BeZero())
+			Expect(fakeContainer.RunCallCount()).To(BeZero())
+			Expect(fakeContainer.AttachCallCount()).To(BeZero())
 		})
 
 		It("can be accessed on the versioned source", func() {
 			Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
-			Ω(versionedSource.Version()).Should(Equal(atc.Version{"some": "new-version"}))
-			Ω(versionedSource.Metadata()).Should(Equal([]atc.MetadataField{
+			Expect(versionedSource.Version()).To(Equal(atc.Version{"some": "new-version"}))
+			Expect(versionedSource.Metadata()).To(Equal([]atc.MetadataField{
 				{Name: "a", Value: "a-value"},
 				{Name: "b", Value: "b-value"},
 			}))
+
 		})
 	})
 
@@ -231,26 +232,27 @@ var _ = Describe("Resource Out", func() {
 			Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
 			pid, io := fakeContainer.AttachArgsForCall(0)
-			Ω(pid).Should(Equal(uint32(42)))
+			Expect(pid).To(Equal(uint32(42)))
 
 			// send request on stdin in case process hasn't read it yet
 			request, err := ioutil.ReadAll(io.Stdin)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(request).Should(MatchJSON(`{
+			Expect(request).To(MatchJSON(`{
 				"params": {"some":"params"},
 				"source": {"some":"source"}
 			}`))
+
 		})
 
 		It("does not run an additional process", func() {
 			Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
-			Ω(fakeContainer.RunCallCount()).Should(BeZero())
+			Expect(fakeContainer.RunCallCount()).To(BeZero())
 		})
 
 		It("does not stream the artifact source to the versioned source", func() {
-			Ω(fakeArtifactSource.StreamToCallCount()).Should(Equal(0))
+			Expect(fakeArtifactSource.StreamToCallCount()).To(Equal(0))
 		})
 
 		Context("when /opt/resource/out prints the version and metadata", func() {
@@ -267,21 +269,22 @@ var _ = Describe("Resource Out", func() {
 			It("returns the version and metadata printed out by /opt/resource/out", func() {
 				Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
-				Ω(versionedSource.Version()).Should(Equal(atc.Version{"some": "new-version"}))
-				Ω(versionedSource.Metadata()).Should(Equal([]atc.MetadataField{
+				Expect(versionedSource.Version()).To(Equal(atc.Version{"some": "new-version"}))
+				Expect(versionedSource.Metadata()).To(Equal([]atc.MetadataField{
 					{Name: "a", Value: "a-value"},
 					{Name: "b", Value: "b-value"},
 				}))
+
 			})
 
 			It("saves it as a property on the container", func() {
 				Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
-				Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(1))
+				Expect(fakeContainer.SetPropertyCallCount()).To(Equal(1))
 
 				name, value := fakeContainer.SetPropertyArgsForCall(0)
-				Ω(name).Should(Equal("concourse:resource-result"))
-				Ω(value).Should(Equal(outScriptStdout))
+				Expect(name).To(Equal("concourse:resource-result"))
+				Expect(value).To(Equal(outScriptStdout))
 			})
 		})
 
@@ -293,7 +296,7 @@ var _ = Describe("Resource Out", func() {
 			It("emits it to the log sink", func() {
 				Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
-				Ω(stderrBuf).Should(gbytes.Say("some stderr data"))
+				Expect(stderrBuf).To(gbytes.Say("some stderr data"))
 			})
 		})
 
@@ -318,8 +321,8 @@ var _ = Describe("Resource Out", func() {
 				var outErr error
 				Eventually(outProcess.Wait()).Should(Receive(&outErr))
 
-				Ω(outErr).Should(HaveOccurred())
-				Ω(outErr.Error()).Should(ContainSubstring("exit status 9"))
+				Expect(outErr).To(HaveOccurred())
+				Expect(outErr.Error()).To(ContainSubstring("exit status 9"))
 			})
 		})
 	})
@@ -338,55 +341,56 @@ var _ = Describe("Resource Out", func() {
 
 		It("uses the same working directory for all actions", func() {
 			err := versionedSource.StreamIn("a/path", &bytes.Buffer{})
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(fakeContainer.StreamInCallCount()).Should(Equal(1))
+			Expect(fakeContainer.StreamInCallCount()).To(Equal(1))
 			streamSpec := fakeContainer.StreamInArgsForCall(0)
-			Ω(streamSpec.User).Should(Equal("")) // use default
+			Expect(streamSpec.User).To(Equal("")) // use default
 
 			_, err = versionedSource.StreamOut("a/path")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(fakeContainer.StreamOutCallCount()).Should(Equal(1))
+			Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
 			streamOutSpec := fakeContainer.StreamOutArgsForCall(0)
 
-			Ω(fakeContainer.RunCallCount()).Should(Equal(1))
+			Expect(fakeContainer.RunCallCount()).To(Equal(1))
 			spec, _ := fakeContainer.RunArgsForCall(0)
 
-			Ω(streamSpec.Path).Should(HavePrefix(spec.Args[0]))
-			Ω(streamSpec.Path).Should(Equal(streamOutSpec.Path))
+			Expect(streamSpec.Path).To(HavePrefix(spec.Args[0]))
+			Expect(streamSpec.Path).To(Equal(streamOutSpec.Path))
 		})
 
 		It("runs /opt/resource/out <source path> with the request on stdin", func() {
 			Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
 			spec, io := fakeContainer.RunArgsForCall(0)
-			Ω(spec.Path).Should(Equal("/opt/resource/out"))
-			Ω(spec.Args).Should(ConsistOf("/tmp/build/put"))
-			Ω(spec.User).Should(Equal("root"))
+			Expect(spec.Path).To(Equal("/opt/resource/out"))
+			Expect(spec.Args).To(ConsistOf("/tmp/build/put"))
+			Expect(spec.User).To(Equal("root"))
 
 			request, err := ioutil.ReadAll(io.Stdin)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(request).Should(MatchJSON(`{
+			Expect(request).To(MatchJSON(`{
 				"params": {"some":"params"},
 				"source": {"some":"source"}
 			}`))
+
 		})
 
 		It("streams the artifact source to the versioned source", func() {
-			Ω(fakeArtifactSource.StreamToCallCount()).Should(Equal(1))
+			Expect(fakeArtifactSource.StreamToCallCount()).To(Equal(1))
 
 			dest := fakeArtifactSource.StreamToArgsForCall(0)
-			Ω(dest).Should(Equal(versionedSource))
+			Expect(dest).To(Equal(versionedSource))
 		})
 
 		It("saves the process ID as a property", func() {
-			Ω(fakeContainer.SetPropertyCallCount()).ShouldNot(BeZero())
+			Expect(fakeContainer.SetPropertyCallCount()).NotTo(BeZero())
 
 			name, value := fakeContainer.SetPropertyArgsForCall(0)
-			Ω(name).Should(Equal("concourse:resource-process"))
-			Ω(value).Should(Equal("42"))
+			Expect(name).To(Equal("concourse:resource-process"))
+			Expect(value).To(Equal("42"))
 		})
 
 		Describe("streaming in", func() {
@@ -399,14 +403,14 @@ var _ = Describe("Resource Out", func() {
 					buf := new(bytes.Buffer)
 
 					err := versionedSource.StreamIn("some-path", buf)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(fakeContainer.StreamInCallCount()).Should(Equal(1))
+					Expect(fakeContainer.StreamInCallCount()).To(Equal(1))
 					spec := fakeContainer.StreamInArgsForCall(0)
 
-					Ω(spec.Path).Should(Equal("/tmp/build/put/some-path"))
-					Ω(spec.User).Should(Equal("")) // use default
-					Ω(spec.TarStream).Should(Equal(buf))
+					Expect(spec.Path).To(Equal("/tmp/build/put/some-path"))
+					Expect(spec.User).To(Equal("")) // use default
+					Expect(spec.TarStream).To(Equal(buf))
 				})
 			})
 
@@ -419,7 +423,7 @@ var _ = Describe("Resource Out", func() {
 
 				It("returns the error", func() {
 					err := versionedSource.StreamIn("some-path", nil)
-					Ω(err).Should(Equal(disaster))
+					Expect(err).To(Equal(disaster))
 				})
 			})
 		})
@@ -438,21 +442,22 @@ var _ = Describe("Resource Out", func() {
 			It("returns the version and metadata printed out by /opt/resource/out", func() {
 				Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
-				Ω(versionedSource.Version()).Should(Equal(atc.Version{"some": "new-version"}))
-				Ω(versionedSource.Metadata()).Should(Equal([]atc.MetadataField{
+				Expect(versionedSource.Version()).To(Equal(atc.Version{"some": "new-version"}))
+				Expect(versionedSource.Metadata()).To(Equal([]atc.MetadataField{
 					{Name: "a", Value: "a-value"},
 					{Name: "b", Value: "b-value"},
 				}))
+
 			})
 
 			It("saves it as a property on the container", func() {
 				Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
-				Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(2))
+				Expect(fakeContainer.SetPropertyCallCount()).To(Equal(2))
 
 				name, value := fakeContainer.SetPropertyArgsForCall(1)
-				Ω(name).Should(Equal("concourse:resource-result"))
-				Ω(value).Should(Equal(outScriptStdout))
+				Expect(name).To(Equal("concourse:resource-result"))
+				Expect(value).To(Equal(outScriptStdout))
 			})
 		})
 
@@ -464,7 +469,7 @@ var _ = Describe("Resource Out", func() {
 			It("emits it to the log sink", func() {
 				Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
-				Ω(stderrBuf).Should(gbytes.Say("some stderr data"))
+				Expect(stderrBuf).To(gbytes.Say("some stderr data"))
 			})
 		})
 
@@ -489,8 +494,8 @@ var _ = Describe("Resource Out", func() {
 				var outErr error
 				Eventually(outProcess.Wait()).Should(Receive(&outErr))
 
-				Ω(outErr).Should(HaveOccurred())
-				Ω(outErr.Error()).Should(ContainSubstring("exit status 9"))
+				Expect(outErr).To(HaveOccurred())
+				Expect(outErr.Error()).To(ContainSubstring("exit status 9"))
 			})
 		})
 

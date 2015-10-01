@@ -81,10 +81,10 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 		})
 
 		It("calls GetConfig with the correct arguments", func() {
-			Ω(nestedDB.GetConfigCallCount()).Should(Equal(1))
+			Expect(nestedDB.GetConfigCallCount()).To(Equal(1))
 
 			name := nestedDB.GetConfigArgsForCall(0)
-			Ω(name).Should(Equal(pipelineName))
+			Expect(name).To(Equal(pipelineName))
 		})
 
 		Context("when the nested config db yields a config containing jobs with plans", func() {
@@ -93,15 +93,15 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 			})
 
 			It("succeeds", func() {
-				Ω(getErr).ShouldNot(HaveOccurred())
+				Expect(getErr).NotTo(HaveOccurred())
 			})
 
 			It("returns the config ID", func() {
-				Ω(gotVersion).Should(Equal(ConfigVersion(42)))
+				Expect(gotVersion).To(Equal(ConfigVersion(42)))
 			})
 
 			It("returns the config as-is", func() {
-				Ω(gotConfig).Should(Equal(planBasedConfig))
+				Expect(gotConfig).To(Equal(planBasedConfig))
 			})
 		})
 
@@ -111,15 +111,15 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 			})
 
 			It("succeeds", func() {
-				Ω(getErr).ShouldNot(HaveOccurred())
+				Expect(getErr).NotTo(HaveOccurred())
 			})
 
 			It("returns the config ID", func() {
-				Ω(gotVersion).Should(Equal(ConfigVersion(42)))
+				Expect(gotVersion).To(Equal(ConfigVersion(42)))
 			})
 
 			It("returns the config with the job converted to using plans", func() {
-				Ω(gotConfig).Should(Equal(planBasedConfig))
+				Expect(gotConfig).To(Equal(planBasedConfig))
 			})
 		})
 
@@ -131,7 +131,7 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 			})
 
 			It("returns the error", func() {
-				Ω(getErr).Should(Equal(disaster))
+				Expect(getErr).To(Equal(disaster))
 			})
 		})
 	})
@@ -159,17 +159,17 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 			})
 
 			It("succeeds", func() {
-				Ω(saveErr).ShouldNot(HaveOccurred())
+				Expect(saveErr).NotTo(HaveOccurred())
 			})
 
 			It("converts them to a plan before saving in the nested config db", func() {
-				Ω(nestedDB.SaveConfigCallCount()).Should(Equal(1))
+				Expect(nestedDB.SaveConfigCallCount()).To(Equal(1))
 
 				name, savedConfig, savedID, savedPausedState := nestedDB.SaveConfigArgsForCall(0)
-				Ω(name).Should(Equal(pipelineName))
-				Ω(savedConfig).Should(Equal(planBasedConfig))
-				Ω(savedID).Should(Equal(ConfigVersion(42)))
-				Ω(savedPausedState).Should(Equal(PipelinePaused))
+				Expect(name).To(Equal(pipelineName))
+				Expect(savedConfig).To(Equal(planBasedConfig))
+				Expect(savedID).To(Equal(ConfigVersion(42)))
+				Expect(savedPausedState).To(Equal(PipelinePaused))
 			})
 
 			Context("when the nested config db fails to save", func() {
@@ -180,7 +180,7 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 				})
 
 				It("returns the error", func() {
-					Ω(saveErr).Should(HaveOccurred())
+					Expect(saveErr).To(HaveOccurred())
 				})
 			})
 		})
@@ -191,17 +191,17 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 			})
 
 			It("succeeds", func() {
-				Ω(saveErr).ShouldNot(HaveOccurred())
+				Expect(saveErr).NotTo(HaveOccurred())
 			})
 
 			It("passes them through to the nested config db", func() {
-				Ω(nestedDB.SaveConfigCallCount()).Should(Equal(1))
+				Expect(nestedDB.SaveConfigCallCount()).To(Equal(1))
 
 				savedName, savedConfig, savedID, savedPausedState := nestedDB.SaveConfigArgsForCall(0)
-				Ω(savedName).Should(Equal(pipelineName))
-				Ω(savedConfig).Should(Equal(planBasedConfig))
-				Ω(savedID).Should(Equal(ConfigVersion(42)))
-				Ω(savedPausedState).Should(Equal(PipelinePaused))
+				Expect(savedName).To(Equal(pipelineName))
+				Expect(savedConfig).To(Equal(planBasedConfig))
+				Expect(savedID).To(Equal(ConfigVersion(42)))
+				Expect(savedPausedState).To(Equal(PipelinePaused))
 			})
 
 			Context("when the nested config db fails to save", func() {
@@ -212,7 +212,7 @@ var _ = Describe("PlanConvertingConfigDB", func() {
 				})
 
 				It("returns the error", func() {
-					Ω(saveErr).Should(HaveOccurred())
+					Expect(saveErr).To(HaveOccurred())
 				})
 			})
 		})

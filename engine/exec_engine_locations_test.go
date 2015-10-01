@@ -92,23 +92,23 @@ var _ = Describe("Exec Engine Locations", func() {
 
 			It("constructs the step correctly", func() {
 				build, err := execEngine.CreateBuild(buildModel, plan)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 				build.Resume(logger)
 
-				Ω(fakeFactory.GetCallCount()).Should(Equal(1))
+				Expect(fakeFactory.GetCallCount()).To(Equal(1))
 				logger, metadata, sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
-				Ω(logger).ShouldNot(BeNil())
-				Ω(metadata).Should(Equal(expectedMetadata))
-				Ω(sourceName).Should(Equal(exec.SourceName("some input")))
-				Ω(workerID).Should(Equal(worker.Identifier{
+				Expect(logger).NotTo(BeNil())
+				Expect(metadata).To(Equal(expectedMetadata))
+				Expect(sourceName).To(Equal(exec.SourceName("some input")))
+				Expect(workerID).To(Equal(worker.Identifier{
 					BuildID: 84,
 					Type:    db.ContainerTypeGet,
 					Name:    "some input",
 				}))
 
-				Ω(delegate).Should(Equal(fakeGetDelegate))
+				Expect(delegate).To(Equal(fakeGetDelegate))
 				_, _, location := fakeDelegate.InputDelegateArgsForCall(0)
-				Ω(location).ShouldNot(BeNil())
+				Expect(location).NotTo(BeNil())
 			})
 		})
 
@@ -146,22 +146,22 @@ var _ = Describe("Exec Engine Locations", func() {
 
 			It("constructs the step correctly", func() {
 				build, err := execEngine.CreateBuild(buildModel, plan)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 				build.Resume(logger)
 
-				Ω(fakeFactory.PutCallCount()).Should(Equal(1))
+				Expect(fakeFactory.PutCallCount()).To(Equal(1))
 				logger, metadata, workerID, delegate, _, _, _ := fakeFactory.PutArgsForCall(0)
-				Ω(logger).ShouldNot(BeNil())
-				Ω(metadata).Should(Equal(expectedMetadata))
-				Ω(workerID).Should(Equal(worker.Identifier{
+				Expect(logger).NotTo(BeNil())
+				Expect(metadata).To(Equal(expectedMetadata))
+				Expect(workerID).To(Equal(worker.Identifier{
 					BuildID: 84,
 					Type:    db.ContainerTypePut,
 					Name:    "some output",
 				}))
 
-				Ω(delegate).Should(Equal(fakePutDelegate))
+				Expect(delegate).To(Equal(fakePutDelegate))
 				_, _, location := fakeDelegate.OutputDelegateArgsForCall(0)
-				Ω(location).ShouldNot(BeNil())
+				Expect(location).NotTo(BeNil())
 			})
 		})
 
@@ -200,22 +200,22 @@ var _ = Describe("Exec Engine Locations", func() {
 
 			It("constructs the step correctly", func() {
 				build, err := execEngine.CreateBuild(buildModel, plan)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 				build.Resume(logger)
 
-				Ω(fakeFactory.TaskCallCount()).Should(Equal(1))
+				Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 				logger, sourceName, workerID, delegate, _, _, _ := fakeFactory.TaskArgsForCall(0)
-				Ω(logger).ShouldNot(BeNil())
-				Ω(sourceName).Should(Equal(exec.SourceName("some task")))
-				Ω(workerID).Should(Equal(worker.Identifier{
+				Expect(logger).NotTo(BeNil())
+				Expect(sourceName).To(Equal(exec.SourceName("some task")))
+				Expect(workerID).To(Equal(worker.Identifier{
 					BuildID: 84,
 					Type:    db.ContainerTypeTask,
 					Name:    "some task",
 				}))
 
-				Ω(delegate).Should(Equal(fakeExecutionDelegate))
+				Expect(delegate).To(Equal(fakeExecutionDelegate))
 				_, _, location := fakeDelegate.ExecutionDelegateArgsForCall(0)
-				Ω(location).ShouldNot(BeNil())
+				Expect(location).NotTo(BeNil())
 			})
 		})
 
@@ -253,23 +253,23 @@ var _ = Describe("Exec Engine Locations", func() {
 
 			It("constructs the step correctly", func() {
 				build, err := execEngine.CreateBuild(buildModel, plan)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 				build.Resume(logger)
 
-				Ω(fakeFactory.DependentGetCallCount()).Should(Equal(1))
+				Expect(fakeFactory.DependentGetCallCount()).To(Equal(1))
 				logger, metadata, sourceName, workerID, delegate, _, _, _ := fakeFactory.DependentGetArgsForCall(0)
-				Ω(logger).ShouldNot(BeNil())
-				Ω(metadata).Should(Equal(expectedMetadata))
-				Ω(sourceName).Should(Equal(exec.SourceName("some input")))
-				Ω(workerID).Should(Equal(worker.Identifier{
+				Expect(logger).NotTo(BeNil())
+				Expect(metadata).To(Equal(expectedMetadata))
+				Expect(sourceName).To(Equal(exec.SourceName("some input")))
+				Expect(workerID).To(Equal(worker.Identifier{
 					BuildID: 84,
 					Type:    db.ContainerTypeGet,
 					Name:    "some input",
 				}))
 
-				Ω(delegate).Should(Equal(fakeGetDelegate))
+				Expect(delegate).To(Equal(fakeGetDelegate))
 				_, _, location := fakeDelegate.InputDelegateArgsForCall(0)
-				Ω(location).ShouldNot(BeNil())
+				Expect(location).NotTo(BeNil())
 			})
 		})
 	})

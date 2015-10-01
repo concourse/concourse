@@ -31,19 +31,20 @@ func jobService(database *dbSharedBehaviorInput) func() {
 					fakeDB.GetJobReturns(dbJob, nil)
 
 					service, err := db.NewJobService(atc.JobConfig{}, fakeDB)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(service).Should(Equal(db.JobService{
+					Expect(err).NotTo(HaveOccurred())
+					Expect(service).To(Equal(db.JobService{
 						JobConfig: atc.JobConfig{},
 						DBJob:     dbJob,
 						DB:        fakeDB,
 					}))
+
 				})
 
 				Context("when the GetJob lookup fails", func() {
 					It("returns an error", func() {
 						fakeDB.GetJobReturns(db.SavedJob{}, errors.New("disaster"))
 						_, err := db.NewJobService(atc.JobConfig{}, fakeDB)
-						Ω(err).Should(HaveOccurred())
+						Expect(err).To(HaveOccurred())
 					})
 				})
 			})
@@ -61,12 +62,12 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 						fakeDB.GetJobReturns(dbJob, nil)
 						service, err := db.NewJobService(atc.JobConfig{}, fakeDB)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(db.Build{})
-						Ω(err).ShouldNot(HaveOccurred())
-						Ω(reason).Should(Equal("job-paused"))
-						Ω(canBuildBeScheduled).Should(BeFalse())
+						Expect(err).NotTo(HaveOccurred())
+						Expect(reason).To(Equal("job-paused"))
+						Expect(canBuildBeScheduled).To(BeFalse())
 					})
 				})
 
@@ -84,7 +85,7 @@ func jobService(database *dbSharedBehaviorInput) func() {
 						)
 
 						service, err = db.NewJobService(atc.JobConfig{}, fakeDB)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 					})
 
 					It("returns true if the build status is pending", func() {
@@ -92,9 +93,9 @@ func jobService(database *dbSharedBehaviorInput) func() {
 							Status: db.StatusPending,
 						})
 
-						Ω(err).ShouldNot(HaveOccurred())
-						Ω(reason).Should(Equal("can-be-scheduled"))
-						Ω(canBuildBeScheduled).Should(BeTrue())
+						Expect(err).NotTo(HaveOccurred())
+						Expect(reason).To(Equal("can-be-scheduled"))
+						Expect(canBuildBeScheduled).To(BeTrue())
 					})
 
 					It("returns false if the build status is not pending", func() {
@@ -102,9 +103,9 @@ func jobService(database *dbSharedBehaviorInput) func() {
 							Status: db.StatusStarted,
 						})
 
-						Ω(err).ShouldNot(HaveOccurred())
-						Ω(reason).Should(Equal("build-not-pending"))
-						Ω(canBuildBeScheduled).Should(BeFalse())
+						Expect(err).NotTo(HaveOccurred())
+						Expect(reason).To(Equal("build-not-pending"))
+						Expect(canBuildBeScheduled).To(BeFalse())
 					})
 
 					Context("When the job is serial", func() {
@@ -117,7 +118,7 @@ func jobService(database *dbSharedBehaviorInput) func() {
 								Serial: true,
 							}, fakeDB)
 
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 							dbBuild = db.Build{
 								Status: db.StatusPending,
 							}
@@ -130,9 +131,9 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 							It("returns the error", func() {
 								canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
-								Ω(err).Should(HaveOccurred())
-								Ω(reason).Should(Equal("db-failed"))
-								Ω(canBuildBeScheduled).Should(BeFalse())
+								Expect(err).To(HaveOccurred())
+								Expect(reason).To(Equal("db-failed"))
+								Expect(canBuildBeScheduled).To(BeFalse())
 							})
 						})
 
@@ -147,9 +148,9 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 							It("returns false and the error", func() {
 								canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
-								Ω(err).ShouldNot(HaveOccurred())
-								Ω(reason).Should(Equal("max-in-flight-reached"))
-								Ω(canBuildBeScheduled).Should(BeFalse())
+								Expect(err).NotTo(HaveOccurred())
+								Expect(reason).To(Equal("max-in-flight-reached"))
+								Expect(canBuildBeScheduled).To(BeFalse())
 							})
 						})
 
@@ -165,9 +166,9 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 								It("returns false and the error", func() {
 									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
-									Ω(err).Should(HaveOccurred())
-									Ω(reason).Should(Equal("db-failed"))
-									Ω(canBuildBeScheduled).Should(BeFalse())
+									Expect(err).To(HaveOccurred())
+									Expect(reason).To(Equal("db-failed"))
+									Expect(canBuildBeScheduled).To(BeFalse())
 								})
 							})
 
@@ -178,9 +179,9 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 								It("returns false", func() {
 									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
-									Ω(err).ShouldNot(HaveOccurred())
-									Ω(reason).Should(Equal("not-next-most-pending"))
-									Ω(canBuildBeScheduled).Should(BeFalse())
+									Expect(err).NotTo(HaveOccurred())
+									Expect(reason).To(Equal("not-next-most-pending"))
+									Expect(canBuildBeScheduled).To(BeFalse())
 								})
 							})
 
@@ -191,9 +192,9 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 								It("returns false", func() {
 									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
-									Ω(err).ShouldNot(HaveOccurred())
-									Ω(reason).Should(Equal("no-pending-build"))
-									Ω(canBuildBeScheduled).Should(BeFalse())
+									Expect(err).NotTo(HaveOccurred())
+									Expect(reason).To(Equal("no-pending-build"))
+									Expect(canBuildBeScheduled).To(BeFalse())
 								})
 							})
 
@@ -205,9 +206,9 @@ func jobService(database *dbSharedBehaviorInput) func() {
 								It("returns true", func() {
 									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
 
-									Ω(err).ShouldNot(HaveOccurred())
-									Ω(reason).Should(Equal("can-be-scheduled"))
-									Ω(canBuildBeScheduled).Should(BeTrue())
+									Expect(err).NotTo(HaveOccurred())
+									Expect(reason).To(Equal("can-be-scheduled"))
+									Expect(canBuildBeScheduled).To(BeTrue())
 								})
 							})
 						})
@@ -223,7 +224,7 @@ func jobService(database *dbSharedBehaviorInput) func() {
 								RawMaxInFlight: 3,
 							}, fakeDB)
 
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 							dbBuild = db.Build{
 								Status: db.StatusPending,
 							}
@@ -236,9 +237,9 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 							It("returns the error", func() {
 								canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
-								Ω(err).Should(HaveOccurred())
-								Ω(reason).Should(Equal("db-failed"))
-								Ω(canBuildBeScheduled).Should(BeFalse())
+								Expect(err).To(HaveOccurred())
+								Expect(reason).To(Equal("db-failed"))
+								Expect(canBuildBeScheduled).To(BeFalse())
 							})
 						})
 
@@ -259,9 +260,9 @@ func jobService(database *dbSharedBehaviorInput) func() {
 								It("returns true", func() {
 									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
 
-									Ω(err).ShouldNot(HaveOccurred())
-									Ω(reason).Should(Equal("can-be-scheduled"))
-									Ω(canBuildBeScheduled).Should(BeTrue())
+									Expect(err).NotTo(HaveOccurred())
+									Expect(reason).To(Equal("can-be-scheduled"))
+									Expect(canBuildBeScheduled).To(BeTrue())
 								})
 							})
 
@@ -272,9 +273,9 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 								It("returns false", func() {
 									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
-									Ω(err).ShouldNot(HaveOccurred())
-									Ω(reason).Should(Equal("not-next-most-pending"))
-									Ω(canBuildBeScheduled).Should(BeFalse())
+									Expect(err).NotTo(HaveOccurred())
+									Expect(reason).To(Equal("not-next-most-pending"))
+									Expect(canBuildBeScheduled).To(BeFalse())
 								})
 							})
 
@@ -285,9 +286,9 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 								It("returns false", func() {
 									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
-									Ω(err).ShouldNot(HaveOccurred())
-									Ω(reason).Should(Equal("no-pending-build"))
-									Ω(canBuildBeScheduled).Should(BeFalse())
+									Expect(err).NotTo(HaveOccurred())
+									Expect(reason).To(Equal("no-pending-build"))
+									Expect(canBuildBeScheduled).To(BeFalse())
 								})
 							})
 						})
@@ -312,9 +313,9 @@ func jobService(database *dbSharedBehaviorInput) func() {
 								It("returns true", func() {
 									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
 
-									Ω(err).ShouldNot(HaveOccurred())
-									Ω(reason).Should(Equal("can-be-scheduled"))
-									Ω(canBuildBeScheduled).Should(BeTrue())
+									Expect(err).NotTo(HaveOccurred())
+									Expect(reason).To(Equal("can-be-scheduled"))
+									Expect(canBuildBeScheduled).To(BeTrue())
 								})
 							})
 
@@ -325,9 +326,9 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 								It("returns false", func() {
 									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
-									Ω(err).ShouldNot(HaveOccurred())
-									Ω(reason).Should(Equal("not-next-most-pending"))
-									Ω(canBuildBeScheduled).Should(BeFalse())
+									Expect(err).NotTo(HaveOccurred())
+									Expect(reason).To(Equal("not-next-most-pending"))
+									Expect(canBuildBeScheduled).To(BeFalse())
 								})
 							})
 
@@ -338,9 +339,9 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 								It("returns false", func() {
 									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
-									Ω(err).ShouldNot(HaveOccurred())
-									Ω(reason).Should(Equal("no-pending-build"))
-									Ω(canBuildBeScheduled).Should(BeFalse())
+									Expect(err).NotTo(HaveOccurred())
+									Expect(reason).To(Equal("no-pending-build"))
+									Expect(canBuildBeScheduled).To(BeFalse())
 								})
 							})
 						})
@@ -363,9 +364,9 @@ func jobService(database *dbSharedBehaviorInput) func() {
 							It("returns false and the error", func() {
 								canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
 
-								Ω(err).ShouldNot(HaveOccurred())
-								Ω(reason).Should(Equal("max-in-flight-reached"))
-								Ω(canBuildBeScheduled).Should(BeFalse())
+								Expect(err).NotTo(HaveOccurred())
+								Expect(reason).To(Equal("max-in-flight-reached"))
+								Expect(canBuildBeScheduled).To(BeFalse())
 							})
 						})
 
@@ -381,9 +382,9 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 								It("returns false and the error", func() {
 									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
-									Ω(err).Should(HaveOccurred())
-									Ω(reason).Should(Equal("db-failed"))
-									Ω(canBuildBeScheduled).Should(BeFalse())
+									Expect(err).To(HaveOccurred())
+									Expect(reason).To(Equal("db-failed"))
+									Expect(canBuildBeScheduled).To(BeFalse())
 								})
 							})
 
@@ -394,9 +395,9 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 								It("returns false", func() {
 									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
-									Ω(err).ShouldNot(HaveOccurred())
-									Ω(reason).Should(Equal("not-next-most-pending"))
-									Ω(canBuildBeScheduled).Should(BeFalse())
+									Expect(err).NotTo(HaveOccurred())
+									Expect(reason).To(Equal("not-next-most-pending"))
+									Expect(canBuildBeScheduled).To(BeFalse())
 								})
 							})
 
@@ -407,9 +408,9 @@ func jobService(database *dbSharedBehaviorInput) func() {
 
 								It("returns false", func() {
 									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
-									Ω(err).ShouldNot(HaveOccurred())
-									Ω(reason).Should(Equal("no-pending-build"))
-									Ω(canBuildBeScheduled).Should(BeFalse())
+									Expect(err).NotTo(HaveOccurred())
+									Expect(reason).To(Equal("no-pending-build"))
+									Expect(canBuildBeScheduled).To(BeFalse())
 								})
 							})
 
@@ -421,9 +422,9 @@ func jobService(database *dbSharedBehaviorInput) func() {
 								It("returns true", func() {
 									canBuildBeScheduled, reason, err := service.CanBuildBeScheduled(dbBuild)
 
-									Ω(err).ShouldNot(HaveOccurred())
-									Ω(reason).Should(Equal("can-be-scheduled"))
-									Ω(canBuildBeScheduled).Should(BeTrue())
+									Expect(err).NotTo(HaveOccurred())
+									Expect(reason).To(Equal("can-be-scheduled"))
+									Expect(canBuildBeScheduled).To(BeTrue())
 								})
 							})
 						})

@@ -181,81 +181,81 @@ var _ = Describe("GardenFactory", func() {
 							BeforeEach(func() {
 								taskDelegate.InitializingStub = func(atc.TaskConfig) {
 									defer GinkgoRecover()
-									Ω(fakeWorker.CreateContainerCallCount()).Should(BeZero())
+									Expect(fakeWorker.CreateContainerCallCount()).To(BeZero())
 								}
 							})
 
 							It("invokes the delegate's Initializing callback", func() {
-								Ω(taskDelegate.InitializingCallCount()).Should(Equal(1))
-								Ω(taskDelegate.InitializingArgsForCall(0)).Should(Equal(fetchedConfig))
+								Expect(taskDelegate.InitializingCallCount()).To(Equal(1))
+								Expect(taskDelegate.InitializingArgsForCall(0)).To(Equal(fetchedConfig))
 							})
 						})
 
 						It("looked up the container via the session ID across the entire pool", func() {
 							_, findID := fakeWorkerClient.FindContainerForIdentifierArgsForCall(0)
-							Ω(findID).Should(Equal(identifier))
+							Expect(findID).To(Equal(identifier))
 						})
 
 						It("gets the config from the input artifact soruce", func() {
-							Ω(configSource.FetchConfigCallCount()).Should(Equal(1))
-							Ω(configSource.FetchConfigArgsForCall(0)).Should(Equal(repo))
+							Expect(configSource.FetchConfigCallCount()).To(Equal(1))
+							Expect(configSource.FetchConfigArgsForCall(0)).To(Equal(repo))
 						})
 
 						It("creates a container with the config's image and the session ID as the handle", func() {
-							Ω(fakeWorker.CreateContainerCallCount()).Should(Equal(1))
+							Expect(fakeWorker.CreateContainerCallCount()).To(Equal(1))
 							_, createdIdentifier, spec := fakeWorker.CreateContainerArgsForCall(0)
-							Ω(createdIdentifier).Should(Equal(identifier))
+							Expect(createdIdentifier).To(Equal(identifier))
 
 							taskSpec := spec.(worker.TaskContainerSpec)
-							Ω(taskSpec.Platform).Should(Equal("some-platform"))
-							Ω(taskSpec.Tags).Should(ConsistOf("config", "step", "tags"))
-							Ω(taskSpec.Image).Should(Equal("some-image"))
-							Ω(taskSpec.Privileged).Should(BeFalse())
+							Expect(taskSpec.Platform).To(Equal("some-platform"))
+							Expect(taskSpec.Tags).To(ConsistOf("config", "step", "tags"))
+							Expect(taskSpec.Image).To(Equal("some-image"))
+							Expect(taskSpec.Privileged).To(BeFalse())
 						})
 
 						It("ensures artifacts root exists by streaming in an empty payload", func() {
-							Ω(fakeContainer.StreamInCallCount()).Should(Equal(1))
+							Expect(fakeContainer.StreamInCallCount()).To(Equal(1))
 
 							spec := fakeContainer.StreamInArgsForCall(0)
-							Ω(spec.Path).Should(Equal("/tmp/build/a-random-guid"))
-							Ω(spec.User).Should(Equal("")) // use default
+							Expect(spec.Path).To(Equal("/tmp/build/a-random-guid"))
+							Expect(spec.User).To(Equal("")) // use default
 
 							tarReader := tar.NewReader(spec.TarStream)
 
 							_, err := tarReader.Next()
-							Ω(err).Should(Equal(io.EOF))
+							Expect(err).To(Equal(io.EOF))
 						})
 
 						It("runs a process with the config's path and args, in the specified build directory", func() {
-							Ω(fakeContainer.RunCallCount()).Should(Equal(1))
+							Expect(fakeContainer.RunCallCount()).To(Equal(1))
 
 							spec, _ := fakeContainer.RunArgsForCall(0)
-							Ω(spec.Path).Should(Equal("ls"))
-							Ω(spec.Args).Should(Equal([]string{"some", "args"}))
-							Ω(spec.Env).Should(Equal([]string{"SOME=params"}))
-							Ω(spec.Dir).Should(Equal("/tmp/build/a-random-guid"))
-							Ω(spec.User).Should(Equal("root"))
-							Ω(spec.TTY).Should(Equal(&garden.TTYSpec{}))
+							Expect(spec.Path).To(Equal("ls"))
+							Expect(spec.Args).To(Equal([]string{"some", "args"}))
+							Expect(spec.Env).To(Equal([]string{"SOME=params"}))
+							Expect(spec.Dir).To(Equal("/tmp/build/a-random-guid"))
+							Expect(spec.User).To(Equal("root"))
+							Expect(spec.TTY).To(Equal(&garden.TTYSpec{}))
 						})
 
 						It("directs the process's stdout/stderr to the io config", func() {
-							Ω(fakeContainer.RunCallCount()).Should(Equal(1))
+							Expect(fakeContainer.RunCallCount()).To(Equal(1))
 
 							_, io := fakeContainer.RunArgsForCall(0)
-							Ω(io.Stdout).Should(Equal(stdoutBuf))
-							Ω(io.Stderr).Should(Equal(stderrBuf))
+							Expect(io.Stdout).To(Equal(stdoutBuf))
+							Expect(io.Stderr).To(Equal(stderrBuf))
 						})
 
 						It("saves the process ID as a property", func() {
-							Ω(fakeContainer.SetPropertyCallCount()).ShouldNot(Equal(0))
+							Expect(fakeContainer.SetPropertyCallCount()).NotTo(Equal(0))
 
 							name, value := fakeContainer.SetPropertyArgsForCall(0)
-							Ω(name).Should(Equal("concourse:task-process"))
-							Ω(value).Should(Equal("42"))
+							Expect(name).To(Equal("concourse:task-process"))
+							Expect(value).To(Equal("42"))
 						})
 
 						It("invokes the delegate's Started callback", func() {
-							Ω(taskDelegate.StartedCallCount()).Should(Equal(1))
+							Expect(taskDelegate.StartedCallCount()).To(Equal(1))
 						})
 
 						Context("when privileged", func() {
@@ -264,22 +264,22 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							It("creates the container privileged", func() {
-								Ω(fakeWorker.CreateContainerCallCount()).Should(Equal(1))
+								Expect(fakeWorker.CreateContainerCallCount()).To(Equal(1))
 								_, createdIdentifier, spec := fakeWorker.CreateContainerArgsForCall(0)
-								Ω(createdIdentifier).Should(Equal(identifier))
+								Expect(createdIdentifier).To(Equal(identifier))
 
 								taskSpec := spec.(worker.TaskContainerSpec)
-								Ω(taskSpec.Platform).Should(Equal("some-platform"))
-								Ω(taskSpec.Tags).Should(ConsistOf("config", "step", "tags"))
-								Ω(taskSpec.Image).Should(Equal("some-image"))
-								Ω(taskSpec.Privileged).Should(BeTrue())
+								Expect(taskSpec.Platform).To(Equal("some-platform"))
+								Expect(taskSpec.Tags).To(ConsistOf("config", "step", "tags"))
+								Expect(taskSpec.Image).To(Equal("some-image"))
+								Expect(taskSpec.Privileged).To(BeTrue())
 							})
 
 							It("runs the process as root", func() {
-								Ω(fakeContainer.RunCallCount()).Should(Equal(1))
+								Expect(fakeContainer.RunCallCount()).To(Equal(1))
 
 								spec, _ := fakeContainer.RunArgsForCall(0)
-								Ω(spec).Should(Equal(garden.ProcessSpec{
+								Expect(spec).To(Equal(garden.ProcessSpec{
 									Path: "ls",
 									Args: []string{"some", "args"},
 									Env:  []string{"SOME=params"},
@@ -287,6 +287,7 @@ var _ = Describe("GardenFactory", func() {
 									User: "root",
 									TTY:  &garden.TTYSpec{},
 								}))
+
 							})
 						})
 
@@ -322,36 +323,36 @@ var _ = Describe("GardenFactory", func() {
 								It("streams each of them to their configured destinations", func() {
 									streamIn := new(bytes.Buffer)
 
-									Ω(inputSource.StreamToCallCount()).Should(Equal(1))
+									Expect(inputSource.StreamToCallCount()).To(Equal(1))
 
 									destination := inputSource.StreamToArgsForCall(0)
 
 									initial := fakeContainer.StreamInCallCount()
 
 									err := destination.StreamIn("foo", streamIn)
-									Ω(err).ShouldNot(HaveOccurred())
+									Expect(err).NotTo(HaveOccurred())
 
-									Ω(fakeContainer.StreamInCallCount()).Should(Equal(initial + 1))
+									Expect(fakeContainer.StreamInCallCount()).To(Equal(initial + 1))
 
 									spec := fakeContainer.StreamInArgsForCall(initial)
-									Ω(spec.Path).Should(Equal("/tmp/build/a-random-guid/some-input-configured-path/foo"))
-									Ω(spec.User).Should(Equal("")) // use default
-									Ω(spec.TarStream).Should(Equal(streamIn))
+									Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-input-configured-path/foo"))
+									Expect(spec.User).To(Equal("")) // use default
+									Expect(spec.TarStream).To(Equal(streamIn))
 
-									Ω(otherInputSource.StreamToCallCount()).Should(Equal(1))
+									Expect(otherInputSource.StreamToCallCount()).To(Equal(1))
 
 									destination = otherInputSource.StreamToArgsForCall(0)
 
 									initial = fakeContainer.StreamInCallCount()
 
 									err = destination.StreamIn("foo", streamIn)
-									Ω(err).ShouldNot(HaveOccurred())
+									Expect(err).NotTo(HaveOccurred())
 
-									Ω(fakeContainer.StreamInCallCount()).Should(Equal(initial + 1))
+									Expect(fakeContainer.StreamInCallCount()).To(Equal(initial + 1))
 									spec = fakeContainer.StreamInArgsForCall(initial)
-									Ω(spec.Path).Should(Equal("/tmp/build/a-random-guid/some-other-input/foo"))
-									Ω(spec.User).Should(Equal("")) // use default
-									Ω(spec.TarStream).Should(Equal(streamIn))
+									Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-other-input/foo"))
+									Expect(spec.User).To(Equal("")) // use default
+									Expect(spec.TarStream).To(Equal(streamIn))
 
 									Eventually(process.Wait()).Should(Receive(BeNil()))
 								})
@@ -427,8 +428,8 @@ var _ = Describe("GardenFactory", func() {
 									})
 
 									It("does not stream inputs that had volumes", func() {
-										Ω(inputSource.StreamToCallCount()).Should(Equal(0))
-										Ω(otherInputSource.StreamToCallCount()).Should(Equal(0))
+										Expect(inputSource.StreamToCallCount()).To(Equal(0))
+										Expect(otherInputSource.StreamToCallCount()).To(Equal(0))
 									})
 								})
 
@@ -445,13 +446,13 @@ var _ = Describe("GardenFactory", func() {
 
 									It("does not run anything", func() {
 										Eventually(process.Wait()).Should(Receive())
-										Ω(fakeContainer.RunCallCount()).Should(Equal(0))
+										Expect(fakeContainer.RunCallCount()).To(Equal(0))
 									})
 
 									It("invokes the delegate's Failed callback", func() {
 										Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-										Ω(taskDelegate.FailedCallCount()).Should(Equal(1))
-										Ω(taskDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+										Expect(taskDelegate.FailedCallCount()).To(Equal(1))
+										Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 									})
 								})
 							})
@@ -465,18 +466,18 @@ var _ = Describe("GardenFactory", func() {
 								It("exits with failure", func() {
 									var err error
 									Eventually(process.Wait()).Should(Receive(&err))
-									Ω(err).Should(BeAssignableToTypeOf(MissingInputsError{}))
-									Ω(err.(MissingInputsError).Inputs).Should(ConsistOf("some-other-input"))
+									Expect(err).To(BeAssignableToTypeOf(MissingInputsError{}))
+									Expect(err.(MissingInputsError).Inputs).To(ConsistOf("some-other-input"))
 								})
 
 								It("invokes the delegate's Failed callback", func() {
 									Eventually(process.Wait()).Should(Receive(HaveOccurred()))
 
-									Ω(taskDelegate.FailedCallCount()).Should(Equal(1))
+									Expect(taskDelegate.FailedCallCount()).To(Equal(1))
 
 									err := taskDelegate.FailedArgsForCall(0)
-									Ω(err).Should(BeAssignableToTypeOf(MissingInputsError{}))
-									Ω(err.(MissingInputsError).Inputs).Should(ConsistOf("some-other-input"))
+									Expect(err).To(BeAssignableToTypeOf(MissingInputsError{}))
+									Expect(err.(MissingInputsError).Inputs).To(ConsistOf("some-other-input"))
 								})
 							})
 						})
@@ -489,27 +490,27 @@ var _ = Describe("GardenFactory", func() {
 							It("saves the exit status property", func() {
 								Eventually(process.Wait()).Should(Receive(BeNil()))
 
-								Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(2))
+								Expect(fakeContainer.SetPropertyCallCount()).To(Equal(2))
 
 								name, value := fakeContainer.SetPropertyArgsForCall(1)
-								Ω(name).Should(Equal("concourse:exit-status"))
-								Ω(value).Should(Equal("0"))
+								Expect(name).To(Equal("concourse:exit-status"))
+								Expect(value).To(Equal("0"))
 							})
 
 							It("is successful", func() {
 								Eventually(process.Wait()).Should(Receive(BeNil()))
 
 								var success Success
-								Ω(step.Result(&success)).Should(BeTrue())
-								Ω(bool(success)).Should(BeTrue())
+								Expect(step.Result(&success)).To(BeTrue())
+								Expect(bool(success)).To(BeTrue())
 							})
 
 							It("reports its exit status", func() {
 								Eventually(process.Wait()).Should(Receive(BeNil()))
 
 								var status ExitStatus
-								Ω(step.Result(&status)).Should(BeTrue())
-								Ω(status).Should(Equal(ExitStatus(0)))
+								Expect(step.Result(&status)).To(BeTrue())
+								Expect(status).To(Equal(ExitStatus(0)))
 							})
 
 							Describe("the registered source", func() {
@@ -520,7 +521,7 @@ var _ = Describe("GardenFactory", func() {
 
 									var found bool
 									artifactSource, found = repo.SourceFor(sourceName)
-									Ω(found).Should(BeTrue())
+									Expect(found).To(BeTrue())
 								})
 
 								Describe("streaming to a destination", func() {
@@ -540,17 +541,17 @@ var _ = Describe("GardenFactory", func() {
 
 										It("streams the resource to the destination", func() {
 											err := artifactSource.StreamTo(fakeDestination)
-											Ω(err).ShouldNot(HaveOccurred())
+											Expect(err).NotTo(HaveOccurred())
 
-											Ω(fakeContainer.StreamOutCallCount()).Should(Equal(1))
+											Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
 											spec := fakeContainer.StreamOutArgsForCall(0)
-											Ω(spec.Path).Should(Equal("/tmp/build/a-random-guid/"))
-											Ω(spec.User).Should(Equal("")) // use default
+											Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/"))
+											Expect(spec.User).To(Equal("")) // use default
 
-											Ω(fakeDestination.StreamInCallCount()).Should(Equal(1))
+											Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
 											dest, src := fakeDestination.StreamInArgsForCall(0)
-											Ω(dest).Should(Equal("."))
-											Ω(src).Should(Equal(streamedOut))
+											Expect(dest).To(Equal("."))
+											Expect(src).To(Equal(streamedOut))
 										})
 
 										Context("when streaming out of the versioned source fails", func() {
@@ -561,7 +562,7 @@ var _ = Describe("GardenFactory", func() {
 											})
 
 											It("returns the error", func() {
-												Ω(artifactSource.StreamTo(fakeDestination)).Should(Equal(disaster))
+												Expect(artifactSource.StreamTo(fakeDestination)).To(Equal(disaster))
 											})
 										})
 
@@ -573,7 +574,7 @@ var _ = Describe("GardenFactory", func() {
 											})
 
 											It("returns the error", func() {
-												Ω(artifactSource.StreamTo(fakeDestination)).Should(Equal(disaster))
+												Expect(artifactSource.StreamTo(fakeDestination)).To(Equal(disaster))
 											})
 										})
 									})
@@ -586,7 +587,7 @@ var _ = Describe("GardenFactory", func() {
 										})
 
 										It("returns the error", func() {
-											Ω(artifactSource.StreamTo(fakeDestination)).Should(Equal(disaster))
+											Expect(artifactSource.StreamTo(fakeDestination)).To(Equal(disaster))
 										})
 									})
 								})
@@ -613,34 +614,34 @@ var _ = Describe("GardenFactory", func() {
 													Mode: 0644,
 													Size: int64(len(fileContent)),
 												})
-												Ω(err).ShouldNot(HaveOccurred())
+												Expect(err).NotTo(HaveOccurred())
 
 												_, err = tarWriter.Write([]byte(fileContent))
-												Ω(err).ShouldNot(HaveOccurred())
+												Expect(err).NotTo(HaveOccurred())
 											})
 
 											It("streams out the given path", func() {
 												reader, err := artifactSource.StreamFile("some-path")
-												Ω(err).ShouldNot(HaveOccurred())
+												Expect(err).NotTo(HaveOccurred())
 
-												Ω(ioutil.ReadAll(reader)).Should(Equal([]byte(fileContent)))
+												Expect(ioutil.ReadAll(reader)).To(Equal([]byte(fileContent)))
 
 												spec := fakeContainer.StreamOutArgsForCall(0)
-												Ω(spec.Path).Should(Equal("/tmp/build/a-random-guid/some-path"))
-												Ω(spec.User).Should(Equal("")) // use default
+												Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-path"))
+												Expect(spec.User).To(Equal("")) // use default
 											})
 
 											Describe("closing the stream", func() {
 												It("closes the stream from the versioned source", func() {
 													reader, err := artifactSource.StreamFile("some-path")
-													Ω(err).ShouldNot(HaveOccurred())
+													Expect(err).NotTo(HaveOccurred())
 
-													Ω(tarBuffer.Closed()).Should(BeFalse())
+													Expect(tarBuffer.Closed()).To(BeFalse())
 
 													err = reader.Close()
-													Ω(err).ShouldNot(HaveOccurred())
+													Expect(err).NotTo(HaveOccurred())
 
-													Ω(tarBuffer.Closed()).Should(BeTrue())
+													Expect(tarBuffer.Closed()).To(BeTrue())
 												})
 											})
 										})
@@ -648,7 +649,7 @@ var _ = Describe("GardenFactory", func() {
 										Context("but the stream is empty", func() {
 											It("returns ErrFileNotFound", func() {
 												_, err := artifactSource.StreamFile("some-path")
-												Ω(err).Should(MatchError(FileNotFoundError{Path: "some-path"}))
+												Expect(err).To(MatchError(FileNotFoundError{Path: "some-path"}))
 											})
 										})
 									})
@@ -662,7 +663,7 @@ var _ = Describe("GardenFactory", func() {
 
 										It("returns the error", func() {
 											_, err := artifactSource.StreamFile("some-path")
-											Ω(err).Should(Equal(disaster))
+											Expect(err).To(Equal(disaster))
 										})
 									})
 								})
@@ -677,7 +678,7 @@ var _ = Describe("GardenFactory", func() {
 
 										for i := 0; i < callCount; i++ {
 											name, _ := fakeContainer.SetPropertyArgsForCall(i)
-											Ω(name).ShouldNot(Equal("concourse:exit-status"))
+											Expect(name).NotTo(Equal("concourse:exit-status"))
 										}
 									}
 								})
@@ -685,8 +686,8 @@ var _ = Describe("GardenFactory", func() {
 								It("invokes the delegate's Finished callback", func() {
 									Eventually(process.Wait()).Should(Receive(BeNil()))
 
-									Ω(taskDelegate.FinishedCallCount()).Should(Equal(1))
-									Ω(taskDelegate.FinishedArgsForCall(0)).Should(Equal(ExitStatus(0)))
+									Expect(taskDelegate.FinishedCallCount()).To(Equal(1))
+									Expect(taskDelegate.FinishedArgsForCall(0)).To(Equal(ExitStatus(0)))
 								})
 							})
 
@@ -711,8 +712,8 @@ var _ = Describe("GardenFactory", func() {
 
 								It("invokes the delegate's Failed callback", func() {
 									Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-									Ω(taskDelegate.FailedCallCount()).Should(Equal(1))
-									Ω(taskDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+									Expect(taskDelegate.FailedCallCount()).To(Equal(1))
+									Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 								})
 							})
 						})
@@ -725,27 +726,27 @@ var _ = Describe("GardenFactory", func() {
 							It("saves the exit status property", func() {
 								Eventually(process.Wait()).Should(Receive(BeNil()))
 
-								Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(2))
+								Expect(fakeContainer.SetPropertyCallCount()).To(Equal(2))
 
 								name, value := fakeContainer.SetPropertyArgsForCall(1)
-								Ω(name).Should(Equal("concourse:exit-status"))
-								Ω(value).Should(Equal("1"))
+								Expect(name).To(Equal("concourse:exit-status"))
+								Expect(value).To(Equal("1"))
 							})
 
 							It("is not successful", func() {
 								Eventually(process.Wait()).Should(Receive(BeNil()))
 
 								var success Success
-								Ω(step.Result(&success)).Should(BeTrue())
-								Ω(bool(success)).Should(BeFalse())
+								Expect(step.Result(&success)).To(BeTrue())
+								Expect(bool(success)).To(BeFalse())
 							})
 
 							It("reports its exit status", func() {
 								Eventually(process.Wait()).Should(Receive(BeNil()))
 
 								var status ExitStatus
-								Ω(step.Result(&status)).Should(BeTrue())
-								Ω(status).Should(Equal(ExitStatus(1)))
+								Expect(step.Result(&status)).To(BeTrue())
+								Expect(status).To(Equal(ExitStatus(1)))
 							})
 
 							Describe("before saving the exit status property", func() {
@@ -757,7 +758,7 @@ var _ = Describe("GardenFactory", func() {
 
 										for i := 0; i < callCount; i++ {
 											name, _ := fakeContainer.SetPropertyArgsForCall(i)
-											Ω(name).ShouldNot(Equal("concourse:exit-status"))
+											Expect(name).NotTo(Equal("concourse:exit-status"))
 										}
 									}
 								})
@@ -765,8 +766,8 @@ var _ = Describe("GardenFactory", func() {
 								It("invokes the delegate's Finished callback", func() {
 									Eventually(process.Wait()).Should(Receive(BeNil()))
 
-									Ω(taskDelegate.FinishedCallCount()).Should(Equal(1))
-									Ω(taskDelegate.FinishedArgsForCall(0)).Should(Equal(ExitStatus(1)))
+									Expect(taskDelegate.FinishedCallCount()).To(Equal(1))
+									Expect(taskDelegate.FinishedArgsForCall(0)).To(Equal(ExitStatus(1)))
 								})
 							})
 
@@ -791,8 +792,8 @@ var _ = Describe("GardenFactory", func() {
 
 								It("invokes the delegate's Failed callback", func() {
 									Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-									Ω(taskDelegate.FailedCallCount()).Should(Equal(1))
-									Ω(taskDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+									Expect(taskDelegate.FailedCallCount()).To(Equal(1))
+									Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 								})
 							})
 						})
@@ -810,8 +811,8 @@ var _ = Describe("GardenFactory", func() {
 
 							It("invokes the delegate's Failed callback", func() {
 								Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-								Ω(taskDelegate.FailedCallCount()).Should(Equal(1))
-								Ω(taskDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+								Expect(taskDelegate.FailedCallCount()).To(Equal(1))
+								Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 							})
 						})
 
@@ -828,8 +829,8 @@ var _ = Describe("GardenFactory", func() {
 
 							It("invokes the delegate's Failed callback", func() {
 								Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-								Ω(taskDelegate.FailedCallCount()).Should(Equal(1))
-								Ω(taskDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+								Expect(taskDelegate.FailedCallCount()).To(Equal(1))
+								Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 							})
 						})
 
@@ -858,16 +859,16 @@ var _ = Describe("GardenFactory", func() {
 								process.Signal(os.Interrupt)
 								Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
 
-								Ω(fakeContainer.StopCallCount()).Should(Equal(1))
+								Expect(fakeContainer.StopCallCount()).To(Equal(1))
 							})
 						})
 
 						Describe("releasing", func() {
 							It("releases the container", func() {
-								Ω(fakeContainer.ReleaseCallCount()).Should(BeZero())
+								Expect(fakeContainer.ReleaseCallCount()).To(BeZero())
 
 								step.Release()
-								Ω(fakeContainer.ReleaseCallCount()).Should(Equal(1))
+								Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
 							})
 						})
 
@@ -884,8 +885,8 @@ var _ = Describe("GardenFactory", func() {
 
 							It("invokes the delegate's Failed callback", func() {
 								Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-								Ω(taskDelegate.FailedCallCount()).Should(Equal(1))
-								Ω(taskDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+								Expect(taskDelegate.FailedCallCount()).To(Equal(1))
+								Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 							})
 						})
 					})
@@ -903,8 +904,8 @@ var _ = Describe("GardenFactory", func() {
 
 						It("invokes the delegate's Failed callback", func() {
 							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-							Ω(taskDelegate.FailedCallCount()).Should(Equal(1))
-							Ω(taskDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+							Expect(taskDelegate.FailedCallCount()).To(Equal(1))
+							Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 						})
 					})
 				})
@@ -923,8 +924,8 @@ var _ = Describe("GardenFactory", func() {
 
 				It("invokes the delegate's Failed callback", func() {
 					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-					Ω(taskDelegate.FailedCallCount()).Should(Equal(1))
-					Ω(taskDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+					Expect(taskDelegate.FailedCallCount()).To(Equal(1))
+					Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 				})
 			})
 		})
@@ -956,33 +957,33 @@ var _ = Describe("GardenFactory", func() {
 				})
 
 				It("does not attach to any process", func() {
-					Ω(fakeContainer.AttachCallCount()).Should(BeZero())
+					Expect(fakeContainer.AttachCallCount()).To(BeZero())
 				})
 
 				It("is not successful", func() {
 					Eventually(process.Wait()).Should(Receive(BeNil()))
 
 					var success Success
-					Ω(step.Result(&success)).Should(BeTrue())
-					Ω(bool(success)).Should(BeFalse())
+					Expect(step.Result(&success)).To(BeTrue())
+					Expect(bool(success)).To(BeFalse())
 				})
 
 				It("reports its exit status", func() {
 					Eventually(process.Wait()).Should(Receive(BeNil()))
 
 					var status ExitStatus
-					Ω(step.Result(&status)).Should(BeTrue())
-					Ω(status).Should(Equal(ExitStatus(123)))
+					Expect(step.Result(&status)).To(BeTrue())
+					Expect(status).To(Equal(ExitStatus(123)))
 				})
 
 				It("does not invoke the delegate's Started callback", func() {
 					Eventually(process.Wait()).Should(Receive(BeNil()))
-					Ω(taskDelegate.StartedCallCount()).Should(BeZero())
+					Expect(taskDelegate.StartedCallCount()).To(BeZero())
 				})
 
 				It("does not invoke the delegate's Finished callback", func() {
 					Eventually(process.Wait()).Should(Receive(BeNil()))
-					Ω(taskDelegate.FinishedCallCount()).Should(BeZero())
+					Expect(taskDelegate.FinishedCallCount()).To(BeZero())
 				})
 			})
 
@@ -1009,22 +1010,22 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					It("attaches to the correct process", func() {
-						Ω(fakeContainer.AttachCallCount()).Should(Equal(1))
+						Expect(fakeContainer.AttachCallCount()).To(Equal(1))
 
 						pid, _ := fakeContainer.AttachArgsForCall(0)
-						Ω(pid).Should(Equal(uint32(42)))
+						Expect(pid).To(Equal(uint32(42)))
 					})
 
 					It("directs the process's stdout/stderr to the io config", func() {
-						Ω(fakeContainer.AttachCallCount()).Should(Equal(1))
+						Expect(fakeContainer.AttachCallCount()).To(Equal(1))
 
 						_, pio := fakeContainer.AttachArgsForCall(0)
-						Ω(pio.Stdout).Should(Equal(stdoutBuf))
-						Ω(pio.Stderr).Should(Equal(stderrBuf))
+						Expect(pio.Stdout).To(Equal(stdoutBuf))
+						Expect(pio.Stderr).To(Equal(stderrBuf))
 					})
 
 					It("does not invoke the delegate's Started callback", func() {
-						Ω(taskDelegate.StartedCallCount()).Should(BeZero())
+						Expect(taskDelegate.StartedCallCount()).To(BeZero())
 					})
 				})
 
@@ -1041,8 +1042,8 @@ var _ = Describe("GardenFactory", func() {
 
 					It("invokes the delegate's Failed callback", func() {
 						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-						Ω(taskDelegate.FailedCallCount()).Should(Equal(1))
-						Ω(taskDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+						Expect(taskDelegate.FailedCallCount()).To(Equal(1))
+						Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 					})
 				})
 			})
@@ -1061,7 +1062,7 @@ var _ = Describe("GardenFactory", func() {
 				It("invokes the delegate's Failed callback", func() {
 					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 					Eventually(taskDelegate.FailedCallCount()).Should(Equal(1))
-					Ω(taskDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+					Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 				})
 			})
 		})

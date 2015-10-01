@@ -43,7 +43,7 @@ var _ = Describe("The Location Populator: put", func() {
 			}
 
 			locationPopulator.PopulateLocations(testSeq)
-			Ω(testSeq).Should(Equal(expected))
+			Expect(testSeq).To(Equal(expected))
 		})
 	})
 
@@ -81,7 +81,7 @@ var _ = Describe("The Location Populator: put", func() {
 			}
 
 			locationPopulator.PopulateLocations(testSeq)
-			Ω(testSeq).Should(Equal(expected))
+			Expect(testSeq).To(Equal(expected))
 		})
 	})
 
@@ -126,7 +126,7 @@ var _ = Describe("The Location Populator: put", func() {
 			}
 
 			locationPopulator.PopulateLocations(testSeq)
-			Ω(testSeq).Should(Equal(expected))
+			Expect(testSeq).To(Equal(expected))
 		})
 	})
 
@@ -164,7 +164,7 @@ var _ = Describe("The Location Populator: put", func() {
 			}
 
 			locationPopulator.PopulateLocations(testSeq)
-			Ω(testSeq).Should(Equal(expected))
+			Expect(testSeq).To(Equal(expected))
 		})
 	})
 })

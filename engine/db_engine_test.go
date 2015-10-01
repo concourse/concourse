@@ -88,20 +88,20 @@ var _ = Describe("DBEngine", func() {
 			})
 
 			It("succeeds", func() {
-				Ω(buildErr).ShouldNot(HaveOccurred())
+				Expect(buildErr).NotTo(HaveOccurred())
 			})
 
 			It("returns a build", func() {
-				Ω(createdBuild).ShouldNot(BeNil())
+				Expect(createdBuild).NotTo(BeNil())
 			})
 
 			It("starts the build in the database", func() {
-				Ω(fakeBuildDB.StartBuildCallCount()).Should(Equal(1))
+				Expect(fakeBuildDB.StartBuildCallCount()).To(Equal(1))
 
 				buildID, engine, metadata := fakeBuildDB.StartBuildArgsForCall(0)
-				Ω(buildID).Should(Equal(128))
-				Ω(engine).Should(Equal("fake-engine-a"))
-				Ω(metadata).Should(Equal("some-metadata"))
+				Expect(buildID).To(Equal(128))
+				Expect(engine).To(Equal("fake-engine-a"))
+				Expect(metadata).To(Equal("some-metadata"))
 			})
 
 			Context("when the build fails to transition to started", func() {
@@ -110,7 +110,7 @@ var _ = Describe("DBEngine", func() {
 				})
 
 				It("aborts the build", func() {
-					Ω(fakeBuild.AbortCallCount()).Should(Equal(1))
+					Expect(fakeBuild.AbortCallCount()).To(Equal(1))
 				})
 			})
 		})
@@ -123,11 +123,11 @@ var _ = Describe("DBEngine", func() {
 			})
 
 			It("returns the error", func() {
-				Ω(buildErr).Should(Equal(disaster))
+				Expect(buildErr).To(Equal(disaster))
 			})
 
 			It("does not start the build", func() {
-				Ω(fakeBuildDB.StartBuildCallCount()).Should(Equal(0))
+				Expect(fakeBuildDB.StartBuildCallCount()).To(Equal(0))
 			})
 		})
 	})
@@ -152,11 +152,11 @@ var _ = Describe("DBEngine", func() {
 		})
 
 		It("succeeds", func() {
-			Ω(lookupErr).ShouldNot(HaveOccurred())
+			Expect(lookupErr).NotTo(HaveOccurred())
 		})
 
 		It("returns a build", func() {
-			Ω(foundBuild).ShouldNot(BeNil())
+			Expect(foundBuild).NotTo(BeNil())
 		})
 
 		Describe("Abort", func() {
@@ -179,12 +179,12 @@ var _ = Describe("DBEngine", func() {
 				})
 
 				It("succeeds", func() {
-					Ω(abortErr).ShouldNot(HaveOccurred())
+					Expect(abortErr).NotTo(HaveOccurred())
 				})
 
 				It("marks the build as aborted", func() {
-					Ω(fakeBuildDB.AbortBuildCallCount()).Should(Equal(1))
-					Ω(fakeBuildDB.AbortBuildArgsForCall(0)).Should(Equal(build.ID))
+					Expect(fakeBuildDB.AbortBuildCallCount()).To(Equal(1))
+					Expect(fakeBuildDB.AbortBuildArgsForCall(0)).To(Equal(build.ID))
 				})
 			})
 
@@ -197,12 +197,12 @@ var _ = Describe("DBEngine", func() {
 				})
 
 				It("succeeds", func() {
-					Ω(abortErr).ShouldNot(HaveOccurred())
+					Expect(abortErr).NotTo(HaveOccurred())
 				})
 
 				It("marks the build as aborted", func() {
-					Ω(fakeBuildDB.AbortBuildCallCount()).Should(Equal(1))
-					Ω(fakeBuildDB.AbortBuildArgsForCall(0)).Should(Equal(build.ID))
+					Expect(fakeBuildDB.AbortBuildCallCount()).To(Equal(1))
+					Expect(fakeBuildDB.AbortBuildArgsForCall(0)).To(Equal(build.ID))
 				})
 			})
 
@@ -215,11 +215,11 @@ var _ = Describe("DBEngine", func() {
 				})
 
 				It("fails", func() {
-					Ω(abortErr).Should(HaveOccurred())
+					Expect(abortErr).To(HaveOccurred())
 				})
 
 				It("does not mark the build as aborted", func() {
-					Ω(fakeBuildDB.AbortBuildCallCount()).Should(Equal(0))
+					Expect(fakeBuildDB.AbortBuildCallCount()).To(Equal(0))
 				})
 			})
 		})
@@ -241,7 +241,7 @@ var _ = Describe("DBEngine", func() {
 
 			var err error
 			build, err = dbEngine.LookupBuild(model)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Describe("Abort", func() {
@@ -266,13 +266,13 @@ var _ = Describe("DBEngine", func() {
 						fakeBuildDB.GetBuildReturns(model, true, nil)
 
 						fakeBuildDB.AbortBuildStub = func(int) error {
-							Ω(fakeBuildDB.LeaseBuildTrackingCallCount()).Should(Equal(1))
+							Expect(fakeBuildDB.LeaseBuildTrackingCallCount()).To(Equal(1))
 
 							lockedBuild, interval := fakeBuildDB.LeaseBuildTrackingArgsForCall(0)
-							Ω(lockedBuild).Should(Equal(model.ID))
-							Ω(interval).Should(Equal(time.Minute))
+							Expect(lockedBuild).To(Equal(model.ID))
+							Expect(interval).To(Equal(time.Minute))
 
-							Ω(fakeLease.BreakCallCount()).Should(BeZero())
+							Expect(fakeLease.BreakCallCount()).To(BeZero())
 
 							return nil
 						}
@@ -294,22 +294,22 @@ var _ = Describe("DBEngine", func() {
 							})
 
 							It("succeeds", func() {
-								Ω(abortErr).ShouldNot(HaveOccurred())
+								Expect(abortErr).NotTo(HaveOccurred())
 							})
 
 							It("breaks the lease", func() {
-								Ω(fakeLease.BreakCallCount()).Should(Equal(1))
+								Expect(fakeLease.BreakCallCount()).To(Equal(1))
 							})
 
 							It("aborts the build via the db", func() {
-								Ω(fakeBuildDB.AbortBuildCallCount()).Should(Equal(1))
+								Expect(fakeBuildDB.AbortBuildCallCount()).To(Equal(1))
 
 								buildID := fakeBuildDB.AbortBuildArgsForCall(0)
-								Ω(buildID).Should(Equal(model.ID))
+								Expect(buildID).To(Equal(model.ID))
 							})
 
 							It("aborts the real build", func() {
-								Ω(realBuild.AbortCallCount()).Should(Equal(1))
+								Expect(realBuild.AbortCallCount()).To(Equal(1))
 							})
 						})
 
@@ -321,15 +321,15 @@ var _ = Describe("DBEngine", func() {
 							})
 
 							It("returns the error", func() {
-								Ω(abortErr).Should(Equal(disaster))
+								Expect(abortErr).To(Equal(disaster))
 							})
 
 							It("does not abort the real build", func() {
-								Ω(realBuild.AbortCallCount()).Should(BeZero())
+								Expect(realBuild.AbortCallCount()).To(BeZero())
 							})
 
 							It("releases the lease", func() {
-								Ω(fakeLease.BreakCallCount()).Should(Equal(1))
+								Expect(fakeLease.BreakCallCount()).To(Equal(1))
 							})
 						})
 
@@ -341,11 +341,11 @@ var _ = Describe("DBEngine", func() {
 							})
 
 							It("returns the error", func() {
-								Ω(abortErr).Should(Equal(disaster))
+								Expect(abortErr).To(Equal(disaster))
 							})
 
 							It("releases the lock", func() {
-								Ω(fakeLease.BreakCallCount()).Should(Equal(1))
+								Expect(fakeLease.BreakCallCount()).To(Equal(1))
 							})
 						})
 					})
@@ -359,11 +359,11 @@ var _ = Describe("DBEngine", func() {
 						})
 
 						It("returns the error", func() {
-							Ω(abortErr).Should(Equal(disaster))
+							Expect(abortErr).To(Equal(disaster))
 						})
 
 						It("breaks the lease", func() {
-							Ω(fakeLease.BreakCallCount()).Should(Equal(1))
+							Expect(fakeLease.BreakCallCount()).To(Equal(1))
 						})
 					})
 				})
@@ -375,26 +375,26 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					It("succeeds", func() {
-						Ω(abortErr).ShouldNot(HaveOccurred())
+						Expect(abortErr).NotTo(HaveOccurred())
 					})
 
 					It("aborts the build in the db", func() {
-						Ω(fakeBuildDB.AbortBuildCallCount()).Should(Equal(1))
+						Expect(fakeBuildDB.AbortBuildCallCount()).To(Equal(1))
 
 						buildID := fakeBuildDB.AbortBuildArgsForCall(0)
-						Ω(buildID).Should(Equal(model.ID))
+						Expect(buildID).To(Equal(model.ID))
 					})
 
 					It("finishes the build in the db so that the aborted event is emitted", func() {
-						Ω(fakeBuildDB.FinishBuildCallCount()).Should(Equal(1))
+						Expect(fakeBuildDB.FinishBuildCallCount()).To(Equal(1))
 
 						buildID, status := fakeBuildDB.FinishBuildArgsForCall(0)
-						Ω(buildID).Should(Equal(model.ID))
-						Ω(status).Should(Equal(db.StatusAborted))
+						Expect(buildID).To(Equal(model.ID))
+						Expect(status).To(Equal(db.StatusAborted))
 					})
 
 					It("breaks the lease", func() {
-						Ω(fakeLease.BreakCallCount()).Should(Equal(1))
+						Expect(fakeLease.BreakCallCount()).To(Equal(1))
 					})
 				})
 
@@ -404,22 +404,22 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					It("succeeds", func() {
-						Ω(abortErr).ShouldNot(HaveOccurred())
+						Expect(abortErr).NotTo(HaveOccurred())
 					})
 
 					It("aborts the build in the db", func() {
-						Ω(fakeBuildDB.AbortBuildCallCount()).Should(Equal(1))
+						Expect(fakeBuildDB.AbortBuildCallCount()).To(Equal(1))
 
 						buildID := fakeBuildDB.AbortBuildArgsForCall(0)
-						Ω(buildID).Should(Equal(model.ID))
+						Expect(buildID).To(Equal(model.ID))
 					})
 
 					It("does not finish the build", func() {
-						Ω(fakeBuildDB.FinishBuildCallCount()).Should(Equal(0))
+						Expect(fakeBuildDB.FinishBuildCallCount()).To(Equal(0))
 					})
 
 					It("breaks the lease", func() {
-						Ω(fakeLease.BreakCallCount()).Should(Equal(1))
+						Expect(fakeLease.BreakCallCount()).To(Equal(1))
 					})
 				})
 			})
@@ -430,11 +430,11 @@ var _ = Describe("DBEngine", func() {
 				})
 
 				It("errors", func() {
-					Ω(abortErr).Should(HaveOccurred())
+					Expect(abortErr).To(HaveOccurred())
 				})
 
 				It("does not abort the build in the db", func() {
-					Ω(fakeBuildDB.AbortBuildCallCount()).Should(Equal(0))
+					Expect(fakeBuildDB.AbortBuildCallCount()).To(Equal(0))
 				})
 			})
 
@@ -449,17 +449,17 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					It("succeeds", func() {
-						Ω(abortErr).ShouldNot(HaveOccurred())
+						Expect(abortErr).NotTo(HaveOccurred())
 					})
 
 					It("aborts the build in the db", func() {
-						Ω(fakeBuildDB.AbortBuildCallCount()).Should(Equal(1))
-						Ω(fakeBuildDB.AbortBuildArgsForCall(0)).Should(Equal(model.ID))
+						Expect(fakeBuildDB.AbortBuildCallCount()).To(Equal(1))
+						Expect(fakeBuildDB.AbortBuildArgsForCall(0)).To(Equal(model.ID))
 					})
 
 					It("does not abort the real build", func() {
-						Ω(fakeBuildDB.GetBuildCallCount()).Should(BeZero())
-						Ω(fakeEngineB.LookupBuildCallCount()).Should(BeZero())
+						Expect(fakeBuildDB.GetBuildCallCount()).To(BeZero())
+						Expect(fakeEngineB.LookupBuildCallCount()).To(BeZero())
 					})
 				})
 
@@ -471,7 +471,7 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					It("fails", func() {
-						Ω(abortErr).Should(Equal(disaster))
+						Expect(abortErr).To(Equal(disaster))
 					})
 				})
 			})
@@ -512,13 +512,13 @@ var _ = Describe("DBEngine", func() {
 							fakeEngineB.LookupBuildReturns(realBuild, nil)
 
 							realBuild.ResumeStub = func(lager.Logger) {
-								Ω(fakeBuildDB.LeaseBuildTrackingCallCount()).Should(Equal(1))
+								Expect(fakeBuildDB.LeaseBuildTrackingCallCount()).To(Equal(1))
 
 								lockedBuild, interval := fakeBuildDB.LeaseBuildTrackingArgsForCall(0)
-								Ω(lockedBuild).Should(Equal(model.ID))
-								Ω(interval).Should(Equal(time.Minute))
+								Expect(lockedBuild).To(Equal(model.ID))
+								Expect(interval).To(Equal(time.Minute))
 
-								Ω(fakeLease.BreakCallCount()).Should(BeZero())
+								Expect(fakeLease.BreakCallCount()).To(BeZero())
 							}
 						})
 
@@ -539,20 +539,20 @@ var _ = Describe("DBEngine", func() {
 							})
 
 							It("listens for aborts", func() {
-								Ω(fakeBuildDB.AbortNotifierCallCount()).Should(Equal(1))
-								Ω(fakeBuildDB.AbortNotifierArgsForCall(0)).Should(Equal(model.ID))
+								Expect(fakeBuildDB.AbortNotifierCallCount()).To(Equal(1))
+								Expect(fakeBuildDB.AbortNotifierArgsForCall(0)).To(Equal(model.ID))
 							})
 
 							It("resumes the build", func() {
-								Ω(realBuild.ResumeCallCount()).Should(Equal(1))
+								Expect(realBuild.ResumeCallCount()).To(Equal(1))
 							})
 
 							It("breaks the lease", func() {
-								Ω(fakeLease.BreakCallCount()).Should(Equal(1))
+								Expect(fakeLease.BreakCallCount()).To(Equal(1))
 							})
 
 							It("closes the notifier", func() {
-								Ω(notifier.CloseCallCount()).Should(Equal(1))
+								Expect(notifier.CloseCallCount()).To(Equal(1))
 							})
 
 							Context("when the build is aborted", func() {
@@ -574,15 +574,15 @@ var _ = Describe("DBEngine", func() {
 								})
 
 								It("aborts the build", func() {
-									Ω(realBuild.AbortCallCount()).Should(Equal(1))
+									Expect(realBuild.AbortCallCount()).To(Equal(1))
 								})
 
 								It("breaks the lease", func() {
-									Ω(fakeLease.BreakCallCount()).Should(Equal(1))
+									Expect(fakeLease.BreakCallCount()).To(Equal(1))
 								})
 
 								It("closes the notifier", func() {
-									Ω(notifier.CloseCallCount()).Should(Equal(1))
+									Expect(notifier.CloseCallCount()).To(Equal(1))
 								})
 							})
 						})
@@ -595,11 +595,11 @@ var _ = Describe("DBEngine", func() {
 							})
 
 							It("does not resume the build", func() {
-								Ω(realBuild.ResumeCallCount()).Should(BeZero())
+								Expect(realBuild.ResumeCallCount()).To(BeZero())
 							})
 
 							It("breaks the lease", func() {
-								Ω(fakeLease.BreakCallCount()).Should(Equal(1))
+								Expect(fakeLease.BreakCallCount()).To(Equal(1))
 							})
 						})
 					})
@@ -613,14 +613,14 @@ var _ = Describe("DBEngine", func() {
 						})
 
 						It("breaks the lease", func() {
-							Ω(fakeLease.BreakCallCount()).Should(Equal(1))
+							Expect(fakeLease.BreakCallCount()).To(Equal(1))
 						})
 
 						It("marks the build as errored", func() {
-							Ω(fakeBuildDB.FinishBuildCallCount()).Should(Equal(1))
+							Expect(fakeBuildDB.FinishBuildCallCount()).To(Equal(1))
 							buildID, buildStatus := fakeBuildDB.FinishBuildArgsForCall(0)
-							Ω(buildID).Should(Equal(model.ID))
-							Ω(buildStatus).Should(Equal(db.StatusErrored))
+							Expect(buildID).To(Equal(model.ID))
+							Expect(buildStatus).To(Equal(db.StatusErrored))
 						})
 					})
 				})
@@ -632,10 +632,10 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					It("marks the build as errored", func() {
-						Ω(fakeBuildDB.FinishBuildCallCount()).Should(Equal(1))
+						Expect(fakeBuildDB.FinishBuildCallCount()).To(Equal(1))
 						buildID, buildStatus := fakeBuildDB.FinishBuildArgsForCall(0)
-						Ω(buildID).Should(Equal(model.ID))
-						Ω(buildStatus).Should(Equal(db.StatusErrored))
+						Expect(buildID).To(Equal(model.ID))
+						Expect(buildStatus).To(Equal(db.StatusErrored))
 					})
 				})
 
@@ -646,11 +646,11 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					It("does not look up the build in the engine", func() {
-						Ω(fakeEngineB.LookupBuildCallCount()).Should(BeZero())
+						Expect(fakeEngineB.LookupBuildCallCount()).To(BeZero())
 					})
 
 					It("breaks the lease", func() {
-						Ω(fakeLease.BreakCallCount()).Should(Equal(1))
+						Expect(fakeLease.BreakCallCount()).To(Equal(1))
 					})
 				})
 
@@ -662,11 +662,11 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					It("does not look up the build in the engine", func() {
-						Ω(fakeEngineB.LookupBuildCallCount()).Should(BeZero())
+						Expect(fakeEngineB.LookupBuildCallCount()).To(BeZero())
 					})
 
 					It("breaks the lease", func() {
-						Ω(fakeLease.BreakCallCount()).Should(Equal(1))
+						Expect(fakeLease.BreakCallCount()).To(Equal(1))
 					})
 				})
 
@@ -676,11 +676,11 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					It("does not look up the build in the engine", func() {
-						Ω(fakeEngineB.LookupBuildCallCount()).Should(BeZero())
+						Expect(fakeEngineB.LookupBuildCallCount()).To(BeZero())
 					})
 
 					It("breaks the lease", func() {
-						Ω(fakeLease.BreakCallCount()).Should(Equal(1))
+						Expect(fakeLease.BreakCallCount()).To(Equal(1))
 					})
 				})
 			})
@@ -691,8 +691,8 @@ var _ = Describe("DBEngine", func() {
 				})
 
 				It("does not look up the build", func() {
-					Ω(fakeBuildDB.GetBuildCallCount()).Should(BeZero())
-					Ω(fakeEngineB.LookupBuildCallCount()).Should(BeZero())
+					Expect(fakeBuildDB.GetBuildCallCount()).To(BeZero())
+					Expect(fakeEngineB.LookupBuildCallCount()).To(BeZero())
 				})
 			})
 		})

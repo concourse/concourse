@@ -55,15 +55,15 @@ var _ = Describe("Aggregate", func() {
 	})
 
 	It("uses the input source for all steps", func() {
-		Ω(fakeStepA.UsingCallCount()).Should(Equal(1))
+		Expect(fakeStepA.UsingCallCount()).To(Equal(1))
 		step, repo := fakeStepA.UsingArgsForCall(0)
-		Ω(step).Should(Equal(inStep))
-		Ω(repo).Should(Equal(repo))
+		Expect(step).To(Equal(inStep))
+		Expect(repo).To(Equal(repo))
 
-		Ω(fakeStepB.UsingCallCount()).Should(Equal(1))
+		Expect(fakeStepB.UsingCallCount()).To(Equal(1))
 		step, repo = fakeStepB.UsingArgsForCall(0)
-		Ω(step).Should(Equal(inStep))
-		Ω(repo).Should(Equal(repo))
+		Expect(step).To(Equal(inStep))
+		Expect(repo).To(Equal(repo))
 	})
 
 	It("exits successfully", func() {
@@ -91,8 +91,8 @@ var _ = Describe("Aggregate", func() {
 		})
 
 		It("happens concurrently", func() {
-			Ω(outStepA.RunCallCount()).Should(Equal(1))
-			Ω(outStepB.RunCallCount()).Should(Equal(1))
+			Expect(outStepA.RunCallCount()).To(Equal(1))
+			Expect(outStepB.RunCallCount()).To(Equal(1))
 		})
 	})
 
@@ -136,8 +136,8 @@ var _ = Describe("Aggregate", func() {
 			var err error
 			Eventually(process.Wait()).Should(Receive(&err))
 
-			Ω(err.Error()).Should(ContainSubstring("nope A"))
-			Ω(err.Error()).Should(ContainSubstring("nope B"))
+			Expect(err.Error()).To(ContainSubstring("nope A"))
+			Expect(err.Error()).To(ContainSubstring("nope B"))
 		})
 	})
 
@@ -145,8 +145,8 @@ var _ = Describe("Aggregate", func() {
 		It("releases all sources", func() {
 			step.Release()
 
-			Ω(outStepA.ReleaseCallCount()).Should(Equal(1))
-			Ω(outStepB.ReleaseCallCount()).Should(Equal(1))
+			Expect(outStepA.ReleaseCallCount()).To(Equal(1))
+			Expect(outStepB.ReleaseCallCount()).To(Equal(1))
 		})
 	})
 
@@ -154,7 +154,7 @@ var _ = Describe("Aggregate", func() {
 		Context("when the result type is bad", func() {
 			It("returns false", func() {
 				result := "this-is-bad"
-				Ω(step.Result(&result)).Should(BeFalse())
+				Expect(step.Result(&result)).To(BeFalse())
 			})
 		})
 
@@ -172,8 +172,8 @@ var _ = Describe("Aggregate", func() {
 				})
 
 				It("yields true", func() {
-					Ω(step.Result(&result)).Should(BeTrue())
-					Ω(result).Should(Equal(Success(true)))
+					Expect(step.Result(&result)).To(BeTrue())
+					Expect(result).To(Equal(Success(true)))
 				})
 			})
 
@@ -184,8 +184,8 @@ var _ = Describe("Aggregate", func() {
 				})
 
 				It("yields false", func() {
-					Ω(step.Result(&result)).Should(BeTrue())
-					Ω(result).Should(Equal(Success(false)))
+					Expect(step.Result(&result)).To(BeTrue())
+					Expect(result).To(Equal(Success(false)))
 				})
 			})
 
@@ -196,8 +196,8 @@ var _ = Describe("Aggregate", func() {
 				})
 
 				It("only considers the branches that do", func() {
-					Ω(step.Result(&result)).Should(BeTrue())
-					Ω(result).Should(Equal(Success(true)))
+					Expect(step.Result(&result)).To(BeTrue())
+					Expect(result).To(Equal(Success(true)))
 				})
 			})
 
@@ -208,8 +208,8 @@ var _ = Describe("Aggregate", func() {
 				})
 
 				It("returns false", func() {
-					Ω(step.Result(&result)).Should(BeFalse())
-					Ω(result).Should(Equal(Success(false)))
+					Expect(step.Result(&result)).To(BeFalse())
+					Expect(result).To(Equal(Success(false)))
 				})
 			})
 
@@ -219,8 +219,8 @@ var _ = Describe("Aggregate", func() {
 				})
 
 				It("returns true", func() {
-					Ω(step.Result(&result)).Should(BeTrue())
-					Ω(result).Should(Equal(Success(true)))
+					Expect(step.Result(&result)).To(BeTrue())
+					Expect(result).To(Equal(Success(true)))
 				})
 			})
 		})

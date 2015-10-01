@@ -47,7 +47,7 @@ var _ = Describe("The Location Populator: timeout", func() {
 			}
 
 			locationPopulator.PopulateLocations(testSeq)
-			Ω(testSeq).Should(Equal(expected))
+			Expect(testSeq).To(Equal(expected))
 		})
 
 	})

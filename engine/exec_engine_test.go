@@ -244,93 +244,95 @@ var _ = Describe("ExecEngine", func() {
 				It("constructs the put correctly", func() {
 					var err error
 					build, err = execEngine.CreateBuild(buildModel, outputPlan)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
-					Ω(fakeFactory.PutCallCount()).Should(Equal(2))
+					Expect(fakeFactory.PutCallCount()).To(Equal(2))
 
 					logger, metadata, workerID, delegate, resourceConfig, tags, params := fakeFactory.PutArgsForCall(0)
-					Ω(logger).ShouldNot(BeNil())
-					Ω(metadata).Should(Equal(expectedMetadata))
-					Ω(workerID).Should(Equal(worker.Identifier{
+					Expect(logger).NotTo(BeNil())
+					Expect(metadata).To(Equal(expectedMetadata))
+					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID:      42,
 						Type:         db.ContainerTypePut,
 						Name:         "some-put",
 						PipelineName: "some-pipeline",
 					}))
-					Ω(tags).Should(BeEmpty())
-					Ω(delegate).Should(Equal(fakeOutputDelegate))
-					Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
-					Ω(resourceConfig.Type).Should(Equal("some-type"))
-					Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
-					Ω(params).Should(Equal(atc.Params{"some": "params"}))
+
+					Expect(tags).To(BeEmpty())
+					Expect(delegate).To(Equal(fakeOutputDelegate))
+					Expect(resourceConfig.Name).To(Equal("some-output-resource"))
+					Expect(resourceConfig.Type).To(Equal("some-type"))
+					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
+					Expect(params).To(Equal(atc.Params{"some": "params"}))
 
 					logger, metadata, workerID, delegate, resourceConfig, tags, params = fakeFactory.PutArgsForCall(1)
-					Ω(logger).ShouldNot(BeNil())
-					Ω(metadata).Should(Equal(expectedMetadata))
-					Ω(workerID).Should(Equal(worker.Identifier{
+					Expect(logger).NotTo(BeNil())
+					Expect(metadata).To(Equal(expectedMetadata))
+					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID:      42,
 						Type:         db.ContainerTypePut,
 						Name:         "some-put-2",
 						PipelineName: "some-pipeline",
 					}))
-					Ω(tags).Should(BeEmpty())
-					Ω(delegate).Should(Equal(fakeOutputDelegate))
-					Ω(resourceConfig.Name).Should(Equal("some-output-resource-2"))
-					Ω(resourceConfig.Type).Should(Equal("some-type-2"))
-					Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source-2"}))
-					Ω(params).Should(Equal(atc.Params{"some": "params-2"}))
+
+					Expect(tags).To(BeEmpty())
+					Expect(delegate).To(Equal(fakeOutputDelegate))
+					Expect(resourceConfig.Name).To(Equal("some-output-resource-2"))
+					Expect(resourceConfig.Type).To(Equal("some-type-2"))
+					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source-2"}))
+					Expect(params).To(Equal(atc.Params{"some": "params-2"}))
 				})
 				It("constructs the dependent get correctly", func() {
 					var err error
 					build, err = execEngine.CreateBuild(buildModel, outputPlan)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
-					Ω(fakeFactory.DependentGetCallCount()).Should(Equal(2))
+					Expect(fakeFactory.DependentGetCallCount()).To(Equal(2))
 
 					logger, metadata, sourceName, workerID, delegate, resourceConfig, tags, params := fakeFactory.DependentGetArgsForCall(0)
-					Ω(logger).ShouldNot(BeNil())
-					Ω(metadata).Should(Equal(expectedMetadata))
-					Ω(workerID).Should(Equal(worker.Identifier{
+					Expect(logger).NotTo(BeNil())
+					Expect(metadata).To(Equal(expectedMetadata))
+					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID:      42,
 						Type:         db.ContainerTypeGet,
 						Name:         "some-put",
 						PipelineName: "some-pipeline",
 					}))
 
-					Ω(tags).Should(BeEmpty())
-					Ω(delegate).Should(Equal(fakeInputDelegate))
+					Expect(tags).To(BeEmpty())
+					Expect(delegate).To(Equal(fakeInputDelegate))
 					_, plan, location := fakeDelegate.InputDelegateArgsForCall(0)
-					Ω(plan).Should(Equal((*outputPlan.Aggregate)[0].OnSuccess.Next.DependentGet.GetPlan()))
-					Ω(location).ShouldNot(BeNil())
+					Expect(plan).To(Equal((*outputPlan.Aggregate)[0].OnSuccess.Next.DependentGet.GetPlan()))
+					Expect(location).NotTo(BeNil())
 
-					Ω(sourceName).Should(Equal(exec.SourceName("some-put")))
-					Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
-					Ω(resourceConfig.Type).Should(Equal("some-type"))
-					Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
-					Ω(params).Should(Equal(atc.Params{"another": "params"}))
+					Expect(sourceName).To(Equal(exec.SourceName("some-put")))
+					Expect(resourceConfig.Name).To(Equal("some-output-resource"))
+					Expect(resourceConfig.Type).To(Equal("some-type"))
+					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
+					Expect(params).To(Equal(atc.Params{"another": "params"}))
 					logger, metadata, sourceName, workerID, delegate, resourceConfig, tags, params = fakeFactory.DependentGetArgsForCall(1)
-					Ω(logger).ShouldNot(BeNil())
-					Ω(metadata).Should(Equal(expectedMetadata))
-					Ω(workerID).Should(Equal(worker.Identifier{
+					Expect(logger).NotTo(BeNil())
+					Expect(metadata).To(Equal(expectedMetadata))
+					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID:      42,
 						Type:         db.ContainerTypeGet,
 						Name:         "some-put-2",
 						PipelineName: "some-pipeline",
 					}))
 
-					Ω(tags).Should(BeEmpty())
-					Ω(delegate).Should(Equal(fakeInputDelegate))
+					Expect(tags).To(BeEmpty())
+					Expect(delegate).To(Equal(fakeInputDelegate))
 					_, plan, location = fakeDelegate.InputDelegateArgsForCall(1)
-					Ω(plan).Should(Equal((*outputPlan.Aggregate)[1].OnSuccess.Next.DependentGet.GetPlan()))
-					Ω(location).ShouldNot(BeNil())
+					Expect(plan).To(Equal((*outputPlan.Aggregate)[1].OnSuccess.Next.DependentGet.GetPlan()))
+					Expect(location).NotTo(BeNil())
 
-					Ω(sourceName).Should(Equal(exec.SourceName("some-put-2")))
-					Ω(resourceConfig.Name).Should(Equal("some-output-resource-2"))
-					Ω(resourceConfig.Type).Should(Equal("some-type-2"))
-					Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source-2"}))
-					Ω(params).Should(Equal(atc.Params{"another": "params-2"}))
+					Expect(sourceName).To(Equal(exec.SourceName("some-put-2")))
+					Expect(resourceConfig.Name).To(Equal("some-output-resource-2"))
+					Expect(resourceConfig.Type).To(Equal("some-type-2"))
+					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source-2"}))
+					Expect(params).To(Equal(atc.Params{"another": "params-2"}))
 				})
 			})
 		})
@@ -365,37 +367,38 @@ var _ = Describe("ExecEngine", func() {
 				It("constructs inputs correctly", func() {
 					var err error
 					build, err := execEngine.CreateBuild(buildModel, plan)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
-					Ω(fakeFactory.GetCallCount()).Should(Equal(1))
+					Expect(fakeFactory.GetCallCount()).To(Equal(1))
 
 					logger, metadata, sourceName, workerID, delegate, resourceConfig, params, tags, version := fakeFactory.GetArgsForCall(0)
-					Ω(logger).ShouldNot(BeNil())
-					Ω(metadata).Should(Equal(expectedMetadata))
-					Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
-					Ω(workerID).Should(Equal(worker.Identifier{
+					Expect(logger).NotTo(BeNil())
+					Expect(metadata).To(Equal(expectedMetadata))
+					Expect(sourceName).To(Equal(exec.SourceName("some-input")))
+					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID:      42,
 						Type:         db.ContainerTypeGet,
 						Name:         "some-input",
 						StepLocation: 145,
 						PipelineName: "some-pipeline",
 					}))
-					Ω(tags).Should(ConsistOf("some", "get", "tags"))
-					Ω(resourceConfig.Name).Should(Equal("some-input-resource"))
-					Ω(resourceConfig.Type).Should(Equal("some-type"))
-					Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
-					Ω(params).Should(Equal(atc.Params{"some": "params"}))
-					Ω(version).Should(Equal(atc.Version{"some": "version"}))
 
-					Ω(delegate).Should(Equal(fakeInputDelegate))
+					Expect(tags).To(ConsistOf("some", "get", "tags"))
+					Expect(resourceConfig.Name).To(Equal("some-input-resource"))
+					Expect(resourceConfig.Type).To(Equal("some-type"))
+					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
+					Expect(params).To(Equal(atc.Params{"some": "params"}))
+					Expect(version).To(Equal(atc.Version{"some": "version"}))
+
+					Expect(delegate).To(Equal(fakeInputDelegate))
 					_, _, location := fakeDelegate.InputDelegateArgsForCall(0)
-					Ω(location).ShouldNot(BeNil())
-					Ω(location.ID).Should(Equal(uint(145)))
-					Ω(location.ParentID).Should(Equal(uint(1)))
-					Ω(location.ParallelGroup).Should(Equal(uint(1234)))
-					Ω(location.SerialGroup).Should(Equal(uint(5678)))
-					Ω(location.Hook).Should(Equal("boring input hook"))
+					Expect(location).NotTo(BeNil())
+					Expect(location.ID).To(Equal(uint(145)))
+					Expect(location.ParentID).To(Equal(uint(1)))
+					Expect(location.ParallelGroup).To(Equal(uint(1234)))
+					Expect(location.SerialGroup).To(Equal(uint(5678)))
+					Expect(location.Hook).To(Equal("boring input hook"))
 
 				})
 
@@ -407,10 +410,10 @@ var _ = Describe("ExecEngine", func() {
 					}
 					var err error
 					build, err = execEngine.CreateBuild(buildModel, plan)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 					build.Resume(logger)
 
-					Ω(inputStep.ReleaseCallCount()).Should(Equal(1))
+					Expect(inputStep.ReleaseCallCount()).To(Equal(1))
 				})
 			})
 
@@ -454,34 +457,35 @@ var _ = Describe("ExecEngine", func() {
 				It("constructs tasks correctly", func() {
 					var err error
 					build, err = execEngine.CreateBuild(buildModel, plan)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
-					Ω(fakeFactory.TaskCallCount()).Should(Equal(1))
+					Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
 					logger, sourceName, workerID, delegate, privileged, tags, configSource := fakeFactory.TaskArgsForCall(0)
-					Ω(logger).ShouldNot(BeNil())
-					Ω(sourceName).Should(Equal(exec.SourceName("some-task")))
-					Ω(workerID).Should(Equal(worker.Identifier{
+					Expect(logger).NotTo(BeNil())
+					Expect(sourceName).To(Equal(exec.SourceName("some-task")))
+					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID:      42,
 						Type:         db.ContainerTypeTask,
 						Name:         "some-task",
 						StepLocation: 123,
 						PipelineName: "some-pipeline",
 					}))
-					Ω(privileged).Should(Equal(exec.Privileged(false)))
-					Ω(tags).Should(BeEmpty())
-					Ω(configSource).ShouldNot(BeNil())
 
-					Ω(delegate).Should(Equal(fakeExecutionDelegate))
+					Expect(privileged).To(Equal(exec.Privileged(false)))
+					Expect(tags).To(BeEmpty())
+					Expect(configSource).NotTo(BeNil())
+
+					Expect(delegate).To(Equal(fakeExecutionDelegate))
 					_, _, location := fakeDelegate.ExecutionDelegateArgsForCall(0)
 
-					Ω(location).ShouldNot(BeNil())
-					Ω(location.ID).Should(Equal(uint(123)))
-					Ω(location.ParentID).Should(Equal(uint(41)))
-					Ω(location.ParallelGroup).Should(Equal(uint(123498)))
-					Ω(location.SerialGroup).Should(Equal(uint(69)))
-					Ω(location.Hook).Should(Equal("look at me I'm a hook"))
+					Expect(location).NotTo(BeNil())
+					Expect(location.ID).To(Equal(uint(123)))
+					Expect(location.ParentID).To(Equal(uint(41)))
+					Expect(location.ParallelGroup).To(Equal(uint(123498)))
+					Expect(location.SerialGroup).To(Equal(uint(69)))
+					Expect(location.Hook).To(Equal("look at me I'm a hook"))
 				})
 
 				It("releases the tasks correctly", func() {
@@ -492,10 +496,10 @@ var _ = Describe("ExecEngine", func() {
 					}
 					var err error
 					build, err = execEngine.CreateBuild(buildModel, plan)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 					build.Resume(logger)
 
-					Ω(taskStep.ReleaseCallCount()).Should(Equal(1))
+					Expect(taskStep.ReleaseCallCount()).To(Equal(1))
 
 				})
 
@@ -507,13 +511,13 @@ var _ = Describe("ExecEngine", func() {
 					It("constructs the task step privileged", func() {
 						var err error
 						build, err = execEngine.CreateBuild(buildModel, plan)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						build.Resume(logger)
-						Ω(fakeFactory.TaskCallCount()).Should(Equal(1))
+						Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
 						_, _, _, _, privileged, _, _ := fakeFactory.TaskArgsForCall(0)
-						Ω(privileged).Should(Equal(exec.Privileged(true)))
+						Expect(privileged).To(Equal(exec.Privileged(true)))
 					})
 				})
 
@@ -581,80 +585,82 @@ var _ = Describe("ExecEngine", func() {
 				It("constructs the put correctly", func() {
 					var err error
 					build, err = execEngine.CreateBuild(buildModel, plan)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
-					Ω(fakeFactory.PutCallCount()).Should(Equal(1))
+					Expect(fakeFactory.PutCallCount()).To(Equal(1))
 
 					logger, metadata, workerID, delegate, resourceConfig, tags, params := fakeFactory.PutArgsForCall(0)
-					Ω(logger).ShouldNot(BeNil())
-					Ω(metadata).Should(Equal(expectedMetadata))
-					Ω(workerID).Should(Equal(worker.Identifier{
+					Expect(logger).NotTo(BeNil())
+					Expect(metadata).To(Equal(expectedMetadata))
+					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID:      42,
 						Type:         db.ContainerTypePut,
 						Name:         "some-put",
 						StepLocation: 51,
 						PipelineName: "some-pipeline",
 					}))
-					Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
-					Ω(resourceConfig.Type).Should(Equal("some-type"))
-					Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
-					Ω(tags).Should(ConsistOf("some", "putget", "tags"))
-					Ω(params).Should(Equal(atc.Params{"some": "params"}))
 
-					Ω(delegate).Should(Equal(fakeOutputDelegate))
+					Expect(resourceConfig.Name).To(Equal("some-output-resource"))
+					Expect(resourceConfig.Type).To(Equal("some-type"))
+					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
+					Expect(tags).To(ConsistOf("some", "putget", "tags"))
+					Expect(params).To(Equal(atc.Params{"some": "params"}))
+
+					Expect(delegate).To(Equal(fakeOutputDelegate))
 					_, _, location := fakeDelegate.OutputDelegateArgsForCall(0)
 
-					Ω(location).ShouldNot(BeNil())
-					Ω(location.ID).Should(Equal(uint(51)))
-					Ω(location.ParentID).Should(Equal(uint(26)))
-					Ω(location.ParallelGroup).Should(Equal(uint(1021)))
-					Ω(location.SerialGroup).Should(Equal(uint(151)))
-					Ω(location.Hook).Should(Equal("special hook"))
+					Expect(location).NotTo(BeNil())
+					Expect(location.ID).To(Equal(uint(51)))
+					Expect(location.ParentID).To(Equal(uint(26)))
+					Expect(location.ParallelGroup).To(Equal(uint(1021)))
+					Expect(location.SerialGroup).To(Equal(uint(151)))
+					Expect(location.Hook).To(Equal("special hook"))
 				})
 
 				It("constructs the dependent get correctly", func() {
 					var err error
 					build, err = execEngine.CreateBuild(buildModel, plan)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
-					Ω(fakeFactory.DependentGetCallCount()).Should(Equal(1))
+					Expect(fakeFactory.DependentGetCallCount()).To(Equal(1))
 
 					logger, metadata, sourceName, workerID, delegate, resourceConfig, tags, params := fakeFactory.DependentGetArgsForCall(0)
-					Ω(logger).ShouldNot(BeNil())
-					Ω(metadata).Should(Equal(expectedMetadata))
-					Ω(workerID).Should(Equal(worker.Identifier{
+					Expect(logger).NotTo(BeNil())
+					Expect(metadata).To(Equal(expectedMetadata))
+					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID:      42,
 						Type:         db.ContainerTypeGet,
 						Name:         "some-put",
 						StepLocation: 512,
 						PipelineName: "some-pipeline",
 					}))
-					Ω(tags).Should(ConsistOf("some", "putget", "tags"))
-					Ω(sourceName).Should(Equal(exec.SourceName("some-put")))
-					Ω(resourceConfig.Name).Should(Equal("some-output-resource"))
-					Ω(resourceConfig.Type).Should(Equal("some-type"))
-					Ω(resourceConfig.Source).Should(Equal(atc.Source{"some": "source"}))
-					Ω(params).Should(Equal(atc.Params{"another": "params"}))
 
-					Ω(delegate).Should(Equal(fakeInputDelegate))
+					Expect(tags).To(ConsistOf("some", "putget", "tags"))
+					Expect(sourceName).To(Equal(exec.SourceName("some-put")))
+					Expect(resourceConfig.Name).To(Equal("some-output-resource"))
+					Expect(resourceConfig.Type).To(Equal("some-type"))
+					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
+					Expect(params).To(Equal(atc.Params{"another": "params"}))
+
+					Expect(delegate).To(Equal(fakeInputDelegate))
 					_, _, location := fakeDelegate.InputDelegateArgsForCall(0)
-					Ω(location).ShouldNot(BeNil())
-					Ω(location.ID).Should(Equal(uint(512)))
-					Ω(location.ParentID).Should(Equal(uint(2134)))
-					Ω(location.ParallelGroup).Should(Equal(uint(12)))
-					Ω(location.SerialGroup).Should(Equal(uint(121243)))
-					Ω(location.Hook).Should(Equal("more special hook"))
+					Expect(location).NotTo(BeNil())
+					Expect(location.ID).To(Equal(uint(512)))
+					Expect(location.ParentID).To(Equal(uint(2134)))
+					Expect(location.ParallelGroup).To(Equal(uint(12)))
+					Expect(location.SerialGroup).To(Equal(uint(121243)))
+					Expect(location.Hook).To(Equal("more special hook"))
 				})
 				It("releases all sources", func() {
 					var err error
 					build, err = execEngine.CreateBuild(buildModel, plan)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
-					Ω(outputStep.ReleaseCallCount()).Should(Equal(1))
-					Ω(dependentStep.ReleaseCallCount()).Should(Equal(1))
+					Expect(outputStep.ReleaseCallCount()).To(Equal(1))
+					Expect(dependentStep.ReleaseCallCount()).To(Equal(1))
 
 				})
 

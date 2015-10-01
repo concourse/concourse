@@ -25,12 +25,12 @@ var _ = Describe("Config", func() {
 
 			It("returns true", func() {
 				public, _ := config.JobIsPublic("some-job")
-				Ω(public).Should(BeTrue())
+				Expect(public).To(BeTrue())
 			})
 
 			It("does not error", func() {
 				_, err := config.JobIsPublic("some-job")
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 
@@ -48,12 +48,12 @@ var _ = Describe("Config", func() {
 
 			It("returns false", func() {
 				public, _ := config.JobIsPublic("some-job")
-				Ω(public).Should(BeFalse())
+				Expect(public).To(BeFalse())
 			})
 
 			It("does not error", func() {
 				_, err := config.JobIsPublic("some-job")
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 
@@ -71,7 +71,7 @@ var _ = Describe("Config", func() {
 
 			It("errors", func() {
 				_, err := config.JobIsPublic("does-not-exist")
-				Ω(err).Should(HaveOccurred())
+				Expect(err).To(HaveOccurred())
 			})
 		})
 	})

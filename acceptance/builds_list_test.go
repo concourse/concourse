@@ -29,7 +29,7 @@ var _ = Describe("One-off Builds", func() {
 
 	BeforeEach(func() {
 		atcBin, err := gexec.Build("github.com/concourse/atc/cmd/atc")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		dbLogger := lagertest.NewTestLogger("test")
 		postgresRunner.CreateTestDB()
@@ -45,8 +45,8 @@ var _ = Describe("One-off Builds", func() {
 	AfterEach(func() {
 		ginkgomon.Interrupt(atcProcess)
 
-		Ω(dbConn.Close()).Should(Succeed())
-		Ω(dbListener.Close()).Should(Succeed())
+		Expect(dbConn.Close()).To(Succeed())
+		Expect(dbListener.Close()).To(Succeed())
 
 		postgresRunner.DropTestDB()
 	})
@@ -93,16 +93,16 @@ var _ = Describe("One-off Builds", func() {
 						{Name: "job-name"},
 					},
 				}, db.ConfigVersion(1), db.PipelineUnpaused)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				pipelineDB, err = pipelineDBFactory.BuildWithName(atc.DefaultPipelineName)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				build, err = pipelineDB.CreateJobBuild("job-name")
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				_, err = sqlDB.StartBuild(build.ID, "", "")
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				sqlDB.SaveBuildEvent(build.ID, event.Log{
 					Origin: event.Origin{
@@ -116,9 +116,9 @@ var _ = Describe("One-off Builds", func() {
 
 				// One off build data
 				oneOffBuild, err = sqlDB.CreateOneOffBuild()
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 				_, err = sqlDB.StartBuild(oneOffBuild.ID, "", "")
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				sqlDB.SaveBuildEvent(oneOffBuild.ID, event.Log{
 					Origin: event.Origin{
@@ -150,7 +150,7 @@ var _ = Describe("One-off Builds", func() {
 				Expect(page.Find("h1")).To(HaveText(fmt.Sprintf("build #%d", oneOffBuild.ID)))
 				Eventually(page.Find("#build-logs").Text).Should(ContainSubstring("hello this is a payload"))
 
-				Ω(sqlDB.FinishBuild(oneOffBuild.ID, db.StatusSucceeded)).Should(Succeed())
+				Expect(sqlDB.FinishBuild(oneOffBuild.ID, db.StatusSucceeded)).To(Succeed())
 				Eventually(page.Find(".build-times").Text).Should(ContainSubstring("duration"))
 
 				Expect(page.Find(homeLink).Click()).To(Succeed())
@@ -167,7 +167,7 @@ var _ = Describe("One-off Builds", func() {
 
 				Eventually(page.Find("#build-logs").Text).Should(ContainSubstring("hello this is a payload"))
 
-				Ω(sqlDB.FinishBuild(build.ID, db.StatusSucceeded)).Should(Succeed())
+				Expect(sqlDB.FinishBuild(build.ID, db.StatusSucceeded)).To(Succeed())
 				Eventually(page.Find(".build-times").Text).Should(ContainSubstring("duration"))
 			})
 

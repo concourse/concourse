@@ -61,16 +61,16 @@ var _ = Describe("ExponentialRetryPolicy", func() {
 			})
 
 			It(fmt.Sprintf("returns a %s delay", row.delay), func() {
-				Ω(delay).Should(Equal(row.delay))
+				Expect(delay).To(Equal(row.delay))
 			})
 
 			if row.keepRetrying {
 				It("keeps retrying", func() {
-					Ω(keepRetrying).Should(BeTrue())
+					Expect(keepRetrying).To(BeTrue())
 				})
 			} else {
 				It("gives up", func() {
-					Ω(keepRetrying).Should(BeFalse())
+					Expect(keepRetrying).To(BeFalse())
 				})
 			}
 		})

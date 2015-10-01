@@ -78,19 +78,19 @@ var _ = Describe("Tracker", func() {
 			It("saves its status as errored", func() {
 				tracker.Track()
 
-				Ω(fakeTrackerDB.ErrorBuildCallCount()).Should(Equal(3))
+				Expect(fakeTrackerDB.ErrorBuildCallCount()).To(Equal(3))
 
 				savedBuilID1, savedErr1 := fakeTrackerDB.ErrorBuildArgsForCall(0)
-				Ω(savedBuilID1).Should(Equal(1))
-				Ω(savedErr1).Should(Equal(errors.New("nope")))
+				Expect(savedBuilID1).To(Equal(1))
+				Expect(savedErr1).To(Equal(errors.New("nope")))
 
 				savedBuilID2, savedErr2 := fakeTrackerDB.ErrorBuildArgsForCall(1)
-				Ω(savedBuilID2).Should(Equal(2))
-				Ω(savedErr2).Should(Equal(errors.New("nope")))
+				Expect(savedBuilID2).To(Equal(2))
+				Expect(savedErr2).To(Equal(errors.New("nope")))
 
 				savedBuilID3, savedErr3 := fakeTrackerDB.ErrorBuildArgsForCall(2)
-				Ω(savedBuilID3).Should(Equal(3))
-				Ω(savedErr3).Should(Equal(errors.New("nope")))
+				Expect(savedBuilID3).To(Equal(3))
+				Expect(savedErr3).To(Equal(errors.New("nope")))
 			})
 		})
 	})

@@ -53,7 +53,7 @@ var _ = Describe("Timeout Step", func() {
 			step = timeout.Using(nil, nil)
 			ready := make(chan struct{})
 			err := step.Run(nil, ready)
-			Ω(err).Should(HaveOccurred())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -85,7 +85,7 @@ var _ = Describe("Timeout Step", func() {
 
 				var receivedError error
 				Eventually(process.Wait(), 3*time.Second).Should(Receive(&receivedError))
-				Ω(receivedError).Should(Equal(ErrStepTimedOut))
+				Expect(receivedError).To(Equal(ErrStepTimedOut))
 			})
 
 			Context("when the process is signaled", func() {
@@ -100,8 +100,8 @@ var _ = Describe("Timeout Step", func() {
 
 					var receivedError error
 					Eventually(process.Wait()).Should(Receive(&receivedError))
-					Ω(receivedError).ShouldNot(BeNil())
-					Ω(receivedError.Error()).Should(ContainSubstring(ErrInterrupted.Error()))
+					Expect(receivedError).NotTo(BeNil())
+					Expect(receivedError.Error()).To(ContainSubstring(ErrInterrupted.Error()))
 				})
 			})
 
@@ -117,8 +117,8 @@ var _ = Describe("Timeout Step", func() {
 				It("returns the error", func() {
 					var receivedError error
 					Eventually(process.Wait()).Should(Receive(&receivedError))
-					Ω(receivedError).ShouldNot(BeNil())
-					Ω(receivedError).Should(Equal(someError))
+					Expect(receivedError).NotTo(BeNil())
+					Expect(receivedError).To(Equal(someError))
 				})
 			})
 
@@ -128,11 +128,11 @@ var _ = Describe("Timeout Step", func() {
 
 					var receivedError error
 					Eventually(process.Wait(), 3*time.Second).Should(Receive(&receivedError))
-					Ω(receivedError).ShouldNot(BeNil())
+					Expect(receivedError).NotTo(BeNil())
 
 					var success Success
-					Ω(step.Result(&success)).Should(BeTrue())
-					Ω(bool(success)).Should(BeFalse())
+					Expect(step.Result(&success)).To(BeTrue())
+					Expect(bool(success)).To(BeFalse())
 				})
 			})
 		})
@@ -152,8 +152,8 @@ var _ = Describe("Timeout Step", func() {
 						Eventually(process.Wait()).Should(Receive(BeNil()))
 
 						var success Success
-						Ω(step.Result(&success)).Should(BeTrue())
-						Ω(bool(success)).Should(BeTrue())
+						Expect(step.Result(&success)).To(BeTrue())
+						Expect(bool(success)).To(BeTrue())
 					})
 				})
 
@@ -166,8 +166,8 @@ var _ = Describe("Timeout Step", func() {
 						Eventually(process.Wait()).Should(Receive(BeNil()))
 
 						var success Success
-						Ω(step.Result(&success)).Should(BeTrue())
-						Ω(bool(success)).Should(BeFalse())
+						Expect(step.Result(&success)).To(BeTrue())
+						Expect(bool(success)).To(BeFalse())
 					})
 				})
 			})

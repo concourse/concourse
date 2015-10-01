@@ -146,11 +146,12 @@ var _ = Describe("GardenFactory", func() {
 			})
 
 			It("selects a worker satisfying the resource type and tags", func() {
-				Ω(fakeWorkerClient.SatisfyingCallCount()).Should(Equal(1))
-				Ω(fakeWorkerClient.SatisfyingArgsForCall(0)).Should(Equal(worker.WorkerSpec{
+				Expect(fakeWorkerClient.SatisfyingCallCount()).To(Equal(1))
+				Expect(fakeWorkerClient.SatisfyingArgsForCall(0)).To(Equal(worker.WorkerSpec{
 					ResourceType: "some-resource-type",
 					Tags:         []string{"some", "tags"},
 				}))
+
 			})
 
 			Context("when no workers satisfy the spec", func() {
@@ -161,69 +162,71 @@ var _ = Describe("GardenFactory", func() {
 				})
 
 				It("exits with the error", func() {
-					Ω(<-process.Wait()).Should(Equal(disaster))
+					Expect(<-process.Wait()).To(Equal(disaster))
 				})
 			})
 
 			It("initializes the resource with the correct type and session id, making sure that it is not ephemeral", func() {
-				Ω(fakeTracker.InitCallCount()).Should(Equal(1))
+				Expect(fakeTracker.InitCallCount()).To(Equal(1))
 
 				_, sm, sid, typ, tags, vol := fakeTracker.InitArgsForCall(0)
-				Ω(sm).Should(Equal(stepMetadata))
-				Ω(sid).Should(Equal(resource.Session{
+				Expect(sm).To(Equal(stepMetadata))
+				Expect(sid).To(Equal(resource.Session{
 					ID:        identifier,
 					Ephemeral: false,
 				}))
-				Ω(typ).Should(Equal(resource.ResourceType("some-resource-type")))
-				Ω(tags).Should(ConsistOf("some", "tags"))
-				Ω(vol).Should(BeZero())
+
+				Expect(typ).To(Equal(resource.ResourceType("some-resource-type")))
+				Expect(tags).To(ConsistOf("some", "tags"))
+				Expect(vol).To(BeZero())
 			})
 
 			It("gets the resource with the correct source, params, and version", func() {
-				Ω(fakeResource.GetCallCount()).Should(Equal(1))
+				Expect(fakeResource.GetCallCount()).To(Equal(1))
 
 				_, gotSource, gotParams, gotVersion := fakeResource.GetArgsForCall(0)
-				Ω(gotSource).Should(Equal(resourceConfig.Source))
-				Ω(gotParams).Should(Equal(params))
-				Ω(gotVersion).Should(Equal(version))
+				Expect(gotSource).To(Equal(resourceConfig.Source))
+				Expect(gotParams).To(Equal(params))
+				Expect(gotVersion).To(Equal(version))
 			})
 
 			It("gets the resource with the io config forwarded", func() {
-				Ω(fakeResource.GetCallCount()).Should(Equal(1))
+				Expect(fakeResource.GetCallCount()).To(Equal(1))
 
 				ioConfig, _, _, _ := fakeResource.GetArgsForCall(0)
-				Ω(ioConfig.Stdout).Should(Equal(stdoutBuf))
-				Ω(ioConfig.Stderr).Should(Equal(stderrBuf))
+				Expect(ioConfig.Stdout).To(Equal(stdoutBuf))
+				Expect(ioConfig.Stderr).To(Equal(stderrBuf))
 			})
 
 			It("runs the get resource action", func() {
-				Ω(fakeVersionedSource.RunCallCount()).Should(Equal(1))
+				Expect(fakeVersionedSource.RunCallCount()).To(Equal(1))
 			})
 
 			It("reports the fetched version info", func() {
 				var info VersionInfo
-				Ω(step.Result(&info)).Should(BeTrue())
-				Ω(info.Version).Should(Equal(atc.Version{"some": "version"}))
-				Ω(info.Metadata).Should(Equal([]atc.MetadataField{{"some", "metadata"}}))
+				Expect(step.Result(&info)).To(BeTrue())
+				Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
+				Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
 			})
 
 			It("is successful", func() {
 				Eventually(process.Wait()).Should(Receive(BeNil()))
 
 				var success Success
-				Ω(step.Result(&success)).Should(BeTrue())
-				Ω(bool(success)).Should(BeTrue())
+				Expect(step.Result(&success)).To(BeTrue())
+				Expect(bool(success)).To(BeTrue())
 			})
 
 			It("completes via the delegate", func() {
 				Eventually(getDelegate.CompletedCallCount).Should(Equal(1))
 
 				exitStatus, versionInfo := getDelegate.CompletedArgsForCall(0)
-				Ω(exitStatus).Should(Equal(ExitStatus(0)))
-				Ω(versionInfo).Should(Equal(&VersionInfo{
+				Expect(exitStatus).To(Equal(ExitStatus(0)))
+				Expect(versionInfo).To(Equal(&VersionInfo{
 					Version:  atc.Version{"some": "version"},
 					Metadata: []atc.MetadataField{{"some", "metadata"}},
 				}))
+
 			})
 
 			Describe("signalling", func() {
@@ -261,10 +264,10 @@ var _ = Describe("GardenFactory", func() {
 				It("invokes the delegate's Failed callback without completing", func() {
 					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 
-					Ω(getDelegate.CompletedCallCount()).Should(BeZero())
+					Expect(getDelegate.CompletedCallCount()).To(BeZero())
 
-					Ω(getDelegate.FailedCallCount()).Should(Equal(1))
-					Ω(getDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+					Expect(getDelegate.FailedCallCount()).To(Equal(1))
+					Expect(getDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 				})
 
 				Context("with a resource script failure", func() {
@@ -281,33 +284,33 @@ var _ = Describe("GardenFactory", func() {
 					It("invokes the delegate's Finished callback instead of failed", func() {
 						Eventually(process.Wait()).Should(Receive())
 
-						Ω(getDelegate.FailedCallCount()).Should(BeZero())
+						Expect(getDelegate.FailedCallCount()).To(BeZero())
 
-						Ω(getDelegate.CompletedCallCount()).Should(Equal(1))
+						Expect(getDelegate.CompletedCallCount()).To(Equal(1))
 
 						status, versionInfo := getDelegate.CompletedArgsForCall(0)
-						Ω(status).Should(Equal(ExitStatus(1)))
-						Ω(versionInfo).Should(BeNil())
+						Expect(status).To(Equal(ExitStatus(1)))
+						Expect(versionInfo).To(BeNil())
 					})
 
 					It("is not successful", func() {
 						Eventually(process.Wait()).Should(Receive(BeNil()))
-						Ω(getDelegate.CompletedCallCount()).Should(Equal(1))
+						Expect(getDelegate.CompletedCallCount()).To(Equal(1))
 
 						var success Success
 
-						Ω(step.Result(&success)).Should(BeTrue())
-						Ω(bool(success)).Should(BeFalse())
+						Expect(step.Result(&success)).To(BeTrue())
+						Expect(bool(success)).To(BeFalse())
 					})
 				})
 			})
 
 			Describe("releasing", func() {
 				It("releases the resource", func() {
-					Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
+					Expect(fakeResource.ReleaseCallCount()).To(BeZero())
 
 					step.Release()
-					Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
+					Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
 				})
 			})
 
@@ -319,7 +322,7 @@ var _ = Describe("GardenFactory", func() {
 
 					var found bool
 					artifactSource, found = repo.SourceFor(sourceName)
-					Ω(found).Should(BeTrue())
+					Expect(found).To(BeTrue())
 				})
 
 				Describe("streaming to a destination", func() {
@@ -341,15 +344,15 @@ var _ = Describe("GardenFactory", func() {
 
 						It("streams the resource to the destination", func() {
 							err := artifactSource.StreamTo(fakeDestination)
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 
-							Ω(fakeVersionedSource.StreamOutCallCount()).Should(Equal(1))
-							Ω(fakeVersionedSource.StreamOutArgsForCall(0)).Should(Equal("."))
+							Expect(fakeVersionedSource.StreamOutCallCount()).To(Equal(1))
+							Expect(fakeVersionedSource.StreamOutArgsForCall(0)).To(Equal("."))
 
-							Ω(fakeDestination.StreamInCallCount()).Should(Equal(1))
+							Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
 							dest, src := fakeDestination.StreamInArgsForCall(0)
-							Ω(dest).Should(Equal("."))
-							Ω(src).Should(Equal(streamedOut))
+							Expect(dest).To(Equal("."))
+							Expect(src).To(Equal(streamedOut))
 						})
 
 						Context("when streaming out of the versioned source fails", func() {
@@ -360,7 +363,7 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							It("returns the error", func() {
-								Ω(artifactSource.StreamTo(fakeDestination)).Should(Equal(disaster))
+								Expect(artifactSource.StreamTo(fakeDestination)).To(Equal(disaster))
 							})
 						})
 
@@ -372,7 +375,7 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							It("returns the error", func() {
-								Ω(artifactSource.StreamTo(fakeDestination)).Should(Equal(disaster))
+								Expect(artifactSource.StreamTo(fakeDestination)).To(Equal(disaster))
 							})
 						})
 					})
@@ -385,7 +388,7 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("returns the error", func() {
-							Ω(artifactSource.StreamTo(fakeDestination)).Should(Equal(disaster))
+							Expect(artifactSource.StreamTo(fakeDestination)).To(Equal(disaster))
 						})
 					})
 				})
@@ -412,32 +415,32 @@ var _ = Describe("GardenFactory", func() {
 									Mode: 0644,
 									Size: int64(len(fileContent)),
 								})
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
 								_, err = tarWriter.Write([]byte(fileContent))
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 							})
 
 							It("streams out the given path", func() {
 								reader, err := artifactSource.StreamFile("some-path")
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
-								Ω(ioutil.ReadAll(reader)).Should(Equal([]byte(fileContent)))
+								Expect(ioutil.ReadAll(reader)).To(Equal([]byte(fileContent)))
 
-								Ω(fakeVersionedSource.StreamOutArgsForCall(0)).Should(Equal("some-path"))
+								Expect(fakeVersionedSource.StreamOutArgsForCall(0)).To(Equal("some-path"))
 							})
 
 							Describe("closing the stream", func() {
 								It("closes the stream from the versioned source", func() {
 									reader, err := artifactSource.StreamFile("some-path")
-									Ω(err).ShouldNot(HaveOccurred())
+									Expect(err).NotTo(HaveOccurred())
 
-									Ω(tarBuffer.Closed()).Should(BeFalse())
+									Expect(tarBuffer.Closed()).To(BeFalse())
 
 									err = reader.Close()
-									Ω(err).ShouldNot(HaveOccurred())
+									Expect(err).NotTo(HaveOccurred())
 
-									Ω(tarBuffer.Closed()).Should(BeTrue())
+									Expect(tarBuffer.Closed()).To(BeTrue())
 								})
 							})
 						})
@@ -445,7 +448,7 @@ var _ = Describe("GardenFactory", func() {
 						Context("but the stream is empty", func() {
 							It("returns ErrFileNotFound", func() {
 								_, err := artifactSource.StreamFile("some-path")
-								Ω(err).Should(MatchError(FileNotFoundError{Path: "some-path"}))
+								Expect(err).To(MatchError(FileNotFoundError{Path: "some-path"}))
 							})
 						})
 					})
@@ -459,7 +462,7 @@ var _ = Describe("GardenFactory", func() {
 
 						It("returns the error", func() {
 							_, err := artifactSource.StreamFile("some-path")
-							Ω(err).Should(Equal(disaster))
+							Expect(err).To(Equal(disaster))
 						})
 					})
 				})
@@ -480,10 +483,10 @@ var _ = Describe("GardenFactory", func() {
 			It("invokes the delegate's Failed callback", func() {
 				Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 
-				Ω(getDelegate.CompletedCallCount()).Should(BeZero())
+				Expect(getDelegate.CompletedCallCount()).To(BeZero())
 
-				Ω(getDelegate.FailedCallCount()).Should(Equal(1))
-				Ω(getDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+				Expect(getDelegate.FailedCallCount()).To(Equal(1))
+				Expect(getDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 			})
 		})
 	})

@@ -25,10 +25,10 @@ var _ = Describe("Log Level API", func() {
 
 		JustBeforeEach(func() {
 			req, err := http.NewRequest("PUT", server.URL+"/api/v1/log-level", bytes.NewBufferString(logLevelPayload))
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(req)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when authenticated", func() {
@@ -48,7 +48,7 @@ var _ = Describe("Log Level API", func() {
 					})
 
 					It("sets the level to "+string(atcLevel), func() {
-						Ω(sink.GetMinLevel()).Should(Equal(lagerLevel))
+						Expect(sink.GetMinLevel()).To(Equal(lagerLevel))
 					})
 
 					Describe("GET /api/v1/log-level", func() {
@@ -58,18 +58,18 @@ var _ = Describe("Log Level API", func() {
 
 						JustBeforeEach(func() {
 							req, err := http.NewRequest("GET", server.URL+"/api/v1/log-level", nil)
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 
 							getResponse, err = client.Do(req)
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 						})
 
 						It("returns 200", func() {
-							Ω(getResponse.StatusCode).Should(Equal(http.StatusOK))
+							Expect(getResponse.StatusCode).To(Equal(http.StatusOK))
 						})
 
 						It("returns the current log level", func() {
-							Ω(ioutil.ReadAll(getResponse.Body)).Should(Equal([]byte(atcLevel)))
+							Expect(ioutil.ReadAll(getResponse.Body)).To(Equal([]byte(atcLevel)))
 						})
 					})
 				})
@@ -81,7 +81,7 @@ var _ = Describe("Log Level API", func() {
 				})
 
 				It("returns Bad Request", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 				})
 			})
 		})
@@ -92,7 +92,7 @@ var _ = Describe("Log Level API", func() {
 			})
 
 			It("returns 401", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})

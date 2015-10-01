@@ -38,15 +38,15 @@ var _ = Describe("Builds API", func() {
 
 		JustBeforeEach(func() {
 			reqPayload, err := json.Marshal(plan)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			req, err := http.NewRequest("POST", server.URL+"/api/v1/builds", bytes.NewBuffer(reqPayload))
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			req.Header.Set("Content-Type", "application/json")
 
 			response, err = client.Do(req)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when authenticated", func() {
@@ -89,37 +89,39 @@ var _ = Describe("Builds API", func() {
 					})
 
 					It("returns 201 Created", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusCreated))
+						Expect(response.StatusCode).To(Equal(http.StatusCreated))
 					})
 
 					It("returns the build", func() {
 						body, err := ioutil.ReadAll(response.Body)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
-						Ω(body).Should(MatchJSON(`{
+						Expect(body).To(MatchJSON(`{
 							"id": 42,
 							"name": "1",
 							"job_name": "job1",
 							"status": "started",
 							"url": "/pipelines/some-pipeline/jobs/job1/builds/1"
 						}`))
+
 					})
 
 					It("creates a one-off build and runs it asynchronously", func() {
-						Ω(buildsDB.CreateOneOffBuildCallCount()).Should(Equal(1))
+						Expect(buildsDB.CreateOneOffBuildCallCount()).To(Equal(1))
 
-						Ω(fakeEngine.CreateBuildCallCount()).Should(Equal(1))
+						Expect(fakeEngine.CreateBuildCallCount()).To(Equal(1))
 						oneOff, builtPlan := fakeEngine.CreateBuildArgsForCall(0)
-						Ω(oneOff).Should(Equal(db.Build{
+						Expect(oneOff).To(Equal(db.Build{
 							ID:           42,
 							Name:         "1",
 							JobName:      "job1",
 							PipelineName: "some-pipeline",
 							Status:       db.StatusStarted,
 						}))
-						Ω(builtPlan).Should(Equal(plan))
 
-						Ω(fakeBuild.ResumeCallCount()).Should(Equal(1))
+						Expect(builtPlan).To(Equal(plan))
+
+						Expect(fakeBuild.ResumeCallCount()).To(Equal(1))
 					})
 				})
 
@@ -129,7 +131,7 @@ var _ = Describe("Builds API", func() {
 					})
 
 					It("returns 500 Internal Server Error", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
 			})
@@ -140,7 +142,7 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("returns 500 Internal Server Error", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -151,12 +153,12 @@ var _ = Describe("Builds API", func() {
 			})
 
 			It("returns 401", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 
 			It("does not trigger a build", func() {
-				Ω(buildsDB.CreateOneOffBuildCallCount()).Should(BeZero())
-				Ω(fakeEngine.CreateBuildCallCount()).Should(BeZero())
+				Expect(buildsDB.CreateOneOffBuildCallCount()).To(BeZero())
+				Expect(fakeEngine.CreateBuildCallCount()).To(BeZero())
 			})
 		})
 	})
@@ -169,11 +171,11 @@ var _ = Describe("Builds API", func() {
 				var err error
 
 				response, err = client.Get(server.URL + "/api/v1/builds/nope")
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("returns Bad Request", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+				Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 			})
 		})
 
@@ -182,7 +184,7 @@ var _ = Describe("Builds API", func() {
 				var err error
 
 				response, err = client.Get(server.URL + "/api/v1/builds/1")
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			Context("when calling the database fails", func() {
@@ -191,7 +193,7 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("returns 500 Internal Server Error", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 
@@ -201,7 +203,7 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("returns Not Found", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 
@@ -217,24 +219,25 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("returns 200 OK", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
 				It("returns the build with the given build_id", func() {
-					Ω(buildsDB.GetBuildCallCount()).Should(Equal(1))
+					Expect(buildsDB.GetBuildCallCount()).To(Equal(1))
 					buildID := buildsDB.GetBuildArgsForCall(0)
-					Ω(buildID).Should(Equal(1))
+					Expect(buildID).To(Equal(1))
 
 					body, err := ioutil.ReadAll(response.Body)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(body).Should(MatchJSON(`{
+					Expect(body).To(MatchJSON(`{
 						"id": 1,
 						"name": "1",
 						"status": "succeeded",
 						"job_name": "job1",
 						"url": "/pipelines/some-pipeline/jobs/job1/builds/1"
 					}`))
+
 				})
 			})
 		})
@@ -247,7 +250,7 @@ var _ = Describe("Builds API", func() {
 			var err error
 
 			response, err = client.Get(server.URL + "/api/v1/builds")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when getting all builds succeeds", func() {
@@ -271,14 +274,14 @@ var _ = Describe("Builds API", func() {
 			})
 
 			It("returns 200 OK", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
 			})
 
 			It("returns all builds", func() {
 				body, err := ioutil.ReadAll(response.Body)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(body).Should(MatchJSON(`[
+				Expect(body).To(MatchJSON(`[
 					{
 						"id": 3,
 						"name": "2",
@@ -294,6 +297,7 @@ var _ = Describe("Builds API", func() {
 						"url": "/pipelines/some-pipeline/jobs/job1/builds/1"
 					}
 				]`))
+
 			})
 		})
 
@@ -303,7 +307,7 @@ var _ = Describe("Builds API", func() {
 			})
 
 			It("returns 500 Internal Server Error", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 			})
 		})
 	})
@@ -318,14 +322,14 @@ var _ = Describe("Builds API", func() {
 			var err error
 
 			request, err = http.NewRequest("GET", server.URL+"/api/v1/builds/128/events", nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		JustBeforeEach(func() {
 			var err error
 
 			response, err = client.Do(request)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when authenticated", func() {
@@ -342,17 +346,17 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("returns 200", func() {
-					Ω(response.StatusCode).Should(Equal(200))
+					Expect(response.StatusCode).To(Equal(200))
 				})
 
 				It("serves the request via the event handler", func() {
 					body, err := ioutil.ReadAll(response.Body)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(string(body)).Should(Equal("fake event handler factory was here"))
+					Expect(string(body)).To(Equal("fake event handler factory was here"))
 
-					Ω(constructedEventHandler.db).Should(Equal(buildsDB))
-					Ω(constructedEventHandler.buildID).Should(Equal(128))
+					Expect(constructedEventHandler.db).To(Equal(buildsDB))
+					Expect(constructedEventHandler.buildID).To(Equal(128))
 				})
 			})
 
@@ -362,7 +366,7 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("returns Not Found", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 
@@ -372,7 +376,7 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("returns Internal Server Error", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -391,9 +395,9 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("looks up the config from the buildsDB", func() {
-					Ω(buildsDB.GetConfigByBuildIDCallCount()).Should(Equal(1))
+					Expect(buildsDB.GetConfigByBuildIDCallCount()).To(Equal(1))
 					buildID := buildsDB.GetConfigByBuildIDArgsForCall(0)
-					Ω(buildID).Should(Equal(128))
+					Expect(buildID).To(Equal(128))
 				})
 
 				Context("and the build is private", func() {
@@ -406,7 +410,7 @@ var _ = Describe("Builds API", func() {
 					})
 
 					It("returns 401", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 					})
 				})
 
@@ -420,17 +424,17 @@ var _ = Describe("Builds API", func() {
 					})
 
 					It("returns 200", func() {
-						Ω(response.StatusCode).Should(Equal(200))
+						Expect(response.StatusCode).To(Equal(200))
 					})
 
 					It("serves the request via the event handler", func() {
 						body, err := ioutil.ReadAll(response.Body)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
-						Ω(string(body)).Should(Equal("fake event handler factory was here"))
+						Expect(string(body)).To(Equal("fake event handler factory was here"))
 
-						Ω(constructedEventHandler.db).Should(Equal(buildsDB))
-						Ω(constructedEventHandler.buildID).Should(Equal(128))
+						Expect(constructedEventHandler.db).To(Equal(buildsDB))
+						Expect(constructedEventHandler.buildID).To(Equal(128))
 					})
 				})
 			})
@@ -441,7 +445,7 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("returns Not Found", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 
@@ -451,7 +455,7 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("returns Internal Server Error", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -476,10 +480,10 @@ var _ = Describe("Builds API", func() {
 			var err error
 
 			req, err := http.NewRequest("POST", server.URL+"/api/v1/builds/128/abort", nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(req)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		AfterEach(func() {
@@ -508,7 +512,7 @@ var _ = Describe("Builds API", func() {
 					})
 
 					It("aborts the build", func() {
-						Ω(fakeBuild.AbortCallCount()).Should(Equal(1))
+						Expect(fakeBuild.AbortCallCount()).To(Equal(1))
 					})
 
 					Context("when aborting succeeds", func() {
@@ -517,7 +521,7 @@ var _ = Describe("Builds API", func() {
 						})
 
 						It("returns 204", func() {
-							Ω(response.StatusCode).Should(Equal(http.StatusNoContent))
+							Expect(response.StatusCode).To(Equal(http.StatusNoContent))
 						})
 					})
 
@@ -527,7 +531,7 @@ var _ = Describe("Builds API", func() {
 						})
 
 						It("returns 500", func() {
-							Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 						})
 					})
 				})
@@ -538,7 +542,7 @@ var _ = Describe("Builds API", func() {
 					})
 
 					It("returns Internal Server Error", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
 			})
@@ -549,7 +553,7 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("returns Not Found", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 
@@ -559,7 +563,7 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("returns Internal Server Error", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -570,11 +574,11 @@ var _ = Describe("Builds API", func() {
 			})
 
 			It("returns 401", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 
 			It("does not abort the build", func() {
-				Ω(abortTarget.ReceivedRequests()).Should(BeEmpty())
+				Expect(abortTarget.ReceivedRequests()).To(BeEmpty())
 			})
 		})
 	})

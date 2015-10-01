@@ -39,7 +39,7 @@ var _ = Describe("Factory Try Step", func() {
 				},
 			}, nil, nil)
 
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				OnSuccess: &atc.OnSuccessPlan{
@@ -62,7 +62,7 @@ var _ = Describe("Factory Try Step", func() {
 				},
 			}
 
-			Ω(actual).Should(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 	})
 
@@ -81,7 +81,7 @@ var _ = Describe("Factory Try Step", func() {
 				},
 			}, nil, nil)
 
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				OnSuccess: &atc.OnSuccessPlan{
@@ -104,7 +104,7 @@ var _ = Describe("Factory Try Step", func() {
 				},
 			}
 
-			Ω(actual).Should(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 	})
 })

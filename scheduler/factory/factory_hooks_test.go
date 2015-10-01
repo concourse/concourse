@@ -62,7 +62,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		It("builds the plan correctly", func() {
 			actual, err := buildFactory.Create(input, resources, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				OnFailure: &atc.OnFailurePlan{
@@ -101,7 +101,7 @@ var _ = Describe("Factory Hooks", func() {
 				},
 			}
 
-			Ω(actual).Should(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 	})
 
@@ -130,7 +130,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		It("builds the plan correctly", func() {
 			actual, err := buildFactory.Create(input, resources, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				OnFailure: &atc.OnFailurePlan{
@@ -159,17 +159,17 @@ var _ = Describe("Factory Hooks", func() {
 				},
 			}
 
-			Ω(actual).Should(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 	})
 
 	Context("when I have an empty plan", func() {
 		It("returns an empty plan", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{}, resources, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{}
-			Ω(actual).Should(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 	})
 
@@ -202,7 +202,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		It("builds correctly", func() {
 			actual, err := buildFactory.Create(input, resources, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				OnSuccess: &atc.OnSuccessPlan{
@@ -235,7 +235,7 @@ var _ = Describe("Factory Hooks", func() {
 				},
 			}
 
-			Ω(actual).To(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 	})
 
@@ -261,7 +261,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		It("builds correctly", func() {
 			actual, err := buildFactory.Create(input, resources, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				OnSuccess: &atc.OnSuccessPlan{
@@ -280,7 +280,7 @@ var _ = Describe("Factory Hooks", func() {
 				},
 			}
 
-			Ω(actual).To(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 	})
 
@@ -319,7 +319,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		It("builds correctly", func() {
 			actual, err := buildFactory.Create(input, resources, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				OnSuccess: &atc.OnSuccessPlan{
@@ -368,7 +368,7 @@ var _ = Describe("Factory Hooks", func() {
 				},
 			}
 
-			Ω(actual).To(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 	})
 
@@ -400,7 +400,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		It("builds correctly", func() {
 			actual, err := buildFactory.Create(input, resources, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				OnSuccess: &atc.OnSuccessPlan{
@@ -439,7 +439,7 @@ var _ = Describe("Factory Hooks", func() {
 				},
 			}
 
-			Ω(actual).To(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 	})
 
@@ -455,7 +455,7 @@ var _ = Describe("Factory Hooks", func() {
 					},
 				},
 			}, resources, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				OnFailure: &atc.OnFailurePlan{
@@ -479,7 +479,7 @@ var _ = Describe("Factory Hooks", func() {
 				},
 			}
 
-			Ω(actual).Should(Equal(expected))
+			Expect(actual).To(Equal(expected))
 
 		})
 
@@ -495,7 +495,7 @@ var _ = Describe("Factory Hooks", func() {
 					},
 				},
 			}, resources, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				OnFailure: &atc.OnFailurePlan{
@@ -524,7 +524,7 @@ var _ = Describe("Factory Hooks", func() {
 				},
 			}
 
-			Ω(actual).Should(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 
 		It("can build a job with multiple failure hooks", func() {
@@ -541,7 +541,7 @@ var _ = Describe("Factory Hooks", func() {
 					},
 				},
 			}, resources, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				OnFailure: &atc.OnFailurePlan{
@@ -575,7 +575,7 @@ var _ = Describe("Factory Hooks", func() {
 				},
 			}
 
-			Ω(actual).Should(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 
 		It("can build a job with multiple ensure and failure hooks", func() {
@@ -592,7 +592,7 @@ var _ = Describe("Factory Hooks", func() {
 					},
 				},
 			}, resources, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				OnFailure: &atc.OnFailurePlan{
@@ -626,7 +626,7 @@ var _ = Describe("Factory Hooks", func() {
 				},
 			}
 
-			Ω(actual).Should(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 
 		It("can build a job with failure, success and ensure hooks at the same level", func() {
@@ -646,7 +646,7 @@ var _ = Describe("Factory Hooks", func() {
 					},
 				},
 			}, resources, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				Ensure: &atc.EnsurePlan{
@@ -685,7 +685,7 @@ var _ = Describe("Factory Hooks", func() {
 				},
 			}
 
-			Ω(actual).Should(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 
 		It("can build a job with multiple ensure, failure and success hooks", func() {
@@ -705,7 +705,7 @@ var _ = Describe("Factory Hooks", func() {
 					},
 				},
 			}, resources, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				OnSuccess: &atc.OnSuccessPlan{
@@ -754,7 +754,7 @@ var _ = Describe("Factory Hooks", func() {
 				},
 			}
 
-			Ω(actual).Should(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 
 		Context("and multiple steps in my plan", func() {
@@ -778,7 +778,7 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				}, resources, nil)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				expected := atc.Plan{
 					OnSuccess: &atc.OnSuccessPlan{
@@ -826,7 +826,7 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				}
-				Ω(actual).Should(Equal(expected))
+				Expect(actual).To(Equal(expected))
 			})
 
 			It("can build a job with a task then a do", func() {
@@ -853,7 +853,7 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				}, resources, nil)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				expected := atc.Plan{
 					OnSuccess: &atc.OnSuccessPlan{
@@ -901,7 +901,7 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				}
-				Ω(actual).Should(Equal(expected))
+				Expect(actual).To(Equal(expected))
 			})
 
 			It("can build a job with a do then a task", func() {
@@ -922,7 +922,7 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				}, resources, nil)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				expected := atc.Plan{
 					OnSuccess: &atc.OnSuccessPlan{
@@ -952,7 +952,7 @@ var _ = Describe("Factory Hooks", func() {
 					},
 				}
 
-				Ω(actual).Should(Equal(expected))
+				Expect(actual).To(Equal(expected))
 			})
 		})
 	})

@@ -91,8 +91,8 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("returns nil and false", func() {
-				Ω(volumeManager).Should(BeNil())
-				Ω(hasVolumeManager).Should(BeFalse())
+				Expect(volumeManager).To(BeNil())
+				Expect(hasVolumeManager).To(BeFalse())
 			})
 		})
 
@@ -102,8 +102,8 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("returns the client and true", func() {
-				Ω(volumeManager).Should(Equal(baggageclaimClient))
-				Ω(hasVolumeManager).Should(BeTrue())
+				Expect(volumeManager).To(Equal(baggageclaimClient))
+				Expect(hasVolumeManager).To(BeTrue())
 			})
 		})
 	})
@@ -155,12 +155,12 @@ var _ = Describe("Worker", func() {
 					})
 
 					It("succeeds", func() {
-						Ω(createErr).ShouldNot(HaveOccurred())
+						Expect(createErr).NotTo(HaveOccurred())
 					})
 
 					It("creates the container with the Garden client", func() {
-						Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
-						Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
+						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+						Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
 							RootFSPath: "some-resource-image",
 							Privileged: true,
 							Properties: garden.Properties{
@@ -173,6 +173,7 @@ var _ = Describe("Worker", func() {
 								"concourse:build-id":      "42",
 							},
 						}))
+
 					})
 
 					It("creates the container info in the database", func() {
@@ -185,10 +186,10 @@ var _ = Describe("Worker", func() {
 							WorkerName:   "my-garden-worker",
 						}
 
-						Ω(fakeGardenWorkerDB.CreateContainerInfoCallCount()).Should(Equal(1))
+						Expect(fakeGardenWorkerDB.CreateContainerInfoCallCount()).To(Equal(1))
 						actualContainerInfo, ttl := fakeGardenWorkerDB.CreateContainerInfoArgsForCall(0)
-						Ω(actualContainerInfo).Should(Equal(containerInfo))
-						Ω(ttl).Should(Equal(5 * time.Minute))
+						Expect(actualContainerInfo).To(Equal(containerInfo))
+						Expect(ttl).To(Equal(5 * time.Minute))
 					})
 
 					Context("when creating the container info in the db fails", func() {
@@ -200,7 +201,7 @@ var _ = Describe("Worker", func() {
 
 						It("returns the error", func() {
 
-							Ω(createErr).Should(Equal(disaster))
+							Expect(createErr).To(Equal(disaster))
 						})
 
 					})
@@ -214,8 +215,8 @@ var _ = Describe("Worker", func() {
 						})
 
 						It("creates the container with the given env vars", func() {
-							Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
-							Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
+							Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+							Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
 								RootFSPath: "some-resource-image",
 								Privileged: true,
 								Properties: garden.Properties{
@@ -229,6 +230,7 @@ var _ = Describe("Worker", func() {
 								},
 								Env: []string{"a=1", "b=2"},
 							}))
+
 						})
 					})
 
@@ -250,8 +252,8 @@ var _ = Describe("Worker", func() {
 						})
 
 						It("creates the container with a read-write bind-mount", func() {
-							Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
-							Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
+							Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+							Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
 								RootFSPath: "some-resource-image",
 								Privileged: true,
 								Properties: garden.Properties{
@@ -272,6 +274,7 @@ var _ = Describe("Worker", func() {
 									},
 								},
 							}))
+
 						})
 					})
 
@@ -284,8 +287,8 @@ var _ = Describe("Worker", func() {
 						})
 
 						It("adds an 'ephemeral' property to the container", func() {
-							Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
-							Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
+							Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+							Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
 								RootFSPath: "some-resource-image",
 								Privileged: true,
 								Properties: garden.Properties{
@@ -299,17 +302,18 @@ var _ = Describe("Worker", func() {
 									"concourse:ephemeral":     "true",
 								},
 							}))
+
 						})
 					})
 
 					Describe("the created container", func() {
 						It("can be destroyed", func() {
 							err := createdContainer.Destroy()
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 
 							By("destroying via garden")
-							Ω(fakeGardenClient.DestroyCallCount()).Should(Equal(1))
-							Ω(fakeGardenClient.DestroyArgsForCall(0)).Should(Equal("some-handle"))
+							Expect(fakeGardenClient.DestroyCallCount()).To(Equal(1))
+							Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("some-handle"))
 
 							By("no longer heartbeating")
 							fakeClock.Increment(30 * time.Second)
@@ -317,21 +321,21 @@ var _ = Describe("Worker", func() {
 						})
 
 						It("is kept alive by continuously setting a keepalive property until released", func() {
-							Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(0))
+							Expect(fakeContainer.SetPropertyCallCount()).To(Equal(0))
 
 							fakeClock.Increment(30 * time.Second)
 
 							Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(1))
 							name, value := fakeContainer.SetPropertyArgsForCall(0)
-							Ω(name).Should(Equal("keepalive"))
-							Ω(value).Should(Equal("153")) // unix timestamp
+							Expect(name).To(Equal("keepalive"))
+							Expect(value).To(Equal("153")) // unix timestamp
 
 							fakeClock.Increment(30 * time.Second)
 
 							Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(2))
 							name, value = fakeContainer.SetPropertyArgsForCall(1)
-							Ω(name).Should(Equal("keepalive"))
-							Ω(value).Should(Equal("183")) // unix timestamp
+							Expect(name).To(Equal("keepalive"))
+							Expect(value).To(Equal("183")) // unix timestamp
 
 							createdContainer.Release()
 
@@ -350,7 +354,7 @@ var _ = Describe("Worker", func() {
 					})
 
 					It("returns the error", func() {
-						Ω(createErr).Should(Equal(disaster))
+						Expect(createErr).To(Equal(disaster))
 					})
 				})
 			})
@@ -363,7 +367,7 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("returns ErrUnsupportedResourceType", func() {
-					Ω(createErr).Should(Equal(ErrUnsupportedResourceType))
+					Expect(createErr).To(Equal(ErrUnsupportedResourceType))
 				})
 			})
 		})
@@ -387,12 +391,12 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("succeeds", func() {
-					Ω(createErr).ShouldNot(HaveOccurred())
+					Expect(createErr).NotTo(HaveOccurred())
 				})
 
 				It("creates the container with the Garden client", func() {
-					Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
-					Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
 						RootFSPath: "some-image",
 						Privileged: true,
 						Properties: garden.Properties{
@@ -405,6 +409,7 @@ var _ = Describe("Worker", func() {
 							"concourse:build-id":      "42",
 						},
 					}))
+
 				})
 
 				Context("when a root volume and inputs are provided", func() {
@@ -472,8 +477,8 @@ var _ = Describe("Worker", func() {
 					})
 
 					It("creates the container with read-write copy-on-write bind-mounts for each input", func() {
-						Ω(fakeGardenClient.CreateCallCount()).Should(Equal(1))
-						Ω(fakeGardenClient.CreateArgsForCall(0)).Should(Equal(garden.ContainerSpec{
+						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+						Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
 							RootFSPath: "some-image",
 							Privileged: true,
 							Properties: garden.Properties{
@@ -504,6 +509,7 @@ var _ = Describe("Worker", func() {
 								},
 							},
 						}))
+
 					})
 
 					Context("when creating the copy-on-write volumes fails", func() {
@@ -522,11 +528,11 @@ var _ = Describe("Worker", func() {
 				Describe("the created container", func() {
 					It("can be destroyed", func() {
 						err := createdContainer.Destroy()
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						By("destroying via garden")
-						Ω(fakeGardenClient.DestroyCallCount()).Should(Equal(1))
-						Ω(fakeGardenClient.DestroyArgsForCall(0)).Should(Equal("some-handle"))
+						Expect(fakeGardenClient.DestroyCallCount()).To(Equal(1))
+						Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("some-handle"))
 
 						By("no longer heartbeating")
 						fakeClock.Increment(30 * time.Second)
@@ -534,32 +540,32 @@ var _ = Describe("Worker", func() {
 					})
 
 					It("is kept alive by continuously setting a keepalive property until released", func() {
-						Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(0))
-						Ω(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).Should(Equal(0))
+						Expect(fakeContainer.SetPropertyCallCount()).To(Equal(0))
+						Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).To(Equal(0))
 
 						fakeClock.Increment(30 * time.Second)
 
 						Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(1))
 						name, value := fakeContainer.SetPropertyArgsForCall(0)
-						Ω(name).Should(Equal("keepalive"))
-						Ω(value).Should(Equal("153")) // unix timestamp
+						Expect(name).To(Equal("keepalive"))
+						Expect(value).To(Equal("153")) // unix timestamp
 
 						Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).Should(Equal(1))
 						handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(0)
-						Ω(handle).Should(Equal("some-handle"))
-						Ω(interval).Should(Equal(5 * time.Minute))
+						Expect(handle).To(Equal("some-handle"))
+						Expect(interval).To(Equal(5 * time.Minute))
 
 						fakeClock.Increment(30 * time.Second)
 
 						Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(2))
 						name, value = fakeContainer.SetPropertyArgsForCall(1)
-						Ω(name).Should(Equal("keepalive"))
-						Ω(value).Should(Equal("183")) // unix timestamp
+						Expect(name).To(Equal("keepalive"))
+						Expect(value).To(Equal("183")) // unix timestamp
 
 						Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).Should(Equal(2))
 						handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(1)
-						Ω(handle).Should(Equal("some-handle"))
-						Ω(interval).Should(Equal(5 * time.Minute))
+						Expect(handle).To(Equal("some-handle"))
+						Expect(interval).To(Equal(5 * time.Minute))
 
 						createdContainer.Release()
 
@@ -578,7 +584,7 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("returns the error", func() {
-					Ω(createErr).Should(Equal(disaster))
+					Expect(createErr).To(Equal(disaster))
 				})
 			})
 		})
@@ -605,10 +611,10 @@ var _ = Describe("Worker", func() {
 
 			It("returns the container and no error", func() {
 				foundContainer, found, err := worker.LookupContainer(logger, handle)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(found).Should(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-				Ω(foundContainer.Handle()).Should(Equal(fakeContainer.Handle()))
+				Expect(foundContainer.Handle()).To(Equal(fakeContainer.Handle()))
 			})
 
 			Describe("the container", func() {
@@ -645,7 +651,7 @@ var _ = Describe("Worker", func() {
 
 					Describe("Volumes", func() {
 						It("returns all bound volumes based on properties on the container", func() {
-							Ω(foundContainer.Volumes()).Should(Equal([]baggageclaim.Volume{handle1Volume, handle2Volume}))
+							Expect(foundContainer.Volumes()).To(Equal([]baggageclaim.Volume{handle1Volume, handle2Volume}))
 						})
 
 						Context("when LookupVolume returns an error", func() {
@@ -720,9 +726,9 @@ var _ = Describe("Worker", func() {
 
 			It("returns nil and forwards the error", func() {
 				foundContainer, _, err := worker.LookupContainer(logger, handle)
-				Ω(err).Should(Equal(expectedErr))
+				Expect(err).To(Equal(expectedErr))
 
-				Ω(foundContainer).Should(BeNil())
+				Expect(foundContainer).To(BeNil())
 			})
 		})
 	})
@@ -763,24 +769,25 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("succeeds", func() {
-				Ω(lookupErr).ShouldNot(HaveOccurred())
+				Expect(lookupErr).NotTo(HaveOccurred())
 			})
 
 			It("looks for containers with matching properties via the Garden client", func() {
-				Ω(fakeGardenClient.ContainersCallCount()).Should(Equal(1))
-				Ω(fakeGardenClient.ContainersArgsForCall(0)).Should(Equal(garden.Properties{
+				Expect(fakeGardenClient.ContainersCallCount()).To(Equal(1))
+				Expect(fakeGardenClient.ContainersArgsForCall(0)).To(Equal(garden.Properties{
 					"concourse:name": name,
 				}))
+
 			})
 
 			Describe("the found container", func() {
 				It("can be destroyed", func() {
 					err := foundContainer.Destroy()
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					By("destroying via garden")
-					Ω(fakeGardenClient.DestroyCallCount()).Should(Equal(1))
-					Ω(fakeGardenClient.DestroyArgsForCall(0)).Should(Equal("some-handle"))
+					Expect(fakeGardenClient.DestroyCallCount()).To(Equal(1))
+					Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("some-handle"))
 
 					By("no longer heartbeating")
 					fakeClock.Increment(30 * time.Second)
@@ -788,21 +795,21 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("is kept alive by continuously setting a keepalive property until released", func() {
-					Ω(fakeContainer.SetPropertyCallCount()).Should(Equal(0))
+					Expect(fakeContainer.SetPropertyCallCount()).To(Equal(0))
 
 					fakeClock.Increment(30 * time.Second)
 
 					Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(1))
 					name, value := fakeContainer.SetPropertyArgsForCall(0)
-					Ω(name).Should(Equal("keepalive"))
-					Ω(value).Should(Equal("153")) // unix timestamp
+					Expect(name).To(Equal("keepalive"))
+					Expect(value).To(Equal("153")) // unix timestamp
 
 					fakeClock.Increment(30 * time.Second)
 
 					Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(2))
 					name, value = fakeContainer.SetPropertyArgsForCall(1)
-					Ω(name).Should(Equal("keepalive"))
-					Ω(value).Should(Equal("183")) // unix timestamp
+					Expect(name).To(Equal("keepalive"))
+					Expect(value).To(Equal("183")) // unix timestamp
 
 					foundContainer.Release()
 
@@ -813,14 +820,14 @@ var _ = Describe("Worker", func() {
 
 				It("can be released multiple times", func() {
 					foundContainer.Release()
-					Ω(foundContainer.Release).ShouldNot(Panic())
+					Expect(foundContainer.Release).NotTo(Panic())
 				})
 
 				Describe("providing its Identifier", func() {
 					It("can provide its Identifier", func() {
 						identifier := foundContainer.IdentifierFromProperties()
 
-						Ω(identifier.Name).Should(Equal(name))
+						Expect(identifier.Name).To(Equal(name))
 					})
 				})
 			})
@@ -841,9 +848,10 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("returns ErrMultipleContainers", func() {
-				Ω(lookupErr).Should(Equal(MultipleContainersError{
+				Expect(lookupErr).To(Equal(MultipleContainersError{
 					Handles: []string{"some-handle", "some-other-handle"},
 				}))
+
 			})
 		})
 
@@ -853,7 +861,7 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("returns ErrContainerNotFound", func() {
-				Ω(found).Should(BeFalse())
+				Expect(found).To(BeFalse())
 			})
 		})
 
@@ -865,7 +873,7 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("returns the error", func() {
-				Ω(lookupErr).Should(Equal(disaster))
+				Expect(lookupErr).To(Equal(disaster))
 			})
 		})
 	})
@@ -909,7 +917,7 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("returns ErrIncompatiblePlatform", func() {
-					Ω(satisfyingErr).Should(Equal(ErrMismatchedTags))
+					Expect(satisfyingErr).To(Equal(ErrMismatchedTags))
 				})
 			})
 
@@ -919,11 +927,11 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("returns the worker", func() {
-					Ω(satisfyingWorker).Should(Equal(worker))
+					Expect(satisfyingWorker).To(Equal(worker))
 				})
 
 				It("returns no error", func() {
-					Ω(satisfyingErr).ShouldNot(HaveOccurred())
+					Expect(satisfyingErr).NotTo(HaveOccurred())
 				})
 			})
 
@@ -933,11 +941,11 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("returns the worker", func() {
-					Ω(satisfyingWorker).Should(Equal(worker))
+					Expect(satisfyingWorker).To(Equal(worker))
 				})
 
 				It("returns no error", func() {
-					Ω(satisfyingErr).ShouldNot(HaveOccurred())
+					Expect(satisfyingErr).NotTo(HaveOccurred())
 				})
 			})
 
@@ -947,11 +955,11 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("returns the worker", func() {
-					Ω(satisfyingWorker).Should(Equal(worker))
+					Expect(satisfyingWorker).To(Equal(worker))
 				})
 
 				It("returns no error", func() {
-					Ω(satisfyingErr).ShouldNot(HaveOccurred())
+					Expect(satisfyingErr).NotTo(HaveOccurred())
 				})
 			})
 
@@ -961,7 +969,7 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("returns ErrMismatchedTags", func() {
-					Ω(satisfyingErr).Should(Equal(ErrMismatchedTags))
+					Expect(satisfyingErr).To(Equal(ErrMismatchedTags))
 				})
 			})
 		})
@@ -972,7 +980,7 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("returns ErrIncompatiblePlatform", func() {
-				Ω(satisfyingErr).Should(Equal(ErrIncompatiblePlatform))
+				Expect(satisfyingErr).To(Equal(ErrIncompatiblePlatform))
 			})
 		})
 
@@ -987,11 +995,11 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("returns the worker", func() {
-					Ω(satisfyingWorker).Should(Equal(worker))
+					Expect(satisfyingWorker).To(Equal(worker))
 				})
 
 				It("returns no error", func() {
-					Ω(satisfyingErr).ShouldNot(HaveOccurred())
+					Expect(satisfyingErr).NotTo(HaveOccurred())
 				})
 			})
 
@@ -1001,11 +1009,11 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("returns the worker", func() {
-					Ω(satisfyingWorker).Should(Equal(worker))
+					Expect(satisfyingWorker).To(Equal(worker))
 				})
 
 				It("returns no error", func() {
-					Ω(satisfyingErr).ShouldNot(HaveOccurred())
+					Expect(satisfyingErr).NotTo(HaveOccurred())
 				})
 			})
 
@@ -1015,7 +1023,7 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("returns ErrMismatchedTags", func() {
-					Ω(satisfyingErr).Should(Equal(ErrMismatchedTags))
+					Expect(satisfyingErr).To(Equal(ErrMismatchedTags))
 				})
 			})
 		})
@@ -1031,7 +1039,7 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("returns ErrUnsupportedResourceType", func() {
-					Ω(satisfyingErr).Should(Equal(ErrUnsupportedResourceType))
+					Expect(satisfyingErr).To(Equal(ErrUnsupportedResourceType))
 				})
 			})
 
@@ -1041,7 +1049,7 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("returns ErrUnsupportedResourceType", func() {
-					Ω(satisfyingErr).Should(Equal(ErrUnsupportedResourceType))
+					Expect(satisfyingErr).To(Equal(ErrUnsupportedResourceType))
 				})
 			})
 
@@ -1051,7 +1059,7 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("returns ErrUnsupportedResourceType", func() {
-					Ω(satisfyingErr).Should(Equal(ErrUnsupportedResourceType))
+					Expect(satisfyingErr).To(Equal(ErrUnsupportedResourceType))
 				})
 			})
 		})

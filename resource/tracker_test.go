@@ -66,22 +66,22 @@ var _ = Describe("Tracker", func() {
 			})
 
 			It("does not error and returns a resource", func() {
-				Ω(initErr).ShouldNot(HaveOccurred())
-				Ω(initResource).ShouldNot(BeNil())
+				Expect(initErr).NotTo(HaveOccurred())
+				Expect(initResource).NotTo(BeNil())
 			})
 
 			It("creates a container with the resource's type, env, ephemeral information, and the session as the handle", func() {
 				_, id, spec := workerClient.CreateContainerArgsForCall(0)
 
-				Ω(id).Should(Equal(session.ID))
+				Expect(id).To(Equal(session.ID))
 				resourceSpec := spec.(worker.ResourceTypeContainerSpec)
 
-				Ω(resourceSpec.Type).Should(Equal(string(initType)))
-				Ω(resourceSpec.Env).Should(Equal([]string{"a=1", "b=2"}))
-				Ω(resourceSpec.Ephemeral).Should(Equal(true))
-				Ω(resourceSpec.Tags).Should(ConsistOf("resource", "tags"))
-				Ω(resourceSpec.Cache.Volume).Should(Equal(volumeMount.Volume))
-				Ω(resourceSpec.Cache.MountPath).Should(Equal(volumeMount.MountPath))
+				Expect(resourceSpec.Type).To(Equal(string(initType)))
+				Expect(resourceSpec.Env).To(Equal([]string{"a=1", "b=2"}))
+				Expect(resourceSpec.Ephemeral).To(Equal(true))
+				Expect(resourceSpec.Tags).To(ConsistOf("resource", "tags"))
+				Expect(resourceSpec.Cache.Volume).To(Equal(volumeMount.Volume))
+				Expect(resourceSpec.Cache.MountPath).To(Equal(volumeMount.MountPath))
 			})
 
 			Context("when creating the container fails", func() {
@@ -92,8 +92,8 @@ var _ = Describe("Tracker", func() {
 				})
 
 				It("returns the error and no resource", func() {
-					Ω(initErr).Should(Equal(disaster))
-					Ω(initResource).Should(BeNil())
+					Expect(initErr).To(Equal(disaster))
+					Expect(initResource).To(BeNil())
 				})
 			})
 		})
@@ -106,12 +106,12 @@ var _ = Describe("Tracker", func() {
 			})
 
 			It("returns the error and no resource", func() {
-				Ω(initErr).Should(Equal(disaster))
-				Ω(initResource).Should(BeNil())
+				Expect(initErr).To(Equal(disaster))
+				Expect(initResource).To(BeNil())
 			})
 
 			It("does not create a container", func() {
-				Ω(workerClient.CreateContainerCallCount()).Should(BeZero())
+				Expect(workerClient.CreateContainerCallCount()).To(BeZero())
 			})
 		})
 
@@ -124,12 +124,12 @@ var _ = Describe("Tracker", func() {
 			})
 
 			It("does not error and returns a resource", func() {
-				Ω(initErr).ShouldNot(HaveOccurred())
-				Ω(initResource).ShouldNot(BeNil())
+				Expect(initErr).NotTo(HaveOccurred())
+				Expect(initResource).NotTo(BeNil())
 			})
 
 			It("does not create a container", func() {
-				Ω(workerClient.CreateContainerCallCount()).Should(BeZero())
+				Expect(workerClient.CreateContainerCallCount()).To(BeZero())
 			})
 		})
 	})

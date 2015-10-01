@@ -40,7 +40,7 @@ var _ = Describe("25ConvertJobBuildConfigToJobPlans", func() {
 	}
 
 	BeforeEach(func() {
-		Ω(migrationFromSet).ShouldNot(BeNil(), "Migration was not added to the list!")
+		Expect(migrationFromSet).NotTo(BeNil(), "Migration was not added to the list!")
 
 		var err error
 
@@ -53,12 +53,12 @@ var _ = Describe("25ConvertJobBuildConfigToJobPlans", func() {
 		postgresRunner.CreateTestDB()
 
 		dbConn, err = migration.Open("postgres", postgresRunner.DataSourceName(), precedingMigrations)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
 		err := dbConn.Close()
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		postgresRunner.DropTestDB()
 
@@ -68,13 +68,13 @@ var _ = Describe("25ConvertJobBuildConfigToJobPlans", func() {
 
 	JustBeforeEach(func() {
 		tx, err := dbConn.Begin()
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		err = migrationFromSet(tx)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		err = tx.Commit()
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	Context("when a config is present with old-style job configurations", func() {
@@ -214,7 +214,7 @@ var _ = Describe("25ConvertJobBuildConfigToJobPlans", func() {
 					}
 				]
 			}`).Scan(&initialConfigID)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("migrates them to the new plan-based configuration", func() {
@@ -225,10 +225,10 @@ var _ = Describe("25ConvertJobBuildConfigToJobPlans", func() {
 				SELECT config, id
 				FROM config
 			`).Scan(&configBlob, &id)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(id).Should(Equal(initialConfigID + 1))
-			Ω(configBlob).Should(MatchJSON(`{
+			Expect(id).To(Equal(initialConfigID + 1))
+			Expect(configBlob).To(MatchJSON(`{
 				"jobs": [
 					{
 						"name": "some-job",
@@ -385,6 +385,7 @@ var _ = Describe("25ConvertJobBuildConfigToJobPlans", func() {
 					}
 				]
 			}`))
+
 		})
 	})
 

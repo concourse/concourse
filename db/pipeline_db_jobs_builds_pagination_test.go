@@ -36,24 +36,24 @@ var _ = Describe("Jobs Builds", func() {
 		pipelineDBFactory = db.NewPipelineDBFactory(lagertest.NewTestLogger("test"), dbConn, bus, sqlDB)
 
 		_, err := sqlDB.SaveConfig("a-pipeline-name", atc.Config{}, 0, db.PipelineUnpaused)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB, err = pipelineDBFactory.BuildWithName("a-pipeline-name")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		_, err = sqlDB.SaveConfig("another-pipeline", atc.Config{}, 0, db.PipelineUnpaused)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		otherPipelineDB, err = pipelineDBFactory.BuildWithName("another-pipeline")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
 		err := dbConn.Close()
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		err = listener.Close()
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		postgresRunner.DropTestDB()
 	})
@@ -66,23 +66,23 @@ var _ = Describe("Jobs Builds", func() {
 
 		BeforeEach(func() {
 			_, err = pipelineDB.CreateJobBuild("job-name")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			build2, err = pipelineDB.CreateJobBuild("job-name")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = pipelineDB.CreateJobBuild("other-job-name")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("returns the max id from the builds table by job name, scoped to the pipeline", func() {
 			maxID, err := pipelineDB.GetJobBuildsMaxID("job-name")
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(maxID).Should(Equal(build2.ID))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(maxID).To(Equal(build2.ID))
 
 			maxID, err = otherPipelineDB.GetJobBuildsMaxID("job-name")
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(maxID).Should(BeZero())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(maxID).To(BeZero())
 		})
 	})
 
@@ -95,53 +95,54 @@ var _ = Describe("Jobs Builds", func() {
 
 		BeforeEach(func() {
 			_, err = pipelineDB.CreateJobBuild("job-name")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			build2, err = pipelineDB.CreateJobBuild("job-name")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = pipelineDB.CreateJobBuild("other-name") // add in another test verifying this record doesn't fuck shit up
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			build3, err = pipelineDB.CreateJobBuild("job-name")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = pipelineDB.CreateJobBuild("job-name")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("returns a slice of builds limitied by the passed in limit, ordered by id desc", func() {
 			builds, _, err := pipelineDB.GetJobBuildsCursor("job-name", 0, true, 2)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(len(builds)).Should(Equal(2))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(builds)).To(Equal(2))
 
-			Ω(builds[0].ID).Should(BeNumerically(">", builds[1].ID))
+			Expect(builds[0].ID).To(BeNumerically(">", builds[1].ID))
 		})
 
 		Context("when resultsGreaterThanStartingID is true", func() {
 			It("returns a slice of builds with ID's equal to and less than the starting ID", func() {
 				builds, _, err := pipelineDB.GetJobBuildsCursor("job-name", build2.ID, true, 2)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(builds).Should(ConsistOf([]db.Build{
+				Expect(builds).To(ConsistOf([]db.Build{
 					build3,
 					build2,
 				}))
+
 			})
 
 			Context("when there are more results that are greater than the given starting id", func() {
 				It("returns true for moreResultsInGivenDirection", func() {
 					_, moreResultsInGivenDirection, err := pipelineDB.GetJobBuildsCursor("job-name", build2.ID, true, 2)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(moreResultsInGivenDirection).Should(BeTrue())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(moreResultsInGivenDirection).To(BeTrue())
 				})
 			})
 
 			Context("when there are not more results that are greater than the given starting id", func() {
 				It("returns false for moreResultsInGivenDirection", func() {
 					_, moreResultsInGivenDirection, err := pipelineDB.GetJobBuildsCursor("job-name", build2.ID, true, 1000)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(moreResultsInGivenDirection).Should(BeFalse())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(moreResultsInGivenDirection).To(BeFalse())
 				})
 			})
 		})
@@ -149,27 +150,28 @@ var _ = Describe("Jobs Builds", func() {
 		Context("when resultsGreaterThanStartingID is false", func() {
 			It("returns a slice of builds with ID's equal to and less than the starting ID", func() {
 				builds, _, err := pipelineDB.GetJobBuildsCursor("job-name", build3.ID, false, 2)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(builds).Should(ConsistOf([]db.Build{
+				Expect(builds).To(ConsistOf([]db.Build{
 					build3,
 					build2,
 				}))
+
 			})
 
 			Context("when there are more results that are less than the given starting id", func() {
 				It("returns true for moreResultsInGivenDirection", func() {
 					_, moreResultsInGivenDirection, err := pipelineDB.GetJobBuildsCursor("job-name", build3.ID, false, 2)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(moreResultsInGivenDirection).Should(BeTrue())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(moreResultsInGivenDirection).To(BeTrue())
 				})
 			})
 
 			Context("when there are not more results that are less than the given starting id", func() {
 				It("returns false for moreResultsInGivenDirection", func() {
 					_, moreResultsInGivenDirection, err := pipelineDB.GetJobBuildsCursor("job-name", build3.ID, false, 1000)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(moreResultsInGivenDirection).Should(BeFalse())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(moreResultsInGivenDirection).To(BeFalse())
 				})
 			})
 		})

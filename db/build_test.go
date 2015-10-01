@@ -15,14 +15,14 @@ var _ = Describe("Build", func() {
 			build := db.Build{
 				JobName: "",
 			}
-			Ω(build.OneOff()).Should(BeTrue())
+			Expect(build.OneOff()).To(BeTrue())
 		})
 
 		It("returns false if there is a JobName", func() {
 			build := db.Build{
 				JobName: "something",
 			}
-			Ω(build.OneOff()).Should(BeFalse())
+			Expect(build.OneOff()).To(BeFalse())
 		})
 	})
 
@@ -31,14 +31,14 @@ var _ = Describe("Build", func() {
 			build := db.Build{
 				Status: db.StatusPending,
 			}
-			Ω(build.Abortable()).Should(BeTrue())
+			Expect(build.Abortable()).To(BeTrue())
 		})
 
 		It("returns true if the build is started", func() {
 			build := db.Build{
 				Status: db.StatusStarted,
 			}
-			Ω(build.Abortable()).Should(BeTrue())
+			Expect(build.Abortable()).To(BeTrue())
 		})
 
 		It("returns false if in any other state", func() {
@@ -53,7 +53,7 @@ var _ = Describe("Build", func() {
 				build := db.Build{
 					Status: state,
 				}
-				Ω(build.Abortable()).Should(BeFalse())
+				Expect(build.Abortable()).To(BeFalse())
 			}
 		})
 	})
@@ -63,14 +63,14 @@ var _ = Describe("Build", func() {
 			build := db.Build{
 				Status: db.StatusPending,
 			}
-			Ω(build.Abortable()).Should(BeTrue())
+			Expect(build.Abortable()).To(BeTrue())
 		})
 
 		It("returns true if the build is started", func() {
 			build := db.Build{
 				Status: db.StatusStarted,
 			}
-			Ω(build.Abortable()).Should(BeTrue())
+			Expect(build.Abortable()).To(BeTrue())
 		})
 
 		It("returns false if in any other state", func() {
@@ -85,7 +85,7 @@ var _ = Describe("Build", func() {
 				build := db.Build{
 					Status: state,
 				}
-				Ω(build.Abortable()).Should(BeFalse())
+				Expect(build.Abortable()).To(BeFalse())
 			}
 		})
 	})
@@ -98,14 +98,14 @@ var _ = Describe("Resource", func() {
 				CheckError: errors.New("nope"),
 			}
 
-			Ω(resource.FailingToCheck()).Should(BeTrue())
+			Expect(resource.FailingToCheck()).To(BeTrue())
 		})
 
 		It("returns false if there is no check error", func() {
 			resource := db.SavedResource{
 				CheckError: nil,
 			}
-			Ω(resource.FailingToCheck()).Should(BeFalse())
+			Expect(resource.FailingToCheck()).To(BeFalse())
 		})
 	})
 })

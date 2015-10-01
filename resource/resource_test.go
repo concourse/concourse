@@ -16,26 +16,26 @@ var _ = Describe("Resource", func() {
 		It("releases the container", func() {
 			resource.Release()
 
-			Ω(fakeContainer.ReleaseCallCount()).Should(Equal(1))
+			Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
 		})
 	})
 
 	Describe("Destroy", func() {
 		It("destroys the container", func() {
 			err := resource.Destroy()
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(fakeContainer.DestroyCallCount()).Should(Equal(1))
+			Expect(fakeContainer.DestroyCallCount()).To(Equal(1))
 		})
 
 		It("only destroys on the first call", func() {
 			err := resource.Destroy()
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			err = resource.Destroy()
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(fakeContainer.DestroyCallCount()).Should(Equal(1))
+			Expect(fakeContainer.DestroyCallCount()).To(Equal(1))
 		})
 
 		Context("when destroying the container fails", func() {
@@ -47,7 +47,7 @@ var _ = Describe("Resource", func() {
 
 			It("returns the error", func() {
 				err := resource.Destroy()
-				Ω(err).Should(Equal(disaster))
+				Expect(err).To(Equal(disaster))
 			})
 		})
 	})
@@ -63,12 +63,12 @@ var _ = Describe("Resource", func() {
 
 			It("returns the volume and true", func() {
 				volume, found, err := resource.CacheVolume()
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(found).Should(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-				Ω(fakeContainer.VolumesCallCount()).Should(Equal(1))
+				Expect(fakeContainer.VolumesCallCount()).To(Equal(1))
 
-				Ω(volume).Should(Equal(vol1))
+				Expect(volume).To(Equal(vol1))
 			})
 		})
 
@@ -84,7 +84,7 @@ var _ = Describe("Resource", func() {
 
 			It("returns ErrMultipleVolumes", func() {
 				_, _, err := resource.CacheVolume()
-				Ω(err).Should(Equal(ErrMultipleVolumes))
+				Expect(err).To(Equal(ErrMultipleVolumes))
 			})
 		})
 
@@ -95,22 +95,22 @@ var _ = Describe("Resource", func() {
 
 			It("returns no volume and false", func() {
 				volume, found, err := resource.CacheVolume()
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(found).Should(BeFalse())
-				Ω(volume).Should(BeNil())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+				Expect(volume).To(BeNil())
 			})
 		})
 	})
 
 	Describe("Type", func() {
 		It("returns the resource's type", func() {
-			Ω(resource.Type()).Should(Equal(ResourceType("some-type")))
+			Expect(resource.Type()).To(Equal(ResourceType("some-type")))
 		})
 	})
 
 	Describe("ResourcesDir", func() {
 		It("returns a file path with a prefix", func() {
-			Ω(ResourcesDir("some-prefix")).Should(ContainSubstring("some-prefix"))
+			Expect(ResourcesDir("some-prefix")).To(ContainSubstring("some-prefix"))
 		})
 	})
 })

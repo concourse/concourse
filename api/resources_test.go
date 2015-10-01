@@ -28,11 +28,11 @@ var _ = Describe("Resources API", func() {
 			var err error
 
 			response, err = client.Get(server.URL + "/api/v1/pipelines/a-pipeline/resources")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+			Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
 			pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
-			Ω(pipelineName).Should(Equal("a-pipeline"))
+			Expect(pipelineName).To(Equal("a-pipeline"))
 		})
 
 		Context("when getting the resource config succeeds", func() {
@@ -83,7 +83,7 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("returns 200 OK", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
 				Context("when authenticated", func() {
@@ -93,9 +93,9 @@ var _ = Describe("Resources API", func() {
 
 					It("returns each resource, including their check failure", func() {
 						body, err := ioutil.ReadAll(response.Body)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
-						Ω(body).Should(MatchJSON(`[
+						Expect(body).To(MatchJSON(`[
 							{
 								"name": "resource-1",
 								"type": "type-1",
@@ -119,6 +119,7 @@ var _ = Describe("Resources API", func() {
 								"url": "/pipelines/a-pipeline/resources/resource-3"
 							}
 						]`))
+
 					})
 				})
 
@@ -129,9 +130,9 @@ var _ = Describe("Resources API", func() {
 
 					It("returns each resource, excluding their check failure", func() {
 						body, err := ioutil.ReadAll(response.Body)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
-						Ω(body).Should(MatchJSON(`[
+						Expect(body).To(MatchJSON(`[
 							{
 								"name": "resource-1",
 								"type": "type-1",
@@ -154,6 +155,7 @@ var _ = Describe("Resources API", func() {
 								"url": "/pipelines/a-pipeline/resources/resource-3"
 							}
 						]`))
+
 					})
 				})
 			})
@@ -166,7 +168,7 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("returns 500", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -178,7 +180,7 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("returns 404", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 
@@ -188,7 +190,7 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("returns 500", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -201,10 +203,10 @@ var _ = Describe("Resources API", func() {
 			var err error
 
 			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/a-pipeline/resources/resource-name/versions/42/enable", nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 		})
 
@@ -214,9 +216,9 @@ var _ = Describe("Resources API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
-				Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+				Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
 				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
-				Ω(pipelineName).Should(Equal("a-pipeline"))
+				Expect(pipelineName).To(Equal("a-pipeline"))
 			})
 
 			Context("when enabling the resource succeeds", func() {
@@ -225,11 +227,11 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("enabled the right versioned resource", func() {
-					Ω(pipelineDB.EnableVersionedResourceArgsForCall(0)).Should(Equal(42))
+					Expect(pipelineDB.EnableVersionedResourceArgsForCall(0)).To(Equal(42))
 				})
 
 				It("returns 200", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 			})
 
@@ -239,7 +241,7 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("returns 500", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -250,7 +252,7 @@ var _ = Describe("Resources API", func() {
 			})
 
 			It("returns Unauthorized", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -262,10 +264,10 @@ var _ = Describe("Resources API", func() {
 			var err error
 
 			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/a-pipeline/resources/resource-name/versions/42/disable", nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when authenticated", func() {
@@ -274,9 +276,9 @@ var _ = Describe("Resources API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
-				Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+				Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
 				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
-				Ω(pipelineName).Should(Equal("a-pipeline"))
+				Expect(pipelineName).To(Equal("a-pipeline"))
 			})
 
 			Context("when enabling the resource succeeds", func() {
@@ -285,11 +287,11 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("disabled the right versioned resource", func() {
-					Ω(pipelineDB.DisableVersionedResourceArgsForCall(0)).Should(Equal(42))
+					Expect(pipelineDB.DisableVersionedResourceArgsForCall(0)).To(Equal(42))
 				})
 
 				It("returns 200", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 			})
 
@@ -299,7 +301,7 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("returns 500", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -310,7 +312,7 @@ var _ = Describe("Resources API", func() {
 			})
 
 			It("returns Unauthorized", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -322,10 +324,10 @@ var _ = Describe("Resources API", func() {
 			var err error
 
 			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/a-pipeline/resources/resource-name/pause", nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when authenticated", func() {
@@ -334,9 +336,9 @@ var _ = Describe("Resources API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
-				Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+				Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
 				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
-				Ω(pipelineName).Should(Equal("a-pipeline"))
+				Expect(pipelineName).To(Equal("a-pipeline"))
 			})
 
 			Context("when pausing the resource succeeds", func() {
@@ -345,11 +347,11 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("paused the right resource", func() {
-					Ω(pipelineDB.PauseResourceArgsForCall(0)).Should(Equal("resource-name"))
+					Expect(pipelineDB.PauseResourceArgsForCall(0)).To(Equal("resource-name"))
 				})
 
 				It("returns 200", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 			})
 
@@ -359,7 +361,7 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("returns 500", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -370,7 +372,7 @@ var _ = Describe("Resources API", func() {
 			})
 
 			It("returns Unauthorized", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -382,10 +384,10 @@ var _ = Describe("Resources API", func() {
 			var err error
 
 			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/a-pipeline/resources/resource-name/unpause", nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when authenticated", func() {
@@ -394,9 +396,9 @@ var _ = Describe("Resources API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
-				Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+				Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
 				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
-				Ω(pipelineName).Should(Equal("a-pipeline"))
+				Expect(pipelineName).To(Equal("a-pipeline"))
 			})
 
 			Context("when unpausing the resource succeeds", func() {
@@ -405,11 +407,11 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("unpaused the right resource", func() {
-					Ω(pipelineDB.UnpauseResourceArgsForCall(0)).Should(Equal("resource-name"))
+					Expect(pipelineDB.UnpauseResourceArgsForCall(0)).To(Equal("resource-name"))
 				})
 
 				It("returns 200", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 			})
 
@@ -419,7 +421,7 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("returns 500", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -430,7 +432,7 @@ var _ = Describe("Resources API", func() {
 			})
 
 			It("returns Unauthorized", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})

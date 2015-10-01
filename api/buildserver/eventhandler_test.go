@@ -51,14 +51,14 @@ var _ = Describe("Handler", func() {
 			var err error
 
 			request, err = http.NewRequest("GET", server.URL, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		JustBeforeEach(func() {
 			var err error
 
 			response, err = client.Do(request)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when subscribing to the build succeeds", func() {
@@ -74,12 +74,12 @@ var _ = Describe("Handler", func() {
 				fakeEventSource = new(dbfakes.FakeEventSource)
 
 				buildsDB.GetBuildEventsStub = func(buildID int, from uint) (db.EventSource, error) {
-					Ω(buildID).Should(Equal(128))
+					Expect(buildID).To(Equal(128))
 
 					fakeEventSource.NextStub = func() (atc.Event, error) {
 						defer GinkgoRecover()
 
-						Ω(fakeEventSource.CloseCallCount()).Should(Equal(0))
+						Expect(fakeEventSource.CloseCallCount()).To(Equal(0))
 
 						if from >= uint(len(returnedEvents)) {
 							return nil, db.ErrEndOfBuildEventStream
@@ -95,44 +95,45 @@ var _ = Describe("Handler", func() {
 			})
 
 			It("returns 200", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
 			})
 
 			It("returns Content-Type as text/event-stream", func() {
-				Ω(response.Header.Get("Content-Type")).Should(Equal("text/event-stream; charset=utf-8"))
-				Ω(response.Header.Get("Cache-Control")).Should(Equal("no-cache, no-store, must-revalidate"))
-				Ω(response.Header.Get("Connection")).Should(Equal("keep-alive"))
+				Expect(response.Header.Get("Content-Type")).To(Equal("text/event-stream; charset=utf-8"))
+				Expect(response.Header.Get("Cache-Control")).To(Equal("no-cache, no-store, must-revalidate"))
+				Expect(response.Header.Get("Connection")).To(Equal("keep-alive"))
 			})
 
 			It("returns the protocol version as X-ATC-Stream-Version", func() {
-				Ω(response.Header.Get("X-ATC-Stream-Version")).Should(Equal("2.0"))
+				Expect(response.Header.Get("X-ATC-Stream-Version")).To(Equal("2.0"))
 			})
 
 			It("emits them, followed by an end event", func() {
 				reader := sse.NewReadCloser(response.Body)
 
-				Ω(reader.Next()).Should(Equal(sse.Event{
+				Expect(reader.Next()).To(Equal(sse.Event{
 					ID:   "0",
 					Name: "event",
 					Data: []byte(`{"data":{"value":"e1"},"event":"fake","version":"42.0"}`),
 				}))
 
-				Ω(reader.Next()).Should(Equal(sse.Event{
+				Expect(reader.Next()).To(Equal(sse.Event{
 					ID:   "1",
 					Name: "event",
 					Data: []byte(`{"data":{"value":"e2"},"event":"fake","version":"42.0"}`),
 				}))
 
-				Ω(reader.Next()).Should(Equal(sse.Event{
+				Expect(reader.Next()).To(Equal(sse.Event{
 					ID:   "2",
 					Name: "event",
 					Data: []byte(`{"data":{"value":"e3"},"event":"fake","version":"42.0"}`),
 				}))
 
-				Ω(reader.Next()).Should(Equal(sse.Event{
+				Expect(reader.Next()).To(Equal(sse.Event{
 					Name: "end",
 					Data: []byte{},
 				}))
+
 			})
 
 			It("closes the event source", func() {
@@ -146,7 +147,7 @@ var _ = Describe("Handler", func() {
 
 				It("starts subscribing from after the id", func() {
 					_, from := buildsDB.GetBuildEventsArgsForCall(0)
-					Ω(from).Should(Equal(uint(2)))
+					Expect(from).To(Equal(uint(2)))
 				})
 			})
 		})
@@ -157,7 +158,7 @@ var _ = Describe("Handler", func() {
 			})
 
 			It("returns 404", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 			})
 		})
 	})

@@ -60,7 +60,7 @@ var _ = Describe("Pipelines API", func() {
 		BeforeEach(func() {
 			var err error
 			req, err = http.NewRequest("GET", server.URL+"/api/v1/containers", nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 			req.Header.Set("Content-Type", "application/json")
 		})
 
@@ -71,9 +71,9 @@ var _ = Describe("Pipelines API", func() {
 
 			It("returns 401 Unauthorized", func() {
 				response, err := client.Do(req)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 
@@ -133,39 +133,39 @@ var _ = Describe("Pipelines API", func() {
 
 					It("returns 200", func() {
 						response, err := client.Do(req)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
-						Ω(response.StatusCode).Should(Equal(http.StatusOK))
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
 					})
 
 					It("returns Content-Type application/json", func() {
 						response, err := client.Do(req)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
-						Ω(response.Header.Get("Content-Type")).Should(Equal("application/json"))
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 					})
 
 					It("returns all containers", func() {
 						response, err := client.Do(req)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						b, err := ioutil.ReadAll(response.Body)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						var returned []atc.Container
 						err = json.Unmarshal(b, &returned)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
-						Ω(len(returned)).To(Equal(len(expectedPresentedContainers)))
+						Expect(len(returned)).To(Equal(len(expectedPresentedContainers)))
 						for i, _ := range returned {
 							expected := expectedPresentedContainers[i]
 							actual := returned[i]
 
-							Ω(actual.PipelineName).To(Equal(expected.PipelineName))
-							Ω(actual.Type).To(Equal(expected.Type))
-							Ω(actual.Name).To(Equal(expected.Name))
-							Ω(actual.BuildID).To(Equal(expected.BuildID))
-							Ω(actual.ID).To(Equal(expected.ID))
+							Expect(actual.PipelineName).To(Equal(expected.PipelineName))
+							Expect(actual.Type).To(Equal(expected.Type))
+							Expect(actual.Name).To(Equal(expected.Name))
+							Expect(actual.BuildID).To(Equal(expected.BuildID))
+							Expect(actual.ID).To(Equal(expected.ID))
 						}
 					})
 				})
@@ -177,9 +177,9 @@ var _ = Describe("Pipelines API", func() {
 
 					It("returns 404", func() {
 						response, err := client.Do(req)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
-						Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 					})
 				})
 
@@ -195,9 +195,9 @@ var _ = Describe("Pipelines API", func() {
 
 					It("returns 500", func() {
 						response, err := client.Do(req)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
-						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
 			})
@@ -211,13 +211,13 @@ var _ = Describe("Pipelines API", func() {
 
 				It("calls db.Containers with the queried pipeline name", func() {
 					_, err := client.Do(req)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					expectedArgs := db.ContainerIdentifier{
 						PipelineName: pipelineName1,
 					}
-					Ω(containerDB.FindContainerInfosByIdentifierCallCount()).Should(Equal(1))
-					Ω(containerDB.FindContainerInfosByIdentifierArgsForCall(0)).Should(Equal(expectedArgs))
+					Expect(containerDB.FindContainerInfosByIdentifierCallCount()).To(Equal(1))
+					Expect(containerDB.FindContainerInfosByIdentifierArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
@@ -230,13 +230,13 @@ var _ = Describe("Pipelines API", func() {
 
 				It("calls db.Containers with the queried type", func() {
 					_, err := client.Do(req)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					expectedArgs := db.ContainerIdentifier{
 						Type: type1,
 					}
-					Ω(containerDB.FindContainerInfosByIdentifierCallCount()).Should(Equal(1))
-					Ω(containerDB.FindContainerInfosByIdentifierArgsForCall(0)).Should(Equal(expectedArgs))
+					Expect(containerDB.FindContainerInfosByIdentifierCallCount()).To(Equal(1))
+					Expect(containerDB.FindContainerInfosByIdentifierArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
@@ -249,13 +249,13 @@ var _ = Describe("Pipelines API", func() {
 
 				It("calls db.Containers with the queried name", func() {
 					_, err := client.Do(req)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					expectedArgs := db.ContainerIdentifier{
 						Name: name1,
 					}
-					Ω(containerDB.FindContainerInfosByIdentifierCallCount()).Should(Equal(1))
-					Ω(containerDB.FindContainerInfosByIdentifierArgsForCall(0)).Should(Equal(expectedArgs))
+					Expect(containerDB.FindContainerInfosByIdentifierCallCount()).To(Equal(1))
+					Expect(containerDB.FindContainerInfosByIdentifierArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
@@ -271,13 +271,13 @@ var _ = Describe("Pipelines API", func() {
 
 					It("calls db.Containers with the queried build id", func() {
 						_, err := client.Do(req)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						expectedArgs := db.ContainerIdentifier{
 							BuildID: buildID1,
 						}
-						Ω(containerDB.FindContainerInfosByIdentifierCallCount()).Should(Equal(1))
-						Ω(containerDB.FindContainerInfosByIdentifierArgsForCall(0)).Should(Equal(expectedArgs))
+						Expect(containerDB.FindContainerInfosByIdentifierCallCount()).To(Equal(1))
+						Expect(containerDB.FindContainerInfosByIdentifierArgsForCall(0)).To(Equal(expectedArgs))
 					})
 
 					Context("when the buildID fails to be parsed as an int", func() {
@@ -289,13 +289,13 @@ var _ = Describe("Pipelines API", func() {
 
 						It("returns 400 Bad Request", func() {
 							response, _ := client.Do(req)
-							Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 						})
 
 						It("does not lookup containers", func() {
 							client.Do(req)
 
-							Ω(containerDB.FindContainerInfosByIdentifierCallCount()).Should(Equal(0))
+							Expect(containerDB.FindContainerInfosByIdentifierCallCount()).To(Equal(0))
 						})
 					})
 				})
@@ -313,7 +313,7 @@ var _ = Describe("Pipelines API", func() {
 
 			var err error
 			req, err = http.NewRequest("GET", server.URL+"/api/v1/containers/"+containerID, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 			req.Header.Set("Content-Type", "application/json")
 		})
 
@@ -324,9 +324,9 @@ var _ = Describe("Pipelines API", func() {
 
 			It("returns 401 Unauthorized", func() {
 				response, err := client.Do(req)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 
@@ -342,9 +342,9 @@ var _ = Describe("Pipelines API", func() {
 
 				It("returns 404 Not Found", func() {
 					response, err := client.Do(req)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 
@@ -355,44 +355,44 @@ var _ = Describe("Pipelines API", func() {
 
 				It("returns 200 OK", func() {
 					response, err := client.Do(req)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
 				It("returns Content-Type application/json", func() {
 					response, err := client.Do(req)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(response.Header.Get("Content-Type")).Should(Equal("application/json"))
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 				})
 
 				It("performs lookup by id", func() {
 					_, err := client.Do(req)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(containerDB.GetContainerInfoCallCount()).Should(Equal(1))
-					Ω(containerDB.GetContainerInfoArgsForCall(0)).Should(Equal(containerID))
+					Expect(containerDB.GetContainerInfoCallCount()).To(Equal(1))
+					Expect(containerDB.GetContainerInfoArgsForCall(0)).To(Equal(containerID))
 				})
 
 				It("returns the container", func() {
 					response, err := client.Do(req)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					b, err := ioutil.ReadAll(response.Body)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					var actual atc.Container
 					err = json.Unmarshal(b, &actual)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					expected := expectedPresentedContainer1
 
-					Ω(actual.PipelineName).To(Equal(expected.PipelineName))
-					Ω(actual.Type).To(Equal(expected.Type))
-					Ω(actual.Name).To(Equal(expected.Name))
-					Ω(actual.BuildID).To(Equal(expected.BuildID))
-					Ω(actual.ID).To(Equal(expected.ID))
+					Expect(actual.PipelineName).To(Equal(expected.PipelineName))
+					Expect(actual.Type).To(Equal(expected.Type))
+					Expect(actual.Name).To(Equal(expected.Name))
+					Expect(actual.BuildID).To(Equal(expected.BuildID))
+					Expect(actual.ID).To(Equal(expected.ID))
 				})
 
 			})
@@ -408,9 +408,9 @@ var _ = Describe("Pipelines API", func() {
 
 				It("returns 500", func() {
 					response, err := client.Do(req)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -441,15 +441,15 @@ var _ = Describe("Pipelines API", func() {
 				server.URL+"/api/v1/containers/"+containerID1+"/hijack",
 				bytes.NewBufferString(requestPayload),
 			)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			conn, err := net.Dial("tcp", server.Listener.Addr().String())
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			client := httputil.NewClientConn(conn, nil)
 
 			response, err = client.Do(hijackReq)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			clientConn, clientReader = client.Hijack()
 
@@ -505,16 +505,17 @@ var _ = Describe("Pipelines API", func() {
 						Eventually(fakeContainer.RunCallCount).Should(Equal(1))
 
 						_, lookedUpID := fakeWorkerClient.LookupContainerArgsForCall(0)
-						Ω(lookedUpID).Should(Equal(containerID1))
+						Expect(lookedUpID).To(Equal(containerID1))
 
 						spec, io := fakeContainer.RunArgsForCall(0)
-						Ω(spec).Should(Equal(garden.ProcessSpec{
+						Expect(spec).To(Equal(garden.ProcessSpec{
 							Path: "ls",
 							User: "root",
 						}))
-						Ω(io.Stdin).ShouldNot(BeNil())
-						Ω(io.Stdout).ShouldNot(BeNil())
-						Ω(io.Stderr).ShouldNot(BeNil())
+
+						Expect(io.Stdin).NotTo(BeNil())
+						Expect(io.Stdout).NotTo(BeNil())
+						Expect(io.Stderr).NotTo(BeNil())
 					})
 
 					Context("when stdin is sent over the API", func() {
@@ -522,12 +523,12 @@ var _ = Describe("Pipelines API", func() {
 							err := clientEnc.Encode(atc.HijackInput{
 								Stdin: []byte("some stdin\n"),
 							})
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 						})
 
 						It("forwards the payload to the process", func() {
 							_, io := fakeContainer.RunArgsForCall(0)
-							Ω(bufio.NewReader(io.Stdin).ReadBytes('\n')).Should(Equal([]byte("some stdin\n")))
+							Expect(bufio.NewReader(io.Stdin).ReadBytes('\n')).To(Equal([]byte("some stdin\n")))
 						})
 					})
 
@@ -538,17 +539,18 @@ var _ = Describe("Pipelines API", func() {
 							_, io := fakeContainer.RunArgsForCall(0)
 
 							_, err := fmt.Fprintf(io.Stdout, "some stdout\n")
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 						})
 
 						It("forwards it to the response", func() {
 							var hijackOutput atc.HijackOutput
 							err := clientDec.Decode(&hijackOutput)
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 
-							Ω(hijackOutput).Should(Equal(atc.HijackOutput{
+							Expect(hijackOutput).To(Equal(atc.HijackOutput{
 								Stdout: []byte("some stdout\n"),
 							}))
+
 						})
 					})
 
@@ -559,17 +561,18 @@ var _ = Describe("Pipelines API", func() {
 							_, io := fakeContainer.RunArgsForCall(0)
 
 							_, err := fmt.Fprintf(io.Stderr, "some stderr\n")
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 						})
 
 						It("forwards it to the response", func() {
 							var hijackOutput atc.HijackOutput
 							err := clientDec.Decode(&hijackOutput)
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 
-							Ω(hijackOutput).Should(Equal(atc.HijackOutput{
+							Expect(hijackOutput).To(Equal(atc.HijackOutput{
 								Stderr: []byte("some stderr\n"),
 							}))
+
 						})
 					})
 
@@ -581,12 +584,13 @@ var _ = Describe("Pipelines API", func() {
 						It("forwards its exit status to the response", func() {
 							var hijackOutput atc.HijackOutput
 							err := clientDec.Decode(&hijackOutput)
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 
 							exitStatus := 123
-							Ω(hijackOutput).Should(Equal(atc.HijackOutput{
+							Expect(hijackOutput).To(Equal(atc.HijackOutput{
 								ExitStatus: &exitStatus,
 							}))
+
 						})
 
 						It("releases the container", func() {
@@ -604,18 +608,19 @@ var _ = Describe("Pipelines API", func() {
 									},
 								},
 							})
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 						})
 
 						It("forwards it to the process", func() {
 							Eventually(fakeProcess.SetTTYCallCount).Should(Equal(1))
 
-							Ω(fakeProcess.SetTTYArgsForCall(0)).Should(Equal(garden.TTYSpec{
+							Expect(fakeProcess.SetTTYArgsForCall(0)).To(Equal(garden.TTYSpec{
 								WindowSize: &garden.WindowSize{
 									Columns: 123,
 									Rows:    456,
 								},
 							}))
+
 						})
 
 						Context("and setting the TTY on the process fails", func() {
@@ -626,11 +631,12 @@ var _ = Describe("Pipelines API", func() {
 							It("forwards the error to the response", func() {
 								var hijackOutput atc.HijackOutput
 								err := clientDec.Decode(&hijackOutput)
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
-								Ω(hijackOutput).Should(Equal(atc.HijackOutput{
+								Expect(hijackOutput).To(Equal(atc.HijackOutput{
 									Error: "oh no!",
 								}))
+
 							})
 						})
 					})
@@ -643,11 +649,12 @@ var _ = Describe("Pipelines API", func() {
 						It("forwards the error to the response", func() {
 							var hijackOutput atc.HijackOutput
 							err := clientDec.Decode(&hijackOutput)
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 
-							Ω(hijackOutput).Should(Equal(atc.HijackOutput{
+							Expect(hijackOutput).To(Equal(atc.HijackOutput{
 								Error: "oh no!",
 							}))
+
 						})
 					})
 				})
@@ -659,8 +666,8 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("returns 404 Not Found", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
-					Ω(fakeWorkerClient.LookupContainerCallCount()).Should(Equal(0))
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					Expect(fakeWorkerClient.LookupContainerCallCount()).To(Equal(0))
 				})
 			})
 
@@ -670,7 +677,7 @@ var _ = Describe("Pipelines API", func() {
 					containerDB.GetContainerInfoReturns(db.ContainerInfo{}, false, fakeErr)
 				})
 				It("returns 500 internal error", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 
 			})
@@ -681,7 +688,7 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("returns 400 Bad Request", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 				})
 			})
 		})
@@ -692,11 +699,11 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("returns 401 Unauthorized", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 
 			It("does not hijack the build", func() {
-				Ω(fakeEngine.LookupBuildCallCount()).Should(BeZero())
+				Expect(fakeEngine.LookupBuildCallCount()).To(BeZero())
 			})
 		})
 	})

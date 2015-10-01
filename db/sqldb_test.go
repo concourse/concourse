@@ -37,7 +37,7 @@ var _ = Describe("SQL DB", func() {
 		pipelineDBFactory = db.NewPipelineDBFactory(lagertest.NewTestLogger("test"), dbConn, bus, sqlDB)
 
 		pipelineDB, err = pipelineDBFactory.BuildWithName("some-pipeline")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		dbSharedBehaviorInput.DB = sqlDB
 		dbSharedBehaviorInput.PipelineDB = pipelineDB
@@ -45,10 +45,10 @@ var _ = Describe("SQL DB", func() {
 
 	AfterEach(func() {
 		err := dbConn.Close()
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		err = listener.Close()
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		postgresRunner.DropTestDB()
 	})
@@ -151,38 +151,38 @@ var _ = Describe("SQL DB", func() {
 
 			It("returns true for created", func() {
 				created, err := sqlDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(created).Should(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(created).To(BeTrue())
 			})
 
 			It("can be saved as paused", func() {
 				_, err := sqlDB.SaveConfig(pipelineName, config, 0, db.PipelinePaused)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				pipeline, err := sqlDB.GetPipelineByName(pipelineName)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(pipeline.Paused).Should(BeTrue())
+				Expect(pipeline.Paused).To(BeTrue())
 			})
 
 			It("can be saved as unpaused", func() {
 				_, err := sqlDB.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				pipeline, err := sqlDB.GetPipelineByName(pipelineName)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(pipeline.Paused).Should(BeFalse())
+				Expect(pipeline.Paused).To(BeFalse())
 			})
 
 			It("defaults to paused", func() {
 				_, err := sqlDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				pipeline, err := sqlDB.GetPipelineByName(pipelineName)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(pipeline.Paused).Should(BeTrue())
+				Expect(pipeline.Paused).To(BeTrue())
 			})
 		})
 
@@ -195,91 +195,91 @@ var _ = Describe("SQL DB", func() {
 
 			It("it returns created as false", func() {
 				_, err := sqlDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				_, configVersion, err := sqlDB.GetConfig(pipelineName)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				created, err := sqlDB.SaveConfig(pipelineName, config, configVersion, db.PipelineNoChange)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(created).Should(BeFalse())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(created).To(BeFalse())
 			})
 
 			It("updating from paused to unpaused", func() {
 				_, err := sqlDB.SaveConfig(pipelineName, config, 0, db.PipelinePaused)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				pipeline, err := sqlDB.GetPipelineByName(pipelineName)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(pipeline.Paused).Should(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(pipeline.Paused).To(BeTrue())
 
 				_, configVersion, err := sqlDB.GetConfig(pipelineName)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				_, err = sqlDB.SaveConfig(pipelineName, config, configVersion, db.PipelineUnpaused)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				pipeline, err = sqlDB.GetPipelineByName(pipelineName)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(pipeline.Paused).Should(BeFalse())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(pipeline.Paused).To(BeFalse())
 			})
 
 			It("updating from unpaused to paused", func() {
 				_, err := sqlDB.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				pipeline, err := sqlDB.GetPipelineByName(pipelineName)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(pipeline.Paused).Should(BeFalse())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(pipeline.Paused).To(BeFalse())
 
 				_, configVersion, err := sqlDB.GetConfig(pipelineName)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				_, err = sqlDB.SaveConfig(pipelineName, config, configVersion, db.PipelinePaused)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				pipeline, err = sqlDB.GetPipelineByName(pipelineName)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(pipeline.Paused).Should(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(pipeline.Paused).To(BeTrue())
 			})
 
 			Context("updating with no change", func() {
 				It("maintains paused if the pipeline is paused", func() {
 					_, err := sqlDB.SaveConfig(pipelineName, config, 0, db.PipelinePaused)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					pipeline, err := sqlDB.GetPipelineByName(pipelineName)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(pipeline.Paused).Should(BeTrue())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(pipeline.Paused).To(BeTrue())
 
 					_, configVersion, err := sqlDB.GetConfig(pipelineName)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					_, err = sqlDB.SaveConfig(pipelineName, config, configVersion, db.PipelineNoChange)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					pipeline, err = sqlDB.GetPipelineByName(pipelineName)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(pipeline.Paused).Should(BeTrue())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(pipeline.Paused).To(BeTrue())
 				})
 
 				It("maintains unpaused if the pipeline is unpaused", func() {
 					_, err := sqlDB.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					pipeline, err := sqlDB.GetPipelineByName(pipelineName)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(pipeline.Paused).Should(BeFalse())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(pipeline.Paused).To(BeFalse())
 
 					_, configVersion, err := sqlDB.GetConfig(pipelineName)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					_, err = sqlDB.SaveConfig(pipelineName, config, configVersion, db.PipelineNoChange)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					pipeline, err = sqlDB.GetPipelineByName(pipelineName)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(pipeline.Paused).Should(BeFalse())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(pipeline.Paused).To(BeFalse())
 				})
 			})
 		})
@@ -289,38 +289,38 @@ var _ = Describe("SQL DB", func() {
 			otherPipelineName := "an-other-pipeline-name"
 
 			_, err := sqlDB.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 			_, err = sqlDB.SaveConfig(otherPipelineName, otherConfig, 0, db.PipelineUnpaused)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			pipeline, err := sqlDB.GetPipelineByName(pipelineName)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(pipeline.Name).Should(Equal(pipelineName))
-			Ω(pipeline.Config).Should(Equal(config))
-			Ω(pipeline.ID).ShouldNot(Equal(0))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(pipeline.Name).To(Equal(pipelineName))
+			Expect(pipeline.Config).To(Equal(config))
+			Expect(pipeline.ID).NotTo(Equal(0))
 
 			otherPipeline, err := sqlDB.GetPipelineByName(otherPipelineName)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(otherPipeline.Name).Should(Equal(otherPipelineName))
-			Ω(otherPipeline.Config).Should(Equal(otherConfig))
-			Ω(otherPipeline.ID).ShouldNot(Equal(0))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(otherPipeline.Name).To(Equal(otherPipelineName))
+			Expect(otherPipeline.Config).To(Equal(otherConfig))
+			Expect(otherPipeline.ID).NotTo(Equal(0))
 		})
 
 		It("can order pipelines", func() {
 			_, err := sqlDB.SaveConfig("pipeline-1", config, 0, db.PipelineUnpaused)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = sqlDB.SaveConfig("pipeline-2", config, 0, db.PipelineUnpaused)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = sqlDB.SaveConfig("pipeline-3", config, 0, db.PipelineUnpaused)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = sqlDB.SaveConfig("pipeline-4", config, 0, db.PipelineUnpaused)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = sqlDB.SaveConfig("pipeline-5", config, 0, db.PipelineUnpaused)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			err = sqlDB.OrderPipelines([]string{
 				"pipeline-4",
@@ -330,15 +330,15 @@ var _ = Describe("SQL DB", func() {
 				"pipeline-2",
 				"bogus-pipeline-name", // does not affect it
 			})
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = sqlDB.SaveConfig("pipeline-6", config, 0, db.PipelineUnpaused)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			pipelines, err := sqlDB.GetAllActivePipelines()
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(pipelines).Should(Equal([]db.SavedPipeline{
+			Expect(pipelines).To(Equal([]db.SavedPipeline{
 				{
 					ID: 5,
 					Pipeline: db.Pipeline{
@@ -380,7 +380,6 @@ var _ = Describe("SQL DB", func() {
 					},
 				},
 
-				// pipelines not mentioned are put at the bottom
 				{
 					ID: 1,
 					Pipeline: db.Pipeline{
@@ -389,7 +388,6 @@ var _ = Describe("SQL DB", func() {
 					},
 				},
 
-				// newly added pipelines appear at the bottom
 				{
 					ID: 7,
 					Pipeline: db.Pipeline{
@@ -399,6 +397,7 @@ var _ = Describe("SQL DB", func() {
 					},
 				},
 			}))
+
 		})
 
 		It("can get a list of all active pipelines ordered by 'ordering'", func() {
@@ -406,22 +405,22 @@ var _ = Describe("SQL DB", func() {
 			otherPipelineName := "an-other-pipeline-name"
 
 			_, err := sqlDB.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = sqlDB.SaveConfig(otherPipelineName, otherConfig, 0, db.PipelineUnpaused)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			err = sqlDB.OrderPipelines([]string{
 				"some-pipeline",
 				pipelineName,
 				otherPipelineName,
 			})
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			pipelines, err := sqlDB.GetAllActivePipelines()
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(pipelines).Should(Equal([]db.SavedPipeline{
+			Expect(pipelines).To(Equal([]db.SavedPipeline{
 				{
 					ID: 1,
 					Pipeline: db.Pipeline{
@@ -446,19 +445,20 @@ var _ = Describe("SQL DB", func() {
 					},
 				},
 			}))
+
 		})
 
 		It("can lookup configs by build id", func() {
 			_, err := sqlDB.SaveConfig("my-pipeline", config, 0, db.PipelineUnpaused)
 
 			myPipelineDB, err := pipelineDBFactory.BuildWithName("my-pipeline")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			build, err := myPipelineDB.CreateJobBuild("some-job")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			gottenConfig, _, err := sqlDB.GetConfigByBuildID(build.ID)
-			Ω(gottenConfig).Should(Equal(config))
+			Expect(gottenConfig).To(Equal(config))
 		})
 
 		It("can manage multiple pipeline configurations", func() {
@@ -466,26 +466,26 @@ var _ = Describe("SQL DB", func() {
 			otherPipelineName := "an-other-pipeline-name"
 
 			By("initially being empty")
-			Ω(sqlDB.GetConfig(pipelineName)).Should(BeZero())
-			Ω(sqlDB.GetConfig(otherPipelineName)).Should(BeZero())
+			Expect(sqlDB.GetConfig(pipelineName)).To(BeZero())
+			Expect(sqlDB.GetConfig(otherPipelineName)).To(BeZero())
 
 			By("being able to save the config")
 			_, err := sqlDB.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = sqlDB.SaveConfig(otherPipelineName, otherConfig, 0, db.PipelineUnpaused)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			By("returning the saved config to later gets")
 			returnedConfig, configVersion, err := sqlDB.GetConfig(pipelineName)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(returnedConfig).Should(Equal(config))
-			Ω(configVersion).ShouldNot(Equal(db.ConfigVersion(0)))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(returnedConfig).To(Equal(config))
+			Expect(configVersion).NotTo(Equal(db.ConfigVersion(0)))
 
 			otherReturnedConfig, otherConfigVersion, err := sqlDB.GetConfig(otherPipelineName)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(otherReturnedConfig).Should(Equal(otherConfig))
-			Ω(otherConfigVersion).ShouldNot(Equal(db.ConfigVersion(0)))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(otherReturnedConfig).To(Equal(otherConfig))
+			Expect(otherConfigVersion).NotTo(Equal(db.ConfigVersion(0)))
 
 			updatedConfig := config
 
@@ -518,33 +518,33 @@ var _ = Describe("SQL DB", func() {
 
 			By("not allowing non-sequential updates")
 			_, err = sqlDB.SaveConfig(pipelineName, updatedConfig, configVersion-1, db.PipelineUnpaused)
-			Ω(err).Should(Equal(db.ErrConfigComparisonFailed))
+			Expect(err).To(Equal(db.ErrConfigComparisonFailed))
 
 			_, err = sqlDB.SaveConfig(pipelineName, updatedConfig, configVersion+10, db.PipelineUnpaused)
-			Ω(err).Should(Equal(db.ErrConfigComparisonFailed))
+			Expect(err).To(Equal(db.ErrConfigComparisonFailed))
 
 			_, err = sqlDB.SaveConfig(otherPipelineName, updatedConfig, otherConfigVersion-1, db.PipelineUnpaused)
-			Ω(err).Should(Equal(db.ErrConfigComparisonFailed))
+			Expect(err).To(Equal(db.ErrConfigComparisonFailed))
 
 			_, err = sqlDB.SaveConfig(otherPipelineName, updatedConfig, otherConfigVersion+10, db.PipelineUnpaused)
-			Ω(err).Should(Equal(db.ErrConfigComparisonFailed))
+			Expect(err).To(Equal(db.ErrConfigComparisonFailed))
 
 			By("being able to update the config with a valid con")
 			_, err = sqlDB.SaveConfig(pipelineName, updatedConfig, configVersion, db.PipelineUnpaused)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 			_, err = sqlDB.SaveConfig(otherPipelineName, updatedConfig, otherConfigVersion, db.PipelineUnpaused)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			By("returning the updated config")
 			returnedConfig, newConfigVersion, err := sqlDB.GetConfig(pipelineName)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(returnedConfig).Should(Equal(updatedConfig))
-			Ω(newConfigVersion).ShouldNot(Equal(configVersion))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(returnedConfig).To(Equal(updatedConfig))
+			Expect(newConfigVersion).NotTo(Equal(configVersion))
 
 			otherReturnedConfig, newOtherConfigVersion, err := sqlDB.GetConfig(otherPipelineName)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(otherReturnedConfig).Should(Equal(updatedConfig))
-			Ω(newOtherConfigVersion).ShouldNot(Equal(otherConfigVersion))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(otherReturnedConfig).To(Equal(updatedConfig))
+			Expect(newOtherConfigVersion).NotTo(Equal(otherConfigVersion))
 		})
 	})
 })

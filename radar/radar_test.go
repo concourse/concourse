@@ -119,8 +119,8 @@ var _ = Describe("Radar", func() {
 				Eventually(times).Should(Receive())
 
 				_, metadata, sessionID, typ, tags, vol := fakeTracker.InitArgsForCall(0)
-				Ω(metadata).Should(Equal(resource.EmptyMetadata{}))
-				Ω(sessionID).Should(Equal(resource.Session{
+				Expect(metadata).To(Equal(resource.EmptyMetadata{}))
+				Expect(sessionID).To(Equal(resource.Session{
 					ID: worker.Identifier{
 						PipelineName: "some-pipeline-name",
 
@@ -132,9 +132,10 @@ var _ = Describe("Radar", func() {
 					},
 					Ephemeral: true,
 				}))
-				Ω(typ).Should(Equal(resource.ResourceType("git")))
-				Ω(tags).Should(BeEmpty()) // This allows the check to run on any worker
-				Ω(vol).Should(BeZero())
+
+				Expect(typ).To(Equal(resource.ResourceType("git")))
+				Expect(tags).To(BeEmpty()) // This allows the check to run on any worker
+				Expect(vol).To(BeZero())
 			})
 
 			It("checks on a specified interval", func() {
@@ -144,7 +145,7 @@ var _ = Describe("Radar", func() {
 				Eventually(times).Should(Receive(&time1))
 				Eventually(times).Should(Receive(&time2))
 
-				Ω(time2.Sub(time1)).Should(BeNumerically("~", interval, interval/4))
+				Expect(time2.Sub(time1)).To(BeNumerically("~", interval, interval/4))
 			})
 
 			Context("when the resource config has a specified check interval", func() {
@@ -165,7 +166,7 @@ var _ = Describe("Radar", func() {
 					Eventually(times).Should(Receive(&time1))
 					Eventually(times).Should(Receive(&time2))
 
-					Ω(time2.Sub(time1)).Should(BeNumerically("~", 10*time.Millisecond, 5*time.Millisecond))
+					Expect(time2.Sub(time1)).To(BeNumerically("~", 10*time.Millisecond, 5*time.Millisecond))
 				})
 
 				Context("when the interval cannot be parsed", func() {
@@ -197,14 +198,14 @@ var _ = Describe("Radar", func() {
 			It("grabs a periodic resource checking lease before checking, breaks lease after done", func() {
 				Eventually(times).Should(Receive())
 
-				Ω(fakeRadarDB.LeaseResourceCheckingCallCount()).Should(Equal(1))
+				Expect(fakeRadarDB.LeaseResourceCheckingCallCount()).To(Equal(1))
 
 				resourceName, leaseInterval, immediate := fakeRadarDB.LeaseResourceCheckingArgsForCall(0)
-				Ω(resourceName).Should(Equal("some-resource"))
-				Ω(leaseInterval).Should(Equal(interval))
-				Ω(immediate).Should(BeFalse())
+				Expect(resourceName).To(Equal("some-resource"))
+				Expect(leaseInterval).To(Equal(interval))
+				Expect(immediate).To(BeFalse())
 
-				Ω(fakeLease.BreakCallCount()).Should(Equal(1))
+				Expect(fakeLease.BreakCallCount()).To(Equal(1))
 			})
 
 			It("releases after checking", func() {
@@ -217,7 +218,7 @@ var _ = Describe("Radar", func() {
 					Eventually(times).Should(Receive())
 
 					_, version := fakeResource.CheckArgsForCall(0)
-					Ω(version).Should(BeNil())
+					Expect(version).To(BeNil())
 				})
 			})
 
@@ -238,7 +239,7 @@ var _ = Describe("Radar", func() {
 					Eventually(times).Should(Receive())
 
 					_, version := fakeResource.CheckArgsForCall(0)
-					Ω(version).Should(Equal(atc.Version{"version": "1"}))
+					Expect(version).To(Equal(atc.Version{"version": "1"}))
 
 					fakeRadarDB.GetLatestVersionedResourceReturns(db.SavedVersionedResource{
 						ID:                2,
@@ -248,7 +249,7 @@ var _ = Describe("Radar", func() {
 					Eventually(times).Should(Receive())
 
 					_, version = fakeResource.CheckArgsForCall(1)
-					Ω(version).Should(Equal(atc.Version{"version": "2"}))
+					Expect(version).To(Equal(atc.Version{"version": "2"}))
 				})
 			})
 
@@ -274,7 +275,7 @@ var _ = Describe("Radar", func() {
 					fakeResource.CheckStub = func(source atc.Source, from atc.Version) ([]atc.Version, error) {
 						defer GinkgoRecover()
 
-						Ω(source).Should(Equal(resourceConfig.Source))
+						Expect(source).To(Equal(resourceConfig.Source))
 
 						checkedFrom <- from
 						result := checkResults[check]
@@ -288,16 +289,18 @@ var _ = Describe("Radar", func() {
 					Eventually(fakeRadarDB.SaveResourceVersionsCallCount).Should(Equal(1))
 
 					resourceConfig, versions := fakeRadarDB.SaveResourceVersionsArgsForCall(0)
-					Ω(resourceConfig).Should(Equal(atc.ResourceConfig{
+					Expect(resourceConfig).To(Equal(atc.ResourceConfig{
 						Name:   "some-resource",
 						Type:   "git",
 						Source: atc.Source{"uri": "http://example.com"},
 					}))
-					Ω(versions).Should(Equal([]atc.Version{
+
+					Expect(versions).To(Equal([]atc.Version{
 						{"version": "1"},
 						{"version": "2"},
 						{"version": "3"},
 					}))
+
 				})
 			})
 
@@ -403,12 +406,12 @@ var _ = Describe("Radar", func() {
 						Eventually(times).Should(Receive())
 
 						source, _ := fakeResource.CheckArgsForCall(0)
-						Ω(source).Should(Equal(resourceConfig.Source))
+						Expect(source).To(Equal(resourceConfig.Source))
 
 						Eventually(times).Should(Receive())
 
 						source, _ = fakeResource.CheckArgsForCall(1)
-						Ω(source).Should(Equal(atc.Source{"uri": "http://example.com/updated-uri"}))
+						Expect(source).To(Equal(atc.Source{"uri": "http://example.com/updated-uri"}))
 					})
 				})
 
@@ -437,10 +440,10 @@ var _ = Describe("Radar", func() {
 						Eventually(times).Should(Receive(&time1))
 
 						source, _ := fakeResource.CheckArgsForCall(0)
-						Ω(source).Should(Equal(newResource.Source))
+						Expect(source).To(Equal(newResource.Source))
 
 						Eventually(times).Should(Receive(&time2))
-						Ω(time2.Sub(time1)).Should(BeNumerically("~", newInterval, newInterval/2))
+						Expect(time2.Sub(time1)).To(BeNumerically("~", newInterval, newInterval/2))
 					})
 
 					Context("when the interval cannot be parsed", func() {
@@ -487,15 +490,15 @@ var _ = Describe("Radar", func() {
 
 							var time1 time.Time
 							Eventually(times).Should(Receive(&time1))
-							Ω(time1.Sub(time0)).Should(BeNumerically("~", interval, interval/2))
+							Expect(time1.Sub(time0)).To(BeNumerically("~", interval, interval/2))
 
 							var time2 time.Time
 							Eventually(times).Should(Receive(&time2))
-							Ω(time2.Sub(time1)).Should(BeNumerically("~", newInterval, newInterval/2))
+							Expect(time2.Sub(time1)).To(BeNumerically("~", newInterval, newInterval/2))
 
 							var time3 time.Time
 							Eventually(times).Should(Receive(&time3))
-							Ω(time3.Sub(time2)).Should(BeNumerically("~", interval, interval/2))
+							Expect(time3.Sub(time2)).To(BeNumerically("~", interval, interval/2))
 						})
 					})
 				})
@@ -539,7 +542,7 @@ var _ = Describe("Radar", func() {
 					Eventually(times).Should(Receive(&time1))
 					Eventually(times, 2).Should(Receive(&time2))
 
-					Ω(time2.Sub(time1)).Should(BeNumerically("~", interval, interval/2))
+					Expect(time2.Sub(time1)).To(BeNumerically("~", interval, interval/2))
 				})
 			})
 		})
@@ -568,13 +571,13 @@ var _ = Describe("Radar", func() {
 			})
 
 			It("succeeds", func() {
-				Ω(scanErr).ShouldNot(HaveOccurred())
+				Expect(scanErr).NotTo(HaveOccurred())
 			})
 
 			It("constructs the resource of the correct type", func() {
 				_, metadata, sessionID, typ, tags, vol := fakeTracker.InitArgsForCall(0)
-				Ω(metadata).Should(Equal(resource.EmptyMetadata{}))
-				Ω(sessionID).Should(Equal(resource.Session{
+				Expect(metadata).To(Equal(resource.EmptyMetadata{}))
+				Expect(sessionID).To(Equal(resource.Session{
 					ID: worker.Identifier{
 						PipelineName: "some-pipeline-name",
 						Name:         "some-resource",
@@ -585,20 +588,21 @@ var _ = Describe("Radar", func() {
 					},
 					Ephemeral: true,
 				}))
-				Ω(typ).Should(Equal(resource.ResourceType("git")))
-				Ω(tags).Should(BeEmpty()) // This allows the check to run on any worker
-				Ω(vol).Should(BeZero())
+
+				Expect(typ).To(Equal(resource.ResourceType("git")))
+				Expect(tags).To(BeEmpty()) // This allows the check to run on any worker
+				Expect(vol).To(BeZero())
 			})
 
 			It("grabs an immediate resource checking lease before checking, breaks lease after done", func() {
-				Ω(fakeRadarDB.LeaseResourceCheckingCallCount()).Should(Equal(1))
+				Expect(fakeRadarDB.LeaseResourceCheckingCallCount()).To(Equal(1))
 
 				resourceName, leaseInterval, immediate := fakeRadarDB.LeaseResourceCheckingArgsForCall(0)
-				Ω(resourceName).Should(Equal("some-resource"))
-				Ω(leaseInterval).Should(Equal(interval))
-				Ω(immediate).Should(BeTrue())
+				Expect(resourceName).To(Equal("some-resource"))
+				Expect(leaseInterval).To(Equal(interval))
+				Expect(immediate).To(BeTrue())
 
-				Ω(fakeLease.BreakCallCount()).Should(Equal(1))
+				Expect(fakeLease.BreakCallCount()).To(Equal(1))
 			})
 
 			Context("when the lease is not immediately available", func() {
@@ -620,37 +624,37 @@ var _ = Describe("Radar", func() {
 				})
 
 				It("retries until it is", func() {
-					Ω(fakeRadarDB.LeaseResourceCheckingCallCount()).Should(Equal(3))
+					Expect(fakeRadarDB.LeaseResourceCheckingCallCount()).To(Equal(3))
 
 					resourceName, leaseInterval, immediate := fakeRadarDB.LeaseResourceCheckingArgsForCall(0)
-					Ω(resourceName).Should(Equal("some-resource"))
-					Ω(leaseInterval).Should(Equal(interval))
-					Ω(immediate).Should(BeTrue())
+					Expect(resourceName).To(Equal("some-resource"))
+					Expect(leaseInterval).To(Equal(interval))
+					Expect(immediate).To(BeTrue())
 
 					resourceName, leaseInterval, immediate = fakeRadarDB.LeaseResourceCheckingArgsForCall(1)
-					Ω(resourceName).Should(Equal("some-resource"))
-					Ω(leaseInterval).Should(Equal(interval))
-					Ω(immediate).Should(BeTrue())
+					Expect(resourceName).To(Equal("some-resource"))
+					Expect(leaseInterval).To(Equal(interval))
+					Expect(immediate).To(BeTrue())
 
 					resourceName, leaseInterval, immediate = fakeRadarDB.LeaseResourceCheckingArgsForCall(2)
-					Ω(resourceName).Should(Equal("some-resource"))
-					Ω(leaseInterval).Should(Equal(interval))
-					Ω(immediate).Should(BeTrue())
+					Expect(resourceName).To(Equal("some-resource"))
+					Expect(leaseInterval).To(Equal(interval))
+					Expect(immediate).To(BeTrue())
 
-					Ω(fakeLease.BreakCallCount()).Should(Equal(1))
+					Expect(fakeLease.BreakCallCount()).To(Equal(1))
 				})
 			})
 
 			It("releases the resource", func() {
-				Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
+				Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
 			})
 
 			It("clears the resource's check error", func() {
-				Ω(fakeRadarDB.SetResourceCheckErrorCallCount()).Should(Equal(1))
+				Expect(fakeRadarDB.SetResourceCheckErrorCallCount()).To(Equal(1))
 
 				savedResourceArg, err := fakeRadarDB.SetResourceCheckErrorArgsForCall(0)
-				Ω(savedResourceArg).Should(Equal(savedResource))
-				Ω(err).Should(BeNil())
+				Expect(savedResourceArg).To(Equal(savedResource))
+				Expect(err).To(BeNil())
 			})
 
 			Context("when there is no current version", func() {
@@ -660,7 +664,7 @@ var _ = Describe("Radar", func() {
 
 				It("checks from nil", func() {
 					_, version := fakeResource.CheckArgsForCall(0)
-					Ω(version).Should(BeNil())
+					Expect(version).To(BeNil())
 				})
 			})
 
@@ -672,11 +676,11 @@ var _ = Describe("Radar", func() {
 				})
 
 				It("returns the error", func() {
-					Ω(scanErr).Should(Equal(disaster))
+					Expect(scanErr).To(Equal(disaster))
 				})
 
 				It("does not check", func() {
-					Ω(fakeResource.CheckCallCount()).Should(Equal(0))
+					Expect(fakeResource.CheckCallCount()).To(Equal(0))
 				})
 			})
 
@@ -695,7 +699,7 @@ var _ = Describe("Radar", func() {
 
 				It("checks from it", func() {
 					_, version := fakeResource.CheckArgsForCall(0)
-					Ω(version).Should(Equal(atc.Version{"version": "1"}))
+					Expect(version).To(Equal(atc.Version{"version": "1"}))
 				})
 			})
 
@@ -721,7 +725,7 @@ var _ = Describe("Radar", func() {
 					fakeResource.CheckStub = func(source atc.Source, from atc.Version) ([]atc.Version, error) {
 						defer GinkgoRecover()
 
-						Ω(source).Should(Equal(resourceConfig.Source))
+						Expect(source).To(Equal(resourceConfig.Source))
 
 						checkedFrom <- from
 						result := checkResults[check]
@@ -732,19 +736,21 @@ var _ = Describe("Radar", func() {
 				})
 
 				It("saves them all, in order", func() {
-					Ω(fakeRadarDB.SaveResourceVersionsCallCount()).Should(Equal(1))
+					Expect(fakeRadarDB.SaveResourceVersionsCallCount()).To(Equal(1))
 
 					resourceConfig, versions := fakeRadarDB.SaveResourceVersionsArgsForCall(0)
-					Ω(resourceConfig).Should(Equal(atc.ResourceConfig{
+					Expect(resourceConfig).To(Equal(atc.ResourceConfig{
 						Name:   "some-resource",
 						Type:   "git",
 						Source: atc.Source{"uri": "http://example.com"},
 					}))
-					Ω(versions).Should(Equal([]atc.Version{
+
+					Expect(versions).To(Equal([]atc.Version{
 						{"version": "1"},
 						{"version": "2"},
 						{"version": "3"},
 					}))
+
 				})
 			})
 
@@ -756,15 +762,15 @@ var _ = Describe("Radar", func() {
 				})
 
 				It("returns the error", func() {
-					Ω(scanErr).Should(Equal(disaster))
+					Expect(scanErr).To(Equal(disaster))
 				})
 
 				It("sets the resource's check error", func() {
-					Ω(fakeRadarDB.SetResourceCheckErrorCallCount()).Should(Equal(1))
+					Expect(fakeRadarDB.SetResourceCheckErrorCallCount()).To(Equal(1))
 
 					savedResourceArg, err := fakeRadarDB.SetResourceCheckErrorArgsForCall(0)
-					Ω(savedResourceArg).Should(Equal(savedResource))
-					Ω(err).Should(Equal(disaster))
+					Expect(savedResourceArg).To(Equal(savedResource))
+					Expect(err).To(Equal(disaster))
 				})
 			})
 		})

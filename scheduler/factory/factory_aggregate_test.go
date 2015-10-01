@@ -48,7 +48,7 @@ var _ = Describe("Factory Aggregate", func() {
 					},
 				},
 			}, resources, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				Aggregate: &atc.AggregatePlan{
@@ -66,7 +66,7 @@ var _ = Describe("Factory Aggregate", func() {
 					},
 				},
 			}
-			Ω(actual).Should(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 	})
 
@@ -93,7 +93,7 @@ var _ = Describe("Factory Aggregate", func() {
 					},
 				},
 			}, resources, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				Aggregate: &atc.AggregatePlan{
@@ -121,7 +121,7 @@ var _ = Describe("Factory Aggregate", func() {
 					},
 				},
 			}
-			Ω(actual).Should(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 	})
 
@@ -141,7 +141,7 @@ var _ = Describe("Factory Aggregate", func() {
 					},
 				},
 			}, resources, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				Aggregate: &atc.AggregatePlan{
@@ -163,7 +163,7 @@ var _ = Describe("Factory Aggregate", func() {
 					},
 				},
 			}
-			Ω(actual).Should(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 	})
 
@@ -183,7 +183,7 @@ var _ = Describe("Factory Aggregate", func() {
 					},
 				},
 			}, resources, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				OnSuccess: &atc.OnSuccessPlan{
@@ -205,7 +205,7 @@ var _ = Describe("Factory Aggregate", func() {
 					},
 				},
 			}
-			Ω(actual).Should(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 	})
 })

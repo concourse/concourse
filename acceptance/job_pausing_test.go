@@ -31,7 +31,7 @@ var _ = Describe("Job Pausing", func() {
 	BeforeEach(func() {
 		var err error
 		atcBin, err := gexec.Build("github.com/concourse/atc/cmd/atc")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		dbLogger := lagertest.NewTestLogger("test")
 		postgresRunner.CreateTestDB()
@@ -46,8 +46,8 @@ var _ = Describe("Job Pausing", func() {
 	AfterEach(func() {
 		ginkgomon.Interrupt(atcProcess)
 
-		Ω(dbConn.Close()).Should(Succeed())
-		Ω(dbListener.Close()).Should(Succeed())
+		Expect(dbConn.Close()).To(Succeed())
+		Expect(dbListener.Close()).To(Succeed())
 
 		postgresRunner.DropTestDB()
 	})
@@ -85,16 +85,16 @@ var _ = Describe("Job Pausing", func() {
 						{Name: "job-name"},
 					},
 				}, db.ConfigVersion(1), db.PipelineUnpaused)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				pipelineDB, err = pipelineDBFactory.BuildWithName(atc.DefaultPipelineName)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				build, err = pipelineDB.CreateJobBuild("job-name")
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				_, err = sqlDB.StartBuild(build.ID, "", "")
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				sqlDB.SaveBuildEvent(build.ID, event.Log{
 					Origin: event.Origin{
@@ -106,7 +106,7 @@ var _ = Describe("Job Pausing", func() {
 					Payload: "hello this is a payload",
 				})
 
-				Ω(sqlDB.FinishBuild(build.ID, db.StatusSucceeded)).Should(Succeed())
+				Expect(sqlDB.FinishBuild(build.ID, db.StatusSucceeded)).To(Succeed())
 			})
 
 			It("can view the resource", func() {

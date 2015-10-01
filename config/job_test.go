@@ -46,7 +46,7 @@ var _ = Describe("Job config", func() {
 			})
 
 			It("returns them as job inputs, resolving name and trigger", func() {
-				Ω(inputs).Should(Equal([]config.JobInput{
+				Expect(inputs).To(Equal([]config.JobInput{
 					{
 						Name:     "some-input",
 						Resource: "some-resource",
@@ -65,6 +65,7 @@ var _ = Describe("Job config", func() {
 						Trigger:  false,
 					},
 				}))
+
 			})
 		})
 
@@ -75,7 +76,7 @@ var _ = Describe("Job config", func() {
 				})
 
 				It("returns an empty set of inputs", func() {
-					Ω(inputs).Should(BeEmpty())
+					Expect(inputs).To(BeEmpty())
 				})
 			})
 
@@ -94,7 +95,7 @@ var _ = Describe("Job config", func() {
 				})
 
 				It("uses both for inputs", func() {
-					Ω(inputs).Should(Equal([]config.JobInput{
+					Expect(inputs).To(Equal([]config.JobInput{
 						{
 							Name:     "some-get-plan",
 							Resource: "some-get-plan",
@@ -107,6 +108,7 @@ var _ = Describe("Job config", func() {
 							Trigger:  false,
 						},
 					}))
+
 				})
 			})
 
@@ -123,7 +125,7 @@ var _ = Describe("Job config", func() {
 				})
 
 				It("returns an input config for all get plans", func() {
-					Ω(inputs).Should(ConsistOf(
+					Expect(inputs).To(ConsistOf(
 						config.JobInput{
 							Name:     "a",
 							Resource: "a",
@@ -133,6 +135,7 @@ var _ = Describe("Job config", func() {
 							Resource: "b",
 						},
 					))
+
 				})
 			})
 
@@ -149,7 +152,7 @@ var _ = Describe("Job config", func() {
 				})
 
 				It("returns an input config for all get plans", func() {
-					Ω(inputs).Should(ConsistOf(
+					Expect(inputs).To(ConsistOf(
 						config.JobInput{
 							Name:     "a",
 							Resource: "a",
@@ -159,6 +162,7 @@ var _ = Describe("Job config", func() {
 							Resource: "b",
 						},
 					))
+
 				})
 			})
 
@@ -175,7 +179,7 @@ var _ = Describe("Job config", func() {
 				})
 
 				It("returns an input config for all get plans", func() {
-					Ω(inputs).Should(ConsistOf(
+					Expect(inputs).To(ConsistOf(
 						config.JobInput{
 							Name:     "a",
 							Resource: "a",
@@ -185,6 +189,7 @@ var _ = Describe("Job config", func() {
 							Resource: "b",
 						},
 					))
+
 				})
 			})
 
@@ -199,13 +204,14 @@ var _ = Describe("Job config", func() {
 				})
 
 				It("uses it as resource in the input config", func() {
-					Ω(inputs).Should(Equal([]config.JobInput{
+					Expect(inputs).To(Equal([]config.JobInput{
 						{
 							Name:     "some-get-plan",
 							Resource: "some-get-resource",
 							Trigger:  false,
 						},
 					}))
+
 				})
 			})
 
@@ -224,7 +230,7 @@ var _ = Describe("Job config", func() {
 				})
 
 				It("returns an input config for all get plans", func() {
-					Ω(inputs).Should(Equal([]config.JobInput{
+					Expect(inputs).To(Equal([]config.JobInput{
 						{
 							Name:     "a",
 							Resource: "a",
@@ -242,6 +248,7 @@ var _ = Describe("Job config", func() {
 							Trigger:  true,
 						},
 					}))
+
 				})
 			})
 
@@ -263,7 +270,7 @@ var _ = Describe("Job config", func() {
 				})
 
 				It("returns an input config for all of the get plans present", func() {
-					Ω(inputs).Should(Equal([]config.JobInput{
+					Expect(inputs).To(Equal([]config.JobInput{
 						{
 							Name:     "a",
 							Resource: "a",
@@ -281,6 +288,7 @@ var _ = Describe("Job config", func() {
 							Trigger:  true,
 						},
 					}))
+
 				})
 			})
 
@@ -294,7 +302,7 @@ var _ = Describe("Job config", func() {
 				})
 
 				It("returns an empty set of inputs", func() {
-					Ω(inputs).Should(BeEmpty())
+					Expect(inputs).To(BeEmpty())
 				})
 			})
 		})
@@ -328,7 +336,7 @@ var _ = Describe("Job config", func() {
 			})
 
 			It("returns them as job inputs, with the name as the resource", func() {
-				Ω(outputs).Should(Equal([]config.JobOutput{
+				Expect(outputs).To(Equal([]config.JobOutput{
 					{
 						Name:     "some-resource",
 						Resource: "some-resource",
@@ -338,6 +346,7 @@ var _ = Describe("Job config", func() {
 						Resource: "some-other-resource",
 					},
 				}))
+
 			})
 		})
 
@@ -348,7 +357,7 @@ var _ = Describe("Job config", func() {
 				})
 
 				It("returns an empty set of outputs", func() {
-					Ω(outputs).Should(BeEmpty())
+					Expect(outputs).To(BeEmpty())
 				})
 			})
 
@@ -374,7 +383,7 @@ var _ = Describe("Job config", func() {
 				})
 
 				It("returns an output for all of the put plans present", func() {
-					Ω(outputs).Should(Equal([]config.JobOutput{
+					Expect(outputs).To(Equal([]config.JobOutput{
 						{
 							Name:     "a",
 							Resource: "a",
@@ -388,6 +397,7 @@ var _ = Describe("Job config", func() {
 							Resource: "c",
 						},
 					}))
+
 				})
 			})
 
@@ -404,7 +414,7 @@ var _ = Describe("Job config", func() {
 				})
 
 				It("returns an output config for all put plans", func() {
-					Ω(outputs).Should(ConsistOf(
+					Expect(outputs).To(ConsistOf(
 						config.JobOutput{
 							Name:     "a",
 							Resource: "a",
@@ -414,6 +424,7 @@ var _ = Describe("Job config", func() {
 							Resource: "b",
 						},
 					))
+
 				})
 			})
 
@@ -430,7 +441,7 @@ var _ = Describe("Job config", func() {
 				})
 
 				It("returns an output config for all put plans", func() {
-					Ω(outputs).Should(ConsistOf(
+					Expect(outputs).To(ConsistOf(
 						config.JobOutput{
 							Name:     "a",
 							Resource: "a",
@@ -440,6 +451,7 @@ var _ = Describe("Job config", func() {
 							Resource: "b",
 						},
 					))
+
 				})
 			})
 
@@ -456,7 +468,7 @@ var _ = Describe("Job config", func() {
 				})
 
 				It("returns an output config for all put plans", func() {
-					Ω(outputs).Should(ConsistOf(
+					Expect(outputs).To(ConsistOf(
 						config.JobOutput{
 							Name:     "a",
 							Resource: "a",
@@ -466,6 +478,7 @@ var _ = Describe("Job config", func() {
 							Resource: "b",
 						},
 					))
+
 				})
 			})
 
@@ -479,7 +492,7 @@ var _ = Describe("Job config", func() {
 				})
 
 				It("returns an empty set of outputs", func() {
-					Ω(outputs).Should(BeEmpty())
+					Expect(outputs).To(BeEmpty())
 				})
 			})
 		})

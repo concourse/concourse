@@ -36,8 +36,8 @@ var _ = Describe("Present", func() {
 
 		presentedBuilds := PresentBuilds(builds)
 
-		Ω(presentedBuilds).Should(HaveLen(2))
-		Ω(presentedBuilds[0]).Should(Equal(PresentedBuild{
+		Expect(presentedBuilds).To(HaveLen(2))
+		Expect(presentedBuilds[0]).To(Equal(PresentedBuild{
 			ID:           1,
 			JobName:      "hello",
 			StartTime:    "2004-04-03 13:45:33 (UTC)",
@@ -48,7 +48,7 @@ var _ = Describe("Present", func() {
 			Path:         "/pipelines/a-pipeline/jobs/hello/builds/23",
 		}))
 
-		Ω(presentedBuilds[1]).Should(Equal(PresentedBuild{
+		Expect(presentedBuilds[1]).To(Equal(PresentedBuild{
 			ID:           2,
 			JobName:      "[one off]",
 			StartTime:    "n/a",
@@ -58,5 +58,6 @@ var _ = Describe("Present", func() {
 			PipelineName: "[one off]",
 			Path:         "/builds/2",
 		}))
+
 	})
 })

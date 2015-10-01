@@ -79,10 +79,10 @@ var _ = Describe("Runner", func() {
 		Eventually(scannerFactory.ScannerCallCount).Should(Equal(2))
 
 		_, resource := scannerFactory.ScannerArgsForCall(0)
-		Ω(resource).Should(Equal("some-resource"))
+		Expect(resource).To(Equal("some-resource"))
 
 		_, resource = scannerFactory.ScannerArgsForCall(1)
-		Ω(resource).Should(Equal("some-other-resource"))
+		Expect(resource).To(Equal("some-other-resource"))
 	})
 
 	Context("when new resources are configured", func() {
@@ -108,10 +108,10 @@ var _ = Describe("Runner", func() {
 			Eventually(scannerFactory.ScannerCallCount).Should(Equal(2))
 
 			_, resource := scannerFactory.ScannerArgsForCall(0)
-			Ω(resource).Should(Equal("some-resource"))
+			Expect(resource).To(Equal("some-resource"))
 
 			_, resource = scannerFactory.ScannerArgsForCall(1)
-			Ω(resource).Should(Equal("some-other-resource"))
+			Expect(resource).To(Equal("some-other-resource"))
 
 			newConfig := initialConfig
 			newConfig.Resources = append(newConfig.Resources, atc.ResourceConfig{
@@ -123,7 +123,7 @@ var _ = Describe("Runner", func() {
 			Eventually(scannerFactory.ScannerCallCount).Should(Equal(3))
 
 			_, resource = scannerFactory.ScannerArgsForCall(2)
-			Ω(resource).Should(Equal("another-resource"))
+			Expect(resource).To(Equal("another-resource"))
 
 			Consistently(scannerFactory.ScannerCallCount).Should(Equal(3))
 		})
@@ -153,20 +153,20 @@ var _ = Describe("Runner", func() {
 			Eventually(scannerFactory.ScannerCallCount).Should(Equal(2))
 
 			_, resource := scannerFactory.ScannerArgsForCall(0)
-			Ω(resource).Should(Equal("some-resource"))
+			Expect(resource).To(Equal("some-resource"))
 
 			_, resource = scannerFactory.ScannerArgsForCall(1)
-			Ω(resource).Should(Equal("some-other-resource"))
+			Expect(resource).To(Equal("some-other-resource"))
 
 			close(scannerExit)
 
 			Eventually(scannerFactory.ScannerCallCount, 10*syncInterval).Should(Equal(4))
 
 			_, resource = scannerFactory.ScannerArgsForCall(2)
-			Ω(resource).Should(Equal("some-resource"))
+			Expect(resource).To(Equal("some-resource"))
 
 			_, resource = scannerFactory.ScannerArgsForCall(3)
-			Ω(resource).Should(Equal("some-other-resource"))
+			Expect(resource).To(Equal("some-other-resource"))
 		})
 	})
 
@@ -176,7 +176,7 @@ var _ = Describe("Runner", func() {
 		})
 
 		It("does not start scanning resources", func() {
-			Ω(scannerFactory.ScannerCallCount()).Should(Equal(0))
+			Expect(scannerFactory.ScannerCallCount()).To(Equal(0))
 		})
 	})
 })

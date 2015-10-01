@@ -125,11 +125,12 @@ var _ = Describe("GardenFactory", func() {
 			})
 
 			It("selects a worker satisfying the resource type and tags", func() {
-				Ω(fakeWorkerClient.SatisfyingCallCount()).Should(Equal(1))
-				Ω(fakeWorkerClient.SatisfyingArgsForCall(0)).Should(Equal(worker.WorkerSpec{
+				Expect(fakeWorkerClient.SatisfyingCallCount()).To(Equal(1))
+				Expect(fakeWorkerClient.SatisfyingArgsForCall(0)).To(Equal(worker.WorkerSpec{
 					ResourceType: "some-resource-type",
 					Tags:         []string{"some", "tags"},
 				}))
+
 			})
 
 			Context("when no workers satisfy the spec", func() {
@@ -140,86 +141,88 @@ var _ = Describe("GardenFactory", func() {
 				})
 
 				It("exits with the error", func() {
-					Ω(<-process.Wait()).Should(Equal(disaster))
+					Expect(<-process.Wait()).To(Equal(disaster))
 				})
 			})
 
 			It("initializes the resource with the correct type and session id", func() {
-				Ω(fakeTracker.InitCallCount()).Should(Equal(1))
+				Expect(fakeTracker.InitCallCount()).To(Equal(1))
 
 				_, sm, sid, typ, tags, vol := fakeTracker.InitArgsForCall(0)
-				Ω(sm).Should(Equal(stepMetadata))
-				Ω(sid).Should(Equal(resource.Session{
+				Expect(sm).To(Equal(stepMetadata))
+				Expect(sid).To(Equal(resource.Session{
 					ID: identifier,
 				}))
-				Ω(typ).Should(Equal(resource.ResourceType("some-resource-type")))
-				Ω(tags).Should(ConsistOf("some", "tags"))
-				Ω(vol).Should(BeZero())
+
+				Expect(typ).To(Equal(resource.ResourceType("some-resource-type")))
+				Expect(tags).To(ConsistOf("some", "tags"))
+				Expect(vol).To(BeZero())
 			})
 
 			It("puts the resource with the correct source and params, and the full repository as the artifact source", func() {
-				Ω(fakeResource.PutCallCount()).Should(Equal(1))
+				Expect(fakeResource.PutCallCount()).To(Equal(1))
 
 				_, putSource, putParams, putArtifactSource := fakeResource.PutArgsForCall(0)
-				Ω(putSource).Should(Equal(resourceConfig.Source))
-				Ω(putParams).Should(Equal(params))
+				Expect(putSource).To(Equal(resourceConfig.Source))
+				Expect(putParams).To(Equal(params))
 
 				dest := new(fakes.FakeArtifactDestination)
 
 				err := putArtifactSource.StreamTo(dest)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(fakeSource.StreamToCallCount()).Should(Equal(1))
+				Expect(fakeSource.StreamToCallCount()).To(Equal(1))
 
 				sourceDest := fakeSource.StreamToArgsForCall(0)
 
 				someStream := new(bytes.Buffer)
 
 				err = sourceDest.StreamIn("foo", someStream)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(dest.StreamInCallCount()).Should(Equal(1))
+				Expect(dest.StreamInCallCount()).To(Equal(1))
 				destPath, stream := dest.StreamInArgsForCall(0)
-				Ω(destPath).Should(Equal("some-source/foo"))
-				Ω(stream).Should(Equal(someStream))
+				Expect(destPath).To(Equal("some-source/foo"))
+				Expect(stream).To(Equal(someStream))
 			})
 
 			It("puts the resource with the io config forwarded", func() {
-				Ω(fakeResource.PutCallCount()).Should(Equal(1))
+				Expect(fakeResource.PutCallCount()).To(Equal(1))
 
 				ioConfig, _, _, _ := fakeResource.PutArgsForCall(0)
-				Ω(ioConfig.Stdout).Should(Equal(stdoutBuf))
-				Ω(ioConfig.Stderr).Should(Equal(stderrBuf))
+				Expect(ioConfig.Stdout).To(Equal(stdoutBuf))
+				Expect(ioConfig.Stderr).To(Equal(stderrBuf))
 			})
 
 			It("runs the get resource action", func() {
-				Ω(fakeVersionedSource.RunCallCount()).Should(Equal(1))
+				Expect(fakeVersionedSource.RunCallCount()).To(Equal(1))
 			})
 
 			It("reports the created version info", func() {
 				var info VersionInfo
-				Ω(step.Result(&info)).Should(BeTrue())
-				Ω(info.Version).Should(Equal(atc.Version{"some": "version"}))
-				Ω(info.Metadata).Should(Equal([]atc.MetadataField{{"some", "metadata"}}))
+				Expect(step.Result(&info)).To(BeTrue())
+				Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
+				Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
 			})
 
 			It("is successful", func() {
 				Eventually(process.Wait()).Should(Receive(BeNil()))
 
 				var success Success
-				Ω(step.Result(&success)).Should(BeTrue())
-				Ω(bool(success)).Should(BeTrue())
+				Expect(step.Result(&success)).To(BeTrue())
+				Expect(bool(success)).To(BeTrue())
 			})
 
 			It("completes via the delegate", func() {
 				Eventually(putDelegate.CompletedCallCount).Should(Equal(1))
 
 				exitStatus, verionInfo := putDelegate.CompletedArgsForCall(0)
-				Ω(exitStatus).Should(Equal(ExitStatus(0)))
-				Ω(verionInfo).Should(Equal(&VersionInfo{
+				Expect(exitStatus).To(Equal(ExitStatus(0)))
+				Expect(verionInfo).To(Equal(&VersionInfo{
 					Version:  atc.Version{"some": "version"},
 					Metadata: []atc.MetadataField{{"some", "metadata"}},
 				}))
+
 			})
 
 			Describe("signalling", func() {
@@ -257,10 +260,10 @@ var _ = Describe("GardenFactory", func() {
 				It("invokes the delegate's Failed callback without completing", func() {
 					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 
-					Ω(putDelegate.CompletedCallCount()).Should(BeZero())
+					Expect(putDelegate.CompletedCallCount()).To(BeZero())
 
-					Ω(putDelegate.FailedCallCount()).Should(Equal(1))
-					Ω(putDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+					Expect(putDelegate.FailedCallCount()).To(Equal(1))
+					Expect(putDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 				})
 
 				Context("with a resource script failure", func() {
@@ -277,32 +280,32 @@ var _ = Describe("GardenFactory", func() {
 					It("invokes the delegate's Finished callback instead of failed", func() {
 						Eventually(process.Wait()).Should(Receive())
 
-						Ω(putDelegate.FailedCallCount()).Should(BeZero())
+						Expect(putDelegate.FailedCallCount()).To(BeZero())
 
-						Ω(putDelegate.CompletedCallCount()).Should(Equal(1))
+						Expect(putDelegate.CompletedCallCount()).To(Equal(1))
 						status, versionInfo := putDelegate.CompletedArgsForCall(0)
-						Ω(status).Should(Equal(ExitStatus(1)))
-						Ω(versionInfo).Should(BeNil())
+						Expect(status).To(Equal(ExitStatus(1)))
+						Expect(versionInfo).To(BeNil())
 					})
 
 					It("is not successful", func() {
 						Eventually(process.Wait()).Should(Receive(BeNil()))
-						Ω(putDelegate.CompletedCallCount()).Should(Equal(1))
+						Expect(putDelegate.CompletedCallCount()).To(Equal(1))
 
 						var success Success
 
-						Ω(step.Result(&success)).Should(BeTrue())
-						Ω(bool(success)).Should(BeFalse())
+						Expect(step.Result(&success)).To(BeTrue())
+						Expect(bool(success)).To(BeFalse())
 					})
 				})
 			})
 
 			Describe("releasing", func() {
 				It("releases the resource", func() {
-					Ω(fakeResource.ReleaseCallCount()).Should(BeZero())
+					Expect(fakeResource.ReleaseCallCount()).To(BeZero())
 
 					step.Release()
-					Ω(fakeResource.ReleaseCallCount()).Should(Equal(1))
+					Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
 				})
 			})
 		})
@@ -321,10 +324,10 @@ var _ = Describe("GardenFactory", func() {
 			It("invokes the delegate's Failed callback", func() {
 				Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 
-				Ω(putDelegate.CompletedCallCount()).Should(BeZero())
+				Expect(putDelegate.CompletedCallCount()).To(BeZero())
 
-				Ω(putDelegate.FailedCallCount()).Should(Equal(1))
-				Ω(putDelegate.FailedArgsForCall(0)).Should(Equal(disaster))
+				Expect(putDelegate.FailedCallCount()).To(Equal(1))
+				Expect(putDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 			})
 		})
 	})

@@ -91,7 +91,7 @@ var _ = BeforeEach(func() {
 	var err error
 
 	cliDownloadsDir, err = ioutil.TempDir("", "cli-downloads")
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	constructedEventHandler = &fakeEventHandlerFactory{}
 
@@ -125,7 +125,7 @@ var _ = BeforeEach(func() {
 
 		cliDownloadsDir,
 	)
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	server = httptest.NewServer(handler)
 

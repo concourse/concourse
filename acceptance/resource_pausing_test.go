@@ -29,7 +29,7 @@ var _ = Describe("Resource Pausing", func() {
 
 	BeforeEach(func() {
 		atcBin, err := gexec.Build("github.com/concourse/atc/cmd/atc")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		dbLogger := lagertest.NewTestLogger("test")
 		postgresRunner.CreateTestDB()
@@ -38,7 +38,7 @@ var _ = Describe("Resource Pausing", func() {
 		bus := db.NewNotificationsBus(dbListener, dbConn)
 
 		sqlDB = db.NewSQL(dbLogger, dbConn, bus)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDBFactory = db.NewPipelineDBFactory(dbLogger, dbConn, bus, sqlDB)
 
@@ -48,8 +48,8 @@ var _ = Describe("Resource Pausing", func() {
 	AfterEach(func() {
 		ginkgomon.Interrupt(atcProcess)
 
-		Ω(dbConn.Close()).Should(Succeed())
-		Ω(dbListener.Close()).Should(Succeed())
+		Expect(dbConn.Close()).To(Succeed())
+		Expect(dbListener.Close()).To(Succeed())
 
 		postgresRunner.DropTestDB()
 	})
@@ -95,12 +95,12 @@ var _ = Describe("Resource Pausing", func() {
 						{Name: "resource-name"},
 					},
 				}, db.ConfigVersion(1), db.PipelineUnpaused)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				var found bool
 				pipelineDB, found, err = pipelineDBFactory.BuildDefault()
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(found).Should(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 			})
 
 			It("can view the resource", func() {
@@ -123,10 +123,10 @@ var _ = Describe("Resource Pausing", func() {
 				Eventually(page.Find(".header i.fa-play")).Should(BeFound())
 
 				resource, err := pipelineDB.GetResource("resource-name")
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				err = pipelineDB.SetResourceCheckError(resource, errors.New("failed to foo the bar"))
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				page.Refresh()
 

@@ -34,10 +34,10 @@ var _ = Describe("Auth", func() {
 		sqlDB = db.NewSQL(logger, dbConn, bus)
 
 		_, err := sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		atcBin, err := gexec.Build("github.com/concourse/atc/cmd/atc")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		atcPort = 5697 + uint16(GinkgoParallelNode())
 		debugPort := 6697 + uint16(GinkgoParallelNode())
@@ -64,8 +64,8 @@ var _ = Describe("Auth", func() {
 	AfterEach(func() {
 		ginkgomon.Interrupt(atcProcess)
 
-		Ω(dbConn.Close()).Should(Succeed())
-		Ω(dbListener.Close()).Should(Succeed())
+		Expect(dbConn.Close()).To(Succeed())
+		Expect(dbListener.Close()).To(Succeed())
 
 		postgresRunner.DropTestDB()
 	})
@@ -74,12 +74,12 @@ var _ = Describe("Auth", func() {
 		request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d", atcPort), nil)
 
 		resp, err := http.DefaultClient.Do(request)
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(resp.StatusCode).Should(Equal(http.StatusUnauthorized))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
 
 		request.SetBasicAuth("admin", "password")
 		resp, err = http.DefaultClient.Do(request)
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(resp.StatusCode).Should(Equal(http.StatusOK))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(resp.StatusCode).To(Equal(http.StatusOK))
 	})
 })

@@ -57,14 +57,14 @@ var _ = Describe("BasicAuthHandler", func() {
 				var err error
 
 				request, err = http.NewRequest("GET", server.URL, bytes.NewBufferString("hello"))
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			JustBeforeEach(func() {
 				var err error
 
 				response, err = client.Do(request)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			Context("via standard basic auth", func() {
@@ -73,13 +73,13 @@ var _ = Describe("BasicAuthHandler", func() {
 				})
 
 				It("returns 200", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
 				It("proxies to the handler", func() {
 					responseBody, err := ioutil.ReadAll(response.Body)
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(string(responseBody)).Should(Equal("simple hello"))
+					Expect(err).NotTo(HaveOccurred())
+					Expect(string(responseBody)).To(Equal("simple hello"))
 				})
 			})
 		})
@@ -88,17 +88,17 @@ var _ = Describe("BasicAuthHandler", func() {
 			It("returns 401", func() {
 				requestBody := bytes.NewBufferString("hello")
 				request, err := http.NewRequest("GET", server.URL, requestBody)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 				request.SetBasicAuth(username, "wrong")
 
 				response, err := client.Do(request)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
-				Ω(response.Header.Get("WWW-Authenticate")).Should(Equal(`Basic realm="Restricted"`))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				Expect(response.Header.Get("WWW-Authenticate")).To(Equal(`Basic realm="Restricted"`))
 
 				responseBody, err := ioutil.ReadAll(response.Body)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(string(responseBody)).Should(Equal("not authorized"))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(responseBody)).To(Equal("not authorized"))
 			})
 		})
 
@@ -106,16 +106,16 @@ var _ = Describe("BasicAuthHandler", func() {
 			It("returns 401", func() {
 				requestBody := bytes.NewBufferString("hello")
 				request, err := http.NewRequest("GET", server.URL, requestBody)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				response, err := client.Do(request)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
-				Ω(response.Header.Get("WWW-Authenticate")).Should(Equal(`Basic realm="Restricted"`))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				Expect(response.Header.Get("WWW-Authenticate")).To(Equal(`Basic realm="Restricted"`))
 
 				responseBody, err := ioutil.ReadAll(response.Body)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(string(responseBody)).Should(Equal("not authorized"))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(responseBody)).To(Equal("not authorized"))
 			})
 		})
 	}
@@ -123,7 +123,7 @@ var _ = Describe("BasicAuthHandler", func() {
 	Context("with a username + hashed password validator", func() {
 		BeforeEach(func() {
 			hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			validator = auth.BasicAuthHashedValidator{
 				Username:       username,
@@ -151,23 +151,23 @@ var _ = Describe("ExtractUsernameAndPassword", func() {
 		Context("When the rest of the string is two non-empty strings separated by a colon, base64-encoded", func() {
 			It("returns the username and password", func() {
 				username, password, err := auth.ExtractUsernameAndPassword(header("username", "password"))
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(username).Should(Equal("username"))
-				Ω(password).Should(Equal("password"))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(username).To(Equal("username"))
+				Expect(password).To(Equal("password"))
 			})
 		})
 
 		Context("When the rest of the string is has no colon, base64-encoded", func() {
 			It("errors", func() {
 				_, _, err := auth.ExtractUsernameAndPassword(header("usernamepassword"))
-				Ω(err).Should(HaveOccurred())
+				Expect(err).To(HaveOccurred())
 			})
 		})
 
 		Context("When the rest of the string is has too many colons, base64-encoded", func() {
 			It("errors", func() {
 				_, _, err := auth.ExtractUsernameAndPassword(header("too", "many", "things"))
-				Ω(err).Should(HaveOccurred())
+				Expect(err).To(HaveOccurred())
 			})
 		})
 	})
@@ -177,7 +177,7 @@ var _ = Describe("ExtractUsernameAndPassword", func() {
 			credentials := []byte("username:password")
 			bustedHeader := "baysick  " + base64.StdEncoding.EncodeToString(credentials)
 			_, _, err := auth.ExtractUsernameAndPassword(bustedHeader)
-			Ω(err).Should(HaveOccurred())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

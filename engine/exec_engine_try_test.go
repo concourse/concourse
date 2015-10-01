@@ -113,25 +113,25 @@ var _ = Describe("Exec Engine with Try", func() {
 				}
 
 				build, err := execEngine.CreateBuild(buildModel, plan)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 				build.Resume(logger)
 			})
 
 			It("constructs the step correctly", func() {
-				Ω(fakeFactory.GetCallCount()).Should(Equal(1))
+				Expect(fakeFactory.GetCallCount()).To(Equal(1))
 				logger, metadata, sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
-				Ω(logger).ShouldNot(BeNil())
-				Ω(metadata).Should(Equal(expectedMetadata))
-				Ω(sourceName).Should(Equal(exec.SourceName("some-input")))
-				Ω(workerID).Should(Equal(worker.Identifier{
+				Expect(logger).NotTo(BeNil())
+				Expect(metadata).To(Equal(expectedMetadata))
+				Expect(sourceName).To(Equal(exec.SourceName("some-input")))
+				Expect(workerID).To(Equal(worker.Identifier{
 					BuildID: 84,
 					Type:    db.ContainerTypeGet,
 					Name:    "some-input",
 				}))
 
-				Ω(delegate).Should(Equal(fakeInputDelegate))
+				Expect(delegate).To(Equal(fakeInputDelegate))
 				_, _, location := fakeDelegate.InputDelegateArgsForCall(0)
-				Ω(location).ShouldNot(BeNil())
+				Expect(location).NotTo(BeNil())
 			})
 		})
 
@@ -167,15 +167,15 @@ var _ = Describe("Exec Engine with Try", func() {
 
 				build, err := execEngine.CreateBuild(buildModel, plan)
 
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				build.Resume(logger)
 
-				Ω(inputStep.RunCallCount()).Should(Equal(1))
-				Ω(inputStep.ReleaseCallCount()).Should(BeNumerically(">", 0))
+				Expect(inputStep.RunCallCount()).To(Equal(1))
+				Expect(inputStep.ReleaseCallCount()).To(BeNumerically(">", 0))
 
-				Ω(taskStep.RunCallCount()).Should(Equal(1))
-				Ω(inputStep.ReleaseCallCount()).Should(BeNumerically(">", 0))
+				Expect(taskStep.RunCallCount()).To(Equal(1))
+				Expect(inputStep.ReleaseCallCount()).To(BeNumerically(">", 0))
 			})
 		})
 	})

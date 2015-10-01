@@ -53,11 +53,11 @@ var _ = Describe("ConfigSource", func() {
 		})
 
 		It("succeeds", func() {
-			Ω(fetchErr).ShouldNot(HaveOccurred())
+			Expect(fetchErr).NotTo(HaveOccurred())
 		})
 
 		It("returns the static config", func() {
-			Ω(fetchedConfig).Should(Equal(someConfig))
+			Expect(fetchedConfig).To(Equal(someConfig))
 		})
 	})
 
@@ -83,7 +83,7 @@ var _ = Describe("ConfigSource", func() {
 			})
 
 			It("returns an error", func() {
-				Ω(fetchErr).Should(Equal(UnspecifiedArtifactSourceError{"foo-bar.yml"}))
+				Expect(fetchErr).To(Equal(UnspecifiedArtifactSourceError{"foo-bar.yml"}))
 			})
 		})
 
@@ -100,26 +100,26 @@ var _ = Describe("ConfigSource", func() {
 
 				BeforeEach(func() {
 					marshalled, err := yaml.Marshal(someConfig)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					streamedOut = gbytes.BufferWithBytes(marshalled)
 					fakeArtifactSource.StreamFileReturns(streamedOut, nil)
 				})
 
 				It("fetches the file via the correct path", func() {
-					Ω(fakeArtifactSource.StreamFileArgsForCall(0)).Should(Equal("build.yml"))
+					Expect(fakeArtifactSource.StreamFileArgsForCall(0)).To(Equal("build.yml"))
 				})
 
 				It("succeeds", func() {
-					Ω(fetchErr).ShouldNot(HaveOccurred())
+					Expect(fetchErr).NotTo(HaveOccurred())
 				})
 
 				It("returns the unmarshalled config", func() {
-					Ω(fetchedConfig).Should(Equal(someConfig))
+					Expect(fetchedConfig).To(Equal(someConfig))
 				})
 
 				It("closes the stream", func() {
-					Ω(streamedOut.Closed()).Should(BeTrue())
+					Expect(streamedOut.Closed()).To(BeTrue())
 				})
 			})
 
@@ -132,14 +132,14 @@ var _ = Describe("ConfigSource", func() {
 					invalidConfig.Run = atc.TaskRunConfig{}
 
 					marshalled, err := yaml.Marshal(invalidConfig)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
 					streamedOut = gbytes.BufferWithBytes(marshalled)
 					fakeArtifactSource.StreamFileReturns(streamedOut, nil)
 				})
 
 				It("returns an error", func() {
-					Ω(fetchErr).Should(HaveOccurred())
+					Expect(fetchErr).To(HaveOccurred())
 				})
 			})
 
@@ -152,11 +152,11 @@ var _ = Describe("ConfigSource", func() {
 				})
 
 				It("fails", func() {
-					Ω(fetchErr).Should(HaveOccurred())
+					Expect(fetchErr).To(HaveOccurred())
 				})
 
 				It("closes the stream", func() {
-					Ω(streamedOut.Closed()).Should(BeTrue())
+					Expect(streamedOut.Closed()).To(BeTrue())
 				})
 			})
 
@@ -168,14 +168,14 @@ var _ = Describe("ConfigSource", func() {
 				})
 
 				It("returns the error", func() {
-					Ω(fetchErr).Should(HaveOccurred())
+					Expect(fetchErr).To(HaveOccurred())
 				})
 			})
 		})
 
 		Context("when the file's artifact source cannot be found in the repository", func() {
 			It("returns an UnknownArtifactSourceError", func() {
-				Ω(fetchErr).Should(Equal(UnknownArtifactSourceError{"some"}))
+				Expect(fetchErr).To(Equal(UnknownArtifactSourceError{"some"}))
 			})
 		})
 	})
@@ -225,19 +225,20 @@ var _ = Describe("ConfigSource", func() {
 				})
 
 				It("fetches via the input source", func() {
-					Ω(fakeConfigSourceA.FetchConfigArgsForCall(0)).Should(Equal(repo))
-					Ω(fakeConfigSourceB.FetchConfigArgsForCall(0)).Should(Equal(repo))
+					Expect(fakeConfigSourceA.FetchConfigArgsForCall(0)).To(Equal(repo))
+					Expect(fakeConfigSourceB.FetchConfigArgsForCall(0)).To(Equal(repo))
 				})
 
 				It("succeeds", func() {
-					Ω(fetchErr).ShouldNot(HaveOccurred())
+					Expect(fetchErr).NotTo(HaveOccurred())
 				})
 
 				It("returns the merged config", func() {
-					Ω(fetchedConfig).Should(Equal(atc.TaskConfig{
+					Expect(fetchedConfig).To(Equal(atc.TaskConfig{
 						Image:  "some-image",
 						Params: map[string]string{"PARAM": "B"},
 					}))
+
 				})
 			})
 
@@ -249,7 +250,7 @@ var _ = Describe("ConfigSource", func() {
 				})
 
 				It("returns the error", func() {
-					Ω(fetchErr).Should(Equal(disaster))
+					Expect(fetchErr).To(Equal(disaster))
 				})
 			})
 		})
@@ -262,11 +263,11 @@ var _ = Describe("ConfigSource", func() {
 			})
 
 			It("returns the error", func() {
-				Ω(fetchErr).Should(Equal(disaster))
+				Expect(fetchErr).To(Equal(disaster))
 			})
 
 			It("does not fetch via B", func() {
-				Ω(fakeConfigSourceB.FetchConfigCallCount()).Should(Equal(0))
+				Expect(fakeConfigSourceB.FetchConfigCallCount()).To(Equal(0))
 			})
 		})
 	})

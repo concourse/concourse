@@ -22,26 +22,26 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 		Describe("CreatePipe", func() {
 			It("saves a pipe to the db", func() {
 				myGuid, err := uuid.NewV4()
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				err = database.CreatePipe(myGuid.String(), "a-url")
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				pipe, err := database.GetPipe(myGuid.String())
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(pipe.ID).Should(Equal(myGuid.String()))
-				Ω(pipe.URL).Should(Equal("a-url"))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(pipe.ID).To(Equal(myGuid.String()))
+				Expect(pipe.URL).To(Equal("a-url"))
 			})
 		})
 
 		It("saves and propagates events correctly", func() {
 			build, err := database.CreateOneOffBuild()
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(build.Name).Should(Equal("1"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(build.Name).To(Equal("1"))
 
 			By("allowing you to subscribe when no events have yet occurred")
 			events, err := database.GetBuildEvents(build.ID, 0)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			defer events.Close()
 
@@ -49,28 +49,28 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			err = database.SaveBuildEvent(build.ID, event.Log{
 				Payload: "some ",
 			})
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(events.Next()).Should(Equal(event.Log{
+			Expect(events.Next()).To(Equal(event.Log{
 				Payload: "some ",
 			}))
 
 			err = database.SaveBuildEvent(build.ID, event.Log{
 				Payload: "log",
 			})
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(events.Next()).Should(Equal(event.Log{
+			Expect(events.Next()).To(Equal(event.Log{
 				Payload: "log",
 			}))
 
 			By("allowing you to subscribe from an offset")
 			eventsFrom1, err := database.GetBuildEvents(build.ID, 1)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			defer eventsFrom1.Close()
 
-			Ω(eventsFrom1.Next()).Should(Equal(event.Log{
+			Expect(eventsFrom1.Next()).To(Equal(event.Log{
 				Payload: "log",
 			}))
 
@@ -93,7 +93,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			err = database.SaveBuildEvent(build.ID, event.Log{
 				Payload: "log 2",
 			})
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(nextEvent).Should(Receive(Equal(event.Log{
 				Payload: "log 2",
@@ -101,59 +101,59 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			By("returning ErrBuildEventStreamClosed for Next calls after Close")
 			events3, err := database.GetBuildEvents(build.ID, 0)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			events3.Close()
 
 			_, err = events3.Next()
-			Ω(err).Should(Equal(db.ErrBuildEventStreamClosed))
+			Expect(err).To(Equal(db.ErrBuildEventStreamClosed))
 		})
 
 		It("saves and emits status events", func() {
 			build, err := database.CreateOneOffBuild()
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(build.Name).Should(Equal("1"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(build.Name).To(Equal("1"))
 
 			By("allowing you to subscribe when no events have yet occurred")
 			events, err := database.GetBuildEvents(build.ID, 0)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			defer events.Close()
 
 			By("emitting a status event when started")
 			started, err := database.StartBuild(build.ID, "engine", "metadata")
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(started).Should(BeTrue())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(started).To(BeTrue())
 
 			startedBuild, found, err := database.GetBuild(build.ID)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(found).Should(BeTrue())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-			Ω(events.Next()).Should(Equal(event.Status{
+			Expect(events.Next()).To(Equal(event.Status{
 				Status: atc.StatusStarted,
 				Time:   startedBuild.StartTime.Unix(),
 			}))
 
 			By("emitting a status event when finished")
 			err = database.FinishBuild(build.ID, db.StatusSucceeded)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			finishedBuild, found, err := database.GetBuild(build.ID)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(found).Should(BeTrue())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-			Ω(events.Next()).Should(Equal(event.Status{
+			Expect(events.Next()).To(Equal(event.Status{
 				Status: atc.StatusSucceeded,
 				Time:   finishedBuild.EndTime.Unix(),
 			}))
 
 			By("ending the stream when finished")
 			_, err = events.Next()
-			Ω(err).Should(Equal(db.ErrEndOfBuildEventStream))
+			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
 		})
 
 		It("can keep track of workers", func() {
-			Ω(database.Workers()).Should(BeEmpty())
+			Expect(database.Workers()).To(BeEmpty())
 
 			infoA := db.WorkerInfo{
 				GardenAddr:       "1.2.3.4:7777",
@@ -179,21 +179,21 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			By("persisting workers with no TTLs")
 			err := database.SaveWorker(infoA, 0)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(database.Workers()).Should(ConsistOf(infoA))
+			Expect(database.Workers()).To(ConsistOf(infoA))
 
 			By("being idempotent")
 			err = database.SaveWorker(infoA, 0)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(database.Workers()).Should(ConsistOf(infoA))
+			Expect(database.Workers()).To(ConsistOf(infoA))
 
 			By("expiring TTLs")
 			ttl := 1 * time.Second
 
 			err = database.SaveWorker(infoB, ttl)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			infoB.Name = "1.2.3.4:8888"
 
@@ -202,7 +202,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			By("overwriting TTLs")
 			err = database.SaveWorker(infoA, ttl)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			Consistently(database.Workers, ttl/2).Should(ConsistOf(infoA))
 			Eventually(database.Workers, 2*ttl).Should(BeEmpty())
@@ -212,9 +212,9 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			By("calling it with worker names that do not exist")
 
 			workerInfo, found, err := database.GetWorker("nope")
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(workerInfo).Should(Equal(db.WorkerInfo{}))
-			Ω(found).Should(BeFalse())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(workerInfo).To(Equal(db.WorkerInfo{}))
+			Expect(found).To(BeFalse())
 
 			infoA := db.WorkerInfo{
 				GardenAddr:       "1.2.3.4:7777",
@@ -252,31 +252,31 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			}
 
 			err = database.SaveWorker(infoA, 0)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			err = database.SaveWorker(infoB, 0)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			err = database.SaveWorker(infoC, 0)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			By("returning one workerinfo by worker name")
 			workerInfo, found, err = database.GetWorker("workerName2")
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(found).Should(BeTrue())
-			Ω(workerInfo).Should(Equal(infoB))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(workerInfo).To(Equal(infoB))
 
 			By("returning one workerinfo by addr if name is null")
 			workerInfo, found, err = database.GetWorker("1.2.3.5:8888")
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(found).Should(BeTrue())
-			Ω(workerInfo.Name).Should(Equal("1.2.3.5:8888"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(workerInfo.Name).To(Equal("1.2.3.5:8888"))
 
 			By("expiring TTLs")
 			ttl := 1 * time.Second
 
 			err = database.SaveWorker(infoA, ttl)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			workerFound := func() bool {
 				_, found, _ = database.GetWorker("workerName1")
@@ -299,28 +299,28 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			By("creating a container")
 			err := database.CreateContainerInfo(expectedContainerInfo, time.Minute)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			By("trying to create a container with the same handle")
 			err = database.CreateContainerInfo(db.ContainerInfo{Handle: "some-handle"}, time.Second)
-			Ω(err).Should(HaveOccurred())
+			Expect(err).To(HaveOccurred())
 
 			By("getting the saved info object by handle")
 			actualContainerInfo, found, err := database.GetContainerInfo("some-handle")
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(found).Should(BeTrue())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-			Ω(actualContainerInfo.Handle).Should(Equal("some-handle"))
-			Ω(actualContainerInfo.Name).Should(Equal("some-container"))
-			Ω(actualContainerInfo.PipelineName).Should(Equal("some-pipeline"))
-			Ω(actualContainerInfo.BuildID).Should(Equal(123))
-			Ω(actualContainerInfo.Type).Should(Equal(db.ContainerTypeTask))
-			Ω(actualContainerInfo.WorkerName).Should(Equal("some-worker"))
+			Expect(actualContainerInfo.Handle).To(Equal("some-handle"))
+			Expect(actualContainerInfo.Name).To(Equal("some-container"))
+			Expect(actualContainerInfo.PipelineName).To(Equal("some-pipeline"))
+			Expect(actualContainerInfo.BuildID).To(Equal(123))
+			Expect(actualContainerInfo.Type).To(Equal(db.ContainerTypeTask))
+			Expect(actualContainerInfo.WorkerName).To(Equal("some-worker"))
 
 			By("returning found = false when getting by a handle that does not exist")
 			_, found, err = database.GetContainerInfo("nope")
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(found).Should(BeFalse())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
 		})
 
 		It("can update the time to live for a container info object", func() {
@@ -331,7 +331,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				Type:   db.ContainerTypeTask,
 			}
 			err := database.CreateContainerInfo(originalContainerInfo, time.Minute)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			// comparisonContainerInfo is used to get the expected expiration time in the
 			// database timezone to avoid timezone errors
@@ -340,20 +340,20 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				Type:   db.ContainerTypeTask,
 			}
 			err = database.CreateContainerInfo(comparisonContainerInfo, updatedTTL)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			comparisonContainerInfo, found, err := database.GetContainerInfo("comparison-handle")
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(found).Should(BeTrue())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			err = database.UpdateExpiresAtOnContainerInfo("some-handle", updatedTTL)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			updatedContainerInfo, found, err := database.GetContainerInfo("some-handle")
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(found).Should(BeTrue())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-			Ω(updatedContainerInfo.ExpiresAt).Should(BeTemporally("~", comparisonContainerInfo.ExpiresAt, time.Second))
+			Expect(updatedContainerInfo.ExpiresAt).To(BeTemporally("~", comparisonContainerInfo.ExpiresAt, time.Second))
 		})
 
 		type findContainerInfosByIdentifierExample struct {
@@ -375,22 +375,22 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					}
 
 					err = database.CreateContainerInfo(containerToCreate, 1*time.Minute)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 				}
 
 				results, found, err = database.FindContainerInfosByIdentifier(example.identifierToFilerFor)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(found).Should(Equal(example.expectedHandles != nil))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(Equal(example.expectedHandles != nil))
 
 				for _, result := range results {
 					handles = append(handles, result.Handle)
 				}
 
-				Ω(handles).Should(ConsistOf(example.expectedHandles))
+				Expect(handles).To(ConsistOf(example.expectedHandles))
 
 				for _, containerToDelete := range example.containersToCreate {
 					err = database.DeleteContainerInfo(containerToDelete.Handle)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 				}
 			},
 
@@ -516,28 +516,28 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			}
 
 			err := database.CreateContainerInfo(expectedContainerInfo, time.Minute)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 			err = database.CreateContainerInfo(otherContainerInfo, time.Minute)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			By("returning a single matching container info")
 			actualContainerInfo, found, err := database.FindContainerInfoByIdentifier(db.ContainerIdentifier{Name: "some-container"})
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(found).Should(BeTrue())
-			Ω(actualContainerInfo).Should(Equal(expectedContainerInfo))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(actualContainerInfo).To(Equal(expectedContainerInfo))
 
 			By("erroring if more than one container matches the filter")
 			actualContainerInfo, found, err = database.FindContainerInfoByIdentifier(db.ContainerIdentifier{Type: db.ContainerTypeTask})
-			Ω(err).Should(HaveOccurred())
-			Ω(err).Should(Equal(db.ErrMultipleContainersFound))
-			Ω(found).Should(BeFalse())
-			Ω(actualContainerInfo.Handle).Should(BeEmpty())
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(Equal(db.ErrMultipleContainersFound))
+			Expect(found).To(BeFalse())
+			Expect(actualContainerInfo.Handle).To(BeEmpty())
 
 			By("returning found of false if no containers match the filter")
 			actualContainerInfo, found, err = database.FindContainerInfoByIdentifier(db.ContainerIdentifier{Name: "nope"})
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(found).Should(BeFalse())
-			Ω(actualContainerInfo.Handle).Should(BeEmpty())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+			Expect(actualContainerInfo.Handle).To(BeEmpty())
 
 			By("removing it if the TTL has expired")
 			ttl := 1 * time.Second
@@ -548,39 +548,39 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			}
 
 			err = database.CreateContainerInfo(ttlContainerInfo, -ttl)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 			_, found, err = database.FindContainerInfoByIdentifier(db.ContainerIdentifier{Name: "some-ttl-name"})
-			Ω(found).Should(BeFalse())
+			Expect(found).To(BeFalse())
 		})
 
 		It("can create one-off builds with increasing names", func() {
 			oneOff, err := database.CreateOneOffBuild()
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(oneOff.ID).ShouldNot(BeZero())
-			Ω(oneOff.JobName).Should(BeZero())
-			Ω(oneOff.Name).Should(Equal("1"))
-			Ω(oneOff.Status).Should(Equal(db.StatusPending))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(oneOff.ID).NotTo(BeZero())
+			Expect(oneOff.JobName).To(BeZero())
+			Expect(oneOff.Name).To(Equal("1"))
+			Expect(oneOff.Status).To(Equal(db.StatusPending))
 
 			oneOffGot, found, err := database.GetBuild(oneOff.ID)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(found).Should(BeTrue())
-			Ω(oneOffGot).Should(Equal(oneOff))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(oneOffGot).To(Equal(oneOff))
 
 			jobBuild, err := database.PipelineDB.CreateJobBuild("some-other-job")
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(jobBuild.Name).Should(Equal("1"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(jobBuild.Name).To(Equal("1"))
 
 			nextOneOff, err := database.CreateOneOffBuild()
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(nextOneOff.ID).ShouldNot(BeZero())
-			Ω(nextOneOff.ID).ShouldNot(Equal(oneOff.ID))
-			Ω(nextOneOff.JobName).Should(BeZero())
-			Ω(nextOneOff.Name).Should(Equal("2"))
-			Ω(nextOneOff.Status).Should(Equal(db.StatusPending))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(nextOneOff.ID).NotTo(BeZero())
+			Expect(nextOneOff.ID).NotTo(Equal(oneOff.ID))
+			Expect(nextOneOff.JobName).To(BeZero())
+			Expect(nextOneOff.Name).To(Equal("2"))
+			Expect(nextOneOff.Status).To(Equal(db.StatusPending))
 
 			allBuilds, err := database.GetAllBuilds()
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(allBuilds).Should(Equal([]db.Build{nextOneOff, jobBuild, oneOff}))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(allBuilds).To(Equal([]db.Build{nextOneOff, jobBuild, oneOff}))
 		})
 
 		Describe("GetAllStartedBuilds", func() {
@@ -590,37 +590,37 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				var err error
 
 				build1, err = database.CreateOneOffBuild()
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				build2, err = database.PipelineDB.CreateJobBuild("some-job")
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				_, err = database.CreateOneOffBuild()
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				started, err := database.StartBuild(build1.ID, "some-engine", "so-meta")
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(started).Should(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(started).To(BeTrue())
 
 				started, err = database.StartBuild(build2.ID, "some-engine", "so-meta")
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(started).Should(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(started).To(BeTrue())
 			})
 
 			It("returns all builds that have been started, regardless of pipeline", func() {
 				builds, err := database.GetAllStartedBuilds()
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(len(builds)).Should(Equal(2))
+				Expect(len(builds)).To(Equal(2))
 
 				build1, found, err := database.GetBuild(build1.ID)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(found).Should(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 				build2, found, err := database.GetBuild(build2.ID)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(found).Should(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-				Ω(builds).Should(ConsistOf(build1, build2))
+				Expect(builds).To(ConsistOf(build1, build2))
 			})
 		})
 	}

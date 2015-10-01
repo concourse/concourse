@@ -32,16 +32,16 @@ var _ = Describe("FetchTemplateData", func() {
 		fakeDB.GetAllBuildsReturns(builds, nil)
 
 		templateData, err := FetchTemplateData(fakeDB, fakeConfigDB)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
-		Ω(templateData.Builds[0].ID).Should(Equal(6))
-		Ω(templateData.Builds).Should(BeAssignableToTypeOf([]PresentedBuild{}))
+		Expect(templateData.Builds[0].ID).To(Equal(6))
+		Expect(templateData.Builds).To(BeAssignableToTypeOf([]PresentedBuild{}))
 	})
 
 	It("returns an error if fetching from the database fails", func() {
 		fakeDB.GetAllBuildsReturns(nil, errors.New("disaster"))
 
 		_, err := FetchTemplateData(fakeDB, fakeConfigDB)
-		Ω(err).Should(HaveOccurred())
+		Expect(err).To(HaveOccurred())
 	})
 })

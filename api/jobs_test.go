@@ -31,11 +31,11 @@ var _ = Describe("Jobs API", func() {
 			var err error
 
 			response, err = client.Get(server.URL + "/api/v1/pipelines/some-pipeline/jobs/some-job")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+			Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
 			pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
-			Ω(pipelineName).Should(Equal("some-pipeline"))
+			Expect(pipelineName).To(Equal("some-pipeline"))
 		})
 
 		Context("when getting the job config succeeds", func() {
@@ -109,7 +109,7 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					It("returns 500", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
 				Context("when getting the job succeeds", func() {
@@ -125,21 +125,21 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					It("fetches by job", func() {
-						Ω(pipelineDB.GetJobFinishedAndNextBuildCallCount()).Should(Equal(1))
+						Expect(pipelineDB.GetJobFinishedAndNextBuildCallCount()).To(Equal(1))
 
 						jobName := pipelineDB.GetJobFinishedAndNextBuildArgsForCall(0)
-						Ω(jobName).Should(Equal("some-job"))
+						Expect(jobName).To(Equal("some-job"))
 					})
 
 					It("returns 200 OK", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusOK))
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
 					})
 
 					It("returns the job's name, url, if it's paused, and any running and finished builds", func() {
 						body, err := ioutil.ReadAll(response.Body)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
-						Ω(body).Should(MatchJSON(`{
+						Expect(body).To(MatchJSON(`{
 							"name": "some-job",
 							"paused": true,
 							"url": "/pipelines/some-pipeline/jobs/some-job",
@@ -182,6 +182,7 @@ var _ = Describe("Jobs API", func() {
 							],
 							"groups": ["group-1", "group-2"]
 						}`))
+
 					})
 				})
 
@@ -193,10 +194,10 @@ var _ = Describe("Jobs API", func() {
 					It("returns null as their entries", func() {
 						var job atc.Job
 						err := json.NewDecoder(response.Body).Decode(&job)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
-						Ω(job.NextBuild).Should(BeNil())
-						Ω(job.FinishedBuild).Should(BeNil())
+						Expect(job.NextBuild).To(BeNil())
+						Expect(job.FinishedBuild).To(BeNil())
 					})
 				})
 			})
@@ -207,7 +208,7 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				It("returns 500", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 
@@ -221,7 +222,7 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				It("returns 404", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 		})
@@ -233,7 +234,7 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				It("returns 404", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 
@@ -243,7 +244,7 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				It("returns 500", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -256,7 +257,7 @@ var _ = Describe("Jobs API", func() {
 			var err error
 
 			response, err = client.Get(server.URL + "/api/v1/pipelines/some-pipeline/jobs")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when getting the job config succeeds", func() {
@@ -308,7 +309,7 @@ var _ = Describe("Jobs API", func() {
 
 						switch call {
 						case 1:
-							Ω(jobName).Should(Equal("job-1"))
+							Expect(jobName).To(Equal("job-1"))
 
 							finishedBuild = &db.Build{
 								ID:           1,
@@ -327,7 +328,7 @@ var _ = Describe("Jobs API", func() {
 							}
 
 						case 2:
-							Ω(jobName).Should(Equal("job-2"))
+							Expect(jobName).To(Equal("job-2"))
 
 							finishedBuild = &db.Build{
 								ID:           4,
@@ -338,7 +339,7 @@ var _ = Describe("Jobs API", func() {
 							}
 
 						case 3:
-							Ω(jobName).Should(Equal("job-3"))
+							Expect(jobName).To(Equal("job-3"))
 
 						default:
 							panic("unexpected call count")
@@ -354,7 +355,7 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					It("returns 500", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
 
@@ -371,14 +372,14 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					It("returns 200 OK", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusOK))
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
 					})
 
 					It("returns each job's name, url, and any running and finished builds", func() {
 						body, err := ioutil.ReadAll(response.Body)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
-						Ω(body).Should(MatchJSON(`[
+						Expect(body).To(MatchJSON(`[
 							{
 								"name": "job-1",
 								"paused": true,
@@ -428,6 +429,7 @@ var _ = Describe("Jobs API", func() {
 								"groups": []
 							}
 						]`))
+
 					})
 				})
 			})
@@ -438,7 +440,7 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				It("returns 500", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -450,7 +452,7 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				It("returns 404", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 
@@ -460,7 +462,7 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				It("returns 500", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -473,11 +475,11 @@ var _ = Describe("Jobs API", func() {
 			var err error
 
 			response, err = client.Get(server.URL + "/api/v1/pipelines/some-pipeline/jobs/some-job/builds")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+			Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
 			pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
-			Ω(pipelineName).Should(Equal("some-pipeline"))
+			Expect(pipelineName).To(Equal("some-pipeline"))
 		})
 
 		Context("when getting the build succeeds", func() {
@@ -501,21 +503,21 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("fetches by job and build name", func() {
-				Ω(pipelineDB.GetAllJobBuildsCallCount()).Should(Equal(1))
+				Expect(pipelineDB.GetAllJobBuildsCallCount()).To(Equal(1))
 
 				jobName := pipelineDB.GetAllJobBuildsArgsForCall(0)
-				Ω(jobName).Should(Equal("some-job"))
+				Expect(jobName).To(Equal("some-job"))
 			})
 
 			It("returns 200 OK", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
 			})
 
 			It("returns the builds", func() {
 				body, err := ioutil.ReadAll(response.Body)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(body).Should(MatchJSON(`[
+				Expect(body).To(MatchJSON(`[
 					{
 						"id": 3,
 						"name": "2",
@@ -531,6 +533,7 @@ var _ = Describe("Jobs API", func() {
 						"url": "/pipelines/some-pipeline/jobs/some-job/builds/1"
 					}
 				]`))
+
 			})
 		})
 
@@ -540,7 +543,7 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("returns 404 Not Found", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 			})
 		})
 	})
@@ -552,7 +555,7 @@ var _ = Describe("Jobs API", func() {
 			var err error
 
 			response, err = client.Get(server.URL + "/api/v1/pipelines/some-pipeline/jobs/some-job/inputs")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when authenticated", func() {
@@ -561,9 +564,9 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("looked up the proper pipeline", func() {
-				Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+				Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
 				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
-				Ω(pipelineName).Should(Equal("some-pipeline"))
+				Expect(pipelineName).To(Equal("some-pipeline"))
 			})
 
 			Context("when getting the config succeeds", func() {
@@ -638,7 +641,7 @@ var _ = Describe("Jobs API", func() {
 							})
 
 							It("returns 200 OK", func() {
-								Ω(response.StatusCode).Should(Equal(http.StatusOK))
+								Expect(response.StatusCode).To(Equal(http.StatusOK))
 							})
 
 							It("determined the inputs with the correct versions DB, job name, and inputs", func() {
@@ -650,9 +653,9 @@ var _ = Describe("Jobs API", func() {
 
 							It("returns the inputs", func() {
 								body, err := ioutil.ReadAll(response.Body)
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
-								Ω(body).Should(MatchJSON(`[
+								Expect(body).To(MatchJSON(`[
 									{
 										"name": "some-input",
 										"resource": "some-resource",
@@ -671,6 +674,7 @@ var _ = Describe("Jobs API", func() {
 										"tags": ["some-tag"]
 									}
 								]`))
+
 							})
 						})
 
@@ -680,7 +684,7 @@ var _ = Describe("Jobs API", func() {
 							})
 
 							It("returns 404", func() {
-								Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+								Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 							})
 						})
 
@@ -690,7 +694,7 @@ var _ = Describe("Jobs API", func() {
 							})
 
 							It("returns 500", func() {
-								Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 							})
 						})
 					})
@@ -701,7 +705,7 @@ var _ = Describe("Jobs API", func() {
 						})
 
 						It("returns 500", func() {
-							Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 						})
 					})
 				})
@@ -719,7 +723,7 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					It("returns 404 Not Found", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 					})
 				})
 			})
@@ -731,7 +735,7 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					It("returns 404", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 					})
 				})
 
@@ -741,7 +745,7 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					It("returns 500", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
 			})
@@ -753,7 +757,7 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("returns Unauthorized", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -765,11 +769,11 @@ var _ = Describe("Jobs API", func() {
 			var err error
 
 			response, err = client.Get(server.URL + "/api/v1/pipelines/some-pipeline/jobs/some-job/builds/some-build")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+			Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
 			pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
-			Ω(pipelineName).Should(Equal("some-pipeline"))
+			Expect(pipelineName).To(Equal("some-pipeline"))
 		})
 
 		Context("when getting the build succeeds", func() {
@@ -784,28 +788,29 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("fetches by job and build name", func() {
-				Ω(pipelineDB.GetJobBuildCallCount()).Should(Equal(1))
+				Expect(pipelineDB.GetJobBuildCallCount()).To(Equal(1))
 
 				jobName, buildName := pipelineDB.GetJobBuildArgsForCall(0)
-				Ω(jobName).Should(Equal("some-job"))
-				Ω(buildName).Should(Equal("some-build"))
+				Expect(jobName).To(Equal("some-job"))
+				Expect(buildName).To(Equal("some-build"))
 			})
 
 			It("returns 200 OK", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
 			})
 
 			It("returns the build", func() {
 				body, err := ioutil.ReadAll(response.Body)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(body).Should(MatchJSON(`{
+				Expect(body).To(MatchJSON(`{
 					"id": 1,
 					"name": "1",
 					"job_name": "some-job",
 					"status": "succeeded",
 					"url": "/pipelines/a-pipeline/jobs/some-job/builds/1"
 				}`))
+
 			})
 		})
 
@@ -815,7 +820,7 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("returns Not Found", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusNotFound))
+				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 			})
 		})
 
@@ -825,7 +830,7 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("returns Internal Server Error", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 			})
 		})
 	})
@@ -837,10 +842,10 @@ var _ = Describe("Jobs API", func() {
 			var err error
 
 			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/some-pipeline/jobs/job-name/pause", nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when authenticated", func() {
@@ -849,9 +854,9 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("injects the PipelineDB", func() {
-				Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+				Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
 				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
-				Ω(pipelineName).Should(Equal("some-pipeline"))
+				Expect(pipelineName).To(Equal("some-pipeline"))
 			})
 
 			Context("when pausing the resource succeeds", func() {
@@ -860,11 +865,11 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				It("paused the right job", func() {
-					Ω(pipelineDB.PauseJobArgsForCall(0)).Should(Equal("job-name"))
+					Expect(pipelineDB.PauseJobArgsForCall(0)).To(Equal("job-name"))
 				})
 
 				It("returns 200", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 			})
 
@@ -874,7 +879,7 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				It("returns 500", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -885,7 +890,7 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("returns Unauthorized", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -897,10 +902,10 @@ var _ = Describe("Jobs API", func() {
 			var err error
 
 			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/some-pipeline/jobs/job-name/unpause", nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when authenticated", func() {
@@ -909,9 +914,9 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("injects the PipelineDB", func() {
-				Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+				Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
 				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
-				Ω(pipelineName).Should(Equal("some-pipeline"))
+				Expect(pipelineName).To(Equal("some-pipeline"))
 			})
 
 			Context("when pausing the resource succeeds", func() {
@@ -920,11 +925,11 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				It("paused the right job", func() {
-					Ω(pipelineDB.UnpauseJobArgsForCall(0)).Should(Equal("job-name"))
+					Expect(pipelineDB.UnpauseJobArgsForCall(0)).To(Equal("job-name"))
 				})
 
 				It("returns 200", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 			})
 
@@ -934,7 +939,7 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				It("returns 500", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -945,7 +950,7 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("returns Unauthorized", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})

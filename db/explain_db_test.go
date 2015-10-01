@@ -31,20 +31,20 @@ var _ = Describe("Explain", func() {
 
 	AfterEach(func() {
 		err := explainConn.Close()
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("passes through calls to the underlying connection", func() {
 		explainConn.Ping()
 
-		Ω(underlyingConn.PingCallCount()).To(Equal(1))
+		Expect(underlyingConn.PingCallCount()).To(Equal(1))
 	})
 
 	It("returns the return values from the underlying connection", func() {
 		underlyingConn.PingReturns(errors.New("disaster"))
 
 		err := explainConn.Ping()
-		Ω(err).Should(MatchError("disaster"))
+		Expect(err).To(MatchError("disaster"))
 	})
 
 	Context("when the query takes less time than the timeout", func() {
@@ -60,23 +60,23 @@ var _ = Describe("Explain", func() {
 
 		AfterEach(func() {
 			err := realConn.Close()
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			postgresRunner.DropTestDB()
 		})
 
 		It("does not EXPLAIN the query", func() {
 			rows, err := explainConn.Query("SELECT $1::int", 1)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			err = rows.Close()
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(underlyingConn.QueryCallCount()).Should(Equal(1))
+			Expect(underlyingConn.QueryCallCount()).To(Equal(1))
 
 			query, args := underlyingConn.QueryArgsForCall(0)
-			Ω(query).Should(Equal("SELECT $1::int"))
-			Ω(args).Should(Equal(varargs(1)))
+			Expect(query).To(Equal("SELECT $1::int"))
+			Expect(args).To(Equal(varargs(1)))
 		})
 	})
 
@@ -113,7 +113,7 @@ var _ = Describe("Explain", func() {
 
 		AfterEach(func() {
 			err := realConn.Close()
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			postgresRunner.DropTestDB()
 		})
@@ -132,10 +132,10 @@ var _ = Describe("Explain", func() {
 
 			It("logs an error but does not affect the outcome of the original query", func() {
 				rows, err := explainConn.Query("SELECT $1::int", 1)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				err = rows.Close()
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				Expect(logger).To(gbytes.Say("disaster!"))
 			})
@@ -144,28 +144,28 @@ var _ = Describe("Explain", func() {
 		Describe("Query()", func() {
 			It("EXPLAINs the query", func() {
 				rows, err := explainConn.Query("SELECT $1::int", 1)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				err = rows.Close()
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(underlyingConn.QueryCallCount()).Should(Equal(2))
+				Expect(underlyingConn.QueryCallCount()).To(Equal(2))
 
 				query, args := underlyingConn.QueryArgsForCall(0)
-				Ω(query).Should(Equal("SELECT $1::int"))
-				Ω(args).Should(Equal(varargs(1)))
+				Expect(query).To(Equal("SELECT $1::int"))
+				Expect(args).To(Equal(varargs(1)))
 
 				query, args = underlyingConn.QueryArgsForCall(1)
-				Ω(query).Should(Equal("EXPLAIN SELECT $1::int"))
-				Ω(args).Should(Equal(varargs(1)))
+				Expect(query).To(Equal("EXPLAIN SELECT $1::int"))
+				Expect(args).To(Equal(varargs(1)))
 			})
 
 			It("logs the output of the explain", func() {
 				rows, err := explainConn.Query("SELECT $1::int", 1)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				err = rows.Close()
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				Expect(logger).To(gbytes.Say("Result"))
 				Expect(logger).To(gbytes.Say("cost="))
@@ -177,24 +177,24 @@ var _ = Describe("Explain", func() {
 			It("EXPLAINs the query", func() {
 				var i int
 				err := explainConn.QueryRow("SELECT $1::int", 1).Scan(&i)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(underlyingConn.QueryRowCallCount()).Should(Equal(1))
-				Ω(underlyingConn.QueryCallCount()).Should(Equal(1))
+				Expect(underlyingConn.QueryRowCallCount()).To(Equal(1))
+				Expect(underlyingConn.QueryCallCount()).To(Equal(1))
 
 				query, args := underlyingConn.QueryRowArgsForCall(0)
-				Ω(query).Should(Equal("SELECT $1::int"))
-				Ω(args).Should(Equal(varargs(1)))
+				Expect(query).To(Equal("SELECT $1::int"))
+				Expect(args).To(Equal(varargs(1)))
 
 				query, args = underlyingConn.QueryArgsForCall(0)
-				Ω(query).Should(Equal("EXPLAIN SELECT $1::int"))
-				Ω(args).Should(Equal(varargs(1)))
+				Expect(query).To(Equal("EXPLAIN SELECT $1::int"))
+				Expect(args).To(Equal(varargs(1)))
 			})
 
 			It("logs the output of the explain", func() {
 				var i int
 				err := explainConn.QueryRow("SELECT $1::int", 1).Scan(&i)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				Expect(logger).To(gbytes.Say("Result"))
 				Expect(logger).To(gbytes.Say("cost="))
@@ -205,23 +205,23 @@ var _ = Describe("Explain", func() {
 		Describe("Exec()", func() {
 			It("EXPLAINs the query", func() {
 				_, err := explainConn.Exec("SELECT $1::int", 1)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(underlyingConn.ExecCallCount()).Should(Equal(1))
-				Ω(underlyingConn.QueryCallCount()).Should(Equal(1))
+				Expect(underlyingConn.ExecCallCount()).To(Equal(1))
+				Expect(underlyingConn.QueryCallCount()).To(Equal(1))
 
 				query, args := underlyingConn.ExecArgsForCall(0)
-				Ω(query).Should(Equal("SELECT $1::int"))
-				Ω(args).Should(Equal(varargs(1)))
+				Expect(query).To(Equal("SELECT $1::int"))
+				Expect(args).To(Equal(varargs(1)))
 
 				query, args = underlyingConn.QueryArgsForCall(0)
-				Ω(query).Should(Equal("EXPLAIN SELECT $1::int"))
-				Ω(args).Should(Equal(varargs(1)))
+				Expect(query).To(Equal("EXPLAIN SELECT $1::int"))
+				Expect(args).To(Equal(varargs(1)))
 			})
 
 			It("logs the output of the explain", func() {
 				_, err := explainConn.Exec("SELECT $1::int", 1)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				Expect(logger).To(gbytes.Say("Result"))
 				Expect(logger).To(gbytes.Say("cost="))

@@ -89,7 +89,7 @@ var _ = Describe("The Location Populator: do", func() {
 			}
 
 			locationPopulator.PopulateLocations(testSeq)
-			Ω(testSeq).Should(Equal(expected))
+			Expect(testSeq).To(Equal(expected))
 		})
 
 		Context("that has an aggregate inside of it", func() {
@@ -158,7 +158,7 @@ var _ = Describe("The Location Populator: do", func() {
 				}
 
 				locationPopulator.PopulateLocations(testSeq)
-				Ω(testSeq).Should(Equal(expected))
+				Expect(testSeq).To(Equal(expected))
 			})
 		})
 	})
@@ -195,7 +195,7 @@ var _ = Describe("The Location Populator: do", func() {
 			}
 
 			locationPopulator.PopulateLocations(testSeq)
-			Ω(testSeq).Should(Equal(expected))
+			Expect(testSeq).To(Equal(expected))
 		})
 
 		Context("that has a hook", func() {
@@ -243,7 +243,7 @@ var _ = Describe("The Location Populator: do", func() {
 				}
 
 				locationPopulator.PopulateLocations(testSeq)
-				Ω(testSeq).Should(Equal(expected))
+				Expect(testSeq).To(Equal(expected))
 			})
 
 			Context("with a do inside", func() {
@@ -312,7 +312,7 @@ var _ = Describe("The Location Populator: do", func() {
 					}
 
 					locationPopulator.PopulateLocations(testSeq)
-					Ω(testSeq).Should(Equal(expected))
+					Expect(testSeq).To(Equal(expected))
 				})
 			})
 		})

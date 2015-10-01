@@ -133,10 +133,10 @@ var _ = Describe("Config API", func() {
 			req, err := requestGenerator.CreateRequest(atc.GetConfig, rata.Params{
 				"pipeline_name": "something-else",
 			}, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(req)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when authenticated", func() {
@@ -150,24 +150,24 @@ var _ = Describe("Config API", func() {
 				})
 
 				It("returns 200", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
 				It("returns the config version as X-Concourse-Config-Version", func() {
-					Ω(response.Header.Get(atc.ConfigVersionHeader)).Should(Equal("1"))
+					Expect(response.Header.Get(atc.ConfigVersionHeader)).To(Equal("1"))
 				})
 
 				It("returns the config", func() {
 					var returnedConfig atc.Config
 					err := json.NewDecoder(response.Body).Decode(&returnedConfig)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(returnedConfig).Should(Equal(config))
+					Expect(returnedConfig).To(Equal(config))
 				})
 
 				It("calls get config with the correct arguments", func() {
 					name := configDB.GetConfigArgsForCall(0)
-					Ω(name).Should(Equal("something-else"))
+					Expect(name).To(Equal("something-else"))
 				})
 			})
 
@@ -177,7 +177,7 @@ var _ = Describe("Config API", func() {
 				})
 
 				It("returns 500", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -188,7 +188,7 @@ var _ = Describe("Config API", func() {
 			})
 
 			It("returns 401", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -204,13 +204,13 @@ var _ = Describe("Config API", func() {
 			request, err = requestGenerator.CreateRequest(atc.SaveConfig, rata.Params{
 				"pipeline_name": "a-pipeline",
 			}, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		JustBeforeEach(func() {
 			var err error
 			response, err = client.Do(request)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when authenticated", func() {
@@ -229,23 +229,23 @@ var _ = Describe("Config API", func() {
 							request.Header.Set("Content-Type", "application/json")
 
 							payload, err := json.Marshal(config)
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 
 							request.Body = gbytes.BufferWithBytes(payload)
 						})
 
 						It("returns 200", func() {
-							Ω(response.StatusCode).Should(Equal(http.StatusOK))
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
 						})
 
 						It("saves it", func() {
-							Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
+							Expect(configDB.SaveConfigCallCount()).To(Equal(1))
 
 							name, config, id, pipelineState := configDB.SaveConfigArgsForCall(0)
-							Ω(name).Should(Equal("a-pipeline"))
-							Ω(config).Should(Equal(config))
-							Ω(id).Should(Equal(db.ConfigVersion(42)))
-							Ω(pipelineState).Should(Equal(db.PipelineNoChange))
+							Expect(name).To(Equal("a-pipeline"))
+							Expect(config).To(Equal(config))
+							Expect(id).To(Equal(db.ConfigVersion(42)))
+							Expect(pipelineState).To(Equal(db.PipelineNoChange))
 						})
 
 						Context("and saving it fails", func() {
@@ -254,11 +254,11 @@ var _ = Describe("Config API", func() {
 							})
 
 							It("returns 500", func() {
-								Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 							})
 
 							It("returns the error in the response body", func() {
-								Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("failed to save config: oh no!")))
+								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("failed to save config: oh no!")))
 							})
 						})
 
@@ -268,7 +268,7 @@ var _ = Describe("Config API", func() {
 							})
 
 							It("returns 201", func() {
-								Ω(response.StatusCode).Should(Equal(http.StatusCreated))
+								Expect(response.StatusCode).To(Equal(http.StatusCreated))
 							})
 						})
 
@@ -278,15 +278,15 @@ var _ = Describe("Config API", func() {
 							})
 
 							It("returns 400", func() {
-								Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 							})
 
 							It("returns the validation error in the response body", func() {
-								Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("totally invalid")))
+								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("totally invalid")))
 							})
 
 							It("does not save it", func() {
-								Ω(configDB.SaveConfigCallCount()).Should(BeZero())
+								Expect(configDB.SaveConfigCallCount()).To(BeZero())
 							})
 						})
 					})
@@ -296,33 +296,33 @@ var _ = Describe("Config API", func() {
 							request.Header.Set("Content-Type", "application/x-yaml")
 
 							payload, err := yaml.Marshal(config)
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 
 							request.Body = gbytes.BufferWithBytes(payload)
 						})
 
 						It("returns 200", func() {
-							Ω(response.StatusCode).Should(Equal(http.StatusOK))
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
 						})
 
 						It("saves it", func() {
-							Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
+							Expect(configDB.SaveConfigCallCount()).To(Equal(1))
 
 							name, config, id, pipelineState := configDB.SaveConfigArgsForCall(0)
-							Ω(name).Should(Equal("a-pipeline"))
-							Ω(config).Should(Equal(config))
-							Ω(id).Should(Equal(db.ConfigVersion(42)))
-							Ω(pipelineState).Should(Equal(db.PipelineNoChange))
+							Expect(name).To(Equal("a-pipeline"))
+							Expect(config).To(Equal(config))
+							Expect(id).To(Equal(db.ConfigVersion(42)))
+							Expect(pipelineState).To(Equal(db.PipelineNoChange))
 						})
 
 						It("does not give the DB a map of empty interfaces to empty interfaces", func() {
-							Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
+							Expect(configDB.SaveConfigCallCount()).To(Equal(1))
 
 							_, config, _, _ := configDB.SaveConfigArgsForCall(0)
-							Ω(config).Should(Equal(config))
+							Expect(config).To(Equal(config))
 
 							_, err := json.Marshal(config)
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 						})
 
 						Context("when the payload contains suspicious types", func() {
@@ -346,15 +346,15 @@ jobs:
 							})
 
 							It("returns 200", func() {
-								Ω(response.StatusCode).Should(Equal(http.StatusOK))
+								Expect(response.StatusCode).To(Equal(http.StatusOK))
 							})
 
 							It("saves it", func() {
-								Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
+								Expect(configDB.SaveConfigCallCount()).To(Equal(1))
 
 								name, config, id, pipelineState := configDB.SaveConfigArgsForCall(0)
-								Ω(name).Should(Equal("a-pipeline"))
-								Ω(config).Should(Equal(atc.Config{
+								Expect(name).To(Equal("a-pipeline"))
+								Expect(config).To(Equal(atc.Config{
 									Resources: []atc.ResourceConfig{
 										{
 											Name:       "some-resource",
@@ -380,8 +380,9 @@ jobs:
 										},
 									},
 								}))
-								Ω(id).Should(Equal(db.ConfigVersion(42)))
-								Ω(pipelineState).Should(Equal(db.PipelineNoChange))
+
+								Expect(id).To(Equal(db.ConfigVersion(42)))
+								Expect(pipelineState).To(Equal(db.PipelineNoChange))
 							})
 						})
 
@@ -391,7 +392,7 @@ jobs:
 							})
 
 							It("returns 201", func() {
-								Ω(response.StatusCode).Should(Equal(http.StatusCreated))
+								Expect(response.StatusCode).To(Equal(http.StatusCreated))
 							})
 						})
 
@@ -401,11 +402,11 @@ jobs:
 							})
 
 							It("returns 500", func() {
-								Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 							})
 
 							It("returns the error in the response body", func() {
-								Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("failed to save config: oh no!")))
+								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("failed to save config: oh no!")))
 							})
 						})
 
@@ -415,15 +416,15 @@ jobs:
 							})
 
 							It("returns 400", func() {
-								Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 							})
 
 							It("returns the validation error in the response body", func() {
-								Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("totally invalid")))
+								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("totally invalid")))
 							})
 
 							It("does not save it", func() {
-								Ω(configDB.SaveConfigCallCount()).Should(BeZero())
+								Expect(configDB.SaveConfigCallCount()).To(BeZero())
 							})
 						})
 					})
@@ -442,18 +443,18 @@ jobs:
 										"Content-type": {"application/x-yaml"},
 									},
 								)
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
 								yml, err := yaml.Marshal(config)
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
 								_, err = yamlWriter.Write(yml)
 
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
 								if pausedValue != "" {
 									err = writer.WriteField("paused", pausedValue)
-									Ω(err).ShouldNot(HaveOccurred())
+									Expect(err).NotTo(HaveOccurred())
 								}
 
 								writer.Close()
@@ -463,17 +464,17 @@ jobs:
 							})
 
 							It("returns 200", func() {
-								Ω(response.StatusCode).Should(Equal(http.StatusOK))
+								Expect(response.StatusCode).To(Equal(http.StatusOK))
 							})
 
 							It("saves it", func() {
-								Ω(configDB.SaveConfigCallCount()).Should(Equal(1))
+								Expect(configDB.SaveConfigCallCount()).To(Equal(1))
 
 								name, config, id, pipelineState := configDB.SaveConfigArgsForCall(0)
-								Ω(name).Should(Equal("a-pipeline"))
-								Ω(config).Should(Equal(config))
-								Ω(id).Should(Equal(db.ConfigVersion(42)))
-								Ω(pipelineState).Should(Equal(expectedDBValue))
+								Expect(name).To(Equal("a-pipeline"))
+								Expect(config).To(Equal(config))
+								Expect(id).To(Equal(db.ConfigVersion(42)))
+								Expect(pipelineState).To(Equal(expectedDBValue))
 							})
 
 							Context("when it's the first time the pipeline has been created", func() {
@@ -482,7 +483,7 @@ jobs:
 								})
 
 								It("returns 201", func() {
-									Ω(response.StatusCode).Should(Equal(http.StatusCreated))
+									Expect(response.StatusCode).To(Equal(http.StatusCreated))
 								})
 							})
 
@@ -492,11 +493,11 @@ jobs:
 								})
 
 								It("returns 500", func() {
-									Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+									Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 								})
 
 								It("returns the error in the response body", func() {
-									Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("failed to save config: oh no!")))
+									Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("failed to save config: oh no!")))
 								})
 							})
 
@@ -506,15 +507,15 @@ jobs:
 								})
 
 								It("returns 400", func() {
-									Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+									Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 								})
 
 								It("returns the validation error in the response body", func() {
-									Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("totally invalid")))
+									Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("totally invalid")))
 								})
 
 								It("does not save it", func() {
-									Ω(configDB.SaveConfigCallCount()).Should(BeZero())
+									Expect(configDB.SaveConfigCallCount()).To(BeZero())
 								})
 							})
 						}
@@ -556,17 +557,17 @@ jobs:
 										"Content-type": {"application/x-yaml"},
 									},
 								)
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
 								yml, err := yaml.Marshal(config)
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
 								_, err = yamlWriter.Write(yml)
 
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
 								err = writer.WriteField("paused", "junk")
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
 								writer.Close()
 
@@ -575,11 +576,11 @@ jobs:
 							})
 
 							It("returns 400", func() {
-								Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 							})
 
 							It("returns the validation error in the response body", func() {
-								Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("invalid paused value")))
+								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("invalid paused value")))
 							})
 						})
 					})
@@ -590,17 +591,17 @@ jobs:
 						request.Header.Set("Content-Type", "application/x-toml")
 
 						payload, err := yaml.Marshal(config)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						request.Body = gbytes.BufferWithBytes(payload)
 					})
 
 					It("returns Unsupported Media Type", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusUnsupportedMediaType))
+						Expect(response.StatusCode).To(Equal(http.StatusUnsupportedMediaType))
 					})
 
 					It("does not save it", func() {
-						Ω(configDB.SaveConfigCallCount()).Should(BeZero())
+						Expect(configDB.SaveConfigCallCount()).To(BeZero())
 					})
 				})
 
@@ -612,25 +613,25 @@ jobs:
 							Config: config,
 							Extra:  "noooooo",
 						})
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
 						request.Body = gbytes.BufferWithBytes(remoraPayload)
 					})
 
 					It("returns 400", func() {
-						Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 					})
 
 					It("returns an error in the response body", func() {
 						body, err := ioutil.ReadAll(response.Body)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
-						Ω(body).Should(ContainSubstring("unknown/extra keys:"))
-						Ω(body).Should(ContainSubstring("- extra"))
+						Expect(body).To(ContainSubstring("unknown/extra keys:"))
+						Expect(body).To(ContainSubstring("- extra"))
 					})
 
 					It("does not save it", func() {
-						Ω(configDB.SaveConfigCallCount()).Should(BeZero())
+						Expect(configDB.SaveConfigCallCount()).To(BeZero())
 					})
 				})
 			})
@@ -641,15 +642,15 @@ jobs:
 				})
 
 				It("returns 400", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 				})
 
 				It("returns an error in the response body", func() {
-					Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("no config version specified")))
+					Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("no config version specified")))
 				})
 
 				It("does not save it", func() {
-					Ω(configDB.SaveConfigCallCount()).Should(BeZero())
+					Expect(configDB.SaveConfigCallCount()).To(BeZero())
 				})
 			})
 
@@ -659,15 +660,15 @@ jobs:
 				})
 
 				It("returns 400", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 				})
 
 				It("returns an error in the response body", func() {
-					Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("config version is malformed: expected integer")))
+					Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("config version is malformed: expected integer")))
 				})
 
 				It("does not save it", func() {
-					Ω(configDB.SaveConfigCallCount()).Should(BeZero())
+					Expect(configDB.SaveConfigCallCount()).To(BeZero())
 				})
 			})
 		})
@@ -678,15 +679,15 @@ jobs:
 			})
 
 			It("returns 401", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 
 			It("does not save the config", func() {
-				Ω(configDB.SaveConfigCallCount()).Should(BeZero())
+				Expect(configDB.SaveConfigCallCount()).To(BeZero())
 			})
 
 			It("returns the error in the response body", func() {
-				Ω(ioutil.ReadAll(response.Body)).Should(Equal([]byte("not authorized")))
+				Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("not authorized")))
 			})
 		})
 	})

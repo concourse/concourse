@@ -116,7 +116,7 @@ var _ = Describe("Runner", func() {
 		Eventually(pipelineDB.LeaseSchedulingCallCount).Should(BeNumerically(">=", 1))
 
 		duration := pipelineDB.LeaseSchedulingArgsForCall(0)
-		Ω(duration).Should(Equal(100 * time.Millisecond))
+		Expect(duration).To(Equal(100 * time.Millisecond))
 	})
 
 	Context("when it can't get the lease", func() {
@@ -127,8 +127,8 @@ var _ = Describe("Runner", func() {
 		It("does not do any scheduling", func() {
 			Eventually(pipelineDB.LeaseSchedulingCallCount).Should(Equal(2))
 
-			Ω(scheduler.TryNextPendingBuildCallCount()).Should(BeZero())
-			Ω(scheduler.BuildLatestInputsCallCount()).Should(BeZero())
+			Expect(scheduler.TryNextPendingBuildCallCount()).To(BeZero())
+			Expect(scheduler.BuildLatestInputsCallCount()).To(BeZero())
 		})
 	})
 
@@ -140,8 +140,8 @@ var _ = Describe("Runner", func() {
 		It("does not do any scheduling", func() {
 			Eventually(pipelineDB.LeaseSchedulingCallCount).Should(Equal(2))
 
-			Ω(scheduler.TryNextPendingBuildCallCount()).Should(BeZero())
-			Ω(scheduler.BuildLatestInputsCallCount()).Should(BeZero())
+			Expect(scheduler.TryNextPendingBuildCallCount()).To(BeZero())
+			Expect(scheduler.BuildLatestInputsCallCount()).To(BeZero())
 		})
 	})
 
@@ -149,28 +149,28 @@ var _ = Describe("Runner", func() {
 		Eventually(scheduler.TryNextPendingBuildCallCount).Should(Equal(2))
 
 		_, versions, job, resources := scheduler.TryNextPendingBuildArgsForCall(0)
-		Ω(versions).Should(Equal(someVersions))
-		Ω(job).Should(Equal(atc.JobConfig{Name: "some-job"}))
-		Ω(resources).Should(Equal(initialConfig.Resources))
+		Expect(versions).To(Equal(someVersions))
+		Expect(job).To(Equal(atc.JobConfig{Name: "some-job"}))
+		Expect(resources).To(Equal(initialConfig.Resources))
 
 		_, versions, job, resources = scheduler.TryNextPendingBuildArgsForCall(1)
-		Ω(versions).Should(Equal(someVersions))
-		Ω(job).Should(Equal(atc.JobConfig{Name: "some-other-job"}))
-		Ω(resources).Should(Equal(initialConfig.Resources))
+		Expect(versions).To(Equal(someVersions))
+		Expect(job).To(Equal(atc.JobConfig{Name: "some-other-job"}))
+		Expect(resources).To(Equal(initialConfig.Resources))
 	})
 
 	It("schedules builds for new inputs using the given versions dataset", func() {
 		Eventually(scheduler.BuildLatestInputsCallCount).Should(Equal(2))
 
 		_, versions, job, resources := scheduler.BuildLatestInputsArgsForCall(0)
-		Ω(versions).Should(Equal(someVersions))
-		Ω(job).Should(Equal(atc.JobConfig{Name: "some-job"}))
-		Ω(resources).Should(Equal(initialConfig.Resources))
+		Expect(versions).To(Equal(someVersions))
+		Expect(job).To(Equal(atc.JobConfig{Name: "some-job"}))
+		Expect(resources).To(Equal(initialConfig.Resources))
 
 		_, versions, job, resources = scheduler.BuildLatestInputsArgsForCall(1)
-		Ω(versions).Should(Equal(someVersions))
-		Ω(job).Should(Equal(atc.JobConfig{Name: "some-other-job"}))
-		Ω(resources).Should(Equal(initialConfig.Resources))
+		Expect(versions).To(Equal(someVersions))
+		Expect(job).To(Equal(atc.JobConfig{Name: "some-other-job"}))
+		Expect(resources).To(Equal(initialConfig.Resources))
 	})
 
 	Context("when in noop mode", func() {

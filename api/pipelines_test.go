@@ -41,12 +41,12 @@ var _ = Describe("Pipelines API", func() {
 
 		JustBeforeEach(func() {
 			req, err := http.NewRequest("GET", server.URL+"/api/v1/pipelines", nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			req.Header.Set("Content-Type", "application/json")
 
 			response, err = client.Do(req)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when the call to get active pipelines fails", func() {
@@ -55,23 +55,23 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("returns 500 internal server error", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 			})
 		})
 
 		It("returns 200 OK", func() {
-			Ω(response.StatusCode).Should(Equal(http.StatusOK))
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
 		})
 
 		It("returns application/json", func() {
-			Ω(response.Header.Get("Content-Type")).Should(Equal("application/json"))
+			Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 		})
 
 		It("returns all active pipelines", func() {
 			body, err := ioutil.ReadAll(response.Body)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(body).Should(MatchJSON(`[
+			Expect(body).To(MatchJSON(`[
       {
         "name": "a-pipeline",
         "url": "/pipelines/a-pipeline",
@@ -81,6 +81,7 @@ var _ = Describe("Pipelines API", func() {
         "url": "/pipelines/another-pipeline",
 				"paused": true
       }]`))
+
 		})
 	})
 
@@ -97,12 +98,12 @@ var _ = Describe("Pipelines API", func() {
 		JustBeforeEach(func() {
 			pipelineName := "a-pipeline-name"
 			req, err := http.NewRequest("DELETE", server.URL+"/api/v1/pipelines/"+pipelineName, nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			req.Header.Set("Content-Type", "application/json")
 
 			response, err = client.Do(req)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when the user is logged in", func() {
@@ -111,17 +112,17 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("returns 204 No Content", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusNoContent))
+				Expect(response.StatusCode).To(Equal(http.StatusNoContent))
 			})
 
 			It("injects the proper pipelineDB", func() {
-				Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+				Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
 				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
-				Ω(pipelineName).Should(Equal("a-pipeline-name"))
+				Expect(pipelineName).To(Equal("a-pipeline-name"))
 			})
 
 			It("deletes the named pipeline from the database", func() {
-				Ω(pipelineDB.DestroyCallCount()).Should(Equal(1))
+				Expect(pipelineDB.DestroyCallCount()).To(Equal(1))
 			})
 
 			Context("when an error occurs destroying the pipeline", func() {
@@ -131,7 +132,7 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("returns a 500 Internal Server Error", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -142,7 +143,7 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("returns Unauthorized", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -161,10 +162,10 @@ var _ = Describe("Pipelines API", func() {
 			var err error
 
 			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/a-pipeline/pause", nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when authenticated", func() {
@@ -173,9 +174,9 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
-				Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+				Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
 				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
-				Ω(pipelineName).Should(Equal("a-pipeline"))
+				Expect(pipelineName).To(Equal("a-pipeline"))
 			})
 
 			Context("when pausing the pipeline succeeds", func() {
@@ -184,7 +185,7 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("returns 200", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 			})
 
@@ -194,7 +195,7 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("returns 500", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -205,7 +206,7 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("returns Unauthorized", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -224,10 +225,10 @@ var _ = Describe("Pipelines API", func() {
 			var err error
 
 			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/a-pipeline/unpause", nil)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when authenticated", func() {
@@ -236,9 +237,9 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
-				Ω(pipelineDBFactory.BuildWithNameCallCount()).Should(Equal(1))
+				Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
 				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
-				Ω(pipelineName).Should(Equal("a-pipeline"))
+				Expect(pipelineName).To(Equal("a-pipeline"))
 			})
 
 			Context("when unpausing the pipeline succeeds", func() {
@@ -247,7 +248,7 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("returns 200", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 			})
 
@@ -257,7 +258,7 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("returns 500", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -268,7 +269,7 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("returns Unauthorized", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
@@ -293,10 +294,10 @@ var _ = Describe("Pipelines API", func() {
 			var err error
 
 			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/ordering", body)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when authenticated", func() {
@@ -310,7 +311,7 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("returns 400", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusBadRequest))
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 				})
 			})
 
@@ -320,9 +321,9 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("orders the pipelines", func() {
-					Ω(pipelinesDB.OrderPipelinesCallCount()).Should(Equal(1))
+					Expect(pipelinesDB.OrderPipelinesCallCount()).To(Equal(1))
 					pipelineNames := pipelinesDB.OrderPipelinesArgsForCall(0)
-					Ω(pipelineNames).Should(Equal(
+					Expect(pipelineNames).To(Equal(
 						[]string{
 							"a-pipeline",
 							"another-pipeline",
@@ -331,10 +332,11 @@ var _ = Describe("Pipelines API", func() {
 							"just-kidding",
 						},
 					))
+
 				})
 
 				It("returns 200", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusOK))
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 			})
 
@@ -344,7 +346,7 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("returns 500", func() {
-					Ω(response.StatusCode).Should(Equal(http.StatusInternalServerError))
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -355,7 +357,7 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("returns Unauthorized", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusUnauthorized))
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})

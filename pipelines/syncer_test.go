@@ -104,8 +104,8 @@ var _ = Describe("Pipelines Syncer", func() {
 	})
 
 	It("spawns a new process for each pipeline", func() {
-		Ω(fakeRunner.RunCallCount()).Should(Equal(1))
-		Ω(otherFakeRunner.RunCallCount()).Should(Equal(1))
+		Expect(fakeRunner.RunCallCount()).To(Equal(1))
+		Expect(otherFakeRunner.RunCallCount()).To(Equal(1))
 	})
 
 	Context("when a pipeline is paused", func() {
@@ -128,22 +128,22 @@ var _ = Describe("Pipelines Syncer", func() {
 		})
 
 		It("does not spawn a process for it", func() {
-			Ω(fakeRunner.RunCallCount()).Should(Equal(1))
-			Ω(otherFakeRunner.RunCallCount()).Should(Equal(0))
+			Expect(fakeRunner.RunCallCount()).To(Equal(1))
+			Expect(otherFakeRunner.RunCallCount()).To(Equal(0))
 		})
 	})
 
 	Context("when we sync again", func() {
 		It("does not spawn any processes again", func() {
 			syncer.Sync()
-			Ω(fakeRunner.RunCallCount()).Should(Equal(1))
+			Expect(fakeRunner.RunCallCount()).To(Equal(1))
 		})
 	})
 
 	Context("when a pipeline is deleted", func() {
 		It("stops the process", func() {
-			Ω(fakeRunner.RunCallCount()).Should(Equal(1))
-			Ω(otherFakeRunner.RunCallCount()).Should(Equal(1))
+			Expect(fakeRunner.RunCallCount()).To(Equal(1))
+			Expect(otherFakeRunner.RunCallCount()).To(Equal(1))
 
 			pipelinesDB.GetAllActivePipelinesReturns([]db.SavedPipeline{
 				{
@@ -156,7 +156,7 @@ var _ = Describe("Pipelines Syncer", func() {
 
 			syncer.Sync()
 
-			Ω(fakeRunner.RunCallCount()).Should(Equal(1))
+			Expect(fakeRunner.RunCallCount()).To(Equal(1))
 
 			signals, _ := fakeRunner.RunArgsForCall(0)
 			Eventually(signals).Should(Receive(Equal(os.Interrupt)))
@@ -164,8 +164,8 @@ var _ = Describe("Pipelines Syncer", func() {
 
 		Context("when another is configured with the same name", func() {
 			It("stops the process", func() {
-				Ω(fakeRunner.RunCallCount()).Should(Equal(1))
-				Ω(otherFakeRunner.RunCallCount()).Should(Equal(1))
+				Expect(fakeRunner.RunCallCount()).To(Equal(1))
+				Expect(otherFakeRunner.RunCallCount()).To(Equal(1))
 
 				pipelinesDB.GetAllActivePipelinesReturns([]db.SavedPipeline{
 					{
@@ -184,7 +184,7 @@ var _ = Describe("Pipelines Syncer", func() {
 
 				syncer.Sync()
 
-				Ω(fakeRunner.RunCallCount()).Should(Equal(2))
+				Expect(fakeRunner.RunCallCount()).To(Equal(2))
 
 				signals, _ := fakeRunner.RunArgsForCall(0)
 				Eventually(signals).Should(Receive(Equal(os.Interrupt)))
@@ -194,8 +194,8 @@ var _ = Describe("Pipelines Syncer", func() {
 
 	Context("when a pipeline is paused", func() {
 		It("stops the process", func() {
-			Ω(fakeRunner.RunCallCount()).Should(Equal(1))
-			Ω(otherFakeRunner.RunCallCount()).Should(Equal(1))
+			Expect(fakeRunner.RunCallCount()).To(Equal(1))
+			Expect(otherFakeRunner.RunCallCount()).To(Equal(1))
 
 			pipelinesDB.GetAllActivePipelinesReturns([]db.SavedPipeline{
 				{
@@ -215,7 +215,7 @@ var _ = Describe("Pipelines Syncer", func() {
 
 			syncer.Sync()
 
-			Ω(fakeRunner.RunCallCount()).Should(Equal(1))
+			Expect(fakeRunner.RunCallCount()).To(Equal(1))
 
 			signals, _ := fakeRunner.RunArgsForCall(0)
 			Eventually(signals).Should(Receive(Equal(os.Interrupt)))
@@ -229,13 +229,13 @@ var _ = Describe("Pipelines Syncer", func() {
 
 		Context("when we sync again", func() {
 			It("spawns the process again", func() {
-				Ω(fakeRunner.RunCallCount()).Should(Equal(1))
-				Ω(otherFakeRunner.RunCallCount()).Should(Equal(1))
+				Expect(fakeRunner.RunCallCount()).To(Equal(1))
+				Expect(otherFakeRunner.RunCallCount()).To(Equal(1))
 
 				fakeRunnerExitChan <- errors.New("disaster")
 				syncer.Sync()
 
-				Ω(fakeRunner.RunCallCount()).Should(Equal(2))
+				Expect(fakeRunner.RunCallCount()).To(Equal(2))
 			})
 		})
 	})

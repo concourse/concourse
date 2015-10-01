@@ -53,10 +53,10 @@ var _ = Describe("Resource Check", func() {
 			}
 
 			_, err := io.Stdout.Write([]byte(checkScriptStdout))
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = io.Stderr.Write([]byte(checkScriptStderr))
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			return checkScriptProcess, nil
 		}
@@ -65,17 +65,17 @@ var _ = Describe("Resource Check", func() {
 	})
 
 	It("runs /opt/resource/check the request on stdin", func() {
-		Ω(checkErr).ShouldNot(HaveOccurred())
+		Expect(checkErr).NotTo(HaveOccurred())
 
 		spec, io := fakeContainer.RunArgsForCall(0)
-		Ω(spec.Path).Should(Equal("/opt/resource/check"))
-		Ω(spec.Args).Should(BeEmpty())
-		Ω(spec.User).Should(Equal("root"))
+		Expect(spec.Path).To(Equal("/opt/resource/check"))
+		Expect(spec.Args).To(BeEmpty())
+		Expect(spec.User).To(Equal("root"))
 
 		request, err := ioutil.ReadAll(io.Stdin)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
-		Ω(string(request)).Should(Equal(`{"source":{"some":"source"},"version":{"some":"version"}}`))
+		Expect(string(request)).To(Equal(`{"source":{"some":"source"},"version":{"some":"version"}}`))
 	})
 
 	Context("when /check outputs versions", func() {
@@ -84,13 +84,14 @@ var _ = Describe("Resource Check", func() {
 		})
 
 		It("returns the raw parsed contents", func() {
-			Ω(checkErr).ShouldNot(HaveOccurred())
+			Expect(checkErr).NotTo(HaveOccurred())
 
-			Ω(checkResult).Should(Equal([]atc.Version{
+			Expect(checkResult).To(Equal([]atc.Version{
 				atc.Version{"ver": "abc"},
 				atc.Version{"ver": "def"},
 				atc.Version{"ver": "ghi"},
 			}))
+
 		})
 	})
 
@@ -102,7 +103,7 @@ var _ = Describe("Resource Check", func() {
 		})
 
 		It("returns the error", func() {
-			Ω(checkErr).Should(Equal(disaster))
+			Expect(checkErr).To(Equal(disaster))
 		})
 	})
 
@@ -113,10 +114,10 @@ var _ = Describe("Resource Check", func() {
 		})
 
 		It("returns an error containing stderr of the process", func() {
-			Ω(checkErr).Should(HaveOccurred())
+			Expect(checkErr).To(HaveOccurred())
 
-			Ω(checkErr.Error()).Should(ContainSubstring("exit status 9"))
-			Ω(checkErr.Error()).Should(ContainSubstring("some-stderr"))
+			Expect(checkErr.Error()).To(ContainSubstring("exit status 9"))
+			Expect(checkErr.Error()).To(ContainSubstring("some-stderr"))
 		})
 	})
 
@@ -126,7 +127,7 @@ var _ = Describe("Resource Check", func() {
 		})
 
 		It("returns an error", func() {
-			Ω(checkErr).Should(HaveOccurred())
+			Expect(checkErr).To(HaveOccurred())
 		})
 	})
 })

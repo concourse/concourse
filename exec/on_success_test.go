@@ -76,8 +76,8 @@ var _ = Describe("On Success Step", func() {
 		Eventually(successFactory.UsingCallCount).Should(Equal(1))
 
 		argsPrev, argsRepo := successFactory.UsingArgsForCall(0)
-		Ω(argsPrev).Should(Equal(step))
-		Ω(argsRepo).Should(Equal(repo))
+		Expect(argsPrev).To(Equal(step))
+		Expect(argsRepo).To(Equal(repo))
 
 		Eventually(process.Wait()).Should(Receive(noError()))
 	})
@@ -89,7 +89,7 @@ var _ = Describe("On Success Step", func() {
 
 		Eventually(step.RunCallCount).Should(Equal(1))
 		Eventually(process.Wait()).Should(Receive(errorMatching("disaster")))
-		Ω(hook.RunCallCount()).Should(Equal(0))
+		Expect(hook.RunCallCount()).To(Equal(0))
 	})
 
 	It("does not run the success hook if the step fails", func() {
@@ -99,7 +99,7 @@ var _ = Describe("On Success Step", func() {
 
 		Eventually(step.RunCallCount).Should(Equal(1))
 		Eventually(process.Wait()).Should(Receive(noError()))
-		Ω(hook.RunCallCount()).Should(Equal(0))
+		Expect(hook.RunCallCount()).To(Equal(0))
 	})
 
 	It("propagates signals to the first step when first step is running", func() {
@@ -116,7 +116,7 @@ var _ = Describe("On Success Step", func() {
 
 		Eventually(step.RunCallCount).Should(Equal(1))
 		Eventually(process.Wait()).Should(Receive(errorMatching("interrupted")))
-		Ω(hook.RunCallCount()).Should(Equal(0))
+		Expect(hook.RunCallCount()).To(Equal(0))
 	})
 
 	It("propagates signals to the hook when the hook is running", func() {
@@ -135,7 +135,7 @@ var _ = Describe("On Success Step", func() {
 
 		Eventually(step.RunCallCount).Should(Equal(1))
 		Eventually(process.Wait()).Should(Receive(errorMatching("interrupted")))
-		Ω(hook.RunCallCount()).Should(Equal(1))
+		Expect(hook.RunCallCount()).To(Equal(1))
 	})
 
 	Describe("Result", func() {
@@ -158,7 +158,7 @@ var _ = Describe("On Success Step", func() {
 					onSuccessStep.Run(signals, ready)
 					onSuccessStep.Result(&succeeded)
 
-					Ω(bool(succeeded)).To(BeTrue())
+					Expect(bool(succeeded)).To(BeTrue())
 				})
 			})
 
@@ -171,9 +171,9 @@ var _ = Describe("On Success Step", func() {
 					var succeeded exec.Success
 					onSuccessStep.Run(signals, ready)
 					onSuccessStep.Result(&succeeded)
-					Ω(hook.RunCallCount()).To(Equal(0))
-					Ω(hook.ResultCallCount()).To(Equal(0))
-					Ω(bool(succeeded)).To(BeFalse())
+					Expect(hook.RunCallCount()).To(Equal(0))
+					Expect(hook.ResultCallCount()).To(Equal(0))
+					Expect(bool(succeeded)).To(BeFalse())
 				})
 			})
 
@@ -189,11 +189,11 @@ var _ = Describe("On Success Step", func() {
 					var succeeded exec.Success
 					onSuccessStep.Run(signals, ready)
 					onSuccessStep.Result(&succeeded)
-					Ω(step.RunCallCount()).To(Equal(1))
-					Ω(step.ResultCallCount()).To(Equal(2))
-					Ω(hook.RunCallCount()).To(Equal(1))
-					Ω(hook.ResultCallCount()).To(Equal(1))
-					Ω(bool(succeeded)).To(BeFalse())
+					Expect(step.RunCallCount()).To(Equal(1))
+					Expect(step.ResultCallCount()).To(Equal(2))
+					Expect(hook.RunCallCount()).To(Equal(1))
+					Expect(hook.ResultCallCount()).To(Equal(1))
+					Expect(bool(succeeded)).To(BeFalse())
 				})
 			})
 		})
@@ -214,8 +214,8 @@ var _ = Describe("On Success Step", func() {
 				It("calls release on both step and hook", func() {
 					onSuccessStep.Run(signals, ready)
 					onSuccessStep.Release()
-					Ω(step.ReleaseCallCount()).Should(Equal(1))
-					Ω(hook.ReleaseCallCount()).Should(Equal(1))
+					Expect(step.ReleaseCallCount()).To(Equal(1))
+					Expect(hook.ReleaseCallCount()).To(Equal(1))
 				})
 			})
 			Context("when only step runs", func() {
@@ -228,8 +228,8 @@ var _ = Describe("On Success Step", func() {
 				It("calls release on step", func() {
 					onSuccessStep.Run(signals, ready)
 					onSuccessStep.Release()
-					Ω(step.ReleaseCallCount()).Should(Equal(1))
-					Ω(hook.ReleaseCallCount()).Should(Equal(0))
+					Expect(step.ReleaseCallCount()).To(Equal(1))
+					Expect(hook.ReleaseCallCount()).To(Equal(0))
 				})
 			})
 		})

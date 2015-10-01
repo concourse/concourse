@@ -76,7 +76,7 @@ var _ = Describe("Retryable", func() {
 						close(durations)
 
 						retryPolicy.DelayForStub = func(failedAttempts uint) (time.Duration, bool) {
-							Ω(attempts()).Should(Equal(int(failedAttempts)))
+							Expect(attempts()).To(Equal(int(failedAttempts)))
 
 							select {
 							case d, ok := <-durations:
@@ -86,19 +86,19 @@ var _ = Describe("Retryable", func() {
 					})
 
 					It("continuously retries with an increasing attempt count", func() {
-						Ω(retryPolicy.DelayForCallCount()).Should(Equal(4))
-						Ω(sleeper.SleepCallCount()).Should(Equal(3))
+						Expect(retryPolicy.DelayForCallCount()).To(Equal(4))
+						Expect(sleeper.SleepCallCount()).To(Equal(3))
 
-						Ω(retryPolicy.DelayForArgsForCall(0)).Should(Equal(uint(1)))
-						Ω(sleeper.SleepArgsForCall(0)).Should(Equal(time.Second))
+						Expect(retryPolicy.DelayForArgsForCall(0)).To(Equal(uint(1)))
+						Expect(sleeper.SleepArgsForCall(0)).To(Equal(time.Second))
 
-						Ω(retryPolicy.DelayForArgsForCall(1)).Should(Equal(uint(2)))
-						Ω(sleeper.SleepArgsForCall(1)).Should(Equal(2 * time.Second))
+						Expect(retryPolicy.DelayForArgsForCall(1)).To(Equal(uint(2)))
+						Expect(sleeper.SleepArgsForCall(1)).To(Equal(2 * time.Second))
 
-						Ω(retryPolicy.DelayForArgsForCall(2)).Should(Equal(uint(3)))
-						Ω(sleeper.SleepArgsForCall(2)).Should(Equal(1000 * time.Second))
+						Expect(retryPolicy.DelayForArgsForCall(2)).To(Equal(uint(3)))
+						Expect(sleeper.SleepArgsForCall(2)).To(Equal(1000 * time.Second))
 
-						Ω(errResult).Should(Equal(retryableError))
+						Expect(errResult).To(Equal(retryableError))
 					})
 				})
 			})
@@ -115,11 +115,11 @@ var _ = Describe("Retryable", func() {
 			})
 
 			It("propagates the error", func() {
-				Ω(errResult).Should(Equal(returnedErr))
+				Expect(errResult).To(Equal(returnedErr))
 			})
 
 			It("does not retry", func() {
-				Ω(attempts()).Should(Equal(1))
+				Expect(attempts()).To(Equal(1))
 			})
 		})
 
@@ -131,7 +131,7 @@ var _ = Describe("Retryable", func() {
 			example()
 
 			It("does not error", func() {
-				Ω(errResult).ShouldNot(HaveOccurred())
+				Expect(errResult).NotTo(HaveOccurred())
 			})
 		})
 	}
@@ -154,11 +154,11 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.CapacityCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.CapacityCallCount()).Should(Equal(1))
+				Expect(innerConnection.CapacityCallCount()).To(Equal(1))
 			})
 
 			It("returns the capacity", func() {
-				Ω(gotCapacity).Should(Equal(capacity))
+				Expect(gotCapacity).To(Equal(capacity))
 			})
 		})
 	})
@@ -180,14 +180,14 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.ListCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.ListCallCount()).Should(Equal(1))
+				Expect(innerConnection.ListCallCount()).To(Equal(1))
 
 				listedProperties := innerConnection.ListArgsForCall(0)
-				Ω(listedProperties).Should(Equal(properties))
+				Expect(listedProperties).To(Equal(properties))
 			})
 
 			It("returns the handles", func() {
-				Ω(gotHandles).Should(Equal([]string{"a", "b"}))
+				Expect(gotHandles).To(Equal([]string{"a", "b"}))
 			})
 		})
 	})
@@ -209,16 +209,17 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.InfoCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.InfoCallCount()).Should(Equal(1))
+				Expect(innerConnection.InfoCallCount()).To(Equal(1))
 
 				infoedHandle := innerConnection.InfoArgsForCall(0)
-				Ω(infoedHandle).Should(Equal(handle))
+				Expect(infoedHandle).To(Equal(handle))
 			})
 
 			It("returns the info", func() {
-				Ω(gotInfo).Should(Equal(garden.ContainerInfo{
+				Expect(gotInfo).To(Equal(garden.ContainerInfo{
 					State: "chillin",
 				}))
+
 			})
 		})
 	})
@@ -240,17 +241,17 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.NetInCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.NetInCallCount()).Should(Equal(1))
+				Expect(innerConnection.NetInCallCount()).To(Equal(1))
 
 				handle, hostPort, containerPort := innerConnection.NetInArgsForCall(0)
-				Ω(handle).Should(Equal("la-contineur"))
-				Ω(hostPort).Should(Equal(uint32(1)))
-				Ω(containerPort).Should(Equal(uint32(2)))
+				Expect(handle).To(Equal("la-contineur"))
+				Expect(hostPort).To(Equal(uint32(1)))
+				Expect(containerPort).To(Equal(uint32(2)))
 			})
 
 			It("returns the ports", func() {
-				Ω(gotHostPort).Should(Equal(hostPort))
-				Ω(gotContainerPort).Should(Equal(containerPort))
+				Expect(gotHostPort).To(Equal(hostPort))
+				Expect(gotContainerPort).To(Equal(containerPort))
 			})
 		})
 	})
@@ -271,11 +272,11 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.NetOutCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.NetOutCallCount()).Should(Equal(1))
+				Expect(innerConnection.NetOutCallCount()).To(Equal(1))
 
 				handle, calledNetOutRule := innerConnection.NetOutArgsForCall(0)
-				Ω(handle).Should(Equal("la-contineur"))
-				Ω(calledNetOutRule).Should(Equal(netOutRule))
+				Expect(handle).To(Equal("la-contineur"))
+				Expect(calledNetOutRule).To(Equal(netOutRule))
 			})
 		})
 	})
@@ -299,14 +300,14 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.CurrentBandwidthLimitsCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.CurrentBandwidthLimitsCallCount()).Should(Equal(1))
+				Expect(innerConnection.CurrentBandwidthLimitsCallCount()).To(Equal(1))
 
 				calledHandle := innerConnection.CurrentBandwidthLimitsArgsForCall(0)
-				Ω(calledHandle).Should(Equal(handle))
+				Expect(calledHandle).To(Equal(handle))
 			})
 
 			It("returns the limits", func() {
-				Ω(gotLimits).Should(Equal(limits))
+				Expect(gotLimits).To(Equal(limits))
 			})
 		})
 	})
@@ -330,14 +331,14 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.CurrentCPULimitsCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.CurrentCPULimitsCallCount()).Should(Equal(1))
+				Expect(innerConnection.CurrentCPULimitsCallCount()).To(Equal(1))
 
 				calledHandle := innerConnection.CurrentCPULimitsArgsForCall(0)
-				Ω(calledHandle).Should(Equal(handle))
+				Expect(calledHandle).To(Equal(handle))
 			})
 
 			It("returns the limits", func() {
-				Ω(gotLimits).Should(Equal(limits))
+				Expect(gotLimits).To(Equal(limits))
 			})
 		})
 	})
@@ -361,14 +362,14 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.CurrentDiskLimitsCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.CurrentDiskLimitsCallCount()).Should(Equal(1))
+				Expect(innerConnection.CurrentDiskLimitsCallCount()).To(Equal(1))
 
 				calledHandle := innerConnection.CurrentDiskLimitsArgsForCall(0)
-				Ω(calledHandle).Should(Equal(handle))
+				Expect(calledHandle).To(Equal(handle))
 			})
 
 			It("returns the limits", func() {
-				Ω(gotLimits).Should(Equal(limits))
+				Expect(gotLimits).To(Equal(limits))
 			})
 		})
 	})
@@ -392,14 +393,14 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.CurrentMemoryLimitsCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.CurrentMemoryLimitsCallCount()).Should(Equal(1))
+				Expect(innerConnection.CurrentMemoryLimitsCallCount()).To(Equal(1))
 
 				calledHandle := innerConnection.CurrentMemoryLimitsArgsForCall(0)
-				Ω(calledHandle).Should(Equal(handle))
+				Expect(calledHandle).To(Equal(handle))
 			})
 
 			It("returns the limits", func() {
-				Ω(gotLimits).Should(Equal(limits))
+				Expect(gotLimits).To(Equal(limits))
 			})
 		})
 	})
@@ -423,15 +424,15 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.LimitBandwidthCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.LimitBandwidthCallCount()).Should(Equal(1))
+				Expect(innerConnection.LimitBandwidthCallCount()).To(Equal(1))
 
 				calledHandle, calledLimits := innerConnection.LimitBandwidthArgsForCall(0)
-				Ω(calledHandle).Should(Equal(handle))
-				Ω(calledLimits).Should(Equal(limits))
+				Expect(calledHandle).To(Equal(handle))
+				Expect(calledLimits).To(Equal(limits))
 			})
 
 			It("returns the limits", func() {
-				Ω(gotLimits).Should(Equal(limits))
+				Expect(gotLimits).To(Equal(limits))
 			})
 		})
 	})
@@ -455,15 +456,15 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.LimitCPUCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.LimitCPUCallCount()).Should(Equal(1))
+				Expect(innerConnection.LimitCPUCallCount()).To(Equal(1))
 
 				calledHandle, calledLimits := innerConnection.LimitCPUArgsForCall(0)
-				Ω(calledHandle).Should(Equal(handle))
-				Ω(calledLimits).Should(Equal(limits))
+				Expect(calledHandle).To(Equal(handle))
+				Expect(calledLimits).To(Equal(limits))
 			})
 
 			It("returns the limits", func() {
-				Ω(gotLimits).Should(Equal(limits))
+				Expect(gotLimits).To(Equal(limits))
 			})
 		})
 	})
@@ -487,15 +488,15 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.LimitDiskCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.LimitDiskCallCount()).Should(Equal(1))
+				Expect(innerConnection.LimitDiskCallCount()).To(Equal(1))
 
 				calledHandle, calledLimits := innerConnection.LimitDiskArgsForCall(0)
-				Ω(calledHandle).Should(Equal(handle))
-				Ω(calledLimits).Should(Equal(limits))
+				Expect(calledHandle).To(Equal(handle))
+				Expect(calledLimits).To(Equal(limits))
 			})
 
 			It("returns the limits", func() {
-				Ω(gotLimits).Should(Equal(limits))
+				Expect(gotLimits).To(Equal(limits))
 			})
 		})
 	})
@@ -519,15 +520,15 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.LimitMemoryCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.LimitMemoryCallCount()).Should(Equal(1))
+				Expect(innerConnection.LimitMemoryCallCount()).To(Equal(1))
 
 				calledHandle, calledLimits := innerConnection.LimitMemoryArgsForCall(0)
-				Ω(calledHandle).Should(Equal(handle))
-				Ω(calledLimits).Should(Equal(limits))
+				Expect(calledHandle).To(Equal(handle))
+				Expect(calledLimits).To(Equal(limits))
 			})
 
 			It("returns the limits", func() {
-				Ω(gotLimits).Should(Equal(limits))
+				Expect(gotLimits).To(Equal(limits))
 			})
 		})
 	})
@@ -549,14 +550,14 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.CreateCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.CreateCallCount()).Should(Equal(1))
+				Expect(innerConnection.CreateCallCount()).To(Equal(1))
 
 				calledSpec := innerConnection.CreateArgsForCall(0)
-				Ω(calledSpec).Should(Equal(spec))
+				Expect(calledSpec).To(Equal(spec))
 			})
 
 			It("returns the container handle", func() {
-				Ω(gotHandle).Should(Equal("bach"))
+				Expect(gotHandle).To(Equal("bach"))
 			})
 		})
 	})
@@ -572,10 +573,10 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.DestroyCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.DestroyCallCount()).Should(Equal(1))
+				Expect(innerConnection.DestroyCallCount()).To(Equal(1))
 
 				calledHandle := innerConnection.DestroyArgsForCall(0)
-				Ω(calledHandle).Should(Equal(handle))
+				Expect(calledHandle).To(Equal(handle))
 			})
 		})
 	})
@@ -596,15 +597,15 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.PropertyCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.PropertyCallCount()).Should(Equal(1))
+				Expect(innerConnection.PropertyCallCount()).To(Equal(1))
 
 				calledHandle, calledProperty := innerConnection.PropertyArgsForCall(0)
-				Ω(calledHandle).Should(Equal(handle))
-				Ω(calledProperty).Should(Equal(property))
+				Expect(calledHandle).To(Equal(handle))
+				Expect(calledProperty).To(Equal(property))
 			})
 
 			It("returns the limits", func() {
-				Ω(gotValue).Should(Equal("some-value"))
+				Expect(gotValue).To(Equal("some-value"))
 			})
 		})
 	})
@@ -618,12 +619,12 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.SetPropertyCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.SetPropertyCallCount()).Should(Equal(1))
+				Expect(innerConnection.SetPropertyCallCount()).To(Equal(1))
 
 				handle, setName, setValue := innerConnection.SetPropertyArgsForCall(0)
-				Ω(handle).Should(Equal("la-contineur"))
-				Ω(setName).Should(Equal("some-name"))
-				Ω(setValue).Should(Equal("some-value"))
+				Expect(handle).To(Equal("la-contineur"))
+				Expect(setName).To(Equal("some-name"))
+				Expect(setValue).To(Equal("some-value"))
 			})
 		})
 	})
@@ -637,11 +638,11 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.RemovePropertyCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.RemovePropertyCallCount()).Should(Equal(1))
+				Expect(innerConnection.RemovePropertyCallCount()).To(Equal(1))
 
 				handle, setName := innerConnection.RemovePropertyArgsForCall(0)
-				Ω(handle).Should(Equal("la-contineur"))
-				Ω(setName).Should(Equal("some-name"))
+				Expect(handle).To(Equal("la-contineur"))
+				Expect(setName).To(Equal("some-name"))
 			})
 		})
 	})
@@ -655,11 +656,11 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.StopCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.StopCallCount()).Should(Equal(1))
+				Expect(innerConnection.StopCallCount()).To(Equal(1))
 
 				handle, kill := innerConnection.StopArgsForCall(0)
-				Ω(handle).Should(Equal("la-contineur"))
-				Ω(kill).Should(Equal(true))
+				Expect(handle).To(Equal("la-contineur"))
+				Expect(kill).To(Equal(true))
 			})
 		})
 	})
@@ -686,14 +687,14 @@ var _ = Describe("Retryable", func() {
 				User:      "bach",
 				TarStream: reader,
 			})
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(innerConnection.StreamInCallCount()).Should(Equal(1))
+			Expect(innerConnection.StreamInCallCount()).To(Equal(1))
 			handle, spec := innerConnection.StreamInArgsForCall(0)
-			Ω(handle).Should(Equal("beethoven"))
-			Ω(spec.Path).Should(Equal("/dev/sound"))
-			Ω(spec.User).Should(Equal("bach"))
-			Ω(spec.TarStream).Should(Equal(reader))
+			Expect(handle).To(Equal("beethoven"))
+			Expect(spec.Path).To(Equal("/dev/sound"))
+			Expect(spec.User).To(Equal("bach"))
+			Expect(spec.TarStream).To(Equal(reader))
 		})
 
 		It("does not retry as the other end of the connection may have already started reading the body", func() {
@@ -706,9 +707,9 @@ var _ = Describe("Retryable", func() {
 				User:      "bach",
 				TarStream: reader,
 			})
-			Ω(err).Should(MatchError(retryableErrors[0]))
+			Expect(err).To(MatchError(retryableErrors[0]))
 
-			Ω(innerConnection.StreamInCallCount()).Should(Equal(1))
+			Expect(innerConnection.StreamInCallCount()).To(Equal(1))
 		})
 	})
 
@@ -730,16 +731,16 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.StreamOutCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.StreamOutCallCount()).Should(Equal(1))
+				Expect(innerConnection.StreamOutCallCount()).To(Equal(1))
 
 				calledHandle, calledSpec := innerConnection.StreamOutArgsForCall(0)
-				Ω(calledHandle).Should(Equal(handle))
-				Ω(calledSpec.Path).Should(Equal("/etc/passwd"))
-				Ω(calledSpec.User).Should(Equal("admin"))
+				Expect(calledHandle).To(Equal(handle))
+				Expect(calledSpec.Path).To(Equal("/etc/passwd"))
+				Expect(calledSpec.User).To(Equal("admin"))
 			})
 
 			It("returns the reader", func() {
-				Ω(gotReader).Should(Equal(gbytes.NewBuffer()))
+				Expect(gotReader).To(Equal(gbytes.NewBuffer()))
 			})
 		})
 	})
@@ -769,12 +770,12 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.AttachCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.AttachCallCount()).Should(Equal(1))
+				Expect(innerConnection.AttachCallCount()).To(Equal(1))
 
 				handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(0)
-				Ω(handle).Should(Equal("la-contineur"))
-				Ω(processID).Should(Equal(uint32(6)))
-				Ω(calledProcessIO).Should(Equal(processIO))
+				Expect(handle).To(Equal("la-contineur"))
+				Expect(processID).To(Equal(uint32(6)))
+				Expect(calledProcessIO).To(Equal(processIO))
 			})
 
 			Describe("the process", func() {
@@ -796,14 +797,14 @@ var _ = Describe("Retryable", func() {
 
 					It("reattaches on EOF", func() {
 						result, err := process.Wait()
-						Ω(err).ShouldNot(HaveOccurred())
-						Ω(result).Should(Equal(42))
+						Expect(err).NotTo(HaveOccurred())
+						Expect(result).To(Equal(42))
 
-						Ω(innerConnection.AttachCallCount()).Should(Equal(2))
+						Expect(innerConnection.AttachCallCount()).To(Equal(2))
 						handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(1)
-						Ω(handle).Should(Equal("la-contineur"))
-						Ω(processID).Should(Equal(uint32(6)))
-						Ω(calledProcessIO).Should(Equal(processIO))
+						Expect(handle).To(Equal("la-contineur"))
+						Expect(processID).To(Equal(uint32(6)))
+						Expect(calledProcessIO).To(Equal(processIO))
 					})
 				})
 
@@ -819,14 +820,14 @@ var _ = Describe("Retryable", func() {
 					})
 
 					It("reattaches on use of closed connection", func() {
-						Ω(process.Signal(garden.SignalTerminate)).Should(Succeed())
-						Ω(fakeProcess.SignalArgsForCall(0)).Should(Equal(garden.SignalTerminate))
+						Expect(process.Signal(garden.SignalTerminate)).To(Succeed())
+						Expect(fakeProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
 
-						Ω(innerConnection.AttachCallCount()).Should(Equal(2))
+						Expect(innerConnection.AttachCallCount()).To(Equal(2))
 						handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(1)
-						Ω(handle).Should(Equal("la-contineur"))
-						Ω(processID).Should(Equal(uint32(6)))
-						Ω(calledProcessIO).Should(Equal(processIO))
+						Expect(handle).To(Equal("la-contineur"))
+						Expect(processID).To(Equal(uint32(6)))
+						Expect(calledProcessIO).To(Equal(processIO))
 					})
 				})
 
@@ -846,14 +847,14 @@ var _ = Describe("Retryable", func() {
 							WindowSize: &garden.WindowSize{Columns: 345678, Rows: 45689},
 						}
 
-						Ω(process.SetTTY(ttySpec)).Should(Succeed())
-						Ω(fakeProcess.SetTTYArgsForCall(0)).Should(Equal(ttySpec))
+						Expect(process.SetTTY(ttySpec)).To(Succeed())
+						Expect(fakeProcess.SetTTYArgsForCall(0)).To(Equal(ttySpec))
 
-						Ω(innerConnection.AttachCallCount()).Should(Equal(2))
+						Expect(innerConnection.AttachCallCount()).To(Equal(2))
 						handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(1)
-						Ω(handle).Should(Equal("la-contineur"))
-						Ω(processID).Should(Equal(uint32(6)))
-						Ω(calledProcessIO).Should(Equal(processIO))
+						Expect(handle).To(Equal("la-contineur"))
+						Expect(processID).To(Equal(uint32(6)))
+						Expect(calledProcessIO).To(Equal(processIO))
 					})
 				})
 			})
@@ -889,12 +890,12 @@ var _ = Describe("Retryable", func() {
 			return innerConnection.RunCallCount()
 		}, func() {
 			It("calls through to garden", func() {
-				Ω(innerConnection.RunCallCount()).Should(Equal(1))
+				Expect(innerConnection.RunCallCount()).To(Equal(1))
 
 				handle, calledProcessSpec, calledProcessIO := innerConnection.RunArgsForCall(0)
-				Ω(handle).Should(Equal("la-contineur"))
-				Ω(calledProcessSpec).Should(Equal(processSpec))
-				Ω(calledProcessIO).Should(Equal(processIO))
+				Expect(handle).To(Equal("la-contineur"))
+				Expect(calledProcessSpec).To(Equal(processSpec))
+				Expect(calledProcessIO).To(Equal(processIO))
 			})
 
 			Describe("the process", func() {
@@ -919,13 +920,13 @@ var _ = Describe("Retryable", func() {
 					})
 
 					It("reattaches on EOF", func() {
-						Ω(process.Wait()).Should(Equal(42))
+						Expect(process.Wait()).To(Equal(42))
 
-						Ω(innerConnection.AttachCallCount()).Should(Equal(1))
+						Expect(innerConnection.AttachCallCount()).To(Equal(1))
 						handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(0)
-						Ω(handle).Should(Equal("la-contineur"))
-						Ω(processID).Should(Equal(uint32(6)))
-						Ω(calledProcessIO).Should(Equal(processIO))
+						Expect(handle).To(Equal("la-contineur"))
+						Expect(processID).To(Equal(uint32(6)))
+						Expect(calledProcessIO).To(Equal(processIO))
 					})
 				})
 
@@ -941,14 +942,14 @@ var _ = Describe("Retryable", func() {
 					})
 
 					It("reattaches on use of closed connection", func() {
-						Ω(process.Signal(garden.SignalTerminate)).Should(Succeed())
-						Ω(fakeProcess.SignalArgsForCall(0)).Should(Equal(garden.SignalTerminate))
+						Expect(process.Signal(garden.SignalTerminate)).To(Succeed())
+						Expect(fakeProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
 
-						Ω(innerConnection.AttachCallCount()).Should(Equal(1))
+						Expect(innerConnection.AttachCallCount()).To(Equal(1))
 						handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(0)
-						Ω(handle).Should(Equal("la-contineur"))
-						Ω(processID).Should(Equal(uint32(6)))
-						Ω(calledProcessIO).Should(Equal(processIO))
+						Expect(handle).To(Equal("la-contineur"))
+						Expect(processID).To(Equal(uint32(6)))
+						Expect(calledProcessIO).To(Equal(processIO))
 					})
 				})
 
@@ -968,14 +969,14 @@ var _ = Describe("Retryable", func() {
 							WindowSize: &garden.WindowSize{Columns: 345678, Rows: 45689},
 						}
 
-						Ω(process.SetTTY(ttySpec)).Should(Succeed())
-						Ω(fakeProcess.SetTTYArgsForCall(0)).Should(Equal(ttySpec))
+						Expect(process.SetTTY(ttySpec)).To(Succeed())
+						Expect(fakeProcess.SetTTYArgsForCall(0)).To(Equal(ttySpec))
 
-						Ω(innerConnection.AttachCallCount()).Should(Equal(1))
+						Expect(innerConnection.AttachCallCount()).To(Equal(1))
 						handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(0)
-						Ω(handle).Should(Equal("la-contineur"))
-						Ω(processID).Should(Equal(uint32(6)))
-						Ω(calledProcessIO).Should(Equal(processIO))
+						Expect(handle).To(Equal("la-contineur"))
+						Expect(processID).To(Equal(uint32(6)))
+						Expect(calledProcessIO).To(Equal(processIO))
 					})
 				})
 			})

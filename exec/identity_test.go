@@ -37,9 +37,9 @@ var _ = Describe("Identity", func() {
 			signals := make(chan os.Signal)
 
 			err := step.Run(signals, ready)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(inStep.RunCallCount()).Should(BeZero())
+			Expect(inStep.RunCallCount()).To(BeZero())
 		})
 	})
 
@@ -48,8 +48,8 @@ var _ = Describe("Identity", func() {
 			var result int
 			step.Result(&result)
 
-			Ω(inStep.ResultCallCount()).Should(Equal(1))
-			Ω(inStep.ResultArgsForCall(0)).Should(Equal(&result))
+			Expect(inStep.ResultCallCount()).To(Equal(1))
+			Expect(inStep.ResultArgsForCall(0)).To(Equal(&result))
 		})
 	})
 })
