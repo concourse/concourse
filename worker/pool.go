@@ -100,8 +100,6 @@ func (pool *pool) CreateContainer(logger lager.Logger, id Identifier, spec Conta
 }
 
 func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier) (Container, bool, error) {
-	logger.Info("finding-container-for-identifer", lager.Data{"identifier": id})
-
 	containerInfo, found, err := pool.provider.FindContainerInfoForIdentifier(id)
 	if err != nil {
 		return nil, false, err
