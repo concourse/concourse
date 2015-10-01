@@ -28,8 +28,8 @@ var _ = Describe("A job with a try step", func() {
 
 	It("proceeds through the plan even if the step fails", func() {
 		watch := flyWatch("try-job")
-		Ω(watch).Should(gbytes.Say("initializing"))
-		Ω(watch).Should(gbytes.Say("passing-task succeeded"))
-		Ω(watch).Should(gexec.Exit(0))
+		Expect(watch).To(gbytes.Say("initializing"))
+		Expect(watch).To(gbytes.Say("passing-task succeeded"))
+		Expect(watch).To(gexec.Exit(0))
 	})
 })

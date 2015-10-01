@@ -50,7 +50,7 @@ var _ = Describe("A pipeline containing a job with a timeout and hooks", func() 
 		Eventually(guidServer.ReportingGuids).Should(ContainElement(committedGuid))
 
 		masterSHA := originGitServer.RevParse("master")
-		Ω(masterSHA).ShouldNot(BeEmpty())
+		Expect(masterSHA).NotTo(BeEmpty())
 
 		Eventually(func() string {
 			return ensureGitServer.RevParse("ensure")

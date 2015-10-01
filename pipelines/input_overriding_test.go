@@ -42,7 +42,7 @@ var _ = Describe("A job with multiple inputs", func() {
 
 		var err error
 		tmpdir, err = ioutil.TempDir("", "fly-test")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		err = ioutil.WriteFile(
 			filepath.Join(tmpdir, "task.yml"),
@@ -61,20 +61,20 @@ run:
 `),
 			0644,
 		)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		taskConfig = filepath.Join(tmpdir, "task.yml")
 		localGitRepoBDir = filepath.Join(tmpdir, "git-repo-b")
 
 		err = os.Mkdir(localGitRepoBDir, 0755)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		err = ioutil.WriteFile(
 			filepath.Join(localGitRepoBDir, "guids"),
 			[]byte("some-overridden-guid"),
 			0644,
 		)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -87,11 +87,11 @@ run:
 	It("can have its inputs used as the basis for a one-off build", func() {
 		By("waiting for an initial build so the job has inputs")
 		watch := flyWatch("some-job")
-		Ω(watch).Should(gbytes.Say("initializing"))
-		Ω(watch).Should(gbytes.Say("a has " + firstGuidA))
-		Ω(watch).Should(gbytes.Say("b has " + firstGuidB))
-		Ω(watch).Should(gbytes.Say("succeeded"))
-		Ω(watch).Should(gexec.Exit(0))
+		Expect(watch).To(gbytes.Say("initializing"))
+		Expect(watch).To(gbytes.Say("a has " + firstGuidA))
+		Expect(watch).To(gbytes.Say("b has " + firstGuidB))
+		Expect(watch).To(gbytes.Say("succeeded"))
+		Expect(watch).To(gexec.Exit(0))
 
 		By("running a one-off with the same inputs and no local inputs")
 		fly := exec.Command(
@@ -106,11 +106,11 @@ run:
 
 		execute := helpers.StartFly(fly)
 		<-execute.Exited
-		Ω(execute).Should(gbytes.Say("initializing"))
-		Ω(execute).Should(gbytes.Say("a has " + firstGuidA))
-		Ω(execute).Should(gbytes.Say("b has " + firstGuidB))
-		Ω(execute).Should(gbytes.Say("succeeded"))
-		Ω(execute).Should(gexec.Exit(0))
+		Expect(execute).To(gbytes.Say("initializing"))
+		Expect(execute).To(gbytes.Say("a has " + firstGuidA))
+		Expect(execute).To(gbytes.Say("b has " + firstGuidB))
+		Expect(execute).To(gbytes.Say("succeeded"))
+		Expect(execute).To(gexec.Exit(0))
 
 		By("running a one-off with one of the inputs overridden")
 		fly = exec.Command(
@@ -126,10 +126,10 @@ run:
 
 		execute = helpers.StartFly(fly)
 		<-execute.Exited
-		Ω(execute).Should(gbytes.Say("initializing"))
-		Ω(execute).Should(gbytes.Say("a has " + firstGuidA))
-		Ω(execute).Should(gbytes.Say("b has some-overridden-guid"))
-		Ω(execute).Should(gbytes.Say("succeeded"))
-		Ω(execute).Should(gexec.Exit(0))
+		Expect(execute).To(gbytes.Say("initializing"))
+		Expect(execute).To(gbytes.Say("a has " + firstGuidA))
+		Expect(execute).To(gbytes.Say("b has some-overridden-guid"))
+		Expect(execute).To(gbytes.Say("succeeded"))
+		Expect(execute).To(gexec.Exit(0))
 	})
 })

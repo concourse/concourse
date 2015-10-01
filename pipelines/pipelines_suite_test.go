@@ -40,7 +40,7 @@ var (
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	flyBinPath, err := gexec.Build("github.com/concourse/fly", "-race")
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	return []byte(flyBinPath)
 }, func(flyBinPath []byte) {
@@ -83,12 +83,12 @@ func destroyPipeline() {
 	)
 
 	stdin, err := destroyCmd.StdinPipe()
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	defer stdin.Close()
 
 	destroy, err := gexec.Start(destroyCmd, GinkgoWriter, GinkgoWriter)
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	Eventually(destroy).Should(gbytes.Say("are you sure?"))
 
@@ -102,7 +102,7 @@ func destroyPipeline() {
 		}
 	}
 
-	Ω(destroy).Should(gexec.Exit(0))
+	Expect(destroy).To(gexec.Exit(0))
 }
 
 func configurePipeline(argv ...string) {
@@ -118,12 +118,12 @@ func configurePipeline(argv ...string) {
 	configureCmd := exec.Command(flyBin, args...)
 
 	stdin, err := configureCmd.StdinPipe()
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	defer stdin.Close()
 
 	configure, err := gexec.Start(configureCmd, GinkgoWriter, GinkgoWriter)
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	Eventually(configure).Should(gbytes.Say("apply configuration?"))
 
@@ -185,7 +185,7 @@ func start(cmd *exec.Cmd) *gexec.Session {
 			GinkgoWriter,
 		),
 	)
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	return session
 }

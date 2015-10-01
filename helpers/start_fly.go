@@ -22,7 +22,7 @@ func StartFly(cmd *exec.Cmd) *gexec.Session {
 			GinkgoWriter,
 		),
 	)
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	return session
 }

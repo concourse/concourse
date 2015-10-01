@@ -26,12 +26,12 @@ var _ = Describe("Flying", func() {
 		atcURL = "http://10.244.15.2:8080"
 
 		tmpdir, err = ioutil.TempDir("", "fly-test")
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		fixture = filepath.Join(tmpdir, "fixture")
 
 		err = os.MkdirAll(fixture, 0755)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		err = ioutil.WriteFile(
 			filepath.Join(fixture, "run"),
@@ -43,7 +43,7 @@ exit 0
 `),
 			0755,
 		)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		err = ioutil.WriteFile(
 			filepath.Join(fixture, "task.yml"),
@@ -63,7 +63,7 @@ run:
 `),
 			0644,
 		)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -78,9 +78,9 @@ run:
 
 		Eventually(session).Should(gexec.Exit(0))
 
-		Ω(session).Should(gbytes.Say("some output"))
-		Ω(session).Should(gbytes.Say("FOO is 1"))
-		Ω(session).Should(gbytes.Say("ARGS are SOME ARGS"))
+		Expect(session).To(gbytes.Say("some output"))
+		Expect(session).To(gbytes.Say("FOO is 1"))
+		Expect(session).To(gbytes.Say("ARGS are SOME ARGS"))
 	})
 
 	Describe("hijacking", func() {
@@ -94,7 +94,7 @@ cat < /tmp/fifo
 `),
 				0755,
 			)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			fly := exec.Command(flyBin, "-t", atcURL, "execute", "-c", "task.yml")
 			fly.Dir = fixture
@@ -133,7 +133,7 @@ wait
 `),
 				0755,
 			)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			fly := exec.Command(flyBin, "-t", atcURL, "execute", "-c", "task.yml")
 			fly.Dir = fixture

@@ -30,7 +30,7 @@ func Start(helperRootfs string, gardenClient garden.Client) *Server {
 		RootFSPath: helperRootfs,
 		GraceTime:  time.Hour,
 	})
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	process, err := container.Run(garden.ProcessSpec{
 		Path: "sh",
@@ -54,8 +54,8 @@ touch .git/git-daemon-export-ok
 			ginkgo.GinkgoWriter,
 		),
 	})
-	Ω(err).ShouldNot(HaveOccurred())
-	Ω(process.Wait()).Should(Equal(0))
+	Expect(err).NotTo(HaveOccurred())
+	Expect(process.Wait()).To(Equal(0))
 
 	process, err = container.Run(garden.ProcessSpec{
 		Path: "git",
@@ -79,11 +79,11 @@ touch .git/git-daemon-export-ok
 			ginkgo.GinkgoWriter,
 		),
 	})
-	Ω(err).ShouldNot(HaveOccurred())
-	Ω(process.Wait()).Should(Equal(0))
+	Expect(err).NotTo(HaveOccurred())
+	Expect(process.Wait()).To(Equal(0))
 
 	hostPort, _, err := container.NetIn(0, 9418)
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	return &Server{
 		gardenClient: gardenClient,
@@ -102,7 +102,7 @@ func (server *Server) URI() string {
 
 func (server *Server) Commit() string {
 	guid, err := uuid.NewV4()
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	process, err := server.container.Run(garden.ProcessSpec{
 		Path: "sh",
@@ -131,8 +131,8 @@ func (server *Server) Commit() string {
 			ginkgo.GinkgoWriter,
 		),
 	})
-	Ω(err).ShouldNot(HaveOccurred())
-	Ω(process.Wait()).Should(Equal(0))
+	Expect(err).NotTo(HaveOccurred())
+	Expect(process.Wait()).To(Equal(0))
 
 	server.committedGuids = append(server.committedGuids, guid.String())
 
@@ -161,10 +161,10 @@ func (server *Server) RevParse(ref string) string {
 			ginkgo.GinkgoWriter,
 		),
 	})
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	_, err = process.Wait()
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	return buf.String()
 }

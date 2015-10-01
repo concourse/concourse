@@ -52,7 +52,7 @@ func Start(helperRootfs string, gardenClient garden.Client) *Server {
 		RootFSPath: helperRootfs,
 		GraceTime:  time.Hour,
 	})
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	_, err = container.Run(garden.ProcessSpec{
 		Path: "ruby",
@@ -68,10 +68,10 @@ func Start(helperRootfs string, gardenClient garden.Client) *Server {
 			ginkgo.GinkgoWriter,
 		),
 	})
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	hostPort, _, err := container.NetIn(0, 8080)
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	addr := fmt.Sprintf("%s:%d", gardenDeploymentIP, hostPort)
 
@@ -90,7 +90,7 @@ func Start(helperRootfs string, gardenClient garden.Client) *Server {
 				ginkgo.GinkgoWriter,
 			),
 		})
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		return curl.Wait()
 	}).Should(Equal(0))
@@ -125,13 +125,13 @@ func (server *Server) ReportingGuids() []string {
 			ginkgo.GinkgoWriter,
 		),
 	})
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
-	Ω(curl.Wait()).Should(Equal(0))
+	Expect(curl.Wait()).To(Equal(0))
 
 	var responses []string
 	err = json.NewDecoder(outBuf).Decode(&responses)
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	return responses
 }

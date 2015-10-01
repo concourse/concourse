@@ -15,7 +15,7 @@ var flyBin string
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	flyBinPath, err := gexec.Build("github.com/concourse/fly", "-race")
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	return []byte(flyBinPath)
 }, func(flyBinPath []byte) {
