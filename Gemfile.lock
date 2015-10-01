@@ -7,7 +7,7 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    anatomy (0.1.6)
+    anatomy (0.1.7)
       atomy (~> 0.6.3)
       broomhlda (~> 0.2.0)
       json_pure (~> 1.8)
@@ -26,7 +26,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  anatomy (~> 0.1.6)
+  anatomy (~> 0.1.7)
   concourse-docs!
 
 BUNDLED WITH
