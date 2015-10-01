@@ -36,8 +36,43 @@
   copy-on-write layer on top of the existing resource volume and give that to
   the task that requires it.
 }{
+  Similarly, if a \reference{task-step} runs on a worker that has the
+  aforementioned caches available, the step will reuse the local volume (with
+  copy-on-write semantics for safety), rather than streaming the data through
+  the ATC.
+
+  Once our scheduling of step containers is optimized (i.e. not random), this
+  should lead to very noticeable performance boosts to builds that move around
+  a ton of data. For now you'll only see the boost if you get lucky with the
+  container placement.
+}{
   We no longer reuse the pending color for jobs that have no builds. A new
   darker shade of grey has been selected for your viewing pleasure.
+}{
+  A few indexes have been added to high-trafficked queries. You should notice
+  lower Postgres CPU load and faster loading times on the pipeline view.
+}{
+  The default value for \reference{fly-hijack}'s \code{-n} flag has been
+  removed to make it easier to use the interactive hijacking mode. You'll
+  probably run into this when hijacking one-off builds. To skip the interaction
+  you can specify \code{-n build} which is what the default value used to be.
+}{
+  Pending builds no longer say \italic{failed to start} on the \code{/builds}
+  page. This was misleading; it really meant \italic{not started yet}, so now
+  it just says \code{n/a}.
+
+  Similarly, builds that errored out would render a bogus timestamp (year
+  \code{0001}) - this has also been fixed.
+}{
+  Resources now have metadata about the build available as environment
+  variables. This should make it easier to write useful integrations, for
+  example alerting when a build fails.
+}{
+  The
+  \hyperlink{https://github.com/concourse/pool-resource}{pool-resource} now
+  includes the pipeline, job, and build number in its commit messages. This
+  should make it easier to reverse-lookup when changes to the lock pool were
+  made.
 }{
   We now emit metrics about how long each Concourse endpoint took to respond to
   a user. For more details see the
@@ -45,16 +80,39 @@
   going to use these to inform a track of work to improve the latency of the
   Concourse API and web interface.
 }{
+  Builds that exceed their \reference{timeout-step} will now trigger
+  \reference{on-failure-step} hooks. This is consistent with the rest of the UI
+  (as the build is marked as failed).
+}{
   The \code{fly save-target} command now correctly ends its output with a
   newline.
+}{
+  We've upgraded everything to Go 1.5.1. You may notice some slight
+  improvements as Go 1.5 cuts down quite a bit on GC pauses.
 }{
   We've switched to the official Go AWS library in the
   \hyperlink{https://github.com/concourse/s3-resource}{S3 resource} which uses
   the path style of specifying an S3 bucket rather than subdomains which will
   help with setting up custom S3 compatible blobstores.
 }{
+  The \hyperlink{https://github.com/concourse/s3-resource}{s3-resource} would
+  previously consider the version \code{1.2.3-beta.9} to be later than
+  \code{1.2.3-beta.10} as it did lexicographic ordering on the \code{beta.X}
+  segment. This is now fixed.
+}{
   The
   \hyperlink{https://github.com/concourse/archive-resource}{archive-resource}
   (which powers \code{fly execute}) will now follow redirects when fetching
   resources.
+}{
+  Previously an empty \reference{aggregate} step would be considered failed.
+  Now it succeeds (as a no-op).
+}{
+  The \hyperlink{https://github.com/concourse/docker-image-resource}{Docker
+  image resource} should now correctly authenticate with private registries
+  when used in a \reference{get-step}.
+}{
+  The \hyperlink{https://github.com/concourse/semver-resource}{Semver resource}
+  now supports versioning via a file in a \code{git} repo, as well as atomic
+  updates and bumps.
 }
