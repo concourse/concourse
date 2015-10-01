@@ -374,7 +374,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				var err error
 
 				for _, containerToCreate := range example.containersToCreate {
-					if containerToCreate.Type.ToString() == "" {
+					if containerToCreate.Type.String() == "" {
 						containerToCreate.Type = db.ContainerTypeTask
 					}
 

@@ -50,7 +50,7 @@ var _ = Describe("Pipelines API", func() {
 		expectedPresentedContainer1 = atc.Container{
 			ID:           containerID1,
 			PipelineName: pipelineName1,
-			Type:         type1.ToString(),
+			Type:         type1.String(),
 			Name:         name1,
 			BuildID:      buildID1,
 		}
@@ -106,7 +106,7 @@ var _ = Describe("Pipelines API", func() {
 				expectedPresentedContainer2 = atc.Container{
 					ID:           "cfvwser",
 					PipelineName: "pipeline-2",
-					Type:         db.ContainerTypePut.ToString(),
+					Type:         db.ContainerTypePut.String(),
 					Name:         "name-2",
 					BuildID:      4321,
 				}

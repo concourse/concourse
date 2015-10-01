@@ -21,7 +21,7 @@ type ContainerInfo struct {
 
 type ContainerType string
 
-func (containerType ContainerType) ToString() string {
+func (containerType ContainerType) String() string {
 	return string(containerType)
 }
 

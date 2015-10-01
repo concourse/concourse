@@ -925,7 +925,7 @@ func (db *SQLDB) FindContainerInfosByIdentifier(id ContainerIdentifier) ([]Conta
 
 	if id.Type != "" {
 		whereCriteria = append(whereCriteria, fmt.Sprintf("type = $%d", len(params)+1))
-		params = append(params, id.Type.ToString())
+		params = append(params, id.Type.String())
 	}
 
 	if id.WorkerName != "" {
@@ -1042,7 +1042,7 @@ func (db *SQLDB) CreateContainerInfo(containerInfo ContainerInfo, ttl time.Durat
 		containerInfo.Name,
 		containerInfo.PipelineName,
 		containerInfo.BuildID,
-		containerInfo.Type.ToString(),
+		containerInfo.Type.String(),
 		containerInfo.WorkerName,
 		interval,
 		containerInfo.CheckType,
