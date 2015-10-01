@@ -66,6 +66,9 @@ properties:
   groundcrew.baggageclaim.url:
     description: "baggageclaim server URL to advertise to the TSA"
 
+  groundcrew.baggageclaim.forward_address:
+    description: "baggageclaim server connection address to forward through SSH to the TSA"
+
   groundcrew.resource_types:
     description: "resource types supported by the worker, in [{type: type, image: image}] form"
     default:

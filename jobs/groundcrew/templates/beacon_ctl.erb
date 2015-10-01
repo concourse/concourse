@@ -71,8 +71,15 @@ case $1 in
         <% end %> \
         -o UserKnownHostsFile=${KNOWN_HOSTS_FILE} \
         <% if p("groundcrew.garden.forward_address", nil) %> \
-          -R0.0.0.0:0:<%= p("groundcrew.garden.forward_address") %> \
+          -R0.0.0.0:7777:<%= p("groundcrew.garden.forward_address") %> \
+          <% if p("groundcrew.baggageclaim.forward_address", nil) %> \
+          -R0.0.0.0:7788:<%= p("groundcrew.baggageclaim.forward_address") %> \
+          <% end %> \
           forward-worker \
+          --garden 0.0.0.0:7777 \
+          <% if p("groundcrew.baggageclaim.forward_address", nil) %> \
+          --baggageclaim 0.0.0.0:7788 \
+          <% end %> \
         <% else %> \
           register-worker \
         <% end %> \
