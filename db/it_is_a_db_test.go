@@ -295,6 +295,8 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				BuildID:      123,
 				Type:         db.ContainerTypeTask,
 				WorkerName:   "some-worker",
+				CheckType:    "some-type",
+				CheckSource:  atc.Source{"uri": "http://example.com"},
 			}
 
 			By("creating a container")
@@ -316,6 +318,8 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Expect(actualContainerInfo.BuildID).To(Equal(123))
 			Expect(actualContainerInfo.Type).To(Equal(db.ContainerTypeTask))
 			Expect(actualContainerInfo.WorkerName).To(Equal("some-worker"))
+			Expect(actualContainerInfo.CheckType).To(Equal("some-type"))
+			Expect(actualContainerInfo.CheckSource).To(Equal(atc.Source{"uri": "http://example.com"}))
 
 			By("returning found = false when getting by a handle that does not exist")
 			_, found, err = database.GetContainerInfo("nope")
@@ -462,6 +466,26 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				expectedHandles:      []string{"a", "b"},
 			}),
 
+			Entry("returns containers where the check type matches", findContainerInfosByIdentifierExample{
+				containersToCreate: []db.ContainerInfo{
+					{Handle: "a", CheckType: "some-type"},
+					{Handle: "b", CheckType: "nope"},
+					{Handle: "c", CheckType: "some-type"},
+				},
+				identifierToFilerFor: db.ContainerIdentifier{CheckType: "some-type"},
+				expectedHandles:      []string{"a", "c"},
+			}),
+
+			Entry("returns containers where the check source matches", findContainerInfosByIdentifierExample{
+				containersToCreate: []db.ContainerInfo{
+					{Handle: "a", CheckSource: atc.Source{"some": "other-source"}},
+					{Handle: "b", CheckSource: atc.Source{"some": "source"}},
+					{Handle: "c", CheckSource: atc.Source{"some": "source"}},
+				},
+				identifierToFilerFor: db.ContainerIdentifier{CheckSource: atc.Source{"some": "source"}},
+				expectedHandles:      []string{"b", "c"},
+			}),
+
 			Entry("returns containers where all fields match", findContainerInfosByIdentifierExample{
 				containersToCreate: []db.ContainerInfo{
 					{
@@ -505,9 +529,14 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 		It("can find a single container info by identifier", func() {
 			expectedContainerInfo := db.ContainerInfo{
-				Handle: "some-handle",
-				Name:   "some-container",
-				Type:   db.ContainerTypeTask,
+				Handle:       "some-handle",
+				PipelineName: "some-pipeline",
+				BuildID:      123,
+				Name:         "some-container",
+				WorkerName:   "some-worker",
+				Type:         db.ContainerTypeTask,
+				CheckType:    "some-type",
+				CheckSource:  atc.Source{"some": "other-source"},
 			}
 			otherContainerInfo := db.ContainerInfo{
 				Handle: "other-handle",
@@ -522,9 +551,18 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			By("returning a single matching container info")
 			actualContainerInfo, found, err := database.FindContainerInfoByIdentifier(db.ContainerIdentifier{Name: "some-container"})
+
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(actualContainerInfo).To(Equal(expectedContainerInfo))
+			Expect(actualContainerInfo.Handle).To(Equal("some-handle"))
+			Expect(actualContainerInfo.Name).To(Equal("some-container"))
+			Expect(actualContainerInfo.PipelineName).To(Equal("some-pipeline"))
+			Expect(actualContainerInfo.BuildID).To(Equal(123))
+			Expect(actualContainerInfo.Type).To(Equal(db.ContainerTypeTask))
+			Expect(actualContainerInfo.WorkerName).To(Equal("some-worker"))
+			Expect(actualContainerInfo.CheckType).To(Equal("some-type"))
+			Expect(actualContainerInfo.CheckSource).To(Equal(atc.Source{"some": "other-source"}))
+			Expect(actualContainerInfo.ExpiresAt.String()).NotTo(BeEmpty())
 
 			By("erroring if more than one container matches the filter")
 			actualContainerInfo, found, err = database.FindContainerInfoByIdentifier(db.ContainerIdentifier{Type: db.ContainerTypeTask})

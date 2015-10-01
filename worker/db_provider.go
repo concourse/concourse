@@ -91,6 +91,8 @@ func (provider *dbProvider) FindContainerInfoForIdentifier(id Identifier) (db.Co
 		BuildID:      id.BuildID,
 		Type:         id.Type,
 		WorkerName:   id.WorkerName,
+		CheckType:    id.CheckType,
+		CheckSource:  id.CheckSource,
 	}
 	return provider.db.FindContainerInfoByIdentifier(containerIdentifier)
 }

@@ -198,6 +198,8 @@ dance:
 			BuildID:      id.BuildID,
 			Type:         id.Type,
 			WorkerName:   worker.name,
+			CheckType:    id.CheckType,
+			CheckSource:  id.CheckSource,
 		}, containerTTL)
 	if err != nil {
 		return nil, err

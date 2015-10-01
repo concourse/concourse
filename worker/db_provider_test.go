@@ -229,4 +229,31 @@ var _ = Describe("DBProvider", func() {
 			})
 		})
 	})
+
+	Context("when we call to get a container info by identifier", func() {
+		It("calls through to the db object", func() {
+			provider.FindContainerInfoForIdentifier(Identifier{
+				Name:         "some-name",
+				PipelineName: "some-pipeline",
+				BuildID:      1234,
+				Type:         db.ContainerTypePut,
+				StepLocation: 1,
+				CheckType:    "some-check-type",
+				CheckSource:  atc.Source{"some": "source"},
+				WorkerName:   "some-worker-name",
+			})
+
+			Ω(fakeDB.FindContainerInfoByIdentifierCallCount()).Should(Equal(1))
+
+			Ω(fakeDB.FindContainerInfoByIdentifierArgsForCall(0)).Should(Equal(db.ContainerIdentifier{
+				Name:         "some-name",
+				PipelineName: "some-pipeline",
+				BuildID:      1234,
+				Type:         db.ContainerTypePut,
+				CheckType:    "some-check-type",
+				CheckSource:  atc.Source{"some": "source"},
+				WorkerName:   "some-worker-name",
+			}))
+		})
+	})
 })

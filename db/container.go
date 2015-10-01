@@ -3,6 +3,8 @@ package db
 import (
 	"fmt"
 	"time"
+
+	"github.com/concourse/atc"
 )
 
 type ContainerInfo struct {
@@ -13,6 +15,8 @@ type ContainerInfo struct {
 	Type         ContainerType
 	WorkerName   string
 	ExpiresAt    time.Time
+	CheckType    string
+	CheckSource  atc.Source
 }
 
 type ContainerType string
@@ -44,13 +48,11 @@ const (
 )
 
 type ContainerIdentifier struct {
-	Name string
-
+	Name         string
 	PipelineName string
-
-	BuildID int
-
-	Type ContainerType
-
-	WorkerName string
+	BuildID      int
+	Type         ContainerType
+	WorkerName   string
+	CheckType    string
+	CheckSource  atc.Source
 }

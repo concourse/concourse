@@ -184,6 +184,8 @@ var _ = Describe("Worker", func() {
 							BuildID:      42,
 							Type:         db.ContainerTypeGet,
 							WorkerName:   "my-garden-worker",
+							CheckType:    "some-check-type",
+							CheckSource:  atc.Source{"some": "source"},
 						}
 
 						Expect(fakeGardenWorkerDB.CreateContainerInfoCallCount()).To(Equal(1))

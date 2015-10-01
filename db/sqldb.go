@@ -933,21 +933,32 @@ func (db *SQLDB) FindContainerInfosByIdentifier(id ContainerIdentifier) ([]Conta
 		params = append(params, id.WorkerName)
 	}
 
-	var rows *sql.Rows
-	if len(whereCriteria) > 0 {
-		rows, err = db.conn.Query(
-			fmt.Sprintf(`
-				SELECT handle, pipeline_name, type, name, build_id, worker_name
-				FROM containers
-				WHERE %s
-			`, strings.Join(whereCriteria, " AND ")),
-			params...)
-	} else {
-		rows, err = db.conn.Query(`
-		SELECT handle, pipeline_name, type, name, build_id, worker_name
-		FROM containers
-	`)
+	if id.CheckType != "" {
+		whereCriteria = append(whereCriteria, fmt.Sprintf("check_type = $%d", len(params)+1))
+		params = append(params, id.CheckType)
 	}
+
+	var checkSourceBlob []byte
+	if id.CheckSource != nil {
+		checkSourceBlob, err = json.Marshal(id.CheckSource)
+		if err != nil {
+			return nil, false, err
+		}
+		whereCriteria = append(whereCriteria, fmt.Sprintf("check_source = $%d", len(params)+1))
+		params = append(params, checkSourceBlob)
+	}
+
+	var rows *sql.Rows
+	selectQuery := `
+		SELECT handle, pipeline_name, type, name, build_id, worker_name, expires_at, check_type, check_source
+		FROM containers
+	`
+
+	if len(whereCriteria) > 0 {
+		selectQuery += fmt.Sprintf("WHERE %s", strings.Join(whereCriteria, " AND "))
+	}
+
+	rows, err = db.conn.Query(selectQuery, params...)
 
 	if err != nil {
 		return nil, false, err
@@ -957,15 +968,8 @@ func (db *SQLDB) FindContainerInfosByIdentifier(id ContainerIdentifier) ([]Conta
 
 	infos := []ContainerInfo{}
 	for rows.Next() {
-		info := ContainerInfo{}
-		var infoType string
+		info, err := scanContainerInfo(rows)
 
-		err := rows.Scan(&info.Handle, &info.PipelineName, &infoType, &info.Name, &info.BuildID, &info.WorkerName)
-		if err != nil {
-			return nil, false, err
-		}
-
-		info.Type, err = containerTypeFromString(infoType)
 		if err != nil {
 			return nil, false, err
 		}
@@ -998,24 +1002,16 @@ func (db *SQLDB) FindContainerInfoByIdentifier(id ContainerIdentifier) (Containe
 }
 
 func (db *SQLDB) GetContainerInfo(handle string) (ContainerInfo, bool, error) {
-	info := ContainerInfo{}
-	var infoType string
-
-	err := db.conn.QueryRow(`
-		SELECT handle, pipeline_name, type, name, build_id, worker_name, expires_at
+	info, err := scanContainerInfo(db.conn.QueryRow(`
+		SELECT handle, pipeline_name, type, name, build_id, worker_name, expires_at, check_type, check_source
 		FROM containers c
 		WHERE c.handle = $1
-	`, handle).Scan(&info.Handle, &info.PipelineName, &infoType, &info.Name, &info.BuildID, &info.WorkerName, &info.ExpiresAt)
+	`, handle))
 
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return ContainerInfo{}, false, nil
 		}
-		return ContainerInfo{}, false, err
-	}
-
-	info.Type, err = containerTypeFromString(infoType)
-	if err != nil {
 		return ContainerInfo{}, false, err
 	}
 
@@ -1029,13 +1025,18 @@ func (db *SQLDB) CreateContainerInfo(containerInfo ContainerInfo, ttl time.Durat
 		return err
 	}
 
+	checkSource, err := json.Marshal(containerInfo.CheckSource)
+	if err != nil {
+		return err
+	}
+
 	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
 
 	defer tx.Rollback()
 
 	_, err = tx.Exec(`
-		INSERT INTO containers (handle, name, pipeline_name, build_id, type, worker_name, expires_at)
-		VALUES ($1, $2, $3, $4, $5, $6,  NOW() + $7::INTERVAL)
+		INSERT INTO containers (handle, name, pipeline_name, build_id, type, worker_name, expires_at, check_type, check_source)
+		VALUES ($1, $2, $3, $4, $5, $6,  NOW() + $7::INTERVAL, $8, $9)
 		`,
 		containerInfo.Handle,
 		containerInfo.Name,
@@ -1044,6 +1045,8 @@ func (db *SQLDB) CreateContainerInfo(containerInfo ContainerInfo, ttl time.Durat
 		containerInfo.Type.ToString(),
 		containerInfo.WorkerName,
 		interval,
+		containerInfo.CheckType,
+		checkSource,
 	)
 
 	if err != nil {
@@ -1127,6 +1130,30 @@ func scanPipeline(rows scannable) (SavedPipeline, error) {
 			Version: ConfigVersion(version),
 		},
 	}, nil
+}
+
+func scanContainerInfo(row scannable) (ContainerInfo, error) {
+	var infoType string
+	var checkSourceBlob []byte
+
+	info := ContainerInfo{}
+
+	err := row.Scan(&info.Handle, &info.PipelineName, &infoType, &info.Name, &info.BuildID, &info.WorkerName, &info.ExpiresAt, &info.CheckType, &checkSourceBlob)
+	if err != nil {
+		return ContainerInfo{}, err
+	}
+
+	info.Type, err = containerTypeFromString(infoType)
+	if err != nil {
+		return ContainerInfo{}, err
+	}
+
+	err = json.Unmarshal(checkSourceBlob, &info.CheckSource)
+	if err != nil {
+		return ContainerInfo{}, err
+	}
+
+	return info, nil
 }
 
 func scanBuild(row scannable) (Build, bool, error) {

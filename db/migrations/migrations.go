@@ -55,4 +55,5 @@ var Migrations = []migration.Migrator{
 	AddContainers,
 	AddNameToWorkers,
 	AddLastScheduledToBuilds,
+	AddCheckTypeAndCheckSourceToContainers,
 }
