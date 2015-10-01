@@ -82,6 +82,7 @@ func (server *registrarSSHServer) Serve(listener net.Listener) {
 }
 
 type forwardedTCPIP struct {
+	bindAddr  string
 	process   ifrit.Process
 	boundPort uint32
 }
@@ -89,7 +90,7 @@ type forwardedTCPIP struct {
 func (server *registrarSSHServer) handleConn(logger lager.Logger, conn *ssh.ServerConn, chans <-chan ssh.NewChannel, reqs <-chan *ssh.Request) {
 	defer conn.Close()
 
-	forwardedTCPIPs := make(chan forwardedTCPIP, 1)
+	forwardedTCPIPs := make(chan forwardedTCPIP, 2)
 	go server.handleForwardRequests(logger, conn, reqs, forwardedTCPIPs)
 
 	var processes []ifrit.Process
@@ -139,7 +140,6 @@ func (server *registrarSSHServer) handleConn(logger lager.Logger, conn *ssh.Serv
 
 			if req.Type != "exec" {
 				logger.Info("rejecting")
-
 				req.Reply(false, nil)
 				continue
 			}
@@ -148,14 +148,19 @@ func (server *registrarSSHServer) handleConn(logger lager.Logger, conn *ssh.Serv
 			err = ssh.Unmarshal(req.Payload, &request)
 			if err != nil {
 				logger.Error("malformed-exec-request", err)
-
 				req.Reply(false, nil)
-
 				return
 			}
 
-			switch request.Command {
-			case "register-worker":
+			workerRequest, err := parseRequest(request.Command)
+			if err != nil {
+				fmt.Fprintf(channel, "invalid command: %s", err)
+				req.Reply(false, nil)
+				continue
+			}
+
+			switch r := workerRequest.(type) {
+			case registerWorkerRequest:
 				logger := logger.Session("register-worker")
 
 				req.Reply(true, nil)
@@ -171,33 +176,79 @@ func (server *registrarSSHServer) handleConn(logger lager.Logger, conn *ssh.Serv
 				err = conn.Wait()
 				logger.Error("connection-closed", err)
 
-			case "forward-worker":
+			case forwardWorkerRequest:
 				logger := logger.Session("forward-worker")
 
-				var forwarded forwardedTCPIP
+				forwards := map[string]forwardedTCPIP{}
 
-				select {
-				case forwarded = <-forwardedTCPIPs:
-					logger.Info("forwarded-tcpip", lager.Data{
-						"bound-port": forwarded.boundPort,
-					})
+				for i := 0; i < r.expectedForwards(); i++ {
+					select {
+					case forwarded := <-forwardedTCPIPs:
+						logger.Info("forwarded-tcpip", lager.Data{
+							"bound-port": forwarded.boundPort,
+						})
 
-					processes = append(processes, forwarded.process)
+						processes = append(processes, forwarded.process)
 
-					process, err := server.continuouslyRegisterForwardedWorker(logger, channel, forwarded.boundPort)
+						forwards[forwarded.bindAddr] = forwarded
+
+					case <-time.After(10 * time.Second): // todo better?
+						logger.Info("never-forwarded-tcpip")
+					}
+				}
+
+				switch len(forwards) {
+				case 0:
+					fmt.Fprintf(channel, "requested forwarding but no forwards given\n")
+					return
+
+				case 1:
+					for _, gardenForward := range forwards {
+						process, err := server.continuouslyRegisterForwardedWorker(
+							logger,
+							channel,
+							gardenForward.boundPort,
+							0,
+						)
+						if err != nil {
+							logger.Error("failed-to-register", err)
+							return
+						}
+
+						processes = append(processes, process)
+
+						break
+					}
+
+				case 2:
+					gardenForward, found := forwards[r.gardenAddr]
+					if !found {
+						fmt.Fprintf(channel, "garden address %s not found in forwards\n", r.gardenAddr)
+						return
+					}
+
+					baggageclaimForward, found := forwards[r.baggageclaimAddr]
+					if !found {
+						fmt.Fprintf(channel, "baggageclaim address %s not found in forwards\n", r.gardenAddr)
+						return
+					}
+
+					process, err := server.continuouslyRegisterForwardedWorker(
+						logger,
+						channel,
+						gardenForward.boundPort,
+						baggageclaimForward.boundPort,
+					)
 					if err != nil {
 						logger.Error("failed-to-register", err)
 						return
 					}
 
 					processes = append(processes, process)
-
-					err = conn.Wait()
-					logger.Error("connection-closed", err)
-
-				case <-time.After(10 * time.Second): // todo better?
-					logger.Info("never-forwarded-tcpip")
 				}
+
+				err = conn.Wait()
+				logger.Error("connection-closed", err)
 
 			default:
 				logger.Info("invalid-command", lager.Data{
@@ -229,7 +280,8 @@ func (server *registrarSSHServer) continuouslyRegisterWorkerDirectly(
 func (server *registrarSSHServer) continuouslyRegisterForwardedWorker(
 	logger lager.Logger,
 	channel ssh.Channel,
-	boundPort uint32,
+	gardenPort uint32,
+	baggageclaimPort uint32,
 ) (ifrit.Process, error) {
 	logger.Session("start")
 	defer logger.Session("done")
@@ -240,7 +292,11 @@ func (server *registrarSSHServer) continuouslyRegisterForwardedWorker(
 		return nil, err
 	}
 
-	worker.GardenAddr = fmt.Sprintf("%s:%d", server.forwardHost, boundPort)
+	worker.GardenAddr = fmt.Sprintf("%s:%d", server.forwardHost, gardenPort)
+
+	if baggageclaimPort != 0 {
+		worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", server.forwardHost, baggageclaimPort)
+	}
 
 	return server.heartbeatWorker(logger, worker, channel), nil
 }
@@ -271,7 +327,7 @@ func (server *registrarSSHServer) handleForwardRequests(
 
 			forwardedThings++
 
-			if forwardedThings > 1 {
+			if forwardedThings > 2 {
 				logger.Info("rejecting-extra-forward-request")
 				r.Reply(false, nil)
 				continue
@@ -285,19 +341,20 @@ func (server *registrarSSHServer) handleForwardRequests(
 				continue
 			}
 
-			bindAddr := net.JoinHostPort(req.BindIP, fmt.Sprintf("%d", req.BindPort))
-
-			logger.Info("forwarding-tcpip", lager.Data{
-				"bind-addr": bindAddr,
-			})
-
-			listener, err := net.Listen("tcp", bindAddr)
+			listener, err := net.Listen("tcp", "0.0.0.0:0")
 			if err != nil {
+				logger.Error("failed-to-listen", err)
 				r.Reply(false, nil)
 				continue
 			}
 
 			defer listener.Close()
+
+			bindAddr := net.JoinHostPort(req.BindIP, fmt.Sprintf("%d", req.BindPort))
+
+			logger.Info("forwarding-tcpip", lager.Data{
+				"requested-bind-addr": bindAddr,
+			})
 
 			_, port, err := net.SplitHostPort(listener.Addr().String())
 			if err != nil {
@@ -312,9 +369,15 @@ func (server *registrarSSHServer) handleForwardRequests(
 				continue
 			}
 
-			process := server.forwardTCPIP(logger, conn, listener, req.BindIP, res.BoundPort)
+			forPort := req.BindPort
+			if forPort == 0 {
+				forPort = res.BoundPort
+			}
+
+			process := server.forwardTCPIP(logger, conn, listener, req.BindIP, forPort)
 
 			forwardedTCPIPs <- forwardedTCPIP{
+				bindAddr:  fmt.Sprintf("%s:%d", req.BindIP, req.BindPort),
 				boundPort: res.BoundPort,
 				process:   process,
 			}

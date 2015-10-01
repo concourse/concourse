@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,6 +22,7 @@ import (
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
 	gserver "github.com/cloudfoundry-incubator/garden/server"
 	"github.com/concourse/atc"
+	bclient "github.com/concourse/baggageclaim/client"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -350,7 +352,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 					})
 				})
 
-				Context("when running forward-worker", func() {
+				Context("when running forward-worker with only a Garden address", func() {
 					BeforeEach(func() {
 						sshArgv = append(sshArgv, "-R", fmt.Sprintf("0.0.0.0:0:%s", gardenAddr), "forward-worker")
 					})
@@ -518,13 +520,213 @@ var _ = Describe("TSA SSH Registrar", func() {
 				})
 
 				Context("when running forward-worker with multiple forwarded addresses", func() {
+					var baggageclaimServer *ghttp.Server
+
 					BeforeEach(func() {
-						sshArgv = append(sshArgv, "-R", "0.0.0.0:0:8.6.7.5:7777", "-R", "0.0.0.0:0:3.0.9.9:7777", "forward-worker")
+						baggageclaimServer = ghttp.NewServer()
+
+						sshArgv = append(
+							sshArgv,
+							"-R", fmt.Sprintf("0.0.0.0:7777:%s", gardenAddr),
+							"-R", fmt.Sprintf("0.0.0.0:7788:%s", baggageclaimServer.Addr()),
+							"forward-worker",
+							"--garden", "0.0.0.0:7777",
+							"--baggageclaim", "0.0.0.0:7788",
+						)
 					})
 
-					It("rejects the request", func() {
-						Eventually(sshSess.Err, 10).Should(gbytes.Say("Allocated port"))
-						Eventually(sshSess.Err, 10).Should(gbytes.Say("remote port forwarding failed"))
+					It("does not exit", func() {
+						Consistently(sshSess, 1).ShouldNot(gexec.Exit())
+					})
+
+					Describe("sending a worker payload on stdin", func() {
+						type registration struct {
+							worker atc.Worker
+							ttl    time.Duration
+						}
+
+						var workerPayload atc.Worker
+						var registered chan registration
+
+						BeforeEach(func() {
+							workerPayload = atc.Worker{
+								Platform: "linux",
+								Tags:     []string{"some", "tags"},
+
+								ResourceTypes: []atc.WorkerResourceType{
+									{Type: "resource-type-a", Image: "resource-image-a"},
+									{Type: "resource-type-b", Image: "resource-image-b"},
+								},
+							}
+
+							registered = make(chan registration)
+
+							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
+								var worker atc.Worker
+								err := json.NewDecoder(r.Body).Decode(&worker)
+								Ω(err).ShouldNot(HaveOccurred())
+
+								ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
+								Ω(err).ShouldNot(HaveOccurred())
+
+								registered <- registration{worker, ttl}
+							})
+
+							stubs := make(chan func() ([]garden.Container, error), 4)
+
+							stubs <- func() ([]garden.Container, error) {
+								return []garden.Container{
+									new(gfakes.FakeContainer),
+									new(gfakes.FakeContainer),
+									new(gfakes.FakeContainer),
+								}, nil
+							}
+
+							stubs <- func() ([]garden.Container, error) {
+								return []garden.Container{
+									new(gfakes.FakeContainer),
+									new(gfakes.FakeContainer),
+								}, nil
+							}
+
+							stubs <- func() ([]garden.Container, error) {
+								return nil, errors.New("garden was weeded")
+							}
+
+							stubs <- func() ([]garden.Container, error) {
+								return []garden.Container{
+									new(gfakes.FakeContainer),
+								}, nil
+							}
+
+							fakeBackend.ContainersStub = func(garden.Properties) ([]garden.Container, error) {
+								return (<-stubs)()
+							}
+						})
+
+						JustBeforeEach(func() {
+							err := json.NewEncoder(sshStdin).Encode(workerPayload)
+							Ω(err).ShouldNot(HaveOccurred())
+						})
+
+						It("forwards garden API calls through the tunnel", func() {
+							registration := <-registered
+							addr := registration.worker.GardenAddr
+
+							client := gclient.New(gconn.New("tcp", addr))
+
+							fakeBackend.CreateReturns(new(gfakes.FakeContainer), nil)
+
+							_, err := client.Create(garden.ContainerSpec{})
+							Ω(err).ShouldNot(HaveOccurred())
+
+							Ω(fakeBackend.CreateCallCount()).Should(Equal(1))
+						})
+
+						It("forwards baggageclaim API calls through the tunnel", func() {
+							registration := <-registered
+
+							url := registration.worker.BaggageclaimURL
+							Expect(url).ToNot(BeEmpty())
+
+							client := bclient.New(url)
+
+							baggageclaimServer.AppendHandlers(
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/volumes"),
+									ghttp.RespondWith(200, `[]`, http.Header{"Content-type": []string{"application/json"}}),
+								),
+							)
+
+							volumes, err := client.ListVolumes(nil, nil)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							Expect(volumes).To(BeEmpty())
+						})
+
+						It("continuously registers it with the ATC as long as it works", func() {
+							a := time.Now()
+							registration := <-registered
+							Ω(registration.ttl).Should(Equal(2 * heartbeatInterval))
+
+							// shortcut for equality w/out checking addr
+							expectedWorkerPayload := workerPayload
+							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
+							expectedWorkerPayload.BaggageclaimURL = registration.worker.BaggageclaimURL
+							expectedWorkerPayload.ActiveContainers = 3
+							Ω(registration.worker).Should(Equal(expectedWorkerPayload))
+
+							host, _, err := net.SplitHostPort(registration.worker.GardenAddr)
+							Ω(err).ShouldNot(HaveOccurred())
+							Ω(host).Should(Equal(forwardHost))
+
+							b := time.Now()
+							registration = <-registered
+							Ω(registration.ttl).Should(Equal(2 * heartbeatInterval))
+
+							// shortcut for equality w/out checking addr
+							expectedWorkerPayload = workerPayload
+							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
+							expectedWorkerPayload.BaggageclaimURL = registration.worker.BaggageclaimURL
+							expectedWorkerPayload.ActiveContainers = 2
+							Ω(registration.worker).Should(Equal(expectedWorkerPayload))
+
+							host, _, err = net.SplitHostPort(registration.worker.GardenAddr)
+							Ω(err).ShouldNot(HaveOccurred())
+							Ω(host).Should(Equal(forwardHost))
+
+							Ω(b.Sub(a)).Should(BeNumerically("~", heartbeatInterval, 1*time.Second))
+
+							Consistently(registered, 2*heartbeatInterval).ShouldNot(Receive())
+
+							c := time.Now()
+							registration = <-registered
+							Ω(registration.ttl).Should(Equal(2 * heartbeatInterval))
+
+							// shortcut for equality w/out checking addr
+							expectedWorkerPayload = workerPayload
+							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
+							expectedWorkerPayload.BaggageclaimURL = registration.worker.BaggageclaimURL
+							expectedWorkerPayload.ActiveContainers = 1
+							Ω(registration.worker).Should(Equal(expectedWorkerPayload))
+
+							host, port, err := net.SplitHostPort(registration.worker.GardenAddr)
+							Ω(err).ShouldNot(HaveOccurred())
+							Ω(host).Should(Equal(forwardHost))
+							Ω(port).ShouldNot(Equal("7777")) // should NOT respect bind addr
+
+							bURL, err := url.Parse(registration.worker.BaggageclaimURL)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							host, port, err = net.SplitHostPort(bURL.Host)
+							Ω(err).ShouldNot(HaveOccurred())
+							Ω(host).Should(Equal(forwardHost))
+							Ω(port).ShouldNot(Equal("7788")) // should NOT respect bind addr
+
+							Ω(c.Sub(b)).Should(BeNumerically("~", 3*heartbeatInterval, 1*time.Second))
+						})
+
+						Context("when the client goes away", func() {
+							It("stops registering", func() {
+								time.Sleep(heartbeatInterval)
+
+								sshSess.Interrupt().Wait(10 * time.Second)
+
+								time.Sleep(heartbeatInterval)
+
+								// siphon off any existing registrations
+							dance:
+								for {
+									select {
+									case <-registered:
+									default:
+										break dance
+									}
+								}
+
+								Consistently(registered, 2*heartbeatInterval).ShouldNot(Receive())
+							})
+						})
 					})
 				})
 
