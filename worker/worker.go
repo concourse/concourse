@@ -403,6 +403,10 @@ func (container *gardenWorkerContainer) initializeVolumes(
 	properties garden.Properties,
 	baggageclaimClient baggageclaim.Client,
 ) error {
+	if baggageclaimClient == nil {
+		return nil
+	}
+
 	handlesJSON, found := properties["concourse:volumes"]
 	if !found {
 		container.volumes = []baggageclaim.Volume{}

@@ -659,6 +659,26 @@ var _ = Describe("Worker", func() {
 								Expect(findErr).To(Equal(disaster))
 							})
 						})
+
+						Context("when there is no baggageclaim", func() {
+							BeforeEach(func() {
+								worker = NewGardenWorker(
+									fakeGardenClient,
+									nil,
+									fakeGardenWorkerDB,
+									fakeClock,
+									activeContainers,
+									resourceTypes,
+									platform,
+									tags,
+									name,
+								)
+							})
+
+							It("returns an empty slice", func() {
+								Expect(foundContainer.Volumes()).To(BeEmpty())
+							})
+						})
 					})
 
 					Describe("Release", func() {
