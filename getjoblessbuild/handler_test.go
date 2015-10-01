@@ -31,22 +31,22 @@ var _ = Describe("Handler", func() {
 			fakeDB.GetBuildReturns(build, true, nil)
 
 			templateData, err := FetchTemplateData("3", fakeDB, fakeConfigDB)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			Ω(templateData.Build.ID).Should(Equal(3))
-			Ω(templateData.Build).Should(BeAssignableToTypeOf(db.Build{}))
+			Expect(templateData.Build.ID).To(Equal(3))
+			Expect(templateData.Build).To(BeAssignableToTypeOf(db.Build{}))
 		})
 
 		It("errors if the db returns an error", func() {
 			fakeDB.GetBuildReturns(db.Build{}, false, errors.New("disaster"))
 
 			_, err := FetchTemplateData("1", fakeDB, fakeConfigDB)
-			Ω(err).Should(HaveOccurred())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("errors if the build ID is not an integer", func() {
 			_, err := FetchTemplateData("not-a-number", fakeDB, fakeConfigDB)
-			Ω(err).Should(MatchError(ErrInvalidBuildID))
+			Expect(err).To(MatchError(ErrInvalidBuildID))
 		})
 	})
 })

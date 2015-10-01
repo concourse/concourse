@@ -32,7 +32,7 @@ var _ = Describe("FetchTemplateData", func() {
 
 		It("returns an error if the config could not be loaded", func() {
 			_, err := FetchTemplateData(fakeDB, fakePaginator, "job-name", 0, false)
-			Ω(err).Should(HaveOccurred())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -43,7 +43,7 @@ var _ = Describe("FetchTemplateData", func() {
 
 		It("returns an error if the config could not be loaded", func() {
 			_, err := FetchTemplateData(fakeDB, fakePaginator, "job-name", 0, false)
-			Ω(err).Should(HaveOccurred())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -74,28 +74,28 @@ var _ = Describe("FetchTemplateData", func() {
 
 		It("returns not found if the job cannot be found in the config", func() {
 			_, err := FetchTemplateData(fakeDB, fakePaginator, "not-a-job-name", 0, false)
-			Ω(err).Should(HaveOccurred())
-			Ω(err).Should(MatchError(ErrJobConfigNotFound))
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(ErrJobConfigNotFound))
 		})
 
 		Context("when the job can be found in the config", func() {
 			It("looks up the jobs builds", func() {
 				_, err := FetchTemplateData(fakeDB, fakePaginator, "job-name", 398, true)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				Ω(fakePaginator.PaginateJobBuildsCallCount()).Should(Equal(1))
+				Expect(fakePaginator.PaginateJobBuildsCallCount()).To(Equal(1))
 
 				jobName, startingJobBuildID, resultsGreaterThanStartingID := fakePaginator.PaginateJobBuildsArgsForCall(0)
-				Ω(jobName).Should(Equal("job-name"))
-				Ω(startingJobBuildID).Should(Equal(398))
-				Ω(resultsGreaterThanStartingID).Should(BeTrue())
+				Expect(jobName).To(Equal("job-name"))
+				Expect(startingJobBuildID).To(Equal(398))
+				Expect(resultsGreaterThanStartingID).To(BeTrue())
 			})
 
 			Context("when the job builds lookup returns an error", func() {
 				It("returns an error if the jobs's builds could not be retreived", func() {
 					fakePaginator.PaginateJobBuildsReturns([]db.Build{}, pagination.PaginationData{}, errors.New("disaster"))
 					_, err := FetchTemplateData(fakeDB, fakePaginator, "job-name", 0, false)
-					Ω(err).Should(HaveOccurred())
+					Expect(err).To(HaveOccurred())
 				})
 			})
 
@@ -132,7 +132,7 @@ var _ = Describe("FetchTemplateData", func() {
 					It("returns an error", func() {
 						fakeDB.GetJobReturns(db.SavedJob{}, errors.New("disaster"))
 						_, err := FetchTemplateData(fakeDB, fakePaginator, "job-name", 0, false)
-						Ω(err).Should(HaveOccurred())
+						Expect(err).To(HaveOccurred())
 					})
 
 					Context("when getting inputs and outputs for a build", func() {
@@ -170,8 +170,8 @@ var _ = Describe("FetchTemplateData", func() {
 
 							It("returns an error", func() {
 								templateData, err := FetchTemplateData(fakeDB, fakePaginator, "job-name", 0, false)
-								Ω(err).Should(HaveOccurred())
-								Ω(templateData).Should(Equal(TemplateData{}))
+								Expect(err).To(HaveOccurred())
+								Expect(templateData).To(Equal(TemplateData{}))
 							})
 						})
 
@@ -182,13 +182,13 @@ var _ = Describe("FetchTemplateData", func() {
 
 							It("populates the inputs and outputs for the builds returned", func() {
 								templateData, err := FetchTemplateData(fakeDB, fakePaginator, "job-name", 0, false)
-								Ω(err).ShouldNot(HaveOccurred())
-								Ω(fakeDB.GetBuildResourcesCallCount()).Should(Equal(1))
+								Expect(err).NotTo(HaveOccurred())
+								Expect(fakeDB.GetBuildResourcesCallCount()).To(Equal(1))
 
 								calledBuildID := fakeDB.GetBuildResourcesArgsForCall(0)
-								Ω(calledBuildID).Should(Equal(1))
+								Expect(calledBuildID).To(Equal(1))
 
-								Ω(templateData.Builds).Should(Equal(buildsWithResources))
+								Expect(templateData.Builds).To(Equal(buildsWithResources))
 							})
 						})
 					})
@@ -227,15 +227,15 @@ var _ = Describe("FetchTemplateData", func() {
 
 							It("has the correct template data with no current build", func() {
 								templateData, err := FetchTemplateData(fakeDB, fakePaginator, "job-name", 0, false)
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
-								Ω(templateData.GroupStates).Should(ConsistOf(groupStates))
-								Ω(templateData.Job).Should(Equal(job))
-								Ω(templateData.DBJob).Should(Equal(dbJob))
-								Ω(templateData.Builds).Should(Equal(buildsWithResources))
-								Ω(templateData.CurrentBuild).Should(BeNil())
-								Ω(templateData.PipelineName).Should(Equal("some-pipeline"))
-								Ω(templateData.PaginationData.HasPagination()).Should(BeTrue())
+								Expect(templateData.GroupStates).To(ConsistOf(groupStates))
+								Expect(templateData.Job).To(Equal(job))
+								Expect(templateData.DBJob).To(Equal(dbJob))
+								Expect(templateData.Builds).To(Equal(buildsWithResources))
+								Expect(templateData.CurrentBuild).To(BeNil())
+								Expect(templateData.PipelineName).To(Equal("some-pipeline"))
+								Expect(templateData.PaginationData.HasPagination()).To(BeTrue())
 							})
 						})
 
@@ -255,13 +255,13 @@ var _ = Describe("FetchTemplateData", func() {
 
 							It("has the correct template data", func() {
 								templateData, err := FetchTemplateData(fakeDB, fakePaginator, "job-name", 0, false)
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
-								Ω(templateData.GroupStates).Should(ConsistOf(groupStates))
-								Ω(templateData.Job).Should(Equal(job))
-								Ω(templateData.DBJob).Should(Equal(dbJob))
-								Ω(templateData.Builds).Should(Equal(buildsWithResources))
-								Ω(templateData.CurrentBuild).Should(Equal(&currentBuild))
+								Expect(templateData.GroupStates).To(ConsistOf(groupStates))
+								Expect(templateData.Job).To(Equal(job))
+								Expect(templateData.DBJob).To(Equal(dbJob))
+								Expect(templateData.Builds).To(Equal(buildsWithResources))
+								Expect(templateData.CurrentBuild).To(Equal(&currentBuild))
 							})
 
 							Context("when the job is paused", func() {
@@ -277,13 +277,13 @@ var _ = Describe("FetchTemplateData", func() {
 
 								It("has the correct template data and sets the current build status to paused", func() {
 									templateData, err := FetchTemplateData(fakeDB, fakePaginator, "job-name", 0, false)
-									Ω(err).ShouldNot(HaveOccurred())
+									Expect(err).NotTo(HaveOccurred())
 
-									Ω(templateData.GroupStates).Should(ConsistOf(groupStates))
-									Ω(templateData.Job).Should(Equal(job))
-									Ω(templateData.DBJob).Should(Equal(dbJob))
-									Ω(templateData.Builds).Should(Equal(buildsWithResources))
-									Ω(templateData.CurrentBuild).Should(Equal(&currentBuild))
+									Expect(templateData.GroupStates).To(ConsistOf(groupStates))
+									Expect(templateData.Job).To(Equal(job))
+									Expect(templateData.DBJob).To(Equal(dbJob))
+									Expect(templateData.Builds).To(Equal(buildsWithResources))
+									Expect(templateData.CurrentBuild).To(Equal(&currentBuild))
 								})
 							})
 						})

@@ -35,7 +35,7 @@ var _ = Describe("Paginator", func() {
 
 				It("returns an error", func() {
 					_, _, err := paginator.PaginateJobBuilds(jobName, startingJobBuildID, newerJobBuilds)
-					Ω(err).Should(HaveOccurred())
+					Expect(err).To(HaveOccurred())
 				})
 			})
 
@@ -46,30 +46,30 @@ var _ = Describe("Paginator", func() {
 
 				It("returns a version of pagination data that says hasPagination is false", func() {
 					_, paginationData, _ := paginator.PaginateJobBuilds(jobName, startingJobBuildID, newerJobBuilds)
-					Ω(paginationData.HasPagination()).Should(BeFalse())
+					Expect(paginationData.HasPagination()).To(BeFalse())
 				})
 
 				It("calls to get the max id for job builds", func() {
 					paginator.PaginateJobBuilds(jobName, startingJobBuildID, newerJobBuilds)
 
-					Ω(fakeJobPaginatorDB.GetJobBuildsMaxIDCallCount()).Should(Equal(1))
+					Expect(fakeJobPaginatorDB.GetJobBuildsMaxIDCallCount()).To(Equal(1))
 
 					argJobName := fakeJobPaginatorDB.GetJobBuildsMaxIDArgsForCall(0)
 
-					Ω(argJobName).Should(Equal(jobName))
+					Expect(argJobName).To(Equal(jobName))
 				})
 
 				It("calls to get 100 job builds in a direction starting with the passed in ID", func() {
 					paginator.PaginateJobBuilds(jobName, startingJobBuildID, newerJobBuilds)
 
-					Ω(fakeJobPaginatorDB.GetJobBuildsCursorCallCount()).Should(Equal(1))
+					Expect(fakeJobPaginatorDB.GetJobBuildsCursorCallCount()).To(Equal(1))
 
 					argJobName, argStartingJobBuildID, argResultsGreaterThanStartingID, argLimit := fakeJobPaginatorDB.GetJobBuildsCursorArgsForCall(0)
 
-					Ω(argJobName).Should(Equal(jobName))
-					Ω(argResultsGreaterThanStartingID).Should(Equal(newerJobBuilds))
-					Ω(argStartingJobBuildID).Should(Equal(startingJobBuildID))
-					Ω(argLimit).Should(Equal(100))
+					Expect(argJobName).To(Equal(jobName))
+					Expect(argResultsGreaterThanStartingID).To(Equal(newerJobBuilds))
+					Expect(argStartingJobBuildID).To(Equal(startingJobBuildID))
+					Expect(argLimit).To(Equal(100))
 				})
 
 				Context("when startingJobBuildID is 0 and resultsGreaterThanStartingID is false", func() {
@@ -78,12 +78,12 @@ var _ = Describe("Paginator", func() {
 
 						paginator.PaginateJobBuilds(jobName, 0, false)
 
-						Ω(fakeJobPaginatorDB.GetJobBuildsCursorCallCount()).Should(Equal(1))
+						Expect(fakeJobPaginatorDB.GetJobBuildsCursorCallCount()).To(Equal(1))
 
 						_, argStartingJobBuildID, argResultsGreaterThanStartingID, _ := fakeJobPaginatorDB.GetJobBuildsCursorArgsForCall(0)
 
-						Ω(argStartingJobBuildID).Should(Equal(298))
-						Ω(argResultsGreaterThanStartingID).Should(BeFalse())
+						Expect(argStartingJobBuildID).To(Equal(298))
+						Expect(argResultsGreaterThanStartingID).To(BeFalse())
 					})
 				})
 			})
@@ -111,9 +111,9 @@ var _ = Describe("Paginator", func() {
 
 				It("returns the builds we got back from the database call", func() {
 					retBuilds, _, err := paginator.PaginateJobBuilds(jobName, startingJobBuildID, newerJobBuilds)
-					Ω(err).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
 
-					Ω(retBuilds).Should(Equal(builds))
+					Expect(retBuilds).To(Equal(builds))
 				})
 
 			})

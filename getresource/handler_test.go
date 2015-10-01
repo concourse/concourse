@@ -28,7 +28,7 @@ var _ = Describe("FetchTemplateData", func() {
 
 		It("returns an error if the config could not be loaded", func() {
 			_, err := FetchTemplateData(fakeDB, false, "resource-name", 0, false)
-			Ω(err).Should(HaveOccurred())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -39,7 +39,7 @@ var _ = Describe("FetchTemplateData", func() {
 
 		It("returns an error if the config could not be loaded", func() {
 			_, err := FetchTemplateData(fakeDB, false, "resource-name", 0, false)
-			Ω(err).Should(HaveOccurred())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -69,8 +69,8 @@ var _ = Describe("FetchTemplateData", func() {
 
 		It("returns not found if the resource cannot be found in the config", func() {
 			_, err := FetchTemplateData(fakeDB, false, "not-a-resource-name", 0, false)
-			Ω(err).Should(HaveOccurred())
-			Ω(err).Should(MatchError(ErrResourceConfigNotFound))
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(ErrResourceConfigNotFound))
 		})
 
 		Context("when the resource history lookup returns an error", func() {
@@ -80,7 +80,7 @@ var _ = Describe("FetchTemplateData", func() {
 
 			It("returns an error if the resource's history could not be retreived", func() {
 				_, err := FetchTemplateData(fakeDB, false, "resource-name", 0, false)
-				Ω(err).Should(HaveOccurred())
+				Expect(err).To(HaveOccurred())
 			})
 		})
 
@@ -92,7 +92,7 @@ var _ = Describe("FetchTemplateData", func() {
 
 				It("returns an error if the resource's history could not be retreived", func() {
 					_, err := FetchTemplateData(fakeDB, false, "resource-name", 0, false)
-					Ω(err).Should(HaveOccurred())
+					Expect(err).To(HaveOccurred())
 				})
 			})
 
@@ -123,7 +123,7 @@ var _ = Describe("FetchTemplateData", func() {
 
 						It("returns an error", func() {
 							_, err := FetchTemplateData(fakeDB, false, "resource-name", 0, false)
-							Ω(err).Should(HaveOccurred())
+							Expect(err).To(HaveOccurred())
 						})
 					})
 
@@ -159,23 +159,23 @@ var _ = Describe("FetchTemplateData", func() {
 							Context("when the passed in id is 0", func() {
 								It("uses the max id to pull history", func() {
 									templateData, err := FetchTemplateData(fakeDB, false, "resource-name", 0, false)
-									Ω(err).ShouldNot(HaveOccurred())
+									Expect(err).NotTo(HaveOccurred())
 
-									Ω(fakeDB.GetResourceHistoryCursorCallCount()).Should(Equal(1))
+									Expect(fakeDB.GetResourceHistoryCursorCallCount()).To(Equal(1))
 									resourceName, startingID, searchUpwards, numResults := fakeDB.GetResourceHistoryCursorArgsForCall(0)
-									Ω(resourceName).Should(Equal("resource-name"))
-									Ω(startingID).Should(Equal(MaxID))
-									Ω(searchUpwards).Should(BeFalse())
-									Ω(numResults).Should(Equal(100))
-									Ω(templateData.PaginationData.HasPagination()).Should(BeTrue())
+									Expect(resourceName).To(Equal("resource-name"))
+									Expect(startingID).To(Equal(MaxID))
+									Expect(searchUpwards).To(BeFalse())
+									Expect(numResults).To(Equal(100))
+									Expect(templateData.PaginationData.HasPagination()).To(BeTrue())
 								})
 							})
 
 							It("has the correct template data", func() {
 								templateData, err := FetchTemplateData(fakeDB, authenticated, "resource-name", 0, false)
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
-								Ω(templateData.GroupStates).Should(ConsistOf([]group.State{
+								Expect(templateData.GroupStates).To(ConsistOf([]group.State{
 									{
 										Name:    "group-with-resource",
 										Enabled: true,
@@ -186,15 +186,16 @@ var _ = Describe("FetchTemplateData", func() {
 									},
 								}))
 
-								Ω(templateData.History).Should(Equal(history))
-								Ω(templateData.Resource).Should(Equal(atc.Resource{
+								Expect(templateData.History).To(Equal(history))
+								Expect(templateData.Resource).To(Equal(atc.Resource{
 									Name:           "resource-name",
 									URL:            "/pipelines/pipeline/resources/resource-name",
 									Groups:         []string{"group-with-resource"},
 									FailingToCheck: true,
 									CheckError:     "a disaster!",
 								}))
-								Ω(templateData.PaginationData.HasPagination()).Should(BeTrue())
+
+								Expect(templateData.PaginationData.HasPagination()).To(BeTrue())
 							})
 						})
 					})
@@ -210,9 +211,9 @@ var _ = Describe("FetchTemplateData", func() {
 
 					It("has the correct template data", func() {
 						templateData, err := FetchTemplateData(fakeDB, authenticated, "resource-name", 0, false)
-						Ω(err).ShouldNot(HaveOccurred())
+						Expect(err).NotTo(HaveOccurred())
 
-						Ω(templateData.GroupStates).Should(ConsistOf([]group.State{
+						Expect(templateData.GroupStates).To(ConsistOf([]group.State{
 							{
 								Name:    "group-with-resource",
 								Enabled: true,
@@ -223,14 +224,15 @@ var _ = Describe("FetchTemplateData", func() {
 							},
 						}))
 
-						Ω(templateData.History).Should(Equal(history))
-						Ω(templateData.Resource).Should(Equal(atc.Resource{
+						Expect(templateData.History).To(Equal(history))
+						Expect(templateData.Resource).To(Equal(atc.Resource{
 							Name:           "resource-name",
 							URL:            "/pipelines/pipeline/resources/resource-name",
 							Groups:         []string{"group-with-resource"},
 							FailingToCheck: true,
 							CheckError:     "",
 						}))
+
 					})
 				})
 			})

@@ -18,7 +18,7 @@ var _ = Describe("Routes", func() {
 			}
 
 			path := routes.PathForBuild(joblessBuild)
-			Ω(path).Should(Equal("/builds/1"))
+			Expect(path).To(Equal("/builds/1"))
 		})
 
 		It("returns the canonical path for a job-filled build", func() {
@@ -30,7 +30,7 @@ var _ = Describe("Routes", func() {
 			}
 
 			path := routes.PathForBuild(build)
-			Ω(path).Should(Equal("/pipelines/a-pipeline/jobs/hello/builds/23"))
+			Expect(path).To(Equal("/pipelines/a-pipeline/jobs/hello/builds/23"))
 		})
 	})
 })

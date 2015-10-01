@@ -45,7 +45,7 @@ var _ = Describe("Handler", func() {
 			"../public",
 			engine,
 		)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	var recorder *httptest.ResponseRecorder
@@ -53,7 +53,7 @@ var _ = Describe("Handler", func() {
 	JustBeforeEach(func() {
 		recorder = httptest.NewRecorder()
 		req, err := http.NewRequest("GET", "http://concourse.example.com/", nil)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 
 		handler.ServeHTTP(recorder, req)
 	})
@@ -65,7 +65,7 @@ var _ = Describe("Handler", func() {
 			})
 
 			It("returns an internal server error", func() {
-				Ω(recorder.Code).Should(Equal(http.StatusInternalServerError))
+				Expect(recorder.Code).To(Equal(http.StatusInternalServerError))
 			})
 		})
 
@@ -75,11 +75,11 @@ var _ = Describe("Handler", func() {
 			})
 
 			It("is successful", func() {
-				Ω(recorder.Code).Should(Equal(http.StatusOK))
+				Expect(recorder.Code).To(Equal(http.StatusOK))
 			})
 
 			It("renders the index template", func() {
-				Ω(recorder.Body).Should(ContainSubstring("index"))
+				Expect(recorder.Body).To(ContainSubstring("index"))
 			})
 		})
 	})
@@ -92,11 +92,11 @@ var _ = Describe("Handler", func() {
 		})
 
 		It("is successful", func() {
-			Ω(recorder.Code).Should(Equal(http.StatusOK))
+			Expect(recorder.Code).To(Equal(http.StatusOK))
 		})
 
 		It("renders the pipeline template", func() {
-			Ω(recorder.Body).Should(ContainSubstring("pipeline"))
+			Expect(recorder.Body).To(ContainSubstring("pipeline"))
 		})
 	})
 })
