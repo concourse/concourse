@@ -853,7 +853,7 @@ func (db *SQLDB) GetWorker(name string) (WorkerInfo, bool, error) {
 
 	// TODO: Clean this up after people have upgraded and we can guarantee the name field is present and populated
 	err = db.conn.QueryRow(`
-		SELECT addr, active_containers, resource_types, platform, tags,
+		SELECT addr, baggageclaim_url, active_containers, resource_types, platform, tags,
 			CASE
 				WHEN COALESCE(name, '') = '' then addr
 				ELSE name
@@ -864,7 +864,7 @@ func (db *SQLDB) GetWorker(name string) (WorkerInfo, bool, error) {
 				WHEN COALESCE(name, '') = '' then addr = $1
 				ELSE name = $1
 			END
-	`, name).Scan(&info.GardenAddr, &info.ActiveContainers, &resourceTypes, &info.Platform, &tags, &info.Name)
+	`, name).Scan(&info.GardenAddr, &info.BaggageclaimURL, &info.ActiveContainers, &resourceTypes, &info.Platform, &tags, &info.Name)
 
 	if err != nil {
 		if err == sql.ErrNoRows {

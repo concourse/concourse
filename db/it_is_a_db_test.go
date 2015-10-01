@@ -218,6 +218,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			infoA := db.WorkerInfo{
 				GardenAddr:       "1.2.3.4:7777",
+				BaggageclaimURL:  "http://5.6.7.8:7788",
 				ActiveContainers: 42,
 				ResourceTypes: []atc.WorkerResourceType{
 					{Type: "some-resource-a", Image: "some-image-a"},
@@ -229,6 +230,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			infoB := db.WorkerInfo{
 				GardenAddr:       "1.2.3.4:8888",
+				BaggageclaimURL:  "http://5.6.7.8:8899",
 				ActiveContainers: 42,
 				ResourceTypes: []atc.WorkerResourceType{
 					{Type: "some-resource-b", Image: "some-image-b"},
@@ -240,6 +242,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			infoC := db.WorkerInfo{
 				GardenAddr:       "1.2.3.5:8888",
+				BaggageclaimURL:  "http://5.6.7.9:8899",
 				ActiveContainers: 42,
 				ResourceTypes: []atc.WorkerResourceType{
 					{Type: "some-resource-b", Image: "some-image-b"},
