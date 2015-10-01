@@ -7,16 +7,21 @@ import (
 	"github.com/concourse/atc"
 )
 
-type ContainerInfo struct {
-	Handle       string
+type ContainerIdentifier struct {
 	Name         string
 	PipelineName string
 	BuildID      int
 	Type         ContainerType
 	WorkerName   string
-	ExpiresAt    time.Time
 	CheckType    string
 	CheckSource  atc.Source
+}
+
+type ContainerInfo struct {
+	ContainerIdentifier
+
+	ExpiresAt time.Time
+	Handle    string
 }
 
 type ContainerType string
@@ -46,13 +51,3 @@ const (
 	ContainerTypePut   ContainerType = "put"
 	ContainerTypeTask  ContainerType = "task"
 )
-
-type ContainerIdentifier struct {
-	Name         string
-	PipelineName string
-	BuildID      int
-	Type         ContainerType
-	WorkerName   string
-	CheckType    string
-	CheckSource  atc.Source
-}

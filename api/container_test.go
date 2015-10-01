@@ -40,11 +40,13 @@ var _ = Describe("Pipelines API", func() {
 
 	BeforeEach(func() {
 		fakeContainer1 = db.ContainerInfo{
-			Handle:       containerID1,
-			PipelineName: pipelineName1,
-			Type:         type1,
-			Name:         name1,
-			BuildID:      buildID1,
+			ContainerIdentifier: db.ContainerIdentifier{
+				PipelineName: pipelineName1,
+				Type:         type1,
+				Name:         name1,
+				BuildID:      buildID1,
+			},
+			Handle: containerID1,
 		}
 
 		expectedPresentedContainer1 = atc.Container{
@@ -88,19 +90,23 @@ var _ = Describe("Pipelines API", func() {
 				authValidator.IsAuthenticatedReturns(true)
 
 				fakeContainer1 = db.ContainerInfo{
-					Handle:       containerID1,
-					PipelineName: pipelineName1,
-					Type:         type1,
-					Name:         name1,
-					BuildID:      buildID1,
+					ContainerIdentifier: db.ContainerIdentifier{
+						PipelineName: pipelineName1,
+						Type:         type1,
+						Name:         name1,
+						BuildID:      buildID1,
+					},
+					Handle: containerID1,
 				}
 
 				fakeContainer2 = db.ContainerInfo{
-					Handle:       "cfvwser",
-					PipelineName: "pipeline-2",
-					Type:         db.ContainerTypePut,
-					Name:         "name-2",
-					BuildID:      4321,
+					ContainerIdentifier: db.ContainerIdentifier{
+						PipelineName: "pipeline-2",
+						Type:         db.ContainerTypePut,
+						Name:         "name-2",
+						BuildID:      4321,
+					},
+					Handle: "cfvwser",
 				}
 
 				expectedPresentedContainer2 = atc.Container{

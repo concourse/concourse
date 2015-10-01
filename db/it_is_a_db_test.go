@@ -289,14 +289,16 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 		It("can create and get a container info object", func() {
 			expectedContainerInfo := db.ContainerInfo{
-				Handle:       "some-handle",
-				Name:         "some-container",
-				PipelineName: "some-pipeline",
-				BuildID:      123,
-				Type:         db.ContainerTypeTask,
-				WorkerName:   "some-worker",
-				CheckType:    "some-type",
-				CheckSource:  atc.Source{"uri": "http://example.com"},
+				ContainerIdentifier: db.ContainerIdentifier{
+					Name:         "some-container",
+					PipelineName: "some-pipeline",
+					BuildID:      123,
+					Type:         db.ContainerTypeTask,
+					WorkerName:   "some-worker",
+					CheckType:    "some-type",
+					CheckSource:  atc.Source{"uri": "http://example.com"},
+				},
+				Handle: "some-handle",
 			}
 
 			By("creating a container")
@@ -331,8 +333,10 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			updatedTTL := 5 * time.Minute
 
 			originalContainerInfo := db.ContainerInfo{
+				ContainerIdentifier: db.ContainerIdentifier{
+					Type: db.ContainerTypeTask,
+				},
 				Handle: "some-handle",
-				Type:   db.ContainerTypeTask,
 			}
 			err := database.CreateContainerInfo(originalContainerInfo, time.Minute)
 			Expect(err).NotTo(HaveOccurred())
@@ -340,8 +344,10 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			// comparisonContainerInfo is used to get the expected expiration time in the
 			// database timezone to avoid timezone errors
 			comparisonContainerInfo := db.ContainerInfo{
+				ContainerIdentifier: db.ContainerIdentifier{
+					Type: db.ContainerTypeTask,
+				},
 				Handle: "comparison-handle",
-				Type:   db.ContainerTypeTask,
 			}
 			err = database.CreateContainerInfo(comparisonContainerInfo, updatedTTL)
 			Expect(err).NotTo(HaveOccurred())
@@ -418,9 +424,9 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			Entry("returns containers where the name matches", findContainerInfosByIdentifierExample{
 				containersToCreate: []db.ContainerInfo{
-					{Handle: "a", Name: "some-container"},
-					{Handle: "b", Name: "some-container"},
-					{Handle: "c", Name: "some-other"},
+					{Handle: "a", ContainerIdentifier: db.ContainerIdentifier{Name: "some-container"}},
+					{Handle: "b", ContainerIdentifier: db.ContainerIdentifier{Name: "some-container"}},
+					{Handle: "c", ContainerIdentifier: db.ContainerIdentifier{Name: "some-other"}},
 				},
 				identifierToFilerFor: db.ContainerIdentifier{Name: "some-container"},
 				expectedHandles:      []string{"a", "b"},
@@ -428,9 +434,9 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			Entry("returns containers where the pipeline matches", findContainerInfosByIdentifierExample{
 				containersToCreate: []db.ContainerInfo{
-					{Handle: "a", PipelineName: "some-pipeline"},
-					{Handle: "b", PipelineName: "some-other"},
-					{Handle: "c", PipelineName: "some-pipeline"},
+					{Handle: "a", ContainerIdentifier: db.ContainerIdentifier{PipelineName: "some-pipeline"}},
+					{Handle: "b", ContainerIdentifier: db.ContainerIdentifier{PipelineName: "some-other"}},
+					{Handle: "c", ContainerIdentifier: db.ContainerIdentifier{PipelineName: "some-pipeline"}},
 				},
 				identifierToFilerFor: db.ContainerIdentifier{PipelineName: "some-pipeline"},
 				expectedHandles:      []string{"a", "c"},
@@ -438,9 +444,9 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			Entry("returns containers where the build id matches", findContainerInfosByIdentifierExample{
 				containersToCreate: []db.ContainerInfo{
-					{Handle: "a", BuildID: 1},
-					{Handle: "b", BuildID: 2},
-					{Handle: "c", BuildID: 2},
+					{Handle: "a", ContainerIdentifier: db.ContainerIdentifier{BuildID: 1}},
+					{Handle: "b", ContainerIdentifier: db.ContainerIdentifier{BuildID: 2}},
+					{Handle: "c", ContainerIdentifier: db.ContainerIdentifier{BuildID: 2}},
 				},
 				identifierToFilerFor: db.ContainerIdentifier{BuildID: 2},
 				expectedHandles:      []string{"b", "c"},
@@ -448,9 +454,9 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			Entry("returns containers where the type matches", findContainerInfosByIdentifierExample{
 				containersToCreate: []db.ContainerInfo{
-					{Handle: "a", Type: db.ContainerTypePut},
-					{Handle: "b", Type: db.ContainerTypePut},
-					{Handle: "c", Type: db.ContainerTypeGet},
+					{Handle: "a", ContainerIdentifier: db.ContainerIdentifier{Type: db.ContainerTypePut}},
+					{Handle: "b", ContainerIdentifier: db.ContainerIdentifier{Type: db.ContainerTypePut}},
+					{Handle: "c", ContainerIdentifier: db.ContainerIdentifier{Type: db.ContainerTypeGet}},
 				},
 				identifierToFilerFor: db.ContainerIdentifier{Type: db.ContainerTypePut},
 				expectedHandles:      []string{"a", "b"},
@@ -458,9 +464,9 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			Entry("returns containers where the worker name matches", findContainerInfosByIdentifierExample{
 				containersToCreate: []db.ContainerInfo{
-					{Handle: "a", WorkerName: "some-worker"},
-					{Handle: "b", WorkerName: "some-worker"},
-					{Handle: "c", WorkerName: "other"},
+					{Handle: "a", ContainerIdentifier: db.ContainerIdentifier{WorkerName: "some-worker"}},
+					{Handle: "b", ContainerIdentifier: db.ContainerIdentifier{WorkerName: "some-worker"}},
+					{Handle: "c", ContainerIdentifier: db.ContainerIdentifier{WorkerName: "other"}},
 				},
 				identifierToFilerFor: db.ContainerIdentifier{WorkerName: "some-worker"},
 				expectedHandles:      []string{"a", "b"},
@@ -468,9 +474,9 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			Entry("returns containers where the check type matches", findContainerInfosByIdentifierExample{
 				containersToCreate: []db.ContainerInfo{
-					{Handle: "a", CheckType: "some-type"},
-					{Handle: "b", CheckType: "nope"},
-					{Handle: "c", CheckType: "some-type"},
+					{Handle: "a", ContainerIdentifier: db.ContainerIdentifier{CheckType: "some-type"}},
+					{Handle: "b", ContainerIdentifier: db.ContainerIdentifier{CheckType: "nope"}},
+					{Handle: "c", ContainerIdentifier: db.ContainerIdentifier{CheckType: "some-type"}},
 				},
 				identifierToFilerFor: db.ContainerIdentifier{CheckType: "some-type"},
 				expectedHandles:      []string{"a", "c"},
@@ -478,9 +484,9 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			Entry("returns containers where the check source matches", findContainerInfosByIdentifierExample{
 				containersToCreate: []db.ContainerInfo{
-					{Handle: "a", CheckSource: atc.Source{"some": "other-source"}},
-					{Handle: "b", CheckSource: atc.Source{"some": "source"}},
-					{Handle: "c", CheckSource: atc.Source{"some": "source"}},
+					{Handle: "a", ContainerIdentifier: db.ContainerIdentifier{CheckSource: atc.Source{"some": "other-source"}}},
+					{Handle: "b", ContainerIdentifier: db.ContainerIdentifier{CheckSource: atc.Source{"some": "source"}}},
+					{Handle: "c", ContainerIdentifier: db.ContainerIdentifier{CheckSource: atc.Source{"some": "source"}}},
 				},
 				identifierToFilerFor: db.ContainerIdentifier{CheckSource: atc.Source{"some": "source"}},
 				expectedHandles:      []string{"b", "c"},
@@ -489,31 +495,40 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Entry("returns containers where all fields match", findContainerInfosByIdentifierExample{
 				containersToCreate: []db.ContainerInfo{
 					{
-						Handle:       "a",
-						Name:         "some-name",
-						PipelineName: "some-pipeline",
-						BuildID:      123,
-						Type:         db.ContainerTypeCheck,
-						WorkerName:   "some-worker",
+						ContainerIdentifier: db.ContainerIdentifier{
+							Name:         "some-name",
+							PipelineName: "some-pipeline",
+							BuildID:      123,
+							Type:         db.ContainerTypeCheck,
+							WorkerName:   "some-worker",
+						},
+						Handle: "a",
 					},
 					{
-						Handle:       "b",
-						Name:         "WROONG",
-						PipelineName: "some-pipeline",
-						BuildID:      123,
-						Type:         db.ContainerTypeCheck,
-						WorkerName:   "some-worker",
+						ContainerIdentifier: db.ContainerIdentifier{
+							Name:         "WROONG",
+							PipelineName: "some-pipeline",
+							BuildID:      123,
+							Type:         db.ContainerTypeCheck,
+							WorkerName:   "some-worker",
+						},
+						Handle: "b",
 					},
 					{
-						Handle:       "c",
-						Name:         "some-name",
-						PipelineName: "some-pipeline",
-						BuildID:      123,
-						Type:         db.ContainerTypeCheck,
-						WorkerName:   "some-worker"},
+						ContainerIdentifier: db.ContainerIdentifier{
+							Name:         "some-name",
+							PipelineName: "some-pipeline",
+							BuildID:      123,
+							Type:         db.ContainerTypeCheck,
+							WorkerName:   "some-worker",
+						},
+						Handle: "c",
+					},
 					{
-						Handle:     "d",
-						WorkerName: "Wat",
+						ContainerIdentifier: db.ContainerIdentifier{
+							WorkerName: "Wat",
+						},
+						Handle: "d",
 					},
 				},
 				identifierToFilerFor: db.ContainerIdentifier{
@@ -529,19 +544,23 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 		It("can find a single container info by identifier", func() {
 			expectedContainerInfo := db.ContainerInfo{
-				Handle:       "some-handle",
-				PipelineName: "some-pipeline",
-				BuildID:      123,
-				Name:         "some-container",
-				WorkerName:   "some-worker",
-				Type:         db.ContainerTypeTask,
-				CheckType:    "some-type",
-				CheckSource:  atc.Source{"some": "other-source"},
+				Handle: "some-handle",
+				ContainerIdentifier: db.ContainerIdentifier{
+					PipelineName: "some-pipeline",
+					BuildID:      123,
+					Name:         "some-container",
+					WorkerName:   "some-worker",
+					Type:         db.ContainerTypeTask,
+					CheckType:    "some-type",
+					CheckSource:  atc.Source{"some": "other-source"},
+				},
 			}
 			otherContainerInfo := db.ContainerInfo{
 				Handle: "other-handle",
-				Name:   "other-container",
-				Type:   db.ContainerTypeTask,
+				ContainerIdentifier: db.ContainerIdentifier{
+					Name: "other-container",
+					Type: db.ContainerTypeTask,
+				},
 			}
 
 			err := database.CreateContainerInfo(expectedContainerInfo, time.Minute)
@@ -581,8 +600,10 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			ttl := 1 * time.Second
 			ttlContainerInfo := db.ContainerInfo{
 				Handle: "some-ttl-handle",
-				Name:   "some-ttl-name",
-				Type:   db.ContainerTypeTask,
+				ContainerIdentifier: db.ContainerIdentifier{
+					Name: "some-ttl-name",
+					Type: db.ContainerTypeTask,
+				},
 			}
 
 			err = database.CreateContainerInfo(ttlContainerInfo, -ttl)

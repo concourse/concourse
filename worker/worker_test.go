@@ -180,14 +180,16 @@ var _ = Describe("Worker", func() {
 
 					It("creates the container info in the database", func() {
 						containerInfo := db.ContainerInfo{
-							Handle:       "some-handle",
-							Name:         "some-name",
-							PipelineName: "some-pipeline",
-							BuildID:      42,
-							Type:         db.ContainerTypeGet,
-							WorkerName:   "my-garden-worker",
-							CheckType:    "some-check-type",
-							CheckSource:  atc.Source{"some": "source"},
+							Handle: "some-handle",
+							ContainerIdentifier: db.ContainerIdentifier{
+								Name:         "some-name",
+								PipelineName: "some-pipeline",
+								BuildID:      42,
+								Type:         db.ContainerTypeGet,
+								WorkerName:   "my-garden-worker",
+								CheckType:    "some-check-type",
+								CheckSource:  atc.Source{"some": "source"},
+							},
 						}
 
 						Expect(fakeGardenWorkerDB.CreateContainerInfoCallCount()).To(Equal(1))
