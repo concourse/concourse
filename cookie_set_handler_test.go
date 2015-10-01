@@ -48,25 +48,25 @@ var _ = Describe("CookieSetHandler", func() {
 			var err error
 
 			request, err = http.NewRequest("GET", server.URL, bytes.NewBufferString("hello"))
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		JustBeforeEach(func() {
 			var err error
 
 			response, err = client.Do(request)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		itSetsAuthCookie := func() {
 			It("sets a ATC-Authorization cookie with the auth as the value", func() {
 				cookies := response.Cookies()
-				Ω(cookies).Should(HaveLen(1))
+				Expect(cookies).To(HaveLen(1))
 
-				Ω(cookies[0].Name).Should(Equal("ATC-Authorization"))
-				Ω(cookies[0].Value).Should(Equal(header(username, password)))
-				Ω(cookies[0].Path).Should(Equal("/"))
-				Ω(cookies[0].Expires.Unix()).Should(BeNumerically("~", time.Now().Unix()+60, 1))
+				Expect(cookies[0].Name).To(Equal("ATC-Authorization"))
+				Expect(cookies[0].Value).To(Equal(header(username, password)))
+				Expect(cookies[0].Path).To(Equal("/"))
+				Expect(cookies[0].Expires.Unix()).To(BeNumerically("~", time.Now().Unix()+60, 1))
 			})
 		}
 
@@ -76,13 +76,13 @@ var _ = Describe("CookieSetHandler", func() {
 			})
 
 			It("returns 200", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
 			})
 
 			It("proxies to the handler", func() {
 				responseBody, err := ioutil.ReadAll(response.Body)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(string(responseBody)).Should(Equal("auth: " + header(username, password)))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(responseBody)).To(Equal("auth: " + header(username, password)))
 			})
 
 			itSetsAuthCookie()
@@ -97,13 +97,13 @@ var _ = Describe("CookieSetHandler", func() {
 			})
 
 			It("returns 200", func() {
-				Ω(response.StatusCode).Should(Equal(http.StatusOK))
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
 			})
 
 			It("proxies to the handler with the Authorization header set", func() {
 				responseBody, err := ioutil.ReadAll(response.Body)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(string(responseBody)).Should(Equal("auth: " + header(username, password)))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(responseBody)).To(Equal("auth: " + header(username, password)))
 			})
 
 			itSetsAuthCookie()
@@ -111,7 +111,7 @@ var _ = Describe("CookieSetHandler", func() {
 
 		Context("with no credentials", func() {
 			It("does not set ATC-Authorization", func() {
-				Ω(response.Cookies()).Should(HaveLen(0))
+				Expect(response.Cookies()).To(HaveLen(0))
 			})
 		})
 	})
