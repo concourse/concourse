@@ -21,7 +21,7 @@ type WorkerProvider interface {
 
 var (
 	ErrNoWorkers        = errors.New("no workers")
-	ErrDBGardenMismatch = errors.New("discrepency between db and garden worker containers found")
+	ErrDBGardenMismatch = errors.New("discrepancy between db and garden worker containers found")
 )
 
 type NoCompatibleWorkersError struct {

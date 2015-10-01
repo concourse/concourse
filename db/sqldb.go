@@ -792,9 +792,14 @@ func (db *SQLDB) Workers() ([]WorkerInfo, error) {
 		return nil, err
 	}
 
+	// TODO: Clean this up after people have upgraded and we can guarantee the name field is present and populated
 	// select remaining workers
 	rows, err := db.conn.Query(`
-		SELECT addr, active_containers, resource_types, platform, tags, baggageclaim_url, name
+		SELECT addr, active_containers, resource_types, platform, tags, baggageclaim_url,
+			CASE
+				WHEN COALESCE(name, '') = '' then addr
+				ELSE name
+			END as name
 		FROM workers
 	`)
 	if err != nil {
@@ -846,10 +851,19 @@ func (db *SQLDB) GetWorker(name string) (WorkerInfo, bool, error) {
 	var resourceTypes []byte
 	var tags []byte
 
+	// TODO: Clean this up after people have upgraded and we can guarantee the name field is present and populated
 	err = db.conn.QueryRow(`
-		SELECT addr, active_containers, resource_types, platform, tags, name
+		SELECT addr, active_containers, resource_types, platform, tags,
+			CASE
+				WHEN COALESCE(name, '') = '' then addr
+				ELSE name
+			END as name
 		FROM workers
-		WHERE name = $1
+		WHERE
+			CASE
+				WHEN COALESCE(name, '') = '' then addr = $1
+				ELSE name = $1
+			END
 	`, name).Scan(&info.GardenAddr, &info.ActiveContainers, &resourceTypes, &info.Platform, &tags, &info.Name)
 
 	if err != nil {
