@@ -67,7 +67,7 @@ var _ = Describe("Heartbeater", func() {
 		fakeATC = ghttp.NewServer()
 
 		registerRoute, found := atc.Routes.FindRouteByName(atc.RegisterWorker)
-		Ω(found).Should(BeTrue())
+		Expect(found).To(BeTrue())
 
 		registered := make(chan registration, 100)
 		registrations = registered
@@ -75,10 +75,10 @@ var _ = Describe("Heartbeater", func() {
 		fakeATC.RouteToHandler(registerRoute.Method, registerRoute.Path, func(w http.ResponseWriter, r *http.Request) {
 			var worker atc.Worker
 			err := json.NewDecoder(r.Body).Decode(&worker)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			registered <- registration{worker, ttl}
 		})
@@ -135,15 +135,16 @@ var _ = Describe("Heartbeater", func() {
 		})
 
 		It("immediately registers", func() {
-			Ω(registrations).Should(Receive(Equal(registration{
+			Expect(registrations).To(Receive(Equal(registration{
 				worker: expectedWorker,
 				ttl:    2 * interval,
 			})))
+
 		})
 
 		Context("when the interval passes after the initial registration", func() {
 			JustBeforeEach(func() {
-				Ω(registrations).Should(Receive(Equal(registration{
+				Expect(registrations).To(Receive(Equal(registration{
 					worker: expectedWorker,
 					ttl:    2 * interval,
 				})))

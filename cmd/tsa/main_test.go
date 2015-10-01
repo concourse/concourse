@@ -47,7 +47,7 @@ var _ = BeforeSuite(func() {
 	var err error
 	tsaPath, err = gexec.Build("github.com/concourse/tsa/cmd/tsa")
 
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 })
 
 var _ = AfterSuite(func() {
@@ -56,12 +56,12 @@ var _ = AfterSuite(func() {
 
 func generateSSHKeypair() (string, string) {
 	path, err := ioutil.TempDir("", "tsa-key")
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	privateKey := filepath.Join(path, "id_rsa")
 
 	keygen, err := gexec.Start(exec.Command("ssh-keygen", "-t", "rsa", "-N", "", "-f", privateKey), GinkgoWriter, GinkgoWriter)
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	keygen.Wait(5 * time.Second)
 
@@ -103,50 +103,50 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 			gardenServer = gserver.New("tcp", gardenAddr, 0, fakeBackend, lagertest.NewTestLogger("garden"))
 			err := gardenServer.Start()
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			atcServer = ghttp.NewServer()
 
 			hostKey, hostKeyPub = generateSSHKeypair()
 
 			userKnownHosts, err := ioutil.TempFile("", "known-hosts")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			defer userKnownHosts.Close()
 
 			userKnownHostsFile = userKnownHosts.Name()
 
 			_, err = fmt.Fprintf(userKnownHosts, "[127.0.0.1]:%d ", tsaPort)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			pub, err := os.Open(hostKeyPub)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			defer pub.Close()
 
 			_, err = io.Copy(userKnownHosts, pub)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			userKey, _ = generateSSHKeypair()
 
 			authorizedKeys, err := ioutil.TempFile("", "authorized-keys")
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			defer authorizedKeys.Close()
 
 			authorizedKeysFile = authorizedKeys.Name()
 
 			userPrivateKeyBytes, err := ioutil.ReadFile(userKey)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			userSigner, err := ssh.ParsePrivateKey(userPrivateKeyBytes)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = authorizedKeys.Write(ssh.MarshalAuthorizedKey(userSigner.PublicKey()))
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			forwardHost, err = localip.LocalIP()
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			tsaCommand := exec.Command(
 				tsaPath,
@@ -192,14 +192,14 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 				var err error
 				sshStdin, err = ssh.StdinPipe()
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				sshSess, err = gexec.Start(
 					ssh,
 					gexec.NewPrefixedWriter("\x1b[32m[o]\x1b[0m\x1b[33m[ssh]\x1b[0m ", GinkgoWriter),
 					gexec.NewPrefixedWriter("\x1b[91m[e]\x1b[0m\x1b[33m[ssh]\x1b[0m ", GinkgoWriter),
 				)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			AfterEach(func() {
@@ -247,10 +247,10 @@ var _ = Describe("TSA SSH Registrar", func() {
 							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
 								err := json.NewDecoder(r.Body).Decode(&worker)
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
 								ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
 								registered <- registration{worker, ttl}
 							})
@@ -289,7 +289,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 						JustBeforeEach(func() {
 							err := json.NewEncoder(sshStdin).Encode(workerPayload)
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 						})
 
 						It("continuously registers it with the ATC as long as it works", func() {
@@ -298,7 +298,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							expectedWorkerPayload.ActiveContainers = 3
 
 							a := time.Now()
-							Ω(<-registered).Should(Equal(registration{
+							Expect(<-registered).To(Equal(registration{
 								worker: expectedWorkerPayload,
 								ttl:    2 * heartbeatInterval,
 							}))
@@ -306,24 +306,24 @@ var _ = Describe("TSA SSH Registrar", func() {
 							expectedWorkerPayload.ActiveContainers = 2
 
 							b := time.Now()
-							Ω(<-registered).Should(Equal(registration{
+							Expect(<-registered).To(Equal(registration{
 								worker: expectedWorkerPayload,
 								ttl:    2 * heartbeatInterval,
 							}))
 
-							Ω(b.Sub(a)).Should(BeNumerically("~", heartbeatInterval, 1*time.Second))
+							Expect(b.Sub(a)).To(BeNumerically("~", heartbeatInterval, 1*time.Second))
 
 							Consistently(registered, 2*heartbeatInterval).ShouldNot(Receive())
 
 							expectedWorkerPayload.ActiveContainers = 1
 
 							c := time.Now()
-							Ω(<-registered).Should(Equal(registration{
+							Expect(<-registered).To(Equal(registration{
 								worker: expectedWorkerPayload,
 								ttl:    2 * heartbeatInterval,
 							}))
 
-							Ω(c.Sub(b)).Should(BeNumerically("~", 3*heartbeatInterval, 1*time.Second))
+							Expect(c.Sub(b)).To(BeNumerically("~", 3*heartbeatInterval, 1*time.Second))
 
 							Eventually(sshSess.Out).Should(gbytes.Say("heartbeat"))
 						})
@@ -386,10 +386,10 @@ var _ = Describe("TSA SSH Registrar", func() {
 							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
 								err := json.NewDecoder(r.Body).Decode(&worker)
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
 								ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
 								registered <- registration{worker, ttl}
 							})
@@ -428,7 +428,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 						JustBeforeEach(func() {
 							err := json.NewEncoder(sshStdin).Encode(workerPayload)
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 						})
 
 						It("forwards garden API calls through the tunnel", func() {
@@ -440,59 +440,59 @@ var _ = Describe("TSA SSH Registrar", func() {
 							fakeBackend.CreateReturns(new(gfakes.FakeContainer), nil)
 
 							_, err := client.Create(garden.ContainerSpec{})
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 
-							Ω(fakeBackend.CreateCallCount()).Should(Equal(1))
+							Expect(fakeBackend.CreateCallCount()).To(Equal(1))
 						})
 
 						It("continuously registers it with the ATC as long as it works", func() {
 							a := time.Now()
 							registration := <-registered
-							Ω(registration.ttl).Should(Equal(2 * heartbeatInterval))
+							Expect(registration.ttl).To(Equal(2 * heartbeatInterval))
 
 							// shortcut for equality w/out checking addr
 							expectedWorkerPayload := workerPayload
 							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
 							expectedWorkerPayload.ActiveContainers = 3
-							Ω(registration.worker).Should(Equal(expectedWorkerPayload))
+							Expect(registration.worker).To(Equal(expectedWorkerPayload))
 
 							host, _, err := net.SplitHostPort(registration.worker.GardenAddr)
-							Ω(err).ShouldNot(HaveOccurred())
-							Ω(host).Should(Equal(forwardHost))
+							Expect(err).NotTo(HaveOccurred())
+							Expect(host).To(Equal(forwardHost))
 
 							b := time.Now()
 							registration = <-registered
-							Ω(registration.ttl).Should(Equal(2 * heartbeatInterval))
+							Expect(registration.ttl).To(Equal(2 * heartbeatInterval))
 
 							// shortcut for equality w/out checking addr
 							expectedWorkerPayload = workerPayload
 							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
 							expectedWorkerPayload.ActiveContainers = 2
-							Ω(registration.worker).Should(Equal(expectedWorkerPayload))
+							Expect(registration.worker).To(Equal(expectedWorkerPayload))
 
 							host, _, err = net.SplitHostPort(registration.worker.GardenAddr)
-							Ω(err).ShouldNot(HaveOccurred())
-							Ω(host).Should(Equal(forwardHost))
+							Expect(err).NotTo(HaveOccurred())
+							Expect(host).To(Equal(forwardHost))
 
-							Ω(b.Sub(a)).Should(BeNumerically("~", heartbeatInterval, 1*time.Second))
+							Expect(b.Sub(a)).To(BeNumerically("~", heartbeatInterval, 1*time.Second))
 
 							Consistently(registered, 2*heartbeatInterval).ShouldNot(Receive())
 
 							c := time.Now()
 							registration = <-registered
-							Ω(registration.ttl).Should(Equal(2 * heartbeatInterval))
+							Expect(registration.ttl).To(Equal(2 * heartbeatInterval))
 
 							// shortcut for equality w/out checking addr
 							expectedWorkerPayload = workerPayload
 							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
 							expectedWorkerPayload.ActiveContainers = 1
-							Ω(registration.worker).Should(Equal(expectedWorkerPayload))
+							Expect(registration.worker).To(Equal(expectedWorkerPayload))
 
 							host, _, err = net.SplitHostPort(registration.worker.GardenAddr)
-							Ω(err).ShouldNot(HaveOccurred())
-							Ω(host).Should(Equal(forwardHost))
+							Expect(err).NotTo(HaveOccurred())
+							Expect(host).To(Equal(forwardHost))
 
-							Ω(c.Sub(b)).Should(BeNumerically("~", 3*heartbeatInterval, 1*time.Second))
+							Expect(c.Sub(b)).To(BeNumerically("~", 3*heartbeatInterval, 1*time.Second))
 						})
 
 						Context("when the client goes away", func() {
@@ -564,10 +564,10 @@ var _ = Describe("TSA SSH Registrar", func() {
 							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
 								err := json.NewDecoder(r.Body).Decode(&worker)
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
 								ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
-								Ω(err).ShouldNot(HaveOccurred())
+								Expect(err).NotTo(HaveOccurred())
 
 								registered <- registration{worker, ttl}
 							})
@@ -606,7 +606,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 						JustBeforeEach(func() {
 							err := json.NewEncoder(sshStdin).Encode(workerPayload)
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 						})
 
 						It("forwards garden API calls through the tunnel", func() {
@@ -618,9 +618,9 @@ var _ = Describe("TSA SSH Registrar", func() {
 							fakeBackend.CreateReturns(new(gfakes.FakeContainer), nil)
 
 							_, err := client.Create(garden.ContainerSpec{})
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 
-							Ω(fakeBackend.CreateCallCount()).Should(Equal(1))
+							Expect(fakeBackend.CreateCallCount()).To(Equal(1))
 						})
 
 						It("forwards baggageclaim API calls through the tunnel", func() {
@@ -639,7 +639,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							)
 
 							volumes, err := client.ListVolumes(nil, nil)
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 
 							Expect(volumes).To(BeEmpty())
 						})
@@ -647,63 +647,63 @@ var _ = Describe("TSA SSH Registrar", func() {
 						It("continuously registers it with the ATC as long as it works", func() {
 							a := time.Now()
 							registration := <-registered
-							Ω(registration.ttl).Should(Equal(2 * heartbeatInterval))
+							Expect(registration.ttl).To(Equal(2 * heartbeatInterval))
 
 							// shortcut for equality w/out checking addr
 							expectedWorkerPayload := workerPayload
 							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
 							expectedWorkerPayload.BaggageclaimURL = registration.worker.BaggageclaimURL
 							expectedWorkerPayload.ActiveContainers = 3
-							Ω(registration.worker).Should(Equal(expectedWorkerPayload))
+							Expect(registration.worker).To(Equal(expectedWorkerPayload))
 
 							host, _, err := net.SplitHostPort(registration.worker.GardenAddr)
-							Ω(err).ShouldNot(HaveOccurred())
-							Ω(host).Should(Equal(forwardHost))
+							Expect(err).NotTo(HaveOccurred())
+							Expect(host).To(Equal(forwardHost))
 
 							b := time.Now()
 							registration = <-registered
-							Ω(registration.ttl).Should(Equal(2 * heartbeatInterval))
+							Expect(registration.ttl).To(Equal(2 * heartbeatInterval))
 
 							// shortcut for equality w/out checking addr
 							expectedWorkerPayload = workerPayload
 							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
 							expectedWorkerPayload.BaggageclaimURL = registration.worker.BaggageclaimURL
 							expectedWorkerPayload.ActiveContainers = 2
-							Ω(registration.worker).Should(Equal(expectedWorkerPayload))
+							Expect(registration.worker).To(Equal(expectedWorkerPayload))
 
 							host, _, err = net.SplitHostPort(registration.worker.GardenAddr)
-							Ω(err).ShouldNot(HaveOccurred())
-							Ω(host).Should(Equal(forwardHost))
+							Expect(err).NotTo(HaveOccurred())
+							Expect(host).To(Equal(forwardHost))
 
-							Ω(b.Sub(a)).Should(BeNumerically("~", heartbeatInterval, 1*time.Second))
+							Expect(b.Sub(a)).To(BeNumerically("~", heartbeatInterval, 1*time.Second))
 
 							Consistently(registered, 2*heartbeatInterval).ShouldNot(Receive())
 
 							c := time.Now()
 							registration = <-registered
-							Ω(registration.ttl).Should(Equal(2 * heartbeatInterval))
+							Expect(registration.ttl).To(Equal(2 * heartbeatInterval))
 
 							// shortcut for equality w/out checking addr
 							expectedWorkerPayload = workerPayload
 							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
 							expectedWorkerPayload.BaggageclaimURL = registration.worker.BaggageclaimURL
 							expectedWorkerPayload.ActiveContainers = 1
-							Ω(registration.worker).Should(Equal(expectedWorkerPayload))
+							Expect(registration.worker).To(Equal(expectedWorkerPayload))
 
 							host, port, err := net.SplitHostPort(registration.worker.GardenAddr)
-							Ω(err).ShouldNot(HaveOccurred())
-							Ω(host).Should(Equal(forwardHost))
-							Ω(port).ShouldNot(Equal("7777")) // should NOT respect bind addr
+							Expect(err).NotTo(HaveOccurred())
+							Expect(host).To(Equal(forwardHost))
+							Expect(port).NotTo(Equal("7777")) // should NOT respect bind addr
 
 							bURL, err := url.Parse(registration.worker.BaggageclaimURL)
-							Ω(err).ShouldNot(HaveOccurred())
+							Expect(err).NotTo(HaveOccurred())
 
 							host, port, err = net.SplitHostPort(bURL.Host)
-							Ω(err).ShouldNot(HaveOccurred())
-							Ω(host).Should(Equal(forwardHost))
-							Ω(port).ShouldNot(Equal("7788")) // should NOT respect bind addr
+							Expect(err).NotTo(HaveOccurred())
+							Expect(host).To(Equal(forwardHost))
+							Expect(port).NotTo(Equal("7788")) // should NOT respect bind addr
 
-							Ω(c.Sub(b)).Should(BeNumerically("~", 3*heartbeatInterval, 1*time.Second))
+							Expect(c.Sub(b)).To(BeNumerically("~", 3*heartbeatInterval, 1*time.Second))
 						})
 
 						Context("when the client goes away", func() {
