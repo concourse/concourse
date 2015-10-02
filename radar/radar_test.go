@@ -171,6 +171,19 @@ var _ = Describe("Radar", func() {
 					Expect(time2.Sub(time1)).To(BeNumerically("~", 10*time.Millisecond, 5*time.Millisecond))
 				})
 
+				It("leases for the configured interval", func() {
+					Eventually(times).Should(Receive())
+
+					Expect(fakeRadarDB.LeaseResourceCheckingCallCount()).To(Equal(1))
+
+					resourceName, leaseInterval, immediate := fakeRadarDB.LeaseResourceCheckingArgsForCall(0)
+					Expect(resourceName).To(Equal("some-resource"))
+					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
+					Expect(immediate).To(BeFalse())
+
+					Eventually(fakeLease.BreakCallCount).Should(Equal(1))
+				})
+
 				Context("when the interval cannot be parsed", func() {
 					BeforeEach(func() {
 						resourceConfig.CheckEvery = "bad-value"
@@ -184,13 +197,9 @@ var _ = Describe("Radar", func() {
 
 					It("sets the check error and exits with the error", func() {
 						Expect(<-process.Wait()).To(HaveOccurred())
-						Expect(fakeRadarDB.SetResourceCheckErrorCallCount()).To(Equal(2))
+						Expect(fakeRadarDB.SetResourceCheckErrorCallCount()).To(Equal(1))
 
 						resourceName, resourceErr := fakeRadarDB.SetResourceCheckErrorArgsForCall(0)
-						Expect(resourceName).To(Equal(savedResource))
-						Expect(resourceErr).ToNot(HaveOccurred())
-
-						resourceName, resourceErr = fakeRadarDB.SetResourceCheckErrorArgsForCall(1)
 						Expect(resourceName).To(Equal(savedResource))
 						Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
 					})
@@ -459,17 +468,13 @@ var _ = Describe("Radar", func() {
 
 						It("sets the check error and exits with the error", func() {
 							Expect(<-process.Wait()).To(HaveOccurred())
-							Expect(fakeRadarDB.SetResourceCheckErrorCallCount()).To(Equal(3))
+							Expect(fakeRadarDB.SetResourceCheckErrorCallCount()).To(Equal(2))
 
 							resourceName, resourceErr := fakeRadarDB.SetResourceCheckErrorArgsForCall(0)
 							Expect(resourceName).To(Equal(savedResource))
 							Expect(resourceErr).ToNot(HaveOccurred())
 
 							resourceName, resourceErr = fakeRadarDB.SetResourceCheckErrorArgsForCall(1)
-							Expect(resourceName).To(Equal(savedResource))
-							Expect(resourceErr).ToNot(HaveOccurred())
-
-							resourceName, resourceErr = fakeRadarDB.SetResourceCheckErrorArgsForCall(2)
 							Expect(resourceName).To(Equal(savedResource))
 							Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
 						})
@@ -548,7 +553,6 @@ var _ = Describe("Radar", func() {
 				})
 			})
 		})
-
 	})
 
 	Describe("Scan", func() {
@@ -607,6 +611,50 @@ var _ = Describe("Radar", func() {
 				Expect(immediate).To(BeTrue())
 
 				Expect(fakeLease.BreakCallCount()).To(Equal(1))
+			})
+
+			Context("when the resource config has a specified check interval", func() {
+				BeforeEach(func() {
+					resourceConfig.CheckEvery = "10ms"
+
+					fakeRadarDB.GetConfigReturns(atc.Config{
+						Resources: atc.ResourceConfigs{
+							resourceConfig,
+						},
+					}, 1, true, nil)
+				})
+
+				It("leases for the configured interval", func() {
+					Expect(fakeRadarDB.LeaseResourceCheckingCallCount()).To(Equal(1))
+
+					resourceName, leaseInterval, immediate := fakeRadarDB.LeaseResourceCheckingArgsForCall(0)
+					Expect(resourceName).To(Equal("some-resource"))
+					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
+					Expect(immediate).To(BeTrue())
+
+					Eventually(fakeLease.BreakCallCount).Should(Equal(1))
+				})
+
+				Context("when the interval cannot be parsed", func() {
+					BeforeEach(func() {
+						resourceConfig.CheckEvery = "bad-value"
+
+						fakeRadarDB.GetConfigReturns(atc.Config{
+							Resources: atc.ResourceConfigs{
+								resourceConfig,
+							},
+						}, 1, true, nil)
+					})
+
+					It("sets the check error and returns the error", func() {
+						Expect(scanErr).To(HaveOccurred())
+						Expect(fakeRadarDB.SetResourceCheckErrorCallCount()).To(Equal(1))
+
+						resourceName, resourceErr := fakeRadarDB.SetResourceCheckErrorArgsForCall(0)
+						Expect(resourceName).To(Equal(savedResource))
+						Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
+					})
+				})
 			})
 
 			Context("when the lease is not immediately available", func() {

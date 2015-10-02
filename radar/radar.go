@@ -48,32 +48,34 @@ type Radar struct {
 
 	tracker resource.Tracker
 
-	interval time.Duration
+	defaultInterval time.Duration
 
 	db RadarDB
 }
 
 func NewRadar(
 	tracker resource.Tracker,
-	interval time.Duration,
+	defaultInterval time.Duration,
 	db RadarDB,
 ) *Radar {
 	return &Radar{
-		tracker:  tracker,
-		interval: interval,
-		db:       db,
+		tracker:         tracker,
+		defaultInterval: defaultInterval,
+		db:              db,
 	}
 }
 
 func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runner {
 	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
-		timer := time.NewTimer(0) // do an immediate initial check
+		// do an immediate initial check
+		var interval time.Duration = 0
 
 		close(ready)
 
 		for {
+			timer := time.NewTimer(interval)
+
 			var resourceConfig atc.ResourceConfig
-			var savedResource db.SavedResource
 
 			select {
 			case <-signals:
@@ -87,16 +89,26 @@ func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runn
 					return err
 				}
 
-				leaseLogger := logger.Session("lease", lager.Data{
-					"resource": resourceName,
-				})
-
-				savedResource, err = radar.db.GetResource(resourceConfig.Name)
+				savedResource, err := radar.db.GetResource(resourceConfig.Name)
 				if err != nil {
 					return err
 				}
 
-				lease, leased, err := radar.db.LeaseResourceChecking(resourceName, radar.interval, false)
+				interval, err = radar.checkInterval(resourceConfig)
+				if err != nil {
+					setErr := radar.db.SetResourceCheckError(savedResource, err)
+					if setErr != nil {
+						logger.Error("failed-to-set-check-error", err)
+					}
+
+					return err
+				}
+
+				leaseLogger := logger.Session("lease", lager.Data{
+					"resource": resourceName,
+				})
+
+				lease, leased, err := radar.db.LeaseResourceChecking(resourceName, interval, false)
 
 				if err != nil {
 					leaseLogger.Error("failed-to-get-lease", err, lager.Data{
@@ -118,18 +130,6 @@ func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runn
 					return err
 				}
 			}
-
-			interval, err := radar.checkInterval(resourceConfig)
-			if err != nil {
-				setErr := radar.db.SetResourceCheckError(savedResource, err)
-				if setErr != nil {
-					logger.Error("failed-to-set-check-error", err)
-				}
-
-				return err
-			}
-
-			timer = time.NewTimer(interval)
 		}
 	})
 }
@@ -144,8 +144,18 @@ func (radar *Radar) Scan(logger lager.Logger, resourceName string) error {
 		return err
 	}
 
+	savedResource, err := radar.db.GetResource(resourceConfig.Name)
+	if err != nil {
+		return err
+	}
+
 	interval, err := radar.checkInterval(resourceConfig)
 	if err != nil {
+		setErr := radar.db.SetResourceCheckError(savedResource, err)
+		if setErr != nil {
+			logger.Error("failed-to-set-check-error", err)
+		}
+
 		return err
 	}
 
@@ -168,11 +178,6 @@ func (radar *Radar) Scan(logger lager.Logger, resourceName string) error {
 		defer lease.Break()
 
 		break
-	}
-
-	savedResource, err := radar.db.GetResource(resourceConfig.Name)
-	if err != nil {
-		return err
 	}
 
 	return radar.scan(logger, resourceConfig, savedResource)
@@ -265,7 +270,7 @@ func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig,
 }
 
 func (radar *Radar) checkInterval(resourceConfig atc.ResourceConfig) (time.Duration, error) {
-	interval := radar.interval
+	interval := radar.defaultInterval
 	if resourceConfig.CheckEvery != "" {
 		configuredInterval, err := time.ParseDuration(resourceConfig.CheckEvery)
 		if err != nil {
