@@ -130,7 +130,7 @@ func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier)
 	}
 
 	if !found {
-		logger.Info("found-container-in-db-but-not-on-worker", lager.Data{
+		logger.Info("reaping-container-not-found-on-worker", lager.Data{
 			"container-handle": containerInfo.Handle,
 			"worker-name":      containerInfo.WorkerName,
 		})
@@ -177,7 +177,7 @@ func (pool *pool) LookupContainer(logger lager.Logger, handle string) (Container
 	}
 
 	if !found {
-		logger.Info("found-container-in-db-but-not-on-worker", lager.Data{
+		logger.Info("reaping-container-not-found-on-worker", lager.Data{
 			"container-handle": containerInfo.Handle,
 			"worker-name":      containerInfo.WorkerName,
 		})
