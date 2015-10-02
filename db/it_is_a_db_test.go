@@ -156,6 +156,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Expect(database.Workers()).To(BeEmpty())
 
 			infoA := db.WorkerInfo{
+				Name:             "workerName1",
 				GardenAddr:       "1.2.3.4:7777",
 				BaggageclaimURL:  "5.6.7.8:7788",
 				ActiveContainers: 42,
@@ -164,7 +165,6 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				},
 				Platform: "webos",
 				Tags:     []string{"palm", "was", "great"},
-				Name:     "workerName1",
 			}
 
 			infoB := db.WorkerInfo{
@@ -189,15 +189,25 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			Expect(database.Workers()).To(ConsistOf(infoA))
 
+			By("updating attributes by name")
+			infoA.GardenAddr = "1.2.3.4:9876"
+
+			err = database.SaveWorker(infoA, 0)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(database.Workers()).To(ConsistOf(infoA))
+
 			By("expiring TTLs")
 			ttl := 1 * time.Second
 
 			err = database.SaveWorker(infoB, ttl)
 			Expect(err).NotTo(HaveOccurred())
 
-			infoB.Name = "1.2.3.4:8888"
+			// name is defaulted to addr
+			infoBFromDB := infoB
+			infoBFromDB.Name = "1.2.3.4:8888"
 
-			Consistently(database.Workers, ttl/2).Should(ConsistOf(infoA, infoB))
+			Consistently(database.Workers, ttl/2).Should(ConsistOf(infoA, infoBFromDB))
 			Eventually(database.Workers, 2*ttl).Should(ConsistOf(infoA))
 
 			By("overwriting TTLs")
@@ -206,6 +216,19 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			Consistently(database.Workers, ttl/2).Should(ConsistOf(infoA))
 			Eventually(database.Workers, 2*ttl).Should(BeEmpty())
+
+			By("updating attributes by name with ttls")
+			err = database.SaveWorker(infoA, ttl)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(database.Workers()).To(ConsistOf(infoA))
+
+			infoA.GardenAddr = "1.2.3.4:1234"
+
+			err = database.SaveWorker(infoA, ttl)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(database.Workers()).To(ConsistOf(infoA))
 		})
 
 		It("it can keep track of a worker", func() {
