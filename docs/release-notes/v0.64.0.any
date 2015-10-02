@@ -59,6 +59,10 @@
   We no longer reuse the pending color for jobs that have no builds. A new
   darker shade of grey has been selected for your viewing pleasure.
 }{
+  We've fixed a nasty bug in resource checking that led to all resources
+  effectively clobbering each other's checking intervals, sometimes leading to
+  deadlocks.
+}{
   A few indexes have been added to high-trafficked queries. You should notice
   lower Postgres CPU load and faster loading times on the pipeline view.
 }{
