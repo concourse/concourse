@@ -61,6 +61,10 @@ case $1 in
 
     chown vcap:vcap $KNOWN_HOSTS_FILE
 
+    cat /var/vcap/jobs/groundcrew/config/worker.json | \
+      sed -e "s/HOSTNAME_REPLACE_ME/$(hostname)/g" > \
+      $RUN_DIR/worker.json
+
     while true; do
       chpst -u vcap:vcap ssh \
         -p <%= p("groundcrew.tsa.port") %> <%= p("groundcrew.tsa.host") %> \
@@ -83,7 +87,7 @@ case $1 in
         <% else %> \
           register-worker \
         <% end %> \
-        < /var/vcap/jobs/groundcrew/config/worker.json \
+        < $RUN_DIR/worker.json \
         1>>$LOG_DIR/beacon.stdout.log \
         2>>$LOG_DIR/beacon.stderr.log || \
         true

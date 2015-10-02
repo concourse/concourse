@@ -1,6 +1,4 @@
 <%=
-  require "socket"
-
   def discover_external_ip
     networks = spec.networks.marshal_dump
 
@@ -28,7 +26,7 @@
   end
 
   {
-    "name" => Socket.gethostname,
+    "name" => "HOSTNAME_REPLACE_ME",
 
     "platform" => p("groundcrew.platform"),
     "tags" => p("groundcrew.tags"),
