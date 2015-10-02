@@ -722,6 +722,19 @@ var _ = Describe("Worker", func() {
 			})
 		})
 
+		Context("when the gardenClient returns garden.ContaienrNotFoundError", func() {
+			BeforeEach(func() {
+				fakeGardenClient.LookupReturns(nil, garden.ContainerNotFoundError{"some-handle"})
+			})
+
+			It("returns false and no error", func() {
+				_, found, err := worker.LookupContainer(logger, handle)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(found).To(BeFalse())
+			})
+		})
+
 		Context("when the gardenClient returns an error", func() {
 			var expectedErr error
 

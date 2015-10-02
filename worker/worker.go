@@ -238,15 +238,22 @@ func (worker *gardenWorker) FindContainerForIdentifier(logger lager.Logger, id I
 func (worker *gardenWorker) LookupContainer(logger lager.Logger, handle string) (Container, bool, error) {
 	gardenContainer, err := worker.gardenClient.Lookup(handle)
 	if err != nil {
+		if _, ok := err.(garden.ContainerNotFoundError); ok {
+			logger.Info("container-not-found")
+			return nil, false, nil
+		}
+
+		logger.Error("failed-to-lookup-on-garden", err)
 		return nil, false, err
 	}
 
-	if _, ok := err.(garden.ContainerNotFoundError); ok {
-		return nil, false, nil
+	container, err := newGardenWorkerContainer(logger, gardenContainer, worker.gardenClient, worker.baggageclaimClient, worker.db, worker.clock)
+	if err != nil {
+		logger.Error("failed-to-construct-container", err)
+		return nil, false, err
 	}
 
-	container, err := newGardenWorkerContainer(logger, gardenContainer, worker.gardenClient, worker.baggageclaimClient, worker.db, worker.clock)
-	return container, true, err
+	return container, true, nil
 }
 
 func (worker *gardenWorker) ActiveContainers() int {
