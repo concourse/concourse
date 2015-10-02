@@ -207,7 +207,7 @@ var _ = Describe("Radar", func() {
 				Expect(leaseInterval).To(Equal(interval))
 				Expect(immediate).To(BeFalse())
 
-				Expect(fakeLease.BreakCallCount()).To(Equal(1))
+				Eventually(fakeLease.BreakCallCount()).To(Equal(1))
 			})
 
 			It("releases after checking", func() {
