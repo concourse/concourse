@@ -533,6 +533,8 @@ var _ = Describe("Pipelines API", func() {
 						})
 
 						It("forwards the payload to the process", func() {
+							Eventually(fakeContainer.RunCallCount).Should(Equal(1))
+
 							_, io := fakeContainer.RunArgsForCall(0)
 							Expect(bufio.NewReader(io.Stdin).ReadBytes('\n')).To(Equal([]byte("some stdin\n")))
 						})
