@@ -20,11 +20,11 @@ type TrackerRunner struct {
 }
 
 func (runner TrackerRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+	ticker := runner.Clock.NewTicker(runner.Interval)
+
 	close(ready)
 
 	runner.Tracker.Track()
-
-	ticker := runner.Clock.NewTicker(runner.Interval)
 
 	for {
 		select {

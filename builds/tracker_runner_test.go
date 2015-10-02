@@ -24,7 +24,7 @@ var _ = Describe("TrackerRunner", func() {
 	BeforeEach(func() {
 		fakeTracker = new(fakes.FakeBuildTracker)
 
-		t := make(chan struct{}, 100)
+		t := make(chan struct{})
 		tracked = t
 		fakeTracker.TrackStub = func() {
 			t <- struct{}{}
