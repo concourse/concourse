@@ -755,7 +755,22 @@ func (pdb *pipelineDB) registerResource(tx *sql.Tx, name string) error {
 			SELECT 1 FROM resources WHERE name = $1 AND pipeline_id = $2
 		)
 	`, name, pdb.ID)
-	return err
+
+	return swallowUniqueViolation(err)
+}
+
+func swallowUniqueViolation(err error) error {
+	if err != nil {
+		if pgErr, ok := err.(*pq.Error); ok {
+			if pgErr.Code.Class().Name() == "integrity_constraint_violation" {
+				return nil
+			}
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 func (pdb *pipelineDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (SavedVersionedResource, error) {
@@ -793,6 +808,8 @@ func (pdb *pipelineDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (
 			AND version = $3
 		)
 	`, savedResource.ID, vr.Type, string(versionJSON), string(metadataJSON))
+
+	err = swallowUniqueViolation(err)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
@@ -1094,6 +1111,9 @@ func (pdb *pipelineDB) saveBuildInput(tx *sql.Tx, buildID int, input BuildInput)
 			AND name = $3
 		)
 	`, buildID, svr.ID, input.Name)
+
+	err = swallowUniqueViolation(err)
+
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
@@ -1973,13 +1993,14 @@ func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (*Build, *Build, e
 
 func (pdb *pipelineDB) registerJob(tx *sql.Tx, name string) error {
 	_, err := tx.Exec(`
-  		INSERT INTO jobs (name, pipeline_id)
-  		SELECT $1, $2
-  		WHERE NOT EXISTS (
-  			SELECT 1 FROM jobs WHERE name = $1 AND pipeline_id = $2
-  		)
-  	`, name, pdb.ID)
-	return err
+		INSERT INTO jobs (name, pipeline_id)
+		SELECT $1, $2
+		WHERE NOT EXISTS (
+			SELECT 1 FROM jobs WHERE name = $1 AND pipeline_id = $2
+		)
+	`, name, pdb.ID)
+
+	return swallowUniqueViolation(err)
 }
 
 func (pdb *pipelineDB) getJob(tx *sql.Tx, name string) (SavedJob, error) {
