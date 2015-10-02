@@ -164,9 +164,6 @@ var _ = Describe("DBProvider", func() {
 					Expect(container.Handle()).To(Equal("created-handle"))
 
 					Expect(workerA.CreateCallCount()).To(Equal(1))
-					Expect(workerA.CreateArgsForCall(0).Properties).To(Equal(garden.Properties{
-						"concourse:name": "some-name",
-					}))
 
 					err = container.Destroy()
 					Expect(err).NotTo(HaveOccurred())

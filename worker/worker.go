@@ -29,6 +29,7 @@ const containerTTL = 5 * time.Minute
 const inputVolumeTTL = 60 * 5
 
 const ephemeralPropertyName = "concourse:ephemeral"
+const volumePropertyName = "concourse:volumes"
 
 var trackedContainers = expvar.NewInt("TrackedContainers")
 
@@ -103,7 +104,7 @@ func (worker *gardenWorker) VolumeManager() (baggageclaim.Client, bool) {
 
 func (worker *gardenWorker) CreateContainer(logger lager.Logger, id Identifier, spec ContainerSpec) (Container, error) {
 	gardenSpec := garden.ContainerSpec{
-		Properties: id.gardenProperties(),
+		Properties: garden.Properties{},
 	}
 
 	var volumeHandles []string
@@ -188,7 +189,7 @@ dance:
 			return nil, err
 		}
 
-		gardenSpec.Properties["concourse:volumes"] = string(volumesJSON)
+		gardenSpec.Properties[volumePropertyName] = string(volumesJSON)
 	}
 
 	gardenContainer, err := worker.gardenClient.Create(gardenSpec)
@@ -426,7 +427,7 @@ func (container *gardenWorkerContainer) initializeVolumes(
 		return nil
 	}
 
-	handlesJSON, found := properties["concourse:volumes"]
+	handlesJSON, found := properties[volumePropertyName]
 	if !found {
 		container.volumes = []baggageclaim.Volume{}
 		return nil

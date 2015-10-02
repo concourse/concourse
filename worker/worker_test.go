@@ -169,17 +169,8 @@ var _ = Describe("Worker", func() {
 						Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
 							RootFSPath: "some-resource-image",
 							Privileged: true,
-							Properties: garden.Properties{
-								"concourse:type":          "get",
-								"concourse:pipeline-name": "some-pipeline",
-								"concourse:location":      "3",
-								"concourse:check-type":    "some-check-type",
-								"concourse:check-source":  "{\"some\":\"source\"}",
-								"concourse:name":          "some-name",
-								"concourse:build-id":      "42",
-							},
+							Properties: garden.Properties{},
 						}))
-
 					})
 
 					It("creates the container info in the database", func() {
@@ -229,16 +220,8 @@ var _ = Describe("Worker", func() {
 							Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
 								RootFSPath: "some-resource-image",
 								Privileged: true,
-								Properties: garden.Properties{
-									"concourse:type":          "get",
-									"concourse:pipeline-name": "some-pipeline",
-									"concourse:location":      "3",
-									"concourse:check-type":    "some-check-type",
-									"concourse:check-source":  "{\"some\":\"source\"}",
-									"concourse:name":          "some-name",
-									"concourse:build-id":      "42",
-								},
-								Env: []string{"a=1", "b=2"},
+								Env:        []string{"a=1", "b=2"},
+								Properties: garden.Properties{},
 							}))
 
 						})
@@ -267,14 +250,7 @@ var _ = Describe("Worker", func() {
 								RootFSPath: "some-resource-image",
 								Privileged: true,
 								Properties: garden.Properties{
-									"concourse:type":          "get",
-									"concourse:pipeline-name": "some-pipeline",
-									"concourse:location":      "3",
-									"concourse:check-type":    "some-check-type",
-									"concourse:check-source":  `{"some":"source"}`,
-									"concourse:name":          "some-name",
-									"concourse:build-id":      "42",
-									"concourse:volumes":       `["some-volume"]`,
+									"concourse:volumes": `["some-volume"]`,
 								},
 								BindMounts: []garden.BindMount{
 									{
@@ -302,14 +278,7 @@ var _ = Describe("Worker", func() {
 								RootFSPath: "some-resource-image",
 								Privileged: true,
 								Properties: garden.Properties{
-									"concourse:type":          "get",
-									"concourse:pipeline-name": "some-pipeline",
-									"concourse:location":      "3",
-									"concourse:check-type":    "some-check-type",
-									"concourse:check-source":  "{\"some\":\"source\"}",
-									"concourse:name":          "some-name",
-									"concourse:build-id":      "42",
-									"concourse:ephemeral":     "true",
+									"concourse:ephemeral": "true",
 								},
 							}))
 
@@ -409,17 +378,8 @@ var _ = Describe("Worker", func() {
 					Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
 						RootFSPath: "some-image",
 						Privileged: true,
-						Properties: garden.Properties{
-							"concourse:type":          "get",
-							"concourse:pipeline-name": "some-pipeline",
-							"concourse:location":      "3",
-							"concourse:check-type":    "some-check-type",
-							"concourse:check-source":  "{\"some\":\"source\"}",
-							"concourse:name":          "some-name",
-							"concourse:build-id":      "42",
-						},
+						Properties: garden.Properties{},
 					}))
-
 				})
 
 				Context("when a root volume and inputs are provided", func() {
@@ -492,14 +452,7 @@ var _ = Describe("Worker", func() {
 							RootFSPath: "some-image",
 							Privileged: true,
 							Properties: garden.Properties{
-								"concourse:type":          "get",
-								"concourse:pipeline-name": "some-pipeline",
-								"concourse:location":      "3",
-								"concourse:check-type":    "some-check-type",
-								"concourse:check-source":  `{"some":"source"}`,
-								"concourse:name":          "some-name",
-								"concourse:build-id":      "42",
-								"concourse:volumes":       `["root-volume","cow-input-volume","cow-other-input-volume"]`,
+								"concourse:volumes": `["root-volume","cow-input-volume","cow-other-input-volume"]`,
 							},
 							BindMounts: []garden.BindMount{
 								{
@@ -659,7 +612,6 @@ var _ = Describe("Worker", func() {
 						handle2Volume = new(bfakes.FakeVolume)
 
 						fakeContainer.PropertiesReturns(garden.Properties{
-							"concourse:name":    name,
 							"concourse:volumes": `["handle-1","handle-2"]`,
 						}, nil)
 
@@ -728,9 +680,7 @@ var _ = Describe("Worker", func() {
 
 				Context("when the concourse:volumes property is not present", func() {
 					BeforeEach(func() {
-						fakeContainer.PropertiesReturns(garden.Properties{
-							"concourse:name": name,
-						}, nil)
+						fakeContainer.PropertiesReturns(garden.Properties{}, nil)
 					})
 
 					Describe("Volumes", func() {
@@ -742,7 +692,7 @@ var _ = Describe("Worker", func() {
 			})
 		})
 
-		Context("when the gardenClient returns garden.ContaienrNotFoundError", func() {
+		Context("when the gardenClient returns garden.ContainerNotFoundError", func() {
 			BeforeEach(func() {
 				fakeGardenClient.LookupReturns(nil, garden.ContainerNotFoundError{"some-handle"})
 			})
