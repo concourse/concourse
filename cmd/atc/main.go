@@ -296,32 +296,10 @@ func main() {
 	var workerClient worker.Client
 
 	if *gardenAddr != "" {
-		workerInfo := Db.WorkerInfo{
-			GardenAddr:       *gardenAddr,
-			BaggageclaimURL:  *baggageclaimURL,
-			ActiveContainers: 0,
-			ResourceTypes:    resourceTypesNG,
-			Platform:         "linux",
-			Tags:             nil,
-			Name:             *gardenAddr,
-		}
-
-		err = db.SaveWorker(workerInfo, 30*time.Second)
-		if err != nil {
-			logger.Fatal("could-not-save-garden-worker-provided", err)
-		}
-
-		tikTokGarden := clock.NewClock().NewTicker(10 * time.Second)
-
-		go func() {
-			for {
-				<-tikTokGarden.C()
-				err = db.SaveWorker(workerInfo, 30*time.Second)
-				if err != nil {
-					logger.Error("could-not-save-garden-worker-provided", err)
-				}
-			}
-		}()
+		worker.RegisterSingleWorker(
+			logger, db, clock.NewClock(),
+			*gardenAddr, *baggageclaimURL, resourceTypesNG,
+		)
 	}
 
 	workerClient = worker.NewPool(worker.NewDBWorkerProvider(logger, db, keepaliveDialer))
