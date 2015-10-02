@@ -13,11 +13,9 @@ import (
 	"strings"
 	"time"
 
-	gclient "github.com/cloudfoundry-incubator/garden/client"
 	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
 	httpmetrics "github.com/codahale/http-handlers/metrics"
 	_ "github.com/codahale/metrics/runtime"
-	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/felixge/tcpkeepalive"
 	"github.com/lib/pq"
 	"github.com/nu7hatch/gouuid"
@@ -296,24 +294,37 @@ func main() {
 	}
 
 	var workerClient worker.Client
+
 	if *gardenAddr != "" {
-		workerClient = worker.NewGardenWorker(
-			gclient.New(gconn.NewWithDialerAndLogger(
-				keepaliveDialerFactory(*gardenNetwork, *gardenAddr),
-				logger.Session("garden-connection"),
-			)),
-			bclient.New(*baggageclaimURL),
-			db,
-			clock.NewClock(),
-			-1,
-			resourceTypesNG,
-			"linux",
-			[]string{},
-			*gardenAddr,
-		)
-	} else {
-		workerClient = worker.NewPool(worker.NewDBWorkerProvider(logger, db, keepaliveDialer))
+		workerInfo := Db.WorkerInfo{
+			GardenAddr:       *gardenAddr,
+			BaggageclaimURL:  *baggageclaimURL,
+			ActiveContainers: 0,
+			ResourceTypes:    resourceTypesNG,
+			Platform:         "linux",
+			Tags:             nil,
+			Name:             *gardenAddr,
+		}
+
+		err = db.SaveWorker(workerInfo, 30*time.Second)
+		if err != nil {
+			logger.Fatal("could-not-save-garden-worker-provided", err)
+		}
+
+		tikTokGarden := clock.NewClock().NewTicker(10 * time.Second)
+
+		go func() {
+			for {
+				<-tikTokGarden.C()
+				err = db.SaveWorker(workerInfo, 30*time.Second)
+				if err != nil {
+					logger.Error("could-not-save-garden-worker-provided", err)
+				}
+			}
+		}()
 	}
+
+	workerClient = worker.NewPool(worker.NewDBWorkerProvider(logger, db, keepaliveDialer))
 
 	trackerFactory := resource.TrackerFactory{}
 
