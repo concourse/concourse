@@ -19,15 +19,14 @@ type FakeContainerDB struct {
 		result2 bool
 		result3 error
 	}
-	FindContainerInfosByIdentifierStub        func(db.ContainerIdentifier) ([]db.ContainerInfo, bool, error)
+	FindContainerInfosByIdentifierStub        func(db.ContainerIdentifier) ([]db.ContainerInfo, error)
 	findContainerInfosByIdentifierMutex       sync.RWMutex
 	findContainerInfosByIdentifierArgsForCall []struct {
 		arg1 db.ContainerIdentifier
 	}
 	findContainerInfosByIdentifierReturns struct {
 		result1 []db.ContainerInfo
-		result2 bool
-		result3 error
+		result2 error
 	}
 }
 
@@ -65,7 +64,7 @@ func (fake *FakeContainerDB) GetContainerInfoReturns(result1 db.ContainerInfo, r
 	}{result1, result2, result3}
 }
 
-func (fake *FakeContainerDB) FindContainerInfosByIdentifier(arg1 db.ContainerIdentifier) ([]db.ContainerInfo, bool, error) {
+func (fake *FakeContainerDB) FindContainerInfosByIdentifier(arg1 db.ContainerIdentifier) ([]db.ContainerInfo, error) {
 	fake.findContainerInfosByIdentifierMutex.Lock()
 	fake.findContainerInfosByIdentifierArgsForCall = append(fake.findContainerInfosByIdentifierArgsForCall, struct {
 		arg1 db.ContainerIdentifier
@@ -74,7 +73,7 @@ func (fake *FakeContainerDB) FindContainerInfosByIdentifier(arg1 db.ContainerIde
 	if fake.FindContainerInfosByIdentifierStub != nil {
 		return fake.FindContainerInfosByIdentifierStub(arg1)
 	} else {
-		return fake.findContainerInfosByIdentifierReturns.result1, fake.findContainerInfosByIdentifierReturns.result2, fake.findContainerInfosByIdentifierReturns.result3
+		return fake.findContainerInfosByIdentifierReturns.result1, fake.findContainerInfosByIdentifierReturns.result2
 	}
 }
 
@@ -90,13 +89,12 @@ func (fake *FakeContainerDB) FindContainerInfosByIdentifierArgsForCall(i int) db
 	return fake.findContainerInfosByIdentifierArgsForCall[i].arg1
 }
 
-func (fake *FakeContainerDB) FindContainerInfosByIdentifierReturns(result1 []db.ContainerInfo, result2 bool, result3 error) {
+func (fake *FakeContainerDB) FindContainerInfosByIdentifierReturns(result1 []db.ContainerInfo, result2 error) {
 	fake.FindContainerInfosByIdentifierStub = nil
 	fake.findContainerInfosByIdentifierReturns = struct {
 		result1 []db.ContainerInfo
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
+		result2 error
+	}{result1, result2}
 }
 
 var _ containerserver.ContainerDB = new(FakeContainerDB)

@@ -22,23 +22,17 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 
 	containerIdentifier, err := s.parseRequest(r)
 	if err != nil {
-		hLog.Error("Failed to parse request", err)
+		hLog.Error("failed-to-parse-request", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 
-	containers, found, err := s.db.FindContainerInfosByIdentifier(containerIdentifier)
+	containers, err := s.db.FindContainerInfosByIdentifier(containerIdentifier)
 	if err != nil {
-		hLog.Error("Failed to lookup containers", err)
+		hLog.Error("failed-to-find-containers", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	if !found {
-		hLog.Info("Failed to find any containers")
-		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
@@ -48,7 +42,8 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 		presentedContainers[i] = present.Container(container)
 	}
 
-	hLog.Info("Found containers", lager.Data{"containers": presentedContainers})
+	hLog.Info("found-containers", lager.Data{"containers": presentedContainers})
+
 	json.NewEncoder(w).Encode(presentedContainers)
 }
 

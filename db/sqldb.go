@@ -895,14 +895,14 @@ func (db *SQLDB) DeleteContainerInfo(handle string) error {
 	return err
 }
 
-func (db *SQLDB) FindContainerInfosByIdentifier(id ContainerIdentifier) ([]ContainerInfo, bool, error) {
+func (db *SQLDB) FindContainerInfosByIdentifier(id ContainerIdentifier) ([]ContainerInfo, error) {
 	_, err := db.conn.Exec(`
 		DELETE FROM containers
 		WHERE expires_at IS NOT NULL
 		AND expires_at < NOW()
 	`)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	whereCriteria := []string{}
@@ -942,7 +942,7 @@ func (db *SQLDB) FindContainerInfosByIdentifier(id ContainerIdentifier) ([]Conta
 	if id.CheckSource != nil {
 		checkSourceBlob, err = json.Marshal(id.CheckSource)
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
 		whereCriteria = append(whereCriteria, fmt.Sprintf("check_source = $%d", len(params)+1))
 		params = append(params, checkSourceBlob)
@@ -961,7 +961,7 @@ func (db *SQLDB) FindContainerInfosByIdentifier(id ContainerIdentifier) ([]Conta
 	rows, err = db.conn.Query(selectQuery, params...)
 
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	defer rows.Close()
@@ -971,34 +971,31 @@ func (db *SQLDB) FindContainerInfosByIdentifier(id ContainerIdentifier) ([]Conta
 		info, err := scanContainerInfo(rows)
 
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
 
 		infos = append(infos, info)
 	}
 
-	if len(infos) == 0 {
-		return nil, false, nil
-	}
-
-	return infos, true, nil
+	return infos, nil
 }
 
 func (db *SQLDB) FindContainerInfoByIdentifier(id ContainerIdentifier) (ContainerInfo, bool, error) {
-	containers, found, err := db.FindContainerInfosByIdentifier(id)
+	containers, err := db.FindContainerInfosByIdentifier(id)
 	if err != nil {
 		return ContainerInfo{}, false, err
 	}
 
-	if !found {
+	switch len(containers) {
+	case 0:
 		return ContainerInfo{}, false, nil
-	}
 
-	if len(containers) != 1 {
+	case 1:
+		return containers[0], true, nil
+
+	default:
 		return ContainerInfo{}, false, ErrMultipleContainersFound
 	}
-
-	return containers[0], true, nil
 }
 
 func (db *SQLDB) GetContainerInfo(handle string) (ContainerInfo, bool, error) {

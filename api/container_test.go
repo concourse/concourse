@@ -134,7 +134,7 @@ var _ = Describe("Pipelines API", func() {
 							expectedPresentedContainer1,
 							expectedPresentedContainer2,
 						}
-						containerDB.FindContainerInfosByIdentifierReturns(fakeContainers, true, nil)
+						containerDB.FindContainerInfosByIdentifierReturns(fakeContainers, nil)
 					})
 
 					It("returns 200", func() {
@@ -178,14 +178,28 @@ var _ = Describe("Pipelines API", func() {
 
 				Context("when no containers are found", func() {
 					BeforeEach(func() {
-						containerDB.FindContainerInfosByIdentifierReturns([]db.ContainerInfo{}, false, nil)
+						containerDB.FindContainerInfosByIdentifierReturns([]db.ContainerInfo{}, nil)
 					})
 
-					It("returns 404", func() {
+					It("returns 200", func() {
 						response, err := client.Do(req)
 						Expect(err).NotTo(HaveOccurred())
 
-						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("returns an empty array", func() {
+						response, err := client.Do(req)
+						Expect(err).NotTo(HaveOccurred())
+
+						b, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						var returned []atc.Container
+						err = json.Unmarshal(b, &returned)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(returned).To(BeEmpty())
 					})
 				})
 
@@ -196,7 +210,7 @@ var _ = Describe("Pipelines API", func() {
 
 					BeforeEach(func() {
 						expectedErr = errors.New("some error")
-						containerDB.FindContainerInfosByIdentifierReturns([]db.ContainerInfo{}, false, expectedErr)
+						containerDB.FindContainerInfosByIdentifierReturns([]db.ContainerInfo{}, expectedErr)
 					})
 
 					It("returns 500", func() {
@@ -558,7 +572,6 @@ var _ = Describe("Pipelines API", func() {
 							Expect(hijackOutput).To(Equal(atc.HijackOutput{
 								Stdout: []byte("some stdout\n"),
 							}))
-
 						})
 					})
 

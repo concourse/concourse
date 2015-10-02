@@ -17,7 +17,7 @@ type Server struct {
 //go:generate counterfeiter . ContainerDB
 type ContainerDB interface {
 	GetContainerInfo(handle string) (db.ContainerInfo, bool, error)
-	FindContainerInfosByIdentifier(db.ContainerIdentifier) ([]db.ContainerInfo, bool, error)
+	FindContainerInfosByIdentifier(db.ContainerIdentifier) ([]db.ContainerInfo, error)
 }
 
 func NewServer(

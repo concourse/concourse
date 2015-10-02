@@ -376,7 +376,6 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			func(example findContainerInfosByIdentifierExample) {
 				var results []db.ContainerInfo
 				var handles []string
-				var found bool
 				var err error
 
 				for _, containerToCreate := range example.containersToCreate {
@@ -388,9 +387,8 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					Expect(err).NotTo(HaveOccurred())
 				}
 
-				results, found, err = database.FindContainerInfosByIdentifier(example.identifierToFilerFor)
+				results, err = database.FindContainerInfosByIdentifier(example.identifierToFilerFor)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(Equal(example.expectedHandles != nil))
 
 				for _, result := range results {
 					handles = append(handles, result.Handle)
