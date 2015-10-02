@@ -291,11 +291,11 @@ common platforms in the bottom right hand corner of the main page.
 
   \codeblock{bash}{
   $ fly execute
-  $ fly intercept
+  $ fly intercept -t task
   }
 
-  Containers are around for a short time after a build in order to allow
-  people to intercept them.
+  Containers are around for a short time after a build finishes in order to
+  allow people to intercept them.
 
   You can also intercept builds that were run in your pipeline. By using
   \code{--pipeline}, \code{--job}, \code{--build}, and \code{--step-name} you
