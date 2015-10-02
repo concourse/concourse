@@ -142,6 +142,7 @@ func (provider *dbProvider) newGardenWorker(addr string, tikTok clock.Clock, inf
 		gclient.New(gardenConn),
 		bClient,
 		provider.db,
+		provider,
 		tikTok,
 		info.ActiveContainers,
 		info.ResourceTypes,

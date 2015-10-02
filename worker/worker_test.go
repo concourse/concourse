@@ -27,6 +27,7 @@ var _ = Describe("Worker", func() {
 		fakeGardenClient       *gfakes.FakeClient
 		fakeBaggageclaimClient *bfakes.FakeClient
 		fakeGardenWorkerDB     *wfakes.FakeGardenWorkerDB
+		fakeWorkerProvider     *wfakes.FakeWorkerProvider
 		fakeClock              *fakeclock.FakeClock
 		activeContainers       int
 		resourceTypes          []atc.WorkerResourceType
@@ -42,6 +43,7 @@ var _ = Describe("Worker", func() {
 		fakeGardenClient = new(gfakes.FakeClient)
 		fakeBaggageclaimClient = new(bfakes.FakeClient)
 		fakeGardenWorkerDB = new(wfakes.FakeGardenWorkerDB)
+		fakeWorkerProvider = new(wfakes.FakeWorkerProvider)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		activeContainers = 42
 		resourceTypes = []atc.WorkerResourceType{
@@ -57,6 +59,7 @@ var _ = Describe("Worker", func() {
 			fakeGardenClient,
 			fakeBaggageclaimClient,
 			fakeGardenWorkerDB,
+			fakeWorkerProvider,
 			fakeClock,
 			activeContainers,
 			resourceTypes,
@@ -76,6 +79,7 @@ var _ = Describe("Worker", func() {
 				fakeGardenClient,
 				baggageclaimClient,
 				fakeGardenWorkerDB,
+				fakeWorkerProvider,
 				fakeClock,
 				activeContainers,
 				resourceTypes,
@@ -693,6 +697,7 @@ var _ = Describe("Worker", func() {
 									fakeGardenClient,
 									nil,
 									fakeGardenWorkerDB,
+									fakeWorkerProvider,
 									fakeClock,
 									activeContainers,
 									resourceTypes,
@@ -796,14 +801,13 @@ var _ = Describe("Worker", func() {
 
 			BeforeEach(func() {
 				fakeContainer = new(gfakes.FakeContainer)
-				fakeContainer.HandleReturns("some-handle")
+				fakeContainer.HandleReturns("provider-handle")
 
-				fakeGardenClient.ContainersReturns([]garden.Container{fakeContainer}, nil)
+				fakeWorkerProvider.FindContainerInfoForIdentifierReturns(db.ContainerInfo{
+					Handle: "provider-handle",
+				}, true, nil)
 
-				name = "some-name"
-				fakeContainer.PropertiesReturns(garden.Properties{
-					"concourse:name": name,
-				}, nil)
+				fakeGardenClient.LookupReturns(fakeContainer, nil)
 			})
 
 			It("succeeds", func() {
@@ -811,11 +815,13 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("looks for containers with matching properties via the Garden client", func() {
-				Expect(fakeGardenClient.ContainersCallCount()).To(Equal(1))
-				Expect(fakeGardenClient.ContainersArgsForCall(0)).To(Equal(garden.Properties{
-					"concourse:name": name,
-				}))
+				Expect(fakeWorkerProvider.FindContainerInfoForIdentifierCallCount()).To(Equal(1))
+				Expect(fakeWorkerProvider.FindContainerInfoForIdentifierArgsForCall(0)).To(Equal(id))
 
+				Expect(fakeGardenClient.LookupCallCount()).To(Equal(1))
+				lookupHandle := fakeGardenClient.LookupArgsForCall(0)
+
+				Expect(lookupHandle).To(Equal("provider-handle"))
 			})
 
 			Describe("the found container", func() {
@@ -825,7 +831,7 @@ var _ = Describe("Worker", func() {
 
 					By("destroying via garden")
 					Expect(fakeGardenClient.DestroyCallCount()).To(Equal(1))
-					Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("some-handle"))
+					Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("provider-handle"))
 
 					By("no longer heartbeating")
 					fakeClock.Increment(30 * time.Second)
@@ -871,34 +877,12 @@ var _ = Describe("Worker", func() {
 			})
 		})
 
-		Context("when multiple containers are found", func() {
-			var fakeContainer *gfakes.FakeContainer
-			var bonusContainer *gfakes.FakeContainer
-
-			BeforeEach(func() {
-				fakeContainer = new(gfakes.FakeContainer)
-				fakeContainer.HandleReturns("some-handle")
-
-				bonusContainer = new(gfakes.FakeContainer)
-				bonusContainer.HandleReturns("some-other-handle")
-
-				fakeGardenClient.ContainersReturns([]garden.Container{fakeContainer, bonusContainer}, nil)
-			})
-
-			It("returns ErrMultipleContainers", func() {
-				Expect(lookupErr).To(Equal(MultipleContainersError{
-					Handles: []string{"some-handle", "some-other-handle"},
-				}))
-
-			})
-		})
-
 		Context("when no containers are found", func() {
 			BeforeEach(func() {
-				fakeGardenClient.ContainersReturns([]garden.Container{}, nil)
+				fakeWorkerProvider.FindContainerInfoForIdentifierReturns(db.ContainerInfo{}, false, nil)
 			})
 
-			It("returns ErrContainerNotFound", func() {
+			It("returns that the container could not be found", func() {
 				Expect(found).To(BeFalse())
 			})
 		})
@@ -907,7 +891,20 @@ var _ = Describe("Worker", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeGardenClient.ContainersReturns(nil, disaster)
+				fakeWorkerProvider.FindContainerInfoForIdentifierReturns(db.ContainerInfo{}, false, disaster)
+			})
+
+			It("returns the error", func() {
+				Expect(lookupErr).To(Equal(disaster))
+			})
+		})
+
+		Context("when looking up the container fails", func() {
+			disaster := errors.New("nope")
+
+			BeforeEach(func() {
+				fakeWorkerProvider.FindContainerInfoForIdentifierReturns(db.ContainerInfo{Handle: "handle"}, true, nil)
+				fakeGardenClient.LookupReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {
@@ -933,6 +930,7 @@ var _ = Describe("Worker", func() {
 				fakeGardenClient,
 				fakeBaggageclaimClient,
 				fakeGardenWorkerDB,
+				fakeWorkerProvider,
 				fakeClock,
 				activeContainers,
 				resourceTypes,

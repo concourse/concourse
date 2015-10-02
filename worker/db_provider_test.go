@@ -184,6 +184,8 @@ var _ = Describe("DBProvider", func() {
 					workerA.ContainersReturns([]garden.Container{fakeContainer}, nil)
 					workerA.LookupReturns(fakeContainer, nil)
 
+					fakeDB.FindContainerInfoByIdentifierReturns(db.ContainerInfo{Handle: "some-handle"}, true, nil)
+
 					container, found, err := workers[0].FindContainerForIdentifier(logger, Identifier{
 						ContainerIdentifier: db.ContainerIdentifier{
 							Name: "some-name",

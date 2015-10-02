@@ -55,6 +55,7 @@ type gardenWorker struct {
 	gardenClient       garden.Client
 	baggageclaimClient baggageclaim.Client
 	db                 GardenWorkerDB
+	provider           WorkerProvider
 
 	clock clock.Clock
 
@@ -69,6 +70,7 @@ func NewGardenWorker(
 	gardenClient garden.Client,
 	baggageclaimClient baggageclaim.Client,
 	db GardenWorkerDB,
+	provider WorkerProvider,
 	clock clock.Clock,
 	activeContainers int,
 	resourceTypes []atc.WorkerResourceType,
@@ -80,6 +82,7 @@ func NewGardenWorker(
 		gardenClient:       gardenClient,
 		baggageclaimClient: baggageclaimClient,
 		db:                 db,
+		provider:           provider,
 		clock:              clock,
 
 		activeContainers: activeContainers,
@@ -214,28 +217,30 @@ dance:
 }
 
 func (worker *gardenWorker) FindContainerForIdentifier(logger lager.Logger, id Identifier) (Container, bool, error) {
-	containers, err := worker.gardenClient.Containers(id.gardenProperties())
+	containerInfo, found, err := worker.provider.FindContainerInfoForIdentifier(id)
 	if err != nil {
 		return nil, false, err
 	}
 
-	switch len(containers) {
-	case 0:
-		return nil, false, nil
-	case 1:
-		container, err := newGardenWorkerContainer(logger, containers[0], worker.gardenClient, worker.baggageclaimClient, worker.db, worker.clock)
-		return container, true, err
-	default:
-		handles := []string{}
-
-		for _, c := range containers {
-			handles = append(handles, c.Handle())
-		}
-
-		return nil, false, MultipleContainersError{
-			Handles: handles,
-		}
+	if !found {
+		return nil, found, nil
 	}
+
+	container, found, err := worker.LookupContainer(logger, containerInfo.Handle)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		err = ErrMissingWorker
+		logger.Error("found-container-in-db-but-not-on-worker", err, lager.Data{
+			"container-handle": containerInfo.Handle,
+			"worker-name":      containerInfo.WorkerName,
+		})
+		return nil, false, err
+	}
+
+	return container, found, nil
 }
 
 func (worker *gardenWorker) LookupContainer(logger lager.Logger, handle string) (Container, bool, error) {
