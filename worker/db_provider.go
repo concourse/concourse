@@ -25,6 +25,7 @@ type WorkerDB interface {
 	FindContainerInfoByIdentifier(db.ContainerIdentifier) (db.ContainerInfo, bool, error)
 
 	UpdateExpiresAtOnContainerInfo(handle string, ttl time.Duration) error
+	ReapContainer(handle string) error
 }
 
 var ErrMultipleWorkersWithName = errors.New("More than one worker has given worker name")
@@ -99,6 +100,10 @@ func (provider *dbProvider) FindContainerInfoForIdentifier(id Identifier) (db.Co
 
 func (provider *dbProvider) GetContainerInfo(handle string) (db.ContainerInfo, bool, error) {
 	return provider.db.GetContainerInfo(handle)
+}
+
+func (provider *dbProvider) ReapContainer(handle string) error {
+	return provider.db.ReapContainer(handle)
 }
 
 func (provider *dbProvider) newGardenWorker(addr string, tikTok clock.Clock, info db.WorkerInfo) Worker {

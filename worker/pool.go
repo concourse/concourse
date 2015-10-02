@@ -17,6 +17,7 @@ type WorkerProvider interface {
 	GetWorker(string) (Worker, bool, error)
 	FindContainerInfoForIdentifier(Identifier) (db.ContainerInfo, bool, error)
 	GetContainerInfo(string) (db.ContainerInfo, bool, error)
+	ReapContainer(string) error
 }
 
 var (
@@ -115,12 +116,12 @@ func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier)
 	}
 
 	if !found {
-		err = ErrDBGardenMismatch
-		logger.Error("found-container-for-missing-worker", err, lager.Data{
+		logger.Info("found-container-for-missing-worker", lager.Data{
 			"container-handle": containerInfo.Handle,
 			"worker-name":      containerInfo.WorkerName,
 		})
-		return nil, false, err
+
+		return nil, false, ErrDBGardenMismatch
 	}
 
 	container, found, err := worker.LookupContainer(logger, containerInfo.Handle)
@@ -129,25 +130,20 @@ func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier)
 	}
 
 	if !found {
-		err = ErrDBGardenMismatch
-		logger.Error("found-container-in-db-but-not-on-worker", err, lager.Data{
+		logger.Info("found-container-in-db-but-not-on-worker", lager.Data{
 			"container-handle": containerInfo.Handle,
 			"worker-name":      containerInfo.WorkerName,
 		})
+
+		err := pool.provider.ReapContainer(containerInfo.Handle)
+		if err != nil {
+			return nil, false, err
+		}
+
 		return nil, false, err
 	}
 
-	return container, found, nil
-}
-
-type workerErrorInfo struct {
-	workerName string
-	err        error
-}
-
-type foundContainer struct {
-	workerName string
-	container  Container
+	return container, true, nil
 }
 
 func (pool *pool) LookupContainer(logger lager.Logger, handle string) (Container, bool, error) {
@@ -165,13 +161,14 @@ func (pool *pool) LookupContainer(logger lager.Logger, handle string) (Container
 	if err != nil {
 		return nil, false, err
 	}
+
 	if !found {
-		err = ErrDBGardenMismatch
-		logger.Error("found-container-for-missing-worker", err, lager.Data{
+		logger.Info("found-container-for-missing-worker", lager.Data{
 			"container-handle": containerInfo.Handle,
 			"worker-name":      containerInfo.WorkerName,
 		})
-		return nil, false, err
+
+		return nil, false, ErrDBGardenMismatch
 	}
 
 	container, found, err := worker.LookupContainer(logger, handle)
@@ -180,15 +177,20 @@ func (pool *pool) LookupContainer(logger lager.Logger, handle string) (Container
 	}
 
 	if !found {
-		err = ErrDBGardenMismatch
-		logger.Error("found-container-in-db-but-not-on-worker", err, lager.Data{
+		logger.Info("found-container-in-db-but-not-on-worker", lager.Data{
 			"container-handle": containerInfo.Handle,
 			"worker-name":      containerInfo.WorkerName,
 		})
-		return nil, false, err
+
+		err := pool.provider.ReapContainer(handle)
+		if err != nil {
+			return nil, false, err
+		}
+
+		return nil, false, nil
 	}
 
-	return container, found, nil
+	return container, true, nil
 }
 
 func (pool *pool) Name() string {

@@ -269,11 +269,28 @@ var _ = Describe("Pool", func() {
 						fakeWorker.LookupContainerReturns(nil, false, nil)
 					})
 
-					It("returns ErrDBGardenMismatch", func() {
-						containerInfo, found, err := pool.LookupContainer(logger, "some-handle")
-						Expect(err).To(Equal(ErrDBGardenMismatch))
-						Expect(containerInfo).To(BeNil())
+					It("expires the container and returns false and no error", func() {
+						_, found, err := pool.LookupContainer(logger, "some-handle")
+						Expect(err).ToNot(HaveOccurred())
 						Expect(found).To(BeFalse())
+
+						Expect(fakeProvider.ReapContainerCallCount()).To(Equal(1))
+
+						expiredHandle := fakeProvider.ReapContainerArgsForCall(0)
+						Expect(expiredHandle).To(Equal("some-handle"))
+					})
+
+					Context("when expiring the container fails", func() {
+						disaster := errors.New("nope")
+
+						BeforeEach(func() {
+							fakeProvider.ReapContainerReturns(disaster)
+						})
+
+						It("returns the error", func() {
+							_, _, err := pool.LookupContainer(logger, "some-handle")
+							Expect(err).To(Equal(disaster))
+						})
 					})
 				})
 
@@ -405,13 +422,32 @@ var _ = Describe("Pool", func() {
 				})
 
 				Context("when the container cannot be found on the worker", func() {
-					It("returns ErrDBGardenMismatch", func() {
+					BeforeEach(func() {
 						fakeWorker.LookupContainerReturns(nil, false, nil)
+					})
 
-						containerInfo, found, err := pool.FindContainerForIdentifier(logger, identifier)
-						Expect(err).To(Equal(ErrDBGardenMismatch))
-						Expect(containerInfo).To(BeNil())
+					It("expires the container and returns false and no error", func() {
+						_, found, err := pool.FindContainerForIdentifier(logger, identifier)
+						Expect(err).ToNot(HaveOccurred())
 						Expect(found).To(BeFalse())
+
+						Expect(fakeProvider.ReapContainerCallCount()).To(Equal(1))
+
+						expiredHandle := fakeProvider.ReapContainerArgsForCall(0)
+						Expect(expiredHandle).To(Equal("some-container-handle"))
+					})
+
+					Context("when expiring the container fails", func() {
+						disaster := errors.New("nope")
+
+						BeforeEach(func() {
+							fakeProvider.ReapContainerReturns(disaster)
+						})
+
+						It("returns the error", func() {
+							_, _, err := pool.FindContainerForIdentifier(logger, identifier)
+							Expect(err).To(Equal(disaster))
+						})
 					})
 				})
 

@@ -46,6 +46,14 @@ type FakeWorkerProvider struct {
 		result2 bool
 		result3 error
 	}
+	ReapContainerStub        func(string) error
+	reapContainerMutex       sync.RWMutex
+	reapContainerArgsForCall []struct {
+		arg1 string
+	}
+	reapContainerReturns struct {
+		result1 error
+	}
 }
 
 func (fake *FakeWorkerProvider) Workers() ([]worker.Worker, error) {
@@ -173,6 +181,38 @@ func (fake *FakeWorkerProvider) GetContainerInfoReturns(result1 db.ContainerInfo
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeWorkerProvider) ReapContainer(arg1 string) error {
+	fake.reapContainerMutex.Lock()
+	fake.reapContainerArgsForCall = append(fake.reapContainerArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.reapContainerMutex.Unlock()
+	if fake.ReapContainerStub != nil {
+		return fake.ReapContainerStub(arg1)
+	} else {
+		return fake.reapContainerReturns.result1
+	}
+}
+
+func (fake *FakeWorkerProvider) ReapContainerCallCount() int {
+	fake.reapContainerMutex.RLock()
+	defer fake.reapContainerMutex.RUnlock()
+	return len(fake.reapContainerArgsForCall)
+}
+
+func (fake *FakeWorkerProvider) ReapContainerArgsForCall(i int) string {
+	fake.reapContainerMutex.RLock()
+	defer fake.reapContainerMutex.RUnlock()
+	return fake.reapContainerArgsForCall[i].arg1
+}
+
+func (fake *FakeWorkerProvider) ReapContainerReturns(result1 error) {
+	fake.ReapContainerStub = nil
+	fake.reapContainerReturns = struct {
+		result1 error
+	}{result1}
 }
 
 var _ worker.WorkerProvider = new(FakeWorkerProvider)

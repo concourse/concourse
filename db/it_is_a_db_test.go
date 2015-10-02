@@ -389,6 +389,34 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Expect(updatedContainerInfo.ExpiresAt).To(BeTemporally("~", comparisonContainerInfo.ExpiresAt, time.Second))
 		})
 
+		It("can reap a container", func() {
+			info := db.ContainerInfo{
+				ContainerIdentifier: db.ContainerIdentifier{
+					Type: db.ContainerTypeTask,
+				},
+				Handle: "some-handle",
+			}
+
+			err := database.CreateContainerInfo(info, time.Minute)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, found, err := database.GetContainerInfo("some-handle")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			By("reaping an existing container")
+			err = database.ReapContainer("some-handle")
+			Expect(err).NotTo(HaveOccurred())
+
+			_, found, err = database.GetContainerInfo("some-handle")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+
+			By("not failing if the container's already been reaped")
+			err = database.ReapContainer("some-handle")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
 		type findContainerInfosByIdentifierExample struct {
 			containersToCreate   []db.ContainerInfo
 			identifierToFilerFor db.ContainerIdentifier

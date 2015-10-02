@@ -1079,6 +1079,28 @@ func (db *SQLDB) UpdateExpiresAtOnContainerInfo(handle string, ttl time.Duration
 	return tx.Commit()
 }
 
+func (db *SQLDB) ReapContainer(handle string) error {
+	rows, err := db.conn.Exec(`
+		DELETE FROM containers WHERE handle = $1
+	`, handle)
+	if err != nil {
+		return err
+	}
+
+	affected, err := rows.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	// just to be explicit: reaping 0 containers is fine;
+	// it may have already expired
+	if affected == 0 {
+		return nil
+	}
+
+	return nil
+}
+
 func (db *SQLDB) saveBuildEvent(tx *sql.Tx, buildID int, event atc.Event) error {
 	payload, err := json.Marshal(event)
 	if err != nil {
