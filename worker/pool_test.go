@@ -228,9 +228,9 @@ var _ = Describe("Pool", func() {
 					fakeProvider.GetWorkerReturns(nil, false, nil)
 				})
 
-				It("returns ErrDBGardenMismatch", func() {
+				It("returns ErrMissingWorker", func() {
 					containerInfo, found, err := pool.LookupContainer(logger, "some-handle")
-					Expect(err).To(Equal(ErrDBGardenMismatch))
+					Expect(err).To(Equal(ErrMissingWorker))
 					Expect(containerInfo).To(BeNil())
 					Expect(found).To(BeFalse())
 				})
@@ -383,11 +383,13 @@ var _ = Describe("Pool", func() {
 			})
 
 			Context("when we cannot find the worker from the container info", func() {
-				It("returns ErrDBGardenMismatch", func() {
+				BeforeEach(func() {
 					fakeProvider.GetWorkerReturns(nil, false, nil)
+				})
 
+				It("returns ErrMissingWorker", func() {
 					containerInfo, found, err := pool.FindContainerForIdentifier(logger, identifier)
-					Expect(err).To(Equal(ErrDBGardenMismatch))
+					Expect(err).To(Equal(ErrMissingWorker))
 					Expect(containerInfo).To(BeNil())
 					Expect(found).To(BeFalse())
 				})

@@ -21,8 +21,8 @@ type WorkerProvider interface {
 }
 
 var (
-	ErrNoWorkers        = errors.New("no workers")
-	ErrDBGardenMismatch = errors.New("discrepancy between db and garden worker containers found")
+	ErrNoWorkers     = errors.New("no workers")
+	ErrMissingWorker = errors.New("worker for container is missing")
 )
 
 type NoCompatibleWorkersError struct {
@@ -121,7 +121,7 @@ func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier)
 			"worker-name":      containerInfo.WorkerName,
 		})
 
-		return nil, false, ErrDBGardenMismatch
+		return nil, false, ErrMissingWorker
 	}
 
 	container, found, err := worker.LookupContainer(logger, containerInfo.Handle)
@@ -168,7 +168,7 @@ func (pool *pool) LookupContainer(logger lager.Logger, handle string) (Container
 			"worker-name":      containerInfo.WorkerName,
 		})
 
-		return nil, false, ErrDBGardenMismatch
+		return nil, false, ErrMissingWorker
 	}
 
 	container, found, err := worker.LookupContainer(logger, handle)
