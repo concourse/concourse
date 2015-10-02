@@ -67,7 +67,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("and building succeeds", func() {
 					var fakeBuild *enginefakes.FakeBuild
-					var resumed chan struct{}
+					var resumed <-chan struct{}
 					var blockForever *sync.WaitGroup
 
 					BeforeEach(func() {
@@ -78,9 +78,10 @@ var _ = Describe("Builds API", func() {
 						forever := blockForever
 						forever.Add(1)
 
-						resumed = make(chan struct{})
+						r := make(chan struct{})
+						resumed = r
 						fakeBuild.ResumeStub = func(lager.Logger) {
-							close(resumed)
+							close(r)
 							forever.Wait()
 						}
 
