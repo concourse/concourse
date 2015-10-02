@@ -849,6 +849,19 @@ var _ = Describe("Worker", func() {
 			})
 		})
 
+		Context("when the associated worker cannot be found", func() {
+			BeforeEach(func() {
+				fakeWorkerProvider.FindContainerInfoForIdentifierReturns(db.ContainerInfo{Handle: "handle"}, true, nil)
+				fakeGardenClient.LookupReturns(nil, ErrMissingWorker)
+			})
+
+			It("returns the error", func() {
+				Expect(lookupErr).To(Equal(ErrMissingWorker))
+				Expect(found).To(BeFalse())
+				Expect(foundContainer).To(BeNil())
+			})
+		})
+
 		Context("when looking up the container fails", func() {
 			disaster := errors.New("nope")
 
