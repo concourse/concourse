@@ -57,9 +57,9 @@ jobs:
     networks: [{name: concourse}]
     templates:
       - {release: concourse, name: consul-agent}
-      - {release: garden-linux, name: garden}
       - {release: concourse, name: groundcrew}
       - {release: concourse, name: baggageclaim}
+      - {release: garden-linux, name: garden}
     properties:
       garden:
         # cannot enforce quotas in bosh-lite

@@ -166,3 +166,41 @@ no-ops (which still must be correctly implemented as detailed below).
   \}
   }
 }
+
+\section{Metadata}{
+  When used in a \reference{get-step} or a \reference{put-step}, metadata about
+  the running build is made available via the following environment variables:
+
+  \definitions{
+    \item{\code{$BUILD_ID}}{
+      The internal identifier for the build. Right now this is numeric but it
+      may become a guid in the future. Treat it as an absolute reference to the
+      build.
+    }
+
+    \item{\code{$BUILD_NAME}}{
+      The build number within the build's job.
+    }
+
+    \item{\code{$BUILD_JOB_NAME}}{
+      The name of the build's job.
+    }
+
+    \item{\code{$BUILD_PIPELINE_NAME}}{
+      The pipeline that the build's job lives in.
+    }
+  }
+
+  If the build is a one-off, \code{$BUILD_NAME}, \code{$BUILD_JOB_NAME}, and
+  \code{$BUILD_PIPELINE_NAME} will not be set.
+
+  None of these variables are available to \code{/check}.
+
+  These variables should be used solely for annotating things with metadata for
+  traceability, i.e. for linking to the build in an alert or annotating an
+  automated commit so its origin can be discovered.
+
+  They should \italic{not} be used to emulate versioning (e.g. by using the
+  increasing build number). They are not provided to \reference{task-step}
+  steps to avoid this anti-pattern.
+}

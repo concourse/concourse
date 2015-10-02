@@ -44,6 +44,7 @@ jobs:
 
   templates:
   - {release: concourse, name: groundcrew}
+  - {release: concourse, name: baggageclaim}
   - {release: garden-linux, name: garden}
 
   networks:
@@ -59,6 +60,8 @@ jobs:
       tags: ["custom-remote-worker-tag"]
       garden:
         forward_address: 127.0.0.1:7777
+      baggageclaim:
+        forward_address: 127.0.0.1:7788
       tsa:
         host: CONCOURSE_TSA_HOST
         host_public_key: CONCOURSE_TSA_PUBLIC_KEY

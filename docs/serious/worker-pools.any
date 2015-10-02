@@ -47,6 +47,7 @@ subset of the worker's tags, by setting \reference{step-tags}.
 
   \codeblock{bash}{
     curl -XPOST http://192.168.100.4:8080/api/v1/workers?ttl=10s -d '\{
+      "name": "image-building-box",
       "platform": "linux",
       "tags": ["hetzner"],
       "addr": "10.0.16.10:8080",
@@ -65,6 +66,12 @@ subset of the worker's tags, by setting \reference{step-tags}.
 
   The worker JSON object contains the following attributes:
 
+  \define-attribute{name: string}{
+    \italic{Optional.} A logical name for the worker. This should be something
+    that stays the same throughout the worker's lifecycle, for example the
+    \code{hostname}. If not specified, the \code{addr} is used.
+  }
+
   \define-attribute{platform: string}{
     \italic{Required.} The platform supported by the worker, e.g. \code{linux},
     \code{darwin}, or \code{windows}.
@@ -80,6 +87,13 @@ subset of the worker's tags, by setting \reference{step-tags}.
     must be reachable by the ATC, and has no authentication. For this reason it
     should always be an address only reachable from within Concourse's private
     network. To register external workers, see \reference{external-workers}.
+  }
+
+  \define-attribute{baggageclaim_url: string}{
+    \italic{Optional.} The API endpoint for a
+    \hyperlink{https://github.com/concourse/baggageclaim} server to use for
+    caching artifacts on the worker. If not specified, caching will not be
+    utilized.
   }
 
   \define-attribute{active_containers: integer}{
@@ -106,7 +120,7 @@ subset of the worker's tags, by setting \reference{step-tags}.
   can reach the TSA.
 
   Registering a worker, whether internal to the deployment or external,
-  then involves four components:
+  then involves the following components:
 
   \definitions{
     \item{\hyperlink{https://github.com/concourse/tsa}{the TSA}}{
@@ -121,6 +135,11 @@ subset of the worker's tags, by setting \reference{step-tags}.
     \item{\hyperlink{https://github.com/cloudfoundry-incubator/garden}{a Garden server}}{
       the worker itself, the goal being to make its API endpoint accessible to
       the ATC
+    }
+
+    \item{\hyperlink{https://github.com/concourse/baggageclaim}{a Baggageclaim server} (optional)}{
+      the API endpoint of a colocated Baggageclaim server, to be used for
+      caching artifacts on the worker
     }
 
     \item{an \code{ssh} client}{
@@ -368,6 +387,13 @@ subset of the worker's tags, by setting \reference{step-tags}.
             automatically determine this address, so you probably won't need to
             specify it.
           }
+
+          \item{\code{groundcrew.baggageclaim.address}}{
+            The address of the Baggageclaim server to advertise to the TSA.
+            Note that this must be the external address. If omitted, Groundcrew
+            will automatically determine this address, so you probably won't
+            need to specify it.
+          }
         }
 
         You would do this if your worker is not reachable by the outside world,
@@ -381,8 +407,13 @@ subset of the worker's tags, by setting \reference{step-tags}.
 
         \definitions{
           \item{\code{groundcrew.garden.forward_address}}{
-            The locally-reachable address to forward through the TSA, e.g.
-            \code{127.0.0.1:7777}.
+            The locally-reachable Garden address to forward through the TSA,
+            e.g.  \code{127.0.0.1:7777}.
+          }
+
+          \item{\code{groundcrew.baggageclaim.forward_address}}{
+            The locally-reachable Baggageclaim address to forward through the
+            TSA, e.g. \code{127.0.0.1:7788}.
           }
         }
 
@@ -507,6 +538,28 @@ subset of the worker's tags, by setting \reference{step-tags}.
         ...where \code{127.0.0.1:7777} is the address of the local Garden server,
         and \code{worker.json} is a file containing the worker JSON payload (sans
         \code{"addr"}).
+      }
+
+      \section{Forwarding local Garden and Baggageclaim servers}{
+        The same \code{forward-worker} command as above, but with two \code{-R}
+        forwards, and flags for identifying which is which:
+
+        \codeblock{bash}{
+          ssh \\
+            -i path/to/private-key \\
+            -R 0.0.0.0:7777:127.0.0.1:7777 \\
+            -R 0.0.0.0:7788:127.0.0.1:7788 \\
+            -p 2222 some-atc.com \\
+            forward-worker \\
+            --garden 0.0.0.0:7777 \\
+            --baggageclaim 0.0.0.0:7788 \\
+            < worker.json
+        }
+
+        Note that \code{--garden} and \code{--baggageclaim} specify the
+        requested remote-end of their \code{-R} forward flags, respectively.
+        The specified addresses are not actually used; on the server side; this
+        is just a sort of hacky way to keep the SSH interaction simple.
       }
     }
   }

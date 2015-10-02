@@ -99,6 +99,7 @@ jobs:
     templates:
       - {release: concourse, name: consul-agent}
       - {release: concourse, name: groundcrew}
+      - {release: concourse, name: baggageclaim}
       - {release: garden-linux, name: garden}
     networks: [{name: concourse}]
     properties:

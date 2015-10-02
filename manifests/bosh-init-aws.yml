@@ -52,6 +52,7 @@ jobs:
       - {release: concourse, name: atc}
       - {release: concourse, name: groundcrew}
       - {release: concourse, name: tsa}
+      - {release: concourse, name: baggageclaim}
       - {release: garden-linux, name: garden}
 
     networks:
