@@ -1,9 +1,7 @@
 package worker
 
 import (
-	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/cloudfoundry-incubator/garden"
@@ -40,43 +38,6 @@ type Identifier struct {
 	db.ContainerIdentifier
 
 	StepLocation uint
-}
-
-const propertyPrefix = "concourse:"
-
-func (id Identifier) gardenProperties() garden.Properties {
-	props := garden.Properties{}
-
-	if id.Name != "" {
-		props[propertyPrefix+"name"] = id.Name
-	}
-
-	if id.PipelineName != "" {
-		props[propertyPrefix+"pipeline-name"] = id.PipelineName
-	}
-
-	if id.BuildID != 0 {
-		props[propertyPrefix+"build-id"] = strconv.Itoa(id.BuildID)
-	}
-
-	if id.Type != "" {
-		props[propertyPrefix+"type"] = string(id.Type)
-	}
-
-	if id.StepLocation != 0 {
-		props[propertyPrefix+"location"] = fmt.Sprintf("%v", id.StepLocation)
-	}
-
-	if id.CheckType != "" {
-		props[propertyPrefix+"check-type"] = id.CheckType
-	}
-
-	if id.CheckSource != nil {
-		payload, _ := json.Marshal(id.CheckSource) // shhhh
-		props[propertyPrefix+"check-source"] = string(payload)
-	}
-
-	return props
 }
 
 type MultipleWorkersFoundContainerError struct {
