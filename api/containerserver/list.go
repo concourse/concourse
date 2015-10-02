@@ -14,11 +14,10 @@ import (
 
 func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.RawQuery
+
 	hLog := s.logger.Session("list-containers", lager.Data{
 		"params": params,
 	})
-
-	hLog.Info("listing containers")
 
 	containerIdentifier, err := s.parseRequest(r)
 	if err != nil {
@@ -29,6 +28,8 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
+	hLog.Debug("listing-containers")
+
 	containers, err := s.db.FindContainerInfosByIdentifier(containerIdentifier)
 	if err != nil {
 		hLog.Error("failed-to-find-containers", err)
@@ -36,13 +37,13 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hLog.Debug("listed", lager.Data{"container-count": len(containers)})
+
 	presentedContainers := make([]atc.Container, len(containers))
 	for i := 0; i < len(containers); i++ {
 		container := containers[i]
 		presentedContainers[i] = present.Container(container)
 	}
-
-	hLog.Info("found-containers", lager.Data{"containers": presentedContainers})
 
 	json.NewEncoder(w).Encode(presentedContainers)
 }

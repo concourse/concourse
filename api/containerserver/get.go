@@ -17,19 +17,20 @@ func (s *Server) GetContainer(w http.ResponseWriter, r *http.Request) {
 
 	container, found, err := s.db.GetContainerInfo(handle)
 	if err != nil {
-		hLog.Error("Failed to lookup container", err)
+		hLog.Error("failed-to-lookup-container", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
 	if !found {
-		hLog.Info("Failed to find container")
+		hLog.Debug("container-not-found")
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	presentedContainer := present.Container(container)
+	hLog.Debug("found-container")
 
-	hLog.Info("Found container", lager.Data{"container": presentedContainer})
+	presentedContainer := present.Container(container)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(presentedContainer)

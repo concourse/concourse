@@ -26,19 +26,20 @@ func (s *Server) HijackContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hLog.Info("hijacking container")
-
 	_, found, err := s.db.GetContainerInfo(handle)
 	if err != nil {
-		hLog.Error("Failed to lookup container", err)
+		hLog.Error("failed-to-lookup-container", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
 	if !found {
-		hLog.Info("Failed to find container")
+		hLog.Info("container-not-found")
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+
+	hLog.Debug("found-container")
 
 	hijackRequest := hijackRequest{
 		ContainerHandle: handle,
