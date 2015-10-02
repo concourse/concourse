@@ -67,6 +67,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("and building succeeds", func() {
 					var fakeBuild *enginefakes.FakeBuild
+					var resumed chan struct{}
 					var blockForever *sync.WaitGroup
 
 					BeforeEach(func() {
@@ -77,7 +78,9 @@ var _ = Describe("Builds API", func() {
 						forever := blockForever
 						forever.Add(1)
 
+						resumed = make(chan struct{})
 						fakeBuild.ResumeStub = func(lager.Logger) {
+							close(resumed)
 							forever.Wait()
 						}
 
@@ -121,7 +124,7 @@ var _ = Describe("Builds API", func() {
 
 						Expect(builtPlan).To(Equal(plan))
 
-						Expect(fakeBuild.ResumeCallCount()).To(Equal(1))
+						<-resumed
 					})
 				})
 
