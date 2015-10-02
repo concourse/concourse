@@ -100,6 +100,7 @@ var _ = Describe("DBProvider", func() {
 			BeforeEach(func() {
 				fakeDB.WorkersReturns([]db.WorkerInfo{
 					{
+						Name:             "some-worker-name",
 						GardenAddr:       workerAAddr,
 						BaggageclaimURL:  workerABaggageclaimURL,
 						ActiveContainers: 2,
@@ -155,6 +156,10 @@ var _ = Describe("DBProvider", func() {
 
 					container, err := workers[0].CreateContainer(logger, id, spec)
 					Expect(err).NotTo(HaveOccurred())
+
+					Expect(fakeDB.CreateContainerInfoCallCount()).To(Equal(1))
+					createdInfo, _ := fakeDB.CreateContainerInfoArgsForCall(0)
+					Expect(createdInfo.WorkerName).To(Equal("some-worker-name"))
 
 					Expect(container.Handle()).To(Equal("created-handle"))
 

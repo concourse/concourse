@@ -142,6 +142,6 @@ func (provider *dbProvider) newGardenWorker(addr string, tikTok clock.Clock, inf
 		info.ResourceTypes,
 		info.Platform,
 		info.Tags,
-		info.GardenAddr,
+		info.Name,
 	)
 }
