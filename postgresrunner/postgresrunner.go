@@ -69,7 +69,9 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	)
 	Expect(err).NotTo(HaveOccurred())
 
-	Eventually(session, 60*time.Second).Should(gexec.Exit(0))
+	<-session.Exited
+
+	Expect(session).To(gexec.Exit(0))
 
 	ginkgoRunner := &ginkgomon.Runner{
 		Name:          "postgres",
@@ -114,12 +116,17 @@ func (runner *Runner) CreateTestDB() {
 		Expect(err).NotTo(HaveOccurred())
 	}
 
-	Eventually(createS, 10*time.Second).Should(gexec.Exit(0))
+	<-createS.Exited
+
+	Expect(createS).To(gexec.Exit(0))
 }
 
 func (runner *Runner) DropTestDB() {
 	dropdb := exec.Command("dropdb", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
 	dropS, err := gexec.Start(dropdb, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
-	Eventually(dropS, 10*time.Second).Should(gexec.Exit(0))
+
+	<-dropS.Exited
+
+	Expect(dropS).To(gexec.Exit(0))
 }
