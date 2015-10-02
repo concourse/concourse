@@ -5,6 +5,8 @@ import (
 	"errors"
 	"expvar"
 	"fmt"
+	"path"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -145,15 +147,18 @@ dance:
 		gardenSpec.RootFSPath = s.Image
 		gardenSpec.Privileged = s.Privileged
 
-		if s.Root.Volume != nil && s.Root.MountPath != "" {
-			gardenSpec.BindMounts = append(gardenSpec.BindMounts, garden.BindMount{
-				SrcPath: s.Root.Volume.Path(),
-				DstPath: s.Root.MountPath,
-				Mode:    garden.BindMountModeRW,
-			})
-
-			volumeHandles = append(volumeHandles, s.Root.Volume.Handle())
+		baseVolumes, baseBindMounts, err := worker.createGardenWorkaroundVolumes(logger, s)
+		if err != nil {
+			return nil, err
 		}
+
+		for _, volume := range baseVolumes {
+			// release *after* container creation
+			defer volume.Release()
+			volumeHandles = append(volumeHandles, volume.Handle())
+		}
+
+		gardenSpec.BindMounts = append(gardenSpec.BindMounts, baseBindMounts...)
 
 		for _, input := range s.Inputs {
 			cow, err := worker.baggageclaimClient.CreateVolume(logger, baggageclaim.VolumeSpec{
@@ -326,6 +331,52 @@ func (worker *gardenWorker) Description() string {
 	}
 
 	return strings.Join(messages, ", ")
+}
+
+func (worker *gardenWorker) createGardenWorkaroundVolumes(
+	logger lager.Logger,
+	spec TaskContainerSpec,
+) ([]baggageclaim.Volume, []garden.BindMount, error) {
+	existingMounts := map[string]bool{}
+
+	volumes := []baggageclaim.Volume{}
+	bindMounts := []garden.BindMount{}
+
+	for _, m := range spec.Inputs {
+		for _, dir := range pathSegments(m.MountPath) {
+			if existingMounts[dir] {
+				continue
+			}
+
+			existingMounts[dir] = true
+
+			volume, err := worker.baggageclaimClient.CreateVolume(
+				logger.Session("workaround"),
+				baggageclaim.VolumeSpec{
+					Privileged:   spec.Privileged,
+					Strategy:     baggageclaim.EmptyStrategy{},
+					TTLInSeconds: inputVolumeTTL,
+				},
+			)
+			if err != nil {
+				for _, v := range volumes {
+					// prevent leaking previously created volumes
+					v.Release()
+				}
+
+				return nil, nil, err
+			}
+
+			volumes = append(volumes, volume)
+			bindMounts = append(bindMounts, garden.BindMount{
+				SrcPath: volume.Path(),
+				DstPath: dir,
+				Mode:    garden.BindMountModeRW,
+			})
+		}
+	}
+
+	return volumes, bindMounts, nil
 }
 
 type gardenWorkerContainer struct {
@@ -524,4 +575,16 @@ func (container *gardenWorkerContainer) heartbeat(pacemaker clock.Ticker) {
 			return
 		}
 	}
+}
+
+func pathSegments(p string) []string {
+	segs := []string{}
+
+	for dir := path.Dir(p); dir != "/"; dir = path.Dir(dir) {
+		segs = append(segs, dir)
+	}
+
+	sort.Sort(sort.StringSlice(segs))
+
+	return segs
 }

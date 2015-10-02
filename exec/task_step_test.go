@@ -19,7 +19,6 @@ import (
 	rfakes "github.com/concourse/atc/resource/fakes"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
-	"github.com/concourse/baggageclaim"
 	bfakes "github.com/concourse/baggageclaim/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -361,21 +360,15 @@ var _ = Describe("GardenFactory", func() {
 								})
 
 								Context("when the inputs have volumes on the chosen worker", func() {
-									var rootVolume *bfakes.FakeVolume
 									var inputVolume *bfakes.FakeVolume
 									var otherInputVolume *bfakes.FakeVolume
 
 									BeforeEach(func() {
-										rootVolume = new(bfakes.FakeVolume)
-										rootVolume.HandleReturns("root-volume")
-
 										inputVolume = new(bfakes.FakeVolume)
 										inputVolume.HandleReturns("input-volume")
 
 										otherInputVolume = new(bfakes.FakeVolume)
 										otherInputVolume.HandleReturns("other-input-volume")
-
-										fakeBaggageclaimClient.CreateVolumeReturns(rootVolume, nil)
 
 										inputSource.VolumeOnReturns(inputVolume, true, nil)
 										otherInputSource.VolumeOnReturns(otherInputVolume, true, nil)
@@ -384,10 +377,6 @@ var _ = Describe("GardenFactory", func() {
 									It("bind-mounts copy-on-write volumes to their destinations in the container", func() {
 										_, _, spec := fakeWorker.CreateContainerArgsForCall(0)
 										taskSpec := spec.(worker.TaskContainerSpec)
-										Expect(taskSpec.Root).To(Equal(worker.VolumeMount{
-											Volume:    rootVolume,
-											MountPath: "/tmp/build/a-random-guid",
-										}))
 										Expect(taskSpec.Inputs).To(Equal([]worker.VolumeMount{
 											{
 												Volume:    inputVolume,
@@ -400,32 +389,7 @@ var _ = Describe("GardenFactory", func() {
 										}))
 									})
 
-									It("creates the root volume unprivileged", func() {
-										_, spec := fakeBaggageclaimClient.CreateVolumeArgsForCall(0)
-										Expect(spec).To(Equal(baggageclaim.VolumeSpec{
-											TTLInSeconds: 60 * 5,
-											Strategy:     baggageclaim.EmptyStrategy{},
-											Privileged:   false,
-										}))
-									})
-
-									Context("when privileged", func() {
-										BeforeEach(func() {
-											privileged = true
-										})
-
-										It("creates the root volume privileged", func() {
-											_, spec := fakeBaggageclaimClient.CreateVolumeArgsForCall(0)
-											Expect(spec).To(Equal(baggageclaim.VolumeSpec{
-												TTLInSeconds: 60 * 5,
-												Strategy:     baggageclaim.EmptyStrategy{},
-												Privileged:   true,
-											}))
-										})
-									})
-
 									It("releases the volumes given to the worker", func() {
-										Expect(rootVolume.ReleaseCallCount()).To(Equal(1))
 										Expect(inputVolume.ReleaseCallCount()).To(Equal(1))
 										Expect(otherInputVolume.ReleaseCallCount()).To(Equal(1))
 									})

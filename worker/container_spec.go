@@ -60,7 +60,6 @@ type TaskContainerSpec struct {
 	Image      string
 	Privileged bool
 	Tags       []string
-	Root       VolumeMount
 	Inputs     []VolumeMount
 }
 
