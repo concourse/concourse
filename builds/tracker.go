@@ -34,8 +34,8 @@ type Tracker struct {
 }
 
 func (bt *Tracker) Track() {
-	bt.logger.Info("start")
-	defer bt.logger.Info("done")
+	bt.logger.Debug("start")
+	defer bt.logger.Debug("done")
 	builds, err := bt.trackerDB.GetAllStartedBuilds()
 	if err != nil {
 		bt.logger.Error("failed-to-lookup-started-builds", err)
