@@ -515,7 +515,22 @@ var _ = Describe("Worker", func() {
 								},
 							},
 						}))
+					})
 
+					Context("after the container is created", func() {
+						BeforeEach(func() {
+							fakeGardenClient.CreateStub = func(garden.ContainerSpec) (garden.Container, error) {
+								// ensure they're not released before container creation
+								Expect(cowInputVolume.ReleaseCallCount()).To(Equal(0))
+								Expect(cowOtherInputVolume.ReleaseCallCount()).To(Equal(0))
+								return fakeContainer, nil
+							}
+						})
+
+						It("releases the copy-on-write volumes that it made beforehand", func() {
+							Expect(cowInputVolume.ReleaseCallCount()).To(Equal(1))
+							Expect(cowOtherInputVolume.ReleaseCallCount()).To(Equal(1))
+						})
 					})
 
 					Context("when creating the copy-on-write volumes fails", func() {

@@ -92,7 +92,10 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		Stderr: step.delegate.Stderr(),
 	}
 
-	step.container, found, err = step.workerPool.FindContainerForIdentifier(step.logger, step.containerID)
+	step.container, found, err = step.workerPool.FindContainerForIdentifier(
+		step.logger.Session("found-container"),
+		step.containerID,
+	)
 	if err == nil && found {
 		exitStatusProp, err := step.container.Property(taskExitStatusPropertyName)
 		if err == nil {
@@ -156,7 +159,7 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		}
 
 		step.container, err = chosenWorker.CreateContainer(
-			step.logger,
+			step.logger.Session("created-container"),
 			step.containerID,
 			worker.TaskContainerSpec{
 				Platform:   config.Platform,

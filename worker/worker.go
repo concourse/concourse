@@ -163,6 +163,9 @@ dance:
 				return nil, err
 			}
 
+			// release *after* container creation
+			defer cow.Release()
+
 			gardenSpec.BindMounts = append(gardenSpec.BindMounts, garden.BindMount{
 				SrcPath: cow.Path(),
 				DstPath: input.MountPath,
