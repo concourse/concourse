@@ -879,16 +879,19 @@ var _ = Describe("Worker", func() {
 			})
 		})
 
-		Context("when the associated worker cannot be found", func() {
+		Context("when the container cannot be found", func() {
 			BeforeEach(func() {
 				fakeWorkerProvider.FindContainerInfoForIdentifierReturns(db.ContainerInfo{Handle: "handle"}, true, nil)
-				fakeGardenClient.LookupReturns(nil, ErrMissingWorker)
+				fakeGardenClient.LookupReturns(nil, garden.ContainerNotFoundError{"handle"})
 			})
 
-			It("returns the error", func() {
-				Expect(lookupErr).To(Equal(ErrMissingWorker))
+			It("expires the container and returns false and no error", func() {
+				Expect(lookupErr).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
 				Expect(foundContainer).To(BeNil())
+
+				expiredHandle := fakeWorkerProvider.ReapContainerArgsForCall(0)
+				Expect(expiredHandle).To(Equal("handle"))
 			})
 		})
 

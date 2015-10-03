@@ -238,11 +238,16 @@ func (worker *gardenWorker) FindContainerForIdentifier(logger lager.Logger, id I
 	}
 
 	if !found {
-		err = ErrMissingWorker
-		logger.Error("found-container-in-db-but-not-on-worker", err, lager.Data{
+		logger.Info("reaping-container-not-found-on-worker", lager.Data{
 			"container-handle": containerInfo.Handle,
 			"worker-name":      containerInfo.WorkerName,
 		})
+
+		err := worker.provider.ReapContainer(containerInfo.Handle)
+		if err != nil {
+			return nil, false, err
+		}
+
 		return nil, false, err
 	}
 
