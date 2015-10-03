@@ -1,15 +1,15 @@
-package routes_test
+package paths_test
 
 import (
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/web/routes"
+	"github.com/concourse/atc/web"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Routes", func() {
-	Describe("BuildPath", func() {
+	Describe("PathForBuild", func() {
 		It("returns the canonical path for a jobless build", func() {
 			joblessBuild := db.Build{
 				ID:           1,
@@ -17,7 +17,7 @@ var _ = Describe("Routes", func() {
 				PipelineName: "a-pipeline",
 			}
 
-			path := routes.PathForBuild(joblessBuild)
+			path := web.PathForBuild(joblessBuild)
 			Expect(path).To(Equal("/builds/1"))
 		})
 
@@ -29,7 +29,7 @@ var _ = Describe("Routes", func() {
 				PipelineName: "a-pipeline",
 			}
 
-			path := routes.PathForBuild(build)
+			path := web.PathForBuild(build)
 			Expect(path).To(Equal("/pipelines/a-pipeline/jobs/hello/builds/23"))
 		})
 	})

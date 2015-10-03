@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web/pagination"
+	"github.com/concourse/atc/web/paths"
 	"github.com/concourse/atc/web/routes"
 	"github.com/tedsuo/rata"
 )
@@ -92,10 +93,10 @@ func PathFor(route string, args ...interface{}) (string, error) {
 	case routes.GetBuild:
 		build := args[1].(db.Build)
 		build.JobName = jobName(args[0])
-		return routes.PathForBuild(build), nil
+		return paths.PathForBuild(build), nil
 
 	case routes.GetJoblessBuild:
-		return routes.PathForBuild(args[0].(db.Build)), nil
+		return paths.PathForBuild(args[0].(db.Build)), nil
 
 	case routes.Public:
 		return routes.Routes.CreatePathForRoute(route, rata.Params{
