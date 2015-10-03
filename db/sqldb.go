@@ -727,8 +727,8 @@ func (db *SQLDB) SaveWorker(info WorkerInfo, ttl time.Duration) error {
 	if ttl == 0 {
 		result, err := db.conn.Exec(`
 			UPDATE workers
-			SET addr = $1, expires = NULL, active_containers = $2, resource_types = $3, platform = $4, tags = $5, baggageclaim_url = $6
-			WHERE name = $7
+			SET addr = $1, expires = NULL, active_containers = $2, resource_types = $3, platform = $4, tags = $5, baggageclaim_url = $6, name = $7
+			WHERE name = $7 OR addr = $1
 		`, info.GardenAddr, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL, info.Name)
 		if err != nil {
 			return err
@@ -755,8 +755,8 @@ func (db *SQLDB) SaveWorker(info WorkerInfo, ttl time.Duration) error {
 
 		result, err := db.conn.Exec(`
 			UPDATE workers
-			SET addr = $1, expires = NOW() + $2::INTERVAL, active_containers = $3, resource_types = $4, platform = $5, tags = $6, baggageclaim_url = $7
-			WHERE name = $8
+			SET addr = $1, expires = NOW() + $2::INTERVAL, active_containers = $3, resource_types = $4, platform = $5, tags = $6, baggageclaim_url = $7, name = $8
+			WHERE name = $8 OR addr = $1
 		`, info.GardenAddr, interval, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL, info.Name)
 		if err != nil {
 			return err

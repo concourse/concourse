@@ -197,6 +197,14 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 			Expect(database.Workers()).To(ConsistOf(infoA))
 
+			By("updating attributes by address")
+			infoA.Name = "someNewName"
+
+			err = database.SaveWorker(infoA, 0)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(database.Workers()).To(ConsistOf(infoA))
+
 			By("expiring TTLs")
 			ttl := 1 * time.Second
 
