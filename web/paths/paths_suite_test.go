@@ -1,4 +1,4 @@
-package routes_test
+package paths_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestRoutes(t *testing.T) {
+func TestPaths(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Routes Suite")
+	RunSpecs(t, "Paths Suite")
 }
