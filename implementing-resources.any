@@ -167,7 +167,7 @@ no-ops (which still must be correctly implemented as detailed below).
   }
 }
 
-\section{Metadata}{
+\section{Metadata}{resource-metadata}{
   When used in a \reference{get-step} or a \reference{put-step}, metadata about
   the running build is made available via the following environment variables:
 

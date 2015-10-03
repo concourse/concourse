@@ -91,9 +91,9 @@ subset of the worker's tags, by setting \reference{step-tags}.
 
   \define-attribute{baggageclaim_url: string}{
     \italic{Optional.} The API endpoint for a
-    \hyperlink{https://github.com/concourse/baggageclaim} server to use for
-    caching artifacts on the worker. If not specified, caching will not be
-    utilized.
+    \hyperlink{https://github.com/concourse/baggageclaim}{Baggageclaim} server
+    to use for caching artifacts on the worker. If not specified, caching will
+    not be utilized.
   }
 
   \define-attribute{active_containers: integer}{

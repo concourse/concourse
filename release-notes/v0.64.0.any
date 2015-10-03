@@ -49,8 +49,8 @@
   We've moved ATC's knowledge of containers into the database. Previously the
   ATC would fan-out to all the workers when looking for a container; now it's a
   simple database lookup. This should drastically improve the performance of
-  \reference{fly-hijack}, and pretty much everything else related to builds
-  running.
+  \reference{fly-intercept}, and pretty much everything else (including running
+  builds).
 
   This will also make us more durable to workers dropping out of the pool, and
   prevent the \code{multiple containers} error from happening. More
@@ -66,7 +66,7 @@
   A few indexes have been added to high-trafficked queries. You should notice
   lower Postgres CPU load and faster loading times on the pipeline view.
 }{
-  The default value for \reference{fly-hijack}'s \code{-n} flag has been
+  The default value for \reference{fly-intercept}'s \code{-n} flag has been
   removed to make it easier to use the interactive hijacking mode. You'll
   probably run into this when hijacking one-off builds. To skip the interaction
   you can specify \code{-n build} which is what the default value used to be.
@@ -80,7 +80,8 @@
 }{
   Resources now have metadata about the build available as environment
   variables. This should make it easier to write useful integrations, for
-  example alerting when a build fails.
+  example alerting when a build fails. To learn more, see
+  \reference{resource-metadata}{the Resource interface docs}.
 }{
   The
   \hyperlink{https://github.com/concourse/pool-resource}{pool-resource} now
