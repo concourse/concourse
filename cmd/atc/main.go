@@ -293,16 +293,7 @@ func main() {
 		logger.Fatal("invalid-resource-types", err)
 	}
 
-	var workerClient worker.Client
-
-	if *gardenAddr != "" {
-		worker.RegisterSingleWorker(
-			logger, db, clock.NewClock(),
-			*gardenAddr, *baggageclaimURL, resourceTypesNG,
-		)
-	}
-
-	workerClient = worker.NewPool(worker.NewDBWorkerProvider(logger, db, keepaliveDialer))
+	workerClient := worker.NewPool(worker.NewDBWorkerProvider(logger, db, keepaliveDialer))
 
 	trackerFactory := resource.TrackerFactory{}
 
@@ -484,6 +475,19 @@ func main() {
 			Interval: 10 * time.Second,
 			Clock:    clock.NewClock(),
 		}},
+	}
+
+	// register a hardcoded worker
+	if *gardenAddr != "" {
+		memberGrouper = append(memberGrouper,
+			grouper.Member{
+				"hardcoded-worker",
+				worker.NewHardcoded(
+					logger, db, clock.NewClock(),
+					*gardenAddr, *baggageclaimURL, resourceTypesNG,
+				),
+			},
+		)
 	}
 
 	group := grouper.NewParallel(os.Interrupt, memberGrouper)
