@@ -280,7 +280,7 @@ func main() {
 	listener := pq.NewListener(*sqlDataSource, time.Second, time.Minute, nil)
 	bus := Db.NewNotificationsBus(listener, dbConn)
 
-	explainDBConn := Db.Explain(logger, dbConn, 500*time.Millisecond)
+	explainDBConn := Db.Explain(logger, dbConn, clock.NewClock(), 500*time.Millisecond)
 	db := Db.NewSQL(logger.Session("db"), explainDBConn, bus)
 	pipelineDBFactory := Db.NewPipelineDBFactory(logger.Session("db"), explainDBConn, bus, db)
 

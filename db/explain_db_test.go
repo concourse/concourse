@@ -8,6 +8,7 @@ import (
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/fakes"
+	"github.com/pivotal-golang/clock/fakeclock"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
@@ -19,14 +20,16 @@ import (
 var _ = Describe("Explain", func() {
 	var (
 		logger         *lagertest.TestLogger
+		fakeClock      *fakeclock.FakeClock
 		underlyingConn *fakes.FakeConn
 		explainConn    db.Conn
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("explain")
+		fakeClock = fakeclock.NewFakeClock(time.Now())
 		underlyingConn = new(fakes.FakeConn)
-		explainConn = db.Explain(logger, underlyingConn, 100*time.Millisecond)
+		explainConn = db.Explain(logger, underlyingConn, fakeClock, 100*time.Millisecond)
 	})
 
 	AfterEach(func() {
@@ -88,7 +91,7 @@ var _ = Describe("Explain", func() {
 			realConn = postgresRunner.Open()
 			underlyingConn.QueryStub = func(query string, args ...interface{}) (*sql.Rows, error) {
 				if !strings.HasPrefix(query, "EXPLAIN") {
-					time.Sleep(120 * time.Millisecond)
+					fakeClock.Increment(120 * time.Millisecond)
 				}
 
 				return realConn.Query(query, args...)
@@ -96,7 +99,7 @@ var _ = Describe("Explain", func() {
 
 			underlyingConn.QueryRowStub = func(query string, args ...interface{}) *sql.Row {
 				if !strings.HasPrefix(query, "EXPLAIN") {
-					time.Sleep(120 * time.Millisecond)
+					fakeClock.Increment(120 * time.Millisecond)
 				}
 
 				return realConn.QueryRow(query, args...)
@@ -104,7 +107,7 @@ var _ = Describe("Explain", func() {
 
 			underlyingConn.ExecStub = func(query string, args ...interface{}) (sql.Result, error) {
 				if !strings.HasPrefix(query, "EXPLAIN") {
-					time.Sleep(120 * time.Millisecond)
+					fakeClock.Increment(120 * time.Millisecond)
 				}
 
 				return realConn.Exec(query, args...)
@@ -124,7 +127,7 @@ var _ = Describe("Explain", func() {
 					if strings.HasPrefix(query, "EXPLAIN") {
 						return nil, errors.New("disaster!")
 					} else {
-						time.Sleep(120 * time.Millisecond)
+						fakeClock.Increment(120 * time.Millisecond)
 						return realConn.Query(query, args...)
 					}
 				}

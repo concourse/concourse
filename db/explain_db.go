@@ -5,14 +5,17 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 )
 
-func Explain(logger lager.Logger, conn Conn, timeout time.Duration) Conn {
+func Explain(logger lager.Logger, conn Conn, clock clock.Clock, timeout time.Duration) Conn {
 	return &explainConn{
 		Conn: conn,
 
+		clock:   clock,
 		timeout: timeout,
+
 		logger: logger.WithData(lager.Data{
 			"timeout": timeout,
 		}),
@@ -22,8 +25,10 @@ func Explain(logger lager.Logger, conn Conn, timeout time.Duration) Conn {
 type explainConn struct {
 	Conn
 
+	clock   clock.Clock
 	timeout time.Duration
-	logger  lager.Logger
+
+	logger lager.Logger
 }
 
 type result struct {
@@ -43,11 +48,14 @@ func (e *explainConn) Query(query string, args ...interface{}) (*sql.Rows, error
 		}
 	}(results)
 
+	timeout := e.clock.NewTimer(e.timeout)
+	defer timeout.Stop()
+
 	select {
 	case res := <-results:
 		return res.rows, res.err
 
-	case <-time.After(e.timeout):
+	case <-timeout.C():
 		e.explainQuery(query, args...)
 	}
 
@@ -64,11 +72,14 @@ func (e *explainConn) QueryRow(query string, args ...interface{}) *sql.Row {
 		results <- row
 	}(results)
 
+	timeout := e.clock.NewTimer(e.timeout)
+	defer timeout.Stop()
+
 	select {
 	case row := <-results:
 		return row
 
-	case <-time.After(e.timeout):
+	case <-timeout.C():
 		e.explainQuery(query, args...)
 	}
 
@@ -93,11 +104,14 @@ func (e *explainConn) Exec(query string, args ...interface{}) (sql.Result, error
 		}
 	}(results)
 
+	timeout := e.clock.NewTimer(e.timeout)
+	defer timeout.Stop()
+
 	select {
 	case res := <-results:
 		return res.result, res.err
 
-	case <-time.After(e.timeout):
+	case <-timeout.C():
 		e.explainQuery(query, args...)
 	}
 
