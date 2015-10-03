@@ -54,7 +54,8 @@ var _ = Describe("Explain", func() {
 		var realConn *sql.DB
 
 		BeforeEach(func() {
-			postgresRunner.CreateTestDB()
+			postgresRunner.Truncate()
+
 			realConn = postgresRunner.Open()
 			underlyingConn.QueryStub = func(query string, args ...interface{}) (*sql.Rows, error) {
 				return realConn.Query(query, args...)
@@ -64,8 +65,6 @@ var _ = Describe("Explain", func() {
 		AfterEach(func() {
 			err := realConn.Close()
 			Expect(err).NotTo(HaveOccurred())
-
-			postgresRunner.DropTestDB()
 		})
 
 		It("does not EXPLAIN the query", func() {
@@ -87,7 +86,8 @@ var _ = Describe("Explain", func() {
 		var realConn *sql.DB
 
 		BeforeEach(func() {
-			postgresRunner.CreateTestDB()
+			postgresRunner.Truncate()
+
 			realConn = postgresRunner.Open()
 			underlyingConn.QueryStub = func(query string, args ...interface{}) (*sql.Rows, error) {
 				if !strings.HasPrefix(query, "EXPLAIN") {
@@ -117,8 +117,6 @@ var _ = Describe("Explain", func() {
 		AfterEach(func() {
 			err := realConn.Close()
 			Expect(err).NotTo(HaveOccurred())
-
-			postgresRunner.DropTestDB()
 		})
 
 		Context("when the explain fails", func() {

@@ -24,7 +24,9 @@ var _ = Describe("SQL DB", func() {
 
 	BeforeEach(func() {
 		var err error
-		postgresRunner.CreateTestDB()
+
+		postgresRunner.Truncate()
+
 		dbConn = postgresRunner.Open()
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 
@@ -49,8 +51,6 @@ var _ = Describe("SQL DB", func() {
 
 		err = listener.Close()
 		Expect(err).NotTo(HaveOccurred())
-
-		postgresRunner.DropTestDB()
 	})
 
 	Describe("is a DB", dbSharedBehavior(&dbSharedBehaviorInput))
@@ -397,7 +397,6 @@ var _ = Describe("SQL DB", func() {
 					},
 				},
 			}))
-
 		})
 
 		It("can get a list of all active pipelines ordered by 'ordering'", func() {
@@ -445,7 +444,6 @@ var _ = Describe("SQL DB", func() {
 					},
 				},
 			}))
-
 		})
 
 		It("can lookup configs by build id", func() {

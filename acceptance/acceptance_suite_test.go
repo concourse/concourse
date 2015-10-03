@@ -45,6 +45,8 @@ var _ = BeforeSuite(func() {
 
 	dbProcess = ifrit.Invoke(postgresRunner)
 
+	postgresRunner.CreateTestDB()
+
 	agoutiDriver = agouti.PhantomJS()
 	Expect(agoutiDriver.Start()).To(Succeed())
 })

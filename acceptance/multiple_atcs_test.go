@@ -38,7 +38,7 @@ var _ = Describe("Multiple ATCs", func() {
 		dbLogger := lagertest.NewTestLogger("test")
 
 		// postgresRunner.DropTestDB()
-		postgresRunner.CreateTestDB()
+		postgresRunner.Truncate()
 		dbConn = postgresRunner.Open()
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
@@ -54,8 +54,6 @@ var _ = Describe("Multiple ATCs", func() {
 
 		Expect(dbConn.Close()).To(Succeed())
 		Expect(dbListener.Close()).To(Succeed())
-
-		postgresRunner.DropTestDB()
 	})
 
 	Describe("Pipes", func() {

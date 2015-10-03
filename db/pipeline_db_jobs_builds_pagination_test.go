@@ -24,7 +24,7 @@ var _ = Describe("Jobs Builds", func() {
 	var otherPipelineDB db.PipelineDB
 
 	BeforeEach(func() {
-		postgresRunner.CreateTestDB()
+		postgresRunner.Truncate()
 
 		dbConn = postgresRunner.Open()
 
@@ -54,8 +54,6 @@ var _ = Describe("Jobs Builds", func() {
 
 		err = listener.Close()
 		Expect(err).NotTo(HaveOccurred())
-
-		postgresRunner.DropTestDB()
 	})
 
 	Context("GetJobBuildsMaxID", func() {

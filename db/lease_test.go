@@ -25,7 +25,7 @@ var _ = Describe("Leases", func() {
 	)
 
 	BeforeEach(func() {
-		postgresRunner.CreateTestDB()
+		postgresRunner.Truncate()
 
 		dbConn = postgresRunner.Open()
 
@@ -43,8 +43,6 @@ var _ = Describe("Leases", func() {
 
 		err = listener.Close()
 		Expect(err).NotTo(HaveOccurred())
-
-		postgresRunner.DropTestDB()
 	})
 
 	pipelineConfig := atc.Config{

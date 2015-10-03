@@ -22,7 +22,7 @@ var _ = Describe("PipelineDBFactory", func() {
 	var pipelinesDB *fakes.FakePipelinesDB
 
 	BeforeEach(func() {
-		postgresRunner.CreateTestDB()
+		postgresRunner.Truncate()
 
 		dbConn = postgresRunner.Open()
 
@@ -41,8 +41,6 @@ var _ = Describe("PipelineDBFactory", func() {
 
 		err = listener.Close()
 		Expect(err).NotTo(HaveOccurred())
-
-		postgresRunner.DropTestDB()
 	})
 
 	Describe("default pipeline", func() {

@@ -27,7 +27,7 @@ var _ = Describe("Auth", func() {
 
 	BeforeEach(func() {
 		logger := lagertest.NewTestLogger("test")
-		postgresRunner.CreateTestDB()
+		postgresRunner.Truncate()
 		dbConn = postgresRunner.Open()
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
@@ -66,8 +66,6 @@ var _ = Describe("Auth", func() {
 
 		Expect(dbConn.Close()).To(Succeed())
 		Expect(dbListener.Close()).To(Succeed())
-
-		postgresRunner.DropTestDB()
 	})
 
 	It("can reach the page", func() {

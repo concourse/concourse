@@ -32,7 +32,7 @@ var _ = Describe("Resource Pagination", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		dbLogger := lagertest.NewTestLogger("test")
-		postgresRunner.CreateTestDB()
+		postgresRunner.Truncate()
 		dbConn = postgresRunner.Open()
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
@@ -50,8 +50,6 @@ var _ = Describe("Resource Pagination", func() {
 
 		Expect(dbConn.Close()).To(Succeed())
 		Expect(dbListener.Close()).To(Succeed())
-
-		postgresRunner.DropTestDB()
 	})
 
 	Describe("pages", func() {

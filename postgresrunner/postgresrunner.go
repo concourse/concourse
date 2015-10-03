@@ -130,3 +130,60 @@ func (runner *Runner) DropTestDB() {
 
 	Expect(dropS).To(gexec.Exit(0))
 }
+
+func (runner *Runner) Truncate() {
+	truncate := exec.Command(
+		"psql",
+		"-U", "postgres",
+		"-p", strconv.Itoa(runner.Port),
+		"testdb",
+		"-c", `
+			CREATE OR REPLACE FUNCTION truncate_tables() RETURNS void AS $$
+			DECLARE
+					statements CURSOR FOR
+							SELECT tablename FROM pg_tables
+							WHERE schemaname = 'public' AND tablename != 'migration_version';
+			BEGIN
+					FOR stmt IN statements LOOP
+							EXECUTE 'TRUNCATE TABLE ' || quote_ident(stmt.tablename) || ' RESTART IDENTITY CASCADE;';
+					END LOOP;
+			END;
+			$$ LANGUAGE plpgsql;
+
+			CREATE OR REPLACE FUNCTION drop_ephemeral_sequences() RETURNS void AS $$
+			DECLARE
+					statements CURSOR FOR
+							SELECT relname FROM pg_class
+							WHERE relname LIKE 'build_event_id_seq_%';
+			BEGIN
+					FOR stmt IN statements LOOP
+							EXECUTE 'DROP SEQUENCE ' || quote_ident(stmt.relname) || ';';
+					END LOOP;
+			END;
+			$$ LANGUAGE plpgsql;
+
+			CREATE OR REPLACE FUNCTION reset_global_sequences() RETURNS void AS $$
+			DECLARE
+					statements CURSOR FOR
+							SELECT relname FROM pg_class
+							WHERE relname IN ('one_off_name', 'config_version_seq');
+			BEGIN
+					FOR stmt IN statements LOOP
+							EXECUTE 'ALTER SEQUENCE ' || quote_ident(stmt.relname) || ' RESTART WITH 1;';
+					END LOOP;
+			END;
+			$$ LANGUAGE plpgsql;
+
+			SELECT truncate_tables();
+			SELECT drop_ephemeral_sequences();
+			SELECT reset_global_sequences();
+		`,
+	)
+
+	truncateS, err := gexec.Start(truncate, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
+	Expect(err).NotTo(HaveOccurred())
+
+	<-truncateS.Exited
+
+	Expect(truncateS).To(gexec.Exit(0))
+}
