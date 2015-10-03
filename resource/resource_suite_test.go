@@ -22,7 +22,7 @@ var _ = BeforeEach(func() {
 
 	fakeContainer = new(wfakes.FakeContainer)
 
-	resource = NewResource(fakeContainer, "some-type")
+	resource = NewResource(fakeContainer)
 })
 
 func TestResource(t *testing.T) {

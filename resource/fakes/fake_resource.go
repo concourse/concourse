@@ -10,12 +10,6 @@ import (
 )
 
 type FakeResource struct {
-	TypeStub        func() resource.ResourceType
-	typeMutex       sync.RWMutex
-	typeArgsForCall []struct{}
-	typeReturns     struct {
-		result1 resource.ResourceType
-	}
 	GetStub        func(resource.IOConfig, atc.Source, atc.Params, atc.Version) resource.VersionedSource
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
@@ -48,15 +42,9 @@ type FakeResource struct {
 		result1 []atc.Version
 		result2 error
 	}
-	ReleaseStub        func()
-	releaseMutex       sync.RWMutex
-	releaseArgsForCall []struct{}
-	DestroyStub        func() error
-	destroyMutex       sync.RWMutex
-	destroyArgsForCall []struct{}
-	destroyReturns     struct {
-		result1 error
-	}
+	ReleaseStub            func()
+	releaseMutex           sync.RWMutex
+	releaseArgsForCall     []struct{}
 	CacheVolumeStub        func() (baggageclaim.Volume, bool, error)
 	cacheVolumeMutex       sync.RWMutex
 	cacheVolumeArgsForCall []struct{}
@@ -65,30 +53,6 @@ type FakeResource struct {
 		result2 bool
 		result3 error
 	}
-}
-
-func (fake *FakeResource) Type() resource.ResourceType {
-	fake.typeMutex.Lock()
-	fake.typeArgsForCall = append(fake.typeArgsForCall, struct{}{})
-	fake.typeMutex.Unlock()
-	if fake.TypeStub != nil {
-		return fake.TypeStub()
-	} else {
-		return fake.typeReturns.result1
-	}
-}
-
-func (fake *FakeResource) TypeCallCount() int {
-	fake.typeMutex.RLock()
-	defer fake.typeMutex.RUnlock()
-	return len(fake.typeArgsForCall)
-}
-
-func (fake *FakeResource) TypeReturns(result1 resource.ResourceType) {
-	fake.TypeStub = nil
-	fake.typeReturns = struct {
-		result1 resource.ResourceType
-	}{result1}
 }
 
 func (fake *FakeResource) Get(arg1 resource.IOConfig, arg2 atc.Source, arg3 atc.Params, arg4 atc.Version) resource.VersionedSource {
@@ -208,30 +172,6 @@ func (fake *FakeResource) ReleaseCallCount() int {
 	fake.releaseMutex.RLock()
 	defer fake.releaseMutex.RUnlock()
 	return len(fake.releaseArgsForCall)
-}
-
-func (fake *FakeResource) Destroy() error {
-	fake.destroyMutex.Lock()
-	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct{}{})
-	fake.destroyMutex.Unlock()
-	if fake.DestroyStub != nil {
-		return fake.DestroyStub()
-	} else {
-		return fake.destroyReturns.result1
-	}
-}
-
-func (fake *FakeResource) DestroyCallCount() int {
-	fake.destroyMutex.RLock()
-	defer fake.destroyMutex.RUnlock()
-	return len(fake.destroyArgsForCall)
-}
-
-func (fake *FakeResource) DestroyReturns(result1 error) {
-	fake.DestroyStub = nil
-	fake.destroyReturns = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeResource) CacheVolume() (baggageclaim.Volume, bool, error) {

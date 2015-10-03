@@ -17,15 +17,11 @@ var ErrMultipleVolumes = errors.New("multiple volumes mounted; expected 1 or 0")
 //go:generate counterfeiter . Resource
 
 type Resource interface {
-	Type() ResourceType
-
 	Get(IOConfig, atc.Source, atc.Params, atc.Version) VersionedSource
 	Put(IOConfig, atc.Source, atc.Params, ArtifactSource) VersionedSource
-
 	Check(atc.Source, atc.Version) ([]atc.Version, error)
 
 	Release()
-	Destroy() error
 
 	CacheVolume() (baggageclaim.Volume, bool, error)
 }
@@ -72,32 +68,14 @@ type resource struct {
 	ScriptFailure bool
 }
 
-func NewResource(
-	container worker.Container,
-	typ ResourceType,
-) Resource {
+func NewResource(container worker.Container) Resource {
 	return &resource{
 		container: container,
-		typ:       typ,
 	}
-}
-
-func (resource *resource) Type() ResourceType {
-	return resource.typ
 }
 
 func (resource *resource) Release() {
 	resource.container.Release()
-}
-
-func (resource *resource) Destroy() error {
-	var err error
-
-	resource.releaseOnce.Do(func() {
-		err = resource.container.Destroy()
-	})
-
-	return err
 }
 
 func (resource *resource) CacheVolume() (baggageclaim.Volume, bool, error) {

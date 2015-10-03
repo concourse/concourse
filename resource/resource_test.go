@@ -1,8 +1,6 @@
 package resource_test
 
 import (
-	"errors"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -17,38 +15,6 @@ var _ = Describe("Resource", func() {
 			resource.Release()
 
 			Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-		})
-	})
-
-	Describe("Destroy", func() {
-		It("destroys the container", func() {
-			err := resource.Destroy()
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(fakeContainer.DestroyCallCount()).To(Equal(1))
-		})
-
-		It("only destroys on the first call", func() {
-			err := resource.Destroy()
-			Expect(err).NotTo(HaveOccurred())
-
-			err = resource.Destroy()
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(fakeContainer.DestroyCallCount()).To(Equal(1))
-		})
-
-		Context("when destroying the container fails", func() {
-			disaster := errors.New("nope")
-
-			BeforeEach(func() {
-				fakeContainer.DestroyReturns(disaster)
-			})
-
-			It("returns the error", func() {
-				err := resource.Destroy()
-				Expect(err).To(Equal(disaster))
-			})
 		})
 	})
 
@@ -99,12 +65,6 @@ var _ = Describe("Resource", func() {
 				Expect(found).To(BeFalse())
 				Expect(volume).To(BeNil())
 			})
-		})
-	})
-
-	Describe("Type", func() {
-		It("returns the resource's type", func() {
-			Expect(resource.Type()).To(Equal(ResourceType("some-type")))
 		})
 	})
 

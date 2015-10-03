@@ -1,8 +1,6 @@
 package resource
 
 import (
-	"errors"
-
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
@@ -34,8 +32,6 @@ func (m EmptyMetadata) Env() []string { return nil }
 type tracker struct {
 	workerClient worker.Client
 }
-
-var ErrUnknownResourceType = errors.New("unknown resource type")
 
 type TrackerFactory struct{}
 
@@ -73,5 +69,5 @@ func (tracker *tracker) Init(logger lager.Logger, metadata Metadata, session Ses
 		}
 	}
 
-	return NewResource(container, typ), nil
+	return NewResource(container), nil
 }
