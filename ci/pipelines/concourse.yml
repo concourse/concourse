@@ -51,6 +51,7 @@ jobs:
 
 - name: atc
   public: true
+  serial: true
   plan:
   - get: concourse
     trigger: true
