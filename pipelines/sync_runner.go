@@ -20,11 +20,11 @@ type SyncRunner struct {
 }
 
 func (runner SyncRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+	ticker := runner.Clock.NewTicker(runner.Interval)
+
 	close(ready)
 
 	runner.Syncer.Sync()
-
-	ticker := runner.Clock.NewTicker(runner.Interval)
 
 	for {
 		select {

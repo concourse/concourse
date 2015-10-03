@@ -14,6 +14,7 @@ import (
 
 var _ = Describe("Pipelines Sync Runner", func() {
 	var fakeSyncer *fakes.FakePipelineSyncer
+	var synced <-chan struct{}
 	var interval = 10 * time.Second
 	var fakeClock *fakeclock.FakeClock
 	var runner SyncRunner
@@ -21,6 +22,13 @@ var _ = Describe("Pipelines Sync Runner", func() {
 
 	BeforeEach(func() {
 		fakeSyncer = new(fakes.FakePipelineSyncer)
+
+		s := make(chan struct{})
+		synced = s
+		fakeSyncer.SyncStub = func() {
+			s <- struct{}{}
+		}
+
 		fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
 
 		runner = SyncRunner{
@@ -40,28 +48,28 @@ var _ = Describe("Pipelines Sync Runner", func() {
 	})
 
 	It("syncs immediately", func() {
-		Eventually(fakeSyncer.SyncCallCount).Should(Equal(1))
+		<-synced
 	})
 
 	Context("when the interval elapses", func() {
 		JustBeforeEach(func() {
-			Eventually(fakeSyncer.SyncCallCount).Should(Equal(1))
+			<-synced
 			fakeClock.Increment(interval)
 		})
 
 		It("syncs again", func() {
-			Eventually(fakeSyncer.SyncCallCount).Should(Equal(2))
+			<-synced
 			Consistently(fakeSyncer.SyncCallCount).Should(Equal(2))
 		})
 
 		Context("when the interval elapses", func() {
 			JustBeforeEach(func() {
-				Eventually(fakeSyncer.SyncCallCount).Should(Equal(2))
+				<-synced
 				fakeClock.Increment(interval)
 			})
 
 			It("syncs again", func() {
-				Eventually(fakeSyncer.SyncCallCount).Should(Equal(3))
+				<-synced
 				Consistently(fakeSyncer.SyncCallCount).Should(Equal(3))
 			})
 		})
