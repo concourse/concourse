@@ -25,7 +25,7 @@ var _ = BeforeSuite(func() {
 		Port: 5433 + GinkgoParallelNode(),
 	}
 
-	dbProcess = ifrit.Envoke(postgresRunner)
+	dbProcess = ifrit.Invoke(postgresRunner)
 })
 
 var _ = AfterSuite(func() {

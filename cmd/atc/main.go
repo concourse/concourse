@@ -492,7 +492,7 @@ func main() {
 
 	group := grouper.NewParallel(os.Interrupt, memberGrouper)
 
-	running := ifrit.Envoke(sigmon.New(group))
+	running := ifrit.Invoke(sigmon.New(group))
 
 	logger.Info("listening", lager.Data{
 		"web":   webListenAddr,

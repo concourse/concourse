@@ -48,7 +48,7 @@ var _ = Describe("25ConvertJobBuildConfigToJobPlans", func() {
 			Port: 5433 + GinkgoParallelNode(),
 		}
 
-		dbProcess = ifrit.Envoke(postgresRunner)
+		dbProcess = ifrit.Invoke(postgresRunner)
 
 		postgresRunner.CreateTestDB()
 

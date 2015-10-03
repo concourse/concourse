@@ -43,7 +43,7 @@ var _ = BeforeSuite(func() {
 		Port: 5432 + GinkgoParallelNode(),
 	}
 
-	dbProcess = ifrit.Envoke(postgresRunner)
+	dbProcess = ifrit.Invoke(postgresRunner)
 
 	agoutiDriver = agouti.PhantomJS()
 	Expect(agoutiDriver.Start()).To(Succeed())
