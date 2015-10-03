@@ -15,6 +15,7 @@ type ContainerIdentifier struct {
 	WorkerName   string
 	CheckType    string
 	CheckSource  atc.Source
+	StepLocation uint
 }
 
 type ContainerInfo struct {

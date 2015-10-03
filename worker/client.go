@@ -34,11 +34,7 @@ type Container interface {
 	Volumes() []baggageclaim.Volume
 }
 
-type Identifier struct {
-	db.ContainerIdentifier
-
-	StepLocation uint
-}
+type Identifier db.ContainerIdentifier
 
 type MultipleWorkersFoundContainerError struct {
 	Names []string

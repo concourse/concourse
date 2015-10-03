@@ -320,6 +320,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 					WorkerName:   "some-worker",
 					CheckType:    "some-type",
 					CheckSource:  atc.Source{"uri": "http://example.com"},
+					StepLocation: 456,
 				},
 				Handle: "some-handle",
 			}
@@ -345,6 +346,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Expect(actualContainerInfo.WorkerName).To(Equal("some-worker"))
 			Expect(actualContainerInfo.CheckType).To(Equal("some-type"))
 			Expect(actualContainerInfo.CheckSource).To(Equal(atc.Source{"uri": "http://example.com"}))
+			Expect(actualContainerInfo.StepLocation).To(Equal(uint(456)))
 
 			By("returning found = false when getting by a handle that does not exist")
 			_, found, err = database.GetContainerInfo("nope")
@@ -539,6 +541,16 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 				},
 				identifierToFilerFor: db.ContainerIdentifier{CheckSource: atc.Source{"some": "source"}},
 				expectedHandles:      []string{"b", "c"},
+			}),
+
+			Entry("returns containers where the step location matches", findContainerInfosByIdentifierExample{
+				containersToCreate: []db.ContainerInfo{
+					{Handle: "a", ContainerIdentifier: db.ContainerIdentifier{StepLocation: 123}},
+					{Handle: "b", ContainerIdentifier: db.ContainerIdentifier{StepLocation: 123}},
+					{Handle: "c", ContainerIdentifier: db.ContainerIdentifier{StepLocation: 456}},
+				},
+				identifierToFilerFor: db.ContainerIdentifier{StepLocation: 123},
+				expectedHandles:      []string{"a", "b"},
 			}),
 
 			Entry("returns containers where all fields match", findContainerInfosByIdentifierExample{

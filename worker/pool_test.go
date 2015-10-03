@@ -38,9 +38,7 @@ var _ = Describe("Pool", func() {
 
 		BeforeEach(func() {
 			id = Identifier{
-				ContainerIdentifier: db.ContainerIdentifier{
-					Name: "some-name",
-				},
+				Name: "some-name",
 			}
 			spec = ResourceTypeContainerSpec{Type: "some-type"}
 		})
@@ -316,10 +314,8 @@ var _ = Describe("Pool", func() {
 
 		BeforeEach(func() {
 			identifier = Identifier{
-				ContainerIdentifier: db.ContainerIdentifier{
-					Name:       "some-name",
-					WorkerName: "some-worker",
-				},
+				Name:       "some-name",
+				WorkerName: "some-worker",
 			}
 		})
 

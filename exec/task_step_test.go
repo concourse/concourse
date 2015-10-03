@@ -13,7 +13,6 @@ import (
 	"github.com/cloudfoundry-incubator/garden"
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/fakes"
 	rfakes "github.com/concourse/atc/resource/fakes"
@@ -41,9 +40,7 @@ var _ = Describe("GardenFactory", func() {
 		sourceName SourceName = "some-source-name"
 
 		identifier = worker.Identifier{
-			ContainerIdentifier: db.ContainerIdentifier{
-				Name: "some-session-id",
-			},
+			Name: "some-session-id",
 		}
 	)
 

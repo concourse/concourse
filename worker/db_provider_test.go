@@ -139,9 +139,7 @@ var _ = Describe("DBProvider", func() {
 			Describe("a created container", func() {
 				It("calls through to garden", func() {
 					id := Identifier{
-						ContainerIdentifier: db.ContainerIdentifier{
-							Name: "some-name",
-						},
+						Name: "some-name",
 					}
 
 					spec := ResourceTypeContainerSpec{
@@ -184,9 +182,7 @@ var _ = Describe("DBProvider", func() {
 					fakeDB.FindContainerInfoByIdentifierReturns(db.ContainerInfo{Handle: "some-handle"}, true, nil)
 
 					container, found, err := workers[0].FindContainerForIdentifier(logger, Identifier{
-						ContainerIdentifier: db.ContainerIdentifier{
-							Name: "some-name",
-						},
+						Name: "some-name",
 					})
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
@@ -245,15 +241,13 @@ var _ = Describe("DBProvider", func() {
 	Context("when we call to get a container info by identifier", func() {
 		It("calls through to the db object", func() {
 			provider.FindContainerInfoForIdentifier(Identifier{
-				ContainerIdentifier: db.ContainerIdentifier{
-					Name:         "some-name",
-					PipelineName: "some-pipeline",
-					BuildID:      1234,
-					Type:         db.ContainerTypePut,
-					CheckType:    "some-check-type",
-					CheckSource:  atc.Source{"some": "source"},
-					WorkerName:   "some-worker-name",
-				},
+				Name:         "some-name",
+				PipelineName: "some-pipeline",
+				BuildID:      1234,
+				Type:         db.ContainerTypePut,
+				CheckType:    "some-check-type",
+				CheckSource:  atc.Source{"some": "source"},
+				WorkerName:   "some-worker-name",
 				StepLocation: 1,
 			})
 
@@ -267,6 +261,7 @@ var _ = Describe("DBProvider", func() {
 				CheckType:    "some-check-type",
 				CheckSource:  atc.Source{"some": "source"},
 				WorkerName:   "some-worker-name",
+				StepLocation: 1,
 			}))
 		})
 	})

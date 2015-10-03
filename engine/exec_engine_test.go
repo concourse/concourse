@@ -253,12 +253,10 @@ var _ = Describe("ExecEngine", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerID).To(Equal(worker.Identifier{
-						ContainerIdentifier: db.ContainerIdentifier{
-							BuildID:      42,
-							Type:         db.ContainerTypePut,
-							Name:         "some-put",
-							PipelineName: "some-pipeline",
-						},
+						BuildID:      42,
+						Type:         db.ContainerTypePut,
+						Name:         "some-put",
+						PipelineName: "some-pipeline",
 					}))
 
 					Expect(tags).To(BeEmpty())
@@ -272,12 +270,10 @@ var _ = Describe("ExecEngine", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerID).To(Equal(worker.Identifier{
-						ContainerIdentifier: db.ContainerIdentifier{
-							BuildID:      42,
-							Type:         db.ContainerTypePut,
-							Name:         "some-put-2",
-							PipelineName: "some-pipeline",
-						},
+						BuildID:      42,
+						Type:         db.ContainerTypePut,
+						Name:         "some-put-2",
+						PipelineName: "some-pipeline",
 					}))
 
 					Expect(tags).To(BeEmpty())
@@ -300,12 +296,10 @@ var _ = Describe("ExecEngine", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerID).To(Equal(worker.Identifier{
-						ContainerIdentifier: db.ContainerIdentifier{
-							BuildID:      42,
-							Type:         db.ContainerTypeGet,
-							Name:         "some-put",
-							PipelineName: "some-pipeline",
-						},
+						BuildID:      42,
+						Type:         db.ContainerTypeGet,
+						Name:         "some-put",
+						PipelineName: "some-pipeline",
 					}))
 
 					Expect(tags).To(BeEmpty())
@@ -324,12 +318,10 @@ var _ = Describe("ExecEngine", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerID).To(Equal(worker.Identifier{
-						ContainerIdentifier: db.ContainerIdentifier{
-							BuildID:      42,
-							Type:         db.ContainerTypeGet,
-							Name:         "some-put-2",
-							PipelineName: "some-pipeline",
-						},
+						BuildID:      42,
+						Type:         db.ContainerTypeGet,
+						Name:         "some-put-2",
+						PipelineName: "some-pipeline",
 					}))
 
 					Expect(tags).To(BeEmpty())
@@ -387,12 +379,10 @@ var _ = Describe("ExecEngine", func() {
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(sourceName).To(Equal(exec.SourceName("some-input")))
 					Expect(workerID).To(Equal(worker.Identifier{
-						ContainerIdentifier: db.ContainerIdentifier{
-							BuildID:      42,
-							Type:         db.ContainerTypeGet,
-							Name:         "some-input",
-							PipelineName: "some-pipeline",
-						},
+						BuildID:      42,
+						Type:         db.ContainerTypeGet,
+						Name:         "some-input",
+						PipelineName: "some-pipeline",
 						StepLocation: 145,
 					}))
 
@@ -478,12 +468,10 @@ var _ = Describe("ExecEngine", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-task")))
 					Expect(workerID).To(Equal(worker.Identifier{
-						ContainerIdentifier: db.ContainerIdentifier{
-							BuildID:      42,
-							Type:         db.ContainerTypeTask,
-							Name:         "some-task",
-							PipelineName: "some-pipeline",
-						},
+						BuildID:      42,
+						Type:         db.ContainerTypeTask,
+						Name:         "some-task",
+						PipelineName: "some-pipeline",
 						StepLocation: 123,
 					}))
 
@@ -607,12 +595,10 @@ var _ = Describe("ExecEngine", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerID).To(Equal(worker.Identifier{
-						ContainerIdentifier: db.ContainerIdentifier{
-							BuildID:      42,
-							Type:         db.ContainerTypePut,
-							Name:         "some-put",
-							PipelineName: "some-pipeline",
-						},
+						BuildID:      42,
+						Type:         db.ContainerTypePut,
+						Name:         "some-put",
+						PipelineName: "some-pipeline",
 						StepLocation: 51,
 					}))
 
@@ -645,12 +631,10 @@ var _ = Describe("ExecEngine", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerID).To(Equal(worker.Identifier{
-						ContainerIdentifier: db.ContainerIdentifier{
-							BuildID:      42,
-							Type:         db.ContainerTypeGet,
-							Name:         "some-put",
-							PipelineName: "some-pipeline",
-						},
+						BuildID:      42,
+						Type:         db.ContainerTypeGet,
+						Name:         "some-put",
+						PipelineName: "some-pipeline",
 						StepLocation: 512,
 					}))
 

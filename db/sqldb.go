@@ -948,9 +948,14 @@ func (db *SQLDB) FindContainerInfosByIdentifier(id ContainerIdentifier) ([]Conta
 		params = append(params, checkSourceBlob)
 	}
 
+	if id.StepLocation != 0 {
+		whereCriteria = append(whereCriteria, fmt.Sprintf("step_location = $%d", len(params)+1))
+		params = append(params, id.StepLocation)
+	}
+
 	var rows *sql.Rows
 	selectQuery := `
-		SELECT handle, pipeline_name, type, name, build_id, worker_name, expires_at, check_type, check_source
+		SELECT handle, pipeline_name, type, name, build_id, worker_name, expires_at, check_type, check_source, step_location
 		FROM containers
 	`
 
@@ -1000,7 +1005,7 @@ func (db *SQLDB) FindContainerInfoByIdentifier(id ContainerIdentifier) (Containe
 
 func (db *SQLDB) GetContainerInfo(handle string) (ContainerInfo, bool, error) {
 	info, err := scanContainerInfo(db.conn.QueryRow(`
-		SELECT handle, pipeline_name, type, name, build_id, worker_name, expires_at, check_type, check_source
+		SELECT handle, pipeline_name, type, name, build_id, worker_name, expires_at, check_type, check_source, step_location
 		FROM containers c
 		WHERE c.handle = $1
 	`, handle))
@@ -1032,8 +1037,8 @@ func (db *SQLDB) CreateContainerInfo(containerInfo ContainerInfo, ttl time.Durat
 	defer tx.Rollback()
 
 	_, err = tx.Exec(`
-		INSERT INTO containers (handle, name, pipeline_name, build_id, type, worker_name, expires_at, check_type, check_source)
-		VALUES ($1, $2, $3, $4, $5, $6,  NOW() + $7::INTERVAL, $8, $9)
+		INSERT INTO containers (handle, name, pipeline_name, build_id, type, worker_name, expires_at, check_type, check_source, step_location)
+		VALUES ($1, $2, $3, $4, $5, $6,  NOW() + $7::INTERVAL, $8, $9, $10)
 		`,
 		containerInfo.Handle,
 		containerInfo.Name,
@@ -1044,6 +1049,7 @@ func (db *SQLDB) CreateContainerInfo(containerInfo ContainerInfo, ttl time.Durat
 		interval,
 		containerInfo.CheckType,
 		checkSource,
+		containerInfo.StepLocation,
 	)
 
 	if err != nil {
@@ -1157,7 +1163,7 @@ func scanContainerInfo(row scannable) (ContainerInfo, error) {
 
 	info := ContainerInfo{}
 
-	err := row.Scan(&info.Handle, &info.PipelineName, &infoType, &info.Name, &info.BuildID, &info.WorkerName, &info.ExpiresAt, &info.CheckType, &checkSourceBlob)
+	err := row.Scan(&info.Handle, &info.PipelineName, &infoType, &info.Name, &info.BuildID, &info.WorkerName, &info.ExpiresAt, &info.CheckType, &checkSourceBlob, &info.StepLocation)
 	if err != nil {
 		return ContainerInfo{}, err
 	}

@@ -101,11 +101,9 @@ var _ = Describe("Exec Engine Locations", func() {
 				Expect(metadata).To(Equal(expectedMetadata))
 				Expect(sourceName).To(Equal(exec.SourceName("some input")))
 				Expect(workerID).To(Equal(worker.Identifier{
-					ContainerIdentifier: db.ContainerIdentifier{
-						BuildID: 84,
-						Type:    db.ContainerTypeGet,
-						Name:    "some input",
-					},
+					BuildID: 84,
+					Type:    db.ContainerTypeGet,
+					Name:    "some input",
 				}))
 
 				Expect(delegate).To(Equal(fakeGetDelegate))
@@ -156,11 +154,9 @@ var _ = Describe("Exec Engine Locations", func() {
 				Expect(logger).ToNot(BeNil())
 				Expect(metadata).To(Equal(expectedMetadata))
 				Expect(workerID).To(Equal(worker.Identifier{
-					ContainerIdentifier: db.ContainerIdentifier{
-						BuildID: 84,
-						Type:    db.ContainerTypePut,
-						Name:    "some output",
-					},
+					BuildID: 84,
+					Type:    db.ContainerTypePut,
+					Name:    "some output",
 				}))
 
 				Expect(delegate).To(Equal(fakePutDelegate))
@@ -212,11 +208,9 @@ var _ = Describe("Exec Engine Locations", func() {
 				Expect(logger).ToNot(BeNil())
 				Expect(sourceName).To(Equal(exec.SourceName("some task")))
 				Expect(workerID).To(Equal(worker.Identifier{
-					ContainerIdentifier: db.ContainerIdentifier{
-						BuildID: 84,
-						Type:    db.ContainerTypeTask,
-						Name:    "some task",
-					},
+					BuildID: 84,
+					Type:    db.ContainerTypeTask,
+					Name:    "some task",
 				}))
 
 				Expect(delegate).To(Equal(fakeExecutionDelegate))
@@ -268,11 +262,9 @@ var _ = Describe("Exec Engine Locations", func() {
 				Expect(metadata).To(Equal(expectedMetadata))
 				Expect(sourceName).To(Equal(exec.SourceName("some input")))
 				Expect(workerID).To(Equal(worker.Identifier{
-					ContainerIdentifier: db.ContainerIdentifier{
-						BuildID: 84,
-						Type:    db.ContainerTypeGet,
-						Name:    "some input",
-					},
+					BuildID: 84,
+					Type:    db.ContainerTypeGet,
+					Name:    "some input",
 				}))
 
 				Expect(delegate).To(Equal(fakeGetDelegate))

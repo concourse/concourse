@@ -310,15 +310,13 @@ func (radar *Radar) getResourceConfig(logger lager.Logger, resourceName string) 
 func checkIdentifier(pipelineName string, res atc.ResourceConfig) resource.Session {
 	return resource.Session{
 		ID: worker.Identifier{
-			ContainerIdentifier: db.ContainerIdentifier{
-				PipelineName: pipelineName,
+			PipelineName: pipelineName,
 
-				Name: res.Name,
-				Type: "check",
+			Name: res.Name,
+			Type: "check",
 
-				CheckType:   res.Type,
-				CheckSource: res.Source,
-			},
+			CheckType:   res.Type,
+			CheckSource: res.Source,
 		},
 		Ephemeral: true,
 	}

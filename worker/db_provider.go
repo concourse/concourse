@@ -86,16 +86,7 @@ func (provider *dbProvider) GetWorker(name string) (Worker, bool, error) {
 }
 
 func (provider *dbProvider) FindContainerInfoForIdentifier(id Identifier) (db.ContainerInfo, bool, error) {
-	containerIdentifier := db.ContainerIdentifier{
-		Name:         id.Name,
-		PipelineName: id.PipelineName,
-		BuildID:      id.BuildID,
-		Type:         id.Type,
-		WorkerName:   id.WorkerName,
-		CheckType:    id.CheckType,
-		CheckSource:  id.CheckSource,
-	}
-	return provider.db.FindContainerInfoByIdentifier(containerIdentifier)
+	return provider.db.FindContainerInfoByIdentifier(db.ContainerIdentifier(id))
 }
 
 func (provider *dbProvider) GetContainerInfo(handle string) (db.ContainerInfo, bool, error) {

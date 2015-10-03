@@ -3,7 +3,6 @@ package resource_test
 import (
 	"errors"
 
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
 	bfakes "github.com/concourse/baggageclaim/fakes"
@@ -25,9 +24,7 @@ var _ = Describe("Tracker", func() {
 
 	var session = Session{
 		ID: worker.Identifier{
-			ContainerIdentifier: db.ContainerIdentifier{
-				Name: "some-name",
-			},
+			Name: "some-name",
 		},
 		Ephemeral: true,
 	}

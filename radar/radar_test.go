@@ -122,15 +122,13 @@ var _ = Describe("Radar", func() {
 				Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 				Expect(sessionID).To(Equal(resource.Session{
 					ID: worker.Identifier{
-						ContainerIdentifier: db.ContainerIdentifier{
-							PipelineName: "some-pipeline-name",
+						PipelineName: "some-pipeline-name",
 
-							Name: "some-resource",
-							Type: "check",
+						Name: "some-resource",
+						Type: "check",
 
-							CheckType:   "git",
-							CheckSource: resourceConfig.Source,
-						},
+						CheckType:   "git",
+						CheckSource: resourceConfig.Source,
 					},
 					Ephemeral: true,
 				}))
@@ -585,14 +583,12 @@ var _ = Describe("Radar", func() {
 				Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 				Expect(sessionID).To(Equal(resource.Session{
 					ID: worker.Identifier{
-						ContainerIdentifier: db.ContainerIdentifier{
-							PipelineName: "some-pipeline-name",
-							Name:         "some-resource",
-							Type:         "check",
+						PipelineName: "some-pipeline-name",
+						Name:         "some-resource",
+						Type:         "check",
 
-							CheckType:   "git",
-							CheckSource: resourceConfig.Source,
-						},
+						CheckType:   "git",
+						CheckSource: resourceConfig.Source,
 					},
 					Ephemeral: true,
 				}))
