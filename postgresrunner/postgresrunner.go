@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"os/user"
 	"strconv"
-	"time"
 
 	"github.com/BurntSushi/migration"
 	"github.com/concourse/atc/db/migrations"
@@ -107,8 +106,9 @@ func (runner *Runner) CreateTestDB() {
 	createS, err := gexec.Start(createdb, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
 
-	status := createS.Wait(10 * time.Second)
-	if status.ExitCode() != 0 {
+	<-createS.Exited
+
+	if createS.ExitCode() != 0 {
 		runner.DropTestDB()
 
 		createdb := exec.Command("createdb", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
