@@ -17,7 +17,6 @@ groups:
 
 - name: publish
   jobs:
-  - aws-box
   - github-release
   - hangar
   - product
@@ -25,6 +24,9 @@ groups:
   - push-departures
   - push-docs
   - virtualbox-box
+  - release-virtualbox-box
+  - aws-box
+  - release-aws-box
 
 - name: bosh-lite
   jobs: [provision, teardown]
@@ -321,6 +323,16 @@ jobs:
     file: deployments/buildbox/ci/build-boxes.yml
   - put: virtualbox-box
     params: {from: build-box/concourse-lite/concourse-virtualbox-ubuntu-trusty-(.*).box}
+
+- name: release-virtualbox-box
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [virtualbox-box]
+    - get: virtualbox-box
+      passed: [virtualbox-box]
   - task: build-release-notes
     file: concourse/ci/build-release-notes.yml
   - put: virtualbox-box-cloud
@@ -355,6 +367,15 @@ jobs:
         AWS_SECRET_ACCESS_KEY: {{aws-box-secret-key}}
   - put: aws-box
     params: {from: build-box/concourse-lite/concourse-aws-ubuntu-trusty-(.*).box}
+
+- name: release-aws-box
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [aws-box]
+    - get: aws-box
+      passed: [aws-box]
   - task: build-release-notes
     file: concourse/ci/build-release-notes.yml
   - put: aws-box-cloud
