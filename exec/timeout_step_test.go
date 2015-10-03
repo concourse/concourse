@@ -3,7 +3,6 @@ package exec_test
 import (
 	"errors"
 	"os"
-	"time"
 
 	. "github.com/concourse/atc/exec"
 
@@ -82,10 +81,7 @@ var _ = Describe("Timeout Step", func() {
 
 			It("should interrupt after timeout duration", func() {
 				Eventually(runStep.RunCallCount).Should(Equal(1))
-
-				var receivedError error
-				Eventually(process.Wait(), 3*time.Second).Should(Receive(&receivedError))
-				Expect(receivedError).To(Equal(ErrStepTimedOut))
+				Expect(<-process.Wait()).ToNot(HaveOccurred())
 			})
 
 			Context("when the process is signaled", func() {
@@ -126,9 +122,7 @@ var _ = Describe("Timeout Step", func() {
 				It("is not successful", func() {
 					Eventually(runStep.RunCallCount).Should(Equal(1))
 
-					var receivedError error
-					Eventually(process.Wait(), 3*time.Second).Should(Receive(&receivedError))
-					Expect(receivedError).NotTo(BeNil())
+					Expect(<-process.Wait()).To(Succeed())
 
 					var success Success
 					Expect(step.Result(&success)).To(BeTrue())

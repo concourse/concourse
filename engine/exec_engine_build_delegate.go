@@ -2,7 +2,6 @@ package engine
 
 import (
 	"io"
-	"strings"
 	"sync"
 	"time"
 	"unicode/utf8"
@@ -99,7 +98,7 @@ func (delegate *delegate) Finish(logger lager.Logger, err error, succeeded exec.
 		delegate.saveStatus(logger, atc.StatusAborted)
 
 		logger.Info("aborted")
-	} else if err != nil && !strings.Contains(err.Error(), exec.ErrStepTimedOut.Error()) {
+	} else if err != nil {
 		delegate.saveStatus(logger, atc.StatusErrored)
 
 		logger.Info("errored", lager.Data{"error": err.Error()})

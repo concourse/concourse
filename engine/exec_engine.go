@@ -3,7 +3,6 @@ package engine
 import (
 	"encoding/json"
 	"errors"
-	"strings"
 
 	"os"
 
@@ -127,11 +126,7 @@ func (build *execBuild) Resume(logger lager.Logger) {
 	for {
 		select {
 		case err := <-exited:
-			var receivedTimeoutError bool
-			if err != nil {
-				receivedTimeoutError = strings.Contains(err.Error(), exec.ErrStepTimedOut.Error())
-			}
-			if aborted || receivedTimeoutError {
+			if aborted {
 				succeeded = false
 			} else if !source.Result(&succeeded) {
 				logger.Error("step-had-no-result", errors.New("step failed to provide us with a result"))

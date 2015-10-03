@@ -250,8 +250,7 @@ var _ = Describe("Exec Engine with Timeout", func() {
 						Expect(fakeDelegate.FinishCallCount()).To(Equal(1))
 
 						_, err, succeeded, aborted := fakeDelegate.FinishArgsForCall(0)
-						Expect(err).NotTo(BeNil())
-						Expect(err.Error()).To(ContainSubstring(exec.ErrStepTimedOut.Error()))
+						Expect(err).ToNot(HaveOccurred())
 						Expect(succeeded).To(Equal(exec.Success(false)))
 						Expect(aborted).To(BeFalse())
 					})
@@ -348,7 +347,7 @@ var _ = Describe("Exec Engine with Timeout", func() {
 					Expect(fakeDelegate.FinishCallCount()).To(Equal(1))
 
 					_, err, succeeded, aborted := fakeDelegate.FinishArgsForCall(0)
-					Expect(err.Error()).To(ContainSubstring(exec.ErrStepTimedOut.Error()))
+					Expect(err).ToNot(HaveOccurred())
 					Expect(succeeded).To(Equal(exec.Success(false)))
 					Expect(aborted).To(BeFalse())
 				})

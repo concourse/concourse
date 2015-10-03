@@ -82,6 +82,7 @@ var _ = Describe("On Failure Step", func() {
 		Eventually(process.Wait()).Should(Receive(errorMatching("disaster")))
 		Expect(hook.RunCallCount()).To(Equal(0))
 	})
+
 	It("does not run the failure hook if the step succeeds", func() {
 		step.ResultStub = successResult(true)
 
@@ -91,6 +92,7 @@ var _ = Describe("On Failure Step", func() {
 		Eventually(process.Wait()).Should(Receive(noError()))
 		Expect(hook.RunCallCount()).To(Equal(0))
 	})
+
 	It("propagates signals to the first step when first step is running", func() {
 		step.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
 			close(ready)
@@ -107,6 +109,7 @@ var _ = Describe("On Failure Step", func() {
 		Eventually(process.Wait()).Should(Receive(errorMatching("interrupted")))
 		Expect(hook.RunCallCount()).To(Equal(0))
 	})
+
 	It("propagates signals to the hook when the hook is running", func() {
 		step.ResultStub = successResult(false)
 
@@ -130,6 +133,7 @@ var _ = Describe("On Failure Step", func() {
 		Context("when the provided interface is type Success", func() {
 			var signals chan os.Signal
 			var ready chan struct{}
+
 			BeforeEach(func() {
 				signals = make(chan os.Signal, 1)
 				ready = make(chan struct{}, 1)
@@ -149,11 +153,13 @@ var _ = Describe("On Failure Step", func() {
 					Expect(bool(succeeded)).To(BeFalse())
 				})
 			})
+
 			Context("when step fails and hook succeeds", func() {
 				BeforeEach(func() {
 					step.ResultStub = successResult(false)
 					hook.ResultStub = successResult(true)
 				})
+
 				It("assigns the provided interface to false", func() {
 					var succeeded exec.Success
 					onFailureStep.Run(signals, ready)
@@ -177,13 +183,13 @@ var _ = Describe("On Failure Step", func() {
 					Expect(bool(succeeded)).To(BeTrue())
 				})
 			})
+
 			Context("when step fails and hook fails", func() {
 				BeforeEach(func() {
-
 					step.ResultStub = successResult(false)
 					hook.ResultStub = successResult(false)
-
 				})
+
 				It("doesn't indicate success", func() {
 					var succeeded exec.Success
 					onFailureStep.Run(signals, ready)
@@ -195,13 +201,13 @@ var _ = Describe("On Failure Step", func() {
 					Expect(bool(succeeded)).To(BeFalse())
 				})
 			})
+
 			Context("when step fails and hook succeeds", func() {
 				BeforeEach(func() {
-
 					step.ResultStub = successResult(false)
 					hook.ResultStub = successResult(true)
-
 				})
+
 				It("doesn't indicate success", func() {
 					var succeeded exec.Success
 					onFailureStep.Run(signals, ready)
@@ -214,6 +220,7 @@ var _ = Describe("On Failure Step", func() {
 				})
 			})
 		})
+
 		Describe("Release", func() {
 			var (
 				signals chan os.Signal
@@ -226,6 +233,7 @@ var _ = Describe("On Failure Step", func() {
 					ready = make(chan struct{}, 1)
 					step.ResultStub = successResult(false)
 				})
+
 				It("calls release on both step and hook", func() {
 					onFailureStep.Run(signals, ready)
 					onFailureStep.Release()
@@ -233,12 +241,14 @@ var _ = Describe("On Failure Step", func() {
 					Expect(hook.ReleaseCallCount()).To(Equal(1))
 				})
 			})
+
 			Context("when only step runs", func() {
 				BeforeEach(func() {
 					signals = make(chan os.Signal, 1)
 					ready = make(chan struct{}, 1)
 					step.ResultStub = successResult(true)
 				})
+
 				It("calls release only on step", func() {
 					onFailureStep.Run(signals, ready)
 					onFailureStep.Release()

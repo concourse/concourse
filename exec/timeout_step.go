@@ -1,7 +1,6 @@
 package exec
 
 import (
-	"errors"
 	"os"
 	"time"
 
@@ -14,8 +13,6 @@ type timeout struct {
 	duration string
 	timedOut bool
 }
-
-var ErrStepTimedOut = errors.New("process-exceeded-timeout-limit")
 
 func Timeout(
 	step StepFactory,
@@ -46,7 +43,6 @@ func (ts *timeout) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	timer := time.NewTimer(parsedDuration)
 
 	var runErr error
-	var timeoutErr error
 	var sig os.Signal
 
 dance:
@@ -56,15 +52,15 @@ dance:
 			break dance
 		case <-timer.C:
 			ts.timedOut = true
-			timeoutErr = ErrStepTimedOut
 			runProcess.Signal(os.Kill)
 		case sig = <-signals:
 			runProcess.Signal(sig)
 		}
 	}
 
-	if timeoutErr != nil {
-		return timeoutErr
+	if ts.timedOut {
+		// swallow interrupted error
+		return nil
 	}
 
 	if runErr != nil {
