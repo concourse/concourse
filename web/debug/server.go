@@ -50,14 +50,15 @@ func (server *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	workMap := make(WorkMap, len(containers))
+	workMap := WorkMap{}
+
 	for _, container := range containers {
-		if _, found := workMap[container.Handle]; !found {
-			workMap[container.Handle] = []db.ContainerInfo{}
+		if _, found := workMap[container.WorkerName]; !found {
+			workMap[container.WorkerName] = []db.ContainerInfo{}
 		}
 
-		workMap[container.Handle] = append(
-			workMap[container.Handle],
+		workMap[container.WorkerName] = append(
+			workMap[container.WorkerName],
 			container,
 		)
 	}
