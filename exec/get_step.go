@@ -82,7 +82,7 @@ func (step *getStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		step.cacheIdentifier,
 	)
 	if err != nil {
-		step.logger.Error("failed-to-initialize-resource")
+		step.logger.Error("failed-to-initialize-resource", err)
 		return err
 	}
 
@@ -100,7 +100,7 @@ func (step *getStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 
 	isInitialized, err := cache.IsInitialized()
 	if err != nil {
-		step.logger.Error("failed-to-check-if-cache-is-initialized")
+		step.logger.Error("failed-to-check-if-cache-is-initialized", err)
 		return err
 	}
 
@@ -121,7 +121,7 @@ func (step *getStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		}
 
 		if err != nil {
-			step.logger.Error("failed-to-run-get")
+			step.logger.Error("failed-to-run-get", err)
 			return err
 		}
 
