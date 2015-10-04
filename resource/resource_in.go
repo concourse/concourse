@@ -14,6 +14,10 @@ func (resource *resource) Get(ioConfig IOConfig, source atc.Source, params atc.P
 	vs := &versionedSource{
 		container:   resource.container,
 		resourceDir: resourceDir,
+
+		versionResult: versionResult{
+			Version: version,
+		},
 	}
 
 	vs.Runner = resource.runScript(
