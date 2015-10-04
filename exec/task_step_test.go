@@ -448,7 +448,7 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							It("saves the exit status property", func() {
-								Eventually(process.Wait()).Should(Receive(BeNil()))
+								<-process.Wait()
 
 								Expect(fakeContainer.SetPropertyCallCount()).To(Equal(2))
 
@@ -458,7 +458,7 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							It("is successful", func() {
-								Eventually(process.Wait()).Should(Receive(BeNil()))
+								Expect(<-process.Wait()).To(BeNil())
 
 								var success Success
 								Expect(step.Result(&success)).To(BeTrue())
@@ -466,7 +466,7 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							It("reports its exit status", func() {
-								Eventually(process.Wait()).Should(Receive(BeNil()))
+								<-process.Wait()
 
 								var status ExitStatus
 								Expect(step.Result(&status)).To(BeTrue())
@@ -475,7 +475,7 @@ var _ = Describe("GardenFactory", func() {
 
 							Describe("release", func() {
 								It("releases with a ttl of 5 minutes", func() {
-									Eventually(process.Wait()).Should(Receive(BeNil()))
+									<-process.Wait()
 
 									step.Release()
 									Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
@@ -845,6 +845,8 @@ var _ = Describe("GardenFactory", func() {
 
 						Describe("releasing", func() {
 							It("releases the container", func() {
+								<-process.Wait()
+
 								Expect(fakeContainer.ReleaseCallCount()).To(BeZero())
 
 								step.Release()
