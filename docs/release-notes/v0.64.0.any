@@ -56,12 +56,20 @@
   prevent the \code{multiple containers} error from happening. More
   improvements to handling flaky workers are forthcoming.
 }{
+  Containers for failed steps will now stick around for 1 hour to give you more
+  time to notice and investigate. Containers for succeeded steps will stick
+  around for 5 minutes as before.
+
+  We used to rely on Garden's \code{default_container_grace_time} property,
+  which defaulted to 5 minutes. If you're setting it in your manifest you
+  should remove the property, as it'll no longer be respected now that
+  Concourse explicitly provides it for each container.
+}{
   We no longer reuse the pending color for jobs that have no builds. A new
   darker shade of grey has been selected for your viewing pleasure.
 }{
-  We've fixed a nasty bug in resource checking that led to all resources
-  effectively clobbering each other's checking intervals, sometimes leading to
-  deadlocks.
+  We've fixed a bug in resource checking that led to all resources effectively
+  clobbering each other's checking intervals, sometimes leading to deadlocks.
 }{
   A few indexes have been added to high-trafficked queries. You should notice
   lower Postgres CPU load and faster loading times on the pipeline view.
