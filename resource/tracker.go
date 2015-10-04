@@ -71,11 +71,11 @@ func (tracker *tracker) Init(logger lager.Logger, metadata Metadata, session Ses
 	}
 
 	if found {
-		logger.Info("found-existing", lager.Data{"container": container.Handle()})
+		logger.Debug("found-existing-container", lager.Data{"container": container.Handle()})
 		return NewResource(container), nil
 	}
 
-	logger.Info("creating-container")
+	logger.Debug("creating-container")
 
 	container, err = tracker.workerClient.CreateContainer(logger, session.ID, worker.ResourceTypeContainerSpec{
 		Type:      string(typ),
@@ -105,24 +105,24 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 	}
 
 	if found {
-		logger.Info("found-existing", lager.Data{"container": container.Handle()})
+		logger.Debug("found-existing-container", lager.Data{"container": container.Handle()})
 
 		var cache Cache
 
 		volumes := container.Volumes()
 		switch len(volumes) {
 		case 0:
-			logger.Info("no-cache")
+			logger.Debug("no-cache")
 			cache = noopCache{}
 		default:
-			logger.Info("found-cache")
+			logger.Debug("found-cache")
 			cache = volumeCache{volumes[0]}
 		}
 
 		return NewResource(container), cache, nil
 	}
 
-	logger.Info("no-existing-container")
+	logger.Debug("no-existing-container")
 
 	resourceSpec := worker.WorkerSpec{
 		ResourceType: string(typ),
@@ -139,7 +139,7 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 
 	vm, hasVM := chosenWorker.VolumeManager()
 	if !hasVM {
-		logger.Info("creating-container-without-cache")
+		logger.Debug("creating-container-without-cache")
 
 		container, err := chosenWorker.CreateContainer(logger, session.ID, worker.ResourceTypeContainerSpec{
 			Type:      string(typ),
@@ -164,21 +164,21 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 	}
 
 	if cacheFound {
-		logger.Info("found-cache", lager.Data{"volume": cachedVolume.Handle()})
+		logger.Debug("found-cache", lager.Data{"volume": cachedVolume.Handle()})
 	} else {
-		logger.Info("no-cache-found")
+		logger.Debug("no-cache-found")
 
 		cachedVolume, err = cacheIdentifier.CreateOn(logger, vm)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		logger.Info("new-cache", lager.Data{"volume": cachedVolume.Handle()})
+		logger.Debug("new-cache", lager.Data{"volume": cachedVolume.Handle()})
 	}
 
 	defer cachedVolume.Release()
 
-	logger.Info("creating-container-with-cache")
+	logger.Debug("creating-container-with-cache")
 
 	container, err = chosenWorker.CreateContainer(logger, session.ID, worker.ResourceTypeContainerSpec{
 		Type:      string(typ),
