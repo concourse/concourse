@@ -92,7 +92,7 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 		switch len(volumes) {
 		case 0:
 			cache = noopCache{}
-		case 1:
+		default:
 			cache = volumeCache{volumes[0]}
 		}
 
