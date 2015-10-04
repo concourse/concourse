@@ -17,7 +17,7 @@ type server struct {
 	template *template.Template
 }
 
-//go:generate counterfeiter . BuildsDB
+//go:generate counterfeiter . DebugDB
 
 type DebugDB interface {
 	FindContainerInfosByIdentifier(db.ContainerIdentifier) ([]db.ContainerInfo, error)
