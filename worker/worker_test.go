@@ -772,7 +772,6 @@ var _ = Describe("Worker", func() {
 		Context("when the container can be found", func() {
 			var (
 				fakeContainer *gfakes.FakeContainer
-				name          string
 			)
 
 			BeforeEach(func() {
@@ -841,14 +840,6 @@ var _ = Describe("Worker", func() {
 				It("can be released multiple times", func() {
 					foundContainer.Release()
 					Expect(foundContainer.Release).NotTo(Panic())
-				})
-
-				Describe("providing its Identifier", func() {
-					It("can provide its Identifier", func() {
-						identifier := foundContainer.IdentifierFromProperties()
-
-						Expect(identifier.Name).To(Equal(name))
-					})
 				})
 			})
 		})

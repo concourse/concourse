@@ -29,8 +29,6 @@ type Container interface {
 
 	Release()
 
-	IdentifierFromProperties() Identifier
-
 	Volumes() []baggageclaim.Volume
 }
 

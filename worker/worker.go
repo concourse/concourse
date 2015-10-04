@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"path"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -398,8 +397,6 @@ type gardenWorkerContainer struct {
 	heartbeating     *sync.WaitGroup
 
 	releaseOnce sync.Once
-
-	identifier Identifier
 }
 
 func newGardenWorkerContainer(
@@ -430,11 +427,6 @@ func newGardenWorkerContainer(
 
 	properties, err := workerContainer.Properties()
 	if err != nil {
-		return nil, err
-	}
-
-	err = workerContainer.initializeIdentifier(properties)
-	if err != nil {
 		workerContainer.Release()
 		return nil, err
 	}
@@ -464,10 +456,6 @@ func (container *gardenWorkerContainer) Release() {
 			v.Release()
 		}
 	})
-}
-
-func (container *gardenWorkerContainer) IdentifierFromProperties() Identifier {
-	return container.identifier
 }
 
 func (container *gardenWorkerContainer) Volumes() []baggageclaim.Volume {
@@ -507,62 +495,6 @@ func (container *gardenWorkerContainer) initializeVolumes(
 
 	container.volumes = volumes
 
-	return nil
-}
-
-func (container *gardenWorkerContainer) initializeIdentifier(properties garden.Properties) error {
-	var err error
-
-	propertyPrefix := "concourse:"
-	identifier := Identifier{}
-
-	nameKey := propertyPrefix + "name"
-	if properties[nameKey] != "" {
-		identifier.Name = properties[nameKey]
-	}
-
-	pipelineKey := propertyPrefix + "pipeline-name"
-	if properties[pipelineKey] != "" {
-		identifier.PipelineName = properties[pipelineKey]
-	}
-
-	buildIDKey := propertyPrefix + "build-id"
-	if properties[buildIDKey] != "" {
-		identifier.BuildID, err = strconv.Atoi(properties[buildIDKey])
-		if err != nil {
-			return err
-		}
-	}
-
-	typeKey := propertyPrefix + "type"
-	if properties[typeKey] != "" {
-		identifier.Type = db.ContainerType(properties[typeKey])
-	}
-
-	stepLocationKey := propertyPrefix + "location"
-	if properties[stepLocationKey] != "" {
-		StepLocationUint, err := strconv.Atoi(properties[stepLocationKey])
-		if err != nil {
-			return err
-		}
-		identifier.StepLocation = uint(StepLocationUint)
-	}
-
-	checkTypeKey := propertyPrefix + "check-type"
-	if properties[checkTypeKey] != "" {
-		identifier.CheckType = properties[checkTypeKey]
-	}
-
-	checkSourceKey := propertyPrefix + "check-source"
-	if properties[checkSourceKey] != "" {
-		checkSourceString := properties[checkSourceKey]
-		err := json.Unmarshal([]byte(checkSourceString), &identifier.CheckSource)
-		if err != nil {
-			return err
-		}
-	}
-
-	container.identifier = identifier
 	return nil
 }
 
