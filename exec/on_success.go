@@ -40,16 +40,14 @@ func (o *onSuccess) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 
 	var success Success
 
-	// The contract of the Result method is such that it does not change the value
-	// of the provided pointer if it is not able to respond.
-	// Therefore there is no need to check the return value here.
 	_ = o.step.Result(&success)
 
 	if !success {
 		return nil
 	}
+
 	o.success = o.successFactory.Using(o.step, o.repo)
-	err := o.success.Run(signals, make(chan struct{})) // TODO test
+	err := o.success.Run(signals, make(chan struct{}))
 	return err
 }
 

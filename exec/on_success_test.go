@@ -16,12 +16,6 @@ import (
 var noError = BeNil
 var errorMatching = MatchError
 
-// check hook is executed - if step succeeds - DONE
-// check hook is not executed if the step fails/errors - DONE
-
-// when we send a signal it is forwarded to the currently running step - DONE
-// what if steps cannot respond to success - don't need to cover this case because the contract guarentees this won't happen
-
 var _ = Describe("On Success Step", func() {
 	var (
 		stepFactory    *fakes.FakeStepFactory
