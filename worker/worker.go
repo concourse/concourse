@@ -201,18 +201,13 @@ dance:
 		return nil, err
 	}
 
+	idWithWorker := db.ContainerIdentifier(id)
+	idWithWorker.WorkerName = worker.name
+
 	err = worker.db.CreateContainerInfo(
 		db.ContainerInfo{
-			ContainerIdentifier: db.ContainerIdentifier{
-				Name:         id.Name,
-				PipelineName: id.PipelineName,
-				BuildID:      id.BuildID,
-				Type:         id.Type,
-				WorkerName:   worker.name,
-				CheckType:    id.CheckType,
-				CheckSource:  id.CheckSource,
-			},
-			Handle: gardenContainer.Handle(),
+			ContainerIdentifier: idWithWorker,
+			Handle:              gardenContainer.Handle(),
 		}, containerTTL)
 	if err != nil {
 		return nil, err
