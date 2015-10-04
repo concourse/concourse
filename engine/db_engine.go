@@ -54,10 +54,10 @@ func (*dbEngine) Name() string {
 	return "db"
 }
 
-func (engine *dbEngine) CreateBuild(build db.Build, plan atc.Plan) (Build, error) {
+func (engine *dbEngine) CreateBuild(logger lager.Logger, build db.Build, plan atc.Plan) (Build, error) {
 	buildEngine := engine.engines[0]
 
-	createdBuild, err := buildEngine.CreateBuild(build, plan)
+	createdBuild, err := buildEngine.CreateBuild(logger, build, plan)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (engine *dbEngine) CreateBuild(build db.Build, plan atc.Plan) (Build, error
 	}
 
 	if !started {
-		createdBuild.Abort()
+		createdBuild.Abort(logger.Session("aborted-immediately"))
 	}
 
 	return &dbBuild{
@@ -80,7 +80,7 @@ func (engine *dbEngine) CreateBuild(build db.Build, plan atc.Plan) (Build, error
 	}, nil
 }
 
-func (engine *dbEngine) LookupBuild(build db.Build) (Build, error) {
+func (engine *dbEngine) LookupBuild(logger lager.Logger, build db.Build) (Build, error) {
 	return &dbBuild{
 		id: build.ID,
 
@@ -102,7 +102,7 @@ func (build *dbBuild) Metadata() string {
 	return strconv.Itoa(build.id)
 }
 
-func (build *dbBuild) Abort() error {
+func (build *dbBuild) Abort(logger lager.Logger) error {
 	// the order below is very important to avoid races with build creation.
 
 	lease, leased, err := build.db.LeaseBuildTracking(build.id, time.Minute)
@@ -160,14 +160,14 @@ func (build *dbBuild) Abort() error {
 	}
 
 	// find the real build to abort...
-	engineBuild, err := buildEngine.LookupBuild(model)
+	engineBuild, err := buildEngine.LookupBuild(logger, model)
 	if err != nil {
 		logger.Error("failed-to-lookup-build-in-engine", err)
 		return err
 	}
 
 	// ...and abort it.
-	return engineBuild.Abort()
+	return engineBuild.Abort(logger)
 }
 
 func (build *dbBuild) Resume(logger lager.Logger) {
@@ -216,7 +216,7 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 		return
 	}
 
-	engineBuild, err := buildEngine.LookupBuild(model)
+	engineBuild, err := buildEngine.LookupBuild(logger, model)
 	if err != nil {
 		logger.Error("failed-to-lookup-build-from-engine", err)
 		build.finishWithError(model.ID, logger)
@@ -239,7 +239,7 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 		case <-aborts.Notify():
 			logger.Info("aborting")
 
-			err := engineBuild.Abort()
+			err := engineBuild.Abort(logger)
 			if err != nil {
 				logger.Error("failed-to-abort", err)
 			}

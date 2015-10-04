@@ -271,7 +271,7 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions 
 		return nil
 	}
 
-	createdBuild, err := s.Engine.CreateBuild(build, plan)
+	createdBuild, err := s.Engine.CreateBuild(logger, build, plan)
 	if err != nil {
 		logger.Error("failed-to-create-build", err)
 		return nil

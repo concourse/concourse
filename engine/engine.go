@@ -15,8 +15,8 @@ var ErrBuildNotFound = errors.New("build not found")
 type Engine interface {
 	Name() string
 
-	CreateBuild(db.Build, atc.Plan) (Build, error)
-	LookupBuild(db.Build) (Build, error)
+	CreateBuild(lager.Logger, db.Build, atc.Plan) (Build, error)
+	LookupBuild(lager.Logger, db.Build) (Build, error)
 }
 
 //go:generate counterfeiter . EngineDB
@@ -37,7 +37,7 @@ type EngineDB interface {
 type Build interface {
 	Metadata() string
 
-	Abort() error
+	Abort(lager.Logger) error
 	Resume(lager.Logger)
 }
 

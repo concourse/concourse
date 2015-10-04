@@ -37,7 +37,7 @@ func (engine *execEngine) Name() string {
 	return "exec.v1"
 }
 
-func (engine *execEngine) CreateBuild(model db.Build, plan atc.Plan) (Build, error) {
+func (engine *execEngine) CreateBuild(logger lager.Logger, model db.Build, plan atc.Plan) (Build, error) {
 	return &execBuild{
 		buildID:      model.ID,
 		stepMetadata: buildMetadata(model),
@@ -53,10 +53,11 @@ func (engine *execEngine) CreateBuild(model db.Build, plan atc.Plan) (Build, err
 	}, nil
 }
 
-func (engine *execEngine) LookupBuild(model db.Build) (Build, error) {
+func (engine *execEngine) LookupBuild(logger lager.Logger, model db.Build) (Build, error) {
 	var metadata execMetadata
 	err := json.Unmarshal([]byte(model.EngineMetadata), &metadata)
 	if err != nil {
+		logger.Error("invalid-metadata", err)
 		return nil, err
 	}
 
@@ -105,7 +106,7 @@ func (build *execBuild) Metadata() string {
 	return string(payload)
 }
 
-func (build *execBuild) Abort() error {
+func (build *execBuild) Abort(lager.Logger) error {
 	build.signals <- os.Kill
 	return nil
 }

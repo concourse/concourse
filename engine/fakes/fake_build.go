@@ -15,10 +15,12 @@ type FakeBuild struct {
 	metadataReturns     struct {
 		result1 string
 	}
-	AbortStub        func() error
+	AbortStub        func(lager.Logger) error
 	abortMutex       sync.RWMutex
-	abortArgsForCall []struct{}
-	abortReturns     struct {
+	abortArgsForCall []struct {
+		arg1 lager.Logger
+	}
+	abortReturns struct {
 		result1 error
 	}
 	ResumeStub        func(lager.Logger)
@@ -52,12 +54,14 @@ func (fake *FakeBuild) MetadataReturns(result1 string) {
 	}{result1}
 }
 
-func (fake *FakeBuild) Abort() error {
+func (fake *FakeBuild) Abort(arg1 lager.Logger) error {
 	fake.abortMutex.Lock()
-	fake.abortArgsForCall = append(fake.abortArgsForCall, struct{}{})
+	fake.abortArgsForCall = append(fake.abortArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
 	fake.abortMutex.Unlock()
 	if fake.AbortStub != nil {
-		return fake.AbortStub()
+		return fake.AbortStub(arg1)
 	} else {
 		return fake.abortReturns.result1
 	}
@@ -67,6 +71,12 @@ func (fake *FakeBuild) AbortCallCount() int {
 	fake.abortMutex.RLock()
 	defer fake.abortMutex.RUnlock()
 	return len(fake.abortArgsForCall)
+}
+
+func (fake *FakeBuild) AbortArgsForCall(i int) lager.Logger {
+	fake.abortMutex.RLock()
+	defer fake.abortMutex.RUnlock()
+	return fake.abortArgsForCall[i].arg1
 }
 
 func (fake *FakeBuild) AbortReturns(result1 error) {

@@ -398,7 +398,7 @@ var _ = Describe("Scheduler", func() {
 								Expect(usedInputs).To(Equal(newInputs))
 
 								Expect(fakeEngine.CreateBuildCallCount()).To(Equal(1))
-								builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
+								_, builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
 								Expect(builtBuild).To(Equal(db.Build{ID: 128, Name: "42"}))
 								Expect(plan).To(Equal(createdPlan))
 							})
@@ -598,7 +598,7 @@ var _ = Describe("Scheduler", func() {
 						Expect(createInputs).To(Equal(pendingInputs))
 
 						Expect(fakeEngine.CreateBuildCallCount()).To(Equal(1))
-						builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
+						_, builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
 						Expect(builtBuild).To(Equal(pendingBuild))
 						Expect(plan).To(Equal(createdPlan))
 					})
@@ -744,7 +744,7 @@ var _ = Describe("Scheduler", func() {
 						Expect(createInputs).To(Equal(pendingInputs))
 
 						Expect(fakeEngine.CreateBuildCallCount()).To(Equal(1))
-						builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
+						_, builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
 						Expect(builtBuild).To(Equal(createdDBBuild))
 						Expect(plan).To(Equal(createdPlan))
 					})
@@ -818,7 +818,7 @@ var _ = Describe("Scheduler", func() {
 						Expect(createInputs).To(Equal(pendingInputs))
 
 						Expect(fakeEngine.CreateBuildCallCount()).To(Equal(1))
-						builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
+						_, builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
 						Expect(builtBuild).To(Equal(db.Build{ID: 128, Name: "42"}))
 						Expect(plan).To(Equal(createdPlan))
 					})

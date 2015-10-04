@@ -243,7 +243,7 @@ var _ = Describe("ExecEngine", func() {
 			Context("constructing outputs", func() {
 				It("constructs the put correctly", func() {
 					var err error
-					build, err = execEngine.CreateBuild(buildModel, outputPlan)
+					build, err = execEngine.CreateBuild(logger, buildModel, outputPlan)
 					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
@@ -286,7 +286,7 @@ var _ = Describe("ExecEngine", func() {
 
 				It("constructs the dependent get correctly", func() {
 					var err error
-					build, err = execEngine.CreateBuild(buildModel, outputPlan)
+					build, err = execEngine.CreateBuild(logger, buildModel, outputPlan)
 					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
@@ -368,7 +368,7 @@ var _ = Describe("ExecEngine", func() {
 
 				It("constructs inputs correctly", func() {
 					var err error
-					build, err := execEngine.CreateBuild(buildModel, plan)
+					build, err := execEngine.CreateBuild(logger, buildModel, plan)
 					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
@@ -411,7 +411,7 @@ var _ = Describe("ExecEngine", func() {
 						return nil
 					}
 					var err error
-					build, err = execEngine.CreateBuild(buildModel, plan)
+					build, err = execEngine.CreateBuild(logger, buildModel, plan)
 					Expect(err).NotTo(HaveOccurred())
 					build.Resume(logger)
 
@@ -458,7 +458,7 @@ var _ = Describe("ExecEngine", func() {
 				}
 				It("constructs tasks correctly", func() {
 					var err error
-					build, err = execEngine.CreateBuild(buildModel, plan)
+					build, err = execEngine.CreateBuild(logger, buildModel, plan)
 					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
@@ -497,7 +497,7 @@ var _ = Describe("ExecEngine", func() {
 						return nil
 					}
 					var err error
-					build, err = execEngine.CreateBuild(buildModel, plan)
+					build, err = execEngine.CreateBuild(logger, buildModel, plan)
 					Expect(err).NotTo(HaveOccurred())
 					build.Resume(logger)
 
@@ -511,7 +511,7 @@ var _ = Describe("ExecEngine", func() {
 
 					It("constructs the task step privileged", func() {
 						var err error
-						build, err = execEngine.CreateBuild(buildModel, plan)
+						build, err = execEngine.CreateBuild(logger, buildModel, plan)
 						Expect(err).NotTo(HaveOccurred())
 
 						build.Resume(logger)
@@ -585,7 +585,7 @@ var _ = Describe("ExecEngine", func() {
 
 				It("constructs the put correctly", func() {
 					var err error
-					build, err = execEngine.CreateBuild(buildModel, plan)
+					build, err = execEngine.CreateBuild(logger, buildModel, plan)
 					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
@@ -621,7 +621,7 @@ var _ = Describe("ExecEngine", func() {
 
 				It("constructs the dependent get correctly", func() {
 					var err error
-					build, err = execEngine.CreateBuild(buildModel, plan)
+					build, err = execEngine.CreateBuild(logger, buildModel, plan)
 					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
@@ -656,7 +656,7 @@ var _ = Describe("ExecEngine", func() {
 				})
 				It("releases all sources", func() {
 					var err error
-					build, err = execEngine.CreateBuild(buildModel, plan)
+					build, err = execEngine.CreateBuild(logger, buildModel, plan)
 					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)

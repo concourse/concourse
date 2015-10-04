@@ -114,7 +114,7 @@ var _ = Describe("Builds API", func() {
 						Expect(buildsDB.CreateOneOffBuildCallCount()).To(Equal(1))
 
 						Expect(fakeEngine.CreateBuildCallCount()).To(Equal(1))
-						oneOff, builtPlan := fakeEngine.CreateBuildArgsForCall(0)
+						_, oneOff, builtPlan := fakeEngine.CreateBuildArgsForCall(0)
 						Expect(oneOff).To(Equal(db.Build{
 							ID:           42,
 							Name:         "1",

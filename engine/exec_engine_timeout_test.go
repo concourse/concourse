@@ -157,7 +157,7 @@ var _ = Describe("Exec Engine with Timeout", func() {
 							},
 						},
 					}
-					build, err := execEngine.CreateBuild(buildModel, plan)
+					build, err := execEngine.CreateBuild(logger, buildModel, plan)
 					Expect(err).NotTo(HaveOccurred())
 					build.Resume(logger)
 					Expect(fakeFactory.PutCallCount()).To(Equal(1))
@@ -234,7 +234,7 @@ var _ = Describe("Exec Engine with Timeout", func() {
 							},
 						}
 
-						build, err := execEngine.CreateBuild(buildModel, plan)
+						build, err := execEngine.CreateBuild(logger, buildModel, plan)
 						Expect(err).NotTo(HaveOccurred())
 						build.Resume(logger)
 						Expect(build).To(Equal(build))
@@ -275,7 +275,7 @@ var _ = Describe("Exec Engine with Timeout", func() {
 						},
 					}
 
-					build, err := execEngine.CreateBuild(buildModel, plan)
+					build, err := execEngine.CreateBuild(logger, buildModel, plan)
 					Expect(err).NotTo(HaveOccurred())
 					build.Resume(logger)
 				})
@@ -333,7 +333,7 @@ var _ = Describe("Exec Engine with Timeout", func() {
 						},
 					}
 
-					build, err := execEngine.CreateBuild(buildModel, plan)
+					build, err := execEngine.CreateBuild(logger, buildModel, plan)
 
 					Expect(err).NotTo(HaveOccurred())
 

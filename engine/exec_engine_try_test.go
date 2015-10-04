@@ -112,7 +112,7 @@ var _ = Describe("Exec Engine with Try", func() {
 					},
 				}
 
-				build, err := execEngine.CreateBuild(buildModel, plan)
+				build, err := execEngine.CreateBuild(logger, buildModel, plan)
 				Expect(err).NotTo(HaveOccurred())
 				build.Resume(logger)
 			})
@@ -165,7 +165,7 @@ var _ = Describe("Exec Engine with Try", func() {
 					},
 				}
 
-				build, err := execEngine.CreateBuild(buildModel, plan)
+				build, err := execEngine.CreateBuild(logger, buildModel, plan)
 
 				Expect(err).NotTo(HaveOccurred())
 

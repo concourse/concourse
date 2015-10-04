@@ -5,6 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/concourse/atc/builds"
@@ -57,7 +58,7 @@ var _ = Describe("Tracker", func() {
 
 			fakeTrackerDB.GetAllStartedBuildsReturns(inFlightBuilds, nil)
 
-			fakeEngine.LookupBuildStub = func(build db.Build) (engine.Build, error) {
+			fakeEngine.LookupBuildStub = func(logger lager.Logger, build db.Build) (engine.Build, error) {
 				return engineBuilds[build.ID-1], nil
 			}
 		})

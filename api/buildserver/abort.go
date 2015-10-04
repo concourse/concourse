@@ -30,14 +30,14 @@ func (s *Server) AbortBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	engineBuild, err := s.engine.LookupBuild(build)
+	engineBuild, err := s.engine.LookupBuild(aLog, build)
 	if err != nil {
 		aLog.Error("failed-to-lookup-build", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	err = engineBuild.Abort()
+	err = engineBuild.Abort(aLog)
 	if err != nil {
 		aLog.Error("failed-to-unmarshal-metadata", err)
 		w.WriteHeader(http.StatusInternalServerError)

@@ -18,6 +18,8 @@ import (
 
 var _ = Describe("DBEngine", func() {
 	var (
+		logger lager.Logger
+
 		fakeEngineA *fakes.FakeEngine
 		fakeEngineB *fakes.FakeEngine
 		fakeBuildDB *fakes.FakeBuildDB
@@ -26,6 +28,8 @@ var _ = Describe("DBEngine", func() {
 	)
 
 	BeforeEach(func() {
+		logger = lagertest.NewTestLogger("test")
+
 		fakeEngineA = new(fakes.FakeEngine)
 		fakeEngineA.NameReturns("fake-engine-a")
 
@@ -74,7 +78,7 @@ var _ = Describe("DBEngine", func() {
 		})
 
 		JustBeforeEach(func() {
-			createdBuild, buildErr = dbEngine.CreateBuild(build, plan)
+			createdBuild, buildErr = dbEngine.CreateBuild(logger, build, plan)
 		})
 
 		Context("when creating the build succeeds", func() {
@@ -148,7 +152,7 @@ var _ = Describe("DBEngine", func() {
 		})
 
 		JustBeforeEach(func() {
-			foundBuild, lookupErr = dbEngine.LookupBuild(build)
+			foundBuild, lookupErr = dbEngine.LookupBuild(logger, build)
 		})
 
 		It("succeeds", func() {
@@ -167,7 +171,7 @@ var _ = Describe("DBEngine", func() {
 			})
 
 			JustBeforeEach(func() {
-				abortErr = foundBuild.Abort()
+				abortErr = foundBuild.Abort(lagertest.NewTestLogger("test"))
 			})
 
 			Context("when acquiring the lease succeeds", func() {
@@ -240,7 +244,7 @@ var _ = Describe("DBEngine", func() {
 			}
 
 			var err error
-			build, err = dbEngine.LookupBuild(model)
+			build, err = dbEngine.LookupBuild(logger, model)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -248,7 +252,7 @@ var _ = Describe("DBEngine", func() {
 			var abortErr error
 
 			JustBeforeEach(func() {
-				abortErr = build.Abort()
+				abortErr = build.Abort(lagertest.NewTestLogger("test"))
 			})
 
 			Context("when acquiring the lock succeeds", func() {
@@ -561,7 +565,7 @@ var _ = Describe("DBEngine", func() {
 								BeforeEach(func() {
 									aborted := make(chan error)
 
-									realBuild.AbortStub = func() error {
+									realBuild.AbortStub = func(lager.Logger) error {
 										aborted <- errAborted
 										return nil
 									}

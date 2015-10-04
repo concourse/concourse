@@ -191,7 +191,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 						},
 					}
 
-					build, err := execEngine.CreateBuild(buildModel, plan)
+					build, err := execEngine.CreateBuild(logger, buildModel, plan)
 					Expect(err).NotTo(HaveOccurred())
 					build.Resume(logger)
 				})
@@ -317,7 +317,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 						},
 					}
 
-					build, err := execEngine.CreateBuild(buildModel, plan)
+					build, err := execEngine.CreateBuild(logger, buildModel, plan)
 					Expect(err).NotTo(HaveOccurred())
 					build.Resume(logger)
 				})
@@ -434,7 +434,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					},
 				}
 
-				build, err := execEngine.CreateBuild(buildModel, plan)
+				build, err := execEngine.CreateBuild(logger, buildModel, plan)
 
 				Expect(err).NotTo(HaveOccurred())
 
@@ -491,7 +491,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					},
 				}
 
-				build, err := execEngine.CreateBuild(buildModel, plan)
+				build, err := execEngine.CreateBuild(logger, buildModel, plan)
 
 				Expect(err).NotTo(HaveOccurred())
 
@@ -558,7 +558,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 						},
 					}
 
-					build, err := execEngine.CreateBuild(buildModel, plan)
+					build, err := execEngine.CreateBuild(logger, buildModel, plan)
 
 					Expect(err).NotTo(HaveOccurred())
 
@@ -615,7 +615,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					},
 				}
 
-				build, err := execEngine.CreateBuild(buildModel, plan)
+				build, err := execEngine.CreateBuild(logger, buildModel, plan)
 
 				Expect(err).NotTo(HaveOccurred())
 
@@ -684,7 +684,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					},
 				}
 
-				build, err := execEngine.CreateBuild(buildModel, plan)
+				build, err := execEngine.CreateBuild(logger, buildModel, plan)
 
 				Expect(err).NotTo(HaveOccurred())
 

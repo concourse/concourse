@@ -46,7 +46,7 @@ func (bt *Tracker) Track() {
 			"build": b.ID,
 		})
 
-		engineBuild, err := bt.engine.LookupBuild(b)
+		engineBuild, err := bt.engine.LookupBuild(tLog, b)
 		if err != nil {
 			tLog.Error("failed-to-lookup-build", err)
 
