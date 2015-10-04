@@ -17,6 +17,30 @@
   more places and by trying to ensure that we increase the percentage of cache
   hits wherever possible.
 
+  To add the \code{baggageclaim} job, edit the \code{worker} job in your BOSH
+  manifest to look something like:
+
+  \codeblock{yaml}{
+  jobs:
+  # ...
+  - name: worker
+    # ...
+    templates:
+    - \{release: concourse, name: consul-agent\}
+    - \{release: concourse, name: groundcrew\}
+    - \{release: concourse, name: baggageclaim\}
+    - \{release: garden-linux, name: garden\}
+    # ...
+  }
+
+  For reference, see the
+  \hyperlink{https://github.com/concourse/concourse/tree/master/manifests}{example
+  manifests}.
+
+  For using Baggageclaim with external workers, see the newly updated
+  \reference{external-workers} docs; it's pretty similar to registering Garden
+  itself.
+
   If you're interested in how this all works then read on. If not, then feel
   free to skip this next bit.
 
