@@ -109,13 +109,19 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return nil
 		}
 
-		processID, err := step.container.Property(taskProcessPropertyName)
+		processIDProp, err := step.container.Property(taskProcessPropertyName)
 		if err != nil {
 			// rogue container? perhaps did not shut down cleanly.
 			return err
 		}
 
 		// process still running; re-attach
+		var processID uint32
+		_, err = fmt.Sscanf(processIDProp, "%d", &processID)
+		if err != nil {
+			return err
+		}
+
 		step.process, err = step.container.Attach(processID, processIO)
 		if err != nil {
 			return err
@@ -193,7 +199,9 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return err
 		}
 
-		err = step.container.SetProperty(taskProcessPropertyName, step.process.ID())
+		pidValue := fmt.Sprintf("%d", step.process.ID())
+
+		err = step.container.SetProperty(taskProcessPropertyName, pidValue)
 		if err != nil {
 			return err
 		}

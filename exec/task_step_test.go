@@ -166,7 +166,7 @@ var _ = Describe("GardenFactory", func() {
 							fakeWorker.CreateContainerReturns(fakeContainer, nil)
 
 							fakeProcess = new(gfakes.FakeProcess)
-							fakeProcess.IDReturns("process-id")
+							fakeProcess.IDReturns(42)
 							fakeContainer.RunReturns(fakeProcess, nil)
 
 							fakeContainer.StreamInReturns(nil)
@@ -246,7 +246,7 @@ var _ = Describe("GardenFactory", func() {
 
 							name, value := fakeContainer.SetPropertyArgsForCall(0)
 							Expect(name).To(Equal("concourse:task-process"))
-							Expect(value).To(Equal("process-id"))
+							Expect(value).To(Equal("42"))
 						})
 
 						It("invokes the delegate's Started callback", func() {
@@ -976,7 +976,7 @@ var _ = Describe("GardenFactory", func() {
 
 						switch name {
 						case "concourse:task-process":
-							return "process-id", nil
+							return "42", nil
 						default:
 							return "", errors.New("unstubbed property: " + name)
 						}
@@ -995,7 +995,7 @@ var _ = Describe("GardenFactory", func() {
 						Expect(fakeContainer.AttachCallCount()).To(Equal(1))
 
 						pid, _ := fakeContainer.AttachArgsForCall(0)
-						Expect(pid).To(Equal("process-id"))
+						Expect(pid).To(Equal(uint32(42)))
 					})
 
 					It("directs the process's stdout/stderr to the io config", func() {
