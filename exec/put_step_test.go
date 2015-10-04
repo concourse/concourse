@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"os"
+	"time"
 
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/exec"
@@ -192,6 +193,18 @@ var _ = Describe("GardenFactory", func() {
 				}))
 			})
 
+			Describe("releasing", func() {
+				It("releases the resource with a ttl of 5 minutes", func() {
+					<-process.Wait()
+
+					Expect(fakeResource.ReleaseCallCount()).To(BeZero())
+
+					step.Release()
+					Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+					Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(5 * time.Minute))
+				})
+			})
+
 			Describe("signalling", func() {
 				var receivedSignals <-chan os.Signal
 
@@ -263,6 +276,18 @@ var _ = Describe("GardenFactory", func() {
 
 						Expect(step.Result(&success)).To(BeTrue())
 						Expect(bool(success)).To(BeFalse())
+					})
+
+					Describe("releasing", func() {
+						It("releases the resource with a ttl of 1 hour", func() {
+							<-process.Wait()
+
+							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
+
+							step.Release()
+							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(1 * time.Hour))
+						})
 					})
 				})
 			})

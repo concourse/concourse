@@ -317,12 +317,34 @@ var _ = Describe("Worker", func() {
 								handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(2)
 								Expect(handle).To(Equal("some-handle"))
 								Expect(interval).To(Equal(5 * time.Minute))
+							})
+						})
 
-								createdContainer.Release()
+						Describe("releasing", func() {
+							It("sets a final ttl on the container and stops heartbeating", func() {
+								createdContainer.Release(30 * time.Minute)
+
+								Expect(fakeContainer.SetGraceTimeCallCount()).Should(Equal(2))
+								Expect(fakeContainer.SetGraceTimeArgsForCall(1)).To(Equal(30 * time.Minute))
+
+								Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).Should(Equal(2))
+								handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(1)
+								Expect(handle).To(Equal("some-handle"))
+								Expect(interval).To(Equal(30 * time.Minute))
 
 								fakeClock.Increment(30 * time.Second)
 
-								Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(3))
+								Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(2))
+								Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(2))
+							})
+
+							Context("with no final ttl", func() {
+								It("does not perform a final heartbeat", func() {
+									createdContainer.Release(0)
+
+									Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(1))
+									Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(1))
+								})
 							})
 						})
 					})
@@ -576,12 +598,34 @@ var _ = Describe("Worker", func() {
 							handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(2)
 							Expect(handle).To(Equal("some-handle"))
 							Expect(interval).To(Equal(5 * time.Minute))
+						})
+					})
 
-							createdContainer.Release()
+					Describe("releasing", func() {
+						It("sets a final ttl on the container and stops heartbeating", func() {
+							createdContainer.Release(30 * time.Minute)
+
+							Expect(fakeContainer.SetGraceTimeCallCount()).Should(Equal(2))
+							Expect(fakeContainer.SetGraceTimeArgsForCall(1)).To(Equal(30 * time.Minute))
+
+							Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).Should(Equal(2))
+							handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(1)
+							Expect(handle).To(Equal("some-handle"))
+							Expect(interval).To(Equal(30 * time.Minute))
 
 							fakeClock.Increment(30 * time.Second)
 
-							Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(3))
+							Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(2))
+							Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(2))
+						})
+
+						Context("with no final ttl", func() {
+							It("does not perform a final heartbeat", func() {
+								createdContainer.Release(0)
+
+								Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(1))
+								Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(1))
+							})
 						})
 					})
 				})
@@ -700,11 +744,11 @@ var _ = Describe("Worker", func() {
 
 					Describe("Release", func() {
 						It("releases the container's volumes once and only once", func() {
-							foundContainer.Release()
+							foundContainer.Release(0)
 							Expect(handle1Volume.ReleaseCallCount()).To(Equal(1))
 							Expect(handle2Volume.ReleaseCallCount()).To(Equal(1))
 
-							foundContainer.Release()
+							foundContainer.Release(0)
 							Expect(handle1Volume.ReleaseCallCount()).To(Equal(1))
 							Expect(handle2Volume.ReleaseCallCount()).To(Equal(1))
 						})
@@ -844,18 +888,43 @@ var _ = Describe("Worker", func() {
 						handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(2)
 						Expect(handle).To(Equal("provider-handle"))
 						Expect(interval).To(Equal(5 * time.Minute))
+					})
+				})
 
-						foundContainer.Release()
+				Describe("releasing", func() {
+					It("sets a final ttl on the container and stops heartbeating", func() {
+						foundContainer.Release(30 * time.Minute)
+
+						Expect(fakeContainer.SetGraceTimeCallCount()).Should(Equal(2))
+						Expect(fakeContainer.SetGraceTimeArgsForCall(1)).To(Equal(30 * time.Minute))
+
+						Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).Should(Equal(2))
+						handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(1)
+						Expect(handle).To(Equal("provider-handle"))
+						Expect(interval).To(Equal(30 * time.Minute))
 
 						fakeClock.Increment(30 * time.Second)
 
-						Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(3))
+						Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(2))
+						Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(2))
+					})
+
+					Context("with no final ttl", func() {
+						It("does not perform a final heartbeat", func() {
+							foundContainer.Release(0)
+
+							Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(1))
+							Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(1))
+						})
 					})
 				})
 
 				It("can be released multiple times", func() {
-					foundContainer.Release()
-					Expect(foundContainer.Release).NotTo(Panic())
+					foundContainer.Release(0)
+
+					Expect(func() {
+						foundContainer.Release(0)
+					}).NotTo(Panic())
 				})
 			})
 		})

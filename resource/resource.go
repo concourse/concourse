@@ -5,6 +5,7 @@ import (
 	"io"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
@@ -21,7 +22,7 @@ type Resource interface {
 	Put(IOConfig, atc.Source, atc.Params, ArtifactSource) VersionedSource
 	Check(atc.Source, atc.Version) ([]atc.Version, error)
 
-	Release()
+	Release(time.Duration)
 
 	CacheVolume() (baggageclaim.Volume, bool, error)
 }
@@ -74,8 +75,8 @@ func NewResource(container worker.Container) Resource {
 	}
 }
 
-func (resource *resource) Release() {
-	resource.container.Release()
+func (resource *resource) Release(finalTTL time.Duration) {
+	resource.container.Release(finalTTL)
 }
 
 func (resource *resource) CacheVolume() (baggageclaim.Volume, bool, error) {

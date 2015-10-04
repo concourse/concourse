@@ -3,6 +3,7 @@ package fakes
 
 import (
 	"sync"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/resource"
@@ -42,9 +43,11 @@ type FakeResource struct {
 		result1 []atc.Version
 		result2 error
 	}
-	ReleaseStub            func()
-	releaseMutex           sync.RWMutex
-	releaseArgsForCall     []struct{}
+	ReleaseStub        func(time.Duration)
+	releaseMutex       sync.RWMutex
+	releaseArgsForCall []struct {
+		arg1 time.Duration
+	}
 	CacheVolumeStub        func() (baggageclaim.Volume, bool, error)
 	cacheVolumeMutex       sync.RWMutex
 	cacheVolumeArgsForCall []struct{}
@@ -159,12 +162,14 @@ func (fake *FakeResource) CheckReturns(result1 []atc.Version, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeResource) Release() {
+func (fake *FakeResource) Release(arg1 time.Duration) {
 	fake.releaseMutex.Lock()
-	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct{}{})
+	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct {
+		arg1 time.Duration
+	}{arg1})
 	fake.releaseMutex.Unlock()
 	if fake.ReleaseStub != nil {
-		fake.ReleaseStub()
+		fake.ReleaseStub(arg1)
 	}
 }
 
@@ -172,6 +177,12 @@ func (fake *FakeResource) ReleaseCallCount() int {
 	fake.releaseMutex.RLock()
 	defer fake.releaseMutex.RUnlock()
 	return len(fake.releaseArgsForCall)
+}
+
+func (fake *FakeResource) ReleaseArgsForCall(i int) time.Duration {
+	fake.releaseMutex.RLock()
+	defer fake.releaseMutex.RUnlock()
+	return fake.releaseArgsForCall[i].arg1
 }
 
 func (fake *FakeResource) CacheVolume() (baggageclaim.Volume, bool, error) {

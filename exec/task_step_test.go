@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
@@ -472,6 +473,16 @@ var _ = Describe("GardenFactory", func() {
 								Expect(status).To(Equal(ExitStatus(0)))
 							})
 
+							Describe("release", func() {
+								It("releases with a ttl of 5 minutes", func() {
+									Eventually(process.Wait()).Should(Receive(BeNil()))
+
+									step.Release()
+									Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
+									Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(5 * time.Minute))
+								})
+							})
+
 							Describe("the registered source", func() {
 								var artifactSource ArtifactSource
 
@@ -706,6 +717,16 @@ var _ = Describe("GardenFactory", func() {
 								var status ExitStatus
 								Expect(step.Result(&status)).To(BeTrue())
 								Expect(status).To(Equal(ExitStatus(1)))
+							})
+
+							Describe("release", func() {
+								It("releases with a ttl of 1 hour", func() {
+									Eventually(process.Wait()).Should(Receive(BeNil()))
+
+									step.Release()
+									Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
+									Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(1 * time.Hour))
+								})
 							})
 
 							Describe("before saving the exit status property", func() {

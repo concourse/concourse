@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"time"
 
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/exec"
@@ -177,36 +178,129 @@ var _ = Describe("GardenFactory", func() {
 						}
 					})
 
+					It("exits with no error", func() {
+						Expect(<-process.Wait()).To(BeNil())
+					})
+
 					It("marks the cache as initialized", func() {
+						<-process.Wait()
 						Expect(fakeCache.InitializeCallCount()).To(Equal(1))
+					})
+
+					It("reports the fetched version info", func() {
+						<-process.Wait()
+
+						var info VersionInfo
+						Expect(step.Result(&info)).To(BeTrue())
+						Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
+						Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
+					})
+
+					It("completes via the delegate", func() {
+						<-process.Wait()
+
+						Expect(getDelegate.CompletedCallCount()).Should(Equal(1))
+
+						exitStatus, versionInfo := getDelegate.CompletedArgsForCall(0)
+
+						Expect(exitStatus).To(Equal(ExitStatus(0)))
+						Expect(versionInfo).To(Equal(&VersionInfo{
+							Version:  atc.Version{"some": "version"},
+							Metadata: []atc.MetadataField{{"some", "metadata"}},
+						}))
+					})
+
+					It("is successful", func() {
+						<-process.Wait()
+
+						var success Success
+						Expect(step.Result(&success)).To(BeTrue())
+						Expect(bool(success)).To(BeTrue())
+					})
+
+					Describe("releasing", func() {
+						It("releases the resource with a ttl of 5 minutes", func() {
+							<-process.Wait()
+
+							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
+
+							step.Release()
+							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(5 * time.Minute))
+						})
 					})
 				})
 
-				It("reports the fetched version info", func() {
-					var info VersionInfo
-					Expect(step.Result(&info)).To(BeTrue())
-					Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
-					Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
+				Context("if the 'get' action fails", func() {
+					BeforeEach(func() {
+						fakeVersionedSource.RunReturns(resource.ErrResourceScriptFailed{
+							ExitStatus: 1,
+						})
+					})
+
+					It("exits with no error", func() {
+						Expect(<-process.Wait()).To(BeNil())
+					})
+
+					It("does not mark the cache as initialized", func() {
+						<-process.Wait()
+						Expect(fakeCache.InitializeCallCount()).To(Equal(0))
+					})
+
+					It("completes via the delegate", func() {
+						<-process.Wait()
+
+						Expect(getDelegate.CompletedCallCount()).Should(Equal(1))
+
+						exitStatus, versionInfo := getDelegate.CompletedArgsForCall(0)
+
+						Expect(exitStatus).To(Equal(ExitStatus(1)))
+						Expect(versionInfo).To(BeNil())
+					})
+
+					It("is not successful", func() {
+						<-process.Wait()
+
+						var success Success
+						Expect(step.Result(&success)).To(BeTrue())
+						Expect(bool(success)).To(BeFalse())
+					})
+
+					Describe("releasing", func() {
+						It("releases the resource with a ttl of 1 hour", func() {
+							<-process.Wait()
+
+							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
+
+							step.Release()
+							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(1 * time.Hour))
+						})
+					})
 				})
 
-				It("completes via the delegate", func() {
-					Eventually(getDelegate.CompletedCallCount).Should(Equal(1))
+				Context("when the 'get' action errors", func() {
+					disaster := errors.New("nope")
 
-					exitStatus, versionInfo := getDelegate.CompletedArgsForCall(0)
+					BeforeEach(func() {
+						fakeVersionedSource.RunReturns(disaster)
+					})
 
-					Expect(exitStatus).To(Equal(ExitStatus(0)))
-					Expect(versionInfo).To(Equal(&VersionInfo{
-						Version:  atc.Version{"some": "version"},
-						Metadata: []atc.MetadataField{{"some", "metadata"}},
-					}))
-				})
+					It("exits with the error", func() {
+						Expect(<-process.Wait()).To(Equal(disaster))
+					})
 
-				It("is successful", func() {
-					Eventually(process.Wait()).Should(Receive(BeNil()))
+					It("does not mark the cache as initialized", func() {
+						<-process.Wait()
 
-					var success Success
-					Expect(step.Result(&success)).To(BeTrue())
-					Expect(bool(success)).To(BeTrue())
+						Expect(fakeCache.InitializeCallCount()).To(Equal(0))
+					})
+
+					It("does not complete via the delegate", func() {
+						<-process.Wait()
+
+						Expect(getDelegate.CompletedCallCount()).To(Equal(0))
+					})
 				})
 			})
 

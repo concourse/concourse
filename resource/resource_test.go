@@ -1,6 +1,8 @@
 package resource_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -12,9 +14,10 @@ import (
 var _ = Describe("Resource", func() {
 	Describe("Release", func() {
 		It("releases the container", func() {
-			resource.Release()
+			resource.Release(time.Hour)
 
 			Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
+			Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(time.Hour))
 		})
 	})
 

@@ -3,6 +3,7 @@ package worker
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc/db"
@@ -27,7 +28,7 @@ type Container interface {
 
 	Destroy() error
 
-	Release()
+	Release(time.Duration)
 
 	Volumes() []baggageclaim.Volume
 }

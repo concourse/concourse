@@ -203,9 +203,11 @@ type FakeContainer struct {
 	destroyReturns     struct {
 		result1 error
 	}
-	ReleaseStub        func()
+	ReleaseStub        func(time.Duration)
 	releaseMutex       sync.RWMutex
-	releaseArgsForCall []struct{}
+	releaseArgsForCall []struct {
+		arg1 time.Duration
+	}
 	VolumesStub        func() []baggageclaim.Volume
 	volumesMutex       sync.RWMutex
 	volumesArgsForCall []struct{}
@@ -927,12 +929,14 @@ func (fake *FakeContainer) DestroyReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeContainer) Release() {
+func (fake *FakeContainer) Release(arg1 time.Duration) {
 	fake.releaseMutex.Lock()
-	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct{}{})
+	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct {
+		arg1 time.Duration
+	}{arg1})
 	fake.releaseMutex.Unlock()
 	if fake.ReleaseStub != nil {
-		fake.ReleaseStub()
+		fake.ReleaseStub(arg1)
 	}
 }
 
@@ -940,6 +944,12 @@ func (fake *FakeContainer) ReleaseCallCount() int {
 	fake.releaseMutex.RLock()
 	defer fake.releaseMutex.RUnlock()
 	return len(fake.releaseArgsForCall)
+}
+
+func (fake *FakeContainer) ReleaseArgsForCall(i int) time.Duration {
+	fake.releaseMutex.RLock()
+	defer fake.releaseMutex.RUnlock()
+	return fake.releaseArgsForCall[i].arg1
 }
 
 func (fake *FakeContainer) Volumes() []baggageclaim.Volume {

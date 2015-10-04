@@ -104,8 +104,14 @@ func (step *putStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 }
 
 func (step *putStep) Release() {
-	if step.resource != nil {
-		step.resource.Release()
+	if step.resource == nil {
+		return
+	}
+
+	if step.exitStatus == 0 {
+		step.resource.Release(successfulStepTTL)
+	} else {
+		step.resource.Release(failedStepTTL)
 	}
 }
 

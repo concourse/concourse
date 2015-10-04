@@ -254,8 +254,14 @@ func (step *taskStep) Result(x interface{}) bool {
 }
 
 func (step *taskStep) Release() {
-	if step.container != nil {
-		step.container.Release()
+	if step.container == nil {
+		return
+	}
+
+	if step.exitStatus == 0 {
+		step.container.Release(successfulStepTTL)
+	} else {
+		step.container.Release(failedStepTTL)
 	}
 }
 
