@@ -2,6 +2,7 @@ package resource_test
 
 import (
 	"errors"
+	"time"
 
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/resource"
@@ -88,8 +89,7 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 
 					Expect(aVolume.SetTTLCallCount()).To(Equal(0))
 					Expect(bVolume.ReleaseCallCount()).To(Equal(1))
-					Expect(bVolume.SetTTLCallCount()).To(Equal(1))
-					Expect(bVolume.SetTTLArgsForCall(0)).To(Equal(uint(60)))
+					Expect(bVolume.ReleaseArgsForCall(0)).To(Equal(time.Minute))
 				})
 			})
 
@@ -104,8 +104,7 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 
 					Expect(aVolume.SetTTLCallCount()).To(Equal(0))
 					Expect(bVolume.ReleaseCallCount()).To(Equal(1))
-					Expect(bVolume.SetTTLCallCount()).To(Equal(1))
-					Expect(bVolume.SetTTLArgsForCall(0)).To(Equal(uint(60)))
+					Expect(bVolume.ReleaseArgsForCall(0)).To(Equal(time.Minute))
 				})
 			})
 		})
@@ -155,8 +154,8 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 						"resource-source":  "968e27f71617a029e58a09fb53895f1e1875b51bdaa11293ddc2cb335960875cb42c19ae8bc696caec88d55221f33c2bcc3278a7d15e8d13f23782d1a05564f1",
 						"resource-params":  "fe7d9dbc2ac75030c3e8c88e54a33676c38d8d9d2876700bc01d4961caf898e7cbe8e738232e86afcf6a5f64a9527c458a130277b08d72fb339962968d0d0967",
 					},
-					TTLInSeconds: 60 * 60 * 24,
-					Privileged:   true,
+					TTL:        24 * time.Hour,
+					Privileged: true,
 				}))
 			})
 		})

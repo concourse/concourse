@@ -24,8 +24,7 @@ var ErrMismatchedTags = errors.New("mismatched tags")
 
 const containerKeepalive = 30 * time.Second
 const containerTTL = 5 * time.Minute
-
-const inputVolumeTTL = 60 * 5
+const inputVolumeTTL = containerTTL
 
 const ephemeralPropertyName = "concourse:ephemeral"
 const volumePropertyName = "concourse:volumes"
@@ -151,7 +150,7 @@ dance:
 
 		for _, volume := range baseVolumes {
 			// release *after* container creation
-			defer volume.Release()
+			defer volume.Release(0)
 			volumeHandles = append(volumeHandles, volume.Handle())
 		}
 
@@ -162,15 +161,15 @@ dance:
 				Strategy: baggageclaim.COWStrategy{
 					Parent: input.Volume,
 				},
-				Privileged:   s.Privileged,
-				TTLInSeconds: inputVolumeTTL,
+				Privileged: s.Privileged,
+				TTL:        inputVolumeTTL,
 			})
 			if err != nil {
 				return nil, err
 			}
 
 			// release *after* container creation
-			defer cow.Release()
+			defer cow.Release(0)
 
 			gardenSpec.BindMounts = append(gardenSpec.BindMounts, garden.BindMount{
 				SrcPath: cow.Path(),
@@ -350,15 +349,15 @@ func (worker *gardenWorker) createGardenWorkaroundVolumes(
 			volume, err := worker.baggageclaimClient.CreateVolume(
 				logger.Session("workaround"),
 				baggageclaim.VolumeSpec{
-					Privileged:   spec.Privileged,
-					Strategy:     baggageclaim.EmptyStrategy{},
-					TTLInSeconds: inputVolumeTTL,
+					Privileged: spec.Privileged,
+					Strategy:   baggageclaim.EmptyStrategy{},
+					TTL:        inputVolumeTTL,
 				},
 			)
 			if err != nil {
 				for _, v := range volumes {
 					// prevent leaking previously created volumes
-					v.Release()
+					v.Release(0)
 				}
 
 				return nil, nil, err

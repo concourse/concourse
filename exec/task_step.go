@@ -171,7 +171,7 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		for _, mount := range inputMounts {
 			// stop heartbeating ourselves now that container has picked up the
 			// volumes
-			mount.Volume.Release()
+			mount.Volume.Release(0)
 		}
 
 		err = step.ensureBuildDirExists(step.container)

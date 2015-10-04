@@ -455,7 +455,7 @@ var _ = Describe("Worker", func() {
 
 						fakeBaggageclaimClient.CreateVolumeStub = func(logger lager.Logger, spec baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
 							Expect(spec.Privileged).To(BeTrue())
-							Expect(spec.TTLInSeconds).To(Equal(uint(60 * 5)))
+							Expect(spec.TTL).To(Equal(5 * time.Minute))
 
 							if reflect.DeepEqual(spec.Strategy, baggageclaim.COWStrategy{Parent: volume1}) {
 								return cowInputVolume, nil
@@ -744,11 +744,13 @@ var _ = Describe("Worker", func() {
 
 					Describe("Release", func() {
 						It("releases the container's volumes once and only once", func() {
-							foundContainer.Release(0)
+							foundContainer.Release(time.Minute)
 							Expect(handle1Volume.ReleaseCallCount()).To(Equal(1))
+							Expect(handle1Volume.ReleaseArgsForCall(0)).To(Equal(time.Minute))
 							Expect(handle2Volume.ReleaseCallCount()).To(Equal(1))
+							Expect(handle2Volume.ReleaseArgsForCall(0)).To(Equal(time.Minute))
 
-							foundContainer.Release(0)
+							foundContainer.Release(time.Hour)
 							Expect(handle1Volume.ReleaseCallCount()).To(Equal(1))
 							Expect(handle2Volume.ReleaseCallCount()).To(Equal(1))
 						})

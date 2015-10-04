@@ -87,7 +87,7 @@ func (container *gardenWorkerContainer) Release(finalTTL time.Duration) {
 		metric.TrackedContainers.Dec()
 
 		for _, v := range container.volumes {
-			v.Release()
+			v.Release(finalTTL)
 		}
 	})
 }

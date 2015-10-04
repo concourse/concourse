@@ -4,6 +4,7 @@ import (
 	"crypto/sha512"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/baggageclaim"
@@ -12,8 +13,8 @@ import (
 
 //go:generate counterfeiter . CacheIdentifier
 
-const resourceTTLInSeconds = 60 * 60 * 24
-const reapExtraVolumeTTLInSeconds = 60
+const resourceCacheTTL = 24 * time.Hour
+const reapExtraVolumeTTL = time.Minute
 
 type CacheIdentifier interface {
 	FindOn(lager.Logger, baggageclaim.Client) (baggageclaim.Volume, bool, error)
@@ -45,9 +46,9 @@ func (identifier ResourceCacheIdentifier) FindOn(logger lager.Logger, vm baggage
 
 func (identifier ResourceCacheIdentifier) CreateOn(logger lager.Logger, vm baggageclaim.Client) (baggageclaim.Volume, error) {
 	return vm.CreateVolume(logger, baggageclaim.VolumeSpec{
-		Properties:   identifier.volumeProperties(),
-		TTLInSeconds: resourceTTLInSeconds,
-		Privileged:   true,
+		Properties: identifier.volumeProperties(),
+		TTL:        resourceCacheTTL,
+		Privileged: true,
 	})
 }
 
@@ -89,20 +90,7 @@ func selectLowestAlphabeticalVolume(logger lager.Logger, volumes []baggageclaim.
 
 	for _, v := range volumes {
 		if v != lowestVolume {
-			reapLog := logger.Session("reaping-extra-cache")
-
-			reapLog.Debug("reap", lager.Data{"volume": v.Handle()})
-
-			v.Release()
-
-			// setting TTL here is best-effort; don't worry about failure
-			err := v.SetTTL(reapExtraVolumeTTLInSeconds)
-			if err != nil {
-				reapLog.Info("failed-to-set-ttl", lager.Data{
-					"error":  err.Error(),
-					"volume": v.Handle(),
-				})
-			}
+			v.Release(reapExtraVolumeTTL)
 		}
 	}
 

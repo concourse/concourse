@@ -176,7 +176,7 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 		logger.Debug("new-cache", lager.Data{"volume": cachedVolume.Handle()})
 	}
 
-	defer cachedVolume.Release()
+	defer cachedVolume.Release(0)
 
 	logger.Debug("creating-container-with-cache")
 
