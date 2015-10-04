@@ -111,7 +111,7 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 
 	vm, hasVM := chosenWorker.VolumeManager()
 	if !hasVM {
-		container, err := tracker.workerClient.CreateContainer(logger, session.ID, worker.ResourceTypeContainerSpec{
+		container, err := chosenWorker.CreateContainer(logger, session.ID, worker.ResourceTypeContainerSpec{
 			Type:      string(typ),
 			Ephemeral: session.Ephemeral,
 			Tags:      tags,
@@ -144,7 +144,7 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 
 	defer cachedVolume.Release()
 
-	container, err = tracker.workerClient.CreateContainer(logger, session.ID, worker.ResourceTypeContainerSpec{
+	container, err = chosenWorker.CreateContainer(logger, session.ID, worker.ResourceTypeContainerSpec{
 		Type:      string(typ),
 		Ephemeral: session.Ephemeral,
 		Tags:      tags,

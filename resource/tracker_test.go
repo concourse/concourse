@@ -209,7 +209,7 @@ var _ = Describe("Tracker", func() {
 						})
 
 						It("creates the container with the cache volume", func() {
-							_, id, spec := workerClient.CreateContainerArgsForCall(0)
+							_, id, spec := satisfyingWorker.CreateContainerArgsForCall(0)
 
 							Expect(id).To(Equal(session.ID))
 							resourceSpec := spec.(worker.ResourceTypeContainerSpec)
@@ -325,7 +325,7 @@ var _ = Describe("Tracker", func() {
 						})
 
 						It("creates the container with the created cache volume", func() {
-							_, id, spec := workerClient.CreateContainerArgsForCall(0)
+							_, id, spec := satisfyingWorker.CreateContainerArgsForCall(0)
 
 							Expect(id).To(Equal(session.ID))
 							resourceSpec := spec.(worker.ResourceTypeContainerSpec)
@@ -417,7 +417,7 @@ var _ = Describe("Tracker", func() {
 					})
 
 					It("creates a container", func() {
-						_, id, spec := workerClient.CreateContainerArgsForCall(0)
+						_, id, spec := satisfyingWorker.CreateContainerArgsForCall(0)
 
 						Expect(id).To(Equal(session.ID))
 						resourceSpec := spec.(worker.ResourceTypeContainerSpec)
@@ -433,7 +433,7 @@ var _ = Describe("Tracker", func() {
 						disaster := errors.New("oh no!")
 
 						BeforeEach(func() {
-							workerClient.CreateContainerReturns(nil, disaster)
+							satisfyingWorker.CreateContainerReturns(nil, disaster)
 						})
 
 						It("returns the error and no resource", func() {
@@ -471,6 +471,7 @@ var _ = Describe("Tracker", func() {
 			})
 
 			It("does not create a container", func() {
+				Expect(workerClient.SatisfyingCallCount()).To(BeZero())
 				Expect(workerClient.CreateContainerCallCount()).To(BeZero())
 			})
 		})
@@ -489,6 +490,7 @@ var _ = Describe("Tracker", func() {
 			})
 
 			It("does not create a container", func() {
+				Expect(workerClient.SatisfyingCallCount()).To(BeZero())
 				Expect(workerClient.CreateContainerCallCount()).To(BeZero())
 			})
 
