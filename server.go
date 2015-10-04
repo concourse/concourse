@@ -140,6 +140,10 @@ func NewHandler(
 	}
 
 	for route, handler := range handlers {
+		if route == routes.Public {
+			continue
+		}
+
 		handlers[route] = metric.WrapHandler(route, handler, logger)
 	}
 
