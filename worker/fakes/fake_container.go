@@ -4,6 +4,7 @@ package fakes
 import (
 	"io"
 	"sync"
+	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc/worker"
@@ -154,6 +155,14 @@ type FakeContainer struct {
 	metricsReturns     struct {
 		result1 garden.Metrics
 		result2 error
+	}
+	SetGraceTimeStub        func(graceTime time.Duration) error
+	setGraceTimeMutex       sync.RWMutex
+	setGraceTimeArgsForCall []struct {
+		graceTime time.Duration
+	}
+	setGraceTimeReturns struct {
+		result1 error
 	}
 	PropertiesStub        func() (garden.Properties, error)
 	propertiesMutex       sync.RWMutex
@@ -739,6 +748,38 @@ func (fake *FakeContainer) MetricsReturns(result1 garden.Metrics, result2 error)
 		result1 garden.Metrics
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeContainer) SetGraceTime(graceTime time.Duration) error {
+	fake.setGraceTimeMutex.Lock()
+	fake.setGraceTimeArgsForCall = append(fake.setGraceTimeArgsForCall, struct {
+		graceTime time.Duration
+	}{graceTime})
+	fake.setGraceTimeMutex.Unlock()
+	if fake.SetGraceTimeStub != nil {
+		return fake.SetGraceTimeStub(graceTime)
+	} else {
+		return fake.setGraceTimeReturns.result1
+	}
+}
+
+func (fake *FakeContainer) SetGraceTimeCallCount() int {
+	fake.setGraceTimeMutex.RLock()
+	defer fake.setGraceTimeMutex.RUnlock()
+	return len(fake.setGraceTimeArgsForCall)
+}
+
+func (fake *FakeContainer) SetGraceTimeArgsForCall(i int) time.Duration {
+	fake.setGraceTimeMutex.RLock()
+	defer fake.setGraceTimeMutex.RUnlock()
+	return fake.setGraceTimeArgsForCall[i].graceTime
+}
+
+func (fake *FakeContainer) SetGraceTimeReturns(result1 error) {
+	fake.SetGraceTimeStub = nil
+	fake.setGraceTimeReturns = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeContainer) Properties() (garden.Properties, error) {
