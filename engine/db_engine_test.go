@@ -274,7 +274,7 @@ var _ = Describe("DBEngine", func() {
 
 							lockedBuild, interval := fakeBuildDB.LeaseBuildTrackingArgsForCall(0)
 							Expect(lockedBuild).To(Equal(model.ID))
-							Expect(interval).To(Equal(time.Minute))
+							Expect(interval).To(Equal(10 * time.Second))
 
 							Expect(fakeLease.BreakCallCount()).To(BeZero())
 
@@ -520,7 +520,7 @@ var _ = Describe("DBEngine", func() {
 
 								lockedBuild, interval := fakeBuildDB.LeaseBuildTrackingArgsForCall(0)
 								Expect(lockedBuild).To(Equal(model.ID))
-								Expect(interval).To(Equal(time.Minute))
+								Expect(interval).To(Equal(10 * time.Second))
 
 								Expect(fakeLease.BreakCallCount()).To(BeZero())
 							}

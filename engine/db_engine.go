@@ -14,6 +14,8 @@ import (
 
 var ErrBuildNotActive = errors.New("build not yet active")
 
+const trackingInterval = 10 * time.Second
+
 //go:generate counterfeiter . BuildDB
 
 type BuildDB interface {
@@ -105,7 +107,7 @@ func (build *dbBuild) Metadata() string {
 func (build *dbBuild) Abort(logger lager.Logger) error {
 	// the order below is very important to avoid races with build creation.
 
-	lease, leased, err := build.db.LeaseBuildTracking(build.id, time.Minute)
+	lease, leased, err := build.db.LeaseBuildTracking(build.id, trackingInterval)
 	if err != nil {
 		logger.Error("failed-to-get-lease", err)
 		return err
@@ -171,7 +173,7 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 }
 
 func (build *dbBuild) Resume(logger lager.Logger) {
-	lease, leased, err := build.db.LeaseBuildTracking(build.id, time.Minute)
+	lease, leased, err := build.db.LeaseBuildTracking(build.id, trackingInterval)
 	if err != nil {
 		logger.Error("failed-to-get-lease", err)
 		return
