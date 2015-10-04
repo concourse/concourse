@@ -274,7 +274,6 @@ var _ = Describe("Worker", func() {
 									"concourse:ephemeral": "true",
 								},
 							}))
-
 						})
 					})
 
@@ -289,31 +288,46 @@ var _ = Describe("Worker", func() {
 
 							By("no longer heartbeating")
 							fakeClock.Increment(30 * time.Second)
-							Consistently(fakeContainer.SetPropertyCallCount).Should(BeZero())
+							Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(1))
 						})
 
-						It("is kept alive by continuously setting a keepalive property until released", func() {
-							Expect(fakeContainer.SetPropertyCallCount()).To(Equal(0))
+						It("performs an initial heartbeat synchronously", func() {
+							Expect(fakeContainer.SetPropertyCallCount()).To(Equal(1))
+							Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).To(Equal(1))
+						})
 
-							fakeClock.Increment(30 * time.Second)
+						Describe("every 30 seconds", func() {
+							It("heartbeats to the database and the container", func() {
+								fakeClock.Increment(30 * time.Second)
 
-							Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(1))
-							name, value := fakeContainer.SetPropertyArgsForCall(0)
-							Expect(name).To(Equal("keepalive"))
-							Expect(value).To(Equal("153")) // unix timestamp
+								Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(2))
+								name, value := fakeContainer.SetPropertyArgsForCall(1)
+								Expect(name).To(Equal("keepalive"))
+								Expect(value).To(Equal("153")) // unix timestamp
 
-							fakeClock.Increment(30 * time.Second)
+								Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(2))
+								handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(1)
+								Expect(handle).To(Equal("some-handle"))
+								Expect(interval).To(Equal(5 * time.Minute))
 
-							Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(2))
-							name, value = fakeContainer.SetPropertyArgsForCall(1)
-							Expect(name).To(Equal("keepalive"))
-							Expect(value).To(Equal("183")) // unix timestamp
+								fakeClock.Increment(30 * time.Second)
 
-							createdContainer.Release()
+								Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(3))
+								name, value = fakeContainer.SetPropertyArgsForCall(2)
+								Expect(name).To(Equal("keepalive"))
+								Expect(value).To(Equal("183")) // unix timestamp
 
-							fakeClock.Increment(30 * time.Second)
+								Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(3))
+								handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(2)
+								Expect(handle).To(Equal("some-handle"))
+								Expect(interval).To(Equal(5 * time.Minute))
 
-							Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(2))
+								createdContainer.Release()
+
+								fakeClock.Increment(30 * time.Second)
+
+								Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(3))
+							})
 						})
 					})
 				})
@@ -537,42 +551,46 @@ var _ = Describe("Worker", func() {
 
 						By("no longer heartbeating")
 						fakeClock.Increment(30 * time.Second)
-						Consistently(fakeContainer.SetPropertyCallCount).Should(BeZero())
+						Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(1))
 					})
 
-					It("is kept alive by continuously setting a keepalive property until released", func() {
-						Expect(fakeContainer.SetPropertyCallCount()).To(Equal(0))
-						Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).To(Equal(0))
+					It("performs an initial heartbeat synchronously", func() {
+						Expect(fakeContainer.SetPropertyCallCount()).To(Equal(1))
+						Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).To(Equal(1))
+					})
 
-						fakeClock.Increment(30 * time.Second)
+					Describe("every 30 seconds", func() {
+						It("heartbeats to the database and the container", func() {
+							fakeClock.Increment(30 * time.Second)
 
-						Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(1))
-						name, value := fakeContainer.SetPropertyArgsForCall(0)
-						Expect(name).To(Equal("keepalive"))
-						Expect(value).To(Equal("153")) // unix timestamp
+							Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(2))
+							name, value := fakeContainer.SetPropertyArgsForCall(1)
+							Expect(name).To(Equal("keepalive"))
+							Expect(value).To(Equal("153")) // unix timestamp
 
-						Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).Should(Equal(1))
-						handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(0)
-						Expect(handle).To(Equal("some-handle"))
-						Expect(interval).To(Equal(5 * time.Minute))
+							Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(2))
+							handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(1)
+							Expect(handle).To(Equal("some-handle"))
+							Expect(interval).To(Equal(5 * time.Minute))
 
-						fakeClock.Increment(30 * time.Second)
+							fakeClock.Increment(30 * time.Second)
 
-						Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(2))
-						name, value = fakeContainer.SetPropertyArgsForCall(1)
-						Expect(name).To(Equal("keepalive"))
-						Expect(value).To(Equal("183")) // unix timestamp
+							Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(3))
+							name, value = fakeContainer.SetPropertyArgsForCall(2)
+							Expect(name).To(Equal("keepalive"))
+							Expect(value).To(Equal("183")) // unix timestamp
 
-						Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).Should(Equal(2))
-						handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(1)
-						Expect(handle).To(Equal("some-handle"))
-						Expect(interval).To(Equal(5 * time.Minute))
+							Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(3))
+							handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(2)
+							Expect(handle).To(Equal("some-handle"))
+							Expect(interval).To(Equal(5 * time.Minute))
 
-						createdContainer.Release()
+							createdContainer.Release()
 
-						fakeClock.Increment(30 * time.Second)
+							fakeClock.Increment(30 * time.Second)
 
-						Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(2))
+							Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(3))
+						})
 					})
 				})
 			})
@@ -805,31 +823,46 @@ var _ = Describe("Worker", func() {
 
 					By("no longer heartbeating")
 					fakeClock.Increment(30 * time.Second)
-					Consistently(fakeContainer.SetPropertyCallCount).Should(BeZero())
+					Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(1))
 				})
 
-				It("is kept alive by continuously setting a keepalive property until released", func() {
-					Expect(fakeContainer.SetPropertyCallCount()).To(Equal(0))
+				It("performs an initial heartbeat synchronously", func() {
+					Expect(fakeContainer.SetPropertyCallCount()).To(Equal(1))
+					Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).To(Equal(1))
+				})
 
-					fakeClock.Increment(30 * time.Second)
+				Describe("every 30 seconds", func() {
+					It("heartbeats to the database and the container", func() {
+						fakeClock.Increment(30 * time.Second)
 
-					Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(1))
-					name, value := fakeContainer.SetPropertyArgsForCall(0)
-					Expect(name).To(Equal("keepalive"))
-					Expect(value).To(Equal("153")) // unix timestamp
+						Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(2))
+						name, value := fakeContainer.SetPropertyArgsForCall(1)
+						Expect(name).To(Equal("keepalive"))
+						Expect(value).To(Equal("153")) // unix timestamp
 
-					fakeClock.Increment(30 * time.Second)
+						Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(2))
+						handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(1)
+						Expect(handle).To(Equal("provider-handle"))
+						Expect(interval).To(Equal(5 * time.Minute))
 
-					Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(2))
-					name, value = fakeContainer.SetPropertyArgsForCall(1)
-					Expect(name).To(Equal("keepalive"))
-					Expect(value).To(Equal("183")) // unix timestamp
+						fakeClock.Increment(30 * time.Second)
 
-					foundContainer.Release()
+						Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(3))
+						name, value = fakeContainer.SetPropertyArgsForCall(2)
+						Expect(name).To(Equal("keepalive"))
+						Expect(value).To(Equal("183")) // unix timestamp
 
-					fakeClock.Increment(30 * time.Second)
+						Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(3))
+						handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(2)
+						Expect(handle).To(Equal("provider-handle"))
+						Expect(interval).To(Equal(5 * time.Minute))
 
-					Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(2))
+						foundContainer.Release()
+
+						fakeClock.Increment(30 * time.Second)
+
+						Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(3))
+					})
 				})
 
 				It("can be released multiple times", func() {

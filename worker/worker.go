@@ -414,8 +414,13 @@ func newGardenWorkerContainer(
 		stopHeartbeating: make(chan struct{}),
 	}
 
+	workerContainer.heartbeat(logger.Session("initial-heartbeat"))
+
 	workerContainer.heartbeating.Add(1)
-	go workerContainer.heartbeat(logger, clock.NewTicker(containerKeepalive))
+	go workerContainer.heartbeatContinuously(
+		logger.Session("continuous-heartbeat"),
+		clock.NewTicker(containerKeepalive),
+	)
 
 	trackedContainers.Add(1)
 	metric.TrackedContainers.Inc()
@@ -493,11 +498,9 @@ func (container *gardenWorkerContainer) initializeVolumes(
 	return nil
 }
 
-func (container *gardenWorkerContainer) heartbeat(logger lager.Logger, pacemaker clock.Ticker) {
+func (container *gardenWorkerContainer) heartbeatContinuously(logger lager.Logger, pacemaker clock.Ticker) {
 	defer container.heartbeating.Done()
 	defer pacemaker.Stop()
-
-	logger = logger.Session("heartbeating")
 
 	logger.Debug("start")
 	defer logger.Debug("done")
@@ -505,19 +508,26 @@ func (container *gardenWorkerContainer) heartbeat(logger lager.Logger, pacemaker
 	for {
 		select {
 		case <-pacemaker.C():
-			err := container.db.UpdateExpiresAtOnContainerInfo(container.Handle(), containerTTL)
-			if err != nil {
-				logger.Error("failed-to-heartbeat-to-db", err)
-			}
-
-			err = container.SetProperty("keepalive", fmt.Sprintf("%d", container.clock.Now().Unix()))
-			if err != nil {
-				logger.Error("failed-to-heartbeat-to-container", err)
-			}
+			container.heartbeat(logger.Session("tick"))
 
 		case <-container.stopHeartbeating:
 			return
 		}
+	}
+}
+
+func (container *gardenWorkerContainer) heartbeat(logger lager.Logger) {
+	logger.Debug("start")
+	defer logger.Debug("done")
+
+	err := container.db.UpdateExpiresAtOnContainerInfo(container.Handle(), containerTTL)
+	if err != nil {
+		logger.Error("failed-to-heartbeat-to-db", err)
+	}
+
+	err = container.SetProperty("keepalive", fmt.Sprintf("%d", container.clock.Now().Unix()))
+	if err != nil {
+		logger.Error("failed-to-heartbeat-to-container", err)
 	}
 }
 

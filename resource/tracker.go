@@ -148,7 +148,7 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 			Env:       metadata.Env(),
 		})
 		if err != nil {
-			logger.Error("faild-to-create-container", err)
+			logger.Error("failed-to-create-container", err)
 			return nil, nil, err
 		}
 
