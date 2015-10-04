@@ -32,8 +32,6 @@ var _ = Describe("Tracker", func() {
 	}
 
 	BeforeEach(func() {
-		workerClient.CreateContainerReturns(fakeContainer, nil)
-
 		tracker = NewTracker(workerClient)
 	})
 
@@ -51,6 +49,8 @@ var _ = Describe("Tracker", func() {
 		BeforeEach(func() {
 			logger = lagertest.NewTestLogger("test")
 			initType = "type1"
+
+			workerClient.CreateContainerReturns(fakeContainer, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -171,6 +171,8 @@ var _ = Describe("Tracker", func() {
 				BeforeEach(func() {
 					satisfyingWorker = new(wfakes.FakeWorker)
 					workerClient.SatisfyingReturns(satisfyingWorker, nil)
+
+					satisfyingWorker.CreateContainerReturns(fakeContainer, nil)
 				})
 
 				Context("when the worker supports volume management", func() {
