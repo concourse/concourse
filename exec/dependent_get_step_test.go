@@ -23,9 +23,8 @@ import (
 
 var _ = Describe("GardenFactory", func() {
 	var (
-		fakeTrackerFactory *fakes.FakeTrackerFactory
-		fakeTracker        *rfakes.FakeTracker
-		fakeWorkerClient   *wfakes.FakeClient
+		fakeTracker      *rfakes.FakeTracker
+		fakeWorkerClient *wfakes.FakeClient
 
 		factory Factory
 
@@ -42,14 +41,11 @@ var _ = Describe("GardenFactory", func() {
 	)
 
 	BeforeEach(func() {
-		fakeTrackerFactory = new(fakes.FakeTrackerFactory)
-
 		fakeTracker = new(rfakes.FakeTracker)
-		fakeTrackerFactory.TrackerForReturns(fakeTracker)
 
 		fakeWorkerClient = new(wfakes.FakeClient)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTrackerFactory, func() string { return "" })
+		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, func() string { return "" })
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -127,12 +123,14 @@ var _ = Describe("GardenFactory", func() {
 		Context("when the tracker can initialize the resource", func() {
 			var (
 				fakeResource        *rfakes.FakeResource
+				fakeCache           *rfakes.FakeCache
 				fakeVersionedSource *rfakes.FakeVersionedSource
 			)
 
 			BeforeEach(func() {
 				fakeResource = new(rfakes.FakeResource)
-				fakeTracker.InitReturns(fakeResource, nil)
+				fakeCache = new(rfakes.FakeCache)
+				fakeTracker.InitWithCacheReturns(fakeResource, fakeCache, nil)
 
 				fakeVersionedSource = new(rfakes.FakeVersionedSource)
 				fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
@@ -141,40 +139,23 @@ var _ = Describe("GardenFactory", func() {
 				fakeResource.GetReturns(fakeVersionedSource)
 			})
 
-			It("selects a worker satisfying the resource type and tags", func() {
-				Expect(fakeWorkerClient.SatisfyingCallCount()).To(Equal(1))
-				Expect(fakeWorkerClient.SatisfyingArgsForCall(0)).To(Equal(worker.WorkerSpec{
-					ResourceType: "some-resource-type",
-					Tags:         []string{"some", "tags"},
-				}))
-
-			})
-
-			Context("when no workers satisfy the spec", func() {
-				disaster := errors.New("nope")
-
-				BeforeEach(func() {
-					fakeWorkerClient.SatisfyingReturns(nil, disaster)
-				})
-
-				It("exits with the error", func() {
-					Expect(<-process.Wait()).To(Equal(disaster))
-				})
-			})
-
 			It("initializes the resource with the correct type and session id, making sure that it is not ephemeral", func() {
-				Expect(fakeTracker.InitCallCount()).To(Equal(1))
+				Expect(fakeTracker.InitWithCacheCallCount()).To(Equal(1))
 
-				_, sm, sid, typ, tags, vol := fakeTracker.InitArgsForCall(0)
+				_, sm, sid, typ, tags, cacheID := fakeTracker.InitWithCacheArgsForCall(0)
 				Expect(sm).To(Equal(stepMetadata))
 				Expect(sid).To(Equal(resource.Session{
 					ID:        identifier,
 					Ephemeral: false,
 				}))
-
 				Expect(typ).To(Equal(resource.ResourceType("some-resource-type")))
 				Expect(tags).To(ConsistOf("some", "tags"))
-				Expect(vol).To(BeZero())
+				Expect(cacheID).To(Equal(resource.ResourceCacheIdentifier{
+					Type:    "some-resource-type",
+					Source:  resourceConfig.Source,
+					Params:  params,
+					Version: version,
+				}))
 			})
 
 			It("gets the resource with the correct source, params, and version", func() {
@@ -469,7 +450,7 @@ var _ = Describe("GardenFactory", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeTracker.InitReturns(nil, disaster)
+				fakeTracker.InitWithCacheReturns(nil, nil, disaster)
 			})
 
 			It("exits with the failure", func() {

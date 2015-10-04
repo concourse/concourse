@@ -5,20 +5,18 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/resource"
-	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager"
 )
 
 type putStep struct {
 	logger         lager.Logger
-	workerPool     worker.Client
 	resourceConfig atc.ResourceConfig
 	params         atc.Params
 	stepMetadata   StepMetadata
 	session        resource.Session
 	tags           atc.Tags
 	delegate       ResourceDelegate
-	trackerFactory TrackerFactory
+	tracker        resource.Tracker
 
 	repository *SourceRepository
 
@@ -31,25 +29,23 @@ type putStep struct {
 
 func newPutStep(
 	logger lager.Logger,
-	workerPool worker.Client,
 	resourceConfig atc.ResourceConfig,
 	params atc.Params,
 	stepMetadata StepMetadata,
 	session resource.Session,
 	tags atc.Tags,
 	delegate ResourceDelegate,
-	trackerFactory TrackerFactory,
+	tracker resource.Tracker,
 ) putStep {
 	return putStep{
 		logger:         logger,
-		workerPool:     workerPool,
 		resourceConfig: resourceConfig,
 		params:         params,
 		stepMetadata:   stepMetadata,
 		session:        session,
 		tags:           tags,
 		delegate:       delegate,
-		trackerFactory: trackerFactory,
+		tracker:        tracker,
 	}
 }
 
@@ -63,25 +59,12 @@ func (step putStep) Using(prev Step, repo *SourceRepository) Step {
 }
 
 func (step *putStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	resourceSpec := worker.WorkerSpec{
-		ResourceType: step.resourceConfig.Type,
-		Tags:         step.tags,
-	}
-
-	chosenWorker, err := step.workerPool.Satisfying(resourceSpec)
-	if err != nil {
-		return err
-	}
-
-	tracker := step.trackerFactory.TrackerFor(chosenWorker)
-
-	trackedResource, err := tracker.Init(
+	trackedResource, err := step.tracker.Init(
 		step.logger,
 		step.stepMetadata,
 		step.session,
 		resource.ResourceType(step.resourceConfig.Type),
 		step.tags,
-		resource.VolumeMount{},
 	)
 	if err != nil {
 		return err

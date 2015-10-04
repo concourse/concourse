@@ -10,29 +10,23 @@ import (
 	"github.com/concourse/atc/worker"
 )
 
-//go:generate counterfeiter . TrackerFactory
-
-type TrackerFactory interface {
-	TrackerFor(worker.Client) resource.Tracker
-}
-
 type gardenFactory struct {
-	workerClient   worker.Client
-	trackerFactory TrackerFactory
-	uuidGenerator  UUIDGenFunc
+	workerClient  worker.Client
+	tracker       resource.Tracker
+	uuidGenerator UUIDGenFunc
 }
 
 type UUIDGenFunc func() string
 
 func NewGardenFactory(
 	workerClient worker.Client,
-	trackerFactory TrackerFactory,
+	tracker resource.Tracker,
 	uuidGenerator UUIDGenFunc,
 ) Factory {
 	return &gardenFactory{
-		workerClient:   workerClient,
-		trackerFactory: trackerFactory,
-		uuidGenerator:  uuidGenerator,
+		workerClient:  workerClient,
+		tracker:       tracker,
+		uuidGenerator: uuidGenerator,
 	}
 }
 
@@ -49,7 +43,6 @@ func (factory *gardenFactory) DependentGet(
 	return newDependentGetStep(
 		logger,
 		sourceName,
-		factory.workerClient,
 		resourceConfig,
 		params,
 		stepMetadata,
@@ -59,7 +52,7 @@ func (factory *gardenFactory) DependentGet(
 		},
 		tags,
 		delegate,
-		factory.trackerFactory,
+		factory.tracker,
 	)
 }
 
@@ -77,10 +70,15 @@ func (factory *gardenFactory) Get(
 	return newGetStep(
 		logger,
 		sourceName,
-		factory.workerClient,
 		resourceConfig,
 		version,
 		params,
+		resource.ResourceCacheIdentifier{
+			Type:    resource.ResourceType(resourceConfig.Type),
+			Source:  resourceConfig.Source,
+			Params:  params,
+			Version: version,
+		},
 		stepMetadata,
 		resource.Session{
 			ID:        id,
@@ -88,7 +86,7 @@ func (factory *gardenFactory) Get(
 		},
 		tags,
 		delegate,
-		factory.trackerFactory,
+		factory.tracker,
 	)
 }
 
@@ -103,7 +101,6 @@ func (factory *gardenFactory) Put(
 ) StepFactory {
 	return newPutStep(
 		logger,
-		factory.workerClient,
 		resourceConfig,
 		params,
 		stepMetadata,
@@ -113,7 +110,7 @@ func (factory *gardenFactory) Put(
 		},
 		tags,
 		delegate,
-		factory.trackerFactory,
+		factory.tracker,
 	)
 }
 

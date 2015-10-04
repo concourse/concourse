@@ -208,7 +208,6 @@ func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig,
 		checkIdentifier(radar.db.GetPipelineName(), resourceConfig),
 		typ,
 		[]string{},
-		resource.VolumeMount{},
 	)
 	if err != nil {
 		logger.Error("failed-to-initialize-new-resource", err)

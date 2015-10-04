@@ -10,7 +10,7 @@ import (
 )
 
 type FakeTracker struct {
-	InitStub        func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.VolumeMount) (resource.Resource, error)
+	InitStub        func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags) (resource.Resource, error)
 	initMutex       sync.RWMutex
 	initArgsForCall []struct {
 		arg1 lager.Logger
@@ -18,15 +18,29 @@ type FakeTracker struct {
 		arg3 resource.Session
 		arg4 resource.ResourceType
 		arg5 atc.Tags
-		arg6 resource.VolumeMount
 	}
 	initReturns struct {
 		result1 resource.Resource
 		result2 error
 	}
+	InitWithCacheStub        func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.CacheIdentifier) (resource.Resource, resource.Cache, error)
+	initWithCacheMutex       sync.RWMutex
+	initWithCacheArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 resource.Metadata
+		arg3 resource.Session
+		arg4 resource.ResourceType
+		arg5 atc.Tags
+		arg6 resource.CacheIdentifier
+	}
+	initWithCacheReturns struct {
+		result1 resource.Resource
+		result2 resource.Cache
+		result3 error
+	}
 }
 
-func (fake *FakeTracker) Init(arg1 lager.Logger, arg2 resource.Metadata, arg3 resource.Session, arg4 resource.ResourceType, arg5 atc.Tags, arg6 resource.VolumeMount) (resource.Resource, error) {
+func (fake *FakeTracker) Init(arg1 lager.Logger, arg2 resource.Metadata, arg3 resource.Session, arg4 resource.ResourceType, arg5 atc.Tags) (resource.Resource, error) {
 	fake.initMutex.Lock()
 	fake.initArgsForCall = append(fake.initArgsForCall, struct {
 		arg1 lager.Logger
@@ -34,11 +48,10 @@ func (fake *FakeTracker) Init(arg1 lager.Logger, arg2 resource.Metadata, arg3 re
 		arg3 resource.Session
 		arg4 resource.ResourceType
 		arg5 atc.Tags
-		arg6 resource.VolumeMount
-	}{arg1, arg2, arg3, arg4, arg5, arg6})
+	}{arg1, arg2, arg3, arg4, arg5})
 	fake.initMutex.Unlock()
 	if fake.InitStub != nil {
-		return fake.InitStub(arg1, arg2, arg3, arg4, arg5, arg6)
+		return fake.InitStub(arg1, arg2, arg3, arg4, arg5)
 	} else {
 		return fake.initReturns.result1, fake.initReturns.result2
 	}
@@ -50,10 +63,10 @@ func (fake *FakeTracker) InitCallCount() int {
 	return len(fake.initArgsForCall)
 }
 
-func (fake *FakeTracker) InitArgsForCall(i int) (lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.VolumeMount) {
+func (fake *FakeTracker) InitArgsForCall(i int) (lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags) {
 	fake.initMutex.RLock()
 	defer fake.initMutex.RUnlock()
-	return fake.initArgsForCall[i].arg1, fake.initArgsForCall[i].arg2, fake.initArgsForCall[i].arg3, fake.initArgsForCall[i].arg4, fake.initArgsForCall[i].arg5, fake.initArgsForCall[i].arg6
+	return fake.initArgsForCall[i].arg1, fake.initArgsForCall[i].arg2, fake.initArgsForCall[i].arg3, fake.initArgsForCall[i].arg4, fake.initArgsForCall[i].arg5
 }
 
 func (fake *FakeTracker) InitReturns(result1 resource.Resource, result2 error) {
@@ -62,6 +75,45 @@ func (fake *FakeTracker) InitReturns(result1 resource.Resource, result2 error) {
 		result1 resource.Resource
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeTracker) InitWithCache(arg1 lager.Logger, arg2 resource.Metadata, arg3 resource.Session, arg4 resource.ResourceType, arg5 atc.Tags, arg6 resource.CacheIdentifier) (resource.Resource, resource.Cache, error) {
+	fake.initWithCacheMutex.Lock()
+	fake.initWithCacheArgsForCall = append(fake.initWithCacheArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 resource.Metadata
+		arg3 resource.Session
+		arg4 resource.ResourceType
+		arg5 atc.Tags
+		arg6 resource.CacheIdentifier
+	}{arg1, arg2, arg3, arg4, arg5, arg6})
+	fake.initWithCacheMutex.Unlock()
+	if fake.InitWithCacheStub != nil {
+		return fake.InitWithCacheStub(arg1, arg2, arg3, arg4, arg5, arg6)
+	} else {
+		return fake.initWithCacheReturns.result1, fake.initWithCacheReturns.result2, fake.initWithCacheReturns.result3
+	}
+}
+
+func (fake *FakeTracker) InitWithCacheCallCount() int {
+	fake.initWithCacheMutex.RLock()
+	defer fake.initWithCacheMutex.RUnlock()
+	return len(fake.initWithCacheArgsForCall)
+}
+
+func (fake *FakeTracker) InitWithCacheArgsForCall(i int) (lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.CacheIdentifier) {
+	fake.initWithCacheMutex.RLock()
+	defer fake.initWithCacheMutex.RUnlock()
+	return fake.initWithCacheArgsForCall[i].arg1, fake.initWithCacheArgsForCall[i].arg2, fake.initWithCacheArgsForCall[i].arg3, fake.initWithCacheArgsForCall[i].arg4, fake.initWithCacheArgsForCall[i].arg5, fake.initWithCacheArgsForCall[i].arg6
+}
+
+func (fake *FakeTracker) InitWithCacheReturns(result1 resource.Resource, result2 resource.Cache, result3 error) {
+	fake.InitWithCacheStub = nil
+	fake.initWithCacheReturns = struct {
+		result1 resource.Resource
+		result2 resource.Cache
+		result3 error
+	}{result1, result2, result3}
 }
 
 var _ resource.Tracker = new(FakeTracker)

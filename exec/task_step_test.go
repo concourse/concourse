@@ -28,9 +28,8 @@ import (
 
 var _ = Describe("GardenFactory", func() {
 	var (
-		fakeTrackerFactory *fakes.FakeTrackerFactory
-		fakeTracker        *rfakes.FakeTracker
-		fakeWorkerClient   *wfakes.FakeClient
+		fakeWorkerClient *wfakes.FakeClient
+		fakeTracker      *rfakes.FakeTracker
 
 		factory Factory
 
@@ -45,14 +44,10 @@ var _ = Describe("GardenFactory", func() {
 	)
 
 	BeforeEach(func() {
-		fakeTrackerFactory = new(fakes.FakeTrackerFactory)
-
-		fakeTracker = new(rfakes.FakeTracker)
-		fakeTrackerFactory.TrackerForReturns(fakeTracker)
-
 		fakeWorkerClient = new(wfakes.FakeClient)
+		fakeTracker = new(rfakes.FakeTracker)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTrackerFactory, func() string { return "a-random-guid" })
+		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, func() string { return "a-random-guid" })
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()

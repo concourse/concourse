@@ -21,9 +21,8 @@ import (
 
 var _ = Describe("GardenFactory", func() {
 	var (
-		fakeTrackerFactory *fakes.FakeTrackerFactory
-		fakeTracker        *rfakes.FakeTracker
-		fakeWorkerClient   *wfakes.FakeClient
+		fakeWorkerClient *wfakes.FakeClient
+		fakeTracker      *rfakes.FakeTracker
 
 		factory Factory
 
@@ -38,14 +37,10 @@ var _ = Describe("GardenFactory", func() {
 	)
 
 	BeforeEach(func() {
-		fakeTrackerFactory = new(fakes.FakeTrackerFactory)
-
-		fakeTracker = new(rfakes.FakeTracker)
-		fakeTrackerFactory.TrackerForReturns(fakeTracker)
-
 		fakeWorkerClient = new(wfakes.FakeClient)
+		fakeTracker = new(rfakes.FakeTracker)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTrackerFactory, func() string { return "" })
+		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, func() string { return "" })
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -57,8 +52,6 @@ var _ = Describe("GardenFactory", func() {
 			resourceConfig atc.ResourceConfig
 			params         atc.Params
 			tags           []string
-
-			satisfiedWorker *wfakes.FakeWorker
 
 			inStep *fakes.FakeStep
 			repo   *SourceRepository
@@ -73,9 +66,6 @@ var _ = Describe("GardenFactory", func() {
 			putDelegate = new(fakes.FakePutDelegate)
 			putDelegate.StdoutReturns(stdoutBuf)
 			putDelegate.StderrReturns(stderrBuf)
-
-			satisfiedWorker = new(wfakes.FakeWorker)
-			fakeWorkerClient.SatisfyingReturns(satisfiedWorker, nil)
 
 			resourceConfig = atc.ResourceConfig{
 				Name:   "some-resource",
@@ -124,31 +114,10 @@ var _ = Describe("GardenFactory", func() {
 				fakeResource.PutReturns(fakeVersionedSource)
 			})
 
-			It("selects a worker satisfying the resource type and tags", func() {
-				Expect(fakeWorkerClient.SatisfyingCallCount()).To(Equal(1))
-				Expect(fakeWorkerClient.SatisfyingArgsForCall(0)).To(Equal(worker.WorkerSpec{
-					ResourceType: "some-resource-type",
-					Tags:         []string{"some", "tags"},
-				}))
-
-			})
-
-			Context("when no workers satisfy the spec", func() {
-				disaster := errors.New("nope")
-
-				BeforeEach(func() {
-					fakeWorkerClient.SatisfyingReturns(nil, disaster)
-				})
-
-				It("exits with the error", func() {
-					Expect(<-process.Wait()).To(Equal(disaster))
-				})
-			})
-
 			It("initializes the resource with the correct type and session id", func() {
 				Expect(fakeTracker.InitCallCount()).To(Equal(1))
 
-				_, sm, sid, typ, tags, vol := fakeTracker.InitArgsForCall(0)
+				_, sm, sid, typ, tags := fakeTracker.InitArgsForCall(0)
 				Expect(sm).To(Equal(stepMetadata))
 				Expect(sid).To(Equal(resource.Session{
 					ID: identifier,
@@ -156,7 +125,6 @@ var _ = Describe("GardenFactory", func() {
 
 				Expect(typ).To(Equal(resource.ResourceType("some-resource-type")))
 				Expect(tags).To(ConsistOf("some", "tags"))
-				Expect(vol).To(BeZero())
 			})
 
 			It("puts the resource with the correct source and params, and the full repository as the artifact source", func() {
@@ -222,7 +190,6 @@ var _ = Describe("GardenFactory", func() {
 					Version:  atc.Version{"some": "version"},
 					Metadata: []atc.MetadataField{{"some", "metadata"}},
 				}))
-
 			})
 
 			Describe("signalling", func() {
