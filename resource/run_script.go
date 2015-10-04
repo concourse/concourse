@@ -79,21 +79,15 @@ func (resource *resource) runScript(
 
 		var process garden.Process
 
-		var processIDProp string
+		var processID string
 		if recoverable {
-			processIDProp, err = resource.container.Property(resourceProcessIDPropertyName)
+			processID, err = resource.container.Property(resourceProcessIDPropertyName)
 			if err != nil {
-				processIDProp = ""
+				processID = ""
 			}
 		}
 
-		if processIDProp != "" {
-			var processID uint32
-			_, err = fmt.Sscanf(processIDProp, "%d", &processID)
-			if err != nil {
-				return err
-			}
-
+		if processID != "" {
 			process, err = resource.container.Attach(processID, processIO)
 			if err != nil {
 				return err
@@ -116,9 +110,7 @@ func (resource *resource) runScript(
 			}
 
 			if recoverable {
-				processIDValue := fmt.Sprintf("%d", process.ID())
-
-				err := resource.container.SetProperty(resourceProcessIDPropertyName, processIDValue)
+				err := resource.container.SetProperty(resourceProcessIDPropertyName, process.ID())
 				if err != nil {
 					return err
 				}

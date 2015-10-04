@@ -52,7 +52,7 @@ var _ = Describe("Resource Out", func() {
 		runOutError = nil
 
 		outScriptProcess = new(gfakes.FakeProcess)
-		outScriptProcess.IDReturns(42)
+		outScriptProcess.IDReturns("process-id")
 		outScriptProcess.WaitStub = func() (int, error) {
 			return outScriptExitStatus, nil
 		}
@@ -81,7 +81,7 @@ var _ = Describe("Resource Out", func() {
 			return outScriptProcess, nil
 		}
 
-		fakeContainer.AttachStub = func(processID uint32, io garden.ProcessIO) (garden.Process, error) {
+		fakeContainer.AttachStub = func(processID string, io garden.ProcessIO) (garden.Process, error) {
 			if runOutError != nil {
 				return nil, runOutError
 			}
@@ -221,7 +221,7 @@ var _ = Describe("Resource Out", func() {
 			fakeContainer.PropertyStub = func(name string) (string, error) {
 				switch name {
 				case "concourse:resource-process":
-					return "42", nil
+					return "process-id", nil
 				default:
 					return "", errors.New("unstubbed property: " + name)
 				}
@@ -232,7 +232,7 @@ var _ = Describe("Resource Out", func() {
 			Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
 			pid, io := fakeContainer.AttachArgsForCall(0)
-			Expect(pid).To(Equal(uint32(42)))
+			Expect(pid).To(Equal("process-id"))
 
 			// send request on stdin in case process hasn't read it yet
 			request, err := ioutil.ReadAll(io.Stdin)
@@ -390,7 +390,7 @@ var _ = Describe("Resource Out", func() {
 
 			name, value := fakeContainer.SetPropertyArgsForCall(0)
 			Expect(name).To(Equal("concourse:resource-process"))
-			Expect(value).To(Equal("42"))
+			Expect(value).To(Equal("process-id"))
 		})
 
 		Describe("streaming in", func() {

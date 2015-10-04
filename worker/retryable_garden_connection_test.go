@@ -757,12 +757,12 @@ var _ = Describe("Retryable", func() {
 
 		BeforeEach(func() {
 			fakeProcess = new(gfakes.FakeProcess)
-			fakeProcess.IDReturns(6)
+			fakeProcess.IDReturns("process-id")
 		})
 
 		itRetries(func() error {
 			var err error
-			process, err = conn.Attach("la-contineur", 6, processIO)
+			process, err = conn.Attach("la-contineur", "process-id", processIO)
 			return err
 		}, func(err error) {
 			innerConnection.AttachReturns(fakeProcess, err)
@@ -774,7 +774,7 @@ var _ = Describe("Retryable", func() {
 
 				handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(0)
 				Expect(handle).To(Equal("la-contineur"))
-				Expect(processID).To(Equal(uint32(6)))
+				Expect(processID).To(Equal("process-id"))
 				Expect(calledProcessIO).To(Equal(processIO))
 			})
 
@@ -803,7 +803,7 @@ var _ = Describe("Retryable", func() {
 						Expect(innerConnection.AttachCallCount()).To(Equal(2))
 						handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(1)
 						Expect(handle).To(Equal("la-contineur"))
-						Expect(processID).To(Equal(uint32(6)))
+						Expect(processID).To(Equal("process-id"))
 						Expect(calledProcessIO).To(Equal(processIO))
 					})
 				})
@@ -826,7 +826,7 @@ var _ = Describe("Retryable", func() {
 						Expect(innerConnection.AttachCallCount()).To(Equal(2))
 						handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(1)
 						Expect(handle).To(Equal("la-contineur"))
-						Expect(processID).To(Equal(uint32(6)))
+						Expect(processID).To(Equal("process-id"))
 						Expect(calledProcessIO).To(Equal(processIO))
 					})
 				})
@@ -853,7 +853,7 @@ var _ = Describe("Retryable", func() {
 						Expect(innerConnection.AttachCallCount()).To(Equal(2))
 						handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(1)
 						Expect(handle).To(Equal("la-contineur"))
-						Expect(processID).To(Equal(uint32(6)))
+						Expect(processID).To(Equal("process-id"))
 						Expect(calledProcessIO).To(Equal(processIO))
 					})
 				})
@@ -877,7 +877,7 @@ var _ = Describe("Retryable", func() {
 
 		BeforeEach(func() {
 			fakeProcess = new(gfakes.FakeProcess)
-			fakeProcess.IDReturns(6)
+			fakeProcess.IDReturns("process-id")
 		})
 
 		itRetries(func() error {
@@ -925,7 +925,7 @@ var _ = Describe("Retryable", func() {
 						Expect(innerConnection.AttachCallCount()).To(Equal(1))
 						handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(0)
 						Expect(handle).To(Equal("la-contineur"))
-						Expect(processID).To(Equal(uint32(6)))
+						Expect(processID).To(Equal("process-id"))
 						Expect(calledProcessIO).To(Equal(processIO))
 					})
 				})
@@ -948,7 +948,7 @@ var _ = Describe("Retryable", func() {
 						Expect(innerConnection.AttachCallCount()).To(Equal(1))
 						handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(0)
 						Expect(handle).To(Equal("la-contineur"))
-						Expect(processID).To(Equal(uint32(6)))
+						Expect(processID).To(Equal("process-id"))
 						Expect(calledProcessIO).To(Equal(processIO))
 					})
 				})
@@ -975,7 +975,7 @@ var _ = Describe("Retryable", func() {
 						Expect(innerConnection.AttachCallCount()).To(Equal(1))
 						handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(0)
 						Expect(handle).To(Equal("la-contineur"))
-						Expect(processID).To(Equal(uint32(6)))
+						Expect(processID).To(Equal("process-id"))
 						Expect(calledProcessIO).To(Equal(processIO))
 					})
 				})
