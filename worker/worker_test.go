@@ -288,11 +288,11 @@ var _ = Describe("Worker", func() {
 
 							By("no longer heartbeating")
 							fakeClock.Increment(30 * time.Second)
-							Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(1))
+							Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(1))
 						})
 
 						It("performs an initial heartbeat synchronously", func() {
-							Expect(fakeContainer.SetPropertyCallCount()).To(Equal(1))
+							Expect(fakeContainer.SetGraceTimeCallCount()).To(Equal(1))
 							Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).To(Equal(1))
 						})
 
@@ -300,10 +300,8 @@ var _ = Describe("Worker", func() {
 							It("heartbeats to the database and the container", func() {
 								fakeClock.Increment(30 * time.Second)
 
-								Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(2))
-								name, value := fakeContainer.SetPropertyArgsForCall(1)
-								Expect(name).To(Equal("keepalive"))
-								Expect(value).To(Equal("153")) // unix timestamp
+								Eventually(fakeContainer.SetGraceTimeCallCount).Should(Equal(2))
+								Expect(fakeContainer.SetGraceTimeArgsForCall(1)).To(Equal(5 * time.Minute))
 
 								Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(2))
 								handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(1)
@@ -312,10 +310,8 @@ var _ = Describe("Worker", func() {
 
 								fakeClock.Increment(30 * time.Second)
 
-								Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(3))
-								name, value = fakeContainer.SetPropertyArgsForCall(2)
-								Expect(name).To(Equal("keepalive"))
-								Expect(value).To(Equal("183")) // unix timestamp
+								Eventually(fakeContainer.SetGraceTimeCallCount).Should(Equal(3))
+								Expect(fakeContainer.SetGraceTimeArgsForCall(2)).To(Equal(5 * time.Minute))
 
 								Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(3))
 								handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(2)
@@ -326,7 +322,7 @@ var _ = Describe("Worker", func() {
 
 								fakeClock.Increment(30 * time.Second)
 
-								Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(3))
+								Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(3))
 							})
 						})
 					})
@@ -551,11 +547,11 @@ var _ = Describe("Worker", func() {
 
 						By("no longer heartbeating")
 						fakeClock.Increment(30 * time.Second)
-						Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(1))
+						Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(1))
 					})
 
 					It("performs an initial heartbeat synchronously", func() {
-						Expect(fakeContainer.SetPropertyCallCount()).To(Equal(1))
+						Expect(fakeContainer.SetGraceTimeCallCount()).To(Equal(1))
 						Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).To(Equal(1))
 					})
 
@@ -563,10 +559,8 @@ var _ = Describe("Worker", func() {
 						It("heartbeats to the database and the container", func() {
 							fakeClock.Increment(30 * time.Second)
 
-							Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(2))
-							name, value := fakeContainer.SetPropertyArgsForCall(1)
-							Expect(name).To(Equal("keepalive"))
-							Expect(value).To(Equal("153")) // unix timestamp
+							Eventually(fakeContainer.SetGraceTimeCallCount).Should(Equal(2))
+							Expect(fakeContainer.SetGraceTimeArgsForCall(1)).To(Equal(5 * time.Minute))
 
 							Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(2))
 							handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(1)
@@ -575,10 +569,8 @@ var _ = Describe("Worker", func() {
 
 							fakeClock.Increment(30 * time.Second)
 
-							Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(3))
-							name, value = fakeContainer.SetPropertyArgsForCall(2)
-							Expect(name).To(Equal("keepalive"))
-							Expect(value).To(Equal("183")) // unix timestamp
+							Eventually(fakeContainer.SetGraceTimeCallCount).Should(Equal(3))
+							Expect(fakeContainer.SetGraceTimeArgsForCall(2)).To(Equal(5 * time.Minute))
 
 							Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(3))
 							handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(2)
@@ -589,7 +581,7 @@ var _ = Describe("Worker", func() {
 
 							fakeClock.Increment(30 * time.Second)
 
-							Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(3))
+							Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(3))
 						})
 					})
 				})
@@ -823,11 +815,11 @@ var _ = Describe("Worker", func() {
 
 					By("no longer heartbeating")
 					fakeClock.Increment(30 * time.Second)
-					Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(1))
+					Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(1))
 				})
 
 				It("performs an initial heartbeat synchronously", func() {
-					Expect(fakeContainer.SetPropertyCallCount()).To(Equal(1))
+					Expect(fakeContainer.SetGraceTimeCallCount()).To(Equal(1))
 					Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).To(Equal(1))
 				})
 
@@ -835,10 +827,8 @@ var _ = Describe("Worker", func() {
 					It("heartbeats to the database and the container", func() {
 						fakeClock.Increment(30 * time.Second)
 
-						Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(2))
-						name, value := fakeContainer.SetPropertyArgsForCall(1)
-						Expect(name).To(Equal("keepalive"))
-						Expect(value).To(Equal("153")) // unix timestamp
+						Eventually(fakeContainer.SetGraceTimeCallCount).Should(Equal(2))
+						Expect(fakeContainer.SetGraceTimeArgsForCall(1)).To(Equal(5 * time.Minute))
 
 						Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(2))
 						handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(1)
@@ -847,10 +837,8 @@ var _ = Describe("Worker", func() {
 
 						fakeClock.Increment(30 * time.Second)
 
-						Eventually(fakeContainer.SetPropertyCallCount).Should(Equal(3))
-						name, value = fakeContainer.SetPropertyArgsForCall(2)
-						Expect(name).To(Equal("keepalive"))
-						Expect(value).To(Equal("183")) // unix timestamp
+						Eventually(fakeContainer.SetGraceTimeCallCount).Should(Equal(3))
+						Expect(fakeContainer.SetGraceTimeArgsForCall(2)).To(Equal(5 * time.Minute))
 
 						Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(3))
 						handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(2)
@@ -861,7 +849,7 @@ var _ = Describe("Worker", func() {
 
 						fakeClock.Increment(30 * time.Second)
 
-						Consistently(fakeContainer.SetPropertyCallCount).Should(Equal(3))
+						Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(3))
 					})
 				})
 

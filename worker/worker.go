@@ -525,7 +525,7 @@ func (container *gardenWorkerContainer) heartbeat(logger lager.Logger) {
 		logger.Error("failed-to-heartbeat-to-db", err)
 	}
 
-	err = container.SetProperty("keepalive", fmt.Sprintf("%d", container.clock.Now().Unix()))
+	err = container.SetGraceTime(containerTTL)
 	if err != nil {
 		logger.Error("failed-to-heartbeat-to-container", err)
 	}
