@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/pipelines"
+	"github.com/concourse/atc/web/debug"
 	"github.com/concourse/atc/web/getbuild"
 	"github.com/concourse/atc/web/getbuilds"
 	"github.com/concourse/atc/web/getjob"
@@ -30,6 +31,9 @@ import (
 type WebDB interface {
 	GetBuild(buildID int) (db.Build, bool, error)
 	GetAllBuilds() ([]db.Build, error)
+
+	FindContainerInfosByIdentifier(db.ContainerIdentifier) ([]db.ContainerInfo, error)
+	Workers() ([]db.WorkerInfo, error)
 }
 
 func NewHandler(
@@ -89,6 +93,11 @@ func NewHandler(
 		return nil, err
 	}
 
+	debugTemplate, err := loadTemplateWithoutPipeline(templatesDir, "debug.html", funcs)
+	if err != nil {
+		return nil, err
+	}
+
 	absPublicDir, err := filepath.Abs(publicDir)
 	if err != nil {
 		return nil, err
@@ -121,6 +130,11 @@ func NewHandler(
 
 		routes.TriggerBuild: auth.Handler{
 			Handler:   pipelineHandlerFactory.HandlerFor(triggerBuildServer.TriggerBuild),
+			Validator: validator,
+		},
+
+		routes.Debug: auth.Handler{
+			Handler:   debug.NewServer(logger, db, debugTemplate),
 			Validator: validator,
 		},
 	}
