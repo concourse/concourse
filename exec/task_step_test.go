@@ -4,11 +4,9 @@ import (
 	"archive/tar"
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
-	"reflect"
 	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
@@ -140,18 +138,7 @@ var _ = Describe("GardenFactory", func() {
 						fakeBaggageclaimClient = new(bfakes.FakeClient)
 						fakeWorker.VolumeManagerReturns(fakeBaggageclaimClient, true)
 
-						expectedSpec := worker.WorkerSpec{
-							Platform: "some-platform",
-							Tags:     []string{"step", "tags"},
-						}
-
-						fakeWorkerClient.SatisfyingStub = func(spec worker.WorkerSpec) (worker.Worker, error) {
-							if reflect.DeepEqual(spec, expectedSpec) {
-								return fakeWorker, nil
-							} else {
-								return nil, fmt.Errorf("unexpected spec: %#v\n", spec)
-							}
-						}
+						fakeWorkerClient.SatisfyingReturns(fakeWorker, nil)
 					})
 
 					Context("when creating the task's container works", func() {
@@ -184,6 +171,12 @@ var _ = Describe("GardenFactory", func() {
 								Expect(taskDelegate.InitializingCallCount()).To(Equal(1))
 								Expect(taskDelegate.InitializingArgsForCall(0)).To(Equal(fetchedConfig))
 							})
+						})
+
+						It("found the worker with the right spec", func() {
+							spec := fakeWorkerClient.SatisfyingArgsForCall(0)
+							Expect(spec.Platform).To(Equal("some-platform"))
+							Expect(spec.Tags).To(ConsistOf("step", "tags", "config"))
 						})
 
 						It("looked up the container via the session ID across the entire pool", func() {

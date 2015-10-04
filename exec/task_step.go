@@ -140,7 +140,7 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 		workerSpec := worker.WorkerSpec{
 			Platform: config.Platform,
-			Tags:     step.tags,
+			Tags:     tags,
 		}
 
 		chosenWorker, err := step.workerPool.Satisfying(workerSpec)
