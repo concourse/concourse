@@ -75,7 +75,7 @@ func (tracker *tracker) Init(logger lager.Logger, metadata Metadata, session Ses
 		return NewResource(container), nil
 	}
 
-	logger.Info("creating-container", lager.Data{"identifier": session.ID})
+	logger.Info("creating-container")
 
 	container, err = tracker.workerClient.CreateContainer(logger, session.ID, worker.ResourceTypeContainerSpec{
 		Type:      string(typ),
@@ -139,7 +139,7 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 
 	vm, hasVM := chosenWorker.VolumeManager()
 	if !hasVM {
-		logger.Info("creating-container-without-cache", lager.Data{"identifier": session.ID})
+		logger.Info("creating-container-without-cache")
 
 		container, err := chosenWorker.CreateContainer(logger, session.ID, worker.ResourceTypeContainerSpec{
 			Type:      string(typ),
@@ -178,7 +178,7 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 
 	defer cachedVolume.Release()
 
-	logger.Info("creating-container-with-cache", lager.Data{"identifier": session.ID})
+	logger.Info("creating-container-with-cache")
 
 	container, err = chosenWorker.CreateContainer(logger, session.ID, worker.ResourceTypeContainerSpec{
 		Type:      string(typ),
