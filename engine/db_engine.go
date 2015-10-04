@@ -106,13 +106,14 @@ func (build *dbBuild) Abort() error {
 	// the order below is very important to avoid races with build creation.
 
 	lease, leased, err := build.db.LeaseBuildTracking(build.id, time.Minute)
-
 	if err != nil {
+		logger.Error("failed-to-get-lease", err)
 		return err
 	}
 
 	if !leased {
 		// someone else is tracking the build; abort it, which will notify them
+		logger.Info("notifying-other-tracker")
 		return build.db.AbortBuild(build.id)
 	}
 
@@ -124,6 +125,7 @@ func (build *dbBuild) Abort() error {
 	// tries to mark the build as started.
 	err = build.db.AbortBuild(build.id)
 	if err != nil {
+		logger.Error("failed-to-abort-in-database", err)
 		return err
 	}
 
@@ -131,10 +133,12 @@ func (build *dbBuild) Abort() error {
 	// if it was already started
 	model, found, err := build.db.GetBuild(build.id)
 	if err != nil {
+		logger.Error("failed-to-get-build-from-database", err)
 		return err
 	}
 
 	if !found {
+		logger.Info("build-not-found")
 		return nil
 	}
 
@@ -145,17 +149,20 @@ func (build *dbBuild) Abort() error {
 		//
 		// finish the build so that the aborted event is put into the event stream
 		// even if the build has not started yet
+		logger.Info("finishing-build-with-no-engine")
 		return build.db.FinishBuild(build.id, db.StatusAborted)
 	}
 
 	buildEngine, found := build.engines.Lookup(model.Engine)
 	if !found {
+		logger.Error("unknown-engine", nil, lager.Data{"engine": model.Engine})
 		return UnknownEngineError{model.Engine}
 	}
 
 	// find the real build to abort...
 	engineBuild, err := buildEngine.LookupBuild(model)
 	if err != nil {
+		logger.Error("failed-to-lookup-build-in-engine", err)
 		return err
 	}
 
@@ -165,14 +172,13 @@ func (build *dbBuild) Abort() error {
 
 func (build *dbBuild) Resume(logger lager.Logger) {
 	lease, leased, err := build.db.LeaseBuildTracking(build.id, time.Minute)
-
 	if err != nil {
 		logger.Error("failed-to-get-lease", err)
 		return
 	}
 
 	if !leased {
-		// already being tracked somewhere; short-circuit
+		logger.Debug("build-already-tracked")
 		return
 	}
 
@@ -185,6 +191,7 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 	}
 
 	if !found {
+		logger.Info("build-not-found")
 		return
 	}
 
@@ -247,6 +254,8 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 		BuildID:      model.ID,
 	}.Emit(logger)
 
+	logger.Info("running")
+
 	engineBuild.Resume(logger)
 
 	doneModel, found, err := build.db.GetBuild(build.id)
@@ -256,6 +265,7 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 	}
 
 	if !found {
+		logger.Info("build-removed")
 		return
 	}
 
