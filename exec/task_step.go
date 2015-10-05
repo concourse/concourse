@@ -157,9 +157,16 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 				return err
 			}
 			if len(mounts) >= len(inputMounts) {
+				for _, mount := range inputMounts {
+					mount.Volume.Release(0)
+				}
 				inputMounts = mounts
 				inputsToStream = toStream
 				chosenWorker = w
+			} else {
+				for _, mount := range mounts {
+					mount.Volume.Release(0)
+				}
 			}
 		}
 

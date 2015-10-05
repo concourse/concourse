@@ -891,16 +891,18 @@ var _ = Describe("GardenFactory", func() {
 				Context("when more than one worker can be located", func() {
 					var fakeWorker *wfakes.FakeWorker
 					var fakeWorker2 *wfakes.FakeWorker
+					var fakeWorker3 *wfakes.FakeWorker
 					var fakeBaggageclaimClient *bfakes.FakeClient
 
 					BeforeEach(func() {
 						fakeWorker = new(wfakes.FakeWorker)
 						fakeWorker2 = new(wfakes.FakeWorker)
+						fakeWorker3 = new(wfakes.FakeWorker)
 
 						fakeBaggageclaimClient = new(bfakes.FakeClient)
 						fakeWorker2.VolumeManagerReturns(fakeBaggageclaimClient, true)
 
-						fakeWorkerClient.AllSatisfyingReturns([]worker.Worker{fakeWorker, fakeWorker2}, nil)
+						fakeWorkerClient.AllSatisfyingReturns([]worker.Worker{fakeWorker, fakeWorker2, fakeWorker3}, nil)
 					})
 					Context("when the configuration has inputs", func() {
 						var inputSource *fakes.FakeArtifactSource
@@ -934,6 +936,8 @@ var _ = Describe("GardenFactory", func() {
 							Context("and some workers have more matching input volumes than others", func() {
 								var rootVolume *bfakes.FakeVolume
 								var inputVolume *bfakes.FakeVolume
+								var inputVolume2 *bfakes.FakeVolume
+								var inputVolume3 *bfakes.FakeVolume
 								var otherInputVolume *bfakes.FakeVolume
 
 								BeforeEach(func() {
@@ -943,27 +947,58 @@ var _ = Describe("GardenFactory", func() {
 									inputVolume = new(bfakes.FakeVolume)
 									inputVolume.HandleReturns("input-volume")
 
+									inputVolume2 = new(bfakes.FakeVolume)
+									inputVolume2.HandleReturns("input-volume")
+
+									inputVolume3 = new(bfakes.FakeVolume)
+									inputVolume3.HandleReturns("input-volume")
+
 									otherInputVolume = new(bfakes.FakeVolume)
 									otherInputVolume.HandleReturns("other-input-volume")
 
 									fakeBaggageclaimClient.CreateVolumeReturns(rootVolume, nil)
 
-									inputSource.VolumeOnReturns(inputVolume, true, nil)
+									inputSource.VolumeOnStub = func(w worker.Worker) (baggageclaim.Volume, bool, error) {
+										if w == fakeWorker {
+											return inputVolume, true, nil
+										} else if w == fakeWorker2 {
+											return inputVolume2, true, nil
+										} else if w == fakeWorker3 {
+											return inputVolume3, true, nil
+										} else {
+											return nil, false, fmt.Errorf("unexpected worker: %#v\n", w)
+										}
+									}
 									otherInputSource.VolumeOnStub = func(w worker.Worker) (baggageclaim.Volume, bool, error) {
-										if w == fakeWorker2 {
+										if w == fakeWorker {
+											return nil, false, nil
+										} else if w == fakeWorker2 {
 											return otherInputVolume, true, nil
-										} else if w == fakeWorker {
+										} else if w == fakeWorker3 {
 											return nil, false, nil
 										} else {
 											return nil, false, fmt.Errorf("unexpected worker: %#v\n", w)
 										}
 									}
+
 									fakeWorker.CreateContainerReturns(nil, errors.New("fall out of method here"))
 									fakeWorker2.CreateContainerReturns(nil, errors.New("fall out of method here"))
 								})
 								It("picks the worker that has the most", func() {
 									Expect(fakeWorker.CreateContainerCallCount()).To(Equal(0))
 									Expect(fakeWorker2.CreateContainerCallCount()).To(Equal(1))
+									Expect(fakeWorker3.CreateContainerCallCount()).To(Equal(0))
+								})
+
+								It("releases the volumes on the unused workers", func() {
+									Expect(inputVolume.ReleaseCallCount()).To(Equal(1))
+									Expect(inputVolume3.ReleaseCallCount()).To(Equal(1))
+
+									// We don't expect these to be released because we are
+									// causing an error in the create container step, which
+									// happens before they are released.
+									Expect(inputVolume2.ReleaseCallCount()).To(Equal(0))
+									Expect(otherInputVolume.ReleaseCallCount()).To(Equal(0))
 								})
 							})
 						})
