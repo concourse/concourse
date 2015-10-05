@@ -333,6 +333,8 @@ jobs:
       passed: [virtualbox-box]
     - get: virtualbox-box
       passed: [virtualbox-box]
+    - get: final-release
+      passed: [virtualbox-box]
   - task: build-release-notes
     file: concourse/ci/build-release-notes.yml
   - put: virtualbox-box-cloud
@@ -375,6 +377,8 @@ jobs:
     - get: concourse
       passed: [aws-box]
     - get: aws-box
+      passed: [aws-box]
+    - get: final-release
       passed: [aws-box]
   - task: build-release-notes
     file: concourse/ci/build-release-notes.yml
