@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -17,6 +18,7 @@ import (
 	rfakes "github.com/concourse/atc/resource/fakes"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
+	"github.com/concourse/baggageclaim"
 	bfakes "github.com/concourse/baggageclaim/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -120,7 +122,7 @@ var _ = Describe("GardenFactory", func() {
 					disaster := errors.New("nope")
 
 					BeforeEach(func() {
-						fakeWorkerClient.SatisfyingReturns(nil, disaster)
+						fakeWorkerClient.AllSatisfyingReturns(nil, disaster)
 					})
 
 					It("exits with the error", func() {
@@ -128,7 +130,7 @@ var _ = Describe("GardenFactory", func() {
 					})
 				})
 
-				Context("when a worker can be located", func() {
+				Context("when a single worker can be located", func() {
 					var fakeWorker *wfakes.FakeWorker
 					var fakeBaggageclaimClient *bfakes.FakeClient
 
@@ -138,7 +140,7 @@ var _ = Describe("GardenFactory", func() {
 						fakeBaggageclaimClient = new(bfakes.FakeClient)
 						fakeWorker.VolumeManagerReturns(fakeBaggageclaimClient, true)
 
-						fakeWorkerClient.SatisfyingReturns(fakeWorker, nil)
+						fakeWorkerClient.AllSatisfyingReturns([]worker.Worker{fakeWorker}, nil)
 					})
 
 					Context("when creating the task's container works", func() {
@@ -174,7 +176,8 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("found the worker with the right spec", func() {
-							spec := fakeWorkerClient.SatisfyingArgsForCall(0)
+							Expect(fakeWorkerClient.AllSatisfyingCallCount()).To(Equal(1))
+							spec := fakeWorkerClient.AllSatisfyingArgsForCall(0)
 							Expect(spec.Platform).To(Equal("some-platform"))
 							Expect(spec.Tags).To(ConsistOf("step", "tags", "config"))
 						})
@@ -184,7 +187,7 @@ var _ = Describe("GardenFactory", func() {
 							Expect(findID).To(Equal(identifier))
 						})
 
-						It("gets the config from the input artifact soruce", func() {
+						It("gets the config from the input artifact source", func() {
 							Expect(configSource.FetchConfigCallCount()).To(Equal(1))
 							Expect(configSource.FetchConfigArgsForCall(0)).To(Equal(repo))
 						})
@@ -881,6 +884,88 @@ var _ = Describe("GardenFactory", func() {
 							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 							Expect(taskDelegate.FailedCallCount()).To(Equal(1))
 							Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
+						})
+					})
+				})
+
+				Context("when more than one worker can be located", func() {
+					var fakeWorker *wfakes.FakeWorker
+					var fakeWorker2 *wfakes.FakeWorker
+					var fakeBaggageclaimClient *bfakes.FakeClient
+
+					BeforeEach(func() {
+						fakeWorker = new(wfakes.FakeWorker)
+						fakeWorker2 = new(wfakes.FakeWorker)
+
+						fakeBaggageclaimClient = new(bfakes.FakeClient)
+						fakeWorker2.VolumeManagerReturns(fakeBaggageclaimClient, true)
+
+						fakeWorkerClient.AllSatisfyingReturns([]worker.Worker{fakeWorker, fakeWorker2}, nil)
+					})
+					Context("when the configuration has inputs", func() {
+						var inputSource *fakes.FakeArtifactSource
+						var otherInputSource *fakes.FakeArtifactSource
+
+						BeforeEach(func() {
+							inputSource = new(fakes.FakeArtifactSource)
+							otherInputSource = new(fakes.FakeArtifactSource)
+
+							configSource.FetchConfigReturns(atc.TaskConfig{
+								Platform: "some-platform",
+								Image:    "some-image",
+								Params:   map[string]string{"SOME": "params"},
+								Run: atc.TaskRunConfig{
+									Path: "ls",
+									Args: []string{"some", "args"},
+								},
+								Inputs: []atc.TaskInputConfig{
+									{Name: "some-input"},
+									{Name: "some-other-input"},
+								},
+							}, nil)
+						})
+
+						Context("when all inputs are present in the in source repository", func() {
+							BeforeEach(func() {
+								repo.RegisterSource("some-input", inputSource)
+								repo.RegisterSource("some-other-input", otherInputSource)
+							})
+
+							Context("and some workers have more matching input volumes than others", func() {
+								var rootVolume *bfakes.FakeVolume
+								var inputVolume *bfakes.FakeVolume
+								var otherInputVolume *bfakes.FakeVolume
+
+								BeforeEach(func() {
+									rootVolume = new(bfakes.FakeVolume)
+									rootVolume.HandleReturns("root-volume")
+
+									inputVolume = new(bfakes.FakeVolume)
+									inputVolume.HandleReturns("input-volume")
+
+									otherInputVolume = new(bfakes.FakeVolume)
+									otherInputVolume.HandleReturns("other-input-volume")
+
+									fakeBaggageclaimClient.CreateVolumeReturns(rootVolume, nil)
+
+									inputSource.VolumeOnReturns(inputVolume, true, nil)
+									otherInputSource.VolumeOnStub = func(w worker.Worker) (baggageclaim.Volume, bool, error) {
+										if w == fakeWorker2 {
+											return otherInputVolume, true, nil
+										} else if w == fakeWorker {
+											return nil, false, nil
+										} else {
+											return nil, false, fmt.Errorf("unexpected worker: %#v\n", w)
+										}
+									}
+									fakeWorker.CreateContainerReturns(nil, errors.New("fall out of method here"))
+									fakeWorker2.CreateContainerReturns(nil, errors.New("fall out of method here"))
+								})
+								It("picks the worker that has the most", func() {
+									Expect(fakeWorker.CreateContainerCallCount()).To(Equal(0))
+									Expect(fakeWorker2.CreateContainerCallCount()).To(Equal(1))
+								})
+							})
 						})
 					})
 				})

@@ -27,6 +27,212 @@ var _ = Describe("Pool", func() {
 		pool = NewPool(fakeProvider)
 	})
 
+	Describe("Satisfying", func() {
+		var (
+			spec WorkerSpec
+
+			satisfyingErr    error
+			satisfyingWorker Worker
+		)
+
+		BeforeEach(func() {
+			spec = WorkerSpec{
+				Platform: "some-platform",
+				Tags:     []string{"step", "tags"},
+			}
+		})
+
+		JustBeforeEach(func() {
+			satisfyingWorker, satisfyingErr = pool.Satisfying(spec)
+		})
+
+		Context("with multiple workers", func() {
+			var (
+				workerA *fakes.FakeWorker
+				workerB *fakes.FakeWorker
+				workerC *fakes.FakeWorker
+			)
+
+			BeforeEach(func() {
+				workerA = new(fakes.FakeWorker)
+				workerB = new(fakes.FakeWorker)
+				workerC = new(fakes.FakeWorker)
+
+				workerA.SatisfyingReturns(workerA, nil)
+				workerB.SatisfyingReturns(workerB, nil)
+				workerC.SatisfyingReturns(nil, errors.New("nope"))
+
+				fakeProvider.WorkersReturns([]Worker{workerA, workerB, workerC}, nil)
+			})
+
+			It("succeeds", func() {
+				Expect(satisfyingErr).NotTo(HaveOccurred())
+			})
+
+			It("checks that the workers satisfy the given spec", func() {
+				Expect(workerA.SatisfyingCallCount()).To(Equal(1))
+				Expect(workerA.SatisfyingArgsForCall(0)).To(Equal(spec))
+
+				Expect(workerB.SatisfyingCallCount()).To(Equal(1))
+				Expect(workerB.SatisfyingArgsForCall(0)).To(Equal(spec))
+
+				Expect(workerC.SatisfyingCallCount()).To(Equal(1))
+				Expect(workerC.SatisfyingArgsForCall(0)).To(Equal(spec))
+			})
+
+			It("returns a random worker satisfying the spec", func() {
+				chosenCount := map[Worker]int{workerA: 0, workerB: 0, workerC: 0}
+				for i := 0; i < 100; i++ {
+					satisfyingWorker, satisfyingErr = pool.Satisfying(spec)
+					Expect(satisfyingErr).NotTo(HaveOccurred())
+					chosenCount[satisfyingWorker]++
+				}
+				Expect(chosenCount[workerA]).To(BeNumerically("~", chosenCount[workerB], 50))
+				Expect(chosenCount[workerC]).To(BeZero())
+			})
+
+			Context("when no workers satisfy the spec", func() {
+				BeforeEach(func() {
+					workerA.SatisfyingReturns(nil, errors.New("nope"))
+					workerB.SatisfyingReturns(nil, errors.New("nope"))
+					workerC.SatisfyingReturns(nil, errors.New("nope"))
+				})
+
+				It("returns a NoCompatibleWorkersError", func() {
+					Expect(satisfyingErr).To(Equal(NoCompatibleWorkersError{
+						Spec:    spec,
+						Workers: []Worker{workerA, workerB, workerC},
+					}))
+				})
+			})
+		})
+
+		Context("with no workers", func() {
+			BeforeEach(func() {
+				fakeProvider.WorkersReturns([]Worker{}, nil)
+			})
+
+			It("returns ErrNoWorkers", func() {
+				Expect(satisfyingErr).To(Equal(ErrNoWorkers))
+			})
+		})
+
+		Context("when getting the workers fails", func() {
+			disaster := errors.New("nope")
+
+			BeforeEach(func() {
+				fakeProvider.WorkersReturns(nil, disaster)
+			})
+
+			It("returns the error", func() {
+				Expect(satisfyingErr).To(Equal(disaster))
+			})
+		})
+	})
+
+	Describe("AllSatisfying", func() {
+		var (
+			spec WorkerSpec
+
+			satisfyingErr     error
+			satisfyingWorkers []Worker
+		)
+
+		BeforeEach(func() {
+			spec = WorkerSpec{
+				Platform: "some-platform",
+				Tags:     []string{"step", "tags"},
+			}
+		})
+
+		JustBeforeEach(func() {
+			satisfyingWorkers, satisfyingErr = pool.AllSatisfying(spec)
+		})
+
+		Context("with multiple workers", func() {
+			var (
+				workerA *fakes.FakeWorker
+				workerB *fakes.FakeWorker
+				workerC *fakes.FakeWorker
+			)
+
+			BeforeEach(func() {
+				workerA = new(fakes.FakeWorker)
+				workerB = new(fakes.FakeWorker)
+				workerC = new(fakes.FakeWorker)
+
+				workerA.SatisfyingReturns(workerA, nil)
+				workerB.SatisfyingReturns(workerB, nil)
+				workerC.SatisfyingReturns(nil, errors.New("nope"))
+
+				fakeProvider.WorkersReturns([]Worker{workerA, workerB, workerC}, nil)
+			})
+
+			It("succeeds", func() {
+				Expect(satisfyingErr).NotTo(HaveOccurred())
+			})
+
+			It("checks that the workers satisfy the given spec", func() {
+				Expect(workerA.SatisfyingCallCount()).To(Equal(1))
+				Expect(workerA.SatisfyingArgsForCall(0)).To(Equal(spec))
+
+				Expect(workerB.SatisfyingCallCount()).To(Equal(1))
+				Expect(workerB.SatisfyingArgsForCall(0)).To(Equal(spec))
+
+				Expect(workerC.SatisfyingCallCount()).To(Equal(1))
+				Expect(workerC.SatisfyingArgsForCall(0)).To(Equal(spec))
+			})
+
+			It("returns all workers satisfying the spec in a random order", func() {
+				firstCount := map[Worker]int{workerA: 0, workerB: 0}
+				for i := 0; i < 100; i++ {
+					satisfyingWorkers, satisfyingErr = pool.AllSatisfying(spec)
+					Expect(satisfyingErr).NotTo(HaveOccurred())
+					Expect(satisfyingWorkers).To(ConsistOf(workerA, workerB))
+					firstCount[satisfyingWorkers[0]]++
+				}
+				Expect(firstCount[workerA]).To(BeNumerically("~", firstCount[workerB], 50))
+			})
+
+			Context("when no workers satisfy the spec", func() {
+				BeforeEach(func() {
+					workerA.SatisfyingReturns(nil, errors.New("nope"))
+					workerB.SatisfyingReturns(nil, errors.New("nope"))
+					workerC.SatisfyingReturns(nil, errors.New("nope"))
+				})
+
+				It("returns a NoCompatibleWorkersError", func() {
+					Expect(satisfyingErr).To(Equal(NoCompatibleWorkersError{
+						Spec:    spec,
+						Workers: []Worker{workerA, workerB, workerC},
+					}))
+				})
+			})
+		})
+
+		Context("with no workers", func() {
+			BeforeEach(func() {
+				fakeProvider.WorkersReturns([]Worker{}, nil)
+			})
+
+			It("returns ErrNoWorkers", func() {
+				Expect(satisfyingErr).To(Equal(ErrNoWorkers))
+			})
+		})
+
+		Context("when getting the workers fails", func() {
+			disaster := errors.New("nope")
+
+			BeforeEach(func() {
+				fakeProvider.WorkersReturns(nil, disaster)
+			})
+
+			It("returns the error", func() {
+				Expect(satisfyingErr).To(Equal(disaster))
+			})
+		})
+	})
+
 	Describe("Create", func() {
 		var (
 			id   Identifier

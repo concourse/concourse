@@ -143,14 +143,24 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			Tags:     tags,
 		}
 
-		chosenWorker, err := step.workerPool.Satisfying(workerSpec)
+		compatibleWorkers, err := step.workerPool.AllSatisfying(workerSpec)
 		if err != nil {
 			return err
 		}
 
-		inputMounts, inputsToStream, err := step.inputsOn(config.Inputs, chosenWorker)
-		if err != nil {
-			return err
+		inputMounts := []worker.VolumeMount{}
+		inputsToStream := []inputPair{}
+		var chosenWorker worker.Worker
+		for _, w := range compatibleWorkers {
+			mounts, toStream, err := step.inputsOn(config.Inputs, w)
+			if err != nil {
+				return err
+			}
+			if len(mounts) >= len(inputMounts) {
+				inputMounts = mounts
+				inputsToStream = toStream
+				chosenWorker = w
+			}
 		}
 
 		step.container, err = chosenWorker.CreateContainer(

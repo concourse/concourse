@@ -51,6 +51,15 @@ type FakeClient struct {
 		result1 worker.Worker
 		result2 error
 	}
+	AllSatisfyingStub        func(worker.WorkerSpec) ([]worker.Worker, error)
+	allSatisfyingMutex       sync.RWMutex
+	allSatisfyingArgsForCall []struct {
+		arg1 worker.WorkerSpec
+	}
+	allSatisfyingReturns struct {
+		result1 []worker.Worker
+		result2 error
+	}
 }
 
 func (fake *FakeClient) CreateContainer(arg1 lager.Logger, arg2 worker.Identifier, arg3 worker.ContainerSpec) (worker.Container, error) {
@@ -187,6 +196,39 @@ func (fake *FakeClient) SatisfyingReturns(result1 worker.Worker, result2 error) 
 	fake.SatisfyingStub = nil
 	fake.satisfyingReturns = struct {
 		result1 worker.Worker
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) AllSatisfying(arg1 worker.WorkerSpec) ([]worker.Worker, error) {
+	fake.allSatisfyingMutex.Lock()
+	fake.allSatisfyingArgsForCall = append(fake.allSatisfyingArgsForCall, struct {
+		arg1 worker.WorkerSpec
+	}{arg1})
+	fake.allSatisfyingMutex.Unlock()
+	if fake.AllSatisfyingStub != nil {
+		return fake.AllSatisfyingStub(arg1)
+	} else {
+		return fake.allSatisfyingReturns.result1, fake.allSatisfyingReturns.result2
+	}
+}
+
+func (fake *FakeClient) AllSatisfyingCallCount() int {
+	fake.allSatisfyingMutex.RLock()
+	defer fake.allSatisfyingMutex.RUnlock()
+	return len(fake.allSatisfyingArgsForCall)
+}
+
+func (fake *FakeClient) AllSatisfyingArgsForCall(i int) worker.WorkerSpec {
+	fake.allSatisfyingMutex.RLock()
+	defer fake.allSatisfyingMutex.RUnlock()
+	return fake.allSatisfyingArgsForCall[i].arg1
+}
+
+func (fake *FakeClient) AllSatisfyingReturns(result1 []worker.Worker, result2 error) {
+	fake.AllSatisfyingStub = nil
+	fake.allSatisfyingReturns = struct {
+		result1 []worker.Worker
 		result2 error
 	}{result1, result2}
 }

@@ -56,7 +56,14 @@ func NewPool(provider WorkerProvider) Client {
 	}
 }
 
-func (pool *pool) Satisfying(spec WorkerSpec) (Worker, error) {
+func shuffleWorkers(slice []Worker) {
+	for i := range slice {
+		j := rand.Intn(i + 1)
+		slice[i], slice[j] = slice[j], slice[i]
+	}
+}
+
+func (pool *pool) AllSatisfying(spec WorkerSpec) ([]Worker, error) {
 	workers, err := pool.provider.Workers()
 	if err != nil {
 		return nil, err
@@ -81,8 +88,17 @@ func (pool *pool) Satisfying(spec WorkerSpec) (Worker, error) {
 		}
 	}
 
-	randomWorker := compatibleWorkers[pool.rand.Intn(len(compatibleWorkers))]
+	shuffleWorkers(compatibleWorkers)
 
+	return compatibleWorkers, nil
+}
+
+func (pool *pool) Satisfying(spec WorkerSpec) (Worker, error) {
+	compatibleWorkers, err := pool.AllSatisfying(spec)
+	if err != nil {
+		return nil, err
+	}
+	randomWorker := compatibleWorkers[pool.rand.Intn(len(compatibleWorkers))]
 	return randomWorker, nil
 }
 

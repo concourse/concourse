@@ -19,6 +19,7 @@ type Client interface {
 	LookupContainer(lager.Logger, string) (Container, bool, error)
 
 	Satisfying(WorkerSpec) (Worker, error)
+	AllSatisfying(WorkerSpec) ([]Worker, error)
 }
 
 //go:generate counterfeiter . Container
