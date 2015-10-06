@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/cloudfoundry-incubator/garden"
@@ -42,6 +43,8 @@ type RetryableConnection struct {
 	Sleeper           Sleeper
 	RetryPolicy       RetryPolicy
 	ConnectionFactory GardenConnectionFactory
+
+	connectionUpdateLock sync.Mutex
 }
 
 func NewRetryableConnection(
@@ -53,10 +56,11 @@ func NewRetryableConnection(
 	return &RetryableConnection{
 		Connection: connectionFactory.BuildConnection(),
 
-		Logger:            logger,
-		Sleeper:           sleeper,
-		RetryPolicy:       retryPolicy,
-		ConnectionFactory: connectionFactory,
+		Logger:               logger,
+		Sleeper:              sleeper,
+		RetryPolicy:          retryPolicy,
+		ConnectionFactory:    connectionFactory,
+		connectionUpdateLock: sync.Mutex{},
 	}
 }
 
@@ -405,13 +409,28 @@ func (conn *RetryableConnection) retry(action func() error) error {
 
 		conn.Sleeper.Sleep(delay)
 
-		conn.Connection, err = conn.ConnectionFactory.BuildConnectionFromDB()
+		err = conn.updateConnectionFromDB()
 		if err != nil {
 			break
 		}
 	}
 
 	return err
+}
+
+func (conn *RetryableConnection) updateConnectionFromDB() error {
+	conn.connectionUpdateLock.Lock()
+	defer conn.connectionUpdateLock.Unlock()
+
+	connection, err := conn.ConnectionFactory.BuildConnectionFromDB()
+
+	if err != nil {
+		return err
+	}
+
+	conn.Connection = connection
+
+	return nil
 }
 
 func (conn *RetryableConnection) retryable(err error) bool {
