@@ -118,7 +118,7 @@ jobs:
   serial_groups: [version]
   plan:
   - get: version
-    params: {bump: major}
+    params: {bump: major, pre: rc}
   - put: version
     params: {file: version/number}
 
@@ -127,7 +127,7 @@ jobs:
   serial_groups: [version]
   plan:
   - get: version
-    params: {bump: minor}
+    params: {bump: minor, pre: rc}
   - put: version
     params: {file: version/number}
 
@@ -135,18 +135,9 @@ jobs:
   public: true
   serial_groups: [version]
   plan:
-  # another trigger input is needed because patch versions will already be
-  # inputs to this job, since our versioning flow is final -> rc1..N -> final
-  #
-  # real fix would be to have the final versions not precede the candidates in
-  # history
-  - get: concourse
-    passed: [shipit]
-    params: {submodules: none}
-    trigger: true
   - get: version
     passed: [shipit]
-    params: {bump: patch}
+    params: {bump: patch, pre: rc}
     trigger: true
   - put: version
     params: {file: version/number}
