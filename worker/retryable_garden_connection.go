@@ -38,16 +38,33 @@ var retryableErrors = []error{
 type RetryableConnection struct {
 	gconn.Connection
 
-	Logger      lager.Logger
-	Sleeper     Sleeper
-	RetryPolicy RetryPolicy
+	Logger            lager.Logger
+	Sleeper           Sleeper
+	RetryPolicy       RetryPolicy
+	ConnectionFactory GardenConnectionFactory
 }
 
-func (conn RetryableConnection) Ping() error {
+func NewRetryableConnection(
+	logger lager.Logger,
+	sleeper Sleeper,
+	retryPolicy RetryPolicy,
+	connectionFactory GardenConnectionFactory,
+) *RetryableConnection {
+	return &RetryableConnection{
+		Connection: connectionFactory.BuildConnection(),
+
+		Logger:            logger,
+		Sleeper:           sleeper,
+		RetryPolicy:       retryPolicy,
+		ConnectionFactory: connectionFactory,
+	}
+}
+
+func (conn *RetryableConnection) Ping() error {
 	return conn.Connection.Ping()
 }
 
-func (conn RetryableConnection) Capacity() (garden.Capacity, error) {
+func (conn *RetryableConnection) Capacity() (garden.Capacity, error) {
 	var capacity garden.Capacity
 
 	err := conn.retry(func() error {
@@ -62,7 +79,7 @@ func (conn RetryableConnection) Capacity() (garden.Capacity, error) {
 	return capacity, nil
 }
 
-func (conn RetryableConnection) List(properties garden.Properties) ([]string, error) {
+func (conn *RetryableConnection) List(properties garden.Properties) ([]string, error) {
 	var handles []string
 
 	err := conn.retry(func() error {
@@ -77,7 +94,7 @@ func (conn RetryableConnection) List(properties garden.Properties) ([]string, er
 	return handles, nil
 }
 
-func (conn RetryableConnection) Info(handle string) (garden.ContainerInfo, error) {
+func (conn *RetryableConnection) Info(handle string) (garden.ContainerInfo, error) {
 	var info garden.ContainerInfo
 
 	err := conn.retry(func() error {
@@ -92,7 +109,7 @@ func (conn RetryableConnection) Info(handle string) (garden.ContainerInfo, error
 	return info, nil
 }
 
-func (conn RetryableConnection) NetIn(handle string, hostPort, containerPort uint32) (uint32, uint32, error) {
+func (conn *RetryableConnection) NetIn(handle string, hostPort, containerPort uint32) (uint32, uint32, error) {
 	var resultingHostPort, resultingContainerPort uint32
 
 	err := conn.retry(func() error {
@@ -107,13 +124,13 @@ func (conn RetryableConnection) NetIn(handle string, hostPort, containerPort uin
 	return resultingHostPort, resultingContainerPort, nil
 }
 
-func (conn RetryableConnection) NetOut(handle string, rule garden.NetOutRule) error {
+func (conn *RetryableConnection) NetOut(handle string, rule garden.NetOutRule) error {
 	return conn.retry(func() error {
 		return conn.Connection.NetOut(handle, rule)
 	})
 }
 
-func (conn RetryableConnection) Create(spec garden.ContainerSpec) (string, error) {
+func (conn *RetryableConnection) Create(spec garden.ContainerSpec) (string, error) {
 	var resultingHandle string
 
 	err := conn.retry(func() error {
@@ -128,19 +145,19 @@ func (conn RetryableConnection) Create(spec garden.ContainerSpec) (string, error
 	return resultingHandle, nil
 }
 
-func (conn RetryableConnection) Destroy(handle string) error {
+func (conn *RetryableConnection) Destroy(handle string) error {
 	return conn.retry(func() error {
 		return conn.Connection.Destroy(handle)
 	})
 }
 
-func (conn RetryableConnection) Stop(handle string, kill bool) error {
+func (conn *RetryableConnection) Stop(handle string, kill bool) error {
 	return conn.retry(func() error {
 		return conn.Connection.Stop(handle, kill)
 	})
 }
 
-func (conn RetryableConnection) CurrentBandwidthLimits(handle string) (garden.BandwidthLimits, error) {
+func (conn *RetryableConnection) CurrentBandwidthLimits(handle string) (garden.BandwidthLimits, error) {
 	var resultingLimits garden.BandwidthLimits
 
 	err := conn.retry(func() error {
@@ -155,7 +172,7 @@ func (conn RetryableConnection) CurrentBandwidthLimits(handle string) (garden.Ba
 	return resultingLimits, nil
 }
 
-func (conn RetryableConnection) CurrentCPULimits(handle string) (garden.CPULimits, error) {
+func (conn *RetryableConnection) CurrentCPULimits(handle string) (garden.CPULimits, error) {
 	var resultingLimits garden.CPULimits
 
 	err := conn.retry(func() error {
@@ -170,7 +187,7 @@ func (conn RetryableConnection) CurrentCPULimits(handle string) (garden.CPULimit
 	return resultingLimits, nil
 }
 
-func (conn RetryableConnection) CurrentDiskLimits(handle string) (garden.DiskLimits, error) {
+func (conn *RetryableConnection) CurrentDiskLimits(handle string) (garden.DiskLimits, error) {
 	var resultingLimits garden.DiskLimits
 
 	err := conn.retry(func() error {
@@ -185,7 +202,7 @@ func (conn RetryableConnection) CurrentDiskLimits(handle string) (garden.DiskLim
 	return resultingLimits, nil
 }
 
-func (conn RetryableConnection) CurrentMemoryLimits(handle string) (garden.MemoryLimits, error) {
+func (conn *RetryableConnection) CurrentMemoryLimits(handle string) (garden.MemoryLimits, error) {
 	var resultingLimits garden.MemoryLimits
 
 	err := conn.retry(func() error {
@@ -200,7 +217,7 @@ func (conn RetryableConnection) CurrentMemoryLimits(handle string) (garden.Memor
 	return resultingLimits, nil
 }
 
-func (conn RetryableConnection) LimitBandwidth(handle string, limits garden.BandwidthLimits) (garden.BandwidthLimits, error) {
+func (conn *RetryableConnection) LimitBandwidth(handle string, limits garden.BandwidthLimits) (garden.BandwidthLimits, error) {
 	var resultingLimits garden.BandwidthLimits
 
 	err := conn.retry(func() error {
@@ -215,7 +232,7 @@ func (conn RetryableConnection) LimitBandwidth(handle string, limits garden.Band
 	return resultingLimits, nil
 }
 
-func (conn RetryableConnection) LimitCPU(handle string, limits garden.CPULimits) (garden.CPULimits, error) {
+func (conn *RetryableConnection) LimitCPU(handle string, limits garden.CPULimits) (garden.CPULimits, error) {
 	var resultingLimits garden.CPULimits
 
 	err := conn.retry(func() error {
@@ -230,7 +247,7 @@ func (conn RetryableConnection) LimitCPU(handle string, limits garden.CPULimits)
 	return resultingLimits, nil
 }
 
-func (conn RetryableConnection) LimitDisk(handle string, limits garden.DiskLimits) (garden.DiskLimits, error) {
+func (conn *RetryableConnection) LimitDisk(handle string, limits garden.DiskLimits) (garden.DiskLimits, error) {
 	var resultingLimits garden.DiskLimits
 
 	err := conn.retry(func() error {
@@ -245,7 +262,7 @@ func (conn RetryableConnection) LimitDisk(handle string, limits garden.DiskLimit
 	return resultingLimits, nil
 }
 
-func (conn RetryableConnection) LimitMemory(handle string, limits garden.MemoryLimits) (garden.MemoryLimits, error) {
+func (conn *RetryableConnection) LimitMemory(handle string, limits garden.MemoryLimits) (garden.MemoryLimits, error) {
 	var resultingLimits garden.MemoryLimits
 
 	err := conn.retry(func() error {
@@ -260,7 +277,7 @@ func (conn RetryableConnection) LimitMemory(handle string, limits garden.MemoryL
 	return resultingLimits, nil
 }
 
-func (conn RetryableConnection) Property(handle string, name string) (string, error) {
+func (conn *RetryableConnection) Property(handle string, name string) (string, error) {
 	var value string
 
 	err := conn.retry(func() error {
@@ -275,26 +292,26 @@ func (conn RetryableConnection) Property(handle string, name string) (string, er
 	return value, nil
 }
 
-func (conn RetryableConnection) SetProperty(handle string, name string, value string) error {
+func (conn *RetryableConnection) SetProperty(handle string, name string, value string) error {
 	return conn.retry(func() error {
 		return conn.Connection.SetProperty(handle, name, value)
 	})
 }
 
-func (conn RetryableConnection) RemoveProperty(handle string, name string) error {
+func (conn *RetryableConnection) RemoveProperty(handle string, name string) error {
 	return conn.retry(func() error {
 		return conn.Connection.RemoveProperty(handle, name)
 	})
 }
 
-func (conn RetryableConnection) StreamIn(handle string, spec garden.StreamInSpec) error {
+func (conn *RetryableConnection) StreamIn(handle string, spec garden.StreamInSpec) error {
 	// We don't retry StreamIn because the other end of the connection may have
 	// already started reading the body of our request and to send it again would
 	// leave things in an unknown state.
 	return conn.Connection.StreamIn(handle, spec)
 }
 
-func (conn RetryableConnection) StreamOut(handle string, spec garden.StreamOutSpec) (io.ReadCloser, error) {
+func (conn *RetryableConnection) StreamOut(handle string, spec garden.StreamOutSpec) (io.ReadCloser, error) {
 	var readCloser io.ReadCloser
 
 	err := conn.retry(func() error {
@@ -309,7 +326,7 @@ func (conn RetryableConnection) StreamOut(handle string, spec garden.StreamOutSp
 	return readCloser, nil
 }
 
-func (conn RetryableConnection) Run(handle string, processSpec garden.ProcessSpec, processIO garden.ProcessIO) (garden.Process, error) {
+func (conn *RetryableConnection) Run(handle string, processSpec garden.ProcessSpec, processIO garden.ProcessIO) (garden.Process, error) {
 	var innerProcess garden.Process
 
 	err := conn.retry(func() error {
@@ -330,7 +347,7 @@ func (conn RetryableConnection) Run(handle string, processSpec garden.ProcessSpe
 	}, nil
 }
 
-func (conn RetryableConnection) Attach(handle string, processID uint32, processIO garden.ProcessIO) (garden.Process, error) {
+func (conn *RetryableConnection) Attach(handle string, processID uint32, processIO garden.ProcessIO) (garden.Process, error) {
 	var innerProcess garden.Process
 
 	err := conn.retry(func() error {
@@ -387,6 +404,11 @@ func (conn *RetryableConnection) retry(action func() error) error {
 		})
 
 		conn.Sleeper.Sleep(delay)
+
+		conn.Connection, err = conn.ConnectionFactory.BuildConnectionFromDB()
+		if err != nil {
+			break
+		}
 	}
 
 	return err

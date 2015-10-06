@@ -22,9 +22,10 @@ import (
 
 var _ = Describe("Retryable", func() {
 	var (
-		innerConnection *fconn.FakeConnection
-		retryPolicy     *fakes.FakeRetryPolicy
-		sleeper         *fakes.FakeSleeper
+		innerConnection   *fconn.FakeConnection
+		retryPolicy       *fakes.FakeRetryPolicy
+		sleeper           *fakes.FakeSleeper
+		connectionFactory *fakes.FakeGardenConnectionFactory
 
 		conn gconn.Connection
 	)
@@ -33,13 +34,17 @@ var _ = Describe("Retryable", func() {
 		innerConnection = new(fconn.FakeConnection)
 		retryPolicy = new(fakes.FakeRetryPolicy)
 		sleeper = new(fakes.FakeSleeper)
+		connectionFactory = new(fakes.FakeGardenConnectionFactory)
+		connectionFactory.BuildConnectionReturns(innerConnection)
+		connectionFactory.BuildConnectionFromDBReturns(innerConnection, nil)
 
-		conn = worker.RetryableConnection{
-			Connection:  innerConnection,
-			Logger:      lagertest.NewTestLogger("retryable-connection"),
-			Sleeper:     sleeper,
-			RetryPolicy: retryPolicy,
-		}
+		conn = worker.NewRetryableConnection(
+			lagertest.NewTestLogger("retryable-connection"),
+			sleeper,
+			retryPolicy,
+			connectionFactory,
+		)
+
 	})
 
 	retryableErrors := []error{

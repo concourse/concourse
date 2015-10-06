@@ -293,7 +293,16 @@ func main() {
 		logger.Fatal("invalid-resource-types", err)
 	}
 
-	workerClient := worker.NewPool(worker.NewDBWorkerProvider(logger, db, keepaliveDialer))
+	workerClient := worker.NewPool(
+		worker.NewDBWorkerProvider(
+			logger,
+			db,
+			keepaliveDialer,
+			worker.ExponentialRetryPolicy{
+				Timeout: 5 * time.Minute,
+			},
+		),
+	)
 
 	tracker := resource.NewTracker(workerClient)
 

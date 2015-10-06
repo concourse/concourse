@@ -2,7 +2,6 @@ package worker
 
 import (
 	"errors"
-	"net"
 	"time"
 
 	gclient "github.com/cloudfoundry-incubator/garden/client"
@@ -31,20 +30,23 @@ type WorkerDB interface {
 var ErrMultipleWorkersWithName = errors.New("More than one worker has given worker name")
 
 type dbProvider struct {
-	logger lager.Logger
-	db     WorkerDB
-	dialer gconn.DialerFunc
+	logger      lager.Logger
+	db          WorkerDB
+	dialer      gconn.DialerFunc
+	retryPolicy RetryPolicy
 }
 
 func NewDBWorkerProvider(
 	logger lager.Logger,
 	db WorkerDB,
 	dialer gconn.DialerFunc,
+	retryPolicy RetryPolicy,
 ) WorkerProvider {
 	return &dbProvider{
-		logger: logger,
-		db:     db,
-		dialer: dialer,
+		logger:      logger,
+		db:          db,
+		dialer:      dialer,
+		retryPolicy: retryPolicy,
 	}
 }
 
@@ -59,10 +61,7 @@ func (provider *dbProvider) Workers() ([]Worker, error) {
 	workers := make([]Worker, len(workerInfos))
 
 	for i, info := range workerInfos {
-		// this is very important (to prevent closures capturing last value)
-		addr := info.GardenAddr
-
-		workers[i] = provider.newGardenWorker(addr, tikTok, info)
+		workers[i] = provider.newGardenWorker(tikTok, info)
 	}
 
 	return workers, nil
@@ -80,7 +79,7 @@ func (provider *dbProvider) GetWorker(name string) (Worker, bool, error) {
 
 	tikTok := clock.NewClock()
 
-	worker := provider.newGardenWorker(workerInfo.GardenAddr, tikTok, workerInfo)
+	worker := provider.newGardenWorker(tikTok, workerInfo)
 
 	return worker, found, nil
 }
@@ -97,32 +96,23 @@ func (provider *dbProvider) ReapContainer(handle string) error {
 	return provider.db.ReapContainer(handle)
 }
 
-func (provider *dbProvider) newGardenWorker(addr string, tikTok clock.Clock, info db.WorkerInfo) Worker {
+func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, info db.WorkerInfo) Worker {
 	workerLog := provider.logger.Session("worker-connection", lager.Data{
-		"addr": addr,
+		"addr": info.GardenAddr,
 	})
 
-	connLog := workerLog.Session("garden-connection")
-
-	var connection gconn.Connection
-
-	if provider.dialer == nil {
-		connection = gconn.NewWithLogger("tcp", addr, connLog)
-	} else {
-		dialer := func(string, string) (net.Conn, error) {
-			return provider.dialer("tcp", addr)
-		}
-		connection = gconn.NewWithDialerAndLogger(dialer, connLog)
-	}
-
-	gardenConn := RetryableConnection{
-		Logger:     workerLog,
-		Connection: connection,
-		Sleeper:    tikTok,
-		RetryPolicy: ExponentialRetryPolicy{
-			Timeout: 5 * time.Minute,
-		},
-	}
+	gardenConn := NewRetryableConnection(
+		workerLog,
+		tikTok,
+		provider.retryPolicy,
+		NewGardenConnectionFactory(
+			provider.db,
+			provider.dialer,
+			provider.logger.Session("garden-connection"),
+			info.Name,
+			info.GardenAddr,
+		),
+	)
 
 	var bClient baggageclaim.Client
 	if info.BaggageclaimURL != "" {
