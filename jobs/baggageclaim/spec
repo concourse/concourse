@@ -18,6 +18,14 @@ properties:
     description: "the port which baggageclaim hosts its api on"
     default: 7788
 
+  baggageclaim.yeller.api_key:
+    description: "api key from yeller to output errors from concourse to yeller"
+    default: ""
+
+  baggageclaim.yeller.environment_name:
+    description: "environment name you wish to group errors under in yeller"
+    default: ""
+
   blackbox.syslog.sources.baggageclaim:
     description: "files whose contents blackbox will emit to its syslog drain"
     default:

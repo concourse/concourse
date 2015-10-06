@@ -18,4 +18,6 @@ files:
   - github.com/pivotal-golang/lager/*.go # gosub
   - github.com/tedsuo/ifrit/*.go # gosub
   - github.com/tedsuo/rata/*.go # gosub
+  - github.com/xoebus/zest/*.go # gosub
+  - github.com/yeller/yeller-golang/*.go # gosub
   - golang.org/x/crypto/ssh/*.go # gosub

@@ -57,6 +57,14 @@ properties:
       deployment-scoped default is used.
     default: ""
 
+  groundcrew.yeller.api_key:
+    description: "api key from yeller to output errors from concourse to yeller"
+    default: ""
+
+  groundcrew.yeller.environment_name:
+    description: "environment name you wish to group errors under in yeller"
+    default: ""
+
   groundcrew.garden.address:
     description: "garden server connection address to advertise to the TSA"
 

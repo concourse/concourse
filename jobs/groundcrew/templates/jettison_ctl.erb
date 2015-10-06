@@ -59,6 +59,8 @@ case $1 in
   <% unless p("groundcrew.garden.forward_address", nil) %> \
     /var/vcap/packages/jettison/bin/jettison \
       -gardenAddr=<%= garden_addr %> \
+      -yellerAPIKey=<%= esc(p("groundcrew.yeller.api_key")) %> \
+      -yellerEnvironment=<%= esc(p("groundcrew.yeller.environment_name")) %> \
       1>>$LOG_DIR/jettison.stdout.log \
       2>>$LOG_DIR/jettison.stderr.log
   <% end %>

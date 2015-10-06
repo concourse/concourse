@@ -24,3 +24,5 @@ files:
   - github.com/tedsuo/ifrit/http_server/*.go # gosub
   - github.com/tedsuo/ifrit/sigmon/*.go # gosub
   - github.com/tedsuo/rata/*.go # gosub
+  - github.com/xoebus/zest/*.go # gosub
+  - github.com/yeller/yeller-golang/*.go # gosub

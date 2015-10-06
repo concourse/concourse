@@ -94,6 +94,8 @@ case $1 in
       -volumeDir ${VOLUMES_DIR} \
       -listenAddress <%= p("baggageclaim.listen_addr.address") %> \
       -listenPort <%= p("baggageclaim.listen_addr.port") %> \
+      -yellerAPIKey=<%= esc(p("baggageclaim.yeller.api_key")) %> \
+      -yellerEnvironment=<%= esc(p("baggageclaim.yeller.environment_name")) %> \
       -driverType btrfs \
       1>>$LOG_DIR/baggageclaim.stdout.log \
       2>>$LOG_DIR/baggageclaim.stderr.log

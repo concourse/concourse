@@ -73,6 +73,8 @@ EOF
       <% end %> \
       -authorizedKeys=/var/vcap/jobs/tsa/config/authorized_keys \
       -heartbeatInterval=<%= p("tsa.heartbeat_interval") %> \
+      -yellerAPIKey=<%= esc(p("tsa.yeller.api_key")) %> \
+      -yellerEnvironment=<%= esc(p("tsa.yeller.environment_name")) %> \
       -atcAPIURL=<%= "http://#{CGI.escape(p("tsa.atc.username"))}:#{CGI.escape(p("tsa.atc.password"))}@#{p("tsa.atc.address")}" %> \
       1>>$LOG_DIR/tsa.stdout.log \
       2>>$LOG_DIR/tsa.stderr.log

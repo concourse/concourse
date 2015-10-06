@@ -34,6 +34,14 @@ properties:
     description: "ATC API basic auth password"
     default: ""
 
+  tsa.yeller.api_key:
+    description: "api key from yeller to output errors from concourse to yeller"
+    default: ""
+
+  tsa.yeller.environment_name:
+    description: "environment name you wish to group errors under in yeller"
+    default: ""
+
   tsa.host_key:
     description: >
       private key to use for the SSH server. if not specified, a
