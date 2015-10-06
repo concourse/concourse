@@ -20,6 +20,11 @@ whatever things its authors thought to integrate with. Instead, as a user of
 Concourse you can just reuse resource type implementations, or
 \reference{implementing-resources}{implement your own}.
 
+To use resources, configure them in your pipeline via the
+\reference{configuring-resources}{\code{resources}} section, and use them in
+your \reference{build-plans} via the \reference{get-step} and
+\reference{put-step} steps.
+
 \section{What types are supported?}{
   Right now your best bet is to
   \hyperlink{https://github.com/concourse?query=resource}{search for
