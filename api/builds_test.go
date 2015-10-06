@@ -59,8 +59,8 @@ var _ = Describe("Builds API", func() {
 					buildsDB.CreateOneOffBuildReturns(db.Build{
 						ID:           42,
 						Name:         "1",
-						JobName:      "job1",
-						PipelineName: "some-pipeline",
+						JobName:      "",
+						PipelineName: "",
 						Status:       db.StatusStarted,
 					}, nil)
 				})
@@ -103,9 +103,8 @@ var _ = Describe("Builds API", func() {
 						Expect(body).To(MatchJSON(`{
 							"id": 42,
 							"name": "1",
-							"job_name": "job1",
 							"status": "started",
-							"url": "/pipelines/some-pipeline/jobs/job1/builds/1"
+							"url": "/builds/42"
 						}`))
 
 					})
@@ -118,8 +117,8 @@ var _ = Describe("Builds API", func() {
 						Expect(oneOff).To(Equal(db.Build{
 							ID:           42,
 							Name:         "1",
-							JobName:      "job1",
-							PipelineName: "some-pipeline",
+							JobName:      "",
+							PipelineName: "",
 							Status:       db.StatusStarted,
 						}))
 
