@@ -21,7 +21,7 @@
   garden_addr ||= "#{discover_external_ip}:7777"
 
   baggageclaim_url = p("groundcrew.baggageclaim.url", "")
-  if baggageclaim_url.empty? && spec.job.templates.collect(&:name).include?("baggageclaim")
+  if baggageclaim_url.empty? && spec.job.templates && spec.job.templates.collect(&:name).include?("baggageclaim")
     baggageclaim_url = "http://#{discover_external_ip}:7788"
   end
 
