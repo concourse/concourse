@@ -14,10 +14,10 @@ resources/time-resource.tar.gz:
     MjNlMWJiODNjMzhlYzM3MDliMWZhYzY1ZWI5ZjFmOTgxMzBjNmQ1Ng==
   size: 2459242
 resources/semver-resource.tar.gz:
-  object_id: f3f086f6-7a0a-4b93-96d1-2cc6701764d5
+  object_id: 4b41b855-6caa-476c-8977-e75c06ab6f9d
   sha: !binary |-
-    MDAxOTM1MGVhYzQwOGEyZTBlM2ZlODczNzY1YzFhOTM1YjZkZTBiZQ==
-  size: 14766645
+    MDQ5MzBiMjMxNTk4MDQ0NzE4YzEwODgyNTcyYzJiMGQ5NzUyMGNjZg==
+  size: 14766988
 resources/s3-resource.tar.gz:
   object_id: 6277ec82-0d00-4c88-99e5-dac64102f108
   sha: !binary |-
