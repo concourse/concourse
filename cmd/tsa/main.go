@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
+	"github.com/xoebus/zest"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -40,6 +41,18 @@ var atcAPIURL = flag.String(
 	"ATC API endpoint to register workers with",
 )
 
+var yellerAPIKey = flag.String(
+	"yellerAPIKey",
+	"",
+	"API token to output error logs to Yeller",
+)
+
+var yellerEnvironment = flag.String(
+	"yellerEnvironment",
+	"development",
+	"environment label for Yeller",
+)
+
 var heartbeatInterval = flag.Duration(
 	"heartbeatInterval",
 	30*time.Second,
@@ -57,6 +70,11 @@ func main() {
 
 	logger := lager.NewLogger("tsa")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
+
+	if *yellerAPIKey != "" {
+		yellerSink := zest.NewYellerSink(*yellerAPIKey, *yellerEnvironment)
+		logger.RegisterSink(yellerSink)
+	}
 
 	if len(*forwardHost) == 0 {
 		logger.Fatal("missing-flag", nil, lager.Data{"flag": "-forwardHost"})
