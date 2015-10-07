@@ -219,14 +219,14 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					Describe("releasing", func() {
-						It("releases the resource with a ttl of 5 minutes", func() {
+						It("releases the resource, preserving its original TTL", func() {
 							<-process.Wait()
 
 							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
 
 							step.Release()
 							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(5 * time.Minute))
+							Expect(fakeResource.ReleaseArgsForCall(0)).To(BeZero())
 						})
 					})
 				})

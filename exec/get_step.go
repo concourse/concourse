@@ -148,7 +148,7 @@ func (step *getStep) Release() {
 	}
 
 	if step.exitStatus == 0 {
-		step.resource.Release(successfulStepTTL)
+		step.resource.Release(0)
 	} else {
 		step.resource.Release(failedStepTTL)
 	}
