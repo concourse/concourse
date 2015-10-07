@@ -148,14 +148,16 @@ var _ = Describe("Jobs API", func() {
 								"name": "2",
 								"job_name": "some-job",
 								"status": "started",
-								"url": "/pipelines/some-pipeline/jobs/some-job/builds/2"
+								"url": "/pipelines/some-pipeline/jobs/some-job/builds/2",
+								"api_url": "/api/v1/builds/3"
 							},
 							"finished_build": {
 								"id": 1,
 								"name": "1",
 								"job_name": "some-job",
 								"status": "succeeded",
-								"url": "/pipelines/some-pipeline/jobs/some-job/builds/1"
+								"url": "/pipelines/some-pipeline/jobs/some-job/builds/1",
+								"api_url": "/api/v1/builds/1"
 							},
 							"inputs": [
 								{
@@ -389,14 +391,16 @@ var _ = Describe("Jobs API", func() {
 									"name": "2",
 									"job_name": "job-1",
 									"status": "started",
-									"url": "/pipelines/another-pipeline/jobs/job-1/builds/2"
+									"url": "/pipelines/another-pipeline/jobs/job-1/builds/2",
+									"api_url": "/api/v1/builds/3"
 								},
 								"finished_build": {
 									"id": 1,
 									"name": "1",
 									"job_name": "job-1",
 									"status": "succeeded",
-									"url": "/pipelines/another-pipeline/jobs/job-1/builds/1"
+									"url": "/pipelines/another-pipeline/jobs/job-1/builds/1",
+									"api_url": "/api/v1/builds/1"
 								},
 								"inputs": [{"name": "input-1", "resource": "input-1", "trigger": false}],
 								"outputs": [{"name": "output-1", "resource": "output-1"}],
@@ -412,7 +416,8 @@ var _ = Describe("Jobs API", func() {
 									"name": "1",
 									"job_name": "job-2",
 									"status": "succeeded",
-									"url": "/pipelines/another-pipeline/jobs/job-2/builds/1"
+									"url": "/pipelines/another-pipeline/jobs/job-2/builds/1",
+									"api_url": "/api/v1/builds/4"
 								},
 								"inputs": [{"name": "input-2", "resource": "input-2", "trigger": false}],
 								"outputs": [{"name": "output-2", "resource": "output-2"}],
@@ -523,14 +528,16 @@ var _ = Describe("Jobs API", func() {
 						"name": "2",
 						"job_name": "some-job",
 						"status": "started",
-						"url": "/pipelines/some-pipeline/jobs/some-job/builds/2"
+						"url": "/pipelines/some-pipeline/jobs/some-job/builds/2",
+						"api_url": "/api/v1/builds/3"
 					},
 					{
 						"id": 1,
 						"name": "1",
 						"job_name": "some-job",
 						"status": "succeeded",
-						"url": "/pipelines/some-pipeline/jobs/some-job/builds/1"
+						"url": "/pipelines/some-pipeline/jobs/some-job/builds/1",
+						"api_url": "/api/v1/builds/1"
 					}
 				]`))
 
@@ -808,7 +815,8 @@ var _ = Describe("Jobs API", func() {
 					"name": "1",
 					"job_name": "some-job",
 					"status": "succeeded",
-					"url": "/pipelines/a-pipeline/jobs/some-job/builds/1"
+					"url": "/pipelines/a-pipeline/jobs/some-job/builds/1",
+					"api_url": "/api/v1/builds/1"
 				}`))
 
 			})

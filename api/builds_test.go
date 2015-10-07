@@ -104,7 +104,8 @@ var _ = Describe("Builds API", func() {
 							"id": 42,
 							"name": "1",
 							"status": "started",
-							"url": "/builds/42"
+							"url": "/builds/42",
+							"api_url": "/api/v1/builds/42"
 						}`))
 
 					})
@@ -238,7 +239,8 @@ var _ = Describe("Builds API", func() {
 						"name": "1",
 						"status": "succeeded",
 						"job_name": "job1",
-						"url": "/pipelines/some-pipeline/jobs/job1/builds/1"
+						"url": "/pipelines/some-pipeline/jobs/job1/builds/1",
+						"api_url": "/api/v1/builds/1"
 					}`))
 
 				})
@@ -290,14 +292,16 @@ var _ = Describe("Builds API", func() {
 						"name": "2",
 						"job_name": "job2",
 						"status": "started",
-						"url": "/pipelines/some-pipeline/jobs/job2/builds/2"
+						"url": "/pipelines/some-pipeline/jobs/job2/builds/2",
+						"api_url": "/api/v1/builds/3"
 					},
 					{
 						"id": 1,
 						"name": "1",
 						"job_name": "job1",
 						"status": "succeeded",
-						"url": "/pipelines/some-pipeline/jobs/job1/builds/1"
+						"url": "/pipelines/some-pipeline/jobs/job1/builds/1",
+						"api_url": "/api/v1/builds/1"
 					}
 				]`))
 

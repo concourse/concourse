@@ -1,7 +1,6 @@
 package present
 
 import (
-	"net/http"
 	"strconv"
 
 	"github.com/concourse/atc"
@@ -11,23 +10,24 @@ import (
 )
 
 func Build(build db.Build) atc.Build {
-	generator := rata.NewRequestGenerator("", routes.Routes)
-
 	var err error
-	var req *http.Request
+	var reqUrl string
 	if build.JobName == "" && build.PipelineName == "" {
-		req, err = generator.CreateRequest(
+		reqUrl, err = routes.Routes.CreatePathForRoute(
 			routes.GetJoblessBuild,
 			rata.Params{"build_id": strconv.Itoa(build.ID)},
-			nil,
 		)
 	} else {
-		req, err = generator.CreateRequest(
+		reqUrl, err = routes.Routes.CreatePathForRoute(
 			routes.GetBuild,
 			rata.Params{"job": build.JobName, "build": build.Name, "pipeline_name": build.PipelineName},
-			nil,
 		)
 	}
+	if err != nil {
+		panic("failed to generate url: " + err.Error())
+	}
+
+	apiUrl, err := atc.Routes.CreatePathForRoute(atc.GetBuild, rata.Params{"build_id": strconv.Itoa(build.ID)})
 	if err != nil {
 		panic("failed to generate url: " + err.Error())
 	}
@@ -37,6 +37,7 @@ func Build(build db.Build) atc.Build {
 		Name:    build.Name,
 		Status:  string(build.Status),
 		JobName: build.JobName,
-		URL:     req.URL.String(),
+		URL:     reqUrl,
+		ApiUrl:  apiUrl,
 	}
 }

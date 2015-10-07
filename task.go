@@ -11,6 +11,7 @@ type Build struct {
 	Status  string `json:"status"`
 	JobName string `json:"job_name,omitempty"`
 	URL     string `json:"url"`
+	ApiUrl  string `json:"api_url"`
 }
 
 type BuildStatus string
