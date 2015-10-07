@@ -25,7 +25,7 @@ import (
 	"github.com/concourse/atc/event"
 )
 
-var _ = Describe("Fly CLI", func() {
+var _ = FDescribe("Fly CLI", func() {
 	var flyPath string
 	var tmpdir string
 	var buildDir string
@@ -329,8 +329,7 @@ run: {}
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess).Should(gbytes.Say("Incorrect Usage."))
-			Eventually(sess.Err).Should(gbytes.Say("bogus-flag"))
+			Eventually(sess.Err).Should(gbytes.Say("unknown flag `bogus-flag'"))
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(1))

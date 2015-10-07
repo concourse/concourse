@@ -86,7 +86,7 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("prints the config as yaml to stdout", func() {
-				flyCmd := exec.Command(flyPath, "-t", "target-name", "checklist", "some-pipeline")
+				flyCmd := exec.Command(flyPath, "-t", "target-name", "checklist", "-p", "some-pipeline")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
@@ -122,7 +122,7 @@ some-orphaned-job: concourse.check %s   some-pipeline some-orphaned-job
 			})
 
 			It("prints the config as yaml to stdout", func() {
-				flyCmd := exec.Command(flyPath, "-t", "target-name", "checklist", "some-pipeline")
+				flyCmd := exec.Command(flyPath, "-t", "target-name", "checklist", "-p", "some-pipeline")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
@@ -143,7 +143,6 @@ job-4: concourse.check %s   some-pipeline job-4
 some-orphaned-job: concourse.check %s   some-pipeline some-orphaned-job
 
 `, atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL())))
-
 			})
 		})
 	})

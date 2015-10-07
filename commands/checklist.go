@@ -6,14 +6,30 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/codegangsta/cli"
 	"github.com/concourse/atc"
 )
 
-func Checklist(c *cli.Context) {
-	rawTarget := returnTarget(c.GlobalString("target"))
-	insecure := c.GlobalBool("insecure")
-	pipelineName := c.Args().First()
+type ChecklistCommand struct {
+	Pipeline string `short:"p" long:"pipeline"`
+}
+
+var checklistCommand ChecklistCommand
+
+func init() {
+	for _, name := range []string{"checklist", "l"} {
+		Parser.AddCommand(
+			name,
+			"print a Checkfile of the given pipeline",
+			"Blah blah blah",
+			&targetPrinter{&checklistCommand},
+		)
+	}
+}
+
+func (command *ChecklistCommand) Execute([]string) error {
+	rawTarget := returnTarget(globalOptions.Target)
+	insecure := globalOptions.Insecure
+	pipelineName := command.Pipeline
 
 	if pipelineName == "" {
 		pipelineName = atc.DefaultPipelineName
@@ -22,6 +38,8 @@ func Checklist(c *cli.Context) {
 	atcRequester := newAtcRequester(rawTarget, insecure)
 
 	printCheckfile(pipelineName, getConfig(pipelineName, atcRequester), newTarget(rawTarget))
+
+	return nil
 }
 
 func printCheckfile(pipelineName string, config atc.Config, au target) {

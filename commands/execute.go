@@ -5,20 +5,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"time"
-
-	"crypto/tls"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"syscall"
+	"time"
 
-	"github.com/codegangsta/cli"
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/config"
 	"github.com/concourse/fly/eventstream"
@@ -26,47 +21,61 @@ import (
 	"github.com/vito/go-sse/sse"
 )
 
-type Input struct {
-	Name string
-
-	Path string
-	Pipe atc.Pipe
-
-	BuildInput atc.BuildInput
+type ExecuteCommand struct {
+	Privileged     bool            `short:"p" long:"privileged"`
+	ExcludeIgnored bool            `short:"x" long:"exclude-ignored"`
+	Inputs         []InputPairFlag `short:"i" long:"input"`
+	InputsFrom     JobFlag         `short:"j" long:"inputs-from"`
+	TaskConfig     PathFlag        `short:"c" long:"config" required:"true"`
 }
 
-func Execute(c *cli.Context) {
-	target := returnTarget(c.GlobalString("target"))
-	buildConfig := c.String("config")
-	insecure := c.GlobalBool("insecure")
-	excludeIgnored := c.Bool("exclude-ignored")
+var executeCommand ExecuteCommand
+
+func init() {
+	execute, err := Parser.AddCommand(
+		"execute",
+		"Execute a one-off build",
+		"Blah blah blah",
+		&executeCommand,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	execute.Aliases = []string{"e"}
+}
+
+func (command *ExecuteCommand) Execute(args []string) error {
+	target := returnTarget(globalOptions.Target)
+	insecure := globalOptions.Insecure
+	taskConfigFile := command.TaskConfig
+	excludeIgnored := command.ExcludeIgnored
 
 	atcRequester := newAtcRequester(target, insecure)
 
-	absConfig, err := filepath.Abs(buildConfig)
-	if err != nil {
-		log.Println("could not locate config file:", err)
-		os.Exit(1)
-	}
+	taskConfig := config.LoadTaskConfig(string(taskConfigFile), args)
 
-	taskConfig := config.LoadTaskConfig(absConfig, c.Args())
-
-	inputs := determineInputs(
+	inputs, err := determineInputs(
 		atcRequester,
 		taskConfig.Inputs,
-		c.StringSlice("input"),
-		c.String("inputs-from-pipeline"),
-		c.String("inputs-from-job"),
+		command.Inputs,
+		command.InputsFrom,
 	)
+	if err != nil {
+		return err
+	}
 
-	build := createBuild(
+	build, err := createBuild(
 		atcRequester,
-		c.Bool("privileged"),
+		command.Privileged,
 		inputs,
 		taskConfig,
 	)
+	if err != nil {
+		return err
+	}
 
-	fmt.Fprintf(os.Stdout, "executing build %d\n", build.ID)
+	fmt.Println("executing build", build.ID)
 
 	terminate := make(chan os.Signal, 1)
 
@@ -75,20 +84,16 @@ func Execute(c *cli.Context) {
 	signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
 
 	eventSource, err := sse.Connect(atcRequester.httpClient, time.Second, func() *http.Request {
-		logOutput, err := atcRequester.CreateRequest(
+		logOutput, _ := atcRequester.CreateRequest(
 			atc.BuildEvents,
 			rata.Params{"build_id": strconv.Itoa(build.ID)},
 			nil,
 		)
-		if err != nil {
-			log.Fatalln(err)
-		}
 
 		return logOutput
 	})
 	if err != nil {
-		log.Println("failed to connect to event stream:", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to connect to event stream: %s", err)
 	}
 
 	go func() {
@@ -101,60 +106,78 @@ func Execute(c *cli.Context) {
 
 	exitCode, err := eventstream.RenderStream(eventSource)
 	if err != nil {
-		log.Println("failed to render stream:", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to render stream: %s", err)
 	}
 
 	eventSource.Close()
 
 	os.Exit(exitCode)
+
+	return nil
 }
 
-func createPipe(atcRequester *atcRequester) atc.Pipe {
+type Input struct {
+	Name string
+
+	Path string
+	Pipe atc.Pipe
+
+	BuildInput atc.BuildInput
+}
+
+func createPipe(atcRequester *atcRequester) (atc.Pipe, error) {
 	cPipe, err := atcRequester.CreateRequest(atc.CreatePipe, nil, nil)
 	if err != nil {
-		log.Fatalln(err)
+		return atc.Pipe{}, err
 	}
 
 	response, err := atcRequester.httpClient.Do(cPipe)
 	if err != nil {
-		log.Fatalln("request failed:", err)
+		return atc.Pipe{}, fmt.Errorf("failed to create pipe: %s", err)
 	}
 
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusCreated {
-		handleBadResponse("creating pipe", response)
+		return atc.Pipe{}, badResponseError("creating pipe", response)
 	}
 
 	var pipe atc.Pipe
 	err = json.NewDecoder(response.Body).Decode(&pipe)
 	if err != nil {
-		log.Println("malformed response when creating pipe:", err)
-		os.Exit(1)
+		return atc.Pipe{}, fmt.Errorf("malformed pipe response: %s", err)
 	}
 
-	return pipe
+	return pipe, nil
 }
 
 func determineInputs(
 	atcRequester *atcRequester,
 	taskInputs []atc.TaskInputConfig,
-	inputMappings []string,
-	fromPipeline string,
-	fromJob string,
-) []Input {
-	if len(inputMappings) == 0 && fromPipeline == "" && fromJob == "" {
+	inputMappings []InputPairFlag,
+	inputsFrom JobFlag,
+) ([]Input, error) {
+	if len(inputMappings) == 0 && inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
 		wd, err := os.Getwd()
 		if err != nil {
-			log.Fatalln(err)
+			return nil, err
 		}
 
-		inputMappings = append(inputMappings, filepath.Base(wd)+"="+wd)
+		inputMappings = append(inputMappings, InputPairFlag{
+			Name: filepath.Base(wd),
+			Path: wd,
+		})
 	}
 
-	inputsFromLocal := generateLocalInputs(atcRequester, inputMappings)
-	inputsFromJob := fetchInputsFromJob(atcRequester, fromPipeline, fromJob)
+	inputsFromLocal, err := generateLocalInputs(atcRequester, inputMappings)
+	if err != nil {
+		return nil, err
+	}
+
+	inputsFromJob, err := fetchInputsFromJob(atcRequester, inputsFrom)
+	if err != nil {
+		return nil, err
+	}
 
 	inputs := []Input{}
 	for _, taskInput := range taskInputs {
@@ -169,31 +192,24 @@ func determineInputs(
 		inputs = append(inputs, input)
 	}
 
-	return inputs
+	return inputs, nil
 }
 
 func generateLocalInputs(
 	atcRequester *atcRequester,
-	inputMappings []string,
-) map[string]Input {
+	inputMappings []InputPairFlag,
+) (map[string]Input, error) {
 	kvMap := map[string]Input{}
 
 	for _, i := range inputMappings {
-		segs := strings.SplitN(i, "=", 2)
-		if len(segs) < 2 {
-			log.Println("malformed input:", i)
-			os.Exit(1)
-		}
+		inputName := i.Name
+		absPath := i.Path
 
-		inputName := segs[0]
-
-		absPath, err := filepath.Abs(segs[1])
+		pipe, err := createPipe(atcRequester)
 		if err != nil {
-			log.Printf("could not locate input %s: %s\n", inputName, err)
-			os.Exit(1)
+			return nil, err
 		}
 
-		pipe := createPipe(atcRequester)
 		kvMap[inputName] = Input{
 			Name: inputName,
 			Path: absPath,
@@ -201,45 +217,45 @@ func generateLocalInputs(
 		}
 	}
 
-	return kvMap
+	return kvMap, nil
 }
 
 func fetchInputsFromJob(
 	atcRequester *atcRequester,
-	fromPipeline string,
-	fromJob string,
-) map[string]Input {
+	inputsFrom JobFlag,
+) (map[string]Input, error) {
 	kvMap := map[string]Input{}
-	if fromPipeline == "" && fromJob == "" {
-		return kvMap
+	if inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
+		return kvMap, nil
 	}
 
 	listJobInputsRequest, err := atcRequester.CreateRequest(
 		atc.ListJobInputs,
-		rata.Params{"pipeline_name": fromPipeline, "job_name": fromJob},
+		rata.Params{
+			"pipeline_name": inputsFrom.PipelineName,
+			"job_name":      inputsFrom.JobName,
+		},
 		nil,
 	)
 	if err != nil {
-		log.Fatalln(err)
+		return nil, err
 	}
 
 	response, err := atcRequester.httpClient.Do(listJobInputsRequest)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "failed to fetch job inputs:", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("failed to fetch job inputs: %s", err)
 	}
 
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		handleBadResponse("getting job inputs", response)
+		return nil, badResponseError("getting job inputs", response)
 	}
 
 	var buildInputs []atc.BuildInput
 	err = json.NewDecoder(response.Body).Decode(&buildInputs)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "malformed job inputs:", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("malformed job inputs response: %s", err)
 	}
 
 	for _, buildInput := range buildInputs {
@@ -249,7 +265,7 @@ func fetchInputsFromJob(
 		}
 	}
 
-	return kvMap
+	return kvMap, nil
 }
 
 func createBuild(
@@ -257,10 +273,9 @@ func createBuild(
 	privileged bool,
 	inputs []Input,
 	config atc.TaskConfig,
-) atc.Build {
+) (atc.Build, error) {
 	if err := config.Validate(); err != nil {
-		println(err.Error())
-		os.Exit(1)
+		return atc.Build{}, err
 	}
 
 	buffer := &bytes.Buffer{}
@@ -275,7 +290,7 @@ func createBuild(
 				nil,
 			)
 			if err != nil {
-				log.Fatalln(err)
+				return atc.Build{}, err
 			}
 
 			getPlan = atc.GetPlan{
@@ -329,34 +344,34 @@ func createBuild(
 
 	err := json.NewEncoder(buffer).Encode(plan)
 	if err != nil {
-		log.Fatalln("encoding build failed:", err)
+		return atc.Build{}, err
 	}
 
 	createBuild, err := atcRequester.CreateRequest(atc.CreateBuild, nil, buffer)
 	if err != nil {
-		log.Fatalln(err)
+		return atc.Build{}, err
 	}
 
 	createBuild.Header.Set("Content-Type", "application/json")
 
 	response, err := atcRequester.httpClient.Do(createBuild)
 	if err != nil {
-		log.Fatalln("request failed:", err)
+		return atc.Build{}, fmt.Errorf("failed to create build: %s", err)
 	}
 
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusCreated {
-		handleBadResponse("creating build", response)
+		return atc.Build{}, badResponseError("creating build", response)
 	}
 
 	var build atc.Build
 	err = json.NewDecoder(response.Body).Decode(&build)
 	if err != nil {
-		log.Fatalln("response decoding failed:", err)
+		return atc.Build{}, fmt.Errorf("malformed build response: %s", err)
 	}
 
-	return build
+	return build, nil
 }
 
 func abortOnSignal(
@@ -366,7 +381,7 @@ func abortOnSignal(
 ) {
 	<-terminate
 
-	println("\naborting...")
+	fmt.Fprintf(os.Stderr, "\naborting...\n")
 
 	abortReq, err := atcRequester.CreateRequest(
 		atc.AbortBuild,
@@ -374,20 +389,20 @@ func abortOnSignal(
 		nil,
 	)
 	if err != nil {
-		log.Fatalln(err)
+		panic(err)
 	}
 
 	resp, err := atcRequester.httpClient.Do(abortReq)
 	if err != nil {
-		log.Println("failed to abort:", err)
-		os.Exit(255)
+		fmt.Fprintln(os.Stderr, "failed to abort:", err)
+		return
 	}
 
 	resp.Body.Close()
 
 	// if told to terminate again, exit immediately
 	<-terminate
-	println("exiting immediately")
+	fmt.Fprintln(os.Stderr, "exiting immediately")
 	os.Exit(2)
 }
 
@@ -401,7 +416,8 @@ func upload(input Input, excludeIgnored bool, atcRequester *atcRequester) {
 	if excludeIgnored {
 		files, err = getGitFiles(path)
 		if err != nil {
-			log.Fatalln("could not determine ignored files:", err)
+			fmt.Fprintln(os.Stderr, "could not determine ignored files:", err)
+			return
 		}
 	} else {
 		files = []string{"."}
@@ -409,7 +425,8 @@ func upload(input Input, excludeIgnored bool, atcRequester *atcRequester) {
 
 	archive, err := tarStreamFrom(path, files)
 	if err != nil {
-		log.Fatalln("failed to create tar stream:", err)
+		fmt.Fprintln(os.Stderr, "could create tar stream:", err)
+		return
 	}
 
 	defer archive.Close()
@@ -420,32 +437,18 @@ func upload(input Input, excludeIgnored bool, atcRequester *atcRequester) {
 		archive,
 	)
 	if err != nil {
-		log.Fatalln(err)
+		panic(err)
 	}
 
 	response, err := atcRequester.httpClient.Do(uploadBits)
 	if err != nil {
-		log.Fatalln("request failed:", err)
+		fmt.Fprintln(os.Stderr, "upload request failed:", err)
 	}
 
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		handleBadResponse("uploading bits", response)
-	}
-}
-
-type atcRequester struct {
-	*rata.RequestGenerator
-	httpClient *http.Client
-}
-
-func newAtcRequester(target string, insecure bool) *atcRequester {
-	tlsClientConfig := &tls.Config{InsecureSkipVerify: insecure}
-
-	return &atcRequester{
-		rata.NewRequestGenerator(target, atc.Routes),
-		&http.Client{Transport: &http.Transport{TLSClientConfig: tlsClientConfig}},
+		fmt.Fprintln(os.Stderr, badResponseError("uploading bits", response))
 	}
 }
 

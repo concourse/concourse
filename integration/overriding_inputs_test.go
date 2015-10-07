@@ -22,7 +22,7 @@ import (
 	"github.com/concourse/atc/event"
 )
 
-var _ = Describe("Fly CLI", func() {
+var _ = FDescribe("Fly CLI", func() {
 	var buildDir string
 	var otherInputDir string
 
@@ -257,8 +257,7 @@ run:
 	It("can base inputs on a job in the pipeline", func() {
 		flyCmd := exec.Command(
 			flyPath, "-t", atcServer.URL(), "e",
-			"--inputs-from-pipeline", "some-pipeline",
-			"--inputs-from-job", "some-job",
+			"--inputs-from", "some-pipeline/some-job",
 			"--input", fmt.Sprintf("some-input=%s", buildDir),
 			"--config", filepath.Join(buildDir, "task.yml"),
 		)
