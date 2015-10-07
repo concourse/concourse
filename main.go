@@ -159,7 +159,8 @@ func main() {
 		{
 			Name:      "destroy-pipeline",
 			ShortName: "d",
-			Usage:     "destroy a pipeline",
+			Usage:     "Destroy a pipeline",
+			ArgsUsage: "PIPELINE_NAME",
 			Action:    commands.DestroyPipeline,
 		},
 		takeControl("hijack"),
@@ -176,10 +177,10 @@ func main() {
 			Action: commands.Watch,
 		},
 		{
-			Name:        "configure",
-			ShortName:   "c",
-			Usage:       "Update configuration",
-			Description: "Specify a pipeline name to configure via `fly configure your-pipeline-name-here`",
+			Name:      "configure",
+			ShortName: "c",
+			Usage:     "Update or download current configuration",
+			ArgsUsage: "PIPELINE_NAME",
 			Flags: []cli.Flag{
 				pipelineConfigFlag,
 				jsonFlag,
@@ -192,13 +193,14 @@ func main() {
 		{
 			Name:      "sync",
 			ShortName: "s",
-			Usage:     "download and replace the current fly from the target",
+			Usage:     "Download and replace the current fly from the target",
 			Action:    commands.Sync,
 		},
 		{
-			Name:   "save-target",
-			Usage:  "save a fly target to the .flyrc",
-			Action: commands.SaveTarget,
+			Name:      "save-target",
+			Usage:     "Save a fly target to the .flyrc",
+			Action:    commands.SaveTarget,
+			ArgsUsage: "TARGET_NAME",
 			Flags: []cli.Flag{
 				apiFlag,
 				usernameFlag,
@@ -209,7 +211,8 @@ func main() {
 		{
 			Name:      "checklist",
 			ShortName: "l",
-			Usage:     "print a Checkman checkfile for the pipeline configuration",
+			Usage:     "Print a Checkman checkfile for the pipeline configuration",
+			ArgsUsage: "PIPELINE_NAME",
 			Action:    commands.Checklist,
 		},
 	}
