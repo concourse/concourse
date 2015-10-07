@@ -11,4 +11,4 @@ git add packages/*/spec
 
 ./scripts/commit-with-submodule-log "$@"
 
-git commit --amend
+git ci --amend
