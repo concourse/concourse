@@ -158,6 +158,12 @@ var httpHashedPassword = flag.String(
 	"bcrypted basic auth password for the server",
 )
 
+var gitHubAuthOrg = flag.String(
+	"gitHubAuthOrg",
+	"",
+	"name of github organization a user must be a member of to be authenticated",
+)
+
 var checkInterval = flag.Duration(
 	"checkInterval",
 	1*time.Minute,
@@ -333,6 +339,21 @@ func main() {
 		}
 	} else {
 		webValidator = auth.NoopValidator{}
+	}
+
+	if *gitHubAuthOrg != "" {
+		basicAuthValidator := webValidator
+
+		githubAuthValidator := auth.GitHubOrganizationValidator{
+			Client:       auth.NewGitHubClient(logger.Session("github-client")),
+			Organization: *gitHubAuthOrg,
+		}
+		webValidator = auth.ValidatorBasket{
+			Validators: []auth.Validator{
+				basicAuthValidator,
+				githubAuthValidator,
+			},
+		}
 	}
 
 	callbacksURL, err := url.Parse(*callbacksURLString)
