@@ -5,6 +5,10 @@ set -e
 <%
   require "cgi"
   require "shellwords"
+
+  def esc(x)
+    Shellwords.shellescape(x)
+  end
 %>
 
 RUN_DIR=/var/vcap/sys/run/tsa
