@@ -1,10 +1,9 @@
 package github
 
 import (
-	"net/http"
-
-	"github.com/octokit/go-octokit/octokit"
+	gogithub "github.com/google/go-github/github"
 	"github.com/pivotal-golang/lager"
+	"golang.org/x/oauth2"
 )
 
 const (
@@ -29,30 +28,25 @@ func NewClient(logger lager.Logger) Client {
 }
 
 func (c *client) GetOrganizations(accessToken string) ([]string, error) {
-	octoClient := newOctoClient(accessToken)
+	client := newAPIClient(accessToken)
 
-	orgs, result := octoClient.Organization().YourOrganizations(&octokit.YourOrganizationsURL, octokit.M{})
-	if result.Err != nil {
-		c.logger.Error("failed-to-get-github-organizations", result.Err)
-		return nil, result.Err
+	orgs, _, err := client.Organizations.List("", nil)
+	if err != nil {
+		return nil, err
 	}
 
 	organizations := []string{}
 	for _, org := range orgs {
-		organizations = append(organizations, org.Login)
+		organizations = append(organizations, *org.Login)
 	}
 	return organizations, nil
 }
 
-func newOctoClient(accessToken string) *octokit.Client {
-	return octokit.NewClientWith(
-		APIURL,
-		APIUserAgent,
-		octokit.TokenAuth{
-			AccessToken: accessToken,
-		},
-		&http.Client{
-			Transport: &http.Transport{},
-		},
+func newAPIClient(accessToken string) *gogithub.Client {
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: accessToken},
 	)
+
+	tc := oauth2.NewClient(oauth2.NoContext, ts)
+	return gogithub.NewClient(tc)
 }
