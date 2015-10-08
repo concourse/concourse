@@ -45,6 +45,7 @@ files:
   - github.com/concourse/atc/engine/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
   - github.com/concourse/atc/exec/*.go # gosub
+  - github.com/concourse/atc/github/*.go # gosub
   - github.com/concourse/atc/metric/*.go # gosub
   - github.com/concourse/atc/pipelines/*.go # gosub
   - github.com/concourse/atc/radar/*.go # gosub
@@ -73,6 +74,8 @@ files:
   - github.com/concourse/baggageclaim/volume/*.go # gosub
   - github.com/felixge/tcpkeepalive/*.go # gosub
   - github.com/golang/protobuf/proto/*.go # gosub
+  - github.com/google/go-github/github/*.go # gosub
+  - github.com/google/go-querystring/query/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
   - github.com/lib/pq/*.go # gosub
   - github.com/lib/pq/oid/*.go # gosub
@@ -88,4 +91,7 @@ files:
   - github.com/vito/go-sse/sse/*.go # gosub
   - github.com/xoebus/zest/*.go # gosub
   - github.com/yeller/yeller-golang/*.go # gosub
+  - golang.org/x/net/context/*.go # gosub
+  - golang.org/x/oauth2/*.go # gosub
+  - golang.org/x/oauth2/internal/*.go # gosub
   - gopkg.in/yaml.v2/*.go # gosub
