@@ -272,14 +272,49 @@ var _ = Describe("GardenFactory", func() {
 				})
 
 				Context("with a resource script failure", func() {
-					var resourceScriptError resource.ErrResourceScriptFailed
-
 					BeforeEach(func() {
-						resourceScriptError = resource.ErrResourceScriptFailed{
+						fakeVersionedSource.RunReturns(resource.ErrResourceScriptFailed{
 							ExitStatus: 1,
-						}
+						})
+					})
 
-						fakeVersionedSource.RunReturns(resourceScriptError)
+					It("invokes the delegate's Finished callback instead of failed", func() {
+						Eventually(process.Wait()).Should(Receive())
+
+						Expect(putDelegate.FailedCallCount()).To(BeZero())
+
+						Expect(putDelegate.CompletedCallCount()).To(Equal(1))
+						status, versionInfo := putDelegate.CompletedArgsForCall(0)
+						Expect(status).To(Equal(ExitStatus(1)))
+						Expect(versionInfo).To(BeNil())
+					})
+
+					It("is not successful", func() {
+						Eventually(process.Wait()).Should(Receive(BeNil()))
+						Expect(putDelegate.CompletedCallCount()).To(Equal(1))
+
+						var success Success
+
+						Expect(step.Result(&success)).To(BeTrue())
+						Expect(bool(success)).To(BeFalse())
+					})
+
+					Describe("releasing", func() {
+						It("releases the resource with a ttl of 1 hour", func() {
+							<-process.Wait()
+
+							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
+
+							step.Release()
+							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(1 * time.Hour))
+						})
+					})
+				})
+
+				Context("when the resource script is aborted", func() {
+					BeforeEach(func() {
+						fakeVersionedSource.RunReturns(resource.ErrAborted)
 					})
 
 					It("invokes the delegate's Finished callback instead of failed", func() {
