@@ -205,7 +205,6 @@ jobs:
           - garden-linux-release/*.tgz
           - candidate-release/concourse-*.tgz
     - task: build
-      privileged: true
       file: concourse/ci/testflight.yml
       timeout: 1h
     on_failure:
