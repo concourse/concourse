@@ -160,13 +160,17 @@ The resulting pipeline will look like this:
   for a new version to ship. We'll call the job that builds candidate
   artifacts \code{build-rc}.
 }{
-  Note that for jobs like this you'll want to specify \code{serial: true}
-  to ensure you're not accidentally generating release candidates out of
-  order.
+  Because this job makes modifications to our product version, we'll want to
+  make sure it doesn't run concurrently with anything else doing the same
+  thing. Otherwise we may generate versions or release candidates out of order.
+}{
+  This is done by specifying \reference{serial_groups}, which is a list of
+  arbitrary tags. We'll make sure to list the same tags in the other jobs which
+  modify the version.
 }{
   \codeblock{yaml}{
     - name: build-rc
-      serial: true
+      serial_groups: [version]
       plan:
   }
 }
@@ -189,14 +193,12 @@ The resulting pipeline will look like this:
   resource type can be used to generate versions by specifying params in
   the \reference{get-step} step.
 }{
-  Specifying \code{bump: minor} and \code{pre: rc} makes it so that if the
-  current version is e.g. \code{1.2.3-rc.3}, we'll get \code{1.2.3-rc.4}.
-  If not, the version will receive a minor bump, and we'll get something
-  like \code{1.3.0-rc.1}.
+  Specifying \code{pre: rc} makes it so that if the current version is e.g.
+  \code{1.2.3-rc.3}, we'll get \code{1.2.3-rc.4}.
 }{
   \codeblock{yaml}{
     {}  - get: version
-    {}    params: \{bump: minor, pre: rc\}
+    {}    params: \{pre: rc\}
   }
 }
 
@@ -305,13 +307,12 @@ The resulting pipeline will look like this:
 }
 
 \literate-segment{
-  We'll call the job \code{shipit} and make sure it only runs serially,
-  since it's mutating external resources. This won't matter too much in
-  practice though, since the job will only ever be manually triggered.
+  We'll call the job \code{shipit}. Since it'll also be modifying the version,
+  we'll place it in the same serial group we specified for \code{build-rc}.
 }{
   \codeblock{yaml}{
     - name: shipit
-      serial: true
+      serial_groups: [version]
       plan:
   }
 }
@@ -374,5 +375,73 @@ The resulting pipeline will look like this:
     {}    params: \{from: promote-to-final/my-product-.*.tgz\}
     {}  - put: version
     {}    params: \{from: version/number\}
+  }
+}
+
+This is all well and good, but you may have noticed it's only good for shipping
+one version. We only ever go from release candidates to final versions, and
+never do any actual version bumps!
+
+Bumping your product's version is very much a human decision, so for this
+example we'll just assume the product manager will come in and decide what the
+next version should be at some point.
+
+The simplest way to implement this is to have three jobs: one for doing a major
+bump, one for doing a minor bump, and one for doing a patch bump. These three
+jobs will do both the bump itself, and immediately bump to \code{-rc.1} of the
+new version. This is done by specifying both \code{bump} and \code{pre} params.
+
+\literate-segment{
+  The \code{major} job simply has a \reference{put-step} for bumping the
+  version in-place. Because it's modifying the version, we'll use
+  \reference{serial_groups} to ensure it doesn't run concurrently with
+  \code{build-rc}, \code{shipit}, and the other bump jobs.
+}{
+  \codeblock{yaml}{
+    - name: major
+      serial_groups: [version]
+      plan:
+      - put: version
+        params: \{bump: major, pre: rc\}
+  }
+}
+
+\literate-segment{
+  The \code{minor} job is basically the same, but with \code{bump: minor}
+  instead, unsurprisingly.
+}{
+  \codeblock{yaml}{
+    - name: minor
+      serial_groups: [version]
+      plan:
+      - put: version
+        params: \{bump: minor, pre: rc\}
+  }
+}
+
+\literate-segment{
+  The \code{patch} job will follow the same approach, but with one twist: we
+  want to immediately bump to the next patchlevel release candidate after
+  shipping.
+}{
+  This is so the pipeline can start generating candidates for a new version
+  without requiring the product manager to decide the version to target next.
+  We do a \code{patch} bump just because it's the most conservative bump we can
+  make for the next release before knowing what'll be in it.
+}{
+  We'll have the \code{patch} job auto-trigger by having a dummy \code{get}
+  action that depends on something having made it through the \code{shipit}
+  job, with \code{trigger: true}. We'll use the \code{version} resource for
+  this since it's the smallest thing coming out of the \code{shipit} job.
+}{
+  \codeblock{yaml}{
+    - name: patch
+      serial_groups: [version]
+      plan:
+      - get: version
+        passed: [shipit]
+        trigger: true
+      - put: version
+        params: \{bump: patch, pre: rc\}
   }
 }
