@@ -10,16 +10,15 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/fakes"
+	"github.com/concourse/atc/github/fakes"
 )
 
 var _ = Describe("GitHubAuthHandler", func() {
 	var server *httptest.Server
 	var client *http.Client
-	var fakeGitHubClient *fakes.FakeGitHubClient
+	var fakeGitHubClient *fakes.FakeClient
 
 	simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		buffer := bytes.NewBufferString("github ")
@@ -29,7 +28,7 @@ var _ = Describe("GitHubAuthHandler", func() {
 	})
 
 	BeforeEach(func() {
-		fakeGitHubClient = new(fakes.FakeGitHubClient)
+		fakeGitHubClient = new(fakes.FakeClient)
 		authHandler := auth.Handler{
 			Handler: simpleHandler,
 			Validator: auth.GitHubOrganizationValidator{
@@ -149,74 +148,6 @@ var _ = Describe("GitHubAuthHandler", func() {
 			responseBody, err := ioutil.ReadAll(response.Body)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(responseBody)).To(Equal("github hello"))
-		})
-	})
-})
-
-var _ = Describe("actual auth with github", func() {
-	var server *httptest.Server
-	var client *http.Client
-
-	simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		buffer := bytes.NewBufferString("github ")
-
-		io.Copy(w, buffer)
-		io.Copy(w, r.Body)
-	})
-
-	BeforeEach(func() {
-		testLogger := lagertest.NewTestLogger("github-auth-test")
-		gitHubClient := auth.NewGitHubClient(testLogger)
-		authHandler := auth.Handler{
-			Handler: simpleHandler,
-			Validator: auth.GitHubOrganizationValidator{
-				Organization: "ConcourseGitHubAuthTestOrg",
-				Client:       gitHubClient,
-			},
-		}
-
-		server = httptest.NewServer(authHandler)
-
-		client = &http.Client{
-			Transport: &http.Transport{},
-		}
-	})
-
-	AfterEach(func() {
-		server.Close()
-	})
-
-	Context("with the correct credentials", func() {
-		It("It athenticates with GitHub", func() {
-			requestBody := bytes.NewBufferString("hello")
-			request, err := http.NewRequest("GET", server.URL, requestBody)
-			Expect(err).NotTo(HaveOccurred())
-			request.Header.Add("Authorization", "Token 35e79fab5ec51a039bd3afabb335dfe16a6daf64")
-
-			response, err := client.Do(request)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
-
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(string(responseBody)).To(Equal("github hello"))
-		})
-	})
-
-	Context("with an invalid token", func() {
-		It("It returns a 401", func() {
-			requestBody := bytes.NewBufferString("hello")
-			request, err := http.NewRequest("GET", server.URL, requestBody)
-			Expect(err).NotTo(HaveOccurred())
-			request.Header.Add("Authorization", "Token bogus-token")
-
-			response, err := client.Do(request)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(string(responseBody)).To(Equal("not authorized"))
 		})
 	})
 })
