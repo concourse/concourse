@@ -705,11 +705,11 @@ var _ = Describe("Tracker", func() {
 						Expect(resourceSpec.Mounts).To(ConsistOf([]worker.VolumeMount{
 							{
 								Volume:    inputVolume1,
-								MountPath: "/tmp/build/source-1-name",
+								MountPath: "/tmp/build/put/source-1-name",
 							},
 							{
 								Volume:    inputVolume3,
-								MountPath: "/tmp/build/source-3-name",
+								MountPath: "/tmp/build/put/source-3-name",
 							},
 						}))
 					})

@@ -118,7 +118,7 @@ func (tracker *tracker) InitWithSources(
 		if found {
 			mounts = append(mounts, worker.VolumeMount{
 				Volume:    volume,
-				MountPath: ResourcesDir(name),
+				MountPath: ResourcesDir("put/" + name),
 			})
 		} else {
 			missingSources = append(missingSources, name)
