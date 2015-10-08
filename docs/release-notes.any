@@ -2,6 +2,7 @@
 
 \title{Release Notes}{release-notes}
 
+\include-section{./release-notes/v0.65.0.any}
 \include-section{./release-notes/v0.64.1.any}
 \include-section{./release-notes/v0.64.0.any}
 \include-section{./release-notes/v0.63.0.any}
