@@ -2,6 +2,7 @@ package resource_test
 
 import (
 	"errors"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -644,7 +645,7 @@ var _ = Describe("Tracker", func() {
 
 				BeforeEach(func() {
 					satisfyingWorker = new(wfakes.FakeWorker)
-					workerClient.SatisfyingReturns(satisfyingWorker, nil)
+					workerClient.AllSatisfyingReturns([]worker.Worker{satisfyingWorker}, nil)
 
 					satisfyingWorker.CreateContainerReturns(fakeContainer, nil)
 				})
@@ -670,8 +671,8 @@ var _ = Describe("Tracker", func() {
 					})
 
 					It("chose the worker satisfying the resource type and tags", func() {
-						Expect(workerClient.SatisfyingCallCount()).To(Equal(1))
-						Expect(workerClient.SatisfyingArgsForCall(0)).To(Equal(worker.WorkerSpec{
+						Expect(workerClient.AllSatisfyingCallCount()).To(Equal(1))
+						Expect(workerClient.AllSatisfyingArgsForCall(0)).To(Equal(worker.WorkerSpec{
 							ResourceType: "type1",
 							Tags:         []string{"resource", "tags"},
 						}))
@@ -781,11 +782,101 @@ var _ = Describe("Tracker", func() {
 				})
 			})
 
+			Context("when multiple workers satisfy the spec", func() {
+				var (
+					satisfyingWorker1 *wfakes.FakeWorker
+					satisfyingWorker2 *wfakes.FakeWorker
+					satisfyingWorker3 *wfakes.FakeWorker
+				)
+
+				BeforeEach(func() {
+					satisfyingWorker1 = new(wfakes.FakeWorker)
+					satisfyingWorker2 = new(wfakes.FakeWorker)
+					satisfyingWorker3 = new(wfakes.FakeWorker)
+
+					workerClient.AllSatisfyingReturns([]worker.Worker{
+						satisfyingWorker1,
+						satisfyingWorker2,
+						satisfyingWorker3,
+					}, nil)
+
+					satisfyingWorker1.CreateContainerReturns(fakeContainer, nil)
+					satisfyingWorker2.CreateContainerReturns(fakeContainer, nil)
+					satisfyingWorker3.CreateContainerReturns(fakeContainer, nil)
+				})
+
+				Context("and some workers have more matching input volumes than others", func() {
+					var inputVolume *bfakes.FakeVolume
+					var inputVolume2 *bfakes.FakeVolume
+					var inputVolume3 *bfakes.FakeVolume
+					var otherInputVolume *bfakes.FakeVolume
+
+					BeforeEach(func() {
+						inputVolume = new(bfakes.FakeVolume)
+						inputVolume.HandleReturns("input-volume-1")
+
+						inputVolume2 = new(bfakes.FakeVolume)
+						inputVolume2.HandleReturns("input-volume-2")
+
+						inputVolume3 = new(bfakes.FakeVolume)
+						inputVolume3.HandleReturns("input-volume-3")
+
+						otherInputVolume = new(bfakes.FakeVolume)
+						otherInputVolume.HandleReturns("other-input-volume")
+
+						inputSource1.VolumeOnStub = func(w worker.Worker) (baggageclaim.Volume, bool, error) {
+							if w == satisfyingWorker1 {
+								return inputVolume, true, nil
+							} else if w == satisfyingWorker2 {
+								return inputVolume2, true, nil
+							} else if w == satisfyingWorker3 {
+								return inputVolume3, true, nil
+							} else {
+								return nil, false, fmt.Errorf("unexpected worker: %#v\n", w)
+							}
+						}
+						inputSource2.VolumeOnStub = func(w worker.Worker) (baggageclaim.Volume, bool, error) {
+							if w == satisfyingWorker1 {
+								return nil, false, nil
+							} else if w == satisfyingWorker2 {
+								return otherInputVolume, true, nil
+							} else if w == satisfyingWorker3 {
+								return nil, false, nil
+							} else {
+								return nil, false, fmt.Errorf("unexpected worker: %#v\n", w)
+							}
+						}
+						inputSource3.VolumeOnReturns(nil, false, nil)
+
+						satisfyingWorker1.CreateContainerReturns(nil, errors.New("fall out of method here"))
+						satisfyingWorker2.CreateContainerReturns(nil, errors.New("fall out of method here"))
+						satisfyingWorker3.CreateContainerReturns(nil, errors.New("fall out of method here"))
+					})
+
+					It("picks the worker that has the most", func() {
+						Expect(satisfyingWorker1.CreateContainerCallCount()).To(Equal(0))
+						Expect(satisfyingWorker2.CreateContainerCallCount()).To(Equal(1))
+						Expect(satisfyingWorker3.CreateContainerCallCount()).To(Equal(0))
+					})
+
+					It("releases the volumes on the unused workers", func() {
+						Expect(inputVolume.ReleaseCallCount()).To(Equal(1))
+						Expect(inputVolume3.ReleaseCallCount()).To(Equal(1))
+
+						// We don't expect these to be released because we are
+						// causing an error in the create container step, which
+						// happens before they are released.
+						Expect(inputVolume2.ReleaseCallCount()).To(Equal(0))
+						Expect(otherInputVolume.ReleaseCallCount()).To(Equal(0))
+					})
+				})
+			})
+
 			Context("when no worker satisfies the spec", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					workerClient.SatisfyingReturns(nil, disaster)
+					workerClient.AllSatisfyingReturns(nil, disaster)
 				})
 
 				It("returns the error and no resource", func() {

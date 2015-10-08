@@ -97,31 +97,48 @@ func (tracker *tracker) InitWithSources(
 		Env:       metadata.Env(),
 	}
 
-	chosenWorker, err := tracker.workerClient.Satisfying(resourceSpec.WorkerSpec())
+	compatibleWorkers, err := tracker.workerClient.AllSatisfying(resourceSpec.WorkerSpec())
 	if err != nil {
-		logger.Info("no-workers-satisfying-spec", lager.Data{
-			"error": err.Error(),
-		})
 		return nil, nil, err
 	}
 
-	var mounts []worker.VolumeMount
+	// find the worker with the most volumes
+	mounts := []worker.VolumeMount{}
 	missingSources := []string{}
+	var chosenWorker worker.Worker
 
-	for name, source := range sources {
-		volume, found, err := source.VolumeOn(chosenWorker)
-		if err != nil {
-			logger.Error("failed-to-lookup-volume", err)
-			return nil, nil, err
+	for _, w := range compatibleWorkers {
+		candidateMounts := []worker.VolumeMount{}
+		missing := []string{}
+
+		for name, source := range sources {
+			volume, found, err := source.VolumeOn(w)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			if found {
+				candidateMounts = append(candidateMounts, worker.VolumeMount{
+					Volume:    volume,
+					MountPath: ResourcesDir("put/" + name),
+				})
+			} else {
+				missing = append(missing, name)
+			}
 		}
 
-		if found {
-			mounts = append(mounts, worker.VolumeMount{
-				Volume:    volume,
-				MountPath: ResourcesDir("put/" + name),
-			})
+		if len(candidateMounts) >= len(mounts) {
+			for _, mount := range mounts {
+				mount.Volume.Release(0)
+			}
+
+			mounts = candidateMounts
+			missingSources = missing
+			chosenWorker = w
 		} else {
-			missingSources = append(missingSources, name)
+			for _, mount := range candidateMounts {
+				mount.Volume.Release(0)
+			}
 		}
 	}
 
