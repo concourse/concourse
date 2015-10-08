@@ -59,18 +59,39 @@ func (step putStep) Using(prev Step, repo *SourceRepository) Step {
 }
 
 func (step *putStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	trackedResource, err := step.tracker.Init(
+	sources := step.repository.AsMap()
+
+	// curse you golang
+	resourceSources := make(map[string]resource.ArtifactSource)
+	for name, source := range sources {
+		resourceSources[name] = resourceSource{source}
+	}
+
+	trackedResource, missingNames, err := step.tracker.InitWithSources(
 		step.logger,
 		step.stepMetadata,
 		step.session,
 		resource.ResourceType(step.resourceConfig.Type),
 		step.tags,
+		resourceSources,
 	)
+
 	if err != nil {
 		return err
 	}
 
 	step.resource = trackedResource
+
+	repositoryOfMissingSources := NewSourceRepository()
+	for _, missingName := range missingNames {
+		missingSourceName := SourceName(missingName)
+		missingSource, found := step.repository.SourceFor(missingSourceName)
+		if !found {
+			panic("source is missing from a repository... it was there a few clock cycles ago?")
+		}
+
+		repositoryOfMissingSources.RegisterSource(missingSourceName, missingSource)
+	}
 
 	step.versionedSource = step.resource.Put(
 		resource.IOConfig{
@@ -79,7 +100,7 @@ func (step *putStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		},
 		step.resourceConfig.Source,
 		step.params,
-		resourceSource{step.repository},
+		resourceSource{repositoryOfMissingSources},
 	)
 
 	err = step.versionedSource.Run(signals, ready)

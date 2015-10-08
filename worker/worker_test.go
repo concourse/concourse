@@ -221,39 +221,166 @@ var _ = Describe("Worker", func() {
 					})
 
 					Context("when a volume mount is provided", func() {
-						var volume *bfakes.FakeVolume
+						var (
+							volume1 *bfakes.FakeVolume
+							volume2 *bfakes.FakeVolume
+						)
 
 						BeforeEach(func() {
-							volume = new(bfakes.FakeVolume)
-							volume.HandleReturns("some-volume")
-							volume.PathReturns("/some/src/path")
+							volume1 = new(bfakes.FakeVolume)
+							volume1.HandleReturns("some-volume1")
+							volume1.PathReturns("/some/src/path1")
 
-							spec = ResourceTypeContainerSpec{
-								Type: "some-resource",
-								Cache: VolumeMount{
-									Volume:    volume,
-									MountPath: "/some/dst/path",
-								},
-							}
+							volume2 = new(bfakes.FakeVolume)
+							volume2.HandleReturns("some-volume2")
+							volume2.PathReturns("/some/src/path2")
 						})
 
-						It("creates the container with a read-write bind-mount", func() {
-							Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-							Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
-								RootFSPath: "some-resource-image",
-								Privileged: true,
-								Properties: garden.Properties{
-									"concourse:volumes": `["some-volume"]`,
-								},
-								BindMounts: []garden.BindMount{
-									{
-										SrcPath: "/some/src/path",
-										DstPath: "/some/dst/path",
-										Mode:    garden.BindMountModeRW,
-									},
-								},
-							}))
+						Context("when copy-on-write is specified", func() {
+							var (
+								cowVolume1 *bfakes.FakeVolume
+								cowVolume2 *bfakes.FakeVolume
+							)
 
+							BeforeEach(func() {
+								spec = ResourceTypeContainerSpec{
+									Type: "some-resource",
+									Mounts: []VolumeMount{
+										{
+											Volume:    volume1,
+											MountPath: "/some/dst/path1",
+										},
+										{
+											Volume:    volume2,
+											MountPath: "/some/dst/path2",
+										},
+									},
+								}
+
+								cowVolume1 = new(bfakes.FakeVolume)
+								cowVolume1.HandleReturns("cow-volume1")
+								cowVolume1.PathReturns("/some/cow/src/path")
+
+								cowVolume2 = new(bfakes.FakeVolume)
+								cowVolume2.HandleReturns("cow-volume2")
+								cowVolume2.PathReturns("/some/other/cow/src/path")
+
+								fakeBaggageclaimClient.CreateVolumeStub = func(logger lager.Logger, spec baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
+									Expect(spec.Privileged).To(BeTrue())
+									Expect(spec.TTL).To(Equal(5 * time.Minute))
+
+									if reflect.DeepEqual(spec.Strategy, baggageclaim.COWStrategy{Parent: volume1}) {
+										return cowVolume1, nil
+									} else if reflect.DeepEqual(spec.Strategy, baggageclaim.COWStrategy{Parent: volume2}) {
+										return cowVolume2, nil
+										// } else if reflect.DeepEqual(spec.Strategy, baggageclaim.EmptyStrategy{}) {
+										// return <-fakeBaseVolumes, nil
+									} else {
+										Fail(fmt.Sprintf("unknown strategy: %#v", spec.Strategy))
+										return nil, nil
+									}
+								}
+							})
+
+							It("creates the container with read-write copy-on-write bind-mounts for each cache", func() {
+								Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+								Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
+									RootFSPath: "some-resource-image",
+									Privileged: true,
+									Properties: garden.Properties{
+										"concourse:volumes": `["cow-volume1","cow-volume2"]`,
+									},
+									BindMounts: []garden.BindMount{
+										{
+											SrcPath: "/some/cow/src/path",
+											DstPath: "/some/dst/path1",
+											Mode:    garden.BindMountModeRW,
+										},
+										{
+											SrcPath: "/some/other/cow/src/path",
+											DstPath: "/some/dst/path2",
+											Mode:    garden.BindMountModeRW,
+										},
+									},
+								}))
+							})
+
+							It("releases the volumes that it instantiated but not the ones that were passed in", func() {
+								Expect(cowVolume1.ReleaseCallCount()).To(Equal(1))
+								Expect(cowVolume2.ReleaseCallCount()).To(Equal(1))
+								Expect(volume1.ReleaseCallCount()).To(BeZero())
+								Expect(volume2.ReleaseCallCount()).To(BeZero())
+							})
+
+							Context("and the copy-on-write volumes fail to be created", func() {
+								disaster := errors.New("par")
+
+								BeforeEach(func() {
+									fakeBaggageclaimClient.CreateVolumeReturns(nil, disaster)
+								})
+
+								It("errors", func() {
+									Expect(createErr).To(Equal(disaster))
+									Expect(fakeGardenClient.CreateCallCount()).To(BeZero())
+								})
+							})
+						})
+
+						Context("when a cache is specified", func() {
+							BeforeEach(func() {
+								spec = ResourceTypeContainerSpec{
+									Type: "some-resource",
+									Cache: VolumeMount{
+										Volume:    volume1,
+										MountPath: "/some/dst/path1",
+									},
+								}
+							})
+
+							It("creates the container with a read-write bind-mount", func() {
+								Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+								Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
+									RootFSPath: "some-resource-image",
+									Privileged: true,
+									Properties: garden.Properties{
+										"concourse:volumes": `["some-volume1"]`,
+									},
+									BindMounts: []garden.BindMount{
+										{
+											SrcPath: "/some/src/path1",
+											DstPath: "/some/dst/path1",
+											Mode:    garden.BindMountModeRW,
+										},
+									},
+								}))
+							})
+						})
+
+						Context("when both cache and volumes are specified", func() {
+							BeforeEach(func() {
+								spec = ResourceTypeContainerSpec{
+									Type: "some-resource",
+									Cache: VolumeMount{
+										Volume:    volume1,
+										MountPath: "/some/dst/path1",
+									},
+									Mounts: []VolumeMount{
+										{
+											Volume:    volume1,
+											MountPath: "/some/dst/path1",
+										},
+										{
+											Volume:    volume2,
+											MountPath: "/some/dst/path2",
+										},
+									},
+								}
+							})
+
+							It("errors (may be ok but I don't know how they get along)", func() {
+								Expect(createErr).To(HaveOccurred())
+								Expect(fakeGardenClient.CreateCallCount()).To(BeZero())
+							})
 						})
 					})
 

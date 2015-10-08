@@ -45,7 +45,12 @@ type ResourceTypeContainerSpec struct {
 	Ephemeral bool
 	Tags      []string
 	Env       []string
-	Cache     VolumeMount
+
+	// Not Copy-on-Write. Used for a single mount in Get containers.
+	Cache VolumeMount
+
+	// Copy-on-Write. Used for mounting multiple resources into a Put container.
+	Mounts []VolumeMount
 }
 
 func (spec ResourceTypeContainerSpec) WorkerSpec() WorkerSpec {

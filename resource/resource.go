@@ -36,6 +36,12 @@ type IOConfig struct {
 
 type ArtifactSource interface {
 	StreamTo(ArtifactDestination) error
+
+	// VolumeOn returns a Volume object that contains the artifact from the
+	// ArtifactSource which is on a particular Worker. If a volume cannot be found
+	// or a volume manager cannot be found on the worker then it will return
+	// false.
+	VolumeOn(worker.Worker) (baggageclaim.Volume, bool, error)
 }
 
 //go:generate counterfeiter . ArtifactDestination

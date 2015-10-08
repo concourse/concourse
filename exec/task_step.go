@@ -148,6 +148,7 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return err
 		}
 
+		// find the worker with the most volumes
 		inputMounts := []worker.VolumeMount{}
 		inputsToStream := []inputPair{}
 		var chosenWorker worker.Worker

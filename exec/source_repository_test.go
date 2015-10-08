@@ -36,6 +36,12 @@ var _ = Describe("SourceRepository", func() {
 			repo.RegisterSource("first-source", firstSource)
 		})
 
+		It("can be converted to a map", func() {
+			Expect(repo.AsMap()).To(Equal(map[string]ArtifactSource{
+				"first-source": firstSource,
+			}))
+		})
+
 		Describe("SourceFor", func() {
 			It("yields the source by the given name", func() {
 				source, found := repo.SourceFor("first-source")
@@ -56,6 +62,13 @@ var _ = Describe("SourceRepository", func() {
 			BeforeEach(func() {
 				secondSource = new(fakes.FakeArtifactSource)
 				repo.RegisterSource("second-source", secondSource)
+			})
+
+			It("can be converted to a map", func() {
+				Expect(repo.AsMap()).To(Equal(map[string]ArtifactSource{
+					"first-source":  firstSource,
+					"second-source": secondSource,
+				}))
 			})
 
 			Describe("SourceFor", func() {

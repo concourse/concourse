@@ -57,7 +57,9 @@ var _ = Describe("GardenFactory", func() {
 			inStep *fakes.FakeStep
 			repo   *SourceRepository
 
-			fakeSource *fakes.FakeArtifactSource
+			fakeSource        *fakes.FakeArtifactSource
+			fakeOtherSource   *fakes.FakeArtifactSource
+			fakeMountedSource *fakes.FakeArtifactSource
 
 			step    Step
 			process ifrit.Process
@@ -81,7 +83,12 @@ var _ = Describe("GardenFactory", func() {
 			repo = NewSourceRepository()
 
 			fakeSource = new(fakes.FakeArtifactSource)
+			fakeOtherSource = new(fakes.FakeArtifactSource)
+			fakeMountedSource = new(fakes.FakeArtifactSource)
+
 			repo.RegisterSource("some-source", fakeSource)
+			repo.RegisterSource("some-other-source", fakeOtherSource)
+			repo.RegisterSource("some-mounted-source", fakeMountedSource)
 		})
 
 		JustBeforeEach(func() {
@@ -106,7 +113,7 @@ var _ = Describe("GardenFactory", func() {
 
 			BeforeEach(func() {
 				fakeResource = new(rfakes.FakeResource)
-				fakeTracker.InitReturns(fakeResource, nil)
+				fakeTracker.InitWithSourcesReturns(fakeResource, []string{"some-source", "some-other-source"}, nil)
 
 				fakeVersionedSource = new(rfakes.FakeVersionedSource)
 				fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
@@ -115,17 +122,21 @@ var _ = Describe("GardenFactory", func() {
 				fakeResource.PutReturns(fakeVersionedSource)
 			})
 
-			It("initializes the resource with the correct type and session id", func() {
-				Expect(fakeTracker.InitCallCount()).To(Equal(1))
+			It("initializes the resource with the correct type, session, and sources", func() {
+				Expect(fakeTracker.InitWithSourcesCallCount()).To(Equal(1))
 
-				_, sm, sid, typ, tags := fakeTracker.InitArgsForCall(0)
+				_, sm, sid, typ, tags, sources := fakeTracker.InitWithSourcesArgsForCall(0)
 				Expect(sm).To(Equal(stepMetadata))
 				Expect(sid).To(Equal(resource.Session{
 					ID: identifier,
 				}))
-
 				Expect(typ).To(Equal(resource.ResourceType("some-resource-type")))
 				Expect(tags).To(ConsistOf("some", "tags"))
+
+				// TODO: Can we test the map values?
+				Expect(sources).To(HaveKey("some-source"))
+				Expect(sources).To(HaveKey("some-other-source"))
+				Expect(sources).To(HaveKey("some-mounted-source"))
 			})
 
 			It("puts the resource with the correct source and params, and the full repository as the artifact source", func() {
@@ -143,7 +154,6 @@ var _ = Describe("GardenFactory", func() {
 				Expect(fakeSource.StreamToCallCount()).To(Equal(1))
 
 				sourceDest := fakeSource.StreamToArgsForCall(0)
-
 				someStream := new(bytes.Buffer)
 
 				err = sourceDest.StreamIn("foo", someStream)
@@ -153,6 +163,21 @@ var _ = Describe("GardenFactory", func() {
 				destPath, stream := dest.StreamInArgsForCall(0)
 				Expect(destPath).To(Equal("some-source/foo"))
 				Expect(stream).To(Equal(someStream))
+
+				Expect(fakeOtherSource.StreamToCallCount()).To(Equal(1))
+
+				otherSourceDest := fakeOtherSource.StreamToArgsForCall(0)
+				someOtherStream := new(bytes.Buffer)
+
+				err = otherSourceDest.StreamIn("foo", someOtherStream)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(dest.StreamInCallCount()).To(Equal(2))
+				otherDestPath, otherStream := dest.StreamInArgsForCall(1)
+				Expect(otherDestPath).To(Equal("some-other-source/foo"))
+				Expect(otherStream).To(Equal(someOtherStream))
+
+				Expect(fakeMountedSource.StreamToCallCount()).To(Equal(0))
 			})
 
 			It("puts the resource with the io config forwarded", func() {
@@ -306,7 +331,7 @@ var _ = Describe("GardenFactory", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeTracker.InitReturns(nil, disaster)
+				fakeTracker.InitWithSourcesReturns(nil, nil, disaster)
 			})
 
 			It("exits with the failure", func() {

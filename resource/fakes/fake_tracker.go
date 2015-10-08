@@ -38,6 +38,21 @@ type FakeTracker struct {
 		result2 resource.Cache
 		result3 error
 	}
+	InitWithSourcesStub        func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, map[string]resource.ArtifactSource) (resource.Resource, []string, error)
+	initWithSourcesMutex       sync.RWMutex
+	initWithSourcesArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 resource.Metadata
+		arg3 resource.Session
+		arg4 resource.ResourceType
+		arg5 atc.Tags
+		arg6 map[string]resource.ArtifactSource
+	}
+	initWithSourcesReturns struct {
+		result1 resource.Resource
+		result2 []string
+		result3 error
+	}
 }
 
 func (fake *FakeTracker) Init(arg1 lager.Logger, arg2 resource.Metadata, arg3 resource.Session, arg4 resource.ResourceType, arg5 atc.Tags) (resource.Resource, error) {
@@ -112,6 +127,45 @@ func (fake *FakeTracker) InitWithCacheReturns(result1 resource.Resource, result2
 	fake.initWithCacheReturns = struct {
 		result1 resource.Resource
 		result2 resource.Cache
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTracker) InitWithSources(arg1 lager.Logger, arg2 resource.Metadata, arg3 resource.Session, arg4 resource.ResourceType, arg5 atc.Tags, arg6 map[string]resource.ArtifactSource) (resource.Resource, []string, error) {
+	fake.initWithSourcesMutex.Lock()
+	fake.initWithSourcesArgsForCall = append(fake.initWithSourcesArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 resource.Metadata
+		arg3 resource.Session
+		arg4 resource.ResourceType
+		arg5 atc.Tags
+		arg6 map[string]resource.ArtifactSource
+	}{arg1, arg2, arg3, arg4, arg5, arg6})
+	fake.initWithSourcesMutex.Unlock()
+	if fake.InitWithSourcesStub != nil {
+		return fake.InitWithSourcesStub(arg1, arg2, arg3, arg4, arg5, arg6)
+	} else {
+		return fake.initWithSourcesReturns.result1, fake.initWithSourcesReturns.result2, fake.initWithSourcesReturns.result3
+	}
+}
+
+func (fake *FakeTracker) InitWithSourcesCallCount() int {
+	fake.initWithSourcesMutex.RLock()
+	defer fake.initWithSourcesMutex.RUnlock()
+	return len(fake.initWithSourcesArgsForCall)
+}
+
+func (fake *FakeTracker) InitWithSourcesArgsForCall(i int) (lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, map[string]resource.ArtifactSource) {
+	fake.initWithSourcesMutex.RLock()
+	defer fake.initWithSourcesMutex.RUnlock()
+	return fake.initWithSourcesArgsForCall[i].arg1, fake.initWithSourcesArgsForCall[i].arg2, fake.initWithSourcesArgsForCall[i].arg3, fake.initWithSourcesArgsForCall[i].arg4, fake.initWithSourcesArgsForCall[i].arg5, fake.initWithSourcesArgsForCall[i].arg6
+}
+
+func (fake *FakeTracker) InitWithSourcesReturns(result1 resource.Resource, result2 []string, result3 error) {
+	fake.InitWithSourcesStub = nil
+	fake.initWithSourcesReturns = struct {
+		result1 resource.Resource
+		result2 []string
 		result3 error
 	}{result1, result2, result3}
 }

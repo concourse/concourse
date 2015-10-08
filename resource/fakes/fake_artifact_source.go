@@ -5,6 +5,8 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/resource"
+	"github.com/concourse/atc/worker"
+	"github.com/concourse/baggageclaim"
 )
 
 type FakeArtifactSource struct {
@@ -15,6 +17,16 @@ type FakeArtifactSource struct {
 	}
 	streamToReturns struct {
 		result1 error
+	}
+	VolumeOnStub        func(worker.Worker) (baggageclaim.Volume, bool, error)
+	volumeOnMutex       sync.RWMutex
+	volumeOnArgsForCall []struct {
+		arg1 worker.Worker
+	}
+	volumeOnReturns struct {
+		result1 baggageclaim.Volume
+		result2 bool
+		result3 error
 	}
 }
 
@@ -48,6 +60,40 @@ func (fake *FakeArtifactSource) StreamToReturns(result1 error) {
 	fake.streamToReturns = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeArtifactSource) VolumeOn(arg1 worker.Worker) (baggageclaim.Volume, bool, error) {
+	fake.volumeOnMutex.Lock()
+	fake.volumeOnArgsForCall = append(fake.volumeOnArgsForCall, struct {
+		arg1 worker.Worker
+	}{arg1})
+	fake.volumeOnMutex.Unlock()
+	if fake.VolumeOnStub != nil {
+		return fake.VolumeOnStub(arg1)
+	} else {
+		return fake.volumeOnReturns.result1, fake.volumeOnReturns.result2, fake.volumeOnReturns.result3
+	}
+}
+
+func (fake *FakeArtifactSource) VolumeOnCallCount() int {
+	fake.volumeOnMutex.RLock()
+	defer fake.volumeOnMutex.RUnlock()
+	return len(fake.volumeOnArgsForCall)
+}
+
+func (fake *FakeArtifactSource) VolumeOnArgsForCall(i int) worker.Worker {
+	fake.volumeOnMutex.RLock()
+	defer fake.volumeOnMutex.RUnlock()
+	return fake.volumeOnArgsForCall[i].arg1
+}
+
+func (fake *FakeArtifactSource) VolumeOnReturns(result1 baggageclaim.Volume, result2 bool, result3 error) {
+	fake.VolumeOnStub = nil
+	fake.volumeOnReturns = struct {
+		result1 baggageclaim.Volume
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 var _ resource.ArtifactSource = new(FakeArtifactSource)
