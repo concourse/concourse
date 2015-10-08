@@ -37,6 +37,7 @@ import (
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/exec"
+	"github.com/concourse/atc/github"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/pipelines"
 	rdr "github.com/concourse/atc/radar"
@@ -345,7 +346,7 @@ func main() {
 		basicAuthValidator := webValidator
 
 		githubAuthValidator := auth.GitHubOrganizationValidator{
-			Client:       auth.NewGitHubClient(logger.Session("github-client")),
+			Client:       github.NewClient(logger.Session("github-client")),
 			Organization: *gitHubAuthOrg,
 		}
 		webValidator = auth.ValidatorBasket{

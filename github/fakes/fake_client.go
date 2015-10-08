@@ -4,10 +4,10 @@ package fakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/github"
 )
 
-type FakeGitHubClient struct {
+type FakeClient struct {
 	GetOrganizationsStub        func(accessToken string) ([]string, error)
 	getOrganizationsMutex       sync.RWMutex
 	getOrganizationsArgsForCall []struct {
@@ -19,7 +19,7 @@ type FakeGitHubClient struct {
 	}
 }
 
-func (fake *FakeGitHubClient) GetOrganizations(accessToken string) ([]string, error) {
+func (fake *FakeClient) GetOrganizations(accessToken string) ([]string, error) {
 	fake.getOrganizationsMutex.Lock()
 	fake.getOrganizationsArgsForCall = append(fake.getOrganizationsArgsForCall, struct {
 		accessToken string
@@ -32,19 +32,19 @@ func (fake *FakeGitHubClient) GetOrganizations(accessToken string) ([]string, er
 	}
 }
 
-func (fake *FakeGitHubClient) GetOrganizationsCallCount() int {
+func (fake *FakeClient) GetOrganizationsCallCount() int {
 	fake.getOrganizationsMutex.RLock()
 	defer fake.getOrganizationsMutex.RUnlock()
 	return len(fake.getOrganizationsArgsForCall)
 }
 
-func (fake *FakeGitHubClient) GetOrganizationsArgsForCall(i int) string {
+func (fake *FakeClient) GetOrganizationsArgsForCall(i int) string {
 	fake.getOrganizationsMutex.RLock()
 	defer fake.getOrganizationsMutex.RUnlock()
 	return fake.getOrganizationsArgsForCall[i].accessToken
 }
 
-func (fake *FakeGitHubClient) GetOrganizationsReturns(result1 []string, result2 error) {
+func (fake *FakeClient) GetOrganizationsReturns(result1 []string, result2 error) {
 	fake.GetOrganizationsStub = nil
 	fake.getOrganizationsReturns = struct {
 		result1 []string
@@ -52,4 +52,4 @@ func (fake *FakeGitHubClient) GetOrganizationsReturns(result1 []string, result2 
 	}{result1, result2}
 }
 
-var _ auth.GitHubClient = new(FakeGitHubClient)
+var _ github.Client = new(FakeClient)
