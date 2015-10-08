@@ -370,7 +370,7 @@ func (worker *gardenWorker) createGardenWorkaroundVolumes(
 	bindMounts := []garden.BindMount{}
 
 	for _, m := range spec.Inputs {
-		for _, dir := range pathSegments(m.MountPath) {
+		for _, dir := range pathSegmentsToWorkaround(m.MountPath) {
 			if existingMounts[dir] {
 				continue
 			}
@@ -406,10 +406,10 @@ func (worker *gardenWorker) createGardenWorkaroundVolumes(
 	return volumes, bindMounts, nil
 }
 
-func pathSegments(p string) []string {
+func pathSegmentsToWorkaround(p string) []string {
 	segs := []string{}
 
-	for dir := path.Dir(p); dir != "/"; dir = path.Dir(dir) {
+	for dir := path.Dir(p); dir != "/" && dir != "/tmp"; dir = path.Dir(dir) {
 		segs = append(segs, dir)
 	}
 

@@ -541,7 +541,6 @@ var _ = Describe("Worker", func() {
 					var cowInputVolume *bfakes.FakeVolume
 					var cowOtherInputVolume *bfakes.FakeVolume
 
-					var someBaseVolume *bfakes.FakeVolume
 					var someDstBaseVolume *bfakes.FakeVolume
 					var someDstOtherBaseVolume *bfakes.FakeVolume
 
@@ -562,10 +561,6 @@ var _ = Describe("Worker", func() {
 						cowOtherInputVolume.HandleReturns("cow-other-input-volume")
 						cowOtherInputVolume.PathReturns("/some/other/cow/src/path")
 
-						someBaseVolume = new(bfakes.FakeVolume)
-						someBaseVolume.HandleReturns("some-base-volume")
-						someBaseVolume.PathReturns("/some/volume/some")
-
 						someDstBaseVolume = new(bfakes.FakeVolume)
 						someDstBaseVolume.HandleReturns("some-dst-base-volume")
 						someDstBaseVolume.PathReturns("/some/volume/some/dst")
@@ -574,8 +569,7 @@ var _ = Describe("Worker", func() {
 						someDstOtherBaseVolume.HandleReturns("some-dst-other-base-volume")
 						someDstOtherBaseVolume.PathReturns("/some/volume/some/dst/other")
 
-						fakeBaseVolumes := make(chan *bfakes.FakeVolume, 3)
-						fakeBaseVolumes <- someBaseVolume
+						fakeBaseVolumes := make(chan *bfakes.FakeVolume, 2)
 						fakeBaseVolumes <- someDstBaseVolume
 						fakeBaseVolumes <- someDstOtherBaseVolume
 						close(fakeBaseVolumes)
@@ -589,7 +583,12 @@ var _ = Describe("Worker", func() {
 							} else if reflect.DeepEqual(spec.Strategy, baggageclaim.COWStrategy{Parent: volume2}) {
 								return cowOtherInputVolume, nil
 							} else if reflect.DeepEqual(spec.Strategy, baggageclaim.EmptyStrategy{}) {
-								return <-fakeBaseVolumes, nil
+								v, ok := <-fakeBaseVolumes
+								if !ok {
+									Fail("too many fake volumes retrieved")
+								}
+
+								return v, nil
 							} else {
 								Fail(fmt.Sprintf("unknown strategy: %#v", spec.Strategy))
 								return nil, nil
@@ -601,11 +600,11 @@ var _ = Describe("Worker", func() {
 						taskSpec.Inputs = []VolumeMount{
 							{
 								Volume:    volume1,
-								MountPath: "/some/dst/path",
+								MountPath: "/tmp/dst/path",
 							},
 							{
 								Volume:    volume2,
-								MountPath: "/some/dst/other/path",
+								MountPath: "/tmp/dst/other/path",
 							},
 						}
 
@@ -618,32 +617,27 @@ var _ = Describe("Worker", func() {
 							RootFSPath: "some-image",
 							Privileged: true,
 							Properties: garden.Properties{
-								"concourse:volumes": `["some-base-volume","some-dst-base-volume","some-dst-other-base-volume","cow-input-volume","cow-other-input-volume"]`,
+								"concourse:volumes": `["some-dst-base-volume","some-dst-other-base-volume","cow-input-volume","cow-other-input-volume"]`,
 							},
 							BindMounts: []garden.BindMount{
 								{
-									SrcPath: "/some/volume/some",
-									DstPath: "/some",
-									Mode:    garden.BindMountModeRW,
-								},
-								{
 									SrcPath: "/some/volume/some/dst",
-									DstPath: "/some/dst",
+									DstPath: "/tmp/dst",
 									Mode:    garden.BindMountModeRW,
 								},
 								{
 									SrcPath: "/some/volume/some/dst/other",
-									DstPath: "/some/dst/other",
+									DstPath: "/tmp/dst/other",
 									Mode:    garden.BindMountModeRW,
 								},
 								{
 									SrcPath: "/some/cow/src/path",
-									DstPath: "/some/dst/path",
+									DstPath: "/tmp/dst/path",
 									Mode:    garden.BindMountModeRW,
 								},
 								{
 									SrcPath: "/some/other/cow/src/path",
-									DstPath: "/some/dst/other/path",
+									DstPath: "/tmp/dst/other/path",
 									Mode:    garden.BindMountModeRW,
 								},
 							},
@@ -666,7 +660,6 @@ var _ = Describe("Worker", func() {
 						})
 
 						It("releases the Garden workaround base volumes", func() {
-							Expect(someBaseVolume.ReleaseCallCount()).To(Equal(1))
 							Expect(someDstBaseVolume.ReleaseCallCount()).To(Equal(1))
 							Expect(someDstOtherBaseVolume.ReleaseCallCount()).To(Equal(1))
 						})
