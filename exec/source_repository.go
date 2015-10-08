@@ -1,6 +1,7 @@
 package exec
 
 import (
+	"fmt"
 	"io"
 	"strings"
 	"sync"
@@ -50,6 +51,22 @@ func (repo *SourceRepository) StreamTo(dest ArtifactDestination) error {
 	}
 
 	return nil
+}
+
+func (repo *SourceRepository) ScopedTo(keys ...string) (*SourceRepository, error) {
+	newRepo := NewSourceRepository()
+
+	for _, name := range keys {
+		sourceName := SourceName(name)
+		source, found := repo.SourceFor(sourceName)
+		if !found {
+			return nil, fmt.Errorf("source does not exist in repository: %s", sourceName)
+		}
+
+		newRepo.RegisterSource(sourceName, source)
+	}
+
+	return newRepo, nil
 }
 
 func (repo *SourceRepository) AsMap() map[string]ArtifactSource {

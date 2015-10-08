@@ -82,15 +82,9 @@ func (step *putStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 
 	step.resource = trackedResource
 
-	repositoryOfMissingSources := NewSourceRepository()
-	for _, missingName := range missingNames {
-		missingSourceName := SourceName(missingName)
-		missingSource, found := step.repository.SourceFor(missingSourceName)
-		if !found {
-			panic("source is missing from a repository... it was there a few clock cycles ago?")
-		}
-
-		repositoryOfMissingSources.RegisterSource(missingSourceName, missingSource)
+	scopedRepo, err := step.repository.ScopedTo(missingNames...)
+	if err != nil {
+		return err
 	}
 
 	step.versionedSource = step.resource.Put(
@@ -100,7 +94,7 @@ func (step *putStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		},
 		step.resourceConfig.Source,
 		step.params,
-		resourceSource{repositoryOfMissingSources},
+		resourceSource{scopedRepo},
 	)
 
 	err = step.versionedSource.Run(signals, ready)

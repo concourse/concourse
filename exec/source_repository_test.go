@@ -193,6 +193,30 @@ var _ = Describe("SourceRepository", func() {
 					})
 				})
 			})
+
+			Context("when a third source is registered", func() {
+				var thirdSource *fakes.FakeArtifactSource
+
+				BeforeEach(func() {
+					secondSource = new(fakes.FakeArtifactSource)
+					repo.RegisterSource("third-source", thirdSource)
+				})
+
+				It("can have a subset extracted from it", func() {
+					scoped, err := repo.ScopedTo("first-source", "third-source")
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(scoped.AsMap()).To(Equal(map[string]ArtifactSource{
+						"first-source": firstSource,
+						"third-source": thirdSource,
+					}))
+				})
+
+				It("errors if one of the requested keys does not exist", func() {
+					_, err := repo.ScopedTo("first-source", "missing-source")
+					Expect(err).To(HaveOccurred())
+				})
+			})
 		})
 	})
 })
