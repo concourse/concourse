@@ -2,6 +2,9 @@
 platform: linux
 image: docker:///concourse/atc-ci
 
+params:
+  GITHUB_ACCESS_TOKEN:
+
 inputs:
 - name: concourse
 

@@ -60,6 +60,9 @@ jobs:
   - aggregate:
     - task: go-unit
       file: concourse/ci/atc-go.yml
+      config:
+        params:
+          GITHUB_ACCESS_TOKEN: {{github-api-test-access-token}}
     - task: js-unit
       file: concourse/ci/atc-js.yml
 
