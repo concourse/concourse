@@ -141,7 +141,53 @@ var _ = Describe("BuildDelegate", func() {
 						FetchedVersion:  nil,
 						FetchedMetadata: nil,
 					}))
+				})
+			})
 
+			Context("when the pipeline name is empty because of a one-off build", func() {
+				BeforeEach(func() {
+					getPlan = atc.GetPlan{
+						Name:     "some-input",
+						Resource: "some-input-resource",
+						Pipeline: "",
+						Type:     "some-type",
+						Version:  atc.Version{"some": "version"},
+						Source:   atc.Source{"some": "source"},
+						Params:   atc.Params{"some": "params"},
+					}
+
+					inputDelegate = delegate.InputDelegate(logger, getPlan, location)
+				})
+
+				JustBeforeEach(func() {
+					inputDelegate.Completed(exec.ExitStatus(0), versionInfo)
+				})
+
+				It("does not save the build's input", func() {
+					Expect(fakeDB.SaveBuildInputCallCount()).To(Equal(0))
+				})
+
+				It("saves a finish-get event", func() {
+					Expect(fakeDB.SaveBuildEventCallCount()).To(Equal(1))
+
+					buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
+					Expect(buildID).To(Equal(42))
+					Expect(savedEvent).To(Equal(event.FinishGet{
+						Origin: event.Origin{
+							Type:     event.OriginTypeGet,
+							Name:     "some-input",
+							Location: location,
+						},
+						Plan: event.GetPlan{
+							Name:     "some-input",
+							Resource: "some-input-resource",
+							Type:     "some-type",
+							Version:  atc.Version{"some": "version"},
+						},
+						ExitStatus:      0,
+						FetchedVersion:  nil,
+						FetchedMetadata: nil,
+					}))
 				})
 			})
 

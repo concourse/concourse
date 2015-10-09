@@ -187,7 +187,7 @@ func (delegate *delegate) saveInput(logger lager.Logger, status exec.ExitStatus,
 	var version atc.Version
 	var metadata []atc.MetadataField
 
-	if info != nil {
+	if info != nil && plan.Pipeline != "" {
 		savedVR, err := delegate.db.SaveBuildInput(delegate.buildID, db.BuildInput{
 			Name:              plan.Name,
 			VersionedResource: vrFromInput(plan, *info),
