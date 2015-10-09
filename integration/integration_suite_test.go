@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
@@ -37,6 +38,14 @@ func tarFiles(path string) string {
 	Expect(err).ToNot(HaveOccurred())
 
 	return string(output)
+}
+
+func osFlag(short string, long string) string {
+	if runtime.GOOS == "windows" {
+		return fmt.Sprintf("/%s, /%s", short, long)
+	} else {
+		return fmt.Sprintf("-%s, --%s", short, long)
+	}
 }
 
 func userHomeDir() string {

@@ -189,7 +189,7 @@ var _ = Describe("Setting and Getting the pipeline configuration", func() {
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
 
-					Expect(sess.Err).To(gbytes.Say("error: the required flag `-p, --pipeline' was not specified"))
+					Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("p", "pipeline") + "' was not specified"))
 				})
 			})
 
@@ -376,7 +376,7 @@ var _ = Describe("Setting and Getting the pipeline configuration", func() {
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
 
-					Expect(sess.Err).To(gbytes.Say("error: the required flag `-p, --pipeline' was not specified"))
+					Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("p", "pipeline") + "' was not specified"))
 				})
 			})
 
