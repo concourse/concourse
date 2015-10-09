@@ -26,7 +26,6 @@ var _ = Describe("Watching", func() {
 		atcServer = ghttp.NewServer()
 		streaming = make(chan struct{})
 		events = make(chan atc.Event)
-
 	})
 
 	eventsHandler := func() http.HandlerFunc {

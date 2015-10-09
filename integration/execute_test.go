@@ -26,7 +26,6 @@ import (
 )
 
 var _ = Describe("Fly CLI", func() {
-	var flyPath string
 	var tmpdir string
 	var buildDir string
 	var taskConfigPath string
@@ -39,12 +38,7 @@ var _ = Describe("Fly CLI", func() {
 	var expectedPlan atc.Plan
 
 	BeforeEach(func() {
-		var err error
-
-		flyPath, err = gexec.Build("github.com/concourse/fly")
-		Expect(err).NotTo(HaveOccurred())
-
-		tmpdir, err = ioutil.TempDir("", "fly-build-dir")
+		tmpdir, err := ioutil.TempDir("", "fly-build-dir")
 		Expect(err).NotTo(HaveOccurred())
 
 		buildDir = filepath.Join(tmpdir, "fixture")

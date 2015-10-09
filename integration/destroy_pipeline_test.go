@@ -14,16 +14,8 @@ import (
 
 var _ = Describe("Fly CLI", func() {
 	var (
-		flyPath   string
 		atcServer *ghttp.Server
 	)
-
-	BeforeEach(func() {
-		var err error
-
-		flyPath, err = gexec.Build("github.com/concourse/fly")
-		Expect(err).NotTo(HaveOccurred())
-	})
 
 	Describe("destroy-pipeline", func() {
 		BeforeEach(func() {

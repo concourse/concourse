@@ -13,14 +13,19 @@ import (
 
 var flyPath string
 
-var _ = BeforeSuite(func() {
-	var err error
-
-	flyPath, err = gexec.Build("github.com/concourse/fly")
+var _ = SynchronizedBeforeSuite(func() []byte {
+	binPath, err := gexec.Build("github.com/concourse/fly")
 	Expect(err).NotTo(HaveOccurred())
+
+	return []byte(binPath)
+}, func(data []byte) {
+	flyPath = string(data)
 })
 
-var _ = AfterSuite(gexec.CleanupBuildArtifacts)
+var _ = SynchronizedAfterSuite(func() {
+}, func() {
+	gexec.CleanupBuildArtifacts()
+})
 
 func TestIntegration(t *testing.T) {
 	RegisterFailHandler(Fail)

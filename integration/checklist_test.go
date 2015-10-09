@@ -15,18 +15,10 @@ import (
 	"github.com/concourse/atc"
 )
 
-var _ = Describe("Checklist Command", func() {
+var _ = Describe("Fly CLI", func() {
 	var (
-		flyPath   string
 		atcServer *ghttp.Server
 	)
-
-	BeforeEach(func() {
-		var err error
-
-		flyPath, err = gexec.Build("github.com/concourse/fly")
-		Expect(err).NotTo(HaveOccurred())
-	})
 
 	Describe("checklist", func() {
 		var (

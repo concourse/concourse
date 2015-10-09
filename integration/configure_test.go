@@ -67,16 +67,8 @@ func getConfigAndPausedState(r *http.Request) ([]byte, *bool) {
 
 var _ = Describe("Setting and Getting the pipeline configuration", func() {
 	var (
-		flyPath   string
 		atcServer *ghttp.Server
 	)
-
-	BeforeEach(func() {
-		var err error
-
-		flyPath, err = gexec.Build("github.com/concourse/fly")
-		Expect(err).NotTo(HaveOccurred())
-	})
 
 	Describe("configuring", func() {
 		var (
