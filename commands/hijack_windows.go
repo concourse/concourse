@@ -2,14 +2,26 @@
 
 package commands
 
-import (
-	"log"
-	"os"
+import "errors"
 
-	"github.com/codegangsta/cli"
-)
+type HijackCommand struct{}
 
-func Hijack(c *cli.Context) {
-	log.Fatalln("command not supported on windows!")
-	os.Exit(1)
+var hijackCommand HijackCommand
+
+func init() {
+	hijack, err := Parser.AddCommand(
+		"hijack",
+		"Execute an interactive command in a build's container",
+		"",
+		&hijackCommand,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	hijack.Aliases = []string{"intercept", "i"}
+}
+
+func (command *HijackCommand) Execute(args []string) error {
+	return errors.New("command not supported on windows!")
 }
