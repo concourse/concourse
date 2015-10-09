@@ -206,3 +206,7 @@
 	path = src/golang.org/x/oauth2
 	url = https://go.googlesource.com/oauth2
 	branch = master
+[submodule "src/github.com/jessevdk/go-flags"]
+	path = src/github.com/jessevdk/go-flags
+	url = https://github.com/jessevdk/go-flags
+	branch = master

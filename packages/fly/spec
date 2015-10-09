@@ -8,7 +8,6 @@ files:
   - github.com/concourse/fly/*.go # gosub
   - github.com/aryann/difflib/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
-  - github.com/codegangsta/cli/*.go # gosub
   - github.com/concourse/atc/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
   - github.com/concourse/atc/web/routes/*.go # gosub
@@ -19,6 +18,7 @@ files:
   - github.com/hashicorp/go-multierror/*.go # gosub
   - github.com/inconshreveable/go-update/*.go # gosub
   - github.com/inconshreveable/go-update/download/*.go # gosub
+  - github.com/jessevdk/go-flags/*.go # gosub
   - github.com/kardianos/osext/*.go # gosub
   - github.com/kr/binarydist/*.go # gosub
   - github.com/kr/pty/*.go # gosub
