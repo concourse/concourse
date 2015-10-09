@@ -73,7 +73,7 @@ func destroyPipeline() {
 		flyBin,
 		"-t", atcURL,
 		"destroy-pipeline",
-		pipelineName,
+		"-p", pipelineName,
 	)
 
 	stdin, err := destroyCmd.StdinPipe()
@@ -104,9 +104,9 @@ func configurePipeline(argv ...string) {
 
 	args := append([]string{
 		"-t", atcURL,
-		"configure",
-		pipelineName,
-		"--paused=false",
+		"set-config",
+		"-p", pipelineName,
+		"--paused", "false",
 	}, argv...)
 
 	configureCmd := exec.Command(flyBin, args...)
@@ -141,8 +141,7 @@ func flyWatch(jobName string, buildName ...string) *gexec.Session {
 	args := []string{
 		"-t", atcURL,
 		"watch",
-		"-p", pipelineName,
-		"-j", jobName,
+		"-j", pipelineName + "/" + jobName,
 	}
 
 	if len(buildName) > 0 {

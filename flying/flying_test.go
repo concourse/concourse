@@ -109,7 +109,7 @@ cat < /tmp/fifo
 
 			Eventually(flyS).Should(gbytes.Say("waiting"))
 
-			hijack := exec.Command(flyBin, "-t", atcURL, "hijack", "-b", buildID, "-n", "one-off", "--", "sh", "-c", "echo marco > /tmp/fifo")
+			hijack := exec.Command(flyBin, "-t", atcURL, "hijack", "-b", buildID, "-s", "one-off", "--", "sh", "-c", "echo marco > /tmp/fifo")
 
 			hijackS := helpers.StartFly(hijack)
 

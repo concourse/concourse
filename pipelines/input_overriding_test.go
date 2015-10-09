@@ -99,8 +99,7 @@ run:
 			"-t", atcURL,
 			"execute",
 			"-c", taskConfig,
-			"--inputs-from-pipeline", pipelineName,
-			"--inputs-from-job", "some-job",
+			"--inputs-from", pipelineName+"/some-job",
 		)
 		fly.Dir = localGitRepoBDir
 
@@ -118,8 +117,7 @@ run:
 			"-t", atcURL,
 			"execute",
 			"-c", taskConfig,
-			"--inputs-from-pipeline", pipelineName,
-			"--inputs-from-job", "some-job",
+			"--inputs-from", pipelineName+"/some-job",
 			"--input", "git-repo-b="+localGitRepoBDir,
 		)
 		fly.Dir = localGitRepoBDir
