@@ -9,6 +9,10 @@ import (
 type PathFlag string
 
 func (path *PathFlag) UnmarshalFlag(value string) error {
+	if value == "" {
+		return nil
+	}
+
 	matches, err := filepath.Glob(value)
 	if err != nil {
 		return fmt.Errorf("failed to expand path '%s': %s", value, err)
@@ -23,6 +27,5 @@ func (path *PathFlag) UnmarshalFlag(value string) error {
 	}
 
 	*path = PathFlag(matches[0])
-
 	return nil
 }

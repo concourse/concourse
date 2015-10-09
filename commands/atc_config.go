@@ -13,7 +13,6 @@ import (
 	"net/textproto"
 	"os"
 
-	"github.com/codegangsta/cli"
 	"github.com/concourse/atc"
 	atcroutes "github.com/concourse/atc/web/routes"
 	"github.com/concourse/fly/template"
@@ -21,47 +20,6 @@ import (
 	"github.com/tedsuo/rata"
 	"gopkg.in/yaml.v2"
 )
-
-func Configure(c *cli.Context) {
-	var paused PipelineAction
-
-	target := returnTarget(c.GlobalString("target"))
-	insecure := c.GlobalBool("insecure")
-	configPath := c.String("config")
-	asJSON := c.Bool("json")
-	templateVariables := c.StringSlice("var")
-	templateVariablesFile := c.StringSlice("vars-from")
-	pipelineName := c.Args().First()
-
-	if c.IsSet("paused") {
-		if c.Bool("paused") {
-			paused = PausePipeline
-		} else {
-			paused = UnpausePipeline
-		}
-	} else {
-		paused = DoNotChangePipeline
-	}
-
-	if pipelineName == "" {
-		failf("please specify a pipeline name as an argument!")
-	}
-
-	apiRequester := newAtcRequester(target, insecure)
-	webRequestGenerator := rata.NewRequestGenerator(target, atcroutes.Routes)
-
-	atcConfig := ATCConfig{
-		pipelineName:        pipelineName,
-		apiRequester:        apiRequester,
-		webRequestGenerator: webRequestGenerator,
-	}
-
-	if configPath == "" {
-		atcConfig.Dump(asJSON)
-	} else {
-		atcConfig.Set(paused, configPath, templateVariables, templateVariablesFile)
-	}
-}
 
 type ATCConfig struct {
 	pipelineName        string
@@ -88,26 +46,8 @@ func (atcConfig ATCConfig) Dump(asJSON bool) {
 	fmt.Printf("%s", payload)
 }
 
-type PipelineAction int
-
-const (
-	PausePipeline PipelineAction = iota
-	UnpausePipeline
-	DoNotChangePipeline
-)
-
-func failf(message string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, message+"\n", args...)
-	os.Exit(1)
-}
-
-func failWithErrorf(message string, err error, args ...interface{}) {
-	templatedMessage := fmt.Sprintf(message, args...)
-	failf(templatedMessage + ": " + err.Error())
-}
-
-func (atcConfig ATCConfig) Set(paused PipelineAction, configPath string, templateVariables []string, templateVariablesFile []string) {
-	newConfig, newRawConfig := atcConfig.newConfig(configPath, templateVariablesFile, templateVariables)
+func (atcConfig ATCConfig) Set(paused PipelineAction, configPath PathFlag, templateVariables template.Variables, templateVariablesFiles []PathFlag) {
+	newConfig, newRawConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables)
 	existingConfig, existingConfigVersion := atcConfig.existingConfig()
 
 	diff(existingConfig, newConfig)
@@ -116,8 +56,8 @@ func (atcConfig ATCConfig) Set(paused PipelineAction, configPath string, templat
 	atcConfig.showHelpfulMessage(resp, paused)
 }
 
-func (atcConfig ATCConfig) newConfig(configPath string, templateVariablesFiles []string, templateVariables []string) (atc.Config, []byte) {
-	configFile, err := ioutil.ReadFile(configPath)
+func (atcConfig ATCConfig) newConfig(configPath PathFlag, templateVariablesFiles []PathFlag, templateVariables template.Variables) (atc.Config, []byte) {
+	configFile, err := ioutil.ReadFile(string(configPath))
 	if err != nil {
 		failWithErrorf("could not read config file", err)
 	}
@@ -125,20 +65,15 @@ func (atcConfig ATCConfig) newConfig(configPath string, templateVariablesFiles [
 	var resultVars template.Variables
 
 	for _, path := range templateVariablesFiles {
-		fileVars, err := template.LoadVariablesFromFile(path)
+		fileVars, err := template.LoadVariablesFromFile(string(path))
 		if err != nil {
-			failWithErrorf("failed to load variables from file (%s)", err, path)
+			failWithErrorf("failed to load variables from file (%s)", err, string(path))
 		}
 
 		resultVars = resultVars.Merge(fileVars)
 	}
 
-	vars, err := template.LoadVariables(templateVariables)
-	if err != nil {
-		failWithErrorf("could not load template variables", err)
-	}
-
-	resultVars = resultVars.Merge(vars)
+	resultVars = resultVars.Merge(templateVariables)
 
 	configFile, err = template.Evaluate(configFile, resultVars)
 	if err != nil {

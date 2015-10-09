@@ -8,16 +8,33 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/codegangsta/cli"
 	"github.com/inconshreveable/go-update"
 	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc"
 )
 
-func Sync(c *cli.Context) {
-	target := returnTarget(c.GlobalString("target"))
-	insecure := c.GlobalBool("insecure")
+type SyncCommand struct{}
+
+var syncCommand SyncCommand
+
+func init() {
+	sync, err := Parser.AddCommand(
+		"sync",
+		"Download and replace the current fly from the target",
+		"",
+		&syncCommand,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	sync.Aliases = []string{"s"}
+}
+
+func (command *SyncCommand) Execute(args []string) error {
+	target := returnTarget(globalOptions.Target)
+	insecure := globalOptions.Insecure
 	reqGenerator := rata.NewRequestGenerator(target, atc.Routes)
 
 	request, err := reqGenerator.CreateRequest(
@@ -51,8 +68,9 @@ func Sync(c *cli.Context) {
 			fmt.Printf("things are probably in a bad state on your machine now.\n")
 		}
 
-		return
+		return err
 	}
 
 	fmt.Println("update successful!")
+	return nil
 }

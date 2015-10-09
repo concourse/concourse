@@ -1,9 +1,7 @@
 package template
 
 import (
-	"fmt"
 	"io/ioutil"
-	"strings"
 
 	"gopkg.in/yaml.v2"
 )
@@ -22,20 +20,6 @@ func (v Variables) Merge(other Variables) Variables {
 	}
 
 	return merged
-}
-
-func LoadVariables(inputs []string) (Variables, error) {
-	output := Variables{}
-
-	for _, input := range inputs {
-		tokens := strings.SplitN(input, "=", 2)
-		if len(tokens) == 1 {
-			return Variables{}, fmt.Errorf("input has incorrect format (should be key=value): '%s'", input)
-		}
-		output[tokens[0]] = tokens[1]
-	}
-
-	return output, nil
 }
 
 func LoadVariablesFromFile(path string) (Variables, error) {

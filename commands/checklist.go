@@ -10,20 +10,23 @@ import (
 )
 
 type ChecklistCommand struct {
-	Pipeline string `short:"p" long:"pipeline"`
+	Pipeline string `short:"p" long:"pipeline" required:"true" description:"The pipeline from which to generate the Checkfile"`
 }
 
 var checklistCommand ChecklistCommand
 
 func init() {
-	for _, name := range []string{"checklist", "l"} {
-		Parser.AddCommand(
-			name,
-			"print a Checkfile of the given pipeline",
-			"Blah blah blah",
-			&targetPrinter{&checklistCommand},
-		)
+	command, err := Parser.AddCommand(
+		"checklist",
+		"Print a Checkfile of the given pipeline",
+		"",
+		&checklistCommand,
+	)
+	if err != nil {
+		panic(err)
 	}
+
+	command.Aliases = []string{"l"}
 }
 
 func (command *ChecklistCommand) Execute([]string) error {

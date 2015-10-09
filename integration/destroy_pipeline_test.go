@@ -39,7 +39,7 @@ var _ = Describe("Fly CLI", func() {
 
 				Eventually(sess).Should(gexec.Exit(1))
 
-				Expect(sess.Err).To(gbytes.Say("you must specify a pipeline name"))
+				Expect(sess.Err).To(gbytes.Say("error: the required flag `-p, --pipeline' was not specified"))
 			})
 		})
 
@@ -52,7 +52,7 @@ var _ = Describe("Fly CLI", func() {
 			JustBeforeEach(func() {
 				var err error
 
-				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "destroy-pipeline", "some-pipeline")
+				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "destroy-pipeline", "-p", "some-pipeline")
 				stdin, err = flyCmd.StdinPipe()
 				Expect(err).NotTo(HaveOccurred())
 

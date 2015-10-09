@@ -21,13 +21,36 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/codegangsta/cli"
 	"github.com/concourse/atc"
 	"github.com/kr/pty"
 	"github.com/mgutz/ansi"
 	"github.com/pkg/term"
 	"github.com/tedsuo/rata"
 )
+
+type HijackCommand struct {
+	Job      JobFlag      `short:"j" long:"job"   value-name:"[PIPELINE/]JOB"   description:"Name of a job to hijack"`
+	Check    ResourceFlag `short:"c" long:"check" value-name:"[PIPELINE/]CHECK" description:"Name of a resource's checking container to hijack"`
+	Build    string       `short:"b" long:"build"                               description:"Name of a specific build of a job"`
+	StepName string       `short:"s" long:"step"                                description:"Name of step to hijack (e.g. build, unit, resource name)"`
+}
+
+var hijackCommand HijackCommand
+
+func init() {
+
+	hijack, err := Parser.AddCommand(
+		"hijack",
+		"Execute an interactive command in a build's container",
+		"",
+		&hijackCommand,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	hijack.Aliases = []string{"intercept", "i"}
+}
 
 func remoteCommand(argv []string) (string, []string) {
 	var path string
@@ -68,10 +91,6 @@ func (locator stepContainerLocator) locate(fingerprint containerFingerprint) url
 	reqValues["build-id"] = []string{strconv.Itoa(build.ID)}
 	reqValues["name"] = []string{fingerprint.stepName}
 
-	if fingerprint.stepType != "" {
-		reqValues["type"] = []string{fingerprint.stepType}
-	}
-
 	return reqValues
 }
 
@@ -97,7 +116,6 @@ type containerFingerprint struct {
 	buildName    string
 
 	stepName string
-	stepType string
 
 	checkName string
 }
@@ -105,7 +123,7 @@ type containerFingerprint struct {
 func locateContainer(client *http.Client, reqGenerator *rata.RequestGenerator, fingerprint containerFingerprint) url.Values {
 	var locator containerLocator
 
-	if fingerprint.checkName == "" && fingerprint.stepType != "check" {
+	if fingerprint.checkName == "" {
 		locator = stepContainerLocator{
 			client:       client,
 			reqGenerator: reqGenerator,
@@ -140,23 +158,27 @@ func constructRequest(reqGenerator *rata.RequestGenerator, spec atc.HijackProces
 	return hijackReq
 }
 
-func getContainerIDs(c *cli.Context) []atc.Container {
-	target := returnTarget(c.GlobalString("target"))
-	insecure := c.GlobalBool("insecure")
+func getContainerIDs(c *HijackCommand) []atc.Container {
+	target := returnTarget(globalOptions.Target)
+	insecure := globalOptions.Insecure
 
-	pipelineName := c.String("pipeline")
-	jobName := c.String("job")
-	buildName := c.String("build")
-	stepName := c.String("step-name")
-	stepType := c.String("step-type")
-	check := c.String("check")
+	var pipelineName string
+	if c.Job.PipelineName != "" {
+		pipelineName = c.Job.PipelineName
+	} else {
+		pipelineName = c.Check.PipelineName
+	}
+
+	buildName := c.Build
+	stepName := c.StepName
+	jobName := c.Job.JobName
+	check := c.Check.ResourceName
 
 	fingerprint := containerFingerprint{
 		pipelineName: pipelineName,
 		jobName:      jobName,
 		buildName:    buildName,
 		stepName:     stepName,
-		stepType:     stepType,
 		checkName:    check,
 	}
 
@@ -187,11 +209,11 @@ func getContainerIDs(c *cli.Context) []atc.Container {
 	return containers
 }
 
-func Hijack(c *cli.Context) {
-	target := returnTarget(c.GlobalString("target"))
-	insecure := c.GlobalBool("insecure")
+func (command *HijackCommand) Execute(args []string) error {
+	target := returnTarget(globalOptions.Target)
+	insecure := globalOptions.Insecure
 
-	containers := getContainerIDs(c)
+	containers := getContainerIDs(command)
 
 	var id string
 	var selection int
@@ -238,7 +260,7 @@ func Hijack(c *cli.Context) {
 		id = containers[0].ID
 	}
 
-	path, args := remoteCommand(c.Args())
+	path, args := remoteCommand(args)
 	privileged := true
 
 	reqGenerator := rata.NewRequestGenerator(target, atc.Routes)
@@ -268,6 +290,8 @@ func Hijack(c *cli.Context) {
 	hijackReq := constructRequest(reqGenerator, spec, id)
 	hijackResult := performHijack(hijackReq, tlsConfig)
 	os.Exit(hijackResult)
+
+	return nil
 }
 
 func performHijack(hijackReq *http.Request, tlsConfig *tls.Config) int {

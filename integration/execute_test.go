@@ -25,7 +25,7 @@ import (
 	"github.com/concourse/atc/event"
 )
 
-var _ = FDescribe("Fly CLI", func() {
+var _ = Describe("Fly CLI", func() {
 	var flyPath string
 	var tmpdir string
 	var buildDir string

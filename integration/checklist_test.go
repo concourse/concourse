@@ -15,7 +15,7 @@ import (
 	"github.com/concourse/atc"
 )
 
-var _ = Describe("Fly CLI", func() {
+var _ = Describe("Checklist Command", func() {
 	var (
 		flyPath   string
 		atcServer *ghttp.Server
@@ -42,7 +42,11 @@ var _ = Describe("Fly CLI", func() {
 			Expect(err).NotTo(HaveOccurred())
 			os.Setenv("HOME", home)
 
-			flySaveCmd := exec.Command(flyPath, "save-target", "--api", atcServer.URL()+"/", "target-name")
+			flySaveCmd := exec.Command(
+				flyPath, "save-target",
+				"--api", atcServer.URL()+"/",
+				"--name", "target-name",
+			)
 
 			sess, err := gexec.Start(flySaveCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())

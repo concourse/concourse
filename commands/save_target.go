@@ -7,9 +7,30 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/codegangsta/cli"
 	"gopkg.in/yaml.v2"
 )
+
+type SaveTargetCommand struct {
+	API      string   `long:"api" required:"true"           description:"Api url to target"`
+	Username string   `long:"username"                      description:"Username for the api"`
+	Password string   `long:"password"                      description:"Password for the api"`
+	Cert     PathFlag `long:"cert"                          description:"directory to your cert"`
+	Name     string   `short:"n" long:"name" required:"true" description:"Name for target"`
+}
+
+var saveTargetCommand SaveTargetCommand
+
+func init() {
+	_, err := Parser.AddCommand(
+		"save-target",
+		"Save a fly target to the .flyrc",
+		"",
+		&saveTargetCommand,
+	)
+	if err != nil {
+		panic(err)
+	}
+}
 
 type targetProps struct {
 	API      string `yaml:"api"`
@@ -22,33 +43,33 @@ type TargetDetailsYAML struct {
 	Targets map[string]targetProps
 }
 
-func SaveTarget(c *cli.Context) {
+func (command *SaveTargetCommand) Execute(args []string) error {
 	flyrc := filepath.Join(userHomeDir(), ".flyrc")
 
-	if c.Args().First() == "" {
+	targetName := command.Name
+	if targetName == "" {
 		log.Fatalln("name not provided for target")
-		return
+		return nil
 	}
 
 	if _, err := os.Stat(flyrc); err != nil {
-		createTargets(flyrc, c)
+		createTargets(flyrc, command, targetName)
 	} else {
-		updateTargets(flyrc, c)
+		updateTargets(flyrc, command, targetName)
 	}
 
-	fmt.Printf("successfully saved target %s\n", c.Args().First())
+	fmt.Printf("successfully saved target %s\n", targetName)
+	return nil
 }
 
-func createTargets(location string, c *cli.Context) {
-	targetName := c.Args().First()
-
+func createTargets(location string, command *SaveTargetCommand, targetName string) {
 	targetsBytes, err := yaml.Marshal(&TargetDetailsYAML{
 		Targets: map[string]targetProps{
 			targetName: {
-				API:      c.String("api"),
-				Username: c.String("username"),
-				Password: c.String("password"),
-				Cert:     c.String("cert"),
+				API:      command.API,
+				Username: command.Username,
+				Password: command.Password,
+				Cert:     string(command.Cert),
 			},
 		},
 	})
@@ -63,13 +84,12 @@ func createTargets(location string, c *cli.Context) {
 	}
 }
 
-func updateTargets(location string, c *cli.Context) {
-	targetToUpdate := c.Args().First()
+func updateTargets(location string, command *SaveTargetCommand, targetToUpdate string) {
 	yamlToSet := targetProps{
-		API:      c.String("api"),
-		Username: c.String("username"),
-		Password: c.String("password"),
-		Cert:     c.String("cert"),
+		API:      command.API,
+		Username: command.Username,
+		Password: command.Password,
+		Cert:     string(command.Cert),
 	}
 
 	currentTargetsBytes, err := ioutil.ReadFile(location)

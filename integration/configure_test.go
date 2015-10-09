@@ -65,7 +65,7 @@ func getConfigAndPausedState(r *http.Request) ([]byte, *bool) {
 	return payload, state
 }
 
-var _ = Describe("Fly CLI", func() {
+var _ = Describe("Setting and Getting the pipeline configuration", func() {
 	var (
 		flyPath   string
 		atcServer *ghttp.Server
@@ -78,7 +78,7 @@ var _ = Describe("Fly CLI", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	Describe("configure", func() {
+	Describe("configuring", func() {
 		var (
 			config atc.Config
 		)
@@ -189,7 +189,7 @@ var _ = Describe("Fly CLI", func() {
 		Describe("getting", func() {
 			Context("when not specifying a pipeline name", func() {
 				It("fails and says you should give a pipeline name", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure")
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "get-config")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
@@ -197,7 +197,7 @@ var _ = Describe("Fly CLI", func() {
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
 
-					Expect(sess.Err).To(gbytes.Say("please specify a pipeline name as an argument!"))
+					Expect(sess.Err).To(gbytes.Say("error: the required flag `-p, --pipeline' was not specified"))
 				})
 			})
 
@@ -215,7 +215,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("prints the config as yaml to stdout", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "some-pipeline")
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "get-config", "--pipeline", "some-pipeline")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
@@ -232,7 +232,7 @@ var _ = Describe("Fly CLI", func() {
 
 				Context("when -j is given", func() {
 					It("prints the config as json to stdout", func() {
-						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "some-pipeline", "-j")
+						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "get-config", "--pipeline", "some-pipeline", "-j")
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
@@ -307,11 +307,11 @@ var _ = Describe("Fly CLI", func() {
 				It("parses the config file and sends it to the ATC", func() {
 					flyCmd := exec.Command(
 						flyPath, "-t", atcServer.URL()+"/",
-						"configure",
-						"awesome-pipeline",
+						"set-config",
+						"--pipeline", "awesome-pipeline",
 						"-c", "fixtures/testConfig.yml",
-						"-var", "resource-key=verysecret",
-						"-vars-from", "fixtures/vars.yml",
+						"--var", "resource-key=verysecret",
+						"--load-vars-from", "fixtures/vars.yml",
 					)
 
 					stdin, err := flyCmd.StdinPipe()
@@ -376,7 +376,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when not specifying a pipeline name", func() {
 				It("fails and says you should give a pipeline name", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name())
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-config", "-c", configFile.Name())
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
@@ -384,7 +384,7 @@ var _ = Describe("Fly CLI", func() {
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
 
-					Expect(sess.Err).To(gbytes.Say("please specify a pipeline name as an argument!"))
+					Expect(sess.Err).To(gbytes.Say("error: the required flag `-p, --pipeline' was not specified"))
 				})
 			})
 
@@ -422,7 +422,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("parses the config file and sends it to the ATC", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "awesome-pipeline", "-c", configFile.Name(), "--paused")
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-config", "-p", "awesome-pipeline", "-c", configFile.Name(), "--paused", "true")
 
 					stdin, err := flyCmd.StdinPipe()
 					Expect(err).NotTo(HaveOccurred())
@@ -470,7 +470,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("bails if the user rejects the diff", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "awesome-pipeline", "-c", configFile.Name())
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-config", "-p", "awesome-pipeline", "-c", configFile.Name())
 
 					stdin, err := flyCmd.StdinPipe()
 					Expect(err).NotTo(HaveOccurred())
@@ -499,7 +499,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("prints the error to stderr and exits 1", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name(), "awesome-pipeline")
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-config", "-c", configFile.Name(), "-p", "awesome-pipeline")
 
 					stdin, err := flyCmd.StdinPipe()
 					Expect(err).NotTo(HaveOccurred())
@@ -521,12 +521,12 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("complains if the paused flag is invalid", func() {
-				flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "awesome-pipeline", "-c", configFile.Name(), "--paused=this-is-not-a-bool")
+				flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-config", "-p", "awesome-pipeline", "-c", configFile.Name(), "--paused=this-is-not-a-bool")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(sess.Err).Should(gbytes.Say(`invalid boolean value "this-is-not-a-bool" for -paused`))
+				Eventually(sess.Err).Should(gbytes.Say(`invalid boolean value "this-is-not-a-bool" for --paused`))
 
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
@@ -552,7 +552,7 @@ var _ = Describe("Fly CLI", func() {
 					})
 
 					It("succeeds and prints an error message to help the user", func() {
-						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "awesome-pipeline", "-c", configFile.Name())
+						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-config", "-p", "awesome-pipeline", "-c", configFile.Name())
 
 						stdin, err := flyCmd.StdinPipe()
 						Expect(err).NotTo(HaveOccurred())
@@ -596,7 +596,7 @@ var _ = Describe("Fly CLI", func() {
 					})
 
 					It("succeeds and prints an error message to help the user", func() {
-						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "awesome-pipeline", "-c", configFile.Name(), "--paused=true")
+						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-config", "-p", "awesome-pipeline", "-c", configFile.Name(), "--paused=true")
 
 						stdin, err := flyCmd.StdinPipe()
 						Expect(err).NotTo(HaveOccurred())
@@ -640,7 +640,7 @@ var _ = Describe("Fly CLI", func() {
 					})
 
 					It("succeeds but doesn't show the help text", func() {
-						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "awesome-pipeline", "-c", configFile.Name(), "--paused=false")
+						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-config", "-p", "awesome-pipeline", "-c", configFile.Name(), "--paused=false")
 
 						stdin, err := flyCmd.StdinPipe()
 						Expect(err).NotTo(HaveOccurred())
@@ -677,7 +677,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("prints the error to stderr and exits 1", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "configure", "-c", configFile.Name(), "awesome-pipeline")
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-config", "-c", configFile.Name(), "-p", "awesome-pipeline")
 
 					stdin, err := flyCmd.StdinPipe()
 					Expect(err).NotTo(HaveOccurred())

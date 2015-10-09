@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -20,34 +21,47 @@ import (
 	"github.com/concourse/atc"
 )
 
-var _ = Describe("Fly CLI", func() {
+var _ = Describe("save-target Command", func() {
+	var tmpDir string
 	var flyrc string
 	var stockYAML = `
 targets:
   some-target-name:
     api: some-existing-text
 `
+	var certififatePath string
 
 	BeforeEach(func() {
-		tmpDir, _ := ioutil.TempDir("", "fly-test")
+		var err error
+		tmpDir, err = ioutil.TempDir("", "fly-test")
+		Expect(err).NotTo(HaveOccurred())
+
 		os.Setenv("HOME", tmpDir)
 		os.Setenv("HOMEPATH", tmpDir)
 		os.Unsetenv("HOMEDRIVE")
+
 		flyrc = filepath.Join(userHomeDir(), ".flyrc")
+		certififatePath = filepath.Join(tmpDir, "fly.cert")
+
+		err = ioutil.WriteFile(certififatePath, []byte("a really secure certificate"), 0600)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
-		theFile, _ := os.Open(flyrc)
-		theFile.Close()
-		os.Remove(flyrc)
+		os.RemoveAll(tmpDir)
+
 		os.Unsetenv("HOME")
 		os.Unsetenv("HOMEPATH")
 	})
 
 	It("should exit 1 when no name is provided", func() {
-		flyCmd := exec.Command(flyPath, "save-target", "--api",
-			"http://some-target", "--username", "some-username",
-			"--password", "some-password", "--cert", "~/path/to/cert",
+		flyCmd := exec.Command(
+			flyPath,
+			"save-target",
+			"--api", "http://some-target",
+			"--username", "some-username",
+			"--password", "some-password",
+			"--cert", certififatePath,
 		)
 
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -95,15 +109,22 @@ targets:
 		})
 
 		It("should use the target when passed to the next command", func() {
-			flyCmd := exec.Command(flyPath, "save-target", "--api",
-				targetURL, "my-test-target",
+			flyCmd := exec.Command(flyPath,
+				"save-target",
+				"--api", targetURL,
+				"--name", "my-test-target",
 			)
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(sess).Should(gexec.Exit(0))
 
-			flyCmd = exec.Command(flyPath, "-t", targetURL, "checklist")
+			flyCmd = exec.Command(
+				flyPath,
+				"-t", "my-test-target",
+				"checklist",
+				"-p", "main",
+			)
 
 			sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
@@ -119,10 +140,14 @@ targets:
 				err := ioutil.WriteFile(flyrc, []byte(stockYAML), os.ModePerm)
 				Expect(err).NotTo(HaveOccurred())
 
-				flyCmd := exec.Command(flyPath, "save-target", "--api",
-					"http://some-target", "--username", "some-username",
-					"--password", "some-password", "--cert", "~/path/to/cert",
-					"some-update-target",
+				flyCmd := exec.Command(
+					flyPath,
+					"save-target",
+					"--api", "http://some-target",
+					"--username", "some-username",
+					"--password", "some-password",
+					"--cert", certififatePath,
+					"--name", "some-update-target",
 				)
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -142,21 +167,37 @@ targets:
 		})
 
 		Context("and the target is already saved", func() {
+			var updatedCertPath string
+
+			BeforeEach(func() {
+				updatedCertPath := filepath.Join(tmpDir, "updated-fly.cert")
+				err := ioutil.WriteFile(updatedCertPath, []byte("a new really secure certificate"), 0600)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
 			It("should update the target", func() {
-				flyCmd := exec.Command(flyPath, "save-target", "--api",
-					"http://some-target", "--username", "some-username",
-					"--password", "some-password", "--cert", "~/path/to/cert",
-					"some-update-target",
+				flyCmd := exec.Command(
+					flyPath,
+					"save-target",
+					"--api", "http://some-target",
+					"--username", "some-username",
+					"--password", "some-password",
+					"--cert", certififatePath,
+					"--name", "some-update-target",
 				)
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 				Eventually(sess).Should(gexec.Exit(0))
 
-				flyCmd = exec.Command(flyPath, "save-target", "--api",
-					"http://a-different-target", "--username", "some-username",
-					"--password", "stuff", "--cert", "~/path/to/different/cert",
-					"some-update-target",
+				flyCmd = exec.Command(
+					flyPath,
+					"save-target",
+					"--api", "http://a-different-target",
+					"--username", "some-username",
+					"--password", "stuff",
+					"--cert", updatedCertPath,
+					"--name", "some-update-target",
 				)
 
 				sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -168,17 +209,21 @@ targets:
 				Expect(re.FindAllString(string(flyrcBytes), -1)).To(HaveLen(1))
 				Expect(string(flyrcBytes)).To(ContainSubstring("password: stuff"))
 				Expect(string(flyrcBytes)).To(ContainSubstring("api: http://a-different-target"))
-				Expect(string(flyrcBytes)).To(ContainSubstring("cert: ~/path/to/different/cert"))
+				Expect(string(flyrcBytes)).To(ContainSubstring(fmt.Sprintf("cert: %s", updatedCertPath)))
 			})
 		})
 	})
 
 	Context("when no .flyrc exists", func() {
 		It("should create the file and write the target", func() {
-			flyCmd := exec.Command(flyPath, "save-target", "--api",
-				"http://some-target", "--username", "some-username",
-				"--password", "some-password", "--cert", "~/path/to/cert",
-				"some-target",
+			flyCmd := exec.Command(
+				flyPath,
+				"save-target",
+				"--api", "http://some-target",
+				"--username", "some-username",
+				"--password", "some-password",
+				"--cert", certififatePath,
+				"--name", "some-target",
 			)
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -201,7 +246,7 @@ targets:
 				{Key: "api", Value: "http://some-target"},
 				{Key: "username", Value: "some-username"},
 				{Key: "password", Value: "some-password"},
-				{Key: "cert", Value: "~/path/to/cert"},
+				{Key: "cert", Value: certififatePath},
 			}))
 
 		})

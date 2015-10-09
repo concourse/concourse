@@ -155,11 +155,11 @@ var _ = Describe("Hijacking", func() {
 		})
 
 		It("hijacks the most recent one-off build", func() {
-			hijack("-n", "some-step")
+			hijack("-s", "some-step")
 		})
 
 		It("hijacks the most recent one-off build with a more politically correct command", func() {
-			fly("intercept", "-n", "some-step")
+			fly("intercept", "-s", "some-step")
 		})
 	})
 
@@ -184,7 +184,7 @@ var _ = Describe("Hijacking", func() {
 		})
 
 		It("return a friendly error message", func() {
-			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-n", "some-step")
+			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-s", "some-step")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -227,18 +227,6 @@ var _ = Describe("Hijacking", func() {
 		})
 	})
 
-	Context("if you only specify a pipeline", func() {
-		It("returns an error", func() {
-			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-p", "pipeline-name")
-			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
-
-			Eventually(sess).Should(gexec.Exit(1))
-
-			Expect(sess.Err).To(gbytes.Say("job must be specified if pipeline is specified"))
-		})
-	})
-
 	Context("when multiple containers are found", func() {
 		BeforeEach(func() {
 			didHijack := make(chan struct{})
@@ -246,10 +234,27 @@ var _ = Describe("Hijacking", func() {
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", "type=check&name=some-resource-name"),
+					ghttp.VerifyRequest("GET", "/api/v1/pipelines/pipeline-name-1/jobs/some-job"),
+					ghttp.RespondWithJSONEncoded(200, atc.Job{
+						NextBuild: &atc.Build{
+							ID:      3,
+							Name:    "3",
+							Status:  "started",
+							JobName: "some-job",
+						},
+						FinishedBuild: &atc.Build{
+							ID:      2,
+							Name:    "2",
+							Status:  "failed",
+							JobName: "some-job",
+						},
+					}),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&name="),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", PipelineName: "pipeline-name-1", Type: "check", Name: "some-resource-name", BuildID: 6},
-						{ID: "container-id-2", PipelineName: "pipeline-name-2", Type: "check", Name: "some-resource-name", BuildID: 5},
+						{ID: "container-id-1", PipelineName: "pipeline-name-1", Type: "get", Name: "some-job", BuildID: 3},
+						{ID: "container-id-2", PipelineName: "pipeline-name-1", Type: "put", Name: "some-job", BuildID: 3},
 					}),
 				),
 				hijackHandler("container-id-2", didHijack, nil),
@@ -260,14 +265,14 @@ var _ = Describe("Hijacking", func() {
 			pty, tty, err := pty.Open()
 			Expect(err).NotTo(HaveOccurred())
 
-			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-c", "some-resource-name")
+			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-j", "pipeline-name-1/some-job")
 			flyCmd.Stdin = tty
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess.Out).Should(gbytes.Say("1. pipeline: pipeline-name-1, build id: 6, type: check, name: some-resource-name"))
-			Eventually(sess.Out).Should(gbytes.Say("2. pipeline: pipeline-name-2, build id: 5, type: check, name: some-resource-name"))
+			Eventually(sess.Out).Should(gbytes.Say("1. pipeline: pipeline-name-1, build id: 3, type: get, name: some-job"))
+			Eventually(sess.Out).Should(gbytes.Say("2. pipeline: pipeline-name-1, build id: 3, type: put, name: some-job"))
 			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
 
 			_, err = pty.WriteString("ghfdhf\n")
@@ -302,14 +307,14 @@ var _ = Describe("Hijacking", func() {
 			pty, tty, err := pty.Open()
 			Expect(err).NotTo(HaveOccurred())
 
-			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-c", "some-resource-name")
+			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-j", "pipeline-name-1/some-job")
 			flyCmd.Stdin = tty
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess.Out).Should(gbytes.Say("1. pipeline: pipeline-name-1, build id: 6, type: check, name: some-resource-name"))
-			Eventually(sess.Out).Should(gbytes.Say("2. pipeline: pipeline-name-2, build id: 5, type: check, name: some-resource-name"))
+			Eventually(sess.Out).Should(gbytes.Say("1. pipeline: pipeline-name-1, build id: 3, type: get, name: some-job"))
+			Eventually(sess.Out).Should(gbytes.Say("2. pipeline: pipeline-name-1, build id: 3, type: put, name: some-job"))
 			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
 
 			pty.Close()
@@ -326,9 +331,12 @@ var _ = Describe("Hijacking", func() {
 			stepName           string
 			buildID            int
 			hijackHandlerError []string
+			pipelineName       string
 		)
+
 		BeforeEach(func() {
 			hijackHandlerError = nil
+			pipelineName = "a-pipeline"
 		})
 
 		JustBeforeEach(func() {
@@ -339,7 +347,7 @@ var _ = Describe("Hijacking", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/containers", containerArguments),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", PipelineName: "a-pipeline", Type: stepType, Name: stepName, BuildID: buildID},
+						{ID: "container-id-1", PipelineName: pipelineName, Type: stepType, Name: stepName, BuildID: buildID},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, hijackHandlerError),
@@ -352,10 +360,13 @@ var _ = Describe("Hijacking", func() {
 				stepName = "some-resource-name"
 				buildID = 6
 			})
+
 			Context("and no other arguments", func() {
 				BeforeEach(func() {
-					containerArguments = "type=check&name=some-resource-name"
+					pipelineName = "main"
+					containerArguments = "type=check&name=some-resource-name&pipeline=main"
 				})
+
 				It("can accept the check resources name", func() {
 					hijack("--check", "some-resource-name")
 				})
@@ -365,8 +376,9 @@ var _ = Describe("Hijacking", func() {
 				BeforeEach(func() {
 					containerArguments = "type=check&name=some-resource-name&pipeline=a-pipeline"
 				})
+
 				It("can accept the check resources name and a pipeline", func() {
-					hijack("--check", "some-resource-name", "--pipeline", "a-pipeline")
+					hijack("--check", "a-pipeline/some-resource-name")
 				})
 			})
 		})
@@ -392,7 +404,7 @@ var _ = Describe("Hijacking", func() {
 			})
 
 			It("hijacks the most recent one-off build", func() {
-				hijack("-b", "2", "-n", "some-step")
+				hijack("-b", "2", "-s", "some-step")
 			})
 		})
 
@@ -428,7 +440,7 @@ var _ = Describe("Hijacking", func() {
 				})
 
 				It("hijacks the job's next build", func() {
-					hijack("--job", "some-job", "--pipeline", "some-pipeline", "--step-name", "some-step")
+					hijack("--job", "some-pipeline/some-job", "--step", "some-step")
 				})
 			})
 
@@ -451,7 +463,7 @@ var _ = Describe("Hijacking", func() {
 				})
 
 				It("hijacks the job's finished build", func() {
-					hijack("--job", "some-job", "--step-name", "some-step")
+					hijack("--job", "some-job", "--step", "some-step")
 				})
 			})
 
@@ -471,7 +483,7 @@ var _ = Describe("Hijacking", func() {
 				})
 
 				It("hijacks the given build", func() {
-					hijack("--job", "some-job", "--build", "3", "--step-name", "some-step")
+					hijack("--job", "some-job", "--build", "3", "--step", "some-step")
 				})
 			})
 
@@ -496,7 +508,7 @@ var _ = Describe("Hijacking", func() {
 					pty, tty, err := pty.Open()
 					Expect(err).NotTo(HaveOccurred())
 
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "--step-name", "some-step")
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "--step", "some-step")
 					flyCmd.Stdin = tty
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -518,10 +530,9 @@ var _ = Describe("Hijacking", func() {
 			})
 		})
 
-		Context("when called with a step type and name specified", func() {
+		Context("when called with a step name specified", func() {
 			BeforeEach(func() {
-				containerArguments = "build-id=3&type=get&name=money"
-				stepType = "get"
+				containerArguments = "build-id=3&name=money"
 				stepName = "money"
 				buildID = 3
 
@@ -539,20 +550,7 @@ var _ = Describe("Hijacking", func() {
 			})
 
 			It("hijacks the given type and name", func() {
-				hijack("-t", "get", "-n", "money")
-			})
-		})
-
-		Context("when called with a step type 'check'", func() {
-			BeforeEach(func() {
-				containerArguments = "type=check"
-				stepType = "check"
-				stepName = "sum"
-				buildID = 3
-			})
-
-			It("should not consult the /builds endpoint", func() {
-				hijack("-t", "check")
+				hijack("-s", "money")
 			})
 		})
 	})

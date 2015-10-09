@@ -6,21 +6,35 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/codegangsta/cli"
 	"github.com/concourse/atc"
 	"github.com/tedsuo/rata"
 )
 
-func DestroyPipeline(c *cli.Context) {
-	target := returnTarget(c.GlobalString("target"))
-	insecure := c.GlobalBool("insecure")
+type DestroyPipelineCommand struct {
+	Pipeline string `short:"p"  long:"pipeline" required:"true" description:"Pipeline to destroy"`
+}
 
-	pipelineName := c.Args().First()
+var destroyPipelineCommand DestroyPipelineCommand
 
-	if pipelineName == "" {
-		fmt.Fprintln(os.Stderr, "you must specify a pipeline name!")
-		os.Exit(1)
+func init() {
+	destroyPipeline, err := Parser.AddCommand(
+		"destroy-pipeline",
+		"destroy a pipeline",
+		"",
+		&destroyPipelineCommand,
+	)
+	if err != nil {
+		panic(err)
 	}
+
+	destroyPipeline.Aliases = []string{"d"}
+}
+
+func (command *DestroyPipelineCommand) Execute(args []string) error {
+	target := returnTarget(globalOptions.Target)
+	insecure := globalOptions.Insecure
+
+	pipelineName := command.Pipeline
 
 	fmt.Printf("!!! this will remove all data for pipeline `%s`", pipelineName)
 	fmt.Println("\n")
@@ -61,4 +75,6 @@ func DestroyPipeline(c *cli.Context) {
 		fmt.Fprintf(os.Stderr, "unexpected response code: %d\n", resp.StatusCode)
 		os.Exit(1)
 	}
+
+	return nil
 }

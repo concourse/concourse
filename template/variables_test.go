@@ -61,65 +61,6 @@ var _ = Describe("Variables", func() {
 		})
 	})
 
-	Describe("loading variables from a slice of key value pairs", func() {
-		It("converts an array of key=value strings to Variables", func() {
-			variables := template.Variables{
-				"key":   "foo",
-				"value": "bar",
-			}
-
-			input := []string{
-				"key=foo",
-				"value=bar",
-			}
-
-			loadedVariables, err := template.LoadVariables(input)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(loadedVariables).To(Equal(variables))
-		})
-
-		It("allows values to have an = sign in them", func() {
-			variables := template.Variables{
-				"key": "foo=bar",
-			}
-
-			input := []string{
-				"key=foo=bar",
-			}
-
-			loadedVariables, err := template.LoadVariables(input)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(loadedVariables).To(Equal(variables))
-		})
-
-		It("allows unicode values", func() {
-			variables := template.Variables{
-				"Ω": "☃",
-			}
-
-			input := []string{
-				"Ω=☃",
-			}
-
-			loadedVariables, err := template.LoadVariables(input)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(loadedVariables).To(Equal(variables))
-		})
-
-		It("errors if the input is invalid", func() {
-			input := []string{
-				"key",
-			}
-
-			_, err := template.LoadVariables(input)
-			Expect(err).To(HaveOccurred())
-			Expect(err).To(MatchError("input has incorrect format (should be key=value): 'key'"))
-		})
-	})
-
 	Describe("loading variables from a file", func() {
 		It("can load them from a file", func() {
 			variables, err := template.LoadVariablesFromFile("fixtures/vars.yml")
