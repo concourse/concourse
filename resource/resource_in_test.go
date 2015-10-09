@@ -51,7 +51,7 @@ var _ = Describe("Resource In", func() {
 		runInError = nil
 
 		inScriptProcess = new(gfakes.FakeProcess)
-		inScriptProcess.IDReturns(42)
+		inScriptProcess.IDReturns("process-id")
 		inScriptProcess.WaitStub = func() (int, error) {
 			return inScriptExitStatus, nil
 		}
@@ -165,7 +165,7 @@ var _ = Describe("Resource In", func() {
 				return inScriptProcess, nil
 			}
 
-			fakeContainer.AttachStub = func(pid uint32, io garden.ProcessIO) (garden.Process, error) {
+			fakeContainer.AttachStub = func(pid string, io garden.ProcessIO) (garden.Process, error) {
 				if runInError != nil {
 					return nil, runInError
 				}
@@ -232,7 +232,7 @@ var _ = Describe("Resource In", func() {
 				fakeContainer.PropertyStub = func(name string) (string, error) {
 					switch name {
 					case "concourse:resource-process":
-						return "42", nil
+						return "process-id", nil
 					default:
 						return "", errors.New("unstubbed property: " + name)
 					}
@@ -243,17 +243,17 @@ var _ = Describe("Resource In", func() {
 				Eventually(inProcess.Wait()).Should(Receive(BeNil()))
 
 				pid, io := fakeContainer.AttachArgsForCall(0)
-				Expect(pid).To(Equal(uint32(42)))
+				Expect(pid).To(Equal("process-id"))
 
 				// send request on stdin in case process hasn't read it yet
 				request, err := ioutil.ReadAll(io.Stdin)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(request).To(MatchJSON(`{
-				"source": {"some":"source"},
-				"params": {"some":"params"},
-				"version": {"some":"version"}
-			}`))
+					"source": {"some":"source"},
+					"params": {"some":"params"},
+					"version": {"some":"version"}
+				}`))
 			})
 
 			It("does not run an additional process", func() {
@@ -395,7 +395,7 @@ var _ = Describe("Resource In", func() {
 
 				name, value := fakeContainer.SetPropertyArgsForCall(0)
 				Expect(name).To(Equal("concourse:resource-process"))
-				Expect(value).To(Equal("42"))
+				Expect(value).To(Equal("process-id"))
 			})
 
 			Context("when /opt/resource/in prints the response", func() {

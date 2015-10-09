@@ -351,7 +351,7 @@ func (conn *RetryableConnection) Run(handle string, processSpec garden.ProcessSp
 	}, nil
 }
 
-func (conn *RetryableConnection) Attach(handle string, processID uint32, processIO garden.ProcessIO) (garden.Process, error) {
+func (conn *RetryableConnection) Attach(handle string, processID string, processIO garden.ProcessIO) (garden.Process, error) {
 	var innerProcess garden.Process
 
 	err := conn.retry(func() error {
