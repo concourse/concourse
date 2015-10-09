@@ -22,11 +22,11 @@ import (
 )
 
 type ExecuteCommand struct {
-	TaskConfig     PathFlag        `short:"c" long:"config" required:"true" description:"The task config to execute"`
-	Privileged     bool            `short:"p" long:"privileged"             description:"Run the task with full privileges"`
-	ExcludeIgnored bool            `short:"x" long:"exclude-ignored"        description:"Skip uploading .gitignored paths"`
-	Inputs         []InputPairFlag `short:"i" long:"input"                  description:"An input to provide to the task (can be specified multiple times)"`
-	InputsFrom     JobFlag         `short:"j" long:"inputs-from"            description:"A job to base the inputs on"`
+	TaskConfig     PathFlag        `short:"c" long:"config" required:"true"                  description:"The task config to execute"`
+	Privileged     bool            `short:"p" long:"privileged"                              description:"Run the task with full privileges"`
+	ExcludeIgnored bool            `short:"x" long:"exclude-ignored"                         description:"Skip uploading .gitignored paths"`
+	Inputs         []InputPairFlag `short:"i" long:"input"                                   description:"An input to provide to the task (can be specified multiple times)"`
+	InputsFrom     JobFlag         `short:"j" long:"inputs-from" value-name:"[PIPELINE/]JOB" description:"A job to base the inputs on"`
 }
 
 var executeCommand ExecuteCommand
