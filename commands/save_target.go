@@ -2,12 +2,9 @@ package commands
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
-	"path/filepath"
 
-	"gopkg.in/yaml.v2"
+	"github.com/concourse/fly/rc"
 )
 
 type SaveTargetCommand struct {
@@ -32,6 +29,7 @@ func init() {
 	}
 }
 
+// TODO: Remove these two structs
 type targetProps struct {
 	API      string `yaml:"api"`
 	Username string
@@ -44,78 +42,26 @@ type TargetDetailsYAML struct {
 }
 
 func (command *SaveTargetCommand) Execute(args []string) error {
-	flyrc := filepath.Join(userHomeDir(), ".flyrc")
-
 	targetName := command.Name
 	if targetName == "" {
 		log.Fatalln("name not provided for target")
 		return nil
 	}
 
-	if _, err := os.Stat(flyrc); err != nil {
-		createTargets(flyrc, command, targetName)
-	} else {
-		updateTargets(flyrc, command, targetName)
+	err := rc.CreateOrUpdateTargets(
+		targetName,
+		rc.NewTarget(
+			command.API,
+			command.Username,
+			command.Password,
+			string(command.Cert),
+		),
+	)
+	if err != nil {
+		log.Fatalln(err)
+		return nil
 	}
 
 	fmt.Printf("successfully saved target %s\n", targetName)
 	return nil
-}
-
-func createTargets(location string, command *SaveTargetCommand, targetName string) {
-	targetsBytes, err := yaml.Marshal(&TargetDetailsYAML{
-		Targets: map[string]targetProps{
-			targetName: {
-				API:      command.API,
-				Username: command.Username,
-				Password: command.Password,
-				Cert:     string(command.Cert),
-			},
-		},
-	})
-	if err != nil {
-		log.Fatalln("could not marshal YAML")
-		return
-	}
-
-	err = ioutil.WriteFile(location, targetsBytes, os.ModePerm)
-	if err != nil {
-		log.Fatalln("could not create .flyrc")
-	}
-}
-
-func updateTargets(location string, command *SaveTargetCommand, targetToUpdate string) {
-	yamlToSet := targetProps{
-		API:      command.API,
-		Username: command.Username,
-		Password: command.Password,
-		Cert:     string(command.Cert),
-	}
-
-	currentTargetsBytes, err := ioutil.ReadFile(location)
-	if err != nil {
-		log.Fatalln("could not read .flyrc")
-		return
-	}
-
-	var current *TargetDetailsYAML
-	err = yaml.Unmarshal(currentTargetsBytes, &current)
-	if err != nil {
-		log.Fatalln("could not unmarshal .flyrc")
-		return
-	}
-
-	current.Targets[targetToUpdate] = yamlToSet
-
-	yamlBytes, err := yaml.Marshal(current)
-	if err != nil {
-		log.Fatalln("could not marshal .flyrc yaml")
-		return
-	}
-
-	err = ioutil.WriteFile(location, yamlBytes, os.ModePerm)
-	if err != nil {
-		log.Fatalln("could not write .flyrc")
-		return
-	}
 }
