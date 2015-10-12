@@ -48,17 +48,16 @@ func init() {
 }
 
 func (command *ExecuteCommand) Execute(args []string) error {
-	target, err := rc.SelectTarget(globalOptions.Target)
+	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
 
-	insecure := globalOptions.Insecure
 	taskConfigFile := command.TaskConfig
 	excludeIgnored := command.ExcludeIgnored
 
-	atcRequester := newAtcRequester(target.URL(), insecure)
+	atcRequester := newAtcRequester(target.URL(), target.Insecure)
 
 	taskConfig := config.LoadTaskConfig(string(taskConfigFile), args)
 

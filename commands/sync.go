@@ -35,13 +35,12 @@ func init() {
 }
 
 func (command *SyncCommand) Execute(args []string) error {
-	target, err := rc.SelectTarget(globalOptions.Target)
+	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
 
-	insecure := globalOptions.Insecure
 	reqGenerator := rata.NewRequestGenerator(target.URL(), atc.Routes)
 
 	request, err := reqGenerator.CreateRequest(
@@ -57,7 +56,7 @@ func (command *SyncCommand) Execute(args []string) error {
 		"platform": []string{runtime.GOOS},
 	}.Encode()
 
-	tlsConfig := &tls.Config{InsecureSkipVerify: insecure}
+	tlsConfig := &tls.Config{InsecureSkipVerify: target.Insecure}
 
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
 

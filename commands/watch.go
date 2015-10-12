@@ -35,15 +35,13 @@ func init() {
 	watch.Aliases = []string{"w"}
 }
 func (command *WatchCommand) Execute(args []string) error {
-	target, err := rc.SelectTarget(globalOptions.Target)
+	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
 
-	insecure := globalOptions.Insecure
-
-	atcRequester := newAtcRequester(target.URL(), insecure)
+	atcRequester := newAtcRequester(target.URL(), target.Insecure)
 
 	build := getBuild(atcRequester.httpClient, atcRequester.RequestGenerator, command.Job.JobName, command.Build, command.Job.PipelineName)
 

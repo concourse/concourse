@@ -32,13 +32,11 @@ func init() {
 }
 
 func (command *DestroyPipelineCommand) Execute(args []string) error {
-	target, err := rc.SelectTarget(globalOptions.Target)
+	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
-
-	insecure := globalOptions.Insecure
 
 	pipelineName := command.Pipeline
 
@@ -50,7 +48,7 @@ func (command *DestroyPipelineCommand) Execute(args []string) error {
 		os.Exit(1)
 	}
 
-	atcRequester := newAtcRequester(target.URL(), insecure)
+	atcRequester := newAtcRequester(target.URL(), target.Insecure)
 
 	deletePipeline, err := atcRequester.CreateRequest(
 		atc.DeletePipeline,

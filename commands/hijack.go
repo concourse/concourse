@@ -160,9 +160,7 @@ func constructRequest(reqGenerator *rata.RequestGenerator, spec atc.HijackProces
 }
 
 func getContainerIDs(c *HijackCommand) []atc.Container {
-	target, _ := rc.SelectTarget(globalOptions.Target)
-
-	insecure := globalOptions.Insecure
+	target, _ := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
 
 	var pipelineName string
 	if c.Job.PipelineName != "" {
@@ -184,7 +182,7 @@ func getContainerIDs(c *HijackCommand) []atc.Container {
 		checkName:    check,
 	}
 
-	atcRequester := newAtcRequester(target.URL(), insecure)
+	atcRequester := newAtcRequester(target.URL(), target.Insecure)
 	reqValues := locateContainer(atcRequester.httpClient, atcRequester.RequestGenerator, fingerprint)
 
 	listContainersReq, err := atcRequester.RequestGenerator.CreateRequest(
@@ -212,13 +210,11 @@ func getContainerIDs(c *HijackCommand) []atc.Container {
 }
 
 func (command *HijackCommand) Execute(args []string) error {
-	target, err := rc.SelectTarget(globalOptions.Target)
+	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
-
-	insecure := globalOptions.Insecure
 
 	containers := getContainerIDs(command)
 
@@ -271,7 +267,7 @@ func (command *HijackCommand) Execute(args []string) error {
 	privileged := true
 
 	reqGenerator := rata.NewRequestGenerator(target.URL(), atc.Routes)
-	tlsConfig := &tls.Config{InsecureSkipVerify: insecure}
+	tlsConfig := &tls.Config{InsecureSkipVerify: target.Insecure}
 
 	var ttySpec *atc.HijackTTYSpec
 	rows, cols, err := pty.Getsize(os.Stdin)

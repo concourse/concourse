@@ -30,17 +30,16 @@ func init() {
 }
 
 func (command *GetConfigCommand) Execute(args []string) error {
-	target, err := rc.SelectTarget(globalOptions.Target)
+	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
 
-	insecure := globalOptions.Insecure
 	asJSON := command.JSON
 	pipelineName := command.Pipeline
 
-	apiRequester := newAtcRequester(target.URL(), insecure)
+	apiRequester := newAtcRequester(target.URL(), target.Insecure)
 	webRequestGenerator := rata.NewRequestGenerator(target.URL(), atcroutes.Routes)
 
 	atcConfig := ATCConfig{

@@ -38,13 +38,12 @@ func init() {
 func (command *SetConfigCommand) Execute(args []string) error {
 	var paused PipelineAction
 
-	target, err := rc.SelectTarget(globalOptions.Target)
+	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
 
-	insecure := globalOptions.Insecure
 	configPath := command.Config
 	templateVariablesFiles := command.VarsFrom
 	pipelineName := command.Pipeline
@@ -66,7 +65,7 @@ func (command *SetConfigCommand) Execute(args []string) error {
 		paused = DoNotChangePipeline
 	}
 
-	apiRequester := newAtcRequester(target.URL(), insecure)
+	apiRequester := newAtcRequester(target.URL(), target.Insecure)
 	webRequestGenerator := rata.NewRequestGenerator(target.URL(), atcroutes.Routes)
 
 	atcConfig := ATCConfig{

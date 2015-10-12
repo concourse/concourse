@@ -61,9 +61,9 @@ func CreateOrUpdateTargets(targetName string, targetInfo targetProps) error {
 	return writeTargets(flyrc, flyTargets)
 }
 
-func SelectTarget(selectedTarget string) (*targetProps, error) {
+func SelectTarget(selectedTarget string, insecure bool) (*targetProps, error) {
 	if isURL(selectedTarget) {
-		target := NewTarget(selectedTarget, "", "", "", false)
+		target := NewTarget(selectedTarget, "", "", "", insecure)
 		return &target, nil
 	} else {
 		flyrc := filepath.Join(userHomeDir(), ".flyrc")
@@ -77,6 +77,7 @@ func SelectTarget(selectedTarget string) (*targetProps, error) {
 			return nil, fmt.Errorf("Unable to find target %s in %s", selectedTarget, flyrc)
 		}
 
+		target.Insecure = insecure
 		return &target, nil
 	}
 }
