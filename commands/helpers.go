@@ -6,15 +6,10 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
-	"path/filepath"
-	"runtime"
-	"strings"
 
 	"github.com/concourse/atc"
 	"github.com/tedsuo/rata"
-	"gopkg.in/yaml.v2"
 )
 
 func getConfig(pipelineName string, atcRequester *atcRequester) atc.Config {
@@ -46,51 +41,6 @@ func getConfig(pipelineName string, atcRequester *atcRequester) atc.Config {
 	}
 
 	return config
-}
-
-func returnTarget(startingTarget string) string {
-	target := lookupURLFromName(startingTarget)
-	if target == "" {
-		target = startingTarget
-	}
-
-	return strings.TrimRight(target, "/")
-}
-
-func lookupURLFromName(targetName string) string {
-	flyrc := filepath.Join(userHomeDir(), ".flyrc")
-
-	currentTargetsBytes, err := ioutil.ReadFile(flyrc)
-	if err != nil {
-		return ""
-	}
-
-	var current *TargetDetailsYAML
-	err = yaml.Unmarshal(currentTargetsBytes, &current)
-	if err != nil {
-		return ""
-	}
-
-	if details, ok := current.Targets[targetName]; ok {
-		userInfo := url.UserPassword(details.Username, details.Password)
-		targetURL, _ := url.Parse(details.API)
-		targetURL.User = userInfo
-
-		return targetURL.String()
-	}
-
-	return ""
-}
-
-func userHomeDir() string {
-	if runtime.GOOS == "windows" {
-		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
-		if home == "" {
-			home = os.Getenv("USERPROFILE")
-		}
-		return home
-	}
-	return os.Getenv("HOME")
 }
 
 func handleBadResponse(process string, resp *http.Response) {

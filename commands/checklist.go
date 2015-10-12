@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/rc"
 )
 
 type ChecklistCommand struct {
@@ -30,7 +31,12 @@ func init() {
 }
 
 func (command *ChecklistCommand) Execute([]string) error {
-	rawTarget := returnTarget(globalOptions.Target)
+	target, err := rc.SelectTarget(globalOptions.Target)
+	if err != nil {
+		log.Fatalln(err)
+		return nil
+	}
+
 	insecure := globalOptions.Insecure
 	pipelineName := command.Pipeline
 
@@ -38,9 +44,9 @@ func (command *ChecklistCommand) Execute([]string) error {
 		pipelineName = atc.DefaultPipelineName
 	}
 
-	atcRequester := newAtcRequester(rawTarget, insecure)
+	atcRequester := newAtcRequester(target.URL(), insecure)
 
-	printCheckfile(pipelineName, getConfig(pipelineName, atcRequester), newTarget(rawTarget))
+	printCheckfile(pipelineName, getConfig(pipelineName, atcRequester), newTarget(target.URL()))
 
 	return nil
 }

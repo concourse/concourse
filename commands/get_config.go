@@ -1,7 +1,10 @@
 package commands
 
 import (
+	"log"
+
 	atcroutes "github.com/concourse/atc/web/routes"
+	"github.com/concourse/fly/rc"
 	"github.com/tedsuo/rata"
 )
 
@@ -27,13 +30,18 @@ func init() {
 }
 
 func (command *GetConfigCommand) Execute(args []string) error {
-	target := returnTarget(globalOptions.Target)
+	target, err := rc.SelectTarget(globalOptions.Target)
+	if err != nil {
+		log.Fatalln(err)
+		return nil
+	}
+
 	insecure := globalOptions.Insecure
 	asJSON := command.JSON
 	pipelineName := command.Pipeline
 
-	apiRequester := newAtcRequester(target, insecure)
-	webRequestGenerator := rata.NewRequestGenerator(target, atcroutes.Routes)
+	apiRequester := newAtcRequester(target.URL(), insecure)
+	webRequestGenerator := rata.NewRequestGenerator(target.URL(), atcroutes.Routes)
 
 	atcConfig := ATCConfig{
 		pipelineName:        pipelineName,

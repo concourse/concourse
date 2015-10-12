@@ -132,6 +132,19 @@ targets:
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
 		})
+
+		It("should error when saving a target who's name begins with 'http'", func() {
+			flyCmd := exec.Command(flyPath,
+				"save-target",
+				"--api", targetURL,
+				"--name", "http://my-test-target",
+			)
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(sess).Should(gexec.Exit(1))
+			Expect(sess.Err.Contents()).To(MatchRegexp("target name.*http"))
+		})
 	})
 
 	Context("when a .flyrc exists", func() {
