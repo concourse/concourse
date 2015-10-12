@@ -1,6 +1,7 @@
 package rc
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/url"
@@ -47,6 +48,10 @@ func CreateOrUpdateTargets(targetName string, targetInfo targetProps) error {
 	flyTargets, err := loadTargets(flyrc)
 	if err != nil {
 		return err
+	}
+
+	if isURL(targetName) {
+		return errors.New("The target name cannot begin with http:// or https://.")
 	}
 
 	flyTargets.Targets[targetName] = targetInfo
