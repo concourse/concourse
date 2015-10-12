@@ -22,6 +22,7 @@ import (
 	"syscall"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/rc"
 	"github.com/kr/pty"
 	"github.com/mgutz/ansi"
 	"github.com/pkg/term"
@@ -159,7 +160,8 @@ func constructRequest(reqGenerator *rata.RequestGenerator, spec atc.HijackProces
 }
 
 func getContainerIDs(c *HijackCommand) []atc.Container {
-	target := returnTarget(globalOptions.Target)
+	target, _ := rc.SelectTarget(globalOptions.Target)
+
 	insecure := globalOptions.Insecure
 
 	var pipelineName string
@@ -182,7 +184,7 @@ func getContainerIDs(c *HijackCommand) []atc.Container {
 		checkName:    check,
 	}
 
-	atcRequester := newAtcRequester(target, insecure)
+	atcRequester := newAtcRequester(target.URL(), insecure)
 	reqValues := locateContainer(atcRequester.httpClient, atcRequester.RequestGenerator, fingerprint)
 
 	listContainersReq, err := atcRequester.RequestGenerator.CreateRequest(
@@ -210,7 +212,12 @@ func getContainerIDs(c *HijackCommand) []atc.Container {
 }
 
 func (command *HijackCommand) Execute(args []string) error {
-	target := returnTarget(globalOptions.Target)
+	target, err := rc.SelectTarget(globalOptions.Target)
+	if err != nil {
+		log.Fatalln(err)
+		return nil
+	}
+
 	insecure := globalOptions.Insecure
 
 	containers := getContainerIDs(command)
@@ -263,7 +270,7 @@ func (command *HijackCommand) Execute(args []string) error {
 	path, args := remoteCommand(args)
 	privileged := true
 
-	reqGenerator := rata.NewRequestGenerator(target, atc.Routes)
+	reqGenerator := rata.NewRequestGenerator(target.URL(), atc.Routes)
 	tlsConfig := &tls.Config{InsecureSkipVerify: insecure}
 
 	var ttySpec *atc.HijackTTYSpec

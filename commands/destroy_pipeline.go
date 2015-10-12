@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/rc"
 	"github.com/tedsuo/rata"
 )
 
@@ -31,7 +32,12 @@ func init() {
 }
 
 func (command *DestroyPipelineCommand) Execute(args []string) error {
-	target := returnTarget(globalOptions.Target)
+	target, err := rc.SelectTarget(globalOptions.Target)
+	if err != nil {
+		log.Fatalln(err)
+		return nil
+	}
+
 	insecure := globalOptions.Insecure
 
 	pipelineName := command.Pipeline
@@ -44,7 +50,7 @@ func (command *DestroyPipelineCommand) Execute(args []string) error {
 		os.Exit(1)
 	}
 
-	atcRequester := newAtcRequester(target, insecure)
+	atcRequester := newAtcRequester(target.URL(), insecure)
 
 	deletePipeline, err := atcRequester.CreateRequest(
 		atc.DeletePipeline,

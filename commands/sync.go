@@ -3,6 +3,7 @@ package commands
 import (
 	"crypto/tls"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/rc"
 )
 
 type SyncCommand struct{}
@@ -33,9 +35,14 @@ func init() {
 }
 
 func (command *SyncCommand) Execute(args []string) error {
-	target := returnTarget(globalOptions.Target)
+	target, err := rc.SelectTarget(globalOptions.Target)
+	if err != nil {
+		log.Fatalln(err)
+		return nil
+	}
+
 	insecure := globalOptions.Insecure
-	reqGenerator := rata.NewRequestGenerator(target, atc.Routes)
+	reqGenerator := rata.NewRequestGenerator(target.URL(), atc.Routes)
 
 	request, err := reqGenerator.CreateRequest(
 		atc.DownloadCLI, rata.Params{}, nil,

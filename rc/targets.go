@@ -3,9 +3,12 @@ package rc
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 )
@@ -17,13 +20,22 @@ type targetProps struct {
 	Cert     string
 }
 
+// TODO: Remove this function and put url logic in ATC Client
+func (target targetProps) URL() string {
+	targetURL, _ := url.Parse(target.API)
+	if target.Username != "" {
+		targetURL.User = url.UserPassword(target.Username, target.Password)
+	}
+	return targetURL.String()
+}
+
 type targetDetailsYAML struct {
 	Targets map[string]targetProps
 }
 
 func NewTarget(api, username, password, cert string) targetProps {
 	return targetProps{
-		API:      api,
+		API:      strings.TrimRight(api, "/"),
 		Username: username,
 		Password: password,
 		Cert:     cert,
@@ -40,6 +52,26 @@ func CreateOrUpdateTargets(targetName string, targetInfo targetProps) error {
 	flyTargets.Targets[targetName] = targetInfo
 
 	return writeTargets(flyrc, flyTargets)
+}
+
+func SelectTarget(selectedTarget string) (*targetProps, error) {
+	if isURL(selectedTarget) {
+		target := NewTarget(selectedTarget, "", "", "")
+		return &target, nil
+	} else {
+		flyrc := filepath.Join(userHomeDir(), ".flyrc")
+		flyTargets, err := loadTargets(flyrc)
+		if err != nil {
+			return nil, err
+		}
+
+		target, ok := flyTargets.Targets[selectedTarget]
+		if !ok {
+			return nil, fmt.Errorf("Unable to find target %s in %s", selectedTarget, flyrc)
+		}
+
+		return &target, nil
+	}
 }
 
 func userHomeDir() string {
@@ -87,4 +119,9 @@ func writeTargets(configFileLocation string, targetsToWrite *targetDetailsYAML) 
 	}
 
 	return nil
+}
+
+func isURL(passedURL string) bool {
+	matched, _ := regexp.MatchString("^http[s]?://", passedURL)
+	return matched
 }

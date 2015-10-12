@@ -2,9 +2,11 @@ package commands
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	atcroutes "github.com/concourse/atc/web/routes"
+	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/template"
 	"github.com/tedsuo/rata"
 )
@@ -36,7 +38,12 @@ func init() {
 func (command *SetConfigCommand) Execute(args []string) error {
 	var paused PipelineAction
 
-	target := returnTarget(globalOptions.Target)
+	target, err := rc.SelectTarget(globalOptions.Target)
+	if err != nil {
+		log.Fatalln(err)
+		return nil
+	}
+
 	insecure := globalOptions.Insecure
 	configPath := command.Config
 	templateVariablesFiles := command.VarsFrom
@@ -59,8 +66,8 @@ func (command *SetConfigCommand) Execute(args []string) error {
 		paused = DoNotChangePipeline
 	}
 
-	apiRequester := newAtcRequester(target, insecure)
-	webRequestGenerator := rata.NewRequestGenerator(target, atcroutes.Routes)
+	apiRequester := newAtcRequester(target.URL(), insecure)
+	webRequestGenerator := rata.NewRequestGenerator(target.URL(), atcroutes.Routes)
 
 	atcConfig := ATCConfig{
 		pipelineName:        pipelineName,
