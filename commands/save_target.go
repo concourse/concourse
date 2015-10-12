@@ -30,18 +30,6 @@ func init() {
 	}
 }
 
-// TODO: Remove these two structs
-type targetProps struct {
-	API      string `yaml:"api"`
-	Username string
-	Password string
-	Cert     string
-}
-
-type TargetDetailsYAML struct {
-	Targets map[string]targetProps
-}
-
 func (command *SaveTargetCommand) Execute(args []string) error {
 	targetName := command.Name
 	if targetName == "" {
