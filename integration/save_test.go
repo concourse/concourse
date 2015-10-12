@@ -211,6 +211,7 @@ targets:
 					"--password", "stuff",
 					"--cert", updatedCertPath,
 					"--name", "some-update-target",
+					"--skip-ssl",
 				)
 
 				sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -223,6 +224,7 @@ targets:
 				Expect(string(flyrcBytes)).To(ContainSubstring("password: stuff"))
 				Expect(string(flyrcBytes)).To(ContainSubstring("api: http://a-different-target"))
 				Expect(string(flyrcBytes)).To(ContainSubstring(fmt.Sprintf("cert: %s", updatedCertPath)))
+				Expect(string(flyrcBytes)).To(ContainSubstring(fmt.Sprintf("insecure: true")))
 			})
 		})
 	})
@@ -237,6 +239,7 @@ targets:
 				"--password", "some-password",
 				"--cert", certififatePath,
 				"--name", "some-target",
+				"--skip-ssl",
 			)
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -260,6 +263,7 @@ targets:
 				{Key: "username", Value: "some-username"},
 				{Key: "password", Value: "some-password"},
 				{Key: "cert", Value: certififatePath},
+				{Key: "insecure", Value: true},
 			}))
 
 		})

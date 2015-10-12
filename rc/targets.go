@@ -19,6 +19,7 @@ type targetProps struct {
 	Username string
 	Password string
 	Cert     string
+	Insecure bool
 }
 
 // TODO: Remove this function and put url logic in ATC Client
@@ -34,12 +35,13 @@ type targetDetailsYAML struct {
 	Targets map[string]targetProps
 }
 
-func NewTarget(api, username, password, cert string) targetProps {
+func NewTarget(api, username, password, cert string, insecure bool) targetProps {
 	return targetProps{
 		API:      strings.TrimRight(api, "/"),
 		Username: username,
 		Password: password,
 		Cert:     cert,
+		Insecure: insecure,
 	}
 }
 
@@ -61,7 +63,7 @@ func CreateOrUpdateTargets(targetName string, targetInfo targetProps) error {
 
 func SelectTarget(selectedTarget string) (*targetProps, error) {
 	if isURL(selectedTarget) {
-		target := NewTarget(selectedTarget, "", "", "")
+		target := NewTarget(selectedTarget, "", "", "", false)
 		return &target, nil
 	} else {
 		flyrc := filepath.Join(userHomeDir(), ".flyrc")
