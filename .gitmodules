@@ -230,3 +230,15 @@
 	path = src/github.com/gorilla/context
 	url = https://github.com/gorilla/context
 	branch = master
+[submodule "src/github.com/fatih/color"]
+	path = src/github.com/fatih/color
+	url = https://github.com/fatih/color
+	branch = master
+[submodule "src/github.com/mattn/go-isatty"]
+	path = src/github.com/mattn/go-isatty
+	url = https://github.com/mattn/go-isatty
+	branch = master
+[submodule "src/github.com/shiena/ansicolor"]
+	path = src/github.com/shiena/ansicolor
+	url = https://github.com/shiena/ansicolor
+	branch = master
