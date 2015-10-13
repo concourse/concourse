@@ -1,26 +1,29 @@
 package login
 
 import (
+	"html/template"
 	"net/http"
 
 	"github.com/pivotal-golang/lager"
 )
 
 type handler struct {
-	logger lager.Logger
+	logger   lager.Logger
+	template *template.Template
 }
 
-func NewHandler(logger lager.Logger) http.Handler {
+func NewHandler(
+	logger lager.Logger,
+	template *template.Template,
+) http.Handler {
 	return &handler{
-		logger: logger,
+		logger:   logger,
+		template: template,
 	}
 }
+
+type TemplateData struct{}
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	redirectPath := r.FormValue("redirect-to")
-	if redirectPath == "" {
-		redirectPath = "/"
-	}
-
-	http.Redirect(w, r, redirectPath, http.StatusFound)
+	handler.template.Execute(w, TemplateData{})
 }
