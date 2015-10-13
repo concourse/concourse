@@ -37,7 +37,10 @@ func (table Table) Render() string {
 				contents = column.Color.SprintFunc()(contents)
 			}
 
-			output += pad(contents, columnWidths[i], " ")
+			output += contents
+
+			paddingSize := columnWidths[i] - len(column.Contents)
+			output += strings.Repeat(" ", paddingSize)
 
 			if i+1 < len(columnWidths) {
 				output += "  "
@@ -48,15 +51,4 @@ func (table Table) Render() string {
 	}
 
 	return output
-}
-
-func pad(str string, size int, paddingChar string) string {
-	paddingSize := size - len(str)
-	if paddingSize < 0 {
-		return str
-	}
-
-	padding := strings.Repeat(paddingChar, paddingSize)
-
-	return str + padding
 }
