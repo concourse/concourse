@@ -85,7 +85,7 @@ func startATC(atcBin string, atcServerNumber uint16) (ifrit.Process, uint16) {
 		"-callbacksURL", fmt.Sprintf("http://127.0.0.1:%d", atcPort),
 		"-debugListenPort", fmt.Sprintf("%d", debugPort),
 		"-httpUsername", "admin",
-		"-httpHashedPassword", "$2a$04$DYaOWeQgyxTCv7QxydTP9u1KnwXWSKipC4BeTuBy.9m.IlkAdqNGG", // "password"
+		"-httpPassword", "password",
 		"-publiclyViewable=true",
 		"-templates", filepath.Join("..", "web", "templates"),
 		"-public", filepath.Join("..", "web", "public"),
