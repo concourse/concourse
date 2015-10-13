@@ -107,6 +107,9 @@ concepts, and how to bootstrap on various infrastructures.
     bosh upload release https://github.com/concourse/concourse/releases/download/v0.54.0/concourse-0.54.0.tgz
     bosh upload release https://github.com/concourse/concourse/releases/download/v0.54.0/garden-linux-0.205.0.tgz
     }
+    
+    \italic{Don't just copy these! These versions are really old. Get the latest
+    from the GitHub link above.}
   }
 
   \section{Configure & Deploy}{bosh-properties}{
