@@ -1,10 +1,13 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/concourse/atc/github"
+	"github.com/concourse/atc/web/routes"
+	"github.com/tedsuo/rata"
 )
 
 type GitHubOrganizationValidator struct {
@@ -31,4 +34,13 @@ func (validator GitHubOrganizationValidator) IsAuthenticated(r *http.Request) bo
 	}
 
 	return false
+}
+
+func (validator GitHubOrganizationValidator) Unauthorized(w http.ResponseWriter, r *http.Request) {
+	path, err := routes.Routes.CreatePathForRoute(routes.LogIn, rata.Params{})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "internal error, whoops")
+	}
+	http.Redirect(w, r, path, http.StatusFound)
 }

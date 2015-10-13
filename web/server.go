@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"github.com/gorilla/sessions"
+	"github.com/markbates/goth/gothic"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 
@@ -38,6 +40,8 @@ type WebDB interface {
 
 func NewHandler(
 	logger lager.Logger,
+	store sessions.Store,
+	publiclyViewable bool,
 	validator auth.Validator,
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	db WebDB,
@@ -98,6 +102,11 @@ func NewHandler(
 		return nil, err
 	}
 
+	logInTemplate, err := loadTemplateWithoutPipeline(templatesDir, "login.html", funcs)
+	if err != nil {
+		return nil, err
+	}
+
 	absPublicDir, err := filepath.Abs(publicDir)
 	if err != nil {
 		return nil, err
@@ -122,11 +131,9 @@ func NewHandler(
 		routes.GetBuilds:       getbuilds.NewHandler(logger, db, configDB, buildsTemplate),
 		routes.GetJoblessBuild: getjoblessbuild.NewHandler(logger, db, configDB, joblessBuildTemplate),
 
-		// private
-		routes.LogIn: auth.Handler{
-			Handler:   login.NewHandler(logger),
-			Validator: validator,
-		},
+		routes.LogIn:         login.NewHandler(logger, logInTemplate),
+		routes.OAuth:         http.HandlerFunc(gothic.BeginAuthHandler),
+		routes.OAuthCallback: login.NewCallbackHandler(logger, store),
 
 		routes.TriggerBuild: auth.Handler{
 			Handler:   pipelineHandlerFactory.HandlerFor(triggerBuildServer.TriggerBuild),
@@ -145,6 +152,19 @@ func NewHandler(
 		}
 
 		handlers[route] = metric.WrapHandler(route, handler, logger)
+
+		if route == routes.LogIn || route == routes.OAuth || route == routes.OAuthCallback {
+			continue
+		}
+
+		if publiclyViewable {
+			continue
+		}
+
+		handlers[route] = auth.WebHandler{
+			Handler:   handler,
+			Validator: validator,
+		}
 	}
 
 	return rata.NewRouter(routes.Routes, handlers)

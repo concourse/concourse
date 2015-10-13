@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -14,11 +15,13 @@ var ErrUnparsableHeader = errors.New("cannot parse 'Authorization' header")
 //go:generate counterfeiter . Validator
 type Validator interface {
 	IsAuthenticated(*http.Request) bool
+	Unauthorized(http.ResponseWriter, *http.Request)
 }
 
 type NoopValidator struct{}
 
-func (NoopValidator) IsAuthenticated(*http.Request) bool { return true }
+func (NoopValidator) IsAuthenticated(*http.Request) bool              { return true }
+func (NoopValidator) Unauthorized(http.ResponseWriter, *http.Request) {}
 
 type BasicAuthHashedValidator struct {
 	Username       string
@@ -34,6 +37,12 @@ func (validator BasicAuthHashedValidator) IsAuthenticated(r *http.Request) bool 
 	}
 
 	return validator.correctCredentials(username, password)
+}
+
+func (validator BasicAuthHashedValidator) Unauthorized(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+	w.WriteHeader(http.StatusUnauthorized)
+	fmt.Fprintf(w, "not authorized")
 }
 
 func (validator BasicAuthHashedValidator) correctCredentials(username string, password string) bool {

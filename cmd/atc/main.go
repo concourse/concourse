@@ -17,7 +17,9 @@ import (
 	httpmetrics "github.com/codahale/http-handlers/metrics"
 	_ "github.com/codahale/metrics/runtime"
 	"github.com/felixge/tcpkeepalive"
+	"github.com/gorilla/sessions"
 	"github.com/lib/pq"
+	"github.com/markbates/goth/gothic"
 	"github.com/nu7hatch/gouuid"
 	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
@@ -159,6 +161,18 @@ var httpHashedPassword = flag.String(
 	"bcrypted basic auth password for the server",
 )
 
+var gitHubAuthClientID = flag.String(
+	"gitHubAuthClientID",
+	"",
+	"client ID to use for enabling github auth",
+)
+
+var gitHubAuthClientSecret = flag.String(
+	"gitHubAuthClientSecret",
+	"",
+	"client secret to use for enabling github auth",
+)
+
 var gitHubAuthOrg = flag.String(
 	"gitHubAuthOrg",
 	"",
@@ -174,6 +188,12 @@ var checkInterval = flag.Duration(
 var publiclyViewable = flag.Bool(
 	"publiclyViewable",
 	false,
+	"allow viewability without authentication (destructive operations still require auth)",
+)
+
+var externalURL = flag.String(
+	"externalURL",
+	"",
 	"allow viewability without authentication (destructive operations still require auth)",
 )
 
@@ -234,7 +254,7 @@ var riemannAttributes = flag.String(
 func main() {
 	flag.Parse()
 
-	if !*dev && (*httpUsername == "" || (*httpHashedPassword == "" && *httpPassword == "")) {
+	if !*dev && (*httpUsername == "" || (*httpHashedPassword == "" && *httpPassword == "")) && *gitHubAuthOrg == "" {
 		fatal(errors.New("must specify -httpUsername and -httpPassword or -httpHashedPassword or turn on dev mode"))
 	}
 
@@ -338,23 +358,20 @@ func main() {
 			Username: *httpUsername,
 			Password: *httpPassword,
 		}
-	} else {
-		webValidator = auth.NoopValidator{}
-	}
+	} else if *gitHubAuthOrg != "" {
+		if *gitHubAuthClientID != "" && *gitHubAuthClientSecret != "" && *externalURL != "" {
+			err := auth.RegisterGithub(*gitHubAuthClientID, *gitHubAuthClientSecret, *externalURL)
+			if err != nil {
+				logger.Fatal("failed-to-register-github-auth", err)
+			}
+		}
 
-	if *gitHubAuthOrg != "" {
-		basicAuthValidator := webValidator
-
-		githubAuthValidator := auth.GitHubOrganizationValidator{
+		webValidator = auth.GitHubOrganizationValidator{
 			Client:       github.NewClient(logger.Session("github-client")),
 			Organization: *gitHubAuthOrg,
 		}
-		webValidator = auth.ValidatorBasket{
-			Validators: []auth.Validator{
-				basicAuthValidator,
-				githubAuthValidator,
-			},
-		}
+	} else {
+		webValidator = auth.NoopValidator{}
 	}
 
 	callbacksURL, err := url.Parse(*callbacksURLString)
@@ -400,8 +417,13 @@ func main() {
 		db,
 	)
 
+	cookieStore := sessions.NewCookieStore([]byte(*httpPassword + *httpHashedPassword + *gitHubAuthClientSecret))
+	gothic.Store = cookieStore
+
 	webHandler, err := web.NewHandler(
 		logger,
+		cookieStore,
+		*publiclyViewable,
 		webValidator,
 		radarSchedulerFactory,
 		db,
@@ -423,14 +445,16 @@ func main() {
 
 	httpHandler = webMux
 
-	if !*publiclyViewable {
-		httpHandler = auth.Handler{
-			Handler:   httpHandler,
-			Validator: webValidator,
-		}
+	httpHandler = auth.SessionHandler{
+		Logger: logger,
+
+		Handler: httpHandler,
+
+		Store: cookieStore,
 	}
 
-	// copy Authorization header as ATC-Authorization cookie for websocket auth
+	// this is only really useful for the acceptance tests as otherwise there's
+	// no way to inject the authentication
 	httpHandler = auth.CookieSetHandler{
 		Handler: httpHandler,
 	}
