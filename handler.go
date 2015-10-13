@@ -23,3 +23,16 @@ func Unauthorized(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusUnauthorized)
 	fmt.Fprintf(w, "not authorized")
 }
+
+type WebHandler struct {
+	Validator Validator
+	Handler   http.Handler
+}
+
+func (h WebHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if h.Validator.IsAuthenticated(r) {
+		h.Handler.ServeHTTP(w, r)
+	} else {
+		h.Validator.Unauthorized(w, r)
+	}
+}
