@@ -65,7 +65,10 @@ func (command *PipelinesCommand) Execute([]string) error {
 	}
 
 	table := Table{
-		{{Contents: "name", Color: color.New(color.Bold)}, {Contents: "paused", Color: color.New(color.Bold)}},
+		{
+			{Contents: "name", Color: color.New(color.Bold)},
+			{Contents: "paused", Color: color.New(color.Bold)},
+		},
 	}
 
 	for _, p := range pipelines {

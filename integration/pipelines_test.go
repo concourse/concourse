@@ -50,7 +50,6 @@ var _ = Describe("Fly CLI", func() {
 
 			It("lists them to the user", func() {
 				Eventually(sess).Should(gbytes.Say("name               paused"))
-				Eventually(sess).Should(gbytes.Say(``))
 				Eventually(sess).Should(gbytes.Say(`pipeline-1-longer  no`))
 				Eventually(sess).Should(gbytes.Say(`pipeline-2         yes`))
 				Eventually(sess).Should(gbytes.Say(`pipeline-3         no`))
