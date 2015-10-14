@@ -242,3 +242,15 @@
 	path = src/github.com/shiena/ansicolor
 	url = https://github.com/shiena/ansicolor
 	branch = master
+[submodule "src/github.com/markbates/goth"]
+	path = src/github.com/markbates/goth
+	url = https://github.com/markbates/goth
+	branch = master
+[submodule "src/github.com/gorilla/securecookie"]
+	path = src/github.com/gorilla/securecookie
+	url = https://github.com/gorilla/securecookie
+	branch = master
+[submodule "src/github.com/gorilla/sessions"]
+	path = src/github.com/gorilla/sessions
+	url = https://github.com/gorilla/sessions
+	branch = master

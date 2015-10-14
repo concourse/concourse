@@ -60,6 +60,7 @@ case $1 in
       -templates=/var/vcap/packages/atc/templates \
       -public=/var/vcap/packages/atc/public \
       -callbacksURL=<%= "http://#{my_ip}:#{p("atc.web_listen_port")}" %> \
+      -externalURL=<%= esc(p("atc.external_url")) %> \
       -webListenPort=<%= p("atc.web_listen_port") %> \
       -webListenAddress=<%= p("atc.web_listen_address") %> \
       -sqlDataSource=<%= esc("postgres://#{p("atc.postgresql.role.name")}:#{p("atc.postgresql.role.password")}@#{p("atc.postgresql.address")}/#{p("atc.postgresql.database")}?sslmode=disable") %> \
@@ -75,6 +76,9 @@ case $1 in
       -riemannAddr=<%= esc(p("atc.riemann.address")) %> \
       -riemannHost=<%= name %>-<%= index %> \
       -riemannAttributes=<%= esc("bosh-deployment=#{spec.deployment},bosh-job=#{name}") %> \
+      -gitHubAuthOrg=<%= esc(p("atc.github_auth_organization")) %> \
+      -gitHubAuthClientID=<%= esc(p("atc.github_auth_client_id")) %> \
+      -gitHubAuthClientSecret=<%= esc(p("atc.github_auth_client_secret")) %> \
       1>>$LOG_DIR/atc.stdout.log \
       2>>$LOG_DIR/atc.stderr.log
 

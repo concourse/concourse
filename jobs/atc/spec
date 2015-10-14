@@ -36,6 +36,22 @@ properties:
     description: "bcrypt encrypted password for http basic auth"
     default: ""
 
+  atc.github_auth_organization:
+    description: "github organization whose members should be authorized"
+    default: ""
+
+  atc.github_auth_client_id:
+    description: "github client ID to use for OAuth"
+    default: ""
+
+  atc.github_auth_client_secret:
+    description: "github client secret to use for OAuth"
+    default: ""
+
+  atc.external_url:
+    description: "externally reachable URL of the ATC. required for OAuth."
+    default: ""
+
   atc.development_mode:
     description: "loosen up security for development purposes"
     default: false

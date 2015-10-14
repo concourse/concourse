@@ -94,9 +94,14 @@ files:
   - github.com/google/go-querystring/query/*.go # gosub
   - github.com/gorilla/context/*.go # gosub
   - github.com/gorilla/mux/*.go # gosub
+  - github.com/gorilla/securecookie/*.go # gosub
+  - github.com/gorilla/sessions/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
   - github.com/lib/pq/*.go # gosub
   - github.com/lib/pq/oid/*.go # gosub
+  - github.com/markbates/goth/*.go # gosub
+  - github.com/markbates/goth/gothic/*.go # gosub
+  - github.com/markbates/goth/providers/github/*.go # gosub
   - github.com/mitchellh/mapstructure/*.go # gosub
   - github.com/nu7hatch/gouuid/*.go # gosub
   - github.com/pivotal-golang/clock/*.go # gosub
