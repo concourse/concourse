@@ -81,6 +81,10 @@ var _ = BeforeEach(func() {
 	pipelinesDB = new(dbfakes.FakePipelinesDB)
 
 	authValidator = new(authfakes.FakeValidator)
+	authValidator.UnauthorizedStub = func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	}
+
 	configValidationErr = nil
 	peerAddr = "127.0.0.1:1234"
 	drain = make(chan struct{})

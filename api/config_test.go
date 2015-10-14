@@ -685,10 +685,6 @@ jobs:
 			It("does not save the config", func() {
 				Expect(configDB.SaveConfigCallCount()).To(BeZero())
 			})
-
-			It("returns the error in the response body", func() {
-				Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("not authorized")))
-			})
 		})
 	})
 })
