@@ -42,5 +42,6 @@ func (validator GitHubOrganizationValidator) Unauthorized(w http.ResponseWriter,
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "internal error, whoops")
 	}
+
 	http.Redirect(w, r, path, http.StatusFound)
 }
