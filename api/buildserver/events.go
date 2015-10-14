@@ -3,8 +3,6 @@ package buildserver
 import (
 	"net/http"
 	"strconv"
-
-	"github.com/concourse/atc/auth"
 )
 
 func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
@@ -28,9 +26,9 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !s.fallback.IsAuthenticated(r) {
+	if !s.validator.IsAuthenticated(r) {
 		if build.OneOff() {
-			auth.Unauthorized(w)
+			s.validator.Unauthorized(w, r)
 			return
 		}
 
@@ -49,7 +47,7 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !public {
-			auth.Unauthorized(w)
+			s.validator.Unauthorized(w, r)
 			return
 		}
 	}

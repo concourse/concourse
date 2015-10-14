@@ -23,7 +23,7 @@ type Server struct {
 	configDB            db.ConfigDB
 	eventHandlerFactory EventHandlerFactory
 	drain               <-chan struct{}
-	fallback            auth.Validator
+	validator           auth.Validator
 
 	httpClient *http.Client
 }
@@ -47,7 +47,7 @@ func NewServer(
 	configDB db.ConfigDB,
 	eventHandlerFactory EventHandlerFactory,
 	drain <-chan struct{},
-	fallback auth.Validator,
+	validator auth.Validator,
 ) *Server {
 	return &Server{
 		logger:              logger,
@@ -57,7 +57,7 @@ func NewServer(
 		configDB:            configDB,
 		eventHandlerFactory: eventHandlerFactory,
 		drain:               drain,
-		fallback:            fallback,
+		validator:           validator,
 
 		httpClient: &http.Client{
 			Transport: &http.Transport{

@@ -66,6 +66,12 @@ func (validator BasicAuthValidator) IsAuthenticated(r *http.Request) bool {
 	return validator.correctCredentials(username, password)
 }
 
+func (validator BasicAuthValidator) Unauthorized(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+	w.WriteHeader(http.StatusUnauthorized)
+	fmt.Fprintf(w, "not authorized")
+}
+
 func (validator BasicAuthValidator) correctCredentials(username string, password string) bool {
 	return validator.Username == username && validator.Password == password
 }

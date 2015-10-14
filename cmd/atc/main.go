@@ -255,7 +255,11 @@ func main() {
 	flag.Parse()
 
 	if !*dev && (*httpUsername == "" || (*httpHashedPassword == "" && *httpPassword == "")) && *gitHubAuthOrg == "" {
-		fatal(errors.New("must specify -httpUsername and -httpPassword or -httpHashedPassword or turn on dev mode"))
+		fatal(errors.New("must specify -httpUsername and -httpPassword or -httpHashedPassword, or -githubAuthOrg, or turn on dev mode"))
+	}
+
+	if *gitHubAuthClientID != "" && *gitHubAuthClientSecret != "" && *externalURL == "" {
+		fatal(errors.New("must specify -externalURL if -gitHubAuthClientID and -gitHubAuthClientSecret are given"))
 	}
 
 	if _, err := os.Stat(*templatesDir); err != nil {
@@ -346,19 +350,22 @@ func main() {
 
 	engine := engine.NewDBEngine(engine.Engines{execEngine}, db)
 
-	var webValidator auth.Validator
+	var basicAuthValidator auth.Validator
+	var gitHubAuthValidator auth.Validator
 
 	if *httpUsername != "" && *httpHashedPassword != "" {
-		webValidator = auth.BasicAuthHashedValidator{
+		basicAuthValidator = auth.BasicAuthHashedValidator{
 			Username:       *httpUsername,
 			HashedPassword: *httpHashedPassword,
 		}
 	} else if *httpUsername != "" && *httpPassword != "" {
-		webValidator = auth.BasicAuthValidator{
+		basicAuthValidator = auth.BasicAuthValidator{
 			Username: *httpUsername,
 			Password: *httpPassword,
 		}
-	} else if *gitHubAuthOrg != "" {
+	}
+
+	if *gitHubAuthOrg != "" {
 		if *gitHubAuthClientID != "" && *gitHubAuthClientSecret != "" && *externalURL != "" {
 			err := auth.RegisterGithub(*gitHubAuthClientID, *gitHubAuthClientSecret, *externalURL)
 			if err != nil {
@@ -366,11 +373,33 @@ func main() {
 			}
 		}
 
-		webValidator = auth.GitHubOrganizationValidator{
+		gitHubAuthValidator = auth.GitHubOrganizationValidator{
 			Client:       github.NewClient(logger.Session("github-client")),
 			Organization: *gitHubAuthOrg,
 		}
+	}
+
+	var apiValidator auth.Validator
+	var webValidator auth.Validator
+
+	if basicAuthValidator != nil && gitHubAuthValidator != nil {
+		apiValidator = auth.ValidatorBasket{
+			Validators: []auth.Validator{basicAuthValidator, gitHubAuthValidator},
+			Rejector:   basicAuthValidator,
+		}
+
+		webValidator = auth.ValidatorBasket{
+			Validators: []auth.Validator{basicAuthValidator, gitHubAuthValidator},
+			Rejector:   gitHubAuthValidator,
+		}
+	} else if basicAuthValidator != nil {
+		apiValidator = basicAuthValidator
+		webValidator = basicAuthValidator
+	} else if gitHubAuthValidator != nil {
+		apiValidator = gitHubAuthValidator
+		webValidator = gitHubAuthValidator
 	} else {
+		apiValidator = auth.NoopValidator{}
 		webValidator = auth.NoopValidator{}
 	}
 
@@ -383,7 +412,7 @@ func main() {
 
 	apiHandler, err := api.NewHandler(
 		logger,            // logger lager.Logger,
-		webValidator,      // validator auth.Validator,
+		apiValidator,      // validator auth.Validator,
 		pipelineDBFactory, // pipelineDBFactory db.PipelineDBFactory,
 
 		configDB, // configDB db.ConfigDB,
@@ -448,7 +477,8 @@ func main() {
 	httpHandler = auth.SessionHandler{
 		Logger: logger,
 
-		Handler: httpHandler,
+		Handler:  httpHandler,
+		Rejector: webValidator,
 
 		Store: cookieStore,
 	}
