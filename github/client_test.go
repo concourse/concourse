@@ -26,7 +26,7 @@ var _ = Describe("github", func() {
 			}
 		})
 
-		It(" can return a list of organizations the user belongs to", func() {
+		It("can return a list of organizations the user belongs to", func() {
 			orgs, err := client.GetOrganizations(token)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(orgs).To(HaveLen(1))
@@ -40,5 +40,4 @@ var _ = Describe("github", func() {
 			Expect(err).To(HaveOccurred())
 		})
 	})
-
 })
