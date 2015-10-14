@@ -4,6 +4,8 @@ import "net/http"
 
 type ValidatorBasket struct {
 	Validators []Validator
+
+	Rejector
 }
 
 func (vb ValidatorBasket) IsAuthenticated(r *http.Request) bool {
@@ -12,5 +14,6 @@ func (vb ValidatorBasket) IsAuthenticated(r *http.Request) bool {
 			return true
 		}
 	}
+
 	return false
 }

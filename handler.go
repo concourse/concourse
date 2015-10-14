@@ -1,9 +1,6 @@
 package auth
 
-import (
-	"fmt"
-	"net/http"
-)
+import "net/http"
 
 type Handler struct {
 	Validator Validator
@@ -14,14 +11,8 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if h.Validator.IsAuthenticated(r) {
 		h.Handler.ServeHTTP(w, r)
 	} else {
-		Unauthorized(w)
+		h.Validator.Unauthorized(w, r)
 	}
-}
-
-func Unauthorized(w http.ResponseWriter) {
-	w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
-	w.WriteHeader(http.StatusUnauthorized)
-	fmt.Fprintf(w, "not authorized")
 }
 
 type WebHandler struct {
