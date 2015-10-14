@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/atcclient"
 	"github.com/concourse/fly/eventstream"
 	"github.com/concourse/fly/rc"
 	"github.com/tedsuo/rata"
@@ -43,7 +44,13 @@ func (command *WatchCommand) Execute(args []string) error {
 
 	atcRequester := newAtcRequester(target.URL(), target.Insecure)
 
-	build := getBuild(atcRequester.httpClient, atcRequester.RequestGenerator, command.Job.JobName, command.Build, command.Job.PipelineName)
+	client, err := atcclient.NewClient(*target)
+	if err != nil {
+		log.Fatalln("failed to create client:", err)
+	}
+	handler := atcclient.NewAtcHandler(client)
+
+	build := getBuild(handler, command.Job.JobName, command.Build, command.Job.PipelineName)
 
 	eventSource, err := sse.Connect(atcRequester.httpClient, time.Second, func() *http.Request {
 		logOutput, err := atcRequester.CreateRequest(

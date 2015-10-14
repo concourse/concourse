@@ -54,11 +54,15 @@ func (client *AtcClient) MakeRequest(result interface{}, requestName string, par
 	}
 	req.URL.RawQuery = values.Encode()
 
+	if client.target.Username != "" {
+		req.SetBasicAuth(client.target.Username, client.target.Password)
+	}
+
 	response, err := client.httpClient.Do(req)
-	defer response.Body.Close()
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
 
 	err = json.NewDecoder(response.Body).Decode(result)
 	if err != nil {

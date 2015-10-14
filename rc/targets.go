@@ -14,7 +14,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type targetProps struct {
+type TargetProps struct {
 	API      string `yaml:"api"`
 	Username string
 	Password string
@@ -23,7 +23,7 @@ type targetProps struct {
 }
 
 // TODO: Remove this function and put url logic in ATC Client
-func (target targetProps) URL() string {
+func (target TargetProps) URL() string {
 	targetURL, _ := url.Parse(target.API)
 	if target.Username != "" {
 		targetURL.User = url.UserPassword(target.Username, target.Password)
@@ -32,11 +32,11 @@ func (target targetProps) URL() string {
 }
 
 type targetDetailsYAML struct {
-	Targets map[string]targetProps
+	Targets map[string]TargetProps
 }
 
-func NewTarget(api, username, password, cert string, insecure bool) targetProps {
-	return targetProps{
+func NewTarget(api, username, password, cert string, insecure bool) TargetProps {
+	return TargetProps{
 		API:      strings.TrimRight(api, "/"),
 		Username: username,
 		Password: password,
@@ -45,7 +45,7 @@ func NewTarget(api, username, password, cert string, insecure bool) targetProps 
 	}
 }
 
-func CreateOrUpdateTargets(targetName string, targetInfo targetProps) error {
+func CreateOrUpdateTargets(targetName string, targetInfo TargetProps) error {
 	flyrc := filepath.Join(userHomeDir(), ".flyrc")
 	flyTargets, err := loadTargets(flyrc)
 	if err != nil {
@@ -61,7 +61,7 @@ func CreateOrUpdateTargets(targetName string, targetInfo targetProps) error {
 	return writeTargets(flyrc, flyTargets)
 }
 
-func SelectTarget(selectedTarget string, insecure bool) (*targetProps, error) {
+func SelectTarget(selectedTarget string, insecure bool) (*TargetProps, error) {
 	if isURL(selectedTarget) {
 		target := NewTarget(selectedTarget, "", "", "", insecure)
 		return &target, nil
@@ -109,7 +109,7 @@ func loadTargets(configFileLocation string) (*targetDetailsYAML, error) {
 	}
 
 	if flyTargets == nil {
-		return &targetDetailsYAML{Targets: map[string]targetProps{}}, nil
+		return &targetDetailsYAML{Targets: map[string]TargetProps{}}, nil
 	}
 
 	return flyTargets, nil

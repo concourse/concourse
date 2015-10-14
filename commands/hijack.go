@@ -22,6 +22,7 @@ import (
 	"syscall"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/atcclient"
 	"github.com/concourse/fly/rc"
 	"github.com/kr/pty"
 	"github.com/mgutz/ansi"
@@ -75,14 +76,12 @@ type containerLocator interface {
 }
 
 type stepContainerLocator struct {
-	client       *http.Client
-	reqGenerator *rata.RequestGenerator
+	handler atcclient.Handler
 }
 
 func (locator stepContainerLocator) locate(fingerprint containerFingerprint) url.Values {
 	build := getBuild(
-		locator.client,
-		locator.reqGenerator,
+		locator.handler,
 		fingerprint.jobName,
 		fingerprint.buildName,
 		fingerprint.pipelineName,
@@ -121,13 +120,12 @@ type containerFingerprint struct {
 	checkName string
 }
 
-func locateContainer(client *http.Client, reqGenerator *rata.RequestGenerator, fingerprint containerFingerprint) url.Values {
+func locateContainer(handler atcclient.Handler, fingerprint containerFingerprint) url.Values {
 	var locator containerLocator
 
 	if fingerprint.checkName == "" {
 		locator = stepContainerLocator{
-			client:       client,
-			reqGenerator: reqGenerator,
+			handler: handler,
 		}
 	} else {
 		locator = checkContainerLocator{}
@@ -160,8 +158,6 @@ func constructRequest(reqGenerator *rata.RequestGenerator, spec atc.HijackProces
 }
 
 func getContainerIDs(c *HijackCommand) []atc.Container {
-	target, _ := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
-
 	var pipelineName string
 	if c.Job.PipelineName != "" {
 		pipelineName = c.Job.PipelineName
@@ -182,9 +178,16 @@ func getContainerIDs(c *HijackCommand) []atc.Container {
 		checkName:    check,
 	}
 
-	atcRequester := newAtcRequester(target.URL(), target.Insecure)
-	reqValues := locateContainer(atcRequester.httpClient, atcRequester.RequestGenerator, fingerprint)
+	target, _ := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
+	client, err := atcclient.NewClient(*target)
+	if err != nil {
+		log.Fatalln("failed to create client:", err)
+	}
+	handler := atcclient.NewAtcHandler(client)
 
+	reqValues := locateContainer(handler, fingerprint)
+
+	atcRequester := newAtcRequester(target.URL(), target.Insecure)
 	listContainersReq, err := atcRequester.RequestGenerator.CreateRequest(
 		atc.ListContainers,
 		rata.Params{},

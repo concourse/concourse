@@ -2,13 +2,13 @@ package commands
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/atcclient"
 	"github.com/tedsuo/rata"
 )
 
@@ -52,86 +52,32 @@ func handleBadResponse(process string, resp *http.Response) {
 	log.Fatalf("bad response when %s:\n%s\n%s", process, resp.Status, b)
 }
 
-func getBuild(client *http.Client, reqGenerator *rata.RequestGenerator, jobName string, buildName string, pipelineName string) atc.Build {
+func getBuild(handler atcclient.Handler, jobName string, buildNameOrId string, pipelineName string) atc.Build {
 	if pipelineName != "" && jobName == "" {
-		fmt.Fprintln(os.Stderr, "job must be specified if pipeline is specified")
-		os.Exit(1)
+		log.Fatalln("job must be specified if pipeline is specified")
 	}
 
 	if pipelineName == "" {
 		pipelineName = atc.DefaultPipelineName
 	}
 
-	if buildName != "" {
-		var buildReq *http.Request
+	if buildNameOrId != "" {
+		var build atc.Build
 		var err error
 
 		if jobName != "" {
-			buildReq, err = reqGenerator.CreateRequest(
-				atc.GetJobBuild,
-				rata.Params{
-					"job_name":      jobName,
-					"build_name":    buildName,
-					"pipeline_name": pipelineName,
-				},
-				nil,
-			)
+			build, err = handler.JobBuild(pipelineName, jobName, buildNameOrId)
 		} else {
-			buildReq, err = reqGenerator.CreateRequest(
-				atc.GetBuild,
-				rata.Params{"build_id": buildName},
-				nil,
-			)
+			build, err = handler.Build(buildNameOrId)
 		}
-
 		if err != nil {
-			log.Fatalln("failed to create request", err)
+			log.Fatalln("failed to get build", err)
 		}
-
-		buildResp, err := client.Do(buildReq)
-		if err != nil {
-			log.Fatalln("failed to get builds:", err)
-		}
-
-		if buildResp.StatusCode == http.StatusNotFound {
-			fmt.Fprintln(os.Stderr, "build not found")
-			os.Exit(1)
-		}
-
-		if buildResp.StatusCode != http.StatusOK {
-			handleBadResponse("getting build", buildResp)
-		}
-
-		var build atc.Build
-		err = json.NewDecoder(buildResp.Body).Decode(&build)
-		if err != nil {
-			log.Fatalln("failed to decode job:", err)
-		}
-
 		return build
 	} else if jobName != "" {
-		jobReq, err := reqGenerator.CreateRequest(
-			atc.GetJob,
-			rata.Params{"job_name": jobName, "pipeline_name": pipelineName},
-			nil,
-		)
+		job, err := handler.Job(pipelineName, jobName)
 		if err != nil {
-			log.Fatalln("failed to create request", err)
-		}
-
-		jobResp, err := client.Do(jobReq)
-		if err != nil {
-			log.Fatalln("failed to get builds:", err)
-		}
-
-		if jobResp.StatusCode != http.StatusOK {
-			handleBadResponse("getting job", jobResp)
-		}
-
-		var job atc.Job
-		err = json.NewDecoder(jobResp.Body).Decode(&job)
-		if err != nil {
-			log.Fatalln("failed to decode job:", err)
+			log.Fatalln("failed to get job", err)
 		}
 
 		if job.NextBuild != nil {
@@ -139,42 +85,21 @@ func getBuild(client *http.Client, reqGenerator *rata.RequestGenerator, jobName 
 		} else if job.FinishedBuild != nil {
 			return *job.FinishedBuild
 		} else {
-			println("job has no builds")
-			os.Exit(1)
+			log.Fatalln("job has no builds")
 		}
 	} else {
-		buildsReq, err := reqGenerator.CreateRequest(
-			atc.ListBuilds,
-			nil,
-			nil,
-		)
+		allBuilds, err := handler.AllBuilds()
 		if err != nil {
-			log.Fatalln("failed to create request", err)
+			log.Fatalln("failed to get builds", err)
 		}
 
-		buildsResp, err := client.Do(buildsReq)
-		if err != nil {
-			log.Fatalln("failed to get builds:", err)
-		}
-
-		if buildsResp.StatusCode != http.StatusOK {
-			handleBadResponse("getting builds", buildsResp)
-		}
-
-		var builds []atc.Build
-		err = json.NewDecoder(buildsResp.Body).Decode(&builds)
-		if err != nil {
-			log.Fatalln("failed to decode builds:", err)
-		}
-
-		for _, build := range builds {
+		for _, build := range allBuilds {
 			if build.JobName == "" {
 				return build
 			}
 		}
 
-		println("no builds")
-		os.Exit(1)
+		log.Fatalln("no builds", err)
 	}
 
 	panic("unreachable")
