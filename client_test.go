@@ -33,7 +33,7 @@ var _ = Describe("ATC Client", func() {
 			target := rc.NewTarget(api, username, password, cert, insecure)
 			client, err := NewClient(target)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(client).To(BeAssignableToTypeOf(AtcClient{}))
+			Expect(client).NotTo(BeNil())
 		})
 
 		It("Errors when passed target props with an invalid url", func() {
@@ -44,21 +44,15 @@ var _ = Describe("ATC Client", func() {
 		})
 	})
 
-	Describe("All Requests", func() {
-	})
-
 	Describe("#MakeRequest", func() {
 		var (
 			atcServer *ghttp.Server
 			client    Client
-			config    atc.Config
 		)
 
 		BeforeEach(func() {
 			var err error
 			atcServer = ghttp.NewServer()
-			config = atc.Config{}
-
 			client, err = NewClient(
 				rc.NewTarget(atcServer.URL(), "", "", "", false),
 			)
@@ -74,7 +68,7 @@ var _ = Describe("ATC Client", func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", expectedURL),
-					ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
+					ghttp.RespondWithJSONEncoded(200, atc.Build{}, http.Header{atc.ConfigVersionHeader: {"42"}}),
 				),
 			)
 			var build atc.Build
@@ -116,6 +110,34 @@ var _ = Describe("ATC Client", func() {
 
 			Expect(len(atcServer.ReceivedRequests())).To(Equal(1))
 			Expect(containers).To(Equal(expectedResponse))
+		})
+
+		Describe("Headers", func() {
+			BeforeEach(func() {
+				var err error
+				atcServer = ghttp.NewServer()
+
+				username = "foo"
+				password = "bar"
+				target := rc.NewTarget(atcServer.URL(), username, password, cert, insecure)
+				client, err = NewClient(target)
+				Expect(err).NotTo(HaveOccurred())
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/builds/foo"),
+						ghttp.VerifyBasicAuth(username, password),
+						ghttp.RespondWithJSONEncoded(200, atc.Build{}, http.Header{atc.ConfigVersionHeader: {"42"}}),
+					),
+				)
+
+			})
+
+			It("Sets the username and password if given", func() {
+				var build atc.Build
+				err := client.MakeRequest(&build, atc.GetBuild, map[string]string{"build_id": "foo"}, nil)
+				Expect(err).NotTo(HaveOccurred())
+			})
 		})
 	})
 })
