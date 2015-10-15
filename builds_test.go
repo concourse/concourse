@@ -43,75 +43,117 @@ var _ = Describe("ATC Handler Builds", func() {
 			expectedPipelineName string
 		)
 
-		JustBeforeEach(func() {
-			expectedBuild = atc.Build{
-				ID:      123,
-				Name:    "mybuild",
-				Status:  "succeeded",
-				JobName: "myjob",
-				URL:     fmt.Sprint("/pipelines/", expectedPipelineName, "/jobs/myjob/builds/mybuild"),
-				ApiUrl:  "api/v1/builds/123",
-			}
+		Describe("when build exists", func() {
+			JustBeforeEach(func() {
+				expectedBuild = atc.Build{
+					ID:      123,
+					Name:    "mybuild",
+					Status:  "succeeded",
+					JobName: "myjob",
+					URL:     fmt.Sprint("/pipelines/", expectedPipelineName, "/jobs/myjob/builds/mybuild"),
+					ApiUrl:  "api/v1/builds/123",
+				}
 
-			expectedURL = fmt.Sprint("/api/v1/pipelines/", expectedPipelineName, "/jobs/myjob/builds/mybuild")
+				expectedURL = fmt.Sprint("/api/v1/pipelines/", expectedPipelineName, "/jobs/myjob/builds/mybuild")
 
-			atcServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", expectedURL),
-					ghttp.RespondWithJSONEncoded(200, expectedBuild, http.Header{}),
-				),
-			)
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuild, http.Header{}),
+					),
+				)
+			})
+
+			Context("when provided a pipline name", func() {
+				BeforeEach(func() {
+					expectedPipelineName = "mypipeline"
+				})
+
+				It("returns the given build", func() {
+					build, err := handler.JobBuild("mypipeline", "myjob", "mybuild")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(build).To(Equal(expectedBuild))
+				})
+			})
+
+			Context("when not provided a pipeline name", func() {
+				BeforeEach(func() {
+					expectedPipelineName = "main"
+				})
+
+				It("returns the given build for the default pipeline 'main'", func() {
+					build, err := handler.JobBuild("", "myjob", "mybuild")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(build).To(Equal(expectedBuild))
+				})
+			})
 		})
 
-		Context("when provided a pipline name", func() {
+		Describe("when build does not exists", func() {
 			BeforeEach(func() {
-				expectedPipelineName = "mypipeline"
+				expectedURL = "/api/v1/pipelines/mypipeline/jobs/myjob/builds/mybuild"
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusNotFound, nil, http.Header{}),
+					),
+				)
 			})
 
-			It("returns the given build", func() {
-				build, err := handler.JobBuild("mypipeline", "myjob", "mybuild")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(build).To(Equal(expectedBuild))
-			})
-		})
-
-		Context("when not provided a pipeline name", func() {
-			BeforeEach(func() {
-				expectedPipelineName = "main"
-			})
-
-			It("returns the given build for the default pipeline 'main'", func() {
-				build, err := handler.JobBuild("", "myjob", "mybuild")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(build).To(Equal(expectedBuild))
+			It("returns an error containing 'build not found'", func() {
+				_, err := handler.JobBuild("mypipeline", "myjob", "mybuild")
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal("build not found"))
 			})
 		})
 	})
 
 	Describe("Build", func() {
-		expectedBuild := atc.Build{
-			ID:      123,
-			Name:    "mybuild",
-			Status:  "succeeded",
-			JobName: "myjob",
-			URL:     "/pipelines/mypipeline/jobs/myjob/builds/mybuild",
-			ApiUrl:  "api/v1/builds/123",
-		}
-		expectedURL := "/api/v1/builds/123"
+		Describe("when build exists", func() {
+			expectedBuild := atc.Build{
+				ID:      123,
+				Name:    "mybuild",
+				Status:  "succeeded",
+				JobName: "myjob",
+				URL:     "/pipelines/mypipeline/jobs/myjob/builds/mybuild",
+				ApiUrl:  "api/v1/builds/123",
+			}
+			expectedURL := "/api/v1/builds/123"
 
-		BeforeEach(func() {
-			atcServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", expectedURL),
-					ghttp.RespondWithJSONEncoded(200, expectedBuild, http.Header{}),
-				),
-			)
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuild, http.Header{}),
+					),
+				)
+			})
+
+			It("returns the given build", func() {
+				build, err := handler.Build("123")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(build).To(Equal(expectedBuild))
+			})
 		})
 
-		It("returns the given build", func() {
-			build, err := handler.Build("123")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(build).To(Equal(expectedBuild))
+		Describe("when build does not exists", func() {
+			BeforeEach(func() {
+				expectedURL := "/api/v1/builds/123"
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusNotFound, nil, http.Header{}),
+					),
+				)
+			})
+
+			It("returns an error containing 'build not found'", func() {
+				_, err := handler.Build("123")
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal("build not found"))
+			})
 		})
 	})
 
@@ -140,7 +182,7 @@ var _ = Describe("ATC Handler Builds", func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", expectedURL),
-					ghttp.RespondWithJSONEncoded(200, expectedBuilds, http.Header{}),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds, http.Header{}),
 				),
 			)
 		})

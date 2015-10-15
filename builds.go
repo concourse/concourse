@@ -1,6 +1,11 @@
 package atcclient
 
-import "github.com/concourse/atc"
+import (
+	"errors"
+	"net/http"
+
+	"github.com/concourse/atc"
+)
 
 func (buildHandler AtcHandler) JobBuild(pipelineName, jobName, buildName string) (atc.Build, error) {
 	if pipelineName == "" {
@@ -9,6 +14,13 @@ func (buildHandler AtcHandler) JobBuild(pipelineName, jobName, buildName string)
 	params := map[string]string{"job_name": jobName, "build_name": buildName, "pipeline_name": pipelineName}
 	var build atc.Build
 	err := buildHandler.client.MakeRequest(&build, atc.GetJobBuild, params, nil)
+
+	if ure, ok := err.(UnexpectedResponseError); ok {
+		if ure.StatusCode == http.StatusNotFound {
+			return build, errors.New("build not found")
+		}
+	}
+
 	return build, err
 }
 
@@ -16,6 +28,13 @@ func (buildHandler AtcHandler) Build(buildID string) (atc.Build, error) {
 	params := map[string]string{"build_id": buildID}
 	var build atc.Build
 	err := buildHandler.client.MakeRequest(&build, atc.GetBuild, params, nil)
+
+	if ure, ok := err.(UnexpectedResponseError); ok {
+		if ure.StatusCode == http.StatusNotFound {
+			return build, errors.New("build not found")
+		}
+	}
+
 	return build, err
 }
 
