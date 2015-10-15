@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/atcclient"
 	"github.com/concourse/fly/rc"
 )
 
@@ -34,7 +35,6 @@ func (command *ChecklistCommand) Execute([]string) error {
 	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
 	if err != nil {
 		log.Fatalln(err)
-		return nil
 	}
 
 	pipelineName := command.Pipeline
@@ -43,9 +43,17 @@ func (command *ChecklistCommand) Execute([]string) error {
 		pipelineName = atc.DefaultPipelineName
 	}
 
-	atcRequester := newAtcRequester(target.URL(), target.Insecure)
+	client, err := atcclient.NewClient(*target)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	handler := atcclient.NewAtcHandler(client)
+	config, err := handler.PipelineConfig(pipelineName)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
-	printCheckfile(pipelineName, getConfig(pipelineName, atcRequester), newTarget(target.URL()))
+	printCheckfile(pipelineName, config, newTarget(target.URL()))
 
 	return nil
 }
