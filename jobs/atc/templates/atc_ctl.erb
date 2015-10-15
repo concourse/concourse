@@ -13,6 +13,7 @@ set -e
 
 RUN_DIR=/var/vcap/sys/run/atc
 LOG_DIR=/var/vcap/sys/log/atc
+SIGNING_KEY=/var/vcap/packages/generated_signing_key/id_rsa
 PIDFILE=$RUN_DIR/atc.pid
 
 source /var/vcap/packages/pid_utils/pid_utils.sh
@@ -53,6 +54,9 @@ case $1 in
 
     echo $$ > /var/vcap/sys/run/atc/atc.pid
 
+    chown vcap:vcap $SIGNING_KEY
+    chmod 0400 $SIGNING_KEY
+
     exec chpst -u vcap:vcap /var/vcap/packages/atc/bin/atc \
     <% if_p("atc.pipeline") do %> \
       -pipeline=/var/vcap/jobs/atc/config/pipeline.yml \
@@ -79,6 +83,7 @@ case $1 in
       -gitHubAuthOrg=<%= esc(p("atc.github_auth_organization")) %> \
       -gitHubAuthClientID=<%= esc(p("atc.github_auth_client_id")) %> \
       -gitHubAuthClientSecret=<%= esc(p("atc.github_auth_client_secret")) %> \
+      -sessionSigningKeyFile=$SIGNING_KEY \
       1>>$LOG_DIR/atc.stdout.log \
       2>>$LOG_DIR/atc.stderr.log
 

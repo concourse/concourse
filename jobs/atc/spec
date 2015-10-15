@@ -14,6 +14,7 @@ packages:
   - pid_utils
   - atc
   - fly
+  - generated_signing_key
 
 properties:
   atc.web_listen_port:
