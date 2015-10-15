@@ -12,49 +12,57 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type Verifier interface {
-	Verify(*http.Client) (bool, error)
+type OAuthCallbackHandler struct {
+	logger     lager.Logger
+	providers  Providers
+	privateKey *rsa.PrivateKey
 }
 
-type OAuthCallbackHandler struct {
-	Config     *oauth2.Config
-	Logger     lager.Logger
-	Verifier   Verifier
-	PrivateKey *rsa.PrivateKey
+func NewOAuthCallbackHandler(
+	logger lager.Logger,
+	providers Providers,
+	privateKey *rsa.PrivateKey,
+) http.Handler {
+	return &OAuthCallbackHandler{
+		logger:     logger,
+		providers:  providers,
+		privateKey: privateKey,
+	}
 }
 
 func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if handler.Config == nil {
-		w.WriteHeader(http.StatusNotFound)
+	provider, ok := handler.providers[r.FormValue(":provider")]
+	if !ok {
+		http.Error(w, "unknown provider", http.StatusNotFound)
 		return
 	}
 
-	token, err := handler.Config.Exchange(oauth2.NoContext, r.FormValue("code"))
+	token, err := provider.Exchange(oauth2.NoContext, r.FormValue("code"))
 	if err != nil {
-		handler.Logger.Error("failed-to-exchange-token", err)
+		handler.logger.Error("failed-to-exchange-token", err)
 		http.Error(w, "failed to exchange token", http.StatusInternalServerError)
 		return
 	}
 
-	httpClient := handler.Config.Client(oauth2.NoContext, token)
+	httpClient := provider.Client(oauth2.NoContext, token)
 
-	verified, err := handler.Verifier.Verify(httpClient)
+	verified, err := provider.Verify(httpClient)
 	if err != nil {
-		handler.Logger.Error("failed-to-verify-token", err)
+		handler.logger.Error("failed-to-verify-token", err)
 		http.Error(w, "failed to verify token", http.StatusInternalServerError)
 		return
 	}
 
 	if !verified {
-		handler.Logger.Info("verification-failed")
+		handler.logger.Info("verification-failed")
 		http.Error(w, "verification failed", http.StatusUnauthorized)
 		return
 	}
 
 	jwtToken := jwt.New(jwt.SigningMethodRS256)
-	signedToken, err := jwtToken.SignedString(handler.PrivateKey)
+	signedToken, err := jwtToken.SignedString(handler.privateKey)
 	if err != nil {
-		handler.Logger.Error("failed-to-sign-token", err)
+		handler.logger.Error("failed-to-sign-token", err)
 		http.Error(w, "failed to sign token", http.StatusInternalServerError)
 		return
 	}

@@ -29,13 +29,12 @@ import (
 	"github.com/tedsuo/ifrit/sigmon"
 	"github.com/tedsuo/rata"
 	"github.com/xoebus/zest"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/github"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/auth/github"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 	Db "github.com/concourse/atc/db"
@@ -392,28 +391,22 @@ func main() {
 		}
 	}
 
-	var oauthConfig *oauth2.Config
-	var verifier auth.Verifier
+	oauthProviders := auth.Providers{}
 
 	if *gitHubAuthOrg != "" {
 		path, err := routes.Routes.CreatePathForRoute(routes.OAuthCallback, rata.Params{
-			"provider": "github",
+			"provider": github.ProviderName,
 		})
 		if err != nil {
 			fatal(err)
 		}
 
-		oauthConfig = &oauth2.Config{
-			ClientID:     *gitHubAuthClientID,
-			ClientSecret: *gitHubAuthClientSecret,
-			Endpoint:     github.Endpoint,
-			Scopes:       []string{"read:org"},
-			RedirectURL:  *externalURL + path,
-		}
-
-		verifier = &auth.GitHubOrganizationVerifier{
-			Organization: *gitHubAuthOrg,
-		}
+		oauthProviders[github.ProviderName] = github.NewProvider(
+			*gitHubAuthOrg,
+			*gitHubAuthClientID,
+			*gitHubAuthClientSecret,
+			*externalURL+path,
+		)
 	}
 
 	var validator auth.Validator
@@ -475,8 +468,7 @@ func main() {
 	webHandler, err := web.NewHandler(
 		logger,
 		*publiclyViewable,
-		oauthConfig,
-		verifier,
+		oauthProviders,
 		signingKey,
 		validator,
 		radarSchedulerFactory,

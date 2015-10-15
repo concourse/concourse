@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"golang.org/x/oauth2"
-
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 
@@ -42,8 +40,7 @@ type WebDB interface {
 func NewHandler(
 	logger lager.Logger,
 	publiclyViewable bool,
-	oauthConfig *oauth2.Config,
-	authVerifier auth.Verifier,
+	providers auth.Providers,
 	sessionSigningKey *rsa.PrivateKey,
 	validator auth.Validator,
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
@@ -143,16 +140,17 @@ func NewHandler(
 		routes.GetJoblessBuild: getjoblessbuild.NewHandler(logger, db, configDB, joblessBuildTemplate),
 
 		routes.LogIn: login.NewHandler(logger, logInTemplate),
-		routes.OAuth: &auth.OAuthBeginHandler{
-			Logger: logger.Session("oauth"),
-			Config: oauthConfig,
-		},
-		routes.OAuthCallback: &auth.OAuthCallbackHandler{
-			Logger:     logger.Session("oauth"),
-			Config:     oauthConfig,
-			Verifier:   authVerifier,
-			PrivateKey: sessionSigningKey,
-		},
+
+		routes.OAuth: auth.NewOAuthBeginHandler(
+			logger.Session("oauth"),
+			providers,
+		),
+
+		routes.OAuthCallback: auth.NewOAuthCallbackHandler(
+			logger.Session("oauth"),
+			providers,
+			sessionSigningKey,
+		),
 
 		routes.TriggerBuild: auth.WrapHandler(
 			pipelineHandlerFactory.HandlerFor(triggerBuildServer.TriggerBuild),
