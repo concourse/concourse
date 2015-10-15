@@ -51,6 +51,23 @@ var _ = Describe("Targets", func() {
 			})
 		})
 
+		Describe("When 'insecure' is set to true in the flyrc", func() {
+			var targetName string
+			BeforeEach(func() {
+				targetName = "foo"
+				rc.CreateOrUpdateTargets(
+					targetName,
+					rc.NewTarget("Don't matter", "Don't matter", "Don't matter", "Don't matter", true),
+				)
+			})
+
+			It("the rc insecure flag value is returned", func() {
+				returnedTarget, err := rc.SelectTarget(targetName, false)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(returnedTarget.Insecure).To(BeTrue())
+			})
+		})
+
 		Describe("When the target does not exist in the flyrc", func() {
 			var targetName string
 			BeforeEach(func() {
