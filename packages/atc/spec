@@ -7,8 +7,6 @@ dependencies:
 files:
   - github.com/concourse/atc/web/templates/**/*
   - github.com/concourse/atc/web/public/**/*
-  - code.google.com/p/go.crypto/bcrypt/*.go # gosub
-  - code.google.com/p/go.crypto/blowfish/*.go # gosub
   - github.com/BurntSushi/migration/*.go # gosub
   - github.com/Sirupsen/logrus/*.go # gosub
   - github.com/bigdatadev/goryman/*.go # gosub
@@ -37,6 +35,7 @@ files:
   - github.com/concourse/atc/api/resourceserver/*.go # gosub
   - github.com/concourse/atc/api/workerserver/*.go # gosub
   - github.com/concourse/atc/auth/*.go # gosub
+  - github.com/concourse/atc/auth/github/*.go # gosub
   - github.com/concourse/atc/builds/*.go # gosub
   - github.com/concourse/atc/cmd/atc/*.go # gosub
   - github.com/concourse/atc/config/*.go # gosub
@@ -46,7 +45,6 @@ files:
   - github.com/concourse/atc/engine/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
   - github.com/concourse/atc/exec/*.go # gosub
-  - github.com/concourse/atc/github/*.go # gosub
   - github.com/concourse/atc/metric/*.go # gosub
   - github.com/concourse/atc/pipelines/*.go # gosub
   - github.com/concourse/atc/radar/*.go # gosub
@@ -73,6 +71,7 @@ files:
   - github.com/concourse/baggageclaim/client/*.go # gosub
   - github.com/concourse/baggageclaim/uidjunk/*.go # gosub
   - github.com/concourse/baggageclaim/volume/*.go # gosub
+  - github.com/dgrijalva/jwt-go/*.go # gosub
   - github.com/docker/distribution/*.go # gosub
   - github.com/docker/distribution/context/*.go # gosub
   - github.com/docker/distribution/digest/*.go # gosub
@@ -94,14 +93,9 @@ files:
   - github.com/google/go-querystring/query/*.go # gosub
   - github.com/gorilla/context/*.go # gosub
   - github.com/gorilla/mux/*.go # gosub
-  - github.com/gorilla/securecookie/*.go # gosub
-  - github.com/gorilla/sessions/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
   - github.com/lib/pq/*.go # gosub
   - github.com/lib/pq/oid/*.go # gosub
-  - github.com/markbates/goth/*.go # gosub
-  - github.com/markbates/goth/gothic/*.go # gosub
-  - github.com/markbates/goth/providers/github/*.go # gosub
   - github.com/mitchellh/mapstructure/*.go # gosub
   - github.com/nu7hatch/gouuid/*.go # gosub
   - github.com/pivotal-golang/clock/*.go # gosub
@@ -114,7 +108,10 @@ files:
   - github.com/vito/go-sse/sse/*.go # gosub
   - github.com/xoebus/zest/*.go # gosub
   - github.com/yeller/yeller-golang/*.go # gosub
+  - golang.org/x/crypto/bcrypt/*.go # gosub
+  - golang.org/x/crypto/blowfish/*.go # gosub
   - golang.org/x/net/context/*.go # gosub
   - golang.org/x/oauth2/*.go # gosub
+  - golang.org/x/oauth2/github/*.go # gosub
   - golang.org/x/oauth2/internal/*.go # gosub
   - gopkg.in/yaml.v2/*.go # gosub
