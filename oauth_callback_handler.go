@@ -88,7 +88,7 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 	})
 
 	redirectPath, ok := stateToken.Claims["redirect"].(string)
-	if ok {
+	if ok && redirectPath != "" {
 		http.Redirect(w, r, redirectPath, http.StatusTemporaryRedirect)
 		return
 	}

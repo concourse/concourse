@@ -190,6 +190,27 @@ var _ = Describe("OAuthCallbackHandler", func() {
 								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("main page\n")))
 							})
 						})
+
+						Context("when a blank redirect URI is in the state", func() {
+							BeforeEach(func() {
+								token := jwt.New(auth.SigningMethod)
+								token.Claims["exp"] = time.Now().Add(time.Hour).Unix()
+								token.Claims["redirect"] = ""
+
+								signedState, err := token.SignedString(signingKey)
+								Expect(err).ToNot(HaveOccurred())
+
+								request.URL.RawQuery = url.Values{
+									"code":  {"some-code"},
+									"state": {signedState},
+								}.Encode()
+							})
+
+							It("does not redirect", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusOK))
+								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("ok\n")))
+							})
+						})
 					})
 				})
 
