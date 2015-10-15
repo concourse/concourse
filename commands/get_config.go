@@ -1,11 +1,16 @@
 package commands
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
+	"os"
 
-	atcroutes "github.com/concourse/atc/web/routes"
+	"gopkg.in/yaml.v2"
+
+	"github.com/concourse/atc"
+	"github.com/concourse/fly/atcclient"
 	"github.com/concourse/fly/rc"
-	"github.com/tedsuo/rata"
 )
 
 type GetConfigCommand struct {
@@ -30,24 +35,41 @@ func init() {
 }
 
 func (command *GetConfigCommand) Execute(args []string) error {
-	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
-	if err != nil {
-		log.Fatalln(err)
-		return nil
-	}
-
 	asJSON := command.JSON
 	pipelineName := command.Pipeline
 
-	apiRequester := newAtcRequester(target.URL(), target.Insecure)
-	webRequestGenerator := rata.NewRequestGenerator(target.URL(), atcroutes.Routes)
-
-	atcConfig := ATCConfig{
-		pipelineName:        pipelineName,
-		apiRequester:        apiRequester,
-		webRequestGenerator: webRequestGenerator,
+	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
+	if err != nil {
+		log.Fatalln(err)
 	}
 
-	atcConfig.Dump(asJSON)
+	client, err := atcclient.NewClient(*target)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	handler := atcclient.NewAtcHandler(client)
+	config, err := handler.PipelineConfig(pipelineName)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	dump(config, asJSON)
 	return nil
+}
+
+func dump(config atc.Config, asJSON bool) {
+	var payload []byte
+	var err error
+	if asJSON {
+		payload, err = json.Marshal(config)
+	} else {
+		payload, err = yaml.Marshal(config)
+	}
+
+	if err != nil {
+		log.Println("failed to marshal config to YAML:", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("%s", payload)
 }

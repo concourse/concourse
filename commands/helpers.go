@@ -1,47 +1,13 @@
 package commands
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/atcclient"
-	"github.com/tedsuo/rata"
 )
-
-func getConfig(pipelineName string, atcRequester *atcRequester) atc.Config {
-	getConfigRequest, err := atcRequester.CreateRequest(
-		atc.GetConfig,
-		rata.Params{"pipeline_name": pipelineName},
-		nil,
-	)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	resp, err := atcRequester.httpClient.Do(getConfigRequest)
-	if err != nil {
-		log.Println("failed to get config:", err, resp)
-		os.Exit(1)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		log.Println("bad response when getting config:", resp.Status)
-		os.Exit(1)
-	}
-
-	var config atc.Config
-	err = json.NewDecoder(resp.Body).Decode(&config)
-	if err != nil {
-		log.Println("invalid config from server:", err)
-		os.Exit(1)
-	}
-
-	return config
-}
 
 func handleBadResponse(process string, resp *http.Response) {
 	b, err := ioutil.ReadAll(resp.Body)

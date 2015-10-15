@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
@@ -25,25 +24,6 @@ type ATCConfig struct {
 	pipelineName        string
 	apiRequester        *atcRequester
 	webRequestGenerator *rata.RequestGenerator
-}
-
-func (atcConfig ATCConfig) Dump(asJSON bool) {
-	config := getConfig(atcConfig.pipelineName, atcConfig.apiRequester)
-
-	var payload []byte
-	var err error
-	if asJSON {
-		payload, err = json.Marshal(config)
-	} else {
-		payload, err = yaml.Marshal(config)
-	}
-
-	if err != nil {
-		log.Println("failed to marshal config to YAML:", err)
-		os.Exit(1)
-	}
-
-	fmt.Printf("%s", payload)
 }
 
 func (atcConfig ATCConfig) Set(paused PipelineAction, configPath PathFlag, templateVariables template.Variables, templateVariablesFiles []PathFlag) {
