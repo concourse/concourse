@@ -64,16 +64,18 @@ var _ = Describe("Auth", func() {
 		Expect(dbListener.Close()).To(Succeed())
 	})
 
-	It("can reach the page", func() {
-		request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d", atcPort), nil)
-
+	It("forces a redirect to /login", func() {
+		request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", atcPort), nil)
 		resp, err := http.DefaultClient.Do(request)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
+		Expect(resp.StatusCode).To(Equal(http.StatusOK))
+		Expect(resp.Request.URL.Path).To(Equal("/login"))
 
+		request, err = http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", atcPort), nil)
 		request.SetBasicAuth("admin", "password")
 		resp, err = http.DefaultClient.Do(request)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
+		Expect(resp.Request.URL.Path).To(Equal("/"))
 	})
 })
