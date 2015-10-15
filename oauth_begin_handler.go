@@ -1,25 +1,33 @@
 package auth
 
 import (
-	"crypto/rsa"
 	"net/http"
 
 	"github.com/pivotal-golang/lager"
-	"golang.org/x/oauth2"
 )
 
 type OAuthBeginHandler struct {
-	Config *oauth2.Config
-	Logger lager.Logger
-	Key    *rsa.PrivateKey
+	logger    lager.Logger
+	providers Providers
+}
+
+func NewOAuthBeginHandler(
+	logger lager.Logger,
+	providers Providers,
+) http.Handler {
+	return &OAuthBeginHandler{
+		logger:    logger,
+		providers: providers,
+	}
 }
 
 func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if handler.Config == nil {
+	provider, found := handler.providers[r.FormValue("provider")]
+	if !found {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	authCodeURL := handler.Config.AuthCodeURL("bogus-state") // TODO
+	authCodeURL := provider.AuthCodeURL("bogus-state") // TODO
 	http.Redirect(w, r, authCodeURL, http.StatusTemporaryRedirect)
 }
