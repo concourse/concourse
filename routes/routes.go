@@ -13,6 +13,7 @@ const (
 	GetResource     = "GetResource"
 	GetJob          = "GetJob"
 	LogIn           = "LogIn"
+	BasicAuth       = "BasicAuth"
 	Debug           = "Debug"
 )
 
@@ -37,4 +38,5 @@ var Routes = rata.Routes{
 
 	// auth
 	{Path: "/login", Method: "GET", Name: LogIn},
+	{Path: "/login/basic", Method: "GET", Name: BasicAuth},
 }

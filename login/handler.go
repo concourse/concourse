@@ -11,26 +11,30 @@ import (
 )
 
 type handler struct {
-	logger    lager.Logger
-	providers auth.Providers
-	template  *template.Template
+	logger           lager.Logger
+	basicAuthEnabled bool
+	providers        auth.Providers
+	template         *template.Template
 }
 
 func NewHandler(
 	logger lager.Logger,
+	basicAuthEnabled bool,
 	providers auth.Providers,
 	template *template.Template,
 ) http.Handler {
 	return &handler{
-		logger:    logger,
-		providers: providers,
-		template:  template,
+		logger:           logger,
+		basicAuthEnabled: basicAuthEnabled,
+		providers:        providers,
+		template:         template,
 	}
 }
 
 type TemplateData struct {
-	Providers auth.Providers
-	Redirect  string
+	BasicAuthEnabled bool
+	Providers        auth.Providers
+	Redirect         string
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -45,8 +49,9 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := handler.template.Execute(w, TemplateData{
-		Providers: handler.providers,
-		Redirect:  redirect,
+		BasicAuthEnabled: handler.basicAuthEnabled,
+		Providers:        handler.providers,
+		Redirect:         redirect,
 	})
 	if err != nil {
 		handler.logger.Info("failed-to-generate-index-template", lager.Data{
