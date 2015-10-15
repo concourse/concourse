@@ -10,7 +10,6 @@ type Handler interface {
 	// 	CreatePipe()
 	// 	DeletePipeline()
 	// 	DownloadCLI()
-	// 	GetConfig()
 	// 	HijackContainer()
 	// 	ListContainer()
 	// 	ListJobInputs()
@@ -21,6 +20,7 @@ type Handler interface {
 	Build(buildID string) (atc.Build, error)
 	Job(pipelineName, jobName string) (atc.Job, error)
 	JobBuild(pipelineName, jobName, buildName string) (atc.Build, error)
+	PipelineConfig(pipelineName string) (atc.Config, error)
 }
 
 type AtcHandler struct {
