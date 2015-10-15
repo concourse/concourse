@@ -11,6 +11,7 @@ files:
   - github.com/concourse/atc/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
   - github.com/concourse/atc/web/routes/*.go # gosub
+  - github.com/concourse/fly/atcclient/*.go # gosub
   - github.com/concourse/fly/commands/*.go # gosub
   - github.com/concourse/fly/config/*.go # gosub
   - github.com/concourse/fly/eventstream/*.go # gosub
