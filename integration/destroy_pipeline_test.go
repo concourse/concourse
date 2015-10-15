@@ -69,7 +69,7 @@ var _ = Describe("Fly CLI", func() {
 			It("bails out if the user presses no", func() {
 				fmt.Fprintln(stdin, "n")
 
-				Eventually(sess).Should(gbytes.Say(`bailing out`))
+				Eventually(sess.Err).Should(gbytes.Say(`bailing out`))
 				Eventually(sess).Should(gexec.Exit(1))
 			})
 
@@ -107,23 +107,6 @@ var _ = Describe("Fly CLI", func() {
 				})
 			})
 
-			Context("and the api returns an internal server error", func() {
-				BeforeEach(func() {
-					atcServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("DELETE", "/api/v1/pipelines/some-pipeline"),
-							ghttp.RespondWith(500, ""),
-						),
-					)
-				})
-
-				It("writes an error message to stderr", func() {
-					fmt.Fprintln(stdin, "y")
-					Eventually(sess.Err).Should(gbytes.Say("unexpected server error"))
-					Eventually(sess).Should(gexec.Exit(1))
-				})
-			})
-
 			Context("and the api returns an unexpected status code", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
@@ -136,7 +119,7 @@ var _ = Describe("Fly CLI", func() {
 
 				It("writes an error message to stderr", func() {
 					fmt.Fprintln(stdin, "y")
-					Eventually(sess.Err).Should(gbytes.Say("unexpected response code: 402"))
+					Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})

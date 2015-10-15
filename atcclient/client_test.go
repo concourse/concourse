@@ -139,5 +139,60 @@ var _ = Describe("ATC Client", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
+
+		Describe("Different status codes", func() {
+			Describe("204 no content", func() {
+				BeforeEach(func() {
+					var err error
+					atcServer = ghttp.NewServer()
+
+					target := rc.NewTarget(atcServer.URL(), username, password, cert, insecure)
+					client, err = NewClient(target)
+					Expect(err).NotTo(HaveOccurred())
+
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("DELETE", "/api/v1/pipelines/foo"),
+							ghttp.RespondWith(http.StatusNoContent, ""),
+						),
+					)
+
+				})
+
+				It("Sets the username and password if given", func() {
+					err := client.MakeRequest(nil, atc.DeletePipeline, map[string]string{"pipeline_name": "foo"}, nil)
+					Expect(err).NotTo(HaveOccurred())
+				})
+			})
+
+			Describe("Non-2XX response", func() {
+				BeforeEach(func() {
+					var err error
+					atcServer = ghttp.NewServer()
+
+					target := rc.NewTarget(atcServer.URL(), username, password, cert, insecure)
+					client, err = NewClient(target)
+					Expect(err).NotTo(HaveOccurred())
+
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("DELETE", "/api/v1/pipelines/foo"),
+							ghttp.RespondWith(http.StatusInternalServerError, "problem"),
+						),
+					)
+
+				})
+
+				It("returns back UnexpectedResponseError", func() {
+					err := client.MakeRequest(nil, atc.DeletePipeline, map[string]string{"pipeline_name": "foo"}, nil)
+					Expect(err).To(HaveOccurred())
+					ure, ok := err.(UnexpectedResponseError)
+					Expect(ok).To(BeTrue())
+					Expect(ure.StatusCode).To(Equal(http.StatusInternalServerError))
+					Expect(ure.Body).To(Equal("problem"))
+				})
+			})
+		})
+
 	})
 })

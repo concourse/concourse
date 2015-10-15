@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"os"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/atcclient"
@@ -106,8 +105,7 @@ type target struct {
 func newTarget(rawTarget string) target {
 	u, err := url.Parse(rawTarget)
 	if err != nil {
-		log.Printf("invalid target '%s': %s\n", rawTarget, err.Error())
-		os.Exit(1)
+		log.Fatalln("invalid target '%s': %s\n", rawTarget, err.Error())
 	}
 
 	var username, password string

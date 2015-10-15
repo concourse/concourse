@@ -4,6 +4,8 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 
@@ -15,6 +17,17 @@ import (
 //go:generate counterfeiter . Client
 type Client interface {
 	MakeRequest(result interface{}, requestName string, params map[string]string, queries map[string]string) error
+}
+
+type UnexpectedResponseError struct {
+	error
+	StatusCode int
+	Status     string
+	Body       string
+}
+
+func (e UnexpectedResponseError) Error() string {
+	return fmt.Sprintf("Unexpected Response\nStatus: %s\nBody:\n%s", e.Status, e.Body)
 }
 
 type AtcClient struct {
@@ -63,6 +76,18 @@ func (client *AtcClient) MakeRequest(result interface{}, requestName string, par
 		return err
 	}
 	defer response.Body.Close()
+
+	if response.StatusCode == http.StatusNoContent {
+		return nil
+	} else if response.StatusCode < 200 || response.StatusCode >= 300 {
+		body, _ := ioutil.ReadAll(response.Body)
+
+		return UnexpectedResponseError{
+			StatusCode: response.StatusCode,
+			Status:     response.Status,
+			Body:       string(body),
+		}
+	}
 
 	err = json.NewDecoder(response.Body).Decode(result)
 	if err != nil {

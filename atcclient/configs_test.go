@@ -35,7 +35,7 @@ var _ = Describe("ATC Handler Config", func() {
 		atcServer.Close()
 	})
 
-	Describe("Job", func() {
+	Describe("PipelineConfig", func() {
 
 		var (
 			expectedConfig atc.Config
