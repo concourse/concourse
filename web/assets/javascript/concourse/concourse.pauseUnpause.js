@@ -31,6 +31,10 @@ concourse.PauseUnpause.prototype.pause = function (pause) {
     _this.pauseCallback();
   }).error(function (resp) {
     _this.pauseBtn.error();
+
+    if (resp.status == 401) {
+      _this.redirect("/login");
+    }
   });
 };
 
@@ -46,5 +50,13 @@ concourse.PauseUnpause.prototype.unpause = function (event) {
     _this.unpauseCallback();
   }).error(function (resp) {
     _this.pauseBtn.error();
+
+    if (resp.status == 401) {
+      _this.redirect("/login");
+    }
   });
+};
+
+concourse.PauseUnpause.prototype.redirect = function(href) {
+  window.location = href;
 };

@@ -33,6 +33,14 @@ describe("Resource", function () {
     });
   };
 
+  var respondWithUnauthorized = function(request) {
+    var errorRequest = request || jasmine.Ajax.requests.mostRecent();
+    errorRequest.respondWith({
+      "status": 401,
+      "contentType": 'application/json'
+    });
+  };
+
   var respondWithError = function(request) {
     var errorRequest = request || jasmine.Ajax.requests.mostRecent();
     errorRequest.respondWith({
@@ -59,6 +67,7 @@ describe("Resource", function () {
   describe("after the events have been bound", function () {
     beforeEach(function () {
       pauseUnpause.bindEvents();
+      spyOn(pauseUnpause, 'redirect');
     });
 
     describe('clicking the button', function () {
@@ -94,6 +103,25 @@ describe("Resource", function () {
         expect($pauseUnpause.pauseBtnIcon()).toHaveClass('fa-pause');
       });
 
+      it('redirects to /login when the request is unauthorized', function () {
+        // button start disabled
+        expect($pauseUnpause.pauseBtn()).toHaveClass('disabled');
+        expect($pauseUnpause.pauseBtn()).not.toHaveClass('loading');
+
+        clickButton();
+
+        // on click, it should now be enabled
+        expect($pauseUnpause.pauseBtn()).toHaveClass('loading');
+        expect($pauseUnpause.pauseBtn()).not.toHaveClass('disabled');
+
+        respondWithUnauthorized();
+
+        expect($pauseUnpause.pauseBtn()).not.toHaveClass('loading');
+        expect($pauseUnpause.pauseBtn()).toHaveClass('errored');
+
+        expect(pauseUnpause.redirect).toHaveBeenCalledWith("/login");
+      });
+
       it('sets the button as errored when the request fails', function () {
         // button start disabled
         expect($pauseUnpause.pauseBtn()).toHaveClass('disabled');
@@ -109,9 +137,11 @@ describe("Resource", function () {
 
         expect($pauseUnpause.pauseBtn()).not.toHaveClass('loading');
         expect($pauseUnpause.pauseBtn()).toHaveClass('errored');
+
+        expect(pauseUnpause.redirect).not.toHaveBeenCalled();
       });
 
-      it('sets the button as errored when the unpaise fails', function () {
+      it('sets the button as errored when the unpause fails', function () {
         clickButton();
         respondWithSuccess();
 
@@ -120,6 +150,21 @@ describe("Resource", function () {
 
         expect($pauseUnpause.pauseBtn()).not.toHaveClass('loading');
         expect($pauseUnpause.pauseBtn()).toHaveClass('errored');
+
+        expect(pauseUnpause.redirect).not.toHaveBeenCalled();
+      });
+
+      it('sets the button as errored when the unpause is unauthorized', function () {
+        clickButton();
+        respondWithSuccess();
+
+        clickButton();
+        respondWithUnauthorized();
+
+        expect($pauseUnpause.pauseBtn()).not.toHaveClass('loading');
+        expect($pauseUnpause.pauseBtn()).toHaveClass('errored');
+
+        expect(pauseUnpause.redirect).toHaveBeenCalledWith("/login");
       });
 
       it("makes a request", function () {
