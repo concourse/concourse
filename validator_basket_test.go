@@ -22,10 +22,8 @@ var _ = Describe("ValidatorBasket", func() {
 		fakeValidator2 = new(fakes.FakeValidator)
 
 		validatorBasket = auth.ValidatorBasket{
-			Validators: []auth.Validator{
-				fakeValidator1,
-				fakeValidator2,
-			},
+			fakeValidator1,
+			fakeValidator2,
 		}
 	})
 

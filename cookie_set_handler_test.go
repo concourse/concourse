@@ -66,7 +66,7 @@ var _ = Describe("CookieSetHandler", func() {
 				Expect(cookies[0].Name).To(Equal("ATC-Authorization"))
 				Expect(cookies[0].Value).To(Equal(header(username, password)))
 				Expect(cookies[0].Path).To(Equal("/"))
-				Expect(cookies[0].Expires.Unix()).To(BeNumerically("~", time.Now().Unix()+60, 1))
+				Expect(cookies[0].Expires).To(BeTemporally("~", time.Now().Add(auth.CookieAge), time.Second))
 			})
 		}
 
