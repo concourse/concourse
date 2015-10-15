@@ -21,6 +21,16 @@ $(document).ready(function() {
         $(that).data("action", "enable");
         $(that).closest("li").removeClass("enabled").addClass("disabled");
       }
+    }).error(function(resp) {
+      if (resp.status == 401) {
+        window.location = "/login";
+      }
+
+      if ($(that).data("action") == "enable") {
+        $(that).closest("li").removeClass("disabled").addClass("errored");
+      } else {
+        $(that).closest("li").removeClass("enabled").addClass("errored");
+      }
     });
 
     return false;
