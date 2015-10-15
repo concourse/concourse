@@ -16,7 +16,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -32,9 +31,6 @@ var _ = Describe("Multiple ATCs", func() {
 	var dbListener *pq.Listener
 
 	BeforeEach(func() {
-		atcBin, err := gexec.Build("github.com/concourse/atc/cmd/atc")
-		Expect(err).NotTo(HaveOccurred())
-
 		dbLogger := lagertest.NewTestLogger("test")
 
 		// postgresRunner.DropTestDB()

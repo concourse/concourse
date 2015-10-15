@@ -12,7 +12,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
 	. "github.com/sclevine/agouti/matchers"
 
 	"github.com/cloudfoundry/gunk/urljoiner"
@@ -29,10 +28,6 @@ var _ = Describe("Job Pausing", func() {
 	var pipelineDB db.PipelineDB
 
 	BeforeEach(func() {
-		var err error
-		atcBin, err := gexec.Build("github.com/concourse/atc/cmd/atc")
-		Expect(err).NotTo(HaveOccurred())
-
 		dbLogger := lagertest.NewTestLogger("test")
 		postgresRunner.Truncate()
 		dbConn = postgresRunner.Open()

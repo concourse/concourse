@@ -14,7 +14,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -34,9 +33,6 @@ var _ = Describe("Auth", func() {
 		sqlDB = db.NewSQL(logger, dbConn, bus)
 
 		_, err := sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
-		Expect(err).NotTo(HaveOccurred())
-
-		atcBin, err := gexec.Build("github.com/concourse/atc/cmd/atc")
 		Expect(err).NotTo(HaveOccurred())
 
 		atcPort = 5697 + uint16(GinkgoParallelNode())

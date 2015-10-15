@@ -11,6 +11,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 	"github.com/sclevine/agouti"
 
 	"github.com/concourse/atc/auth"
@@ -28,6 +29,8 @@ func TestAcceptance(t *testing.T) {
 	RunSpecs(t, "Acceptance Suite")
 }
 
+var atcBin string
+
 var postgresRunner postgresrunner.Runner
 var dbConn *sql.DB
 var dbProcess ifrit.Process
@@ -36,7 +39,14 @@ var sqlDB *db.SQLDB
 
 var agoutiDriver *agouti.WebDriver
 
-var _ = BeforeSuite(func() {
+var _ = SynchronizedBeforeSuite(func() []byte {
+	atcBin, err := gexec.Build("github.com/concourse/atc/cmd/atc")
+	Expect(err).NotTo(HaveOccurred())
+
+	return []byte(atcBin)
+}, func(b []byte) {
+	atcBin = string(b)
+
 	SetDefaultEventuallyTimeout(10 * time.Second)
 
 	postgresRunner = postgresrunner.Runner{
