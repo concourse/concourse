@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/pagination"
@@ -52,7 +53,6 @@ var _ = Describe("URLs", func() {
 	})
 
 	Describe("Jobs Patch", func() {
-
 		Context("without pagination data", func() {
 			It("returns the correct URL", func() {
 				job := atc.JobConfig{
@@ -63,7 +63,6 @@ var _ = Describe("URLs", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(path).To(Equal("/pipelines/another-pipeline/jobs/some-job"))
-
 			})
 		})
 
@@ -109,6 +108,15 @@ var _ = Describe("URLs", func() {
 
 				Expect(path).To(Equal("/pipelines/another-pipeline/resources/some-resource?id=30&newer=true"))
 			})
+		})
+	})
+
+	Describe("OAuth Begin", func() {
+		It("links to the provider with a redirect to the index", func() {
+			path, err := web.PathFor(auth.OAuthBegin, "some-provider")
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(path).To(Equal("/auth/some-provider?redirect=%2F"))
 		})
 	})
 })

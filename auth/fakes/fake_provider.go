@@ -11,6 +11,12 @@ import (
 )
 
 type FakeProvider struct {
+	DisplayNameStub        func() string
+	displayNameMutex       sync.RWMutex
+	displayNameArgsForCall []struct{}
+	displayNameReturns     struct {
+		result1 string
+	}
 	AuthCodeURLStub        func(string, ...oauth2.AuthCodeOption) string
 	authCodeURLMutex       sync.RWMutex
 	authCodeURLArgsForCall []struct {
@@ -48,6 +54,30 @@ type FakeProvider struct {
 		result1 bool
 		result2 error
 	}
+}
+
+func (fake *FakeProvider) DisplayName() string {
+	fake.displayNameMutex.Lock()
+	fake.displayNameArgsForCall = append(fake.displayNameArgsForCall, struct{}{})
+	fake.displayNameMutex.Unlock()
+	if fake.DisplayNameStub != nil {
+		return fake.DisplayNameStub()
+	} else {
+		return fake.displayNameReturns.result1
+	}
+}
+
+func (fake *FakeProvider) DisplayNameCallCount() int {
+	fake.displayNameMutex.RLock()
+	defer fake.displayNameMutex.RUnlock()
+	return len(fake.displayNameArgsForCall)
+}
+
+func (fake *FakeProvider) DisplayNameReturns(result1 string) {
+	fake.DisplayNameStub = nil
+	fake.displayNameReturns = struct {
+		result1 string
+	}{result1}
 }
 
 func (fake *FakeProvider) AuthCodeURL(arg1 string, arg2 ...oauth2.AuthCodeOption) string {
