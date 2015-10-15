@@ -586,6 +586,10 @@ func fatal(err error) {
 }
 
 func constructValidator(signingKey *rsa.PrivateKey) (auth.Validator, bool) {
+	if *dev {
+		return auth.NoopValidator{}, false
+	}
+
 	var basicAuthValidator auth.Validator
 
 	if *httpUsername != "" && *httpHashedPassword != "" {
