@@ -113,10 +113,10 @@ var _ = Describe("URLs", func() {
 
 	Describe("OAuth Begin", func() {
 		It("links to the provider with a redirect to the index", func() {
-			path, err := web.PathFor(auth.OAuthBegin, "some-provider")
+			path, err := web.PathFor(auth.OAuthBegin, "some-provider", "/some/path")
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(path).To(Equal("/auth/some-provider?redirect=%2F"))
+			Expect(path).To(Equal("/auth/some-provider?redirect=%2Fsome%2Fpath"))
 		})
 	})
 })

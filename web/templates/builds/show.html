@@ -18,7 +18,7 @@
   <div id="build-requires-auth">
     <form method="get" action="{{url "LogIn"}}">
       <input type="submit" value="log in to view" />
-      <input type="hidden" name="redirect-to" value="{{url "GetJoblessBuild" .Build}}" />
+      <input type="hidden" name="redirect" value="{{url "GetJoblessBuild" .Build}}" />
     </form>
   </div>
   <div id="build-logs"></div>

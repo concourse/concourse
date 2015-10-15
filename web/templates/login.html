@@ -2,8 +2,9 @@
 
 {{define "body"}}
 <div class="login-box">
+  {{$redirect := .Redirect}}
   {{range $name, $provider := .Providers}}
-  <a href="{{url "OAuthBegin" $name}}">Log in with {{$provider.DisplayName}}</a>
+  <a href="{{url "OAuthBegin" $name $redirect}}">Log in with {{$provider.DisplayName}}</a>
   {{end}}
 </div>
 {{end}}

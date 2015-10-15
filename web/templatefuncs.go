@@ -105,7 +105,6 @@ func PathFor(route string, args ...interface{}) (string, error) {
 		})
 
 	case routes.GetJob:
-
 		baseJobURL, err := routes.Routes.CreatePathForRoute(route, rata.Params{
 			"pipeline_name": args[0].(string),
 			"job":           args[1].(atc.JobConfig).Name,
@@ -163,13 +162,8 @@ func PathFor(route string, args ...interface{}) (string, error) {
 			return "", err
 		}
 
-		indexPath, err := routes.Routes.CreatePathForRoute(routes.Index, rata.Params{})
-		if err != nil {
-			return "", err
-		}
-
 		return authPath + "?" + url.Values{
-			"redirect": {indexPath},
+			"redirect": {args[1].(string)},
 		}.Encode(), nil
 
 	default:

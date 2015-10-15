@@ -5,7 +5,9 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/web/routes"
 	"github.com/pivotal-golang/lager"
+	"github.com/tedsuo/rata"
 )
 
 type handler struct {
@@ -28,10 +30,27 @@ func NewHandler(
 
 type TemplateData struct {
 	Providers auth.Providers
+	Redirect  string
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	handler.template.Execute(w, TemplateData{
+	redirect := r.FormValue("redirect")
+	if redirect == "" {
+		indexPath, err := routes.Routes.CreatePathForRoute(routes.Index, rata.Params{})
+		if err != nil {
+			handler.logger.Error("failed-to-generate-index-path", err)
+		} else {
+			redirect = indexPath
+		}
+	}
+
+	err := handler.template.Execute(w, TemplateData{
 		Providers: handler.providers,
+		Redirect:  redirect,
 	})
+	if err != nil {
+		handler.logger.Info("failed-to-generate-index-template", lager.Data{
+			"error": err.Error(),
+		})
+	}
 }
