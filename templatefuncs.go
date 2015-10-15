@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web/pagination"
 	"github.com/concourse/atc/web/paths"
@@ -152,6 +153,23 @@ func PathFor(route string, args ...interface{}) (string, error) {
 		return path + "?" + url.Values{
 			"platform": {args[0].(string)},
 			"arch":     {args[1].(string)},
+		}.Encode(), nil
+
+	case auth.OAuthBegin:
+		authPath, err := auth.OAuthRoutes.CreatePathForRoute(route, rata.Params{
+			"provider": args[0].(string),
+		})
+		if err != nil {
+			return "", err
+		}
+
+		indexPath, err := routes.Routes.CreatePathForRoute(routes.Index, rata.Params{})
+		if err != nil {
+			return "", err
+		}
+
+		return authPath + "?" + url.Values{
+			"redirect": {indexPath},
 		}.Encode(), nil
 
 	default:

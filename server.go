@@ -137,7 +137,7 @@ func NewHandler(
 		routes.GetBuilds:       getbuilds.NewHandler(logger, db, configDB, buildsTemplate),
 		routes.GetJoblessBuild: getjoblessbuild.NewHandler(logger, db, configDB, joblessBuildTemplate),
 
-		routes.LogIn: login.NewHandler(logger, logInTemplate),
+		routes.LogIn: login.NewHandler(logger, providers, logInTemplate),
 
 		routes.TriggerBuild: auth.WrapHandler(
 			pipelineHandlerFactory.HandlerFor(triggerBuildServer.TriggerBuild),

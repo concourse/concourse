@@ -1,5 +1,9 @@
 {{define "title"}}Log In - Concourse{{end}}
 
 {{define "body"}}
-<a href="/auth/github">Login with GitHub</a>
+<div class="login-box">
+  {{range $name, $provider := .Providers}}
+  <a href="{{url "OAuthBegin" $name}}">Log in with {{$provider.DisplayName}}</a>
+  {{end}}
+</div>
 {{end}}
