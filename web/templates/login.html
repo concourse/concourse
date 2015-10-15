@@ -1,10 +1,16 @@
 {{define "title"}}Log In - Concourse{{end}}
 
 {{define "body"}}
+{{$redirect := .Redirect}}
 <div class="login-box">
-  {{$redirect := .Redirect}}
-  {{range $name, $provider := .Providers}}
-  <a href="{{url "OAuthBegin" $name $redirect}}">Log in with {{$provider.DisplayName}}</a>
-  {{end}}
+  <ul class="options">
+    {{if .BasicAuthEnabled}}
+    <li><a href="{{url "BasicAuth" $redirect}}">Log in with Basic Auth</a></li>
+    {{end}}
+
+    {{range $name, $provider := .Providers}}
+    <li><a href="{{url "OAuthBegin" $name $redirect}}">Log in with {{$provider.DisplayName}}</a></li>
+    {{end}}
+  </ul>
 </div>
 {{end}}

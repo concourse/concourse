@@ -119,4 +119,13 @@ var _ = Describe("URLs", func() {
 			Expect(path).To(Equal("/auth/some-provider?redirect=%2Fsome%2Fpath"))
 		})
 	})
+
+	Describe("Basic Auth", func() {
+		It("links to the provider with a redirect to the index", func() {
+			path, err := web.PathFor(routes.BasicAuth, "/some/path")
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(path).To(Equal("/login/basic?redirect=%2Fsome%2Fpath"))
+		})
+	})
 })

@@ -40,6 +40,7 @@ func NewHandler(
 	logger lager.Logger,
 	publiclyViewable bool,
 	providers auth.Providers,
+	basicAuthEnabled bool,
 	validator auth.Validator,
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	db WebDB,
@@ -137,7 +138,13 @@ func NewHandler(
 		routes.GetBuilds:       getbuilds.NewHandler(logger, db, configDB, buildsTemplate),
 		routes.GetJoblessBuild: getjoblessbuild.NewHandler(logger, db, configDB, joblessBuildTemplate),
 
-		routes.LogIn: login.NewHandler(logger, providers, logInTemplate),
+		routes.LogIn: login.NewHandler(logger, basicAuthEnabled, providers, logInTemplate),
+
+		routes.BasicAuth: auth.WrapHandler(
+			login.NewBasicAuthHandler(logger),
+			validator,
+			auth.BasicAuthRejector{},
+		),
 
 		routes.TriggerBuild: auth.WrapHandler(
 			pipelineHandlerFactory.HandlerFor(triggerBuildServer.TriggerBuild),

@@ -375,7 +375,7 @@ func main() {
 		}
 	}
 
-	validator := constructValidator(signingKey)
+	validator, basicAuthEnabled := constructValidator(signingKey)
 
 	oauthProviders := auth.Providers{}
 
@@ -451,6 +451,7 @@ func main() {
 		logger,
 		*publiclyViewable,
 		oauthProviders,
+		basicAuthEnabled,
 		validator,
 		radarSchedulerFactory,
 		db,
@@ -584,7 +585,7 @@ func fatal(err error) {
 	os.Exit(1)
 }
 
-func constructValidator(signingKey *rsa.PrivateKey) auth.Validator {
+func constructValidator(signingKey *rsa.PrivateKey) (auth.Validator, bool) {
 	var basicAuthValidator auth.Validator
 
 	if *httpUsername != "" && *httpHashedPassword != "" {
@@ -619,7 +620,7 @@ func constructValidator(signingKey *rsa.PrivateKey) auth.Validator {
 		validator = auth.NoopValidator{}
 	}
 
-	return validator
+	return validator, basicAuthValidator != nil
 }
 
 func parseAttributes(logger lager.Logger, pairs string) map[string]string {

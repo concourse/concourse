@@ -25,7 +25,7 @@ type templateFuncs struct {
 	assetsL   sync.Mutex
 }
 
-func (funcs templateFuncs) asset(asset string) (string, error) {
+func (funcs *templateFuncs) asset(asset string) (string, error) {
 	funcs.assetsL.Lock()
 	defer funcs.assetsL.Unlock()
 
@@ -49,7 +49,7 @@ func (funcs templateFuncs) asset(asset string) (string, error) {
 	return funcs.url("Public", asset+"?id="+id)
 }
 
-func (funcs templateFuncs) url(route string, args ...interface{}) (string, error) {
+func (funcs *templateFuncs) url(route string, args ...interface{}) (string, error) {
 	return PathFor(route, args...)
 }
 
@@ -164,6 +164,16 @@ func PathFor(route string, args ...interface{}) (string, error) {
 
 		return authPath + "?" + url.Values{
 			"redirect": {args[1].(string)},
+		}.Encode(), nil
+
+	case routes.BasicAuth:
+		authPath, err := routes.Routes.CreatePathForRoute(route, rata.Params{})
+		if err != nil {
+			return "", err
+		}
+
+		return authPath + "?" + url.Values{
+			"redirect": {args[0].(string)},
 		}.Encode(), nil
 
 	default:
