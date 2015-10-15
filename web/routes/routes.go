@@ -14,8 +14,6 @@ const (
 	GetJob          = "GetJob"
 	LogIn           = "LogIn"
 	Debug           = "Debug"
-	OAuth           = "OAuth"
-	OAuthCallback   = "OAuthCallback"
 )
 
 var Routes = rata.Routes{
@@ -39,6 +37,4 @@ var Routes = rata.Routes{
 
 	// auth
 	{Path: "/login", Method: "GET", Name: LogIn},
-	{Path: "/auth/:provider", Method: "GET", Name: OAuth},
-	{Path: "/auth/:provider/callback", Method: "GET", Name: OAuthCallback},
 }

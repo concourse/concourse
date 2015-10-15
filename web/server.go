@@ -1,7 +1,6 @@
 package web
 
 import (
-	"crypto/rsa"
 	"html/template"
 	"net/http"
 	"path/filepath"
@@ -41,7 +40,6 @@ func NewHandler(
 	logger lager.Logger,
 	publiclyViewable bool,
 	providers auth.Providers,
-	sessionSigningKey *rsa.PrivateKey,
 	validator auth.Validator,
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	db WebDB,
@@ -141,17 +139,6 @@ func NewHandler(
 
 		routes.LogIn: login.NewHandler(logger, logInTemplate),
 
-		routes.OAuth: auth.NewOAuthBeginHandler(
-			logger.Session("oauth"),
-			providers,
-		),
-
-		routes.OAuthCallback: auth.NewOAuthCallbackHandler(
-			logger.Session("oauth"),
-			providers,
-			sessionSigningKey,
-		),
-
 		routes.TriggerBuild: auth.WrapHandler(
 			pipelineHandlerFactory.HandlerFor(triggerBuildServer.TriggerBuild),
 			validator,
@@ -172,7 +159,7 @@ func NewHandler(
 
 		handlers[route] = metric.WrapHandler(route, handler, logger)
 
-		if route == routes.LogIn || route == routes.OAuth || route == routes.OAuthCallback {
+		if route == routes.LogIn {
 			continue
 		}
 

@@ -47,7 +47,6 @@ import (
 	"github.com/concourse/atc/resource"
 	sched "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/web"
-	"github.com/concourse/atc/web/routes"
 	"github.com/concourse/atc/worker"
 )
 
@@ -394,7 +393,7 @@ func main() {
 	oauthProviders := auth.Providers{}
 
 	if *gitHubAuthOrg != "" {
-		path, err := routes.Routes.CreatePathForRoute(routes.OAuthCallback, rata.Params{
+		path, err := auth.OAuthRoutes.CreatePathForRoute(auth.OAuthCallback, rata.Params{
 			"provider": github.ProviderName,
 		})
 		if err != nil {
@@ -469,7 +468,6 @@ func main() {
 		logger,
 		*publiclyViewable,
 		oauthProviders,
-		signingKey,
 		validator,
 		radarSchedulerFactory,
 		db,
@@ -483,8 +481,18 @@ func main() {
 		fatal(err)
 	}
 
+	oauthHandler, err := auth.NewOAuthHandler(
+		logger,
+		oauthProviders,
+		signingKey,
+	)
+	if err != nil {
+		fatal(err)
+	}
+
 	webMux := http.NewServeMux()
 	webMux.Handle("/api/v1/", apiHandler)
+	webMux.Handle("/auth/", oauthHandler)
 	webMux.Handle("/", webHandler)
 
 	var httpHandler http.Handler

@@ -16,7 +16,7 @@ func NewProvider(
 	clientSecret string,
 	redirectURL string,
 ) auth.Provider {
-	return auth.Provider{
+	return provider{
 		Verifier: NewOrganizationVerifier(organization, NewClient()),
 		Config: &oauth2.Config{
 			ClientID:     clientID,
@@ -26,4 +26,9 @@ func NewProvider(
 			RedirectURL:  redirectURL,
 		},
 	}
+}
+
+type provider struct {
+	*oauth2.Config
+	auth.Verifier
 }

@@ -39,7 +39,6 @@ var _ = Describe("Handler", func() {
 			true,
 			nil,
 			nil,
-			nil,
 			auth.NoopValidator{},
 			radarSchedulerFactory,
 			db,
