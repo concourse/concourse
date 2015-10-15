@@ -29,7 +29,6 @@ var (
 	sink *lager.ReconfigurableSink
 
 	authValidator       *authfakes.FakeValidator
-	authRejector        *authfakes.FakeRejector
 	fakeEngine          *enginefakes.FakeEngine
 	fakeWorkerClient    *workerfakes.FakeClient
 	buildsDB            *buildfakes.FakeBuildsDB
@@ -82,10 +81,6 @@ var _ = BeforeEach(func() {
 	pipelinesDB = new(dbfakes.FakePipelinesDB)
 
 	authValidator = new(authfakes.FakeValidator)
-	authRejector = new(authfakes.FakeRejector)
-	authRejector.UnauthorizedStub = func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusUnauthorized)
-	}
 
 	configValidationErr = nil
 	peerAddr = "127.0.0.1:1234"
@@ -110,7 +105,6 @@ var _ = BeforeEach(func() {
 		logger,
 
 		authValidator,
-		authRejector,
 
 		pipelineDBFactory,
 

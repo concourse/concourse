@@ -29,7 +29,6 @@ import (
 func NewHandler(
 	logger lager.Logger,
 	validator auth.Validator,
-	rejector auth.Rejector,
 	pipelineDBFactory db.PipelineDBFactory,
 
 	configDB db.ConfigDB,
@@ -52,6 +51,8 @@ func NewHandler(
 
 	cliDownloadsDir string,
 ) (http.Handler, error) {
+	rejector := auth.UnauthorizedRejector{}
+
 	absCLIDownloadsDir, err := filepath.Abs(cliDownloadsDir)
 	if err != nil {
 		return nil, err

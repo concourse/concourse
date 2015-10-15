@@ -269,6 +269,10 @@ func main() {
 		fatal(errors.New("must specify -externalURL if -gitHubAuthClientID and -gitHubAuthClientSecret are given"))
 	}
 
+	if *gitHubAuthClientID != "" && *gitHubAuthClientSecret != "" && *sessionSigningKeyFile == "" {
+		fatal(errors.New("must specify -sessionSigningKeyFile if -gitHubAuthClientID and -gitHubAuthClientSecret are given"))
+	}
+
 	if _, err := os.Stat(*templatesDir); err != nil {
 		fatal(errors.New("directory specified via -templates does not exist"))
 	}
@@ -323,7 +327,7 @@ func main() {
 	pipelineDBFactory := Db.NewPipelineDBFactory(logger.Session("db"), explainDBConn, bus, db)
 
 	var configDB Db.ConfigDB
-	configDB = Db.PlanConvertingConfigDB{db}
+	configDB = Db.PlanConvertingConfigDB{NestedDB: db}
 
 	var resourceTypesNG []atc.WorkerResourceType
 	err = json.Unmarshal([]byte(*resourceTypes), &resourceTypesNG)
@@ -357,21 +361,6 @@ func main() {
 
 	engine := engine.NewDBEngine(engine.Engines{execEngine}, db)
 
-	var basicAuthValidator auth.Validator
-	var jwtValidator auth.Validator
-
-	if *httpUsername != "" && *httpHashedPassword != "" {
-		basicAuthValidator = auth.BasicAuthHashedValidator{
-			Username:       *httpUsername,
-			HashedPassword: *httpHashedPassword,
-		}
-	} else if *httpUsername != "" && *httpPassword != "" {
-		basicAuthValidator = auth.BasicAuthValidator{
-			Username: *httpUsername,
-			Password: *httpPassword,
-		}
-	}
-
 	var signingKey *rsa.PrivateKey
 
 	if *sessionSigningKeyFile != "" {
@@ -384,11 +373,9 @@ func main() {
 		if err != nil {
 			fatal(err)
 		}
-
-		jwtValidator = auth.JWTValidator{
-			PublicKey: &signingKey.PublicKey,
-		}
 	}
+
+	validator := constructValidator(signingKey)
 
 	oauthProviders := auth.Providers{}
 
@@ -408,18 +395,6 @@ func main() {
 		)
 	}
 
-	var validator auth.Validator
-
-	if basicAuthValidator != nil && jwtValidator != nil {
-		validator = auth.ValidatorBasket{basicAuthValidator, jwtValidator}
-	} else if basicAuthValidator != nil {
-		validator = basicAuthValidator
-	} else if jwtValidator != nil {
-		validator = jwtValidator
-	} else {
-		validator = auth.NoopValidator{}
-	}
-
 	callbacksURL, err := url.Parse(*callbacksURLString)
 	if err != nil {
 		fatal(err)
@@ -430,7 +405,6 @@ func main() {
 	apiHandler, err := api.NewHandler(
 		logger,
 		validator,
-		auth.BasicAuthRejector{},
 		pipelineDBFactory,
 
 		configDB,
@@ -457,6 +431,15 @@ func main() {
 		fatal(err)
 	}
 
+	oauthHandler, err := auth.NewOAuthHandler(
+		logger,
+		oauthProviders,
+		signingKey,
+	)
+	if err != nil {
+		fatal(err)
+	}
+
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		tracker,
 		*checkInterval,
@@ -476,15 +459,6 @@ func main() {
 		*templatesDir,
 		*publicDir,
 		engine,
-	)
-	if err != nil {
-		fatal(err)
-	}
-
-	oauthHandler, err := auth.NewOAuthHandler(
-		logger,
-		oauthProviders,
-		signingKey,
 	)
 	if err != nil {
 		fatal(err)
@@ -580,8 +554,8 @@ func main() {
 	if *gardenAddr != "" {
 		memberGrouper = append(memberGrouper,
 			grouper.Member{
-				"hardcoded-worker",
-				worker.NewHardcoded(
+				Name: "hardcoded-worker",
+				Runner: worker.NewHardcoded(
 					logger, db, clock.NewClock(),
 					*gardenAddr, *baggageclaimURL, resourceTypesNG,
 				),
@@ -608,6 +582,44 @@ func main() {
 func fatal(err error) {
 	println(err.Error())
 	os.Exit(1)
+}
+
+func constructValidator(signingKey *rsa.PrivateKey) auth.Validator {
+	var basicAuthValidator auth.Validator
+
+	if *httpUsername != "" && *httpHashedPassword != "" {
+		basicAuthValidator = auth.BasicAuthHashedValidator{
+			Username:       *httpUsername,
+			HashedPassword: *httpHashedPassword,
+		}
+	} else if *httpUsername != "" && *httpPassword != "" {
+		basicAuthValidator = auth.BasicAuthValidator{
+			Username: *httpUsername,
+			Password: *httpPassword,
+		}
+	}
+
+	var jwtValidator auth.Validator
+
+	if signingKey != nil {
+		jwtValidator = auth.JWTValidator{
+			PublicKey: &signingKey.PublicKey,
+		}
+	}
+
+	var validator auth.Validator
+
+	if basicAuthValidator != nil && jwtValidator != nil {
+		validator = auth.ValidatorBasket{basicAuthValidator, jwtValidator}
+	} else if basicAuthValidator != nil {
+		validator = basicAuthValidator
+	} else if jwtValidator != nil {
+		validator = jwtValidator
+	} else {
+		validator = auth.NoopValidator{}
+	}
+
+	return validator
 }
 
 func parseAttributes(logger lager.Logger, pairs string) map[string]string {
