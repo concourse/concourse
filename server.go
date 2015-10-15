@@ -1,12 +1,13 @@
 package web
 
 import (
+	"crypto/rsa"
 	"html/template"
 	"net/http"
 	"path/filepath"
 
-	"github.com/gorilla/sessions"
-	"github.com/markbates/goth/gothic"
+	"golang.org/x/oauth2"
+
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 
@@ -40,8 +41,10 @@ type WebDB interface {
 
 func NewHandler(
 	logger lager.Logger,
-	store sessions.Store,
 	publiclyViewable bool,
+	oauthConfig *oauth2.Config,
+	authVerifier auth.Verifier,
+	sessionSigningKey *rsa.PrivateKey,
 	validator auth.Validator,
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	db WebDB,
@@ -118,8 +121,16 @@ func NewHandler(
 	buildServer := getbuild.NewServer(logger, buildTemplate)
 	triggerBuildServer := triggerbuild.NewServer(logger, radarSchedulerFactory)
 
+	loginPath, err := routes.Routes.CreatePathForRoute(routes.LogIn, rata.Params{})
+	if err != nil {
+		return nil, err
+	}
+
+	rejector := auth.RedirectRejector{
+		Location: loginPath,
+	}
+
 	handlers := map[string]http.Handler{
-		// public
 		routes.Index:    index.NewHandler(logger, pipelineDBFactory, pipelineServer.GetPipeline, indexTemplate),
 		routes.Pipeline: pipelineHandlerFactory.HandlerFor(pipelineServer.GetPipeline),
 		routes.Public:   http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
@@ -131,19 +142,29 @@ func NewHandler(
 		routes.GetBuilds:       getbuilds.NewHandler(logger, db, configDB, buildsTemplate),
 		routes.GetJoblessBuild: getjoblessbuild.NewHandler(logger, db, configDB, joblessBuildTemplate),
 
-		routes.LogIn:         login.NewHandler(logger, logInTemplate),
-		routes.OAuth:         http.HandlerFunc(gothic.BeginAuthHandler),
-		routes.OAuthCallback: login.NewCallbackHandler(logger, store),
-
-		routes.TriggerBuild: auth.Handler{
-			Handler:   pipelineHandlerFactory.HandlerFor(triggerBuildServer.TriggerBuild),
-			Validator: validator,
+		routes.LogIn: login.NewHandler(logger, logInTemplate),
+		routes.OAuth: &auth.OAuthBeginHandler{
+			Logger: logger.Session("oauth"),
+			Config: oauthConfig,
+		},
+		routes.OAuthCallback: &auth.OAuthCallbackHandler{
+			Logger:     logger.Session("oauth"),
+			Config:     oauthConfig,
+			Verifier:   authVerifier,
+			PrivateKey: sessionSigningKey,
 		},
 
-		routes.Debug: auth.Handler{
-			Handler:   debug.NewServer(logger, db, debugTemplate),
-			Validator: validator,
-		},
+		routes.TriggerBuild: auth.WrapHandler(
+			pipelineHandlerFactory.HandlerFor(triggerBuildServer.TriggerBuild),
+			validator,
+			rejector,
+		),
+
+		routes.Debug: auth.WrapHandler(
+			debug.NewServer(logger, db, debugTemplate),
+			validator,
+			rejector,
+		),
 	}
 
 	for route, handler := range handlers {
@@ -161,10 +182,11 @@ func NewHandler(
 			continue
 		}
 
-		handlers[route] = auth.WebHandler{
-			Handler:   handler,
-			Validator: validator,
-		}
+		handlers[route] = auth.WrapHandler(
+			handler,
+			validator,
+			rejector,
+		)
 	}
 
 	return rata.NewRouter(routes.Routes, handlers)
