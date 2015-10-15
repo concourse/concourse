@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -80,6 +81,10 @@ var _ = Describe("OAuthBeginHandler", func() {
 		Context("to a known provider", func() {
 			BeforeEach(func() {
 				request.URL.Path = "/auth/b"
+				request.URL.RawQuery = url.Values{
+					"redirect": {"/some-path"},
+				}.Encode()
+
 				fakeProviderB.AuthCodeURLReturns(redirectTarget.URL())
 			})
 
@@ -103,6 +108,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(token.Claims["exp"]).To(BeNumerically("~", time.Now().Add(time.Hour).Unix(), 5))
+				Expect(token.Claims["redirect"]).To(Equal("/some-path"))
 				Expect(token.Valid).To(BeTrue())
 			})
 		})

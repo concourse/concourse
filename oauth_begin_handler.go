@@ -42,6 +42,7 @@ func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 	token := jwt.New(SigningMethod)
 	token.Claims["exp"] = time.Now().Add(time.Hour).Unix()
+	token.Claims["redirect"] = r.FormValue("redirect")
 
 	signedState, err := token.SignedString(handler.privateKey)
 	if err != nil {
