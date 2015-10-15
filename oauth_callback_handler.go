@@ -31,9 +31,18 @@ func NewOAuthCallbackHandler(
 }
 
 func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	provider, ok := handler.providers[r.FormValue(":provider")]
-	if !ok {
+	provider, found := handler.providers[r.FormValue(":provider")]
+	if !found {
 		http.Error(w, "unknown provider", http.StatusNotFound)
+		return
+	}
+
+	stateToken, err := jwt.Parse(r.FormValue("state"), keyFunc(handler.privateKey))
+	if err != nil {
+		handler.logger.Info("failed-to-verify-state", lager.Data{
+			"error": err.Error(),
+		})
+		http.Error(w, "cannot verify state", http.StatusUnauthorized)
 		return
 	}
 
@@ -59,7 +68,11 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	jwtToken := jwt.New(jwt.SigningMethodRS256)
+	jwtToken := jwt.New(SigningMethod)
+
+	exp := time.Now().Add(CookieAge)
+	jwtToken.Claims["exp"] = exp.Unix()
+
 	signedToken, err := jwtToken.SignedString(handler.privateKey)
 	if err != nil {
 		handler.logger.Error("failed-to-sign-token", err)
@@ -67,15 +80,18 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	exp := time.Now().Add(CookieAge)
-	jwtToken.Claims["exp"] = exp.Unix()
-
 	http.SetCookie(w, &http.Cookie{
 		Name:    CookieName,
 		Value:   "Bearer " + signedToken,
 		Path:    "/",
 		Expires: exp,
 	})
+
+	redirectPath, ok := stateToken.Claims["redirect"].(string)
+	if ok {
+		http.Redirect(w, r, redirectPath, http.StatusTemporaryRedirect)
+		return
+	}
 
 	fmt.Fprintln(w, "ok")
 }
