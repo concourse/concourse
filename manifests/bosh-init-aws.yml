@@ -80,6 +80,9 @@ jobs:
       garden:
         listen_network: tcp
         listen_address: 0.0.0.0:7777
+      groundcrew:
+        tsa:
+          host: 127.0.0.1
 
 cloud_provider:
   template: {name: cpi, release: bosh-aws-cpi}
