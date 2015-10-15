@@ -32,3 +32,7 @@ type provider struct {
 	*oauth2.Config
 	auth.Verifier
 }
+
+func (provider) DisplayName() string {
+	return "GitHub"
+}
