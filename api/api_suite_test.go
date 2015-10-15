@@ -29,6 +29,7 @@ var (
 	sink *lager.ReconfigurableSink
 
 	authValidator       *authfakes.FakeValidator
+	authRejector        *authfakes.FakeRejector
 	fakeEngine          *enginefakes.FakeEngine
 	fakeWorkerClient    *workerfakes.FakeClient
 	buildsDB            *buildfakes.FakeBuildsDB
@@ -81,7 +82,8 @@ var _ = BeforeEach(func() {
 	pipelinesDB = new(dbfakes.FakePipelinesDB)
 
 	authValidator = new(authfakes.FakeValidator)
-	authValidator.UnauthorizedStub = func(w http.ResponseWriter, r *http.Request) {
+	authRejector = new(authfakes.FakeRejector)
+	authRejector.UnauthorizedStub = func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 	}
 
@@ -106,7 +108,10 @@ var _ = BeforeEach(func() {
 
 	handler, err := api.NewHandler(
 		logger,
+
 		authValidator,
+		authRejector,
+
 		pipelineDBFactory,
 
 		configDB,

@@ -28,7 +28,7 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 
 	if !s.validator.IsAuthenticated(r) {
 		if build.OneOff() {
-			s.validator.Unauthorized(w, r)
+			s.rejector.Unauthorized(w, r)
 			return
 		}
 
@@ -47,7 +47,7 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !public {
-			s.validator.Unauthorized(w, r)
+			s.rejector.Unauthorized(w, r)
 			return
 		}
 	}

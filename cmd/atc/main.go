@@ -1,10 +1,12 @@
 package main
 
 import (
+	"crypto/rsa"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -13,13 +15,11 @@ import (
 	"strings"
 	"time"
 
-	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
 	httpmetrics "github.com/codahale/http-handlers/metrics"
 	_ "github.com/codahale/metrics/runtime"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/felixge/tcpkeepalive"
-	"github.com/gorilla/sessions"
 	"github.com/lib/pq"
-	"github.com/markbates/goth/gothic"
 	"github.com/nu7hatch/gouuid"
 	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
@@ -27,7 +27,10 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
+	"github.com/tedsuo/rata"
 	"github.com/xoebus/zest"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/github"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
@@ -39,13 +42,13 @@ import (
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/exec"
-	"github.com/concourse/atc/github"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/pipelines"
 	rdr "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/resource"
 	sched "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/web"
+	"github.com/concourse/atc/web/routes"
 	"github.com/concourse/atc/worker"
 )
 
@@ -251,6 +254,12 @@ var riemannAttributes = flag.String(
 	"Comma-separated list of key-value pairs to attach to all emitted metrics, e.g. a=b,c=d.",
 )
 
+var sessionSigningKeyFile = flag.String(
+	"sessionSigningKeyFile",
+	"",
+	"file containing an RSA private key to use when signing session",
+)
+
 func main() {
 	flag.Parse()
 
@@ -351,7 +360,7 @@ func main() {
 	engine := engine.NewDBEngine(engine.Engines{execEngine}, db)
 
 	var basicAuthValidator auth.Validator
-	var gitHubAuthValidator auth.Validator
+	var jwtValidator auth.Validator
 
 	if *httpUsername != "" && *httpHashedPassword != "" {
 		basicAuthValidator = auth.BasicAuthHashedValidator{
@@ -365,42 +374,58 @@ func main() {
 		}
 	}
 
-	if *gitHubAuthOrg != "" {
-		if *gitHubAuthClientID != "" && *gitHubAuthClientSecret != "" && *externalURL != "" {
-			err := auth.RegisterGithub(*gitHubAuthClientID, *gitHubAuthClientSecret, *externalURL)
-			if err != nil {
-				logger.Fatal("failed-to-register-github-auth", err)
-			}
+	var signingKey *rsa.PrivateKey
+
+	if *sessionSigningKeyFile != "" {
+		rsaKeyBlob, err := ioutil.ReadFile(*sessionSigningKeyFile)
+		if err != nil {
+			fatal(err)
 		}
 
-		gitHubAuthValidator = auth.GitHubOrganizationValidator{
-			Client:       github.NewClient(logger.Session("github-client")),
+		signingKey, err = jwt.ParseRSAPrivateKeyFromPEM(rsaKeyBlob)
+		if err != nil {
+			fatal(err)
+		}
+
+		jwtValidator = auth.JWTValidator{
+			PublicKey: &signingKey.PublicKey,
+		}
+	}
+
+	var oauthConfig *oauth2.Config
+	var verifier auth.Verifier
+
+	if *gitHubAuthOrg != "" {
+		path, err := routes.Routes.CreatePathForRoute(routes.OAuthCallback, rata.Params{
+			"provider": "github",
+		})
+		if err != nil {
+			fatal(err)
+		}
+
+		oauthConfig = &oauth2.Config{
+			ClientID:     *gitHubAuthClientID,
+			ClientSecret: *gitHubAuthClientSecret,
+			Endpoint:     github.Endpoint,
+			Scopes:       []string{"read:org"},
+			RedirectURL:  *externalURL + path,
+		}
+
+		verifier = &auth.GitHubOrganizationVerifier{
 			Organization: *gitHubAuthOrg,
 		}
 	}
 
-	var apiValidator auth.Validator
-	var webValidator auth.Validator
+	var validator auth.Validator
 
-	if basicAuthValidator != nil && gitHubAuthValidator != nil {
-		apiValidator = auth.ValidatorBasket{
-			Validators: []auth.Validator{basicAuthValidator, gitHubAuthValidator},
-			Rejector:   basicAuthValidator,
-		}
-
-		webValidator = auth.ValidatorBasket{
-			Validators: []auth.Validator{basicAuthValidator, gitHubAuthValidator},
-			Rejector:   gitHubAuthValidator,
-		}
+	if basicAuthValidator != nil && jwtValidator != nil {
+		validator = auth.ValidatorBasket{basicAuthValidator, jwtValidator}
 	} else if basicAuthValidator != nil {
-		apiValidator = basicAuthValidator
-		webValidator = basicAuthValidator
-	} else if gitHubAuthValidator != nil {
-		apiValidator = gitHubAuthValidator
-		webValidator = gitHubAuthValidator
+		validator = basicAuthValidator
+	} else if jwtValidator != nil {
+		validator = jwtValidator
 	} else {
-		apiValidator = auth.NoopValidator{}
-		webValidator = auth.NoopValidator{}
+		validator = auth.NoopValidator{}
 	}
 
 	callbacksURL, err := url.Parse(*callbacksURLString)
@@ -411,29 +436,30 @@ func main() {
 	drain := make(chan struct{})
 
 	apiHandler, err := api.NewHandler(
-		logger,            // logger lager.Logger,
-		apiValidator,      // validator auth.Validator,
-		pipelineDBFactory, // pipelineDBFactory db.PipelineDBFactory,
+		logger,
+		validator,
+		auth.BasicAuthRejector{},
+		pipelineDBFactory,
 
-		configDB, // configDB db.ConfigDB,
+		configDB,
 
-		db, // buildsDB buildserver.BuildsDB,
-		db, // workerDB workerserver.WorkerDB,
-		db, // containerDB containerServer.ContainerDB,
-		db, // pipeDB pipes.PipeDB,
-		db, // pipelinesDB db.PipelinesDB,
+		db, // buildserver.BuildsDB
+		db, // workerserver.WorkerDB
+		db, // containerServer.ContainerDB
+		db, // pipes.PipeDB
+		db, // db.PipelinesDB
 
-		config.ValidateConfig,       // configValidator configserver.ConfigValidator,
-		callbacksURL.String(),       // peerURL string,
-		buildserver.NewEventHandler, // eventHandlerFactory buildserver.EventHandlerFactory,
-		drain, // drain <-chan struct{},
+		config.ValidateConfig,
+		callbacksURL.String(),
+		buildserver.NewEventHandler,
+		drain,
 
-		engine,       // engine engine.Engine,
-		workerClient, // workerClient worker.Client,
+		engine,
+		workerClient,
 
-		sink, // sink *lager.ReconfigurableSink,
+		sink,
 
-		*cliDownloadsDir, // cliDownloadsDir string,
+		*cliDownloadsDir,
 	)
 	if err != nil {
 		fatal(err)
@@ -446,14 +472,13 @@ func main() {
 		db,
 	)
 
-	cookieStore := sessions.NewCookieStore([]byte(*httpPassword + *httpHashedPassword + *gitHubAuthClientSecret))
-	gothic.Store = cookieStore
-
 	webHandler, err := web.NewHandler(
 		logger,
-		cookieStore,
 		*publiclyViewable,
-		webValidator,
+		oauthConfig,
+		verifier,
+		signingKey,
+		validator,
 		radarSchedulerFactory,
 		db,
 		pipelineDBFactory,
@@ -474,17 +499,6 @@ func main() {
 
 	httpHandler = webMux
 
-	httpHandler = auth.SessionHandler{
-		Logger: logger,
-
-		Handler:  httpHandler,
-		Rejector: webValidator,
-
-		Store: cookieStore,
-	}
-
-	// this is only really useful for the acceptance tests as otherwise there's
-	// no way to inject the authentication
 	httpHandler = auth.CookieSetHandler{
 		Handler: httpHandler,
 	}
@@ -608,22 +622,6 @@ func parseAttributes(logger lager.Logger, pairs string) map[string]string {
 	}
 
 	return attributes
-}
-
-func keepaliveDialerFactory(network string, address string) gconn.DialerFunc {
-	return func(string, string) (net.Conn, error) {
-		conn, err := net.DialTimeout(network, address, 5*time.Second)
-		if err != nil {
-			return nil, err
-		}
-
-		err = tcpkeepalive.SetKeepAlive(conn, 10*time.Second, 3, 5*time.Second)
-		if err != nil {
-			println("failed to enable connection keepalive: " + err.Error())
-		}
-
-		return conn, nil
-	}
 }
 
 func keepaliveDialer(network string, address string) (net.Conn, error) {

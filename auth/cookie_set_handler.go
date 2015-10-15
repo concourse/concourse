@@ -6,6 +6,7 @@ import (
 )
 
 const CookieName = "ATC-Authorization"
+const CookieAge = 24 * time.Hour
 
 type CookieSetHandler struct {
 	Handler http.Handler
@@ -25,7 +26,7 @@ func (handler CookieSetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 			Name:    CookieName,
 			Value:   auth,
 			Path:    "/",
-			Expires: time.Now().Add(1 * time.Minute),
+			Expires: time.Now().Add(CookieAge),
 		})
 
 		r.Header.Set("Authorization", auth)

@@ -36,8 +36,10 @@ var _ = Describe("Handler", func() {
 		var err error
 		handler, err = web.NewHandler(
 			logger,
-			nil,
 			true,
+			nil,
+			nil,
+			nil,
 			auth.NoopValidator{},
 			radarSchedulerFactory,
 			db,

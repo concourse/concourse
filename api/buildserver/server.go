@@ -24,6 +24,7 @@ type Server struct {
 	eventHandlerFactory EventHandlerFactory
 	drain               <-chan struct{}
 	validator           auth.Validator
+	rejector            auth.Rejector
 
 	httpClient *http.Client
 }
@@ -48,6 +49,7 @@ func NewServer(
 	eventHandlerFactory EventHandlerFactory,
 	drain <-chan struct{},
 	validator auth.Validator,
+	rejector auth.Rejector,
 ) *Server {
 	return &Server{
 		logger:              logger,
@@ -58,6 +60,7 @@ func NewServer(
 		eventHandlerFactory: eventHandlerFactory,
 		drain:               drain,
 		validator:           validator,
+		rejector:            rejector,
 
 		httpClient: &http.Client{
 			Transport: &http.Transport{

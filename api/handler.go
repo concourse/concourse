@@ -29,6 +29,7 @@ import (
 func NewHandler(
 	logger lager.Logger,
 	validator auth.Validator,
+	rejector auth.Rejector,
 	pipelineDBFactory db.PipelineDBFactory,
 
 	configDB db.ConfigDB,
@@ -67,6 +68,7 @@ func NewHandler(
 		eventHandlerFactory,
 		drain,
 		validator,
+		rejector,
 	)
 
 	jobServer := jobserver.NewServer(logger)
@@ -86,10 +88,7 @@ func NewHandler(
 	containerServer := containerserver.NewServer(logger, workerClient, containerDB)
 
 	validate := func(handler http.Handler) http.Handler {
-		return auth.Handler{
-			Handler:   handler,
-			Validator: validator,
-		}
+		return auth.WrapHandler(handler, validator, rejector)
 	}
 
 	measure := func(route string, handler http.Handler) http.Handler {
