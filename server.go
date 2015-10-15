@@ -166,7 +166,7 @@ func NewHandler(
 
 		handlers[route] = metric.WrapHandler(route, handler, logger)
 
-		if route == routes.LogIn {
+		if route == routes.LogIn || route == routes.BasicAuth {
 			continue
 		}
 
