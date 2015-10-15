@@ -13,7 +13,7 @@ import (
 	"github.com/onsi/gomega/ghttp"
 )
 
-var _ = Describe("ATCClient ATC Handler", func() {
+var _ = Describe("ATC Handler Builds", func() {
 	var (
 		handler   atcclient.AtcHandler
 		atcServer *ghttp.Server
@@ -149,89 +149,6 @@ var _ = Describe("ATCClient ATC Handler", func() {
 			build, err := handler.AllBuilds()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(build).To(Equal(expectedBuilds))
-		})
-	})
-
-	Describe("Job", func() {
-
-		var (
-			expectedPipelineName string
-			expectedJob          atc.Job
-			expectedURL          string
-		)
-
-		JustBeforeEach(func() {
-			expectedURL = fmt.Sprint("/api/v1/pipelines/", expectedPipelineName, "/jobs/myjob")
-
-			expectedJob = atc.Job{
-				Name:      "myjob",
-				URL:       fmt.Sprint("/pipelines/", expectedPipelineName, "/jobs/myjob"),
-				NextBuild: nil,
-				FinishedBuild: &atc.Build{
-					ID:      123,
-					Name:    "mybuild",
-					Status:  "succeeded",
-					JobName: "myjob",
-					URL:     fmt.Sprint("/pipelines/", expectedPipelineName, "/jobs/myjob/builds/mybuild"),
-					ApiUrl:  "api/v1/builds/123",
-				},
-				Inputs: []atc.JobInput{
-					{
-						Name:     "myfirstinput",
-						Resource: "myfirstinput",
-						Passed:   []string{"rc"},
-						Trigger:  true,
-					},
-					{
-						Name:     "mysecondinput",
-						Resource: "mysecondinput",
-						Passed:   []string{"rc"},
-						Trigger:  true,
-					},
-				},
-				Outputs: []atc.JobOutput{
-					{
-						Name:     "myfirstoutput",
-						Resource: "myfirstoutput",
-					},
-					{
-						Name:     "mysecoundoutput",
-						Resource: "mysecoundoutput",
-					},
-				},
-				Groups: []string{"mygroup"},
-			}
-
-			atcServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", expectedURL),
-					ghttp.RespondWithJSONEncoded(200, expectedJob, http.Header{}),
-				),
-			)
-		})
-
-		Context("when provided a pipline name", func() {
-			BeforeEach(func() {
-				expectedPipelineName = "mypipeline"
-			})
-
-			It("returns the given job for that pipeline", func() {
-				job, err := handler.Job("mypipeline", "myjob")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(job).To(Equal(expectedJob))
-			})
-		})
-
-		Context("when not provided a pipeline name", func() {
-			BeforeEach(func() {
-				expectedPipelineName = "main"
-			})
-
-			It("returns the given job for the default pipeline 'main'", func() {
-				job, err := handler.Job("", "myjob")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(job).To(Equal(expectedJob))
-			})
 		})
 	})
 })
