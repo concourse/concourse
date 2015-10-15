@@ -77,7 +77,7 @@ func SelectTarget(selectedTarget string, insecure bool) (*TargetProps, error) {
 			return nil, fmt.Errorf("Unable to find target %s in %s", selectedTarget, flyrc)
 		}
 
-		target.Insecure = insecure
+		target.Insecure = target.Insecure || insecure
 		return &target, nil
 	}
 }
