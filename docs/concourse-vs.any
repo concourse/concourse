@@ -56,7 +56,10 @@ attempt.
   We began using Travis CI in order to open up our builds and their results to
   the open source community. Travis gets a lot of things right. They don't let
   you have any snowflake configuration outside of your \code{.travis.yml} file.
-  Builds are run inside a container to avoid pollution.
+  Builds are run inside a container to avoid pollution. It also has great
+  support for building your GitHub pull requests. This is something that
+  Concourse cannot yet do but we have plans to allow the same workflow in the
+  future.
 
   Unfortunately it still doesn't have support for pipelines and only very simple
   builds are possible. It also brings the frustration that if something doesn't
@@ -69,7 +72,7 @@ attempt.
   We were excited for the release of GoCD. Finally, someone was bringing
   pipelines as a first class citizen to CI! CF decided to switch and unify the
   disparate CI approaches to form a unified pipeline.
-  
+
   Unfortunately there were significant problems with some of the GoCD design
   decisions that, in our opinion, make it very difficult to use.
 
