@@ -1,8 +1,6 @@
-package web_test
+package webhandler_test
 
 import (
-	"testing"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -11,13 +9,8 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/pagination"
-	"github.com/concourse/atc/web/routes"
+	"github.com/concourse/atc/web/webhandler"
 )
-
-func TestURLs(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "URLs Suite")
-}
 
 var _ = Describe("URLs", func() {
 	Describe("EnableVersionResource", func() {
@@ -29,7 +22,7 @@ var _ = Describe("URLs", func() {
 				},
 			}
 
-			path, err := web.PathFor(atc.EnableResourceVersion, "some-pipeline", versionedResource)
+			path, err := webhandler.PathFor(atc.EnableResourceVersion, "some-pipeline", versionedResource)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(path).To(Equal("/api/v1/pipelines/some-pipeline/resources/resource-name/versions/123/enable"))
@@ -45,7 +38,7 @@ var _ = Describe("URLs", func() {
 				},
 			}
 
-			path, err := web.PathFor(atc.DisableResourceVersion, "some-pipeline", versionedResource)
+			path, err := webhandler.PathFor(atc.DisableResourceVersion, "some-pipeline", versionedResource)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(path).To(Equal("/api/v1/pipelines/some-pipeline/resources/resource-name/versions/123/disable"))
@@ -59,7 +52,7 @@ var _ = Describe("URLs", func() {
 					Name: "some-job",
 				}
 
-				path, err := web.PathFor(routes.GetJob, "another-pipeline", job)
+				path, err := webhandler.PathFor(web.GetJob, "another-pipeline", job)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(path).To(Equal("/pipelines/another-pipeline/jobs/some-job"))
@@ -73,12 +66,12 @@ var _ = Describe("URLs", func() {
 					Name: "some-job",
 				}
 
-				path, err := web.PathFor(routes.GetJob, "another-pipeline", job, paginationData, false)
+				path, err := webhandler.PathFor(web.GetJob, "another-pipeline", job, paginationData, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(path).To(Equal("/pipelines/another-pipeline/jobs/some-job?startingID=20&resultsGreaterThanStartingID=false"))
 
-				path, err = web.PathFor(routes.GetJob, "another-pipeline", job, paginationData, true)
+				path, err = webhandler.PathFor(web.GetJob, "another-pipeline", job, paginationData, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(path).To(Equal("/pipelines/another-pipeline/jobs/some-job?startingID=30&resultsGreaterThanStartingID=true"))
@@ -92,7 +85,7 @@ var _ = Describe("URLs", func() {
 			It("can generate them", func() {
 				paginationData := pagination.NewPaginationData(false, false, 0, 29, 21)
 
-				path, err := web.PathFor(routes.GetResource, "another-pipeline", "some-resource", paginationData, false)
+				path, err := webhandler.PathFor(web.GetResource, "another-pipeline", "some-resource", paginationData, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(path).To(Equal("/pipelines/another-pipeline/resources/some-resource?id=20&newer=false"))
@@ -103,7 +96,7 @@ var _ = Describe("URLs", func() {
 			It("can generate them", func() {
 				paginationData := pagination.NewPaginationData(false, false, 0, 29, 21)
 
-				path, err := web.PathFor(routes.GetResource, "another-pipeline", "some-resource", paginationData, true)
+				path, err := webhandler.PathFor(web.GetResource, "another-pipeline", "some-resource", paginationData, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(path).To(Equal("/pipelines/another-pipeline/resources/some-resource?id=30&newer=true"))
@@ -113,7 +106,7 @@ var _ = Describe("URLs", func() {
 
 	Describe("OAuth Begin", func() {
 		It("links to the provider with a redirect to the index", func() {
-			path, err := web.PathFor(auth.OAuthBegin, "some-provider", "/some/path")
+			path, err := webhandler.PathFor(auth.OAuthBegin, "some-provider", "/some/path")
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(path).To(Equal("/auth/some-provider?redirect=%2Fsome%2Fpath"))
@@ -122,7 +115,7 @@ var _ = Describe("URLs", func() {
 
 	Describe("Basic Auth", func() {
 		It("links to the provider with a redirect to the index", func() {
-			path, err := web.PathFor(routes.BasicAuth, "/some/path")
+			path, err := webhandler.PathFor(web.BasicAuth, "/some/path")
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(path).To(Equal("/login/basic?redirect=%2Fsome%2Fpath"))

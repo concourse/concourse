@@ -3,7 +3,7 @@ package login
 import (
 	"net/http"
 
-	"github.com/concourse/atc/web/routes"
+	"github.com/concourse/atc/web"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 )
@@ -23,7 +23,7 @@ func NewBasicAuthHandler(
 func (handler *basicAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	redirect := r.FormValue("redirect")
 	if redirect == "" {
-		indexPath, err := routes.Routes.CreatePathForRoute(routes.Index, rata.Params{})
+		indexPath, err := web.Routes.CreatePathForRoute(web.Index, rata.Params{})
 		if err != nil {
 			handler.logger.Error("failed-to-generate-index-path", err)
 		} else {

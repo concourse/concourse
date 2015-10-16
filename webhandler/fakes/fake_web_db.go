@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/web"
+	"github.com/concourse/atc/web/webhandler"
 )
 
 type FakeWebDB struct {
@@ -161,4 +161,4 @@ func (fake *FakeWebDB) WorkersReturns(result1 []db.WorkerInfo, result2 error) {
 	}{result1, result2}
 }
 
-var _ web.WebDB = new(FakeWebDB)
+var _ webhandler.WebDB = new(FakeWebDB)

@@ -1,4 +1,4 @@
-package web
+package webhandler
 
 import (
 	"crypto/md5"
@@ -13,9 +13,8 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/pagination"
-	"github.com/concourse/atc/web/paths"
-	"github.com/concourse/atc/web/routes"
 	"github.com/tedsuo/rata"
 )
 
@@ -64,14 +63,14 @@ func jobName(x interface{}) string {
 
 func PathFor(route string, args ...interface{}) (string, error) {
 	switch route {
-	case routes.TriggerBuild:
-		return routes.Routes.CreatePathForRoute(route, rata.Params{
+	case web.TriggerBuild:
+		return web.Routes.CreatePathForRoute(route, rata.Params{
 			"pipeline_name": args[0].(string),
 			"job":           jobName(args[1]),
 		})
 
-	case routes.GetResource:
-		baseResourceURL, err := routes.Routes.CreatePathForRoute(route, rata.Params{
+	case web.GetResource:
+		baseResourceURL, err := web.Routes.CreatePathForRoute(route, rata.Params{
 			"pipeline_name": args[0].(string),
 			"resource":      args[1].(string),
 		})
@@ -91,21 +90,21 @@ func PathFor(route string, args ...interface{}) (string, error) {
 
 		return baseResourceURL, nil
 
-	case routes.GetBuild:
+	case web.GetBuild:
 		build := args[1].(db.Build)
 		build.JobName = jobName(args[0])
-		return paths.PathForBuild(build), nil
+		return web.PathForBuild(build), nil
 
-	case routes.GetJoblessBuild:
-		return paths.PathForBuild(args[0].(db.Build)), nil
+	case web.GetJoblessBuild:
+		return web.PathForBuild(args[0].(db.Build)), nil
 
-	case routes.Public:
-		return routes.Routes.CreatePathForRoute(route, rata.Params{
+	case web.Public:
+		return web.Routes.CreatePathForRoute(route, rata.Params{
 			"filename": args[0].(string),
 		})
 
-	case routes.GetJob:
-		baseJobURL, err := routes.Routes.CreatePathForRoute(route, rata.Params{
+	case web.GetJob:
+		baseJobURL, err := web.Routes.CreatePathForRoute(route, rata.Params{
 			"pipeline_name": args[0].(string),
 			"job":           args[1].(atc.JobConfig).Name,
 		})
@@ -140,8 +139,8 @@ func PathFor(route string, args ...interface{}) (string, error) {
 			"resource_version_id": fmt.Sprintf("%d", versionedResource.ID),
 		})
 
-	case routes.LogIn:
-		return routes.Routes.CreatePathForRoute(route, rata.Params{})
+	case web.LogIn:
+		return web.Routes.CreatePathForRoute(route, rata.Params{})
 
 	case atc.DownloadCLI:
 		path, err := atc.Routes.CreatePathForRoute(route, rata.Params{})
@@ -166,8 +165,8 @@ func PathFor(route string, args ...interface{}) (string, error) {
 			"redirect": {args[1].(string)},
 		}.Encode(), nil
 
-	case routes.BasicAuth:
-		authPath, err := routes.Routes.CreatePathForRoute(route, rata.Params{})
+	case web.BasicAuth:
+		authPath, err := web.Routes.CreatePathForRoute(route, rata.Params{})
 		if err != nil {
 			return "", err
 		}

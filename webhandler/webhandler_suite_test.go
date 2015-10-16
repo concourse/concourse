@@ -1,4 +1,4 @@
-package paths_test
+package webhandler_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestPaths(t *testing.T) {
+func TestWebhandler(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Paths Suite")
+	RunSpecs(t, "Webhandler Suite")
 }

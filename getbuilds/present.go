@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/web/paths"
+	"github.com/concourse/atc/web"
 )
 
 type PresentedBuild struct {
@@ -55,7 +55,7 @@ func PresentBuilds(builds []db.Build) []PresentedBuild {
 			EndTime:      formatTime(build.EndTime),
 			CSSClass:     cssClass,
 			Status:       string(build.Status),
-			Path:         paths.PathForBuild(build),
+			Path:         web.PathForBuild(build),
 		})
 	}
 

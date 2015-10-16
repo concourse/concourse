@@ -1,4 +1,4 @@
-package routes
+package web
 
 import "github.com/tedsuo/rata"
 
