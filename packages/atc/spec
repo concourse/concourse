@@ -62,11 +62,11 @@ files:
   - github.com/concourse/atc/web/index/*.go # gosub
   - github.com/concourse/atc/web/login/*.go # gosub
   - github.com/concourse/atc/web/pagination/*.go # gosub
-  - github.com/concourse/atc/web/paths/*.go # gosub
   - github.com/concourse/atc/web/pipeline/*.go # gosub
-  - github.com/concourse/atc/web/routes/*.go # gosub
   - github.com/concourse/atc/web/triggerbuild/*.go # gosub
+  - github.com/concourse/atc/web/webhandler/*.go # gosub
   - github.com/concourse/atc/worker/*.go # gosub
+  - github.com/concourse/atc/wrappa/*.go # gosub
   - github.com/concourse/baggageclaim/*.go # gosub
   - github.com/concourse/baggageclaim/client/*.go # gosub
   - github.com/concourse/baggageclaim/uidjunk/*.go # gosub
