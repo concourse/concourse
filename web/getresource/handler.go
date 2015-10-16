@@ -18,16 +18,12 @@ import (
 type server struct {
 	logger lager.Logger
 
-	validator auth.Validator
-
 	template *template.Template
 }
 
-func NewServer(logger lager.Logger, template *template.Template, validator auth.Validator) *server {
+func NewServer(logger lager.Logger, template *template.Template) *server {
 	return &server{
 		logger: logger,
-
-		validator: validator,
 
 		template: template,
 	}
@@ -145,7 +141,8 @@ func (server *server) GetResource(pipelineDB db.PipelineDB) http.Handler {
 			session.Info("cannot-parse-newer-to-bool", lager.Data{"newer": r.FormValue("newer")})
 		}
 
-		authenticated := server.validator.IsAuthenticated(r)
+		authenticated := auth.IsAuthenticated(r)
+
 		templateData, err := FetchTemplateData(pipelineDB, authenticated, resourceName, startingID, resultsGreaterThanStartingID)
 
 		switch err {

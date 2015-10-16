@@ -19,6 +19,7 @@ import (
 	_ "github.com/codahale/metrics/runtime"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/felixge/tcpkeepalive"
+	"github.com/gorilla/context"
 	"github.com/lib/pq"
 	"github.com/nu7hatch/gouuid"
 	"github.com/pivotal-golang/clock"
@@ -48,6 +49,7 @@ import (
 	sched "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/web/webhandler"
 	"github.com/concourse/atc/worker"
+	"github.com/concourse/atc/wrappa"
 )
 
 var pipelinePath = flag.String(
@@ -447,12 +449,13 @@ func main() {
 		db,
 	)
 
+	authWrapper := wrappa.NewWebAuthWrappa(*publiclyViewable, validator)
+
 	webHandler, err := webhandler.NewHandler(
 		logger,
-		*publiclyViewable,
+		authWrapper,
 		oauthProviders,
 		basicAuthEnabled,
-		validator,
 		radarSchedulerFactory,
 		db,
 		pipelineDBFactory,
@@ -479,6 +482,9 @@ func main() {
 	}
 
 	httpHandler = httpmetrics.Wrap(httpHandler)
+
+	// avoid leaking per-request context
+	httpHandler = context.ClearHandler(httpHandler)
 
 	webListenAddr := fmt.Sprintf("%s:%d", *webListenAddress, *webListenPort)
 	debugListenAddr := fmt.Sprintf("%s:%d", *debugListenAddress, *debugListenPort)
