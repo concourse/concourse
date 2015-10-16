@@ -23,7 +23,7 @@ type WorkersCommand struct {
 var workersCommand WorkersCommand
 
 func init() {
-	_, err := Parser.AddCommand(
+	workers, err := Parser.AddCommand(
 		"workers",
 		"Print the registered workers",
 		"",
@@ -32,6 +32,8 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+
+	workers.Aliases = []string{"ws"}
 }
 
 func (command *WorkersCommand) Execute([]string) error {

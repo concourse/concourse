@@ -28,7 +28,7 @@ func init() {
 		panic(err)
 	}
 
-	command.Aliases = []string{"p"}
+	command.Aliases = []string{"ps"}
 }
 
 func (command *PipelinesCommand) Execute([]string) error {
