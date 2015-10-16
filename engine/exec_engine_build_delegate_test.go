@@ -146,15 +146,7 @@ var _ = Describe("BuildDelegate", func() {
 
 			Context("when the pipeline name is empty because of a one-off build", func() {
 				BeforeEach(func() {
-					getPlan = atc.GetPlan{
-						Name:     "some-input",
-						Resource: "some-input-resource",
-						Pipeline: "",
-						Type:     "some-type",
-						Version:  atc.Version{"some": "version"},
-						Source:   atc.Source{"some": "source"},
-						Params:   atc.Params{"some": "params"},
-					}
+					getPlan.Pipeline = ""
 
 					inputDelegate = delegate.InputDelegate(logger, getPlan, location)
 				})
@@ -249,7 +241,9 @@ var _ = Describe("BuildDelegate", func() {
 								Metadata:     []db.MetadataField{{"saved", "metadata"}},
 							},
 						}, nil)
+					})
 
+					JustBeforeEach(func() {
 						inputDelegate.Completed(exec.ExitStatus(0), versionInfo)
 					})
 
@@ -268,7 +262,6 @@ var _ = Describe("BuildDelegate", func() {
 								Metadata:     []db.MetadataField{{"result", "metadata"}},
 							},
 						}))
-
 					})
 
 					It("saves a finish-get event", func() {
@@ -291,7 +284,6 @@ var _ = Describe("BuildDelegate", func() {
 							FetchedVersion:  versionInfo.Version,
 							FetchedMetadata: []atc.MetadataField{{"saved", "metadata"}},
 						}))
-
 					})
 
 					Context("when the resource only occurs as an input", func() {
@@ -398,6 +390,20 @@ var _ = Describe("BuildDelegate", func() {
 								}))
 
 								Expect(explicit).To(BeTrue())
+							})
+
+							Context("when the pipeline name is empty because of a one-off build", func() {
+								BeforeEach(func() {
+									putPlan.Pipeline = ""
+
+									outputDelegate = delegate.OutputDelegate(logger, putPlan, location)
+								})
+
+								It("does not save it as an output", func() {
+									delegate.Finish(logger, finishErr, succeeded, aborted)
+
+									Expect(fakeDB.SaveBuildOutputCallCount()).To(BeZero())
+								})
 							})
 						})
 					})

@@ -245,7 +245,7 @@ func (delegate *delegate) saveOutput(logger lager.Logger, status exec.ExitStatus
 		logger.Error("failed-to-save-output-event", err)
 	}
 
-	if info != nil {
+	if info != nil && plan.Pipeline != "" {
 		_, err = delegate.db.SaveBuildOutput(delegate.buildID, vrFromOutput(plan.Pipeline, ev), true)
 		if err != nil {
 			logger.Error("failed-to-save-output", err)
@@ -254,6 +254,10 @@ func (delegate *delegate) saveOutput(logger lager.Logger, status exec.ExitStatus
 }
 
 func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.GetPlan, info exec.VersionInfo) {
+	if plan.Pipeline == "" {
+		return
+	}
+
 	metadata := make([]db.MetadataField, len(info.Metadata))
 	for i, md := range info.Metadata {
 		metadata[i] = db.MetadataField{
