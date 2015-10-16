@@ -36,6 +36,57 @@ var _ = Describe("ATC Handler Builds", func() {
 		atcServer.Close()
 	})
 
+	Describe("CreateBuild", func() {
+		var (
+			plan          atc.Plan
+			expectedBuild atc.Build
+		)
+		BeforeEach(func() {
+			plan = atc.Plan{
+				OnSuccess: &atc.OnSuccessPlan{
+					Step: atc.Plan{
+						Aggregate: &atc.AggregatePlan{},
+					},
+					Next: atc.Plan{
+						Location: &atc.Location{
+							ID:       4,
+							ParentID: 0,
+						},
+						Task: &atc.TaskPlan{
+							Name:       "one-off",
+							Privileged: true,
+							Config:     &atc.TaskConfig{},
+						},
+					},
+				},
+			}
+
+			expectedBuild = atc.Build{
+				ID:      123,
+				Name:    "mybuild",
+				Status:  "succeeded",
+				JobName: "myjob",
+				URL:     "/pipelines/mypipeline/jobs/myjob/builds/mybuild",
+				ApiUrl:  "api/v1/builds/123",
+			}
+			expectedURL := "/api/v1/builds"
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.VerifyJSONRepresenting(plan),
+					ghttp.RespondWithJSONEncoded(http.StatusCreated, expectedBuild, http.Header{}),
+				),
+			)
+		})
+
+		It("takes a plan and creates the build", func() {
+			build, err := handler.CreateBuild(plan)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(build).To(Equal(expectedBuild))
+		})
+	})
+
 	Describe("JobBuild", func() {
 		var (
 			expectedBuild        atc.Build
@@ -191,6 +242,25 @@ var _ = Describe("ATC Handler Builds", func() {
 			build, err := handler.AllBuilds()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(build).To(Equal(expectedBuilds))
+		})
+	})
+
+	Describe("AbortBuild", func() {
+		BeforeEach(func() {
+			expectedURL := "/api/v1/builds/123/abort"
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.RespondWith(http.StatusNoContent, ""),
+				),
+			)
+		})
+
+		It("sends an abort request to ATC", func() {
+			err := handler.AbortBuild("123")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
 		})
 	})
 })

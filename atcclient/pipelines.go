@@ -9,7 +9,7 @@ import (
 
 func (handler AtcHandler) DeletePipeline(pipelineName string) error {
 	params := map[string]string{"pipeline_name": pipelineName}
-	err := handler.client.MakeRequest(nil, atc.DeletePipeline, params, nil)
+	err := handler.client.MakeRequest(nil, atc.DeletePipeline, params, nil, nil)
 
 	if ure, ok := err.(UnexpectedResponseError); ok {
 		if ure.StatusCode == http.StatusNotFound {

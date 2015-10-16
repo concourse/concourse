@@ -1,6 +1,7 @@
 package atcclient
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -16,7 +17,7 @@ import (
 
 //go:generate counterfeiter . Client
 type Client interface {
-	MakeRequest(result interface{}, requestName string, params map[string]string, queries map[string]string) error
+	MakeRequest(result interface{}, requestName string, params map[string]string, queries map[string]string, body interface{}) error
 }
 
 type UnexpectedResponseError struct {
@@ -51,25 +52,8 @@ func NewClient(target rc.TargetProps) (Client, error) {
 	return &client, nil
 }
 
-func (client *AtcClient) MakeRequest(result interface{}, requestName string, params map[string]string, queries map[string]string) error {
-	req, err := client.requestGenerator.CreateRequest(
-		requestName,
-		params,
-		nil,
-	)
-	if err != nil {
-		return err
-	}
-
-	values := url.Values{}
-	for k, v := range queries {
-		values[k] = []string{v}
-	}
-	req.URL.RawQuery = values.Encode()
-
-	if client.target.Username != "" {
-		req.SetBasicAuth(client.target.Username, client.target.Password)
-	}
+func (client *AtcClient) MakeRequest(result interface{}, requestName string, params map[string]string, queries map[string]string, body interface{}) error {
+	req, err := client.createRequest(requestName, params, queries, body)
 
 	response, err := client.httpClient.Do(req)
 	if err != nil {
@@ -94,4 +78,38 @@ func (client *AtcClient) MakeRequest(result interface{}, requestName string, par
 		return err
 	}
 	return nil
+}
+
+func (client *AtcClient) createRequest(requestName string, params map[string]string, queries map[string]string, body interface{}) (*http.Request, error) {
+	buffer := &bytes.Buffer{}
+	if body != nil {
+		err := json.NewEncoder(buffer).Encode(body)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	req, err := client.requestGenerator.CreateRequest(
+		requestName,
+		params,
+		buffer,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	values := url.Values{}
+	for k, v := range queries {
+		values[k] = []string{v}
+	}
+	req.URL.RawQuery = values.Encode()
+
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	if client.target.Username != "" {
+		req.SetBasicAuth(client.target.Username, client.target.Password)
+	}
+	return req, nil
 }

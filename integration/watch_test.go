@@ -116,9 +116,6 @@ var _ = Describe("Watching", func() {
 	Context("with a specific job and pipeline", func() {
 		Context("when the job has no builds", func() {
 			BeforeEach(func() {
-				didStream := make(chan struct{})
-				streaming = didStream
-
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/jobs/some-job"),
@@ -135,7 +132,6 @@ var _ = Describe("Watching", func() {
 
 				Eventually(sess.Err).Should(gbytes.Say("job has no builds"))
 				<-sess.Exited
-
 				Expect(sess.ExitCode()).To(Equal(1))
 			})
 		})

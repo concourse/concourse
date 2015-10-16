@@ -3,7 +3,6 @@ package commands
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -16,6 +15,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/atcclient"
 	"github.com/concourse/fly/config"
 	"github.com/concourse/fly/eventstream"
 	"github.com/concourse/fly/rc"
@@ -54,6 +54,12 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		return nil
 	}
 
+	client, err := atcclient.NewClient(*target)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	handler := atcclient.NewAtcHandler(client)
+
 	taskConfigFile := command.TaskConfig
 	excludeIgnored := command.ExcludeIgnored
 
@@ -62,7 +68,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 	taskConfig := config.LoadTaskConfig(string(taskConfigFile), args)
 
 	inputs, err := determineInputs(
-		atcRequester,
+		handler,
 		taskConfig.Inputs,
 		command.Inputs,
 		command.InputsFrom,
@@ -73,6 +79,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 
 	build, err := createBuild(
 		atcRequester,
+		handler,
 		command.Privileged,
 		inputs,
 		taskConfig,
@@ -85,7 +92,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 
 	terminate := make(chan os.Signal, 1)
 
-	go abortOnSignal(atcRequester, terminate, build)
+	go abortOnSignal(handler, terminate, build)
 
 	signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
 
@@ -131,34 +138,8 @@ type Input struct {
 	BuildInput atc.BuildInput
 }
 
-func createPipe(atcRequester *atcRequester) (atc.Pipe, error) {
-	cPipe, err := atcRequester.CreateRequest(atc.CreatePipe, nil, nil)
-	if err != nil {
-		return atc.Pipe{}, err
-	}
-
-	response, err := atcRequester.httpClient.Do(cPipe)
-	if err != nil {
-		return atc.Pipe{}, fmt.Errorf("failed to create pipe: %s", err)
-	}
-
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusCreated {
-		return atc.Pipe{}, badResponseError("creating pipe", response)
-	}
-
-	var pipe atc.Pipe
-	err = json.NewDecoder(response.Body).Decode(&pipe)
-	if err != nil {
-		return atc.Pipe{}, fmt.Errorf("malformed pipe response: %s", err)
-	}
-
-	return pipe, nil
-}
-
 func determineInputs(
-	atcRequester *atcRequester,
+	handler atcclient.Handler,
 	taskInputs []atc.TaskInputConfig,
 	inputMappings []InputPairFlag,
 	inputsFrom JobFlag,
@@ -175,12 +156,12 @@ func determineInputs(
 		})
 	}
 
-	inputsFromLocal, err := generateLocalInputs(atcRequester, inputMappings)
+	inputsFromLocal, err := generateLocalInputs(handler, inputMappings)
 	if err != nil {
 		return nil, err
 	}
 
-	inputsFromJob, err := fetchInputsFromJob(atcRequester, inputsFrom)
+	inputsFromJob, err := fetchInputsFromJob(handler, inputsFrom)
 	if err != nil {
 		return nil, err
 	}
@@ -201,17 +182,14 @@ func determineInputs(
 	return inputs, nil
 }
 
-func generateLocalInputs(
-	atcRequester *atcRequester,
-	inputMappings []InputPairFlag,
-) (map[string]Input, error) {
+func generateLocalInputs(handler atcclient.Handler, inputMappings []InputPairFlag) (map[string]Input, error) {
 	kvMap := map[string]Input{}
 
 	for _, i := range inputMappings {
 		inputName := i.Name
 		absPath := i.Path
 
-		pipe, err := createPipe(atcRequester)
+		pipe, err := handler.CreatePipe()
 		if err != nil {
 			return nil, err
 		}
@@ -226,42 +204,15 @@ func generateLocalInputs(
 	return kvMap, nil
 }
 
-func fetchInputsFromJob(
-	atcRequester *atcRequester,
-	inputsFrom JobFlag,
-) (map[string]Input, error) {
+func fetchInputsFromJob(handler atcclient.Handler, inputsFrom JobFlag) (map[string]Input, error) {
 	kvMap := map[string]Input{}
 	if inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
 		return kvMap, nil
 	}
 
-	listJobInputsRequest, err := atcRequester.CreateRequest(
-		atc.ListJobInputs,
-		rata.Params{
-			"pipeline_name": inputsFrom.PipelineName,
-			"job_name":      inputsFrom.JobName,
-		},
-		nil,
-	)
+	buildInputs, err := handler.BuildInputsForJob(inputsFrom.PipelineName, inputsFrom.JobName)
 	if err != nil {
 		return nil, err
-	}
-
-	response, err := atcRequester.httpClient.Do(listJobInputsRequest)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch job inputs: %s", err)
-	}
-
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		return nil, badResponseError("getting job inputs", response)
-	}
-
-	var buildInputs []atc.BuildInput
-	err = json.NewDecoder(response.Body).Decode(&buildInputs)
-	if err != nil {
-		return nil, fmt.Errorf("malformed job inputs response: %s", err)
 	}
 
 	for _, buildInput := range buildInputs {
@@ -276,6 +227,7 @@ func fetchInputsFromJob(
 
 func createBuild(
 	atcRequester *atcRequester,
+	handler atcclient.Handler,
 	privileged bool,
 	inputs []Input,
 	config atc.TaskConfig,
@@ -283,8 +235,6 @@ func createBuild(
 	if err := config.Validate(); err != nil {
 		return atc.Build{}, err
 	}
-
-	buffer := &bytes.Buffer{}
 
 	buildInputs := atc.AggregatePlan{}
 	for i, input := range inputs {
@@ -348,40 +298,11 @@ func createBuild(
 		},
 	}
 
-	err := json.NewEncoder(buffer).Encode(plan)
-	if err != nil {
-		return atc.Build{}, err
-	}
-
-	createBuild, err := atcRequester.CreateRequest(atc.CreateBuild, nil, buffer)
-	if err != nil {
-		return atc.Build{}, err
-	}
-
-	createBuild.Header.Set("Content-Type", "application/json")
-
-	response, err := atcRequester.httpClient.Do(createBuild)
-	if err != nil {
-		return atc.Build{}, fmt.Errorf("failed to create build: %s", err)
-	}
-
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusCreated {
-		return atc.Build{}, badResponseError("creating build", response)
-	}
-
-	var build atc.Build
-	err = json.NewDecoder(response.Body).Decode(&build)
-	if err != nil {
-		return atc.Build{}, fmt.Errorf("malformed build response: %s", err)
-	}
-
-	return build, nil
+	return handler.CreateBuild(plan)
 }
 
 func abortOnSignal(
-	atcRequester *atcRequester,
+	handler atcclient.Handler,
 	terminate <-chan os.Signal,
 	build atc.Build,
 ) {
@@ -389,22 +310,11 @@ func abortOnSignal(
 
 	fmt.Fprintf(os.Stderr, "\naborting...\n")
 
-	abortReq, err := atcRequester.CreateRequest(
-		atc.AbortBuild,
-		rata.Params{"build_id": strconv.Itoa(build.ID)},
-		nil,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	resp, err := atcRequester.httpClient.Do(abortReq)
+	err := handler.AbortBuild(strconv.Itoa(build.ID))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "failed to abort:", err)
 		return
 	}
-
-	resp.Body.Close()
 
 	// if told to terminate again, exit immediately
 	<-terminate

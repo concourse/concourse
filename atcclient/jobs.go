@@ -8,6 +8,6 @@ func (buildHandler AtcHandler) Job(pipelineName, jobName string) (atc.Job, error
 	}
 	params := map[string]string{"pipeline_name": pipelineName, "job_name": jobName}
 	var job atc.Job
-	err := buildHandler.client.MakeRequest(&job, atc.GetJob, params, nil)
+	err := buildHandler.client.MakeRequest(&job, atc.GetJob, params, nil, nil)
 	return job, err
 }
