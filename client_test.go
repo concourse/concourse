@@ -72,7 +72,7 @@ var _ = Describe("ATC Client", func() {
 				),
 			)
 			var build atc.Build
-			err := client.MakeRequest(&build, atc.GetBuild, map[string]string{"build_id": "foo"}, nil)
+			err := client.MakeRequest(&build, atc.GetBuild, map[string]string{"build_id": "foo"}, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(len(atcServer.ReceivedRequests())).To(Equal(1))
@@ -105,7 +105,7 @@ var _ = Describe("ATC Client", func() {
 				),
 			)
 			var containers []atc.Container
-			err := client.MakeRequest(&containers, atc.ListContainers, nil, map[string]string{"type": "check"})
+			err := client.MakeRequest(&containers, atc.ListContainers, nil, map[string]string{"type": "check"}, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(len(atcServer.ReceivedRequests())).To(Equal(1))
@@ -135,7 +135,7 @@ var _ = Describe("ATC Client", func() {
 
 			It("Sets the username and password if given", func() {
 				var build atc.Build
-				err := client.MakeRequest(&build, atc.GetBuild, map[string]string{"build_id": "foo"}, nil)
+				err := client.MakeRequest(&build, atc.GetBuild, map[string]string{"build_id": "foo"}, nil, nil)
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
@@ -160,7 +160,7 @@ var _ = Describe("ATC Client", func() {
 				})
 
 				It("Sets the username and password if given", func() {
-					err := client.MakeRequest(nil, atc.DeletePipeline, map[string]string{"pipeline_name": "foo"}, nil)
+					err := client.MakeRequest(nil, atc.DeletePipeline, map[string]string{"pipeline_name": "foo"}, nil, nil)
 					Expect(err).NotTo(HaveOccurred())
 				})
 			})
@@ -184,7 +184,7 @@ var _ = Describe("ATC Client", func() {
 				})
 
 				It("returns back UnexpectedResponseError", func() {
-					err := client.MakeRequest(nil, atc.DeletePipeline, map[string]string{"pipeline_name": "foo"}, nil)
+					err := client.MakeRequest(nil, atc.DeletePipeline, map[string]string{"pipeline_name": "foo"}, nil, nil)
 					Expect(err).To(HaveOccurred())
 					ure, ok := err.(UnexpectedResponseError)
 					Expect(ok).To(BeTrue())
@@ -194,5 +194,44 @@ var _ = Describe("ATC Client", func() {
 			})
 		})
 
+		Describe("Request Body", func() {
+			var plan atc.Plan
+
+			BeforeEach(func() {
+				plan = atc.Plan{
+					OnSuccess: &atc.OnSuccessPlan{
+						Step: atc.Plan{
+							Aggregate: &atc.AggregatePlan{},
+						},
+						Next: atc.Plan{
+							Location: &atc.Location{
+								ID:       4,
+								ParentID: 0,
+							},
+							Task: &atc.TaskPlan{
+								Name:       "one-off",
+								Privileged: true,
+								Config:     &atc.TaskConfig{},
+							},
+						},
+					},
+				}
+
+				expectedURL := "/api/v1/builds"
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("POST", expectedURL),
+						ghttp.VerifyJSONRepresenting(plan),
+						ghttp.RespondWith(http.StatusNoContent, ""),
+					),
+				)
+			})
+
+			It("serializes the given body and sends it in the request body", func() {
+				err := client.MakeRequest(nil, atc.CreateBuild, nil, nil, plan)
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
 	})
 })
