@@ -134,6 +134,8 @@ var _ = Describe("Watching", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Eventually(sess.Err).Should(gbytes.Say("job has no builds"))
+				<-sess.Exited
+
 				Expect(sess.ExitCode()).To(Equal(1))
 			})
 		})
