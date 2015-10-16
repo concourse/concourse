@@ -251,24 +251,69 @@ var _ = Describe("GardenFactory", func() {
 				})
 			})
 
-			Context("when fetching fails", func() {
-				disaster := errors.New("nope")
+			Context("when performing the put fails", func() {
+				Context("with an unknown error", func() {
+					disaster := errors.New("nope")
 
-				BeforeEach(func() {
-					fakeVersionedSource.RunReturns(disaster)
+					BeforeEach(func() {
+						fakeVersionedSource.RunReturns(disaster)
+					})
+
+					It("exits with the failure", func() {
+						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+					})
+
+					It("invokes the delegate's Failed callback without completing", func() {
+						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+
+						Expect(putDelegate.CompletedCallCount()).To(BeZero())
+
+						Expect(putDelegate.FailedCallCount()).To(Equal(1))
+						Expect(putDelegate.FailedArgsForCall(0)).To(Equal(disaster))
+					})
+
+					Describe("releasing", func() {
+						It("releases the resource with a ttl of 1 hour", func() {
+							<-process.Wait()
+
+							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
+
+							step.Release()
+							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(1 * time.Hour))
+						})
+					})
 				})
 
-				It("exits with the failure", func() {
-					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-				})
+				Context("by being interrupted", func() {
+					BeforeEach(func() {
+						fakeVersionedSource.RunReturns(resource.ErrAborted)
+					})
 
-				It("invokes the delegate's Failed callback without completing", func() {
-					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+					It("exits with ErrInterrupted", func() {
+						Expect(<-process.Wait()).To(Equal(ErrInterrupted))
+					})
 
-					Expect(putDelegate.CompletedCallCount()).To(BeZero())
+					It("invokes the delegate's Failed callback without completing", func() {
+						<-process.Wait()
 
-					Expect(putDelegate.FailedCallCount()).To(Equal(1))
-					Expect(putDelegate.FailedArgsForCall(0)).To(Equal(disaster))
+						Expect(putDelegate.CompletedCallCount()).To(BeZero())
+
+						Expect(putDelegate.FailedCallCount()).To(Equal(1))
+						Expect(putDelegate.FailedArgsForCall(0)).To(Equal(ErrInterrupted))
+					})
+
+					Describe("releasing", func() {
+						It("releases the resource with a ttl of 1 hour", func() {
+							<-process.Wait()
+
+							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
+
+							step.Release()
+							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(1 * time.Hour))
+						})
+					})
 				})
 
 				Context("with a resource script failure", func() {

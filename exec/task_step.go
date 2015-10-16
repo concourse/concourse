@@ -3,7 +3,6 @@ package exec
 import (
 	"archive/tar"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -20,8 +19,6 @@ import (
 
 const taskProcessPropertyName = "concourse:task-process"
 const taskExitStatusPropertyName = "concourse:exit-status"
-
-var ErrInterrupted = errors.New("interrupted")
 
 type MissingInputsError struct {
 	Inputs []string

@@ -32,7 +32,7 @@ type getStep struct {
 
 	versionedSource resource.VersionedSource
 
-	exitStatus int
+	succeeded bool
 }
 
 func newGetStep(
@@ -115,9 +115,12 @@ func (step *getStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		err = step.versionedSource.Run(signals, ready)
 
 		if err, ok := err.(resource.ErrResourceScriptFailed); ok {
-			step.exitStatus = err.ExitStatus
 			step.delegate.Completed(ExitStatus(err.ExitStatus), nil)
 			return nil
+		}
+
+		if err == resource.ErrAborted {
+			return ErrInterrupted
 		}
 
 		if err != nil {
@@ -133,7 +136,7 @@ func (step *getStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 
 	step.repository.RegisterSource(step.sourceName, step)
 
-	step.exitStatus = 0
+	step.succeeded = true
 	step.delegate.Completed(ExitStatus(0), &VersionInfo{
 		Version:  step.versionedSource.Version(),
 		Metadata: step.versionedSource.Metadata(),
@@ -147,7 +150,7 @@ func (step *getStep) Release() {
 		return
 	}
 
-	if step.exitStatus == 0 {
+	if step.succeeded {
 		step.resource.Release(0)
 	} else {
 		step.resource.Release(failedStepTTL)
@@ -157,7 +160,7 @@ func (step *getStep) Release() {
 func (step *getStep) Result(x interface{}) bool {
 	switch v := x.(type) {
 	case *Success:
-		*v = step.exitStatus == 0
+		*v = Success(step.succeeded)
 		return true
 	case *VersionInfo:
 		*v = VersionInfo{

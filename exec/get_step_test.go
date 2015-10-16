@@ -231,7 +231,7 @@ var _ = Describe("GardenFactory", func() {
 					})
 				})
 
-				Context("if the 'get' action fails", func() {
+				Context("when the 'get' action fails", func() {
 					BeforeEach(func() {
 						fakeVersionedSource.RunReturns(resource.ErrResourceScriptFailed{
 							ExitStatus: 1,
@@ -279,6 +279,40 @@ var _ = Describe("GardenFactory", func() {
 					})
 				})
 
+				Context("if the 'get' action is interrupted", func() {
+					BeforeEach(func() {
+						fakeVersionedSource.RunReturns(resource.ErrAborted)
+					})
+
+					It("exits with ErrInterrupted", func() {
+						Expect(<-process.Wait()).To(Equal(ErrInterrupted))
+					})
+
+					It("does not mark the cache as initialized", func() {
+						<-process.Wait()
+
+						Expect(fakeCache.InitializeCallCount()).To(Equal(0))
+					})
+
+					It("does not complete via the delegate", func() {
+						<-process.Wait()
+
+						Expect(getDelegate.CompletedCallCount()).To(Equal(0))
+					})
+
+					Describe("releasing", func() {
+						It("releases the resource with a ttl of 1 hour", func() {
+							<-process.Wait()
+
+							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
+
+							step.Release()
+							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(1 * time.Hour))
+						})
+					})
+				})
+
 				Context("when the 'get' action errors", func() {
 					disaster := errors.New("nope")
 
@@ -300,6 +334,18 @@ var _ = Describe("GardenFactory", func() {
 						<-process.Wait()
 
 						Expect(getDelegate.CompletedCallCount()).To(Equal(0))
+					})
+
+					Describe("releasing", func() {
+						It("releases the resource with a ttl of 1 hour", func() {
+							<-process.Wait()
+
+							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
+
+							step.Release()
+							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(1 * time.Hour))
+						})
 					})
 				})
 			})

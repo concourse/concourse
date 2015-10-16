@@ -24,7 +24,7 @@ type putStep struct {
 
 	versionedSource resource.VersionedSource
 
-	exitStatus int
+	succeeded bool
 }
 
 func newPutStep(
@@ -100,16 +100,19 @@ func (step *putStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	err = step.versionedSource.Run(signals, ready)
 
 	if err, ok := err.(resource.ErrResourceScriptFailed); ok {
-		step.exitStatus = err.ExitStatus
 		step.delegate.Completed(ExitStatus(err.ExitStatus), nil)
 		return nil
+	}
+
+	if err == resource.ErrAborted {
+		return ErrInterrupted
 	}
 
 	if err != nil {
 		return err
 	}
 
-	step.exitStatus = 0
+	step.succeeded = true
 	step.delegate.Completed(ExitStatus(0), &VersionInfo{
 		Version:  step.versionedSource.Version(),
 		Metadata: step.versionedSource.Metadata(),
@@ -123,7 +126,7 @@ func (step *putStep) Release() {
 		return
 	}
 
-	if step.exitStatus == 0 {
+	if step.succeeded {
 		step.resource.Release(successfulStepTTL)
 	} else {
 		step.resource.Release(failedStepTTL)
@@ -133,7 +136,7 @@ func (step *putStep) Release() {
 func (step *putStep) Result(x interface{}) bool {
 	switch v := x.(type) {
 	case *Success:
-		*v = step.exitStatus == 0
+		*v = Success(step.succeeded)
 		return true
 	case *VersionInfo:
 		*v = VersionInfo{

@@ -1,9 +1,14 @@
 package exec
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 const successfulStepTTL = 5 * time.Minute
 const failedStepTTL = 1 * time.Hour
+
+var ErrInterrupted = errors.New("interrupted")
 
 //go:generate counterfeiter . StepFactory
 
