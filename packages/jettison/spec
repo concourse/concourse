@@ -5,7 +5,6 @@ dependencies:
   - golang
 
 files:
-  - github.com/concourse/jettison/cmd/jettison/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
   - github.com/cloudfoundry-incubator/garden/*.go # gosub
   - github.com/cloudfoundry-incubator/garden/client/*.go # gosub
@@ -13,6 +12,7 @@ files:
   - github.com/cloudfoundry-incubator/garden/routes/*.go # gosub
   - github.com/cloudfoundry-incubator/garden/transport/*.go # gosub
   - github.com/concourse/jettison/*.go # gosub
+  - github.com/concourse/jettison/cmd/jettison/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
   - github.com/pivotal-golang/lager/*.go # gosub
   - github.com/tedsuo/rata/*.go # gosub
