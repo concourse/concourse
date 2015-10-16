@@ -115,11 +115,7 @@ func (delegate *delegate) Finish(logger lager.Logger, err error, succeeded exec.
 	} else {
 		delegate.saveStatus(logger, atc.StatusFailed)
 
-		if err != nil {
-			logger.Error("timed-out", err)
-		} else {
-			logger.Info("failed")
-		}
+		logger.Info("failed")
 	}
 }
 
@@ -318,7 +314,7 @@ func (input *inputDelegate) Failed(err error) {
 		Location: input.location,
 	})
 
-	input.logger.Error("errored", err)
+	input.logger.Info("errored", lager.Data{"error": err.Error()})
 }
 
 func (input *inputDelegate) Stdout() io.Writer {
@@ -367,7 +363,7 @@ func (output *outputDelegate) Failed(err error) {
 		Location: output.location,
 	})
 
-	output.logger.Error("errored", err)
+	input.logger.Info("errored", lager.Data{"error": err.Error()})
 }
 
 func (output *outputDelegate) Stdout() io.Writer {
@@ -431,7 +427,7 @@ func (execution *executionDelegate) Failed(err error) {
 		Name:     execution.plan.Name,
 		Location: execution.location,
 	})
-	execution.logger.Error("errored", err)
+	execution.logger.Info("errored", lager.Data{"error": err.Error()})
 }
 
 func (execution *executionDelegate) Stdout() io.Writer {
