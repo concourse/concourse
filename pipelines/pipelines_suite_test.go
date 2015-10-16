@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os/exec"
+	"regexp"
 	"strings"
 
 	"github.com/cloudfoundry-incubator/garden"
@@ -148,6 +149,7 @@ func flyWatch(jobName string, buildName ...string) *gexec.Session {
 		args = append(args, "-b", buildName[0])
 	}
 
+	keepPollingCheck := regexp.MustCompile("job has no builds|build not found|failed to get build")
 	for {
 		session := start(exec.Command(flyBin, args...))
 
@@ -155,7 +157,7 @@ func flyWatch(jobName string, buildName ...string) *gexec.Session {
 
 		if session.ExitCode() == 1 {
 			output := strings.TrimSpace(string(session.Err.Contents()))
-			if output == "job has no builds" || output == "build not found" {
+			if keepPollingCheck.MatchString(output) {
 				// build hasn't started yet; keep polling
 				time.Sleep(time.Second)
 				continue
