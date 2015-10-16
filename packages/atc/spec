@@ -7,6 +7,7 @@ dependencies:
 files:
   - github.com/concourse/atc/web/templates/**/*
   - github.com/concourse/atc/web/public/**/*
+  - github.com/concourse/atc/cmd/atc/*.go # gosub
   - github.com/BurntSushi/migration/*.go # gosub
   - github.com/Sirupsen/logrus/*.go # gosub
   - github.com/bigdatadev/goryman/*.go # gosub
@@ -37,7 +38,6 @@ files:
   - github.com/concourse/atc/auth/*.go # gosub
   - github.com/concourse/atc/auth/github/*.go # gosub
   - github.com/concourse/atc/builds/*.go # gosub
-  - github.com/concourse/atc/cmd/atc/*.go # gosub
   - github.com/concourse/atc/config/*.go # gosub
   - github.com/concourse/atc/db/*.go # gosub
   - github.com/concourse/atc/db/algorithm/*.go # gosub
