@@ -23,6 +23,7 @@ import (
 	dbfakes "github.com/concourse/atc/db/fakes"
 	enginefakes "github.com/concourse/atc/engine/fakes"
 	workerfakes "github.com/concourse/atc/worker/fakes"
+	"github.com/concourse/atc/wrappa"
 )
 
 var (
@@ -104,7 +105,7 @@ var _ = BeforeEach(func() {
 	handler, err := api.NewHandler(
 		logger,
 
-		authValidator,
+		wrappa.NewAPIAuthWrappa(authValidator),
 
 		pipelineDBFactory,
 

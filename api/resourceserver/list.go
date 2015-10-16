@@ -6,6 +6,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 )
 
@@ -26,7 +27,7 @@ func (s *Server) ListResources(pipelineDB db.PipelineDB) http.Handler {
 			return
 		}
 
-		showCheckErr := s.validator.IsAuthenticated(r)
+		showCheckErr := auth.IsAuthenticated(r)
 
 		for _, resource := range config.Resources {
 			dbResource, err := pipelineDB.GetResource(resource.Name)

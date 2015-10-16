@@ -2,26 +2,33 @@ package auth_test
 
 import (
 	"bytes"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/fakes"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("WrapHandler", func() {
+var _ = Describe("CheckAuthHandler", func() {
 	var (
 		fakeValidator *fakes.FakeValidator
 		fakeRejector  *fakes.FakeRejector
 
 		server *httptest.Server
 		client *http.Client
-
-		authenticated <-chan bool
 	)
+
+	simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		buffer := bytes.NewBufferString("simple ")
+
+		io.Copy(w, buffer)
+		io.Copy(w, r.Body)
+	})
 
 	BeforeEach(func() {
 		fakeValidator = new(fakes.FakeValidator)
@@ -31,14 +38,11 @@ var _ = Describe("WrapHandler", func() {
 			http.Error(w, "nope", http.StatusUnauthorized)
 		}
 
-		a := make(chan bool, 1)
-		authenticated = a
-		simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			a <- auth.IsAuthenticated(r)
-		})
-
 		server = httptest.NewServer(auth.WrapHandler(
-			simpleHandler,
+			auth.CheckAuthHandler(
+				simpleHandler,
+				fakeRejector,
+			),
 			fakeValidator,
 		))
 
@@ -70,8 +74,14 @@ var _ = Describe("WrapHandler", func() {
 				fakeValidator.IsAuthenticatedReturns(true)
 			})
 
-			It("handles the request with the request authenticated", func() {
-				Expect(<-authenticated).To(BeTrue())
+			It("returns 200", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("proxies to the handler", func() {
+				responseBody, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(responseBody)).To(Equal("simple hello"))
 			})
 		})
 
@@ -80,8 +90,11 @@ var _ = Describe("WrapHandler", func() {
 				fakeValidator.IsAuthenticatedReturns(false)
 			})
 
-			It("handles the request with the request authenticated", func() {
-				Expect(<-authenticated).To(BeFalse())
+			It("rejects the request", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				responseBody, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(responseBody)).To(Equal("nope\n"))
 			})
 		})
 	})

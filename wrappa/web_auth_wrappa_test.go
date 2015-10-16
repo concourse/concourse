@@ -13,24 +13,6 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-type stupidHandler struct{}
-
-func (stupidHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-}
-
-type descriptiveRoute struct {
-	route   string
-	handler http.Handler
-}
-
-func noopAuth(handler http.Handler) http.Handler {
-	return auth.WrapHandler(
-		handler,
-		auth.NoopValidator{},
-		auth.UnauthorizedRejector{},
-	)
-}
-
 var _ = Describe("WebAuthWrappa", func() {
 	var (
 		publiclyViewable bool
@@ -41,6 +23,25 @@ var _ = Describe("WebAuthWrappa", func() {
 		publiclyViewable = true
 		fakeValidator = new(fakes.FakeValidator)
 	})
+
+	unauthed := func(handler http.Handler) http.Handler {
+		return auth.WrapHandler(
+			handler,
+			fakeValidator,
+		)
+	}
+
+	authed := func(handler http.Handler) http.Handler {
+		return auth.WrapHandler(
+			auth.CheckAuthHandler(
+				handler,
+				auth.RedirectRejector{
+					Location: "/login",
+				},
+			),
+			fakeValidator,
+		)
+	}
 
 	Describe("Wrap", func() {
 		var (
@@ -70,40 +71,29 @@ var _ = Describe("WebAuthWrappa", func() {
 			BeforeEach(func() {
 				publiclyViewable = true
 
-				redirectRejector := auth.RedirectRejector{
-					Location: "/login",
-				}
-
-				// do not rename
 				expectedHandlers = rata.Handlers{
-					web.Index:    noopAuth(inputHandlers[web.Index]),
-					web.Pipeline: noopAuth(inputHandlers[web.Pipeline]),
-					web.TriggerBuild: auth.WrapHandler(
-						inputHandlers[web.TriggerBuild],
-						fakeValidator,
-						redirectRejector,
-					),
-					web.GetBuild:        noopAuth(inputHandlers[web.GetBuild]),
-					web.GetBuilds:       noopAuth(inputHandlers[web.GetBuilds]),
-					web.GetJoblessBuild: noopAuth(inputHandlers[web.GetJoblessBuild]),
-					web.Public:          noopAuth(inputHandlers[web.Public]),
-					web.GetResource:     noopAuth(inputHandlers[web.GetResource]),
-					web.GetJob:          noopAuth(inputHandlers[web.GetJob]),
-					web.LogIn:           noopAuth(inputHandlers[web.LogIn]),
+					web.Index:           unauthed(inputHandlers[web.Index]),
+					web.Pipeline:        unauthed(inputHandlers[web.Pipeline]),
+					web.TriggerBuild:    authed(inputHandlers[web.TriggerBuild]),
+					web.GetBuild:        unauthed(inputHandlers[web.GetBuild]),
+					web.GetBuilds:       unauthed(inputHandlers[web.GetBuilds]),
+					web.GetJoblessBuild: unauthed(inputHandlers[web.GetJoblessBuild]),
+					web.Public:          unauthed(inputHandlers[web.Public]),
+					web.GetResource:     unauthed(inputHandlers[web.GetResource]),
+					web.GetJob:          unauthed(inputHandlers[web.GetJob]),
+					web.LogIn:           unauthed(inputHandlers[web.LogIn]),
 					web.BasicAuth: auth.WrapHandler(
-						inputHandlers[web.BasicAuth],
+						auth.CheckAuthHandler(
+							inputHandlers[web.BasicAuth],
+							auth.BasicAuthRejector{},
+						),
 						fakeValidator,
-						auth.BasicAuthRejector{},
 					),
-					web.Debug: auth.WrapHandler(
-						inputHandlers[web.Debug],
-						fakeValidator,
-						redirectRejector,
-					),
+					web.Debug: authed(inputHandlers[web.Debug]),
 				}
 			})
 
-			It("validates sensitive routes, and noop validates public routes", func() {
+			It("requires validation for sensitive routes", func() {
 				for name, _ := range inputHandlers {
 					Expect(descriptiveRoute{
 						route:   name,
@@ -122,32 +112,25 @@ var _ = Describe("WebAuthWrappa", func() {
 			BeforeEach(func() {
 				publiclyViewable = false
 
-				redirectRejector := auth.RedirectRejector{
-					Location: "/login",
-				}
-
-				// do not rename
-				parappa := func(handler http.Handler) http.Handler {
-					return auth.WrapHandler(handler, fakeValidator, redirectRejector)
-				}
-
 				expectedHandlers = rata.Handlers{
-					web.Index:           parappa(inputHandlers[web.Index]),
-					web.Pipeline:        parappa(inputHandlers[web.Pipeline]),
-					web.TriggerBuild:    parappa(inputHandlers[web.TriggerBuild]),
-					web.GetBuild:        parappa(inputHandlers[web.GetBuild]),
-					web.GetBuilds:       parappa(inputHandlers[web.GetBuilds]),
-					web.GetJoblessBuild: parappa(inputHandlers[web.GetJoblessBuild]),
-					web.Public:          parappa(inputHandlers[web.Public]),
-					web.GetResource:     parappa(inputHandlers[web.GetResource]),
-					web.GetJob:          parappa(inputHandlers[web.GetJob]),
-					web.LogIn:           noopAuth(inputHandlers[web.LogIn]),
+					web.Index:           authed(inputHandlers[web.Index]),
+					web.Pipeline:        authed(inputHandlers[web.Pipeline]),
+					web.TriggerBuild:    authed(inputHandlers[web.TriggerBuild]),
+					web.GetBuild:        authed(inputHandlers[web.GetBuild]),
+					web.GetBuilds:       authed(inputHandlers[web.GetBuilds]),
+					web.GetJoblessBuild: authed(inputHandlers[web.GetJoblessBuild]),
+					web.Public:          authed(inputHandlers[web.Public]),
+					web.GetResource:     authed(inputHandlers[web.GetResource]),
+					web.GetJob:          authed(inputHandlers[web.GetJob]),
+					web.LogIn:           unauthed(inputHandlers[web.LogIn]),
 					web.BasicAuth: auth.WrapHandler(
-						inputHandlers[web.BasicAuth],
+						auth.CheckAuthHandler(
+							inputHandlers[web.BasicAuth],
+							auth.BasicAuthRejector{},
+						),
 						fakeValidator,
-						auth.BasicAuthRejector{},
 					),
-					web.Debug: parappa(inputHandlers[web.Debug]),
+					web.Debug: authed(inputHandlers[web.Debug]),
 				}
 			})
 

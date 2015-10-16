@@ -119,7 +119,6 @@ var _ = Describe("Resources API", func() {
 								"url": "/pipelines/a-pipeline/resources/resource-3"
 							}
 						]`))
-
 					})
 				})
 

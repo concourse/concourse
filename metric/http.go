@@ -7,15 +7,28 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-func WrapHandler(route string, handler http.Handler, logger lager.Logger) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		handler.ServeHTTP(w, r)
+type MetricsHandler struct {
+	Logger lager.Logger
 
-		HTTPReponseTime{
-			Route:    route,
-			Path:     r.URL.Path,
-			Duration: time.Since(start),
-		}.Emit(logger)
-	})
+	Route   string
+	Handler http.Handler
+}
+
+func WrapHandler(logger lager.Logger, route string, handler http.Handler) http.Handler {
+	return MetricsHandler{
+		Logger:  logger,
+		Route:   route,
+		Handler: handler,
+	}
+}
+
+func (handler MetricsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	handler.Handler.ServeHTTP(w, r)
+
+	HTTPReponseTime{
+		Route:    handler.Route,
+		Path:     r.URL.Path,
+		Duration: time.Since(start),
+	}.Emit(handler.Logger)
 }

@@ -37,16 +37,9 @@ func (wrappa *WebAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		newHandler := handler
 
 		if name != web.LogIn && !wrappa.PubliclyViewable {
-			newHandler = auth.WrapHandler(
+			newHandler = auth.CheckAuthHandler(
 				handler,
-				wrappa.Validator,
 				loginRedirectRejector,
-			)
-		} else {
-			newHandler = auth.WrapHandler(
-				handler,
-				auth.NoopValidator{},
-				auth.UnauthorizedRejector{},
 			)
 		}
 
@@ -54,9 +47,8 @@ func (wrappa *WebAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		case web.Index:
 		case web.Pipeline:
 		case web.TriggerBuild:
-			newHandler = auth.WrapHandler(
+			newHandler = auth.CheckAuthHandler(
 				handler,
-				wrappa.Validator,
 				loginRedirectRejector,
 			)
 		case web.GetBuild:
@@ -67,20 +59,23 @@ func (wrappa *WebAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		case web.GetJob:
 		case web.LogIn:
 		case web.BasicAuth:
-			newHandler = auth.WrapHandler(
+			newHandler = auth.CheckAuthHandler(
 				handler,
-				wrappa.Validator,
 				auth.BasicAuthRejector{},
 			)
 		case web.Debug:
-			newHandler = auth.WrapHandler(
+			newHandler = auth.CheckAuthHandler(
 				handler,
-				wrappa.Validator,
 				loginRedirectRejector,
 			)
 		default:
 			panic("you missed a spot")
 		}
+
+		newHandler = auth.WrapHandler(
+			newHandler,
+			wrappa.Validator,
+		)
 
 		wrapped[name] = newHandler
 	}

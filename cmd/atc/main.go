@@ -404,9 +404,14 @@ func main() {
 
 	drain := make(chan struct{})
 
+	apiWrapper := wrappa.MultiWrappa{
+		wrappa.NewAPIAuthWrappa(validator),
+		wrappa.NewAPIMetricsWrappa(logger),
+	}
+
 	apiHandler, err := api.NewHandler(
 		logger,
-		validator,
+		apiWrapper,
 		pipelineDBFactory,
 
 		configDB,
@@ -449,12 +454,9 @@ func main() {
 		db,
 	)
 
-	authWrapper := wrappa.NewWebAuthWrappa(*publiclyViewable, validator)
-	metricsWrapper := wrappa.NewWebMetricsWrappa(logger)
-
 	webWrapper := wrappa.MultiWrappa{
-		authWrapper,
-		metricsWrapper,
+		wrappa.NewWebAuthWrappa(*publiclyViewable, validator),
+		wrappa.NewWebMetricsWrappa(logger),
 	}
 
 	webHandler, err := webhandler.NewHandler(
