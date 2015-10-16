@@ -9,7 +9,7 @@ import (
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/pipelines"
-	"github.com/concourse/atc/web/routes"
+	"github.com/concourse/atc/web"
 )
 
 type server struct {
@@ -63,7 +63,7 @@ func (server *server) TriggerBuild(pipelineDB db.PipelineDB) http.Handler {
 			return
 		}
 
-		redirectPath, err := routes.Routes.CreatePathForRoute(routes.GetBuild, rata.Params{
+		redirectPath, err := web.Routes.CreatePathForRoute(web.GetBuild, rata.Params{
 			"pipeline_name": pipelineDB.GetPipelineName(),
 			"job":           job.Name,
 			"build":         build.Name,

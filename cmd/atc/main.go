@@ -46,7 +46,7 @@ import (
 	rdr "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/resource"
 	sched "github.com/concourse/atc/scheduler"
-	"github.com/concourse/atc/web"
+	"github.com/concourse/atc/web/webhandler"
 	"github.com/concourse/atc/worker"
 )
 
@@ -447,7 +447,7 @@ func main() {
 		db,
 	)
 
-	webHandler, err := web.NewHandler(
+	webHandler, err := webhandler.NewHandler(
 		logger,
 		*publiclyViewable,
 		oauthProviders,

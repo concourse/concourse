@@ -4,15 +4,15 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/web/routes"
+	"github.com/concourse/atc/web"
 	"github.com/tedsuo/rata"
 )
 
 func Job(dbJob db.SavedJob, job atc.JobConfig, groups atc.GroupConfigs, finishedBuild, nextBuild *db.Build) atc.Job {
-	generator := rata.NewRequestGenerator("", routes.Routes)
+	generator := rata.NewRequestGenerator("", web.Routes)
 
 	req, err := generator.CreateRequest(
-		routes.GetJob,
+		web.GetJob,
 		rata.Params{"job": job.Name, "pipeline_name": dbJob.PipelineName},
 		nil,
 	)

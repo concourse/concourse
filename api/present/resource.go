@@ -3,15 +3,15 @@ package present
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/web/routes"
+	"github.com/concourse/atc/web"
 	"github.com/tedsuo/rata"
 )
 
 func Resource(resource atc.ResourceConfig, groups atc.GroupConfigs, dbResource db.SavedResource, showCheckError bool) atc.Resource {
-	generator := rata.NewRequestGenerator("", routes.Routes)
+	generator := rata.NewRequestGenerator("", web.Routes)
 
 	req, err := generator.CreateRequest(
-		routes.GetResource,
+		web.GetResource,
 		rata.Params{"resource": resource.Name, "pipeline_name": dbResource.PipelineName},
 		nil,
 	)

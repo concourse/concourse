@@ -1,4 +1,4 @@
-package web
+package webhandler
 
 import (
 	"html/template"
@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/pipelines"
+	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/debug"
 	"github.com/concourse/atc/web/getbuild"
 	"github.com/concourse/atc/web/getbuilds"
@@ -22,7 +23,6 @@ import (
 	"github.com/concourse/atc/web/index"
 	"github.com/concourse/atc/web/login"
 	"github.com/concourse/atc/web/pipeline"
-	"github.com/concourse/atc/web/routes"
 	"github.com/concourse/atc/web/triggerbuild"
 )
 
@@ -117,7 +117,7 @@ func NewHandler(
 	buildServer := getbuild.NewServer(logger, buildTemplate)
 	triggerBuildServer := triggerbuild.NewServer(logger, radarSchedulerFactory)
 
-	loginPath, err := routes.Routes.CreatePathForRoute(routes.LogIn, rata.Params{})
+	loginPath, err := web.Routes.CreatePathForRoute(web.LogIn, rata.Params{})
 	if err != nil {
 		return nil, err
 	}
@@ -127,32 +127,32 @@ func NewHandler(
 	}
 
 	handlers := map[string]http.Handler{
-		routes.Index:    index.NewHandler(logger, pipelineDBFactory, pipelineServer.GetPipeline, indexTemplate),
-		routes.Pipeline: pipelineHandlerFactory.HandlerFor(pipelineServer.GetPipeline),
-		routes.Public:   http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
+		web.Index:    index.NewHandler(logger, pipelineDBFactory, pipelineServer.GetPipeline, indexTemplate),
+		web.Pipeline: pipelineHandlerFactory.HandlerFor(pipelineServer.GetPipeline),
+		web.Public:   http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
 
-		routes.GetJob: pipelineHandlerFactory.HandlerFor(jobServer.GetJob),
+		web.GetJob: pipelineHandlerFactory.HandlerFor(jobServer.GetJob),
 
-		routes.GetResource:     pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),
-		routes.GetBuild:        pipelineHandlerFactory.HandlerFor(buildServer.GetBuild),
-		routes.GetBuilds:       getbuilds.NewHandler(logger, db, configDB, buildsTemplate),
-		routes.GetJoblessBuild: getjoblessbuild.NewHandler(logger, db, configDB, joblessBuildTemplate),
+		web.GetResource:     pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),
+		web.GetBuild:        pipelineHandlerFactory.HandlerFor(buildServer.GetBuild),
+		web.GetBuilds:       getbuilds.NewHandler(logger, db, configDB, buildsTemplate),
+		web.GetJoblessBuild: getjoblessbuild.NewHandler(logger, db, configDB, joblessBuildTemplate),
 
-		routes.LogIn: login.NewHandler(logger, basicAuthEnabled, providers, logInTemplate),
+		web.LogIn: login.NewHandler(logger, basicAuthEnabled, providers, logInTemplate),
 
-		routes.BasicAuth: auth.WrapHandler(
+		web.BasicAuth: auth.WrapHandler(
 			login.NewBasicAuthHandler(logger),
 			validator,
 			auth.BasicAuthRejector{},
 		),
 
-		routes.TriggerBuild: auth.WrapHandler(
+		web.TriggerBuild: auth.WrapHandler(
 			pipelineHandlerFactory.HandlerFor(triggerBuildServer.TriggerBuild),
 			validator,
 			rejector,
 		),
 
-		routes.Debug: auth.WrapHandler(
+		web.Debug: auth.WrapHandler(
 			debug.NewServer(logger, db, debugTemplate),
 			validator,
 			rejector,
@@ -160,13 +160,13 @@ func NewHandler(
 	}
 
 	for route, handler := range handlers {
-		if route == routes.Public {
+		if route == web.Public {
 			continue
 		}
 
 		handlers[route] = metric.WrapHandler(route, handler, logger)
 
-		if route == routes.LogIn || route == routes.BasicAuth {
+		if route == web.LogIn || route == web.BasicAuth {
 			continue
 		}
 
@@ -181,7 +181,7 @@ func NewHandler(
 		)
 	}
 
-	return rata.NewRouter(routes.Routes, handlers)
+	return rata.NewRouter(web.Routes, handlers)
 }
 
 func loadTemplateWithPipeline(templatesDir, name string, funcs template.FuncMap) (*template.Template, error) {

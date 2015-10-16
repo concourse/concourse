@@ -1,4 +1,4 @@
-package index_test
+package web_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestIndex(t *testing.T) {
+func TestWeb(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Index Suite")
+	RunSpecs(t, "Web Suite")
 }

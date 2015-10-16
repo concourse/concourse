@@ -1,8 +1,8 @@
-package paths_test
+package web_test
 
 import (
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/web/paths"
+	"github.com/concourse/atc/web"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,7 +17,7 @@ var _ = Describe("Routes", func() {
 				PipelineName: "a-pipeline",
 			}
 
-			path := paths.PathForBuild(joblessBuild)
+			path := web.PathForBuild(joblessBuild)
 			Expect(path).To(Equal("/builds/1"))
 		})
 
@@ -29,7 +29,7 @@ var _ = Describe("Routes", func() {
 				PipelineName: "a-pipeline",
 			}
 
-			path := paths.PathForBuild(build)
+			path := web.PathForBuild(build)
 			Expect(path).To(Equal("/pipelines/a-pipeline/jobs/hello/builds/23"))
 		})
 	})

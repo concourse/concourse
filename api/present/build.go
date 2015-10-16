@@ -5,7 +5,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/web/routes"
+	"github.com/concourse/atc/web"
 	"github.com/tedsuo/rata"
 )
 
@@ -13,13 +13,13 @@ func Build(build db.Build) atc.Build {
 	var err error
 	var reqUrl string
 	if build.JobName == "" && build.PipelineName == "" {
-		reqUrl, err = routes.Routes.CreatePathForRoute(
-			routes.GetJoblessBuild,
+		reqUrl, err = web.Routes.CreatePathForRoute(
+			web.GetJoblessBuild,
 			rata.Params{"build_id": strconv.Itoa(build.ID)},
 		)
 	} else {
-		reqUrl, err = routes.Routes.CreatePathForRoute(
-			routes.GetBuild,
+		reqUrl, err = web.Routes.CreatePathForRoute(
+			web.GetBuild,
 			rata.Params{"job": build.JobName, "build": build.Name, "pipeline_name": build.PipelineName},
 		)
 	}
