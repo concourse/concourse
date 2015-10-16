@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -e
+
+check_installed() {
+  if ! command -v $1 > /dev/null 2>&1; then
+    printf "$1 must be installed before running this script!"
+    exit 1
+  fi
+}
+
+check_installed ginkgo
+
+pushd $(dirname $0)/..
+trap popd EXIT
+
+ginkgo -r -p
