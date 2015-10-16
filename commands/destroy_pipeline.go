@@ -17,7 +17,7 @@ var destroyPipelineCommand DestroyPipelineCommand
 func init() {
 	destroyPipeline, err := Parser.AddCommand(
 		"destroy-pipeline",
-		"destroy a pipeline",
+		"Destroy a pipeline",
 		"",
 		&destroyPipelineCommand,
 	)
