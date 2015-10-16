@@ -450,10 +450,16 @@ func main() {
 	)
 
 	authWrapper := wrappa.NewWebAuthWrappa(*publiclyViewable, validator)
+	metricsWrapper := wrappa.NewWebMetricsWrappa(logger)
+
+	webWrapper := wrappa.MultiWrappa{
+		authWrapper,
+		metricsWrapper,
+	}
 
 	webHandler, err := webhandler.NewHandler(
 		logger,
-		authWrapper,
+		webWrapper,
 		oauthProviders,
 		basicAuthEnabled,
 		radarSchedulerFactory,

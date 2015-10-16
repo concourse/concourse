@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
-	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/pipelines"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/debug"
@@ -39,14 +38,15 @@ type WebDB interface {
 
 func NewHandler(
 	logger lager.Logger,
-	authWrapper wrappa.Wrappa,
+	wrapper wrappa.Wrappa,
 	providers auth.Providers,
 	basicAuthEnabled bool,
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	db WebDB,
 	pipelineDBFactory db.PipelineDBFactory,
 	configDB db.ConfigDB,
-	templatesDir, publicDir string,
+	templatesDir,
+	publicDir string,
 	engine engine.Engine,
 ) (http.Handler, error) {
 	tfuncs := &templateFuncs{
@@ -132,17 +132,7 @@ func NewHandler(
 		web.Debug:           debug.NewServer(logger, db, debugTemplate),
 	}
 
-	for route, handler := range handlers {
-		if route == web.Public {
-			continue
-		}
-
-		handlers[route] = metric.WrapHandler(route, handler, logger)
-	}
-
-	handlers = authWrapper.Wrap(handlers)
-
-	return rata.NewRouter(web.Routes, handlers)
+	return rata.NewRouter(web.Routes, wrapper.Wrap(handlers))
 }
 
 func loadTemplateWithPipeline(templatesDir, name string, funcs template.FuncMap) (*template.Template, error) {
