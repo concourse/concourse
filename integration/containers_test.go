@@ -11,7 +11,7 @@ import (
 	"github.com/onsi/gomega/ghttp"
 )
 
-var _ = FDescribe("Fly CLI", func() {
+var _ = Describe("Fly CLI", func() {
 	var (
 		atcServer *ghttp.Server
 	)
@@ -36,13 +36,6 @@ var _ = FDescribe("Fly CLI", func() {
 			sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 		})
-
-		// ID           string `json:"id"`
-		// PipelineName string `json:"pipeline_name"`
-		// Type         string `json:"type"`
-		// Name         string `json:"name"`
-		// BuildID      int    `json:"build_id"`
-		// WorkerName   string `json:"worker_name"`
 
 		Context("when containers are returned from the API", func() {
 			BeforeEach(func() {
