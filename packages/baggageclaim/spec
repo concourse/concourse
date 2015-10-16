@@ -5,12 +5,12 @@ dependencies:
   - golang
 
 files:
-  - github.com/concourse/baggageclaim/cmd/baggageclaim/*.go # gosub
-  - github.com/concourse/baggageclaim/cmd/fs_mounter/*.go # gosub
   - github.com/Sirupsen/logrus/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
   - github.com/concourse/baggageclaim/*.go # gosub
   - github.com/concourse/baggageclaim/api/*.go # gosub
+  - github.com/concourse/baggageclaim/cmd/baggageclaim/*.go # gosub
+  - github.com/concourse/baggageclaim/cmd/fs_mounter/*.go # gosub
   - github.com/concourse/baggageclaim/fs/*.go # gosub
   - github.com/concourse/baggageclaim/reaper/*.go # gosub
   - github.com/concourse/baggageclaim/uidjunk/*.go # gosub
