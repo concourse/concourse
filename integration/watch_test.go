@@ -114,6 +114,30 @@ var _ = Describe("Watching", func() {
 	})
 
 	Context("with a specific job and pipeline", func() {
+		Context("when the job has no builds", func() {
+			BeforeEach(func() {
+				didStream := make(chan struct{})
+				streaming = didStream
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/jobs/some-job"),
+						ghttp.RespondWithJSONEncoded(200, atc.Job{}),
+					),
+					eventsHandler(),
+				)
+			})
+
+			It("returns an error and exits", func() {
+				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "watch", "--job", "some-pipeline/some-job")
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Err).Should(gbytes.Say("job has no builds"))
+				Expect(sess.ExitCode()).To(Equal(1))
+			})
+		})
+
 		Context("when the job has a next build", func() {
 			BeforeEach(func() {
 				didStream := make(chan struct{})
