@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	atcroutes "github.com/concourse/atc/web/routes"
+	"github.com/concourse/atc/web"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/template"
 	"github.com/tedsuo/rata"
@@ -66,7 +66,7 @@ func (command *SetConfigCommand) Execute(args []string) error {
 	}
 
 	apiRequester := newAtcRequester(target.URL(), target.Insecure)
-	webRequestGenerator := rata.NewRequestGenerator(target.URL(), atcroutes.Routes)
+	webRequestGenerator := rata.NewRequestGenerator(target.URL(), web.Routes)
 
 	atcConfig := ATCConfig{
 		pipelineName:        pipelineName,

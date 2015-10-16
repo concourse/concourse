@@ -13,7 +13,7 @@ import (
 	"os"
 
 	"github.com/concourse/atc"
-	atcroutes "github.com/concourse/atc/web/routes"
+	"github.com/concourse/atc/web"
 	"github.com/concourse/fly/template"
 	"github.com/onsi/gomega/gexec"
 	"github.com/tedsuo/rata"
@@ -157,7 +157,7 @@ func (atcConfig ATCConfig) showHelpfulMessage(resp *http.Response, paused Pipeli
 		fmt.Println("configuration updated")
 	case http.StatusCreated:
 		pipelineWebReq, _ := atcConfig.webRequestGenerator.CreateRequest(
-			atcroutes.Pipeline,
+			web.Pipeline,
 			rata.Params{"pipeline_name": atcConfig.pipelineName},
 			nil,
 		)
