@@ -363,7 +363,7 @@ func (output *outputDelegate) Failed(err error) {
 		Location: output.location,
 	})
 
-	input.logger.Info("errored", lager.Data{"error": err.Error()})
+	output.logger.Info("errored", lager.Data{"error": err.Error()})
 }
 
 func (output *outputDelegate) Stdout() io.Writer {
