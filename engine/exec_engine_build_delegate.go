@@ -318,7 +318,7 @@ func (input *inputDelegate) Failed(err error) {
 		Location: input.location,
 	})
 
-	input.logger.Info("failed", lager.Data{"failure-err": err})
+	input.logger.Error("errored", err)
 }
 
 func (input *inputDelegate) Stdout() io.Writer {

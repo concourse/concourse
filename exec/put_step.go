@@ -105,12 +105,6 @@ func (step *putStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		return nil
 	}
 
-	if err == resource.ErrAborted {
-		step.exitStatus = 1
-		step.delegate.Completed(ExitStatus(step.exitStatus), nil)
-		return nil
-	}
-
 	if err != nil {
 		return err
 	}

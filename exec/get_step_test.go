@@ -279,52 +279,6 @@ var _ = Describe("GardenFactory", func() {
 					})
 				})
 
-				Context("if the 'get' action is aborted", func() {
-					BeforeEach(func() {
-						fakeVersionedSource.RunReturns(resource.ErrAborted)
-					})
-
-					It("exits with no error", func() {
-						Expect(<-process.Wait()).To(BeNil())
-					})
-
-					It("does not mark the cache as initialized", func() {
-						<-process.Wait()
-						Expect(fakeCache.InitializeCallCount()).To(Equal(0))
-					})
-
-					It("completes via the delegate", func() {
-						<-process.Wait()
-
-						Expect(getDelegate.CompletedCallCount()).Should(Equal(1))
-
-						exitStatus, versionInfo := getDelegate.CompletedArgsForCall(0)
-
-						Expect(exitStatus).To(Equal(ExitStatus(1)))
-						Expect(versionInfo).To(BeNil())
-					})
-
-					It("is not successful", func() {
-						<-process.Wait()
-
-						var success Success
-						Expect(step.Result(&success)).To(BeTrue())
-						Expect(bool(success)).To(BeFalse())
-					})
-
-					Describe("releasing", func() {
-						It("releases the resource with a ttl of 1 hour", func() {
-							<-process.Wait()
-
-							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
-
-							step.Release()
-							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(1 * time.Hour))
-						})
-					})
-				})
-
 				Context("when the 'get' action errors", func() {
 					disaster := errors.New("nope")
 
