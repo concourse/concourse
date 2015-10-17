@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/rand"
 	"crypto/rsa"
 	"errors"
 	"fmt"
@@ -131,7 +132,7 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		sqlDB,
 	)
 
-	signingKey, err := cmd.loadSigningKey()
+	signingKey, err := cmd.loadOrGenerateSigningKey()
 	if err != nil {
 		return err
 	}
@@ -272,13 +273,6 @@ func (cmd *ATCCommand) validate() error {
 		)
 	}
 
-	if cmd.GitHubAuth.Organization != "" && cmd.SessionSigningKey == "" {
-		errs = multierror.Append(
-			errs,
-			errors.New("must specify --session-signing-key if OAuth is configured"),
-		)
-	}
-
 	return errs.ErrorOrNil()
 }
 
@@ -356,10 +350,17 @@ func (cmd *ATCCommand) constructWorkerPool(logger lager.Logger, sqlDB *db.SQLDB)
 	)
 }
 
-func (cmd *ATCCommand) loadSigningKey() (*rsa.PrivateKey, error) {
+func (cmd *ATCCommand) loadOrGenerateSigningKey() (*rsa.PrivateKey, error) {
 	var signingKey *rsa.PrivateKey
 
-	if cmd.SessionSigningKey != "" {
+	if cmd.SessionSigningKey == "" {
+		generatedKey, err := rsa.GenerateKey(rand.Reader, 2048)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate session signing key: %s", err)
+		}
+
+		signingKey = generatedKey
+	} else {
 		rsaKeyBlob, err := ioutil.ReadFile(string(cmd.SessionSigningKey))
 		if err != nil {
 			return nil, fmt.Errorf("failed to read session signing key file: %s", err)
@@ -401,6 +402,10 @@ func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey) (auth.Vali
 		return auth.NoopValidator{}, false
 	}
 
+	jwtValidator := auth.JWTValidator{
+		PublicKey: &signingKey.PublicKey,
+	}
+
 	var basicAuthValidator auth.Validator
 
 	if cmd.BasicAuth.Username != "" && cmd.BasicAuth.Password != "" {
@@ -410,24 +415,12 @@ func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey) (auth.Vali
 		}
 	}
 
-	var jwtValidator auth.Validator
-
-	if signingKey != nil {
-		jwtValidator = auth.JWTValidator{
-			PublicKey: &signingKey.PublicKey,
-		}
-	}
-
 	var validator auth.Validator
 
-	if basicAuthValidator != nil && jwtValidator != nil {
+	if basicAuthValidator != nil {
 		validator = auth.ValidatorBasket{basicAuthValidator, jwtValidator}
-	} else if basicAuthValidator != nil {
-		validator = basicAuthValidator
-	} else if jwtValidator != nil {
-		validator = jwtValidator
 	} else {
-		validator = auth.NoopValidator{}
+		validator = jwtValidator
 	}
 
 	return validator, basicAuthValidator != nil
