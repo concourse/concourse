@@ -76,7 +76,7 @@ var _ = Describe("Scheduler", func() {
 			},
 		}
 
-		factory.CreateReturns(createdPlan, nil)
+		factory.CreateReturns(createdPlan)
 
 		scheduler = &Scheduler{
 			PipelineDB: fakePipelineDB,

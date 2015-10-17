@@ -10,10 +10,7 @@ const defaultTaskName = "build"
 //go:generate counterfeiter . BuildFactory
 
 type BuildFactory interface {
-	Create(atc.JobConfig,
-		atc.ResourceConfigs,
-		[]db.BuildInput,
-	) (atc.Plan, error)
+	Create(atc.JobConfig, atc.ResourceConfigs, []db.BuildInput) atc.Plan
 }
 
 type buildFactory struct {
@@ -23,8 +20,7 @@ type buildFactory struct {
 
 func NewBuildFactory(pipelineName string, lp LocationPopulator) BuildFactory {
 	return &buildFactory{
-		PipelineName: pipelineName,
-		// LocationPopulator: NewLocationPopulator(),
+		PipelineName:      pipelineName,
 		LocationPopulator: lp,
 	}
 }
@@ -33,40 +29,17 @@ func (factory *buildFactory) Create(
 	job atc.JobConfig,
 	resources atc.ResourceConfigs,
 	inputs []db.BuildInput,
-) (atc.Plan, error) {
-
+) atc.Plan {
 	factory.LocationPopulator.PopulateLocations(&job.Plan)
 
-	plan := factory.constructPlanHookBasedPlan(
+	return factory.constructPlanFromSequence(
 		job.Plan,
 		resources,
-		inputs)
-	return plan, nil
+		inputs,
+	)
 }
 
-func (factory *buildFactory) doesAnyStepMatch(planSequence atc.PlanSequence, predicate func(step atc.PlanConfig) bool) bool {
-	for _, planStep := range planSequence {
-		if planStep.Aggregate != nil {
-			if factory.doesAnyStepMatch(*planStep.Aggregate, predicate) {
-				return true
-			}
-		}
-
-		if planStep.Do != nil {
-			if factory.doesAnyStepMatch(*planStep.Do, predicate) {
-				return true
-			}
-		}
-
-		if predicate(planStep) {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (factory *buildFactory) constructPlanHookBasedPlan(
+func (factory *buildFactory) constructPlanFromSequence(
 	planSequence atc.PlanSequence,
 	resources atc.ResourceConfigs,
 	inputs []db.BuildInput,
@@ -79,7 +52,6 @@ func (factory *buildFactory) constructPlanHookBasedPlan(
 		planSequence[0],
 		resources,
 		inputs,
-		true,
 	)
 
 	if len(planSequence) == 1 {
@@ -87,7 +59,7 @@ func (factory *buildFactory) constructPlanHookBasedPlan(
 	}
 
 	if plan.OnSuccess != nil && (plan.OnSuccess.Next == atc.Plan{}) {
-		plan.OnSuccess.Next = factory.constructPlanHookBasedPlan(
+		plan.OnSuccess.Next = factory.constructPlanFromSequence(
 			planSequence[1:],
 			resources,
 			inputs,
@@ -97,7 +69,7 @@ func (factory *buildFactory) constructPlanHookBasedPlan(
 		return atc.Plan{
 			OnSuccess: &atc.OnSuccessPlan{
 				Step: plan,
-				Next: factory.constructPlanHookBasedPlan(
+				Next: factory.constructPlanFromSequence(
 					planSequence[1:],
 					resources,
 					inputs,
@@ -107,54 +79,21 @@ func (factory *buildFactory) constructPlanHookBasedPlan(
 	}
 }
 
-func (factory *buildFactory) constructPlanSequenceBasedPlan(
-	planSequence atc.PlanSequence,
-	resources atc.ResourceConfigs,
-	inputs []db.BuildInput,
-) atc.Plan {
-	if len(planSequence) == 0 {
-		return atc.Plan{}
-	}
-
-	var plan atc.Plan
-	// Walk each plan in the plan sequence to determine the locations
-	for i := 0; i < len(planSequence); i++ {
-		// plan preceding the current one in the sequence
-		plan = factory.constructPlanFromConfig(
-			planSequence[i],
-			resources,
-			inputs,
-			false,
-		)
-
-	}
-
-	return plan
-}
-
 func (factory *buildFactory) constructPlanFromConfig(
 	planConfig atc.PlanConfig,
 	resources atc.ResourceConfigs,
 	inputs []db.BuildInput,
-	hasHooks bool,
 ) atc.Plan {
 	var plan atc.Plan
 
 	switch {
 	case planConfig.Do != nil:
-		if hasHooks {
-			plan = factory.constructPlanHookBasedPlan(
-				*planConfig.Do,
-				resources,
-				inputs,
-			)
-		} else {
-			plan = factory.constructPlanSequenceBasedPlan(
-				*planConfig.Do,
-				resources,
-				inputs,
-			)
-		}
+		plan = factory.constructPlanFromSequence(
+			*planConfig.Do,
+			resources,
+			inputs,
+		)
+
 		if plan.Location == nil {
 			plan.Location = planConfig.Location
 		}
@@ -270,7 +209,7 @@ func (factory *buildFactory) constructPlanFromConfig(
 			*planConfig.Try,
 			resources,
 			inputs,
-			hasHooks)
+		)
 
 		plan = atc.Plan{
 			Location: planConfig.Location,
@@ -287,7 +226,7 @@ func (factory *buildFactory) constructPlanFromConfig(
 				planConfig,
 				resources,
 				inputs,
-				hasHooks)
+			)
 
 			aggregate = append(aggregate, nextStep)
 		}
@@ -313,7 +252,6 @@ func (factory *buildFactory) constructPlanFromConfig(
 			planConfig: planConfig,
 			resources:  resources,
 			inputs:     inputs,
-			hasHooks:   hasHooks,
 		})),
 	)
 
@@ -325,7 +263,6 @@ type constructionParams struct {
 	planConfig atc.PlanConfig
 	resources  atc.ResourceConfigs
 	inputs     []db.BuildInput
-	hasHooks   bool
 }
 
 func (factory *buildFactory) successIfPresent(constructionParams constructionParams) constructionParams {
@@ -335,7 +272,7 @@ func (factory *buildFactory) successIfPresent(constructionParams constructionPar
 			*constructionParams.planConfig.Success,
 			constructionParams.resources,
 			constructionParams.inputs,
-			constructionParams.hasHooks)
+		)
 
 		constructionParams.plan = atc.Plan{
 			OnSuccess: &atc.OnSuccessPlan{
@@ -353,7 +290,7 @@ func (factory *buildFactory) failureIfPresent(constructionParams constructionPar
 			*constructionParams.planConfig.Failure,
 			constructionParams.resources,
 			constructionParams.inputs,
-			constructionParams.hasHooks)
+		)
 
 		constructionParams.plan = atc.Plan{
 			OnFailure: &atc.OnFailurePlan{
@@ -372,7 +309,7 @@ func (factory *buildFactory) ensureIfPresent(constructionParams constructionPara
 			*constructionParams.planConfig.Ensure,
 			constructionParams.resources,
 			constructionParams.inputs,
-			constructionParams.hasHooks)
+		)
 
 		constructionParams.plan = atc.Plan{
 			Ensure: &atc.EnsurePlan{

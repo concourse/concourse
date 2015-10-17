@@ -51,8 +51,7 @@ var _ = Describe("Factory Put", func() {
 			})
 
 			It("returns the correct plan", func() {
-				actual, err := buildFactory.Create(input, resources, nil)
-				Expect(err).NotTo(HaveOccurred())
+				actual := buildFactory.Create(input, resources, nil)
 
 				expected := atc.Plan{
 					OnSuccess: &atc.OnSuccessPlan{
@@ -134,8 +133,7 @@ var _ = Describe("Factory Put", func() {
 			})
 
 			It("returns the correct plan", func() {
-				actual, err := buildFactory.Create(input, resources, nil)
-				Expect(err).NotTo(HaveOccurred())
+				actual := buildFactory.Create(input, resources, nil)
 
 				expected := atc.Plan{
 					OnSuccess: &atc.OnSuccessPlan{
@@ -184,8 +182,7 @@ var _ = Describe("Factory Put", func() {
 			})
 
 			It("returns the correct plan", func() {
-				actual, err := buildFactory.Create(input, resources, nil)
-				Expect(err).NotTo(HaveOccurred())
+				actual := buildFactory.Create(input, resources, nil)
 
 				expected := atc.Plan{
 					OnSuccess: &atc.OnSuccessPlan{
@@ -241,8 +238,7 @@ var _ = Describe("Factory Put", func() {
 			})
 
 			It("returns the correct plan", func() {
-				actual, err := buildFactory.Create(input, resources, nil)
-				Expect(err).NotTo(HaveOccurred())
+				actual := buildFactory.Create(input, resources, nil)
 
 				expected := atc.Plan{
 					Aggregate: &atc.AggregatePlan{
@@ -294,8 +290,7 @@ var _ = Describe("Factory Put", func() {
 			})
 
 			It("returns the correct plan", func() {
-				actual, err := buildFactory.Create(input, resources, nil)
-				Expect(err).NotTo(HaveOccurred())
+				actual := buildFactory.Create(input, resources, nil)
 
 				expected := atc.Plan{
 					OnSuccess: &atc.OnSuccessPlan{
@@ -392,10 +387,9 @@ var _ = Describe("Factory Put", func() {
 					},
 				}
 
-				builtPlan, err := buildFactory.Create(input, resources, nil)
-				Expect(err).NotTo(HaveOccurred())
+				actual := buildFactory.Create(input, resources, nil)
 
-				Expect(builtPlan).To(Equal(expectedPlan))
+				Expect(actual).To(Equal(expectedPlan))
 			})
 		})
 	})

@@ -40,7 +40,7 @@ type BuildsDB interface {
 //go:generate counterfeiter . BuildFactory
 
 type BuildFactory interface {
-	Create(atc.JobConfig, atc.ResourceConfigs, []db.BuildInput) (atc.Plan, error)
+	Create(atc.JobConfig, atc.ResourceConfigs, []db.BuildInput) atc.Plan
 }
 
 type Waiter interface {
@@ -264,12 +264,7 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions 
 		return nil
 	}
 
-	plan, err := s.Factory.Create(job, resources, inputs)
-	if err != nil {
-		logger.Error("failed-to-create-build-plan", err)
-		s.BuildsDB.ErrorBuild(build.ID, err)
-		return nil
-	}
+	plan := s.Factory.Create(job, resources, inputs)
 
 	createdBuild, err := s.Engine.CreateBuild(logger, build, plan)
 	if err != nil {

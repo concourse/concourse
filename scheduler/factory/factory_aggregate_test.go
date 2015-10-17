@@ -34,7 +34,7 @@ var _ = Describe("Factory Aggregate", func() {
 
 	Context("when I have one aggregate", func() {
 		It("returns the correct plan", func() {
-			actual, err := buildFactory.Create(atc.JobConfig{
+			actual := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Aggregate: &atc.PlanSequence{
@@ -48,7 +48,6 @@ var _ = Describe("Factory Aggregate", func() {
 					},
 				},
 			}, resources, nil)
-			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				Aggregate: &atc.AggregatePlan{
@@ -72,7 +71,7 @@ var _ = Describe("Factory Aggregate", func() {
 
 	Context("when I have nested aggregates", func() {
 		It("returns the correct plan", func() {
-			actual, err := buildFactory.Create(atc.JobConfig{
+			actual := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Aggregate: &atc.PlanSequence{
@@ -93,7 +92,6 @@ var _ = Describe("Factory Aggregate", func() {
 					},
 				},
 			}, resources, nil)
-			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				Aggregate: &atc.AggregatePlan{
@@ -127,7 +125,7 @@ var _ = Describe("Factory Aggregate", func() {
 
 	Context("when I have an aggregate with hooks", func() {
 		It("returns the correct plan", func() {
-			actual, err := buildFactory.Create(atc.JobConfig{
+			actual := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Aggregate: &atc.PlanSequence{
@@ -141,7 +139,6 @@ var _ = Describe("Factory Aggregate", func() {
 					},
 				},
 			}, resources, nil)
-			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				Aggregate: &atc.AggregatePlan{
@@ -169,7 +166,7 @@ var _ = Describe("Factory Aggregate", func() {
 
 	Context("when I have a hook on an aggregate", func() {
 		It("returns the correct plan", func() {
-			actual, err := buildFactory.Create(atc.JobConfig{
+			actual := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Aggregate: &atc.PlanSequence{
@@ -183,7 +180,6 @@ var _ = Describe("Factory Aggregate", func() {
 					},
 				},
 			}, resources, nil)
-			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{
 				OnSuccess: &atc.OnSuccessPlan{
