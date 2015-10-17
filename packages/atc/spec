@@ -92,6 +92,7 @@ files:
   - github.com/google/go-querystring/query/*.go # gosub
   - github.com/gorilla/context/*.go # gosub
   - github.com/gorilla/mux/*.go # gosub
+  - github.com/hashicorp/errwrap/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
   - github.com/jessevdk/go-flags/*.go # gosub
   - github.com/lib/pq/*.go # gosub

@@ -21,12 +21,12 @@ files:
   - github.com/concourse/fly/rc/*.go # gosub
   - github.com/concourse/fly/template/*.go # gosub
   - github.com/fatih/color/*.go # gosub
+  - github.com/hashicorp/errwrap/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
   - github.com/inconshreveable/go-update/*.go # gosub
-  - github.com/inconshreveable/go-update/download/*.go # gosub
+  - github.com/inconshreveable/go-update/internal/binarydist/*.go # gosub
+  - github.com/inconshreveable/go-update/internal/osext/*.go # gosub
   - github.com/jessevdk/go-flags/*.go # gosub
-  - github.com/kardianos/osext/*.go # gosub
-  - github.com/kr/binarydist/*.go # gosub
   - github.com/kr/pty/*.go # gosub
   - github.com/lib/pq/*.go # gosub
   - github.com/lib/pq/oid/*.go # gosub
@@ -38,6 +38,7 @@ files:
   - github.com/onsi/gomega/gexec/*.go # gosub
   - github.com/onsi/gomega/internal/assertion/*.go # gosub
   - github.com/onsi/gomega/internal/asyncassertion/*.go # gosub
+  - github.com/onsi/gomega/internal/oraclematcher/*.go # gosub
   - github.com/onsi/gomega/internal/testingtsupport/*.go # gosub
   - github.com/onsi/gomega/matchers/*.go # gosub
   - github.com/onsi/gomega/matchers/support/goraph/bipartitegraph/*.go # gosub

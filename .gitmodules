@@ -46,10 +46,6 @@
 	path = src/github.com/concourse/blackbox
 	url = https://github.com/concourse/blackbox
 	branch = master
-[submodule "src/github.com/howeyc/fsnotify"]
-	path = src/github.com/howeyc/fsnotify
-	url = https://github.com/howeyc/fsnotify
-	branch = master
 [submodule "src/gopkg.in/tomb.v1"]
 	path = src/gopkg.in/tomb.v1
 	url = https://gopkg.in/tomb.v1
@@ -65,14 +61,6 @@
 [submodule "src/github.com/hashicorp/go-multierror"]
 	path = src/github.com/hashicorp/go-multierror
 	url = https://github.com/hashicorp/go-multierror
-	branch = master
-[submodule "src/github.com/kr/binarydist"]
-	path = src/github.com/kr/binarydist
-	url = https://github.com/kr/binarydist
-	branch = master
-[submodule "src/github.com/kardianos/osext"]
-	path = src/github.com/kardianos/osext
-	url = https://github.com/kardianos/osext
 	branch = master
 [submodule "src/github.com/aryann/difflib"]
 	path = src/github.com/aryann/difflib
@@ -172,6 +160,7 @@
 [submodule "src/github.com/concourse/fly"]
 	path = src/github.com/concourse/fly
 	url = https://github.com/concourse/fly
+	branch = master
 [submodule "src/github.com/tedsuo/rata"]
 	path = src/github.com/tedsuo/rata
 	url = https://github.com/tedsuo/rata
@@ -224,3 +213,15 @@
 [submodule "src/github.com/ziutek/syslog"]
 	path = src/github.com/ziutek/syslog
 	url = https://github.com/ziutek/syslog
+[submodule "src/github.com/hashicorp/errwrap"]
+	path = src/github.com/hashicorp/errwrap
+	url = https://github.com/hashicorp/errwrap
+	branch = master
+[submodule "src/github.com/hpcloud/tail"]
+	path = src/github.com/hpcloud/tail
+	url = https://github.com/hpcloud/tail
+	branch = master
+[submodule "src/gopkg.in/fsnotify.v0"]
+	path = src/gopkg.in/fsnotify.v0
+	url = https://gopkg.in/fsnotify.v0
+	branch = master
