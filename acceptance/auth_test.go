@@ -40,13 +40,13 @@ var _ = Describe("Auth", func() {
 
 		atcCommand := exec.Command(
 			atcBin,
-			"-webListenPort", fmt.Sprintf("%d", atcPort),
-			"-debugListenPort", fmt.Sprintf("%d", debugPort),
-			"-httpUsername", "admin",
-			"-httpPassword", "password",
-			"-templates", filepath.Join("..", "web", "templates"),
-			"-public", filepath.Join("..", "web", "public"),
-			"-sqlDataSource", postgresRunner.DataSourceName(),
+			"--bind-port", fmt.Sprintf("%d", atcPort),
+			"--debug-bind-port", fmt.Sprintf("%d", debugPort),
+			"--basic-auth-username", "admin",
+			"--basic-auth-password", "password",
+			"--templates", filepath.Join("..", "web", "templates"),
+			"--public", filepath.Join("..", "web", "public"),
+			"--postgres-data-source", postgresRunner.DataSourceName(),
 		)
 		atcRunner := ginkgomon.New(ginkgomon.Config{
 			Command:       atcCommand,

@@ -91,15 +91,15 @@ func startATC(atcBin string, atcServerNumber uint16) (ifrit.Process, uint16) {
 
 	atcCommand := exec.Command(
 		atcBin,
-		"-webListenPort", fmt.Sprintf("%d", atcPort),
-		"-callbacksURL", fmt.Sprintf("http://127.0.0.1:%d", atcPort),
-		"-debugListenPort", fmt.Sprintf("%d", debugPort),
-		"-httpUsername", "admin",
-		"-httpPassword", "password",
-		"-publiclyViewable=true",
-		"-templates", filepath.Join("..", "web", "templates"),
-		"-public", filepath.Join("..", "web", "public"),
-		"-sqlDataSource", postgresRunner.DataSourceName(),
+		"--bind-port", fmt.Sprintf("%d", atcPort),
+		"--peer-url", fmt.Sprintf("http://127.0.0.1:%d", atcPort),
+		"--postgres-data-source", postgresRunner.DataSourceName(),
+		"--debug-bind-port", fmt.Sprintf("%d", debugPort),
+		"--basic-auth-username", "admin",
+		"--basic-auth-password", "password",
+		"--publicly-viewable",
+		"--templates", filepath.Join("..", "web", "templates"),
+		"--public", filepath.Join("..", "web", "public"),
 	)
 	atcRunner := ginkgomon.New(ginkgomon.Config{
 		Command:       atcCommand,
