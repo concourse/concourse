@@ -151,8 +151,6 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 	sqlDB := db.NewSQL(logger.Session("db"), explainDBConn, bus)
 	pipelineDBFactory := db.NewPipelineDBFactory(logger.Session("db"), explainDBConn, bus, sqlDB)
 
-	configDB := db.PlanConvertingConfigDB{NestedDB: sqlDB}
-
 	workerClient := worker.NewPool(
 		worker.NewDBWorkerProvider(
 			logger,
@@ -225,8 +223,7 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		apiWrapper,
 		pipelineDBFactory,
 
-		configDB,
-
+		sqlDB, // db.ConfigDB
 		sqlDB, // buildserver.BuildsDB
 		sqlDB, // workerserver.WorkerDB
 		sqlDB, // containerServer.ContainerDB
@@ -278,7 +275,7 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		radarSchedulerFactory,
 		sqlDB,
 		pipelineDBFactory,
-		configDB,
+		sqlDB,
 		cmd.TemplatesDir.Path(),
 		cmd.PublicDir.Path(),
 		engine,
