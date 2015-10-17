@@ -131,25 +131,29 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func requestToConfig(contentType string, requestBody io.ReadCloser) (interface{}, db.PipelinePausedState, error) {
-	var err error
-	var configStructure interface{}
+func requestToConfig(contentType string, requestBody io.ReadCloser, configStructure interface{}) (db.PipelinePausedState, error) {
 	pausedState := db.PipelineNoChange
 
 	mediaType, params, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		return atc.Config{}, db.PipelineNoChange, ErrCannotParseContentType
+		return db.PipelineNoChange, ErrCannotParseContentType
 	}
 
 	switch mediaType {
 	case "application/json":
-		err = json.NewDecoder(requestBody).Decode(&configStructure)
+		err := json.NewDecoder(requestBody).Decode(configStructure)
+		if err != nil {
+			return db.PipelineNoChange, ErrMalformedRequestPayload
+		}
 
 	case "application/x-yaml":
-		var body []byte
-		body, err = ioutil.ReadAll(requestBody)
+		body, err := ioutil.ReadAll(requestBody)
 		if err == nil {
-			err = yaml.Unmarshal(body, &configStructure)
+			err = yaml.Unmarshal(body, configStructure)
+		}
+
+		if err != nil {
+			return db.PipelineNoChange, ErrMalformedRequestPayload
 		}
 
 	case "multipart/form-data":
@@ -163,13 +167,13 @@ func requestToConfig(contentType string, requestBody io.ReadCloser) (interface{}
 			}
 
 			if err != nil {
-				return atc.Config{}, db.PipelineNoChange, err
+				return db.PipelineNoChange, err
 			}
 
 			if part.FormName() == "paused" {
 				pausedValue, err := ioutil.ReadAll(part)
 				if err != nil {
-					return atc.Config{}, db.PipelineNoChange, err
+					return db.PipelineNoChange, err
 				}
 
 				if string(pausedValue) == "true" {
@@ -177,26 +181,26 @@ func requestToConfig(contentType string, requestBody io.ReadCloser) (interface{}
 				} else if string(pausedValue) == "false" {
 					pausedState = db.PipelineUnpaused
 				} else {
-					return atc.Config{}, db.PipelineNoChange, ErrInvalidPausedValue
+					return db.PipelineNoChange, ErrInvalidPausedValue
 				}
 			} else {
 				partContentType := part.Header.Get("Content-type")
-				configStructure, _, err = requestToConfig(partContentType, part)
+				_, err := requestToConfig(partContentType, part, configStructure)
+				if err != nil {
+					return db.PipelineNoChange, ErrMalformedRequestPayload
+				}
 			}
 		}
 	default:
-		return atc.Config{}, db.PipelineNoChange, ErrStatusUnsupportedMediaType
+		return db.PipelineNoChange, ErrStatusUnsupportedMediaType
 	}
 
-	if err != nil {
-		return atc.Config{}, db.PipelineNoChange, ErrMalformedRequestPayload
-	}
-
-	return configStructure, pausedState, nil
+	return pausedState, nil
 }
 
 func saveConfigRequestUnmarshler(r *http.Request) (atc.Config, db.PipelinePausedState, error) {
-	configStructure, pausedState, err := requestToConfig(r.Header.Get("Content-Type"), r.Body)
+	var configStructure interface{}
+	pausedState, err := requestToConfig(r.Header.Get("Content-Type"), r.Body, &configStructure)
 	if err != nil {
 		return atc.Config{}, db.PipelineNoChange, err
 	}
