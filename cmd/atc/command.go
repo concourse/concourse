@@ -109,151 +109,20 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		return err
 	}
 
-	logger := lager.NewLogger("atc")
+	logger, reconfigurableSink := cmd.constructLogger()
 
-	logLevel := lager.INFO
-	if cmd.Developer.DevelopmentMode {
-		logLevel = lager.DEBUG
-	}
+	cmd.configureMetrics(logger)
 
-	sink := lager.NewReconfigurableSink(lager.NewWriterSink(os.Stdout, lager.DEBUG), logLevel)
-	logger.RegisterSink(sink)
-
-	if cmd.Metrics.YellerAPIKey != "" {
-		yellerSink := zest.NewYellerSink(cmd.Metrics.YellerAPIKey, cmd.Metrics.YellerEnvironment)
-		logger.RegisterSink(yellerSink)
-	}
-
-	if cmd.Metrics.RiemannHost != "" {
-		host := cmd.Metrics.HostName
-		if host == "" {
-			host, _ = os.Hostname()
-		}
-
-		metric.Initialize(
-			logger.Session("metrics"),
-			fmt.Sprintf("%s:%d", cmd.Metrics.RiemannHost, cmd.Metrics.RiemannPort),
-			host,
-			cmd.Metrics.Tags,
-			cmd.Metrics.Attributes,
-		)
-	}
-
-	dbConn, err := migrations.LockDBAndMigrate(logger.Session("db.migrations"), "postgres", cmd.PostgresDataSource)
+	sqlDB, pipelineDBFactory, err := cmd.constructDB(logger)
 	if err != nil {
-		return fmt.Errorf("failed to migrate database: %s", err)
+		return err
 	}
 
-	listener := pq.NewListener(cmd.PostgresDataSource, time.Second, time.Minute, nil)
-	bus := db.NewNotificationsBus(listener, dbConn)
-
-	explainDBConn := db.Explain(logger, dbConn, clock.NewClock(), 500*time.Millisecond)
-	sqlDB := db.NewSQL(logger.Session("db"), explainDBConn, bus)
-	pipelineDBFactory := db.NewPipelineDBFactory(logger.Session("db"), explainDBConn, bus, sqlDB)
-
-	workerClient := worker.NewPool(
-		worker.NewDBWorkerProvider(
-			logger,
-			sqlDB,
-			keepaliveDialer,
-			worker.ExponentialRetryPolicy{
-				Timeout: 5 * time.Minute,
-			},
-		),
-	)
+	workerClient := cmd.constructWorkerPool(logger, sqlDB)
 
 	tracker := resource.NewTracker(workerClient)
 
-	gardenFactory := exec.NewGardenFactory(workerClient, tracker, func() string {
-		guid, err := uuid.NewV4()
-		if err != nil {
-			panic("not enough entropy to generate guid: " + err.Error())
-		}
-
-		return guid.String()
-	})
-
-	execEngine := engine.NewExecEngine(gardenFactory, engine.NewBuildDelegateFactory(sqlDB), sqlDB)
-
-	engine := engine.NewDBEngine(engine.Engines{execEngine}, sqlDB)
-
-	var signingKey *rsa.PrivateKey
-
-	if cmd.SessionSigningKey != "" {
-		rsaKeyBlob, err := ioutil.ReadFile(string(cmd.SessionSigningKey))
-		if err != nil {
-			return fmt.Errorf("failed to read session signing key file: %s", err)
-		}
-
-		signingKey, err = jwt.ParseRSAPrivateKeyFromPEM(rsaKeyBlob)
-		if err != nil {
-			return fmt.Errorf("failed to parse session signing key as RSA: %s", err)
-		}
-	}
-
-	validator, basicAuthEnabled := cmd.constructValidator(signingKey)
-
-	oauthProviders := auth.Providers{}
-
-	if cmd.GitHubAuth.Organization != "" {
-		path, err := auth.OAuthRoutes.CreatePathForRoute(auth.OAuthCallback, rata.Params{
-			"provider": github.ProviderName,
-		})
-		if err != nil {
-			return err
-		}
-
-		oauthProviders[github.ProviderName] = github.NewProvider(
-			cmd.GitHubAuth.Organization,
-			cmd.GitHubAuth.ClientID,
-			cmd.GitHubAuth.ClientSecret,
-			cmd.ExternalURL.String()+path,
-		)
-	}
-
-	drain := make(chan struct{})
-
-	apiWrapper := wrappa.MultiWrappa{
-		wrappa.NewAPIAuthWrappa(validator),
-		wrappa.NewAPIMetricsWrappa(logger),
-	}
-
-	apiHandler, err := api.NewHandler(
-		logger,
-		apiWrapper,
-		pipelineDBFactory,
-
-		sqlDB, // db.ConfigDB
-		sqlDB, // buildserver.BuildsDB
-		sqlDB, // workerserver.WorkerDB
-		sqlDB, // containerServer.ContainerDB
-		sqlDB, // pipes.PipeDB
-		sqlDB, // db.PipelinesDB
-
-		config.ValidateConfig,
-		cmd.PeerURL.String(),
-		buildserver.NewEventHandler,
-		drain,
-
-		engine,
-		workerClient,
-
-		sink,
-
-		cmd.CLIArtifactsDir.Path(),
-	)
-	if err != nil {
-		return fmt.Errorf("failed to construct API handler: %s", err)
-	}
-
-	oauthHandler, err := auth.NewOAuthHandler(
-		logger,
-		oauthProviders,
-		signingKey,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to construct OAuth handler: %s", err)
-	}
+	engine := cmd.constructEngine(sqlDB, workerClient, tracker)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		tracker,
@@ -262,146 +131,105 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		sqlDB,
 	)
 
-	webWrapper := wrappa.MultiWrappa{
-		wrappa.NewWebAuthWrappa(cmd.PubliclyViewable, validator),
-		wrappa.NewWebMetricsWrappa(logger),
+	signingKey, err := cmd.loadSigningKey()
+	if err != nil {
+		return err
 	}
 
-	webHandler, err := webhandler.NewHandler(
+	authValidator, basicAuthEnabled := cmd.constructValidator(signingKey)
+
+	oauthProviders, err := cmd.configureOAuthProviders()
+	if err != nil {
+		return err
+	}
+
+	drain := make(chan struct{})
+
+	apiHandler, err := cmd.constructAPIHandler(
 		logger,
-		webWrapper,
+		reconfigurableSink,
+		sqlDB,
+		authValidator,
+		pipelineDBFactory,
+		engine,
+		workerClient,
+		drain,
+	)
+	if err != nil {
+		return err
+	}
+
+	oauthHandler, err := auth.NewOAuthHandler(
+		logger,
+		oauthProviders,
+		signingKey,
+	)
+	if err != nil {
+		return err
+	}
+
+	webHandler, err := cmd.constructWebHandler(
+		logger,
+		sqlDB,
+		authValidator,
 		oauthProviders,
 		basicAuthEnabled,
-		radarSchedulerFactory,
-		sqlDB,
 		pipelineDBFactory,
-		sqlDB,
-		cmd.TemplatesDir.Path(),
-		cmd.PublicDir.Path(),
+		radarSchedulerFactory,
 		engine,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to construct web handler: %s", err)
+		return err
 	}
 
-	webMux := http.NewServeMux()
-	webMux.Handle("/api/v1/", apiHandler)
-	webMux.Handle("/auth/", oauthHandler)
-	webMux.Handle("/", webHandler)
+	members := []grouper.Member{
+		{"drainer", drainer(drain)},
 
-	var httpHandler http.Handler
+		{"web", http_server.New(
+			cmd.bindAddr(),
+			cmd.constructHTTPHandler(
+				webHandler,
+				apiHandler,
+				oauthHandler,
+			),
+		)},
 
-	httpHandler = webMux
-
-	httpHandler = auth.CookieSetHandler{
-		Handler: httpHandler,
-	}
-
-	httpHandler = context.ClearHandler(httpHandler)
-
-	webListenAddr := fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
-	debugListenAddr := fmt.Sprintf("%s:%d", cmd.DebugBindIP, cmd.DebugBindPort)
-
-	syncer := pipelines.NewSyncer(
-		logger.Session("syncer"),
-		sqlDB,
-		pipelineDBFactory,
-		func(pipelineDB db.PipelineDB) ifrit.Runner {
-			return grouper.NewParallel(os.Interrupt, grouper.Members{
-				{
-					pipelineDB.ScopedName("radar"),
-					radar.NewRunner(
-						logger.Session(pipelineDB.ScopedName("radar")),
-						cmd.Developer.Noop,
-						radarSchedulerFactory.BuildRadar(pipelineDB),
-						pipelineDB,
-						1*time.Minute,
-					),
-				},
-				{
-					pipelineDB.ScopedName("scheduler"),
-					&scheduler.Runner{
-						Logger: logger.Session(pipelineDB.ScopedName("scheduler")),
-
-						DB: pipelineDB,
-
-						Scheduler: radarSchedulerFactory.BuildScheduler(pipelineDB),
-
-						Noop: cmd.Developer.Noop,
-
-						Interval: 10 * time.Second,
-					},
-				},
-			})
-		},
-	)
-
-	buildTracker := builds.NewTracker(
-		logger.Session("build-tracker"),
-		sqlDB,
-		engine,
-	)
-
-	memberGrouper := []grouper.Member{
-		{"web", http_server.New(webListenAddr, httpHandler)},
-
-		{"debug", http_server.New(debugListenAddr, http.DefaultServeMux)},
-
-		{"drainer", ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
-			close(ready)
-
-			<-signals
-
-			close(drain)
-
-			return nil
-		})},
+		{"debug", http_server.New(
+			cmd.debugBindAddr(),
+			http.DefaultServeMux,
+		)},
 
 		{"pipelines", pipelines.SyncRunner{
-			Syncer:   syncer,
+			Syncer: cmd.constructPipelineSyncer(
+				logger.Session("syncer"),
+				sqlDB,
+				pipelineDBFactory,
+				radarSchedulerFactory,
+			),
 			Interval: 10 * time.Second,
 			Clock:    clock.NewClock(),
 		}},
 
 		{"builds", builds.TrackerRunner{
-			Tracker:  buildTracker,
+			Tracker: builds.NewTracker(
+				logger.Session("build-tracker"),
+				sqlDB,
+				engine,
+			),
 			Interval: 10 * time.Second,
 			Clock:    clock.NewClock(),
 		}},
 	}
 
-	// register a hardcoded worker
-	if cmd.Worker.GardenURL.Host != "" {
-		var resourceTypes []atc.WorkerResourceType
-		for t, u := range cmd.Worker.ResourceTypes {
-			resourceTypes = append(resourceTypes, atc.WorkerResourceType{
-				Type:  t,
-				Image: u.String(),
-			})
-		}
+	members = cmd.appendStaticWorker(logger, sqlDB, members)
 
-		memberGrouper = append(memberGrouper,
-			grouper.Member{
-				Name: "hardcoded-worker",
-				Runner: worker.NewHardcoded(
-					logger,
-					sqlDB,
-					clock.NewClock(),
-					cmd.Worker.GardenURL.Host,
-					cmd.Worker.BaggageclaimURL.String(),
-					resourceTypes,
-				),
-			},
-		)
-	}
-
-	group := grouper.NewParallel(os.Interrupt, memberGrouper)
+	group := grouper.NewParallel(os.Interrupt, members)
 
 	running := ifrit.Invoke(sigmon.New(group))
 
 	logger.Info("listening", lager.Data{
-		"web":   webListenAddr,
-		"debug": debugListenAddr,
+		"web":   cmd.bindAddr(),
+		"debug": cmd.debugBindAddr(),
 	})
 
 	close(ready)
@@ -454,6 +282,120 @@ func (cmd *ATCCommand) validate() error {
 	return errs.ErrorOrNil()
 }
 
+func (cmd *ATCCommand) bindAddr() string {
+	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
+}
+
+func (cmd *ATCCommand) debugBindAddr() string {
+	return fmt.Sprintf("%s:%d", cmd.DebugBindIP, cmd.DebugBindPort)
+}
+
+func (cmd *ATCCommand) constructLogger() (lager.Logger, *lager.ReconfigurableSink) {
+	logger := lager.NewLogger("atc")
+
+	logLevel := lager.INFO
+	if cmd.Developer.DevelopmentMode {
+		logLevel = lager.DEBUG
+	}
+
+	reconfigurableSink := lager.NewReconfigurableSink(lager.NewWriterSink(os.Stdout, lager.DEBUG), logLevel)
+	logger.RegisterSink(reconfigurableSink)
+
+	if cmd.Metrics.YellerAPIKey != "" {
+		yellerSink := zest.NewYellerSink(cmd.Metrics.YellerAPIKey, cmd.Metrics.YellerEnvironment)
+		logger.RegisterSink(yellerSink)
+	}
+
+	return logger, reconfigurableSink
+}
+
+func (cmd *ATCCommand) configureMetrics(logger lager.Logger) {
+	if cmd.Metrics.RiemannHost != "" {
+		host := cmd.Metrics.HostName
+		if host == "" {
+			host, _ = os.Hostname()
+		}
+
+		metric.Initialize(
+			logger.Session("metrics"),
+			fmt.Sprintf("%s:%d", cmd.Metrics.RiemannHost, cmd.Metrics.RiemannPort),
+			host,
+			cmd.Metrics.Tags,
+			cmd.Metrics.Attributes,
+		)
+	}
+}
+
+func (cmd *ATCCommand) constructDB(logger lager.Logger) (*db.SQLDB, db.PipelineDBFactory, error) {
+	dbConn, err := migrations.LockDBAndMigrate(logger.Session("db.migrations"), "postgres", cmd.PostgresDataSource)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to migrate database: %s", err)
+	}
+
+	listener := pq.NewListener(cmd.PostgresDataSource, time.Second, time.Minute, nil)
+	bus := db.NewNotificationsBus(listener, dbConn)
+
+	explainDBConn := db.Explain(logger, dbConn, clock.NewClock(), 500*time.Millisecond)
+	sqlDB := db.NewSQL(logger.Session("db"), explainDBConn, bus)
+
+	pipelineDBFactory := db.NewPipelineDBFactory(logger.Session("db"), explainDBConn, bus, sqlDB)
+
+	return sqlDB, pipelineDBFactory, err
+}
+
+func (cmd *ATCCommand) constructWorkerPool(logger lager.Logger, sqlDB *db.SQLDB) worker.Client {
+	return worker.NewPool(
+		worker.NewDBWorkerProvider(
+			logger,
+			sqlDB,
+			keepaliveDialer,
+			worker.ExponentialRetryPolicy{
+				Timeout: 5 * time.Minute,
+			},
+		),
+	)
+}
+
+func (cmd *ATCCommand) loadSigningKey() (*rsa.PrivateKey, error) {
+	var signingKey *rsa.PrivateKey
+
+	if cmd.SessionSigningKey != "" {
+		rsaKeyBlob, err := ioutil.ReadFile(string(cmd.SessionSigningKey))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read session signing key file: %s", err)
+		}
+
+		signingKey, err = jwt.ParseRSAPrivateKeyFromPEM(rsaKeyBlob)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse session signing key as RSA: %s", err)
+		}
+	}
+
+	return signingKey, nil
+}
+
+func (cmd *ATCCommand) configureOAuthProviders() (auth.Providers, error) {
+	oauthProviders := auth.Providers{}
+
+	if cmd.GitHubAuth.Organization != "" {
+		path, err := auth.OAuthRoutes.CreatePathForRoute(auth.OAuthCallback, rata.Params{
+			"provider": github.ProviderName,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		oauthProviders[github.ProviderName] = github.NewProvider(
+			cmd.GitHubAuth.Organization,
+			cmd.GitHubAuth.ClientID,
+			cmd.GitHubAuth.ClientSecret,
+			cmd.ExternalURL.String()+path,
+		)
+	}
+
+	return oauthProviders, nil
+}
+
 func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey) (auth.Validator, bool) {
 	if cmd.Developer.DevelopmentMode {
 		return auth.NoopValidator{}, false
@@ -491,6 +433,192 @@ func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey) (auth.Vali
 	return validator, basicAuthValidator != nil
 }
 
+func (cmd *ATCCommand) constructEngine(
+	sqlDB *db.SQLDB,
+	workerClient worker.Client,
+	tracker resource.Tracker,
+) engine.Engine {
+	gardenFactory := exec.NewGardenFactory(workerClient, tracker, uuidGen)
+
+	execEngine := engine.NewExecEngine(
+		gardenFactory,
+		engine.NewBuildDelegateFactory(sqlDB),
+		sqlDB,
+	)
+
+	return engine.NewDBEngine(engine.Engines{execEngine}, sqlDB)
+}
+
+func (cmd *ATCCommand) constructHTTPHandler(
+	webHandler http.Handler,
+	apiHandler http.Handler,
+	oauthHandler http.Handler,
+) http.Handler {
+	webMux := http.NewServeMux()
+	webMux.Handle("/api/v1/", apiHandler)
+	webMux.Handle("/auth/", oauthHandler)
+	webMux.Handle("/", webHandler)
+
+	var httpHandler http.Handler
+
+	httpHandler = webMux
+
+	// proxy Authorization header to/from auth cookie,
+	// to support auth from JS (EventSource) and custom JWT auth
+	httpHandler = auth.CookieSetHandler{
+		Handler: httpHandler,
+	}
+
+	// don't leak gorilla context per-request
+	httpHandler = context.ClearHandler(httpHandler)
+
+	return httpHandler
+}
+
+func (cmd *ATCCommand) constructAPIHandler(
+	logger lager.Logger,
+	reconfigurableSink *lager.ReconfigurableSink,
+	sqlDB *db.SQLDB,
+	authValidator auth.Validator,
+	pipelineDBFactory db.PipelineDBFactory,
+	engine engine.Engine,
+	workerClient worker.Client,
+	drain <-chan struct{},
+) (http.Handler, error) {
+	apiWrapper := wrappa.MultiWrappa{
+		wrappa.NewAPIAuthWrappa(authValidator),
+		wrappa.NewAPIMetricsWrappa(logger),
+	}
+
+	return api.NewHandler(
+		logger,
+		apiWrapper,
+		pipelineDBFactory,
+
+		sqlDB, // db.ConfigDB
+		sqlDB, // buildserver.BuildsDB
+		sqlDB, // workerserver.WorkerDB
+		sqlDB, // containerServer.ContainerDB
+		sqlDB, // pipes.PipeDB
+		sqlDB, // db.PipelinesDB
+
+		config.ValidateConfig,
+		cmd.PeerURL.String(),
+		buildserver.NewEventHandler,
+		drain,
+
+		engine,
+		workerClient,
+
+		reconfigurableSink,
+
+		cmd.CLIArtifactsDir.Path(),
+	)
+}
+
+func (cmd *ATCCommand) constructWebHandler(
+	logger lager.Logger,
+	sqlDB *db.SQLDB,
+	authValidator auth.Validator,
+	oauthProviders auth.Providers,
+	basicAuthEnabled bool,
+	pipelineDBFactory db.PipelineDBFactory,
+	radarSchedulerFactory pipelines.RadarSchedulerFactory,
+	engine engine.Engine,
+) (http.Handler, error) {
+	webWrapper := wrappa.MultiWrappa{
+		wrappa.NewWebAuthWrappa(cmd.PubliclyViewable, authValidator),
+		wrappa.NewWebMetricsWrappa(logger),
+	}
+
+	return webhandler.NewHandler(
+		logger,
+		webWrapper,
+		oauthProviders,
+		basicAuthEnabled,
+		radarSchedulerFactory,
+		sqlDB,
+		pipelineDBFactory,
+		sqlDB,
+		cmd.TemplatesDir.Path(),
+		cmd.PublicDir.Path(),
+		engine,
+	)
+}
+
+func (cmd *ATCCommand) constructPipelineSyncer(
+	logger lager.Logger,
+	sqlDB *db.SQLDB,
+	pipelineDBFactory db.PipelineDBFactory,
+	radarSchedulerFactory pipelines.RadarSchedulerFactory,
+) *pipelines.Syncer {
+	return pipelines.NewSyncer(
+		logger.Session("syncer"),
+		sqlDB,
+		pipelineDBFactory,
+		func(pipelineDB db.PipelineDB) ifrit.Runner {
+			return grouper.NewParallel(os.Interrupt, grouper.Members{
+				{
+					pipelineDB.ScopedName("radar"),
+					radar.NewRunner(
+						logger.Session(pipelineDB.ScopedName("radar")),
+						cmd.Developer.Noop,
+						radarSchedulerFactory.BuildRadar(pipelineDB),
+						pipelineDB,
+						1*time.Minute,
+					),
+				},
+				{
+					pipelineDB.ScopedName("scheduler"),
+					&scheduler.Runner{
+						Logger: logger.Session(pipelineDB.ScopedName("scheduler")),
+
+						DB: pipelineDB,
+
+						Scheduler: radarSchedulerFactory.BuildScheduler(pipelineDB),
+
+						Noop: cmd.Developer.Noop,
+
+						Interval: 10 * time.Second,
+					},
+				},
+			})
+		},
+	)
+}
+
+func (cmd *ATCCommand) appendStaticWorker(
+	logger lager.Logger,
+	sqlDB *db.SQLDB,
+	members []grouper.Member,
+) []grouper.Member {
+	if cmd.Worker.GardenURL.Host == "" {
+		return members
+	}
+
+	var resourceTypes []atc.WorkerResourceType
+	for t, u := range cmd.Worker.ResourceTypes {
+		resourceTypes = append(resourceTypes, atc.WorkerResourceType{
+			Type:  t,
+			Image: u.String(),
+		})
+	}
+
+	return append(members,
+		grouper.Member{
+			Name: "static-worker",
+			Runner: worker.NewHardcoded(
+				logger,
+				sqlDB,
+				clock.NewClock(),
+				cmd.Worker.GardenURL.Host,
+				cmd.Worker.BaggageclaimURL.String(),
+				resourceTypes,
+			),
+		},
+	)
+}
+
 func keepaliveDialer(network string, address string) (net.Conn, error) {
 	conn, err := net.DialTimeout(network, address, 5*time.Second)
 	if err != nil {
@@ -503,4 +631,13 @@ func keepaliveDialer(network string, address string) (net.Conn, error) {
 	}
 
 	return conn, nil
+}
+
+func uuidGen() string {
+	guid, err := uuid.NewV4()
+	if err != nil {
+		panic("not enough entropy to generate guid: " + err.Error())
+	}
+
+	return guid.String()
 }
