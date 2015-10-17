@@ -39,7 +39,7 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	Expect(err).NotTo(HaveOccurred())
 
 	initdb := initdbPath + " -U postgres -D " + tmpdir
-	postgres := fmt.Sprintf("%s -d 2 -D %s -h 127.0.0.1 -p %d", postgresPath, tmpdir, runner.Port)
+	postgres := fmt.Sprintf("%s -D %s -h 127.0.0.1 -p %d", postgresPath, tmpdir, runner.Port)
 
 	if currentUser.Uid == "0" {
 		pgUser, err := user.Lookup("postgres")
@@ -138,6 +138,8 @@ func (runner *Runner) Truncate() {
 		"-p", strconv.Itoa(runner.Port),
 		"testdb",
 		"-c", `
+			SET client_min_messages TO WARNING;
+
 			CREATE OR REPLACE FUNCTION truncate_tables() RETURNS void AS $$
 			DECLARE
 					statements CURSOR FOR
