@@ -83,7 +83,7 @@ case $1 in
       --yeller-environment <%= esc(p("atc.yeller.environment_name")) %> \
       <% if_p("atc.riemann.host", "atc.riemann.port") do |host, port| %> \
       --riemann-host <%= esc(host) %> \
-      --riemann-port <%= esc(port) %> \
+      --riemann-port <%= port.to_i %> \
       <% end %> \
       --metrics-host-name <%= name %>-<%= index %> \
       --metrics-attribute <%= esc("bosh-deployment:#{spec.deployment}") %> \

@@ -76,7 +76,7 @@ properties:
 
   atc.riemann.port:
     description: "Port of the Riemann server to emit events to"
-    default: ""
+    default: 5555
 
   atc.postgresql.address:
     description: "address of the PostgreSQL server"
