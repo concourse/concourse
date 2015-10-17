@@ -50,13 +50,6 @@ type JobConfig struct {
 	SerialGroups   []string `yaml:"serial_groups,omitempty" json:"serial_groups,omitempty" mapstructure:"serial_groups"`
 	RawMaxInFlight int      `yaml:"max_in_flight,omitempty" json:"max_in_flight,omitempty" mapstructure:"max_in_flight"`
 
-	Privileged     bool        `yaml:"privileged,omitempty" json:"privileged,omitempty" mapstructure:"privileged"`
-	TaskConfigPath string      `yaml:"build,omitempty" json:"build,omitempty" mapstructure:"build"`
-	TaskConfig     *TaskConfig `yaml:"config,omitempty" json:"config,omitempty" mapstructure:"config"`
-
-	InputConfigs  []JobInputConfig  `yaml:"inputs,omitempty" json:"inputs,omitempty" mapstructure:"inputs"`
-	OutputConfigs []JobOutputConfig `yaml:"outputs,omitempty" json:"outputs,omitempty" mapstructure:"outputs"`
-
 	Plan PlanSequence `yaml:"plan,omitempty" json:"plan,omitempty" mapstructure:"plan"`
 }
 
@@ -197,34 +190,6 @@ func (config PlanConfig) ResourceName() string {
 
 	panic("no resource name!")
 }
-
-type JobInputConfig struct {
-	RawName  string   `yaml:"name,omitempty" json:"name,omitempty" mapstructure:"name"`
-	Resource string   `yaml:"resource" json:"resource" mapstructure:"resource"`
-	Params   Params   `yaml:"params,omitempty" json:"params,omitempty" mapstructure:"params"`
-	Passed   []string `yaml:"passed,omitempty" json:"passed,omitempty" mapstructure:"passed"`
-	Trigger  bool     `yaml:"trigger" json:"trigger" mapstructure:"trigger"`
-}
-
-func (config JobInputConfig) Name() string {
-	if len(config.RawName) > 0 {
-		return config.RawName
-	}
-
-	return config.Resource
-}
-
-type JobOutputConfig struct {
-	Resource string `yaml:"resource" json:"resource" mapstructure:"resource"`
-	Params   Params `yaml:"params,omitempty" json:"params,omitempty" mapstructure:"params"`
-
-	// e.g. [success, failure]; default [success]
-	RawPerformOn []Condition `yaml:"perform_on,omitempty" json:"perform_on,omitempty" mapstructure:"perform_on"`
-}
-
-type Conditions []Condition
-
-type Condition string
 
 type ResourceConfigs []ResourceConfig
 

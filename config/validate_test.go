@@ -37,37 +37,30 @@ var _ = Describe("ValidateConfig", func() {
 
 			Jobs: atc.JobConfigs{
 				{
-					Name: "some-job",
-
+					Name:   "some-job",
 					Public: true,
-
-					TaskConfigPath: "some/config/path.yml",
-					TaskConfig: &atc.TaskConfig{
-						Image: "some-image",
-					},
-
-					Privileged: true,
-
 					Serial: true,
-
-					InputConfigs: []atc.JobInputConfig{
+					Plan: atc.PlanSequence{
 						{
-							RawName:  "some-input",
+							Get:      "some-input",
 							Resource: "some-resource",
 							Params: atc.Params{
 								"some-param": "some-value",
 							},
-							Passed: []string{"some-job"},
 						},
-					},
-
-					OutputConfigs: []atc.JobOutputConfig{
 						{
-							Resource: "some-resource",
+							Task:           "some-task",
+							Privileged:     true,
+							TaskConfigPath: "some/config/path.yml",
+							TaskConfig: &atc.TaskConfig{
+								Image: "some-image",
+							},
+						},
+						{
+							Put: "some-resource",
 							Params: atc.Params{
 								"some-param": "some-value",
 							},
-							RawPerformOn: []atc.Condition{"success", "failure"},
 						},
 					},
 				},
@@ -181,19 +174,8 @@ var _ = Describe("ValidateConfig", func() {
 
 		BeforeEach(func() {
 			job = atc.JobConfig{
-				Name:           "some-other-job",
-				TaskConfigPath: "some-task-config",
+				Name: "some-other-job",
 			}
-		})
-
-		Context("when a job has a only a name and a build config", func() {
-			BeforeEach(func() {
-				config.Jobs = append(config.Jobs, job)
-			})
-
-			It("returns no error", func() {
-				Expect(validateErr).NotTo(HaveOccurred())
-			})
 		})
 
 		Context("when a job has no name", func() {
@@ -207,117 +189,10 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(validateErr.Error()).To(ContainSubstring(
 					"jobs[2] has no name",
 				))
-
-			})
-		})
-
-		Context("when a job has no config and no config path", func() {
-			BeforeEach(func() {
-				job.TaskConfig = nil
-				job.TaskConfigPath = ""
-				config.Jobs = append(config.Jobs, job)
-			})
-
-			It("returns no error", func() {
-				Expect(validateErr).NotTo(HaveOccurred())
-			})
-		})
-
-		Context("when a job's input has no resource", func() {
-			BeforeEach(func() {
-				job.InputConfigs = append(job.InputConfigs, atc.JobInputConfig{
-					RawName: "foo",
-				})
-				config.Jobs = append(config.Jobs, job)
-			})
-
-			It("returns an error", func() {
-				Expect(validateErr).To(HaveOccurred())
-				Expect(validateErr.Error()).To(ContainSubstring(
-					"jobs.some-other-job.inputs.foo has no resource",
-				))
-
-			})
-		})
-
-		Context("when a job's input has a bogus resource", func() {
-			BeforeEach(func() {
-				job.InputConfigs = append(job.InputConfigs, atc.JobInputConfig{
-					RawName:  "foo",
-					Resource: "bogus-resource",
-				})
-				config.Jobs = append(config.Jobs, job)
-			})
-
-			It("returns an error", func() {
-				Expect(validateErr).To(HaveOccurred())
-				Expect(validateErr.Error()).To(ContainSubstring(
-					"jobs.some-other-job.inputs.foo has an unknown resource ('bogus-resource')",
-				))
-
-			})
-		})
-
-		Context("when a job's input's passed constraints reference a bogus job", func() {
-			BeforeEach(func() {
-				job.InputConfigs = append(job.InputConfigs, atc.JobInputConfig{
-					RawName:  "foo",
-					Resource: "some-resource",
-					Passed:   []string{"bogus-job"},
-				})
-				config.Jobs = append(config.Jobs, job)
-			})
-
-			It("returns an error", func() {
-				Expect(validateErr).To(HaveOccurred())
-				Expect(validateErr.Error()).To(ContainSubstring(
-					"jobs.some-other-job.inputs.foo.passed references an unknown job ('bogus-job')",
-				))
-
-			})
-		})
-
-		Context("when a job's output has no resource", func() {
-			BeforeEach(func() {
-				job.OutputConfigs = append(job.OutputConfigs, atc.JobOutputConfig{})
-				config.Jobs = append(config.Jobs, job)
-			})
-
-			It("returns an error", func() {
-				Expect(validateErr).To(HaveOccurred())
-				Expect(validateErr.Error()).To(ContainSubstring(
-					"jobs.some-other-job.outputs[0] has no resource",
-				))
-
-			})
-		})
-
-		Context("when a job's output has a bogus resource", func() {
-			BeforeEach(func() {
-				job.OutputConfigs = append(job.OutputConfigs, atc.JobOutputConfig{
-					Resource: "bogus-resource",
-				})
-				config.Jobs = append(config.Jobs, job)
-			})
-
-			It("returns an error", func() {
-				Expect(validateErr).To(HaveOccurred())
-				Expect(validateErr.Error()).To(ContainSubstring(
-					"jobs.some-other-job.outputs[0] has an unknown resource ('bogus-resource')",
-				))
-
 			})
 		})
 
 		Describe("plans", func() {
-			BeforeEach(func() {
-				// clear out old-style configuration
-				job.TaskConfigPath = ""
-				job.TaskConfig = nil
-				job.InputConfigs = nil
-				job.OutputConfigs = nil
-			})
-
 			Context("when multiple actions are specified in the same plan", func() {
 				Context("when it's not just Get and Put", func() {
 					BeforeEach(func() {
@@ -857,10 +732,6 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a job's input's passed constraints references a valid job that has the resource as an output", func() {
 				BeforeEach(func() {
-					config.Jobs[0].InputConfigs = nil
-					config.Jobs[0].OutputConfigs = nil
-					config.Jobs[0].TaskConfig = nil
-					config.Jobs[0].TaskConfigPath = ""
 					config.Jobs[0].Plan = append(config.Jobs[0].Plan, atc.PlanConfig{
 						Put:      "custom-name",
 						Resource: "some-resource",
@@ -881,8 +752,6 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a job's input's passed constraints references a valid job that has the resource as an input", func() {
 				BeforeEach(func() {
-					config.Jobs[0].OutputConfigs = nil
-
 					job.Plan = append(job.Plan, atc.PlanConfig{
 						Get:    "some-resource",
 						Passed: []string{"some-job"},
@@ -898,8 +767,6 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a job's input's passed constraints references a valid job that has the resource (with a custom name) as an input", func() {
 				BeforeEach(func() {
-					config.Jobs[0].OutputConfigs = nil
-
 					job.Plan = append(job.Plan, atc.PlanConfig{
 						Get:      "custom-name",
 						Resource: "some-resource",
@@ -924,34 +791,11 @@ var _ = Describe("ValidateConfig", func() {
 					config.Jobs = append(config.Jobs, job)
 				})
 
-				It("does return an error", func() {
+				It("returns an error", func() {
 					Expect(validateErr).To(HaveOccurred())
 					Expect(validateErr.Error()).To(ContainSubstring(
 						"jobs.some-other-job.plan[0].get.some-resource.passed references a job ('some-empty-job') which doesn't interact with the resource ('some-resource')",
 					))
-
-				})
-			})
-
-			Context("when a man, a plan, a canal, panama are specified", func() {
-				BeforeEach(func() {
-					job.TaskConfig = &atc.TaskConfig{
-						Run: atc.TaskRunConfig{
-							Path: "ls",
-						},
-					}
-
-					job.Plan = append(job.Plan, atc.PlanConfig{Get: "foo"})
-
-					config.Jobs = append(config.Jobs, job)
-				})
-
-				It("returns an error", func() {
-					Expect(validateErr).To(HaveOccurred())
-					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job has both a plan and inputs/outputs/build config specified",
-					))
-
 				})
 			})
 		})

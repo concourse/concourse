@@ -145,12 +145,7 @@ func validateJobs(c atc.Config) error {
 			errorMessages = append(errorMessages, identifier+" has no name")
 		}
 
-		if job.Plan != nil && (job.TaskConfig != nil || len(job.TaskConfigPath) > 0 || len(job.InputConfigs) > 0 || len(job.OutputConfigs) > 0) {
-			errorMessages = append(errorMessages, identifier+" has both a plan and inputs/outputs/build config specified")
-		}
-
 		errorMessages = append(errorMessages, validatePlan(c, identifier+".plan", atc.PlanConfig{Do: &job.Plan})...)
-		errorMessages = append(errorMessages, validateInputOutputConfig(c, job, identifier)...)
 	}
 
 	return compositeErr(errorMessages)
@@ -453,71 +448,6 @@ func validateInapplicableFields(inapplicableFields []string, plan atc.PlanConfig
 				strings.Join(foundInapplicableFields, ", "),
 			),
 		)
-	}
-
-	return errorMessages
-}
-
-func validateInputOutputConfig(c atc.Config, job atc.JobConfig, identifier string) []string {
-	errorMessages := []string{}
-
-	for i, input := range job.InputConfigs {
-		var inputIdentifier string
-		if input.Name() == "" {
-			inputIdentifier = fmt.Sprintf("%s.inputs[%d]", identifier, i)
-		} else {
-			inputIdentifier = fmt.Sprintf("%s.inputs.%s", identifier, input.Name())
-		}
-
-		if input.Resource == "" {
-			errorMessages = append(errorMessages, inputIdentifier+" has no resource")
-		} else {
-			_, found := c.Resources.Lookup(input.Resource)
-			if !found {
-				errorMessages = append(
-					errorMessages,
-					fmt.Sprintf(
-						"%s has an unknown resource ('%s')",
-						inputIdentifier,
-						input.Resource,
-					),
-				)
-			}
-		}
-
-		for _, job := range input.Passed {
-			_, found := c.Jobs.Lookup(job)
-			if !found {
-				errorMessages = append(
-					errorMessages,
-					fmt.Sprintf(
-						"%s.passed references an unknown job ('%s')",
-						inputIdentifier,
-						job,
-					),
-				)
-			}
-		}
-	}
-
-	for i, output := range job.OutputConfigs {
-		outputIdentifier := fmt.Sprintf("%s.outputs[%d]", identifier, i)
-
-		if output.Resource == "" {
-			errorMessages = append(errorMessages,
-				outputIdentifier+" has no resource")
-		} else {
-			_, found := c.Resources.Lookup(output.Resource)
-			if !found {
-				errorMessages = append(errorMessages,
-					fmt.Sprintf(
-						"%s has an unknown resource ('%s')",
-						outputIdentifier,
-						output.Resource,
-					),
-				)
-			}
-		}
 	}
 
 	return errorMessages

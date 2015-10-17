@@ -83,18 +83,11 @@ var _ = Describe("SQL DB", func() {
 
 					Public: true,
 
-					TaskConfigPath: "some/config/path.yml",
-					TaskConfig: &atc.TaskConfig{
-						Image: "some-image",
-					},
-
-					Privileged: true,
-
 					Serial: true,
 
-					InputConfigs: []atc.JobInputConfig{
+					Plan: atc.PlanSequence{
 						{
-							RawName:  "some-input",
+							Get:      "some-input",
 							Resource: "some-resource",
 							Params: atc.Params{
 								"some-param": "some-value",
@@ -102,15 +95,19 @@ var _ = Describe("SQL DB", func() {
 							Passed:  []string{"job-1", "job-2"},
 							Trigger: true,
 						},
-					},
-
-					OutputConfigs: []atc.JobOutputConfig{
 						{
-							Resource: "some-resource",
+							Task:           "some-task",
+							Privileged:     true,
+							TaskConfigPath: "some/config/path.yml",
+							TaskConfig: &atc.TaskConfig{
+								Image: "some-image",
+							},
+						},
+						{
+							Put: "some-resource",
 							Params: atc.Params{
 								"some-param": "some-value",
 							},
-							RawPerformOn: []atc.Condition{"success", "failure"},
 						},
 					},
 				},
@@ -501,15 +498,18 @@ var _ = Describe("SQL DB", func() {
 			})
 
 			updatedConfig.Jobs = append(config.Jobs, atc.JobConfig{
-				Name:           "some-resource",
-				TaskConfigPath: "new/config/path.yml",
-				InputConfigs: []atc.JobInputConfig{
+				Name: "new-job",
+				Plan: atc.PlanSequence{
 					{
-						RawName:  "new-input",
+						Get:      "new-input",
 						Resource: "new-resource",
 						Params: atc.Params{
 							"new-param": "new-value",
 						},
+					},
+					{
+						Task:           "some-task",
+						TaskConfigPath: "new/config/path.yml",
 					},
 				},
 			})

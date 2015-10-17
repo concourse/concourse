@@ -308,7 +308,7 @@ type OutputV20OutputPlan struct {
 	Type string `json:"type"`
 
 	// e.g. [success, failure]
-	On atc.Conditions `json:"on,omitempty"`
+	On []string `json:"on,omitempty"`
 }
 
 type ErrorV10 struct {

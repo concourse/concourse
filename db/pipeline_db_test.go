@@ -71,20 +71,19 @@ var _ = Describe("PipelineDB", func() {
 
 				Public: true,
 
-				TaskConfigPath: "some/config/path.yml",
-				TaskConfig: &atc.TaskConfig{
-					Image: "some-image",
-				},
-
-				Privileged: true,
-
 				Serial: true,
 
 				SerialGroups: []string{"serial-group"},
 
-				InputConfigs: []atc.JobInputConfig{
+				Plan: atc.PlanSequence{
 					{
-						RawName:  "some-input",
+						Put: "some-resource",
+						Params: atc.Params{
+							"some-param": "some-value",
+						},
+					},
+					{
+						Get:      "some-input",
 						Resource: "some-resource",
 						Params: atc.Params{
 							"some-param": "some-value",
@@ -92,15 +91,13 @@ var _ = Describe("PipelineDB", func() {
 						Passed:  []string{"job-1", "job-2"},
 						Trigger: true,
 					},
-				},
-
-				OutputConfigs: []atc.JobOutputConfig{
 					{
-						Resource: "some-resource",
-						Params: atc.Params{
-							"some-param": "some-value",
+						Task:           "some-task",
+						Privileged:     true,
+						TaskConfigPath: "some/config/path.yml",
+						TaskConfig: &atc.TaskConfig{
+							Image: "some-image",
 						},
-						RawPerformOn: []atc.Condition{"success", "failure"},
 					},
 				},
 			},
@@ -306,15 +303,18 @@ var _ = Describe("PipelineDB", func() {
 			})
 
 			updatedConfig.Jobs = append(pipelineConfig.Jobs, atc.JobConfig{
-				Name:           "some-resource",
-				TaskConfigPath: "new/config/path.yml",
-				InputConfigs: []atc.JobInputConfig{
+				Name: "new-job",
+				Plan: atc.PlanSequence{
 					{
-						RawName:  "new-input",
+						Get:      "new-input",
 						Resource: "new-resource",
 						Params: atc.Params{
 							"new-param": "new-value",
 						},
+					},
+					{
+						Task:           "some-task",
+						TaskConfigPath: "new/config/path.yml",
 					},
 				},
 			})

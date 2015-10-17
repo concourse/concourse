@@ -55,26 +55,23 @@ var _ = Describe("Jobs API", func() {
 					Jobs: []atc.JobConfig{
 						{
 							Name: "some-job",
-							InputConfigs: []atc.JobInputConfig{
+							Plan: atc.PlanSequence{
 								{
-									Resource: "some-input",
+									Get: "some-input",
 								},
 								{
-									RawName:  "some-name",
+									Get:      "some-name",
 									Resource: "some-other-input",
 									Params:   atc.Params{"secret": "params"},
 									Passed:   []string{"a", "b"},
 									Trigger:  true,
 								},
-							},
-							OutputConfigs: []atc.JobOutputConfig{
 								{
-									Resource: "some-output",
+									Put: "some-output",
 								},
 								{
-									Resource:     "some-other-output",
-									Params:       atc.Params{"secret": "params"},
-									RawPerformOn: []atc.Condition{"failure"},
+									Put:    "some-other-output",
+									Params: atc.Params{"secret": "params"},
 								},
 							},
 						},
@@ -112,6 +109,7 @@ var _ = Describe("Jobs API", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
+
 				Context("when getting the job succeeds", func() {
 					BeforeEach(func() {
 						pipelineDB.GetJobReturns(db.SavedJob{
@@ -278,23 +276,16 @@ var _ = Describe("Jobs API", func() {
 
 					Jobs: []atc.JobConfig{
 						{
-							Name:          "job-1",
-							InputConfigs:  []atc.JobInputConfig{{Resource: "input-1"}},
-							OutputConfigs: []atc.JobOutputConfig{{Resource: "output-1"}},
+							Name: "job-1",
+							Plan: atc.PlanSequence{{Get: "input-1"}, {Put: "output-1"}},
 						},
 						{
 							Name: "job-2",
-							InputConfigs: []atc.JobInputConfig{
-								{
-									Resource: "input-2",
-								},
-							},
-							OutputConfigs: []atc.JobOutputConfig{{Resource: "output-2"}},
+							Plan: atc.PlanSequence{{Get: "input-2"}, {Put: "output-2"}},
 						},
 						{
-							Name:          "job-3",
-							InputConfigs:  []atc.JobInputConfig{{Resource: "input-3"}},
-							OutputConfigs: []atc.JobOutputConfig{{Resource: "output-3"}},
+							Name: "job-3",
+							Plan: atc.PlanSequence{{Get: "input-3"}, {Put: "output-3"}},
 						},
 					},
 				}, 1, true, nil)

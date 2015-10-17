@@ -144,12 +144,14 @@ func requestToConfig(contentType string, requestBody io.ReadCloser) (interface{}
 	switch mediaType {
 	case "application/json":
 		err = json.NewDecoder(requestBody).Decode(&configStructure)
+
 	case "application/x-yaml":
 		var body []byte
 		body, err = ioutil.ReadAll(requestBody)
 		if err == nil {
 			err = yaml.Unmarshal(body, &configStructure)
 		}
+
 	case "multipart/form-data":
 		multipartReader := multipart.NewReader(requestBody, params["boundary"])
 
@@ -184,6 +186,10 @@ func requestToConfig(contentType string, requestBody io.ReadCloser) (interface{}
 		}
 	default:
 		return atc.Config{}, db.PipelineNoChange, ErrStatusUnsupportedMediaType
+	}
+
+	if err != nil {
+		return atc.Config{}, db.PipelineNoChange, ErrMalformedRequestPayload
 	}
 
 	return configStructure, pausedState, nil

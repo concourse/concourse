@@ -100,22 +100,4 @@ var _ = Describe("Config", func() {
 			})
 		})
 	})
-
-	Describe("JobInputConfig", func() {
-		It("defaults its name to the resource name", func() {
-			Expect(JobInputConfig{
-				Resource: "some-resource",
-			}.Name()).To(
-
-				Equal("some-resource"))
-
-			Expect(JobInputConfig{
-				RawName:  "some-name",
-				Resource: "some-resource",
-			}.Name()).To(
-
-				Equal("some-name"))
-
-		})
-	})
 })

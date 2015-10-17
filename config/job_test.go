@@ -23,52 +23,6 @@ var _ = Describe("Job config", func() {
 			inputs = config.JobInputs(jobConfig)
 		})
 
-		Context("with old style inputs", func() {
-			BeforeEach(func() {
-				jobConfig.InputConfigs = []atc.JobInputConfig{
-					{
-						RawName:  "some-input",
-						Resource: "some-resource",
-						Passed:   []string{"a", "b"},
-						Trigger:  true,
-					},
-					{
-						RawName:  "some-non-triggering-input",
-						Resource: "some-resource",
-						Passed:   []string{"c", "d"},
-						Trigger:  false,
-					},
-					{
-						RawName:  "some-implicitly-triggering-input",
-						Resource: "some-resource",
-					},
-				}
-			})
-
-			It("returns them as job inputs, resolving name and trigger", func() {
-				Expect(inputs).To(Equal([]config.JobInput{
-					{
-						Name:     "some-input",
-						Resource: "some-resource",
-						Passed:   []string{"a", "b"},
-						Trigger:  true,
-					},
-					{
-						Name:     "some-non-triggering-input",
-						Resource: "some-resource",
-						Passed:   []string{"c", "d"},
-						Trigger:  false,
-					},
-					{
-						Name:     "some-implicitly-triggering-input",
-						Resource: "some-resource",
-						Trigger:  false,
-					},
-				}))
-
-			})
-		})
-
 		Context("with a build plan", func() {
 			Context("with an empty plan", func() {
 				BeforeEach(func() {
@@ -321,33 +275,6 @@ var _ = Describe("Job config", func() {
 
 		JustBeforeEach(func() {
 			outputs = config.JobOutputs(jobConfig)
-		})
-
-		Context("with old style outputs", func() {
-			BeforeEach(func() {
-				jobConfig.OutputConfigs = []atc.JobOutputConfig{
-					{
-						Resource: "some-resource",
-					},
-					{
-						Resource: "some-other-resource",
-					},
-				}
-			})
-
-			It("returns them as job inputs, with the name as the resource", func() {
-				Expect(outputs).To(Equal([]config.JobOutput{
-					{
-						Name:     "some-resource",
-						Resource: "some-resource",
-					},
-					{
-						Name:     "some-other-resource",
-						Resource: "some-other-resource",
-					},
-				}))
-
-			})
 		})
 
 		Context("with a build plan", func() {

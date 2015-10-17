@@ -93,17 +93,17 @@ var _ = Describe("Scheduler", func() {
 
 			Serial: true,
 
-			InputConfigs: []atc.JobInputConfig{
+			Plan: atc.PlanSequence{
 				{
-					RawName:  "some-input",
+					Get:      "some-input",
 					Resource: "some-resource",
 					Params:   atc.Params{"some": "params"},
 					Trigger:  true,
 				},
 				{
-					RawName:  "some-other-input",
+					Get:      "some-other-input",
 					Resource: "some-other-resource",
-					Params:   atc.Params{"some": "params"},
+					Params:   atc.Params{"some": "other-params"},
 					Trigger:  true,
 				},
 			},
@@ -183,7 +183,7 @@ var _ = Describe("Scheduler", func() {
 
 		Context("when the job has no inputs", func() {
 			BeforeEach(func() {
-				job.InputConfigs = []atc.JobInputConfig{}
+				job.Plan = atc.PlanSequence{}
 			})
 
 			It("succeeds", func() {
@@ -249,11 +249,13 @@ var _ = Describe("Scheduler", func() {
 						Name:     "some-input",
 						Resource: "some-resource",
 						Trigger:  true,
+						Params:   atc.Params{"some": "params"},
 					},
 					{
 						Name:     "some-other-input",
 						Resource: "some-other-resource",
 						Trigger:  true,
+						Params:   atc.Params{"some": "other-params"},
 					},
 				}))
 
@@ -266,9 +268,9 @@ var _ = Describe("Scheduler", func() {
 
 			Context("and the job has inputs configured to not trigger when they change", func() {
 				BeforeEach(func() {
-					job.InputConfigs = append(job.InputConfigs, atc.JobInputConfig{
-						Resource: "some-non-triggering-resource",
-						Trigger:  false,
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Get:     "some-non-triggering-resource",
+						Trigger: false,
 					})
 
 					foundInputsWithCheck := append(
@@ -299,11 +301,11 @@ var _ = Describe("Scheduler", func() {
 
 			Context("and all inputs are configured not to trigger", func() {
 				BeforeEach(func() {
-					for i, input := range job.InputConfigs {
-						noChecking := input
-						noChecking.Trigger = false
+					for i, c := range job.Plan {
+						noTrigger := c
+						noTrigger.Trigger = false
 
-						job.InputConfigs[i] = noChecking
+						job.Plan[i] = noTrigger
 					}
 				})
 
@@ -578,11 +580,13 @@ var _ = Describe("Scheduler", func() {
 								Name:     "some-input",
 								Resource: "some-resource",
 								Trigger:  true,
+								Params:   atc.Params{"some": "params"},
 							},
 							{
 								Name:     "some-other-input",
 								Resource: "some-other-resource",
 								Trigger:  true,
+								Params:   atc.Params{"some": "other-params"},
 							},
 						}))
 
@@ -724,11 +728,13 @@ var _ = Describe("Scheduler", func() {
 								Name:     "some-input",
 								Resource: "some-resource",
 								Trigger:  true,
+								Params:   atc.Params{"some": "params"},
 							},
 							{
 								Name:     "some-other-input",
 								Resource: "some-other-resource",
 								Trigger:  true,
+								Params:   atc.Params{"some": "other-params"},
 							},
 						}))
 

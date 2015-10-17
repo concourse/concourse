@@ -20,38 +20,10 @@ type JobOutput struct {
 }
 
 func JobInputs(config atc.JobConfig) []JobInput {
-	if config.InputConfigs != nil {
-		var inputs []JobInput
-
-		for _, config := range config.InputConfigs {
-			inputs = append(inputs, JobInput{
-				Name:     config.Name(),
-				Resource: config.Resource,
-				Passed:   config.Passed,
-				Trigger:  config.Trigger,
-			})
-		}
-
-		return inputs
-	}
-
 	return collectInputs(atc.PlanConfig{Do: &config.Plan})
 }
 
 func JobOutputs(config atc.JobConfig) []JobOutput {
-	if config.OutputConfigs != nil {
-		var outputs []JobOutput
-
-		for _, config := range config.OutputConfigs {
-			outputs = append(outputs, JobOutput{
-				Name:     config.Resource,
-				Resource: config.Resource,
-			})
-		}
-
-		return outputs
-	}
-
 	return collectOutputs(atc.PlanConfig{Do: &config.Plan})
 }
 

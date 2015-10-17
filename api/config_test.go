@@ -60,21 +60,14 @@ var _ = Describe("Config API", func() {
 
 			Jobs: atc.JobConfigs{
 				{
-					Name: "some-job",
-
+					Name:   "some-job",
 					Public: true,
-
-					TaskConfigPath: "some/config/path.yml",
-					TaskConfig: &atc.TaskConfig{
-						Image: "some-image",
-					},
-
-					Privileged: true,
-
 					Serial: true,
-
 					Plan: atc.PlanSequence{
 						{
+							Get:      "some-input",
+							Resource: "some-resource",
+							Passed:   []string{"job-1", "job-2"},
 							Params: atc.Params{
 								"some-param": "some-value",
 								"nested": map[string]interface{}{
@@ -85,27 +78,16 @@ var _ = Describe("Config API", func() {
 								},
 							},
 						},
-					},
-
-					InputConfigs: []atc.JobInputConfig{
 						{
-							RawName:  "some-input",
-							Resource: "some-resource",
-							Params: atc.Params{
-								"some-param": "some-value",
-								"nested": map[string]interface{}{
-									"key": "value",
-									"nested": map[string]interface{}{
-										"key": "value",
-									},
-								},
+							Task:           "some-task",
+							Privileged:     true,
+							TaskConfigPath: "some/config/path.yml",
+							TaskConfig: &atc.TaskConfig{
+								Image: "some-image",
 							},
-							Passed: []string{"job-1", "job-2"},
 						},
-					},
-
-					OutputConfigs: []atc.JobOutputConfig{
 						{
+							Put:      "some-output",
 							Resource: "some-resource",
 							Params: atc.Params{
 								"some-param": "some-value",
@@ -116,7 +98,6 @@ var _ = Describe("Config API", func() {
 									},
 								},
 							},
-							RawPerformOn: []atc.Condition{"success", "failure"},
 						},
 					},
 				},
@@ -223,6 +204,38 @@ var _ = Describe("Config API", func() {
 					request.Header.Set(atc.ConfigVersionHeader, "42")
 				})
 
+				Context("when the config is malformed", func() {
+					Context("JSON", func() {
+						BeforeEach(func() {
+							request.Header.Set("Content-Type", "application/json")
+							request.Body = gbytes.BufferWithBytes([]byte(`{`))
+						})
+
+						It("returns 400", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						})
+
+						It("does not save anything", func() {
+							Expect(configDB.SaveConfigCallCount()).To(Equal(0))
+						})
+					})
+
+					Context("YAML", func() {
+						BeforeEach(func() {
+							request.Header.Set("Content-Type", "application/x-yaml")
+							request.Body = gbytes.BufferWithBytes([]byte(`{`))
+						})
+
+						It("returns 400", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						})
+
+						It("does not save anything", func() {
+							Expect(configDB.SaveConfigCallCount()).To(Equal(0))
+						})
+					})
+				})
+
 				Context("when the config is valid", func() {
 					Context("JSON", func() {
 						BeforeEach(func() {
@@ -241,9 +254,9 @@ var _ = Describe("Config API", func() {
 						It("saves it", func() {
 							Expect(configDB.SaveConfigCallCount()).To(Equal(1))
 
-							name, config, id, pipelineState := configDB.SaveConfigArgsForCall(0)
+							name, savedConfig, id, pipelineState := configDB.SaveConfigArgsForCall(0)
 							Expect(name).To(Equal("a-pipeline"))
-							Expect(config).To(Equal(config))
+							Expect(savedConfig).To(Equal(config))
 							Expect(id).To(Equal(db.ConfigVersion(42)))
 							Expect(pipelineState).To(Equal(db.PipelineNoChange))
 						})
@@ -308,9 +321,9 @@ var _ = Describe("Config API", func() {
 						It("saves it", func() {
 							Expect(configDB.SaveConfigCallCount()).To(Equal(1))
 
-							name, config, id, pipelineState := configDB.SaveConfigArgsForCall(0)
+							name, savedConfig, id, pipelineState := configDB.SaveConfigArgsForCall(0)
 							Expect(name).To(Equal("a-pipeline"))
-							Expect(config).To(Equal(config))
+							Expect(savedConfig).To(Equal(config))
 							Expect(id).To(Equal(db.ConfigVersion(42)))
 							Expect(pipelineState).To(Equal(db.PipelineNoChange))
 						})
@@ -318,8 +331,8 @@ var _ = Describe("Config API", func() {
 						It("does not give the DB a map of empty interfaces to empty interfaces", func() {
 							Expect(configDB.SaveConfigCallCount()).To(Equal(1))
 
-							_, config, _, _ := configDB.SaveConfigArgsForCall(0)
-							Expect(config).To(Equal(config))
+							_, savedConfig, _, _ := configDB.SaveConfigArgsForCall(0)
+							Expect(savedConfig).To(Equal(config))
 
 							_, err := json.Marshal(config)
 							Expect(err).NotTo(HaveOccurred())
@@ -327,21 +340,24 @@ var _ = Describe("Config API", func() {
 
 						Context("when the payload contains suspicious types", func() {
 							BeforeEach(func() {
-								payload := `
+								payload := `---
 resources:
 - name: some-resource
   type: some-type
   check_every: 10s
 jobs:
 - name: some-job
-  config:
-    run:
-      path: ls
-    params:
-      FOO: true
-      BAR: 1
-      BAZ: 1.9`
+  plan:
+  - task: some-task
+    config:
+      run:
+        path: ls
+      params:
+        FOO: true
+        BAR: 1
+        BAZ: 1.9`
 
+								request.Header.Set("Content-Type", "application/x-yaml")
 								request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
 							})
 
@@ -352,9 +368,9 @@ jobs:
 							It("saves it", func() {
 								Expect(configDB.SaveConfigCallCount()).To(Equal(1))
 
-								name, config, id, pipelineState := configDB.SaveConfigArgsForCall(0)
+								name, savedConfig, id, pipelineState := configDB.SaveConfigArgsForCall(0)
 								Expect(name).To(Equal("a-pipeline"))
-								Expect(config).To(Equal(atc.Config{
+								Expect(savedConfig).To(Equal(atc.Config{
 									Resources: []atc.ResourceConfig{
 										{
 											Name:       "some-resource",
@@ -366,15 +382,20 @@ jobs:
 									Jobs: atc.JobConfigs{
 										{
 											Name: "some-job",
-											TaskConfig: &atc.TaskConfig{
-												Run: atc.TaskRunConfig{
-													Path: "ls",
-												},
+											Plan: atc.PlanSequence{
+												{
+													Task: "some-task",
+													TaskConfig: &atc.TaskConfig{
+														Run: atc.TaskRunConfig{
+															Path: "ls",
+														},
 
-												Params: map[string]string{
-													"FOO": "true",
-													"BAR": "1",
-													"BAZ": "1.9",
+														Params: map[string]string{
+															"FOO": "true",
+															"BAR": "1",
+															"BAZ": "1.9",
+														},
+													},
 												},
 											},
 										},
@@ -470,9 +491,9 @@ jobs:
 							It("saves it", func() {
 								Expect(configDB.SaveConfigCallCount()).To(Equal(1))
 
-								name, config, id, pipelineState := configDB.SaveConfigArgsForCall(0)
+								name, savedConfig, id, pipelineState := configDB.SaveConfigArgsForCall(0)
 								Expect(name).To(Equal("a-pipeline"))
-								Expect(config).To(Equal(config))
+								Expect(savedConfig).To(Equal(config))
 								Expect(id).To(Equal(db.ConfigVersion(42)))
 								Expect(pipelineState).To(Equal(expectedDBValue))
 							})
@@ -581,6 +602,70 @@ jobs:
 
 							It("returns the validation error in the response body", func() {
 								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("invalid paused value")))
+							})
+						})
+
+						Context("when the config is malformed", func() {
+							Context("JSON", func() {
+								BeforeEach(func() {
+									body := &bytes.Buffer{}
+									writer := multipart.NewWriter(body)
+
+									yamlWriter, err := writer.CreatePart(
+										textproto.MIMEHeader{
+											"Content-type": {"application/json"},
+										},
+									)
+									Expect(err).NotTo(HaveOccurred())
+
+									_, err = yamlWriter.Write([]byte("{"))
+
+									Expect(err).NotTo(HaveOccurred())
+
+									writer.Close()
+
+									request.Header.Set("Content-Type", writer.FormDataContentType())
+									request.Body = gbytes.BufferWithBytes(body.Bytes())
+								})
+
+								It("returns 400", func() {
+									Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+								})
+
+								It("does not save anything", func() {
+									Expect(configDB.SaveConfigCallCount()).To(Equal(0))
+								})
+							})
+
+							Context("YAML", func() {
+								BeforeEach(func() {
+									body := &bytes.Buffer{}
+									writer := multipart.NewWriter(body)
+
+									yamlWriter, err := writer.CreatePart(
+										textproto.MIMEHeader{
+											"Content-type": {"application/x-yaml"},
+										},
+									)
+									Expect(err).NotTo(HaveOccurred())
+
+									_, err = yamlWriter.Write([]byte("{"))
+
+									Expect(err).NotTo(HaveOccurred())
+
+									writer.Close()
+
+									request.Header.Set("Content-Type", writer.FormDataContentType())
+									request.Body = gbytes.BufferWithBytes(body.Bytes())
+								})
+
+								It("returns 400", func() {
+									Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+								})
+
+								It("does not save anything", func() {
+									Expect(configDB.SaveConfigCallCount()).To(Equal(0))
+								})
 							})
 						})
 					})
