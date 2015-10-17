@@ -62,19 +62,20 @@ func (command *SyncCommand) Execute(args []string) error {
 
 	client := &http.Client{Transport: transport}
 
-	updateCustom := &update.Update{HTTPClient: client}
+	response, err := client.Do(request)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	if response.StatusCode != http.StatusOK {
+		failf("bad response: %s", response.Status)
+	}
 
 	fmt.Printf("downloading fly from %s... ", request.URL.Host)
 
-	err, errRecover := updateCustom.FromUrl(request.URL.String())
+	err = update.Apply(response.Body, update.Options{})
 	if err != nil {
-		fmt.Printf("update failed: %v\n", err)
-		if errRecover != nil {
-			fmt.Printf("failed to recover previous executable: %v!\n", errRecover)
-			fmt.Printf("things are probably in a bad state on your machine now.\n")
-		}
-
-		return err
+		failf("update failed: %s", err)
 	}
 
 	fmt.Println("update successful!")
