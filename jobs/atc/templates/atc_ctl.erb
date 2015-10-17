@@ -81,8 +81,10 @@ case $1 in
       --cli-artifacts-dir /var/vcap/packages/fly \
       --yeller-api-key <%= esc(p("atc.yeller.api_key")) %> \
       --yeller-environment <%= esc(p("atc.yeller.environment_name")) %> \
-      --riemann-host <%= esc(p("atc.riemann.host")) %> \
-      --riemann-port <%= esc(p("atc.riemann.port")) %> \
+      <% if_p("atc.riemann.host", "atc.riemann.port") do |host, port| %> \
+      --riemann-host <%= esc(host) %> \
+      --riemann-port <%= esc(port) %> \
+      <% end %> \
       --metrics-host-name <%= name %>-<%= index %> \
       --metrics-attribute <%= esc("bosh-deployment:#{spec.deployment}") %> \
       --metrics-attribute <%= esc("bosh-job:#{name}") %> \
