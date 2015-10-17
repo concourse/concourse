@@ -58,32 +58,34 @@ case $1 in
     chmod 0400 $SIGNING_KEY
 
     exec chpst -u vcap:vcap /var/vcap/packages/atc/bin/atc \
-    <% if_p("atc.pipeline") do %> \
-      -pipeline=/var/vcap/jobs/atc/config/pipeline.yml \
-    <% end %> \
-      -templates=/var/vcap/packages/atc/templates \
-      -public=/var/vcap/packages/atc/public \
-      -callbacksURL=<%= "http://#{my_ip}:#{p("atc.web_listen_port")}" %> \
-      -externalURL=<%= esc(p("atc.external_url")) %> \
-      -webListenPort=<%= p("atc.web_listen_port") %> \
-      -webListenAddress=<%= p("atc.web_listen_address") %> \
-      -sqlDataSource=<%= esc("postgres://#{p("atc.postgresql.role.name")}:#{p("atc.postgresql.role.password")}@#{p("atc.postgresql.address")}/#{p("atc.postgresql.database")}?sslmode=disable") %> \
-      -httpUsername=<%= esc(p("atc.basic_auth_username")) %> \
-      -httpPassword=<%= esc(p("atc.basic_auth_password")) %> \
-      -httpHashedPassword=<%= esc(p("atc.basic_auth_encrypted_password")) %> \
-      -publiclyViewable=<%= p("atc.publicly_viewable").inspect %> \
-      -dev=<%= p("atc.development_mode").inspect %> \
-      -checkInterval=<%= p("atc.default_check_interval") %> \
-      -cliDownloadsDir=/var/vcap/packages/fly \
-      -yellerAPIKey=<%= esc(p("atc.yeller.api_key")) %> \
-      -yellerEnvironment=<%= esc(p("atc.yeller.environment_name")) %> \
-      -riemannAddr=<%= esc(p("atc.riemann.address")) %> \
-      -riemannHost=<%= name %>-<%= index %> \
-      -riemannAttributes=<%= esc("bosh-deployment=#{spec.deployment},bosh-job=#{name}") %> \
-      -gitHubAuthOrg=<%= esc(p("atc.github_auth_organization")) %> \
-      -gitHubAuthClientID=<%= esc(p("atc.github_auth_client_id")) %> \
-      -gitHubAuthClientSecret=<%= esc(p("atc.github_auth_client_secret")) %> \
-      -sessionSigningKeyFile=$SIGNING_KEY \
+      --bind-ip <%= p("atc.web_bind_ip") %> \
+      --bind-port <%= p("atc.web_bind_port") %> \
+      --peer-url <%= "http://#{my_ip}:#{p("atc.web_bind_port")}" %> \
+      --external-url <%= esc(p("atc.external_url")) %> \
+      --templates /var/vcap/packages/atc/templates \
+      --public /var/vcap/packages/atc/public \
+      --postgres-url <%= esc("postgres://#{p("atc.postgresql.role.name")}:#{p("atc.postgresql.role.password")}@#{p("atc.postgresql.address")}/#{p("atc.postgresql.database")}?sslmode=disable") %> \
+      <% if p("atc.publicly_viewable") %> \
+      --publicly-viewable \
+      <% end %> \
+      <% if p("atc.development_mode") %> \
+      --development-mode \
+      <% end %> \
+      --basic-auth-username <%= esc(p("atc.basic_auth_username")) %> \
+      --basic-auth-password <%= esc(p("atc.basic_auth_password")) %> \
+      --github-auth-organization <%= esc(p("atc.github_auth_organization")) %> \
+      --github-auth-client-id <%= esc(p("atc.github_auth_client_id")) %> \
+      --github-auth-client-secret <%= esc(p("atc.github_auth_client_secret")) %> \
+      --session-signing-key $SIGNING_KEY \
+      --resource-checking-interval <%= p("atc.default_check_interval") %> \
+      --cli-artifacts-dir /var/vcap/packages/fly \
+      --yeller-api-key <%= esc(p("atc.yeller.api_key")) %> \
+      --yeller-environment <%= esc(p("atc.yeller.environment_name")) %> \
+      --riemann-host <%= esc(p("atc.riemann.host")) %> \
+      --riemann-port <%= esc(p("atc.riemann.port")) %> \
+      --metrics-host-name <%= name %>-<%= index %> \
+      --metrics-attribute <%= esc("bosh-deployment:#{spec.deployment}") %> \
+      --metrics-attribute <%= esc("bosh-job:#{name}") %> \
       1>>$LOG_DIR/atc.stdout.log \
       2>>$LOG_DIR/atc.stderr.log
 

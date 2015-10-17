@@ -3,12 +3,10 @@ name: atc
 
 description: |
   ATC (Air Traffic Controller) provides UI and API access.
-  It is responsible for scheduling builds. To configure the pipeline specify
-  the `atc.pipeline` property.
+  It is responsible for scheduling builds.
 
 templates:
   atc_ctl.erb: bin/atc_ctl
-  pipeline.yml.erb: config/pipeline.yml
 
 packages:
   - pid_utils
@@ -17,13 +15,13 @@ packages:
   - generated_signing_key
 
 properties:
-  atc.web_listen_port:
-    description: "port for the web server to listen on"
-    default: 8080
-
-  atc.web_listen_address:
+  atc.web_bind_ip:
     description: "address for the web server to listen on"
     default: 0.0.0.0
+
+  atc.web_bind_port:
+    description: "port for the web server to listen on"
+    default: 8080
 
   atc.basic_auth_username:
     description: "username for http basic auth"
@@ -31,10 +29,6 @@ properties:
 
   atc.basic_auth_password:
     description: "plaintext password for http basic auth"
-    default: ""
-
-  atc.basic_auth_encrypted_password:
-    description: "bcrypt encrypted password for http basic auth"
     default: ""
 
   atc.github_auth_organization:
@@ -61,25 +55,8 @@ properties:
     description: "allow public viewing; destructive operations still require auth"
     default: false
 
-  atc.callbacks_address:
+  atc.peer_url:
     description: "address reachable by workers to reach the ATC. auto-detected if omitted."
-
-  atc.pipeline:
-    description: "static pipeline configuration containing jobs and resources. omit to manage config via the API."
-    example:
-      resources:
-        - name: concourse
-          type: git
-          source:
-            uri: https://github.com/concource/concourse
-
-      jobs:
-        - name: dummy
-          config:
-            image: docker:///busybox
-            run:
-              path: echo
-              args: [Hello, world!]
 
   atc.default_check_interval:
     description: "how often to check for new versions of resources. keep rate limiting in mind."
@@ -93,8 +70,12 @@ properties:
     description: "environment name you wish to group errors under in yeller"
     default: ""
 
-  atc.riemann.address:
-    description: "address of a Riemann server to emit events to"
+  atc.riemann.host:
+    description: "IP address or DNS name of a Riemann server to emit events to"
+    default: ""
+
+  atc.riemann.port:
+    description: "Port of the Riemann server to emit events to"
     default: ""
 
   atc.postgresql.address:

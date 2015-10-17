@@ -14,22 +14,6 @@
 	path = src/github.com/lib/pq
 	url = https://github.com/lib/pq
 	branch = master
-[submodule "src/github.com/nu7hatch/gouuid"]
-	path = src/github.com/nu7hatch/gouuid
-	url = https://github.com/nu7hatch/gouuid
-	branch = master
-[submodule "src/github.com/pivotal-golang/lager"]
-	path = src/github.com/pivotal-golang/lager
-	url = https://github.com/pivotal-golang/lager
-	branch = master
-[submodule "src/github.com/tedsuo/ifrit"]
-	path = src/github.com/tedsuo/ifrit
-	url = https://github.com/tedsuo/ifrit
-	branch = master
-[submodule "src/github.com/tedsuo/rata"]
-	path = src/github.com/tedsuo/rata
-	url = https://github.com/tedsuo/rata
-	branch = master
 [submodule "src/github.com/cloudfoundry-incubator/garden"]
 	path = src/github.com/cloudfoundry-incubator/garden
 	url = https://github.com/cloudfoundry-incubator/garden
@@ -42,33 +26,13 @@
 	path = src/github.com/onsi/gomega
 	url = https://github.com/onsi/gomega
 	branch = master
-[submodule "src/github.com/codegangsta/cli"]
-	path = src/github.com/codegangsta/cli
-	url = https://github.com/codegangsta/cli
-	branch = master
-[submodule "src/github.com/concourse/fly"]
-	path = src/github.com/concourse/fly
-	url = https://github.com/concourse/fly
-	branch = master
-[submodule "src/github.com/kr/pty"]
-	path = src/github.com/kr/pty
-	url = https://github.com/kr/pty
-	branch = master
 [submodule "src/github.com/mgutz/ansi"]
 	path = src/github.com/mgutz/ansi
 	url = https://github.com/mgutz/ansi
 	branch = master
-[submodule "src/github.com/pkg/term"]
-	path = src/github.com/pkg/term
-	url = https://github.com/pkg/term
-	branch = master
 [submodule "src/github.com/concourse/testflight"]
 	path = src/github.com/concourse/testflight
 	url = https://github.com/concourse/testflight
-	branch = master
-[submodule "src/github.com/vito/gosub"]
-	path = src/github.com/vito/gosub
-	url = https://github.com/vito/gosub
 	branch = master
 [submodule "src/github.com/vito/go-sse"]
 	path = src/github.com/vito/go-sse
@@ -86,10 +50,6 @@
 	path = src/github.com/howeyc/fsnotify
 	url = https://github.com/howeyc/fsnotify
 	branch = master
-[submodule "src/github.com/ActiveState/tail"]
-	path = src/github.com/ActiveState/tail
-	url = https://github.com/ActiveState/tail
-	branch = master
 [submodule "src/gopkg.in/tomb.v1"]
 	path = src/gopkg.in/tomb.v1
 	url = https://gopkg.in/tomb.v1
@@ -97,10 +57,6 @@
 [submodule "src/github.com/papertrail/remote_syslog2"]
 	path = src/github.com/papertrail/remote_syslog2
 	url = https://github.com/papertrail/remote_syslog2
-	branch = master
-[submodule "src/github.com/ziutek/syslog"]
-	path = src/github.com/ziutek/syslog
-	url = https://github.com/ziutek/syslog
 	branch = master
 [submodule "src/github.com/pivotal-golang/clock"]
 	path = src/github.com/pivotal-golang/clock
@@ -126,10 +82,6 @@
 	path = src/github.com/mitchellh/mapstructure
 	url = https://github.com/mitchellh/mapstructure
 	branch = master
-[submodule "src/github.com/codahale/http-handlers"]
-	path = src/github.com/codahale/http-handlers
-	url = https://github.com/codahale/http-handlers
-	branch = master
 [submodule "src/github.com/codahale/metrics"]
 	path = src/github.com/codahale/metrics
 	url = https://github.com/codahale/metrics
@@ -138,21 +90,9 @@
 	path = src/github.com/codahale/hdrhistogram
 	url = https://github.com/codahale/hdrhistogram
 	branch = master
-[submodule "src/github.com/concourse/tsa"]
-	path = src/github.com/concourse/tsa
-	url = https://github.com/concourse/tsa
-	branch = master
 [submodule "src/golang.org/x/crypto"]
 	path = src/golang.org/x/crypto
 	url = https://go.googlesource.com/crypto
-	branch = master
-[submodule "src/github.com/pivotal-golang/localip"]
-	path = src/github.com/pivotal-golang/localip
-	url = https://github.com/pivotal-golang/localip
-	branch = master
-[submodule "src/github.com/concourse/jettison"]
-	path = src/github.com/concourse/jettison
-	url = https://github.com/concourse/jettison
 	branch = master
 [submodule "src/github.com/cloudfoundry/gunk"]
 	path = src/github.com/cloudfoundry/gunk
@@ -166,14 +106,6 @@
 	path = src/github.com/concourse/baggageclaim
 	url = https://github.com/concourse/baggageclaim
 	branch = master
-[submodule "src/github.com/inconshreveable/go-update"]
-	path = src/github.com/inconshreveable/go-update
-	url = https://github.com/inconshreveable/go-update
-	branch = master
-[submodule "src/github.com/felixge/tcpkeepalive"]
-	path = src/github.com/felixge/tcpkeepalive
-	url = https://github.com/felixge/tcpkeepalive
-	branch = master
 [submodule "src/github.com/yeller/yeller-golang"]
 	path = src/github.com/yeller/yeller-golang
 	url = https://github.com/yeller/yeller-golang
@@ -185,10 +117,6 @@
 [submodule "src/github.com/bigdatadev/goryman"]
 	path = src/github.com/bigdatadev/goryman
 	url = https://github.com/bigdatadev/goryman
-	branch = master
-[submodule "src/github.com/golang/protobuf"]
-	path = src/github.com/golang/protobuf
-	url = https://github.com/golang/protobuf
 	branch = master
 [submodule "src/github.com/google/go-querystring"]
 	path = src/github.com/google/go-querystring
@@ -206,10 +134,6 @@
 	path = src/golang.org/x/oauth2
 	url = https://go.googlesource.com/oauth2
 	branch = master
-[submodule "src/github.com/jessevdk/go-flags"]
-	path = src/github.com/jessevdk/go-flags
-	url = https://github.com/jessevdk/go-flags
-	branch = master
 [submodule "src/github.com/docker/libtrust"]
 	path = src/github.com/docker/libtrust
 	url = https://github.com/docker/libtrust
@@ -221,10 +145,6 @@
 [submodule "src/github.com/docker/distribution"]
 	path = src/github.com/docker/distribution
 	url = https://github.com/docker/distribution
-	branch = master
-[submodule "src/github.com/Sirupsen/logrus"]
-	path = src/github.com/Sirupsen/logrus
-	url = https://github.com/Sirupsen/logrus
 	branch = master
 [submodule "src/github.com/gorilla/context"]
 	path = src/github.com/gorilla/context
@@ -246,3 +166,61 @@
 	path = src/github.com/dgrijalva/jwt-go
 	url = https://github.com/dgrijalva/jwt-go
 	branch = master
+[submodule "src/github.com/kr/pty"]
+	path = src/github.com/kr/pty
+	url = https://github.com/kr/pty
+[submodule "src/github.com/concourse/fly"]
+	path = src/github.com/concourse/fly
+	url = https://github.com/concourse/fly
+[submodule "src/github.com/tedsuo/rata"]
+	path = src/github.com/tedsuo/rata
+	url = https://github.com/tedsuo/rata
+[submodule "src/github.com/tedsuo/ifrit"]
+	path = src/github.com/tedsuo/ifrit
+	url = https://github.com/tedsuo/ifrit
+[submodule "src/github.com/inconshreveable/go-update"]
+	path = src/github.com/inconshreveable/go-update
+	url = https://github.com/inconshreveable/go-update
+[submodule "src/github.com/concourse/tsa"]
+	path = src/github.com/concourse/tsa
+	url = https://github.com/concourse/tsa
+[submodule "src/github.com/vito/gosub"]
+	path = src/github.com/vito/gosub
+	url = https://github.com/vito/gosub
+[submodule "src/github.com/jessevdk/go-flags"]
+	path = src/github.com/jessevdk/go-flags
+	url = https://github.com/jessevdk/go-flags
+[submodule "src/github.com/concourse/jettison"]
+	path = src/github.com/concourse/jettison
+	url = https://github.com/concourse/jettison
+[submodule "src/github.com/pkg/term"]
+	path = src/github.com/pkg/term
+	url = https://github.com/pkg/term
+[submodule "src/github.com/pivotal-golang/lager"]
+	path = src/github.com/pivotal-golang/lager
+	url = https://github.com/pivotal-golang/lager
+[submodule "src/github.com/codegangsta/cli"]
+	path = src/github.com/codegangsta/cli
+	url = https://github.com/codegangsta/cli
+[submodule "src/github.com/pivotal-golang/localip"]
+	path = src/github.com/pivotal-golang/localip
+	url = https://github.com/pivotal-golang/localip
+[submodule "src/github.com/ActiveState/tail"]
+	path = src/github.com/ActiveState/tail
+	url = https://github.com/ActiveState/tail
+[submodule "src/github.com/Sirupsen/logrus"]
+	path = src/github.com/Sirupsen/logrus
+	url = https://github.com/Sirupsen/logrus
+[submodule "src/github.com/golang/protobuf"]
+	path = src/github.com/golang/protobuf
+	url = https://github.com/golang/protobuf
+[submodule "src/github.com/nu7hatch/gouuid"]
+	path = src/github.com/nu7hatch/gouuid
+	url = https://github.com/nu7hatch/gouuid
+[submodule "src/github.com/felixge/tcpkeepalive"]
+	path = src/github.com/felixge/tcpkeepalive
+	url = https://github.com/felixge/tcpkeepalive
+	branch = master
+[submodule "src/github.com/ziutek/syslog"]
+	path = src/github.com/ziutek/syslog
+	url = https://github.com/ziutek/syslog

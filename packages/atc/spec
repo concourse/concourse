@@ -7,6 +7,7 @@ dependencies:
 files:
   - github.com/concourse/atc/web/templates/**/*
   - github.com/concourse/atc/web/public/**/*
+  - github.com/concourse/atc/cmd/atc/*.go # gosub
   - github.com/BurntSushi/migration/*.go # gosub
   - github.com/Sirupsen/logrus/*.go # gosub
   - github.com/bigdatadev/goryman/*.go # gosub
@@ -18,7 +19,6 @@ files:
   - github.com/cloudfoundry-incubator/garden/routes/*.go # gosub
   - github.com/cloudfoundry-incubator/garden/transport/*.go # gosub
   - github.com/codahale/hdrhistogram/*.go # gosub
-  - github.com/codahale/http-handlers/metrics/*.go # gosub
   - github.com/codahale/metrics/*.go # gosub
   - github.com/codahale/metrics/runtime/*.go # gosub
   - github.com/concourse/atc/*.go # gosub
@@ -37,7 +37,6 @@ files:
   - github.com/concourse/atc/auth/*.go # gosub
   - github.com/concourse/atc/auth/github/*.go # gosub
   - github.com/concourse/atc/builds/*.go # gosub
-  - github.com/concourse/atc/cmd/atc/*.go # gosub
   - github.com/concourse/atc/config/*.go # gosub
   - github.com/concourse/atc/db/*.go # gosub
   - github.com/concourse/atc/db/algorithm/*.go # gosub
@@ -94,6 +93,7 @@ files:
   - github.com/gorilla/context/*.go # gosub
   - github.com/gorilla/mux/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
+  - github.com/jessevdk/go-flags/*.go # gosub
   - github.com/lib/pq/*.go # gosub
   - github.com/lib/pq/oid/*.go # gosub
   - github.com/mitchellh/mapstructure/*.go # gosub
