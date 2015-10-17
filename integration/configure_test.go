@@ -111,68 +111,12 @@ var _ = Describe("Setting and Getting the pipeline configuration", func() {
 
 				Jobs: atc.JobConfigs{
 					{
-						Name: "some-job",
-
+						Name:   "some-job",
 						Public: true,
-
-						TaskConfigPath: "some/config/path.yml",
-						TaskConfig: &atc.TaskConfig{
-							Image: "some-image",
-							Params: map[string]string{
-								"A": "B",
-							},
-						},
-
-						Privileged: true,
-
 						Serial: true,
-
-						InputConfigs: []atc.JobInputConfig{
-							{
-								RawName:  "some-input",
-								Resource: "some-resource",
-								Params: atc.Params{
-									"some-param": "some-value",
-								},
-								Passed: []string{"job-1", "job-2"},
-							},
-						},
-
-						OutputConfigs: []atc.JobOutputConfig{
-							{
-								Resource: "some-resource",
-								Params: atc.Params{
-									"some-param": "some-value",
-								},
-								RawPerformOn: []atc.Condition{"success", "failure"},
-							},
-						},
 					},
 					{
 						Name: "some-other-job",
-
-						TaskConfigPath: "some/config/path.yml",
-
-						InputConfigs: []atc.JobInputConfig{
-							{
-								RawName:  "some-other-input",
-								Resource: "some-other-resource",
-								Params: atc.Params{
-									"some-param": "some-value",
-								},
-								Passed: []string{"job-1", "job-2"},
-							},
-						},
-
-						OutputConfigs: []atc.JobOutputConfig{
-							{
-								Resource: "some-other-resource",
-								Params: atc.Params{
-									"some-param": "some-value",
-								},
-								RawPerformOn: []atc.Condition{"success", "failure"},
-							},
-						},
 					},
 				},
 			}
