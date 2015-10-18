@@ -5,8 +5,6 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/atcclient"
-	"github.com/concourse/fly/rc"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -14,28 +12,6 @@ import (
 )
 
 var _ = Describe("ATC Handler Builds", func() {
-	var (
-		handler   atcclient.AtcHandler
-		atcServer *ghttp.Server
-		client    atcclient.Client
-	)
-
-	BeforeEach(func() {
-		var err error
-		atcServer = ghttp.NewServer()
-
-		client, err = atcclient.NewClient(
-			rc.NewTarget(atcServer.URL(), "", "", "", false),
-		)
-		Expect(err).NotTo(HaveOccurred())
-
-		handler = atcclient.NewAtcHandler(client)
-	})
-
-	AfterEach(func() {
-		atcServer.Close()
-	})
-
 	Describe("CreateBuild", func() {
 		var (
 			plan          atc.Plan
@@ -75,7 +51,7 @@ var _ = Describe("ATC Handler Builds", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", expectedURL),
 					ghttp.VerifyJSONRepresenting(plan),
-					ghttp.RespondWithJSONEncoded(http.StatusCreated, expectedBuild, http.Header{}),
+					ghttp.RespondWithJSONEncoded(http.StatusCreated, expectedBuild),
 				),
 			)
 		})
@@ -94,7 +70,7 @@ var _ = Describe("ATC Handler Builds", func() {
 			expectedPipelineName string
 		)
 
-		Describe("when build exists", func() {
+		Context("when build exists", func() {
 			JustBeforeEach(func() {
 				expectedBuild = atc.Build{
 					ID:      123,
@@ -110,7 +86,7 @@ var _ = Describe("ATC Handler Builds", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", expectedURL),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuild, http.Header{}),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuild),
 					),
 				)
 			})
@@ -140,14 +116,14 @@ var _ = Describe("ATC Handler Builds", func() {
 			})
 		})
 
-		Describe("when build does not exists", func() {
+		Context("when build does not exists", func() {
 			BeforeEach(func() {
 				expectedURL = "/api/v1/pipelines/mypipeline/jobs/myjob/builds/mybuild"
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", expectedURL),
-						ghttp.RespondWithJSONEncoded(http.StatusNotFound, nil, http.Header{}),
+						ghttp.RespondWithJSONEncoded(http.StatusNotFound, nil),
 					),
 				)
 			})
@@ -161,7 +137,7 @@ var _ = Describe("ATC Handler Builds", func() {
 	})
 
 	Describe("Build", func() {
-		Describe("when build exists", func() {
+		Context("when build exists", func() {
 			expectedBuild := atc.Build{
 				ID:      123,
 				Name:    "mybuild",
@@ -176,7 +152,7 @@ var _ = Describe("ATC Handler Builds", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", expectedURL),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuild, http.Header{}),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuild),
 					),
 				)
 			})
@@ -188,14 +164,14 @@ var _ = Describe("ATC Handler Builds", func() {
 			})
 		})
 
-		Describe("when build does not exists", func() {
+		Context("when build does not exists", func() {
 			BeforeEach(func() {
 				expectedURL := "/api/v1/builds/123"
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", expectedURL),
-						ghttp.RespondWithJSONEncoded(http.StatusNotFound, nil, http.Header{}),
+						ghttp.RespondWithJSONEncoded(http.StatusNotFound, nil),
 					),
 				)
 			})
@@ -233,7 +209,7 @@ var _ = Describe("ATC Handler Builds", func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", expectedURL),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds, http.Header{}),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds),
 				),
 			)
 		})

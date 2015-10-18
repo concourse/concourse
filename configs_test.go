@@ -4,39 +4,14 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/atcclient"
-	"github.com/concourse/fly/rc"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 )
 
-var _ = Describe("ATC Handler Config", func() {
-	var (
-		client    atcclient.Client
-		handler   atcclient.AtcHandler
-		atcServer *ghttp.Server
-	)
-
-	BeforeEach(func() {
-		var err error
-		atcServer = ghttp.NewServer()
-
-		client, err = atcclient.NewClient(
-			rc.NewTarget(atcServer.URL(), "", "", "", false),
-		)
-		Expect(err).NotTo(HaveOccurred())
-
-		handler = atcclient.NewAtcHandler(client)
-	})
-
-	AfterEach(func() {
-		atcServer.Close()
-	})
-
+var _ = Describe("ATC Handler Configs", func() {
 	Describe("PipelineConfig", func() {
-
 		var (
 			expectedConfig atc.Config
 			expectedURL    string
@@ -91,7 +66,7 @@ var _ = Describe("ATC Handler Config", func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", expectedURL),
-					ghttp.RespondWithJSONEncoded(200, expectedConfig, http.Header{}),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedConfig),
 				),
 			)
 		})

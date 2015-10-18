@@ -4,8 +4,6 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/atcclient"
-	"github.com/concourse/fly/rc"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -13,28 +11,6 @@ import (
 )
 
 var _ = Describe("ATC Handler Pipes", func() {
-	var (
-		client    atcclient.Client
-		handler   atcclient.AtcHandler
-		atcServer *ghttp.Server
-	)
-
-	BeforeEach(func() {
-		var err error
-		atcServer = ghttp.NewServer()
-
-		client, err = atcclient.NewClient(
-			rc.NewTarget(atcServer.URL(), "", "", "", false),
-		)
-		Expect(err).NotTo(HaveOccurred())
-
-		handler = atcclient.NewAtcHandler(client)
-	})
-
-	AfterEach(func() {
-		atcServer.Close()
-	})
-
 	Describe("CreatePipe", func() {
 		var (
 			expectedURL  string
