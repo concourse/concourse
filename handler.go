@@ -7,7 +7,6 @@ type Handler interface {
 	// 	BuildEvents()
 	// 	DownloadCLI()
 	// 	HijackContainer()
-	// 	ListContainer()
 	// 	ListJobInputs()
 	// 	ReadPipe()
 	// 	SaveConfig()
@@ -21,6 +20,7 @@ type Handler interface {
 	DeletePipeline(pipelineName string) error
 	Job(pipelineName, jobName string) (atc.Job, error)
 	JobBuild(pipelineName, jobName, buildName string) (atc.Build, error)
+	ListContainers() ([]atc.Container, error)
 	PipelineConfig(pipelineName string) (atc.Config, error)
 }
 
