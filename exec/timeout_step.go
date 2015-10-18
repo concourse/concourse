@@ -4,6 +4,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/pivotal-golang/clock"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -11,16 +12,19 @@ type timeout struct {
 	step     StepFactory
 	runStep  Step
 	duration string
+	clock    clock.Clock
 	timedOut bool
 }
 
 func Timeout(
 	step StepFactory,
 	duration string,
+	clock clock.Clock,
 ) StepFactory {
 	return timeout{
 		step:     step,
 		duration: duration,
+		clock:    clock,
 	}
 }
 
@@ -31,16 +35,16 @@ func (ts timeout) Using(prev Step, repo *SourceRepository) Step {
 }
 
 func (ts *timeout) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	runProcess := ifrit.Invoke(ts.runStep)
-
-	close(ready)
-
 	parsedDuration, err := time.ParseDuration(ts.duration)
 	if err != nil {
 		return err
 	}
 
-	timer := time.NewTimer(parsedDuration)
+	timer := ts.clock.NewTimer(parsedDuration)
+
+	runProcess := ifrit.Invoke(ts.runStep)
+
+	close(ready)
 
 	var runErr error
 	var sig os.Signal
@@ -50,9 +54,9 @@ dance:
 		select {
 		case runErr = <-runProcess.Wait():
 			break dance
-		case <-timer.C:
+		case <-timer.C():
 			ts.timedOut = true
-			runProcess.Signal(os.Kill)
+			runProcess.Signal(os.Interrupt)
 		case sig = <-signals:
 			runProcess.Signal(sig)
 		}

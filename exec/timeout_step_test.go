@@ -3,8 +3,10 @@ package exec_test
 import (
 	"errors"
 	"os"
+	"time"
 
 	. "github.com/concourse/atc/exec"
+	"github.com/pivotal-golang/clock/fakeclock"
 
 	"github.com/concourse/atc/exec/fakes"
 	. "github.com/onsi/ginkgo"
@@ -26,6 +28,7 @@ var _ = Describe("Timeout Step", func() {
 		process   ifrit.Process
 
 		timeoutDuration string
+		fakeClock       *fakeclock.FakeClock
 	)
 
 	BeforeEach(func() {
@@ -34,136 +37,152 @@ var _ = Describe("Timeout Step", func() {
 		runStep = new(fakes.FakeStep)
 		fakeStepFactoryStep.UsingReturns(runStep)
 
+		timeoutDuration = "1h"
+		fakeClock = fakeclock.NewFakeClock(time.Now())
 	})
 
-	Context("when the process is invoked with invoke", func() {
-		It("exits successfully", func() {
-			timeout = Timeout(fakeStepFactoryStep, timeoutDuration)
-			step = timeout.Using(nil, nil)
-			process = ifrit.Invoke(step)
+	JustBeforeEach(func() {
+		timeout = Timeout(fakeStepFactoryStep, timeoutDuration, fakeClock)
+		step = timeout.Using(nil, nil)
+		process = ifrit.Background(step)
+	})
 
-			Eventually(process.Ready()).Should(BeClosed())
+	Context("when the duration is invalid", func() {
+		BeforeEach(func() {
+			timeoutDuration = "nope"
+		})
+
+		It("errors immediately", func() {
+			Expect(<-process.Wait()).To(HaveOccurred())
+			Expect(process.Ready()).ToNot(BeClosed())
 		})
 	})
 
-	Context("when we pass an invalid duration", func() {
-		It("errors", func() {
-			timeout = Timeout(fakeStepFactoryStep, "nope")
-			step = timeout.Using(nil, nil)
-			ready := make(chan struct{})
-			err := step.Run(nil, ready)
-			Expect(err).To(HaveOccurred())
+	Context("when the process goes beyond the duration", func() {
+		var receivedSignals <-chan os.Signal
+
+		BeforeEach(func() {
+			s := make(chan os.Signal, 1)
+			receivedSignals = s
+
+			runStep.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+				close(ready)
+				fakeClock.Increment(time.Hour)
+				s <- <-signals
+				return nil
+			}
+		})
+
+		It("interrupts it", func() {
+			<-process.Wait()
+
+			Expect(receivedSignals).To(Receive(Equal(os.Interrupt)))
+		})
+
+		It("exits with no error", func() {
+			Expect(<-process.Wait()).ToNot(HaveOccurred())
+		})
+
+		Describe("result", func() {
+			It("is not successful", func() {
+				Eventually(runStep.RunCallCount).Should(Equal(1))
+
+				Expect(<-process.Wait()).To(Succeed())
+
+				var success Success
+				Expect(step.Result(&success)).To(BeTrue())
+				Expect(bool(success)).To(BeFalse())
+			})
 		})
 	})
 
-	Context("when the process is invoked with background", func() {
-		JustBeforeEach(func() {
-			timeout = Timeout(fakeStepFactoryStep, timeoutDuration)
-			step = timeout.Using(nil, nil)
-			process = ifrit.Background(step)
+	Context("when the step returns an error", func() {
+		var someError error
+
+		BeforeEach(func() {
+			someError = errors.New("some error")
+			runStep.ResultStub = successResult(false)
+			runStep.RunReturns(someError)
 		})
 
-		Context("when the process goes beyond the duration", func() {
+		It("returns the error", func() {
+			var receivedError error
+			Eventually(process.Wait()).Should(Receive(&receivedError))
+			Expect(receivedError).NotTo(BeNil())
+			Expect(receivedError).To(Equal(someError))
+		})
+	})
+
+	Context("when the step completes within the duration", func() {
+		BeforeEach(func() {
+			runStep.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+				close(ready)
+				fakeClock.Increment(time.Hour / 2)
+				return nil
+			}
+		})
+
+		It("does not interrupt it", func() {
+			<-process.Wait()
+
+			Expect(runStep.RunCallCount()).To(Equal(1))
+
+			subSignals, _ := runStep.RunArgsForCall(0)
+			Expect(subSignals).ToNot(Receive())
+		})
+
+		It("exits with no error", func() {
+			Expect(<-process.Wait()).ToNot(HaveOccurred())
+		})
+
+		Context("when the step is successful", func() {
 			BeforeEach(func() {
 				runStep.ResultStub = successResult(true)
-				timeoutDuration = "1s"
+			})
+
+			It("is successful", func() {
+				Eventually(process.Wait()).Should(Receive(BeNil()))
+
+				var success Success
+				Expect(step.Result(&success)).To(BeTrue())
+				Expect(bool(success)).To(BeTrue())
+			})
+		})
+
+		Context("when the step fails", func() {
+			BeforeEach(func() {
+				runStep.ResultStub = successResult(false)
+			})
+
+			It("is not successful", func() {
+				Eventually(process.Wait()).Should(Receive(BeNil()))
+
+				var success Success
+				Expect(step.Result(&success)).To(BeTrue())
+				Expect(bool(success)).To(BeFalse())
+			})
+		})
+
+		Describe("signalling", func() {
+			var receivedSignals <-chan os.Signal
+
+			BeforeEach(func() {
+				s := make(chan os.Signal, 1)
+				receivedSignals = s
 
 				runStep.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
 					close(ready)
-					select {
-					case <-startStep:
-						return nil
-					case <-signals:
-						return ErrInterrupted
-					}
+					fakeClock.Increment(time.Hour / 2)
+					s <- <-signals
+					return nil
 				}
 			})
 
-			It("should interrupt after timeout duration", func() {
-				Eventually(runStep.RunCallCount).Should(Equal(1))
+			It("forwards the signal down", func() {
+				process.Signal(os.Kill)
+
 				Expect(<-process.Wait()).ToNot(HaveOccurred())
-			})
-
-			Context("when the process is signaled", func() {
-				BeforeEach(func() {
-					timeoutDuration = "10s"
-				})
-
-				It("the process should be interrupted", func() {
-					Eventually(runStep.RunCallCount).Should(Equal(1))
-
-					process.Signal(os.Kill)
-
-					var receivedError error
-					Eventually(process.Wait()).Should(Receive(&receivedError))
-					Expect(receivedError).NotTo(BeNil())
-					Expect(receivedError.Error()).To(ContainSubstring(ErrInterrupted.Error()))
-				})
-			})
-
-			Context("when the step returns an error", func() {
-				var someError error
-
-				BeforeEach(func() {
-					someError = errors.New("some error")
-					runStep.ResultStub = successResult(false)
-					runStep.RunReturns(someError)
-				})
-
-				It("returns the error", func() {
-					var receivedError error
-					Eventually(process.Wait()).Should(Receive(&receivedError))
-					Expect(receivedError).NotTo(BeNil())
-					Expect(receivedError).To(Equal(someError))
-				})
-			})
-
-			Context("result", func() {
-				It("is not successful", func() {
-					Eventually(runStep.RunCallCount).Should(Equal(1))
-
-					Expect(<-process.Wait()).To(Succeed())
-
-					var success Success
-					Expect(step.Result(&success)).To(BeTrue())
-					Expect(bool(success)).To(BeFalse())
-				})
-			})
-		})
-
-		Context("result", func() {
-			Context("when the process does not time out", func() {
-				BeforeEach(func() {
-					timeoutDuration = "10s"
-				})
-
-				Context("and the step is successful", func() {
-					BeforeEach(func() {
-						runStep.ResultStub = successResult(true)
-					})
-
-					It("is successful", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
-
-						var success Success
-						Expect(step.Result(&success)).To(BeTrue())
-						Expect(bool(success)).To(BeTrue())
-					})
-				})
-
-				Context("and the step fails", func() {
-					BeforeEach(func() {
-						runStep.ResultStub = successResult(false)
-					})
-
-					It("is not successful", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
-
-						var success Success
-						Expect(step.Result(&success)).To(BeTrue())
-						Expect(bool(success)).To(BeFalse())
-					})
-				})
+				Expect(<-receivedSignals).To(Equal(os.Kill))
 			})
 		})
 	})

@@ -4,6 +4,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
+	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -22,7 +23,7 @@ func (build *execBuild) buildAggregateStep(logger lager.Logger, plan atc.Plan) e
 
 func (build *execBuild) buildTimeoutStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
 	step := build.buildStepFactory(logger, plan.Timeout.Step)
-	return exec.Timeout(step, plan.Timeout.Duration)
+	return exec.Timeout(step, plan.Timeout.Duration, clock.NewClock())
 }
 
 func (build *execBuild) buildTryStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
