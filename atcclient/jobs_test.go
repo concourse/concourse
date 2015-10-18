@@ -5,8 +5,6 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/atcclient"
-	"github.com/concourse/fly/rc"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -14,30 +12,7 @@ import (
 )
 
 var _ = Describe("ATC Handler Jobs", func() {
-	var (
-		handler   atcclient.AtcHandler
-		atcServer *ghttp.Server
-		client    atcclient.Client
-	)
-
-	BeforeEach(func() {
-		var err error
-		atcServer = ghttp.NewServer()
-
-		client, err = atcclient.NewClient(
-			rc.NewTarget(atcServer.URL(), "", "", "", false),
-		)
-		Expect(err).NotTo(HaveOccurred())
-
-		handler = atcclient.NewAtcHandler(client)
-	})
-
-	AfterEach(func() {
-		atcServer.Close()
-	})
-
 	Describe("Job", func() {
-
 		var (
 			expectedPipelineName string
 			expectedJob          atc.Job
@@ -89,7 +64,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", expectedURL),
-					ghttp.RespondWithJSONEncoded(200, expectedJob, http.Header{}),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedJob),
 				),
 			)
 		})
