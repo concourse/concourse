@@ -1,8 +1,6 @@
 package engine_test
 
 import (
-	"os"
-
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
@@ -98,17 +96,9 @@ var _ = Describe("Exec Engine With Hooks", func() {
 			dependentStepFactory.UsingReturns(dependentStep)
 			fakeFactory.DependentGetReturns(dependentStepFactory)
 
-			assertNotReleased := func(signals <-chan os.Signal, ready chan<- struct{}) error {
-				defer GinkgoRecover()
-				Consistently(inputStep.ReleaseCallCount).Should(BeZero())
-				Consistently(taskStep.ReleaseCallCount).Should(BeZero())
-				Consistently(outputStep.ReleaseCallCount).Should(BeZero())
-				return nil
-			}
-
-			taskStep.RunStub = assertNotReleased
-			inputStep.RunStub = assertNotReleased
-			outputStep.RunStub = assertNotReleased
+			taskStep.RunReturns(nil)
+			inputStep.RunReturns(nil)
+			outputStep.RunReturns(nil)
 		})
 
 		Context("constructing steps", func() {
@@ -441,10 +431,10 @@ var _ = Describe("Exec Engine With Hooks", func() {
 				build.Resume(logger)
 
 				Expect(inputStep.RunCallCount()).To(Equal(1))
-				Expect(inputStep.ReleaseCallCount()).To(BeNumerically(">", 0))
+				Expect(inputStep.ReleaseCallCount()).To(Equal(1))
 
 				Expect(taskStep.RunCallCount()).To(Equal(1))
-				Expect(taskStep.ReleaseCallCount()).To(BeNumerically(">", 0))
+				Expect(taskStep.ReleaseCallCount()).To(Equal(1))
 			})
 
 			It("runs the success hooks, and completion hooks", func() {
@@ -498,16 +488,16 @@ var _ = Describe("Exec Engine With Hooks", func() {
 				build.Resume(logger)
 
 				Expect(inputStep.RunCallCount()).To(Equal(1))
-				Expect(inputStep.ReleaseCallCount()).To(BeNumerically(">", 0))
+				Expect(inputStep.ReleaseCallCount()).To(Equal(1))
 
 				Expect(taskStep.RunCallCount()).To(Equal(1))
-				Expect(taskStep.ReleaseCallCount()).To(BeNumerically(">", 0))
+				Expect(taskStep.ReleaseCallCount()).To(Equal(1))
 
 				Expect(outputStep.RunCallCount()).To(Equal(1))
-				Expect(outputStep.ReleaseCallCount()).To(BeNumerically(">", 0))
+				Expect(outputStep.ReleaseCallCount()).To(Equal(1))
 
 				Expect(dependentStep.RunCallCount()).To(Equal(1))
-				Expect(dependentStep.ReleaseCallCount()).To(BeNumerically(">", 0))
+				Expect(dependentStep.ReleaseCallCount()).To(Equal(1))
 			})
 
 			Context("when the success hook fails, and has a failure hook", func() {
@@ -565,10 +555,10 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					build.Resume(logger)
 
 					Expect(inputStep.RunCallCount()).To(Equal(1))
-					Expect(inputStep.ReleaseCallCount()).To(BeNumerically(">", 0))
+					Expect(inputStep.ReleaseCallCount()).To(Equal(1))
 
 					Expect(taskStep.RunCallCount()).To(Equal(2))
-					Expect(inputStep.ReleaseCallCount()).To(BeNumerically(">", 0))
+					Expect(inputStep.ReleaseCallCount()).To(Equal(1))
 
 					Expect(outputStep.RunCallCount()).To(Equal(0))
 					Expect(outputStep.ReleaseCallCount()).To(Equal(0))
@@ -622,10 +612,10 @@ var _ = Describe("Exec Engine With Hooks", func() {
 				build.Resume(logger)
 
 				Expect(inputStep.RunCallCount()).To(Equal(1))
-				Expect(inputStep.ReleaseCallCount()).To(BeNumerically(">", 0))
+				Expect(inputStep.ReleaseCallCount()).To(Equal(1))
 
 				Expect(taskStep.RunCallCount()).To(Equal(1))
-				Expect(inputStep.ReleaseCallCount()).To(BeNumerically(">", 0))
+				Expect(inputStep.ReleaseCallCount()).To(Equal(1))
 
 				Expect(outputStep.RunCallCount()).To(Equal(0))
 				Expect(outputStep.ReleaseCallCount()).To(Equal(0))
