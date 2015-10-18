@@ -12,14 +12,15 @@ import (
 	"github.com/concourse/atc/worker"
 	"github.com/tedsuo/ifrit"
 
+	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 )
 
-type resourceNotConfiguredError struct {
+type ResourceNotConfiguredError struct {
 	ResourceName string
 }
 
-func (err resourceNotConfiguredError) Error() string {
+func (err ResourceNotConfiguredError) Error() string {
 	return fmt.Sprintf("resource '%s' was not found in config", err.ResourceName)
 }
 
@@ -44,24 +45,24 @@ type RadarDB interface {
 }
 
 type Radar struct {
-	logger lager.Logger
-
-	tracker resource.Tracker
-
+	logger          lager.Logger
+	tracker         resource.Tracker
 	defaultInterval time.Duration
-
-	db RadarDB
+	db              RadarDB
+	clock           clock.Clock
 }
 
 func NewRadar(
 	tracker resource.Tracker,
 	defaultInterval time.Duration,
 	db RadarDB,
+	clock clock.Clock,
 ) *Radar {
 	return &Radar{
 		tracker:         tracker,
 		defaultInterval: defaultInterval,
 		db:              db,
+		clock:           clock,
 	}
 }
 
@@ -73,15 +74,16 @@ func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runn
 		close(ready)
 
 		for {
-			timer := time.NewTimer(interval)
+			timer := radar.clock.NewTimer(interval)
 
 			var resourceConfig atc.ResourceConfig
 
 			select {
 			case <-signals:
+				timer.Stop()
 				return nil
 
-			case <-timer.C:
+			case <-timer.C():
 				var err error
 
 				resourceConfig, err = radar.getResourceConfig(logger, resourceName)
@@ -171,7 +173,7 @@ func (radar *Radar) Scan(logger lager.Logger, resourceName string) error {
 
 		if !leased {
 			leaseLogger.Debug("did-not-get-lease")
-			time.Sleep(time.Second)
+			radar.clock.Sleep(time.Second)
 			continue
 		}
 
@@ -299,8 +301,7 @@ func (radar *Radar) getResourceConfig(logger lager.Logger, resourceName string) 
 	resourceConfig, found := config.Resources.Lookup(resourceName)
 	if !found {
 		logger.Info("resource-removed-from-configuration")
-		// return an error so that we exit
-		return resourceConfig, resourceNotConfiguredError{ResourceName: resourceName}
+		return resourceConfig, ResourceNotConfiguredError{ResourceName: resourceName}
 	}
 
 	return resourceConfig, nil

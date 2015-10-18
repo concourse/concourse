@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/factory"
+	"github.com/pivotal-golang/clock"
 )
 
 //go:generate counterfeiter . RadarSchedulerFactory
@@ -40,7 +41,7 @@ func NewRadarSchedulerFactory(
 }
 
 func (rsf *radarSchedulerFactory) BuildRadar(pipelineDB db.PipelineDB) *radar.Radar {
-	return radar.NewRadar(rsf.tracker, rsf.interval, pipelineDB)
+	return radar.NewRadar(rsf.tracker, rsf.interval, pipelineDB, clock.NewClock())
 }
 
 func (rsf *radarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB) *scheduler.Scheduler {

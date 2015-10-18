@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
+	"github.com/pivotal-golang/clock/fakeclock"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 
@@ -22,8 +23,11 @@ import (
 
 var _ = Describe("Radar", func() {
 	var (
+		epoch time.Time
+
 		fakeTracker *rfakes.FakeTracker
 		fakeRadarDB *fakes.FakeRadarDB
+		fakeClock   *fakeclock.FakeClock
 		interval    time.Duration
 
 		radar *Radar
@@ -37,12 +41,14 @@ var _ = Describe("Radar", func() {
 	)
 
 	BeforeEach(func() {
+		epoch = time.Unix(123, 456).UTC()
 		fakeTracker = new(rfakes.FakeTracker)
 		fakeRadarDB = new(fakes.FakeRadarDB)
-		interval = 100 * time.Millisecond
+		fakeClock = fakeclock.NewFakeClock(epoch)
+		interval = 1 * time.Minute
 
 		fakeRadarDB.GetPipelineNameReturns("some-pipeline-name")
-		radar = NewRadar(fakeTracker, interval, fakeRadarDB)
+		radar = NewRadar(fakeTracker, interval, fakeRadarDB, fakeClock)
 
 		resourceConfig = atc.ResourceConfig{
 			Name:   "some-resource",
@@ -86,7 +92,7 @@ var _ = Describe("Radar", func() {
 			times = make(chan time.Time, 100)
 
 			fakeResource.CheckStub = func(atc.Source, atc.Version) ([]atc.Version, error) {
-				times <- time.Now()
+				times <- fakeClock.Now()
 				return nil, nil
 			}
 		})
@@ -100,23 +106,30 @@ var _ = Describe("Radar", func() {
 			<-process.Wait()
 		})
 
-		Context("if the lease cannot be acquired", func() {
+		Context("when the lease cannot be acquired", func() {
 			BeforeEach(func() {
 				fakeRadarDB.LeaseResourceCheckingReturns(nil, false, nil)
 			})
 
-			It("grabs a resource checking lease before checking, breaks lease after done", func() {
-				Consistently(times, 500*time.Millisecond).ShouldNot(Receive())
+			It("does not check", func() {
+				Consistently(times).ShouldNot(Receive())
 			})
 		})
 
-		Context("if the lease can be acquired", func() {
+		Context("when the lease can be acquired", func() {
 			BeforeEach(func() {
 				fakeRadarDB.LeaseResourceCheckingReturns(fakeLease, true, nil)
 			})
 
+			It("checks immediately and then on a specified interval", func() {
+				Expect(<-times).To(Equal(epoch))
+
+				fakeClock.WaitForWatcherAndIncrement(interval)
+				Expect(<-times).To(Equal(epoch.Add(interval)))
+			})
+
 			It("constructs the resource of the correct type", func() {
-				Eventually(times).Should(Receive())
+				<-times
 
 				_, metadata, sessionID, typ, tags := fakeTracker.InitArgsForCall(0)
 				Expect(metadata).To(Equal(resource.EmptyMetadata{}))
@@ -137,16 +150,6 @@ var _ = Describe("Radar", func() {
 				Expect(tags).To(BeEmpty()) // This allows the check to run on any worker
 			})
 
-			It("checks on a specified interval", func() {
-				var time1 time.Time
-				var time2 time.Time
-
-				Eventually(times).Should(Receive(&time1))
-				Eventually(times).Should(Receive(&time2))
-
-				Expect(time2.Sub(time1)).To(BeNumerically("~", interval, interval/4))
-			})
-
 			Context("when the resource config has a specified check interval", func() {
 				BeforeEach(func() {
 					resourceConfig.CheckEvery = "10ms"
@@ -158,18 +161,15 @@ var _ = Describe("Radar", func() {
 					}, 1, true, nil)
 				})
 
-				It("should check using the specified interval instead of the default", func() {
-					var time1 time.Time
-					var time2 time.Time
+				It("checks using the specified interval instead of the default", func() {
+					Expect(<-times).To(Equal(epoch))
 
-					Eventually(times).Should(Receive(&time1))
-					Eventually(times).Should(Receive(&time2))
-
-					Expect(time2.Sub(time1)).To(BeNumerically("~", 10*time.Millisecond, 5*time.Millisecond))
+					fakeClock.WaitForWatcherAndIncrement(10 * time.Millisecond)
+					Expect(<-times).To(Equal(epoch.Add(10 * time.Millisecond)))
 				})
 
 				It("leases for the configured interval", func() {
-					Eventually(times).Should(Receive())
+					<-times
 
 					Expect(fakeRadarDB.LeaseResourceCheckingCallCount()).To(Equal(1))
 
@@ -204,7 +204,7 @@ var _ = Describe("Radar", func() {
 			})
 
 			It("grabs a periodic resource checking lease before checking, breaks lease after done", func() {
-				Eventually(times).Should(Receive())
+				<-times
 
 				Expect(fakeRadarDB.LeaseResourceCheckingCallCount()).To(Equal(1))
 
@@ -217,13 +217,13 @@ var _ = Describe("Radar", func() {
 			})
 
 			It("releases after checking", func() {
-				Eventually(times).Should(Receive())
+				<-times
 				Eventually(fakeResource.ReleaseCallCount).Should(Equal(1))
 			})
 
 			Context("when there is no current version", func() {
 				It("checks from nil", func() {
-					Eventually(times).Should(Receive())
+					<-times
 
 					_, version := fakeResource.CheckArgsForCall(0)
 					Expect(version).To(BeNil())
@@ -244,7 +244,7 @@ var _ = Describe("Radar", func() {
 				})
 
 				It("checks from it", func() {
-					Eventually(times).Should(Receive())
+					<-times
 
 					_, version := fakeResource.CheckArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"version": "1"}))
@@ -254,7 +254,8 @@ var _ = Describe("Radar", func() {
 						VersionedResource: db.VersionedResource{Version: db.Version{"version": "2"}},
 					}, true, nil)
 
-					Eventually(times).Should(Receive())
+					fakeClock.WaitForWatcherAndIncrement(interval)
+					<-times
 
 					_, version = fakeResource.CheckArgsForCall(1)
 					Expect(version).To(Equal(atc.Version{"version": "2"}))
@@ -308,7 +309,6 @@ var _ = Describe("Radar", func() {
 						{"version": "2"},
 						{"version": "3"},
 					}))
-
 				})
 			})
 
@@ -320,7 +320,7 @@ var _ = Describe("Radar", func() {
 				})
 
 				It("exits with the failure", func() {
-					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+					Expect(<-process.Wait()).To(Equal(disaster))
 				})
 			})
 
@@ -329,20 +329,8 @@ var _ = Describe("Radar", func() {
 					fakeRadarDB.IsPausedReturns(true, nil)
 				})
 
-				It("exits the process", func() {
-					Consistently(times, 500*time.Millisecond).ShouldNot(Receive())
-				})
-			})
-
-			Context("when checking if the resource is paused fails", func() {
-				disaster := errors.New("disaster")
-
-				BeforeEach(func() {
-					fakeRadarDB.IsPausedReturns(false, disaster)
-				})
-
-				It("exits the process", func() {
-					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+				It("does not check", func() {
+					Consistently(times).ShouldNot(Receive())
 				})
 			})
 
@@ -356,8 +344,20 @@ var _ = Describe("Radar", func() {
 					}, nil)
 				})
 
+				It("does not check", func() {
+					Consistently(times).ShouldNot(Receive())
+				})
+			})
+
+			Context("when checking if the resource is paused fails", func() {
+				disaster := errors.New("disaster")
+
+				BeforeEach(func() {
+					fakeRadarDB.IsPausedReturns(false, disaster)
+				})
+
 				It("exits the process", func() {
-					Consistently(times, 500*time.Millisecond).ShouldNot(Receive())
+					Expect(<-process.Wait()).To(Equal(disaster))
 				})
 			})
 
@@ -369,7 +369,7 @@ var _ = Describe("Radar", func() {
 				})
 
 				It("exits the process", func() {
-					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+					Expect(<-process.Wait()).To(Equal(disaster))
 				})
 			})
 
@@ -411,12 +411,13 @@ var _ = Describe("Radar", func() {
 					})
 
 					It("checks using the new config", func() {
-						Eventually(times).Should(Receive())
+						<-times
 
 						source, _ := fakeResource.CheckArgsForCall(0)
 						Expect(source).To(Equal(resourceConfig.Source))
 
-						Eventually(times).Should(Receive())
+						fakeClock.WaitForWatcherAndIncrement(interval)
+						<-times
 
 						source, _ = fakeResource.CheckArgsForCall(1)
 						Expect(source).To(Equal(atc.Source{"uri": "http://example.com/updated-uri"}))
@@ -440,18 +441,16 @@ var _ = Describe("Radar", func() {
 					})
 
 					It("checks on the new interval", func() {
-						var time1 time.Time
-						var time2 time.Time
+						<-times // ignore immediate first check
 
-						Eventually(times).Should(Receive()) // ignore immediate first check
+						fakeClock.WaitForWatcherAndIncrement(interval)
+						Expect(<-times).To(Equal(epoch.Add(interval)))
 
-						Eventually(times).Should(Receive(&time1))
+						fakeClock.WaitForWatcherAndIncrement(newInterval)
+						Expect(<-times).To(Equal(epoch.Add(interval + newInterval)))
 
 						source, _ := fakeResource.CheckArgsForCall(0)
 						Expect(source).To(Equal(newResource.Source))
-
-						Eventually(times).Should(Receive(&time2))
-						Expect(time2.Sub(time1)).To(BeNumerically("~", newInterval, newInterval/2))
 					})
 
 					Context("when the interval cannot be parsed", func() {
@@ -464,6 +463,10 @@ var _ = Describe("Radar", func() {
 						})
 
 						It("sets the check error and exits with the error", func() {
+							<-times
+
+							fakeClock.WaitForWatcherAndIncrement(interval)
+
 							Expect(<-process.Wait()).To(HaveOccurred())
 							Expect(fakeRadarDB.SetResourceCheckErrorCallCount()).To(Equal(2))
 
@@ -489,20 +492,17 @@ var _ = Describe("Radar", func() {
 						})
 
 						It("goes back to the default interval", func() {
-							var time0 time.Time
-							Eventually(times).Should(Receive(&time0)) // ignore immediate first check
+							Expect(<-times).To(Equal(epoch)) // ignore immediate first check
 
-							var time1 time.Time
-							Eventually(times).Should(Receive(&time1))
-							Expect(time1.Sub(time0)).To(BeNumerically("~", interval, interval/2))
+							fakeClock.WaitForWatcherAndIncrement(interval)
+							Expect(<-times).To(Equal(epoch.Add(interval)))
 
-							var time2 time.Time
-							Eventually(times).Should(Receive(&time2))
-							Expect(time2.Sub(time1)).To(BeNumerically("~", newInterval, newInterval/2))
+							fakeClock.WaitForWatcherAndIncrement(newInterval)
+							Expect(<-times).To(Equal(epoch.Add(interval + newInterval)))
 
-							var time3 time.Time
-							Eventually(times).Should(Receive(&time3))
-							Expect(time3.Sub(time2)).To(BeNumerically("~", interval, interval/2))
+							fakeClock.WaitForWatcherAndIncrement(newInterval)
+							fakeClock.Increment(interval - newInterval)
+							Expect(<-times).To(Equal(epoch.Add(interval + newInterval + interval)))
 						})
 					})
 				})
@@ -515,38 +515,30 @@ var _ = Describe("Radar", func() {
 					})
 
 					It("exits with the correct error", func() {
-						var resourceRemovedError error
-						Eventually(process.Wait()).Should(Receive(&resourceRemovedError))
-						Expect(resourceRemovedError.Error()).To(Equal("resource 'some-resource' was not found in config"))
+						<-times
+
+						fakeClock.WaitForWatcherAndIncrement(interval)
+
+						Expect(<-process.Wait()).To(Equal(ResourceNotConfiguredError{"some-resource"}))
 					})
 				})
 			})
 
-			Context("and checking takes a while", func() {
+			Context("when checking takes a while", func() {
 				BeforeEach(func() {
-					checked := false
-
 					fakeResource.CheckStub = func(atc.Source, atc.Version) ([]atc.Version, error) {
-						times <- time.Now()
-
-						if checked {
-							time.Sleep(interval)
-						}
-
-						checked = true
-
+						times <- fakeClock.Now()
+						fakeClock.Increment(interval / 2)
 						return nil, nil
 					}
 				})
 
 				It("does not count it towards the interval", func() {
-					var time1 time.Time
-					var time2 time.Time
+					Expect(<-times).To(Equal(epoch))
 
-					Eventually(times).Should(Receive(&time1))
-					Eventually(times, 2).Should(Receive(&time2))
-
-					Expect(time2.Sub(time1)).To(BeNumerically("~", interval, interval/2))
+					fakeClock.WaitForWatcherAndIncrement(interval / 2)
+					fakeClock.Increment(interval / 2)
+					Expect(<-times).To(Equal(epoch.Add(interval + (interval / 2))))
 				})
 			})
 		})
@@ -664,12 +656,14 @@ var _ = Describe("Radar", func() {
 						if <-results {
 							return fakeLease, true, nil
 						} else {
+							// allow the sleep to continue
+							go fakeClock.WaitForWatcherAndIncrement(time.Second)
 							return nil, false, nil
 						}
 					}
 				})
 
-				It("retries until it is", func() {
+				It("retries every second until it is", func() {
 					Expect(fakeRadarDB.LeaseResourceCheckingCallCount()).To(Equal(3))
 
 					resourceName, leaseInterval, immediate := fakeRadarDB.LeaseResourceCheckingArgsForCall(0)
