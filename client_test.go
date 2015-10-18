@@ -44,7 +44,7 @@ var _ = Describe("ATC Client", func() {
 		})
 	})
 
-	Describe("#MakeRequest", func() {
+	Describe("#Send", func() {
 		var (
 			atcServer *ghttp.Server
 			client    Client
@@ -72,7 +72,11 @@ var _ = Describe("ATC Client", func() {
 				),
 			)
 			var build atc.Build
-			err := client.MakeRequest(&build, atc.GetBuild, map[string]string{"build_id": "foo"}, nil, nil)
+			err := client.Send(Request{
+				RequestName: atc.GetBuild,
+				Params:      map[string]string{"build_id": "foo"},
+				Result:      &build,
+			})
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(len(atcServer.ReceivedRequests())).To(Equal(1))
@@ -105,7 +109,11 @@ var _ = Describe("ATC Client", func() {
 				),
 			)
 			var containers []atc.Container
-			err := client.MakeRequest(&containers, atc.ListContainers, nil, map[string]string{"type": "check"}, nil)
+			err := client.Send(Request{
+				Result:      &containers,
+				RequestName: atc.ListContainers,
+				Queries:     map[string]string{"type": "check"},
+			})
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(len(atcServer.ReceivedRequests())).To(Equal(1))
@@ -135,7 +143,11 @@ var _ = Describe("ATC Client", func() {
 
 			It("Sets the username and password if given", func() {
 				var build atc.Build
-				err := client.MakeRequest(&build, atc.GetBuild, map[string]string{"build_id": "foo"}, nil, nil)
+				err := client.Send(Request{
+					RequestName: atc.GetBuild,
+					Params:      map[string]string{"build_id": "foo"},
+					Result:      &build,
+				})
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
@@ -160,7 +172,10 @@ var _ = Describe("ATC Client", func() {
 				})
 
 				It("Sets the username and password if given", func() {
-					err := client.MakeRequest(nil, atc.DeletePipeline, map[string]string{"pipeline_name": "foo"}, nil, nil)
+					err := client.Send(Request{
+						RequestName: atc.DeletePipeline,
+						Params:      map[string]string{"pipeline_name": "foo"},
+					})
 					Expect(err).NotTo(HaveOccurred())
 				})
 			})
@@ -184,7 +199,10 @@ var _ = Describe("ATC Client", func() {
 				})
 
 				It("returns back UnexpectedResponseError", func() {
-					err := client.MakeRequest(nil, atc.DeletePipeline, map[string]string{"pipeline_name": "foo"}, nil, nil)
+					err := client.Send(Request{
+						RequestName: atc.DeletePipeline,
+						Params:      map[string]string{"pipeline_name": "foo"},
+					})
 					Expect(err).To(HaveOccurred())
 					ure, ok := err.(UnexpectedResponseError)
 					Expect(ok).To(BeTrue())
@@ -229,7 +247,10 @@ var _ = Describe("ATC Client", func() {
 			})
 
 			It("serializes the given body and sends it in the request body", func() {
-				err := client.MakeRequest(nil, atc.CreateBuild, nil, nil, plan)
+				err := client.Send(Request{
+					RequestName: atc.CreateBuild,
+					Body:        plan,
+				})
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
