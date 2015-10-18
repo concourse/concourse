@@ -17,7 +17,14 @@ import (
 
 //go:generate counterfeiter . Client
 type Client interface {
-	MakeRequest(result interface{}, requestName string, params map[string]string, queries map[string]string, body interface{}) error
+	Send(request Request) error
+}
+type Request struct {
+	RequestName string
+	Params      map[string]string
+	Queries     map[string]string
+	Body        interface{}
+	Result      interface{}
 }
 
 type UnexpectedResponseError struct {
@@ -52,8 +59,13 @@ func NewClient(target rc.TargetProps) (Client, error) {
 	return &client, nil
 }
 
-func (client *AtcClient) MakeRequest(result interface{}, requestName string, params map[string]string, queries map[string]string, body interface{}) error {
-	req, err := client.createRequest(requestName, params, queries, body)
+func (client *AtcClient) Send(passedRequest Request) error {
+	req, err := client.createHttpRequest(
+		passedRequest.RequestName,
+		passedRequest.Params,
+		passedRequest.Queries,
+		passedRequest.Body,
+	)
 
 	response, err := client.httpClient.Do(req)
 	if err != nil {
@@ -73,14 +85,14 @@ func (client *AtcClient) MakeRequest(result interface{}, requestName string, par
 		}
 	}
 
-	err = json.NewDecoder(response.Body).Decode(result)
+	err = json.NewDecoder(response.Body).Decode(passedRequest.Result)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (client *AtcClient) createRequest(requestName string, params map[string]string, queries map[string]string, body interface{}) (*http.Request, error) {
+func (client *AtcClient) createHttpRequest(requestName string, params map[string]string, queries map[string]string, body interface{}) (*http.Request, error) {
 	buffer := &bytes.Buffer{}
 	if body != nil {
 		err := json.NewEncoder(buffer).Encode(body)

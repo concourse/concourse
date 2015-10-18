@@ -8,6 +8,10 @@ func (handler AtcHandler) PipelineConfig(pipelineName string) (atc.Config, error
 	// }
 	params := map[string]string{"pipeline_name": pipelineName}
 	var config atc.Config
-	err := handler.client.MakeRequest(&config, atc.GetConfig, params, nil, nil)
+	err := handler.client.Send(Request{
+		RequestName: atc.GetConfig,
+		Params:      params,
+		Result:      &config,
+	})
 	return config, err
 }
