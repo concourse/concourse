@@ -7,6 +7,16 @@ import (
 	"github.com/concourse/atc"
 )
 
+func (handler AtcHandler) ListPipelines() ([]atc.Pipeline, error) {
+	var pipelines []atc.Pipeline
+	err := handler.client.Send(Request{
+		RequestName: atc.ListPipelines,
+		Result:      &pipelines,
+	})
+
+	return pipelines, err
+}
+
 func (handler AtcHandler) DeletePipeline(pipelineName string) error {
 	params := map[string]string{"pipeline_name": pipelineName}
 	err := handler.client.Send(Request{

@@ -21,6 +21,7 @@ type Handler interface {
 	Job(pipelineName, jobName string) (atc.Job, error)
 	JobBuild(pipelineName, jobName, buildName string) (atc.Build, error)
 	ListContainers() ([]atc.Container, error)
+	ListPipelines() ([]atc.Pipeline, error)
 	PipelineConfig(pipelineName string) (atc.Config, error)
 }
 

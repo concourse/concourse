@@ -1,16 +1,12 @@
 package commands
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
-	"net/http"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/fly/atcclient"
 	"github.com/concourse/fly/rc"
 	"github.com/fatih/color"
-	"github.com/tedsuo/rata"
 )
 
 type PipelinesCommand struct{}
@@ -38,30 +34,15 @@ func (command *PipelinesCommand) Execute([]string) error {
 		return nil
 	}
 
-	atcRequester := newAtcRequester(target.URL(), target.Insecure)
-
-	request, err := atcRequester.CreateRequest(atc.ListPipelines, rata.Params{}, nil)
+	client, err := atcclient.NewClient(*target)
 	if err != nil {
-		return err
+		log.Fatalln(err)
 	}
+	handler := atcclient.NewAtcHandler(client)
 
-	response, err := atcRequester.httpClient.Do(request)
+	pipelines, err := handler.ListPipelines()
 	if err != nil {
-		return err
-	}
-
-	if response.StatusCode == http.StatusInternalServerError {
-		return errors.New("unexpected server error")
-	}
-
-	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected response code: %s", response.Status)
-	}
-
-	var pipelines []atc.Pipeline
-	err = json.NewDecoder(response.Body).Decode(&pipelines)
-	if err != nil {
-		return err
+		log.Fatalln(err)
 	}
 
 	table := Table{
