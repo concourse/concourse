@@ -12,7 +12,5 @@ if not_installed ginkgo; then
   exit 1
 fi
 
-pushd $(dirname $0)/..
-trap popd EXIT
-
+cd $(dirname $0)/..
 ginkgo -r -p
