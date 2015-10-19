@@ -1,9 +1,11 @@
 package algorithm_test
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 
-	. "github.com/concourse/atc/db/algorithm"
+	"github.com/concourse/atc/db/algorithm"
 	. "github.com/onsi/gomega"
 )
 
@@ -17,6 +19,7 @@ type DBRow struct {
 }
 
 type Example struct {
+	LoadDB string
 	DB     DB
 	Inputs Inputs
 	Result Result
@@ -55,40 +58,61 @@ func (mapping StringMapping) Name(id int) string {
 }
 
 func (example Example) Run() {
+	db := &algorithm.VersionsDB{}
+
 	jobIDs := StringMapping{}
 	resourceIDs := StringMapping{}
 	versionIDs := StringMapping{}
 
-	inputConfigs := make(InputConfigs, len(example.Inputs))
+	if example.LoadDB != "" {
+		dbFile, err := os.Open(example.LoadDB)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = json.NewDecoder(dbFile).Decode(db)
+		Expect(err).ToNot(HaveOccurred())
+
+		for name, id := range db.JobIDs {
+			jobIDs[name] = id
+		}
+
+		for name, id := range db.ResourceIDs {
+			resourceIDs[name] = id
+		}
+
+		for _, v := range db.ResourceVersions {
+			importedName := fmt.Sprintf("imported-r%dv%d", v.ResourceID, v.VersionID)
+			versionIDs[importedName] = v.VersionID
+		}
+	} else {
+		for _, row := range example.DB {
+			version := algorithm.ResourceVersion{
+				VersionID:  versionIDs.ID(row.Version),
+				ResourceID: resourceIDs.ID(row.Resource),
+			}
+
+			if row.Job != "" {
+				db.BuildOutputs = append(db.BuildOutputs, algorithm.BuildOutput{
+					ResourceVersion: version,
+					BuildID:         row.BuildID,
+					JobID:           jobIDs.ID(row.Job),
+				})
+			} else {
+				db.ResourceVersions = append(db.ResourceVersions, version)
+			}
+		}
+	}
+
+	inputConfigs := make(algorithm.InputConfigs, len(example.Inputs))
 	for i, input := range example.Inputs {
-		passed := JobSet{}
+		passed := algorithm.JobSet{}
 		for _, jobName := range input.Passed {
 			passed[jobIDs.ID(jobName)] = struct{}{}
 		}
 
-		inputConfigs[i] = InputConfig{
+		inputConfigs[i] = algorithm.InputConfig{
 			Name:       input.Name,
 			Passed:     passed,
 			ResourceID: resourceIDs.ID(input.Resource),
-		}
-	}
-
-	db := &VersionsDB{}
-
-	for _, row := range example.DB {
-		version := ResourceVersion{
-			VersionID:  versionIDs.ID(row.Version),
-			ResourceID: resourceIDs.ID(row.Resource),
-		}
-
-		if row.Job != "" {
-			db.BuildOutputs = append(db.BuildOutputs, BuildOutput{
-				ResourceVersion: version,
-				BuildID:         row.BuildID,
-				JobID:           jobIDs.ID(row.Job),
-			})
-		} else {
-			db.ResourceVersions = append(db.ResourceVersions, version)
 		}
 	}
 
