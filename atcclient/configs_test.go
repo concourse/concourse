@@ -12,69 +12,107 @@ import (
 
 var _ = Describe("ATC Handler Configs", func() {
 	Describe("PipelineConfig", func() {
-		var (
-			expectedConfig atc.Config
-			expectedURL    string
-		)
+		expectedURL := "/api/v1/pipelines/mypipeline/config"
 
-		JustBeforeEach(func() {
-			expectedURL = "/api/v1/pipelines/mypipeline/config"
-
-			expectedConfig = atc.Config{
-				Groups: atc.GroupConfigs{
-					{
-						Name:      "some-group",
-						Jobs:      []string{"job-1", "job-2"},
-						Resources: []string{"resource-1", "resource-2"},
-					},
-					{
-						Name:      "some-other-group",
-						Jobs:      []string{"job-3", "job-4"},
-						Resources: []string{"resource-6", "resource-4"},
-					},
-				},
-
-				Resources: atc.ResourceConfigs{
-					{
-						Name: "some-resource",
-						Type: "some-type",
-						Source: atc.Source{
-							"source-config": "some-value",
-						},
-					},
-					{
-						Name: "some-other-resource",
-						Type: "some-other-type",
-						Source: atc.Source{
-							"source-config": "some-value",
-						},
-					},
-				},
-
-				Jobs: atc.JobConfigs{
-					{
-						Name:   "some-job",
-						Public: true,
-						Serial: true,
-					},
-					{
-						Name: "some-other-job",
-					},
-				},
-			}
-
-			atcServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", expectedURL),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedConfig),
-				),
+		Context("ATC returns the correct response", func() {
+			var (
+				expectedConfig  atc.Config
+				expectedVersion string
 			)
+
+			BeforeEach(func() {
+				expectedConfig = atc.Config{
+					Groups: atc.GroupConfigs{
+						{
+							Name:      "some-group",
+							Jobs:      []string{"job-1", "job-2"},
+							Resources: []string{"resource-1", "resource-2"},
+						},
+						{
+							Name:      "some-other-group",
+							Jobs:      []string{"job-3", "job-4"},
+							Resources: []string{"resource-6", "resource-4"},
+						},
+					},
+
+					Resources: atc.ResourceConfigs{
+						{
+							Name: "some-resource",
+							Type: "some-type",
+							Source: atc.Source{
+								"source-config": "some-value",
+							},
+						},
+						{
+							Name: "some-other-resource",
+							Type: "some-other-type",
+							Source: atc.Source{
+								"source-config": "some-value",
+							},
+						},
+					},
+
+					Jobs: atc.JobConfigs{
+						{
+							Name:   "some-job",
+							Public: true,
+							Serial: true,
+						},
+						{
+							Name: "some-other-job",
+						},
+					},
+				}
+
+				expectedVersion = "42"
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedConfig, http.Header{atc.ConfigVersionHeader: {expectedVersion}}),
+					),
+				)
+			})
+
+			It("returns the given config and version for that pipeline", func() {
+				pipelineConfig, version, err := handler.PipelineConfig("mypipeline")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(pipelineConfig).To(Equal(expectedConfig))
+				Expect(version).To(Equal(expectedVersion))
+			})
 		})
 
-		It("returns the given config for that pipeline", func() {
-			pipelineConfig, err := handler.PipelineConfig("mypipeline")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(pipelineConfig).To(Equal(expectedConfig))
+		Context("ATC returns an error", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWith(http.StatusInternalServerError, ""),
+					),
+				)
+			})
+
+			It("returns the error", func() {
+				_, _, err := handler.PipelineConfig("mypipeline")
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("ATC does not return config version error", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Config{}),
+					),
+				)
+			})
+
+			It("returns an empty value for the version", func() {
+				_, version, err := handler.PipelineConfig("mypipeline")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(version).To(BeEmpty())
+			})
 		})
 	})
 })

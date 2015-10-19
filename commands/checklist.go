@@ -47,7 +47,7 @@ func (command *ChecklistCommand) Execute([]string) error {
 		log.Fatalln(err)
 	}
 	handler := atcclient.NewAtcHandler(client)
-	config, err := handler.PipelineConfig(pipelineName)
+	config, _, err := handler.PipelineConfig(pipelineName)
 	if err != nil {
 		log.Fatalln(err)
 	}

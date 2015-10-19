@@ -2,8 +2,6 @@ package commands
 
 import (
 	"bytes"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,6 +12,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"
+	"github.com/concourse/fly/atcclient"
 	"github.com/concourse/fly/template"
 	"github.com/onsi/gomega/gexec"
 	"github.com/tedsuo/rata"
@@ -22,13 +21,17 @@ import (
 
 type ATCConfig struct {
 	pipelineName        string
+	handler             atcclient.Handler
 	apiRequester        *atcRequester
 	webRequestGenerator *rata.RequestGenerator
 }
 
 func (atcConfig ATCConfig) Set(paused PipelineAction, configPath PathFlag, templateVariables template.Variables, templateVariablesFiles []PathFlag) {
 	newConfig, newRawConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables)
-	existingConfig, existingConfigVersion := atcConfig.existingConfig()
+	existingConfig, existingConfigVersion, err := atcConfig.handler.PipelineConfig(atcConfig.pipelineName)
+	if err != nil {
+		failWithErrorf("failed to evaluate variables into template", err)
+	}
 
 	diff(existingConfig, newConfig)
 
@@ -67,36 +70,6 @@ func (atcConfig ATCConfig) newConfig(configPath PathFlag, templateVariablesFiles
 	}
 
 	return newConfig, configFile
-}
-
-func (atcConfig ATCConfig) existingConfig() (atc.Config, string) {
-	getConfig, err := atcConfig.apiRequester.CreateRequest(
-		atc.GetConfig,
-		rata.Params{"pipeline_name": atcConfig.pipelineName},
-		nil,
-	)
-	if err != nil {
-		failWithErrorf("failed to build request", err)
-	}
-
-	resp, err := atcConfig.apiRequester.httpClient.Do(getConfig)
-	if err != nil {
-		failWithErrorf("failed to retrieve current configuration", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		failWithErrorf("bad response when getting config", errors.New(resp.Status))
-	}
-
-	version := resp.Header.Get(atc.ConfigVersionHeader)
-
-	var existingConfig atc.Config
-	err = json.NewDecoder(resp.Body).Decode(&existingConfig)
-	if err != nil {
-		failWithErrorf("invalid configuration from server", err)
-	}
-
-	return existingConfig, version
 }
 
 func (atcConfig ATCConfig) submitConfig(configFile []byte, paused PipelineAction, existingConfigVersion string) *http.Response {

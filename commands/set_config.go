@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/concourse/atc/web"
+	"github.com/concourse/fly/atcclient"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/template"
 	"github.com/tedsuo/rata"
@@ -36,14 +37,6 @@ func init() {
 }
 
 func (command *SetConfigCommand) Execute(args []string) error {
-	var paused PipelineAction
-
-	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
-	if err != nil {
-		log.Fatalln(err)
-		return nil
-	}
-
 	configPath := command.Config
 	templateVariablesFiles := command.VarsFrom
 	pipelineName := command.Pipeline
@@ -53,6 +46,7 @@ func (command *SetConfigCommand) Execute(args []string) error {
 		templateVariables[v.Name] = v.Value
 	}
 
+	var paused PipelineAction
 	if command.Paused != "" {
 		if command.Paused == "true" {
 			paused = PausePipeline
@@ -65,6 +59,17 @@ func (command *SetConfigCommand) Execute(args []string) error {
 		paused = DoNotChangePipeline
 	}
 
+	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
+	if err != nil {
+		log.Fatalln(err)
+		return nil
+	}
+	client, err := atcclient.NewClient(*target)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	handler := atcclient.NewAtcHandler(client)
+
 	apiRequester := newAtcRequester(target.URL(), target.Insecure)
 	webRequestGenerator := rata.NewRequestGenerator(target.URL(), web.Routes)
 
@@ -72,6 +77,7 @@ func (command *SetConfigCommand) Execute(args []string) error {
 		pipelineName:        pipelineName,
 		apiRequester:        apiRequester,
 		webRequestGenerator: webRequestGenerator,
+		handler:             handler,
 	}
 
 	atcConfig.Set(paused, configPath, templateVariables, templateVariablesFiles)
