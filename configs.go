@@ -11,7 +11,8 @@ func (handler AtcHandler) PipelineConfig(pipelineName string) (atc.Config, error
 	err := handler.client.Send(Request{
 		RequestName: atc.GetConfig,
 		Params:      params,
-		Result:      &config,
+	}, Response{
+		Result: &config,
 	})
 	return config, err
 }

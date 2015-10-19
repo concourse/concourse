@@ -10,9 +10,10 @@ import (
 func (handler AtcHandler) CreateBuild(plan atc.Plan) (atc.Build, error) {
 	var build atc.Build
 	err := handler.client.Send(Request{
-		Result:      &build,
 		RequestName: atc.CreateBuild,
 		Body:        plan,
+	}, Response{
+		Result: &build,
 	})
 
 	if ure, ok := err.(UnexpectedResponseError); ok {
@@ -33,7 +34,8 @@ func (handler AtcHandler) JobBuild(pipelineName, jobName, buildName string) (atc
 	err := handler.client.Send(Request{
 		RequestName: atc.GetJobBuild,
 		Params:      params,
-		Result:      &build,
+	}, Response{
+		Result: &build,
 	})
 
 	if ure, ok := err.(UnexpectedResponseError); ok {
@@ -51,7 +53,8 @@ func (handler AtcHandler) Build(buildID string) (atc.Build, error) {
 	err := handler.client.Send(Request{
 		RequestName: atc.GetBuild,
 		Params:      params,
-		Result:      &build,
+	}, Response{
+		Result: &build,
 	})
 
 	if ure, ok := err.(UnexpectedResponseError); ok {
@@ -67,7 +70,8 @@ func (handler AtcHandler) AllBuilds() ([]atc.Build, error) {
 	var builds []atc.Build
 	err := handler.client.Send(Request{
 		RequestName: atc.ListBuilds,
-		Result:      &builds,
+	}, Response{
+		Result: &builds,
 	})
 	return builds, err
 }
@@ -77,6 +81,6 @@ func (handler AtcHandler) AbortBuild(buildID string) error {
 	return handler.client.Send(Request{
 		RequestName: atc.AbortBuild,
 		Params:      params,
-	})
+	}, Response{})
 
 }
