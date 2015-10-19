@@ -1,19 +1,16 @@
 package commands
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/atcclient"
 	"github.com/concourse/fly/rc"
 	"github.com/fatih/color"
-	"github.com/tedsuo/rata"
 )
 
 type WorkersCommand struct {
@@ -40,33 +37,17 @@ func (command *WorkersCommand) Execute([]string) error {
 	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
 	if err != nil {
 		log.Fatalln(err)
-		return nil
 	}
 
-	atcRequester := newAtcRequester(target.URL(), target.Insecure)
-
-	request, err := atcRequester.CreateRequest(atc.ListWorkers, rata.Params{}, nil)
+	client, err := atcclient.NewClient(*target)
 	if err != nil {
-		return err
+		log.Fatalln(err)
 	}
+	handler := atcclient.NewAtcHandler(client)
 
-	response, err := atcRequester.httpClient.Do(request)
+	workers, err := handler.ListWorkers()
 	if err != nil {
-		return err
-	}
-
-	if response.StatusCode == http.StatusInternalServerError {
-		return errors.New("unexpected server error")
-	}
-
-	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected response code: %s", response.Status)
-	}
-
-	var workers []atc.Worker
-	err = json.NewDecoder(response.Body).Decode(&workers)
-	if err != nil {
-		return err
+		log.Fatalln(err)
 	}
 
 	headers := TableRow{

@@ -111,23 +111,7 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("writes an error message to stderr", func() {
-				Eventually(sess.Err).Should(gbytes.Say("unexpected server error"))
-				Eventually(sess).Should(gexec.Exit(1))
-			})
-		})
-
-		Context("and the api returns an unexpected status code", func() {
-			BeforeEach(func() {
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/workers"),
-						ghttp.RespondWith(402, ""),
-					),
-				)
-			})
-
-			It("writes an error message to stderr", func() {
-				Eventually(sess.Err).Should(gbytes.Say("unexpected response code: 402"))
+				Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
 				Eventually(sess).Should(gexec.Exit(1))
 			})
 		})
