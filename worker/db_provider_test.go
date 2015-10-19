@@ -19,6 +19,12 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+type immediateRetryPolicy struct{}
+
+func (immediateRetryPolicy) DelayFor(uint) (time.Duration, bool) {
+	return 0, true
+}
+
 var _ = Describe("DBProvider", func() {
 	var (
 		fakeDB *fakes.FakeWorkerDB
@@ -47,9 +53,7 @@ var _ = Describe("DBProvider", func() {
 		err := workerServer.Start()
 		Expect(err).NotTo(HaveOccurred())
 
-		provider = NewDBWorkerProvider(logger, fakeDB, nil, ExponentialRetryPolicy{
-			Timeout: 8 * time.Second,
-		})
+		provider = NewDBWorkerProvider(logger, fakeDB, nil, immediateRetryPolicy{})
 	})
 
 	AfterEach(func() {
@@ -181,7 +185,6 @@ var _ = Describe("DBProvider", func() {
 					Expect(actualErr).To(HaveOccurred())
 					Expect(actualErr).To(Equal(expectedErr))
 				})
-
 			})
 
 			Describe("a created container", func() {
