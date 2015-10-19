@@ -2,14 +2,15 @@
 
 set -e
 
-check_installed() {
-  if ! command -v $1 > /dev/null 2>&1; then
-    printf "$1 must be installed before running this script!"
-    exit 1
-  fi
+not_installed() {
+  ! command -v $1 > /dev/null 2>&1
 }
 
-check_installed ginkgo
+if not_installed ginkssgo; then
+  echo "# ginkgo is not installed! run the following command:"
+  echo "    go install github.com/onsi/ginkgo/ginkgo"
+  exit 1
+fi
 
 pushd $(dirname $0)/..
 trap popd EXIT
