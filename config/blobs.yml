@@ -68,10 +68,10 @@ resources/bosh-io-release-resource.tar.gz:
     NTQyMWUyNzE2OGI2MmVjMzk3ZWYzOWQ1MTNiNzhmN2JhOWQ2YjNhOA==
   size: 8778866
 resources/bosh-deployment-resource.tar.gz:
-  object_id: 7f8fbed9-8429-4e0e-b394-ecde3450bbf0
+  object_id: 1037bfd6-f9d6-4d58-b1ab-0b6d81cdf52c
   sha: !binary |-
-    YTA1NGFhYTczY2VmM2EzYzJlOWZjNzllYzM1OTZhYWE3NmI3YzVlYg==
-  size: 22394143
+    ZGZlZDc5ZGM0NDc1OWMwZTMzOTBhMTdlYWIxODQ3N2MxZTAxZjA2OQ==
+  size: 22425932
 btrfs_tools_3.12/btrfs:
   object_id: 8a522cff-b202-43a6-8d10-7e68c473f66e
   sha: 5d7afc7cff4e2d842dcc22129799b1329ed2e868
