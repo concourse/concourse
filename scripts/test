@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -e
+
+not_installed() {
+  ! command -v $1 > /dev/null 2>&1
+}
+
+atc_dir=$(realpath $(dirname $(dirname $0)))
+
+if not_installed ginkgo; then
+  echo "# ginkgo is not installed! run the following command:"
+  echo "    go install github.com/onsi/ginkgo/ginkgo"
+  exit 1
+fi
+
+if not_installed npm; then
+  echo "# npm is not installed! run the following command:"
+  echo "    brew install node"
+  exit 1
+fi
+
+if not_installed gulp; then
+  echo "# gulp is not installed! run the following commands:"
+  echo "    pushd $atc_dir/web/assets"
+  echo "    npm install"
+  echo "    popd"
+  exit 1
+fi
+
+cd $atc_dir
+ginkgo -r -p
+
+cd $atc_dir/web/assets
+gulp jasmine-cli
