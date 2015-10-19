@@ -11,7 +11,8 @@ func (handler AtcHandler) ListPipelines() ([]atc.Pipeline, error) {
 	var pipelines []atc.Pipeline
 	err := handler.client.Send(Request{
 		RequestName: atc.ListPipelines,
-		Result:      &pipelines,
+	}, Response{
+		Result: &pipelines,
 	})
 
 	return pipelines, err
@@ -22,7 +23,7 @@ func (handler AtcHandler) DeletePipeline(pipelineName string) error {
 	err := handler.client.Send(Request{
 		RequestName: atc.DeletePipeline,
 		Params:      params,
-	})
+	}, Response{})
 
 	if ure, ok := err.(UnexpectedResponseError); ok {
 		if ure.StatusCode == http.StatusNotFound {

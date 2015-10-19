@@ -8,7 +8,8 @@ func (handler AtcHandler) BuildInputsForJob(pipelineName string, jobName string)
 	err := handler.client.Send(Request{
 		RequestName: atc.ListJobInputs,
 		Params:      params,
-		Result:      &buildInputs,
+	}, Response{
+		Result: &buildInputs,
 	})
 	return buildInputs, err
 }

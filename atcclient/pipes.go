@@ -6,7 +6,8 @@ func (handler AtcHandler) CreatePipe() (atc.Pipe, error) {
 	var pipe atc.Pipe
 	err := handler.client.Send(Request{
 		RequestName: atc.CreatePipe,
-		Result:      &pipe,
+	}, Response{
+		Result: &pipe,
 	})
 
 	return pipe, err

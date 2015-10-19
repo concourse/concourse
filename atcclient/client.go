@@ -17,14 +17,20 @@ import (
 
 //go:generate counterfeiter . Client
 type Client interface {
-	Send(request Request) error
+	Send(request Request, response Response) error
 }
+
 type Request struct {
 	RequestName string
 	Params      map[string]string
 	Queries     map[string]string
+	Headers     map[string][]string
 	Body        interface{}
-	Result      interface{}
+}
+
+type Response struct {
+	Result  interface{}
+	Headers *map[string][]string
 }
 
 type UnexpectedResponseError struct {
@@ -59,13 +65,8 @@ func NewClient(target rc.TargetProps) (Client, error) {
 	return &client, nil
 }
 
-func (client *AtcClient) Send(passedRequest Request) error {
-	req, err := client.createHttpRequest(
-		passedRequest.RequestName,
-		passedRequest.Params,
-		passedRequest.Queries,
-		passedRequest.Body,
-	)
+func (client *AtcClient) Send(passedRequest Request, passedResponse Response) error {
+	req, err := client.createHttpRequest(passedRequest)
 
 	response, err := client.httpClient.Do(req)
 	if err != nil {
@@ -73,6 +74,53 @@ func (client *AtcClient) Send(passedRequest Request) error {
 	}
 	defer response.Body.Close()
 
+	return client.populateResponse(response, passedResponse)
+}
+
+func (client *AtcClient) createHttpRequest(passedRequest Request) (*http.Request, error) {
+	buffer := &bytes.Buffer{}
+	if passedRequest.Body != nil {
+		err := json.NewEncoder(buffer).Encode(passedRequest.Body)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	req, err := client.requestGenerator.CreateRequest(
+		passedRequest.RequestName,
+		passedRequest.Params,
+		buffer,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	values := url.Values{}
+	for k, v := range passedRequest.Queries {
+		values[k] = []string{v}
+	}
+	req.URL.RawQuery = values.Encode()
+
+	if passedRequest.Body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	if client.target.Username != "" {
+		req.SetBasicAuth(client.target.Username, client.target.Password)
+	}
+
+	if passedRequest.Headers != nil {
+		for headerID, headerValues := range passedRequest.Headers {
+			for _, val := range headerValues {
+				req.Header.Add(headerID, val)
+			}
+		}
+	}
+
+	return req, nil
+}
+
+func (client *AtcClient) populateResponse(response *http.Response, passedResponse Response) error {
 	if response.StatusCode == http.StatusNoContent {
 		return nil
 	} else if response.StatusCode < 200 || response.StatusCode >= 300 {
@@ -85,43 +133,16 @@ func (client *AtcClient) Send(passedRequest Request) error {
 		}
 	}
 
-	err = json.NewDecoder(response.Body).Decode(passedRequest.Result)
+	err := json.NewDecoder(response.Body).Decode(passedResponse.Result)
 	if err != nil {
 		return err
 	}
-	return nil
-}
 
-func (client *AtcClient) createHttpRequest(requestName string, params map[string]string, queries map[string]string, body interface{}) (*http.Request, error) {
-	buffer := &bytes.Buffer{}
-	if body != nil {
-		err := json.NewEncoder(buffer).Encode(body)
-		if err != nil {
-			return nil, err
+	if passedResponse.Headers != nil {
+		for k, v := range response.Header {
+			(*passedResponse.Headers)[k] = v
 		}
 	}
 
-	req, err := client.requestGenerator.CreateRequest(
-		requestName,
-		params,
-		buffer,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	values := url.Values{}
-	for k, v := range queries {
-		values[k] = []string{v}
-	}
-	req.URL.RawQuery = values.Encode()
-
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-
-	if client.target.Username != "" {
-		req.SetBasicAuth(client.target.Username, client.target.Password)
-	}
-	return req, nil
+	return nil
 }
