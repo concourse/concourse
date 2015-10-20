@@ -61,6 +61,15 @@ type FakeWorker struct {
 		result1 []worker.Worker
 		result2 error
 	}
+	GetWorkerStub        func(workerName string) (worker.Worker, error)
+	getWorkerMutex       sync.RWMutex
+	getWorkerArgsForCall []struct {
+		workerName string
+	}
+	getWorkerReturns struct {
+		result1 worker.Worker
+		result2 error
+	}
 	ActiveContainersStub        func() int
 	activeContainersMutex       sync.RWMutex
 	activeContainersArgsForCall []struct{}
@@ -71,6 +80,12 @@ type FakeWorker struct {
 	descriptionMutex       sync.RWMutex
 	descriptionArgsForCall []struct{}
 	descriptionReturns     struct {
+		result1 string
+	}
+	NameStub        func() string
+	nameMutex       sync.RWMutex
+	nameArgsForCall []struct{}
+	nameReturns     struct {
 		result1 string
 	}
 	VolumeManagerStub        func() (baggageclaim.Client, bool)
@@ -253,6 +268,39 @@ func (fake *FakeWorker) AllSatisfyingReturns(result1 []worker.Worker, result2 er
 	}{result1, result2}
 }
 
+func (fake *FakeWorker) GetWorker(workerName string) (worker.Worker, error) {
+	fake.getWorkerMutex.Lock()
+	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
+		workerName string
+	}{workerName})
+	fake.getWorkerMutex.Unlock()
+	if fake.GetWorkerStub != nil {
+		return fake.GetWorkerStub(workerName)
+	} else {
+		return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2
+	}
+}
+
+func (fake *FakeWorker) GetWorkerCallCount() int {
+	fake.getWorkerMutex.RLock()
+	defer fake.getWorkerMutex.RUnlock()
+	return len(fake.getWorkerArgsForCall)
+}
+
+func (fake *FakeWorker) GetWorkerArgsForCall(i int) string {
+	fake.getWorkerMutex.RLock()
+	defer fake.getWorkerMutex.RUnlock()
+	return fake.getWorkerArgsForCall[i].workerName
+}
+
+func (fake *FakeWorker) GetWorkerReturns(result1 worker.Worker, result2 error) {
+	fake.GetWorkerStub = nil
+	fake.getWorkerReturns = struct {
+		result1 worker.Worker
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeWorker) ActiveContainers() int {
 	fake.activeContainersMutex.Lock()
 	fake.activeContainersArgsForCall = append(fake.activeContainersArgsForCall, struct{}{})
@@ -297,6 +345,30 @@ func (fake *FakeWorker) DescriptionCallCount() int {
 func (fake *FakeWorker) DescriptionReturns(result1 string) {
 	fake.DescriptionStub = nil
 	fake.descriptionReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeWorker) Name() string {
+	fake.nameMutex.Lock()
+	fake.nameArgsForCall = append(fake.nameArgsForCall, struct{}{})
+	fake.nameMutex.Unlock()
+	if fake.NameStub != nil {
+		return fake.NameStub()
+	} else {
+		return fake.nameReturns.result1
+	}
+}
+
+func (fake *FakeWorker) NameCallCount() int {
+	fake.nameMutex.RLock()
+	defer fake.nameMutex.RUnlock()
+	return len(fake.nameArgsForCall)
+}
+
+func (fake *FakeWorker) NameReturns(result1 string) {
+	fake.NameStub = nil
+	fake.nameReturns = struct {
 		result1 string
 	}{result1}
 }

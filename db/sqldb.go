@@ -37,6 +37,126 @@ func NewSQL(
 	}
 }
 
+func (db *SQLDB) InsertVolumeData(data VolumeData) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	var resourceVersion []byte
+
+	resourceVersion, err = json.Marshal(data.ResourceVersion)
+	if err != nil {
+		return err
+	}
+
+	interval := fmt.Sprintf("%d second", int(data.TTL.Seconds()))
+
+	defer tx.Rollback()
+
+	_, err = tx.Exec(`
+	INSERT INTO volumes(
+    worker_name,
+		expires_at,
+		ttl,
+		handle,
+		resource_version,
+		resource_hash
+	) VALUES (
+		$1,
+		NOW() + $2::INTERVAL,
+		$3,
+		$4,
+		$5,
+		$6
+	)
+	`, data.WorkerName,
+		interval,
+		data.TTL,
+		data.Handle,
+		resourceVersion,
+		data.ResourceHash,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (db *SQLDB) GetVolumes() ([]SavedVolumeData, error) {
+	// reap expired volumes
+	_, err := db.conn.Exec(`
+		DELETE FROM volumes
+		WHERE expires_at IS NOT NULL
+		AND expires_at < NOW()
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := db.conn.Query(`
+		SELECT v.worker_name,
+			v.ttl,
+			v.handle,
+			v.resource_version,
+			v.resource_hash,
+			v.id
+		FROM volumes v
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	volumes := []SavedVolumeData{}
+
+	for rows.Next() {
+		var volume SavedVolumeData
+		var versionJSON []byte
+		err := rows.Scan(&volume.WorkerName, &volume.TTL, &volume.Handle, &versionJSON, &volume.ResourceHash, &volume.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		err = json.Unmarshal(versionJSON, &volume.ResourceVersion)
+		if err != nil {
+			return nil, err
+		}
+
+		volumes = append(volumes, volume)
+	}
+
+	return volumes, nil
+}
+
+func (db *SQLDB) SetVolumeTTL(volumeData SavedVolumeData, ttl time.Duration) error {
+	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
+
+	_, err := db.conn.Exec(`
+		UPDATE volumes
+		SET expires_at = NOW() + $1::INTERVAL,
+		ttl = $2
+		WHERE id = $3
+	`, interval, ttl, volumeData.ID)
+
+	return err
+}
+
+func (db *SQLDB) GetVolumeTTL(handle string) (time.Duration, error) {
+	var ttl time.Duration
+
+	err := db.conn.QueryRow(`
+		SELECT ttl
+		FROM volumes
+		WHERE handle = $1
+	`, handle).Scan(&ttl)
+
+	return ttl, err
+}
+
 func (db *SQLDB) GetPipelineByName(pipelineName string) (SavedPipeline, error) {
 	row := db.conn.QueryRow(`
 		SELECT id, name, config, version, paused
@@ -379,6 +499,48 @@ func (db *SQLDB) LeaseBuildScheduling(buildID int, interval time.Duration) (Leas
 				SET last_scheduled = now()
 				WHERE id = $1
 			`, buildID)
+		},
+	}
+
+	renewed, err := lease.AttemptSign(interval)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !renewed {
+		return nil, renewed, nil
+	}
+
+	lease.KeepSigned(interval)
+
+	return lease, true, nil
+}
+
+func (db *SQLDB) LeaseCacheInvalidation(interval time.Duration) (Lease, bool, error) {
+	lease := &lease{
+		conn: db.conn,
+		logger: db.logger.Session("lease", lager.Data{
+			"CacheInvalidator": "Scottsboro",
+		}),
+		attemptSignFunc: func(tx *sql.Tx) (sql.Result, error) {
+			_, err := tx.Exec(`
+				INSERT INTO cache_invalidator (last_invalidated)
+				SELECT 'epoch'
+				WHERE NOT EXISTS (SELECT * FROM cache_invalidator)`)
+			if err != nil {
+				return nil, err
+			}
+			return tx.Exec(`
+		  	UPDATE cache_invalidator
+				SET last_invalidated = now()
+				WHERE now() - last_invalidated > ($1 || ' SECONDS')::INTERVAL
+			`, interval.Seconds())
+		},
+		heartbeatFunc: func(tx *sql.Tx) (sql.Result, error) {
+			return tx.Exec(`
+				UPDATE cache_invalidator
+				SET last_invalidated = now()
+			`)
 		},
 	}
 

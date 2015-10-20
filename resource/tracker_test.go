@@ -3,10 +3,13 @@ package resource_test
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource/fakes"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
@@ -23,6 +26,7 @@ func (m testMetadata) Env() []string { return m }
 
 var _ = Describe("Tracker", func() {
 	var (
+		fakeDB  *fakes.FakeTrackerDB
 		tracker Tracker
 	)
 
@@ -34,7 +38,8 @@ var _ = Describe("Tracker", func() {
 	}
 
 	BeforeEach(func() {
-		tracker = NewTracker(workerClient)
+		fakeDB = new(fakes.FakeTrackerDB)
+		tracker = NewTracker(workerClient, fakeDB)
 	})
 
 	Describe("Init", func() {
@@ -308,6 +313,10 @@ var _ = Describe("Tracker", func() {
 							createdVolume.HandleReturns("created-volume-handle")
 
 							cacheIdentifier.CreateOnReturns(createdVolume, nil)
+							cacheIdentifier.ResourceVersionReturns(atc.Version{"some": "theversion"})
+							cacheIdentifier.ResourceHashReturns("hash")
+							satisfyingWorker.NameReturns("myworker")
+							createdVolume.ExpirationReturns(time.Hour, time.Now(), nil)
 						})
 
 						It("does not error and returns a resource", func() {
@@ -341,6 +350,17 @@ var _ = Describe("Tracker", func() {
 							Expect(resourceSpec.Cache).To(Equal(worker.VolumeMount{
 								Volume:    createdVolume,
 								MountPath: "/tmp/build/get",
+							}))
+						})
+
+						It("saves the volume information to the database", func() {
+							Expect(fakeDB.InsertVolumeDataCallCount()).To(Equal(1))
+							Expect(fakeDB.InsertVolumeDataArgsForCall(0)).To(Equal(db.VolumeData{
+								Handle:          "created-volume-handle",
+								WorkerName:      "myworker",
+								TTL:             time.Hour,
+								ResourceVersion: atc.Version{"some": "theversion"},
+								ResourceHash:    "hash",
 							}))
 						})
 
@@ -503,7 +523,7 @@ var _ = Describe("Tracker", func() {
 
 				BeforeEach(func() {
 					cacheVolume = new(bfakes.FakeVolume)
-					fakeContainer.VolumesReturns([]baggageclaim.Volume{cacheVolume})
+					fakeContainer.VolumesReturns([]worker.Volume{cacheVolume})
 				})
 
 				Describe("the cache", func() {
@@ -574,7 +594,7 @@ var _ = Describe("Tracker", func() {
 
 			Context("when the container has no volumes", func() {
 				BeforeEach(func() {
-					fakeContainer.VolumesReturns([]baggageclaim.Volume{})
+					fakeContainer.VolumesReturns([]worker.Volume{})
 				})
 
 				Describe("the cache", func() {

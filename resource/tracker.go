@@ -2,6 +2,7 @@ package resource
 
 import (
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
@@ -13,6 +14,12 @@ type ContainerImage string
 type Session struct {
 	ID        worker.Identifier
 	Ephemeral bool
+}
+
+//go:generate counterfeiter . TrackerDB
+
+type TrackerDB interface {
+	InsertVolumeData(data db.VolumeData) error
 }
 
 //go:generate counterfeiter . Tracker
@@ -40,17 +47,19 @@ func (m EmptyMetadata) Env() []string { return nil }
 
 type tracker struct {
 	workerClient worker.Client
+	db           TrackerDB
 }
 
 type TrackerFactory struct{}
 
-func (TrackerFactory) TrackerFor(client worker.Client) Tracker {
-	return NewTracker(client)
+func (TrackerFactory) TrackerFor(client worker.Client, db TrackerDB) Tracker {
+	return NewTracker(client, db)
 }
 
-func NewTracker(workerClient worker.Client) Tracker {
+func NewTracker(workerClient worker.Client, db TrackerDB) Tracker {
 	return &tracker{
 		workerClient: workerClient,
+		db:           db,
 	}
 }
 
@@ -270,6 +279,22 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 		logger.Debug("no-cache-found")
 
 		cachedVolume, err = cacheIdentifier.CreateOn(logger, vm)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		ttl, _, err := cachedVolume.Expiration()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = tracker.db.InsertVolumeData(db.VolumeData{
+			WorkerName:      chosenWorker.Name(),
+			TTL:             ttl,
+			Handle:          cachedVolume.Handle(),
+			ResourceVersion: cacheIdentifier.ResourceVersion(),
+			ResourceHash:    cacheIdentifier.ResourceHash(),
+		})
 		if err != nil {
 			return nil, nil, err
 		}

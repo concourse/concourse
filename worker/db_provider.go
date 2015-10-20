@@ -25,6 +25,7 @@ type WorkerDB interface {
 
 	UpdateExpiresAtOnContainerInfo(handle string, ttl time.Duration) error
 	ReapContainer(handle string) error
+	GetVolumeTTL(volumeHandle string) (time.Duration, error)
 }
 
 var ErrMultipleWorkersWithName = errors.New("More than one worker has given worker name")
@@ -119,9 +120,16 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, info db.WorkerIn
 		bClient = bclient.New(info.BaggageclaimURL)
 	}
 
+	volumeFactory := NewVolumeFactory(
+		provider.logger.Session("volume-factory"),
+		provider.db,
+		tikTok,
+	)
+
 	return NewGardenWorker(
 		gclient.New(gardenConn),
 		bClient,
+		volumeFactory,
 		provider.db,
 		provider,
 		tikTok,

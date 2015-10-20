@@ -22,6 +22,7 @@ import (
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/exec"
+	"github.com/concourse/atc/lostandfound"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/pipelines"
 	"github.com/concourse/atc/radar"
@@ -121,7 +122,7 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 
 	workerClient := cmd.constructWorkerPool(logger, sqlDB)
 
-	tracker := resource.NewTracker(workerClient)
+	tracker := resource.NewTracker(workerClient, sqlDB)
 
 	engine := cmd.constructEngine(sqlDB, workerClient, tracker)
 
@@ -220,6 +221,20 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 			Interval: 10 * time.Second,
 			Clock:    clock.NewClock(),
 		}},
+
+		{"lostandfound", lostandfound.NewRunner(
+			logger.Session("lost-and-found"),
+			lostandfound.NewBaggageCollector(
+				logger.Session("baggage-collector"),
+				workerClient,
+				sqlDB,
+				pipelineDBFactory,
+			),
+			sqlDB,
+			clock.NewClock(),
+			10*time.Second,
+			10*time.Second,
+		)},
 	}
 
 	members = cmd.appendStaticWorker(logger, sqlDB, members)

@@ -344,4 +344,45 @@ var _ = Describe("Leases", func() {
 			})
 		})
 	})
+
+	Describe("taking out a lease on cache invalidation", func() {
+		Context("when something has been invalidating the cache recently", func() {
+			It("does not get the lease", func() {
+				lease, leased, err := sqlDB.LeaseCacheInvalidation(1 * time.Second)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(leased).To(BeTrue())
+
+				lease.Break()
+
+				_, leased, err = sqlDB.LeaseCacheInvalidation(1 * time.Second)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(leased).To(BeFalse())
+			})
+		})
+
+		Context("when there has not been any cache invalidation recently", func() {
+			It("gets and keeps the lease and stops others from getting it", func() {
+				lease, leased, err := sqlDB.LeaseCacheInvalidation(1 * time.Second)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(leased).To(BeTrue())
+
+				Consistently(func() bool {
+					_, leased, err = sqlDB.LeaseCacheInvalidation(1 * time.Second)
+					Expect(err).NotTo(HaveOccurred())
+
+					return leased
+				}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
+
+				lease.Break()
+
+				time.Sleep(time.Second)
+
+				newLease, leased, err := sqlDB.LeaseCacheInvalidation(1 * time.Second)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(leased).To(BeTrue())
+
+				newLease.Break()
+			})
+		})
+	})
 })

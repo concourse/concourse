@@ -63,6 +63,19 @@ func shuffleWorkers(slice []Worker) {
 	}
 }
 
+func (pool *pool) GetWorker(workerName string) (Worker, error) {
+	worker, found, err := pool.provider.GetWorker(workerName)
+	if err != nil {
+		return nil, err
+	}
+
+	if !found {
+		return nil, ErrNoWorkers
+	}
+
+	return worker, nil
+}
+
 func (pool *pool) AllSatisfying(spec WorkerSpec) ([]Worker, error) {
 	workers, err := pool.provider.Workers()
 	if err != nil {

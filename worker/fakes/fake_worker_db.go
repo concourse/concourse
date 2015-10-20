@@ -73,6 +73,15 @@ type FakeWorkerDB struct {
 	reapContainerReturns struct {
 		result1 error
 	}
+	GetVolumeTTLStub        func(volumeHandle string) (time.Duration, error)
+	getVolumeTTLMutex       sync.RWMutex
+	getVolumeTTLArgsForCall []struct {
+		volumeHandle string
+	}
+	getVolumeTTLReturns struct {
+		result1 time.Duration
+		result2 error
+	}
 }
 
 func (fake *FakeWorkerDB) Workers() ([]db.WorkerInfo, error) {
@@ -298,6 +307,39 @@ func (fake *FakeWorkerDB) ReapContainerReturns(result1 error) {
 	fake.reapContainerReturns = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeWorkerDB) GetVolumeTTL(volumeHandle string) (time.Duration, error) {
+	fake.getVolumeTTLMutex.Lock()
+	fake.getVolumeTTLArgsForCall = append(fake.getVolumeTTLArgsForCall, struct {
+		volumeHandle string
+	}{volumeHandle})
+	fake.getVolumeTTLMutex.Unlock()
+	if fake.GetVolumeTTLStub != nil {
+		return fake.GetVolumeTTLStub(volumeHandle)
+	} else {
+		return fake.getVolumeTTLReturns.result1, fake.getVolumeTTLReturns.result2
+	}
+}
+
+func (fake *FakeWorkerDB) GetVolumeTTLCallCount() int {
+	fake.getVolumeTTLMutex.RLock()
+	defer fake.getVolumeTTLMutex.RUnlock()
+	return len(fake.getVolumeTTLArgsForCall)
+}
+
+func (fake *FakeWorkerDB) GetVolumeTTLArgsForCall(i int) string {
+	fake.getVolumeTTLMutex.RLock()
+	defer fake.getVolumeTTLMutex.RUnlock()
+	return fake.getVolumeTTLArgsForCall[i].volumeHandle
+}
+
+func (fake *FakeWorkerDB) GetVolumeTTLReturns(result1 time.Duration, result2 error) {
+	fake.GetVolumeTTLStub = nil
+	fake.getVolumeTTLReturns = struct {
+		result1 time.Duration
+		result2 error
+	}{result1, result2}
 }
 
 var _ worker.WorkerDB = new(FakeWorkerDB)

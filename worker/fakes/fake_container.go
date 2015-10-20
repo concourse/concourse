@@ -8,7 +8,6 @@ import (
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc/worker"
-	"github.com/concourse/baggageclaim"
 )
 
 type FakeContainer struct {
@@ -208,11 +207,11 @@ type FakeContainer struct {
 	releaseArgsForCall []struct {
 		arg1 time.Duration
 	}
-	VolumesStub        func() []baggageclaim.Volume
+	VolumesStub        func() []worker.Volume
 	volumesMutex       sync.RWMutex
 	volumesArgsForCall []struct{}
 	volumesReturns     struct {
-		result1 []baggageclaim.Volume
+		result1 []worker.Volume
 	}
 }
 
@@ -952,7 +951,7 @@ func (fake *FakeContainer) ReleaseArgsForCall(i int) time.Duration {
 	return fake.releaseArgsForCall[i].arg1
 }
 
-func (fake *FakeContainer) Volumes() []baggageclaim.Volume {
+func (fake *FakeContainer) Volumes() []worker.Volume {
 	fake.volumesMutex.Lock()
 	fake.volumesArgsForCall = append(fake.volumesArgsForCall, struct{}{})
 	fake.volumesMutex.Unlock()
@@ -969,10 +968,10 @@ func (fake *FakeContainer) VolumesCallCount() int {
 	return len(fake.volumesArgsForCall)
 }
 
-func (fake *FakeContainer) VolumesReturns(result1 []baggageclaim.Volume) {
+func (fake *FakeContainer) VolumesReturns(result1 []worker.Volume) {
 	fake.VolumesStub = nil
 	fake.volumesReturns = struct {
-		result1 []baggageclaim.Volume
+		result1 []worker.Volume
 	}{result1}
 }
 

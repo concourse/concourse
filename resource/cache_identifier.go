@@ -11,14 +11,17 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-//go:generate counterfeiter . CacheIdentifier
-
 const resourceCacheTTL = 24 * time.Hour
 const reapExtraVolumeTTL = time.Minute
+
+//go:generate counterfeiter . CacheIdentifier
 
 type CacheIdentifier interface {
 	FindOn(lager.Logger, baggageclaim.Client) (baggageclaim.Volume, bool, error)
 	CreateOn(lager.Logger, baggageclaim.Client) (baggageclaim.Volume, error)
+
+	ResourceVersion() atc.Version
+	ResourceHash() string
 }
 
 type ResourceCacheIdentifier struct {
@@ -71,6 +74,19 @@ func (identifier ResourceCacheIdentifier) initializedVolumeProperties() baggagec
 	props := identifier.volumeProperties()
 	props["initialized"] = "yep"
 	return props
+}
+
+func (identifier ResourceCacheIdentifier) ResourceVersion() atc.Version {
+	return identifier.Version
+}
+
+func (identifier ResourceCacheIdentifier) ResourceHash() string {
+	return GenerateResourceHash(identifier.Source, string(identifier.Type))
+}
+
+func GenerateResourceHash(source atc.Source, resourceType string) string {
+	sourceJSON, _ := json.Marshal(source)
+	return resourceType + string(sourceJSON)
 }
 
 func shastr(b []byte) string {

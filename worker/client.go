@@ -7,7 +7,6 @@ import (
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -20,6 +19,7 @@ type Client interface {
 
 	Satisfying(WorkerSpec) (Worker, error)
 	AllSatisfying(WorkerSpec) ([]Worker, error)
+	GetWorker(workerName string) (Worker, error)
 }
 
 //go:generate counterfeiter . Container
@@ -31,7 +31,7 @@ type Container interface {
 
 	Release(time.Duration)
 
-	Volumes() []baggageclaim.Volume
+	Volumes() []Volume
 }
 
 type Identifier db.ContainerIdentifier

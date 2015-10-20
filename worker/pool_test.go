@@ -27,6 +27,51 @@ var _ = Describe("Pool", func() {
 		pool = NewPool(fakeProvider)
 	})
 
+	Describe("GetWorker", func() {
+		Context("when the call to lookup the worker returns an error", func() {
+			BeforeEach(func() {
+				fakeProvider.GetWorkerReturns(nil, false, errors.New("disaster"))
+			})
+
+			It("returns an error", func() {
+				foundWorker, err := pool.GetWorker("nope")
+				Expect(err).To(HaveOccurred())
+				Expect(foundWorker).To(BeNil())
+			})
+		})
+
+		Context("when the call to lookup the worker fails because the worker was not found", func() {
+			BeforeEach(func() {
+				fakeProvider.GetWorkerReturns(nil, false, nil)
+			})
+
+			It("returns an error indicating no workers were found", func() {
+				foundWorker, err := pool.GetWorker("nope")
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(Equal(ErrNoWorkers))
+				Expect(foundWorker).To(BeNil())
+			})
+		})
+
+		Context("when the lookup of the worker succeeds", func() {
+			var fakeWorker *fakes.FakeWorker
+
+			BeforeEach(func() {
+				fakeWorker = new(fakes.FakeWorker)
+				fakeProvider.GetWorkerReturns(fakeWorker, true, nil)
+			})
+
+			It("returns an error indicating no workers were found", func() {
+				foundWorker, err := pool.GetWorker("find-dis-worker")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(fakeProvider.GetWorkerCallCount()).To(Equal(1))
+				workerName := fakeProvider.GetWorkerArgsForCall(0)
+				Expect(workerName).To(Equal("find-dis-worker"))
+				Expect(foundWorker).To(Equal(fakeWorker))
+			})
+		})
+	})
+
 	Describe("Satisfying", func() {
 		var (
 			spec WorkerSpec

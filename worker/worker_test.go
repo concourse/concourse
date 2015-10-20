@@ -26,6 +26,7 @@ var _ = Describe("Worker", func() {
 		logger                 *lagertest.TestLogger
 		fakeGardenClient       *gfakes.FakeClient
 		fakeBaggageclaimClient *bfakes.FakeClient
+		fakeVolumeFactory      *wfakes.FakeVolumeFactory
 		fakeGardenWorkerDB     *wfakes.FakeGardenWorkerDB
 		fakeWorkerProvider     *wfakes.FakeWorkerProvider
 		fakeClock              *fakeclock.FakeClock
@@ -42,6 +43,7 @@ var _ = Describe("Worker", func() {
 		logger = lagertest.NewTestLogger("test")
 		fakeGardenClient = new(gfakes.FakeClient)
 		fakeBaggageclaimClient = new(bfakes.FakeClient)
+		fakeVolumeFactory = new(wfakes.FakeVolumeFactory)
 		fakeGardenWorkerDB = new(wfakes.FakeGardenWorkerDB)
 		fakeWorkerProvider = new(wfakes.FakeWorkerProvider)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
@@ -58,6 +60,7 @@ var _ = Describe("Worker", func() {
 		worker = NewGardenWorker(
 			fakeGardenClient,
 			fakeBaggageclaimClient,
+			fakeVolumeFactory,
 			fakeGardenWorkerDB,
 			fakeWorkerProvider,
 			fakeClock,
@@ -78,6 +81,7 @@ var _ = Describe("Worker", func() {
 			volumeManager, hasVolumeManager = NewGardenWorker(
 				fakeGardenClient,
 				baggageclaimClient,
+				fakeVolumeFactory,
 				fakeGardenWorkerDB,
 				fakeWorkerProvider,
 				fakeClock,
@@ -801,12 +805,18 @@ var _ = Describe("Worker", func() {
 				})
 
 				Context("when the concourse:volumes property is present", func() {
-					var handle1Volume *bfakes.FakeVolume
-					var handle2Volume *bfakes.FakeVolume
+					var (
+						handle1Volume         *bfakes.FakeVolume
+						handle2Volume         *bfakes.FakeVolume
+						expectedHandle1Volume *wfakes.FakeVolume
+						expectedHandle2Volume *wfakes.FakeVolume
+					)
 
 					BeforeEach(func() {
 						handle1Volume = new(bfakes.FakeVolume)
 						handle2Volume = new(bfakes.FakeVolume)
+						expectedHandle1Volume = new(wfakes.FakeVolume)
+						expectedHandle2Volume = new(wfakes.FakeVolume)
 
 						fakeContainer.PropertiesReturns(garden.Properties{
 							"concourse:volumes": `["handle-1","handle-2"]`,
@@ -821,11 +831,21 @@ var _ = Describe("Worker", func() {
 								panic("unknown handle: " + handle)
 							}
 						}
+
+						fakeVolumeFactory.BuildStub = func(vol baggageclaim.Volume) (Volume, error) {
+							if vol == handle1Volume {
+								return expectedHandle1Volume, nil
+							} else if vol == handle2Volume {
+								return expectedHandle2Volume, nil
+							} else {
+								panic("unknown volume: " + vol.Handle())
+							}
+						}
 					})
 
 					Describe("Volumes", func() {
 						It("returns all bound volumes based on properties on the container", func() {
-							Expect(foundContainer.Volumes()).To(Equal([]baggageclaim.Volume{handle1Volume, handle2Volume}))
+							Expect(foundContainer.Volumes()).To(Equal([]Volume{expectedHandle1Volume, expectedHandle2Volume}))
 						})
 
 						Context("when LookupVolume returns an error", func() {
@@ -840,10 +860,23 @@ var _ = Describe("Worker", func() {
 							})
 						})
 
+						Context("when Build returns an error", func() {
+							disaster := errors.New("nope")
+
+							BeforeEach(func() {
+								fakeVolumeFactory.BuildReturns(nil, disaster)
+							})
+
+							It("returns the error on lookup", func() {
+								Expect(findErr).To(Equal(disaster))
+							})
+						})
+
 						Context("when there is no baggageclaim", func() {
 							BeforeEach(func() {
 								worker = NewGardenWorker(
 									fakeGardenClient,
+									nil,
 									nil,
 									fakeGardenWorkerDB,
 									fakeWorkerProvider,
@@ -865,14 +898,14 @@ var _ = Describe("Worker", func() {
 					Describe("Release", func() {
 						It("releases the container's volumes once and only once", func() {
 							foundContainer.Release(time.Minute)
-							Expect(handle1Volume.ReleaseCallCount()).To(Equal(1))
-							Expect(handle1Volume.ReleaseArgsForCall(0)).To(Equal(time.Minute))
-							Expect(handle2Volume.ReleaseCallCount()).To(Equal(1))
-							Expect(handle2Volume.ReleaseArgsForCall(0)).To(Equal(time.Minute))
+							Expect(expectedHandle1Volume.ReleaseCallCount()).To(Equal(1))
+							Expect(expectedHandle1Volume.ReleaseArgsForCall(0)).To(Equal(time.Minute))
+							Expect(expectedHandle2Volume.ReleaseCallCount()).To(Equal(1))
+							Expect(expectedHandle2Volume.ReleaseArgsForCall(0)).To(Equal(time.Minute))
 
 							foundContainer.Release(time.Hour)
-							Expect(handle1Volume.ReleaseCallCount()).To(Equal(1))
-							Expect(handle2Volume.ReleaseCallCount()).To(Equal(1))
+							Expect(expectedHandle1Volume.ReleaseCallCount()).To(Equal(1))
+							Expect(expectedHandle2Volume.ReleaseCallCount()).To(Equal(1))
 						})
 					})
 				})
@@ -1119,6 +1152,7 @@ var _ = Describe("Worker", func() {
 			worker = NewGardenWorker(
 				fakeGardenClient,
 				fakeBaggageclaimClient,
+				fakeVolumeFactory,
 				fakeGardenWorkerDB,
 				fakeWorkerProvider,
 				fakeClock,

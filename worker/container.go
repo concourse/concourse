@@ -18,7 +18,7 @@ type gardenWorkerContainer struct {
 	gardenClient garden.Client
 	db           GardenWorkerDB
 
-	volumes []baggageclaim.Volume
+	volumes []Volume
 
 	clock clock.Clock
 
@@ -35,6 +35,7 @@ func newGardenWorkerContainer(
 	baggageclaimClient baggageclaim.Client,
 	db GardenWorkerDB,
 	clock clock.Clock,
+	volumeFactory VolumeFactory,
 ) (Container, error) {
 	workerContainer := &gardenWorkerContainer{
 		Container: container,
@@ -65,7 +66,7 @@ func newGardenWorkerContainer(
 		return nil, err
 	}
 
-	err = workerContainer.initializeVolumes(logger, properties, baggageclaimClient)
+	err = workerContainer.initializeVolumes(logger, properties, baggageclaimClient, volumeFactory)
 	if err != nil {
 		workerContainer.Release(0)
 		return nil, err
@@ -92,7 +93,7 @@ func (container *gardenWorkerContainer) Release(finalTTL time.Duration) {
 	})
 }
 
-func (container *gardenWorkerContainer) Volumes() []baggageclaim.Volume {
+func (container *gardenWorkerContainer) Volumes() []Volume {
 	return container.volumes
 }
 
@@ -100,6 +101,7 @@ func (container *gardenWorkerContainer) initializeVolumes(
 	logger lager.Logger,
 	properties garden.Properties,
 	baggageclaimClient baggageclaim.Client,
+	volumeFactory VolumeFactory,
 ) error {
 	if baggageclaimClient == nil {
 		return nil
@@ -107,7 +109,7 @@ func (container *gardenWorkerContainer) initializeVolumes(
 
 	handlesJSON, found := properties[volumePropertyName]
 	if !found {
-		container.volumes = []baggageclaim.Volume{}
+		container.volumes = []Volume{}
 		return nil
 	}
 
@@ -117,9 +119,14 @@ func (container *gardenWorkerContainer) initializeVolumes(
 		return err
 	}
 
-	volumes := []baggageclaim.Volume{}
+	volumes := []Volume{}
 	for _, h := range handles {
-		volume, err := baggageclaimClient.LookupVolume(logger, h)
+		baggageClaimVolume, err := baggageclaimClient.LookupVolume(logger, h)
+		if err != nil {
+			return err
+		}
+
+		volume, err := volumeFactory.Build(baggageClaimVolume)
 		if err != nil {
 			return err
 		}

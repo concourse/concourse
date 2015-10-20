@@ -34,6 +34,56 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 		})
 
+		It("can keep track of volume data", func() {
+			By("allowing you to insert")
+			expectedVolumeData := db.VolumeData{
+				WorkerName:      "some-worker",
+				TTL:             time.Hour,
+				Handle:          "some-volume-handle",
+				ResourceVersion: atc.Version{"some": "version"},
+				ResourceHash:    "some-hash",
+			}
+			err := database.InsertVolumeData(expectedVolumeData)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("getting volume information from the db")
+			volumes, err := database.GetVolumes()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(volumes)).To(Equal(1))
+			actualVolumeData := volumes[0]
+			Expect(actualVolumeData.WorkerName).To(Equal(expectedVolumeData.WorkerName))
+			Expect(actualVolumeData.TTL).To(Equal(expectedVolumeData.TTL))
+			Expect(actualVolumeData.Handle).To(Equal(expectedVolumeData.Handle))
+			Expect(actualVolumeData.ResourceVersion).To(Equal(expectedVolumeData.ResourceVersion))
+			Expect(actualVolumeData.ResourceHash).To(Equal(expectedVolumeData.ResourceHash))
+
+			By("not returning volumes that have expired")
+			err = database.InsertVolumeData(db.VolumeData{
+				WorkerName:      "some-worker",
+				TTL:             -time.Hour,
+				Handle:          "some-other-volume-handle",
+				ResourceVersion: atc.Version{"some": "version"},
+				ResourceHash:    "some-hash",
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			volumes, err = database.GetVolumes()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(volumes)).To(Equal(1))
+
+			By("letting you get the ttl of a volume")
+			actualTTL, err := database.GetVolumeTTL(actualVolumeData.Handle)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(actualTTL).To(Equal(actualVolumeData.TTL))
+
+			By("letting you update the ttl of the volume data")
+			err = database.SetVolumeTTL(actualVolumeData, -time.Hour)
+			Expect(err).NotTo(HaveOccurred())
+			volumes, err = database.GetVolumes()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(volumes)).To(Equal(0))
+		})
+
 		It("saves and propagates events correctly", func() {
 			build, err := database.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())

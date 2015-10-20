@@ -39,6 +39,7 @@ type Worker interface {
 	ActiveContainers() int
 
 	Description() string
+	Name() string
 
 	VolumeManager() (baggageclaim.Client, bool)
 }
@@ -53,8 +54,10 @@ type GardenWorkerDB interface {
 type gardenWorker struct {
 	gardenClient       garden.Client
 	baggageclaimClient baggageclaim.Client
-	db                 GardenWorkerDB
-	provider           WorkerProvider
+	volumeFactory      VolumeFactory
+
+	db       GardenWorkerDB
+	provider WorkerProvider
 
 	clock clock.Clock
 
@@ -68,6 +71,7 @@ type gardenWorker struct {
 func NewGardenWorker(
 	gardenClient garden.Client,
 	baggageclaimClient baggageclaim.Client,
+	volumeFactory VolumeFactory,
 	db GardenWorkerDB,
 	provider WorkerProvider,
 	clock clock.Clock,
@@ -80,6 +84,7 @@ func NewGardenWorker(
 	return &gardenWorker{
 		gardenClient:       gardenClient,
 		baggageclaimClient: baggageclaimClient,
+		volumeFactory:      volumeFactory,
 		db:                 db,
 		provider:           provider,
 		clock:              clock,
@@ -237,7 +242,15 @@ dance:
 		return nil, err
 	}
 
-	return newGardenWorkerContainer(logger, gardenContainer, worker.gardenClient, worker.baggageclaimClient, worker.db, worker.clock)
+	return newGardenWorkerContainer(
+		logger,
+		gardenContainer,
+		worker.gardenClient,
+		worker.baggageclaimClient,
+		worker.db,
+		worker.clock,
+		worker.volumeFactory,
+	)
 }
 
 func (worker *gardenWorker) FindContainerForIdentifier(logger lager.Logger, id Identifier) (Container, bool, error) {
@@ -284,7 +297,15 @@ func (worker *gardenWorker) LookupContainer(logger lager.Logger, handle string) 
 		return nil, false, err
 	}
 
-	container, err := newGardenWorkerContainer(logger, gardenContainer, worker.gardenClient, worker.baggageclaimClient, worker.db, worker.clock)
+	container, err := newGardenWorkerContainer(
+		logger,
+		gardenContainer,
+		worker.gardenClient,
+		worker.baggageclaimClient,
+		worker.db,
+		worker.clock,
+		worker.volumeFactory,
+	)
 	if err != nil {
 		logger.Error("failed-to-construct-container", err)
 		return nil, false, err
@@ -329,6 +350,10 @@ func (worker *gardenWorker) AllSatisfying(spec WorkerSpec) ([]Worker, error) {
 	return nil, errors.New("Not implemented")
 }
 
+func (worker *gardenWorker) GetWorker(workerName string) (Worker, error) {
+	return nil, errors.New("Not implemented")
+}
+
 func (worker *gardenWorker) Description() string {
 	messages := []string{
 		fmt.Sprintf("platform '%s'", worker.platform),
@@ -339,6 +364,10 @@ func (worker *gardenWorker) Description() string {
 	}
 
 	return strings.Join(messages, ", ")
+}
+
+func (worker *gardenWorker) Name() string {
+	return worker.name
 }
 
 func (worker *gardenWorker) tagsMatch(tags []string) bool {

@@ -40,8 +40,8 @@ type PipelineDB interface {
 
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 	GetLatestVersionedResource(resource SavedResource) (SavedVersionedResource, bool, error)
-	EnableVersionedResource(resourceID int) error
-	DisableVersionedResource(resourceID int) error
+	EnableVersionedResource(versionedResourceID int) error
+	DisableVersionedResource(versionedResourceID int) error
 	SetResourceCheckError(resource SavedResource, err error) error
 	LeaseResourceChecking(resource string, length time.Duration, immediate bool) (Lease, bool, error)
 
@@ -646,12 +646,12 @@ func (pdb *pipelineDB) SaveResourceVersions(config atc.ResourceConfig, versions 
 	return nil
 }
 
-func (pdb *pipelineDB) DisableVersionedResource(resourceID int) error {
+func (pdb *pipelineDB) DisableVersionedResource(versionedResourceID int) error {
 	rows, err := pdb.conn.Exec(`
 		UPDATE versioned_resources
 		SET enabled = false
 		WHERE id = $1
-	`, resourceID)
+	`, versionedResourceID)
 	if err != nil {
 		return err
 	}
@@ -668,12 +668,12 @@ func (pdb *pipelineDB) DisableVersionedResource(resourceID int) error {
 	return nil
 }
 
-func (pdb *pipelineDB) EnableVersionedResource(resourceID int) error {
+func (pdb *pipelineDB) EnableVersionedResource(versionedResourceID int) error {
 	rows, err := pdb.conn.Exec(`
 		UPDATE versioned_resources
 		SET enabled = true
 		WHERE id = $1
-	`, resourceID)
+	`, versionedResourceID)
 	if err != nil {
 		return err
 	}

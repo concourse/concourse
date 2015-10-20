@@ -172,4 +172,23 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 			})
 		})
 	})
+
+	Context("ResourceVersion", func() {
+		It("returns the version the identifier is tracking", func() {
+			Expect(cacheIdentifier.ResourceVersion()).To(Equal(atc.Version{"some": "version"}))
+		})
+	})
+
+	Context("ResourceHash", func() {
+		It("returns a hash of the source and resource type the identifier is tracking", func() {
+			expectedHash := `some-resource-type{"some":"source"}`
+			Expect(cacheIdentifier.ResourceHash()).To(Equal(expectedHash))
+		})
+	})
+})
+
+var _ = Describe("GenerateResourceHash", func() {
+	It("returns a hash of the source and resource type", func() {
+		Expect(GenerateResourceHash(atc.Source{"some": "source"}, "git")).To(Equal(`git{"some":"source"}`))
+	})
 })

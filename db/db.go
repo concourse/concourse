@@ -36,6 +36,7 @@ type DB interface {
 
 	LeaseBuildTracking(buildID int, interval time.Duration) (Lease, bool, error)
 	LeaseBuildScheduling(buildID int, interval time.Duration) (Lease, bool, error)
+	LeaseCacheInvalidation(interval time.Duration) (Lease, bool, error)
 
 	StartBuild(buildID int, engineName, engineMetadata string) (bool, error)
 	FinishBuild(buildID int, status Status) error
@@ -66,6 +67,11 @@ type DB interface {
 	DeleteContainerInfo(string) error
 
 	GetConfigByBuildID(buildID int) (atc.Config, ConfigVersion, error)
+
+	InsertVolumeData(data VolumeData) error
+	GetVolumes() ([]SavedVolumeData, error)
+	SetVolumeTTL(SavedVolumeData, time.Duration) error
+	GetVolumeTTL(volumeHandle string) (time.Duration, error)
 }
 
 //go:generate counterfeiter . Notifier
@@ -144,4 +150,17 @@ type WorkerInfo struct {
 	Platform         string
 	Tags             []string
 	Name             string
+}
+
+type SavedVolumeData struct {
+	VolumeData
+	ID int
+}
+
+type VolumeData struct {
+	WorkerName      string
+	TTL             time.Duration
+	Handle          string
+	ResourceVersion atc.Version
+	ResourceHash    string
 }

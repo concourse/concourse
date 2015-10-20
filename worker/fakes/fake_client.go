@@ -60,6 +60,15 @@ type FakeClient struct {
 		result1 []worker.Worker
 		result2 error
 	}
+	GetWorkerStub        func(workerName string) (worker.Worker, error)
+	getWorkerMutex       sync.RWMutex
+	getWorkerArgsForCall []struct {
+		workerName string
+	}
+	getWorkerReturns struct {
+		result1 worker.Worker
+		result2 error
+	}
 }
 
 func (fake *FakeClient) CreateContainer(arg1 lager.Logger, arg2 worker.Identifier, arg3 worker.ContainerSpec) (worker.Container, error) {
@@ -229,6 +238,39 @@ func (fake *FakeClient) AllSatisfyingReturns(result1 []worker.Worker, result2 er
 	fake.AllSatisfyingStub = nil
 	fake.allSatisfyingReturns = struct {
 		result1 []worker.Worker
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) GetWorker(workerName string) (worker.Worker, error) {
+	fake.getWorkerMutex.Lock()
+	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
+		workerName string
+	}{workerName})
+	fake.getWorkerMutex.Unlock()
+	if fake.GetWorkerStub != nil {
+		return fake.GetWorkerStub(workerName)
+	} else {
+		return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2
+	}
+}
+
+func (fake *FakeClient) GetWorkerCallCount() int {
+	fake.getWorkerMutex.RLock()
+	defer fake.getWorkerMutex.RUnlock()
+	return len(fake.getWorkerArgsForCall)
+}
+
+func (fake *FakeClient) GetWorkerArgsForCall(i int) string {
+	fake.getWorkerMutex.RLock()
+	defer fake.getWorkerMutex.RUnlock()
+	return fake.getWorkerArgsForCall[i].workerName
+}
+
+func (fake *FakeClient) GetWorkerReturns(result1 worker.Worker, result2 error) {
+	fake.GetWorkerStub = nil
+	fake.getWorkerReturns = struct {
+		result1 worker.Worker
 		result2 error
 	}{result1, result2}
 }
