@@ -8,15 +8,19 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/rc"
 	"github.com/tedsuo/rata"
+	"github.com/vito/go-sse/sse"
 )
 
 //go:generate counterfeiter . Client
+
 type Client interface {
 	Send(request Request, response Response) error
+	ConnectToEventStream(request Request) (*sse.EventSource, error)
 }
 
 type Request struct {
@@ -54,7 +58,7 @@ func NewClient(target rc.TargetProps) (Client, error) {
 }
 
 func (client *AtcClient) Send(passedRequest Request, passedResponse Response) error {
-	req, err := client.createHttpRequest(passedRequest)
+	req, err := client.createHTTPRequest(passedRequest)
 
 	response, err := client.httpClient.Do(req)
 	if err != nil {
@@ -65,7 +69,18 @@ func (client *AtcClient) Send(passedRequest Request, passedResponse Response) er
 	return client.populateResponse(response, passedResponse)
 }
 
-func (client *AtcClient) createHttpRequest(passedRequest Request) (*http.Request, error) {
+func (client *AtcClient) ConnectToEventStream(passedRequest Request) (*sse.EventSource, error) {
+	return sse.Connect(client.httpClient, time.Second, func() *http.Request {
+		request, reqErr := client.createHTTPRequest(passedRequest)
+		if reqErr != nil {
+			panic("unexpected error creating request: " + reqErr.Error())
+		}
+
+		return request
+	})
+}
+
+func (client *AtcClient) createHTTPRequest(passedRequest Request) (*http.Request, error) {
 	buffer := &bytes.Buffer{}
 	if passedRequest.Body != nil {
 		err := json.NewEncoder(buffer).Encode(passedRequest.Body)

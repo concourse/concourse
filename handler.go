@@ -3,17 +3,18 @@ package atcclient
 import "github.com/concourse/atc"
 
 //go:generate counterfeiter . Handler
+
 type Handler interface {
-	// 	BuildEvents()
 	// 	DownloadCLI()
 	// 	HijackContainer()
 	// 	ListJobInputs()
 	// 	ReadPipe()
 	// 	SaveConfig()
 	// 	WritePipe()
-	AbortBuild(buildID string) error
 	AllBuilds() ([]atc.Build, error)
 	Build(buildID string) (atc.Build, bool, error)
+	BuildEvents(buildID string) (Events, error)
+	AbortBuild(buildID string) error
 	BuildInputsForJob(pipelineName string, jobName string) ([]atc.BuildInput, bool, error)
 	CreateBuild(plan atc.Plan) (atc.Build, error)
 	CreatePipe() (atc.Pipe, error)
