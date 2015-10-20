@@ -47,6 +47,7 @@
 .errored { background: @base09; }
 .aborted { background: @base0F; }
 .started { background: @base0A; }
+.paused { background: @base0D; }
 
 span.error { color: @base08; }
 .resource-check-status pre { color: @base08; }
@@ -137,17 +138,6 @@ span.error { color: @base08; }
 
 .build-one-off {
   background-color: @base03;
-}
-
-.paused {
-  background-color: @base0D;
-
-  svg & rect {
-    fill: @base0D;
-  }
-  svg .edge& {
-    stroke: @base0D;
-  }
 }
 
 .build-action.btn-pause i {
