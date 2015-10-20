@@ -75,11 +75,15 @@ jobs:
       tsa:
         forward_host: 127.0.0.1
         atc:
+          address: 127.0.0.1:8080
           username: *atc_username
           password: *atc_password
       garden:
         listen_network: tcp
         listen_address: 0.0.0.0:7777
+      groundcrew:
+        tsa:
+          host: 127.0.0.1
 
 cloud_provider:
   template: {name: cpi, release: bosh-aws-cpi}
