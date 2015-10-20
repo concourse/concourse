@@ -11,8 +11,10 @@ import (
 )
 
 //go:generate counterfeiter . EventStream
+
 type EventStream interface {
 	NextEvent() (atc.Event, error)
+	Close() error
 }
 
 type SSEEventStream struct {
@@ -45,4 +47,8 @@ func (s *SSEEventStream) NextEvent() (atc.Event, error) {
 	default:
 		return nil, fmt.Errorf("unknown event name: %s", se.Name)
 	}
+}
+
+func (s *SSEEventStream) Close() error {
+	return s.sseReader.Close()
 }

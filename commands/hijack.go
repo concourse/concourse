@@ -80,7 +80,6 @@ type stepContainerLocator struct {
 }
 
 func (locator stepContainerLocator) locate(fingerprint containerFingerprint) (url.Values, error) {
-	//TODO: FIX THIS ERROR BEFORE COMMITTING YOU SLACKERS
 	build, err := GetBuild(
 		locator.handler,
 		fingerprint.jobName,

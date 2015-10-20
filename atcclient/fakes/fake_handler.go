@@ -9,18 +9,10 @@ import (
 )
 
 type FakeHandler struct {
-	AbortBuildStub        func(buildID string) error
-	abortBuildMutex       sync.RWMutex
-	abortBuildArgsForCall []struct {
-		buildID string
-	}
-	abortBuildReturns struct {
-		result1 error
-	}
 	AllBuildsStub        func() ([]atc.Build, error)
 	allBuildsMutex       sync.RWMutex
 	allBuildsArgsForCall []struct{}
-	allBuildsReturns     struct {
+	allBuildsReturns struct {
 		result1 []atc.Build
 		result2 error
 	}
@@ -33,6 +25,23 @@ type FakeHandler struct {
 		result1 atc.Build
 		result2 bool
 		result3 error
+	}
+	BuildEventsStub        func(buildID string) (atcclient.Events, error)
+	buildEventsMutex       sync.RWMutex
+	buildEventsArgsForCall []struct {
+		buildID string
+	}
+	buildEventsReturns struct {
+		result1 atcclient.Events
+		result2 error
+	}
+	AbortBuildStub        func(buildID string) error
+	abortBuildMutex       sync.RWMutex
+	abortBuildArgsForCall []struct {
+		buildID string
+	}
+	abortBuildReturns struct {
+		result1 error
 	}
 	BuildInputsForJobStub        func(pipelineName string, jobName string) ([]atc.BuildInput, bool, error)
 	buildInputsForJobMutex       sync.RWMutex
@@ -57,7 +66,7 @@ type FakeHandler struct {
 	CreatePipeStub        func() (atc.Pipe, error)
 	createPipeMutex       sync.RWMutex
 	createPipeArgsForCall []struct{}
-	createPipeReturns     struct {
+	createPipeReturns struct {
 		result1 atc.Pipe
 		result2 error
 	}
@@ -96,14 +105,14 @@ type FakeHandler struct {
 	ListContainersStub        func() ([]atc.Container, error)
 	listContainersMutex       sync.RWMutex
 	listContainersArgsForCall []struct{}
-	listContainersReturns     struct {
+	listContainersReturns struct {
 		result1 []atc.Container
 		result2 error
 	}
 	ListPipelinesStub        func() ([]atc.Pipeline, error)
 	listPipelinesMutex       sync.RWMutex
 	listPipelinesArgsForCall []struct{}
-	listPipelinesReturns     struct {
+	listPipelinesReturns struct {
 		result1 []atc.Pipeline
 		result2 error
 	}
@@ -118,38 +127,6 @@ type FakeHandler struct {
 		result3 bool
 		result4 error
 	}
-}
-
-func (fake *FakeHandler) AbortBuild(buildID string) error {
-	fake.abortBuildMutex.Lock()
-	fake.abortBuildArgsForCall = append(fake.abortBuildArgsForCall, struct {
-		buildID string
-	}{buildID})
-	fake.abortBuildMutex.Unlock()
-	if fake.AbortBuildStub != nil {
-		return fake.AbortBuildStub(buildID)
-	} else {
-		return fake.abortBuildReturns.result1
-	}
-}
-
-func (fake *FakeHandler) AbortBuildCallCount() int {
-	fake.abortBuildMutex.RLock()
-	defer fake.abortBuildMutex.RUnlock()
-	return len(fake.abortBuildArgsForCall)
-}
-
-func (fake *FakeHandler) AbortBuildArgsForCall(i int) string {
-	fake.abortBuildMutex.RLock()
-	defer fake.abortBuildMutex.RUnlock()
-	return fake.abortBuildArgsForCall[i].buildID
-}
-
-func (fake *FakeHandler) AbortBuildReturns(result1 error) {
-	fake.AbortBuildStub = nil
-	fake.abortBuildReturns = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeHandler) AllBuilds() ([]atc.Build, error) {
@@ -209,6 +186,71 @@ func (fake *FakeHandler) BuildReturns(result1 atc.Build, result2 bool, result3 e
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeHandler) BuildEvents(buildID string) (atcclient.Events, error) {
+	fake.buildEventsMutex.Lock()
+	fake.buildEventsArgsForCall = append(fake.buildEventsArgsForCall, struct {
+		buildID string
+	}{buildID})
+	fake.buildEventsMutex.Unlock()
+	if fake.BuildEventsStub != nil {
+		return fake.BuildEventsStub(buildID)
+	} else {
+		return fake.buildEventsReturns.result1, fake.buildEventsReturns.result2
+	}
+}
+
+func (fake *FakeHandler) BuildEventsCallCount() int {
+	fake.buildEventsMutex.RLock()
+	defer fake.buildEventsMutex.RUnlock()
+	return len(fake.buildEventsArgsForCall)
+}
+
+func (fake *FakeHandler) BuildEventsArgsForCall(i int) string {
+	fake.buildEventsMutex.RLock()
+	defer fake.buildEventsMutex.RUnlock()
+	return fake.buildEventsArgsForCall[i].buildID
+}
+
+func (fake *FakeHandler) BuildEventsReturns(result1 atcclient.Events, result2 error) {
+	fake.BuildEventsStub = nil
+	fake.buildEventsReturns = struct {
+		result1 atcclient.Events
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeHandler) AbortBuild(buildID string) error {
+	fake.abortBuildMutex.Lock()
+	fake.abortBuildArgsForCall = append(fake.abortBuildArgsForCall, struct {
+		buildID string
+	}{buildID})
+	fake.abortBuildMutex.Unlock()
+	if fake.AbortBuildStub != nil {
+		return fake.AbortBuildStub(buildID)
+	} else {
+		return fake.abortBuildReturns.result1
+	}
+}
+
+func (fake *FakeHandler) AbortBuildCallCount() int {
+	fake.abortBuildMutex.RLock()
+	defer fake.abortBuildMutex.RUnlock()
+	return len(fake.abortBuildArgsForCall)
+}
+
+func (fake *FakeHandler) AbortBuildArgsForCall(i int) string {
+	fake.abortBuildMutex.RLock()
+	defer fake.abortBuildMutex.RUnlock()
+	return fake.abortBuildArgsForCall[i].buildID
+}
+
+func (fake *FakeHandler) AbortBuildReturns(result1 error) {
+	fake.AbortBuildStub = nil
+	fake.abortBuildReturns = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeHandler) BuildInputsForJob(pipelineName string, jobName string) ([]atc.BuildInput, bool, error) {

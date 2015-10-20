@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/eventstream"
+	"github.com/concourse/fly/atcclient/eventstream"
 )
 
 type FakeEventStream struct {
@@ -15,6 +15,12 @@ type FakeEventStream struct {
 	nextEventReturns struct {
 		result1 atc.Event
 		result2 error
+	}
+	CloseStub        func() error
+	closeMutex       sync.RWMutex
+	closeArgsForCall []struct{}
+	closeReturns struct {
+		result1 error
 	}
 }
 
@@ -41,6 +47,30 @@ func (fake *FakeEventStream) NextEventReturns(result1 atc.Event, result2 error) 
 		result1 atc.Event
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeEventStream) Close() error {
+	fake.closeMutex.Lock()
+	fake.closeArgsForCall = append(fake.closeArgsForCall, struct{}{})
+	fake.closeMutex.Unlock()
+	if fake.CloseStub != nil {
+		return fake.CloseStub()
+	} else {
+		return fake.closeReturns.result1
+	}
+}
+
+func (fake *FakeEventStream) CloseCallCount() int {
+	fake.closeMutex.RLock()
+	defer fake.closeMutex.RUnlock()
+	return len(fake.closeArgsForCall)
+}
+
+func (fake *FakeEventStream) CloseReturns(result1 error) {
+	fake.CloseStub = nil
+	fake.closeReturns = struct {
+		result1 error
+	}{result1}
 }
 
 var _ eventstream.EventStream = new(FakeEventStream)

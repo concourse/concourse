@@ -6,8 +6,8 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/event"
-	. "github.com/concourse/fly/eventstream"
-	"github.com/concourse/fly/eventstream/fakes"
+	. "github.com/concourse/fly/atcclient/eventstream"
+	"github.com/concourse/fly/atcclient/eventstream/fakes"
 	"github.com/mgutz/ansi"
 
 	. "github.com/onsi/ginkgo"

@@ -1,14 +1,21 @@
 package atcclient_test
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/event"
 	. "github.com/concourse/fly/atcclient"
+	"github.com/concourse/fly/atcclient/eventstream"
 	"github.com/concourse/fly/rc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
+	"github.com/tedsuo/rata"
+	"github.com/vito/go-sse/sse"
 )
 
 var _ = Describe("ATC Client", func() {
@@ -30,8 +37,9 @@ var _ = Describe("ATC Client", func() {
 
 	Describe("#NewClient", func() {
 		It("returns back an ATC Client", func() {
+			var err error
 			target := rc.NewTarget(api, username, password, cert, insecure)
-			client, err := NewClient(target)
+			client, err = NewClient(target)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(client).NotTo(BeNil())
 		})
@@ -45,22 +53,12 @@ var _ = Describe("ATC Client", func() {
 	})
 
 	Describe("#Send", func() {
-		var (
-			atcServer *ghttp.Server
-			client    Client
-		)
-
 		BeforeEach(func() {
 			var err error
-			atcServer = ghttp.NewServer()
 			client, err = NewClient(
 				rc.NewTarget(atcServer.URL(), "", "", "", false),
 			)
 			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			atcServer.Close()
 		})
 
 		It("makes a request to the given route", func() {
@@ -360,6 +358,89 @@ var _ = Describe("ATC Client", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(atcServer.ReceivedRequests())).To(Equal(1))
 			})
+		})
+	})
+
+	Describe("#ConnectToEventStream", func() {
+		buildID := "3"
+		var streaming chan struct{}
+		var eventsChan chan atc.Event
+
+		BeforeEach(func() {
+			streaming = make(chan struct{})
+			eventsChan = make(chan atc.Event)
+
+			eventsHandler := func() http.HandlerFunc {
+				return ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/builds/%s/events", buildID)),
+					func(w http.ResponseWriter, r *http.Request) {
+						flusher := w.(http.Flusher)
+
+						w.Header().Add("Content-Type", "text/event-stream; charset=utf-8")
+						w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
+						w.Header().Add("Connection", "keep-alive")
+
+						w.WriteHeader(http.StatusOK)
+
+						flusher.Flush()
+
+						close(streaming)
+
+						id := 0
+
+						for e := range eventsChan {
+							payload, err := json.Marshal(event.Message{Event: e})
+							Expect(err).NotTo(HaveOccurred())
+
+							event := sse.Event{
+								ID:   fmt.Sprintf("%d", id),
+								Name: "event",
+								Data: payload,
+							}
+
+							err = event.Write(w)
+							Expect(err).NotTo(HaveOccurred())
+
+							flusher.Flush()
+
+							id++
+						}
+
+						err := sse.Event{
+							Name: "end",
+						}.Write(w)
+						Expect(err).NotTo(HaveOccurred())
+					},
+				)
+			}
+
+			atcServer.AppendHandlers(
+				eventsHandler(),
+			)
+		})
+
+		It("returns an EventSource that can stream events", func() {
+			eventSource, err := client.ConnectToEventStream(
+				Request{
+					RequestName: atc.BuildEvents,
+					Params:      rata.Params{"build_id": buildID},
+				})
+			Expect(err).NotTo(HaveOccurred())
+
+			events := eventstream.NewSSEEventStream(eventSource)
+
+			Eventually(streaming).Should(BeClosed())
+
+			eventsChan <- event.Log{Payload: "sup"}
+
+			nextEvent, err := events.NextEvent()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(nextEvent).To(Equal(event.Log{Payload: "sup"}))
+
+			close(eventsChan)
+
+			_, err = events.NextEvent()
+			Expect(err).To(MatchError(io.EOF))
 		})
 	})
 })

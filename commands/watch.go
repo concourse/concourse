@@ -1,18 +1,13 @@
 package commands
 
 import (
+	"fmt"
 	"log"
-	"net/http"
 	"os"
-	"strconv"
-	"time"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/fly/atcclient"
-	"github.com/concourse/fly/eventstream"
+	"github.com/concourse/fly/atcclient/eventstream"
 	"github.com/concourse/fly/rc"
-	"github.com/tedsuo/rata"
-	"github.com/vito/go-sse/sse"
 )
 
 type WatchCommand struct {
@@ -42,8 +37,6 @@ func (command *WatchCommand) Execute(args []string) error {
 		return nil
 	}
 
-	atcRequester := newAtcRequester(target.URL(), target.Insecure)
-
 	client, err := atcclient.NewClient(*target)
 	if err != nil {
 		log.Fatalln("failed to create client:", err)
@@ -55,31 +48,18 @@ func (command *WatchCommand) Execute(args []string) error {
 		log.Fatalln(err)
 	}
 
-	eventSource, err := sse.Connect(atcRequester.httpClient, time.Second, func() *http.Request {
-		logOutput, reqErr := atcRequester.CreateRequest(
-			atc.BuildEvents,
-			rata.Params{"build_id": strconv.Itoa(build.ID)},
-			nil,
-		)
-		if reqErr != nil {
-			log.Fatalln(reqErr)
-		}
+	eventSource, err := handler.BuildEvents(fmt.Sprintf("%d", build.ID))
 
-		return logOutput
-	})
 	if err != nil {
 		log.Println("failed to attach to stream:", err)
 		os.Exit(1)
 	}
 
-	exitCode, err := eventstream.RenderStream(eventSource)
-	if err != nil {
-		log.Println("failed to render stream:", err)
-		os.Exit(1)
-	}
+	exitCode := eventstream.Render(os.Stdout, eventSource)
 
 	eventSource.Close()
 
 	os.Exit(exitCode)
+
 	return nil
 }

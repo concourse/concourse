@@ -13,15 +13,13 @@ import (
 	"path/filepath"
 	"strconv"
 	"syscall"
-	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/atcclient"
 	"github.com/concourse/fly/config"
-	"github.com/concourse/fly/eventstream"
+	"github.com/concourse/fly/atcclient/eventstream"
 	"github.com/concourse/fly/rc"
 	"github.com/tedsuo/rata"
-	"github.com/vito/go-sse/sse"
 )
 
 type ExecuteCommand struct {
@@ -97,19 +95,6 @@ func (command *ExecuteCommand) Execute(args []string) error {
 
 	signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
 
-	eventSource, err := sse.Connect(atcRequester.httpClient, time.Second, func() *http.Request {
-		logOutput, _ := atcRequester.CreateRequest(
-			atc.BuildEvents,
-			rata.Params{"build_id": strconv.Itoa(build.ID)},
-			nil,
-		)
-
-		return logOutput
-	})
-	if err != nil {
-		return fmt.Errorf("failed to connect to event stream: %s", err)
-	}
-
 	go func() {
 		for _, i := range inputs {
 			if i.Path != "" {
@@ -118,11 +103,14 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		}
 	}()
 
-	exitCode, err := eventstream.RenderStream(eventSource)
+	eventSource, err := handler.BuildEvents(fmt.Sprintf("%d", build.ID))
+
 	if err != nil {
-		return fmt.Errorf("failed to render stream: %s", err)
+		log.Println("failed to attach to stream:", err)
+		os.Exit(1)
 	}
 
+	exitCode := eventstream.Render(os.Stdout, eventSource)
 	eventSource.Close()
 
 	os.Exit(exitCode)

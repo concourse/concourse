@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/fly/atcclient"
+	"github.com/vito/go-sse/sse"
 )
 
 type FakeClient struct {
@@ -16,6 +17,15 @@ type FakeClient struct {
 	}
 	sendReturns struct {
 		result1 error
+	}
+	ConnectToEventStreamStub        func(request atcclient.Request) (*sse.EventSource, error)
+	connectToEventStreamMutex       sync.RWMutex
+	connectToEventStreamArgsForCall []struct {
+		request atcclient.Request
+	}
+	connectToEventStreamReturns struct {
+		result1 *sse.EventSource
+		result2 error
 	}
 }
 
@@ -50,6 +60,39 @@ func (fake *FakeClient) SendReturns(result1 error) {
 	fake.sendReturns = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeClient) ConnectToEventStream(request atcclient.Request) (*sse.EventSource, error) {
+	fake.connectToEventStreamMutex.Lock()
+	fake.connectToEventStreamArgsForCall = append(fake.connectToEventStreamArgsForCall, struct {
+		request atcclient.Request
+	}{request})
+	fake.connectToEventStreamMutex.Unlock()
+	if fake.ConnectToEventStreamStub != nil {
+		return fake.ConnectToEventStreamStub(request)
+	} else {
+		return fake.connectToEventStreamReturns.result1, fake.connectToEventStreamReturns.result2
+	}
+}
+
+func (fake *FakeClient) ConnectToEventStreamCallCount() int {
+	fake.connectToEventStreamMutex.RLock()
+	defer fake.connectToEventStreamMutex.RUnlock()
+	return len(fake.connectToEventStreamArgsForCall)
+}
+
+func (fake *FakeClient) ConnectToEventStreamArgsForCall(i int) atcclient.Request {
+	fake.connectToEventStreamMutex.RLock()
+	defer fake.connectToEventStreamMutex.RUnlock()
+	return fake.connectToEventStreamArgsForCall[i].request
+}
+
+func (fake *FakeClient) ConnectToEventStreamReturns(result1 *sse.EventSource, result2 error) {
+	fake.ConnectToEventStreamStub = nil
+	fake.connectToEventStreamReturns = struct {
+		result1 *sse.EventSource
+		result2 error
+	}{result1, result2}
 }
 
 var _ atcclient.Client = new(FakeClient)
