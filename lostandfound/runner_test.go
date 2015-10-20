@@ -38,7 +38,9 @@ var _ = Describe("Runner", func() {
 
 		interval = 100 * time.Millisecond
 		leaseInterval = 5 * time.Second
+	})
 
+	JustBeforeEach(func() {
 		process = ginkgomon.Invoke(NewRunner(
 			lagertest.NewTestLogger("test"),
 			fakeBaggageCollector,
@@ -55,7 +57,7 @@ var _ = Describe("Runner", func() {
 	})
 
 	Context("when the interval elapses", func() {
-		BeforeEach(func() {
+		JustBeforeEach(func() {
 			fakeClock.Increment(interval)
 		})
 
