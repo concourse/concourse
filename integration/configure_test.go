@@ -47,8 +47,8 @@ func getConfigAndPausedState(r *http.Request) ([]byte, *bool) {
 		Expect(err).NotTo(HaveOccurred())
 
 		if part.FormName() == "paused" {
-			pausedValue, err := ioutil.ReadAll(part)
-			Expect(err).NotTo(HaveOccurred())
+			pausedValue, readErr := ioutil.ReadAll(part)
+			Expect(readErr).NotTo(HaveOccurred())
 
 			if string(pausedValue) == "true" {
 				state = &yes

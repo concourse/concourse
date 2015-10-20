@@ -13,16 +13,16 @@ type Handler interface {
 	// 	WritePipe()
 	AbortBuild(buildID string) error
 	AllBuilds() ([]atc.Build, error)
-	Build(buildID string) (atc.Build, error)
-	BuildInputsForJob(pipelineName string, jobName string) ([]atc.BuildInput, error)
+	Build(buildID string) (atc.Build, bool, error)
+	BuildInputsForJob(pipelineName string, jobName string) ([]atc.BuildInput, bool, error)
 	CreateBuild(plan atc.Plan) (atc.Build, error)
 	CreatePipe() (atc.Pipe, error)
-	DeletePipeline(pipelineName string) error
-	Job(pipelineName, jobName string) (atc.Job, error)
-	JobBuild(pipelineName, jobName, buildName string) (atc.Build, error)
+	DeletePipeline(pipelineName string) (bool, error)
+	Job(pipelineName, jobName string) (atc.Job, bool, error)
+	JobBuild(pipelineName, jobName, buildName string) (atc.Build, bool, error)
 	ListContainers() ([]atc.Container, error)
 	ListPipelines() ([]atc.Pipeline, error)
-	PipelineConfig(pipelineName string) (atc.Config, string, error)
+	PipelineConfig(pipelineName string) (atc.Config, string, bool, error)
 }
 
 type AtcHandler struct {

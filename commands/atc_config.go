@@ -28,9 +28,9 @@ type ATCConfig struct {
 
 func (atcConfig ATCConfig) Set(paused PipelineAction, configPath PathFlag, templateVariables template.Variables, templateVariablesFiles []PathFlag) {
 	newConfig, newRawConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables)
-	existingConfig, existingConfigVersion, err := atcConfig.handler.PipelineConfig(atcConfig.pipelineName)
+	existingConfig, existingConfigVersion, _, err := atcConfig.handler.PipelineConfig(atcConfig.pipelineName)
 	if err != nil {
-		failWithErrorf("failed to evaluate variables into template", err)
+		failWithErrorf("failed to retrieve config", err)
 	}
 
 	diff(existingConfig, newConfig)
@@ -48,9 +48,9 @@ func (atcConfig ATCConfig) newConfig(configPath PathFlag, templateVariablesFiles
 	var resultVars template.Variables
 
 	for _, path := range templateVariablesFiles {
-		fileVars, err := template.LoadVariablesFromFile(string(path))
-		if err != nil {
-			failWithErrorf("failed to load variables from file (%s)", err, string(path))
+		fileVars, templateErr := template.LoadVariablesFromFile(string(path))
+		if templateErr != nil {
+			failWithErrorf("failed to load variables from file (%s)", templateErr, string(path))
 		}
 
 		resultVars = resultVars.Merge(fileVars)
@@ -170,7 +170,7 @@ func diff(existingConfig atc.Config, newConfig atc.Config) {
 		fmt.Println("groups:")
 
 		for _, diff := range groupDiffs {
-			diff.WriteTo(indent, "group")
+			diff.Render(indent, "group")
 		}
 	}
 
@@ -179,7 +179,7 @@ func diff(existingConfig atc.Config, newConfig atc.Config) {
 		fmt.Println("resources:")
 
 		for _, diff := range resourceDiffs {
-			diff.WriteTo(indent, "resource")
+			diff.Render(indent, "resource")
 		}
 	}
 
@@ -188,7 +188,7 @@ func diff(existingConfig atc.Config, newConfig atc.Config) {
 		fmt.Println("jobs:")
 
 		for _, diff := range jobDiffs {
-			diff.WriteTo(indent, "job")
+			diff.Render(indent, "job")
 		}
 	}
 

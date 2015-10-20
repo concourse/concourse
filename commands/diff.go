@@ -29,7 +29,7 @@ func name(v interface{}) string {
 	return reflect.ValueOf(v).FieldByName("Name").String()
 }
 
-func (diff Diff) WriteTo(to io.Writer, label string) {
+func (diff Diff) Render(to io.Writer, label string) {
 	indent := gexec.NewPrefixedWriter("  ", to)
 
 	if diff.Before != nil && diff.After != nil {

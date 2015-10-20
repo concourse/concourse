@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -18,7 +20,7 @@ func handleBadResponse(process string, resp *http.Response) {
 	log.Fatalf("bad response when %s:\n%s\n%s", process, resp.Status, b)
 }
 
-func getBuild(handler atcclient.Handler, jobName string, buildNameOrId string, pipelineName string) atc.Build {
+func GetBuild(handler atcclient.Handler, jobName string, buildNameOrID string, pipelineName string) (atc.Build, error) {
 	if pipelineName != "" && jobName == "" {
 		log.Fatalln("job must be specified if pipeline is specified")
 	}
@@ -27,46 +29,56 @@ func getBuild(handler atcclient.Handler, jobName string, buildNameOrId string, p
 		pipelineName = atc.DefaultPipelineName
 	}
 
-	if buildNameOrId != "" {
+	if buildNameOrID != "" {
 		var build atc.Build
 		var err error
+		var found bool
 
 		if jobName != "" {
-			build, err = handler.JobBuild(pipelineName, jobName, buildNameOrId)
+			build, found, err = handler.JobBuild(pipelineName, jobName, buildNameOrID)
 		} else {
-			build, err = handler.Build(buildNameOrId)
+			build, found, err = handler.Build(buildNameOrID)
 		}
+
 		if err != nil {
-			log.Fatalln("failed to get build", err)
+			return atc.Build{}, fmt.Errorf("failed to get build %s", err)
 		}
-		return build
+
+		if !found {
+			return atc.Build{}, errors.New("build not found")
+		}
+
+		return build, nil
 	} else if jobName != "" {
-		job, err := handler.Job(pipelineName, jobName)
+		job, found, err := handler.Job(pipelineName, jobName)
+
 		if err != nil {
-			log.Fatalln("failed to get job", err)
+			return atc.Build{}, fmt.Errorf("failed to get job %s", err)
+		}
+
+		if !found {
+			return atc.Build{}, errors.New("job not found")
 		}
 
 		if job.NextBuild != nil {
-			return *job.NextBuild
+			return *job.NextBuild, nil
 		} else if job.FinishedBuild != nil {
-			return *job.FinishedBuild
+			return *job.FinishedBuild, nil
 		} else {
-			log.Fatalln("job has no builds")
+			return atc.Build{}, errors.New("job has no builds")
 		}
 	} else {
 		allBuilds, err := handler.AllBuilds()
 		if err != nil {
-			log.Fatalln("failed to get builds", err)
+			return atc.Build{}, fmt.Errorf("failed to get builds %s", err)
 		}
 
 		for _, build := range allBuilds {
 			if build.JobName == "" {
-				return build
+				return build, nil
 			}
 		}
 
-		log.Fatalln("no builds", err)
+		return atc.Build{}, errors.New("no builds match job")
 	}
-
-	panic("unreachable")
 }

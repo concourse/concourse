@@ -56,8 +56,9 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 
 			It("deletes the pipeline when called", func() {
-				err := handler.DeletePipeline("mypipeline")
+				found, err := handler.DeletePipeline("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 				Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
 			})
 		})
@@ -72,10 +73,10 @@ var _ = Describe("ATC Handler Pipelines", func() {
 				)
 			})
 
-			It("returns an error saying the pipeline does not exist", func() {
-				err := handler.DeletePipeline("mypipeline")
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("`mypipeline` does not exist"))
+			It("returns false and no error", func() {
+				found, err := handler.DeletePipeline("mypipeline")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
 			})
 		})
 	})

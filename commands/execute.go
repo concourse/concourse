@@ -3,6 +3,7 @@ package commands
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -210,9 +211,13 @@ func fetchInputsFromJob(handler atcclient.Handler, inputsFrom JobFlag) (map[stri
 		return kvMap, nil
 	}
 
-	buildInputs, err := handler.BuildInputsForJob(inputsFrom.PipelineName, inputsFrom.JobName)
+	buildInputs, found, err := handler.BuildInputsForJob(inputsFrom.PipelineName, inputsFrom.JobName)
 	if err != nil {
 		return nil, err
+	}
+
+	if !found {
+		return nil, errors.New("build inputs not found")
 	}
 
 	for _, buildInput := range buildInputs {

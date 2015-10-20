@@ -50,16 +50,19 @@ func (command *WatchCommand) Execute(args []string) error {
 	}
 	handler := atcclient.NewAtcHandler(client)
 
-	build := getBuild(handler, command.Job.JobName, command.Build, command.Job.PipelineName)
+	build, err := GetBuild(handler, command.Job.JobName, command.Build, command.Job.PipelineName)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	eventSource, err := sse.Connect(atcRequester.httpClient, time.Second, func() *http.Request {
-		logOutput, err := atcRequester.CreateRequest(
+		logOutput, reqErr := atcRequester.CreateRequest(
 			atc.BuildEvents,
 			rata.Params{"build_id": strconv.Itoa(build.ID)},
 			nil,
 		)
-		if err != nil {
-			log.Fatalln(err)
+		if reqErr != nil {
+			log.Fatalln(reqErr)
 		}
 
 		return logOutput

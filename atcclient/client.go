@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -31,17 +30,6 @@ type Request struct {
 type Response struct {
 	Result  interface{}
 	Headers *map[string][]string
-}
-
-type UnexpectedResponseError struct {
-	error
-	StatusCode int
-	Status     string
-	Body       string
-}
-
-func (e UnexpectedResponseError) Error() string {
-	return fmt.Sprintf("Unexpected Response\nStatus: %s\nBody:\n%s", e.Status, e.Body)
 }
 
 type AtcClient struct {
@@ -123,6 +111,8 @@ func (client *AtcClient) createHttpRequest(passedRequest Request) (*http.Request
 func (client *AtcClient) populateResponse(response *http.Response, passedResponse Response) error {
 	if response.StatusCode == http.StatusNoContent {
 		return nil
+	} else if response.StatusCode == http.StatusNotFound {
+		return ResourceNotFoundError{}
 	} else if response.StatusCode < 200 || response.StatusCode >= 300 {
 		body, _ := ioutil.ReadAll(response.Body)
 

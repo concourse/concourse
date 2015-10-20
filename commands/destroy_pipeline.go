@@ -31,8 +31,7 @@ func init() {
 func (command *DestroyPipelineCommand) Execute(args []string) error {
 	pipelineName := command.Pipeline
 
-	fmt.Printf("!!! this will remove all data for pipeline `%s`", pipelineName)
-	fmt.Println("\n")
+	fmt.Printf("!!! this will remove all data for pipeline `%s`\n\n", pipelineName)
 
 	if !askToConfirm("are you sure?") {
 		log.Fatalln("bailing out")
@@ -50,9 +49,12 @@ func (command *DestroyPipelineCommand) Execute(args []string) error {
 	}
 
 	handler := atcclient.NewAtcHandler(client)
-	err = handler.DeletePipeline(pipelineName)
+	found, err := handler.DeletePipeline(pipelineName)
 	if err != nil {
 		log.Fatalln(err)
+	}
+	if !found {
+		log.Fatalln(fmt.Sprintf("`%s` does not exist", pipelineName))
 	}
 
 	fmt.Printf("`%s` deleted\n", pipelineName)

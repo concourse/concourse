@@ -25,7 +25,6 @@ var _ = Describe("Hijacking", func() {
 	BeforeEach(func() {
 		atcServer = ghttp.NewServer()
 		hijacked = nil
-
 	})
 
 	AfterEach(func() {
@@ -217,7 +216,7 @@ var _ = Describe("Hijacking", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess.Err.Contents).Should(ContainSubstring("failed to get build"))
+			Eventually(sess.Err.Contents).Should(ContainSubstring("build not found"))
 
 			err = pty.Close()
 			Expect(err).NotTo(HaveOccurred())

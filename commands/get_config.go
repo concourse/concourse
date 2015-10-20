@@ -48,7 +48,7 @@ func (command *GetConfigCommand) Execute(args []string) error {
 		log.Fatalln(err)
 	}
 	handler := atcclient.NewAtcHandler(client)
-	config, _, err := handler.PipelineConfig(pipelineName)
+	config, _, _, err := handler.PipelineConfig(pipelineName)
 	if err != nil {
 		log.Fatalln(err)
 	}

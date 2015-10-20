@@ -72,31 +72,35 @@ func remoteCommand(argv []string) (string, []string) {
 }
 
 type containerLocator interface {
-	locate(containerFingerprint) url.Values
+	locate(containerFingerprint) (url.Values, error)
 }
 
 type stepContainerLocator struct {
 	handler atcclient.Handler
 }
 
-func (locator stepContainerLocator) locate(fingerprint containerFingerprint) url.Values {
-	build := getBuild(
+func (locator stepContainerLocator) locate(fingerprint containerFingerprint) (url.Values, error) {
+	//TODO: FIX THIS ERROR BEFORE COMMITTING YOU SLACKERS
+	build, err := GetBuild(
 		locator.handler,
 		fingerprint.jobName,
 		fingerprint.buildName,
 		fingerprint.pipelineName,
 	)
+	if err != nil {
+		return url.Values{}, err
+	}
 
 	reqValues := url.Values{}
 	reqValues["build-id"] = []string{strconv.Itoa(build.ID)}
 	reqValues["name"] = []string{fingerprint.stepName}
 
-	return reqValues
+	return reqValues, nil
 }
 
 type checkContainerLocator struct{}
 
-func (locator checkContainerLocator) locate(fingerprint containerFingerprint) url.Values {
+func (locator checkContainerLocator) locate(fingerprint containerFingerprint) (url.Values, error) {
 	reqValues := url.Values{}
 
 	reqValues["type"] = []string{"check"}
@@ -107,7 +111,7 @@ func (locator checkContainerLocator) locate(fingerprint containerFingerprint) ur
 		reqValues["pipeline"] = []string{fingerprint.pipelineName}
 	}
 
-	return reqValues
+	return reqValues, nil
 }
 
 type containerFingerprint struct {
@@ -120,7 +124,7 @@ type containerFingerprint struct {
 	checkName string
 }
 
-func locateContainer(handler atcclient.Handler, fingerprint containerFingerprint) url.Values {
+func locateContainer(handler atcclient.Handler, fingerprint containerFingerprint) (url.Values, error) {
 	var locator containerLocator
 
 	if fingerprint.checkName == "" {
@@ -185,7 +189,10 @@ func getContainerIDs(c *HijackCommand) []atc.Container {
 	}
 	handler := atcclient.NewAtcHandler(client)
 
-	reqValues := locateContainer(handler, fingerprint)
+	reqValues, err := locateContainer(handler, fingerprint)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	atcRequester := newAtcRequester(target.URL(), target.Insecure)
 	listContainersReq, err := atcRequester.RequestGenerator.CreateRequest(
@@ -247,14 +254,14 @@ func (command *HijackCommand) Execute(args []string) error {
 		for {
 			fmt.Printf("choose a container: ")
 
-			_, err := fmt.Scanf("%d", &selection)
+			_, scanErr := fmt.Scanf("%d", &selection)
 
-			if err == io.EOF {
+			if scanErr == io.EOF {
 				os.Exit(0)
 			}
 
-			if err != nil || selection > len(containers) || selection < 1 {
-				fmt.Println("invalid selection", err)
+			if scanErr != nil || selection > len(containers) || selection < 1 {
+				fmt.Println("invalid selection", scanErr)
 				continue
 			}
 
@@ -421,9 +428,9 @@ func dialEndpoint(url *url.URL, tlsConfig *tls.Config) (net.Conn, error) {
 
 	if url.Scheme == "https" {
 		return tls.Dial("tcp", addr, tlsConfig)
-	} else {
-		return net.Dial("tcp", addr)
 	}
+
+	return net.Dial("tcp", addr)
 }
 
 func canonicalAddr(url *url.URL) string {
