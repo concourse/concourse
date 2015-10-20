@@ -263,7 +263,7 @@ flag. Once you've learned what the commands do, you may want to consult
   \section{Using \code{\{\{parameters\}\}}}{parameters}{
     The pipeline configuration can contain template variable in the form of
     \code{\{\{foo-bar\}\}}. They will be replaced with string values populated
-    by repeated \code{--var} or \code{--vars-from} flags.
+    by repeated \code{--var} or \code{--load-vars-from} flags.
 
     This allows for credentials to be extracted from a pipeline config, making it
     safe to check in to a public repository or pass around.
@@ -298,10 +298,10 @@ flag. Once you've learned what the commands do, you may want to consult
     ...you could configure it like so:
 
     \codeblock{bash}{
-    $ fly configure --config pipeline.yml --vars-from credentials.yml my-pipeline
+    $ fly configure --config pipeline.yml --load-vars-from credentials.yml my-pipeline
     }
 
-    If both \code{--var} and \code{--vars-from} are specified, the \code{--var}
+    If both \code{--var} and \code{--load-vars-from} are specified, the \code{--var}
     flags take precedence.
 
     Note that only strings are supported for these values, so that
