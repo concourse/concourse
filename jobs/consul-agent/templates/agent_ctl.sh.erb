@@ -55,9 +55,11 @@ EOF
     #
     # /etc/resolv.conf will probably be regenerated all the time, so add the
     # local dns server to /head, which will be prepended when regenerated.
-    echo 'nameserver 127.0.0.1' > /etc/resolvconf/resolv.conf.d/head
+    if [ -d /etc/resolvconf/resolv.conf.d/ ]; then
+      echo 'nameserver 127.0.0.1' > /etc/resolvconf/resolv.conf.d/head
+    fi
 
-    if resolvconf --updates-are-enabled; then
+    if which resolvconf && resolvconf --updates-are-enabled; then
       resolvconf -u
     else
       # updates are disabled in bosh-lite; in this case just add to
