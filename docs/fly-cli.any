@@ -11,6 +11,10 @@ useful.
 You can download \code{fly} from a Concourse. There are download links for
 common platforms in the bottom right hand corner of the main page.
 
+Throughout this document we'll stick to the long-form name of every command and
+flag. Once you've learned what the commands do, you may want to consult
+\code{fly -h} to learn the short forms.
+
 \section{Targeting your Concourse}{
   Fly works with an already deployed Concourse. If you don't already have one of
   these you should follow the \reference{getting-started}{Getting Started}
@@ -58,15 +62,32 @@ common platforms in the bottom right hand corner of the main page.
   to save a target:
 
   \codeblock{bash}{
-  $ fly save-target --api https://example.com my-target
+  $ fly save-target --name my-target --api https://example.com
   }
 
   The full set of properties can be specified as such:
 
   \codeblock{bash}{
-  $ fly save-target --api https://example.com --username my-user
-  --password my-password my-target
+  $ fly save-target --name my-target --api https://example.com --username my-user
+  --password my-password
   }
+}
+
+\section{\code{sync}\aux{: Update your local copy of \code{fly}}}{fly-sync}{
+  Occasionally we add additional features to \code{fly} or make changes to the
+  communiction between it and Concourse's API server. To make sure you're
+  running the latest and greatest version that works with the Concourse you
+  are targeting we provide a command called \code{sync} that will update your
+  local \code{fly}. It can be used like so:
+
+  \codeblock{bash}{
+  $ fly sync
+  }
+
+  If you see anything odd, for example the output of builds not rendering or
+  certain commands throwing errors, be sure to run this command before
+  investigating any further; it's pretty likely that something has changed with
+  the API, especially while we're pre-1.0.
 }
 
 \section{\code{execute}\aux{: Submitting Local Tasks}}{fly-execute}{
@@ -100,7 +121,7 @@ common platforms in the bottom right hand corner of the main page.
   specify it using the \code{-c} or \code{--config} argument like so:
 
   \codeblock{bash}{
-  $ fly execute -c tests.yml
+  $ fly execute --config tests.yml
   }
 
   If you have many extra files or large files in your currect directory that
@@ -111,7 +132,7 @@ common platforms in the bottom right hand corner of the main page.
   If your task needs to run as \code{root} then you can specify the \code{-p}
   or \code{--privileged} flag.
 
-  \section{Multiple inputs with \code{-i}}{
+  \section{Providing multiple inputs}{
     Tasks in Concourse can take multiple inputs. Up until now we've just been
     submitting a single input (our current working directory) that has the same
     name as the directory.
@@ -122,7 +143,7 @@ common platforms in the bottom right hand corner of the main page.
     \code{--input} arguments with name and path pairs. For example:
 
     \codeblock{bash}{
-    $ fly execute -i code=. -i stemcells=../stemcells
+    $ fly execute --input code=. --input stemcells=../stemcells
     }
 
     This would work together with a \code{task.yml} if its \code{inputs:}
@@ -142,19 +163,18 @@ common platforms in the bottom right hand corner of the main page.
     of input that would normally not be possible in a pipeline.
   }
 
-  \section{Basing inputs on a job in your pipeline}{
-    If the \code{--inputs-from-pipeline} and \code{--inputs-from-job} flags are
-    given (\code{-ifp} and \code{-ifj} for short), the specified job will be
-    looked up in the pipeline, and the one-off build will base its inputs on
-    those currently configured for the job.
+  \section{Basing inputs on a job in your pipeline with \code{--inputs-from}}{
+    If the \code{--inputs-from} flag is given, the specified job will be looked
+    up in the pipeline, and the one-off build will base its inputs on those
+    currently configured for the job.
 
-    If any \code{-i} flags are given (see above), they will override the base
-    set of inputs.
+    If any \code{--input} flags are given (see above), they will override the
+    base set of inputs.
 
     For example:
 
     \codeblock{bash}{
-    $ fly execute -c task.yml -ifp main -ifj integration -i foo=./foo
+    $ fly execute --config task.yml --inputs-from main/integration --input foo=./foo
     }
 
     This will trigger a one-off-build using the \code{task.yml} task
@@ -190,32 +210,55 @@ common platforms in the bottom right hand corner of the main page.
   }
 }
 
-\section{\code{configure}\aux{: Configuring Pipelines}}{fly-configure}{
-  \omit-children-from-table-of-contents
-
-  Fly can be used to fetch and update the configuration for your pipelines. This
-  is achieved by using the \code{configure} command. For example, to fetch the
-  current configuration of your \code{my-pipeline} Concourse pipeline and print
-  it on \code{STDOUT} run the following:
+\section{\code{pipelines}\aux{: Listing configured pipelines}}{
+  To list the currently-configured pipelines and their paused state, run:
 
   \codeblock{bash}{
-  $ fly configure my-pipeline
+  $ fly pipelines
+  }
+}
+
+\section{\code{get-pipeline}\aux{: Fetching a pipeline's configuration}}{fly-get-pipeline}{
+  Fly can be used to fetch and update the configuration for your pipelines. This
+  is achieved by using the \reference{fly-get-pipeline} and
+  \reference{fly-set-pipeline} commands. For example, to fetch the current
+  configuration of your \code{my-pipeline} Concourse pipeline and print it on
+  \code{STDOUT} run the following:
+
+  \codeblock{bash}{
+  $ fly get-pipeline --pipeline my-pipeline
   }
 
   To get JSON instead of YAML you can use the \code{-j} or \code{--json}
   argument. This can be useful when inspecting your config with
   \hyperlink{http://stedolan.github.io/jq/}{jq}.
+}
+
+\section{\code{set-pipeline}\aux{: Configuring Pipelines}}{fly-set-pipeline}{
+  \omit-children-from-table-of-contents
 
   To submit a pipeline configuration to Concourse from a file on your local disk
   you can use the \code{-c} or \code{--config} flag, like so:
 
   \codeblock{bash}{
-  $ fly configure --config pipeline.yml my-pipeline
+  $ fly set-pipeline --config pipeline.yml --pipeline my-pipeline
   }
 
   This will present a diff of the changes and ask you to confirm the changes.
   If you accept then Concourse's pipeline configuration will switch to the
   pipeline definition in the YAML file specified.
+
+  Tip: you can use
+  \hyperlink{https://en.wikipedia.org/wiki/Process_substitution}{process
+  substitution} to quickly replicate a pipeline, potentially between Concourse
+  instances, by composing \reference{get-pipeline} and \reference{set-pipeline}
+  together like so:
+
+  \codeblock{bash}{
+  $ fly -t new set-pipeline -c <(fly -t old get-pipeline -p foo) -p foo
+  }
+
+  Note the use of the short flags, just to make it more obfuscated.
 
   \section{Using \code{\{\{parameters\}\}}}{parameters}{
     The pipeline configuration can contain template variable in the form of
@@ -272,64 +315,79 @@ common platforms in the bottom right hand corner of the main page.
   Running \code{fly destroy-pipeline} will stop the pipeline activity and remove
   all data collected by the pipeline, including build history and collected
   versions.
+
+  For example, to destroy the \code{my-pipeline} pipeline, you would run:
+
+  \codeblock{bash}{
+  $ fly destroy-pipeline --pipeline my-pipeline
+  }
+}
+
+\section{\code{containers}\aux{: Listing active containers}}{
+  To list the active containers across all your workers, run:
+
+  \codeblock{bash}{
+  $ fly containers
+  }
+
+  This can be useful when discovering the containers available for
+  \reference{intercept}ing.
 }
 
 \section{\code{intercept}\aux{: Accessing a running or recent build's steps}}{fly-intercept}{
   Sometimes it's helpful to be on the same machine as your tasks so that you
   can profile or inspect them as they run or see the state the machine at the
   end of a run. Due to Concourse running tasks in containers on remote
-  machines this would typically be hard to access. To this end, there is a
-  \code{fly intercept} command that will give you a shell inside the most
-  recent one-off build that was submitted to Concourse. For example, running
-  the following will run a task and then enter the finished task's
-  container:
+  machines this would typically be hard to access.
 
-  \margin-note{
-    Be warned, if more than one person is using a Concourse server for running
-    one-off builds then you may end up in a build that you did not expect!
-  }
-
-  \codeblock{bash}{
-  $ fly execute
-  $ fly intercept -t task
-  }
-
-  Containers are around for a short time after a build finishes in order to
-  allow people to intercept them.
-
-  You can also intercept builds that were run in your pipeline. By using
-  \code{--pipeline}, \code{--job}, \code{--build}, and \code{--step-name} you
-  can intercept a specific step from a build of a job in your pipeline. These
-  flags also have short forms, like so:
-
-  \codeblock{bash}{
-  $ fly intercept -p some-pipeline -j some-job -b some-build -n some-step
-  }
-
-  Note that \code{--build} can be omitted, and will default to the most recent
-  build of the job. One-off builds can be reached by passing in their build ID
-  to \code{--build} which can be found on the build list page.
-
-  Resource checking containers can also be intercepted with \code{--check} or
-  \code{-c}:
-
-  \codeblock{bash}{
-  $ fly intercept -p some-pipeline -c some-resource
-  }
-
-  Note that specifying the pipeline with \code{-p} is often required to
-  disambiguate, as pipelines may share common resource names.
-
-  The shell created on the remote container via \code{fly intercept} provides
-  root user access by default.
+  To this end, there is a \code{fly intercept} command that will give you an
+  interactive shell inside the specified container. Containers are identified
+  by a few things, so you may need to specify a few flags to hone down the
+  results. If there are multiple containers that the flags could refer to, an
+  interactive prompt will show up allowing you to disambiguate.
 
   \margin-note{
     The command \code{fly hijack} is an alias of \code{fly intercept}. Both can
     be used interchangably.
   }
 
-  \centered{
-    \image{images/fly-demo.png}{Fly Demo}
+  For example, running the following will run a task and then enter the
+  finished task's container:
+
+  \codeblock{bash}{
+  $ fly execute
+  $ fly intercept --step build
+  }
+
+  \margin-note{
+    Be warned, if more than one person is using a Concourse server for running
+    one-off builds then you may end up in a build that you did not expect!
+  }
+
+  Containers are around for a short time after a build finishes in order to
+  allow people to intercept them.
+
+  You can also intercept builds that were run in your pipeline. By using
+  \code{--job}, \code{--build}, and \code{--step} you can intercept a specific
+  step from a build of a job in your pipeline. These flags also have short
+  forms, like so:
+
+  \codeblock{bash}{
+  $ fly intercept -j some-pipeline/some-job -b some-build -s some-step
+  }
+
+  Note that \code{--build} can be omitted, and will default to the most recent
+  build of the job. One-off builds can be reached by passing in their build ID
+  to \code{--build} which can be found on the build list page.
+
+  The \code{--step} flag can also be omitted; this will let you pick the step
+  interactively if you don't know the exact name.
+
+  Resource checking containers can also be intercepted with \code{--check} or
+  \code{-c}:
+
+  \codeblock{bash}{
+  $ fly intercept --check some-pipeline/some-resource
   }
 
   A specific command can also be given, e.g. \code{fly intercept ps auxf} or
@@ -338,33 +396,47 @@ common platforms in the bottom right hand corner of the main page.
   current build's task, even as the "current build" changes.
 }
 
-\section{\code{sync}\aux{: Update your local copy of \code{fly}}}{fly-sync}{
-  Occasionally we add additional features to \code{fly} or make changes to the
-  communiction between it and Concourse's API server. To make sure you're
-  running the latest and greatest version that works with the Concourse you
-  are targeting we provide a command called \code{sync} that will update your
-  local \code{fly}. It can be used like so:
-
-  \codeblock{bash}{
-  $ fly sync
-  }
-}
-
 \section{\code{watch}\aux{: View logs of in-progress builds}}{fly-watch}{
   Concourse emits streaming colored logs on the website but it can be helpful
   to have the logs availiable to the command line. (e.g. so that they can be
   processed by other commands).
 
   The \code{watch} command can be used to do just this. You can also view
-  builds that were run in your pipeline. By using the \code{--pipeline},
-  \code{--job}, and \code{--build} flags you can pick out a specific job and
-  build to watch. For example, the following command will either show the
-  archived logs for an old build if it has finished running or it will stream
-  the current logs if the build is still in progress.
+  builds that are running in your pipeline, or builds that have already
+  finished.
+
+  Note that unlike \reference{fly-execute}, killing \code{fly watch} via
+  \code{SIGINT} or \code{SIGTERM} will \italic{not} abort the build.
+
+  To watch the most recent one-off build, just run \code{fly watch} with no
+  arugments. To watch a specific build (one-off or no), pass \code{--build}
+  with the ID of the build to watch. This ID is available at the start of
+  \reference{fly-execute}'s output or by browsing to the builds list in the web
+  UI.
+
+  By using the \code{--job} and \code{--build} flags you can pick out a
+  specific build of a job to watch. For example, the following command will
+  either show the archived logs for an old build if it has finished running or
+  it will stream the current logs if the build is still in progress.
 
   \codeblock{bash}{
-  $ fly watch --pipeline my-pipeline --job tests --build 52
+  $ fly watch --job my-pipeline/tests --build 52
   }
+
+  If the \code{--job} flag is specified and \code{--build} is omitted, the most
+  recent build of the specified job will be selected.
+}
+
+\section{\code{workers}\aux{: Listing registered workers}}{
+  To list the currently registered workers, including additional metadata, run:
+
+  \codeblock{bash}{
+  $ fly workers
+  }
+
+  This can be useful for monitoring the status of your workers, if you suspect
+  that one keeps dropping out of the pool or getting tasked with too many
+  containers, etc.
 }
 
 \section{\code{checklist}\aux{: Generate Checkman definition files}}{fly-checklist}{
@@ -376,6 +448,6 @@ common platforms in the bottom right hand corner of the main page.
   Checkman files based on your pipelines using the command below.
 
   \codeblock{bash}{
-  $ fly checklist my-pipeline > ~/Checkman/my-pipeline
+  $ fly checklist --pipeline my-pipeline > ~/Checkman/my-pipeline
   }
 }
