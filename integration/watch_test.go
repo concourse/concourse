@@ -47,7 +47,7 @@ var _ = Describe("Watching", func() {
 				id := 0
 
 				for e := range events {
-					payload, err := json.Marshal(event.Message{e})
+					payload, err := json.Marshal(event.Message{Event: e})
 					Expect(err).NotTo(HaveOccurred())
 
 					event := sse.Event{

@@ -38,7 +38,8 @@ var _ = Describe("Fly CLI", func() {
 	var expectedPlan atc.Plan
 
 	BeforeEach(func() {
-		tmpdir, err := ioutil.TempDir("", "fly-build-dir")
+		var err error
+		tmpdir, err = ioutil.TempDir("", "fly-build-dir")
 		Expect(err).NotTo(HaveOccurred())
 
 		buildDir = filepath.Join(tmpdir, "fixture")
@@ -172,7 +173,7 @@ run:
 					id := 0
 
 					for e := range events {
-						payload, err := json.Marshal(event.Message{e})
+						payload, err := json.Marshal(event.Message{Event: e})
 						Expect(err).NotTo(HaveOccurred())
 
 						event := sse.Event{
