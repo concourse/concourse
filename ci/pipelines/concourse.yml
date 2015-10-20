@@ -505,9 +505,9 @@ jobs:
   plan:
     - aggregate:
       - get: concourse-master
-        params: {submodules: none, fetch: [develop]}
+        params: {submodules: none}
         trigger: true
-      - get: concourse # for build scripts
+      - get: concourse-develop
         params: {submodules: none}
     - task: merge-to-develop
       file: concourse/ci/master-merge.yml

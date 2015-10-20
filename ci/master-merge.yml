@@ -4,7 +4,7 @@ image: docker:///concourse/git-resource
 
 inputs:
   - name: concourse-master
-  - name: concourse
+  - name: concourse-develop
 
 run:
-  path: concourse/ci/scripts/master-merge
+  path: concourse-develop/ci/scripts/master-merge

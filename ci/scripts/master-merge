@@ -4,9 +4,12 @@ set -e -x
 
 export PATH=$GOPATH/bin:$PATH
 
+DEVELOP=$PWD/concourse-develop
+
 cd concourse-master
 
-git checkout develop
+git remote add local $DEVELOP
+git checkout local/develop
 
 git config --global user.email "ci@localhost"
 git config --global user.name "CI Bot"
