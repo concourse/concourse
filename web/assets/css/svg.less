@@ -2,26 +2,21 @@
 
 svg {
   .node rect { fill: @base00; }
-
-  .edge { stroke: @base03; }
-
+  .node.pending rect { fill: @base04; }
+  .node.succeeded rect { fill: @base0B; }
+  .node.failed rect { fill: @base08; }
+  .node.errored rect { fill: @base09; }
+  .node.aborted rect { fill: @base0F; }
+  .node.paused rect { fill: @base0D; }
   .node.job.no-builds rect { fill: @base03; }
-
-  .edge.pending { stroke: @base04; }
-  .node.job.pending rect { fill: @base04; }
-
+  .node.input.failing rect { fill: @base09; }
   .node.resource a { color: @base06; }
 
+  .edge { stroke: @base03; }
+  .edge.pending { stroke: @base04; }
   .edge.succeeded { stroke: @base0B; }
-  .node.job.succeeded rect { fill: @base0B; }
-
   .edge.failed { stroke: @base08; }
-  .node.job.failed rect { fill: @base08; }
-
   .edge.errored { stroke: @base09; }
-  .node.job.errored rect { fill: @base09; }
-  .node.input.failing rect { fill: @base09; }
-
   .edge.aborted { stroke: @base0F; }
-  .node.job.aborted rect { fill: @base0F; }
+  .edge.paused { stroke: @base0D; }
 }
