@@ -13,28 +13,28 @@ import (
 	"github.com/concourse/fly/rc"
 )
 
-type GetConfigCommand struct {
+type GetPipelineCommand struct {
 	Pipeline string `short:"p" long:"pipeline" required:"true" description:"Get configuration of this pipeline"`
 	JSON     bool   `short:"j" long:"json"                     description:"Print config as json instead of yaml"`
 }
 
-var getConfigCommand GetConfigCommand
+var getPipelineCommand GetPipelineCommand
 
 func init() {
 	configure, err := Parser.AddCommand(
-		"get-config",
+		"get-pipeline",
 		"Dowload pipeline configuration",
 		"",
-		&getConfigCommand,
+		&getPipelineCommand,
 	)
 	if err != nil {
 		panic(err)
 	}
 
-	configure.Aliases = []string{"gc"}
+	configure.Aliases = []string{"gp"}
 }
 
-func (command *GetConfigCommand) Execute(args []string) error {
+func (command *GetPipelineCommand) Execute(args []string) error {
 	asJSON := command.JSON
 	pipelineName := command.Pipeline
 

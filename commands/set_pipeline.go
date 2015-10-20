@@ -12,7 +12,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-type SetConfigCommand struct {
+type SetPipelineCommand struct {
 	Pipeline string             `short:"p"  long:"pipeline" required:"true"      description:"Pipeline to configure"`
 	Config   PathFlag           `short:"c"  long:"config"                        description:"Pipeline configuration file"`
 	Var      []VariablePairFlag `short:"v"  long:"var" value-name:"[SECRET=KEY]" description:"Variable flag that can be used for filling in template values in configuration"`
@@ -20,23 +20,23 @@ type SetConfigCommand struct {
 	Paused   string             `long:"paused"         value-name:"[true/false]" description:"Should the pipeline start out as paused or unpaused"`
 }
 
-var setConfigCommand SetConfigCommand
+var setPipelineCommand SetPipelineCommand
 
 func init() {
 	configure, err := Parser.AddCommand(
-		"set-config",
+		"set-pipeline",
 		"Update pipeline configuration",
 		"",
-		&setConfigCommand,
+		&setPipelineCommand,
 	)
 	if err != nil {
 		panic(err)
 	}
 
-	configure.Aliases = []string{"sc"}
+	configure.Aliases = []string{"sp"}
 }
 
-func (command *SetConfigCommand) Execute(args []string) error {
+func (command *SetPipelineCommand) Execute(args []string) error {
 	configPath := command.Config
 	templateVariablesFiles := command.VarsFrom
 	pipelineName := command.Pipeline
