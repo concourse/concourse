@@ -105,7 +105,7 @@ func configurePipeline(argv ...string) {
 
 	args := append([]string{
 		"-t", atcURL,
-		"set-config",
+		"set-pipeline",
 		"-p", pipelineName,
 		"--paused", "false",
 	}, argv...)
