@@ -17,11 +17,10 @@ configure_pipeline() {
 
   printf "configuring the $name pipeline...\n"
 
-  fly -t $url \
-    configure \
+  fly -t $url set-pipeline \
+    -p $name \
     -c $pipeline \
-    -vf <(lpass show "Shared-Concourse/Concourse Pipeline Credentials" --notes) \
-    $name
+    -l <(lpass show "Shared-Concourse/Concourse Pipeline Credentials" --notes)
 }
 
 check_installed lpass
