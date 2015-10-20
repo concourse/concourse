@@ -9,6 +9,8 @@ DEVELOP=$PWD/concourse-develop
 cd concourse-master
 
 git remote add local $DEVELOP
+
+git fetch local
 git checkout local/develop
 
 git config --global user.email "ci@localhost"
