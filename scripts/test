@@ -6,7 +6,7 @@ not_installed() {
   ! command -v $1 > /dev/null 2>&1
 }
 
-atc_dir=$(realpath $(dirname $(dirname $0)))
+atc_dir=$(cd $(dirname $0)/.. && pwd)
 
 if not_installed ginkgo; then
   echo "# ginkgo is not installed! run the following command:"
@@ -29,7 +29,10 @@ if not_installed gulp; then
 fi
 
 cd $atc_dir
-ginkgo -r -p
+ginkgo -r -p --race
 
+NODE_ENV=production
 cd $atc_dir/web/assets
+# This will re-compile the javascript and css
+gulp
 gulp jasmine-cli
