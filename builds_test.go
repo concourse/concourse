@@ -97,8 +97,9 @@ var _ = Describe("ATC Handler Builds", func() {
 				})
 
 				It("returns the given build", func() {
-					build, err := handler.JobBuild("mypipeline", "myjob", "mybuild")
+					build, found, err := handler.JobBuild("mypipeline", "myjob", "mybuild")
 					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
 					Expect(build).To(Equal(expectedBuild))
 				})
 			})
@@ -109,8 +110,9 @@ var _ = Describe("ATC Handler Builds", func() {
 				})
 
 				It("returns the given build for the default pipeline 'main'", func() {
-					build, err := handler.JobBuild("", "myjob", "mybuild")
+					build, found, err := handler.JobBuild("", "myjob", "mybuild")
 					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
 					Expect(build).To(Equal(expectedBuild))
 				})
 			})
@@ -128,10 +130,10 @@ var _ = Describe("ATC Handler Builds", func() {
 				)
 			})
 
-			It("returns an error containing 'build not found'", func() {
-				_, err := handler.JobBuild("mypipeline", "myjob", "mybuild")
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("build not found"))
+			It("return false and no error", func() {
+				_, found, err := handler.JobBuild("mypipeline", "myjob", "mybuild")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
 			})
 		})
 	})
@@ -158,8 +160,9 @@ var _ = Describe("ATC Handler Builds", func() {
 			})
 
 			It("returns the given build", func() {
-				build, err := handler.Build("123")
+				build, found, err := handler.Build("123")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 				Expect(build).To(Equal(expectedBuild))
 			})
 		})
@@ -176,10 +179,10 @@ var _ = Describe("ATC Handler Builds", func() {
 				)
 			})
 
-			It("returns an error containing 'build not found'", func() {
-				_, err := handler.Build("123")
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("build not found"))
+			It("returns false and no error", func() {
+				_, found, err := handler.Build("123")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
 			})
 		})
 	})

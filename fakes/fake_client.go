@@ -8,50 +8,46 @@ import (
 )
 
 type FakeClient struct {
-	MakeRequestStub        func(result interface{}, requestName string, params map[string]string, queries map[string]string) error
-	makeRequestMutex       sync.RWMutex
-	makeRequestArgsForCall []struct {
-		result      interface{}
-		requestName string
-		params      map[string]string
-		queries     map[string]string
+	SendStub        func(request atcclient.Request, response atcclient.Response) error
+	sendMutex       sync.RWMutex
+	sendArgsForCall []struct {
+		request  atcclient.Request
+		response atcclient.Response
 	}
-	makeRequestReturns struct {
+	sendReturns struct {
 		result1 error
 	}
 }
 
-func (fake *FakeClient) MakeRequest(result interface{}, requestName string, params map[string]string, queries map[string]string) error {
-	fake.makeRequestMutex.Lock()
-	fake.makeRequestArgsForCall = append(fake.makeRequestArgsForCall, struct {
-		result      interface{}
-		requestName string
-		params      map[string]string
-		queries     map[string]string
-	}{result, requestName, params, queries})
-	fake.makeRequestMutex.Unlock()
-	if fake.MakeRequestStub != nil {
-		return fake.MakeRequestStub(result, requestName, params, queries)
+func (fake *FakeClient) Send(request atcclient.Request, response atcclient.Response) error {
+	fake.sendMutex.Lock()
+	fake.sendArgsForCall = append(fake.sendArgsForCall, struct {
+		request  atcclient.Request
+		response atcclient.Response
+	}{request, response})
+	fake.sendMutex.Unlock()
+	if fake.SendStub != nil {
+		return fake.SendStub(request, response)
 	} else {
-		return fake.makeRequestReturns.result1
+		return fake.sendReturns.result1
 	}
 }
 
-func (fake *FakeClient) MakeRequestCallCount() int {
-	fake.makeRequestMutex.RLock()
-	defer fake.makeRequestMutex.RUnlock()
-	return len(fake.makeRequestArgsForCall)
+func (fake *FakeClient) SendCallCount() int {
+	fake.sendMutex.RLock()
+	defer fake.sendMutex.RUnlock()
+	return len(fake.sendArgsForCall)
 }
 
-func (fake *FakeClient) MakeRequestArgsForCall(i int) (interface{}, string, map[string]string, map[string]string) {
-	fake.makeRequestMutex.RLock()
-	defer fake.makeRequestMutex.RUnlock()
-	return fake.makeRequestArgsForCall[i].result, fake.makeRequestArgsForCall[i].requestName, fake.makeRequestArgsForCall[i].params, fake.makeRequestArgsForCall[i].queries
+func (fake *FakeClient) SendArgsForCall(i int) (atcclient.Request, atcclient.Response) {
+	fake.sendMutex.RLock()
+	defer fake.sendMutex.RUnlock()
+	return fake.sendArgsForCall[i].request, fake.sendArgsForCall[i].response
 }
 
-func (fake *FakeClient) MakeRequestReturns(result1 error) {
-	fake.MakeRequestStub = nil
-	fake.makeRequestReturns = struct {
+func (fake *FakeClient) SendReturns(result1 error) {
+	fake.SendStub = nil
+	fake.sendReturns = struct {
 		result1 error
 	}{result1}
 }

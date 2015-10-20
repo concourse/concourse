@@ -25,7 +25,7 @@ func (handler AtcHandler) CreateBuild(plan atc.Plan) (atc.Build, error) {
 	return build, err
 }
 
-func (handler AtcHandler) JobBuild(pipelineName, jobName, buildName string) (atc.Build, error) {
+func (handler AtcHandler) JobBuild(pipelineName, jobName, buildName string) (atc.Build, bool, error) {
 	if pipelineName == "" {
 		pipelineName = atc.DefaultPipelineName
 	}
@@ -38,16 +38,17 @@ func (handler AtcHandler) JobBuild(pipelineName, jobName, buildName string) (atc
 		Result: &build,
 	})
 
-	if ure, ok := err.(UnexpectedResponseError); ok {
-		if ure.StatusCode == http.StatusNotFound {
-			return build, errors.New("build not found")
-		}
+	switch err.(type) {
+	case nil:
+		return build, true, nil
+	case ResourceNotFoundError:
+		return build, false, nil
+	default:
+		return build, false, err
 	}
-
-	return build, err
 }
 
-func (handler AtcHandler) Build(buildID string) (atc.Build, error) {
+func (handler AtcHandler) Build(buildID string) (atc.Build, bool, error) {
 	params := map[string]string{"build_id": buildID}
 	var build atc.Build
 	err := handler.client.Send(Request{
@@ -57,13 +58,14 @@ func (handler AtcHandler) Build(buildID string) (atc.Build, error) {
 		Result: &build,
 	})
 
-	if ure, ok := err.(UnexpectedResponseError); ok {
-		if ure.StatusCode == http.StatusNotFound {
-			return build, errors.New("build not found")
-		}
+	switch err.(type) {
+	case nil:
+		return build, true, nil
+	case ResourceNotFoundError:
+		return build, false, nil
+	default:
+		return build, false, err
 	}
-
-	return build, err
 }
 
 func (handler AtcHandler) AllBuilds() ([]atc.Build, error) {

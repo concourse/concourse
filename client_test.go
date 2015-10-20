@@ -267,7 +267,6 @@ var _ = Describe("ATC Client", func() {
 							ghttp.RespondWith(http.StatusInternalServerError, "problem"),
 						),
 					)
-
 				})
 
 				It("returns back UnexpectedResponseError", func() {
@@ -282,6 +281,37 @@ var _ = Describe("ATC Client", func() {
 					Expect(ok).To(BeTrue())
 					Expect(ure.StatusCode).To(Equal(http.StatusInternalServerError))
 					Expect(ure.Body).To(Equal("problem"))
+				})
+			})
+
+			Describe("404 response", func() {
+				BeforeEach(func() {
+					var err error
+					atcServer = ghttp.NewServer()
+
+					target := rc.NewTarget(atcServer.URL(), username, password, cert, insecure)
+					client, err = NewClient(target)
+					Expect(err).NotTo(HaveOccurred())
+
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("DELETE", "/api/v1/pipelines/foo"),
+							ghttp.RespondWith(http.StatusNotFound, "problem"),
+						),
+					)
+				})
+
+				It("returns back ResourceNotFoundError", func() {
+					err := client.Send(Request{
+						RequestName: atc.DeletePipeline,
+						Params:      map[string]string{"pipeline_name": "foo"},
+					},
+						Response{},
+					)
+					Expect(err).To(HaveOccurred())
+					_, ok := err.(ResourceNotFoundError)
+					Expect(ok).To(BeTrue())
+					Expect(err.Error()).To(Equal("Resource Not Found"))
 				})
 			})
 		})

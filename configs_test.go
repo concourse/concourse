@@ -14,7 +14,7 @@ var _ = Describe("ATC Handler Configs", func() {
 	Describe("PipelineConfig", func() {
 		expectedURL := "/api/v1/pipelines/mypipeline/config"
 
-		Context("ATC returns the correct response", func() {
+		Context("ATC returns the correct response when it exists", func() {
 			var (
 				expectedConfig  atc.Config
 				expectedVersion string
@@ -75,10 +75,28 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns the given config and version for that pipeline", func() {
-				pipelineConfig, version, err := handler.PipelineConfig("mypipeline")
+				pipelineConfig, version, found, err := handler.PipelineConfig("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pipelineConfig).To(Equal(expectedConfig))
 				Expect(version).To(Equal(expectedVersion))
+				Expect(found).To(BeTrue())
+			})
+		})
+
+		Context("when pipeline does not exist", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWith(http.StatusNotFound, ""),
+					),
+				)
+			})
+
+			It("returns false and no error", func() {
+				_, _, found, err := handler.PipelineConfig("mypipeline")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
 			})
 		})
 
@@ -93,12 +111,12 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns the error", func() {
-				_, _, err := handler.PipelineConfig("mypipeline")
+				_, _, _, err := handler.PipelineConfig("mypipeline")
 				Expect(err).To(HaveOccurred())
 			})
 		})
 
-		Context("ATC does not return config version error", func() {
+		Context("ATC does not return config version", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -108,10 +126,9 @@ var _ = Describe("ATC Handler Configs", func() {
 				)
 			})
 
-			It("returns an empty value for the version", func() {
-				_, version, err := handler.PipelineConfig("mypipeline")
+			It("returns an error", func() {
+				_, _, _, err := handler.PipelineConfig("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
-				Expect(version).To(BeEmpty())
 			})
 		})
 	})

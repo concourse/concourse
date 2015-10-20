@@ -1,11 +1,6 @@
 package atcclient
 
-import (
-	"fmt"
-	"net/http"
-
-	"github.com/concourse/atc"
-)
+import "github.com/concourse/atc"
 
 func (handler AtcHandler) ListPipelines() ([]atc.Pipeline, error) {
 	var pipelines []atc.Pipeline
@@ -18,18 +13,20 @@ func (handler AtcHandler) ListPipelines() ([]atc.Pipeline, error) {
 	return pipelines, err
 }
 
-func (handler AtcHandler) DeletePipeline(pipelineName string) error {
+func (handler AtcHandler) DeletePipeline(pipelineName string) (bool, error) {
 	params := map[string]string{"pipeline_name": pipelineName}
 	err := handler.client.Send(Request{
 		RequestName: atc.DeletePipeline,
 		Params:      params,
 	}, Response{})
 
-	if ure, ok := err.(UnexpectedResponseError); ok {
-		if ure.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("`%s` does not exist", pipelineName)
-		}
+	switch err.(type) {
+	case nil:
+		return true, nil
+	case ResourceNotFoundError:
+		return false, nil
+	default:
+		return false, err
 	}
 
-	return err
 }

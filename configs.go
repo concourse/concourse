@@ -2,7 +2,7 @@ package atcclient
 
 import "github.com/concourse/atc"
 
-func (handler AtcHandler) PipelineConfig(pipelineName string) (atc.Config, string, error) {
+func (handler AtcHandler) PipelineConfig(pipelineName string) (atc.Config, string, bool, error) {
 	params := map[string]string{"pipeline_name": pipelineName}
 
 	var config atc.Config
@@ -17,13 +17,16 @@ func (handler AtcHandler) PipelineConfig(pipelineName string) (atc.Config, strin
 		Headers: &responseHeaders,
 	})
 
-	if err != nil {
-		return config, version, err
-	}
-
 	if header, ok := responseHeaders[atc.ConfigVersionHeader]; ok {
 		version = header[0]
 	}
 
-	return config, version, err
+	switch err.(type) {
+	case nil:
+		return config, version, true, nil
+	case ResourceNotFoundError:
+		return config, version, false, nil
+	default:
+		return config, version, false, err
+	}
 }

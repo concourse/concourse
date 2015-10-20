@@ -2,7 +2,7 @@ package atcclient
 
 import "github.com/concourse/atc"
 
-func (handler AtcHandler) Job(pipelineName, jobName string) (atc.Job, error) {
+func (handler AtcHandler) Job(pipelineName, jobName string) (atc.Job, bool, error) {
 	if pipelineName == "" {
 		pipelineName = atc.DefaultPipelineName
 	}
@@ -14,5 +14,13 @@ func (handler AtcHandler) Job(pipelineName, jobName string) (atc.Job, error) {
 	}, Response{
 		Result: &job,
 	})
-	return job, err
+
+	switch err.(type) {
+	case nil:
+		return job, true, nil
+	case ResourceNotFoundError:
+		return job, false, nil
+	default:
+		return job, false, err
+	}
 }
