@@ -24,8 +24,7 @@ var _ = Describe("Runner", func() {
 		fakeClock            *fakeclock.FakeClock
 		fakeLease            *dbfakes.FakeLease
 
-		interval      time.Duration
-		leaseInterval time.Duration
+		interval time.Duration
 
 		process ifrit.Process
 	)
@@ -37,7 +36,6 @@ var _ = Describe("Runner", func() {
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 
 		interval = 100 * time.Millisecond
-		leaseInterval = 5 * time.Second
 	})
 
 	JustBeforeEach(func() {
@@ -47,7 +45,6 @@ var _ = Describe("Runner", func() {
 			fakeDB,
 			fakeClock,
 			interval,
-			leaseInterval,
 		))
 	})
 
@@ -64,7 +61,7 @@ var _ = Describe("Runner", func() {
 		It("calls to get a lease for cache invalidation", func() {
 			Eventually(fakeDB.LeaseCacheInvalidationCallCount).Should(Equal(1))
 			actualInterval := fakeDB.LeaseCacheInvalidationArgsForCall(0)
-			Expect(leaseInterval).To(Equal(actualInterval))
+			Expect(actualInterval).To(Equal(interval))
 		})
 
 		Context("when getting a lease succeeds", func() {

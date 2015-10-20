@@ -22,7 +22,6 @@ func NewRunner(
 	db RunnerDB,
 	clock clock.Clock,
 	interval time.Duration,
-	leaseInterval time.Duration,
 ) ifrit.Runner {
 	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 
@@ -37,7 +36,7 @@ func NewRunner(
 				leaseLogger := logger.Session("lease-invalidate-cache")
 				leaseLogger.Info("tick")
 
-				lease, leased, err := db.LeaseCacheInvalidation(leaseInterval)
+				lease, leased, err := db.LeaseCacheInvalidation(interval)
 
 				if err != nil {
 					leaseLogger.Error("failed-to-get-lease", err)

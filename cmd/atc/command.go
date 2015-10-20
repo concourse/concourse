@@ -232,8 +232,7 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 			),
 			sqlDB,
 			clock.NewClock(),
-			10*time.Second,
-			10*time.Second,
+			5*time.Minute,
 		)},
 	}
 
