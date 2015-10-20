@@ -8,8 +8,8 @@
 }
 
 \list{
-  A single Concourse deployment can now be configured with multiple
-  pipelines. See the new docs for \reference{fly-configure} for more information.
+  A single Concourse deployment can now be configured with multiple pipelines.
+  See the new docs for \reference{fly-set-pipeline} for more information.
 }{
   Fly now supports saving targets by name. See \reference{fly-save-target} for more information.
 }{

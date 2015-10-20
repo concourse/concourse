@@ -12,8 +12,8 @@ This release adds a new way of configuring jobs called
 
 We'll be removing support for the old style of job configuration in the future;
 to automatically migrate your configuration, just run
-\reference{fly-configure}{\code{fly configure}} against your instance to update
-your local configuration after upgrading to this release.
+\reference{fly-set-pipeline} against your instance to update your local
+configuration after upgrading to this release.
 
 For more details, read on.
 
