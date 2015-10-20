@@ -510,7 +510,7 @@ jobs:
       - get: concourse-develop
         params: {submodules: none}
     - task: merge-to-develop
-      file: concourse/ci/master-merge.yml
+      file: concourse-develop/ci/master-merge.yml
     - put: concourse
       params:
         repository: merge-to-develop/concourse-master
