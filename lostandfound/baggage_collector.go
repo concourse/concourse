@@ -37,13 +37,11 @@ func (bc *baggageCollector) Collect() error {
 
 	resourceHashVersions, err := bc.getResourceHashVersions()
 	if err != nil {
-		panic(err)
 		return err
 	}
 
 	err = bc.expireVolumes(resourceHashVersions)
 	if err != nil {
-		panic(err)
 		return err
 	}
 	return nil
@@ -57,7 +55,7 @@ func (bc *baggageCollector) getResourceHashVersions() (resourceHashVersion, erro
 
 	pipelines, err := bc.db.GetAllActivePipelines()
 	if err != nil {
-		bc.logger.Info("could-not-get-active-pipelines", lager.Data{"error": err.Error()})
+		bc.logger.Error("could-not-get-active-pipelines", err)
 		return nil, err
 	}
 
@@ -68,15 +66,18 @@ func (bc *baggageCollector) getResourceHashVersions() (resourceHashVersion, erro
 		for _, pipelineResource := range pipelineResources {
 			dbResource, err := pipelineDB.GetResource(pipelineResource.Name)
 			if err != nil {
+				bc.logger.Error("could-not-lookup-resource", err)
 				return nil, err
 			}
 			maxID, err := pipelineDB.GetResourceHistoryMaxID(dbResource.ID)
 			if err != nil {
+				bc.logger.Error("could-not-get-max-id-for-resource", err)
 				return nil, err
 			}
 
 			pipelineResourceVersions, _, err := pipelineDB.GetResourceHistoryCursor(pipelineResource.Name, maxID, false, 5)
 			if err != nil {
+				bc.logger.Error("could-not-get-resource-history", err)
 				return nil, err
 			}
 
@@ -120,7 +121,7 @@ func (bc *baggageCollector) expireVolumes(resourceHashVersions resourceHashVersi
 	}
 
 	if err != nil {
-		bc.logger.Info("could-not-get-volume-data", lager.Data{"error": err.Error()})
+		bc.logger.Error("could-not-get-volume-data", err)
 		return err
 	}
 
@@ -139,20 +140,30 @@ func (bc *baggageCollector) expireVolumes(resourceHashVersions resourceHashVersi
 
 		worker, err := bc.workerClient.GetWorker(volumeToExpire.WorkerName)
 		if err != nil {
-			bc.logger.Info("could-not-locate-worker", lager.Data{"error": err.Error()})
+			bc.logger.Info("could-not-locate-worker", lager.Data{
+				"error":  err.Error(),
+				"worker": volumeToExpire.WorkerName,
+			})
 			continue
 		}
 
 		baggageClaimClient, found := worker.VolumeManager()
 
 		if !found {
-			bc.logger.Info("no-volume-manager-on-worker", lager.Data{"error": err.Error()})
+			bc.logger.Info("no-volume-manager-on-worker", lager.Data{
+				"error":  err.Error(),
+				"worker": volumeToExpire.WorkerName,
+			})
 			continue
 		}
 
 		volume, err := baggageClaimClient.LookupVolume(bc.logger, volumeToExpire.Handle)
 		if err != nil {
-			bc.logger.Info("could-not-locate-volume", lager.Data{"error": err.Error()})
+			bc.logger.Info("could-not-locate-volume", lager.Data{
+				"error":  err.Error(),
+				"worker": volumeToExpire.WorkerName,
+				"handle": volumeToExpire.Handle,
+			})
 			continue
 		}
 
@@ -160,7 +171,7 @@ func (bc *baggageCollector) expireVolumes(resourceHashVersions resourceHashVersi
 
 		bc.db.SetVolumeTTL(volumeToExpire, ttlForVol)
 		if err != nil {
-			bc.logger.Info("failed-to-update-tll-in-db", lager.Data{"error": err.Error()})
+			bc.logger.Error("failed-to-update-tll-in-db", err)
 		}
 	}
 
