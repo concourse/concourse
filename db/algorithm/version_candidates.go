@@ -15,22 +15,22 @@ func (candidate VersionCandidate) String() string {
 	return fmt.Sprintf("{v%d, j%db%d}", candidate.VersionID, candidate.JobID, candidate.BuildID)
 }
 
-type VersionCandidates []VersionCandidate
+type VersionCandidates map[VersionCandidate]struct{}
 
 func (candidates VersionCandidates) IntersectByVersion(otherVersions VersionCandidates) VersionCandidates {
-	var intersected VersionCandidates
+	intersected := VersionCandidates{}
 
-	for _, version := range candidates {
+	for version := range candidates {
 		found := false
-		for _, otherVersion := range otherVersions {
+		for otherVersion := range otherVersions {
 			if otherVersion.VersionID == version.VersionID {
 				found = true
-				intersected = append(intersected, otherVersion)
+				intersected[otherVersion] = struct{}{}
 			}
 		}
 
 		if found {
-			intersected = append(intersected, version)
+			intersected[version] = struct{}{}
 		}
 	}
 
@@ -39,7 +39,7 @@ func (candidates VersionCandidates) IntersectByVersion(otherVersions VersionCand
 
 func (candidates VersionCandidates) BuildIDs(jobID int) BuildSet {
 	buildIDs := BuildSet{}
-	for _, version := range candidates {
+	for version := range candidates {
 		if version.JobID == jobID {
 			buildIDs[version.BuildID] = struct{}{}
 		}
@@ -50,7 +50,7 @@ func (candidates VersionCandidates) BuildIDs(jobID int) BuildSet {
 
 func (candidates VersionCandidates) JobIDs() JobSet {
 	ids := JobSet{}
-	for _, version := range candidates {
+	for version := range candidates {
 		if version.JobID == 0 {
 			continue
 		}
@@ -62,10 +62,10 @@ func (candidates VersionCandidates) JobIDs() JobSet {
 }
 
 func (candidates VersionCandidates) PruneVersionsOfOtherBuildIDs(jobID int, builds BuildSet) VersionCandidates {
-	var remaining VersionCandidates
-	for _, version := range candidates {
+	remaining := VersionCandidates{}
+	for version := range candidates {
 		if version.JobID != jobID || builds.Contains(version.BuildID) {
-			remaining = append(remaining, version)
+			remaining[version] = struct{}{}
 		}
 	}
 
@@ -74,7 +74,7 @@ func (candidates VersionCandidates) PruneVersionsOfOtherBuildIDs(jobID int, buil
 
 func (candidates VersionCandidates) VersionIDs() []int {
 	ids := map[int]struct{}{}
-	for _, version := range candidates {
+	for version := range candidates {
 		ids[version.VersionID] = struct{}{}
 	}
 
@@ -92,9 +92,9 @@ func (candidates VersionCandidates) VersionIDs() []int {
 
 func (candidates VersionCandidates) ForVersion(versionID int) VersionCandidates {
 	newCandidates := VersionCandidates{}
-	for _, candidate := range candidates {
+	for candidate := range candidates {
 		if candidate.VersionID == versionID {
-			newCandidates = append(newCandidates, candidate)
+			newCandidates[candidate] = struct{}{}
 		}
 	}
 

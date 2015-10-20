@@ -6,6 +6,7 @@ import (
 
 var _ = DescribeTable("Input resolving",
 	(Example).Run,
+
 	Entry("can fan-in", Example{
 		DB: DB{
 			// pass a and b
@@ -248,6 +249,33 @@ var _ = DescribeTable("Input resolving",
 			"resource-x":               "rxv1",
 			"resource-x-unconstrained": "rxv5",
 			"resource-y-unconstrained": "ryv5",
+		},
+	}),
+
+	Entry("bosh memory leak regression test", Example{
+		LoadDB: "testdata/bosh-versions.json",
+
+		Inputs: Inputs{
+			{
+				Name:     "bosh-src",
+				Resource: "bosh-src",
+				Passed: []string{
+					"unit-1.9",
+					"unit-2.1",
+					"integration-2.1-mysql",
+					"integration-1.9-postgres",
+					"integration-2.1-postgres",
+				},
+			},
+			{
+				Name:     "bosh-load-tests",
+				Resource: "bosh-load-tests",
+			},
+		},
+
+		Result: Result{
+			"bosh-src":        "imported-r88v9814",
+			"bosh-load-tests": "imported-r89v7204",
 		},
 	}),
 )

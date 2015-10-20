@@ -42,15 +42,15 @@ func (db VersionsDB) VersionsOfResourcePassedJobs(resourceID int, passed JobSet)
 }
 
 func (db VersionsDB) versionsOfResourcePassedJob(resourceID int, job int) VersionCandidates {
-	var versions []VersionCandidate
+	versions := VersionCandidates{}
 
 	for _, output := range db.BuildOutputs {
 		if output.ResourceID == resourceID && output.JobID == job {
-			versions = append(versions, VersionCandidate{
+			versions[VersionCandidate{
 				VersionID: output.VersionID,
 				BuildID:   output.BuildID,
 				JobID:     output.JobID,
-			})
+			}] = struct{}{}
 		}
 	}
 
@@ -58,13 +58,13 @@ func (db VersionsDB) versionsOfResourcePassedJob(resourceID int, job int) Versio
 }
 
 func (db VersionsDB) versionsOfResource(resourceID int) VersionCandidates {
-	var versions []VersionCandidate
+	versions := VersionCandidates{}
 
 	for _, output := range db.ResourceVersions {
 		if output.ResourceID == resourceID {
-			versions = append(versions, VersionCandidate{
+			versions[VersionCandidate{
 				VersionID: output.VersionID,
-			})
+			}] = struct{}{}
 		}
 	}
 
