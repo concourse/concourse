@@ -79,6 +79,9 @@ func (db *SQLDB) InsertVolumeData(data VolumeData) error {
 	)
 
 	if err != nil {
+		if strings.Contains(err.Error(), `duplicate key value violates unique constraint "volumes_worker_name_handle_key"`) {
+			return nil
+		}
 		return err
 	}
 

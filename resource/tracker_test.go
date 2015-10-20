@@ -197,6 +197,11 @@ var _ = Describe("Tracker", func() {
 							foundVolume = new(bfakes.FakeVolume)
 							foundVolume.HandleReturns("found-volume-handle")
 							cacheIdentifier.FindOnReturns(foundVolume, true, nil)
+
+							cacheIdentifier.ResourceVersionReturns(atc.Version{"some": "theversion"})
+							cacheIdentifier.ResourceHashReturns("hash")
+							satisfyingWorker.NameReturns("myworker")
+							foundVolume.ExpirationReturns(time.Hour, time.Now(), nil)
 						})
 
 						It("does not error and returns a resource", func() {
@@ -230,6 +235,17 @@ var _ = Describe("Tracker", func() {
 							Expect(resourceSpec.Cache).To(Equal(worker.VolumeMount{
 								Volume:    foundVolume,
 								MountPath: "/tmp/build/get",
+							}))
+						})
+
+						It("saves the volume information to the database", func() {
+							Expect(fakeDB.InsertVolumeDataCallCount()).To(Equal(1))
+							Expect(fakeDB.InsertVolumeDataArgsForCall(0)).To(Equal(db.VolumeData{
+								Handle:          "found-volume-handle",
+								WorkerName:      "myworker",
+								TTL:             time.Hour,
+								ResourceVersion: atc.Version{"some": "theversion"},
+								ResourceHash:    "hash",
 							}))
 						})
 
@@ -313,10 +329,6 @@ var _ = Describe("Tracker", func() {
 							createdVolume.HandleReturns("created-volume-handle")
 
 							cacheIdentifier.CreateOnReturns(createdVolume, nil)
-							cacheIdentifier.ResourceVersionReturns(atc.Version{"some": "theversion"})
-							cacheIdentifier.ResourceHashReturns("hash")
-							satisfyingWorker.NameReturns("myworker")
-							createdVolume.ExpirationReturns(time.Hour, time.Now(), nil)
 						})
 
 						It("does not error and returns a resource", func() {
@@ -350,17 +362,6 @@ var _ = Describe("Tracker", func() {
 							Expect(resourceSpec.Cache).To(Equal(worker.VolumeMount{
 								Volume:    createdVolume,
 								MountPath: "/tmp/build/get",
-							}))
-						})
-
-						It("saves the volume information to the database", func() {
-							Expect(fakeDB.InsertVolumeDataCallCount()).To(Equal(1))
-							Expect(fakeDB.InsertVolumeDataArgsForCall(0)).To(Equal(db.VolumeData{
-								Handle:          "created-volume-handle",
-								WorkerName:      "myworker",
-								TTL:             time.Hour,
-								ResourceVersion: atc.Version{"some": "theversion"},
-								ResourceHash:    "hash",
 							}))
 						})
 

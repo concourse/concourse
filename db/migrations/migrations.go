@@ -58,4 +58,5 @@ var Migrations = []migration.Migrator{
 	AddCheckTypeAndCheckSourceToContainers,
 	AddStepLocationToContainers,
 	AddVolumesAndCacheInvalidator,
+	AddCompositeUniqueConstraintToVolumes,
 }

@@ -69,7 +69,7 @@ func newVolume(logger lager.Logger, bcVol baggageclaim.Volume, clock clock.Clock
 
 	ttl, err := vol.db.GetVolumeTTL(vol.Handle())
 	if err != nil {
-		logger.Error("failed-to-lookup-ttl", err)
+		logger.Info("failed-to-lookup-ttl", lager.Data{"error": err.Error()})
 		ttl, _, err = bcVol.Expiration()
 
 		if err != nil {
@@ -82,7 +82,7 @@ func newVolume(logger lager.Logger, bcVol baggageclaim.Volume, clock clock.Clock
 
 	vol.heartbeating.Add(1)
 	go vol.heartbeatContinuously(
-		logger.Session("continous-heartbeat"),
+		logger.Session("continuos-heartbeat"),
 		clock.NewTicker(volumeKeepalive),
 		ttl,
 	)
@@ -112,7 +112,7 @@ func (v *volume) heartbeatContinuously(logger lager.Logger, pacemaker clock.Tick
 		case <-pacemaker.C():
 			ttl, err := v.db.GetVolumeTTL(v.Handle())
 			if err != nil {
-				logger.Error("failed-to-lookup-ttl", err)
+				logger.Info("failed-to-lookup-ttl", lager.Data{"error": err.Error()})
 			} else {
 				ttlToSet = ttl
 			}

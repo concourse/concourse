@@ -283,23 +283,23 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 			return nil, nil, err
 		}
 
-		ttl, _, err := cachedVolume.Expiration()
-		if err != nil {
-			return nil, nil, err
-		}
-
-		err = tracker.db.InsertVolumeData(db.VolumeData{
-			WorkerName:      chosenWorker.Name(),
-			TTL:             ttl,
-			Handle:          cachedVolume.Handle(),
-			ResourceVersion: cacheIdentifier.ResourceVersion(),
-			ResourceHash:    cacheIdentifier.ResourceHash(),
-		})
-		if err != nil {
-			return nil, nil, err
-		}
-
 		logger.Debug("new-cache", lager.Data{"volume": cachedVolume.Handle()})
+	}
+
+	ttl, _, err := cachedVolume.Expiration()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = tracker.db.InsertVolumeData(db.VolumeData{
+		WorkerName:      chosenWorker.Name(),
+		TTL:             ttl,
+		Handle:          cachedVolume.Handle(),
+		ResourceVersion: cacheIdentifier.ResourceVersion(),
+		ResourceHash:    cacheIdentifier.ResourceHash(),
+	})
+	if err != nil {
+		return nil, nil, err
 	}
 
 	defer cachedVolume.Release(0)
