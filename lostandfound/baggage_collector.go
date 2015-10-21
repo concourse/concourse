@@ -138,7 +138,7 @@ func (bc *baggageCollector) expireVolumes(resourceHashVersions resourceHashVersi
 			}
 		}
 
-		worker, err := bc.workerClient.GetWorker(volumeToExpire.WorkerName)
+		volumeWorker, err := bc.workerClient.GetWorker(volumeToExpire.WorkerName)
 		if err != nil {
 			bc.logger.Info("could-not-locate-worker", lager.Data{
 				"error":  err.Error(),
@@ -147,7 +147,7 @@ func (bc *baggageCollector) expireVolumes(resourceHashVersions resourceHashVersi
 			continue
 		}
 
-		baggageClaimClient, found := worker.VolumeManager()
+		baggageClaimClient, found := volumeWorker.VolumeManager()
 
 		if !found {
 			bc.logger.Info("no-volume-manager-on-worker", lager.Data{
@@ -169,7 +169,7 @@ func (bc *baggageCollector) expireVolumes(resourceHashVersions resourceHashVersi
 
 		volume.Release(ttlForVol)
 
-		bc.db.SetVolumeTTL(volumeToExpire, ttlForVol)
+		err = bc.db.SetVolumeTTL(volumeToExpire, ttlForVol)
 		if err != nil {
 			bc.logger.Error("failed-to-update-tll-in-db", err)
 		}
