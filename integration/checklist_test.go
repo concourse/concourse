@@ -37,7 +37,7 @@ var _ = Describe("Fly CLI", func() {
 			flySaveCmd := exec.Command(
 				flyPath, "save-target",
 				"--api", atcServer.URL()+"/",
-				"--name", "target-name",
+				"--target", "target-name",
 			)
 
 			sess, err := gexec.Start(flySaveCmd, GinkgoWriter, GinkgoWriter)

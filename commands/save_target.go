@@ -12,7 +12,6 @@ type SaveTargetCommand struct {
 	Username string   `long:"username"                       description:"Username for the api"`
 	Password string   `long:"password"                       description:"Password for the api"`
 	Cert     PathFlag `long:"cert"                           description:"Directory to your cert"`
-	Name     string   `short:"n" long:"name" required:"true" description:"Name for target"`
 	Insecure bool     `long:"skip-ssl"                       description:"Skip SSL verification"`
 }
 
@@ -31,7 +30,7 @@ func init() {
 }
 
 func (command *SaveTargetCommand) Execute(args []string) error {
-	targetName := command.Name
+	targetName := globalOptions.Target
 	if targetName == "" {
 		log.Fatalln("name not provided for target")
 		return nil
