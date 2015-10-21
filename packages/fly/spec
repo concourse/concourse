@@ -5,7 +5,6 @@ dependencies:
   - golang
 
 files:
-  - github.com/concourse/fly/*.go # gosub
   - github.com/aryann/difflib/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
   - github.com/concourse/atc/*.go # gosub
@@ -14,6 +13,7 @@ files:
   - github.com/concourse/atc/db/algorithm/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
   - github.com/concourse/atc/web/*.go # gosub
+  - github.com/concourse/fly/*.go # gosub
   - github.com/concourse/fly/atcclient/*.go # gosub
   - github.com/concourse/fly/atcclient/eventstream/*.go # gosub
   - github.com/concourse/fly/commands/*.go # gosub
