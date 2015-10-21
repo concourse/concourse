@@ -24,6 +24,7 @@ type Handler interface {
 	ListContainers() ([]atc.Container, error)
 	ListPipelines() ([]atc.Pipeline, error)
 	PipelineConfig(pipelineName string) (atc.Config, string, bool, error)
+	ListVolumes() ([]atc.Volume, error)
 }
 
 type AtcHandler struct {
