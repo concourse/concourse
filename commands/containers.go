@@ -58,7 +58,7 @@ func (command *ContainersCommand) Execute([]string) error {
 
 	table := Table{headers}
 
-	sort.Sort(byHandle(containers))
+	sort.Sort(containersByHandle(containers))
 
 	for _, c := range containers {
 		row := TableRow{
@@ -78,11 +78,11 @@ func (command *ContainersCommand) Execute([]string) error {
 	return nil
 }
 
-type byHandle []atc.Container
+type containersByHandle []atc.Container
 
-func (cs byHandle) Len() int               { return len(cs) }
-func (cs byHandle) Swap(i int, j int)      { cs[i], cs[j] = cs[j], cs[i] }
-func (cs byHandle) Less(i int, j int) bool { return cs[i].ID < cs[j].ID }
+func (cs containersByHandle) Len() int               { return len(cs) }
+func (cs containersByHandle) Swap(i int, j int)      { cs[i], cs[j] = cs[j], cs[i] }
+func (cs containersByHandle) Less(i int, j int) bool { return cs[i].ID < cs[j].ID }
 
 func buildIDOrNone(id int) TableCell {
 	var column TableCell

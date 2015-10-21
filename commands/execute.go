@@ -16,8 +16,8 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/atcclient"
-	"github.com/concourse/fly/config"
 	"github.com/concourse/fly/atcclient/eventstream"
+	"github.com/concourse/fly/config"
 	"github.com/concourse/fly/rc"
 	"github.com/tedsuo/rata"
 )

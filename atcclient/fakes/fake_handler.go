@@ -12,7 +12,7 @@ type FakeHandler struct {
 	AllBuildsStub        func() ([]atc.Build, error)
 	allBuildsMutex       sync.RWMutex
 	allBuildsArgsForCall []struct{}
-	allBuildsReturns struct {
+	allBuildsReturns     struct {
 		result1 []atc.Build
 		result2 error
 	}
@@ -66,7 +66,7 @@ type FakeHandler struct {
 	CreatePipeStub        func() (atc.Pipe, error)
 	createPipeMutex       sync.RWMutex
 	createPipeArgsForCall []struct{}
-	createPipeReturns struct {
+	createPipeReturns     struct {
 		result1 atc.Pipe
 		result2 error
 	}
@@ -105,14 +105,14 @@ type FakeHandler struct {
 	ListContainersStub        func() ([]atc.Container, error)
 	listContainersMutex       sync.RWMutex
 	listContainersArgsForCall []struct{}
-	listContainersReturns struct {
+	listContainersReturns     struct {
 		result1 []atc.Container
 		result2 error
 	}
 	ListPipelinesStub        func() ([]atc.Pipeline, error)
 	listPipelinesMutex       sync.RWMutex
 	listPipelinesArgsForCall []struct{}
-	listPipelinesReturns struct {
+	listPipelinesReturns     struct {
 		result1 []atc.Pipeline
 		result2 error
 	}
@@ -126,6 +126,13 @@ type FakeHandler struct {
 		result2 string
 		result3 bool
 		result4 error
+	}
+	ListVolumesStub        func() ([]atc.Volume, error)
+	listVolumesMutex       sync.RWMutex
+	listVolumesArgsForCall []struct{}
+	listVolumesReturns     struct {
+		result1 []atc.Volume
+		result2 error
 	}
 }
 
@@ -533,6 +540,31 @@ func (fake *FakeHandler) PipelineConfigReturns(result1 atc.Config, result2 strin
 		result3 bool
 		result4 error
 	}{result1, result2, result3, result4}
+}
+
+func (fake *FakeHandler) ListVolumes() ([]atc.Volume, error) {
+	fake.listVolumesMutex.Lock()
+	fake.listVolumesArgsForCall = append(fake.listVolumesArgsForCall, struct{}{})
+	fake.listVolumesMutex.Unlock()
+	if fake.ListVolumesStub != nil {
+		return fake.ListVolumesStub()
+	} else {
+		return fake.listVolumesReturns.result1, fake.listVolumesReturns.result2
+	}
+}
+
+func (fake *FakeHandler) ListVolumesCallCount() int {
+	fake.listVolumesMutex.RLock()
+	defer fake.listVolumesMutex.RUnlock()
+	return len(fake.listVolumesArgsForCall)
+}
+
+func (fake *FakeHandler) ListVolumesReturns(result1 []atc.Volume, result2 error) {
+	fake.ListVolumesStub = nil
+	fake.listVolumesReturns = struct {
+		result1 []atc.Volume
+		result2 error
+	}{result1, result2}
 }
 
 var _ atcclient.Handler = new(FakeHandler)
