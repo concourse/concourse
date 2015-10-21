@@ -47,6 +47,8 @@ const (
 	ListContainers  = "ListContainers"
 	GetContainer    = "GetContainer"
 	HijackContainer = "HijackContainer"
+
+	ListVolumes = "ListVolumes"
 )
 
 var Routes = rata.Routes{
@@ -94,4 +96,6 @@ var Routes = rata.Routes{
 	{Path: "/api/v1/containers", Method: "GET", Name: ListContainers},
 	{Path: "/api/v1/containers/:id", Method: "GET", Name: GetContainer},
 	{Path: "/api/v1/containers/:id/hijack", Method: "POST", Name: HijackContainer},
+
+	{Path: "/api/v1/volumes", Method: "GET", Name: ListVolumes},
 }

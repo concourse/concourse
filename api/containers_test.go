@@ -22,15 +22,15 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-const (
-	pipelineName1 = "pipeline-1"
-	type1         = db.ContainerTypeCheck
-	name1         = "name-1"
-	buildID1      = 1234
-	containerID1  = "dh93mvi"
-)
-
 var _ = Describe("Pipelines API", func() {
+	var (
+		pipelineName1 = "pipeline-1"
+		type1         = db.ContainerTypeCheck
+		name1         = "name-1"
+		buildID1      = 1234
+		containerID1  = "dh93mvi"
+	)
+
 	var (
 		req *http.Request
 

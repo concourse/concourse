@@ -505,7 +505,8 @@ func (cmd *ATCCommand) constructAPIHandler(
 		sqlDB, // db.ConfigDB
 		sqlDB, // buildserver.BuildsDB
 		sqlDB, // workerserver.WorkerDB
-		sqlDB, // containerServer.ContainerDB
+		sqlDB, // containerserver.ContainerDB
+		sqlDB, // volumeserver.VolumesDB
 		sqlDB, // pipes.PipeDB
 		sqlDB, // db.PipelinesDB
 

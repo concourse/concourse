@@ -17,6 +17,7 @@ import (
 	"github.com/concourse/atc/api/pipelineserver"
 	"github.com/concourse/atc/api/pipes"
 	"github.com/concourse/atc/api/resourceserver"
+	"github.com/concourse/atc/api/volumeserver"
 	"github.com/concourse/atc/api/workerserver"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
@@ -35,6 +36,7 @@ func NewHandler(
 	buildsDB buildserver.BuildsDB,
 	workerDB workerserver.WorkerDB,
 	containerDB containerserver.ContainerDB,
+	volumesDB volumeserver.VolumesDB,
 	pipeDB pipes.PipeDB,
 	pipelinesDB db.PipelinesDB,
 
@@ -83,6 +85,8 @@ func NewHandler(
 
 	containerServer := containerserver.NewServer(logger, workerClient, containerDB)
 
+	volumesServer := volumeserver.NewServer(logger, volumesDB)
+
 	handlers := map[string]http.Handler{
 		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
 		atc.SaveConfig: http.HandlerFunc(configServer.SaveConfig),
@@ -128,6 +132,8 @@ func NewHandler(
 		atc.ListContainers:  http.HandlerFunc(containerServer.ListContainers),
 		atc.GetContainer:    http.HandlerFunc(containerServer.GetContainer),
 		atc.HijackContainer: http.HandlerFunc(containerServer.HijackContainer),
+
+		atc.ListVolumes: http.HandlerFunc(volumesServer.ListVolumes),
 	}
 
 	return rata.NewRouter(atc.Routes, wrapper.Wrap(handlers))
