@@ -53,6 +53,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			actualVolumeData := volumes[0]
 			Expect(actualVolumeData.WorkerName).To(Equal(expectedVolumeData.WorkerName))
 			Expect(actualVolumeData.TTL).To(Equal(expectedVolumeData.TTL))
+			Expect(actualVolumeData.ExpiresIn).To(BeNumerically("~", expectedVolumeData.TTL, time.Second))
 			Expect(actualVolumeData.Handle).To(Equal(expectedVolumeData.Handle))
 			Expect(actualVolumeData.ResourceVersion).To(Equal(expectedVolumeData.ResourceVersion))
 			Expect(actualVolumeData.ResourceHash).To(Equal(expectedVolumeData.ResourceHash))
@@ -745,6 +746,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			err = database.CreateContainerInfo(ttlContainerInfo, -ttl)
 			Expect(err).NotTo(HaveOccurred())
 			_, found, err = database.FindContainerInfoByIdentifier(db.ContainerIdentifier{Name: "some-ttl-name"})
+			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
 		})
 

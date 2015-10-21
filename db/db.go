@@ -154,7 +154,9 @@ type WorkerInfo struct {
 
 type SavedVolumeData struct {
 	VolumeData
-	ID int
+
+	ID        int
+	ExpiresIn time.Duration
 }
 
 type VolumeData struct {

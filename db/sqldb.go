@@ -82,6 +82,7 @@ func (db *SQLDB) InsertVolumeData(data VolumeData) error {
 		if strings.Contains(err.Error(), `duplicate key value violates unique constraint "volumes_worker_name_handle_key"`) {
 			return nil
 		}
+
 		return err
 	}
 
@@ -102,6 +103,7 @@ func (db *SQLDB) GetVolumes() ([]SavedVolumeData, error) {
 	rows, err := db.conn.Query(`
 		SELECT v.worker_name,
 			v.ttl,
+			EXTRACT(epoch FROM v.expires_at - NOW()),
 			v.handle,
 			v.resource_version,
 			v.resource_hash,
@@ -118,11 +120,15 @@ func (db *SQLDB) GetVolumes() ([]SavedVolumeData, error) {
 
 	for rows.Next() {
 		var volume SavedVolumeData
+		var ttlSeconds float64
 		var versionJSON []byte
-		err := rows.Scan(&volume.WorkerName, &volume.TTL, &volume.Handle, &versionJSON, &volume.ResourceHash, &volume.ID)
+
+		err := rows.Scan(&volume.WorkerName, &volume.TTL, &ttlSeconds, &volume.Handle, &versionJSON, &volume.ResourceHash, &volume.ID)
 		if err != nil {
 			return nil, err
 		}
+
+		volume.ExpiresIn = time.Duration(ttlSeconds) * time.Second
 
 		err = json.Unmarshal(versionJSON, &volume.ResourceVersion)
 		if err != nil {

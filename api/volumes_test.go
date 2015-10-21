@@ -42,7 +42,8 @@ var _ = Describe("Pipelines API", func() {
 				BeforeEach(func() {
 					volumesDB.GetVolumesReturns([]db.SavedVolumeData{
 						{
-							ID: 3,
+							ID:        3,
+							ExpiresIn: 2 * time.Minute,
 							VolumeData: db.VolumeData{
 								WorkerName:      "some-worker",
 								TTL:             10 * time.Minute,
@@ -52,7 +53,8 @@ var _ = Describe("Pipelines API", func() {
 							},
 						},
 						{
-							ID: 1,
+							ID:        1,
+							ExpiresIn: 23 * time.Hour,
 							VolumeData: db.VolumeData{
 								WorkerName:      "some-other-worker",
 								TTL:             24 * time.Hour,
@@ -75,13 +77,15 @@ var _ = Describe("Pipelines API", func() {
 					Expect(body).To(MatchJSON(`[
 						{
 							"id": "some-handle",
-							"ttl_in_seconds": 600,
+							"ttl_in_seconds": 120,
+							"validity_in_seconds": 600,
 							"resource_version": {"some": "version"},
 							"worker_name": "some-worker"
 						},
 						{
 							"id": "some-other-handle",
-							"ttl_in_seconds": 86400,
+							"ttl_in_seconds": 82800,
+							"validity_in_seconds": 86400,
 							"resource_version": {"some": "other-version"},
 							"worker_name": "some-other-worker"
 						}

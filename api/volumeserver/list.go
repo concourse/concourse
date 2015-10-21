@@ -26,7 +26,7 @@ func (s *Server) ListVolumes(w http.ResponseWriter, r *http.Request) {
 	presentedVolumes := make([]atc.Volume, len(volumes))
 	for i := 0; i < len(volumes); i++ {
 		volume := volumes[i]
-		presentedVolumes[i] = present.Volume(volume.VolumeData)
+		presentedVolumes[i] = present.Volume(volume)
 	}
 
 	json.NewEncoder(w).Encode(presentedVolumes)
