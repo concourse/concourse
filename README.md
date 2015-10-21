@@ -81,7 +81,7 @@ The variables here should be set to:
 
 ### forwarding workers
 
-In order to have a worker on a remote network register with `tsa` and have it's traffic forwarded you can run the following command:
+In order to have a worker on a remote network register with `tsa` and have its traffic forwarded you can run the following command:
 
 ```bash
 ssh -p 2222 $TSA_HOST \
