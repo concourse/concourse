@@ -44,22 +44,25 @@ var _ = Describe("Fly CLI", func() {
 						ghttp.VerifyRequest("GET", "/api/v1/volumes"),
 						ghttp.RespondWithJSONEncoded(200, []atc.Volume{
 							{
-								ID:              "bbbbbb",
-								WorkerName:      "cccccc",
-								TTLInSeconds:    602,
-								ResourceVersion: atc.Version{"version": "one"},
+								ID:                "bbbbbb",
+								WorkerName:        "cccccc",
+								TTLInSeconds:      50,
+								ValidityInSeconds: 600,
+								ResourceVersion:   atc.Version{"version": "one"},
 							},
 							{
-								ID:              "aaaaaa",
-								TTLInSeconds:    86400,
-								WorkerName:      "dddddd",
-								ResourceVersion: atc.Version{"version": "three"},
+								ID:                "aaaaaa",
+								TTLInSeconds:      86340,
+								ValidityInSeconds: 86400,
+								WorkerName:        "dddddd",
+								ResourceVersion:   atc.Version{"version": "three"},
 							},
 							{
-								ID:              "aaabbb",
-								WorkerName:      "cccccc",
-								TTLInSeconds:    6000,
-								ResourceVersion: atc.Version{"version": "two", "another": "field"},
+								ID:                "aaabbb",
+								WorkerName:        "cccccc",
+								TTLInSeconds:      5000,
+								ValidityInSeconds: 6000,
+								ResourceVersion:   atc.Version{"version": "two", "another": "field"},
 							},
 						}),
 					),
@@ -67,10 +70,10 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("lists them to the user, ordered by worker name and volume name", func() {
-				Eventually(sess).Should(gbytes.Say("handle  ttl       worker  version                     \n"))
-				Eventually(sess).Should(gbytes.Say("aaabbb  01:40:00  cccccc  another: field, version: two\n"))
-				Eventually(sess).Should(gbytes.Say("bbbbbb  00:10:02  cccccc  version: one                \n"))
-				Eventually(sess).Should(gbytes.Say("aaaaaa  24:00:00  dddddd  version: three              \n"))
+				Eventually(sess).Should(gbytes.Say("handle  ttl       validity  worker  version                     \n"))
+				Eventually(sess).Should(gbytes.Say("aaabbb  01:23:20  01:40:00  cccccc  another: field, version: two\n"))
+				Eventually(sess).Should(gbytes.Say("bbbbbb  00:00:50  00:10:00  cccccc  version: one                \n"))
+				Eventually(sess).Should(gbytes.Say("aaaaaa  23:59:00  24:00:00  dddddd  version: three              \n"))
 				Eventually(sess).Should(gexec.Exit(0))
 			})
 		})

@@ -51,6 +51,7 @@ func (command *VolumesCommand) Execute([]string) error {
 	headers := TableRow{
 		{Contents: "handle", Color: color.New(color.Bold)},
 		{Contents: "ttl", Color: color.New(color.Bold)},
+		{Contents: "validity", Color: color.New(color.Bold)},
 		{Contents: "worker", Color: color.New(color.Bold)},
 		{Contents: "version", Color: color.New(color.Bold)},
 	}
@@ -63,6 +64,7 @@ func (command *VolumesCommand) Execute([]string) error {
 		row := TableRow{
 			{Contents: c.ID},
 			{Contents: formatTTL(c.TTLInSeconds)},
+			{Contents: formatTTL(c.ValidityInSeconds)},
 			{Contents: c.WorkerName},
 			{Contents: formatVersion(c.ResourceVersion)},
 		}
