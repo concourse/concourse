@@ -51,7 +51,7 @@ var _ = Describe("Client", func() {
 		})
 	})
 
-	Context("when listing organization failsjj", func() {
+	Context("when listing organization fails", func() {
 		BeforeEach(func() {
 			githubServer.AppendHandlers(
 				ghttp.CombineHandlers(
@@ -63,6 +63,48 @@ var _ = Describe("Client", func() {
 
 		It("returns an error", func() {
 			_, err := client.Organizations(proxiedClient)
+			Expect(err).To(BeAssignableToTypeOf(&gogithub.ErrorResponse{}))
+		})
+	})
+
+	Context("when listing teams succeeds", func() {
+		BeforeEach(func() {
+			githubServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/user/teams"),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, []gogithub.Team{
+						{Slug: gogithub.String("team-1"),
+							Organization: &gogithub.Organization{Login: gogithub.String("org-1")}},
+						{Slug: gogithub.String("team-2"),
+							Organization: &gogithub.Organization{Login: gogithub.String("org-1")}},
+						{Slug: gogithub.String("team-3"),
+							Organization: &gogithub.Organization{Login: gogithub.String("org-2")}},
+					}),
+				),
+			)
+		})
+
+		It("returns the map of organization to team names", func() {
+			teams, err := client.Teams(proxiedClient)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(teams).To(HaveLen(2))
+			Expect(teams["org-1"]).To(ConsistOf([]string{"team-1", "team-2"}))
+			Expect(teams["org-2"]).To(ConsistOf([]string{"team-3"}))
+		})
+	})
+
+	Context("when listing teams fails", func() {
+		BeforeEach(func() {
+			githubServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/user/teams"),
+					ghttp.RespondWith(http.StatusUnauthorized, ""),
+				),
+			)
+		})
+
+		It("returns an error", func() {
+			_, err := client.Teams(proxiedClient)
 			Expect(err).To(BeAssignableToTypeOf(&gogithub.ErrorResponse{}))
 		})
 	})

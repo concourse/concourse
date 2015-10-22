@@ -24,6 +24,8 @@ type OAuthClient interface {
 	Client(context.Context, *oauth2.Token) *http.Client
 }
 
+//go:generate counterfeiter . Verifier
+
 type Verifier interface {
 	Verify(*http.Client) (bool, error)
 }

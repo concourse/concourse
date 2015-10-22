@@ -10,12 +10,36 @@ import (
 
 type Client interface {
 	Organizations(*http.Client) ([]string, error)
+	Teams(*http.Client) (OrganizationTeams, error)
 }
 
 type client struct{}
 
 func NewClient() Client {
 	return &client{}
+}
+
+type OrganizationTeams map[string][]string
+
+func (c *client) Teams(httpClient *http.Client) (OrganizationTeams, error) {
+	client := gogithub.NewClient(httpClient)
+	teams, _, err := client.Organizations.ListUserTeams(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	organizationTeams := OrganizationTeams{}
+	for _, team := range teams {
+		organizationName := *team.Organization.Login
+
+		if _, ok := organizationTeams[organizationName]; !ok {
+			organizationTeams[organizationName] = []string{}
+		}
+
+		organizationTeams[organizationName] = append(organizationTeams[organizationName], *team.Slug)
+	}
+
+	return organizationTeams, nil
 }
 
 func (c *client) Organizations(httpClient *http.Client) ([]string, error) {
