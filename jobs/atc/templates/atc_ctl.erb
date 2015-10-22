@@ -41,6 +41,18 @@ source /var/vcap/packages/pid_utils/pid_utils.sh
   my_ip ||= discover_external_ip
 %>
 
+<%
+  def validate_github_orgs
+    p("atc.github_auth.organizations").each do |org|
+      if org['teams'].nil?
+        raise "Must specify teams for organization: " + org['name'] + ". Use 'all' to enable all teams in an org"
+      end
+    end
+  end
+
+  validate_github_orgs
+%>
+
 case $1 in
 
   start)
@@ -73,9 +85,13 @@ case $1 in
       <% end %> \
       --basic-auth-username <%= esc(p("atc.basic_auth_username")) %> \
       --basic-auth-password <%= esc(p("atc.basic_auth_password")) %> \
-      --github-auth-organization <%= esc(p("atc.github_auth_organization")) %> \
-      --github-auth-client-id <%= esc(p("atc.github_auth_client_id")) %> \
-      --github-auth-client-secret <%= esc(p("atc.github_auth_client_secret")) %> \
+      <% p("atc.github_auth.organizations").each do |org| %> \
+        <% org['teams'].each do |team| %> \
+      --github-auth-team <%=  org['name'] + "/" + team %> \
+        <% end %> \
+      <% end %> \
+      --github-auth-client-id <%= esc(p("atc.github_auth.client_id")) %> \
+      --github-auth-client-secret <%= esc(p("atc.github_auth.client_secret")) %> \
       --session-signing-key $SIGNING_KEY \
       --resource-checking-interval <%= p("atc.default_check_interval") %> \
       --cli-artifacts-dir /var/vcap/packages/fly \

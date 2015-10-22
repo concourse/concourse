@@ -31,15 +31,15 @@ properties:
     description: "plaintext password for http basic auth"
     default: ""
 
-  atc.github_auth_organization:
+  atc.github_auth.organizations:
     description: "github organization whose members should be authorized"
-    default: ""
+    default: []
 
-  atc.github_auth_client_id:
+  atc.github_auth.client_id:
     description: "github client ID to use for OAuth"
     default: ""
 
-  atc.github_auth_client_secret:
+  atc.github_auth.client_secret:
     description: "github client secret to use for OAuth"
     default: ""
 
