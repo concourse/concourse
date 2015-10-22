@@ -64,6 +64,12 @@ var _ = Describe("Fly CLI", func() {
 								ValidityInSeconds: 6000,
 								ResourceVersion:   atc.Version{"version": "two", "another": "field"},
 							},
+							{
+								ID:                "cccccc",
+								TTLInSeconds:      200,
+								ValidityInSeconds: 300,
+								WorkerName:        "dddddd",
+							},
 						}),
 					),
 				)
@@ -74,6 +80,7 @@ var _ = Describe("Fly CLI", func() {
 				Eventually(sess).Should(gbytes.Say("aaabbb  01:23:20  01:40:00  cccccc  another: field, version: two\n"))
 				Eventually(sess).Should(gbytes.Say("bbbbbb  00:00:50  00:10:00  cccccc  version: one                \n"))
 				Eventually(sess).Should(gbytes.Say("aaaaaa  23:59:00  24:00:00  dddddd  version: three              \n"))
+				Eventually(sess).Should(gbytes.Say("cccccc  00:03:20  00:05:00  dddddd  n/a                         \n"))
 				Eventually(sess).Should(gexec.Exit(0))
 			})
 		})

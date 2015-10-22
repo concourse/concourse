@@ -66,7 +66,7 @@ func (command *VolumesCommand) Execute([]string) error {
 			{Contents: formatTTL(c.TTLInSeconds)},
 			{Contents: formatTTL(c.ValidityInSeconds)},
 			{Contents: c.WorkerName},
-			{Contents: formatVersion(c.ResourceVersion)},
+			versionCell(c.ResourceVersion),
 		}
 
 		table = append(table, row)
@@ -100,7 +100,11 @@ func formatTTL(ttlInSeconds int64) string {
 	)
 }
 
-func formatVersion(version atc.Version) string {
+func versionCell(version atc.Version) TableCell {
+	if version == nil {
+		return TableCell{Contents: "n/a", Color: color.New(color.Faint)}
+	}
+
 	pairs := []string{}
 	for k, v := range version {
 		pairs = append(pairs, fmt.Sprintf("%s: %s", k, v))
@@ -108,5 +112,5 @@ func formatVersion(version atc.Version) string {
 
 	sort.Sort(sort.StringSlice(pairs))
 
-	return strings.Join(pairs, ", ")
+	return TableCell{Contents: strings.Join(pairs, ", ")}
 }
