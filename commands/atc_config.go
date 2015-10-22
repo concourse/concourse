@@ -20,7 +20,6 @@ import (
 type ATCConfig struct {
 	pipelineName        string
 	handler             atcclient.Handler
-	apiRequester        *atcRequester
 	webRequestGenerator *rata.RequestGenerator
 }
 

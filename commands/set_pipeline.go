@@ -68,12 +68,10 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 	}
 	handler := atcclient.NewAtcHandler(client)
 
-	apiRequester := newAtcRequester(target.URL(), target.Insecure)
 	webRequestGenerator := rata.NewRequestGenerator(target.URL(), web.Routes)
 
 	atcConfig := ATCConfig{
 		pipelineName:        pipelineName,
-		apiRequester:        apiRequester,
 		webRequestGenerator: webRequestGenerator,
 		handler:             handler,
 	}
