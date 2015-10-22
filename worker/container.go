@@ -57,7 +57,6 @@ func newGardenWorkerContainer(
 		clock.NewTicker(containerKeepalive),
 	)
 
-	trackedContainers.Add(1)
 	metric.TrackedContainers.Inc()
 
 	properties, err := workerContainer.Properties()
@@ -84,7 +83,6 @@ func (container *gardenWorkerContainer) Release(finalTTL time.Duration) {
 	container.releaseOnce.Do(func() {
 		container.release <- finalTTL
 		container.heartbeating.Wait()
-		trackedContainers.Add(-1)
 		metric.TrackedContainers.Dec()
 
 		for _, v := range container.volumes {

@@ -3,7 +3,6 @@ package worker
 import (
 	"encoding/json"
 	"errors"
-	"expvar"
 	"fmt"
 	"path"
 	"sort"
@@ -28,8 +27,6 @@ const inputVolumeTTL = containerTTL
 
 const ephemeralPropertyName = "concourse:ephemeral"
 const volumePropertyName = "concourse:volumes"
-
-var trackedContainers = expvar.NewInt("TrackedContainers")
 
 //go:generate counterfeiter . Worker
 

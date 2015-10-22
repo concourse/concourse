@@ -5,7 +5,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 
-	_ "github.com/codahale/metrics/runtime"
 	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 )
