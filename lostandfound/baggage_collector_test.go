@@ -373,7 +373,7 @@ var _ = Describe("Baggage Collector", func() {
 				volumeData: []db.VolumeData{
 					{
 						WorkerName:      "some-worker",
-						TTL:             24 * time.Hour,
+						TTL:             10 * time.Minute,
 						Handle:          "some-volume-handle-1",
 						ResourceVersion: atc.Version{"version": "1"},
 						ResourceHash:    `some-a-type{"some":"a-source"}`,
@@ -422,7 +422,6 @@ var _ = Describe("Baggage Collector", func() {
 					},
 				},
 				expectedTTLs: map[string]time.Duration{
-					"some-volume-handle-1": 10 * time.Minute,
 					"some-volume-handle-2": 10 * time.Minute,
 					"some-volume-handle-3": 1 * time.Hour,
 					"some-volume-handle-4": 2 * time.Hour,

@@ -128,6 +128,10 @@ func (bc *baggageCollector) expireVolumes(resourceHashVersions resourceHashVersi
 	for _, volumeToExpire := range volumesToExpire {
 		version, _ := json.Marshal(volumeToExpire.ResourceVersion)
 		hashKey := string(version) + volumeToExpire.ResourceHash
+		if volumeToExpire.TTL == NoRelevantVersionsTTL {
+			continue
+		}
+
 		ttlForVol := NoRelevantVersionsTTL
 
 		if rank, ok := resourceHashVersions[hashKey]; ok {
